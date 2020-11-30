@@ -19,6 +19,7 @@
 #include <linux/extcon.h>
 #include <linux/alarmtimer.h>
 
+
 enum data_source {
 	CM_BATTERY_PRESENT,
 	CM_NO_BATTERY,
@@ -377,6 +378,7 @@ struct charger_manager {
 	u64 charging_start_time;
 	u64 charging_end_time;
 	u32 charging_status;
+	bool is_full;
 	struct cm_track_capacity track;
 };
 

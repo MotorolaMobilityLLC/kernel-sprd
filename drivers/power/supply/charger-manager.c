@@ -655,6 +655,7 @@ static int set_batt_cap(struct charger_manager *cm, int cap)
  * Returns 0 if there is no error.
  * Returns a negative value on error.
  */
+ #if 0
 static int adjust_fuel_cap(struct charger_manager *cm, int cap)
 {
 	union power_supply_propval val;
@@ -674,7 +675,7 @@ static int adjust_fuel_cap(struct charger_manager *cm, int cap)
 
 	return ret;
 }
-
+#endif
 /**
  * get_charger_current - Get the charging current from charging ic
  * @cm: the Charger Manager representing the battery.
@@ -832,7 +833,7 @@ static bool is_full_charged(struct charger_manager *cm)
 	struct power_supply *fuel_gauge;
 	bool is_full = false;
 	int ret = 0;
-	int uV, uA;
+	//int uV, uA;
 
 	/* If there is no battery, it cannot be charged */
 	if (!is_batt_present(cm))
@@ -853,7 +854,7 @@ static bool is_full_charged(struct charger_manager *cm)
 			goto out;
 		}
 	}
-
+#if 0
 	/* Full, if it's over the fullbatt voltage */
 	if (desc->fullbatt_uV > 0 && desc->fullbatt_uA > 0) {
 		ret = get_batt_uV(cm, &uV);
@@ -885,7 +886,7 @@ static bool is_full_charged(struct charger_manager *cm)
 			goto out;
 		}
 	}
-
+#endif
 	/* Full, if the capacity is more than fullbatt_soc */
 	if (desc->fullbatt_soc > 0) {
 		val.intval = 0;
@@ -1097,7 +1098,7 @@ static void fullbatt_vchk(struct work_struct *work)
 			struct charger_manager, fullbatt_vchk_work);
 	struct charger_desc *desc = cm->desc;
 	int batt_ocv, err, diff;
-
+	return;
 	/* remove the appointment for fullbatt_vchk */
 	cm->fullbatt_vchk_jiffies_at = 0;
 
@@ -1138,6 +1139,7 @@ static int check_charging_duration(struct charger_manager *cm)
 	u64 curr = ktime_to_ms(ktime_get());
 	u64 duration;
 	int batt_ocv, diff, ret = false;
+		return ret;
 
 	if (!desc->charging_max_duration_ms &&
 			!desc->discharging_max_duration_ms)
@@ -1264,6 +1266,7 @@ static int cm_check_thermal_status(struct charger_manager *cm)
 	return ret;
 }
 
+static int charger_voltage;
 static int cm_check_charge_voltage(struct charger_manager *cm)
 {
 	struct charger_desc *desc = cm->desc;
@@ -1290,6 +1293,7 @@ static int cm_check_charge_voltage(struct charger_manager *cm)
 		return ret;
 
 	charge_vol = val.intval;
+	charger_voltage = val.intval;
 
 	if (cm->charger_enabled && charge_vol > desc->charge_voltage_max) {
 		dev_info(cm->dev, "Charging voltage is larger than %d\n",
@@ -1702,10 +1706,10 @@ static bool _cm_monitor(struct charger_manager *cm)
 	 * dropped than fullbatt_vchkdrop_uV after fully charged state,
 	 * charger-manager have to recharge battery.
 	 */
-	} else if (!cm->emergency_stop && is_ext_pwr_online(cm) &&
-			!cm->charger_enabled) {
-		dev_info(cm->dev, "Check dropped voltage of battery\n");
-		fullbatt_vchk(&cm->fullbatt_vchk_work.work);
+//	} else if (!cm->emergency_stop && is_ext_pwr_online(cm) &&
+//			!cm->charger_enabled) {
+//		dev_info(cm->dev, "Check dropped voltage of battery\n");
+	//	fullbatt_vchk(&cm->fullbatt_vchk_work.work);
 
 	/*
 	 * Check whether fully charged state to protect overcharge
@@ -1713,13 +1717,20 @@ static bool _cm_monitor(struct charger_manager *cm)
 	 */
 	} else if (!cm->emergency_stop && is_full_charged(cm) &&
 			cm->charger_enabled) {
-		dev_info(cm->dev, "EVENT_HANDLE: Battery Fully Charged\n");
-		uevent_notify(cm, default_event_names[CM_EVENT_BATT_FULL]);
+		if( !cm->is_full )
+		{
+			
+			dev_info(cm->dev, "EVENT_HANDLE: Battery Fully Charged\n");
+			uevent_notify(cm, default_event_names[CM_EVENT_BATT_FULL]);
+			cm->is_full  = true;
+		}
+//		else
 
-		try_charger_enable(cm, false);
+//		try_charger_enable(cm, false);
 
-		fullbatt_vchk(&cm->fullbatt_vchk_work.work);
+//		fullbatt_vchk(&cm->fullbatt_vchk_work.work);
 	} else {
+		cm->is_full  = false;
 		cm->emergency_stop = 0;
 		cm->charging_status = 0;
 		if (is_ext_pwr_online(cm)) {
@@ -1993,6 +2004,8 @@ static void misc_event_handler(struct charger_manager *cm,
 
 	if (cm->charging_status)
 		cm->charging_status = 0;
+
+	cm->is_full = false;
 
 	if (is_polling_required(cm) && cm->desc->polling_interval_ms)
 		schedule_work(&setup_polling);
@@ -3597,11 +3610,11 @@ static void cm_batt_works(struct work_struct *work)
 	else
 		cm->desc->charger_status = chg_sts;
 
-	dev_err(cm->dev, "battery voltage = %d, OCV = %d, current = %d, "
+	dev_err(cm->dev, "Vbat = %d, OCV = %d, current = %d, VChr=%d,"
 		 "capacity = %d,%d, charger status = %d, force set full = %d, "
 		 "charging current = %d, charging limit current = %d, "
 		 "battery temperature = %d track state = %d fullbatt_uV = %d\n",
-		 batt_uV, batt_ocV, bat_uA, fuel_cap,cm->desc->cap, cm->desc->charger_status,
+		 batt_uV, batt_ocV, bat_uA, charger_voltage,fuel_cap,cm->desc->cap, cm->desc->charger_status,
 		 cm->desc->force_set_full, chg_cur, chg_limit_cur, cur_temp,
 		 cm->track.state,cm->desc->fullbatt_uV);
 
