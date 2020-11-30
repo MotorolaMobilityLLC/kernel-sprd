@@ -3,6 +3,7 @@
  * Author: Sheng Xu <sheng.xu@unisoc.com>
  */
 
+#include <linux/compat.h>
 #include <linux/miscdevice.h>
 #include <linux/mm.h>
 #include <linux/module.h>
@@ -45,11 +46,11 @@ static int map_user_mmap(struct file *file, struct vm_area_struct *vma)
 
 	if (mem_info->phy_addr && mem_info->size) {
 		vma->vm_page_prot = vm_get_page_prot(vma->vm_flags);
-		pr_debug("%s: mem_info->phy_addr=0x%lx, mem_info->size=0x%zx\n",
+		pr_info("%s: phy_addr=0x%lx, size=0x%zx\n",
 				 __func__, mem_info->phy_addr, mem_info->size);
 		ret = vm_iomap_memory(vma, mem_info->phy_addr, mem_info->size);
 	} else {
-		pr_err("%s, mem_info->phy_addr=0x%lx, mem_info->size=0x%zx err!\n",
+		pr_err("%s: phy_addr=0x%lx, size=0x%zx err!\n",
 			   __func__, mem_info->phy_addr, mem_info->size);
 		ret = -EINVAL;
 	}
@@ -90,9 +91,60 @@ static long map_user_ioctl(struct file *file,
 	return 0;
 }
 
+#ifdef CONFIG_COMPAT
+static int compat_get_map_user_data(
+			       struct compat_sprd_pmem_info __user *data32,
+			       struct sprd_pmem_info  __user *data)
+{
+	compat_size_t s;
+	compat_uint_t u;
+	compat_ulong_t l;
+	int err;
+
+	err = get_user(l, &data32->phy_addr);
+	err |= put_user(l, &data->phy_addr);
+	err |= get_user(u, &data32->phys_offset);
+	err |= put_user(u, &data->phys_offset);
+	err |= get_user(s, &data32->size);
+	err |= put_user(s, &data->size);
+
+	return err;
+}
+
+long compat_map_user_ioctl(struct file *filp, unsigned int cmd,
+		     unsigned long arg)
+{
+	struct compat_sprd_pmem_info __user *data32;
+	struct sprd_pmem_info __user *data;
+	long ret = -ENOTTY;
+
+	if (!filp->f_op->unlocked_ioctl)
+		return -ENOTTY;
+
+	if (cmd == COMPAT_MAP_USER_VIR) {
+		data32 = compat_ptr(arg);
+		data = compat_alloc_user_space(sizeof(*data));
+		if (data == NULL)
+			return -EFAULT;
+
+		ret = compat_get_map_user_data(data32, data);
+		if (ret)
+			return ret;
+
+		ret = filp->f_op->unlocked_ioctl(filp, MAP_USER_VIR,
+						 (unsigned long)data);
+	}
+
+	return ret;
+}
+#else
+#define compat_map_user_ioctl NULL
+#endif
+
 static const struct file_operations map_user_fops = {
 	.owner = THIS_MODULE,
 	.unlocked_ioctl = map_user_ioctl,
+	.compat_ioctl = compat_map_user_ioctl,
 	.mmap = map_user_mmap,
 	.open = map_user_open,
 	.release = map_user_release,
