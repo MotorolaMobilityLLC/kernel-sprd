@@ -18,7 +18,7 @@ country 00:
 
 
 country AD:
-	(2402 - 2482 @ 40), (20)
+	(2402 - 2472 @ 40), (20)
 	(5170 - 5250 @ 80), (20)
 	(5250 - 5330 @ 80), (20), DFS
 	(5490 - 5710 @ 80), (27), DFS
@@ -64,7 +64,7 @@ country AN: DFS-ETSI
 	(5490 - 5710 @ 160), (27), DFS
 
 country AR: DFS-FCC
-	(2402 - 2482 @ 40), (20)
+	(2402 - 2472 @ 40), (20)
 	(5170 - 5250 @ 80), (17), AUTO-BW
 	(5250 - 5330 @ 80), (24), DFS, AUTO-BW
 	(5490 - 5730 @ 160), (24), DFS
@@ -92,7 +92,7 @@ country AT: DFS-ETSI
 # In order to allow 80MHz operation between 5650-5730MHz the upper boundary
 # of this more restrictive band has been shifted up by 5MHz from 5725MHz.
 country AU: DFS-ETSI
-	(2400 - 2483.5 @ 40), (36)
+	(2400 - 2472 @ 40), (36)
 	(5150 - 5250 @ 80), (23), NO-OUTDOOR, AUTO-BW
 	(5250 - 5350 @ 80), (20), NO-OUTDOOR, AUTO-BW, DFS
 	(5470 - 5600 @ 80), (27), DFS
