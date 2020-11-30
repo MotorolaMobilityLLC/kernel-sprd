@@ -2988,9 +2988,9 @@ charger_set_property(struct power_supply *psy,
 		    cm->desc->psy_charger_stat[1]) {
 			if (cm->desc->double_ic_total_limit_current &&
 			    (thermal_val.intval >=
-			    cm->desc->double_ic_total_limit_current))
+			     (int)cm->desc->double_ic_total_limit_current))
 				thermal_val.intval =
-					cm->desc->double_ic_total_limit_current;
+					(int)cm->desc->double_ic_total_limit_current;
 			thermal_val.intval /= 2;
 		}
 
