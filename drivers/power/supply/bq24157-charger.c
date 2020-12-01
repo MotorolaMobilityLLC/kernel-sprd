@@ -609,6 +609,23 @@ static int bq24157_charger_feed_watchdog(struct bq24157_charger_info *info,
 
 	return 0;
 }
+static bool bq24157_charge_done(struct bq24157_charger_info *info)
+{
+	if (info->charging)
+	{
+		unsigned char val = 0;
+
+		bq24157_read(info, BQ24157_CON0, &val);
+		val = ( val >> CON0_STAT_SHIFT ) & CON0_STAT_MASK;
+
+		if(val == 0x2)
+			return true;
+		else
+			return false;
+	}	
+	else
+		return false;
+}
 
 static int bq24157_charger_get_status(struct bq24157_charger_info *info)
 {
@@ -810,6 +827,9 @@ static int bq24157_charger_usb_get_property(struct power_supply *psy,
 			val->intval = POWER_SUPPLY_TYPE_UNKNOWN;
 		}
 		break;
+	case POWER_SUPPLY_PROP_CHARGE_FULL:
+			val->intval =bq24157_charge_done(info);
+		break;
 
 
 	default:
@@ -907,6 +927,7 @@ static enum power_supply_property bq24157_usb_props[] = {
 	POWER_SUPPLY_PROP_HEALTH,
 	POWER_SUPPLY_PROP_USB_TYPE,
 	POWER_SUPPLY_PROP_TYPE,
+	POWER_SUPPLY_PROP_CHARGE_FULL,
 };
 
 static const struct power_supply_desc bq24157_charger_desc = {

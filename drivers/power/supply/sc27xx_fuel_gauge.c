@@ -543,8 +543,8 @@ static int sc27xx_fgu_get_boot_capacity(struct sc27xx_fgu_data *data, int *cap)
 		 else
 		 	delta = *cap - current_cap*10;
 
-		 if(delta >100)	 	
-		 	is_first_poweron= true;
+	//	 if(delta >100)	 	
+	//	 	is_first_poweron= true;
 	dev_err(data->dev, "%s 10;%d;%d;%d;%d;%d;\n",__func__,is_first_poweron,delta,current_ocv,current_cap*10,*cap);
 	}
 
