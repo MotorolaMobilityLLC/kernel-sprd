@@ -39,6 +39,21 @@ static int __init lcd_name_get(char *str)
 }
 __setup("lcd_name=", lcd_name_get);
 
+#ifdef CONFIG_T_PRODUCT_INFO
+#include <dev_info.h>
+
+static int get_lcd_info(char *buf, void *arg0)
+{
+	if(lcd_name) {
+		return sprintf(buf, "%s", lcd_name);
+	} else {
+		DRM_ERROR("Not find the LCD name\n");
+		return sprintf(buf, "%s", "Unknow LCD");
+	}
+}
+#endif
+
+
 static inline struct sprd_panel *to_sprd_panel(struct drm_panel *panel)
 {
 	return container_of(panel, struct sprd_panel, base);
@@ -954,6 +969,10 @@ static int sprd_panel_probe(struct mipi_dsi_device *slave)
 	}
 
 	panel->is_enabled = true;
+
+	#ifdef CONFIG_T_PRODUCT_INFO
+	FULL_PRODUCT_DEVICE_CB(ID_LCD, get_lcd_info, NULL);
+	#endif
 
 	DRM_INFO("panel driver probe success\n");
 
