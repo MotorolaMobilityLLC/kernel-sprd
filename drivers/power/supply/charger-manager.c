@@ -647,6 +647,28 @@ static int set_batt_cap(struct charger_manager *cm, int cap)
 	return ret;
 }
 
+static int calibrate_batt_cap(struct charger_manager *cm, int cap)
+{
+	union power_supply_propval val;
+	struct power_supply *fuel_gauge;
+	int ret;
+
+	fuel_gauge = power_supply_get_by_name(cm->desc->psy_fuel_gauge);
+	if (!fuel_gauge) {
+		dev_err(cm->dev, "can not find fuel gauge device\n");
+		return -ENODEV;
+	}
+
+	val.intval = cap;
+	ret = power_supply_set_property(fuel_gauge, POWER_SUPPLY_PROP_CALIBRATE,
+					&val);
+	power_supply_put(fuel_gauge);
+	if (ret)
+		dev_err(cm->dev, "failed to save current battery capacity\n");
+
+	return ret;
+}
+
 /**
  * adjust_fuel_cap - Adjust the fuel cap level
  * @cm: the Charger Manager representing the battery.
@@ -816,7 +838,71 @@ static bool is_charging(struct charger_manager *cm)
 
 	return charging;
 }
+static bool check_charge_done(struct charger_manager *cm)
+{
+	int i, ret;
+	bool done = false;
+	struct power_supply *psy;
+	union power_supply_propval val;
 
+	/* If there is no battery, it cannot be charged */
+	if (!is_batt_present(cm))
+		return false;
+
+	/* If at least one of the charger is charging, return yes */
+	for (i = 0; cm->desc->psy_charger_stat[i]; i++) {
+		/* 1. The charger sholuld not be DISABLED */
+		if (cm->emergency_stop)
+			continue;
+		if (!cm->charger_enabled)
+			continue;
+
+		psy = power_supply_get_by_name(cm->desc->psy_charger_stat[i]);
+		if (!psy) {
+			dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
+					cm->desc->psy_charger_stat[i]);
+			continue;
+		}
+
+		/* 2. The charger should be online (ext-power) */
+		ret = power_supply_get_property(psy, POWER_SUPPLY_PROP_ONLINE,
+				&val);
+		if (ret) {
+			dev_warn(cm->dev, "Cannot read ONLINE value from %s\n",
+				 cm->desc->psy_charger_stat[i]);
+			power_supply_put(psy);
+			continue;
+		}
+		if (val.intval == 0) {
+			power_supply_put(psy);
+			continue;
+		}
+
+		/*
+		 * 3. The charger should not be FULL, DISCHARGING,
+		 * or NOT_CHARGING.
+		 */
+		ret = power_supply_get_property(psy, POWER_SUPPLY_PROP_CHARGE_FULL,
+				&val);
+		power_supply_put(psy);
+		if (ret) {
+			dev_warn(cm->dev, "Cannot read done value from %s\n",
+				 cm->desc->psy_charger_stat[i]);
+			continue;
+		}
+		if (val.intval == true)
+		{
+			/* Then, this is charge done. */
+			done = true;
+			dev_err(cm->dev, "%s;charge done;\n",__func__);
+			break;
+		}
+
+	}
+
+	return done;
+
+}
 /**
  * is_full_charged - Returns true if the battery is fully charged.
  * @cm: the Charger Manager representing the battery.
@@ -834,6 +920,7 @@ static bool is_full_charged(struct charger_manager *cm)
 	bool is_full = false;
 	int ret = 0;
 	//int uV, uA;
+	int batt_ocv;
 
 	/* If there is no battery, it cannot be charged */
 	if (!is_batt_present(cm))
@@ -887,6 +974,8 @@ static bool is_full_charged(struct charger_manager *cm)
 		}
 	}
 #endif
+	get_batt_ocv(cm, &batt_ocv);
+
 	/* Full, if the capacity is more than fullbatt_soc */
 	if (desc->fullbatt_soc > 0) {
 		val.intval = 0;
@@ -894,6 +983,7 @@ static bool is_full_charged(struct charger_manager *cm)
 		ret = power_supply_get_property(fuel_gauge,
 				POWER_SUPPLY_PROP_CAPACITY, &val);
 		if (!ret && val.intval >= desc->fullbatt_soc) {
+			if( batt_ocv > 4300000)
 			is_full = true;
 			goto out;
 		}
@@ -3507,6 +3597,7 @@ static void cm_batt_works(struct work_struct *work)
 	int period_time, flush_time, cur_temp;
 	int chg_cur = 0, chg_limit_cur = 0;
 	static int last_fuel_cap = CM_CAP_MAGIC_NUM;
+	static bool charge_done=false;
 
 	ret = get_batt_uV(cm, &batt_uV);
 	if (ret) {
@@ -3610,13 +3701,13 @@ static void cm_batt_works(struct work_struct *work)
 	else
 		cm->desc->charger_status = chg_sts;
 
-	dev_err(cm->dev, "Vbat = %d, OCV = %d, current = %d, VChr=%d,"
-		 "capacity = %d,%d, charger status = %d, force set full = %d, "
-		 "charging current = %d, charging limit current = %d, "
-		 "battery temperature = %d track state = %d fullbatt_uV = %d\n",
-		 batt_uV, batt_ocV, bat_uA, charger_voltage,fuel_cap,cm->desc->cap, cm->desc->charger_status,
-		 cm->desc->force_set_full, chg_cur, chg_limit_cur, cur_temp,
-		 cm->track.state,cm->desc->fullbatt_uV);
+	dev_err(cm->dev, "Vbat=%d, OCV=%d, current=%d, VChr=%d,"
+		 "capacity=%d,%d, charger status=%d, force set full=%d, "
+		 "charging current= %d, charging limit current= %d, "
+		 "battery temperature= %d track state= %d fullbatt_uV= %d\n",
+		 batt_uV/1000, batt_ocV/1000, bat_uA/1000, charger_voltage/1000,fuel_cap,cm->desc->cap, cm->desc->charger_status,
+		 cm->desc->force_set_full, chg_cur/1000, chg_limit_cur/1000, cur_temp,
+		 cm->track.state,cm->desc->fullbatt_uV/1000);
 
 	switch (cm->desc->charger_status) {
 	case POWER_SUPPLY_STATUS_CHARGING:
@@ -3725,12 +3816,25 @@ static void cm_batt_works(struct work_struct *work)
 		break;
 	}
 
-	if (batt_uV <= cm->desc->shutdown_voltage - CM_UVLO_OFFSET) {
-		set_batt_cap(cm, 0);
+	if (batt_ocV <= cm->desc->shutdown_voltage) {
+//		set_batt_cap(cm, 0);
 		dev_err(cm->dev, "WARN: batt_uV less than uvlo, will shutdown\n");
-		orderly_poweroff(true);
+//		orderly_poweroff(true);
 	}
 
+	if( (!charge_done)  &&  batt_ocV >4300000 &&  check_charge_done(cm)  )
+	{		
+		charge_done = true;
+		dev_info(cm->dev, "%s;full;fuel_cap=%d, ui cap=%d\n",__func__,
+			 fuel_cap, cm->desc->cap);
+		fuel_cap =1000;		
+		calibrate_batt_cap(cm,fuel_cap);
+	}
+	else if ( !check_charge_done(cm))
+		charge_done = false;
+		
+	
+	
 	dev_info(cm->dev, "battery cap = %d, charger manager cap = %d\n",
 		 fuel_cap, cm->desc->cap);
 

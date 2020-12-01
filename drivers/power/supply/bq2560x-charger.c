@@ -421,6 +421,25 @@ static int bq2560x_charger_feed_watchdog(struct bq2560x_charger_info *info,
 	return ret;
 }
 
+static bool bq2560x_charge_done(struct bq2560x_charger_info *info)
+{
+	if (info->charging)
+	{
+		unsigned char val = 0;
+
+		bq2560x_read(info, 0x08, &val);
+		
+		val = ( val >> 3 ) & 0x03;
+
+		if(val == 0x3)
+			return true;
+		else
+			return false;
+	}	
+	else
+		return false;
+}
+
 static int bq2560x_charger_get_status(struct bq2560x_charger_info *info)
 {
 	if (info->charging)
@@ -621,6 +640,9 @@ static int bq2560x_charger_usb_get_property(struct power_supply *psy,
 			val->intval = POWER_SUPPLY_TYPE_UNKNOWN;
 		}
 		break;
+	case POWER_SUPPLY_PROP_CHARGE_FULL:
+			val->intval =bq2560x_charge_done(info);
+		break;
 
 	default:
 		ret = -EINVAL;
@@ -716,6 +738,7 @@ static enum power_supply_property bq2560x_usb_props[] = {
 	POWER_SUPPLY_PROP_HEALTH,
 	POWER_SUPPLY_PROP_USB_TYPE,
 	POWER_SUPPLY_PROP_TYPE,
+	POWER_SUPPLY_PROP_CHARGE_FULL,
 };
 
 static const struct power_supply_desc bq2560x_charger_desc = {
