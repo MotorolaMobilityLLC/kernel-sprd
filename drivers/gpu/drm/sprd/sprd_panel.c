@@ -30,6 +30,8 @@
 static DEFINE_MUTEX(panel_lock);
 
 const char *lcd_name;
+EXPORT_SYMBOL(lcd_name);
+
 static int __init lcd_name_get(char *str)
 {
 	if (str != NULL)
