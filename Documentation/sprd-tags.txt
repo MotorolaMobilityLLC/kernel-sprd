@@ -108,9 +108,10 @@ lib:e_show_mem:
 
 mfd:sprd:
 misc:audio:
-misc:sprd_jpg:
-misc:sprd_vsp:
 misc:sprd_camera:
+misc:sprd_jpg:
+misc:sprd_map:
+misc:sprd_vsp:
 misc:sprdwcn:
 mm:
 mm:memblock:
