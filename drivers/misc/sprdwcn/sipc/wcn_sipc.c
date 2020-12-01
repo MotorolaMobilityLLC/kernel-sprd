@@ -492,40 +492,44 @@ static void wcn_sipc_sbuf_notifer(int event, void *data)
 		buf_len = sipc_chn->sbuf.len;
 		if (sipc_chn->need_reserve)
 			buf_len += PUB_HEAD_RSV;
-		recv_buf = kzalloc(buf_len, GFP_KERNEL);
-		if (unlikely(!recv_buf)) {
-			WCN_ERR("[%s]:mem alloc fail!\n", __func__);
-			return;
-		}
-		wcn_sipc_record_buf_alloc_num(sipc_chn->chn, 1);
+		do {
+			recv_buf = kzalloc(buf_len, GFP_KERNEL);
+			if (unlikely(!recv_buf)) {
+				WCN_ERR("[%s]:mem alloc fail!\n", __func__);
+				return;
+			}
+			wcn_sipc_record_buf_alloc_num(sipc_chn->chn, 1);
 
-		if (sipc_chn->need_reserve)
-			recv_buf += PUB_HEAD_RSV;
-		WCN_DEBUG("sbuf index %d chn[%d]\n",
-			  sipc_chn->index, sipc_chn->chn);
-		cnt = sbuf_read(sipc_chn->dst,
-				sipc_chn->chn,
-				sipc_chn->sbuf.bufid,
-				recv_buf,
-				sipc_chn->sbuf.len, 0);
-		if (sipc_chn->need_reserve) {
-			puh = (struct bus_puh_t *)recv_buf;
-			puh->len = cnt;
-		}
-		WCN_DEBUG("sbuf index %d chn[%d] read cnt=%d\n",
-			  sipc_chn->index, sipc_chn->chn, cnt);
-		if (cnt < 0) {
-			WCN_ERR("sbuf read cnt[%d] invalid\n", cnt);
-			kfree(recv_buf);
-			return;
-		}
-		wcn_sipc_record_mbuf_recv_from_bus(sipc_chn->index, 1);
-		ret = wcn_sipc_recv(sipc_chn, recv_buf, cnt);
-		if (ret < 0) {
-			WCN_ERR("sbuf recv fail[%d]\n", ret);
-			kfree(recv_buf);
-			return;
-		}
+			if (sipc_chn->need_reserve)
+				recv_buf += PUB_HEAD_RSV;
+			WCN_DEBUG("sbuf index %d chn[%d]\n",
+						sipc_chn->index, sipc_chn->chn);
+
+			cnt = sbuf_read(sipc_chn->dst,
+					sipc_chn->chn,
+					sipc_chn->sbuf.bufid,
+					recv_buf,
+					sipc_chn->sbuf.len, 0);
+			if (sipc_chn->need_reserve) {
+				puh = (struct bus_puh_t *)recv_buf;
+				puh->len = cnt;
+			}
+
+			WCN_DEBUG("sbuf index %d chn[%d] read cnt=%d\n",
+				  sipc_chn->index, sipc_chn->chn, cnt);
+			if (cnt < 0) {
+				WCN_ERR("sbuf read cnt[%d] invalid\n", cnt);
+				kfree(recv_buf);
+				return;
+			}
+			wcn_sipc_record_mbuf_recv_from_bus(sipc_chn->index, 1);
+			ret = wcn_sipc_recv(sipc_chn, recv_buf, cnt);
+			if (ret < 0) {
+				WCN_ERR("sbuf recv fail[%d]\n", ret);
+				kfree(recv_buf);
+				return;
+			}
+		} while (cnt == buf_len);
 		break;
 	default:
 		WCN_ERR("sbuf read event[%d] invalid\n", event);
