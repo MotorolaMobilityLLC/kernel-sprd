@@ -1016,6 +1016,40 @@ static void receive_file_work(struct work_struct *data)
 	smp_wmb();
 }
 
+#ifdef CONFIG_COMPAT
+static int compat_mtp_send_event(struct mtp_dev *dev, struct compat_mtp_event *event)
+{
+	struct usb_request *req = NULL;
+	int ret;
+	int length = event->length;
+	unsigned long data = event->data;
+
+	DBG(dev->cdev, "%s(%zu)\n", __func__, event->length);
+
+	if (length < 0 || length > INTR_BUFFER_SIZE)
+		return -EINVAL;
+	if (dev->state == STATE_OFFLINE)
+		return -ENODEV;
+
+	ret = wait_event_interruptible_timeout(dev->intr_wq,
+			(req = mtp_req_get(dev, &dev->intr_idle)),
+			msecs_to_jiffies(1000));
+	if (!req)
+		return -ETIME;
+
+	if (copy_from_user(req->buf, (void __user *)data, length)) {
+		mtp_req_put(dev, &dev->intr_idle, req);
+		return -EFAULT;
+	}
+	req->length = length;
+	ret = usb_ep_queue(dev->ep_intr, req, GFP_KERNEL);
+	if (ret)
+		mtp_req_put(dev, &dev->intr_idle, req);
+
+	return ret;
+}
+#endif
+
 static int mtp_send_event(struct mtp_dev *dev, struct mtp_event *event)
 {
 	struct usb_request *req = NULL;
@@ -1123,6 +1157,18 @@ static long mtp_ioctl(struct file *fp, unsigned int code, unsigned long value)
 		ret = dev->xfer_result;
 		break;
 	}
+#ifdef CONFIG_COMPAT
+	case COMPAT_MTP_SEND_EVENT:
+	{
+		struct compat_mtp_event		event;
+
+		if (copy_from_user(&event, (void __user *)value, sizeof(event)))
+			ret = -EFAULT;
+		else
+			ret = compat_mtp_send_event(dev, &event);
+		goto out;
+	}
+#endif
 	case MTP_SEND_EVENT:
 	{
 		struct mtp_event	event;
@@ -1193,6 +1239,9 @@ static const struct file_operations mtp_fops = {
 	.read = mtp_read,
 	.write = mtp_write,
 	.unlocked_ioctl = mtp_ioctl,
+#ifdef CONFIG_COMPAT
+	.compat_ioctl = mtp_ioctl,
+#endif
 	.open = mtp_open,
 	.release = mtp_release,
 };
