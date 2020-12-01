@@ -60,11 +60,11 @@
 		};
 
 		sml_reserved: sml-mem@b0000000 {
-			reg = <0x0 0xb0000000 0x0 0x00020000>;
+			reg = <0x0 0xb0000000 0x0 0x00040000>;
 		};
 
-		tos_reserved: tos-mem@b0020000 {
-			reg = <0x0 0xb0020000 0x0 0x05fe0000>;
+		tos_reserved: tos-mem@b0040000 {
+			reg = <0x0 0xb0040000 0x0 0x05fc0000>;
 		};
 
 		logo_reserved: logobuffer@9e000000{
