@@ -56,7 +56,7 @@
 				key-unplug {
 					label = "Unplug Key";
 					linux,code = <KEY_TV>;
-					gpios = <&ap_gpio 30 GPIO_ACTIVE_LOW>;
+					gpios = <&ap_gpio 30 GPIO_ACTIVE_HIGH>;
 					debounce-interval = <30>;
 					wakeup-source;
 				};
