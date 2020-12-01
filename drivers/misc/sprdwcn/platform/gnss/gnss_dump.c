@@ -172,7 +172,7 @@ static void gnss_soft_reset_release_cpu(u32 type)
 {
 	struct regmap *regmap;
 	phys_addr_t base_addr;
-	u32 value;
+	u32 value = 0;
 	u32 value_tmp = 0;
 	u32 platform_type = wcn_platform_chip_type();
 
