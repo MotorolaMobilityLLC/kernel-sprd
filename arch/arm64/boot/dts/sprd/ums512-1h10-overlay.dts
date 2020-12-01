@@ -682,7 +682,7 @@
 //		pinctrl-names = "pmx_ts_int_active","pmx_ts_int_suspend_high";
 //		pinctrl-0 = <&ts_int_active>;
 //		pinctrl-1 = <&ts_int_suspend_high>;
-		panel = <&lcd_ili9882n_tm_mipi_hd>;
+//		panel = <&lcd_ili9882n_tm_mipi_hd>;
 	};
 
 };
