@@ -754,12 +754,12 @@ int coresight_enable(struct coresight_device *csdev)
 	mutex_lock(&coresight_mutex);
 
 	ret = coresight_validate_source(csdev, __func__);
+
 	if (ret)
 		goto out;
 
 	if (csdev->enable) {
-		/*
-		 * There could be multiple applications driving the software
+		/* There could be multiple applications driving the software
 		 * source. So keep the refcount for each such user when the
 		 * source is already enabled.
 		 */
@@ -767,6 +767,7 @@ int coresight_enable(struct coresight_device *csdev)
 			atomic_inc(csdev->refcnt);
 		goto out;
 	}
+
 
 	/*
 	 * Search for a valid sink for this session but don't reset the
@@ -868,6 +869,7 @@ static ssize_t enable_sink_show(struct device *dev,
 {
 	struct coresight_device *csdev = to_coresight_device(dev);
 
+
 	return scnprintf(buf, PAGE_SIZE, "%u\n", csdev->activated);
 }
 
@@ -878,6 +880,7 @@ static ssize_t enable_sink_store(struct device *dev,
 	int ret;
 	unsigned long val;
 	struct coresight_device *csdev = to_coresight_device(dev);
+
 
 	ret = kstrtoul(buf, 10, &val);
 	if (ret)
@@ -892,6 +895,21 @@ static ssize_t enable_sink_store(struct device *dev,
 
 }
 static DEVICE_ATTR_RW(enable_sink);
+
+int coresight_enable_sink_show_export(struct coresight_device *csdev)
+{
+    return csdev->activated;
+}
+
+int coresight_enable_sink_store_export(struct coresight_device *csdev, int val)
+{
+	if (val)
+		csdev->activated = true;
+	else
+		csdev->activated = false;
+
+	return 0;
+}
 
 static ssize_t enable_source_show(struct device *dev,
 				  struct device_attribute *attr, char *buf)
@@ -924,6 +942,26 @@ static ssize_t enable_source_store(struct device *dev,
 	return size;
 }
 static DEVICE_ATTR_RW(enable_source);
+
+int coresight_enable_source_show_export(struct coresight_device *csdev)
+{
+    return csdev->enable;
+}
+
+int coresight_enable_source_store_export(struct coresight_device *csdev, int val)
+{
+	int ret;
+
+	if (val) {
+		ret = coresight_enable(csdev);
+		if (ret)
+			return ret;
+	} else {
+		coresight_disable(csdev);
+	}
+
+	return 0;
+}
 
 static struct attribute *coresight_sink_attrs[] = {
 	&dev_attr_enable_sink.attr,

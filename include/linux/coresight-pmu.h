@@ -41,7 +41,8 @@ static inline int coresight_get_trace_id(int cpu)
 	 * the common convention is to have data trace IDs be I(N) + 1,
 	 * set instruction trace IDs as a function of the CPU number.
 	 */
-	return (CORESIGHT_ETM_PMU_SEED + (cpu * 2));
+//	return (CORESIGHT_ETM_PMU_SEED + (cpu * 2));
+	return (cpu+1);
 }
 
 #endif

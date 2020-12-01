@@ -427,6 +427,45 @@ static int tmc_etr_setup_caps(struct tmc_drvdata *drvdata,
 	return rc;
 }
 
+int tmc_enable_sink_show(struct device *dev)
+{
+	int val;
+	struct tmc_drvdata *drvdata = dev_get_drvdata(dev);
+
+	pr_info("tmc_enable_sink_show entry\n");
+
+	pr_info("tmc_enable_sink_show dev=0x%p\n", dev);
+	pr_info("tmc_enable_sink_show drvdata=0x%p\n", drvdata);
+
+	if (drvdata == NULL)
+		return 0;
+
+	val = coresight_enable_sink_show_export(drvdata->csdev);
+
+	return val;
+}
+
+int tmc_enable_sink_store(struct device *dev, int val)
+{
+	int ret;
+	struct tmc_drvdata *drvdata = dev_get_drvdata(dev);
+
+	pr_info("tmc_enable_sink_store entry\n");
+
+	pr_info("tmc_enable_sink_store dev=0x%p\n", dev);
+	pr_info("tmc_enable_sink_store drvdata=0x%p\n", drvdata);
+
+	if (drvdata == NULL)
+		return -1;
+
+	if (val)
+		ret = coresight_enable_sink_store_export(drvdata->csdev, true);
+	else
+		ret = coresight_enable_sink_store_export(drvdata->csdev, false);
+
+	return ret;
+}
+
 static int tmc_probe(struct amba_device *adev, const struct amba_id *id)
 {
 	int ret = 0;
@@ -447,6 +486,10 @@ static int tmc_probe(struct amba_device *adev, const struct amba_id *id)
 		}
 		adev->dev.platform_data = pdata;
 	}
+
+	pr_info("tmc_probe entry\n");
+
+	pr_info("tmc_probe dev=0x%p\n", dev);
 
 	ret = -ENOMEM;
 	drvdata = devm_kzalloc(dev, sizeof(*drvdata), GFP_KERNEL);

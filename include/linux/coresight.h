@@ -316,6 +316,7 @@ extern int of_coresight_get_cpu(const struct device_node *node);
 extern struct coresight_platform_data *
 of_get_coresight_platform_data(struct device *dev,
 			       const struct device_node *node);
+extern struct device *of_coresight_get_device_by_node(struct device_node *endpoint);
 #else
 static inline int of_coresight_get_cpu(const struct device_node *node)
 { return 0; }
@@ -342,5 +343,15 @@ coresight_vpid_to_pid(unsigned long vpid)
 static inline unsigned long
 coresight_vpid_to_pid(unsigned long vpid) { return vpid; }
 #endif
+
+int coresight_enable_sink_show_export(struct coresight_device *csdev);
+int coresight_enable_sink_store_export(struct coresight_device *csdev, int val);
+int coresight_enable_source_show_export(struct coresight_device *csdev);
+int coresight_enable_source_store_export(struct coresight_device *csdev, int val);
+
+int tmc_enable_sink_show(struct device *dev);
+int tmc_enable_sink_store(struct device *dev, int val);
+int etm4_enable_source_show(struct device *dev);
+int etm4_enable_source_store(struct device *dev, int val);
 
 #endif

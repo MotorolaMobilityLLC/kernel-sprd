@@ -52,6 +52,12 @@ of_coresight_get_endpoint_device(struct device_node *endpoint)
 			       endpoint, of_dev_node_match);
 }
 
+struct device *
+of_coresight_get_device_by_node(struct device_node *endpoint)
+{
+	return of_coresight_get_endpoint_device(endpoint);
+}
+
 static void of_coresight_get_ports(const struct device_node *node,
 				   int *nr_inport, int *nr_outport)
 {
@@ -243,3 +249,5 @@ of_get_coresight_platform_data(struct device *dev,
 	return pdata;
 }
 EXPORT_SYMBOL_GPL(of_get_coresight_platform_data);
+
+EXPORT_SYMBOL_GPL(of_coresight_get_device_by_node);
