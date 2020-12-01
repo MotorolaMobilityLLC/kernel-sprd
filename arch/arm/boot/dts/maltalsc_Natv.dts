@@ -235,9 +235,9 @@
 
 
 
-		battery_name-0 ="KS40-ATL-SB18C77591-5000mAh";
-		battery_name-1 ="KS40-Sunwoda-SB18C85291-5000mAh";
-		battery_name-2 ="KS40-SCUD-SB18C77226-5000mAh";
+		battery_name-0 ="JK50-ATL-SB18C77591-5000mAh";
+		battery_name-1 ="JK50-Sunwoda-SB18C85291-5000mAh";
+		battery_name-2 ="JK50-SCUD-SB18C77226-5000mAh";
 
 		charge-full-design-microamp-hours-1 = <5000000>;
 		factory-internal-resistance-micro-ohms-1 = <122000>;
