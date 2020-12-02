@@ -1,8 +1,8 @@
 /*
- * SPDX-License-Identifier: GPL-2.0
- * Core MFD(Charger, ADC, Flash and GPIO) driver for UCP1301
+ * License-Identifier: GPL-2.0
+ * Driver for UNISOC-UCP1301.
  *
- * Copyright (c) 2019 Dialog Semiconductor.
+ * Copyright (c) 2019 UNISOC.
  */
 #include "sprd-asoc-debug.h"
 #define pr_fmt(fmt) pr_sprd_fmt("ucp1301")""fmt
@@ -1640,7 +1640,7 @@ static void ucp1301_audio_on(struct ucp1301_t *ucp1301, bool on_off)
 {
 	enum ucp1301_class_mode class_mode;
 
-	dev_dbg(ucp1301->dev, "audio_on, on_off %d, class_mode %d\n",
+	dev_info(ucp1301->dev, "audio_on, on_off %d, class_mode %d\n",
 		on_off, ucp1301->class_mode);
 
 	mutex_lock(&ucp1301->ctrl_lock);
