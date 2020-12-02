@@ -770,6 +770,33 @@ static int get_charger_limit_current(struct charger_manager *cm, int *cur)
 	return ret;
 }
 
+static int get_charger_term_voltage(struct charger_manager *cm, int *vol)
+{
+	union power_supply_propval val;
+	struct power_supply *psy;
+	int i, ret = -ENODEV;
+
+	/* If at least one of them has one, it's yes. */
+	for (i = 0; cm->desc->psy_charger_stat[i]; i++) {
+		psy = power_supply_get_by_name(cm->desc->psy_charger_stat[i]);
+		if (!psy) {
+			dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
+				cm->desc->psy_charger_stat[i]);
+			continue;
+		}
+
+		ret = power_supply_get_property(psy,
+						POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE_MAX,
+						&val);
+		power_supply_put(psy);
+		if (ret == 0) {
+			*vol = val.intval;
+			break;
+		}
+	}
+
+	return ret;
+}
 /**
  * is_charging - Returns true if the battery is being charged.
  * @cm: the Charger Manager representing the battery.
@@ -1545,6 +1572,11 @@ static bool cm_manager_adjust_current(struct charger_manager *cm,
 	if (ontim_runin_onoff_control == 1)
 	{
 		term_volt = 4050000;
+		dev_info(cm->dev,"smt set term_volt:%d\n",term_volt);
+	}
+	else
+	{
+		term_volt = 4400000;
 		dev_info(cm->dev,"smt set term_volt:%d\n",term_volt);
 	}
 
@@ -2758,7 +2790,22 @@ static ssize_t ontim_limit_soc_show(struct device *dev,
 static ssize_t ontim_limit_soc_store(struct device *dev,
 			struct device_attribute *attr, const char *buf, size_t size)
 {
+	struct charger_regulator *charger
+		= container_of(attr, struct charger_regulator,
+			       attr_soc_control);
+
 	sscanf(buf, "%d", &ontim_runin_onoff_control);
+	
+	if (charger->cm->desc->jeita_tab_size) {
+		int cur_jeita_status;
+
+		cur_jeita_status =
+			cm_manager_get_jeita_status(charger->cm, charger->cm->desc->temperature);
+		cm_manager_adjust_current(charger->cm, cur_jeita_status);
+	}
+
+	dev_err(charger->cm->dev, "%s;%d;\n",__func__,ontim_runin_onoff_control);
+	
 	return size;
 }
 
@@ -3598,6 +3645,7 @@ static void cm_batt_works(struct work_struct *work)
 	int chg_cur = 0, chg_limit_cur = 0;
 	static int last_fuel_cap = CM_CAP_MAGIC_NUM;
 	static bool charge_done=false;
+	int term_vol;
 
 	ret = get_batt_uV(cm, &batt_uV);
 	if (ret) {
@@ -3640,6 +3688,13 @@ static void cm_batt_works(struct work_struct *work)
 		dev_err(cm->dev, "failed to get battery temperature\n");
 		return;
 	}
+
+	ret = get_charger_term_voltage(cm, &term_vol);
+	if (ret) {
+		dev_err(cm->dev, "get_charger_term_voltage error.\n");
+		return;
+	}
+
 
 #ifdef    DUAL_85_VERSION
 	dev_err(cm->dev, "%s;D85 temp=%d; cur_temp=%d;\n",__func__,sc27xx_fgu_get_d85_temp(),cur_temp);
@@ -3702,12 +3757,12 @@ static void cm_batt_works(struct work_struct *work)
 		cm->desc->charger_status = chg_sts;
 
 	dev_err(cm->dev, "Vbat=%d, OCV=%d, current=%d, VChr=%d,"
-		 "capacity=%d,%d, charger status=%d, force set full=%d, "
-		 "charging current= %d, charging limit current= %d, "
-		 "battery temperature= %d track state= %d fullbatt_uV= %d\n",
+		 "soc=%d,%d, status=%d, force full=%d,"
+		 "chr current=%d, chr limit current=%d,"
+		 "temp=%d track state=%d term_vol=%d\n",
 		 batt_uV/1000, batt_ocV/1000, bat_uA/1000, charger_voltage/1000,fuel_cap,cm->desc->cap, cm->desc->charger_status,
 		 cm->desc->force_set_full, chg_cur/1000, chg_limit_cur/1000, cur_temp,
-		 cm->track.state,cm->desc->fullbatt_uV/1000);
+		 cm->track.state,term_vol/1000);
 
 	switch (cm->desc->charger_status) {
 	case POWER_SUPPLY_STATUS_CHARGING:

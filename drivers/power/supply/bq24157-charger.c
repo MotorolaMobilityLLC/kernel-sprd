@@ -338,6 +338,26 @@ bq24157_charger_set_termina_vol(struct bq24157_charger_info *info, u32 vol)
 				    reg_val);
 }
 
+static int bq24157_charger_get_termina_vol(struct bq24157_charger_info *info, u32 *vol)
+{
+
+	u8 reg_val;
+	int ret;
+
+	ret = bq24157_read(info, BQ24157_CON2, &reg_val);
+	if (ret < 0)
+		return ret;
+
+	reg_val = reg_val >> CON2_OREG_SHIFT;
+	reg_val &= CON2_OREG_MASK;
+
+	*vol = 3500 + (reg_val * 20);
+	if(*vol >4440)
+		*vol	 = 4400;
+	
+	return 0;
+}
+
 void bq24157_set_iterm(struct bq24157_charger_info *info, u8 val)
 {
 	bq24157_update_bits(info, BQ24157_CON4,
@@ -729,7 +749,7 @@ static int bq24157_charger_usb_get_property(struct power_supply *psy,
 					     union power_supply_propval *val)
 {
 	struct bq24157_charger_info *info = power_supply_get_drvdata(psy);
-	u32 cur, online, health;
+	u32 cur, online, health,vol;
 	enum usb_charger_type type;
 	int ret = 0;
 
@@ -827,10 +847,15 @@ static int bq24157_charger_usb_get_property(struct power_supply *psy,
 			val->intval = POWER_SUPPLY_TYPE_UNKNOWN;
 		}
 		break;
+		
 	case POWER_SUPPLY_PROP_CHARGE_FULL:
 			val->intval =bq24157_charge_done(info);
 		break;
-
+		
+	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE_MAX:
+		ret = bq24157_charger_get_termina_vol(info, &vol);
+		val->intval = vol *1000;
+		break;
 
 	default:
 		ret = -EINVAL;

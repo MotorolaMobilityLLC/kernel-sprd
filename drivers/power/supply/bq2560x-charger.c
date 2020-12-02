@@ -192,6 +192,22 @@ bq2560x_charger_set_termina_vol(struct bq2560x_charger_info *info, u32 vol)
 }
 
 static int
+bq2560x_charger_get_termina_vol(struct bq2560x_charger_info *info, u32 *vol)
+{
+	u8 reg_val;
+	int ret;
+
+	ret = bq2560x_read(info, BQ2560X_REG_4, &reg_val);
+	if (ret < 0)
+		return ret;
+
+	reg_val &= BQ2560X_REG_TERMINAL_VOLTAGE_MASK;
+	*vol = 3856 + (reg_val >> BQ2560X_REG_TERMINAL_VOLTAGE_SHIFT) * 32;
+
+	return 0;
+}
+
+static int
 bq2560x_charger_set_termina_cur(struct bq2560x_charger_info *info, u32 cur)
 {
 	u8 reg_val;
@@ -540,7 +556,7 @@ static int bq2560x_charger_usb_get_property(struct power_supply *psy,
 					    union power_supply_propval *val)
 {
 	struct bq2560x_charger_info *info = power_supply_get_drvdata(psy);
-	u32 cur, online, health;
+	u32 cur, online, health,vol;
 	enum usb_charger_type type;
 	int ret = 0;
 
@@ -640,8 +656,14 @@ static int bq2560x_charger_usb_get_property(struct power_supply *psy,
 			val->intval = POWER_SUPPLY_TYPE_UNKNOWN;
 		}
 		break;
+		
 	case POWER_SUPPLY_PROP_CHARGE_FULL:
 			val->intval =bq2560x_charge_done(info);
+		break;
+		
+	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE_MAX:
+		ret = bq2560x_charger_get_termina_vol(info, &vol);
+		val->intval = vol *1000;
 		break;
 
 	default:
@@ -739,6 +761,7 @@ static enum power_supply_property bq2560x_usb_props[] = {
 	POWER_SUPPLY_PROP_USB_TYPE,
 	POWER_SUPPLY_PROP_TYPE,
 	POWER_SUPPLY_PROP_CHARGE_FULL,
+	POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE_MAX,
 };
 
 static const struct power_supply_desc bq2560x_charger_desc = {
