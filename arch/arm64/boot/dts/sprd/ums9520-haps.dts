@@ -34,7 +34,7 @@
 };
 
 &uart0 {
-	status = "okay";
+	status = "disabled";
 };
 
 &uart1 {

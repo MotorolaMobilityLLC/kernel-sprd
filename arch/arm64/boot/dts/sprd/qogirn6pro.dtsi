@@ -28,7 +28,7 @@
 				reg = <0 0x100>;
 				interrupts = <GIC_SPI 2 IRQ_TYPE_LEVEL_HIGH>;
 				clock-names = "enable", "uart", "source";
-				clocks = <&ext_26m>;
+				clocks = <&ext_26m>, <&ext_26m>, <&ext_26m>;
 				status = "disabled";
 			};
 
@@ -38,7 +38,7 @@
 				reg = <0x10000 0x100>;
 				interrupts = <GIC_SPI 3 IRQ_TYPE_LEVEL_HIGH>;
 				clock-names = "enable", "uart", "source";
-				clocks = <&ext_26m>;
+				clocks = <&ext_26m>, <&ext_26m>, <&ext_26m>;
 				status = "disabled";
 			};
 		};
