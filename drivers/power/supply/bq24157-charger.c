@@ -353,7 +353,7 @@ static int bq24157_charger_get_termina_vol(struct bq24157_charger_info *info, u3
 
 	*vol = 3500 + (reg_val * 20);
 	if(*vol >4440)
-		*vol	 = 4400;
+		*vol	 = 4440;
 	
 	return 0;
 }
