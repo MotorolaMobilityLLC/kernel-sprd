@@ -1,3 +1,4 @@
+GCOV_PROFILE := $(CONFIG_SPRD_CLK_GCOV)
 obj-$(CONFIG_SPRD_COMMON_CLK)	+= clk-sprd.o
 
 clk-sprd-y	+= common.o

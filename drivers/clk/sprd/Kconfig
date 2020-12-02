@@ -3,6 +3,12 @@ config SPRD_COMMON_CLK
 	depends on ARCH_SPRD || COMPILE_TEST
 	default ARCH_SPRD
 
+config SPRD_CLK_GCOV
+	bool "open gcov for clk"
+	depends on GCOV_PROFILE_MODULES
+	help
+		Say Y here to enable gcov in clk.
+
 if SPRD_COMMON_CLK
 
 # SoC Drivers
