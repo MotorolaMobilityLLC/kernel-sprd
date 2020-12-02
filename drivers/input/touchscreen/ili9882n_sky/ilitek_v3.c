@@ -35,7 +35,7 @@ static struct delayed_work bat_work;
 #include <ontim/ontim_dev_dgb.h>
 
 static char version[30]="unknown";
-static char vendor_name[30]="skyworth";
+static char vendor_name[30]="skyworth-ili9882n";
 static char lcdname[30]="ili9882n";
 
 DEV_ATTR_DECLARE(touch_screen)
