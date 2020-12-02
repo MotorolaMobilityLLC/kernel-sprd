@@ -32,12 +32,17 @@
 			/*fingerprint@0 {
 				compatible = "microarray,afs121";
 				fpint-gpios = <&eic_async 13 0>;
+				fpc,irq = <&ap_gpio 130 0>;
+				fpc,rst = <&ap_gpio 131 0>;
 			};*/
 			fingerprint@0 {
 				compatible = "chipone,fingerprint";
 				fpint-gpios = <&ap_gpio 130 0>;
 				fpreset-gpios = <&ap_gpio 131 0>;
 				fp-gpio-power = <&ap_gpio 138 0>;
+			};
+			fpc1020 {
+				compatible = "fpc,fpc1020";
 			};
 //---lijian modify the fingerprints end
 
