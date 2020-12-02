@@ -92,6 +92,7 @@ static void sprd_sensor_set_mipi_level(u32 plus_level)
 
 static void inter_dbg_log_init(struct dbg_log_device *dbg)
 {
+	int ret = 0;
 #ifdef CONFIG_SPRD_MIPI_SWITCH
 
 	sprd_sensor_set_voltage(1800000);
@@ -123,7 +124,11 @@ static void inter_dbg_log_init(struct dbg_log_device *dbg)
 	DEBUG_LOG_PRINT("dbg->mm = %d", dbg->mm);
 	if (dbg->mm) {
 		DEBUG_LOG_PRINT("MIPI LOG use MM Power Domain\n");
-		sprd_cam_pw_on();
+		ret = sprd_cam_pw_on();
+		if (ret) {
+			DEBUG_LOG_PRINT("fail to sprd_cam_pw_on!\n");
+			return;
+		}
 	}
 
 	/* here need wait */
