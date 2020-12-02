@@ -1,0 +1,8 @@
+
+config SPRD_MODEM_POWER_MANAGER
+	tristate "SPRD Modem Power Manager"
+	depends on PM_SLEEP
+	default n
+	help
+	  SPRD modem power manager. It be user for modem power management,
+
