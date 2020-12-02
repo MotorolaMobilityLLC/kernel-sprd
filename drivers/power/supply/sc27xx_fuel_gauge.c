@@ -704,6 +704,12 @@ static int sc27xx_fgu_get_capacity(struct sc27xx_fgu_data *data, int *cap,
 	else if (data->normal_temperature_cap > 1000)
 		data->normal_temperature_cap = 1000;
 
+	if (*cap < 0) {
+		*cap = 0;
+		sc27xx_fgu_adjust_cap(data, 0);
+		return 0;
+	}
+
 	if (data->cap_table_len > 0) {
 		temp_cap = sc27xx_fgu_temp_to_cap(data->cap_temp_table,
 						  data->cap_table_len,
@@ -725,13 +731,11 @@ static int sc27xx_fgu_get_capacity(struct sc27xx_fgu_data *data, int *cap,
 		temp_cap *= 10;
 
 		*cap = DIV_ROUND_CLOSEST((*cap + temp_cap - 1000) * 1000, temp_cap);
+		if (*cap < 0)
+			*cap = 0;
 	}
 
-	if (*cap < 0) {
-		*cap = 0;
-		sc27xx_fgu_adjust_cap(data, 0);
-		return 0;
-	} else if (*cap > 1000) {
+	if (*cap > 1000) {
 		*cap = 1000;
 		data->init_cap = 1000 - delta_cap;
 		return 0;
