@@ -568,11 +568,11 @@ static int audio_dsp_parse_mem_dt(struct device_node *np,
 }
 
 static const struct of_device_id audio_dsp_table[] = {
-	{.compatible = "sprd,audio_dsp_log",
+	{.compatible = "sprd,audio-dsp-log",
 		.data = (void *)DSP_LOG},
 	{.compatible = "sprd,audio-dsp-pcm",
 		.data = (void *)DSP_PCM},
-	{.compatible = "sprd,audio_dsp_mem",
+	{.compatible = "sprd,audio-dsp-mem",
 		.data = (void *)DSP_MEM},
 	{ },
 };
