@@ -224,6 +224,16 @@
 	status = "okay";
 };
 
+&i2c2 {
+	status = "okay";
+	ucp1301_rcv: ucp1301@58 {
+		compatible = "sprd,ucp1301-rcv";
+		reg = <0x58>;
+		reset-gpios = <&ap_gpio 172 GPIO_ACTIVE_HIGH>;
+		#sound-dai-cells = <1>;
+	};
+};
+
 &i2c4 {
 	ucp1301_spk: ucp1301@58 {
 		compatible = "sprd,ucp1301-spk";
@@ -319,7 +329,9 @@
 		"Ext Spk", "UCP1301 SPK",
 		"DMIC Pin", "DMic Jack",
 		"DMIC1 Pin", "DMic1 Jack",
-		"Ext Ear", "EAR Pin";
+		"Ext Ear", "EAR Pin",
+		"UCP1301 RCV ON", "EAR Pin",
+		"Ext Ear", "UCP1301 RCV";
 
 	/* 35: ucp1301 normal ap01 */
 	sprd-audio-card,dai-link@53 {
@@ -345,4 +357,23 @@
 	 * "ucp1301-spk2" and "ucp1301-rcv"
 	 * nodes from 56 to 67 (index from 38 to 49) are used by HIFI
 	 */
+	/* 37: ucp1301 normal ap01 rcv */
+	sprd-audio-card,dai-link@55 {
+		ignore-suspend = <1>;
+		link-name = "BE_NORMAL_AP01_UCPRCV";
+		stream-name = "BE_ST_NORMAL_AP01_UCPRCV";
+		no-pcm = <1>;
+		dpcm-playback = <1>;
+		be-id = <0>;
+		dai-format = "i2s";
+		plat {
+			sound-dai = <&sprd_route_pcm>;
+		};
+		cpu {
+			sound-dai = <&vbc_v4 3>;
+		};
+		codec {
+			sound-dai = <&ucp1301_rcv 0>;
+		};
+	};
 };
