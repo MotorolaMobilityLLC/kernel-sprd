@@ -57,6 +57,10 @@
 #define BQ2560X_REG_TERMINAL_CUR_MASK		GENMASK(3, 0)
 
 #define BQ2560X_REG_VINDPM_VOLTAGE_MASK		GENMASK(3, 0)
+//for boostvoltage by pony date20201203 start
+#define BQ2560X_REG_BOOST_VOLTAGE_MASK		GENMASK(5, 4)
+#define BQ2560X_REG_BOOST_VOLTAGE_SHIFT		4
+//for boostvoltage by pony date20201203 end
 
 #define BQ2560X_REG_LIMIT_CURRENT_MASK		GENMASK(4, 0)
 
@@ -184,6 +188,25 @@ bq2560x_charger_set_vindpm(struct bq2560x_charger_info *info, u32 vol)
 				   BQ2560X_REG_VINDPM_VOLTAGE_MASK, reg_val);
 }
 
+//for boostvoltage by pony date20201203 start
+static int
+bq2560x_charger_set_boostvol(struct bq2560x_charger_info *info, int vol)
+{
+	u8 reg_val;
+	dev_info(info->dev, "boostvol = %d\n",vol);	
+
+	if (vol < 4900)
+		reg_val = 0x00;
+	else if (vol > 5300)
+		reg_val = 0x03;
+	else
+		reg_val = 0x02;
+
+	return bq2560x_update_bits(info, BQ2560X_REG_6,
+				   BQ2560X_REG_BOOST_VOLTAGE_MASK, reg_val << BQ2560X_REG_BOOST_VOLTAGE_SHIFT);
+}
+//for boostvoltage by pony date20201203 end
+
 static int
 bq2560x_charger_set_termina_vol(struct bq2560x_charger_info *info, u32 vol)
 {
@@ -277,6 +300,14 @@ static int bq2560x_charger_hw_init(struct bq2560x_charger_info *info)
 			dev_err(info->dev, "set bq2560x vindpm vol failed\n");
 			return ret;
 		}
+		
+		//for boostvoltage by pony date20201203 start
+		ret = bq2560x_charger_set_boostvol(info, 5400);
+		if (ret) {
+			dev_err(info->dev, "set bq2560x boost vol failed\n");
+			return ret;
+		}		
+		//for boostvoltage by pony date20201203 end
 
 		ret = bq2560x_charger_set_termina_vol(info,
 						      voltage_max_microvolt);
@@ -410,7 +441,8 @@ bq2560x_charger_get_limit_current(struct bq2560x_charger_info *info,
 		return ret;
 
 	reg_val &= BQ2560X_REG_LIMIT_CURRENT_MASK;
-	*limit_cur = reg_val * BQ2560X_REG_IINLIM_BASE * 1000;
+//	*limit_cur = reg_val * BQ2560X_REG_IINLIM_BASE * 1000;
+	*limit_cur = (reg_val * BQ2560X_REG_IINLIM_BASE + BQ2560X_REG_IINLIM_OFFSET) * 1000;		//optimize driver for input cur by pony date20201203
 	if (*limit_cur >= BQ2560X_LIMIT_CURRENT_MAX)
 		*limit_cur = BQ2560X_LIMIT_CURRENT_MAX;
 
@@ -527,8 +559,8 @@ static void bq2560x_charger_work(struct work_struct *data)
 
 out:
 	mutex_unlock(&info->lock);
-	dev_info(info->dev, "battery present = %d, charger type = %d\n",
-		 present, info->usb_phy->chg_type);
+	dev_info(info->dev, "battery present = %d, charger type = %d , input_cur = %d, bat_cur = %d\n",
+		 present, info->usb_phy->chg_type,limit_cur,cur);
 
 	bq2560x_dump_register(info);		//for dump register and optimize driver by pony date20201124
 	
