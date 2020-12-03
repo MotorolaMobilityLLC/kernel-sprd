@@ -428,7 +428,7 @@
 		};
 
 		cp_reserved: cp-modem@89600000 {
-			reg = <0x89600000 0x04900000>;
+			reg = <0x89600000 0x03f00000>;
 		};
 
 		/* must be 64M aligned */
