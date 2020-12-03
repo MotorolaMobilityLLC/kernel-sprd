@@ -12,108 +12,82 @@
 #include <linux/of.h>
 #include <linux/kernel.h>
 
-struct sprd_soc_thm {
-	struct thermal_zone_device *thm_dev;
-	struct thm_handle_ops *ops;
+struct virtual_thm {
 	int id;
+	struct device *dev;
+	struct thermal_zone_device *thm_dev;
 };
 
-struct sprd_tz_list {
+struct real_tz_list {
 	int temp;
 	struct thermal_zone_device *tz_dev;
 };
 
-struct sprd_thm_data {
+struct virtual_thm_data {
 	int nr_thm;
-	struct sprd_tz_list *tz_list;
-	struct sprd_soc_thm *soc_thm;
+	struct real_tz_list *tz_list;
+	struct virtual_thm *vir_thm;
 };
 
-struct thm_handle_ops {
-	int (*read_temp)(struct sprd_thm_data *, int *);
-};
-
-static int sprd_sys_temp_read(void *devdata, int *temp)
-{
-	struct sprd_thm_data *thm_data = devdata;
-	struct sprd_soc_thm *soc_thm = thm_data->soc_thm;
-	int ret = 0;
-
-	if (!soc_thm->ops->read_temp)
-		return -EINVAL;
-
-	ret = soc_thm->ops->read_temp(thm_data, temp);
-
-	return ret;
-}
-
-static void sprd_unregister_soc_thermal(struct platform_device *pdev)
-{
-	struct sprd_thm_data *data = platform_get_drvdata(pdev);
-	struct sprd_soc_thm *soc_thm = data->soc_thm;
-
-	thermal_zone_device_unregister(soc_thm->thm_dev);
-}
-
-static const struct thermal_zone_of_device_ops sprd_of_thermal_ops = {
-	.get_temp = sprd_sys_temp_read,
-};
-
-int sprd_register_soc_thermal(struct platform_device *pdev)
-{
-	struct device *dev = &pdev->dev;
-	struct sprd_thm_data *data = platform_get_drvdata(pdev);
-	struct sprd_soc_thm *soc_thm = data->soc_thm;
-
-	soc_thm->thm_dev = thermal_zone_of_sensor_register(dev,
-							   soc_thm->id, data,
-							   &sprd_of_thermal_ops
-							   );
-	if (IS_ERR_OR_NULL(soc_thm->thm_dev))
-		return PTR_ERR(soc_thm->thm_dev);
-
-	thermal_zone_device_update(soc_thm->thm_dev, THERMAL_EVENT_UNSPECIFIED);
-
-	return 0;
-}
-
-static int sprd_read_soc_thm_temp(struct sprd_thm_data *thm_data, int *temp)
+static int virtual_thm_get_temp(void *devdata, int *temp)
 {
 	int i, ret = 0;
-	int soc_temp = 0;
-	int sum_temp = 0;
+	int max_temp = 0;
 	struct thermal_zone_device *tz = NULL;
-	struct sprd_tz_list *tz_list;
+	struct real_tz_list *tz_list = NULL;
+	struct virtual_thm_data *thm_data = devdata;
+	struct device *dev;
 
 	if (!thm_data || !temp)
 		return -EINVAL;
 
+	dev = thm_data->vir_thm->dev;
 	for (i = 0; i < thm_data->nr_thm; i++) {
 		tz_list = &thm_data->tz_list[i];
 		tz = tz_list->tz_dev;
 		if (!tz || IS_ERR(tz) || !tz->ops->get_temp)
 			return -EINVAL;
 		ret = tz->ops->get_temp(tz, &tz_list->temp);
-		if (ret)
-			return -EINVAL;
-
-		soc_temp = max(soc_temp, tz_list->temp);
-		sum_temp += tz_list->temp;
+		if (ret) {
+			dev_err(dev, "fail to get temp\n");
+			return ret;
+		}
+		max_temp = max(max_temp, tz_list->temp);
 	}
+	*temp = max_temp;
 
-	if (soc_temp >= 30000)
-		*temp = soc_temp;
-	else
-		*temp = sum_temp / thm_data->nr_thm;
+	return ret;
+}
+
+static void virtual_thm_unregister(struct platform_device *pdev)
+{
+	struct virtual_thm_data *data = platform_get_drvdata(pdev);
+	struct virtual_thm *vir_thm = data->vir_thm;
+
+	devm_thermal_zone_of_sensor_unregister(&pdev->dev, vir_thm->thm_dev);
+}
+
+static const struct thermal_zone_of_device_ops virtual_thm_ops = {
+	.get_temp = virtual_thm_get_temp,
+};
+
+static int virtual_thm_register(struct platform_device *pdev)
+{
+	struct device *dev = &pdev->dev;
+	struct virtual_thm_data *data = platform_get_drvdata(pdev);
+	struct virtual_thm *vir_thm = data->vir_thm;
+
+	vir_thm->thm_dev = devm_thermal_zone_of_sensor_register(dev,
+							   vir_thm->id, data,
+							   &virtual_thm_ops);
+	if (IS_ERR_OR_NULL(vir_thm->thm_dev))
+		return -ENODEV;
+	thermal_zone_device_update(vir_thm->thm_dev, THERMAL_EVENT_UNSPECIFIED);
 
 	return 0;
 }
 
-struct thm_handle_ops sprd_soc_thm_ops = {
-	.read_temp = sprd_read_soc_thm_temp,
-};
-
-static int sprd_get_thm_zone_counts(struct device *dev)
+static int get_thm_zone_counts(struct device *dev)
 {
 	int count;
 	struct device_node *np = dev->of_node;
@@ -123,29 +97,29 @@ static int sprd_get_thm_zone_counts(struct device *dev)
 		return -EINVAL;
 	}
 
-	count = of_property_count_strings(np, "thm-zone-names");
+	count = of_property_count_strings(np, "thmzone-names");
 	if (count < 0) {
-		dev_err(dev, "thm-zone-names not found\n");
-		return -EINVAL;
+		dev_err(dev, "thmzone-names not found\n");
+		return count;
 	}
 
 	return count;
 }
 
-static int sprd_get_thm_zone_device(struct platform_device *pdev)
+static int get_thm_zone_device(struct platform_device *pdev)
 {
 	int i, ret = 0;
 	const char *name;
 	struct device *dev = &pdev->dev;
 	struct device_node *np = dev->of_node;
-	struct sprd_tz_list *tz_list;
-	struct sprd_thm_data *data = platform_get_drvdata(pdev);
+	struct real_tz_list *tz_list;
+	struct virtual_thm_data *data = platform_get_drvdata(pdev);
 
 	for (i = 0; i < data->nr_thm; i++) {
-		ret = of_property_read_string_index(np, "sensor-names",
+		ret = of_property_read_string_index(np, "thmzone-names",
 						    i, &name);
 		if (ret) {
-			dev_err(dev, "fail to get thm names\n");
+			dev_err(dev, "fail to get thmzone-names\n");
 			return ret;
 		}
 		tz_list = &data->tz_list[i];
@@ -156,13 +130,13 @@ static int sprd_get_thm_zone_device(struct platform_device *pdev)
 		}
 	}
 
-	return 0;
+	return ret;
 }
 
-static int sprd_soc_thm_probe(struct platform_device *pdev)
+static int virtual_thm_probe(struct platform_device *pdev)
 {
 	int count = 0, ret = 0, id;
-	struct sprd_thm_data *data;
+	struct virtual_thm_data *data;
 	struct device *dev = &pdev->dev;
 	struct device_node *np = pdev->dev.of_node;
 
@@ -170,14 +144,13 @@ static int sprd_soc_thm_probe(struct platform_device *pdev)
 		dev_err(dev, "device node not found\n");
 		return -EINVAL;
 	}
-
 	data = devm_kzalloc(dev, sizeof(*data), GFP_KERNEL);
 	if (!data)
 		return -ENOMEM;
 
-	count = sprd_get_thm_zone_counts(dev);
+	count = get_thm_zone_counts(dev);
 	if (count < 0) {
-		dev_err(dev, "failed to get thm-zone count\n");
+		dev_err(dev, "failed to get thmzone count\n");
 		return -EINVAL;
 	}
 	data->nr_thm = count;
@@ -186,67 +159,55 @@ static int sprd_soc_thm_probe(struct platform_device *pdev)
 	if (!data->tz_list)
 		return -ENOMEM;
 
-	data->soc_thm = devm_kzalloc(dev, sizeof(*data->soc_thm), GFP_KERNEL);
-	if (!data->soc_thm)
+	data->vir_thm = devm_kzalloc(dev, sizeof(*data->vir_thm), GFP_KERNEL);
+	if (!data->vir_thm)
 		return -ENOMEM;
 
 	platform_set_drvdata(pdev, data);
-	ret = sprd_get_thm_zone_device(pdev);
+	ret = get_thm_zone_device(pdev);
 	if (ret) {
-		dev_err(&pdev->dev, "failed to get thm zone device\n");
+		dev_err(dev, "failed to get thmzone device\n");
 		return -EINVAL;
 	}
 	id = of_alias_get_id(np, "thm-sensor");
 	if (id < 0) {
-		dev_err(dev, "fail to get id\n");
+		dev_err(dev, "failed to get id\n");
 		return -ENODEV;
 	}
-	data->soc_thm->id = id;
-	data->soc_thm->ops = &sprd_soc_thm_ops;
-	ret = sprd_register_soc_thermal(pdev);
-	if (ret < 0) {
-		dev_err(dev, "failed to register soc thermal\n");
-		return -EINVAL;
+	data->vir_thm->id = id;
+	data->vir_thm->dev = dev;
+	ret = virtual_thm_register(pdev);
+	if (ret) {
+		dev_err(dev, "failed to register virtual thermal\n");
+		return -ENODEV;
 	}
 
 	return 0;
 }
 
-static int sprd_soc_thm_remove(struct platform_device *pdev)
+static int virtual_thm_remove(struct platform_device *pdev)
 {
-	sprd_unregister_soc_thermal(pdev);
-
+	virtual_thm_unregister(pdev);
 	return 0;
 }
 
-static const struct of_device_id soc_thermal_of_match[] = {
-	{ .compatible = "sprd,soc-thermal" },
+static const struct of_device_id virtual_thermal_of_match[] = {
+	{ .compatible = "virtual-thermal" },
 	{},
 };
-MODULE_DEVICE_TABLE(of, soc_thermal_of_match);
 
-static struct platform_driver sprd_soc_thermal_driver = {
-	.probe = sprd_soc_thm_probe,
-	.remove = sprd_soc_thm_remove,
+static struct platform_driver virtual_thermal_driver = {
+	.probe = virtual_thm_probe,
+	.remove = virtual_thm_remove,
 	.driver = {
 		   .owner = THIS_MODULE,
-		   .name = "sprd_soc_thermal",
-		   .of_match_table = of_match_ptr(soc_thermal_of_match),
-		   },
+		   .name = "virtual_thermal",
+		   .of_match_table = virtual_thermal_of_match,
+	},
 };
 
-static int __init sprd_soc_thermal_init(void)
-{
-	return platform_driver_register(&sprd_soc_thermal_driver);
-}
+module_platform_driver(virtual_thermal_driver);
 
-static void __exit sprd_soc_thermal_exit(void)
-{
-	platform_driver_unregister(&sprd_soc_thermal_driver);
-}
-
-device_initcall_sync(sprd_soc_thermal_init);
-module_exit(sprd_soc_thermal_exit);
-
-MODULE_DESCRIPTION("sprd thermal driver");
+MODULE_AUTHOR("Jeson Gao <jeson.gao@unisoc.com>");
+MODULE_DESCRIPTION("Unisoc virtual thermal driver");
 MODULE_LICENSE("GPL v2");
