@@ -3635,6 +3635,7 @@ static void cm_track_capacity_init(struct charger_manager *cm)
 }
 #ifdef    DUAL_85_VERSION
 extern int sc27xx_fgu_get_d85_temp( void);
+extern int sc27xx_fgu_get_d85_cap( void);
 #endif
 static void cm_batt_works(struct work_struct *work)
 {
@@ -3700,6 +3701,7 @@ static void cm_batt_works(struct work_struct *work)
 
 #ifdef    DUAL_85_VERSION
 	dev_err(cm->dev, "%s;D85 temp=%d; cur_temp=%d;\n",__func__,sc27xx_fgu_get_d85_temp(),cur_temp);
+	dev_err(cm->dev, "%s;D85 cap=%d; fuel_cap=%d;\n",__func__,sc27xx_fgu_get_d85_cap(),fuel_cap);
 #endif
 
 	cm->desc->temperature = cur_temp;
