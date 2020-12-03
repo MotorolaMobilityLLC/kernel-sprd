@@ -31,6 +31,12 @@
 #define SPRD_SC2721_IRQ_NUMS		11
 #define SPRD_SC2720_IRQ_BASE		0xc0
 #define SPRD_SC2720_IRQ_NUMS		9
+#define SPRD_UMP9620_IRQ_BASE		0x80
+#define SPRD_UMP9620_IRQ_NUMS		10
+#define SPRD_UMP9621_IRQ_BASE		0x8080
+#define SPRD_UMP9621_IRQ_NUMS           10
+#define SPRD_UMP9622_IRQ_BASE           0xc080
+#define SPRD_UMP9622_IRQ_NUMS           10
 
 struct sprd_pmic {
 	struct regmap *regmap;
@@ -47,7 +53,7 @@ struct sprd_pmic_data {
 };
 
 /*
- * Since different PMICs of SC27xx series can have different interrupt
+ * Since different PMICs of SC27xx&&UMP96xx series can have different interrupt
  * base address and irq number, we should save irq number and irq base
  * in the device data structure.
  */
@@ -69,6 +75,21 @@ static const struct sprd_pmic_data sc2721_data = {
 static const struct sprd_pmic_data sc2720_data = {
 	.irq_base = SPRD_SC2720_IRQ_BASE,
 	.num_irqs = SPRD_SC2720_IRQ_NUMS,
+};
+
+static const struct sprd_pmic_data ump9620_data = {
+	.irq_base = SPRD_UMP9620_IRQ_BASE,
+	.num_irqs = SPRD_UMP9620_IRQ_NUMS,
+};
+
+static const struct sprd_pmic_data ump9621_data = {
+	.irq_base = SPRD_UMP9621_IRQ_BASE,
+	.num_irqs = SPRD_UMP9621_IRQ_NUMS,
+};
+
+static const struct sprd_pmic_data ump9622_data = {
+	.irq_base = SPRD_UMP9622_IRQ_BASE,
+	.num_irqs = SPRD_UMP9622_IRQ_NUMS,
 };
 
 static const struct mfd_cell sprd_pmic_devs[] = {
@@ -262,6 +283,9 @@ static const struct of_device_id sprd_pmic_match[] = {
 	{ .compatible = "sprd,sc2730", .data = &sc2730_data },
 	{ .compatible = "sprd,sc2721", .data = &sc2721_data },
 	{ .compatible = "sprd,sc2720", .data = &sc2720_data },
+	{ .compatible = "sprd,ump9620", .data = &ump9620_data },
+	{ .compatible = "sprd,ump9621", .data = &ump9621_data },
+	{ .compatible = "sprd,ump9622", .data = &ump9622_data },
 	{},
 };
 MODULE_DEVICE_TABLE(of, sprd_pmic_match);
