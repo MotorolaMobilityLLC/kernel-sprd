@@ -71,7 +71,7 @@
 				
 				key-googlekey {
 					label = "Google Key";
-					linux,code = <KEY_SEARCH>;
+					linux,code = <KEY_ASSISTANT>;
 					gpios = <&ap_gpio 125 GPIO_ACTIVE_LOW>;
 					debounce-interval = <2>;
 					wakeup-source;
