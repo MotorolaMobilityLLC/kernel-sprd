@@ -1679,7 +1679,7 @@ static int ucp1301_power_on(struct snd_soc_dapm_widget *w,
 	struct snd_soc_codec *codec = snd_soc_dapm_to_codec(w->dapm);
 	struct ucp1301_t *ucp1301 = snd_soc_codec_get_drvdata(codec);
 
-	dev_dbg(ucp1301->dev, "wname %s, %s, class_mode %d\n",
+	dev_info(ucp1301->dev, "wname %s, %s, class_mode %d\n",
 		w->name, ucp1301_get_event_name(event), ucp1301->class_mode);
 
 	switch (event) {
@@ -1697,6 +1697,10 @@ static int ucp1301_power_on(struct snd_soc_dapm_widget *w,
 
 	return 0;
 }
+
+static const struct snd_kcontrol_new ucp1301_switch[] = {
+	SOC_DAPM_SINGLE_VIRT("Switch", 1),
+};
 
 static const struct snd_soc_dapm_widget ucp1301_dapm_widgets[] = {
 	SND_SOC_DAPM_AIF_IN_E("UCP1301 PLAY", "Playback_SPK", 0, SND_SOC_NOPM,
@@ -1723,6 +1727,8 @@ static const struct snd_soc_dapm_widget ucp1301_dapm_widgets_rcv[] = {
 	SND_SOC_DAPM_PGA_E("UCP1301 RCV ON", SND_SOC_NOPM, 0, 0, NULL, 0,
 			   ucp1301_power_on,
 			   SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
+	SND_SOC_DAPM_SWITCH("UCP1301_RCV", SND_SOC_NOPM, 0, 1,
+			    &ucp1301_switch[0]),
 	SND_SOC_DAPM_OUTPUT("UCP1301 RCV"),
 };
 
@@ -1738,7 +1744,8 @@ static const struct snd_soc_dapm_route ucp1301_intercon_spk2[] = {
 
 static const struct snd_soc_dapm_route ucp1301_intercon_rcv[] = {
 	{"UCP1301 RCV", NULL, "UCP1301 PLAY RCV"},
-	{"UCP1301 RCV", NULL, "UCP1301 RCV ON"},
+	{"UCP1301_RCV", "Switch", "UCP1301 RCV ON"},
+	{"UCP1301 RCV", NULL, "UCP1301_RCV"},
 };
 
 static int ucp1301_soc_probe(struct snd_soc_codec *codec)
