@@ -952,7 +952,9 @@ static bool is_full_charged(struct charger_manager *cm)
 	/* If there is no battery, it cannot be charged */
 	if (!is_batt_present(cm))
 		return false;
-
+	if(!cm->charger_enabled)
+		return false;
+		
 	fuel_gauge = power_supply_get_by_name(cm->desc->psy_fuel_gauge);
 	if (!fuel_gauge)
 		return false;
