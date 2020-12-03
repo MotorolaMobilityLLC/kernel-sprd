@@ -13,7 +13,7 @@
 
 	compatible = "sprd,sp9863a-1h10", "sprd,sc9863a";
 
-	sprd,sc-id = "sp9863a 1h10 1000";
+	sprd,sc-id = "sp9863a 1h10 nomodem";
 
 	fragment {
 		target-path = "/";
