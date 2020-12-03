@@ -1036,7 +1036,7 @@ static int sprd_cproc_native_arm_start(void *arg)
 	struct device *dev = cproc->miscdev.this_device;
 	struct cproc_init_data *pdata = cproc->initdata;
 	struct cproc_ctrl *ctrl;
-	u32 state;
+	u32 state, cnt;
 
 	if (!pdata)
 		return -ENODEV;
@@ -1100,13 +1100,19 @@ static int sprd_cproc_native_arm_start(void *arg)
 			ctrl->ctrl_mask[CPROC_CTRL_CORE_RESET],
 			~ctrl->ctrl_mask[CPROC_CTRL_CORE_RESET]);
 
-		while (1) {
+		/* to avoid repeated readng failed in dead loop */
+		cnt = 1000;
+		while (cnt--) {
+			udelay(10);
 			sprd_cproc_regmap_read(ctrl,
 					       CPROC_CTRL_CORE_RESET,
 					       &state);
 			if (!(state & ctrl->ctrl_mask[CPROC_CTRL_CORE_RESET]))
 				break;
 		}
+
+		if (cnt == 0)
+			dev_info(dev, "core reset timeout state =0x%x\n", state);
 	}
 
 	/* clear sys reset */
@@ -1121,13 +1127,18 @@ static int sprd_cproc_native_arm_start(void *arg)
 			ctrl->ctrl_mask[CPROC_CTRL_SYS_RESET],
 			~ctrl->ctrl_mask[CPROC_CTRL_SYS_RESET]);
 
-		while (1) {
+		/* to avoid repeated reading failed in dead loop */
+		cnt = 1000;
+		while (cnt--) {
+			udelay(10);
 			sprd_cproc_regmap_read(ctrl,
 					       CPROC_CTRL_SYS_RESET,
 					       &state);
 			if (!(state & ctrl->ctrl_mask[CPROC_CTRL_SYS_RESET]))
 				break;
 		}
+		if (cnt == 0)
+			dev_info(dev, "core reset timeout state =0x%x\n", state);
 	}
 
 	return 0;
