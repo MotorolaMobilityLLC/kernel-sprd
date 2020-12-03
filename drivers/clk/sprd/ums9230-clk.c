@@ -1191,17 +1191,16 @@ static const char * const aux_parents[] = { "ext-32k", "ext-26m",
 					    "ext-26m-aud", "rco-25m",
 					    "mpll0-56m25", "mpll1-62m5",
 					    "mpll2-46m88", "dpll0-50m",
-					    "gpll-42m5", "twpll-48m" };
-static const char * const aux1_parents[] = { "ext-32k", "ext-26m",
-					     "ext-26m-aud", "rco-25m",
-					     "mpll0-56m25", "mpll1-62m5",
-					     "mpll2-46m88", "dpll0-50m",
-					     "gpll-42m5", "twpll-19m2",
-					     "lpll-30m72", "rpll",
-					     "twpll-12m29" };
+					    "gpll-42m5", "twpll-48m",
+					    "lpll-30m72", "rpll-26m",
+					    "lvdspll-44m", "isppll-29m25",
+					    "wcn-ana", "wcnpll1",
+					    "wcnpll2", "gnsspll",
+					    "deskewpll", "twpll-19m2",
+					    "twpll-12m29"};
 static SPRD_COMP_CLK(aux0_clk, "aux0-clk", aux_parents, 0x28,
 		     0, 5, 8, 4, 0);
-static SPRD_COMP_CLK(aux1_clk, "aux1-clk", aux1_parents, 0x2c,
+static SPRD_COMP_CLK(aux1_clk, "aux1-clk", aux_parents, 0x2c,
 		     0, 5, 8, 4, 0);
 static SPRD_COMP_CLK(aux2_clk, "aux2-clk", aux_parents, 0x30,
 		     0, 5, 8, 4, 0);
