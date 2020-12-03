@@ -16,7 +16,6 @@
 #include <linux/module.h>
 #include <linux/mfd/core.h>
 #include <linux/of_device.h>
-#include <linux/of_platform.h>
 #include <linux/regmap.h>
 #include <linux/spi/spi.h>
 
@@ -70,6 +69,79 @@ static const struct sprd_pmic_data sc2721_data = {
 static const struct sprd_pmic_data sc2720_data = {
 	.irq_base = SPRD_SC2720_IRQ_BASE,
 	.num_irqs = SPRD_SC2720_IRQ_NUMS,
+};
+
+static const struct mfd_cell sprd_pmic_devs[] = {
+	{
+		.name = "sc27xx-wdt",
+		.of_compatible = "sprd,sc27xx-wdt",
+	}, {
+		.name = "sc27xx-rtc",
+		.of_compatible = "sprd,sc27xx-rtc",
+	}, {
+		.name = "sc27xx-charger",
+		.of_compatible = "sprd,sc27xx-charger",
+	}, {
+		.name = "sc27xx-chg-timer",
+		.of_compatible = "sprd,sc27xx-chg-timer",
+	}, {
+		.name = "sc27xx-fast-chg",
+		.of_compatible = "sprd,sc27xx-fast-chg",
+	}, {
+		.name = "sc27xx-chg-wdt",
+		.of_compatible = "sprd,sc27xx-chg-wdt",
+	}, {
+		.name = "sc27xx-typec",
+		.of_compatible = "sprd,sc27xx-typec",
+	}, {
+		.name = "sc27xx-flash",
+		.of_compatible = "sprd,sc27xx-flash",
+	}, {
+		.name = "sc27xx-eic",
+		.of_compatible = "sprd,sc27xx-eic",
+	}, {
+		.name = "sc27xx-efuse",
+		.of_compatible = "sprd,sc27xx-efuse",
+	}, {
+		.name = "sc27xx-thermal",
+		.of_compatible = "sprd,sc27xx-thermal",
+	}, {
+		.name = "sc27xx-adc",
+		.of_compatible = "sprd,sc27xx-adc",
+	}, {
+		.name = "sc27xx-audio-codec",
+		.of_compatible = "sprd,sc27xx-audio-codec",
+	}, {
+		.name = "sc27xx-regulator",
+		.of_compatible = "sprd,sc27xx-regulator",
+	}, {
+		.name = "sc27xx-vibrator",
+		.of_compatible = "sprd,sc27xx-vibrator",
+	}, {
+		.name = "sc27xx-keypad-led",
+		.of_compatible = "sprd,sc27xx-keypad-led",
+	}, {
+		.name = "sc27xx-bltc",
+		.of_compatible = "sprd,sc27xx-bltc",
+	}, {
+		.name = "sc27xx-fgu",
+		.of_compatible = "sprd,sc27xx-fgu",
+	}, {
+		.name = "sc27xx-7sreset",
+		.of_compatible = "sprd,sc27xx-7sreset",
+	}, {
+		.name = "sc27xx-poweroff",
+		.of_compatible = "sprd,sc27xx-poweroff",
+	}, {
+		.name = "sc27xx-syscon",
+		.of_compatible = "sprd,sc27xx-syscon",
+	}, {
+		.name = "sc27xx-tsensor",
+		.of_compatible = "sprd,sc27xx-tsensor",
+	}, {
+		.name = "sc27xx-pd",
+		.of_compatible = "sprd,sc27xx-pd",
+	},
 };
 
 static int sprd_pmic_spi_write(void *context, const void *data, size_t count)
@@ -173,9 +245,12 @@ static int sprd_pmic_probe(struct spi_device *spi)
 		return ret;
 	}
 
-	ret = devm_of_platform_populate(&spi->dev);
+	ret = devm_mfd_add_devices(&spi->dev, PLATFORM_DEVID_NONE,
+				   sprd_pmic_devs, ARRAY_SIZE(sprd_pmic_devs),
+				   NULL, 0,
+				   regmap_irq_get_domain(ddata->irq_data));
 	if (ret) {
-		dev_err(&spi->dev, "Failed to populate sub-devices %d\n", ret);
+		dev_err(&spi->dev, "Failed to register device %d\n", ret);
 		return ret;
 	}
 
