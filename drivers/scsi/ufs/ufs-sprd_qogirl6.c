@@ -161,7 +161,7 @@ static inline void ufs_sprd_rmwl(void __iomem *base, u32 mask, u32 val, u32 reg)
 void ufs_sprd_reset(struct ufs_sprd_host *host)
 {
 
-	unsigned int value;
+	unsigned int value = 0;
 
 	dev_info(host->hba->dev, "ufs hardware reset!\n");
 	/* TODO: HW reset will be simple in next version. */
@@ -221,7 +221,7 @@ static int ufs_sprd_init(struct ufs_hba *hba)
 	struct platform_device *pdev = to_platform_device(dev);
 	struct ufs_sprd_host *host;
 	struct resource *res;
-	unsigned int value;
+	unsigned int value = 0;
 
 	host = devm_kzalloc(dev, sizeof(*host), GFP_KERNEL);
 	if (!host)
