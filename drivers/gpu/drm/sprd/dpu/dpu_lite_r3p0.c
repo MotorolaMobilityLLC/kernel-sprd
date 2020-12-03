@@ -422,12 +422,12 @@ static int dpu_write_back_config(struct dpu_context *ctx)
 #endif
 
 static void dpu_sdp_set(struct dpu_context *ctx,
-			int size, u32 *data)
+			u32 size, u32 *data)
 {
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
 	int i;
 	/* hardware SDP transfer num, 36 bytes unit */
-	int num_sdp = size * 4 / 36;
+	u32 num_sdp = size * 4 / 36;
 
 	for (i = 0; i < size; i++) {
 		reg->sdp_lut_addr = i;

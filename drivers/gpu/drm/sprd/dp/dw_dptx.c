@@ -12,7 +12,7 @@ static int handle_sink_request(struct dptx *dptx)
 {
 	int retval;
 	int ret_dpcd;
-	u8 vector;
+	u8 vector = 0;
 	u8 bytes[14];
 	u32 reg;
 
@@ -134,10 +134,9 @@ static int handle_hotunplug(struct dptx *dptx)
 
 static int handle_hotplug(struct dptx *dptx)
 {
-	int retval;
-	int ret_dpcd;
+	int retval, ret_dpcd;
 	u32 phyifctrl;
-	u8 byte;
+	u8 byte = 0;
 	struct video_params *vparams;
 	u8 rev;
 
@@ -156,14 +155,14 @@ static int handle_hotplug(struct dptx *dptx)
 
 	ret_dpcd = drm_dp_dpcd_readb(&dptx->aux_dev, DP_MSTM_CAP, &byte);
 	if (ret_dpcd < 0) {
-		DRM_DEBUG("read DP_MSTM_CAP err %d\n", retval);
+		DRM_DEBUG("read DP_MSTM_CAP err %d\n", ret_dpcd);
 		return ret_dpcd;
 	}
 
 	if (byte & DP_MST_CAP) {
 		ret_dpcd = drm_dp_dpcd_writeb(&dptx->aux_dev, DP_MSTM_CTRL, 0);
 		if (ret_dpcd < 0) {
-			DRM_DEBUG("write DP_MSTM_CTRL err %d\n", retval);
+			DRM_DEBUG("write DP_MSTM_CTRL err %d\n", ret_dpcd);
 			return ret_dpcd;
 		}
 	}
@@ -176,7 +175,7 @@ static int handle_hotplug(struct dptx *dptx)
 					   dptx->rx_caps,
 					   DPTX_RECEIVER_CAP_SIZE);
 	if (ret_dpcd < 0) {
-		DRM_DEBUG("read rx_caps err %d\n", retval);
+		DRM_DEBUG("read rx_caps err %d\n", ret_dpcd);
 		return ret_dpcd;
 	}
 
@@ -187,7 +186,7 @@ static int handle_hotplug(struct dptx *dptx)
 						   DPTX_RECEIVER_CAP_SIZE);
 		if (ret_dpcd < 0) {
 			DRM_DEBUG("read rx EXTENDED caps err %d\n",
-				 retval);
+				 ret_dpcd);
 			return ret_dpcd;
 		}
 	}

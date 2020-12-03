@@ -12,8 +12,8 @@ static int handle_test_link_training(struct dptx *dptx)
 	struct dtd *mdtd;
 	int retval;
 	int ret_dpcd;
-	u8 lanes;
-	u8 rate;
+	u8 lanes = 0;
+	u8 rate = 0;
 	u32 phyifctrl;
 
 	dptx_enable_ssc(dptx);
@@ -63,9 +63,9 @@ static int handle_test_link_video_pattern(struct dptx *dptx, int stream)
 {
 	int retval;
 	int ret_dpcd;
-	u8 misc, pattern, bpc, bpc_map, dynamic_range,
+	u8 pattern, bpc, bpc_map, dynamic_range,
 	    dynamic_range_map, color_format, color_format_map,
-	    ycbcr_coeff, ycbcr_coeff_map;
+	    ycbcr_coeff, ycbcr_coeff_map, misc = 0;
 	struct video_params *vparams;
 	struct dtd *mdtd;
 
@@ -302,8 +302,8 @@ static int adjust_vswing_and_preemphasis(struct dptx *dptx)
 {
 	int ret_dpcd;
 	int i;
-	u8 lane_01;
-	u8 lane_23;
+	u8 lane_01 = 0;
+	u8 lane_23 = 0;
 
 	ret_dpcd =
 	    drm_dp_dpcd_readb(&dptx->aux_dev, DP_ADJUST_REQUEST_LANE0_1,
@@ -359,7 +359,7 @@ static int adjust_vswing_and_preemphasis(struct dptx *dptx)
 
 static int handle_test_phy_pattern(struct dptx *dptx)
 {
-	u8 pattern;
+	u8 pattern = 0;
 	int retval;
 	int ret_dpcd;
 
@@ -442,7 +442,7 @@ int handle_automated_test_request(struct dptx *dptx)
 {
 	int retval;
 	int ret_dpcd;
-	u8 test;
+	u8 test = 0;
 
 	ret_dpcd = drm_dp_dpcd_readb(&dptx->aux_dev, DP_TEST_REQUEST, &test);
 	if (ret_dpcd < 0)

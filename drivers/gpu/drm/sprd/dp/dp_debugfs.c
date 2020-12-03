@@ -219,7 +219,11 @@ static ssize_t dptx_aux_write(struct file *file,
 	case 3:
 		aux_msg->request = DP_AUX_I2C_WRITE;
 		break;
+	default:
+		aux_msg->request = DP_AUX_NATIVE_WRITE;
+		break;
 	}
+
 	aux_msg->address = aux_addr;
 	aux_msg->buffer = buf;
 	aux_msg->size = count;
@@ -340,7 +344,7 @@ static const struct file_operations dptx_rx_caps_fops = {
 static int dptx_dpcd_read_show(struct seq_file *s, void *unused)
 {
 	struct dptx *dptx = s->private;
-	u8 byte;
+	u8 byte = 0;
 
 	mutex_lock(&dptx->mutex);
 	drm_dp_dpcd_readb(&dptx->aux_dev, dpcd_addr, &byte);
