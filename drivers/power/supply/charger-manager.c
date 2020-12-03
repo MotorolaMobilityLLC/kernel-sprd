@@ -3734,6 +3734,8 @@ static void cm_batt_works(struct work_struct *work)
 	int chg_cur = 0, chg_limit_cur = 0, charger_input_vol = 0;
 	static int last_fuel_cap = CM_CAP_MAGIC_NUM;
 
+	cm_feed_watchdog(cm);    //revolve charge ic reset question by pony.ma date20201203
+
 	ret = get_batt_uV(cm, &batt_uV);
 	if (ret) {
 		dev_err(cm->dev, "get_batt_uV error.\n");
