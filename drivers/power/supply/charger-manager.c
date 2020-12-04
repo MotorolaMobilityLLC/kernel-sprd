@@ -3355,8 +3355,10 @@ static void cm_track_capacity_monitor(struct charger_manager *cm)
 		 * stop charging condition as the the capacity
 		 * tracking end condition.
 		 */
-		if (batt_uV > cm->track.end_vol &&
-		    cur_now < cm->track.end_cur) {
+//		if (batt_uV > cm->track.end_vol &&
+//		    cur_now < cm->track.end_cur) {
+		if(  ocv >4300000 &&  check_charge_done(cm)  ){
+
 			ret = get_batt_energy_now(cm, &clbcnt);
 			if (ret) {
 				dev_err(cm->dev, "failed to get energy now.\n");
@@ -3702,6 +3704,8 @@ static void cm_batt_works(struct work_struct *work)
 #ifdef    DUAL_85_VERSION
 	dev_err(cm->dev, "%s;D85 temp=%d; cur_temp=%d;\n",__func__,sc27xx_fgu_get_d85_temp(),cur_temp);
 	dev_err(cm->dev, "%s;D85 cap=%d; fuel_cap=%d;\n",__func__,sc27xx_fgu_get_d85_cap(),fuel_cap);
+	cur_temp = sc27xx_fgu_get_d85_temp();
+	fuel_cap = sc27xx_fgu_get_d85_cap();
 #endif
 
 	cm->desc->temperature = cur_temp;
@@ -3760,12 +3764,12 @@ static void cm_batt_works(struct work_struct *work)
 	else
 		cm->desc->charger_status = chg_sts;
 
-	dev_err(cm->dev, "Vbat=%d, OCV=%d, current=%d, VChr=%d,"
-		 "soc=%d,%d, status=%d, force full=%d,"
-		 "chr current=%d, chr limit current=%d,"
-		 "temp=%d track state=%d term_vol=%d\n",
+	dev_err(cm->dev, "Vbat=%d,OCV=%d,cur=%d,VChr=%d,"
+		 "soc=%d,%d,status=%d,temp=%d,force full=%d,"
+		 "chr cur=%d,chr limit cur=%d,"
+		 "track=%d term_vol=%d\n",
 		 batt_uV/1000, batt_ocV/1000, bat_uA/1000, charger_voltage/1000,fuel_cap,cm->desc->cap, cm->desc->charger_status,
-		 cm->desc->force_set_full, chg_cur/1000, chg_limit_cur/1000, cur_temp,
+		 cur_temp,cm->desc->force_set_full, chg_cur/1000, chg_limit_cur/1000, 
 		 cm->track.state,term_vol/1000);
 
 	switch (cm->desc->charger_status) {
