@@ -50,4 +50,10 @@
 			compatible = "android,trusty-log-v1";
 		};
 	};
+
+	display-subsystem {
+		compatible = "sprd,display-subsystem";
+		/*ports = <&dpu_port>;*/
+		ports = <&dummy_crtc_port>;
+	};
 };
