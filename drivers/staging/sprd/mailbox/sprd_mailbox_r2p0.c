@@ -879,7 +879,7 @@ static void mbox_check_all_inbox(struct seq_file *m)
 
 		/* find the block inbox*/
 		if (block)
-			seq_printf(m, "    inbox %d is block!\n", i);
+			seq_printf(m, "    inbox %lu is block!\n", i);
 	}
 }
 
@@ -895,7 +895,7 @@ static void mbox_check_all_outbox(struct seq_file *m)
 
 		/* find the full outbox */
 		if (status & MBOX_FIFO_FULL_STS_MASK)
-			seq_printf(m, "    outbox %d is full!\n", i);
+			seq_printf(m, "    outbox %lu is full!\n", i);
 	}
 }
 
@@ -937,7 +937,7 @@ static int mbox_debug_show(struct seq_file *m, void *private)
 	for (i = 0; i < mbox_cfg.core_cnt; i++) {
 		box = sprd_outbox_base + i * mbox_cfg.outbox_range;
 		sipc_debug_putline(m, '-', 105);
-		seq_printf(m, "outbox %d reg start:\n", i);
+		seq_printf(m, "outbox %lu reg start:\n", i);
 		seq_printf(m, "\n  core_id:     0x%08x",
 			   readl_relaxed((void __iomem *)(box + 0x0)));
 
@@ -962,7 +962,7 @@ static int mbox_debug_show(struct seq_file *m, void *private)
 
 	for (i = 0; i < mbox_cfg.core_cnt; i++) {
 		sipc_debug_putline(m, '-', 105);
-		seq_printf(m, "inbox %d reg start:\n", i);
+		seq_printf(m, "inbox %lu reg start:\n", i);
 
 		box = sprd_inbox_base + i * mbox_cfg.inbox_range;
 
