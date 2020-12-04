@@ -158,6 +158,24 @@ static int bq2560x_update_bits(struct bq2560x_charger_info *info, u8 reg,
 	return bq2560x_write(info, reg, v);
 }
 
+static void bq2560x_dump_regs(struct bq2560x_charger_info *info)
+{
+
+	int addr;
+	u8 val[0x0c];
+	int ret;
+
+	for (addr = 0x0; addr <= 0x0B; addr++) {
+		ret = bq2560x_read(info, addr, &val[addr]);
+	}
+	dev_err(info->dev,"bq25601 [0x0]=0x%.2x [0x1]=0x%.2x [0x2]=0x%.2x  [0x3]=0x%.2x [0x4]=0x%.2x [0x5]=0x%.2x [0x6]=0x%.2x \n",
+		                      val[0],val[1],val[2],val[3],val[4],val[5],val[6]);
+	dev_err(info->dev,"bq25601 [0x7]=0x%.2x [0x8]=0x%.2x [0x9]=0x%.2x  [0xa]=0x%.2x [0xb]=0x%.2x  \n",
+		                      val[7],val[8],val[9],val[0xa],val[0xb]);
+
+}
+
+
 static int
 bq2560x_charger_set_vindpm(struct bq2560x_charger_info *info, u32 vol)
 {
@@ -809,6 +827,9 @@ bq2560x_charger_feed_watchdog_work(struct work_struct *work)
 		dev_err(info->dev, "reset bq2560x failed\n");
 		return;
 	}
+
+	bq2560x_dump_regs(info);
+
 	schedule_delayed_work(&info->wdt_work, HZ * 15);
 }
 
