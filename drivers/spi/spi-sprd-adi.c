@@ -89,6 +89,10 @@
 #define PMIC_MODULE_EN			0xc08
 #define PMIC_CLK_EN			0xc18
 #define PMIC_WDT_BASE			0x80
+#define UMP9620_RST_STATUS		0x23ac
+#define UMP9620_MODULE_EN		0x2308
+#define UMP9620_CLK_EN			0x2310
+#define UMP9620_WDT_BASE		0x40
 #define SC2730_RST_STATUS		0x1bac
 #define SC2730_MODULE_EN		0x1808
 #define SC2730_CLK_EN			0x1810
@@ -677,6 +681,16 @@ static struct sprd_adi_variant_data qogirl6_data = {
 	.pmic_wdt_support = false,
 };
 
+static struct sprd_adi_variant_data qogirn6pro_data = {
+	.write_wait = sprd_adi_write_wait,
+	.channel_offset = ADI_15BIT_CHANNEL_OFFSET,
+	.pmic_wdt_support = true,
+	.wdt_base = UMP9620_WDT_BASE,
+	.rst_sts = UMP9620_RST_STATUS,
+	.wdt_en = UMP9620_MODULE_EN,
+	.wdt_clk = UMP9620_CLK_EN,
+};
+
 static const struct of_device_id sprd_adi_of_match[] = {
 	{
 		.compatible = "sprd,sc9860-adi",
@@ -697,6 +711,10 @@ static const struct of_device_id sprd_adi_of_match[] = {
 	{
 		.compatible = "sprd,qogirl6-adi-r5p1",
 		.data = &qogirl6_data,
+	},
+	{
+		.compatible = "sprd,qogirn6pro-adi",
+		.data = &qogirn6pro_data,
 	},
 	{ },
 };
