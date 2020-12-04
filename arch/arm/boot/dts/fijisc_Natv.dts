@@ -224,7 +224,7 @@
 				      <510000 1100>, <440000 1150>, <378000 1200>,
 				      <324000 1250>, <278000 1300>, <238000 1350>,
 				      <204000 1400>, <175000 1450>, <150000 1500>,
-				      <129000 1550>, <111000 1600>, <96000 1650> , <83000 1700>;
+				      <129000 1550>, <111000 1600>, <96000 1650> , <83000 1700>,<63000 1800>;
 		capacity-temp-table-0 = <50 100>, <25 100>, <0 96>, <(-10) 88>;
 		resistance-temp-table-0 = <50 67>, <25 100>, <0 218>, <(-10) 434>;
 		charge-sdp-current-microamp = <500000 500000>;
@@ -282,10 +282,10 @@
 		cm-fuel-gauge = "sc27xx-fgu";
 
 		/* in deci centigrade */
-		cm-battery-cold = <200>;
+		cm-battery-cold = <000>;
 		cm-battery-cold-in-minus;
-		cm-battery-hot = <800>;
-		cm-battery-temp-diff = <100>;
+		cm-battery-hot = <550>;
+		cm-battery-temp-diff = <20>;
 
 		/* Allow charging for 6hr */
 		cm-charging-max = <21600000>;
