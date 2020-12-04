@@ -71,7 +71,7 @@
 					240 241 242 243 244 245 246 247 248 249
 					250 251
 				>;
-				default-brightness-level = <33>;
+				default-brightness-level = <29>;
 			};
 
 			tboard_thermistor:thermal-sensor {
