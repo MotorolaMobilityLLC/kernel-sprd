@@ -10,6 +10,10 @@
 	#address-cells = <2>;
 	#size-cells = <2>;
 
+	aliases {
+		spi4 = &adi_bus;
+	};
+
 	soc: soc {
 		compatible = "simple-bus";
 		#address-cells = <2>;
@@ -120,7 +124,7 @@
 			};
 
 			adi_bus: spi@400000 {
-				compatible = "sprd,qogirl6-adi-r5p1";
+				compatible = "sprd,qogirn6pro-adi";
 				reg = <0x400000 0x100000>;
 			};
 
