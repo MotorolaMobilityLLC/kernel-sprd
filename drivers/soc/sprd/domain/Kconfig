@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-2.0
 config SPRD_POWER_DOMAIN
 	tristate "SPRD Power Domain"
 	depends on ARCH_SPRD || COMPILE_TEST
@@ -12,3 +13,10 @@ config SPRD_VSP_PW_DOMAIN
 	select PM_GENERIC_DOMAINS if PM
 	help
 	  When you select this feature, it will enable the vsp power domain.
+
+config SPRD_CAMSYS_PW_DOMAIN
+	tristate "SPRD camsys power domain"
+	depends on ARCH_SPRD || COMPILE_TEST
+	select PM_GENERIC_DOMAINS if PM
+	help
+	  If you select this feature, it will enable the camera sys power domain.
