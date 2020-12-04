@@ -2935,7 +2935,7 @@ int f2fs_flush_nat_entries(struct f2fs_sb_info *sbi, struct cp_control *cpc)
 	struct f2fs_nm_info *nm_i = NM_I(sbi);
 	struct curseg_info *curseg = CURSEG_I(sbi, CURSEG_HOT_DATA);
 	struct f2fs_journal *journal = curseg->journal;
-	struct nat_entry_set *setvec[SETVEC_SIZE];
+	struct nat_entry_set *setvec[SETVEC_SIZE] = {0};
 	struct nat_entry_set *set, *tmp;
 	unsigned int found;
 	nid_t set_idx = 0;
@@ -3185,8 +3185,8 @@ void f2fs_destroy_node_manager(struct f2fs_sb_info *sbi)
 {
 	struct f2fs_nm_info *nm_i = NM_I(sbi);
 	struct free_nid *i, *next_i;
-	struct nat_entry *natvec[NATVEC_SIZE];
-	struct nat_entry_set *setvec[SETVEC_SIZE];
+	struct nat_entry *natvec[NATVEC_SIZE] = {0};
+	struct nat_entry_set *setvec[SETVEC_SIZE] = {0};
 	nid_t nid = 0;
 	unsigned int found;
 
