@@ -8,6 +8,7 @@
 		gpios = <&pmic_eic 3 0>, <&pmic_eic 8 0>,
 				<&pmic_eic 12 0>, <&pmic_eic 5 0>,
 				<&pmic_eic 13 0>;
+		/* Type_C headphone: add gpios <&ap_gpio 132 0>,<&ap_gpio 133 0> */
 		gpio-trigger-levels = <1 1 1 1 1>;
 		/*
 		 * 10ms debounce time is recommended from
@@ -17,6 +18,12 @@
 		gpio-names = "button", "detect_l",
 					 "detect_h", "detect_mic",
 					 "detect_all";
+		/* Type_C headphone: add gpio-names "typec_lr","typec_switch" */
+		extcon = <&pmic_typec>;
+		sprd,typec-lr-gpio-level = <1>;
+		typec_switch-supply = <&vddusb33>;
+		sprd,typec_switch-voltage = <3300000>;
+		typec-adc-threshold-3pole-detect = <112>;
 		adc-threshold-3pole-detect = <3054>;
 		sprd,adc-gnd = <336>;
 		sprd,stable-value = <2223>;
