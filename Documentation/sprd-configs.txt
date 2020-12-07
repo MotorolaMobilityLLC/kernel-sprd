@@ -13938,6 +13938,15 @@ CONFIG_SPRD_TIMER
 	[must] console
 	[missing plat description] none
 	[function] Support for Spreadtrum ARM based SoCs.
+CONFIG_SPRD_TIME_SYNC
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field] make
+	[subsys] time
+	[must] user
+	[missing plat description] none
+	[function] Spreadtrum time sync driver.
 CONFIG_SPRD_TOP_DVFS_DEVFREQ
 	[arch] all
 	[plat] qogirl6,sharkl5,sharkl5Pro,sharkl5_32

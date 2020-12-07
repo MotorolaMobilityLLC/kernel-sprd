@@ -46,6 +46,13 @@ config SPRD_HRTIMER_DEBUG
 	help
 	  Support sprd hrtimer debug driver.
 
+config SPRD_TIME_SYNC
+	bool "Spreadtrum time sync driver"
+	depends on ARCH_SPRD
+	default y
+	help
+	  Support sprd time sync with other subsystem.
+
 source drivers/soc/sprd/iommu/Kconfig
 source "drivers/soc/sprd/modem/Kconfig"
 source "drivers/soc/sprd/domain/Kconfig"

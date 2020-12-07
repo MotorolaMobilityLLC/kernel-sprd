@@ -1240,6 +1240,26 @@ int get_device_system_crosststamp(int (*get_time_fn)
 }
 EXPORT_SYMBOL_GPL(get_device_system_crosststamp);
 
+static BLOCKING_NOTIFIER_HEAD(sprd_time_sync_chain);
+
+static void sprd_time_sync_call_chain(struct timekeeper *tk, bool was_set)
+{
+	blocking_notifier_call_chain(&sprd_time_sync_chain, was_set, tk);
+}
+
+int sprd_time_sync_register_notifier(struct notifier_block *nb)
+{
+	struct timekeeper *tk = &tk_core.timekeeper;
+	int ret;
+
+	ret = blocking_notifier_chain_register(&sprd_time_sync_chain, nb);
+
+	sprd_time_sync_call_chain(tk, true);
+
+	return ret;
+}
+EXPORT_SYMBOL_GPL(sprd_time_sync_register_notifier);
+
 /**
  * do_gettimeofday - Returns the time of day in a timeval
  * @tv:		pointer to the timeval to be set
@@ -1294,6 +1314,8 @@ out:
 
 	write_seqcount_end(&tk_core.seq);
 	raw_spin_unlock_irqrestore(&timekeeper_lock, flags);
+
+	sprd_time_sync_call_chain(tk, true);
 
 	/* signal hrtimers about time change */
 	clock_was_set();
