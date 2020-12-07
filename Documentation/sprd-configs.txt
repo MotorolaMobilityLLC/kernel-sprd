@@ -13166,6 +13166,15 @@ CONFIG_SPRD_HANG_DEBUG_UART
 	[must] user
 	[missing plat description] only test sharkl3
 	[function] enable hang_debug uart log output
+CONFIG_SPRD_HRTIMER_DEBUG
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field] make
+	[subsys] time
+	[must] user
+	[missing plat description] none
+	[function] support hrtimer print
 CONFIG_SPRD_HWFEATURE
 	[arch] arm64
 	[plat] sharkl5Pro

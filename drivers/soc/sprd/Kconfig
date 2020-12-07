@@ -39,6 +39,13 @@ config SPRD_SYSTIMER
 	help
 	  Support sprd system timer driver.
 
+config SPRD_HRTIMER_DEBUG
+	bool "Spreadtrum hrtimer debug driver"
+	depends on ARCH_SPRD && HIGH_RES_TIMERS && DEBUG_FS
+	default y
+	help
+	  Support sprd hrtimer debug driver.
+
 source drivers/soc/sprd/iommu/Kconfig
 source "drivers/soc/sprd/modem/Kconfig"
 source "drivers/soc/sprd/domain/Kconfig"
