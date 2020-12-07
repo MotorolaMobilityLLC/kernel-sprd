@@ -8,6 +8,8 @@ config SPRD_SIPC
 	  This driver is a SIPC V3 driver, it is base to SIPC v2 dirver.
 	  depends on MBOX.
 
+	  Say M here if you want to build a module.
+
 config SPRD_SIPC_SPIPE
 	tristate "SPRD pipe driver based on SBUF"
 	default n
@@ -16,6 +18,8 @@ config SPRD_SIPC_SPIPE
 	  This driver is a pipe driver base on SBUF, which create
 	  general pipes between AP & CP.
 
+	  Say M here if you want to build a module.
+
 config SPRD_SIPC_SPOOL
 	tristate "SPRD pool driver based on SBLOCK"
 	default n
@@ -23,4 +27,17 @@ config SPRD_SIPC_SPOOL
 	help
 	  This driver is a pool driver base on SBLOCK, which create
 	  general pools between AP & CP.
+
+	  Say M here if you want to build a module.
+
+config SPRD_SIPC_ZERO_COPY_SIPX
+	tristate "SPRD SIPX driver"
+	default n
+	depends on SPRD_SIPC
+	help
+	  SIPX driver implementation for the Spreadtrum platform.
+	  It is used to provide read/write application program interface.
+	  It can transmit large blocks data and IP packets based on sblock.
+
+	  Say M here if you want to build a module.
 endmenu

@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: GPL-2.0-or-later */
 /*
  * Copyright (C) 2012-2019 Spreadtrum Communications Inc.
  *
@@ -317,7 +318,8 @@ int smsg_send(u8 dst, struct smsg *msg, int timeout);
 int smsg_recv(u8 dst, struct smsg *msg, int timeout);
 
 /* smsg_register_notifier  */
-int smsg_register_notifier(int dst, void(*handler)(phys_addr_t addr, void *data), void *data);
+int smsg_register_notifier(int dst, void(*handler)(phys_addr_t addr,
+						void *data), void *data);
 
 /**
  * sipc_channel2index
@@ -547,10 +549,10 @@ int sbuf_register_notifier(u8 dst, u8 channel, u32 bufid,
 
 /* sblock structure: addr is the uncached virtual address */
 struct sblock {
-	void		*addr;
+	void	*addr;
 	u32	length;
-	u16        index;
-	u16        offset;
+	u16     index;
+	u16     offset;
 };
 
 /**
@@ -602,38 +604,37 @@ int sblock_create_ex(u8 dst, u8 channel,
  * open the channel. The client shall open the channel using
  * sblock_pcfg_open and close the channel using sblock_close.
  */
-int sblock_pcfg_create(u8 dst, u8 channel,
-		       u32 tx_blk_num, u32 tx_blk_sz,
-		       u32 rx_blk_num, u32 rx_blk_sz);
+int sblock_pcfg_create(u8 dst, u8 channel, u32 tx_blk_num, u32 tx_blk_sz,
+			u32 rx_blk_num, u32 rx_blk_sz);
 
 /* sblock_pcfg_open -- request to open preconfigured SBLOCK channel.
  *
  * @dst: dest processor ID
  * @channel: channel ID
  * @notifier: the event notification callback function. This function can
- *	      not sleep. If this parameter is NULL, no event will be
- *	      reported.
+ *		not sleep. If this parameter is NULL, no event will be
+ *		reported.
  * @event: SBLOCK_NOTIFY_GET, SBLOCK_NOTIFY_RECV, or both
  * @client: opaque data passed to the receiver
  * @return: if the channel is established, return 0; if the open procedure
- *          is started and not finished, return SIPC_ERR_IN_PROGRESS;
- *	    otherwise return a negative error code.
+ *		is started and not finished, return SIPC_ERR_IN_PROGRESS;
+ *		otherwise return a negative error code.
  *
  * The function starts the open procedure. If the open procedure is not
  * finished when the function returns, the SBLOCK system will report
  * the open result later through the notifier callback.
  */
 int sblock_pcfg_open(uint8_t dest, uint8_t channel,
-		     void (*notifier)(int event, void *client),
-		     void *client);
+			void (*notifier)(int event, void *client),
+			void *client);
 
 /* sblock_close -- request to close SBLOCK channel.
  *
  * @dst: dest processor ID
  * @channel: channel ID
  * @return: if the channel is closed, return 0; if the close procedure
- *          is started and not finished, return SIPC_ERR_IN_PROGRESS;
- *	    otherwise return a negative error code.
+ *		is started and not finished, return SIPC_ERR_IN_PROGRESS;
+ *		otherwise return a negative error code.
  *
  * The function starts the close procedure. If the close procedure is not
  * finished when the function returns, the SBLOCK system will report
@@ -648,7 +649,7 @@ int sblock_close(uint8_t dest, uint8_t channel);
  * @paddr: pointer to the variable to receive the address.
  */
 int sblock_get_smem_cp_addr(uint8_t dest, uint8_t channel,
-			    uint32_t *paddr);
+			uint32_t *paddr);
 /**
  * sblock_destroy -- destroy sblock manager on a channel
  *
@@ -666,8 +667,8 @@ void sblock_destroy(u8 dst, u8 channel);
 
 /**
  * sblock_register_notifier -- register a callback that's called
- *		when a tx sblock is available or a rx block is received.
- *		non-blocked sblock_get or sblock_receive can be called.
+ * when a tx sblock is available or a rx block is received.
+ * non-blocked sblock_get or sblock_receive can be called.
  *
  * @dst: dest processor ID
  * @channel: channel ID
@@ -751,8 +752,6 @@ int sblock_release(u8 dst, u8 channel, struct sblock *blk);
  */
 int sblock_get_arrived_count(u8 dst, u8 channel);
 
-
-
 /**
  * sblock_get_free_count  -- get the count of available sblock(s) resident in
  * sblock pool on AP.
@@ -762,7 +761,6 @@ int sblock_get_arrived_count(u8 dst, u8 channel);
  * @return: >=0  the count of blocks
  */
 int sblock_get_free_count(u8 dst, u8 channel);
-
 
 /**
  * sblock_put  -- put a free sblock for sender
@@ -783,7 +781,8 @@ void sblock_put(u8 dst, u8 channel, struct sblock *blk);
  * @wait: poll table
  * @return: POLLIN or POLLOUT
  */
-unsigned int sblock_poll_wait(u8 dst, u8 channel, struct file *filp, poll_table *wait);
+unsigned int sblock_poll_wait(u8 dst,
+			u8 channel, struct file *filp, poll_table *wait);
 
 /**
  * sblock_query  -- sblock query status
@@ -793,7 +792,6 @@ unsigned int sblock_poll_wait(u8 dst, u8 channel, struct file *filp, poll_table 
  * @return: 0 on success, <0 on failure
  */
 int sblock_query(u8 dst, u8 channel);
-
 
 /* ****************************************************************** */
 
