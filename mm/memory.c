@@ -137,8 +137,10 @@ static int __init static_check_struct(void)
 {
 	/* static check struct size */
 	char vm_area_assert[sizeof_same(struct vm_area_struct) * 2 - 1];        /* size of struct vm_area_struct != struct vm_area_struct_shadow */
+	char mm_struct_assert[sizeof_same(struct mm_struct) * 2 - 1];           /* size of struct mm_struct != struct mm_struct_shadow */
 
 	vm_area_assert[0] = 0;
+	mm_struct_assert[0] = 0;
 
 	return 0;
 }

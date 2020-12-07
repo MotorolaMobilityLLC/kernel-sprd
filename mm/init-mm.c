@@ -28,6 +28,14 @@
  */
 struct mm_struct init_mm = {
 	.mm_rb		= RB_ROOT,
+#ifdef CONFIG_SPECULATIVE_PAGE_FAULT
+#ifdef CONFIG_SPECULATIVE_PAGE_FAULT_DEBUG
+	.mm_seq		= __SEQLOCK_UNLOCKED(init_mm.mm_seq),
+#else
+	/* init android_vendor_data1 to unlock */
+	.android_vendor_data1 = 0,
+#endif
+#endif
 	.pgd		= swapper_pg_dir,
 	.mm_users	= ATOMIC_INIT(2),
 	.mm_count	= ATOMIC_INIT(1),
