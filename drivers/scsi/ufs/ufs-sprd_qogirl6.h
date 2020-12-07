@@ -39,8 +39,8 @@ struct ufs_sprd_host {
 #define FIFO_ENABLE_MASK (0x1 << 15)
 
 /* UFS mphy registers */
-#define MPHY_LANE0_FIFO 0x008c
-#define MPHY_LANE1_FIFO 0x088c
+#define MPHY_LANE0_FIFO 0xc08c
+#define MPHY_LANE1_FIFO 0xc88c
 
 #define FIFO_ENABLE_MASK (0x1 << 15)
 
