@@ -344,7 +344,7 @@ static void sprd_i2c_set_clk(struct sprd_i2c *i2c_dev, u32 freq)
 
 	/* Start hold timing = hold time(us) * source clock */
 	if (freq == 400000)
-		writel((6 * apb_clk) / 10000000, i2c_dev->base + ADDR_STA0_DVD);
+		writel((14 * apb_clk) / 10000000, i2c_dev->base + ADDR_STA0_DVD);
 	else if (freq == 100000)
 		writel((4 * apb_clk) / 1000000, i2c_dev->base + ADDR_STA0_DVD);
 }
