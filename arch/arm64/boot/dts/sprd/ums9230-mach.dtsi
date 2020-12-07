@@ -404,6 +404,10 @@
 	clr-offset = <0x2000>;
 };
 
+&pdm_dmic {
+	status = "okay";
+};
+
 &sound_vbc_v4_sprd_codec {
 	status = "okay";
 	sprd-audio-card,routing =
@@ -414,6 +418,8 @@
 		"Ext Spk", "SPK Pin",
 		"UCP1301 SPK ON", "SPK Pin",
 		"Ext Spk", "UCP1301 SPK",
+		"PDM DMIC2 ON", "SPK Pin",
+		"Ext Spk", "PDM_DMIC2",
 		"DMIC Pin", "DMic Jack",
 		"DMIC1 Pin", "DMic1 Jack",
 		"Ext Ear", "EAR Pin",
@@ -461,6 +467,26 @@
 		};
 		codec {
 			sound-dai = <&ucp1301_rcv 0>;
+		};
+	};
+
+	/* 50: pdm dmic */
+	sprd-audio-card,dai-link@68 {
+		ignore-suspend = <1>;
+		link-name = "BE_PDM_DMIC";
+		stream-name = "BE_ST_PDM_DMIC";
+		no-pcm = <1>;
+		dpcm-capture = <1>;
+		be-id = <0>;
+		//dai-format = "i2s";
+		plat {
+			sound-dai = <&sprd_route_pcm>;
+		};
+		cpu {
+			sound-dai = <&vbc_v4 3>;
+		};
+		codec {
+			sound-dai = <&pdm_dmic 0>;
 		};
 	};
 };

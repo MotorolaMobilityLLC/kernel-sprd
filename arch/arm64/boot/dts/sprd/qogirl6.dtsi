@@ -1781,6 +1781,14 @@
 				pinctrl-11 = <&vbc_iis3_5>;
 			};
 
+			pdm_dmic: pdm-dmic@56401000 {
+				compatible = "sprd,pdm";
+				status = "disabled";
+				reg = <0 0x56401000 0 0x1000>;
+				#sound-dai-cells = <1>;
+				sprd,syscon-agcp-ahb = <&audcp_ahb_regs>;
+			};
+
 			mcdt@56490000{
 				compatible = "sprd,mcdt-r2p0";
 				reg = <0 0x56490000 0 0x170>;
