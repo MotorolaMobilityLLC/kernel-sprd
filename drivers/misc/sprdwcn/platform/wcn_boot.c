@@ -2461,7 +2461,7 @@ static int marlin_probe(struct platform_device *pdev)
 	wcn_bus_init();
 	bus_ops = get_wcn_bus_ops();
 	bus_ops->start_wcn = start_marlin;
-	bus_ops->start_wcn = stop_marlin;
+	bus_ops->stop_wcn = stop_marlin;
 
 	/* sdiom_init or pcie_init */
 	err = sprdwcn_bus_preinit();

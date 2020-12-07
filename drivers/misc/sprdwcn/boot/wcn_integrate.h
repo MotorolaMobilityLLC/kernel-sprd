@@ -250,6 +250,7 @@ void wcn_set_module_status_changed(bool status);
 int marlin_reset_register_notify(void *callback_func, void *para);
 int marlin_reset_unregister_notify(void);
 void wcn_set_module_state(bool status);
+void wcn_set_loopcheck_state(bool status);
 void wcn_set_apcp_sync_addr(struct wcn_device *wcn_dev);
 int wcn_send_force_sleep_cmd(struct wcn_device *wcn_dev);
 u32 wcn_get_sleep_status(struct wcn_device *wcn_dev, int force_sleep);

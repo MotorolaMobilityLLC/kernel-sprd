@@ -531,15 +531,20 @@ void wcn_set_module_state(bool status)
 		wcn_open_module = 1;
 	else
 		wcn_open_module = 0;
-	wcn_module_state_change = 1;
+	wcn_set_download_status(status);
+	WCN_INFO("cp2 power status:%d\n", status);
+}
+
+void wcn_set_loopcheck_state(bool status)
+{
+	wcn_set_module_status_changed(true);
 	if (status) {
 		loopcheck_ready_set();
 		start_loopcheck();
-	} else if (wcn_open_module == 0) {
+	} else if (!(s_wcn_device.btwf_device->wcn_open_status &
+		WCN_MARLIN_MASK)) {
 		stop_loopcheck();
 	}
-	wcn_set_download_status(status);
-	WCN_INFO("cp2 power status:%d\n", status);
 	wakeup_loopcheck_int();
 }
 
