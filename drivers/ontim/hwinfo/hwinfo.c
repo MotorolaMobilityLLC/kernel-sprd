@@ -24,23 +24,24 @@
 
 #define BUF_SIZE 64
 
+#if 0
 char front_cam_name[64] = "Unknown";
 char frontaux_cam_name[64] = "Unknown";
 char back_cam_name[64] = "Unknown";
 char backaux_cam_name[64] = "Unknown";
 char backaux2_cam_name[64] = "Unknown";
 
-char backaux2_cam_otp_status[64] = "Unknown";
-char backaux_cam_otp_status[64] = "Unknown";
-char back_cam_otp_status[64] = "Unknown";
-char front_cam_otp_status[64] = "Unknown";
-
 char front_cam_efuse_id[64] = {0};
 char frontaux_cam_efuse_id[64] = {0};
 char back_cam_efuse_id[64] = {0};
 char backaux_cam_efuse_id[64] = {0};
 char backaux2_cam_efuse_id[64] = {0};
+#endif
 
+char backaux2_cam_otp_status[64] = "Unknown";
+char backaux_cam_otp_status[64] = "Unknown";
+char back_cam_otp_status[64] = "Unknown";
+char front_cam_otp_status[64] = "Unknown";
 
 #if 0
 //read borad ID from adc
@@ -849,6 +850,12 @@ static ssize_t get_alsps_id(void)
 #define BACKAUX_CAMERA_VENDOR_FILE "/sys/ontim_bootinfo/backaux_cam_info"
 #define BACKAUX2_CAMERA_VENDOR_FILE "/sys/ontim_bootinfo/backaux2_cam_info"
 
+#define FRONT_CAMERA_EFUSE_FILE "/sys/ontim_bootinfo/front_cam_efuse"
+#define FRONTAUX_CAMERA_EFUSE_FILE "/sys/ontim_bootinfo/frontaux_cam_efuse"
+#define BACK_CAMERA_EFUSE_FILE "/sys/ontim_bootinfo/back_cam_efuse"
+#define BACKAUX_CAMERA_EFUSE_FILE "/sys/ontim_bootinfo/backaux_cam_efuse"
+#define BACKAUX2_CAMERA_EFUSE_FILE "/sys/ontim_bootinfo/backaux2_cam_efuse"
+
 static void get_front_camera_id(void)
 {
 	char buf[MAX_HWINFO_SIZE] = {};
@@ -978,39 +985,99 @@ static void get_front_camera_otp_status(void)
  }
 static void get_front_camera_efuse_id(void)
 {
-	if (front_cam_efuse_id != NULL)
-		strncpy(hwinfo[FRONT_CAM_EFUSE].hwinfo_buf, front_cam_efuse_id,
-		        ((strlen(front_cam_efuse_id) >= sizeof(hwinfo[FRONT_CAM_EFUSE].hwinfo_buf) ?
-		          sizeof(hwinfo[FRONT_CAM_EFUSE].hwinfo_buf) : strlen(front_cam_efuse_id))));
+	char buf[MAX_HWINFO_SIZE] = {};
+	int ret = 0;
+
+	ret = hwinfo_read_file(FRONT_CAMERA_EFUSE_FILE, buf, sizeof(buf));
+	if (ret != 0) {
+		printk(KERN_CRIT "front camera efuse failed.");
+		return;
+	}
+	printk(KERN_INFO "front camera efuse id: %s\n", buf);
+
+	if (buf[strlen(buf) - 1] == '\n')
+		buf[strlen(buf) - 1] = '\0';
+
+	strcpy(hwinfo[FRONT_CAM_EFUSE].hwinfo_buf, buf);
+
+	return;
 }
 static void get_frontaux_camera_efuse_id(void)
 {
-	if (frontaux_cam_efuse_id != NULL)
-		strncpy(hwinfo[FRONTAUX_CAM_EFUSE].hwinfo_buf, frontaux_cam_efuse_id,
-		        ((strlen(frontaux_cam_efuse_id) >= sizeof(hwinfo[FRONTAUX_CAM_EFUSE].hwinfo_buf) ?
-		          sizeof(hwinfo[FRONTAUX_CAM_EFUSE].hwinfo_buf) : strlen(frontaux_cam_efuse_id))));
+	char buf[MAX_HWINFO_SIZE] = {};
+	int ret = 0;
+
+	ret = hwinfo_read_file(FRONTAUX_CAMERA_EFUSE_FILE, buf, sizeof(buf));
+	if (ret != 0) {
+		printk(KERN_CRIT "frontaux camera efuse failed.");
+		return;
+	}
+	printk(KERN_INFO "frontaux camera efuse: %s\n", buf);
+
+	if (buf[strlen(buf) - 1] == '\n')
+		buf[strlen(buf) - 1] = '\0';
+
+	strcpy(hwinfo[FRONTAUX_CAM_EFUSE].hwinfo_buf, buf);
+
+	return;
 }
 static void get_back_camera_efuse_id(void)
 {
-	if (back_cam_efuse_id != NULL)
-		strncpy(hwinfo[BACK_CAM_EFUSE].hwinfo_buf, back_cam_efuse_id,
-		        ((strlen(back_cam_efuse_id) >= sizeof(hwinfo[BACK_CAM_EFUSE].hwinfo_buf) ?
-		          sizeof(hwinfo[BACK_CAM_EFUSE].hwinfo_buf) : strlen(back_cam_efuse_id))));
+	char buf[MAX_HWINFO_SIZE] = {};
+	int ret = 0;
+
+	ret = hwinfo_read_file(BACK_CAMERA_EFUSE_FILE, buf, sizeof(buf));
+	if (ret != 0) {
+		printk(KERN_CRIT "back camera efuse failed.");
+		return;
+	}
+	printk(KERN_INFO "back camera efuse: %s\n", buf);
+
+	if (buf[strlen(buf) - 1] == '\n')
+		buf[strlen(buf) - 1] = '\0';
+
+	strcpy(hwinfo[BACK_CAM_EFUSE].hwinfo_buf, buf);
+
+	return;
 }
 static void get_backaux_camera_efuse_id(void)
 {
-	if (backaux_cam_efuse_id != NULL)
-		strncpy(hwinfo[BACKAUX_CAM_EFUSE].hwinfo_buf, backaux_cam_efuse_id,
-		        ((strlen(backaux_cam_efuse_id) >= sizeof(hwinfo[BACKAUX_CAM_EFUSE].hwinfo_buf) ?
-		          sizeof(hwinfo[BACKAUX_CAM_EFUSE].hwinfo_buf) : strlen(backaux_cam_efuse_id))));
+	char buf[MAX_HWINFO_SIZE] = {};
+	int ret = 0;
+
+	ret = hwinfo_read_file(BACKAUX_CAMERA_EFUSE_FILE, buf, sizeof(buf));
+	if (ret != 0) {
+		printk(KERN_CRIT "backaux camera efuse failed.");
+		return;
+	}
+	printk(KERN_INFO "backaux camera efuse: %s\n", buf);
+
+	if (buf[strlen(buf) - 1] == '\n')
+		buf[strlen(buf) - 1] = '\0';
+
+	strcpy(hwinfo[BACKAUX_CAM_EFUSE].hwinfo_buf, buf);
+
+	return;
 }
 
 static void get_backaux2_camera_efuse_id(void)
 {
-	if (backaux2_cam_efuse_id != NULL)
-		strncpy(hwinfo[BACKAUX2_CAM_EFUSE].hwinfo_buf, backaux2_cam_efuse_id,
-		        ((strlen(backaux2_cam_efuse_id) >= sizeof(hwinfo[BACKAUX2_CAM_EFUSE].hwinfo_buf) ?
-		          sizeof(hwinfo[BACKAUX2_CAM_EFUSE].hwinfo_buf) : strlen(backaux2_cam_efuse_id))));
+	char buf[MAX_HWINFO_SIZE] = {};
+	int ret = 0;
+
+	ret = hwinfo_read_file(BACKAUX2_CAMERA_EFUSE_FILE, buf, sizeof(buf));
+	if (ret != 0) {
+		printk(KERN_CRIT "backaux2 camera efuse failed.");
+		return;
+	}
+	printk(KERN_INFO "backaux2 camera efuse: %s\n", buf);
+
+	if (buf[strlen(buf) - 1] == '\n')
+		buf[strlen(buf) - 1] = '\0';
+
+	strcpy(hwinfo[BACKAUX2_CAM_EFUSE].hwinfo_buf, buf);
+
+	return;
 }
 
 static void get_card_present(void)
