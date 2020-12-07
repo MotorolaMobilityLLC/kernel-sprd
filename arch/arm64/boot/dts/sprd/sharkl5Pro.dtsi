@@ -282,7 +282,7 @@
 			ranges;
 
 			ap_dma: dma-controller@20000000 {
-				compatible = "sprd,sharkl5-dma", "sprd,sharkl5pro-dma";
+				compatible = "sprd,sharkl5pro-dma", "sprd,sc9860-dma";
 				reg = <0 0x20000000 0 0x4000>;
 				interrupts = <GIC_SPI 24 IRQ_TYPE_LEVEL_HIGH>;
 				#dma-cells = <1>;
@@ -1554,7 +1554,7 @@
 			ranges;
 
 			agcp_dma: dma-controller@33580000 {
-				compatible = "sprd,sharkl5-dma", "sprd,sharkl5pro-dma";
+				compatible = "sprd,sharkl5pro-dma", "sprd,sc9860-dma";
 				reg = <0 0x33580000 0 0x4000>;
 				interrupts = <GIC_SPI 180 IRQ_TYPE_LEVEL_HIGH>;
 				#dma-cells = <1>;

@@ -116,7 +116,7 @@
 			ranges;
 
 			ap_dma: dma-controller@20410000 {
-				compatible = "sprd,qogirl6-dma";
+				compatible = "sprd,qogirl6-dma", "sprd,sc9860-dma";
 				reg = <0 0x20410000 0 0x4000>;
 				interrupts = <GIC_SPI 24 IRQ_TYPE_LEVEL_HIGH>;
 				#dma-cells = <1>;
