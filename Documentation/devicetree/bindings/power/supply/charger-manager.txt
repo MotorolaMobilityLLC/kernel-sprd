@@ -34,6 +34,8 @@ Optional properties :
  - cm-charge-voltage-drop: drop voltage in microVolts to allow recharging
  - cm-fast-charge-voltage-max: maximum fast charge voltage in microVolts
  - cm-fast-charge-voltage-drop: drop voltage in microVolts to allow restart fast charging
+ - cm-flash-charge-voltage-max: maximum fast charge voltage in microVolts
+ - cm-flash-charge-voltage-drop: drop voltage in microVolts to allow restart fast charging
  - cm-shutdown-voltage: drop voltage in microVolts to allow shutdown
  - cm-tickle-time-out: when 99% of the time is exceeded, it will be forced to 100%
  - cm-one-cap-time: how much time to allow capacity change
@@ -50,6 +52,17 @@ Optional properties :
  - cm-jeita-sdp-table: Similar to the above, An array of sdp charger type table.
  - cm-jeita-unknown-table: Similar to the above, An array of unknown table type table.
  - cm-jeita-fchg-table: Similar to the above, An array of fast charger type table.
+ - cm-num-charge-pumps: number of charge pums chargers.
+ - cm-num-wireless-chargers: number of wireless chargers.
+ - cm-num-wireless-charge-pump-converters: number of wireless charge pump converters;
+ - cm-charge-pumps: name of chager pumps.
+ - cm-wireless-chargers: name of wireless chargers.
+ - cm-wireless-charge-pump-converters: name of wireless charge pump converters;
+ - cm-cp-taper-current: Charge pump target charge current
+ - cm-cap-remap-table: capacity remap table.
+ - cm-ir-cv-offset-microvolt: current and resistor compensation offeset value.
+ - cm-ir-rc:  current and resistor compensation resistor value.
+ - cm-ir-us-upper-limit-microvolt: current and resistor compensation upper limit.
 Example :
 	charger-manager@0 {
 		compatible = "charger-manager";
@@ -66,12 +79,20 @@ Example :
 		cm-fullbatt-vchkdrop-volt = <150000>;
 		cm-fullbatt-soc = <100>;
 
+		cm-cp-taper-current = <1000000>;
+
 		cm-battery-stat = <3>;
 
 		cm-num-chargers = <3>;
 		cm-num-fast-chargers = <2>;
+		cm-num-charge-pumps = <2>;
+		cm-num-wireless-chargers = <2>;
+		cm-num-wireless-charge-pump-converters = <2>;
 		cm-chargers = "charger0", "charger1", "charger2";
 		cm-fast-chargers = "fast_charger0", "fast_charger1";
+		cm-charge-pumps = "cp-charger0", "cp-charger1";
+		cm-wireless-chargers = "wl-charger0", "wl-charger1";
+		cm-wireless-charge-pump-converters = "converter0", "converter1";
 
 		cm-fuel-gauge = "fuelgauge0";
 
@@ -90,10 +111,16 @@ Example :
 		cm-charge-voltage-drop = <700000>;
 		cm-fast-charge-voltage-max = <11000000>;
 		cm-fast-charge-voltage-drop  = <1000000>;
+		cm-flash-charge-voltage-max = <11000000>;
+		cm-flash-charge-voltage-drop  = <1000000>;
 		cm-shutdown-voltage = <3100000>;
 		cm-tickle-time-out = <1500>;
 		cm-one-cap-time = <30>;
 		cm-wdt-interval = <60>;
+		cm-ir-cv-offset-microvolt = <100000>;
+		cm-ir-rc = <20>;
+		cm-ir-us-upper-limit-microvolt = <4500000>;
+
 		cm-jeita-temp-table = <900 930 0 4200000>, <1000 1030 100000 4200000>,
 			<1100 1130 500000 4350000>, <1450 1420 0x7fff000 4350000>,
 			<1500 1470 700000 4350000>;
