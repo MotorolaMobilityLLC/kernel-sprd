@@ -2405,19 +2405,19 @@
 	audio-mem-mgr {
 		compatible = "sprd,audio-mem-sharkl5";
 		/*
-		 * base is 0x87400000 for sharkl5
-		 * 1. reserved ddr layout total 4M:
-		 * 3M (ap used. include dma data,dma node(dynamic),
+		 * base is 0x87500000 for sharkl5
+		 * 1. reserved ddr layout total 3M:
+		 * 2M (ap used. include dma data,dma node(dynamic),
 		 * dsp log(65K), dsp pcm(65K)) + 1k(cmd param) 2K + 16b(cmd) +
 		 * 1K AUDIO_STRUCT_PARA + 1K(nxp/cvs) + dsp used(4k)) +
 		 * 0.5M dsp memdump
 		 */
 		ddr32-ap-dsp-map-offset = <0x0>;
 		/*
-		 * 3M for dynamic alloc, 0x87400000 - 0x87700000 ddr32-dma,
+		 * 2M for dynamic alloc, 0x87500000 - 0x87700000 ddr32-dma,
 		 * 1M for other
 		 */
-		sprd,ddr32-dma = <0x87400000 0x300000>;
+		sprd,ddr32-dma = <0x87500000 0x200000>;
 		/* 512K,  0x87700000 - 0x87780000*/
 		sprd,ddr32-dspmemdump = <0x87700000 0x80000>;
 		/* 1K cmd para, 0x87780000 - 0x87780400 */
