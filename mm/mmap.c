@@ -183,6 +183,12 @@ static inline void mm_write_sequnlock(struct mm_struct *mm)
 }
 #endif /* CONFIG_SPECULATIVE_PAGE_FAULT */
 
+void __free_vma(struct vm_area_struct *vma)
+{
+	mpol_put(vma_policy(vma));
+	vm_area_free(vma);
+}
+
 /*
  * Close a vm structure and free it, returning the next.
  */
@@ -195,8 +201,8 @@ static struct vm_area_struct *remove_vma(struct vm_area_struct *vma)
 		vma->vm_ops->close(vma);
 	if (vma->vm_file)
 		fput(vma->vm_file);
-	mpol_put(vma_policy(vma));
-	vm_area_free(vma);
+	vma->vm_file = NULL;
+	put_vma(vma);
 	return next;
 }
 
@@ -992,8 +998,7 @@ again:
 		if (next->anon_vma)
 			anon_vma_merge(vma, next);
 		mm->map_count--;
-		mpol_put(vma_policy(next));
-		vm_area_free(next);
+		put_vma(next);
 		/*
 		 * In mprotect's case 6 (see comments on vma_merge),
 		 * we must remove another next too. It would clutter

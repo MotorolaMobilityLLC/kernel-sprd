@@ -366,10 +366,11 @@ struct vm_area_struct {
 	ANDROID_KABI_RESERVE(1);
 	ANDROID_KABI_RESERVE(2);
 	ANDROID_KABI_RESERVE(3);
-	ANDROID_KABI_RESERVE(4);
 #ifndef CONFIG_SPECULATIVE_PAGE_FAULT_DEBUG
+	ANDROID_KABI_RESERVE(4); /* vm_ref_count */
 	ANDROID_VENDOR_DATA(1);	/* vm_sequence */
 #else /* CONFIG_SPECULATIVE_PAGE_FAULT_DEBUG  */
+	atomic_t vm_ref_count;
 	seqcount_t vm_sequence;
 #endif
 } __randomize_layout;
@@ -467,7 +468,7 @@ struct vm_area_struct_shadow {
 	ANDROID_KABI_RESERVE(1);
 	ANDROID_KABI_RESERVE(2);
 	ANDROID_KABI_RESERVE(3);
-	ANDROID_KABI_RESERVE(4);
+	u64 vm_ref_count;	/* ANDROID_KABI_RESERVE(4) */
 	u64 vm_sequence;	/* ANDROID_VENDOR_DATA(1) */
 } __randomize_layout;
 
