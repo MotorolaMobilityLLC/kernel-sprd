@@ -140,7 +140,7 @@ static void hook_gpio_pulse_control(unsigned int gpio, unsigned int mode)
 	spin_unlock_irqrestore(lock, flags);
 }
 
-static int hook_spk_aw87xx(int id, int on)
+int hook_spk_aw87xx(int id, int on)
 {
 	int gpio, mode;
 
