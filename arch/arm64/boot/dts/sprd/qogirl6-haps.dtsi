@@ -280,7 +280,7 @@
 			};
 
 			ap_gpio: gpio@641b0000 {
-				compatible = "sprd,qogirl6-gpio";
+				compatible = "sprd,qogirl6-gpio", "sprd,sc9860-gpio";
 				reg = <0 0x641b0000 0 0x10000>;
 				gpio-controller;
 				#gpio-cells = <2>;
