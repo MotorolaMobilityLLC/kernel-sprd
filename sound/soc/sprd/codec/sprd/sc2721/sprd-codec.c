@@ -2019,6 +2019,8 @@ static int hp_switch_event(struct snd_soc_dapm_widget *w,
 		snd_soc_update_bits(codec, SOC_REG(ANA_CDC2), mask_drv, val);
 		break;
 	case SND_SOC_DAPM_PRE_PMD:
+		hook_spk_aw87xx(0,0);
+		udelay(200);
 		val = left ? BIT(HPL_FLOOPEN) : BIT(HPR_FLOOPEN);
 		snd_soc_update_bits(codec, SOC_REG(ANA_CDC2), mask_drv, val);
 		snd_soc_update_bits(codec, SOC_REG(ANA_CDC2), mask_drv, 0);
