@@ -744,7 +744,7 @@ static int sc27xx_fgu_get_capacity(struct sc27xx_fgu_data *data, int *cap,
 
 	if (*cap < 0) {
 		*cap = 0;
-		sc27xx_fgu_adjust_cap(data, 0);
+	//	sc27xx_fgu_adjust_cap(data, 0);
 		return 0;
 	} else if (*cap > 1000) {
 		*cap = 1000;
@@ -1278,15 +1278,22 @@ static void sc27xx_fgu_low_capacity_match_ocv(struct sc27xx_fgu_data *data,
 
 	if ((batt_uV < SC27XX_FGU_LOW_VBAT_REGION || ocv < data->min_volt) &&
 	    cap > data->alarm_cap) {
+		dev_err(data->dev, "%s 1;%d;%d;%d;\n",__func__,batt_uV,ocv,data->min_volt);
+		dev_err(data->dev, "%s 1;%d;%d;%d;\n",__func__,cap,data->alarm_cap,data->init_cap);
+	    
 		data->init_cap -= 5;
 		if (data->init_cap < 0)
 			data->init_cap = 0;
 	} else if (ocv > data->min_volt && cap <= data->alarm_cap) {
+		dev_err(data->dev, "%s 2;%d;%d;%d;%d;\n",__func__,ocv,data->min_volt,cap,data->alarm_cap);
+
 		sc27xx_fgu_adjust_cap(data, data->alarm_cap);
 	} else if (ocv <= data->cap_table[data->table_len - 1].ocv) {
+		dev_err(data->dev, "%s 3;%d;%d;\n",__func__,ocv,data->cap_table[data->table_len - 1].ocv);
 		sc27xx_fgu_adjust_cap(data, 0);
 	} else if (data->first_calib_volt > 0 && data->first_calib_cap > 0 &&
 		   ocv <= data->first_calib_volt && cap > data->first_calib_cap) {
+		dev_err(data->dev, "%s 4;%d;%d;%d;\n",__func__,ocv,cap,data->init_cap);
 		data->init_cap -= 5;
 		if (data->init_cap < 0)
 			data->init_cap = 0;
@@ -1319,6 +1326,7 @@ static void sc27xx_fgu_low_capacity_calibration(struct sc27xx_fgu_data *data,
 	if (ocv <= data->min_volt) {
 		if (!int_mode)
 			return;
+		dev_err(data->dev, "%s;%d;%d;\n",__func__,ocv,data->min_volt);
 
 		/*
 		 * After adjusting the battery capacity, we should set the
@@ -1330,6 +1338,8 @@ static void sc27xx_fgu_low_capacity_calibration(struct sc27xx_fgu_data *data,
 							      data->min_volt);
 
 		data->alarm_cap *= 10;
+
+		dev_err(data->dev, "%s;%d;%d;\n",__func__,data->alarm_cap ,data->min_volt);
 
 		adc = sc27xx_fgu_voltage_to_adc(data, data->min_volt / 1000);
 		regmap_update_bits(data->regmap,
