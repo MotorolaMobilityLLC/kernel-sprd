@@ -22,6 +22,7 @@
 #include <linux/pvclock_gtod.h>
 #include <linux/compiler.h>
 #include <linux/audit.h>
+#include <linux/kallsyms.h>
 
 #include "tick-internal.h"
 #include "ntp_internal.h"
@@ -1214,6 +1215,60 @@ int get_device_system_crosststamp(int (*get_time_fn)
 }
 EXPORT_SYMBOL_GPL(get_device_system_crosststamp);
 
+static BLOCKING_NOTIFIER_HEAD(sprd_time_sync_chain);
+
+static void sprd_time_sync_call_chain(struct timekeeper *tk, bool was_set)
+{
+	blocking_notifier_call_chain(&sprd_time_sync_chain, was_set, tk);
+}
+
+int sprd_time_sync_register_notifier(struct notifier_block *nb)
+{
+	struct timekeeper *tk = &tk_core.timekeeper;
+	int ret;
+
+	ret = blocking_notifier_chain_register(&sprd_time_sync_chain, nb);
+
+	sprd_time_sync_call_chain(tk, true);
+
+	return ret;
+}
+
+static struct notifier_block *sprd_time_sync_notifier_ptr;
+
+static int __nocfi sprd_module_notifier_fn(struct notifier_block *nb,
+					   unsigned long action,
+					   void *data)
+{
+	int ret = 0;
+
+	if (action != MODULE_STATE_LIVE)
+		return NOTIFY_DONE;
+
+	/* return immediately if the func has been found */
+	if (sprd_time_sync_notifier_ptr)
+		return NOTIFY_DONE;
+
+	sprd_time_sync_notifier_ptr = (void *)
+		kallsyms_lookup_name("sprd_time_sync_notifier");
+	if (!sprd_time_sync_notifier_ptr)
+		return NOTIFY_DONE;
+
+	ret = sprd_time_sync_register_notifier(sprd_time_sync_notifier_ptr);
+	if (ret) {
+		printk("sprd time sync notifier register failed.\n");
+		return NOTIFY_DONE;
+	}
+
+	printk("sprd time sync notifier register done.\n");
+
+	return NOTIFY_OK;
+}
+
+static struct notifier_block sprd_module_notifier = {
+	.notifier_call = sprd_module_notifier_fn,
+};
+
 /**
  * do_settimeofday64 - Sets the time of day.
  * @ts:     pointer to the timespec64 variable containing the new time
@@ -1252,6 +1307,8 @@ out:
 
 	write_seqcount_end(&tk_core.seq);
 	raw_spin_unlock_irqrestore(&timekeeper_lock, flags);
+
+	sprd_time_sync_call_chain(tk, true);
 
 	/* signal hrtimers about time change */
 	clock_was_set();
@@ -1571,6 +1628,8 @@ void __init timekeeping_init(void)
 
 	write_seqcount_end(&tk_core.seq);
 	raw_spin_unlock_irqrestore(&timekeeper_lock, flags);
+
+	register_module_notifier(&sprd_module_notifier);
 }
 
 /* time in seconds when suspend began for persistent clock */

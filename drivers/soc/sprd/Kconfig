@@ -39,4 +39,11 @@ config SPRD_SYSTIMER
 	default m
 	help
 	  Support sprd system timer driver.
+
+config SPRD_TIME_SYNC
+	tristate "Spreadtrum time sync driver"
+	depends on ARCH_SPRD
+	default m
+	help
+	  Support sprd time sync with other subsystem.
 endmenu
