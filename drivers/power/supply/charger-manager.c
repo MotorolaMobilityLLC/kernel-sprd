@@ -3890,17 +3890,20 @@ static void cm_batt_works(struct work_struct *work)
 	if( (!charge_done)  &&  batt_ocV >(term_vol - 100000) &&  check_charge_done(cm)  )
 	{		
 		charge_done = true;
-		dev_info(cm->dev, "%s;full;fuel_cap=%d, ui cap=%d\n",__func__,
+		dev_err(cm->dev, "%s;full;fuel_cap=%d, ui cap=%d\n",__func__,
 			 fuel_cap, cm->desc->cap);
 		if( term_vol == 4400000)
 			fuel_cap =1000;		
 		else
 		{
-			fuel_cap = power_supply_ocv2cap_simple(cm->desc->cap_table,
+			int real_cap; 
+			real_cap = power_supply_ocv2cap_simple(cm->desc->cap_table,
 						      cm->desc->cap_table_len,
 						      term_vol);
-			dev_info(cm->dev, "%s;full;fuel_cap=%d, term_vol%d\n",__func__,
-				 fuel_cap, term_vol/1000);
+			dev_err(cm->dev, "%s;full;fuel_cap=%d,%d, term_vol=%d\n",__func__,
+				 fuel_cap, real_cap,term_vol/1000);
+			if(real_cap > fuel_cap)
+				fuel_cap = real_cap;
 		}	
 		calibrate_batt_cap(cm,fuel_cap);
 	}
