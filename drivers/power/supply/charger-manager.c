@@ -921,7 +921,6 @@ static bool check_charge_done(struct charger_manager *cm)
 		{
 			/* Then, this is charge done. */
 			done = true;
-			dev_err(cm->dev, "%s;charge done;\n",__func__);
 			break;
 		}
 
@@ -3605,7 +3604,7 @@ static int cm_get_bat_info(struct charger_manager *cm)
 	 * For CHARGER MANAGER device, we only use one ocv-capacity
 	 * table in normal temperature 20 Celsius.
 	 */
-	table = power_supply_find_ocv2cap_table(&info, 20, &cm->desc->cap_table_len);
+	table = power_supply_find_ocv2cap_table(&info, 25, &cm->desc->cap_table_len);
 	if (!table)
 		return -EINVAL;
 
@@ -3712,9 +3711,11 @@ static void cm_batt_works(struct work_struct *work)
 
 	if (cur_temp <= CM_LOW_TEMP_REGION &&
 	    batt_uV <= CM_LOW_TEMP_SHUTDOWN_VALTAGE) {
+		dev_err(cm->dev, "%s 1;%d;%d;\n",__func__,cur_temp,batt_uV);
 		if (cm->desc->low_temp_trigger_cnt++ > 1)
 			fuel_cap = 0;
 	} else if (cm->desc->low_temp_trigger_cnt != 0) {
+		dev_err(cm->dev, "%s 2;%d;%d;\n",__func__,cur_temp,batt_uV);
 		cm->desc->low_temp_trigger_cnt = 0;
 	}
 
@@ -3885,12 +3886,22 @@ static void cm_batt_works(struct work_struct *work)
 //		orderly_poweroff(true);
 	}
 
-	if( (!charge_done)  &&  batt_ocV >4300000 &&  check_charge_done(cm)  )
+
+	if( (!charge_done)  &&  batt_ocV >(term_vol - 100000) &&  check_charge_done(cm)  )
 	{		
 		charge_done = true;
 		dev_info(cm->dev, "%s;full;fuel_cap=%d, ui cap=%d\n",__func__,
 			 fuel_cap, cm->desc->cap);
-		fuel_cap =1000;		
+		if( term_vol == 4400000)
+			fuel_cap =1000;		
+		else
+		{
+			fuel_cap = power_supply_ocv2cap_simple(cm->desc->cap_table,
+						      cm->desc->cap_table_len,
+						      term_vol);
+			dev_info(cm->dev, "%s;full;fuel_cap=%d, term_vol%d\n",__func__,
+				 fuel_cap, term_vol/1000);
+		}	
 		calibrate_batt_cap(cm,fuel_cap);
 	}
 	else if ( !check_charge_done(cm))
