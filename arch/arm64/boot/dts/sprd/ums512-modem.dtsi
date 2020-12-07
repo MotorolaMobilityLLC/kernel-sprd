@@ -295,4 +295,8 @@
 		sprd,core_id = <1>;
 		sprd,record_num = <6>;
 	};
+
+	time_sync {
+		compatible = "sprd,time-sync";
+	};
 };
