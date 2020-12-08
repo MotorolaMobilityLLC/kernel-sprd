@@ -562,7 +562,7 @@ static int wcn_sipc_sblk_send(struct sipc_chn_info *sipc_chn,
 	addr = (u8 *)blk.addr + SIPC_SBLOCK_HEAD_RESERV;
 	blk.length = len + SIPC_SBLOCK_HEAD_RESERV;
 	if (sipc_chn->index == SIPC_WIFI_DATA0_TX)
-	    WCN_INFO("sipc sblk send. buf: %p, addr：%p, blk.length: %d\n",
+	    WCN_DEBUG("sipc sblk send. buf: %p, addr：%p, blk.length: %d\n",
 		     buf, addr, blk.length);
 	memcpy(((u8 *)addr), buf, len);
 	ret = swcnblk_send_prepare(sipc_chn->dst, sipc_chn->chn, &blk);
@@ -652,7 +652,7 @@ static void wcn_sipc_sblk_recv(struct sipc_chn_info *sipc_chn)
 		WCN_DEBUG("sblk length %d", length);
 		wcn_sipc_record_mbuf_recv_from_bus(sipc_chn->index, 1);
 		if (sipc_chn->index == SIPC_WIFI_DATA0_RX)
-			WCN_INFO("sipc sblk send. blk.addr：%p, length: %d\n",
+			WCN_DEBUG("sipc sblk send. blk.addr：%p, length: %d\n",
 				 blk.addr, length);
 		wcn_sipc_recv(sipc_chn,
 			      (u8 *)blk.addr + SIPC_SBLOCK_HEAD_RESERV, length);
