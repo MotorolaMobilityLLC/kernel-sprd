@@ -3900,6 +3900,7 @@ static void cm_batt_works(struct work_struct *work)
 			real_cap = power_supply_ocv2cap_simple(cm->desc->cap_table,
 						      cm->desc->cap_table_len,
 						      term_vol);
+			real_cap =real_cap *10;
 			dev_err(cm->dev, "%s;full;fuel_cap=%d,%d, term_vol=%d\n",__func__,
 				 fuel_cap, real_cap,term_vol/1000);
 			if(real_cap > fuel_cap)
