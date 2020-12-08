@@ -1158,33 +1158,6 @@ static int sprd_cproc_native_arm_start(void *arg)
 			~ctrl->ctrl_mask[CPROC_CTRL_DEEP_SLEEP]);
 	}
 
-	/* clear core reset */
-	dev_dbg(dev, "core reset reg =0x%x, mask =0x%x\n",
-		 ctrl->ctrl_reg[CPROC_CTRL_CORE_RESET],
-		 ctrl->ctrl_mask[CPROC_CTRL_CORE_RESET]);
-	if (ctrl->ctrl_reg[CPROC_CTRL_CORE_RESET] != INVALID_REG) {
-		msleep(50);
-		sprd_cproc_regmap_update_bit(
-			ctrl,
-			CPROC_CTRL_CORE_RESET,
-			ctrl->ctrl_mask[CPROC_CTRL_CORE_RESET],
-			~ctrl->ctrl_mask[CPROC_CTRL_CORE_RESET]);
-
-		/* to avoid repeated readng failed in dead loop */
-		cnt = 1000;
-		while (cnt--) {
-			udelay(10);
-			sprd_cproc_regmap_read(ctrl,
-					       CPROC_CTRL_CORE_RESET,
-					       &state);
-			if (!(state & ctrl->ctrl_mask[CPROC_CTRL_CORE_RESET]))
-				break;
-		}
-
-		if (cnt == 0)
-			dev_info(dev, "core reset timeout state =0x%x\n", state);
-	}
-
 	/* clear sys reset */
 	dev_dbg(dev, "sys reset reg =0x%x, mask =0x%x\n",
 		 ctrl->ctrl_reg[CPROC_CTRL_SYS_RESET],
@@ -1205,6 +1178,32 @@ static int sprd_cproc_native_arm_start(void *arg)
 					       CPROC_CTRL_SYS_RESET,
 					       &state);
 			if (!(state & ctrl->ctrl_mask[CPROC_CTRL_SYS_RESET]))
+				break;
+		}
+		if (cnt == 0)
+			dev_info(dev, "core reset timeout state =0x%x\n", state);
+	}
+
+	/* clear core reset */
+	dev_dbg(dev, "core reset reg =0x%x, mask =0x%x\n",
+		 ctrl->ctrl_reg[CPROC_CTRL_CORE_RESET],
+		 ctrl->ctrl_mask[CPROC_CTRL_CORE_RESET]);
+	if (ctrl->ctrl_reg[CPROC_CTRL_CORE_RESET] != INVALID_REG) {
+		msleep(50);
+		sprd_cproc_regmap_update_bit(
+			ctrl,
+			CPROC_CTRL_CORE_RESET,
+			ctrl->ctrl_mask[CPROC_CTRL_CORE_RESET],
+			~ctrl->ctrl_mask[CPROC_CTRL_CORE_RESET]);
+
+		/* to avoid repeated reading failed in dead loop */
+		cnt = 1000;
+		while (cnt--) {
+			udelay(10);
+			sprd_cproc_regmap_read(ctrl,
+					       CPROC_CTRL_CORE_RESET,
+					       &state);
+			if (!(state & ctrl->ctrl_mask[CPROC_CTRL_CORE_RESET]))
 				break;
 		}
 		if (cnt == 0)
