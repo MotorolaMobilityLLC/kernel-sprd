@@ -31,6 +31,9 @@
 		spi3 = &spi3;
 		spi4 = &adi_bus;
 		spi5 = &adi_bus1;
+		thm-sensor15 = &cluster0_sensor;
+		thm-sensor16 = &cluster1_sensor;
+		thm-sensor17 = &soc_sensor;
 	};
 
 	soc: soc {
@@ -1200,6 +1203,40 @@
 					nvmem-cells = <&thm2_sen4>;
 					nvmem-cell-names = "sen_delta_cal";
 				};
+			};
+
+			cluster0_sensor: cluster0-sensor@15 {
+				compatible = "sprd,cluster0-thermal";
+				#thermal-sensor-cells = <1>;
+				sensor-names = "ank0-tzone1","ank1-thmzone","ank2-thmzone",
+					"ank3-thmzone","ank4-thmzone","ank5-thmzone";
+				k-po = <128>;
+				k-pu = <256>;
+				k-i = <1>;
+				k-d = <0>;
+				cutoff = <0>;
+			};
+
+			cluster1_sensor: cluster1-sensor@16 {
+				compatible = "sprd,cluster1-thermal";
+				#thermal-sensor-cells = <1>;
+				sensor-names = "prometheus6-thmzone", "prometheus7-thmzone";
+				k-po = <128>;
+				k-pu = <256>;
+				k-i = <1>;
+				k-d = <0>;
+				cutoff = <0>;
+			};
+
+			soc_sensor: soc-sensor@17 {
+				compatible = "sprd,soc-thermal";
+				#thermal-sensor-cells = <1>;
+				sensor-names = "cluster0-thmzone","cluster1-thmzone","gpu-thmzone";
+				k-po = <0>;
+				k-pu = <0>;
+				k-i = <1>;
+				k-d = <0>;
+				cutoff = <0>;
 			};
 
 			adi_bus: spi@64200000 {
