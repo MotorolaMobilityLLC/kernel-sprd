@@ -21,10 +21,13 @@
 #define SC2730_SLP_CTRL		0x1a48
 #define SC2731_PWR_PD_HW	0xc2c
 #define SC2731_SLP_CTRL		0xdf0
+#define UMP9620_PWR_PD_HW	0x2020
+#define UMP9620_SLP_CTRL	0x2168
 #define SC2720_LDO_XTL_EN	BIT(2)
 #define SC2721_LDO_XTL_EN	BIT(2)
 #define SC2730_LDO_XTL_EN	BIT(2)
 #define SC2731_LDO_XTL_EN	BIT(3)
+#define UMP9620_LDO_XTL_EN	BIT(2)
 #define SC27XX_PWR_OFF_EN	BIT(0)
 
 struct sc27xx_poweroff_data {
@@ -87,6 +90,12 @@ static const struct sc27xx_poweroff_data sc2731_data = {
 	.sc27xx_ldo_xtl_en = SC2731_LDO_XTL_EN,
 };
 
+static const struct sc27xx_poweroff_data ump9620_data = {
+	.sc27xx_poweroff_reg = UMP9620_PWR_PD_HW,
+	.sc27xx_slp_ctrl_reg = UMP9620_SLP_CTRL,
+	.sc27xx_ldo_xtl_en = UMP9620_LDO_XTL_EN,
+};
+
 static int sc27xx_poweroff_probe(struct platform_device *pdev)
 {
 	pdata = of_device_get_match_data(&pdev->dev);
@@ -112,6 +121,7 @@ static const struct of_device_id sc27xx_poweroff_of_match[] = {
 	{ .compatible = "sprd,sc2721-poweroff", .data = &sc2721_data},
 	{ .compatible = "sprd,sc2730-poweroff", .data = &sc2730_data},
 	{ .compatible = "sprd,sc2731-poweroff", .data = &sc2731_data},
+	{ .compatible = "sprd,ump9620-poweroff", .data = &ump9620_data},
 	{ }
 };
 
