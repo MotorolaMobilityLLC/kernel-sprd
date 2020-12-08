@@ -1471,6 +1471,7 @@ static int sc27xx_fgu_calibration(struct sc27xx_fgu_data *data)
 				  data->calib_resist_spec);
 
 	kfree(buf);
+	dev_err(data->dev, "%s;%d;%d;%d;%d;\n",__func__,calib_data,cal_4200mv,data->vol_1000mv_adc,data->cur_1000ma_adc);
 	return 0;
 }
 
