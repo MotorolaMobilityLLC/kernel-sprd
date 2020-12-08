@@ -440,7 +440,7 @@
 			};
 
 			pwms: pwm@40260000 {
-				compatible = "sprd,sharkl3-pwm";
+				compatible = "sprd,sharkl3-pwm", "sprd,ums512-pwm";
 				reg = <0 0x40260000 0 0x10000>;
 				clock-names = "pwm0", "enable0",
 					"pwm1", "enable1",
