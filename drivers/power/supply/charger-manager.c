@@ -4449,6 +4449,26 @@ static void cm_batt_works(struct work_struct *work)
 	cm_track_capacity_monitor(cm);
 }
 
+static int get_boot_mode(void)
+{
+	struct device_node *cmdline_node;
+	const char *cmd_line;
+	int ret;
+
+	cmdline_node = of_find_node_by_path("/chosen");
+	ret = of_property_read_string(cmdline_node, "bootargs", &cmd_line);
+	if (ret)
+		return ret;
+
+	if (!strncmp(cmd_line, "cali", strlen("cali")) ||
+	    !strncmp(cmd_line, "autotest", strlen("autotest")))
+		allow_charger_enable = true;
+	else if (!strncmp(cmd_line, "charger", strlen("charger")))
+		is_charger_mode =  true;
+
+	return 0;
+}
+
 static int charger_manager_probe(struct platform_device *pdev)
 {
 	struct device_node *np = pdev->dev.of_node;
@@ -4518,6 +4538,12 @@ static int charger_manager_probe(struct platform_device *pdev)
 	if (!desc->psy_fuel_gauge) {
 		dev_err(&pdev->dev, "No fuel gauge power supply defined\n");
 		return -EINVAL;
+	}
+
+	ret = get_boot_mode();
+	if (ret) {
+		pr_err("boot_mode can't not parse bootargs property\n");
+		return ret;
 	}
 
 	/* Check if charger's supplies are present at probe */
