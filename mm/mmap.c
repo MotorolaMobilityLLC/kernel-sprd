@@ -505,7 +505,7 @@ static __always_inline void vma_rb_erase_ignore(struct vm_area_struct *vma,
 	 * with the possible exception of the "next" vma being erased if
 	 * next->vm_start was reduced.
 	 */
-	validate_mm_rb(mm->mm_rb, ignore);
+	validate_mm_rb(&mm->mm_rb, ignore);
 
 	__vma_rb_erase(vma, mm);
 }
@@ -517,7 +517,7 @@ static __always_inline void vma_rb_erase(struct vm_area_struct *vma,
 	 * All rb_subtree_gap values must be consistent prior to erase,
 	 * with the possible exception of the vma being erased.
 	 */
-	validate_mm_rb(root, vma);
+	validate_mm_rb(&mm->mm_rb, vma);
 
 	__vma_rb_erase(vma, mm);
 }
