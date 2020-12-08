@@ -129,8 +129,9 @@ static unsigned int als_cali_target_lux = 0;
 #define FIJI_TP_VENDOR_SKYWORTH 0x00
 #define FIJI_TP_VENDOR_TRULY 0x01
 #define FIJI_TP_VENDOR_EASYQUICK 0x02
-#define MALTA_TP_VENDOR_TIANMA 0x10
-#define MALTA_TP_VENDOR_HLT 0x11
+#define MALTA_TP_VENDOR_HLT 0x10
+#define MALTA_TP_VENDOR_SKYWORTH 0x11
+
 
 #define GPIO_BOARD_ID 89
 
@@ -251,18 +252,22 @@ static int get_tp_vendor(struct shub_data *sensor)
 
 	sprintf(str, "%s", buf);
 
-	if (strncmp(buf,"skyworth",8) == 0)
-		vendor = FIJI_TP_VENDOR_SKYWORTH;
-	else if (strncmp(buf,"truly",5) == 0)
-		vendor = FIJI_TP_VENDOR_TRULY;
-	else if (strncmp(buf,"easyquick",9) == 0)
-		vendor = FIJI_TP_VENDOR_EASYQUICK;
-	else if (strncmp(buf,"tianma",6) == 0)
-		vendor = MALTA_TP_VENDOR_TIANMA;
-	else if (strncmp(buf,"hlt",3) == 0)
-		vendor = MALTA_TP_VENDOR_HLT;
-
 	board_id = get_board_id(sensor);
+
+	if (board_id == 0x1){
+		if (strncmp(buf,"hlt",3) == 0)
+			vendor = MALTA_TP_VENDOR_HLT;
+		else if (strncmp(buf,"skyworth",8) == 0)
+			vendor = MALTA_TP_VENDOR_SKYWORTH;
+	} else {
+		if (strncmp(buf,"skyworth",8) == 0)
+			vendor = FIJI_TP_VENDOR_SKYWORTH;
+		else if (strncmp(buf,"truly",5) == 0)
+			vendor = FIJI_TP_VENDOR_TRULY;
+		else if (strncmp(buf,"easyquick",9) == 0)
+			vendor = FIJI_TP_VENDOR_EASYQUICK;
+	}
+
 	vendor = vendor | (board_id << 4);
 	als_get_vendor_flag = true;
 
