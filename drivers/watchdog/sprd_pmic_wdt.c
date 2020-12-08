@@ -12,6 +12,7 @@
  * General Public License for more details.
  */
 
+#include <linux/alarmtimer.h>
 #include <linux/bitops.h>
 #include <linux/clk.h>
 #include <linux/device.h>
@@ -21,9 +22,9 @@
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/of.h>
-#include <linux/of_address.h>
 #include <linux/platform_device.h>
 #include <linux/regmap.h>
+#include <linux/rtc.h>
 #include <linux/sipc.h>
 
 #define SPRD_PMIC_WDT_LOAD_LOW		0x0
@@ -79,6 +80,7 @@ struct sprd_pmic_wdt {
 	u32			base;
 	bool wdten;
 	struct delayed_work     work_pmic_wdt;
+	struct alarm wdt_timer;
 };
 
 static int sprd_pmic_wdt_enable(struct sprd_pmic_wdt *wdt, bool en)
@@ -105,17 +107,16 @@ static int sprd_pmic_wdt_enable(struct sprd_pmic_wdt *wdt, bool en)
 	return 0;
 }
 
-static void sprd_pimc_wdt_init(struct work_struct *work)
+static enum alarmtimer_restart sprd_pimc_wdt_init_by_alarm(struct alarm *p, ktime_t t)
 {
-	struct sprd_pmic_wdt *wdt = container_of(work,
+	struct sprd_pmic_wdt *wdt = container_of(p,
 						 struct sprd_pmic_wdt,
-						 work_pmic_wdt.work);
-
-	if (!wdt)
-		return;
+						 wdt_timer);
 
 	if (sprd_pmic_wdt_enable(wdt, wdt->wdten))
 		dev_err(wdt->dev, "failed to set pmic wdt %d!\n", wdt->wdten);
+
+	return ALARMTIMER_NORESTART;
 }
 
 static bool sprd_pimc_wdt_en(void)
@@ -161,6 +162,7 @@ static int sprd_pmic_wdt_probe(struct platform_device *pdev)
 	int ret;
 	struct device_node *node = pdev->dev.of_node;
 	struct sprd_pmic_wdt *pmic_wdt;
+	ktime_t now, add;
 
 	pmic_wdt = devm_kzalloc(&pdev->dev, sizeof(*pmic_wdt), GFP_KERNEL);
 	if (!pmic_wdt)
@@ -178,9 +180,10 @@ static int sprd_pmic_wdt_probe(struct platform_device *pdev)
 		return ret;
 	}
 
-	INIT_DELAYED_WORK(&pmic_wdt->work_pmic_wdt, sprd_pimc_wdt_init);
-	schedule_delayed_work(&pmic_wdt->work_pmic_wdt,
-			      SPRD_PMIC_WDT_CHECKTIME * HZ);
+	alarm_init(&pmic_wdt->wdt_timer, ALARM_BOOTTIME, sprd_pimc_wdt_init_by_alarm);
+	now = ktime_get_boottime();
+	add = ktime_set(41, 0);
+	alarm_start(&pmic_wdt->wdt_timer, ktime_add(now, add));
 
 	pmic_wdt->wdten = sprd_pimc_wdt_en();
 	pmic_wdt->dev = &pdev->dev;
