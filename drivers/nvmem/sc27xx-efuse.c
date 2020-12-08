@@ -12,6 +12,11 @@
 /* PMIC global registers definition */
 #define SC2731_MODULE_EN		0xc08
 #define SC2730_MODULE_EN		0x1808
+#define UMP96XX_MODULE_EN		0x2008
+#define UMP96XX_EFUSE_RTC		0x2010
+#define UMP96XX_EMM_AUTO_PAD_SEL	0x22e0
+#define EMM_AUTO_PAD_SEL_EN		BIT(0)
+#define UMP96XX_CLK_GATE		BIT(3)
 #define SC27XX_EFUSE_EN			BIT(6)
 
 /* Efuse controller registers definition */
@@ -24,6 +29,9 @@
 #define SC27XX_EFUSE_WR_TIMING_CTRL	0x20
 #define SC27XX_EFUSE_RD_TIMING_CTRL	0x24
 #define SC27XX_EFUSE_EFUSE_DEB_CTRL	0x28
+
+/* Bits definitions for UMP9620_EFUSE_RTC register */
+#define UMP96XX_EFUSE_RTC_EN		BIT(11)
 
 /* Mask definition for SC27XX_EFUSE_BLOCK_INDEX register */
 #define SC27XX_EFUSE_BLOCK_MASK		GENMASK(4, 0)
@@ -41,6 +49,7 @@
 #define SC27XX_EFUSE_RD_DONE		BIT(4)
 
 /* Block number and block width (bytes) definitions */
+#define UMP96XX_EFUSE_BLOCK_MAX		64
 #define SC27XX_EFUSE_BLOCK_MAX		32
 #define SC27XX_EFUSE_BLOCK_WIDTH	2
 #define SC27XX_EFUSE_BLOCK_SIZE	(SC27XX_EFUSE_BLOCK_WIDTH * BITS_PER_BYTE)
@@ -58,6 +67,7 @@
  */
 struct sc27xx_efuse_variant_data {
 	u32 module_en;
+	u32 block_max;
 };
 
 struct sc27xx_efuse {
@@ -71,10 +81,17 @@ struct sc27xx_efuse {
 
 static const struct sc27xx_efuse_variant_data sc2731_edata = {
 	.module_en = SC2731_MODULE_EN,
+	.block_max = SC27XX_EFUSE_BLOCK_MAX,
 };
 
 static const struct sc27xx_efuse_variant_data sc2730_edata = {
 	.module_en = SC2730_MODULE_EN,
+	.block_max = SC27XX_EFUSE_BLOCK_MAX,
+};
+
+static const struct sc27xx_efuse_variant_data ump9620_edata = {
+	.module_en = UMP96XX_MODULE_EN,
+	.block_max = UMP96XX_EFUSE_BLOCK_MAX,
 };
 
 /*
@@ -130,7 +147,8 @@ static int sc27xx_efuse_read(void *context, u32 offset, void *val, size_t bytes)
 	u32 blk_offset = (offset % SC27XX_EFUSE_BLOCK_WIDTH) * BITS_PER_BYTE;
 	int ret;
 
-	if (index >= SC27XX_EFUSE_BLOCK_MAX || bytes > SC27XX_EFUSE_BLOCK_WIDTH)
+	if (index >= (efuse->var_data->block_max) ||
+			bytes > SC27XX_EFUSE_BLOCK_WIDTH)
 		return -EINVAL;
 
 	ret = sc27xx_efuse_lock(efuse);
@@ -143,6 +161,26 @@ static int sc27xx_efuse_read(void *context, u32 offset, void *val, size_t bytes)
 	if (ret)
 		goto unlock_efuse;
 
+	/* Enable the efuse rtc, auto pad sel and clk gate for ump9620. */
+	if (of_device_is_compatible(efuse->dev->of_node,
+					"sprd,ump9620-efuse")) {
+		ret = regmap_update_bits(efuse->regmap, UMP96XX_EFUSE_RTC,
+					 UMP96XX_EFUSE_RTC_EN,
+					 UMP96XX_EFUSE_RTC_EN);
+		if (ret)
+			goto unlock_efuse;
+
+		ret = regmap_update_bits(efuse->regmap, UMP96XX_EMM_AUTO_PAD_SEL,
+					 EMM_AUTO_PAD_SEL_EN,
+					 EMM_AUTO_PAD_SEL_EN);
+		if (ret)
+			goto unlock_efuse;
+
+		ret = regmap_update_bits(efuse->regmap, efuse->base,
+					 UMP96XX_CLK_GATE, UMP96XX_CLK_GATE);
+		if (ret)
+			goto unlock_efuse;
+	}
 	/*
 	 * Before reading, we should ensure the efuse controller is in
 	 * standby state.
@@ -252,7 +290,7 @@ static int sc27xx_efuse_probe(struct platform_device *pdev)
 	econfig.word_size = 1;
 	econfig.read_only = true;
 	econfig.name = "sc27xx-efuse";
-	econfig.size = SC27XX_EFUSE_BLOCK_MAX * SC27XX_EFUSE_BLOCK_WIDTH;
+	econfig.size = (efuse->var_data->block_max) * SC27XX_EFUSE_BLOCK_WIDTH;
 	econfig.reg_read = sc27xx_efuse_read;
 	econfig.priv = efuse;
 	econfig.dev = &pdev->dev;
@@ -278,6 +316,7 @@ static const struct of_device_id sc27xx_efuse_of_match[] = {
 	{ .compatible = "sprd,sc2731-efuse", .data = &sc2731_edata},
 	{ .compatible = "sprd,sc2730-efuse", .data = &sc2730_edata},
 	{ .compatible = "sprd,sc2721-efuse", .data = &sc2731_edata},
+	{ .compatible = "sprd,ump9620-efuse", .data = &ump9620_edata},
 	{ }
 };
 
