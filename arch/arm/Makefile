@@ -304,6 +304,16 @@ else
 KBUILD_IMAGE := $(boot)/zImage
 endif
 
+BUILD_DTC_PATH = $(subst $\",,$(CONFIG_BUILD_ARM_DTC))
+ifneq ($(BUILD_DTC_PATH),)
+	DTC = $(BUILD_DTC_PATH)
+endif
+
+BUILD_DTC_FLAGS = $(subst $\",,$(CONFIG_BUILD_ARM_DTC_FLAGS))
+ifneq ($(BUILD_DTC_FLAGS),)
+	DTC_FLAGS += $(BUILD_DTC_FLAGS)
+endif
+
 ifeq ($(CONFIG_STACKPROTECTOR_PER_TASK),y)
 prepare: stack_protector_prepare
 stack_protector_prepare: prepare0

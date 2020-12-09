@@ -1303,3 +1303,28 @@ dtb-$(CONFIG_ARCH_ASPEED) += \
 	aspeed-bmc-opp-zaius.dtb \
 	aspeed-bmc-portwell-neptune.dtb \
 	aspeed-bmc-quanta-q71l.dtb
+
+ifeq ($(BSP_BUILD_DT_OVERLAY),y)
+
+ifeq ($(BSP_BUILD_ANDROID_OS),y)
+
+ifeq ($(BSP_BUILD_FAMILY),pike2)
+dtbo-$(CONFIG_ARCH_SPRD) += \
+	sp7731e-1h10-overlay.dtbo
+
+sp7731e-1h10-overlay.dtbo-base := sp7731e.dtb
+endif
+
+endif #//BSP_BUILD_ANDROID_OS
+
+else #//AiAiAi or No DTBO
+dtb-$(CONFIG_ARCH_SPRD) += \
+	sp7731e.dtb
+
+dtbo-$(CONFIG_ARCH_SPRD) += \
+	sp7731e-1h10-overlay.dtbo
+
+endif #//BSP_BUILD_DT_OVERLAY
+
+always      := $(dtb-y) $(dtbo-y)
+clean-files := *.dtb *.dtbo
