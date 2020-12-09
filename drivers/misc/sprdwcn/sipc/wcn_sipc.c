@@ -770,11 +770,11 @@ int wcn_sipc_chn_work_init(struct sipc_chn_info *sipc_chn)
 {
 	sipc_chn->wcn_sipc_thread = kthread_create(wcn_sipc_work_func, sipc_chn,
 			"WCN_SIPC_TX_THREAD%u", sipc_chn->index);
+	init_completion(&sipc_chn->callback_complete);
 	if (sipc_chn->wcn_sipc_thread)
 		wake_up_process(sipc_chn->wcn_sipc_thread);
 	else
 		WCN_ERR("%s create a new thread failed\n", __func__);
-	init_completion(&sipc_chn->callback_complete);
 
 	return 0;
 }
