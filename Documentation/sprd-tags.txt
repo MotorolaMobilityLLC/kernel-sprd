@@ -126,6 +126,7 @@ pci:dwc:
 pci:dwc:sprd:
 pinctrl:sprd:
 power:
+power:reset:
 power:supply:
 power:supply:bq2560x:
 power:supply:charger-manager:
