@@ -66,14 +66,14 @@
 		};
 
 		pmic_adc: adc@500 {
-			compatible =  "sprd,ump96xx-adc", "sprd,sc27xx-adc";
+			compatible = "sprd,ump9620-adc", "sprd,sc27xx-adc";
 			reg = <0x500>;
 			interrupt-parent = <&ump9620_pmic>;
 			interrupts = <0 IRQ_TYPE_LEVEL_HIGH>;
 			#io-channel-cells = <1>;
 			hwlocks = <&hwlock 4>;
 			nvmem-cells = <&adc_bcal1>, <&adc_bcal2>, <&adc_scal1>, <&adc_scal2>;
-			nvmem-cell-names = "big_scale_calibA", "big_scale_calibB", "small_scale_calibE", "small_scale_calibF";
+			nvmem-cell-names = "big_scale_calib1", "big_scale_calib2", "small_scale_calib1", "small_scale_calib2";
 		};
 
 		pmic_fgu: fgu@800 {
