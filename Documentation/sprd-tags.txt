@@ -108,6 +108,7 @@ lib:e_show_mem:
 
 mfd:sprd:
 misc:audio:
+misc:sprd_apdu:
 misc:sprd_camera:
 misc:sprd_jpg:
 misc:sprd_map:
