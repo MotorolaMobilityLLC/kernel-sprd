@@ -20,6 +20,8 @@
 #define SC27XX_CLK_EN0			0xc18
 #define SC2730_MODULE_EN0		0x1808
 #define SC2730_CLK_EN0			0x1810
+#define UMP9620_MODULE_EN0		0x2008
+#define UMP9620_CLK_EN0			0x2010
 #define SC2720_MODULE_EN0		0xc08
 #define SC2720_CLK_EN0			0xc10
 #define SC27XX_FGU_EN			BIT(7)
@@ -172,6 +174,11 @@ static const struct sc27xx_fgu_variant_data sc2730_info = {
 	.clk_en = SC2730_CLK_EN0,
 };
 
+static const struct sc27xx_fgu_variant_data ump9620_info = {
+	.module_en = UMP9620_MODULE_EN0,
+	.clk_en = UMP9620_CLK_EN0,
+};
+
 static const struct sc27xx_fgu_variant_data sc2720_info = {
 	.module_en = SC2720_MODULE_EN0,
 	.clk_en = SC2720_CLK_EN0,
@@ -209,6 +216,7 @@ static const char * const sc27xx_charger_supply_name[] = {
 	"fan54015_charger",
 	"bq2560x_charger",
 	"eta6937_charger",
+	"ump9620_charger",
 };
 
 static int sc27xx_fgu_adc_to_current(struct sc27xx_fgu_data *data, int adc)
@@ -1887,6 +1895,7 @@ static const struct of_device_id sc27xx_fgu_of_match[] = {
 	{ .compatible = "sprd,sc2731-fgu", .data = &sc2731_info},
 	{ .compatible = "sprd,sc2730-fgu", .data = &sc2730_info},
 	{ .compatible = "sprd,sc2720-fgu", .data = &sc2720_info},
+	{ .compatible = "sprd,ump9620-fgu", .data = &ump9620_info},
 	{ }
 };
 

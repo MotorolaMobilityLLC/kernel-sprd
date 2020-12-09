@@ -2,6 +2,7 @@
 // Copyright (C) 2018 Spreadtrum Communications Inc.
 
 #include <linux/module.h>
+#include <linux/of_device.h>
 #include <linux/platform_device.h>
 #include <linux/power_supply.h>
 #include <linux/usb/phy.h>
@@ -34,8 +35,10 @@
 #define FCHG_INT_STS0				0x44
 #define FCHG_ERR_STS				0x48
 
-#define ANA_REG_GLB_MODULE_EN0			0x1808
-#define ANA_REG_GLB_RTC_CLK_EN0			0x1810
+#define SC2730_MODULE_EN0		0x1808
+#define SC2730_CLK_EN0			0x1810
+#define UMP9620_MODULE_EN0		0x2008
+#define UMP9620_CLK_EN0			0x2010
 
 #define ANA_REG_IB_CTRL				0x1b84
 #define ANA_REG_IB_TRIM_MASK			GENMASK(6, 0)
@@ -79,6 +82,21 @@
 #define SC2730_PD_START_POWER_MW		18000
 #define SC2730_PD_STOP_POWER_MW			10000
 
+struct sc27xx_fast_chg_data {
+	u32 module_en;
+	u32 clk_en;
+};
+
+static const struct sc27xx_fast_chg_data sc2730_info = {
+	.module_en = SC2730_MODULE_EN0,
+	.clk_en = SC2730_CLK_EN0,
+};
+
+static const struct sc27xx_fast_chg_data ump9620_info = {
+	.module_en = UMP9620_MODULE_EN0,
+	.clk_en = UMP9620_CLK_EN0,
+};
+
 struct sc2730_fchg_info {
 	struct device *dev;
 	struct regmap *regmap;
@@ -98,6 +116,7 @@ struct sc2730_fchg_info {
 	bool detected;
 	bool pd_enable;
 	bool sfcp_enable;
+	const struct sc27xx_fast_chg_data *pdata;
 };
 
 static int sc2730_fchg_internal_cur_calibration(struct sc2730_fchg_info *info)
@@ -244,6 +263,7 @@ static u32 sc2730_fchg_get_detect_status(struct sc2730_fchg_info *info)
 {
 	unsigned long timeout;
 	int value, ret;
+	const struct sc27xx_fast_chg_data *pdata = info->pdata;
 
 	/*
 	 * In cold boot phase, system will detect fast charger status,
@@ -278,7 +298,7 @@ static u32 sc2730_fchg_get_detect_status(struct sc2730_fchg_info *info)
 		return ret;
 	}
 
-	ret = regmap_update_bits(info->regmap, ANA_REG_GLB_MODULE_EN0,
+	ret = regmap_update_bits(info->regmap, pdata->module_en,
 				 FAST_CHARGE_MODULE_EN0_BIT,
 				 FAST_CHARGE_MODULE_EN0_BIT);
 	if (ret) {
@@ -286,7 +306,7 @@ static u32 sc2730_fchg_get_detect_status(struct sc2730_fchg_info *info)
 		return ret;
 	}
 
-	ret = regmap_update_bits(info->regmap, ANA_REG_GLB_RTC_CLK_EN0,
+	ret = regmap_update_bits(info->regmap, pdata->clk_en,
 				 FAST_CHARGE_RTC_CLK_EN0_BIT,
 				 FAST_CHARGE_RTC_CLK_EN0_BIT);
 	if (ret) {
@@ -356,6 +376,7 @@ static u32 sc2730_fchg_get_detect_status(struct sc2730_fchg_info *info)
 
 static void sc2730_fchg_disable(struct sc2730_fchg_info *info)
 {
+	const struct sc27xx_fast_chg_data *pdata = info->pdata;
 	int ret;
 
 	ret = regmap_update_bits(info->regmap, info->base + FCHG_CTRL,
@@ -369,12 +390,12 @@ static void sc2730_fchg_disable(struct sc2730_fchg_info *info)
 	 */
 	msleep(100);
 
-	ret = regmap_update_bits(info->regmap, ANA_REG_GLB_MODULE_EN0,
+	ret = regmap_update_bits(info->regmap, pdata->module_en,
 				 FAST_CHARGE_MODULE_EN0_BIT, 0);
 	if (ret)
 		dev_err(info->dev, "failed to disable fast charger module.\n");
 
-	ret = regmap_update_bits(info->regmap, ANA_REG_GLB_RTC_CLK_EN0,
+	ret = regmap_update_bits(info->regmap, pdata->clk_en,
 				 FAST_CHARGE_RTC_CLK_EN0_BIT, 0);
 	if (ret)
 		dev_err(info->dev, "failed to disable charger clock.\n");
@@ -677,6 +698,12 @@ static int sc2730_fchg_probe(struct platform_device *pdev)
 	mutex_init(&info->lock);
 	info->dev = &pdev->dev;
 	info->state = POWER_SUPPLY_CHARGE_TYPE_UNKNOWN;
+	info->pdata = of_device_get_match_data(info->dev);
+	if (!info->pdata) {
+		dev_err(info->dev, "no matching driver data found\n");
+		return -EINVAL;
+	}
+
 	INIT_DELAYED_WORK(&info->work, sc2730_fchg_work);
 	INIT_WORK(&info->pd_change_work, sc2730_fchg_pd_change_work);
 	init_completion(&info->completion);
@@ -788,7 +815,8 @@ static void sc2730_fchg_shutdown(struct platform_device *pdev)
 }
 
 static const struct of_device_id sc2730_fchg_of_match[] = {
-	{ .compatible = "sprd,sc2730-fast-charger", },
+	{ .compatible = "sprd,sc2730-fast-charger", .data = &sc2730_info },
+	{ .compatible = "sprd,ump9620-fast-chg", .data = &ump9620_info },
 	{ }
 };
 
