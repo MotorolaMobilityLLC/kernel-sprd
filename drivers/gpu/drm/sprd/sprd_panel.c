@@ -669,6 +669,7 @@ static int sprd_oled_set_brightness(struct backlight_device *bdev)
 	struct sprd_oled *oled = bl_get_data(bdev);
 	struct sprd_panel *panel = oled->panel;
 
+	mdelay(100);
 	if (g_hbm_enable){
 		DRM_INFO("firefly ,Now hbm enable, want to set level = %d\n", bdev->props.brightness);
 		DRM_INFO("firefly ,Do not allow to set other level backlight\n");
