@@ -662,6 +662,7 @@ struct ufs_hba {
 	u32 intr_mask;
 	u16 ee_ctrl_mask;
 	bool is_powered;
+	bool is_powering;
 	bool is_init_prefetch;
 	struct ufs_init_prefetch init_prefetch_data;
 
