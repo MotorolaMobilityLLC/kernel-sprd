@@ -558,8 +558,12 @@ static enum drm_mode_status sprd_crtc_mode_valid(struct drm_crtc *crtc,
 					const struct drm_display_mode *mode)
 {
 	struct sprd_dpu *dpu = crtc_to_dpu(crtc);
+	int vic;
 
-	if (mode->clock == 25175) {
+	vic = drm_match_cea_mode(mode);
+
+	/* 1920x1080@60Hz is used by default */
+	if (vic == 16 && mode->clock == 148500) {
 		DRM_INFO("%s() mode: "DRM_MODE_FMT"\n",
 			__func__, DRM_MODE_ARG(mode));
 		drm_display_mode_to_videomode(mode, &dpu->ctx.vm);

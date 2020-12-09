@@ -219,14 +219,36 @@ sprd_dp_connector_mode_valid(struct drm_connector *connector,
 			 struct drm_display_mode *mode)
 {
 	struct sprd_dp *dp = connector_to_dp(connector);
+	struct drm_display_info *info = &dp->connector.display_info;
+	int vic;
 
-	/* TODO temp for haps 640x480@60Hz */
-	if (mode->clock == 25175) {
+	vic = drm_match_cea_mode(mode);
+
+	if (mode->type & DRM_MODE_TYPE_PREFERRED)
+		mode->type &= ~DRM_MODE_TYPE_PREFERRED;
+
+	/* 1920x1080@60Hz is used by default */
+	if (vic == 16 && mode->clock == 148500) {
 		DRM_INFO("%s() mode: "DRM_MODE_FMT"\n", __func__,
 			 DRM_MODE_ARG(mode));
 		dp->mode = mode;
 		mode->type |= DRM_MODE_TYPE_PREFERRED;
 		drm_display_mode_to_videomode(dp->mode, &dp->ctx.vm);
+	}
+
+	/* 3840x2160@60Hz yuv420 bypass */
+	if (vic == 97 && mode->clock == 594000 &&
+		(info->color_formats & DRM_COLOR_FORMAT_YCRCB420)) {
+		DRM_INFO("%s() mode: "DRM_MODE_FMT"\n", __func__,
+			 DRM_MODE_ARG(mode));
+		mode->type |= DRM_MODE_TYPE_USERDEF;
+	}
+
+	/* 640x480@60Hz is used for cts test */
+	if (vic == 1 && mode->clock == 25175) {
+		DRM_INFO("%s() mode: "DRM_MODE_FMT"\n", __func__,
+			 DRM_MODE_ARG(mode));
+		mode->type |= DRM_MODE_TYPE_USERDEF;
 	}
 
 	return MODE_OK;
