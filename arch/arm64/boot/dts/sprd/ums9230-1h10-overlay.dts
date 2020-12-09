@@ -549,6 +549,22 @@
 	sprd,backlight = <&pwm_backlight>;
 };
 
+&lcd_g40396_truly_mipi_fhd {
+	display-timings {
+		g40396_truly_timing1: timing1 {
+			clock-frequency = <192000000>;
+			hactive = <720>;
+			vactive = <1600>;
+			hback-porch = <75>;
+			hfront-porch = <75>;
+			vback-porch = <32>;
+			vfront-porch = <8>;
+			hsync-len = <75>;
+			vsync-len = <8>;
+		};
+	};
+};
+
 &pmic_fchg {
 	sprd,input-voltage-microvolt = <5000000>;
 	phys = <&hsphy>;
