@@ -51,7 +51,7 @@
 		};
 
 		pmic_fchg: fchg@400 {
-			compatible = "sprd,ump96xx-fast-chg", "sprd,sc27xx-fast-chg";
+			compatible = "sprd,ump9620-fast-chg", "sprd,sc27xx-fast-chg";
 			reg = <0x400>;
 			interrupt-parent = <&ump9620_pmic>;
 			interrupts = <5 IRQ_TYPE_LEVEL_HIGH>;
@@ -70,8 +70,9 @@
 		};
 
 		pmic_fgu: fgu@800 {
-			compatible = "sprd,ump96xx-fgu", "sprd,sc27xx-fgu";
+			compatible = "sprd,ump9620-fgu", "sprd,sc27xx-fgu";
 			reg = <0x800>;
+			bat-detect-gpio = <&pmic_eic 3 GPIO_ACTIVE_HIGH>;
 			nvmem-cell-names = "fgu_calib";
 			nvmem-cells = <&fgu_calib>;
 			io-channels = <&pmic_adc 0>, <&pmic_adc 14>;
