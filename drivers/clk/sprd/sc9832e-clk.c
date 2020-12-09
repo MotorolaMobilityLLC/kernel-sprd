@@ -811,6 +811,16 @@ static SPRD_SC_GATE_CLK(dxco_lc_rtc_eb, "dxco-lc-rtc-eb", "aon-apb",
 			0x10, 0x1000, BIT(17), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(bb_cal_rtc_eb, "bb-cal-rtc-eb", "aon-apb",
 			0x10, 0x1000, BIT(18), CLK_IGNORE_UNUSED, 0);
+
+static const char * const aux_parents[] = { "ext-32k", "rpll-26m",
+					    "ext-26m" };
+static SPRD_COMP_CLK(aux0, "aux0", aux_parents, 0x88,
+		     0, 4, 16, 4, 0);
+static SPRD_COMP_CLK(aux1, "aux1", aux_parents, 0x88,
+		     4, 4, 20, 4, 0);
+static SPRD_COMP_CLK(aux2, "aux2", aux_parents, 0x88,
+		     8, 4, 24, 4, 0);
+
 static SPRD_SC_GATE_CLK(cssys_eb, "cssys-eb", "aon-apb",
 			0xb0, 0x1000, BIT(4), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(dmc_eb, "dmc_eb", "aon-apb",
@@ -926,6 +936,9 @@ static struct sprd_clk_common *sc9832e_aonapb_gate[] = {
 	&ap_tmr2_rtc_eb.common,
 	&dxco_lc_rtc_eb.common,
 	&bb_cal_rtc_eb.common,
+	&aux0.common,
+	&aux1.common,
+	&aux2.common,
 	&cssys_eb.common,
 	&dmc_eb.common,
 	&rosc_eb.common,
@@ -1024,6 +1037,9 @@ static struct clk_hw_onecell_data sc9832e_aonapb_gate_hws = {
 		[CLK_AP_TMR2_RTC_EB]	= &ap_tmr2_rtc_eb.common.hw,
 		[CLK_DXCO_LC_RTC_EB]	= &dxco_lc_rtc_eb.common.hw,
 		[CLK_BB_CAL_RTC_EB]	= &bb_cal_rtc_eb.common.hw,
+		[CLK_AUX0]		= &aux0.common.hw,
+		[CLK_AUX1]		= &aux1.common.hw,
+		[CLK_AUX2]		= &aux2.common.hw,
 		[CLK_CSSYS_EB]		= &cssys_eb.common.hw,
 		[CLK_DMC_EB]		= &dmc_eb.common.hw,
 		[CLK_ROSC_EB]		= &rosc_eb.common.hw,
