@@ -155,7 +155,7 @@
 							<3893000 55>,<3855000 50>,<3829000 45>,
 							<3809000 40>,<3792000 35>,<3778000 30>,
 							<3760000 25>,<3742000 20>,<3719000 15>,
-							<3689000 10>,<3676000 5>,<3400000 0>;							
+							<3689000 10>,<3676000 5>,<3400000 0>;
 				voltage-temp-table = <1166577   750>,<1063002   800>,<957874   850>,
 							<854220   900>,<754652   950>,<661066   1000>,
 							<575156   1050>,<497660   1100>,<428849   1150>,
@@ -210,7 +210,7 @@
 
 				/* how much time to allow capacity change */
 				cm-one-cap-time = <30>;
-				cm-thermal-zone = "board-thmzone";
+				cm-thermal-zone = "chg-thmzone";			/*config chg-sensor by pony date20201205*/
 				/* when the safe charging voltage is exceeded, stop charging */
 				cm-charge-voltage-max = <6500000>;
 				/* drop voltage in microVolts to restart charging */
@@ -294,6 +294,52 @@
 								114889 57
 								124872 43 >;
 			};
+
+			/*config chg & pa ntc thermal by pony date20201205 start*/
+			chg_thermistor:thermal-sensor@4 {
+				compatible = "generic-adc-thermal";
+				#thermal-sensor-cells = <0>;
+				io-channels = <&pmic_adc 4>;
+				io-channel-names = "sensor-channel";
+				temperature-lookup-table = <    (-39742) 1131
+								(-29777) 1110
+								(-19480) 1074
+								(-4679) 983
+								10110 838
+								24805 654
+								44922 413
+								54903 316
+								64895 238
+								74884 178
+								84883 133
+								94883 100
+								104880 75
+								114889 57
+								124872 43 >;
+			};
+
+			pa_thermistor:thermal-sensor@2 {
+				compatible = "generic-adc-thermal";
+				#thermal-sensor-cells = <0>;
+				io-channels = <&pmic_adc 2>;
+				io-channel-names = "sensor-channel";
+				temperature-lookup-table = <    (-39742) 1131
+								(-29777) 1110
+								(-19480) 1074
+								(-4679) 983
+								10110 838
+								24805 654
+								44922 413
+								54903 316
+								64895 238
+								74884 178
+								84883 133
+								94883 100
+								104880 75
+								114889 57
+								124872 43 >;
+			};
+			/*config chg & pa ntc thermal by pony date20201205 end*/
 		};
 	};
 };
@@ -418,6 +464,19 @@
 		polling-delay = <0>;
 		thermal-sensors = <&tboard_thermistor>;
 	};
+/*config chg & pa ntc thermal by pony date20201205 start*/
+	chg_thmzone: chg-thmzone {
+		polling-delay-passive = <0>;
+		polling-delay = <0>;
+		thermal-sensors = <&chg_thermistor>;
+	};
+
+	pa_thmzone: pa-thmzone {
+		polling-delay-passive = <0>;
+		polling-delay = <0>;
+		thermal-sensors = <&pa_thermistor>;
+	};
+/*config chg & pa ntc thermal by pony date20201205 end*/
 };
 
 &ion {
