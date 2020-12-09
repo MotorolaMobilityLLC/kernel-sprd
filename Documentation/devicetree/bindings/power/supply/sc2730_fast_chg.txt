@@ -1,7 +1,9 @@
 Spreadtrum SC2730 fast charger binding
 
 Required properties:
- - compatible: Should be "sprd,sc2730-fast-chg".
+ - compatible: Should be one of the following:
+  "sprd,sc2730-fast-chg",
+  "sprd,ump9620-fast-chg".
  - reg: Address offset of charger register.
  - phys: Contains a phandle to the USB phy.
  - interrupt-parent: Specifies the phandle of the interrupt controller to which

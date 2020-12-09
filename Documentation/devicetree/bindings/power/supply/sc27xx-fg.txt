@@ -6,7 +6,8 @@ Required properties:
   "sprd,sc2721-fgu",
   "sprd,sc2723-fgu",
   "sprd,sc2730-fgu",
-  "sprd,sc2731-fgu".
+  "sprd,sc2731-fgu",
+  "sprd,ump9620-fgu".
 - reg: The address offset of fuel gauge unit.
 - battery-detect-gpios: GPIO for battery detection.
 - io-channels: Specify the IIO ADC channels to get temperature and charge voltage.
