@@ -14,12 +14,16 @@
 /* PMIC global registers definition */
 #define SC2731_MODULE_EN		0xc08
 #define SC2730_MODULE_EN		0x1808
+#define UMP9620_MODULE_EN		0x2008
 #define SC27XX_MODULE_ADC_EN		BIT(5)
 #define SC2721_ARM_CLK_EN		0xc0c
 #define SC2731_ARM_CLK_EN		0xc10
 #define SC2730_ARM_CLK_EN		0x180c
+#define UMP9620_ARM_CLK_EN		0x200c
+#define UMP9620_ARM_RTC_CLK		0x2378
 #define SC27XX_CLK_ADC_EN		BIT(5)
 #define SC27XX_CLK_ADC_CLK_EN		BIT(6)
+#define UMP9620_ARM_RTC_CLK_EN		BIT(8)
 
 /* ADC controller registers definition */
 #define SC27XX_ADC_CTL			0x0
@@ -72,6 +76,11 @@
 #define SC27XX_RATIO_NUMERATOR_OFFSET	16
 #define SC27XX_RATIO_DENOMINATOR_MASK	GENMASK(15, 0)
 
+enum sc27xx_pmic_type {
+	SC27XX_ADC,
+	UMP9620_ADC,
+};
+
 struct sc27xx_adc_data {
 	struct device *dev;
 	struct regmap *regmap;
@@ -92,8 +101,10 @@ struct sc27xx_adc_data {
  * in the device data structure.
  */
 struct sc27xx_adc_variant_data {
+	enum sc27xx_pmic_type pmic_type;
 	u32 module_en;
 	u32 clk_en;
+	u32 rtc_clk_en;
 	u32 scale_shift;
 	u32 scale_mask;
 	const struct sc27xx_adc_linear_graph *bscale_cal;
@@ -150,6 +161,30 @@ static int sc27xx_adc_get_calib_data(u32 calib_data, int calib_adc)
 	return ((calib_data & 0xff) + calib_adc - 128) * 4;
 }
 
+static int adc_nvmem_cell_calib_data(struct sc27xx_adc_data *data, const char *cell_name)
+{
+	struct nvmem_cell *cell;
+	void *buf;
+	u32 calib_data = 0;
+	size_t len = 0;
+
+	cell = nvmem_cell_get(data->dev, cell_name);
+	if (IS_ERR_OR_NULL(cell))
+		return PTR_ERR(cell);
+
+	buf = nvmem_cell_read(cell, &len);
+	if (IS_ERR_OR_NULL(buf)) {
+		nvmem_cell_put(cell);
+		return PTR_ERR(buf);
+	}
+
+	memcpy(&calib_data, buf, min(len, sizeof(u32)));
+
+	kfree(buf);
+	nvmem_cell_put(cell);
+	return calib_data;
+}
+
 static int sc27xx_adc_scale_calibration(struct sc27xx_adc_data *data,
 					bool big_scale)
 {
@@ -189,6 +224,45 @@ static int sc27xx_adc_scale_calibration(struct sc27xx_adc_data *data,
 						calib_graph->adc1);
 
 	kfree(buf);
+	return 0;
+}
+
+static int ump9620_adc_scale_calibration(struct sc27xx_adc_data *data,
+					bool big_scale)
+{
+	struct sc27xx_adc_linear_graph *graph = NULL;
+	const char *cell_name1 = NULL, *cell_name2 = NULL;
+	int adc_calib_data1 = 0, adc_calib_data2 = 0;
+
+	if (big_scale) {
+		graph = &big_scale_graph;
+		cell_name1 = "big_scale_calib1";
+		cell_name2 = "big_scale_calib2";
+	} else {
+		graph = &small_scale_graph;
+		cell_name1 = "small_scale_calib1";
+		cell_name2 = "small_scale_calib2";
+	}
+
+	adc_calib_data1 = adc_nvmem_cell_calib_data(data, cell_name1);
+	if (adc_calib_data1 < 0) {
+		dev_err(data->dev, "error! %s data:%d\n", cell_name1, adc_calib_data1);
+		return adc_calib_data1;
+	}
+
+	adc_calib_data2 = adc_nvmem_cell_calib_data(data, cell_name2);
+	if (adc_calib_data2 < 0) {
+		dev_err(data->dev, "error! %s data:%d\n", cell_name2, adc_calib_data2);
+		return adc_calib_data2;
+	}
+
+	/*
+	 *Read the data in the two blocks of efuse and convert them into the
+	 *calibration value in the ump9620 adc linear graph.
+	 */
+	graph->adc0 = (adc_calib_data1 >> 4);
+	graph->adc1 = (adc_calib_data2 >> 4);
+
 	return 0;
 }
 
@@ -379,6 +453,79 @@ static int sc2731_adc_get_ratio(int channel, int scale)
 	return SC27XX_VOLT_RATIO(1, 1);
 }
 
+static int ump9620_adc_get_ratio(int channel, int scale)
+{
+	switch (channel) {
+	case 11:
+		switch (scale) {
+		case 0:
+			return SC27XX_VOLT_RATIO(7, 29);
+		case 1:
+			return SC27XX_VOLT_RATIO(1400, 11339);
+		case 2:
+			return SC27XX_VOLT_RATIO(70, 754);
+		case 3:
+			return SC27XX_VOLT_RATIO(350, 5887);
+		default:
+			return SC27XX_VOLT_RATIO(1, 1);
+		}
+	case 14:
+		switch (scale) {
+		case 0:
+			return SC27XX_VOLT_RATIO(68, 900);
+		case 1:
+			return SC27XX_VOLT_RATIO(136, 3519);
+		case 2:
+			return SC27XX_VOLT_RATIO(68, 2340);
+		case 3:
+			return SC27XX_VOLT_RATIO(68, 3654);
+		default:
+			return SC27XX_VOLT_RATIO(1, 1);
+		}
+	case 15:
+		switch (scale) {
+		case 0:
+			return SC27XX_VOLT_RATIO(1, 3);
+		case 1:
+			return SC27XX_VOLT_RATIO(1000, 5865);
+		case 2:
+			return SC27XX_VOLT_RATIO(500, 3900);
+		case 3:
+			return SC27XX_VOLT_RATIO(500, 6090);
+		default:
+			return SC27XX_VOLT_RATIO(1, 1);
+		}
+	case 21:
+	case 22:
+	case 23:
+		switch (scale) {
+		case 0:
+			return SC27XX_VOLT_RATIO(3, 8);
+		case 1:
+			return SC27XX_VOLT_RATIO(300, 1564);
+		case 2:
+			return SC27XX_VOLT_RATIO(30, 208);
+		case 3:
+			return SC27XX_VOLT_RATIO(300, 3248);
+		default:
+			return SC27XX_VOLT_RATIO(1, 1);
+		}
+	default:
+		switch (scale) {
+		case 0:
+			return SC27XX_VOLT_RATIO(1, 1);
+		case 1:
+			return SC27XX_VOLT_RATIO(1000, 1955);
+		case 2:
+			return SC27XX_VOLT_RATIO(1000, 2600);
+		case 3:
+			return SC27XX_VOLT_RATIO(1000, 4060);
+		default:
+			return SC27XX_VOLT_RATIO(1, 1);
+		}
+	}
+}
+
 static void sc2720_adc_scale_init(struct sc27xx_adc_data *data)
 {
 	int i;
@@ -425,6 +572,22 @@ static void sc2730_adc_scale_init(struct sc27xx_adc_data *data)
 
 	for (i = 0; i < SC27XX_ADC_CHANNEL_MAX; i++) {
 		if (i == 5 || i == 10 || i == 19 || i == 30 || i == 31)
+			data->channel_scale[i] = 3;
+		else if (i == 7 || i == 9)
+			data->channel_scale[i] = 2;
+		else if (i == 13)
+			data->channel_scale[i] = 1;
+		else
+			data->channel_scale[i] = 0;
+	}
+}
+
+static void ump9620_adc_scale_init(struct sc27xx_adc_data *data)
+{
+	int i;
+
+	for (i = 0; i < SC27XX_ADC_CHANNEL_MAX; i++) {
+		if (i == 10 || i == 19 || i == 30 || i == 31)
 			data->channel_scale[i] = 3;
 		else if (i == 7 || i == 9)
 			data->channel_scale[i] = 2;
@@ -537,15 +700,28 @@ static int sc27xx_adc_convert_volt(struct sc27xx_adc_data *data, int channel,
 	u32 volt;
 
 	/*
-	 * Convert ADC values to voltage values according to the linear graph,
-	 * and channel 5 and channel 1 has been calibrated, so we can just
-	 * return the voltage values calculated by the linear graph. But other
-	 * channels need be calculated to the real voltage values with the
-	 * voltage ratio.
+	 *Convert ADC value to voltage value according to the linear graph,
+	 *ump9620 channel 11, sc27xx channel 5 and sc27xx channel 1 have been
+	 *calibrated, so we only need to return the voltage value calculated
+	 *by the linear graph, but other channels need to pass the voltage ratio
+	 *Calculate as the actual voltage value.
 	 */
 	switch (channel) {
 	case 5:
-		return sc27xx_adc_to_volt(&big_scale_graph, raw_adc);
+		if (UMP9620_ADC == data->var_data->pmic_type)
+			volt = sc27xx_adc_to_volt(&small_scale_graph, raw_adc);
+		else
+			return sc27xx_adc_to_volt(&big_scale_graph, raw_adc);
+
+		break;
+
+	case 11:
+		if (UMP9620_ADC == data->var_data->pmic_type)
+			return sc27xx_adc_to_volt(&big_scale_graph, raw_adc);
+		else
+			volt = sc27xx_adc_to_volt(&small_scale_graph, raw_adc);
+
+		break;
 
 	case 1:
 		return sc27xx_adc_to_volt(&small_scale_graph, raw_adc);
@@ -688,18 +864,30 @@ static int sc27xx_adc_enable(struct sc27xx_adc_data *data)
 		return ret;
 
 	/* Enable ADC work clock and controller clock */
-	ret = regmap_update_bits(data->regmap, data->var_data->clk_en,
-				 SC27XX_CLK_ADC_EN | SC27XX_CLK_ADC_CLK_EN,
-				 SC27XX_CLK_ADC_EN | SC27XX_CLK_ADC_CLK_EN);
+	if (UMP9620_ADC == data->var_data->pmic_type)
+		ret = regmap_update_bits(data->regmap, data->var_data->rtc_clk_en,
+								 UMP9620_ARM_RTC_CLK_EN, UMP9620_ARM_RTC_CLK_EN);
+	else
+		ret = regmap_update_bits(data->regmap, data->var_data->clk_en,
+								  SC27XX_CLK_ADC_EN | SC27XX_CLK_ADC_CLK_EN,
+								 SC27XX_CLK_ADC_EN | SC27XX_CLK_ADC_CLK_EN);
 	if (ret)
 		goto disable_adc;
 
 	/* ADC channel scales' calibration from nvmem device */
-	ret = sc27xx_adc_scale_calibration(data, true);
+	if (UMP9620_ADC == data->var_data->pmic_type)
+		ret = ump9620_adc_scale_calibration(data, true);
+	else
+		ret = sc27xx_adc_scale_calibration(data, true);
+
 	if (ret)
 		goto disable_clk;
 
-	ret = sc27xx_adc_scale_calibration(data, false);
+	if (UMP9620_ADC == data->var_data->pmic_type)
+		ret = ump9620_adc_scale_calibration(data, false);
+	else
+		ret = sc27xx_adc_scale_calibration(data, false);
+
 	if (ret)
 		goto disable_clk;
 
@@ -708,6 +896,10 @@ static int sc27xx_adc_enable(struct sc27xx_adc_data *data)
 disable_clk:
 	regmap_update_bits(data->regmap, data->var_data->clk_en,
 			   SC27XX_CLK_ADC_EN | SC27XX_CLK_ADC_CLK_EN, 0);
+	if (UMP9620_ADC == data->var_data->pmic_type)
+		regmap_update_bits(data->regmap, data->var_data->rtc_clk_en,
+			   UMP9620_ARM_RTC_CLK_EN, 0);
+
 disable_adc:
 	regmap_update_bits(data->regmap, data->var_data->module_en,
 			   SC27XX_MODULE_ADC_EN, 0);
@@ -723,6 +915,11 @@ static void sc27xx_adc_disable(void *_data)
 	regmap_update_bits(data->regmap, data->var_data->clk_en,
 			   SC27XX_CLK_ADC_EN | SC27XX_CLK_ADC_CLK_EN, 0);
 
+	/* Disable ADC RTC clock */
+	if (UMP9620_ADC == data->var_data->pmic_type)
+		regmap_update_bits(data->regmap, data->var_data->rtc_clk_en,
+				   UMP9620_ARM_RTC_CLK_EN, 0);
+
 	regmap_update_bits(data->regmap, data->var_data->module_en,
 			   SC27XX_MODULE_ADC_EN, 0);
 }
@@ -735,6 +932,7 @@ static void sc27xx_adc_free_hwlock(void *_data)
 }
 
 static const struct sc27xx_adc_variant_data sc2731_data = {
+	.pmic_type = SC27XX_ADC,
 	.module_en = SC2731_MODULE_EN,
 	.clk_en = SC2731_ARM_CLK_EN,
 	.scale_shift = SC2721_ADC_SCALE_SHIFT,
@@ -746,6 +944,7 @@ static const struct sc27xx_adc_variant_data sc2731_data = {
 };
 
 static const struct sc27xx_adc_variant_data sc2721_data = {
+	.pmic_type = SC27XX_ADC,
 	.module_en = SC2731_MODULE_EN,
 	.clk_en = SC2721_ARM_CLK_EN,
 	.scale_shift = SC2721_ADC_SCALE_SHIFT,
@@ -757,6 +956,7 @@ static const struct sc27xx_adc_variant_data sc2721_data = {
 };
 
 static const struct sc27xx_adc_variant_data sc2730_data = {
+	.pmic_type = SC27XX_ADC,
 	.module_en = SC2730_MODULE_EN,
 	.clk_en = SC2730_ARM_CLK_EN,
 	.scale_shift = SC27XX_ADC_SCALE_SHIFT,
@@ -768,6 +968,7 @@ static const struct sc27xx_adc_variant_data sc2730_data = {
 };
 
 static const struct sc27xx_adc_variant_data sc2720_data = {
+	.pmic_type = SC27XX_ADC,
 	.module_en = SC2731_MODULE_EN,
 	.clk_en = SC2721_ARM_CLK_EN,
 	.scale_shift = SC27XX_ADC_SCALE_SHIFT,
@@ -776,6 +977,19 @@ static const struct sc27xx_adc_variant_data sc2720_data = {
 	.sscale_cal = &small_scale_graph_calib,
 	.init_scale = sc2720_adc_scale_init,
 	.get_ratio = sc2720_adc_get_ratio,
+};
+
+static const struct sc27xx_adc_variant_data ump9620_data = {
+	.pmic_type = UMP9620_ADC,
+	.module_en = UMP9620_MODULE_EN,
+	.clk_en = UMP9620_ARM_CLK_EN,
+	.rtc_clk_en = UMP9620_ARM_RTC_CLK,
+	.scale_shift = SC27XX_ADC_SCALE_SHIFT,
+	.scale_mask = SC27XX_ADC_SCALE_MASK,
+	.bscale_cal = &big_scale_graph,
+	.sscale_cal = &small_scale_graph,
+	.init_scale = ump9620_adc_scale_init,
+	.get_ratio = ump9620_adc_get_ratio,
 };
 
 static int sc27xx_adc_probe(struct platform_device *pdev)
@@ -841,6 +1055,7 @@ static int sc27xx_adc_probe(struct platform_device *pdev)
 
 	sc27xx_data->var_data->init_scale(sc27xx_data);
 	ret = sc27xx_adc_enable(sc27xx_data);
+
 	if (ret) {
 		dev_err(&pdev->dev, "failed to enable ADC module\n");
 		return ret;
@@ -871,6 +1086,7 @@ static const struct of_device_id sc27xx_adc_of_match[] = {
 	{ .compatible = "sprd,sc2730-adc", .data = &sc2730_data},
 	{ .compatible = "sprd,sc2721-adc", .data = &sc2721_data},
 	{ .compatible = "sprd,sc2720-adc", .data = &sc2720_data},
+	{ .compatible = "sprd,ump9620-adc", .data = &ump9620_data},
 	{ }
 };
 
