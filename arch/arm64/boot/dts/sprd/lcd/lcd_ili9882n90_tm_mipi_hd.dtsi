@@ -13,7 +13,7 @@
 			lcds {
 				lcd_ili9882n90_tm_mipi_hd: lcd_ili9882n90_tm_mipi_hd {
 
-					sprd,dsi-work-mode = <3>; /* video burst mode*/
+					sprd,dsi-work-mode = <1>; /* video burst mode*/
 					sprd,dsi-lane-number = <4>;
 					sprd,dsi-color-format = "rgb888";
 
