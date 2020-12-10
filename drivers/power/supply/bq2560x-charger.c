@@ -31,7 +31,7 @@
 #define BQ2560X_REG_6				0x6
 #define BQ2560X_REG_7				0x7
 #define BQ2560X_REG_8				0x8
-#define BQ2560X_REG_9				0x7
+#define BQ2560X_REG_9				0x9
 #define BQ2560X_REG_A				0xa
 #define BQ2560X_REG_B				0xb
 
@@ -75,6 +75,7 @@
 #define BQ2560X_FEED_WATCHDOG_VALID_MS		50
 #define BQ2560X_OTG_RETRY_TIMES			10
 #define BQ2560X_LIMIT_CURRENT_MAX		3200000
+#define BQ2560X_LIMIT_CURRENT_OFFSET		100000
 
 #define BQ2560X_ROLE_MASTER_DEFAULT		1
 #define BQ2560X_ROLE_SLAVE			2
@@ -106,6 +107,7 @@ struct bq2560x_charger_info {
 	u32 last_limit_current;
 	u32 role;
 	bool need_disable_Q1;
+	int termination_cur;
 };
 
 static int
@@ -256,7 +258,7 @@ bq2560x_charger_set_termina_cur(struct bq2560x_charger_info *info, u32 cur)
 static int bq2560x_charger_hw_init(struct bq2560x_charger_info *info)
 {
 	struct power_supply_battery_info bat_info = { };
-	int voltage_max_microvolt, current_max_ua;
+	int voltage_max_microvolt, termination_cur;
 	int ret;
 
 	ret = power_supply_get_battery_info(info->psy_usb, &bat_info, 0);
@@ -290,7 +292,8 @@ static int bq2560x_charger_hw_init(struct bq2560x_charger_info *info)
 
 		voltage_max_microvolt =
 			bat_info.constant_charge_voltage_max_uv / 1000;
-		current_max_ua = bat_info.constant_charge_current_max_ua / 1000;
+		termination_cur = bat_info.charge_term_current_ua / 1000;
+		info->termination_cur = termination_cur;
 		power_supply_put_battery_info(info->psy_usb, &bat_info);
 
 		ret = bq2560x_update_bits(info, BQ2560X_REG_B,
@@ -328,7 +331,7 @@ static int bq2560x_charger_hw_init(struct bq2560x_charger_info *info)
 			return ret;
 		}
 
-		ret = bq2560x_charger_set_termina_cur(info, current_max_ua);
+		ret = bq2560x_charger_set_termina_cur(info, termination_cur);
 		if (ret) {
 			dev_err(info->dev, "set bq2560x terminal cur failed\n");
 			return ret;
@@ -373,7 +376,7 @@ bq2560x_charger_get_charge_voltage(struct bq2560x_charger_info *info,
 
 static int bq2560x_charger_start_charge(struct bq2560x_charger_info *info)
 {
-	int ret;
+	int ret = 0;
 
 	ret = bq2560x_update_bits(info, BQ2560X_REG_0,
 				  BQ2560X_REG_EN_HIZ_MASK, 0);
@@ -393,8 +396,14 @@ static int bq2560x_charger_start_charge(struct bq2560x_charger_info *info)
 
 	ret = bq2560x_charger_set_limit_current(info,
 						info->last_limit_current);
-	if (ret)
+	if (ret) {
 		dev_err(info->dev, "failed to set limit current\n");
+		return ret;
+	}
+
+	ret = bq2560x_charger_set_termina_cur(info, info->termination_cur);
+	if (ret)
+		dev_err(info->dev, "set bq2560x terminal cur failed\n");
 
 	return ret;
 }
@@ -476,6 +485,7 @@ bq2560x_charger_set_limit_current(struct bq2560x_charger_info *info,
 		limit_cur = BQ2560X_LIMIT_CURRENT_MAX;
 
 	info->last_limit_current = limit_cur;
+	limit_cur -= BQ2560X_LIMIT_CURRENT_OFFSET;
 	limit_cur = limit_cur / 1000;
 	reg_val = limit_cur / BQ2560X_REG_IINLIM_BASE;
 
@@ -501,6 +511,7 @@ bq2560x_charger_get_limit_current(struct bq2560x_charger_info *info,
 
 	reg_val &= BQ2560X_REG_LIMIT_CURRENT_MASK;
 	*limit_cur = reg_val * BQ2560X_REG_IINLIM_BASE * 1000;
+	*limit_cur += BQ2560X_LIMIT_CURRENT_OFFSET;
 	if (*limit_cur >= BQ2560X_LIMIT_CURRENT_MAX)
 		*limit_cur = BQ2560X_LIMIT_CURRENT_MAX;
 
