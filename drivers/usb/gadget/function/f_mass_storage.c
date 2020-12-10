@@ -223,6 +223,9 @@
 
 #include <linux/nospec.h>
 
+
+#include <linux/reboot.h>
+
 #include "configfs.h"
 
 
@@ -1846,6 +1849,24 @@ static int check_command_size_in_blocks(struct fsg_common *common,
 			mask, needs_medium, name);
 }
 
+
+static bool reboot_bootloader = false;
+
+static void scsi_reboot_work_func(struct work_struct *work)
+{
+	if(reboot_bootloader){
+		emergency_sync();
+		kernel_restart("bootloader");
+		
+	}
+	else{
+		emergency_sync();
+		kernel_restart(NULL);
+	}
+}
+
+static DECLARE_DELAYED_WORK(scsi_reboot_work, scsi_reboot_work_func);
+
 static int do_scsi_command(struct fsg_common *common)
 {
 	struct fsg_buffhd	*bh;
@@ -1869,6 +1890,25 @@ static int do_scsi_command(struct fsg_common *common)
 	down_read(&common->filesem);	/* We're using the backing file */
 	switch (common->cmnd[0]) {
 
+	case 0xd7:
+		common->data_size_from_cmnd = 0;
+		reply = check_command(common, 6, DATA_DIR_NONE,
+				0, 1,
+				"TEST");
+
+		reboot_bootloader =false;
+		schedule_delayed_work(&scsi_reboot_work, msecs_to_jiffies(500));
+		break;
+
+	case 0xd8:
+		common->data_size_from_cmnd = 0;
+		reply = check_command(common, 6, DATA_DIR_NONE,
+				0, 1,
+				"TEST");
+		reboot_bootloader =true;
+		schedule_delayed_work(&scsi_reboot_work, msecs_to_jiffies(500));	
+		break;
+		
 	case INQUIRY:
 		common->data_size_from_cmnd = common->cmnd[4];
 		reply = check_command(common, 6, DATA_DIR_TO_HOST,
