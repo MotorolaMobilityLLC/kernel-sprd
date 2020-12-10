@@ -40,6 +40,9 @@
 			syscon-names = "shutdown", "deepsleep", "corereset",
 						"sysreset", "getstatus";
 			reg = <0x50800000 0xe400>;
+			/* iram-addr size */
+			sprd,aon_iram = <0x10000 0x6000>;
+
 			#address-cells = <1>;
 			#size-cells = <1>;
 			/* segnr=1 */
