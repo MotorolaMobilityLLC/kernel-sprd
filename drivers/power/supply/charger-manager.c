@@ -1575,11 +1575,6 @@ static bool cm_manager_adjust_current(struct charger_manager *cm,
 		term_volt = 4050000;
 		dev_info(cm->dev,"smt set term_volt:%d\n",term_volt);
 	}
-	else
-	{
-		term_volt = 4400000;
-		dev_info(cm->dev,"smt set term_volt:%d\n",term_volt);
-	}
 
 	dev_info(cm->dev, "target terminate voltage = %d, target current = %d\n",
 		 term_volt, target_cur);
@@ -1608,7 +1603,7 @@ static bool cm_manager_adjust_current(struct charger_manager *cm,
                 if(target_cur == 0)
 			continue;
 
-#else
+#endif		
 		val.intval = target_cur;
 		ret = power_supply_set_property(psy,
 					POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT,
@@ -1620,7 +1615,6 @@ static bool cm_manager_adjust_current(struct charger_manager *cm,
 				ret);
 			continue;
 		}
-#endif		
 	}
 
 	if (ret)
