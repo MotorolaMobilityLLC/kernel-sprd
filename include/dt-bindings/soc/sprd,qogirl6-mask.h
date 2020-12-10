@@ -3197,6 +3197,8 @@
 #define MASK_MM_AHB_CPP_EB                                  0x1
 #define MASK_MM_AHB_FD_SOFT_RST_MASK                        0x8000000
 #define MASK_MM_AHB_FD_SOFT_RST                             0x4000000
+#define MASK_MM_AHB_LP_EB_FD                                0x10000
+#define MASK_MM_AHB_DVFS_EB                                 0x200
 #define MASK_MM_AHB_DCAM_ALL_SOFT_RST                       0x800000
 #define MASK_MM_AHB_FD_VAU_SOFT_RST                         0x400000
 #define MASK_MM_AHB_CPP_VAU_SOFT_RST                        0x200000
