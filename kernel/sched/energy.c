@@ -80,9 +80,9 @@ void init_sched_energy_costs(void)
 	unsigned long min_cap = ULONG_MAX;
 	unsigned long capacity;
 	struct cpumask mc_cpu_mask;
-	char chip_type[64];
+	char chip_type[80] = "busy-cost-data-";
 
-	sprd_kproperty_get("lwfq/type", chip_type, "-1");
+	sprd_kproperty_get("lwfq/type", &chip_type[15], "-1");
 	cpumask_clear(&mc_cpu_mask);
 
 	for_each_possible_cpu(cpu) {
@@ -105,11 +105,12 @@ void init_sched_energy_costs(void)
 			if (!cp)
 				break;
 
-			if (!strncmp(chip_type, "0", strlen("0"))) //T618
-				prop = of_find_property(cp, "busy-cost-data-hp", NULL);
-			else if (!strncmp(chip_type, "1", strlen("1"))) //T610
-				prop = of_find_property(cp, "busy-cost-data-lp", NULL);
-			else
+			chip_type[0] = 'b';
+			chip_type[1] = 'u';
+			chip_type[2] = 's';
+			chip_type[3] = 'y';
+			prop = of_find_property(cp, chip_type, NULL);
+			if (!prop)
 				prop = of_find_property(cp, "busy-cost-data", NULL);
 
 			if (!prop || !prop->value) {
@@ -144,11 +145,12 @@ void init_sched_energy_costs(void)
 			sge->nr_cap_states = nstates;
 			sge->cap_states = cap_states;
 
-			if (!strncmp(chip_type, "0", strlen("0"))) //T618
-				prop = of_find_property(cp, "idle-cost-data-hp", NULL);
-			else if (!strncmp(chip_type, "1", strlen("1"))) //T610
-				prop = of_find_property(cp, "idle-cost-data-lp", NULL);
-			else
+			chip_type[0] = 'i';
+			chip_type[1] = 'd';
+			chip_type[2] = 'l';
+			chip_type[3] = 'e';
+			prop = of_find_property(cp, chip_type, NULL);
+			if (!prop)
 				prop = of_find_property(cp, "idle-cost-data", NULL);
 
 			if (!prop || !prop->value) {
