@@ -3699,6 +3699,7 @@ static void cm_batt_works(struct work_struct *work)
 		return;
 	}
 
+	cm->desc->temperature = cur_temp;
 
 #ifdef    DUAL_85_VERSION
 	dev_err(cm->dev, "%s;D85 temp=%d; cur_temp=%d;\n",__func__,sc27xx_fgu_get_d85_temp(),cur_temp);
@@ -3707,7 +3708,6 @@ static void cm_batt_works(struct work_struct *work)
 	fuel_cap = sc27xx_fgu_get_d85_cap();
 #endif
 
-	cm->desc->temperature = cur_temp;
 
 	if (cur_temp <= CM_LOW_TEMP_REGION &&
 	    batt_uV <= CM_LOW_TEMP_SHUTDOWN_VALTAGE) {
