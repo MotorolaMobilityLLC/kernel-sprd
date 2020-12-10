@@ -28,7 +28,7 @@ struct sprd_asoc_ext_hook_map {
 	int en_level;
 };
 
-#define SPK_CNT_MAX 3
+#define SPK_CNT_MAX 4
 
 enum {
 	/* ext_ctrl_type */
@@ -49,7 +49,7 @@ struct sprd_asoc_hook_spk_priv {
 };
 
 static struct sprd_asoc_hook_spk_priv hook_spk_priv = {
-	.gpio = {-1, -1, -1},
+	.gpio = {-1, -1, -1, -1},
 };
 
 enum {
@@ -140,7 +140,7 @@ static void hook_gpio_pulse_control(unsigned int gpio, unsigned int mode)
 	spin_unlock_irqrestore(lock, flags);
 }
 
-static int hook_spk_aw87xx(int id, int on)
+int hook_spk_aw87xx(int id, int on)
 {
 	int gpio, mode;
 
@@ -198,10 +198,31 @@ static int hook_rcv_switch_ctrl(int id, int on)
 	return HOOK_OK;
 }
 
+static int hook_hp_switch_ctrl(int id, int on)
+{
+	int gpio = 0;
+
+	gpio = hook_spk_priv.gpio[id];
+	if (gpio < 0) {
+		pr_err("%s gpio is invalid!\n", __func__);
+		return -EINVAL;
+	}
+	pr_info("%s id: %d, gpio: %d, on: %d\n",
+					 __func__, id, gpio, on);
+
+	if (on)
+		gpio_set_value(gpio, EN_LEVEL);
+	else
+		gpio_set_value(gpio, !EN_LEVEL);
+
+	return HOOK_OK;
+}
+
 static struct sprd_asoc_ext_hook_map speaker_hook[] = {
 	{"aw87xx", hook_spk_aw87xx, EN_LEVEL},
 	{0},
 	{"rcv_switch", hook_rcv_switch_ctrl, EN_LEVEL},
+	{"hp_switch", hook_hp_switch_ctrl, EN_LEVEL},
 };
 
 static struct gpio_map {
@@ -211,6 +232,7 @@ static struct gpio_map {
 	{BOARD_FUNC_SPK, "ext_spk_r"},
 	{BOARD_FUNC_SPK1, "ext_spk_l"},
 	{BOARD_FUNC_EAR, "rcv_ctrl"},
+	{BOARD_FUNC_HP, "hp_ctrl"},
 	{0, NULL},
 };
 

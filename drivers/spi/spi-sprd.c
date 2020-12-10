@@ -165,7 +165,8 @@ static u32 sprd_spi_transfer_max_timeout(struct sprd_spi *ss,
 	u32 interval_time_us = DIV_ROUND_UP(interval_cycle * USEC_PER_SEC,
 					    ss->src_clk);
 
-	return total_time_us + interval_time_us;
+	//return total_time_us + interval_time_us;
+	return total_time_us + interval_time_us + SPRD_SPI_FIFO_SIZE + SPRD_SPI_FIFO_SIZE;
 }
 
 static int sprd_spi_wait_for_tx_end(struct sprd_spi *ss, struct spi_transfer *t)

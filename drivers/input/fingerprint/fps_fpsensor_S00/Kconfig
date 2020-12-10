@@ -1,0 +1,13 @@
+if INPUT_FINGERPRINT
+config FPS_FPSENSOR_S00
+	tristate "ICNT7152 fingureprint driver"
+	depends on SPI
+	default n
+	---help---
+	  chiponeic ICNT7152L fingureprint driver.
+	  This is a driver based on the SPI kernel layers.
+
+	  To compile this driver as a module, choose m here. The module will
+	  be called fpsensor.
+	  Say N if unsure.
+endif

@@ -9,6 +9,10 @@
 #include "sc9863a-modem.dtsi"
 #include "sc2721.dtsi"
 #include "lcd/lcd_dummy_mipi.dtsi"
+#include "lcd/lcd_ili9881h_skyworth_mipi_hd.dtsi"
+#include "lcd/lcd_ili9882n_skyworth_mipi_hd.dtsi"
+#include "lcd/lcd_ili9882h_skyworth_mipi_hd.dtsi"
+#include "lcd/lcd_icnl9911c_hlt_mipi_hd.dtsi"
 #include "sprd-sound-sharkl.dtsi"
 #include <dt-bindings/thermal/thermal.h>
 
@@ -248,6 +252,7 @@
 
 	sprd-sensorhub {
 		compatible = "sprd,sharkl3-sensorhub";
+		psled-en-gpios = <&ap_gpio 17 0>;
 	};
 
 	autotest:autotest{
@@ -313,6 +318,39 @@
 
 &sound_vbc_r1p0v3_sprd_codec {
 	status = "okay";
+	sprd-audio-card,widgets =
+		"Headphone", "inter HP PA",
+		"Speaker", "inter Ear PA";
+
+	sprd-audio-card,routing =
+		"HPMIC", "HP Mic Jack",
+		"MIC", "Mic Jack",
+		"AUXMIC", "Aux Mic Jack",
+		"inter HP PA", "HP PA",
+		"Ext Spk", "HP PA",
+		"Ext Spk1", "HP PA",
+		"HeadPhone Jack", "HP PA",
+		"inter Ear PA", "EAR",
+		"DMIC", "DMic Jack",
+		"DMIC1", "DMic1 Jack",
+
+		/* For vbc loopback */
+		"Aud input", "AD Clk",
+		"Aud input1", "AD Clk",
+		"Aud input", "Digital ADCL Switch",
+		"Aud input", "Digital ADCR Switch",
+		"Aud input1", "Digital ADC1L Switch",
+		"Aud input1", "Digital ADC1R Switch";
+
+	/*ext_control_type, hook selection, mode, gpio share*/
+	sprd,spk-ext-pa-info = <0 0 1 0>,
+				<0 0 0 1>,
+				<2 2 0 0>,
+				<1 3 0 0>;
+	sprd,spk-ext-pa-gpio = <&ap_gpio 121 0>,
+				<&ap_gpio 121 0>,
+				<&ap_gpio 122 0>;
+	sprd,spk-ext-pa-names = "ext_spk_r", "ext_spk_l", "hp_ctrl";
 };
 
 &sound_sprd_ap_alliis {

@@ -1,0 +1,11 @@
+&i2c4 {
+	#address-cells = <1>;
+	#size-cells = <0>;
+	clock-frequency = <400000>;
+
+	lcd_i2c_bias_enn_enp@3e{
+		compatible = "lcd,i2c_lcd_bias";
+		reg = <0x3e>;
+		status = "okay";
+	};
+};

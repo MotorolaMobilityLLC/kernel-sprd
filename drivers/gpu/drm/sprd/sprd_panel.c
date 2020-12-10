@@ -25,7 +25,9 @@
 #include "sprd_panel.h"
 #include "dsi/sprd_dsi_api.h"
 #include "sysfs/sysfs_display.h"
-
+#ifdef CONFIG_LCM_I2C_BIAS
+#include "lcm_i2c.h"
+#endif
 #define SPRD_MIPI_DSI_FMT_DSC 0xff
 static DEFINE_MUTEX(panel_lock);
 
@@ -74,6 +76,8 @@ static int sprd_panel_send_cmds(struct mipi_dsi_device *dsi,
 	return 0;
 }
 
+extern volatile int gesture_dubbleclick_en;
+
 static int sprd_panel_unprepare(struct drm_panel *p)
 {
 	struct sprd_panel *panel = to_sprd_panel(p);
@@ -83,13 +87,29 @@ static int sprd_panel_unprepare(struct drm_panel *p)
 	DRM_INFO("%s()\n", __func__);
 
 	if (panel->info.avee_gpio) {
-		gpiod_direction_output(panel->info.avee_gpio, 0);
-		mdelay(5);
+		DRM_INFO("--------------yyx-------------");
+		if (!gesture_dubbleclick_en) {
+			gpiod_direction_output(panel->info.avee_gpio, 0);
+		DRM_INFO("--------------yyx1-------------");
+			mdelay(5);
+		}else{
+			gpiod_direction_output(panel->info.avee_gpio, 1);
+		DRM_INFO("--------------yyx2-------------");
+                        mdelay(5);
+		}
 	}
 
 	if (panel->info.avdd_gpio) {
-		gpiod_direction_output(panel->info.avdd_gpio, 0);
-		mdelay(5);
+		DRM_INFO("--------------yyx3-------------");
+		if (!gesture_dubbleclick_en) {
+			gpiod_direction_output(panel->info.avdd_gpio, 0);
+		DRM_INFO("--------------yyx4-------------");
+			mdelay(5);
+		}else{
+			gpiod_direction_output(panel->info.avdd_gpio, 1);
+		DRM_INFO("--------------yyx5-------------");
+                        mdelay(5);
+		}
 	}
 
 	if (panel->info.reset_gpio) {
@@ -111,6 +131,9 @@ static int sprd_panel_prepare(struct drm_panel *p)
 {
 	struct sprd_panel *panel = to_sprd_panel(p);
 	struct gpio_timing *timing;
+#ifdef CONFIG_LCM_I2C_BIAS
+	struct bias_cmds *bias_cmds;
+#endif
 	int items, i, ret;
 
 	DRM_INFO("%s()\n", __func__);
@@ -128,7 +151,15 @@ static int sprd_panel_prepare(struct drm_panel *p)
 		gpiod_direction_output(panel->info.avee_gpio, 1);
 		mdelay(5);
 	}
-
+#ifdef CONFIG_LCM_I2C_BIAS
+	items = panel->info.bias_cmd_seq.items;
+	bias_cmds = panel->info.bias_cmd_seq.bias_cmds;
+	for (i = 0; i < items; i++) {
+		DRM_INFO("firefly bias cmd:0x%x, value:0x%x\n",
+				bias_cmds[i].cmd, bias_cmds[i].value);
+		lcm_set_bias_volatage(bias_cmds[i].cmd, bias_cmds[i].value);
+	}
+#endif
 	if (panel->info.reset_gpio) {
 		items = panel->info.rst_on_seq.items;
 		timing = panel->info.rst_on_seq.timing;
@@ -498,7 +529,37 @@ static int of_parse_reset_seq(struct device_node *np,
 
 	return 0;
 }
+#ifdef CONFIG_LCM_I2C_BIAS
+static int of_parse_bias_seq(struct device_node *np,
+                                struct panel_info *info)
+{
+        struct property *prop;
+        int bytes, rc;
+        u32 *p;
 
+        prop = of_find_property(np, "sprd,bias-cmd-sequence", &bytes);
+        if (!prop) {
+                DRM_ERROR("sprd,bias-cmd-sequence property not found\n");
+                return -EINVAL;
+        }
+
+        p = kzalloc(bytes, GFP_KERNEL);
+        if (!p)
+                return -ENOMEM;
+        rc = of_property_read_u32_array(np, "sprd,bias-cmd-sequence",
+                                        p, bytes / 4);
+        if (rc) {
+                DRM_ERROR("parse sprd,bias-cmd-sequence failed\n");
+                kfree(p);
+                return rc;
+        }
+
+        info->bias_cmd_seq.items = bytes / 8;
+        info->bias_cmd_seq.bias_cmds = (struct bias_cmds *)p;
+
+        return 0;
+}
+#endif
 static int of_parse_buildin_modes(struct panel_info *info,
 	struct device_node *lcd_node)
 {
@@ -583,11 +644,37 @@ static int of_parse_oled_cmds(struct sprd_oled *oled,
 	return 0;
 }
 
+static int sprd_oled_set_brightness(struct backlight_device *bdev);
+unsigned int g_last_level = 25;
+struct backlight_device *g_bdev;
+#ifdef CONFIG_HBM_SUPPORT
+extern bool g_hbm_enable;
+int hbm_set_backlight_level(unsigned int level)
+{
+	if (g_bdev != NULL) {
+		g_bdev->props.brightness = level;
+		sprd_oled_set_brightness(g_bdev);
+		return 0;
+	} else {
+		DRM_INFO("firefly, g_bdev is null, please register sprd backlight\n");
+		return -1;
+	}
+
+}
+#endif
+
 static int sprd_oled_set_brightness(struct backlight_device *bdev)
 {
 	int level, brightness;
 	struct sprd_oled *oled = bl_get_data(bdev);
 	struct sprd_panel *panel = oled->panel;
+
+	mdelay(100);
+	if (g_hbm_enable){
+		DRM_INFO("firefly ,Now hbm enable, want to set level = %d\n", bdev->props.brightness);
+		DRM_INFO("firefly ,Do not allow to set other level backlight\n");
+		bdev->props.brightness = 256;
+	}
 
 	mutex_lock(&panel_lock);
 	if (!panel->is_enabled) {
@@ -599,14 +686,29 @@ static int sprd_oled_set_brightness(struct backlight_device *bdev)
 	brightness = bdev->props.brightness;
 	level = brightness * oled->max_level / 255;
 
-	DRM_INFO("%s level: %d\n", __func__, level);
+	DRM_INFO("%s Source level: %d\n", __func__, level);
+
+	if (level < 256){
+		g_last_level = level;
+		level = ((level * 78) + 22 )/ 100;
+	}
+
+	if (level == 256)
+		level = 255;
+
+	DRM_INFO("%s Target level: %d\n", __func__, level);
 
 	sprd_panel_send_cmds(panel->slave,
 			     panel->info.cmds[CMD_OLED_REG_LOCK],
 			     panel->info.cmds_len[CMD_OLED_REG_LOCK]);
 
 	if (oled->cmds_total == 1) {
-		oled->cmds[0]->payload[1] = level;
+		if (oled->cmd_len - 4 == 3) {
+			oled->cmds[0]->payload[1] = (level >> 4) & 0x0f;
+			oled->cmds[0]->payload[2] = (level << 4) & 0xf0;
+		} else
+			oled->cmds[0]->payload[1] = level;
+
 		sprd_panel_send_cmds(panel->slave,
 			     oled->cmds[0],
 			     oled->cmd_len);
@@ -693,6 +795,8 @@ static int sprd_oled_backlight_init(struct sprd_panel *panel)
 	of_parse_oled_cmds(oled,
 			panel->info.cmds[CMD_OLED_BRIGHTNESS],
 			panel->info.cmds_len[CMD_OLED_BRIGHTNESS]);
+
+	g_bdev = oled->bdev;
 
 	DRM_INFO("%s() ok\n", __func__);
 
@@ -805,7 +909,11 @@ int sprd_panel_parse_lcddtb(struct device_node *lcd_node,
 	rc = of_parse_reset_seq(lcd_node, info);
 	if (rc)
 		DRM_ERROR("parse lcd reset sequence failed\n");
-
+#ifdef CONFIG_LCM_I2C_BIAS
+	rc = of_parse_bias_seq(lcd_node, info);
+	if (rc)
+		DRM_ERROR("parse lcd bias sequence failed\n");
+#endif
 	p = of_get_property(lcd_node, "sprd,initial-command", &bytes);
 	if (p) {
 		info->cmds[CMD_CODE_INIT] = p;

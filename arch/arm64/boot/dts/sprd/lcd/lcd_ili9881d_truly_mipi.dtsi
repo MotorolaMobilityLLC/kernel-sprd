@@ -1,0 +1,64 @@
+/ { lcds {
+	l608_lcd_ili9881d_mipi: l608_lcd_ili9881d_mipi {
+
+		sprd,dsi-work-mode = <1>;
+		sprd,dsi-lane-number = <4>;
+		sprd,dsi-color-format = "rgb888";
+
+		sprd,phy-bit-clock = <500000>;
+		sprd,phy-escape-clock = <20000>;
+
+		sprd,width-mm = <68>;
+		sprd,height-mm = <121>;
+
+		sprd,esd-check-enable = <0>;
+		sprd,esd-check-mode = <3>;
+		sprd,esd-check-period = <1000>;
+		sprd,esd-check-register = <0x0A>;
+		sprd,esd-check-value = <0x9C>;
+
+		sprd,reset-on-sequence = <1 5>, <0 5>, <1 20>;
+		sprd,reset-off-sequence = <0 20>;
+
+
+		sprd,initial-command = [
+			39 00 00 04 FF 98 81 00
+	　　　　　　　　23 00 00 02 53 ff		
+			23 00 00 02 55 01
+			23 00 00 02 35 00
+			23 78 00 02 11 00
+			
+            39 00 00 04 FF 98 81 03
+            23 00 00 02 83 60
+			23 00 00 02 84 03
+			39 00 00 04 FF 98 81 06
+			23 00 00 02 d9 10
+			39 00 00 04 FF 98 81 00
+			23 0A 00 02 29 00
+
+			];
+		sprd,sleep-in-command = [
+			13 0A 00 01 28
+			13 78 00 01 10
+			];
+		sprd,sleep-out-command = [
+			13 78 00 01 11
+			13 64 00 01 29
+			];
+
+		display-timings {
+			timing0 {
+				clock-frequency = <76800000>;
+				hactive = <720>;
+				vactive = <1560>;
+				hback-porch = <30>;
+				hfront-porch = <30>;
+				vback-porch = <30>;
+				vfront-porch = <160>;
+				hsync-len = <16>;
+				vsync-len = <16>;
+			};
+		};
+	};
+};};
+
