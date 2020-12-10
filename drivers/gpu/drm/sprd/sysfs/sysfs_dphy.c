@@ -154,6 +154,8 @@ static ssize_t ssc_store(struct device *dev,
 			struct device_attribute *attr,
 			const char *buf, size_t count)
 {
+// disable ssc (turn on/off at NV config)by driver begin:
+/***
 	int ret;
 	struct sprd_dphy *dphy = dev_get_drvdata(dev);
 
@@ -173,7 +175,8 @@ static ssize_t ssc_store(struct device *dev,
 
 	sprd_dphy_ssc_en(dphy, ssc_en);
 	mutex_unlock(&dphy->ctx.lock);
-
+***/
+// disable ssc by driver end
 	return count;
 }
 static DEVICE_ATTR_RW(ssc);
