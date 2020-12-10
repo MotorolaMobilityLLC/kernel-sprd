@@ -688,9 +688,17 @@ static int sprd_oled_set_brightness(struct backlight_device *bdev)
 
 	DRM_INFO("%s Source level: %d\n", __func__, level);
 
-	if (level < 256){
-		g_last_level = level;
-		level = ((level * 78) + 22 )/ 100;
+	if(strncmp(lcd_name, "lcd_icnl9911c_hlt_mipi_hd",strlen(lcd_name)) == 0)
+	{
+		if (level < 256)
+			level = ((level * 88) + 22 )/ 100;
+	}
+	else
+	{
+		if (level < 256){
+			g_last_level = level;
+			level = ((level * 78) + 22 )/ 100;
+		}
 	}
 
 	if (level == 256)
@@ -704,8 +712,16 @@ static int sprd_oled_set_brightness(struct backlight_device *bdev)
 
 	if (oled->cmds_total == 1) {
 		if (oled->cmd_len - 4 == 3) {
+			if(strncmp(lcd_name, "lcd_ili9882h_skyworth_mipi_hd",strlen(lcd_name)) == 0)
+			{
+				oled->cmds[0]->payload[1] = level & 0x00;
+				oled->cmds[0]->payload[2] = level;
+			}
+			else
+			{
 			oled->cmds[0]->payload[1] = (level >> 4) & 0x0f;
 			oled->cmds[0]->payload[2] = (level << 4) & 0xf0;
+			}
 		} else
 			oled->cmds[0]->payload[1] = level;
 
