@@ -497,7 +497,7 @@ static int dphy_timing_config(struct dphy_context *ctx)
 	*/
 	range[L] = 50 * scale;
 	range[H] = INFINITY;
-	val[CLK] = ROUND_UP(range[L] * (factor << 1), t_byteck) - 2;
+	val[CLK] = ROUND_UP(range[L] * (factor << 1), t_byteck) - 5;
 	val[DATA] = val[CLK];
 	dphy_set_timing_regs(regmap, REQUEST_TIME, val);
 
@@ -518,11 +518,11 @@ static int dphy_timing_config(struct dphy_context *ctx)
 	range[L] = 300 * scale;
 	range[H] = INFINITY;
 	val[CLK] = ROUND_UP(range[L] * factor + (tmp & 0xffff)
-			- 525 * t_byteck / 100, t_byteck) - 2;
+			- 525 * t_byteck / 100, t_byteck) - 5;
 	range[L] = 145 * scale + 10 * t_ui;
 	val[DATA] = ROUND_UP(range[L] * factor
 			+ ((tmp >> 16) & 0xffff) - 525 * t_byteck / 100,
-			t_byteck) - 2;
+			t_byteck) - 5;
 	dphy_set_timing_regs(regmap, ZERO_TIME, val);
 
 	/* TRAIL_TIME: HS-TRAIL */
@@ -530,20 +530,20 @@ static int dphy_timing_config(struct dphy_context *ctx)
 	range[H] = INFINITY;
 	val[CLK] = ROUND_UP(range[L] * factor - constant, t_half_byteck);
 	range[L] = MAX(8 * t_ui, 60 * scale + 4 * t_ui);
-	val[DATA] = ROUND_UP(range[L] * 3 / 2 - constant, t_half_byteck) - 2;
+	val[DATA] = ROUND_UP(range[L] * 3 / 2 - constant, t_half_byteck) - 5;
 	dphy_set_timing_regs(regmap, TRAIL_TIME, val);
 
 	/* EXIT_TIME: */
 	range[L] = 100 * scale;
 	range[H] = INFINITY;
-	val[CLK] = ROUND_UP(range[L] * factor, t_byteck) - 2;
+	val[CLK] = ROUND_UP(range[L] * factor, t_byteck) - 5;
 	val[DATA] = val[CLK];
 	dphy_set_timing_regs(regmap, EXIT_TIME, val);
 
 	/* CLKPOST_TIME: */
 	range[L] = 60 * scale + 52 * t_ui;
 	range[H] = INFINITY;
-	val[CLK] = ROUND_UP(range[L] * factor, t_byteck) - 2;
+	val[CLK] = ROUND_UP(range[L] * factor, t_byteck) - 5;
 	val[DATA] = val[CLK];
 	dphy_set_timing_regs(regmap, CLKPOST_TIME, val);
 
