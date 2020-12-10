@@ -19,6 +19,9 @@
 #define SC2721_MODULE_EN0       0xc08
 #define SC2721_CLK_EN0          0xc10
 #define SC2721_RGB_CTRL         0xea0
+#define UMP9620_MODULE_EN0       0x2008
+#define UMP9620_CLK_EN0          0x2010
+#define UMP9620_RGB_CTRL         0
 
 #define SC27XX_BLTC_EN		BIT(9)
 #define SC27XX_RTC_EN		BIT(7)
@@ -90,6 +93,12 @@ static const struct sc27xx_led_data sc2721_data = {
 	.module_en = SC2721_MODULE_EN0,
 	.clk_en = SC2721_CLK_EN0,
 	.rgb_ctrl = SC2721_RGB_CTRL,
+};
+
+static const struct sc27xx_led_data ump9620_data = {
+	.module_en = UMP9620_MODULE_EN0,
+	.clk_en = UMP9620_CLK_EN0,
+	.rgb_ctrl = UMP9620_RGB_CTRL,
 };
 
 #define to_sc27xx_led(ldev) \
@@ -391,6 +400,7 @@ static const struct of_device_id sc27xx_led_of_match[] = {
 	{ .compatible = "sprd,sc2731-bltc", .data = &sc2731_data },
 	{ .compatible = "sprd,sc2730-bltc", .data = &sc2730_data },
 	{ .compatible = "sprd,sc2721-bltc", .data = &sc2721_data },
+	{ .compatible = "sprd,ump9620-bltc", .data = &ump9620_data },
 	{ }
 };
 MODULE_DEVICE_TABLE(of, sc27xx_led_of_match);
