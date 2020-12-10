@@ -251,35 +251,6 @@ static void bq24157_set_ce(struct bq24157_charger_info *info, u8 val)
 				);
 }
 
-static void bq24157_set_tmr_rst(struct bq24157_charger_info *info, u8 val)
-{
-	
-	if(info->charging)
-	{
-		watchdog_time++;
-	       if(watchdog_time > 600)
-			bq24157_set_ce(info,1);		
-	}
-	else
-	{
-		watchdog_time = 0;
-	}
-		
-	bq24157_update_bits(info, BQ24157_CON0,
-				CON0_TMR_RST_MASK,
-				CON0_TMR_RST_SHIFT,
-				val
-				);
-	bq24157_dump_register(info);
-
-	if(info->charging && watchdog_time > 600)
-	{
-		dev_err(info->dev,"%s;%d;\n",__func__,watchdog_time);
-		watchdog_time = 0;
-		bq24157_set_ce(info,0);
-	}
-	
-}
 
 static void bq24157_set_te(struct bq24157_charger_info *info, u8 val)
 {
@@ -385,6 +356,46 @@ void bq24157_set_io_level(struct bq24157_charger_info *info, u8 val)
 				);
 }
 
+static void bq24157_set_tmr_rst(struct bq24157_charger_info *info, u8 val)
+{
+	
+	if(info->charging)
+	{
+		watchdog_time++;
+	       if(watchdog_time > 600)
+			bq24157_set_ce(info,1);		
+	}
+	else
+	{
+		watchdog_time = 0;
+	}
+		
+	bq24157_update_bits(info, BQ24157_CON0,
+				CON0_TMR_RST_MASK,
+				CON0_TMR_RST_SHIFT,
+				val
+				);
+	bq24157_dump_register(info);
+
+	if(info->charging && watchdog_time > 600)
+	{
+		dev_err(info->dev,"%s;%d;\n",__func__,watchdog_time);
+		watchdog_time = 0;
+		if(is_eta6937)	
+		bq24157_write(info,0x06, 0xac);
+
+		bq24157_set_hz_mode(info,0);
+		bq24157_set_opa_mode(info,0);
+		bq24157_set_te(info,1);
+
+		bq24157_set_iterm(info,2);
+		bq24157_set_vsp(info,3);
+		bq24157_set_ce(info,0);
+		
+	}
+	
+}
+
 static int bq24157_enable_charging(struct bq24157_charger_info *info, bool en)
 {
 	unsigned int ret = 0;
@@ -394,6 +405,7 @@ static int bq24157_enable_charging(struct bq24157_charger_info *info, bool en)
 	if (en) {
 		watchdog_time = 0;
 		
+		if(is_eta6937)	
 		bq24157_write(info,0x06, 0xac);	/* ISAFE = 1550mA, VSAFE = 4.4V */
 		bq24157_set_ce(info,1);
 		bq24157_charger_set_termina_vol(info, info->voltage_max_microvolt);
