@@ -23,6 +23,7 @@
 #include <linux/pm_runtime.h>
 #include <linux/pm_wakeup.h>
 #include <linux/sched.h>
+#include <linux/sipc.h>
 #include <linux/slab.h>
 #include <linux/string.h>
 #include <linux/suspend.h>
@@ -95,14 +96,6 @@ module_param_array(mag_firms, charp, NULL, 0644);
 module_param_array(light_firms, charp, NULL, 0644);
 module_param_array(prox_firms, charp, NULL, 0644);
 module_param_array(pressure_firms, charp, NULL, 0644);
-
-#ifdef CONFIG_SPRD_SIPC
-#include <linux/sipc.h>
-#else
-#define sbuf_write(A, B, C, D, E, F) 0
-#define sbuf_read(A, B, C, D, E, F) 0
-#define sbuf_set_no_need_wake_lock(A, B, C)
-#endif
 
 struct sensor_cali_info {
 	unsigned char size;
