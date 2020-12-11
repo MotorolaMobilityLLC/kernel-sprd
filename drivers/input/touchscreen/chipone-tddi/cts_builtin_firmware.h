@@ -1,5 +1,5 @@
 static u8 icnl9911_driver_builtin_firmware[] = {
-    #include"firmware/easyquick_608/Moto-Fiji-Lite-Easyquick-ICNL9911C_Long-V_V020b_20200924.h"
+    #include"firmware/easyquick_608/builtin_firmware.h"
 };
 
 const static struct cts_firmware cts_driver_builtin_firmwares[] = {
