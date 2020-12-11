@@ -319,6 +319,59 @@
 #define CLK_AP_MM		1
 #define CLK_GPU_CLK_NUM		(CLK_AP_MM + 1)
 
+#define CLK_USB_EB		0
+#define CLK_USB_SUSPEND_EB	1
+#define CLK_USB_REF_EB		2
+#define CLK_PAM_USB_EB		3
+#define CLK_PAM_WIFI_EB		4
+#define CLK_IPAAPB_GATE_NUM	(CLK_PAM_WIFI_EB + 1)
+
+#define CLK_IPA_AXI		0
+#define CLK_IPA_APB		1
+#define CLK_USB_REF		2
+#define CLK_AP_IPA_AXI		3
+#define CLK_AP_IPA_APB		4
+#define CLK_IPA_DPU		5
+#define CLK_IPA_DPI		6
+#define CLK_USB_153M6		7
+#define CLK_IPA_CLK_NUM		(CLK_USB_153M6 + 1)
+
+#define CLK_IPA_EB			0
+#define CLK_TFT_EB			1
+#define CLK_IPA_ACCESS_PHYCP_EN		2
+#define CLK_IPA_ACCESS_PSCP_EN		3
+#define CLK_IPAGLB_GATE_NUM		(CLK_IPA_ACCESS_PSCP_EN + 1)
+
+#define CLK_PCIE3_AUX_EB	0
+#define CLK_PCIE3_EB		1
+#define CLK_NIC400_TRANMON_EB	2
+#define CLK_NIC400_CFG_EB	3
+#define CLK_PCIE3_PHY		4
+#define CLK_PCIEAPB_GATE_NUM	(CLK_PCIE3_PHY + 1)
+
+#define CLK_PCIE_AXI		0
+#define CLK_PCIE_APB		1
+#define CLK_PCIE_AUX		2
+#define CLK_PCIE_CLK_NUM	(CLK_PCIE_AUX + 1)
+
+#define CLK_POWERVR_EB		0
+#define CLK_MTX_APBREG_EB	1
+#define CLK_AI_DVFS_EB		2
+#define CLK_OCM_EB		3
+#define CLK_AXI_PMON_EB		4
+#define CLK_AON_TO_OCM_EB	5
+#define CLK_NIC400_BUSMON_EB	6
+#define CLK_AIAPB_GATE_NUM	(CLK_NIC400_BUSMON_EB + 1)
+
+#define CLK_AI_CFG_MTX		0
+#define CLK_AI_DVFS		1
+#define CLK_AI_CLK_NUM		(CLK_AI_DVFS + 1)
+
+#define CLK_POWERVR		0
+#define CLK_AI_MAIN_MTX		1
+#define CLK_OCM			2
+#define CLK_AI_DVFS_CLK_NUM	(CLK_OCM + 1)
+
 #define CLK_JPG_EN			0
 #define CLK_CKG_EN			1
 #define CLK_MAILBOX_EN			2

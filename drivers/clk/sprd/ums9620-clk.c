@@ -1774,6 +1774,340 @@ static struct sprd_clk_desc ums9620_gpu_clk_desc = {
 	.hw_clks	= &ums9620_gpu_clk_hws,
 };
 
+/* ipa apb gate clocks */
+/* ipa apb related gate clocks configure CLK_IGNORE_UNUSED because their
+ * power domain may be shut down, and they are controlled by related module.
+ */
+static SPRD_SC_GATE_CLK(usb_eb, "usb-eb", "ext-52m", 0x4,
+			0x1000, BIT(0), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(usb_suspend_eb, "usb-suspend-eb", "ext-52m", 0x4,
+			0x1000, BIT(1), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(usb_ref_eb, "usb-ref-eb", "ext-52m", 0x4,
+			0x1000, BIT(2), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(pam_usb_eb, "pam-usb-eb", "ext-52m", 0x4,
+			0x1000, BIT(4), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(pam_wifi_eb, "pam-wifi-eb", "ext-52m", 0x4,
+			0x1000, BIT(6), CLK_IGNORE_UNUSED, 0);
+
+static struct sprd_clk_common *ums9620_ipaapb_gate[] = {
+	/* address base is 0x25000000 */
+	&usb_eb.common,
+	&usb_suspend_eb.common,
+	&usb_ref_eb.common,
+	&pam_usb_eb.common,
+	&pam_wifi_eb.common,
+};
+
+static struct clk_hw_onecell_data ums9620_ipaapb_gate_hws = {
+	.hws	= {
+		[CLK_USB_EB]		= &usb_eb.common.hw,
+		[CLK_USB_SUSPEND_EB]	= &usb_suspend_eb.common.hw,
+		[CLK_USB_REF_EB]	= &usb_ref_eb.common.hw,
+		[CLK_PAM_USB_EB]	= &pam_usb_eb.common.hw,
+		[CLK_PAM_WIFI_EB]	= &pam_wifi_eb.common.hw,
+	},
+	.num	= CLK_IPAAPB_GATE_NUM,
+};
+
+static struct sprd_clk_desc ums9620_ipaapb_gate_desc = {
+	.clk_clks	= ums9620_ipaapb_gate,
+	.num_clk_clks	= ARRAY_SIZE(ums9620_ipaapb_gate),
+	.hw_clks	= &ums9620_ipaapb_gate_hws,
+};
+
+/* ipa clocks*/
+static const char * const ipa_axi_parents[] = { "clk-26m", "tgpll-192m",
+						"tgpll-384m", "v4nrpll-409m6" };
+static SPRD_MUX_CLK(ipa_axi, "ipa-axi", ipa_axi_parents, 0x28,
+		    0, 2, UMS9620_MUX_FLAG);
+static SPRD_DIV_CLK(ipa_apb, "ipa-apb", "ipa-axi", 0x30,
+		    0, 2, 0);
+
+static const char * const usb_ref_parents[] = { "ext-32m", "tgpll-24m" };
+static SPRD_MUX_CLK(usb_ref, "usb-ref", usb_ref_parents, 0x4c,
+		    0, 1, UMS9620_MUX_FLAG);
+
+static const char * const ap_ipa_axi_parents[] = { "clk-26m", "tgpll-512m" };
+static SPRD_MUX_CLK(ap_ipa_axi, "ap-ipa-axi", ap_ipa_axi_parents, 0x64,
+		    0, 1, UMS9620_MUX_FLAG);
+static SPRD_DIV_CLK(ap_ipa_apb, "ap-ipa-apb", "ap-ipa-axi", 0x6c,
+		    0, 2, 0);
+
+static const char * const ipa_dpu_parents[] = { "tgpll-192m", "tgpll-256m",
+						"tgpll-384m", "tgpll-512m" };
+static SPRD_MUX_CLK(ipa_dpu, "ipa-dpu", ipa_dpu_parents, 0x7c,
+		    0, 2, UMS9620_MUX_FLAG);
+
+static const char * const ipa_dpi_parents[] = { "tgpll-128m", "tgpll-192m",
+						"dphy-297m", "dphy-307m2" };
+static SPRD_COMP_CLK_OFFSET(ipa_dpi, "ipa-dpi", ipa_dpi_parents, 0x88,
+			    0, 2, 0, 4, 0);
+
+static SPRD_DIV_CLK(usb_153m6, "usb-153m6", "tgpll-153m6", 0xb4,
+		    0, 1, 0);
+
+static struct sprd_clk_common *ums9620_ipa_clk[] = {
+	/* address base is 0x25010000 */
+	&ipa_axi.common,
+	&ipa_apb.common,
+	&usb_ref.common,
+	&ap_ipa_axi.common,
+	&ap_ipa_apb.common,
+	&ipa_dpu.common,
+	&ipa_dpi.common,
+	&usb_153m6.common,
+};
+
+static struct clk_hw_onecell_data ums9620_ipa_clk_hws = {
+	.hws	= {
+		[CLK_IPA_AXI]		= &ipa_axi.common.hw,
+		[CLK_IPA_APB]		= &ipa_apb.common.hw,
+		[CLK_USB_REF]		= &usb_ref.common.hw,
+		[CLK_AP_IPA_AXI]	= &ap_ipa_axi.common.hw,
+		[CLK_AP_IPA_APB]	= &ap_ipa_apb.common.hw,
+		[CLK_IPA_DPU]		= &ipa_dpu.common.hw,
+		[CLK_IPA_DPI]		= &ipa_dpi.common.hw,
+		[CLK_USB_153M6]		= &usb_153m6.common.hw,
+	},
+	.num	= CLK_IPA_CLK_NUM,
+};
+
+static struct sprd_clk_desc ums9620_ipa_clk_desc = {
+	.clk_clks	= ums9620_ipa_clk,
+	.num_clk_clks	= ARRAY_SIZE(ums9620_ipa_clk),
+	.hw_clks	= &ums9620_ipa_clk_hws,
+};
+
+/* ipa glb gate clocks*/
+/* ipa glb related gate clocks configure CLK_IGNORE_UNUSED because their
+ * power domain may be shut down, and they are controlled by related module.
+ */
+static SPRD_SC_GATE_CLK(ipa_eb, "ipa-eb", "ext-52m", 0x4,
+			0x1000, BIT(0), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(tft_eb, "tft-eb", "ext-52m", 0x4,
+			0x1000, BIT(1), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(ipa_access_phycp_en, "ipa-access-phycp-en", "ext-52m",
+			0x8, 0x1000, BIT(0), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(ipa_access_pscp_en, "ipa-access-pscp-en", "ext-52m",
+			0x8, 0x1000, BIT(1), CLK_IGNORE_UNUSED, 0);
+
+static struct sprd_clk_common *ums9620_ipaglb_gate[] = {
+	/* address base is 0x25240000 */
+	&ipa_eb.common,
+	&tft_eb.common,
+	&ipa_access_phycp_en.common,
+	&ipa_access_pscp_en.common,
+};
+
+static struct clk_hw_onecell_data ums9620_ipaglb_gate_hws = {
+	.hws	= {
+		[CLK_IPA_EB]			= &ipa_eb.common.hw,
+		[CLK_TFT_EB]			= &tft_eb.common.hw,
+		[CLK_IPA_ACCESS_PHYCP_EN]	= &ipa_access_phycp_en.common.hw,
+		[CLK_IPA_ACCESS_PSCP_EN]	= &ipa_access_pscp_en.common.hw,
+	},
+	.num	= CLK_IPAGLB_GATE_NUM,
+};
+
+static struct sprd_clk_desc ums9620_ipaglb_gate_desc = {
+	.clk_clks	= ums9620_ipaglb_gate,
+	.num_clk_clks	= ARRAY_SIZE(ums9620_ipaglb_gate),
+	.hw_clks	= &ums9620_ipaglb_gate_hws,
+};
+
+/* pcie apb gate clocks */
+/* pcie related gate clocks configure CLK_IGNORE_UNUSED because their power
+ * domain may be shut down, and they are controlled by related module.
+ */
+static SPRD_SC_GATE_CLK(pcie3_aux_eb, "pcie3-aux-eb", "ext-52m", 0x4,
+			0x1000, BIT(6), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(pcie3_eb, "pcie3-eb", "ext-52m", 0x4,
+			0x1000, BIT(7), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(nic400_tranmon_eb, "nic400-tranmon-eb", "ext-52m",
+			0x4, 0x1000, BIT(8), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(nic400_cfg_eb, "nic400-cfg-eb", "ext-52m", 0x4,
+			0x1000, BIT(9), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(pcie3_phy_eb, "pcie3-phy-eb", "ext-52m", 0x4,
+			0x1000, BIT(10), CLK_IGNORE_UNUSED, 0);
+
+static struct sprd_clk_common *ums9620_pcieapb_gate[] = {
+	/* address base is 0x26000000 */
+	&pcie3_aux_eb.common,
+	&pcie3_eb.common,
+	&nic400_tranmon_eb.common,
+	&nic400_cfg_eb.common,
+	&pcie3_phy_eb.common,
+};
+
+static struct clk_hw_onecell_data ums9620_pcieapb_gate_hws = {
+	.hws	= {
+		[CLK_PCIE3_AUX_EB]		= &pcie3_aux_eb.common.hw,
+		[CLK_PCIE3_EB]			= &pcie3_eb.common.hw,
+		[CLK_NIC400_TRANMON_EB]		= &nic400_tranmon_eb.common.hw,
+		[CLK_NIC400_CFG_EB]		= &nic400_cfg_eb.common.hw,
+		[CLK_PCIE3_PHY]			= &pcie3_phy_eb.common.hw,
+	},
+	.num	= CLK_PCIEAPB_GATE_NUM,
+};
+
+static struct sprd_clk_desc ums9620_pcieapb_gate_desc = {
+	.clk_clks	= ums9620_pcieapb_gate,
+	.num_clk_clks	= ARRAY_SIZE(ums9620_pcieapb_gate),
+	.hw_clks	= &ums9620_pcieapb_gate_hws,
+};
+
+/* pcie clocks*/
+static const char * const pcie_axi_parents[] = { "clk-26m", "tgpll-192m",
+						 "tgpll-384m", "v4nrpll-409m6" };
+static SPRD_MUX_CLK(pcie_axi, "pcie-axi", pcie_axi_parents, 0x20,
+		    0, 2, UMS9620_MUX_FLAG);
+static SPRD_DIV_CLK(pcie_apb, "pcie-apb", "pcie-axi", 0x24,
+		    0, 2, 0);
+
+static const char * const pcie_aux_parents[] = { "clk-2m", "rco-100m-2m" };
+static SPRD_MUX_CLK(pcie_aux, "pcie-aux", pcie_aux_parents, 0x28,
+		    0, 1, UMS9620_MUX_FLAG);
+
+static struct sprd_clk_common *ums9620_pcie_clk[] = {
+	/* address base is 0x26004000 */
+	&pcie_axi.common,
+	&pcie_apb.common,
+	&pcie_aux.common,
+};
+
+static struct clk_hw_onecell_data ums9620_pcie_clk_hws = {
+	.hws	= {
+		[CLK_PCIE_AXI]		= &pcie_axi.common.hw,
+		[CLK_PCIE_APB]		= &pcie_apb.common.hw,
+		[CLK_PCIE_AUX]		= &pcie_aux.common.hw,
+	},
+	.num	= CLK_PCIE_CLK_NUM,
+};
+
+static struct sprd_clk_desc ums9620_pcie_clk_desc = {
+	.clk_clks	= ums9620_pcie_clk,
+	.num_clk_clks	= ARRAY_SIZE(ums9620_pcie_clk),
+	.hw_clks	= &ums9620_pcie_clk_hws,
+};
+
+/* ai apb gate clocks */
+/* ai related gate clocks configure CLK_IGNORE_UNUSED because their power
+ * domain may be shut down, and they are controlled by related module.
+ */
+static SPRD_SC_GATE_CLK(powervr_eb, "powervr-eb", "ai-eb", 0x0,
+			0x1000, BIT(0), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(mtx_apbreg_eb, "mtx-apbreg-eb", "ai-eb", 0x0,
+			0x1000, BIT(1), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(ai_dvfs_eb, "ai-dvfs-eb", "ai-eb", 0x0,
+			0x1000, BIT(2), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(ocm_eb, "ocm-eb", "ai-eb", 0x0,
+			0x1000, BIT(3), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(axi_pmon_eb, "axi-pmon-eb", "ai-eb", 0x0,
+			0x1000, BIT(4), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(aon_to_ocm_eb, "aon-to-ocm-eb", "ai-eb", 0x0,
+			0x1000, BIT(5), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(nic400_busmon_eb, "nic400-busmon-eb", "ai-eb", 0x0,
+			0x1000, BIT(6), CLK_IGNORE_UNUSED, 0);
+
+static struct sprd_clk_common *ums9620_aiapb_gate[] = {
+	/* address base is 0x27000000 */
+	&powervr_eb.common,
+	&mtx_apbreg_eb.common,
+	&ai_dvfs_eb.common,
+	&ocm_eb.common,
+	&axi_pmon_eb.common,
+	&aon_to_ocm_eb.common,
+	&nic400_busmon_eb.common,
+};
+
+static struct clk_hw_onecell_data ums9620_aiapb_gate_hws = {
+	.hws	= {
+		[CLK_POWERVR_EB]	= &powervr_eb.common.hw,
+		[CLK_MTX_APBREG_EB]	= &mtx_apbreg_eb.common.hw,
+		[CLK_AI_DVFS_EB]	= &ai_dvfs_eb.common.hw,
+		[CLK_OCM_EB]		= &ocm_eb.common.hw,
+		[CLK_AXI_PMON_EB]	= &axi_pmon_eb.common.hw,
+		[CLK_AON_TO_OCM_EB]	= &aon_to_ocm_eb.common.hw,
+		[CLK_NIC400_BUSMON_EB]	= &nic400_busmon_eb.common.hw,
+	},
+	.num	= CLK_AIAPB_GATE_NUM,
+};
+
+static struct sprd_clk_desc ums9620_aiapb_gate_desc = {
+	.clk_clks	= ums9620_aiapb_gate,
+	.num_clk_clks	= ARRAY_SIZE(ums9620_aiapb_gate),
+	.hw_clks	= &ums9620_aiapb_gate_hws,
+};
+
+/* ai clocks */
+static const char * const ai_cfg_mtx_parents[] = { "tgpll-48m", "tgpll-96m",
+						   "tgpll-128m", "tgpll-153m6" };
+static SPRD_COMP_CLK_OFFSET(ai_cfg_mtx, "ai-cfg-mtx", ai_cfg_mtx_parents, 0x40,
+			    0, 2, 0, 3, 0);
+
+static const char * const ai_dvfs_parents[] = { "tgpll-48m", "tgpll-96m",
+						"tgpll-128m", "tgpll-153m6" };
+static SPRD_COMP_CLK_OFFSET(ai_dvfs, "ai-dvfs", ai_dvfs_parents, 0x58,
+			    0, 2, 0, 3, 0);
+
+static struct sprd_clk_common *ums9620_ai_clk[] = {
+	/* address base is 0x27004000 */
+	&ai_cfg_mtx.common,
+	&ai_dvfs.common,
+};
+
+static struct clk_hw_onecell_data ums9620_ai_clk_hws = {
+	.hws	= {
+		[CLK_AI_CFG_MTX]	= &ai_cfg_mtx.common.hw,
+		[CLK_AI_DVFS]		= &ai_dvfs.common.hw,
+	},
+	.num	= CLK_AI_CLK_NUM,
+};
+
+static struct sprd_clk_desc ums9620_ai_clk_desc = {
+	.clk_clks	= ums9620_ai_clk,
+	.num_clk_clks	= ARRAY_SIZE(ums9620_ai_clk),
+	.hw_clks	= &ums9620_ai_clk_hws,
+};
+
+/* ai dvfs clocks */
+static const char * const powervr_parents[] = { "tgpll-512m", "v4nrpll-614m4",
+						"tgpll-768m", "aipll"};
+static SPRD_COMP_CLK(powervr, "powervr", powervr_parents, 0xa58,
+		     0, 2, 2, 3, 0);
+
+static const char * const ai_main_mtx_parents[] = { "tgpll-512m", "v4nrpll-614m4",
+						     "tgpll-768m", "aipll"};
+static SPRD_COMP_CLK(ai_main_mtx, "ai-main-mtx", ai_main_mtx_parents, 0xa58,
+		     5, 2, 7, 3, 0);
+
+static const char * const ocm_parents[] = { "tgpll-153m6", "tgpll-512m",
+					    "tgpll-768m", "aipll"};
+static SPRD_COMP_CLK(ocm, "ocm", ocm_parents, 0xa58,
+		     10, 2, 12, 3, 0);
+
+static struct sprd_clk_common *ums9620_ai_dvfs_clk[] = {
+	/* address base is 0x27008000 */
+	&powervr.common,
+	&ai_main_mtx.common,
+	&ocm.common,
+};
+
+static struct clk_hw_onecell_data ums9620_ai_dvfs_clk_hws = {
+	.hws	= {
+		[CLK_POWERVR]		= &powervr.common.hw,
+		[CLK_AI_MAIN_MTX]	= &ai_main_mtx.common.hw,
+		[CLK_OCM]		= &ocm.common.hw,
+	},
+	.num	= CLK_AI_DVFS_CLK_NUM,
+};
+
+static struct sprd_clk_desc ums9620_ai_dvfs_clk_desc = {
+	.clk_clks	= ums9620_ai_dvfs_clk,
+	.num_clk_clks	= ARRAY_SIZE(ums9620_ai_dvfs_clk),
+	.hw_clks	= &ums9620_ai_dvfs_clk_hws,
+};
+
 /* mm ahb gate clocks */
 /* mm related gate clocks configure CLK_IGNORE_UNUSED because their power
  * domain may be shut down, and they are controlled by related module.
@@ -2556,6 +2890,22 @@ static const struct of_device_id sprd_ums9620_clk_ids[] = {
 	  .data = &ums9620_gpuapb_gate_desc },
 	{ .compatible = "sprd,ums9620-gpu-clk",		/* 0x23010000 */
 	  .data = &ums9620_gpu_clk_desc },
+	{ .compatible = "sprd,ums9620-ipaapb-gate",	/* 0x25000000 */
+	  .data = &ums9620_ipaapb_gate_desc },
+	{ .compatible = "sprd,ums9620-ipa-clk",		/* 0x25010000 */
+	  .data = &ums9620_ipa_clk_desc },
+	{ .compatible = "sprd,ums9620-ipaglb-gate",	/* 0x25240000 */
+	  .data = &ums9620_ipaglb_gate_desc },
+	{ .compatible = "sprd,ums9620-pcieapb-gate",	/* 0x26000000 */
+	  .data = &ums9620_pcieapb_gate_desc },
+	{ .compatible = "sprd,ums9620-pcie-clk",	/* 0x26004000 */
+	  .data = &ums9620_pcie_clk_desc },
+	{ .compatible = "sprd,ums9620-aiapb-gate",	/* 0x27000000 */
+	  .data = &ums9620_aiapb_gate_desc },
+	{ .compatible = "sprd,ums9620-ai-clk",		/* 0x27004000 */
+	  .data = &ums9620_ai_clk_desc },
+	{ .compatible = "sprd,ums9620-ai-dvfs-clk",	/* 0x27008000 */
+	  .data = &ums9620_ai_dvfs_clk_desc },
 	{ .compatible = "sprd,ums9620-mm-gate",		/* 0x30000000 */
 	  .data = &ums9620_mm_gate_desc },
 	{ .compatible = "sprd,ums9620-mm-clk",		/* 0x30010000 */
