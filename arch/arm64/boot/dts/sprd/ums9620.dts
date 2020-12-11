@@ -13,6 +13,7 @@
 #include "ump9620.dtsi"
 #include "ump9621.dtsi"
 #include "ump9622.dtsi"
+#include "ums9620-modem.dtsi"
 
 / {
 	model = "Spreadtrum UMS9620 SoC";

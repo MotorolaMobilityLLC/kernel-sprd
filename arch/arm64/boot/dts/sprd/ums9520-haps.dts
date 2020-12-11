@@ -9,6 +9,7 @@
 
 #include "ums9520-haps.dtsi"
 #include "ums9520-haps-mach.dtsi"
+#include "ums9520-haps-modem.dtsi"
 
 / {
 	model = "Spreadtrum UMS9520 SoC";
