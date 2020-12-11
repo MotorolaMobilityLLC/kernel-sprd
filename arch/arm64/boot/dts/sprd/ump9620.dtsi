@@ -457,8 +457,8 @@
 		};
 
 		hw_reset@23c0 {
-			compatible = "sprd,ump96xx-7sreset", "sprd,sc27xx-7sreset";
-			reg = <0x23b8>, <0x23c0>, <0x23d8>;
+			compatible = "sprd,ump9620-7sreset", "sprd,sc27xx-7sreset";
+			reg = <0x23b8>, <0x23c0>;
 		};
 
 		poweroff@2020 {
