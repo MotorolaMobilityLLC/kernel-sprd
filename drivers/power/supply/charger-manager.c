@@ -3644,6 +3644,8 @@ static void cm_batt_works(struct work_struct *work)
 	static int last_fuel_cap = CM_CAP_MAGIC_NUM;
 	static bool charge_done=false;
 	int term_vol;
+	static int is_cal_cap=0,cal_count=0;
+	int real_cap; 
 
 	ret = get_batt_uV(cm, &batt_uV);
 	if (ret) {
@@ -3880,7 +3882,38 @@ static void cm_batt_works(struct work_struct *work)
 //		orderly_poweroff(true);
 	}
 
+	if( term_vol ==4040000 && fuel_cap > 750)
+	{
+		fuel_cap =750;
+		dev_info(cm->dev, "%s;force soc=750;\n",__func__);
+	}
 
+	if(is_cal_cap ==0 && bat_uA/1000 >0 && bat_uA/1000 <10)
+	{
+		cal_count ++;
+		if (cal_count >10)
+		{
+			is_cal_cap = 1;
+
+			real_cap = power_supply_ocv2cap_simple(cm->desc->cap_table,
+						      cm->desc->cap_table_len,
+						      batt_uV);
+			real_cap =real_cap *10;
+			dev_err(cm->dev, "%s;calibrate;fuel_cap=%d,%d, vbat=%d\n",__func__,
+				 fuel_cap, real_cap, batt_uV/1000);
+
+			if (DIV_ROUND_CLOSEST(fuel_cap, 10) != DIV_ROUND_CLOSEST(real_cap, 10))
+			{
+				fuel_cap = real_cap;
+				calibrate_batt_cap(cm,fuel_cap);
+			}
+
+		}
+			
+	}
+	else
+		cal_count = 0;
+		
 	if( (!charge_done)  &&  batt_ocV >(term_vol - 100000) &&  check_charge_done(cm)  )
 	{		
 		charge_done = true;
@@ -3890,22 +3923,19 @@ static void cm_batt_works(struct work_struct *work)
 			fuel_cap =1000;		
 		else
 		{
-			int real_cap; 
 			real_cap = power_supply_ocv2cap_simple(cm->desc->cap_table,
 						      cm->desc->cap_table_len,
 						      term_vol);
 			real_cap =real_cap *10;
 			dev_err(cm->dev, "%s;full;fuel_cap=%d,%d, term_vol=%d\n",__func__,
 				 fuel_cap, real_cap,term_vol/1000);
-			if(real_cap > fuel_cap)
-				fuel_cap = real_cap;
+			fuel_cap = real_cap;
 		}	
 		calibrate_batt_cap(cm,fuel_cap);
 	}
 	else if ( !check_charge_done(cm))
 		charge_done = false;
-		
-	
+				
 	
 	dev_info(cm->dev, "battery cap = %d, charger manager cap = %d\n",
 		 fuel_cap, cm->desc->cap);
