@@ -186,7 +186,8 @@ static int sprd_pwm_apply(struct pwm_chip *chip, struct pwm_device *pwm,
 		}
 
 		if (state->period != cstate->period ||
-		    state->duty_cycle != cstate->duty_cycle) {
+		    state->duty_cycle != cstate->duty_cycle ||
+		    state->enabled != cstate->enabled) {
 			ret = sprd_pwm_config(spc, pwm, state->duty_cycle,
 					      state->period);
 			if (ret)
