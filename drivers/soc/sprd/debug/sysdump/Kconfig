@@ -12,3 +12,9 @@ config SPRD_MINI_SYSDUMP
 	  This option enables Spreatrum mini sysdump which supplies simple
 	  debug info for projects can not support external sd card after
 	  system occurs kernel panics.
+
+config SPRD_EMERGENCY_RESTART
+	bool "SPRD emergency restart function defination"
+	help
+		This option enables Spreatrum emergency restart which transfer
+		argument as reboot reason for watchdog reboot handler
