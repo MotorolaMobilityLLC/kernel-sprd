@@ -18,7 +18,7 @@
 		/* ump9620 salve id is 0x0 */
 
 		led-controller@180 {
-			compatible = "sprd,ump96xx-bltc", "sprd,sc27xx-bltc";
+			compatible = "sprd,ump9620-bltc", "sprd,sc27xx-bltc";
 			#address-cells = <1>;
 			#size-cells = <0>;
 			reg = <0x180>;
