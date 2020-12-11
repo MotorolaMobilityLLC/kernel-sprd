@@ -144,7 +144,7 @@ enum {
 
 #define AW_CONTROL_NUM			(4)
 #define AW_LOAD_BIN_TIME_MS		(1000)
-#define AW881XX_START_WORK_DELAY_MS	(30)
+#define AW881XX_START_WORK_DELAY_MS	(5)
 
 
 /********************************************
