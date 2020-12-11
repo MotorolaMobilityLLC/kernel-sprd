@@ -739,15 +739,15 @@ int swcnblk_receive(u8 dst, u8 channel,
 	ring = swcnblk->ring;
 	ringhd = (VOLA_SWCNBLK_RING *)(&ring->header->ring);
 
-	pr_debug("swcnblk receive: dst=%d, channel=%d, timeout=%d\n",
+	pr_info("swcnblk receive: dst=%d, channel=%d, timeout=%d\n",
 		 dst, channel, timeout);
-	pr_debug("swcnblk receive: channel=%d, wrptr=%d, rdptr=%d\n",
+	pr_info("swcnblk receive: channel=%d, wrptr=%d, rdptr=%d\n",
 		 channel, ringhd->rxblk_wrptr, ringhd->rxblk_rdptr);
 
 	if (ringhd->rxblk_wrptr == ringhd->rxblk_rdptr) {
 		if (timeout == 0) {
 			/* no wait */
-			pr_debug("swcnblk receive: %d-%d is empty!\n",
+			pr_info("swcnblk receive: %d-%d is empty!\n",
 				 dst, channel);
 			rval = -ENODATA;
 		} else if (timeout < 0) {
@@ -771,7 +771,7 @@ int swcnblk_receive(u8 dst, u8 channel,
 				ringhd->rxblk_wrptr != ringhd->rxblk_rdptr,
 				timeout);
 			if (rval < 0) {
-				pr_info("%s wait interrupted!\n", __func__);
+				pr_debug("%s wait interrupted!\n", __func__);
 			} else if (rval == 0) {
 				pr_info("%s wait timeout!\n", __func__);
 				rval = -ETIME;
@@ -800,7 +800,7 @@ int swcnblk_receive(u8 dst, u8 channel,
 			    swcnblk->smem_blk_virt;
 		blk->length = ring->r_rxblks[rxpos].length;
 		ringhd->rxblk_rdptr = ringhd->rxblk_rdptr + 1;
-		pr_debug("swcnblk receive: channel=%d, rxpos=%d, addr=%p, len=%d\n",
+		pr_info("swcnblk receive: channel=%d, rxpos=%d, addr=%p, len=%d\n",
 			 channel, rxpos, blk->addr, blk->length);
 		index = swcnblk_get_index((blk->addr - ring->rxblk_virt),
 					  swcnblk->rxblksz);
@@ -888,7 +888,7 @@ int swcnblk_release(u8 dst, u8 channel, struct swcnblk_blk *blk)
 		return swcnblk ? -EIO : -ENODEV;
 	}
 
-	pr_debug("swcnblk release: dst=%d, channel=%d, addr=%p, len=%d\n",
+	pr_info("swcnblk release: dst=%d, channel=%d, addr=%p, len=%d\n",
 		 dst, channel, blk->addr, blk->length);
 
 	ring = swcnblk->ring;
@@ -897,12 +897,9 @@ int swcnblk_release(u8 dst, u8 channel, struct swcnblk_blk *blk)
 
 	spin_lock_irqsave(&ring->p_rxlock, flags);
 	rxpos = swcnblk_get_ringpos(poolhd->rxblk_wrptr, poolhd->rxblk_count);
-	ring->p_rxblks[rxpos].addr = blk->addr -
-				     swcnblk->smem_blk_virt +
-				     swcnblk->mapped_smem_addr;
 	ring->p_rxblks[rxpos].length = poolhd->rxblk_size;
 	poolhd->rxblk_wrptr = poolhd->rxblk_wrptr + 1;
-	pr_debug("swcnblk release: addr=%x\n", ring->p_rxblks[rxpos].addr);
+	pr_info("swcnblk release: addr=%x\n", ring->p_rxblks[rxpos].addr);
 
 	if ((int)(poolhd->rxblk_wrptr - poolhd->rxblk_rdptr) == 1 &&
 	    swcnblk->state == SWCNBLK_STATE_READY) {
