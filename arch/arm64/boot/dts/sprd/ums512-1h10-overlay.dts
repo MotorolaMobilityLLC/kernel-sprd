@@ -160,6 +160,13 @@
 			<&ap_gpio 144 GPIO_ACTIVE_HIGH>;
 	};
 
+	touchscreen@53 {
+		compatible = "solomon,ssd20xx";
+		reg = <0x53>;
+		gpios = <&ap_gpio 145 GPIO_ACTIVE_HIGH>,
+			<&ap_gpio 144 GPIO_ACTIVE_HIGH>;
+	};
+
 };
 
 &panel {
