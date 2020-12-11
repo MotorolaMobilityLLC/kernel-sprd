@@ -462,7 +462,7 @@
 		};
 
 		poweroff@2020 {
-			compatible = "sprd,ump96xx-poweroff", "sprd,sc27xx-poweroff";
+			compatible = "sprd,ump9620-poweroff", "sprd,sc27xx-poweroff";
 			reg = <0x2020>;
 		};
 	};
