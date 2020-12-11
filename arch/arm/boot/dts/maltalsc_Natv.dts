@@ -19,6 +19,7 @@
 #include "lcd/lcd_icnl9911c_hlt_mipi_hd.dtsi"
 #include "lcd/lcd_ili9882h_skyworth_mipi_hd.dtsi"
 #include "lcd/lcd_ili9882n_skyworth_mipi_hd.dtsi"
+#include "lcd/lcd_hx83102_skyworth_mipi_hd.dtsi"
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/input/input.h>
 

@@ -1,0 +1,93 @@
+/ { lcds {
+	lcd_hx83102_skyworth_mipi_hd: lcd_hx83102_skyworth_mipi_hd {
+
+		sprd,dsi-work-mode = <1>;
+		sprd,dsi-lane-number = <4>;
+		sprd,dsi-color-format = "rgb888";
+
+		sprd,phy-bit-clock = <691000>;
+		sprd,phy-escape-clock = <20000>;
+
+		sprd,width-mm = <64>;
+		sprd,height-mm = <140>;
+
+		sprd,esd-check-enable = <0>;
+		sprd,esd-check-mode = <1>;
+		sprd,esd-check-period = <1000>;
+
+		sprd,reset-on-sequence = <1 5>, <0 5>, <1 120>;
+		sprd,reset-off-sequence = <1 20>;
+		sprd,bias-cmd-sequence =  <0x0 0x12>, <0x1 0x12>;
+		sprd,initial-command = [
+			39 00 00 04 B9 83 10 2D
+			39 00 00 0C B1 22 22 27 27 31 42 52 39 08 08 08
+			39 00 00 0F B2 00 00 06 40 00 0E BA 36 00 00 00 00 F4 E0
+			39 00 00 0F B4 01 58 01 58 56 56 56 56 01 FF 01 20 00 FF
+			23 00 00 02 CC 02
+			39 05 00 1A D3 00 00 00 00 00 10 00 27 00 63 37 0D 0D 00 00 32 10 08 00 08 32 16 4E 06 4E
+			39 05 00 2D D5 24 25 18 18 19 19 18 18 18 18 18 18 18 18 18 18 18 18 06 07 04 05 18 18 18 18 02 03 00 01 20 21 18 18 18 18 18 18 18 18 18 18 18 18
+			39 05 00 2D D6 21 20 18 18 18 18 19 19 18 18 18 18 18 18 18 18 18 18 01 00 03 02 18 18 18 18 05 04 07 06 25 24 18 18 18 18 18 18 18 18 18 18 18 18
+
+			39 00 00 05 E7 FF 14 00 00
+			23 00 00 02 BD 01
+			23 00 00 02 E7 01
+			23 00 00 02 BD 00
+			23 00 00 02 BD 02
+			39 00 00 0D D8 FF FF FF FF FF F0 FF FF FF FF FF F0
+			23 00 00 02 BD 03
+			39 00 00 19 D8 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+			23 00 00 02 BD 00
+			39 00 00 14 BA 70 23 A8 93 B2 C0 C0 01 10 00 00 00 0D 3D 82 77 04 01 00
+			23 00 00 02 BD 01
+			23 00 00 02 CB 01
+			23 00 00 02 BD 00
+			39 00 00 06 CB 00 53 00 02 5A
+			39 00 00 08 BF FC 00 04 9E F6 00 51
+			23 00 00 02 BD 02
+			39 00 00 09 B4 42 00 33 00 33 88 B3 00
+			23 00 00 02 BD 00
+			39 00 00 03 D1 20 01
+			23 00 00 02 BD 02
+			39 00 00 04 B1 7F 03 F5
+			23 00 00 02 BD 00
+
+			39 00 00 03 51 0F FF
+			23 00 00 02 53 24
+			23 00 00 02 55 00
+
+			23 78 00 02 11 00
+			23 0A 00 02 29 00
+			];
+		sprd,sleep-in-command = [
+			13 0A 00 01 28
+			13 78 00 01 10
+			];
+		sprd,sleep-out-command = [
+			13 78 00 01 11
+			13 64 00 01 29
+			];
+
+		display-timings {
+			timing0 {
+				clock-frequency = <96000000>;
+				hactive = <720>;
+				vactive = <1600>;
+				hback-porch = <10>;
+				hfront-porch = <160>;
+				vback-porch = <12>;
+				vfront-porch = <186>;
+				hsync-len = <4>;
+				vsync-len = <2>;
+			};
+		};
+
+oled-backlight{
+	default-brightness-level = <25>;
+	sprd,max-level = <255>;
+	brightness-levels = [
+		29 00 00 03 51 0F FF
+	];
+};
+};
+
+};};
