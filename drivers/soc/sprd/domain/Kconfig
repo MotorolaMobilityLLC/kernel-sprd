@@ -34,3 +34,8 @@ config SPRD_CAM_PW_DOMAIN_R8P0
         bool "SPRD Cam System Power Domain r8p0"
         help
           This is a power domain driver for cam sys.
+
+config SPRD_CAM_PW_DOMAIN_QOGIRN6PRO
+        bool "SPRD Cam System Power Domain for qogirn6pro"
+        help
+          This is a power domain driver for cam sys.
