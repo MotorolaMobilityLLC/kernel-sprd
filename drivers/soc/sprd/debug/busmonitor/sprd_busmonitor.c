@@ -364,7 +364,7 @@ static ssize_t sprd_busmon_dump_show(struct device *dev,
 			struct device_attribute *attr,  char *buf)
 {
 	struct sprd_busmonitor *bm = dev_get_drvdata(dev);
-	bool rw = bm->match.cmd | MATCH_WRITE;
+	bool rw = bm->match.cmd & MATCH_WRITE;
 	int cnt = 0;
 
 	if (!bm->count)
@@ -375,7 +375,7 @@ static ssize_t sprd_busmon_dump_show(struct device *dev,
 		"warning! busmonitor detected violated transaction!!!\n");
 	cnt += sprintf(buf + cnt, "info: sys:%s BM name:%s %s overlap\n",
 		       bm->dev->of_node->name,
-		       bm->match.name, rw ? "read" : "write");
+		       bm->match.name, rw ? "write" : "read");
 	cnt += sprintf(buf + cnt, "Overlap Addr:0x%08X%08X\n",
 		       bm->match.addr_h, bm->match.addr);
 	cnt += sprintf(buf + cnt, "Overlap Data:0x%08X%08X%08X%08X\n",
@@ -579,10 +579,8 @@ static int sprd_busmon_probe(struct djtag_device *ddev)
 
 	for (i = 0; i < BUSMONITER_IRQ_MAX; i++) {
 		irq = of_irq_get(ddev->dev.of_node, i);
-		if (irq == -ENOENT)
+		if (irq == -ENOENT || irq < 0)
 			break;
-		else if (irq < 0)
-			return irq;
 		ret = devm_request_threaded_irq(&ddev->dev, irq,
 						sprd_busmon_irq,
 						NULL, IRQF_TRIGGER_NONE | IRQF_SHARED,
