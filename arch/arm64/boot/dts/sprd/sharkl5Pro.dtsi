@@ -975,6 +975,114 @@
 				#size-cells = <0>;
 			};
 
+			ap_thm0: thermal@32200000 {
+				compatible = "sprd,ums512-thermal";
+				reg = <0 0x32200000 0 0x10000>;
+				#address-cells = <1>;
+				#size-cells = <0>;
+				clock-names = "enable";
+				clocks = <&aonapb_gate CLK_THM0_EB>;
+				#thermal-sensor-cells = <1>;
+				nvmem-cells = <&thm0_sign>, <&thm0_ratio>;
+				nvmem-cell-names = "thm_sign_cal", "thm_ratio_cal";
+
+				sensor@0 {
+					reg = <0>;
+					nvmem-cells = <&thm0_sen0>;
+					nvmem-cell-names = "sen_delta_cal";
+				};
+
+				sensor@1 {
+					reg = <1>;
+					nvmem-cells = <&thm0_sen1>;
+					nvmem-cell-names = "sen_delta_cal";
+				};
+
+				sensor@2 {
+					reg = <2>;
+					nvmem-cells = <&thm0_sen2>;
+					nvmem-cell-names = "sen_delta_cal";
+				};
+
+				sensor@3 {
+					reg = <3>;
+					nvmem-cells = <&thm0_sen3>;
+					nvmem-cell-names = "sen_delta_cal";
+				};
+
+				sensor@4 {
+					reg = <4>;
+					nvmem-cells = <&thm0_sen4>;
+					nvmem-cell-names = "sen_delta_cal";
+				};
+			};
+
+			ap_thm1: thermal@32210000 {
+				compatible = "sprd,ums512-thermal";
+				reg = <0 0x32210000 0 0x10000>;
+				#address-cells = <1>;
+				#size-cells = <0>;
+				clock-names = "enable";
+				clocks = <&aonapb_gate CLK_THM1_EB>;
+				#thermal-sensor-cells = <1>;
+				nvmem-cells = <&thm1_sign>, <&thm1_ratio>;
+				nvmem-cell-names = "thm_sign_cal", "thm_ratio_cal";
+
+				sensor@0 {
+					reg = <0>;
+					nvmem-cells = <&thm1_sen0>;
+					nvmem-cell-names = "sen_delta_cal";
+				};
+
+				sensor@1 {
+					reg = <1>;
+					nvmem-cells = <&thm1_sen1>;
+					nvmem-cell-names = "sen_delta_cal";
+				};
+
+				sensor@2 {
+					reg = <2>;
+					nvmem-cells = <&thm1_sen2>;
+					nvmem-cell-names = "sen_delta_cal";
+				};
+
+				sensor@3 {
+					reg = <3>;
+					nvmem-cells = <&thm1_sen3>;
+					nvmem-cell-names = "sen_delta_cal";
+				};
+
+				sensor@4 {
+					reg = <4>;
+					nvmem-cells = <&thm1_sen4>;
+					nvmem-cell-names = "sen_delta_cal";
+				};
+
+				sensor@5 {
+					reg = <5>;
+					nvmem-cells = <&thm1_sen5>;
+					nvmem-cell-names = "sen_delta_cal";
+				};
+			};
+
+			ap_thm2: thermal@32220000 {
+				compatible = "sprd,ums512-thermal";
+				reg = <0 0x32220000 0 0x10000>;
+				#address-cells = <1>;
+				#size-cells = <0>;
+				clock-names = "enable";
+				clocks = <&aonapb_gate CLK_THM2_EB>;
+				#thermal-sensor-cells = <1>;
+				nvmem-cells = <&thm2_sign>, <&thm2_ratio>;
+				nvmem-cell-names = "thm_sign_cal", "thm_ratio_cal";
+
+				sensor@0 {
+					reg = <0>;
+					nvmem-cells = <&thm2_sen0>;
+					nvmem-cell-names = "sen_delta_cal";
+				};
+			};
+
 			ap_efuse: efuse@32240000 {
 				compatible = "sprd,ums312-efuse",
 					     "sprd,ums512-efuse";
