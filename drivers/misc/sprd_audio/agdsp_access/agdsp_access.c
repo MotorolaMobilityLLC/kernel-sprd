@@ -476,6 +476,7 @@ int agdsp_access_enable(void)
 			pr_err("ERR: %s wait agdsp power up timeout!\n",
 				__func__);
 			ret = -EBUSY;
+			goto exit;
 		}
 	}
 

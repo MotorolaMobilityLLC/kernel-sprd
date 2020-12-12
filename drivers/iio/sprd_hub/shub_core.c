@@ -82,7 +82,8 @@ const char calibration_filename[SENSOR_ID_END][CALIB_PATH_MAX_LENG] = {
 
 static int debug_flag;
 static int shub_send_event_to_iio(struct shub_data *sensor, u8 *data, u16 len);
-static int shub_download_calibration_data(struct shub_data *sensor);
+static int shub_download_calibration_data(struct shub_data *sensor, int sensor_type);
+static int shub_download_all_calibration_data(struct shub_data *sensor);
 static void shub_save_calibration_data(struct work_struct *work);
 static void shub_synctimestamp(struct shub_data *sensor);
 
@@ -888,7 +889,7 @@ static void shub_download_calibration_data_work(struct work_struct *work)
 		struct shub_data, download_cali_data_work);
 
 	if (sensor->mcu_mode == SHUB_NORMAL) {
-		shub_download_calibration_data(sensor);
+		shub_download_all_calibration_data(sensor);
 	}
 }
 
@@ -1112,6 +1113,7 @@ static void shub_save_calibration_data(struct work_struct *work)
 
 	if (err < 0) {
 		sensor->cal_savests = err;
+		shub_download_calibration_data(sensor, sensor->cal_id);
 		return;
 	}
 
@@ -1183,87 +1185,83 @@ static void shub_save_mag_offset(struct shub_data *sensor,
 		filp_close(pfile, NULL);
 }
 
-static int shub_download_calibration_data(struct shub_data *sensor)
+static int shub_download_all_calibration_data(struct shub_data *sensor)
+{
+	int sensor_type = 0, err = 0;
+
+	for (sensor_type = 0; sensor_type < 9; sensor_type++)
+		shub_download_calibration_data(sensor, sensor_type);
+
+	return err;
+}
+
+static int shub_download_calibration_data(struct shub_data *sensor, int sensor_type)
 {
 	int err = 0;
 	struct file *pfile = NULL;
 	char file_path[CALIB_PATH_MAX_LENG];
-	char *raw_cali_data =  NULL;
-	int cal_file_size = 0;
-	int sensor_type = 0, j = 0;
+	char raw_cali_data[CALIBRATION_DATA_LENGTH] =  {0};
+	int cal_file_size = CALIBRATION_DATA_LENGTH;
+	int j = 0;
 
-	for (sensor_type = 0; sensor_type < 9; sensor_type++) {
-		if ((strlen(CALIBRATION_NODE) +
-		     strlen(calibration_filename[sensor_type])) >
-		    (sizeof(file_path) - 1)) {
-			dev_err(&sensor->sensor_pdev->dev,
-				"calibration node path is oversize.\n");
-			continue;
-		}
-		snprintf(file_path, sizeof(file_path), "%s%s",
-			 CALIBRATION_NODE, calibration_filename[sensor_type]);
-		dev_info(&sensor->sensor_pdev->dev,
-			 "sensor_id=%d file_path=%s\n", sensor_type, file_path);
-
-		pfile = filp_open(file_path, O_RDONLY, 0);
-		if (IS_ERR(pfile)) {
-			err = (int)PTR_ERR(pfile);
-			dev_info(&sensor->sensor_pdev->dev,
-				 "open file %s ret=%d\n", file_path, err);
-			continue;
-		}
-
-		cal_file_size = get_file_size(pfile);
-		if (cal_file_size <= 0) {
-			dev_warn(&sensor->sensor_pdev->dev,
-				 "Unable to get file size:%s\n", file_path);
-			filp_close(pfile, NULL);
-			continue;
-		}
-
-		dev_info(&sensor->sensor_pdev->dev,
-			 "cal_file_size=%d\n", cal_file_size);
-		/* check data size */
-		if (cal_file_size != CALIBRATION_DATA_LENGTH) {
-			if (pfile)
-				filp_close(pfile, NULL);
-			continue;
-		}
-		raw_cali_data = kmalloc(cal_file_size, GFP_KERNEL);
-		if (!raw_cali_data) {
-			dev_err(&sensor->sensor_pdev->dev,
-				"Failed to allocate raw_cali_data memory\n");
-			if (pfile)
-				filp_close(pfile, NULL);
-			continue;
-		}
-		if (kernel_read(pfile, raw_cali_data,
-				cal_file_size, &pfile->f_pos)
-			!= cal_file_size) {
-			dev_err(&sensor->sensor_pdev->dev,
-				"Error: file read failed\n");
-			kfree(raw_cali_data);
-			raw_cali_data = NULL;
-			if (pfile)
-				filp_close(pfile, NULL);
-			continue;
-		}
-		/* for debug */
-		for (j = 0; j < cal_file_size; j++)
-			dev_info(&sensor->sensor_pdev->dev,
-				 "raw_cali_data[%d]=%d\n", j, raw_cali_data[j]);
-
-		err = shub_send_command(sensor, sensor_type,
-					SHUB_SET_CALIBRATION_DATA_SUBTYPE,
-					raw_cali_data, cal_file_size);
-		kfree(raw_cali_data);
-		raw_cali_data = NULL;
-		if (pfile)
-			filp_close(pfile, NULL);
-
-		dev_err(&sensor->sensor_pdev->dev, "%s calibration success\n",
-			calibration_filename[sensor_type]);
+	if ((strlen(CALIBRATION_NODE) +
+	     strlen(calibration_filename[sensor_type])) >
+	    (sizeof(file_path) - 1)) {
+		dev_err(&sensor->sensor_pdev->dev,
+			"calibration node path is oversize.\n");
+		return err;
 	}
+	snprintf(file_path, sizeof(file_path), "%s%s",
+		 CALIBRATION_NODE, calibration_filename[sensor_type]);
+	dev_info(&sensor->sensor_pdev->dev,
+		 "sensor_id=%d file_path=%s\n", sensor_type, file_path);
+
+	pfile = filp_open(file_path, O_RDONLY, 0);
+	if (IS_ERR(pfile)) {
+		err = (int)PTR_ERR(pfile);
+		dev_info(&sensor->sensor_pdev->dev,
+			 "open file %s ret=%d\n", file_path, err);
+		goto send_calibration_data;
+	}
+
+	cal_file_size = get_file_size(pfile);
+	if (cal_file_size != CALIBRATION_DATA_LENGTH) {
+		dev_warn(&sensor->sensor_pdev->dev,
+			 "Unable to get file size:%s\n", file_path);
+		filp_close(pfile, NULL);
+		return err;
+	}
+	dev_info(&sensor->sensor_pdev->dev,
+		 "cal_file_size=%d\n", cal_file_size);
+
+	if (kernel_read(pfile, raw_cali_data,
+			cal_file_size, &pfile->f_pos) != cal_file_size) {
+		dev_err(&sensor->sensor_pdev->dev, "Error: file read failed\n");
+		filp_close(pfile, NULL);
+		return err;
+	} else {
+		filp_close(pfile, NULL);
+	}
+
+	/* for debug */
+	for (j = 0; j < cal_file_size; j++)
+		dev_info(&sensor->sensor_pdev->dev,
+			 "raw_cali_data[%d]=%d\n", j, raw_cali_data[j]);
+
+send_calibration_data:
+	err = shub_send_command(sensor, sensor_type,
+				SHUB_SET_CALIBRATION_DATA_SUBTYPE,
+				raw_cali_data, cal_file_size);
+
+	if (err < cal_file_size)
+		dev_err(&sensor->sensor_pdev->dev,
+			"%s download calibration data failed\n",
+			calibration_filename[sensor_type]);
+	else
+		dev_err(&sensor->sensor_pdev->dev,
+			"%s download calibration data success\n",
+			calibration_filename[sensor_type]);
+
 	return err;
 }
 

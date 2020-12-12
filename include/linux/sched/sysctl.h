@@ -32,6 +32,7 @@ extern unsigned int sysctl_sched_walt_init_task_load_pct;
 extern unsigned int sysctl_sched_walt_cpu_high_irqload;
 extern unsigned int walt_busy_threshold;
 extern unsigned int sysctl_sched_walt_cross_window_util;
+extern unsigned int walt_io_is_busy;
 #endif
 #ifdef CONFIG_SCHED_TUNE
 extern unsigned int spc_threshold;

@@ -61,6 +61,14 @@
 #define CM_CAPACITY_LEVEL_LOW		15
 #define CM_CAPACITY_LEVEL_NORMAL	85
 #define CM_CAPACITY_LEVEL_FULL		100
+#define CM_FAST_CHARGE_ENABLE_BATTERY_VOLTAGE	3400000
+#define CM_FAST_CHARGE_ENABLE_CURRENT		1200000
+#define CM_FAST_CHARGE_DISABLE_BATTERY_VOLTAGE	3400000
+#define CM_FAST_CHARGE_DISABLE_CURRENT		1000000
+#define CM_FAST_CHARGE_VOLTAGE_9V		9000000
+#define CM_FAST_CHARGE_VOLTAGE_5V		5000000
+#define CM_FAST_CHARGE_ENABLE_COUNT		2
+#define CM_FAST_CHARGE_DISABLE_COUNT		2
 
 #define CM_TRACK_FILE_PATH "/mnt/vendor/battery/calibration_data/.battery_file"
 
@@ -84,6 +92,13 @@ static const char * const jeita_type_names[] = {
 	[CM_JEITA_FCHG] = "cm-fchg-jeita-temp-table",
 };
 
+enum cm_manager_jeita_status {
+	STATUS_BELOW_T0 = 0,
+	STATUS_T0_TO_T1,
+	STATUS_T1_TO_T2,
+	STATUS_T2_TO_T3,
+	STATUS_ABOVE_T3,
+};
 static char *charger_manager_supplied_to[] = {
 	"audio-ldo",
 };
@@ -127,7 +142,9 @@ static struct delayed_work cm_monitor_work; /* init at driver add */
 static bool allow_charger_enable;
 static bool is_charger_mode;
 static void cm_notify_type_handle(struct charger_manager *cm, enum cm_event_types type, char *msg);
+static bool cm_manager_adjust_current(struct charger_manager *cm, int jeita_status);
 static void cm_update_charger_type_status(struct charger_manager *cm);
+static int cm_manager_get_jeita_status(struct charger_manager *cm, int cur_temp);
 
 static int __init boot_calibration_mode(char *str)
 {
@@ -565,6 +582,7 @@ static int get_batt_cap(struct charger_manager *cm, int *cap)
 	if (!fuel_gauge)
 		return -ENODEV;
 
+	val.intval = 0;
 	ret = power_supply_get_property(fuel_gauge,
 				POWER_SUPPLY_PROP_CAPACITY, &val);
 	power_supply_put(fuel_gauge);
@@ -654,8 +672,9 @@ static int get_boot_cap(struct charger_manager *cm, int *cap)
 	if (!fuel_gauge)
 		return -ENODEV;
 
+	val.intval = CM_BOOT_CAPACITY;
 	ret = power_supply_get_property(fuel_gauge,
-				POWER_SUPPLY_PROP_CAPACITY_LEVEL, &val);
+				POWER_SUPPLY_PROP_CAPACITY, &val);
 	power_supply_put(fuel_gauge);
 	if (ret)
 		return ret;
@@ -1063,6 +1082,369 @@ static bool is_polling_required(struct charger_manager *cm)
 	return false;
 }
 
+static int cm_set_main_charger_current(struct charger_manager *cm, int cmd)
+{
+	struct charger_desc *desc = cm->desc;
+	struct power_supply *psy;
+	union power_supply_propval val;
+	int ret;
+
+	if (!desc->psy_charger_stat[0])
+		return -ENODEV;
+
+	/*
+	 * make the psy_charger_stat[0] to be main charger,
+	 * set the main charger charge current and limit current
+	 * in 9V/5V fast charge status.
+	 */
+
+	psy = power_supply_get_by_name(desc->psy_charger_stat[0]);
+	if (!psy) {
+		dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
+			desc->psy_charger_stat[0]);
+		power_supply_put(psy);
+		return -ENODEV;
+	}
+
+	val.intval = cmd;
+	ret = power_supply_set_property(psy,
+					POWER_SUPPLY_PROP_STATUS,
+					&val);
+	power_supply_put(psy);
+	if (ret) {
+		dev_err(cm->dev,
+			"failed to set main charger current cmd = %d\n", cmd);
+		return ret;
+	}
+
+	return 0;
+}
+
+static int cm_set_second_charger_current(struct charger_manager *cm)
+{
+	struct charger_desc *desc = cm->desc;
+	struct power_supply *psy;
+	union power_supply_propval val;
+	int ret;
+
+	if (!desc->psy_charger_stat[1])
+		return 0;
+
+	/*
+	 * if psy_charger_stat[1] defined,
+	 * make the psy_charger_stat[1] to be second charger,
+	 * set the second charger current.
+	 */
+	psy = power_supply_get_by_name(desc->psy_charger_stat[1]);
+	if (!psy) {
+		dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
+			desc->psy_charger_stat[1]);
+		power_supply_put(psy);
+		return -ENODEV;
+	}
+
+	/*
+	 * set the second charger charge current and limit current
+	 * in 9V fast charge status.
+	 */
+	val.intval = CM_FAST_CHARGE_ENABLE_CMD;
+	ret = power_supply_set_property(psy,
+					POWER_SUPPLY_PROP_STATUS,
+					&val);
+	power_supply_put(psy);
+	if (ret) {
+		dev_err(cm->dev,
+			"failed to set second charger current"
+			"in 9V fast charge status\n");
+		return ret;
+	}
+
+	return 0;
+}
+
+static int cm_enable_second_charger(struct charger_manager *cm, bool enable)
+{
+
+	struct charger_desc *desc = cm->desc;
+	struct power_supply *psy;
+	union power_supply_propval val;
+	int ret;
+
+	if (!desc->psy_charger_stat[1])
+		return 0;
+
+	psy = power_supply_get_by_name(desc->psy_charger_stat[1]);
+	if (!psy) {
+		dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
+			desc->psy_charger_stat[1]);
+		power_supply_put(psy);
+		return -ENODEV;
+	}
+
+	/*
+	 * enable/disable the second charger to start/stop charge
+	 */
+	val.intval = enable;
+	ret = power_supply_set_property(psy,
+					POWER_SUPPLY_PROP_STATUS,
+					&val);
+	power_supply_put(psy);
+	if (ret) {
+		dev_err(cm->dev,
+			"failed to %s second charger \n", enable ? "enable" : "disable");
+		return ret;
+	}
+
+	return 0;
+}
+
+static int cm_adjust_fast_charge_voltage(struct charger_manager *cm, int cmd)
+{
+	struct charger_desc *desc = cm->desc;
+	struct power_supply *psy;
+	union power_supply_propval val;
+	int ret;
+
+	psy = power_supply_get_by_name(desc->psy_fast_charger_stat[0]);
+	if (!psy) {
+		dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
+			desc->psy_fast_charger_stat[0]);
+		power_supply_put(psy);
+		return -ENODEV;
+	}
+
+	val.intval = cmd;
+	ret = power_supply_set_property(psy,
+					POWER_SUPPLY_PROP_VOLTAGE_MAX,
+					&val);
+	power_supply_put(psy);
+	if (ret) {
+		dev_err(cm->dev,
+			"failed to adjust fast charger voltage cmd = %d\n", cmd);
+		return ret;
+	}
+
+	return 0;
+}
+
+static int cm_fast_charge_enable_check(struct charger_manager *cm)
+{
+	struct charger_desc *desc = cm->desc;
+	int batt_uV, batt_uA, ret;
+	int cur_jeita_status;
+
+	/*
+	 * if it occurs emergency event,
+	 * don't enable fast charge.
+	 */
+	if (cm->emergency_stop)
+		return -EAGAIN;
+
+	/*
+	 * if it don't define cm-fast-chargers in dts,
+	 * we think that it don't plan to use fast charge.
+	 */
+	if (!desc->psy_fast_charger_stat[0])
+		return 0;
+
+	if (!desc->is_fast_charge || desc->enable_fast_charge)
+		return 0;
+
+	ret = get_batt_uV(cm, &batt_uV);
+	if (ret) {
+		dev_err(cm->dev, "failed to get batt uV\n");
+		return ret;
+	}
+
+	ret = get_batt_uA(cm, &batt_uA);
+	if (ret) {
+		dev_err(cm->dev, "failed to get batt uA\n");
+		return ret;
+	}
+
+	if (batt_uV > CM_FAST_CHARGE_ENABLE_BATTERY_VOLTAGE &&
+	    batt_uA > CM_FAST_CHARGE_ENABLE_CURRENT)
+		desc->fast_charge_enable_count++;
+	else
+		desc->fast_charge_enable_count = 0;
+
+	if (desc->fast_charge_enable_count < CM_FAST_CHARGE_ENABLE_COUNT)
+		return 0;
+
+	desc->fast_charge_enable_count = 0;
+
+	ret = cm_set_main_charger_current(cm, CM_FAST_CHARGE_ENABLE_CMD);
+	if (ret) {
+		/*
+		 * if it failed to set fast charge current, reset to DCP setting
+		 * first so that the charging current can reach the condition again.
+		 */
+		cm_set_main_charger_current(cm, CM_FAST_CHARGE_DISABLE_CMD);
+		dev_err(cm->dev, "failed to set main charger current\n");
+		return ret;
+	}
+
+	ret = cm_set_second_charger_current(cm);
+	if (ret) {
+		cm_set_main_charger_current(cm, CM_FAST_CHARGE_DISABLE_CMD);
+		dev_err(cm->dev, "failed to set second charger current\n");
+		return ret;
+	}
+
+	/*
+	 * adjust fast charger output voltage from 5V to 9V
+	 */
+	ret = cm_adjust_fast_charge_voltage(cm, CM_FAST_CHARGE_VOLTAGE_9V);
+	if (ret) {
+		cm_set_main_charger_current(cm, CM_FAST_CHARGE_DISABLE_CMD);
+		dev_err(cm->dev, "failed to adjust 9V fast charger voltage\n");
+		return ret;
+	}
+
+	ret = cm_enable_second_charger(cm, true);
+	if (ret) {
+		cm_set_main_charger_current(cm, CM_FAST_CHARGE_DISABLE_CMD);
+		dev_err(cm->dev, "failed to enable second charger\n");
+		return ret;
+	}
+
+	/*
+	 * adjust over voltage protection in 9V
+	 */
+	if (desc->fast_charge_voltage_max)
+		desc->charge_voltage_max =
+			desc->fast_charge_voltage_max;
+	if (desc->fast_charge_voltage_drop)
+		desc->charge_voltage_drop =
+			desc->fast_charge_voltage_drop;
+
+	/*
+	 * if enable jeita, we should adjust current
+	 * using CM_JEITA_FCHG in fast charge status
+	 * according to current temperature.
+	 */
+	if (desc->jeita_tab_size) {
+		desc->jeita_tab =
+			desc->jeita_tab_array[CM_JEITA_FCHG];
+
+		cur_jeita_status =
+			cm_manager_get_jeita_status(cm, cm->desc->temperature);
+
+		if (desc->jeita_disabled)
+			cur_jeita_status = STATUS_T1_TO_T2;
+
+		cm_manager_adjust_current(cm, cur_jeita_status);
+	}
+
+	desc->enable_fast_charge = true;
+
+	return 0;
+}
+
+static int cm_fast_charge_disable(struct charger_manager *cm)
+{
+	struct charger_desc *desc = cm->desc;
+	int ret, cur_jeita_status;
+
+	if (!desc->enable_fast_charge)
+		return 0;
+
+	/*
+	 * if defined psy_charger_stat[1], then disable the second
+	 * charger first.
+	 */
+	ret = cm_enable_second_charger(cm, false);
+	if (ret) {
+		dev_err(cm->dev, "failed to disable second charger\n");
+		return ret;
+	}
+
+	/*
+	 * adjust fast charger output voltage from 9V to 5V
+	 */
+	ret = cm_adjust_fast_charge_voltage(cm, CM_FAST_CHARGE_VOLTAGE_5V);
+	if (ret) {
+		dev_err(cm->dev, "failed to adjust 5V fast charger voltage\n");
+		return ret;
+	}
+
+	ret = cm_set_main_charger_current(cm, CM_FAST_CHARGE_DISABLE_CMD);
+	if (ret) {
+		dev_err(cm->dev, "failed to set DCP current\n");
+		return ret;
+	}
+
+	/*
+	 * adjust over voltage protection in 5V
+	 */
+	if (desc->normal_charge_voltage_max)
+		desc->charge_voltage_max =
+			desc->normal_charge_voltage_max;
+	if (desc->normal_charge_voltage_drop)
+		desc->charge_voltage_drop =
+			desc->normal_charge_voltage_drop;
+
+	/*
+	 * if enable jeita, we should adjust current
+	 * using CM_JEITA_DCP in fast charge status
+	 * according to current temperature.
+	 */
+	if (desc->jeita_tab_size) {
+		desc->jeita_tab =
+			desc->jeita_tab_array[CM_JEITA_DCP];
+
+		cur_jeita_status =
+			cm_manager_get_jeita_status(cm, desc->temperature);
+
+		if (desc->jeita_disabled)
+			cur_jeita_status = STATUS_T1_TO_T2;
+
+		cm_manager_adjust_current(cm, cur_jeita_status);
+	}
+
+	desc->enable_fast_charge = false;
+
+	return 0;
+}
+
+static int cm_fast_charge_disable_check(struct charger_manager *cm)
+{
+	int batt_uV, batt_uA, ret;
+
+	if (!cm->desc->enable_fast_charge)
+		return 0;
+
+	ret = get_batt_uV(cm, &batt_uV);
+	if (ret) {
+		dev_err(cm->dev, "failed to get batt uV\n");
+		return ret;
+	}
+
+	ret = get_batt_uA(cm, &batt_uA);
+	if (ret) {
+		dev_err(cm->dev, "failed to get batt uA\n");
+		return ret;
+	}
+
+	if (batt_uV < CM_FAST_CHARGE_DISABLE_BATTERY_VOLTAGE ||
+	    batt_uA < CM_FAST_CHARGE_DISABLE_CURRENT)
+		cm->desc->fast_charge_disable_count++;
+	else
+		cm->desc->fast_charge_disable_count = 0;
+
+	if (cm->desc->fast_charge_disable_count < CM_FAST_CHARGE_DISABLE_COUNT)
+		return 0;
+
+	cm->desc->fast_charge_disable_count = 0;
+	ret = cm_fast_charge_disable(cm);
+	if (ret) {
+		dev_err(cm->dev, "failed to disable fast charge\n");
+		return ret;
+	}
+
+	return 0;
+}
+
 static int try_charger_enable_by_psy(struct charger_manager *cm, bool enable)
 {
 	struct charger_desc *desc = cm->desc;
@@ -1084,6 +1466,38 @@ static int try_charger_enable_by_psy(struct charger_manager *cm, bool enable)
 		power_supply_put(psy);
 		if (err)
 			return err;
+		if (desc->psy_charger_stat[1])
+			break;
+	}
+
+	return 0;
+}
+
+static int try_fast_charger_enable(struct charger_manager *cm, bool enable)
+{
+	int err = 0;
+
+	if (enable) {
+		err = cm_fast_charge_enable_check(cm);
+		if (err) {
+			dev_err(cm->dev,
+				"failed to check fast charge enable\n");
+			return err;
+		}
+
+		err = cm_fast_charge_disable_check(cm);
+		if (err) {
+			dev_err(cm->dev,
+				"failed to check fast charge disable\n");
+			return err;
+		}
+	} else {
+		err = cm_fast_charge_disable(cm);
+		if (err) {
+			dev_err(cm->dev,
+				"failed to disable fast charge\n");
+			return err;
+		}
 	}
 
 	return 0;
@@ -1102,6 +1516,7 @@ static int try_charger_enable_by_psy(struct charger_manager *cm, bool enable)
 static int try_charger_enable(struct charger_manager *cm, bool enable)
 {
 	int err = 0;
+	try_fast_charger_enable(cm, enable);
 
 	/* Ignore if it's redundant command */
 	if (enable == cm->charger_enabled)
@@ -1535,14 +1950,6 @@ static int cm_feed_watchdog(struct charger_manager *cm)
 
 	return 0;
 }
-
-enum cm_manager_jeita_status {
-	STATUS_BELOW_T0 = 0,
-	STATUS_T0_TO_T1,
-	STATUS_T1_TO_T2,
-	STATUS_T2_TO_T3,
-	STATUS_ABOVE_T3,
-};
 
 static bool cm_manager_adjust_current(struct charger_manager *cm,
 				      int jeita_status)
@@ -2020,11 +2427,51 @@ static bool cm_charger_is_support_fchg(struct charger_manager *cm)
 		ret = power_supply_get_property(psy, POWER_SUPPLY_PROP_CHARGE_TYPE,
 						&val);
 		power_supply_put(psy);
-		if (!ret)
-			return val.intval == POWER_SUPPLY_CHARGE_TYPE_FAST;
+		if (!ret) {
+			if (val.intval == POWER_SUPPLY_CHARGE_TYPE_FAST ||
+			    val.intval == POWER_SUPPLY_USB_TYPE_PD) {
+				desc->is_fast_charge = true;
+				return true;
+			} else {
+				return false;
+			}
+		}
 	}
 
 	return false;
+}
+
+static void cm_set_fast_charge_setting(struct charger_manager *cm)
+{
+	struct power_supply *psy;
+	union power_supply_propval val;
+	int ret;
+
+	if (cm->desc->is_fast_charge &&
+		!cm->desc->enable_fast_charge) {
+
+		/*
+		 * make the psy_charger_stat[0] to be main charger,
+		 * set the main charger charge current and limit current
+		 * with DCP type setting if the charger is fast charger.
+		 */
+		psy = power_supply_get_by_name(cm->desc->psy_charger_stat[0]);
+		if (!psy) {
+			dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
+				cm->desc->psy_charger_stat[0]);
+			power_supply_put(psy);
+			return;
+		}
+
+		val.intval = CM_FAST_CHARGE_DISABLE_CMD;
+		ret = power_supply_set_property(psy,
+						POWER_SUPPLY_PROP_STATUS,
+						&val);
+		power_supply_put(psy);
+		if (ret)
+			dev_err(cm->dev,
+				"failed to set main charger current in 9V ret = %d\n", ret);
+	}
 }
 
 /**
@@ -2035,18 +2482,12 @@ static void fast_charge_handler(struct charger_manager *cm)
 {
 	if (cm_suspended)
 		device_set_wakeup_capable(cm->dev, true);
+	cm_charger_is_support_fchg(cm);
 
 	if (!is_ext_pwr_online(cm))
 		return;
 
-	if (cm_charger_is_support_fchg(cm)) {
-		cm->desc->charge_voltage_max =
-			cm->desc->fast_charge_voltage_max;
-		cm->desc->charge_voltage_drop =
-			cm->desc->fast_charge_voltage_drop;
-		cm->desc->jeita_tab =
-			cm->desc->jeita_tab_array[CM_JEITA_FCHG];
-	}
+	cm_set_fast_charge_setting(cm);
 }
 
 /**
@@ -2097,13 +2538,30 @@ static void misc_event_handler(struct charger_manager *cm,
 				cm->desc->jeita_tab_array[CM_JEITA_UNKNOWN];
 		}
 
-		cm->desc->charge_voltage_max =
-			cm->desc->normal_charge_voltage_max;
-		cm->desc->charge_voltage_drop =
-			cm->desc->normal_charge_voltage_drop;
+		if (cm->desc->normal_charge_voltage_max)
+			cm->desc->charge_voltage_max =
+				cm->desc->normal_charge_voltage_max;
+		if (cm->desc->normal_charge_voltage_drop)
+			cm->desc->charge_voltage_drop =
+				cm->desc->normal_charge_voltage_drop;
+
+		cm_set_fast_charge_setting(cm);
 
 		if (cm->desc->jeita_tab_size) {
 			int cur_jeita_status;
+
+			if (cm->desc->is_fast_charge &&
+				cm->desc->charger_type == POWER_SUPPLY_USB_TYPE_UNKNOWN) {
+				cm->desc->jeita_tab =
+					cm->desc->jeita_tab_array[CM_JEITA_DCP];
+			}
+
+			/*
+			 * reset this value, because this place will call
+			 * try_charger_enable again, and will satisfy the condition
+			 * that adjust 9V to enter fast charge.
+			 */
+			cm->desc->fast_charge_enable_count = 0;
 
 			cur_jeita_status =
 				cm_manager_get_jeita_status(cm, cm->desc->temperature);
@@ -2111,6 +2569,13 @@ static void misc_event_handler(struct charger_manager *cm,
 		}
 	} else {
 		try_charger_enable(cm, false);
+		cancel_delayed_work_sync(&cm_monitor_work);
+		_cm_monitor(cm);
+
+		cm->desc->is_fast_charge = false;
+		cm->desc->enable_fast_charge = false;
+		cm->desc->fast_charge_enable_count = 0;
+		cm->desc->fast_charge_disable_count = 0;
 	}
 
 	cm_update_charger_type_status(cm);
@@ -2392,6 +2857,9 @@ static int charger_get_property(struct power_supply *psy,
 							val);
 			if (!ret) {
 				power_supply_put(psy);
+				if (cm->desc->enable_fast_charge &&
+				    cm->desc->psy_charger_stat[1])
+					val->intval *= 2;
 				break;
 			}
 
@@ -2505,6 +2973,16 @@ charger_set_property(struct power_supply *psy,
 		cm->desc->thm_adjust_cur = val->intval;
 		thermal_val.intval = val->intval;
 
+		if (cm->desc->enable_fast_charge &&
+		    cm->desc->psy_charger_stat[1]) {
+			if (cm->desc->double_ic_total_limit_current &&
+			    (thermal_val.intval >=
+			     (int)cm->desc->double_ic_total_limit_current))
+				thermal_val.intval =
+					(int)cm->desc->double_ic_total_limit_current;
+			thermal_val.intval /= 2;
+		}
+
 		for (i = 0; cm->desc->psy_charger_stat[i]; i++) {
 			psy = power_supply_get_by_name(cm->desc->psy_charger_stat[i]);
 			if (!psy) {
@@ -2518,7 +2996,11 @@ charger_set_property(struct power_supply *psy,
 							(const union power_supply_propval *)&thermal_val);
 			if (!ret) {
 				power_supply_put(psy);
-				break;
+				if (cm->desc->enable_fast_charge &&
+				    cm->desc->psy_charger_stat[1])
+					continue;
+				else
+					break;
 			}
 
 			if (cm->desc->jeita_tab_size) {
@@ -2532,7 +3014,11 @@ charger_set_property(struct power_supply *psy,
 							(const union power_supply_propval *)&thermal_val);
 			if (!ret) {
 				power_supply_put(psy);
-				break;
+				if (cm->desc->enable_fast_charge &&
+				    cm->desc->psy_charger_stat[1])
+					continue;
+				else
+					break;
 			}
 		}
 		break;
@@ -3592,6 +4078,8 @@ static struct charger_desc *of_cm_parse_desc(struct device *dev)
 			     &desc->fast_charge_voltage_max);
 	of_property_read_u32(np, "cm-fast-charge-voltage-drop",
 			     &desc->fast_charge_voltage_drop);
+	of_property_read_u32(np, "cm-double-ic-total-limit-current",
+			     &desc->double_ic_total_limit_current);
 
 	/* Initialize the jeita temperature table. */
 	ret = cm_init_jeita_table(desc, dev);
@@ -3846,11 +4334,13 @@ static void cm_batt_works(struct work_struct *work)
 		 "charging current = %d, charging limit current = %d, "
 		 "battery temperature = %d,board temperature = %d, "
 		 "track state = %d, charger type = %d, thm_adjust_cur = %d, "
-		 "charger input voltage = %d\n",
+		 "charger input voltage = %d, "
+		 "is_fast_charge = %d, enable_fast_charge = %d\n",
 		 batt_uV, batt_ocV, bat_uA, fuel_cap, cm->desc->charger_status,
 		 cm->desc->force_set_full, chg_cur, chg_limit_cur, cur_temp, board_temp,
 		 cm->track.state, cm->desc->charger_type, cm->desc->thm_adjust_cur,
-		 charger_input_vol);
+		 charger_input_vol, cm->desc->is_fast_charge,
+		 cm->desc->enable_fast_charge);
 
 	switch (cm->desc->charger_status) {
 	case POWER_SUPPLY_STATUS_CHARGING:
