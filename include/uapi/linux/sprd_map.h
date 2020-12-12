@@ -21,4 +21,14 @@ struct sprd_pmem_info {
 	size_t size;
 };
 
+#ifdef CONFIG_COMPAT
+#define COMPAT_MAP_USER_VIR  _IOWR(SPRD_MAP_IOCTRL_MAGIC, 0, \
+				   struct compat_sprd_pmem_info)
+
+struct compat_sprd_pmem_info {
+	compat_ulong_t phy_addr;
+	compat_uint_t phys_offset;
+	compat_size_t size;
+};
+#endif
 #endif

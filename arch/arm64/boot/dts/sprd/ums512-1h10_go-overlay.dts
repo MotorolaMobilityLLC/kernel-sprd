@@ -13,9 +13,9 @@
 
 / {
 
-	model = "Unisoc UMS512 2H10 board";
-	compatible = "sprd,ums512-2h10";
-	sprd,sc-id = "ums512 2h10 1000";
+	model = "Unisoc UMS512 1H10 GO board";
+	compatible = "sprd,ums512-1h10-go";
+	sprd,sc-id = "ums512 1h10 go";
 
 	fragment {
 		target-path = "/";
@@ -137,7 +137,7 @@
 				cm-fullbatt-capacity = <100>;
 
 				cm-num-chargers = <1>;
-				cm-chargers = "bq2560x_charger";
+				cm-chargers = "fan54015_charger";
 				cm-fuel-gauge = "sc27xx-fgu";
 
 				/* in deci centigrade */
@@ -247,10 +247,14 @@
 };
 
 &chosen {
-	bootargs_ext = "androidboot.hardware=ums512_2h10 androidboot.dtbo_idx=0";
+	bootargs_ext = "androidboot.hardware=ums512_1h10_go androidboot.dtbo_idx=0";
 };
 
 &reserved_memory {
+
+	logo_reserved: logobuffer@9e000000{
+		reg = <0x0 0x9e000000 0x0 0x009e4000>;
+	};
 
 	fd_reserved: faceid-mem@efaae000 {
 		reg = <0x0 0xefaae000 0x0 0x00f00000>;
@@ -264,6 +268,15 @@
 		reg = <0x0 0xfb8ae000 0x0 0x01e5a000>;
 	};
 */
+
+	fb_reserved: framebuffer-mem@fd708000 {
+		reg = <0x0 0xfd708000 0x0 0x01e5a000>;
+	};
+
+	wb_reserved: writeback-mem@ff562000 {
+		reg = <0x0 0xff562000 0x0 0x00a1e000>;
+	};
+
 };
 
 &sdio0 {
@@ -524,6 +537,17 @@
 &i2c4 {
 	status = "okay";
 
+	fan54015_chg: charger@6a {
+		compatible = "fairchild,fan54015_chg";
+		reg = <0x6a>;
+		phys = <&hsphy>;
+		monitored-battery = <&bat>;
+		extcon = <&extcon_gpio>;
+		vddvbus:otg-vbus {
+			regulator-name = "vddvbus";
+		};
+	};
+
 	ams_tcs3430: tcs3430@39 {
 		compatible = "ams,tcs3430";
 		reg = <0x39>;
@@ -568,16 +592,24 @@
 
 &aon_i2c0 {
 	status = "okay";
+	clock-frequency = <1000000>;
 
-	bq2560x_chg: charger@6b {
-		compatible = "ti,bq2560x_chg";
-		reg = <0x6b>;
-		phys = <&hsphy>;
-		monitored-battery = <&bat>;
-		extcon = <&extcon_gpio>;
-		vddvbus:otg-vbus {
-			regulator-name = "vddvbus";
-		};
+	fan53555_dcdc: regulator@60 {
+		compatible = "fcs,fan53555";
+		reg = <0x60>;
+		regulator-name = "fan53555";
+		regulator-min-microvolt = <600000>;
+		regulator-max-microvolt = <1230000>;
+		regulator-ramp-delay = <64000>;
+		regulator-always-on;
+		fcs,suspend-voltage-selector = <1>;
+	};
+
+	/* A virtual i2c device */
+	cpudvfs-dcdc-cpu1@62{
+		compatible = "sprd,cpudvfs-regulator-sharkl5pro";
+		reg = <0x62>;
+		dvfs-dcdc-i2c = <1>;
 	};
 };
 
@@ -652,8 +684,8 @@
 };
 
 &adi_bus {
-	sprd,hw-channels = <2 0x18cc>, <3 0x18cc>, <13 0x1874>, <15 0x1874>,
-			 <17 0x1844>,<19 0x1854>, <21 0x1864>, <30 0x1820>,
+	sprd,hw-channels = <2 0x18cc>, <3 0x18cc>, <13 0x1854>, <15 0x1874>,
+			 <17 0x1844>,<19 0x1844>, <21 0x1864>, <30 0x1820>,
 			 <35 0x19b8>, <39 0x19ac>;
 };
 
@@ -688,24 +720,26 @@
 };
 
 &dvfs_dcdc_cpu1_supply {
-	pmic-type-num = <0>;
-	slew-rate = <9375>; /* 9375uV/us */
-	supply-type-sel = <0x120 0 0>;
-	top-dvfs-adi-state = <0x9c 0 0xf>;
+	chnl-i2c-used;
+	third-pmic-used;
+	pmic-type-num = <2>;
+	slew-rate = <4000>; /* 4000uV/us */
+	supply-type-sel = <0x120 0 1>;
+	top-dvfs-i2c-state = <0x9c 4 0xf>;
 	voltage-grade-num = <6>;
-	voltage-grade = <0 0xf0 0x100 0 0x1ff>,
-		<1 0x100 0x100 9 0x1ff>,
-		<2 0x110 0x100 18 0x1ff>,
-		<3 0x120 0x104 0 0x1ff>,
-		<4 0x130 0x104 9 0x1ff>,
-		<5 0x140 0x104 18 0x1ff>;
+	voltage-grade = <0 0x0f 0x12c 0 0x7f>,
+		<1 0x14 0x12c 7 0x7f>,
+		<2 0x19 0x12c 14 0x7f>,
+		<3 0x1e 0x12c 21 0x7f>,
+		<4 0x23 0x130 0 0x7f>,
+		<5 0x28 0x130 7 0x7f>;
 	voltage-up-delay = <50 0x84 0 0xffff 0x1600>,
-		<100 0x84 16 0xffff 0xa00>,
+		<100 0x84 16 0xffff 0x1a00>,
 		<150 0x80 0 0xffff 0x1f00>,
-		<200 0x80 16 0xffff 0x1400>,
-		<250 0x7c 0 0xffff 0x1900>,
-		<300 0x7c 16 0xffff 0x1e00>,
-		<350 0x118 0 0xffff 0x2300>;
+		<200 0x80 16 0xffff 0x2400>,
+		<250 0x7c 0 0xffff 0x2900>,
+		<300 0x7c 16 0xffff 0x2e00>,
+		<350 0x118 0 0xffff 0x3300>;
 	voltage-down-delay = <50 0x90 0 0xffff 0x600>,
 		<100 0x90 16 0xffff 0xa00>,
 		<150 0x8c 0 0xffff 0xf00>,
@@ -713,6 +747,20 @@
 		<250 0x88 0 0xffff 0x1900>,
 		<300 0x88 16 0xffff 0x1e00>,
 		<350 0x11c 0 0xffff 0x2300>;
-	tuning-latency-us = <200>;
-	chnl-in-i2c = <0>;
+	tuning-latency-us = <0>;
+	chnl-in-i2c = <1>;
+};
+
+&ion {
+	heap@3 {
+		reg = <3>;
+		label = "carveout_fb";
+		type = <2>;
+		memory-region = <&fb_reserved>;
+	};
+};
+
+&dpu {
+	sprd,wb-memory = <&wb_reserved>;
+	sprd,logo-memory = <&logo_reserved>;
 };

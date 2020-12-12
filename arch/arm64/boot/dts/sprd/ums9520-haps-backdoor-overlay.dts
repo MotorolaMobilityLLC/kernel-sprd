@@ -36,5 +36,5 @@
 };
 
 &chosen {
-	bootargs = "earlycon console=ttyS1,115200n8 loglevel=7 init=/init root=/dev/ram0 rw androidboot.hardware=ums9520_haps androidboot.dtbo_idx=0 printk.devkmsg=on androidboot.boot_devices=memdisk0 androidboot.selinux=permissive androidboot.force_normal_boot=1";
+	bootargs_ext = "androidboot.hardware=ums9520_haps androidboot.dtbo_idx=0 androidboot.boot_devices=memdisk0 androidboot.force_normal_boot=1";
 };

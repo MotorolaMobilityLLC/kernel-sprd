@@ -17,6 +17,11 @@
 		#address-cells = <1>;
 		#size-cells = <0>;
 
+		pmic_wdt: watchdog@40 {
+			compatible = "sprd,sc2720-wdt", "sprd,sc27xx-wdt";
+			reg = <0x40>;
+		};
+
 		led-controller@180 {
 			compatible = "sprd,sc27xx-bltc", "sprd,sc2721-bltc", "sprd,sc2720-bltc";
 			#address-cells = <1>;

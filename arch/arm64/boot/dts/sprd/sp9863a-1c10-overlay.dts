@@ -234,7 +234,7 @@
 };
 
 &chosen {
-	bootargs = "earlycon=sprd_serial,0x70100000,115200n8 console=ttyS1,115200n8 loglevel=1 init=/init root=/dev/ram0 rw androidboot.hardware=s9863a1c10 androidboot.dtbo_idx=0 printk.devkmsg=on androidboot.boot_devices=soc/soc:ap-ahb/20600000.sdio";
+	bootargs_ext = "androidboot.hardware=s9863a1c10 androidboot.dtbo_idx=0";
 };
 
 &reserved_memory {
