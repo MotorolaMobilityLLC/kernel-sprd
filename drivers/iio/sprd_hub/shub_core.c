@@ -1128,7 +1128,7 @@ static void shub_save_calibration_data(struct work_struct *work)
 		 CALIBRATION_NODE, calibration_filename[sensor->cal_id]);
 	dev_info(&sensor->sensor_pdev->dev,
 		 "sensor_id=%d,file_path=%s\n", sensor->cal_id, file_path);
-	pfile = filp_open(file_path, O_WRONLY | O_CREAT | O_TRUNC, 0600);
+	pfile = filp_open(file_path, O_WRONLY | O_CREAT | O_TRUNC, 0666);
 	if (IS_ERR(pfile)) {
 		err = PTR_ERR(pfile);
 		dev_err(&sensor->sensor_pdev->dev,
