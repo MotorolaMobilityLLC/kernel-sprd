@@ -556,7 +556,7 @@ static int wcn_sipc_sblk_send(struct sipc_chn_info *sipc_chn,
 		WCN_ERR("[%s]:The size of swcnblk is so tiny!len:%d,blk.length:%d\n",
 			sipc_chn_tostr(sipc_chn->chn, 0), len, blk.length);
 		swcnblk_put(sipc_chn->dst, sipc_chn->chn, &blk);
-		BUG_ON(1);
+		WARN_ON(1);
 		return E_INVALIDPARA;
 	}
 	addr = (u8 *)blk.addr + SIPC_SBLOCK_HEAD_RESERV;
