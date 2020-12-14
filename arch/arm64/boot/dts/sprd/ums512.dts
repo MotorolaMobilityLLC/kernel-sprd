@@ -199,6 +199,7 @@
 		power-down-gpios = <&ap_gpio 46 0>;
 		sprd,phyid = <0>;
 		csi = <&csi0>;
+		power-domains = <&mm_domain>;
 	};
 
 	sensor_sub: sensor-sub@5a {
@@ -220,6 +221,7 @@
 		mipi-switch-mode-gpios = <&ap_gpio 8 0>;
 		sprd,phyid = <1>;
 		csi = <&csi0>;
+		power-domains = <&mm_domain>;
 	};
 };
 
@@ -248,6 +250,7 @@
 		mipi-switch-mode-gpios = <&ap_gpio 8 0>;
 		sprd,phyid = <1>;
 		csi = <&csi1>;
+		power-domains = <&mm_domain>;
 	};
 
 	sensor_sub2: sensor-sub2@6e {
@@ -268,6 +271,7 @@
 		power-down-gpios = <&ap_gpio 40 0>;
 		sprd,phyid = <2>;
 		csi = <&csi2>;
+		power-domains = <&mm_domain>;
 	};
 
 	sensor_main3: sensor-main3@6c {
@@ -288,6 +292,7 @@
 		power-down-gpios = <&ap_gpio 40 0>;
 		sprd,phyid = <2>;
 		csi = <&csi2>;
+		power-domains = <&mm_domain>;
 	};
 };
 
