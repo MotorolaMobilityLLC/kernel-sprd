@@ -332,6 +332,7 @@ static int ufs_sprd_link_startup_notify(struct ufs_hba *hba,
 
 		break;
 	case POST_CHANGE:
+		ufshcd_dme_set(hba, UIC_ARG_MIB(PA_TACTIVATE), 0x10);
 		break;
 	default:
 		err = -EINVAL;
