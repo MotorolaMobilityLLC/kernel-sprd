@@ -81,15 +81,15 @@
 	energy-costs {
 		CPU_COST_0: core-cost0 {
 			busy-cost-data = <
-				164	30		//614MHz
-				206	42		//768MHz
-				257	56	        //962MHz
-				307	70		//1144MHz
-				329	85		//1229MHz
-				397	115		//1482MHz
-				412	134		//1536MHz
-				460	166		//1716MHz
-				488	194		//1820MHz
+				166	30		//614MHz
+				208	42		//768MHz
+				261	56	        //962MHz
+				310	70		//1144MHz
+				333	85		//1229MHz
+				402	115		//1482MHz
+				417	134		//1536MHz
+				466	166		//1716MHz
+				494	194		//1820MHz
 			>;
 			idle-cost-data = <
 				6		/* ACTIVE-IDLE */
@@ -99,12 +99,12 @@
 		};
 		CPU_COST_1: core-cost1 {
 			busy-cost-data = <
-				621	331		//1229MHz
-				748	454		//1482MHz
-				776	540		//1536MHz
-				880	683		//1742MHz
-				945	820		//1872MHz
-				1024	984		//2028MHz
+				628	331		//1229MHz
+				758	454		//1482MHz
+				785	540		//1536MHz
+				891	683		//1742MHz
+				957	820		//1872MHz
+				1024	984		//2002MHz
 			>;
 			idle-cost-data = <
 				37		/* ACTIVE-IDLE */
@@ -114,15 +114,15 @@
 		};
 		CLUSTER_COST_0: cluster-cost0 {
 			busy-cost-data = <
-				164	1		//614MHz
-				206	2		//768MHz
-				257	3		//962MHz
-				307	4		//1144MHz
-				329	5		//1229MHz
-				397	6		//1482MHz
-				412	7		//1536MHz
-				460	8		//1716MHz
-				488	9		//1820MHz
+				166	1		//614MHz
+				208	2		//768MHz
+				261	3		//962MHz
+				310	4		//1144MHz
+				333	5		//1229MHz
+				402	6		//1482MHz
+				417	7		//1536MHz
+				466	8		//1716MHz
+				494	9		//1820MHz
 			>;
 			idle-cost-data = <
 				0		/* ACTIVE-IDLE */
@@ -132,12 +132,12 @@
 		};
 		CLUSTER_COST_1: cluster-cost1 {
 			busy-cost-data = <
-				621	13		//1229MHz
-				748	17		//1482MHz
-				776	21		//1536MHz
-				880	25		//1742MHz
-				945	30		//1872MHz
-				1024	35		//2028MHz
+				628	13		//1229MHz
+				758	17		//1482MHz
+				785	21		//1536MHz
+				891	25		//1742MHz
+				957	30		//1872MHz
+				1024	35		//2002MHz
 			>;
 			idle-cost-data = <
 				23		/* ACTIVE-IDLE */
