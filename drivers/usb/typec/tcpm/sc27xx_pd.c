@@ -649,8 +649,8 @@ static int sc27xx_pd_rc_ref_cal(struct sc27xx_pd *pd)
 {
 	u32 vol = (pd->rc_cal >> 9)&0xfe;
 	u32 pd_ref = (pd->ref_cal >> 12)&0x7;
-	u32 val;
-	u32 cfg2_bit7, cfg0_vth, cfg0_vtl, typec_ibis;
+	u32 val = 0;
+	u32 cfg2_bit7, cfg0_vth = 0, cfg0_vtl = 0, typec_ibis = 0;
 	u32 cfg0, cfg2, cfg0_mask, cfg2_mask;
 	int ret;
 
@@ -731,7 +731,7 @@ static int sc27xx_pd_rc_ref_cal(struct sc27xx_pd *pd)
 	if (ret < 0)
 		return ret;
 
-	cfg2 = (cfg2_bit7 << SC27XX_PD_CFG2_RX_REF_CAL_SHIFT) & 0x1;
+	cfg2 = (cfg2_bit7 << SC27XX_PD_CFG2_RX_REF_CAL_SHIFT) & 0x80;
 	cfg2 |= SC27XX_PD_CFG2_PD_CLK_BIT;
 	cfg2_mask = SC27XX_PD_CFG2_PD_CLK_BIT | SC27XX_PD_CFG2_RX_REF_CAL_BIT;
 
@@ -742,7 +742,7 @@ static int sc27xx_pd_rc_ref_cal(struct sc27xx_pd *pd)
 static int sc27xx_pd_delta_cal(struct sc27xx_pd *pd)
 {
 	u32 delta_cal = pd->delta_cal;
-	u32 vol, vref_sel, ref_cal, delta;
+	u32 vol, vref_sel = 0, ref_cal = 0, delta;
 	u32 cfg1, cfg1_mask;
 
 	cfg1_mask = SC27XX_PD_CC1_SW | SC27XX_PD_CC2_SW |
@@ -1188,7 +1188,7 @@ static int sc27xx_pd_efuse_read(struct sc27xx_pd *pd,
 {
 	struct nvmem_cell *cell;
 	void *buf;
-	size_t len;
+	size_t len = 0;
 
 	cell = nvmem_cell_get(pd->dev, cell_id);
 	if (IS_ERR(cell))
