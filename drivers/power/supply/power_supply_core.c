@@ -646,6 +646,7 @@ int power_supply_get_battery_info(struct power_supply *psy,
 //			     &info->charge_full_design_uah);
 	propname = kasprintf(GFP_KERNEL, "charge-full-design-microamp-hours-%d", battery_id);
 	of_property_read_u32(battery_np, propname,&info->charge_full_design_uah);
+	dev_err(&psy->dev, "%s ;%dmAh;\n", __func__,info->charge_full_design_uah/1000);
 	
 	of_property_read_u32(battery_np, "voltage-min-design-microvolt",
 			     &info->voltage_min_design_uv);
@@ -662,6 +663,7 @@ int power_supply_get_battery_info(struct power_supply *psy,
 //			     &info->factory_internal_resistance_uohm);
 	propname = kasprintf(GFP_KERNEL, "factory-internal-resistance-micro-ohms-%d", battery_id);
 	of_property_read_u32(battery_np, propname,&info->factory_internal_resistance_uohm);
+	dev_err(&psy->dev, "%s ;%dohm;\n", __func__,info->factory_internal_resistance_uohm/1000);
 
 
 	of_property_read_u32_index(battery_np, "charge-sdp-current-microamp", 0,
@@ -735,6 +737,7 @@ int power_supply_get_battery_info(struct power_supply *psy,
 			table[i].ocv = be32_to_cpu(*list++);
 			table[i].capacity = be32_to_cpu(*list++);
 		}
+	dev_err(&psy->dev, "%s ;%d %d;\n", __func__,table[0].ocv/1000,table[0].capacity);
 	}
 
 	list = of_get_property(battery_np, "voltage-temp-table", &size);
@@ -775,6 +778,8 @@ int power_supply_get_battery_info(struct power_supply *psy,
 	for (index = 0; index < info->cap_table_size; index++) {
 		cap_table[index].temp = be32_to_cpu(*list++);
 		cap_table[index].cap = be32_to_cpu(*list++);
+	dev_err(&psy->dev, "%s ;%d %d;\n", __func__,cap_table[index].temp,cap_table[index].cap);
+		
 	}
 
 //	list = of_get_property(battery_np, "resistance-temp-table", &size);
@@ -796,6 +801,7 @@ int power_supply_get_battery_info(struct power_supply *psy,
 	for (index = 0; index < info->resistance_table_size; index++) {
 		resistance_table[index].temp = be32_to_cpu(*list++);
 		resistance_table[index].resistance = be32_to_cpu(*list++);
+	dev_err(&psy->dev, "%s ;%d %d;\n", __func__,resistance_table[index].temp,resistance_table[index].resistance);
 	}
 
 	return 0;
