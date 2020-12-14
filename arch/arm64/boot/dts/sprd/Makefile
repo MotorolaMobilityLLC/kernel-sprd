@@ -22,11 +22,13 @@ dtbo-$(CONFIG_ARCH_SPRD) += \
 	ums512-1h10-overlay.dtbo \
 	p352-overlay.dtbo \
         ums512-1h10_go-overlay.dtbo \
+        p353-overlay.dtbo \
 	ums512-2h10-overlay.dtbo
 
 ums512-1h10-overlay.dtbo-base := ums512.dtb
 p352-overlay.dtbo-base := ums512.dtb
 ums512-1h10_go-overlay.dtbo-base := ums512.dtb
+p353-overlay.dtbo-base := ums512.dtb
 
 ums512-2h10-overlay.dtbo-base := ums512.dtb
 endif
@@ -77,6 +79,7 @@ dtbo-$(CONFIG_ARCH_SPRD) += \
 	ums512-1h10-overlay.dtbo \
 	p352-overlay.dtbo \
 	ums512-1h10_go-overlay.dtbo \
+	p353-overlay.dtbo \
 	ums512-2h10-overlay.dtbo \
 	ums312-1h10-overlay.dtbo \
 	ums9230-haps-backdoor-overlay.dtbo \
