@@ -257,6 +257,7 @@ u32 wcn_get_sleep_status(struct wcn_device *wcn_dev, int force_sleep);
 void wcn_power_domain_set(struct wcn_device *wcn_dev, u32 set_type);
 void wcn_xtl_auto_sel(bool enable);
 int wcn_power_enable_sys_domain(bool enable);
+int wcn_power_enable_merlion_domain(bool enable);
 void wcn_sys_soft_reset(void);
 void wcn_sys_ctrl_26m(bool enable);
 void wcn_clock_ctrl(bool enable);

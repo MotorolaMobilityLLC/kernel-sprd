@@ -727,6 +727,39 @@ void wcn_xtl_auto_sel(bool enable)
 	}
 }
 
+int wcn_power_enable_merlion_domain(bool enable)
+{
+	u32 btwf_open = false;
+	u32 gnss_open = false;
+	static u32 merlion_domain;
+
+	if (!s_wcn_device.btwf_device) {
+		WCN_ERR("dev is NULL\n");
+		return -ENODEV;
+	}
+
+	if (s_wcn_device.btwf_device->wcn_open_status & WCN_MARLIN_MASK)
+		btwf_open = true;
+	if (s_wcn_device.gnss_device &&
+	    s_wcn_device.gnss_device->wcn_open_status & WCN_GNSS_ALL_MASK)
+		gnss_open = true;
+
+	if (enable && !merlion_domain) {
+		wcn_merlion_power_control(true);
+		merlion_domain = true;
+		WCN_INFO("clear WCN SYS TOP PD\n");
+	} else if ((!btwf_open) && (!gnss_open) && merlion_domain) {
+		wcn_merlion_power_control(false);
+		wcn_power_domain_set(s_wcn_device.btwf_device, 1);
+		merlion_domain = false;
+		WCN_INFO("set WCN SYS TOP PD\n");
+	}
+	WCN_INFO("enable = %d, btwf_open=%d, gnss_open=%d\n",
+		 enable, btwf_open, gnss_open);
+
+	return 0;
+}
+
 int wcn_power_enable_sys_domain(bool enable)
 {
 	int ret = 0;
@@ -752,16 +785,12 @@ int wcn_power_enable_sys_domain(bool enable)
 		wcn_power_domain_set(s_wcn_device.btwf_device, 0);
 		if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_PIKE2)
 			wcn_xtl_auto_sel(true);
-		if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6)
-			wcn_merlion_power_control(true);
 		sys_domain = true;
 		WCN_INFO("clear WCN SYS TOP PD\n");
 	} else if ((!btwf_open) && (!gnss_open) && sys_domain) {
 		if (wcn_platform_chip_type() ==
 				WCN_PLATFORM_TYPE_PIKE2)
 			wcn_xtl_auto_sel(false);
-		if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6)
-			wcn_merlion_power_control(false);
 		wcn_power_domain_set(s_wcn_device.btwf_device, 1);
 		sys_domain = false;
 		WCN_INFO("set WCN SYS TOP PD\n");

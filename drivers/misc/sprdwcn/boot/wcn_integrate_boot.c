@@ -765,9 +765,12 @@ void wcn_power_wq(struct work_struct *pwork)
 	is_marlin = wcn_dev_is_marlin(wcn_dev);
 	if (!is_marlin)
 		gnss_clear_boot_flag();
-	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6)
+	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
 		wcn_power_enable_dcxo1v8(true);
-	wcn_power_enable_vddcon(true);
+		wcn_power_enable_vddcon(true);
+		wcn_power_enable_merlion_domain(true);
+	} else
+		wcn_power_enable_vddcon(true);
 	if (is_marlin) {
 		/* ASIC: enable vddcon and wifipa interval time > 1ms */
 		usleep_range(VDDWIFIPA_VDDCON_MIN_INTERVAL_TIME,
@@ -1124,10 +1127,12 @@ int stop_integrate_wcn_truely(u32 subsys)
 		usleep_range(VDDWIFIPA_VDDCON_MIN_INTERVAL_TIME,
 			     VDDWIFIPA_VDDCON_MAX_INTERVAL_TIME);
 	}
-	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6)
+	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
+		wcn_power_enable_merlion_domain(false);
+		wcn_power_enable_vddcon(false);
 		wcn_power_enable_dcxo1v8(false);
-
-	wcn_power_enable_vddcon(false);
+	} else
+		wcn_power_enable_vddcon(false);
 
 	wcn_sys_soft_reset();
 	wcn_sys_soft_release();
