@@ -7,6 +7,7 @@
 #include <dt-bindings/mfd/sprd,sc2730-regs.h>
 #include <dt-bindings/mfd/sprd,sc2730-mask.h>
 #include "lcd/lcd_r61350_truly_mipi_hd.dtsi"
+#include "lcd/lcd_ili9881c_truly_mipi_hd.dtsi"
 #include "lcd/lcd_dummy_mipi.dtsi"
 
 / {
@@ -86,8 +87,7 @@
 				pwms = <&pwms 2 40000>;
 				pwm-names = "backlight";
 				brightness-levels = <
-						  2   2   2   2   2   2   2   2
-					  2   2   2   3   4   5   6   7   8   9
+					      2   2   3   4   5   6   7   8   9
 					 10  11  12  13  14  15  16  17  18  19
 					 20  21  22  23  24  25  26  27  28  29
 					 30  31  32  33  34  35  36  37  38  39
@@ -111,9 +111,10 @@
 					210 211 212 213 214 215 216 217 218 219
 					220 221 222 223 224 225 226 227 228 229
 					230 231 232 233 234 235 236 237 238 239
-					240 241 242 243 244 245 246 247
+					240 241 242 243 244 245 246 247 247 247
+					247 247 247 247 247 247 247
 					>;
-				default-brightness-level = <33>;
+				default-brightness-level = <24>;
 			};
 
 			bat: battery {
@@ -124,22 +125,24 @@
 				factory-internal-resistance-micro-ohms = <320000>;
 				voltage-min-design-microvolt = <3450000>;
 				ocv-capacity-celsius = <20>;
-				ocv-capacity-table-0 = <4330000 100>, <4249000 95>, <4189000 90>,
+				ocv-capacity-table-0 = <4360000 100>, <4249000 95>, <4189000 90>,
 							<4133000 85>, <4081000 80>, <4034000 75>,
 							<3991000 70>, <3953000 65>, <3910000 60>,
 							<3866000 55>, <3836000 50>, <3813000 45>,
 							<3795000 40>, <3782000 35>, <3774000 30>,
 							<3765000 25>, <3750000 20>, <3726000 15>,
 							<3687000 10>, <3658000 5>, <3400000 0>;
-				voltage-temp-table = <1052000 750>, <953000 800>, <858000 850>,
-							  <762000 900>, <671000 950>,<584000 1000>,
-							  <504000 1050>, <434000 1100>, <372000 1150>,
-							  <318000 1200>,<271000 1250>, <234000 1300>,
-							  <198000 1350>, <165000 1400>, <140000 1450>,
-							  <119000 1500>, <104000 1550>, <88000 1600>;
+				voltage-temp-table = <1095000 800>, <986000 850>, <878000 900>,
+							<775000 950>, <678000 1000>, <590000 1050>,
+							<510000 1100>, <440000 1150>, <378000 1200>,
+							<324000 1250>, <278000 1300>, <238000 1350>,
+							<204000 1400>, <175000 1450>, <150000 1500>,
+							<129000 1550>, <111000 1600>, <96000 1650>;
+				capacity-temp-table = <25 100>, <10 97>, <(-10) 60>;
+				resistance-temp-table = <20 100>, <10 243>, <(-10) 468>;
 				charge-sdp-current-microamp = <500000 500000>;
 				charge-dcp-current-microamp = <2000000 3000000>;
-				charge-cdp-current-microamp = <1500000 1500000>;
+				charge-cdp-current-microamp = <1150000 1150000>;
 				charge-unknown-current-microamp = <500000 500000>;
 			};
 
@@ -152,7 +155,7 @@
 
 				cm-fullbatt-vchkdrop-ms = <30000>;
 				cm-fullbatt-vchkdrop-volt = <60000>;
-				cm-fullbatt-voltage = <4330000>;
+				cm-fullbatt-voltage = <4300000>;
 				cm-fullbatt-current = <120000>;
 				cm-fullbatt-capacity = <100>;
 
@@ -161,7 +164,7 @@
 				cm-fuel-gauge = "sc27xx-fgu";
 
 				/* in deci centigrade */
-				cm-battery-cold = <50>;
+				cm-battery-cold = <200>;
 				cm-battery-cold-in-minus;
 				cm-battery-hot = <800>;
 				cm-battery-temp-diff = <100>;
@@ -180,6 +183,25 @@
 
 				/* how much time to allow capacity change */
 				cm-one-cap-time = <30>;
+
+				/* when the safe charging voltage is exceeded, stop charging */
+				cm-charge-voltage-max = <6500000>;
+				/* drop voltage in microVolts to restart charging */
+				cm-charge-voltage-drop = <700000>;
+				cm-thermal-zone = "board-thmzone";
+				cm-dcp-jeita-temp-table = <1000 1030 0 4350000>, <1150 1180 700000 4350000>,
+					<1450 1420 2000000 4350000>, <1600 1570 700000 4100000>;
+				cm-sdp-jeita-temp-table = <1000 1030 0 4350000>, <1150 1180 500000 4350000>,
+					<1450 1420 500000 4350000>, <1600 1570 500000 4100000>;
+				cm-cdp-jeita-temp-table = <1000 1030 0 4350000>, <1150 1180 700000 4350000>,
+					<1450 1420 1150000 4350000>, <1600 1570 700000 4100000>;
+				cm-unknown-jeita-temp-table = <1000 1030 0 4350000>, <1150 1180 500000 4350000>,
+					<1450 1420 500000 4350000>, <1600 1570 500000 4100000>;
+
+				monitored-battery = <&bat>;
+				cm-capacity-track;
+
+				cm-cap-remap-table = <1 2 3>, <2 3 2>, <98 99 2>, <99 100 3>;
 
 				regulator@0 {
 					cm-regulator-name = "vddgen0";
@@ -232,13 +254,26 @@
 };
 
 &chosen {
-	bootargs = "earlycon=sprd_serial,0x70100000,115200n8 console=ttyS1,115200n8 loglevel=1 init=/init root=/dev/ram0 ro rootwait androidboot.hardware=ums312_1h10_go_32b androidboot.dtbo_idx=0 printk.devkmsg=on vmalloc=300M androidboot.boot_devices=soc/soc:ap-apb/71400000.sdio";
+	bootargs_ext = "androidboot.hardware=ums312_1h10_go_32b androidboot.dtbo_idx=0";
 };
 
 &reserved_memory {
-	fd_reserved: face-mem@fd1c0000{
-		reg = <0xfd1c0000 0x01e00000>;
+	logo_reserved: logobuffer@9e000000{
+		reg = <0x9e000000 0x00384000>;
 	};
+
+	fd_reserved: face-mem@bec5e000{
+		reg = <0xbec5e000 0x00500000>;
+	};
+
+	fb_reserved: framebuffer-mem@bf15e000{
+		reg = <0xbf15e000 0x00a92000>;
+	};
+
+	wb_reserved: writeback@bfbf0000{
+		reg = <0xbfbf0000 0x00390000>;
+	};
+
 };
 
 &i2c0 {
@@ -390,6 +425,8 @@
 	monitored-battery = <&bat>;
 	sprd,calib-resistance-real = <10000>;
 	sprd,calib-resistance-spec = <20000>;
+	first-calib-voltage = <3600000>;
+	first-calib-capacity = <40>;
 };
 
 &usb {
@@ -486,3 +523,107 @@
 	slew-rate = <5000>; /* 5000uV/us */
 };
 
+&pin_controller {
+	pinctrl-names =
+	/* keyout0 ~ keyout2 */
+	"gpio_121", "gpio_122", "gpio_123",
+	/* keyin0 ~ keyin2 */
+	"gpio_124", "gpio_125", "gpio_126",
+	/* extint0, extint1, sda3, scl3 */
+	"gpio_144", "gpio_145", "gpio_146", "gpio_147",
+	/* sim0_det, sim1_det */
+	"gpio_9", "gpio_31";
+	pinctrl-0 = <&gpio_121>;
+	pinctrl-1 = <&gpio_122>;
+	pinctrl-2 = <&gpio_123>;
+	pinctrl-3 = <&gpio_124>;
+	pinctrl-4 = <&gpio_125>;
+	pinctrl-5 = <&gpio_126>;
+	pinctrl-6 = <&gpio_144>;
+	pinctrl-7 = <&gpio_145>;
+	pinctrl-8 = <&gpio_146>;
+	pinctrl-9 = <&gpio_147>;
+	pinctrl-10 = <&gpio_9>;
+	pinctrl-11 = <&gpio_31>;
+
+	gpio_121: keyout0 {
+		pins = "SHARKL5_KEYOUT0";
+		function = "func4";
+	};
+
+	gpio_122: keyout1 {
+		pins = "SHARKL5_KEYOUT1";
+		function = "func4";
+	};
+
+	gpio_123: keyout2 {
+		pins = "SHARKL5_KEYOUT2";
+		function = "func4";
+	};
+
+	gpio_124: keyin0 {
+		pins = "SHARKL5_KEYIN0";
+		function = "func4";
+	};
+
+	gpio_125: keyin1 {
+		pins = "SHARKL5_KEYIN1";
+		function = "func4";
+	};
+
+	gpio_126: keyin2 {
+		pins = "SHARKL5_KEYIN2";
+		function = "func4";
+	};
+
+	gpio_144: extint0 {
+		pins = "SHARKL5_EXTINT0";
+		function = "func4";
+	};
+
+	gpio_145: extint1 {
+		pins = "SHARKL5_EXTINT1";
+		function = "func4";
+	};
+
+	gpio_146: sda3 {
+		pins = "SHARKL5_SDA3";
+		function = "func4";
+	};
+
+	gpio_147: scl3 {
+		pins = "SHARKL5_SCL3";
+		function = "func4";
+	};
+
+	gpio_9: sim1 {
+		pins = "SHARKL5_GPIO9";
+		function = "func4";
+	};
+
+	gpio_31: sim0 {
+		pins = "SHARKL5_GPIO31";
+		function = "func4";
+	};
+};
+
+&ion {
+	heap@3 {
+		reg = <3>;
+		label = "carveout_fb";
+		type = <2>;
+		memory-region = <&fb_reserved>;
+	};
+
+	heap@4 {
+		reg = <4>;
+		label = "carveout_fd";
+		type = <2>;
+		memory-region = <&fd_reserved>;
+	};
+};
+
+&dpu {
+	sprd,wb-memory = <&wb_reserved>;
+	sprd,logo-memory = <&logo_reserved>;
+};

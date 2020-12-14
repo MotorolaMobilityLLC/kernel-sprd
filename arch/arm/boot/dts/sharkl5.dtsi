@@ -903,6 +903,14 @@
 				interrupts = <GIC_SPI 21 IRQ_TYPE_LEVEL_HIGH>;
 				status = "disabled";
 			};
+
+			apsys_dvfs: apsys-dvfs@71700000 {
+				compatible = "sprd,hwdvfs-apsys-sharkl5";
+				reg = <0x71700000 0x144>;
+
+				sprd,ap-dvfs-up-window = <0x40>;
+				sprd,ap-dvfs-down-window = <0x80>;
+			};
 		};
 
 		ap-ahb {
@@ -939,7 +947,6 @@
 				sprd,ip = "dpu-lite-r2p0";
 				sprd,soc = "sharkl5";
 				sprd,qos = <&dpu_qos>;
-				sprd,logo-memory = <&logo_reserved>;
 
 				dpu_port: port {
 					dpu_out: endpoint {
@@ -1041,7 +1048,7 @@
 				interrupts = <GIC_SPI 34 IRQ_TYPE_LEVEL_HIGH>;
 
 				syscons = <&ap_ahb_regs REG_AP_AHB_AHB_RST
-					(MASK_AP_AHB_VPP_SOFT_RST |
+					(MASK_AP_AHB_VSP_SOFT_RST |
 					MASK_AP_AHB_VSP_GLOBAL_SOFT_RST)>,
 					<&pmu_apb_regs
 					REG_PMU_APB_PD_AP_VSP_CFG
@@ -1281,9 +1288,9 @@
 				sensor-names = "ank0-thmzone","ank1-thmzone","ank2-thmzone";
 				k-po = <128>;
 				k-pu = <256>;
-				k-i = <2>;
+				k-i = <1>;
 				k-d = <0>;
-				cutoff = <10000>;
+				cutoff = <0>;
 			};
 
 			cluster1_sensor: cluster1-sensor@16 {
@@ -1292,9 +1299,9 @@
 				sensor-names = "prometheus0-thmzone";
 				k-po = <128>;
 				k-pu = <256>;
-				k-i = <2>;
+				k-i = <1>;
 				k-d = <0>;
-				cutoff = <10000>;
+				cutoff = <0>;
 			};
 
 			soc_sensor: soc-sensor@17 {
@@ -1303,9 +1310,9 @@
 				sensor-names = "cluster0-thmzone","cluster1-thmzone","gpu-thmzone";
 				k-po = <0>;
 				k-pu = <0>;
-				k-i = <2>;
+				k-i = <1>;
 				k-d = <0>;
-				cutoff = <10000>;
+				cutoff = <0>;
 			};
 
 			ap_efuse: efuse@32240000 {
@@ -1374,24 +1381,24 @@
 
 				dcdc_mm: dcdc-mm {
 					dcdc-dvfs-enable = <0x18 20 1>;
-					dcdc-judge-vol-sw = <0x18 1 0x7 7>;
+					dcdc-judge-vol-sw = <0x18 1 0x7 0>;
 					dcdc-subsys-cells = <&audcp_sys>,
 							<&gpu_sys>,
 							<&mm_sys>;
 					audcp_sys: audcp-sys {
-						dcdc-subsys-tune-enable = <0x150 5 0>;
+						dcdc-subsys-tune-enable = <0x150 5 1>;
 					};
 					gpu_sys: gpu-sys {
 						dcdc-subsys-tune-enable = <0x150 1 1>;
 					};
 
 					mm_sys: mm-sys {
-						dcdc-subsys-tune-enable = <0x150 2 0>;
+						dcdc-subsys-tune-enable = <0x150 2 1>;
 					};
 				};
 				dcdc_modem: dcdc-modem {
-					dcdc-dvfs-enable = <0x3c 20 0>;
-					dcdc-judge-vol-sw = <0x3c 1 0x7 7>;
+					dcdc-dvfs-enable = <0x3c 20 1>;
+					dcdc-judge-vol-sw = <0x3c 1 0x7 0>;
 					dcdc-subsys-cells = <&pubcp_sys>,
 							<&wtlcp_sys>,
 							<&ap_sys>;
@@ -1402,7 +1409,7 @@
 						dcdc-subsys-tune-enable = <0x150 3 0>;
 					};
 					ap_sys: ap-sys {
-						dcdc-subsys-tune-enable = <0x150 0 0>;
+						dcdc-subsys-tune-enable = <0x150 0 1>;
 					};
 				};
 			};
@@ -2137,6 +2144,14 @@
 				interrupt-names = "mc";
 				clocks = <&aonapb_gate CLK_OTG_UTMI_EB>;
 				clock-names = "core_clk";
+				syscons = <&pmu_apb_regs
+					REG_PMU_APB_PUB_SYS_DEEP_SLEEP_POLL1
+					MASK_PMU_APB_AON_PUB_SYS_DEEP_SLEEP_POLL>,
+					<&aon_apb_regs
+					REG_AON_APB_AON_CHIP_ID0
+					MASK_AON_APB_AON_CHIP_ID0>;
+				syscon-names = "usb_pub_slp_poll", "chip_id";
+				usb-checksingle = <0x6B4C3500>;
 				usb-phy = <&hsphy>;
 				phy-names = "usb";
 				dr-mode = "peripheral";
@@ -2171,6 +2186,7 @@
 				reg = <0x33490000 0x170>;
 				interrupts = <GIC_SPI 182 IRQ_TYPE_LEVEL_HIGH>;
 				sprd,ap-addr-offset = <0x32000000>;
+				sprd,syscon-agcp-ahb = <&audcp_ahb_regs>;
 			};
 
 			agcp_dma: dma-controller@33580000 {
@@ -2321,7 +2337,8 @@
 			&agcp_dma 11 &agcp_dma 12
 			&agcp_dma 13 &agcp_dma 14
 			&agcp_dma 15 &agcp_dma 16
-			&agcp_dma 9 &agcp_dma 9>;
+			&agcp_dma 9 &agcp_dma 9
+			&agcp_dma 14>;
 		dma-names =
 			"normal_p_l", "normal_p_r",
 			"normal_c_l", "normal_c_r",
@@ -2332,7 +2349,9 @@
 			"loop_c", "loop_p",
 			"voip_c", "voip_p",
 			/* dspfmcap_c and dspbtscocap_c same as dspcap_c */
-			"dspfmcap_c", "dspbtscocap_c";
+			"dspfmcap_c", "dspbtscocap_c",
+			/* voice_pcm_p same as loop_p */
+			"voice_pcm_p";
 	};
 
 	sprd_compr: sprd-compr-audio {
@@ -2541,23 +2560,19 @@
 		};
 
 		thm0_sen0: thm0-sen0@39{
-			reg = <0x39 0x4>;
-			bits = <0 8>;
+			reg = <0x39 0x1>;
 		};
 
 		thm0_sen1: thm0-sen1@41{
-			reg = <0x41 0x4>;
-			bits = <0 8>;
+			reg = <0x41 0x1>;
 		};
 
 		thm0_sen2: thm0-sen2@40{
-			reg = <0x40 0x4>;
-			bits = <0 8>;
+			reg = <0x40 0x1>;
 		};
 
 		thm0_sen3: thm0-sen3@43{
-			reg = <0x43 0x4>;
-			bits = <0 8>;
+			reg = <0x43 0x1>;
 		};
 
 		thm1_sign: thm1-sign@3c{
@@ -2571,13 +2586,11 @@
 		};
 
 		thm1_sen0: thm1-sen0@3d{
-			reg = <0x3d 0x4>;
-			bits = <0 8>;
+			reg = <0x3d 0x1>;
 		};
 
 		thm1_sen1: thm1-sen1@42{
-			reg = <0x42 0x4>;
-			bits = <0 8>;
+			reg = <0x42 01>;
 		};
 
 		thm2_sign: thm2-sign@3e{
@@ -2591,8 +2604,7 @@
 		};
 
 		thm2_sen0: thm2-sen0@3f{
-			reg = <0x3f 0x4>;
-			bits = <0 8>;
+			reg = <0x3f 0x1>;
 		};
 
 		dvfs_bin_dsu: dvfs-bin-dsu@13{

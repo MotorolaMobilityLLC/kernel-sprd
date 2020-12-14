@@ -7,7 +7,6 @@
  */
 
 #include "sc2730.dtsi"
-#include "lcd/lcd_dummy_mipi.dtsi"
 #include <dt-bindings/thermal/thermal.h>
 
 / {
@@ -21,6 +20,7 @@
 
 	chosen: chosen {
 		stdout-path = &uart1;
+		bootargs = "earlycon=sprd_serial,0x70100000,115200n8 console=ttyS1,115200n8 loglevel=1 init=/init root=/dev/ram0 ro rootwait printk.devkmsg=on vmalloc=300M androidboot.boot_devices=soc/soc:ap-apb/71400000.sdio";
 	};
 
 	memory: memory {
@@ -39,23 +39,46 @@
 		};
 	};
 
-	ion {
+	ion: ion {
 		compatible = "sprd,ion";
 		#address-cells = <1>;
 		#size-cells = <0>;
-
-		heap@3 {
-			reg = <3>;
-			label = "carveout_fb";
-			type = <2>;
-			memory-region = <&fb_reserved>;
-		};
 	};
 
 	display-subsystem {
 		compatible = "sprd,display-subsystem";
 		ports = <&dpu_port>;
 		gsp = <&gsp>;
+	};
+
+	dpu_dvfs: dpu-dvfs {
+		compatible = "sprd,hwdvfs-dpu-sharkl5";
+		sprd,hw-dvfs-en = <0>;
+		sprd,work-index-def = <4>;
+		sprd,idle-index-def = <0>;
+
+		operating-points = <
+			/* kHz    uV */
+			156000    700000
+			192000    700000
+			256000    700000
+			307200    700000
+			384000    750000
+			>;
+	};
+
+	vsp_dvfs: vsp_dvfs {
+		compatible = "sprd,hwdvfs-vsp-sharkl5";
+		sprd,dvfs-work-freq = <384000000>;
+		sprd,dvfs-idle-freq = <256000000>;
+		sprd,dvfs-enable-flag = <0>;
+
+		operating-points = <
+			/* kHz    uV */
+			256000    700000
+			307200    700000
+			384000    750000
+			>;
 	};
 
 	ddr_dfs: scene-frequency {
@@ -73,7 +96,7 @@
 		soc_thmzone: soc-thmzone {
 			polling-delay-passive = <100>;
 			polling-delay = <1000>;
-			sustainable-power = <2000>;
+			sustainable-power = <2386>;
 			thermal-sensors = <&soc_sensor  17>;
 			trips {
 				soc_threshold: trip-point@0 {
@@ -194,31 +217,31 @@
 			/*core Tscale = aT^3 + bT^2 + cT +di   */
 			sprd,core-temp-scale =
 			/* a*10^7   b*10^7      c*10^7     d*10^7 */
-			<  29      (-2100)      100000    (-580000)>;
+			<  31      (-3041)      170000    (-1590000)>;
 			/*core Vscale = eV^3 + fV^2 + gV + h */
 			sprd,core-voltage-scale =
 			/* e*10^2   f*10^2     g*10^2  h*10^2*/
-			<  201     (-169)      83      (-16)>;
+			<  3320     (-7489)      5692      (-1423)>;
 			/*cluster Tscale = aT^3 + bT^2 + cT +di   */
 			sprd,cluster-temp-scale =
 			/* a*10^7   b*10^7      c*10^7     d*10^7 */
-			<  29      (-2100)      100000    (-580000)>;
+			<  31      (-3041)      170000    (-1590000)>;
 			/*cluster Vscale = eV^3 + fV^2 + gV + h */
 			sprd,cluster-voltage-scale =
 			/* e*10^2   f*10^2     g*10^2  h*10^2*/
-			<  201     (-169)      83      (-16)>;
+			<  3320     (-7489)      5692      (-1423)>;
 			sprd,efuse-switch = <0>;
-			sprd,hotplug-period = <0>;
+			sprd,hotplug-period = <10>;
 			sprd,min-cpufreq = <768000>;
-			sprd,min-cpunum = <4>;
-			sprd,core-base = <2400>;
-			sprd,cluster-base = <3970>;
+			sprd,min-cpunum = <3>;
+			sprd,core-base = <3930>;
+			sprd,cluster-base = <1673>;
 			sprd,dynamic-core =
 			/*Pdynperghz*10    Freq     Vbase  */
-			< 1007           1000     1000>;
+			< 1084           1000     1000>;
 			sprd,dynamic-cluster =
 			/*Pdynperghz*10    Freq     Vbase  */
-			< 747           1000     1000>;
+			< 757           1000     1000>;
 		};
 
 		cluster1_cooling: cluster1-cooling {
@@ -235,31 +258,31 @@
 			/*core Tscale = aT^3 + bT^2 + cT +d  */
 			sprd,core-temp-scale =
 			/* a*10^7   b*10^7	c*10^7	   d*10^7*/
-			<  29      (-2100)      100000    (-580000)>;
+			<  31      (-3041)      170000    (-1590000)>;
 			/* core  Vscale = eV^3 + fV^2 + gV + h */
 			sprd,core-voltage-scale =
 			/* e*10^2  f*10^2     g*10^2  h*10^2*/
-			<  201     (-169)      83      (-16)>;
+			<  3320     (-7489)      5692      (-1423)>;
 			/*cluster Tscale = aT^3 + bT^2 + cT +di   */
 			sprd,cluster-temp-scale =
 			/* a*10^7   b*10^7      c*10^7     d*10^7 */
-			<  29      (-2100)      100000    (-580000)>;
+			<  31      (-3041)      170000    (-1590000)>;
 			/*cluster Vscale = eV^3 + fV^2 + gV + h */
 			sprd,cluster-voltage-scale =
 			/* e*10^2   f*10^2     g*10^2  h*10^2*/
-			<  201     (-169)      83      (-16)>;
+			<  3320     (-7489)      5692      (-1423)>;
 			sprd,efuse-switch = <0>;
-			sprd,hotplug-period = <0>;
-			sprd,min-cpufreq = <768000>;
+			sprd,hotplug-period = <10>;
+			sprd,min-cpufreq = <1228800>;
 			sprd,min-cpunum = <0>;
-			sprd,core-base = <4190>;
-			sprd,cluster-base = <3970>;
+			sprd,core-base = <11464>;
+			sprd,cluster-base = <1673>;
 			sprd,dynamic-core =
 			/* Pdynperghz*10    Freq     Vbase */
-			<  1536          1000     1000>;
+			<  4895          1000     1000>;
 			sprd,dynamic-cluster =
 			/* Pdynperghz*10    Freq     Vbase */
-			<  747            1000     1000>;
+			<  757            1000     1000>;
 		};
 	};
 
@@ -300,6 +323,10 @@
 		#size-cells = <1>;
 		ranges;
 
+		warm_boot_reserved: warm-boot@0x81ff0000 {
+			reg = <0x81ff0000 0x10000>; /* 64K */
+		};
+
 		ddrbist_reserved: ddrbist-mem@80000000{
 			reg = <0x80000000 0x00001000>;
 		};
@@ -335,20 +362,13 @@
 			reg = <0x98100000 0x4000000>;
 		};
 
-		pstore: pstore@9f000000{
-			reg = <0x9F000000 0x4000>;
-		};
+		pstore_reserved: ramoops@bff80000 {
+			compatible = "ramoops";
+			reg = <0xbff80000 0x00040000>;
+			record-size = <0x8000>;
+			console-size = <0x8000>;
+			pmsg-size = <0x8000>;
 
-		fb_reserved: framebuffer-mem@befc0000{
-			reg = <0xbefc0000 0x00c70000>;
-		};
-
-		wb_reserved: writeback@bfc30000{
-			reg = <0xbfc30000 0x00390000>;
-		};
-
-		logo_reserved: logobuffer@9e000000{
-			reg = <0x9e000000 0x00384000>;
 		};
 	};
 
@@ -368,8 +388,21 @@
 		sprd,name = "sprd-fm";
 	};
 
+	sprd-map-user {
+		compatible = "sprd,map-user";
+	};
+
 	sprd-wlan {
 		compatible = "sprd,sc2355-wifi";
+	};
+
+	resume_on_reboot {
+		compatible = "sprd,memdisk";
+
+		warm_boot {
+			memory-region = <&warm_boot_reserved>;
+			label = "warmboot";
+		};
 	};
 
 	gnss_common_ctl:gnss-common-ctl {
@@ -412,6 +445,12 @@
 		compatible = "linux,extcon-usb-gpio";
 		vbus-gpio = <&pmic_eic 0 GPIO_ACTIVE_HIGH>;
 	};
+
+	autotest: autotest {
+		compatible = "sprd,autotest";
+		sprd,pinctrl = <&pin_controller>;
+	};
+
 };
 
 &uart0 {

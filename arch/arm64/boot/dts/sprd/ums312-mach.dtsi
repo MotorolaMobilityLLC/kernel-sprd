@@ -19,6 +19,7 @@
 
 	chosen: chosen {
 		stdout-path = &uart1;
+		bootargs = "earlycon=sprd_serial,0x70100000,115200n8 console=ttyS1,115200n8 loglevel=1 init=/init root=/dev/ram0 ro rootwait swiotlb=1 printk.devkmsg=on androidboot.boot_devices=soc/soc:ap-apb/71400000.sdio";
 	};
 
 	memory: memory {

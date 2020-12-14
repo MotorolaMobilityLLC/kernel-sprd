@@ -485,6 +485,7 @@
 		vddio-supply = <&vddcamio>;
 		vddcama-supply = <&vddcama0>;
 		vddcamd-supply = <&vddcamd0>;
+		dvdd-gpios = <&ap_gpio 88 0>;
 		vddcammot-supply = <&vddcammot>;
 		reset-gpios = <&ap_gpio 44 0>;
 		power-down-gpios = <&ap_gpio 46 0>;

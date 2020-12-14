@@ -1208,6 +1208,22 @@ static int sc2703_charger_enable_otg(struct regulator_dev *dev)
 			"Failed to set dc-dc output current limit:%d\n", ret);
 		return ret;
 	}
+
+	/*
+	 *Set minimum system voltage 3000mv; The OTG function can only be
+	 *used when Battery is above the minimum system voltage;
+	 *if there is high power consumption in a low-power situation, the
+	 *battery voltage will be pulled below the minimum system voltage.
+	 */
+
+	ret = regmap_update_bits(info->regmap, SC2703_CHG_CTRL_C,
+				 SC2703_VSYS_MIN_MASK, 0x00);
+	if (ret) {
+		dev_err(info->dev,
+			 "Failed to set minimum system voltage:%d\n", ret);
+		return ret;
+	}
+
 	/* Enable 2703 otg mode */
 	ret = regmap_update_bits(info->regmap, SC2703_DCDC_CTRL_A,
 				 SC2703_OTG_EN_MASK,
@@ -1240,6 +1256,15 @@ static int sc2703_charger_disable_otg(struct regulator_dev *dev)
 	if (ret) {
 		dev_err(info->dev,
 			"Failed to disable sc2703 otg ret.\n");
+		return ret;
+	}
+
+	/* Set minimum system voltage 3420mv;*/
+	ret = regmap_update_bits(info->regmap, SC2703_CHG_CTRL_C,
+				 SC2703_VSYS_MIN_MASK, 0x07);
+	if (ret) {
+		dev_err(info->dev,
+			 "Failed to set minimum system voltage:%d\n", ret);
 		return ret;
 	}
 
