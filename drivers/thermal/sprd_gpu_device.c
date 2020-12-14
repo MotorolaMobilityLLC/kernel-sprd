@@ -22,7 +22,6 @@
 #include <linux/slab.h>
 #include <linux/kernel.h>
 #include <linux/platform_device.h>
-#include <linux/soc/sprd/hwfeature.h>
 
 #if defined(CONFIG_OTP_SPRD_AP_EFUSE)
 #include <linux/sprd_otp.h>
@@ -343,15 +342,6 @@ int create_gpu_cooling_device(struct devfreq *gpudev, u64 *mask)
 	struct thermal_cooling_device *devfreq_cooling;
 	int cluster_count;
 	int ret = 0;
-	char chip_type[64];
-
-	memset(chip_type, 0, sizeof(chip_type));
-	sprd_kproperty_get("lwfq/type", chip_type, "-1");
-
-	if (!strncmp(chip_type, "-1", strlen("-1"))) {
-		pr_err("don't support gpu cooling\n");
-		return -ENODEV;
-	}
 
 	if (gpudev == NULL || mask == NULL) {
 		pr_err("params is not complete!\n");
