@@ -366,6 +366,9 @@ static int ufs_sprd_pwr_change_notify(struct ufs_hba *hba,
 		dev_req_params->hs_rate = PA_HS_MODE_B;
 		break;
 	case POST_CHANGE:
+		/* Set auto h8 ilde time to 10ms */
+		ufshcd_writel(hba,
+			AUTO_H8_IDLE_TIME_10MS, REG_AUTO_HIBERNATE_IDLE_TIMER);
 		break;
 	default:
 		err = -EINVAL;
