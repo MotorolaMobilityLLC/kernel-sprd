@@ -1601,6 +1601,14 @@ static int android_setup(struct usb_gadget *gadget,
 	if (!cdev)
 		return value;
 	gi = container_of(cdev, struct gadget_info, cdev);
+	spin_lock_irqsave(&gi->spinlock, flags);
+	cdev = get_gadget_data(gadget);
+	if (!cdev || gi->unbind) {
+		spin_unlock_irqrestore(&gi->spinlock, flags);
+		return 0;
+	}
+	spin_unlock_irqrestore(&gi->spinlock, flags);
+
 	spin_lock_irqsave(&cdev->lock, flags);
 	if (!gi->connected) {
 		gi->connected = 1;
@@ -1608,6 +1616,7 @@ static int android_setup(struct usb_gadget *gadget,
 	}
 	spin_unlock_irqrestore(&cdev->lock, flags);
 
+	spin_lock_irqsave(&gi->spinlock, flags);
 	list_for_each_entry(fi, &gi->available_func, cfs_list) {
 		if (fi != NULL && fi->f != NULL && fi->f->setup != NULL) {
 			value = fi->f->setup(fi->f, c);
@@ -1624,6 +1633,8 @@ static int android_setup(struct usb_gadget *gadget,
 	if (value < 0)
 		value = composite_setup(gadget, c);
 
+	spin_unlock_irqrestore(&gi->spinlock, flags);
+
 	spin_lock_irqsave(&cdev->lock, flags);
 	if (c->bRequest == USB_REQ_SET_CONFIGURATION &&
 						cdev->config) {
@@ -1638,6 +1649,7 @@ static void android_disconnect(struct usb_gadget *gadget)
 {
 	struct usb_composite_dev        *cdev = get_gadget_data(gadget);
 	struct gadget_info *gi = container_of(cdev, struct gadget_info, cdev);
+	unsigned long flags;
 
 	/* FIXME: There's a race between usb_gadget_udc_stop() which is likely
 	 * to set the gadget driver to NULL in the udc driver and this drivers
@@ -1661,7 +1673,15 @@ static void android_disconnect(struct usb_gadget *gadget)
 #endif
 	gi->connected = 0;
 	schedule_work(&gi->work);
+
+	spin_lock_irqsave(&gi->spinlock, flags);
+	cdev = get_gadget_data(gadget);
+	if (!cdev || gi->unbind) {
+		spin_unlock_irqrestore(&gi->spinlock, flags);
+		return;
+	}
 	composite_disconnect(gadget);
+	spin_unlock_irqrestore(&gi->spinlock, flags);
 }
 #endif
 

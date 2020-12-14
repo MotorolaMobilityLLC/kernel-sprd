@@ -8498,12 +8498,12 @@ CONFIG_MIGRATION
 	while the virtual addresses are not changed.
 CONFIG_MII
 	[arch] all
-	[plat] pike2,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkle32
-	[missing plat] sharkl5_32
+	[plat] all
+	[missing plat] none
 	[field] code
 	[subsys] usb
 	[must] user
-	[missing plat description] sharkl5 usb host don't need support usb net
+	[missing plat description] none
 	[function] network phy interface
 CONFIG_MISC_FILESYSTEMS
 	[arch] all
@@ -11940,8 +11940,8 @@ CONFIG_SCHED_TUNE
 	[function] Enable boost for fair sched class tasks
 CONFIG_SCHED_WALT
 	[arch] all
-	[plat] sharkl3,sharkl3_32,sharkl5,sharkl5Pro
-	[missing plat] pike2,sharkl5_32,sharkle32
+	[plat] sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
+	[missing plat] pike2,sharkle32
 	[field] make,code
 	[subsys] sched
 	[must] user
@@ -12764,9 +12764,9 @@ CONFIG_SPRD_APB_BUSMONITOR
 	[missing plat description] missing plat don't use this IP
 	[function] Enable APB busmonitor function
 CONFIG_SPRD_APSYS_DVFS_DEVFREQ
-	[arch] arm64
-	[plat] sharkl5,sharkl5Pro
-	[missing plat] sharkl3
+	[arch] all
+	[plat] sharkl5,sharkl5Pro,sharkl5_32
+	[missing plat] pike2,sharkl3,sharkl3_32,sharkle32
 	[field] make
 	[subsys] devfreq
 	[must] user
@@ -12978,12 +12978,12 @@ CONFIG_SPRD_CPROC
 	[function] This function is used to enable sprd cproc module for modem boot.
 CONFIG_SPRD_CPU_COOLING
 	[arch] all
-	[plat] pike2,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkle32
-	[missing plat] sharkl5_32
+	[plat] all
+	[missing plat] none
 	[field] make
 	[subsys] thermal
 	[must] user
-	[missing plat description] no project requirement
+	[missing plat description] none
 	[function] sprd thermal policy
 CONFIG_SPRD_CPU_COOLING_CPUIDLE
 	[arch] arm64
@@ -12996,12 +12996,12 @@ CONFIG_SPRD_CPU_COOLING_CPUIDLE
 	[function] sprd thermal policy
 CONFIG_SPRD_CPU_COOLING_DEVICE
 	[arch] all
-	[plat] pike2,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkle32
-	[missing plat] sharkl5_32
+	[plat] all
+	[missing plat] none
 	[field] make
 	[subsys] thermal
 	[must] user
-	[missing plat description] no project requirement
+	[missing plat description] none
 	[function] sprd cpu power model
 CONFIG_SPRD_CPU_HOTPLUG_GOV
 	[arch] all
@@ -13012,6 +13012,15 @@ CONFIG_SPRD_CPU_HOTPLUG_GOV
 	[must] user
 	[missing plat description] none
 	[function] Enable cpu hotplug based on PM_QoS for IPA, powerhint and etc.
+CONFIG_SPRD_CPU_HOTPLUG_WORKAROUND
+	[arch] arm
+	[plat] pike2
+	[missing plat] sharkl3_32,sharkl5_32,sharkle32
+	[field] code
+	[subsys] cpuhotplug
+	[must] user
+	[missing plat description] this issue only happens in cortex-a7 platform.
+	[function] pike2 hotplug failed issue workaround
 CONFIG_SPRD_CPU_USAGE
 	[arch] all
 	[plat] all
@@ -13290,12 +13299,12 @@ CONFIG_SPRD_MAILBOX_R1P2
 	[function] This function is used to enable sprd mailbox r1p2 version.
 CONFIG_SPRD_MEMDISK
 	[arch] arm
-	[plat] pike2,sharkl3_32,sharkle32
-	[missing plat] sharkl5_32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
+	[missing plat] none
 	[field] make
 	[subsys] ota
 	[must] user
-	[missing plat description] sharkl5_32 is invalid in androidr
+	[missing plat description] none
 	[function] Using reserved memory generate block device node.
 CONFIG_SPRD_MEM_OVERLAY_CHECK
 	[arch] all
@@ -13714,9 +13723,9 @@ CONFIG_SPRD_TIMER
 	[missing plat description] none
 	[function] Support for Spreadtrum ARM based SoCs.
 CONFIG_SPRD_TOP_DVFS_DEVFREQ
-	[arch] arm64
-	[plat] sharkl5,sharkl5Pro
-	[missing plat] sharkl3
+	[arch] all
+	[plat] sharkl5,sharkl5Pro,sharkl5_32
+	[missing plat] pike2,sharkl3,sharkl3_32,sharkle32
 	[field] make
 	[subsys] devfreq
 	[must] user
@@ -13773,6 +13782,15 @@ CONFIG_SPRD_WATCHDOG_FIQ
 	[must] user
 	[missing plat description] function is not stable, so just for L3 temperally
 	[function] support watchdog fig mode
+CONFIG_SPRD_WATCHDOG_PMIC
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field] make,code,menu
+	[subsys] watchdog
+	[must] user
+	[missing plat description] none
+	[function] add ap sys watchdog.
 CONFIG_SRCU
 	[arch] all
 	[plat] all
@@ -14228,15 +14246,6 @@ CONFIG_THERMAL_GOV_POWER_ALLOCATOR
 	[must] user
 	[missing plat description] none
 	[function] Power allocator thermal governor.
-CONFIG_THERMAL_GOV_STEP_WISE
-	[arch] arm
-	[plat] sharkl5_32
-	[missing plat] pike2,sharkl3_32,sharkle32
-	[field] make
-	[subsys] thermal
-	[must] user
-	[missing plat description] only support power allocator governor
-	[function] thermal governor
 CONFIG_THERMAL_OF
 	[arch] all
 	[plat] all
@@ -15064,30 +15073,30 @@ CONFIG_USB_MUSB_SPRD
 	[function] This macro is to suppor SPRD platforms musb driver.
 CONFIG_USB_NET_AX88179_178A
 	[arch] all
-	[plat] pike2,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkle32
-	[missing plat] sharkl5_32
+	[plat] all
+	[missing plat] none
 	[field] make
 	[subsys] usb
 	[must] user
-	[missing plat description] Support for ethernet tethering function
+	[missing plat description] none
 	[function] This macro is to support AX88179 usb-network device
 CONFIG_USB_NET_AX8817X
 	[arch] all
-	[plat] pike2,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkle32
-	[missing plat] sharkl5_32
+	[plat] all
+	[missing plat] none
 	[field] make
 	[subsys] usb
 	[must] user
-	[missing plat description] Support for ethernet tethering function
+	[missing plat description] none
 	[function] This macro is to support AX8817X usb-network device
 CONFIG_USB_NET_DRIVERS
 	[arch] all
-	[plat] pike2,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkle32
-	[missing plat] sharkl5_32
+	[plat] all
+	[missing plat] none
 	[field] code
 	[subsys] usb
 	[must] user
-	[missing plat description] sharkl5 usb host don't need support usb net.
+	[missing plat description] none
 	[function] usb network driver
 CONFIG_USB_OHCI_HCD
 	[arch] all
@@ -15212,12 +15221,12 @@ CONFIG_USB_SUPPORT
 	[function] This option adds core support for Universal Serial Bus (USB).
 CONFIG_USB_USBNET
 	[arch] all
-	[plat] pike2,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkle32
-	[missing plat] sharkl5_32
+	[plat] all
+	[missing plat] none
 	[field] code
 	[subsys] usb
 	[must] user
-	[missing plat description] Support for usb network
+	[missing plat description] none
 	[function] This option adds usbnet function.
 CONFIG_USB_U_ETHER
 	[arch] all

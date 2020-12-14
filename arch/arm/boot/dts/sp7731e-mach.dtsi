@@ -15,6 +15,7 @@
 
 	chosen: chosen {
 		stdout-path = &uart1;
+		bootargs = "earlycon=sprd_serial,0x70100000,115200n8 loglevel=1 console=ttyS1,115200n8 init=/init root=/dev/ram0 rw printk.devkmsg=on androidboot.boot_devices=soc/soc:ap-ahb/20600000.sdio";
 	};
 
 	memory: memory@80000000 {
@@ -185,7 +186,7 @@
 			/* e*10^2   f*10^2     g*10^2  h*10^2*/
 			<  614      (-1110)    821     (-188)>;
 			sprd,efuse-switch = <0>;
-			sprd,hotplug-period = <0>;
+			sprd,hotplug-period = <10>;
 			sprd,min-cpufreq = <768000>;
 			sprd,min-cpunum = <4>;
 			sprd,core-base = <1139>;
