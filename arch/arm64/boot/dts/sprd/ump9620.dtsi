@@ -82,7 +82,7 @@
 		};
 
 		efuse@c00 {
-			compatible = "sprd,ump96xx-efuse", "sprd,sc27xx-efuse";
+			compatible = "sprd,ump9620-efuse", "sprd,sc27xx-efuse";
 			reg = <0xc00>;
 			#address-cells = <1>;
 			#size-cells = <1>;
