@@ -392,6 +392,9 @@ static void handle_critical_trips(struct thermal_zone_device *tz,
 		dev_emerg(&tz->device,
 			  "critical temperature reached (%d C), shutting down\n",
 			  tz->temperature / 1000);
+#ifdef    DUAL_85_VERSION
+#else
+		
 		mutex_lock(&poweroff_lock);
 		if (!power_off_triggered) {
 			/*
@@ -403,6 +406,7 @@ static void handle_critical_trips(struct thermal_zone_device *tz,
 			power_off_triggered = true;
 		}
 		mutex_unlock(&poweroff_lock);
+#endif		
 	}
 }
 
