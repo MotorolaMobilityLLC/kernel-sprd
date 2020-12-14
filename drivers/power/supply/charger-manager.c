@@ -2206,6 +2206,12 @@ static int charger_get_property(struct power_supply *psy,
 			val->intval = 100;
 		else if (val->intval < 0)
 			val->intval = 0;
+
+#ifdef    DUAL_85_VERSION
+		if (val->intval < 2)
+			val->intval = 2;
+#endif
+		
 		break;
 	case POWER_SUPPLY_PROP_ONLINE:
 		if (is_ext_pwr_online(cm))
@@ -3630,7 +3636,6 @@ static void cm_track_capacity_init(struct charger_manager *cm)
 }
 #ifdef    DUAL_85_VERSION
 extern int sc27xx_fgu_get_d85_temp( void);
-extern int sc27xx_fgu_get_d85_cap( void);
 #endif
 static void cm_batt_works(struct work_struct *work)
 {
@@ -3699,9 +3704,7 @@ static void cm_batt_works(struct work_struct *work)
 
 #ifdef    DUAL_85_VERSION
 	dev_err(cm->dev, "%s;D85 temp=%d; cur_temp=%d;\n",__func__,sc27xx_fgu_get_d85_temp(),cur_temp);
-	dev_err(cm->dev, "%s;D85 cap=%d; fuel_cap=%d;\n",__func__,sc27xx_fgu_get_d85_cap(),fuel_cap);
 	cur_temp = sc27xx_fgu_get_d85_temp();
-	fuel_cap = sc27xx_fgu_get_d85_cap();
 #endif
 
 

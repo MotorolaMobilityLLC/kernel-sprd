@@ -887,15 +887,9 @@ static int sc27xx_fgu_get_average_temp(struct sc27xx_fgu_data *data, int temp)
 
 #ifdef    DUAL_85_VERSION
 int d85_temp=0;
-int d85_cap=0;
 int sc27xx_fgu_get_d85_temp( void)
 {
 	return d85_temp;
-}
-
-int sc27xx_fgu_get_d85_cap( void)
-{
-	return d85_cap;
 }
 #endif
 static int sc27xx_fgu_get_temp(struct sc27xx_fgu_data *data, int *temp)
@@ -1057,16 +1051,7 @@ static int sc27xx_fgu_get_property(struct power_supply *psy,
 		if (ret)
 			goto error;
 
-#ifdef    DUAL_85_VERSION
-                     if(value <= 20)          //2%
-	                     val->intval  = 20;
-			else
-				val->intval = value;
-			
-			d85_cap =value;
-#else
 		val->intval = value;
-#endif
 		break;
 
 	case POWER_SUPPLY_PROP_VOLTAGE_AVG:
