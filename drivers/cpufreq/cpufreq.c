@@ -1164,6 +1164,13 @@ static void pm_qos_clusterx_freq_init(struct cpufreq_policy *policy)
 		pm_qos_add_notifier(PM_QOS_CLUSTER1_FREQ_MAX, &policy->pm_qos_freq_nb);
 		pm_qos_add_notifier(PM_QOS_CLUSTER1_FREQ_MIN, &policy->pm_qos_freq_nb);
 		break;
+	case CPU_CLUSTER2:
+		policy->pm_qos_freq_nb = (struct notifier_block){
+			.notifier_call = pm_qos_clusterx_freq_handler,
+		};
+		pm_qos_add_notifier(PM_QOS_CLUSTER2_FREQ_MAX, &policy->pm_qos_freq_nb);
+		pm_qos_add_notifier(PM_QOS_CLUSTER2_FREQ_MIN, &policy->pm_qos_freq_nb);
+		break;
 	default:
 		pr_warn("more cluster id is not support yet!\n");
 		break;
@@ -1182,6 +1189,10 @@ static void pm_qos_clusterx_freq_exit(struct cpufreq_policy *policy)
 	case CPU_CLUSTER1:
 		pm_qos_remove_notifier(PM_QOS_CLUSTER1_FREQ_MAX, &policy->pm_qos_freq_nb);
 		pm_qos_remove_notifier(PM_QOS_CLUSTER1_FREQ_MIN, &policy->pm_qos_freq_nb);
+		break;
+	case CPU_CLUSTER2:
+		pm_qos_remove_notifier(PM_QOS_CLUSTER2_FREQ_MAX, &policy->pm_qos_freq_nb);
+		pm_qos_remove_notifier(PM_QOS_CLUSTER2_FREQ_MIN, &policy->pm_qos_freq_nb);
 		break;
 	default:
 		pr_warn("more cluster id is not support yet!\n");
@@ -2103,6 +2114,9 @@ int __cpufreq_driver_target(struct cpufreq_policy *policy,
 		} else if (CPU_CLUSTER1 == cluster_id) {
 			qos_max_freq = pm_qos_request(PM_QOS_CLUSTER1_FREQ_MAX);
 			qos_min_freq = pm_qos_request(PM_QOS_CLUSTER1_FREQ_MIN);
+		} else if (CPU_CLUSTER2 == cluster_id) {
+			qos_max_freq = pm_qos_request(PM_QOS_CLUSTER2_FREQ_MAX);
+			qos_min_freq = pm_qos_request(PM_QOS_CLUSTER2_FREQ_MIN);
 		} else
 			pr_warn("more cluster id is not support yet!\n");
 		target_freq = clamp_val(target_freq, qos_min_freq, qos_max_freq);
