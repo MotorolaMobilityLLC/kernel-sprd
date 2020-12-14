@@ -156,17 +156,17 @@
 		entry-method = "arm,psci";
 		LIT_CORE_PD: lit_core_pd {
 			compatible = "arm,idle-state";
-			entry-latency-us = <0xffffffff>;
-			exit-latency-us = <0xffffffff>;
-			min-residency-us = <0xffffffff>;
+			entry-latency-us = <4000>;
+			exit-latency-us = <4000>;
+			min-residency-us = <10000>;
 			local-timer-stop;
 			arm,psci-suspend-param = <0x00010000>;
 		};
 		BIG_CORE_PD: big_core_pd {
 			compatible = "arm,idle-state";
-			entry-latency-us = <0xffffffff>;
-			exit-latency-us = <0xffffffff>;
-			min-residency-us = <0xffffffff>;
+			entry-latency-us = <4000>;
+			exit-latency-us = <4000>;
+			min-residency-us = <10000>;
 			local-timer-stop;
 			arm,psci-suspend-param = <0x00010000>;
 		};
@@ -1005,10 +1005,12 @@
 };
 
 &sdio0 {
-	clock-names = "sdio_clk","sdio_clk_source","sdio_ahb_enable";
+	clock-names = "sdio_clk", "sdio_clk_source",
+		"sdio_ahb_enable", "sdio_hp_det_clk";
 	clocks = <&ap_clk CLK_SDIO0_2X>,
-		 <&pll1 CLK_RPLL>,
-		 <&apapb_gate CLK_SDIO0_EB>;
+		<&pll1 CLK_RPLL>,
+		<&apapb_gate CLK_SDIO0_EB>,
+		<&apapb_gate CLK_SDIO0_32K_EB>;
 };
 
 &sdio1 {
@@ -1160,6 +1162,7 @@
 			"jpg_dev_eb",
 			"jpg_ckg_eb",
 			"jpg_clk",
+			"clk_src_76m8",
 			"clk_src_128m",
 			"clk_src_192m",
 			"clk_src_256m";
@@ -1167,6 +1170,7 @@
 			<&mm_gate CLK_MM_JPG_EB>,
 			<&mm_gate CLK_MM_CKG_EB>,
 			<&mm_clk CLK_JPG>,
+			<&pll2 CLK_TWPLL_76M8>,
 			<&pll2 CLK_TWPLL_128M>,
 			<&pll2 CLK_TWPLL_192M>,
 			<&pll2 CLK_TWPLL_256M>;

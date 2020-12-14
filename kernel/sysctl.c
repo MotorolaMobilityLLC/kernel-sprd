@@ -387,6 +387,13 @@ static struct ctl_table kern_table[] = {
 		.mode           = 0644,
 		.proc_handler   = proc_dointvec,
 	},
+	{
+		.procname       = "sched_walt_io_is_busy",
+		.data           = &walt_io_is_busy,
+		.maxlen         = sizeof(unsigned int),
+		.mode           = 0644,
+		.proc_handler   = proc_dointvec,
+	},
 #endif
 #ifdef CONFIG_SCHED_TUNE
 	{
