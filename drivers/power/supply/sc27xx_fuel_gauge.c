@@ -1404,7 +1404,12 @@ static irqreturn_t sc27xx_fgu_bat_detection(int irq, void *dev_id)
 		return IRQ_RETVAL(state);
 	}
 
+#ifdef    DUAL_85_VERSION
+	dev_err(data->dev, "%s;bat_present =%d; \n",__func__,!!state);
+	data->bat_present = true;
+#else
 	data->bat_present = !!state;
+#endif
 
 	mutex_unlock(&data->lock);
 
@@ -1471,7 +1476,7 @@ static int sc27xx_fgu_calibration(struct sc27xx_fgu_data *data)
 				  data->calib_resist_spec);
 
 	kfree(buf);
-	dev_err(data->dev, "%s;%d;%d;%d;%d;\n",__func__,calib_data,cal_4200mv,data->vol_1000mv_adc,data->cur_1000ma_adc);
+	dev_err(data->dev, "%s;%x;%d;%d;%d;\n",__func__,calib_data,cal_4200mv,data->vol_1000mv_adc,data->cur_1000ma_adc);
 	return 0;
 }
 
@@ -1759,8 +1764,12 @@ static int sc27xx_fgu_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "failed to get gpio state\n");
 		return ret;
 	}
-
+#ifdef    DUAL_85_VERSION
+	dev_err(&pdev->dev, "%s;bat_present=%d;\n",__func__,!!ret);
+	data->bat_present = true;
+#else
 	data->bat_present = !!ret;
+#endif
 	mutex_init(&data->lock);
 	data->dev = &pdev->dev;
 	platform_set_drvdata(pdev, data);
