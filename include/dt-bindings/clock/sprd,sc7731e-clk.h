@@ -1,23 +1,25 @@
-// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
-//
-// Spreadtrum SC7731E platform clocks
-//
-// Copyright (C) 2019, Spreadtrum Communications Inc.
+/* SPDX-License-Identifier: GPL-2.0-only */
+/*
+ * Unisoc SC7731E platform clocks
+ *
+ * Copyright (C) 2020, Unisoc Inc.
+ */
 
 #ifndef _DT_BINDINGS_CLK_SC7731E_H_
 #define _DT_BINDINGS_CLK_SC7731E_H_
 
-#define CLK_FAC_13M		0
-#define CLK_FAC_6M5		1
-#define CLK_FAC_4M3		2
-#define CLK_FAC_2M		3
-#define CLK_FAC_1M		4
-#define CLK_FAC_250K		5
-#define	CLK_CPLL_GATE		6
-#define	CLK_GPLL_GATE		7
-#define	CLK_MPLL_GATE		8
-#define	CLK_DPLL_GATE		9
-#define	CLK_BBPLL_GATE		10
+#define CLK_26M_AUD		0
+#define CLK_13M			1
+#define CLK_6M5			2
+#define CLK_4M3			3
+#define CLK_2M			4
+#define CLK_1M			5
+#define CLK_250K		6
+#define	CLK_CPLL_GATE		7
+#define	CLK_GPLL_GATE		8
+#define	CLK_MPLL_GATE		9
+#define	CLK_DPLL_GATE		10
+#define	CLK_BBPLL_GATE		11
 #define	CLK_PMU_APB_NUM		(CLK_BBPLL_GATE + 1)
 
 #define CLK_TWPLL		0
