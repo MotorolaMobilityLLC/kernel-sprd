@@ -5,6 +5,8 @@
  * Copyright (C) 2019, Spreadtrum Communications Inc.
  */
 
+#include <dt-bindings/soc/sprd,qogirn6pro-regs.h>
+#include <dt-bindings/soc/sprd,qogirn6pro-mask.h>
 / {
 	interrupt-parent = <&gic>;
 	#address-cells = <2>;
@@ -15,6 +17,30 @@
 		#address-cells = <2>;
 		#size-cells = <2>;
 		ranges;
+
+		ap_ahb_regs: syscon@20000000 {
+			compatible = "sprd,ums9520-glbregs", "syscon";
+			#syscon-cells = <2>;
+			reg = <0 0x20000000 0 0x6000>;
+		};
+
+		ap_apb_regs: syscon@20100000 {
+			compatible = "sprd,ums9520-glbregs", "syscon";
+			#syscon-cells = <2>;
+			reg = <0 0x20100000 0 0x3000>;
+		};
+
+		aon_apb_regs: syscon@64900000 {
+			compatible = "sprd,ums9520-glbregs", "syscon";
+			#syscon-cells = <2>;
+			reg = <0 0x64900000 0 0x3000>;
+		};
+
+		pmu_apb_regs: syscon@64910000 {
+			compatible = "sprd,ums9520-glbregs", "syscon";
+			#syscon-cells = <2>;
+			reg = <0 0x64910000 0 0x3000>;
+		};
 
 		ap-apb {
 			compatible = "simple-bus";
