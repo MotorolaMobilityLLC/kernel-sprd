@@ -116,7 +116,6 @@ static void hang_debug_unpark(unsigned int cpu)
 
 static void hang_debug_task(unsigned int cpu)
 {
-
 	spin_lock(&lock);
 
 	cpu_feed_bitmap |= (1U << cpu);
@@ -124,10 +123,12 @@ static void hang_debug_task(unsigned int cpu)
 		pr_debug("feed wdt cpu_feed_bitmap = 0x%08x\n", cpu_feed_bitmap);
 		cpu_feed_bitmap = 0;
 #if IS_ENABLED(CONFIG_SPRD_WATCHDOG_FIQ)
+		spin_unlock(&lock);
 		if (wdd->ops->start)
 			wdd->ops->start(wdd);
 #endif
 	} else {
+		spin_unlock(&lock);
 		pr_debug("cpu_feed_bitmap = 0x%08x\n", cpu_feed_bitmap);
 	}
 
@@ -137,9 +138,6 @@ static void hang_debug_task(unsigned int cpu)
 	}
 
 	__this_cpu_write(g_enable, 0);
-
-	spin_unlock(&lock);
-
 }
 
 static struct smp_hotplug_thread hang_debug_threads = {
