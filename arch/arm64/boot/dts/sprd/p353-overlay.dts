@@ -9,6 +9,13 @@
 #include <dt-bindings/mfd/sprd,sc2730-mask.h>
 #include "lcd/lcd_td4310_truly_mipi_fhd.dtsi"
 #include "lcd/lcd_ssd2092_truly_mipi_fhd.dtsi"
+// add LCD begin:
+#include "lcd/lcd_nt36525b_djn_mipi_hd.dtsi"
+#include "lcd/lcd_ili9882n_tm_mipi_hd.dtsi"
+#include "lcd/lcd_ili9882n90_tm_mipi_hd.dtsi"
+#include "lcd/lcd_ili9882n_txd_mipi_hd.dtsi"
+#include "lcd/lcd_nt36525c_djn_mipi_hd.dtsi"
+// add LCD end
 #include "lcd/lcd_dummy_mipi.dtsi"
 
 / {
@@ -40,6 +47,14 @@
 					wakeup-source;
 				};
 
+				key-unplug {
+					label = "Unplug Key";
+					linux,code = <KEY_TV>;
+					gpios = <&ap_gpio 30 GPIO_ACTIVE_HIGH>;
+					debounce-interval = <30>;
+					wakeup-source;
+				};
+
 				key-volumeup {
 					label = "Volume Up Key";
 					linux,code = <KEY_VOLUMEUP>;
@@ -55,8 +70,18 @@
 					debounce-interval = <2>;
 					wakeup-source;
 				};
+				
+				key-googlekey {
+					label = "Google Key";
+					linux,code = <KEY_ASSISTANT>;
+					gpios = <&ap_gpio 125 GPIO_ACTIVE_LOW>;
+					debounce-interval = <2>;
+					wakeup-source;
+				};
 			};
 
+			// modify use DSI command set backlight begin:
+			/***
 			pwm_backlight: backlight {
 				compatible = "sprd,sharkl5pro-backlight";
 				pwms = <&pwms 2 40000>;
@@ -93,6 +118,8 @@
 					826 832 838 844 850 856 862 868 874 880
 				>;
 			};
+			***/
+			// modify use DSI command set backlight end
 
 			bat: battery {
 				compatible = "simple-battery";
@@ -590,6 +617,29 @@
 
 };
 
+&spi2 {
+	status = "okay";
+	ilitek_tddi@1 {
+		compatible = "tchip,ilitek";
+		reg = <1>;
+		spi-max-frequency = <10000000>;
+
+		gpios = <&ap_gpio 145 GPIO_ACTIVE_HIGH
+			&ap_gpio 144 GPIO_ACTIVE_HIGH>;
+		interrupt-parent = <&ap_gpio>;
+		touch,reset-gpio = <&ap_gpio 145 GPIO_ACTIVE_HIGH>;
+		touch,irq-gpio = <&ap_gpio 144 GPIO_ACTIVE_HIGH>;
+//		pinctrl-names = "pmx_ts_int_active","pmx_ts_int_suspend_high";
+//		pinctrl-0 = <&ts_int_active>;
+//		pinctrl-1 = <&ts_int_suspend_high>;
+		panel = <&lcd_ili9882n_tm_mipi_hd>;
+	};
+
+};
+&spi0 {
+	status = "okay";
+};
+#include "novatek-nt36xxx-spi.dtsi"
 &aon_i2c0 {
 	status = "okay";
 	clock-frequency = <1000000>;
@@ -614,15 +664,21 @@
 };
 
 &panel {
-	sprd,backlight = <&pwm_backlight>;
+// modify use DSI command set backlight begin:
+//	sprd,backlight = <&pwm_backlight>;
+// modify use DSI command set backlight end
 	avdd-gpio = <&ap_gpio 132 GPIO_ACTIVE_HIGH>;
 	avee-gpio = <&ap_gpio 133 GPIO_ACTIVE_HIGH>;
 	reset-gpio = <&ap_gpio 50 GPIO_ACTIVE_HIGH>;
 };
 
+// modify use DSI command set backlight begin:
+/***
 &dpu {
 	sprd,backlight = <&pwm_backlight>;
 };
+***/
+// modify use DSI command set backlight end
 
 &lcd_td4310_truly_mipi_fhd {
 	sprd,phy-bit-clock = <1104000>;  /* kbps */
@@ -684,8 +740,8 @@
 };
 
 &adi_bus {
-	sprd,hw-channels = <2 0x18cc>, <3 0x18cc>, <13 0x1854>, <15 0x1874>,
-			 <17 0x1844>,<19 0x1844>, <21 0x1864>, <30 0x1820>,
+	sprd,hw-channels = <2 0x18cc>, <3 0x18cc>, <13 0x1874>, <15 0x1874>,
+			 <17 0x1844>,<19 0x1854>, <21 0x1864>, <30 0x1820>,
 			 <35 0x19b8>, <39 0x19ac>;
 };
 
@@ -720,26 +776,24 @@
 };
 
 &dvfs_dcdc_cpu1_supply {
-	chnl-i2c-used;
-	third-pmic-used;
-	pmic-type-num = <2>;
-	slew-rate = <4000>; /* 4000uV/us */
-	supply-type-sel = <0x120 0 1>;
-	top-dvfs-i2c-state = <0x9c 4 0xf>;
+	pmic-type-num = <0>;
+	slew-rate = <9375>; /* 9375uV/us */
+	supply-type-sel = <0x120 0 0>;
+	top-dvfs-adi-state = <0x9c 0 0xf>;
 	voltage-grade-num = <6>;
-	voltage-grade = <0 0x0f 0x12c 0 0x7f>,
-		<1 0x14 0x12c 7 0x7f>,
-		<2 0x19 0x12c 14 0x7f>,
-		<3 0x1e 0x12c 21 0x7f>,
-		<4 0x23 0x130 0 0x7f>,
-		<5 0x28 0x130 7 0x7f>;
+	voltage-grade = <0 0xf0 0x100 0 0x1ff>,
+		<1 0x100 0x100 9 0x1ff>,
+		<2 0x110 0x100 18 0x1ff>,
+		<3 0x120 0x104 0 0x1ff>,
+		<4 0x130 0x104 9 0x1ff>,
+		<5 0x140 0x104 18 0x1ff>;
 	voltage-up-delay = <50 0x84 0 0xffff 0x1600>,
-		<100 0x84 16 0xffff 0x1a00>,
+		<100 0x84 16 0xffff 0xa00>,
 		<150 0x80 0 0xffff 0x1f00>,
-		<200 0x80 16 0xffff 0x2400>,
-		<250 0x7c 0 0xffff 0x2900>,
-		<300 0x7c 16 0xffff 0x2e00>,
-		<350 0x118 0 0xffff 0x3300>;
+		<200 0x80 16 0xffff 0x1400>,
+		<250 0x7c 0 0xffff 0x1900>,
+		<300 0x7c 16 0xffff 0x1e00>,
+		<350 0x118 0 0xffff 0x2300>;
 	voltage-down-delay = <50 0x90 0 0xffff 0x600>,
 		<100 0x90 16 0xffff 0xa00>,
 		<150 0x8c 0 0xffff 0xf00>,
@@ -747,8 +801,8 @@
 		<250 0x88 0 0xffff 0x1900>,
 		<300 0x88 16 0xffff 0x1e00>,
 		<350 0x11c 0 0xffff 0x2300>;
-	tuning-latency-us = <0>;
-	chnl-in-i2c = <1>;
+	tuning-latency-us = <200>;
+	chnl-in-i2c = <0>;
 };
 
 &ion {
