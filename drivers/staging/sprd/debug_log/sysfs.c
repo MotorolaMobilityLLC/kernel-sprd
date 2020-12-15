@@ -23,7 +23,7 @@ static ssize_t freq_show(struct device *dev,
 {
 	struct dbg_log_device *dbg = dev_get_drvdata(dev);
 	struct phy_ctx *phy = dbg->phy;
-	int ret = 0;
+	ssize_t ret = 0;
 	int i;
 	char temp_sbuf[64] = { 0 };
 	char temp_buf[16];
@@ -89,7 +89,7 @@ static ssize_t channel_show(struct device *dev,
 			    struct device_attribute *attr, char *buf)
 {
 	struct dbg_log_device *dbg = dev_get_drvdata(dev);
-	unsigned int ret = 0;
+	ssize_t ret = 0;
 	int i = 0;
 	char temp_sbuf[200] = { 0 }, temp_buf[10];
 
