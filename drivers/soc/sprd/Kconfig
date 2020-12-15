@@ -57,7 +57,15 @@ config SPRD_DEBUG
 	help
 	  Say y here to enable Debug support.
 
-source "drivers/soc/sprd/power_debug/Kconfig"
 source "drivers/soc/sprd/debug/Kconfig"
 source "drivers/soc/sprd/performance/Kconfig"
 source "drivers/soc/sprd/pub/Kconfig"
+
+menuconfig SPRD_POWER
+	tristate "Spreadtrum debug power driver"
+	depends on PM_SLEEP && ARCH_SPRD
+	default y
+	help
+	Select this to enable debug power driver for sprd soc.
+
+source "drivers/soc/sprd/power/Kconfig"

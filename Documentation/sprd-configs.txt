@@ -13403,15 +13403,6 @@ CONFIG_SPRD_NATIVE_HANG_MONITOR
 	[must] debug
 	[missing plat description] none
 	[function] This function is used to save debug information when native hang
-CONFIG_SPRD_PIKE2_POWER_DEBUG
-	[arch] arm
-	[plat] pike2
-	[missing plat] sharkl3_32,sharkl5_32,sharkle32
-	[field] make
-	[subsys] soc
-	[must] debug
-	[missing plat description] Only pike2 used this special driver.
-	[function] Enable/disable sprd pike2 power debug function.
 CONFIG_SPRD_PIKE2_SLEEP
 	[arch] arm
 	[plat] pike2
@@ -13443,15 +13434,24 @@ CONFIG_SPRD_PMIC_SYSCON
 	[must] debug
 	[missing plat description] sharkl3 does not have this function
 	[function] This function is used to calibrate PMIC 26M.
-CONFIG_SPRD_POWER_DEBUG
+CONFIG_SPRD_POWER
 	[arch] all
 	[plat] all
 	[missing plat] none
 	[field] make
 	[subsys] soc
-	[must] debug
+	[must] user
 	[missing plat description] none
-	[function] Enable/disable sprd power debug function.
+	[function] Power debug function
+CONFIG_SPRD_POWER_LOG
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field] make
+	[subsys] soc
+	[must] user
+	[missing plat description] none
+	[function] Debug log function in power debug
 CONFIG_SPRD_PTM
 	[arch] all
 	[plat] sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
@@ -13511,15 +13511,6 @@ CONFIG_SPRD_SENSOR_HUB
 	[missing plat description] missing pike2 because it don't support sensorhub,
 			missing sharkle32 because it don't support sensorhub
 	[function] enable sensor hub driver built in kernel
-CONFIG_SPRD_SHARKL3_POWER_DEBUG
-	[arch] all
-	[plat] sharkl3,sharkl3_32
-	[missing plat] pike2,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
-	[field] make
-	[subsys] soc
-	[must] debug
-	[missing plat description] Only sharkl3 used this special driver.
-	[function] Enable/disable sprd sharkl3 power debug function.
 CONFIG_SPRD_SHARKL3_USB2_PHY
 	[arch] all
 	[plat] sharkl3,sharkl3_32
@@ -13539,15 +13530,6 @@ CONFIG_SPRD_SHARKL5PRO_CLK
 	[missing plat description] CONFIG_SPRD_SHARKL5PRO_CLK is only for sharkl5pro platform and
 				   other projects have their own driver.
 	[function] This function is used to enable sharkl5pro platform clock driver.
-CONFIG_SPRD_SHARKL5PRO_POWER_DEBUG
-	[arch] arm64
-	[plat] sharkl5Pro
-	[missing plat] sharkl3,sharkl5
-	[field] make
-	[subsys] soc
-	[must] debug
-	[missing plat description] Only sharkl5pro used this special driver.
-	[function] Enable/disable sprd sharkl5pro power debug function.
 CONFIG_SPRD_SHARKL5_CLK
 	[arch] all
 	[plat] sharkl5,sharkl5_32
@@ -13558,15 +13540,6 @@ CONFIG_SPRD_SHARKL5_CLK
 	[missing plat description] CONFIG_SPRD_SHARKL5_CLK is only for sharkl5 platform and other
 				   projects have their own driver.
 	[function] This function is used to enable sharkl5 platform clock driver.
-CONFIG_SPRD_SHARKL5_POWER_DEBUG
-	[arch] all
-	[plat] sharkl5,sharkl5_32
-	[missing plat] pike2,sharkl3,sharkl3_32,sharkl5Pro,sharkle32
-	[field] make
-	[subsys] soc
-	[must] debug
-	[missing plat description] Only sharkl5 used this special driver.
-	[function] Enable/disable sprd sharkl5 power debug function.
 CONFIG_SPRD_SHARKL5_USB2_PHY
 	[arch] all
 	[plat] sharkl5,sharkl5Pro,sharkl5_32
@@ -13580,15 +13553,6 @@ CONFIG_SPRD_SHARKL5_USB2_PHY
 				   missing sharkl3_32 because has different phy
 				   missing sharkle32 because has different phy
 	[function] usb phy init
-CONFIG_SPRD_SHARKLE_POWER_DEBUG
-	[arch] arm
-	[plat] sharkle32
-	[missing plat] pike2,sharkl3_32,sharkl5_32
-	[field] make
-	[subsys] soc
-	[must] debug
-	[missing plat description] Only sharkle used this special driver.
-	[function] Enable/disable sprd sharkle power debug function.
 CONFIG_SPRD_SHARKLE_USB2_PHY
 	[arch] arm
 	[plat] sharkle32
