@@ -111,7 +111,6 @@ static void hang_debug_unpark(unsigned int cpu)
 
 static void hang_debug_task(unsigned int cpu)
 {
-
 	spin_lock(&lock);
 
 	cpu_feed_bitmap |= (1U << cpu);
@@ -119,11 +118,13 @@ static void hang_debug_task(unsigned int cpu)
 		pr_debug("%s feed wdt cpu_feed_bitmap = 0x%08x\n",
 			__func__, cpu_feed_bitmap);
 		cpu_feed_bitmap = 0;
+		spin_unlock(&lock);
 #ifdef CONFIG_SPRD_WATCHDOG_FIQ
 		if (wdd->ops->start)
 			wdd->ops->start(wdd);
 #endif
 	} else {
+		spin_unlock(&lock);
 		pr_debug("%s cpu_feed_bitmap = 0x%08x\n", __func__, cpu_feed_bitmap);
 	}
 
@@ -133,9 +134,6 @@ static void hang_debug_task(unsigned int cpu)
 	}
 
 	__this_cpu_write(g_enable, 0);
-
-	spin_unlock(&lock);
-
 }
 
 static struct smp_hotplug_thread hang_debug_threads = {
