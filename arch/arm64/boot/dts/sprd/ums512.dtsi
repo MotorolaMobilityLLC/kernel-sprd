@@ -58,6 +58,7 @@
 			cpufreq-data-v1 = <&cpufreq_cluster0_opp>;
 			capacity-dmips-mhz = <544>;
 			dynamic-power-coefficient = <102>;
+			#cooling-cells = <2>;
 		};
 
 		CPU1: cpu@100 {
@@ -119,6 +120,7 @@
 			cpufreq-data-v1 = <&cpufreq_cluster1_opp>;
 			capacity-dmips-mhz = <1024>;
 			dynamic-power-coefficient = <501>;
+			#cooling-cells = <2>;
 		};
 
 		CPU7: cpu@700 {
