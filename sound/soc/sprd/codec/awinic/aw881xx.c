@@ -1324,6 +1324,11 @@ static void aw881xx_startup_work(struct work_struct *work)
 
 	aw_dev_info(aw881xx->dev, "%s:enter\n", __func__);
 
+	if (aw881xx->cali_attr.cali_re == AW_ERRO_CALI_VALUE) {
+		aw881xx_get_cali_re(&aw881xx->cali_attr);
+		aw881xx_dsp_update_cali_re(aw881xx);
+	}
+
 	if (aw881xx->fw_status == AW881XX_FW_OK) {
 		if (aw881xx->allow_pw == false) {
 			aw_dev_info(aw881xx->dev, "%s:dev can not allow power\n",
@@ -2876,8 +2881,6 @@ static int aw881xx_codec_probe(aw_snd_soc_codec_t *codec)
 	queue_delayed_work(aw881xx->work_queue,
 			&aw881xx->load_fw_work,
 			msecs_to_jiffies(AW_LOAD_BIN_TIME_MS));
-
-	aw881xx_get_cali_re(&aw881xx->cali_attr);
 
 	aw_dev_info(aw881xx->dev, "%s: exit\n", __func__);
 
