@@ -669,16 +669,19 @@ void print_time(bool show_delta)
 	s32 boot_nsec;
 	struct timespec ts;
 	struct rtc_time tm;
+	s64 dt_mono;
 
 	kt_boot = ktime_get_boottime();
+	dt_mono = NSEC_PER_SEC + kt_boot - ktime_get();
 	if (show_delta)
 		pr_info("delta time: %5lu\n", (unsigned long)div_s64(kt_boot - kt_boot0, NSEC_PER_SEC));
 	kt_boot0 = kt_boot;
 	kt_boot = div_s64_rem(kt_boot, NSEC_PER_SEC, &boot_nsec);
+	dt_mono = div_s64(dt_mono, NSEC_PER_SEC);
 	getnstimeofday(&ts);
 	rtc_time_to_tm(ts.tv_sec, &tm);
-	pr_info("boot time: %5lu.%06u  real time: %d-%02d-%02d %02d:%02d:%02d.%06lu UTC\n",
-		(unsigned long)kt_boot, boot_nsec / 1000,
+	pr_info("boottime: %5lu.%06u  boottime-monotime: %5lu  realtime: %d-%02d-%02d %02d:%02d:%02d.%06lu UTC\n",
+		(unsigned long)kt_boot, boot_nsec / 1000, (unsigned long)dt_mono,
 		tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
 		tm.tm_hour, tm.tm_min, tm.tm_sec, ts.tv_nsec / 1000);
 }
