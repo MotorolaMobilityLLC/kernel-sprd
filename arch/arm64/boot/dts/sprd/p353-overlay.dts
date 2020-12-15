@@ -241,9 +241,9 @@
 				m2-to-ap-coexist-gpios = <&ap_gpio 119 GPIO_ACTIVE_LOW>;
 				m2-wakeup-ap-gpios = <&ap_gpio 32 GPIO_ACTIVE_LOW>;
 				permit-ap-send-gpios = <&ap_gpio 121 GPIO_ACTIVE_LOW>;
-				reset-gpios = <&ap_gpio 97 GPIO_ACTIVE_LOW>;
+				reset-gpios = <&ap_gpio 95 GPIO_ACTIVE_LOW>;
 				enable-gpios = <&ap_gpio 143 GPIO_ACTIVE_LOW>;
-				m2-to-ap-irq-gpios = <&ap_gpio 96 GPIO_ACTIVE_LOW>;
+				m2-to-ap-irq-gpios = <&ap_gpio 94 GPIO_ACTIVE_LOW>;
 				avdd12-supply = <&vddwcn>;
 				avdd33-supply = <&vddwifipa>;
 				dcxo18-supply = <&vddsim2>;
@@ -503,18 +503,19 @@
 				<&pll2 CLK_TWPLL_96M>,<&pll2 CLK_TWPLL_76M8>,
 				<&pll2 CLK_TWPLL_48M>,<&ext_26m>;
 		vddio-supply = <&vddcamio>;
-		vddcama-supply = <&vddcama0>;
 		vddcamd-supply = <&vddcamd0>;
+		vddcama-supply = <&vddcama0>;
 		vddcammot-supply = <&vddcammot>;
+		avdd-gpios = <&ap_gpio 16 0>;
 		reset-gpios = <&ap_gpio 44 0>;
-		power-down-gpios = <&ap_gpio 46 0>;
+		//power-down-gpios = <&ap_gpio 16 0>;
 		sprd,phyid = <0>;
 		csi = <&csi0>;
 	};
 
-	sensor_sub: sensor-sub@5a {
-		compatible = "sprd,sensor-sub";
-		reg = <0x5a>;
+	sensor_main3: sensor-main3@6c {
+		compatible = "sprd,sensor-main3";
+		reg = <0x6c>;
 		clock-names = "clk_src","sensor_eb",
 			"clk_96m","clk_76m8",
 			"clk_48m","clk_26m";
@@ -523,20 +524,40 @@
 				<&pll2 CLK_TWPLL_48M>,<&ext_26m>;
 		vddio-supply = <&vddcamio>;
 		vddcama-supply = <&vddcama0>;
-		vddcamd-supply = <&vddcamd0>;
-		vddcammot-supply = <&vddcammot>;
-		reset-gpios = <&ap_gpio 41 0>;
-		power-down-gpios = <&ap_gpio 40 0>;
-		mipi-switch-en-gpios = <&ap_gpio 55 0>;
-		mipi-switch-mode-gpios = <&ap_gpio 8 0>;
-		sprd,phyid = <1>;
-		csi = <&csi0>;
+		vddcamd-supply = <&vddcamd1>;
+		//vddcammot-supply = <&vddcammot>;
+		//mot-gpios = <&ap_gpio 88 0>;
+		reset-gpios = <&ap_gpio 40 0>;
+		//power-down-gpios = <&ap_gpio 40 0>;
+		//mipi-switch-en-gpios = <&ap_gpio 8 0>;
+		mipi-switch-mode-gpios = <&ap_gpio 135 0>;
+		sprd,phyid = <2>;
+		csi = <&csi1>;
 	};
 };
 
 &i2c1 {
 	status = "okay";
 	clock-frequency = <400000>;
+	sensor_sub: sensor-sub@5a {
+		compatible = "sprd,sensor-sub";
+		reg = <0x5a>;
+		clock-names = "clk_src","sensor_eb",
+			"clk_96m","clk_76m8",
+			"clk_48m","clk_26m";
+		clocks = <&mm_clk CLK_SENSOR1>,<&mm_gate CLK_MM_SENSOR1_EB>,
+				<&pll2 CLK_TWPLL_96M>,<&pll2 CLK_TWPLL_76M8>,
+				<&pll2 CLK_TWPLL_48M>,<&ext_26m>;
+		vddio-supply = <&vddcamio>;
+		vddcamd-supply = <&vddcamd1>;
+		avdd-gpios = <&ap_gpio 33 0>;
+		reset-gpios = <&ap_gpio 45 0>;
+		//power-down-gpios = <&ap_gpio 33 0>;
+		//mipi-switch-en-gpios = <&ap_gpio 135 0>;
+		mipi-switch-mode-gpios = <&ap_gpio 8 0>;
+		sprd,phyid = <1>;
+		csi = <&csi0>;
+	};
 
 	sensor_main2: sensor-main2@20 {
 		compatible = "sprd,sensor-main2";
@@ -548,16 +569,16 @@
 				<&pll2 CLK_TWPLL_96M>,<&pll2 CLK_TWPLL_76M8>,
 				<&pll2 CLK_TWPLL_48M>,<&ext_26m>;
 		vddio-supply = <&vddcamio>;
-		vddcama-supply = <&vddcama1>;
-		vddcamd-supply = <&vddcamd1>;
-		vddcammot-supply = <&vddcammot>;
-		avdd-gpios = <&ap_gpio 33 0>;
-		mot-gpios = <&ap_gpio 88 0>;
-		reset-gpios = <&ap_gpio 45 0>;
-		power-down-gpios = <&ap_gpio 47 0>;
-		mipi-switch-en-gpios = <&ap_gpio 55 0>;
-		mipi-switch-mode-gpios = <&ap_gpio 8 0>;
-		sprd,phyid = <1>;
+		vddcama-supply = <&vddcama0>;
+		//vddcamd-supply = <&vddcamd1>;
+		//vddcammot-supply = <&vddcammot>;
+		//avdd-gpios = <&ap_gpio 33 0>;
+		//mot-gpios = <&ap_gpio 88 0>;
+		//reset-gpios = <&ap_gpio 40 0>;
+		power-down-gpios = <&ap_gpio 46 0>;
+		//mipi-switch-en-gpios = <&ap_gpio 8 0>;
+		mipi-switch-mode-gpios = <&ap_gpio 135 0>;
+		sprd,phyid = <2>;
 		csi = <&csi1>;
 	};
 
@@ -571,39 +592,22 @@
 			<&pll2 CLK_TWPLL_96M>,<&pll2 CLK_TWPLL_76M8>,
 			<&pll2 CLK_TWPLL_48M>,<&ext_26m>;
 		vddio-supply = <&vddcamio>;
-		vddcama-supply = <&vddcama1>;
+		//vddcama-supply = <&vddcama1>;
 		vddcamd-supply = <&vddcamd1>;
-		vddcammot-supply = <&vddcammot>;
-		mot-gpios = <&ap_gpio 88 0>;
+		//vddcammot-supply = <&vddcammot>;
+		avdd-gpios = <&ap_gpio 33 0>;
 		reset-gpios = <&ap_gpio 41 0>;
-		power-down-gpios = <&ap_gpio 40 0>;
-		sprd,phyid = <2>;
-		csi = <&csi2>;
-	};
+		//power-down-gpios = <&ap_gpio 33 0>;
 
-	sensor_main3: sensor-main3@6c {
-		compatible = "sprd,sensor-main3";
-		reg = <0x6c>;
-		clock-names = "clk_src","sensor_eb",
-			"clk_96m","clk_76m8",
-			"clk_48m","clk_26m";
-		clocks = <&mm_clk CLK_SENSOR1>,<&mm_gate CLK_MM_SENSOR1_EB>,
-				<&pll2 CLK_TWPLL_96M>,<&pll2 CLK_TWPLL_76M8>,
-				<&pll2 CLK_TWPLL_48M>,<&ext_26m>;
-		vddio-supply = <&vddcamio>;
-		vddcama-supply = <&vddcama1>;
-		vddcamd-supply = <&vddcamd1>;
-		vddcammot-supply = <&vddcammot>;
-		mot-gpios = <&ap_gpio 88 0>;
-		reset-gpios = <&ap_gpio 41 0>;
-		power-down-gpios = <&ap_gpio 40 0>;
-		sprd,phyid = <2>;
-		csi = <&csi2>;
+		//mipi-switch-en-gpios = <&ap_gpio 135 0>;
+		mipi-switch-mode-gpios = <&ap_gpio 8 0>;
+		sprd,phyid = <1>;
+		csi = <&csi1>;
 	};
 };
 
 &i2c2 {
-	status = "okay";
+	status = "disabled";
 	clock-frequency = <400000>;
 
 	ak4377_hifi: ak4377@10 {
@@ -623,6 +627,7 @@
 
 &i2c3 {
 	status = "okay";
+	sprd,polling = <1>;
 
     /* by pony for charge config date20201113 start*/
 	bq2560x_chg: charger@6b {
@@ -637,18 +642,22 @@
 	};
 	/* by pony for charge config date20201113 end*/
 
-	touchscreen@20 {
-		compatible = "synaptics,dsx";
+	abov_sar@20 {
+		status = "ok";
+		compatible = "abov,abov_sar";
 		reg = <0x20>;
-		gpios = <&ap_gpio 145 GPIO_ACTIVE_HIGH
-			&ap_gpio 144 GPIO_ACTIVE_HIGH>;
-	};
-
-	touchscreen@53 {
-		compatible = "solomon,ssd20xx";
-		reg = <0x53>;
-		gpios = <&ap_gpio 145 GPIO_ACTIVE_HIGH
-			&ap_gpio 144 GPIO_ACTIVE_HIGH>;
+		interrupt-parent = <&ap_gpio>;
+		interrupts = <126 IRQ_TYPE_LEVEL_LOW>;
+		gpios = <&ap_gpio 126 0x2>;
+		//pinctrl-names = "default";
+		//pinctrl-0 = <&capsense_sar_gpio_pins>;
+		reg_array_len = <0x03>;
+		reg_array_val = <0x07 0x00 0x08 0x07 0xFB 0x01>;
+		cap,use_channel_ch0 = <0x00>;
+		cap,use_channel_ch1 = <0x01>;
+		ch0_name = "capsense_bottom";
+		ch1_name = "capsense_top";
+		label = "AbovCapSense";
 	};
 };
 
