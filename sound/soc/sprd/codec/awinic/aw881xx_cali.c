@@ -33,7 +33,7 @@
 /*write cali to persist file example */
 #ifdef AW_CALI_STORE_EXAMPLE
 
-#define AWINIC_CALI_FILE  "/mnt/vendor/persist/factory/audio/aw_cali.bin"
+#define AWINIC_CALI_FILE  "/mnt/persist/misc/aw_cali.bin"
 #define AW_INT_DEC_DIGIT 10
 
 static int aw881xx_write_cali_re_to_file(uint32_t cali_re, uint8_t channel)
@@ -177,15 +177,19 @@ void aw881xx_set_cali_re_to_dsp(struct aw881xx_cali_attr *cali_attr)
 
 }
 
-static void aw881xx_set_cali_re(struct aw881xx_cali_attr *cali_attr)
+static int aw881xx_set_cali_re(struct aw881xx_cali_attr *cali_attr)
 {
+	int ret;
 	struct aw881xx *aw881xx =
 		container_of(cali_attr, struct aw881xx, cali_attr);
 
-	aw881xx_set_cali_re_to_phone(aw881xx);
+	ret = aw881xx_set_cali_re_to_phone(aw881xx);
+	if (ret < 0)
+		return ret;
 
 	/* set cali re to aw881xx */
 	aw881xx_set_cali_re_to_dsp(cali_attr);
+	return 0;
 
 }
 
@@ -203,7 +207,9 @@ static ssize_t aw881xx_cali_store(struct device *dev,
 		return ret;
 
 	cali_attr->cali_re = databuf[0] * (1 << AW881XX_DSP_RE_SHIFT) / 1000;
-	aw881xx_set_cali_re(cali_attr);
+	ret = aw881xx_set_cali_re(cali_attr);
+	if (ret < 0)
+		return ret;
 
 	return count;
 }
