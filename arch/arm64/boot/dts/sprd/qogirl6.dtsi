@@ -1366,7 +1366,7 @@
 							  <&lit_core4_dev>,
 							  <&lit_core5_dev>;
 					/*sel, div, vol, vote_scu, vote_peri, vote_gic, mpllx*/
-					lit_core_cluster_tbl = <
+					lit-core-dvfs-tbl = <
 						0 0 0 0 0 0 0
 						1 1 0 1 1 1 0
 						2 1 1 2 2 2 0
