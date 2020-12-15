@@ -94,6 +94,13 @@
 				};
 			};
 
+			flash-gpio {
+				compatible = "sprd,flash-aw3641";
+				flash-ic = <3641>;
+				flash-torch-en-gpios = <&ap_gpio 136 0>;
+				flash-en-gpios = <&ap_gpio 137 0>;
+			};
+
 			// modify use DSI command set backlight begin:
 			/***
 			pwm_backlight: backlight {
@@ -698,7 +705,7 @@
 		interrupts = <87 IRQ_TYPE_LEVEL_LOW>;
 	};
 
-	flash_ic: flash-ic@63 {
+	/*flash_ic: flash-ic@63 {
 		compatible = "sprd,flash-ocp8137";
 		reg = <0x63>;
 		sprd,flash-ic = <8137>;
@@ -709,10 +716,19 @@
 		sprd,preflash-level = <128>;
 		sprd,highlight-level = <128>;
 		sprd,lvfm-enable = <1>;
-		flash-chip-en-gpios = <&ap_gpio 136 0>;
+		//flash-chip-en-gpios = <&ap_gpio 136 0>;
 		flash-torch-en-gpios = <&ap_gpio 139 0>;
 		flash-en-gpios = <&ap_gpio 137 0>;
-		flash-sync-gpios = <&ap_gpio 138 0>;
+		//flash-sync-gpios = <&ap_gpio 138 0>;//And fingerprint power GPIO conflict, first shielded. modify by lijian
+	};*/
+
+	pn557_nfc: nxp-nfc@0x28{
+		compatible = "nxp,pn557";
+		reg = <0x28>;
+		nxp,pn557-clkreq = <&ap_gpio 84 0>;
+		nxp,pn557-irq = <&ap_gpio 85 0>;
+		nxp,pn557-fw-dwnld = <&ap_gpio 96 0>;
+		nxp,pn557-ven = <&ap_gpio 97 0>;
 	};
 
 };
