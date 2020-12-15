@@ -1356,7 +1356,7 @@ struct lum_flat_param {
 	unsigned short inc_strength;
 	unsigned short reserved;
 };
-#pragma pack()
+#pragma pack(pop)
 
 #pragma pack(push)
 #pragma pack(4)
@@ -1392,7 +1392,7 @@ struct isp_dev_nlm_info {
 	unsigned int ivst_len;
 	unsigned int nlm_len;
 };
-#pragma pack()
+#pragma pack(pop)
 
 struct isp_dev_ivst_info {
 	unsigned int  bypass;
