@@ -207,6 +207,10 @@
 	};
 };
 
+&vbmeta {
+	parts = "vbmeta,socko,odmko,boot,dtbo,pm_sys";
+};
+
 &chosen {
 	bootargs_ext = "androidboot.hardware=s9863a1h10_NoModem androidboot.dtbo_idx=0";
 };
