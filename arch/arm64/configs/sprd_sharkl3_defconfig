@@ -3903,6 +3903,7 @@ CONFIG_USB_PHY=y
 # CONFIG_USB_GPIO_VBUS is not set
 # CONFIG_USB_ISP1301 is not set
 CONFIG_SPRD_SHARKL3_USB2_PHY=m
+# CONFIG_SPRD_PIKE2_USB2_PHY is not set
 # CONFIG_SPRD_SHARKL5PRO_USB2_PHY is not set
 # CONFIG_USB_ULPI is not set
 # end of USB Physical Layer drivers
