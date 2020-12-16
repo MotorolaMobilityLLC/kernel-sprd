@@ -78,7 +78,7 @@ static u32 __accumulate_pelt_segments(u64 periods, u32 d1, u32 d3)
 	 *    = 1024 ( \Sum y^n - \Sum y^n - y^0 )
 	 *              n=0        n=p
 	 */
-	c2 = LOAD_AVG_MAX - decay_load(LOAD_AVG_MAX, periods) - 1024;
+	c2 = LOAD_AVG_MAX_TRUE - decay_load(LOAD_AVG_MAX_TRUE, periods) - 1024;
 
 	return c1 + c2 + c3;
 }

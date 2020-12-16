@@ -13,6 +13,7 @@ static const u32 runnable_avg_yN_inv[] __maybe_unused = {
 
 #define LOAD_AVG_PERIOD 32
 #define LOAD_AVG_MAX 47742
+#define LOAD_AVG_MAX_TRUE 47742
 #define LOAD_AVG_MAX_N 345
 
 #endif
@@ -32,6 +33,7 @@ static const u32 runnable_avg_yN_sum[] __maybe_unused = {
 
 #define LOAD_AVG_PERIOD 16
 #define LOAD_AVG_MAX 24130
+#define LOAD_AVG_MAX_TRUE 24130
 #define LOAD_AVG_MAX_N 172
 
 #endif
@@ -47,7 +49,8 @@ static const u32 runnable_avg_yN_sum[] __maybe_unused = {
 };
 
 #define LOAD_AVG_PERIOD 8
-#define LOAD_AVG_MAX 12326
+#define LOAD_AVG_MAX 22528
+#define LOAD_AVG_MAX_TRUE 12326
 #define LOAD_AVG_MAX_N 85
 
 #endif
