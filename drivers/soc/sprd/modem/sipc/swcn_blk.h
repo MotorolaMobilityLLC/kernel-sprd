@@ -1,7 +1,10 @@
 #ifndef __SWCN_BLK_H__
 #define __SWCN_BLK_H__
 
+#ifndef CONFIG_UMW2631_I
 #define SPRD_SWCN_MEM_CACHE_EN 1
+#endif
+
 #ifdef SPRD_SWCN_MEM_CACHE_EN
 #include <asm/cacheflush.h>
 #include <linux/dma-mapping.h>

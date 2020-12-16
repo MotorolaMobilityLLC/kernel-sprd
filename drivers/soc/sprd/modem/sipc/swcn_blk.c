@@ -897,6 +897,10 @@ int swcnblk_release(u8 dst, u8 channel, struct swcnblk_blk *blk)
 
 	spin_lock_irqsave(&ring->p_rxlock, flags);
 	rxpos = swcnblk_get_ringpos(poolhd->rxblk_wrptr, poolhd->rxblk_count);
+
+	ring->p_rxblks[rxpos].addr = blk->addr -
+					swcnblk->smem_blk_virt +
+					swcnblk->mapped_smem_addr;
 	ring->p_rxblks[rxpos].length = poolhd->rxblk_size;
 	poolhd->rxblk_wrptr = poolhd->rxblk_wrptr + 1;
 	pr_info("swcnblk release: addr=%x\n", ring->p_rxblks[rxpos].addr);
