@@ -272,8 +272,6 @@ struct wcn_device {
 	struct	work_struct load_wq;
 	struct	delayed_work cali_wq;
 	struct	completion download_done;
-	/* emmc or ufs flag */
-	enum flag_emmc_or_ufs wcn_mm_flag;
 };
 
 struct wcn_device_manage {
@@ -295,6 +293,8 @@ struct wcn_device_manage {
 	struct wcn_clock_info clk_xtal_26m;
 	/* debug */
 	bool boot_manually;
+	/* emmc or ufs flag */
+	enum flag_emmc_or_ufs wcn_mm_flag;
 };
 
 extern struct wcn_device_manage s_wcn_device;

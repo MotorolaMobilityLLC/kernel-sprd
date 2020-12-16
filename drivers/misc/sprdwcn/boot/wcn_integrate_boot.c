@@ -368,7 +368,7 @@ static int wcn_download_image_new(struct wcn_device *wcn_dev)
 
 	memset(firmware_file_path, 0, FIRMWARE_FILEPATHNAME_LENGTH_MAX);
 	/* file_path used in dts */
-	if (wcn_dev->wcn_mm_flag == 0) {
+	if (s_wcn_device.wcn_mm_flag == 0) {
 		if (wcn_dev->file_path) {
 			strncpy(firmware_file_path,
 				wcn_dev->file_path,
@@ -407,16 +407,14 @@ static int wcn_download_image_new(struct wcn_device *wcn_dev)
 							    wcn_dev->file_length);
 			}
 			if (ret >= 0) {
-				wcn_dev->wcn_mm_flag = emmc;
-
+				s_wcn_device.wcn_mm_flag = emmc;
 				return ret;
-
 			} else
-				wcn_dev->wcn_mm_flag = ufs;
+				s_wcn_device.wcn_mm_flag = ufs;
 		}
 	}
 
-	if (wcn_dev->wcn_mm_flag == 1) {
+	if (s_wcn_device.wcn_mm_flag == 1) {
 		if (wcn_dev->file_path_ufs) {
 			strncpy(firmware_file_path,
 				wcn_dev->file_path_ufs,
@@ -455,12 +453,10 @@ static int wcn_download_image_new(struct wcn_device *wcn_dev)
 							    wcn_dev->file_length);
 			}
 			if (ret >= 0) {
-				wcn_dev->wcn_mm_flag = ufs;
-
+				s_wcn_device.wcn_mm_flag = ufs;
 				return ret;
-
 			} else
-				wcn_dev->wcn_mm_flag = emmc;
+				s_wcn_device.wcn_mm_flag = emmc;
 			return ret;
 		}
 	}
