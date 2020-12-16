@@ -514,6 +514,11 @@ config UID_SYS_STATS
 	  Per UID based io statistics exported to /proc/uid_io
 	  Per UID based procstat control in /proc/uid_procstat
 
+config SPRD_UID
+	tristate "Spreadtrum Uid Support"
+        help
+          provoid a driver to get chip uid.
+
 config UID_SYS_STATS_DEBUG
 	bool "Per-TASK statistics"
 	depends on UID_SYS_STATS
