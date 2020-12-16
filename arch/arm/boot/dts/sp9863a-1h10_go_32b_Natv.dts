@@ -315,6 +315,12 @@
 			gpio,boardid1 = <&ap_gpio 88 0>;
                         gpio,boardid2 = <&ap_gpio 89 0>;
 	};
+
+	sprd_uid {
+		compatible = "sprd-uid";
+		nvmem-cells = <&uid_start>, <&uid_end>;
+		nvmem-cell-names = "uid_start", "uid_end";
+	};
 };
 
 &reserved_memory {
