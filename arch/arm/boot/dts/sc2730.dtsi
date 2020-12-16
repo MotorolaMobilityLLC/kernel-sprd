@@ -81,7 +81,11 @@
 				reg = <0x6 0x2>;
 			};
 
-			cc_cal: calib@d {
+			typec_cc1_cal: calib@d1 {
+				reg = <0x1a 0x2>;
+			};
+
+			typec_cc2_cal: calib@d2 {
 				reg = <0x1a 0x2>;
 			};
 
@@ -108,8 +112,8 @@
 			interrupts = <8 IRQ_TYPE_LEVEL_HIGH>;
 			reg = <0x380>;
 			mode = <2>;
-			nvmem-cells = <&cc_cal>;
-			nvmem-cell-names = "cc_calib";
+			nvmem-cells = <&typec_cc1_cal>, <&typec_cc2_cal>;
+			nvmem-cell-names = "typec_cc1_cal", "typec_cc2_cal";
 		};
 
 		pmic_fchg: fchg@400 {
