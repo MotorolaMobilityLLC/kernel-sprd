@@ -3885,7 +3885,7 @@ static void cm_batt_works(struct work_struct *work)
 //		orderly_poweroff(true);
 	}
 
-	if( term_vol ==4040000 && fuel_cap > 750)
+	if( (term_vol ==4040000 || term_vol ==4048000) && fuel_cap > 750)
 	{
 		fuel_cap =750;
 		dev_info(cm->dev, "%s;force soc=750;\n",__func__);
@@ -3922,7 +3922,7 @@ static void cm_batt_works(struct work_struct *work)
 		charge_done = true;
 		dev_err(cm->dev, "%s;full;fuel_cap=%d, ui cap=%d\n",__func__,
 			 fuel_cap, cm->desc->cap);
-		if( term_vol == 4400000)
+		if( term_vol >= 4400000)
 			fuel_cap =1000;		
 		else
 		{

@@ -452,6 +452,8 @@ static int bq2560x_charger_feed_watchdog(struct bq2560x_charger_info *info,
 	if (ret)
 		dev_err(info->dev, "reset bq2560x failed\n");
 
+	bq2560x_dump_regs(info);
+
 	return ret;
 }
 
