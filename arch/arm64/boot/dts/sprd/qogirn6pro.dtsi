@@ -466,5 +466,40 @@
 		clock-frequency = <32768>;
 		clock-output-names = "ext-32k";
 	};
+
+	rco_100m: rco-100m {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <100000000>;
+		clock-output-names = "rco-100m";
+	};
+
+	rco_60m: rco-60m {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <60000000>;
+		clock-output-names = "rco-60m";
+	};
+
+	rco_6m: rco-6m {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <6000000>;
+		clock-output-names = "rco-6m";
+	};
+
+	dphy_312m5: dphy-312m5 {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <312500000>;
+		clock-output-names = "dphy-312m5";
+	};
+
+	dphy_416m7: dphy-416m7 {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <416700000>;
+		clock-output-names = "dphy-416m7";
+	};
 };
 
