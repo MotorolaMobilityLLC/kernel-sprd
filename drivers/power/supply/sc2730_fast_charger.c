@@ -72,6 +72,7 @@
 /* FCHG1_TIME2_VALUE is used for detect the time of V > VT2 */
 #define FCHG1_TIME2_VALUE			0x9c4
 
+#define FCHG_VOLTAGE_5V				5000000
 #define FCHG_VOLTAGE_9V				9000000
 #define FCHG_VOLTAGE_12V			12000000
 #define FCHG_VOLTAGE_20V			20000000
@@ -81,6 +82,9 @@
 
 #define SC2730_PD_START_POWER_MW		18000
 #define SC2730_PD_STOP_POWER_MW			10000
+
+#define SC2730_ENABLE_PPS			2
+#define SC2730_DISABLE_PPS			1
 
 struct sc27xx_fast_chg_data {
 	u32 module_en;
@@ -116,6 +120,8 @@ struct sc2730_fchg_info {
 	bool detected;
 	bool pd_enable;
 	bool sfcp_enable;
+	bool pps_enable;
+	bool pps_active;
 	const struct sc27xx_fast_chg_data *pdata;
 };
 
@@ -437,6 +443,52 @@ static const u32 sc2730_snk9v_pdo[] = {
 };
 
 #ifdef CONFIG_TYPEC_TCPM
+static int sc2730_get_pps_voltage_max(struct sc2730_fchg_info *info, u32 *max_vol)
+{
+	union power_supply_propval val;
+	int ret;
+
+	if (!info->psy_tcpm) {
+		dev_err(info->dev, "psy_tcpm is NULL !!!\n");
+		return -EINVAL;
+	}
+
+	ret = power_supply_get_property(info->psy_tcpm,
+					POWER_SUPPLY_PROP_VOLTAGE_MAX,
+					&val);
+	if (ret) {
+		dev_err(info->dev, "failed to set online property\n");
+		return ret;
+	}
+
+	*max_vol = val.intval;
+
+	return ret;
+}
+
+static int sc2730_get_pps_current_max(struct sc2730_fchg_info *info, u32
+				      *max_cur)
+{
+	union power_supply_propval val;
+	int ret;
+
+	if (!info->psy_tcpm) {
+		dev_err(info->dev, "psy_tcpm is NULL !!!\n");
+		return -EINVAL;
+	}
+
+	ret = power_supply_get_property(info->psy_tcpm,
+					POWER_SUPPLY_PROP_CURRENT_MAX,
+					&val);
+	if (ret) {
+		dev_err(info->dev, "failed to set online property\n");
+		return ret;
+	}
+
+	*max_cur = val.intval;
+
+	return ret;
+}
 static int sc2730_fchg_pd_adjust_voltage(struct sc2730_fchg_info *info,
 					 u32 input_vol)
 {
@@ -472,6 +524,99 @@ static int sc2730_fchg_pd_adjust_voltage(struct sc2730_fchg_info *info,
 				"failed to set pd 9V ret = %d\n", ret);
 			return ret;
 		}
+	}
+
+	return 0;
+}
+
+static int sc2730_fchg_pps_adjust_voltage(struct sc2730_fchg_info *info,
+					 u32 input_vol)
+{
+	union power_supply_propval val, vol;
+	int ret;
+
+	if (!info->psy_tcpm) {
+		dev_err(info->dev, "psy_tcpm is NULL !!!\n");
+		return -EINVAL;
+	}
+
+	if (!info->pps_active) {
+		val.intval = SC2730_ENABLE_PPS;
+		ret = power_supply_set_property(info->psy_tcpm, POWER_SUPPLY_PROP_ONLINE, &val);
+		if (ret) {
+			dev_err(info->dev, "failed to set online property ret = %d\n", ret);
+			return ret;
+		}
+		info->pps_active = true;
+	}
+
+	vol.intval = input_vol;
+	ret = power_supply_set_property(info->psy_tcpm, POWER_SUPPLY_PROP_VOLTAGE_NOW, &vol);
+	if (ret) {
+		dev_err(info->dev, "failed to set vol property\n");
+		return ret;
+	}
+
+	return 0;
+}
+
+static int sc2730_fchg_pps_adjust_current(struct sc2730_fchg_info *info,
+					 u32 input_current)
+{
+	union power_supply_propval val;
+	int ret;
+
+	if (!info->psy_tcpm) {
+		dev_err(info->dev, "psy_tcpm is NULL !!!\n");
+		return -EINVAL;
+	}
+
+	if (!info->pps_active) {
+		val.intval = SC2730_ENABLE_PPS;
+		ret = power_supply_set_property(info->psy_tcpm, POWER_SUPPLY_PROP_ONLINE, &val);
+		if (ret) {
+			dev_err(info->dev, "failed to set online property\n");
+			return ret;
+		}
+		info->pps_active = true;
+	}
+
+	val.intval = input_current;
+	ret = power_supply_set_property(info->psy_tcpm, POWER_SUPPLY_PROP_CURRENT_NOW, &val);
+	if (ret) {
+		dev_err(info->dev, "failed to set current property\n");
+		return ret;
+	}
+
+	return 0;
+}
+
+static int sc2730_fchg_enable_pps(struct sc2730_fchg_info *info, bool enable)
+{
+	union power_supply_propval val;
+	int ret;
+
+	if (!info->psy_tcpm) {
+		dev_err(info->dev, "psy_tcpm is NULL !!!\n");
+		return -EINVAL;
+	}
+
+	if (info->pps_active && !enable) {
+		val.intval = SC2730_DISABLE_PPS;
+		ret = power_supply_set_property(info->psy_tcpm, POWER_SUPPLY_PROP_ONLINE, &val);
+		if (ret) {
+			dev_err(info->dev, "failed to disbale pps, ret = %d\n", ret);
+			return ret;
+		}
+		info->pps_active = false;
+	} else if (!info->pps_active && enable) {
+		val.intval = SC2730_ENABLE_PPS;
+		ret = power_supply_set_property(info->psy_tcpm, POWER_SUPPLY_PROP_ONLINE, &val);
+		if (ret) {
+			dev_err(info->dev, "failed to enable pps, ret = %d\n", ret);
+			return ret;
+		}
+		info->pps_active = true;
 	}
 
 	return 0;
@@ -528,25 +673,27 @@ static void sc2730_fchg_pd_change_work(struct work_struct *data)
 	}
 
 	pd_type = val.intval;
-	if (pd_type == POWER_SUPPLY_USB_TYPE_PD_PPS ||
-	    pd_type == POWER_SUPPLY_USB_TYPE_PD) {
+	if (pd_type == POWER_SUPPLY_USB_TYPE_PD) {
 		info->pd_enable = true;
 		info->state = POWER_SUPPLY_USB_TYPE_PD;
 		mutex_unlock(&info->lock);
 		cm_notify_event(info->psy_usb, CM_EVENT_FAST_CHARGE, NULL);
 		goto out1;
+	} else if (pd_type == POWER_SUPPLY_USB_TYPE_PD_PPS) {
+		info->pps_enable = true;
+		info->state = POWER_SUPPLY_USB_TYPE_PD_PPS;
+		mutex_unlock(&info->lock);
+		cm_notify_event(info->psy_usb, CM_EVENT_FAST_CHARGE, NULL);
+		goto out1;
 	} else if (pd_type == POWER_SUPPLY_USB_TYPE_C) {
+		if (info->pd_enable)
+			sc2730_fchg_pd_adjust_voltage(info, FCHG_VOLTAGE_5V);
+
 		info->pd_enable = false;
+		info->pps_enable = false;
+		info->pps_active = false;
 		if (info->state != POWER_SUPPLY_CHARGE_TYPE_FAST)
 			info->state = POWER_SUPPLY_USB_TYPE_C;
-		ret = tcpm_update_sink_capabilities(port, sc2730_snk_pdo,
-						    ARRAY_SIZE(sc2730_snk_pdo),
-						    SC2730_PD_STOP_POWER_MW);
-		if (ret) {
-			dev_err(info->dev,
-				"failed to adjust pd 5V ret = %d\n", ret);
-			goto out;
-		}
 	}
 
 out:
@@ -556,8 +703,37 @@ out1:
 	dev_info(info->dev, "pd type = %d\n", pd_type);
 }
 #else
+static int sc2730_get_pps_voltage_max(struct sc2730_fchg_info *info, u32
+				      *max_vol)
+{
+	return 0;
+}
+
+static int sc2730_get_pps_current_max(struct sc2730_fchg_info *info, u32
+				      *max_cur)
+{
+	return 0;
+}
+
 static int sc2730_fchg_pd_adjust_voltage(struct sc2730_fchg_info *info,
 					 u32 input_vol)
+{
+	return 0;
+}
+
+static int sc2730_fchg_pps_adjust_voltage(struct sc2730_fchg_info *info,
+					 u32 input_vol)
+{
+	return 0;
+}
+
+static int sc2730_fchg_pps_adjust_current(struct sc2730_fchg_info *info,
+					 u32 input_current)
+{
+	return 0;
+}
+
+static int sc2730_fchg_enable_pps(struct sc2730_fchg_info *info, bool enable)
 {
 	return 0;
 }
@@ -566,6 +742,7 @@ static int sc2730_fchg_pd_change(struct notifier_block *nb,
 {
 	return NOTIFY_OK;
 }
+
 static void sc2730_fchg_pd_change_work(struct work_struct *data)
 {
 
@@ -585,7 +762,15 @@ static int sc2730_fchg_usb_get_property(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_CHARGE_TYPE:
 		val->intval = info->state;
 		break;
-
+	case POWER_SUPPLY_PROP_VOLTAGE_MAX:
+		val->intval = 0;
+		if (info->pps_enable)
+			sc2730_get_pps_voltage_max(info, &val->intval);
+		break;
+	case POWER_SUPPLY_PROP_CURRENT_MAX:
+		if (info->pps_enable)
+			sc2730_get_pps_current_max(info, &val->intval);
+		break;
 	default:
 		ret = -EINVAL;
 	}
@@ -605,8 +790,29 @@ static int sc2730_fchg_usb_set_property(struct power_supply *psy,
 
 	switch (psp) {
 	case POWER_SUPPLY_PROP_VOLTAGE_MAX:
+		if (val->intval == CM_PPS_CHARGE_DISABLE_CMD) {
+			if (sc2730_fchg_enable_pps(info, false)) {
+				ret = -EINVAL;
+				dev_err(info->dev, "failed to disable pps\n");
+			}
+			break;
+		} else if (val->intval == CM_PPS_CHARGE_ENABLE_CMD) {
+			if (sc2730_fchg_enable_pps(info, true)) {
+				ret = -EINVAL;
+				dev_err(info->dev, "failed to enable pps\n");
+			}
+			break;
+		}
+
 		if (info->pd_enable) {
+			if (sc2730_fchg_enable_pps(info, false))
+				dev_err(info->dev, "failed to disable pps\n");
+
 			ret = sc2730_fchg_pd_adjust_voltage(info, val->intval);
+			if (ret)
+				dev_err(info->dev, "failed to adjust pd vol\n");
+		} else if (info->pps_enable) {
+			ret = sc2730_fchg_pps_adjust_voltage(info, val->intval);
 			if (ret)
 				dev_err(info->dev, "failed to adjust pd vol\n");
 		} else if (info->sfcp_enable) {
@@ -615,7 +821,9 @@ static int sc2730_fchg_usb_set_property(struct power_supply *psy,
 				dev_err(info->dev, "failed to adjust sfcp vol\n");
 		}
 		break;
-
+	case POWER_SUPPLY_PROP_CURRENT_MAX:
+		sc2730_fchg_pps_adjust_current(info, val->intval);
+		break;
 	default:
 		ret = -EINVAL;
 	}
@@ -627,11 +835,23 @@ static int sc2730_fchg_usb_set_property(struct power_supply *psy,
 static int sc2730_fchg_property_is_writeable(struct power_supply *psy,
 					     enum power_supply_property psp)
 {
-	return psp == POWER_SUPPLY_PROP_VOLTAGE_MAX;
+	int ret;
+
+	switch (psp) {
+	case  POWER_SUPPLY_PROP_VOLTAGE_MAX:
+	case  POWER_SUPPLY_PROP_CURRENT_MAX:
+		ret = 1;
+		break;
+	default:
+		ret = 0;
+	}
+
+	return ret;
 }
 
 static enum power_supply_property sc2730_fchg_usb_props[] = {
 	POWER_SUPPLY_PROP_CHARGE_TYPE,
+	POWER_SUPPLY_PROP_VOLTAGE_MAX,
 };
 
 static const struct power_supply_desc sc2730_fchg_desc = {
@@ -651,15 +871,16 @@ static void sc2730_fchg_work(struct work_struct *data)
 		container_of(dwork, struct sc2730_fchg_info, work);
 
 	mutex_lock(&info->lock);
-
 	if (!info->limit) {
-		info->state = POWER_SUPPLY_CHARGE_TYPE_UNKNOWN;
+		if (!info->pps_enable || info->state != POWER_SUPPLY_USB_TYPE_PD_PPS)
+			info->state = POWER_SUPPLY_CHARGE_TYPE_UNKNOWN;
+
 		info->detected = false;
 		info->sfcp_enable = false;
 		sc2730_fchg_disable(info);
 	} else if (!info->detected) {
 		info->detected = true;
-		if (info->pd_enable) {
+		if (info->pd_enable || info->pps_enable) {
 			sc2730_fchg_disable(info);
 		} else if (sc2730_fchg_get_detect_status(info) ==
 		    POWER_SUPPLY_CHARGE_TYPE_FAST) {
@@ -671,7 +892,7 @@ static void sc2730_fchg_work(struct work_struct *data)
 			mutex_unlock(&info->lock);
 			cm_notify_event(info->psy_usb, CM_EVENT_FAST_CHARGE, NULL);
 			dev_info(info->dev, "pd_enable = %d, sfcp_enable = %d\n",
-				info->pd_enable, info->sfcp_enable);
+				 info->pd_enable, info->sfcp_enable);
 			return;
 		} else {
 			sc2730_fchg_disable(info);
@@ -680,8 +901,8 @@ static void sc2730_fchg_work(struct work_struct *data)
 
 	mutex_unlock(&info->lock);
 
-	dev_info(info->dev, "pd_enable = %d, sfcp_enable = %d\n",
-		 info->pd_enable, info->sfcp_enable);
+	dev_info(info->dev, "pd_enable = %d, pps_enable = %d, sfcp_enable = %d\n",
+		 info->pd_enable, info->pps_enable, info->sfcp_enable);
 }
 
 static int sc2730_fchg_probe(struct platform_device *pdev)
@@ -728,6 +949,7 @@ static int sc2730_fchg_probe(struct platform_device *pdev)
 		return ret;
 	}
 
+	info->pps_active = false;
 	platform_set_drvdata(pdev, info);
 
 	info->usb_phy = devm_usb_get_phy_by_phandle(&pdev->dev, "phys", 0);
@@ -807,8 +1029,8 @@ static void sc2730_fchg_shutdown(struct platform_device *pdev)
 	 */
 
 	ret = regmap_update_bits(info->regmap, info->base + FCHG_CTRL,
-			FCHG_DET_VOL_MASK << FCHG_DET_VOL_SHIFT,
-			(value & FCHG_DET_VOL_MASK) << FCHG_DET_VOL_SHIFT);
+				 FCHG_DET_VOL_MASK << FCHG_DET_VOL_SHIFT,
+				 (value & FCHG_DET_VOL_MASK) << FCHG_DET_VOL_SHIFT);
 	if (ret)
 		dev_err(info->dev,
 			"failed to set fast charger detect voltage.\n");

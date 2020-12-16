@@ -29,6 +29,7 @@
 #include <linux/sysfs.h>
 #include <linux/of.h>
 #include <linux/thermal.h>
+#include <linux/pm_wakeup.h>
 
 /*
  * Default termperature threshold for charging.
@@ -36,10 +37,12 @@
  */
 #define CM_DEFAULT_RECHARGE_TEMP_DIFF	50
 #define CM_DEFAULT_CHARGE_TEMP_MAX	500
-#define CM_CAP_CYCLE_TRACK_TIME		15
+#define CM_CAP_CYCLE_TRACK_TIME		1
 #define CM_UVLO_OFFSET			50000
 #define CM_FORCE_SET_FUEL_CAP_FULL	1000
 #define CM_LOW_TEMP_REGION		100
+#define CM_UVLO_CALIBRATION_VOLTAGE_THRESHOLD	3250000
+#define CM_UVLO_CALIBRATION_CNT_THRESHOLD	5
 #define CM_LOW_TEMP_SHUTDOWN_VALTAGE	3200000
 #define CM_TRACK_CAPACITY_SHUTDOWN_START_VOLTAGE	3500000
 #define CM_TRACK_CAPACITY_START_VOLTAGE	3650000
@@ -56,7 +59,7 @@
 #define CM_HCAP_DECREASE_STEP		8
 #define CM_HCAP_THRESHOLD		955
 #define CM_CAP_FULL_PERCENT		1000
-#define CM_CAP_MAGIC_NUM		0x5A5AA5A5
+#define CM_MAGIC_NUM		0x5A5AA5A5
 #define CM_CAPACITY_LEVEL_CRITICAL	0
 #define CM_CAPACITY_LEVEL_LOW		15
 #define CM_CAPACITY_LEVEL_NORMAL	85
@@ -65,10 +68,20 @@
 #define CM_FAST_CHARGE_ENABLE_CURRENT		1200000
 #define CM_FAST_CHARGE_DISABLE_BATTERY_VOLTAGE	3400000
 #define CM_FAST_CHARGE_DISABLE_CURRENT		1000000
+#define CM_FAST_CHARGE_CURRENT_2A		2000000
 #define CM_FAST_CHARGE_VOLTAGE_9V		9000000
 #define CM_FAST_CHARGE_VOLTAGE_5V		5000000
 #define CM_FAST_CHARGE_ENABLE_COUNT		2
 #define CM_FAST_CHARGE_DISABLE_COUNT		2
+
+#define CM_CP_START_VOLTAGE_LTHRESHOLD	3520000
+#define CM_CP_START_VOLTAGE_HTHRESHOLD	4200000
+#define CM_CP_VSTEP			20000
+#define CM_CP_ISTEP			50000
+#define CM_CP_PRIMARY_CHARGER_DIS_TIMEOUT	20
+#define CM_CP_CP_CHARGER_EN_TIMEOUT		20
+
+#define CM_IR_COMPENSATION_TIME		3
 
 #define CM_TRACK_FILE_PATH "/mnt/vendor/battery/calibration_data/.battery_file"
 
@@ -90,6 +103,16 @@ static const char * const jeita_type_names[] = {
 	[CM_JEITA_CDP] = "cm-cdp-jeita-temp-table",
 	[CM_JEITA_UNKNOWN] = "cm-unknown-jeita-temp-table",
 	[CM_JEITA_FCHG] = "cm-fchg-jeita-temp-table",
+	[CM_JEITA_FLASH] = "cm-flash-jeita-temp-table",
+};
+
+static const char * const cm_cp_sate_names[] = {
+	[CM_CP_STATE_UNKNOWN] = "Charge pump state: UNKNOWN",
+	[CM_CP_STATE_RECOVERY] = "Charge pump state: RECOVERY",
+	[CM_CP_STATE_ENTRY] = "Charge pump state: ENTRY",
+	[CM_CP_STATE_CHECK_VBUS] = "Charge pump state: CHECK VBUS",
+	[CM_CP_STATE_TUNE] = "Charge pump state: TUNE",
+	[CM_CP_STATE_EXIT] = "Charge pump state: EXIT",
 };
 
 enum cm_manager_jeita_status {
@@ -99,6 +122,19 @@ enum cm_manager_jeita_status {
 	STATUS_T2_TO_T3,
 	STATUS_ABOVE_T3,
 };
+
+enum {
+	CMD_USB_PRESENT,
+	CMD_BATTERY_PRESENT,
+	CMD_VBUS_PRESENT,
+};
+
+enum {
+	CMD_BATT_TEMP,
+	CMD_BUS_TEMP,
+	CMD_DIE_TEMP,
+};
+
 static char *charger_manager_supplied_to[] = {
 	"audio-ldo",
 };
@@ -145,6 +181,7 @@ static void cm_notify_type_handle(struct charger_manager *cm, enum cm_event_type
 static bool cm_manager_adjust_current(struct charger_manager *cm, int jeita_status);
 static void cm_update_charger_type_status(struct charger_manager *cm);
 static int cm_manager_get_jeita_status(struct charger_manager *cm, int cur_temp);
+static bool cm_charger_is_support_fchg(struct charger_manager *cm);
 
 static int __init boot_calibration_mode(char *str)
 {
@@ -402,6 +439,144 @@ static bool is_ext_pwr_online(struct charger_manager *cm)
 	return online;
 }
 
+/**
+ * get_cp_ibatt_uA - Get the charge current of the battery from charge pump
+ * @cm: the Charger Manager representing the battery.
+ * @uA: the current returned.
+ *
+ * Returns 0 if there is no error.
+ * Returns a negative value on error.
+ */
+static int get_cp_ibatt_uA(struct charger_manager *cm, int *uA)
+{
+	union power_supply_propval val;
+	struct power_supply *cp_psy;
+	int i, ret = -ENODEV;
+
+	for (i = 0; cm->desc->psy_cp_stat[i]; i++) {
+		cp_psy = power_supply_get_by_name(cm->desc->psy_cp_stat[i]);
+		if (!cp_psy) {
+			dev_err(cm->dev, "Cannot find charge pump power supply \"%s\"\n",
+				cm->desc->psy_cp_stat[i]);
+			continue;
+		}
+
+		ret = power_supply_get_property(cp_psy,
+						POWER_SUPPLY_PROP_CURRENT_NOW,
+						&val);
+		power_supply_put(cp_psy);
+		if (ret == 0)
+			*uA += val.intval;
+	}
+
+	return ret;
+}
+
+/**
+ * get_cp_vbatt_uV - Get the voltage level of the battery from charge pump
+ * @cm: the Charger Manager representing the battery.
+ * @uV: the voltage level returned.
+ *
+ * Returns 0 if there is no error.
+ * Returns a negative value on error.
+ */
+static int get_cp_vbatt_uV(struct charger_manager *cm, int *uV)
+{
+	union power_supply_propval val;
+	struct power_supply *cp_psy;
+	int i, ret = -ENODEV;
+
+	/* If at least one of them has one, it's yes. */
+	for (i = 0; cm->desc->psy_cp_stat[i]; i++) {
+		cp_psy = power_supply_get_by_name(cm->desc->psy_cp_stat[i]);
+		if (!cp_psy) {
+			dev_err(cm->dev, "Cannot find charge pump power supply \"%s\"\n",
+				cm->desc->psy_cp_stat[i]);
+			continue;
+		}
+
+		ret = power_supply_get_property(cp_psy,
+						POWER_SUPPLY_PROP_VOLTAGE_NOW,
+						&val);
+		power_supply_put(cp_psy);
+		if (ret == 0) {
+			*uV = val.intval;
+			break;
+		}
+	}
+
+	return ret;
+}
+
+/**
+ * get_cp_vbus_uV - Get the voltage level of the bus from charge pump
+ * @cm: the Charger Manager representing the battery.
+ * @uV: the voltage level returned.
+ *
+ * Returns 0 if there is no error.
+ * Returns a negative value on error.
+ */
+static int get_cp_vbus_uV(struct charger_manager *cm, int *uV)
+{
+	union power_supply_propval val;
+	struct power_supply *cp_psy;
+	int i, ret = -ENODEV;
+
+	/* If at least one of them has one, it's yes. */
+	for (i = 0; cm->desc->psy_cp_stat[i]; i++) {
+		cp_psy = power_supply_get_by_name(cm->desc->psy_cp_stat[i]);
+		if (!cp_psy) {
+			dev_err(cm->dev, "Cannot find charge pump power supply \"%s\"\n",
+				cm->desc->psy_cp_stat[i]);
+			continue;
+		}
+
+		ret = power_supply_get_property(cp_psy,
+						POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE,
+						&val);
+		power_supply_put(cp_psy);
+		if (ret == 0) {
+			*uV = val.intval;
+			break;
+		}
+	}
+
+	return ret;
+}
+
+ /**
+  * get_cp_ibus_uA - Get the current level of the charge pump
+  * @cm: the Charger Manager representing the battery.
+  * @uA: the current level returned.
+  *
+  * Returns 0 if there is no error.
+  * Returns a negative value on error.
+  */
+static int get_cp_ibus_uA(struct charger_manager *cm, int *cur)
+{
+	union power_supply_propval val;
+	struct power_supply *cp_psy;
+	int i, ret = -ENODEV;
+
+	for (i = 0; cm->desc->psy_cp_stat[i]; i++) {
+		cp_psy = power_supply_get_by_name(cm->desc->psy_cp_stat[i]);
+		if (!cp_psy) {
+			dev_err(cm->dev, "Cannot find charge pump power supply \"%s\"\n",
+				cm->desc->psy_cp_stat[i]);
+			continue;
+		}
+
+		ret = power_supply_get_property(cp_psy,
+						POWER_SUPPLY_PROP_INPUT_CURRENT_NOW,
+						&val);
+		power_supply_put(cp_psy);
+		if (ret == 0)
+			*cur += val.intval;
+	}
+
+	return ret;
+}
+
  /**
   * get_batt_uA - Get the current level of the battery
   * @cm: the Charger Manager representing the battery.
@@ -486,6 +661,7 @@ static int get_batt_uV(struct charger_manager *cm, int *uV)
 	*uV = val.intval;
 	return 0;
 }
+
 /*
  * get_batt_ocv - Get the battery ocv
  * level of the battery.
@@ -863,8 +1039,7 @@ static int get_charger_current(struct charger_manager *cm, int *cur)
 						&val);
 		power_supply_put(psy);
 		if (ret == 0) {
-			*cur = val.intval;
-			break;
+			*cur += val.intval;
 		}
 	}
 
@@ -898,10 +1073,34 @@ static int get_charger_limit_current(struct charger_manager *cm, int *cur)
 						POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT,
 						&val);
 		power_supply_put(psy);
-		if (ret == 0) {
-			*cur = val.intval;
-			break;
+		if (ret == 0)
+			*cur += val.intval;
+	}
+
+	return ret;
+}
+
+static int get_charger_input_current(struct charger_manager *cm, int *cur)
+{
+	union power_supply_propval val;
+	struct power_supply *psy;
+	int i, ret = -ENODEV;
+
+	/* If at least one of them has one, it's yes. */
+	for (i = 0; cm->desc->psy_charger_stat[i]; i++) {
+		psy = power_supply_get_by_name(cm->desc->psy_charger_stat[i]);
+		if (!psy) {
+			dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
+				cm->desc->psy_charger_stat[i]);
+			continue;
 		}
+
+		ret = power_supply_get_property(psy,
+						POWER_SUPPLY_PROP_INPUT_CURRENT_NOW,
+						&val);
+		power_supply_put(psy);
+		if (ret == 0)
+			*cur += val.intval;
 	}
 
 	return ret;
@@ -913,10 +1112,10 @@ static int get_charger_limit_current(struct charger_manager *cm, int *cur)
  */
 static bool is_charging(struct charger_manager *cm)
 {
-	int i, ret;
 	bool charging = false;
 	struct power_supply *psy;
 	union power_supply_propval val;
+	int i, ret;
 
 	/* If there is no battery, it cannot be charged */
 	if (!is_batt_present(cm))
@@ -946,6 +1145,7 @@ static bool is_charging(struct charger_manager *cm)
 			power_supply_put(psy);
 			continue;
 		}
+
 		if (val.intval == 0) {
 			power_supply_put(psy);
 			continue;
@@ -974,6 +1174,33 @@ static bool is_charging(struct charger_manager *cm)
 	}
 
 	return charging;
+}
+
+static bool cm_primary_charger_enable(struct charger_manager *cm, bool enable)
+{
+	union power_supply_propval val;
+	struct power_supply *psy;
+	int ret;
+
+	psy = power_supply_get_by_name(cm->desc->psy_charger_stat[0]);
+	if (!psy) {
+		dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
+			cm->desc->psy_charger_stat[0]);
+		return false;
+	}
+
+	val.intval = enable;
+	ret = power_supply_set_property(psy,
+					POWER_SUPPLY_PROP_CHARGE_ENABLED,
+					&val);
+	power_supply_put(psy);
+	if (ret) {
+		dev_err(cm->dev, "failed to %s primary charger, ret = %d\n",
+			enable ? "enable" : "disable", ret);
+		return false;
+	}
+
+	return true;
 }
 
 /**
@@ -1019,6 +1246,14 @@ static bool is_full_charged(struct charger_manager *cm)
 		if (ret)
 			goto out;
 
+		if (desc->first_fullbatt_uA > 0 && uV >= desc->fullbatt_uV &&
+		    uA > desc->fullbatt_uA && uA <= desc->first_fullbatt_uA) {
+			if (++desc->first_trigger_cnt > 1)
+				cm->desc->force_set_full = true;
+		} else {
+			desc->first_trigger_cnt = 0;
+		}
+
 		if (uV >= desc->fullbatt_uV && uA <= desc->fullbatt_uA && uA > 0) {
 			if (++desc->trigger_cnt > 1) {
 				if (cm->desc->cap >= CM_CAP_FULL_PERCENT) {
@@ -1028,6 +1263,8 @@ static bool is_full_charged(struct charger_manager *cm)
 				} else {
 					is_full = false;
 					adjust_fuel_cap(cm, CM_FORCE_SET_FUEL_CAP_FULL);
+					if (desc->trigger_cnt == 2)
+						cm_primary_charger_enable(cm, false);
 				}
 				cm->desc->force_set_full = true;
 			} else {
@@ -1079,6 +1316,156 @@ static bool is_polling_required(struct charger_manager *cm)
 	}
 
 	return false;
+}
+
+static void cm_update_current_jeita_status(struct charger_manager *cm)
+{
+	int cur_jeita_status;
+
+	if (cm->desc->jeita_tab_size) {
+		cur_jeita_status = cm_manager_get_jeita_status(cm, cm->desc->temperature);
+		if (cm->desc->jeita_disabled)
+			cur_jeita_status = STATUS_T1_TO_T2;
+		cm_manager_adjust_current(cm, cur_jeita_status);
+	}
+}
+
+static void cm_update_charge_voltage_protection(struct charger_manager *cm,
+						enum power_supply_charge_type type)
+{
+	switch (type) {
+	case CHARGE_TYPE_NORMAL:
+		if (cm->desc->normal_charge_voltage_max)
+			cm->desc->charge_voltage_max =
+				cm->desc->normal_charge_voltage_max;
+		if (cm->desc->normal_charge_voltage_drop)
+			cm->desc->charge_voltage_drop =
+				cm->desc->normal_charge_voltage_drop;
+		break;
+	case CHARGE_TYPE_FAST:
+		if (cm->desc->fast_charge_voltage_max)
+			cm->desc->charge_voltage_max =
+				cm->desc->fast_charge_voltage_max;
+		if (cm->desc->fast_charge_voltage_drop)
+			cm->desc->charge_voltage_drop =
+				cm->desc->fast_charge_voltage_drop;
+		break;
+	case CHARGE_TYPE_FLASH:
+		if (cm->desc->flash_charge_voltage_max)
+			cm->desc->charge_voltage_max =
+				cm->desc->flash_charge_voltage_max;
+		if (cm->desc->flash_charge_voltage_drop)
+			cm->desc->charge_voltage_drop =
+				cm->desc->flash_charge_voltage_drop;
+		break;
+	case CHARGE_TYPE_TURBE:
+		dev_info(cm->dev, "TO DO: quick charge TURBE\n");
+		break;
+	case CHARGE_TYPE_SUPER:
+		dev_info(cm->dev, "TO DO: quick charge SUPER\n");
+		break;
+	default:
+		dev_info(cm->dev, "unknown quick charge type\n");
+		break;
+	}
+}
+
+static void cm_update_jeita_table(struct charger_manager *cm,
+				  enum power_supply_usb_type type)
+{
+
+	dev_info(cm->dev, "%s, type = %d\n", __func__, type);
+	switch (type) {
+	case POWER_SUPPLY_USB_TYPE_DCP:
+		cm->desc->jeita_tab =
+			cm->desc->jeita_tab_array[CM_JEITA_DCP];
+		break;
+
+	case POWER_SUPPLY_USB_TYPE_SDP:
+		cm->desc->jeita_tab =
+			cm->desc->jeita_tab_array[CM_JEITA_SDP];
+		break;
+
+	case POWER_SUPPLY_USB_TYPE_CDP:
+		cm->desc->jeita_tab =
+			cm->desc->jeita_tab_array[CM_JEITA_CDP];
+		break;
+
+	case POWER_SUPPLY_USB_TYPE_PD:
+		cm->desc->jeita_tab =
+			cm->desc->jeita_tab_array[CM_JEITA_FCHG];
+		break;
+
+	case POWER_SUPPLY_USB_TYPE_PD_PPS:
+		cm->desc->jeita_tab =
+			cm->desc->jeita_tab_array[CM_JEITA_FLASH];
+		break;
+
+	default:
+		cm->desc->jeita_tab =
+			cm->desc->jeita_tab_array[CM_JEITA_UNKNOWN];
+		break;
+	}
+}
+
+static int cm_get_adapter_max_voltage(struct charger_manager *cm, int *max_vol)
+{
+	struct charger_desc *desc = cm->desc;
+	struct power_supply *psy;
+	union power_supply_propval val;
+	int ret;
+
+	*max_vol = 0;
+	psy = power_supply_get_by_name(desc->psy_fast_charger_stat[0]);
+	if (!psy) {
+		dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
+			desc->psy_fast_charger_stat[0]);
+		return -ENODEV;
+	}
+
+	ret = power_supply_get_property(psy,
+					POWER_SUPPLY_PROP_VOLTAGE_MAX,
+					&val);
+	power_supply_put(psy);
+	if (ret) {
+		dev_err(cm->dev,
+			"failed to get max voltage\n");
+		return ret;
+	}
+
+	*max_vol = val.intval;
+
+	return 0;
+}
+
+static int cm_get_adapter_max_current(struct charger_manager *cm, int *max_cur)
+{
+	struct charger_desc *desc = cm->desc;
+	struct power_supply *psy;
+	union power_supply_propval val;
+	int ret;
+
+	*max_cur = 0;
+	psy = power_supply_get_by_name(desc->psy_fast_charger_stat[0]);
+	if (!psy) {
+		dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
+			desc->psy_fast_charger_stat[0]);
+		return -ENODEV;
+	}
+
+	ret = power_supply_get_property(psy,
+					POWER_SUPPLY_PROP_CURRENT_MAX,
+					&val);
+	power_supply_put(psy);
+	if (ret) {
+		dev_err(cm->dev,
+			"failed to get max current\n");
+		return ret;
+	}
+
+	*max_cur = val.intval;
+
+	return 0;
 }
 
 static int cm_set_main_charger_current(struct charger_manager *cm, int cmd)
@@ -1230,7 +1617,6 @@ static int cm_fast_charge_enable_check(struct charger_manager *cm)
 {
 	struct charger_desc *desc = cm->desc;
 	int batt_uV, batt_uA, ret;
-	int cur_jeita_status;
 
 	/*
 	 * if it occurs emergency event,
@@ -1310,12 +1696,7 @@ static int cm_fast_charge_enable_check(struct charger_manager *cm)
 	/*
 	 * adjust over voltage protection in 9V
 	 */
-	if (desc->fast_charge_voltage_max)
-		desc->charge_voltage_max =
-			desc->fast_charge_voltage_max;
-	if (desc->fast_charge_voltage_drop)
-		desc->charge_voltage_drop =
-			desc->fast_charge_voltage_drop;
+	cm_update_charge_voltage_protection(cm, CHARGE_TYPE_FAST);
 
 	/*
 	 * if enable jeita, we should adjust current
@@ -1323,16 +1704,8 @@ static int cm_fast_charge_enable_check(struct charger_manager *cm)
 	 * according to current temperature.
 	 */
 	if (desc->jeita_tab_size) {
-		desc->jeita_tab =
-			desc->jeita_tab_array[CM_JEITA_FCHG];
-
-		cur_jeita_status =
-			cm_manager_get_jeita_status(cm, cm->desc->temperature);
-
-		if (desc->jeita_disabled)
-			cur_jeita_status = STATUS_T1_TO_T2;
-
-		cm_manager_adjust_current(cm, cur_jeita_status);
+		cm_update_jeita_table(cm, POWER_SUPPLY_USB_TYPE_PD);
+		cm_update_current_jeita_status(cm);
 	}
 
 	desc->enable_fast_charge = true;
@@ -1343,7 +1716,7 @@ static int cm_fast_charge_enable_check(struct charger_manager *cm)
 static int cm_fast_charge_disable(struct charger_manager *cm)
 {
 	struct charger_desc *desc = cm->desc;
-	int ret, cur_jeita_status;
+	int ret;
 
 	if (!desc->enable_fast_charge)
 		return 0;
@@ -1363,7 +1736,8 @@ static int cm_fast_charge_disable(struct charger_manager *cm)
 	 */
 	ret = cm_adjust_fast_charge_voltage(cm, CM_FAST_CHARGE_VOLTAGE_5V);
 	if (ret) {
-		dev_err(cm->dev, "failed to adjust 5V fast charger voltage\n");
+		dev_err(cm->dev,
+				"failed to adjust 5V fast charger voltage\n");
 		return ret;
 	}
 
@@ -1376,12 +1750,7 @@ static int cm_fast_charge_disable(struct charger_manager *cm)
 	/*
 	 * adjust over voltage protection in 5V
 	 */
-	if (desc->normal_charge_voltage_max)
-		desc->charge_voltage_max =
-			desc->normal_charge_voltage_max;
-	if (desc->normal_charge_voltage_drop)
-		desc->charge_voltage_drop =
-			desc->normal_charge_voltage_drop;
+	cm_update_charge_voltage_protection(cm, CHARGE_TYPE_NORMAL);
 
 	/*
 	 * if enable jeita, we should adjust current
@@ -1389,16 +1758,8 @@ static int cm_fast_charge_disable(struct charger_manager *cm)
 	 * according to current temperature.
 	 */
 	if (desc->jeita_tab_size) {
-		desc->jeita_tab =
-			desc->jeita_tab_array[CM_JEITA_DCP];
-
-		cur_jeita_status =
-			cm_manager_get_jeita_status(cm, desc->temperature);
-
-		if (desc->jeita_disabled)
-			cur_jeita_status = STATUS_T1_TO_T2;
-
-		cm_manager_adjust_current(cm, cur_jeita_status);
+		cm_update_jeita_table(cm, POWER_SUPPLY_USB_TYPE_DCP);
+		cm_update_current_jeita_status(cm);
 	}
 
 	desc->enable_fast_charge = false;
@@ -1444,37 +1805,13 @@ static int cm_fast_charge_disable_check(struct charger_manager *cm)
 	return 0;
 }
 
-static int try_charger_enable_by_psy(struct charger_manager *cm, bool enable)
-{
-	struct charger_desc *desc = cm->desc;
-	union power_supply_propval val;
-	struct power_supply *psy;
-	int i, err;
-
-	for (i = 0; desc->psy_charger_stat[i]; i++) {
-		psy = power_supply_get_by_name(desc->psy_charger_stat[i]);
-		if (!psy) {
-			dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
-				desc->psy_charger_stat[i]);
-			continue;
-		}
-
-		val.intval = enable;
-		err = power_supply_set_property(psy, POWER_SUPPLY_PROP_STATUS,
-						&val);
-		power_supply_put(psy);
-		if (err)
-			return err;
-		if (desc->psy_charger_stat[1])
-			break;
-	}
-
-	return 0;
-}
-
 static int try_fast_charger_enable(struct charger_manager *cm, bool enable)
 {
 	int err = 0;
+
+	if (cm->desc->fast_charger_type != POWER_SUPPLY_USB_TYPE_PD &&
+	    cm->desc->fast_charger_type != POWER_SUPPLY_CHARGE_TYPE_FAST)
+		return 0;
 
 	if (enable) {
 		err = cm_fast_charge_enable_check(cm);
@@ -1502,6 +1839,1036 @@ static int try_fast_charger_enable(struct charger_manager *cm, bool enable)
 	return 0;
 }
 
+static void cm_set_primary_charger_max_voltage(struct charger_manager *cm,
+					       int target_cccv)
+{
+	union power_supply_propval val;
+	struct power_supply *psy;
+	int i, ret;
+
+	for (i = 0; cm->desc->psy_charger_stat[i]; i++) {
+		psy = power_supply_get_by_name(cm->desc->psy_charger_stat[i]);
+		if (!psy) {
+			dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
+				cm->desc->psy_charger_stat[i]);
+			continue;
+		}
+
+		val.intval = target_cccv;
+		ret = power_supply_set_property(psy,
+						POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE_MAX,
+						&val);
+
+		power_supply_put(psy);
+		if (ret) {
+			dev_err(cm->dev, "failed to set terminate voltage, ret = %d\n", ret);
+			continue;
+		}
+	}
+}
+
+static void cm_set_cp_charger_max_voltage(struct charger_manager *cm,
+					       int target_cccv)
+{
+	union power_supply_propval val;
+	struct power_supply *psy;
+	int i, ret;
+
+	for (i = 0; cm->desc->psy_cp_stat[i]; i++) {
+		psy = power_supply_get_by_name(cm->desc->psy_cp_stat[i]);
+		if (!psy) {
+			dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
+				cm->desc->psy_cp_stat[i]);
+			continue;
+		}
+
+		val.intval = target_cccv;
+		ret = power_supply_set_property(psy,
+						POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE_MAX,
+						&val);
+
+		power_supply_put(psy);
+		if (ret) {
+			dev_err(cm->dev, "failed to set terminate voltage, ret = %d\n", ret);
+			continue;
+		}
+	}
+}
+
+static int cm_get_ibat_avg(struct charger_manager *cm, int *ibat)
+{
+	int ret, batt_uA, min, max, i, sum = 0;
+	struct cm_ir_compensation *ir_sts = &cm->desc->ir_comp;
+
+	ret = get_batt_uA(cm, &batt_uA);
+	if (ret) {
+		dev_err(cm->dev, "get bat_uA error.\n");
+		return ret;
+	}
+
+	if (ir_sts->ibat_index >= CM_IBAT_BUFF_CNT)
+		ir_sts->ibat_index = 0;
+	ir_sts->ibat_buf[ir_sts->ibat_index++] = batt_uA;
+
+	if (ir_sts->ibat_buf[CM_IBAT_BUFF_CNT - 1] == CM_MAGIC_NUM)
+		return -EINVAL;
+
+	min = max = ir_sts->ibat_buf[0];
+	for (i = 0; i < CM_IBAT_BUFF_CNT; i++) {
+		if (max < ir_sts->ibat_buf[i])
+			max = ir_sts->ibat_buf[i];
+		if (min > ir_sts->ibat_buf[i])
+			min = ir_sts->ibat_buf[i];
+		sum += ir_sts->ibat_buf[i];
+	}
+
+	sum  = sum - min - max;
+
+	*ibat = DIV_ROUND_CLOSEST(sum, (CM_IBAT_BUFF_CNT - 2));
+
+	if (*ibat < 0)
+		*ibat = 0;
+
+	return ret;
+}
+
+static void cm_ir_compensation_exit(struct charger_manager *cm)
+{
+	cm->desc->ir_comp.ibat_buf[CM_IBAT_BUFF_CNT - 1] = CM_MAGIC_NUM;
+	cm->desc->ir_comp.ibat_index = 0;
+}
+
+static void cm_ir_compensation_enable(struct charger_manager *cm, bool enable)
+{
+	struct cm_ir_compensation *ir_sts = &cm->desc->ir_comp;
+
+	if (enable) {
+		if (ir_sts->rc && !ir_sts->ir_compensation_en) {
+			dev_info(cm->dev, "%s enable ir compensation\n", __func__);
+			queue_delayed_work(system_power_efficient_wq,
+					   &cm->ir_compensation_work,
+					   CM_IR_COMPENSATION_TIME * HZ);
+		}
+		ir_sts->ir_compensation_en = true;
+	} else {
+		if (ir_sts->ir_compensation_en) {
+			dev_info(cm->dev, "%s stop ir compensation\n", __func__);
+			cancel_delayed_work_sync(&cm->ir_compensation_work);
+			ir_sts->ir_compensation_en = false;
+			cm_ir_compensation_exit(cm);
+		}
+	}
+}
+
+static void cm_ir_compensation(struct charger_manager *cm,
+			       enum cm_ir_comp_state state,
+			       int *target)
+{
+	struct cm_ir_compensation *ir_sts = &cm->desc->ir_comp;
+	int ibat_avg, target_cccv;
+
+	if (!ir_sts->rc)
+		return;
+
+	if (cm_get_ibat_avg(cm, &ibat_avg))
+		return;
+
+	target_cccv = ir_sts->us + (ibat_avg / 1000)  * ir_sts->rc;
+	dev_info(cm->dev, "%s, us = %d, rc = %d, upper_limit = %d, lower_limit = %d, "
+		 "target_cccv = %d, ibat_avg = %d, offset = %d\n",
+		 __func__, ir_sts->us, ir_sts->rc, ir_sts->us_upper_limit,
+		 ir_sts->us_lower_limit, target_cccv, ibat_avg,
+		 ir_sts->cp_upper_limit_offset);
+
+	if (target_cccv < ir_sts->us_lower_limit)
+		target_cccv = ir_sts->us_lower_limit;
+	else if (target_cccv > ir_sts->us_upper_limit)
+		target_cccv = ir_sts->us_upper_limit;
+
+	*target = target_cccv;
+
+	switch (state) {
+	case CM_IR_COMP_STATE_NORMAL:
+		cm_set_primary_charger_max_voltage(cm, *target);
+		break;
+	case CM_IR_COMP_STATE_CP:
+		target_cccv = min(ir_sts->us_upper_limit,
+				  (*target + ir_sts->cp_upper_limit_offset));
+		cm_set_cp_charger_max_voltage(cm, target_cccv);
+		break;
+	default:
+		break;
+	}
+}
+
+static void cm_ir_compensation_works(struct work_struct *work)
+{
+	struct delayed_work *dwork = to_delayed_work(work);
+	struct charger_manager *cm = container_of(dwork,
+						  struct charger_manager,
+						  ir_compensation_work);
+
+	int target_cccv;
+
+	cm_ir_compensation(cm, CM_IR_COMP_STATE_NORMAL, &target_cccv);
+	queue_delayed_work(system_power_efficient_wq,
+			   &cm->ir_compensation_work,
+			   CM_IR_COMPENSATION_TIME * HZ);
+}
+
+static void cm_cp_state_change(struct charger_manager *cm, int state)
+{
+	cm->desc->cp.cp_state = state;
+	dev_info(cm->dev, "%s, current cp_sate = %d\n", __func__, state);
+}
+
+static  bool cm_cp_master_charger_enable(struct charger_manager *cm, bool enable)
+{
+	union power_supply_propval val;
+	struct power_supply *cp_psy;
+	int ret;
+
+	if (!cm->desc->psy_cp_stat)
+		return false;
+
+	cp_psy = power_supply_get_by_name(cm->desc->psy_cp_stat[0]);
+	if (!cp_psy) {
+		dev_err(cm->dev, "Cannot find charge pump power supply \"%s\"\n",
+				cm->desc->psy_cp_stat[0]);
+		return false;
+	}
+
+	val.intval = enable;
+	ret = power_supply_set_property(cp_psy, POWER_SUPPLY_PROP_CHARGE_ENABLED, &val);
+	power_supply_put(cp_psy);
+	if (ret) {
+		dev_err(cm->dev, "failed to %s master charge pump, ret = %d\n",
+			enable ? "enabel" : "disable", ret);
+		return false;
+	}
+
+	return true;
+}
+
+static void cm_init_cp(struct charger_manager *cm)
+{
+	union power_supply_propval val;
+	struct power_supply *cp_psy;
+	int i, ret = -ENODEV;
+
+	for (i = 0; cm->desc->psy_cp_stat[i]; i++) {
+		cp_psy = power_supply_get_by_name(cm->desc->psy_cp_stat[i]);
+		if (!cp_psy) {
+			dev_err(cm->dev, "Cannot find charge pump power supply \"%s\"\n",
+				cm->desc->psy_cp_stat[i]);
+			continue;
+		}
+
+		val.intval = CMD_USB_PRESENT;
+		ret = power_supply_set_property(cp_psy,
+						POWER_SUPPLY_PROP_PRESENT,
+						&val);
+		power_supply_put(cp_psy);
+		if (ret) {
+			dev_err(cm->dev, "fail to init cp[%d], ret = %d\n", i, ret);
+			break;
+		}
+	}
+}
+
+static int cm_adjust_fast_pps_voltage(struct charger_manager *cm, int vol)
+{
+	struct charger_desc *desc = cm->desc;
+	struct power_supply *psy;
+	union power_supply_propval val;
+	int ret;
+
+	dev_info(cm->dev, "%s, pps target voltage = %d\n", __func__, vol);
+	psy = power_supply_get_by_name(desc->psy_fast_charger_stat[0]);
+	if (!psy) {
+		dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
+			desc->psy_fast_charger_stat[0]);
+		return -ENODEV;
+	}
+
+	val.intval = vol;
+	ret = power_supply_set_property(psy,
+					POWER_SUPPLY_PROP_VOLTAGE_MAX,
+					&val);
+	power_supply_put(psy);
+	if (ret) {
+		dev_err(cm->dev,
+			"failed to adjust fast charger voltage = %d\n", vol);
+		return ret;
+	}
+
+	return 0;
+}
+
+static int cm_adjust_fast_pps_current(struct charger_manager *cm, int cur)
+{
+	struct charger_desc *desc = cm->desc;
+	struct power_supply *psy;
+	union power_supply_propval val;
+	int ret;
+
+	dev_info(cm->dev, "%s, pps target current = %d\n", __func__, cur);
+	psy = power_supply_get_by_name(desc->psy_fast_charger_stat[0]);
+	if (!psy) {
+		dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
+			desc->psy_fast_charger_stat[0]);
+		return -ENODEV;
+	}
+
+	val.intval = cur;
+	ret = power_supply_set_property(psy,
+					POWER_SUPPLY_PROP_CURRENT_MAX,
+					&val);
+	power_supply_put(psy);
+	if (ret) {
+		dev_err(cm->dev,
+			"failed to adjust fast ibus = %d\n", cur);
+		return ret;
+	}
+
+	return 0;
+}
+
+static int cm_fast_enable_pps(struct charger_manager *cm, bool enable)
+{
+	struct charger_desc *desc = cm->desc;
+	struct power_supply *psy;
+	union power_supply_propval val;
+	int ret;
+
+	dev_info(cm->dev, "%s, pps %s\n", __func__, enable ? "enable" : "disable");
+	psy = power_supply_get_by_name(desc->psy_fast_charger_stat[0]);
+	if (!psy) {
+		dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
+			desc->psy_fast_charger_stat[0]);
+		return -ENODEV;
+	}
+
+	if (enable)
+		val.intval = CM_PPS_CHARGE_ENABLE_CMD;
+	else
+		val.intval = CM_PPS_CHARGE_DISABLE_CMD;
+
+	ret = power_supply_set_property(psy,
+					POWER_SUPPLY_PROP_VOLTAGE_MAX,
+					&val);
+	power_supply_put(psy);
+	if (ret) {
+		dev_err(cm->dev,
+			"failed to disable pps\n");
+		return ret;
+	}
+
+	return 0;
+}
+
+static bool cm_check_primary_charger_enabled(struct charger_manager *cm)
+{
+	int ret;
+	bool enabled = false;
+	union power_supply_propval val = {0,};
+	struct power_supply *psy;
+
+	psy = power_supply_get_by_name(cm->desc->psy_charger_stat[0]);
+	if (!psy) {
+		dev_err(cm->dev, "Cannot find primary power supply \"%s\"\n",
+			cm->desc->psy_charger_stat[0]);
+		return false;
+	}
+
+	ret = power_supply_get_property(psy,
+			POWER_SUPPLY_PROP_CHARGE_ENABLED, &val);
+	power_supply_put(psy);
+	if (!ret) {
+		if (val.intval)
+			enabled = true;
+	}
+
+	dev_info(cm->dev, "%s: %s\n", __func__, enabled ? "enabled" : "disabled");
+	return enabled;
+}
+
+static bool cm_check_cp_charger_enabled(struct charger_manager *cm)
+{
+	int ret;
+	bool enabled = false;
+	union power_supply_propval val = {0,};
+	struct power_supply *cp_psy;
+
+	if (!cm->desc->psy_cp_stat)
+		return false;
+
+	cp_psy = power_supply_get_by_name(cm->desc->psy_cp_stat[0]);
+	if (!cp_psy) {
+		dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
+			cm->desc->psy_cp_stat[0]);
+		return false;
+	}
+
+	ret = power_supply_get_property(cp_psy,
+			POWER_SUPPLY_PROP_CHARGE_ENABLED, &val);
+	power_supply_put(cp_psy);
+	if (!ret)
+		enabled = !!val.intval;
+
+	dev_info(cm->dev, "%s: %s\n", __func__, enabled ? "enabled" : "disabled");
+
+	return enabled;
+}
+
+static void cm_cp_clear_fault_status(struct charger_manager *cm)
+{
+	struct cm_charge_pump_status *cp = &cm->desc->cp;
+
+	dev_info(cm->dev, "%s\n", __func__);
+	cp->cp_fault_event = false;
+	cp->flt.bat_ovp_fault = false;
+	cp->flt.bat_ocp_fault = false;
+	cp->flt.bus_ovp_fault = false;
+	cp->flt.bus_ocp_fault = false;
+	cp->flt.bat_therm_fault = false;
+	cp->flt.bus_therm_fault = false;
+	cp->flt.die_therm_fault = false;
+
+	cp->alm.bat_ovp_alarm = false;
+	cp->alm.bat_ocp_alarm = false;
+	cp->alm.bus_ovp_alarm = false;
+	cp->alm.bus_ocp_alarm = false;
+	cp->alm.bat_therm_alarm = false;
+	cp->alm.bus_therm_alarm = false;
+	cp->alm.die_therm_alarm = false;
+	cp->alm.bat_ucp_alarm = false;
+
+}
+
+static void cm_check_cp_fault_status(struct charger_manager *cm)
+{
+	struct cm_charge_pump_status *cp = &cm->desc->cp;
+	struct power_supply *psy;
+	union power_supply_propval val;
+	int ret;
+
+	if (!cm->desc->psy_cp_stat || !cm->desc->cm_check_int)
+		return;
+
+	dev_info(cm->dev, "%s\n", __func__);
+
+	cm->desc->cm_check_int = false;
+	cp->cp_fault_event = true;
+
+	psy = power_supply_get_by_name(cm->desc->psy_cp_stat[0]);
+	if (!psy) {
+		dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
+			cm->desc->psy_cp_stat[0]);
+		return;
+	}
+
+	ret = power_supply_get_property(psy,
+			POWER_SUPPLY_PROP_FAULT_STATUS, &val);
+	if (!ret) {
+		cp->flt.bat_ovp_fault = !!(val.intval & CM_CHARGER_BAT_OVP_FAULT);
+		cp->flt.bat_ocp_fault = !!(val.intval & CM_CHARGER_BAT_OCP_FAULT);
+		cp->flt.bus_ovp_fault = !!(val.intval & CM_CHARGER_BUS_OVP_FAULT);
+		cp->flt.bus_ocp_fault = !!(val.intval & CM_CHARGER_BUS_OCP_FAULT);
+		cp->flt.bat_therm_fault = !!(val.intval & CM_CHARGER_BAT_THERM_FAULT);
+		cp->flt.bus_therm_fault = !!(val.intval & CM_CHARGER_BUS_THERM_FAULT);
+		cp->flt.die_therm_fault = !!(val.intval & CM_CHARGER_DIE_THERM_FAULT);
+	}
+
+	val.intval = 0;
+	ret = power_supply_get_property(psy,
+			POWER_SUPPLY_PROP_ALARM_STATUS, &val);
+	power_supply_put(psy);
+	if (!ret) {
+		cp->alm.bat_ovp_alarm = !!(val.intval & CM_CHARGER_BAT_OVP_ALARM);
+		cp->alm.bat_ocp_alarm = !!(val.intval & CM_CHARGER_BAT_OCP_ALARM);
+		cp->alm.bus_ovp_alarm = !!(val.intval & CM_CHARGER_BUS_OVP_ALARM);
+		cp->alm.bus_ocp_alarm = !!(val.intval & CM_CHARGER_BUS_OCP_ALARM);
+		cp->alm.bat_therm_alarm = !!(val.intval & CM_CHARGER_BAT_THERM_ALARM);
+		cp->alm.bus_therm_alarm = !!(val.intval & CM_CHARGER_BUS_THERM_ALARM);
+		cp->alm.die_therm_alarm = !!(val.intval & CM_CHARGER_DIE_THERM_ALARM);
+		cp->alm.bat_ucp_alarm = !!(val.intval & CM_CHARGER_BAT_UCP_ALARM);
+	}
+}
+
+static void cm_update_cp_charger_status(struct charger_manager *cm)
+{
+	struct cm_charge_pump_status *cp = &cm->desc->cp;
+
+	cp->ibus_uA = 0;
+	cp->vbatt_uV = 0;
+	cp->vbus_uV = 0;
+	cp->ibatt_uA = 0;
+
+	if (cp->cp_running) {
+		if (get_cp_ibus_uA(cm, &cp->ibus_uA)) {
+			cp->ibus_uA = 0;
+			dev_err(cm->dev, "get ibus current error.\n");
+		}
+
+		if (get_cp_vbatt_uV(cm, &cp->vbatt_uV)) {
+			cp->vbatt_uV = 0;
+			dev_err(cm->dev, "get vbatt error.\n");
+		}
+
+		if (get_cp_vbus_uV(cm, &cp->vbus_uV)) {
+			cp->vbatt_uV = 0;
+			dev_err(cm->dev, "get vbus error.\n");
+		}
+
+		if (get_cp_ibatt_uA(cm, &cp->ibatt_uA)) {
+			cp->ibatt_uA = 0;
+			dev_err(cm->dev, "get vbatt error.\n");
+		}
+
+	} else {
+		if (get_charger_input_current(cm, &cp->ibus_uA)) {
+			cp->ibus_uA = 0;
+			dev_err(cm->dev, "get ibus current error.\n");
+		}
+
+		if (get_batt_uV(cm, &cp->vbatt_uV)) {
+			cp->vbatt_uV = 0;
+			dev_err(cm->dev, "get vbatt error.\n");
+		}
+
+		if (get_charger_voltage(cm, &cp->vbus_uV)) {
+			cp->vbatt_uV = 0;
+			dev_err(cm->dev, "get vbus error.\n");
+		}
+
+
+		if (get_batt_uA(cm, &cp->ibatt_uA)) {
+			cp->ibatt_uA = 0;
+			dev_err(cm->dev, "get vbatt error.\n");
+		}
+	}
+
+	dev_info(cm->dev, " %s,  %s, batt_uV = %duV, vbus_uV = %duV, batt_uA = %duA, ibus_uA = %duA\n",
+	       __func__, (cp->cp_running ? "charge pump" : "Primary charger"),
+	       cp->vbatt_uV, cp->vbus_uV, cp->ibatt_uA, cp->ibus_uA);
+}
+
+static bool cm_is_reach_cp_threshold(struct charger_manager *cm)
+{
+	int batt_ocv, batt_uA;
+	int cur_jeita_status = STATUS_T1_TO_T2;
+
+	if (cm->desc->jeita_tab_size) {
+		cur_jeita_status = cm_manager_get_jeita_status(cm, cm->desc->temperature);
+		if (cm->desc->jeita_disabled)
+			cur_jeita_status = STATUS_T1_TO_T2;
+	}
+
+	if (get_batt_ocv(cm, &batt_ocv)) {
+		dev_err(cm->dev, "get_batt_ocv error.\n");
+		return false;
+	}
+
+	if (get_batt_uA(cm, &batt_uA)) {
+		dev_err(cm->dev, "get_batt_uA error.\n");
+		return false;
+	}
+
+	if (cur_jeita_status == STATUS_T1_TO_T2 &&
+	    batt_ocv > 0 && batt_ocv >= CM_CP_START_VOLTAGE_LTHRESHOLD &&
+	    batt_ocv < CM_CP_START_VOLTAGE_HTHRESHOLD)
+		return true;
+	else if (cur_jeita_status != STATUS_T1_TO_T2 &&
+		 batt_ocv > 0 && batt_ocv >= CM_CP_START_VOLTAGE_LTHRESHOLD &&
+		 batt_ocv < CM_CP_START_VOLTAGE_HTHRESHOLD &&
+		 batt_uA > 0 && batt_uA >= CM_FAST_CHARGE_ENABLE_CURRENT)
+		return true;
+	else if (batt_ocv > 0 && batt_ocv >= CM_CP_START_VOLTAGE_HTHRESHOLD &&
+	    batt_uA > 0 && batt_uA >= CM_FAST_CHARGE_ENABLE_CURRENT)
+		return true;
+
+	return false;
+}
+
+static void cm_cp_check_vbus_status(struct charger_manager *cm)
+{
+	struct cm_fault_status *fault = &cm->desc->cp.flt;
+	union power_supply_propval val;
+	struct power_supply *cp_psy;
+	int ret;
+
+	fault->vbus_error_lo = false;
+	fault->vbus_error_hi = false;
+
+	if (!cm->desc->psy_cp_stat || !cm->desc->cp.cp_running)
+		return;
+
+	cp_psy = power_supply_get_by_name(cm->desc->psy_cp_stat[0]);
+	if (!cp_psy) {
+		dev_err(cm->dev, "Cannot find charge pump power supply \"%s\"\n",
+				cm->desc->psy_cp_stat[0]);
+		return;
+	}
+
+	ret = power_supply_get_property(cp_psy, POWER_SUPPLY_PROP_VBUS_ERROR_STATUS, &val);
+	power_supply_put(cp_psy);
+	if (ret) {
+		dev_err(cm->dev, "failed to get vbus status, ret = %d\n", ret);
+		return;
+	}
+
+	fault->vbus_error_lo = !!((val.intval >> 5) & 0x01);
+	fault->vbus_error_hi = !!((val.intval >> 4) & 0x01);
+}
+
+static void cm_check_target_ibus(struct charger_manager *cm)
+{
+	struct cm_charge_pump_status *cp = &cm->desc->cp;
+
+	if (cp->cp_max_ibus > 0)
+		cp->cp_target_ibus = min(cp->cp_target_ibus, cp->cp_max_ibus);
+
+	if (cp->adapter_max_ibus > 0)
+		cp->cp_target_ibus = min(cp->cp_target_ibus, cp->adapter_max_ibus);
+
+	if (cm->desc->thm_adjust_cur > 0)
+		cp->cp_target_ibus = min(cp->cp_target_ibus,
+					 cm->desc->thm_adjust_cur);
+
+	dev_info(cm->dev, "%s, adp_max_ibus = %d, cp_max_ibus = %d, thm_cur = %d, target_ibus = %d\n",
+	       __func__, cp->adapter_max_ibus, cp->cp_max_ibus,
+	       cm->desc->thm_adjust_cur, cp->cp_target_ibus);
+}
+
+static void cm_check_target_vbus(struct charger_manager *cm)
+{
+	struct cm_charge_pump_status *cp = &cm->desc->cp;
+
+	if (cp->adapter_max_vbus > 0)
+		cp->cp_target_vbus = min(cp->cp_target_vbus, cp->adapter_max_vbus);
+
+	dev_info(cm->dev, "%s, adp_max_vbus = %d, target_vbus = %d\n",
+	       __func__, cp->adapter_max_vbus, cp->cp_target_vbus);
+}
+
+static bool cm_cp_tune_algo(struct charger_manager *cm)
+{
+	struct cm_charge_pump_status *cp = &cm->desc->cp;
+
+	int vbat_step = 0;
+	int ibat_step = 0;
+	int vbus_step = 0;
+	int ibus_step = 0;
+	int alarm_step = 0;
+	bool is_taper_done = false;
+
+	/* check taper done*/
+	if (cp->vbatt_uV >= cp->cp_target_vbat - 50000) {
+		if (cp->ibatt_uA < cp->cp_taper_current) {
+			if (cp->cp_taper_trigger_cnt++ > 5) {
+				is_taper_done = true;
+				return is_taper_done;
+			}
+		} else {
+			cp->cp_taper_trigger_cnt = 0;
+		}
+	}
+
+	/* check battery voltage*/
+	if (cp->vbatt_uV > 0 &&
+	    cp->vbatt_uV < cp->cp_target_vbat - 50000)
+		vbat_step = CM_CP_VSTEP;
+	else if (cp->vbatt_uV > 0 &&
+		 cp->vbatt_uV > cp->cp_target_vbat)
+		vbat_step = -CM_CP_VSTEP * 2;
+
+	/* check battery current*/
+	if (cp->ibatt_uA > 0 &&
+	    cp->ibatt_uA < cp->cp_target_ibat - 100000)
+		ibat_step = CM_CP_VSTEP;
+	else if (cp->ibatt_uA > 0 &&
+		 cp->ibatt_uA > cp->cp_target_ibat)
+		ibat_step = -CM_CP_VSTEP * 2;
+
+	/* check bus voltage*/
+	if (cp->vbus_uV > 0 && cp->adapter_max_vbus > 0 &&
+	    cp->vbus_uV < cp->adapter_max_vbus - 50000)
+		vbus_step = CM_CP_VSTEP;
+	else if (cp->vbus_uV > 0 && cp->adapter_max_vbus > 0 &&
+		 cp->vbus_uV > cp->adapter_max_vbus)
+		vbus_step = -CM_CP_VSTEP * 2;
+
+	/* check bus current*/
+	cm_check_target_ibus(cm);
+	if (cp->ibus_uA > 0 &&
+	    cp->ibus_uA < cp->cp_target_ibus - 100000)
+		ibus_step = CM_CP_VSTEP;
+	else if (cp->ibus_uA > 0 &&
+		 cp->ibus_uA > cp->cp_target_ibus)
+		ibus_step = -CM_CP_VSTEP * 2;
+
+	/* check alarm status*/
+	if (cp->alm.bat_ovp_alarm || cp->alm.bat_ocp_alarm ||
+	    cp->alm.bus_ovp_alarm || cp->alm.bus_ocp_alarm ||
+	    cp->alm.bat_therm_alarm || cp->alm.bus_therm_alarm ||
+	    cp->alm.die_therm_alarm) {
+		dev_info(cm->dev, "%s, bat_ovp_alarm = %d, bat_ocp_alarm = %d, bus_ovp_alarm = %d, "
+		       "bus_ocp_alarm = %d, bat_therm_alarm = %d, bus_therm_alarm = %d, "
+		       "die_therm_alarm = %d\n", __func__, cp->alm.bat_ovp_alarm,
+		       cp->alm.bat_ocp_alarm, cp->alm.bus_ovp_alarm,
+		       cp->alm.bus_ocp_alarm, cp->alm.bat_therm_alarm,
+		       cp->alm.bus_therm_alarm, cp->alm.die_therm_alarm);
+		alarm_step = -CM_CP_VSTEP * 2;
+	} else {
+		alarm_step = CM_CP_VSTEP;
+	}
+
+	cp->cp_target_vbus += min(min(min(min(vbat_step, ibat_step),
+					  vbus_step), ibus_step), alarm_step);
+	cm_check_target_vbus(cm);
+
+	dev_info(cm->dev, "%s vbatt = %duV, ibatt = %duA, vbus = %duV, ibus = %duA, "
+	       "cp_target_vbat = %duV, cp_target_ibat = %duA, cp_target_vbus = %duV, "
+	       "cp_target_ibus = %duA, cp_taper_current = %duA, taper_cnt = %d, "
+	       "vbat_step = %d, ibat_step = %d, vbus_step = %d, ibus_step = %d, alarm_step = %d, "
+	       "adapter_max_vbus = %duV, adapter_max_ibus = %duA\n",
+	       __func__, cp->vbatt_uV, cp->ibatt_uA, cp->vbus_uV,
+	       cp->ibus_uA, cp->cp_target_vbat, cp->cp_target_ibat,
+	       cp->cp_target_vbus, cp->cp_target_ibus, cp->cp_taper_current,
+	       cp->cp_taper_trigger_cnt, vbat_step, ibat_step, vbus_step,
+	       ibus_step, alarm_step, cp->adapter_max_vbus, cp->adapter_max_ibus);
+
+	return is_taper_done;
+}
+
+static void cm_cp_state_recovery(struct charger_manager *cm)
+{
+	cm->desc->cp.recovery = false;
+	if (is_ext_pwr_online(cm) && cm_is_reach_cp_threshold(cm))
+		cm_cp_state_change(cm, CM_CP_STATE_ENTRY);
+	else
+		cm_cp_state_change(cm, CM_CP_STATE_EXIT);
+}
+
+static void cm_cp_state_entry(struct charger_manager *cm)
+{
+	struct cm_charge_pump_status *cp = &cm->desc->cp;
+	static int primary_charger_dis_retry;
+
+	cm->desc->cm_check_fault = false;
+	cm_fast_enable_pps(cm, false);
+	if (cm_fast_enable_pps(cm, true)) {
+		dev_err(cm->dev, "fail to enable pps\n");
+		return;
+	}
+
+	cm_adjust_fast_pps_voltage(cm, CM_FAST_CHARGE_VOLTAGE_5V);
+	cm_cp_master_charger_enable(cm, false);
+	cm_primary_charger_enable(cm, false);
+	cm_ir_compensation_enable(cm, false);
+
+	if (cm_check_primary_charger_enabled(cm)) {
+		if (primary_charger_dis_retry++ > CM_CP_PRIMARY_CHARGER_DIS_TIMEOUT) {
+			cm_cp_state_change(cm, CM_CP_STATE_EXIT);
+			primary_charger_dis_retry = 0;
+		}
+		return;
+	}
+
+	cm_get_adapter_max_current(cm, &cp->adapter_max_ibus);
+	cm_get_adapter_max_voltage(cm, &cp->adapter_max_vbus);
+
+	cm_init_cp(cm);
+
+	cm_update_charge_voltage_protection(cm, CHARGE_TYPE_FLASH);
+	cm_update_jeita_table(cm, POWER_SUPPLY_USB_TYPE_PD_PPS);
+	cm_update_current_jeita_status(cm);
+	cm_cp_master_charger_enable(cm, true);
+
+	cp->recovery = false;
+	cm->desc->enable_fast_charge = true;
+	cm->desc->cp.tune_vbus_retry = 0;
+	primary_charger_dis_retry = 0;
+
+	cp->cp_target_ibus = cp->cp_max_ibus;
+	cp->cp_target_vbus = cp->vbatt_uV * 205 / 100 + 2 * CM_CP_VSTEP;
+
+	dev_info(cm->dev, "%s, target_ibat = %d, cp_target_vbus = %d\n",
+	       __func__, cp->cp_target_ibat, cp->cp_target_vbus);
+
+	cm_check_target_vbus(cm);
+	cm_adjust_fast_pps_voltage(cm, cp->cp_target_vbus);
+	cp->cp_last_target_vbus = cp->cp_target_vbus;
+
+	cm_check_target_ibus(cm);
+	cm_adjust_fast_pps_current(cm, cp->cp_target_ibus);
+	cm_cp_state_change(cm, CM_CP_STATE_CHECK_VBUS);
+}
+
+static void cm_cp_state_check_vbus(struct charger_manager *cm)
+{
+	struct cm_charge_pump_status *cp = &cm->desc->cp;
+
+	if (cp->flt.vbus_error_lo && cp->vbus_uV < cp->vbatt_uV * 219 / 100) {
+		cp->tune_vbus_retry++;
+		cp->cp_target_vbus += CM_CP_VSTEP;
+		cm_check_target_vbus(cm);
+
+		if (cm_adjust_fast_pps_voltage(cm, cp->cp_target_vbus))
+			cp->cp_target_vbus -= CM_CP_VSTEP;
+
+	} else if (cp->flt.vbus_error_hi && cp->vbus_uV > cp->vbatt_uV * 205 / 100) {
+		cp->tune_vbus_retry++;
+		cp->cp_target_vbus -= CM_CP_VSTEP;
+		if (cm_adjust_fast_pps_voltage(cm, cp->cp_target_vbus))
+			dev_err(cm->dev, "fail to adjust pps voltage = %duV\n",
+				cp->cp_target_vbus);
+	} else {
+		dev_info(cm->dev, "adapter volt tune ok, retry %d times\n",
+			 cp->tune_vbus_retry);
+		cm_cp_state_change(cm, CM_CP_STATE_TUNE);
+
+		if (!cm_check_cp_charger_enabled(cm))
+			cm_cp_master_charger_enable(cm, true);
+
+		cm->desc->cm_check_fault = true;
+		return;
+	}
+
+	dev_info(cm->dev, " %s, target_ibat = %duA, cp_target_vbus = %duV, vbus_err_lo = %d, "
+	       "vbus_err_hi = %d, retry_time = %d",
+	       __func__, cp->cp_target_ibat, cp->cp_target_vbus,
+	       cp->flt.vbus_error_lo, cp->flt.vbus_error_hi, cp->tune_vbus_retry);
+
+	if (cp->tune_vbus_retry >= 50) {
+		dev_info(cm->dev, "Failed to tune adapter volt into valid range,move to CM_CP_STATE_EXIT\n");
+		cm_cp_state_change(cm, CM_CP_STATE_EXIT);
+	}
+}
+
+static void cm_cp_state_tune(struct charger_manager *cm)
+{
+	struct cm_charge_pump_status *cp = &cm->desc->cp;
+	int target_vbat = 0;
+
+	cm_ir_compensation(cm, CM_IR_COMP_STATE_CP, &target_vbat);
+	if (target_vbat > 0)
+		cp->cp_target_vbat = target_vbat;
+
+	if (cp->flt.bat_therm_fault || cp->flt.die_therm_fault ||
+	    cp->flt.bus_therm_fault) {
+		dev_info(cm->dev, "bat_therm_fault = %d, die_therm_fault = %d, exit cp\n",
+			 cp->flt.bat_therm_fault, cp->flt.die_therm_fault);
+		cm_cp_state_change(cm, CM_CP_STATE_EXIT);
+
+	} else if (cp->flt.bat_ocp_fault || cp->flt.bat_ovp_fault ||
+		cp->flt.bus_ocp_fault || cp->flt.bus_ovp_fault) {
+		dev_info(cm->dev, "bat_ocp_fault = %d, bat_ovp_fault = %d, "
+			 "bus_ocp_fault = %d, bus_ovp_fault = %d, exit cp\n",
+			 cp->flt.bat_ocp_fault, cp->flt.bat_ovp_fault,
+			 cp->flt.bus_ocp_fault, cp->flt.bus_ovp_fault);
+		cm_cp_state_change(cm, CM_CP_STATE_EXIT);
+
+	} else if (!cm_check_cp_charger_enabled(cm) &&
+		   (cp->flt.vbus_error_hi || cp->flt.vbus_error_lo)) {
+		dev_info(cm->dev, " %s some error happen, need recovery\n", __func__);
+		cp->recovery = true;
+		cm_cp_state_change(cm, CM_CP_STATE_EXIT);
+
+	} else if (!cm_check_cp_charger_enabled(cm)) {
+		dev_info(cm->dev, "%s cp charger is disabled, exit cp\n", __func__);
+		cp->recovery = true;
+		cm_cp_state_change(cm, CM_CP_STATE_EXIT);
+	} else {
+		dev_info(cm->dev, "cp is ok, fine tune\n");
+		if (cm_cp_tune_algo(cm)) {
+			dev_info(cm->dev, "taper done, exit cp machine\n");
+			cm_cp_state_change(cm, CM_CP_STATE_EXIT);
+			cp->recovery = false;
+		} else {
+			if (cp->cp_last_target_vbus != cp->cp_target_vbus) {
+				cm_adjust_fast_pps_voltage(cm, cp->cp_target_vbus);
+				cp->cp_last_target_vbus = cp->cp_target_vbus;
+				cp->cp_adjust_cnt = 0;
+			} else if (cp->cp_adjust_cnt++ > 6) {
+				cm_adjust_fast_pps_voltage(cm, cp->cp_target_vbus);
+				cp->cp_adjust_cnt = 0;
+			}
+		}
+	}
+
+	if (cp->cp_fault_event)
+		cm_cp_clear_fault_status(cm);
+}
+
+static void cm_cp_state_exit(struct charger_manager *cm)
+{
+	struct cm_charge_pump_status *cp = &cm->desc->cp;
+
+	if (!cm_cp_master_charger_enable(cm, false))
+		return;
+
+	/* Hardreset will request 5V/2A or 5V/3A default.
+	 * Disbale pps will request sink-pdos PDO_FIXED value.
+	 * And PDO_FIXED defined in dts is 5V/2A or 5V/3A, so
+	 * we does not need requeset 5V/2A or 5V/3A when exit cp
+	 */
+	cm_fast_enable_pps(cm, false);
+
+	cm_update_charge_voltage_protection(cm, CHARGE_TYPE_NORMAL);
+	cm_update_jeita_table(cm, POWER_SUPPLY_USB_TYPE_DCP);
+
+	if (!cp->recovery)
+		cp->cp_running = false;
+
+	cm_update_current_jeita_status(cm);
+	if (!cm->charging_status && !cm->emergency_stop) {
+		cm_primary_charger_enable(cm, true);
+		cm_ir_compensation_enable(cm, true);
+	}
+
+	if (cp->recovery)
+		cm_cp_state_change(cm, CM_CP_STATE_RECOVERY);
+
+	cm->desc->cm_check_fault = false;
+	cm->desc->enable_fast_charge = false;
+	cp->cp_fault_event = false;
+
+	cm_ir_compensation_exit(cm);
+}
+
+static int cm_cp_state_machine(struct charger_manager *cm)
+{
+	struct cm_charge_pump_status *cp = &cm->desc->cp;
+
+	dev_info(cm->dev, "%s, state %d, %s\n", __func__,
+	       cp->cp_state, cm_cp_sate_names[cp->cp_state]);
+
+	switch (cp->cp_state) {
+	case CM_CP_STATE_RECOVERY:
+		cm_cp_state_recovery(cm);
+		break;
+	case CM_CP_STATE_ENTRY:
+		cm_cp_state_entry(cm);
+		break;
+	case CM_CP_STATE_CHECK_VBUS:
+		cm_cp_state_check_vbus(cm);
+		break;
+	case CM_CP_STATE_TUNE:
+		cm_cp_state_tune(cm);
+		break;
+	case CM_CP_STATE_EXIT:
+		cm_cp_state_exit(cm);
+		break;
+	case CM_CP_STATE_UNKNOWN:
+	default:
+		cm_cp_state_change(cm, CM_CP_STATE_EXIT);
+		break;
+	}
+
+	return 0;
+}
+
+static void cm_cp_work(struct work_struct *work)
+{
+	struct delayed_work *dwork = to_delayed_work(work);
+	struct charger_manager *cm = container_of(dwork,
+						  struct charger_manager,
+						  cp_work);
+
+	cm_update_cp_charger_status(cm);
+	cm_cp_check_vbus_status(cm);
+
+	if (cm->desc->cm_check_int && cm->desc->cm_check_fault)
+		cm_check_cp_fault_status(cm);
+
+	if (cm->desc->cp.cp_running && !cm_cp_state_machine(cm))
+		schedule_delayed_work(&cm->cp_work, 1 * HZ);
+}
+
+static void cm_check_cp_start_condition(struct charger_manager *cm, bool enable)
+{
+	struct cm_charge_pump_status *cp = &cm->desc->cp;
+
+	dev_info(cm->dev, "%s enable = %d start\n", __func__, enable);
+
+	if (!cm->desc->psy_cp_stat)
+		return;
+
+	if (enable) {
+		cp->check_cp_threshold = enable;
+	} else {
+		cp->check_cp_threshold = enable;
+		cp->recovery = false;
+		cm_cp_state_change(cm, CM_CP_STATE_EXIT);
+		if (cp->cp_running) {
+			cancel_delayed_work_sync(&cm->cp_work);
+			cm_cp_state_machine(cm);
+		}
+		__pm_relax(&cm->charge_ws);
+	}
+}
+
+static bool cm_is_need_start_cp(struct charger_manager *cm)
+{
+	struct cm_charge_pump_status *cp = &cm->desc->cp;
+	bool need = false;
+
+	if (!cm->desc->psy_cp_stat)
+		return false;
+
+	cm_charger_is_support_fchg(cm);
+	dev_info(cm->dev, "%s, check_cp_threshold = %d, pps_running = %d, fast_charger_type = %d\n",
+		 __func__, cp->check_cp_threshold, cp->cp_running, cm->desc->fast_charger_type);
+	if (cp->check_cp_threshold && !cp->cp_running &&
+	   cm_is_reach_cp_threshold(cm) && cm->charger_enabled &&
+	   cm->desc->fast_charger_type == POWER_SUPPLY_USB_TYPE_PD_PPS)
+		need = true;
+
+	return need;
+}
+
+static void cm_start_cp_state_machine(struct charger_manager *cm, bool start)
+{
+	struct cm_charge_pump_status *cp = &cm->desc->cp;
+
+	if (!cp->cp_running && start) {
+		dev_info(cm->dev, "%s, reach pps threshold\n", __func__);
+		cp->cp_running  = start;
+		cm->desc->cm_check_fault = false;
+		__pm_stay_awake(&cm->charge_ws);
+		cm_cp_state_change(cm, CM_CP_STATE_ENTRY);
+		schedule_delayed_work(&cm->cp_work, 0);
+	}
+}
+
+static int try_charger_enable_by_psy(struct charger_manager *cm, bool enable)
+{
+	struct charger_desc *desc = cm->desc;
+	union power_supply_propval val;
+	struct power_supply *psy;
+	int i, err;
+
+	for (i = 0; desc->psy_charger_stat[i]; i++) {
+		psy = power_supply_get_by_name(desc->psy_charger_stat[i]);
+		if (!psy) {
+			dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
+				desc->psy_charger_stat[i]);
+			continue;
+		}
+
+		val.intval = enable;
+		err = power_supply_set_property(psy, POWER_SUPPLY_PROP_STATUS,
+						&val);
+		power_supply_put(psy);
+		if (err)
+			return err;
+	}
+
+	return 0;
+}
+
 /**
  * try_charger_enable - Enable/Disable chargers altogether
  * @cm: the Charger Manager representing the battery.
@@ -1515,6 +2882,7 @@ static int try_fast_charger_enable(struct charger_manager *cm, bool enable)
 static int try_charger_enable(struct charger_manager *cm, bool enable)
 {
 	int err = 0;
+
 	try_fast_charger_enable(cm, enable);
 
 	/* Ignore if it's redundant command */
@@ -1540,6 +2908,8 @@ static int try_charger_enable(struct charger_manager *cm, bool enable)
 		cm->charging_end_time = 0;
 
 		err = try_charger_enable_by_psy(cm, enable);
+		cm_ir_compensation_enable(cm, enable);
+		cm_check_cp_start_condition(cm, enable);
 	} else {
 		/*
 		 * Save end time of charging to maintain fully charged state
@@ -1547,7 +2917,8 @@ static int try_charger_enable(struct charger_manager *cm, bool enable)
 		 */
 		cm->charging_start_time = 0;
 		cm->charging_end_time = ktime_to_ms(ktime_get());
-
+		cm_check_cp_start_condition(cm, enable);
+		cm_ir_compensation_enable(cm, enable);
 		err = try_charger_enable_by_psy(cm, enable);
 	}
 
@@ -1713,8 +3084,8 @@ static int check_charging_duration(struct charger_manager *cm)
 			dev_info(cm->dev, "Charging duration exceed %ums\n",
 				 desc->charging_max_duration_ms);
 			uevent_notify(cm, "Discharging");
-			try_charger_enable(cm, false);
 			cm->charging_status |= CM_CHARGE_DURATION_ABNORMAL;
+			try_charger_enable(cm, false);
 			ret = true;
 		}
 	} else if (is_ext_pwr_online(cm) && !cm->charger_enabled &&
@@ -1846,8 +3217,8 @@ static int cm_check_charge_voltage(struct charger_manager *cm)
 		dev_info(cm->dev, "Charging voltage is larger than %d\n",
 			 desc->charge_voltage_max);
 		uevent_notify(cm, "Discharging");
-		try_charger_enable(cm, false);
 		cm->charging_status |= CM_CHARGE_VOLTAGE_ABNORMAL;
+		try_charger_enable(cm, false);
 		power_supply_changed(cm->charger_psy);
 		return 0;
 	} else if (is_ext_pwr_online(cm) && !cm->charger_enabled &&
@@ -1902,8 +3273,8 @@ static int cm_check_charge_health(struct charger_manager *cm)
 	if (cm->charger_enabled && health != POWER_SUPPLY_HEALTH_GOOD) {
 		dev_info(cm->dev, "Charging health is not good\n");
 		uevent_notify(cm, "Discharging");
-		try_charger_enable(cm, false);
 		cm->charging_status |= CM_CHARGE_HEALTH_ABNORMAL;
+		try_charger_enable(cm, false);
 		return 0;
 	} else if (is_ext_pwr_online(cm) && !cm->charger_enabled &&
 		health == POWER_SUPPLY_HEALTH_GOOD &&
@@ -1935,6 +3306,27 @@ static int cm_feed_watchdog(struct charger_manager *cm)
 		if (!psy) {
 			dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
 				cm->desc->psy_charger_stat[i]);
+
+			continue;
+		}
+		val.intval = cm->desc->wdt_interval;
+		err = power_supply_set_property(psy,
+						POWER_SUPPLY_PROP_FEED_WATCHDOG,
+						&val);
+		power_supply_put(psy);
+		if (err)
+			return err;
+
+	}
+
+	if (!cm->desc->cp.cp_running)
+		return 0;
+
+	for (i = 0; cm->desc->psy_cp_stat[i]; i++) {
+		psy = power_supply_get_by_name(cm->desc->psy_cp_stat[i]);
+		if (!psy) {
+			dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
+				cm->desc->psy_cp_stat[i]);
 			continue;
 		}
 
@@ -1982,6 +3374,16 @@ static bool cm_manager_adjust_current(struct charger_manager *cm,
 	term_volt = desc->jeita_tab[jeita_status].term_volt;
 	target_cur = desc->jeita_tab[jeita_status].current_ua;
 
+	cm->desc->ir_comp.us = term_volt;
+	cm->desc->ir_comp.us_lower_limit = term_volt;
+
+	if (cm->desc->cp.cp_running && !cm_check_primary_charger_enabled(cm)) {
+		dev_info(cm->dev, "cp target terminate voltage = %d, target current = %d\n",
+			 term_volt, target_cur);
+		cm->desc->cp.cp_target_ibat = target_cur;
+		goto exit;
+	}
+
 	if (cm->desc->thm_adjust_cur >= 0 &&
 	    cm->desc->thm_adjust_cur < target_cur) {
 		target_cur = cm->desc->thm_adjust_cur;
@@ -2026,7 +3428,7 @@ static bool cm_manager_adjust_current(struct charger_manager *cm,
 
 	if (ret)
 		return false;
-
+exit:
 	try_charger_enable(cm, true);
 	cm->charging_status &= ~(CM_CHARGE_TEMP_OVERHEAT | CM_CHARGE_TEMP_COLD);
 	return true;
@@ -2251,6 +3653,11 @@ static bool _cm_monitor(struct charger_manager *cm)
 		cm->emergency_stop = 0;
 		cm->charging_status = 0;
 		if (is_ext_pwr_online(cm)) {
+			if (cm_is_need_start_cp(cm)) {
+				dev_info(cm->dev, "%s, reach pps threshold\n", __func__);
+				cm_start_cp_state_machine(cm, true);
+			}
+
 			dev_info(cm->dev, "No emergency stop, charging\n");
 			if (!try_charger_enable(cm, true))
 				uevent_notify(cm, "CHARGING");
@@ -2428,8 +3835,13 @@ static bool cm_charger_is_support_fchg(struct charger_manager *cm)
 		power_supply_put(psy);
 		if (!ret) {
 			if (val.intval == POWER_SUPPLY_CHARGE_TYPE_FAST ||
-			    val.intval == POWER_SUPPLY_USB_TYPE_PD) {
+			    val.intval == POWER_SUPPLY_USB_TYPE_PD ||
+				val.intval == POWER_SUPPLY_USB_TYPE_PD_PPS) {
 				desc->is_fast_charge = true;
+				desc->fast_charger_type = val.intval;
+				if (!desc->psy_cp_stat &&
+				    val.intval == POWER_SUPPLY_USB_TYPE_PD_PPS)
+					desc->fast_charger_type = POWER_SUPPLY_USB_TYPE_PD;
 				return true;
 			} else {
 				return false;
@@ -2464,14 +3876,21 @@ static void cm_set_fast_charge_setting(struct charger_manager *cm)
 
 		val.intval = CM_FAST_CHARGE_DISABLE_CMD;
 		ret = power_supply_set_property(psy,
-						POWER_SUPPLY_PROP_STATUS,
-						&val);
+					POWER_SUPPLY_PROP_STATUS,
+					&val);
 		power_supply_put(psy);
 		if (ret)
 			dev_err(cm->dev,
 				"failed to set main charger current in 9V ret = %d\n", ret);
 	}
 }
+
+static void cm_charger_int_handler(struct charger_manager *cm)
+{
+	dev_info(cm->dev, "%s\n", __func__);
+	cm->desc->cm_check_int = true;
+}
+
 
 /**
  * fast_charge_handler - Event handler for CM_EVENT_FAST_CHARGE
@@ -2481,12 +3900,23 @@ static void fast_charge_handler(struct charger_manager *cm)
 {
 	if (cm_suspended)
 		device_set_wakeup_capable(cm->dev, true);
+
 	cm_charger_is_support_fchg(cm);
+
+	dev_info(cm->dev, "%s fast_charger_type = %d, cp_running = %d, charger_enabled = %d \n",
+		 __func__, cm->desc->fast_charger_type,
+		 cm->desc->cp.cp_running, cm->charger_enabled);
 
 	if (!is_ext_pwr_online(cm))
 		return;
 
 	cm_set_fast_charge_setting(cm);
+
+	if (cm->desc->fast_charger_type == POWER_SUPPLY_USB_TYPE_PD_PPS &&
+	    !cm->desc->cp.cp_running && cm->charger_enabled) {
+		cm_check_cp_start_condition(cm, true);
+		_cm_monitor(cm);
+	}
 }
 
 /**
@@ -2505,6 +3935,9 @@ static void misc_event_handler(struct charger_manager *cm,
 	if (cm->emergency_stop)
 		cm->emergency_stop = 0;
 
+	if (cm->desc->charger_type)
+		cm->desc->charger_type = 0;
+
 	if (cm->charging_status)
 		cm->charging_status = 0;
 
@@ -2516,43 +3949,16 @@ static void misc_event_handler(struct charger_manager *cm,
 		if (ret)
 			return;
 
-		switch (cm->desc->charger_type) {
-		case POWER_SUPPLY_USB_TYPE_DCP:
-			cm->desc->jeita_tab =
-				cm->desc->jeita_tab_array[CM_JEITA_DCP];
-			break;
-
-		case POWER_SUPPLY_USB_TYPE_SDP:
-			cm->desc->jeita_tab =
-				cm->desc->jeita_tab_array[CM_JEITA_SDP];
-			break;
-
-		case POWER_SUPPLY_USB_TYPE_CDP:
-			cm->desc->jeita_tab =
-				cm->desc->jeita_tab_array[CM_JEITA_CDP];
-			break;
-
-		default:
-			cm->desc->jeita_tab =
-				cm->desc->jeita_tab_array[CM_JEITA_UNKNOWN];
-		}
-
-		if (cm->desc->normal_charge_voltage_max)
-			cm->desc->charge_voltage_max =
-				cm->desc->normal_charge_voltage_max;
-		if (cm->desc->normal_charge_voltage_drop)
-			cm->desc->charge_voltage_drop =
-				cm->desc->normal_charge_voltage_drop;
+		cm_update_jeita_table(cm, cm->desc->charger_type);
+		cm_update_charge_voltage_protection(cm, CHARGE_TYPE_NORMAL);
 
 		cm_set_fast_charge_setting(cm);
 
 		if (cm->desc->jeita_tab_size) {
-			int cur_jeita_status;
 
 			if (cm->desc->is_fast_charge &&
 				cm->desc->charger_type == POWER_SUPPLY_USB_TYPE_UNKNOWN) {
-				cm->desc->jeita_tab =
-					cm->desc->jeita_tab_array[CM_JEITA_DCP];
+				cm_update_jeita_table(cm, POWER_SUPPLY_USB_TYPE_DCP);
 			}
 
 			/*
@@ -2562,21 +3968,23 @@ static void misc_event_handler(struct charger_manager *cm,
 			 */
 			cm->desc->fast_charge_enable_count = 0;
 
-			cur_jeita_status =
-				cm_manager_get_jeita_status(cm, cm->desc->temperature);
-			if (cm->desc->jeita_disabled)
-				cur_jeita_status = STATUS_T1_TO_T2;
-			cm_manager_adjust_current(cm, cur_jeita_status);
+			cm_update_current_jeita_status(cm);
 		}
 	} else {
 		try_charger_enable(cm, false);
 		cancel_delayed_work_sync(&cm_monitor_work);
+		cancel_delayed_work_sync(&cm->cp_work);
 		_cm_monitor(cm);
 
 		cm->desc->is_fast_charge = false;
+		cm->desc->ir_comp.ir_compensation_en = false;
 		cm->desc->enable_fast_charge = false;
 		cm->desc->fast_charge_enable_count = 0;
 		cm->desc->fast_charge_disable_count = 0;
+		cm->desc->cp.cp_running = false;
+		cm->desc->cm_check_int = false;
+		cm->desc->fast_charger_type = 0;
+		cm->desc->cp.cp_target_vbus = 0;
 	}
 
 	cm_update_charger_type_status(cm);
@@ -2983,6 +4391,10 @@ charger_set_property(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_CHARGE_CONTROL_LIMIT:
 		cm->desc->thm_adjust_cur = val->intval;
 		thermal_val.intval = val->intval;
+		cm_update_current_jeita_status(cm);
+
+		if (cm->desc->cp.cp_running)
+			cm_check_target_ibus(cm);
 
 		if (cm->desc->enable_fast_charge &&
 		    cm->desc->psy_charger_stat[1]) {
@@ -3213,7 +4625,10 @@ static bool cm_setup_timer(void)
 		timer_req++;
 		if (cm->desc->polling_interval_ms == 0)
 			continue;
-		CM_MIN_VALID(wakeup_ms, cm->desc->polling_interval_ms);
+		if (cm->desc->ir_comp.ir_compensation_en)
+			CM_MIN_VALID(wakeup_ms, CM_IR_COMPENSATION_TIME * 1000);
+		else
+			CM_MIN_VALID(wakeup_ms, cm->desc->polling_interval_ms);
 	}
 	mutex_unlock(&cm_list_mtx);
 
@@ -3727,7 +5142,7 @@ static void cm_track_capacity_work(struct work_struct *work)
 
 	filep = filp_open(CM_TRACK_FILE_PATH,
 			  O_RDWR | O_CREAT,
-			  S_IRUGO | S_IWUSR);
+			  0644);
 	if (IS_ERR(filep)) {
 		dev_warn(cm->dev, "failed to open track file.\n");
 		if (cm->track.state == CAP_TRACK_INIT && retry_cnt > 0) {
@@ -4004,7 +5419,7 @@ static struct charger_desc *of_cm_parse_desc(struct device *dev)
 	u32 poll_mode = CM_POLL_DISABLE;
 	u32 battery_stat = CM_NO_BATTERY;
 	u32 num_chgs = 0;
-	int ret;
+	int ret, i = 0;
 
 	desc = devm_kzalloc(dev, sizeof(*desc), GFP_KERNEL);
 	if (!desc)
@@ -4024,6 +5439,7 @@ static struct charger_desc *of_cm_parse_desc(struct device *dev)
 					&desc->fullbatt_vchkdrop_uV);
 	of_property_read_u32(np, "cm-fullbatt-voltage", &desc->fullbatt_uV);
 	of_property_read_u32(np, "cm-fullbatt-current", &desc->fullbatt_uA);
+	of_property_read_u32(np, "cm-first-fullbatt-current", &desc->first_fullbatt_uA);
 	of_property_read_u32(np, "cm-fullbatt-soc", &desc->fullbatt_soc);
 	of_property_read_u32(np, "cm-fullbatt-capacity",
 					&desc->fullbatt_full_capacity);
@@ -4042,7 +5458,6 @@ static struct charger_desc *of_cm_parse_desc(struct device *dev)
 		desc->psy_charger_stat = devm_kzalloc(dev, sizeof(char *)
 						* (num_chgs + 1), GFP_KERNEL);
 		if (desc->psy_charger_stat) {
-			int i;
 			for (i = 0; i < num_chgs; i++)
 				of_property_read_string_index(np, "cm-chargers",
 						i, &desc->psy_charger_stat[i]);
@@ -4058,11 +5473,24 @@ static struct charger_desc *of_cm_parse_desc(struct device *dev)
 		desc->psy_fast_charger_stat = devm_kzalloc(dev, sizeof(char *)
 						* (num_chgs + 1), GFP_KERNEL);
 		if (desc->psy_fast_charger_stat) {
-			int i;
-
 			for (i = 0; i < num_chgs; i++)
 				of_property_read_string_index(np, "cm-fast-chargers",
 						i, &desc->psy_fast_charger_stat[i]);
+		} else {
+			return ERR_PTR(-ENOMEM);
+		}
+	}
+
+	/* charge pumps */
+	of_property_read_u32(np, "cm-num-charge-pumps", &num_chgs);
+	if (num_chgs) {
+		/* Allocate empty bin at the tail of array */
+		desc->psy_cp_stat = devm_kzalloc(dev, sizeof(char *)
+						* (num_chgs + 1), GFP_KERNEL);
+		if (desc->psy_cp_stat) {
+			for (i = 0; i < num_chgs; i++)
+				of_property_read_string_index(np, "cm-charge-pumps",
+						i, &desc->psy_cp_stat[i]);
 		} else {
 			return ERR_PTR(-ENOMEM);
 		}
@@ -4090,8 +5518,19 @@ static struct charger_desc *of_cm_parse_desc(struct device *dev)
 			     &desc->fast_charge_voltage_max);
 	of_property_read_u32(np, "cm-fast-charge-voltage-drop",
 			     &desc->fast_charge_voltage_drop);
+	of_property_read_u32(np, "cm-flash-charge-voltage-max",
+			     &desc->flash_charge_voltage_max);
+	of_property_read_u32(np, "cm-flash-charge-voltage-drop",
+			     &desc->flash_charge_voltage_drop);
 	of_property_read_u32(np, "cm-double-ic-total-limit-current",
 			     &desc->double_ic_total_limit_current);
+	of_property_read_u32(np, "cm-cp-taper-current",
+			     &desc->cp.cp_taper_current);
+	of_property_read_u32(np, "cm-ir-rc", &desc->ir_comp.rc);
+	of_property_read_u32(np, "cm-ir-us-upper-limit-microvolt",
+			     &desc->ir_comp.us_upper_limit);
+	of_property_read_u32(np, "cm-ir-cv-offset-microvolt",
+			     &desc->ir_comp.cp_upper_limit_offset);
 
 	/* Initialize the jeita temperature table. */
 	ret = cm_init_jeita_table(desc, dev);
@@ -4187,6 +5626,11 @@ static int cm_get_bat_info(struct charger_manager *cm)
 	}
 
 	cm->desc->internal_resist = info.factory_internal_resistance_uohm / 1000;
+	cm->desc->ir_comp.us = info.constant_charge_voltage_max_uv;
+	cm->desc->cp.cp_target_vbat = info.constant_charge_voltage_max_uv;
+	cm->desc->cp.cp_max_ibat = info.cur.flash_cur;
+	cm->desc->cp.cp_target_ibat = info.cur.flash_cur;
+	cm->desc->cp.cp_max_ibus = info.cur.flash_limit;
 
 	/*
 	 * For CHARGER MANAGER device, we only use one ocv-capacity
@@ -4223,6 +5667,34 @@ static void cm_track_capacity_init(struct charger_manager *cm)
 			   5 * HZ);
 }
 
+static void cm_uvlo_check_work(struct work_struct *work)
+{
+	struct delayed_work *dwork = to_delayed_work(work);
+	struct charger_manager *cm = container_of(dwork,
+				struct charger_manager, uvlo_work);
+	int batt_uV, ret;
+
+	ret = get_batt_uV(cm, &batt_uV);
+	if (ret) {
+		dev_err(cm->dev, "get_batt_uV error.\n");
+		return;
+	}
+
+	if (batt_uV < cm->desc->shutdown_voltage)
+		cm->desc->uvlo_trigger_cnt++;
+	else
+		cm->desc->uvlo_trigger_cnt = 0;
+
+	if (cm->desc->uvlo_trigger_cnt >= CM_UVLO_CALIBRATION_CNT_THRESHOLD) {
+		dev_err(cm->dev, "WARN: batt_uV less than uvlo, will shutdown\n");
+		set_batt_cap(cm, 0);
+		orderly_poweroff(true);
+	}
+
+	if (batt_uV < CM_UVLO_CALIBRATION_VOLTAGE_THRESHOLD)
+		schedule_delayed_work(&cm->uvlo_work, msecs_to_jiffies(800));
+}
+
 static void cm_batt_works(struct work_struct *work)
 {
 	struct delayed_work *dwork = to_delayed_work(work);
@@ -4230,9 +5702,10 @@ static void cm_batt_works(struct work_struct *work)
 				struct charger_manager, cap_update_work);
 	struct timespec64 cur_time;
 	int batt_uV, batt_ocV, bat_uA, fuel_cap, chg_sts, ret;
-	int period_time, flush_time, cur_temp, board_temp;
-	int chg_cur = 0, chg_limit_cur = 0, charger_input_vol = 0;
-	static int last_fuel_cap = CM_CAP_MAGIC_NUM;
+	int period_time, flush_time, cur_temp, board_temp = 0;
+	int chg_cur = 0, chg_limit_cur = 0, input_cur = 0;
+	int chg_vol = 0;
+	static int last_fuel_cap = CM_MAGIC_NUM;
 
 	ret = get_batt_uV(cm, &batt_uV);
 	if (ret) {
@@ -4252,10 +5725,6 @@ static void cm_batt_works(struct work_struct *work)
 		return;
 	}
 
-	ret = get_charger_voltage(cm, &charger_input_vol);
-	if (ret)
-		dev_warn(cm->dev, "failed to get charger input voltage\n");
-
 	ret = get_batt_cap(cm, &fuel_cap);
 	if (ret) {
 		dev_err(cm->dev, "get fuel_cap error.\n");
@@ -4274,6 +5743,17 @@ static void cm_batt_works(struct work_struct *work)
 		dev_err(cm->dev, "get chg_limit_cur error.\n");
 		return;
 	}
+
+	if (cm->desc->cp.cp_running)
+		ret = get_cp_ibus_uA(cm, &input_cur);
+	else
+		ret = get_charger_input_current(cm, &input_cur);
+	if (ret)
+		dev_warn(cm->dev, "get input_cur error.\n");
+
+	ret = get_charger_voltage(cm, &chg_vol);
+	if (ret)
+		dev_warn(cm->dev, "get chg_vol error.\n");
 
 	ret = cm_get_battery_temperature_by_psy(cm, &cur_temp);
 	if (ret) {
@@ -4300,7 +5780,7 @@ static void cm_batt_works(struct work_struct *work)
 	else if (fuel_cap < 0)
 		fuel_cap = 0;
 
-	if (last_fuel_cap == CM_CAP_MAGIC_NUM)
+	if (last_fuel_cap == CM_MAGIC_NUM)
 		last_fuel_cap = fuel_cap;
 
 	cur_time = ktime_to_timespec64(ktime_get_boottime());
@@ -4341,18 +5821,14 @@ static void cm_batt_works(struct work_struct *work)
 	else
 		cm->desc->charger_status = chg_sts;
 
-	dev_info(cm->dev, "battery voltage = %d, OCV = %d, current = %d, "
-		 "capacity = %d, charger status = %d, force set full = %d, "
-		 "charging current = %d, charging limit current = %d, "
-		 "battery temperature = %d,board temperature = %d, "
-		 "track state = %d, charger type = %d, thm_adjust_cur = %d, "
-		 "charger input voltage = %d, "
-		 "is_fast_charge = %d, enable_fast_charge = %d\n",
-		 batt_uV, batt_ocV, bat_uA, fuel_cap, cm->desc->charger_status,
-		 cm->desc->force_set_full, chg_cur, chg_limit_cur, cur_temp, board_temp,
-		 cm->track.state, cm->desc->charger_type, cm->desc->thm_adjust_cur,
-		 charger_input_vol, cm->desc->is_fast_charge,
-		 cm->desc->enable_fast_charge);
+	dev_info(cm->dev, "vbatt = %d, OCV = %d, ibat = %d, ibus = %d, vbus = %d, "
+		 "msoc = %d, chg_sts = %d, frce_full = %d, chg_lmt_cur = %d, "
+		 "inpt_lmt_cur = %d, chgr_type = %d, Tboard = %d, Tbatt = %d ,"
+		 "track_sts = %d, thm_cur = %d, is_fst_chg = %d, fst_chg_en = %d\n",
+		 batt_uV, batt_ocV, bat_uA, input_cur,  chg_vol, fuel_cap, cm->desc->charger_status,
+		 cm->desc->force_set_full, chg_cur, chg_limit_cur, cm->desc->charger_type,
+		 board_temp, cur_temp, cm->track.state, cm->desc->thm_adjust_cur,
+		 cm->desc->is_fast_charge, cm->desc->enable_fast_charge);
 
 	switch (cm->desc->charger_status) {
 	case POWER_SUPPLY_STATUS_CHARGING:
@@ -4461,10 +5937,9 @@ static void cm_batt_works(struct work_struct *work)
 		break;
 	}
 
-	if (batt_uV <= cm->desc->shutdown_voltage - CM_UVLO_OFFSET) {
-		set_batt_cap(cm, 0);
-		dev_err(cm->dev, "WARN: batt_uV less than uvlo, will shutdown\n");
-		orderly_poweroff(true);
+	if (batt_uV < CM_UVLO_CALIBRATION_VOLTAGE_THRESHOLD) {
+		dev_info(cm->dev, "batt_uV is less than UVLO calib volt\n");
+		schedule_delayed_work(&cm->uvlo_work, msecs_to_jiffies(100));
 	}
 
 	dev_info(cm->dev, "battery cap = %d, charger manager cap = %d\n",
@@ -4644,6 +6119,8 @@ static int charger_manager_probe(struct platform_device *pdev)
 	}
 
 	cm->desc->thm_adjust_cur = -EINVAL;
+	cm->desc->ir_comp.ibat_buf[CM_IBAT_BUFF_CNT - 1] = CM_MAGIC_NUM;
+	cm->desc->ir_comp.us_lower_limit = cm->desc->ir_comp.us;
 
 	ret = cm_get_battery_temperature_by_psy(cm, &cm->desc->temperature);
 	if (ret) {
@@ -4664,6 +6141,8 @@ static int charger_manager_probe(struct platform_device *pdev)
 
 	INIT_DELAYED_WORK(&cm->fullbatt_vchk_work, fullbatt_vchk);
 	INIT_DELAYED_WORK(&cm->cap_update_work, cm_batt_works);
+	INIT_DELAYED_WORK(&cm->cp_work, cm_cp_work);
+	INIT_DELAYED_WORK(&cm->ir_compensation_work, cm_ir_compensation_works);
 
 	psy_cfg.of_node = np;
 	cm->charger_psy = power_supply_register(&pdev->dev,
@@ -4728,6 +6207,7 @@ static int charger_manager_probe(struct platform_device *pdev)
 	 */
 	device_init_wakeup(&pdev->dev, true);
 	device_set_wakeup_capable(&pdev->dev, false);
+	wakeup_source_init(&cm->charge_ws, "charger_manager_wakelock");
 
 	if (cm_event_type)
 		cm_notify_type_handle(cm, cm_event_type, cm_event_msg);
@@ -4755,6 +6235,7 @@ static int charger_manager_probe(struct platform_device *pdev)
 	}
 
 	queue_delayed_work(system_power_efficient_wq, &cm->cap_update_work, CM_CAP_CYCLE_TRACK_TIME * HZ);
+	INIT_DELAYED_WORK(&cm->uvlo_work, cm_uvlo_check_work);
 
 	return 0;
 
@@ -4789,6 +6270,7 @@ static int charger_manager_remove(struct platform_device *pdev)
 	cancel_work_sync(&setup_polling);
 	cancel_delayed_work_sync(&cm_monitor_work);
 	cancel_delayed_work_sync(&cm->cap_update_work);
+	cancel_delayed_work_sync(&cm->uvlo_work);
 	if (cm->track.cap_tracking)
 		cancel_delayed_work_sync(&cm->track.track_capacity_work);
 
@@ -4798,6 +6280,7 @@ static int charger_manager_remove(struct platform_device *pdev)
 	power_supply_unregister(cm->charger_psy);
 
 	try_charger_enable(cm, false);
+	wakeup_source_trash(&cm->charge_ws);
 
 	return 0;
 }
@@ -4853,6 +6336,7 @@ static int cm_suspend_prepare(struct device *dev)
 		cancel_delayed_work_sync(&cm_monitor_work);
 		cancel_delayed_work(&cm->fullbatt_vchk_work);
 		cancel_delayed_work_sync(&cm->cap_update_work);
+		cancel_delayed_work_sync(&cm->uvlo_work);
 		if (cm->track.cap_tracking)
 			cancel_delayed_work_sync(&cm->track.track_capacity_work);
 	}
@@ -4971,6 +6455,9 @@ static void cm_notify_type_handle(struct charger_manager *cm, enum cm_event_type
 	case CM_EVENT_FAST_CHARGE:
 		fast_charge_handler(cm);
 		break;
+	case CM_EVENT_INT:
+		cm_charger_int_handler(cm);
+		break;
 	default:
 		dev_err(cm->dev, "%s: type not specified\n", __func__);
 		break;
@@ -4999,6 +6486,8 @@ void cm_notify_event(struct power_supply *psy, enum cm_event_types type,
 		if (match_string(cm->desc->psy_charger_stat, -1,
 				 psy->desc->name) >= 0 ||
 		    match_string(cm->desc->psy_fast_charger_stat,
+				 -1, psy->desc->name) >= 0 ||
+		    match_string(cm->desc->psy_cp_stat,
 				 -1, psy->desc->name) >= 0 ||
 		    match_string(&cm->desc->psy_fuel_gauge,
 				 -1, psy->desc->name) >= 0) {

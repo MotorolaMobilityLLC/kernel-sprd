@@ -127,6 +127,7 @@ enum power_supply_property {
 	POWER_SUPPLY_PROP_CHARGE_CONTROL_LIMIT,
 	POWER_SUPPLY_PROP_CHARGE_CONTROL_LIMIT_MAX,
 	POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT,
+	POWER_SUPPLY_PROP_INPUT_CURRENT_NOW,
 	POWER_SUPPLY_PROP_ENERGY_FULL_DESIGN,
 	POWER_SUPPLY_PROP_ENERGY_EMPTY_DESIGN,
 	POWER_SUPPLY_PROP_ENERGY_FULL,
@@ -165,6 +166,10 @@ enum power_supply_property {
 	POWER_SUPPLY_PROP_MODEL_NAME,
 	POWER_SUPPLY_PROP_MANUFACTURER,
 	POWER_SUPPLY_PROP_SERIAL_NUMBER,
+	POWER_SUPPLY_PROP_ALARM_STATUS,
+	POWER_SUPPLY_PROP_FAULT_STATUS,
+	POWER_SUPPLY_PROP_REG_STATUS,
+	POWER_SUPPLY_PROP_VBUS_ERROR_STATUS,
 	POWER_SUPPLY_PROP_FEED_WATCHDOG,
 };
 
@@ -195,6 +200,20 @@ enum power_supply_usb_type {
 	POWER_SUPPLY_USB_TYPE_PD_DRP,		/* PD Dual Role Port */
 	POWER_SUPPLY_USB_TYPE_PD_PPS,		/* PD Programmable Power Supply */
 	POWER_SUPPLY_USB_TYPE_APPLE_BRICK_ID,	/* Apple Charging Method */
+	POWER_SUPPLY_USB_TYPE_SFCP_1P0,		/* SFCP1.0 Port*/
+	POWER_SUPPLY_USB_TYPE_SFCP_2P0,		/* SFCP2.0 Port*/
+};
+
+enum power_supply_charge_type {
+	CHARGE_TYPE_NORMAL = 0,		/* Charging Power <= 10W*/
+	CHARGE_TYPE_FAST,			/* 10W < Charging Power <= 20W */
+	CHARGE_TYPE_FLASH,			/* 20W < Charging Power <= 30W */
+	CHARGE_TYPE_TURBE,			/* 30W < Charging Power <= 50W */
+	CHARGE_TYPE_SUPER,			/* Charging Power > 50W */
+	WIRELESS_CHARGE_TYPE_NORMAL,
+	WIRELESS_CHARGE_TYPE_FAST,
+	WIRELESS_CHARGE_TYPE_FLASH,
+	CHARGE_MAX,
 };
 
 enum power_supply_notifier_events {
@@ -356,6 +375,8 @@ struct power_supply_charge_current {
 	int unknown_cur;
 	int fchg_limit;
 	int fchg_cur;
+	int flash_limit;
+	int flash_cur;
 };
 
 #define POWER_SUPPLY_OCV_TEMP_MAX 20

@@ -18,7 +18,6 @@
 #include <linux/regmap.h>
 #include <linux/regulator/driver.h>
 #include <linux/regulator/machine.h>
-#include <linux/slab.h>
 #include <linux/usb/phy.h>
 #include <uapi/linux/usb/charger.h>
 
@@ -773,7 +772,7 @@ static int bq2560x_charger_usb_get_property(struct power_supply *psy,
 					    union power_supply_propval *val)
 {
 	struct bq2560x_charger_info *info = power_supply_get_drvdata(psy);
-	u32 cur, online, health;
+	u32 cur, online, health, enabled = 0;
 	enum usb_charger_type type;
 	int ret = 0;
 
@@ -854,6 +853,19 @@ static int bq2560x_charger_usb_get_property(struct power_supply *psy,
 
 		break;
 
+	case POWER_SUPPLY_PROP_CHARGE_ENABLED:
+		if (info->role == BQ2560X_ROLE_MASTER_DEFAULT) {
+			ret = regmap_read(info->pmic, info->charger_pd, &enabled);
+			if (ret) {
+				dev_err(info->dev, "get bq2560x charge status failed\n");
+				goto out;
+			}
+		} else if (info->role == BQ2560X_ROLE_SLAVE) {
+			enabled = gpiod_get_value_cansleep(info->gpiod);
+		}
+
+		val->intval = !!!enabled;
+		break;
 	default:
 		ret = -EINVAL;
 	}
@@ -868,7 +880,7 @@ static int bq2560x_charger_usb_set_property(struct power_supply *psy,
 				const union power_supply_propval *val)
 {
 	struct bq2560x_charger_info *info = power_supply_get_drvdata(psy);
-	int ret;
+	int ret = 0;
 
 	mutex_lock(&info->lock);
 
@@ -902,6 +914,15 @@ static int bq2560x_charger_usb_set_property(struct power_supply *psy,
 			dev_err(info->dev, "failed to set terminate voltage\n");
 		break;
 
+	case POWER_SUPPLY_PROP_CHARGE_ENABLED:
+		if (val->intval == true) {
+			ret = bq2560x_charger_start_charge(info);
+			if (ret)
+				dev_err(info->dev, "start charge failed\n");
+		} else if (val->intval == false) {
+			bq2560x_charger_stop_charge(info);
+		}
+		break;
 	default:
 		ret = -EINVAL;
 	}
@@ -919,6 +940,7 @@ static int bq2560x_charger_property_is_writeable(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT:
 	case POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT:
 	case POWER_SUPPLY_PROP_STATUS:
+	case POWER_SUPPLY_PROP_CHARGE_ENABLED:
 		ret = 1;
 		break;
 
@@ -947,6 +969,7 @@ static enum power_supply_property bq2560x_usb_props[] = {
 	POWER_SUPPLY_PROP_ONLINE,
 	POWER_SUPPLY_PROP_HEALTH,
 	POWER_SUPPLY_PROP_USB_TYPE,
+	POWER_SUPPLY_PROP_CHARGE_ENABLED,
 };
 
 static const struct power_supply_desc bq2560x_charger_desc = {

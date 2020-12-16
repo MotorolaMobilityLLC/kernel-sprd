@@ -667,6 +667,10 @@ int power_supply_get_battery_info(struct power_supply *psy,
 				   &info->cur.fchg_cur);
 	of_property_read_u32_index(battery_np, "charge-fchg-current-microamp", 1,
 				   &info->cur.fchg_limit);
+	of_property_read_u32_index(battery_np, "charge-flash-current-microamp", 0,
+				   &info->cur.flash_cur);
+	of_property_read_u32_index(battery_np, "charge-flash-current-microamp", 1,
+				   &info->cur.flash_limit);
 
 	len = of_property_count_u32_elems(battery_np, "ocv-capacity-celsius");
 	if (len < 0 && len != -EINVAL) {

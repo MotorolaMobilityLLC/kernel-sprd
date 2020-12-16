@@ -16,7 +16,6 @@
 #include <linux/regmap.h>
 #include <linux/regulator/driver.h>
 #include <linux/regulator/machine.h>
-#include <linux/slab.h>
 #include <linux/mfd/sc2703_regs.h>
 #include <linux/usb/phy.h>
 #include <uapi/linux/usb/charger.h>
@@ -654,7 +653,7 @@ sc2703_charger_set_current(struct sc2703_charger_info *info, u32 val)
 static u32
 sc2703_charger_get_current(struct sc2703_charger_info *info, u32 *cur)
 {
-	u32 val;
+	u32 val = 0;
 	int ret;
 
 	ret = regmap_read(info->regmap, SC2703_CHG_CTRL_B, &val);
@@ -693,7 +692,7 @@ static int
 sc2703_charger_get_limit_current(struct sc2703_charger_info *info, u32 *cur)
 {
 
-	u32 val;
+	u32 val = 0;
 	int ret;
 
 	ret = regmap_read(info->regmap, SC2703_DCDC_CTRL_D, &val);
@@ -919,7 +918,7 @@ static int sc2703_charger_usb_get_property(struct power_supply *psy,
 {
 	struct sc2703_charger_info *info = power_supply_get_drvdata(psy);
 	int ret = 0;
-	u32 cur, online, health;
+	u32 cur, online, health, enabled = 0;
 	enum usb_charger_type type;
 
 	mutex_lock(&info->lock);
@@ -1000,6 +999,18 @@ static int sc2703_charger_usb_get_property(struct power_supply *psy,
 
 		break;
 
+	case POWER_SUPPLY_PROP_CHARGE_ENABLED:
+		ret = regmap_read(info->regmap, SC2703_DCDC_CTRL_A, &enabled);
+		if (ret) {
+			dev_err(info->dev, "Get sc2703 charge state fail, ret = %d\n", ret);
+			goto out;
+		}
+		if (enabled & SC2703_CHG_EN_MASK)
+			enabled = true;
+		else
+			enabled = false;
+		val->intval = enabled;
+		break;
 	default:
 		ret = -EINVAL;
 	}
@@ -1016,7 +1027,7 @@ sc2703_charger_usb_set_property(struct power_supply *psy,
 {
 	struct sc2703_charger_info *info = power_supply_get_drvdata(psy);
 	bool present = sc2703_charger_is_bat_present(info);
-	int ret;
+	int ret = 0;
 
 	mutex_lock(&info->lock);
 
@@ -1055,7 +1066,15 @@ sc2703_charger_usb_set_property(struct power_supply *psy,
 		if (ret < 0)
 			dev_err(info->dev, "failed to set terminate voltage\n");
 		break;
-
+	case POWER_SUPPLY_PROP_CHARGE_ENABLED:
+		if (val->intval == true) {
+			ret = sc2703_charger_start_charge(info);
+			if (ret)
+				dev_err(info->dev, "start charge failed\n");
+		} else {
+			sc2703_charger_stop_charge(info, present);
+		}
+		break;
 	default:
 		ret = -EINVAL;
 	}
@@ -1075,6 +1094,7 @@ static int sc2703_charger_property_is_writeable(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT:
 	case POWER_SUPPLY_PROP_FEED_WATCHDOG:
 	case POWER_SUPPLY_PROP_STATUS:
+	case POWER_SUPPLY_PROP_CHARGE_ENABLED:
 		ret = 1;
 		break;
 
@@ -1105,6 +1125,7 @@ static enum power_supply_property sc2703_usb_props[] = {
 	POWER_SUPPLY_PROP_FEED_WATCHDOG,
 	POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE_MAX,
 	POWER_SUPPLY_PROP_USB_TYPE,
+	POWER_SUPPLY_PROP_CHARGE_ENABLED,
 };
 
 static const struct power_supply_desc sc2703_charger_desc = {
@@ -1290,7 +1311,7 @@ static int sc2703_charger_disable_otg(struct regulator_dev *dev)
 
 static bool sc2703_charger_otg_is_valid(struct sc2703_charger_info *info)
 {
-	u32 otg_state, otg_event;
+	u32 otg_state = 0, otg_event = 0;
 	int ret;
 
 	ret = regmap_read(info->regmap, SC2703_DCDC_CTRL_A, &otg_state);
