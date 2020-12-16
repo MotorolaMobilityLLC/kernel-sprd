@@ -79,7 +79,6 @@ struct sprd_pmic_wdt {
 	struct device		*dev;
 	u32			base;
 	bool wdten;
-	struct delayed_work     work_pmic_wdt;
 	struct alarm wdt_timer;
 };
 
@@ -182,7 +181,7 @@ static int sprd_pmic_wdt_probe(struct platform_device *pdev)
 
 	alarm_init(&pmic_wdt->wdt_timer, ALARM_BOOTTIME, sprd_pimc_wdt_init_by_alarm);
 	now = ktime_get_boottime();
-	add = ktime_set(41, 0);
+	add = ktime_set(SPRD_PMIC_WDT_CHECKTIME, 0);
 	alarm_start(&pmic_wdt->wdt_timer, ktime_add(now, add));
 
 	pmic_wdt->wdten = sprd_pimc_wdt_en();
