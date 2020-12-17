@@ -111,6 +111,7 @@ struct bq2560x_charger_info {
 	u32 role;
 	bool need_disable_Q1;
 	int termination_cur;
+	u32 actual_limit_current;
 };
 
 static int
@@ -512,6 +513,9 @@ bq2560x_charger_set_limit_current(struct bq2560x_charger_info *info,
 	if (ret)
 		dev_err(info->dev, "set bq2560x limit cur failed\n");
 
+	info->actual_limit_current = reg_val * BQ2560X_REG_IINLIM_BASE * 1000;
+	info->actual_limit_current += BQ2560X_LIMIT_CURRENT_OFFSET;
+
 	return ret;
 }
 
@@ -558,14 +562,32 @@ static int bq2560x_charger_feed_watchdog(struct bq2560x_charger_info *info,
 					 u32 val)
 {
 	int ret;
+	u32 limit_cur = 0;
 
 	ret = bq2560x_update_bits(info, BQ2560X_REG_1,
 				  BQ2560X_REG_RESET_MASK,
 				  BQ2560X_REG_RESET_MASK);
-	if (ret)
+	if (ret) {
 		dev_err(info->dev, "reset bq2560x failed\n");
+		return ret;
+	}
 
-	return ret;
+	ret = bq2560x_charger_get_limit_current(info, &limit_cur);
+	if (ret) {
+		dev_err(info->dev, "get limit cur failed\n");
+		return ret;
+	}
+
+	if (info->actual_limit_current == limit_cur)
+		return 0;
+
+	ret = bq2560x_charger_set_limit_current(info, info->actual_limit_current);
+	if (ret) {
+		dev_err(info->dev, "set limit cur failed\n");
+		return ret;
+	}
+
+	return 0;
 }
 
 static int bq2560x_charger_set_fchg_current(struct bq2560x_charger_info *info,
