@@ -1,0 +1,271 @@
+/*
+ * Copyright (C) 2018-2019 Unisoc Corporation
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * General Public License for more details.
+ */
+
+#include <linux/clk.h>
+#include <linux/debugfs.h>
+#include <linux/device.h>
+#include <linux/init.h>
+#include <linux/io.h>
+#include <linux/ioport.h>
+#include <linux/kernel.h>
+#include <linux/mfd/syscon.h>
+#include <linux/module.h>
+#include <linux/of.h>
+#include <linux/platform_device.h>
+#include <linux/pm_domain.h>
+#include <linux/power_supply.h>
+#include <linux/regmap.h>
+#include <linux/regulator/driver.h>
+#include <linux/regulator/machine.h>
+#include <linux/sipa.h>
+
+#include "sipa_sys_phy_v3.h"
+#include "../sipa_sys_pd.h"
+
+#define SPRD_IPA_POWERON_POLL_US 50
+#define SPRD_IPA_POWERON_TIMEOUT 5000
+
+static const char * const reg_name_tb_v3[] = {
+	"ipa-sys-autoshutdownen",
+	"ipa-sys-dslpen",
+	"ipa-sys-state",
+	"ipa-sys-forcelslp",
+	"ipa-sys-lslpen",
+	"ipa-sys-smartlslpen",
+	"ipa-sys-accessen",
+};
+
+enum sipa_sys_reg_v3 {
+	IPA_SYS_AUTOSHUTDOWNEN,
+	IPA_SYS_DSLPEN,
+	IPA_SYS_STATE,
+	IPA_SYS_FORCELSLP,
+	IPA_SYS_LSLPEN,
+	IPA_SYS_SMARTLSLPEN,
+	IPA_SYS_ACCESSEN,
+};
+
+static int sipa_sys_wait_power_on(struct sipa_sys_pd_drv *drv,
+				  struct sipa_sys_register *reg_info)
+{
+	int ret = 0;
+	u32 val;
+
+	if (reg_info->rmap)
+		ret = regmap_read_poll_timeout(reg_info->rmap,
+					       reg_info->reg,
+					       val,
+					       (((u32)(val & reg_info->mask)
+						 & 0x1F00) >> 8) == 0,
+					       SPRD_IPA_POWERON_POLL_US,
+					       SPRD_IPA_POWERON_TIMEOUT);
+	else
+		usleep_range((SPRD_IPA_POWERON_TIMEOUT >> 2) + 1, 5000);
+
+	if (ret)
+		dev_err(drv->dev,
+			"Polling check power on reg timed out: %x\n", val);
+
+	return ret;
+}
+
+static int sipa_sys_wait_power_off(struct sipa_sys_pd_drv *drv,
+				   struct sipa_sys_register *reg_info)
+{
+	int ret = 0;
+	u32 val;
+
+	if (reg_info->rmap)
+		ret = regmap_read_poll_timeout(reg_info->rmap,
+					       reg_info->reg,
+					       val,
+					       (((u32)(val & reg_info->mask)
+						 & 0x1F00) >> 8) == 0x7,
+					       SPRD_IPA_POWERON_POLL_US,
+					       SPRD_IPA_POWERON_TIMEOUT);
+	else
+		usleep_range((SPRD_IPA_POWERON_TIMEOUT >> 2) + 1, 5000);
+
+	if (ret)
+		dev_err(drv->dev,
+			"Polling check power off reg timed out: %x\n", val);
+
+	return ret;
+}
+
+int sipa_sys_do_power_on_cb_v3(void *priv)
+{
+	struct sipa_sys_pd_drv *drv = (struct sipa_sys_pd_drv *)priv;
+	struct sipa_sys_register *reg_info = &drv->regs[IPA_SYS_DSLPEN];
+	u32 val;
+	int ret = 0;
+
+	dev_dbg(drv->dev, "do power on\n");
+
+	if (reg_info->rmap) {
+		ret = regmap_update_bits(reg_info->rmap,
+					 reg_info->reg,
+					 reg_info->mask,
+					 ~reg_info->mask);
+		if (ret < 0)
+			dev_warn(drv->dev, "clear ipa dslp en fail\n");
+	}
+
+	/* check pd_ipa_auto_shutdown_en */
+	reg_info = &drv->regs[IPA_SYS_AUTOSHUTDOWNEN];
+	if (reg_info->rmap) {
+		ret = regmap_read(reg_info->rmap,
+				  reg_info->reg,
+				  &val);
+		if (ret < 0) {
+			dev_warn(drv->dev,
+				 "read ipa sys autoshutdownen error\n");
+		}
+
+		if (!((val & reg_info->mask) >> 24))
+			dev_warn(drv->dev,
+				 "ipa sys autoshutdownen error: %x\n", val);
+	}
+
+	/* wait ipa_sys power on */
+	reg_info = &drv->regs[IPA_SYS_STATE];
+	ret = sipa_sys_wait_power_on(drv, reg_info);
+	if (ret)
+		dev_warn(drv->dev, "wait pwr on timeout\n");
+
+	/* enable ipa_access eb bit, for asic initail value fault */
+	reg_info = &drv->regs[IPA_SYS_ACCESSEN];
+	if (reg_info->rmap) {
+		ret = regmap_update_bits(reg_info->rmap,
+					 reg_info->reg,
+					 reg_info->mask,
+					 reg_info->mask);
+		if (ret < 0)
+			dev_warn(drv->dev, "update access en fail\n");
+	}
+
+	/* set ipa core clock */
+	if (drv->ipa_core_clk && drv->ipa_core_parent)
+		clk_set_parent(drv->ipa_core_clk, drv->ipa_core_parent);
+
+	return ret;
+}
+
+int sipa_sys_do_power_off_cb_v3(void *priv)
+{
+	struct sipa_sys_pd_drv *drv = (struct sipa_sys_pd_drv *)priv;
+	struct sipa_sys_register *reg_info = &drv->regs[IPA_SYS_DSLPEN];
+	int ret = 0;
+
+	dev_dbg(drv->dev, "do power off\n");
+
+	/* set ipa core clock to default */
+	if (drv->ipa_core_clk && drv->ipa_core_default)
+		clk_set_parent(drv->ipa_core_clk, drv->ipa_core_default);
+
+	if (reg_info->rmap) {
+		ret = regmap_update_bits(reg_info->rmap,
+					 reg_info->reg,
+					 reg_info->mask,
+					 reg_info->mask);
+		if (ret < 0)
+			dev_warn(drv->dev, "clear forcewakeup bits fail\n");
+	}
+
+	/* wait ipa_sys power off */
+	ret = sipa_sys_wait_power_off(drv, reg_info);
+	if (ret)
+		dev_warn(drv->dev, "wait pwr off timeout\n");
+
+	/* disable ipa_access eb bit */
+	reg_info = &drv->regs[IPA_SYS_ACCESSEN];
+	if (reg_info->rmap) {
+		ret = regmap_update_bits(reg_info->rmap,
+					 reg_info->reg,
+					 reg_info->mask,
+					 ~reg_info->mask);
+		if (ret < 0)
+			dev_warn(drv->dev, "update access en fail\n");
+	}
+
+	return ret;
+}
+
+static int sipa_sys_set_register(struct sipa_sys_pd_drv *drv,
+				 struct sipa_sys_register *reg_info,
+				 bool set)
+{
+	int ret = 0;
+	u32 val = set ? reg_info->mask : (~reg_info->mask);
+
+	if (reg_info->rmap) {
+		ret = regmap_update_bits(reg_info->rmap,
+					 reg_info->reg,
+					 reg_info->mask,
+					 val);
+		if (ret < 0)
+			dev_warn(drv->dev, "set register bits fail\n");
+	}
+	return ret;
+}
+
+void sipa_sys_init_cb_v3(void *priv)
+{
+	struct sipa_sys_pd_drv *drv = (struct sipa_sys_pd_drv *)priv;
+
+	/* clear ipa force light sleep:0x0830[4] */
+	sipa_sys_set_register(drv, &drv->regs[IPA_SYS_FORCELSLP], false);
+	/* set ipa light sleep enable:0x0808[4] */
+	sipa_sys_set_register(drv, &drv->regs[IPA_SYS_LSLPEN], true);
+	/* set ipa smart light sleep enable:0x08cc[4] */
+	sipa_sys_set_register(drv, &drv->regs[IPA_SYS_SMARTLSLPEN], true);
+}
+
+int sipa_sys_parse_dts_cb_v3(void *priv)
+{
+	struct sipa_sys_pd_drv *drv = (struct sipa_sys_pd_drv *)priv;
+	int ret, i;
+	u32 reg_info[2];
+	const char *reg_name;
+	struct regmap *rmap;
+	struct device_node *np = drv->dev->of_node;
+
+	/* read regmap info */
+	for (i = 0; i < ARRAY_SIZE(reg_name_tb_v3); i++) {
+		reg_name = reg_name_tb_v3[i];
+		rmap = syscon_regmap_lookup_by_name(np, reg_name);
+		if (IS_ERR(rmap)) {
+			/* work normal when remove some item from dts */
+			dev_warn(drv->dev, "Parse drs %s regmap fail\n",
+				 reg_name);
+			continue;
+		}
+		ret = syscon_get_args_by_name(np, reg_name, 2, reg_info);
+		if (ret != 2) {
+			dev_warn(drv->dev,
+				 "Parse drs %s args fail, ret = %d\n",
+				 reg_name,
+				 ret);
+			continue;
+		}
+		drv->regs[i].rmap = rmap;
+		drv->regs[i].reg = reg_info[0];
+		drv->regs[i].mask = reg_info[1];
+		dev_dbg(drv->dev, "dts[%s]%p, 0x%x, 0x%x\n",
+			drv->regs[i].rmap,
+			drv->regs[i].reg,
+			drv->regs[i].mask);
+	}
+
+	return 0;
+}
