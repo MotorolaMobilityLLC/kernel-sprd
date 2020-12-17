@@ -67,7 +67,6 @@ static void sprd_rx_callback(struct mbox_client *client, void *message)
 	struct device *dev = client->dev;
 	u64 data;
 
-	dev_dbg(dev, "ipc dst=%d, name=%s\n", ipc->dst, ipc->name);
 	data = sprd_u32_to_u64(message);
 	if (!data) {
 		dev_err(dev, "receive data is null !\n");
@@ -149,7 +148,9 @@ static int sprd_ipc_probe(struct platform_device *pdev)
 	struct device_node *np = pdev->dev.of_node;
 	struct smsg_ipc *ipc;
 	int ret;
-
+#if defined(CONFIG_DEBUG_FS)
+	struct dentry *root = debugfs_create_dir("sipc", NULL);
+#endif
 	ipc = devm_kzalloc(&pdev->dev,
 			   sizeof(struct smsg_ipc), GFP_KERNEL);
 	if (!ipc)
@@ -161,11 +162,15 @@ static int sprd_ipc_probe(struct platform_device *pdev)
 	}
 
 	/* mailbox request */
-	ipc->cl.dev             = &pdev->dev;
-	ipc->cl.rx_callback     = sprd_rx_callback;
-	ipc->cl.tx_block        = false;
-	ipc->cl.knows_txdone    = false;
-	ipc->cl.tx_tout         = 500;
+	ipc->cl.dev = &pdev->dev;
+	ipc->cl.tx_block = false;
+	ipc->cl.knows_txdone = false;
+	/* Immediately Submit next message
+	 * Not notify the client,so not use tx_done
+	 */
+	ipc->cl.tx_done = NULL;
+	ipc->cl.rx_callback = sprd_rx_callback;
+
 	ipc->chan = mbox_request_channel(&ipc->cl, 0);
 	if (IS_ERR(ipc->chan)) {
 		dev_err(dev, "failed to sipc mailbox\n");
@@ -189,6 +194,15 @@ static int sprd_ipc_probe(struct platform_device *pdev)
 		return ret;
 	}
 
+#if defined(CONFIG_DEBUG_FS)
+	if (!root)
+		return -ENXIO;
+
+	smem_init_debugfs(root);
+	smsg_init_debugfs(root);
+	sbuf_init_debugfs(root);
+	sblock_init_debugfs(root);
+#endif
 	return 0;
 out:
 	if (!IS_ERR(ipc->chan))
@@ -238,5 +252,5 @@ module_exit(sprd_ipc_exit);
 MODULE_AUTHOR("Wenping Zhou <wenping.zhou@unisoc.com>");
 MODULE_AUTHOR("Orson Zhai <orson.zhai@unisoc.com>");
 MODULE_AUTHOR("Haidong Yao <haidong.yao@unisoc.com>");
-MODULE_DESCRIPTION("Spreadtrum ipc driver");
+MODULE_DESCRIPTION("Spreadtrum Inter Remote Processors Communication driver");
 MODULE_LICENSE("GPL v2");

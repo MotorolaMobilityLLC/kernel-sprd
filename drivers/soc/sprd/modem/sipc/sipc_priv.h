@@ -130,7 +130,14 @@ extern int smem_init(u32 addr, u32 size, u32 dst, u32 mem_type);
 extern void sbuf_get_status(u8 dst, char *status_info, int size);
 extern void smsg_msg_process(struct smsg_ipc *ipc, struct smsg *msg);
 
-extern void sipc_debug_putline(struct seq_file *m, char c, int n);
+
+#if defined(CONFIG_DEBUG_FS)
+void sipc_debug_putline(struct seq_file *m, char c, int n);
+int smem_init_debugfs(void *root);
+int smsg_init_debugfs(void *root);
+int sbuf_init_debugfs(void *root);
+int sblock_init_debugfs(void *root);
+#endif
 
 #ifdef CONFIG_SPRD_MAILBOX
 #define MBOX_INVALID_CORE  0xff

@@ -42,6 +42,7 @@
 
 #include <linux/mailbox_client.h>
 #include <linux/mailbox_controller.h>
+
 #define SMSG_TXBUF_ADDR		(0)
 #define SMSG_TXBUF_SIZE		(SZ_1K)
 #define SMSG_RXBUF_ADDR		(SMSG_TXBUF_SIZE)
@@ -63,9 +64,6 @@ static u8 g_wakeup_flag;
 struct smsg_ipc *smsg_ipcs[SIPC_ID_NR];
 EXPORT_SYMBOL_GPL(smsg_ipcs);
 
-static ushort debug_enable;
-
-module_param_named(debug_enable, debug_enable, ushort, 0644);
 static u8 channel2index[SMSG_CH_NR + 1];
 
 static int smsg_ipc_smem_init(struct smsg_ipc *ipc);
@@ -365,7 +363,7 @@ int smsg_ch_open(u8 dst, u8 channel, int timeout)
 	mutex_init(&ch->rxlock);
 	ipc->channels[ch_index] = ch;
 
-	pr_debug("channel %d-%d send open msg!\n",
+	pr_info("channel %d-%d send open msg!\n",
 		dst, channel);
 
 	smsg_set(&mopen, channel, SMSG_TYPE_OPEN, SMSG_OPEN_MAGIC, 0);
@@ -476,6 +474,7 @@ int smsg_senddie(u8 dst)
 	struct smsg_ipc *ipc = smsg_ipcs[dst];
 	uintptr_t txpos;
 	int rval = 0;
+	int rc;
 
 	if (!ipc)
 		return -ENODEV;
@@ -484,14 +483,22 @@ int smsg_senddie(u8 dst)
 	msg.type = SMSG_TYPE_DIE;
 	msg.flag = 0;
 	msg.value = 0;
-/*
-#ifdef CONFIG_SPRD_MAILBOX
-	if (ipc->type == SIPC_BASE_MBOX) {
-		mbox_just_sent(ipc->core_id, *((u64 *)&msg));
-		return 0;
-	}
-#endif
-*/
+	/*
+	 *#ifdef CONFIG_SPRD_MAILBOX
+	 *if (ipc->type == SIPC_BASE_MBOX) {
+	 *	mbox_just_sent(ipc->core_id, *((u64 *)&msg));
+	 *	return 0;
+	 *}
+	 *#endif
+	 */
+
+	rc = mbox_send_message(ipc->chan, &msg);
+	mbox_chan_txdone(ipc->chan, 0);
+	if (rc < 0)
+		pr_err("mailbox chan[%d] send error\n", ipc->dst);
+
+	pr_info("%s mailbox send die smsg\n", __func__);
+
 	if (ipc->ring_base) {
 		if ((int)(SIPC_READL(ipc->txbuf_wrptr) -
 			SIPC_READL(ipc->txbuf_rdptr)) >= ipc->txbuf_size) {
@@ -591,11 +598,11 @@ int smsg_send(u8 dst, struct smsg *msg, int timeout)
 	}
 
 	rc = mbox_send_message(ipc->chan, msg);
+	mbox_chan_txdone(ipc->chan, 0);
 	if (rc < 0) {
-		pr_err("Mailbox chan  send error\n");
+		pr_err("mailbox chan send error\n");
 	}
-
-	pr_debug("%s Mailbox  send smsg data %llx\n", __func__, *(u64 *)msg);
+	pr_debug("%s Mailbox send smsg %llx\n", __func__, *(u64 *)msg);
 
 send_failed:
 	spin_unlock_irqrestore(&ipc->txpinlock, flags);
