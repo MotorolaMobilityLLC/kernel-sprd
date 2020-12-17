@@ -462,7 +462,7 @@
 		};
 
 		vibrator@2390 {
-			compatible = "sprd,ump96xx-vibrator", "sprd,sc27xx-vibrator";
+			compatible = "sprd,ump9620-vibrator", "sprd,sc27xx-vibrator";
 			reg = <0x2390>;
 		};
 
