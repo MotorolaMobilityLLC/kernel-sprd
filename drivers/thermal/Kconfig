@@ -578,4 +578,11 @@ config SPRD_TEST_THERMAL
 	  It can generate a dummy temperature for a thermal zone.
 	  At the same time, create a 'dummy_temp' sysfs node, in order to modify
 	  the dummy_temp for thermal zone test.
+
+config SPRD_VIRTUAL_THERMAL
+	bool "sprd virtual thermal"
+	depends on THERMAL && SPRD_THERMAL
+	help
+	  Say Y here to support virtual thermal for cp chip
+	  We can use it to monitor cp junction temperature
 endif
