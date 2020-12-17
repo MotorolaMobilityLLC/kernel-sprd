@@ -1,7 +1,7 @@
 Spreadtrum SC27xx PMIC Vibrator
 
 Required properties:
-- compatible: should be "sprd,sc2731-vibrator".
+- compatible: should be "sprd,sc2731-vibrator","sprd,ump9620-vibrator","sprd,sc27xx-vibrator".
 - reg: address of vibrator control register.
 
 Example :
