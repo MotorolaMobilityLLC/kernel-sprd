@@ -408,6 +408,9 @@ static int bq24157_enable_charging(struct bq24157_charger_info *info, bool en)
 		if(is_eta6937)	
 		bq24157_write(info,0x06, 0xac);	/* ISAFE = 1550mA, VSAFE = 4.4V */
 		bq24157_set_ce(info,1);
+//		if(is_eta6937)
+//		bq24157_charger_set_termina_vol(info, 4420000);			
+//		else
 		bq24157_charger_set_termina_vol(info, info->voltage_max_microvolt);
 		bq24157_set_hz_mode(info,0);
 		bq24157_set_opa_mode(info,0);
@@ -1167,8 +1170,6 @@ static int bq24157_charger_probe(struct i2c_client *client,
 
 	dev_err(dev, "%s;%s;\n",__func__,charge_ic_vendor_name);
 	
-	mutex_init(&info->lock);
-	INIT_WORK(&info->work, bq24157_charger_work);
 
 	info->usb_phy = devm_usb_get_phy_by_phandle(dev, "phys", 0);
 	if (IS_ERR(info->usb_phy)) {
@@ -1256,6 +1257,10 @@ static int bq24157_charger_probe(struct i2c_client *client,
 		usb_unregister_notifier(info->usb_phy, &info->usb_notify);
 		return ret;
 	}
+
+	mutex_init(&info->lock);
+	INIT_WORK(&info->work, bq24157_charger_work);
+	
 	bq24157_charger_detect_status(info);
 	INIT_DELAYED_WORK(&info->otg_work, bq24157_charger_otg_work);
 	INIT_DELAYED_WORK(&info->wdt_work,
