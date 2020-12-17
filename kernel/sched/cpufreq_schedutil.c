@@ -67,9 +67,6 @@ struct sugov_cpu {
 #ifdef CONFIG_NO_HZ_COMMON
 	unsigned long		saved_idle_calls;
 #endif
-	unsigned long last_cfs_util;
-	u64 last_update_cfs_util_time;
-	int index;
 };
 
 static DEFINE_PER_CPU(struct sugov_cpu, sugov_cpu);
@@ -348,45 +345,11 @@ unsigned long schedutil_cpu_util(int cpu, unsigned long util_cfs,
 	return min(max, util);
 }
 
-static unsigned long sugov_get_util(struct sugov_cpu *sg_cpu, u64 time)
+static unsigned long sugov_get_util(struct sugov_cpu *sg_cpu)
 {
 	struct rq *rq = cpu_rq(sg_cpu->cpu);
 	unsigned long util = cpu_util_cfs(rq);
 	unsigned long max = arch_scale_cpu_capacity(sg_cpu->cpu);
-
-	if (util > sg_cpu->last_cfs_util) {
-		if (time - sg_cpu->last_update_cfs_util_time >= TICK_NSEC/2) {
-			sg_cpu->last_cfs_util = util;
-			sg_cpu->last_update_cfs_util_time = time;
-			if (sg_cpu->index < 10) {
-				if (sg_cpu->index < 6)
-					sg_cpu->index += 2;
-				else
-					sg_cpu->index++;
-				}
-		}
-	} else {
-		if (time - sg_cpu->last_update_cfs_util_time > TICK_NSEC*2) {
-			if (util < max/10) {
-				sg_cpu->index /= 2;
-				sg_cpu->last_cfs_util = util;
-				sg_cpu->last_update_cfs_util_time = time;
-			} else if (sg_cpu->last_cfs_util - util <= sg_cpu->last_cfs_util/5) {
-				util = sg_cpu->last_cfs_util;
-			} else {
-				sg_cpu->last_cfs_util = util;
-				sg_cpu->last_update_cfs_util_time = time;
-				if (sg_cpu->index > 0)
-					sg_cpu->index--;
-			}
-		}
-	}
-
-	if (idle_cpu(sg_cpu->cpu))
-		util = 0;
-
-	util = util << sg_cpu->index;
-	util = min(max, util);
 
 	sg_cpu->max = max;
 	sg_cpu->bw_dl = cpu_bw_dl(rq);
@@ -560,7 +523,7 @@ static void sugov_update_single(struct update_util_data *hook, u64 time,
 	/* Limits may have changed, don't skip frequency update */
 	busy = !sg_policy->need_freq_update && sugov_cpu_is_busy(sg_cpu);
 
-	util = sugov_get_util(sg_cpu, time);
+	util = sugov_get_util(sg_cpu);
 	max = sg_cpu->max;
 	util = sugov_iowait_apply(sg_cpu, time, util, max);
 	next_f = get_next_freq(sg_policy, util, max);
@@ -605,7 +568,7 @@ static unsigned int sugov_next_freq_shared(struct sugov_cpu *sg_cpu, u64 time)
 			continue;
 #endif
 
-		j_util = sugov_get_util(j_sg_cpu, time);
+		j_util = sugov_get_util(j_sg_cpu);
 		j_max = j_sg_cpu->max;
 		j_util = sugov_iowait_apply(j_sg_cpu, time, j_util, j_max);
 
@@ -1077,7 +1040,6 @@ static int sugov_start(struct cpufreq_policy *policy)
 		memset(sg_cpu, 0, sizeof(*sg_cpu));
 		sg_cpu->cpu			= cpu;
 		sg_cpu->sg_policy		= sg_policy;
-		sg_cpu->index		= -1;
 	}
 
 	for_each_cpu(cpu, policy->cpus) {
