@@ -9,7 +9,7 @@
  */
 
 / {
-	sipc-devices {
+	sipc-virt {
 		compatible = "simple-bus";
 		#address-cells = <1>;
 		#size-cells = <0>;
