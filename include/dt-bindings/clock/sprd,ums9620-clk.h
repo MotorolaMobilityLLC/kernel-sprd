@@ -8,15 +8,15 @@
 #ifndef _DT_BINDINGS_CLK_UMS9620_H_
 #define _DT_BINDINGS_CLK_UMS9620_H_
 
-#define CLK_26M			0
-#define CLK_26M_AUD		1
-#define CLK_13M			2
-#define CLK_6M5			3
-#define CLK_4M3			4
-#define CLK_4M			5
-#define CLK_2M			6
-#define CLK_1M			7
-#define CLK_250K		8
+#define CLK_26M_AUD		0
+#define CLK_13M			1
+#define CLK_6M5			2
+#define CLK_4M3			3
+#define CLK_4M			4
+#define CLK_2M			5
+#define CLK_1M			6
+#define CLK_250K		7
+#define CLK_16K			8
 #define CLK_RCO_100M_25M	9
 #define CLK_RCO_100m_20M	10
 #define CLK_RCO_100m_4M		11
@@ -54,17 +54,37 @@
 #define CLK_ANLG_PHY_G1L_NUM	(CLK_DPLL2 + 1)
 
 #define CLK_TGPLL		0
-#define CLK_PSR8PLL		1
-#define CLK_V4NRPLL		2
+#define CLK_TGPLL_12M		1
+#define CLK_TGPLL_24M		2
+#define CLK_TGPLL_38M4		3
+#define CLK_TGPLL_48M		4
+#define CLK_TGPLL_51M2		5
+#define CLK_TGPLL_64M		6
+#define CLK_TGPLL_76M8		7
+#define CLK_TGPLL_96M		8
+#define CLK_TGPLL_128M		9
+#define CLK_TGPLL_153M6		10
+#define CLK_TGPLL_192M		11
+#define CLK_TGPLL_256M		12
+#define CLK_TGPLL_307M2		13
+#define CLK_TGPLL_384M		14
+#define CLK_TGPLL_512M		15
+#define CLK_TGPLL_614M4		16
+#define CLK_TGPLL_768M		17
+#define CLK_PSR8PLL		18
+#define CLK_V4NRPLL		19
+#define CLK_V4NRPLL_409M6	20
+#define CLK_V4NRPLL_614M4	21
 #define CLK_ANLG_PHY_G5L_NUM	(CLK_V4NRPLL + 1)
 
 #define CLK_GPLL		0
-#define CLK_AIPLL		1
-#define CLK_VDSPPLL		2
-#define CLK_CPLL		3
-#define CLK_AUDPLL		4
-#define CLK_PHYR8PLL		5
-#define CLK_PIXELPLL		6
+#define	CLK_GPLL_680M		1
+#define CLK_AIPLL		2
+#define CLK_VDSPPLL		3
+#define CLK_CPLL		4
+#define CLK_AUDPLL		5
+#define CLK_PHYR8PLL		6
+#define CLK_PIXELPLL		7
 #define CLK_ANLG_PHY_G5R_NUM	(CLK_PIXELPLL + 1)
 
 #define CLK_MPLLB		0
