@@ -1024,9 +1024,6 @@ static int bq2560x_charger_probe(struct i2c_client *client,
 	dev_err(dev, "%s;%s;\n",__func__,charge_ic_vendor_name);
 
 	
-	mutex_init(&info->lock);
-	INIT_WORK(&info->work, bq2560x_charger_work);
-
 	info->usb_phy = devm_usb_get_phy_by_phandle(dev, "phys", 0);
 	if (IS_ERR(info->usb_phy)) {
 		dev_err(dev, "failed to find USB phy\n");
@@ -1113,6 +1110,9 @@ static int bq2560x_charger_probe(struct i2c_client *client,
 		usb_unregister_notifier(info->usb_phy, &info->usb_notify);
 		return ret;
 	}
+
+	mutex_init(&info->lock);
+	INIT_WORK(&info->work, bq2560x_charger_work);
 
 	bq2560x_charger_detect_status(info);
 	INIT_DELAYED_WORK(&info->otg_work, bq2560x_charger_otg_work);
