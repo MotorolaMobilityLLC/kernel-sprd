@@ -46,6 +46,11 @@
 #define GNSS_DUMP_DATA_SUCCESS	3
 #define FIRMWARE_FILEPATHNAME_LENGTH_MAX 256
 
+#ifndef CONFIG_WCN_INTEG
+typedef int (*gnss_dump_callback) (void);
+extern void mdbg_dump_gnss_register(gnss_dump_callback callback_func, void *para);
+#endif
+
 struct gnss_common_ctl {
 	struct device *dev;
 	unsigned long chip_ver;
@@ -610,35 +615,19 @@ static ssize_t gnss_dump_store(struct device *dev,
 {
 	unsigned long set_value;
 	int ret = -1;
-	int temp = 0, strlen = 0;
-	char triggerStr[64];
+	int strlen = 0;
+	char trigger_str[64];
 
 	set_value = buf[0] - '0';
 	GNSSCOMM_INFO("%s, set_value: %lu\n", __func__, set_value);
 
-	memset(triggerStr, 0, 64);
+	memset(trigger_str, 0, 64);
 	strlen = ((count - 2) > 63) ? 63 : (count - 2);
-	memcpy(triggerStr, &buf[2], strlen);
-	GNSSCOMM_INFO("%s, triggerStr: %s\n", __func__, triggerStr);
-
-	wcn_assert_interface(WCN_SOURCE_GNSS, triggerStr);
+	memcpy(trigger_str, &buf[2], strlen);
+	GNSSCOMM_INFO("%s, trigger_str: %s\n", __func__, trigger_str);
 
 	if (set_value == 1) {
-#ifdef CONFIG_WCN_INTEG
-		temp = wait_for_completion_timeout(&gnss_dump_complete,
-						   msecs_to_jiffies(6000));
-		GNSSCOMM_INFO("%s exit %d\n", __func__,
-			      jiffies_to_msecs(temp));
-		if (temp > 0)
-			ret = GNSS_DUMP_DATA_SUCCESS;
-		else
-			gnss_dump_mem_ctrl_co();
-#else
-		temp = gnss_dump_mem_ctrl();
-		GNSSCOMM_INFO("%s exit temp %d\n", __func__, temp);
-		if (temp == 0)
-			ret = GNSS_DUMP_DATA_SUCCESS;
-#endif
+		wcn_assert_interface(WCN_SOURCE_GNSS, trigger_str);
 	} else
 		count = -EINVAL;
 
@@ -846,6 +835,7 @@ static int gnss_common_ctl_probe(struct platform_device *pdev)
 	mdbg_dump_gnss_register(gnss_dump_mem_ctrl_co, NULL);
 	init_completion(&gnss_dump_complete);
 #else
+	mdbg_dump_gnss_register(gnss_dump_mem_ctrl, NULL);
 	wcn_gnss_ops_register(&gnss_common_ctl_ops);
 #endif
 

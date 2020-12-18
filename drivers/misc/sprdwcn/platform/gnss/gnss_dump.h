@@ -17,12 +17,19 @@
 #ifdef CONFIG_SC2342_I
 #define GNSS_SHARE_MEMORY_SIZE		(0x15a800)
 #define GNSS_CP_IRAM_DATA_NUM		8192
-#define GNSS_DUMP_IRAM_START_ADDR		0x18000000
+#define GNSS_DUMP_IRAM_START_ADDR	0x18000000
 #endif
 #ifdef CONFIG_UMW2631_I
-#define GNSS_SHARE_MEMORY_SIZE		0x180000
-#define GNSS_DUMP_IRAM_START_ADDR	0x40a54000
+
+#define GNSS_SHARE_MEMORY_SIZE		0x200000
+#define GNSS_DUMP_IRAM_START_ADDR	0x40a50000
 #define GNSS_CP_IRAM_DATA_NUM		8192
+
+#define GNSS_DUMP_IRAM_START_ADDR_SIPC	0x88240000
+#define SIPC_BUFFER_DATA_NUM		0x40000
+
+#define GNSS_DUMP_IRAM_START_ADDR_PCHANNEL	0x40e40000
+#define GNSS_PCHANNEL_IRAM_DATA_NUM	32768
 #endif
 
 /* ap aon registers start */
@@ -64,13 +71,16 @@
 /* qogirl6 cpu hold end*/
 
 /* qogirl6 cp reg start */
-#define CP_REG_NUM	3
-#define REG_AON_AHB	0x40880000
-#define AON_AHB_LEN	0x13c
-#define REG_AON_APB	0x4080c000
-#define AON_APB_LEN	0x448
-#define REG_AON_CLK	0x40800000
-#define AON_CLK_LEN	0x400
+#define CP_REG_NUM	4
+
+#define REG_AON_WCN_GNSS_CLK	0x40bd8000
+#define AON_WCN_GNSS_CLK_LEN	0x54
+#define REG_AON_APB_PERI	0x40bc8000
+#define AON_APB_PERI_LEN	0x2e4
+#define REG_AON_AHB_SYS		0x40b18000
+#define AON_AHB_SYS_LEN		0x42c
+#define REG_AON_CONTROL		0x40c00000
+#define AON_CONTROL_LEN		0x64
 /* qogirl6 cp reg end */
 
 #define ANLG_WCN_WRITE_ADDR 0XFF4
@@ -85,7 +95,6 @@
 #define GNSS_BASE_AON_APB_SIZE 0x354
 #define CTL_BASE_AON_CLOCK  0x40844200
 #define CTL_BASE_AON_CLOCK_SIZE  0x144
-
 #endif
 int gnss_dump_mem(char flag);
 #endif

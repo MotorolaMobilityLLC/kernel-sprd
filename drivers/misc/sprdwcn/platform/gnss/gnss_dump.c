@@ -62,6 +62,7 @@ struct cp_reg_dump {
 	u32 addr;
 	u32 len;
 };
+
 /* for sharkle ap reg dump, this order format can't change, just do it */
 static struct regmap_dump gnss_sharkle_ap_reg[] = {
 	{REGMAP_PMU_APB, 0x00cc}, /* REG_PMU_APB_SLEEP_CTRL */
@@ -98,19 +99,12 @@ static struct regmap_dump gnss_sharkl3_ap_reg[] = {
 	{REGMAP_PMU_APB, 0x0108}, /* REG_PMU_APB_PD_GNSS_WRAP_CFG */
 };
 
-/* for sharkl6 ap reg dump */
-static struct regmap_dump gnss_sharkl6_ap_reg[] = {
-	{REGMAP_TYPE_NR, 0x640203a8}, /* PMU_PD_WCN_SYS_CFG */
-	{REGMAP_TYPE_NR, 0x6402078c}, /* PMU_WCN_SYS_DSLP_ENA */
-	{REGMAP_TYPE_NR, 0x64020818}, /* PMU_FORCE_DEEP_SLEEP_CFG0 */
-	{REGMAP_TYPE_NR, 0x64020860}, /* PMU_SLEEP_STATUS */
-};
-
 /* for sharkl6 cp reg dump */
 static struct cp_reg_dump cp_reg[] = {
-	{REG_AON_AHB, AON_AHB_LEN},
-	{REG_AON_APB, AON_APB_LEN},
-	{REG_AON_CLK, AON_CLK_LEN},
+	{REG_AON_WCN_GNSS_CLK, AON_WCN_GNSS_CLK_LEN},
+	{REG_AON_APB_PERI, AON_APB_PERI_LEN},
+	{REG_AON_AHB_SYS, AON_AHB_SYS_LEN},
+	{REG_AON_CONTROL, AON_CONTROL_LEN},
 };
 
 #ifdef CONFIG_SC2342_I
@@ -375,9 +369,6 @@ static int gnss_dump_ap_register(void)
 	} else if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_SHARKL3) {
 		gnss_ap_reg = gnss_sharkl3_ap_reg;
 		len = (GNSS_DUMP_REG_NUMBER + 1) * sizeof(u32);
-	} else {
-		gnss_ap_reg = gnss_sharkl6_ap_reg;
-		len = (GNSS_DUMP_REG_NUMBER + 1) * sizeof(u32);
 	}
 
 	apreg_buffer = vmalloc(len);
@@ -465,10 +456,18 @@ static void gnss_dump_register(void)
 static void gnss_dump_iram(void)
 {
 	u32 count;
-
+#ifdef CONFIG_UMW2631_I
+	u32 count_pchannel;
+#endif
 	count = gnss_dump_cp_register_data(GNSS_DUMP_IRAM_START_ADDR,
 			GNSS_CP_IRAM_DATA_NUM * 4);
 	GNSSDUMP_INFO("gnss dump iram %u ok!\n", count);
+#ifdef CONFIG_UMW2631_I
+	count_pchannel = gnss_dump_cp_register_data(
+			GNSS_DUMP_IRAM_START_ADDR_PCHANNEL,
+			GNSS_PCHANNEL_IRAM_DATA_NUM * 4);
+	GNSSDUMP_INFO("gnss pchannel dump iram %u ok!\n", count_pchannel);
+#endif
 }
 
 static int gnss_dump_share_memory(u32 len)
@@ -485,6 +484,7 @@ static int gnss_dump_share_memory(u32 len)
 	fs = get_fs();
 	set_fs(KERNEL_DS);
 	base_addr = wcn_get_gnss_base_addr();
+	GNSSDUMP_ERR(" %s base_addr is 0x%x\n", __func__, base_addr);
 	virt_addr = shmem_ram_vmap_nocache(base_addr, len);
 	if (!virt_addr) {
 		GNSSDUMP_ERR(" %s shmem_ram_vmap_nocache fail\n", __func__);
@@ -508,21 +508,58 @@ static int gnss_dump_share_memory(u32 len)
 	memset(ddr_buffer, 0, len);
 	memcpy(ddr_buffer, virt_addr, len);
 	pos = gnss_dump_file->f_pos;
-	ret = vfs_write(gnss_dump_file,
-			(__force const char __user *)ddr_buffer,
+	ret = vfs_write(gnss_dump_file,	(__force const char __user *)ddr_buffer,
 			len, &pos);
 	gnss_dump_file->f_pos = pos;
 	shmem_ram_unmap(virt_addr);
-	set_fs(fs);
 	vfree(ddr_buffer);
 	if (ret != len) {
 		GNSSDUMP_ERR("%s dump ddr error,data len is %ld\n", __func__,
 			ret);
 		return -1;
 	}
-
 	GNSSDUMP_INFO("gnss dump share memory  size = %ld\n", ret);
+#ifdef CONFIG_UMW2631_I
+	GNSSDUMP_ERR("%s dump sipc buffer start ", __func__);
+	base_addr = GNSS_DUMP_IRAM_START_ADDR_SIPC;
+	virt_addr = shmem_ram_vmap_nocache(base_addr, SIPC_BUFFER_DATA_NUM);
+	if (!virt_addr) {
+		GNSSDUMP_ERR(" %s shmem for sipc buffer is fail\n", __func__);
+		return -1;
+	}
 
+	if (IS_ERR(gnss_dump_file)) {
+		gnss_dump_file = filp_open(GNSS_MEMDUMP_PATH,
+			O_RDWR | O_CREAT | O_APPEND, 0666);
+		if (IS_ERR(gnss_dump_file)) {
+			GNSSDUMP_ERR("%s open file mem error\n", __func__);
+			return PTR_ERR(gnss_dump_file);
+		}
+	}
+
+	ddr_buffer = vmalloc(SIPC_BUFFER_DATA_NUM);
+	if (!ddr_buffer) {
+		GNSSDUMP_ERR(" %s vmalloc ddr_buffer fail\n", __func__);
+		return -1;
+	}
+	memset(ddr_buffer, 0, SIPC_BUFFER_DATA_NUM);
+	memcpy(ddr_buffer, virt_addr, SIPC_BUFFER_DATA_NUM);
+	pos = gnss_dump_file->f_pos;
+	ret = vfs_write(gnss_dump_file,
+			(__force const char __user *)ddr_buffer,
+			SIPC_BUFFER_DATA_NUM, &pos);
+	gnss_dump_file->f_pos = pos;
+	shmem_ram_unmap(virt_addr);
+	set_fs(fs);
+	vfree(ddr_buffer);
+	if (ret != SIPC_BUFFER_DATA_NUM) {
+		GNSSDUMP_ERR("%s dump ddr error,sipc data is %ld\n", __func__,
+			     ret);
+		return -1;
+	}
+
+	GNSSDUMP_INFO("gnss dump sipc buffer size = %ld\n", ret);
+#endif
 	return 0;
 }
 
