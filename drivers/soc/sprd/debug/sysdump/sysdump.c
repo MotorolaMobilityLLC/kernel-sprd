@@ -116,16 +116,21 @@ struct minidump_info  minidump_info_g =	{
 	},
 	.section_info_total		=	{
 		.section_info		=	{
-			{"text", (unsigned long)_stext, (unsigned long)_etext, 0, 0, 0},
+//			{"text", (unsigned long)_stext, (unsigned long)_etext, 0, 0, 0},
 			{"data", (unsigned long)_sdata, (unsigned long)_edata, 0, 0, 0},
 			{"bss", (unsigned long)__bss_start, (unsigned long)__bss_stop, 0, 0, 0},
 			{"init", (unsigned long)__init_begin, (unsigned long)__init_end, 0, 0, 0},
 			{"inittext", (unsigned long)_sinittext, (unsigned long)_einittext, 0, 0, 0},
-			{"rodata", (unsigned long)__start_rodata, (unsigned long)__end_rodata, 0, 0, 0},
-			{"per_cpu", (unsigned long)__per_cpu_start, (unsigned long)__per_cpu_end, 0, 0, 0},
+			{"rodata", (unsigned long)__start_rodata, (unsigned long)__end_rodata, 0, 0,
+			0},
+			{"per_cpu", (unsigned long)__per_cpu_start, (unsigned long)__per_cpu_end, 0,
+			0, 0},
 			{"log_buf", 0, 0, 0, 0, 0},
 			{"ylog_buf", 0, 0, 0, 0, 0},
 			{"kernel_pt", 0, 0, 0, 0, 0},
+#ifdef CONFIG_SPRD_NATIVE_HANG_MONITOR
+			{"nhang", 0, 0, 0, 0, 0},
+#endif
 			{"", 0, 0, 0, 0, 0},
 
 		},
@@ -137,6 +142,10 @@ struct minidump_info  minidump_info_g =	{
 static int prepare_exception_info(struct pt_regs *regs,
 			struct task_struct *tsk, const char *reason);
 static char *ylog_buffer;
+#ifdef CONFIG_SPRD_NATIVE_HANG_MONITOR
+extern void get_native_hang_monitor_buffer(unsigned long *addr, unsigned long *size,
+						unsigned long *start);
+#endif
 #endif /*	minidump code end	*/
 typedef char note_buf_t[SYSDUMP_NOTE_BYTES];
 
@@ -481,7 +490,8 @@ static int sysdump_panic_event(struct notifier_block *self,
 		}
 
 		sprd_sysdump_info = (struct sysdump_info *)phys_to_virt(sprd_sysdump_info_paddr);
-		pr_emerg("vaddr is %p, paddr is %p.\n", sprd_sysdump_info, (void *)sprd_sysdump_info_paddr);
+		pr_emerg("vaddr is %p, paddr is %p.\n", sprd_sysdump_info,
+			(void *)sprd_sysdump_info_paddr);
 		crash_notes = &crash_notes_temp;
 	}
 
@@ -909,7 +919,8 @@ void prepare_minidump_reg_memory(struct pt_regs *regs)
 			pr_emerg("addr: %lx\n", addr);
 
 		} else {
-			addr = regs->regs[i] - minidump_info_g.regs_memory_info.per_reg_memory_size / 2;
+			addr = regs->regs[i] - minidump_info_g.regs_memory_info.per_reg_memory_size
+				/ 2;
 			pr_emerg("R%d: %llx\n", i, regs->regs[i]);
 			pr_emerg("addr: %lx\n", addr);
 		}
@@ -925,7 +936,8 @@ void prepare_minidump_reg_memory(struct pt_regs *regs)
 		pr_emerg("reg[%d] paddr: %lx\n",
 			 i, minidump_info_g.regs_memory_info.reg_paddr[i]);
 	}
-	minidump_info_g.regs_memory_info.size = minidump_info_g.regs_memory_info.valid_reg_num * minidump_info_g.regs_memory_info.per_reg_memory_size;
+	minidump_info_g.regs_memory_info.size = minidump_info_g.regs_memory_info.valid_reg_num *
+					 minidump_info_g.regs_memory_info.per_reg_memory_size;
 	pr_emerg("size : %d\n", minidump_info_g.regs_memory_info.size);
 	set_fs(fs);
 	return;
@@ -979,7 +991,8 @@ void show_minidump_info(struct minidump_info *minidump_infop)
 }
 
 /*	Here we prepare minidump all info
-	| minidump_info | struct pt_regs | memory amount regs | sections | others(just like kernel logbuf ) |
+	| minidump_info | struct pt_regs | memory amount regs | sections | others(just like kernel
+	logbuf ) |
 */
 static int prepare_minidump_info(struct pt_regs *regs)
 {
@@ -994,7 +1007,9 @@ static int prepare_minidump_info(struct pt_regs *regs)
 		pr_err("%s regs NULL .\n", __func__);
 	}
 
-	minidump_info_g.minidump_data_size =  minidump_info_g.regs_info.size + minidump_info_g.regs_memory_info.size + minidump_info_g.section_info_total.total_size;
+	minidump_info_g.minidump_data_size =  minidump_info_g.regs_info.size +
+				minidump_info_g.regs_memory_info.size +
+				minidump_info_g.section_info_total.total_size;
 
 	/*	sections part: we have got all info when init, here do nothing */
 	show_minidump_info(&minidump_info_g);
@@ -1026,8 +1041,10 @@ void section_info_log_buf(int section_index)
 		__func__, vaddr, len, i);
 	minidump_info_g.section_info_total.section_info[i].section_start_vaddr = vaddr;
 	minidump_info_g.section_info_total.section_info[i].section_end_vaddr = vaddr + len;
-	minidump_info_g.section_info_total.section_info[i].section_start_paddr = __pa(minidump_info_g.section_info_total.section_info[i].section_start_vaddr);
-	minidump_info_g.section_info_total.section_info[i].section_end_paddr = __pa(minidump_info_g.section_info_total.section_info[i].section_end_vaddr);
+	minidump_info_g.section_info_total.section_info[i].section_start_paddr =
+		__pa(minidump_info_g.section_info_total.section_info[i].section_start_vaddr);
+	minidump_info_g.section_info_total.section_info[i].section_end_paddr =
+		__pa(minidump_info_g.section_info_total.section_info[i].section_end_vaddr);
 	minidump_info_g.section_info_total.section_info[i].section_size = len;
 }
 
@@ -1039,11 +1056,33 @@ void section_info_ylog_buf(int section_index)
 	pr_info("%s in. vaddr : 0x%lx  len :0x%x  section_index: %d\n",
 		 __func__, vaddr, YLOG_BUF_SIZE, i);
 	minidump_info_g.section_info_total.section_info[i].section_start_vaddr = vaddr;
-	minidump_info_g.section_info_total.section_info[i].section_end_vaddr = vaddr + YLOG_BUF_SIZE;
-	minidump_info_g.section_info_total.section_info[i].section_start_paddr = __pa(minidump_info_g.section_info_total.section_info[i].section_start_vaddr);
-	minidump_info_g.section_info_total.section_info[i].section_end_paddr = __pa(minidump_info_g.section_info_total.section_info[i].section_end_vaddr);
+	minidump_info_g.section_info_total.section_info[i].section_end_vaddr = vaddr +
+		YLOG_BUF_SIZE;
+	minidump_info_g.section_info_total.section_info[i].section_start_paddr =
+		__pa(minidump_info_g.section_info_total.section_info[i].section_start_vaddr);
+	minidump_info_g.section_info_total.section_info[i].section_end_paddr =
+		__pa(minidump_info_g.section_info_total.section_info[i].section_end_vaddr);
 	minidump_info_g.section_info_total.section_info[i].section_size = YLOG_BUF_SIZE;
 }
+
+#ifdef CONFIG_SPRD_NATIVE_HANG_MONITOR
+static void section_native_hang(int section_index)
+{
+	int i = section_index;
+	unsigned long vaddr, len, start;
+
+	get_native_hang_monitor_buffer(&vaddr, &len, &start);
+	pr_debug("%s in.\n", __func__);
+	minidump_info_g.section_info_total.section_info[i].section_start_vaddr = vaddr;
+	minidump_info_g.section_info_total.section_info[i].section_end_vaddr = vaddr + len;
+	minidump_info_g.section_info_total.section_info[i].section_start_paddr =
+		__pa(minidump_info_g.section_info_total.section_info[i].section_start_vaddr);
+	minidump_info_g.section_info_total.section_info[i].section_end_paddr =
+		__pa(minidump_info_g.section_info_total.section_info[i].section_end_vaddr);
+	minidump_info_g.section_info_total.section_info[i].section_size = len;
+	pr_debug("%s out.\n", __func__);
+}
+#endif
 
 void section_info_pt(int section_index)
 {
@@ -1075,9 +1114,11 @@ void section_info_pt(int section_index)
 #endif
 	return;
 }
-int add_extend_section(const char *name, unsigned long paddr_start, unsigned long paddr_end, int index)
+static int add_extend_section(const char *name, unsigned long paddr_start, unsigned long paddr_end,
+			int index)
 {
-	struct section_info *extend_section = &minidump_info_g.section_info_total.section_info[index];
+	struct section_info *extend_section =
+		&minidump_info_g.section_info_total.section_info[index];
 
 	if (SECTION_NUM_MAX <= index) {
 		pr_err("No space for new section \n");
@@ -1086,11 +1127,12 @@ int add_extend_section(const char *name, unsigned long paddr_start, unsigned lon
 	sprintf(extend_section->section_name, "%s", name);
 	extend_section->section_start_paddr = paddr_start;
 	extend_section->section_end_paddr = paddr_end;
-	extend_section->section_size = extend_section->section_end_paddr - extend_section->section_start_paddr;
+	extend_section->section_size = extend_section->section_end_paddr -
+		extend_section->section_start_paddr;
 
 	minidump_info_g.section_info_total.total_size += extend_section->section_size;
 	minidump_info_g.section_info_total.total_num++;
-	minidump_info_g.minidump_data_size += extend_section->section_size  ;
+	minidump_info_g.minidump_data_size += extend_section->section_size;
 	return 0;
 }
 
@@ -1111,7 +1153,8 @@ int extend_section_cm4dump(int index)
 		if (!ret) {
 			cm4_dump_start = res.start;
 			cm4_dump_end = res.end;
-			pr_err("cm4_dump_start : 0x%lx cm4_dump_end :0x%lx , size : 0x%lx \n", cm4_dump_start, cm4_dump_end, cm4_dump_end - cm4_dump_start + 1);
+			pr_err("cm4_dump_start : 0x%lx cm4_dump_end :0x%lx , size : 0x%lx\n",
+				cm4_dump_start, cm4_dump_end, cm4_dump_end - cm4_dump_start + 1);
 		} else {
 			pr_err("Not find cm4_reg property from %s node\n", CM4_DUMP_IRAM);
 			return -1;
@@ -1127,10 +1170,22 @@ void section_info_per_cpu(int section_index)
 	int len = (__per_cpu_offset[1] - __per_cpu_offset[0])*CONFIG_NR_CPUS;
 	minidump_info_g.section_info_total.section_info[i].section_start_vaddr = vaddr;
 	minidump_info_g.section_info_total.section_info[i].section_end_vaddr = vaddr + len;
-	minidump_info_g.section_info_total.section_info[i].section_start_paddr = __pa(minidump_info_g.section_info_total.section_info[i].section_start_vaddr);
-	minidump_info_g.section_info_total.section_info[i].section_end_paddr = __pa(minidump_info_g.section_info_total.section_info[i].section_end_vaddr);
+	minidump_info_g.section_info_total.section_info[i].section_start_paddr =
+		__pa(minidump_info_g.section_info_total.section_info[i].section_start_vaddr);
+	minidump_info_g.section_info_total.section_info[i].section_end_paddr =
+		__pa(minidump_info_g.section_info_total.section_info[i].section_end_vaddr);
 	minidump_info_g.section_info_total.section_info[i].section_size = len;
 	return;
+}
+static void minidump_addr_convert(int i)
+{
+	minidump_info_g.section_info_total.section_info[i].section_start_paddr =
+		__pa(minidump_info_g.section_info_total.section_info[i].section_start_vaddr);
+	minidump_info_g.section_info_total.section_info[i].section_end_paddr =
+		__pa(minidump_info_g.section_info_total.section_info[i].section_end_vaddr);
+	minidump_info_g.section_info_total.section_info[i].section_size =
+		minidump_info_g.section_info_total.section_info[i].section_end_paddr -
+		minidump_info_g.section_info_total.section_info[i].section_start_paddr;
 }
 /*	init section_info_all_item : name,paddr,size 	return: total_size */
 void minidump_info_init(void)
@@ -1139,7 +1194,8 @@ void minidump_info_init(void)
 
 	minidump_info_g.regs_info.paddr = __pa(&minidump_regs_g);
 	/*	regs_memory_info init*/
-	minidump_info_g.regs_memory_info.size = REGS_NUM_MAX * minidump_info_g.regs_memory_info.per_reg_memory_size;
+	minidump_info_g.regs_memory_info.size = REGS_NUM_MAX *
+		minidump_info_g.regs_memory_info.per_reg_memory_size;
 
 	/*	section info init*/
 	for (i = 0; i < SECTION_NUM_MAX; i++) {
@@ -1147,25 +1203,34 @@ void minidump_info_init(void)
 		if (!strlen(minidump_info_g.section_info_total.section_info[i].section_name))
 			break;
 		/*      when section name is log_buf */
-		if (!memcmp(minidump_info_g.section_info_total.section_info[i].section_name, "log_buf", strlen("log_buf"))) {
+		if (!memcmp(minidump_info_g.section_info_total.section_info[i].section_name,
+				"log_buf", strlen("log_buf"))) {
 			section_info_log_buf(i);
-		} else if (!memcmp(minidump_info_g.section_info_total.section_info[i].section_name, "ylog_buf", strlen("ylog_buf"))) {
+		} else if (!memcmp(minidump_info_g.section_info_total.section_info[i].section_name,
+				"ylog_buf", strlen("ylog_buf"))) {
 			section_info_ylog_buf(i);
-		} else if (!memcmp(minidump_info_g.section_info_total.section_info[i].section_name, "kernel_pt", strlen("kernel_pt"))) {
+		} else if (!memcmp(minidump_info_g.section_info_total.section_info[i].section_name,
+				"kernel_pt", strlen("kernel_pt"))) {
 			section_info_pt(i);
-		} else if (!memcmp(minidump_info_g.section_info_total.section_info[i].section_name, "per_cpu", strlen("per_cpu"))) {
+		} else if (!memcmp(minidump_info_g.section_info_total.section_info[i].section_name,
+				"per_cpu", strlen("per_cpu"))) {
 			section_info_per_cpu(i);
+#ifdef CONFIG_SPRD_NATIVE_HANG_MONITOR
+		} else if (!memcmp(minidump_info_g.section_info_total.section_info[i].section_name,
+				"nhang", strlen("nhang"))) {
+			section_native_hang(i);
+#endif
 		} else {
-			minidump_info_g.section_info_total.section_info[i].section_start_paddr = __pa(minidump_info_g.section_info_total.section_info[i].section_start_vaddr);
-			minidump_info_g.section_info_total.section_info[i].section_end_paddr = __pa(minidump_info_g.section_info_total.section_info[i].section_end_vaddr);
-			minidump_info_g.section_info_total.section_info[i].section_size = minidump_info_g.section_info_total.section_info[i].section_end_paddr - minidump_info_g.section_info_total.section_info[i].section_start_paddr;
+			minidump_addr_convert(i);
 		}
-		minidump_info_g.section_info_total.total_size += minidump_info_g.section_info_total.section_info[i].section_size;
+		minidump_info_g.section_info_total.total_size +=
+			minidump_info_g.section_info_total.section_info[i].section_size;
 	}
 	minidump_info_g.section_info_total.total_num = i;
 
 
-	minidump_info_g.minidump_data_size =  minidump_info_g.regs_info.size + minidump_info_g.regs_memory_info.size + minidump_info_g.section_info_total.total_size;
+	minidump_info_g.minidump_data_size =  minidump_info_g.regs_info.size +
+	minidump_info_g.regs_memory_info.size + minidump_info_g.section_info_total.total_size;
 
 	extend_section_cm4dump(minidump_info_g.section_info_total.total_num);
 
@@ -1236,7 +1301,8 @@ int minidump_init(void)
 	minidump_info_dir = proc_mkdir(MINIDUMP_INFO_DIR, NULL);
 	if (!minidump_info_dir)
 		return -ENOMEM;
-	minidump_info = proc_create(MINIDUMP_INFO_PROC, S_IRUGO | S_IWUGO, minidump_info_dir, &minidump_proc_fops);
+	minidump_info = proc_create(MINIDUMP_INFO_PROC, 0644, minidump_info_dir,
+				&minidump_proc_fops);
 	if (!minidump_info)
 		return -ENOMEM;
 	ylog_buffer_init();
