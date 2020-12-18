@@ -7,6 +7,7 @@
 #include <dt-bindings/mfd/sprd,sc2730-mask.h>
 #include <dt-bindings/usb/pd.h>
 #include "lcd/lcd_g40396_truly_mipi_fhd.dtsi"
+#include "lcd/lcd_dummy_mipi.dtsi"
 
 / {
 
