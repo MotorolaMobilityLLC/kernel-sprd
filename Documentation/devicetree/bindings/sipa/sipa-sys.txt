@@ -3,13 +3,15 @@ sipa system for Spreadtrum platforms
 Required properties:
 - compatible: should be one of following:
 	"sprd,roc1-sipa-sys",
-	"sprd,roc1-ipa-sys-power-domain".
+	"sprd,roc1-ipa-sys-power-domain",
+        "sprd,qogirn6pro-ipa-sys-power-domain".
 - syscons: Should contain the base address, offset and bit for each entry in "syscon-names".
 - syscon-names: global register bits name, order and name should the same as code.
 	ipa-sys-pciepllhsel: clear bit will unbind between PCIEPLL_H and IPA_SYS.
 	ipa-sys-pciepllvsel: clear bit will unbind between PCIEPLL_V and IPA_SYS.
 	ipa-sys-xtlbufpciehsel: clear bit will unbind between XTLBUF_PCIEH and IPA_SYS.
 	ipa-sys-xtlbufpcievsel: clear bit will unbind between XTLBUF_PCIEV and IPA_SYS.
+- reg-size: number of registers.
 - clocks: Reference to a phandle of a clock provider node, see the common clock bindings.
 - clock-names: the following clocks are required:
   * "ipa_core"
@@ -88,6 +90,8 @@ Examples:
 			"ipa-sys-xtlbufpciehsel",
 			"ipa-sys-xtlbufpcievsel";
 		#power-domain-cells = <0>;
+
+                reg-size = <16>;
 
 		clocks = <&ipa_clk CLK_IPA_CORE>,
 			<&g12_pll CLK_LPLL_409M6>;
