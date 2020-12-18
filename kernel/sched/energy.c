@@ -82,8 +82,10 @@ void init_sched_energy_costs(void)
 	struct cpumask mc_cpu_mask;
 	char chip_type[80] = "busy-cost-data-";
 
-	sprd_kproperty_get("lwfq/type", &chip_type[15], "-1");
+	sprd_kproperty_get("auto/efuse", &chip_type[15], "-1");
 	cpumask_clear(&mc_cpu_mask);
+
+	pr_info("the cpu type is %s\n", chip_type);
 
 	for_each_possible_cpu(cpu) {
 		cn = of_get_cpu_node(cpu, NULL);
