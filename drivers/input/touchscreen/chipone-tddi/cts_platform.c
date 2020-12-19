@@ -422,9 +422,7 @@ static void cts_plat_handle_irq(struct cts_platform_data *pdata)
 static irqreturn_t cts_plat_irq_handler(int irq, void *dev_id)
 {
     struct cts_platform_data *pdata;
-#ifndef CONFIG_GENERIC_HARDIRQS
     struct chipone_ts_data *cts_data;
-#endif /* CONFIG_GENERIC_HARDIRQS */
 
     cts_dbg("IRQ handler");
 
@@ -434,23 +432,25 @@ static irqreturn_t cts_plat_irq_handler(int irq, void *dev_id)
         return IRQ_NONE;
     }
 
-#ifdef CONFIG_GENERIC_HARDIRQS
-    cts_plat_handle_irq(pdata);
-#else /* CONFIG_GENERIC_HARDIRQS */
     cts_data = container_of(pdata->cts_dev, struct chipone_ts_data, cts_dev);
 
+    cts_plat_disable_irq(pdata);
+
+#ifdef CFG_CTS_HANDLE_IRQ_USE_WORKQUEUE
     if (queue_work(cts_data->workqueue, &pdata->ts_irq_work)) {
         cts_dbg("IRQ queue work");
-        cts_plat_disable_irq(pdata);
     } else {
         cts_warn("IRQ handler queue work failed as already on the queue");
     }
-#endif /* CONFIG_GENERIC_HARDIRQS */
-
+#endif /* CFG_CTS_HANDLE_IRQ_USE_WORKQUEUE */
+#ifdef CFG_CTS_HANDLE_IRQ_USE_KTHREAD
+    pdata->irq_pending = 1;
+    wake_up_interruptible(&pdata->irq_waitq_head);
+#endif /* CFG_CTS_HANDLE_IRQ_USE_KTHREAD */
     return IRQ_HANDLED;
 }
 
-#ifndef CONFIG_GENERIC_HARDIRQS
+#if defined(CFG_CTS_HANDLE_IRQ_USE_WORKQUEUE)
 static void cts_plat_touch_dev_irq_work(struct work_struct *work)
 {
     struct cts_platform_data *pdata =
@@ -462,7 +462,33 @@ static void cts_plat_touch_dev_irq_work(struct work_struct *work)
 
     cts_plat_enable_irq(pdata);
 }
-#endif /* CONFIG_GENERIC_HARDIRQS */
+#endif /* CFG_CTS_HANDLE_IRQ_USE_WORKQUEUE */
+
+#ifdef CFG_CTS_HANDLE_IRQ_USE_KTHREAD
+static int cts_plat_irq_thread_fn(void *arg)
+{
+    struct cts_platform_data *pdata = (struct cts_platform_data *)arg;
+    struct sched_param sched_param = { .sched_priority = 4 };
+
+    cts_info("IRQ thread start ...");
+
+    sched_setscheduler(current, SCHED_RR, &sched_param);
+    do {
+        set_current_state(TASK_INTERRUPTIBLE);
+        wait_event_interruptible(pdata->irq_waitq_head,
+            pdata->irq_pending != 0);
+        pdata->irq_pending = 0;
+        set_current_state(TASK_RUNNING);
+
+        cts_dbg("IRQ thread get event");
+
+        cts_plat_handle_irq(pdata);
+        cts_plat_enable_irq(pdata);
+    } while (!kthread_should_stop());
+
+    return 0;
+}
+#endif /* CFG_CTS_HANDLE_IRQ_USE_KTHREAD */
 
 #ifdef CONFIG_CTS_OF
 static int cts_plat_parse_dt(struct cts_platform_data *pdata,
@@ -616,9 +642,22 @@ int cts_init_platform_data(struct cts_platform_data *pdata,
 
     pdata->ts_input_dev = input_dev;
 
-#if !defined(CONFIG_GENERIC_HARDIRQS)
+#ifdef CFG_CTS_HANDLE_IRQ_USE_WORKQUEUE
     INIT_WORK(&pdata->ts_irq_work, cts_plat_touch_dev_irq_work);
-#endif /* CONFIG_GENERIC_HARDIRQS */
+#endif /* CFG_CTS_HANDLE_IRQ_USE_WORKQUEUE */
+#ifdef CFG_CTS_HANDLE_IRQ_USE_KTHREAD
+    init_waitqueue_head(&pdata->irq_waitq_head);
+    pdata->irq_pending = 0;
+    pdata->irq_thread =
+        kthread_run(cts_plat_irq_thread_fn, pdata, "chipone-touch");
+    if (IS_ERR(pdata->irq_thread)) {
+        ret = PTR_ERR(pdata->irq_thread);
+        cts_err("Run thread for IRQ failed %d", ret);
+        pdata->irq_thread = NULL;
+        return ret;
+    }
+    cts_info("Run thread for IRQ success");
+#endif /* CFG_CTS_HANDLE_IRQ_USE_KTHREAD */
 
 #ifdef CONFIG_CTS_VIRTUALKEY
     {
@@ -707,41 +746,23 @@ void cts_plat_free_resource(struct cts_platform_data *pdata)
 
 int cts_plat_request_irq(struct cts_platform_data *pdata)
 {
+    unsigned long irq_flags;
     int ret;
-    struct cts_device *cts_dev = pdata->cts_dev;
-    struct cts_device_fwdata *fwdata = &cts_dev->fwdata;
-    u8 int_mode;
+ 
+    irq_flags = IRQF_ONESHOT;
+    if (pdata->cts_dev->fwdata.int_mode) {
+        irq_flags |= IRQF_TRIGGER_RISING;
+    } else {
+        irq_flags |= IRQF_TRIGGER_FALLING;
+    }
 
-    cts_info("Request IRQ");
-    int_mode = fwdata->int_mode;
-    cts_info("Get fw int mode:%d, request %s IRQ", int_mode,
-        int_mode==0?"falling" : "rising");
-#ifdef CONFIG_GENERIC_HARDIRQS
-    if (int_mode) {
-        ret = request_threaded_irq(pdata->irq, NULL,
-            cts_plat_irq_handler, IRQF_TRIGGER_RISING | IRQF_ONESHOT,
-                CFG_CTS_DRIVER_NAME, pdata);
-    }
-    else {
-        ret = request_threaded_irq(pdata->irq, NULL,
-            cts_plat_irq_handler, IRQF_TRIGGER_FALLING | IRQF_ONESHOT,
-                CFG_CTS_DRIVER_NAME, pdata);
-    }
-#else /* CONFIG_GENERIC_HARDIRQS */
-    if (int_mode) {
-        ret = request_irq(pdata->irq,
-            cts_plat_irq_handler, IRQF_TRIGGER_RISING | IRQF_ONESHOT,
-                CFG_CTS_DRIVER_NAME, pdata);
-    }
-    else {
-        ret = request_irq(pdata->irq,
-            cts_plat_irq_handler, IRQF_TRIGGER_FALLING | IRQF_ONESHOT,
-                CFG_CTS_DRIVER_NAME, pdata);
-    }
-#endif /* CONFIG_GENERIC_HARDIRQS */
+    cts_info("Request IRQ flags: 0x%lx", irq_flags);
+
+    ret = request_irq(pdata->irq, cts_plat_irq_handler,
+        irq_flags, CFG_CTS_DRIVER_NAME, pdata);
     if (ret) {
-        cts_err("Request IRQ failed %d", ret);
-        return ret;
+         cts_err("Request IRQ failed %d", ret);
+         return ret;
     }
 
     cts_plat_disable_irq(pdata);
@@ -854,11 +875,11 @@ void cts_plat_deinit_touch_device(struct cts_platform_data *pdata)
 {
     cts_info("De-init touch device");
 
-#ifndef CONFIG_GENERIC_HARDIRQS
+#ifdef CFG_CTS_HANDLE_IRQ_USE_WORKQUEUE
     if (work_pending(&pdata->ts_irq_work)) {
         cancel_work_sync(&pdata->ts_irq_work);
     }
-#endif /* CONFIG_GENERIC_HARDIRQS */
+#endif /* CFG_CTS_HANDLE_IRQ_USE_WORKQUEUE */
 }
 
 int cts_plat_process_touch_msg(struct cts_platform_data *pdata,

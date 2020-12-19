@@ -33,6 +33,10 @@
 #include <linux/wakelock.h>
 #endif
 #include <linux/firmware.h>
+#include <linux/kthread.h>
+#include <linux/wait.h>
+#include <linux/sched.h>
+#include <linux/sched/types.h>
 
 #ifdef CONFIG_OF
 #include <linux/of.h>
@@ -105,9 +109,15 @@ struct cts_platform_data {
 
     struct input_dev *ts_input_dev;
 
-#ifndef CONFIG_GENERIC_HARDIRQS
+#ifdef CFG_CTS_HANDLE_IRQ_USE_WORKQUEUE
     struct work_struct ts_irq_work;
-#endif /* CONFIG_GENERIC_HARDIRQS */
+#endif /* CFG_CTS_HANDLE_IRQ_USE_WORKQUEUE */
+
+#ifdef CFG_CTS_HANDLE_IRQ_USE_KTHREAD
+    struct task_struct *irq_thread;
+    int irq_pending;
+    wait_queue_head_t irq_waitq_head;
+#endif /* CFG_CTS_HANDLE_IRQ_USE_KTHREAD */
 
     struct rt_mutex dev_lock;
     struct spinlock irq_lock;

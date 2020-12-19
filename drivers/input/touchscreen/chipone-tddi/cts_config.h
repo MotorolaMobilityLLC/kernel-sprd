@@ -22,6 +22,14 @@
 
 #endif
 
+/* Handle IRQ whether in workqueue or kthread. */
+//#define CFG_CTS_HANDLE_IRQ_USE_WORKQUEUE
+
+/* With SCHED_RR option, kthread will get better performance by
+ * dramatic decrease delay between irq and work.
+ */
+#define CFG_CTS_HANDLE_IRQ_USE_KTHREAD
+
 #define CFG_CTS_FORCE_UP
 
 //#define CFG_CTS_FW_LOG_REDIRECT

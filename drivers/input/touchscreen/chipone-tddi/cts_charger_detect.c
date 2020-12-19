@@ -223,8 +223,8 @@ static int parse_charger_detect_dt(struct cts_charger_detect_data *cd_data,
                 psp_str);
         } else {
             psy = power_supply_get_by_name(cd_data->psy_name);
-            if (psy != NULL &&
-                POWER_SUPPLY_GET_PROPERTY(psy, psp, &val) >=0) {
+            if (psy == NULL ||
+                POWER_SUPPLY_GET_PROPERTY(psy, psp, &val) < 0) {
                 cts_err("Parse detect psp invalid");
             } else {
                 cd_data->psp = psp;
