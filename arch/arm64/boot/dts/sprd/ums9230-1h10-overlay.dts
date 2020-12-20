@@ -279,6 +279,13 @@
 					114889 57
 					124872 43 >;
 			};
+
+			audio-voice-trig {
+				status = "disable";
+				compatible = "sprd,voice_trig";
+				irq_gpio = <&ap_gpio 169 GPIO_ACTIVE_HIGH>;
+			};
+
 		};
 	};
 };
