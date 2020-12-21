@@ -233,6 +233,8 @@ struct sprd_codec_priv {
 	struct regulator *main_mic;
 	struct regulator *head_mic;
 	struct regulator *vb;
+	struct regulator *micbias1;
+	struct regulator *bg;
 
 	int psg_state;
 	struct fgu fgu;
@@ -257,6 +259,7 @@ struct sprd_codec_priv {
 	struct mutex dig_access_mutex;
 	bool dig_access_en;
 	bool user_dig_access_dis;
+	bool micbias1_power_en;
 	enum IVSENCE_DMIC_TYPE ivsence_dmic_type;
 };
 
@@ -522,6 +525,55 @@ static int dig_access_disable_get(struct snd_kcontrol *kcontrol,
 	return 0;
 }
 
+static int micbias1_power_get(struct snd_kcontrol *kcontrol,
+				   struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
+	struct sprd_codec_priv *sprd_codec = snd_soc_codec_get_drvdata(codec);
+
+	ucontrol->value.integer.value[0] = sprd_codec->micbias1_power_en;
+
+	return 0;
+}
+
+static int micbias1_power_put(struct snd_kcontrol *kcontrol,
+				   struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
+	struct sprd_codec_priv *sprd_codec = snd_soc_codec_get_drvdata(codec);
+	bool on_off;
+	int ret = 0;
+
+	on_off = !!ucontrol->value.integer.value[0];
+
+	if (sprd_codec->micbias1_power_en != on_off) {
+		if (on_off) {
+			/* Enable BG & MICBIAS1 */
+			ret = regulator_enable(sprd_codec->bg);
+			if (ret) {
+				pr_err("bg regulator_enable failed!");
+				return ret;
+			}
+
+			ret = regulator_enable(sprd_codec->micbias1);
+			if (ret) {
+				regulator_disable(sprd_codec->bg);
+				pr_err("micbias1 regulator_enable failed!");
+				return ret;
+			}
+		} else {
+			/* Disable BG & MICBIAS1 */
+			regulator_disable(sprd_codec->bg);
+			regulator_disable(sprd_codec->micbias1);
+		}
+		sprd_codec->micbias1_power_en = on_off;
+	} else {
+		pr_err("The micbias1 power cannot be turned %s twice!\n",
+			on_off ? "on" : "off");
+	}
+
+	return 0;
+}
 
 static const char *get_event_name(int event)
 {
@@ -1523,7 +1575,6 @@ static int digital_power_event(struct snd_soc_dapm_widget *w,
 
 	return ret;
 }
-
 
 static int analog_power_event(struct snd_soc_dapm_widget *w,
 			      struct snd_kcontrol *kcontrol, int event)
@@ -3274,6 +3325,8 @@ static const struct snd_kcontrol_new sprd_codec_snd_controls[] = {
 	SOC_ENUM_EXT("IVSENCE_DMIC_SEL", ivsence_dmic_sel_enum,
 		sprd_codec_ivsence_dmic_get,
 		sprd_codec_ivsence_dmic_put),
+	SOC_SINGLE_EXT("MICBIAS1 Power", SND_SOC_NOPM, 0, 1, 0,
+		micbias1_power_get, micbias1_power_put),
 };
 
 static unsigned int sprd_codec_read(struct snd_soc_codec *codec,
@@ -3974,6 +4027,8 @@ static int sprd_codec_power_regulator_init(struct sprd_codec_priv *sprd_codec,
 	sprd_codec_power_get(dev, &sprd_codec->main_mic, "MICBIAS");
 	sprd_codec_power_get(dev, &sprd_codec->head_mic, "HEADMICBIAS");
 	sprd_codec_power_get(dev, &sprd_codec->vb, "VB");
+	sprd_codec_power_get(dev, &sprd_codec->bg, "BG");
+	sprd_codec_power_get(dev, &sprd_codec->micbias1, "MICBIAS1");
 	ret = regulator_enable(sprd_codec->vb);
 	if (!ret) {
 		regulator_set_mode(sprd_codec->vb, REGULATOR_MODE_STANDBY);
@@ -3987,6 +4042,8 @@ static void sprd_codec_power_regulator_exit(struct sprd_codec_priv *sprd_codec)
 	sprd_codec_power_put(&sprd_codec->main_mic);
 	sprd_codec_power_put(&sprd_codec->head_mic);
 	sprd_codec_power_put(&sprd_codec->vb);
+	sprd_codec_power_put(&sprd_codec->bg);
+	sprd_codec_power_put(&sprd_codec->micbias1);
 }
 
 static struct snd_soc_codec_driver soc_codec_dev_sprd_codec = {
