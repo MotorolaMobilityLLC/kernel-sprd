@@ -242,6 +242,14 @@ T: soc:sprd:irq:
 T: arm:dts:
 T: arm64:dts:
 
+[steve.li]
+R: +1
+C: 2020.12.21
+T: misc:sprdwcn:
+T: mmc:sprd:
+T: arm64:dts:
+T: arm:configs:
+
 [yangyang.liu]
 R: +2
 T: misc:sprd_camera:
