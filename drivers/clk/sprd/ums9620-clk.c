@@ -1839,7 +1839,7 @@ static SPRD_MUX_CLK(ipa_dpu, "ipa-dpu", ipa_dpu_parents, 0x7c,
 		    0, 2, UMS9620_MUX_FLAG);
 
 static const char * const ipa_dpi_parents[] = { "tgpll-128m", "tgpll-192m",
-						"dphy-297m", "dphy-307m2" };
+						"pixelpll", "dphy-307m2" };
 static SPRD_COMP_CLK_OFFSET(ipa_dpi, "ipa-dpi", ipa_dpi_parents, 0x88,
 			    0, 2, 0, 4, 0);
 
@@ -1913,6 +1913,52 @@ static struct sprd_clk_desc ums9620_ipaglb_gate_desc = {
 	.clk_clks	= ums9620_ipaglb_gate,
 	.num_clk_clks	= ARRAY_SIZE(ums9620_ipaglb_gate),
 	.hw_clks	= &ums9620_ipaglb_gate_hws,
+};
+
+/* ipa dispc1 glb gate clocks */
+static SPRD_SC_GATE_CLK(ipa_dpu1_eb, "ipa-dup1-eb", "ext-26m", 0x0,
+			0x1000, BIT(0), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(ipa_dptx_eb, "ipa-dptx-eb", "ext-26m", 0x0,
+			0x1000, BIT(1), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(ipa_hdcp_eb, "ipa-hdcp-eb", "ext-26m", 0x0,
+			0x1000, BIT(2), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(ipa_tca_eb, "ipa-tca-eb", "ext-26m", 0x0,
+			0x1000, BIT(3), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(ipa_usb31pll_eb, "ipa-usb31pll-eb", "ext-26m", 0x0,
+			0x1000, BIT(4), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(ipa_ckg_eb, "ipa-ckg-eb", "ext-26m", 0x0,
+			0x1000, BIT(5), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(ipa_trng_eb, "ipa-trng-eb", "ext-26m", 0x0,
+			0x1000, BIT(6), CLK_IGNORE_UNUSED, 0);
+
+static struct sprd_clk_common *ums9620_ipadispcglb_gate[] = {
+	/* address base is 0x6481a000 */
+	&ipa_dpu1_eb.common,
+	&ipa_dptx_eb.common,
+	&ipa_hdcp_eb.common,
+	&ipa_tca_eb.common,
+	&ipa_usb31pll_eb.common,
+	&ipa_ckg_eb.common,
+	&ipa_trng_eb.common,
+};
+
+static struct clk_hw_onecell_data ums9620_ipadispcglb_gate_hws = {
+	.hws	= {
+		[CLK_IPA_DPU1_EB]	= &ipa_dpu1_eb.common.hw,
+		[CLK_IPA_DPTX_EB]	= &ipa_dptx_eb.common.hw,
+		[CLK_IPA_HDCP_EB]	= &ipa_hdcp_eb.common.hw,
+		[CLK_IPA_TCA_EB]	= &ipa_tca_eb.common.hw,
+		[CLK_IPA_USB31PLL_EB]	= &ipa_usb31pll_eb.common.hw,
+		[CLK_IPA_CKG_EB]	= &ipa_ckg_eb.common.hw,
+		[CLK_IPA_TRNG_EB]	= &ipa_trng_eb.common.hw,
+	},
+	.num	= CLK_IPADISPC_GATE_NUM,
+};
+
+static struct sprd_clk_desc ums9620_ipadispcglb_gate_desc = {
+	.clk_clks	= ums9620_ipadispcglb_gate,
+	.num_clk_clks	= ARRAY_SIZE(ums9620_ipadispcglb_gate),
+	.hw_clks	= &ums9620_ipadispcglb_gate_hws,
 };
 
 /* pcie apb gate clocks */
@@ -2896,6 +2942,8 @@ static const struct of_device_id sprd_ums9620_clk_ids[] = {
 	  .data = &ums9620_ipa_clk_desc },
 	{ .compatible = "sprd,ums9620-ipaglb-gate",	/* 0x25240000 */
 	  .data = &ums9620_ipaglb_gate_desc },
+	{ .compatible = "sprd,ums9620-ipadispc-gate",	/* 0x6481a000 */
+	  .data = &ums9620_ipadispcglb_gate_desc },
 	{ .compatible = "sprd,ums9620-pcieapb-gate",	/* 0x26000000 */
 	  .data = &ums9620_pcieapb_gate_desc },
 	{ .compatible = "sprd,ums9620-pcie-clk",	/* 0x26004000 */
