@@ -1,14 +1,9 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
- * Copyright (C) 2018-2019 Unisoc Corporation
+ * Unisoc sipa driver
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * version 2 as published by the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
+ * Copyright (C) 2020 Unisoc, Inc.
+ * Author: Qingsheng Li <qingsheng.li@unisoc.com>
  */
 
 #ifdef pr_fmt
@@ -16,8 +11,6 @@
 #endif
 #define pr_fmt(fmt) "sipa_dele: " fmt
 
-#include <linux/sipa.h>
-#include <linux/sipc.h>
 #include <linux/device.h>
 #include <linux/init.h>
 #include <linux/kernel.h>
@@ -25,8 +18,10 @@
 #include <linux/module.h>
 #include <linux/of.h>
 #include <linux/platform_device.h>
+#include <linux/sipa.h>
+#include <linux/sipc.h>
+
 #include "sipa_dele_priv.h"
-#include "../pam_ipa/pam_ipa_core.h"
 
 static struct cp_delegator *s_cp_delegator;
 
@@ -55,7 +50,7 @@ static void cp_dele_on_commad(void *priv, u16 flag, u32 data)
 
 static int cp_dele_local_req_r_prod(void *user_data)
 {
-	/* do enable ipa operation */
+	/* do enable ipa  operation */
 
 	return sipa_dele_local_req_r_prod(user_data);
 }
@@ -77,6 +72,21 @@ int cp_delegator_init(struct sipa_delegator_create_params *params)
 	s_cp_delegator->delegator.on_cmd = cp_dele_on_commad;
 	s_cp_delegator->delegator.local_request_prod = cp_dele_local_req_r_prod;
 	sipa_delegator_start(&s_cp_delegator->delegator);
+
+	ret = sipa_rm_add_dependency(s_cp_delegator->delegator.cons_user,
+				     SIPA_RM_RES_PROD_PAM_WIFI);
+	if (ret)
+		return ret;
+
+	ret = sipa_rm_add_dependency(SIPA_RM_RES_CONS_WIFI_UL,
+				     s_cp_delegator->delegator.prod_id);
+	if (ret)
+		return ret;
+
+	ret = sipa_rm_add_dependency(SIPA_RM_RES_CONS_WIFI_DL,
+				     s_cp_delegator->delegator.prod_id);
+	if (ret)
+		return ret;
 
 	return 0;
 }

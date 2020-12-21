@@ -43,6 +43,7 @@ enum sipa_dele_state {
 	SIPA_DELE_REQUESTING,
 	SIPA_DELE_RELEASING,
 	SIPA_DELE_RELEASED,
+	SIPA_DELE_POWER_OFF
 };
 
 struct sipa_delegator;
@@ -66,9 +67,11 @@ struct sipa_delegator {
 	u32 dst;
 	u32 chan;
 	bool connected;
+	bool is_powered;
 	atomic_t requesting_cons;
 	spinlock_t lock;
 	struct task_struct *thread;
+	struct work_struct notify_work;
 	struct workqueue_struct *smsg_wq;
 	struct sipa_dele_smsg_work_type req_work;
 	struct sipa_dele_smsg_work_type rls_work;
@@ -87,6 +90,10 @@ struct sipa_delegator {
 
 struct miniap_delegator {
 	struct sipa_delegator delegator;
+
+	struct sprd_pms *pms;
+	char pms_name[20];
+
 	bool ready;
 
 	dma_addr_t ul_free_fifo_phy;
@@ -122,10 +129,12 @@ struct sipa_delegator_create_params {
 
 int miniap_delegator_init(struct sipa_delegator_create_params *params);
 int ap_delegator_init(struct sipa_delegator_create_params *params);
+int sipa_third_ap_delegator_init(struct sipa_delegator_create_params *params);
 int cp_delegator_init(struct sipa_delegator_create_params *params);
 
 int sipa_delegator_init(struct sipa_delegator *delegator,
 			struct sipa_delegator_create_params *params);
+void sipa_delegator_exit(struct sipa_delegator *delegator);
 int sipa_delegator_start(struct sipa_delegator *delegator);
 void sipa_dele_on_open(void *priv, u16 flag, u32 data);
 void sipa_dele_on_close(void *priv, u16 flag, u32 data);
@@ -136,5 +145,6 @@ int sipa_dele_local_req_r_prod(void *user_data);
 int sipa_dele_local_rls_r_prod(void *user_data);
 void sipa_dele_start_done_work(struct sipa_delegator *delegator,
 			       u16 flag, u32 val);
+void sipa_dele_start_req_work(struct sipa_delegator *delegator);
 
 #endif /* !_SIPA_DELE_PRIV_H_ */

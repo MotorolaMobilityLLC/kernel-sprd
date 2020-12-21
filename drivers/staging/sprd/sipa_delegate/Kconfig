@@ -23,6 +23,18 @@ config SPRD_SIPA_DELE_AP_IN_MINIAP
 	  This option enables a sipa delegate featrue in mini ap side.
 	  And this option enables ap to create a delegatro for ap.
 
+config SPRD_SIPA_DELE_THIRD_IN_MINIAP
+	bool "Enable sipa delegate for third ap in mini ap side"
+	default n
+	depends on SPRD_SIPA_DELEGATE
+	help
+	  This option enables a sipa delegate featrue in mini ap side.
+	  And this option enables ap to create a delegatro for ap.
+
+	  When orca is equipped with a third-party AP, you need to
+	  open the resource agent of this feature on the orca side
+	  in order to control the power on and off of ipa.
+
 config SPRD_SIPA_DELE_CP_IN_MINIAP
 	bool "Enable sipa delegate for cp in mini ap side"
 	default n
@@ -30,4 +42,12 @@ config SPRD_SIPA_DELE_CP_IN_MINIAP
 	help
 	  This option enables a sipa delegate featrue in mini ap side.
 	  And this option enables ap to create a delegatro for cp.
+
+config SPRD_SIPA_DELE_CP_IN_AP
+	bool "Enable sipa delegate for cp in ap side"
+	default n
+	depends on SPRD_SIPA_DELEGATE
+	help
+	  This option enables a sipa delegate featrue in ap side.
+	  And this option enables ap to create a delegator for cp.
 endmenu

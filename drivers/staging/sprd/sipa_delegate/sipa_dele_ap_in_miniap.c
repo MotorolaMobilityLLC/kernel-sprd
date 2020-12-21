@@ -11,7 +11,10 @@
  * General Public License for more details.
  */
 
-#define pr_fmt(fmt) "sipa_dele: %s " fmt, __func__
+#ifdef pr_fmt
+#undef pr_fmt
+#endif
+#define pr_fmt(fmt) "sipa_dele: " fmt
 
 #include <linux/sipa.h>
 #include <linux/sipc.h>
@@ -24,6 +27,9 @@
 #include <linux/platform_device.h>
 #include <linux/sipc.h>
 #include <linux/sipa.h>
+#include <linux/mdm_ctrl.h>
+#include <linux/soc/sprd/sprd_pcie_ep_device.h>
+#include <linux/soc/sprd/sprd_mpm.h>
 #include "sipa_dele_priv.h"
 #include "../pam_ipa/pam_ipa_core.h"
 
@@ -148,6 +154,20 @@ void ap_dele_on_open(void *priv, u16 flag, u32 data)
 		pr_err("ul rx smsg send fail %d\n", ret);
 }
 
+static int sipa_dele_ap_power_off_handle(struct notifier_block *this,
+					 unsigned long mode, void *cmd)
+{
+	if (mode == MDM_POWER_OFF)
+		sipa_prepare_modem_power_off();
+
+	return NOTIFY_DONE;
+}
+
+static struct notifier_block sipa_dele_ap_power_off_handler = {
+	.notifier_call = sipa_dele_ap_power_off_handle,
+	.priority = 149,
+};
+
 int ap_delegator_init(struct sipa_delegator_create_params *params)
 {
 	int ret;
@@ -165,6 +185,8 @@ int ap_delegator_init(struct sipa_delegator_create_params *params)
 	s_ap_delegator->delegator.on_open = ap_dele_on_open;
 
 	sipa_delegator_start(&s_ap_delegator->delegator);
+
+	modem_ctrl_register_notifier(&sipa_dele_ap_power_off_handler);
 
 	return 0;
 }

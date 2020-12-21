@@ -11,30 +11,35 @@
  * General Public License for more details.
  */
 
-#define pr_fmt(fmt) "sipa_dele: %s " fmt, __func__
+#ifdef pr_fmt
+#undef pr_fmt
+#endif
+#define pr_fmt(fmt) "sipa_dele: " fmt
 
-#include <linux/sipa.h>
 #include <linux/device.h>
 #include <linux/init.h>
 #include <linux/kernel.h>
 #include <linux/mm.h>
 #include <linux/module.h>
 #include <linux/of.h>
+#include <linux/sipa.h>
 #include <linux/platform_device.h>
 #include <linux/regmap.h>
 #include <linux/io.h>
 #include <linux/cdev.h>
-#include "../sipa/sipa_hal_priv.h"
 #include "sipa_delegate.h"
 #include "sipa_dele_priv.h"
+
+#ifndef CONFIG_SPRD_SIPA_DELE_CP_IN_AP
+#include "../sipa/sipa_hal_priv.h"
+#endif
 
 #define DRV_NAME "sipa_delegate"
 
 static struct sipa_delegate_plat_drv_cfg s_sipa_dele_cfg;
 
-static int sipa_dele_parse_dts_cfg(
-	struct platform_device *pdev,
-	struct sipa_delegate_plat_drv_cfg *cfg)
+static int sipa_dele_parse_dts_cfg(struct platform_device *pdev,
+				   struct sipa_delegate_plat_drv_cfg *cfg)
 {
 	int ret;
 	struct resource *resource;
@@ -133,6 +138,20 @@ static int sipa_dele_plat_drv_probe(struct platform_device *pdev_p)
 		return ret;
 	}
 	pr_debug("ap_delegator_init!\n");
+#endif /* CONFIG_SPRD_SIPA_DELE_AP_IN_MINIAP */
+
+#ifdef CONFIG_SPRD_SIPA_DELE_THIRD_IN_MINIAP
+	create_params.prod_id = SIPA_RM_RES_PROD_AP;
+	create_params.cons_prod = SIPA_RM_RES_CONS_WWAN_DL;
+	create_params.cons_user = SIPA_RM_RES_CONS_WWAN_UL;
+	create_params.dst = SIPC_ID_AP;
+
+	ret = sipa_third_ap_delegator_init(&create_params);
+	if (ret) {
+		dev_err(dev, "ap_delegator_init failed: %d\n", ret);
+		return ret;
+	}
+	dev_dbg(dev, "third ap_delegator_init!\n");
 #endif /* CONFIG_SPRD_SIPA_DELE_AP_IN_MINIAP */
 
 #ifdef CONFIG_SPRD_SIPA_DELE_CP_IN_MINIAP
