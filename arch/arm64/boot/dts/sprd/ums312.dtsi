@@ -857,7 +857,7 @@
 			};
 		};
 
-		etb@3c003000 {
+		soc_etb: etb@3c003000 {
 			compatible = "arm,coresight-tmc", "arm,primecell";
 			reg = <0 0x3c003000 0 0x1000>;
 			clocks = <&ext_26m>;
@@ -946,7 +946,7 @@
 			};
 		};
 
-		etm@3f040000 {
+		etm0: etm@3f040000 {
 			compatible = "arm,coresight-etm4x", "arm,primecell";
 			reg = <0 0x3f040000 0 0x1000>;
 			cpu = <&CPU0>;
@@ -960,7 +960,7 @@
 			};
 		};
 
-		etm@3f140000 {
+		etm1: etm@3f140000 {
 			compatible = "arm,coresight-etm4x", "arm,primecell";
 			reg = <0 0x3f140000 0 0x1000>;
 			cpu = <&CPU1>;
@@ -974,7 +974,7 @@
 			};
 		};
 
-		etm@3f240000 {
+		etm2: etm@3f240000 {
 			compatible = "arm,coresight-etm4x", "arm,primecell";
 			reg = <0 0x3f240000 0 0x1000>;
 			cpu = <&CPU2>;
@@ -988,7 +988,7 @@
 			};
 		};
 
-		etm@3f340000 {
+		etm3: etm@3f340000 {
 			compatible = "arm,coresight-etm4x", "arm,primecell";
 			reg = <0 0x3f340000 0 0x1000>;
 			cpu = <&CPU3>;
@@ -1000,6 +1000,12 @@
 					remote-endpoint = <&funnel_core_in_port3>;
 				};
 			};
+		};
+
+		ap_etb: apetb {
+			compatible = "sprd,apetb";
+		    apetb-source = <&etm0 &etm1	&etm2 &etm3>;
+			apetb-sink = <&soc_etb>;
 		};
 	};
 };
