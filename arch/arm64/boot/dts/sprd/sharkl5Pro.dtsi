@@ -1235,7 +1235,7 @@
 			};
 
 			topdvfs_controller: topdvfsctrl@322a0000 {
-				compatible = "sprd,sharkl5pro-topdvfs", "syscon";
+				compatible = "sprd,sharkl5pro-topdvfs-dev", "sprd,topdvfs-dev", "syscon";
 				sprd,syscon-enable = <&aon_apb_regs>;
 				module-enable-cfg = <0x4 7>;
 				reg = <0 0x322a0000 0 0x8000>;
