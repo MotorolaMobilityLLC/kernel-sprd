@@ -666,3 +666,13 @@
 	status = "okay";
 };
 
+&modem_dbg_log{
+	status = "okay";
+	clock-names = "serdes_eb", "mm_eb", "ana_eb", "dsi_csi_test_eb", "cphy_cfg_eb";
+	clocks = <&aonapb_gate CLK_SERDES_EB>, <&aonapb_gate CLK_MM_EB>, <&aonapb_gate CLK_ANA_EB>,
+		<&aonapb_gate CLK_DSI_CSI_TEST_EB>, <&aonapb_gate CLK_CPHY_CFG_EN>;
+	vddio-supply = <&vddcamio>;
+	mipi-switch-en-gpios = <&ap_gpio 55 GPIO_ACTIVE_HIGH>;
+	mipi-switch-mode-gpios = <&ap_gpio 8 GPIO_ACTIVE_HIGH>;
+};
+

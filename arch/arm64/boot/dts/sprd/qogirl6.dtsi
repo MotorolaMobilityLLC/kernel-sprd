@@ -1765,6 +1765,18 @@
 				wakeup-source;
 			};
 
+			modem_dbg_log: modem-dbg-log@64750000 {
+				compatible = "sprd,dbg-log-qogirl6";
+				reg = <0 0x64750000 0 0x4000>;
+				sprd,syscon-mm-ahb = <&mm_ahb_regs>;
+				sprd,syscon-dsi-apb = <&anlg_phy_g10_regs>;
+				sprd,ch-name = "TRAINING", "WTL", "MADR", "TPIU", "DBUS", "WCN";
+				sprd,ch-index = <15 1 0 2 3 4>;
+				sprd,dcfix;
+				sprd,mm;
+				status = "disabled";
+			};
+
 			hwlock: hwspinlock@64910000 {
 				compatible = "sprd,hwspinlock-r3p0";
 				reg = <0 0x64910000 0 0x10000>;
