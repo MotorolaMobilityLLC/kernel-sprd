@@ -1077,10 +1077,12 @@ ifeq ($(BSP_BUILD_ANDROID_OS),y)
 ifeq ($(BSP_BUILD_FAMILY),sharkl3)
 dtbo-$(CONFIG_ARCH_SPRD) += \
 	sp9863a-1h10_go_32b-overlay.dtbo \
+	sp9863a-1h10_go_32b_novab-overlay.dtbo \
 	sp9863a-1h10_NoModem-overlay.dtbo
 
 sp9863a-1h10_NoModem-overlay.dtbo-base :=sp9863a.dtb
 sp9863a-1h10_go_32b-overlay.dtbo-base := sp9863a.dtb
+sp9863a-1h10_go_32b_novab-overlay.dtbo-base := sp9863a.dtb
 endif
 
 ifeq ($(BSP_BUILD_FAMILY),pike2)
@@ -1120,6 +1122,7 @@ dtb-$(CONFIG_ARCH_SPRD) += \
 
 dtbo-$(CONFIG_ARCH_SPRD) += \
 	sp9863a-1h10_go_32b-overlay.dtbo \
+	sp9863a-1h10_go_32b_novab-overlay.dtbo \
 	sp9863a-1h10_NoModem-overlay.dtbo \
 	sp7731e-1h10-overlay.dtbo \
 	sp9832e-1h10_go-overlay.dtbo \

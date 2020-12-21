@@ -30,7 +30,7 @@
 	firmware {
 		android {
 			compatible = "android,firmware";
-			vbmeta {
+			vbmeta: vbmeta {
 				compatible = "android,vbmeta";
 				parts = "vbmeta,socko,odmko,boot,dtbo,l_modem,pm_sys,l_ldsp,l_gdsp";
 			};
