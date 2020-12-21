@@ -4,6 +4,7 @@
 #include <linux/cpumask.h>
 #include <linux/topology.h>
 #include <linux/cpufreq.h>
+#include <linux/kallsyms.h>
 #include <linux/kthread.h>
 #include <linux/percpu.h>
 #include <linux/math64.h>
@@ -143,6 +144,11 @@ err:
 	return -1;
 }
 EXPORT_SYMBOL_GPL(ctrl_core_api);
+
+int ctrl_core_check_isolated(int cpu)
+{
+	return cpu_isolated(cpu);
+}
 
 /**
  * cpu_num: is a cpu set,all cpu will be plugin or plugout in the cpumask
@@ -953,6 +959,26 @@ static int cluster_init(const struct cpumask *mask)
 	return ret;
 }
 
+static int __nocfi core_ctrl_module_notifier_func(struct notifier_block *nb, unsigned long action, void *data)
+{
+	int (*cpu_isolate_funs_ptr)(unsigned long func1, unsigned long func2);
+	struct module *module = data;
+
+	if (action == MODULE_STATE_COMING && !strncmp(module->name, "sprd_cpu_cooling", strlen("sprd_cpu_cooling"))) {
+		cpu_isolate_funs_ptr = (void *)kallsyms_lookup_name("cpu_isolate_funs");
+		if (!cpu_isolate_funs_ptr)
+			return NOTIFY_DONE;
+
+		cpu_isolate_funs_ptr((unsigned long)ctrl_core_api, (unsigned long)ctrl_core_check_isolated);
+	}
+
+	return NOTIFY_DONE;
+}
+
+static struct notifier_block core_ctrl_module_notifier = {
+	.notifier_call = core_ctrl_module_notifier_func,
+};
+
 static int __init core_ctl_init(void)
 {
 	int cpu;
@@ -989,6 +1015,10 @@ static int __init core_ctl_init(void)
 	ret = register_pm_notifier(&isolate_pm_notifer);
 	if (ret)
 		CORE_CTL_ERR("register pm notifier failed %d\n", ret);
+
+	ret = register_module_notifier(&core_ctrl_module_notifier);
+	if (ret)
+		CORE_CTL_ERR("register module notifier failed %d\n", ret);
 
 	return 0;
 }
