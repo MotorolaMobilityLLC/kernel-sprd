@@ -389,10 +389,12 @@ bq2560x_charger_set_limit_current(struct bq2560x_charger_info *info,
 
 	if (limit_cur >= BQ2560X_LIMIT_CURRENT_MAX)
 		limit_cur = BQ2560X_LIMIT_CURRENT_MAX;
+	else if (limit_cur < BQ2560X_REG_IINLIM_BASE * 1000)
+		limit_cur = BQ2560X_REG_IINLIM_BASE * 1000;
 
 	info->last_limit_current = limit_cur;
 	limit_cur = limit_cur / 1000;
-	reg_val = limit_cur / BQ2560X_REG_IINLIM_BASE;
+	reg_val = (limit_cur -BQ2560X_REG_IINLIM_BASE)/ BQ2560X_REG_IINLIM_BASE;
 
 	ret = bq2560x_update_bits(info, BQ2560X_REG_0,
 				  BQ2560X_REG_LIMIT_CURRENT_MASK,
@@ -415,7 +417,7 @@ bq2560x_charger_get_limit_current(struct bq2560x_charger_info *info,
 		return ret;
 
 	reg_val &= BQ2560X_REG_LIMIT_CURRENT_MASK;
-	*limit_cur = reg_val * BQ2560X_REG_IINLIM_BASE * 1000;
+	*limit_cur = ( reg_val + 1 )* BQ2560X_REG_IINLIM_BASE * 1000;
 	if (*limit_cur >= BQ2560X_LIMIT_CURRENT_MAX)
 		*limit_cur = BQ2560X_LIMIT_CURRENT_MAX;
 
