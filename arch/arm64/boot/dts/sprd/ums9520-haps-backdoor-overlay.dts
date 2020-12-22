@@ -16,8 +16,20 @@
 				#size-cells = <2>;
 				ranges;
 
-				super_memdisk_reserved: super-memdisk-reserved@100000000{
-					reg = <0x1 0x00000000 0x0 0x72000000>;  /* super 1800M */
+				super_memdisk_reserved: super-memdisk-reserved@12af00000{
+					reg = <0x1 0x2af00000 0x0 0x90000000>;  /* super 2.3G */
+				};
+				userdata_memdisk_reserved: userdata-memdisk-reserved@1baf00000{
+					reg = <0x1 0xbaf00000 0x0 0x40000000>;  /* userdata 1G */
+				};
+				metadata_memdisk_reserved: metadata-memdisk-reserved@1faf00000{
+					reg = <0x1 0xfaf00000 0x0 0x3200000>;  /* metadata 50M */
+				};
+				persist_memdisk_reserved: persist-memdisk-reserved@1fe100000{
+					reg = <0x1 0xfe100000 0x0 0x200000>;  /* persist 2M */
+				};
+				socko_memdisk_reserved: socko-memdisk-reserved@1fe300000{
+					reg = <0x1 0xfe300000 0x0 0x4ffffff>;  /* socko 80M */
 				};
 
 			};
@@ -28,6 +40,22 @@
 				super {
 					memory-region = <&super_memdisk_reserved>;
 					label = "super";
+				};
+				userdata {
+					memory-region = <&userdata_memdisk_reserved>;
+					label = "userdata";
+				};
+				metadata {
+					memory-region = <&metadata_memdisk_reserved>;
+					label = "metadata";
+				};
+				persist {
+					memory-region = <&persist_memdisk_reserved>;
+					label = "persist";
+				};
+				socko {
+					memory-region = <&socko_memdisk_reserved>;
+					label = "socko";
 				};
 
 			};
