@@ -266,8 +266,7 @@ static void dpu_stop(struct dpu_context *ctx)
 {
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
 
-	if (ctx->if_type == SPRD_DISPC_IF_DPI)
-		reg->dpu_ctrl |= BIT(1);
+	reg->dpu_ctrl |= BIT(1);
 
 	dpu_wait_stop_done(ctx);
 	pr_info("dpu stop\n");
@@ -281,7 +280,7 @@ static void dpu_run(struct dpu_context *ctx)
 
 	ctx->is_stopped = false;
 
-	pr_info("dpu run\n");
+	pr_info("dpu1 run\n");
 }
 
 #if 0
@@ -811,14 +810,12 @@ static void dpu_flip(struct dpu_context *ctx,
 		dpu_layer(ctx, &layers[i]);
 
 	/* update trigger and wait */
-	if (ctx->if_type == SPRD_DISPC_IF_DPI) {
-		if (!ctx->is_stopped) {
-			reg->dpu_ctrl |= BIT(2);
-			dpu_wait_update_done(ctx);
-		}
-
-		reg->dpu_int_en |= DISPC_INT_ERR_MASK;
+	if (!ctx->is_stopped) {
+		reg->dpu_ctrl |= BIT(2);
+		dpu_wait_update_done(ctx);
 	}
+
+	reg->dpu_int_en |= DISPC_INT_ERR_MASK;
 	/*
 	 * If the following interrupt was disabled in isr,
 	 * re-enable it.
@@ -895,8 +892,19 @@ static void disable_vsync(struct dpu_context *ctx)
 static int dpu_modeset(struct dpu_context *ctx,
 		struct drm_display_mode *mode)
 {
+	struct sprd_dpu *dpu = container_of(ctx, struct sprd_dpu, ctx);
+
 	dpu_stop(ctx);
 	drm_display_mode_to_videomode(mode, &ctx->vm);
+	if (dpu->glb && dpu->glb->reset)
+		dpu->glb->reset(ctx);
+	if (dpu->clk && dpu->clk->disable)
+		dpu->clk->disable(ctx);
+	if (dpu->clk && dpu->clk->init)
+		dpu->clk->init(ctx);
+	if (dpu->clk && dpu->clk->enable)
+		dpu->clk->enable(ctx);
+
 	dpu_init(ctx);
 	dpu_dpi_init(ctx);
 

@@ -548,7 +548,10 @@ static void sprd_crtc_mode_set_nofb(struct drm_crtc *crtc)
 
 	DRM_INFO("%s() set mode: %s\n", __func__, mode->name);
 
-	dpu->ctx.if_type = SPRD_DISPC_IF_DPI;
+	if (!dpu->ctx.is_inited) {
+		DRM_WARN("dpu has already powered off\n");
+		return;
+	}
 
 	if (dpu->core && dpu->core->modeset && crtc->state->mode_changed)
 		dpu->core->modeset(&dpu->ctx, mode);
@@ -576,20 +579,10 @@ static void sprd_crtc_atomic_enable(struct drm_crtc *crtc,
 				   struct drm_crtc_state *old_state)
 {
 	struct sprd_dpu *dpu = crtc_to_dpu(crtc);
-	static bool is_enabled = true;
 
 	DRM_INFO("%s()\n", __func__);
 
-	/*
-	 * add if condition to avoid resume dpu for SR feature.
-	 */
-	if (crtc->state->mode_changed && !crtc->state->active_changed)
-		return;
-
-	if (is_enabled)
-		is_enabled = false;
-	else
-		pm_runtime_get_sync(dpu->dev.parent);
+	pm_runtime_get_sync(dpu->dev.parent);
 
 	sprd_dpu_init(dpu);
 
@@ -632,10 +625,6 @@ static void sprd_crtc_atomic_disable(struct drm_crtc *crtc,
 	struct drm_device *drm = dpu->crtc.dev;
 
 	DRM_INFO("%s()\n", __func__);
-
-	/* add if condition to avoid suspend dpu for SR feature */
-	if (crtc->state->mode_changed && !crtc->state->active_changed)
-		return;
 
 	sprd_crtc_wait_last_commit_complete(crtc);
 
@@ -1003,6 +992,8 @@ static int sprd_dpu_bind(struct device *dev, struct device *master, void *data)
 
 	sprd->dpu_dev = dev;
 
+	pm_runtime_enable(dev);
+
 	return 0;
 }
 
@@ -1106,10 +1097,6 @@ static int sprd_dpu_probe(struct platform_device *pdev)
 
 	sprd_dpu_device_create(dpu, &pdev->dev);
 	platform_set_drvdata(pdev, dpu);
-
-	pm_runtime_set_active(&pdev->dev);
-	pm_runtime_get_noresume(&pdev->dev);
-	pm_runtime_enable(&pdev->dev);
 
 	return component_add(&pdev->dev, &dpu_component_ops);
 }

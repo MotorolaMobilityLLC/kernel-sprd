@@ -131,7 +131,6 @@ struct dpu_context {
 	const char *version;
 	u32 corner_size;
 	int irq;
-	u8 if_type;
 	u8 id;
 	bool is_inited;
 	bool is_stopped;

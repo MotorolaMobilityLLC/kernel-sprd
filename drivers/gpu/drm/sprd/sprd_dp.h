@@ -55,6 +55,12 @@ struct sprd_dp {
 	bool sink_has_audio;
 };
 
-//extern const struct dp_glb_ops sharkl6pro_dp_glb_ops;
+extern struct list_head dp_glb_head;
+
+#define dp_glb_ops_register(entry) \
+	disp_ops_register(entry, &dp_glb_head)
+
+#define dp_glb_ops_attach(str) \
+	disp_ops_attach(str, &dp_glb_head)
 
 #endif /* __SPRD_DP_H__ */

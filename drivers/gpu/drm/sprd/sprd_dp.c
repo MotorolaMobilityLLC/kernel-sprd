@@ -13,6 +13,7 @@
 #include <drm/drm_atomic_helper.h>
 #include <drm/drm_crtc_helper.h>
 #include <drm/drm_of.h>
+#include <linux/pm_runtime.h>
 
 #include "disp_lib.h"
 #include "sprd_drm.h"
@@ -29,42 +30,26 @@
 #define drm_connector_update_edid_property(connector, edid) \
 	drm_mode_connector_update_edid_property(connector, edid)
 
-#if 0
+LIST_HEAD(dp_glb_head);
 
 static int sprd_dp_resume(struct sprd_dp *dp)
 {
-	if (dp->glb && dp->glb->power)
-		dp->glb->power(&dp->ctx, true);
 	if (dp->glb && dp->glb->enable)
 		dp->glb->enable(&dp->ctx);
-	if (dp->glb && dp->glb->reset)
-		dp->glb->reset(&dp->ctx);
-
-	sprd_dp_init(dp);
-
-	if (dp->ctx.work_mode == DSI_MODE_VIDEO)
-		sprd_dp_dpi_video(dp);
-	else
-		sprd_dp_edpi_video(dp);
 
 	DRM_INFO("dp resume OK\n");
 	return 0;
-
 }
 
 static int sprd_dp_suspend(struct sprd_dp *dp)
 {
-	sprd_dp_fini(dp);
-
 	if (dp->glb && dp->glb->disable)
 		dp->glb->disable(&dp->ctx);
-	if (dp->glb && dp->glb->power)
-		dp->glb->power(&dp->ctx, false);
 
 	DRM_INFO("dp suspend OK\n");
 	return 0;
 }
-#endif
+
 static void sprd_dp_encoder_enable(struct drm_encoder *encoder)
 {
 
@@ -77,7 +62,10 @@ static void sprd_dp_encoder_enable(struct drm_encoder *encoder)
 		DRM_WARN("dp has already been enabled\n");
 		return;
 	}
-	//sprd_dp_resume(dp);
+
+	pm_runtime_get_sync(dp->dev.parent);
+
+	sprd_dp_resume(dp);
 
 	sprd_dpu1_run(dpu);
 
@@ -98,7 +86,9 @@ static void sprd_dp_encoder_disable(struct drm_encoder *encoder)
 
 	sprd_dpu1_stop(dpu);
 
-	//sprd_dp_suspend(dp);
+	sprd_dp_suspend(dp);
+
+	pm_runtime_put(dp->dev.parent);
 
 	dp->ctx.enabled = false;
 }
@@ -410,16 +400,6 @@ static int sprd_dp_connector_init(struct drm_device *drm, struct sprd_dp *dp)
 	return 0;
 }
 
-static int sprd_dp_glb_init(struct sprd_dp *dp)
-{
-	if (dp->glb && dp->glb->power)
-		dp->glb->power(&dp->ctx, true);
-	if (dp->glb && dp->glb->enable)
-		dp->glb->enable(&dp->ctx);
-
-	return 0;
-}
-
 static int sprd_dp_bind(struct device *dev, struct device *master, void *data)
 {
 	struct drm_device *drm = data;
@@ -435,15 +415,18 @@ static int sprd_dp_bind(struct device *dev, struct device *master, void *data)
 	if (ret)
 		goto cleanup_encoder;
 
-	ret = sprd_dp_glb_init(dp);
-	if (ret)
-		goto cleanup_connector;
+	pm_runtime_enable(dev);
+	pm_runtime_get_sync(dev);
+	sprd_dp_resume(dp);
 
 	dp->snps_dptx = dptx_init(dev, drm);
 	if (IS_ERR_OR_NULL(dp->snps_dptx)) {
 		ret = PTR_ERR(dp->snps_dptx);
 		goto cleanup_connector;
 	}
+
+	sprd_dp_suspend(dp);
+	pm_runtime_put(dev);
 
 	vparams = &dp->snps_dptx->vparams;
 
@@ -512,22 +495,16 @@ static int sprd_dp_context_init(struct sprd_dp *dp, struct device_node *np)
 	return 0;
 }
 
-#if 0
-static const struct sprd_dp_ops sharkl6pro_dp = {
-	.glb = &sharkl6pro_dp_glb_ops,
-};
-#endif
-
 static const struct of_device_id dp_match_table[] = {
-	{.compatible = "sprd,dptx",
-	 /* .data = &sharkl6pro_dp */ },
-	{ /* sentinel */ },
+	{.compatible = "sprd,dptx"},
+	{ }
 };
 
 static int sprd_dp_probe(struct platform_device *pdev)
 {
 	struct device_node *np = pdev->dev.of_node;
 	struct sprd_dp *dp;
+	const char *str;
 	int ret;
 
 	dp = devm_kzalloc(&pdev->dev, sizeof(*dp), GFP_KERNEL);
@@ -535,6 +512,11 @@ static int sprd_dp_probe(struct platform_device *pdev)
 		DRM_ERROR("failed to allocate dp data.\n");
 		return -ENOMEM;
 	}
+
+	if (!of_property_read_string(np, "sprd,soc", &str))
+		dp->glb = dp_glb_ops_attach(str);
+	else
+		DRM_WARN("error: 'sprd,soc' was not found\n");
 
 	ret = sprd_dp_context_init(dp, np);
 	if (ret)
