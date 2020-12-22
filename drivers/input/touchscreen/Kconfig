@@ -1330,5 +1330,18 @@ config TOUCHSCREEN_ILI9882H_SKY_SPI
 
           To compile this driver as a module, choose M here: the
           module will be called ili9882h-tddi.
+config TOUCHSCREEN_HIMAX_CHIPSET
+        tristate "HX83102D  touchscreen for QualComm package"
+        depends on SPI
+        default n
+        help
+          Say y here if you have chipone touch panel.
+
+          If unsure, say N.
+
+          To compile this driver as a module, choose M here: the
+          module will be called HX83102D.
+
+source drivers/input/touchscreen/hxchipset/Kconfig
 
 endif

@@ -109,4 +109,5 @@ obj-$(CONFIG_TOUCHSCREEN_GT9XX_TS)    += gt9xx_ts/
 obj-$(CONFIG_TOUCHSCREEN_CHIPONE_SPI) += chipone-tddi-spi/
 obj-$(CONFIG_TOUCHSCREEN_CHIPONE) += chipone-tddi/
 obj-$(CONFIG_TOUCHSCREEN_ILI9882N_SKY)   += ili9882n_sky/
+obj-$(CONFIG_TOUCHSCREEN_HIMAX_CHIPSET) += hxchipset/
 obj-$(CONFIG_TOUCHSCREEN_ILI9882H_SKY_SPI)   += ili9882h_sky_spi/

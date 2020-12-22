@@ -797,12 +797,14 @@ static struct spi_driver cts_spi_driver = {
     .id_table = cts_device_id_table,
 };
 
+extern const char *lcd_name;
 static int __init cts_driver_init(void)
 {
     int ret = 0;
 
-    cts_info("Init");
-
+    cts_info("%s Init, lcm_name:%s", __func__, lcd_name);
+	if(strncmp(lcd_name, "lcd_icnl9911c_hlt_mipi_hd",strlen(lcd_name)) == 0)
+	{
 #ifdef CONFIG_CTS_I2C_HOST
     ret = i2c_add_driver(&cts_i2c_driver);
 #else
@@ -812,6 +814,9 @@ static int __init cts_driver_init(void)
     cts_info("Init return "CTS_ERR_FMT_STR, CTS_ERR_ARG(ret));
 
     return ret;
+	}
+	else
+		return 0;
 }
 
 

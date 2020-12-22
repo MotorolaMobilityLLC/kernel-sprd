@@ -683,14 +683,20 @@ static struct ilitek_hwif_info hwif = {
 	.pm = &tp_pm_ops,
 };
 
+extern const char *lcd_name;
 static int __init ilitek_plat_dev_init(void)
 {
-	ILI_INFO("ILITEK TP driver init for QCOM\n");
+	ILI_INFO("ILITEK TP driver init for QCOM, lcd_name:%s\n", lcd_name);
+	if(strncmp(lcd_name, "lcd_ili9882h_skyworth_mipi_hd",strlen(lcd_name)) == 0)
+	{
 	if (ili_dev_init(&hwif) < 0) {
 		ILI_ERR("Failed to register i2c/spi bus driver\n");
 		return -ENODEV;
 	}
 	return 0;
+	}
+	else
+		return 0;
 }
 
 static void __exit ilitek_plat_dev_exit(void)
