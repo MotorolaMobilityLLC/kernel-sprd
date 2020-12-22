@@ -471,6 +471,11 @@
 			< 6064           850     1000>;
 		};
 	};
+
+    autotest:autotest{
+		compatible = "sprd,autotest";
+		sprd,pinctrl = <&pin_controller>;
+	};
 };
 
 &uart0 {
