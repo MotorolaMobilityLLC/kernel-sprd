@@ -97,8 +97,8 @@
 			flash-gpio {
 				compatible = "sprd,flash-aw3641";
 				flash-ic = <3641>;
-				flash-torch-en-gpios = <&ap_gpio 136 0>;
-				flash-en-gpios = <&ap_gpio 137 0>;
+				flash-torch-en-gpios = <&ap_gpio 137 0>;
+				flash-en-gpios = <&ap_gpio 136 0>;
 			};
 
 			// modify use DSI command set backlight begin:
