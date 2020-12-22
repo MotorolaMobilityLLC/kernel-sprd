@@ -150,7 +150,7 @@
 				constant_charge_voltage_max_microvolt = <4400000>;
 				factory-internal-resistance-micro-ohms = <147000>;
 				voltage-min-design-microvolt = <3450000>;
-				ocv-capacity-celsius = <20>;
+				ocv-capacity-celsius = <25>;
 				ocv-capacity-table-0 = <4375000 100>,<4311000 95>,<4252000 90>,
 							<4194000 85>,<4138000 80>,<4085000 75>,
 							<4037000 70>,<3987000 65>,<3948000 60>,
@@ -183,7 +183,7 @@
 				cm-fullbatt-vchkdrop-ms = <30000>;
 				cm-fullbatt-vchkdrop-volt = <60000>;
 				cm-fullbatt-voltage = <4350000>;
-				cm-fullbatt-current = <360000>;
+				cm-fullbatt-current = <120000>;
 				cm-fullbatt-capacity = <100>;
 
 				cm-num-chargers = <1>;
@@ -844,8 +844,8 @@
 	monitored-battery = <&bat>;
 	sprd,calib-resistance-real = <10000>;
 	sprd,calib-resistance-spec = <20000>;
-	first-calib-voltage = <3630000>;
-	first-calib-capacity = <50>;
+	first-calib-voltage = <3621000>;
+	first-calib-capacity = <40>;
 };
 
 &usb {
