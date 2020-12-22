@@ -14,6 +14,11 @@
  */
 
 #include "himax_ic_core.h"
+#define ONTIM_DEV_HIMAX_INFO
+
+#ifdef ONTIM_DEV_HIMAX_INFO
+#include <ontim/ontim_dev_dgb.h>
+#endif
 
 struct himax_core_command_operation *g_core_cmd_op;
 struct ic_operation *pic_op;
@@ -52,6 +57,21 @@ static uint8_t *g_internal_buffer;
 uint32_t dbg_reg_ary[4] = {fw_addr_fw_dbg_msg_addr, fw_addr_chk_fw_status,
 	fw_addr_chk_dd_status, fw_addr_flag_reset_event};
 
+#ifdef ONTIM_DEV_HIMAX_INFO
+extern char *mtkfb_find_lcm_driver(void);
+
+static char version[30]="unknown";
+static char vendor_name[30]="unknown";
+static char lcdname[30]="unknown";
+
+DEV_ATTR_DECLARE(touch_screen)
+DEV_ATTR_DEFINE("version",version)
+DEV_ATTR_DEFINE("vendor",vendor_name)
+DEV_ATTR_DEFINE("lcdvendor",lcdname)
+DEV_ATTR_DECLARE_END;
+
+ONTIM_DEBUG_DECLARE_AND_INIT(touch_screen,touch_screen,8);
+#endif
 /* CORE_IC */
 /* IC side start*/
 static void himax_mcu_burst_enable(uint8_t auto_add_4_byte)
@@ -1550,10 +1570,12 @@ static int himax_mcu_read_i2c_status(void)
 	return i2c_error_count;
 }
 
+extern const char *lcd_name;
 /* Please call this function after FW finish reload done */
 static void himax_mcu_read_FW_ver(void)
 {
 	uint8_t data[12] = {0};
+	printk(KERN_ERR "%s(%d) start\n", __func__, __LINE__);
 #if 0
 	uint8_t retry = 0;
 	uint8_t reload_status = 0;
@@ -1634,6 +1656,20 @@ static void himax_mcu_read_FW_ver(void)
 #if 0
 END:
 	return;
+#endif
+
+#ifdef ONTIM_DEV_HIMAX_INFO
+	printk(KERN_ERR "%s(%d) get_info, lcd_name:%s\n", __func__, __LINE__, lcd_name);
+	if(CHECK_THIS_DEV_DEBUG_AREADY_EXIT()==0)
+	{
+		return;
+	}
+	REGISTER_AND_INIT_ONTIM_DEBUG_FOR_THIS_DEV();
+	if (strstr(lcd_name, "hx83102") != NULL) {
+		snprintf(lcdname, sizeof(lcdname), "skyworth-hx83102d");
+		snprintf(vendor_name, sizeof(vendor_name), "skyworth-hx83102d");
+		snprintf(version, sizeof(version),"FW:%02x_%02x,VID:0x67 ", ic_data->vendor_touch_cfg_ver,ic_data->vendor_display_cfg_ver);
+	}
 #endif
 }
 
