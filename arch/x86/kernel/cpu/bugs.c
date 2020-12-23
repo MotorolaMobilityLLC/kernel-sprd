@@ -938,13 +938,9 @@ static int ib_prctl_set(struct task_struct *task, unsigned long ctrl)
 		 * Indirect branch speculation is always disabled in strict
 		 * mode.
 		 */
-<<<<<<< HEAD
-		if (spectre_v2_user == SPECTRE_V2_USER_STRICT)
-=======
 		if (spectre_v2_user_ibpb == SPECTRE_V2_USER_STRICT ||
 		    spectre_v2_user_stibp == SPECTRE_V2_USER_STRICT ||
 		    spectre_v2_user_stibp == SPECTRE_V2_USER_STRICT_PREFERRED)
->>>>>>> b4eba1e... x86/speculation: Avoid force-disabling IBPB based on STIBP and enhanced IBRS.
 			return -EPERM;
 		task_clear_spec_ib_disable(task);
 		task_update_spec_tif(task);
@@ -958,13 +954,9 @@ static int ib_prctl_set(struct task_struct *task, unsigned long ctrl)
 		if (spectre_v2_user_ibpb == SPECTRE_V2_USER_NONE &&
 		    spectre_v2_user_stibp == SPECTRE_V2_USER_NONE)
 			return -EPERM;
-<<<<<<< HEAD
-		if (spectre_v2_user == SPECTRE_V2_USER_STRICT)
-=======
 		if (spectre_v2_user_ibpb == SPECTRE_V2_USER_STRICT ||
 		    spectre_v2_user_stibp == SPECTRE_V2_USER_STRICT ||
 		    spectre_v2_user_stibp == SPECTRE_V2_USER_STRICT_PREFERRED)
->>>>>>> b4eba1e... x86/speculation: Avoid force-disabling IBPB based on STIBP and enhanced IBRS.
 			return 0;
 		task_set_spec_ib_disable(task);
 		if (ctrl == PR_SPEC_FORCE_DISABLE)
@@ -1041,13 +1033,7 @@ static int ib_prctl_get(struct task_struct *task)
 		if (task_spec_ib_disable(task))
 			return PR_SPEC_PRCTL | PR_SPEC_DISABLE;
 		return PR_SPEC_PRCTL | PR_SPEC_ENABLE;
-<<<<<<< HEAD
-	case SPECTRE_V2_USER_STRICT:
-		return PR_SPEC_DISABLE;
-	default:
-=======
 	} else
->>>>>>> b4eba1e... x86/speculation: Avoid force-disabling IBPB based on STIBP and enhanced IBRS.
 		return PR_SPEC_NOT_AFFECTED;
 }
 
