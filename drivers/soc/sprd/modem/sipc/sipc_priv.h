@@ -56,6 +56,7 @@ struct smsg_ipc {
 	/* target core_id over mailbox */
 	struct mbox_client cl;
 	struct mbox_chan *chan;
+	struct mbox_chan *sensor_chan;
 
 	u32	type; /* sipc type, mbox, ipi, pcie */
 	u32	smem_inited;

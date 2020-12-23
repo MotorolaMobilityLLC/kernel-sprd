@@ -170,12 +170,18 @@ static int sprd_ipc_probe(struct platform_device *pdev)
 	 */
 	ipc->cl.tx_done = NULL;
 	ipc->cl.rx_callback = sprd_rx_callback;
-
 	ipc->chan = mbox_request_channel(&ipc->cl, 0);
 	if (IS_ERR(ipc->chan)) {
 		dev_err(dev, "failed to sipc mailbox\n");
 		ret = PTR_ERR(ipc->chan);
 		goto out;
+	}
+
+	/* request sensor mailbox channel */
+	if (ipc->dst == SIPC_ID_PM_SYS) {
+		ipc->sensor_chan = mbox_request_channel(&ipc->cl, 1);
+		if (IS_ERR(ipc->sensor_chan))
+			dev_err(dev, "failed to sipc sensor mailbox\n");
 	}
 
 	init_waitqueue_head(&ipc->suspend_wait);
@@ -207,7 +213,9 @@ static int sprd_ipc_probe(struct platform_device *pdev)
 out:
 	if (!IS_ERR(ipc->chan))
 		mbox_free_channel(ipc->chan);
-	return 0;
+	if (!IS_ERR(ipc->sensor_chan))
+		mbox_free_channel(ipc->sensor_chan);
+	return ret;
 }
 
 static int sprd_ipc_remove(struct platform_device *pdev)
