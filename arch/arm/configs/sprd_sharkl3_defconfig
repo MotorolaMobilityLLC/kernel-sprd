@@ -4757,4 +4757,4 @@ CONFIG_LCM_I2C_BIAS=y
 # KUnit support
 #
 # CONFIG_TEST is not set
-CONFIG_INPUT_SX9328=y
+# CONFIG_INPUT_SX9328 is not set
