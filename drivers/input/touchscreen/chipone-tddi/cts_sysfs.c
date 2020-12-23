@@ -2394,11 +2394,11 @@ static ssize_t ts_suspend_store(struct device *dev,
         struct device_attribute *attr, const char *buf, size_t count)
 {
 	struct chipone_ts_data *cts_data = dev_get_drvdata(dev);
-	struct cts_device *cts_dev = &cts_data->cts_dev;
+//	struct cts_device *cts_dev = &cts_data->cts_dev;
 
-	if ((buf[0] == '1') && !cts_dev->rtdata.suspended)
+	if (buf[0] == '1')
 		cts_suspend(cts_data); 
-	else if ((buf[0] == '0') && cts_dev->rtdata.suspended)
+	else if (buf[0] == '0')
 		cts_resume(cts_data);
 
 	return count;
