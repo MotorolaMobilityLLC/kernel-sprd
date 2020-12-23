@@ -4151,6 +4151,7 @@ CONFIG_IOMMU_IO_PGTABLE_ARMV7S=y
 
 # CONFIG_IOMMU_DEBUGFS is not set
 # CONFIG_ARM_SMMU is not set
+# CONFIG_SPRD_IOMMU is not set
 
 #
 # Remoteproc drivers

@@ -16320,6 +16320,15 @@ CONFIG_SPRD_IMS_BRIDGE_TRANSIT
 	[must]
 	[missing plat description] none
 	[function]
+CONFIG_SPRD_IOMMU
+	[arch] arm64
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
+	[field] make
+	[subsys] iommu
+	[must] home
+	[missing plat description] none
+	[function] This macro is used to support sprd iommu.
 CONFIG_SPRD_IRQS_MONITOR
 	[arch] all
 	[plat] all
