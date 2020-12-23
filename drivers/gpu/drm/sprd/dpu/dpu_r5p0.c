@@ -291,10 +291,10 @@ static struct epf_cfg epf = {
 };
 
 static struct dpu_cfg1 qos_cfg = {
-	.arqos_low = 0x1,
-	.arqos_high = 0x7,
-	.awqos_low = 0x1,
-	.awqos_high = 0x7,
+	.arqos_low = 0xc,
+	.arqos_high = 0xd,
+	.awqos_low = 0xa,
+	.awqos_high = 0xa,
 };
 
 enum {
