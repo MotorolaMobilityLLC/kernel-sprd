@@ -755,7 +755,7 @@ static void request_send_firmware(struct shub_data *sensor,
 					SHUB_DOWNLOAD_OPCODE_SUBTYPE, fw_data,
 					size);
 			opcode_download_count++;
-		} while ((ret == RESPONSE_TIMEOUT || (ret == 248)) &&
+		} while (ret == RESPONSE_TIMEOUT &&
 			opcode_download_count < 10);
 
 		if (ret) {
