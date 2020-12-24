@@ -685,6 +685,7 @@
 */
 	ams_tcs3430: tcs3430@39 {
 		compatible = "ams,tcs3430";
+		status = "disabled";
 		reg = <0x39>;
 		als_name = "ams_als";
 		persist = <0>;
