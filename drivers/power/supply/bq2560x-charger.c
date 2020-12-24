@@ -53,6 +53,9 @@
 
 #define BQ2560X_REG_WATCHDOG_MASK		GENMASK(6, 6)
 
+#define BQ2560X_REG_WATCHDOG_TIMER_MASK		GENMASK(5, 4)
+#define BQ2560X_REG_WATCHDOG_TIMER_SHIFT	4
+
 #define BQ2560X_REG_TERMINAL_VOLTAGE_MASK	GENMASK(7, 3)
 #define BQ2560X_REG_TERMINAL_VOLTAGE_SHIFT	3
 
@@ -402,8 +405,15 @@ static int bq2560x_charger_start_charge(struct bq2560x_charger_info *info)
 	}
 
 	ret = bq2560x_charger_set_termina_cur(info, info->termination_cur);
-	if (ret)
+	if (ret) {
 		dev_err(info->dev, "set bq2560x terminal cur failed\n");
+		return ret;
+	}
+	ret = bq2560x_update_bits(info, BQ2560X_REG_5,
+				 BQ2560X_REG_WATCHDOG_TIMER_MASK,
+				 0x01 << BQ2560X_REG_WATCHDOG_TIMER_SHIFT);
+	if (ret)
+		dev_err(info->dev, "Failed to enable bq2560x watchdog\n");
 
 	return ret;
 }
@@ -438,6 +448,13 @@ static void bq2560x_charger_stop_charge(struct bq2560x_charger_info *info)
 
 		gpiod_set_value_cansleep(info->gpiod, 1);
 	}
+
+	ret = bq2560x_update_bits(info, BQ2560X_REG_5,
+                                 BQ2560X_REG_WATCHDOG_TIMER_MASK, 0);
+
+        if (ret)
+                dev_err(info->dev, "Failed to disable bq2560x watchdog\n");
+
 }
 
 static int bq2560x_charger_set_current(struct bq2560x_charger_info *info,
