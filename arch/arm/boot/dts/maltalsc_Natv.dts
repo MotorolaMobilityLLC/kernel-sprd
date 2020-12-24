@@ -372,6 +372,14 @@
 			gpio,boardid1 = <&ap_gpio 88 0>;
 			gpio,boardprjid  = <&ap_gpio 89 0>;
 	};
+	usb_cable: usb_cable {
+        compatible = "sprd,usb_cable_eint";
+        status = "okay";
+        usbcable-gpio = <&ap_gpio 53 0>;
+        interrupt-parent = <&ap_gpio>;
+        interrupts = <53 IRQ_TYPE_LEVEL_LOW>;
+        debounce = <256000>;
+	};
 };
 
 &reserved_memory {
