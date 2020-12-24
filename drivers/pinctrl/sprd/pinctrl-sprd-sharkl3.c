@@ -18,6 +18,8 @@
 
 #include "pinctrl-sprd.h"
 
+#define PINCTRL_REG_OFFSET              0x34
+#define PINCTRL_REG_MISC_OFFSET         0x434
 
 enum sprd_sharkl3_pins {
 	SHARKL3_UART_INF6_SYS_SEL = SPRD_PIN_INFO(0, GLOBAL_CTRL_PIN, 28, 4, 1),
@@ -786,7 +788,9 @@ static struct sprd_pins_info sprd_sharkl3_pins_info[] = {
 static int sprd_pinctrl_probe(struct platform_device *pdev)
 {
 	return sprd_pinctrl_core_probe(pdev, sprd_sharkl3_pins_info,
-				       ARRAY_SIZE(sprd_sharkl3_pins_info));
+					ARRAY_SIZE(sprd_sharkl3_pins_info),
+					PINCTRL_REG_OFFSET,
+					PINCTRL_REG_MISC_OFFSET);
 }
 
 static const struct of_device_id sprd_pinctrl_of_match[] = {
