@@ -615,7 +615,9 @@ enum SRC_MODE_E {
 	SRC_MODE_12000,
 	SRC_MODE_11025,
 	SRC_MODE_NA,
-	SRC_MODE_8000
+	SRC_MODE_8000,
+	SRC_MODE_96000,
+	SRC_MODE_192000
 };
 
 enum VBC_SRC_ID_E {
@@ -1213,6 +1215,7 @@ enum {
 	VBC_DAI_ID_VOICE_PCM_P,
 	VBC_DAI_ID_HFP,
 	VBC_DAI_ID_RECOGNISE_CAPTURE,
+	AUDCP_DAI_ID_HIFI = 0x20,
 	VBC_DAI_ID_MAX
 };
 
@@ -1294,6 +1297,24 @@ struct snd_pcm_startup_paras {
 struct sprd_vbc_stream_startup_shutdown {
 	struct snd_pcm_stream_info stream_info;
 	struct snd_pcm_startup_paras startup_para;
+};
+
+struct snd_pcm_hifi_stream {
+	char name[32];
+	int id;
+	int stream;
+	int enable;
+};
+
+struct hifi_param_t {
+	u16 is_stereo;
+	u16 dat_format;
+	u16 sample_rate;
+};
+
+struct sprd_hifi_stream_hw_paras {
+	struct snd_pcm_stream_info stream_info;
+	struct hifi_param_t hifi_params;
 };
 
 /**********************************************************
@@ -1532,4 +1553,12 @@ int vbc_dsp_func_hwparam(int scene_id, int stream,
 int vbc_dsp_func_trigger(int id, int stream, int up_down);
 int aud_dig_iis_master(struct snd_soc_card *card, int setting);
 int pm_shutdown(void);
+int hifi_dsp_func_hwparam(int scene_id, int stream,
+	struct sprd_vbc_stream_hw_paras *hifi_data);
+int hifi_func_startup(int scene_id, int stream,
+	struct snd_pcm_hifi_stream *hifi_startup_info);
+int hifi_func_shutdown(int scene_id, int stream,
+	struct snd_pcm_hifi_stream *hifi_shutdown_info);
+int hifi_func_trigger(int id, int stream, int up_down);
+
 #endif /* __VBC_V4_PHY_DRV_H */

@@ -1354,6 +1354,64 @@ int dsp_vbc_voice_pcm_play_set(bool enable, int mode)
 	return 0;
 }
 
+int hifi_func_startup(int scene_id, int stream,
+	struct snd_pcm_hifi_stream *hifi_startup_info)
+{
+	int ret;
+	ret = aud_send_cmd(AMSG_CH_DSP_HIFI, scene_id, stream,
+		SND_VBC_DSP_FUNC_STARTUP,
+		hifi_startup_info, sizeof(struct snd_pcm_hifi_stream),
+		AUDIO_SIPC_WAIT_FOREVER);
+	if (ret < 0)
+		return -EIO;
+
+	return 0;
+}
+
+int hifi_func_shutdown(int scene_id, int stream,
+	struct snd_pcm_hifi_stream *hifi_shutdown_info)
+{
+	int ret;
+	ret = aud_send_cmd(AMSG_CH_DSP_HIFI, scene_id, stream,
+		SND_VBC_DSP_FUNC_SHUTDOWN,
+		hifi_shutdown_info, sizeof(struct snd_pcm_hifi_stream),
+		AUDIO_SIPC_WAIT_FOREVER);
+
+	if (ret < 0)
+		return -EIO;
+
+	return 0;
+}
+
+int hifi_dsp_func_hwparam(int scene_id, int stream,
+	struct sprd_vbc_stream_hw_paras *hifi_data)
+{
+	int ret;
+
+	ret = aud_send_cmd(AMSG_CH_DSP_HIFI, scene_id, stream,
+		SND_VBC_DSP_FUNC_HW_PARAMS, hifi_data,
+		sizeof(struct sprd_vbc_stream_hw_paras),
+		AUDIO_SIPC_WAIT_FOREVER);
+	if (ret < 0)
+		return -EIO;
+
+	return 0;
+}
+
+int hifi_func_trigger(int id, int stream, int up_down)
+{
+	int ret;
+
+	/* send audio cmd */
+	ret = aud_send_cmd_no_wait(AMSG_CH_DSP_HIFI,
+		SND_VBC_DSP_FUNC_HW_TRIGGER, id, stream,
+		up_down, 0);
+	if (ret < 0)
+		return -EIO;
+
+	return 0;
+}
+
 /*********************************************************
  * cmd for SND_VBC_DSP_FUNC_STARTUP
  *********************************************************/

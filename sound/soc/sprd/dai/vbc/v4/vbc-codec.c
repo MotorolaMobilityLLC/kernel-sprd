@@ -2833,17 +2833,18 @@ static int sys_iis_sel_get(struct snd_kcontrol *kcontrol,
 
 static const char * const sys_iis_sel_txt[] = {
 	"vbc_iis0", "vbc_iis1", "vbc_iis2", "vbc_iis3", "vbc_iism0", "ap_iis0",
+	"audcp_iis0", "audcp_iis1"
 };
 
 static const struct soc_enum
 vbc_sys_iis_enum[SYS_IIS_MAX] = {
-	SPRD_VBC_ENUM(SYS_IIS0, 6, sys_iis_sel_txt),
-	SPRD_VBC_ENUM(SYS_IIS1, 6, sys_iis_sel_txt),
-	SPRD_VBC_ENUM(SYS_IIS2, 6, sys_iis_sel_txt),
-	SPRD_VBC_ENUM(SYS_IIS3, 6, sys_iis_sel_txt),
-	SPRD_VBC_ENUM(SYS_IIS4, 6, sys_iis_sel_txt),
-	SPRD_VBC_ENUM(SYS_IIS5, 6, sys_iis_sel_txt),
-	SPRD_VBC_ENUM(SYS_IIS6, 6, sys_iis_sel_txt),
+	SPRD_VBC_ENUM(SYS_IIS0, 8, sys_iis_sel_txt),
+	SPRD_VBC_ENUM(SYS_IIS1, 8, sys_iis_sel_txt),
+	SPRD_VBC_ENUM(SYS_IIS2, 8, sys_iis_sel_txt),
+	SPRD_VBC_ENUM(SYS_IIS3, 8, sys_iis_sel_txt),
+	SPRD_VBC_ENUM(SYS_IIS4, 8, sys_iis_sel_txt),
+	SPRD_VBC_ENUM(SYS_IIS5, 8, sys_iis_sel_txt),
+	SPRD_VBC_ENUM(SYS_IIS6, 8, sys_iis_sel_txt),
 };
 
 static int sys_iis_sel_put(struct snd_kcontrol *kcontrol,

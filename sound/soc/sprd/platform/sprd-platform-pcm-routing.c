@@ -112,6 +112,7 @@ enum SPRD_BE_SWITCH {
 	S_FM_SMTPA,
 	S_LOOP_P_SMTPA,
 	S_FM_DSP_SMTPA,
+	S_HIFI_P,
 	S_SWITCH_CASE_MAX,
 };
 
@@ -242,6 +243,7 @@ static const struct snd_kcontrol_new sprd_audio_be_switch[S_SWITCH_CASE_MAX] = {
 	[S_FM_SMTPA] = SOC_DAPM_SINGLE("SWITCH", SND_SOC_NOPM, 0, 1, 0),
 	[S_LOOP_P_SMTPA] = SOC_DAPM_SINGLE("SWITCH", SND_SOC_NOPM, 0, 1, 0),
 	[S_FM_DSP_SMTPA] = SOC_DAPM_SINGLE("SWITCH", SND_SOC_NOPM, 0, 1, 0),
+	[S_HIFI_P] = SOC_DAPM_SINGLE("SWITCH", SND_SOC_NOPM, 0, 1, 0),
 };
 
 static const char *get_event_name(int event)
@@ -335,6 +337,7 @@ static const struct snd_soc_dapm_widget sprd_pcm_routing_widgets[] = {
 		0, 0, 0, 0),
 	SND_SOC_DAPM_AIF_IN("FE_IF_VOICE_PCM_P", "FE_DAI_VOICE_PCM_P",
 		0, 0, 0, 0),
+	SND_SOC_DAPM_AIF_IN("FE_IF_HIFI_P", "FE_DAI_HIFI_P", 0, 0, 0, 0),
 
 	/* Backend AIF */
 	SND_SOC_DAPM_AIF_IN("BE_IF_NORMAL_AP01_CODEC_P",
@@ -472,6 +475,8 @@ static const struct snd_soc_dapm_widget sprd_pcm_routing_widgets[] = {
 	SND_SOC_DAPM_AIF_IN("BE_IF_ID_LOOP_SMTPA", "BE_DAI_ID_LOOP_SMTPA",
 			    0, 0, 0, 0),
 	SND_SOC_DAPM_AIF_IN("BE_IF_ID_FM_DSP_SMTPA", "BE_DAI_ID_FM_DSP_SMTPA",
+			    0, 0, 0, 0),
+	SND_SOC_DAPM_AIF_IN("BE_IF_HIFI_P", "BE_DAI_HIFI_P",
 			    0, 0, 0, 0),
 
 	/* Switches */
@@ -652,6 +657,8 @@ static const struct snd_soc_dapm_widget sprd_pcm_routing_widgets[] = {
 			      &sprd_audio_be_switch[S_FM_DSP_SMTPA],
 			      be_switch_evt,
 			      SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
+	SND_SOC_DAPM_SWITCH("S_HIFI_P", SND_SOC_NOPM,
+				  0, 0, &sprd_audio_be_switch[S_HIFI_P]),
 };
 
 /*
@@ -877,6 +884,9 @@ static const struct snd_soc_dapm_route sprd_pcm_routing_intercon[] = {
 	/* S_FM_DSP_SMTPA */
 	{"S_FM_DSP_SMTPA", "SWITCH", "FE_IF_FM_DSP_P"},
 	{"BE_IF_ID_FM_DSP_SMTPA", NULL, "S_FM_DSP_SMTPA"},
+	/* S_HIFI_P */
+	{"S_HIFI_P", "SWITCH", "FE_IF_HIFI_P"},
+	{"BE_IF_HIFI_P", NULL, "S_HIFI_P"},
 };
 
 static struct snd_soc_platform_driver sprd_soc_routing_platform = {

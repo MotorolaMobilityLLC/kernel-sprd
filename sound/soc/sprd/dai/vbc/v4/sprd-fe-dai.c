@@ -67,7 +67,7 @@ static struct sprd_pcm_dma_params vbc_pcm_dump;
 static struct sprd_pcm_dma_params vbc_btsco_cap_ap;
 static struct sprd_pcm_dma_params vbc_pcm_recognise_capture_mcdt;
 static struct sprd_pcm_dma_params pcm_voice_play_mcdt;
-
+static struct sprd_pcm_dma_params pcm_hifi_play_mcdt;
 static const char *stream_to_str(int stream)
 {
 	return (stream == SNDRV_PCM_STREAM_PLAYBACK) ?
@@ -96,6 +96,7 @@ static char *fe_dai_id_str[FE_DAI_ID_MAX] = {
 	[FE_DAI_ID_HFP] = TO_STRING(FE_DAI_ID_HFP),
 	[FE_DAI_ID_RECOGNISE_CAPTURE] = TO_STRING(FE_DAI_ID_RECOGNISE_CAPTURE),
 	[FE_DAI_ID_VOICE_PCM_P] = TO_STRING(FE_DAI_ID_VOICE_PCM_P),
+	[FE_DAI_ID_HIFI_P] = TO_STRING(FE_DAI_ID_HIFI_P),
 };
 
 static const char *fe_dai_id_to_str(int fe_dai_id)
@@ -160,6 +161,9 @@ static void mcdt_dma_deinit(struct snd_soc_dai *fe_dai, int stream)
 		break;
 	case FE_DAI_ID_VOICE_PCM_P:
 		mcdt_dac_dma_disable(MCDT_CHAN_VOICE_PCM_P);
+		break;
+	case FE_DAI_ID_HIFI_P:
+		mcdt_dac_dma_disable(MCDT_CHAN_HIFI_PLAY);
 		break;
 	}
 }
@@ -240,6 +244,11 @@ static int mcdt_dma_config_init(struct snd_soc_dai *fe_dai, int stream)
 		uid = mcdt_dac_dma_enable(MCDT_CHAN_VOICE_PCM_P,
 			MCDT_EMPTY_WMK_VOICE_PCM_P);
 		pcm_voice_play_mcdt.channels[0] = uid;
+		break;
+	case FE_DAI_ID_HIFI_P:
+		uid = mcdt_dac_dma_enable(MCDT_CHAN_HIFI_PLAY,
+			MCDT_EMPTY_WMK_HIFI_PLAY);
+		pcm_hifi_play_mcdt.channels[0] = uid;
 		break;
 	}
 
@@ -615,6 +624,18 @@ static void sprd_dma_config(struct snd_pcm_substream *substream,
 		pcm_voice_play_mcdt.used_dma_channel_name[0] =
 			"voice_pcm_p";
 		break;
+	case FE_DAI_ID_HIFI_P:
+		/*hifi playback*/
+		pcm_hifi_play_mcdt.name = "DSP IIS HIFI P";
+		pcm_hifi_play_mcdt.irq_type = SPRD_DMA_BLK_INT;
+		pcm_hifi_play_mcdt.desc.datawidth =
+			DMA_SLAVE_BUSWIDTH_4_BYTES;
+		pcm_hifi_play_mcdt.desc.fragmens_len = MCDT_HIFI_PLAY_FRAGMENT;
+		pcm_hifi_play_mcdt.use_mcdt = 1;
+		pcm_hifi_play_mcdt.dev_paddr[0] =
+			mcdt_dac_dma_phy_addr(MCDT_CHAN_HIFI_PLAY);
+		pcm_hifi_play_mcdt.used_dma_channel_name[0] = "hifi_p";
+		break;
 	}
 }
 
@@ -682,6 +703,9 @@ struct sprd_pcm_dma_params *get_dma_data_params(struct snd_soc_dai *fe_dai,
 		break;
 	case FE_DAI_ID_VOICE_PCM_P:
 		dma_data = &pcm_voice_play_mcdt;
+		break;
+	case FE_DAI_ID_HIFI_P:
+		dma_data = &pcm_hifi_play_mcdt;
 		break;
 	}
 
@@ -1231,7 +1255,7 @@ static struct snd_soc_dai_driver sprd_fe_dais[FE_DAI_ID_MAX] = {
 		},
 	},
 
-	/* 19: FE_DAI_ID_HFP */
+	/* 20: FE_DAI_ID_HFP */
 	{
 		.id = FE_DAI_ID_HFP,
 		.name = TO_STRING(FE_DAI_ID_HFP),
@@ -1261,7 +1285,7 @@ static struct snd_soc_dai_driver sprd_fe_dais[FE_DAI_ID_MAX] = {
 		.ops = &sprd_fe_dai_ops,
 	},
 
-	/* 20: FE_DAI_ID_RECOGNISE_CAPTURE */
+	/* 21: FE_DAI_ID_RECOGNISE_CAPTURE */
 	{
 		.id = FE_DAI_ID_RECOGNISE_CAPTURE,
 		.name = TO_STRING(FE_DAI_ID_RECOGNISE_CAPTURE),
@@ -1269,6 +1293,25 @@ static struct snd_soc_dai_driver sprd_fe_dais[FE_DAI_ID_MAX] = {
 		.capture = {
 			.stream_name = "FE_DAI_RECOGNISE_CAP_C",
 			.aif_name = "FE_IF_RECOGNISE_CAP_C",
+			.rates = SNDRV_PCM_RATE_CONTINUOUS,
+			.formats = (SNDRV_PCM_FMTBIT_S16_LE |
+						SNDRV_PCM_FMTBIT_S24_LE),
+			.channels_min = 1,
+			.channels_max = 2,
+			.rate_min = 8000,
+			.rate_max = 192000,
+		},
+		.ops = &sprd_fe_dai_ops,
+	},
+
+	/* 22: FE_DAI_ID_HIFI_P */
+	{
+		.id = FE_DAI_ID_HIFI_P,
+		.name = TO_STRING(FE_DAI_ID_HIFI_P),
+		.probe = fe_dai_probe,
+		.playback = {
+			.stream_name = "FE_DAI_HIFI_P",
+			.aif_name = "FE_IF_HIFI_P",
 			.rates = SNDRV_PCM_RATE_CONTINUOUS,
 			.formats = (SNDRV_PCM_FMTBIT_S16_LE |
 						SNDRV_PCM_FMTBIT_S24_LE),

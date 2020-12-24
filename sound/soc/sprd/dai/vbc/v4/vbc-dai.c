@@ -162,6 +162,7 @@ static const char *dai_id_to_str(int dai_id)
 		[BE_DAI_ID_FM_SMTPA] = TO_STRING(BE_DAI_ID_FM_SMTPA),
 		[BE_DAI_ID_LOOP_SMTPA] = TO_STRING(BE_DAI_ID_LOOP_SMTPA),
 		[BE_DAI_ID_FM_DSP_SMTPA] = TO_STRING(BE_DAI_ID_FM_DSP_SMTPA),
+		[BE_DAI_ID_HIFI_P] = TO_STRING(BE_DAI_ID_HIFI_P),
 	};
 
 	if (dai_id >= BE_DAI_ID_MAX) {
@@ -205,6 +206,7 @@ static const char *scene_id_to_str(int scene_id)
 		[VBC_DAI_ID_RECOGNISE_CAPTURE] =
 			TO_STRING(VBC_DAI_ID_RECOGNISE_CAPTURE),
 		[VBC_DAI_ID_VOICE_PCM_P] = TO_STRING(VBC_DAI_ID_VOICE_PCM_P),
+		[AUDCP_DAI_ID_HIFI] = TO_STRING(AUDCP_DAI_ID_HIFI),
 	};
 
 	if (scene_id >= VBC_DAI_ID_MAX) {
@@ -380,6 +382,9 @@ static int check_be_dai_id(int be_dai_id)
 		break;
 	case BE_DAI_ID_VOICE_PCM_P:
 		scene_id = VBC_DAI_ID_VOICE_PCM_P;
+		break;
+	case BE_DAI_ID_HIFI_P:
+		scene_id = AUDCP_DAI_ID_HIFI;
 		break;
 	default:
 		scene_id = VBC_DAI_ID_MAX;
@@ -1066,7 +1071,10 @@ static int rate_to_src_mode(unsigned int rate)
 		{16000, SRC_MODE_16000},
 		{12000, SRC_MODE_12000},
 		{11025, SRC_MODE_11025},
+		{9600, SRC_MODE_NA},
 		{8000, SRC_MODE_8000},
+		{96000, SRC_MODE_96000},
+		{192000, SRC_MODE_192000},
 	};
 
 	for (i = 0; i < ARRAY_SIZE(src_tbl); i++) {
@@ -1900,6 +1908,116 @@ static int scene_normal_hw_free(struct snd_pcm_substream *substream,
 	hw_param_lock_mtx(scene_id, stream);
 	hw_param_dec_ref(scene_id, stream);
 	hw_param_unlock_mtx(scene_id, stream);
+
+	return 0;
+}
+
+static void fill_hifi_shutdown_data(int scene_id, int stream,
+	struct  snd_pcm_hifi_stream *hifi_shutdown_info)
+{
+	hifi_shutdown_info->id = scene_id;
+	hifi_shutdown_info->stream = stream;
+	hifi_shutdown_info->enable = 0;
+	pr_info("%s enable: %d, scene_id: %d, stream: %d", __func__,
+			hifi_shutdown_info->enable, hifi_shutdown_info->id,
+			hifi_shutdown_info->stream);
+}
+
+void fill_hifi_dsp_hw_data(int scene_id, int stream, int chan_cnt, int rate, int fmt,
+		      			struct sprd_vbc_stream_hw_paras *hifi_data)
+{
+	hifi_data->stream_info.id= scene_id;
+	hifi_data->stream_info.stream = stream;
+	hifi_data->hw_params_info.channels = chan_cnt;
+	hifi_data->hw_params_info.format = fmt;
+	hifi_data->hw_params_info.rate = rate_to_src_mode(rate);
+	pr_info("%s id %d, stream %d, channel %d, fmt %d, rate_src_mode %d",
+			hifi_data->stream_info.id, hifi_data->stream_info.stream,
+			hifi_data->hw_params_info.channels,
+			hifi_data->hw_params_info.format,
+			hifi_data->hw_params_info.format,
+			hifi_data->hw_params_info.rate);
+}
+
+static void fill_hifi_startup_data(int scene_id, int stream,
+	struct snd_pcm_hifi_stream *hifi_startup_info)
+{
+	hifi_startup_info->id = scene_id;
+	hifi_startup_info->stream = stream;
+	hifi_startup_info->enable = 1;
+	pr_info("%s startup enable: %d, scene_id %d, stream %d",
+			__func__, hifi_startup_info->enable,
+			hifi_startup_info->id, hifi_startup_info->stream);
+}
+
+static int hifi_dsp_trigger(int scene_id, int stream, int up_down)
+{
+	int ret;
+
+	ret = hifi_func_trigger(scene_id, stream, up_down);
+	if (ret < 0) {
+		pr_err("vbc_dsp_func_trigger return error\n");
+		return ret;
+	}
+
+	return 0;
+}
+
+static void hifi_hw_params(int scene_id, int stream, int chan_cnt, u32 rate, int data_fmt)
+{
+	struct sprd_vbc_stream_hw_paras hifi_data;
+	int ret;
+
+	memset(&hifi_data, 0, sizeof(struct sprd_vbc_stream_hw_paras));
+	fill_hifi_dsp_hw_data(scene_id, stream, chan_cnt, rate, data_fmt,
+		&hifi_data);
+	ret = hifi_dsp_func_hwparam(scene_id, stream, &hifi_data);
+	if (ret < 0) {
+		pr_err("HIFI_func_hwparam return error, scene_id: %d\n", scene_id);
+		return;
+	}
+}
+
+static void hifi_shutdown(int scene_id, int stream)
+{
+	int ret;
+	struct snd_pcm_hifi_stream hifi_shutdown_info;
+
+	ret = agdsp_access_enable();
+	if (ret) {
+		pr_err("%s, agdsp_access_enable failed!\n", __func__);
+		return;
+	}
+	memset(&hifi_shutdown_info, 0,
+	       sizeof(struct snd_pcm_hifi_stream));
+	fill_hifi_shutdown_data(scene_id, stream, &hifi_shutdown_info);
+	ret = hifi_func_shutdown(scene_id, stream, &hifi_shutdown_info);
+	if (ret < 0) {
+		agdsp_access_disable();
+		return;
+	}
+	agdsp_access_disable();
+}
+
+static int hifi_startup(int scene_id, int stream)
+{
+	int ret = 0;
+	struct snd_pcm_hifi_stream hifi_startup_info;
+
+	ret = agdsp_access_enable();
+	if (ret) {
+		pr_err("%s:agdsp_access_enable:error:%d", __func__, ret);
+		return ret;
+	}
+	memset(&hifi_startup_info, 0, sizeof(struct snd_pcm_hifi_stream));
+	fill_hifi_startup_data(scene_id, stream, &hifi_startup_info);
+	ret = hifi_func_startup(scene_id, stream, &hifi_startup_info);
+	if (ret < 0) {
+		pr_err("vbc_dsp_func_startup return error");
+		agdsp_access_disable();
+		return ret;
+	}
+	agdsp_access_disable();
 
 	return 0;
 }
@@ -5663,6 +5781,168 @@ static struct snd_soc_dai_ops hfp_ops = {
 	.hw_free = scene_hfp_hw_free,
 };
 
+static int scene_hifi_startup(struct snd_pcm_substream *substream,
+			      struct snd_soc_dai *dai)
+{
+	int stream = substream->stream;
+	int scene_id = AUDCP_DAI_ID_HIFI;
+	int be_dai_id = dai->id;
+	int ret = 0;
+
+	pr_info("%s dai:%s(%d) scene:%s %s\n", __func__,
+		dai_id_to_str(be_dai_id),
+		be_dai_id, scene_id_to_str(scene_id), stream_to_str(stream));
+	if (scene_id != check_be_dai_id(be_dai_id)) {
+		pr_err("%s check_be_dai_id failed\n", __func__);
+		return -EINVAL;
+	}
+
+	startup_lock_mtx(scene_id, stream);
+	startup_add_ref(scene_id, stream);
+	if (startup_get_ref(scene_id, stream) == 1) {
+		ret = hifi_startup(scene_id, stream);
+		if (ret)
+			startup_dec_ref(scene_id, stream);
+		else
+			set_scene_flag(scene_id, stream);
+	}
+	startup_unlock_mtx(scene_id, stream);
+
+	return ret;
+}
+
+static void scene_hifi_shutdown(struct snd_pcm_substream *substream,
+				struct snd_soc_dai *dai)
+{
+	int stream = substream->stream;
+	int scene_id = AUDCP_DAI_ID_HIFI;
+	int be_dai_id = dai->id;
+
+	pr_info("%s dai:%s(%d) scene:%s %s\n", __func__,
+		dai_id_to_str(be_dai_id),
+		be_dai_id, scene_id_to_str(scene_id), stream_to_str(stream));
+	if (scene_id != check_be_dai_id(be_dai_id)) {
+		pr_err("%s check_be_dai_id failed\n", __func__);
+		return;
+	}
+
+	startup_lock_mtx(scene_id, stream);
+	startup_dec_ref(scene_id, stream);
+	if (startup_get_ref(scene_id, stream) == 0) {
+		clr_scene_flag(scene_id, stream);
+		hifi_shutdown(scene_id, stream);
+	}
+	startup_unlock_mtx(scene_id, stream);
+}
+
+static int scene_hifi_hw_params(struct snd_pcm_substream *substream,
+	struct snd_pcm_hw_params *params, struct snd_soc_dai *dai)
+{
+	unsigned int rate;
+	int data_fmt = VBC_DAT_L16;
+	int stream = substream->stream;
+	int scene_id = AUDCP_DAI_ID_HIFI;
+	int chan_cnt;
+
+	pr_info("%s dai:%s(%d) scene:%s %s\n", __func__, dai_id_to_str(dai->id),
+		dai->id, scene_id_to_str(scene_id), stream_to_str(stream));
+	if (scene_id != check_be_dai_id(dai->id)) {
+		pr_err("%s check_be_dai_id failed\n", __func__);
+		return -EINVAL;
+	}
+
+	switch (params_format(params)) {
+	case SNDRV_PCM_FORMAT_S16_LE:
+		data_fmt = VBC_DAT_L16;
+		break;
+	case SNDRV_PCM_FORMAT_S24_LE:
+		data_fmt = VBC_DAT_L24;
+		break;
+	default:
+		pr_err("%s, ERR:VBC not support data fmt =%d", __func__,
+		       data_fmt);
+		break;
+	}
+	chan_cnt = params_channels(params);
+	rate = params_rate(params);
+	pr_info("%s data_fmt=%s, chan=%u, rate =%u\n", __func__,
+		vbc_data_fmt_to_str(data_fmt), chan_cnt, rate);
+
+	if (chan_cnt > 2)
+		pr_warn("%s channel count invalid\n", __func__);
+
+	hw_param_lock_mtx(scene_id, stream);
+	hw_param_add_ref(scene_id, stream);
+	if (hw_param_get_ref(scene_id, stream) == 1) {
+		hifi_hw_params(scene_id, stream,
+			      chan_cnt, rate, data_fmt);
+	}
+	hw_param_unlock_mtx(scene_id, stream);
+
+	return 0;
+}
+
+static int scene_hifi_hw_free(struct snd_pcm_substream *substream,
+			      struct snd_soc_dai *dai)
+{
+	int stream = substream->stream;
+	int scene_id = AUDCP_DAI_ID_HIFI;
+
+	pr_info("%s dai:%s(%d) scene:%s %s\n", __func__, dai_id_to_str(dai->id),
+		dai->id, scene_id_to_str(scene_id), stream_to_str(stream));
+	if (scene_id != check_be_dai_id(dai->id)) {
+		pr_err("%s check_be_dai_id failed\n", __func__);
+		return -EINVAL;
+	}
+
+	hw_param_lock_mtx(scene_id, stream);
+	hw_param_dec_ref(scene_id, stream);
+	hw_param_unlock_mtx(scene_id, stream);
+
+	return 0;
+}
+
+static int scene_hifi_trigger(struct snd_pcm_substream *substream, int cmd,
+			      struct snd_soc_dai *dai)
+{
+	int up_down;
+	int stream = substream->stream;
+	int scene_id = AUDCP_DAI_ID_HIFI;
+	int ret;
+
+	pr_info("%s dai:%s(%d) scene:%s %s, cmd=%d\n", __func__,
+		dai_id_to_str(dai->id),
+		dai->id, scene_id_to_str(scene_id), stream_to_str(stream), cmd);
+	if (scene_id != check_be_dai_id(dai->id)) {
+		pr_err("%s check_be_dai_id failed\n", __func__);
+		return -EINVAL;
+	}
+	up_down = triggered_flag(cmd);
+	ret = 0;
+	if (up_down == 1) {
+		trigger_lock_spin(scene_id, stream);
+		trigger_add_ref(scene_id, stream);
+		if (trigger_get_ref(scene_id, stream) == 1)
+			ret = hifi_dsp_trigger(scene_id, stream, up_down);
+
+		trigger_unlock_spin(scene_id, stream);
+	} else {
+		trigger_lock_spin(scene_id, stream);
+		trigger_dec_ref(scene_id, stream);
+		trigger_unlock_spin(scene_id, stream);
+	}
+
+	return ret;
+}
+
+static struct snd_soc_dai_ops hifi_ops = {
+	.startup = scene_hifi_startup,
+	.shutdown = scene_hifi_shutdown,
+	.hw_params = scene_hifi_hw_params,
+	.trigger = scene_hifi_trigger,
+	.hw_free = scene_hifi_hw_free,
+};
+
 static struct snd_soc_dai_driver vbc_dais[BE_DAI_ID_MAX] = {
 	/* 0: BE_DAI_ID_NORMAL_AP01_CODEC */
 	{
@@ -6691,6 +6971,22 @@ static struct snd_soc_dai_driver vbc_dais[BE_DAI_ID_MAX] = {
 		.probe = sprd_dai_vbc_probe,
 		.ops = &fm_dsp_ops,
 	},
+	/* 55: BE_DAI_ID_HIFI_P */
+	{
+		.name = TO_STRING(BE_DAI_ID_HIFI_P),
+		.id = BE_DAI_ID_HIFI_P,
+		.playback = {
+			.stream_name = "BE_DAI_HIFI_P",
+			.aif_name = "BE_IF_HIFI_P",
+			.channels_min = 1,
+			.channels_max = 2,
+			.rates = SNDRV_PCM_RATE_CONTINUOUS,
+			.rate_max = 192000,
+			.formats = SPRD_VBC_DAI_PCM_FORMATS,
+		},
+		.probe = sprd_dai_vbc_probe,
+		.ops = &hifi_ops,
+	},
 };
 
 static struct aud_pm_vbc *aud_pm_vbc_get(void)
@@ -6803,6 +7099,7 @@ static int vbc_drv_probe(struct platform_device *pdev)
 	}
 	aud_ipc_ch_open(AMSG_CH_DSP_GET_PARAM_FROM_SMSG_NOREPLY);
 	aud_ipc_ch_open(AMSG_CH_VBC_CTL);
+	aud_ipc_ch_open(AMSG_CH_DSP_HIFI);
 
 	/* 2. probe DAIS */
 	ret = snd_soc_register_codec(&pdev->dev, &sprd_vbc_codec, vbc_dais,
