@@ -162,8 +162,8 @@
 			interrupt-parent = <&sc2730_pmic>;
 			interrupts = <9 IRQ_TYPE_LEVEL_HIGH>;
 			extcon = <&pmic_typec>;
-			nvmem-cells = <&pdrc_calib>, <&pddelta_calib>, <&pdref_calib>, <&cc_cal>;
-			nvmem-cell-names = "pdrc_calib", "pddelta_calib", "pdref_calib", "cc_calib";
+			nvmem-cells = <&pdrc_calib>, <&pddelta_calib>, <&pdref_calib>;
+			nvmem-cell-names = "pdrc_calib", "pddelta_calib", "pdref_calib";
 			status = "disabled";
 		};
 
