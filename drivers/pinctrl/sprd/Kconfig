@@ -66,3 +66,9 @@ config PINCTRL_SPRD_QOGIRL6
 	depends on PINCTRL_SPRD
 	help
 	  Say Y here to enable Spreadtrum Qogirl6 pinctrl driver
+
+config PINCTRL_SPRD_QOGIRN6PRO
+	bool "Spreadtrum Qogirn6pro pinctrl driver"
+	depends on PINCTRL_SPRD
+	help
+	  Say Y here to enable Spreadtrum Qogirn6pro pinctrl driver
