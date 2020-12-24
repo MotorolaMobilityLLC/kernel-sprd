@@ -1,0 +1,15 @@
+#
+# Input misc drivers configuration
+#
+
+if INPUT_MISC
+
+config INPUT_SX933X
+	tristate "SX933x_SAR_sensor"
+	depends on I2C
+	default y
+	help 
+	  Say Y to enable the SAR detection application, if N here not to use the 
+	  this SAR sensor
+
+endif
