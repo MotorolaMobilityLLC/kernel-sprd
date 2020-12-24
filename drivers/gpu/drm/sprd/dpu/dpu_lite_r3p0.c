@@ -81,10 +81,10 @@ struct dpu_cfg1 {
 };
 
 static struct dpu_cfg1 qos_cfg = {
-	.arqos_low = 0x7,
-	.arqos_high = 0x7,
-	.awqos_low = 0x1,
-	.awqos_high = 0x7,
+	.arqos_low = 0xA,
+	.arqos_high = 0xC,
+	.awqos_low = 0xA,
+	.awqos_high = 0xC,
 };
 
 static DECLARE_WAIT_QUEUE_HEAD(wait_queue);
@@ -460,7 +460,7 @@ static int dpu_init(struct dpu_context *ctx)
 	reg->dpu_cfg1 = (qos_cfg.awqos_high << 12) |
 		(qos_cfg.awqos_low << 8) |
 		(qos_cfg.arqos_high << 4) |
-		(qos_cfg.arqos_low) | BIT(18) | BIT(22);
+		(qos_cfg.arqos_low) | BIT(22) | BIT(23) | BIT(24);
 
 	if (ctx->is_stopped)
 		dpu_clean_all(ctx);
