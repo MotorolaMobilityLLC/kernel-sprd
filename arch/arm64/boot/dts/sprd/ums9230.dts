@@ -13,6 +13,7 @@
 #include "ums9230.dtsi"
 #include "sc2730.dtsi"
 #include "sprd-sound-fe-be.dtsi"
+#include "extra_sound_card_component.dtsi"
 #include "ums9230-mach.dtsi"
 #include "ums9230-modem.dtsi"
 #include "ums9230-wcn.dtsi"

@@ -1696,6 +1696,16 @@
 					sprd,control = <0x1>;
 				};
 
+				audcp_iis0_1: audcp_iis0_1 {
+					pins = "QOGIRL6_IIS_INF1_SYS_SEL";
+					sprd,control = <0x7>;
+				};
+
+				audcp_iis1_1: audcp_iis1_1 {
+					pins = "QOGIRL6_IIS_INF1_SYS_SEL";
+					sprd,control = <0x8>;
+				};
+
 				vbc_iism0_1: vbc-iism0-1 {
 					pins = "QOGIRL6_IIS_INF1_SYS_SEL";
 					sprd,control = <0x10>;
@@ -1854,7 +1864,8 @@
 				"vbc_iis3_0", "vbc_iism0_0", "vbc_iis_to_pad",
 				"vbc_iis_to_aon_usb", "vbc_iism0_1", "vbc_iism0_3",
 				"vbc_iis0_3", "vbc_iis1_3", "vbc_iis2_3",
-				"vbc_iis3_3", "ap_iis0_3", "vbc_iis3_5";
+				"vbc_iis3_3", "ap_iis0_3", "vbc_iis3_5",
+				"audcp_iis0_1";
 				pinctrl-0 = <&vbc_iis3_0>;
 				pinctrl-1 = <&vbc_iism0_0>;
 				pinctrl-2 = <&vbc_iis_to_pad>;
@@ -1867,6 +1878,8 @@
 				pinctrl-9 = <&vbc_iis3_3>;
 				pinctrl-10 = <&ap_iis0_3>;
 				pinctrl-11 = <&vbc_iis3_5>;
+				pinctrl-12 = <&audcp_iis0_1>;
+				pinctrl-13 = <&audcp_iis1_1>;
 			};
 
 			pdm_dmic: pdm-dmic@56401000 {
@@ -1945,7 +1958,8 @@
 			&agcp_dma 13 &agcp_dma 14
 			&agcp_dma 15 &agcp_dma 16
 			&agcp_dma 9 &agcp_dma 9
-			&agcp_dma 11 &agcp_dma 14>;
+			&agcp_dma 11 &agcp_dma 14
+			&agcp_dma 12>;
 
 		dma-names =
 			"normal_p_l", "normal_p_r",
@@ -1959,7 +1973,8 @@
 			/* dspfmcap_c and dspbtscocap_c same as dspcap_c */
 			"dspfmcap_c", "dspbtscocap_c",
 			/* recognise_c same as voice_c, voice_pcm_p same as loop_p */
-			"recognise_c", "voice_pcm_p";
+			"recognise_c", "voice_pcm_p",
+			"hifi_p";
 	};
 
 	sprd_compr: sprd-compr-audio {
