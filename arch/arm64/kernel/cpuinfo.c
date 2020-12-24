@@ -24,6 +24,7 @@
 #include <linux/sched.h>
 #include <linux/smp.h>
 #include <linux/delay.h>
+#include <linux/of.h>
 
 /*
  * In case the boot CPU is hotpluggable, we record its initial state and
@@ -41,6 +42,8 @@ static const char *icache_policy_str[] = {
 };
 
 unsigned long __icache_flags;
+
+const char *system_serial;
 
 static const char *const hwcap_str[] = {
 	"fp",
@@ -124,6 +127,26 @@ static const char *const compat_hwcap2_str[] = {
 };
 #endif /* CONFIG_COMPAT */
 
+static int __init init_machine_late(void)
+{
+	struct device_node *root;
+	int ret;
+
+	root = of_find_node_by_path("/");
+	if (root) {
+		ret = of_property_read_string(root, "serial-number",
+						&system_serial);
+		if (ret)
+			system_serial = NULL;
+	}
+
+	if (!system_serial)
+		system_serial = kasprintf(GFP_KERNEL, "%08x%08x", 0, 0);
+
+	return 0;
+}
+late_initcall(init_machine_late);
+
 static int c_show(struct seq_file *m, void *v)
 {
 	int i, j;
@@ -178,6 +201,8 @@ static int c_show(struct seq_file *m, void *v)
 		seq_printf(m, "CPU part\t: 0x%03x\n", MIDR_PARTNUM(midr));
 		seq_printf(m, "CPU revision\t: %d\n\n", MIDR_REVISION(midr));
 	}
+
+	seq_printf(m, "Serial\t\t: %s\n", system_serial);
 
 	return 0;
 }
