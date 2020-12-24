@@ -97,31 +97,31 @@ static int get_thm_zone_counts(struct device *dev)
 		return -EINVAL;
 	}
 
-	count = of_property_count_strings(np, "thmzone-names");
-	if (count < 0) {
-		dev_err(dev, "thmzone-names not found\n");
-		return count;
+	if (!of_find_property(np, "thmzone-cells", &count)) {
+		dev_err(dev, "thmzone-cells not found\n");
+		return -EINVAL;
 	}
+	count = count / sizeof(u32);
 
 	return count;
 }
 
 static int get_thm_zone_device(struct platform_device *pdev)
 {
-	int i, ret = 0;
+	int i;
 	const char *name;
 	struct device *dev = &pdev->dev;
-	struct device_node *np = dev->of_node;
+	struct device_node *np = dev->of_node, *node = NULL;
 	struct real_tz_list *tz_list;
 	struct virtual_thm_data *data = platform_get_drvdata(pdev);
 
 	for (i = 0; i < data->nr_thm; i++) {
-		ret = of_property_read_string_index(np, "thmzone-names",
-						    i, &name);
-		if (ret) {
-			dev_err(dev, "fail to get thmzone-names\n");
-			return ret;
+		node = of_parse_phandle(np, "thmzone-cells", i);
+		if (!node) {
+			dev_err(dev, "thmzone-cell%d not found\n", i);
+			return -EINVAL;
 		}
+		name = node->name;
 		tz_list = &data->tz_list[i];
 		tz_list->tz_dev = thermal_zone_get_zone_by_name(name);
 		if (IS_ERR(tz_list->tz_dev)) {
@@ -130,7 +130,7 @@ static int get_thm_zone_device(struct platform_device *pdev)
 		}
 	}
 
-	return ret;
+	return 0;
 }
 
 static int virtual_thm_probe(struct platform_device *pdev)

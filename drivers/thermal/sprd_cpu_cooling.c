@@ -125,13 +125,23 @@ struct cpu_cooling_device {
 	struct run_cpus_table *table;
 	struct thermal_cooling_device *cdev;
 	struct cpu_power_ops *power_ops;
-#ifdef CONFIG_SPRD_CORE_CTL
-	struct delayed_work isolate_work;
-	struct cpumask isolate_cpus_mask;
-#endif
+	struct cpumask idle_cpus;
 };
 
+static int (*cpu_isolate_fun)(struct cpumask *mask, int type);
+static int (*cpu_isolated_fun)(int cpu);
 static DEFINE_IDA(cpu_ida);
+
+int cpu_isolate_funs(unsigned long fun1, unsigned long fun2)
+{
+	cpu_isolate_fun = (void *)fun1;
+	cpu_isolated_fun = (void *)fun2;
+	pr_info("isolate flag:%d\n", (cpu_isolate_fun && cpu_isolated_fun) ? 1 : 0);
+
+	return 0;
+}
+EXPORT_SYMBOL_GPL(cpu_isolate_funs);
+
 
 static int get_cluster_id(int cpu)
 {
@@ -219,146 +229,138 @@ static int cpu_get_cur_state(struct thermal_cooling_device *cdev,
 	return 0;
 }
 
-#ifdef CONFIG_SPRD_CORE_CTL
-static void isolate_cpu_work(struct work_struct *work)
-{
-	int cpu, min_temp;
-	struct cpumask cpus;
-	struct cpu_cooling_device *cpu_device = container_of(work,
-			struct cpu_cooling_device, isolate_work.work);
-
-	if (!cpu_device->power_ops->get_min_temp_unisolated_core_p)
-		return;
-
-	cpu = cpumask_any(&cpu_device->allowed_cpus);
-	cpu = cpu_device->power_ops->
-		get_min_temp_unisolated_core_p(get_cluster_id(cpu),
-					       cpu, &min_temp);
-	if (cpu < 0) {
-		pr_err("get invalid cpu by temp\n");
-		return;
-	}
-
-	cpumask_clear(&cpus);
-	if (cpu_online(cpu) && !cpu_isolated(cpu)) {
-
-		pr_info("isolate cpu%d temp:%d\n", cpu, min_temp);
-		cpumask_set_cpu(cpu, &cpus);
-		ctrl_core_api(&cpus, 0);
-		cpumask_set_cpu(cpu, &cpu_device->isolate_cpus_mask);
-	}
-
-}
-
-static int cpu_isolate_cpu(struct thermal_cooling_device *cdev,
+static int cpu_down_cpus(struct thermal_cooling_device *cdev,
 			       u32 cur_cpus, u32 target_cpus)
 {
+	int ret;
 	u32 cpu, first, ncpus;
 	struct cpumask mask;
 	struct cpu_cooling_device *cpu_cdev = cdev->devdata;
 
-	if (!cpu_cdev->nsensor) {
-		first = cpumask_first(&cpu_cdev->allowed_cpus);
-		ncpus = cpumask_weight(&cpu_cdev->allowed_cpus);
+	first = cpumask_first(&cpu_cdev->allowed_cpus);
+	ncpus = cpumask_weight(&cpu_cdev->allowed_cpus);
+
+	if (cpu_isolate_fun && cpu_isolated_fun) {
+		pr_info("cpu%d isolate cpus:%d curr_cpus:%u target_cpus:%u\n",
+			first, cur_cpus - target_cpus, cur_cpus, target_cpus);
 		cpumask_clear(&mask);
 		for (cpu = (first + ncpus - 1); cpu >= first; cpu--) {
 			if (cur_cpus == target_cpus)
 				break;
-			if ((target_cpus < cur_cpus) && !cpu_isolated(cpu)) {
+			if ((target_cpus < cur_cpus) && !cpu_isolated_fun(cpu)) {
 				cpumask_set_cpu(cpu, &mask);
 				cpumask_set_cpu(cpu,
-						&cpu_cdev->isolate_cpus_mask);
+						&cpu_cdev->idle_cpus);
 				cur_cpus--;
 			}
 		}
 		if (!cpumask_empty(&mask))
-			ctrl_core_api(&mask, 0);
+			cpu_isolate_fun(&mask, 0);
 
 		return 0;
-	}
+	} else {
+		pr_info("cpu%d hotplug out cpus:%d curr_cpus:%u target_cpus:%u\n",
+			first, cur_cpus - target_cpus, cur_cpus, target_cpus);
+		for (cpu = (first + ncpus - 1); cpu >= first; cpu--) {
+			if (cur_cpus == target_cpus)
+				break;
+			if ((target_cpus < cur_cpus) && cpu_online(cpu)) {
+				ret = cpu_down(cpu);
+				if (!ret && !cpu_online(cpu)) {
+					cur_cpus--;
+					cpumask_set_cpu(cpu,
+						&cpu_cdev->idle_cpus);
+				}
+			}
+		}
 
-	schedule_delayed_work(&cpu_cdev->isolate_work, msecs_to_jiffies(80));
+	}
 
 	return 0;
 }
 
-static int cpu_unisolate_cpu(struct thermal_cooling_device *cdev,
+static int cpu_up_cpus(struct thermal_cooling_device *cdev,
 			       u32 cur_cpus, u32 target_cpus)
 {
-	int id;
-	u32 cpu, first, ncpus, min_temp;
+	int ret;
+	u32 cpu, first, ncpus;
 	struct cpumask mask;
 	struct cpu_cooling_device *cpu_cdev = cdev->devdata;
 
-	if (!cpu_cdev->nsensor) {
-		first = cpumask_first(&cpu_cdev->allowed_cpus);
-		ncpus = cpumask_weight(&cpu_cdev->allowed_cpus);
+	first = cpumask_first(&cpu_cdev->allowed_cpus);
+	ncpus = cpumask_weight(&cpu_cdev->allowed_cpus);
+
+	if (cpu_isolate_fun && cpu_isolated_fun) {
+		pr_info("cpu%d unisolate cpus:%d curr_cpus:%u target_cpus:%u\n",
+			first, target_cpus - cur_cpus, cur_cpus, target_cpus);
 		cpumask_clear(&mask);
 		for (cpu = first; cpu < first + ncpus; cpu++) {
 			if (cur_cpus == target_cpus)
 				break;
-			if ((target_cpus > cur_cpus) && cpu_isolated(cpu)) {
+			if ((target_cpus > cur_cpus) &&
+			    cpu_online(cpu) && cpu_isolated_fun(cpu)) {
 				cpumask_set_cpu(cpu, &mask);
 				cpumask_clear_cpu(cpu,
-						  &cpu_cdev->isolate_cpus_mask
+						  &cpu_cdev->idle_cpus
 						  );
 				cur_cpus++;
 			}
 		}
 		if (!cpumask_empty(&mask))
-			ctrl_core_api(&mask, 1);
+			cpu_isolate_fun(&mask, 1);
 
 		return 0;
 
-	} else if (target_cpus == cpumask_weight(&cpu_cdev->allowed_cpus)) {
-		cpumask_clear(&mask);
-		cpu = cpumask_any(&cpu_cdev->allowed_cpus);
-		for_each_cpu(cpu, &cpu_cdev->allowed_cpus) {
-			if (cpu_online(cpu) && cpu_isolated(cpu)) {
-				cpumask_set_cpu(cpu, &mask);
-				cpumask_clear_cpu(cpu,
-						&cpu_cdev->isolate_cpus_mask);
-			}
-		}
-		if (!cpumask_empty(&mask)) {
-			pr_info("unisolate all cpu\n");
-			ctrl_core_api(&mask, 1);
-		}
 	} else {
-		if (cpu_cdev->power_ops->get_min_temp_isolated_core_p) {
-			cpu = cpumask_any(&cpu_cdev->allowed_cpus);
-			id = get_cluster_id(cpu);
-			cpu = cpu_cdev->power_ops->
-				get_min_temp_isolated_core_p(id, cpu,
-							     &min_temp);
-			if (cpu < 0) {
-				pr_err("get invalid cpu by temp\n");
-				return cpu;
-			}
-			cpumask_clear(&mask);
-			if (cpu_online(cpu) && cpu_isolated(cpu)) {
-				pr_info("unisolate cpu%d temp:%d\n",
-					cpu, min_temp);
-				cpumask_set_cpu(cpu, &mask);
-				ctrl_core_api(&mask, 1);
-				cpumask_clear_cpu(cpu,
-						&cpu_cdev->isolate_cpus_mask);
+		pr_info("cpu%d hotplug in cpus:%d curr_cpus:%u target_cpus:%u\n",
+			first, target_cpus - cur_cpus, cur_cpus, target_cpus);
+		cpu = first;
+		for_each_cpu(cpu, &cpu_cdev->allowed_cpus) {
+			if (cur_cpus == target_cpus)
+				break;
+			if ((target_cpus > cur_cpus) && !cpu_online(cpu)) {
+				ret = cpu_up(cpu);
+				if (!ret && cpu_online(cpu)) {
+					cpumask_clear_cpu(cpu,
+							  &cpu_cdev->idle_cpus
+							  );
+					cur_cpus++;
+				}
 			}
 		}
 	}
 
 	return 0;
 }
-#endif
+
+static void cpu_update_target_cpus(struct thermal_cooling_device *cdev,
+				   unsigned long state)
+{
+	u32 cur_run_cpus, next_run_cpus;
+	struct cpumask run_cpus;
+	struct cpu_cooling_device *cpu_cdev = cdev->devdata;
+
+	cpumask_andnot(&run_cpus, &cpu_cdev->allowed_cpus,
+		       &cpu_cdev->idle_cpus);
+	cpu_cdev->run_cpus = cpumask_weight(&run_cpus);
+	cur_run_cpus = cpu_cdev->run_cpus;
+	next_run_cpus = cpu_cdev->table[state].cpus;
+
+	if (cur_run_cpus > next_run_cpus)
+		cpu_down_cpus(cdev, cur_run_cpus, next_run_cpus);
+	else
+		cpu_up_cpus(cdev, cur_run_cpus, next_run_cpus);
+
+	cpumask_andnot(&run_cpus, &cpu_cdev->allowed_cpus,
+		       &cpu_cdev->idle_cpus);
+	cpu_cdev->run_cpus = cpumask_weight(&run_cpus);
+	cpu_cdev->level = get_level(cpu_cdev, cpu_cdev->run_cpus);
+
+}
 
 static int cpu_set_cur_state(struct thermal_cooling_device *cdev,
 				 unsigned long state)
 {
-#ifdef CONFIG_SPRD_CORE_CTL
-	u32 cur_run_cpus, next_run_cpus, cpu;
-	unsigned long freq;
-	struct cpumask run_cpus_mask;
-#endif
 	struct cpu_cooling_device *cpu_cdev = cdev->devdata;
 
 	/* Request state should be less than max_level */
@@ -369,34 +371,7 @@ static int cpu_set_cur_state(struct thermal_cooling_device *cdev,
 	if (cpu_cdev->level == state)
 		return 0;
 
-#ifdef CONFIG_SPRD_CORE_CTL
-	cpu = cpumask_any(&cpu_cdev->allowed_cpus);
-	freq = cpufreq_quick_get(cpu);
-	cpumask_andnot(&run_cpus_mask, &cpu_cdev->allowed_cpus,
-		       &cpu_cdev->isolate_cpus_mask);
-	cpu_cdev->run_cpus = cpumask_weight(&run_cpus_mask);
-	cpu_cdev->level = get_level(cpu_cdev, cpu_cdev->run_cpus);
-	cur_run_cpus = cpu_cdev->run_cpus;
-	next_run_cpus = cpu_cdev->table[state].cpus;
-	if (cur_run_cpus == next_run_cpus)
-		return 0;
-	pr_info("cpu%d curr_cpus:%u target_cpus:%u\n",
-		cpu, cur_run_cpus, next_run_cpus);
-	if (cur_run_cpus > next_run_cpus)
-		cpu_isolate_cpu(cdev, cur_run_cpus, cur_run_cpus - 1);
-	else if (next_run_cpus == cpumask_weight(&cpu_cdev->allowed_cpus))
-		cpu_unisolate_cpu(cdev, cur_run_cpus, next_run_cpus);
-	else
-		cpu_unisolate_cpu(cdev, cur_run_cpus, cur_run_cpus + 1);
-
-	cpumask_andnot(&run_cpus_mask, &cpu_cdev->allowed_cpus,
-		       &cpu_cdev->isolate_cpus_mask);
-	cpu_cdev->run_cpus = cpumask_weight(&run_cpus_mask);
-	cpu_cdev->level = get_level(cpu_cdev, cpu_cdev->run_cpus);
-#else
-	cpu_cdev->level = state;
-	cpu_cdev->run_cpus = cpu_cdev->table[state].cpus;
-#endif
+	cpu_update_target_cpus(cdev, state);
 
 	return 0;
 }
@@ -490,6 +465,8 @@ static int cpu_power2state(struct thermal_cooling_device *cdev,
 	cpus = max(cpus, cpu_cdev->min_cpus);
 	*state = get_level(cpu_cdev, cpus);
 
+	pr_info("cpu%u target_cpus:%d state:%ld\n", cpu, cpus, *state);
+
 	return 0;
 }
 
@@ -573,11 +550,9 @@ cpu_cooling_register(struct device_node *np,
 	cpu_cdev->total = 0;
 	cpu_cdev->min_cpus = 0;
 	cpu_cdev->run_cpus = cpu_cdev->table[0].cpus;
+	cpu_cdev->level = 0;
 	cpu_cdev->cdev = cdev;
 
-#ifdef CONFIG_SPRD_CORE_CTL
-	INIT_DELAYED_WORK(&cpu_cdev->isolate_work, isolate_cpu_work);
-#endif
 	return cdev;
 
 remove_ida:
@@ -597,9 +572,7 @@ static int  cpu_cooling_unregister(struct thermal_cooling_device *cdev)
 		return -ENODEV;
 
 	cpu_cdev = cdev->devdata;
-#ifdef CONFIG_SPRD_CORE_CTL
-	cancel_delayed_work_sync(&cpu_cdev->isolate_work);
-#endif
+	cpu_set_cur_state(cdev, 0);
 	thermal_cooling_device_unregister(cpu_cdev->cdev);
 	ida_simple_remove(&cpu_ida, cpu_cdev->id);
 	kfree(cpu_cdev->table);
@@ -793,111 +766,6 @@ static void get_core_temp(int cluster_id, int cpu, int *temp)
 	*temp = cpc->core_temp[cpu];
 
 }
-
-#ifdef CONFIG_SPRD_CORE_CTL
-static int get_min_temp_isolated_core(int cluster_id, int cpu, int *temp)
-{
-	int i, ret, min_temp = 0, id = -1, first, find = 0;
-	struct thermal_zone_device *tz = NULL;
-	struct cluster_power_coefficients *cpc;
-	int sensor_temp[MAX_SENSOR_NUMBER];
-
-	cpc = &cluster_data[cluster_id];
-	for (i = 0; i < (cpc->nsensor); i++) {
-		tz = cpc->thm_zones[i];
-		if (!tz || IS_ERR(tz) || !tz->ops->get_temp) {
-			pr_err("get thermal zone failed\n");
-			return -1;
-		}
-
-		ret = tz->ops->get_temp(tz, &sensor_temp[cpu+i]);
-		if (ret) {
-			pr_err("get thermal %s temp failed\n", tz->type);
-			return -1;
-		}
-
-		pr_debug("%s:%d\n", tz->type, sensor_temp[cpu+i]);
-	}
-
-	for (first = cpu; first < (cpu+cpc->nsensor); first++) {
-		if (cpu_isolated(first)) {
-			min_temp = sensor_temp[first];
-			id = first;
-			*temp = min_temp;
-			find = 1;
-			break;
-		}
-	}
-
-	if (find) {
-		for (i = cpu; i < (cpu+cpc->nsensor); i++) {
-			if (cpu_isolated(i)) {
-				if (sensor_temp[i] < min_temp) {
-					min_temp = sensor_temp[i];
-					id = i;
-					*temp = min_temp;
-				}
-			}
-		}
-		pr_debug("isolated cpu%d:min_temp:%d\n", id, *temp);
-	} else
-		id = -1;
-
-	return id;
-}
-
-static int get_min_temp_unisolated_core(int cluster_id, int cpu, int *temp)
-{
-	int i, ret, min_temp = 0, id = -1, first, find = 0;
-	struct thermal_zone_device *tz = NULL;
-	struct cluster_power_coefficients *cpc;
-	int sensor_temp[MAX_SENSOR_NUMBER];
-
-	cpc = &cluster_data[cluster_id];
-	for (i = 0; i < (cpc->nsensor); i++) {
-		tz = cpc->thm_zones[i];
-		if (!tz || IS_ERR(tz) || !tz->ops->get_temp) {
-			pr_err("get thermal zone failed\n");
-			return -1;
-		}
-
-		ret = tz->ops->get_temp(tz, &sensor_temp[cpu+i]);
-		if (ret) {
-			pr_err("get thermal %s temp failed\n", tz->type);
-			return -1;
-		}
-
-		pr_debug("%s:%d\n", tz->type, sensor_temp[cpu+i]);
-	}
-
-	for (first = cpu; first < (cpu+cpc->nsensor); first++) {
-		if (!cpu_isolated(first)) {
-			min_temp = sensor_temp[first];
-			id = first;
-			*temp = min_temp;
-			find = 1;
-			break;
-		}
-	}
-
-	if (find) {
-		for (i = cpu; i < (cpu+cpc->nsensor); i++) {
-			if (!cpu_isolated(i)) {
-				if (sensor_temp[i] <= min_temp) {
-					min_temp = sensor_temp[i];
-					id = i;
-					*temp = min_temp;
-				}
-			}
-		}
-		pr_debug("unisolated cpu%d:min_temp:%d\n", id, *temp);
-
-	} else
-		id = -1;
-
-	return id;
-}
-#endif
 
 static u64 get_core_dyn_power(int cluster_id,
 	unsigned int freq_mhz, unsigned int voltage_mv)
@@ -1374,11 +1242,6 @@ static struct cpu_power_ops power_ops = {
 		.get_cluster_min_cpunum_p = get_cluster_min_cpunum,
 		.get_cluster_cycle_p = get_cluster_cycle,
 		.get_sensor_count_p = get_sensor_count,
-
-#ifdef CONFIG_SPRD_CORE_CTL
-		.get_min_temp_unisolated_core_p = get_min_temp_unisolated_core,
-		.get_min_temp_isolated_core_p = get_min_temp_isolated_core,
-#endif
 		.get_core_temp_p = get_core_temp,
 		.get_all_core_temp_p = get_all_core_temp,
 };
@@ -1513,6 +1376,8 @@ static int destroy_cpu_cooling_device(void)
 
 	return 0;
 }
+
+
 
 static int __init sprd_cpu_cooling_device_init(void)
 {
