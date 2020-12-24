@@ -65,6 +65,8 @@ obj-$(CONFIG_MEMORY_STATE_TIME)	+= memory_state_time.o
 obj-$(CONFIG_SPRD_UID)		+= sprd_uid.o
 obj-y				+= sprd_apdu/
 
+obj-$(CONFIG_USB_CABLE)		+= usb_cable/
+
 lkdtm-$(CONFIG_LKDTM)		+= lkdtm_core.o
 lkdtm-$(CONFIG_LKDTM)		+= lkdtm_bugs.o
 lkdtm-$(CONFIG_LKDTM)		+= lkdtm_heap.o
