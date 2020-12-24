@@ -261,6 +261,11 @@
 				sprd,version = <0x200>;
 			};
 
+			pin_controller: pinctrl@2e0000 {
+				compatible = "sprd,qogirl6pro-pinctrl";
+				reg = <0x2e0000 0x10000>;
+			};
+
 			adi_bus: spi@400000 {
 				compatible = "sprd,qogirn6pro-adi";
 				reg = <0x400000 0x100000>;
