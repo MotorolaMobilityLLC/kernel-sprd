@@ -1,4 +1,5 @@
 obj-$(CONFIG_SPRD_7SRESET)	+= sprd_7sreset.o
+obj-$(CONFIG_SPRD_PMIC_SYSCON)  += sprd_pmic_syscon.o
 obj-$(CONFIG_SPRD_TIME_SYNC)	+= sprd_time_sync.o
 obj-$(CONFIG_SPRD_DEBUG)	+= debug/
 obj-$(CONFIG_SPRD_POWER_DEBUG)	+= power_debug/
