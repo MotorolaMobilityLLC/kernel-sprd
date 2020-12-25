@@ -1098,9 +1098,12 @@ sp9832e-1h10_go-overlay.dtbo-base := sp9832e.dtb
 endif
 
 ifeq ($(BSP_BUILD_FAMILY),sharkl5)
-dtbo-$(CONFIG_ARCH_SPRD) += ums312-1h10-go-overlay.dtbo
+dtbo-$(CONFIG_ARCH_SPRD) += \
+	ums312-1h10-go-overlay.dtbo \
+	ums312-2h10-go-overlay.dtbo
 
 ums312-1h10-go-overlay.dtbo-base := ums312.dtb
+ums312-2h10-go-overlay.dtbo-base := ums312.dtb
 endif
 
 ifeq ($(BSP_BUILD_FAMILY),qogirl6)
@@ -1127,7 +1130,8 @@ dtbo-$(CONFIG_ARCH_SPRD) += \
 	sp7731e-1h10-overlay.dtbo \
 	sp9832e-1h10_go-overlay.dtbo \
 	ums312-1h10-go-overlay.dtbo \
-	ums9230-1h10-go2g-overlay.dtbo
+	ums9230-1h10-go2g-overlay.dtbo \
+	ums312-2h10-go-overlay.dtbo
 
 endif #//BSP_BUILD_DT_OVERLAY
 
