@@ -3391,6 +3391,11 @@ CONFIG_SPRD_MAILBOX_R1P2=y
 # CONFIG_SPRD_SIPA is not set
 
 #
+# SIPA_V3 modules
+#
+# CONFIG_SPRD_SIPA_V3 is not set
+
+#
 # PAM IPA modules
 #
 # CONFIG_SPRD_PAM_IPA is not set

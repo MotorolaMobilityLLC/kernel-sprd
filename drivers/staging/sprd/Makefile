@@ -4,6 +4,7 @@
 obj-y					+= mailbox/
 obj-y					+= sfp/
 obj-$(CONFIG_SPRD_SIPA)			+= sipa/
+obj-$(CONFIG_SPRD_SIPA_V3)              += sipa_v3/
 obj-$(CONFIG_SPRD_PAM_IPA)		+= pam_ipa/
 obj-$(CONFIG_SPRD_SIPA_DELEGATE)	+= sipa_delegate/
 obj-$(CONFIG_SPRD_IPA_SYS)		+= sipa_sys/
