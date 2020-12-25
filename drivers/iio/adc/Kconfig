@@ -901,4 +901,10 @@ config XILINX_XADC
 	  The driver can also be build as a module. If so, the module will be called
 	  xilinx-xadc.
 
+config SPRD_ADC_GCOV
+	bool "open gcov for adc"
+	depends on GCOV_PROFILE_MODULES
+	help
+	  Say Y here to enable gcov in adc.
+
 endmenu
