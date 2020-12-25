@@ -1,0 +1,17 @@
+SOC PMIC Syscon Driver
+
+The driver is developed for UNISOC platform's PMIC, which is used by PMIC's
+multi modules for finding PMIC's address easier.
+
+Required properties:
+-compatible:
+ -"sprd,sc2721-syscon" for SC2721 syscon
+ -"sprd,sc2730-syscon" for SC2730 syscon
+ -"sprd,sc2731-syscon" for SC2731 syscon
+- reg: Specifies the PMIC's physical global address.
+
+Example:
+syscon@1800 {
+	compatible = "sprd,sc2731-syscon", "sprd,sc27xx-syscon";
+	reg = <0x1800>, <0x1ba0>, <0x1b98>;
+};
