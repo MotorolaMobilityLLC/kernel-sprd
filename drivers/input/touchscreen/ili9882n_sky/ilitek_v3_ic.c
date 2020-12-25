@@ -1003,7 +1003,7 @@ static void ilitek_tddi_ic_check_protocol_ver(u32 pver)
 	}
 
 	ILI_ERR("Not found a correct protocol version in list, use newest version\n");
-	ilits->protocol = &protocol_info[PROTOCL_VER_NUM - 1];
+	ilits->protocol = &protocol_info[PROTOCL_VER_NUM - 2];
 }
 
 int ili_ic_get_protocl_ver(void)
@@ -1121,6 +1121,6 @@ void ili_ic_init(void)
 	chip.ana_addr =		   	TDDI_ANA_ID_ADDR;
 	chip.reset_addr =	   	TDDI_CHIP_RESET_ADDR;
 
-	ilits->protocol = &protocol_info[PROTOCL_VER_NUM - 1];
+	ilits->protocol = &protocol_info[PROTOCL_VER_NUM - 2];
 	ilits->chip = &chip;
 }
