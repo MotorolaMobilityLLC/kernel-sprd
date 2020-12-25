@@ -59,6 +59,12 @@
 
 static u8 g_wakeup_flag;
 
+/* smsg_assert_notify */
+struct smsg_assert_notify {
+	void (*handler)(phys_addr_t addr, void *data);
+	void *data;
+};
+
 struct smsg_ipc *smsg_ipcs[SIPC_ID_NR];
 EXPORT_SYMBOL_GPL(smsg_ipcs);
 
@@ -68,6 +74,24 @@ module_param_named(debug_enable, debug_enable, ushort, 0644);
 static u8 channel2index[SMSG_CH_NR + 1];
 
 static int smsg_ipc_smem_init(struct smsg_ipc *ipc);
+
+static struct smsg_assert_notify g_smsg_assert_notify[SIPC_ID_NR];
+
+int smsg_register_notifier(int dst,
+			   void (*handler)(phys_addr_t addr,
+			   void *data), void *data)
+{
+	struct smsg_assert_notify *assert_notify;
+
+	if (dst >= SIPC_ID_NR)
+		return -1;
+
+	assert_notify = &g_smsg_assert_notify[dst];
+	assert_notify->handler = handler;
+	assert_notify->data = data;
+	return 0;
+}
+EXPORT_SYMBOL_GPL(smsg_register_notifier);
 
 void smsg_init_channel2index(void)
 {

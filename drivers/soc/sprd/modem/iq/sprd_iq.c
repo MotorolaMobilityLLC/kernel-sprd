@@ -534,7 +534,11 @@ static int sprd_iq_probe(struct platform_device *pdev)
 	}
 
 	init_waitqueue_head(&iq.wait);
+#ifdef CONFIG_SPRD_SIPC_V2
+	iq.vbase = shmem_ram_vmap_nocache(SIPC_ID_LTE, iq.base, iq.size);
+#else
 	iq.vbase = shmem_ram_vmap_nocache(iq.base, iq.size);
+#endif
 	if (NULL == iq.vbase) {
 		ret = -ENOMEM;
 		goto err2;
@@ -572,7 +576,11 @@ static int sprd_iq_probe(struct platform_device *pdev)
 	return 0;
 
 err3:
+#ifdef CONFIG_SPRD_SIPC_V2
+	shmem_ram_unmap(SIPC_ID_LTE, iq.vbase);
+#else
 	shmem_ram_unmap(iq.vbase);
+#endif
 err2:
 	misc_deregister(&iq_mem_dev);
 err1:
@@ -583,8 +591,13 @@ err0:
 
 static int sprd_iq_remove(struct platform_device *pdev)
 {
-	if (NULL == iq.vbase)
+	if (NULL == iq.vbase) {
+	#ifdef CONFIG_SPRD_SIPC_V2
+		shmem_ram_unmap(SIPC_ID_LTE, iq.vbase);
+	#else
 		shmem_ram_unmap(iq.vbase);
+	#endif
+	}
 
 	kfree(iq.header_info);
 
