@@ -1676,6 +1676,8 @@ static int __init himax_hx83102_init(void)
 	int ret = 0;
 	
 	I("%s, lcd_name:%s\n", __func__, lcd_name);
+	if(lcd_name == NULL)
+		return 0;
 	if(strncmp(lcd_name, "lcd_hx83102_skyworth_mipi_hd",strlen(lcd_name)) == 0)
 	{
 		ret = himax_hx83102_probe();

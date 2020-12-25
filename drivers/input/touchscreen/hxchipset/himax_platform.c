@@ -1180,6 +1180,8 @@ static int __init himax_common_init(void)
 {
 	printk(KERN_ERR "%s Himax common touch panel driver init\n", __func__);
 	D("Himax check double loading,g_mmi_refcnt:%d\n", g_mmi_refcnt);
+	if(NULL == lcd_name)
+		return 0;
 	if(strncmp(lcd_name, "lcd_hx83102_skyworth_mipi_hd",strlen(lcd_name)) == 0)
 	{	
 		if (g_mmi_refcnt++ > 0) {

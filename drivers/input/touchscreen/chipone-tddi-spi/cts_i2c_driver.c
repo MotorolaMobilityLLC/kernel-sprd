@@ -803,6 +803,8 @@ static int __init cts_driver_init(void)
     int ret = 0;
 
     cts_info("%s Init, lcm_name:%s", __func__, lcd_name);
+	if(NULL == lcd_name)
+		return 0;
 	if(strncmp(lcd_name, "lcd_icnl9911c_hlt_mipi_hd",strlen(lcd_name)) == 0)
 	{
 #ifdef CONFIG_CTS_I2C_HOST

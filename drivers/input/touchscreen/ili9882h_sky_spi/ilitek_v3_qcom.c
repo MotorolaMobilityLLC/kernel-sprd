@@ -687,6 +687,8 @@ extern const char *lcd_name;
 static int __init ilitek_plat_dev_init(void)
 {
 	ILI_INFO("ILITEK TP driver init for QCOM, lcd_name:%s\n", lcd_name);
+	if(NULL == lcd_name)
+		return 0;
 	if(strncmp(lcd_name, "lcd_ili9882h_skyworth_mipi_hd",strlen(lcd_name)) == 0)
 	{
 	if (ili_dev_init(&hwif) < 0) {
