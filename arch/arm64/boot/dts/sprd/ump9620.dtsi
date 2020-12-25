@@ -104,6 +104,14 @@
 				reg = <0x42 0x2>;
 			};
 
+			typec_cc1_calib: calib@1b {
+				reg = <0x36 0x2>;
+			};
+
+			typec_cc2_calib: calib@1c {
+				reg = <0x37 0x2>;
+			};
+
 			fgu_calib: calib@4 {
 				reg = <0x4c 0x2>;
 			};
@@ -115,6 +123,8 @@
 			interrupts = <8 IRQ_TYPE_LEVEL_HIGH>;
 			reg = <0x380>;
 			mode = <2>;
+			nvmem-cells = <&typec_cc1_calib>, <&typec_cc2_calib>;
+			nvmem-cell-names = "typec_cc1_calib", "typec_cc2_calib";
 		};
 
 		syscon@2000 {
