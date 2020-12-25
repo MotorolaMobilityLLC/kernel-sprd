@@ -191,6 +191,19 @@ bq2560x_charger_set_vindpm(struct bq2560x_charger_info *info, u32 vol)
 	return bq2560x_update_bits(info, BQ2560X_REG_6,
 				   BQ2560X_REG_VINDPM_VOLTAGE_MASK, reg_val);
 }
+static int  bq2560x_enable_powerpath(struct bq2560x_charger_info *info, bool en)
+{
+	int ret;
+
+	dev_err(info->dev,"%s; %d;\n", __func__,en);
+
+	if(en)
+		ret=bq2560x_charger_set_vindpm(info, 4400);
+	else	
+		ret=bq2560x_charger_set_vindpm(info, 5400);
+
+	return ret;
+}
 
 static int
 bq2560x_charger_set_termina_vol(struct bq2560x_charger_info *info, u32 vol)
@@ -735,7 +748,9 @@ static int bq2560x_charger_usb_set_property(struct power_supply *psy,
 		if (ret < 0)
 			dev_err(info->dev, "failed to set terminate voltage\n");
 		break;
-
+	case POWER_SUPPLY_PROP_POWER_NOW:
+		bq2560x_enable_powerpath(info, val->intval);
+		break;
 	default:
 		ret = -EINVAL;
 	}
@@ -784,6 +799,7 @@ static enum power_supply_property bq2560x_usb_props[] = {
 	POWER_SUPPLY_PROP_TYPE,
 	POWER_SUPPLY_PROP_CHARGE_FULL,
 	POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE_MAX,
+	POWER_SUPPLY_PROP_POWER_NOW,
 };
 
 static const struct power_supply_desc bq2560x_charger_desc = {

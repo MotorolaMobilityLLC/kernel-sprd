@@ -797,6 +797,34 @@ static int get_charger_term_voltage(struct charger_manager *cm, int *vol)
 
 	return ret;
 }
+
+static int set_charger_enable_powerpath(struct charger_manager *cm, bool en)
+{
+	union power_supply_propval val;
+	struct power_supply *psy;
+	int i, ret = -ENODEV;
+
+	/* If at least one of them has one, it's yes. */
+	for (i = 0; cm->desc->psy_charger_stat[i]; i++) {
+		psy = power_supply_get_by_name(cm->desc->psy_charger_stat[i]);
+		if (!psy) {
+			dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
+				cm->desc->psy_charger_stat[i]);
+			continue;
+		}
+
+		val.intval = en;
+		ret = power_supply_set_property(psy,
+						POWER_SUPPLY_PROP_POWER_NOW,
+						&val);
+		power_supply_put(psy);
+		if (ret == 0) 
+			break;
+	}
+
+	return ret;
+}
+
 /**
  * is_charging - Returns true if the battery is being charged.
  * @cm: the Charger Manager representing the battery.
@@ -2841,13 +2869,25 @@ static ssize_t charger_stop_store(struct device *dev,
 		return -EINVAL;
 
 	if (!stop_charge) {
+		set_charger_enable_powerpath(cm, true);
 		ret = try_charger_enable(cm, true);
 		if (ret) {
 			dev_err(cm->dev, "failed to start charger.\n");
 			return ret;
 		}
 		charger->externally_control = false;
+
+			
+		if (cm->desc->jeita_tab_size) {
+			int cur_jeita_status;
+
+			cur_jeita_status =
+				cm_manager_get_jeita_status(cm, cm->desc->temperature);
+			cm_manager_adjust_current(cm, cur_jeita_status);
+		}
+
 	} else {
+		set_charger_enable_powerpath(cm, false);
 		ret = try_charger_enable(cm, false);
 		if (ret) {
 			dev_err(cm->dev, "failed to stop charger.\n");
