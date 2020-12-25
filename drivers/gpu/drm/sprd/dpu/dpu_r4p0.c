@@ -596,10 +596,9 @@ static void dpu_cabc_work_func(struct work_struct *data)
 
 static void dpu_cabc_bl_update_func(struct work_struct *data)
 {
-	struct sprd_backlight *bl = bl_get_data(bl_dev);
-
-	msleep(cabc_bl_set_delay);
 	if (bl_dev) {
+		struct sprd_backlight *bl = bl_get_data(bl_dev);
+		msleep(cabc_bl_set_delay);
 		if (cabc_disable == CABC_WORKING) {
 			sprd_backlight_normalize_map(bl_dev, &cabc_para.cur_bl);
 
@@ -2119,7 +2118,7 @@ static int dpu_cabc_trigger(struct dpu_context *ctx)
 	struct device_node *backlight_node;
 
 	if (cabc_disable) {
-		if (cabc_disable == CABC_STOPPING) {
+		if ((cabc_disable == CABC_STOPPING) && bl_dev) {
 			memset(&cabc_para, 0, sizeof(cabc_para));
 			memcpy(&cm, &cm_copy, sizeof(struct cm_cfg));
 			reg->cm_coef01_00 = (cm.coef01 << 16) | cm.coef00;
@@ -2183,7 +2182,8 @@ static int dpu_cabc_trigger(struct dpu_context *ctx)
 		reg->cm_coef21_20 = (cm.coef21 << 16) | cm.coef20;
 		reg->cm_coef23_22 = (cm.coef23 << 16) | cm.coef22;
 
-		cabc_bl_set = true;
+		if (bl_dev)
+			cabc_bl_set = true;
 
 		if (frame_no == 1)
 			frame_no++;
