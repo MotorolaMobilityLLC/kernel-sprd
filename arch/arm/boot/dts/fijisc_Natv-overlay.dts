@@ -110,7 +110,7 @@
 
                 /* Charger detect */
                 chipone,touch-charger-detect-enable;
-                chipone,touch-charger-detect-type = "notify"; /* notify, poll */
+                chipone,touch-charger-detect-type = "poll"; /* notify, poll */
                 chipone,touch-charger-detect-psy-name = "charger";
                 chipone,touch-charger-detect-psp = "POWER_SUPPLY_PROP_ONLINE";
                 chipone,touch-charger-detect-psp-poll-interval = <1000>;
