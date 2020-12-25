@@ -239,7 +239,7 @@ extern unsigned long capacity_curr_of(int cpu);
  */
 static u64 scale_exec_time(u64 delta, struct rq *rq)
 {
-	unsigned long capcurr = capacity_curr_of(cpu_of(rq));
+	u64 capcurr = capacity_curr_of(cpu_of(rq));
 
 	return (delta * capcurr) >> SCHED_CAPACITY_SHIFT;
 }
@@ -256,8 +256,8 @@ void walt_account_irqtime(int cpu, struct task_struct *curr,
 				 u64 delta, u64 wallclock)
 {
 	struct rq *rq = cpu_rq(cpu);
-	unsigned long flags, nr_windows;
-	u64 cur_jiffies_ts;
+	unsigned long flags;
+	u64 cur_jiffies_ts, nr_windows;
 
 	raw_spin_lock_irqsave(&rq->lock, flags);
 
@@ -816,8 +816,7 @@ void walt_update_task_ravg(struct task_struct *p, struct rq *rq,
 done:
 	if (rq->window_start > old_window_start) {
 		unsigned long cap_orig = capacity_orig_of(cpu_of(rq));
-		unsigned int busy_limit =
-			(walt_ravg_window * walt_busy_threshold) / 100;
+		u64 busy_limit = (walt_ravg_window * walt_busy_threshold) / 100;
 
 		busy_limit = (busy_limit * cap_orig) >> SCHED_CAPACITY_SHIFT;
 		if (rq->prev_runnable_sum >= busy_limit) {

@@ -1663,7 +1663,7 @@ static inline unsigned long task_walt_util(struct task_struct *p)
 	if (!walt_disabled && sysctl_sched_use_walt_task_util) {
 		unsigned long demand = p->ravg.demand;
 
-		return (demand << 10) / walt_ravg_window;
+		return demand / (walt_ravg_window >> SCHED_CAPACITY_SHIFT);
 	}
 #endif
 	return 0;
