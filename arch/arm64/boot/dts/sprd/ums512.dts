@@ -333,6 +333,11 @@
 	};
 };
 
+&spi0 {
+	/*used for fingerprint sensor*/
+	status = "okay";
+};
+
 &sdio0 {
 	bus-width = <4>;
 	no-sdio;

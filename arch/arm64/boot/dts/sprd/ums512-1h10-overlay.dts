@@ -25,6 +25,11 @@
 				reg = <0x0 0x0 0x0 0x11>;
 			};
 
+			fingerprint@0 {
+				compatible = "microarray,afs121";
+				fpint-gpios = <&eic_async 13 0>;
+			};
+
 			pwm_backlight: backlight {
 				compatible = "pwm-backlight";
 				pwms = <&pwms 2 40000>;
