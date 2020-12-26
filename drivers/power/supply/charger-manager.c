@@ -30,6 +30,8 @@
 #include <linux/of.h>
 #include <linux/thermal.h>
 
+#include <linux/proc_fs.h>
+
 /*
  * Default termperature threshold for charging.
  * Every temperature units are in tenth of centigrade.
@@ -314,6 +316,154 @@ static int cm_init_cap_remap_table(struct charger_desc *desc,
 
 	return 0;
 }
+
+// pony.ma, DATE20201226, stop charging when reach set soc on demomode, DATE20201226-01 START
+#ifdef CONFIG_TINNO_DEMOMODECHG_CONTROL
+
+/**********************************************************************************************************
+* Add demomode charge require.
+* Command: adb shell "echo 'VALUE' > /proc/tinno_demomode_charge/enable"
+* enable=1:charging is stop when soc is 70%. enable=0:normal charge.
+**********************************************************************************************************/
+
+int demomode_chg_enable = 0, demomode_chg_max_soc = 70, demomode_chg_min_soc = 30;
+int demomode_over_soc = 0;
+static ssize_t demomode_enable_write(struct file *file, const char *buffer, size_t count, loff_t *data)
+{
+    int len = 0, enable= 0;
+    char desc[32];
+	printk("demomode_enable_write\n");
+
+    len = (count < (sizeof(desc) - 1)) ? count : (sizeof(desc) - 1);
+    if (copy_from_user(desc, buffer, len))
+        return 0;
+    desc[len] = '\0';
+
+    if (sscanf(desc, "%d", &enable) == 1)
+    {
+        printk("demomode_enable_write enable=%d\n", enable);
+		demomode_chg_enable = enable;
+//		demomode_info->flag_soc = 1;
+		return count;
+    }
+
+    return -EINVAL;
+
+}
+
+static ssize_t demomode_chg_max_soc_write(struct file *file, const char *buffer, size_t count, loff_t *data)
+{
+    int len = 0, max_soc= 0;
+    char desc[32];
+	printk("demomode_chg_max_soc_write\n");
+
+    len = (count < (sizeof(desc) - 1)) ? count : (sizeof(desc) - 1);
+    if (copy_from_user(desc, buffer, len))
+        return 0;
+    desc[len] = '\0';
+
+    if (sscanf(desc, "%d", &max_soc) == 1)
+    {
+        printk("demomode_chg_max_soc_write max_soc=%d\n", max_soc);
+		demomode_chg_max_soc = max_soc;
+		return count;
+    }
+
+    return -EINVAL;
+
+}
+
+static ssize_t demomode_chg_min_soc_write(struct file *file, const char *buffer, size_t count, loff_t *data)
+{
+    int len = 0, min_soc= 0;
+    char desc[32];
+	printk("demomode_chg_min_soc_write\n");
+
+    len = (count < (sizeof(desc) - 1)) ? count : (sizeof(desc) - 1);
+    if (copy_from_user(desc, buffer, len))
+        return 0;
+    desc[len] = '\0';
+
+    if (sscanf(desc, "%d", &min_soc) == 1)
+    {
+        printk("demomode_chg_min_soc_write min_soc=%d\n", min_soc);
+		demomode_chg_min_soc = min_soc;
+		return count;
+    }
+
+    return -EINVAL;
+
+}
+
+static int proc_enable_show(struct seq_file *m, void *v)
+{
+    seq_printf(m,"demomode_enable=%d\n",demomode_chg_enable);
+    return 0;
+}
+
+static int proc_chg_max_soc_show(struct seq_file *m, void *v)
+{
+    seq_printf(m,"chg_max_soc=%d\n",demomode_chg_max_soc);
+    return 0;
+}
+
+static int proc_chg_min_soc_show(struct seq_file *m, void *v)
+{
+    seq_printf(m,"chg_min_soc=%d\n",demomode_chg_min_soc);
+    return 0;
+}
+
+static int proc_enable_open(struct inode *inode, struct file *file)
+{
+    return single_open(file, proc_enable_show, NULL);
+}
+
+static int proc_chg_max_soc_open(struct inode *inode, struct file *file)
+{
+    return single_open(file, proc_chg_max_soc_show, NULL);
+}
+
+static int proc_chg_min_soc_open(struct inode *inode, struct file *file)
+{
+    return single_open(file, proc_chg_min_soc_show, NULL);
+}
+
+static const struct file_operations demomode_enable_ops = {
+    .open = proc_enable_open,
+    .read = seq_read,
+	.write = demomode_enable_write,
+};
+
+static const struct file_operations demomode_chg_max_soc_ops = {
+    .open = proc_chg_max_soc_open,
+    .read = seq_read,
+	.write = demomode_chg_max_soc_write,
+};
+
+static const struct file_operations demomode_chg_min_soc_ops = {
+    .open = proc_chg_min_soc_open,
+    .read = seq_read,
+	.write = demomode_chg_min_soc_write,
+};
+
+static void demomode_charge_init(void)
+{
+    struct proc_dir_entry *demomode_dir = NULL;
+
+    demomode_dir = proc_mkdir("tinno_demomode_charge", NULL);
+    if (NULL == demomode_dir)
+    {
+        printk("create tinno_demomode_charge error!\n");
+        return ;
+    }
+
+    proc_create("enable", S_IRUGO | S_IWUSR, demomode_dir, &demomode_enable_ops);
+    proc_create("chg_max_soc", S_IRUGO | S_IWUSR, demomode_dir, &demomode_chg_max_soc_ops);
+    proc_create("chg_min_soc", S_IRUGO | S_IWUSR, demomode_dir, &demomode_chg_min_soc_ops);
+
+}
+#endif
+// pony.ma, DATE20201226-01 END
 
 /**
  * is_batt_present - See if the battery presents in place.
@@ -2170,7 +2320,11 @@ static bool _cm_monitor(struct charger_manager *cm)
 	}
 
 	for (i = 0; i < cm->desc->num_charger_regulators; i++) {
-		if (cm->desc->charger_regulators[i].externally_control) {
+		if (cm->desc->charger_regulators[i].externally_control
+			#ifdef CONFIG_TINNO_DEMOMODECHG_CONTROL
+			|| (demomode_over_soc && demomode_chg_enable)
+			#endif
+			) {
 			dev_info(cm->dev,
 				 "Charger has been controlled externally, so no need monitoring\n");
 			return false;
@@ -2242,7 +2396,7 @@ static bool _cm_monitor(struct charger_manager *cm)
 	 */
 	} else if (!cm->emergency_stop && is_full_charged(cm) &&
 			cm->charger_enabled) {
-		dev_info(cm->dev, "EVENT_HANDLE: Battery Fully Charged\n");
+		dev_info(cm->dev, "_cm_monitor EVENT_HANDLE: Battery Fully Charged\n");
 		uevent_notify(cm, default_event_names[CM_EVENT_BATT_FULL]);
 
 		try_charger_enable(cm, false);
@@ -2374,7 +2528,7 @@ static void fullbatt_handler(struct charger_manager *cm)
 		cm->fullbatt_vchk_jiffies_at = 1;
 
 out:
-	dev_info(cm->dev, "EVENT_HANDLE: Battery Fully Charged\n");
+	dev_info(cm->dev, "fullbatt_handler EVENT_HANDLE: Battery Fully Charged\n");
 	uevent_notify(cm, default_event_names[CM_EVENT_BATT_FULL]);
 }
 
@@ -4222,6 +4376,10 @@ static void cm_batt_works(struct work_struct *work)
 	int chg_cur = 0, chg_limit_cur = 0, charger_input_vol = 0;
 	static int last_fuel_cap = CM_CAP_MAGIC_NUM;
 
+	#ifdef CONFIG_TINNO_DEMOMODECHG_CONTROL
+	int ui_soc = 0;   				//for demomode require by pony date20201226
+	#endif
+
 	cm_feed_watchdog(cm);    //revolve charge ic reset question by pony.ma date20201203
 
 	ret = get_batt_uV(cm, &batt_uV);
@@ -4330,6 +4488,29 @@ static void cm_batt_works(struct work_struct *work)
 		cm->desc->charger_status = POWER_SUPPLY_STATUS_FULL;
 	else
 		cm->desc->charger_status = chg_sts;
+
+	// pony.ma, date20201226, stop charging when reach set soc on demomode, date20201226-01 START
+	#ifdef CONFIG_TINNO_DEMOMODECHG_CONTROL
+	ui_soc = DIV_ROUND_CLOSEST(fuel_cap, 10);
+	if (demomode_chg_enable && (ui_soc <= demomode_chg_min_soc)) {
+		ret = try_charger_enable(cm, true);
+		demomode_over_soc = false;
+		uevent_notify(cm, "CHARGING");
+	//	dev_err(cm->dev, "demomodechg try_charger_enable start charger.\n");
+		if (ret)
+			dev_err(cm->dev, "failed to start charger.\n");
+	}
+	if (demomode_chg_enable && (ui_soc >= demomode_chg_max_soc)) {
+		ret = try_charger_enable(cm, false);
+		demomode_over_soc = true;
+		uevent_notify(cm, "Discharging");
+	//	dev_err(cm->dev, "demomodechg try_charger_enable stop charger.\n");
+		if (ret)
+			dev_err(cm->dev, "failed to stop charger.\n");
+	}
+//	power_supply_changed(cm->charger_psy);
+	#endif
+	// pony.ma, date20201226, stop charging when reach set soc on demomode, date20201226-01 end
 
 	dev_info(cm->dev, "battery voltage = %d, OCV = %d, current = %d, "
 		 "capacity = %d, charger status = %d, force set full = %d, "
@@ -4651,6 +4832,12 @@ static int charger_manager_probe(struct platform_device *pdev)
 		cm->desc->measure_battery_temp = false;
 	}
 	power_supply_put(fuel_gauge);
+
+	// pony.ma, date20201226, stop charging when reach set soc on demomode, date20201226-01 START
+	#ifdef CONFIG_TINNO_DEMOMODECHG_CONTROL
+	demomode_charge_init();
+	#endif
+	// pony.ma, date20201226-01 END
 
 	INIT_DELAYED_WORK(&cm->fullbatt_vchk_work, fullbatt_vchk);
 	INIT_DELAYED_WORK(&cm->cap_update_work, cm_batt_works);
