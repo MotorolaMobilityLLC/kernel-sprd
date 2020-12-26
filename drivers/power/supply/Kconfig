@@ -643,6 +643,12 @@ config CHARGER_BQ2560X
 	help
 	  Say Y to include support for TI BQ2560X Battery Charger.
 
+config TINNO_DEMOMODECHG_CONTROL
+	tristate "TINNO_demomode_control"
+	depends on I2C || COMPILE_TEST
+	help
+	  Say Y to include support for demomode for custom require.
+
 config CHARGER_SC2720
 	tristate "Spreadtrum SC2720 charger driver"
 	depends on MFD_SC27XX_PMIC || COMPILE_TEST
