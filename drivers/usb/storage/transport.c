@@ -408,7 +408,7 @@ int usb_stor_bulk_transfer_buf(struct us_data *us, unsigned int pipe,
 	/* fill and submit the URB */
 	usb_fill_bulk_urb(us->current_urb, us->pusb_dev, pipe, buf, length,
 		      usb_stor_blocking_completion, NULL);
-	result = usb_stor_msg_common(us, 6 * HZ);
+	result = usb_stor_msg_common(us, 30 * HZ);
 
 	/* store the actual length of the data transferred */
 	if (act_len)
