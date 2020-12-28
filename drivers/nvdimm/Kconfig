@@ -112,4 +112,10 @@ config OF_PMEM
 
 	  Select Y if unsure.
 
+config SPRD_PMEM_GCOV
+	bool "open gcov for kernel pmem"
+	depends on GCOV_PROFILE_MODULES
+	help
+	  Say Y here to enable pmem gcov
+
 endif

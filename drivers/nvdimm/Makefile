@@ -1,4 +1,6 @@
 # SPDX-License-Identifier: GPL-2.0
+
+GCOV_PROFILE =  ${CONFIG_SPRD_PMEM_GCOV}
 obj-$(CONFIG_LIBNVDIMM) += libnvdimm.o
 obj-$(CONFIG_BLK_DEV_PMEM) += nd_pmem.o
 obj-$(CONFIG_ND_BTT) += nd_btt.o
