@@ -1,7 +1,10 @@
 Spreadtrum Power Delivery controllers
 
 Required properties :
-- compatible		: should be "sprd,sc2730-pd"
+- compatible		: should be one of the following
+                          "sprd,sc27xx-pd"
+                          "sprd,sc2730-pd"
+                          "sprd,ump9620-pd"
 - reg			: power delivery and typec base address
 - interrupt-parent	: phandle for the Interrupt Controller
 - interrupts		: Interrupt specifier
