@@ -745,6 +745,12 @@ config TRACING_EVENTS_GPIO
 	help
 	  Enable tracing events for gpio subsystem
 
+config SPRD_FTRACE_GCOV
+	bool "open gcov for ftrace"
+	depends on GCOV_PROFILE_MODULES
+	help
+	  Say Y here to enable gcov for ftrace
+
 endif # FTRACE
 
 endif # TRACING_SUPPORT

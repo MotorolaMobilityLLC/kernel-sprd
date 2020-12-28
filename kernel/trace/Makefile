@@ -28,6 +28,7 @@ obj-$(CONFIG_RING_BUFFER) += ring_buffer.o
 obj-$(CONFIG_RING_BUFFER_BENCHMARK) += ring_buffer_benchmark.o
 
 obj-$(CONFIG_TRACING) += trace.o
+GCOV_PROFILE_trace.o := ${CONFIG_SPRD_FTRACE_GCOV}
 obj-$(CONFIG_TRACING) += trace_output.o
 obj-$(CONFIG_TRACING) += trace_seq.o
 obj-$(CONFIG_TRACING) += trace_stat.o
