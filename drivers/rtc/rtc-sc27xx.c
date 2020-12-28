@@ -553,18 +553,26 @@ static int sprd_rtc_check_power_down(struct sprd_rtc *rtc)
 {
 	u32 val;
 	int ret;
+	struct rtc_time tm = {
+		.tm_mday = 1,
+		.tm_mon = 0,
+		.tm_year = 70,
+	};
 
 	ret = regmap_read(rtc->regmap, rtc->base + SPRD_RTC_PWR_STS, &val);
 	if (ret)
 		return ret;
-
 	/*
 	 * If the RTC power status value is SPRD_RTC_POWER_RESET_VALUE, which
-	 * means the RTC has been powered down, so the RTC time values are
-	 * invalid.
+	 * means the RTC has been powered down, so init the RTC time to
+	 * 1970.0.0 0:0:0.
 	 */
-	rtc->valid = val == SPRD_RTC_POWER_RESET_VALUE ? false : true;
-	return 0;
+	if (val == SPRD_RTC_POWER_RESET_VALUE)
+		ret = sprd_rtc_set_time(rtc->dev, &tm);
+	else
+		rtc->valid = true;
+
+	return ret;
 }
 
 static int sprd_rtc_check_alarm_int(struct sprd_rtc *rtc)
