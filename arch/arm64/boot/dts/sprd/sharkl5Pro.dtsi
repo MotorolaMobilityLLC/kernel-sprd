@@ -993,9 +993,10 @@
 				clocks = <&aonapb_gate CLK_MBOX_EB>;
 				clock-names = "enable";
 				interrupts = <GIC_SPI 82 IRQ_TYPE_LEVEL_HIGH>,
-					     <GIC_SPI 83 IRQ_TYPE_LEVEL_HIGH>;
-				interrupt-names = "inbox0", "outbox0";
-				#mbox-cells = <1>;
+					     <GIC_SPI 83 IRQ_TYPE_LEVEL_HIGH>,
+					     <GIC_SPI 84 IRQ_TYPE_LEVEL_HIGH>;
+				interrupt-names = "inbox", "outbox", "oob-outbox";
+				#mbox-cells = <2>;
 			};
 
 			adi_bus: spi@32100000 {
