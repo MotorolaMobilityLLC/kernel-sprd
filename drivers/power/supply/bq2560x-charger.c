@@ -864,7 +864,7 @@ static int bq2560x_charger_usb_get_property(struct power_supply *psy,
 			enabled = gpiod_get_value_cansleep(info->gpiod);
 		}
 
-		val->intval = !!!enabled;
+		val->intval = !enabled;
 		break;
 	default:
 		ret = -EINVAL;

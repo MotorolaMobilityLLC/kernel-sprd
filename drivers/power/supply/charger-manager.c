@@ -37,7 +37,7 @@
  */
 #define CM_DEFAULT_RECHARGE_TEMP_DIFF	50
 #define CM_DEFAULT_CHARGE_TEMP_MAX	500
-#define CM_CAP_CYCLE_TRACK_TIME		1
+#define CM_CAP_CYCLE_TRACK_TIME		15
 #define CM_UVLO_OFFSET			50000
 #define CM_FORCE_SET_FUEL_CAP_FULL	1000
 #define CM_LOW_TEMP_REGION		100
@@ -156,6 +156,29 @@ static char *charger_manager_supplied_to[] = {
 #define CM_RTC_SMALL		(2)
 
 #define UEVENT_BUF_SIZE		32
+
+struct charger_type {
+	int type;
+	enum power_supply_charger_type adap_type;
+};
+
+static struct charger_type charger_type[20] = {
+	{POWER_SUPPLY_USB_TYPE_SDP, POWER_SUPPLY_USB_CHARGER_TYPE_SDP},
+	{POWER_SUPPLY_USB_TYPE_DCP, POWER_SUPPLY_USB_CHARGER_TYPE_DCP},
+	{POWER_SUPPLY_USB_TYPE_CDP, POWER_SUPPLY_USB_CHARGER_TYPE_CDP},
+	{POWER_SUPPLY_USB_TYPE_ACA, POWER_SUPPLY_USB_CHARGER_TYPE_ACA},
+	{POWER_SUPPLY_USB_TYPE_C, POWER_SUPPLY_USB_CHARGER_TYPE_C},
+	{POWER_SUPPLY_USB_TYPE_PD, POWER_SUPPLY_USB_CHARGER_TYPE_PD},
+	{POWER_SUPPLY_USB_TYPE_PD_DRP, POWER_SUPPLY_USB_CHARGER_TYPE_PD_DRP},
+	{POWER_SUPPLY_USB_TYPE_PD_PPS, POWER_SUPPLY_USB_CHARGER_TYPE_PD_PPS},
+	{POWER_SUPPLY_USB_TYPE_APPLE_BRICK_ID, POWER_SUPPLY_USB_CHARGER_TYPE_APPLE_BRICK_ID},
+	{POWER_SUPPLY_USB_TYPE_SFCP_1P0, POWER_SUPPLY_USB_CHARGER_TYPE_SFCP_1P0},
+	{POWER_SUPPLY_USB_TYPE_SFCP_2P0, POWER_SUPPLY_USB_CHARGER_TYPE_SFCP_2P0},
+	{POWER_SUPPLY_WIRELESS_TYPE_UNKNOWN, POWER_SUPPLY_CHARGER_TYPE_UNKNOWN},
+	{POWER_SUPPLY_WIRELESS_TYPE_BPP, POWER_SUPPLY_WIRELESS_CHARGER_TYPE_BPP},
+	{POWER_SUPPLY_WIRELESS_TYPE_EPP, POWER_SUPPLY_WIRELESS_CHARGER_TYPE_EPP},
+	{0, 0},
+};
 
 static LIST_HEAD(cm_list);
 static DEFINE_MUTEX(cm_list_mtx);
@@ -887,6 +910,20 @@ static int set_batt_total_cap(struct charger_manager *cm, int total_cap)
 	return ret;
 }
 
+static void cm_get_charger_type(struct charger_manager *cm, u32 *type)
+{
+	int i = 0;
+
+	while (charger_type[i].type != 0) {
+		if (*type == charger_type[i].type) {
+			*type = charger_type[i].adap_type;
+			return;
+		}
+
+		i++;
+	}
+}
+
 /**
  * get_charger_type - Get the charger type
  * @cm: the Charger Manager representing the battery.
@@ -917,6 +954,8 @@ static int get_charger_type(struct charger_manager *cm, u32 *type)
 			break;
 		}
 	}
+
+	cm_get_charger_type(cm, type);
 
 	return ret;
 }
@@ -1247,14 +1286,14 @@ static bool is_full_charged(struct charger_manager *cm)
 			goto out;
 
 		if (desc->first_fullbatt_uA > 0 && uV >= desc->fullbatt_uV &&
-		    uA > desc->fullbatt_uA && uA <= desc->first_fullbatt_uA) {
+		    uA > desc->fullbatt_uA && uA <= desc->first_fullbatt_uA && uA >= 0) {
 			if (++desc->first_trigger_cnt > 1)
 				cm->desc->force_set_full = true;
 		} else {
 			desc->first_trigger_cnt = 0;
 		}
 
-		if (uV >= desc->fullbatt_uV && uA <= desc->fullbatt_uA && uA > 0) {
+		if (uV >= desc->fullbatt_uV && uA <= desc->fullbatt_uA && uA >= 0) {
 			if (++desc->trigger_cnt > 1) {
 				if (cm->desc->cap >= CM_CAP_FULL_PERCENT) {
 					if (desc->trigger_cnt == 2)
@@ -1334,7 +1373,7 @@ static void cm_update_charge_voltage_protection(struct charger_manager *cm,
 						enum power_supply_charge_type type)
 {
 	switch (type) {
-	case CHARGE_TYPE_NORMAL:
+	case USB_CHARGE_TYPE_NORMAL:
 		if (cm->desc->normal_charge_voltage_max)
 			cm->desc->charge_voltage_max =
 				cm->desc->normal_charge_voltage_max;
@@ -1342,7 +1381,7 @@ static void cm_update_charge_voltage_protection(struct charger_manager *cm,
 			cm->desc->charge_voltage_drop =
 				cm->desc->normal_charge_voltage_drop;
 		break;
-	case CHARGE_TYPE_FAST:
+	case USB_CHARGE_TYPE_FAST:
 		if (cm->desc->fast_charge_voltage_max)
 			cm->desc->charge_voltage_max =
 				cm->desc->fast_charge_voltage_max;
@@ -1350,7 +1389,7 @@ static void cm_update_charge_voltage_protection(struct charger_manager *cm,
 			cm->desc->charge_voltage_drop =
 				cm->desc->fast_charge_voltage_drop;
 		break;
-	case CHARGE_TYPE_FLASH:
+	case USB_CHARGE_TYPE_FLASH:
 		if (cm->desc->flash_charge_voltage_max)
 			cm->desc->charge_voltage_max =
 				cm->desc->flash_charge_voltage_max;
@@ -1358,10 +1397,10 @@ static void cm_update_charge_voltage_protection(struct charger_manager *cm,
 			cm->desc->charge_voltage_drop =
 				cm->desc->flash_charge_voltage_drop;
 		break;
-	case CHARGE_TYPE_TURBE:
+	case USB_CHARGE_TYPE_TURBE:
 		dev_info(cm->dev, "TO DO: quick charge TURBE\n");
 		break;
-	case CHARGE_TYPE_SUPER:
+	case USB_CHARGE_TYPE_SUPER:
 		dev_info(cm->dev, "TO DO: quick charge SUPER\n");
 		break;
 	default:
@@ -1371,7 +1410,7 @@ static void cm_update_charge_voltage_protection(struct charger_manager *cm,
 }
 
 static void cm_update_jeita_table(struct charger_manager *cm,
-				  enum power_supply_usb_type type)
+				  enum power_supply_charger_type type)
 {
 
 	dev_info(cm->dev, "%s, type = %d\n", __func__, type);
@@ -1696,7 +1735,7 @@ static int cm_fast_charge_enable_check(struct charger_manager *cm)
 	/*
 	 * adjust over voltage protection in 9V
 	 */
-	cm_update_charge_voltage_protection(cm, CHARGE_TYPE_FAST);
+	cm_update_charge_voltage_protection(cm, USB_CHARGE_TYPE_FAST);
 
 	/*
 	 * if enable jeita, we should adjust current
@@ -1704,7 +1743,7 @@ static int cm_fast_charge_enable_check(struct charger_manager *cm)
 	 * according to current temperature.
 	 */
 	if (desc->jeita_tab_size) {
-		cm_update_jeita_table(cm, POWER_SUPPLY_USB_TYPE_PD);
+		cm_update_jeita_table(cm, POWER_SUPPLY_USB_CHARGER_TYPE_PD);
 		cm_update_current_jeita_status(cm);
 	}
 
@@ -1750,7 +1789,7 @@ static int cm_fast_charge_disable(struct charger_manager *cm)
 	/*
 	 * adjust over voltage protection in 5V
 	 */
-	cm_update_charge_voltage_protection(cm, CHARGE_TYPE_NORMAL);
+	cm_update_charge_voltage_protection(cm, USB_CHARGE_TYPE_NORMAL);
 
 	/*
 	 * if enable jeita, we should adjust current
@@ -1758,7 +1797,7 @@ static int cm_fast_charge_disable(struct charger_manager *cm)
 	 * according to current temperature.
 	 */
 	if (desc->jeita_tab_size) {
-		cm_update_jeita_table(cm, POWER_SUPPLY_USB_TYPE_DCP);
+		cm_update_jeita_table(cm, POWER_SUPPLY_USB_CHARGER_TYPE_DCP);
 		cm_update_current_jeita_status(cm);
 	}
 
@@ -1809,8 +1848,8 @@ static int try_fast_charger_enable(struct charger_manager *cm, bool enable)
 {
 	int err = 0;
 
-	if (cm->desc->fast_charger_type != POWER_SUPPLY_USB_TYPE_PD &&
-	    cm->desc->fast_charger_type != POWER_SUPPLY_CHARGE_TYPE_FAST)
+	if (cm->desc->fast_charger_type != POWER_SUPPLY_USB_CHARGER_TYPE_PD &&
+	    cm->desc->fast_charger_type != POWER_SUPPLY_USB_CHARGER_TYPE_SFCP_1P0)
 		return 0;
 
 	if (enable) {
@@ -2581,8 +2620,8 @@ static void cm_cp_state_entry(struct charger_manager *cm)
 
 	cm_init_cp(cm);
 
-	cm_update_charge_voltage_protection(cm, CHARGE_TYPE_FLASH);
-	cm_update_jeita_table(cm, POWER_SUPPLY_USB_TYPE_PD_PPS);
+	cm_update_charge_voltage_protection(cm, USB_CHARGE_TYPE_FLASH);
+	cm_update_jeita_table(cm, POWER_SUPPLY_USB_CHARGER_TYPE_PD_PPS);
 	cm_update_current_jeita_status(cm);
 	cm_cp_master_charger_enable(cm, true);
 
@@ -2716,8 +2755,8 @@ static void cm_cp_state_exit(struct charger_manager *cm)
 	 */
 	cm_fast_enable_pps(cm, false);
 
-	cm_update_charge_voltage_protection(cm, CHARGE_TYPE_NORMAL);
-	cm_update_jeita_table(cm, POWER_SUPPLY_USB_TYPE_DCP);
+	cm_update_charge_voltage_protection(cm, USB_CHARGE_TYPE_NORMAL);
+	cm_update_jeita_table(cm, POWER_SUPPLY_USB_CHARGER_TYPE_DCP);
 
 	if (!cp->recovery)
 		cp->cp_running = false;
@@ -2823,7 +2862,7 @@ static bool cm_is_need_start_cp(struct charger_manager *cm)
 		 __func__, cp->check_cp_threshold, cp->cp_running, cm->desc->fast_charger_type);
 	if (cp->check_cp_threshold && !cp->cp_running &&
 	   cm_is_reach_cp_threshold(cm) && cm->charger_enabled &&
-	   cm->desc->fast_charger_type == POWER_SUPPLY_USB_TYPE_PD_PPS)
+	   cm->desc->fast_charger_type == POWER_SUPPLY_USB_CHARGER_TYPE_PD_PPS)
 		need = true;
 
 	return need;
@@ -3830,18 +3869,19 @@ static bool cm_charger_is_support_fchg(struct charger_manager *cm)
 			continue;
 		}
 
-		ret = power_supply_get_property(psy, POWER_SUPPLY_PROP_CHARGE_TYPE,
+		ret = power_supply_get_property(psy, POWER_SUPPLY_PROP_USB_TYPE,
 						&val);
 		power_supply_put(psy);
 		if (!ret) {
-			if (val.intval == POWER_SUPPLY_CHARGE_TYPE_FAST ||
+			if (val.intval == POWER_SUPPLY_USB_TYPE_SFCP_1P0 ||
 			    val.intval == POWER_SUPPLY_USB_TYPE_PD ||
-				val.intval == POWER_SUPPLY_USB_TYPE_PD_PPS) {
+			    val.intval == POWER_SUPPLY_USB_TYPE_PD_PPS) {
 				desc->is_fast_charge = true;
-				desc->fast_charger_type = val.intval;
 				if (!desc->psy_cp_stat &&
 				    val.intval == POWER_SUPPLY_USB_TYPE_PD_PPS)
-					desc->fast_charger_type = POWER_SUPPLY_USB_TYPE_PD;
+					val.intval = POWER_SUPPLY_USB_TYPE_PD;
+				cm_get_charger_type(cm, &val.intval);
+				desc->fast_charger_type = val.intval;
 				return true;
 			} else {
 				return false;
@@ -3912,7 +3952,7 @@ static void fast_charge_handler(struct charger_manager *cm)
 
 	cm_set_fast_charge_setting(cm);
 
-	if (cm->desc->fast_charger_type == POWER_SUPPLY_USB_TYPE_PD_PPS &&
+	if (cm->desc->fast_charger_type == POWER_SUPPLY_USB_CHARGER_TYPE_PD_PPS &&
 	    !cm->desc->cp.cp_running && cm->charger_enabled) {
 		cm_check_cp_start_condition(cm, true);
 		_cm_monitor(cm);
@@ -3950,15 +3990,15 @@ static void misc_event_handler(struct charger_manager *cm,
 			return;
 
 		cm_update_jeita_table(cm, cm->desc->charger_type);
-		cm_update_charge_voltage_protection(cm, CHARGE_TYPE_NORMAL);
+		cm_update_charge_voltage_protection(cm, USB_CHARGE_TYPE_NORMAL);
 
 		cm_set_fast_charge_setting(cm);
 
 		if (cm->desc->jeita_tab_size) {
 
 			if (cm->desc->is_fast_charge &&
-				cm->desc->charger_type == POWER_SUPPLY_USB_TYPE_UNKNOWN) {
-				cm_update_jeita_table(cm, POWER_SUPPLY_USB_TYPE_DCP);
+				cm->desc->charger_type == POWER_SUPPLY_CHARGER_TYPE_UNKNOWN) {
+				cm_update_jeita_table(cm, POWER_SUPPLY_USB_CHARGER_TYPE_DCP);
 			}
 
 			/*
@@ -4565,7 +4605,7 @@ static void cm_update_charger_type_status(struct charger_manager *cm)
 {
 
 	if (is_ext_pwr_online(cm)) {
-		if (cm->desc->charger_type == POWER_SUPPLY_USB_TYPE_DCP) {
+		if (cm->desc->charger_type == POWER_SUPPLY_USB_CHARGER_TYPE_DCP) {
 			wireless_main.WIRELESS_ONLINE = 0;
 			usb_main.USB_ONLINE = 0;
 			ac_main.AC_ONLINE = 1;

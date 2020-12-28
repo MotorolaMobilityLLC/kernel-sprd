@@ -212,9 +212,9 @@ static irqreturn_t sc2730_fchg_interrupt(int irq, void *dev_id)
 	if (info->state == POWER_SUPPLY_USB_TYPE_PD)
 		dev_info(info->dev, "Already PD, don't update SFCP\n");
 	else if ((int_sts & FCHG_INT_STS_DETDONE) && (int_sts0 & FCHG_OUT_OK_BIT))
-		info->state = POWER_SUPPLY_CHARGE_TYPE_FAST;
+		info->state = POWER_SUPPLY_USB_TYPE_SFCP_1P0;
 	else
-		info->state = POWER_SUPPLY_CHARGE_TYPE_TRICKLE;
+		info->state = POWER_SUPPLY_USB_TYPE_UNKNOWN;
 
 	complete(&info->completion);
 
@@ -278,7 +278,7 @@ static u32 sc2730_fchg_get_detect_status(struct sc2730_fchg_info *info)
 	 * status only when DCP charger is plugged in
 	 */
 	if (info->usb_phy->chg_type != DCP_TYPE)
-		return POWER_SUPPLY_CHARGE_TYPE_UNKNOWN;
+		return POWER_SUPPLY_USB_TYPE_UNKNOWN;
 
 	reinit_completion(&info->completion);
 
@@ -362,7 +362,7 @@ static u32 sc2730_fchg_get_detect_status(struct sc2730_fchg_info *info)
 					      SC2730_FCHG_TIMEOUT);
 	if (!timeout) {
 		dev_err(info->dev, "timeout to get fast charger status\n");
-		return POWER_SUPPLY_CHARGE_TYPE_UNKNOWN;
+		return POWER_SUPPLY_USB_TYPE_UNKNOWN;
 	}
 
 	/*
@@ -692,7 +692,7 @@ static void sc2730_fchg_pd_change_work(struct work_struct *data)
 		info->pd_enable = false;
 		info->pps_enable = false;
 		info->pps_active = false;
-		if (info->state != POWER_SUPPLY_CHARGE_TYPE_FAST)
+		if (info->state != POWER_SUPPLY_USB_TYPE_SFCP_1P0)
 			info->state = POWER_SUPPLY_USB_TYPE_C;
 	}
 
@@ -759,7 +759,7 @@ static int sc2730_fchg_usb_get_property(struct power_supply *psy,
 	mutex_lock(&info->lock);
 
 	switch (psp) {
-	case POWER_SUPPLY_PROP_CHARGE_TYPE:
+	case POWER_SUPPLY_PROP_USB_TYPE:
 		val->intval = info->state;
 		break;
 	case POWER_SUPPLY_PROP_VOLTAGE_MAX:
@@ -873,7 +873,7 @@ static void sc2730_fchg_work(struct work_struct *data)
 	mutex_lock(&info->lock);
 	if (!info->limit) {
 		if (!info->pps_enable || info->state != POWER_SUPPLY_USB_TYPE_PD_PPS)
-			info->state = POWER_SUPPLY_CHARGE_TYPE_UNKNOWN;
+			info->state = POWER_SUPPLY_USB_TYPE_UNKNOWN;
 
 		info->detected = false;
 		info->sfcp_enable = false;
@@ -883,7 +883,7 @@ static void sc2730_fchg_work(struct work_struct *data)
 		if (info->pd_enable || info->pps_enable) {
 			sc2730_fchg_disable(info);
 		} else if (sc2730_fchg_get_detect_status(info) ==
-		    POWER_SUPPLY_CHARGE_TYPE_FAST) {
+		    POWER_SUPPLY_USB_TYPE_SFCP_1P0) {
 			/*
 			 * Must release info->lock before send fast charge event
 			 * to charger manager, otherwise it will cause deadlock.
@@ -918,7 +918,7 @@ static int sc2730_fchg_probe(struct platform_device *pdev)
 
 	mutex_init(&info->lock);
 	info->dev = &pdev->dev;
-	info->state = POWER_SUPPLY_CHARGE_TYPE_UNKNOWN;
+	info->state = POWER_SUPPLY_USB_TYPE_UNKNOWN;
 	info->pdata = of_device_get_match_data(info->dev);
 	if (!info->pdata) {
 		dev_err(info->dev, "no matching driver data found\n");

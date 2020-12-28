@@ -363,8 +363,7 @@ static int bq2597x_read_word(struct bq2597x_charger_info *bq, u8 reg, u16 *data)
 	return ret;
 }
 
-static int bq2597x_update_bits(struct bq2597x_charger_info *bq, u8 reg,
-				    u8 mask, u8 data)
+static int bq2597x_update_bits(struct bq2597x_charger_info *bq, u8 reg, u8 mask, u8 data)
 {
 	int ret;
 	u8 tmp;
@@ -1112,7 +1111,7 @@ static int bq2597x_get_work_mode(struct bq2597x_charger_info *bq, int *mode)
 		*mode = BQ25970_ROLE_STDALONE;
 
 	dev_info(bq->dev, "work mode:%s\n", *mode == BQ25970_ROLE_STDALONE ? "Standalone" :
-			(*mode == BQ25970_ROLE_SLAVE ? "Slave" : "Master"));
+		 (*mode == BQ25970_ROLE_SLAVE ? "Slave" : "Master"));
 	return ret;
 }
 
@@ -1141,166 +1140,166 @@ static int bq2597x_parse_dt(struct bq2597x_charger_info *bq, struct device *dev)
 	if (!bq->cfg)
 		return -ENOMEM;
 
-	bq->cfg->bat_ovp_disable = of_property_read_bool(np,
-			"ti,bq2597x,bat-ovp-disable");
-	bq->cfg->bat_ocp_disable = of_property_read_bool(np,
-			"ti,bq2597x,bat-ocp-disable");
-	bq->cfg->bat_ovp_alm_disable = of_property_read_bool(np,
-			"ti,bq2597x,bat-ovp-alarm-disable");
-	bq->cfg->bat_ocp_alm_disable = of_property_read_bool(np,
-			"ti,bq2597x,bat-ocp-alarm-disable");
-	bq->cfg->bus_ocp_disable = of_property_read_bool(np,
-			"ti,bq2597x,bus-ocp-disable");
-	bq->cfg->bus_ovp_alm_disable = of_property_read_bool(np,
-			"ti,bq2597x,bus-ovp-alarm-disable");
-	bq->cfg->bus_ocp_alm_disable = of_property_read_bool(np,
-			"ti,bq2597x,bus-ocp-alarm-disable");
-	bq->cfg->bat_ucp_alm_disable = of_property_read_bool(np,
-			"ti,bq2597x,bat-ucp-alarm-disable");
-	bq->cfg->bat_therm_disable = of_property_read_bool(np,
-			"ti,bq2597x,bat-therm-disable");
-	bq->cfg->bus_therm_disable = of_property_read_bool(np,
-			"ti,bq2597x,bus-therm-disable");
-	bq->cfg->die_therm_disable = of_property_read_bool(np,
-			"ti,bq2597x,die-therm-disable");
-	bq->cfg->regulation_disable = of_property_read_bool(np,
-			"ti,bq2597x,regulation-disable");
+	bq->cfg->bat_ovp_disable =
+		of_property_read_bool(np, "ti,bq2597x,bat-ovp-disable");
+	bq->cfg->bat_ocp_disable =
+		of_property_read_bool(np, "ti,bq2597x,bat-ocp-disable");
+	bq->cfg->bat_ovp_alm_disable =
+		of_property_read_bool(np, "ti,bq2597x,bat-ovp-alarm-disable");
+	bq->cfg->bat_ocp_alm_disable =
+		of_property_read_bool(np, "ti,bq2597x,bat-ocp-alarm-disable");
+	bq->cfg->bus_ocp_disable =
+		of_property_read_bool(np, "ti,bq2597x,bus-ocp-disable");
+	bq->cfg->bus_ovp_alm_disable =
+		of_property_read_bool(np, "ti,bq2597x,bus-ovp-alarm-disable");
+	bq->cfg->bus_ocp_alm_disable
+		= of_property_read_bool(np, "ti,bq2597x,bus-ocp-alarm-disable");
+	bq->cfg->bat_ucp_alm_disable
+		= of_property_read_bool(np, "ti,bq2597x,bat-ucp-alarm-disable");
+	bq->cfg->bat_therm_disable
+		= of_property_read_bool(np, "ti,bq2597x,bat-therm-disable");
+	bq->cfg->bus_therm_disable
+		= of_property_read_bool(np, "ti,bq2597x,bus-therm-disable");
+	bq->cfg->die_therm_disable
+		= of_property_read_bool(np, "ti,bq2597x,die-therm-disable");
+	bq->cfg->regulation_disable
+		= of_property_read_bool(np, "ti,bq2597x,regulation-disable");
 	bq->int_pin = of_get_named_gpio(np, "irq-gpio", 0);
 
 	if (!gpio_is_valid(bq->int_pin))
 		dev_info(bq->dev, "no irq pin provided\n");
 
 	ret = of_property_read_u32(np, "ti,bq2597x,bat-ovp-threshold",
-			&bq->cfg->bat_ovp_th);
+				   &bq->cfg->bat_ovp_th);
 	if (ret) {
 		dev_err(bq->dev, "failed to read bat-ovp-threshold\n");
 		return ret;
 	}
 	ret = of_property_read_u32(np, "ti,bq2597x,bat-ovp-alarm-threshold",
-			&bq->cfg->bat_ovp_alm_th);
+				   &bq->cfg->bat_ovp_alm_th);
 	if (ret) {
 		dev_err(bq->dev, "failed to read bat-ovp-alarm-threshold\n");
 		return ret;
 	}
 	ret = of_property_read_u32(np, "ti,bq2597x,bat-ocp-threshold",
-			&bq->cfg->bat_ocp_th);
+				   &bq->cfg->bat_ocp_th);
 	if (ret) {
 		dev_err(bq->dev, "failed to read bat-ocp-threshold\n");
 		return ret;
 	}
 	ret = of_property_read_u32(np, "ti,bq2597x,bat-ocp-alarm-threshold",
-			&bq->cfg->bat_ocp_alm_th);
+				   &bq->cfg->bat_ocp_alm_th);
 	if (ret) {
 		dev_err(bq->dev, "failed to read bat-ocp-alarm-threshold\n");
 		return ret;
 	}
 	ret = of_property_read_u32(np, "ti,bq2597x,bus-ovp-threshold",
-			&bq->cfg->bus_ovp_th);
+				   &bq->cfg->bus_ovp_th);
 	if (ret) {
 		dev_err(bq->dev, "failed to read bus-ovp-threshold\n");
 		return ret;
 	}
 	ret = of_property_read_u32(np, "ti,bq2597x,bus-ovp-alarm-threshold",
-			&bq->cfg->bus_ovp_alm_th);
+				   &bq->cfg->bus_ovp_alm_th);
 	if (ret) {
 		dev_err(bq->dev, "failed to read bus-ovp-alarm-threshold\n");
 		return ret;
 	}
 	ret = of_property_read_u32(np, "ti,bq2597x,bus-ocp-threshold",
-			&bq->cfg->bus_ocp_th);
+				   &bq->cfg->bus_ocp_th);
 	if (ret) {
 		dev_err(bq->dev, "failed to read bus-ocp-threshold\n");
 		return ret;
 	}
 	ret = of_property_read_u32(np, "ti,bq2597x,bus-ocp-alarm-threshold",
-			&bq->cfg->bus_ocp_alm_th);
+				   &bq->cfg->bus_ocp_alm_th);
 	if (ret) {
 		dev_err(bq->dev, "failed to read bus-ocp-alarm-threshold\n");
 		return ret;
 	}
 	ret = of_property_read_u32(np, "ti,bq2597x,bat-ucp-alarm-threshold",
-			&bq->cfg->bat_ucp_alm_th);
+				   &bq->cfg->bat_ucp_alm_th);
 	if (ret) {
 		dev_err(bq->dev, "failed to read bat-ucp-alarm-threshold\n");
 		return ret;
 	}
 	ret = of_property_read_u32(np, "ti,bq2597x,bat-therm-threshold",
-			&bq->cfg->bat_therm_th);
+				   &bq->cfg->bat_therm_th);
 	if (ret) {
 		dev_err(bq->dev, "failed to read bat-therm-threshold\n");
 		return ret;
 	}
 	ret = of_property_read_u32(np, "ti,bq2597x,bus-therm-threshold",
-			&bq->cfg->bus_therm_th);
+				   &bq->cfg->bus_therm_th);
 	if (ret) {
 		dev_err(bq->dev, "failed to read bus-therm-threshold\n");
 		return ret;
 	}
 	ret = of_property_read_u32(np, "ti,bq2597x,die-therm-threshold",
-			&bq->cfg->die_therm_th);
+				   &bq->cfg->die_therm_th);
 	if (ret) {
 		dev_err(bq->dev, "failed to read die-therm-threshold\n");
 		return ret;
 	}
 
 	ret = of_property_read_u32(np, "ti,bq2597x,ac-ovp-threshold",
-			&bq->cfg->ac_ovp_th);
+				   &bq->cfg->ac_ovp_th);
 	if (ret) {
 		dev_err(bq->dev, "failed to read ac-ovp-threshold\n");
 		return ret;
 	}
 
 	ret = of_property_read_u32(np, "ti,bq2597x,sense-resistor-mohm",
-			&bq->cfg->sense_r_mohm);
+				   &bq->cfg->sense_r_mohm);
 	if (ret) {
 		dev_err(bq->dev, "failed to read sense-resistor-mohm\n");
 		return ret;
 	}
 
 	ret = of_property_read_u32(np, "ti,bq2597x,adc-sample-bits",
-			&bq->cfg->adc_sample_bits);
+				   &bq->cfg->adc_sample_bits);
 	if (ret) {
 		dev_err(bq->dev, "failed to read adc-sample-bits\n");
 		return ret;
 	}
 
 	ret = of_property_read_u32(np, "ti,bq2597x,ibat-regulation-threshold",
-			&bq->cfg->ibat_reg_th);
+				   &bq->cfg->ibat_reg_th);
 	if (ret) {
 		dev_err(bq->dev, "failed to read ibat-regulation-threshold\n");
 		return ret;
 	}
 
 	ret = of_property_read_u32(np, "ti,bq2597x,vbat-regulation-threshold",
-			&bq->cfg->vbat_reg_th);
+				   &bq->cfg->vbat_reg_th);
 	if (ret) {
 		dev_err(bq->dev, "failed to read vbat-regulation-threshold\n");
 		return ret;
 	}
 
 	ret = of_property_read_u32(np, "ti,bq2597x,vdrop-threshold",
-			&bq->cfg->vdrop_th);
+				   &bq->cfg->vdrop_th);
 	if (ret) {
 		dev_err(bq->dev, "failed to read vdrop-threshold\n");
 		return ret;
 	}
 
 	ret = of_property_read_u32(np, "ti,bq2597x,vdrop-deglitch",
-			&bq->cfg->vdrop_deglitch);
+				   &bq->cfg->vdrop_deglitch);
 	if (ret) {
 		dev_err(bq->dev, "failed to read vdrop-deglitch\n");
 		return ret;
 	}
 
 	ret = of_property_read_u32(np, "ti,bq2597x,ss-timeout",
-			&bq->cfg->ss_timeout);
+				   &bq->cfg->ss_timeout);
 	if (ret) {
 		dev_err(bq->dev, "failed to read ss-timeout\n");
 		return ret;
 	}
 
 	ret = of_property_read_u32(np, "ti,bq2597x,watchdog-timer",
-			&bq->cfg->wdt_timer);
+				   &bq->cfg->wdt_timer);
 	if (ret) {
 		dev_err(bq->dev, "failed to read watchdog-timer\n");
 		return ret;
@@ -1315,108 +1314,110 @@ static int bq2597x_init_protection(struct bq2597x_charger_info *bq)
 
 	ret = bq2597x_enable_batovp(bq, !bq->cfg->bat_ovp_disable);
 	dev_info(bq->dev, "%s bat ovp %s\n",
-		bq->cfg->bat_ovp_disable ? "disable" : "enable",
-		!ret ? "successfullly" : "failed");
+		 bq->cfg->bat_ovp_disable ? "disable" : "enable",
+		 !ret ? "successfullly" : "failed");
 
 	ret = bq2597x_enable_batocp(bq, !bq->cfg->bat_ocp_disable);
 	dev_info(bq->dev, "%s bat ocp %s\n",
-		bq->cfg->bat_ocp_disable ? "disable" : "enable",
-		!ret ? "successfullly" : "failed");
+		 bq->cfg->bat_ocp_disable ? "disable" : "enable",
+		 !ret ? "successfullly" : "failed");
 
 	ret = bq2597x_enable_batovp_alarm(bq, !bq->cfg->bat_ovp_alm_disable);
 	dev_info(bq->dev, "%s bat ovp alarm %s\n",
-		bq->cfg->bat_ovp_alm_disable ? "disable" : "enable",
-		!ret ? "successfullly" : "failed");
+		 bq->cfg->bat_ovp_alm_disable ? "disable" : "enable",
+		 !ret ? "successfullly" : "failed");
 
 	ret = bq2597x_enable_batocp_alarm(bq, !bq->cfg->bat_ocp_alm_disable);
 	dev_info(bq->dev, "%s bat ocp alarm %s\n",
-		bq->cfg->bat_ocp_alm_disable ? "disable" : "enable",
-		!ret ? "successfullly" : "failed");
+		 bq->cfg->bat_ocp_alm_disable ? "disable" : "enable",
+		 !ret ? "successfullly" : "failed");
 
 	ret = bq2597x_enable_batucp_alarm(bq, !bq->cfg->bat_ucp_alm_disable);
 	dev_info(bq->dev, "%s bat ocp alarm %s\n",
-		bq->cfg->bat_ucp_alm_disable ? "disable" : "enable",
-		!ret ? "successfullly" : "failed");
+		 bq->cfg->bat_ucp_alm_disable ? "disable" : "enable",
+		 !ret ? "successfullly" : "failed");
 
 	ret = bq2597x_enable_busovp_alarm(bq, !bq->cfg->bus_ovp_alm_disable);
 	dev_info(bq->dev, "%s bus ovp alarm %s\n",
-		bq->cfg->bus_ovp_alm_disable ? "disable" : "enable",
-		!ret ? "successfullly" : "failed");
+		 bq->cfg->bus_ovp_alm_disable ? "disable" : "enable",
+		 !ret ? "successfullly" : "failed");
 
 	ret = bq2597x_enable_busocp(bq, !bq->cfg->bus_ocp_disable);
 	dev_info(bq->dev, "%s bus ocp %s\n",
-		bq->cfg->bus_ocp_disable ? "disable" : "enable",
-		!ret ? "successfullly" : "failed");
+		 bq->cfg->bus_ocp_disable ? "disable" : "enable",
+		 !ret ? "successfullly" : "failed");
 
 	ret = bq2597x_enable_busocp_alarm(bq, !bq->cfg->bus_ocp_alm_disable);
 	dev_info(bq->dev, "%s bus ocp alarm %s\n",
-		bq->cfg->bus_ocp_alm_disable ? "disable" : "enable",
-		!ret ? "successfullly" : "failed");
+		 bq->cfg->bus_ocp_alm_disable ? "disable" : "enable",
+		 !ret ? "successfullly" : "failed");
 
 	ret = bq2597x_enable_bat_therm(bq, !bq->cfg->bat_therm_disable);
 	dev_info(bq->dev, "%s bat therm %s\n",
-		bq->cfg->bat_therm_disable ? "disable" : "enable",
-		!ret ? "successfullly" : "failed");
+		 bq->cfg->bat_therm_disable ? "disable" : "enable",
+		 !ret ? "successfullly" : "failed");
 
 	ret = bq2597x_enable_bus_therm(bq, !bq->cfg->bus_therm_disable);
 	dev_info(bq->dev, "%s bus therm %s\n",
-		bq->cfg->bus_therm_disable ? "disable" : "enable",
-		!ret ? "successfullly" : "failed");
+		 bq->cfg->bus_therm_disable ? "disable" : "enable",
+		 !ret ? "successfullly" : "failed");
 
 	ret = bq2597x_enable_die_therm(bq, !bq->cfg->die_therm_disable);
 	dev_info(bq->dev, "%s die therm %s\n",
-		bq->cfg->die_therm_disable ? "disable" : "enable",
-		!ret ? "successfullly" : "failed");
+		 bq->cfg->die_therm_disable ? "disable" : "enable",
+		 !ret ? "successfullly" : "failed");
 
 	ret = bq2597x_set_batovp_th(bq, bq->cfg->bat_ovp_th);
 	dev_info(bq->dev, "set bat ovp th %d %s\n", bq->cfg->bat_ovp_th,
-		!ret ? "successfully" : "failed");
+		 !ret ? "successfully" : "failed");
 
 	ret = bq2597x_set_batovp_alarm_th(bq, bq->cfg->bat_ovp_alm_th);
 	dev_info(bq->dev, "set bat ovp alarm threshold %d %s\n", bq->cfg->bat_ovp_alm_th,
-		!ret ? "successfully" : "failed");
+		 !ret ? "successfully" : "failed");
 
 	ret = bq2597x_set_batocp_th(bq, bq->cfg->bat_ocp_th);
 	dev_info(bq->dev, "set bat ocp threshold %d %s\n", bq->cfg->bat_ocp_th,
-		!ret ? "successfully" : "failed");
+		 !ret ? "successfully" : "failed");
 
 	ret = bq2597x_set_batocp_alarm_th(bq, bq->cfg->bat_ocp_alm_th);
 	dev_info(bq->dev, "set bat ocp alarm threshold %d %s\n", bq->cfg->bat_ocp_alm_th,
-		!ret ? "successfully" : "failed");
+		 !ret ? "successfully" : "failed");
 
 	ret = bq2597x_set_busovp_th(bq, bq->cfg->bus_ovp_th);
 	dev_info(bq->dev, "set bus ovp threshold %d %s\n", bq->cfg->bus_ovp_th,
-		!ret ? "successfully" : "failed");
+		 !ret ? "successfully" : "failed");
 
 	ret = bq2597x_set_busovp_alarm_th(bq, bq->cfg->bus_ovp_alm_th);
 	dev_info(bq->dev, "set bus ovp alarm threshold %d %s\n", bq->cfg->bus_ovp_alm_th,
-		!ret ? "successfully" : "failed");
+		 !ret ? "successfully" : "failed");
 
 	ret = bq2597x_set_busocp_th(bq, bq->cfg->bus_ocp_th);
 	dev_info(bq->dev, "set bus ocp threshold %d %s\n", bq->cfg->bus_ocp_th,
-		!ret ? "successfully" : "failed");
+		 !ret ? "successfully" : "failed");
 
 	ret = bq2597x_set_busocp_alarm_th(bq, bq->cfg->bus_ocp_alm_th);
 	dev_info(bq->dev, "set bus ocp alarm th %d %s\n", bq->cfg->bus_ocp_alm_th,
-		!ret ? "successfully" : "failed");
+		 !ret ? "successfully" : "failed");
 
 	ret = bq2597x_set_batucp_alarm_th(bq, bq->cfg->bat_ucp_alm_th);
 	dev_info(bq->dev, "set bat ucp threshold %d %s\n", bq->cfg->bat_ucp_alm_th,
-		!ret ? "successfully" : "failed");
+		 !ret ? "successfully" : "failed");
 
 	ret = bq2597x_set_bat_therm_th(bq, bq->cfg->bat_therm_th);
 	dev_info(bq->dev, "set die therm threshold %d %s\n", bq->cfg->bat_therm_th,
-		!ret ? "successfully" : "failed");
+		 !ret ? "successfully" : "failed");
+
 	ret = bq2597x_set_bus_therm_th(bq, bq->cfg->bus_therm_th);
 	dev_info(bq->dev, "set bus therm threshold %d %s\n", bq->cfg->bus_therm_th,
-		!ret ? "successfully" : "failed");
+		 !ret ? "successfully" : "failed");
+
 	ret = bq2597x_set_die_therm_th(bq, bq->cfg->die_therm_th);
 	dev_info(bq->dev, "set die therm threshold %d %s\n", bq->cfg->die_therm_th,
-		!ret ? "successfully" : "failed");
+		 !ret ? "successfully" : "failed");
 
 	ret = bq2597x_set_acovp_th(bq, bq->cfg->ac_ovp_th);
 	dev_info(bq->dev, "set ac ovp threshold %d %s\n", bq->cfg->ac_ovp_th,
-		!ret ? "successfully" : "failed");
+		 !ret ? "successfully" : "failed");
 
 	return 0;
 }
@@ -1521,7 +1522,7 @@ static ssize_t bq2597x_show_registers(struct device *dev,
 		ret = bq2597x_read_byte(bq, addr, &val);
 		if (ret == 0) {
 			len = snprintf(tmpbuf, PAGE_SIZE - idx,
-					"Reg[%.2X] = 0x%.2x\n", addr, val);
+				       "Reg[%.2X] = 0x%.2x\n", addr, val);
 			memcpy(&buf[idx], tmpbuf, len);
 			idx += len;
 		}
@@ -1566,6 +1567,7 @@ static enum power_supply_property bq2597x_charger_props[] = {
 	POWER_SUPPLY_PROP_TEMP,
 	POWER_SUPPLY_PROP_INPUT_CURRENT_NOW,
 	POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE,
+	POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE_MAX,
 	POWER_SUPPLY_PROP_ALARM_STATUS,
 	POWER_SUPPLY_PROP_FAULT_STATUS,
 	POWER_SUPPLY_PROP_REG_STATUS,
@@ -1762,7 +1764,7 @@ static int bq2597x_charger_set_property(struct power_supply *psy,
 		bq2597x_enable_charge(bq, val->intval);
 		bq2597x_check_charge_enabled(bq, &bq->charge_enabled);
 		dev_info(bq->dev, "POWER_SUPPLY_PROP_CHARGING_ENABLED: %s\n",
-				val->intval ? "enable" : "disable");
+			 val->intval ? "enable" : "disable");
 		break;
 
 	case POWER_SUPPLY_PROP_FEED_WATCHDOG:
@@ -1776,8 +1778,8 @@ static int bq2597x_charger_set_property(struct power_supply *psy,
 		break;
 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE_MAX:
 		ret = bq2597x_set_batovp_th(bq, val->intval / 1000);
-		dev_info(bq->dev, "set bat ovp th %d mv %s\n", val->intval / 1000,
-			!ret ? "successfully" : "failed");
+		dev_info(bq->dev, "set bat ovp th %d mv %s\n",
+			 val->intval / 1000, !ret ? "successfully" : "failed");
 		break;
 
 	default:
@@ -2002,18 +2004,10 @@ static void create_debugfs_entry(struct bq2597x_charger_info *bq)
 		dev_err(bq->dev, "Failed to create debug dir\n");
 
 	if (bq->debug_root) {
-		debugfs_create_file("registers",
-					0444,
-					bq->debug_root, bq, &reg_debugfs_ops);
+		debugfs_create_file("registers", 0444, bq->debug_root, bq, &reg_debugfs_ops);
 
-		debugfs_create_x32("skip_reads",
-					0644,
-					bq->debug_root,
-					&(bq->skip_reads));
-		debugfs_create_x32("skip_writes",
-					0644,
-					bq->debug_root,
-					&(bq->skip_writes));
+		debugfs_create_x32("skip_reads", 0644, bq->debug_root, &(bq->skip_reads));
+		debugfs_create_x32("skip_writes", 0644, bq->debug_root, &(bq->skip_writes));
 	}
 }
 
@@ -2109,12 +2103,12 @@ static int bq2597x_charger_probe(struct i2c_client *client,
 	client->irq =  gpio_to_irq(bq->int_pin);
 	if (client->irq) {
 		ret = devm_request_threaded_irq(&client->dev, client->irq,
-				NULL, bq2597x_charger_interrupt,
-				IRQF_TRIGGER_FALLING | IRQF_ONESHOT,
-				"bq2597x charger irq", bq);
+						NULL, bq2597x_charger_interrupt,
+						IRQF_TRIGGER_FALLING | IRQF_ONESHOT,
+						"bq2597x charger irq", bq);
 		if (ret < 0) {
 			dev_err(bq->dev, "request irq for irq=%d failed, ret =%d\n",
-							client->irq, ret);
+				client->irq, ret);
 			goto err_1;
 		}
 		enable_irq_wake(client->irq);
@@ -2131,8 +2125,7 @@ static int bq2597x_charger_probe(struct i2c_client *client,
 
 	determine_initial_status(bq);
 
-	dev_info(bq->dev, "bq2597x probe successfully, Part Num:%d\n!",
-				bq->part_no);
+	dev_info(bq->dev, "bq2597x probe successfully, Part Num:%d\n!", bq->part_no);
 
 	return 0;
 
