@@ -948,6 +948,11 @@
 				interrupts = <GIC_SPI 72 IRQ_TYPE_LEVEL_HIGH>;
 			};
 
+			timer@32040000 {
+				compatible = "sprd,sysfrt-timer";
+				reg = <0 0x32040000 0 0x10>;
+			};
+
 			timer@32050000 {
 				compatible = "sprd,sharkl5Pro-timer",
 						"sprd,sc9860-timer";
@@ -1503,6 +1508,11 @@
 				sprd,target-addr = <0 0>;
 				sprd,target-data = <0 0>;
 			 };
+
+			timer@322e0000 {
+				compatible = "sprd,syst-timer";
+				reg = <0 0x322e0000 0 0x10>;
+			};
 
 			hsphy: hsphy@323b0000 {
 				compatible = "sprd,sharkl5-phy", "sprd,sharkl5pro-phy";
