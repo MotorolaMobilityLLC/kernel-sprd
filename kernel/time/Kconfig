@@ -143,5 +143,11 @@ config HIGH_RES_TIMERS
 	  hardware is not capable then this option only increases
 	  the size of the kernel image.
 
+config SPRD_TIMER_GCOV
+	bool "open gcov for kernel timer"
+	depends on GCOV_PROFILE_MODULES
+	help
+	  Say Y here enable gcov in timer
+
 endmenu
 endif

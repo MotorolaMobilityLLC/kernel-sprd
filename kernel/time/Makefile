@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: GPL-2.0
 obj-y += time.o timer.o hrtimer.o
+GCOV_PROFILE_hrtimer.o := ${CONFIG_SPRD_TIMER_GCOV}
 obj-y += timekeeping.o ntp.o clocksource.o jiffies.o timer_list.o
+GCOV_PROFILE_timekeeping.o := ${CONFIG_SPRD_TIMER_GCOV}
 obj-y += timeconv.o timecounter.o alarmtimer.o
 
 ifeq ($(CONFIG_POSIX_TIMERS),y)
