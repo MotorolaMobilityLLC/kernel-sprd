@@ -82,6 +82,14 @@ config CORESIGHT_SOURCE_ETM4X
 	  for instruction level tracing. Depending on the implemented version
 	  data tracing may also be available.
 
+config CORESIGHT_APETB
+	bool "CoreSight APETB driver"
+	depends on CORESIGHT_SOURCE_ETM4X
+	select CORESIGHT_LINKS_AND_SINKS
+	help
+	  This driver provides support for ylog control APETB function, will automatic
+	  call enable_sink and enable_source.
+
 config CORESIGHT_DYNAMIC_REPLICATOR
 	bool "CoreSight Programmable Replicator driver"
 	depends on CORESIGHT_LINKS_AND_SINKS
