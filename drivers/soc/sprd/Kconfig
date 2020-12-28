@@ -31,4 +31,11 @@ config SPRD_MEMDISK_PARTITION
 	help
 	  This option will divide memdisk into multiple partitions,
 	  used to load different android images on the haps platform.
+
+config SPRD_SYSTIMER
+	tristate "Spreadtrum system timer driver (systimer/sysfrt)"
+	depends on ARCH_SPRD
+	default m
+	help
+	  Support sprd system timer driver.
 endmenu

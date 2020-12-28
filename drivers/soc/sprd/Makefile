@@ -9,3 +9,4 @@ obj-y				+= performance/
 obj-$(CONFIG_SPRD_IOMMU)        += iommu/
 obj-$(CONFIG_SPRD_MEMDISK)	+= sprd_memdisk.o
 obj-$(CONFIG_SPRD_SFP_SUPPORT)	+= sfp/
+obj-$(CONFIG_SPRD_SYSTIMER)	+= sprd_systimer.o
