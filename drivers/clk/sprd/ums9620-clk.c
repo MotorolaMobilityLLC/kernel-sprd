@@ -1187,6 +1187,34 @@ static SPRD_SC_GATE_CLK(debug_ts_en, "debug-ts-en", "ext-26m", 0x13c,
 static SPRD_SC_GATE_CLK(access_aud_en, "access-aud-en", "ext-26m", 0x14c,
 			0x1000, BIT(0), 0, 0);
 
+static const char * const aux_parents[] = { "ext-32k", "phyr8pll-38m18",
+					    "psr8pll-38m18", "pixelpll-41m76",
+					    "cpll-31m94", "v4nrpll-38m4",
+					    "lvdsrfpll-48m", "lvdsrf-rx-48m",
+					    "lvdsrf-tx-48m", "rpll-26m",
+					    "tgpll-48m", "mplllit-13m2",
+					    "mplls-17m26", "mpllb-15m64",
+					    "mpllm-13m3", "rco-150m-37m5",
+					    "rco-100m-25m", "rco-60m",
+					    "rco-6m", "clk-52m-a2d",
+					    "clk-26m-a2d", "clk-26m-aud",
+					    "gpll-53m5", "aipll-30m87",
+					    "pciepll-50m", "pciepllv-26m-52m",
+					    "usb31pllv-26m", "vdsppll-31m68",
+					    "audpll-38m4", "audpll-19m2",
+					    "audpll-12m28" };
+
+static SPRD_COMP_CLK(aux0_clk, "aux0-clk", aux_parents, 0x240,
+		    6, 6, 0, 6, 0);
+static SPRD_COMP_CLK(aux1_clk, "aux1-clk", aux_parents, 0x244,
+		    6, 6, 0, 6, 0);
+static SPRD_COMP_CLK(aux2_clk, "aux2-clk", aux_parents, 0x248,
+		    6, 6, 0, 6, 0);
+static SPRD_COMP_CLK(probe_clk, "probe-clk", aux_parents, 0x24c,
+		    6, 6, 0, 6, 0);
+static SPRD_COMP_CLK(aux3_clk, "aux3-clk", aux_parents, 0xd20,
+		    6, 6, 0, 6, 0);
+
 static struct sprd_clk_common *ums9620_aon_gate[] = {
 	/* address base is 0x64900000 */
 	&rc100m_cal_eb.common,
@@ -1295,6 +1323,11 @@ static struct sprd_clk_common *ums9620_aon_gate[] = {
 	&cphy_cfg_en.common,
 	&debug_ts_en.common,
 	&access_aud_en.common,
+	&aux0_clk.common,
+	&aux1_clk.common,
+	&aux2_clk.common,
+	&probe_clk.common,
+	&aux3_clk.common,
 };
 
 static struct clk_hw_onecell_data ums9620_aon_gate_hws = {
@@ -1405,6 +1438,11 @@ static struct clk_hw_onecell_data ums9620_aon_gate_hws = {
 		[CLK_CPHY_CFG_EN]	= &cphy_cfg_en.common.hw,
 		[CLK_DEBUG_TS_EN]	= &debug_ts_en.common.hw,
 		[CLK_ACCESS_AUD_EN]	= &access_aud_en.common.hw,
+		[CLK_AUX0]		= &aux0_clk.common.hw,
+		[CLK_AUX1]		= &aux1_clk.common.hw,
+		[CLK_AUX2]		= &aux2_clk.common.hw,
+		[CLK_PROBE]		= &probe_clk.common.hw,
+		[CLK_AUX3]		= &aux3_clk.common.hw,
 	},
 	.num	= CLK_AON_APB_GATE_NUM,
 };
@@ -2981,7 +3019,7 @@ static const struct of_device_id sprd_ums9620_clk_ids[] = {
 	  .data = &ums9620_ipa_clk_desc },
 	{ .compatible = "sprd,ums9620-ipaglb-gate",	/* 0x25240000 */
 	  .data = &ums9620_ipaglb_gate_desc },
-	{ .compatible = "sprd,ums9620-ipadispc-gate",	/* 0x6481a000 */
+	{ .compatible = "sprd,ums9620-ipadispc-gate",	/* 0x31800000 */
 	  .data = &ums9620_ipadispcglb_gate_desc },
 	{ .compatible = "sprd,ums9620-pcieapb-gate",	/* 0x26000000 */
 	  .data = &ums9620_pcieapb_gate_desc },
