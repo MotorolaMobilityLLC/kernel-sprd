@@ -59,6 +59,7 @@ s_wifi_efuse_id[WCN_PLATFORM_TYPE][WIFI_EFUSE_BLOCK_COUNT] = {
 	{20, 24, 28},	/* sharkle */
 	{8, 12, 16},	/* pike2 */
 	{20, 24, 28},	/* sharkl3 */
+	{81, 81, 81},	/* qogirl6 */
 };
 
 static const u32
@@ -66,6 +67,7 @@ s_gnss_efuse_id[WCN_PLATFORM_TYPE][GNSS_EFUSE_BLOCK_COUNT] = {
 	{16, 24, 28},	/* sharkle */
 	{32, 12, 16},	/* pike2 */
 	{32, 24, 28},	/* sharkl3 */
+	{81, 81, 81},	/* qogirl6 */
 };
 
 static void wcn_global_source_init(void)
@@ -342,8 +344,12 @@ static void marlin_write_efuse_data(void)
 			 tmp_value[iloop]);
 	}
 	/* copy efuse data to target ddr address */
-	phy_addr = s_wcn_device.btwf_device->base_addr +
-		   (phys_addr_t)&s_wssm_phy_offset_p->wifi.efuse[0];
+	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6)
+		phy_addr = s_wcn_device.btwf_device->base_addr +
+			   (phys_addr_t)&s_wssm_phy_offset_p->efuse[0];
+	else
+		phy_addr = s_wcn_device.btwf_device->base_addr +
+			   (phys_addr_t)&s_wssm_phy_offset_p->wifi.efuse[0];
 	wcn_write_data_to_phy_addr(phy_addr, &tmp_value,
 				   sizeof(tmp_value[0]) *
 				   WIFI_EFUSE_BLOCK_COUNT);
@@ -384,6 +390,7 @@ void wcn_marlin_write_efuse(void)
 /* used for provide efuse data to gnss */
 void gnss_write_efuse_data(void)
 {
+	struct wcn_device *wcn_dev = s_wcn_device.gnss_device;
 	phys_addr_t phy_addr, phy_addr1;
 	u32 efuse_enable_value = GNSS_EFUSE_ENABLE_VALUE;
 	u32 iloop = 0;
@@ -400,13 +407,18 @@ void gnss_write_efuse_data(void)
 			 tmp_value[iloop]);
 	}
 	/* copy efuse data to target ddr address */
-	phy_addr = s_wcn_device.gnss_device->base_addr +
-		   GNSS_EFUSE_DATA_OFFSET;
+	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6)
+		phy_addr = wcn_dev->base_addr +
+				wcn_get_apcp_sync_addr(wcn_dev) +
+				s_wcngnss_sync_addr.gnss_efuse_value;
+	else
+		phy_addr = wcn_dev->base_addr +
+			   GNSS_EFUSE_DATA_OFFSET;
 	wcn_write_data_to_phy_addr(phy_addr, &tmp_value,
 				   sizeof(tmp_value[0]) *
 				   GNSS_EFUSE_BLOCK_COUNT);
 	/*write efuse function enable value*/
-	phy_addr1 = s_wcn_device.gnss_device->base_addr +
+	phy_addr1 = wcn_dev->base_addr +
 		    GNSS_EFUSE_ENABLE_ADDR;
 	wcn_write_data_to_phy_addr(phy_addr1, &efuse_enable_value, 4);
 
@@ -436,11 +448,9 @@ static void wcn_parse_dt_regmap_judge(struct wcn_device *wcn_dev)
 			wcn_dev->need_regmap[REGMAP_WCN_BTWF_AHB] = TRUE;
 		else if (strcmp(wcn_dev->name, WCN_GNSS_DEV_NAME) == 0)
 			wcn_dev->need_regmap[REGMAP_WCN_GNSS_SYS_AHB] = TRUE;
-
 		wcn_dev->need_regmap[REGMAP_WCN_AON_AHB] = TRUE;
 		wcn_dev->need_regmap[REGMAP_WCN_AON_APB] = TRUE;
 		wcn_dev->need_regmap[REGMAP_ANLG_WRAP_WCN] = FALSE;
-		wcn_dev->need_sync_efuse = FALSE;
 		wcn_dev->need_set_sync_addr = TRUE;
 		wcn_dev->need_gpio = TRUE;
 		wcn_dev->need_dcxo1v8 = TRUE;

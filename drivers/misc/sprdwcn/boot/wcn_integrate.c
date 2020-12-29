@@ -44,8 +44,9 @@ struct wcn_special_share_mem *s_wssm_phy_offset_p =
 
 struct wcn_gnss_special_share_mem s_wcngnss_sync_addr = {
 	WCN_GNSS_SPECIAL_SHARME_MEM_ADDR,
-	0x34,
+	0x34, /* init_status_phy_addr */
 	WCN_GNSS_DDR_OFFSET,
+	0x08, /* gnss_efuse_value */
 };
 
 static void wcn_dfs_status_show(struct wcn_dfs_sync_info *dfs_info)

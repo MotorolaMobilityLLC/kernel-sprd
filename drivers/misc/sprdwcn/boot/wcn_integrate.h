@@ -143,6 +143,7 @@ struct wcn_gnss_special_share_mem {
 	phys_addr_t sync_base_addr;
 	phys_addr_t init_status_phy_addr;
 	phys_addr_t gnss_ddr_offset;
+	phys_addr_t gnss_efuse_value;
 	phys_addr_t cali_status;
 	phys_addr_t gnss_test;
 };
@@ -170,13 +171,23 @@ struct wcn_dfs_sync_info {
 #ifdef CONFIG_UMW2631_I
 #define WCN_SPECIAL_SHARME_MEM_ADDR	(0x007fdc00)
 struct wcn_special_share_mem {
+	/* 0x007fdc00 */
 	struct marlin_special_share_mem marlin;
+	/* 0x007fdc08 */
 	u32 gnss_flag_addr;
+	/* 0x007fdc0c */
 	u32 include_gnss;
+	/* 0x007fdc10 */
 	u32 cp2_sleep_status;
+	/* 0x007fdc14 */
 	u32 sleep_flag_addr;
+	/* 0x007fdc18 */
 	u32 efuse_temper_magic;
+	/* 0x007fdc1c */
 	u32 efuse_temper_val;
+	/* 0x007fdc20 */
+	/* use for wifi */
+	u32 efuse[WIFI_EFUSE_BLOCK_COUNT];
 	struct wifi_special_share_mem wifi;
 };
 #else
@@ -200,6 +211,7 @@ struct wcn_special_share_mem {
 	u32 efuse_temper_val;
 	/* 0x17cf74 */
 	struct gnss_special_share_mem gnss;
+	u32 efuse[WIFI_EFUSE_BLOCK_COUNT];
 };
 #endif
 /* for qogirl6 */
