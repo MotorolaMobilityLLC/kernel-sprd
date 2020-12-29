@@ -2490,10 +2490,10 @@ charger_set_property(struct power_supply *psy,
 			ret = power_supply_set_property(psy,
 							POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT,
 							(const union power_supply_propval *)&thermal_val);
-			if (!ret) {
-				power_supply_put(psy);
-				break;
-			}
+			//if (!ret) {
+			//	power_supply_put(psy);
+			//	break;
+			//}
 
 			if (cm->desc->jeita_tab_size) {
 				cur_jeita_status = cm_manager_get_jeita_status(cm, cm->desc->temperature);
@@ -2506,10 +2506,10 @@ charger_set_property(struct power_supply *psy,
 			ret = power_supply_set_property(psy,
 							POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT,
 							(const union power_supply_propval *)&thermal_val);
-			if (!ret) {
+		//	if (!ret) {
 				power_supply_put(psy);
 				break;
-			}
+		//	}
 		}
 		break;
 
