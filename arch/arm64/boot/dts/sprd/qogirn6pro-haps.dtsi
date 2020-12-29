@@ -42,6 +42,12 @@
 			reg = <0 0x64910000 0 0x3000>;
 		};
 
+		pub_apb_regs: syscon@60050000 {
+			compatible = "sprd,ums9520-glbregs", "syscon";
+			#syscon-cells = <2>;
+			reg = <0 0x60050000 0 0x10000>;
+		};
+
 		ap-apb {
 			compatible = "simple-bus";
 			#address-cells = <1>;
@@ -289,6 +295,15 @@
 				interrupt-controller;
 				#interrupt-cells = <2>;
 				interrupts = <GIC_SPI 72 IRQ_TYPE_LEVEL_HIGH>;
+			};
+
+			apdu_if: apdu@500000 {
+				compatible = "sprd,qogirn6pro-apdu";
+				reg = <0x500000 0x10000>;
+				sprd,sys-pub-reg = <&pub_apb_regs>;
+				sprd,pub-ise-reg-offset = <0x3368>;
+				sprd,pub-ise-bit-offset = <15>;
+				interrupts = <GIC_SPI 49 IRQ_TYPE_LEVEL_HIGH>;
 			};
 
 			aon_mailbox: mailbox@600000 {
