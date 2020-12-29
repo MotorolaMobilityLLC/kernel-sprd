@@ -58,6 +58,8 @@
 #define SC2730_EFUSE_CC2_SHIFT		0
 #define SC2721_EFUSE_CC1_SHIFT		11
 #define SC2721_EFUSE_CC2_SHIFT		6
+#define UMP9620_EFUSE_CC1_SHIFT		1
+#define UMP9620_EFUSE_CC2_SHIFT		11
 
 #define SC27XX_CC_MASK(n)		GENMASK((n) + 4, (n))
 #define SC27XX_CC_SHIFT(n)		(n)
@@ -129,6 +131,18 @@ static const struct sprd_typec_variant_data sc2721_data = {
 	.detach_en = SC2721_DETACH_INT_EN,
 	.state_mask = SC2721_STATE_MASK,
 	.event_mask = SC2721_EVENT_MASK,
+};
+
+static const struct sprd_typec_variant_data ump9620_data = {
+	.efuse_cc1_shift = UMP9620_EFUSE_CC1_SHIFT,
+	.efuse_cc2_shift = UMP9620_EFUSE_CC2_SHIFT,
+	.int_en = SC27XX_INT_EN,
+	.int_clr = SC27XX_INT_CLR,
+	.mode = SC27XX_MODE,
+	.attach_en = SC27XX_ATTACH_INT_EN,
+	.detach_en = SC27XX_DETACH_INT_EN,
+	.state_mask = SC27XX_STATE_MASK,
+	.event_mask = SC27XX_EVENT_MASK,
 };
 
 struct sc27xx_typec {
@@ -544,6 +558,7 @@ static int sc27xx_typec_remove(struct platform_device *pdev)
 static const struct of_device_id typec_sprd_match[] = {
 	{.compatible = "sprd,sc2730-typec", .data = &sc2730_data},
 	{.compatible = "sprd,sc2721-typec", .data = &sc2721_data},
+	{.compatible = "sprd,ump96xx-typec", .data = &ump9620_data},
 	{},
 };
 MODULE_DEVICE_TABLE(of, typec_sprd_match);
