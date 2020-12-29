@@ -296,3 +296,64 @@
 		};
 	};
 };
+
+&i2c0 {
+	clock-names = "enable", "i2c", "source";
+	clocks = <&apahb_gate CLK_I2C0_EB>,
+		 <&ap_clk CLK_AP_I2C0>, <&ext_26m>;
+};
+
+&i2c1 {
+	clock-names = "enable", "i2c", "source";
+	clocks = <&apahb_gate CLK_I2C1_EB>,
+		 <&ap_clk CLK_AP_I2C1>, <&ext_26m>;
+};
+
+&i2c2 {
+	clock-names = "enable", "i2c", "source";
+	clocks = <&apahb_gate CLK_I2C2_EB>,
+		 <&ap_clk CLK_AP_I2C2>, <&ext_26m>;
+};
+
+&i2c3 {
+	clock-names = "enable", "i2c", "source";
+	clocks = <&apahb_gate CLK_I2C3_EB>,
+		 <&ap_clk CLK_AP_I2C3>, <&ext_26m>;
+};
+
+&i2c4 {
+	clock-names = "enable", "i2c", "source";
+	clocks = <&apahb_gate CLK_I2C4_EB>,
+		 <&ap_clk CLK_AP_I2C4>, <&ext_26m>;
+};
+
+&i2c5 {
+	clock-names = "enable", "i2c", "source";
+	clocks = <&apahb_gate CLK_I2C5_EB>,
+		 <&ap_clk CLK_AP_I2C5>, <&ext_26m>;
+};
+
+&i2c6 {
+	clock-names = "enable", "i2c", "source";
+	clocks = <&apahb_gate CLK_I2C6_EB>,
+		 <&ap_clk CLK_AP_I2C6>, <&ext_26m>;
+};
+
+&i2c7 {
+	clock-names = "enable", "i2c", "source";
+	clocks = <&apahb_gate CLK_I2C7_EB>,
+		 <&ap_clk CLK_AP_I2C7>, <&ext_26m>;
+};
+
+&i2c8 {
+	clock-names = "enable", "i2c", "source";
+	clocks = <&apahb_gate CLK_I2C8_EB>,
+		 <&ap_clk CLK_AP_I2C8>, <&ext_26m>;
+};
+
+&i2c9 {
+	clock-names = "enable", "i2c", "source";
+	clocks = <&apahb_gate CLK_I2C9_EB>,
+		 <&ap_clk CLK_AP_I2C9>, <&ext_26m>;
+};
+
