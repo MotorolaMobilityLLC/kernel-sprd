@@ -659,6 +659,7 @@ static const struct of_device_id sprd_i2c_of_match[] = {
 	{ .compatible = "sprd,sharkle-i2c", },
 	{ .compatible = "sprd,pike2-i2c", },
 	{ .compatible = "sprd,qogirl6-i2c", },
+	{ .compatible = "sprd,qogirn6pro-i2c", },
 	{},
 };
 
