@@ -2245,5 +2245,8 @@
 			reg = <0x2b 0x4>;
 			bits = <0 8>;
 		};
+		wcn_alpha: wcn-alpha@81 {
+			reg = <0x24 0x4>;
+		};
 	};
 };

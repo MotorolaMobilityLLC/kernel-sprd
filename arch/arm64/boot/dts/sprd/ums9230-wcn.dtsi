@@ -53,7 +53,8 @@
 		merlion-rst-gpios = <&ap_gpio 117 GPIO_ACTIVE_HIGH>;
 		xtal-26m-type-sel-gpios = <&ap_gpio 173 GPIO_ACTIVE_HIGH>;
 		#address-cells = <1>;
-		#size-cells = <1>;
+		nvmem-cells = <&wcn_alpha>;
+		nvmem-cell-names = "wcn_efuse_blk0";
 	};
 
 	wcn_gnss: cpwcn-gnss {
@@ -101,6 +102,8 @@
 		xtal-26m-type-sel-gpios = <&ap_gpio 173 GPIO_ACTIVE_HIGH>;
 		#address-cells = <1>;
 		#size-cells = <1>;
+		nvmem-cells = <&wcn_alpha>;
+		nvmem-cell-names = "gnss_efuse_blk0";
 	};
 
 	sprd-sipc {
