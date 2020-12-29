@@ -277,13 +277,21 @@ static void sprd_set_delay_value(struct sprd_sdhc_host *host)
 		}
 		break;
 	case MMC_TIMING_MMC_HS400:
-		if (host->ios.clock == 200000000) {
-			host->dll_dly = host->timing_dly->hs400_dly;
-			sprd_sdhc_writel(host, host->dll_dly,
+		if (host->ios.clock == 200000000) {		
+			if(host->ios.enhanced_strobe){                  //sprd patch
+				host->dll_dly = host->timing_dly->hs400es_dly;			
+				sprd_sdhc_writel(host, host->dll_dly,	
 					SPRD_SDHC_REG_32_DLL_DLY);
-			dev_info(dev,
-				 "hs400 final timing delay value: 0x%08x\n",
-				 host->dll_dly);
+				dev_info(dev,"hs400es final timing delay value: 0x%08x\n",
+					host->dll_dly);
+			}			
+			else{
+				host->dll_dly = host->timing_dly->hs400_dly;				
+				sprd_sdhc_writel(host, host->dll_dly,
+					SPRD_SDHC_REG_32_DLL_DLY);
+				dev_info(dev,"hs400 final timing delay value: 0x%08x\n", 
+					host->dll_dly);
+			}
 		}
 		break;
 	default:
@@ -1274,7 +1282,7 @@ static void sprd_sdhc_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 		}
 
 		if (ios->clock <= 400000 || ios->timing == MMC_TIMING_SD_HS ||
-		    ios->clock == MMC_TIMING_MMC_HS ||
+		    ios->timing == MMC_TIMING_MMC_HS ||        //sprd pacth
 		    ios->timing == MMC_TIMING_LEGACY)
 			sdhc_set_dll_invert(host, SPRD_SDHC_BIT_CMD_DLY_INV |
 					    SPRD_SDHC_BIT_POSRD_DLY_INV, 1);
@@ -1392,8 +1400,11 @@ static void sprd_sdhc_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
      * emmc is running in hs400 mode, and it will set hs400 delay timing not
      * enhanced strobe.
      */
-	if (!ios->enhanced_strobe)
-		sprd_set_delay_value(host);
+	//sprd patch
+	if (ios->enhanced_strobe)		
+		host->ios.enhanced_strobe = ios->enhanced_strobe;
+	sprd_set_delay_value(host);
+	//sprd patch end
 
 	if ((ios->clock > 52000000) && (clkchg_flag == 1)) {
 		clkchg_flag = 0;
@@ -1714,7 +1725,7 @@ static void sprd_sdhc_hs400_enhanced_strobe(struct mmc_host *mmc,
 {
 	struct sprd_sdhc_host *host = mmc_priv(mmc);
 	unsigned long flags;
-	struct device *dev = &host->pdev->dev;
+	//struct device *dev = &host->pdev->dev;   //sprd patch
 
 	sprd_sdhc_runtime_pm_get(host);
 	spin_lock_irqsave(&host->lock, flags);
@@ -1723,10 +1734,10 @@ static void sprd_sdhc_hs400_enhanced_strobe(struct mmc_host *mmc,
 		sprd_sdhc_sd_clk_off(host);
 		sprd_sdhc_set_uhs_mode(host, SPRD_SDHC_BIT_TIMING_MODE_HS400ES);
 		sprd_sdhc_sd_clk_on(host);
-		host->dll_dly = host->timing_dly->hs400es_dly;
-		sprd_sdhc_writel(host, host->dll_dly, SPRD_SDHC_REG_32_DLL_DLY);
-		dev_info(dev, "hs400es final timing delay value: 0x%08x\n",
-			 host->dll_dly);
+		//host->dll_dly = host->timing_dly->hs400es_dly;    //sprd patch
+		//sprd_sdhc_writel(host, host->dll_dly, SPRD_SDHC_REG_32_DLL_DLY);
+		//dev_info(dev, "hs400es final timing delay value: 0x%08x\n",
+		//	 host->dll_dly);
 	}
 
 	mmiowb();
