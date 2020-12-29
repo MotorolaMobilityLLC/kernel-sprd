@@ -1666,8 +1666,8 @@ END:
 	}
 	REGISTER_AND_INIT_ONTIM_DEBUG_FOR_THIS_DEV();
 	if (strstr(lcd_name, "hx83102") != NULL) {
-		snprintf(lcdname, sizeof(lcdname), "skyworth-hx83102d");
-		snprintf(vendor_name, sizeof(vendor_name), "skyworth-hx83102d");
+		snprintf(lcdname, sizeof(lcdname), "sky-hx83102d");
+		snprintf(vendor_name, sizeof(vendor_name), "sky-hx83102d");
 		snprintf(version, sizeof(version),"FW:%02x_%02x,VID:0x67 ", ic_data->vendor_touch_cfg_ver,ic_data->vendor_display_cfg_ver);
 	}
 #endif
