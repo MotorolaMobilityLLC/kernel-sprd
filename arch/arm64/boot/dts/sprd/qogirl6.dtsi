@@ -1756,16 +1756,17 @@
 					compatible = "sprd,qogirl6-busmonitor", "sprd,sharkl5pro-busmonitor";
 					interrupts = <GIC_SPI 81 IRQ_TYPE_LEVEL_HIGH>;
 					reg = <0x8>;
-					sprd,bm-num = <6>;
+					sprd,bm-num = <7>;
 					sprd,bm-name =
 						"AP", "WTLCP", "AUDCP", "PUBCP",
-						"USBOTG", "CM4";
+						"USBOTG", "CM4", "WCN";
 					sprd,bm-type =
-						<AXI>, <AXI>, <AXI>,
+						<AXI>, <AXI>, <AXI>, <AXI>,
 						<AXI>, <AXI>, <AXI>;
 					sprd,bm-dap = <0>, <1>, <2>, <3>,
-						<4>, <5>;
+						<4>, <5>, <8>;
 					sprd,bm-config =
+						<DISABLE MON_WRITE MON_INSIDE>,
 						<DISABLE MON_WRITE MON_INSIDE>,
 						<DISABLE MON_WRITE MON_INSIDE>,
 						<DISABLE MON_WRITE MON_INSIDE>,
@@ -1778,8 +1779,10 @@
 						<DISABLE 0 AXIID>,
 						<DISABLE 0 AXIID>,
 						<DISABLE 0 AXIID>,
+						<DISABLE 0 AXIID>,
 						<DISABLE 0 AXIID>;
 					sprd,bm-ranges =
+						<0 0>,
 						<0 0>,
 						<0 0>,
 						<0 0>,
