@@ -13985,6 +13985,15 @@ CONFIG_SPRD_TOP_DVFS_DEVFREQ
 				   frequency ofsome devices which include gpu,modem and so
 				   on.sharkl3 don't have the function.
 	[function] Enable device dvfs function.
+CONFIG_SPRD_UID
+	[arch] arm64
+	[plat] sharkl5Pro
+	[missing plat] qogirl6,sharkl3,sharkl5
+	[field] make
+	[subsys] nvmem
+	[must] debug
+	[missing plat description] This function is need by ums512,others is no need at current.
+	[function] Support read uid only.
 CONFIG_SPRD_UMS9230_CLK
 	[arch] arm64
 	[plat] qogirl6
