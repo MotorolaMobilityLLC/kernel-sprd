@@ -102,11 +102,11 @@
 		};
 
 		pmic_typec: typec@380 {
-			compatible = "sprd,sc2731-typec", "sprd,sc2721-typec";
+			compatible = "sprd,sc2721-typec";
 			interrupt-parent = <&sc2721_pmic>;
 			interrupts = <10>;
 			reg = <0x380>;
-			mode = <2>;
+			sprd,mode = <2>;
 			nvmem-cells = <&cc_cal>;
 			nvmem-cell-names = "cc_calib";
 		};
