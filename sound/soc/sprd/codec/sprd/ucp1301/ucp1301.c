@@ -303,7 +303,7 @@ static void ucp1301_calcu_power(struct ucp1301_t *ucp1301, u32 r_load,
 
 	/* calculate limit_p2 */
 	temp_val = UCP_POWER_BASE_DATA * power_p2 * r_load * ucp1301->agc_n2;
-	temp_val /= UCP_BASE_DIVISOR;
+	temp_val = div64_u64(temp_val, UCP_BASE_DIVISOR);
 	dev_dbg(ucp1301->dev, "power_p2 %u, r_load %u, agc_n2 %u, agc_n1 %u, agc_nb %u, temp_val 0x%llx\n",
 		power_p2, r_load, ucp1301->agc_n2, ucp1301->agc_n1,
 		ucp1301->agc_nb, temp_val);
@@ -317,7 +317,7 @@ static void ucp1301_calcu_power(struct ucp1301_t *ucp1301, u32 r_load,
 
 	/* calculate p1, p1 is max output power */
 	temp_val = UCP_POWER_BASE_DATA * power_p1 * r_load * ucp1301->agc_n1;
-	temp_val /= UCP_BASE_DIVISOR;
+	temp_val = div64_u64(temp_val, UCP_BASE_DIVISOR);
 	dev_dbg(ucp1301->dev, "power_p1 %u, temp_val 0x%llx\n",
 		power_p1, temp_val);
 	value = temp_val & BIT_AGC_P1_L(0xffff);
@@ -330,7 +330,7 @@ static void ucp1301_calcu_power(struct ucp1301_t *ucp1301, u32 r_load,
 
 	/* calculate pb, pb is min output power */
 	temp_val = UCP_POWER_BASE_DATA * power_pb * r_load * ucp1301->agc_nb;
-	temp_val /= UCP_BASE_DIVISOR;
+	temp_val = div64_u64(temp_val, UCP_BASE_DIVISOR);
 	dev_dbg(ucp1301->dev, "power_pb %u, temp_val 0x%llx\n",
 		power_pb, temp_val);
 	value = temp_val & BIT_AGC_PB_L(0xffff);
