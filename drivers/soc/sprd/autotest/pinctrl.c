@@ -63,7 +63,7 @@ static int pinctrl_test(struct autotest_handler *handler, void *arg)
 {
 	struct pinctrl_state *pinctrl_state;
 	char state_name[NAME_MAX_SIZE];
-	int gpio;
+	int gpio = 0;
 
 	if (get_user(gpio, (int __user *)arg))
 		return -EFAULT;
