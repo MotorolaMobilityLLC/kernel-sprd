@@ -1412,7 +1412,26 @@ static int cm_check_thermal_status(struct charger_manager *cm)
 	return ret;
 }
 
-static int charger_voltage;
+static int get_charger_voltage(struct charger_manager *cm, int *vol)
+{
+	struct charger_desc *desc = cm->desc;
+	struct power_supply *fuel_gauge;
+	union power_supply_propval val;
+
+	fuel_gauge = power_supply_get_by_name(desc->psy_fuel_gauge);
+	if (!fuel_gauge)
+		return -ENODEV;
+
+	power_supply_get_property(fuel_gauge,
+				POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE,
+				&val);
+	power_supply_put(fuel_gauge);
+
+	*vol = val.intval;
+
+	return 0;
+
+}
 static int cm_check_charge_voltage(struct charger_manager *cm)
 {
 	struct charger_desc *desc = cm->desc;
@@ -1439,7 +1458,6 @@ static int cm_check_charge_voltage(struct charger_manager *cm)
 		return ret;
 
 	charge_vol = val.intval;
-	charger_voltage = val.intval;
 
 	if (cm->charger_enabled && charge_vol > desc->charge_voltage_max) {
 		dev_info(cm->dev, "Charging voltage is larger than %d\n",
@@ -3691,6 +3709,7 @@ static void cm_batt_works(struct work_struct *work)
 	int term_vol;
 	static int is_cal_cap=0,cal_count=0;
 	int real_cap; 
+	int charger_voltage;
 
 	ret = get_batt_uV(cm, &batt_uV);
 	if (ret) {
@@ -3719,6 +3738,12 @@ static void cm_batt_works(struct work_struct *work)
 	ret = get_charger_current(cm, &chg_cur);
 	if (ret) {
 		dev_err(cm->dev, "get chg_cur error.\n");
+		return;
+	}
+
+	ret = get_charger_voltage(cm, &charger_voltage);
+	if (ret) {
+		dev_err(cm->dev, "get charger_voltage error.\n");
 		return;
 	}
 
@@ -3804,7 +3829,7 @@ static void cm_batt_works(struct work_struct *work)
 	else
 		cm->desc->charger_status = chg_sts;
 
-	dev_err(cm->dev, "Vbat=%d,OCV=%d,cur=%d,VChr=%d,"
+	dev_err(cm->dev, "Vbat=%d,OCV=%d,cur=%d,VChr =%d,"
 		 "soc=%d,%d,status=%d,temp=%d,force full=%d,"
 		 "chr cur=%d,chr limit cur=%d,"
 		 "track=%d term_vol=%d\n",
