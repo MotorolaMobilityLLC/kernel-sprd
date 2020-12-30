@@ -9,3 +9,4 @@ obj-y += dp_link.o
 obj-y += dp_test.o
 obj-y += dp_video.o
 obj-y += dw_dptx.o
+obj-y += dp_hdcp.o

@@ -17,6 +17,8 @@ obj-y += dummy/dummy_connector.o
 
 obj-y += disp_lib.o sprd_corner.o disp_trusty.o
 
+#obj-y += sprd_hdcp.o
+
 obj-y += sprd_bl.o
 
 obj-y += dpu/

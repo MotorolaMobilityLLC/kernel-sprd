@@ -313,4 +313,17 @@
 #define DPTX_CFG_CP_IRQ					BIT(6)
 #define DPTX_CFG_EN_HDCP				BIT(1)
 
+#define DPTX_HDCP_REG_RMLCTL				0x3614
+#define DPTX_HDCP_CFG                                   0xE00
+#define DPTX_HDCP_REG_RMLSTS                            0x3618
+#define DPTX_HDCP_REG_DPK_CRC				0x3630
+#define DPTX_HDCP_REG_DPK0				0x3620
+#define DPTX_HDCP_REG_DPK1				0x3624
+#define DPTX_HDCP_REG_SEED				0x361C
+#define DPTX_HDCP_INT_STS				0xE0C
+#define DPTX_HDCP_INT_CLR				0xE08
+#define DPTX_HDCP_OBS					0xE04
+#define DPTX_HDCP22GPIOSTS                              0x3628
+#define DPTX_HDCP22GPIOOUTCHNGSTS                       0x362c
+
 #endif

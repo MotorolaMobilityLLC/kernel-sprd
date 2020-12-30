@@ -7,6 +7,14 @@
 #include <linux/platform_device.h>
 #include "sprd_dp.h"
 #include "dw_dptx.h"
+#include "sprd_hdcp.h"
+
+static struct dptx *handle;
+
+struct dptx *dptx_get_handle(void)
+{
+	return handle;
+}
 
 static int handle_sink_request(struct dptx *dptx)
 {
@@ -418,6 +426,7 @@ struct dptx *dptx_init(struct device *dev, struct drm_device *drm_dev)
 	if (retval)
 		goto fail;
 
+	handle = dptx;
 	return dptx;
 
 fail:
