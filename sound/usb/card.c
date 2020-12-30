@@ -758,6 +758,8 @@ static int usb_audio_probe(struct usb_interface *intf,
 	if (err < 0)
 		return err;
 
+	snd_usb_vendor_set();
+
 	err = snd_vendor_connect(intf);
 	if (err)
 		return err;

@@ -7,6 +7,7 @@
 #include <linux/ratelimit.h>
 #include <linux/usb.h>
 #include <linux/usb/audio.h>
+#include <linux/usb/hcd.h>
 #include <linux/slab.h>
 
 #include <sound/core.h>
@@ -1092,6 +1093,44 @@ int snd_usb_endpoint_set_params(struct snd_usb_endpoint *ep,
 	return err;
 }
 
+enum {
+	USB_AUD_IIS_WIDTH_16,
+	USB_AUD_IIS_WIDTH_24,
+};
+
+/*
+ * @return: 0 not offload mod, 1 offload mod
+ */
+static int sprd_usb_audio_offload_check(struct snd_usb_audio *chip,
+	int stream)
+{
+	int is_offload_mod = 0;
+
+	if (stream != SNDRV_PCM_STREAM_PLAYBACK &&
+		stream != SNDRV_PCM_STREAM_CAPTURE) {
+		pr_err("%s invalid stream %d\n", __func__, stream);
+		return is_offload_mod;
+	}
+
+	if (!chip) {
+		pr_err("%s chip is null stream =%d\n", __func__, stream);
+		return is_offload_mod;
+	}
+	if (snd_vendor_audio_offload(stream))
+		is_offload_mod = 1;
+	else
+		is_offload_mod = 0;
+
+	pr_info("%s usb stream=%s, enter offload mode %d\n", __func__,
+		stream ? "capture" : "playback",
+		snd_vendor_audio_offload(stream));
+
+	return is_offload_mod;
+}
+
+typedef void (*OFFLOAD_CONFIG)(struct usb_hcd *hcd, int ep_num, int mono,
+				int is_pcm_24, int width, int rate, int offload_used);
+
 /**
  * snd_usb_endpoint_start: start an snd_usb_endpoint
  *
@@ -1109,9 +1148,54 @@ int snd_usb_endpoint_start(struct snd_usb_endpoint *ep)
 {
 	int err;
 	unsigned int i;
+	struct snd_usb_substream *subs = ep->data_subs;
+	struct usb_hcd *hcd;
+	int is_mono = 0;
+	int is_pcm_24bit = 0;
+	int is_offload_mod;
+	int iis_width;
+	int ofld_rate;
+	OFFLOAD_CONFIG offload_config;
 
 	if (atomic_read(&ep->chip->shutdown))
 		return -EBADFD;
+
+	if (subs) {
+		iis_width = USB_AUD_IIS_WIDTH_24;
+		ofld_rate = 48;
+		switch (subs->channels) {
+		case 2:
+			is_mono = false;
+			break;
+		case 1:
+			is_mono = true;
+			break;
+		default:
+			is_mono = false;
+			pr_err("%s invalid channel %d\n",
+				__func__, subs->channels);
+			break;
+		}
+		/* pcm fmt */
+		switch (subs->pcm_format) {
+		case SNDRV_PCM_FORMAT_S16_LE:
+			is_pcm_24bit = 0;
+			break;
+		case SNDRV_PCM_FORMAT_S24_LE:
+			is_pcm_24bit = 1;
+			break;
+		default:
+			is_pcm_24bit = 0;
+			pr_err("%s unknown pcm format %d\n",
+					__func__, subs->pcm_format);
+			break;
+		}
+
+		pr_info("%s channels = %d, %s, %s",
+			__func__, subs->channels,
+			is_mono ? "is mono" : "is stereo",
+			is_pcm_24bit ? "pcm 24" : "pcm 16bit");
+	}
 
 	/* already running? */
 	if (++ep->use_count != 1)
@@ -1144,6 +1228,28 @@ int snd_usb_endpoint_start(struct snd_usb_endpoint *ep)
 		return 0;
 	}
 
+	if (subs) {
+		is_offload_mod = sprd_usb_audio_offload_check(ep->chip,
+				subs->direction);
+		if (is_offload_mod) {
+			pr_info("%s usb enter offload mode config usb i2s %s, %s, %s, %s\n",
+				__func__,
+				subs->direction ? "capture" : "playback",
+				is_mono ? "mono" : "stereo",
+				is_pcm_24bit ? "data 24bit" : "data 16bit",
+				iis_width == USB_AUD_IIS_WIDTH_24 ?
+				"iis width 24bit" : "iis width 16bit");
+			hcd = bus_to_hcd(subs->dev->bus);
+			if (!hcd->driver || !hcd->driver->android_vendor_data1[0]) {
+				pr_err("%s hcd driver or usb_aud_config is null\n", __func__);
+				return -EINVAL;
+			}
+			offload_config = (OFFLOAD_CONFIG)hcd->driver->android_vendor_data1[0];
+			offload_config(hcd, ep->ep_num, is_mono,
+				is_pcm_24bit, iis_width, 48, is_offload_mod);
+		}
+	}
+
 	for (i = 0; i < ep->nurbs; i++) {
 		struct urb *urb = ep->urb[i].urb;
 
@@ -1156,14 +1262,15 @@ int snd_usb_endpoint_start(struct snd_usb_endpoint *ep)
 			prepare_inbound_urb(ep, urb->context);
 		}
 
+		set_bit(i, &ep->active_mask);
 		err = usb_submit_urb(urb, GFP_ATOMIC);
 		if (err < 0) {
+			clear_bit(i, &ep->active_mask);
 			usb_audio_err(ep->chip,
 				"cannot submit urb %d, error %d: %s\n",
 				i, err, usb_error_string(err));
 			goto __error;
 		}
-		set_bit(i, &ep->active_mask);
 	}
 
 	return 0;
@@ -1191,15 +1298,75 @@ __error:
  */
 void snd_usb_endpoint_stop(struct snd_usb_endpoint *ep)
 {
+	struct snd_usb_substream *subs;
+	struct usb_hcd *hcd;
+	int is_mono, is_pcm_24bit, is_offload_mod, iis_width, ofld_rate;
+	OFFLOAD_CONFIG offload_config;
+
 	if (!ep)
 		return;
 
 	if (snd_BUG_ON(ep->use_count == 0))
 		return;
 
+	subs = ep->data_subs;
+	if (subs) {
+		iis_width = USB_AUD_IIS_WIDTH_24;
+		ofld_rate = 48;
+		switch (subs->channels) {
+		case 2:
+			is_mono = false;
+			break;
+		case 1:
+			is_mono = true;
+			break;
+		default:
+			is_mono = false;
+			pr_err("%s invalid channel %d\n",
+				__func__, subs->channels);
+			break;
+		}
+		/* pcm fmt */
+		switch (subs->pcm_format) {
+		case SNDRV_PCM_FORMAT_S16_LE:
+			is_pcm_24bit = 0;
+			break;
+		case SNDRV_PCM_FORMAT_S24_LE:
+			is_pcm_24bit = 1;
+			break;
+		default:
+			is_pcm_24bit = 0;
+			pr_err("%s unknown pcm format %d\n",
+			       __func__, subs->pcm_format);
+			break;
+		}
+
+		pr_info("%s channels = %d, %s, %s",
+			__func__, subs->channels,
+			is_mono ? "is mono" : "is stereo",
+			is_pcm_24bit ? "pcm 24" : "pcm 16bit");
+	}
+
 	if (--ep->use_count == 0) {
 		deactivate_urbs(ep, false);
 		set_bit(EP_FLAG_STOPPING, &ep->flags);
+		if (subs) {
+			is_offload_mod = sprd_usb_audio_offload_check(ep->chip,
+					subs->direction);
+			if (is_offload_mod) {
+				pr_info("%s close offload mode\n", __func__);
+				hcd = bus_to_hcd(subs->dev->bus);
+				if (!hcd->driver || !hcd->driver->android_vendor_data1[0]) {
+					pr_err("%s hcd driver or usb_aud_config is null\n",
+						__func__);
+					return;
+				}
+				offload_config =
+					(OFFLOAD_CONFIG)hcd->driver->android_vendor_data1[0];
+				offload_config(hcd, ep->ep_num, is_mono,
+					is_pcm_24bit, iis_width, 48, 0);
+			}
+		}
 	}
 }
 

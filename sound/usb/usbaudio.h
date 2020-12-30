@@ -173,4 +173,7 @@ struct snd_usb_audio_vendor_ops {
 	int (*usb_add_ctls)(struct snd_usb_audio *chip);
 };
 
+void snd_usb_vendor_set(void);
+int snd_vendor_audio_offload(int stream);
+
 #endif /* __USBAUDIO_H */
