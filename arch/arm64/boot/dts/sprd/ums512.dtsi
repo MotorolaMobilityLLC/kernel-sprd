@@ -12,6 +12,8 @@
 #include "ums512-modem.dtsi"
 
 / {
+	cpuinfo_hardware = "Unisoc ums512";
+
 	cpus {
 		#address-cells = <2>;
 		#size-cells = <0>;
