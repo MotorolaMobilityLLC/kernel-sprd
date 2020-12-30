@@ -154,7 +154,7 @@
 			};
 
 			i2c0: i2c@70500000 {
-				compatible = "sprd,pike2-i2c";
+				compatible = "sprd,pike2-i2c", "sprd,sc9860-i2c";
 				reg = <0x70500000 0x1000>;
 				interrupts = <GIC_SPI 11 IRQ_TYPE_LEVEL_HIGH>;
 				clock-names = "enable", "i2c", "source";
@@ -165,7 +165,7 @@
 			};
 
 			i2c1: i2c@70600000 {
-				compatible = "sprd,pike2-i2c";
+				compatible = "sprd,pike2-i2c", "sprd,sc9860-i2c";
 				reg = <0x70600000 0x1000>;
 				interrupts = <GIC_SPI 12 IRQ_TYPE_LEVEL_HIGH>;
 				clock-names = "enable", "i2c", "source";
@@ -176,7 +176,7 @@
 			};
 
 			i2c2: i2c@70700000 {
-				compatible = "sprd,pike2-i2c";
+				compatible = "sprd,pike2-i2c", "sprd,sc9860-i2c";
 				reg = <0x70700000 0x1000>;
 				interrupts = <GIC_SPI 13 IRQ_TYPE_LEVEL_HIGH>;
 				clock-names = "enable", "i2c", "source";
