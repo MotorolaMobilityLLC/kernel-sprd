@@ -1495,6 +1495,14 @@
 				};
 			};
 
+			apb_bm: apb-busmonitor@32370000 {
+				compatible = "sprd,apb-busmonitor";
+				reg = <0 0x32370000 0 0x1000>;
+				interrupts = <GIC_SPI 102 IRQ_TYPE_LEVEL_HIGH>;
+				sprd,target-addr = <0 0>;
+				sprd,target-data = <0 0>;
+			 };
+
 			hsphy: hsphy@323b0000 {
 				compatible = "sprd,sharkl5-phy", "sprd,sharkl5pro-phy";
 				sprd,syscon-enable = <&aon_apb_regs>;
