@@ -58,7 +58,7 @@
 		};
 
 		pmic_eic: gpio-controller@280 {
-			compatible = "sprd,sc27xx-eic", "sprd,sc2720-eic";
+			compatible = "sprd,sc27xx-eic", "sprd,sc2720-eic", "sprd,sc2731-eic";
 			reg = <0x280>;
 			interrupt-parent = <&sc2720_pmic>;
 			interrupts = <4 IRQ_TYPE_LEVEL_HIGH>;

@@ -552,7 +552,8 @@
 			};
 
 			eic_debounce: gpio@40210000 {
-				compatible = "sprd,pike2-eic-debounce";
+				compatible = "sprd,pike2-eic-debounce",
+					 "sprd,sharkl3-eic-debounce";
 				reg = <0x40210000 0x80>,
 				      <0x40370000 0x80>;
 				gpio-controller;
@@ -563,7 +564,8 @@
 			};
 
 			eic_latch: gpio@40210080 {
-				compatible = "sprd,pike2-eic-latch";
+				compatible = "sprd,pike2-eic-latch",
+					   "sprd,sharkl3-eic-latch";
 				reg = <0x40210080 0x20>,
 				      <0x40370080 0x20>;
 				gpio-controller;
@@ -574,7 +576,8 @@
 			};
 
 			eic_async: gpio@402100a0 {
-				compatible = "sprd,pike2-eic-async";
+				compatible = "sprd,pike2-eic-async",
+					   "sprd,sharkl3-eic-async";
 				reg = <0x402100a0 0x20>,
 				      <0x403700a0 0x20>;
 				gpio-controller;
@@ -585,7 +588,8 @@
 			};
 
 			eic_sync: gpio@402100c0 {
-				compatible = "sprd,pike2-eic-sync";
+				compatible = "sprd,pike2-eic-sync",
+					   "sprd,sharkl3-eic-sync";
 				reg = <0x402100c0 0x20>,
 				      <0x403700c0 0x20>;
 				gpio-controller;
@@ -642,7 +646,7 @@
 			};
 
 			ap_gpio: gpio@40280000 {
-				compatible = "sprd,pike2-gpio";
+				compatible = "sprd,pike2-gpio", "sprd,sc9860-gpio";
 				reg = <0x40280000 0x1000>;
 				gpio-controller;
 				#gpio-cells = <2>;
