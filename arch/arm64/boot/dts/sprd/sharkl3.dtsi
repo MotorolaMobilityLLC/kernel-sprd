@@ -795,7 +795,7 @@
 				path1_rst = <&mm_vsp_ahb_regs REG_MM_VSP_AHB_AHB_RST MASK_MM_VSP_AHB_CPP_PATH1_SOFT_RST>;
 				dma_rst = <&mm_vsp_ahb_regs REG_MM_VSP_AHB_AHB_RST MASK_MM_VSP_AHB_CPP_DMA_SOFT_RST>;
 				iommus = <&iommu_cpp>;
-				power-domains = <&mm_domain>;
+				power-domains = <&vsp_pd>;
 				status = "disabled";
 			};
 
@@ -841,6 +841,32 @@
 				reg = <0x0 0x63000000 0x0 0x800>,
 				      <0x0 0x63000800 0x0 0x80>;
 				iova-base = <0x30000000>;
+				iova-size = <0x10000000>;
+				reg_name = "mmu_interrupt_reg","mmu_reg";
+				status = "disabled";
+				#iommu-cells = <0>;
+			};
+
+			vsp: video-codec@62200000{
+				compatible = "sprd,sharkl3-vsp";
+				reg = <0 0x62200000 0 0xc000>;
+				interrupts = <GIC_SPI 43 IRQ_TYPE_LEVEL_HIGH>;
+				reset-syscon = <&mm_vsp_ahb_regs  REG_MM_VSP_AHB_AHB_RST
+					(MASK_MM_VSP_AHB_VSP_SOFT_RST |
+					MASK_MM_VSP_AHB_VSP_GLB_SOFT_RST)>;
+				vsp-domain-eb-syscon = 	<&aon_apb_regs
+					REG_AON_APB_APB_EB1
+					MASK_AON_APB_MM_VSP_EB>;
+				iommus = <&iommu_vsp>;
+				power-domains = <&vsp_pd>;
+				status = "disabled";
+			};
+
+			iommu_vsp: iommu@62200000 {
+				compatible = "sprd,iommuexl3-vsp";
+				reg = <0x0 0x62200000 0x0 0x80>,
+				      <0x0 0x62200000 0x0 0x80>;
+				iova-base = <0x20000000>;
 				iova-size = <0x10000000>;
 				reg_name = "mmu_interrupt_reg","mmu_reg";
 				status = "disabled";
