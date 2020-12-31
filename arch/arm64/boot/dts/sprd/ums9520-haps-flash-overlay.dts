@@ -14,3 +14,14 @@
 &chosen {
 	bootargs_ext = "androidboot.hardware=ums9520_haps_flash androidboot.dtbo_idx=0 androidboot.boot_devices=soc/soc:ap-apb/71400000.sdio";
 };
+
+&reserved_memory {
+
+	smem_reserved: sipc-mem@87800000 {
+		reg = <0x0 0x87800000 0x0 0x00800000>;
+	};
+
+	cp_reserved: cp-modem@88000000 {
+		reg = <0x0 0x88000000 0x0 0x23000000>;
+	};
+};

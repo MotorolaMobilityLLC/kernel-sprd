@@ -8,7 +8,7 @@
 
 
 /{
-	reserved-memory {
+	reserved_memory: reserved-memory {
 		#address-cells = <2>;
 		#size-cells = <2>;
 		ranges;
@@ -20,6 +20,10 @@
 
 		tos_reserved: tos-mem@b0020000 {
 			reg = <0x0 0xb0020000 0x0 0x03fe0000>;
+		};
+
+		fb_reserved: framebuffer@bd628000 {
+			reg = <0x0 0xbd628000 0x0 0x29d8000>;
 		};
 
 	};
