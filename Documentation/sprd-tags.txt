@@ -60,6 +60,7 @@ asoc:usb:
 
 binder:
 
+char:hw_random:sprd:
 coresight:
 clocksource:sprd:
 clk:sprd:
