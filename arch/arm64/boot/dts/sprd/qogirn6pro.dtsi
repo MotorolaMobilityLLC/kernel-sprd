@@ -65,6 +65,12 @@
 			reg = <0 0x30000000 0 0x3000>;
 		};
 
+		ipa_dispc_glb_apb_regs: syscon@31800000 {
+			compatible = "sprd,ums9620-glbregs", "syscon";
+			#syscon-cells = <2>;
+			reg = <0 0x31800000 0 0x3000>;
+		};
+
 		pub_apb_regs: syscon@60050000 {
 			compatible = "sprd,ums9620-glbregs", "syscon";
 			#syscon-cells = <2>;
