@@ -419,7 +419,7 @@
 	bq2597x_chg: charger@65 {
 		compatible = "ti,bq2597x-standalone";
 		reg = <0x65>;
-		irq-gpio = <&ap_gpio 145 GPIO_ACTIVE_LOW>;
+		irq-gpio = <&ap_gpio 126 GPIO_ACTIVE_LOW>;
 
 		ti,bq2597x,bus-therm-disable = <1>;
 		ti,bq2597x,regulation-disable = <1>;
@@ -450,7 +450,7 @@
 	hl1506_cp_converter: charger@1b {
 		compatible = "halo,hl1506_cp_converter";
 		reg = <0x1b>;
-		chg_pump_en_gpio = <&ap_gpio 171  GPIO_ACTIVE_HIGH>;
+		chg_pump_en_gpio = <&ap_gpio 147  GPIO_ACTIVE_HIGH>;
 	};
 
 	nu1619_rx: charger@61 {
