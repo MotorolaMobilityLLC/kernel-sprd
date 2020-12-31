@@ -2246,10 +2246,6 @@ static int musb_schedule(
 		if (hw_ep == musb->bulk_ep)
 			continue;
 
-		if (qh->type == USB_ENDPOINT_XFER_INT
-			&& epnum < 10)
-			continue;
-
 		if (epnum < 2 + epno)
 			continue;
 
