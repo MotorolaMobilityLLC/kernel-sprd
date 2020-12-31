@@ -396,6 +396,14 @@
 				clock-names = "enable";
 				clocks = <&ext_26m>;
 			};
+
+			apb_bm: apb-busmonitor@64580000 {
+				compatible = "sprd,apb-busmonitor";
+				reg = <0 0x64580000 0 0x1000>;
+				interrupts = <GIC_SPI 15 IRQ_TYPE_LEVEL_HIGH>;
+				sprd,target-addr = <0 0>;
+				sprd,target-data = <0 0>;
+			 };
 		};
 	};
 
