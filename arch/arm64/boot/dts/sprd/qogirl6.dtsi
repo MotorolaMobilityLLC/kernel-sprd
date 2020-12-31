@@ -2190,18 +2190,18 @@
 		clock-output-names = "rco-100m";
 	};
 
-	dphy_273m: dphy-273m {
+	dphy_250m: dphy-250m {
 		compatible = "fixed-clock";
 		#clock-cells = <0>;
-		clock-frequency = <273000000>;
-		clock-output-names = "dphy-273m";
+		clock-frequency = <250000000>;
+		clock-output-names = "dphy-250m";
 	};
 
-	dphy_204m8: dphy-204m8 {
+	dphy_333m3: dphy-333m3 {
 		compatible = "fixed-clock";
 		#clock-cells = <0>;
-		clock-frequency = <204800000>;
-		clock-output-names = "dphy-204m8";
+		clock-frequency = <333300000>;
+		clock-output-names = "dphy-333m3";
 	};
 
 	cache_efuse: efuse@65014c00 {

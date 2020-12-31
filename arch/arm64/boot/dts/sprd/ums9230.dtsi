@@ -335,8 +335,8 @@
 		ap_clk: clock-controller@20010000 {
 			compatible = "sprd,ums9230-ap-clk";
 			reg = <0 0x20010000 0 0x1000>;
-			clocks = <&ext_26m>, <&dphy_273m>, <&dphy_204m8>;
-			clock-names = "ext-26m", "dphy-273m", "dphy-204m8";
+			clocks = <&ext_26m>, <&dphy_250m>, <&dphy_333m3>;
+			clock-names = "ext-26m", "dphy-250m", "dphy-333m3";
 			#clock-cells = <1>;
 		};
 
