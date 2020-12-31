@@ -566,6 +566,7 @@ static int sprd_apb_busmon_remove(struct platform_device *pdev)
 }
 
 static const struct of_device_id sprd_apb_bm_of_match[] = {
+	{ .compatible = "sprd,apb-busmonitor", },
 	{ .compatible = "sprd,sharkl5-apb-busmonitor", },
 	{ .compatible = "sprd,roc1-apb-busmonitor", },
 	{ .compatible = "sprd,orca-apb-busmonitor", },
