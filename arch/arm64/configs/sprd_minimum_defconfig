@@ -920,6 +920,7 @@ CONFIG_VEXPRESS_SYSCFG=y
 # CONFIG_CXL_BASE is not set
 # CONFIG_CXL_AFU_DRIVER_OPS is not set
 # CONFIG_CXL_LIB is not set
+# CONFIG_SPRD_VPU is not set
 # CONFIG_SPRD_JPG is not set
 
 #
