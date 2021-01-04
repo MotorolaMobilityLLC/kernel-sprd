@@ -199,9 +199,9 @@
 			#clock-cells = <1>;
 		};
 
-		ipadispc_gate: clock-controller@6481a000 {
+		ipadispc_gate: clock-controller@31800000 {
 			compatible = "sprd,ums9620-ipadispc-gate";
-			reg = <0 0x6481a000 0 0x3000>;
+			reg = <0 0x31800000 0 0x3000>;
 			clocks = <&ext_26m>;
 			clock-names = "ext_26m";
 			#clock-cells = <1>;
