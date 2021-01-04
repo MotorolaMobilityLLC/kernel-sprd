@@ -41,6 +41,7 @@
 #include "shub_protocol.h"
 #include "shub_opcode.h"
 #include <linux/pm_wakeup.h>
+#include <dev_info.h>
 
 static struct task_struct *thread;
 static struct task_struct *thread_nwu;
@@ -114,6 +115,16 @@ static struct sensor_cali_info light_cali_info;
 static struct sensor_cali_info prox_cali_info;
 static struct sensor_cali_info pressure_cali_info;
 
+
+static int info_type_map[][2] = {
+	{ ORDER_ACC, ID_GSENSOR },
+	{ ORDER_MAG, ID_MSENSOR },
+	{ ORDER_GYRO, ID_GYRO },
+	{ ORDER_PROX, ID_PSENSOR },
+	{ 0, 0 },
+	{ 0, 0 },
+};
+
 static void get_sensor_info(char **sensor_name, int sensor_type, int success_num)
 {
 	int i, now_order = 0;
@@ -131,6 +142,9 @@ static void get_sensor_info(char **sensor_name, int sensor_type, int success_num
 	memcpy(hw_sensor_id[now_order].pname, sensor_name[success_num],
 					strlen(sensor_name[success_num]));
 	hw_sensor_id[now_order].id_status = _IDSTA_OK;
+
+        pr_err("sns type:%d name:%s\n", sensor_type, hw_sensor_id[now_order].pname);
+        FULL_PRODUCT_DEVICE_INFO(info_type_map[now_order][1], hw_sensor_id[i].pname);
 }
 
 /**
@@ -478,7 +492,7 @@ static void request_send_firmware(struct shub_data *sensor,
 
 		if (strlen(sensor_firms[i]) == 0)
 			break;
-		dev_info(&sensor->sensor_pdev->dev,
+		dev_err(&sensor->sensor_pdev->dev,
 			 "try compatible sensor: %s\n", sensor_firms[i]);
 		sprintf(firmware_name, "/mnt/vendor/sensorhub/shub_fw_%s_cali",
 			sensor_firms[i]);
