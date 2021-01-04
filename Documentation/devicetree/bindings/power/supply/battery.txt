@@ -23,6 +23,8 @@ Optional Properties:
  - constant-charge-current-max-microamp: maximum constant input current
  - constant-charge-voltage-max-microvolt: maximum constant input voltage
  - factory-internal-resistance-micro-ohms: battery factory internal resistance
+ - charge-pumps-threshold-microvolt: the ocv voltage threshold of battery
+   to entry pps fast charge.
  - ocv-capacity-table-0: An array providing the open circuit voltage (OCV)
    of the battery and corresponding battery capacity percent, which is used
    to look up battery capacity according to current OCV value. And the open
@@ -75,6 +77,7 @@ Example:
 		constant-charge-current-max-microamp = <900000>;
 		constant-charge-voltage-max-microvolt = <4200000>;
 		factory-internal-resistance-micro-ohms = <250000>;
+		charge-pumps-threshold-microvolt = <4100000>;
 		ocv-capacity-celsius = <(-10) 0 10>;
 		ocv-capacity-table-0 = <4185000 100>, <4113000 95>, <4066000 90>, ...;
 		ocv-capacity-table-1 = <4200000 100>, <4185000 95>, <4113000 90>, ...;
