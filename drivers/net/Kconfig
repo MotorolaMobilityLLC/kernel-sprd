@@ -546,6 +546,7 @@ config THUNDERBOLT_NET
 	  called thunderbolt-net.
 
 source "drivers/net/hyperv/Kconfig"
+source "drivers/net/sprd/Kconfig"
 
 config NETDEVSIM
 	tristate "Simulated networking device"

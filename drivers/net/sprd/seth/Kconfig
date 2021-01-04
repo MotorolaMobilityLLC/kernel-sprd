@@ -1,0 +1,11 @@
+config SPRD_SIPC_SETH
+	tristate "SPRD SETH Ethernet driver"
+	default n
+	depends on SPRD_SIPC
+	depends on SPRD_SIPC_ZERO_COPY_SIPX
+	help
+	  SETH driver implementation for the Spreadtrum platform.
+	  This driver supports the Spreadtrum Ethernet based on
+	  share memory.
+
+	  Say M here if you want to build a module.
