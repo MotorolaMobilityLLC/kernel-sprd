@@ -54,6 +54,8 @@ enum cm_jeita_types {
 	CM_JEITA_UNKNOWN,
 	CM_JEITA_FCHG,
 	CM_JEITA_FLASH,
+	CM_JEITA_WL_BPP,
+	CM_JEITA_WL_EPP,
 	CM_JEITA_MAX,
 };
 
@@ -440,6 +442,14 @@ struct cm_charge_pump_status {
  *	maximum flash charge voltage in microVolts
  * @flash_charge_voltage_drop:
  *	drop voltage in microVolts to allow restart flash charging
+ * @wireless_normal_charge_voltage_max:
+ *	maximum wireless normal charge voltage in microVolts
+ * @wireless_normal_charge_voltage_drop:
+ *	drop voltage in microVolts to allow restart wireless charging
+ * @wireless_fast_charge_voltage_max:
+ *	maximum wireless fast charge voltage in microVolts
+ * @wireless_fast_charge_voltage_drop:
+ *	drop voltage in microVolts to allow restart wireless fast charging
  * @charger_status: Recording state of charge
  * @charger_type: Recording type of charge
  * @first_trigger_cnt: The number of times the battery is first_fully charged
@@ -536,6 +546,10 @@ struct charger_desc {
 	u32 fast_charge_voltage_drop;
 	u32 flash_charge_voltage_max;
 	u32 flash_charge_voltage_drop;
+	u32 wireless_normal_charge_voltage_max;
+	u32 wireless_normal_charge_voltage_drop;
+	u32 wireless_fast_charge_voltage_max;
+	u32 wireless_fast_charge_voltage_drop;
 
 	int charger_status;
 	u32 charger_type;

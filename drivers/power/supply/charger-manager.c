@@ -98,12 +98,14 @@ static const char * const default_event_names[] = {
 };
 
 static const char * const jeita_type_names[] = {
-	[CM_JEITA_DCP] = "cm-dcp-jeita-temp-table",
+	[CM_JEITA_UNKNOWN] = "cm-unknown-jeita-temp-table",
 	[CM_JEITA_SDP] = "cm-sdp-jeita-temp-table",
 	[CM_JEITA_CDP] = "cm-cdp-jeita-temp-table",
-	[CM_JEITA_UNKNOWN] = "cm-unknown-jeita-temp-table",
+	[CM_JEITA_DCP] = "cm-dcp-jeita-temp-table",
 	[CM_JEITA_FCHG] = "cm-fchg-jeita-temp-table",
 	[CM_JEITA_FLASH] = "cm-flash-jeita-temp-table",
+	[CM_JEITA_WL_BPP] = "cm-wl-bpp-jeita-temp-table",
+	[CM_JEITA_WL_EPP] = "cm-wl-epp-jeita-temp-table",
 };
 
 static const char * const cm_cp_sate_names[] = {
@@ -1398,12 +1400,34 @@ static void cm_update_charge_voltage_protection(struct charger_manager *cm,
 				cm->desc->flash_charge_voltage_drop;
 		break;
 	case USB_CHARGE_TYPE_TURBE:
-		dev_info(cm->dev, "TO DO: quick charge TURBE\n");
 		break;
 	case USB_CHARGE_TYPE_SUPER:
-		dev_info(cm->dev, "TO DO: quick charge SUPER\n");
+		break;
+	case WIRELESS_CHARGE_TYPE_NORMAL:
+		if (cm->desc->wireless_normal_charge_voltage_max)
+			cm->desc->charge_voltage_max =
+				cm->desc->wireless_normal_charge_voltage_max;
+		if (cm->desc->wireless_normal_charge_voltage_drop)
+			cm->desc->charge_voltage_drop =
+				cm->desc->wireless_normal_charge_voltage_drop;
+		break;
+	case WIRELESS_CHARGE_TYPE_FAST:
+		if (cm->desc->wireless_fast_charge_voltage_max)
+			cm->desc->charge_voltage_max =
+				cm->desc->wireless_fast_charge_voltage_max;
+		if (cm->desc->wireless_fast_charge_voltage_drop)
+			cm->desc->charge_voltage_drop =
+				cm->desc->wireless_fast_charge_voltage_drop;
+		break;
+	case WIRELESS_CHARGE_TYPE_FLASH:
 		break;
 	default:
+		if (cm->desc->normal_charge_voltage_max)
+			cm->desc->charge_voltage_max =
+				cm->desc->normal_charge_voltage_max;
+		if (cm->desc->normal_charge_voltage_drop)
+			cm->desc->charge_voltage_drop =
+				cm->desc->normal_charge_voltage_drop;
 		dev_info(cm->dev, "unknown quick charge type\n");
 		break;
 	}
@@ -1415,31 +1439,36 @@ static void cm_update_jeita_table(struct charger_manager *cm,
 
 	dev_info(cm->dev, "%s, type = %d\n", __func__, type);
 	switch (type) {
-	case POWER_SUPPLY_USB_TYPE_DCP:
+	case POWER_SUPPLY_USB_CHARGER_TYPE_DCP:
 		cm->desc->jeita_tab =
 			cm->desc->jeita_tab_array[CM_JEITA_DCP];
 		break;
-
-	case POWER_SUPPLY_USB_TYPE_SDP:
+	case POWER_SUPPLY_USB_CHARGER_TYPE_SDP:
 		cm->desc->jeita_tab =
 			cm->desc->jeita_tab_array[CM_JEITA_SDP];
 		break;
-
-	case POWER_SUPPLY_USB_TYPE_CDP:
+	case POWER_SUPPLY_USB_CHARGER_TYPE_CDP:
 		cm->desc->jeita_tab =
 			cm->desc->jeita_tab_array[CM_JEITA_CDP];
 		break;
-
-	case POWER_SUPPLY_USB_TYPE_PD:
+	case POWER_SUPPLY_USB_CHARGER_TYPE_PD:
+	case POWER_SUPPLY_USB_CHARGER_TYPE_SFCP_1P0:
 		cm->desc->jeita_tab =
 			cm->desc->jeita_tab_array[CM_JEITA_FCHG];
 		break;
-
-	case POWER_SUPPLY_USB_TYPE_PD_PPS:
+	case POWER_SUPPLY_USB_CHARGER_TYPE_PD_PPS:
+	case POWER_SUPPLY_USB_CHARGER_TYPE_SFCP_2P0:
 		cm->desc->jeita_tab =
 			cm->desc->jeita_tab_array[CM_JEITA_FLASH];
 		break;
-
+	case POWER_SUPPLY_WIRELESS_CHARGER_TYPE_BPP:
+		cm->desc->jeita_tab =
+			cm->desc->jeita_tab_array[CM_JEITA_WL_BPP];
+		break;
+	case POWER_SUPPLY_WIRELESS_CHARGER_TYPE_EPP:
+		cm->desc->jeita_tab =
+			cm->desc->jeita_tab_array[CM_JEITA_WL_EPP];
+		break;
 	default:
 		cm->desc->jeita_tab =
 			cm->desc->jeita_tab_array[CM_JEITA_UNKNOWN];
@@ -5562,6 +5591,14 @@ static struct charger_desc *of_cm_parse_desc(struct device *dev)
 			     &desc->flash_charge_voltage_max);
 	of_property_read_u32(np, "cm-flash-charge-voltage-drop",
 			     &desc->flash_charge_voltage_drop);
+	of_property_read_u32(np, "cm-wireless-charge-voltage-max",
+			     &desc->wireless_normal_charge_voltage_max);
+	of_property_read_u32(np, "cm-wireless-charge-voltage-drop",
+			     &desc->wireless_normal_charge_voltage_drop);
+	of_property_read_u32(np, "cm-wireless-fast-charge-voltage-max",
+			     &desc->wireless_fast_charge_voltage_max);
+	of_property_read_u32(np, "cm-wireless-fast-charge-voltage-drop",
+			     &desc->wireless_fast_charge_voltage_drop);
 	of_property_read_u32(np, "cm-double-ic-total-limit-current",
 			     &desc->double_ic_total_limit_current);
 	of_property_read_u32(np, "cm-cp-taper-current",
