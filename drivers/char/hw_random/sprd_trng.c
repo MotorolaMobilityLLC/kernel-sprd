@@ -14,6 +14,7 @@
 #include <linux/of.h>
 #include <linux/platform_device.h>
 #include <linux/random.h>
+#include <linux/pm.h>
 
 /**reg**/
 #define REG_CE_CLK              0x018
@@ -29,6 +30,7 @@
 
 /**cfg**/
 #define TRNG_CLK_EN         (0x1 << 24)
+#define TRNG_CLK_DIS        (0x0 << 24)
 #define CE_CFG              (0x1 << 24)
 #define RNG_ENABLE          0x1FF03
 #define RNG_DISABLE         0x0
@@ -82,9 +84,17 @@ static void sprd_trng_cleanup(struct hwrng *rng)
 	struct sprd_trng *trng = to_sprd_trng(rng);
 	u32 val = 0;
 
+	/*disable rng*/
 	val = readl_relaxed(trng->base + REG_CE_RNG_EN);
 	val &= RNG_DISABLE;
 	writel_relaxed(val, trng->base + REG_CE_RNG_EN);
+
+	/*disable trng clk*/
+	val = readl_relaxed(trng->base + REG_CE_CLK);
+	val &= TRNG_CLK_DIS;
+	writel_relaxed(val, trng->base + REG_CE_CLK);
+
+	clk_disable_unprepare(trng->ce_eb);
 }
 
 static int sprd_trng_read(struct hwrng *rng, void *buf, size_t max, bool wait)
@@ -144,6 +154,37 @@ static int sprd_trng_probe(struct platform_device *pdev)
 	return 0;
 }
 
+#ifdef CONFIG_PM_SLEEP
+static int sprd_suspend(struct device *dev)
+{
+	struct sprd_trng *trng = dev_get_drvdata(dev);
+
+	pr_info("pubce suspend\n");
+	sprd_trng_cleanup(&(trng->rng));
+	clk_disable_unprepare(trng->clk);
+
+	return 0;
+}
+
+static int sprd_resume(struct device *dev)
+{
+	u32 err;
+	struct sprd_trng *trng = dev_get_drvdata(dev);
+
+	err = clk_prepare_enable(trng->clk);
+	err = sprd_trng_init(&(trng->rng));
+	if (err) {
+		dev_err(dev, "pubce resume failed!\n");
+		return err;
+	}
+	pr_info("pubce resume\n");
+
+	return err;
+}
+#endif
+
+static UNIVERSAL_DEV_PM_OPS(sprd_pm_ops, sprd_suspend, sprd_resume, NULL);
+
 static const struct of_device_id sprd_trng_dt_ids[] = {
 	{ .compatible = "sprd,sprd-trng" },
 	{ }
@@ -154,6 +195,7 @@ static struct platform_driver sprd_trng_driver = {
 	.probe		= sprd_trng_probe,
 	.driver		= {
 		.name	= "sprd_trng",
+		.pm = &sprd_pm_ops,
 		.of_match_table = of_match_ptr(sprd_trng_dt_ids),
 	},
 };
