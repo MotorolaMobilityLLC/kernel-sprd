@@ -197,6 +197,7 @@ struct dpu_context {
 	unsigned long logo_size;
 	struct work_struct cabc_work;
 	struct work_struct cabc_bl_update;
+	int dpi_clk_div;
 };
 
 struct sprd_dpu {
