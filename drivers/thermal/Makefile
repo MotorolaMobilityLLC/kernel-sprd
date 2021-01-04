@@ -57,3 +57,4 @@ obj-$(CONFIG_UNIPHIER_THERMAL)	+= uniphier_thermal.o
 obj-$(CONFIG_SPRD_THERMAL)	+= sprd_thermal.o
 obj-$(CONFIG_SPRD_SOC_THERMAL)	+= sprd_soc_thm.o
 obj-$(CONFIG_SPRD_CPU_COOLING)	+= sprd_cpu_cooling.o
+obj-$(CONFIG_SPRD_GPU_COOLING_DEVICE)	+= sprd_gpu_cooling.o
