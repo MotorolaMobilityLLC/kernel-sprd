@@ -680,6 +680,20 @@ config CHARGER_FAN54015
 	help
 	  Say Y to include support for Fairchild FAN54015 Battery Charger.
 
+config CHARGER_SC2720
+	tristate "Spreadtrum SC2720 charger driver"
+	depends on MFD_SC27XX_PMIC || COMPILE_TEST
+	help
+	 Say Y here to enable support for battery charging with SC2720
+	 PMIC chips.
+
+config CHARGER_SC2721
+	tristate "Spreadtrum SC2721 charger driver"
+	depends on MFD_SC27XX_PMIC || COMPILE_TEST
+	help
+	 Say Y here to enable support for battery charging with SC2721
+	 PMIC chips.
+
 config FUEL_GAUGE_SC27XX
 	tristate "Spreadtrum SC27XX fuel gauge driver"
 	depends on MFD_SC27XX_PMIC || COMPILE_TEST
