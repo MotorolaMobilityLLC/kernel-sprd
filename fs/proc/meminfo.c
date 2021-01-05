@@ -147,6 +147,7 @@ static int meminfo_proc_show(struct seq_file *m, void *v)
 	show_val_kb(m, "CmaFree:        ",
 		    global_zone_page_state(NR_FREE_CMA_PAGES));
 #endif
+	show_val_kb(m, "HighAtomicFree: ", highatomic_nr_pages());
 
 	hugetlb_report_meminfo(m);
 
