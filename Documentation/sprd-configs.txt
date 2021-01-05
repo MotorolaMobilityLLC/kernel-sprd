@@ -6971,7 +6971,7 @@ CONFIG_INIT_ENV_ARG_LIMIT
 	[missing plat description] none
 	[function] Maximum of each of the number of arguments and environment
 	variables passed to init from the kernel command line.
-CONFIG_INIT_STACK_ALL
+CONFIG_INIT_STACK_ALL_ZERO
 	[arch] all
 	[plat] all
 	[missing plat] none
@@ -6979,7 +6979,7 @@ CONFIG_INIT_STACK_ALL
 	[subsys] mm
 	[must] user
 	[missing plat description] none
-	[function] Initializes everything on the stack with a 0xAA pattern. avoid uninitalize variables.
+	[function] Initializes everything on the stack with 0. avoid uninitalize variables.
 CONFIG_INOTIFY_USER
 	[arch] all
 	[plat] all
