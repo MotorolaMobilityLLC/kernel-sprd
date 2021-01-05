@@ -379,6 +379,29 @@ out:
 	return err;
 }
 
+static void ufs_sprd_hibern8_notify(struct ufs_hba *hba,
+				enum uic_cmd_dme cmd,
+				enum ufs_notify_change_status status)
+{
+	switch (status) {
+	case PRE_CHANGE:
+		if (cmd == UIC_CMD_DME_HIBER_ENTER) {
+			ufshcd_writel(hba,
+				0x0, REG_AUTO_HIBERNATE_IDLE_TIMER);
+		}
+		break;
+	case POST_CHANGE:
+		if (cmd == UIC_CMD_DME_HIBER_EXIT) {
+			ufshcd_writel(hba,
+				AUTO_H8_IDLE_TIME_10MS,
+				REG_AUTO_HIBERNATE_IDLE_TIMER);
+		}
+		break;
+	default:
+		break;
+	}
+}
+
 static int ufs_sprd_suspend(struct ufs_hba *hba, enum ufs_pm_op pm_op)
 {
 	hba->rpm_lvl = UFS_PM_LVL_1;
@@ -406,6 +429,7 @@ static struct ufs_hba_variant_ops ufs_hba_sprd_vops = {
 	.hce_enable_notify = ufs_sprd_hce_enable_notify,
 	.link_startup_notify = ufs_sprd_link_startup_notify,
 	.pwr_change_notify = ufs_sprd_pwr_change_notify,
+	.hibern8_notify = ufs_sprd_hibern8_notify,
 	.suspend = ufs_sprd_suspend,
 	.resume = ufs_sprd_resume,
 };
