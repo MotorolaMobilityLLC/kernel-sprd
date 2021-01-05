@@ -665,6 +665,12 @@
 		};
 	};
 
+	sipc: sipc-virt {
+		compatible = "sprd,sipc-virt-bus";
+		#address-cells = <1>;
+		#size-cells = <0>;
+	};
+
 	ext_26m: ext-26m {
 		compatible = "fixed-clock";
 		#clock-cells = <0>;
