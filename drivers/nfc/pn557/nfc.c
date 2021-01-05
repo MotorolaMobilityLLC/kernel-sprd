@@ -46,6 +46,9 @@
 #include <linux/ioctl.h>
 #include <linux/miscdevice.h>
 #include <linux/i2c.h>
+//add load NFC driver only sku3 begin:
+#include <linux/of_fdt.h>
+//add load NFC driver only sku3 end
 
 #include "nfc.h"
 #include "pn8xt.h"
@@ -518,8 +521,39 @@ static struct i2c_driver nfc_driver = {
         },
 };
 
+//add load NFC driver only sku3 begin:
+static int sku3_board = 1;
+
+static int __init dt_scan_sku_nodes(unsigned long node,
+                       const char *uname, int depth,
+                       void *data)
+{
+	char *sku = (char *)of_get_flat_dt_prop(node, "hardware.sku", NULL);
+	if (sku) {
+		if (!strcmp(sku, "XT2128-2")) {
+			pr_info("The board SKU is XT2128-2\n");
+			sku3_board = 1;
+		} else {
+			pr_info("The board SKU is not XT2128-2\n");
+			sku3_board = 0;
+		}
+	}
+
+	return 0;
+}
+//add load NFC driver only sku3 end
+
 static int __init nfc_dev_init(void)
 {
+	//add load NFC driver only sku3 begin:
+	of_scan_flat_dt(dt_scan_sku_nodes, NULL);
+
+	if(sku3_board == 0) {
+		pr_info("NOT SKU3 board, NOT support NFC\n");
+		return 0;
+	}
+	//add load NFC driver only sku3 end
+
     pr_info("Loading NXP NFC driver\n");
     return i2c_add_driver(&nfc_driver);
 }
