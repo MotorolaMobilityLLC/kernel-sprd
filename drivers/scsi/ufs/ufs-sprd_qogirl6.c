@@ -185,6 +185,12 @@ void ufs_sprd_reset(struct ufs_sprd_host *host)
 	ufs_sprd_rmwl(host->ufs_analog_reg, FIFO_ENABLE_MASK,
 		      FIFO_ENABLE_MASK, MPHY_LANE1_FIFO);
 
+	ufs_sprd_rmwl(host->ufs_analog_reg, MPHY_TACTIVATE_TIME_200US,
+		      MPHY_TACTIVATE_TIME_200US, MPHY_TACTIVATE_TIME_LANE0);
+
+	ufs_sprd_rmwl(host->ufs_analog_reg, MPHY_TACTIVATE_TIME_200US,
+		      MPHY_TACTIVATE_TIME_200US, MPHY_TACTIVATE_TIME_LANE1);
+
 	regmap_read(host->ufs_refclk_on.regmap,
 		    host->ufs_refclk_on.reg, &value);
 	value = value | host->ufs_refclk_on.mask;

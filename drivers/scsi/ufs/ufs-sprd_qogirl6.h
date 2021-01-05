@@ -42,7 +42,10 @@ struct ufs_sprd_host {
 /* UFS mphy registers */
 #define MPHY_LANE0_FIFO 0xc08c
 #define MPHY_LANE1_FIFO 0xc88c
+#define MPHY_TACTIVATE_TIME_LANE0 0xc088
+#define MPHY_TACTIVATE_TIME_LANE1 0xc888
 
 #define FIFO_ENABLE_MASK (0x1 << 15)
+#define MPHY_TACTIVATE_TIME_200US (0x1 << 17)
 
 #endif/* _UFS_SPRD_H_ */
