@@ -750,6 +750,7 @@ static const struct dev_pm_ops sprd_spi_pm_ops = {
 static const struct of_device_id sprd_spi_of_match[] = {
 	{ .compatible = "sprd,sc9860-spi", },
 	{ .compatible = "sprd,sc9863-spi", },
+	{ .compatible = "sprd,ums9620-spi", },
 	{ /* sentinel */ }
 };
 
