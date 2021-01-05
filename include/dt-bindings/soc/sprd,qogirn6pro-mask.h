@@ -4224,5 +4224,22 @@
 #define MASK_IPA_APB_USB31_CURRENT_POWER_STATE_U3PMU        0x000C
 #define MASK_IPA_APB_USB31_PME_GENERATION_U3PMU             0x0002
 #define MASK_IPA_APB_USB31_CONNECT_STATE_U3PMU              0x0001
-
+#define MASK_MM_AHB_DCAM0_1_ALL_SOFT_RST                    0x00000002
+#define MASK_MM_AHB_DCAM2_3_ALL_SOFT_RST                    0x00000004
+#define MASK_MM_AHB_DCAM0_1_AXI_SOFT_RST                    0x00000008
+#define MASK_MM_AHB_DCAM3_SOFT_RST                          0x00000010
+#define MASK_MM_AHB_DCAM2_SOFT_RST                          0x00000020
+#define MASK_MM_AHB_DCAM1_SOFT_RST                          0x00000040
+#define MASK_MM_AHB_DCAM0_SOFT_RST                          0x00000080
+#define MASK_MM_AHB_ISP_VAU_SOFT_RST                        0x00001000
+#define MASK_MM_AHB_ISP_ALL_SOFT_RST                        0x00002000
+#define MASK_MM_AHB_ISP_SOFT_RST                            0x00004000
+#define MASK_MM_AHB_CPP_VAU_SOFT_RST                        0x00000200
+#define MASK_MM_AHB_CPP_ALL_SOFT_RST                        0x00000800
+#define MASK_MM_AHB_CPP_SOFT_RST                            0x00000400
+#define MASK_MM_AHB_CPP_PATH1_RST                           0x00000080
+#define MASK_MM_AHB_CPP_PATH0_RST                           0x00000100
+#define MASK_MM_AHB_CPP_DMA_RST                             0x00000040
+#define MASK_MM_AHB_MM_QOS_AR_QOS_THRESHOLD_MM              0x000000F0
+#define MASK_MM_AHB_MM_QOS_AW_QOS_THRESHOLD_MM              0x0000000F
 #endif /* __DT_BINDINGS_SPRD_QOGIRN6PRO_MASK_H */

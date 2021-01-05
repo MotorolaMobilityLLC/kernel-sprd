@@ -871,5 +871,10 @@
 #define REG_IPA_APB_IPA_LPC_CTRL                            0x00DC
 #define REG_IPA_APB_USB_CTL1                                0x00E0
 #define REG_IPA_APB_USB_CTL2                                0x00E4
-
+#define REG_MM_AHB_MM_SYS_EN                                0x0000
+#define REG_MM_AHB_ISP_BLOCK_EN                             0x0004
+#define REG_MM_AHB_DCAM_BLOCK_EN                            0x000C
+#define REG_MM_AHB_MM_QOS                                   0x0010
+#define REG_MM_AHB_DCAM_BLK_SOFT_RST                        0x00C8
+#define REG_MM_AHB_ISP_BLK_SOFT_RST                         0x00CC
 #endif /* __DT_BINDINGS_SPRD_QOGIRN6PRO_REGS_H */
