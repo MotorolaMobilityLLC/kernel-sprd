@@ -115,7 +115,7 @@ static struct sensor_cali_info light_cali_info;
 static struct sensor_cali_info prox_cali_info;
 static struct sensor_cali_info pressure_cali_info;
 
-
+#ifdef CONFIG_T_PRODUCT_INFO
 static int info_type_map[][2] = {
 	{ ORDER_ACC, ID_GSENSOR },
 	{ ORDER_MAG, ID_MSENSOR },
@@ -124,6 +124,7 @@ static int info_type_map[][2] = {
 	{ 0, 0 },
 	{ 0, 0 },
 };
+#endif
 
 static void get_sensor_info(char **sensor_name, int sensor_type, int success_num)
 {
@@ -143,8 +144,12 @@ static void get_sensor_info(char **sensor_name, int sensor_type, int success_num
 					strlen(sensor_name[success_num]));
 	hw_sensor_id[now_order].id_status = _IDSTA_OK;
 
-        pr_err("sns type:%d name:%s\n", sensor_type, hw_sensor_id[now_order].pname);
-        FULL_PRODUCT_DEVICE_INFO(info_type_map[now_order][1], hw_sensor_id[i].pname);
+#ifdef CONFIG_T_PRODUCT_INFO
+	if (now_order < 4) {
+		pr_err("sns type:%d name:%s\n", sensor_type, hw_sensor_id[now_order].pname);
+		FULL_PRODUCT_DEVICE_INFO(info_type_map[now_order][1], hw_sensor_id[i].pname);
+	}
+#endif
 }
 
 /**
