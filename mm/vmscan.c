@@ -1594,12 +1594,13 @@ unsigned long reclaim_pages_from_list(struct list_head *page_list,
 
 	unsigned long nr_reclaimed;
 	struct page *page;
+	struct reclaim_stat dummy_stat;
 
 	list_for_each_entry(page, page_list, lru)
 		ClearPageActive(page);
 
 	nr_reclaimed = shrink_page_list(page_list, NULL, &sc,
-			TTU_IGNORE_ACCESS, NULL, true);
+			TTU_IGNORE_ACCESS, &dummy_stat, true);
 
 	while (!list_empty(page_list)) {
 		page = lru_to_page(page_list);
