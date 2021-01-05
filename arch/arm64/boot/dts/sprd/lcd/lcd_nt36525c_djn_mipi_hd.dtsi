@@ -23,9 +23,9 @@
 					sprd,width-mm = <68>;
 					sprd,height-mm = <151>;
 
-					//sprd,esd-check-enable = <1>;
-					//sprd,esd-check-mode = <1>;
-					//sprd,esd-check-period = <2000>;
+					sprd,esd-check-enable = <1>;
+					sprd,esd-check-mode = <1>;
+					sprd,esd-check-period = <2000>;
 					//sprd,esd-check-register = <0xA>;
 					//sprd,esd-check-value = <0x9c>;
 
@@ -61,7 +61,7 @@
 						29 00 00 03 51 07 FF
 						13 00 00 02 53 2C
 						13 00 00 02 55 01
-						//13 00 00 02 35 00
+						13 00 00 02 35 00
 						03 00 00 01 29
 						03 64 00 01 11
 						];
