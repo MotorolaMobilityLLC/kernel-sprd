@@ -1637,9 +1637,12 @@ static int bq2597x_charger_get_property(struct power_supply *psy,
 				union power_supply_propval *val)
 {
 	struct bq2597x_charger_info *bq = power_supply_get_drvdata(psy);
-	int result;
+	int result = 0;
 	int ret, cmd;
 	u8 reg_val;
+
+	if (!bq)
+		return -EINVAL;
 
 	switch (psp) {
 	case POWER_SUPPLY_PROP_CHARGE_ENABLED:
@@ -1759,6 +1762,9 @@ static int bq2597x_charger_set_property(struct power_supply *psy,
 	struct bq2597x_charger_info *bq = power_supply_get_drvdata(psy);
 	int ret;
 
+	if (!bq)
+		return -EINVAL;
+
 	switch (prop) {
 	case POWER_SUPPLY_PROP_CHARGE_ENABLED:
 		bq2597x_enable_charge(bq, val->intval);
@@ -1809,8 +1815,6 @@ static int bq2597x_charger_is_writeable(struct power_supply *psy,
 
 static int bq2597x_psy_register(struct bq2597x_charger_info *bq)
 {
-	int ret;
-
 	bq->psy_cfg.drv_data = bq;
 	bq->psy_cfg.of_node = bq->dev->of_node;
 
@@ -1832,7 +1836,7 @@ static int bq2597x_psy_register(struct bq2597x_charger_info *bq)
 	bq->bq2597x_psy = devm_power_supply_register(bq->dev,
 						     &bq->psy_desc, &bq->psy_cfg);
 	if (IS_ERR(bq->bq2597x_psy)) {
-		dev_err(bq->dev, "failed to register bq2597x_psy:%d\n", ret);
+		dev_err(bq->dev, "failed to register bq2597x_psy\n");
 		return PTR_ERR(bq->bq2597x_psy);
 	}
 
