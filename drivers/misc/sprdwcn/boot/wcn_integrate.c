@@ -989,16 +989,22 @@ void wcn_sys_deep_sleep_en(void)
 
 void wcn_power_set_vddcon(u32 value)
 {
+	int ret = 0;
 	if (s_wcn_device.vddwcn)
-		regulator_set_voltage(s_wcn_device.vddwcn,
-				      value, value);
+		ret = regulator_set_voltage(s_wcn_device.vddwcn,
+					    value, value);
+	if (ret == 0)
+		WCN_ERR("wcn_power_set_vddcon is error\n");
 }
 
 void wcn_power_set_dcxo1v8(u32 value)
 {
+	int ret = 0;
 	if (s_wcn_device.dcxo1v8)
-		regulator_set_voltage(s_wcn_device.dcxo1v8,
-				      value, value);
+		ret = regulator_set_voltage(s_wcn_device.dcxo1v8,
+					    value, value);
+	if (ret == 0)
+		WCN_ERR("wcn_power_set_dcxo1v8 is error\n");
 }
 
 /*
@@ -1098,10 +1104,13 @@ int wcn_power_enable_dcxo1v8(bool enable)
 void wcn_power_set_vddwifipa(u32 value)
 {
 	struct wcn_device *btwf_device = s_wcn_device.btwf_device;
+	int ret = 0;
 
 	if (btwf_device->vddwifipa)
-		regulator_set_voltage(btwf_device->vddwifipa,
-				      value, value);
+		ret = regulator_set_voltage(btwf_device->vddwifipa,
+					    value, value);
+	if (ret == 0)
+		WCN_ERR("wcn_power_set_vddwifipa is error\n");
 	WCN_INFO("vddwifipa value %d\n", value);
 }
 
