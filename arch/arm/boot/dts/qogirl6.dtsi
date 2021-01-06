@@ -931,6 +931,12 @@
 				sprd,ddr-offset = <0x80000000>;
 				status = "okay";
 			};
+
+			dmc_controller: dmc-controller@60000000  {
+				compatible = "sprd,pub-dmc";
+				reg = <0x60000000 0x9000>,
+					<0x65002000 0x1000>;
+			};
 		};
 
 		aon_apb_regs: syscon@64000000 {
