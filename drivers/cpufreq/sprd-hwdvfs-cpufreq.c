@@ -734,6 +734,9 @@ static int sprd_hardware_cpufreq_init(struct cpufreq_policy *policy)
 			return ret;
 	}
 
+	if (info->policy_trans)
+		policy->transition_delay_us = info->policy_trans;
+
 	mutex_lock(&info->pcluster->opp_mutex);
 	ret = sprd_dev_pm_opp_table_update(info);
 	if (ret) {
@@ -887,6 +890,7 @@ static int sprd_cpufreq_info_init(struct sprd_cpufreq_info *info, int cpu)
 	struct nvmem_cell *cell;
 	struct platform_device *pdev;
 	int ret;
+	unsigned int policy_trans_delay;
 
 	cpu_dev = get_cpu_device(cpu);
 	if (!cpu_dev) {
@@ -906,6 +910,10 @@ static int sprd_cpufreq_info_init(struct sprd_cpufreq_info *info, int cpu)
 		ret = -EINVAL;
 		goto cpu_np_put;
 	}
+
+	if (!of_property_read_u32(cpufreq_np, "transition_delay_us",
+			     &policy_trans_delay))
+		info->policy_trans = policy_trans_delay;
 
 	dev_np = of_parse_phandle(cpufreq_np, "sprd,hw-dvfs-device", 0);
 	if (!dev_np) {

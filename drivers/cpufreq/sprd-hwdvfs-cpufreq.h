@@ -57,6 +57,7 @@ struct sprd_cpufreq_info {
 	struct cpudvfs_device *parchdev;
 	unsigned int clu_id, cpu_id;
 	struct sprd_cpu_cluster_info *pcluster;
+	unsigned int policy_trans;
 };
 
 static inline int cpubin2str(int bin, char **name)
