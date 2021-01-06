@@ -327,6 +327,14 @@
 				sprd,core-cnt = <7>;
 				sprd,version = <0x200>;
 			};
+
+			hwlock: hwspinlock@a10000 {
+				compatible = "sprd,hwspinlock-r3p0";
+				reg = <0xa10000 0x10000>;
+				#hwlock-cells = <2>;
+				clock-names = "enable";
+				clocks = <&ext_26m>;
+			};
 		};
 	};
 
