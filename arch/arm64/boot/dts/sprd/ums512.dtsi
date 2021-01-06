@@ -179,7 +179,7 @@
 		sprd,hw-dvfs-device = <&cpudvfs_dev>;
 		temp-threshold = <65>;
 		sprd,multi-version;
-
+		transition_delay_us = <500>;
 		operating-points = <
 			/*kHZ	uV*/
 			614400  756250
@@ -225,7 +225,7 @@
 		sprd,hw-dvfs-device = <&cpudvfs_dev>;
 		temp-threshold = <65>;
 		sprd,multi-version;
-
+		transition_delay_us = <500>;
 		operating-points = <
 			/*kHZ	uV*/
 			1228800 750000
