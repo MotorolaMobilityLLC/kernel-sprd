@@ -428,12 +428,12 @@ int ili_core_spi_setup(int num)
 	ilits->spi->mode = SPI_MODE_0;
 	ilits->spi->bits_per_word = 8;
 	ilits->spi->max_speed_hz = freq[num];
-
+/*
 	if (spi_setup(ilits->spi) < 0) {
 		ILI_ERR("Failed to setup spi device\n");
 		return -ENODEV;
 	}
-
+*/
 	ILI_INFO("name = %s, bus_num = %d,cs = %d, mode = %d, speed = %d\n",
 			ilits->spi->modalias,
 			ilits->spi->master->bus_num,
