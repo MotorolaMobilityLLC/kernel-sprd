@@ -578,6 +578,9 @@ enum KCTL_TYPE {
 	SND_KCTL_TYPE_EXT_INNER_IIS_MST_SEL,
 	SND_KCTL_TYPE_VBC_IIS_MASTER_WIDTH_SET,
 	SND_KCTL_TYPE_VOICE_MIX_UL,
+	SND_KCTL_TYPE_FM_MUTE_EN,
+	SND_KCTL_TYPE_FM_MUTE,
+	SND_KCTL_TYPE_FM_MDG_STP,
 	SND_KCTL_TYPE_END,
 };
 
@@ -1073,6 +1076,26 @@ struct call_mute_para {
 	u32 mute;
 };
 
+/* SND_KCTL_TYPE_FM_MUTE */
+enum fm_mute {
+	FM_MUTE_DISABLE,
+	FM_MUTE_ENABLE,
+};
+
+struct vbc_fm_mute_en_para {
+	int id;
+	u16 enable;
+};
+
+struct vbc_fm_mute_para {
+	int id;
+	u16 mute;
+};
+
+struct vbc_fm_mute_step {
+	u16 step;
+};
+
 /*
  * SND_KCTL_TYPE_IIS_TX_WIDTH_SEL
  * SND_KCTL_TYPE_IIS_TX_LRMOD_SEL
@@ -1178,7 +1201,6 @@ struct vbc_voice_pcm_play_t {
 /**********************************************************************
  * define for SND_VBC_DSP_IO_SHAREMEM_GET / SND_VBC_DSP_IO_SHAREMEM_SET
  **********************************************************************/
-
 /* --------------------defined in audio_sipc.h---------------------------- */
 
 enum{
@@ -1440,6 +1462,8 @@ struct vbc_codec_priv {
 	struct vbc_loopback_para loopback;
 	struct vbc_dp_en_para vbc_dp_en[VBC_DP_EN_MAX];
 	struct call_mute_para vbc_call_mute[VBC_MUTE_MAX];
+	struct vbc_fm_mute_para fm_mute;
+	struct vbc_fm_mute_step fm_mute_step;
 	u16 sys_iis_sel[SYS_IIS_MAX];
 	u16 ag_iis_ext_sel[AG_IIS_MAX];
 	u16 ag_iis_ext_sel_v1[AG_IIS_V1_MAX];
@@ -1533,6 +1557,7 @@ int dsp_vbc_adder_set(int id, int adder_mode_l, int adder_mode_r);
 int dsp_vbc_loopback_set(struct vbc_loopback_para *loopback);
 int dsp_vbc_dp_en_set(int id, u16 enable);
 int dsp_call_mute_set(int id, u16 mute);
+int fm_mute_set(int id, u16 mute, u16 step);
 int dsp_vbc_iis_tx_width_set(int id, u32 width);
 int dsp_vbc_iis_tx_lr_mod_set(int id, u32 lr_mod);
 int dsp_vbc_iis_rx_width_set(int id, u32 width);

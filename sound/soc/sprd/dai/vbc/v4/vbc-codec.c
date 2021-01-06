@@ -46,6 +46,7 @@
 #define MIXERDG_STP_MAX_VAL (0xffff)
 #define OFFLOAD_DG_MAX (4096)
 #define MAX_32_BIT (0xffffffff)
+#define MAX_12_BIT (0xfff)
 #define SRC_MAX_VAL (48000)
 
 #define SPRD_VBC_ENUM(xreg, xmax, xtexts)\
@@ -63,6 +64,11 @@ static const char * const dsp_loopback_type_txt[] = {
 static const char * const enable_disable_txt[] = {
 	"disable", "enable",
 };
+
+static const char * const mute_unmute_txt[] = {
+	"mute", "unmute",
+};
+
 
 static const char * const ag_iis0_mode_txt[] = {
 	"top_dac_iis", "pdm_top_iis0", "l5_top",
@@ -1901,6 +1907,73 @@ static int vbc_call_mute_put(struct snd_kcontrol *kcontrol,
 	return true;
 }
 
+/* FM_MUTE */
+static const struct soc_enum vbc_fm_mute_enum =
+	SPRD_VBC_ENUM(SND_SOC_NOPM, 2, mute_unmute_txt);
+
+static int vbc_fm_mute_get(struct snd_kcontrol *kcontrol,
+			     struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
+	struct vbc_codec_priv *vbc_codec = snd_soc_codec_get_drvdata(codec);
+
+	ucontrol->value.integer.value[0] = vbc_codec->fm_mute.mute;
+
+	return 0;
+}
+
+static int vbc_fm_mute_put(struct snd_kcontrol *kcontrol,
+			     struct snd_ctl_elem_value *ucontrol)
+{
+	u16 value;
+	struct soc_enum *texts = (struct soc_enum *)kcontrol->private_value;
+	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
+	struct vbc_codec_priv *vbc_codec = snd_soc_codec_get_drvdata(codec);
+	struct soc_enum *e = (struct soc_enum *)kcontrol->private_value;
+	u32 id = e->reg;
+
+	if (ucontrol->value.integer.value[0] >= texts->items) {
+		pr_err("ERR: %s,index outof bounds error\n", __func__);
+		return -EINVAL;
+	}
+
+	value = ucontrol->value.enumerated.item[0];
+	sp_asoc_pr_dbg("%s, fm_mute %s, mute step %d\n", __func__,
+				   texts->texts[value],
+				   vbc_codec->fm_mute_step.step);
+	vbc_codec->fm_mute.id = id;
+	vbc_codec->fm_mute.mute = value;
+	fm_mute_set(id, value, vbc_codec->fm_mute_step.step);
+
+	return true;
+}
+
+static int vbc_fm_mdg_stp_get(struct snd_kcontrol *kcontrol,
+			  struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
+	struct vbc_codec_priv *vbc_codec = snd_soc_codec_get_drvdata(codec);
+
+	ucontrol->value.integer.value[0] = vbc_codec->fm_mute_step.step;
+
+	return 0;
+}
+
+static int vbc_fm_mdg_stp_put(struct snd_kcontrol *kcontrol,
+			  struct snd_ctl_elem_value *ucontrol)
+{
+	int value;
+	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
+	struct vbc_codec_priv *vbc_codec = snd_soc_codec_get_drvdata(codec);
+
+	value = ucontrol->value.integer.value[0];
+	sp_asoc_pr_dbg("%s vbc_fm_mdg_stp = %d\n",
+			   __func__, value);
+	vbc_codec->fm_mute_step.step = value;
+
+	return value;
+}
+
 /* IIS_TX_WIDTH */
 static const char * const vbc_iis_width_txt[IIS_WD_MAX] = {
 	[WD_16BIT] = TO_STRING(WD_16BIT),
@@ -3648,6 +3721,12 @@ static const struct snd_kcontrol_new vbc_codec_snd_controls[] = {
 			    vbc_get_agdsp_access, vbc_put_agdsp_aud_access),
 	SOC_SINGLE_BOOL_EXT("agdsp_access_a2dp_en", 0,
 			    vbc_get_agdsp_access, vbc_put_agdsp_a2dp_access),
+	/*FM MUTE*/
+	SOC_SINGLE_EXT("VBC FM_MUTE_SMOOTHDG STEP", SND_SOC_NOPM, 0,
+		       MAX_12_BIT, 0,
+		       vbc_fm_mdg_stp_get, vbc_fm_mdg_stp_put),
+	SOC_ENUM_EXT("VBC_FM_UNMUTE_SMOOTH", vbc_fm_mute_enum,
+		     vbc_fm_mute_get, vbc_fm_mute_put),
 	/* VBC VOLUME */
 	SOC_SINGLE_EXT("VBC_VOLUME", SND_SOC_NOPM, 0,
 		       MAX_32_BIT, 0,

@@ -1173,6 +1173,42 @@ int dsp_call_mute_set(int id, u16 mute)
 	return 0;
 }
 
+/* SND_KCTL_TYPE_FM_MUTE */
+int fm_mute_set(int id, u16 mute, u16 step)
+{
+	int ret;
+	struct vbc_fm_mute_step mute_step = { };
+	struct vbc_fm_mute_en_para fm_mute_en = { };
+	struct vbc_fm_mute_para mute_p = { };
+
+	mute_step.step = step;
+	fm_mute_en.id = id;
+	fm_mute_en.enable = FM_MUTE_ENABLE;
+	mute_p.id = id;
+	mute_p.mute = mute;
+
+	ret = aud_send_cmd(AMSG_CH_VBC_CTL, SND_KCTL_TYPE_FM_MDG_STP,
+		-1, SND_VBC_DSP_IO_KCTL_SET, &mute_step,
+		sizeof(struct vbc_fm_mute_step), AUDIO_SIPC_WAIT_FOREVER);
+	if (ret < 0)
+		pr_err("%s, Failed to set, ret: %d\n", __func__, ret);
+
+	ret = aud_send_cmd(AMSG_CH_VBC_CTL, SND_KCTL_TYPE_FM_MUTE_EN,
+		-1, SND_VBC_DSP_IO_KCTL_SET,
+		&fm_mute_en, sizeof(struct vbc_fm_mute_en_para),
+		AUDIO_SIPC_WAIT_FOREVER);
+	if (ret < 0)
+		pr_err("%s, Failed to set, ret: %d\n", __func__, ret);
+
+	ret = aud_send_cmd(AMSG_CH_VBC_CTL, SND_KCTL_TYPE_FM_MUTE,
+		-1, SND_VBC_DSP_IO_KCTL_SET, &mute_p,
+		sizeof(struct vbc_fm_mute_para), AUDIO_SIPC_WAIT_FOREVER);
+	if (ret < 0)
+		pr_err("%s, Failed to set, ret: %d\n", __func__, ret);
+
+	return 0;
+}
+
 /* SND_KCTL_TYPE_IIS_TX_WIDTH_SEL */
 int dsp_vbc_iis_tx_width_set(int id, u32 width)
 {
