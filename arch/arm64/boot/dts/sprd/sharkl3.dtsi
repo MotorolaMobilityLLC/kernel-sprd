@@ -356,6 +356,20 @@
 				status = "disabled";
 			};
 
+			mailbox: mailbox@400a0000 {
+				compatible = "sprd,mailbox-r1p2";
+				reg = <0 0x400a0000 0 0x8000>,
+				      <0 0x400a8000 0 0x8000>;
+				reg-names = "inbox", "outbox";
+				clocks = <&aonapb_gate CLK_MBOX_EB>;
+				clock-names = "enable";
+				interrupts = <GIC_SPI 68 IRQ_TYPE_LEVEL_HIGH>,
+					     <GIC_SPI 69 IRQ_TYPE_LEVEL_HIGH>,
+					     <GIC_SPI 119 IRQ_TYPE_LEVEL_HIGH>;
+				interrupt-names = "inbox", "outbox", "oob-outbox";
+				#mbox-cells = <2>;
+			};
+
 			aon_dma: dma-controller@40100000 {
 				compatible = "sprd,sharkl3-dma", "sprd,sc9860-dma";
 				reg = <0 0x40100000 0 0x4000>;
