@@ -178,18 +178,24 @@
 		clock-names = "clk_src","sensor_eb",
 			"clk_96m","clk_76m8",
 			"clk_48m","clk_26m";
-		clocks = <&mm_clk CLK_SENSOR0>,<&mm_gate CLK_MM_SENSOR0_EB>,
+		clocks = <&mm_clk CLK_SENSOR1>,<&mm_gate CLK_MM_SENSOR1_EB>,
 				<&pll1 CLK_TWPLL_96M>,<&pll1 CLK_TWPLL_76M8>,
 				<&pll1 CLK_TWPLL_48M>,<&ext_26m>;
 		vddio-supply = <&vddcamio>;
 		vddcama-supply = <&vddcama0>;
-		dvdd-gpios = <&ap_gpio 11 0>;
+		vddcamd-supply = <&vddcamd0>;
 		vddcammot-supply = <&vddcammot>;
-		reset-gpios = <&ap_gpio 45 0>;
-		power-down-gpios = <&ap_gpio 47 0>;
+		reset-gpios = <&ap_gpio 44 0>;
+		power-down-gpios = <&ap_gpio 46 0>;
 		sprd,phyid = <0>;
 		csi = <&csi0>;
 	};
+
+};
+
+&i2c1 {
+	status = "okay";
+	clock-frequency = <400000>;
 
 	sensor_sub: sensor-sub@5a {
 		compatible = "sprd,sensor-sub";
@@ -201,21 +207,13 @@
 				<&pll1 CLK_TWPLL_96M>,<&pll1 CLK_TWPLL_76M8>,
 				<&pll1 CLK_TWPLL_48M>,<&ext_26m>;
 		vddio-supply = <&vddcamio>;
-		vddcama-supply = <&vddcama0>;
-		dvdd-gpios = <&ap_gpio 11 0>;
-		vddcammot-supply = <&vddcammot>;
-		reset-gpios = <&ap_gpio 44 0>;
-		power-down-gpios = <&ap_gpio 46 0>;
-	/*	mipi-switch-en-gpios = <&ap_gpio 55 0>;*/
-	/*	mipi-switch-mode-gpios = <&ap_gpio 8 0>;*/
+		vddcama-supply = <&vddcama1>;
+		vddcamd-supply = <&vddcamd1>;
+		reset-gpios = <&ap_gpio 41 0>;
+		power-down-gpios = <&ap_gpio 40 0>;
 		sprd,phyid = <2>;
 		csi = <&csi0>;
 	};
-};
-
-&i2c1 {
-	status = "okay";
-	clock-frequency = <400000>;
 
 	sensor_main2: sensor-main2@20 {
 		compatible = "sprd,sensor-main2";
@@ -223,24 +221,17 @@
 		clock-names = "clk_src","sensor_eb",
 			"clk_96m","clk_76m8",
 			"clk_48m","clk_26m";
-		clocks = <&mm_clk CLK_SENSOR1>,<&mm_gate CLK_MM_SENSOR1_EB>,
+		clocks = <&mm_clk CLK_SENSOR0>,<&mm_gate CLK_MM_SENSOR0_EB>,
 				<&pll1 CLK_TWPLL_96M>,<&pll1 CLK_TWPLL_76M8>,
 				<&pll1 CLK_TWPLL_48M>,<&ext_26m>;
 		vddio-supply = <&vddcamio>;
 		vddcama-supply = <&vddcama1>;
-		vddcamd-supply = <&vddcamd0>;
-		vddcammot-supply = <&vddcammot>;
-		avdd-gpios = <&ap_gpio 33 0>;
-		mot-gpios = <&ap_gpio 88 0>;
-		reset-gpios = <&ap_gpio 41 0>;
-		power-down-gpios = <&ap_gpio 40 0>;
-	/*	mipi-switch-en-gpios = <&ap_gpio 55 0>;*/
-	/*	mipi-switch-mode-gpios = <&ap_gpio 8 0>;*/
+		vddcamd-supply = <&vddcamd1>;
+		reset-gpios = <&ap_gpio 45 0>;
+		power-down-gpios = <&ap_gpio 47 0>;
 		sprd,phyid = <4>;
 		csi = <&csi1>;
 	};
-
-
 };
 
 &i2c5 {
@@ -257,31 +248,17 @@
 			regulator-name = "vddvbus";
 		};
 	};
+
+	flash_ic: flash-ic@63 {
+		compatible = "sprd,flash-aw36515";
+		reg = <0x63>;
+		sprd,flash-ic = <36515>;
+	};
 };
 
 &i2c6 {
 	status = "okay";
 	clock-frequency = <400000>;
-
-	sensor_sub2: sensor-sub2@6e {
-		compatible = "sprd,sensor-sub2";
-		reg = <0x6e>;
-		clock-names = "clk_src","sensor_eb",
-			"clk_96m","clk_76m8",
-			"clk_48m","clk_26m";
-		clocks = <&mm_clk CLK_SENSOR2>,<&mm_gate CLK_MM_SENSOR2_EB>,
-			<&pll1 CLK_TWPLL_96M>,<&pll1 CLK_TWPLL_76M8>,
-			<&pll1 CLK_TWPLL_48M>,<&ext_26m>;
-		vddio-supply = <&vddcamio>;
-		avdd-gpios = <&ap_gpio 130 0>;
-		vddcamd-supply = <&vddcamd1>;
-		vddcammot-supply = <&vddcammot>;
-		mot-gpios = <&ap_gpio 112 0>;
-		reset-gpios = <&ap_gpio 114 0>;
-	/*	power-down-gpios = <&ap_gpio 40 0>;*/
-		sprd,phyid = <3>;
-		csi = <&csi2>;
-	};
 };
 
 &spi3 {
