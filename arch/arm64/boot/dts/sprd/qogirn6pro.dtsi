@@ -440,7 +440,7 @@
 				reg = <0xa10000 0x10000>;
 				#hwlock-cells = <1>;
 				clock-names = "enable";
-				clocks = <&ext_26m>;
+				clocks = <&aonapb_gate CLK_SPLK_EB>;
 			};
 
 			apb_bm: apb-busmonitor@64580000 {
