@@ -5,6 +5,7 @@
  * it under the terms of the GNU General Public License version 2 as
  * published by the Free Software Foundation.
  */
+#include <linux/alarmtimer.h>
 #include <linux/gpio/consumer.h>
 #include <linux/interrupt.h>
 #include <linux/i2c.h>
@@ -36,6 +37,7 @@
 
 #define BQ2560X_BATTERY_NAME			"sc27xx-fgu"
 #define BIT_DP_DM_BC_ENB			BIT(0)
+#define BQ2560X_OTG_ALARM_TIMER_MS		15000
 
 #define	BQ2560X_REG_IINLIM_BASE			100
 
@@ -111,6 +113,8 @@ struct bq2560x_charger_info {
 	bool need_disable_Q1;
 	int termination_cur;
 	u32 actual_limit_current;
+	bool otg_enable;
+	struct alarm otg_timer;
 };
 
 static int
@@ -1097,6 +1101,7 @@ static int bq2560x_charger_enable_otg(struct regulator_dev *dev)
 		return ret;
 	}
 
+	info->otg_enable = true;
 	schedule_delayed_work(&info->wdt_work,
 			      msecs_to_jiffies(BQ2560X_FEED_WATCHDOG_VALID_MS));
 	schedule_delayed_work(&info->otg_work,
@@ -1110,6 +1115,7 @@ static int bq2560x_charger_disable_otg(struct regulator_dev *dev)
 	struct bq2560x_charger_info *info = rdev_get_drvdata(dev);
 	int ret;
 
+	info->otg_enable = false;
 	cancel_delayed_work_sync(&info->wdt_work);
 	cancel_delayed_work_sync(&info->otg_work);
 	ret = bq2560x_update_bits(info, BQ2560X_REG_1,
@@ -1206,8 +1212,13 @@ static int bq2560x_charger_probe(struct i2c_client *client,
 		return -ENOMEM;
 	info->client = client;
 	info->dev = dev;
+
+	alarm_init(&info->otg_timer, ALARM_BOOTTIME, NULL);
+
 	mutex_init(&info->lock);
 	INIT_WORK(&info->work, bq2560x_charger_work);
+
+	i2c_set_clientdata(client, info);
 
 	ret = device_property_read_bool(dev, "role-slave");
 	if (ret)
@@ -1342,6 +1353,62 @@ static int bq2560x_charger_remove(struct i2c_client *client)
 	return 0;
 }
 
+#ifdef CONFIG_PM_SLEEP
+static int bq2560x_charger_suspend(struct device *dev)
+{
+	struct bq2560x_charger_info *info = dev_get_drvdata(dev);
+	ktime_t now, add;
+	unsigned int wakeup_ms = BQ2560X_OTG_ALARM_TIMER_MS;
+	int ret;
+
+	if (!info->otg_enable)
+		return 0;
+
+	cancel_delayed_work_sync(&info->wdt_work);
+
+	/* feed watchdog first before suspend */
+	ret = bq2560x_update_bits(info, BQ2560X_REG_1,
+				   BQ2560X_REG_RESET_MASK,
+				   BQ2560X_REG_RESET_MASK);
+	if (ret)
+		dev_warn(info->dev, "reset bq2560x failed before suspend\n");
+
+	now = ktime_get_boottime();
+	add = ktime_set(wakeup_ms / MSEC_PER_SEC,
+			(wakeup_ms % MSEC_PER_SEC) * NSEC_PER_MSEC);
+	alarm_start(&info->otg_timer, ktime_add(now, add));
+
+	return 0;
+}
+
+static int bq2560x_charger_resume(struct device *dev)
+{
+	struct bq2560x_charger_info *info = dev_get_drvdata(dev);
+	int ret;
+
+	if (!info->otg_enable)
+		return 0;
+
+	alarm_cancel(&info->otg_timer);
+
+	/* feed watchdog first after resume */
+	ret = bq2560x_update_bits(info, BQ2560X_REG_1,
+				   BQ2560X_REG_RESET_MASK,
+				   BQ2560X_REG_RESET_MASK);
+	if (ret)
+		dev_warn(info->dev, "reset bq2560x failed after resume\n");
+
+	schedule_delayed_work(&info->wdt_work, HZ * 15);
+
+	return 0;
+}
+#endif
+
+static const struct dev_pm_ops bq2560x_charger_pm_ops = {
+	SET_SYSTEM_SLEEP_PM_OPS(bq2560x_charger_suspend,
+				bq2560x_charger_resume)
+};
+
 static const struct i2c_device_id bq2560x_i2c_id[] = {
 	{"bq2560x_chg", 0},
 	{}
@@ -1369,6 +1436,7 @@ static struct i2c_driver bq2560x_master_charger_driver = {
 	.driver = {
 		.name = "bq2560x_chg",
 		.of_match_table = bq2560x_charger_of_match,
+		.pm = &bq2560x_charger_pm_ops,
 	},
 	.probe = bq2560x_charger_probe,
 	.remove = bq2560x_charger_remove,
@@ -1379,6 +1447,7 @@ static struct i2c_driver bq2560x_slave_charger_driver = {
 	.driver = {
 		.name = "bq2560_slave_chg",
 		.of_match_table = bq2560x_slave_charger_of_match,
+		.pm = &bq2560x_charger_pm_ops,
 	},
 	.probe = bq2560x_charger_probe,
 	.remove = bq2560x_charger_remove,
