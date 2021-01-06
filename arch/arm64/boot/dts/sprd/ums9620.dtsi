@@ -143,7 +143,7 @@
 			#clock-cells = <1>;
 		};
 
-		aon_gate: aon-gate {
+		aonapb_gate: aonapb-gate {
 			compatible = "sprd,ums9620-aon-gate";
 			sprd,syscon = <&aon_apb_regs>; /* 0x64900000 */
 			clocks = <&ext_26m>;
