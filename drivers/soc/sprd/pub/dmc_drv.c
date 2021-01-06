@@ -20,7 +20,6 @@
 #include <linux/mfd/syscon.h>
 #include <linux/of.h>
 #include <linux/regmap.h>
-#include <linux/of.h>
 #include <linux/debugfs.h>
 #include <linux/uaccess.h>
 #include <linux/platform_device.h>
@@ -118,6 +117,12 @@ struct dmc_drv_data {
 #define ORCA_CS0_MR_OFFSET	0xc
 #define ORCA_CS1_MR_OFFSET	0x10
 
+#define PUB_DMC_SIZE_L_OFFSET	0x0
+#define PUB_DMC_SIZE_H_OFFSET	0x4
+#define PUB_DMC_TYPE_OFFSET	0x8
+#define PUB_DMC_CS0_MR_OFFSET	0xc
+#define PUB_DMC_CS1_MR_OFFSET	0x10
+
 static const struct dmc_data pike2_data = {
 	.proc_res = 0,
 	.mon_res = INVALID_RES_IDX,
@@ -197,6 +202,18 @@ static const struct dmc_data orca_data = {
 	.mr_offset = {
 		ORCA_CS0_MR_OFFSET,
 		ORCA_CS1_MR_OFFSET,
+	},
+};
+
+static const struct dmc_data pub_dmc_data = {
+	.proc_res = 1,
+	.mon_res = 0,
+	.size_l_offset = PUB_DMC_SIZE_L_OFFSET,
+	.size_h_offset = PUB_DMC_SIZE_H_OFFSET,
+	.type_offset = PUB_DMC_TYPE_OFFSET,
+	.mr_offset = {
+		PUB_DMC_CS0_MR_OFFSET,
+		PUB_DMC_CS1_MR_OFFSET,
 	},
 };
 
@@ -541,6 +558,7 @@ static const struct of_device_id sprd_dmc_of_match[] = {
 	{.compatible = "sprd,sharkl5pro-dmc", .data = &sharkl5pro_data},
 	{.compatible = "sprd,roc1-dmc", .data = &roc1_data},
 	{.compatible = "sprd,orca-dmc", .data = &orca_data},
+	{.compatible = "sprd,pub-dmc", .data = &pub_dmc_data},
 	{},
 };
 
