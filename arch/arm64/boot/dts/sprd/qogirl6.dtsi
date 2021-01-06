@@ -1043,6 +1043,12 @@
 			reg = <0 0x64550000 0 0x3000>;
 		};
 
+		anlg_phy_g1_regs: syscon@64560000 {
+			compatible = "sprd,ums9230-glbregs", "syscon";
+			#syscon-cells = <2>;
+			reg = <0 0x64560000 0 0x3000>;
+		};
+
 		anlg_phy_g2_regs: syscon@64570000 {
 			compatible = "sprd,ums9230-glbregs", "syscon";
 			#syscon-cells = <2>;

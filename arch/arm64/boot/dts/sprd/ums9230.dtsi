@@ -410,6 +410,13 @@
 			#clock-cells = <1>;
 		};
 
+		pll0: pll0 {
+			compatible = "sprd,ums9230-g1-pll";
+			sprd,syscon = <&anlg_phy_g1_regs>; /* 0x64560000 */
+			clocks = <&ext_26m>;
+			#clock-cells = <1>;
+		};
+
 		mpll1: mpll1 {
 			compatible = "sprd,ums9230-g3-pll";
 			sprd,syscon = <&anlg_phy_g3_regs>; /* 0x64580000 */
