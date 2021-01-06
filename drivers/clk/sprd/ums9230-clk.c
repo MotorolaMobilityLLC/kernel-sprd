@@ -148,6 +148,32 @@ static struct sprd_clk_desc ums9230_g0_pll_desc = {
 	.hw_clks	= &ums9230_g0_pll_hws,
 };
 
+/* pll clock at g1 */
+static SPRD_SC_GATE_CLK(dsi_iso_sw_en, "dsi-iso-sw-en", "ext-26m",
+			0x34, 0x1000, BIT(0), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(dsi_div6clk_gate, "dsi-div6clk-gate", "ext-26m",
+			0x34, 0x1000, BIT(1), CLK_IGNORE_UNUSED, 0);
+
+static struct sprd_clk_common *ums9230_g1_pll_clks[] = {
+	/* address base is 0x64560000 */
+	&dsi_iso_sw_en.common,
+	&dsi_div6clk_gate.common,
+};
+
+static struct clk_hw_onecell_data ums9230_g1_pll_hws = {
+	.hws	= {
+		[CLK_DSI_ISO_SW_EN]	= &dsi_iso_sw_en.common.hw,
+		[CLK_DSI_DIV6CLK_GATE]	= &dsi_div6clk_gate.common.hw,
+	},
+	.num	= CLK_ANLG_PHY_G1_NUM,
+};
+
+static struct sprd_clk_desc ums9230_g1_pll_desc = {
+	.clk_clks	= ums9230_g1_pll_clks,
+	.num_clk_clks	= ARRAY_SIZE(ums9230_g1_pll_clks),
+	.hw_clks	= &ums9230_g1_pll_hws,
+};
+
 /* pll at g3 */
 static struct freq_table ftable[6] = {
 	{ .ibias = 2, .max_freq = 900000000ULL },
@@ -1955,6 +1981,8 @@ static const struct of_device_id sprd_ums9230_clk_ids[] = {
 	  .data = &ums9230_pmu_gate_desc },
 	{ .compatible = "sprd,ums9230-g0-pll",		/* 0x64550000 */
 	  .data = &ums9230_g0_pll_desc },
+	{ .compatible = "sprd,ums9230-g1-pll",          /* 0x64560000 */
+	  .data = &ums9230_g1_pll_desc },
 	{ .compatible = "sprd,ums9230-g3-pll",		/* 0x64580000 */
 	  .data = &ums9230_g3_pll_desc },
 	{ .compatible = "sprd,ums9230-gc-pll",		/* 0x645a0000 */

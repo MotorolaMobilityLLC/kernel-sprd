@@ -34,6 +34,10 @@
 #define CLK_DPLL0_50M			1
 #define CLK_ANLG_PHY_G0_NUM		(CLK_DPLL0_50M + 1)
 
+#define CLK_DSI_ISO_SW_EN		0
+#define CLK_DSI_DIV6CLK_GATE		1
+#define CLK_ANLG_PHY_G1_NUM		(CLK_DSI_DIV6CLK_GATE + 1)
+
 #define CLK_RPLL			0
 #define CLK_AUDIO_GATE			1
 #define CLK_MPLL1			2
