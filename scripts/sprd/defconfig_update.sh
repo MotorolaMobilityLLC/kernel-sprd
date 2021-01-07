@@ -38,7 +38,7 @@ do
 		clang_triple="arm-linux-gnueabi-"
 	fi
 
-	make CC=clang LD=ld.lld CLANG_TRIPLE=$clang_triple ARCH=$arch CROSS_COMPILE="aarch64-linux-gnu-" $defconfig_name O=$tmp_path_def
+	make LLVM=1 LLVM_IAS=1 CLANG_TRIPLE=$clang_triple ARCH=$arch CROSS_COMPILE="aarch64-linux-gnu-" $defconfig_name O=$tmp_path_def
 
 	cp $tmp_path_def/.config $sprd_defconfig
 
