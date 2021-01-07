@@ -2133,11 +2133,13 @@ static bool cm_manager_adjust_current(struct charger_manager *cm,
 	term_volt = desc->jeita_tab[jeita_status].term_volt;
 	target_cur = desc->jeita_tab[jeita_status].current_ua;
 
-	if (cm->desc->thm_adjust_cur >= 0 &&
+	//zhang.chao@tinno.com midify for CONSTANT_CHARGE_CURRENT set 2021.01.07 begin
+	/*if (cm->desc->thm_adjust_cur >= 0 &&
 	    cm->desc->thm_adjust_cur < target_cur) {
 		target_cur = cm->desc->thm_adjust_cur;
 		dev_info(cm->dev, "thermel current is less than jeita current\n");
-	}
+	}*/
+	//zhang.chao@tinno.com midify for CONSTANT_CHARGE_CURRENT set 2021.01.07 end
 
 	dev_info(cm->dev, "target terminate voltage = %d, target current = %d\n",
 		 term_volt, target_cur);
