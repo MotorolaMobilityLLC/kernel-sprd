@@ -77,7 +77,7 @@
 						default-brightness = <33>;	
 						sprd,max-level = <254>;
 						brightness-levels = [				
-							29 00 00 03 51 00 04
+							29 00 00 03 51 00 00
 							29 00 00 03 51 00 0C
 							29 00 00 03 51 00 14
 							29 00 00 03 51 00 1C
