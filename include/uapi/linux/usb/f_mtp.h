@@ -20,6 +20,7 @@
 
 #include <linux/ioctl.h>
 #include <linux/types.h>
+#include <linux/compat.h>
 
 struct mtp_file_range {
 	/* file descriptor for file to transfer */
@@ -38,6 +39,15 @@ struct mtp_file_range {
 	uint32_t	transaction_id;
 };
 
+#ifdef CONFIG_COMPAT
+struct compat_mtp_event {
+    /* size of the event */
+    compat_size_t    length;
+    /* event data to send */
+    compat_ulong_t    data;
+};
+#endif
+
 struct mtp_event {
 	/* size of the event */
 	size_t		length;
@@ -52,10 +62,14 @@ struct mtp_event {
  */
 #define MTP_RECEIVE_FILE           _IOW('M', 1, struct mtp_file_range)
 /* Sends an event to the host via the interrupt endpoint */
-#define MTP_SEND_EVENT             _IOW('M', 3, struct mtp_event)
+#ifdef CONFIG_COMPAT
+#define    COMPAT_MTP_SEND_EVENT    _IOW('M', 3, struct compat_mtp_event)
+#endif
+#define    MTP_SEND_EVENT        _IOW('M', 3, struct mtp_event)
 /* Sends the specified file range to the host,
  * with a 12 byte MTP data packet header at the beginning.
  */
 #define MTP_SEND_FILE_WITH_HEADER  _IOW('M', 4, struct mtp_file_range)
+
 
 #endif /* _UAPI_LINUX_USB_F_MTP_H */
