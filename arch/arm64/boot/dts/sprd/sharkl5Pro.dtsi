@@ -1005,11 +1005,10 @@
 
 			vdsp {
 				compatible = "sprd,sharkl5pro-vdsp";
-				/*AHB CLK IPI PMU DVFS*/
-				reg = <0x0 0x20100000 0x0 0x10000>,
-					  <0x0 0x20900000 0x0 0x10000>,
-					  <0x0 0x327e0000 0x0 0x10000>,
-					  <0x0 0x71700000 0x0 0x10000>;
+				/* IPI */
+				reg = <0x0 0x20900000 0x0 0x10000>;
+				sprd,syscon-ap-ahb = <&ap_ahb_regs>;
+				sprd,syscon-pmu = <&pmu_apb_regs>;
 				clock-names = "vdsp_clk_set","vdsp_clk_512";
 				clocks = <&ap_clk CLK_VDSP>,
 					     <&pll2  CLK_TWPLL_512M>;
