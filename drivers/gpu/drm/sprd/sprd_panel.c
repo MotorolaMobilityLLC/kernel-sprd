@@ -691,7 +691,7 @@ static int sprd_oled_set_brightness(struct backlight_device *bdev)
 	if(strncmp(lcd_name, "lcd_icnl9911c_hlt_mipi_hd",strlen(lcd_name)) == 0)
 	{
 		if (level < 256)
-			level = ((level * 88) + 22 )/ 100;
+			level = ((level * 81) + 22 )/ 100;
 	}
 	else
 	{
