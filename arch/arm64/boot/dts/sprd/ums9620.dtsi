@@ -357,3 +357,10 @@
 		 <&ap_clk CLK_AP_I2C9>, <&ext_26m>;
 };
 
+&sdio3 {
+	clock-names = "sdio_clk","sdio_clk_source","sdio_ahb_enable";
+	clocks = <&ap_clk CLK_EMMC_2X>,
+		 <&g1_pll CLK_RPLL>, <&apahb_gate CLK_EMMC_EB>;
+};
+
+

@@ -189,6 +189,13 @@
 			#size-cells = <1>;
 			ranges = <0 0 0x20000000 0x22d0040>;
 
+			sdio3: sdio@2200000 {
+				compatible = "sprd,sdhc-r11p1";
+				reg = <0 0x2200000 0 0x1000>;
+				interrupts = <GIC_SPI 10 IRQ_TYPE_LEVEL_HIGH>;
+				status = "disabled";
+			};
+
 			i2c0: i2c@2240000 {
 				compatible = "sprd,qogirn6pro-i2c";
 				reg = <0 0x2240000 0 0x100>;
