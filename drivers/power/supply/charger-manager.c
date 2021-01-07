@@ -2312,6 +2312,23 @@ static bool _cm_monitor(struct charger_manager *cm)
 	int temp_alrt, ret;
 	int i;
 
+	// pony.ma, DATE20210106, charge time require, DATE20210106-01 START
+	int iter_cur,bat_uA;
+	struct power_supply_battery_info info = { };
+
+	ret = power_supply_get_battery_info(cm->charger_psy, &info, 0);
+	if (ret) {
+		dev_err(cm->dev, "failed to get battery information\n");
+	}
+
+	iter_cur = info.charge_term_current_ua;
+
+	ret = get_batt_uA(cm, &bat_uA);
+	if (ret) {
+		dev_err(cm->dev, "get bat_uA error.\n");
+	}
+	// pony.ma, DATE20210106-01 END
+
 	/* Feed the charger watchdog if necessary */
 	ret = cm_feed_watchdog(cm);
 	if (ret) {
@@ -2399,9 +2416,11 @@ static bool _cm_monitor(struct charger_manager *cm)
 		dev_info(cm->dev, "_cm_monitor EVENT_HANDLE: Battery Fully Charged\n");
 		uevent_notify(cm, default_event_names[CM_EVENT_BATT_FULL]);
 
-		try_charger_enable(cm, false);
+		if(bat_uA <= iter_cur){			/* pony.ma,  charge time require, DATE20210106*/
+			try_charger_enable(cm, false);
 
-		fullbatt_vchk(&cm->fullbatt_vchk_work.work);
+			fullbatt_vchk(&cm->fullbatt_vchk_work.work);
+		}								/* pony.ma,  charge time require, DATE20210106*/
 	} else {
 		cm->emergency_stop = 0;
 		cm->charging_status = 0;
