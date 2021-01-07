@@ -170,6 +170,32 @@
 	bootargs = "earlycon console=ttyS1,115200n8 loglevel=7 init=/init root=/dev/ram0 rw androidboot.hardware=ums512_1h10 androidboot.dtbo_idx=0 printk.devkmsg=on androidboot.boot_devices=soc/soc:ap-apb/71400000.sdio androidboot.selinux=permissive dummy_hcd.num=0";
 };
 
+&reserved_memory {
+	#address-cells = <2>;
+	#size-cells = <2>;
+
+	logo_reserved: logobuffer@9e000000{
+		reg = <0x0 0x9e000000 0x0 0x009e4000>;
+	};
+
+	fd_reserved: faceid-mem@efaae000 {
+		reg = <0x0 0xefaae000 0x0 0x00f00000>;
+	};
+
+	vdsp_reserved: vdsp-mem@f09ae000 {
+		reg = <0x0 0xf09ae000 0x0 0x03700000>;
+	};
+
+	fb_reserved: framebuffer-mem@fd708000 {
+		reg = <0x0 0xfd708000 0x0 0x01e5a000>;
+	};
+
+	wb_reserved: writeback-mem@ff562000 {
+		reg = <0x0 0xff562000 0x0 0x00a1e000>;
+	};
+
+};
+
 &adi_bus {
 	sprd,hw-channels = <2 0x18cc>, <3 0x18cc>, <13 0x1854>, <15 0x1874>,
 			   <17 0x1844>,<19 0x1844>, <21 0x1864>, <30 0x1820>,
