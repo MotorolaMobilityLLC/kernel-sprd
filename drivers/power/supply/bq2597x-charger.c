@@ -144,6 +144,7 @@ struct bq2597x_charger_cfg {
 	int bat_ovp_alm_th;
 	int bat_ocp_th;
 	int bat_ocp_alm_th;
+	int bat_delta_volt;
 
 	bool bus_ovp_alm_disable;
 	bool bus_ocp_disable;
@@ -1305,6 +1306,12 @@ static int bq2597x_parse_dt(struct bq2597x_charger_info *bq, struct device *dev)
 		return ret;
 	}
 
+	if (bq->cfg->bat_ovp_th && bq->cfg->bat_ovp_alm_th) {
+		bq->cfg->bat_delta_volt = bq->cfg->bat_ovp_th - bq->cfg->bat_ovp_alm_th;
+		if (bq->cfg->bat_delta_volt < 0)
+			bq->cfg->bat_delta_volt = 0;
+	}
+
 	return 0;
 }
 
@@ -1760,7 +1767,7 @@ static int bq2597x_charger_set_property(struct power_supply *psy,
 				       const union power_supply_propval *val)
 {
 	struct bq2597x_charger_info *bq = power_supply_get_drvdata(psy);
-	int ret;
+	int ret, value;
 
 	if (!bq)
 		return -EINVAL;
@@ -1786,6 +1793,11 @@ static int bq2597x_charger_set_property(struct power_supply *psy,
 		ret = bq2597x_set_batovp_th(bq, val->intval / 1000);
 		dev_info(bq->dev, "set bat ovp th %d mv %s\n",
 			 val->intval / 1000, !ret ? "successfully" : "failed");
+
+		value = val->intval / 1000 - bq->cfg->bat_delta_volt;
+		ret = bq2597x_set_batovp_alarm_th(bq, value);
+		dev_info(bq->dev, "set bat ovp alm th %d mv %s\n", value,
+			 !ret ? "successfully" : "failed");
 		break;
 
 	default:

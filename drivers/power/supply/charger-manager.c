@@ -2004,6 +2004,7 @@ static void cm_ir_compensation_exit(struct charger_manager *cm)
 {
 	cm->desc->ir_comp.ibat_buf[CM_IBAT_BUFF_CNT - 1] = CM_MAGIC_NUM;
 	cm->desc->ir_comp.ibat_index = 0;
+	cm->desc->ir_comp.last_target_cccv = 0;
 }
 
 static void cm_ir_compensation_enable(struct charger_manager *cm, bool enable)
@@ -2013,6 +2014,7 @@ static void cm_ir_compensation_enable(struct charger_manager *cm, bool enable)
 	if (enable) {
 		if (ir_sts->rc && !ir_sts->ir_compensation_en) {
 			dev_info(cm->dev, "%s enable ir compensation\n", __func__);
+			ir_sts->last_target_cccv = ir_sts->us;
 			queue_delayed_work(system_power_efficient_wq,
 					   &cm->ir_compensation_work,
 					   CM_IR_COMPENSATION_TIME * HZ);
@@ -2055,6 +2057,10 @@ static void cm_ir_compensation(struct charger_manager *cm,
 
 	*target = target_cccv;
 
+	if ((*target / 1000) == (ir_sts->last_target_cccv / 1000))
+		return;
+
+	ir_sts->last_target_cccv = *target;
 	switch (state) {
 	case CM_IR_COMP_STATE_NORMAL:
 		cm_set_primary_charger_max_voltage(cm, *target);
@@ -2424,7 +2430,7 @@ static void cm_update_cp_charger_status(struct charger_manager *cm)
 
 static bool cm_is_reach_cp_threshold(struct charger_manager *cm)
 {
-	int batt_ocv, batt_uA;
+	int batt_ocv, batt_uA, cp_ocv_threshold;
 	int cur_jeita_status = STATUS_T1_TO_T2;
 
 	if (cm->desc->jeita_tab_size) {
@@ -2443,16 +2449,20 @@ static bool cm_is_reach_cp_threshold(struct charger_manager *cm)
 		return false;
 	}
 
+	cp_ocv_threshold = CM_CP_START_VOLTAGE_HTHRESHOLD;
+	if (!cm->desc->cp.cp_ocv_threshold)
+		cp_ocv_threshold = cm->desc->cp.cp_ocv_threshold;
+
 	if (cur_jeita_status == STATUS_T1_TO_T2 &&
 	    batt_ocv > 0 && batt_ocv >= CM_CP_START_VOLTAGE_LTHRESHOLD &&
-	    batt_ocv < CM_CP_START_VOLTAGE_HTHRESHOLD)
+	    batt_ocv < cp_ocv_threshold)
 		return true;
 	else if (cur_jeita_status != STATUS_T1_TO_T2 &&
 		 batt_ocv > 0 && batt_ocv >= CM_CP_START_VOLTAGE_LTHRESHOLD &&
-		 batt_ocv < CM_CP_START_VOLTAGE_HTHRESHOLD &&
+		 batt_ocv < cp_ocv_threshold &&
 		 batt_uA > 0 && batt_uA >= CM_FAST_CHARGE_ENABLE_CURRENT)
 		return true;
-	else if (batt_ocv > 0 && batt_ocv >= CM_CP_START_VOLTAGE_HTHRESHOLD &&
+	else if (batt_ocv > 0 && batt_ocv >= cp_ocv_threshold &&
 	    batt_uA > 0 && batt_uA >= CM_FAST_CHARGE_ENABLE_CURRENT)
 		return true;
 
@@ -5603,6 +5613,8 @@ static struct charger_desc *of_cm_parse_desc(struct device *dev)
 			     &desc->double_ic_total_limit_current);
 	of_property_read_u32(np, "cm-cp-taper-current",
 			     &desc->cp.cp_taper_current);
+	of_property_read_s32(np, "charge-pumps-threshold-microvolt",
+			     &desc->cp.cp_ocv_threshold);
 	of_property_read_u32(np, "cm-ir-rc", &desc->ir_comp.rc);
 	of_property_read_u32(np, "cm-ir-us-upper-limit-microvolt",
 			     &desc->ir_comp.us_upper_limit);

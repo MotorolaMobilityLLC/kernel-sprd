@@ -274,6 +274,7 @@ struct cap_remap_table {
  * @us_lower_limit: record the min battery voltage
  * @ir_compensation_en: enable/disable current and resistor compensation function.
  * ibat_index: record current battery current in the ibat_buf
+ * @last_target_cccv: record last target cccv point;
  */
 struct cm_ir_compensation {
 	int us;
@@ -284,6 +285,7 @@ struct cm_ir_compensation {
 	int us_lower_limit;
 	bool ir_compensation_en;
 	int ibat_index;
+	int last_target_cccv;
 };
 
 /*
@@ -337,6 +339,7 @@ struct cm_alarm_status {
  * @cp_running: record charge pumps running status
  * @check_cp_threshold: record the flag whether need to check charge pump
  *	start condition.
+ * @cp_ocv_threshold: the ocv threshold of entry pps fast charge directly.
  * @recovery: record the flag whether need recover charge pump machine
  * @cp_state: record current charge pumps state
  * @cp_target_ibat: record target battery current
@@ -362,6 +365,7 @@ struct cm_alarm_status {
 struct cm_charge_pump_status {
 	bool cp_running;
 	bool check_cp_threshold;
+	int cp_ocv_threshold;
 	bool recovery;
 	int cp_state;
 	int cp_target_ibat;
