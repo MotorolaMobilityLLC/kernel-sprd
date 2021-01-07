@@ -183,7 +183,7 @@
 				cm-fullbatt-vchkdrop-ms = <30000>;
 				cm-fullbatt-vchkdrop-volt = <60000>;
 				cm-fullbatt-voltage = <4350000>;
-				cm-fullbatt-current = <120000>;
+				cm-fullbatt-current = <400000>;
 				cm-fullbatt-capacity = <100>;
 
 				cm-num-chargers = <1>;
@@ -208,7 +208,7 @@
 				cm-shutdown-voltage = <3100000>;
 
 				/* when 99% of the time is exceeded, it will be forced to 100% */
-				cm-tickle-time-out = <1500>;
+				cm-tickle-time-out = <300>;
 
 				/* how much time to allow capacity change */
 				cm-one-cap-time = <30>;
@@ -233,7 +233,7 @@
 				monitored-battery = <&bat>;
 				cm-capacity-track;
 
-				cm-cap-remap-table = <1 2 3>, <2 3 2>, <98 99 2>, <99 100 3>;
+			/*	cm-cap-remap-table = <1 2 3>, <2 3 2>, <98 99 2>, <99 100 3>;   */
 
 				regulator@0 {
 					cm-regulator-name = "vddgen0";
