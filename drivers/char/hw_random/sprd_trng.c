@@ -16,6 +16,11 @@
 #include <linux/random.h>
 #include <linux/pm.h>
 
+#ifdef pr_fmt
+#undef pr_fmt
+#endif
+#define pr_fmt(fmt) "sprd_trng: " fmt
+
 /**reg**/
 #define REG_CE_CLK              0x018
 #define REG_CE_VERSION          0x0c8
