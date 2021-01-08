@@ -134,6 +134,6 @@ int vsp_handle_interrupt(struct vsp_dev_t *vsp_hw_dev, int *status,
 	void __iomem *sprd_vsp_base, void __iomem *vsp_glb_reg_base);
 void vsp_clr_interrupt_mask(struct vsp_dev_t *vsp_hw_dev,
 	void __iomem *sprd_vsp_base, void __iomem *vsp_glb_reg_base);
-int vsp_get_dmabuf(int fd, struct dma_buf *dmabuf,
+int vsp_get_dmabuf(int fd, struct dma_buf **dmabuf,
 	void **buf, size_t *size);
 #endif

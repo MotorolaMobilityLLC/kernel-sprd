@@ -56,7 +56,7 @@ int find_vsp_freq_level(struct clock_name_map_t clock_name_map[],
 	return level;
 }
 
-int vsp_get_dmabuf(int fd, struct dma_buf *dmabuf, void **buf, size_t *size)
+int vsp_get_dmabuf(int fd, struct dma_buf **dmabuf, void **buf, size_t *size)
 {
 	struct ion_buffer *buffer;
 
@@ -66,15 +66,15 @@ int vsp_get_dmabuf(int fd, struct dma_buf *dmabuf, void **buf, size_t *size)
 	}
 
 	if (fd >= 0) {
-		dmabuf = dma_buf_get(fd);
-		if (IS_ERR_OR_NULL(dmabuf)) {
-			pr_err("%s, dmabuf error: %p !\n", __func__, dmabuf);
-			return PTR_ERR(buffer);
+		*dmabuf = dma_buf_get(fd);
+		if (IS_ERR_OR_NULL(*dmabuf)) {
+			pr_err("%s, dmabuf error: %p !\n", __func__, *dmabuf);
+			return PTR_ERR(*dmabuf);
 		}
-		buffer = dmabuf->priv;
-		dma_buf_put(dmabuf);
+		buffer = (*dmabuf)->priv;
+		dma_buf_put(*dmabuf);
 	} else {
-		buffer = dmabuf->priv;
+		buffer = (*dmabuf)->priv;
 	}
 
 	if (IS_ERR(buffer))
@@ -201,17 +201,36 @@ int vsp_get_iova(struct vsp_dev_t *vsp_hw_dev,
 {
 	int ret = 0;
 	struct sprd_iommu_map_data iommu_map_data;
+	struct dma_buf *dmabuf;
+	struct dma_buf_attachment *attachment;
+	struct sg_table *table;
 
 	vsp_clk_enable(vsp_hw_dev);
 
-	ret = vsp_get_dmabuf(mapdata->fd, NULL,
+	ret = vsp_get_dmabuf(mapdata->fd, &dmabuf,
 					&(iommu_map_data.buf),
 					&iommu_map_data.iova_size);
+
 	if (ret) {
 		pr_err("get_sg_table failed, ret %d\n", ret);
 		vsp_clk_disable(vsp_hw_dev);
 		return ret;
 	}
+
+	attachment = dma_buf_attach(dmabuf, vsp_hw_dev->vsp_dev);
+	if (IS_ERR_OR_NULL(attachment)) {
+		pr_err("Failed to attach dmabuf 0x%p\n", dmabuf);
+		ret = PTR_ERR(attachment);
+		goto err_attach;
+	}
+
+	table = dma_buf_map_attachment(attachment, DMA_BIDIRECTIONAL);
+	if (IS_ERR_OR_NULL(table)) {
+		pr_err("Failed to map attachment 0x%p\n", attachment);
+		ret = PTR_ERR(table);
+		goto err_map_attachment;
+	}
+
 	iommu_map_data.ch_type = SPRD_IOMMU_FM_CH_RW;
 	ret = sprd_iommu_map(vsp_hw_dev->vsp_dev, &iommu_map_data);
 	if (!ret) {
@@ -230,6 +249,11 @@ int vsp_get_iova(struct vsp_dev_t *vsp_hw_dev,
 		pr_err("vsp iommu map failed, ret %d, map size 0x%zx\n",
 			ret, iommu_map_data.iova_size);
 	vsp_clk_disable(vsp_hw_dev);
+	return ret;
+
+err_map_attachment:
+	dma_buf_detach(dmabuf, attachment);
+err_attach:
 	return ret;
 }
 int vsp_free_iova(struct vsp_dev_t *vsp_hw_dev,
