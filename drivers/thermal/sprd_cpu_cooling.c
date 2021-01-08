@@ -29,10 +29,7 @@
 #include <linux/workqueue.h>
 #include <linux/cpu.h>
 #include <linux/sprd_cpu_cooling.h>
-#include <linux/kthread.h>
 #include <linux/sched.h>
-#include <uapi/linux/sched/types.h>
-
 
 #include <trace/events/thermal.h>
 
@@ -541,12 +538,17 @@ static int get_cluster_id(int cpu)
 
 static int init_pm_qos_request(struct cpufreq_cooling_device *cpufreq_dev)
 {
-	int cluster_id, pm_qos_class, init_cores;
+	int cluster_id, pm_qos_class = -1, init_cores;
 	unsigned int first_cpu;
 
 	first_cpu = cpumask_first(&cpufreq_dev->allowed_cpus);
 	cluster_id = get_cluster_id(first_cpu);
-	pm_qos_class = HOTPLUG_CLUSTER_NUM(cluster_id);
+	if (cluster_id == 0)
+		pm_qos_class = PM_QOS_CLUSTER0_CORE_MAX;
+	else if (cluster_id == 1)
+		pm_qos_class = PM_QOS_CLUSTER1_CORE_MAX;
+	else
+		return -EINVAL;
 	init_cores = get_cluster_core_num(first_cpu);
 	if (init_cores <= 0) {
 		pr_err("get invaild cpu core number\n");

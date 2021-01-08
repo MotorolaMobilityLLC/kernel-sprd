@@ -25,8 +25,6 @@ typedef int (*get_static_t)(cpumask_t *cpumask, int interval,
 			unsigned long voltage, u32 *power, int temperature);
 typedef int (*get_core_static_t)(cpumask_t *cpumask, int interval,
 			unsigned long voltage, u32 *power, int temperature);
-#define HOTPLUG_CLUSTER_NUM(cluster_id) \
-	(PM_QOS_CLUSTER0_CORE_MAX+(cluster_id*2))
 /*
  * Cooling state <-> CPUFreq frequency
  *
