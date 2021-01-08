@@ -317,9 +317,9 @@ static struct volt_grades_table ums512_volt_grades_tbl[] = {
 
 static struct reg_info ums512_freq_misc_cfg_array[] = {
 	/* Set default work index 7 for lit core */
-	GENREGVALSET(0x214, 0, 0xf, 7),
+	GENREGVALSET(0x214, 0, 0xf, 2),//add sprd patch cpu7 to 2.by lijian
 	/* Set default work index 3 for big core */
-	GENREGVALSET(0x224, 0, 0xf, 3),
+	GENREGVALSET(0x224, 0, 0xf, 1),//add sprd patch cpu3 to 1.by lijian
 	/* Set default work index 3 to twppll for scu */
 	GENREGVALSET(0x22c, 0, 0xf, 3),
 	/* The end of misc configurations */
