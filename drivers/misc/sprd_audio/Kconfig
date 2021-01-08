@@ -73,4 +73,18 @@ config SPRD_AUDIO_CPBOOT
 	  Audio cp boot driver is used for reboot audio cp in kernel.
 	  It support interface for userspace to stop audio cp, download dsp bin and
 	  start audio cp.
+
+config SPRD_AUDIO_VOICE_TRIGGER
+	bool "Sprd audio voice trigger"
+	default n
+	help
+		This module is used to create a file node for voice trigger,
+		it will be used by audio HAL.
+		Say Y if you support voice trigger.
+
+config SND_SOC_XS200X
+	tristate "XS200X Voice Trigger"
+	default n
+	help
+		XS200X Voice Trigger driver
 endmenu
