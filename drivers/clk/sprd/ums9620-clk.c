@@ -1916,7 +1916,7 @@ static SPRD_MUX_CLK(ipa_dpu, "ipa-dpu", ipa_dpu_parents, 0x7c,
 		    0, 2, UMS9620_MUX_FLAG);
 
 static const char * const ipa_dpi_parents[] = { "tgpll-128m", "tgpll-192m",
-						"pixelpll", "dphy-307m2" };
+						"pixelpll", "tgpll-307m2" };
 static SPRD_COMP_CLK_OFFSET(ipa_dpi, "ipa-dpi", ipa_dpi_parents, 0x88,
 			    0, 2, 0, 4, 0);
 
