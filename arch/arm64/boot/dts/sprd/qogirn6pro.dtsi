@@ -25,6 +25,9 @@
 		i2c7 = &i2c7;
 		i2c8 = &i2c8;
 		i2c9 = &i2c9;
+		spi0 = &spi0;
+		spi1 = &spi1;
+		spi2 = &spi2;
 		spi4 = &adi_bus;
 	};
 
@@ -171,6 +174,33 @@
 				interrupts = <GIC_SPI 3 IRQ_TYPE_LEVEL_HIGH>;
 				clock-names = "enable", "uart", "source";
 				clocks = <&ext_26m>, <&ext_26m>, <&ext_26m>;
+				status = "disabled";
+			};
+
+			spi0: spi@60000{
+				compatible = "sprd,ums9620-spi";
+				reg = <0 0x60000 0 0x1000>;
+				interrupts = <GIC_SPI 7 IRQ_TYPE_LEVEL_HIGH>;
+				#address-cells = <1>;
+				#size-cells = <0>;
+				status = "disabled";
+			};
+
+			spi1: spi@70000{
+				compatible = "sprd,ums9620-spi";
+				reg = <0 0x70000 0 0x1000>;
+				interrupts = <GIC_SPI 6 IRQ_TYPE_LEVEL_HIGH>;
+				#address-cells = <1>;
+				#size-cells = <0>;
+				status = "disabled";
+			};
+
+			spi2: spi@80000{
+				compatible = "sprd,ums9620-spi";
+				reg = <0 0x80000 0 0x1000>;
+				interrupts = <GIC_SPI 5 IRQ_TYPE_LEVEL_HIGH>;
+				#address-cells = <1>;
+				#size-cells = <0>;
 				status = "disabled";
 			};
 

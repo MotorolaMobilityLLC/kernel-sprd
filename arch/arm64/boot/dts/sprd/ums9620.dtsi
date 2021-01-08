@@ -363,4 +363,20 @@
 		 <&g1_pll CLK_RPLL>, <&apahb_gate CLK_EMMC_EB>;
 };
 
+&spi0 {
+	clock-names = "enable", "spi", "source";
+	clocks = <&apapb_gate CLK_SPI0_EB>,
+		 <&aonapb_clk CLK_SPI0>, <&g5l_pll CLK_TGPLL_192M>;
+};
 
+&spi1 {
+	clock-names = "enable", "spi", "source";
+	clocks = <&apapb_gate CLK_SPI1_EB>,
+		 <&aonapb_clk CLK_SPI1>, <&g5l_pll CLK_TGPLL_192M>;
+};
+
+&spi2 {
+	clock-names = "enable", "spi", "source";
+	clocks = <&apapb_gate CLK_SPI2_EB>,
+		 <&aonapb_clk CLK_SPI2>, <&g5l_pll CLK_TGPLL_192M>;
+};
