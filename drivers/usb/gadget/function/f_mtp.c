@@ -1159,18 +1159,18 @@ static long mtp_ioctl(struct file *fp, unsigned int code, unsigned long value)
 		ret = dev->xfer_result;
 		break;
 	}
-	#ifdef CONFIG_COMPAT
-    case COMPAT_MTP_SEND_EVENT:
-    {
-        struct compat_mtp_event        event;
+#ifdef CONFIG_COMPAT
+	case COMPAT_MTP_SEND_EVENT:
+	{
+		struct compat_mtp_event		event;
 
-        if (copy_from_user(&event, (void __user *)value, sizeof(event)))
-            ret = -EFAULT;
-        else
-            ret = compat_mtp_send_event(dev, &event);
-        goto out;
-    }
-	#endif
+		if (copy_from_user(&event, (void __user *)value, sizeof(event)))
+			ret = -EFAULT;
+		else
+			ret = compat_mtp_send_event(dev, &event);
+		goto out;
+	}
+#endif
 	case MTP_SEND_EVENT:
 	{
 		struct mtp_event	event;
@@ -1241,9 +1241,9 @@ static const struct file_operations mtp_fops = {
 	.read = mtp_read,
 	.write = mtp_write,
 	.unlocked_ioctl = mtp_ioctl,
-	#ifdef CONFIG_COMPAT
-    .compat_ioctl = mtp_ioctl,
-	#endif
+#ifdef CONFIG_COMPAT
+	.compat_ioctl = mtp_ioctl,
+#endif
 	.open = mtp_open,
 	.release = mtp_release,
 };

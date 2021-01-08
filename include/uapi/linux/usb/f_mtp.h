@@ -41,10 +41,10 @@ struct mtp_file_range {
 
 #ifdef CONFIG_COMPAT
 struct compat_mtp_event {
-    /* size of the event */
-    compat_size_t    length;
-    /* event data to send */
-    compat_ulong_t    data;
+	/* size of the event */
+	compat_size_t	length;
+	/* event data to send */
+	compat_ulong_t	data;
 };
 #endif
 
@@ -62,10 +62,12 @@ struct mtp_event {
  */
 #define MTP_RECEIVE_FILE           _IOW('M', 1, struct mtp_file_range)
 /* Sends an event to the host via the interrupt endpoint */
+
 #ifdef CONFIG_COMPAT
-#define    COMPAT_MTP_SEND_EVENT    _IOW('M', 3, struct compat_mtp_event)
+#define	COMPAT_MTP_SEND_EVENT	_IOW('M', 3, struct compat_mtp_event)
 #endif
-#define    MTP_SEND_EVENT        _IOW('M', 3, struct mtp_event)
+#define	MTP_SEND_EVENT		_IOW('M', 3, struct mtp_event)
+
 /* Sends the specified file range to the host,
  * with a 12 byte MTP data packet header at the beginning.
  */
