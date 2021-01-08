@@ -10,7 +10,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
-
+#include <linux/atomic.h>
 #include <linux/uaccess.h>
 #include <linux/kallsyms.h>
 #include <linux/proc_fs.h>
@@ -30,7 +30,7 @@
 
 static int hang_detect_enabled; /*	disable in default	*/
 int hang_detect_timeout = WAIT_BOOT_COMPLETE; /*	2 min timeout in default	*/
-int hang_detect_counter = WAIT_BOOT_COMPLETE; /*	2 min timeout in default	*/
+static atomic_t hang_detect_counter;
 char hang_info[HANG_INFO_MAX];
 static int hang_info_index;
 struct task_struct *hd_thread;
@@ -600,11 +600,13 @@ static int hang_detect_thread(void *arg)
 	pr_debug("[Native Native Hang Detect] hang_detect thread starts.\n");
 	while (!kthread_should_stop()) {
 		if (hang_detect_enabled) {
-			if (hang_detect_counter <= 0) {
+			if (atomic_add_negative(0, &hang_detect_counter)) {
 #ifdef CONFIG_SPRD_DEBUG
 				/*	do not need panic on userdeug version, just record hang_detect_counter, and show hang_monitor_data one shot .*/
 				if (trigger_flag != 0) {
-					pr_err("[Native Native Hang Detect] hang_detect_counter:%d ...\n", hang_detect_counter);
+					pr_err("[Native Native Hang Detect] ");
+					pr_err("hang_detect_counter:%d ...\n",
+						atomic_read(&hang_detect_counter));
 					msleep(1000);
 					continue;
 				}
@@ -613,14 +615,19 @@ static int hang_detect_thread(void *arg)
 				log_to_hang_info("[Native Hang detect]Dump process bt.\n");
 #ifndef CONFIG_SPRD_DEBUG
 				save_native_hang_monitor_data();
-				pr_err("[Native Native Hang Detect] hang_detect_counter:%d, hang detect save data finish ......\n", hang_detect_counter);
-				pr_err("[Native Native Hang Detect] hang_detect_counter:%d, we should trigger panic...\n", hang_detect_counter);
+				pr_err("[Native Native Hang Detect] hang_detect_counter:%d, ",
+					atomic_read(&hang_detect_counter));
+				pr_err("hang detect save data finish ......\n");
+				pr_err("[Native Native Hang Detect] hang_detect_counter:%d, ",
+					atomic_read(&hang_detect_counter));
+				pr_err("we should trigger panic...\n");
 				msleep(40 * 1000); /*	wait for wdh  */
 				panic("Native hang monitor trigger");
 #endif
 			}
-			hang_detect_counter--;
-			pr_debug("[Native Hang Detect] hang_detect thread counts down %d:%d.\n", hang_detect_counter, hang_detect_timeout);
+			atomic_dec(&hang_detect_counter);
+			pr_debug("[Native Hang Detect] hang_detect thread counts down %d:%d.\n",
+				atomic_read(&hang_detect_counter), hang_detect_timeout);
 
 		} else {
 			reset_hang_info();
@@ -640,7 +647,8 @@ void native_hang_monitor_para_set(int para)
 {
 	if (para > 0) {
 		reset_hang_info();
-		hang_detect_counter = hang_detect_timeout = para;
+		hang_detect_timeout = para;
+		atomic_set(&hang_detect_counter, para);
 		pr_debug("[Native Hang Detect] hang_detect enabled %d\n", hang_detect_timeout);
 	} else {
 		pr_debug("[Native Hang Detect] invalid hang_detect para\n");
@@ -652,14 +660,17 @@ static long monitor_hang_ioctl(struct file *file, unsigned int cmd,  unsigned lo
 {
 	int ret = 0;
 	static int surfaceflinger_status;
-	int systemserver_timeout;
+	int sys_server_timeout;
 
 	switch (cmd) {
 	case SS_WDT_CTRL_SET_PARA:
-			if (copy_from_user(&systemserver_timeout, (void __user *)arg, sizeof(int)))
+			if (copy_from_user(&sys_server_timeout, (void __user *)arg, sizeof(int))) {
 				ret = -1;
-			pr_debug("systemserver cmd , get para: ( %d)\n", systemserver_timeout);
-			native_hang_monitor_para_set(systemserver_timeout);
+				pr_emerg("get para from systemserver failed!!!\n");
+				break;
+			}
+			pr_emerg("systemserver cmd , get para: ( %d)\n", sys_server_timeout);
+			native_hang_monitor_para_set(sys_server_timeout);
 			break;
 	case SF_WDT_CTRL_SET_PARA:
 			surfaceflinger_status = (int)arg;
@@ -703,7 +714,9 @@ do {                \
 
 static int monitor_hang_show(struct seq_file *m, void *v)
 {
-	SEQ_printf(m, "hang_detect_enabled: %d ,hang_detect_timeout = %d s hang_detect_counter: %d\n ", hang_detect_enabled, hang_detect_timeout, hang_detect_counter);
+	SEQ_printf(m, "hang_detect_enabled: %d ,hang_detect_timeout = %d s ",
+			hang_detect_enabled, hang_detect_timeout);
+	SEQ_printf(m, "hang_detect_counter: %d\n", atomic_read(&hang_detect_counter));
 	return 0;
 }
 
@@ -776,6 +789,8 @@ static int __init monitor_hang_init(void)
 	monitor_enable_proc = proc_create("monitor_enable", 0664, NULL, &monitor_enable_fops);
 	if (!monitor_enable_proc)
 		return -ENOMEM;
+
+	atomic_set(&hang_detect_counter, WAIT_BOOT_COMPLETE);
 	return err;
 }
 
