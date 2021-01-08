@@ -437,6 +437,14 @@ struct sipa_fifo_phy_ops {
 				      struct sipa_cmn_fifo_cfg_tag *cfg_base,
 				      struct sipa_node_desc_tag *node,
 				      u32 num);
+	u32 (*sync_node_from_tx_fifo)(struct device *dev,
+				      enum sipa_cmn_fifo_index id,
+				      struct sipa_cmn_fifo_cfg_tag *cfg_base,
+				      u32 num);
+	u32 (*sync_node_to_rx_fifo)(struct device *dev,
+				    enum sipa_cmn_fifo_index id,
+				    struct sipa_cmn_fifo_cfg_tag *cfg_base,
+				    u32 num);
 	int (*get_rx_ptr)(enum sipa_cmn_fifo_index id,
 			  struct sipa_cmn_fifo_cfg_tag *cfg_base,
 			  u32 *wr, u32 *rd);
@@ -868,5 +876,5 @@ void sipa_init_free_fifo(struct sipa_skb_receiver *receiver, u32 cnt,
 void sipa_reinit_recv_array(struct device *dev);
 
 struct sk_buff *sipa_recv_skb(struct sipa_skb_receiver *receiver,
-			      int *netid, u32 *src_id);
+			      int *netid, u32 *src_id, u32 index);
 #endif /* _SIPA_PRIV_H_ */

@@ -29,10 +29,27 @@ static int alloc_tx_fifo_ram(struct device *dev,
 		return 0;
 
 	size = fifo_cfg->tx_fifo.depth * node_size;
-	fifo_cfg->tx_fifo.virt_addr = dma_alloc_coherent(dev, size, &dma_addr,
-							 GFP_KERNEL);
-	if (!fifo_cfg->tx_fifo.virt_addr)
-		return -ENOMEM;
+	if (fifo_cfg->is_pam) {
+		fifo_cfg->tx_fifo.virt_addr = dma_alloc_coherent(dev, size,
+								 &dma_addr,
+								 GFP_KERNEL);
+		if (!fifo_cfg->tx_fifo.virt_addr)
+			return -ENOMEM;
+	} else {
+		fifo_cfg->tx_fifo.virt_addr =
+			(void *)__get_free_pages(GFP_KERNEL, get_order(size));
+		if (!fifo_cfg->tx_fifo.virt_addr)
+			return -ENOMEM;
+		memset(fifo_cfg->tx_fifo.virt_addr, 0, size);
+		dma_addr = dma_map_single(dev, fifo_cfg->tx_fifo.virt_addr,
+					  size, DMA_FROM_DEVICE);
+		if (dma_mapping_error(dev, dma_addr)) {
+			free_pages((unsigned long)fifo_cfg->tx_fifo.virt_addr,
+				   get_order(size));
+			fifo_cfg->tx_fifo.virt_addr = NULL;
+			return -ENOMEM;
+		}
+	}
 
 	fifo_cfg->tx_fifo.fifo_base_addr_l = lower_32_bits(dma_addr);
 	fifo_cfg->tx_fifo.fifo_base_addr_h = upper_32_bits(dma_addr);
@@ -52,10 +69,26 @@ static int alloc_rx_fifo_ram(struct device *dev,
 		return 0;
 
 	size = fifo_cfg->rx_fifo.depth * node_size;
-	fifo_cfg->rx_fifo.virt_addr = dma_alloc_coherent(dev, size, &dma_addr,
-							 GFP_KERNEL);
-	if (!fifo_cfg->rx_fifo.virt_addr)
-		return -ENOMEM;
+	if (fifo_cfg->is_pam) {
+		fifo_cfg->rx_fifo.virt_addr = dma_alloc_coherent(dev, size,
+								 &dma_addr,
+								 GFP_KERNEL);
+		if (!fifo_cfg->rx_fifo.virt_addr)
+			return -ENOMEM;
+	} else {
+		fifo_cfg->rx_fifo.virt_addr =
+			(void *)__get_free_pages(GFP_KERNEL, get_order(size));
+		if (!fifo_cfg->rx_fifo.virt_addr)
+			return -ENOMEM;
+		dma_addr = dma_map_single(dev, fifo_cfg->rx_fifo.virt_addr,
+					  size, DMA_TO_DEVICE);
+		if (dma_mapping_error(dev, dma_addr)) {
+			free_pages((unsigned long)fifo_cfg->rx_fifo.virt_addr,
+				   get_order(size));
+			fifo_cfg->rx_fifo.virt_addr = NULL;
+			return -ENOMEM;
+		}
+	}
 
 	fifo_cfg->rx_fifo.fifo_base_addr_l = lower_32_bits(dma_addr);
 	fifo_cfg->rx_fifo.fifo_base_addr_h = upper_32_bits(dma_addr);
@@ -67,38 +100,51 @@ static void free_tx_fifo_ram(struct device *dev,
 			     enum sipa_cmn_fifo_index index)
 {
 	dma_addr_t dma_addr = 0;
+	ssize_t size;
 	struct sipa_plat_drv_cfg *ipa = dev_get_drvdata(dev);
 	struct sipa_cmn_fifo_cfg_tag *fifo_cfg = &ipa->cmn_fifo_cfg[index];
 
 	if (!fifo_cfg->tx_fifo.virt_addr)
 		return;
 
+	size = fifo_cfg->tx_fifo.depth * sizeof(struct sipa_node_desc_tag);
 	dma_addr = IPA_STI_64BIT(fifo_cfg->tx_fifo.fifo_base_addr_l,
 				 fifo_cfg->tx_fifo.fifo_base_addr_h);
-	if (!fifo_cfg->tx_fifo.in_iram && fifo_cfg->tx_fifo.virt_addr)
-		dma_free_coherent(dev, fifo_cfg->tx_fifo.depth *
-				  sizeof(struct sipa_node_desc_tag),
-				  fifo_cfg->tx_fifo.virt_addr,
+	if (!fifo_cfg->tx_fifo.in_iram && !fifo_cfg->is_pam &&
+	    fifo_cfg->tx_fifo.virt_addr) {
+		dma_unmap_single(dev, dma_addr, size, DMA_FROM_DEVICE);
+		free_pages((unsigned long)fifo_cfg->tx_fifo.virt_addr,
+			   get_order(size));
+	} else if (fifo_cfg->is_pam) {
+		dma_free_coherent(dev, size, fifo_cfg->tx_fifo.virt_addr,
 				  dma_addr);
+	}
+
 }
 
 static void free_rx_fifo_ram(struct device *dev,
 			     enum sipa_cmn_fifo_index index)
 {
 	dma_addr_t dma_addr = 0;
+	ssize_t size;
 	struct sipa_plat_drv_cfg *ipa = dev_get_drvdata(dev);
 	struct sipa_cmn_fifo_cfg_tag *fifo_cfg = &ipa->cmn_fifo_cfg[index];
 
 	if (!fifo_cfg->rx_fifo.virt_addr)
 		return;
 
+	size = fifo_cfg->rx_fifo.depth * sizeof(struct sipa_node_desc_tag);
 	dma_addr = IPA_STI_64BIT(fifo_cfg->rx_fifo.fifo_base_addr_l,
 				 fifo_cfg->rx_fifo.fifo_base_addr_h);
-	if (!fifo_cfg->rx_fifo.in_iram && fifo_cfg->rx_fifo.virt_addr)
-		dma_free_coherent(dev, fifo_cfg->rx_fifo.depth *
-				  sizeof(struct sipa_node_desc_tag),
-				  fifo_cfg->rx_fifo.virt_addr,
+	if (!fifo_cfg->rx_fifo.in_iram && !fifo_cfg->is_pam &&
+	    fifo_cfg->rx_fifo.virt_addr) {
+		dma_unmap_single(dev, dma_addr, size, DMA_TO_DEVICE);
+		free_pages((unsigned long)fifo_cfg->rx_fifo.virt_addr,
+			   get_order(size));
+	} else if (fifo_cfg->is_pam) {
+		dma_free_coherent(dev, size, fifo_cfg->rx_fifo.virt_addr,
 				  dma_addr);
+	}
 }
 
 static int sipa_init_fifo_addr(struct device *dev)
@@ -468,6 +514,28 @@ int sipa_hal_cmn_fifo_stop_recv(struct device *dev,
 		return 0;
 	else
 		return ret;
+}
+
+int sipa_hal_sync_node_from_tx_fifo(struct device *dev,
+				    enum sipa_cmn_fifo_index fifo_id,
+				    int budget)
+{
+	struct sipa_plat_drv_cfg *ipa = dev_get_drvdata(dev);
+
+	return ipa->fifo_ops.sync_node_from_tx_fifo(dev, fifo_id,
+						    ipa->cmn_fifo_cfg,
+						    budget);
+}
+
+int sipa_hal_sync_node_to_rx_fifo(struct device *dev,
+				  enum sipa_cmn_fifo_index fifo_id,
+				  int budget)
+{
+	struct sipa_plat_drv_cfg *ipa = dev_get_drvdata(dev);
+
+	return ipa->fifo_ops.sync_node_to_rx_fifo(dev, fifo_id,
+						  ipa->cmn_fifo_cfg,
+						  budget);
 }
 
 int sipa_hal_recv_node_from_tx_fifo(struct device *dev,
@@ -900,26 +968,9 @@ u32 sipa_multi_int_callback_func(int irq, void *cookie)
 	struct sipa_plat_drv_cfg *ipa = cookie;
 
 	ipa->fifo_ops.traverse_int_bit(SIPA_FIFO_MAP_IN, ipa->cmn_fifo_cfg);
-	switch (smp_processor_id()) {
-	case 0:
-		ipa->fifo_ops.traverse_int_bit(SIPA_FIFO_MAP0_OUT,
-					       ipa->cmn_fifo_cfg);
-		break;
-	case 1:
-		ipa->fifo_ops.traverse_int_bit(SIPA_FIFO_MAP1_OUT,
-					       ipa->cmn_fifo_cfg);
-		break;
-	case 2:
-		ipa->fifo_ops.traverse_int_bit(SIPA_FIFO_MAP2_OUT,
-					       ipa->cmn_fifo_cfg);
-		break;
-	case 3:
-		ipa->fifo_ops.traverse_int_bit(SIPA_FIFO_MAP3_OUT,
-					       ipa->cmn_fifo_cfg);
-		break;
-	default:
-		break;
-	}
+
+	ipa->fifo_ops.traverse_int_bit(SIPA_FIFO_MAP0_OUT + smp_processor_id(),
+				       ipa->cmn_fifo_cfg);
 
 	if (ipa->dev->power.wakeup->active)
 		pm_wakeup_dev_event(ipa->dev, 500, true);

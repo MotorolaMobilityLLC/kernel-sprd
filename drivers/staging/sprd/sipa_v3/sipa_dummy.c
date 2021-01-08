@@ -279,7 +279,7 @@ static int sipa_dummy_rx_clean(struct sipa_dummy *dummy, int budget,
 	struct sipa_usb *sipa_usb;
 
 	while (skb_cnt < budget) {
-		ret1 = sipa_nic_rx(&skb, &netid, &src_id);
+		ret1 = sipa_nic_rx(&skb, &netid, &src_id, skb_cnt);
 		if (unlikely(ret1)) {
 			if (ret1 == -EINVAL)
 				stats->rx_errors++;
@@ -335,13 +335,15 @@ static int sipa_dummy_rx_clean(struct sipa_dummy *dummy, int budget,
 
 static int sipa_dummy_rx_poll(struct napi_struct *napi, int budget)
 {
-	int pkts;
+	int pkts, num;
 	struct sipa_dummy_ring *ring = container_of(napi,
 						    struct sipa_dummy_ring,
 						    napi);
 	struct sipa_dummy *dummy = netdev_priv(ring->ndev);
 
-	pkts = sipa_dummy_rx_clean(dummy, budget, napi);
+	num = sipa_nic_sync_recv_pkts(budget);
+	pkts = sipa_dummy_rx_clean(dummy, num, napi);
+	sipa_nic_add_tx_fifo_rptr(pkts);
 	sipa_recv_wake_up();
 	if (pkts >= budget)
 		return budget;

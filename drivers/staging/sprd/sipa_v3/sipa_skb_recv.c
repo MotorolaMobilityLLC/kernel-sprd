@@ -191,6 +191,10 @@ static void sipa_prepare_free_node_init(struct sipa_skb_receiver *receiver,
 
 			success_cnt++;
 		}
+
+		sipa_hal_sync_node_to_rx_fifo(receiver->dev,
+					      receiver->ep->recv_fifo.idx + j,
+					      cnt);
 	}
 
 	if (fail_cnt)
@@ -271,6 +275,10 @@ void sipa_fill_free_fifo(u32 index)
 		success_cnt++;
 	}
 
+	sipa_hal_sync_node_to_rx_fifo(receiver->dev,
+				      receiver->ep->recv_fifo.idx + index,
+				      success_cnt);
+
 	if (success_cnt) {
 		sipa_hal_add_rx_fifo_wptr(receiver->dev,
 					  receiver->ep->recv_fifo.idx +
@@ -342,7 +350,7 @@ static void sipa_receiver_notify_cb(void *priv, enum sipa_hal_evt_type evt,
 }
 
 struct sk_buff *sipa_recv_skb(struct sipa_skb_receiver *receiver,
-			      int *netid, u32 *src_id)
+			      int *netid, u32 *src_id, u32 index)
 {
 	dma_addr_t addr;
 	int ret, retry = 10;
@@ -368,7 +376,7 @@ struct sk_buff *sipa_recv_skb(struct sipa_skb_receiver *receiver,
 		return NULL;
 	}
 
-	node = sipa_hal_get_tx_node_rptr(receiver->dev, id, 0);
+	node = sipa_hal_get_tx_node_rptr(receiver->dev, id, index);
 	if (!node) {
 		dev_err(receiver->dev, "recv node is null\n");
 		sipa_hal_add_tx_fifo_rptr(receiver->dev, id, 1);
@@ -385,23 +393,25 @@ check_again:
 			(u64)node->address);
 		atomic_dec(&receiver->check_flag);
 		return NULL;
-	} else if (addr != node->address && retry--) {
-		dev_err(receiver->dev,
-			"recv addr:0x%llx, but recv_array addr:0x%llx not equal\n",
-			node->address, (u64)addr);
+	} else if ((addr != node->address || !node->src) && retry--) {
+		sipa_hal_sync_node_from_tx_fifo(receiver->dev, id, -1);
 		goto check_again;
-	} else if (addr != node->address && !retry) {
+	} else if ((addr != node->address || !node->src) && !retry) {
 		dma_unmap_single(receiver->dev, addr,
 				 SIPA_RECV_BUF_LEN + skb_headroom(recv_skb),
 				 DMA_FROM_DEVICE);
 		dev_kfree_skb_any(recv_skb);
 		sipa_hal_add_tx_fifo_rptr(receiver->dev, id, 1);
 		atomic_dec(&receiver->check_flag);
+		dev_info(receiver->dev,
+			 "recv addr:0x%llx, recv_array addr:0x%llx not equal retry = %d src = %d\n",
+			 node->address, (u64)addr, retry, node->src);
 		return NULL;
 	}
 
 	*netid = node->net_id;
 	*src_id = node->src;
+
 	if (node->checksum == 0xffff)
 		recv_skb->ip_summed = CHECKSUM_UNNECESSARY;
 	else
@@ -410,8 +420,6 @@ check_again:
 	dma_unmap_single(receiver->dev, addr,
 			 SIPA_RECV_BUF_LEN + skb_headroom(recv_skb),
 			 DMA_FROM_DEVICE);
-
-	sipa_hal_add_tx_fifo_rptr(receiver->dev, id, 1);
 
 	/* trim to the real length, hope it's not a fake len */
 	skb_trim(recv_skb, node->length);

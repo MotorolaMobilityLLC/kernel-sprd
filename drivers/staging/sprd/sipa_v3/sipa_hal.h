@@ -99,4 +99,10 @@ struct sipa_node_desc_tag *sipa_hal_get_tx_node_rptr(struct device *dev,
 						     enum sipa_cmn_fifo_index d,
 						     u32 index);
 
+int sipa_hal_sync_node_to_rx_fifo(struct device *dev,
+				  enum sipa_cmn_fifo_index fifo_id,
+				  int budget);
+int sipa_hal_sync_node_from_tx_fifo(struct device *dev,
+				    enum sipa_cmn_fifo_index fifo_id,
+				    int budget);
 #endif /* !_SIPA_HAL_H_ */

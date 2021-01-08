@@ -121,10 +121,11 @@ static void sipa_free_sent_items(void)
 	sipa_hal_cmn_fifo_get_filled_depth(sender->dev,
 					   sender->ep->send_fifo.idx,
 					   NULL, &num);
-
 	if (!num)
 		return;
 
+	sipa_hal_sync_node_from_tx_fifo(sender->dev,
+					sender->ep->send_fifo.idx, num);
 	for (i = 0; i < num; i++) {
 		node = sipa_hal_get_tx_node_rptr(sender->dev,
 						 sender->ep->send_fifo.idx, i);
@@ -134,8 +135,8 @@ static void sipa_free_sent_items(void)
 
 		if (node->err_code || !retry_cnt)
 			dev_err(sender->dev,
-				"have node transfer err = %d retry_cnt = %d\n",
-				node->err_code, retry_cnt);
+				"node = 0x%llp have node transfer err = %d retry_cnt = %d\n",
+				node, node->err_code, retry_cnt);
 
 		retry_cnt = 10;
 check_again:
@@ -230,7 +231,7 @@ static int sipa_skb_sender_init(struct sipa_skb_sender *sender)
 {
 	struct sipa_comm_fifo_params attr;
 
-	attr.tx_intr_delay_us = 100;
+	attr.tx_intr_delay_us = 1000;
 	attr.tx_intr_threshold = 128;
 	attr.flow_ctrl_cfg = flow_ctrl_tx_full;
 	attr.flowctrl_in_tx_full = true;
@@ -418,6 +419,7 @@ int sipa_skb_sender_send_data(struct sipa_skb_sender *sender,
 		return -EAGAIN;
 	}
 
+	memset(des, 0, sizeof(*des));
 	atomic_dec(&sender->left_cnt);
 	des->address = dma_addr;
 	des->length = skb->len;
@@ -436,6 +438,8 @@ int sipa_skb_sender_send_data(struct sipa_skb_sender *sender,
 	node->need_unmap = true;
 	list_del(&node->list);
 	list_add_tail(&node->list, &sender->sending_list);
+	sipa_hal_sync_node_to_rx_fifo(sender->dev,
+				      sender->ep->send_fifo.idx, 1);
 	sipa_hal_add_rx_fifo_wptr(sender->dev,
 				  sender->ep->send_fifo.idx, 1);
 	spin_unlock_irqrestore(&sender->send_lock, flags);

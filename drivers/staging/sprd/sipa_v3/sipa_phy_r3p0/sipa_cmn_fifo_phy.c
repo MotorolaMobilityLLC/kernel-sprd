@@ -1060,6 +1060,63 @@ static int ipa_recv_pkt_from_tx_fifo(struct sipa_cmn_fifo_cfg_tag *fifo_cfg,
 	return num;
 }
 
+static int ipa_sync_pkt_from_tx_fifo(struct device *dev,
+				     struct sipa_cmn_fifo_cfg_tag *fifo_cfg,
+				     u32 num)
+{
+	dma_addr_t dma_addr;
+	u32 tmp = 0, index = 0, depth;
+	ssize_t node_size = sizeof(struct sipa_node_desc_tag);
+
+	dma_addr = IPA_STI_64BIT(fifo_cfg->tx_fifo.fifo_base_addr_l,
+				 fifo_cfg->tx_fifo.fifo_base_addr_h);
+	depth = ipa_phy_get_tx_fifo_filled_depth(fifo_cfg->fifo_reg_base);
+	if (depth < num)
+		num = depth;
+
+	index = fifo_cfg->tx_fifo.rd & (fifo_cfg->tx_fifo.depth - 1);
+	if (index + num <= fifo_cfg->tx_fifo.depth) {
+		dma_sync_single_for_cpu(dev, dma_addr + index * node_size,
+					num * node_size, DMA_FROM_DEVICE);
+	} else {
+		tmp = fifo_cfg->tx_fifo.depth - index;
+		dma_sync_single_for_cpu(dev, dma_addr + index * node_size,
+					tmp * node_size, DMA_FROM_DEVICE);
+		tmp = num - tmp;
+		dma_sync_single_for_cpu(dev, dma_addr,
+					tmp * node_size, DMA_FROM_DEVICE);
+	}
+
+	return num;
+}
+
+static int ipa_sync_pkt_to_rx_fifo(struct device *dev,
+				   struct sipa_cmn_fifo_cfg_tag *fifo_cfg,
+				   u32 num)
+{
+	dma_addr_t dma_addr;
+	u32 tmp = 0, index = 0;
+	ssize_t node_size = sizeof(struct sipa_node_desc_tag);
+
+	dma_addr = IPA_STI_64BIT(fifo_cfg->rx_fifo.fifo_base_addr_l,
+				 fifo_cfg->rx_fifo.fifo_base_addr_h);
+
+	index = fifo_cfg->rx_fifo.wr & (fifo_cfg->rx_fifo.depth - 1);
+	if (index + num <= fifo_cfg->rx_fifo.depth) {
+		dma_sync_single_for_device(dev, dma_addr + index * node_size,
+					   num * node_size, DMA_TO_DEVICE);
+	} else {
+		tmp = fifo_cfg->rx_fifo.depth - index;
+		dma_sync_single_for_device(dev, dma_addr + index * node_size,
+					   tmp * node_size, DMA_TO_DEVICE);
+		tmp = num - tmp;
+		dma_sync_single_for_device(dev, dma_addr,
+					   tmp * node_size, DMA_TO_DEVICE);
+	}
+
+	return num;
+}
+
 static int ipa_put_pkt_to_tx_fifo(struct sipa_cmn_fifo_cfg_tag *fifo_cfg,
 				  struct sipa_node_desc_tag *fill_node, u32 num)
 {
@@ -1111,10 +1168,14 @@ static int ipa_relm_tx_fifo_unread_node(struct sipa_cmn_fifo_cfg_tag *fifo_cfg,
 
 	fill_node = fifo_cfg->tx_fifo.virt_addr;
 	free_node = fifo_cfg->rx_fifo.virt_addr;
-	depth = (tx_wptr - rx_wptr) & PTR_MASK(fifo_cfg->rx_fifo.depth);
+	depth = (tx_wptr - rx_wptr) & (fifo_cfg->rx_fifo.depth - 1);
 
 	index = rx_wptr & (fifo_cfg->tx_fifo.depth - 1);
-	if (index + depth <= fifo_cfg->rx_fifo.depth) {
+	if (!depth) {
+		memcpy(free_node, fill_node,
+		       node_size * fifo_cfg->rx_fifo.depth);
+		depth = fifo_cfg->rx_fifo.depth;
+	} else if (index + depth <= fifo_cfg->rx_fifo.depth) {
 		memcpy(free_node + index, fill_node + index,
 		       node_size * depth);
 	} else {
@@ -1128,15 +1189,15 @@ static int ipa_relm_tx_fifo_unread_node(struct sipa_cmn_fifo_cfg_tag *fifo_cfg,
 	/* Ensure that data copy completion before we update rptr/wptr */
 	smp_wmb();
 
-	tx_rptr = (tx_rptr + depth) & PTR_MASK(fifo_cfg->tx_fifo.depth);
-	if (!ipa_phy_update_tx_fifo_rptr(fifo_cfg->fifo_reg_base,
-					 tx_rptr)) {
+	tx_rptr = tx_wptr;
+	if (ipa_phy_update_tx_fifo_rptr(fifo_cfg->fifo_reg_base,
+					tx_rptr)) {
 		pr_err("sipa reclaim update tx_fifo rptr failed\n");
 		return -EIO;
 	}
 	rx_wptr = (rx_wptr + depth) & PTR_MASK(fifo_cfg->rx_fifo.depth);
-	if (!ipa_phy_update_rx_fifo_wptr(fifo_cfg->fifo_reg_base,
-					 rx_wptr)) {
+	if (ipa_phy_update_rx_fifo_wptr(fifo_cfg->fifo_reg_base,
+					rx_wptr)) {
 		pr_err("sipa reclaim update rx_fifo wptr failed\n");
 		return -EIO;
 	}
@@ -1154,10 +1215,14 @@ static int ipa_relm_unfree_node(struct sipa_cmn_fifo_cfg_tag *fifo_cfg,
 
 	fill_node = fifo_cfg->tx_fifo.virt_addr;
 	free_node = fifo_cfg->rx_fifo.virt_addr;
-	num = (tx_wptr - rx_wptr) & PTR_MASK(fifo_cfg->rx_fifo.depth);
+	num = (tx_wptr - rx_wptr) & (fifo_cfg->rx_fifo.depth - 1);
 
 	index = rx_wptr & (fifo_cfg->rx_fifo.depth - 1);
-	if (index + num <= fifo_cfg->rx_fifo.depth) {
+	if (!num) {
+		memcpy(free_node, fill_node,
+		       node_size * fifo_cfg->rx_fifo.depth);
+		num = fifo_cfg->rx_fifo.depth;
+	} else if (index + num <= fifo_cfg->rx_fifo.depth) {
 		memcpy(free_node + index, fill_node + index,
 		       node_size * num);
 	} else {
@@ -1172,8 +1237,8 @@ static int ipa_relm_unfree_node(struct sipa_cmn_fifo_cfg_tag *fifo_cfg,
 	smp_wmb();
 
 	rx_wptr = (rx_wptr + num) & PTR_MASK(fifo_cfg->rx_fifo.depth);
-	if (!ipa_phy_update_rx_fifo_wptr(fifo_cfg->fifo_reg_base,
-					 rx_wptr)) {
+	if (ipa_phy_update_rx_fifo_wptr(fifo_cfg->fifo_reg_base,
+					rx_wptr)) {
 		pr_err("sipa reclaim unfree update rx_fifo wptr failed\n");
 		return -EIO;
 	}
@@ -1839,6 +1904,42 @@ ipa_cmn_fifo_phy_recv_node_from_tx_fifo(struct device *dev,
 	return ipa_recv_pkt_from_tx_fifo(ipa_term_fifo, node, num);
 }
 
+static u32
+ipa_cmn_fifo_phy_sync_node_from_tx_fifo(struct device *dev,
+					enum sipa_cmn_fifo_index id,
+					struct sipa_cmn_fifo_cfg_tag *cfg_base,
+					u32 num)
+{
+	struct sipa_cmn_fifo_cfg_tag *ipa_term_fifo;
+
+	if (unlikely(id >= SIPA_FIFO_MAX)) {
+		dev_err(dev, "sipa don't have this id %d\n", id);
+		return -EINVAL;
+	}
+
+	ipa_term_fifo = cfg_base + id;
+
+	return ipa_sync_pkt_from_tx_fifo(dev, ipa_term_fifo, num);
+}
+
+static u32
+ipa_cmn_fifo_phy_sync_node_to_rx_fifo(struct device *dev,
+				      enum sipa_cmn_fifo_index id,
+				      struct sipa_cmn_fifo_cfg_tag *cfg_base,
+				      u32 num)
+{
+	struct sipa_cmn_fifo_cfg_tag *ipa_term_fifo;
+
+	if (unlikely(id >= SIPA_FIFO_MAX)) {
+		dev_err(dev, "sipa don't have this id %d\n", id);
+		return -EINVAL;
+	}
+
+	ipa_term_fifo = cfg_base + id;
+
+	return ipa_sync_pkt_to_rx_fifo(dev, ipa_term_fifo, num);
+}
+
 static int ipa_cmn_fifo_phy_get_rx_ptr(enum sipa_cmn_fifo_index id,
 				       struct sipa_cmn_fifo_cfg_tag *cfg_base,
 				       u32 *wr, u32 *rd)
@@ -2192,6 +2293,8 @@ void sipa_fifo_ops_init(struct sipa_fifo_phy_ops *ops)
 	ops->put_node_to_tx_fifo = ipa_cmn_fifo_phy_put_node_to_tx_fifo;
 	ops->get_tx_left_cnt = ipa_cmn_fifo_phy_get_tx_left_cnt;
 	ops->recv_node_from_tx_fifo = ipa_cmn_fifo_phy_recv_node_from_tx_fifo;
+	ops->sync_node_from_tx_fifo = ipa_cmn_fifo_phy_sync_node_from_tx_fifo;
+	ops->sync_node_to_rx_fifo = ipa_cmn_fifo_phy_sync_node_to_rx_fifo;
 	ops->get_rx_ptr = ipa_cmn_fifo_phy_get_rx_ptr;
 	ops->get_tx_ptr = ipa_cmn_fifo_phy_get_tx_ptr;
 	ops->get_filled_depth = ipa_cmn_fifo_phy_get_filled_depth;

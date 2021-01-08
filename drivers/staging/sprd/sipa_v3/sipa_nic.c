@@ -482,7 +482,7 @@ EXPORT_SYMBOL(sipa_nic_tx);
  * fifo. if it returns 0, it means that the data is read normally, and it
  * returns NULL, which means the fifo is empty.
  */
-int sipa_nic_rx(struct sk_buff **out_skb, int *netid, u32 *src)
+int sipa_nic_rx(struct sk_buff **out_skb, int *netid, u32 *src, u32 index)
 {
 	struct sipa_plat_drv_cfg *ipa = sipa_get_ctrl_pointer();
 
@@ -491,7 +491,7 @@ int sipa_nic_rx(struct sk_buff **out_skb, int *netid, u32 *src)
 		return -EINVAL;
 	}
 
-	*out_skb = sipa_recv_skb(ipa->receiver, netid, src);
+	*out_skb = sipa_recv_skb(ipa->receiver, netid, src, index);
 
 	return (*out_skb) ? 0 : -ENODATA;
 }
@@ -628,3 +628,25 @@ void sipa_nic_restore_cmn_fifo_irq(void)
 	ipa->fifo_ops.restore_irq_map_out(ipa->cmn_fifo_cfg);
 }
 EXPORT_SYMBOL(sipa_nic_restore_cmn_fifo_irq);
+
+u32 sipa_nic_sync_recv_pkts(u32 budget)
+{
+	struct sipa_plat_drv_cfg *ipa = sipa_get_ctrl_pointer();
+
+	return ipa->fifo_ops.sync_node_from_tx_fifo(ipa->dev,
+						    SIPA_FIFO_MAP0_OUT +
+						    smp_processor_id(),
+						    ipa->cmn_fifo_cfg,
+						    budget);
+}
+EXPORT_SYMBOL(sipa_nic_sync_recv_pkts);
+
+int sipa_nic_add_tx_fifo_rptr(u32 num)
+{
+	struct sipa_plat_drv_cfg *ipa = sipa_get_ctrl_pointer();
+
+	return ipa->fifo_ops.add_tx_fifo_rptr(SIPA_FIFO_MAP0_OUT +
+					      smp_processor_id(),
+					      ipa->cmn_fifo_cfg, num);
+}
+EXPORT_SYMBOL(sipa_nic_add_tx_fifo_rptr);
