@@ -725,6 +725,31 @@
 	status = "okay";
 };
 
+&sprd_headset {
+	status = "okay";
+};
+
+&sound_vbc_v4_sprd_codec {
+	status = "okay";
+	sprd-audio-card,routing =
+		"HPMIC Pin", "HP Mic Jack",
+		"MIC Pin", "Mic Jack",
+		"MIC2 Pin", "Aux Mic Jack",
+		"HeadPhone Jack", "HP Pin",
+		"Ext Spk", "SPK Pin",
+		"UCP1301 SPK ON", "SPK Pin",
+		"Ext Spk", "UCP1301 SPK",
+		"PDM DMIC2 ON", "SPK Pin",
+		"Ext Spk", "PDM_DMIC2",
+		"DMIC Pin", "DMic Jack",
+		"DMIC1 Pin", "DMic1 Jack",
+		"Ext Ear", "EAR Pin",
+		"UCP1301 RCV ON", "EAR Pin",
+		"Ext Ear", "UCP1301 RCV";
+	/*ext_control_type, hook selection, mode, gpio share*/
+	sprd,spk-ext-pa-info = <0 0 2 0>;
+	sprd,spk-ext-pa-gpio = <&ap_gpio 139 0>;
+};
 
 &vddldo0 {
 	regulator-always-on;
