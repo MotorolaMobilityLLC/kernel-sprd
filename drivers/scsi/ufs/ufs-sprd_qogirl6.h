@@ -30,6 +30,11 @@ struct ufs_sprd_host {
 	struct syscon_ufs ahb_ufs_lp;
 	struct syscon_ufs ahb_ufs_force_isol;
 	struct syscon_ufs ahb_ufs_cb;
+	struct clk *hclk_source;
+	struct clk *pclk_source;
+	struct clk *hclk;
+	struct clk *pclk;
+
 };
 
 #define AUTO_H8_IDLE_TIME_10MS 0x1001
@@ -47,5 +52,9 @@ struct ufs_sprd_host {
 
 #define FIFO_ENABLE_MASK (0x1 << 15)
 #define MPHY_TACTIVATE_TIME_200US (0x1 << 17)
+
+/* UFS HC register */
+#define HCLKDIV_REG 0xFC
+#define CLKDIV 0x100
 
 #endif/* _UFS_SPRD_H_ */

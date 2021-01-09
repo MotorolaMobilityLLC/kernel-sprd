@@ -26,10 +26,12 @@
 #include "unipro.h"
 
 
-int syscon_get_args(struct device_node *np, struct ufs_sprd_host *host)
+int syscon_get_args(struct device *dev, struct ufs_sprd_host *host)
 {
 	u32 args[2];
 	int ret;
+	struct device_node *np = dev->of_node;
+	struct platform_device *pdev = to_platform_device(dev);
 
 	host->aon_apb_ufs_en.regmap =
 			syscon_regmap_lookup_by_name(np, "aon_apb_ufs_en");
@@ -138,6 +140,36 @@ int syscon_get_args(struct device_node *np, struct ufs_sprd_host *host)
 		pr_err("failed to parse ahb_ufs_cb\n");
 	}
 
+	host->pclk = devm_clk_get(&pdev->dev, "ufs_pclk");
+	if (IS_ERR(host->pclk)) {
+		dev_warn(&pdev->dev,
+			"can't get the clock dts config: ufs_pclk\n");
+			host->pclk = NULL;
+	}
+
+	host->pclk_source = devm_clk_get(&pdev->dev, "ufs_pclk_source");
+	if (IS_ERR(host->pclk_source)) {
+		dev_warn(&pdev->dev,
+			"can't get the clock dts config: ufs_pclk_source\n");
+			host->pclk_source = NULL;
+	}
+	clk_set_parent(host->pclk, host->pclk_source);
+
+	host->hclk = devm_clk_get(&pdev->dev, "ufs_hclk");
+	if (IS_ERR(host->hclk)) {
+		dev_warn(&pdev->dev,
+			"can't get the clock dts config: ufs_hclk\n");
+			host->hclk = NULL;
+	}
+
+	host->hclk_source = devm_clk_get(&pdev->dev, "ufs_hclk_source");
+	if (IS_ERR(host->hclk_source)) {
+		dev_warn(&pdev->dev,
+			"can't get the clock dts config: ufs_hclk_source\n");
+			host->hclk_source = NULL;
+	}
+	clk_set_parent(host->hclk, host->hclk_source);
+
 	return 0;
 }
 
@@ -236,7 +268,7 @@ static int ufs_sprd_init(struct ufs_hba *hba)
 	host->hba = hba;
 	ufshcd_set_variant(hba, host);
 
-	syscon_get_args(dev->of_node, host);
+	syscon_get_args(dev, host);
 
 	hba->quirks |= UFSHCD_QUIRK_BROKEN_UFS_HCI_VERSION |
 		       UFSHCD_QUIRK_DELAY_BEFORE_DME_CMDS;
@@ -308,6 +340,7 @@ static int ufs_sprd_hce_enable_notify(struct ufs_hba *hba,
 		ufs_sprd_hw_init(hba);
 		break;
 	case POST_CHANGE:
+		ufshcd_writel(hba, CLKDIV, HCLKDIV_REG);
 		break;
 	default:
 		dev_err(hba->dev, "%s: invalid status %d\n", __func__, status);
