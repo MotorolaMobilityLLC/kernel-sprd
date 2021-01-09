@@ -1237,13 +1237,13 @@ static SPRD_COMP_CLK(probe_clk, "probe-clk", aux_parents, 0x34,
 static const char * const pwm_parents[] = { "ext-32k", "ext-26m",
 					    "rco-4m", "rco-25m",
 					    "twpll-48m" };
-static SPRD_MUX_CLK(pwm0_clk, "pwm0-clk", pwm_parents, 0x238,
+static SPRD_MUX_CLK(pwm0_clk, "pwm0-clk", pwm_parents, 0x38,
 		    0, 3, UMS9230_MUX_FLAG);
-static SPRD_MUX_CLK(pwm1_clk, "pwm1-clk", pwm_parents, 0x23c,
+static SPRD_MUX_CLK(pwm1_clk, "pwm1-clk", pwm_parents, 0x3c,
 		    0, 3, UMS9230_MUX_FLAG);
-static SPRD_MUX_CLK(pwm2_clk, "pwm2-clk", pwm_parents, 0x240,
+static SPRD_MUX_CLK(pwm2_clk, "pwm2-clk", pwm_parents, 0x40,
 		    0, 3, UMS9230_MUX_FLAG);
-static SPRD_MUX_CLK(pwm3_clk, "pwm3-clk", pwm_parents, 0x244,
+static SPRD_MUX_CLK(pwm3_clk, "pwm3-clk", pwm_parents, 0x44,
 		    0, 3, UMS9230_MUX_FLAG);
 
 static const char * const efuse_parents[] = { "rco-25m", "ext-26m" };
@@ -1266,29 +1266,27 @@ static SPRD_MUX_CLK(thm1_clk, "thm1-clk", thm_parents, 0x64,
 		    0, 1, UMS9230_MUX_FLAG);
 static SPRD_MUX_CLK(thm2_clk, "thm2-clk", thm_parents, 0x68,
 		    0, 1, UMS9230_MUX_FLAG);
-static SPRD_MUX_CLK(thm3_clk, "thm3-clk", thm_parents, 0x6c,
-		    0, 1, UMS9230_MUX_FLAG);
 
 static const char * const aon_i2c_parents[] = { "rco-4m", "ext-26m",
 						"twpll-48m", "twpll-51m2",
 						"rco-100m", "twpll-153m6" };
-static SPRD_MUX_CLK(aon_i2c_clk, "aon-i2c-clk", aon_i2c_parents, 0x7c,
+static SPRD_MUX_CLK(aon_i2c_clk, "aon-i2c-clk", aon_i2c_parents, 0x78,
 		    0, 3, UMS9230_MUX_FLAG);
 
 static const char * const aon_iis_parents[] = { "ext-26m", "twpll-128m",
 						"twpll-153m6" };
-static SPRD_MUX_CLK(aon_iis_clk, "aon-iis-clk", aon_iis_parents, 0x80,
+static SPRD_MUX_CLK(aon_iis_clk, "aon-iis-clk", aon_iis_parents, 0x7c,
 		    0, 2, UMS9230_MUX_FLAG);
 
 static const char * const scc_parents[] = { "ext-26m", "twpll-48m",
 					    "twpll-51m2", "twpll-96m" };
-static SPRD_MUX_CLK(scc_clk, "scc-clk", scc_parents, 0x84,
+static SPRD_MUX_CLK(scc_clk, "scc-clk", scc_parents, 0x80,
 		    0, 2, UMS9230_MUX_FLAG);
 
 static const char * const apcpu_dap_parents[] = { "ext-26m", "rco-4m",
 						  "twpll-76m8", "rco-100m",
 						  "twpll-128m", "twpll-153m6" };
-static SPRD_MUX_CLK(apcpu_dap_clk, "apcpu-dap-clk", apcpu_dap_parents, 0x88,
+static SPRD_MUX_CLK(apcpu_dap_clk, "apcpu-dap-clk", apcpu_dap_parents, 0x84,
 		    0, 3, UMS9230_MUX_FLAG);
 
 static SPRD_GATE_CLK(apcpu_dap_mtck, "apcpu-dap-mtck", "ext-26m", 0x88,
@@ -1410,7 +1408,6 @@ static struct sprd_clk_common *ums9230_aon_apb[] = {
 	&thm0_clk.common,
 	&thm1_clk.common,
 	&thm2_clk.common,
-	&thm3_clk.common,
 	&aon_i2c_clk.common,
 	&aon_iis_clk.common,
 	&scc_clk.common,
@@ -1458,7 +1455,6 @@ static struct clk_hw_onecell_data ums9230_aon_apb_hws = {
 	[CLK_THM0]		= &thm0_clk.common.hw,
 	[CLK_THM1]		= &thm1_clk.common.hw,
 	[CLK_THM2]		= &thm2_clk.common.hw,
-	[CLK_THM3]		= &thm3_clk.common.hw,
 	[CLK_AON_I2C]		= &aon_i2c_clk.common.hw,
 	[CLK_AON_IIS]		= &aon_iis_clk.common.hw,
 	[CLK_SCC]		= &scc_clk.common.hw,
