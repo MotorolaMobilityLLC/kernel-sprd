@@ -56,6 +56,8 @@
 
 #define BQ2560X_REG_WATCHDOG_MASK		GENMASK(6, 6)
 
+#define BQ2560X_REG_TIMER_MASK			GENMASK(3, 3)		//charge safety timer disable by pony date20210109
+
 #define BQ2560X_REG_TERMINAL_VOLTAGE_MASK	GENMASK(7, 3)
 #define BQ2560X_REG_TERMINAL_VOLTAGE_SHIFT	3
 
@@ -336,6 +338,15 @@ static int bq2560x_charger_hw_init(struct bq2560x_charger_info *info)
 			dev_err(info->dev, "reset bq2560x failed\n");
 			return ret;
 		}
+
+		//charge safety timer disable by pony date20210109 start
+		ret = bq2560x_update_bits(info, BQ2560X_REG_5,
+					  BQ2560X_REG_TIMER_MASK,0);
+		if (ret) {
+			dev_err(info->dev, "charge safety timer disable failed\n");
+			return ret;
+		}
+		//charge safety timer disable by pony date20210109 end
 
 		if (info->role == BQ2560X_ROLE_MASTER_DEFAULT) {
 			ret = bq2560x_charger_set_ovp(info, BQ2560X_FCHG_OVP_6V);
