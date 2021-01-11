@@ -297,6 +297,16 @@
 			#size-cells = <1>;
 			ranges = <0 0 0x20000000 0x22d0040>;
 
+			ap_dma: dma-controller@20000 {
+				compatible = "sprd,qogirn6pro-dma";
+				reg = <0 0x20000 0 0x4000>;
+				interrupts = <GIC_SPI 219 IRQ_TYPE_LEVEL_HIGH>;
+				#dma-cells = <1>;
+				#dma-channels = <28>;
+				clock-names = "enable";
+				clocks = <&apahb_gate CLK_DMA_PUB_EB>;
+			};
+
 			sdio3: sdio@2200000 {
 				compatible = "sprd,sdhc-r11p1";
 				reg = <0x2200000 0x1000>;
@@ -863,6 +873,24 @@
 				sprd,target-addr = <0 0>;
 				sprd,target-data = <0 0>;
 			 };
+		};
+
+		agcp {
+			compatible = "simple-bus";
+			#address-cells = <2>;
+			#size-cells = <2>;
+			ranges;
+
+			agcp_dma: dma-controller@56650000 {
+				compatible = "sprd,qogirn6pro-dma";
+				reg = <0 0x56650000 0 0x4000>;
+				interrupts = <GIC_SPI 55 IRQ_TYPE_LEVEL_HIGH>;
+				#dma-cells = <1>;
+				#dma-channels = <32>;
+				clock-names = "enable", "ashb_eb";
+				clocks = <&audcpglb_gate CLK_AUDCP_DMA_AP_EB>,
+					<&audcpglb_gate CLK_AUDCP_DMA_AP_ASHB_EB>;
+			};
 		};
 	};
 
