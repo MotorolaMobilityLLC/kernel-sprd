@@ -59,6 +59,8 @@ struct backlight_ops {
 	/* Return the current backlight brightness (accounting for power,
 	   fb_blank etc.) */
 	int (*get_brightness)(struct backlight_device *);
+	/* modify HBM GPIO status */
+	int (*set_hbm_status)(struct backlight_device *);
 	/* Check if given framebuffer device is the one bound to this backlight;
 	   return 0 if not, !=0 if it is. If NULL, backlight always matches the fb. */
 	int (*check_fb)(struct backlight_device *, struct fb_info *);
@@ -88,6 +90,7 @@ struct backlight_properties {
 #define BL_CORE_DRIVER3		(1 << 29)	/* reserved for driver specific use */
 #define BL_CORE_DRIVER2		(1 << 30)	/* reserved for driver specific use */
 #define BL_CORE_DRIVER1		(1 << 31)	/* reserved for driver specific use */
+	int hbm_status;
 
 };
 
@@ -125,6 +128,18 @@ static inline int backlight_update_status(struct backlight_device *bd)
 	mutex_lock(&bd->update_lock);
 	if (bd->ops && bd->ops->update_status)
 		ret = bd->ops->update_status(bd);
+	mutex_unlock(&bd->update_lock);
+
+	return ret;
+}
+
+static inline int backlight_set_hbm_status(struct backlight_device *bd)
+{
+	int ret = -ENOENT;
+
+	mutex_lock(&bd->update_lock);
+	if (bd->ops && bd->ops->set_hbm_status)
+		ret = bd->ops->set_hbm_status(bd);
 	mutex_unlock(&bd->update_lock);
 
 	return ret;

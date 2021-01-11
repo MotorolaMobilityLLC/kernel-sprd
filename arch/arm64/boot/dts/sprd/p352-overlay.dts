@@ -901,6 +901,7 @@
 	avdd-gpio = <&ap_gpio 132 GPIO_ACTIVE_HIGH>;
 	avee-gpio = <&ap_gpio 133 GPIO_ACTIVE_HIGH>;
 	reset-gpio = <&ap_gpio 50 GPIO_ACTIVE_HIGH>;
+	hbm-gpio = <&ap_gpio 47 GPIO_ACTIVE_HIGH>;
 };
 
 // modify use DSI command set backlight begin:
