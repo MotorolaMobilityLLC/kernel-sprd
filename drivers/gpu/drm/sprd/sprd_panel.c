@@ -439,6 +439,12 @@ static int sprd_panel_gpio_request(struct device *dev,
 		DRM_WARN("can't get panel reset gpio: %ld\n",
 				 PTR_ERR(panel->info.reset_gpio));
 
+	panel->info.hbm_gpio = devm_gpiod_get_optional(dev,
+					"hbm", GPIOD_ASIS);
+	if (IS_ERR_OR_NULL(panel->info.hbm_gpio))
+		DRM_WARN("can't get panel hbm gpio: %ld\n",
+				 PTR_ERR(panel->info.hbm_gpio));
+
 	return 0;
 }
 
@@ -617,8 +623,39 @@ static int sprd_oled_set_brightness(struct backlight_device *bdev)
 	return 0;
 }
 
+static int sprd_set_hbm_status(struct backlight_device *bdev)
+{
+	int hbm_status;
+	struct sprd_oled *oled = bl_get_data(bdev);
+	struct sprd_panel *panel = oled->panel;
+
+	mutex_lock(&panel_lock);
+	if (!panel->is_enabled) {
+		mutex_unlock(&panel_lock);
+		DRM_WARN("oled panel has been powered off\n");
+		return -ENXIO;
+	}
+
+	hbm_status = bdev->props.hbm_status;
+
+	DRM_INFO("%s hbm status: %d\n", __func__, hbm_status);
+
+	if (panel->info.hbm_gpio) {
+		gpiod_direction_output(panel->info.hbm_gpio, hbm_status);
+	} else {
+		DRM_ERROR("INVAIL HBM gpio\n");
+		mutex_unlock(&panel_lock);
+		return -EINVAL;
+	}
+
+	mutex_unlock(&panel_lock);
+
+	return 0;
+}
+
 static const struct backlight_ops sprd_oled_backlight_ops = {
 	.update_status = sprd_oled_set_brightness,
+	.set_hbm_status = sprd_set_hbm_status,
 };
 
 static int sprd_oled_backlight_init(struct sprd_panel *panel)
