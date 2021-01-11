@@ -1513,6 +1513,16 @@
 				reg = <0 0x322e0000 0 0x10>;
 			};
 
+			watchdog@322f0000 {
+				compatible = "sprd,wdt-r2p0-fiq";
+				reg = <0 0x322f0000 0 0x10000>;
+				interrupts = <GIC_SPI 79 IRQ_TYPE_LEVEL_HIGH>;
+				timeout-sec = <12>;
+				clock-names = "enable", "rtc_enable";
+				clocks = <&aonapb_gate CLK_APCPU_WDG_EB>,
+				       <&aonapb_gate CLK_AC_WDG_RTC_EB>;
+			};
+
 			hsphy: hsphy@323b0000 {
 				compatible = "sprd,sharkl5-phy", "sprd,sharkl5pro-phy";
 				sprd,syscon-enable = <&aon_apb_regs>;
