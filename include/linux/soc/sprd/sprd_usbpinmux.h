@@ -1,0 +1,19 @@
+/**
+ * SPRD ep device driver in host side for Spreadtrum SoCs
+ *
+ * Copyright (C) 2019 Spreadtrum Co., Ltd.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 of
+ * the License as published by the Free Software Foundation.
+ *
+ * This program is used to control ep device driver in host side for
+ * Spreadtrum SoCs.
+ */
+
+#ifndef __SPRD_USBPINMUX_H
+#define __SPRD_USBPINMUX_H
+
+int sprd_usbmux_check_mode(void);
+
+#endif
