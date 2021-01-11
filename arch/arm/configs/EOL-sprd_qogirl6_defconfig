@@ -1,6 +1,6 @@
 #
 # Automatically generated file; DO NOT EDIT.
-# Linux/arm 4.14.193 Kernel Configuration
+# Linux/arm 4.14.199 Kernel Configuration
 #
 CONFIG_ARM=y
 CONFIG_ARM_HAS_SG_CHAIN=y
@@ -4644,7 +4644,8 @@ CONFIG_DEFAULT_SECURITY="selinux"
 # Memory initialization
 #
 # CONFIG_INIT_STACK_NONE is not set
-CONFIG_INIT_STACK_ALL=y
+# CONFIG_INIT_STACK_ALL_PATTERN is not set
+CONFIG_INIT_STACK_ALL_ZERO=y
 # CONFIG_INIT_ON_ALLOC_DEFAULT_ON is not set
 # CONFIG_INIT_ON_FREE_DEFAULT_ON is not set
 CONFIG_CRYPTO=y
