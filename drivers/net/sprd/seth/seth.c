@@ -312,7 +312,6 @@ static int seth_rx_poll_handler(struct napi_struct *napi, int budget)
 	/* Keep polling, until the sblock rx ring is empty */
 	while ((budget - skb_cnt) && !blk_ret) {
 		blk_ret = SBLOCK_RECEIVE(pdata->dst, pdata->channel, &blk, 0);
-		break;
 		if (blk_ret) {
 			dev_dbg(&seth->netdev->dev,
 				"receive sblock error %d\n", blk_ret);
