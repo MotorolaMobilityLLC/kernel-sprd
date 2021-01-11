@@ -1060,6 +1060,7 @@ static const struct dev_pm_ops dwc3_sprd_dev_pm_ops = {
 static const struct of_device_id sprd_dwc3_match[] = {
 	{ .compatible = "sprd,roc1-dwc3" },
 	{ .compatible = "sprd,orca-dwc3" },
+	{ .compatible = "sprd,qogirn6pro-dwc3" },
 	{},
 };
 MODULE_DEVICE_TABLE(of, sprd_dwc3_match);
