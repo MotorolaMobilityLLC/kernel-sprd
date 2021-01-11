@@ -238,7 +238,7 @@
 			};
 
 			usb: usb@20200000 {
-				compatible  = "sprd,pike2-musb";
+				compatible  = "sprd,pike2-musb", "sprd,sharkl3-musb";
 				reg = <0x20200000 0x2000>;
 				interrupts = <GIC_SPI 55 IRQ_TYPE_LEVEL_HIGH>;
 				interrupt-names = "mc";
