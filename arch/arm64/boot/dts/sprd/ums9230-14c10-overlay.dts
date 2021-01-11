@@ -61,12 +61,6 @@
 							<3810000 40>, <3795000 35>, <3781000 30>,
 							<3765000 25>, <3746000 20>, <3722000 15>,
 							<3694000 10>, <3682000 5>, <3400000 0>;
-				voltage-temp-table = <1095000 800>, <986000 850>, <878000 900>,
-							  <775000 950>, <678000 1000>, <590000 1050>,
-							  <510000 1100>, <440000 1150>, <378000 1200>,
-							  <324000 1250>, <278000 1300>, <238000 1350>,
-							  <204000 1400>, <175000 1450>, <150000 1500>,
-							  <129000 1550>, <111000 1600>, <96000 1650>;
 				capacity-temp-table = <45 100>, <25 100>, <10 98>, <0 93>, <(-10) 85>, <(-20) 64>;
 				resistance-temp-table = <45 77>, <25 100>, <10 546>, <0 769>, <(-10) 892>, <(-20) 923>;
 				charge-sdp-current-microamp = <500000 500000>;
@@ -89,7 +83,7 @@
 				cm-fullbatt-capacity = <100>;
 
 				cm-num-chargers = <1>;
-				cm-chargers = "bq2560x_charger";
+				cm-chargers = "bq24157";
 				cm-fuel-gauge = "sc27xx-fgu";
 
 				/* in deci centigrade */
@@ -137,7 +131,7 @@
 					cm-regulator-name = "vddgen0";
 					cable@0 {
 						cm-cable-name = "USB";
-						extcon = <&pmic_typec>;
+						extcon = <&extcon_gpio>;
 					};
 				};
 			};
@@ -238,11 +232,20 @@
 	status = "okay";
 	clock-frequency = <400000>;
 
-	bq2560x_chg: charger@6b {
-		compatible = "ti,bq2560x_chg";
-		reg = <0x6b>;
+	bq2415x_charger: charger@6a {
+		compatible = "ti,bq24157";
+		reg = <0x6a>;
 		phys = <&hsphy>;
 		monitored-battery = <&bat>;
+		max_cv = <0x48>;
+		cv_val = <0x2b>;
+		ti,current-limit = <100000>;
+		ti,weak-battery-voltage = <3400>;
+		ti,battery-regulation-voltage = <4400>;
+		ti,charge-current = <650000>;
+		ti,termination-current = <180000>;
+		ti,resistor-sense = <56>;
+		charge,chg-pd-gpio = <&ap_gpio 121 0>;
 		extcon = <&extcon_gpio>;
 		vddvbus:otg-vbus {
 			regulator-name = "vddvbus";
