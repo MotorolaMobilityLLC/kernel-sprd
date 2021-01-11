@@ -162,6 +162,12 @@
 	status = "okay";
 };
 
+&ssphy {
+	vdd-supply = <&vddusb33>;
+	extcon = <&extcon_gpio>;
+	status = "okay";
+};
+
 &ump9620_pmic {
 	interrupts = <GIC_SPI 230 IRQ_TYPE_LEVEL_HIGH>;
 };
