@@ -99,6 +99,7 @@ obj-$(CONFIG_REGULATOR_SC2703) += sc2703-regulator.o sc2703-lcd-regulator.o
 obj-$(CONFIG_REGULATOR_SC2720) += sc2720-regulator.o
 obj-$(CONFIG_REGULATOR_SC2721) += sc2721-regulator.o
 obj-$(CONFIG_REGULATOR_SC2730) += sc2730-regulator.o
+obj-$(CONFIG_REGULATOR_UMP9620) += ump9620-regulator.o
 obj-$(CONFIG_REGULATOR_SC2731) += sc2731-regulator.o
 obj-$(CONFIG_REGULATOR_SKY81452) += sky81452-regulator.o
 obj-$(CONFIG_REGULATOR_STM32_VREFBUF) += stm32-vrefbuf.o
