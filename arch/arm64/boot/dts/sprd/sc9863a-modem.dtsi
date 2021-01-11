@@ -272,7 +272,7 @@
 		reg = <6>;
 		label = "sipc-pmsys";
 		/* <&mailbox  channel_id  is_no_wakeup(default 0)> */
-		mboxes = <&mailbox 1 0>, <&mailbox 6 1>;
+		mboxes = <&mailbox 1 0>, <&mailbox 7 1>;
 		/* This is temporary plan*/
 		sprd,smem-info = <0xd000 0x2000b000 0x2000>;
 
