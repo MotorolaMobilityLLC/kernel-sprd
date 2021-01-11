@@ -18305,6 +18305,15 @@ CONFIG_USB_SPRD_DMA_V3
 	[must] user
 	[missing plat description] none
 	[function] DMA VERSION V3.
+CONFIG_USB_SPRD_OFFLOAD
+	[arch] arm64
+	[plat] sharkl5Pro
+	[missing plat] sharkl3
+	[field]
+	[subsys]
+	[must]
+	[missing plat description]
+	[function]
 CONFIG_USB_STORAGE
 	[arch] all
 	[plat] all

@@ -21,6 +21,7 @@
 #include "musb_host.h"
 #include "musb_trace.h"
 #include "musb_dma.h"
+#include "sprd_musbhsdma.h"
 
 /* MUSB HOST status 22-mar-2006
  *
@@ -2260,6 +2261,294 @@ success:
 	return 0;
 }
 
+#if IS_ENABLED(CONFIG_USB_SPRD_OFFLOAD)
+static void musb_offload_enable(struct musb *musb, u8 bchannel)
+{
+	u32 val;
+	void __iomem *mbase = musb->mregs;
+
+	val  = musb_readl(mbase, MUSB_AUDIO_IIS_DMA_CHN);
+	val |= (1 << bchannel);
+	musb_writel(mbase, MUSB_AUDIO_IIS_DMA_CHN, val);
+
+	val  = musb_readl(mbase, MUSB_DMA_CHN_CFG(bchannel));
+	val  |= CHN_EN;
+	musb_writel(mbase, MUSB_DMA_CHN_CFG(bchannel), val);
+}
+
+static bool musb_offload_detect(struct musb *musb,
+				struct usb_endpoint_descriptor *epd)
+{
+	u32 val;
+	void __iomem *mbase = musb->mregs;
+	u8 bchannel, epnum = usb_endpoint_num(epd);
+	int dir = usb_endpoint_dir_out(epd);
+
+	val = musb_readl(mbase, MUSB_AUDIO_IIS_DMA_CHN);
+	if (dir)
+		bchannel = epnum;
+	else
+		bchannel = epnum + 15;
+
+	if (BIT(bchannel) & val)
+		return true;
+
+	return false;
+}
+
+static void musb_set_offload_mode(struct usb_hcd *hcd, bool is_offload)
+{
+	struct musb *musb = hcd_to_musb(hcd);
+
+	musb->is_offload = is_offload;
+}
+
+static void musb_offload_config(struct usb_hcd *hcd, int ep_num, int mono,
+				int is_pcm_24, int width, int rate, int offload_used)
+{
+	struct musb *musb = hcd_to_musb(hcd);
+	void __iomem *mbase = musb->mregs;
+	int dir;
+	u32 tmp, clkm;
+	u16 intr;
+	u8 bchannel;
+	unsigned long flags;
+
+	if (!is_host_active(musb) || !musb->is_active)
+		return;
+	if (width > IIS_WIDTH_MAX)
+		return;
+
+	if (ep_num & 0x80) {
+		/* in endpoint */
+		dir = 0;
+		bchannel = (u8)(ep_num & 0xf) + 15;
+	} else {
+		/* out endpoint */
+		dir = 1;
+		bchannel = (u8)(ep_num & 0xf);
+	}
+	musb->is_offload = true;
+	musb->offload_used = offload_used;
+	dev_dbg(musb->controller,
+		"ep:0x%x dir:%d mono:%d pcm:%d width:%d rate:%d offload:%d\n",
+		ep_num,	dir, mono, is_pcm_24, width, rate, offload_used);
+
+	if (musb->offload_used == 0)
+		return;
+
+	spin_lock_irqsave(&musb->lock, flags);
+	if (ep_num & 0x80) {
+		intr = musb_readw(mbase, MUSB_INTRRXE);
+		intr &= ~(1 << (ep_num & 0xf));
+		musb_writew(mbase, MUSB_INTRRXE, intr);
+	} else {
+		intr = musb_readw(mbase, MUSB_INTRTXE);
+		intr &= ~(1 << (ep_num & 0xf));
+		musb_writew(mbase, MUSB_INTRTXE, intr);
+	}
+
+	/* usb audio iis control*/
+	tmp = musb_readl(mbase, MUSB_AUDIO_IIS_CTL0);
+	tmp |= (BIT_RTX_MD(0x3) | BIT_NG_RX);
+	musb_writel(mbase, MUSB_AUDIO_IIS_CTL0, tmp);
+
+	if (width == IIS_WIDTH_16BIT)
+		clkm = 4  * 16 * rate;
+	else
+		clkm = 4  * 24 * rate;
+	musb_writel(mbase, MUSB_AUDIO_IIS_CLKM, clkm);
+	musb_writel(mbase, MUSB_AUDIO_IIS_CLKN, MUSB_IIS_CLKN);
+
+	tmp = musb_readl(mbase, MUSB_AUDIO_IIS_DMA_INS);
+	/* iis dma fifo width */
+	if (is_pcm_24 == 1) {
+		if (dir) {
+			tmp &= ~BIT_TX_FIFO_DEPTH(0x3);
+			tmp |= BIT_TX_FIFO_DEPTH(0x1);
+		} else {
+			tmp &= ~BIT_RX_FIFO_DEPTH(0x3);
+			tmp |= BIT_RX_FIFO_DEPTH(0x1);
+		}
+	} else {
+		if (dir)
+			tmp &= ~BIT_TX_FIFO_DEPTH(0x3);
+		else
+			tmp &= ~BIT_RX_FIFO_DEPTH(0x3);
+	}
+	/* mono or stereo  */
+	if (dir) {
+		if (mono == 1)
+			tmp &= ~BIT_TX_ST_MO;
+		else
+			tmp |= BIT_TX_ST_MO;
+	} else {
+		if (mono == 1)
+			tmp &= ~BIT_RX_ST_MO;
+		else
+			tmp |= BIT_RX_ST_MO;
+	}
+	tmp |= (BIT_TX_SAMPLE_RATE(rate) | BIT_RX_SAMPLE_RATE(rate));
+	musb_writel(mbase, MUSB_AUDIO_IIS_DMA_INS, tmp);
+
+	tmp = musb_readl(mbase, MUSB_AUDIO_IIS_EN);
+	if (width == IIS_WIDTH_16BIT)
+		tmp &= ~BIT_IIS_SAMPLE_DEPTH;
+	else
+		tmp |= BIT_IIS_SAMPLE_DEPTH;
+	tmp |= (BIT_UNALIGN_OUT_EN | BIT_UNALIGN_IN_EN |
+		BIT_IIS_START | BIT_IIS_TO_TXF_EN | BIT_IIS_FROM_RXF_EN);
+	tmp &= ~(BIT_RX_FULL_INT_EN | BIT_TX_EMPTY_INT_EN);
+	musb_writel(mbase, MUSB_AUDIO_IIS_EN, tmp);
+
+	musb_offload_enable(musb, bchannel);
+	spin_unlock_irqrestore(&musb->lock, flags);
+}
+
+static void musb_offload_enqueue(struct usb_hcd *hcd, struct urb *urb)
+{
+	struct musb			*musb = hcd_to_musb(hcd);
+	struct usb_host_endpoint	*hep = urb->ep;
+	struct usb_endpoint_descriptor	*epd = &hep->desc;
+	u8 ep_num = usb_endpoint_num(epd);
+	struct musb_hw_ep	*hw_ep = musb->endpoints + ep_num;
+	void __iomem		*epio = hw_ep->regs;
+	struct musb_qh qh;
+	unsigned long flags;
+	u16 val;
+	unsigned int type_reg, interval;
+	int dir;
+
+	memset(&qh, 0, sizeof(struct musb_qh));
+
+	qh.maxpacket = usb_endpoint_maxp(epd);
+	qh.type = usb_endpoint_type(epd);
+	qh.epnum = ep_num;
+	qh.addr_reg = (u8) usb_pipedevice(urb->pipe);
+	dir = usb_endpoint_dir_out(epd);
+
+	/* precompute rxtype/txtype/type0 register */
+	type_reg = (qh.type << 4) | qh.epnum;
+	switch (urb->dev->speed) {
+	case USB_SPEED_LOW:
+		type_reg |= 0xc0;
+		break;
+	case USB_SPEED_FULL:
+		type_reg |= 0x80;
+		break;
+	default:
+		type_reg |= 0x40;
+	}
+	qh.type_reg = type_reg;
+
+	/* Precompute RXINTERVAL/TXINTERVAL register */
+	switch (qh.type) {
+	case USB_ENDPOINT_XFER_INT:
+		/*
+		 * Full/low speeds use the  linear encoding,
+		 * high speed uses the logarithmic encoding.
+		 */
+		if (urb->dev->speed <= USB_SPEED_FULL) {
+			interval = max_t(u8, epd->bInterval, 1);
+			if (urb->dev->speed == USB_SPEED_LOW && qh.epnum && qh.maxpacket % 4)
+				qh.maxpacket = (qh.maxpacket + 3) / 4 * 4;
+			break;
+		}
+		fallthrough;
+	case USB_ENDPOINT_XFER_ISOC:
+		/* ISO always uses logarithmic encoding */
+		interval = min_t(u8, epd->bInterval, 16);
+		break;
+	default:
+		interval = 0;
+	}
+	qh.intv_reg = interval;
+
+	dev_dbg(musb->controller,
+		"ep:%d dir:%d max:%d type:%d addr:%d type:0x%x intv:%d\n",
+		qh.epnum, dir, qh.maxpacket, qh.type, qh.addr_reg,
+		qh.type_reg, qh.intv_reg);
+
+	/* precompute addressing for external hub/tt ports */
+	if (musb->is_multipoint) {
+		struct usb_device *parent = urb->dev->parent;
+
+		if (parent != hcd->self.root_hub) {
+			qh.h_addr_reg = (u8) parent->devnum;
+
+			/* set up tt info if needed */
+			if (urb->dev->tt) {
+				qh.h_port_reg = (u8) urb->dev->ttport;
+				if (urb->dev->tt->hub)
+					qh.h_addr_reg = (u8)urb->dev->tt->hub->devnum;
+				if (urb->dev->tt->multi)
+					qh.h_addr_reg |= 0x80;
+			}
+		}
+
+		/* target addr and (for multipoint) hub addr/port */
+		if (dir) {
+			musb_write_txfunaddr(musb, qh.epnum, qh.addr_reg);
+			musb_write_txhubaddr(musb, qh.epnum, qh.h_addr_reg);
+			musb_write_txhubport(musb, qh.epnum, qh.h_port_reg);
+		} else {
+			musb_write_rxfunaddr(musb, qh.epnum, qh.addr_reg);
+			musb_write_rxhubaddr(musb, qh.epnum, qh.h_addr_reg);
+			musb_write_rxhubport(musb, qh.epnum, qh.h_port_reg);
+		}
+	} else {
+		musb_writeb(musb->mregs, MUSB_FADDR, qh.addr_reg);
+	}
+
+	musb_writeb(epio, MUSB_TXINTERVAL, qh.intv_reg);
+	if (dir) {
+		/* out */
+		musb_writew(epio, MUSB_TXMAXP, qh.maxpacket);
+		musb_writeb(epio, MUSB_TXTYPE, qh.type_reg);
+
+		val = musb_readw(epio, MUSB_TXCSR);
+		val |= (MUSB_TXCSR_CLRDATATOG |
+			MUSB_TXCSR_DMAMODE |
+			MUSB_TXCSR_DMAENAB |
+			MUSB_TXCSR_MODE |
+			MUSB_TXCSR_AUTOSET);
+		musb_writew(epio, MUSB_TXCSR, val);
+	} else {
+		/* in */
+		musb_writew(epio, MUSB_RXMAXP, qh.maxpacket);
+		musb_writeb(epio, MUSB_RXTYPE, qh.type_reg);
+
+		val = musb_readw(epio, MUSB_RXCSR);
+		val |= (MUSB_RXCSR_CLRDATATOG |
+			MUSB_RXCSR_DMAMODE |
+			MUSB_RXCSR_DMAENAB |
+			MUSB_RXCSR_AUTOCLEAR);
+		musb_writew(epio, MUSB_RXCSR, val);
+	}
+
+	/* urb status should be error to stop sound call usb_submit_urb again */
+	spin_lock_irqsave(&musb->lock, flags);
+	musb_giveback(musb, urb, -ESHUTDOWN);
+	spin_unlock_irqrestore(&musb->lock, flags);
+}
+
+#else
+static bool musb_offload_detect(struct musb *musb, struct usb_endpoint_descriptor *epd)
+{
+	return false;
+}
+
+static void musb_offload_config(struct usb_hcd *hcd, int ep_num, int mono,
+				int is_pcm_24, int width, int rate, int offload_used)
+{}
+
+static void musb_offload_enqueue(struct usb_hcd *hcd, struct urb *urb)
+{}
+
+static void musb_set_offload_mode(struct usb_hcd *hcd, bool is_offload)
+{}
+#endif
+
 static int musb_urb_enqueue(
 	struct usb_hcd			*hcd,
 	struct urb			*urb,
@@ -2286,6 +2575,12 @@ static int musb_urb_enqueue(
 	if (qh)
 		urb->hcpriv = qh;
 	spin_unlock_irqrestore(&musb->lock, flags);
+
+	if (musb->is_offload && musb_offload_detect(musb, epd)) {
+		dev_dbg(musb->controller, "Don't need to transfer urb\n");
+		musb_offload_enqueue(hcd, urb);
+		return 0;
+	}
 
 	/* DMA mapping was already done, if needed, and this urb is on
 	 * hep->urb_list now ... so we're done, unless hep wasn't yet
@@ -2886,6 +3181,9 @@ static const struct hc_driver musb_hc_driver = {
 	.bus_resume		= musb_bus_resume,
 	/* .start_port_reset	= NULL, */
 	/* .hub_irq_enable	= NULL, */
+	.android_vendor_data1[0] = (uintptr_t)musb_offload_config,
+	.android_vendor_data1[1] = (uintptr_t)musb_set_offload_mode,
+
 };
 
 int musb_host_alloc(struct musb *musb)

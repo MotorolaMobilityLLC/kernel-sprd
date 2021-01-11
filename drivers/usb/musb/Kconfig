@@ -164,6 +164,14 @@ config USB_SPRD_DMA_V3
 	  Because of usb dma hardware upgrading,software need to add this macro,used for
 	  compatibility with old dma version.
 
+config USB_SPRD_OFFLOAD
+	bool 'USB OFFLOAD MODE'
+	depends on USB_SPRD_DMA
+	help
+	  Enable this to support the SPRD USB OFFLOAD that hardware transport data using IIS
+	  interface automatically within host audio mode. Software need to add this macro to
+	  enable offload function.
+
 config USB_UX500_DMA
 	bool 'ST Ericsson Ux500'
 	depends on USB_MUSB_UX500
