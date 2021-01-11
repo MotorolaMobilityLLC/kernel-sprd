@@ -506,6 +506,11 @@ config PCI_ENDPOINT_TEST
            Enable this configuration option to enable the host side test driver
            for PCI Endpoint.
 
+config SPRD_UID
+	tristate "Spreadtrum Uid Support"
+        help
+          provoid a driver to get chip uid.
+
 config UID_SYS_STATS
 	bool "Per-UID statistics"
 	depends on PROFILING && TASK_XACCT && TASK_IO_ACCOUNTING
