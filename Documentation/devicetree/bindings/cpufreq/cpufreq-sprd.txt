@@ -44,6 +44,7 @@ Optional properties:
 	-sprd,multi-version: A boolean property to illustrate whether there are multi-version of the same SOC.
 	-sprd,cpu-gpu-share-volt: A boolean property to illustrate whether cpu and gpu share the same vdd domain.
 	-cpufreq-cluster-cpumask: Specify the CPU cpumask information that the specific cluster includes which cpus in there.
+	-transition_delay_us: Specify parameter for the Schedutil governor to adjust the frequency interval.
 
 - sprd_swdvfs node.
 	- compatible: Describe which soc will use swdvfs driver,for example:
@@ -288,4 +289,16 @@ Example 6: Example for a specific soc's cpu and gpu share the same vdd domain
 			"low_freq_clk_parent",
 			"high_freq_clk_parent";
 		sprd,cpu-gpu-share-volt;
+	};
+
+Example 7: Example for schedutil governor needs to set frequency conversion interval
+---------
+	cpufreq_clus0: cpufreq-clus0 {
+		clocks = <&clk_lit_mcu>,
+			<&clk_twpll_768m>,
+			<&clk_mpll0>;
+		clock-names = "core_clk",
+			"low_freq_clk_parent",
+			"high_freq_clk_parent";
+		transition_delay_us = <500>;
 	};
