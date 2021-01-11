@@ -32,6 +32,7 @@ obj-y += sharkl5/
 obj-y += sharkl5Pro/
 obj-y += roc1/
 obj-y += qogirl6/
+obj-y += qogirn6pro/
 
 obj-$(CONFIG_DRM_SPRD_GSP) += gsp/
 
