@@ -271,7 +271,7 @@
 			#clock-cells = <1>;
 		};
 
-		dpu_vsp_clk: clock-controller@30010000 {
+		dpu_vsp_clk: clock-controller@30110000 {
 			compatible = "sprd,ums9620-dpu-vsp-clk";
 			reg = <0 0x30010000 0 0x3000>;
 			clocks = <&ext_26m>;
