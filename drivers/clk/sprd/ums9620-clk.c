@@ -2009,7 +2009,7 @@ static SPRD_SC_GATE_CLK(ipa_trng_eb, "ipa-trng-eb", "ext-26m", 0x0,
 			0x1000, BIT(6), CLK_IGNORE_UNUSED, 0);
 
 static struct sprd_clk_common *ums9620_ipadispcglb_gate[] = {
-	/* address base is 0x6481a000 */
+	/* address base is 0x31800000 */
 	&ipa_dpu1_eb.common,
 	&ipa_dptx_eb.common,
 	&ipa_hdcp_eb.common,
@@ -2785,7 +2785,7 @@ static SPRD_COMP_CLK_OFFSET(dispc0_dpi, "dispc0-dpi", dispc0_dpi_parents, 0x7c,
 			    0, 3, 0, 3, 0);
 
 static struct sprd_clk_common *ums9620_dpu_vsp_clk[] = {
-	/* address base is 0x30100000 */
+	/* address base is 0x30110000 */
 	&dpu_cfg.common,
 	&vpu_mtx.common,
 	&vpu_enc.common,
@@ -3037,7 +3037,7 @@ static const struct of_device_id sprd_ums9620_clk_ids[] = {
 	  .data = &ums9620_mm_clk_desc },
 	{ .compatible = "sprd,ums9620-dpu-vsp-gate",	/* 0x30100000 */
 	  .data = &ums9620_dpu_vsp_gate_desc },
-	{ .compatible = "sprd,ums9620-dpu-vsp-clk",	/* 0x30010000 */
+	{ .compatible = "sprd,ums9620-dpu-vsp-clk",	/* 0x30110000 */
 	  .data = &ums9620_dpu_vsp_clk_desc },
 	{ .compatible = "sprd,ums9620-audcpglb-gate",	/* 0x56200000 */
 	  .data = &ums9620_audcpglb_gate_desc },
