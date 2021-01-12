@@ -501,8 +501,14 @@ EXPORT_SYMBOL_GPL(rpmb_dev_register);
 
 static int __init rpmb_init(void)
 {
+	int ret = 0;
+
 	ida_init(&rpmb_ida);
-	class_register(&rpmb_class);
+	ret = class_register(&rpmb_class);
+	if (ret) {
+		pr_err("failed to register rpmb class!\n");
+		return ret;
+	}
 	return rpmb_cdev_init();
 }
 

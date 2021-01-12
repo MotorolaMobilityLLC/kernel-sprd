@@ -43,8 +43,6 @@ static int rpmb_open(struct inode *inode, struct file *fp)
 	struct rpmb_dev *rdev;
 
 	rdev = container_of(inode->i_cdev, struct rpmb_dev, cdev);
-	if (!rdev)
-		return -ENODEV;
 
 	/* the rpmb is single open! */
 	if (test_and_set_bit(RPMB_DEV_OPEN, &rdev->status))
@@ -184,7 +182,7 @@ static long rpmb_ioctl_seq_cmd(struct rpmb_dev *rdev,
 	for (i = 0; i < ncmds; i++) {
 		ret = rpmb_cmd_copy_from_user(&cmds[i], &ucmds[i]);
 		if (ret)
-			goto out;
+			goto out1;
 	}
 
 	ret = rpmb_cmd_seq(rdev, cmds, ncmds);
@@ -199,6 +197,7 @@ static long rpmb_ioctl_seq_cmd(struct rpmb_dev *rdev,
 out:
 	for (i = 0; i < ncmds; i++)
 		kfree(cmds[i].frames);
+out1:
 	kfree(cmds);
 	return ret;
 }
@@ -304,7 +303,11 @@ void rpmb_cdev_prepare(struct rpmb_dev *rdev)
 
 void rpmb_cdev_add(struct rpmb_dev *rdev)
 {
-	cdev_add(&rdev->cdev, rdev->dev.devt, 1);
+	int ret = 0;
+
+	ret = cdev_add(&rdev->cdev, rdev->dev.devt, 1);
+	if (ret)
+		dev_err(&rdev->dev, "cdev_add failed ret =%d\n", ret);
 }
 
 void rpmb_cdev_del(struct rpmb_dev *rdev)
