@@ -74,7 +74,7 @@ int aud_smsg_register_dump_func(AGDSP_DUMP_FUNC handler, void *priv_data)
 }
 EXPORT_SYMBOL(aud_smsg_register_dump_func);
 
-int aud_smsg_irq_handler(void *ptr, void *dev_id)
+irqreturn_t aud_smsg_irq_handler(void *ptr, void *dev_id)
 {
 	struct aud_smsg_ipc *ipc = (struct aud_smsg_ipc *)dev_id;
 	struct aud_smsg *msg;
@@ -163,7 +163,7 @@ int aud_smsg_ipc_create(u8 dst, struct aud_smsg_ipc *ipc)
 	/*((irq_handler_t)ipc->irq_handler)((int)(&ipc->target_id), ipc);*/
 	aud_smsg_irq_handler(&ipc->target_id, ipc);
 
-	rval = mbox_register_irq_handle(ipc->target_id, ipc->irq_handler, ipc);
+	rval = mbox_register_irq_handle(ipc->target_id, aud_smsg_irq_handler, ipc);
 	if (rval != 0) {
 		pr_err("%s, Failed to register irq handler in mailbox: %s\n",
 				__func__, ipc->name);
