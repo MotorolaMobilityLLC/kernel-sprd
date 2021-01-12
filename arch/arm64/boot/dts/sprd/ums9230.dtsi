@@ -468,7 +468,7 @@
 		};
 
 		/* soc_etf */
-		etb@7c003000 {
+		soc_etb: etb@7c003000 {
 			compatible = "arm,coresight-tmc", "arm,primecell";
 			reg = <0 0x7c003000 0 0x1000>;
 			clocks = <&ext_26m>;
@@ -662,7 +662,7 @@
 			};
 		};
 
-		etm@7f040000 {
+		etm0: etm@7f040000 {
 			compatible = "arm,coresight-etm4x", "arm,primecell";
 			reg = <0 0x7f040000 0 0x1000>;
 			cpu = <&CPU0>;
@@ -676,7 +676,7 @@
 			};
 		};
 
-		etm@7f140000 {
+		etm1: etm@7f140000 {
 			compatible = "arm,coresight-etm4x", "arm,primecell";
 			reg = <0 0x7f140000 0 0x1000>;
 			cpu = <&CPU1>;
@@ -690,7 +690,7 @@
 			};
 		};
 
-		etm@7f240000 {
+		etm2: etm@7f240000 {
 			compatible = "arm,coresight-etm4x", "arm,primecell";
 			reg = <0 0x7f240000 0 0x1000>;
 			cpu = <&CPU2>;
@@ -704,7 +704,7 @@
 			};
 		};
 
-		etm@7f340000 {
+		etm3: etm@7f340000 {
 			compatible = "arm,coresight-etm4x", "arm,primecell";
 			reg = <0 0x7f340000 0 0x1000>;
 			cpu = <&CPU3>;
@@ -718,7 +718,7 @@
 			};
 		};
 
-		etm@7f440000 {
+		etm4: etm@7f440000 {
 			compatible = "arm,coresight-etm4x", "arm,primecell";
 			reg = <0 0x7f440000 0 0x1000>;
 			cpu = <&CPU4>;
@@ -732,7 +732,7 @@
 			};
 		};
 
-		etm@7f540000 {
+		etm5: etm@7f540000 {
 			compatible = "arm,coresight-etm4x", "arm,primecell";
 			reg = <0 0x7f540000 0 0x1000>;
 			cpu = <&CPU5>;
@@ -746,7 +746,7 @@
 			};
 		};
 
-		etm@7f640000 {
+		etm6: etm@7f640000 {
 			compatible = "arm,coresight-etm4x", "arm,primecell";
 			reg = <0 0x7f640000 0 0x1000>;
 			cpu = <&CPU6>;
@@ -760,7 +760,7 @@
 			};
 		};
 
-		etm@7f740000 {
+		etm7: etm@7f740000 {
 			compatible = "arm,coresight-etm4x", "arm,primecell";
 			reg = <0 0x7f740000 0 0x1000>;
 			cpu = <&CPU7>;
@@ -772,6 +772,12 @@
 					remote-endpoint = <&funnel_core_in_port7>;
 				};
 			};
+		};
+
+		ap_etb: apetb {
+			compatible = "sprd,apetb";
+			apetb-source = <&etm0 &etm1 &etm2 &etm3 &etm4 &etm5 &etm6 &etm7>;
+			apetb-sink = <&soc_etb>;
 		};
 	};
 
