@@ -67,6 +67,12 @@
 			reg = <0 0x25000000 0 0x3000>;
 		};
 
+		ipa_glb_apb_regs: syscon@25240000 {
+			compatible = "sprd,ums9620-glbregs", "syscon";
+			#syscon-cells = <2>;
+			reg = <0 0x25240000 0 0x3000>;
+		};
+
 		anlg_phy_pcie3_regs: syscon@2600C000 {
 			compatible = "sprd,ums9620-glbregs", "syscon";
 			#syscon-cells = <2>;
