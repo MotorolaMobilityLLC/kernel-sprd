@@ -114,6 +114,26 @@
 	interrupts = <GIC_SPI 230 IRQ_TYPE_LEVEL_HIGH>;
 };
 
+&sdio0 {
+	bus-width = <4>;
+	sd-uhs-sdr50;
+	sprd,name = "sdio_sd";
+	sprd,sdio-adma;
+	no-sdio;
+	no-mmc;
+	status = "okay";
+};
+
+&sdio1 {
+	bus-width = <4>;
+	sd-uhs-sdr50;
+	sprd,name = "sdio_wifi";
+	sprd,sdio-adma;
+	no-sd;
+	no-mmc;
+	status = "okay";
+};
+
 &sdio3 {
 	sprd,hs400es-dly = <0x40 0x7f 0x2d 0x2d>;
 	sprd,hs400-dly = <0x3f 0xdf 0x2f 0x2f>;

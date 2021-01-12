@@ -234,7 +234,33 @@
 			sdio3: sdio@2200000 {
 				compatible = "sprd,sdhc-r11p1";
 				reg = <0 0x2200000 0 0x1000>;
-				interrupts = <GIC_SPI 10 IRQ_TYPE_LEVEL_HIGH>;
+				interrupts = <GIC_SPI 217 IRQ_TYPE_LEVEL_HIGH>;
+				status = "disabled";
+			};
+
+			sdio0: sdio@2210000 {
+				compatible = "sprd,sdhc-r11p1";
+				reg = <0 0x2210000 0 0x1000>;
+				interrupts = <GIC_SPI 203 IRQ_TYPE_LEVEL_HIGH>;
+				status = "disabled";
+				syscons = <&aon_apb_regs REG_AON_APB_SDIO0_CTRL_REG
+					MASK_AON_APB_SDIO0_EMMC_CARD_PRESENT_32K>,
+					<&aon_apb_regs REG_AON_APB_SDIO0_CTRL_REG
+					MASK_AON_APB_SDIO0_EMMC_CARD_PROTECT_32K>,
+					<&aon_apb_regs REG_AON_APB_SDIO0_CTRL_REG
+					MASK_AON_APB_SDIO0_EMMC_CARDDET_DBNC_EN_32K>,
+					<&aon_apb_regs REG_AON_APB_SDIO0_CTRL_REG
+					MASK_AON_APB_SDIO0_EMMC_CARDDET_DBNC_THD_32K>;
+				syscon-names = "sd_detect_pol",
+					       "sd_hotplug_protect_en",
+					       "sd_hotplug_debounce_en",
+					       "sd_hotplug_debounce_cn";
+			};
+
+			sdio1: sdio@2220000 {
+				compatible = "sprd,sdhc-r11p1";
+				reg = <0 0x2220000 0 0x1000>;
+				interrupts = <GIC_SPI 202 IRQ_TYPE_LEVEL_HIGH>;
 				status = "disabled";
 			};
 
