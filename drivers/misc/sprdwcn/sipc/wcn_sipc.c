@@ -343,10 +343,10 @@ void wcn_sipc_pop_list_flush(struct sipc_chn_info *sipc_chn)
 		WCN_DEBUG("index:%d  pop_queue->mbuf_num:%d",
 			  sipc_chn->index, pop_queue->mbuf_num);
 		pop_queue->mbuf_tail->next = NULL;
-
-		sipc_chn->ops->pop_link(sipc_chn->index,
-			pop_queue->mbuf_head, pop_queue->mbuf_tail,
-			pop_queue->mbuf_num);
+		if (sipc_chn->ops->pop_link != NULL)
+			sipc_chn->ops->pop_link(sipc_chn->index,
+				pop_queue->mbuf_head, pop_queue->mbuf_tail,
+				pop_queue->mbuf_num);
 		wcn_sipc_record_mbuf_giveback_to_user(sipc_chn->index,
 			pop_queue->mbuf_num);
 		pop_queue->mbuf_head = pop_queue->mbuf_tail = NULL;

@@ -49,9 +49,7 @@ static int buf_list_check(struct buffer_pool_t *pool, struct mbuf_t *head,
 	int i;
 	struct mbuf_t *mbuf;
 
-	if (num == 0)
-		return 0;
-	if (head == NULL)
+	if (num == 0 || head == NULL)
 		return 0;
 
 	for (i = 0, mbuf = head; i < num; i++) {
@@ -60,15 +58,17 @@ static int buf_list_check(struct buffer_pool_t *pool, struct mbuf_t *head,
 			       (unsigned long)virt_to_phys(head),
 			       (unsigned long)virt_to_phys(tail), num);
 			WARN_ON_ONCE(1);
+			return 0;
 		}
-		WARN_ON_ONCE(!mbuf);
 		WARN_ON_ONCE((char *)mbuf < pool->mem ||
 			(char *)mbuf > pool->mem + ((sizeof(struct mbuf_t)
 			+ pool->payload) * pool->size));
 		if (mbuf != NULL)
 			mbuf = mbuf->next;
-		else
+		else {
+			WARN_ON_ONCE(!mbuf);
 			return 0;
+		}
 	}
 
 	if (tail->next != NULL) {
@@ -76,6 +76,7 @@ static int buf_list_check(struct buffer_pool_t *pool, struct mbuf_t *head,
 		       (unsigned long)virt_to_phys(head),
 		       (unsigned long)virt_to_phys(tail), num);
 		WARN_ON_ONCE(1);
+		return 0;
 	}
 
 	return 0;
@@ -90,14 +91,15 @@ static int buf_pool_check(struct buffer_pool_t *pool)
 		return 0;
 
 	for (i = 0, mbuf = pool->head; i < (int)pool->free; i++) {
-		WARN_ON_ONCE(!mbuf);
 		WARN_ON_ONCE((char *)mbuf < pool->mem ||
 			(char *)mbuf > pool->mem + ((sizeof(struct mbuf_t)
 			+ pool->payload) * pool->size));
 		if (mbuf != NULL)
 			mbuf = mbuf->next;
-		else
+		else {
+			WARN_ON_ONCE(!mbuf);
 			return 0;
+		}
 	}
 
 	if (mbuf != NULL) {
