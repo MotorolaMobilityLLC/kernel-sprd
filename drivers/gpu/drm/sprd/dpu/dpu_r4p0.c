@@ -1218,7 +1218,6 @@ static void dpu_layer(struct dpu_context *ctx,
 
 	tmp.ctrl = dpu_img_ctrl(hwlayer->format, hwlayer->blending,
 		hwlayer->xfbc, hwlayer->y2r_coef, hwlayer->rotation);
-	//pr_err("xvv 666666 = %x, index = %d\n", tmp.ctrl, hwlayer->index);
 
 	if (hwlayer->secure_en || secure_debug) {
 		if (!reg->dpu_secure) {
@@ -1236,7 +1235,6 @@ static void dpu_layer(struct dpu_context *ctx,
 		disp_ca_wait_response();
 	}
 
-	pr_err("xvv layer index = %d\n", hwlayer->index);
 	layer = &reg->layers[hwlayer->index];
 	for (i = 0; i < 4; i++)
 		layer->addr[i] = tmp.addr[i];
@@ -1246,8 +1244,6 @@ static void dpu_layer(struct dpu_context *ctx,
 	layer->alpha = tmp.alpha;
 	layer->pitch = tmp.pitch;
 	layer->ctrl = tmp.ctrl;
-
-	//pr_err("xvv layer ctrl = %x, tmp = %x\n", layer->ctrl, tmp.ctrl);
 
 	pr_debug("dst_x = %d, dst_y = %d, dst_w = %d, dst_h = %d\n",
 				hwlayer->dst_x, hwlayer->dst_y,
