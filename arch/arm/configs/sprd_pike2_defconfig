@@ -3806,7 +3806,6 @@ CONFIG_SPRD_AUTOTEST=y
 #
 # SPRD SIPC modules
 #
-# CONFIG_SPRD_SIPC is not set
 # end of SPRD SIPC modules
 
 # CONFIG_SPRD_MODEM_POWER_MANAGER is not set
