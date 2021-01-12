@@ -279,7 +279,9 @@
 				reg = <0xe0000 0x10000>;
 				clock-names = "ce-pub-eb", "ap-ce-clk",
 							  "source";
-				clocks = <&ext_26m>, <&ext_26m>, <&ext_26m>;
+				clocks = <&apapb_gate CLK_CE_PUB_EB>,
+					   <&ap_clk CLK_AP_CE>,
+					   <&g5l_pll CLK_TGPLL_256M>;
 			};
 		};
 
