@@ -1,0 +1,39 @@
+/dts-v1/;
+/plugin/;
+
+/ {
+
+	model = "Spreadtrum UMS9620 2H10 Board";
+
+	compatible = "sprd,ums9620-2h10";
+
+	sprd,sc-id = "ums9620 2h10 1000";
+
+};
+
+&chosen {
+	bootargs_ext = "androidboot.hardware=ums9620_2h10 androidboot.dtbo_idx=0";
+};
+
+&reserved_memory {
+
+	ai_reserved: ai@f6048000 {
+		reg = <0x0 0xf6048000 0x0 0x02000000>;
+	};
+
+	fb_reserved: framebuffer-mem@f8048000 {
+		reg = <0x0 0xf8048000 0x0 0x029d8000>;
+	};
+
+	fd_reserved: faceid-mem@faa20000 {
+		reg = <0x0 0xfaa20000 0x0 0x02d00000>;
+	};
+
+	vdsp_reserved: vdsp-mem@fd720000 {
+		reg = <0x0 0xfd720000 0x0 0x02800000>;
+	};
+
+	dptx_hdcp_reserved: dptx_hdcp@fff20000 {
+		reg = <0x0 0xfff20000 0x0 0x00060000>;
+	};
+};
