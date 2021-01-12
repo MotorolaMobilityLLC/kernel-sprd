@@ -170,6 +170,15 @@
 				};
 			};
 
+			gsp_core0: gsp@31100000 {
+				compatible = "sprd,gsp-core";
+				reg = <0 0x31100000 0 0x2000>;
+				core-id = <0>;
+				kcfg-num = <16>;
+				interrupts = <GIC_SPI 151 IRQ_TYPE_LEVEL_HIGH>;
+				iommus = <&iommu_gsp>;
+			};
+
 			iommu_dispc: iommu@31000000 {
 				compatible = "sprd,iommuvaul5p-dispc";
 				reg = <0x0 0x31000000 0x0 0x800>,
@@ -178,6 +187,17 @@
 				iova-size = <0x10000000>;
 				reg_name = "mmu_interrupt_reg","mmu_reg";
 				status = "disabled";
+				#iommu-cells = <0>;
+			};
+
+			iommu_gsp: iommu@31100000 {
+				compatible = "sprd,iommuvaul5p-gsp";
+				reg = <0x0 0x31100000 0x0 0x1000>,
+				      <0x0 0x31101000 0x0 0x80>;
+				iova-base = <0x30000000>;
+				iova-size = <0x10000000>;
+				reg_name = "mmu_interrupt_reg","mmu_reg";
+				status = "okay";
 				#iommu-cells = <0>;
 			};
 

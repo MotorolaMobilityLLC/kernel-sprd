@@ -59,6 +59,7 @@
 	display-subsystem {
 		compatible = "sprd,display-subsystem";
 		/*ports = <&dpu_port>;*/
+		gsp = <&gsp>;
 		ports = <&dummy_crtc_port>;
 	};
 };
