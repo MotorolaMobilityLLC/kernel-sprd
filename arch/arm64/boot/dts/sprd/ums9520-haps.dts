@@ -7,9 +7,14 @@
 
 /dts-v1/;
 
+#include <dt-bindings/gpio/gpio.h>
 #include "ums9520-haps.dtsi"
 #include "ums9520-haps-mach.dtsi"
 #include "ums9520-haps-modem.dtsi"
+#include "ump9620.dtsi"
+#include "ump9621.dtsi"
+#include "ump9622.dtsi"
+
 
 / {
 	model = "Spreadtrum UMS9520 SoC";

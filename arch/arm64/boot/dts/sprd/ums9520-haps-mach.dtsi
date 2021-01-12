@@ -6,6 +6,7 @@
  * This file is licensed under a dual GPLv2 or X11 license.
  */
 
+#include "ump9620.dtsi"
 
 /{
 	reserved_memory: reserved-memory {
@@ -60,4 +61,8 @@
 		/*ports = <&dpu_port>;*/
 		ports = <&dummy_crtc_port>;
 	};
+};
+
+&ump9620_pmic {
+	interrupts = <GIC_SPI 230 IRQ_TYPE_LEVEL_HIGH>;
 };
