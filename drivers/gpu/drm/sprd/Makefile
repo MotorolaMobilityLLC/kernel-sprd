@@ -15,6 +15,7 @@ sprd-drm-$(CONFIG_DRM_SPRD_DUMMY) += \
 
 sprd-drm-$(CONFIG_DRM_SPRD_DPU0) += \
 	sprd_dpu.o \
+	dpu/dpu_lite_r1p0.o \
 	dpu/dpu_r2p0.o \
 	dpu/dpu_r4p0.o
 
@@ -30,6 +31,9 @@ sprd-drm-$(CONFIG_DRM_SPRD_DSI) += \
 	dphy/pll/megacores_sharkl5.o
 
 sprd-drm-y += \
+	pike2/global_dpu.o \
+	pike2/global_dsi.o \
+	pike2/global_dphy.o \
 	sharkl3/global_dispc.o \
 	sharkl3/global_dsi.o \
 	sharkl3/global_dphy.o \

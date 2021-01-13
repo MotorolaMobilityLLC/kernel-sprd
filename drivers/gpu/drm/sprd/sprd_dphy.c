@@ -180,6 +180,12 @@ static int sprd_dphy_context_init(struct sprd_dphy *dphy,
 	return 0;
 }
 
+static const struct sprd_dphy_ops pike2_dphy = {
+	.ppi = &dsi_ctrl_ppi_ops,
+	.pll = &sharkle_dphy_pll_ops,
+	.glb = &pike2_dphy_glb_ops,
+};
+
 static const struct sprd_dphy_ops sharkl3_dphy = {
 	.ppi = &dsi_ctrl_ppi_ops,
 	.pll = &sharkle_dphy_pll_ops,
@@ -193,6 +199,8 @@ static const struct sprd_dphy_ops sharkl5pro_dphy = {
 };
 
 static const struct of_device_id dphy_match_table[] = {
+	{ .compatible = "sprd,pike2-dsi-phy",
+	  .data = &pike2_dphy },
 	{ .compatible = "sprd,sharkl3-dsi-phy",
 	  .data = &sharkl3_dphy },
 	{ .compatible = "sprd,sharkl5pro-dsi-phy",

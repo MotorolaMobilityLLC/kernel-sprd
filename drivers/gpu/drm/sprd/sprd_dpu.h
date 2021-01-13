@@ -37,6 +37,10 @@ struct sprd_dpu {
 void sprd_dpu_run(struct sprd_dpu *dpu);
 void sprd_dpu_stop(struct sprd_dpu *dpu);
 
+extern const struct sprd_crtc_core_ops dpu_lite_r1p0_core_ops;
+extern const struct sprd_crtc_clk_ops pike2_dpu_clk_ops;
+extern const struct sprd_crtc_glb_ops pike2_dpu_glb_ops;
+
 extern const struct sprd_crtc_core_ops dpu_r2p0_core_ops;
 extern const struct sprd_crtc_clk_ops sharkl3_dpu_clk_ops;
 extern const struct sprd_crtc_glb_ops sharkl3_dpu_glb_ops;

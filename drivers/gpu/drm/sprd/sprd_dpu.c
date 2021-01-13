@@ -435,6 +435,12 @@ static int sprd_dpu_context_init(struct sprd_dpu *dpu,
 	return 0;
 }
 
+static const struct sprd_dpu_ops pike2_dpu = {
+	.core = &dpu_lite_r1p0_core_ops,
+	.clk = &pike2_dpu_clk_ops,
+	.glb = &pike2_dpu_glb_ops,
+};
+
 static const struct sprd_dpu_ops sharkl3_dpu = {
 	.core = &dpu_r2p0_core_ops,
 	.clk = &sharkl3_dpu_clk_ops,
@@ -448,6 +454,8 @@ static const struct sprd_dpu_ops sharkl5pro_dpu = {
 };
 
 static const struct of_device_id dpu_match_table[] = {
+	{ .compatible = "sprd,pike2-dpu",
+	  .data = &pike2_dpu },
 	{ .compatible = "sprd,sharkl3-dpu",
 	  .data = &sharkl3_dpu },
 	{ .compatible = "sprd,sharkl5pro-dpu",
