@@ -69,6 +69,7 @@
 			cpu-idle-states = <&CORE_PD &CLUSTER_PD>;
 			cpufreq-data-v1 = <&cpufreq_cluster0_opp>;
 			capacity-dmips-mhz = <544>;
+			dynamic-power-coefficient = <102>;
 		};
 
 		CPU2: cpu@200 {
@@ -79,6 +80,7 @@
 			cpu-idle-states = <&CORE_PD &CLUSTER_PD>;
 			cpufreq-data-v1 = <&cpufreq_cluster0_opp>;
 			capacity-dmips-mhz = <544>;
+			dynamic-power-coefficient = <102>;
 		};
 
 		CPU3: cpu@300 {
@@ -89,6 +91,7 @@
 			cpu-idle-states = <&CORE_PD &CLUSTER_PD>;
 			cpufreq-data-v1 = <&cpufreq_cluster0_opp>;
 			capacity-dmips-mhz = <544>;
+			dynamic-power-coefficient = <102>;
 		};
 
 		CPU4: cpu@400 {
@@ -99,6 +102,7 @@
 			cpu-idle-states = <&CORE_PD &CLUSTER_PD>;
 			cpufreq-data-v1 = <&cpufreq_cluster0_opp>;
 			capacity-dmips-mhz = <544>;
+			dynamic-power-coefficient = <102>;
 		};
 
 		CPU5: cpu@500 {
@@ -109,6 +113,7 @@
 			cpu-idle-states = <&CORE_PD &CLUSTER_PD>;
 			cpufreq-data-v1 = <&cpufreq_cluster0_opp>;
 			capacity-dmips-mhz = <544>;
+			dynamic-power-coefficient = <102>;
 		};
 
 		CPU6: cpu@600 {
@@ -131,6 +136,7 @@
 			cpu-idle-states = <&CORE_PD &CLUSTER_PD>;
 			cpufreq-data-v1 = <&cpufreq_cluster1_opp>;
 			capacity-dmips-mhz = <1024>;
+			dynamic-power-coefficient = <501>;
 		};
 	};
 
