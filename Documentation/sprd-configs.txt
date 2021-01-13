@@ -2260,6 +2260,18 @@ CONFIG_CORESIGHT_LINK_AND_SINK_TMC
 	[must] debug
 	[missing plat description] none
 	[function] This function is used to enable coresight etb module.
+CONFIG_CORESIGHT_PHY
+	[arch] arm64
+	[plat] qogirn6pro
+	[missing plat] qogirl6,sharkl3,sharkl5,sharkl5Pro
+	[field] make,code
+	[subsys] kernel core
+	[must] debug
+	[missing plat description] missing qogirl6 because not support
+				   missing sharkl3 because not support
+				   missing sharkl5 because not support
+				   missing sharkl5Pro because not support
+	[function] This function is used to enable sharkl6pro coresight phy.
 CONFIG_CORESIGHT_SOURCE_ETM3X
 	[arch] arm
 	[plat] pike2
@@ -2280,6 +2292,18 @@ CONFIG_CORESIGHT_SOURCE_ETM4X
 	[must] debug
 	[missing plat description] none
 	[function] This function is used to enable coresight etm4x modules.
+CONFIG_CORESIGHT_TMC_GROUP
+	[arch] arm64
+	[plat] qogirn6pro
+	[missing plat] qogirl6,sharkl3,sharkl5,sharkl5Pro
+	[field] make,code
+	[subsys] kernel core
+	[must] debug
+	[missing plat description] missing qogirl6 because not support,
+				   missing sharkl3 because not support,
+				   missing sharkl5 because not support,
+				   missing sharkl5Pro because not support,
+	[function] This function is used to enable tmc_group function.
 CONFIG_CP15_BARRIER_EMULATION
 	[arch] arm64
 	[plat] qogirl6,qogirn6pro,sharkl3,sharkl5,sharkl5Pro
@@ -14321,6 +14345,18 @@ CONFIG_SPRD_SHARKL5_USB2_PHY
 				   missing sharkl3_32 because has different phy
 				   missing sharkle32 because has different phy
 	[function] usb phy init
+CONFIG_SPRD_SHARKL6PRO_CORESIGHT_PHY
+	[arch] arm64
+	[plat] qogirn6pro
+	[missing plat] qogirl6,sharkl3,sharkl5,sharkl5Pro
+	[field] make,code
+	[subsys] kernel core
+	[must] debug
+	[missing plat description] missing qogirl6 because has different phy
+				   missing sharkl3 because has different phy
+				   missing sharkl5 because has different phy
+				   missing sharkl5Pro because has different phy
+	[function] This function is used to enable sharkl6pro coresight phy.
 CONFIG_SPRD_SHARKLE_USB2_PHY
 	[arch] arm
 	[plat] sharkle32

@@ -129,4 +129,12 @@ config SPRD_CORESIGHT_GCOV
 	help
 	  Say Y here to enable gcov in coresight.
 
+config CORESIGHT_TMC_GROUP
+	bool "CoreSight tmc group drivers"
+	help
+	  This enables support for CoreSight tmc group drivers that are
+	  responsible for dump several tmc data.
+
+source "drivers/hwtracing/coresight/phy/Kconfig"
+
 endif

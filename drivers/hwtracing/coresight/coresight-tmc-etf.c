@@ -67,7 +67,12 @@ static void tmc_etb_dump_hw(struct tmc_drvdata *drvdata)
 	lost = readl_relaxed(drvdata->base + TMC_STS) & TMC_STS_FULL;
 	bufp = drvdata->buf;
 	drvdata->len = 0;
+
+#ifdef CONFIG_CORESIGHT_TMC_GROUP
+	while (drvdata->len < drvdata->size) {
+#else
 	while (1) {
+#endif
 		for (i = 0; i < drvdata->memwidth; i++) {
 			read_data = readl_relaxed(drvdata->base + TMC_RRD);
 			if (read_data == 0xFFFFFFFF)
@@ -142,12 +147,14 @@ static void tmc_etf_disable_hw(struct tmc_drvdata *drvdata)
 	CS_LOCK(drvdata->base);
 }
 
+#ifndef CONFIG_CORESIGHT_TMC_GROUP
 static bool tmc_check_ctrl_enable(struct tmc_drvdata *drvdata)
 {
 	if (readl_relaxed(drvdata->base + TMC_CTL) & TMC_CTL_CAPT_EN)
 		return true;
 	return false;
 }
+#endif
 
 /*
  * Return the available trace data in the buffer from @pos, with
@@ -574,8 +581,10 @@ int tmc_read_prepare_etb(struct tmc_drvdata *drvdata)
 
 	/* config types are set a boot time and never change */
 	if (WARN_ON_ONCE(drvdata->config_type != TMC_CONFIG_TYPE_ETB &&
-			 drvdata->config_type != TMC_CONFIG_TYPE_ETF))
+			 drvdata->config_type != TMC_CONFIG_TYPE_ETF)) {
+		pr_err("%s: drvdata->config_type wrong!\n", __func__);
 		return -EINVAL;
+	}
 
 	/*
 	 * ETB is in AON power domain, all the sys could use it,
@@ -584,12 +593,15 @@ int tmc_read_prepare_etb(struct tmc_drvdata *drvdata)
 	 * in disable mode, it will cause etb data get failed, so
 	 * it needs to enable it for CP modem.
 	 */
+#ifndef CONFIG_CORESIGHT_TMC_GROUP
 	if (tmc_check_ctrl_enable(drvdata))
 		tmc_enable_etf_sink_sysfs(drvdata->csdev);
+#endif
 
 	spin_lock_irqsave(&drvdata->spinlock, flags);
 
 	if (drvdata->reading) {
+		pr_err("%s: is reading!\n", __func__);
 		ret = -EBUSY;
 		goto out;
 	}
@@ -597,18 +609,21 @@ int tmc_read_prepare_etb(struct tmc_drvdata *drvdata)
 	/* There is no point in reading a TMC in HW FIFO mode */
 	mode = readl_relaxed(drvdata->base + TMC_MODE);
 	if (mode != TMC_MODE_CIRCULAR_BUFFER) {
+		pr_err("%s: mode wrong!\n", __func__);
 		ret = -EINVAL;
 		goto out;
 	}
 
 	/* Don't interfere if operated from Perf */
 	if (drvdata->mode == CS_MODE_PERF) {
+		pr_err("%s: drvdata->mode == CS_MODE_PERF!\n", __func__);
 		ret = -EINVAL;
 		goto out;
 	}
 
 	/* If drvdata::buf is NULL the trace data has been read already */
 	if (drvdata->buf == NULL) {
+		pr_err("%s: drvdata->buf == NULL!\n", __func__);
 		ret = -EINVAL;
 		goto out;
 	}
