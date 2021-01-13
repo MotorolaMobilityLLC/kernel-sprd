@@ -1225,7 +1225,9 @@ static int ps_notify_callback(struct notifier_block *self,
 		if (event == PSY_EVENT_PROP_CHANGED) {
 			if (data->ps_is_present == present) {
 				LOG_DBG("ps present state not change\n");
+#ifndef CONFIG_T_PROJECT_P352
 				return 0;
+#endif
 			}
 		}
 		data->ps_is_present = present;
