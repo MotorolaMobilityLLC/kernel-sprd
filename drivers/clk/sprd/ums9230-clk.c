@@ -662,7 +662,7 @@ static SPRD_MUX_CLK(ufs_rx_1_clk, "ufs-rx-1-clk", ufs_tx_rx_parents, 0x98,
 static const char * const ufs_pck_parents[] = { "ext-26m", "twpll-48m",
 						"twpll-96m", "twpll-128m",
 						"twpll-192m", "twpll-256m" };
-static SPRD_MUX_CLK(ufs_pck_clk, "ufs-pck-clk", ufs_tx_rx_parents, 0xa0,
+static SPRD_MUX_CLK(ufs_pck_clk, "ufs-pck-clk", ufs_pck_parents, 0xa0,
 		    0, 3, UMS9230_MUX_FLAG);
 
 static const char * const vsp_parents[] = { "twpll-256m", "twpll-307m2",
