@@ -88,6 +88,16 @@
 #define SC27XX_FGU_BAT_NTC_THRESHOLD	50
 #define SC27XX_FGU_LOW_VBAT_REGION	3300
 
+/* Efuse fgu calibration bit definition */
+#define SC2720_FGU_CAL			GENMASK(8, 0)
+#define SC2720_FGU_CAL_SHIFT		0
+#define SC2730_FGU_CAL			GENMASK(8, 0)
+#define SC2730_FGU_CAL_SHIFT		0
+#define SC2731_FGU_CAL			GENMASK(8, 0)
+#define SC2731_FGU_CAL_SHIFT		0
+#define UMP9620_FGU_CAL			GENMASK(15, 7)
+#define UMP9620_FGU_CAL_SHIFT		7
+
 #define interpolate(x, x1, y1, x2, y2) \
 	((y1) + ((((y2) - (y1)) * ((x) - (x1))) / ((x2) - (x1))))
 
@@ -157,31 +167,42 @@ struct sc27xx_fgu_data {
 	struct power_supply_vol_temp_table *temp_table;
 	struct power_supply_capacity_temp_table *cap_temp_table;
 	struct power_supply_resistance_temp_table *resistance_table;
+	const struct sc27xx_fgu_variant_data *pdata;
 };
 
 struct sc27xx_fgu_variant_data {
 	u32 module_en;
 	u32 clk_en;
+	u32 fgu_cal;
+	u32 fgu_cal_shift;
 };
 
 static const struct sc27xx_fgu_variant_data sc2731_info = {
 	.module_en = SC27XX_MODULE_EN0,
 	.clk_en = SC27XX_CLK_EN0,
+	.fgu_cal = SC2731_FGU_CAL,
+	.fgu_cal_shift = SC2731_FGU_CAL_SHIFT,
 };
 
 static const struct sc27xx_fgu_variant_data sc2730_info = {
 	.module_en = SC2730_MODULE_EN0,
 	.clk_en = SC2730_CLK_EN0,
+	.fgu_cal = SC2730_FGU_CAL,
+	.fgu_cal_shift = SC2730_FGU_CAL_SHIFT,
 };
 
 static const struct sc27xx_fgu_variant_data ump9620_info = {
 	.module_en = UMP9620_MODULE_EN0,
 	.clk_en = UMP9620_CLK_EN0,
+	.fgu_cal = UMP9620_FGU_CAL,
+	.fgu_cal_shift = UMP9620_FGU_CAL_SHIFT,
 };
 
 static const struct sc27xx_fgu_variant_data sc2720_info = {
 	.module_en = SC2720_MODULE_EN0,
 	.clk_en = SC2720_CLK_EN0,
+	.fgu_cal = SC2720_FGU_CAL,
+	.fgu_cal_shift = SC2720_FGU_CAL_SHIFT,
 };
 
 static bool is_charger_mode;
@@ -1391,6 +1412,7 @@ static int sc27xx_fgu_cap_to_clbcnt(struct sc27xx_fgu_data *data, int capacity)
 static int sc27xx_fgu_calibration(struct sc27xx_fgu_data *data)
 {
 	struct nvmem_cell *cell;
+	const struct sc27xx_fgu_variant_data *pdata = data->pdata;
 	int calib_data, cal_4200mv;
 	void *buf;
 	size_t len;
@@ -1412,7 +1434,8 @@ static int sc27xx_fgu_calibration(struct sc27xx_fgu_data *data)
 	 * according to below formula. Then convert to ADC values corresponding
 	 * to 1000 mV and 1000 mA.
 	 */
-	cal_4200mv = (calib_data & 0x1ff) + 6963 - 4096 - 256;
+	cal_4200mv = ((calib_data & pdata->fgu_cal) >> pdata->fgu_cal_shift)
+			+ 6963 - 4096 - 256;
 	data->vol_1000mv_adc = DIV_ROUND_CLOSEST(cal_4200mv * 10, 42);
 	data->cur_1000ma_adc =
 		DIV_ROUND_CLOSEST(data->vol_1000mv_adc * 4 * data->calib_resist_real,
@@ -1668,15 +1691,14 @@ static int sc27xx_fgu_probe(struct platform_device *pdev)
 	struct device_node *np = pdev->dev.of_node;
 	struct power_supply_config fgu_cfg = { };
 	struct sc27xx_fgu_data *data;
-	const struct sc27xx_fgu_variant_data *pdata;
 	int ret, irq;
 
 	data = devm_kzalloc(&pdev->dev, sizeof(*data), GFP_KERNEL);
 	if (!data)
 		return -ENOMEM;
 
-	pdata = of_device_get_match_data(&pdev->dev);
-	if (!pdata) {
+	data->pdata = of_device_get_match_data(&pdev->dev);
+	if (!data->pdata) {
 		dev_err(&pdev->dev, "no matching driver data found\n");
 		return -EINVAL;
 	}
@@ -1768,7 +1790,7 @@ static int sc27xx_fgu_probe(struct platform_device *pdev)
 		return PTR_ERR(data->battery);
 	}
 
-	ret = sc27xx_fgu_hw_init(data, pdata);
+	ret = sc27xx_fgu_hw_init(data, data->pdata);
 	if (ret) {
 		dev_err(&pdev->dev, "failed to initialize fgu hardware\n");
 		return ret;
