@@ -427,7 +427,7 @@
 };
 
 &panel {
-	sprd,backlight = <&pwm_backlight>;
+	/*sprd,backlight = <&pwm_backlight>;*/
 	reset-gpio = <&ap_gpio 32 GPIO_ACTIVE_HIGH>;
 };
 
@@ -466,7 +466,7 @@
 
 &dpu {
 	status = "okay";
-	sprd,wb-memory = <&wb_reserved>;
+	/*sprd,wb-memory = <&wb_reserved>;*/
 };
 
 &ion {
