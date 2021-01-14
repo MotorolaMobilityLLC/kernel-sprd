@@ -709,6 +709,13 @@ static int vsp_probe(struct platform_device *pdev)
 		return ret;
 	}
 
+	if (dma_set_mask_and_coherent(dev, DMA_BIT_MASK(64))) {
+		if (dma_set_mask_and_coherent(dev, DMA_BIT_MASK(32)))
+			dev_err(dev, "vsp: failed to set dma mask!\n");
+	} else {
+		dev_info(dev, "vsp: set dma mask as 64bit\n");
+	}
+
 	/* register isr */
 	ret = devm_request_threaded_irq(&pdev->dev, vsp_hw_dev.irq, vsp_isr,
 			vsp_isr_thread, 0, "VSP", &vsp_hw_dev);
