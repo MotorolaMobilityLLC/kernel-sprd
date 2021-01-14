@@ -118,9 +118,10 @@
 				capacity-temp-table = <45 100>, <25 100>, <10 98>, <0 93>, <(-10) 85>, <(-20) 64>;
 				resistance-temp-table = <45 77>, <25 100>, <10 546>, <0 769>, <(-10) 892>, <(-20) 923>;
 				charge-sdp-current-microamp = <500000 500000>;
-				charge-dcp-current-microamp = <1150000 3000000>;
-				charge-cdp-current-microamp = <1150000 1150000>;
+				charge-dcp-current-microamp = <2000000 3000000>;
+				charge-cdp-current-microamp = <1500000 1500000>;
 				charge-unknown-current-microamp = <500000 500000>;
+				charge-fchg-current-microamp = <1500000 1000000>;
 			};
 
 			charger-manager {
@@ -136,8 +137,10 @@
 				cm-fullbatt-current = <120000>;
 				cm-fullbatt-capacity = <100>;
 
-				cm-num-chargers = <1>;
-				cm-chargers = "bq2560x_charger";
+				cm-num-chargers = <2>;
+				cm-num-fast-chargers = <1>;
+				cm-chargers = "bq2560x_charger", "bq2560x_slave_charger";
+				cm-fast-chargers = "sc2730_fast_charger";
 				cm-fuel-gauge = "sc27xx-fgu";
 
 				/* in deci centigrade */
@@ -162,19 +165,30 @@
 
 				/* how much time to allow capacity change */
 				cm-one-cap-time = <30>;
-				cm-thermal-zone = "board-thmzone";
+
 				/* when the safe charging voltage is exceeded, stop charging */
 				cm-charge-voltage-max = <6500000>;
 				/* drop voltage in microVolts to restart charging */
 				cm-charge-voltage-drop = <700000>;
+
+				/* when the safe charging voltage is exceeded, stop charging */
+				cm-fast-charge-voltage-max = <10500000>;
+				/* drop voltage in microVolts to restart charging */
+				cm-fast-charge-voltage-drop = <700000>;
+
+				cm-double-ic-total-limit-current = <2000000>;
+				cm-thermal-zone = "board-thmzone";
+
 				cm-dcp-jeita-temp-table = <1000 1030 0 4400000>, <1150 1180 700000 4400000>,
-					<1450 1420 1150000 4400000>, <1600 1570 700000 4100000>;
+					<1450 1420 2000000 4400000>, <1600 1570 700000 4100000>;
 				cm-sdp-jeita-temp-table = <1000 1030 0 4400000>, <1150 1180 500000 4400000>,
 					<1450 1420 500000 4400000>, <1600 1570 500000 4100000>;
 				cm-cdp-jeita-temp-table = <1000 1030 0 4400000>, <1150 1180 700000 4400000>,
-					<1450 1420 1150000 4400000>, <1600 1570 700000 4100000>;
+					<1450 1420 1500000 4400000>, <1600 1570 700000 4100000>;
 				cm-unknown-jeita-temp-table = <1000 1030 0 4400000>, <1150 1180 500000 4400000>,
 					<1450 1420 500000 4400000>, <1600 1570 500000 4100000>;
+				cm-fchg-jeita-temp-table = <1000 1030 0 4400000>, <1150 1180 400000 4400000>,
+					<1450 1420 1500000 4400000>, <1600 1570 400000 4100000>;
 
 				monitored-battery = <&bat>;
 				cm-capacity-track;
@@ -501,6 +515,16 @@
 			 <&pll2 CLK_TWPLL_19M2>,
 			 <&aonapb_gate CLK_AUX1_EB>;
 	};
+
+	bq2560x_slave_chg: charger@6b {
+		compatible = "ti,bq2560x_slave_chg";
+		reg = <0x6b>;
+		phys = <&hsphy>;
+		monitored-battery = <&bat>;
+		extcon = <&extcon_gpio>;
+		enable-gpio = <&ap_gpio 135 GPIO_ACTIVE_HIGH>;
+		role-slave;
+	};
 };
 
 &i2c3 {
@@ -640,6 +664,11 @@
 	sprd,calib-resistance-spec = <20000>;
 	first-calib-voltage = <3630000>;
 	first-calib-capacity = <50>;
+};
+
+&pmic_fchg {
+	sprd,input-voltage-microvolt = <5000000>;
+	phys = <&hsphy>;
 };
 
 &usb {
