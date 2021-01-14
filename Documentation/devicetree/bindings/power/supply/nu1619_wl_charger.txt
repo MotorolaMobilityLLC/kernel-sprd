@@ -6,6 +6,7 @@ Required properties:
  - rx,irq_gpio: intterupt pin to receive interrupt for nu1619
 Optional Properties:
 - switch_chg_en_gpio: switch chip enable pin
+- switch_flag_en_gpio: otg flag enable pin
 Example:
 
 	bat: battery {
