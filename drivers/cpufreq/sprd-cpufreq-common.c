@@ -39,15 +39,17 @@ static int sprd_cpufreq_read_soc_version(char *p_version)
 {
 	char version_default[10] = "-1";
 
-	sprd_kproperty_get("lwfq/type", p_version, version_default);
-	if (!strcmp(p_version, "0") || !strcmp(p_version, "1"))
+	sprd_kproperty_get("auto/efuse", p_version, version_default);
+	if (!strcmp(p_version, "T610") || !strcmp(p_version, "T618") ||
+	    !strcmp(p_version, "T606") || !strcmp(p_version, "T616"))
 		return 0;
+	pr_err("the cpu version is error(%s)\n", p_version);
 	return -EINVAL;
 }
 
 static void sprd_cpufreq_read_soc_version_opp_string(char *opp_string)
 {
-	char ver_str[30] = "-v", version[20] = "", tmp_version[64] = "";
+	char ver_str[30] = "-", version[20] = "", tmp_version[64] = "";
 	int ret, len;
 
 	len = sizeof(version);
