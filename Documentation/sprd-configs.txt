@@ -1952,6 +1952,15 @@ CONFIG_CGROUP_WRITEBACK
 	[must] none
 	[missing plat description] none
 	[function] writeback control of per group
+CONFIG_CHARGER_AW32257
+	[arch] arm64
+	[plat] qogirl6
+	[missing plat] sharkl3,sharkl5,sharkl5Pro
+	[field] make
+	[subsys] power
+	[must] user
+	[missing plat description] Not used in the project, so no configuration
+	[function] This function is used to enable charge
 CONFIG_CHARGER_BQ2560X
 	[arch] arm64
 	[plat] qogirl6,sharkl5Pro
@@ -1981,8 +1990,8 @@ CONFIG_CHARGER_ETA6937
 	[function] This function is used to enable charge
 CONFIG_CHARGER_FAN54015
 	[arch] all
-	[plat] qogirl6,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
-	[missing plat] pike2
+	[plat] sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
+	[missing plat] pike2,qogirl6
 	[field] make
 	[subsys] power
 	[must] user
@@ -1999,8 +2008,8 @@ CONFIG_CHARGER_MANAGER
 	[function] Manage battery capacity and monitor charge status
 CONFIG_CHARGER_SC2703
 	[arch] all
-	[plat] qogirl6,sharkl3,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,sharkl3_32,sharkle32
+	[plat] sharkl3,sharkl5,sharkl5Pro,sharkl5_32
+	[missing plat] pike2,qogirl6,sharkl3_32,sharkle32
 	[field] make
 	[subsys] power
 	[must] user
