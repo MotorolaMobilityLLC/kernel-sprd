@@ -518,14 +518,14 @@ static void wcn_sipc_sbuf_notifer(int event, void *data)
 			WCN_DEBUG("sbuf index %d chn[%d] read cnt=%d\n",
 				  sipc_chn->index, sipc_chn->chn, cnt);
 			if (cnt < 0) {
-				WCN_ERR("sbuf read cnt[%d] invalid\n", cnt);
+				WCN_DEBUG("sbuf read cnt[%d] invalid\n", cnt);
 				kfree(recv_buf);
 				return;
 			}
 			wcn_sipc_record_mbuf_recv_from_bus(sipc_chn->index, 1);
 			ret = wcn_sipc_recv(sipc_chn, recv_buf, cnt);
 			if (ret < 0) {
-				WCN_ERR("sbuf recv fail[%d]\n", ret);
+				WCN_DEBUG("sbuf recv fail[%d]\n", ret);
 				kfree(recv_buf);
 				return;
 			}

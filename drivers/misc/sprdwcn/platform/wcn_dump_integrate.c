@@ -22,6 +22,7 @@
 
 /* use for umw2631_integrate only */
 #define WCN_AON_ADDR_OFFSET 0x11000000
+#define WCN_DUMP_ADDR_OFFSET 0x00000004
 
 /* magic number, not change it */
 #define WCN_DUMP_VERSION_NAME "WCN_DUMP_HEAD__"
@@ -99,7 +100,7 @@ static struct wcn_dump_mem_reg s_wcn_dump_regs[] = {
 	{1, 0, 0x800000},
 	/* iram mem */
 	{1, 0x40500000, 0x4000}, /* wcn iram 16k */
-	{1, 0x40a54000, 0x8000}, /* gnss iram 32k */
+	{1, 0x40a50000, 0x8000}, /* gnss iram 32k */
 	/* ap regs */
 	// {1, 0x402B00CC, 4}, /* PMU_SLEEP_CTRL  */
 	{1, 0x640203a8, 4}, /* PMU_PD_WCN_SYS_CFG */
@@ -110,12 +111,13 @@ static struct wcn_dump_mem_reg s_wcn_dump_regs[] = {
 	{1, 0x64020860, 4}, /* PMU_SLEEP_STATUS */
 	//{1, 0x64000000, 4}, /* AON_APB_WCN_SYS_CFG2  */
 	/* cp regs */
-	/* top */
+	/* top cp AON regs */
 	{1, 0x40880000, 0x13c}, /* AON_AHB */
 	{1, 0x4080c000, 0x448}, /* AON_APB */
+	{1, 0x40800000, 0x400}, /* AON_CLK */
+	{0, 0x400f0000, 0x608},  /* WIFI_MAC_AON */
 	{1, 0x40130000, 0x424}, /* BTWF_AHB */
 	{1, 0x40088000, 0x2bc}, /* BTWF_APB */
-	{1, 0x40800000, 0x400}, /* AON_CLK */
 	//{1, 0x40844000, 0x48}, /* PRE_DIV_CLK */
 	//{0, 0x40060000, 0x300}, /* BTWF_CTRL */
 	//{0, 0x60300000, 0x400}, /* BTWF_AHB_CTRL */
@@ -125,8 +127,8 @@ static struct wcn_dump_mem_reg s_wcn_dump_regs[] = {
 	{0, 0x40020000, 0x8000},  /* BTWF_TIMER0 */
 	//{0, 0x40028000, 0x8000},  /* EIC0 */
 	{0, 0x40050000, 0x8000},  /* BTWF_TIMER1 */
-#ifdef DUMP_WIFI
 	/* wifi */
+	{1, 0x40300000, 0x18000}, /* WIFI_REG_MEM*/
 	{0, 0x40804000, 0xd4},  /* WIFI_CLK_SWITCH_CONTROL */
 	{0, 0x400a0000, 0x58},   /* WIFI_GLB */
 	{0, 0x400b7000, 0x778},  /* WIFI_DFE */
@@ -135,7 +137,6 @@ static struct wcn_dump_mem_reg s_wcn_dump_regs[] = {
 	{0, 0x400b0000, 0x80c},  /* WIFI_PHY_TOP */
 	{0, 0x400b1000, 0x158},  /* WIFI_PHY_TX_11A */
 	{0, 0x400b4000, 0xa74},  /* WIFI_PHY_RFIF */
-	{0, 0x400f0000, 0x608},  /* WIFI_MAC_AON */
 	{0, 0x400f6000, 0xa8},  /* WIFI_MAC_CE */
 	{0, 0x400fe000, 0x84},  /* WIFI_MAC_DC_PD */
 	{0, 0x400fc000, 0x914},  /* WIFI_MAC_MH_PD */
@@ -147,8 +148,7 @@ static struct wcn_dump_mem_reg s_wcn_dump_regs[] = {
 	{0, 0x40240000, 0x310},    /* BT_ACC_CONTROL */
 	{0, 0x40243000, 0x7d0},    /* BT_AON_CONTROL */
 	{0, 0x40244000, 0xf4},    /* BT_TIM_EXT */
-	{0, 0x4024f000, 0xcfc},    /* BT_MODEM_CONTROL */
-#endif
+	//{0, 0x4024f000, 0xcfc},    /* BT_MODEM_CONTROL */
 	/* dump reg of merlion if merlion accessible:to be added */
 };
 #endif
@@ -249,6 +249,7 @@ static int mdbg_dump_cp_register_data(u32 addr, u32 len)
 		for (i = 0; i < len / 4; i++) {
 			ptr = buf + i * 4;
 			wcn_read_data_from_phy_addr(phy_addr, ptr, 4);
+			phy_addr = phy_addr + WCN_DUMP_ADDR_OFFSET;
 		}
 	} else {
 		/* aon funcdma tlb way */
@@ -286,6 +287,18 @@ static void mdbg_dump_ap_register(struct wcn_dump_mem_reg *mem)
 	for (i = WCN_DUMP_AP_REGS_START; i <= WCN_DUMP_AP_REGS_END; i++) {
 		mdbg_dump_ap_register_data(mem[i].addr, mem[i].len);
 		WCN_INFO("dump ap reg section[%d] ok!\n", i);
+	}
+}
+
+static void mdbg_dump_cp_aon_register(struct wcn_dump_mem_reg *mem)
+{
+	u32 i;
+	int count;
+
+	for (i = WCN_DUMP_CP2_REGS_START;
+		 i <= (WCN_DUMP_CP2_REGS_START + 4); i++) {
+		count = mdbg_dump_cp_register_data(mem[i].addr, mem[i].len);
+		WCN_INFO("dump cp reg section[%d] %d ok!\n", i, count);
 	}
 }
 
@@ -394,9 +407,22 @@ static int btwf_dump_mem(void)
 	mdbg_dump_share_memory(s_wcn_dump_regs);
 	mdbg_dump_iram(s_wcn_dump_regs);
 	mdbg_dump_ap_register(s_wcn_dump_regs);
-	if (cp2_status == WCN_CP2_STATUS_DUMP_REG) {
-		mdbg_dump_cp_register(s_wcn_dump_regs);
-		WCN_INFO("dump register ok!\n");
+
+	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
+		if (cp2_status == WCN_CP2_STATUS_DUMP_REG) {
+			mdbg_dump_cp_aon_register(s_wcn_dump_regs);
+			WCN_INFO("dump cp AON register ok!\n");
+		} else if (cp2_status == WCN_CP2_STATUS_DUMP_AON_REG) {
+			mdbg_dump_cp_register(s_wcn_dump_regs);
+			WCN_INFO("dump register ok!\n");
+		} else {
+			WCN_INFO("dump register cp2_status: %x\n", cp2_status);
+		}
+	} else {
+		if (cp2_status == WCN_CP2_STATUS_DUMP_REG) {
+			mdbg_dump_cp_register(s_wcn_dump_regs);
+			WCN_INFO("dump register ok!\n");
+		}
 	}
 
 	mdbg_dump_str(WCN_DUMP_END_STRING, strlen(WCN_DUMP_END_STRING));

@@ -3,6 +3,7 @@
 
 #define WCN_DUMP_END_STRING "marlin_memdump_finish"
 #define WCN_CP2_STATUS_DUMP_REG	0x6a6b6c6d
+#define WCN_CP2_STATUS_DUMP_AON_REG 0xa6b6c6d6
 
 #define DUMP_PACKET_SIZE	(1024)
 
