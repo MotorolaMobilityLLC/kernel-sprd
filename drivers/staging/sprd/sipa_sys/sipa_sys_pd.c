@@ -182,15 +182,13 @@ static int sipa_sys_init_debugfs(struct platform_device *pdev)
 }
 #endif
 
-static void sipa_sys_register_cb(sipa_sys_parse_dts_cb parse_dts_cb,
+static void sipa_sys_register_cb(struct sipa_sys_pd_drv *drv,
+				 sipa_sys_parse_dts_cb parse_dts_cb,
 				 sipa_sys_init_cb init_cb,
 				 sipa_sys_do_power_on_cb do_power_on_cb,
 				 sipa_sys_do_power_off_cb do_power_off_cb,
 				 void *priv)
 {
-	struct sipa_sys_pd_drv *drv;
-	drv = container_of(priv, struct sipa_sys_pd_drv, cb_priv);
-
 	drv->parse_dts_cb = parse_dts_cb;
 	drv->init_cb = init_cb;
 	drv->do_power_on_cb = do_power_on_cb;
@@ -221,13 +219,15 @@ static int sipa_sys_drv_probe(struct platform_device *pdev_p)
 	drv->dev = &pdev_p->dev;
 
 	if (data->version == 1) {
-		sipa_sys_register_cb(sipa_sys_parse_dts_cb_v1,
+		sipa_sys_register_cb(drv,
+				     sipa_sys_parse_dts_cb_v1,
 				     sipa_sys_init_cb_v1,
 				     sipa_sys_do_power_on_cb_v1,
 				     sipa_sys_do_power_off_cb_v1,
 				     (void *)drv);
 	} else if (data->version == 3) {
-		sipa_sys_register_cb(sipa_sys_parse_dts_cb_v3,
+		sipa_sys_register_cb(drv,
+				     sipa_sys_parse_dts_cb_v3,
 				     sipa_sys_init_cb_v3,
 				     sipa_sys_do_power_on_cb_v3,
 				     sipa_sys_do_power_off_cb_v3,
