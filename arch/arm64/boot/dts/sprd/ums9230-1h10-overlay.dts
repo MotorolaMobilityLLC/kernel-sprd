@@ -458,7 +458,7 @@
 	hl1506_cp_converter: charger@1b {
 		compatible = "halo,hl1506_cp_converter";
 		reg = <0x1b>;
-		chg_pump_en_gpio = <&ap_gpio 147  GPIO_ACTIVE_HIGH>;
+		chg_pump_en_gpio = <&ap_gpio 147 GPIO_ACTIVE_HIGH>;
 	};
 
 	nu1619_rx: charger@61 {
@@ -466,6 +466,7 @@
 		reg = <0x61>;
 		rx,irq_gpio = <&ap_gpio 146 GPIO_ACTIVE_LOW>;
 		switch_chg_en_gpio = <&ap_gpio 171 GPIO_ACTIVE_LOW>;
+		switch_flag_en_gpio = <&ap_gpio 176 GPIO_ACTIVE_HIGH>;
 	};
 
 	flash_ic: flash-ic@63 {
