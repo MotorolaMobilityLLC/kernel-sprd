@@ -11,6 +11,8 @@
 #include <dt-bindings/mfd/sprd,sc2730-regs.h>
 #include <dt-bindings/mfd/sprd,sc2730-mask.h>
 #include "ums9230.dtsi"
+#include "ums9230-t606dvfs.dtsi"
+#include "ums9230-t616dvfs.dtsi"
 #include "sc2730.dtsi"
 #include "sprd-sound-fe-be.dtsi"
 #include "extra_sound_card_component.dtsi"
