@@ -16,6 +16,7 @@
 #include "lcd/lcd_ili9882n_txd_mipi_hd.dtsi"
 #include "lcd/lcd_ili9882h_txd_mipi_hd.dtsi"
 #include "lcd/lcd_nt36525c_djn_mipi_hd.dtsi"
+#include "lcd/lcd_ft8756_csot_mipi_hd.dtsi"
 // add LCD end
 #include "lcd/lcd_dummy_mipi.dtsi"
 /* Tinno add audio dts config */
