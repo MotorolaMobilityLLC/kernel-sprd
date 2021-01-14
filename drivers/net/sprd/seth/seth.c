@@ -190,11 +190,11 @@ static int seth_debugfs_mknod(void *root, void *data)
 
 	pdata = seth->pdata;
 
-	if (!root)
+	if (!root_gl)
 		return -ENXIO;
 
 	debugfs_create_file(pdata->name, 0444,
-			    (struct dentry *)root,
+			    (struct dentry *)root_gl,
 			    data, &seth_debug_fops);
 
 	return 0;
@@ -849,9 +849,7 @@ static int seth_probe(struct platform_device *pdev)
 	int ret;
 	struct device_node *np = pdev->dev.of_node;
 	struct device *dev = &pdev->dev;
-#if defined(CONFIG_DEBUG_FS)
-	struct dentry *root = debugfs_create_dir("seth", NULL);
-#endif
+
 	ret = seth_parse_dt(&pdata, np, &pdev->dev);
 	if (ret) {
 		dev_err(dev, "failed parse seth device tree, ret= %d\n", ret);
@@ -939,10 +937,13 @@ static int seth_probe(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, seth);
 #ifdef CONFIG_DEBUG_FS
-	if (!root)
-		return -ENODEV;
+	if (!root_gl) {
+		root_gl	= debugfs_create_dir("seth", NULL);
+		if (!root_gl)
+			return -ENODEV;
+	}
 	debugfs_create_file("gro_enable", 0600,
-			    root, &gro_enable,
+			    root_gl, &gro_enable,
 			    &fops_gro_enable);
 	seth_debugfs_mknod(root_gl, (void *)seth);
 #endif
