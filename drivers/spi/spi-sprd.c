@@ -2,13 +2,16 @@
 // Copyright (C) 2018 Spreadtrum Communications Inc.
 
 #include <linux/clk.h>
+#include <linux/dmaengine.h>
+#include <linux/dma-mapping.h>
+#include <linux/dma/sprd-dma.h>
 #include <linux/interrupt.h>
-#include <linux/io.h>
 #include <linux/iopoll.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/of.h>
 #include <linux/of_device.h>
+#include <linux/of_dma.h>
 #include <linux/platform_device.h>
 #include <linux/pm_runtime.h>
 #include <linux/spi/spi.h>
@@ -79,9 +82,18 @@
 /* Bits & mask definition for register CTL2 */
 #define SPRD_SPI_DMA_EN			BIT(6)
 
+/* Bits & mask definition for register CTL3 */
+#define FIFO_RX_EMPTY			2
+#define FIFO_RX_FULL			8
+#define RXF_FULL_THLD_MASK		GENMASK(4, 0)
+#define RXF_THLD_OFFSET			8
+
 /* Bits & mask definition for register CTL4 */
 #define SPRD_SPI_START_RX		BIT(9)
 #define SPRD_SPI_ONLY_RECV_MASK		GENMASK(8, 0)
+
+/* Bits & mask definition for register CTL5 */
+#define SPI_ITVL_NUM			0x09
 
 /* Bits & mask definition for register SPI_INT_CLR */
 #define SPRD_SPI_RX_END_INT_CLR		BIT(9)
@@ -90,6 +102,12 @@
 /* Bits & mask definition for register SPI_INT_RAW */
 #define SPRD_SPI_RX_END_IRQ		BIT(9)
 #define SPRD_SPI_TX_END_IRQ		BIT(8)
+
+/* Bits & mask definition for register CTL6 */
+#define FIFO_TX_EMPTY			2
+#define FIFO_TX_FULL			8
+#define TXF_FULL_THLD_MASK		GENMASK(4, 0)
+#define TXF_THLD_OFFSET			8
 
 /* Bits & mask definition for register CTL12 */
 #define SPRD_SPI_SW_RX_REQ		BIT(0)
@@ -128,11 +146,28 @@
 #define SPRD_SPI_DEFAULT_SOURCE		26000000
 #define SPRD_SPI_MAX_SPEED_HZ		48000000
 #define SPRD_SPI_AUTOSUSPEND_DELAY	100
+#define SPRD_SPI_DMA_STEP		8
+
+enum sprd_spi_dma_channel {
+	SPRD_SPI_RX,
+	SPRD_SPI_TX,
+	SPRD_SPI_MAX,
+};
+
+struct sprd_spi_dma {
+	bool enable;
+	struct dma_chan *dma_chan[SPRD_SPI_MAX];
+	dma_addr_t dma_phys_addr;
+	enum dma_slave_buswidth width;
+	u32 fragmens_len;
+};
 
 struct sprd_spi {
 	void __iomem *base;
+	phys_addr_t phy_base;
 	struct device *dev;
 	struct clk *clk;
+	int irq;
 	u32 src_clk;
 	u32 hw_mode;
 	u32 trans_len;
@@ -141,11 +176,31 @@ struct sprd_spi {
 	u32 hw_speed_hz;
 	u32 len;
 	int status;
+	int datawidth;
+	u32 dma_trans_len;
+	struct sprd_spi_dma dma;
+	struct completion xfer_completion;
 	const void *tx_buf;
 	void *rx_buf;
 	int (*read_bufs)(struct sprd_spi *ss, u32 len);
 	int (*write_bufs)(struct sprd_spi *ss, u32 len);
 };
+
+static void sprd_spi_set_rx_fifo_thld(struct sprd_spi *ss, unsigned int len)
+{
+	u32 val = readl_relaxed(ss->base + SPRD_SPI_CTL3);
+
+	val &= ~RXF_FULL_THLD_MASK;
+	writel_relaxed(val | (len >> ss->datawidth), ss->base + SPRD_SPI_CTL3);
+}
+
+static void sprd_spi_set_tx_fifo_thld(struct sprd_spi *ss, unsigned int len)
+{
+	u32 val = readl_relaxed(ss->base + SPRD_SPI_CTL6);
+
+	val &= ~TXF_FULL_THLD_MASK;
+	writel_relaxed(val | (len >> ss->datawidth), ss->base + SPRD_SPI_CTL6);
+}
 
 static u32 sprd_spi_transfer_max_timeout(struct sprd_spi *ss,
 					 struct spi_transfer *t)
@@ -164,7 +219,11 @@ static u32 sprd_spi_transfer_max_timeout(struct sprd_spi *ss,
 	u32 interval_cycle = SPRD_SPI_FIFO_SIZE * ss->word_delay;
 	u32 interval_time_us = DIV_ROUND_UP(interval_cycle * USEC_PER_SEC,
 					    ss->src_clk);
-
+	/*
+	 * Sometimes, actual sprd spi interval time is 1 us longer than the
+	 * theoretical time, so the total transmission time need add
+	 * SPRD_SPI_FIFO_SIZE.
+	 */
 	return total_time_us + interval_time_us + SPRD_SPI_FIFO_SIZE;
 }
 
@@ -379,11 +438,18 @@ static int sprd_spi_read_bufs_u32(struct sprd_spi *ss, u32 len)
 static int sprd_spi_txrx_bufs(struct spi_device *sdev, struct spi_transfer *t)
 {
 	struct sprd_spi *ss = spi_controller_get_devdata(sdev->controller);
-	u32 trans_len = ss->trans_len, len, *tmp_txbuf;
-	int ret, write_size = 0, read_size = 0;
+	u32 trans_len = ss->trans_len, len, *tmp_txbuf = NULL;
+	int ret = 0, write_size = 0, read_size = 0;
 
 	if (!(ss->trans_mode & SPRD_SPI_TX_MODE)) {
 		tmp_txbuf = kzalloc(trans_len, GFP_ATOMIC);
+		if (!tmp_txbuf) {
+			ret = -ENOMEM;
+			dev_err(ss->dev,
+				"failed to alloc tmp_txbuf, ret = %d\n",
+				ret);
+			goto complete;
+		}
 		ss->tx_buf = tmp_txbuf;
 	}
 
@@ -396,9 +462,9 @@ static int sprd_spi_txrx_bufs(struct spi_device *sdev, struct spi_transfer *t)
 			write_size += ss->write_bufs(ss, len);
 
 			/*
-			* For our 3 wires mode or dual TX line mode, we need
-			* to request the controller to transfer.
-			*/
+			 * For our 3 wires mode or dual TX line mode, we need
+			 * to request the controller to transfer.
+			 */
 			if (ss->hw_mode & SPI_3WIRE || ss->hw_mode & SPI_TX_DUAL)
 				sprd_spi_tx_req(ss);
 
@@ -442,6 +508,7 @@ static int sprd_spi_txrx_bufs(struct spi_device *sdev, struct spi_transfer *t)
 
 	if (!(ss->trans_mode & SPRD_SPI_TX_MODE)) {
 		kfree(tmp_txbuf);
+		ss->tx_buf = NULL;
 		ret = read_size;
 	} else {
 		ret = write_size;
@@ -449,6 +516,278 @@ static int sprd_spi_txrx_bufs(struct spi_device *sdev, struct spi_transfer *t)
 
 complete:
 	sprd_spi_enter_idle(ss);
+
+	return ret;
+}
+
+static void sprd_spi_irq_enable(struct sprd_spi *ss)
+{
+	u32 val;
+
+	/* Clear interrupt status before enabling interrupt. */
+	writel_relaxed(SPRD_SPI_TX_END_CLR | SPRD_SPI_RX_END_CLR,
+		       ss->base + SPRD_SPI_INT_CLR);
+	/* Enable SPI interrupt only in DMA mode. */
+	val = readl_relaxed(ss->base + SPRD_SPI_INT_EN);
+	writel_relaxed(val | SPRD_SPI_TX_END_INT_EN |
+		       SPRD_SPI_RX_END_INT_EN, ss->base + SPRD_SPI_INT_EN);
+}
+
+static void sprd_spi_irq_disable(struct sprd_spi *ss)
+{
+	writel_relaxed(0, ss->base + SPRD_SPI_INT_EN);
+}
+
+static void sprd_spi_dma_enable(struct sprd_spi *ss, bool enable)
+{
+	u32 val = readl_relaxed(ss->base + SPRD_SPI_CTL2);
+
+	if (enable)
+		val |= SPRD_SPI_DMA_EN;
+	else
+		val &= ~SPRD_SPI_DMA_EN;
+
+	writel_relaxed(val, ss->base + SPRD_SPI_CTL2);
+}
+
+static int sprd_spi_dma_submit(struct sprd_spi *ss,
+			       struct dma_chan *dma_chan,
+			       struct dma_slave_config *c,
+			       struct sg_table *sg,
+			       enum dma_transfer_direction dir)
+{
+	struct dma_async_tx_descriptor *desc;
+	dma_cookie_t cookie;
+	unsigned long flags;
+	int ret;
+
+	ret = dmaengine_slave_config(dma_chan, c);
+	if (ret < 0)
+		return ret;
+
+	flags = SPRD_DMA_FLAGS(SPRD_DMA_CHN_MODE_NONE, SPRD_DMA_NO_TRG,
+			       SPRD_DMA_FRAG_REQ, SPRD_DMA_TRANS_INT);
+
+	if (sg != NULL) {
+		sg_dma_len(sg->sgl) = ss->dma_trans_len;
+		desc = dmaengine_prep_slave_sg(dma_chan, sg->sgl,
+					       sg->nents, dir, flags);
+	} else {
+		desc = dmaengine_prep_slave_single(dma_chan,
+						   ss->dma.dma_phys_addr,
+						   ss->dma_trans_len,
+						   dir, flags);
+	}
+
+	if (!desc)
+		return  -ENODEV;
+
+	cookie = dmaengine_submit(desc);
+	if (dma_submit_error(cookie))
+		return dma_submit_error(cookie);
+
+	dma_async_issue_pending(dma_chan);
+
+	return 0;
+}
+
+static int sprd_spi_dma_rx_config(struct sprd_spi *ss, struct spi_transfer *t)
+{
+	struct dma_chan *dma_chan = ss->dma.dma_chan[SPRD_SPI_RX];
+	struct dma_slave_config config = {
+		.src_addr = ss->phy_base,
+		.src_addr_width = ss->dma.width,
+		.dst_addr_width = ss->dma.width,
+		.src_maxburst = ss->dma.fragmens_len,
+		.dst_maxburst = ss->dma.fragmens_len,
+		.direction = DMA_DEV_TO_MEM,
+		.slave_id = ss->dma.dma_chan[SPRD_SPI_RX]->chan_id + 1,
+	};
+	int ret;
+
+	ret = sprd_spi_dma_submit(ss, dma_chan, &config,
+				  &t->rx_sg, DMA_DEV_TO_MEM);
+	if (ret)
+		return ret;
+
+	sprd_spi_set_rx_fifo_thld(ss, ss->dma.fragmens_len);
+
+	return ss->trans_len;
+}
+
+static int sprd_spi_dma_tx_config(struct sprd_spi *ss, struct spi_transfer *t)
+{
+	struct dma_chan *dma_chan = ss->dma.dma_chan[SPRD_SPI_TX];
+	struct dma_slave_config config = {
+		.dst_addr = ss->phy_base,
+		.src_addr_width = ss->dma.width,
+		.dst_addr_width = ss->dma.width,
+		.src_maxburst = ss->dma.fragmens_len,
+		.direction = DMA_MEM_TO_DEV,
+		.slave_id = ss->dma.dma_chan[SPRD_SPI_TX]->chan_id + 1,
+	};
+	int ret;
+
+	if (ss->dma_trans_len > t->len)
+		ret = sprd_spi_dma_submit(ss, dma_chan, &config,
+					  NULL, DMA_MEM_TO_DEV);
+	else
+		ret = sprd_spi_dma_submit(ss, dma_chan, &config,
+					  &t->tx_sg, DMA_MEM_TO_DEV);
+
+	if (ret)
+		return ret;
+
+	sprd_spi_set_tx_fifo_thld(ss, ss->dma.fragmens_len);
+
+	return ss->trans_len;
+}
+
+static int sprd_spi_dma_request(struct sprd_spi *ss)
+{
+	ss->dma.dma_chan[SPRD_SPI_RX] = dma_request_chan(ss->dev, "rx_chn");
+	if (IS_ERR_OR_NULL(ss->dma.dma_chan[SPRD_SPI_RX])) {
+		if (PTR_ERR(ss->dma.dma_chan[SPRD_SPI_RX]) == -EPROBE_DEFER)
+			return PTR_ERR(ss->dma.dma_chan[SPRD_SPI_RX]);
+
+		dev_err(ss->dev, "request RX DMA channel failed!\n");
+		return PTR_ERR(ss->dma.dma_chan[SPRD_SPI_RX]);
+	}
+
+	ss->dma.dma_chan[SPRD_SPI_TX] = dma_request_chan(ss->dev, "tx_chn");
+	if (IS_ERR_OR_NULL(ss->dma.dma_chan[SPRD_SPI_TX])) {
+		if (PTR_ERR(ss->dma.dma_chan[SPRD_SPI_TX]) == -EPROBE_DEFER)
+			return PTR_ERR(ss->dma.dma_chan[SPRD_SPI_TX]);
+
+		dev_err(ss->dev, "request TX DMA channel failed!\n");
+		dma_release_channel(ss->dma.dma_chan[SPRD_SPI_RX]);
+		return PTR_ERR(ss->dma.dma_chan[SPRD_SPI_TX]);
+	}
+
+	return 0;
+}
+
+static void sprd_spi_dma_release(struct sprd_spi *ss)
+{
+	if (ss->dma.dma_chan[SPRD_SPI_RX])
+		dma_release_channel(ss->dma.dma_chan[SPRD_SPI_RX]);
+
+	if (ss->dma.dma_chan[SPRD_SPI_TX])
+		dma_release_channel(ss->dma.dma_chan[SPRD_SPI_TX]);
+}
+
+static int sprd_spi_dma_txrx_bufs(struct spi_device *sdev,
+				  struct spi_transfer *t)
+{
+	struct sprd_spi *ss = spi_master_get_devdata(sdev->master);
+	u32 trans_len = ss->trans_len, *dma_tmp_txbuf = NULL, val;
+	int ret = 0;
+
+	reinit_completion(&ss->xfer_completion);
+	sprd_spi_irq_enable(ss);
+
+	if (ss->trans_mode & SPRD_SPI_TX_MODE) {
+		/* The SPI device is used for TX mode.*/
+		sprd_spi_set_tx_length(ss, trans_len);
+
+		if (ss->dma_trans_len > t->len) {
+			dma_tmp_txbuf = kzalloc(ss->dma_trans_len, GFP_ATOMIC);
+			if (!dma_tmp_txbuf) {
+				ret = -ENOMEM;
+				dev_err(ss->dev,
+					"failed to alloc dma_tmp_txbuf, ret = %d\n",
+					ret);
+				goto trans_complete;
+			}
+
+			memcpy(dma_tmp_txbuf, t->tx_buf, t->len);
+			ss->dma.dma_phys_addr = dma_map_single(ss->dev,
+							(void *)dma_tmp_txbuf,
+							ss->dma_trans_len,
+							DMA_TO_DEVICE);
+		}
+
+		ret = sprd_spi_dma_tx_config(ss, t);
+		if (ret < 0) {
+			dev_err(ss->dev,
+				"failed to config tx DMA, ret = %d\n",
+				ret);
+			goto trans_complete;
+		}
+
+		/*
+		 * For our 3 wires mode or dual TX line mode, we need
+		 * to request the controller to transfer.
+		 */
+		if (ss->hw_mode & SPI_3WIRE || ss->hw_mode & SPI_TX_DUAL)
+			sprd_spi_tx_req(ss);
+	}
+
+	if (ss->trans_mode & SPRD_SPI_RX_MODE) {
+		/* The SPI device is used for RX mode.*/
+		sprd_spi_set_rx_length(ss, trans_len);
+
+		ret = sprd_spi_dma_rx_config(ss, t);
+		if (ret < 0) {
+			dev_err(ss->dev,
+				"failed to configure rx DMA, ret = %d\n",
+				ret);
+			goto trans_complete;
+		}
+		if (!(ss->trans_mode & SPRD_SPI_TX_MODE)) {
+			/* The SPI device is used for RXonly mode.*/
+			sprd_spi_set_tx_length(ss, trans_len);
+			val = readl_relaxed(ss->base + SPRD_SPI_CTL1);
+			writel_relaxed(val | SPRD_SPI_TX_MODE,
+						ss->base + SPRD_SPI_CTL1);
+
+			dma_tmp_txbuf = kzalloc(ss->dma_trans_len, GFP_ATOMIC);
+			if (!dma_tmp_txbuf) {
+				ret = -ENOMEM;
+				dev_err(ss->dev,
+					"failed to alloc dma_tmp_txbuf, ret = %d\n",
+					ret);
+				goto trans_complete;
+			}
+
+			ss->dma.dma_phys_addr = dma_map_single(ss->dev,
+							(void *)dma_tmp_txbuf,
+							ss->dma_trans_len,
+							DMA_TO_DEVICE);
+
+			ret = sprd_spi_dma_tx_config(ss, t);
+			if (ret < 0) {
+				dev_err(ss->dev,
+					"failed to config tx DMA, ret = %d\n",
+					ret);
+				goto trans_complete;
+			}
+
+			/*
+			 * For our 3 wires mode or dual TX line mode, we need
+			 * to request the controller to transfer.
+			 */
+			if (ss->hw_mode & SPI_3WIRE ||
+						ss->hw_mode & SPI_TX_DUAL)
+				sprd_spi_rx_req(ss);
+		}
+	}
+
+	sprd_spi_dma_enable(ss, true);
+	wait_for_completion(&(ss->xfer_completion));
+
+	if (dma_tmp_txbuf != NULL) {
+		dma_unmap_single(ss->dev,
+				 ss->dma.dma_phys_addr,
+				 ss->dma_trans_len,
+				 DMA_TO_DEVICE);
+		kfree(dma_tmp_txbuf);
+	}
+
+trans_complete:
+	sprd_spi_dma_enable(ss, false);
+	sprd_spi_enter_idle(ss);
+	sprd_spi_irq_disable(ss);
 
 	return ret;
 }
@@ -487,7 +826,7 @@ static void sprd_spi_init_hw(struct sprd_spi *ss, struct spi_transfer *t)
 			     SPRD_SPI_MAX_DELAY_CYCLE);
 	interval = DIV_ROUND_UP(word_delay - 10, 4);
 	ss->word_delay = interval * 4 + 3;
-	writel_relaxed(interval, ss->base + SPRD_SPI_CTL5);
+	writel_relaxed(SPI_ITVL_NUM, ss->base + SPRD_SPI_CTL5);
 
 	/* Reset SPI fifo */
 	writel_relaxed(1, ss->base + SPRD_SPI_FIFO_RST);
@@ -508,6 +847,12 @@ static void sprd_spi_init_hw(struct sprd_spi *ss, struct spi_transfer *t)
 		val &= ~SPRD_SPI_DATA_LINE2_EN;
 
 	writel_relaxed(val, ss->base + SPRD_SPI_CTL7);
+
+	/* Set SPI default fifo threshold */
+	writel_relaxed((FIFO_TX_EMPTY << TXF_THLD_OFFSET) | FIFO_TX_FULL,
+		ss->base + SPRD_SPI_CTL6);
+	writel_relaxed((FIFO_RX_EMPTY << RXF_THLD_OFFSET) | FIFO_RX_FULL,
+		ss->base + SPRD_SPI_CTL3);
 }
 
 static int sprd_spi_setup_transfer(struct spi_device *sdev,
@@ -538,16 +883,25 @@ static int sprd_spi_setup_transfer(struct spi_device *sdev,
 		ss->trans_len = t->len;
 		ss->read_bufs = sprd_spi_read_bufs_u8;
 		ss->write_bufs = sprd_spi_write_bufs_u8;
+		ss->dma.width = DMA_SLAVE_BUSWIDTH_1_BYTE;
+		ss->dma.fragmens_len = SPRD_SPI_DMA_STEP;
+		ss->datawidth = 0;
 		break;
 	case 16:
 		ss->trans_len = t->len >> 1;
 		ss->read_bufs = sprd_spi_read_bufs_u16;
 		ss->write_bufs = sprd_spi_write_bufs_u16;
+		ss->dma.width = DMA_SLAVE_BUSWIDTH_2_BYTES;
+		ss->dma.fragmens_len = SPRD_SPI_DMA_STEP << 1;
+		ss->datawidth = 1;
 		break;
 	case 32:
 		ss->trans_len = t->len >> 2;
 		ss->read_bufs = sprd_spi_read_bufs_u32;
 		ss->write_bufs = sprd_spi_write_bufs_u32;
+		ss->dma.width = DMA_SLAVE_BUSWIDTH_4_BYTES;
+		ss->dma.fragmens_len = SPRD_SPI_DMA_STEP << 2;
+		ss->datawidth = 2;
 		break;
 	default:
 		return -EINVAL;
@@ -579,20 +933,71 @@ static int sprd_spi_transfer_one(struct spi_controller *sctlr,
 				 struct spi_device *sdev,
 				 struct spi_transfer *t)
 {
+	struct sprd_spi *ss = spi_controller_get_devdata(sdev->controller);
 	int ret;
 
 	ret = sprd_spi_setup_transfer(sdev, t);
 	if (ret)
 		goto setup_err;
 
-	ret = sprd_spi_txrx_bufs(sdev, t);
-	if (ret == t->len)
+	if (sctlr->can_dma(sctlr, sdev, t)) {
+		/* Align trans_len to fragmens_len */
+		ss->dma_trans_len = round_up(t->len, ss->dma.fragmens_len);
+		ss->trans_len = round_up(ss->trans_len, ss->dma.fragmens_len);
+		ret = sprd_spi_dma_txrx_bufs(sdev, t);
+	} else
+		ret = sprd_spi_txrx_bufs(sdev, t);
+
+	if ((ret == t->len) ||
+		(sctlr->can_dma(sctlr, sdev, t)	&& (ret == ss->trans_len)))
 		ret = 0;
 	else if (ret >= 0)
 		ret = -EREMOTEIO;
 
 setup_err:
 	spi_finalize_current_transfer(sctlr);
+
+	return ret;
+}
+
+static irqreturn_t sprd_spi_handle_irq(int irq, void *data)
+{
+	struct sprd_spi *ss = (struct sprd_spi *)data;
+	u32 val = readl_relaxed(ss->base + SPRD_SPI_INT_MASK_STS);
+
+	if (val & SPRD_SPI_MASK_TX_END) {
+		writel_relaxed(SPRD_SPI_TX_END_CLR,
+				ss->base + SPRD_SPI_INT_CLR);
+		if (!(ss->trans_mode & SPRD_SPI_RX_MODE))
+			complete(&ss->xfer_completion);
+
+		return IRQ_HANDLED;
+	}
+
+	if (val & SPRD_SPI_MASK_RX_END) {
+		writel_relaxed(SPRD_SPI_RX_END_CLR,
+				ss->base + SPRD_SPI_INT_CLR);
+		complete(&ss->xfer_completion);
+
+		return IRQ_HANDLED;
+	}
+
+	return IRQ_NONE;
+}
+
+static int sprd_spi_irq_init(struct platform_device *pdev, struct sprd_spi *ss)
+{
+	int ret;
+
+	ss->irq = platform_get_irq(pdev, 0);
+	if (ss->irq < 0)
+		return ss->irq;
+
+	ret = devm_request_irq(&pdev->dev, ss->irq, sprd_spi_handle_irq,
+				0, pdev->name, ss);
+	if (ret)
+		dev_err(&pdev->dev, "failed to request spi irq %d, ret = %d\n",
+			ss->irq, ret);
 
 	return ret;
 }
@@ -627,6 +1032,35 @@ static int sprd_spi_clk_init(struct platform_device *pdev, struct sprd_spi *ss)
 	return 0;
 }
 
+static bool sprd_spi_can_dma(struct spi_controller *sctlr,
+			     struct spi_device *spi, struct spi_transfer *t)
+{
+	struct sprd_spi *ss = spi_controller_get_devdata(sctlr);
+
+	return ss->dma.enable && (t->len > SPRD_SPI_FIFO_SIZE);
+}
+
+static int sprd_spi_dma_init(struct platform_device *pdev, struct sprd_spi *ss)
+{
+	int ret;
+
+	ret = sprd_spi_dma_request(ss);
+	if (ret) {
+		if (ret == -EPROBE_DEFER)
+			return ret;
+
+		dev_warn(&pdev->dev,
+			 "failed to request dma, enter no dma mode, ret = %d\n",
+			 ret);
+
+		return 0;
+	}
+
+	ss->dma.enable = true;
+
+	return 0;
+}
+
 static int sprd_spi_probe(struct platform_device *pdev)
 {
 	struct spi_controller *sctlr;
@@ -641,30 +1075,45 @@ static int sprd_spi_probe(struct platform_device *pdev)
 
 	ss = spi_controller_get_devdata(sctlr);
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+	if (!res)
+		return -ENOMEM;
+
 	ss->base = devm_ioremap_resource(&pdev->dev, res);
 	if (IS_ERR(ss->base)) {
 		ret = PTR_ERR(ss->base);
 		goto free_controller;
 	}
 
+	ss->phy_base = res->start;
 	ss->dev = &pdev->dev;
 	sctlr->dev.of_node = pdev->dev.of_node;
 	sctlr->mode_bits = SPI_CPOL | SPI_CPHA | SPI_3WIRE | SPI_TX_DUAL;
 	sctlr->bus_num = pdev->id;
 	sctlr->set_cs = sprd_spi_chipselect;
 	sctlr->transfer_one = sprd_spi_transfer_one;
+	sctlr->can_dma = sprd_spi_can_dma;
 	sctlr->auto_runtime_pm = true;
 	sctlr->max_speed_hz = min_t(u32, ss->src_clk >> 1,
 				    SPRD_SPI_MAX_SPEED_HZ);
 
+	init_completion(&ss->xfer_completion);
 	platform_set_drvdata(pdev, sctlr);
+
 	ret = sprd_spi_clk_init(pdev, ss);
+	if (ret)
+		goto free_controller;
+
+	ret = sprd_spi_irq_init(pdev, ss);
+	if (ret)
+		goto free_controller;
+
+	ret = sprd_spi_dma_init(pdev, ss);
 	if (ret)
 		goto free_controller;
 
 	ret = clk_prepare_enable(ss->clk);
 	if (ret)
-		goto free_controller;
+		goto release_dma;
 
 	ret = pm_runtime_set_active(&pdev->dev);
 	if (ret < 0)
@@ -694,13 +1143,15 @@ err_rpm_put:
 	pm_runtime_disable(&pdev->dev);
 disable_clk:
 	clk_disable_unprepare(ss->clk);
+release_dma:
+	sprd_spi_dma_release(ss);
 free_controller:
 	spi_controller_put(sctlr);
 
 	return ret;
 }
 
-static int __exit sprd_spi_remove(struct platform_device *pdev)
+static int sprd_spi_remove(struct platform_device *pdev)
 {
 	struct spi_controller *sctlr = platform_get_drvdata(pdev);
 	struct sprd_spi *ss = spi_controller_get_devdata(sctlr);
@@ -712,6 +1163,10 @@ static int __exit sprd_spi_remove(struct platform_device *pdev)
 		return ret;
 	}
 
+	spi_controller_suspend(sctlr);
+
+	if (ss->dma.enable)
+		sprd_spi_dma_release(ss);
 	clk_disable_unprepare(ss->clk);
 	pm_runtime_put_noidle(&pdev->dev);
 	pm_runtime_disable(&pdev->dev);
@@ -723,6 +1178,9 @@ static int __maybe_unused sprd_spi_runtime_suspend(struct device *dev)
 {
 	struct spi_controller *sctlr = dev_get_drvdata(dev);
 	struct sprd_spi *ss = spi_controller_get_devdata(sctlr);
+
+	if (ss->dma.enable)
+		sprd_spi_dma_release(ss);
 
 	clk_disable_unprepare(ss->clk);
 
@@ -739,7 +1197,14 @@ static int __maybe_unused sprd_spi_runtime_resume(struct device *dev)
 	if (ret)
 		return ret;
 
-	return 0;
+	if (!ss->dma.enable)
+		return 0;
+
+	ret = sprd_spi_dma_request(ss);
+	if (ret)
+		clk_disable_unprepare(ss->clk);
+
+	return ret;
 }
 
 static const struct dev_pm_ops sprd_spi_pm_ops = {
