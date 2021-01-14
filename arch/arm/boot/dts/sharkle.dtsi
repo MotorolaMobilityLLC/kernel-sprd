@@ -217,6 +217,8 @@
 					"sprd,sharkle-spi";
 				reg = <0x70a00000 0x1000>;
 				interrupts = <GIC_SPI 7 IRQ_TYPE_LEVEL_HIGH>;
+				dmas = <&ap_dma 11 &ap_dma 12>;
+				dma-names = "rx_chn", "tx_chn";
 				#address-cells = <1>;
 				#size-cells = <0>;
 				status = "disabled";
@@ -227,6 +229,8 @@
 					"sprd,sharkle-spi";
 				reg = <0x70b00000 0x1000>;
 				interrupts = <GIC_SPI 8 IRQ_TYPE_LEVEL_HIGH>;
+				dmas = <&ap_dma 13 &ap_dma 14>;
+				dma-names = "rx_chn", "tx_chn";
 				#address-cells = <1>;
 				#size-cells = <0>;
 				status = "disabled";
@@ -237,6 +241,8 @@
 					"sprd,sharkle-spi";
 				reg = <0x70c00000 0x1000>;
 				interrupts = <GIC_SPI 9 IRQ_TYPE_LEVEL_HIGH>;
+				dmas = <&ap_dma 15 &ap_dma 16>;
+				dma-names = "rx_chn", "tx_chn";
 				#address-cells = <1>;
 				#size-cells = <0>;
 				status = "disabled";
