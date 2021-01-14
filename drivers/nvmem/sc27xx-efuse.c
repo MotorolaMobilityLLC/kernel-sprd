@@ -29,6 +29,7 @@
 #define SC27XX_EFUSE_WR_TIMING_CTRL	0x20
 #define SC27XX_EFUSE_RD_TIMING_CTRL	0x24
 #define SC27XX_EFUSE_EFUSE_DEB_CTRL	0x28
+#define SC27XX_EFUSE_BLOCK_REG   	0x40
 
 /* Bits definitions for UMP9620_EFUSE_RTC register */
 #define UMP96XX_EFUSE_RTC_EN		BIT(11)
@@ -140,6 +141,64 @@ static int sc27xx_efuse_poll_status(struct sc27xx_efuse *efuse, u32 bits)
 	return 0;
 }
 
+static int ump9620_efuse_read(void *context, u32 offset, void *val, size_t bytes)
+{
+	struct sc27xx_efuse *efuse = context;
+	u32 buf, index = offset / SC27XX_EFUSE_BLOCK_WIDTH;
+	u32 blk_offset = (offset % SC27XX_EFUSE_BLOCK_WIDTH) * BITS_PER_BYTE;
+	int ret;
+
+	if (index >= (efuse->var_data->block_max) ||
+			bytes > SC27XX_EFUSE_BLOCK_WIDTH)
+		return -EINVAL;
+
+	ret = sc27xx_efuse_lock(efuse);
+	if (ret)
+		return ret;
+
+	/* Enable the efuse controller. */
+	ret = regmap_update_bits(efuse->regmap, efuse->var_data->module_en,
+				 SC27XX_EFUSE_EN, SC27XX_EFUSE_EN);
+	if (ret)
+		goto unlock_efuse;
+
+	ret = regmap_update_bits(efuse->regmap, UMP96XX_EFUSE_RTC,
+					 UMP96XX_EFUSE_RTC_EN,
+				 UMP96XX_EFUSE_RTC_EN);
+	if (ret)
+		goto unlock_efuse;
+
+	ret = regmap_update_bits(efuse->regmap, efuse->base,
+				 UMP96XX_CLK_GATE, 0);
+	if (ret)
+		goto unlock_efuse;
+
+	/* Clear the read done flag. */
+	ret = regmap_update_bits(efuse->regmap,
+				 efuse->base + SC27XX_EFUSE_MODE_CTRL,
+				 SC27XX_EFUSE_CLR_RDDONE,
+				 SC27XX_EFUSE_CLR_RDDONE);
+
+	/* Read data from efuse memory. */
+	ret = regmap_read(efuse->regmap, (efuse->base + SC27XX_EFUSE_BLOCK_REG) + (0x4 * index),
+		  &buf);
+	if (ret)
+		goto disable_efuse;
+
+disable_efuse:
+	/* Disable the efuse controller after reading. */
+	regmap_update_bits(efuse->regmap, efuse->var_data->module_en, SC27XX_EFUSE_EN, 0);
+unlock_efuse:
+	sc27xx_efuse_unlock(efuse);
+
+	if (!ret) {
+		buf >>= blk_offset;
+		memcpy(val, &buf, bytes);
+	}
+
+	return ret;
+}
+
 static int sc27xx_efuse_read(void *context, u32 offset, void *val, size_t bytes)
 {
 	struct sc27xx_efuse *efuse = context;
@@ -161,26 +220,6 @@ static int sc27xx_efuse_read(void *context, u32 offset, void *val, size_t bytes)
 	if (ret)
 		goto unlock_efuse;
 
-	/* Enable the efuse rtc, auto pad sel and clk gate for ump9620. */
-	if (of_device_is_compatible(efuse->dev->of_node,
-					"sprd,ump9620-efuse")) {
-		ret = regmap_update_bits(efuse->regmap, UMP96XX_EFUSE_RTC,
-					 UMP96XX_EFUSE_RTC_EN,
-					 UMP96XX_EFUSE_RTC_EN);
-		if (ret)
-			goto unlock_efuse;
-
-		ret = regmap_update_bits(efuse->regmap, UMP96XX_EMM_AUTO_PAD_SEL,
-					 EMM_AUTO_PAD_SEL_EN,
-					 EMM_AUTO_PAD_SEL_EN);
-		if (ret)
-			goto unlock_efuse;
-
-		ret = regmap_update_bits(efuse->regmap, efuse->base,
-					 UMP96XX_CLK_GATE, UMP96XX_CLK_GATE);
-		if (ret)
-			goto unlock_efuse;
-	}
 	/*
 	 * Before reading, we should ensure the efuse controller is in
 	 * standby state.
@@ -291,7 +330,12 @@ static int sc27xx_efuse_probe(struct platform_device *pdev)
 	econfig.read_only = true;
 	econfig.name = "sc27xx-efuse";
 	econfig.size = (efuse->var_data->block_max) * SC27XX_EFUSE_BLOCK_WIDTH;
-	econfig.reg_read = sc27xx_efuse_read;
+	if (of_device_is_compatible(efuse->dev->of_node,
+					"sprd,ump9620-efuse")) {
+		econfig.reg_read = ump9620_efuse_read;
+	} else {
+		econfig.reg_read = sc27xx_efuse_read;
+	}
 	econfig.priv = efuse;
 	econfig.dev = &pdev->dev;
 	nvmem = devm_nvmem_register(&pdev->dev, &econfig);
