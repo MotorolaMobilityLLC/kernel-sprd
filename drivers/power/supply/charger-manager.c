@@ -3982,7 +3982,7 @@ static void cm_batt_works(struct work_struct *work)
 	else
 		cal_count = 0;
 		
-	if( (!charge_done)  &&  batt_ocV >(term_vol - 100000) &&  check_charge_done(cm)  )
+	if( (!charge_done)  && term_vol >4000000 && batt_ocV >(term_vol - 100000) &&  check_charge_done(cm)  )
 	{		
 		charge_done = true;
 		dev_err(cm->dev, "%s;full;fuel_cap=%d, ui cap=%d\n",__func__,

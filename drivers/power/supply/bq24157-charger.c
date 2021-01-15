@@ -151,7 +151,9 @@ struct bq24157_charger_info {
 	u32 charger_pd_mask;
 	struct gpio_desc *gpiod;
 	struct extcon_dev *edev;
-	u32 voltage_max_microvolt;
+	u32 terminal_vol;
+	u32 chg_current;
+	u32 limit_current;
 };
 
 #include <ontim/ontim_dev_dgb.h>
@@ -166,9 +168,9 @@ static bool is_eta6937=false;
 static unsigned int bq24157_get_max_cur(void)
 {
 	if(is_eta6937)
-		return 	1050000;
+		return 	1050;
 	else
-		return 	1150000;
+		return 	1150;
 }
 static bool bq24157_charger_is_bat_present(struct bq24157_charger_info *info)
 {
@@ -295,6 +297,8 @@ bq24157_charger_set_termina_vol(struct bq24157_charger_info *info, u32 vol)
 	u8 reg_val;
 	dev_err(info->dev, "%s;%d;\n",__func__,vol);
 
+	info->terminal_vol =vol;
+
 	if(vol <= 3500){
 		reg_val = 0x0;
 	}else if( vol >= 4440){
@@ -356,46 +360,6 @@ void bq24157_set_io_level(struct bq24157_charger_info *info, u8 val)
 				);
 }
 
-static void bq24157_set_tmr_rst(struct bq24157_charger_info *info, u8 val)
-{
-	
-	if(info->charging)
-	{
-		watchdog_time++;
-	       if(watchdog_time > 600)
-			bq24157_set_ce(info,1);		
-	}
-	else
-	{
-		watchdog_time = 0;
-	}
-		
-	bq24157_update_bits(info, BQ24157_CON0,
-				CON0_TMR_RST_MASK,
-				CON0_TMR_RST_SHIFT,
-				val
-				);
-	bq24157_dump_register(info);
-
-	if(info->charging && watchdog_time > 600)
-	{
-		dev_err(info->dev,"%s;%d;\n",__func__,watchdog_time);
-		watchdog_time = 0;
-		if(is_eta6937)	
-		bq24157_write(info,0x06, 0xac);
-
-		bq24157_set_hz_mode(info,0);
-		bq24157_set_opa_mode(info,0);
-		bq24157_set_te(info,1);
-
-		bq24157_set_iterm(info,2);
-		bq24157_set_vsp(info,3);
-		bq24157_set_ce(info,0);
-		
-	}
-	
-}
-
 static int bq24157_enable_charging(struct bq24157_charger_info *info, bool en)
 {
 	unsigned int ret = 0;
@@ -411,7 +375,7 @@ static int bq24157_enable_charging(struct bq24157_charger_info *info, bool en)
 //		if(is_eta6937)
 //		bq24157_charger_set_termina_vol(info, 4420000);			
 //		else
-		bq24157_charger_set_termina_vol(info, info->voltage_max_microvolt);
+		bq24157_charger_set_termina_vol(info, info->terminal_vol);
 		bq24157_set_hz_mode(info,0);
 		bq24157_set_opa_mode(info,0);
 		bq24157_set_te(info,1);
@@ -460,7 +424,9 @@ static int bq24157_charger_hw_init(struct bq24157_charger_info *info)
 		info->cur.cdp_cur = bat_info.cur.cdp_cur;
 		info->cur.unknown_limit = bat_info.cur.unknown_limit;
 		info->cur.unknown_cur = bat_info.cur.unknown_cur;
-		info->voltage_max_microvolt = bat_info.constant_charge_voltage_max_uv / 1000;
+		info->terminal_vol = bat_info.constant_charge_voltage_max_uv / 1000;
+		info->chg_current= 1050;
+		info->limit_current= 1500;
 		power_supply_put_battery_info(info->psy_usb, &bat_info);
 
 		}
@@ -516,7 +482,9 @@ static int bq24157_charger_set_current(struct bq24157_charger_info *info,
 
 	dev_err(info->dev, "%s;%d;%d;\n",__func__,cur,bq24157_get_max_cur());
 
-	if (cur <= 500000) 
+	info->chg_current = cur;
+		
+	if (cur <= 500) 
 	{
 		bq24157_set_io_level(info,0);
 		
@@ -529,7 +497,7 @@ static int bq24157_charger_set_current(struct bq24157_charger_info *info,
 
 		if(cur > bq24157_get_max_cur())
 			cur= bq24157_get_max_cur() ;
-		reg_val = (cur-550000)/100000;
+		reg_val = (cur-550)/100;
 	}
 
 	return bq24157_update_bits(info,BQ24157_CON4,
@@ -552,7 +520,7 @@ static int bq24157_charger_get_current(struct bq24157_charger_info *info,
 	reg_val = reg_val >> CON4_I_CHR_SHIFT;
 	reg_val &= CON4_I_CHR_MASK;
 
-	*cur = (reg_val * 100000) + 550000;
+	*cur = (reg_val * 100) + 550;
 	return 0;
 }
 
@@ -565,11 +533,13 @@ bq24157_charger_set_limit_current(struct bq24157_charger_info *info,
 
 	dev_err(info->dev, "%s;%d;\n",__func__,cur);
 
-	if (cur <= 100000)
+	info->limit_current = cur;
+
+	if (cur <= 100)
 		reg_val = 0x0;
-	else if (cur <= 500000)
+	else if (cur <= 500)
 		reg_val = 0x1;
-	else if (cur <= 800000)
+	else if (cur <= 800)
 		reg_val = 0x2;
 	else
 		reg_val = 0x3;
@@ -600,24 +570,54 @@ bq24157_charger_get_limit_current(struct bq24157_charger_info *info,
 
 	switch (reg_val) {
 	case 0:
-		*limit_cur = 100000;
+		*limit_cur = 100;
 		break;
 	case 1:
-		*limit_cur = 500000;
+		*limit_cur = 500;
 		break;
 	case 2:
-		*limit_cur = 800000;
+		*limit_cur = 800;
 		break;
 	case 3:
-		*limit_cur = 1500000;
+		*limit_cur = 1500;
 		break;
 	default:
-		*limit_cur = 1500000;
+		*limit_cur = 1500;
 	}
 
 	return 0;
 }
 
+static void bq24157_set_tmr_rst(struct bq24157_charger_info *info, u8 val)
+{
+	
+	
+	bq24157_update_bits(info, BQ24157_CON0,
+				CON0_TMR_RST_MASK,
+				CON0_TMR_RST_SHIFT,
+				val
+				);
+	bq24157_dump_register(info);
+
+	if(info->charging )
+	{
+		watchdog_time++;
+	       if(watchdog_time > 240)
+       	{
+			dev_err(info->dev,"%s;%d;\n",__func__,watchdog_time);
+			watchdog_time = 0;
+			bq24157_charger_set_limit_current(info, info->limit_current);
+			bq24157_charger_set_current(info, info->chg_current);
+			bq24157_charger_start_charge(info);
+	       }
+		
+	}
+	else
+	{
+		watchdog_time = 0;
+	}
+	
+}
 static int bq24157_charger_get_health(struct bq24157_charger_info *info,
 				     u32 *health)
 {
@@ -720,11 +720,11 @@ static void bq24157_charger_work(struct work_struct *data)
 			cur = info->cur.unknown_cur;
 		}
 
-		ret = bq24157_charger_set_limit_current(info, limit_cur);
+		ret = bq24157_charger_set_limit_current(info, limit_cur/1000);
 		if (ret)
 			goto out;
 
-		ret = bq24157_charger_set_current(info, cur);
+		ret = bq24157_charger_set_current(info, cur/1000);
 		if (ret)
 			goto out;
 
@@ -786,7 +786,7 @@ static int bq24157_charger_usb_get_property(struct power_supply *psy,
 			if (ret)
 				goto out;
 
-			val->intval = cur;
+			val->intval = cur *1000;
 		}
 		break;
 
@@ -798,7 +798,7 @@ static int bq24157_charger_usb_get_property(struct power_supply *psy,
 			if (ret)
 				goto out;
 
-			val->intval = cur;
+			val->intval = cur *1000;
 		}
 		break;
 
@@ -893,12 +893,12 @@ static int bq24157_charger_usb_set_property(struct power_supply *psy,
 
 	switch (psp) {
 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT:
-		ret = bq24157_charger_set_current(info, val->intval);
+		ret = bq24157_charger_set_current(info, val->intval/1000);
 		if (ret < 0)
 			dev_err(info->dev, "set charge current failed\n");
 		break;
 	case POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT:
-		ret = bq24157_charger_set_limit_current(info, val->intval);
+		ret = bq24157_charger_set_limit_current(info, val->intval/1000);
 		if (ret < 0)
 			dev_err(info->dev, "set input current limit failed\n");
 		break;
