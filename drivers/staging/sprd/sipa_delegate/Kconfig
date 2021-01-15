@@ -3,7 +3,7 @@ menu "SIPA delegate modules"
 config SPRD_SIPA_DELEGATE
 	bool "Enable delegate for modem side sipa"
 	default n
-	depends on SPRD_SIPA
+	depends on SPRD_SIPA || SPRD_SIPA_V3
 	help
 	  This option enables delegate for modem side sipa.
 
