@@ -6,6 +6,7 @@
 #include <linux/platform_device.h>
 #include <linux/clk.h>
 #include <linux/of.h>
+#include <linux/of_device.h>
 #include <linux/pwm.h>
 #include <linux/mutex.h>
 #include <linux/io.h>
@@ -13,7 +14,6 @@
 #include <linux/err.h>
 
 #define NUM_PWM		4
-#define PWM_REGS_SHIFT	5
 #define PWM_MOD_MAX	GENMASK(9, 0)
 #define PWM_REG_MSK	GENMASK(15, 0)
 
@@ -30,35 +30,49 @@
 #define PWM_CLK_PARENT	"clk_parent"
 #define PWM_CLK		"clk_pwm"
 
+struct sprd_pwd_data {
+	int reg_shift;
+};
+
 struct sprd_pwm_chip {
 	void __iomem *mmio_base;
 	int num_pwms;
+	const struct sprd_pwd_data *pdata;
 	struct clk *clk_pwm[NUM_PWM];
 	struct clk *clk_eb[NUM_PWM];
 	bool eb_enabled[NUM_PWM];
 	struct pwm_chip chip;
 };
 
-static inline u32 sprd_pwm_readl(struct sprd_pwm_chip *chip, u32 num,
-					u32 offset)
+static const struct sprd_pwd_data sharkl5_data = {
+	.reg_shift = 5,
+};
+
+static const struct sprd_pwd_data qogirn6pro_data = {
+	.reg_shift = 14,
+};
+
+static inline u32 sprd_pwm_readl(struct sprd_pwm_chip *chip,
+				 u32 num, u32 offset)
 {
 	return readl_relaxed((void __iomem *)(chip->mmio_base +
-					(num << PWM_REGS_SHIFT) + offset));
+					      (num << chip->pdata->reg_shift) +
+					      offset));
 }
 
-static inline void sprd_pwm_writel(struct sprd_pwm_chip *chip,
-					u32 num, u32 offset,
-					u32 val)
+static inline void sprd_pwm_writel(struct sprd_pwm_chip *chip, u32 num,
+				   u32 offset, u32 val)
 {
 	writel_relaxed(val, (void __iomem *)(chip->mmio_base +
-			(num << PWM_REGS_SHIFT) + offset));
+					     (num << chip->pdata->reg_shift) +
+					     offset));
 }
 
 static int sprd_pwm_config(struct pwm_chip *chip, struct pwm_device *pwm,
-				int duty_ns, int period_ns)
+			   int duty_ns, int period_ns)
 {
 	struct sprd_pwm_chip *spc = container_of(chip,
-		struct sprd_pwm_chip, chip);
+						 struct sprd_pwm_chip, chip);
 	u64 clk_rate, div, val, tmp;
 	int rc, prescale, level;
 
@@ -147,7 +161,7 @@ static void sprd_pwm_disable(struct pwm_chip *chip, struct pwm_device *pwm)
 }
 
 static void sprd_pwm_get_state(struct pwm_chip *chip, struct pwm_device *pwm,
-			struct pwm_state *state)
+			       struct pwm_state *state)
 {
 	int rc, duty_ns, period_ns;
 	u32 enabled, duty, prescale;
@@ -157,9 +171,7 @@ static void sprd_pwm_get_state(struct pwm_chip *chip, struct pwm_device *pwm,
 
 	rc = clk_prepare_enable(spc->clk_eb[pwm->hwpwm]);
 	if (rc) {
-		dev_err(chip->dev,
-				"enable pwm%u eb failed\n",
-				pwm->hwpwm);
+		dev_err(chip->dev, "enable pwm%u eb failed\n", pwm->hwpwm);
 		return;
 	}
 	spc->eb_enabled[pwm->hwpwm] = true;
@@ -167,9 +179,7 @@ static void sprd_pwm_get_state(struct pwm_chip *chip, struct pwm_device *pwm,
 	if (rc) {
 		clk_disable_unprepare(spc->clk_eb[pwm->hwpwm]);
 		spc->eb_enabled[pwm->hwpwm] = false;
-		dev_err(chip->dev,
-				"enable pwm%u clk failed\n",
-				pwm->hwpwm);
+		dev_err(chip->dev, "enable pwm%u clk failed\n", pwm->hwpwm);
 		return;
 	}
 
@@ -260,7 +270,8 @@ static int sprd_pwm_clk_init(struct platform_device *pdev)
 }
 
 static const struct of_device_id sprd_pwm_of_match[] = {
-	{ .compatible = "sprd,sharkl5-pwm", },
+	{ .compatible = "sprd,sharkl5-pwm", .data = (void *)&sharkl5_data},
+	{ .compatible = "sprd,qogirn6pro-pwm", .data = (void *)&qogirn6pro_data},
 	{},
 };
 MODULE_DEVICE_TABLE(of, sprd_pwm_of_match);
@@ -269,6 +280,7 @@ static int sprd_pwm_probe(struct platform_device *pdev)
 {
 	struct sprd_pwm_chip *spc;
 	struct resource *res;
+	const void *priv_data;
 	int ret;
 
 	spc = devm_kzalloc(&pdev->dev, sizeof(*spc), GFP_KERNEL);
@@ -279,6 +291,13 @@ static int sprd_pwm_probe(struct platform_device *pdev)
 	spc->mmio_base = devm_ioremap_resource(&pdev->dev, res);
 	if (IS_ERR(spc->mmio_base))
 		return PTR_ERR(spc->mmio_base);
+
+	priv_data = of_device_get_match_data(&pdev->dev);
+	if (!priv_data) {
+		dev_err(&pdev->dev, "get regs shift failed!\n");
+		return -EINVAL;
+	}
+	spc->pdata = priv_data;
 
 	platform_set_drvdata(pdev, spc);
 
