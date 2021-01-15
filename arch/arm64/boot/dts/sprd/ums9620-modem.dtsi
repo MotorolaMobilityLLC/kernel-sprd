@@ -81,7 +81,8 @@
 		sprd,core = <2>;
 		sprd,core_sensor = <6>;
 		/* <ap-addr dst-maped-addr size> */
-		sprd,smem-info = <0x6500d000 0x6500d000 0x2000>;
+		sprd,smem-info = <0x6500d000 0x6500d000 0x2000>,
+				 <0xae600000 0x80000000 0x40000>;
 	};
 
 	sipc_pscp: sipc@2 {
