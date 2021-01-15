@@ -108,6 +108,10 @@
 			efuse_blk16: calib@2c {
 				reg = <0x2c 0x2>;
 			};
+
+			fchg_calib: calib@12 {
+				reg = <0x18 0x2>;
+			};
 		};
 
 		pmic_typec: typec@380 {
@@ -129,6 +133,16 @@
 			hwlocks = <&hwlock 4>;
 			nvmem-cells = <&adc_bcal>, <&adc_scal>;
 			nvmem-cell-names = "big_scale_calib", "small_scale_calib";
+		};
+
+		pmic_fchg: fchg@900 {
+			compatible = "sprd,sc27xx-fast-chg", "sprd,sc2721-fast-charger";
+			reg = <0x900>;
+			interrupt-parent = <&sc2721_pmic>;
+			interrupts = <5 IRQ_TYPE_LEVEL_HIGH>;
+			nvmem-cell-names = "fchg_cur_calib";
+			nvmem-cells = <&fchg_calib>;
+			status = "disabled";
 		};
 
 		pmic_fgu: fgu@a00 {
