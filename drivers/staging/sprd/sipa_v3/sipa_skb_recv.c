@@ -274,6 +274,9 @@ void sipa_init_free_fifo(struct sipa_skb_receiver *receiver, u32 cnt,
 	struct sipa_skb_array *skb_array;
 
 	i = id - SIPA_FIFO_MAP0_OUT;
+	if (i >= SIPA_RECV_QUEUES_MAX)
+		return;
+
 	skb_array = per_cpu_ptr(receiver->fill_array, i);
 	sipa_hal_add_rx_fifo_wptr(receiver->dev,
 				  receiver->ep->recv_fifo.idx + i,
