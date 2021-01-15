@@ -299,77 +299,6 @@
 			#size-cells = <2>;
 			ranges;
 
-			mm_domain: power-domain@327e0024 {
-				compatible = "sprd,camsys-domain";
-				force-shutdown = <&pmu_apb_regs
-					REG_PMU_APB_RF_PD_MM_TOP_CFG
-					MASK_PMU_APB_RF_PD_MM_TOP_FORCE_SHUTDOWN>;
-				shutdown-en = <&pmu_apb_regs
-					REG_PMU_APB_RF_PD_MM_TOP_CFG
-					MASK_PMU_APB_RF_PD_MM_TOP_AUTO_SHUTDOWN_EN>;
-				power-state = <&pmu_apb_regs
-					REG_PMU_APB_RF_PWR_STATUS3_DBG
-					MASK_PMU_APB_RF_PD_MM_TOP_STATE>;
-				qos-ar = <&mm_ahb_regs
-					REG_MM_AHB_RF_MM_QOS
-					MASK_MM_AHB_RF_AR_QOS_THRESHOLD_MM>;
-				qos-aw = <&mm_ahb_regs
-					REG_MM_AHB_RF_MM_QOS
-					MASK_MM_AHB_RF_AW_QOS_THRESHOLD_MM>;
-				clock-names = "clk_mm_eb",
-					"clk_mm_ahb_eb",
-					"clk_mm_ahb",
-					"clk_mm_ahb_parent",
-					"clk_mm_mtx",
-					"clk_mm_mtx_parent",
-					"clk_isppll";
-				clocks = <&aonapb_gate CLK_MM_EB>,
-					<&mm_gate CLK_MM_CKG_EB>,
-					<&mm_clk CLK_MM_AHB>,
-					<&pll2 CLK_TWPLL_153M6>,
-					<&mm_clk CLK_MM_MTX>,
-					<&pll2 CLK_TWPLL_512M>,
-					<&pll2 CLK_ISPPLL_468M>;
-				mm_qos_threshold = <&mm_qos_threshold>;
-				#power-domain-cells = <0>;
-				status = "disabled";
-			};
-
-			mipi_csi_phy0: mipi-csi-phy0 {
-				compatible = "sprd,mipi-csi-phy";
-				sprd,phyid = <0>;
-				sprd,phyname = "4lane";
-				status = "disabled";
-			};
-
-			mipi_csi_phy1: mipi-csi-phy1 {
-				compatible = "sprd,mipi-csi-phy";
-				sprd,phyid = <1>;
-				sprd,phyname = "2p2";
-				status = "disabled";
-			};
-
-			mipi_csi_phy1_m: mipi-csi-phy1-m {
-				compatible = "sprd,mipi-csi-phy";
-				sprd,phyid = <3>;
-				sprd,phyname = "2p2_m";
-				status = "disabled";
-			};
-
-			mipi_csi_phy1_s: mipi-csi-phy1-s {
-				compatible = "sprd,mipi-csi-phy";
-				sprd,phyid = <4>;
-				sprd,phyname = "2p2_s";
-				status = "disabled";
-			};
-
-			mipi_csi_phy2: mipi-csi-phy2 {
-				compatible = "sprd,mipi-csi-phy";
-				sprd,phyid = <2>;
-				sprd,phyname = "2lane";
-				status = "disabled";
-			};
-
 			gpu: gpu@60000000 {
 				compatible = "sprd,mali-gondul";
 				reg = <0x0 0x60000000 0x0 0x100000>;
@@ -462,58 +391,75 @@
 				sprd,dvfs-range-min = <0>;
 			};
 
-			isp: isp@62000000 {
-				compatible = "sprd,isp";
-				reg = <0 0x62000000 0 0x100000>;
-				interrupts = <GIC_SPI 43 IRQ_TYPE_LEVEL_HIGH>,
-					<GIC_SPI 44 IRQ_TYPE_LEVEL_HIGH>;
-				interrupts_name = "ispch0", "ispch1";
-				clock-names = "isp_eb",
-					"isp_axi_eb", /* no need read, TBC */
-					"isp_clk",
-					"isp_clk_256m",
-					"isp_clk_307m2",
-					"isp_clk_384m",
-					"isp_clk_468m",
-					"isp_clk_512m",
-					"isp_clk_parent";
-				clocks = <&mm_gate CLK_MM_ISP_EB>,
-					<&mm_gate CLK_ISP_AHB_EB>,
-					<&mm_clk CLK_ISP>,
-					<&pll2 CLK_TWPLL_256M>,
-					<&pll2 CLK_TWPLL_307M2>,
-					<&pll2 CLK_TWPLL_384M>,
-					<&pll2 CLK_ISPPLL_468M>,
+			mm_domain: power-domain@327e0024 {
+				compatible = "sprd,sharkl5pro-camsys-domain";
+				force-shutdown = <&pmu_apb_regs
+					REG_PMU_APB_RF_PD_MM_TOP_CFG
+					MASK_PMU_APB_RF_PD_MM_TOP_FORCE_SHUTDOWN>;
+				shutdown-en = <&pmu_apb_regs
+					REG_PMU_APB_RF_PD_MM_TOP_CFG
+					MASK_PMU_APB_RF_PD_MM_TOP_AUTO_SHUTDOWN_EN>;
+				power-state = <&pmu_apb_regs
+					REG_PMU_APB_RF_PWR_STATUS3_DBG
+					MASK_PMU_APB_RF_PD_MM_TOP_STATE>;
+				qos-ar = <&mm_ahb_regs
+					REG_MM_AHB_RF_MM_QOS
+					MASK_MM_AHB_RF_AR_QOS_THRESHOLD_MM>;
+				qos-aw = <&mm_ahb_regs
+					REG_MM_AHB_RF_MM_QOS
+					MASK_MM_AHB_RF_AW_QOS_THRESHOLD_MM>;
+				clock-names = "clk_mm_eb",
+					"clk_mm_ahb_eb",
+					"clk_mm_ahb",
+					"clk_mm_ahb_parent",
+					"clk_mm_mtx",
+					"clk_mm_mtx_parent",
+					"clk_isppll";
+				clocks = <&aonapb_gate CLK_MM_EB>,
+					<&mm_gate CLK_MM_CKG_EB>,
+					<&mm_clk CLK_MM_AHB>,
+					<&pll2 CLK_TWPLL_153M6>,
+					<&mm_clk CLK_MM_MTX>,
 					<&pll2 CLK_TWPLL_512M>,
-					<&pll2 CLK_TWPLL_512M>;
-				reset = <&mm_ahb_regs
-					REG_MM_AHB_RF_AHB_RST
-					MASK_MM_AHB_RF_ISP_SOFT_RST>;
-				isp_ahb_reset = <&mm_ahb_regs
-					REG_MM_AHB_RF_AHB_RST
-					MASK_MM_AHB_RF_ISP_AHB_SOFT_RST>;
-				isp_vau_reset = <&mm_ahb_regs
-					REG_MM_AHB_RF_AHB_RST
-					MASK_MM_AHB_RF_ISP_VAU_SOFT_RST>;
-				isp_enable = <&mm_ahb_regs
-					REG_MM_AHB_RF_AHB_EB
-					MASK_MM_AHB_RF_ISP_EB>;
-				sprd,cam-ahb-syscon = <&mm_ahb_regs>;
-				sprd,isp-count = <1>;
-				iommus = <&iommu_isp>;
-				isp_qos = <&isp_qos>;
+					<&pll2 CLK_ISPPLL_468M>;
+				mm_qos_threshold = <&mm_qos_threshold>;
+				#power-domain-cells = <0>;
 				status = "disabled";
 			};
 
-			iommu_isp: iommu@62000000 {
-				compatible = "sprd,iommuvaul5p-isp";
-				reg = <0x0 0x62000000 0x0 0xff000>,
-				      <0x0 0x620ff000 0x0 0x80>;
-				iova-base = <0x40000000>;
-				iova-size = <0x20000000>;
-				reg_name = "mmu_interrupt_reg","mmu_reg";
+			mipi_csi_phy0: mipi-csi-phy0 {
+				compatible = "sprd,mipi-csi-phy";
+				sprd,phyid = <0>;
+				sprd,phyname = "4lane";
 				status = "disabled";
-				#iommu-cells = <0>;
+			};
+
+			mipi_csi_phy1: mipi-csi-phy1 {
+				compatible = "sprd,mipi-csi-phy";
+				sprd,phyid = <1>;
+				sprd,phyname = "2p2";
+				status = "disabled";
+			};
+
+			mipi_csi_phy1_m: mipi-csi-phy1-m {
+				compatible = "sprd,mipi-csi-phy";
+				sprd,phyid = <3>;
+				sprd,phyname = "2p2_m";
+				status = "disabled";
+			};
+
+			mipi_csi_phy1_s: mipi-csi-phy1-s {
+				compatible = "sprd,mipi-csi-phy";
+				sprd,phyid = <4>;
+				sprd,phyname = "2p2_s";
+				status = "disabled";
+			};
+
+			mipi_csi_phy2: mipi-csi-phy2 {
+				compatible = "sprd,mipi-csi-phy";
+				sprd,phyid = <2>;
+				sprd,phyname = "2lane";
+				status = "disabled";
 			};
 
 			csi0: csi00@62300000 {
@@ -585,57 +531,53 @@
 				status = "disabled";
 			};
 
-
-			jpg: jpg-codec@62700000 {
-				compatible = "sprd,sharkl5pro-jpg";
-				reg = <0 0x62700000 0 0xc000>;
-				interrupts = <GIC_SPI 42 IRQ_TYPE_LEVEL_HIGH>;
-				reset-syscon = <&mm_ahb_regs
+			isp: isp@62000000 {
+				compatible = "sprd,isp";
+				reg = <0 0x62000000 0 0x100000>;
+				interrupts = <GIC_SPI 43 IRQ_TYPE_LEVEL_HIGH>,
+					<GIC_SPI 44 IRQ_TYPE_LEVEL_HIGH>;
+				interrupts_name = "ispch0", "ispch1";
+				clock-names = "isp_eb",
+					"isp_axi_eb", /* no need read, TBC */
+					"isp_clk",
+					"isp_clk_256m",
+					"isp_clk_307m2",
+					"isp_clk_384m",
+					"isp_clk_468m",
+					"isp_clk_512m",
+					"isp_clk_parent";
+				clocks = <&mm_gate CLK_MM_ISP_EB>,
+					<&mm_gate CLK_ISP_AHB_EB>,
+					<&mm_clk CLK_ISP>,
+					<&pll2 CLK_TWPLL_256M>,
+					<&pll2 CLK_TWPLL_307M2>,
+					<&pll2 CLK_TWPLL_384M>,
+					<&pll2 CLK_ISPPLL_468M>,
+					<&pll2 CLK_TWPLL_512M>,
+					<&pll2 CLK_TWPLL_512M>;
+				reset = <&mm_ahb_regs
 					REG_MM_AHB_RF_AHB_RST
-					MASK_MM_AHB_RF_JPG_SOFT_RST>;
-				aon-apb-eb-syscon = <&aon_apb_regs
-					REG_AON_APB_RF_APB_EB0
-					MASK_AON_APB_RF_MM_EB>;
-				iommus = <&iommu_jpg>;
-				power-domains = <&mm_domain>;
-				/*sprd,qos = <&jpg_qos>;*/
-				status = "disabled";
-			};
-
-			iommu_jpg: iommu@62700300 {
-				compatible = "sprd,iommuvaul5p-jpg";
-				reg = <0x0 0x62700300 0x0 0x80>,
-					<0x0 0x62700300 0x0 0x80>;
-				iova-base = <0x60000000>;
-				iova-size = <0x10000000>;
-				reg_name = "mmu_reg";
-				status = "disabled";
-				#iommu-cells = <0>;
-			};
-
-			cpp: cpp@62800000 {
-				compatible = "sprd,cpp";
-				reg = <0 0x62800000 0 0x1000>;
-				interrupts = <GIC_SPI 41 IRQ_TYPE_LEVEL_HIGH>;
-				clock-names = "cpp_eb",
-					"cpp_axi_eb", /* no need read, TBC */
-					"cpp_clk",
-					"cpp_clk_parent";
-				clocks = <&mm_gate CLK_MM_CPP_EB>,
-					<&mm_gate CLK_MM_ISP_EB>,
-					<&mm_clk CLK_CPP>,
-					<&pll2 CLK_TWPLL_384M>;
+					MASK_MM_AHB_RF_ISP_SOFT_RST>;
+				isp_ahb_reset = <&mm_ahb_regs
+					REG_MM_AHB_RF_AHB_RST
+					MASK_MM_AHB_RF_ISP_AHB_SOFT_RST>;
+				isp_vau_reset = <&mm_ahb_regs
+					REG_MM_AHB_RF_AHB_RST
+					MASK_MM_AHB_RF_ISP_VAU_SOFT_RST>;
+				isp_enable = <&mm_ahb_regs
+					REG_MM_AHB_RF_AHB_EB
+					MASK_MM_AHB_RF_ISP_EB>;
 				sprd,cam-ahb-syscon = <&mm_ahb_regs>;
-				iommus = <&iommu_cpp>;
-				cpp_qos = <&cpp_qos>;
-				power-domains = <&mm_domain>;
+				sprd,isp-count = <1>;
+				iommus = <&iommu_isp>;
+				isp_qos = <&isp_qos>;
 				status = "disabled";
 			};
 
-			iommu_cpp: iommu@62800000 {
-				compatible = "sprd,iommuvaul5p-cpp";
-				reg = <0x0 0x62800000 0x0 0x200>,
-				      <0x0 0x62800200 0x0 0x80>;
+			iommu_isp: iommu@62000000 {
+				compatible = "sprd,iommuvaul5p-isp";
+				reg = <0x0 0x62000000 0x0 0xff000>,
+				      <0x0 0x620ff000 0x0 0x80>;
 				iova-base = <0x40000000>;
 				iova-size = <0x20000000>;
 				reg_name = "mmu_interrupt_reg","mmu_reg";
@@ -723,6 +665,36 @@
 				#iommu-cells = <0>;
 			};
 
+			cpp: cpp@62800000 {
+				compatible = "sprd,cpp";
+				reg = <0 0x62800000 0 0x1000>;
+				interrupts = <GIC_SPI 41 IRQ_TYPE_LEVEL_HIGH>;
+				clock-names = "cpp_eb",
+					"cpp_axi_eb", /* no need read, TBC */
+					"cpp_clk",
+					"cpp_clk_parent";
+				clocks = <&mm_gate CLK_MM_CPP_EB>,
+					<&mm_gate CLK_MM_ISP_EB>,
+					<&mm_clk CLK_CPP>,
+					<&pll2 CLK_TWPLL_384M>;
+				sprd,cam-ahb-syscon = <&mm_ahb_regs>;
+				iommus = <&iommu_cpp>;
+				cpp_qos = <&cpp_qos>;
+				power-domains = <&mm_domain>;
+				status = "disabled";
+			};
+
+			iommu_cpp: iommu@62800000 {
+				compatible = "sprd,iommuvaul5p-cpp";
+				reg = <0x0 0x62800000 0x0 0x200>,
+				      <0x0 0x62800200 0x0 0x80>;
+				iova-base = <0x40000000>;
+				iova-size = <0x20000000>;
+				reg_name = "mmu_interrupt_reg","mmu_reg";
+				status = "disabled";
+				#iommu-cells = <0>;
+			};
+
 			fd: fd@62a00000 {
 				compatible = "sprd,fd";
 				reg = <0 0x62a00000 0 0x100000>;
@@ -764,6 +736,33 @@
 				iova-base = <0x10000000>;
 				iova-size = <0x10000000>;
 				reg_name = "mmu_interrupt_reg","mmu_reg";
+				status = "disabled";
+				#iommu-cells = <0>;
+			};
+
+			jpg: jpg-codec@62700000 {
+				compatible = "sprd,sharkl5pro-jpg";
+				reg = <0 0x62700000 0 0xc000>;
+				interrupts = <GIC_SPI 42 IRQ_TYPE_LEVEL_HIGH>;
+				reset-syscon = <&mm_ahb_regs
+					REG_MM_AHB_RF_AHB_RST
+					MASK_MM_AHB_RF_JPG_SOFT_RST>;
+				aon-apb-eb-syscon = <&aon_apb_regs
+					REG_AON_APB_RF_APB_EB0
+					MASK_AON_APB_RF_MM_EB>;
+				iommus = <&iommu_jpg>;
+				power-domains = <&mm_domain>;
+				/*sprd,qos = <&jpg_qos>;*/
+				status = "disabled";
+			};
+
+			iommu_jpg: iommu@62700300 {
+				compatible = "sprd,iommuvaul5p-jpg";
+				reg = <0x0 0x62700300 0x0 0x80>,
+					<0x0 0x62700300 0x0 0x80>;
+				iova-base = <0x60000000>;
+				iova-size = <0x10000000>;
+				reg_name = "mmu_reg";
 				status = "disabled";
 				#iommu-cells = <0>;
 			};
