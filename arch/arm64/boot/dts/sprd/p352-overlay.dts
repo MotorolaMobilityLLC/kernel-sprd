@@ -208,7 +208,7 @@
 				cm-wdt-interval = <60>;
 
 				/* drop voltage in microVolts to allow shutdown */
-				cm-shutdown-voltage = <3100000>;
+				cm-shutdown-voltage = <3250000>;
 
 				/* when 99% of the time is exceeded, it will be forced to 100% */
 				cm-tickle-time-out = <300>;
