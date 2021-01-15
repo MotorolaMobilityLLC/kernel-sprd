@@ -287,16 +287,16 @@
 		reg = <0x0 0x9e000000 0x0 0x00ab0000>;
 	};
 
-	fd_reserved: faceid-mem@fac50000 {
-		reg = <0x0 0xfac50000 0x0 0x01e00000>;
+	fd_reserved: faceid-mem@faaa0000 {
+		reg = <0x0 0xfaaa0000 0x0 0x01e00000>;
 	};
 
-	wb_reserved: writeback-mem@fca50000 {
-		reg = <0x0 0xfca50000 0x0 0x00ab0000>;
+	wb_reserved: writeback-mem@fc8a0000 {
+		reg = <0x0 0xfc8a0000 0x0 0x00ae0000>;
 	};
 
-	fb_reserved: framebuffer-mem@fd500000 {
-		reg = <0x0 0xfd500000 0x0 0x02a80000>;
+	fb_reserved: framebuffer-mem@fd380000 {
+		reg = <0x0 0xfd380000 0x0 0x02c00000>;
 	};
 };
 
