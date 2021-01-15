@@ -1003,6 +1003,26 @@
 				clocks = <&aonapb_gate CLK_EFUSE_EB>;
 			};
 
+			pwms: pwm@30000 {
+				compatible = "sprd,qogirn6pro-pwm";
+				reg = <0x30000 0x10000>;
+				clock-names = "clk_parent",
+					"clk_pwm0", "clk_pwm0_eb",
+					"clk_pwm1", "clk_pwm1_eb",
+					"clk_pwm2", "clk_pwm2_eb",
+					"clk_pwm3", "clk_pwm3_eb";
+				clocks = <&ext_26m>,
+					<&aonapb_clk CLK_PWM0>,
+					<&aonapb_gate CLK_PWM0_EB>,
+					<&aonapb_clk CLK_PWM1>,
+					<&aonapb_gate CLK_PWM1_EB>,
+					<&aonapb_clk CLK_PWM2>,
+					<&aonapb_gate CLK_PWM2_EB>,
+					<&aonapb_clk CLK_PWM3>,
+					<&aonapb_gate CLK_PWM3_EB>;
+				#pwm-cells = <2>;
+			};
+
 			ap_gpio: gpio@170000 {
 				compatible = "sprd,qogirn6pro-gpio","sprd,qogirl6-gpio";
 				reg = <0x170000 0x10000>;
