@@ -1,7 +1,3 @@
-ifeq ($(TARGET_BUILD_VARIANT),userdebug)
-ccflags-y += -DCONFIG_USERDEBUG_MODE
-endif
-
 obj-$(CONFIG_SPRD_MEMDISK)	+= sprd_memdisk.o
 obj-$(CONFIG_SPRD_7SRESET)	+= sprd_7sreset.o
 obj-$(CONFIG_SPRD_POWER_DEBUG)	+= sprd_powerdebug.o
