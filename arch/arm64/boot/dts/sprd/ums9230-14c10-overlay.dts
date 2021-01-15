@@ -232,8 +232,8 @@
 	status = "okay";
 	clock-frequency = <400000>;
 
-	bq2415x_charger: charger@6a {
-		compatible = "ti,bq24157";
+	aw32257_charger: charger@6a {
+		compatible = "aw32257";
 		reg = <0x6a>;
 		phys = <&hsphy>;
 		monitored-battery = <&bat>;
