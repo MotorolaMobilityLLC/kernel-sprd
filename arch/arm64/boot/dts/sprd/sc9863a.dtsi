@@ -11,6 +11,8 @@
 #include "sc9863a-modem.dtsi"
 
 / {
+	cpuinfo_hardware = "Unisoc SC9863A";
+
 	cpus {
 		#address-cells = <2>;
 		#size-cells = <0>;
