@@ -880,10 +880,8 @@ int sfp_mgr_fwd_ct_tcp_sure(struct nf_conn *ct)
 				dir = curr_fwd_hash->tuple.dst.dir;
 				target_hash = &sfp_ct->tuplehash[!dir];
 
-				sfp_ct->timeout.expires =
-					jiffies + SFP_TCP_ESTABLISHED_TIME;
 				mod_timer(&sfp_ct->timeout,
-					  sfp_ct->timeout.expires);
+					  jiffies + SFP_TCP_ESTABLISHED_TIME);
 				FP_PRT_DBG(FP_PRT_DEBUG,
 					   "insert new fwd entry [%u]\n", hash);
 				FP_PRT_TRUPLE_INFO(FP_PRT_DEBUG,

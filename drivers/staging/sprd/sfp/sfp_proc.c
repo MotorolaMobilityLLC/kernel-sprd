@@ -30,6 +30,7 @@ static struct proc_dir_entry *sfp_proc_enable;
 static struct proc_dir_entry *sfp_proc_tether_scheme;
 #ifdef CONFIG_SPRD_SFP_TEST
 static struct proc_dir_entry *sfp_test;
+static struct proc_dir_entry *sfp_test_result;
 #endif
 
 unsigned int fp_dbg_lvl = FP_PRT_ALL;
@@ -412,6 +413,45 @@ static const struct file_operations proc_sfp_file_test_ops = {
 	.llseek  = seq_lseek,
 	.release = single_release,
 };
+
+static int sfp_test_result_proc_show(struct seq_file *seq, void *v)
+{
+	seq_printf(seq, "%d\n", test_result);
+	return 0;
+}
+
+static ssize_t sfp_test_result_proc_write(struct file *file,
+					  const char __user *buffer,
+					  size_t count,
+					  loff_t *pos)
+{
+	int result;
+	int ret;
+
+	if (count > 0) {
+		ret = kstrtouint_from_user(buffer, count, 10, &result);
+		FP_PRT_DBG(FP_PRT_DEBUG,
+			   "test_result_proc = %d, ret %d\n", result, ret);
+		if (ret < 0)
+			return -EFAULT;
+
+		test_result = result;
+	}
+	return count;
+}
+
+static int sfp_test_result_proc_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, sfp_test_result_proc_show, NULL);
+}
+
+static const struct file_operations proc_sfp_file_test_result_ops = {
+	.open  = sfp_test_result_proc_open,
+	.read  = seq_read,
+	.write  = sfp_test_result_proc_write,
+	.llseek  = seq_lseek,
+	.release = single_release,
+};
 #endif
 
 /********Mgr_fp fwd show********************************/
@@ -633,9 +673,22 @@ int sfp_proc_create(void)
 		ret = -ENOMEM;
 		goto no_test_entry;
 	}
+
+	sfp_test_result = proc_create_data("test_result", proc_nfp_perms,
+					   procdir,
+					   &proc_sfp_file_test_result_ops,
+					   NULL);
+
+	if (!sfp_test_result) {
+		pr_err("nfp: failed to create sfp/test result file\n");
+		ret = -ENOMEM;
+		goto no_test_result_entry;
+	}
 #endif
 	return 0;
 #ifdef CONFIG_SPRD_SFP_TEST
+no_test_result_entry:
+	remove_proc_entry("test", procdir);
 no_test_entry:
 	remove_proc_entry("debug", procdir);
 #endif
@@ -657,6 +710,7 @@ EXPORT_SYMBOL(sfp_proc_create);
 
 int nfp_proc_exit(void)
 {
+	remove_proc_entry("test_result", procdir);
 	remove_proc_entry("test", procdir);
 	remove_proc_entry("debug", procdir);
 	remove_proc_entry("tether_scheme", procdir);

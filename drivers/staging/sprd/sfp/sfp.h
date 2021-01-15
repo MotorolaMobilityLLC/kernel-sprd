@@ -352,6 +352,7 @@ extern struct sfp_fwd_hash_tbl fwd_tbl;
 #ifdef CONFIG_SPRD_SFP_TEST
 int sfp_test_init(int count);
 extern int test_count;
+extern int test_result;
 #endif
 
 /* Copy 6 bytes. Warning - doesn't perform any checks on memory, just copies */
@@ -537,6 +538,6 @@ void sfp_ipa_fwd_clear(void);
 void sfp_ipa_swap_tbl(void);
 void sfp_clear_all_ipa_tbl(void);
 int sfp_tbl_id(void);
-
+void sfp_clear_fwd_table(int ifindex);
 u32 hash_conntrack(const struct nf_conntrack_tuple *tuple);
 #endif

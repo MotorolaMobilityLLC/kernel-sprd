@@ -330,7 +330,7 @@ static void sfp_dma_hash_tbl_init(u8 *ipa_tbl_ptr, int n)
 
 void sfp_ipa_swap_tbl(void)
 {
-	struct sipa_hash_table ot;
+	//struct sipa_hash_table ot;
 
 	FP_PRT_DBG(FP_PRT_DEBUG,
 		   "##swap tbl %llx to ipa, depth %d, index %d\n",
@@ -338,8 +338,8 @@ void sfp_ipa_swap_tbl(void)
 		   fwd_tbl.ipa_tbl_mgr.tbl[NEW_TBL_ID].sipa_tbl.depth,
 		   NEW_TBL_ID);
 
-	sipa_swap_hash_table(&fwd_tbl.ipa_tbl_mgr.tbl[NEW_TBL_ID].sipa_tbl,
-			     &ot);
+	//sipa_swap_hash_table(&fwd_tbl.ipa_tbl_mgr.tbl[NEW_TBL_ID].sipa_tbl,
+	//		     &ot);
 
 	sfp_swap_tbl_id();
 }
@@ -496,11 +496,10 @@ bool sfp_ipa_tbl_timeout(struct sfp_conn *sfp_ct)
 
 	if (sfp_ct->ts != ts) {
 		sfp_ct->ts = ts;
-		sfp_ct->timeout.expires = jiffies + sysctl_udp_aging_time;
 		FP_PRT_DBG(FP_PRT_INFO,
 			   "not timeout, hash [%u]!\n",
 			   sfp_ct->hash[IP_CT_DIR_ORIGINAL]);
-		mod_timer(&sfp_ct->timeout, sfp_ct->timeout.expires);
+		mod_timer(&sfp_ct->timeout, jiffies + sysctl_udp_aging_time);
 		return false;
 	}
 

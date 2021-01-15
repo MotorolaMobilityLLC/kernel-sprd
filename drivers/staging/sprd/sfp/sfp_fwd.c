@@ -202,8 +202,7 @@ void sfp_mode_timer(struct sfp_conn *ul_sfp_ct)
 
 		if (newtime - sfp_ct->timeout.expires >= HZ) {
 			spin_lock_bh(&mgr_lock);
-			sfp_ct->timeout.expires = newtime;
-			mod_timer(&sfp_ct->timeout, sfp_ct->timeout.expires);
+			mod_timer(&sfp_ct->timeout, newtime);
 			spin_unlock_bh(&mgr_lock);
 		}
 	}

@@ -70,11 +70,8 @@ void sfp_conntrack_in(struct net *net, u_int8_t pf,
 					   "fin, 2MSL start %p\n",
 					   sfp_ct);
 
-				sfp_ct->timeout.expires =
-					jiffies + SFP_TCP_TIME_WAIT;
-
 				mod_timer(&sfp_ct->timeout,
-					  sfp_ct->timeout.expires);
+					  jiffies + SFP_TCP_TIME_WAIT);
 				sfp_ct->fin_rst_flag++;
 			} else if (sfp_tcp_rst_chk(ct) &&
 				sfp_ct->fin_rst_flag < SFP_RST_FLAG) {
@@ -82,11 +79,8 @@ void sfp_conntrack_in(struct net *net, u_int8_t pf,
 					   "rst, will delet 10s later %p\n",
 					   sfp_ct);
 
-				sfp_ct->timeout.expires =
-					jiffies + SFP_TCP_CT_WAITING;
-
 				mod_timer(&sfp_ct->timeout,
-					  sfp_ct->timeout.expires);
+					  jiffies + SFP_TCP_CT_WAITING);
 				sfp_ct->fin_rst_flag += SFP_RST_FLAG;
 			}
 			spin_unlock_bh(&mgr_lock);
