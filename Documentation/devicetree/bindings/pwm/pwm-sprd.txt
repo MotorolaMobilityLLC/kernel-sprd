@@ -7,7 +7,7 @@ provides 4 PWM channels.
 
 Required porperties:
 - compatible : Should be one of the following:
-		"sprd,sharkl5-pwm"
+		"sprd,sharkl5-pwm","sprd,qogirn6pro-pwm".
 
 - reg: base address and size of register area
 
