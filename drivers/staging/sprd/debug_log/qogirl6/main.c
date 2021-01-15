@@ -44,7 +44,7 @@ static struct gpio_desc *mipi_gpio_id;
 #endif
 
 static u32 s_freq_array[] = {
-	1000000,
+	1400000,
 };
 
 /**
@@ -197,15 +197,17 @@ static void inter_dbg_log_init(struct dbg_log_device *dbg)
 	usleep_range(1000, 1100); /* Wait for 1mS */
 
 	/* wire PHY REG[B] : 0xEC */
-	dbg_phy_test_write(dbg->phy->dsi_apb, 0x8, 0xBF);
+	dbg_phy_test_write(dbg->phy->dsi_apb, 0x25, 0x7);
 	/* wire PHY REG[B] : 0xEC */
-	dbg_phy_test_write(dbg->phy->dsi_apb, 0x6, 0x4C);
+	dbg_phy_test_write(dbg->phy->dsi_apb, 0x8, 0xDE);
 	/* wire PHY REG[B] : 0xEC */
-	dbg_phy_test_write(dbg->phy->dsi_apb, 0x9, 0xEC);
+	dbg_phy_test_write(dbg->phy->dsi_apb, 0x6, 0x35);
+	/* wire PHY REG[B] : 0xEC */
+	dbg_phy_test_write(dbg->phy->dsi_apb, 0x9, 0xD8);
 	/* wire PHY REG[B] : 0x4E */
-	dbg_phy_test_write(dbg->phy->dsi_apb, 0xA, 0x4E);
+	dbg_phy_test_write(dbg->phy->dsi_apb, 0xA, 0x9D);
 	/* wire PHY REG[B] : 0xC2 */
-	dbg_phy_test_write(dbg->phy->dsi_apb, 0xB, 0xC2);
+	dbg_phy_test_write(dbg->phy->dsi_apb, 0xB, 0x81);
 	/* wire PHY REG[B] : 0x2 */
 
 	/* 130us */
@@ -350,7 +352,7 @@ static int dbg_log_probe(struct platform_device *pdev)
 	if (!dbg)
 		return -ENOMEM;
 
-	dbg->phy->freq = 1000000;
+	dbg->phy->freq = s_freq_array[0];
 	dbg->phy->dsi_apb = dsi_apb;
 	dbg->phy->mm_ahb = mm_ahb;
 	dbg->serdes.base = serdes_apb;
