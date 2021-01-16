@@ -136,6 +136,15 @@ s32 trusty_fast_call32_power(u32 smcnr, u32 a0, u32 a1, u32 a2)
 }
 EXPORT_SYMBOL(trusty_fast_call32_power);
 
+s32 trusty_fast_call32_shm(u32 smcnr, u32 a0, u32 a1, u32 a2)
+{
+
+	BUG_ON(!SMC_IS_FASTCALL(smcnr));
+	BUG_ON(SMC_IS_SMC64(smcnr));
+
+	return smc(smcnr, a0, a1, a2, 0);
+}
+EXPORT_SYMBOL(trusty_fast_call32_shm);
 
 s32 trusty_fast_call32(struct device *dev, u32 smcnr, u32 a0, u32 a1, u32 a2)
 {
