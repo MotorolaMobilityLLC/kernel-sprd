@@ -4401,6 +4401,18 @@ static void cm_batt_works(struct work_struct *work)
 	int ui_soc = 0;   				//for demomode require by pony date20201226
 	#endif
 
+	/* for log analogy by pony date20210116 start */
+	int uisoc_time = 0;
+	static int last_ui_soc = 0;
+	static u64 update_uisoc_time = 0;
+	struct power_supply *fuel_gauge;
+	union power_supply_propval val;
+
+	fuel_gauge = power_supply_get_by_name(cm->desc->psy_fuel_gauge);
+	ret = power_supply_get_property(fuel_gauge,
+				POWER_SUPPLY_PROP_ENERGY_FULL_DESIGN, &val);
+	/* for log analogy by pony date20210116 end */
+
 	cm_feed_watchdog(cm);    //revolve charge ic reset question by pony.ma date20201203
 
 	ret = get_batt_uV(cm, &batt_uV);
@@ -4672,6 +4684,16 @@ static void cm_batt_works(struct work_struct *work)
 		cm->desc->cap = fuel_cap;
 		set_batt_cap(cm, cm_capacity_unmap(cm, cm->desc->cap));
 	}
+
+	/* for log analogy by pony date20210116 start */
+	if(last_ui_soc != (DIV_ROUND_CLOSEST(cm->desc->cap, 10))){
+		uisoc_time = cur_time.tv_sec - update_uisoc_time;
+		last_ui_soc = DIV_ROUND_CLOSEST(cm->desc->cap, 10);
+		update_uisoc_time = cur_time.tv_sec;
+		dev_info(cm->dev, "ui_soc=%d, uisoc_time=%d, full_capacity = %d\n",
+			 DIV_ROUND_CLOSEST(cm->desc->cap, 10),uisoc_time,val.intval);
+	}
+	/* for log analogy by pony date20210116 end */
 
 	queue_delayed_work(system_power_efficient_wq,
 			   &cm->cap_update_work,
