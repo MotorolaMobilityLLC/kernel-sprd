@@ -83,7 +83,7 @@
 				cm-fullbatt-capacity = <100>;
 
 				cm-num-chargers = <1>;
-				cm-chargers = "bq24157";
+				cm-chargers = "aw32257";
 				cm-fuel-gauge = "sc27xx-fgu";
 
 				/* in deci centigrade */
