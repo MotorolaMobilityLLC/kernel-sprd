@@ -2127,7 +2127,7 @@ static int aw32257_remove(struct i2c_client *client)
 }
 
 static const struct i2c_device_id aw32257_i2c_id_table[] = {
-	{ "bq24157", 0 },
+	{ "aw32257", 0 },
 	{},
 };
 MODULE_DEVICE_TABLE(i2c, aw32257_i2c_id_table);
@@ -2135,7 +2135,6 @@ MODULE_DEVICE_TABLE(i2c, aw32257_i2c_id_table);
 #ifdef CONFIG_OF
 static const struct of_device_id aw32257_of_match_table[] = {
 	{ .compatible = "aw32257" },
-	{ .compatible = "ti,bq24157" },
 	{},
 };
 MODULE_DEVICE_TABLE(of, aw32257_of_match_table);
