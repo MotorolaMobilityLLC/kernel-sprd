@@ -4374,12 +4374,22 @@ static int cm_get_bat_info(struct charger_manager *cm)
 
 static void cm_track_capacity_init(struct charger_manager *cm)
 {
+	/* for capacity track by pony date20210118 start */
+	int iter_cur,ret;
+	struct power_supply_battery_info info = { };
+
+	ret = power_supply_get_battery_info(cm->charger_psy, &info, 0);
+	if (ret)
+		dev_err(cm->dev, "failed to get battery information\n");
+	iter_cur = info.charge_term_current_ua;
+	/* for capacity track by pony date20210118 end */
+
 	INIT_DELAYED_WORK(&cm->track.track_capacity_work,
 			  cm_track_capacity_work);
 	cm->track.end_vol =
 		cm->desc->fullbatt_uV - CM_TRACK_CAPACITY_VOLTAGE_OFFSET;
 	cm->track.end_cur =
-		cm->desc->fullbatt_uA + CM_TRACK_CAPACITY_CURRENT_OFFSET;
+		iter_cur + CM_TRACK_CAPACITY_CURRENT_OFFSET;      /* for capacity track by pony date20210118 */
 	cm->track.state = CAP_TRACK_INIT;
 	queue_delayed_work(system_power_efficient_wq,
 			   &cm->track.track_capacity_work,
@@ -4657,7 +4667,7 @@ static void cm_batt_works(struct work_struct *work)
 				fuel_cap = CM_CAP_FULL_PERCENT;
 
 			if (fuel_cap > cm->desc->cap)
-				fuel_cap = cm->desc->cap + 1;
+				fuel_cap = cm->desc->cap + 5;       /*optimze charge time by pony date 20210118*/
 		}
 
 		break;
