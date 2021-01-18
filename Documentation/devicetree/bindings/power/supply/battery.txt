@@ -57,6 +57,10 @@ Optional Properties:
    limit current for unknown charger type.
  - charge-fchg-current-microamp: An array providing the current and
    limit current for fast charger type.
+ - charge-wl-bpp-current-microamp: An array providing the current and
+   limit current for bpp standard wireless charger type.
+ - charge-wl-epp-current-microamp: An array providing the current and
+   limit current for epp standard wireless charger type.
 Battery properties are named, where possible, for the corresponding
 elements in enum power_supply_property, defined in
 https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/linux/power_supply.h
@@ -91,6 +95,8 @@ Example:
 		charge-aca-current-microamp = <1500000 5000000>;
 		charge-unknown-current-microamp = <500000 500000>;
 		charge-fchg-current-microamp = <3000000 3000000>;
+		charge-wl-bpp-current-microamp = <1000000 100000>;
+		charge-wl-epp-current-microamp = <2000000 200000>;
 	};
 
 	charger: charger@11 {

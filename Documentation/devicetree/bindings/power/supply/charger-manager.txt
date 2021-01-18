@@ -36,6 +36,12 @@ Optional properties :
  - cm-fast-charge-voltage-drop: drop voltage in microVolts to allow restart fast charging
  - cm-flash-charge-voltage-max: maximum fast charge voltage in microVolts
  - cm-flash-charge-voltage-drop: drop voltage in microVolts to allow restart fast charging
+ - cm-wireless-charge-voltage-max: maximum bpp standard wireless charge voltage in microVolts
+ - cm-wireless-charge-voltage-drop: drop voltage in microVolts to allow restart bpp
+   standard wireless charging
+ - cm-wireless-fast-charge-voltage-max: maximum epp wireless charge voltage in microVolts
+ - cm-wireless-fast-charge-voltage-drop: drop voltage in microVolts to allow restart epp
+   wireless charging
  - cm-shutdown-voltage: drop voltage in microVolts to allow shutdown
  - cm-tickle-time-out: when 99% of the time is exceeded, it will be forced to 100%
  - cm-one-cap-time: how much time to allow capacity change
@@ -113,6 +119,10 @@ Example :
 		cm-fast-charge-voltage-drop  = <1000000>;
 		cm-flash-charge-voltage-max = <11000000>;
 		cm-flash-charge-voltage-drop  = <1000000>;
+		cm-wireless-charge-voltage-max = <6500000>;
+		cm-wireless-charge-voltage-drop = <700000>;
+		cm-wireless-fast-charge-voltage-max = <12000000>;
+		cm-wireless-fast-charge-voltage-drop = <1000000>;
 		cm-shutdown-voltage = <3100000>;
 		cm-tickle-time-out = <1500>;
 		cm-one-cap-time = <30>;
