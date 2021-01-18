@@ -36,12 +36,16 @@
 #define FCHG_INT_STS0				0x44
 #define FCHG_ERR_STS				0x48
 
+#define SC2721_MODULE_EN0		0xC08
+#define SC2721_CLK_EN0			0xC10
+#define SC2721_IB_CTRL			0xEA4
 #define SC2730_MODULE_EN0		0x1808
 #define SC2730_CLK_EN0			0x1810
+#define SC2730_IB_CTRL			0x1b84
 #define UMP9620_MODULE_EN0		0x2008
 #define UMP9620_CLK_EN0			0x2010
+#define UMP9620_IB_CTRL			0x2384
 
-#define ANA_REG_IB_CTRL				0x1b84
 #define ANA_REG_IB_TRIM_MASK			GENMASK(6, 0)
 #define ANA_REG_IB_TRIM_SHIFT			2
 #define ANA_REG_IB_TRIM_EM_SEL_BIT		BIT(1)
@@ -90,16 +94,25 @@
 struct sc27xx_fast_chg_data {
 	u32 module_en;
 	u32 clk_en;
+	u32 ib_ctrl;
+};
+
+static const struct sc27xx_fast_chg_data sc2721_info = {
+	.module_en = SC2721_MODULE_EN0,
+	.clk_en = SC2721_CLK_EN0,
+	.ib_ctrl = SC2721_IB_CTRL,
 };
 
 static const struct sc27xx_fast_chg_data sc2730_info = {
 	.module_en = SC2730_MODULE_EN0,
 	.clk_en = SC2730_CLK_EN0,
+	.ib_ctrl = SC2730_IB_CTRL,
 };
 
 static const struct sc27xx_fast_chg_data ump9620_info = {
 	.module_en = UMP9620_MODULE_EN0,
 	.clk_en = UMP9620_CLK_EN0,
+	.ib_ctrl = UMP9620_IB_CTRL,
 };
 
 struct sc2730_fchg_info {
@@ -133,6 +146,7 @@ static int sc2730_fchg_internal_cur_calibration(struct sc2730_fchg_info *info)
 	int calib_data, calib_current, ret;
 	void *buf;
 	size_t len;
+	const struct sc27xx_fast_chg_data *pdata = info->pdata;
 
 	cell = nvmem_cell_get(info->dev, "fchg_cur_calib");
 	if (IS_ERR(cell))
@@ -156,7 +170,7 @@ static int sc2730_fchg_internal_cur_calibration(struct sc2730_fchg_info *info)
 	calib_current += ANA_REG_IB_TRUM_OFFSET;
 
 	ret = regmap_update_bits(info->regmap,
-				 ANA_REG_IB_CTRL,
+				 pdata->ib_ctrl,
 				 ANA_REG_IB_TRIM_MASK << ANA_REG_IB_TRIM_SHIFT,
 				 (calib_current & ANA_REG_IB_TRIM_MASK) << ANA_REG_IB_TRIM_SHIFT);
 	if (ret) {
@@ -167,7 +181,7 @@ static int sc2730_fchg_internal_cur_calibration(struct sc2730_fchg_info *info)
 	/*
 	 * Fast charge dm current source calibration mode, enable soft calibration mode.
 	 */
-	ret = regmap_update_bits(info->regmap, ANA_REG_IB_CTRL,
+	ret = regmap_update_bits(info->regmap, pdata->ib_ctrl,
 				 ANA_REG_IB_TRIM_EM_SEL_BIT,
 				 0);
 	if (ret) {
@@ -372,7 +386,7 @@ static u32 sc2730_fchg_get_detect_status(struct sc2730_fchg_info *info)
 	 * Fast charge dm current source calibration mode, select efuse calibration
 	 * as default.
 	 */
-	ret = regmap_update_bits(info->regmap, ANA_REG_IB_CTRL,
+	ret = regmap_update_bits(info->regmap, pdata->ib_ctrl,
 				 ANA_REG_IB_TRIM_EM_SEL_BIT,
 				 ANA_REG_IB_TRIM_EM_SEL_BIT);
 	if (ret) {
@@ -1054,6 +1068,7 @@ static void sc2730_fchg_shutdown(struct platform_device *pdev)
 static const struct of_device_id sc2730_fchg_of_match[] = {
 	{ .compatible = "sprd,sc2730-fast-charger", .data = &sc2730_info },
 	{ .compatible = "sprd,ump9620-fast-chg", .data = &ump9620_info },
+	{ .compatible = "sprd,sc2721-fast-charger", .data = &sc2721_info },
 	{ }
 };
 
