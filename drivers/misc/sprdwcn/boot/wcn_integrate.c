@@ -328,6 +328,26 @@ static inline void wcn_unalign_memcpy(void *to, const void *from, u32 len)
 }
 #endif
 
+int wcn_write_zero_to_phy_addr(phys_addr_t phy_addr, u32 size)
+{
+	char *virt_addr;
+	unsigned int cnt;
+	unsigned char zero = 0x00;
+	unsigned int loop = 0;
+
+	virt_addr = (char *)wcn_mem_ram_vmap_nocache(phy_addr, size, &cnt);
+	if (virt_addr) {
+		for (loop = 0; loop < size; loop++)
+			wcn_unalign_memcpy((void *)virt_addr, &zero, 1);
+
+		wcn_mem_ram_unmap(virt_addr, cnt);
+		return 0;
+	}
+
+	WCN_ERR("%s fail\n", __func__);
+	return -1;
+}
+
 int wcn_write_data_to_phy_addr(phys_addr_t phy_addr,
 			       void *src_data, u32 size)
 {

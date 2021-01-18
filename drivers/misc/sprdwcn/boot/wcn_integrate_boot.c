@@ -251,6 +251,12 @@ read_retry:
 		memcpy(wcn_image_buffer, gnss_firmware_bin, len);
 #endif
 
+	if (wcn_dev_is_marlin(wcn_dev)) {
+		for (i = 0; i < 8; i++)
+			wcn_write_zero_to_phy_addr(wcn_dev->base_addr +
+						   i * 0x4000, 0x4000);
+	}
+
 	/* copy file data to target ddr address */
 	wcn_write_data_to_phy_addr(wcn_dev->base_addr, data, len);
 

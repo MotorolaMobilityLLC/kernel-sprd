@@ -224,6 +224,7 @@ extern char functionmask[8];
 extern struct wcn_special_share_mem *s_wssm_phy_offset_p;
 extern struct wcn_gnss_special_share_mem s_wcngnss_sync_addr;
 
+int wcn_write_zero_to_phy_addr(phys_addr_t phy_addr, u32 size);
 int wcn_write_data_to_phy_addr(phys_addr_t phy_addr,
 			       void *src_data, u32 size);
 int wcn_read_data_from_phy_addr(phys_addr_t phy_addr,
