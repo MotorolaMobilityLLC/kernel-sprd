@@ -996,6 +996,25 @@
 				reg = <0x0 0x60000000 0x0 0x9000>,
 					<0x0 0x65002000 0x0 0x1000>;
 			};
+
+			ptm_trace: ptm@60040000 {
+				compatible = "sprd,qogirl6-ptm";
+				reg = <0x0 0x60040000 0x0 0x10000>,
+					<0x0 0x7c002000 0x0 0x1000>,
+					<0x0 0x7c003000 0x0 0x1000>,
+					<0x0 0x7c006000 0x0 0x1000>;
+				interrupts = <GIC_SPI 109 IRQ_TYPE_LEVEL_HIGH>;
+				syscon-names = "enable";
+				syscons = <&pub_apb_regs 0x31cc 0x80>;
+				clock-names = "clk_cs","cs_src";
+				clocks = <&aon_clk CLK_CSSYS>,
+					<&pll1 CLK_TWPLL_256M>;
+				sprd,funnel-port = <3>;
+				sprd,ddr-chn = <8>;
+				sprd,chn-name = "CPU", "GPU", "DPU/DCAM",
+					"ISP", "AP/VSP/AON", "WTLCP",
+					"PUBCP/AUDCP", "WCN";
+			};
 		};
 
 		aon_apb_regs: syscon@64000000 {
