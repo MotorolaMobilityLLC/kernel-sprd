@@ -87,4 +87,10 @@ config SND_SOC_XS200X
 	default n
 	help
 		XS200X Voice Trigger driver
+
+config SND_SOC_AK4377_HIFI
+	tristate "AK4377_HIFI"
+	default n
+	help
+		AK4377_HIFI
 endmenu
