@@ -899,9 +899,9 @@ static int sipa_parse_dts_configuration(struct platform_device *pdev,
 				sipa_eb_name);
 			continue;
 		}
-		ipa->regs[i].enable_rmap = rmap;
-		ipa->regs[i].enable_reg = reg_info[0];
-		ipa->regs[i].enable_mask = reg_info[1];
+		ipa->eb_regs[i].enable_rmap = rmap;
+		ipa->eb_regs[i].enable_reg = reg_info[0];
+		ipa->eb_regs[i].enable_mask = reg_info[1];
 	}
 
 	/* config IPA fifo default memory settings */

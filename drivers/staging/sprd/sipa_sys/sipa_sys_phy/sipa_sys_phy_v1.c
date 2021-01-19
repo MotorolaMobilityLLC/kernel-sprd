@@ -94,11 +94,16 @@ static int sipa_sys_wait_power_on(struct sipa_sys_pd_drv *drv,
 
 int sipa_sys_do_power_on_cb_v1(void *priv)
 {
-	struct sipa_sys_pd_drv *drv = (struct sipa_sys_pd_drv *)priv;
-	struct sipa_sys_register *reg_info = &drv->regs[IPA_SYS_FORCEWAKEUP];
 	int ret = 0;
+	struct sipa_sys_register *reg_info;
+	struct sipa_sys_pd_drv *drv = (struct sipa_sys_pd_drv *)priv;
+
+	if (!drv)
+		return -ENODEV;
 
 	dev_info(drv->dev, "sipa do power on\n");
+
+	reg_info = &drv->regs[IPA_SYS_FORCEWAKEUP];
 	if (reg_info->rmap) {
 		ret = regmap_update_bits(reg_info->rmap,
 					 reg_info->reg,
@@ -134,15 +139,20 @@ int sipa_sys_do_power_on_cb_v1(void *priv)
 
 int sipa_sys_do_power_off_cb_v1(void *priv)
 {
-	struct sipa_sys_pd_drv *drv = (struct sipa_sys_pd_drv *)priv;
-	struct sipa_sys_register *reg_info = &drv->regs[IPA_SYS_FORCEWAKEUP];
 	int ret = 0;
+	struct sipa_sys_register *reg_info;
+	struct sipa_sys_pd_drv *drv = (struct sipa_sys_pd_drv *)priv;
+
+	if (!drv)
+		return -ENODEV;
 
 	dev_info(drv->dev, "sipa do power off\n");
+
 	/* set ipa core clock to default */
 	if (drv->ipa_core_clk && drv->ipa_core_default)
 		clk_set_parent(drv->ipa_core_clk, drv->ipa_core_default);
 
+	reg_info = &drv->regs[IPA_SYS_FORCEWAKEUP];
 	if (reg_info->rmap) {
 		ret = regmap_update_bits(reg_info->rmap,
 					 reg_info->reg,
@@ -176,6 +186,9 @@ static int sipa_sys_set_register(struct sipa_sys_pd_drv *drv,
 void sipa_sys_init_cb_v1(void *priv)
 {
 	struct sipa_sys_pd_drv *drv = (struct sipa_sys_pd_drv *)priv;
+	if (!drv)
+		return;
+
 	/* step1 clear force shutdown:0x32280538[25] */
 	sipa_sys_set_register(drv, &drv->regs[IPA_SYS_FORCESHUTDOWN], false);
 	/* set auto shutdown enable:0x32280538[24] */
@@ -196,13 +209,17 @@ void sipa_sys_init_cb_v1(void *priv)
 
 int sipa_sys_parse_dts_cb_v1(void *priv)
 {
-	struct sipa_sys_pd_drv *drv = (struct sipa_sys_pd_drv *)priv;
 	int ret, i;
 	u32 reg_info[2];
 	const char *reg_name;
 	struct regmap *rmap;
-	struct device_node *np = drv->dev->of_node;
+	struct device_node *np;
+	struct sipa_sys_pd_drv *drv = (struct sipa_sys_pd_drv *)priv;
 
+	if (!drv)
+		return -ENODEV;
+
+	np = drv->dev->of_node;
 	/* read regmap info */
 	for (i = 0; i < ARRAY_SIZE(reg_name_tb_v1); i++) {
 		reg_name = reg_name_tb_v1[i];
@@ -230,5 +247,10 @@ int sipa_sys_parse_dts_cb_v1(void *priv)
 			drv->regs[i].mask);
 	}
 
+	return 0;
+}
+
+int sipa_sys_clk_enable_cb_v1(void *priv)
+{
 	return 0;
 }

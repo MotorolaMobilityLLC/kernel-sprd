@@ -249,11 +249,12 @@ int sipa_hal_set_enabled(struct device *dev, bool enable)
 
 	for (i = 0; i < SIPA_EB_NUM; i++) {
 		val = enable ?
-			ipa->regs[i].enable_mask : (~ipa->regs[i].enable_mask);
-		if (ipa->regs[i].enable_rmap) {
-			ret = regmap_update_bits(ipa->regs[i].enable_rmap,
-						 ipa->regs[i].enable_reg,
-						 ipa->regs[i].enable_mask,
+			ipa->eb_regs[i].enable_mask :
+			(~ipa->eb_regs[i].enable_mask);
+		if (ipa->eb_regs[i].enable_rmap) {
+			ret = regmap_update_bits(ipa->eb_regs[i].enable_rmap,
+						 ipa->eb_regs[i].enable_reg,
+						 ipa->eb_regs[i].enable_mask,
 						 val);
 			if (ret < 0) {
 				dev_err(dev, "regmap %d update bits failed\n",

@@ -20,6 +20,7 @@ typedef int (*sipa_sys_parse_dts_cb)(void *priv);
 typedef void (*sipa_sys_init_cb)(void *priv);
 typedef int (*sipa_sys_do_power_on_cb)(void *priv);
 typedef int (*sipa_sys_do_power_off_cb)(void *priv);
+typedef int (*sipa_sys_clk_enable_cb)(void *priv);
 
 struct sipa_sys_register {
 	struct regmap *rmap;
@@ -34,6 +35,7 @@ struct sipa_sys_data {
 struct sipa_sys_pd_drv {
 	struct device *dev;
 	struct generic_pm_domain gpd;
+	struct clk *clk_ipa_ckg_eb;
 	struct clk *ipa_core_clk;
 	struct clk *ipa_core_parent;
 	struct clk *ipa_core_default;
@@ -43,6 +45,7 @@ struct sipa_sys_pd_drv {
 	sipa_sys_init_cb init_cb;
 	sipa_sys_do_power_on_cb do_power_on_cb;
 	sipa_sys_do_power_off_cb do_power_off_cb;
+	sipa_sys_clk_enable_cb clk_enable_cb;
 	void *cb_priv;
 	struct sipa_sys_register regs[0];
 };

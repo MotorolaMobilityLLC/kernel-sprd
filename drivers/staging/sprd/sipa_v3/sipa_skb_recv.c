@@ -247,6 +247,7 @@ void sipa_fill_free_fifo(void)
 		item->address = dma_addr;
 		item->length = skb->len;
 		item->offset = skb_headroom(skb);
+		item->hash = smp_processor_id();
 
 		sipa_put_recv_array_node(fill_array, skb, dma_addr);
 		success_cnt++;

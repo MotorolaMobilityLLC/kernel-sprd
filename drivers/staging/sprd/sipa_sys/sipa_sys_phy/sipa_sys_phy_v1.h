@@ -18,5 +18,6 @@ int sipa_sys_parse_dts_cb_v1(void *priv);
 void sipa_sys_init_cb_v1(void *priv);
 int sipa_sys_do_power_on_cb_v1(void *priv);
 int sipa_sys_do_power_off_cb_v1(void *priv);
+int sipa_sys_clk_enable_cb_v1(void *priv);
 
 #endif

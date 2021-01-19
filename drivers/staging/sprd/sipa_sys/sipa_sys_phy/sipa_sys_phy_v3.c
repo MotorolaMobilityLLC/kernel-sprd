@@ -105,13 +105,17 @@ static int sipa_sys_wait_power_off(struct sipa_sys_pd_drv *drv,
 
 int sipa_sys_do_power_on_cb_v3(void *priv)
 {
-	struct sipa_sys_pd_drv *drv = (struct sipa_sys_pd_drv *)priv;
-	struct sipa_sys_register *reg_info = &drv->regs[IPA_SYS_DSLPEN];
 	u32 val;
 	int ret = 0;
+	struct sipa_sys_register *reg_info;
+	struct sipa_sys_pd_drv *drv = (struct sipa_sys_pd_drv *)priv;
+
+	if (!drv)
+		return -ENODEV;
 
 	dev_dbg(drv->dev, "do power on\n");
 
+	reg_info = &drv->regs[IPA_SYS_DSLPEN];
 	if (reg_info->rmap) {
 		ret = regmap_update_bits(reg_info->rmap,
 					 reg_info->reg,
@@ -155,24 +159,45 @@ int sipa_sys_do_power_on_cb_v3(void *priv)
 	}
 
 	/* set ipa core clock */
-	if (drv->ipa_core_clk && drv->ipa_core_parent)
+	if (drv->ipa_core_clk && drv->ipa_core_parent &&
+	    drv->clk_ipa_ckg_eb) {
+		ret = clk_prepare_enable(drv->ipa_core_parent);
+		if (ret) {
+			dev_err(drv->dev,
+				"enable ipa_core_parent error\n");
+			return ret;
+		}
 		clk_set_parent(drv->ipa_core_clk, drv->ipa_core_parent);
-
+		ret = clk_prepare_enable(drv->clk_ipa_ckg_eb);
+		if (ret) {
+			dev_err(drv->dev,
+				"enable clk_ipa_ckg_eb error\n");
+			return ret;
+		}
+	}
 	return ret;
 }
 
 int sipa_sys_do_power_off_cb_v3(void *priv)
 {
-	struct sipa_sys_pd_drv *drv = (struct sipa_sys_pd_drv *)priv;
-	struct sipa_sys_register *reg_info = &drv->regs[IPA_SYS_DSLPEN];
 	int ret = 0;
+	struct sipa_sys_register *reg_info;
+	struct sipa_sys_pd_drv *drv = (struct sipa_sys_pd_drv *)priv;
+
+	if (!drv)
+		return -ENODEV;
 
 	dev_dbg(drv->dev, "do power off\n");
 
 	/* set ipa core clock to default */
-	if (drv->ipa_core_clk && drv->ipa_core_default)
+	if (drv->ipa_core_clk && drv->ipa_core_parent &&
+	    drv->ipa_core_default && drv->clk_ipa_ckg_eb) {
 		clk_set_parent(drv->ipa_core_clk, drv->ipa_core_default);
+		clk_disable_unprepare(drv->ipa_core_parent);
+		clk_disable_unprepare(drv->clk_ipa_ckg_eb);
+	}
 
+	reg_info = &drv->regs[IPA_SYS_DSLPEN];
 	if (reg_info->rmap) {
 		ret = regmap_update_bits(reg_info->rmap,
 					 reg_info->reg,
@@ -222,6 +247,8 @@ static int sipa_sys_set_register(struct sipa_sys_pd_drv *drv,
 void sipa_sys_init_cb_v3(void *priv)
 {
 	struct sipa_sys_pd_drv *drv = (struct sipa_sys_pd_drv *)priv;
+	if (!drv)
+		return;
 
 	/* clear ipa force light sleep:0x0830[4] */
 	sipa_sys_set_register(drv, &drv->regs[IPA_SYS_FORCELSLP], false);
@@ -233,13 +260,17 @@ void sipa_sys_init_cb_v3(void *priv)
 
 int sipa_sys_parse_dts_cb_v3(void *priv)
 {
-	struct sipa_sys_pd_drv *drv = (struct sipa_sys_pd_drv *)priv;
 	int ret, i;
 	u32 reg_info[2];
 	const char *reg_name;
 	struct regmap *rmap;
-	struct device_node *np = drv->dev->of_node;
+	struct device_node *np;
+	struct sipa_sys_pd_drv *drv = (struct sipa_sys_pd_drv *)priv;
 
+	if (!drv)
+		return -ENODEV;
+
+	np = drv->dev->of_node;
 	/* read regmap info */
 	for (i = 0; i < ARRAY_SIZE(reg_name_tb_v3); i++) {
 		reg_name = reg_name_tb_v3[i];
@@ -265,6 +296,21 @@ int sipa_sys_parse_dts_cb_v3(void *priv)
 			drv->regs[i].rmap,
 			drv->regs[i].reg,
 			drv->regs[i].mask);
+	}
+
+	return 0;
+}
+
+int sipa_sys_clk_enable_cb_v3(void *priv)
+{
+	struct sipa_sys_pd_drv *drv = (struct sipa_sys_pd_drv *)priv;
+	if (!drv)
+		return -ENODEV;
+
+	drv->clk_ipa_ckg_eb = devm_clk_get(drv->dev, "clk_ipa_ckg_eb");
+	if (IS_ERR(drv->clk_ipa_ckg_eb)) {
+		dev_warn(drv->dev, "sipa_sys can't get the clk ipa ckg eb\n");
+		return PTR_ERR(drv->clk_ipa_ckg_eb);
 	}
 
 	return 0;

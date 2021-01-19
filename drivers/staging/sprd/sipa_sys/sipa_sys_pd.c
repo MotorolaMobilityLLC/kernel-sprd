@@ -187,12 +187,14 @@ static void sipa_sys_register_cb(struct sipa_sys_pd_drv *drv,
 				 sipa_sys_init_cb init_cb,
 				 sipa_sys_do_power_on_cb do_power_on_cb,
 				 sipa_sys_do_power_off_cb do_power_off_cb,
+				 sipa_sys_clk_enable_cb clk_enable_cb,
 				 void *priv)
 {
 	drv->parse_dts_cb = parse_dts_cb;
 	drv->init_cb = init_cb;
 	drv->do_power_on_cb = do_power_on_cb;
 	drv->do_power_off_cb = do_power_off_cb;
+	drv->clk_enable_cb = clk_enable_cb;
 	drv->cb_priv = priv;
 }
 
@@ -224,6 +226,7 @@ static int sipa_sys_drv_probe(struct platform_device *pdev_p)
 				     sipa_sys_init_cb_v1,
 				     sipa_sys_do_power_on_cb_v1,
 				     sipa_sys_do_power_off_cb_v1,
+				     sipa_sys_clk_enable_cb_v1,
 				     (void *)drv);
 	} else if (data->version == 3) {
 		sipa_sys_register_cb(drv,
@@ -231,10 +234,15 @@ static int sipa_sys_drv_probe(struct platform_device *pdev_p)
 				     sipa_sys_init_cb_v3,
 				     sipa_sys_do_power_on_cb_v3,
 				     sipa_sys_do_power_off_cb_v3,
+				     sipa_sys_clk_enable_cb_v3,
 				     (void *)drv);
 	}
 
 	ret = sipa_sys_clk_init(drv);
+	if (ret)
+		return ret;
+
+	ret = drv->clk_enable_cb(drv->cb_priv);
 	if (ret)
 		return ret;
 
