@@ -21,5 +21,54 @@
 			compatible = "sprd,ump96xx-syscon";
 			reg = <0x2000>;
 		};
+
+		power-controller@2000 {
+			compatible = "sprd,ump9621-regulator";
+
+			vddsram1: DCDC_SRAM1 {
+				regulator-name = "vddsram1";
+				regulator-min-microvolt = <300000>;
+				regulator-max-microvolt = <1596875>;
+				regulator-ramp-delay = <25000>;
+				regulator-always-on;
+			};
+
+			vddsram2: DCDC_SRAM2 {
+				regulator-name = "vddsram2";
+				regulator-min-microvolt = <300000>;
+				regulator-max-microvolt = <1596875>;
+				regulator-ramp-delay = <25000>;
+				regulator-always-on;
+			};
+
+			vddai: DCDC_AI {
+				regulator-name = "vddai";
+				regulator-min-microvolt = <200000>;
+				regulator-max-microvolt = <1596875>;
+				regulator-ramp-delay = <25000>;
+			};
+
+			vddmodem: DCDC_MODEM {
+				regulator-name = "vddmodem";
+				regulator-min-microvolt = <200000>;
+				regulator-max-microvolt = <1596875>;
+				regulator-ramp-delay = <25000>;
+			};
+
+			vddcpu0: DCDC_CPU0 {
+				regulator-name = "vddcpu0";
+				regulator-min-microvolt = <200000>;
+				regulator-max-microvolt = <1596875>;
+				regulator-ramp-delay = <25000>;
+				regulator-always-on;
+			};
+
+			vddmm: DCDC_MM {
+				regulator-name = "vddmm";
+				regulator-min-microvolt = <200000>;
+				regulator-max-microvolt = <1596875>;
+				regulator-ramp-delay = <25000>;
+			};
+		};
 	};
 };
