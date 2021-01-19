@@ -461,6 +461,7 @@ static struct file *dma_buf_getfile(struct dma_buf *dmabuf, int flags)
 	return file;
 
 err_alloc_file:
+	ihold(inode);
 	path_put(&path);
 err_d_alloc:
 	iput(inode);
