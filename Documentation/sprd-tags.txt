@@ -72,6 +72,7 @@ crypto:
 
 devfreq:sprd:
 dmaengine:sprd:
+dma-buf:
 Documentation:*
 drm:sprd:
 drm:sprd:cabc:
