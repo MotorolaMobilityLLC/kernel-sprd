@@ -242,18 +242,25 @@ int sipa_hal_init(struct device *dev)
 
 int sipa_hal_set_enabled(struct device *dev, bool enable)
 {
-	int ret = 0;
+	int ret = 0, i = 0;
+	u32 val = 0;
 
 	struct sipa_plat_drv_cfg *ipa = dev_get_drvdata(dev);
-	u32 val = enable ? ipa->enable_mask : (~ipa->enable_mask);
 
-	if (ipa->enable_regmap) {
-		ret = regmap_update_bits(ipa->enable_regmap,
-					 ipa->enable_reg,
-					 ipa->enable_mask,
-					 val);
-		if (ret < 0)
-			dev_err(dev, "regmap update bits failed");
+	for (i = 0; i < SIPA_EB_NUM; i++) {
+		val = enable ?
+			ipa->regs[i].enable_mask : (~ipa->regs[i].enable_mask);
+		if (ipa->regs[i].enable_rmap) {
+			ret = regmap_update_bits(ipa->regs[i].enable_rmap,
+						 ipa->regs[i].enable_reg,
+						 ipa->regs[i].enable_mask,
+						 val);
+			if (ret < 0) {
+				dev_err(dev, "regmap %d update bits failed\n",
+					i);
+				return ret;
+			}
+		}
 	}
 	return ret;
 }

@@ -28,6 +28,8 @@
 
 #define SIPA_MULTI_IRQ_NUM	8
 
+#define SIPA_EB_NUM	2
+
 #define SIPA_WWAN_CONS_TIMER	100
 
 #define IPA_TOSTR1(x) #x
@@ -734,16 +736,20 @@ struct sipa_glb_phy_ops {
 	void (*fill_ofilter_ipv6)(void __iomem *reg_base, u32 data);
 };
 
+struct sipa_eb_register {
+	struct regmap *enable_rmap;
+	u32 enable_reg;
+	u32 enable_mask;
+};
+
 struct sipa_plat_drv_cfg {
 	struct device *dev;
 
 	struct sipa_endpoint *eps[SIPA_EP_MAX];
 
-	/* protect ipa eb bit */
+	/* protect ipa and tft eb bit */
 	spinlock_t enable_lock;
-	struct regmap *enable_regmap;
-	u32 enable_reg;
-	u32 enable_mask;
+	struct sipa_eb_register regs[SIPA_EB_NUM];
 
 	/* avoid pam connect and power_wq race */
 	struct mutex resume_lock;

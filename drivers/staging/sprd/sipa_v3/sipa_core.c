@@ -200,6 +200,11 @@ static struct sipa_cmn_fifo_info sipa_cmn_fifo_statics[SIPA_FIFO_MAX] = {
 	},
 };
 
+static const char * const sipa_eb_name_tb[] = {
+	"enable-ipa",
+	"enable-tft",
+};
+
 static struct sipa_plat_drv_cfg *s_sipa_core;
 
 static void sipa_resume_for_pam(struct device *dev)
@@ -815,6 +820,8 @@ static int sipa_parse_dts_configuration(struct platform_device *pdev,
 	u32 *fifo_info;
 	u32 reg_info[2];
 	struct resource *resource;
+	struct regmap *rmap;
+	const char *sipa_eb_name;
 	const struct sipa_hw_data *pdata;
 	struct sipa_cmn_fifo_info *cmn_fifo_info;
 	u32 count;
@@ -875,17 +882,26 @@ static int sipa_parse_dts_configuration(struct platform_device *pdev,
 						 "sprd,pcie-dl-dma");
 
 	/* get enable register information */
-	ipa->enable_regmap = syscon_regmap_lookup_by_name(pdev->dev.of_node,
-							  "enable");
-	if (IS_ERR(ipa->enable_regmap))
-		dev_err(&pdev->dev, "get enable regmap fail!\n");
+	for (i = 0; i < SIPA_EB_NUM; i++) {
+		sipa_eb_name = sipa_eb_name_tb[i];
+		rmap = syscon_regmap_lookup_by_name(pdev->dev.of_node,
+						    sipa_eb_name);
+		if (IS_ERR(rmap)) {
+			dev_err(&pdev->dev, "get enable %s regmap fail!\n",
+				sipa_eb_name);
+			continue;
+		}
 
-	ret = syscon_get_args_by_name(pdev->dev.of_node, "enable", 2, reg_info);
-	if (ret < 0 || ret != 2) {
-		dev_err(&pdev->dev, "get enable register info fail!\n");
-	} else {
-		ipa->enable_reg = reg_info[0];
-		ipa->enable_mask = reg_info[1];
+		ret = syscon_get_args_by_name(pdev->dev.of_node, sipa_eb_name,
+					      2, reg_info);
+		if (ret < 0 || ret != 2) {
+			dev_err(&pdev->dev, "get enable %s register info fail!\n",
+				sipa_eb_name);
+			continue;
+		}
+		ipa->regs[i].enable_rmap = rmap;
+		ipa->regs[i].enable_reg = reg_info[0];
+		ipa->regs[i].enable_mask = reg_info[1];
 	}
 
 	/* config IPA fifo default memory settings */
