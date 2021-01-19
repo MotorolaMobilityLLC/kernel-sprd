@@ -1923,8 +1923,8 @@ int sipx_chan_create(u8 dst, u8 channel)
 		goto fail;
 	}
 
-	/*set the thread as a real time thread, and its priority is 90*/
-	sched_setscheduler(current, SCHED_RR, &param);
+	/*set the thread as a real time thread, and its priority is 88*/
+	sched_setscheduler(sipx_chan->thread, SCHED_RR, &param);
 	wake_up_process(sipx_chan->thread);
 #ifdef UL_TEST
 	if (5 == dst && 7 == channel) {
