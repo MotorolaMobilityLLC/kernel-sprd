@@ -12,6 +12,7 @@
 #include <linux/of.h>
 #include <linux/of_device.h>
 #include <linux/of_dma.h>
+#include <linux/of_gpio.h>
 #include <linux/platform_device.h>
 #include <linux/pm_runtime.h>
 #include <linux/spi/spi.h>
@@ -89,7 +90,7 @@
 #define RXF_THLD_OFFSET			8
 
 /* Bits & mask definition for register CTL5 */
-#define SPI_ITVL_NUM			0x09
+#define SPRD_SPI_ITVL_NUM		0x09
 
 /* Bits & mask definition for register SPI_INT_CLR */
 #define SPRD_SPI_RX_END_INT_CLR		BIT(9)
@@ -212,15 +213,12 @@ static u32 sprd_spi_transfer_max_timeout(struct sprd_spi *ss,
 	 * There is an interval between data and the data in our SPI hardware,
 	 * so the total transmission time need add the interval time.
 	 */
+	u32 clkd_cycle = SPRD_SPI_FIFO_SIZE * bit_time_us;
 	u32 interval_cycle = SPRD_SPI_FIFO_SIZE * ss->word_delay;
 	u32 interval_time_us = DIV_ROUND_UP(interval_cycle * USEC_PER_SEC,
-					    ss->src_clk);
-	/*
-	 * Sometimes, actual sprd spi interval time is 1 us longer than the
-	 * theoretical time, so the total transmission time need add
-	 * SPRD_SPI_FIFO_SIZE.
-	 */
-	return total_time_us + interval_time_us + SPRD_SPI_FIFO_SIZE;
+					    ss->src_clk) + clkd_cycle;
+
+	return total_time_us + interval_time_us;
 }
 
 static int sprd_spi_wait_for_tx_end(struct sprd_spi *ss, struct spi_transfer *t)
@@ -574,7 +572,7 @@ static int sprd_spi_dma_rx_config(struct sprd_spi *ss, struct spi_transfer *t)
 		.src_maxburst = ss->dma.fragmens_len,
 		.dst_maxburst = ss->dma.fragmens_len,
 		.direction = DMA_DEV_TO_MEM,
-		.slave_id = ss->dma.dma_chan[SPRD_SPI_RX]->chan_id + 1,
+		.slave_id = dma_chan->chan_id + 1,
 	};
 	int ret;
 
@@ -597,7 +595,7 @@ static int sprd_spi_dma_tx_config(struct sprd_spi *ss, struct spi_transfer *t)
 		.dst_addr_width = ss->dma.width,
 		.src_maxburst = ss->dma.fragmens_len,
 		.direction = DMA_MEM_TO_DEV,
-		.slave_id = ss->dma.dma_chan[SPRD_SPI_TX]->chan_id + 1,
+		.slave_id = dma_chan->chan_id + 1,
 	};
 	int ret;
 
@@ -707,6 +705,7 @@ static int sprd_spi_dma_txrx_bufs(struct spi_device *sdev,
 				ret);
 			goto trans_complete;
 		}
+
 		if (!(ss->trans_mode & SPRD_SPI_TX_MODE)) {
 			/* The SPI device is used for RXonly mode.*/
 			sprd_spi_set_tx_length(ss, trans_len);
@@ -780,7 +779,7 @@ static void sprd_spi_set_speed(struct sprd_spi *ss, u32 speed_hz)
 
 static void sprd_spi_init_hw(struct sprd_spi *ss, struct spi_transfer *t)
 {
-	u16 word_delay, interval;
+	u16 word_delay, itvl_num;
 	u32 val;
 
 	val = readl_relaxed(ss->base + SPRD_SPI_CTL0);
@@ -793,13 +792,14 @@ static void sprd_spi_init_hw(struct sprd_spi *ss, struct spi_transfer *t)
 	/*
 	 * Set the intervals of two SPI frames, and the inteval calculation
 	 * formula as below per datasheet:
-	 * interval time (source clock cycles) = interval * 4 + 3.
+	 * interval time(source clock cycles) = 2 * clkd + itvl_num * 4 + 6.
 	 */
 	word_delay = clamp_t(u16, t->word_delay, SPRD_SPI_MIN_DELAY_CYCLE,
 			     SPRD_SPI_MAX_DELAY_CYCLE);
-	interval = DIV_ROUND_UP(word_delay - 10, 4);
-	ss->word_delay = interval * 4 + 3;
-	writel_relaxed(SPI_ITVL_NUM, ss->base + SPRD_SPI_CTL5);
+	itvl_num = max_t(u16, DIV_ROUND_UP(word_delay - 10, 4),
+			 SPRD_SPI_ITVL_NUM);
+	ss->word_delay = itvl_num * 4 + 6;
+	writel_relaxed(itvl_num, ss->base + SPRD_SPI_CTL5);
 
 	/* Reset SPI fifo */
 	writel_relaxed(1, ss->base + SPRD_SPI_FIFO_RST);
@@ -1032,6 +1032,9 @@ static int sprd_spi_probe(struct platform_device *pdev)
 	struct spi_controller *sctlr;
 	struct resource *res;
 	struct sprd_spi *ss;
+	struct property *prop;
+	u32 num_chipselect = 1;
+	u32 i;
 	int ret;
 
 	pdev->id = of_alias_get_id(pdev->dev.of_node, "spi");
@@ -1061,6 +1064,43 @@ static int sprd_spi_probe(struct platform_device *pdev)
 	sctlr->auto_runtime_pm = true;
 	sctlr->max_speed_hz = min_t(u32, ss->src_clk >> 1,
 				    SPRD_SPI_MAX_SPEED_HZ);
+
+	ret = of_property_read_u32(pdev->dev.of_node,
+				   "num-chipselect", &num_chipselect);
+	if (ret < 0) {
+		dev_err(&pdev->dev,
+			"num-chipselect property not found\n");
+	} else {
+		sctlr->num_chipselect = num_chipselect;
+	}
+
+	prop = of_find_property(pdev->dev.of_node, "cs-gpios", NULL);
+	if (prop && prop->length) {
+		sctlr->cs_gpios = devm_kzalloc(&pdev->dev,
+					sizeof(int) * sctlr->num_chipselect,
+					GFP_KERNEL);
+		if (!sctlr->cs_gpios) {
+			ret = -ENOMEM;
+			goto free_controller;
+		}
+
+		for (i = 0; i < sctlr->num_chipselect; i++) {
+			sctlr->cs_gpios[i] = of_get_named_gpio(
+							pdev->dev.of_node,
+							"cs-gpios", i);
+
+			ret = devm_gpio_request_one(&pdev->dev,
+						    sctlr->cs_gpios[i],
+						    GPIOF_OUT_INIT_HIGH,
+						    "sprd-spi");
+			if (ret) {
+				dev_err(&pdev->dev,
+					"could not request cs gpio %d\n",
+					sctlr->cs_gpios[i]);
+				goto free_controller;
+			}
+		}
+	}
 
 	init_completion(&ss->xfer_completion);
 	platform_set_drvdata(pdev, sctlr);
