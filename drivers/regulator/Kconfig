@@ -790,6 +790,16 @@ config REGULATOR_UMP9620
 	  This driver can also be built as a module. If so, the module
 	  will be called ump9620-regulator.
 
+config REGULATOR_UMP9621
+	tristate "Unisoc UMP9621 power regulator driver"
+	depends on MFD_SC27XX_PMIC || MFD_UMP96XX_PMIC || COMPILE_TEST
+	help
+	  This driver provides support for the voltage regulators on the
+	  UMP9621 PMIC.
+
+	  This driver can also be built as a module. If so, the module
+	  will be called ump9621-regulator.
+
 config REGULATOR_SKY81452
 	tristate "Skyworks Solutions SKY81452 voltage regulator"
 	depends on MFD_SKY81452
