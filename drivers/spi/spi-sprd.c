@@ -88,10 +88,6 @@
 #define RXF_FULL_THLD_MASK		GENMASK(4, 0)
 #define RXF_THLD_OFFSET			8
 
-/* Bits & mask definition for register CTL4 */
-#define SPRD_SPI_START_RX		BIT(9)
-#define SPRD_SPI_ONLY_RECV_MASK		GENMASK(8, 0)
-
 /* Bits & mask definition for register CTL5 */
 #define SPI_ITVL_NUM			0x09
 
@@ -341,28 +337,6 @@ static void sprd_spi_chipselect(struct spi_device *sdev, bool cs)
 	}
 }
 
-static int sprd_spi_write_only_receive(struct sprd_spi *ss, u32 len)
-{
-	u32 val;
-
-	/* Clear the start receive bit and reset receive data number */
-	val = readl_relaxed(ss->base + SPRD_SPI_CTL4);
-	val &= ~(SPRD_SPI_START_RX | SPRD_SPI_ONLY_RECV_MASK);
-	writel_relaxed(val, ss->base + SPRD_SPI_CTL4);
-
-	/* Set the receive data length */
-	val = readl_relaxed(ss->base + SPRD_SPI_CTL4);
-	val |= len & SPRD_SPI_ONLY_RECV_MASK;
-	writel_relaxed(val, ss->base + SPRD_SPI_CTL4);
-
-	/* Trigger to receive data */
-	val = readl_relaxed(ss->base + SPRD_SPI_CTL4);
-	val |= SPRD_SPI_START_RX;
-	writel_relaxed(val, ss->base + SPRD_SPI_CTL4);
-
-	return len;
-}
-
 static int sprd_spi_write_bufs_u8(struct sprd_spi *ss, u32 len)
 {
 	u8 *tx_p = (u8 *)ss->tx_buf;
@@ -469,7 +443,6 @@ static int sprd_spi_txrx_bufs(struct spi_device *sdev, struct spi_transfer *t)
 				sprd_spi_tx_req(ss);
 
 			ret = sprd_spi_wait_for_tx_end(ss, t);
-
 			if (ret)
 				goto complete;
 		} else if (!(ss->trans_mode & SPRD_SPI_TX_MODE)) {
@@ -495,8 +468,8 @@ static int sprd_spi_txrx_bufs(struct spi_device *sdev, struct spi_transfer *t)
 			sprd_spi_set_tx_length(ss, len);
 			sprd_spi_set_rx_length(ss, len);
 			write_size += ss->write_bufs(ss, len);
-			ret = sprd_spi_wait_for_rx_end(ss, t);
 
+			ret = sprd_spi_wait_for_rx_end(ss, t);
 			if (ret)
 				goto complete;
 
@@ -918,13 +891,6 @@ static int sprd_spi_setup_transfer(struct spi_device *sdev,
 	writel_relaxed(val | mode, ss->base + SPRD_SPI_CTL1);
 
 	ss->trans_mode = mode;
-
-	/*
-	 * If in only receive mode, we need to trigger the SPI controller to
-	 * receive data automatically.
-	 */
-	if (ss->trans_mode == SPRD_SPI_RX_MODE)
-		ss->write_bufs = sprd_spi_write_only_receive;
 
 	return 0;
 }
