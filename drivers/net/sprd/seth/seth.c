@@ -635,7 +635,7 @@ static bool pkt_use_ackpool(struct sk_buff *skb)
 }
 
 /* Transmit interface */
-static int seth_start_xmit(struct sk_buff *skb, struct net_device *dev)
+static netdev_tx_t seth_start_xmit(struct sk_buff *skb, struct net_device *dev)
 {
 	struct seth *seth = netdev_priv(dev);
 	struct seth_dtrans_stats *dt_stats;
@@ -887,8 +887,8 @@ static int seth_probe(struct platform_device *pdev)
 	atomic_set(&seth->rx_busy, 0);
 	atomic_set(&seth->txpending, 0);
 
-	timer_setup(&seth->rx_timer, (void *)seth_rx_timer_handler, 0);
-	timer_setup(&seth->tx_timer, (void *)seth_tx_flush, 0);
+	timer_setup(&seth->rx_timer, seth_rx_timer_handler, 0);
+	timer_setup(&seth->tx_timer, seth_tx_flush, 0);
 	seth_dt_stats_init(&seth->dt_stats);
 	netdev->netdev_ops = &seth_ops;
 	netdev->watchdog_timeo = 1 * HZ;
