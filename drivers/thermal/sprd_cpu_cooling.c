@@ -121,6 +121,9 @@ struct cpu_cooling_device {
 	unsigned int level;
 	unsigned int run_cpus;
 	unsigned int max_level;
+	unsigned int power;
+	unsigned int cur_freq;
+	unsigned int min_freq;
 	struct cpumask allowed_cpus;
 	struct run_cpus_table *table;
 	struct thermal_cooling_device *cdev;
@@ -380,7 +383,7 @@ static int cpu_get_requested_power(struct thermal_cooling_device *cdev,
 				       struct thermal_zone_device *tz,
 				       u32 *power)
 {
-	unsigned long freq;
+	unsigned int freq;
 	unsigned int ncpus;
 	int cpu, ret;
 	u32 static_power;
@@ -393,6 +396,8 @@ static int cpu_get_requested_power(struct thermal_cooling_device *cdev,
 	if (ret)
 		static_power = 0;
 
+	cpu_cdev->cur_freq = freq;
+	cpu_cdev->power = static_power;
 	*power = static_power * ncpus;
 
 	return 0;
@@ -402,9 +407,8 @@ static int cpu_state2power(struct thermal_cooling_device *cdev,
 			       struct thermal_zone_device *tz,
 			       unsigned long state, u32 *power)
 {
-	unsigned int freq, cpu, num_cpus;
+	unsigned int num_cpus;
 	u32 static_power;
-	int ret;
 	struct cpu_cooling_device *cpu_cdev = cdev->devdata;
 
 	/* Request state should be less than max_level */
@@ -412,15 +416,10 @@ static int cpu_state2power(struct thermal_cooling_device *cdev,
 		return -EINVAL;
 
 	num_cpus = cpu_cdev->table[state].cpus;
-	cpu = cpumask_any(&cpu_cdev->allowed_cpus);
-	freq = cpufreq_quick_get(cpu);
-	ret = cpu_get_static_power(cpu_cdev, tz, freq, &static_power, 1);
-	if (ret)
-		return ret;
-
+	static_power = cpu_cdev->power;
 	*power = static_power * num_cpus;
 
-	return ret;
+	return 0;
 }
 
 static int cpu_power2state(struct thermal_cooling_device *cdev,
@@ -428,7 +427,7 @@ static int cpu_power2state(struct thermal_cooling_device *cdev,
 			       unsigned long *state)
 {
 	unsigned int cpu, cur_freq;
-	int ret, cpus, max_cpus, id;
+	int cpus, max_cpus, id;
 	u32 static_power;
 	struct cpu_cooling_device *cpu_cdev = cdev->devdata;
 
@@ -438,10 +437,11 @@ static int cpu_power2state(struct thermal_cooling_device *cdev,
 	}
 
 	cpu = cpumask_any(&cpu_cdev->allowed_cpus);
-	cur_freq = cpufreq_quick_get(cpu);
-	ret = cpu_get_static_power(cpu_cdev, tz, cur_freq, &static_power, 1);
-	if (ret || !static_power)
+	static_power = cpu_cdev->power;
+	if (!static_power) {
+		*state = get_level(cpu_cdev, cpu_cdev->run_cpus);
 		return -EINVAL;
+	}
 
 	cpus = power / static_power;
 	max_cpus = cpumask_weight(&cpu_cdev->allowed_cpus);
@@ -459,13 +459,27 @@ static int cpu_power2state(struct thermal_cooling_device *cdev,
 	cpu_cdev->round = 0;
 
 	id = get_cluster_id(cpu);
-	if (cpu_cdev->power_ops->get_cluster_min_cpunum_p != NULL)
+	if (cpu_cdev->power_ops->get_cluster_min_cpunum_p != NULL &&
+	    cpu_cdev->power_ops->get_cluster_min_cpufreq_p != NULL) {
 		cpu_cdev->min_cpus =
 			cpu_cdev->power_ops->get_cluster_min_cpunum_p(id);
+		cpu_cdev->min_freq =
+			cpu_cdev->power_ops->get_cluster_min_cpufreq_p(id);
+	}
+
+	cur_freq = cpu_cdev->cur_freq;
 	cpus = max(cpus, cpu_cdev->min_cpus);
+	if (cpus < cpu_cdev->run_cpus) {
+		if (cur_freq > cpu_cdev->min_freq) {
+			*state = get_level(cpu_cdev, cpu_cdev->run_cpus);
+			return 0;
+		}
+	}
+
 	*state = get_level(cpu_cdev, cpus);
 
-	pr_info("cpu%u target_cpus:%d state:%ld\n", cpu, cpus, *state);
+	pr_info("cpu%u temp:%u cur_freq:%u cur_cpus:%d target_cpus:%d\n",
+		cpu, tz->temperature, cur_freq, cpu_cdev->run_cpus, cpus);
 
 	return 0;
 }
@@ -524,6 +538,7 @@ cpu_cooling_register(struct device_node *np,
 
 	for (i = 0; i <= cpu_cdev->max_level; i++) {
 		cpu_cdev->table[i].cpus = num_cpus;
+		cpu_cdev->table[i].power = 0;
 		num_cpus--;
 	}
 
@@ -549,6 +564,7 @@ cpu_cooling_register(struct device_node *np,
 	cpu_cdev->round = 0;
 	cpu_cdev->total = 0;
 	cpu_cdev->min_cpus = 0;
+	cpu_cdev->power = 0;
 	cpu_cdev->run_cpus = cpu_cdev->table[0].cpus;
 	cpu_cdev->level = 0;
 	cpu_cdev->cdev = cdev;
