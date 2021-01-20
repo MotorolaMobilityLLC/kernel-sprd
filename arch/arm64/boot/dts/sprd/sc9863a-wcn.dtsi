@@ -160,6 +160,18 @@
 			sprd,rx-blksize = <0>;
 			sprd,rx-blknum = <0>;
 		};
+
+		sprd-mtty {
+			compatible = "sprd,wcn_bt";
+			extcon = <&spipe_wcn>;
+			sprd,name = "ttyBT";
+		};
+
+		sprd-fm {
+			compatible = "sprd,wcn_fm";
+			extcon = <&spipe_wcn>;
+			sprd,name = "sprd-fm";
+		};
 	};
 
 	sipc_gnss: core@4 {
