@@ -1998,7 +1998,7 @@ CONFIG_WLAN=y
 #
 # Unisoc Net Devices
 #
-# CONFIG_SPRD_SIPC_SETH is not set
+CONFIG_SPRD_SIPC_SETH=m
 # end of Unisoc Net Devices
 
 # CONFIG_NETDEVSIM is not set
