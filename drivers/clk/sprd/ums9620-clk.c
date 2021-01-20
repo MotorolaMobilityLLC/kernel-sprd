@@ -67,7 +67,7 @@ static SPRD_PLL_SC_GATE_CLK(dpll0_gate, "dpll0-gate", "ext-26m", 0xa14,
 			    0x1000, BIT(2), CLK_IGNORE_UNUSED, 0, 240);
 static SPRD_PLL_SC_GATE_CLK(dpll1_gate, "dpll1-gate", "ext-26m", 0xa18,
 			    0x1000, BIT(2), CLK_IGNORE_UNUSED, 0, 240);
-static SPRD_PLL_SC_GATE_CLK(dpll2_gate, "dpll1-gate", "ext-26m", 0xa1c,
+static SPRD_PLL_SC_GATE_CLK(dpll2_gate, "dpll2-gate", "ext-26m", 0xa1c,
 			    0x1000, BIT(2), CLK_IGNORE_UNUSED, 0, 240);
 static SPRD_PLL_SC_GATE_CLK(gpll_gate, "gpll-gate", "ext-26m", 0xa20,
 			    0x1000, BIT(2), CLK_IGNORE_UNUSED, 0, 240);
@@ -681,7 +681,7 @@ static struct clk_hw_onecell_data ums9620_apapb_gate_hws = {
 		[CLK_SPI0_EB]		= &spi0_eb.common.hw,
 		[CLK_SPI1_EB]		= &spi1_eb.common.hw,
 		[CLK_SPI2_EB]		= &spi2_eb.common.hw,
-		[CLK_UART3_EB]		= &uart0_eb.common.hw,
+		[CLK_UART3_EB]		= &uart3_eb.common.hw,
 		[CLK_UART0_EB]		= &uart0_eb.common.hw,
 		[CLK_UART1_EB]		= &uart1_eb.common.hw,
 		[CLK_UART2_EB]		= &uart2_eb.common.hw,
@@ -2311,7 +2311,7 @@ static SPRD_SC_GATE_CLK(dcam_mtx_en, "dcam-mtx-en", "mm-eb", 0xc,
 			0x1000, BIT(3), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(dcam_lite_mtx_en, "dcam-lite-mtx-en", "mm-eb", 0xc,
 			0x1000, BIT(4), CLK_IGNORE_UNUSED, 0);
-static SPRD_SC_GATE_CLK(dcam_blk_cfg_en, "vdsp-blk-cfg-en", "mm-eb", 0xc,
+static SPRD_SC_GATE_CLK(dcam_blk_cfg_en, "dcam-blk-cfg-en", "mm-eb", 0xc,
 			0x1000, BIT(5), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(sensor0_en, "sensor0-en", "mm-eb", 0xc,
 			0x1000, BIT(6), CLK_IGNORE_UNUSED, 0);
