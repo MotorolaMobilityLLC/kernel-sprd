@@ -1622,11 +1622,11 @@ static const struct sprd_clk_desc sc9863a_mm_gate_desc = {
 
 /* camera sensor clocks */
 static SPRD_GATE_CLK_HW(mipi_csi_clk, "mipi-csi-clk", &mahb_ckg_eb.common.hw,
-			0x20, BIT(16), 0, SPRD_GATE_NON_AON);
+			0x20, BIT(16), 0, 0);
 static SPRD_GATE_CLK_HW(mipi_csi_s_clk, "mipi-csi-s-clk", &mahb_ckg_eb.common.hw,
-			0x24, BIT(16), 0, SPRD_GATE_NON_AON);
+			0x24, BIT(16), 0, 0);
 static SPRD_GATE_CLK_HW(mipi_csi_m_clk, "mipi-csi-m-clk", &mahb_ckg_eb.common.hw,
-			0x28, BIT(16), 0, SPRD_GATE_NON_AON);
+			0x28, BIT(16), 0, 0);
 
 static struct sprd_clk_common *sc9863a_mm_clk_clks[] = {
 	/* address base is 0x60900000 */
@@ -1784,26 +1784,28 @@ static const struct sprd_clk_desc sc9863a_apapb_gate_desc = {
 };
 
 static const struct of_device_id sprd_sc9863a_clk_ids[] = {
-	{ .compatible = "sprd,sc9863a-ap-clk",	/* 0x21500000 */
+	{ .compatible = "sprd,sc9863a-ap-clk",		/* 0x21500000 */
 	  .data = &sc9863a_ap_clk_desc },
 	{ .compatible = "sprd,sc9863a-pmu-gate",	/* 0x402b0000 */
 	  .data = &sc9863a_pmu_gate_desc },
-	{ .compatible = "sprd,sc9863a-pll",	/* 0x40353000 */
+	{ .compatible = "sprd,sc9863a-pll",		/* 0x40353000 */
 	  .data = &sc9863a_pll_desc },
-	{ .compatible = "sprd,sc9863a-mpll",	/* 0x40359000 */
+	{ .compatible = "sprd,sc9863a-mpll",		/* 0x40359000 */
 	  .data = &sc9863a_mpll_desc },
-	{ .compatible = "sprd,sc9863a-rpll",	/* 0x4035c000 */
+	{ .compatible = "sprd,sc9863a-rpll",		/* 0x4035c000 */
 	  .data = &sc9863a_rpll_desc },
-	{ .compatible = "sprd,sc9863a-dpll",	/* 0x40363000 */
+	{ .compatible = "sprd,sc9863a-dpll",		/* 0x40363000 */
 	  .data = &sc9863a_dpll_desc },
-	{ .compatible = "sprd,sc9863a-aon-clk",	/* 0x402d0000 */
+	{ .compatible = "sprd,sc9863a-aon-clk",		/* 0x402d0000 */
 	  .data = &sc9863a_aon_clk_desc },
 	{ .compatible = "sprd,sc9863a-apahb-gate",	/* 0x20e00000 */
 	  .data = &sc9863a_apahb_gate_desc },
 	{ .compatible = "sprd,sc9863a-aonapb-gate",	/* 0x402e0000 */
 	  .data = &sc9863a_aonapb_gate_desc },
-	{ .compatible = "sprd,sc9863a-mm-gate",	/* 0x60800000 */
+	{ .compatible = "sprd,sc9863a-mm-gate",		/* 0x60800000 */
 	  .data = &sc9863a_mm_gate_desc },
+	{ .compatible = "sprd,sc9863a-mm-clk",		/* 0x60900000 */
+	  .data = &sc9863a_mm_clk_desc },
 	{ .compatible = "sprd,sc9863a-vspahb-gate",	/* 0x62000000 */
 	  .data = &sc9863a_vspahb_gate_desc },
 	{ .compatible = "sprd,sc9863a-apapb-gate",	/* 0x71300000 */
