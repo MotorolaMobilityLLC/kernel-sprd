@@ -132,33 +132,48 @@
 	energy-costs {
 		CPU_COST_0: core-cost0 {
 			busy-cost-data = <
-				164	44		//614MHz
-				206	57		//768MHz
-				258	74		//962MHz
-				307	83		//1144MHz
-				329	98		//1229MHz
-				397	126		//1482MHz
-				412	144		//1536MHz
-				460	174		//1716MHz
-				488	202		//1820MHz
+				167	50		//614MHz
+				208	72		//768MHz
+				261	83		//962MHz
+				310	93		//1144MHz
+				333	98		//1229MHz
+				402	140		//1482MHz
+				417	144		//1536MHz
+				466	193		//1716MHz
+				494	202		//1820MHz
 			>;
 			idle-cost-data = <
-				30		/* ACTIVE-IDLE */
-				30		/* WFI */
+				32		/* ACTIVE-IDLE */
+				32		/* WFI */
 				0		/* CORE_PD */
 			>;
 			busy-cost-data-T616 = <
-				164	44		//614MHz
-				206	57		//768MHz
-				258	74		//962MHz
-				307	83		//1144MHz
-				329	98		//1229MHz
-				397	126		//1482MHz
-				412	144		//1536MHz
-				460	174		//1716MHz
-				488	202		//1820MHz
+				167	50		//614MHz
+				208	72		//768MHz
+				261	83		//962MHz
+				310	93		//1144MHz
+				333	98		//1229MHz
+				402	140		//1482MHz
+				417	144		//1536MHz
+				466	193		//1716MHz
+				494	202		//1820MHz
 			>;
 			idle-cost-data-T616 = <
+				32		/* ACTIVE-IDLE */
+				32		/* WFI */
+				0		/* CORE_PD */
+			>;
+			busy-cost-data-T606 = <
+				207	50		//614MHz
+				259	72		//768MHz
+				324	83		//962MHz
+				386	93		//1144MHz
+				415	98		//1229MHz
+				500	140		//1482MHz
+				518	144		//1536MHz
+				544	184		//1612MHz
+			>;
+			idle-cost-data-T606 = <
 				30		/* ACTIVE-IDLE */
 				30		/* WFI */
 				0		/* CORE_PD */
@@ -166,43 +181,54 @@
 		};
 		CPU_COST_1: core-cost1 {
 			busy-cost-data = <
-				621	362		//1229MHz
-				748	476		//1482MHz
-				776	551		//1536MHz
-				880	685		//1742MHz
-				945	810		//1872MHz
-				1024	964		//2028MHz
+				628	362		//1229MHz
+				758	476		//1482MHz
+				785	614		//1536MHz
+				891	843		//1742MHz
+				957	898		//1872MHz
+				1024	953		//2002MHz
 			>;
 			idle-cost-data = <
-				88		/* ACTIVE-IDLE */
-				88		/* WFI */
+				95		/* ACTIVE-IDLE */
+				95		/* WFI */
 				0		/* CORE_PD */
 			>;
 			busy-cost-data-T616 = <
-				621	362		//1229MHz
-				748	476		//1482MHz
-				776	551		//1536MHz
-				880	685		//1742MHz
-				945	810		//1872MHz
-				1024	964		//2028MHz
+				628	362		//1229MHz
+				758	476		//1482MHz
+				785	614		//1536MHz
+				891	843		//1742MHz
+				957	898		//1872MHz
+				1024	953		//2002MHz
 			>;
 			idle-cost-data-T616 = <
-				88		/* ACTIVE-IDLE */
-				88		/* WFI */
+				95		/* ACTIVE-IDLE */
+				95		/* WFI */
+				0		/* CORE_PD */
+			>;
+			busy-cost-data-T606 = <
+				780	362		//1229MHz
+				941	476		//1482MHz
+				976	614		//1536MHz
+				1024	789		//1612MHz
+			>;
+			idle-cost-data-T606 = <
+				87		/* ACTIVE-IDLE */
+				87		/* WFI */
 				0		/* CORE_PD */
 			>;
 		};
 		CLUSTER_COST_0: cluster-cost0 {
 			busy-cost-data = <
-				164	1		//614MHz
-				206	2		//768MHz
-				258	3		//962MHz
-				307	4		//1144MHz
-				329	5		//1229MHz
-				397	6		//1482MHz
-				412	7		//1536MHz
-				460	8		//1716MHz
-				488	9		//1820MHz
+				167	1		//614MHz
+				208	2		//768MHz
+				261	3		//962MHz
+				310	4		//1144MHz
+				333	5		//1229MHz
+				402	6		//1482MHz
+				417	7		//1536MHz
+				466	8		//1716MHz
+				494	9		//1820MHz
 			>;
 			idle-cost-data = <
 				0		/* ACTIVE-IDLE */
@@ -210,17 +236,32 @@
 				0		/* CORE_PD */
 			>;
 			busy-cost-data-T616 = <
-				164	1		//614MHz
-				206	2		//768MHz
-				258	3		//962MHz
-				307	4		//1144MHz
-				329	5		//1229MHz
-				397	6		//1482MHz
-				412	7		//1536MHz
-				460	8		//1716MHz
-				488	9		//1820MHz
+				167	1		//614MHz
+				208	2		//768MHz
+				261	3		//962MHz
+				310	4		//1144MHz
+				333	5		//1229MHz
+				402	6		//1482MHz
+				417	7		//1536MHz
+				466	8		//1716MHz
+				494	9		//1820MHz
 			>;
 			idle-cost-data-T616 = <
+				0		/* ACTIVE-IDLE */
+				0		/* WFI */
+				0		/* CORE_PD */
+			>;
+			busy-cost-data-T606 = <
+				207	1		//614MHz
+				259	2		//768MHz
+				324	3		//962MHz
+				386	4		//1144MHz
+				415	5		//1229MHz
+				500	6		//1482MHz
+				518	7		//1536MHz
+				544	8		//1612MHz
+			>;
+			idle-cost-data-T606 = <
 				0		/* ACTIVE-IDLE */
 				0		/* WFI */
 				0		/* CORE_PD */
@@ -228,12 +269,12 @@
 		};
 		CLUSTER_COST_1: cluster-cost1 {
 			busy-cost-data = <
-				621	42		//1229MHz
-				748	48		//1482MHz
-				776	55		//1536MHz
-				880	64		//1742MHz
-				945	74		//1872MHz
-				1024	84		//2028MHz
+				628	42		//1229MHz
+				758	48		//1482MHz
+				785	55		//1536MHz
+				891	64		//1742MHz
+				957	74		//1872MHz
+				1024	84		//2002MHz
 			>;
 			idle-cost-data = <
 				31		/* ACTIVE-IDLE */
@@ -241,17 +282,28 @@
 				31		/* CORE_PD */
 			>;
 			busy-cost-data-T616 = <
-				621	42		//1229MHz
-				748	48		//1482MHz
-				776	55		//1536MHz
-				880	64		//1742MHz
-				945	74		//1872MHz
-				1024	84		//2028MHz
+				628	42		//1229MHz
+				758	48		//1482MHz
+				785	55		//1536MHz
+				891	64		//1742MHz
+				957	74		//1872MHz
+				1024	84		//2002MHz
 			>;
 			idle-cost-data-T616 = <
 				31		/* ACTIVE-IDLE */
 				31		/* WFI */
 				31		/* CORE_PD */
+			>;
+			busy-cost-data-T606 = <
+				780	55		//1229MHz
+				941	63		//1482MHz
+				976	74		//1536MHz
+				1024	84		//1612MHz
+			>;
+			idle-cost-data-T606 = <
+				33		/* ACTIVE-IDLE */
+				33		/* WFI */
+				33		/* CORE_PD */
 			>;
 		};
 	};
