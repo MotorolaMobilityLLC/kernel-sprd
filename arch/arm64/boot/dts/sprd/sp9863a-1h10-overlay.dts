@@ -195,3 +195,8 @@
 	first-calib-capacity = <50>;
 };
 
+&usb{
+	extcon = <&extcon_gpio>, <&pmic_typec>;
+	status = "okay";
+	vbus-supply = <&vddvbus>;
+};
