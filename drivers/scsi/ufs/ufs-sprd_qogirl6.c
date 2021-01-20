@@ -201,13 +201,13 @@ void ufs_sprd_reset(struct ufs_sprd_host *host)
 
 	regmap_read(host->ap_apb_ufs_rst.regmap,
 		    host->ap_apb_ufs_rst.reg, &value);
-	value = value | host->ap_apb_ufs_en.mask;
+	value = value | host->ap_apb_ufs_rst.mask;
 	regmap_write(host->ap_apb_ufs_rst.regmap,
 		    host->ap_apb_ufs_rst.reg, value);
 	mdelay(10);
 	regmap_read(host->ap_apb_ufs_rst.regmap,
 		    host->ap_apb_ufs_rst.reg, &value);
-	value = value & (~host->ap_apb_ufs_en.mask);
+	value = value & (~host->ap_apb_ufs_rst.mask);
 	regmap_write(host->ap_apb_ufs_rst.regmap,
 		     host->ap_apb_ufs_rst.reg, value);
 
@@ -230,8 +230,20 @@ void ufs_sprd_reset(struct ufs_sprd_host *host)
 		     host->ufs_refclk_on.reg, value);
 
 	regmap_read(host->ahb_ufs_lp.regmap, host->ahb_ufs_lp.reg, &value);
-	value = value & (~host->ahb_ufs_lp.mask);
+	value = value | host->ahb_ufs_lp.mask;
 	regmap_write(host->ahb_ufs_lp.regmap, host->ahb_ufs_lp.reg, value);
+
+	regmap_read(host->ahb_ufs_force_isol.regmap,
+			   host->ahb_ufs_force_isol.reg, &value);
+	value = value & (~host->ahb_ufs_force_isol.mask);
+	regmap_write(host->ahb_ufs_force_isol.regmap,
+			   host->ahb_ufs_force_isol.reg, value);
+
+	regmap_read(host->ap_apb_ufs_en.regmap,
+		    host->ap_apb_ufs_en.reg, &value);
+	value =	value | host->ap_apb_ufs_en.mask;
+	regmap_write(host->ap_apb_ufs_en.regmap,
+		     host->ap_apb_ufs_en.reg, value);
 
 	regmap_read(host->ahb_ufs_cb.regmap, host->ahb_ufs_cb.reg, &value);
 	value = value | host->ahb_ufs_cb.mask;
