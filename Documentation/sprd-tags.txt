@@ -127,6 +127,7 @@ mmc:sprd:
 
 net:
 nvmem:sprd:
+nvmem:sc27xx:
 
 pci:dwc:
 pci:dwc:sprd:
