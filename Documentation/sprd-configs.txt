@@ -12145,6 +12145,15 @@ CONFIG_SCSI_UFS_SPRD_QOGIRL6
 	[must] user
 	[missing plat description] This function is currently used for qogirl6
 	[function] SCSI ufs sprd qogirl6 support
+CONFIG_SDCARD_FS
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field] make,code
+	[subsys] fs
+	[must] user
+	[missing plat description] none
+	[function] sdcardfs support
 CONFIG_SDIOHAL
 	[arch] all
 	[plat] sharkl5,sharkl5Pro,sharkl5_32
