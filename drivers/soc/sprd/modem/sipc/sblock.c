@@ -712,7 +712,7 @@ int sblock_create_ex(u8 dst, u8 channel,
 	int result;
 	u8 ch_index;
 	struct smsg_ipc *sipc;
-	struct sched_param param = {.sched_priority = 11};
+	struct sched_param param = {.sched_priority = 88};
 
 	ch_index = sipc_channel2index(channel);
 	if (ch_index == INVALID_CHANEL_INDEX) {
@@ -764,7 +764,7 @@ int sblock_create_ex(u8 dst, u8 channel,
 				return result;
 			}
 		}
-		/*set the thread as a real time thread, and its priority is 11*/
+		/* set the thread as a real time thread, and its priority is 11 */
 		sched_setscheduler(sblock->thread, SCHED_RR, &param);
 		wake_up_process(sblock->thread);
 	}
@@ -812,7 +812,7 @@ int sblock_pcfg_create(u8 dst, u8 channel,
 				   rx_blk_num, rx_blk_sz,
 				   &sblock);
 	if (!result) {
-		struct sched_param param = {.sched_priority = 11};
+		struct sched_param param = {.sched_priority = 88};
 
 		sblock->thread = kthread_create(sblock_thread, sblock,
 						"sblock-%d-%d", dst, channel);
@@ -840,10 +840,7 @@ int sblock_pcfg_create(u8 dst, u8 channel,
 		get_task_struct(sblock->thread);
 
 		sblocks[dst][ch_index] = sblock;
-		/*
-		 * Set the thread as a real time thread, and its priority
-		 * is 11.
-		 */
+		/* Set the thread as a real time thread, and its priority is 11. */
 		sched_setscheduler(sblock->thread, SCHED_RR, &param);
 		wake_up_process(sblock->thread);
 	}
@@ -909,7 +906,7 @@ int sblock_pcfg_open(uint8_t dest, uint8_t channel,
 	struct sblock_mgr *sblock;
 	uint8_t idx;
 	int ret;
-	struct sched_param param = {.sched_priority = 11};
+	struct sched_param param = {.sched_priority = 88};
 
 	pr_debug("dst=%d channel=%d\n", dest, channel);
 
@@ -949,7 +946,7 @@ int sblock_pcfg_open(uint8_t dest, uint8_t channel,
 
 		sblock->handler = notifier;
 		sblock->data = client;
-		/*set the thread as a real time thread, and its priority is 11*/
+		/* set the thread as a real time thread, and its priority is 11 */
 		sched_setscheduler(sblock->thread, SCHED_RR, &param);
 		wake_up_process(sblock->thread);
 	}

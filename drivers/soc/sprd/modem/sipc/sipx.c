@@ -1890,7 +1890,7 @@ int sipx_chan_create(u8 dst, u8 channel)
 	struct sipx_mgr *sipx = NULL;
 	struct sipx_channel *sipx_chan = NULL;
 	int ret = 0;
-	struct sched_param param = {.sched_priority = 11};
+	struct sched_param param = {.sched_priority = 88};
 
 	pr_info("%s\n", __func__);
 
@@ -1923,7 +1923,7 @@ int sipx_chan_create(u8 dst, u8 channel)
 		goto fail;
 	}
 
-	/*set the thread as a real time thread, and its priority is 88*/
+	/* set the thread as a real time thread, and its priority is 11 */
 	sched_setscheduler(sipx_chan->thread, SCHED_RR, &param);
 	wake_up_process(sipx_chan->thread);
 #ifdef UL_TEST

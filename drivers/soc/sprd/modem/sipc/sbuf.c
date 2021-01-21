@@ -590,7 +590,7 @@ int sbuf_create(u8 dst, u8 channel, u32 bufnum, u32 txbufsize, u32 rxbufsize)
 	u8 ch_index;
 	int ret, i;
 	struct smsg_ipc *sipc = NULL;
-	struct sched_param param = {.sched_priority = 10};
+	struct sched_param param = {.sched_priority = 89};
 	struct sbuf_ring *ring;
 
 	sipc = smsg_ipcs[dst];
@@ -657,7 +657,7 @@ int sbuf_create(u8 dst, u8 channel, u32 bufnum, u32 txbufsize, u32 rxbufsize)
 
 	sbufs[dst][ch_index] = sbuf;
 
-	/*set the thread as a real time thread, and its priority is 10*/
+	/* set the thread as a real time thread, and its priority is 10 */
 	sched_setscheduler(sbuf->thread, SCHED_FIFO, &param);
 	wake_up_process(sbuf->thread);
 
