@@ -632,7 +632,7 @@ config LEDS_IS31FL32XX
 
 config LEDS_SC27XX_BLTC
 	tristate "LED support for the SC27xx breathing light controller"
-	depends on LEDS_CLASS && MFD_SC27XX_PMIC
+	depends on LEDS_CLASS && (MFD_SC27XX_PMIC || MFD_UMP96XX_PMIC)
 	depends on OF
 	help
 	  Say Y here to include support for the SC27xx breathing light controller
@@ -643,7 +643,7 @@ config LEDS_SC27XX_BLTC
 
 config LEDS_SC27XX_KEYPAD
 	tristate "LED support for the SC27XX keypad led controller"
-	depends on LEDS_CLASS && MFD_SC27XX_PMIC
+	depends on LEDS_CLASS && (MFD_SC27XX_PMIC || MFD_UMP96XX_PMIC)
 	depends on OF
 	help
 	  Say Y here to include support for the SC27xx keypad led.

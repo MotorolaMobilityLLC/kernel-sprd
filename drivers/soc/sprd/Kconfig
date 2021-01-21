@@ -29,7 +29,7 @@ config SPRD_7SRESET
 
 config SPRD_PMIC_SYSCON
 	tristate "Spreadtrum PMIC global driver"
-	depends on MFD_SC27XX_PMIC || COMPILE_TEST
+	depends on MFD_SC27XX_PMIC || MFD_UMP96XX_PMIC || COMPILE_TEST
         help
           Enable this configuration option to enable pmic global driver.
 

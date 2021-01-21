@@ -782,7 +782,7 @@ config REGULATOR_SC2730
 
 config REGULATOR_UMP9620
 	tristate "Unisoc UMP9620 power regulator driver"
-	depends on MFD_SC27XX_PMIC || COMPILE_TEST
+	depends on MFD_SC27XX_PMIC || MFD_UMP96XX_PMIC || COMPILE_TEST
 	help
 	  This driver provides support for the voltage regulators on the
 	  UMP9620 PMIC.

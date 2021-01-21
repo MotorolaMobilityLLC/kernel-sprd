@@ -55,7 +55,7 @@ config TYPEC_TPS6598X
 
 config USB_SC27XX_TYPEC
 	tristate "Spreadtrum SC27XX Serials PMICs Typec Controller"
-	depends on MFD_SC27XX_PMIC || COMPILE_TEST
+	depends on MFD_SC27XX_PMIC || MFD_UMP96XX_PMIC || COMPILE_TEST
 	default n
 	help
 	  Select this when you want to enable Spreadtrum Type-C v1.1 module.

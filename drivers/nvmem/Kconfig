@@ -168,7 +168,7 @@ config SPRD_CACHE_EFUSE
 
 config SC27XX_EFUSE
 	tristate "Spreadtrum SC27XX eFuse Support"
-	depends on MFD_SC27XX_PMIC || COMPILE_TEST
+	depends on MFD_SC27XX_PMIC || MFD_UMP96XX_PMIC || COMPILE_TEST
 	depends on HAS_IOMEM
 	help
 	  This is a simple driver to dump specified values of Spreadtrum
