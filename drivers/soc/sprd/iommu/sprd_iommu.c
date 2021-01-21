@@ -137,8 +137,17 @@ static const struct of_device_id sprd_iommu_ids[] = {
 	{ .compatible = "sprd,iommuex-vdma",
 	   .data = (void *)(IOMMU_EX_VDMA)},
 
+	{ .compatible = "sprd,iommuvau-gsp",
+	   .data = (void *)(IOMMU_VAU_GSP)},
+
+	{ .compatible = "sprd,iommuvau-gsp1",
+	   .data = (void *)(IOMMU_VAU_GSP1)},
+
 	{ .compatible = "sprd,iommuvau-dispc",
 	   .data = (void *)(IOMMU_VAU_DISP)},
+
+	{ .compatible = "sprd,iommuvau-dispc1",
+	   .data = (void *)(IOMMU_VAU_DISP1)},
 
 	{ .compatible = "sprd,iommuvau-vsp",
 	   .data = (void *)(IOMMU_VAU_VSP)},
@@ -207,8 +216,13 @@ static void sprd_iommu_set_list(struct sprd_iommu_dev *iommu_dev)
 		iommu_dev->id = SPRD_IOMMU_CPP;
 		break;
 	case IOMMU_EX_GSP:
+	case IOMMU_VAU_GSP:
 		sprd_iommu_list[SPRD_IOMMU_GSP].iommu_dev = iommu_dev;
 		iommu_dev->id = SPRD_IOMMU_GSP;
+		break;
+	case IOMMU_VAU_GSP1:
+		sprd_iommu_list[SPRD_IOMMU_GSP1].iommu_dev = iommu_dev;
+		iommu_dev->id = SPRD_IOMMU_GSP1;
 		break;
 	case IOMMU_EX_JPG:
 	case IOMMU_VAU_JPG:
@@ -219,6 +233,10 @@ static void sprd_iommu_set_list(struct sprd_iommu_dev *iommu_dev)
 	case IOMMU_VAU_DISP:
 		sprd_iommu_list[SPRD_IOMMU_DISP].iommu_dev = iommu_dev;
 		iommu_dev->id = SPRD_IOMMU_DISP;
+		break;
+	case IOMMU_VAU_DISP1:
+		sprd_iommu_list[SPRD_IOMMU_DISP1].iommu_dev = iommu_dev;
+		iommu_dev->id = SPRD_IOMMU_DISP1;
 		break;
 	case IOMMU_EX_ISP:
 	case IOMMU_EX_NEWISP:
@@ -1131,7 +1149,8 @@ int sprd_iommu_restore(struct device *dev)
 		ret = -1;
 
 	if (iommu_dev->id != SPRD_IOMMU_VSP &&
-	    iommu_dev->id != SPRD_IOMMU_DISP)
+	    iommu_dev->id != SPRD_IOMMU_DISP &&
+		iommu_dev->id != SPRD_IOMMU_DISP1)
 		sprd_iommu_pool_show(dev);
 
 	return ret;
@@ -1306,8 +1325,11 @@ static int sprd_iommu_probe(struct platform_device *pdev)
 	case IOMMU_VAU_VSP:
 	case IOMMU_VAU_DCAM:
 	case IOMMU_VAU_CPP:
+	case IOMMU_VAU_GSP:
+	case IOMMU_VAU_GSP1:
 	case IOMMU_VAU_JPG:
 	case IOMMU_VAU_DISP:
+	case IOMMU_VAU_DISP1:
 	case IOMMU_VAU_ISP:
 	case IOMMU_VAU_FD:
 	case IOMMU_VAU_NPU:

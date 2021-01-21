@@ -105,7 +105,7 @@ static u32 sprd_iommuvau_cll_uninit(sprd_iommu_hdl  iommu_hdl)
 
 	iommu_id = iommu_priv->iommu_id;
 
-	if (iommu_id == IOMMU_EX_CPP) {
+	if (iommu_id == IOMMU_VAU_CPP) {
 		pa_out_range_r_en = 1;
 		pa_out_range_w_en = 1;
 		va_out_range_r_en = 1;
@@ -179,7 +179,7 @@ static u32 sprd_iommuvau_cll_enable(sprd_iommu_hdl iommu_hdl)
 	fault_page = iommu_priv->default_addr;
 	mmu_vau_default_ppn(iommu_priv->mmu_reg_addr, iommu_id, fault_page);
 
-	if (iommu_id == IOMMU_EX_DISP)
+	if (iommu_id == IOMMU_VAU_DISP || iommu_id == IOMMU_VAU_DISP1)
 		mmu_vau_vpn_range(iommu_priv->mmu_reg_addr,
 		    iommu_id, (iommu_priv->vpn_range >> 12) - 1);
 
@@ -464,7 +464,8 @@ static u32 sprd_iommuvau_cll_reset(sprd_iommu_hdl  iommu_hdl, u32 channel_num)
 		return SPRD_ERR_INITIALIZED;
 
 	iommu_priv = (struct sprd_iommuvau_priv *)(iommu_data->priv);
-	if (iommu_priv->map_cnt || iommu_priv->iommu_id == IOMMU_EX_DISP)
+	if (iommu_priv->map_cnt || iommu_priv->iommu_id == IOMMU_VAU_DISP ||
+	    iommu_priv->iommu_id == IOMMU_VAU_DISP1)
 		sprd_iommuvau_cll_enable(iommu_hdl);
 
 	mmu_vau_update(iommu_priv->mmu_reg_addr, iommu_priv->iommu_id);

@@ -47,7 +47,10 @@ u32 sprd_iommudrv_init(struct sprd_iommu_init_param *init_param,
 	case IOMMU_VAU_DCAM:
 	case IOMMU_VAU_CPP:
 	case IOMMU_VAU_JPG:
+	case IOMMU_VAU_GSP:
+	case IOMMU_VAU_GSP1:
 	case IOMMU_VAU_DISP:
+	case IOMMU_VAU_DISP1:
 	case IOMMU_VAU_ISP:
 	case IOMMU_VAU_FD:
 	case IOMMU_VAU_NPU:
