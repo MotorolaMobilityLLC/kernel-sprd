@@ -412,7 +412,7 @@
 	#size-cells = <0>;
 
 	touchscreen@38 {
-		compatible = "adaptive-touchscreen";
+		compatible = "focaltech,ft5436-touchscreen";
 		reg = <0x38>;
 		gpios = <&ap_gpio 63 GPIO_ACTIVE_HIGH
 			&ap_gpio 64 GPIO_ACTIVE_HIGH>;
