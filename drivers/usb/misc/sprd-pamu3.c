@@ -32,8 +32,8 @@
 #include <linux/usb/phy.h>
 #include <linux/usb/pam.h>
 #include <linux/sipa.h>
-#include <dt-bindings/soc/sprd,roc1-mask.h>
-#include <dt-bindings/soc/sprd,roc1-regs.h>
+#include <dt-bindings/soc/sprd,qogirn6pro-mask.h>
+#include <dt-bindings/soc/sprd,qogirn6pro-regs.h>
 #include "sprd-pamu3.h"
 
 /* PAMU3 default xmit code values used for command entry */
@@ -73,7 +73,9 @@ struct sprd_pamu3 {
 	dma_addr_t					rx_trb_pool_dma;
 
 	char						*rndis_header_buf;
+	char						*rndis_header_buf2;
 	dma_addr_t					rndis_header_buf_dma;
+	dma_addr_t					rndis_header_buf_dma2;
 	char						*rx_max_buf;
 	dma_addr_t					rx_max_buf_dma;
 
@@ -311,6 +313,12 @@ void pamu3_memory_init(struct sprd_pamu3 *pamu3)
 	value = (u32)(((u64)pamu3->rndis_header_buf_dma >>
 			PAMU3_BITS_LOWADDR32) & PAMU3_MASK_ADDR32_LSB);
 	writel_relaxed(value, pamu3->base + PAM_U3_HEADER_ENDBASE_ADDRH);
+
+	value = (u64)pamu3->rndis_header_buf_dma2;
+	writel_relaxed(value, pamu3->base + PAM_U3_HEADER2_ENDBASE_ADDRL);
+	value = (u32)(((u64)pamu3->rndis_header_buf_dma2 >>
+			PAMU3_BITS_LOWADDR32) & PAMU3_MASK_ADDR32_LSB);
+	writel_relaxed(value, pamu3->base + PAM_U3_HEADER2_ENDBASE_ADDRH);
 
 	/* Set MBIM NTH and NDP */
 	value = PAM_U3_MBIM_DEFNTH;
@@ -656,6 +664,14 @@ static int sprd_pamu3_probe(struct platform_device *pdev)
 		goto err;
 	}
 
+	pamu3->rndis_header_buf2 = dma_alloc_coherent(pamu3->dev,
+			PAMU3_RNDIS_HEADER_SIZE,
+			&pamu3->rndis_header_buf_dma2, GFP_KERNEL);
+	if (!pamu3->rndis_header_buf2) {
+		ret = -ENOMEM;
+		goto err;
+	}
+
 	pamu3->rx_max_buf = dma_alloc_coherent(pamu3->dev,
 			PAMU3_RX_TRBBUF_SIZE * PAMU3_RX_TRBBUF_NUM,
 			&pamu3->rx_max_buf_dma, GFP_KERNEL);
@@ -673,7 +689,7 @@ static int sprd_pamu3_probe(struct platform_device *pdev)
 	pamu3->pam.post_init = sprd_pamu3_post_init;
 	pamu3->pam.set_suspend = sprd_pamu3_set_suspend;
 
-	pamu3->pam.type = USB_PAM_TYPE_USB3;
+	pamu3->pam.type = (enum usb_phy_type)USB_PAM_TYPE_USB3;
 
 	ret = usb_add_phy_dev(&pamu3->pam);
 	if (ret) {
@@ -699,6 +715,10 @@ err:
 	if (pamu3->rndis_header_buf)
 		dma_free_coherent(pamu3->dev, PAMU3_RNDIS_HEADER_SIZE,
 			pamu3->rndis_header_buf, pamu3->rndis_header_buf_dma);
+	if (pamu3->rndis_header_buf2)
+		dma_free_coherent(pamu3->dev, PAMU3_RNDIS_HEADER_SIZE,
+			pamu3->rndis_header_buf2, pamu3->rndis_header_buf_dma2);
+
 
 	return ret;
 }
@@ -715,6 +735,8 @@ static int sprd_pamu3_remove(struct platform_device *pdev)
 			pamu3->rx_trb_pool, pamu3->rx_trb_pool_dma);
 	dma_free_coherent(pamu3->dev, PAMU3_RNDIS_HEADER_SIZE,
 			pamu3->rndis_header_buf, pamu3->rndis_header_buf_dma);
+	dma_free_coherent(pamu3->dev, PAMU3_RNDIS_HEADER_SIZE,
+			pamu3->rndis_header_buf2, pamu3->rndis_header_buf_dma2);
 	dma_free_coherent(pamu3->dev,
 			PAMU3_RX_TRBBUF_SIZE * PAMU3_RX_TRBBUF_NUM,
 			pamu3->rx_max_buf, pamu3->rx_max_buf_dma);
@@ -727,6 +749,7 @@ static int sprd_pamu3_remove(struct platform_device *pdev)
 static const struct of_device_id sprd_pamu3_match[] = {
 	{ .compatible = "sprd,roc1-pamu3" },
 	{ .compatible = "sprd,orca-pamu3" },
+	{ .compatible = "sprd,qogirn6pro-pamu3" },
 	{ },
 };
 
