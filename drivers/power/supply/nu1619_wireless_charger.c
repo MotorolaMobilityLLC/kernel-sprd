@@ -20,10 +20,10 @@
 #include <linux/sysfs.h>
 #include <linux/of_gpio.h>
 #include <linux/platform_device.h>
-#include <linux/power/rx1619.h>
 #include <linux/power/charger-manager.h>
 #include <linux/power_supply.h>
 #include <linux/regmap.h>
+#include "rx1619.h"
 
 /* used registers define */
 #define NU1619_RX_REG_00		0x0000
