@@ -937,12 +937,12 @@
 
 				#power-domain-cells = <0>;
 
-				clocks = <&ipa_clk CLK_IPA_AXI>,
+				clocks = <&ipadispc_gate CLK_IPA_CKG_EB>,
+					<&ipa_clk CLK_IPA_AXI>,
 					<&g5l_pll CLK_V4NRPLL_409M6>,
 					<&ext_26m>;
-				clock-names = "ipa_core", "ipa_core_source",
-					"ipa_core_default";
-
+				clock-names = "clk_ipa_ckg_eb", "ipa_core",
+					"ipa_core_source", "ipa_core_default";
 			};
 
 			pin_controller: pinctrl@2e0000 {
