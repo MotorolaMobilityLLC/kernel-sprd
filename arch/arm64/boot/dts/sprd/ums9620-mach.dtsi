@@ -24,7 +24,7 @@
 
 	chosen: chosen {
 		stdout-path = "serial1:115200n8";
-		bootargs = "earlycon=sprd_serial,0x20210000,115200n8 console=ttyS1,115200n8 loglevel=8 init=/init root=/dev/ram0 rw printk.devkmsg=on androidboot.boot_devices=soc/soc:ap-apb/22200000.sdio androidboot.selinux=permissive pcie_ports=compat";
+		bootargs = "earlycon=sprd_serial,0x20210000,115200n8 console=ttyS1,115200n8 loglevel=8 maxcpus=1 init=/init root=/dev/ram0 rw printk.devkmsg=on androidboot.boot_devices=soc/soc:ap-apb/22200000.sdio androidboot.selinux=permissive pcie_ports=compat";
 	};
 
 	reserved_memory: reserved-memory {
