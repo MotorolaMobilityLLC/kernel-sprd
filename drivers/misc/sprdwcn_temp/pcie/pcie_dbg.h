@@ -11,7 +11,7 @@
  */
 
 #ifndef _PCIE_DBG_H
-#define _PCIE_DBGE_H
+#define _PCIE_DBG_H
 
 #include <linux/kernel.h>
 
