@@ -18,8 +18,11 @@
 					sprd,dsi-lane-number = <4>;
 					sprd,dsi-color-format = "rgb888";
 
-					sprd,phy-bit-clock = <1070000>;	/* kbps */
+					sprd,phy-bit-clock = <1152000>;	/* kbps */
 					sprd,phy-escape-clock = <20000>;/* kHz */
+
+					sprd,width-mm = <68>;
+					sprd,height-mm = <152>;
 
 					sprd,esd-check-enable = <1>;
 					sprd,esd-check-mode = <1>;
@@ -244,12 +247,12 @@
 							clock-frequency = <192000000>;
 							hactive = <1080>;
 							vactive = <2400>;
-							hback-porch = <48>;
-							hfront-porch = <48>;
-							vback-porch = <32>;
-							vfront-porch = <8>;
-							hsync-len = <18>;
-							vsync-len = <8>;
+							hback-porch = <52>;
+							hfront-porch = <52>;
+							vback-porch = <36>;
+							vfront-porch = <220>;
+							hsync-len = <16>;
+							vsync-len = <4>;
 						};
 					};
 				};
