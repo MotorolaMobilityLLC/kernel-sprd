@@ -180,9 +180,9 @@
 			/* channel number */
 			reg = <4>;
 			label = "sttygnss0";
-			sprd,ringnr = <15>;
-			sprd,size-rxbuf = <0x1000>;	/* 4*1024 */
-			sprd,size-txbuf = <0x1000>;	/* 4*1024 */
+			sprd,ringnr = <1>;
+			sprd,size-rxbuf = <0x19000>;	/* 100*1024 */
+			sprd,size-txbuf = <0xc800>;	/* 50*1024 */
 		};
 	};
 };
