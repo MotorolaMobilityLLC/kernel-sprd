@@ -25,6 +25,7 @@ struct imsbr_sipc {
 	int (*pre_hook)(struct imsbr_sipc *sipc);
 	void (*process)(struct imsbr_sipc *sipc, struct sblock *blk, bool freeit);
 	struct task_struct *task;
+	struct work_struct initwork;
 };
 
 extern struct imsbr_sipc imsbr_data;

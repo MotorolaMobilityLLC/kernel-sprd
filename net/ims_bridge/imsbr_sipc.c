@@ -19,6 +19,7 @@
 #include <linux/module.h>
 #include <linux/moduleparam.h>
 #include <linux/sched.h>
+#include <linux/workqueue.h>
 #include <uapi/linux/ims_bridge/ims_bridge.h>
 
 #include "imsbr_core.h"
@@ -73,7 +74,7 @@ static int imsbr_pre_notify(struct imsbr_sipc *sipc)
 }
 
 struct imsbr_sipc imsbr_data __read_mostly = {
-	.dst		= SIPC_ID_MINIAP,
+	.dst		= SIPC_ID_LTE,
 	.channel	= SMSG_CH_IMSBR_DATA,
 	.hdrlen		= sizeof(struct imsbr_packet),
 	.blksize	= IMSBR_DATA_BLKSZ,
@@ -83,7 +84,7 @@ struct imsbr_sipc imsbr_data __read_mostly = {
 };
 
 struct imsbr_sipc imsbr_ctrl __read_mostly = {
-	.dst		= SIPC_ID_MINIAP,
+	.dst		= SIPC_ID_LTE,
 	.channel	= SMSG_CH_IMSBR_CTRL,
 	.hdrlen		= sizeof(struct imsbr_msghdr),
 	.blksize	= IMSBR_CTRL_BLKSZ,
@@ -258,23 +259,27 @@ static int imsbr_kthread(void *arg)
 	return 0;
 }
 
-static int imsbr_sipc_create(struct imsbr_sipc *sipc)
+static int imsbr_sipc_query_to_register(struct imsbr_sipc *sipc)
 {
 	struct task_struct *tsk;
 	int err;
+	int try = 0;
 
 	snprintf(sipc->desc, sizeof(sipc->desc), "%s[%d-%d]",
 		 sipc == &imsbr_ctrl ? "ctrl" : "data",
 		 sipc->dst, sipc->channel);
 
 	init_completion(&sipc->peer_comp);
-
-	err = sblock_create(sipc->dst, sipc->channel, sipc->blknum,
-			    sipc->blksize, sipc->blknum, sipc->blksize);
+again:
+	err = sblock_query(sipc->dst, sipc->channel);
 	if (err) {
-		pr_err("sblock_create %s fail, error=%d\n",
-		       sipc->desc, err);
-		return err;
+		if (++try > 10) {
+			pr_err("sblock [%d-%u] not ready, try %d, err %d\n",
+			       sipc->dst, sipc->channel, try, err);
+			return err;
+		}
+		msleep(20);
+		goto again;
 	}
 
 	err = sblock_register_notifier(sipc->dst, sipc->channel,
@@ -308,23 +313,24 @@ static void imsbr_sipc_destroy(struct imsbr_sipc *sipc)
 	sblock_destroy(sipc->dst, sipc->channel);
 }
 
+static void imsbr_sipc_init_work(struct work_struct *wk)
+{
+	struct imsbr_sipc *sipc = container_of(wk, struct imsbr_sipc,
+					       initwork);
+
+	pr_debug("sipc %s [%d-%d] workqueue start\n",
+		sipc->desc, sipc->dst, sipc->channel);
+	imsbr_sipc_query_to_register(sipc);
+}
+
 int __init imsbr_sipc_init(void)
 {
-	int err;
-
-	err = imsbr_sipc_create(&imsbr_data);
-	if (err)
-		goto err_data;
-
-	if (imsbr_sipc_create(&imsbr_ctrl))
-		goto err_ctrl;
+	INIT_WORK(&imsbr_data.initwork, imsbr_sipc_init_work);
+	INIT_WORK(&imsbr_ctrl.initwork, imsbr_sipc_init_work);
+	schedule_work(&imsbr_data.initwork);
+	schedule_work(&imsbr_ctrl.initwork);
 
 	return 0;
-
-err_ctrl:
-	imsbr_sipc_destroy(&imsbr_data);
-err_data:
-	return err;
 }
 
 void imsbr_sipc_exit(void)
