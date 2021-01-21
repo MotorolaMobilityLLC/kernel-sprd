@@ -9,13 +9,12 @@
 &adi_bus {
 	ump9620_pmic: pmic@0 {
 		compatible = "sprd,ump9620";
-		reg = <0>;
+		reg = <0x0>;
 		spi-max-frequency = <26000000>;
 		interrupt-controller;
 		#interrupt-cells = <2>;
 		#address-cells = <1>;
 		#size-cells = <0>;
-		/* ump9620 salve id is 0x0 */
 
 		led-controller@180 {
 			compatible = "sprd,ump9620-bltc", "sprd,sc27xx-bltc";
@@ -135,7 +134,7 @@
 		};
 
 		syscon@2000 {
-			compatible = "sprd,ump96xx-syscon", "sprd,sc27xx-syscon";
+			compatible = "sprd,ump962x-syscon";
 			reg = <0x2000>;
 		};
 

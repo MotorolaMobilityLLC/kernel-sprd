@@ -7,18 +7,15 @@
  */
 
  &adi_bus {
-	ump9621_pmic: pmic@8000 {
+	ump9621_pmic: pmic@1 {
 		compatible = "sprd,ump9621";
-		reg = <0x8000>;
+		reg = <0x1>;
 		spi-max-frequency = <26000000>;
-		interrupt-controller;
-		#interrupt-cells = <1>;
 		#address-cells = <1>;
 		#size-cells = <0>;
-		/* ump9621 salve id is 0x8000 */
 
 		syscon@2000 {
-			compatible = "sprd,ump96xx-syscon";
+			compatible = "sprd,ump9621-syscon";
 			reg = <0x2000>;
 		};
 
