@@ -858,6 +858,29 @@
 
 			};
 
+			hsphy: hsphy@300000 {
+				compatible = "sprd,qogirn6pro-phy";
+				reg = <0x300000 0x10000>;
+				sprd,syscon-enable = <&aon_apb_regs>;
+				sprd,syscon-anag0 = <&anlg_phy_g0l_regs>;
+				sprd,vdd-voltage = <3300000>;
+				#phy-cells = <0>;
+			};
+
+			usb: usb@a00000 {
+				compatible = "sprd,qogirn6pro-musb";
+				reg = <0xa00000 0x2000>;
+				interrupts = <GIC_SPI 8 IRQ_TYPE_LEVEL_HIGH>;
+				interrupt-names = "mc";
+				clocks = <&ext_26m>;
+				clock-names = "core_clk";
+				usb-phy = <&hsphy>;
+				phy-names = "usb";
+				dr-mode = "peripheral";
+				multipoint = "true";
+				wakeup-source;
+			};
+
 			hwlock: hwspinlock@a10000 {
 				compatible = "sprd,hwspinlock-r3p0";
 				reg = <0xa10000 0x10000>;
