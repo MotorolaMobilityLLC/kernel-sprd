@@ -126,6 +126,7 @@ mmc:core:
 mmc:sprd:
 
 net:
+net:ims_bridge:
 nvmem:sprd:
 nvmem:sc27xx:
 
