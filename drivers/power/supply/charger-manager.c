@@ -1933,6 +1933,32 @@ static int cm_get_battery_temperature(struct charger_manager *cm,
 	return ret;
 }
 
+//zhang.chao@tinno.com add board-sensorat 2021/01/21 begin
+static int cm_get_board_temperature(struct charger_manager *cm,
+					int *temp)
+{
+	int ret = 0;
+
+	if (!cm->desc->measure_battery_temp)
+		return -ENODEV;
+
+#ifdef CONFIG_THERMAL
+	if (cm->tzd_board) {
+		ret = thermal_zone_get_temp(cm->tzd_board, temp);
+		if (!ret)
+			/* Calibrate temperature unit */
+			*temp /= 100;
+	} else
+#endif
+	{
+		/* if-else continued from CONFIG_THERMAL */
+		*temp = cm->desc->temperature;
+	}
+
+	return ret;
+}
+//zhang.chao@tinno.com add board-sensorat 2021/01/21 end
+
 static int cm_check_thermal_status(struct charger_manager *cm)
 {
 	struct charger_desc *desc = cm->desc;
@@ -3809,6 +3835,15 @@ static int cm_init_thermal_data(struct charger_manager *cm,
 		cm->desc->measure_battery_temp = true;
 		ret = 0;
 	}
+
+	//zhang.chao@tinno.com add board-sensorat 2021/01/21 begin
+	if (desc->board_thermal_zone) {
+		cm->tzd_board =
+			thermal_zone_get_zone_by_name(desc->board_thermal_zone);
+		if (IS_ERR(cm->tzd_board))
+			return PTR_ERR(cm->tzd_board);
+	}
+	//zhang.chao@tinno.com add board-sensorat 2021/01/21 end
 #endif
 	if (cm->desc->measure_battery_temp) {
 		/* NOTICE : Default allowable minimum charge temperature is 0 */
@@ -4235,6 +4270,8 @@ static struct charger_desc *of_cm_parse_desc(struct device *dev)
 
 	of_property_read_string(np, "cm-thermal-zone", &desc->thermal_zone);
 
+	of_property_read_string(np, "cm-board-thermal-zone", &desc->board_thermal_zone);        //zhang.chao@tinno.com add board-sensorat 2021/01/21
+
 	of_property_read_u32(np, "cm-battery-cold", &desc->temp_min);
 	if (of_get_property(np, "cm-battery-cold-in-minus", NULL))
 		desc->temp_min *= -1;
@@ -4403,7 +4440,7 @@ static void cm_batt_works(struct work_struct *work)
 				struct charger_manager, cap_update_work);
 	struct timespec64 cur_time;
 	int batt_uV, batt_ocV, bat_uA, fuel_cap, chg_sts, ret;
-	int period_time, flush_time, cur_temp, board_temp;
+	int period_time, flush_time, cur_temp, board_temp, real_board_temp;     //zhang.chao@tinno.com add board-sensorat 2021/01/21
 	int chg_cur = 0, chg_limit_cur = 0, charger_input_vol = 0;
 	static int last_fuel_cap = CM_CAP_MAGIC_NUM;
 
@@ -4475,6 +4512,7 @@ static void cm_batt_works(struct work_struct *work)
 	cm->desc->temperature = cur_temp;
 
 	ret = cm_get_battery_temperature(cm, &board_temp);
+	ret = cm_get_board_temperature(cm, &real_board_temp);       //zhang.chao@tinno.com add board-sensorat 2021/01/21
 	if (ret)
 		dev_warn(cm->dev, "failed to get board temperature\n");
 
@@ -4558,12 +4596,12 @@ static void cm_batt_works(struct work_struct *work)
 	dev_info(cm->dev, "battery voltage = %d, OCV = %d, current = %d, "
 		 "capacity = %d, charger status = %d, force set full = %d, "
 		 "charging current = %d, charging limit current = %d, "
-		 "battery temperature = %d,board temperature = %d, "
+		 "battery temperature = %d,board temperature = %d,real board temperature = %d "
 		 "track state = %d, charger type = %d, thm_adjust_cur = %d, "
 		 "charger input voltage = %d, "
 		 "is_fast_charge = %d, enable_fast_charge = %d\n",
 		 batt_uV, batt_ocV, bat_uA, fuel_cap, cm->desc->charger_status,
-		 cm->desc->force_set_full, chg_cur, chg_limit_cur, cur_temp, board_temp,
+		 cm->desc->force_set_full, chg_cur, chg_limit_cur, cur_temp, board_temp, real_board_temp,
 		 cm->track.state, cm->desc->charger_type, cm->desc->thm_adjust_cur,
 		 charger_input_vol, cm->desc->is_fast_charge,
 		 cm->desc->enable_fast_charge);
