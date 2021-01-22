@@ -552,6 +552,7 @@ static inline u32 ufshcd_get_intr_mask(struct ufs_hba *hba)
 		intr_mask = INTERRUPT_MASK_ALL_VER_11;
 		break;
 	case UFSHCI_VERSION_21:
+	case UFSHCI_VERSION_30:
 	default:
 		intr_mask = INTERRUPT_MASK_ALL_VER_21;
 		break;
@@ -8080,7 +8081,8 @@ int ufshcd_init(struct ufs_hba *hba, void __iomem *mmio_base, unsigned int irq)
 	if ((hba->ufs_version != UFSHCI_VERSION_10) &&
 	    (hba->ufs_version != UFSHCI_VERSION_11) &&
 	    (hba->ufs_version != UFSHCI_VERSION_20) &&
-	    (hba->ufs_version != UFSHCI_VERSION_21))
+	    (hba->ufs_version != UFSHCI_VERSION_21) &&
+	    (hba->ufs_version != UFSHCI_VERSION_30))
 		dev_err(hba->dev, "invalid UFS version 0x%x\n",
 			hba->ufs_version);
 

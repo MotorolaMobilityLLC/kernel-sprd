@@ -90,6 +90,22 @@
 #define UNIPRO_CB_OFFSET(x)			(0x8000 | x)
 
 /*
+ * Synopsys common M-PHY Attributes
+ */
+#define CBCREGADDRLSB				0x8116
+#define CBCREGADDRMSB				0x8117
+#define CBCREGWRLSB				0x8118
+#define CBCREGWRMSB				0x8119
+#define CBCREGRDWRSEL				0x811C
+#define CBCRCTRL				0x811F
+#define CBREFCLKCTRL2				0x8132
+
+/*
+ *Synopsys RX implementation specific M-PHY Attributes
+ */
+#define RXSQCONTROL				0x8009
+
+/*
  * PHY Adpater attributes
  */
 #define PA_ACTIVETXDATALANES	0x1560
@@ -159,6 +175,7 @@
 #define VS_DEBUGOMC		0xD09E
 #define VS_POWERSTATE		0xD083
 #define VS_DEBUGSAVECONFIGTIME	0xD0A0
+#define VS_MPHYDISABLE		0xD0C1
 
 #define PA_GRANULARITY_MIN_VAL	1
 #define PA_GRANULARITY_MAX_VAL	6
@@ -197,6 +214,7 @@ enum ufs_hs_gear_tag {
 	UFS_HS_G1,		/* HS Gear 1 (default for reset) */
 	UFS_HS_G2,		/* HS Gear 2 */
 	UFS_HS_G3,		/* HS Gear 3 */
+	UFS_HS_G4,		/* HS Gear 4 */
 };
 
 enum ufs_unipro_ver {
