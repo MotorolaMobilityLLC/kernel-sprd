@@ -336,6 +336,8 @@ struct charger_desc {
 
 	const char *thermal_zone;
 
+	const char *board_thermal_zone;             //zhang.chao@tinno.com add board-sensorat 2021/01/21
+
 	int temp_min;
 	int temp_max;
 	int temp_diff;
@@ -428,6 +430,7 @@ struct charger_manager {
 
 #ifdef CONFIG_THERMAL
 	struct thermal_zone_device *tzd_batt;
+	struct thermal_zone_device *tzd_board;     //zhang.chao@tinno.com add board-sensorat 2021/01/21
 #endif
 	bool charger_enabled;
 
