@@ -564,17 +564,20 @@ static void gnss_clear_boot_flag(void)
 	wcn_write_data_to_phy_addr(phy_addr, &magic_value, sizeof(u32));
 }
 
-/* used for distinguish Pike2 or sharkle */
-static void gnss_read_boot_flag(void)
+/* used for distinguish Pike2 or sharkle or Qogril6 */
+static void gnss_read_boot_flag(struct wcn_device *wcn_dev)
 {
 	phys_addr_t phy_addr;
 	u32 magic_value = 0;
 	u32 wait_count;
 
-	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6)
-		return;
-
-	phy_addr = wcn_get_gnss_base_addr() + GNSS_TEST_OFFSET;
+	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
+		phy_addr = wcn_dev->base_addr +
+				wcn_get_apcp_sync_addr(wcn_dev) +
+				s_wcngnss_sync_addr.init_status_phy_addr;
+	} else {
+		phy_addr = wcn_get_gnss_base_addr() + GNSS_TEST_OFFSET;
+	}
 	for (wait_count = 0; wait_count < MARLIN_WAIT_CP_INIT_COUNT;
 	     wait_count++) {
 		wcn_read_data_from_phy_addr(phy_addr,
@@ -587,7 +590,11 @@ static void gnss_read_boot_flag(void)
 			 magic_value, wait_count);
 	}
 
-	WCN_INFO("finish!\n");
+	if (wait_count >= GNSS_WAIT_CP_INIT_COUNT) {
+		gnss_set_boot_status(WCN_BOOT_CP2_ERR_BOOT);
+	}
+
+	WCN_INFO("gnss finish!\n");
 }
 
 static int wcn_wait_gnss_boot(struct wcn_device *wcn_dev)
@@ -599,7 +606,7 @@ static int wcn_wait_gnss_boot(struct wcn_device *wcn_dev)
 	phys_addr_t phy_addr;
 
 	if (cali_flag) {
-		gnss_read_boot_flag();
+		gnss_read_boot_flag(wcn_dev);
 		return 0;
 	}
 	boot_flag = GNSS_CALI_DONE_FLAG;
@@ -619,11 +626,12 @@ static int wcn_wait_gnss_boot(struct wcn_device *wcn_dev)
 		 wait_count++) {
 		wcn_read_data_from_phy_addr(phy_addr,
 					    &magic_value, sizeof(u32));
-		WCN_DBG("gnss cali: magic_value=0x%x, wait_count=%d\n",
+		WCN_INFO("gnss cali: magic_value=0x%x, wait_count=%d\n",
 			magic_value, wait_count);
 		if (magic_value == boot_flag) {
-			WCN_INFO("gnss cali: magic_value=0x%x, wait_count=%d\n",
+			WCN_DBG("gnss cali: magic_value=0x%x, wait_count=%d\n",
 				 magic_value, wait_count);
+			WCN_INFO("gnss finish\n");
 			break;
 		}
 		msleep(GNSS_WAIT_CP_INIT_POLL_TIME_MS);
