@@ -126,6 +126,7 @@ mm:memblock:
 mm:vmscan:
 
 net:
+net:ims_bridge:
 nvmem:sc27xx:
 nvmem:sprd:
 
