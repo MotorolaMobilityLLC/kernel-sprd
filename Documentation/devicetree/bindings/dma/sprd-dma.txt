@@ -4,8 +4,16 @@ This binding follows the generic DMA bindings defined in dma.txt.
 
 Required properties:
 - compatible: Should be one of following:
+	"sprd,sc9860-dma",
+	"sprd,sharkl5-dma",
+	"sprd,roc1-dma",
+	"sprd,sharkl3-dma",
+	"sprd,pike2-dma",
+	"sprd,orca-dma",
+	"sprd,sharkle-dma",
+	"sprd,sharkl5pro-dma",
 	"sprd,qogirl6-dma",
-	"sprd,sc9860-dma".
+	"sprd,qogirn6pro-dma".
 - reg: Should contain DMA registers location and length.
 - interrupts: Should contain one interrupt shared by all channel.
 - #dma-cells: must be <1>. Used to represent the number of integer
@@ -17,7 +25,7 @@ Required properties:
 Example:
 
 Controller:
-apdma: dma-controller@20100000 {
+ap_dma: dma-controller@20100000 {
 	compatible = "sprd,sc9860-dma";
 	reg = <0x20100000 0x4000>;
 	interrupts = <GIC_SPI 50 IRQ_TYPE_LEVEL_HIGH>;
@@ -38,6 +46,6 @@ The two cells in order are:
 spi0: spi@70a00000{
 	...
 	dma-names = "rx_chn", "tx_chn";
-	dmas = <&apdma 11>, <&apdma 12>;
+	dmas = <&ap_dma 11 &ap_dma 12>;
 	...
 };
