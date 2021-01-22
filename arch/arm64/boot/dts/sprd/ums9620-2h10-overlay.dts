@@ -112,3 +112,7 @@
 			<23 0x244c>, <25 0xa074>, <27 0x2044>, <30 0x2020>,
 			<34 0x21b8>, <35 0x21ac>;
 };
+
+&sdio0 {
+	cd-gpios = <&eic_sync 35 GPIO_ACTIVE_HIGH>;
+};
