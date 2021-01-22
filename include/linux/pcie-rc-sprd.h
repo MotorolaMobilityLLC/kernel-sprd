@@ -2,6 +2,21 @@
 #define _PCIE_RC_SPRD_H
 
 #include  <linux/platform_device.h>
+
+enum sprd_pcie_event {
+	SPRD_PCIE_EVENT_INVALID = 0,
+	SPRD_PCIE_EVENT_LINKDOWN = 0x1,
+	SPRD_PCIE_EVENT_LINKUP = 0x2,
+	SPRD_PCIE_EVENT_WAKEUP = 0x4,
+};
+
+struct sprd_pcie_register_event {
+	u32 events;
+	struct platform_device *pdev;
+	void (*callback)(enum sprd_pcie_event event, void *data);
+	void *data;
+};
+
 /*
  * SPRD PCIe root complex (e.g. UD710 SoC) can't support PCI hotplug
  * capability. Therefore, the standard hotplug driver can't be used.
@@ -18,6 +33,9 @@
 extern int sprd_pcie_configure_device(struct platform_device *pdev);
 extern int sprd_pcie_unconfigure_device(struct platform_device *pdev);
 extern void sprd_pcie_teardown_msi_irq(unsigned int irq);
+extern void sprd_pcie_dump_rc_regs(struct platform_device *pdev);
+extern int sprd_pcie_register_event(struct sprd_pcie_register_event *reg);
+extern int sprd_pcie_deregister_event(struct sprd_pcie_register_event *reg);
 
 #ifdef CONFIG_SPRD_PCIE_AER
 void sprd_pcie_alloc_irq_vectors(struct pci_dev *dev, int *irqs, int services);

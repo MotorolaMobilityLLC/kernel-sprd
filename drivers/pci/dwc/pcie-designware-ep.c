@@ -30,6 +30,13 @@ void dw_pcie_ep_linkup(struct dw_pcie_ep *ep)
 	pci_epc_linkup(epc);
 }
 
+void dw_pcie_ep_unlink(struct dw_pcie_ep *ep)
+{
+	struct pci_epc *epc = ep->epc;
+
+	pci_epc_unlink(epc);
+}
+
 static void dw_pcie_ep_reset_bar(struct dw_pcie *pci, enum pci_barno bar)
 {
 	u32 reg;
@@ -74,7 +81,8 @@ static int dw_pcie_ep_inbound_atu(struct dw_pcie_ep *ep, enum pci_barno bar,
 	u32 free_win;
 	struct dw_pcie *pci = to_dw_pcie_from_ep(ep);
 
-	free_win = find_first_zero_bit(ep->ib_window_map, ep->num_ib_windows);
+	free_win = find_first_zero_bit(&ep->ib_window_map,
+				       sizeof(ep->ib_window_map));
 	if (free_win >= ep->num_ib_windows) {
 		dev_err(pci->dev, "no free inbound window\n");
 		return -EINVAL;
@@ -88,7 +96,7 @@ static int dw_pcie_ep_inbound_atu(struct dw_pcie_ep *ep, enum pci_barno bar,
 	}
 
 	ep->bar_to_atu[bar] = free_win;
-	set_bit(free_win, ep->ib_window_map);
+	set_bit(free_win, &ep->ib_window_map);
 
 	return 0;
 }
@@ -99,7 +107,8 @@ static int dw_pcie_ep_outbound_atu(struct dw_pcie_ep *ep, phys_addr_t phys_addr,
 	u32 free_win;
 	struct dw_pcie *pci = to_dw_pcie_from_ep(ep);
 
-	free_win = find_first_zero_bit(ep->ob_window_map, ep->num_ob_windows);
+	free_win = find_first_zero_bit(&ep->ob_window_map,
+				       sizeof(ep->ob_window_map));
 	if (free_win >= ep->num_ob_windows) {
 		dev_err(pci->dev, "no free outbound window\n");
 		return -EINVAL;
@@ -108,7 +117,7 @@ static int dw_pcie_ep_outbound_atu(struct dw_pcie_ep *ep, phys_addr_t phys_addr,
 	dw_pcie_prog_outbound_atu(pci, free_win, PCIE_ATU_TYPE_MEM,
 				  phys_addr, pci_addr, size);
 
-	set_bit(free_win, ep->ob_window_map);
+	set_bit(free_win, &ep->ob_window_map);
 	ep->outbound_addr[free_win] = phys_addr;
 
 	return 0;
@@ -123,7 +132,7 @@ static void dw_pcie_ep_clear_bar(struct pci_epc *epc, enum pci_barno bar)
 	dw_pcie_ep_reset_bar(pci, bar);
 
 	dw_pcie_disable_atu(pci, atu_index, DW_PCIE_REGION_INBOUND);
-	clear_bit(atu_index, ep->ib_window_map);
+	clear_bit(atu_index, &ep->ib_window_map);
 }
 
 static int dw_pcie_ep_set_bar(struct pci_epc *epc, enum pci_barno bar,
@@ -179,7 +188,7 @@ static void dw_pcie_ep_unmap_addr(struct pci_epc *epc, phys_addr_t addr)
 		return;
 
 	dw_pcie_disable_atu(pci, atu_index, DW_PCIE_REGION_OUTBOUND);
-	clear_bit(atu_index, ep->ob_window_map);
+	clear_bit(atu_index, &ep->ob_window_map);
 }
 
 static int dw_pcie_ep_map_addr(struct pci_epc *epc, phys_addr_t addr,
@@ -330,19 +339,6 @@ static u8 dw_pcie_iatu_unroll_enabled(struct dw_pcie *pci)
 	return 0;
 }
 
-
-void dw_pcie_setup_ep(struct dw_pcie_ep *ep)
-{
-	u32 val;
-	struct dw_pcie *pci = to_dw_pcie_from_ep(ep);
-
-	dw_pcie_setup(pci);
-
-	val = dw_pcie_readl_dbi(pci, PCIE_SYMBOL_TIMER_FILTER_1_OFF);
-	val |= CX_FLT_MASK_UR_POIS;
-	dw_pcie_writel_dbi(pci, PCIE_SYMBOL_TIMER_FILTER_1_OFF, val);
-}
-
 int dw_pcie_ep_init(struct dw_pcie_ep *ep)
 {
 	int ret;
@@ -362,32 +358,12 @@ int dw_pcie_ep_init(struct dw_pcie_ep *ep)
 		dev_err(dev, "unable to read *num-ib-windows* property\n");
 		return ret;
 	}
-	if (ep->num_ib_windows > MAX_IATU_IN) {
-		dev_err(dev, "invalid *num-ib-windows*\n");
-		return -EINVAL;
-	}
 
 	ret = of_property_read_u32(np, "num-ob-windows", &ep->num_ob_windows);
 	if (ret < 0) {
 		dev_err(dev, "unable to read *num-ob-windows* property\n");
 		return ret;
 	}
-	if (ep->num_ob_windows > MAX_IATU_OUT) {
-		dev_err(dev, "invalid *num-ob-windows*\n");
-		return -EINVAL;
-	}
-
-	ep->ib_window_map = devm_kzalloc(dev, sizeof(long) *
-					 BITS_TO_LONGS(ep->num_ib_windows),
-					 GFP_KERNEL);
-	if (!ep->ib_window_map)
-		return -ENOMEM;
-
-	ep->ob_window_map = devm_kzalloc(dev, sizeof(long) *
-					 BITS_TO_LONGS(ep->num_ob_windows),
-					 GFP_KERNEL);
-	if (!ep->ob_window_map)
-		return -ENOMEM;
 
 	addr = devm_kzalloc(dev, sizeof(phys_addr_t) * ep->num_ob_windows,
 			    GFP_KERNEL);
@@ -428,7 +404,7 @@ int dw_pcie_ep_init(struct dw_pcie_ep *ep)
 
 	ep->epc = epc;
 	epc_set_drvdata(epc, ep);
-	dw_pcie_setup_ep(ep);
+	dw_pcie_setup(pci);
 
 	return 0;
 }

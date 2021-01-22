@@ -50,6 +50,26 @@ void pci_epf_linkup(struct pci_epf *epf)
 EXPORT_SYMBOL_GPL(pci_epf_linkup);
 
 /**
+ * pci_epf_unlink() - Notify the function driver that EPC device has
+ *		      disconnected with the Root Complex.
+ * @epf: the EPF device bound to the EPC device which has established
+ *	 the connection with the host
+ *
+ * Invoke to notify the function driver that EPC device has disconnected
+ * with the Root Complex.
+ */
+void pci_epf_unlink(struct pci_epf *epf)
+{
+	if (!epf->driver) {
+		dev_WARN(&epf->dev, "epf device not bound to driver\n");
+		return;
+	}
+
+	epf->driver->ops->unlink(epf);
+}
+EXPORT_SYMBOL_GPL(pci_epf_unlink);
+
+/**
  * pci_epf_unbind() - Notify the function driver that the binding between the
  *		      EPF device and EPC device has been lost
  * @epf: the EPF device which has lost the binding with the EPC device

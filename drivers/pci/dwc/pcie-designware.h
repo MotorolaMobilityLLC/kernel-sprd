@@ -21,8 +21,7 @@
 #include <linux/pci-epc.h>
 #include <linux/pci-epf.h>
 
-/* Parameters for the waiting for link up routine */
-#define LINK_WAIT_MAX_RETRIES		10
+#define LINK_WAIT_MAX_RETRIES		100
 #define LINK_WAIT_USLEEP_MIN		90000
 #define LINK_WAIT_USLEEP_MAX		100000
 
@@ -102,7 +101,9 @@
 #define PE0_GEN_CTRL_3			0x58
 #define  LTSSM_EN			(0x1 << 0)
 #define  L1_AUXCLK_EN			(0x1 << 8)
-
+#define APB_CLKFREQ_TIMEOUT		0x4
+#define  BUSERR_EN			(0x1 << 12)
+#define  APB_CLKFREQ			0x19a
 /*
  * iATU Unroll-specific register definitions
  * From 4.80 core version the address translation will be made by unroll
@@ -163,10 +164,6 @@
  */
 #define MAX_MSI_IRQS			64
 #define MAX_MSI_CTRLS			(MAX_MSI_IRQS / 32)
-
-/* Maximum number of inbound/outbound iATUs */
-#define MAX_IATU_IN			256
-#define MAX_IATU_OUT			256
 
 struct pcie_port;
 struct dw_pcie;
@@ -251,8 +248,8 @@ struct dw_pcie_ep {
 	size_t			page_size;
 	u8			bar_to_atu[6];
 	phys_addr_t		*outbound_addr;
-	unsigned long		*ib_window_map;
-	unsigned long		*ob_window_map;
+	unsigned long		ib_window_map;
+	unsigned long		ob_window_map;
 	u32			num_ib_windows;
 	u32			num_ob_windows;
 	void __iomem		*msi_mem;
@@ -393,6 +390,7 @@ static inline int dw_pcie_host_init(struct pcie_port *pp)
 
 #ifdef CONFIG_PCIE_DW_EP
 void dw_pcie_ep_linkup(struct dw_pcie_ep *ep);
+void dw_pcie_ep_unlink(struct dw_pcie_ep *ep);
 void dw_pcie_setup_ep(struct dw_pcie_ep *ep);
 int dw_pcie_ep_init(struct dw_pcie_ep *ep);
 void dw_pcie_ep_exit(struct dw_pcie_ep *ep);

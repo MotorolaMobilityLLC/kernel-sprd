@@ -80,7 +80,6 @@ struct pcie_link_state {
 	u32 clkpm_capable:1;		/* Clock PM capable? */
 	u32 clkpm_enabled:1;		/* Current Clock PM state */
 	u32 clkpm_default:1;		/* Default Clock PM state by BIOS */
-	u32 clkpm_disable:1;		/* Clock PM disabled */
 
 	/* Exit latencies */
 	struct aspm_latency latency_up;	/* Upstream direction exit latency */
@@ -178,11 +177,8 @@ static void pcie_set_clkpm_nocheck(struct pcie_link_state *link, int enable)
 
 static void pcie_set_clkpm(struct pcie_link_state *link, int enable)
 {
-	/*
-	 * Don't enable Clock PM if the link is not Clock PM capable
-	 * or Clock PM is disabled
-	 */
-	if (!link->clkpm_capable || link->clkpm_disable)
+	/* Don't enable Clock PM if the link is not Clock PM capable */
+	if (!link->clkpm_capable)
 		enable = 0;
 	/* Need nothing if the specified equals to current state */
 	if (link->clkpm_enabled == enable)
@@ -220,40 +216,7 @@ static void pcie_clkpm_cap_init(struct pcie_link_state *link, int blacklist)
 
 	link->clkpm_enabled = enabled;
 	link->clkpm_default = enabled;
-	link->clkpm_capable = capable;
-	link->clkpm_disable = blacklist ? 1 : 0;
-}
-
-static bool pcie_retrain_link(struct pcie_link_state *link)
-{
-	struct pci_dev *parent = link->pdev;
-	unsigned long start_jiffies;
-	u16 reg16;
-
-	pcie_capability_read_word(parent, PCI_EXP_LNKCTL, &reg16);
-	reg16 |= PCI_EXP_LNKCTL_RL;
-	pcie_capability_write_word(parent, PCI_EXP_LNKCTL, reg16);
-	if (parent->clear_retrain_link) {
-		/*
-		 * Due to an erratum in some devices the Retrain Link bit
-		 * needs to be cleared again manually to allow the link
-		 * training to succeed.
-		 */
-		reg16 &= ~PCI_EXP_LNKCTL_RL;
-		pcie_capability_write_word(parent, PCI_EXP_LNKCTL, reg16);
-	}
-
-	/* Wait for link training end. Break out after waiting for timeout */
-	start_jiffies = jiffies;
-	for (;;) {
-		pcie_capability_read_word(parent, PCI_EXP_LNKSTA, &reg16);
-		if (!(reg16 & PCI_EXP_LNKSTA_LT))
-			break;
-		if (time_after(jiffies, start_jiffies + LINK_RETRAIN_TIMEOUT))
-			break;
-		msleep(1);
-	}
-	return !(reg16 & PCI_EXP_LNKSTA_LT);
+	link->clkpm_capable = (blacklist) ? 0 : capable;
 }
 
 /*
@@ -265,6 +228,7 @@ static void pcie_aspm_configure_common_clock(struct pcie_link_state *link)
 {
 	int same_clock = 1;
 	u16 reg16, parent_reg, child_reg[8];
+	unsigned long start_jiffies;
 	struct pci_dev *child, *parent = link->pdev;
 	struct pci_bus *linkbus = parent->subordinate;
 	/*
@@ -304,7 +268,21 @@ static void pcie_aspm_configure_common_clock(struct pcie_link_state *link)
 		reg16 &= ~PCI_EXP_LNKCTL_CCC;
 	pcie_capability_write_word(parent, PCI_EXP_LNKCTL, reg16);
 
-	if (pcie_retrain_link(link))
+	/* Retrain link */
+	reg16 |= PCI_EXP_LNKCTL_RL;
+	pcie_capability_write_word(parent, PCI_EXP_LNKCTL, reg16);
+
+	/* Wait for link training end. Break out after waiting for timeout */
+	start_jiffies = jiffies;
+	for (;;) {
+		pcie_capability_read_word(parent, PCI_EXP_LNKSTA, &reg16);
+		if (!(reg16 & PCI_EXP_LNKSTA_LT))
+			break;
+		if (time_after(jiffies, start_jiffies + LINK_RETRAIN_TIMEOUT))
+			break;
+		msleep(1);
+	}
+	if (!(reg16 & PCI_EXP_LNKSTA_LT))
 		return;
 
 	/* Training failed. Restore common clock configurations */
@@ -600,6 +578,16 @@ static void pcie_aspm_cap_init(struct pcie_link_state *link, int blacklist)
 
 	/* Setup initial capable state. Will be updated later */
 	link->aspm_capable = link->aspm_support;
+	/*
+	 * If the downstream component has pci bridge function, don't
+	 * do ASPM for now.
+	 */
+	list_for_each_entry(child, &linkbus->devices, bus_list) {
+		if (pci_pcie_type(child) == PCI_EXP_TYPE_PCI_BRIDGE) {
+			link->aspm_disable = ASPM_STATE_ALL;
+			break;
+		}
+	}
 
 	/* Get and check endpoint acceptable latencies */
 	list_for_each_entry(child, &linkbus->devices, bus_list) {
@@ -716,9 +704,9 @@ static void pcie_config_aspm_l1ss(struct pcie_link_state *link, u32 state)
 
 	/* Enable what we need to enable */
 	pci_clear_and_set_dword(parent, up_cap_ptr + PCI_L1SS_CTL1,
-				PCI_L1SS_CTL1_L1SS_MASK, val);
+				PCI_L1SS_CAP_L1_PM_SS, val);
 	pci_clear_and_set_dword(child, dw_cap_ptr + PCI_L1SS_CTL1,
-				PCI_L1SS_CTL1_L1SS_MASK, val);
+				PCI_L1SS_CAP_L1_PM_SS, val);
 }
 
 static void pcie_config_aspm_dev(struct pci_dev *pdev, u32 val)
@@ -746,9 +734,23 @@ static void pcie_config_aspm_link(struct pcie_link_state *link, u32 state)
 		state |= (link->aspm_enabled & ASPM_STATE_L1_SS_PCIPM);
 	}
 
-	/* Nothing to do if the link is already in the requested state */
-	if (link->aspm_enabled == state)
-		return;
+	/*
+	 * Nothing to do if the link is already in the requested state
+	 *
+	 * However, if aspm_policy = POLICY_DEFAULT and aspm state is changed
+	 * automatically, e.g. aspm state is set to POLICY_POWER_SUPERSAVE,
+	 * we must do something.
+	 * After system enter or exit suspend, pcie_aspm_pm_state_change() and
+	 * the value of link->aspm_enabled never be changed.
+	 * When system enter suspend, PCIe registers about ASPM will be cleared
+	 * and never be saved, so it's necessary to config PCIe ASPM registers
+	 * regardless of the value of parameter @state.
+	 *
+	 * So unisoc remove the following codes:
+	 *	if (link->aspm_enabled == state)
+	 *		return;
+	 */
+
 	/* Convert ASPM state to upstream/downstream ASPM register state */
 	if (state & ASPM_STATE_L0S_UP)
 		dwstream |= PCI_EXP_LNKCTL_ASPM_L0S;
@@ -781,7 +783,15 @@ static void pcie_config_aspm_link(struct pcie_link_state *link, u32 state)
 static void pcie_config_aspm_path(struct pcie_link_state *link)
 {
 	while (link) {
-		pcie_config_aspm_link(link, policy_to_aspm_state(link));
+		/*
+		 * Unisoc SoC contains two PCIe controllers (gen2 and gen3) and
+		 * these two PCIe have different ASPM default policies.
+		 * Therefore, it can't config aspm link by global variables
+		 * aspm_policy.
+		 * So Unisoc change parameter @policy_to_aspm_state(link) to
+		 * link->aspm_enabled
+		 */
+		pcie_config_aspm_link(link, link->aspm_enabled);
 		link = link->parent;
 	}
 }
@@ -1075,9 +1085,10 @@ static void __pci_disable_link_state(struct pci_dev *pdev, int state, bool sem)
 		link->aspm_disable |= ASPM_STATE_L1;
 	pcie_config_aspm_link(link, policy_to_aspm_state(link));
 
-	if (state & PCIE_LINK_STATE_CLKPM)
-		link->clkpm_disable = 1;
-	pcie_set_clkpm(link, policy_to_clkpm_state(link));
+	if (state & PCIE_LINK_STATE_CLKPM) {
+		link->clkpm_capable = 0;
+		pcie_set_clkpm(link, 0);
+	}
 	mutex_unlock(&aspm_lock);
 	if (sem)
 		up_read(&pci_bus_sem);
@@ -1140,7 +1151,6 @@ static int pcie_aspm_get_policy(char *buffer, const struct kernel_param *kp)
 			cnt += sprintf(buffer + cnt, "[%s] ", policy_str[i]);
 		else
 			cnt += sprintf(buffer + cnt, "%s ", policy_str[i]);
-	cnt += sprintf(buffer + cnt, "\n");
 	return cnt;
 }
 
@@ -1149,6 +1159,7 @@ module_param_call(policy, pcie_aspm_set_policy, pcie_aspm_get_policy,
 
 ssize_t sprd_pcie_aspm_set_policy(struct pci_dev *pdev, int val)
 {
+	u32 state;
 	struct pcie_link_state *link, *root = pdev->link_state->root;
 
 	if (val > ARRAY_SIZE(policy_str) || val < 0) {
@@ -1157,13 +1168,31 @@ ssize_t sprd_pcie_aspm_set_policy(struct pci_dev *pdev, int val)
 		return -EINVAL;
 	}
 
+	if (aspm_disabled)
+		return -EPERM;
+
 	down_read(&pci_bus_sem);
 	mutex_lock(&aspm_lock);
-	aspm_policy = val;
 	list_for_each_entry(link, &link_list, sibling) {
 		if (link->root != root)
 			continue;
-		pcie_config_aspm_link(link, policy_to_aspm_state(link));
+
+		switch (val) {
+		case POLICY_PERFORMANCE:
+			state = 0;
+			break;
+		case POLICY_POWERSAVE:
+			state = (ASPM_STATE_L0S | ASPM_STATE_L1);
+			break;
+		case POLICY_POWER_SUPERSAVE:
+			state = ASPM_STATE_ALL;
+			break;
+		default:
+			state = link->aspm_default;
+			break;
+		}
+
+		pcie_config_aspm_link(link, state);
 	}
 	mutex_unlock(&aspm_lock);
 	up_read(&pci_bus_sem);
@@ -1173,7 +1202,24 @@ ssize_t sprd_pcie_aspm_set_policy(struct pci_dev *pdev, int val)
 
 ssize_t sprd_pcie_aspm_get_policy(struct pci_dev *pdev, int *val)
 {
-	*val = aspm_policy;
+	u32 state;
+	struct pcie_link_state *link_state = pdev->link_state;
+
+	state = link_state->aspm_enabled;
+	switch (state & ASPM_STATE_ALL) {
+	case ASPM_STATE_ALL:
+		*val = POLICY_POWER_SUPERSAVE;
+		break;
+	case (ASPM_STATE_L0S | ASPM_STATE_L1):
+		*val = POLICY_POWERSAVE;
+		break;
+	case 0:
+		*val = POLICY_PERFORMANCE;
+		break;
+	default:
+		*val = POLICY_DEFAULT;
+		break;
+	}
 
 	return 0;
 }

@@ -434,6 +434,29 @@ void pci_epc_linkup(struct pci_epc *epc)
 EXPORT_SYMBOL_GPL(pci_epc_linkup);
 
 /**
+ * pci_epc_unlink() - Notify the EPF device that EPC device has disconnected
+ *		      with the Root Complex.
+ * @epc: the EPC device which has established link with the host
+ *
+ * Invoke to Notify the EPF device that the EPC device has disconnected with
+ * the Root Complex.
+ */
+void pci_epc_unlink(struct pci_epc *epc)
+{
+	unsigned long flags;
+	struct pci_epf *epf;
+
+	if (!epc || IS_ERR(epc))
+		return;
+
+	spin_lock_irqsave(&epc->lock, flags);
+	list_for_each_entry(epf, &epc->pci_epf, list)
+		pci_epf_unlink(epf);
+	spin_unlock_irqrestore(&epc->lock, flags);
+}
+EXPORT_SYMBOL_GPL(pci_epc_unlink);
+
+/**
  * pci_epc_destroy() - destroy the EPC device
  * @epc: the EPC device that has to be destroyed
  *

@@ -212,6 +212,12 @@ config PCIE_SPRD_EP
 	 Say Y here if you want PCIe controller to work in Endpoint mode on
 	 Spreadtrum SoC
 
+config PCIE_SPRD_SPLIT_BAR
+	bool "SPRD split the pcie bar"
+	depends on ARCH_SPRD
+	help
+	 Say Y here if you want split the PCIe 64bit bar to two 32bit bars
+
 endif
 
 endmenu

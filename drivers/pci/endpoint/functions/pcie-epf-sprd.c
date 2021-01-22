@@ -32,6 +32,8 @@
 #include <linux/pci-epf.h>
 #include <linux/pci_regs.h>
 #include <linux/pcie-epf-sprd.h>
+#include <linux/soc/sprd/hwfeature.h>
+#include <linux/workqueue.h>
 
 #include "../../dwc/pcie-designware.h"
 
@@ -41,7 +43,14 @@
 #define DOOR_BELL_BASE		0x10000
 #define DOOR_BELL_ENABLE	0x10
 #define DOOR_BELL_STATUS	0x14
-#define REQUEST_BASE_IRQ	16
+
+#define IPA_HW_IRQ_CNT		4
+#define IPA_HW_IRQ_BASE		16
+
+#define REQUEST_BASE_IRQ	(IPA_HW_IRQ_BASE + IPA_HW_IRQ_CNT)
+#define REQUEST_BASE_IRQ_DEFECT	16
+
+#define PCIE_WRITE_DATA	0x5a5a5a5a
 
 struct sprd_ep_res {
 	struct list_head	list;
@@ -56,6 +65,14 @@ struct sprd_pci_epf {
 	struct list_head	res_list;
 	spinlock_t		lock;
 	int			irq_number;
+	u32			bak_irq_status;
+
+	bool		no_msi;
+#ifdef CONFIG_SPRD_IPA_PCIE_WORKROUND
+	struct sprd_ep_res	ipa_res;
+#endif
+
+	struct work_struct linkup_work;
 };
 
 struct sprd_pci_epf_notify {
@@ -68,14 +85,31 @@ struct sprd_pci_epf_irq_handler {
 	void		*data;
 };
 
+#ifdef CONFIG_SPRD_PCIE_DOORBELL_WORKAROUND
+static void __iomem	*g_write_addr[SPRD_FUNCTION_MAX];
+#endif
+static void __iomem	*g_irq_addr[SPRD_FUNCTION_MAX];
+
 static struct sprd_pci_epf *g_epf_sprd[SPRD_FUNCTION_MAX];
 static struct sprd_pci_epf_notify g_epf_notify[SPRD_FUNCTION_MAX];
 static struct sprd_pci_epf_irq_handler
-		g_epf_handler[SPRD_FUNCTION_MAX][SPRD_EPF_IRQ_MAX];
+		g_epf_handler[SPRD_FUNCTION_MAX][PCIE_DBEL_IRQ_MAX];
 static int g_irq_number[SPRD_FUNCTION_MAX];
 static struct pci_epf_header sprd_header[SPRD_FUNCTION_MAX];
 
 static irqreturn_t sprd_epf_irq_handler(int irq_number, void *private);
+
+static bool sprd_epf_is_defective_chip(void)
+{
+	static bool first_read = true, defective;
+
+	if (first_read) {
+		first_read = false;
+		defective = sprd_kproperty_chipid("UD710-AB") == 0;
+	}
+
+	return defective;
+}
 
 int sprd_pci_epf_register_notify(int function,
 				 void (*notify)(int event, void *data),
@@ -117,17 +151,48 @@ int sprd_pci_epf_register_irq_handler(int function,
 
 {
 	struct sprd_pci_epf_irq_handler *epf_handler;
+	struct sprd_pci_epf *epf_sprd;
 
-	if (function >= SPRD_FUNCTION_MAX || irq >= SPRD_EPF_IRQ_MAX)
+	if (function >= SPRD_FUNCTION_MAX || irq >= PCIE_DBEL_IRQ_MAX)
 		return -EINVAL;
 
 	epf_handler = &g_epf_handler[function][irq];
 	epf_handler->handler = handler;
 	epf_handler->data = data;
 
+	/* if have irq before register, handle it */
+	epf_sprd = g_epf_sprd[function];
+	if (handler && epf_sprd &&
+	    (BIT(irq) & epf_sprd->bak_irq_status)) {
+		epf_sprd->bak_irq_status &= ~BIT(irq);
+		handler(irq, data);
+	}
 	return 0;
 }
 EXPORT_SYMBOL_GPL(sprd_pci_epf_register_irq_handler);
+
+#ifdef CONFIG_SPRD_PCIE_DOORBELL_WORKAROUND
+int sprd_pci_epf_set_write_addr(int function, void __iomem *write_addr)
+{
+	if (function >= SPRD_FUNCTION_MAX)
+		return -EINVAL;
+
+	g_write_addr[function] = write_addr;
+
+	return 0;
+}
+EXPORT_SYMBOL_GPL(sprd_pci_epf_set_write_addr);
+#endif
+
+int sprd_pci_epf_set_irq_addr(int function, void __iomem *irq_addr)
+{
+	if (function >= SPRD_FUNCTION_MAX)
+		return -EINVAL;
+
+	g_irq_addr[function] = irq_addr;
+
+	return 0;
+}
 
 int sprd_pci_epf_unregister_irq_handler(int function, int irq)
 {
@@ -143,6 +208,39 @@ int sprd_pci_epf_unregister_irq_handler(int function, int irq)
 	return 0;
 }
 EXPORT_SYMBOL_GPL(sprd_pci_epf_unregister_irq_handler);
+
+int sprd_pci_epf_register_irq_handler_ex(int function,
+					 int from_irq,
+					 int to_irq,
+					 irq_handler_t handler,
+					 void *data)
+{
+	int i, ret;
+
+	for (i = from_irq; i < to_irq + 1; i++) {
+		ret = sprd_pci_epf_register_irq_handler(function,
+							i, handler, data);
+		if (ret)
+			return ret;
+	}
+
+	return 0;
+}
+
+int sprd_pci_epf_unregister_irq_handler_ex(int function,
+					   int from_irq,
+					   int to_irq)
+{
+	int i, ret;
+
+	for (i = from_irq; i < to_irq + 1; i++) {
+		ret = sprd_pci_epf_unregister_irq_handler(function, i);
+		if (ret)
+			return ret;
+	}
+
+	return 0;
+}
 
 int sprd_pci_epf_set_irq_number(int function, int irq_number)
 {
@@ -161,6 +259,8 @@ int sprd_pci_epf_raise_irq(int function, int irq)
 	struct pci_epc *epc;
 	struct sprd_pci_epf *epf_sprd;
 	struct device *dev;
+	void __iomem *legacy_addr;
+	u32 value;
 
 	if (function >= SPRD_FUNCTION_MAX)
 		return -EINVAL;
@@ -173,6 +273,26 @@ int sprd_pci_epf_raise_irq(int function, int irq)
 	epc = epf_sprd->epf->epc;
 	msi_count = pci_epc_get_msi(epc);
 
+	dev_dbg(dev,
+		"raise irq func_no=%d, irq=%d, msi_count=%d\n",
+		function, irq, msi_count);
+
+	if (sprd_epf_is_defective_chip())
+		irq += REQUEST_BASE_IRQ_DEFECT;
+	else
+		irq += REQUEST_BASE_IRQ;
+
+	if (epf_sprd->no_msi) {
+		/* update irq in legacy addr. */
+		if (g_irq_addr[function]) {
+			legacy_addr = g_irq_addr[0];
+			value = readl(legacy_addr);
+			value |= BIT(irq);
+			writel(value, legacy_addr);
+		}
+		return pci_epc_raise_irq(epc, PCI_EPC_IRQ_LEGACY, 0);
+	}
+
 	if (irq > msi_count || msi_count <= 0) {
 		dev_err(dev,
 			"raise irq func_no=%d, irq=%d, msi_count=%d\n",
@@ -180,7 +300,6 @@ int sprd_pci_epf_raise_irq(int function, int irq)
 		return -EINVAL;
 	}
 
-	irq += REQUEST_BASE_IRQ;
 	/* *
 	 * in dw_pcie_ep_raise_msi_irq, write to the data reg
 	 * is (irq -1) , so here, we must pass (irq + 1)
@@ -188,6 +307,31 @@ int sprd_pci_epf_raise_irq(int function, int irq)
 	return pci_epc_raise_irq(epc, PCI_EPC_IRQ_MSI, irq + 1);
 }
 EXPORT_SYMBOL_GPL(sprd_pci_epf_raise_irq);
+
+/*
+ * sprd_pci_epf_start
+ * will wakeup host to rescan ep
+ */
+int sprd_pci_epf_start(int function)
+{
+	struct pci_epc *epc;
+	struct sprd_pci_epf *epf_sprd;
+	struct device *dev;
+
+	if (function >= SPRD_FUNCTION_MAX)
+		return -EINVAL;
+
+	epf_sprd = g_epf_sprd[function];
+	if (!epf_sprd || IS_ERR(epf_sprd->epf->epc))
+		return -EINVAL;
+
+	epc = epf_sprd->epf->epc;
+	dev = &epf_sprd->epf->dev;
+
+	dev_info(dev, "pci_epc_start.\n");
+
+	return pci_epc_start(epc);
+}
 
 void __iomem *sprd_pci_epf_map_memory(int function,
 				      phys_addr_t rc_addr,
@@ -213,6 +357,10 @@ void __iomem *sprd_pci_epf_map_memory(int function,
 	res = devm_kzalloc(dev, sizeof(*res), GFP_KERNEL);
 	if (!res)
 		return NULL;
+
+	dev_info(dev, "ep: epf map rc_addr=0x%lx, size=0x%lx\n",
+		(unsigned long)rc_addr,
+		(unsigned long)size);
 
 	epc = epf_sprd->epf->epc;
 	size = PAGE_ALIGN(size);
@@ -265,6 +413,18 @@ void __iomem *sprd_epf_ipa_map(phys_addr_t src_addr,
 		return NULL;
 
 	dev = &epf_sprd->epf->dev;
+
+	dev_info(dev, "ep: epf ipa map src_addr=0x%lx, dst_addr=0x%lx size=0x%lx\n",
+		(unsigned long)src_addr,
+		(unsigned long)dst_addr,
+		(unsigned long)size);
+
+	/* only support one ipa res, must unmap before remap */
+	if (epf_sprd->ipa_res.cpu_phy_addr) {
+		dev_err(dev, "failed to map, must unmap the old ipa map!\n");
+		return NULL;
+	}
+
 	epc = epf_sprd->epf->epc;
 	size = PAGE_ALIGN(size);
 	ret = pci_epc_map_addr(epc, src_addr, dst_addr, size);
@@ -275,13 +435,37 @@ void __iomem *sprd_epf_ipa_map(phys_addr_t src_addr,
 
 	cpu_vir_addr = ioremap_nocache(src_addr, size);
 
+	epf_sprd->ipa_res.cpu_phy_addr = src_addr;
+	epf_sprd->ipa_res.rc_addr = dst_addr;
+	epf_sprd->ipa_res.size = size;
+	epf_sprd->ipa_res.cpu_vir_addr = cpu_vir_addr;
+
 	return cpu_vir_addr;
 }
 EXPORT_SYMBOL_GPL(sprd_epf_ipa_map);
 
 void sprd_epf_ipa_unmap(void __iomem *cpu_vir_addr)
 {
+	struct sprd_pci_epf *epf_sprd;
+	struct pci_epc *epc;
+
+	epf_sprd = g_epf_sprd[SPRD_FUNCTION_0];
+	if (!epf_sprd || IS_ERR(epf_sprd->epf->epc))
+		return;
+
+	dev_info(&epf_sprd->epf->dev, "ipa unmap\n");
+
+	if (!cpu_vir_addr || cpu_vir_addr != epf_sprd->ipa_res.cpu_vir_addr)
+		return;
+
 	iounmap(cpu_vir_addr);
+	epc = epf_sprd->epf->epc;
+	pci_epc_unmap_addr(epc, epf_sprd->ipa_res.cpu_phy_addr);
+
+	epf_sprd->ipa_res.cpu_vir_addr = NULL;
+	epf_sprd->ipa_res.cpu_phy_addr = 0;
+	epf_sprd->ipa_res.rc_addr = 0;
+	epf_sprd->ipa_res.size = 0;
 }
 EXPORT_SYMBOL_GPL(sprd_epf_ipa_unmap);
 #endif
@@ -304,14 +488,14 @@ void sprd_pci_epf_unmap_memory(int function, const void __iomem *cpu_vir_addr)
 	dev = &(epf_sprd->epf->dev);
 	epc = epf_sprd->epf->epc;
 
-	dev_dbg(dev, "map: unpap func_no=%d, cpu_vir_addr=0x%p\n",
+	dev_info(dev, "map: unpap func_no=%d, cpu_vir_addr=0x%p\n",
 		function, cpu_vir_addr);
 
 	/* find the res from list */
 	spin_lock_irqsave(&epf_sprd->lock, flags);
 	list_for_each_entry_safe(res, next, &epf_sprd->res_list, list) {
 		if (res->cpu_vir_addr == cpu_vir_addr) {
-			pci_epc_unmap_addr(epc, res->rc_addr);
+			pci_epc_unmap_addr(epc, res->cpu_phy_addr);
 			pci_epc_mem_free_addr(epc,
 					      res->cpu_phy_addr,
 					      res->cpu_vir_addr,
@@ -325,6 +509,46 @@ void sprd_pci_epf_unmap_memory(int function, const void __iomem *cpu_vir_addr)
 }
 EXPORT_SYMBOL_GPL(sprd_pci_epf_unmap_memory);
 
+static void sprd_pci_epf_restore(struct sprd_pci_epf *epf_sprd)
+{
+	struct pci_epc *epc;
+	struct device *dev;
+	struct sprd_ep_res *res;
+	unsigned long flags;
+
+	dev = &epf_sprd->epf->dev;
+	epc = epf_sprd->epf->epc;
+
+#ifdef CONFIG_SPRD_IPA_PCIE_WORKROUND
+	res = &epf_sprd->ipa_res;
+	if (res->rc_addr) {
+		dev_info(dev, "map: ep_addr=0x%lx, rc_addr=0x%lx, size=0x%lx\n",
+			(unsigned long)res->cpu_phy_addr,
+			(unsigned long)res->rc_addr,
+			res->size);
+
+		/* after pci reset, the outbound must remap */
+		pci_epc_unmap_addr(epc, res->cpu_phy_addr);
+		if (pci_epc_map_addr(epc, res->cpu_phy_addr,
+				     res->rc_addr, res->size))
+			dev_err(dev, "failed to map rc_addr=0x%lx!\n",
+				(unsigned long)res->rc_addr);
+	}
+#endif
+
+	/* find the res from list, reconfig them */
+	spin_lock_irqsave(&epf_sprd->lock, flags);
+	list_for_each_entry(res, &epf_sprd->res_list, list) {
+		/* after pci reset, the outbound must remap */
+		pci_epc_unmap_addr(epc, res->cpu_phy_addr);
+		if (pci_epc_map_addr(epc, res->cpu_phy_addr,
+				     res->rc_addr, res->size))
+			dev_err(dev, "failed to map rc_addr=0x%lx!\n",
+				(unsigned long)res->rc_addr);
+	}
+	spin_unlock_irqrestore(&epf_sprd->lock, flags);
+}
+
 static irqreturn_t sprd_epf_irq_handler(int irq_number, void *private)
 {
 	struct sprd_pci_epf_irq_handler *epf_handler;
@@ -334,29 +558,81 @@ static irqreturn_t sprd_epf_irq_handler(int irq_number, void *private)
 	struct dw_pcie *pci = to_dw_pcie_from_ep(ep);
 	int irq, function;
 	u32 enable, status;
+#ifdef CONFIG_SPRD_PCIE_DOORBELL_WORKAROUND
+	int try_cnt = 10;
+	void __iomem *write_addr;
+#endif
 
 	function = epf_sprd->epf->func_no;
 	if (function >= SPRD_FUNCTION_MAX)
 		return IRQ_NONE;
 
-	/*read irq status and clear irq */
-	enable = dw_pcie_readl_dbi(pci, DOOR_BELL_BASE + DOOR_BELL_ENABLE);
+	enable = BIT(PCIE_DBEL_IRQ_MAX) - 1;
+
+	/*
+	 * before read doorbell must do a write action
+	 * to make PCIE exit L1 state.
+	 */
+#ifdef CONFIG_SPRD_PCIE_DOORBELL_WORKAROUND
+	write_addr = g_write_addr[function];
+	if (write_addr)
+		writel(PCIE_WRITE_DATA, write_addr);
+#endif
+
+	/* read irq status and clear irq */
 	status = dw_pcie_readl_dbi(pci, DOOR_BELL_BASE + DOOR_BELL_STATUS);
-	dw_pcie_writel_dbi(pci, DOOR_BELL_BASE + DOOR_BELL_STATUS, 0x0);
+	dw_pcie_writel_dbi(pci, DOOR_BELL_BASE + DOOR_BELL_STATUS, (~status) &
+			   (dw_pcie_readl_dbi(pci, DOOR_BELL_BASE + DOOR_BELL_STATUS)));
 
 	dev_dbg(dev, "func_no=%d, enable=%#x, status=%#x\n",
 		function, enable, status);
+
+#ifdef CONFIG_SPRD_PCIE_DOORBELL_WORKAROUND
+	/* if can't read status, try agian. */
+	while (!status && try_cnt--) {
+		if (write_addr)
+			writel(PCIE_WRITE_DATA, write_addr);
+		status = dw_pcie_readl_dbi(pci,
+					   DOOR_BELL_BASE + DOOR_BELL_STATUS);
+		dw_pcie_writel_dbi(pci, DOOR_BELL_BASE + DOOR_BELL_STATUS, 0x0);
+	}
+#endif
+
 	status &= enable;
 
-	for (irq = 0; irq < SPRD_EPF_IRQ_MAX; irq++) {
+	for (irq = 0; irq < PCIE_DBEL_IRQ_MAX; irq++) {
 		if (status & BIT(irq)) {
-			dev_dbg(dev, "func_no=%d, irq=%d\n", function, irq);
 			epf_handler = &g_epf_handler[function][irq];
 			if (epf_handler->handler)
 				epf_handler->handler(irq, epf_handler->data);
+			else
+				epf_sprd->bak_irq_status |= BIT(irq);
 		}
 	}
 	return IRQ_HANDLED;
+}
+
+static void sprd_epf_linkup_work_fn(struct work_struct *work)
+{
+	struct dw_pcie_ep *ep;
+	struct dw_pcie *pci;
+	struct sprd_pci_epf *epf_sprd = container_of(work, struct sprd_pci_epf,
+						     linkup_work);
+	struct pci_epf *epf = epf_sprd->epf;
+	struct device *dev = &epf->dev;
+
+	/* restore config */
+	sprd_pci_epf_restore(epf_sprd);
+
+	if (epf->func_no < SPRD_FUNCTION_MAX) {
+		/* enable door bell irq */
+		dev_info(dev, "enable doorbell irq.");
+		ep = epc_get_drvdata(epf->epc);
+		pci = to_dw_pcie_from_ep(ep);
+		dw_pcie_writel_dbi(pci,
+				   DOOR_BELL_BASE + DOOR_BELL_ENABLE,
+				   BIT(PCIE_DBEL_IRQ_MAX) - 1);
+	}
 }
 
 static int sprd_epf_bind(struct pci_epf *epf)
@@ -364,17 +640,46 @@ static int sprd_epf_bind(struct pci_epf *epf)
 #ifdef CONFIG_SPRD_EPF_ENABLE_EPCONF
 	int ret;
 #endif
+	int msi_count;
 	void  (*notify)(int event, void *data);
 	struct pci_epc *epc = epf->epc;
 	struct device *dev = &epf->dev;
 	struct dw_pcie_ep *ep;
 	struct dw_pcie *pci;
+	struct sprd_pci_epf *epf_sprd = epf_get_drvdata(epf);
 
 	if (WARN_ON_ONCE(!epc))
 		return -EINVAL;
 
 	dev_info(dev, "bind: func_no = %d, epf->func_no = =%d\n",
 		epf->func_no, epf->msi_interrupts);
+
+	msi_count = pci_epc_get_msi(epc);
+	if (msi_count < PCIE_MSI_IRQ_MAX) {
+		dev_info(dev,
+			"leagacy is true, msi_count=%d\n", msi_count);
+		epf_sprd->no_msi = true;
+	}
+
+	/*
+	 * Normal chip, after orca boot, pcie is already linked.
+	 * So after epf bind, must do the linkup work.
+	 */
+	if (!sprd_epf_is_defective_chip()) {
+		/* first, linkup notify */
+		notify = g_epf_notify[epf->func_no].notify;
+		if (notify)
+			notify(SPRD_EPF_LINK_UP,
+			       g_epf_notify[epf->func_no].data);
+		schedule_work(&epf_sprd->linkup_work);
+	} else {
+		/* defective chip must enable door bell irq here. */
+		ep = epc_get_drvdata(epf->epc);
+		pci = to_dw_pcie_from_ep(ep);
+		dw_pcie_writel_dbi(pci,
+				   DOOR_BELL_BASE + DOOR_BELL_ENABLE,
+				   BIT(PCIE_DBEL_IRQ_MAX) - 1);
+	}
 
 	/*
 	 * if the feature CONFIG_SPRD_EPF_ENABLE_EPCONF
@@ -399,13 +704,6 @@ static int sprd_epf_bind(struct pci_epf *epf)
 		notify = g_epf_notify[epf->func_no].notify;
 		if (notify)
 			notify(SPRD_EPF_BIND, g_epf_notify[epf->func_no].data);
-
-		/* enable door bell irq */
-		ep = epc_get_drvdata(epf->epc);
-		pci = to_dw_pcie_from_ep(ep);
-		dw_pcie_writel_dbi(pci,
-				   DOOR_BELL_BASE + DOOR_BELL_ENABLE,
-				   BIT(SPRD_FUNCTION_MAX) - 1);
 	}
 
 	return 0;
@@ -432,15 +730,32 @@ static void sprd_epf_unbind(struct pci_epf *epf)
 static void sprd_epf_linkup(struct pci_epf *epf)
 {
 	struct device *dev = &epf->dev;
-	void (*notify)(int event, void *data);
+	struct sprd_pci_epf *epf_sprd = epf_get_drvdata(epf);
+	void  (*notify)(int event, void *data);
 
 	dev_info(dev, "linkup: func_no = %d\n", epf->func_no);
+
+	/* first, linkup notify */
+	notify = g_epf_notify[epf->func_no].notify;
+	if (notify)
+		notify(SPRD_EPF_LINK_UP,
+			   g_epf_notify[epf->func_no].data);
+
+	schedule_work(&epf_sprd->linkup_work);
+}
+
+static void sprd_epf_unlink(struct pci_epf *epf)
+{
+	struct device *dev = &epf->dev;
+	void (*notify)(int event, void *data);
+
+	dev_info(dev, "unlink: func_no = %d\n", epf->func_no);
 
 	if (epf->func_no < SPRD_FUNCTION_MAX) {
 		notify = g_epf_notify[epf->func_no].notify;
 		if (notify)
-			notify(SPRD_EPF_LINK_UP,
-			       g_epf_notify[epf->func_no].data);
+			notify(SPRD_EPF_UNLINK,
+				   g_epf_notify[epf->func_no].data);
 	}
 }
 
@@ -457,6 +772,8 @@ static int sprd_epf_probe(struct pci_epf *epf)
 	void (*notify)(int event, void *data);
 	struct sprd_pci_epf *epf_sprd;
 	struct device *dev = &epf->dev;
+
+	dev_info(dev, "probe.");
 
 	epf_sprd = devm_kzalloc(dev, sizeof(*epf_sprd), GFP_KERNEL);
 	if (!epf_sprd)
@@ -476,6 +793,7 @@ static int sprd_epf_probe(struct pci_epf *epf)
 	epf_sprd->epf = epf;
 	spin_lock_init(&epf_sprd->lock);
 	INIT_LIST_HEAD(&epf_sprd->res_list);
+	INIT_WORK(&epf_sprd->linkup_work, sprd_epf_linkup_work_fn);
 
 	g_epf_sprd[epf->func_no] = epf_sprd;
 	notify = g_epf_notify[epf->func_no].notify;
@@ -509,9 +827,13 @@ static int sprd_epf_remove(struct pci_epf *epf)
 	struct pci_epc *epc = epf->epc;
 	struct sprd_pci_epf *epf_sprd = epf_get_drvdata(epf);
 
+	dev_info(dev, "remove.");
+
+	cancel_work_sync(&epf_sprd->linkup_work);
+
 	spin_lock_irqsave(&epf_sprd->lock, flags);
 	list_for_each_entry_safe(res, next, &epf_sprd->res_list, list) {
-		pci_epc_unmap_addr(epc, res->rc_addr);
+		pci_epc_unmap_addr(epc, res->cpu_phy_addr);
 		pci_epc_mem_free_addr(epc, res->cpu_phy_addr,
 				      res->cpu_vir_addr,
 				      res->size);
@@ -539,6 +861,7 @@ static struct pci_epf_ops ops = {
 	.unbind	= sprd_epf_unbind,
 	.bind	= sprd_epf_bind,
 	.linkup = sprd_epf_linkup,
+	.unlink = sprd_epf_unlink,
 };
 
 static struct pci_epf_driver sprd_epf_driver = {

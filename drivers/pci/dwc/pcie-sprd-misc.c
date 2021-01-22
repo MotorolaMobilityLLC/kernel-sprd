@@ -45,6 +45,33 @@ static void sprd_pcie_fix_class(struct pci_dev *dev)
 }
 DECLARE_PCI_FIXUP_EARLY(PCI_VENDOR_ID_SYNOPSYS, 0xabcd, sprd_pcie_fix_class);
 
+static void sprd_pcie_fix_header(struct pci_dev *dev)
+{
+	u32 val;
+	struct pci_dev *bridge;
+	struct pcie_port *pp;
+	struct dw_pcie *pci;
+
+	/*
+	 * Only the RC which connects with marlin3 EP needs to modify
+	 * port T_POWER_ON register.
+	 */
+	if ((dev->vendor == PCI_VENDOR_ID_MARLIN3) &&
+	    (dev->device == PCI_DEVICE_ID_MARLIN3)) {
+		bridge = dev->bus->self;
+		pp = bridge->bus->sysdata;
+		pci = to_dw_pcie_from_pp(pp);
+
+		val = dw_pcie_readl_dbi(pci, SPRD_PCIE_GEN2_L1SS_CAP);
+		val &= ~(PCIE_T_POWER_ON_SCALE_MASK |
+			 PCIE_T_POWER_ON_VALUE_MASK);
+		val |= (PCIE_T_POWER_ON_SCALE | PCIE_T_POWER_ON_VALUE);
+		dw_pcie_writel_dbi(pci, SPRD_PCIE_GEN2_L1SS_CAP, val);
+	}
+}
+DECLARE_PCI_FIXUP_HEADER(PCI_VENDOR_ID_MARLIN3, PCI_DEVICE_ID_MARLIN3,
+			 sprd_pcie_fix_header);
+
 int sprd_pcie_syscon_setting(struct platform_device *pdev, char *env)
 {
 	struct device_node *np = pdev->dev.of_node;
@@ -62,7 +89,7 @@ int sprd_pcie_syscon_setting(struct platform_device *pdev, char *env)
 	/* one handle and NUM_OF_ARGS args */
 	count = of_property_count_elems_of_size(np, env,
 		(NUM_OF_ARGS + 1) * sizeof(u32));
-	dev_dbg(&pdev->dev, "property (%s) reg count is %d :\n", env, count);
+	dev_info(&pdev->dev, "property (%s) reg count is %d :\n", env, count);
 
 	for (i = 0; i < count; i++) {
 		err = of_parse_phandle_with_fixed_args(np, env, NUM_OF_ARGS,
@@ -93,17 +120,21 @@ int sprd_pcie_syscon_setting(struct platform_device *pdev, char *env)
 			j = 0;
 			do {
 				regmap_read(iomap, reg, &tmp_val);
-				if (j++ > 100)
+				/*
+				 * Sometimes PCIe/IPA SYS power on very slowly,
+				 * it may need 100ms.
+				 */
+				if (j++ > 2000)
 					return -ETIMEDOUT;
 				usleep_range(50, 100);
 			} while ((tmp_val & mask) != val);
 			break;
 		}
 		if (delay)
-			msleep(delay);
+			usleep_range(delay, delay + 10);
 
 		regmap_read(iomap, reg, &tmp_val);
-		dev_dbg(&pdev->dev,
+		dev_info(&pdev->dev,
 			"%2d:reg[0x%8x] mask[0x%8x] val[0x%8x] result[0x%8x]\n",
 			i, reg, mask, val, tmp_val);
 	}
@@ -145,6 +176,29 @@ int sprd_pcie_enter_pcipm_l2(struct dw_pcie *pci)
 
 	return -ETIMEDOUT;
 }
+
+/*
+ * WORKAROUND:
+ * Clear unhandled msi irqs before pcie power off.
+ * if an endpoint asserts a msi irq and then free the irq before
+ * it is handled, the irq line may be always active.
+ */
+void sprd_pcie_clear_unhandled_msi(struct dw_pcie *pci)
+{
+	u32 val, i;
+
+	for (i = 0; i < MAX_MSI_CTRLS; i++) {
+		val = dw_pcie_readl_dbi(pci, PCIE_MSI_INTR0_STATUS + i * 12);
+		if (val) {
+			dev_warn(pci->dev,
+				 "clear unhandled 0x%x in MSI INTR%d",
+				 val, i);
+			dw_pcie_writel_dbi(pci,
+					   PCIE_MSI_INTR0_ENABLE + i * 12, val);
+		}
+	}
+}
+EXPORT_SYMBOL(sprd_pcie_clear_unhandled_msi);
 
 void sprd_pcie_save_msi_ctrls(struct dw_pcie *pci)
 {
@@ -237,3 +291,48 @@ void sprd_pcie_alloc_irq_vectors(struct pci_dev *dev, int *irqs, int services)
 }
 EXPORT_SYMBOL(sprd_pcie_alloc_irq_vectors);
 #endif
+
+void sprd_pcie_dump_rc_regs(struct platform_device *pdev)
+{
+	struct sprd_pcie *ctrl = platform_get_drvdata(pdev);
+	struct dw_pcie *pci = ctrl->pci;
+	u32 index, offset;
+
+	dev_err(&pdev->dev,
+		  "LTSSM [0xe64]: 0x%x, [0x728]: 0x%x, [0xe04]: 0x%x\n",
+		  dw_pcie_readl_dbi(pci, SPRD_PCIE_PE0_PM_STS),
+		  dw_pcie_readl_dbi(pci, PCIE_PHY_DEBUG_R0),
+		  dw_pcie_readl_dbi(pci, PCIE_SS_REG_BASE+APB_CLKFREQ_TIMEOUT));
+
+	print_hex_dump(KERN_ERR, "PCIe RC reg: ", DUMP_PREFIX_ADDRESS,
+		       16, 4, pci->dbi_base, 0xc0, 0);
+	print_hex_dump(KERN_ERR, "PCIe RC reg: ", DUMP_PREFIX_ADDRESS,
+		       16, 4, pci->dbi_base + 0x100, 0x80, 0);
+	print_hex_dump(KERN_ERR, "PCIe RC reg: ", DUMP_PREFIX_ADDRESS,
+		       16, 4, pci->dbi_base + PCIE_MSI_ADDR_LO, 0x20, 0);
+	for (index = 0; index <= 2; index++) {
+		offset = PCIE_GET_ATU_OUTB_UNR_REG_OFFSET(index);
+		print_hex_dump(KERN_ERR, "PCIe RC reg: ", DUMP_PREFIX_ADDRESS,
+			       16, 4, pci->dbi_base + offset, 0x20, 0);
+	}
+}
+EXPORT_SYMBOL(sprd_pcie_dump_rc_regs);
+
+/* Check pci vendor id before modify its own config registers */
+int sprd_pcie_check_vendor_id(struct dw_pcie *pci)
+{
+	u16 val;
+	int retries;
+
+	for (retries = 0; retries < 100; retries++) {
+		val = dw_pcie_readw_dbi(pci, PCI_VENDOR_ID);
+		if (val == PCI_VENDOR_ID_SYNOPSYS)
+			return 0;
+		usleep_range(50, 100);
+	}
+
+	dev_err(pci->dev, "the vendor id is:0x%8x, retries:%d", val, retries);
+
+	return -ETIMEDOUT;
+}
+EXPORT_SYMBOL(sprd_pcie_check_vendor_id);

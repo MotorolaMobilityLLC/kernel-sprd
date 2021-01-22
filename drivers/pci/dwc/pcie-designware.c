@@ -313,7 +313,7 @@ int dw_pcie_wait_for_link(struct dw_pcie *pci)
 	/* check if the link is up or not */
 	for (retries = 0; retries < LINK_WAIT_MAX_RETRIES; retries++) {
 		if (dw_pcie_link_up(pci)) {
-			dev_info(pci->dev, "link up\n");
+			dev_info(pci->dev, "link up by %d times\n", retries);
 			return 0;
 		}
 		usleep_range(LINK_WAIT_USLEEP_MIN, LINK_WAIT_USLEEP_MAX);

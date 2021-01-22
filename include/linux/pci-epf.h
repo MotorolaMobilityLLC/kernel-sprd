@@ -65,6 +65,7 @@ struct pci_epf_ops {
 	int	(*bind)(struct pci_epf *epf);
 	void	(*unbind)(struct pci_epf *epf);
 	void	(*linkup)(struct pci_epf *epf);
+	void	(*unlink)(struct pci_epf *epf);
 };
 
 /**
@@ -154,4 +155,5 @@ void pci_epf_free_space(struct pci_epf *epf, void *addr, enum pci_barno bar);
 int pci_epf_bind(struct pci_epf *epf);
 void pci_epf_unbind(struct pci_epf *epf);
 void pci_epf_linkup(struct pci_epf *epf);
+void pci_epf_unlink(struct pci_epf *epf);
 #endif /* __LINUX_PCI_EPF_H */
