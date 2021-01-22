@@ -211,6 +211,12 @@
 			reg = <0 0x64334000 0 0x3000>;
 		};
 
+		anlg_phy_g12_regs: syscon@64380000 {
+			compatible = "sprd,ums9620-glbregs", "syscon";
+			#syscon-cells = <2>;
+			reg = <0 0x64380000 0 0x3000>;
+		};
+
 		aon_apb_regs: syscon@64900000 {
 			compatible = "sprd,ums9620-glbregs", "syscon";
 			#syscon-cells = <2>;
@@ -325,6 +331,34 @@
 				#dma-channels = <28>;
 				clock-names = "enable";
 				clocks = <&apahb_gate CLK_DMA_PUB_EB>;
+			};
+
+			ufs: ufs@2000000 {
+				compatible  = "sprd,ufshc";
+				interrupts = <GIC_SPI 159 IRQ_TYPE_LEVEL_HIGH>;
+				vcc-supply = <&vddemmccore>;
+				clock-names = "ufs_eb",
+					      "ufs_cfg_eb",
+					      "ufs_hclk",
+					      "ufs_hclk_source";
+				clocks = <&apahb_gate CLK_UFS_EB>,
+					 <&apahb_gate CLK_UFS_CFG_EB>,
+					 <&aonapb_clk CLK_UFS_AON>,
+					 <&g5l_pll CLK_TGPLL_256M>;
+				freq-table-hz = <0 0>,
+						<0 0>,
+						<0 0>,
+						<0 0>;
+				syscons =
+					<&ap_ahb_regs REG_AP_AHB_AHB_RST
+					  MASK_AP_AHB_UFS_SOFT_RST>,
+					<&aon_apb_regs REG_AON_APB_UFSDEV_REG
+					  MASK_AON_APB_UFSDEV_SOFT_RST>,
+					<&anlg_phy_g12_regs 0x0c 0x01>;
+				syscon-names = "ap_ahb_ufs_rst",
+					       "aon_apb_ufs_rst",
+					       "phy_sram_init_done";
+				status = "okay";
 			};
 
 			sdio3: sdio@2200000 {
