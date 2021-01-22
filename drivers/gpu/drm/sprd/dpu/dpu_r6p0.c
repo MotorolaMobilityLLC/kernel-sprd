@@ -1671,7 +1671,6 @@ static void dpu_enhance_backup(u32 id, void *param)
 static void dpu_luts_copyfrom_user(u32 *param)
 {
 	u32 *p32;
-	u16 *p16;
 	u32 i, j, k;
 	struct gamma_lut *gamma;
 	struct lut_3ds *lut3d;
@@ -1707,7 +1706,7 @@ static void dpu_luts_copyfrom_user(u32 *param)
 	for (i = 0; i < 3; i++) {
 		p32 = lut_lut3d_vaddr + 1024 * 6 * i;
 		ptmp32  = p32;
-		lut3d = (struct lut_3ds *) (p16 +
+		lut3d = (struct lut_3ds *) (p32 +
 			(sizeof(struct hsv_luts) / 2) +
 			i * (sizeof(struct threed_lut) / 2));
 		for (j = 0; j < 8; j++) {
@@ -1899,9 +1898,9 @@ static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
 		gamma = &gamma_copy;
 		p32 = lut_gamma_vaddr;
 		for (j = 0; j < 256; j++) {
-			*p32 = (gamma->r[i] << 20) |
-				(gamma->g[i] << 10) |
-				gamma->b[i];
+			*p32 = (gamma->r[j] << 20) |
+				(gamma->g[j] << 10) |
+				gamma->b[j];
 			p32 += 4;
 		}
 		reg->dpu_enhance_cfg |= BIT(5) | BIT(10);
