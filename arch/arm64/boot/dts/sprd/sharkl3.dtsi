@@ -128,7 +128,7 @@
 
 		mm_vsp_ahb_regs: syscon@62000000 {
 			compatible = "sprd,sc9863a-glbregs", "syscon";
-			reg = <0 0x62000000 0 0x1000>;
+			reg = <0 0x62000000 0 0x3000>;
 		};
 
 		ap_apb_regs: syscon@71300000 {
