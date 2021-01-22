@@ -16,18 +16,6 @@ T: usb:musb:
 T: usb:misc:
 T: usb:phy:
 
-[billows.wu]
-R: +2
-T: misc:sprdwcn:
-T: mmc:core:
-T: mmc:sprd:
-T: pci:dwc:
-T: pci:dwc:sprd:
-T: power:suspends:
-T: scsi:ufs:sprd:
-T: scsi:ufs:
-T: misc:sprd_gnss:
-
 [chunyan.zhang]
 R: +2
 T: asoc:
@@ -153,6 +141,33 @@ T: scsi:ufs:
 T: pci:dwc:
 T: pci:dwc:sprd:
 
+[long.gao]
+R: +1
+T: clk:sprd:
+T: cpufreq:
+T: cpufreq:sprd:
+T: devfreq:sprd:
+T: gpio:sprd:
+T: i2c:sprd:
+T: iio:adc:
+T: iio:sprd:
+T: input:keyboard:
+T: input:sprd:
+T: input:touchscreen:
+T: leds:sc27xx:
+T: leds:trigger:
+T: nvmem:sprd:
+T: pci:dwc:
+T: pci:dwc:sprd:
+T: pinctrl:sprd:
+T: power:supply:
+T: power:suspends:
+T: scsi:ufs:
+T: scsi:ufs:sprd:
+T: serial:sprd:
+T: spi:sprd:
+T: watchdog:sprd:
+
 [lvqiang.huang]
 R: +1
 T: fs:
@@ -260,6 +275,45 @@ T: staging:android:ion:
 T: arm:dts:
 T: arm64:dts:
 
+[yonghan.ye]
+R: +1
+T: clk:sprd:
+T: cpufreq:
+T: cpufreq:sprd:
+T: devfreq:sprd:
+T: dmaengine:sprd:
+T: gpio:sprd:
+T: i2c:sprd:
+T: iio:adc:
+T: iio:sprd:
+T: input:keyboard:
+T: input:sprd:
+T: input:touchscreen:
+T: leds:sc27xx:
+T: leds:trigger:
+T: mmc:core:
+T: mmc:host:
+T: mmc:sprd-sdhc:
+T: nvmem:sprd:
+T: pci:dwc:
+T: pci:dwc:sprd:
+T: pinctrl:sprd:
+T: power:supply:
+T: power:suspends:
+T: scsi:ufs:
+T: scsi:ufs:sprd:
+T: serial:sprd:
+T: spi:sprd:
+T: thermal:core:
+T: thermal:sprd:
+T: usb:dwc3:
+T: usb:gadget:
+T: usb:misc:
+T: usb:musb:
+T: usb:phy:
+T: usb:typec:
+T: watchdog:sprd:
+
 [yuming.han]
 R: +1
 K: "reserved-memory"
@@ -270,3 +324,42 @@ T: mm:
 R: +1
 T: staging:sprd:modem:
 T: staging:sprd:sipa:
+
+[zhulin.lian]
+R: +1
+T: clk:sprd:
+T: cpufreq:
+T: cpufreq:sprd:
+T: devfreq:sprd:
+T: dmaengine:sprd:
+T: gpio:sprd:
+T: i2c:sprd:
+T: iio:adc:
+T: iio:sprd:
+T: input:keyboard:
+T: input:sprd:
+T: input:touchscreen:
+T: leds:sc27xx:
+T: leds:trigger:
+T: mmc:core:
+T: mmc:host:
+T: mmc:sprd-sdhc:
+T: nvmem:sprd:
+T: pci:dwc:
+T: pci:dwc:sprd:
+T: pinctrl:sprd:
+T: power:supply:
+T: power:suspends:
+T: scsi:ufs:
+T: scsi:ufs:sprd:
+T: serial:sprd:
+T: spi:sprd:
+T: thermal:core:
+T: thermal:sprd:
+T: usb:dwc3:
+T: usb:gadget:
+T: usb:misc:
+T: usb:musb:
+T: usb:phy:
+T: usb:typec:
+T: watchdog:sprd:
