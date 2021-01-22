@@ -216,6 +216,7 @@
 				/* how much time to allow capacity change */
 				cm-one-cap-time = <30>;
 				cm-thermal-zone = "chg-thmzone";			/*config chg-sensor by pony date20201205*/
+				cm-board-thermal-zone = "board-thmzone";			/* zhang.chao@tinno.com add board-sensorat 2021/01/21 */
 				/* when the safe charging voltage is exceeded, stop charging */
 				cm-charge-voltage-max = <6500000>;
 				/* drop voltage in microVolts to restart charging */
