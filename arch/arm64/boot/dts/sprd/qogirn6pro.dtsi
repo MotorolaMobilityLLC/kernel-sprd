@@ -595,6 +595,16 @@
 				<&pmu_apb_regs
 				REG_PMU_APB_PWR_STATUS_DBG_7
 				MASK_PMU_APB_PD_DCAM_BLK_STATE>;
+				clocks-names = "clk_mm_eb",
+					"clk_ckg_en",
+					"clk_mm_mtx_data_en",
+					"clk_mm_mtx_data",
+					"clk_mm_mtx_parent";
+				clocks = <&aonapb_gate CLK_MM_EB>,
+					<&mm_gate CLK_CKG_EN>,
+					<&mm_gate CLK_MM_MTX_DATA_EN>,
+					<&mm_clk CLK_MM_MTX_DATA>,
+					<&g5l_pll CLK_TGPLL_512M>;
 			};
 
 			dcam: dcam@3e000000 {
@@ -639,6 +649,44 @@
 						"dcam1_reset",
 						"dcam2_reset",
 						"dcam3_reset";
+
+				clock-names = "dcam_eb",
+					"dcam_blk_cfg_en",
+					"dcam_lite_eb",
+					"dcam_tck_en",
+					"dcam_mtx_en",
+					"dcam_lite_mtx_en",
+					"dcam_clk",
+					"dcam_clk_parent",
+					"dcam_lite_clk",
+					"dcam_lite_clk_parent",
+					"dcam_axi_clk",
+					"dcam_axi_clk_parent",
+					"dcam_lite_axi_clk",
+					"dcam_lite_axi_clk_parent",
+					"dcam_mtx_clk",
+					"dcam_mtx_clk_parent",
+					"dcam_blk_cfg_clk",
+					"dcam_blk_cfg_clk_parent";
+				clocks = <&mm_gate CLK_DCAM_IF_EN>,
+					<&mm_gate CLK_DCAM_BLK_CFG_EN>,
+					<&mm_gate CLK_DCAM_IF_LITE_EN>,
+					<&mm_gate CLK_DCAM_TCK_EN>,
+					<&mm_gate CLK_DCAM_MTX_EN>,
+					<&mm_gate CLK_DCAM_LITE_MTX_EN>,
+					<&mm_clk CLK_DCAM0_1>,
+					<&g5l_pll CLK_TGPLL_512M>,
+					<&mm_clk CLK_DCAM2_3>,
+					<&g5l_pll CLK_TGPLL_256M>,
+					<&mm_clk CLK_DCAM0_1_AXI>,
+					<&g5l_pll CLK_TGPLL_512M>,
+					<&mm_clk CLK_DCAM2_3_AXI>,
+					<&g5l_pll CLK_TGPLL_256M>,
+					<&mm_clk CLK_DCAM_MTX>,
+					<&g5l_pll CLK_TGPLL_512M>,
+					<&mm_clk CLK_DCAM_BLK_CFG>,
+					<&g5l_pll CLK_TGPLL_128M>;
+
 				sprd,cam-ahb-syscon = <&mm_ahb_regs>;
 				sprd,csi-switch = <&mm_csi_switch_regs>;
 				sprd,isp = <&isp>;
@@ -675,6 +723,28 @@
 				syscon-names = "isp_vau_reset",
 							     "isp_ahb_reset",
 							     "reset";
+				clock-names = "isp_eb",
+						"isp_mtx_en",
+						"isp_blk_cfg_en",
+						"isp_tck_en",
+						"isp_clk",
+						"isp_clk_153m6",
+						"isp_clk_256m",
+						"isp_clk_307m2",
+						"isp_clk_409m6",
+						"isp_clk_512m",
+						"isp_clk_parent";
+				clocks = <&mm_gate CLK_ISP_EN>,
+						<&mm_gate CLK_ISP_MTX_EN>,
+						<&mm_gate CLK_ISP_BLK_CFG_EN>,
+						<&mm_gate CLK_ISP_TCK_EN>,
+						<&mm_clk CLK_ISP>,
+						<&g5l_pll CLK_TGPLL_153M6>,
+						<&g5l_pll CLK_TGPLL_256M>,
+						<&g5l_pll CLK_TGPLL_307M2>,
+						<&g5l_pll CLK_V4NRPLL_409M6>,
+						<&g5l_pll CLK_TGPLL_512M>,
+						<&g5l_pll CLK_TGPLL_512M>;
 				sprd,cam-ahb-syscon = <&mm_ahb_regs>;
 				sprd,isp-count = <1>;
 				iommus = <&iommu_isp>;
