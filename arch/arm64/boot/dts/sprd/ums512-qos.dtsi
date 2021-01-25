@@ -23,7 +23,7 @@
 		reg = <1>;
 		awqos-high	= [0a];
 		awqos-low	= [0a];
-		arqos-high	= [0d];
+		arqos-high	= [0f];
 		arqos-low	= [0c];
 		arqos-threshold = [0c];
 		awqos-threshold = [0f];
