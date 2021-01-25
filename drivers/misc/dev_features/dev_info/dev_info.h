@@ -84,6 +84,7 @@ enum product_dev_info_attribute {
     ID_NFC = 11,
     ID_HALL = 12,
     ID_FLASH = 13,
+    ID_BATTERY = 14,
 // add new..
     
     ID_MAX 
