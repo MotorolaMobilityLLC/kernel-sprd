@@ -82,6 +82,7 @@ static struct device_attribute product_dev_attr_array[] = {
     PRODUCT_DEV_INFO_ATTR(info_nfc),
     PRODUCT_DEV_INFO_ATTR(info_hall),
     PRODUCT_DEV_INFO_ATTR(info_flash),
+    PRODUCT_DEV_INFO_ATTR(info_battery),
 // add new ...
     
 };
