@@ -4433,6 +4433,16 @@ static void cm_track_capacity_init(struct charger_manager *cm)
 			   5 * HZ);
 }
 
+//add for TinnoProductInfo by pony date20210125
+#ifdef CONFIG_T_PRODUCT_INFO
+#include <dev_info.h>
+int batt_info;
+int get_battery_vol_info(char *buf, void *arg0) {
+	printk("bat_info=%d\n", batt_info);
+	return sprintf(buf, "%d mv", batt_info);
+}
+#endif
+
 static void cm_batt_works(struct work_struct *work)
 {
 	struct delayed_work *dwork = to_delayed_work(work);
@@ -4473,6 +4483,14 @@ static void cm_batt_works(struct work_struct *work)
 		dev_err(cm->dev, "get_batt_ocV error.\n");
 		return;
 	}
+
+	//add for TinnoProductInfo by pony date20210125
+	#ifdef CONFIG_T_PRODUCT_INFO
+	{
+	 batt_info = batt_ocV/1000;
+	 FULL_PRODUCT_DEVICE_CB(ID_BATTERY, get_battery_vol_info, NULL);
+	}
+	#endif
 
 	ret = get_batt_uA(cm, &bat_uA);
 	if (ret) {
