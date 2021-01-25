@@ -55,6 +55,7 @@ struct sc27xx_vibra_data sc2721_data = {
 static void sc27xx_vibra_set(struct vibra_info *info, bool on)
 {
 	const struct sc27xx_vibra_data *data = info->data;
+	printk("sc27xx_vibra_set on=%d\n",on);
 	if (on) {
 		regmap_update_bits(info->regmap, info->base, data->ldo_pd, 0);
 		regmap_update_bits(info->regmap, info->base,
