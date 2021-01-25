@@ -241,6 +241,7 @@ struct sprd_codec_priv {
 
 	u32 fixed_sample_rate[CODEC_PATH_MAX];
 	u32 lrclk_sel[LRCLK_SEL_MAX];
+	u32 lrdat_sel;
 	unsigned int replace_rate;
 	enum PA_SHORT_T pa_short_stat;
 	enum CP_SHORT_T cp_short_stat;
@@ -285,6 +286,9 @@ static const char * const lrclk_sel_text[] = {
 };
 
 static const struct soc_enum lrclk_sel_enum =
+	SOC_ENUM_SINGLE_EXT(2, lrclk_sel_text);
+
+static const struct soc_enum lrdat_sel_enum =
 	SOC_ENUM_SINGLE_EXT(2, lrclk_sel_text);
 
 static const char * const codec_hw_info[] = {
@@ -3297,6 +3301,33 @@ static int sprd_codec_ivsence_dmic_put(struct snd_kcontrol *kcontrol,
 	return 0;
 }
 
+static int sprd_codec_dac_lrdat_sel_get(struct snd_kcontrol *kcontrol,
+				      struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
+	struct sprd_codec_priv *sprd_codec = snd_soc_codec_get_drvdata(codec);
+
+	ucontrol->value.enumerated.item[0] = !!sprd_codec->lrdat_sel;
+
+	return 0;
+}
+
+static int sprd_codec_dac_lrdat_sel_put(struct snd_kcontrol *kcontrol,
+				      struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
+	struct sprd_codec_priv *sprd_codec = snd_soc_codec_get_drvdata(codec);
+	unsigned int mask;
+	unsigned int val;
+
+	sprd_codec->lrdat_sel = !!ucontrol->value.enumerated.item[0];
+	mask = DAL_DAT_SEL | DAR_DAT_SEL;
+	val = sprd_codec->lrdat_sel ? mask : 0;
+	snd_soc_update_bits(codec, SOC_REG(ANA_CDC5), mask, val);
+
+	return 0;
+}
+
 static const struct snd_kcontrol_new sprd_codec_snd_controls[] = {
 
 	SOC_ENUM_EXT("Aud Codec Info", codec_info_enum,
@@ -3327,6 +3358,9 @@ static const struct snd_kcontrol_new sprd_codec_snd_controls[] = {
 		sprd_codec_ivsence_dmic_put),
 	SOC_SINGLE_EXT("MICBIAS1 Power", SND_SOC_NOPM, 0, 1, 0,
 		micbias1_power_get, micbias1_power_put),
+	SOC_ENUM_EXT("DAC LRDAT Select", lrdat_sel_enum,
+		sprd_codec_dac_lrdat_sel_get,
+		sprd_codec_dac_lrdat_sel_put),
 };
 
 static unsigned int sprd_codec_read(struct snd_soc_codec *codec,
