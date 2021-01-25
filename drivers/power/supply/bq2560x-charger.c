@@ -390,6 +390,14 @@ static int bq2560x_charger_start_charge(struct bq2560x_charger_info *info)
 	if (ret)
 		dev_err(info->dev, "disable HIZ mode failed\n");
 
+	ret = bq2560x_update_bits(info, BQ2560X_REG_5,
+				 BQ2560X_REG_WATCHDOG_TIMER_MASK,
+				 0x01 << BQ2560X_REG_WATCHDOG_TIMER_SHIFT);
+	if (ret) {
+		dev_err(info->dev, "Failed to enable bq2560x watchdog\n");
+		return ret;
+	}
+
 	if (info->role == BQ2560X_ROLE_MASTER_DEFAULT) {
 		ret = regmap_update_bits(info->pmic, info->charger_pd,
 					 info->charger_pd_mask, 0);
@@ -409,15 +417,8 @@ static int bq2560x_charger_start_charge(struct bq2560x_charger_info *info)
 	}
 
 	ret = bq2560x_charger_set_termina_cur(info, info->termination_cur);
-	if (ret) {
-		dev_err(info->dev, "set bq2560x terminal cur failed\n");
-		return ret;
-	}
-	ret = bq2560x_update_bits(info, BQ2560X_REG_5,
-				 BQ2560X_REG_WATCHDOG_TIMER_MASK,
-				 0x01 << BQ2560X_REG_WATCHDOG_TIMER_SHIFT);
 	if (ret)
-		dev_err(info->dev, "Failed to enable bq2560x watchdog\n");
+		dev_err(info->dev, "set bq2560x terminal cur failed\n");
 
 	return ret;
 }
