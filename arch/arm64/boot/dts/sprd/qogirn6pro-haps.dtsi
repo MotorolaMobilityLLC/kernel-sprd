@@ -14,6 +14,14 @@
 
 	aliases {
 		spi4 = &adi_bus;
+		eth0 = &sipa_eth0;
+		eth1 = &sipa_eth1;
+		eth2 = &sipa_eth2;
+		eth3 = &sipa_eth3;
+		eth4 = &sipa_eth4;
+		eth5 = &sipa_eth5;
+		eth6 = &sipa_eth6;
+		eth7 = &sipa_eth7;
 	};
 
 	soc: soc {
@@ -629,6 +637,64 @@
 		#clock-cells = <0>;
 		clock-frequency = <32768>;
 		clock-output-names = "ext-32k";
+	};
+
+	sipa_eth0: sipa-eth0 {
+		compatible = "sprd,sipa_eth";
+		sprd,netid = <1>;
+		sprd,term-type = <0x6>;
+	};
+
+	sipa_eth1: sipa-eth1 {
+		compatible = "sprd,sipa_eth";
+		sprd,netid = <2>;
+		sprd,term-type = <0x6>;
+	};
+
+	sipa_eth2: sipa-eth2 {
+		compatible = "sprd,sipa_eth";
+		sprd,netid = <3>;
+		sprd,term-type = <0x6>;
+	};
+
+	sipa_eth3: sipa-eth3 {
+		compatible = "sprd,sipa_eth";
+		sprd,netid = <4>;
+		sprd,term-type = <0x6>;
+	};
+
+	sipa_eth4: sipa-eth4 {
+		compatible = "sprd,sipa_eth";
+		sprd,netid = <5>;
+		sprd,term-type = <0x6>;
+	};
+
+	sipa_eth5: sipa-eth5 {
+		compatible = "sprd,sipa_eth";
+		sprd,netid = <6>;
+		sprd,term-type = <0x6>;
+	};
+
+	sipa_eth6: sipa-eth6 {
+		compatible = "sprd,sipa_eth";
+		sprd,netid = <7>;
+		sprd,term-type = <0x6>;
+	};
+
+	sipa_eth7: sipa-eth7 {
+		compatible = "sprd,sipa_eth";
+		sprd,netid = <8>;
+		sprd,term-type = <0x6>;
+	};
+
+	sipa_usb0: sipa-usb {
+		compatible = "sprd,sipa_usb";
+		sprd,netid = <0>;
+		sprd,term-type = <0x1>;
+	};
+
+	sipa_dummy: sipa-dummy {
+		compatible = "sprd,sipa_dummy";
 	};
 };
 
