@@ -995,6 +995,14 @@
 			#size-cells = <1>;
 			ranges = <0 0 0x64000000 0x1016000>;
 
+			ap_efuse: efuse@160000 {
+				compatible = "sprd,qogirn6pro-efuse";
+				reg = <0x160000 0x10000>;
+				clock-names = "enable";
+				hwlocks = <&hwlock 8>;
+				clocks = <&aonapb_gate CLK_EFUSE_EB>;
+			};
+
 			ap_gpio: gpio@170000 {
 				compatible = "sprd,qogirn6pro-gpio","sprd,qogirl6-gpio";
 				reg = <0x170000 0x10000>;
