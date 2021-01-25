@@ -20,10 +20,10 @@
 #define SC2731_ARM_CLK_EN		0xc10
 #define SC2730_ARM_CLK_EN		0x180c
 #define UMP9620_ARM_CLK_EN		0x200c
-#define UMP9620_ARM_RTC_CLK		0x2378
+#define UMP9620_XTL_WAIT_CTRL0		0x2378
 #define SC27XX_CLK_ADC_EN		BIT(5)
 #define SC27XX_CLK_ADC_CLK_EN		BIT(6)
-#define UMP9620_ARM_RTC_CLK_EN		BIT(8)
+#define UMP9620_XTL_WAIT_CTRL0_EN	BIT(8)
 
 /* ADC controller registers definition */
 #define SC27XX_ADC_CTL			0x0
@@ -104,7 +104,6 @@ struct sc27xx_adc_variant_data {
 	enum sc27xx_pmic_type pmic_type;
 	u32 module_en;
 	u32 clk_en;
-	u32 rtc_clk_en;
 	u32 scale_shift;
 	u32 scale_mask;
 	const struct sc27xx_adc_linear_graph *bscale_cal;
@@ -167,6 +166,9 @@ static int adc_nvmem_cell_calib_data(struct sc27xx_adc_data *data, const char *c
 	void *buf;
 	u32 calib_data = 0;
 	size_t len = 0;
+
+	if (!data)
+		return -EINVAL;
 
 	cell = nvmem_cell_get(data->dev, cell_name);
 	if (IS_ERR_OR_NULL(cell))
@@ -234,6 +236,9 @@ static int ump9620_adc_scale_calibration(struct sc27xx_adc_data *data,
 	const char *cell_name1 = NULL, *cell_name2 = NULL;
 	int adc_calib_data1 = 0, adc_calib_data2 = 0;
 
+	if (!data)
+		return -EINVAL;
+
 	if (big_scale) {
 		graph = &big_scale_graph;
 		cell_name1 = "big_scale_calib1";
@@ -246,13 +251,13 @@ static int ump9620_adc_scale_calibration(struct sc27xx_adc_data *data,
 
 	adc_calib_data1 = adc_nvmem_cell_calib_data(data, cell_name1);
 	if (adc_calib_data1 < 0) {
-		dev_err(data->dev, "error! %s data:%d\n", cell_name1, adc_calib_data1);
+		dev_err(data->dev, "err! %s:%d\n", cell_name1, adc_calib_data1);
 		return adc_calib_data1;
 	}
 
 	adc_calib_data2 = adc_nvmem_cell_calib_data(data, cell_name2);
 	if (adc_calib_data2 < 0) {
-		dev_err(data->dev, "error! %s data:%d\n", cell_name2, adc_calib_data2);
+		dev_err(data->dev, "err! %s:%d\n", cell_name2, adc_calib_data2);
 		return adc_calib_data2;
 	}
 
@@ -260,8 +265,8 @@ static int ump9620_adc_scale_calibration(struct sc27xx_adc_data *data,
 	 *Read the data in the two blocks of efuse and convert them into the
 	 *calibration value in the ump9620 adc linear graph.
 	 */
-	graph->adc0 = (adc_calib_data1 >> 4);
-	graph->adc1 = (adc_calib_data2 >> 4);
+	graph->adc0 = (adc_calib_data1 & 0xfff0) >> 4;
+	graph->adc1 = (adc_calib_data2 & 0xfff0) >> 4;
 
 	return 0;
 }
@@ -587,7 +592,7 @@ static void ump9620_adc_scale_init(struct sc27xx_adc_data *data)
 	int i;
 
 	for (i = 0; i < SC27XX_ADC_CHANNEL_MAX; i++) {
-		if (i == 10 || i == 19 || i == 30 || i == 31)
+		if (i == 10 || i == 11 || i == 19 || i == 30 || i == 31)
 			data->channel_scale[i] = 3;
 		else if (i == 7 || i == 9)
 			data->channel_scale[i] = 2;
@@ -863,14 +868,16 @@ static int sc27xx_adc_enable(struct sc27xx_adc_data *data)
 	if (ret)
 		return ret;
 
-	/* Enable ADC work clock and controller clock */
+	/* Enable 26MHz crvstal oscillator wait cycles for UMP9620 ADC */
 	if (UMP9620_ADC == data->var_data->pmic_type)
-		ret = regmap_update_bits(data->regmap, data->var_data->rtc_clk_en,
-								 UMP9620_ARM_RTC_CLK_EN, UMP9620_ARM_RTC_CLK_EN);
-	else
-		ret = regmap_update_bits(data->regmap, data->var_data->clk_en,
-								  SC27XX_CLK_ADC_EN | SC27XX_CLK_ADC_CLK_EN,
-								 SC27XX_CLK_ADC_EN | SC27XX_CLK_ADC_CLK_EN);
+		ret = regmap_update_bits(data->regmap, UMP9620_XTL_WAIT_CTRL0,
+					 UMP9620_XTL_WAIT_CTRL0_EN,
+					 UMP9620_XTL_WAIT_CTRL0_EN);
+
+	/* Enable ADC work clock */
+	ret = regmap_update_bits(data->regmap, data->var_data->clk_en,
+				 SC27XX_CLK_ADC_EN | SC27XX_CLK_ADC_CLK_EN,
+				 SC27XX_CLK_ADC_EN | SC27XX_CLK_ADC_CLK_EN);
 	if (ret)
 		goto disable_adc;
 
@@ -896,9 +903,6 @@ static int sc27xx_adc_enable(struct sc27xx_adc_data *data)
 disable_clk:
 	regmap_update_bits(data->regmap, data->var_data->clk_en,
 			   SC27XX_CLK_ADC_EN | SC27XX_CLK_ADC_CLK_EN, 0);
-	if (UMP9620_ADC == data->var_data->pmic_type)
-		regmap_update_bits(data->regmap, data->var_data->rtc_clk_en,
-			   UMP9620_ARM_RTC_CLK_EN, 0);
 
 disable_adc:
 	regmap_update_bits(data->regmap, data->var_data->module_en,
@@ -914,11 +918,6 @@ static void sc27xx_adc_disable(void *_data)
 	/* Disable ADC work clock and controller clock */
 	regmap_update_bits(data->regmap, data->var_data->clk_en,
 			   SC27XX_CLK_ADC_EN | SC27XX_CLK_ADC_CLK_EN, 0);
-
-	/* Disable ADC RTC clock */
-	if (UMP9620_ADC == data->var_data->pmic_type)
-		regmap_update_bits(data->regmap, data->var_data->rtc_clk_en,
-				   UMP9620_ARM_RTC_CLK_EN, 0);
 
 	regmap_update_bits(data->regmap, data->var_data->module_en,
 			   SC27XX_MODULE_ADC_EN, 0);
@@ -983,7 +982,6 @@ static const struct sc27xx_adc_variant_data ump9620_data = {
 	.pmic_type = UMP9620_ADC,
 	.module_en = UMP9620_MODULE_EN,
 	.clk_en = UMP9620_ARM_CLK_EN,
-	.rtc_clk_en = UMP9620_ARM_RTC_CLK,
 	.scale_shift = SC27XX_ADC_SCALE_SHIFT,
 	.scale_mask = SC27XX_ADC_SCALE_MASK,
 	.bscale_cal = &big_scale_graph,
@@ -1055,7 +1053,6 @@ static int sc27xx_adc_probe(struct platform_device *pdev)
 
 	sc27xx_data->var_data->init_scale(sc27xx_data);
 	ret = sc27xx_adc_enable(sc27xx_data);
-
 	if (ret) {
 		dev_err(&pdev->dev, "failed to enable ADC module\n");
 		return ret;
