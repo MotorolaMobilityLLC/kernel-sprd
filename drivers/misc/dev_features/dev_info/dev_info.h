@@ -23,6 +23,8 @@
 
 #define show_content_len (128)
 
+extern int gpio_status;
+int get_gpio_status_info(char *buf, void *arg0);
 
 #define FULL_PRODUCT_DEVICE_CB(id, cb, args) \
     do { \
@@ -85,6 +87,7 @@ enum product_dev_info_attribute {
     ID_HALL = 12,
     ID_FLASH = 13,
     ID_BATTERY = 14,
+    ID_SIM0 = 15,
 // add new..
     
     ID_MAX 
