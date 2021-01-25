@@ -541,6 +541,16 @@ config SPRD_GPU_COOLING_DEVICE
 	  Say Y here to create gpu cooling device node and build power model for IPA.
 	  so that the sprd cooling devices can be bound to thermal zone trip points.
 
+config SPRD_NPU_COOLING_DEVICE
+	tristate "sprd npu cooling device"
+	depends on THERMAL && DEVFREQ_THERMAL
+	depends on ARCH_SPRD
+	help
+	  This implements the generic npu cooling mechanism through frequency
+	  reduction.
+
+	  If you want this support, you should say Y here.
+
 config SPRD_CLUSTER0_THERMAL
 	bool "sprd cluster0 thermal"
 	depends on THERMAL && SPRD_THERMAL
