@@ -91,7 +91,17 @@
 		sprd,dst = <5>;
 		sprd,core = <3>;
 		/* <ap-addr dst-maped-addr size> */
-		sprd,smem-info = <0x87800000 0x87800000 0x800000>;
+		sprd,smem-info = <0x87800000 0x87800000 0x600000>;
+	};
+
+	sipc_phycp: sipc@3 {
+		compatible = "sprd,sipc";
+		sprd,name = "sipc-phycp";
+		sprd,type = "mbox";
+		sprd,dst = <7>;
+		sprd,core = <4>;
+		/* <ap-addr dst-maped-addr size> */
+		sprd,smem-info = <0x87E00000 0x87E00000 0x200000>;
 	};
 
 	spipe_ch: spipe@0 {
@@ -134,7 +144,7 @@
 		sprd,size-txbuf = <0x0800>; /* 2*1024 */
 	};
 
-	spipe@4 {
+	slog_pm: spipe@4 {
 		compatible = "sprd,spipe";
 		sprd,name = "slog_pm";
 		sprd,dst = <6>;
@@ -144,7 +154,7 @@
 		sprd,size-txbuf = <0x20>;
 	};
 
-	spipe@5 {
+	sctl_pm: spipe@5 {
 		compatible = "sprd,spipe";
 		sprd,name = "sctl_pm";
 		sprd,dst = <6>;
@@ -154,7 +164,7 @@
 		sprd,size-txbuf = <0x20>;
 	};
 
-	spipe@6 {
+	slog_ch: spipe@6 {
 		compatible = "sprd,spipe";
 		sprd,name = "slog_ch";
 		sprd,dst = <9>;
@@ -164,7 +174,7 @@
 		sprd,size-txbuf = <0x20>;
 	};
 
-	spipe@7 {
+	sctl_ch: spipe@7 {
 		compatible = "sprd,spipe";
 		sprd,name = "sctl_ch";
 		sprd,dst = <9>;
@@ -174,14 +184,37 @@
 		sprd,size-txbuf = <0x20>;
 	};
 
+	snv_nr: spipe@8 {
+		compatible = "sprd,spipe";
+		sprd,name = "snv_nr";
+		sprd,dst = <5>;
+		sprd,channel = <40>;
+		sprd,ringnr = <1>;
+		sprd,size-rxbuf = <0x40400>; /* 257*1024*/
+		sprd,size-txbuf = <0x1000>; /* 4*1024 */
+	};
+
 	slog_nr: spool@0{
 		compatible = "sprd,spool";
 		sprd,name = "slog_nr";
 		sprd,dst = <5>;
 		sprd,channel = <5>;
+		sprd,preconfigured = <1>;
 		sprd,tx-blksize = <0>;
 		sprd,tx-blknum = <0>;
-		sprd,rx-blksize = <0x10000>; /* 64k*/
-		sprd,rx-blknum = <128>;
+		sprd,rx-blksize = <0x800>;
+		sprd,rx-blknum = <1000>;
+	};
+
+	slog_phy: spool@1{
+		compatible = "sprd,spool";
+		sprd,name = "slog_phy";
+		sprd,dst = <7>;
+		sprd,channel = <5>;
+		sprd,preconfigured = <1>;
+		sprd,tx-blksize = <0>;
+		sprd,tx-blknum = <0>;
+		sprd,rx-blksize = <0x800>;
+		sprd,rx-blknum = <1000>;
 	};
 };
