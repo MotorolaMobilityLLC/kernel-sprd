@@ -92,3 +92,6 @@ obj-$(CONFIG_CHARGER_BQ2560X)	+= bq2560x-charger.o
 obj-$(CONFIG_CHARGER_SC2720)	+= sc2720_charger.o
 obj-$(CONFIG_CHARGER_SC2721)	+= sc2721_charger.o
 obj-$(CONFIG_FAST_CHARGER_SC2730) += sc2730_fast_charger.o
+
+# add for TinnoProductInfo by pony date20210125
+ccflags-$(CONFIG_T_PRODUCT_INFO) += -I$(srctree)/drivers/misc/dev_features/dev_info
