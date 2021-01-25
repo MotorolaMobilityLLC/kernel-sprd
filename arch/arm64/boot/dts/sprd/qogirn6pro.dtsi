@@ -965,6 +965,16 @@
 					"ipa_core_source", "ipa_core_default";
 			};
 
+			watchdog@1e0000 {
+				compatible = "sprd,wdt-r2p0-fiq";
+				reg = <0x1e0000 0x10000>;
+				interrupts = <GIC_SPI 26 IRQ_TYPE_LEVEL_HIGH>;
+				timeout-sec = <12>;
+				clock-names = "enable", "rtc_enable";
+				clocks = <&aonapb_gate CLK_APCPU_WDG_EB>,
+				       <&aonapb_gate CLK_AC_WDG_RTC_EB>;
+			};
+
 			pin_controller: pinctrl@2e0000 {
 				compatible = "sprd,qogirl6pro-pinctrl";
 				reg = <0x2e0000 0x10000>;
