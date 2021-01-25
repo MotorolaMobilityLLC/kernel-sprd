@@ -932,9 +932,14 @@ static ssize_t fuse_file_read_iter(struct kiocb *iocb, struct iov_iter *to)
 {
 	struct inode *inode = iocb->ki_filp->f_mapping->host;
 	struct fuse_conn *fc = get_fuse_conn(inode);
+	struct file *file = iocb->ki_filp;
+	struct fuse_file *ff = file->private_data;
 
 	if (fuse_is_bad(inode))
 		return -EIO;
+
+	if (ff->passthrough.filp)
+		return fuse_passthrough_read_iter(iocb, to);
 	/*
 	 * In auto invalidate mode, always update attributes on read.
 	 * Otherwise, only update if we attempt to read past EOF (to ensure
@@ -1191,9 +1196,13 @@ static ssize_t fuse_file_write_iter(struct kiocb *iocb, struct iov_iter *from)
 	struct inode *inode = mapping->host;
 	ssize_t err;
 	loff_t endbyte = 0;
+	struct fuse_file *ff = file->private_data;
 
 	if (fuse_is_bad(file_inode(file)))
 		return -EIO;
+
+	if (ff->passthrough.filp)
+		return fuse_passthrough_write_iter(iocb, from);
 
 	if (get_fuse_conn(inode)->writeback_cache) {
 		/* Update size (EOF optimization) and mode (SUID clearing) */
@@ -1444,6 +1453,16 @@ static ssize_t __fuse_direct_read(struct fuse_io_priv *io,
 static ssize_t fuse_direct_read_iter(struct kiocb *iocb, struct iov_iter *to)
 {
 	struct fuse_io_priv io = FUSE_IO_PRIV_SYNC(iocb);
+
+	struct file *file = iocb->ki_filp;
+	struct fuse_file *ff = file->private_data;
+
+	if (fuse_is_bad(file_inode(file)))
+		return -EIO;
+
+	if (ff->passthrough.filp)
+		return fuse_passthrough_read_iter(iocb, to);
+
 	return __fuse_direct_read(&io, to, &iocb->ki_pos);
 }
 
@@ -1452,9 +1471,14 @@ static ssize_t fuse_direct_write_iter(struct kiocb *iocb, struct iov_iter *from)
 	struct inode *inode = file_inode(iocb->ki_filp);
 	struct fuse_io_priv io = FUSE_IO_PRIV_SYNC(iocb);
 	ssize_t res;
+	struct file *file = iocb->ki_filp;
+	struct fuse_file *ff = file->private_data;
 
 	if (fuse_is_bad(inode))
 		return -EIO;
+
+	if (ff->passthrough.filp)
+		return fuse_passthrough_write_iter(iocb, from);
 
 	/* Don't allow parallel writes to the same file */
 	inode_lock(inode);
