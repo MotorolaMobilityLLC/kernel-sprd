@@ -2210,7 +2210,7 @@ static int dpu_capability(struct dpu_context *ctx,
 	if (!cap)
 		return -EINVAL;
 
-	cap->max_layers = 4;
+	cap->max_layers = 2;
 	cap->fmts_ptr = primary_fmts;
 	cap->fmts_cnt = ARRAY_SIZE(primary_fmts);
 
