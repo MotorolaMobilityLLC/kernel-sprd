@@ -686,6 +686,7 @@
 #define BTN_TRIGGER_HAPPY38		0x2e5
 #define BTN_TRIGGER_HAPPY39		0x2e6
 #define BTN_TRIGGER_HAPPY40		0x2e7
+#define KEY_SIM0				0x2e8
 
 /* We avoid low common keys in module aliases so they don't get huge. */
 #define KEY_MIN_INTERESTING	KEY_MUTE
