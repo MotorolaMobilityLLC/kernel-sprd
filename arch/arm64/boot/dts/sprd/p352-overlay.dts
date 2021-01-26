@@ -73,14 +73,6 @@
 					wakeup-source;
 				};
 
-				key-sim0 {
-					label = "Sim0 Key";
-					linux,code = <KEY_SIM0>;
-					gpios = <&ap_gpio 31 GPIO_ACTIVE_HIGH>;
-					debounce-interval = <30>;
-					wakeup-source;
-				};
-
 				key-volumeup {
 					label = "Volume Up Key";
 					linux,code = <KEY_VOLUMEUP>;

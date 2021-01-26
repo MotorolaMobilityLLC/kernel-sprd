@@ -357,10 +357,6 @@ static const struct attribute_group gpio_keys_attr_group = {
 	.attrs = gpio_keys_attrs,
 };
 
-#ifdef CONFIG_T_PRODUCT_INFO
-#include <dev_info.h>
-#endif
-
 static void gpio_keys_gpio_report_event(struct gpio_button_data *bdata)
 {
 	const struct gpio_keys_button *button = bdata->button;
@@ -372,12 +368,6 @@ static void gpio_keys_gpio_report_event(struct gpio_button_data *bdata)
 	if (state < 0) {
 		dev_err(input->dev.parent,
 			"failed to get gpio state: %d\n", state);
-		return;
-	}
-	
-	gpio_status = state;
-	if(button->code == KEY_SIM0) {
-		FULL_PRODUCT_DEVICE_CB(ID_SIM0, get_gpio_status_info, NULL);
 		return;
 	}
 
