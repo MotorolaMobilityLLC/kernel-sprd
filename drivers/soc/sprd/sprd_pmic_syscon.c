@@ -144,6 +144,9 @@ static int sprd_pmic_glb_remove(struct platform_device *pdev)
 }
 static const struct of_device_id sprd_pmic_glb_match[] = {
 	{ .compatible = "sprd,sc27xx-syscon"},
+	{ .compatible = "sprd,ump962x-syscon"},
+	{ .compatible = "sprd,ump9621-syscon"},
+	{ .compatible = "sprd,ump9622-syscon"},
 	{},
 };
 MODULE_DEVICE_TABLE(of, sprd_pmic_glb_match);
