@@ -780,6 +780,80 @@
 				status = "okay";
 				#iommu-cells = <0>;
 			};
+
+			fd: fd@3C000000 {
+				compatible = "sprd,fd";
+				reg = <0 0x3C000000 0 0x100000>;
+				interrupts = <GIC_SPI 117 IRQ_TYPE_LEVEL_HIGH>;
+				interrupts_name = "fdraw";
+				clock-names = "fd_eb",
+					"fd_axi_eb", /* no need read, TBC */
+					"isp_mtx_en",
+					"isp_blk_cfg_en",
+					"fd_clk",
+					"fd_clk_parent";
+				clocks = <&mm_gate CLK_FD_EN>,
+					<&mm_gate CLK_ISP_EN>,
+					<&mm_gate CLK_ISP_MTX_EN>,
+					<&mm_gate CLK_ISP_BLK_CFG_EN>,
+					<&mm_clk CLK_FD>,
+					<&g5l_pll CLK_TGPLL_384M>;
+				syscons = <&mm_ahb_regs REG_MM_AHB_ISP_BLOCK_EN
+					MASK_MM_AHB_FD_EN>,
+					<&mm_ahb_regs REG_MM_AHB_ISP_BLK_SOFT_RST
+					MASK_MM_AHB_FD_SOFT_RST>,
+					<&mm_ahb_regs REG_MM_AHB_ISP_BLK_SOFT_RST
+					MASK_MM_AHB_FD_ALL_SOFT_RST>,
+					<&mm_ahb_regs REG_MM_AHB_MM_LP_DISABLE
+					MASK_MM_AHB_MM_LPC_DISABLE>,
+					<&mm_ahb_regs REG_MM_AHB_MM_SYS_EN
+					MASK_MM_AHB_DVFS_EN>;
+				syscon-names = "fd_eb", "fd_rst", "fd_save_rst",
+					"fd_lpc", "fd_dvfs_eb";
+				/*fd_qos = <&fd_qos>;*/
+				status = "okay";
+			};
+
+			iommu_fd: iommu@3C000000 {
+				compatible = "sprd,iommuvau-fd";
+				reg = <0 0x3C000110 0 0x80>;
+				sprd,iova-base = <0x40000000>;
+				sprd,iova-size = <0x10000000>;
+				reg_name = "mmu_reg";
+				status = "okay";
+				#iommu-cells = <0>;
+			};
+
+			cpp: cpp@38000000 {
+				compatible = "sprd,cpp";
+				reg = <0 0x38000000 0 0x1000>;
+				interrupts = <GIC_SPI 112 IRQ_TYPE_LEVEL_HIGH>;
+				clock-names = "cpp_eb",
+					"cpp_axi_eb", /* no need read, TBC */
+					"isp_mtx_en",
+					"isp_blk_cfg_en",
+					"cpp_clk",
+					"cpp_clk_parent";
+				clocks = <&mm_gate CLK_CPP_EN>,
+					<&mm_gate CLK_ISP_EN>,
+					<&mm_gate CLK_ISP_MTX_EN>,
+					<&mm_gate CLK_ISP_BLK_CFG_EN>,
+					<&mm_clk CLK_CPP>,
+					<&g5l_pll CLK_TGPLL_384M>;
+				sprd,cam-ahb-syscon = <&mm_ahb_regs>;
+				/*cpp_qos = <&cpp_qos>;*/
+				status = "okay";
+			};
+
+			iommu_cpp: iommu@38000200 {
+				compatible = "sprd,iommuvau-cpp";
+				reg = <0x0 0x38000200 0x0 0x80>;
+				sprd,iova-base = <0x40000000>;
+				sprd,iova-size = <0x20000000>;
+				reg_name = "mmu_reg";
+				status = "okay";
+				#iommu-cells = <0>;
+			};
 		};
 
 		ipa-apb {
