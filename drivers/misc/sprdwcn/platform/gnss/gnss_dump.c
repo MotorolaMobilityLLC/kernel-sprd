@@ -38,6 +38,8 @@
 static struct file *gnss_dump_file;
 static	loff_t pos;
 #define GNSS_MEMDUMP_PATH			"/data/vendor/gnss/gnssdump.mem"
+/* use for umw2631_integrate only */
+#define GNSS_DUMP_ADDR_OFFSET 0x00000004
 
 #ifndef CONFIG_WCN_INTEG
 struct gnss_mem_dump {
@@ -300,6 +302,7 @@ static int gnss_dump_cp_register_data(u32 addr, u32 len)
 			for (i = 0; i < len / 4; i++) {
 				pt = buf + i * 4;
 				wcn_read_data_from_phy_addr(phy_addr, pt, 4);
+				phy_addr = phy_addr + GNSS_DUMP_ADDR_OFFSET;
 			}
 		} else {
 			/* aon funcdma tlb way */
