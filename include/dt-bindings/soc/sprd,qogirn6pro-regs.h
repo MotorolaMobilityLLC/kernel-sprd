@@ -875,6 +875,7 @@
 #define REG_MM_AHB_ISP_BLOCK_EN                             0x0004
 #define REG_MM_AHB_DCAM_BLOCK_EN                            0x000C
 #define REG_MM_AHB_MM_QOS                                   0x0010
+#define REG_MM_AHB_MM_LP_DISABLE                            0x0014
 #define REG_MM_AHB_DCAM_BLK_SOFT_RST                        0x00C8
 #define REG_MM_AHB_ISP_BLK_SOFT_RST                         0x00CC
 #define REG_DISPC1_GLB_APB_APB_EB                           0x0000

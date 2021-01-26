@@ -4234,6 +4234,11 @@
 #define MASK_MM_AHB_ISP_VAU_SOFT_RST                        0x00001000
 #define MASK_MM_AHB_ISP_ALL_SOFT_RST                        0x00002000
 #define MASK_MM_AHB_ISP_SOFT_RST                            0x00004000
+#define MASK_MM_AHB_FD_EN                                   0x00000008
+#define MASK_MM_AHB_FD_ALL_SOFT_RST                         0x00000020
+#define MASK_MM_AHB_FD_SOFT_RST                             0x00000010
+#define MASK_MM_AHB_MM_LPC_DISABLE                          0x00000000
+#define MASK_MM_AHB_DVFS_EN                                 0x00000008
 #define MASK_MM_AHB_CPP_VAU_SOFT_RST                        0x00000200
 #define MASK_MM_AHB_CPP_ALL_SOFT_RST                        0x00000800
 #define MASK_MM_AHB_CPP_SOFT_RST                            0x00000400
