@@ -81,28 +81,26 @@ struct camsys_power_info {
 	atomic_t inited;
 	struct mutex mlock;
 
+#ifdef PW_ON_HAPS
 	uint32_t mm_eb;
 	uint32_t mm_mtx_data_en;
 	uint32_t dvfs_en;
 	uint32_t ckg_en;
+#else
+	struct clk *mm_eb;
+	struct clk *mm_mtx_data_en;
+	struct clk *ckg_en;
 
+	struct clk *mm_mtx_clk;
+	struct clk *mm_mtx_clk_parent;
+	struct clk *mm_mtx_clk_defalut;
+#endif
 	struct register_gpr regs[ARRAY_SIZE(syscon_name)];
 };
 
 static struct camsys_power_info *pw_info;
 
-static unsigned int reg_rd(unsigned int addr)
-{
-	void __iomem *io_tmp = NULL;
-	unsigned int val;
-
-	io_tmp = ioremap_nocache(addr, 0x4);
-	val = __raw_readl(io_tmp);
-	iounmap(io_tmp);
-
-	return val;
-}
-
+#ifdef PW_ON_HAPS
 static void reg_awr(unsigned int addr, unsigned int val)
 {
 	void __iomem *io_tmp = NULL;
@@ -128,7 +126,7 @@ static void reg_owr(unsigned int addr, unsigned int val)
 	val = __raw_readl(io_tmp);
 	iounmap(io_tmp);
 }
-
+#endif
 static void regmap_update_bits_mmsys(struct register_gpr *p, uint32_t val)
 {
 	if ((!p) || (!(p->gpr)))
@@ -174,6 +172,7 @@ static int sprd_campw_init(struct platform_device *pdev)
 	if (!pw_info)
 		return -ENOMEM;
 
+#ifdef PW_ON_HAPS
 	pw_info->mm_eb = 0x200;
 
 	pw_info->mm_mtx_data_en = 0x100;
@@ -181,7 +180,28 @@ static int sprd_campw_init(struct platform_device *pdev)
 	pw_info->dvfs_en = 0x8;
 
 	pw_info->ckg_en = 0x2;
+#else
+	pw_info->mm_eb = of_clk_get_by_name(np, "clk_mm_eb");
+	if (IS_ERR_OR_NULL(pw_info->mm_eb))
+		return PTR_ERR(pw_info->mm_eb);
 
+	pw_info->ckg_en = of_clk_get_by_name(np, "clk_ckg_en");
+	if (IS_ERR_OR_NULL(pw_info->ckg_en))
+		return PTR_ERR(pw_info->ckg_en);
+
+	pw_info->mm_mtx_data_en = of_clk_get_by_name(np, "clk_mm_mtx_data_en");
+	if (IS_ERR_OR_NULL(pw_info->mm_mtx_data_en))
+		return PTR_ERR(pw_info->mm_mtx_data_en);
+
+	pw_info->mm_mtx_clk = of_clk_get_by_name(np, "clk_mm_mtx_data");
+	if (IS_ERR_OR_NULL(pw_info->mm_mtx_clk))
+		return PTR_ERR(pw_info->mm_mtx_clk);
+
+	pw_info->mm_mtx_clk_parent = of_clk_get_by_name(np, "clk_mm_mtx_parent");
+	if (IS_ERR_OR_NULL(pw_info->mm_mtx_clk_parent))
+		return PTR_ERR(pw_info->mm_mtx_clk_parent);
+
+#endif
 	/* read global register */
 	for (i = 0; i < ARRAY_SIZE(syscon_name); i++) {
 		pname = syscon_name[i];
@@ -671,7 +691,6 @@ EXPORT_SYMBOL(sprd_cam_pw_on);
 int sprd_cam_domain_eb(void)
 {
 	int ret = 0;
-	unsigned int val0, val1;
 
 	ret = sprd_campw_check_drv_init();
 	if (ret) {
@@ -697,9 +716,12 @@ int sprd_cam_domain_eb(void)
 		reg_owr(MM_AHB_SYS_EN, pw_info->dvfs_en);
 
 		reg_owr(MM_AHB_SYS_EN, pw_info->ckg_en);
-		val0 = reg_rd(AON_APB_AHB_EN);
-		val1 = reg_rd(MM_AHB_SYS_EN);
-		pr_info("mm eb status %x, %x\n", val0, val1);
+#else
+		clk_prepare_enable(pw_info->mm_eb);
+		clk_prepare_enable(pw_info->ckg_en);
+		clk_set_parent(pw_info->mm_mtx_clk, pw_info->mm_mtx_clk_parent);
+		clk_prepare_enable(pw_info->mm_mtx_clk);
+		clk_prepare_enable(pw_info->mm_mtx_data_en);
 #endif
 	}
 	mutex_unlock(&pw_info->mlock);
@@ -733,6 +755,12 @@ int sprd_cam_domain_disable(void)
 
 		reg_awr(MM_AHB_SYS_EN, ~pw_info->ckg_en);
 		reg_awr(AON_APB_AHB_EN, ~pw_info->mm_eb);
+#else
+		clk_set_parent(pw_info->mm_mtx_clk, pw_info->mm_mtx_clk_parent);
+		clk_disable_unprepare(pw_info->mm_mtx_clk);
+		clk_disable_unprepare(pw_info->mm_mtx_data_en);
+		clk_disable_unprepare(pw_info->ckg_en);
+		clk_disable_unprepare(pw_info->mm_eb);
 #endif
 	}
 	mutex_unlock(&pw_info->mlock);
@@ -788,5 +816,4 @@ module_platform_driver(sprd_campw_driver);
 MODULE_DESCRIPTION("Camsys Power Driver");
 MODULE_AUTHOR("Multimedia_Camera@unisoc.com");
 MODULE_LICENSE("GPL");
-
 
