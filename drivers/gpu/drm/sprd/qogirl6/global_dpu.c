@@ -62,7 +62,7 @@ static struct dpu_glb_context {
 	unsigned int mask_bit;
 
 	struct regmap *regmap;
-} ctx_reset;
+} disp_reset, mmu_reset;
 
 static struct clk *val_to_clk(struct dpu_clk_context *ctx, u32 val)
 {
@@ -291,18 +291,32 @@ static int dpu_glb_parse_dt(struct dpu_context *ctx,
 	unsigned int syscon_args[2];
 	int ret;
 
-	ctx_reset.regmap = syscon_regmap_lookup_by_name(np, "reset");
-	if (IS_ERR(ctx_reset.regmap)) {
+	disp_reset.regmap = syscon_regmap_lookup_by_name(np, "disp_reset");
+	if (IS_ERR(disp_reset.regmap)) {
 		pr_warn("failed to map dpu glb reg: reset\n");
-		return PTR_ERR(ctx_reset.regmap);
+		return PTR_ERR(disp_reset.regmap);
 	}
 
-	ret = syscon_get_args_by_name(np, "reset", 2, syscon_args);
+	ret = syscon_get_args_by_name(np, "disp_reset", 2, syscon_args);
 	if (ret == 2) {
-		ctx_reset.enable_reg = syscon_args[0];
-		ctx_reset.mask_bit = syscon_args[1];
+		disp_reset.enable_reg = syscon_args[0];
+		disp_reset.mask_bit = syscon_args[1];
 	} else {
 		pr_warn("failed to parse dpu glb reg: reset\n");
+	}
+
+	mmu_reset.regmap = syscon_regmap_lookup_by_name(np, "iommu_reset");
+	if (IS_ERR(mmu_reset.regmap)) {
+		pr_warn("failed to map mmu glb reg: reset\n");
+		return PTR_ERR(mmu_reset.regmap);
+	}
+
+	ret = syscon_get_args_by_name(np, "iommu_reset", 2, syscon_args);
+	if (ret == 2) {
+		mmu_reset.enable_reg = syscon_args[0];
+		mmu_reset.mask_bit = syscon_args[1];
+	} else {
+		pr_warn("failed to parse mmu glb reg: reset\n");
 	}
 
 	clk_ap_ahb_disp_eb =
@@ -333,15 +347,29 @@ static void dpu_glb_disable(struct dpu_context *ctx)
 
 static void dpu_reset(struct dpu_context *ctx)
 {
-	regmap_update_bits(ctx_reset.regmap,
-		    ctx_reset.enable_reg,
-		    ctx_reset.mask_bit,
-		    ctx_reset.mask_bit);
+	/* soft reset iommu */
+	regmap_update_bits(mmu_reset.regmap,
+		    mmu_reset.enable_reg,
+		    mmu_reset.mask_bit,
+		    mmu_reset.mask_bit);
 	udelay(10);
-	regmap_update_bits(ctx_reset.regmap,
-		    ctx_reset.enable_reg,
-		    ctx_reset.mask_bit,
-		    (unsigned int)(~ctx_reset.mask_bit));
+	regmap_update_bits(mmu_reset.regmap,
+		    mmu_reset.enable_reg,
+		    mmu_reset.mask_bit,
+		    (unsigned int)(~mmu_reset.mask_bit));
+
+	udelay(10);
+
+	/* soft reset dpu */
+	regmap_update_bits(disp_reset.regmap,
+		    disp_reset.enable_reg,
+		    disp_reset.mask_bit,
+		    disp_reset.mask_bit);
+	udelay(10);
+	regmap_update_bits(disp_reset.regmap,
+		    disp_reset.enable_reg,
+		    disp_reset.mask_bit,
+		    (unsigned int)(~disp_reset.mask_bit));
 }
 
 static void dpu_power_domain(struct dpu_context *ctx, int enable)

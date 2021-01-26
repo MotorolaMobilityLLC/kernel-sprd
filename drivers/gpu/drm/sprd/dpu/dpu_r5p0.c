@@ -24,6 +24,14 @@
 
 #define DISPC_INT_FBC_PLD_ERR_MASK	BIT(8)
 #define DISPC_INT_FBC_HDR_ERR_MASK	BIT(9)
+#define DISPC_INT_MMU_PAOR_WR_MASK	BIT(7)
+#define DISPC_INT_MMU_PAOR_RD_MASK	BIT(6)
+#define DISPC_INT_MMU_UNS_WR_MASK	BIT(5)
+#define DISPC_INT_MMU_UNS_RD_MASK	BIT(4)
+#define DISPC_INT_MMU_INV_WR_MASK	BIT(3)
+#define DISPC_INT_MMU_INV_RD_MASK	BIT(2)
+#define DISPC_INT_MMU_VAOR_WR_MASK	BIT(1)
+#define DISPC_INT_MMU_VAOR_RD_MASK	BIT(0)
 
 #define XFBC8888_HEADER_SIZE(w, h) (ALIGN((ALIGN((w), 16)) * \
 				(ALIGN((h), 16)) / 16, 128))
@@ -151,6 +159,16 @@ struct dpu_reg {
 	u32 bot_corner_lut_addr;
 	u32 bot_corner_lut_wdata;
 	u32 bot_corner_lut_rdata;
+	u32 reserved_0x0520_0x0520[206];
+	u32 mmu_vaor_addr_rd;
+	u32 mmu_vaor_addr_wr;
+	u32 mmu_inv_addr_rd;
+	u32 mmu_inv_addr_wr;
+	u32 reserved_0x0888_0x0888[15];
+	u32 mmu_int_en;
+	u32 mmu_int_clr;
+	u32 mmu_int_sts;
+	u32 mmu_int_raw;
 };
 
 struct wb_region {
@@ -314,6 +332,7 @@ static struct epf_cfg epf_copy;
 static struct epf_cfg sr_epf;
 static bool sr_epf_ready;
 static u32 enhance_en;
+extern int gsp_enabled_layer_count;
 
 static DECLARE_WAIT_QUEUE_HEAD(wait_queue);
 static bool panel_ready = true;
@@ -338,6 +357,8 @@ static u8 skip_layer_index;
 module_param(wb_xfbc_en, int, 0644);
 module_param(max_vsync_count, int, 0644);
 module_param(cabc_bl_set_delay, int, 0644);
+module_param(cabc_disable, int, 0644);
+module_param(frame_no, int, 0644);
 
 static void dpu_sr_config(struct dpu_context *ctx);
 static void dpu_enhance_reload(struct dpu_context *ctx);
@@ -413,13 +434,64 @@ static void dpu_corner_init(struct dpu_context *ctx)
 	reg->corner_config |= (TOP_CORNER_EN | BOT_CORNER_EN);
 }
 
+static void dpu_dump(struct dpu_context *ctx)
+{
+	u32 *reg = (u32 *)ctx->base;
+	int i;
+
+	pr_info("      0          4          8          C\n");
+	for (i = 0; i < 256; i += 4) {
+		pr_info("%04x: 0x%08x 0x%08x 0x%08x 0x%08x\n",
+			i * 4, reg[i], reg[i + 1], reg[i + 2], reg[i + 3]);
+	}
+}
+
+static u32 check_mmu_isr(struct dpu_context *ctx, u32 reg_val)
+{
+	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
+	u32 mmu_mask = DISPC_INT_MMU_VAOR_RD_MASK |
+			DISPC_INT_MMU_VAOR_WR_MASK |
+			DISPC_INT_MMU_INV_RD_MASK |
+			DISPC_INT_MMU_INV_WR_MASK |
+			DISPC_INT_MMU_UNS_WR_MASK |
+			DISPC_INT_MMU_UNS_RD_MASK |
+			DISPC_INT_MMU_PAOR_WR_MASK |
+			DISPC_INT_MMU_PAOR_RD_MASK;
+	u32 val = reg_val & mmu_mask;
+
+	if (val) {
+		pr_err("--- iommu interrupt err: 0x%04x ---\n", val);
+
+		pr_err("iommu invalid read error, addr: 0x%08x\n",
+			reg->mmu_inv_addr_rd);
+		pr_err("iommu invalid write error, addr: 0x%08x\n",
+			reg->mmu_inv_addr_wr);
+		pr_err("iommu va out of range read error, addr: 0x%08x\n",
+			reg->mmu_vaor_addr_rd);
+		pr_err("iommu va out of range write error, addr: 0x%08x\n",
+			reg->mmu_vaor_addr_wr);
+
+		pr_err("BUG: iommu failure at %s:%d/%s()!\n",
+			__FILE__, __LINE__, __func__);
+
+		dpu_dump(ctx);
+
+		/* panic("iommu panic\n"); */
+	}
+
+	return val;
+}
+
 static u32 dpu_isr(struct dpu_context *ctx)
 {
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
 	u32 reg_val, int_mask = 0;
+	u32 mmu_reg_val, mmu_int_mask = 0;
 
 	reg_val = reg->dpu_int_sts;
 	reg->dpu_int_clr = reg_val;
+
+	mmu_reg_val = reg->mmu_int_sts;
 
 	/* disable err interrupt */
 	if (reg_val & DISPC_INT_ERR_MASK)
@@ -436,18 +508,14 @@ static u32 dpu_isr(struct dpu_context *ctx)
 
 	/* dpu vsync isr */
 	if (reg_val & DISPC_INT_DPI_VSYNC_MASK) {
+		/* write back feature */
+		if ((vsync_count == max_vsync_count) && wb_en)
+			schedule_work(&ctx->wb_work);
+
 		/* cabc update backlight */
 		if (cabc_bl_set)
 			schedule_work(&ctx->cabc_bl_update);
 
-		vsync_count++;
-	}
-
-	/* dpu vsync isr */
-	if (reg_val & DISPC_INT_DPI_VSYNC_MASK) {
-		/* write back feature */
-		if ((vsync_count == max_vsync_count) && wb_en)
-			schedule_work(&ctx->wb_work);
 		vsync_count++;
 	}
 
@@ -468,7 +536,18 @@ static u32 dpu_isr(struct dpu_context *ctx)
 		if ((vsync_count > max_vsync_count) && wb_en) {
 			wb_en = false;
 			schedule_work(&ctx->wb_work);
+			/*reg_val |= DISPC_INT_FENCE_SIGNAL_REQUEST;*/
 		}
+
+		pr_debug("wb done\n");
+	}
+
+	/* dpu write back error isr */
+	if (reg_val & DISPC_INT_WB_FAIL_MASK) {
+		pr_err("dpu write back fail\n");
+		/*give a new chance to write back*/
+		wb_en = true;
+		vsync_count = 0;
 	}
 
 	/* dpu afbc payload error isr */
@@ -483,8 +562,13 @@ static u32 dpu_isr(struct dpu_context *ctx)
 		pr_err("dpu afbc header error\n");
 	}
 
+	mmu_int_mask |= check_mmu_isr(ctx, mmu_reg_val);
+
 	reg->dpu_int_clr = reg_val;
 	reg->dpu_int_en &= ~int_mask;
+
+	reg->mmu_int_clr = mmu_reg_val;
+	reg->mmu_int_en &= ~mmu_int_mask;
 
 	return reg_val;
 }
@@ -588,7 +672,6 @@ static void dpu_cabc_bl_update_func(struct work_struct *data)
 {
 	if (bl_dev) {
 	struct sprd_backlight *bl = bl_get_data(bl_dev);
-
 	msleep(cabc_bl_set_delay);
 		if (cabc_disable == CABC_WORKING) {
 			sprd_backlight_normalize_map(bl_dev, &cabc_para.cur_bl);
@@ -601,13 +684,29 @@ static void dpu_cabc_bl_update_func(struct work_struct *data)
 		} else
 			backlight_update_status(bl_dev);
 	}
+
 	cabc_bl_set = false;
 }
 
 static void dpu_wb_trigger(struct dpu_context *ctx,
-				u8 count, bool debug)
+								u8 count, bool debug)
 {
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
+	u32 vcnt;
+
+	int mode_width  = reg->blend_size & 0xFFFF;
+	int mode_height = reg->blend_size >> 16;
+
+	wb_layer.dst_w = mode_width;
+	wb_layer.dst_h = mode_height;
+	wb_layer.xfbc = wb_xfbc_en;
+	wb_layer.pitch[0] = ALIGN(mode_width, 16) * 4;
+	wb_layer.header_size_r = XFBC8888_HEADER_SIZE(mode_width,
+					mode_height) / 128;
+
+	reg->wb_pitch = ALIGN((mode_width), 16);
+
+	wb_layer.xfbc = wb_xfbc_en;
 
 	if (wb_xfbc_en && !debug)
 		reg->wb_cfg = (wb_layer.header_size_r << 16) | BIT(0);
@@ -616,18 +715,27 @@ static void dpu_wb_trigger(struct dpu_context *ctx,
 
 	reg->wb_base_addr = ctx->wb_addr_p;
 
-	if (debug)
-		/* writeback debug trigger */
-		reg->wb_ctrl = BIT(1);
-	else
-		reg->wb_ctrl |= BIT(0);
+	vcnt = (reg->dpu_sts[0] & 0x1FFF);
+	/*
+	 * Due to AISC design problem, after the wb enable, Dpu
+	 * update register operation must be connected immediately.
+	 * There can be no vsync interrupts between them.
+	 */
+	if (vcnt * 100 / mode_height < 70) {
+		if (debug)
+			/* writeback debug trigger */
+			reg->wb_ctrl = BIT(1);
+		else
+			reg->wb_ctrl |= BIT(0);
 
-	/* update trigger */
-	reg->dpu_ctrl |= BIT(2);
+		/* update trigger */
+		reg->dpu_ctrl |= BIT(2);
 
-	dpu_wait_update_done(ctx);
+		dpu_wait_update_done(ctx);
 
-	pr_debug("write back trigger\n");
+		pr_debug("write back trigger\n");
+	} else
+		vsync_count = 0;
 }
 
 static void dpu_wb_flip(struct dpu_context *ctx)
@@ -702,11 +810,9 @@ static int dpu_wb_buf_alloc(struct sprd_dpu *dpu, size_t size,
 
 static int dpu_write_back_config(struct dpu_context *ctx)
 {
-	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
 	int ret;
 	static int need_config = 1;
 	size_t wb_buf_size;
-	int mode_width, mode_height;
 	struct sprd_dpu *dpu =
 		(struct sprd_dpu *)container_of(ctx, struct sprd_dpu, ctx);
 
@@ -716,24 +822,13 @@ static int dpu_write_back_config(struct dpu_context *ctx)
 	}
 
 	wb_buf_size = XFBC8888_BUFFER_SIZE(dpu->mode->hdisplay,
-						dpu->mode->vdisplay);
+					dpu->mode->vdisplay);
+	pr_info("use wb_reserved memory for writeback, size:0x%zx\n", wb_buf_size);
 	ret = dpu_wb_buf_alloc(dpu, wb_buf_size, &ctx->wb_addr_p);
 	if (ret) {
 		max_vsync_count = 0;
 		return -1;
 	}
-
-	mode_width  = reg->blend_size & 0xFFFF;
-	mode_height = reg->blend_size >> 16;
-
-	wb_layer.dst_w = mode_width;
-	wb_layer.dst_h = mode_height;
-	wb_layer.xfbc = wb_xfbc_en;
-	wb_layer.pitch[0] = ALIGN(mode_width, 16) * 4;
-	wb_layer.header_size_r = XFBC8888_HEADER_SIZE(mode_width,
-					mode_height) / 128;
-
-	reg->wb_pitch = ALIGN((mode_width), 16);
 
 	wb_layer.index = 7;
 	wb_layer.planes = 1;
@@ -825,7 +920,7 @@ static void dpu_dvfs_task_func(unsigned long data)
 	 * Every IP here may be different, so need to modify it
 	 * according to the actual dpu core clock.
 	 */
-	if (max <= 3)
+	if ((max <= 3) && (gsp_enabled_layer_count < 3))
 		dvfs_freq = 307200000;
 	else
 		dvfs_freq = 384000000;
@@ -1277,6 +1372,15 @@ static void dpu_flip(struct dpu_context *ctx,
 	 */
 	reg->dpu_int_en |= DISPC_INT_FBC_PLD_ERR_MASK |
 			   DISPC_INT_FBC_HDR_ERR_MASK;
+
+	reg->mmu_int_en |= DISPC_INT_MMU_VAOR_RD_MASK |
+			   DISPC_INT_MMU_VAOR_WR_MASK |
+			   DISPC_INT_MMU_INV_RD_MASK |
+			   DISPC_INT_MMU_INV_WR_MASK |
+			   DISPC_INT_MMU_UNS_RD_MASK |
+			   DISPC_INT_MMU_UNS_WR_MASK |
+			   DISPC_INT_MMU_PAOR_RD_MASK |
+			   DISPC_INT_MMU_PAOR_WR_MASK;
 }
 
 static void dpu_epf_set(struct dpu_reg *reg, struct epf_cfg *epf)
@@ -1349,6 +1453,15 @@ static void dpu_dpi_init(struct dpu_context *ctx)
 	int_mask |= DISPC_INT_FBC_HDR_ERR_MASK;
 
 	reg->dpu_int_en = int_mask;
+
+	reg->mmu_int_en |= DISPC_INT_MMU_VAOR_RD_MASK |
+			   DISPC_INT_MMU_VAOR_WR_MASK |
+			   DISPC_INT_MMU_INV_RD_MASK |
+			   DISPC_INT_MMU_INV_WR_MASK |
+			   DISPC_INT_MMU_UNS_RD_MASK |
+			   DISPC_INT_MMU_UNS_WR_MASK |
+			   DISPC_INT_MMU_PAOR_RD_MASK |
+			   DISPC_INT_MMU_PAOR_WR_MASK;
 }
 
 static void enable_vsync(struct dpu_context *ctx)
@@ -2140,6 +2253,7 @@ static int dpu_cabc_trigger(struct dpu_context *ctx)
 
 		frame_no++;
 	} else {
+
 		memcpy(&cm, &cm_copy, sizeof(struct cm_cfg));
 		if (cm.coef00 == 0 && cm.coef11 == 0 &&
 			cm.coef22 == 0) {
