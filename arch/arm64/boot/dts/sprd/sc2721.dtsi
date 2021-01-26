@@ -314,7 +314,7 @@
 		};
 
 		poweroff@c20 {
-			compatible = "sprd,sc2731-poweroff", "sprd,sc2721-poweroff";
+			compatible = "sprd,sc27xx-poweroff", "sprd,sc2721-poweroff";
 			reg = <0xc20>;
 		};
 
@@ -324,7 +324,7 @@
 		};
 
 		hw-reset@eec {
-			compatible = "sprd,sc2731-7sreset", "sprd,sc2721-7sreset";
+			compatible = "sprd,sc27xx-7sreset", "sprd,sc2721-7sreset";
 			reg = <0xf1c>, <0xeec>;
 		};
 	};
