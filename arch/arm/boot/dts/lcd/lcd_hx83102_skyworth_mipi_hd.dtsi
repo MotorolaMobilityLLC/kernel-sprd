@@ -12,10 +12,8 @@
 		sprd,height-mm = <140>;
 
 		sprd,esd-check-enable = <1>;
-		sprd,esd-check-mode = <0>;
+		sprd,esd-check-mode = <1>;
 		sprd,esd-check-period = <1000>;
-		sprd,esd-check-register = <0x0A>;
-		sprd,esd-check-value = <0x9D>;
 
 		sprd,reset-on-sequence = <1 5>, <0 5>, <1 120>;
 		sprd,reset-off-sequence = <1 20>;
@@ -52,7 +50,7 @@
 			23 00 00 02 BD 02
 			39 00 00 04 B1 7F 03 F5
 			23 00 00 02 BD 00
-			39 00 00 03 51 0F FF
+			39 00 00 03 51 00 00
 			23 00 00 02 53 2C
 			23 00 00 02 55 03
 			23 00 00 02 35 00
