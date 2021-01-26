@@ -123,9 +123,9 @@
 			/* channel number */
 			reg = <4>;
 			label = "spipe_wcn";
-			sprd,ringnr = <15>;
-			sprd,size-rxbuf = <0x1000>;	/* 4*1024 */
-			sprd,size-txbuf = <0x1000>;	/* 4*1024 */
+			sprd,ringnr = <16>;
+			sprd,size-rxbuf = <0x2400>;	/* 9*1024 */
+			sprd,size-txbuf = <0x2400>;	/* 9*1024 */
 		};
 
 		wcn_wifi_cmd: channel@7 {
