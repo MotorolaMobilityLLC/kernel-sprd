@@ -114,8 +114,8 @@
 			sprd,dst = <6>;
 			sprd,channel = <5>;
 			sprd,ringnr = <1>;
-			sprd,size-rxbuf = <0x5c0>;
-			sprd,size-txbuf = <0x20>;
+			sprd,size-rxbuf = <0x500>;
+			sprd,size-txbuf = <0x0>;
 		};
 
 		spipe@2 {
@@ -162,6 +162,15 @@
 			sprd,ringnr = <1>;
 			sprd,size-rxbuf = <0x20000>;
 			sprd,size-txbuf = <0x18000>;
+		};
+
+		spipe@7 {
+			sprd,name = "stime_pm";
+			sprd,dst = <6>;
+			sprd,channel = <41>;
+			sprd,ringnr = <1>;
+			sprd,size-rxbuf = <0x40>;
+			sprd,size-txbuf = <0x40>;
 		};
 	};
 

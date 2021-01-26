@@ -134,6 +134,15 @@
 			sprd,size-rxbuf = <0x0800>; /* 2*1024*/
 			sprd,size-txbuf = <0x0800>; /* 2*1024 */
 		};
+
+		spipe@5 {
+			sprd,name = "stime_pm";
+			sprd,dst = <6>;
+			sprd,channel = <41>;
+			sprd,ringnr = <1>;
+			sprd,size-rxbuf = <0x40>;
+			sprd,size-txbuf = <0x40>;
+		};
 	};
 
 	sprd-spool {
