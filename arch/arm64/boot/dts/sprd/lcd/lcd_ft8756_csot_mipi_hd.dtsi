@@ -23,9 +23,9 @@
 					sprd,width-mm = <68>;
 					sprd,height-mm = <151>;
 
-					//sprd,esd-check-enable = <1>;
-					//sprd,esd-check-mode = <1>;
-					//sprd,esd-check-period = <2000>;
+					sprd,esd-check-enable = <1>;
+					sprd,esd-check-mode = <1>;
+					sprd,esd-check-period = <2000>;
 					//sprd,esd-check-register = <0xA>;
 					//sprd,esd-check-value = <0x9c>;
 
@@ -55,6 +55,7 @@
 						29 00 00 02 55 01
 						03 78 00 01 11
 						03 14 00 01 29
+						13 00 00 02 35 00
 						];
 
 					sprd,sleep-in-command = [
