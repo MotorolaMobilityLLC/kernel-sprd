@@ -77,7 +77,9 @@ static int sprd_panel_send_cmds(struct mipi_dsi_device *dsi,
 }
 
 extern volatile int gesture_dubbleclick_en;
-
+#ifdef CONFIG_TOUCHSCREEN_HIMAX_CHIPSET
+extern void himax_esd_resume_func(void);
+#endif
 static int sprd_panel_unprepare(struct drm_panel *p)
 {
 	struct sprd_panel *panel = to_sprd_panel(p);
@@ -169,7 +171,6 @@ static int sprd_panel_prepare(struct drm_panel *p)
 			mdelay(timing[i].delay);
 		}
 	}
-
 	return 0;
 }
 
@@ -344,8 +345,8 @@ static int sprd_panel_esd_check(struct sprd_panel *panel)
 
 	/* FIXME: we should enable HS cmd tx here */
 	mipi_dsi_set_maximum_return_packet_size(panel->slave, 1);
-	mipi_dsi_dcs_read(panel->slave, info->esd_check_reg,
-			  &read_val, 1);
+	mipi_dsi_dcs_read(panel->slave, info->esd_check_reg, &read_val, 1);
+	printk("ontim:%s(%d) check_reg:0x%02x, read_val:0x%02x, check val:0x%02x\n", __func__, __LINE__, info->esd_check_reg, read_val, info->esd_check_val);
 
 	/*
 	 * TODO:
@@ -423,7 +424,7 @@ static void sprd_panel_esd_work_func(struct work_struct *work)
 						esd_work.work);
 	struct panel_info *info = &panel->info;
 	int ret;
-
+	printk("ontim:%s(%d) check_mode:%d\n", __func__, __LINE__, info->esd_check_mode);
 	if (info->esd_check_mode == ESD_MODE_REG_CHECK)
 		ret = sprd_panel_esd_check(panel);
 	else if (info->esd_check_mode == ESD_MODE_TE_CHECK)
@@ -432,7 +433,7 @@ static void sprd_panel_esd_work_func(struct work_struct *work)
 		DRM_ERROR("unknown esd check mode:%d\n", info->esd_check_mode);
 		return;
 	}
-
+	printk("ontim:ret = %d\n", ret);
 	if (ret && panel->base.connector && panel->base.connector->encoder) {
 		const struct drm_encoder_helper_funcs *funcs;
 		struct drm_encoder *encoder;
@@ -450,6 +451,11 @@ static void sprd_panel_esd_work_func(struct work_struct *work)
 		DRM_INFO("====== esd recovery start ========\n");
 		funcs->disable(encoder);
 		funcs->enable(encoder);
+#ifdef CONFIG_TOUCHSCREEN_HIMAX_CHIPSET
+		if(strncmp(lcd_name, "lcd_hx83102_skyworth_mipi_hd",strlen(lcd_name)) == 0){
+			himax_esd_resume_func();
+		}
+#endif
 		DRM_INFO("======= esd recovery end =========\n");
 	} else
 		schedule_delayed_work(&panel->esd_work,
