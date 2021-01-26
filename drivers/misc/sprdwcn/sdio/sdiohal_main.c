@@ -449,6 +449,10 @@ void sdiohal_dump_aon_reg(void)
 {
 	unsigned char reg_buf[16];
 	unsigned char i, j, val = 0;
+#ifdef CONFIG_UMW2652
+	int k;
+	unsigned char aon_tb[256];
+#endif
 
 	pr_info("sdio dump_aon_reg entry\n");
 	for (i = 0; i <= CP_128BIT_SIZE; i++) {
@@ -477,6 +481,17 @@ void sdiohal_dump_aon_reg(void)
 				CP_BUS_HREADY + j, reg_buf[j]);
 		}
 	}
+
+#ifdef CONFIG_UMW2652
+	sdiohal_aon_writeb(0x1aa, 0x80);
+	aon_tb[0] = 0;
+	for (k = 1; k < 256; k++) {
+		sdiohal_aon_writeb(0x1a9, k);
+		sdiohal_aon_readb(0x143, &aon_tb[k]);
+	}
+	print_hex_dump(KERN_INFO, "WCN SDIO AON_TB",
+		DUMP_PREFIX_OFFSET, 16, 16, aon_tb, 256, 0);
+#endif
 
 	/*
 	 * check hready_status, if bt hung the bus, reset it.
