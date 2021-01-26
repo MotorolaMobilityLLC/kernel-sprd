@@ -140,7 +140,7 @@
 		};
 
 		power-controller@2000 {
-			compatible = "sprd,ump96xx-regulator", "sprd,sc27xx-regulator";
+			compatible = "sprd,ump962x-regulator", "sprd,sc27xx-regulator";
 
 			vddcpu2: DCDC_CPU2 {
 				regulator-name = "vddcpu2";
@@ -168,7 +168,7 @@
 
 			vddpub: DCDC_PUB {
 				regulator-name = "vddpub";
-				regulator-min-microvolt = <400000>;
+				regulator-min-microvolt = <300000>;
 				regulator-max-microvolt = <1596875>;
 				regulator-ramp-delay = <25000>;
 				regulator-always-on;
@@ -187,7 +187,6 @@
 				regulator-min-microvolt = <200000>;
 				regulator-max-microvolt = <1596875>;
 				regulator-ramp-delay = <25000>;
-				regulator-always-on;
 			};
 
 			vddmemq: DCDC_MEMQ {
@@ -216,8 +215,8 @@
 
 			vddgen1: DCDC_GEN1 {
 				regulator-name = "vddgen1";
-				regulator-min-microvolt = <850000>;
-				regulator-max-microvolt = <1643750>;
+				regulator-min-microvolt = <400000>;
+				regulator-max-microvolt = <1593750>;
 				regulator-ramp-delay = <25000>;
 				regulator-always-on;
 			};
