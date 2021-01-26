@@ -76,6 +76,12 @@
 
 	};
 
+	ion: ion {
+		compatible = "sprd,ion";
+		#address-cells = <1>;
+		#size-cells = <0>;
+	};
+
 	ipi: interrupt-controller {
 		compatible = "android,CustomIPI";
 		#interrupt-cells = <1>;

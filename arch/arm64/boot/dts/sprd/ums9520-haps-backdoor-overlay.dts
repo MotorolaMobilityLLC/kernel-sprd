@@ -32,6 +32,10 @@
 					reg = <0x1 0xfe300000 0x0 0x4ffffff>;  /* socko 80M */
 				};
 
+				mm_reserved: multimedia-reserved@203300000 {
+					reg = <0x2 0x03300000 0x0 0x20000000>;  /* camera 512M */
+				};
+
 			};
 
 			sprd-memdisk {
@@ -72,4 +76,13 @@
 			<15 0xa054>, <17 0xa1a0>, <19 0xa044>, <21 0xa0e8>,
 			<23 0x244c>, <25 0xa074>, <27 0x2044>, <30 0x2020>,
 			<34 0x21b8>, <35 0x21ac>;
+};
+
+&ion {
+	heap@1 {
+		reg = <1>;
+		label = "carveout_mm";
+		type = <2>;
+		memory-region = <&mm_reserved>;
+	};
 };

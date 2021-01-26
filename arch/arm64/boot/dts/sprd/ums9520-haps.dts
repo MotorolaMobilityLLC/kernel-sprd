@@ -37,6 +37,12 @@
 		stdout-path = "serial1:115200n8";
 		bootargs = "earlycon=sprd_serial,0x20210000,115200n8 console=ttyS1,115200n8 loglevel=8 init=/init root=/dev/ram0 rwandroidboot.selinux=permissive printk.devkmsg=on";
 	};
+
+	ion: ion {
+		compatible = "sprd,ion";
+		#address-cells = <1>;
+		#size-cells = <0>;
+	};
 };
 
 &uart0 {
