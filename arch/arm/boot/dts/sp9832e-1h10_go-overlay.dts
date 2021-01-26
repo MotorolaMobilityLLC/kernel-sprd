@@ -362,6 +362,7 @@
 				158 600 1320 60 45>;
 		surface-width = <720>;
 		surface-height = <1280>;
+		firmware-auto-upgrade;
 		private-data {
 			a8 = /bits/ 8 <0x5A>;
 		};
