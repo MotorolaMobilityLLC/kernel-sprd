@@ -189,8 +189,8 @@ struct key_dev{
 #ifdef CONFIG_T_PRODUCT_INFO
 int gpio_status;
 int get_gpio_status_info(char *buf, void *arg0) {
-	printk("gpio_status=%d\n", gpio_status);
-	return sprintf(buf, "SIM0_status=%d", gpio_status);
+	//printk("gpio_status=%d\n", gpio_status);
+	return sprintf(buf, "%d", gpio_status);
 }
 #endif
 
@@ -198,6 +198,7 @@ static ssize_t show_product_dev_info(struct device *dev, struct device_attribute
     int i = 0;
     char *show = NULL;
     const ptrdiff_t x = (attr - product_dev_attr_array);
+    static int firstin = 1;
 
     if (x >= ID_MAX) {
         BUG_ON(1);
@@ -205,8 +206,10 @@ static ssize_t show_product_dev_info(struct device *dev, struct device_attribute
 
     show = pi_p[x].show;
 
-    if(strstr(show, "SIM0_status")){
+    if(strstr(show, "SIM0_status") || (firstin == 1)) {
         struct key_dev keydev;
+
+        firstin = 0;
 
         keydev.nd = of_find_node_by_name(NULL, "key-sim0");
         if (keydev.nd== NULL) {
@@ -225,9 +228,6 @@ static ssize_t show_product_dev_info(struct device *dev, struct device_attribute
         gpio_direction_input(keydev.key_gpio);
 
         gpio_status = gpio_get_value(keydev.key_gpio);
-        FULL_PRODUCT_DEVICE_CB(ID_SIM0, get_gpio_status_info, NULL);
-      
-        show = pi_p[x].show;
     }
 
     if (pi_p[x].cb != NULL) {
