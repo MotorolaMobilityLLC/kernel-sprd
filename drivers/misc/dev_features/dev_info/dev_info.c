@@ -185,12 +185,11 @@ struct key_dev{
     struct device_node *nd;
     int key_gpio;
 };
-struct key_dev keydev;
 
 #ifdef CONFIG_T_PRODUCT_INFO
 int gpio_status;
 int get_gpio_status_info(char *buf, void *arg0) {
-	printk("gpio_status=%d\n", gpio_status);
+	//printk("gpio_status=%d\n", gpio_status);
 	return sprintf(buf, "%d", gpio_status);
 }
 #endif
@@ -205,7 +204,13 @@ static ssize_t show_product_dev_info(struct device *dev, struct device_attribute
         BUG_ON(1);
     }
 
-    if(firstin == 1){
+    show = pi_p[x].show;
+
+    if(strstr(show, "SIM0_status") || (firstin == 1)) {
+        struct key_dev keydev;
+
+        firstin = 0;
+
         keydev.nd = of_find_node_by_name(NULL, "key-sim0");
         if (keydev.nd== NULL) {
             printk("get gpio node error!\r\n");
@@ -217,17 +222,14 @@ static ssize_t show_product_dev_info(struct device *dev, struct device_attribute
             printk("can't get gpio!\r\n");
             return -EINVAL;
         }
+        printk("key_gpio=%d\r\n", keydev.key_gpio);
 
         gpio_request(keydev.key_gpio, "gpio31_sim0");
         gpio_direction_input(keydev.key_gpio);
 
-        firstin = 0;
-    }
-    if(x == ID_SIM0) {
         gpio_status = gpio_get_value(keydev.key_gpio);
     }
 
-    show = pi_p[x].show;
     if (pi_p[x].cb != NULL) {
         pi_p[x].cb(show, pi_p[x].args);
     }
