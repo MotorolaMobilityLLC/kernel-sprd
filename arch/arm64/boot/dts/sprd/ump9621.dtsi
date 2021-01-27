@@ -19,6 +19,15 @@
 			reg = <0x2000>;
 		};
 
+		efuse@800 {
+			compatible = "sprd,ump9621-efuse", "sprd,sc27xx-efuse";
+			reg = <0x800>;
+			#address-cells = <1>;
+			#size-cells = <1>;
+			hwlocks = <&hwlock 15>;
+			/* Data cells */
+		};
+
 		power-controller@2000 {
 			compatible = "sprd,ump9621-regulator";
 
