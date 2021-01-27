@@ -17,34 +17,34 @@
 		sprd,syscon-ap-pub-apb = <&pub_apb_regs>;
 		sprd,syscon-wcn-btwf-ahb = <&wcncp_btwf_ahb_regs>;
 		/* Boot Up group:
-		 * <Wcn addr remap,PowerOn,
-		 * Disable force sleep,Cmstar remap,ResetRelease>
+		 * <Wcn addr remap,PowerOn
+		 * Disable force sleep, Reset, Cmstar remap,ResetRelease>
 		 */
 		sprd,ctrl-probe-num = <1>;
-		sprd,ctrl-reg = <0x9018 0x23a8 0x2818 0x1410 0x004c 0x000c>;
-		sprd,ctrl-mask = <0x00003fff 0x03000000 0x00000080
+		sprd,ctrl-reg = <0x9018 0x23a8 0x2818 0x0c 0x1410 0x004c 0x0c>;
+		sprd,ctrl-mask = <0x00003fff 0x03000000 0x55 0x00000080
 					0x03000000 0xffffffff 0x00000055>;
-		sprd,ctrl-value = <0x00000070 0x03000000 0x00000080
-					0x03000000 0x7fdc00 0x00000000>;
-		sprd,ctrl-rw-offset = <0x1000 0x2000 0x2000
+		sprd,ctrl-value = <0x00000070 0x03000000 0x00000080 0x55
+					0x03000000 0x007fdc00 0x00000000>;
+		sprd,ctrl-rw-offset = <0x1000 0x2000 0x2000 0x0
 					0x1000 0x0000 0x0000>;
-		sprd,ctrl-us-delay = <10 10 10 10 10 10>;
+		sprd,ctrl-us-delay = <10 10 10 10 10 10 10>;
 		/* pub_apb, aon_apb, aon_apb */
 		/* btwf_ahb, wcn_aon_ahb wcn_aon_ahb */
-		sprd,ctrl-type = <0x2 0x1 0x1 0x7 0x9 0x9>;
+		sprd,ctrl-type = <0x2 0x1 0x1 0x9 0x7 0x9 0x9>;
 		/* Add shutdown group:WCN rst */
 		sprd,ctrl-shutdown-reg = <0x0098>;
 		sprd,ctrl-shutdown-mask = <0x1000>;
-		sprd,ctrl-shutdown-value = <0x0>;
+		sprd,ctrl-shutdown-value = <0x1000>;
 		sprd,ctrl-shutdown-rw-offset = <0x0>;
 		sprd,ctrl-shutdown-us-delay = <10>;
-		sprd,ctrl-shutdown-type = <0x2>;
+		sprd,ctrl-shutdown-type = <0xa>;
 		reg = <0x0 0x87000000 0x0 0x200000>;
 		sprd,file-name ="/dev/block/platform/soc/soc:ap-apb/201d0000.sdio/by-name/wcnmodem";
 		sprd,file-name-ufs ="/dev/block/platform/soc/soc:ap-apb/20200000.ufs/by-name/wcnmodem";
 		sprd,file-length = <0x200000>;
 		/* for btwf: cpu addr 0 map to ddr 0m */
-		sprd,apcp-sync-addr = <0x7fdc00>;
+		sprd,apcp-sync-addr = <0x007fdc00>;
 		sprd,wcn-sipc-ver = <1>;
 		vddwcn-supply = <&vddwcn>;
 		dcxo1v8-supply = <&vddsim2>;
@@ -68,24 +68,24 @@
 		sprd,syscon-wcn-gnss-ahb = <&wcncp_gnss_ahb_regs>;
 		sprd,ctrl-probe-num = <1>;
 		sprd,ctrl-reg =
-			<0x9018 0x23a8 0x2818 0x1404 0x0050 0x000c>;
-		sprd,ctrl-mask = <0x00003fff 0x03000000 0x00000080
+			<0x9018 0x23a8 0x2818 0x000c 0x1404 0x0050 0x000c>;
+		sprd,ctrl-mask = <0x00003fff 0x03000000 0x22 0x00000080
 					0x01ffffff 0xffffffff 0x00000022>;
-		sprd,ctrl-value = <0x00000070 0x03000000 0x00000080
+		sprd,ctrl-value = <0x00000070 0x03000000 0x00000080 0x22
 					0x01600000 0x1ffc00 0x00000000>;
 		sprd,ctrl-rw-offset =
-			<0x1000 0x2000 0x2000 0x1000 0x0000 0x0000>;
-		sprd,ctrl-us-delay = <10 10 10 10 10 10>;
+			<0x1000 0x2000 0x2000 0x0 0x1000 0x0000 0x0000>;
+		sprd,ctrl-us-delay = <10 10 10 10 10 10 10>;
 		/* pub_apb, aon_apb, aon_apb, gnss_sys_ahb*/
 		/* wcn_aon_ahb, wcn_aon_ahb */
-		sprd,ctrl-type = <0x2 0x1 0x1 0x8 0x9 0x9>;
+		sprd,ctrl-type = <0x2 0x1 0x1 0x9 0x8 0x9 0x9>;
 		/* Add shutdown group:WCN Rst */
-		sprd,ctrl-shutdown-reg = <0x00c4>;
+		sprd,ctrl-shutdown-reg = <0x00c8>;
 		sprd,ctrl-shutdown-mask = <0x1000>;
-		sprd,ctrl-shutdown-value = <0x0>;
+		sprd,ctrl-shutdown-value = <0x1000>;
 		sprd,ctrl-shutdown-rw-offset = <0x0000>;
 		sprd,ctrl-shutdown-us-delay = <10>;
-		sprd,ctrl-shutdown-type = <0x2>;
+		sprd,ctrl-shutdown-type = <0xa>;
 		reg = <0x0 0x87600000 0x0 0x180000>;
 		sprd,file-name ="/dev/block/platform/soc/soc:ap-apb/201d0000.sdio/by-name/gnssmodem";
 		sprd,file-name-ext ="/dev/block/platform/soc/soc:ap-apb/201d0000.sdio/by-name/gnssmodem";
