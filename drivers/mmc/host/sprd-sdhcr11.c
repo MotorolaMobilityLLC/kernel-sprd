@@ -1795,6 +1795,11 @@ static void sprd_get_fast_hotplug_info(struct device_node *np,
 	sprd_get_fast_hotplug_reg(np, &host->reg_debounce_cn,
 		"sd_hotplug_debounce_cn");
 }
+
+#ifdef CONFIG_T_PRODUCT_INFO
+#include <dev_info.h>
+#endif
+
 static int sprd_get_dt_resource(struct platform_device *pdev,
 		struct sprd_sdhc_host *host)
 {
@@ -1884,6 +1889,10 @@ static int sprd_get_dt_resource(struct platform_device *pdev,
 	} else {
 		sprd_get_fast_hotplug_info(np, host);
 		host->detect_gpio_polar = flags;
+
+		FULL_PRODUCT_DEVICE_CB(ID_SD, get_gpio_status_info, NULL);
+		sdio_sd_det_gpio = host->detect_gpio;
+		printk("sdio_sd_det_gpio = %d\n", sdio_sd_det_gpio);
 	}
 	if (sprd_get_delay_value(pdev))
 		goto out;
