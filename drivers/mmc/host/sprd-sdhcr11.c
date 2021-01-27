@@ -1890,9 +1890,12 @@ static int sprd_get_dt_resource(struct platform_device *pdev,
 		sprd_get_fast_hotplug_info(np, host);
 		host->detect_gpio_polar = flags;
 
+#ifdef CONFIG_T_PRODUCT_INFO
 		FULL_PRODUCT_DEVICE_CB(ID_SD, get_gpio_status_info, NULL);
 		sdio_sd_det_gpio = host->detect_gpio;
 		printk("sdio_sd_det_gpio = %d\n", sdio_sd_det_gpio);
+#endif
+
 	}
 	if (sprd_get_delay_value(pdev))
 		goto out;
