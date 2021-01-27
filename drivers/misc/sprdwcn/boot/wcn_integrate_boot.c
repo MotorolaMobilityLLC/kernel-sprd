@@ -750,7 +750,7 @@ int wcn_proc_native_stop(void *arg)
 		set_value =  wcn_dev->ctrl_shutdown_value
 					 [iloop_index];
 		if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
-			if (wcn_dev->ctrl_rw_offset[iloop_index] == 0x00)
+			if (wcn_dev->ctrl_shutdown_rw_offset[iloop_index] == 0)
 				set_value |= val;
 		}
 		wcn_regmap_raw_write_bit(wcn_dev->rmap[type],
@@ -1040,7 +1040,7 @@ int start_integrate_wcn(u32 subsys)
 				mutex_unlock(&marlin_lock);
 				if (ret == -ETIMEDOUT)
 					mdbg_assert_interface(
-						"MARLIN boot cp timeout\n");
+						"MARLIN boot cp timeout 0\n");
 				return ret;
 			}
 		}
@@ -1119,7 +1119,7 @@ int stop_integrate_wcn_truely(u32 subsys)
 		return 0;
 	}
 
-	WCN_INFO("%s do stop\n", wcn_dev->name);
+	WCN_INFO("%s,subsys=%d do stop\n", wcn_dev->name, subsys);
 	if (is_marlin)
 		wcn_set_loopcheck_state(false);
 	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6)
