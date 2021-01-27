@@ -311,7 +311,7 @@
 
 			ap_dma: dma-controller@20000 {
 				compatible = "sprd,qogirn6pro-dma";
-				reg = <0 0x20000 0 0x4000>;
+				reg = <0x20000 0x4000>;
 				interrupts = <GIC_SPI 219 IRQ_TYPE_LEVEL_HIGH>;
 				#dma-cells = <1>;
 				#dma-channels = <28>;
