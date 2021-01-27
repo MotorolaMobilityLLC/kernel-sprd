@@ -559,10 +559,6 @@
 	chnl-in-i2c = <0>;
 };
 
-&cpudvfs_dev {
-	compatible = "sprd,qogirl6-cpudvfs-disable";
-};
-
 &usb {
 	extcon = <&extcon_gpio>, <&pmic_typec>;
 	vbus-supply = <&vddvbus>;
