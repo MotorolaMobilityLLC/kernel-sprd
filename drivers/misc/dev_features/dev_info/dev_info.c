@@ -83,6 +83,7 @@ static struct device_attribute product_dev_attr_array[] = {
     PRODUCT_DEV_INFO_ATTR(info_hall),
     PRODUCT_DEV_INFO_ATTR(info_flash),
     PRODUCT_DEV_INFO_ATTR(info_battery),
+    PRODUCT_DEV_INFO_ATTR(info_sd),
 // add new ...
     
 };
@@ -180,6 +181,15 @@ static ssize_t store_product_dev_info(struct device *dev, struct device_attribut
     return count;
 }
 
+#ifdef CONFIG_T_PRODUCT_INFO
+int gpio_status;
+int sdio_sd_det_gpio;
+int get_gpio_status_info(char *buf, void *arg0) {
+	printk("gpio_status=%d\n", gpio_status);
+	return sprintf(buf, "%d", gpio_status);
+}
+#endif
+
 static ssize_t show_product_dev_info(struct device *dev, struct device_attribute *attr, char *buf) {
     int i = 0;
     char *show = NULL;
@@ -187,6 +197,10 @@ static ssize_t show_product_dev_info(struct device *dev, struct device_attribute
    
     if (x >= ID_MAX) {
         BUG_ON(1);
+    }
+
+    if(x == ID_SD) {
+        gpio_status = gpio_get_value(sdio_sd_det_gpio);
     }
 
     show = pi_p[x].show;
