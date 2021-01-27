@@ -771,8 +771,9 @@
 			dpu: dpu@31000000 {
 				compatible = "sprd,display-processor";
 				reg = <0x0 0x31000000 0x0 0x1000>;
-				syscons = <&ap_ahb_regs 0x0004 0x2>;
-				syscon-names = "reset";
+				syscons = <&ap_ahb_regs 0x0004 0x2>,
+					<&ap_ahb_regs 0x0004 0x4000>;
+				syscon-names = "disp_reset", "iommu_reset";
 				interrupts = <GIC_SPI 27 IRQ_TYPE_LEVEL_HIGH>;
 				status = "disabled";
 				iommus = <&iommu_dispc>;
