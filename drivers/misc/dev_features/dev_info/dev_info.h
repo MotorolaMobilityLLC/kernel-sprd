@@ -23,7 +23,6 @@
 
 #define show_content_len (128)
 
-extern int gpio_status;
 extern int sdio_sd_det_gpio;
 int get_gpio_status_info(char *buf, void *arg0);
 
