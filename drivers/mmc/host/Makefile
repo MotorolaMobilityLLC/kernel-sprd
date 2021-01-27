@@ -99,3 +99,5 @@ endif
 
 obj-$(CONFIG_MMC_SDHCI_XENON)	+= sdhci-xenon-driver.o
 sdhci-xenon-driver-y		+= sdhci-xenon.o sdhci-xenon-phy.o
+
+ccflags-$(CONFIG_T_PRODUCT_INFO) += -I$(srctree)/drivers/misc/dev_features/dev_info
