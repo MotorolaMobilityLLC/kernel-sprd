@@ -451,6 +451,7 @@
 			clocks = <&ext_26m>;
 			clock-names = "ext-26m";
 			#clock-cells = <1>;
+			status = "disable";
 		};
 
 		pcie_clk: clock-controller@26004000 {
@@ -459,6 +460,7 @@
 			clocks = <&ext_26m>;
 			clock-names = "ext-26m";
 			#clock-cells = <1>;
+			status = "disable";
 		};
 
 		aiapb_gate: clock-controller@27000000 {
