@@ -271,7 +271,7 @@ u32 wcn_subsys_shutdown_status(struct wcn_device *wcn_dev);
 u32 wcn_shutdown_status(struct wcn_device *wcn_dev);
 u32 wcn_deep_sleep_status(struct wcn_device *wcn_dev);
 u32 wcn_subsys_force_deepsleep(struct wcn_device *wcn_dev);
-u32 wcn_sussys_active_num(void);
+u32 wcn_subsys_active_num(void);
 void wcn_power_domain_set(struct wcn_device *wcn_dev, u32 set_type);
 void wcn_xtl_auto_sel(bool enable);
 int wcn_power_enable_sys_domain(bool enable);

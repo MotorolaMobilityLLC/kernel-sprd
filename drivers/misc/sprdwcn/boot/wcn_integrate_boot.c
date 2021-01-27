@@ -1159,7 +1159,7 @@ int stop_integrate_wcn_truely(u32 subsys)
 			}
 
 			if ((i == 0) &&
-				(wcn_sussys_active_num() == 1)) {
+				(wcn_subsys_active_num() == 0)) {
 				WCN_INFO("stop wcn aon ip!\n");
 				/* aon ip stop */
 				wcn_regmap_raw_write_bit(

@@ -21,6 +21,7 @@
 
 #define MARLIN_USE_FORCE_SHUTDOWN	(0xabcd250)
 #define MARLIN_FORCE_SHUTDOWN_OK	(0x6B6B6B6B)
+#define BTWF_SW_DEEP_SLEEP_MAGIC	(0x504C5344) /* SW deep sleep:DSLP */
 
 static int wcn_open_module;
 static int wcn_module_state_change;
@@ -671,6 +672,20 @@ u32 wcn_get_sleep_status(struct wcn_device *wcn_dev, int force_sleep)
 		return 1;
 	}
 
+	/* QogirL6 project */
+	if ((wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) &&
+		wcn_dev_is_marlin(wcn_dev)) {
+		phy_addr = wcn_dev->base_addr +
+			   (phys_addr_t)&s_wssm_phy_offset_p->cp2_sleep_status;
+		wcn_read_data_from_phy_addr(phy_addr, &val, sizeof(val));
+		WCN_INFO("Sleep status flag:0x%x\n", val);
+		/* SW entry deep sleep */
+		if (val == BTWF_SW_DEEP_SLEEP_MAGIC)
+			return 0;
+		else
+			return 1;
+	}
+
 	wcn_regmap_read(wcn_dev->rmap[REGMAP_PMU_APB],
 			0xd4, &sleep_status);
 
@@ -730,7 +745,7 @@ u32 wcn_subsys_force_deepsleep(struct wcn_device *wcn_dev)
 	return 0;
 }
 
-u32 wcn_sussys_active_num(void)
+u32 wcn_subsys_active_num(void)
 {
 	u32 count = 0;
 
@@ -948,6 +963,7 @@ void wcn_sys_soft_reset(void)
 	u32 bitmap;
 	u32 btwf_open = false;
 	u32 gnss_open = false;
+	u32 valid_chip = true;
 	struct wcn_device *wcn_dev;
 
 	wcn_dev = s_wcn_device.btwf_device ?
@@ -980,11 +996,13 @@ void wcn_sys_soft_reset(void)
 			bitmap = 1 << 20;
 			offset  = 0X1B98;
 		} else {
+			valid_chip = false;
 			WCN_ERR("chip type err\n");
-			return;
 		}
-		wcn_regmap_raw_write_bit(wcn_dev->rmap[REGMAP_PMU_APB],
-					 offset, bitmap);
+
+		if (valid_chip)
+			wcn_regmap_raw_write_bit(wcn_dev->rmap[REGMAP_PMU_APB],
+						 offset, bitmap);
 		WCN_INFO("%s finish\n", __func__);
 		usleep_range(WCN_CP_SOFT_RST_MIN_TIME,
 			     WCN_CP_SOFT_RST_MAX_TIME);
@@ -999,13 +1017,12 @@ void wcn_sys_ctrl_26m(bool enable)
 	regmap = wcn_get_btwf_regmap(REGMAP_ANLG_PHY_G6);
 	wcn_regmap_read(regmap, 0x28, &value);
 
-	if (enable) {
+	if (enable)
 		value &= ~(1 << 2);
-		wcn_regmap_raw_write_bit(regmap, 0X28, value);
-	} else {
+	else
 		value |= 1 << 2;
-		wcn_regmap_raw_write_bit(regmap, 0X28, value);
-	}
+
+	wcn_regmap_raw_write_bit(regmap, 0X28, value);
 }
 
 void wcn_clock_ctrl(bool enable)
