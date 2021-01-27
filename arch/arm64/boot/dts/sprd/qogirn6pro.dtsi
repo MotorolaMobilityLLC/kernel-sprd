@@ -268,7 +268,7 @@
 			spi0: spi@60000{
 				compatible = "sprd,ums9620-spi";
 				reg = <0x60000 0x1000>;
-				interrupts = <GIC_SPI 7 IRQ_TYPE_LEVEL_HIGH>;
+				interrupts = <GIC_SPI 199 IRQ_TYPE_LEVEL_HIGH>;
 				#address-cells = <1>;
 				#size-cells = <0>;
 				status = "disabled";
@@ -277,7 +277,7 @@
 			spi1: spi@70000{
 				compatible = "sprd,ums9620-spi";
 				reg = <0x70000 0x1000>;
-				interrupts = <GIC_SPI 6 IRQ_TYPE_LEVEL_HIGH>;
+				interrupts = <GIC_SPI 198 IRQ_TYPE_LEVEL_HIGH>;
 				#address-cells = <1>;
 				#size-cells = <0>;
 				status = "disabled";
@@ -286,7 +286,7 @@
 			spi2: spi@80000{
 				compatible = "sprd,ums9620-spi";
 				reg = <0x80000 0x1000>;
-				interrupts = <GIC_SPI 5 IRQ_TYPE_LEVEL_HIGH>;
+				interrupts = <GIC_SPI 197 IRQ_TYPE_LEVEL_HIGH>;
 				#address-cells = <1>;
 				#size-cells = <0>;
 				status = "disabled";
