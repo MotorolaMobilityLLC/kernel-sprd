@@ -1356,7 +1356,7 @@
 				compatible = "sprd,qogirl6-topdvfs", "syscon";
 				sprd,syscon-enable = <&aon_apb_regs>;
 				module-enable-cfg = <0x4 7>;
-				reg = <0 0x64014000 0 0x8000>;
+				reg = <0 0x64014000 0 0x4000>;
 				cpu-dcdc-cells = <&dcdc_cpu0>, <&dcdc_cpu1>;
 				device-dcdc-cells = <&dcdc_mm>, <&dcdc_modem>;
 				dcdc_cpu0: dcdc-cpu0 {
@@ -1396,7 +1396,7 @@
 						dcdc-subsys-tune-enable = <0x150 5 0>;
 					};
 					gpu_sys: gpu-sys {
-						dcdc-subsys-tune-enable = <0x150 1 0>;
+						dcdc-subsys-tune-enable = <0x150 1 1>;
 					};
 
 					mm_sys: mm-sys {
