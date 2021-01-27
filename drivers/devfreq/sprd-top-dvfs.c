@@ -394,6 +394,7 @@ static const struct of_device_id sprd_topdvfs_dev_of_match[] = {
 	{ .compatible = "sprd,roc1-topdvfs"},
 	{ .compatible = "sprd,sharkl5pro-topdvfs"},
 	{ .compatible = "sprd,orca-topdvfs"},
+	{ .compatible = "sprd,qogirl6-topdvfs"},
 	{},
 };
 
