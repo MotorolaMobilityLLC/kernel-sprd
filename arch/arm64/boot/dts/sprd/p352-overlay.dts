@@ -256,6 +256,12 @@
 				};
 			};
 
+			sprd_uid {
+				compatible = "sprd-uid";
+				nvmem-cells = <&uid_start>, <&uid_end>;
+				nvmem-cell-names = "uid_start", "uid_end";
+			};
+
 			sprd_marlin3: sprd-marlin3 {
 				compatible = "sprd,marlin3";
 				m2-to-ap-coexist-gpios = <&ap_gpio 119 GPIO_ACTIVE_LOW>;
