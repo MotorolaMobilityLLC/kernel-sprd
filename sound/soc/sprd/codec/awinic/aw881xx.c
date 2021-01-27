@@ -123,7 +123,7 @@ static aw_snd_soc_codec_t *aw_get_codec(struct snd_soc_dai *dai)
 static void aw881xx_reg_container_update(struct aw881xx *aw881xx,
 				uint8_t *data, uint32_t len);
 static int aw881xx_load_chip_profile(struct aw881xx *aw881xx);
-
+static void aw881xx_dsp_update_cali_re(struct aw881xx *aw881xx);
 
 /******************************************************
  *
@@ -959,6 +959,7 @@ static int aw881xx_dsp_check(struct aw881xx *aw881xx)
 		} else {
 			if (aw881xx->dsp_cfg == AW881XX_DSP_WORK) {
 				aw881xx_dsp_enable(aw881xx, false);
+				aw881xx_dsp_update_cali_re(aw881xx);
 				aw881xx_dsp_enable(aw881xx, true);
 				msleep(1);
 				ret = aw881xx_get_dsp_status(aw881xx);
@@ -1324,10 +1325,8 @@ static void aw881xx_startup_work(struct work_struct *work)
 
 	aw_dev_info(aw881xx->dev, "%s:enter\n", __func__);
 
-	if (aw881xx->cali_attr.cali_re == AW_ERRO_CALI_VALUE) {
+	if (aw881xx->cali_attr.cali_re == AW_ERRO_CALI_VALUE)
 		aw881xx_get_cali_re(&aw881xx->cali_attr);
-		aw881xx_dsp_update_cali_re(aw881xx);
-	}
 
 	if (aw881xx->fw_status == AW881XX_FW_OK) {
 		if (aw881xx->allow_pw == false) {
