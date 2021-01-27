@@ -25,6 +25,7 @@
 #include "gsp_sync.h"
 #include "gsp_sysfs.h"
 #include "gsp_workqueue.h"
+#include "gsp_lite_r2p0/gsp_lite_r2p0_core.h"
 #include "gsp_r6p0/gsp_r6p0_core.h"
 #include "gsp_r8p0/gsp_r8p0_core.h"
 
@@ -45,6 +46,20 @@ static struct gsp_core_ops gsp_r6p0_core_ops = {
 	.dump = gsp_r6p0_core_dump,
 };
 
+static struct gsp_core_ops gsp_lite_r2p0_core_ops = {
+	.parse_dt = gsp_lite_r2p0_core_parse_dt,
+	.alloc = gsp_lite_r2p0_core_alloc,
+	.init = gsp_lite_r2p0_core_init,
+	.copy = gsp_lite_r2p0_core_copy_cfg,
+	.trigger = gsp_lite_r2p0_core_trigger,
+	.release = gsp_lite_r2p0_core_release,
+	.enable = gsp_lite_r2p0_core_enable,
+	.disable = gsp_lite_r2p0_core_disable,
+	.intercept = gsp_lite_r2p0_core_intercept,
+	.reset = gsp_lite_r2p0_core_reset,
+	.dump = gsp_lite_r2p0_core_dump,
+};
+
 static struct gsp_core_ops gsp_r8p0_core_ops = {
 	.parse_dt = gsp_r8p0_core_parse_dt,
 	.alloc = gsp_r8p0_core_alloc,
@@ -62,6 +77,10 @@ static struct gsp_core_ops gsp_r8p0_core_ops = {
 static struct of_device_id gsp_dt_ids[] = {
 	{.compatible = "sprd,gsp-r6p0-sharkl3",
 	 .data = (void *)&gsp_r6p0_core_ops},
+	{.compatible = "sprd,gsp-lite_r2p0-sharkle",
+	 .data = (void *)&gsp_lite_r2p0_core_ops},
+	{.compatible = "sprd,gsp-lite_r2p0-pike2",
+	 .data = (void *)&gsp_lite_r2p0_core_ops},
 	{.compatible = "sprd,gsp-r8p0-sharkl5pro",
 	 .data = (void *)&gsp_r8p0_core_ops},
 	{},
