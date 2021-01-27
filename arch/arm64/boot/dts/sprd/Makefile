@@ -80,6 +80,7 @@ dtb-$(CONFIG_ARCH_SPRD) += \
 	ums312.dtb \
 	ums9230-haps.dtb \
 	ums9230-zebu.dtb \
+	ums9230.dtb \
 	ums9620.dtb
 dtbo-$(CONFIG_ARCH_SPRD) += \
 	sp9863a-3h10-overlay.dtbo \

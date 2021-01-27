@@ -15,7 +15,9 @@
 #include "ums9230-t616dvfs.dtsi"
 #include "sc2730.dtsi"
 #include "sprd-sound-fe-be.dtsi"
-#include "extra_sound_card_component.dtsi"
+#if __has_include ("audio/extra_sound_card_component.dtsi")
+#include "audio/extra_sound_card_component.dtsi"
+#endif
 #include "ums9230-mach.dtsi"
 #include "ums9230-modem.dtsi"
 #include "ums9230-wcn.dtsi"
