@@ -287,10 +287,11 @@ static int wcn_load_firmware_data(struct wcn_device *wcn_dev)
 	is_gnss = wcn_dev_is_gnss(wcn_dev);
 	if (is_gnss) {
 		memset(wcn_dev->firmware_path, 0,
-				FIRMWARE_FILEPATHNAME_LENGTH_MAX);
+		       sizeof(wcn_dev->firmware_path));
 		strncpy(wcn_dev->firmware_path, gnss_firmware_parent_path,
 			sizeof(wcn_dev->firmware_path));
-		strcat(wcn_dev->firmware_path, wcn_dev->firmware_path_ext);
+		strncat(wcn_dev->firmware_path, wcn_dev->firmware_path_ext,
+			FIRMWARE_FILEPATHNAME_LENGTH_MAX - 1);
 		WCN_INFO("gnss path=%s\n", wcn_dev->firmware_path);
 		gnss_file_path_set(wcn_dev->firmware_path);
 	}
@@ -363,9 +364,11 @@ static int wcn_download_image(struct wcn_device *wcn_dev)
 static void fstab_ab(struct wcn_device *wcn_dev)
 {
 	if (wcn_dev->fstab == 'a')
-		strcat(firmware_file_path, "_a");
+		strncat(firmware_file_path, "_a",
+			FIRMWARE_FILEPATHNAME_LENGTH_MAX - 1);
 	else if (wcn_dev->fstab == 'b')
-		strcat(firmware_file_path, "_b");
+		strncat(firmware_file_path, "_b",
+			FIRMWARE_FILEPATHNAME_LENGTH_MAX - 1);
 }
 
 static int wcn_download_image_new(struct wcn_device *wcn_dev)
@@ -916,14 +919,14 @@ int start_integrate_wcn_truely(u32 subsys)
 	is_marlin = wcn_dev_is_marlin(wcn_dev);
 	if (!is_marlin) {
 		if (subsys_bit & WCN_GNSS_MASK) {
-			strcpy(&wcn_dev->firmware_path_ext[0],
-			       WCN_GNSS_FILENAME);
+			strncpy(&wcn_dev->firmware_path_ext[0],WCN_GNSS_FILENAME,
+                                FIRMWARE_FILEPATHNAME_LENGTH_MAX - 1);
 			s_wcn_device.gnss_type = WCN_GNSS_TYPE_GL;
 			WCN_INFO("wcn gnss path=%s\n",
 				 &wcn_dev->firmware_path_ext[0]);
 		} else {
-			strcpy(&wcn_dev->firmware_path_ext[0],
-			       WCN_GNSS_BD_FILENAME);
+			strncpy(&wcn_dev->firmware_path_ext[0], WCN_GNSS_BD_FILENAME,
+                                FIRMWARE_FILEPATHNAME_LENGTH_MAX - 1);
 			s_wcn_device.gnss_type = WCN_GNSS_TYPE_BD;
 			WCN_INFO("wcn bd path=%s\n",
 				 &wcn_dev->firmware_path_ext[0]);
@@ -1129,6 +1132,51 @@ int stop_integrate_wcn_truely(u32 subsys)
 
 	/* only one module works: stop CPU */
 	wcn_proc_native_stop(wcn_dev);
+
+	/* QogirL6 WCN auto shutdown */
+	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
+		int i = 0;
+		u32 reg_val = 0;
+
+		/* enable auto shutdown */
+		wcn_regmap_raw_write_bit(wcn_dev->rmap[REGMAP_PMU_APB],
+					 0x13a8, 0x1<<24);
+		wcn_regmap_read(wcn_dev->rmap[REGMAP_PMU_APB],
+					 0x03a8, &reg_val);
+		WCN_INFO("wcn shutdown reg_val=0x%x!\n", reg_val);
+
+		/* wcn shutdown status check */
+		for (i = 0; i < WCN_WAIT_SHUTDOWN_MAX_COUNT; i++) {
+			if (wcn_shutdown_status(wcn_dev)) {
+				WCN_INFO("WCN shutdown suc!\n");
+				break;
+			}
+
+			/* check sub sys shutdown */
+			if (wcn_subsys_shutdown_status(wcn_dev)) {
+				WCN_INFO("WCN subsys shutdown suc!\n");
+				continue;
+			}
+
+			if ((i == 0) &&
+				(wcn_sussys_active_num() == 1)) {
+				WCN_INFO("stop wcn aon ip!\n");
+				/* aon ip stop */
+				wcn_regmap_raw_write_bit(
+					wcn_dev->rmap[REGMAP_WCN_AON_AHB],
+					0x00C4, 0x3FFC);
+			}
+
+			usleep_range(10, 10);
+		}
+
+		if (i == WCN_WAIT_SHUTDOWN_MAX_COUNT) {
+			WCN_INFO("WCN auto shutdown fail!\n");
+			/* force BTWF or GNSS sys deepsleep */
+			wcn_subsys_force_deepsleep(wcn_dev);
+		}
+	}
+
 	wcn_power_enable_sys_domain(false);
 
 	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6)

@@ -677,6 +677,119 @@ u32 wcn_get_sleep_status(struct wcn_device *wcn_dev, int force_sleep)
 	return (sleep_status & wcn_sleep_status_mask);
 }
 
+/*
+ * WCN SYS include BTWF and GNSS sys, ret: 1 is shutdown, else is not
+ * please help confirm that the SHUTDOWN REGs can be read.
+ * WARNING:This is for QogirL6 chip until now.
+ */
+u32 wcn_subsys_shutdown_status(struct wcn_device *wcn_dev)
+{
+	u32 shutdown_status = 0;
+	u32 shutdown_mask = 0;
+	u32 btwf_shutdown_mask = (0x1<<8);
+	u32 gnss_shutdown_mask = (0x1<<14);
+
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_APB],
+			0x03b0, &shutdown_status);
+	if (wcn_dev_is_marlin(wcn_dev))
+		shutdown_mask = btwf_shutdown_mask;
+	else
+		shutdown_mask = gnss_shutdown_mask;
+
+	WCN_INFO("subsys shutdown_status:0x%x\n", shutdown_status);
+
+	return (shutdown_status & shutdown_mask);
+}
+
+/*
+ * WCN SYS include BTWF and GNSS sys
+ * please help confirm that the SHUTDOWN REGs can be write.
+ * WARNING:This is for QogirL6 chip until now.
+ */
+u32 wcn_subsys_force_deepsleep(struct wcn_device *wcn_dev)
+{
+	u32 reg_val = 0;
+
+	if (wcn_dev_is_marlin(wcn_dev)) {
+		wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_APB],
+						0x0098, &reg_val);
+		reg_val &= 0x1<<3;
+		wcn_regmap_raw_write_bit(
+				wcn_dev->rmap[REGMAP_WCN_AON_APB],
+				0x0098, reg_val);
+
+	} else {
+		wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_APB],
+						0x00c8, &reg_val);
+		reg_val &= 0x1<<3;
+		wcn_regmap_raw_write_bit(
+				wcn_dev->rmap[REGMAP_WCN_AON_APB],
+				0x00c8, reg_val);
+	}
+
+	return 0;
+}
+
+u32 wcn_sussys_active_num(void)
+{
+	u32 count = 0;
+
+	if (s_wcn_device.btwf_device &&
+	    s_wcn_device.btwf_device->wcn_open_status & WCN_MARLIN_MASK)
+		count++;
+
+	if (s_wcn_device.gnss_device &&
+	    s_wcn_device.gnss_device->wcn_open_status & WCN_GNSS_ALL_MASK)
+		count++;
+
+	WCN_INFO("%s, %d", __func__, count);
+	return count;
+}
+/*
+ * WCN SYS shutdown, ret: 1 is shutdown, else is not
+ * shutdown status can't access WCN REGs
+ * WARNING:This is for QogirL6 chip until now.
+ */
+u32 wcn_shutdown_status(struct wcn_device *wcn_dev)
+{
+	u32 reg_val = 0;
+
+	/* WCN shutdown */
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_PMU_APB],
+				 0x0538, &reg_val);
+	WCN_INFO("wcn shutdown status =0x%x!\n", reg_val);
+	if (reg_val == (0x7<<24)) {
+		WCN_INFO("wcn shutdown suc!\n");
+		return 1;
+	}
+
+	return 0;
+}
+
+/*
+ * WCN SYS sleep, ret: 1 is deep sleep, else is not
+ * deepsleep status can't access WCN REGs
+ * WARNING:This is for QogirL6 chip until now.
+ */
+u32 wcn_deep_sleep_status(struct wcn_device *wcn_dev)
+{
+	u32 reg_val = 0;
+
+	/* WCN sleep,wakeup */
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_PMU_APB],
+				 0x0860, &reg_val);
+	WCN_INFO("wcn shutdown status =0x%x!\n", reg_val);
+	if ((reg_val & 0xF0000000) == 0) {
+		WCN_INFO("wcn is deep sleep!\n");
+		return 1;
+	} else if ((reg_val & 0xF0000000) == (0x6<<28)) {
+		WCN_INFO("wcn is wakeup!\n");
+		return 0;
+	}
+
+	return 1;
+}
+
 void wcn_power_domain_set(struct wcn_device *wcn_dev, u32 set_type)
 {
 	u32 offset0 = 0, offset1 = 0;
@@ -697,12 +810,12 @@ void wcn_power_domain_set(struct wcn_device *wcn_dev, u32 set_type)
 					PD_WCN_CFG0_OFFSET_PIKE2;
 		}
 	} else if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
-		if (set_type == 1) {
+		if (set_type == 1) { /* Close:set force shutdown */
 			offset0 = WCN_REG_CLEAR_OFFSET +
 					PD_WCN_CFG0_OFFSET_QOGIRL6;
 			offset1 = WCN_REG_SET_OFFSET +
 					PD_WCN_CFG0_OFFSET_QOGIRL6;
-		} else {
+		} else { /* Open: Auto, Force shutdown clear */
 			offset0 = WCN_REG_CLEAR_OFFSET +
 					PD_WCN_CFG0_OFFSET_QOGIRL6;
 			offset1 = WCN_REG_CLEAR_OFFSET +
@@ -1004,7 +1117,7 @@ void wcn_sys_deep_sleep_en(void)
 		}
 		wcn_regmap_raw_write_bit(rmap, 0x1244, 1 << 0);
 	}
-		WCN_INFO("%s finish!\n", __func__);
+	WCN_INFO("%s finish!\n", __func__);
 }
 
 void wcn_power_set_vddcon(u32 value)
@@ -1170,6 +1283,11 @@ bool wcn_power_status_check(struct wcn_device *wcn_dev)
 	wcn_pd_top_state = reg_value & 0x1f000000;
 	if (wcn_pd_top_state == 0x7)
 		return false;
+
+	if (wcn_deep_sleep_status(wcn_dev)) {
+		WCN_INFO("%s is deep\n", __func__);
+		return false;
+	}
 
 	reg_value = 0;
 	/* PD_SLP_STATUS */
@@ -1338,3 +1456,4 @@ void wcn_merlion_power_control(bool enable)
 	else
 		wcn_merlion_power_off();
 }
+

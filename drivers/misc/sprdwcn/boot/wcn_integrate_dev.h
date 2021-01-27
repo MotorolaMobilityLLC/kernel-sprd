@@ -181,6 +181,7 @@ struct wifi_calibration {
 #define MARLIN_WAIT_CP_INIT_COUNT	(256)
 #define MARLIN_WAIT_CP_INIT_MAX_TIME (20000)
 #define WCN_WAIT_SLEEP_MAX_COUNT (32)
+#define WCN_WAIT_SHUTDOWN_MAX_COUNT (16)
 
 /* begin : for gnss module */
 /* record efuse, GNSS_EFUSE_DATA_OFFSET is defined in gnss.h */
