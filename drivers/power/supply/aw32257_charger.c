@@ -1193,7 +1193,7 @@ static void aw32257_charger_work(struct work_struct *data)
 {
 	struct aw32257_device *info =
 		container_of(data, struct aw32257_device, work);
-	int limit_cur, cur, ret;
+	int ret, limit_cur = 0, cur = 0;
 	bool present = aw32257_charger_is_bat_present(info);
 
 	mutex_lock(&info->lock);
@@ -1338,7 +1338,8 @@ static int aw32257_charger_hw_init(struct aw32257_device *info)
 		voltage_max_microvolt =
 			bat_info.constant_charge_voltage_max_uv / 1000;
 
-		aw32257_set_battery_regulation_voltage(info, bat_info.constant_charge_voltage_max_uv);
+		if (aw32257_set_battery_regulation_voltage(info, bat_info.constant_charge_voltage_max_uv) < 0)
+			dev_err(info->dev, "set regulation voltage failed\n");
 
 		current_max_ua = bat_info.constant_charge_current_max_ua / 1000;
 		power_supply_put_battery_info(info->charger, &bat_info);
@@ -1563,10 +1564,12 @@ static int aw32257_power_supply_init(struct aw32257_device *bq,
 		chip = ret;
 
 	ret = aw32257_detect_revision(bq);
-	if (ret < 0)
-		strcpy(revstr, "unknown");
-	else
+	if (ret < 0) {
+		strncpy(revstr, "unknown", sizeof(revstr)-1);
+		revstr[sizeof(revstr)-1] = '\0';
+	} else {
 		sprintf(revstr, "1.%d", ret);
+	}
 
 	bq->model = kasprintf(GFP_KERNEL,
 				"chip %s, revision %s, vender code %.3d",
