@@ -145,6 +145,36 @@
 			};
 		};
 
+		ai_apb_regs: syscon@27000000 {
+			compatible = "sprd,ums9620-glbregs", "syscon";
+			#syscon-cells = <2>;
+			reg = <0 0x27000000 0 0x4000>;
+		};
+
+		ai_clock_regs: syscon@27004000 {
+			compatible = "sprd,ums9620-glbregs", "syscon";
+			#syscon-cells = <2>;
+			reg = <0 0x27004000 0 0x4000>;
+		};
+
+		ai_dvfs_regs: syscon@27008000 {
+			compatible = "sprd,ums9620-glbregs", "syscon";
+			#syscon-cells = <2>;
+			reg = <0 0x27008000 0 0x4000>;
+		};
+
+		ai_mtx_regs: syscon@2700c000 {
+			compatible = "sprd,ums9620-glbregs", "syscon";
+			#syscon-cells = <2>;
+			reg = <0 0x2700c000 0 0x4000>;
+		};
+
+		ai_busmon_regs: syscon@27010000 {
+			compatible = "sprd,ums9620-glbregs", "syscon";
+			#syscon-cells = <2>;
+			reg = <0 0x27010000 0 0x4000>;
+		};
+
 		mm_ahb_regs: syscon@30000000 {
 			compatible = "sprd,ums9620-glbregs", "syscon";
 			#syscon-cells = <2>;
@@ -2471,6 +2501,103 @@
 						<0>;
 				sprd,ddr-offset = <0x80000000>;
 				status = "okay";
+			};
+		};
+
+		ai-axi {
+			compatible = "simple-bus";
+			#address-cells = <2>;
+			#size-cells = <2>;
+			ranges;
+
+			npu_img: npu@27100000 {
+				compatible = "img,ax3xxx-nna";
+				reg = <0 0x27100000 0 0x80000>; /* powervr */
+				interrupt-names = "ai_powervr_0",
+					"ai_powervr_1",
+					"ai_powervr_2",
+					"ai_mem_fw",
+					"ai_perf_busmon";
+				interrupts = <GIC_SPI 226 IRQ_TYPE_LEVEL_HIGH>,
+					<GIC_SPI 223 IRQ_TYPE_LEVEL_HIGH>,
+					<GIC_SPI 222 IRQ_TYPE_LEVEL_HIGH>,
+					<GIC_SPI 221 IRQ_TYPE_LEVEL_HIGH>,
+					<GIC_SPI 200 IRQ_TYPE_LEVEL_HIGH>;
+				syscon-names = "apb_reg",
+					"clock_reg",
+					"dvfs_reg",
+					"mtx_reg",
+					"busmon",
+					"pd_ai_sys";
+				syscons = <&ai_apb_regs 0x0 0x0>,
+					<&ai_clock_regs 0x0 0x0>,
+					<&ai_dvfs_regs 0x0 0x0>,
+					<&ai_mtx_regs 0x0 0x0>,
+					<&ai_busmon_regs 0x0 0x0>,
+					<&pmu_apb_regs
+					REG_PMU_APB_PD_AI_CFG_0
+					MASK_PMU_APB_PD_AI_FORCE_SHUTDOWN>;
+				clock-names = "ai_apll",
+					"ai_eb",
+					"powervr_eb",
+					"mtx_eb",
+					"dvfs_eb",
+					"ocm_eb",
+					"pmon_eb",
+					"aon_to_ocm_eb";
+				clocks = <&g5r_pll CLK_AIPLL>,
+					<&aonapb_gate CLK_AI_EB>,
+					<&aiapb_gate CLK_POWERVR_EB>,
+					<&aiapb_gate CLK_MTX_APBREG_EB>,
+					<&aiapb_gate CLK_AI_DVFS_EB>,
+					<&aiapb_gate CLK_OCM_EB>,
+					<&aiapb_gate CLK_AXI_PMON_EB>,
+					<&aiapb_gate CLK_AON_TO_OCM_EB>;
+				operating-points = <
+					/* kHz  uV */
+					250000 550000
+					307200 550000
+					384000 600000
+					500000 600000
+					512000 650000
+					614400 650000
+					768000 700000
+					1000000 750000
+				>;
+				sprd,dvfs-powervr-tbl = <
+					/* kHz   uV  idx */
+					250000 550000 0
+					307200 550000 1
+					384000 600000 2
+					500000 600000 3
+					512000 650000 4
+					614400 650000 5
+					768000 700000 6
+					1000000 750000 7
+				>;
+				sprd,dvfs-mtx-tbl = <
+					/* kHz   uV  idx */
+					250000 550000 0
+					307200 550000 1
+					384000 600000 2
+					500000 600000 3
+					512000 650000 4
+					614000 650000 5
+					768000 700000 6
+					1000000 750000 7
+				>;
+				sprd,dvfs-ocm-tbl = <
+					/* kHz   uV  idx */
+					153600 550000 0
+					250000 600000 1
+					333300 650000 2
+					384000 700000 3
+					500000 750000 4
+					512000 750000 5
+					512000 750000 6
+					512000 750000 7
+				>;
+				sprd,npu_dvfs_default = <0>;
 			};
 		};
 	};
