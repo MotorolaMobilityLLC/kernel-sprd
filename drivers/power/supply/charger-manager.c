@@ -3357,6 +3357,11 @@ static void cm_update_charger_type_status(struct charger_manager *cm)
 		usb_main.USB_ONLINE = 0;
 
 	}
+
+	//{ Modify by Tinno
+	pr_info("USB_ONLINE=%d\n", usb_main.USB_ONLINE);
+	power_supply_changed(usb_main.psy);
+	//}
 }
 
 /**
