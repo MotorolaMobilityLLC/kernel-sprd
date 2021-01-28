@@ -106,6 +106,8 @@ iommu:
 iommu:sprd:
 irqchip:
 
+kernel:sysctl:
+
 leds:sc27xx:
 leds:trigger:
 lib:e_show_mem:
