@@ -47,6 +47,7 @@
 #define SC2703_INPUT_CUR_MASK			GENMASK(7, 0)
 #define SC2703_WAKE_UP_MS				2000
 
+#define SC2703_INPUT_CUR_MASK		GENMASK(7, 0)
 struct sc2703_charger_info {
 	struct device *dev;
 	struct regmap *regmap;
@@ -670,6 +671,25 @@ sc2703_charger_get_current(struct sc2703_charger_info *info, u32 *cur)
 	return 0;
 }
 
+static u32
+sc2703_charger_get_input_current(struct sc2703_charger_info *info, u32 *cur)
+{
+	u32 val;
+	int ret;
+
+	ret = regmap_read(info->regmap, SC2703_ADC_RES_2, &val);
+	if (ret)
+		return ret;
+
+	/* The value of the SC2703_ADC_RES_2 register is converted
+	 * to the charge input  current value.
+	 * Calculation formula:(x * 25)ma
+	 */
+	*cur = ((val & SC2703_INPUT_CUR_MASK) * 25 * 1000);
+
+	return 0;
+}
+
 static int
 sc2703_charger_set_limit_current(struct sc2703_charger_info *info, u32 val)
 {
@@ -1012,6 +1032,13 @@ static int sc2703_charger_usb_get_property(struct power_supply *psy,
 		else
 			enabled = false;
 		val->intval = enabled;
+		break;
+
+	case POWER_SUPPLY_PROP_INPUT_CURRENT_NOW:
+		ret = sc2703_charger_get_input_current(info, &cur);
+		if (ret)
+			goto out;
+		val->intval = cur;
 		break;
 	default:
 		ret = -EINVAL;
