@@ -13,7 +13,9 @@
 #include <linux/fs.h>
 #include <linux/kernel.h>
 #include <linux/mfd/syscon.h>
+#include <linux/mm.h>
 #include <linux/module.h>
+#include <linux/of_address.h>
 #include <linux/of_device.h>
 #include <linux/of_gpio.h>
 #include <linux/platform_device.h>
@@ -46,6 +48,7 @@
 #include "wcn_txrx.h"
 #include "mdbg_type.h"
 #include "wcn_glb_reg.h"
+#include "wcn_ca_trusty.h"
 
 #ifdef MODULE_PARAM_PREFIX
 #undef MODULE_PARAM_PREFIX
@@ -416,6 +419,147 @@ static char *btwf_load_firmware_data(loff_t off, unsigned long int imag_size)
 	return data;
 }
 
+#define WCN_VMAP_RETRY_CNT (20)
+static void *wcn_mem_ram_vmap(phys_addr_t start, size_t size,
+			      int noncached, unsigned int *count)
+{
+	struct page **pages;
+	phys_addr_t page_start;
+	unsigned int page_count;
+	pgprot_t prot;
+	unsigned int i;
+	void *vaddr;
+	phys_addr_t addr;
+	int retry = 0;
+
+	page_start = start - offset_in_page(start);
+	page_count = DIV_ROUND_UP(size + offset_in_page(start), PAGE_SIZE);
+	*count = page_count;
+	if (noncached)
+		prot = pgprot_noncached(PAGE_KERNEL);
+	else
+		prot = PAGE_KERNEL;
+
+retry1:
+	pages = kmalloc_array(page_count, sizeof(struct page *), GFP_KERNEL);
+	if (!pages) {
+		if (retry++ < WCN_VMAP_RETRY_CNT) {
+			usleep_range(8000, 10000);
+			goto retry1;
+		} else {
+			WCN_ERR("malloc err\n");
+			return NULL;
+		}
+	}
+
+	for (i = 0; i < page_count; i++) {
+		addr = page_start + i * PAGE_SIZE;
+		pages[i] = pfn_to_page(addr >> PAGE_SHIFT);
+	}
+retry2:
+	vaddr = vm_map_ram(pages, page_count, -1, prot);
+	if (!vaddr) {
+		if (retry++ < WCN_VMAP_RETRY_CNT) {
+			usleep_range(8000, 10000);
+			goto retry2;
+		} else {
+			WCN_ERR("vmap err\n");
+			goto out;
+		}
+	} else {
+		vaddr += offset_in_page(start);
+	}
+out:
+	kfree(pages);
+
+	return vaddr;
+}
+
+void wcn_mem_ram_unmap(const void *mem, unsigned int count)
+{
+	vm_unmap_ram(mem - offset_in_page(mem), count);
+}
+
+void *wcn_mem_ram_vmap_nocache(phys_addr_t start, size_t size,
+			       unsigned int *count)
+{
+	return wcn_mem_ram_vmap(start, size, 1, count);
+}
+
+#ifdef CONFIG_ARM64
+static inline void wcn_unalign_memcpy(void *to, const void *from, u32 len)
+{
+	if (((unsigned long)to & 7) == ((unsigned long)from & 7)) {
+		while (((unsigned long)from & 7) && len) {
+			*(char *)(to++) = *(char *)(from++);
+			len--;
+		}
+		memcpy(to, from, len);
+	} else if (((unsigned long)to & 3) == ((unsigned long)from & 3)) {
+		while (((unsigned long)from & 3) && len) {
+			*(char *)(to++) = *(char *)(from++);
+			len--;
+		}
+		while (len >= 4) {
+			*(u32 *)(to) = *(u32 *)(from);
+			to += 4;
+			from += 4;
+			len -= 4;
+		}
+		while (len) {
+			*(char *)(to++) = *(char *)(from++);
+			len--;
+		}
+	} else {
+		while (len) {
+			*(char *)(to++) = *(char *)(from++);
+			len--;
+		}
+	}
+}
+#else
+static inline void wcn_unalign_memcpy(void *to, const void *from, u32 len)
+{
+	memcpy(to, from, len);
+}
+#endif
+
+int wcn_write_data_to_phy_addr(phys_addr_t phy_addr,
+			       void *src_data, u32 size)
+{
+	char *virt_addr, *src;
+	unsigned int cnt;
+
+	src = (char *)src_data;
+	virt_addr = (char *)wcn_mem_ram_vmap_nocache(phy_addr, size, &cnt);
+	if (virt_addr) {
+		wcn_unalign_memcpy((void *)virt_addr, (void *)src, size);
+		wcn_mem_ram_unmap(virt_addr, cnt);
+		return 0;
+	}
+
+	WCN_ERR("wcn_mem_ram_vmap_nocache fail\n");
+	return -1;
+}
+
+int wcn_read_data_from_phy_addr(phys_addr_t phy_addr,
+				void *tar_data, u32 size)
+{
+	char *virt_addr, *tar;
+	unsigned int cnt;
+
+	tar = (char *)tar_data;
+	virt_addr = wcn_mem_ram_vmap_nocache(phy_addr, size, &cnt);
+	if (virt_addr) {
+		wcn_unalign_memcpy((void *)tar, (void *)virt_addr, size);
+		wcn_mem_ram_unmap(virt_addr, cnt);
+		return 0;
+	}
+
+	WCN_ERR("wcn_mem_ram_vmap_nocache fail\n");
+	return -1;
+}
+
 static int marlin_download_from_partition(void)
 {
 	int err, len, trans_size, ret;
@@ -423,8 +567,13 @@ static int marlin_download_from_partition(void)
 	char *buffer = NULL;
 	char *temp = NULL;
 	struct imageinfo *imginfo = NULL;
+	uint32_t sec_img_magic;
+	struct sys_img_header *imgHeader = NULL;
 
-	img_size = FIRMWARE_MAX_SIZE;
+	if (marlin_dev->maxsz_btwf > 0)
+		img_size = marlin_dev->maxsz_btwf;
+	else
+		img_size = FIRMWARE_MAX_SIZE;
 
 	pr_info("%s entry\n", __func__);
 	buffer = btwf_load_firmware_data(0, img_size);
@@ -433,6 +582,24 @@ static int marlin_download_from_partition(void)
 		return -1;
 	}
 	temp = buffer;
+
+	imgHeader = (struct sys_img_header *) buffer;
+	sec_img_magic = imgHeader->mMagicNum;
+	if (sec_img_magic != SEC_IMAGE_MAGIC) {
+		pr_info("%s image magic 0x%x.\n",
+			__func__, sec_img_magic);
+	} else if (marlin_dev->maxsz_btwf > 0) {
+		wcn_write_data_to_phy_addr(marlin_dev->base_addr_btwf, buffer, marlin_dev->maxsz_btwf);
+		if (wcn_firmware_sec_verify(1, marlin_dev->base_addr_btwf, marlin_dev->maxsz_btwf) < 0) {
+			vfree(temp);
+			pr_err("%s sec verify fail.\n", __func__);
+			return -1;
+		} else {
+			img_size = FIRMWARE_MAX_SIZE;
+			wcn_read_data_from_phy_addr(marlin_dev->base_addr_btwf + SEC_IMAGE_HDR_SIZE,
+				buffer, img_size);
+		}
+	}
 
 	ret = marlin_judge_imagepack(buffer);
 	if (!ret) {
@@ -563,14 +730,36 @@ static int gnss_download_from_partition(void)
 	unsigned long int imgpack_size, img_size;
 	char *buffer = NULL;
 	char *temp = NULL;
+	uint32_t sec_img_magic;
+	struct sys_img_header *imgHeader = NULL;
 
 	img_size = imgpack_size =  GNSS_FIRMWARE_MAX_SIZE;
+
+	if (marlin_dev->maxsz_gnss > 0)
+		imgpack_size = marlin_dev->maxsz_gnss;
 
 	pr_info("GNSS %s entry\n", __func__);
 	temp = buffer = gnss_load_firmware_data(imgpack_size);
 	if (!buffer) {
 		pr_info("%s gnss buff is NULL\n", __func__);
 		return -1;
+	}
+
+	imgHeader = (struct sys_img_header *) buffer;
+	sec_img_magic = imgHeader->mMagicNum;
+	if (sec_img_magic != SEC_IMAGE_MAGIC) {
+		pr_info("%s image magic 0x%x.\n",
+			__func__, sec_img_magic);
+	} else if (marlin_dev->maxsz_gnss > 0) {
+		wcn_write_data_to_phy_addr(marlin_dev->base_addr_gnss, buffer, imgpack_size);
+		if (wcn_firmware_sec_verify(2, marlin_dev->base_addr_gnss, imgpack_size) < 0) {
+			vfree(temp);
+			pr_err("%s sec verify fail.\n", __func__);
+			return -1;
+		} else {
+			wcn_read_data_from_phy_addr(marlin_dev->base_addr_gnss + SEC_IMAGE_HDR_SIZE,
+				buffer, img_size);
+		}
 	}
 
 	len = 0;
@@ -798,6 +987,7 @@ static int marlin_parse_dt(struct platform_device *pdev)
 	int ret;
 	char *buf;
 	struct wcn_clock_info *clk;
+	struct resource res;
 
 	if (!marlin_dev)
 		return -1;
@@ -932,6 +1122,26 @@ static int marlin_parse_dt(struct platform_device *pdev)
 		ret = gpio_request(clk->gpio, "wcn_xtal_26m_type");
 		if (ret)
 			pr_err("xtal 26m gpio request err: %d\n", ret);
+	}
+
+	ret = of_address_to_resource(np, 0, &res);
+	if (ret) {
+		pr_info("No BTWF mem.\n");
+	} else {
+		marlin_dev->base_addr_btwf = res.start;
+		marlin_dev->maxsz_btwf = resource_size(&res);
+		pr_info("cp base = 0x%x, size = 0x%x\n",
+			 (u64)marlin_dev->base_addr_btwf, marlin_dev->maxsz_btwf);
+	}
+
+	ret = of_address_to_resource(np, 1, &res);
+	if (ret) {
+		pr_info("No GNSS mem.\n");
+	} else {
+		marlin_dev->base_addr_gnss = res.start;
+		marlin_dev->maxsz_gnss = resource_size(&res);
+		pr_info("cp base = 0x%x, size = 0x%x\n",
+			 (u64)marlin_dev->base_addr_gnss, marlin_dev->maxsz_gnss);
 	}
 
 	pr_info("BTWF_FIRMWARE_PATH len=%ld\n",
