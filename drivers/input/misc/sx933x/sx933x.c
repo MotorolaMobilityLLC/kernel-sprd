@@ -1215,15 +1215,14 @@ static int ps_notify_callback(struct notifier_block *self,
 	if ((event == PSY_EVENT_PROP_ADDED || event == PSY_EVENT_PROP_CHANGED)
 #endif
 			&& psy && psy->desc->get_property && psy->desc->name &&
-#ifndef CONFIG_T_PROJECT_P352
 			!strncmp(psy->desc->name, "usb", sizeof("usb")) && data) {
-#else
-			!strncmp(psy->desc->name, "battery", sizeof("battery")) && data) {
-#endif
 		LOG_DBG("ps notification: event = %lu\n", event);
 		retval = ps_get_state(psy, &present);
 		if (retval) {
+			LOG_ERR("ps_get_state fail\n");
+#ifndef CONFIG_T_PROJECT_P352
 			return retval;
+#endif
 		}
 
 		if (event == PSY_EVENT_PROP_CHANGED) {
