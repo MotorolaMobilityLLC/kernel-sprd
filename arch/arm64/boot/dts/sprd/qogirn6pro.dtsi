@@ -837,7 +837,7 @@
 				#gpio-cells = <2>;
 				interrupt-controller;
 				#interrupt-cells = <2>;
-				interrupts = <GIC_SPI 61 IRQ_TYPE_LEVEL_HIGH>;
+				interrupts = <GIC_SPI 40 IRQ_TYPE_LEVEL_HIGH>;
 			};
 
 			eic_debounce: gpio@200000 {
@@ -852,7 +852,7 @@
 				#gpio-cells = <2>;
 				interrupt-controller;
 				#interrupt-cells = <2>;
-				interrupts = <GIC_SPI 72 IRQ_TYPE_LEVEL_HIGH>;
+				interrupts = <GIC_SPI 24 IRQ_TYPE_LEVEL_HIGH>;
 			};
 
 			eic_latch: gpio@200080 {
@@ -867,7 +867,7 @@
 				#gpio-cells = <2>;
 				interrupt-controller;
 				#interrupt-cells = <2>;
-				interrupts = <GIC_SPI 72 IRQ_TYPE_LEVEL_HIGH>;
+				interrupts = <GIC_SPI 24 IRQ_TYPE_LEVEL_HIGH>;
 			};
 
 			eic_async: gpio@2000a0 {
@@ -882,7 +882,7 @@
 				#gpio-cells = <2>;
 				interrupt-controller;
 				#interrupt-cells = <2>;
-				interrupts = <GIC_SPI 72 IRQ_TYPE_LEVEL_HIGH>;
+				interrupts = <GIC_SPI 24 IRQ_TYPE_LEVEL_HIGH>;
 			};
 
 			eic_sync: gpio@2000c0 {
@@ -897,7 +897,7 @@
 				#gpio-cells = <2>;
 				interrupt-controller;
 				#interrupt-cells = <2>;
-				interrupts = <GIC_SPI 72 IRQ_TYPE_LEVEL_HIGH>;
+				interrupts = <GIC_SPI 24 IRQ_TYPE_LEVEL_HIGH>;
 			};
 
 			aon_mailbox: mailbox@600000 {
