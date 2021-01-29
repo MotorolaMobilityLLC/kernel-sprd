@@ -22,6 +22,7 @@
 #include <linux/regulator/machine.h>
 #include <linux/usb/phy.h>
 #include <uapi/linux/usb/charger.h>
+#include <linux/pm_wakeup.h>
 
 #define BQ2560X_REG_0				0x0
 #define BQ2560X_REG_1				0x1
@@ -89,6 +90,8 @@
 #define BQ2560X_FCHG_OVP_14V			14000
 #define BQ2560X_FAST_CHARGER_VOLTAGE_MAX	10500000
 #define BQ2560X_NORMAL_CHARGER_VOLTAGE_MAX	6500000
+
+#define BQ2560X_WAKE_UP_MS                      2000
 
 struct bq2560x_charger_info {
 	struct i2c_client *client;
@@ -795,6 +798,8 @@ static int bq2560x_charger_usb_change(struct notifier_block *nb,
 	if (info->role == BQ2560X_ROLE_SLAVE)
 		return NOTIFY_OK;
 
+	pm_wakeup_event(info->dev, BQ2560X_WAKE_UP_MS);
+
 	schedule_work(&info->work);
 	return NOTIFY_OK;
 }
@@ -1402,6 +1407,7 @@ static int bq2560x_charger_probe(struct i2c_client *client,
 		return ret;
 	}
 
+	device_init_wakeup(info->dev, true);
 	info->usb_notify.notifier_call = bq2560x_charger_usb_change;
 	ret = usb_register_notifier(info->usb_phy, &info->usb_notify);
 	if (ret) {
