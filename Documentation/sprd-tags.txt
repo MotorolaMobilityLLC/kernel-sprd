@@ -57,6 +57,7 @@ asoc:sprd:include:
 asoc:sprd:platform:
 asoc:usb:
 
+base:
 block:zram:
 
 clk:sprd:
