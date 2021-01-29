@@ -331,3 +331,43 @@
 		spi-max-frequency = <6000000>;
 	};
 };
+
+&vddwpa {
+	status = "disabled";
+};
+
+&vddldo0 {
+	status = "disabled";
+};
+
+&vddldo1 {
+	regulator-always-on;
+};
+
+&vddrf18 {
+	status = "disabled";
+};
+
+&vddrf1v1 {
+	status = "disabled";
+};
+
+&vddrf0v9 {
+	status = "disabled";
+};
+
+&vddldo4 {
+	status = "disabled";
+};
+
+&vddmodem {
+	status = "disabled";
+};
+
+&avdd12 {
+	regulator-always-on;
+};
+
+&avdd18 {
+	regulator-always-on;
+};
