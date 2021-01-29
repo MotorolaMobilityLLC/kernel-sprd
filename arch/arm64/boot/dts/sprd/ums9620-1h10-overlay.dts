@@ -2,6 +2,7 @@
 /plugin/;
 #include <dt-bindings/input/input.h>
 #include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/clock/sprd,ums9620-clk.h>
 
 / {
 
@@ -176,6 +177,28 @@
 						extcon = <&pmic_typec>;
 					};
 				};
+			};
+			sprd_marlin3: sprd-marlin3 {
+				compatible = "sprd,marlin3";
+				reset-gpios = <&ap_gpio 172 GPIO_ACTIVE_LOW>;
+				enable-gpios = <&ap_gpio 171 GPIO_ACTIVE_LOW>;
+				m2-to-ap-irq-gpios = <&ap_gpio 173 GPIO_ACTIVE_LOW>;
+				xtal-26m-clk-type = "TCXO";
+
+				avdd12-supply = <&vddwcn>;
+				avdd33-supply = <&vddwifipa>;
+				dcxo18-supply = <&vddsim2>;
+
+				clock-names = "clk_32k","source","enable";
+				clocks = <&aonapb_gate CLK_AUX0>,
+					 <&ext_32k>,
+					 <&aonapb_gate CLK_AUX0_EB>;
+
+				/* no need config dvdd12 because of share vddmem to DDR */
+				/* ufs  download*/
+				sprd,btwf-file-name = "/dev/block/platform/soc/soc:ap-ahb/22000000.ufs/by-name/wcnmodem";
+				sprd,gnss-file-name = "/dev/block/platform/soc/soc:ap-ahb/22000000.ufs/by-name/gnssmodem";
+				sprd,rc-ctrl = <&pcie1>;
 			};
 		};
 	};
