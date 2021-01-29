@@ -478,13 +478,13 @@ void gsp_core_release(struct kthread_work *work)
 	else
 		gsp_kcfg_complete(kcfg);
 
+	if (core->ops->release)
+		ret = core->ops->release(core);
+
 	/* disable core must be invoked after iommu map */
 	gsp_core_disable(core);
 	/*sprd_iommu_suspend(core->dev);*/
 	gsp_interface_unprepare(interface);
-
-	if (core->ops->release)
-		ret = core->ops->release(core);
 
 	if (ret) {
 		gsp_core_state_set(core, CORE_STATE_RELEASE_ERR);

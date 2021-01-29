@@ -118,6 +118,7 @@ struct sprd_dpu_layer {
 	u32 y2r_coef;
 	u8 pallete_en;
 	u32 pallete_color;
+	u32 secure_en;
 };
 
 struct dpu_capability {

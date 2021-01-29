@@ -36,7 +36,8 @@ marlin-$(CONFIG_WCN_SWD) += wcn_swd_dap.o
 #marlin3:sdio pcie
 MARLINOFILES += wcn_boot.o \
 		wcn_dump.o \
-		wcn_op.o
+		wcn_op.o \
+		wcn_ca_trusty.o
 
 marlin-$(CONFIG_SDIOHAL) += mem_pd_mgr.o
 marlin-$(CONFIG_WCN_UTILS) += wcn_debugfs.o
