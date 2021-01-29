@@ -41,6 +41,8 @@
 
 #define BQ2560X_REG_CHG_MASK			GENMASK(4, 4)
 
+#define BQ2560X_REG_EN_TIMER_MASK	GENMASK(3, 3)
+
 
 #define BQ2560X_REG_RESET_MASK			GENMASK(6, 6)
 
@@ -296,6 +298,7 @@ static int bq2560x_charger_hw_init(struct bq2560x_charger_info *info)
 		ret = bq2560x_update_bits(info, BQ2560X_REG_B,
 					  BQ2560X_REG_RESET_MASK,
 					  BQ2560X_REG_RESET_MASK);
+
 		if (ret) {
 			dev_err(info->dev, "reset bq2560x failed\n");
 			return ret;
@@ -324,6 +327,12 @@ static int bq2560x_charger_hw_init(struct bq2560x_charger_info *info)
 							info->cur.unknown_cur);
 		if (ret)
 			dev_err(info->dev, "set bq2560x limit current failed\n");
+
+
+		ret = bq2560x_update_bits(info, BQ2560X_REG_5,
+					  BQ2560X_REG_EN_TIMER_MASK,
+					  0);
+		
 	}
 
 	return ret;
