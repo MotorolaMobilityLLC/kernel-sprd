@@ -213,6 +213,10 @@
 					 <&ext_32k>,
 					 <&aonapb_gate CLK_AUX0_EB>;
 
+				reg = <0 0xf4100000 0 0x00200000>,
+					<0 0xf4300000 0 0x00100000>;
+				reg-names = "btwf_mem", "gnss_mem";
+
 				sdhci-name = <&sdio1>;
 				sprd,btwf-file-name = "/dev/block/platform/soc/soc:ap-apb/71400000.sdio/by-name/wcnmodem";
 				sprd,gnss-file-name = "/dev/block/platform/soc/soc:ap-apb/71400000.sdio/by-name/gnssmodem";
@@ -269,6 +273,15 @@
 	vdsp_reserved: vdsp-mem@f09ae000 {
 		reg = <0x0 0xf09ae000 0x0 0x03700000>;
 	};
+
+	wcn_reserved: wcn-mem@f4100000 {
+		reg = <0x0 0xf4100000 0x0 0x00200000>;
+	};
+
+	gnss_reserved: gnss-mem@f4300000 {
+		reg = <0x0 0xf4300000 0x0 0x00100000>;
+	};
+
 /*
 	gpu_reserved: gpu-mem@fb8ae000 {
 		reg = <0x0 0xfb8ae000 0x0 0x01e5a000>;

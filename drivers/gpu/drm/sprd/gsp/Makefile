@@ -17,6 +17,7 @@ obj-y += gsp_lite_r2p0/
 obj-y += gsp_r8p0/
 obj-y += gsp_interface/
 obj-y += gsp_core.o gsp_dev.o gsp_interface.o gsp_kcfg.o \
-	 gsp_layer.o gsp_sync.o gsp_sysfs.o gsp_workqueue.o
+	 gsp_layer.o gsp_sync.o gsp_sysfs.o gsp_workqueue.o \
+	 gsp_ipc_trusty.o
 
 
