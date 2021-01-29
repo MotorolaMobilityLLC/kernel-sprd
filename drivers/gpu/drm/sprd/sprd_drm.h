@@ -31,4 +31,8 @@ int sprd_atomic_commit(struct drm_device *dev,
 			     struct drm_atomic_state *state,
 			     bool nonblock);
 
+#ifdef CONFIG_COMPAT
+long sprd_compat_ioctl(struct file *filp, unsigned int cmd, unsigned long arg);
+#endif
+
 #endif /* _SPRD_DRM_H_ */

@@ -32,4 +32,6 @@ obj-y += qogirl6/
 
 obj-$(CONFIG_DRM_SPRD_GSP) += gsp/
 
+obj-$(CONFIG_COMPAT) += sprd_ioc32.o
+
 obj-$(CONFIG_DRM_SPRD_HDMI) += lt9611_i2c.o
