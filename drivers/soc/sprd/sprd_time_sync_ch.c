@@ -11,6 +11,7 @@
 #include <linux/init.h>
 #include <linux/io.h>
 #include <linux/kernel.h>
+#include <linux/cdev.h>
 #include <linux/module.h>
 #include <linux/of.h>
 #include <linux/of_address.h>
@@ -19,6 +20,7 @@
 #include <linux/soc/sprd/sprd_systimer.h>
 #include <linux/spinlock.h>
 #include <linux/syscore_ops.h>
+#include <linux/soc/sprd/sprd_time_sync.h>
 
 #define SENSOR_TS_CTRL_NUM	4
 #define SENSOR_TS_CTRL_SIZE	4
@@ -71,6 +73,7 @@ static inline void update_cnt_to_boot(void)
 /* send only once to ensure resume time */
 static void sprd_time_sync_ch_send(void)
 {
+	sprd_send_ap_time();
 
 #if IS_ENABLED(CONFIG_SPRD_DEBUG)
 	pr_info("send time to ch. ts_cnt = %llu sysfrt_cnt = %lu boottime = %llu\n",

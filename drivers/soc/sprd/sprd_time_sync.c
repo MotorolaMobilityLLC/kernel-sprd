@@ -5,6 +5,7 @@
  * Used to keep time in sync with AP and other systems.
  */
 
+#include <clocksource/arm_arch_timer.h>
 #include <linux/cdev.h>
 #include <linux/interrupt.h>
 #include <linux/kernel.h>
@@ -18,40 +19,20 @@
 #include <linux/timekeeper_internal.h>
 #include <linux/uaccess.h>
 
+#include <linux/soc/sprd/sprd_systimer.h>
 #include <linux/soc/sprd/sprd_time_sync.h>
 
 #define SPRD_TIMESYNC_MSG_LENGTH	(100)
-#define CN_TIMEZONE_OFFSET_SEC		(8 * 60 * 60)
-
-#ifdef pr_fmt
-#undef pr_fmt
-#endif
-#define pr_fmt(fmt) "sprd_time_sync: " fmt
 
 static struct class *sprd_time_sync_class;
 static struct sprd_time_sync_device *tcd_dev;
-
-struct sprd_time_sync_init_data {
-	char *name;
-	u64 t_monotime_ns;
-	u64 t_boottime_ns;
-	u64 t_realtime_s;
-	int tz_minuteswest;
-	int tz_dsttime;
-};
-
-struct sprd_time_sync_device {
-	struct sprd_time_sync_init_data *init;
-	int major;
-	int minor;
-	struct cdev cdev;
-	struct device *dev;
-};
 
 enum SPRD_TIMESYNC_MSG_TYPE {
 	SPRD_TIMESYNC_MSG_MONOTIME,
 	SPRD_TIMESYNC_MSG_BOOTTIME,
 	SPRD_TIMESYNC_MSG_REALTIME,
+	SPRD_TIMESYNC_MSG_TS_CNT,
+	SPRD_TIMESYNC_MSG_SYSFRT_CNT,
 	SPRD_TIMESYNC_MSG_TZ_MINUTESWEST,
 	SPRD_TIMESYNC_MSG_TZ_DSTTIME,
 	SPRD_TIMESYNC_MSG_NUM,
@@ -89,6 +70,10 @@ static ssize_t sprd_time_sync_read(struct file *filp,
 				   char __user *buf, size_t count, loff_t *ppos)
 {
 	struct sprd_time_sync_init_data read_uevent_time;
+	struct timezone tz;
+
+	memset(&tz, 0, sizeof(struct timezone));
+	memcpy(&tz, &sys_tz, sizeof(struct timezone));
 
 	memset(&read_uevent_time, 0, sizeof(struct sprd_time_sync_init_data));
 
@@ -98,9 +83,11 @@ static ssize_t sprd_time_sync_read(struct file *filp,
 
 	read_uevent_time.t_monotime_ns = ktime_get_mono_fast_ns();
 	read_uevent_time.t_boottime_ns = ktime_get_boot_fast_ns();
-	read_uevent_time.t_realtime_s = ktime_get_real_fast_ns();
-	read_uevent_time.tz_minuteswest = tcd_dev->init->tz_minuteswest;
-	read_uevent_time.tz_dsttime = tcd_dev->init->tz_dsttime;
+	read_uevent_time.t_realtime_s = ktime_get_real_seconds();
+	read_uevent_time.t_ts_cnt = arch_timer_read_counter();
+	read_uevent_time.t_sysfrt_cnt = sprd_systimer_read();
+	read_uevent_time.tz_minuteswest = tz.tz_minuteswest;
+	read_uevent_time.tz_dsttime = tz.tz_dsttime;
 
 	if (copy_to_user((struct sprd_time_sync_init_data *)buf,
 			 &read_uevent_time,
@@ -142,68 +129,36 @@ static inline void sprd_time_sync_destroy_pdata(struct sprd_time_sync_init_data 
 	pdata = NULL;
 }
 
-void sprd_send_ap_time(u64 monotime_ns, u64 boottime_ns,
-		u64 realtime_s, int tz_minuteswest, int tz_dsttime)
-{
-	if (tcd_dev && tcd_dev->init) {
-		tcd_dev->init->t_monotime_ns = monotime_ns;
-		tcd_dev->init->t_boottime_ns = boottime_ns;
-		tcd_dev->init->t_realtime_s = realtime_s;
-		tcd_dev->init->tz_minuteswest = tz_minuteswest;
-		tcd_dev->init->tz_dsttime = tz_dsttime;
-		sprd_send_time_event_msg(&tcd_dev->dev->kobj);
-	}
-}
-
-/* realize the notifier_call func */
-static int sprd_time_sync_fn(struct notifier_block *nb,
-		unsigned long action, void *data)
+int sprd_send_ap_time(void)
 {
 	struct timezone tz;
-#ifdef CONFIG_SPRD_DEBUG
-	struct tm input_tm;
-#endif
-	struct timekeeper *tk = data;
-	u64 monotime_ns, realtime_s, boottime_ns;
 
 	memset(&tz, 0, sizeof(struct timezone));
 	memcpy(&tz, &sys_tz, sizeof(struct timezone));
 
-	monotime_ns = tk->tkr_mono.base;
-	boottime_ns = monotime_ns + tk->offs_boot;
-	realtime_s = tk->xtime_sec;
+	if (!tcd_dev || !tcd_dev->init) {
+		pr_err("device is not exist \n");
+		return -1;
+	}
 
-	/* Send msg to refnotify */
-	sprd_send_ap_time(monotime_ns, boottime_ns, realtime_s,
-			tz.tz_minuteswest, tz.tz_dsttime);
+	tcd_dev->init->t_monotime_ns = ktime_get_mono_fast_ns();
+	tcd_dev->init->t_boottime_ns = ktime_get_boot_fast_ns();
+	tcd_dev->init->t_realtime_s = ktime_get_real_seconds();
+	tcd_dev->init->t_ts_cnt = arch_timer_read_counter();
+	tcd_dev->init->t_sysfrt_cnt = sprd_systimer_read();
+	tcd_dev->init->tz_minuteswest = tz.tz_minuteswest;
+	tcd_dev->init->tz_dsttime = tz.tz_dsttime;
+	sprd_send_time_event_msg(&tcd_dev->dev->kobj);
 
-#ifdef CONFIG_SPRD_DEBUG
-	time64_to_tm(realtime_s, CN_TIMEZONE_OFFSET_SEC, &input_tm);
-
-	pr_info("Send realtime: %ld-%d-%d %d:%d:%d monotime: %lldns boottime: %lldns\n",
-		1900 + input_tm.tm_year,
-		input_tm.tm_mon,
-		input_tm.tm_mday,
-		input_tm.tm_hour,
-		input_tm.tm_min,
-		input_tm.tm_sec,
-		monotime_ns,
-		boottime_ns);
-#endif
-
-	return NOTIFY_OK;
+	return 0;
 }
-
-/* define a notifier_block */
-static struct notifier_block sprd_time_sync_notifier = {
-	.notifier_call = sprd_time_sync_fn,
-};
 
 static void sprd_send_time_event_msg(struct kobject *kobj)
 {
 	char *msg[SPRD_TIMESYNC_MSG_NUM + 1];
 
 	msg[0] = kzalloc((SPRD_TIMESYNC_MSG_NUM + 1) * SPRD_TIMESYNC_MSG_LENGTH, GFP_KERNEL);
+
 	if (!*msg)
 		return;
 
@@ -216,6 +171,10 @@ static void sprd_send_time_event_msg(struct kobject *kobj)
 		*msg + SPRD_TIMESYNC_MSG_BOOTTIME * SPRD_TIMESYNC_MSG_LENGTH;
 	msg[SPRD_TIMESYNC_MSG_REALTIME] =
 		*msg + SPRD_TIMESYNC_MSG_REALTIME * SPRD_TIMESYNC_MSG_LENGTH;
+	msg[SPRD_TIMESYNC_MSG_TS_CNT] =
+		*msg + SPRD_TIMESYNC_MSG_TS_CNT * SPRD_TIMESYNC_MSG_LENGTH;
+	msg[SPRD_TIMESYNC_MSG_SYSFRT_CNT] =
+		*msg + SPRD_TIMESYNC_MSG_SYSFRT_CNT * SPRD_TIMESYNC_MSG_LENGTH;
 	msg[SPRD_TIMESYNC_MSG_TZ_MINUTESWEST] =
 		*msg + SPRD_TIMESYNC_MSG_TZ_MINUTESWEST * SPRD_TIMESYNC_MSG_LENGTH;
 	msg[SPRD_TIMESYNC_MSG_TZ_DSTTIME] =
@@ -228,6 +187,10 @@ static void sprd_send_time_event_msg(struct kobject *kobj)
 		 SPRD_TIMESYNC_MSG_LENGTH, "boottime_ns=%lld", tcd_dev->init->t_boottime_ns);
 	snprintf(msg[SPRD_TIMESYNC_MSG_REALTIME],
 		 SPRD_TIMESYNC_MSG_LENGTH, "realtime_s=%lld", tcd_dev->init->t_realtime_s);
+	snprintf(msg[SPRD_TIMESYNC_MSG_TS_CNT],
+		 SPRD_TIMESYNC_MSG_LENGTH, "ts_cnt=%lld", tcd_dev->init->t_ts_cnt);
+	snprintf(msg[SPRD_TIMESYNC_MSG_SYSFRT_CNT],
+		 SPRD_TIMESYNC_MSG_LENGTH, "sysfrt_cnt=%lld", tcd_dev->init->t_sysfrt_cnt);
 	snprintf(msg[SPRD_TIMESYNC_MSG_TZ_MINUTESWEST],
 		 SPRD_TIMESYNC_MSG_LENGTH, "minuteswest=%d", tcd_dev->init->tz_minuteswest);
 	snprintf(msg[SPRD_TIMESYNC_MSG_TZ_DSTTIME],
@@ -235,10 +198,12 @@ static void sprd_send_time_event_msg(struct kobject *kobj)
 
 	kobject_uevent_env(kobj, KOBJ_CHANGE, msg);
 
-	dev_info(tcd_dev->dev, "send %s %s %s %s %s to userspace\n",
+	dev_info(tcd_dev->dev, "send %s %s %s %s %s %s %s to userspace\n",
 		 msg[SPRD_TIMESYNC_MSG_MONOTIME],
 		 msg[SPRD_TIMESYNC_MSG_BOOTTIME],
 		 msg[SPRD_TIMESYNC_MSG_REALTIME],
+		 msg[SPRD_TIMESYNC_MSG_TS_CNT],
+		 msg[SPRD_TIMESYNC_MSG_SYSFRT_CNT],
 		 msg[SPRD_TIMESYNC_MSG_TZ_MINUTESWEST],
 		 msg[SPRD_TIMESYNC_MSG_TZ_DSTTIME]);
 

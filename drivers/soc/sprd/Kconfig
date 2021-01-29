@@ -55,11 +55,18 @@ config SPRD_TIME_SYNC
 
 config SPRD_TIME_SYNC_CH
 	tristate "Spreadtrum AP/CH time synchronization"
-	depends on ARCH_SPRD && SPRD_SYSTIMER
+	depends on ARCH_SPRD && SPRD_SYSTIMER && SPRD_TIME_SYNC
 	default n
 	help
 	  Support sprd sensor time synchronization between AP
 	  (Application Processor) and CH(Context Hub).
+
+config SPRD_TIME_SYNC_CP
+	bool "Spreadtrum cp time sync driver"
+	depends on ARCH_SPRD && SPRD_TIME_SYNC
+	default y
+	help
+	  Support sprd time sync with cp system.
 
 source drivers/soc/sprd/iommu/Kconfig
 source "drivers/soc/sprd/modem/Kconfig"
