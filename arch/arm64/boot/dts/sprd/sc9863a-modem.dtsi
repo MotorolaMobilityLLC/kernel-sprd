@@ -10,6 +10,8 @@
 
 / {
 	aliases {
+		v2-modem0 = &pmsys;
+		v2-modem1 = &modem;
 		seth0 = &seth_ch0;
 		seth1 = &seth_ch1;
 		seth2 = &seth_ch2;
@@ -26,56 +28,32 @@
 		seth13 = &seth_ch13;
 	};
 
-	scproc-pubcp {
-		compatible = "sprd,scproc_pubcp";
-		#address-cells = <2>;
-		#size-cells = <2>;
-		ranges;
-		scproc_pubpm: scproc@800000 {
-			sprd,name = "pmic";
-			/* 0xff is invalid register offset */
-			syscon0 = <&aon_apb_regs 0xff 0x0>;
-			syscon1 = <&pmu_apb_regs 0xff 0x100000>;
-			syscon2	= <&pmu_apb_regs 0xb0 0x80>;
-			syscon3	= <&aon_apb_regs 0xff 0x0>;
-			syscon4	= <&aon_apb_regs 0xff 0x0>;
-			syscon-names = "shutdown", "deepsleep", "corereset",
-						"sysreset", "getstatus";
-			reg = <0x0 0x800000 0x0 0x40000>;
-			#address-cells = <1>;
-			#size-cells = <1>;
-			/* segnr=1
-			 *TODO: ranges use to limit pm-sys & cali_lib memory region. it's not
-			 *standard use. need modify if possible
-			 */
-			ranges = <0x0 0x0 0x800000 0x3b000>,
-					<0x3b000 0x0 0x83b000 0x5000>;
-			pm-sys@0 {
-				cproc,name = "pm_sys";
-				reg = <0x0 0x3b000>;
-			};
+	pmsys: modem@0 {
+		compatible = "unisoc,modem";
+		/* 0xff is invalid register offset */
+		syscon0 = <&aon_apb_regs 0xff 0x0>;
+		syscon1 = <&pmu_apb_regs 0xff 0x0>;
+		syscon2 = <&pmu_apb_regs 0xb0 0x80>;
+		syscon3 = <&aon_apb_regs 0xff 0x0>;
+		syscon4 = <&aon_apb_regs 0xff 0x0>;
+		syscon-names = "shutdown", "deepsleep", "corereset",
+					"sysreset", "getstatus";
+		sprd,version = <0x02>;
+	};
 
-			cali_lib@3b000 {
-				cproc,name = "cali_lib";
-				reg = <0x3b000 0x5000>; /* <cali_lib_addr size> */
-			};
-		};
-
-		scproc_pubcp: scproc@f000 {
-			sprd,decoup = "cproc-use-decoup";
-			sprd,name = "cptl";
-			/* 0xff is invalid register offset */
-			syscon0 = <&pmu_apb_regs 0x48 0x2000000>;
-			syscon1 = <&pmu_apb_regs 0xcc 0x40000>;
-			syscon2 = <&aon_apb_regs 0x284 0x400>;
-			syscon3 = <&pmu_apb_regs 0xb0 0x2>;
-			syscon4 = <&aon_apb_regs 0xff 0x0>;
-			syscon5 = <&aon_apb_regs 0x130 0x30000>;
-			syscon-names = "shutdown", "deepsleep", "corereset",
-						"sysreset", "getstatus", "dspreset";
-			reg = <0x0 0xf000 0x0 0x1000>;
-			interrupts = <GIC_SPI 83 0x0>;
-		};
+	modem: modem@1 {
+		compatible = "unisoc,modem";
+		sprd,decoup = "cproc-use-decoup";
+		/* 0xff is invalid register offset */
+		syscon0 = <&pmu_apb_regs 0x48 0x2000000>;
+		syscon1 = <&pmu_apb_regs 0xcc 0x40000>;
+		syscon2 = <&aon_apb_regs 0x284 0x400>;
+		syscon3 = <&pmu_apb_regs 0xb0 0x2>;
+		syscon4 = <&aon_apb_regs 0xff 0x0>;
+		syscon5 = <&aon_apb_regs 0x130 0x30000>;
+		syscon-names = "shutdown", "deepsleep", "corereset",
+					"sysreset", "getstatus", "dspreset";
+		sprd,version = <0x02>;
 	};
 };
 
