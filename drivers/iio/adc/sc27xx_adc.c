@@ -9,6 +9,7 @@
 #include <linux/of_device.h>
 #include <linux/platform_device.h>
 #include <linux/regmap.h>
+#include <linux/regulator/consumer.h>
 #include <linux/slab.h>
 
 /* PMIC global registers definition */
@@ -76,8 +77,15 @@
 #define SC27XX_RATIO_NUMERATOR_OFFSET	16
 #define SC27XX_RATIO_DENOMINATOR_MASK	GENMASK(15, 0)
 
+/* ADC specific channel reference voltage 3.5V */
+#define SC27XX_ADC_REFVOL_VDD35		3500000
+
+/* ADC default channel reference voltage is 2.8V */
+#define SC27XX_ADC_REFVOL_VDD28		2800000
+
 enum sc27xx_pmic_type {
 	SC27XX_ADC,
+	SC2721_ADC,
 	UMP9620_ADC,
 };
 
@@ -89,6 +97,7 @@ enum ump96xx_scale_cal {
 
 struct sc27xx_adc_data {
 	struct device *dev;
+	struct regulator *volref;
 	struct regmap *regmap;
 	/*
 	 * One hardware spinlock to synchronize between the multiple
@@ -610,6 +619,24 @@ static int sc27xx_adc_read(struct sc27xx_adc_data *data, int channel,
 		return ret;
 	}
 
+	/*
+	 * According to the sc2721 chip data sheet, the reference voltage of
+	 * specific channel 30 and channel 31 in ADC module needs to be set from
+	 * the default 2.8v to 3.5v.
+	 */
+	if (data->var_data->pmic_type == SC2721_ADC) {
+		if ((channel == 30) || (channel == 31)) {
+			ret = regulator_set_voltage(data->volref,
+						SC27XX_ADC_REFVOL_VDD35,
+						SC27XX_ADC_REFVOL_VDD35);
+			if (ret) {
+				dev_err(data->dev, "failed to set the volref 3.5V\n");
+				hwspin_unlock_raw(data->hwlock);
+				return ret;
+			}
+		}
+	}
+
 	ret = regmap_update_bits(data->regmap, data->base + SC27XX_ADC_CTL,
 				 SC27XX_ADC_EN, SC27XX_ADC_EN);
 	if (ret)
@@ -662,6 +689,16 @@ disable_adc:
 	regmap_update_bits(data->regmap, data->base + SC27XX_ADC_CTL,
 			   SC27XX_ADC_EN, 0);
 unlock_adc:
+	if (data->var_data->pmic_type == SC2721_ADC) {
+		if ((channel == 30) || (channel == 31)) {
+			ret = regulator_set_voltage(data->volref,
+						    SC27XX_ADC_REFVOL_VDD28,
+						    SC27XX_ADC_REFVOL_VDD28);
+			if (ret)
+				dev_err(data->dev, "failed to set the volref 2.8V\n");
+		}
+	}
+
 	hwspin_unlock_raw(data->hwlock);
 
 	if (!ret)
@@ -982,7 +1019,7 @@ static const struct sc27xx_adc_variant_data sc2731_data = {
 };
 
 static const struct sc27xx_adc_variant_data sc2721_data = {
-	.pmic_type = SC27XX_ADC,
+	.pmic_type = SC2721_ADC,
 	.module_en = SC2731_MODULE_EN,
 	.clk_en = SC2721_ARM_CLK_EN,
 	.scale_shift = SC2721_ADC_SCALE_SHIFT,
@@ -1085,6 +1122,15 @@ static int sc27xx_adc_probe(struct platform_device *pdev)
 		sc27xx_adc_free_hwlock(sc27xx_data->hwlock);
 		dev_err(&pdev->dev, "failed to add hwspinlock action\n");
 		return ret;
+	}
+
+	if (pdata->pmic_type == SC2721_ADC) {
+		sc27xx_data->volref = devm_regulator_get_optional(&pdev->dev, "vref");
+		if (IS_ERR_OR_NULL(sc27xx_data->volref)) {
+			ret = PTR_ERR(sc27xx_data->volref);
+			dev_err(&pdev->dev, "err! ADC volref, err: %d\n", ret);
+			return ret;
+		}
 	}
 
 	sc27xx_data->dev = &pdev->dev;
