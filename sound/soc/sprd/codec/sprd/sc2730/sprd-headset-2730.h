@@ -132,6 +132,7 @@ struct sprd_headset_platform_data {
 	int (*external_headmicbias_power_on)(int);
 	bool do_fm_mute;
 	bool support_typec_hdst;/* support typec analog headset */
+	int support_line_out;
 	struct gpio_desc *typec_mic_gpio;
 	struct gpio_desc *typec_lr_gpio;
 	struct regulator *switch_regu;
@@ -287,6 +288,7 @@ struct sprd_headset {
 	int plug_state_last;
 	bool adc_big_scale;
 	bool typec_attached;
+	bool lineout_status;
 	struct notifier_block typec_plug_nb;
 	struct extcon_dev *edev;
 	unsigned int codec_intc;
