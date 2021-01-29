@@ -278,8 +278,6 @@ static int musb_test_mode_show(struct seq_file *s, void *unused)
 	else if (test == MUSB_TEST_SE0_NAK)
 		seq_printf(s, "test SE0 NAK\n");
 
-	sprd_musb_dma_data_print();
-
 	return 0;
 }
 
