@@ -38,6 +38,7 @@ struct sprd_plane {
 	struct drm_property *y2r_coef_property;
 	struct drm_property *pallete_en_property;
 	struct drm_property *pallete_color_property;
+	struct drm_property *secure_en_property;
 	u32 index;
 };
 
@@ -51,6 +52,7 @@ struct sprd_plane_state {
 	u32 y2r_coef;
 	u32 pallete_en;
 	u32 pallete_color;
+	u32 secure_en;
 };
 
 LIST_HEAD(dpu_core_head);
@@ -252,6 +254,7 @@ static void sprd_plane_atomic_update(struct drm_plane *plane,
 		layer->blending = s->blend_mode;
 		layer->pallete_en = s->pallete_en;
 		layer->pallete_color = s->pallete_color;
+		layer->secure_en = s->secure_en;
 		dpu->pending_planes++;
 		DRM_DEBUG("%s() pallete_color = %u, index = %u\n",
 			__func__, layer->pallete_color, layer->index);
@@ -279,6 +282,7 @@ static void sprd_plane_atomic_update(struct drm_plane *plane,
 	layer->y2r_coef = s->y2r_coef;
 	layer->pallete_en = s->pallete_en;
 	layer->pallete_color = s->pallete_color;
+	layer->secure_en = s->secure_en;
 
 	DRM_DEBUG("%s() alpha = %u, blending = %u, rotation = %u, y2r_coef = %u\n",
 		  __func__, layer->alpha, layer->blending, layer->rotation, s->y2r_coef);
@@ -404,6 +408,8 @@ static int sprd_plane_atomic_set_property(struct drm_plane *plane,
 		s->pallete_en = val;
 	else if (property == p->pallete_color_property)
 		s->pallete_color = val;
+	else if (property == p->secure_en_property)
+		s->secure_en = val;
 	else {
 		DRM_ERROR("property %s is invalid\n", property->name);
 		return -EINVAL;
@@ -438,6 +444,8 @@ static int sprd_plane_atomic_get_property(struct drm_plane *plane,
 		*val = s->pallete_en;
 	else if (property == p->pallete_color_property)
 		*val = s->pallete_color;
+	else if (property == p->secure_en_property)
+		*val = s->secure_en;
 	else {
 		DRM_ERROR("property %s is invalid\n", property->name);
 		return -EINVAL;
@@ -527,6 +535,14 @@ static int sprd_plane_create_properties(struct sprd_plane *p, int index)
 		return -ENOMEM;
 	drm_object_attach_property(&p->plane.base, prop, 0);
 	p->pallete_color_property = prop;
+
+	/* create secure enable property */
+	prop = drm_property_create_range(p->plane.dev, 0,
+			"secure enable", 0, UINT_MAX);
+	if (!prop)
+		return -ENOMEM;
+	drm_object_attach_property(&p->plane.base, prop, 0);
+	p->secure_en_property = prop;
 
 	return 0;
 }
