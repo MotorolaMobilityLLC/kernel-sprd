@@ -1071,7 +1071,7 @@ static int dwc3_core_get_pam(struct dwc3 *dwc)
 	if (node)
 		dwc->pam = devm_usb_get_phy_by_phandle(dev, "usb-pam", 0);
 	else
-		dwc->pam = devm_usb_get_phy(dev, USB_PAM_TYPE_USB3);
+		dwc->pam = devm_usb_get_phy(dev, (enum usb_phy_type)USB_PAM_TYPE_USB3);
 
 	if (IS_ERR(dwc->pam)) {
 		ret = PTR_ERR(dwc->pam);
