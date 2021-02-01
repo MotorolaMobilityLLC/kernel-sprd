@@ -102,6 +102,7 @@
 	sprd_scale {
 		compatible = "sprd,sprd_scale";
 		iommus = <&iommu_dcam>;
+		power-domains = <&cam_domain>;
 		status = "okay";
 	};
 
@@ -109,6 +110,7 @@
 		compatible = "sprd,sprd_rotation";
 		sprd,cam-ahb-syscon = <&mm_ahb_regs>;
 		iommus = <&iommu_dcam>;
+		power-domains = <&cam_domain>;
 		status = "okay";
 	};
 
@@ -311,6 +313,10 @@
 			};
 		};
 	};
+};
+
+&cam_domain {
+	status = "okay";
 };
 
 &dphy {

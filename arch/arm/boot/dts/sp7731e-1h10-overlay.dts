@@ -353,6 +353,7 @@
 		host = "dcam0";
 		sprd,phyid = <0>;
 		csi = <&csi0>;
+		power-domains = <&cam_domain>;
 	};
 
 	sensor_sub: sensor-sub@21 {
@@ -376,6 +377,7 @@
 		host = "dcam0";
 		sprd,phyid = <0>;
 		csi = <&csi0>;
+		power-domains = <&cam_domain>;
 	};
 };
 
