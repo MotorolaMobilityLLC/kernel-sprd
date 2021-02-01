@@ -251,7 +251,7 @@ static int sipa_usb_parse_dt(
 	return 0;
 }
 
-#if CONFIG_DEBUG_FS
+#ifdef CONFIG_DEBUG_FS
 static int sipa_usb_debug_show(struct seq_file *m, void *v)
 {
 	struct sipa_usb *usb = (struct sipa_usb *)(m->private);
@@ -301,11 +301,9 @@ static const struct file_operations sipa_usb_debug_fops = {
 	.llseek = seq_lseek,
 	.release = single_release,
 };
-#endif
 
 static int sipa_usb_debugfs_mknod(void *root, void *data)
 {
-#if CONFIG_DEBUG_FS
 	struct sipa_usb *usb = (struct sipa_usb *)data;
 
 	if (!usb)
@@ -319,9 +317,10 @@ static int sipa_usb_debugfs_mknod(void *root, void *data)
 			    (struct dentry *)root,
 			    data,
 			    &sipa_usb_debug_fops);
-#endif
+
 	return 0;
 }
+#endif
 
 static int sipa_usb_probe(struct platform_device *pdev)
 {
@@ -415,7 +414,7 @@ static struct platform_driver sipa_usb_driver = {
 
 static void __init sipa_usb_debugfs_init(void)
 {
-#if CONFIG_DEBUG_FS
+#ifdef CONFIG_DEBUG_FS
 	root = debugfs_create_dir(SIPA_USB_IFACE_PREF, NULL);
 	if (!root)
 		pr_err("failed to create sipa_usb debugfs dir\n");

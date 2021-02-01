@@ -37,6 +37,7 @@
 
 static unsigned long queue_lock_flags;
 static spinlock_t queue_lock; /* spin-lock for queue status protection */
+
 #ifdef CONFIG_DEBUG_FS
 static struct dentry *root;
 static int sipa_eth_debugfs_mknod(void *root, void *data);
@@ -424,11 +425,9 @@ static const struct file_operations sipa_eth_debug_fops = {
 	.llseek = seq_lseek,
 	.release = single_release,
 };
-#endif
 
 static int sipa_eth_debugfs_mknod(void *root, void *data)
 {
-#ifdef CONFIG_DEBUG_FS
 	struct sipa_eth *sipa_eth = (struct sipa_eth *)data;
 	struct dentry *subroot;
 
@@ -447,9 +446,9 @@ static int sipa_eth_debugfs_mknod(void *root, void *data)
 			    subroot,
 			    data,
 			    &sipa_eth_debug_fops);
-#endif
 	return 0;
 }
+#endif
 
 static void __init sipa_eth_debugfs_init(void)
 {
