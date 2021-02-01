@@ -1501,7 +1501,6 @@
   phy_power_off
   phy_power_on
   phy_set_mode_ext
-  physvirt_offset
   pinconf_generic_dt_node_to_map
   pinctrl_dev_get_drvdata
   pinctrl_lookup_state
@@ -1755,11 +1754,6 @@
   rfkill_register
   rfkill_unregister
   round_jiffies
-  rpmh_flush
-  rpmh_invalidate
-  rpmh_write
-  rpmh_write_async
-  rpmh_write_batch
   rtc_class_close
   rtc_class_open
   rtc_read_time
@@ -2393,7 +2387,6 @@
   vmalloc_to_page
   vmalloc_user
   vmap
-  vmemmap
   vmf_insert_mixed
   vmf_insert_pfn
   vm_get_page_prot
