@@ -550,15 +550,6 @@
 				reg = <0x400000 0x100000>;
 			};
 
-			apdu_if: apdu@500000 {
-				compatible = "sprd,qogirn6pro-apdu";
-				reg = <0x500000 0x10000>;
-				sprd,sys-pub-reg = <&pub_apb_regs>;
-				sprd,pub-ise-reg-offset = <0x3368>;
-				sprd,pub-ise-bit-offset = <15>;
-				interrupts = <GIC_SPI 49 IRQ_TYPE_LEVEL_HIGH>;
-			};
-
 			aon_mailbox: mailbox@600000 {
 				compatible = "sprd,mailbox";
 				reg = <0x600000 0x40000>;
