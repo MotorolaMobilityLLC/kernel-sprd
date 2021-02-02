@@ -225,6 +225,11 @@
 };
 
 &sdio0 {
+	cd-gpios = <&eic_async 9 1>;
+	vmmc-supply = <&vddsdcore>;
+	vqmmc-supply = <&vddsdio>;
+	sd-uhs-sdr104;
+	sd-uhs-sdr50;
 	bus-width = <4>;
 	no-sdio;
 	no-mmc;
