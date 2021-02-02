@@ -171,7 +171,7 @@ static void mcdt_chan_fifo_int_enable(enum MCDT_CHAN_NUM chan_num,
 		reg = MCDT_INT_EN0;
 	else if ((chan_num >= MCDT_CHAN4) && (chan_num <= MCDT_CHAN7))
 		reg = MCDT_INT_EN1;
-	else if ((chan_num >= MCDT_CHAN8) && (chan_num <= MCDT_CHAN9))
+	else if ((chan_num >= MCDT_CHAN8) && (chan_num <= MCDT_CHAN10))
 		reg = MCDT_INT_EN2;
 	else
 		return;
@@ -189,6 +189,7 @@ static void mcdt_chan_fifo_int_enable(enum MCDT_CHAN_NUM chan_num,
 		break;
 	case MCDT_CHAN2:
 	case MCDT_CHAN6:
+	case MCDT_CHAN10:
 		shift = 16 + int_type;
 		break;
 	case MCDT_CHAN3:
@@ -215,7 +216,7 @@ static void mcdt_chan_fifo_int_clr(enum MCDT_CHAN_NUM chan_num,
 		reg = MCDT_INT_CLR0;
 	else if ((chan_num >= MCDT_CHAN4) && (chan_num <= MCDT_CHAN7))
 		reg = MCDT_INT_CLR1;
-	else if ((chan_num >= MCDT_CHAN8) && (chan_num <= MCDT_CHAN9))
+	else if ((chan_num >= MCDT_CHAN8) && (chan_num <= MCDT_CHAN10))
 		reg = MCDT_INT_CLR2;
 	else
 		return;
@@ -233,6 +234,7 @@ static void mcdt_chan_fifo_int_clr(enum MCDT_CHAN_NUM chan_num,
 		break;
 	case MCDT_CHAN2:
 	case MCDT_CHAN6:
+	case MCDT_CHAN10:
 		shift = 16 + int_type;
 		break;
 	case MCDT_CHAN3:
@@ -427,6 +429,16 @@ static void mcdt_ap_dac_dma_ch4_sel(unsigned int chan_num)
 	}
 	mcdt_reg_update(MCDT_DMA_REQ_CFG0, BIT_MCDT_DAC_DMA_CH4_SEL0(chan_num),
 			BIT_MCDT_DAC_DMA_CH4_SEL0(0xf));
+}
+
+static void mcdt_ap_dac_dma_ch5_sel(unsigned int chan_num)
+{
+	if (!check_agcp_mcdt_clock()) {
+		pr_err("%s agcp mcdt clocl not available\n", __func__);
+		return;
+	}
+	mcdt_reg_update(MCDT_DMA_REQ_CFG0, BIT_MCDT_DAC_DMA_CH5_SEL0(chan_num),
+			BIT_MCDT_DAC_DMA_CH5_SEL0(0xf));
 }
 
 static void mcdt_ap_adc_dma_ch0_sel(unsigned int chan_num)
@@ -745,11 +757,13 @@ static irqreturn_t mcdt_isr_mcdt_all_handler(int irq, void *dev)
 {
 	unsigned int i;
 
-	for (i = MCDT_CHAN0; i <= MCDT_CHAN9; i++) {
+	for (i = MCDT_CHAN0; i <= MCDT_CHAN10; i++) {
 		if (g_dac_channel[i].int_enabled &&
 		    mcdt_is_da_empty_int(i)) {
 			mcdt_isr_tx_handler(&gdac_irq_desc[i], i);
 		}
+	}
+	for (i = MCDT_CHAN0; i <= MCDT_CHAN9; i++) {
 		if (g_adc_channel[i].int_enabled &&
 		    mcdt_is_ad_full_int(i)) {
 			mcdt_isr_rx_handler(&gadc_irq_desc[i], i);
@@ -790,6 +804,11 @@ static int mcdt_send_data_use_dma(unsigned int channel,
 		mcdt_ap_dac_dma_ch4_sel(channel);
 		mcdt_dac_dma_chan_ack_sel(channel, MCDT_AP_ACK4);
 		uid = MCDT_AP_DAC_CH4_WR_REQ + 1;
+		break;
+	case MCDT_AP_DMA_CH5:
+		mcdt_ap_dac_dma_ch5_sel(channel);
+		mcdt_dac_dma_chan_ack_sel(channel, MCDT_AP_ACK5);
+		uid = MCDT_AP_DAC_CH5_WR_REQ + 1;
 		break;
 	default:
 		uid = -1;
@@ -955,7 +974,7 @@ unsigned int mcdt_dac_buffer_size_avail(unsigned int channel)
 
 unsigned int mcdt_adc_data_size_avail(unsigned int channel)
 {
-	unsigned long reg = MCDT_ADC0_FIFO_ADDR_ST + channel * 8 + membase;
+	unsigned long reg = MCDT_ADC0_FIFO_ADDR_ST + channel * 4 + membase;
 	unsigned int r_addr = (mcdt_reg_read(reg)>>16)&0x3FF;
 	unsigned int w_addr = mcdt_reg_read(reg)&0x3FF;
 
@@ -1025,6 +1044,9 @@ static int mcdt_dma_channel_get(unsigned int channel)
 		break;
 	case MCDT_CHAN4:
 		dma_channel = MCDT_AP_DMA_CH4;
+		break;
+	case MCDT_CHAN10:
+		dma_channel = MCDT_AP_DMA_CH5;
 		break;
 	default:
 		dma_channel = -EINVAL;

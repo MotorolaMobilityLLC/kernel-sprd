@@ -123,6 +123,7 @@
 #define BIT_ADC0_FIFO_AF_LVL(x)    ((x) & GENMASK(8, 0))
 
 /*DMA channel sel for AP*/
+#define BIT_MCDT_DAC_DMA_CH5_SEL0(x)    (((x) & GENMASK(3, 0)) << 20)
 #define BIT_MCDT_DAC_DMA_CH4_SEL0(x)    (((x) & GENMASK(3, 0)) << 16)
 #define BIT_GET_MCDT_DAC_DMA_CH4_SEL0(x)    (((x) >> 16) & GENMASK(3, 0))
 #define BIT_MCDT_DAC_DMA_CH3_SEL0(x)    (((x) & GENMASK(3, 0)) << 12)
@@ -172,6 +173,7 @@ enum MCDT_DMA_ACK {
 	MCDT_AP_ACK2,
 	MCDT_AP_ACK3,
 	MCDT_AP_ACK4,
+	MCDT_AP_ACK5,
 	MCDT_PUB_CP_ACK0,
 	MCDT_TGDSP_ACK0,
 	MCDT_LDSP_ACK0
@@ -191,6 +193,8 @@ enum {
 #define MCDT_AP_DAC_CH2_WR_REQ 6
 #define MCDT_AP_DAC_CH3_WR_REQ 7
 #define MCDT_AP_DAC_CH4_WR_REQ 8
+#define MCDT_AP_DAC_CH5_WR_REQ 19
+
 //two more channels MCDT_AP_DAC_CH could be added for Sharkl6
 
 #define MCDT_AP_ADC_CH0_RD_REQ 9
