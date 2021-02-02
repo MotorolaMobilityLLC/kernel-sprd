@@ -490,6 +490,8 @@ static int wcn_parse_dt(struct platform_device *pdev,
 	ret = of_property_read_string(np,
 				      "sprd,name",
 				      (const char **)&wcn_dev->name);
+	if (ret)
+		WCN_ERR("sprd,name, ret %d\n", ret);
 
 	/* get apb reg handle */
 	wcn_dev->rmap[REGMAP_AON_APB] =
@@ -953,6 +955,8 @@ static int wcn_parse_dt(struct platform_device *pdev,
 		ret = of_property_read_u32_index(np,
 					 "sprd,apcp-sync-addr",
 					 0, (u32 *)&wcn_dev->apcp_sync_addr);
+		if (ret)
+			WCN_ERR("sprd,apcp-sync-addr, ret %d\n", ret);
 		WCN_INFO("wcn_dev->apcp-sync-addr:0x%08x\n",
 				    wcn_dev->apcp_sync_addr);
 		/* qogirl6 get apcp sync addr from  */
@@ -1132,7 +1136,6 @@ static inline void wcn_platform_fs_exit(struct wcn_device *wcn_dev)
 static void wcn_probe_power_wq(struct work_struct *work)
 {
 	WCN_INFO("%s start itself\n", __func__);
-
 	if (start_marlin(MARLIN_MDBG))
 		WCN_ERR("%s power on failed\n", __func__);
 
@@ -1260,7 +1263,6 @@ static int wcn_remove(struct platform_device *pdev)
 
 	wcn_platform_fs_exit(wcn_dev);
 	kfree(wcn_dev);
-	wcn_dev = NULL;
 
 	return 0;
 }

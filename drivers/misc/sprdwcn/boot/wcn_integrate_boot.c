@@ -377,7 +377,7 @@ static int wcn_download_image_new(struct wcn_device *wcn_dev)
 
 	memset(firmware_file_path, 0, FIRMWARE_FILEPATHNAME_LENGTH_MAX);
 	/* file_path used in dts */
-	if (s_wcn_device.wcn_mm_flag == 0) {
+	if (s_wcn_device.wcn_mm_flag == 1) {
 		if (wcn_dev->file_path) {
 			strncpy(firmware_file_path,
 				wcn_dev->file_path,
@@ -423,7 +423,7 @@ static int wcn_download_image_new(struct wcn_device *wcn_dev)
 		}
 	}
 
-	if (s_wcn_device.wcn_mm_flag == 1) {
+	if (s_wcn_device.wcn_mm_flag == 0) {
 		if (wcn_dev->file_path_ufs) {
 			strncpy(firmware_file_path,
 				wcn_dev->file_path_ufs,
@@ -784,8 +784,11 @@ void wcn_power_wq(struct work_struct *pwork)
 		gnss_clear_boot_flag();
 	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
 		wcn_power_enable_dcxo1v8(true);
+		usleep_range(10, 10); /* wait power stable */
 		wcn_power_enable_vddcon(true);
+		usleep_range(10, 10); /* wait power stable */
 		wcn_power_enable_merlion_domain(true);
+		usleep_range(10, 10); /* wait power stable */
 	} else
 		wcn_power_enable_vddcon(true);
 	if (is_marlin) {
@@ -1078,9 +1081,13 @@ static int wcn_wait_wcn_deep_sleep(struct wcn_device *wcn_dev, int force_sleep)
 		if (wcn_get_sleep_status(wcn_dev, force_sleep) == 0)
 			break;
 		msleep(20);
-		WCN_INFO("wait_sleep_count=%d!\n",
-			 wait_sleep_count);
 	}
+
+	WCN_INFO("wait_sleep_count=%d!\n",
+			 wait_sleep_count);
+
+	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6)
+		wcn_subsys_shutdown_status(wcn_dev);
 
 	return 0;
 }
@@ -1136,44 +1143,55 @@ int stop_integrate_wcn_truely(u32 subsys)
 	/* QogirL6 WCN auto shutdown */
 	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
 		int i = 0;
-		u32 reg_val = 0;
 
-		/* enable auto shutdown */
-		wcn_regmap_raw_write_bit(wcn_dev->rmap[REGMAP_PMU_APB],
-					 0x13a8, 0x1<<24);
-		wcn_regmap_read(wcn_dev->rmap[REGMAP_PMU_APB],
-					 0x03a8, &reg_val);
-		WCN_INFO("wcn shutdown reg_val=0x%x!\n", reg_val);
-
-		/* wcn shutdown status check */
+		/* check sub sys(btwf/gnss) shutdown */
 		for (i = 0; i < WCN_WAIT_SHUTDOWN_MAX_COUNT; i++) {
-			if (wcn_shutdown_status(wcn_dev)) {
-				WCN_INFO("WCN shutdown suc!\n");
-				break;
-			}
-
 			/* check sub sys shutdown */
 			if (wcn_subsys_shutdown_status(wcn_dev)) {
-				WCN_INFO("WCN subsys shutdown suc!\n");
-				continue;
+				WCN_INFO("i=%d subsys shutdown suc!\n", i);
+				break;
 			}
-
-			if ((i == 0) &&
-				(wcn_subsys_active_num() == 0)) {
-				WCN_INFO("stop wcn aon ip!\n");
-				/* aon ip stop */
-				wcn_regmap_raw_write_bit(
-					wcn_dev->rmap[REGMAP_WCN_AON_AHB],
-					0x00C4, 0x3FFC);
-			}
-
-			usleep_range(10, 10);
+			msleep(10);
 		}
+		if (i == WCN_WAIT_SHUTDOWN_MAX_COUNT)
+			WCN_ERR("WCN subsys shutdown fail!\n");
 
-		if (i == WCN_WAIT_SHUTDOWN_MAX_COUNT) {
-			WCN_INFO("WCN auto shutdown fail!\n");
-			/* force BTWF or GNSS sys deepsleep */
-			wcn_subsys_force_deepsleep(wcn_dev);
+		/* force self deepsleep */
+		if (is_marlin)
+			btwf_force_deepsleep();
+		else
+			gnss_force_deepsleep();
+
+		/* last sys disable, wcn go to shutdown
+		 * WCN Sub SYS force peer side deep.WCN Power on, the Chip will power on
+		 * BTWF and GNSS sys, it means if BTWF power on, works, power off,
+		 * the GNSS SYS is at power on status, so when power off BTWF SYS,
+		 * should power off GNSS SYS if GNSS isn't working.
+		 */
+		if (wcn_subsys_active_num() == 0) {
+			if (is_marlin)
+				gnss_force_deepsleep();
+			else
+				btwf_force_deepsleep();
+
+			/* PMU set wcn auto shutdown */
+			wcn_set_auto_shutdown(wcn_dev);
+
+			/* aon ip stop */
+			WCN_INFO("stop wcn aon ip!\n");
+			wcn_regmap_raw_write_bit(
+				wcn_dev->rmap[REGMAP_WCN_AON_AHB],
+				0x00C4, 0x3FFC);
+
+			for (i = 0; i < WCN_WAIT_SHUTDOWN_MAX_COUNT; i++) {
+				if (wcn_shutdown_status(wcn_dev)) {
+					WCN_INFO("WCN shutdown suc!\n");
+					break;
+				}
+				msleep(2);
+			}
+			if (i == WCN_WAIT_SHUTDOWN_MAX_COUNT)
+				WCN_ERR("WCN shutdown fail!\n");
 		}
 	}
 
@@ -1196,9 +1214,13 @@ int stop_integrate_wcn_truely(u32 subsys)
 	} else
 		wcn_power_enable_vddcon(false);
 
-	wcn_sys_soft_reset();
-	wcn_sys_soft_release();
-	wcn_sys_deep_sleep_en();
+	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
+		WCN_INFO("QgoriL6 no needs softreset!\n");
+	} else {
+		wcn_sys_soft_reset();
+		wcn_sys_soft_release();
+		wcn_sys_deep_sleep_en();
+	}
 	wcn_dev->power_state = WCN_POWER_STATUS_OFF;
 
 	WCN_INFO("%s open_status = %d,power_state=%d,stop subsys=%d!\n",

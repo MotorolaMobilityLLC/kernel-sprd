@@ -660,30 +660,36 @@ u32 wcn_get_sleep_status(struct wcn_device *wcn_dev, int force_sleep)
 	u32 val = 0;
 	phys_addr_t phy_addr;
 
+	/* QogirL6 project
+	 *
+	 * GNSS SYS doesn't use SW sleep
+	 * but return sleep status to do no wait
+	 */
+	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
+		if (wcn_dev_is_marlin(wcn_dev)) {
+			phy_addr = wcn_dev->base_addr +
+				   (phys_addr_t)&s_wssm_phy_offset_p->cp2_sleep_status;
+			wcn_read_data_from_phy_addr(phy_addr, &val, sizeof(val));
+			WCN_INFO("cp2 sw sleep status:0x%x\n", val);
+			/* SW entry deep sleep */
+			if (val != BTWF_SW_DEEP_SLEEP_MAGIC)
+				return 1;
+			else
+				return 0;
+		} else
+			return 0;
+	}
+
 	if (wcn_dev_is_marlin(wcn_dev) && force_sleep) {
 		phy_addr = wcn_dev->base_addr +
 			   (phys_addr_t)&s_wssm_phy_offset_p->cp2_sleep_status;
 		wcn_read_data_from_phy_addr(phy_addr, &val, sizeof(val));
-		WCN_INFO("foce shut down val:0x%x\n", val);
+		WCN_INFO("Sleep status flag:0x%x\n", val);
 		if (val == MARLIN_FORCE_SHUTDOWN_OK) {
 			usleep_range(10000, 12000);
 			return 0;
 		}
 		return 1;
-	}
-
-	/* QogirL6 project */
-	if ((wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) &&
-		wcn_dev_is_marlin(wcn_dev)) {
-		phy_addr = wcn_dev->base_addr +
-			   (phys_addr_t)&s_wssm_phy_offset_p->cp2_sleep_status;
-		wcn_read_data_from_phy_addr(phy_addr, &val, sizeof(val));
-		WCN_INFO("Sleep status flag:0x%x\n", val);
-		/* SW entry deep sleep */
-		if (val == BTWF_SW_DEEP_SLEEP_MAGIC)
-			return 0;
-		else
-			return 1;
 	}
 
 	wcn_regmap_read(wcn_dev->rmap[REGMAP_PMU_APB],
@@ -695,7 +701,7 @@ u32 wcn_get_sleep_status(struct wcn_device *wcn_dev, int force_sleep)
 /*
  * WCN SYS include BTWF and GNSS sys, ret: 1 is shutdown, else is not
  * please help confirm that the SHUTDOWN REGs can be read.
- * WARNING:This is for QogirL6 chip until now.
+ * WARNING:This is for QogirL6 chip only now.
  */
 u32 wcn_subsys_shutdown_status(struct wcn_device *wcn_dev)
 {
@@ -711,38 +717,64 @@ u32 wcn_subsys_shutdown_status(struct wcn_device *wcn_dev)
 	else
 		shutdown_mask = gnss_shutdown_mask;
 
-	WCN_INFO("subsys shutdown_status:0x%x\n", shutdown_status);
+	WCN_INFO("subsys shutdown:0x03b0=0x%x\n", shutdown_status);
 
 	return (shutdown_status & shutdown_mask);
 }
-
 /*
- * WCN SYS include BTWF and GNSS sys
- * please help confirm that the SHUTDOWN REGs can be write.
- * WARNING:This is for QogirL6 chip until now.
+ * NOTES:This is for QogirL6 chip.
+ * This function shuold be called after WCN wake up
  */
-u32 wcn_subsys_force_deepsleep(struct wcn_device *wcn_dev)
+int btwf_force_deepsleep(void)
 {
 	u32 reg_val = 0;
+	struct wcn_device *wcn_dev = s_wcn_device.btwf_device;
 
-	if (wcn_dev_is_marlin(wcn_dev)) {
+	WCN_INFO("[+]%s\n", __func__);
+	if (wcn_dev && wcn_dev->rmap[REGMAP_WCN_AON_APB]) {
 		wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_APB],
 						0x0098, &reg_val);
-		reg_val &= 0x1<<3;
+		reg_val |= (0x1<<3);
 		wcn_regmap_raw_write_bit(
 				wcn_dev->rmap[REGMAP_WCN_AON_APB],
 				0x0098, reg_val);
+		msleep(1);
+		wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_APB],
+						0x0098, &reg_val);
+		reg_val |= (0x1<<3);
+		WCN_INFO("%s:reg0x0098=0x%x\n", __func__, reg_val);
+		return 0;
+	}
 
-	} else {
+	WCN_ERR("%s:wcn_dev=0x%x\n", __func__, wcn_dev);
+	return -EINVAL;
+}
+/* NOTES:This is for QogirL6 chip.
+ * This function shuold be called after WCN wake up
+ */
+int gnss_force_deepsleep(void)
+{
+	u32 reg_val = 0;
+	struct wcn_device *wcn_dev = s_wcn_device.gnss_device;
+
+	WCN_INFO("[+]%s\n", __func__);
+	if (wcn_dev && wcn_dev->rmap[REGMAP_WCN_AON_APB]) {
 		wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_APB],
 						0x00c8, &reg_val);
-		reg_val &= 0x1<<3;
+		WCN_INFO("%s:reg0x00c8=0x%x\n", __func__, reg_val);
+		reg_val |= (0x1<<3);
 		wcn_regmap_raw_write_bit(
 				wcn_dev->rmap[REGMAP_WCN_AON_APB],
 				0x00c8, reg_val);
+		msleep(1);
+		wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_APB],
+						0x00c8, &reg_val);
+		WCN_INFO("%s:reg0x00c8=0x%x\n", __func__, reg_val);
+		return 0;
 	}
 
-	return 0;
+	WCN_ERR("%s:wcn_dev=0x%x\n", __func__, wcn_dev);
+	return -EINVAL;
 }
 
 u32 wcn_subsys_active_num(void)
@@ -762,23 +794,42 @@ u32 wcn_subsys_active_num(void)
 }
 /*
  * WCN SYS shutdown, ret: 1 is shutdown, else is not
- * shutdown status can't access WCN REGs
+ * If WCN is at shutdown status, it can't access WCN REGs.
  * WARNING:This is for QogirL6 chip until now.
  */
 u32 wcn_shutdown_status(struct wcn_device *wcn_dev)
 {
 	u32 reg_val = 0;
 
+	WCN_INFO("[+]%s\n", __func__);
+
 	/* WCN shutdown */
 	wcn_regmap_read(wcn_dev->rmap[REGMAP_PMU_APB],
 				 0x0538, &reg_val);
-	WCN_INFO("wcn shutdown status =0x%x!\n", reg_val);
+	WCN_INFO("wcn shutdown reg0x0538 =0x%x!\n", reg_val);
 	if (reg_val == (0x7<<24)) {
-		WCN_INFO("wcn shutdown suc!\n");
-		return 1;
+		WCN_INFO("wcn is shutdown!\n");
+		return true;
 	}
 
-	return 0;
+	WCN_INFO("wcn isn't shutdown!\n");
+	return false;
+}
+
+void wcn_set_auto_shutdown(struct wcn_device *wcn_dev)
+{
+	u32 reg_val;
+
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_PMU_APB],
+				 0x03a8, &reg_val);
+	WCN_INFO("%s:before set, val=0x%x!\n", __func__, reg_val);
+	wcn_regmap_raw_write_bit(
+			wcn_dev->rmap[REGMAP_PMU_APB],
+			0x13a8, 0x1<<24);
+	msleep(1);
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_PMU_APB],
+				 0x03a8, &reg_val);
+	WCN_INFO("%s:after set, val=0x%x!\n", __func__, reg_val);
 }
 
 /*
@@ -793,7 +844,7 @@ u32 wcn_deep_sleep_status(struct wcn_device *wcn_dev)
 	/* WCN sleep,wakeup */
 	wcn_regmap_read(wcn_dev->rmap[REGMAP_PMU_APB],
 				 0x0860, &reg_val);
-	WCN_INFO("wcn shutdown status =0x%x!\n", reg_val);
+	WCN_INFO("wcn sleep status =0x%x!\n", reg_val);
 	if ((reg_val & 0xF0000000) == 0) {
 		WCN_INFO("wcn is deep sleep!\n");
 		return 1;
@@ -899,7 +950,6 @@ int wcn_power_enable_merlion_domain(bool enable)
 		WCN_INFO("clear WCN SYS TOP PD\n");
 	} else if ((!btwf_open) && (!gnss_open) && merlion_domain) {
 		wcn_merlion_power_control(false);
-		wcn_power_domain_set(s_wcn_device.btwf_device, 1);
 		merlion_domain = false;
 		WCN_INFO("set WCN SYS TOP PD\n");
 	}
@@ -931,7 +981,10 @@ int wcn_power_enable_sys_domain(bool enable)
 	if (enable && !sys_domain) {
 		if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_PIKE2)
 			wcn_xtl_auto_sel(false);
-		wcn_power_domain_set(s_wcn_device.btwf_device, 0);
+
+		if (wcn_platform_chip_type() != WCN_PLATFORM_TYPE_QOGIRL6)
+			wcn_power_domain_set(s_wcn_device.btwf_device, 0);
+
 		if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_PIKE2)
 			wcn_xtl_auto_sel(true);
 		sys_domain = true;
@@ -940,7 +993,10 @@ int wcn_power_enable_sys_domain(bool enable)
 		if (wcn_platform_chip_type() ==
 				WCN_PLATFORM_TYPE_PIKE2)
 			wcn_xtl_auto_sel(false);
-		wcn_power_domain_set(s_wcn_device.btwf_device, 1);
+
+		if (wcn_platform_chip_type() != WCN_PLATFORM_TYPE_QOGIRL6)
+			wcn_power_domain_set(s_wcn_device.btwf_device, 1);
+
 		sys_domain = false;
 		WCN_INFO("set WCN SYS TOP PD\n");
 	}
@@ -1284,6 +1340,9 @@ int wcn_marlin_power_enable_vddwifipa(bool enable)
 	return ret;
 }
 
+/* QogirL6:Before read/write WCN SUB SYS, should confirm
+ * the SUB SYS is at wake up status, or maybe operate fail.
+ */
 bool wcn_power_status_check(struct wcn_device *wcn_dev)
 {
 	bool wcn_pd_state = false;
@@ -1294,32 +1353,52 @@ bool wcn_power_status_check(struct wcn_device *wcn_dev)
 	/* PWR_STATUS_DBG_18 */
 	wcn_regmap_read(wcn_dev->rmap[REGMAP_PMU_APB],
 					0x538, &reg_value);
-
 	WCN_INFO("PWR_STATUS_DBG_18:0x%x\n", reg_value);
 	/* bit 24-28:default 7-power off, 0-power on */
 	wcn_pd_top_state = reg_value & 0x1f000000;
-	if (wcn_pd_top_state == 0x7)
+	if (wcn_pd_top_state != 0)
 		return false;
 
+	/* TOP PMU: wcn deep */
 	if (wcn_deep_sleep_status(wcn_dev)) {
 		WCN_INFO("%s is deep\n", __func__);
 		return false;
 	}
 
 	reg_value = 0;
-	/* PD_SLP_STATUS */
+	/* WCN PMU:sub sys power on */
 	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_APB],
 					0x3b0, &reg_value);
-	WCN_INFO("PD_SLP_STATUS:0x%x\n", reg_value);
+	WCN_INFO("PD_SLP_STATUS:REG0x3b0=0x%x\n", reg_value);
 	/* btwf sys poweron finish */
 	if (wcn_dev == s_wcn_device.btwf_device)
 		wcn_pd_subsys_state = reg_value & BIT(0);
 	/* gnss sys poweron finish */
 	else
 		wcn_pd_subsys_state = reg_value & BIT(6);
+	if (wcn_pd_subsys_state == 0)
+		return false;
 
-	if (wcn_pd_subsys_state)
-		wcn_pd_state = true;
+	/* BTWF SYS: wake up finish */
+	if (wcn_dev_is_marlin(wcn_dev)) {
+		wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_APB],
+						0x3b4, &reg_value);
+		WCN_INFO("BTWF SYS Wake up,Reg0x3b4=0x%x\n", reg_value);
+		/* btwf sys wake up finish */
+		if ((reg_value & (0xF<<12)) == (0x6 << 12))
+			wcn_pd_state = true;
+		else
+			wcn_pd_state = false;
+	} else { /* GNSS SYS: wake up finish */
+		wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_APB],
+						0x3c0, &reg_value);
+		WCN_INFO("GNSS SYS Wake up,Reg0x3c0=0x%x\n", reg_value);
+		/* btwf sys wake up finish */
+		if ((reg_value & (0xF<<9)) == (0x6 << 9))
+			wcn_pd_state = true;
+		else
+			wcn_pd_state = false;
+	}
 
 	return wcn_pd_state;
 }

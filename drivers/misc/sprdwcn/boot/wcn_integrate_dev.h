@@ -40,7 +40,7 @@ enum wcn_gnss_sub_sys {
 #define SUFFIX "androidboot.slot_suffix="
 
 /* NOTES:If DTS config more than REG_CTRL_CNT_MAX REGs */
-#define REG_CTRL_CNT_MAX 8
+#define REG_CTRL_CNT_MAX 12
 /* NOTES:If DTS config more than REG_SHUTDOWN_CNT_MAX REGs */
 #define REG_SHUTDOWN_CNT_MAX 4
 
@@ -180,7 +180,7 @@ struct wifi_calibration {
 #define MARLIN_WAIT_CP_INIT_POLL_TIME_MS	(20)	/* 20ms */
 #define MARLIN_WAIT_CP_INIT_COUNT	(256)
 #define MARLIN_WAIT_CP_INIT_MAX_TIME (20000)
-#define WCN_WAIT_SLEEP_MAX_COUNT (32)
+#define WCN_WAIT_SLEEP_MAX_COUNT (150)
 #define WCN_WAIT_SHUTDOWN_MAX_COUNT (16)
 
 /* begin : for gnss module */
@@ -201,8 +201,8 @@ struct wcn_clock_info {
 };
 
 enum flag_emmc_or_ufs {
-	emmc = 0,
-	ufs = 1
+	emmc = 1,
+	ufs = 0
 };
 
 struct wcn_device {
