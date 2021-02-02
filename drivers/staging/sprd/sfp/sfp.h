@@ -699,7 +699,14 @@ void sfp_ipa_fwd_clear(void);
 void sfp_ipa_swap_tbl(void);
 void sfp_clear_all_ipa_tbl(void);
 int sfp_tbl_id(void);
+
+int sfp_mgr_fwd_entry_delete(const struct nf_conntrack_tuple *tuple);
+void sfp_ipa_entry_delete(u32 hash);
+void sfp_destroy_ipa_tbl(void);
+bool sfp_ipa_ipv6_check(const struct sk_buff *skb,
+			u16 *first, u8 *nexthdr, u32 *off);
 void sfp_clear_fwd_table(int ifindex);
+struct device *sfp_get_ipa_dev(void);
 u32 hash_conntrack(const struct nf_conntrack_tuple *tuple);
 
 int sfp_ipa_filter_sync(enum sfp_rule_type type);

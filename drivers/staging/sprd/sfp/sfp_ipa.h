@@ -12,20 +12,19 @@
  */
 #ifndef SFP_IPA_H_
 #define SFP_IPA_H_
-struct device *get_ipa_dev(void);
 
 static inline void *dma_ipa_alloc(struct device *dev, size_t size,
 				  dma_addr_t *dma_handle, gfp_t flag)
 {
 	return dma_alloc_coherent(
-		get_ipa_dev(), size, dma_handle, flag);
+		sfp_get_ipa_dev(), size, dma_handle, flag);
 }
 
 static inline void dma_ipa_free(struct device *dev, size_t size,
 				void *cpu_addr, dma_addr_t dma_handle)
 {
 	dma_free_coherent(
-		get_ipa_dev(), size, cpu_addr, dma_handle);
+		sfp_get_ipa_dev(), size, cpu_addr, dma_handle);
 }
 
 static inline u8 *sfp_get_hash_vtbl(int id)

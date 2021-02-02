@@ -53,7 +53,7 @@
 #define IPA_UPD_TBL_TIMER (10 * HZ)
 #define BIT64TO40(x) (x & 0x000000ffffffffffULL)
 
-atomic_t tbl_id = ATOMIC_INIT(0);
+static atomic_t tbl_id = ATOMIC_INIT(0);
 #define NEW_TBL_ID (atomic_read(&tbl_id))
 
 struct sfp_fwd_hash_tbl fwd_tbl;
@@ -143,7 +143,7 @@ int sfp_ipa_fwd_add(enum ip_conntrack_dir dir, struct sfp_conn *sfp_ct)
 	return SFP_OK;
 }
 
-int sfp_ipa_get_entry(int id, u32 hash, struct fwd_entry **fwd_ptr)
+static int sfp_ipa_get_entry(int id, u32 hash, struct fwd_entry **fwd_ptr)
 {
 	struct hd_hash_tbl *h_tbl;
 	u32 haddr;
@@ -290,7 +290,7 @@ void print_hash_tbl(char *p, int len)
 			memset(str, 0, sizeof(str));
 			off = str;
 		}
-		off += sprintf(off, "%02x ", *(p + i));
+		off += sprintf(off, "%02hhx ", *(p + i));
 	}
 	FP_PRT_DBG(FP_PRT_DETAIL, "%s\n\n", str);
 }
@@ -620,7 +620,7 @@ void sfp_destroy_ipa_tbl(void)
 	       sizeof(fwd_tbl.ipa_tbl_mgr.tbl));
 }
 
-void sfp_init_ipa_tbl(void)
+static void sfp_init_ipa_tbl(void)
 {
 	sfp_ipa_alloc_tbl(DEFAULT_IPA_TBL_SIZE);
 }

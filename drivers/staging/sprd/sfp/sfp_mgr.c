@@ -143,8 +143,6 @@ static void sfp_mgr_fwd_entry_free(struct rcu_head *head)
 	if (sfp_ct && atomic_dec_and_test(&sfp_ct->used)) {
 		FP_PRT_DBG(FP_PRT_WARN, "sfp_ct free %p\n", sfp_ct);
 		kfree(sfp_ct);
-	} else {
-		del_timer(&sfp_ct->timeout);
 	}
 }
 
@@ -247,11 +245,11 @@ static void sfp_mgr_fwd_death_by_timeout(unsigned long ul_fwd_entry_conn)
 	spin_unlock_bh(&mgr_lock);
 }
 
-int sfp_tuple_to_fwd_entries(struct nf_conntrack_tuple *tuple,
-			     struct nf_conntrack_tuple *target_tuple,
-			     struct sfp_mgr_fwd_tuple *fwd_entry)
+static int sfp_tuple_to_fwd_entries(struct nf_conntrack_tuple *tuple,
+				    struct nf_conntrack_tuple *target_tuple,
+				    struct sfp_mgr_fwd_tuple *fwd_entry)
 {
-	if (!tuple | !target_tuple | !fwd_entry)
+	if (!tuple || !target_tuple || !fwd_entry)
 		return 1;
 
 	fwd_entry->orig_info.src_ip.all[0] = tuple->src.u3.all[0];
@@ -298,13 +296,13 @@ static struct neighbour *
 sfp_dst_get_neighbour(struct dst_entry *dst, void *daddr, int is_v4)
 {
 	struct neighbour *neigh;
-	struct in6_addr *nexthop6;
+	const struct in6_addr *nexthop6;
 	u32 nexthop4;
 
 	if (is_v4) {
 		nexthop4 =
 			(__force u32)rt_nexthop((struct rtable *)dst,
-			*(u32 *)daddr);
+			*(__be32 *)daddr);
 		neigh = __ipv4_neigh_lookup_noref(dst->dev, nexthop4);
 	} else {
 		nexthop6 =
@@ -339,7 +337,7 @@ static bool sfp_get_mac_by_ipaddr(union nf_inet_addr *addr,
 
 		dst = (struct dst_entry *)rt;
 	} else {
-		rt6 = rt6_lookup(&init_net, &addr->in6, 0, 0, 0);
+		rt6 = rt6_lookup(&init_net, &addr->in6, NULL, 0, 0);
 		if (!rt6)
 			goto ret_fail;
 
@@ -639,7 +637,7 @@ static int create_mgr_fwd_entries_in_forward(struct sk_buff *skb,
 	return 0;
 }
 
-int get_hw_iface_by_dev(struct net_device *dev)
+static int get_hw_iface_by_dev(struct net_device *dev)
 {
 	int i;
 
@@ -927,7 +925,7 @@ int sfp_mgr_entry_ct_confirmed(struct nf_conntrack_tuple  *tuple)
 }
 EXPORT_SYMBOL(sfp_mgr_entry_ct_confirmed);
 
-int sfp_check_netdevice_change(struct net_device *dev)
+static int sfp_check_netdevice_change(struct net_device *dev)
 {
 	int i = 0;
 	int ifindex = 0;
@@ -1047,7 +1045,7 @@ void sfp_mgr_proc_disable(void)
 EXPORT_SYMBOL(sfp_mgr_proc_disable);
 
 /* Initialize sfp entries hash table. */
-void sfp_entries_hash_init(void)
+static void sfp_entries_hash_init(void)
 {
 	int i;
 
@@ -1063,12 +1061,12 @@ void sfp_entries_hash_init(void)
 
 static struct device sfp_ipa_dev;
 
-struct device *get_ipa_dev(void)
+struct device *sfp_get_ipa_dev(void)
 {
 	return &sfp_ipa_dev;
 }
 
-void sfp_ipa_dev_init(void)
+static void sfp_ipa_dev_init(void)
 {
 	if (CHK_FWD_ENTRY_SIZE || CHK_HASH_TBL_SIZE) {
 		FP_PRT_DBG(FP_PRT_ERR,
@@ -1085,7 +1083,7 @@ void sfp_ipa_dev_init(void)
 }
 
 /* Initialize sfp manager */
-int sfp_mgr_init(void)
+static int sfp_mgr_init(void)
 {
 	spin_lock_init(&mgr_lock);
 	sfp_entries_hash_init();
