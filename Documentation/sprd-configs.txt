@@ -2708,6 +2708,15 @@ CONFIG_CHARGER_MANAGER
 	[must] user
 	[missing plat description] none
 	[function] Manage battery capacity and monitor charge status
+CONFIG_CHARGER_SC2720
+ 	[arch] arm
+ 	[plat] pike2
+ 	[missing plat] sharkl3_32,sharkl5_32,sharkle32
+ 	[field] make
+ 	[subsys] power
+ 	[must] user
+ 	[missing plat description] Not used in the project, so no configuration
+ 	[function] This function is used to enable charge
 CONFIG_CLANG_VERSION
 	[arch] all
 	[plat] all
@@ -6048,8 +6057,8 @@ CONFIG_FTRACE_SYSCALLS
 	[missing plat description] none
 	[function] Trace syscalls.
 CONFIG_FUEL_GAUGE_SC27XX
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field] make
 	[subsys] power
