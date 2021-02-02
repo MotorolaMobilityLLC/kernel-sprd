@@ -245,6 +245,7 @@ struct cm_track_capacity {
 	s64 start_time;
 	bool cap_tracking;
 	struct delayed_work track_capacity_work;
+	bool open_file_done;
 };
 
 /*

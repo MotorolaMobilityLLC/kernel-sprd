@@ -5231,11 +5231,13 @@ static void cm_track_capacity_work(struct work_struct *work)
 					   &cm->track.track_capacity_work,
 					   5 * HZ);
 		} else {
+			cm->track.open_file_done = true;
 			cm->track.state = CAP_TRACK_ERR;
 		}
 		return;
 	}
 
+	cm->track.open_file_done = true;
 	ret = get_batt_total_cap(cm, &total_cap);
 	if (ret) {
 		dev_err(cm->dev, "failed to get total cap.\n");
@@ -6313,6 +6315,7 @@ static int charger_manager_probe(struct platform_device *pdev)
 	cm->track.cap_tracking =
 		device_property_read_bool(&pdev->dev, "cm-capacity-track");
 
+	cm->track.open_file_done = true;
 	if (cm->track.cap_tracking) {
 		ret = cm_get_bat_info(cm);
 		if (ret) {
@@ -6320,6 +6323,7 @@ static int charger_manager_probe(struct platform_device *pdev)
 			goto err_reg_sysfs;
 		}
 
+		cm->track.open_file_done = false;
 		cm_track_capacity_init(cm);
 	}
 
@@ -6400,6 +6404,9 @@ static int cm_suspend_noirq(struct device *dev)
 static int cm_suspend_prepare(struct device *dev)
 {
 	struct charger_manager *cm = dev_get_drvdata(dev);
+
+	if (!cm->track.open_file_done)
+		return -EAGAIN;
 
 	if (!cm_suspended)
 		cm_suspended = true;
