@@ -22,7 +22,6 @@
 #include <linux/of_gpio.h>
 #include <linux/err.h>
 #include <linux/regulator/driver.h>
-#include <linux/regulator/of_regulator.h>
 #include <linux/regulator/machine.h>
 #include <linux/debugfs.h>
 #include <linux/bitops.h>
@@ -1774,6 +1773,8 @@ static int bq2597x_charger_set_property(struct power_supply *psy,
 
 	switch (prop) {
 	case POWER_SUPPLY_PROP_CHARGE_ENABLED:
+		if (!val->intval)
+			bq2597x_enable_adc(bq, false);
 		bq2597x_enable_charge(bq, val->intval);
 		bq2597x_check_charge_enabled(bq, &bq->charge_enabled);
 		dev_info(bq->dev, "POWER_SUPPLY_PROP_CHARGING_ENABLED: %s\n",
@@ -2173,6 +2174,7 @@ static void bq2597x_charger_shutdown(struct i2c_client *client)
 {
 	struct bq2597x_charger_info *bq = i2c_get_clientdata(client);
 
+	bq2597x_enable_adc(bq, false);
 	bq2597x_enable_charge(bq, false);
 }
 
