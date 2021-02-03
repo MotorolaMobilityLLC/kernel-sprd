@@ -295,9 +295,9 @@ static int bq2560x_charger_hw_init(struct bq2560x_charger_info *info)
 		current_max_ua = bat_info.constant_charge_current_max_ua / 1000;
 		power_supply_put_battery_info(info->psy_usb, &bat_info);
 
-		ret = bq2560x_update_bits(info, BQ2560X_REG_B,
-					  BQ2560X_REG_RESET_MASK,
-					  BQ2560X_REG_RESET_MASK);
+		//ret = bq2560x_update_bits(info, BQ2560X_REG_B,
+		//			  BQ2560X_REG_RESET_MASK,
+		//			  BQ2560X_REG_RESET_MASK);
 
 		if (ret) {
 			dev_err(info->dev, "reset bq2560x failed\n");
@@ -317,7 +317,7 @@ static int bq2560x_charger_hw_init(struct bq2560x_charger_info *info)
 			return ret;
 		}
 
-		ret = bq2560x_charger_set_termina_cur(info, current_max_ua);
+		ret = bq2560x_charger_set_termina_cur(info, 180);
 		if (ret) {
 			dev_err(info->dev, "set bq2560x terminal cur failed\n");
 			return ret;
