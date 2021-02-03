@@ -150,10 +150,9 @@ static struct sprd_clk_desc ums9620_pmu_gate_desc = {
 
 /* pll clock at g1 */
 static struct freq_table rpll_ftable[5] = {
-	{ .ibias = 1, .max_freq = 1560000000ULL },
-	{ .ibias = 2, .max_freq = 2000000000ULL },
-	{ .ibias = 3, .max_freq = 2800000000ULL },
-	{ .ibias = 4, .max_freq = 3200000000ULL },
+	{ .ibias = 1, .max_freq = 2000000000ULL },
+	{ .ibias = 2, .max_freq = 2800000000ULL },
+	{ .ibias = 3, .max_freq = 3200000000ULL },
 	{ .ibias = INVALID_MAX_IBIAS, .max_freq = INVALID_MAX_FREQ },
 };
 
@@ -173,7 +172,7 @@ static struct clk_bit_field f_rpll[PLL_FACT_MAX] = {
 
 static SPRD_PLL_WITH_ITABLE_K_FVCO(rpll, "rpll", "ext-26m", 0x10,
 				   3, rpll_ftable, f_rpll, 240,
-				   1000, 1000, 1, 1559000000);
+				   1000, 1000, 1, 1560000000);
 static CLK_FIXED_FACTOR(rpll_390m, "rpll-390m", "rpll", 2, 1, 0);
 static CLK_FIXED_FACTOR(rpll_26m, "rpll-26m", "rpll", 30, 1, 0);
 
@@ -221,15 +220,15 @@ static struct clk_bit_field f_dpll[PLL_FACT_MAX] = {
 
 static SPRD_PLL_WITH_ITABLE_K_FVCO(dpll0, "dpll0", "ext-26m", 0x4,
 				   3, dpll_ftable, f_dpll, 240,
-				   1000, 1000, 1, 1499000000);
+				   1000, 1000, 1, 1500000000);
 
 static SPRD_PLL_WITH_ITABLE_K_FVCO(dpll1, "dpll1", "ext-26m", 0x24,
 				   3, dpll_ftable, f_dpll, 240,
-				   1000, 1000, 1, 1499000000);
+				   1000, 1000, 1, 1500000000);
 
 static SPRD_PLL_WITH_ITABLE_K_FVCO(dpll2, "dpll2", "ext-26m", 0x44,
 				   3, dpll_ftable, f_dpll, 240,
-				   1000, 1000, 1, 1499000000);
+				   1000, 1000, 1, 1500000000);
 
 static struct sprd_clk_common *ums9620_g1l_pll_clks[] = {
 	/* address base is 0x64308000 */
@@ -277,7 +276,7 @@ static struct clk_bit_field f_tgpll[PLL_FACT_MAX] = {
 
 static SPRD_PLL_WITH_ITABLE_K_FVCO(tgpll, "tgpll", "ext-26m", 0x4,
 				   3, tgpll_ftable, f_tgpll, 240,
-				   1000, 1000, 1, 749000000);
+				   1000, 1000, 1, 1500000000);
 static CLK_FIXED_FACTOR(tgpll_12m, "tgpll-12m", "tgpll", 128, 1, 0);
 static CLK_FIXED_FACTOR(tgpll_24m, "tgpll-24m", "tgpll", 64, 1, 0);
 static CLK_FIXED_FACTOR(tgpll_38m4, "tgpll-38m4", "tgpll", 40, 1, 0);
@@ -313,7 +312,7 @@ static struct clk_bit_field f_psr8pll[PLL_FACT_MAX] = {
 #define psr8pll_ftable tgpll_ftable
 static SPRD_PLL_WITH_ITABLE_K_FVCO(psr8pll, "psr8pll", "psr8pll-gate", 0x2c,
 				   3, psr8pll_ftable, f_psr8pll, 240,
-				   1000, 1000, 1, 749000000);
+				   1000, 1000, 1, 1600000000);
 
 static struct clk_bit_field f_v4nrpll[PLL_FACT_MAX] = {
 	{ .shift = 17,	.width = 1 },	/* lock_done	*/
@@ -332,7 +331,7 @@ static struct clk_bit_field f_v4nrpll[PLL_FACT_MAX] = {
 #define v4nrpll_ftable tgpll_ftable
 static SPRD_PLL_WITH_ITABLE_K_FVCO(v4nrpll, "v4nrpll", "ext-26m", 0x3c,
 				   3, v4nrpll_ftable, f_v4nrpll, 240,
-				   1000, 1000, 1, 749000000);
+				   1000, 1000, 1, 1600000000);
 static CLK_FIXED_FACTOR(v4nrpll_409m6, "v4nrpll-409m6", "v4nrpll", 6, 1, 0);
 static CLK_FIXED_FACTOR(v4nrpll_614m4, "v4nrpll-614m4", "v4nrpll", 4, 1, 0);
 
@@ -401,20 +400,20 @@ static struct clk_bit_field f_gpll[PLL_FACT_MAX] = {
 
 static SPRD_PLL_WITH_ITABLE_K_FVCO(gpll, "gpll", "ext-26m", 0x0,
 				   3, gpll_ftable, f_gpll, 240,
-				   1000, 1000, 1, 749000000);
+				   1000, 1000, 1, 1600000000);
 static CLK_FIXED_FACTOR(gpll_680m, "gpll-680m", "gpll", 5, 2, 0);
 
 #define aipll_ftable gpll_ftable
 #define f_aipll f_gpll
 static SPRD_PLL_WITH_ITABLE_K_FVCO(aipll, "aipll", "ext-26m", 0x18,
 				   3, aipll_ftable, f_aipll, 240,
-				   1000, 1000, 1, 749000000);
+				   1000, 1000, 1, 1600000000);
 
 #define vdsppll_ftable gpll_ftable
 #define f_vdsppll f_gpll
 static SPRD_PLL_WITH_ITABLE_K_FVCO(vdsppll, "vdsppll", "ext-26m", 0x30,
 				   3, vdsppll_ftable, f_vdsppll, 240,
-				   1000, 1000, 1, 749000000);
+				   1000, 1000, 1, 1600000000);
 
 static struct clk_bit_field f_cpll[PLL_FACT_MAX] = {
 	{ .shift = 17,	.width = 1 },	/* lock_done	*/
@@ -432,7 +431,7 @@ static struct clk_bit_field f_cpll[PLL_FACT_MAX] = {
 #define cpll_ftable gpll_ftable
 static SPRD_PLL_WITH_ITABLE_K_FVCO(cpll, "cpll", "ext-26m", 0x48,
 				   3, cpll_ftable, f_cpll, 240,
-				   1000, 1000, 1, 749000000);
+				   1000, 1000, 1, 1600000000);
 
 static struct clk_bit_field f_audpll[PLL_FACT_MAX] = {
 	{ .shift = 17,	.width = 1 },	/* lock_done	*/
@@ -451,19 +450,21 @@ static struct clk_bit_field f_audpll[PLL_FACT_MAX] = {
 #define audpll_ftable gpll_ftable
 static SPRD_PLL_WITH_ITABLE_K_FVCO(audpll, "audpll", "ext-26m", 0x68,
 				   3, audpll_ftable, f_audpll, 240,
-				   1000, 1000, 1, 749000000);
+				   1000, 1000, 1, 1600000000);
 
 #define phyr8pll_ftable gpll_ftable
 #define f_phyr8pll f_gpll
 static SPRD_PLL_WITH_ITABLE_K_FVCO(phyr8pll, "phyr8pll", "phyr8pll-gate", 0x90,
 				   3, phyr8pll_ftable, f_phyr8pll, 240,
-				   1000, 1000, 1, 749000000);
+				   1000, 1000, 1, 1600000000);
 
 #define pixelpll_ftable gpll_ftable
 #define f_pixelpll f_audpll
 static SPRD_PLL_WITH_ITABLE_K_FVCO(pixelpll, "pixelpll", "pixelpll-gate", 0xa8,
 				   3, pixelpll_ftable, f_pixelpll, 240,
-				   1000, 1000, 1, 749000000);
+				   1000, 1000, 1, 1600000000);
+static CLK_FIXED_FACTOR(pixelpll_668m25, "pixelpll-668m25", "pixelpll", 4, 1, 0);
+static CLK_FIXED_FACTOR(pixelpll_297m, "pixelpll-297m", "pixelpll", 9, 1, 0);
 
 static struct sprd_clk_common *ums9620_g5r_pll_clks[] = {
 	/* address base is 0x64320000 */
@@ -486,6 +487,8 @@ static struct clk_hw_onecell_data ums9620_g5r_pll_hws = {
 		[CLK_AUDPLL]		= &audpll.common.hw,
 		[CLK_PHYR8PLL]		= &phyr8pll.common.hw,
 		[CLK_PIXELPLL]		= &pixelpll.common.hw,
+		[CLK_PIXELPLL_668M25]	= &pixelpll_668m25.hw,
+		[CLK_PIXELPLL_297M]	= &pixelpll_297m.hw,
 	},
 	.num    = CLK_ANLG_PHY_G5R_NUM,
 };
@@ -528,7 +531,7 @@ static struct clk_bit_field f_mpllb[PLL_FACT_MAX] = {
 
 static SPRD_PLL_WITH_ITABLE_K_FVCO(mpllb, "mpllb", "ext-26m", 0x0,
 				   3, mpllb_ftable, f_mpllb, 240,
-				   1000, 1000, 1, 999000000);
+				   1000, 1000, 1, 1000000000);
 
 static struct sprd_clk_common *ums9620_g8_pll_clks[] = {
 	/* address base is 0x6432c000 */
@@ -566,7 +569,7 @@ static struct clk_bit_field f_mpllm[PLL_FACT_MAX] = {
 #define mpllm_ftable mpllb_ftable
 static SPRD_PLL_WITH_ITABLE_K_FVCO(mpllm, "mpllm", "ext-26m", 0x0,
 				   3, mpllm_ftable, f_mpllm, 240,
-				   1000, 1000, 1, 999000000);
+				   1000, 1000, 1, 1000000000);
 
 static struct sprd_clk_common *ums9620_g9_pll_clks[] = {
 	/* address base is 0x64330000 */
@@ -591,13 +594,13 @@ static struct sprd_clk_desc ums9620_g9_pll_desc = {
 #define f_mplll f_mpllm
 static SPRD_PLL_WITH_ITABLE_K_FVCO(mplll, "mplll", "ext-26m", 0x0,
 				   3, mplll_ftable, f_mplll, 240,
-				   1000, 1000, 1, 999000000);
+				   1000, 1000, 1, 1000000000);
 
 #define mplls_ftable mpllb_ftable
 #define f_mplls f_mpllm
 static SPRD_PLL_WITH_ITABLE_K_FVCO(mplls, "mplls", "ext-26m", 0x20,
 				   3, mplls_ftable, f_mplls, 240,
-				   1000, 1000, 1, 999000000);
+				   1000, 1000, 1, 1000000000);
 
 static struct sprd_clk_common *ums9620_g10_pll_clks[] = {
 	/* address base is 0x64334000 */
@@ -879,7 +882,7 @@ static SPRD_COMP_CLK_OFFSET(ap_iis2, "ap-iis2", iis_parents,
 
 static const char * const ap_ce_parents[] = { "ext-26m", "tgpll-96m",
 					   "tgpll-192m", "tgpll-256m" };
-static SPRD_MUX_CLK(ap_ce, "ap_ce", ap_ce_parents, 0x118,
+static SPRD_MUX_CLK(ap_ce, "ap-ce", ap_ce_parents, 0x118,
 		    0, 3, UMS9620_MUX_FLAG);
 
 static const char * const sdio_parents[] = { "clk-1m", "ext-26m",
@@ -1116,25 +1119,25 @@ static SPRD_SC_GATE_CLK(aon_syst_rtc_eb, "aon-syst-rtc-eb", "ext-26m", 0x18,
 			0x1000, BIT(2), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(ap_syst_rtc_eb, "ap-syst-rtc-eb", "ext-26m", 0x18,
 			0x1000, BIT(3), CLK_IGNORE_UNUSED, 0);
-static SPRD_SC_GATE_CLK(aon_tmr_rtc_eb,	"aon-tmr-rtc-eb", "ext-26m", 0x18,
+static SPRD_SC_GATE_CLK(aon_tmr_rtc_eb, "aon-tmr-rtc-eb", "ext-26m", 0x18,
 			0x1000, BIT(4), CLK_IGNORE_UNUSED, 0);
-static SPRD_SC_GATE_CLK(eic_rtc_eb,	"eic-rtc-eb",	"ext-26m", 0x18,
+static SPRD_SC_GATE_CLK(eic_rtc_eb, "eic-rtc-eb", "ext-26m", 0x18,
 			0x1000, BIT(5), CLK_IGNORE_UNUSED, 0);
-static SPRD_SC_GATE_CLK(eic_rtcdv5_eb,	"eic-rtcdv5-eb", "ext-26m", 0x18,
+static SPRD_SC_GATE_CLK(eic_rtcdv5_eb, "eic-rtcdv5-eb", "ext-26m", 0x18,
 			0x1000, BIT(6), CLK_IGNORE_UNUSED, 0);
-static SPRD_SC_GATE_CLK(ap_wdg_rtc_eb,	"ap-wdg-rtc-eb", "ext-26m", 0x18,
+static SPRD_SC_GATE_CLK(ap_wdg_rtc_eb, "ap-wdg-rtc-eb", "ext-26m", 0x18,
 			0x1000, BIT(7), CLK_IGNORE_UNUSED, 0);
-static SPRD_SC_GATE_CLK(ac_wdg_rtc_eb,	"ac-wdg-rtc-eb", "ext-26m", 0x18,
+static SPRD_SC_GATE_CLK(ac_wdg_rtc_eb, "ac-wdg-rtc-eb", "ext-26m", 0x18,
 			0x1000, BIT(8), CLK_IGNORE_UNUSED, 0);
-static SPRD_SC_GATE_CLK(ap_tmr0_rtc_eb,	"ap-tmr0-rtc-eb", "ext-26m", 0x18,
+static SPRD_SC_GATE_CLK(ap_tmr0_rtc_eb, "ap-tmr0-rtc-eb", "ext-26m", 0x18,
 			0x1000, BIT(9), CLK_IGNORE_UNUSED, 0);
-static SPRD_SC_GATE_CLK(ap_tmr1_rtc_eb,	"ap-tmr1-rtc-eb", "ext-26m", 0x18,
+static SPRD_SC_GATE_CLK(ap_tmr1_rtc_eb, "ap-tmr1-rtc-eb", "ext-26m", 0x18,
 			0x1000, BIT(10), CLK_IGNORE_UNUSED, 0);
-static SPRD_SC_GATE_CLK(ap_tmr2_rtc_eb,	"ap-tmr2-rtc-eb", "ext-26m", 0x18,
+static SPRD_SC_GATE_CLK(ap_tmr2_rtc_eb, "ap-tmr2-rtc-eb", "ext-26m", 0x18,
 			0x1000, BIT(11), CLK_IGNORE_UNUSED, 0);
-static SPRD_SC_GATE_CLK(dcxo_lc_rtc_eb,	"dcxo-lc-rtc-eb", "ext-26m", 0x18,
+static SPRD_SC_GATE_CLK(dcxo_lc_rtc_eb, "dcxo-lc-rtc-eb", "ext-26m", 0x18,
 			0x1000, BIT(12), CLK_IGNORE_UNUSED, 0);
-static SPRD_SC_GATE_CLK(bb_cal_rtc_eb,	"bb-cal-rtc-eb", "ext-26m", 0x18,
+static SPRD_SC_GATE_CLK(bb_cal_rtc_eb, "bb-cal-rtc-eb", "ext-26m", 0x18,
 			0x1000, BIT(13), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(dsi_csi_test_eb, "dsi-csi-test-eb", "ext-26m", 0x138,
 			0x1000, BIT(8), 0, 0);
@@ -1916,7 +1919,7 @@ static SPRD_MUX_CLK(ipa_dpu, "ipa-dpu", ipa_dpu_parents, 0x7c,
 		    0, 2, UMS9620_MUX_FLAG);
 
 static const char * const ipa_dpi_parents[] = { "tgpll-128m", "tgpll-192m",
-						"pixelpll", "tgpll-307m2" };
+						"pixelpll-297m", "tgpll-307m2" };
 static SPRD_COMP_CLK_OFFSET(ipa_dpi, "ipa-dpi", ipa_dpi_parents, 0x88,
 			    0, 2, 0, 4, 0);
 
@@ -2458,7 +2461,7 @@ static const char * const vdsp_parents[] = { "ext-26m", "tgpll-307m2",
 					     "tgpll-512m", "tgpll-614m4" };
 static SPRD_MUX_CLK(vdsp, "vdsp", vdsp_parents, 0x28,
 		    0, 2, UMS9620_MUX_FLAG);
-static SPRD_DIV_CLK(vdsp_m, "vdsp_m", "vdsp", 0x30,
+static SPRD_DIV_CLK(vdsp_m, "vdsp-m", "vdsp", 0x30,
 		    0, 2, 0);
 
 static const char * const vdma_parents[] = { "ext-26m", "tgpll-153m6",
@@ -2761,7 +2764,7 @@ static SPRD_MUX_CLK(vpu_enc, "vpu-enc", vpu_enc_parents, 0x40,
 
 static const char * const vpu_dec_parents[] = { "tgpll-256m", "tgpll-307m2",
 						"tgpll-384m", "tgpll-512m",
-						"pixelpll" };
+						"pixelpll-668m25" };
 static SPRD_MUX_CLK(vpu_dec, "vpu-dec", vpu_dec_parents, 0x4c,
 		    0, 3, UMS9620_MUX_FLAG);
 
