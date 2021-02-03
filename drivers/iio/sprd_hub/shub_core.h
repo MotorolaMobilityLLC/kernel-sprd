@@ -210,6 +210,7 @@ struct shub_data {
 	struct work_struct download_cali_data_work;
 	struct work_struct savecalifile_work;
 	struct notifier_block early_suspend;
+	struct notifier_block shub_reboot_notifier;
 	int is_sensorhub;
 	u8 cm4_operate_data[6];
 };
