@@ -4619,7 +4619,7 @@ static void cm_batt_works(struct work_struct *work)
 	dev_info(cm->dev, "battery voltage = %d, OCV = %d, current = %d, "
 		 "capacity = %d, charger status = %d, force set full = %d, "
 		 "charging current = %d, charging limit current = %d, "
-		 "battery temperature = %d,board temperature = %d,real board temperature = %d, "
+		 "battery temperature = %d,chg ic temperature = %d,board temperature = %d, "
 		 "track state = %d, charger type = %d, thm_adjust_cur = %d, "
 		 "charger input voltage = %d, "
 		 "is_fast_charge = %d, enable_fast_charge = %d\n",
@@ -4728,7 +4728,7 @@ static void cm_batt_works(struct work_struct *work)
 				fuel_cap = CM_CAP_FULL_PERCENT;
 
 			if (fuel_cap > cm->desc->cap)
-				fuel_cap = cm->desc->cap + 5;       /*optimze charge time by pony date 20210118*/
+				fuel_cap = cm->desc->cap + 1;       /*optimze charge time by pony date 20210118*/
 		}
 
 		break;

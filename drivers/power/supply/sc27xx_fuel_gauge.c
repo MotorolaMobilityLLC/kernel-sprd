@@ -547,6 +547,7 @@ static int sc27xx_fgu_get_boot_capacity(struct sc27xx_fgu_data *data, int *cap)
 				ret);
 			return ret;
 		}
+		dev_info(data->dev, "no_first_poweron: last_cap = %d\n", *cap);
 
 		data->boot_cap = *cap;
 		ret = sc27xx_fgu_read_normal_temperature_cap(data, cap);
@@ -555,6 +556,7 @@ static int sc27xx_fgu_get_boot_capacity(struct sc27xx_fgu_data *data, int *cap)
 				ret);
 			return ret;
 		}
+		dev_info(data->dev, "no_first_poweron:  normal_temperature_cap = %d\n", *cap);
 
 		if (*cap == SC27XX_FGU_DEFAULT_CAP || *cap == SC27XX_FGU_RTC2_RESET_VALUE) {
 			*cap = data->boot_cap;
