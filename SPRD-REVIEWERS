@@ -250,6 +250,16 @@ T: mmc:sprd:
 T: arm64:dts:
 T: arm:configs:
 
+[steven.chen]
+R: +1
+C: 2021.02.03
+T: misc:sprdwcn:
+T: mmc:sprd:
+T: arm64:dts:
+T: arm:configs:
+T: bluetooth:
+T: net:bluetooth:
+
 [yangyang.liu]
 R: +2
 T: misc:sprd_camera:
