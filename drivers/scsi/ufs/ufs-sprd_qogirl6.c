@@ -199,18 +199,6 @@ void ufs_sprd_reset(struct ufs_sprd_host *host)
 	/* TODO: HW reset will be simple in next version. */
 	/* Configs need strict squence. */
 
-	regmap_read(host->ap_apb_ufs_rst.regmap,
-		    host->ap_apb_ufs_rst.reg, &value);
-	value = value | host->ap_apb_ufs_rst.mask;
-	regmap_write(host->ap_apb_ufs_rst.regmap,
-		    host->ap_apb_ufs_rst.reg, value);
-	mdelay(10);
-	regmap_read(host->ap_apb_ufs_rst.regmap,
-		    host->ap_apb_ufs_rst.reg, &value);
-	value = value & (~host->ap_apb_ufs_rst.mask);
-	regmap_write(host->ap_apb_ufs_rst.regmap,
-		     host->ap_apb_ufs_rst.reg, value);
-
 	ufs_sprd_rmwl(host->ufs_analog_reg, FIFO_ENABLE_MASK,
 		      FIFO_ENABLE_MASK, MPHY_LANE0_FIFO);
 
