@@ -186,7 +186,7 @@
 				cm-fullbatt-vchkdrop-ms = <30000>;
 				cm-fullbatt-vchkdrop-volt = <60000>;
 				cm-fullbatt-voltage = <4350000>;
-				cm-fullbatt-current = <400000>;
+				cm-fullbatt-current = <550000>;
 				cm-fullbatt-capacity = <100>;
 
 				cm-num-chargers = <1>;
