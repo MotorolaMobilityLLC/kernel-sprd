@@ -589,12 +589,23 @@
 		reg = <0x0 0x9e000000 0x0 0x007e9000>;
 	};
 
-	fd_reserved: faceid-mem@ffa80000 {
-		reg = <0x0 0xffa80000 0x0 0x00500000>;
+	fd_reserved: faceid-mem@fefee000 {
+		reg = <0x0 0xfefee000 0x0 0x00500000>;
+	};
+
+	fb_reserved: framebuffer@ff4ee000 {
+		reg = <0x0 0xff4ee000 0x0 0x00a92000>;
 	};
 };
 
 &ion {
+	heap@3 {
+		reg = <3>;
+		label = "carveout_fb";
+		type = <2>;
+		memory-region = <&fb_reserved>;
+	};
+
 	heap@4 {
 		reg = <4>;
 		label = "carveout_fd";
