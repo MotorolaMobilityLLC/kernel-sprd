@@ -58,7 +58,7 @@
 #define MASK_ANLG_PHY_G2_ANALOG_USB20_USB20_RESERVED                    0xffff
 
 #define TUNEHSAMP_2_6MA			(3 << 25)
-#define TFREGRES_TUNE_VALUE		(0x14 << 19)
+#define TFREGRES_TUNE_VALUE		(0xe << 19)
 
 struct sprd_hsphy {
 	struct device		*dev;
