@@ -177,13 +177,15 @@ static int sprd_resume(struct device *dev)
 	struct sprd_trng *trng = dev_get_drvdata(dev);
 
 	err = clk_prepare_enable(trng->clk);
-	err = sprd_trng_init(&(trng->rng));
-	if (err) {
-		dev_err(dev, "pubce resume failed!\n");
-		return err;
-	}
+	if (!err)
+		err = sprd_trng_init(&(trng->rng));
+	if (err)
+		goto error;
 	pr_info("pubce resume\n");
-
+	return err;
+error:
+	clk_disable_unprepare(trng->clk);
+	dev_err(dev, "pubce resume failed!\n");
 	return err;
 }
 #endif
