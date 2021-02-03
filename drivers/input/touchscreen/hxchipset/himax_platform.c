@@ -1018,9 +1018,9 @@ static ssize_t ts_suspend_show(struct device *dev, struct device_attribute *attr
 static ssize_t ts_suspend_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
 {
 	printk(KERN_ERR "ontim --->%s(%d), buf[0]:%c\n", __func__, __LINE__, buf[0]);
-	if (buf[0] == '1')
+	if ((buf[0] == '1') && !private_ts->suspended)
 		himax_sleep_handler(TP_SUSPEND);
-	else if (buf[0] == '0')
+	else if ((buf[0] == '0') && private_ts->suspended)
 		himax_sleep_handler(TP_RESUME);
 
 	return count;
