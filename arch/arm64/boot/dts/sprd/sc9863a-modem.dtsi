@@ -292,8 +292,8 @@
 			/* channel number */
 			reg = <5>;
 			sprd,ringnr = <1>;
-			sprd,size-rxbuf = <0x5c0>;
-			sprd,size-txbuf = <0x20>;
+			sprd,size-rxbuf = <0x500>;
+			sprd,size-txbuf = <0x0>;
 		};
 
 		sctl_pm: channel@6 {
@@ -305,5 +305,19 @@
 			sprd,size-rxbuf = <0x40>;
 			sprd,size-txbuf = <0x20>;
 		};
+
+		stime_pm: channel@41 {
+			compatible = "sprd,spipe";
+			label = "stime_pm";
+			/* channel number */
+			reg = <41>;
+			sprd,ringnr = <1>;
+			sprd,size-rxbuf = <0x40>;
+			sprd,size-txbuf = <0x40>;
+		};
+	};
+
+	time_sync {
+		compatible = "sprd,time-sync";
 	};
 };
