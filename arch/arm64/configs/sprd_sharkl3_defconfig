@@ -5077,7 +5077,7 @@ CONFIG_SC27XX_ADC=m
 #
 # Spreadtrum Sensor Hub
 #
-# CONFIG_SPRD_SENSOR_HUB is not set
+CONFIG_SPRD_SENSOR_HUB=m
 # end of Spreadtrum Sensor Hub
 
 # CONFIG_NTB is not set
