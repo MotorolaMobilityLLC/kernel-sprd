@@ -211,6 +211,14 @@ T: usb:musb:
 T: usb:misc:
 T: usb:phy:
 
+[mingming.zhong]
+R: +1
+C: 2021.02.03
+T: misc:sprdwcn:
+T: mmc:sprd:
+T: arm64:dts:
+T: arm:configs:
+
 [nianfu.bai]
 R: +2
 T: arm:dts:
