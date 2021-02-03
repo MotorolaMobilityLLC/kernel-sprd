@@ -1531,7 +1531,7 @@ static const char * const debug_ts_parents[] = { "ext-26m", "tgpll-76m8",
 static SPRD_MUX_CLK(debug_ts, "debug-ts", debug_ts_parents, 0x148,
 		    0, 2, UMS9620_MUX_FLAG);
 
-static const char * const pri_sbi_parents[] = { "ext-26m", "tgpll-98m" };
+static const char * const pri_sbi_parents[] = { "ext-26m", "tgpll-96m" };
 static SPRD_MUX_CLK(pri_sbi, "pri-sbi", pri_sbi_parents, 0x154,
 		    0, 2, UMS9620_MUX_FLAG);
 
@@ -1900,7 +1900,7 @@ static SPRD_MUX_CLK(ipa_axi, "ipa-axi", ipa_axi_parents, 0x28,
 static SPRD_DIV_CLK(ipa_apb, "ipa-apb", "ipa-axi", 0x30,
 		    0, 2, 0);
 
-static const char * const usb_ref_parents[] = { "ext-32m", "tgpll-24m" };
+static const char * const usb_ref_parents[] = { "ext-32k", "tgpll-24m" };
 static SPRD_MUX_CLK(usb_ref, "usb-ref", usb_ref_parents, 0x4c,
 		    0, 1, UMS9620_MUX_FLAG);
 
