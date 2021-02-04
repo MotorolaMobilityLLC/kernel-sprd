@@ -118,6 +118,7 @@ misc:sprd_camera:
 misc:sprd_jpg:
 misc:sprd_map:
 misc:sprd_vsp:
+misc:sprd_uid:
 misc:sprdwcn:
 mm:
 mm:memblock:
