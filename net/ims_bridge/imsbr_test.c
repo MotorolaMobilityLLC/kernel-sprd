@@ -35,7 +35,7 @@
 
 #ifdef CONFIG_SPRD_IMS_BRIDGE_TEST
 
-static u32 pressure_level = 2 * 1000 * 1000;
+static u32 pressure_level = 1 * 50;
 
 static char *test_peerip4 = "123.125.114.144";
 module_param(test_peerip4, charp, 0644);
@@ -47,6 +47,14 @@ static char *test_iface = "dummy0";
 module_param(test_iface, charp, 0644);
 
 static struct dentry *debugfs_root;
+
+static int g_test_result;
+
+enum {
+	IMSBR_TEST_PASS,
+	IMSBR_TEST_FAIL,
+	IMSBR_TEST_INPROGRESS
+};
 
 static void imsbr_test_howifi2lte(unsigned long unused);
 static void imsbr_test_holte2wifi(unsigned long unused);
@@ -97,21 +105,27 @@ static int testsuite_open(struct inode *inode, struct file *file)
 
 static void imsbr_test_howifi2lte(unsigned long unused)
 {
+	g_test_result = IMSBR_TEST_INPROGRESS;
 	imsbr_set_callstate(IMSBR_CALLS_END, 0);
 	imsbr_set_callstate(IMSBR_CALLS_VOWIFI, 0);
 	imsbr_set_callstate(IMSBR_CALLS_VOLTE, 0);
+	g_test_result = IMSBR_TEST_PASS;
 }
 
 static void imsbr_test_holte2wifi(unsigned long unused)
 {
+	g_test_result = IMSBR_TEST_INPROGRESS;
 	imsbr_set_callstate(IMSBR_CALLS_END, 0);
 	imsbr_set_callstate(IMSBR_CALLS_VOLTE, 0);
 	imsbr_set_callstate(IMSBR_CALLS_VOWIFI, 0);
+	g_test_result = IMSBR_TEST_PASS;
 }
 
 static void imsbr_test_hofinish(unsigned long unused)
 {
+	g_test_result = IMSBR_TEST_INPROGRESS;
 	imsbr_set_callstate(IMSBR_CALLS_END, 0);
+	g_test_result = IMSBR_TEST_PASS;
 }
 
 static void imsbr_test_fragsize(unsigned long unused)
@@ -119,8 +133,10 @@ static void imsbr_test_fragsize(unsigned long unused)
 	u32 fragsz = imsbr_frag_size;
 	struct sblock blk;
 
+	g_test_result = IMSBR_TEST_INPROGRESS;
 	if (!imsbr_build_cmd("test-fragsize", &blk, &fragsz, sizeof(fragsz)))
 		imsbr_sblock_send(&imsbr_ctrl, &blk, sizeof(fragsz));
+	g_test_result = IMSBR_TEST_PASS;
 }
 
 static void imsbr_test_echoping(unsigned long unused)
@@ -129,6 +145,7 @@ static void imsbr_test_echoping(unsigned long unused)
 	struct sblock blk;
 	int hellolen;
 
+	g_test_result = IMSBR_TEST_INPROGRESS;
 	hellolen = strlen(hellostr) + 1;
 	if (hellolen > IMSBR_MSG_MAXLEN) {
 		pr_err("%s is too large, echo ping fail!\n", hellostr);
@@ -137,6 +154,7 @@ static void imsbr_test_echoping(unsigned long unused)
 
 	if (!imsbr_build_cmd("echo-ping", &blk, hellostr, hellolen))
 		imsbr_sblock_send(&imsbr_ctrl, &blk, hellolen);
+	g_test_result = IMSBR_TEST_PASS;
 }
 
 static void imsbr_test_packet(struct nf_conntrack_tuple *nft,
@@ -193,6 +211,8 @@ static void imsbr_test_v4packet(unsigned long is_input)
 	memset(l3buf, 0, sizeof(l3buf));
 	memset(l4buf, 0, sizeof(l4buf));
 
+	g_test_result = IMSBR_TEST_INPROGRESS;
+
 	totlen = sizeof(struct iphdr) + sizeof(l4buf) -
 		 sizeof(struct imsbr_packet);
 
@@ -242,6 +262,8 @@ static void imsbr_test_v4packet(unsigned long is_input)
 
 	imsbr_test_packet(&nft, l3pkt, sizeof(l3buf), l4pkt,
 			  sizeof(l4buf), is_input);
+
+	g_test_result = IMSBR_TEST_PASS;
 }
 
 static void imsbr_test_v6packet(unsigned long is_input)
@@ -260,6 +282,8 @@ static void imsbr_test_v6packet(unsigned long is_input)
 
 	memset(l3buf, 0, sizeof(l3buf));
 	memset(l4buf, 0, sizeof(l4buf));
+
+	g_test_result = IMSBR_TEST_INPROGRESS;
 
 	dlen = sizeof(l4buf) - sizeof(struct imsbr_packet);
 	totlen = dlen + sizeof(struct ipv6hdr);
@@ -310,12 +334,16 @@ static void imsbr_test_v6packet(unsigned long is_input)
 
 	imsbr_test_packet(&nft, l3pkt, sizeof(l3buf), l4pkt,
 			  sizeof(l4buf), is_input);
+
+	g_test_result = IMSBR_TEST_PASS;
 }
 
 static void imsbr_test_cptuple(unsigned long unused)
 {
 	struct nf_conntrack_tuple nft = {};
 	struct imsbr_tuple tuple = {};
+
+	g_test_result = IMSBR_TEST_INPROGRESS;
 
 	nft.src.l3num = AF_INET;
 	nft.dst.protonum = IPPROTO_TCP;
@@ -332,12 +360,16 @@ static void imsbr_test_cptuple(unsigned long unused)
 	tuple.media_type = IMSBR_MEDIA_RTP_AUDIO;
 	imsbr_flow_add(&nft, IMSBR_FLOW_CPTUPLE, &tuple);
 	imsbr_flow_add(&nft, IMSBR_FLOW_CPTUPLE, &tuple);
+
+	g_test_result = IMSBR_TEST_PASS;
 }
 
 static void imsbr_test_aptuple(unsigned long unused)
 {
 	struct nf_conntrack_tuple nft = {};
 	struct imsbr_tuple tuple = {};
+
+	g_test_result = IMSBR_TEST_INPROGRESS;
 
 	nft.src.l3num = AF_INET;
 	nft.dst.protonum = IPPROTO_UDP;
@@ -353,6 +385,8 @@ static void imsbr_test_aptuple(unsigned long unused)
 	nft.src.l3num = AF_INET6;
 	imsbr_flow_add(&nft, IMSBR_FLOW_APTUPLE, &tuple);
 	imsbr_flow_add(&nft, IMSBR_FLOW_APTUPLE, &tuple);
+
+	g_test_result = IMSBR_TEST_PASS;
 }
 
 static void imsbr_test_sblock(struct imsbr_sipc *sipc, int size)
@@ -360,13 +394,20 @@ static void imsbr_test_sblock(struct imsbr_sipc *sipc, int size)
 	struct sblock *blk;
 	int cnt, i;
 
+	g_test_result = IMSBR_TEST_INPROGRESS;
+
 	blk = kmalloc_array(sipc->blknum, sizeof(struct sblock), GFP_KERNEL);
-	if (!blk)
+	if (!blk) {
+		g_test_result = IMSBR_TEST_FAIL;
 		return;
+	}
 
 	for (cnt = 0; cnt < sipc->blknum; cnt++) {
-		if (imsbr_sblock_get(sipc, &blk[cnt], size))
+		if (imsbr_sblock_get(sipc, &blk[cnt], size)) {
+			g_test_result = IMSBR_TEST_FAIL;
 			break;
+		}
+
 	}
 
 	pr_debug("%s alloc %d sblocks\n", sipc->desc, cnt);
@@ -375,12 +416,15 @@ static void imsbr_test_sblock(struct imsbr_sipc *sipc, int size)
 		imsbr_sblock_put(sipc, &blk[i]);
 
 	kfree(blk);
+	g_test_result = IMSBR_TEST_PASS;
 }
 
 static void imsbr_test_sipc(unsigned long unused)
 {
+	g_test_result = IMSBR_TEST_INPROGRESS;
 	imsbr_test_sblock(&imsbr_ctrl, IMSBR_MSG_MAXLEN);
 	imsbr_test_sblock(&imsbr_data, IMSBR_PACKET_MAXSZ);
+	g_test_result = IMSBR_TEST_PASS;
 }
 
 static int imsbr_test_kthread(void *arg)
@@ -410,8 +454,10 @@ static void imsbr_test_pressure(unsigned long unused)
 	const int nthread = 4;
 	int i;
 
+	g_test_result = IMSBR_TEST_INPROGRESS;
 	for (i = 0; i < nthread; i++)
 		kthread_run(imsbr_test_kthread, NULL, "imsbr-test%d", i);
+	g_test_result = IMSBR_TEST_PASS;
 }
 
 static ssize_t testsuite_write(struct file *file,
@@ -455,6 +501,121 @@ static const struct file_operations testsuite_fops = {
 	.owner		= THIS_MODULE,
 };
 
+//add for ltp test
+static ssize_t imsbr_ltp_write(struct file *file,
+			       const char __user *buffer,
+			       size_t count, loff_t *pos)
+{
+	unsigned int imsbrtestid;
+	int ret;
+
+	if (count > 0) {
+		ret = kstrtouint_from_user(buffer, count, 10, &imsbrtestid);
+		pr_info("imsbrtestid= %d, ret %d\n", imsbrtestid, ret);
+		if (ret < 0)
+			return -EFAULT;
+
+		switch (imsbrtestid) {
+		case IMSBR_LTP_CASE_HO_WIFI2LTE:
+			imsbr_test_howifi2lte(0);
+			break;
+		case IMSBR_LTP_CASE_HO_LTE2WIFI:
+			imsbr_test_holte2wifi(0);
+			break;
+		case IMSBR_LTP_CASE_HO_FINISH:
+			imsbr_test_hofinish(0);
+			break;
+		case IMSBR_LTP_CASE_FRAGSIZE:
+			imsbr_test_fragsize(0);
+			break;
+		case IMSBR_LTP_CASE_PING:
+			imsbr_test_echoping(0);
+			break;
+		case IMSBR_LTP_CASE_V4_OUTPUT:
+			imsbr_test_v4packet(0);
+			break;
+		case IMSBR_LTP_CASE_V6_OUTPUT:
+			imsbr_test_v6packet(0);
+			break;
+		case IMSBR_LTP_CASE_V4_INPUT:
+			imsbr_test_v4packet(1);
+			break;
+		case IMSBR_LTP_CASE_V6_INPUT:
+			imsbr_test_v6packet(1);
+			break;
+		case IMSBR_LTP_CASE_CP_TUPLE:
+			imsbr_test_cptuple(0);
+			break;
+		case IMSBR_LTP_CASE_AP_TUPLE:
+			imsbr_test_aptuple(0);
+			break;
+		case IMSBR_LTP_CASE_SIPC:
+			imsbr_test_sipc(0);
+			break;
+		case IMSBR_LTP_CASE_PRESSURE:
+			imsbr_test_pressure(0);
+			break;
+		default:
+			break;
+		}
+	}
+	return count;
+}
+
+static int imsbr_ltp_show(struct seq_file *seq, void *v)
+{
+	return 0;
+}
+
+static int imsbr_ltp_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, imsbr_ltp_show, NULL);
+}
+
+static const struct file_operations imsbr_ltp_fops = {
+	.open = imsbr_ltp_open,
+	.read = seq_read,
+	.write = imsbr_ltp_write,
+	.llseek = seq_lseek,
+	.release = single_release,
+};
+
+static ssize_t imsbr_ltp_result_write(struct file *file,
+				      const char __user *buffer,
+				      size_t count, loff_t *pos)
+{
+	unsigned int result;
+	int ret;
+
+	if (count > 0) {
+		ret = kstrtouint_from_user(buffer, count, 10, &result);
+		pr_info("result= %d, ret %d\n", result, ret);
+		if (ret < 0)
+			return -EFAULT;
+		g_test_result = result;
+	}
+	return count;
+}
+
+static int imsbr_ltp_result_show(struct seq_file *seq, void *v)
+{
+	seq_printf(seq, "%d\n", g_test_result);
+	return 0;
+}
+
+static int imsbr_ltp_result_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, imsbr_ltp_result_show, NULL);
+}
+
+static const struct file_operations imsbr_ltp_result_fops = {
+	.open = imsbr_ltp_result_open,
+	.read = seq_read,
+	.write = imsbr_ltp_result_write,
+	.llseek = seq_lseek,
+	.release = single_release,
+};
+
 int __init imsbr_test_init(void)
 {
 	debugfs_root = debugfs_create_dir("ims_bridge", NULL);
@@ -465,6 +626,12 @@ int __init imsbr_test_init(void)
 			    &testsuite_fops);
 	debugfs_create_u32("pressure_level", 0644, debugfs_root,
 			   &pressure_level);
+
+	debugfs_create_file("imsbr_ltp", 0644, debugfs_root, NULL,
+			    &imsbr_ltp_fops);
+
+	debugfs_create_file("imsbr_ltp_result", 0644, debugfs_root, NULL,
+			    &imsbr_ltp_result_fops);
 
 	return 0;
 }
