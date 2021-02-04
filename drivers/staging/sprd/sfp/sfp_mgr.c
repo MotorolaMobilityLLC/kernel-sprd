@@ -1096,7 +1096,10 @@ int sfp_mgr_init(void)
 	sfp_proc_create();
 	if (sysctl_net_sfp_enable == 1)
 		sfp_mgr_proc_enable();
+
+#ifdef CONFIG_SPRD_IPA_V3_SUPPORT
 	sfp_init_ipa_filter_tbl();
+#endif
 	return 0;
 }
 
@@ -1111,7 +1114,9 @@ static int __init init_sfp_module(void)
 	if (status != SFP_OK)
 		return -EPERM;
 
+#ifdef CONFIG_SPRD_IPA_V3_SUPPORT
 	ret = sfp_netlink_init();
+#endif
 	pr_info("init_sfp_module ret %d\n", ret);
 	return 0;
 }
@@ -1119,7 +1124,9 @@ static int __init init_sfp_module(void)
 static void __exit exit_sfp_module(void)
 {
 	sfp_mgr_disable();
+#ifdef CONFIG_SPRD_IPA_V3_SUPPORT
 	sfp_netlink_exit();
+#endif
 }
 
 late_initcall(init_sfp_module);

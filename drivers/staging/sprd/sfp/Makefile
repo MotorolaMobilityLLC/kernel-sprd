@@ -7,6 +7,6 @@ obj-$(CONFIG_SPRD_SFP_SUPPORT)  += sysctl_net_sfp.o
 obj-$(CONFIG_SPRD_SFP_SUPPORT)  += sfp_ct.o
 obj-$(CONFIG_SPRD_SFP_SUPPORT)  += sfp_hook.o
 obj-$(CONFIG_SPRD_SFP_SUPPORT)  += sfp_ipa.o
-obj-$(CONFIG_SPRD_SFP_SUPPORT)  += sfp_netlink.o
+obj-$(CONFIG_SPRD_IPA_V3_SUPPORT)  += sfp_netlink.o
 obj-$(CONFIG_SPRD_IPA_V3_SUPPORT)  += sfp_filter.o
 obj-$(CONFIG_SPRD_SFP_TEST)  += sfp_test.o
