@@ -366,6 +366,9 @@ static int sipa_usb_probe(struct platform_device *pdev)
 	random_ether_addr(ndev->dev_addr);
 
 	SET_NETDEV_DEVTYPE(ndev, &gadget_type);
+
+	ndev->hw_features |= NETIF_F_RXCSUM;
+	ndev->features |= ndev->hw_features;
 	/* Register new Ethernet interface */
 	ret = register_netdev(ndev);
 	if (ret) {

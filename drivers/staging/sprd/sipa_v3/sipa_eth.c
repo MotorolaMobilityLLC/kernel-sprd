@@ -328,6 +328,10 @@ static int sipa_eth_probe(struct platform_device *pdev)
 
 	random_ether_addr(netdev->dev_addr);
 
+	netdev->hw_features |= NETIF_F_RXCSUM | NETIF_F_IP_CSUM |
+		NETIF_F_IPV6_CSUM;
+	netdev->features |= netdev->hw_features;
+
 	/* Register new Ethernet interface */
 	ret = register_netdev(netdev);
 	if (ret) {
