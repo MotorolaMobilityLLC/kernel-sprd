@@ -254,13 +254,13 @@
 
 &usb {
 	extcon = <&extcon_gpio>, <&pmic_typec>;
-//	vbus-supply = <&vddvbus>;
-	status = "okay";
+	vbus-supply = <&vddvbus>;
+	status = "disable";
 };
 
 &usb3 {
-	extcon = <&pmic_typec>, <&extcon_gpio>;
-//	vbus-supply = <&vddvbus>;
+	extcon = <&extcon_gpio>, <&pmic_typec>;
+	vbus-supply = <&vddvbus>;
 	status = "okay";
 };
 
