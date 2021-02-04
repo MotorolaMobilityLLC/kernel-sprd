@@ -888,6 +888,7 @@ void sipa_hal_resume_glb_reg_cfg(struct device *dev)
 	ipa->glb_ops.map_fifo_sel_mode(glb_base, true);
 	ipa->glb_ops.out_map_en(glb_base, 0xff);
 	ipa->glb_ops.ctrl_def_hash_en(glb_base);
+	ipa->glb_ops.ctrl_def_chksum_en(glb_base);
 }
 
 u32 sipa_multi_int_callback_func(int irq, void *cookie)

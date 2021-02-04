@@ -1104,6 +1104,28 @@ static int ipa_phy_ctrl_hash_en(void __iomem *reg_base,
 	return 0;
 }
 
+static int ipa_phy_ctrl_chksum_en(void __iomem *reg_base,
+				  u32 term, bool enable)
+{
+	u32 tmp;
+
+	tmp = readl_relaxed(reg_base + IPA_MODE_N_FLOWCTRL);
+
+	if (enable) {
+		tmp |= term;
+		writel_relaxed(tmp, reg_base + IPA_MODE_N_FLOWCTRL);
+		if (!(readl_relaxed(reg_base + IPA_MODE_N_FLOWCTRL) & term))
+			return -EIO;
+	} else {
+		tmp &= (~term);
+		writel_relaxed(tmp, reg_base + IPA_MODE_N_FLOWCTRL);
+		if (readl_relaxed(reg_base + IPA_MODE_N_FLOWCTRL) & term)
+			return -EIO;
+	}
+
+	return 0;
+}
+
 static int ipa_phy_monitor_ipa_or_tft(void __iomem *reg_base, u32 flag)
 {
 	u32 tmp;
@@ -3322,6 +3344,15 @@ static int ipa_phy_ctrl_def_hash_en(void __iomem *reg_base)
 				    IPA_USB_UL_HASH_EN_MASK, true);
 }
 
+static int ipa_phy_ctrl_def_chksum_en(void __iomem *reg_base)
+{
+	return ipa_phy_ctrl_chksum_en(reg_base, IPA_CP_DL_CHKSUM_EN_MASK |
+				     IPA_WIAP_DL_CHKSUM_EN_MASK |
+				     IPA_PCIE_UL_CHKSUM_EN_MASK |
+				     IPA_WIFI_UL_CHKSUM_EN_MASK |
+				     IPA_USB_UL_CHKSUM_EN_MASK, true);
+}
+
 static void ipa_phy_fill_ifilter_ipv4(void __iomem *reg_base, u32 data)
 {
 	writel_relaxed(data, reg_base + IPA_IFILTER_IPV4);
@@ -3349,6 +3380,7 @@ void sipa_glb_ops_init(struct sipa_glb_phy_ops *glb_ops)
 	glb_ops->set_need_cp_through_pcie = ipa_phy_set_need_cp_through_pcie;
 	glb_ops->ctrl_ipa_action = ipa_phy_ctrl_ipa_action;
 	glb_ops->ctrl_hash_en = ipa_phy_ctrl_hash_en;
+	glb_ops->ctrl_chksum_en = ipa_phy_ctrl_chksum_en;
 	glb_ops->monitor_ipa_or_tft = ipa_phy_monitor_ipa_or_tft;
 	glb_ops->to_pcie_no_mac_hdr = ipa_phy_to_pcie_no_mac_hdr;
 	glb_ops->from_pcie_no_mac_hdr = ipa_phy_from_pcie_no_mac_hdr;
@@ -3624,6 +3656,7 @@ void sipa_glb_ops_init(struct sipa_glb_phy_ops *glb_ops)
 	glb_ops->get_fifo_irq_status = ipa_phy_get_fifo_irq_status;
 	glb_ops->enable_def_interrupt_src = ipa_phy_enable_def_interrupt_src;
 	glb_ops->ctrl_def_hash_en = ipa_phy_ctrl_def_hash_en;
+	glb_ops->ctrl_def_chksum_en = ipa_phy_ctrl_def_chksum_en;
 
 	glb_ops->fill_ifilter_ipv4 = ipa_phy_fill_ifilter_ipv4;
 	glb_ops->fill_ifilter_ipv6 = ipa_phy_fill_ifilter_ipv6;

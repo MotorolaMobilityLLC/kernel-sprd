@@ -479,6 +479,7 @@ struct sipa_glb_phy_ops {
 	int (*set_need_cp_through_pcie)(void __iomem *reg_base, bool enable);
 	int (*ctrl_ipa_action)(void __iomem *reg_base, bool enable);
 	int (*ctrl_hash_en)(void __iomem *reg_base, u32 term, bool enable);
+	int (*ctrl_chksum_en)(void __iomem *reg_base, u32 term, bool enable);
 	bool (*get_pause_status)(void __iomem *reg_base);
 	bool (*get_resume_status)(void __iomem *reg_base);
 	int (*monitor_ipa_or_tft)(void __iomem *reg_base, u32 flag);
@@ -729,6 +730,7 @@ struct sipa_glb_phy_ops {
 	u32 (*get_map7_int_sts)(void __iomem *reg_base);
 	u32 (*get_fifo_irq_status)(int cpu, void __iomem *reg_base);
 	int (*ctrl_def_hash_en)(void __iomem *reg_base);
+	int (*ctrl_def_chksum_en)(void __iomem *reg_base);
 	void (*enable_def_interrupt_src)(void __iomem *reg_base);
 	void (*fill_ifilter_ipv4)(void __iomem *reg_base, u32 data);
 	void (*fill_ifilter_ipv6)(void __iomem *reg_base, u32 data);
