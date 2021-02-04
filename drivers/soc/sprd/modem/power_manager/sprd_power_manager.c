@@ -164,6 +164,11 @@ static void sprd_mpm_print_awake(struct sprd_mpm_data *mpm)
 
 	if (len)
 		pr_info("%s\n", mpm->awake_info);
+	else {
+		/* if pms list is empty, the wakelock_cnt must be 0. */
+		if (mpm->wakelock_cnt)
+			pr_err("wakelock_cnt err!");
+	}
 
 }
 
@@ -185,7 +190,7 @@ static void sprd_mpm_start_print_timer(struct sprd_mpm_data *mpm)
 
 static void sprd_mpm_print_timer_fn(struct timer_list *timer)
 {
-	struct sprd_mpm_data *mpm = container_of(timer, struct sprd_mpm_data, timer);
+	struct sprd_mpm_data *mpm = container_of(timer, struct sprd_mpm_data, print_timer);
 
 	sprd_mpm_print_awake(mpm);
 
@@ -612,14 +617,21 @@ static void sprd_pms_do_down(struct sprd_pms *pms, bool immediately)
 static void sprd_pms_stay_awake(struct sprd_pms *pms)
 {
 	struct sprd_mpm_data *mpm = (struct sprd_mpm_data *)pms->data;
+	unsigned long flags;
+	bool do_awake = false;
 
 	pr_debug("%s stay awake.\n", pms->name);
 
+	spin_lock_irqsave(&pms->awake_lock, flags);
 	pms->awake_cnt++;
 	if (!pms->awake) {
 		pms->awake = true;
-		sprd_mpm_stay_awake(mpm);
+		do_awake = true;
 	}
+	spin_unlock_irqrestore(&pms->awake_lock, flags);
+
+	if (do_awake)
+		sprd_mpm_stay_awake(mpm);
 }
 
 /**
@@ -629,13 +641,20 @@ static void sprd_pms_stay_awake(struct sprd_pms *pms)
 static void sprd_pms_relax(struct sprd_pms *pms)
 {
 	struct sprd_mpm_data *mpm = (struct sprd_mpm_data *)pms->data;
+	unsigned long flags;
+	bool do_relax = false;
 
 	pr_debug("%s relax awake.\n", pms->name);
 
+	spin_lock_irqsave(&pms->awake_lock, flags);
 	if (pms->awake) {
 		pms->awake = false;
-		sprd_mpm_relax(mpm);
+		do_relax = true;
 	}
+	spin_unlock_irqrestore(&pms->awake_lock, flags);
+
+	if (do_relax)
+		sprd_mpm_relax(mpm);
 }
 
 /**
@@ -797,8 +816,7 @@ int sprd_mpm_destroy(unsigned int dst)
 				 temp,
 				 &mpm->pms_list,
 				 entry) {
-		sprd_pms_cancel_timer(pms);
-		list_del(&pms->entry);
+		sprd_pms_destroy(pms);
 	}
 	spin_unlock_irqrestore(&mpm->mpm_lock, flags);
 
@@ -833,7 +851,9 @@ struct sprd_pms *sprd_pms_create(unsigned int dst,
 	pms->name = name;
 	pms->data = (void *)mpm;
 
+	spin_lock_init(&pms->active_lock);
 	spin_lock_init(&pms->expires_lock);
+	spin_lock_init(&pms->awake_lock);
 	timer_setup(&pms->wake_timer,
 		    sprd_pms_relax_wakelock_timer, 0);
 
@@ -852,6 +872,7 @@ void sprd_pms_destroy(struct sprd_pms *pms)
 
 	if (pms) {
 		sprd_pms_cancel_timer(pms);
+		sprd_pms_relax(pms);
 		mpm = (struct sprd_mpm_data *)pms->data;
 		spin_lock_irqsave(&mpm->mpm_lock, flags);
 		list_del(&pms->entry);

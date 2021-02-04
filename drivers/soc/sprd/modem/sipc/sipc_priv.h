@@ -17,6 +17,8 @@
 #include <linux/device.h>
 #include <linux/interrupt.h>
 #include <linux/mailbox_client.h>
+#include <linux/mailbox_controller.h>
+#include <linux/soc/sprd/sprd_mpm.h>
 
 enum {
 	SIPC_BASE_MBOX = 0,
@@ -25,7 +27,7 @@ enum {
 	SIPC_BASE_NR
 };
 
-enum {
+enum smem_type {
 	SMEM_LOCAL = 0,
 	SMEM_PCIE
 };
@@ -43,8 +45,10 @@ struct smsg_channel {
 	/* wait queue for recv-buffer */
 	wait_queue_head_t	rxwait;
 	struct mutex		rxlock;
-	struct wakeup_source	*sipc_wake_lock;
-	char			wake_lock_name[16];
+	struct sprd_pms	*tx_pms;
+	struct sprd_pms	*rx_pms;
+	char		tx_name[16];
+	char		rx_name[16];
 
 	/* cached msgs for recv */
 	uintptr_t		wrptr[1];
@@ -55,6 +59,7 @@ struct smsg_channel {
 /* smsg ring-buffer between AP/CP ipc */
 struct smsg_ipc {
 	const char	*name;
+	struct sprd_pms	*sipc_pms;
 	u8	dst;
 	u8	client;	/* sipc is  client mode */
 
@@ -62,6 +67,7 @@ struct smsg_ipc {
 	struct mbox_client cl;
 	struct mbox_chan *chan;
 	struct mbox_chan *sensor_chan;
+	u32 sensor_core;
 
 	u32	type; /* sipc type, mbox, ipi, pcie */
 	u32	smem_inited;
@@ -69,6 +75,7 @@ struct smsg_ipc {
 	wait_queue_head_t	suspend_wait;
 	/* lock for suspend-list */
 	spinlock_t		suspend_pinlock;
+	u32	latency;
 
 	/* send-buffer info */
 	uintptr_t	txbuf_addr;
@@ -122,7 +129,6 @@ extern void smsg_init_channel2index(void);
 extern void smsg_ipc_create(struct smsg_ipc *ipc);
 extern void smsg_ipc_destroy(struct smsg_ipc *ipc);
 
-void smsg_msg_process(struct smsg_ipc *ipc, struct smsg *msg); //haidong.yao add
 /*smem alloc size align*/
 #define SMEM_ALIGN_POOLSZ 0x40000	/*256KB*/
 
@@ -137,7 +143,7 @@ void smsg_msg_process(struct smsg_ipc *ipc, struct smsg *msg); //haidong.yao add
 /* initialize smem pool for AP/CP */
 extern int smem_init(u32 addr, u32 size, u32 dst, u32 smem, u32 mem_type);
 extern void sbuf_get_status(u8 dst, char *status_info, int size);
-extern void smsg_msg_process(struct smsg_ipc *ipc, struct smsg *msg);
+extern void smsg_msg_process(struct smsg_ipc *ipc, struct smsg *msg, bool wake_lock);
 
 
 #if defined(CONFIG_DEBUG_FS)
@@ -151,5 +157,26 @@ int sblock_init_debugfs(void *root);
 #ifdef CONFIG_SPRD_MAILBOX
 #define MBOX_INVALID_CORE  0xff
 #endif
+
+/* sipc_smem_request_resource
+ * local smem no need request resource, just return 0.
+ */
+static inline int sipc_smem_request_resource(struct sprd_pms *pms,
+						u8 dst, int timeout)
+{
+	if (smsg_ipcs[dst]->smem_type == SMEM_LOCAL)
+		return 0;
+
+	return sprd_pms_request_resource(pms, timeout);
+}
+
+/* sipc_smem_release_resource
+ * local smem no need release resource, do nothing.
+ */
+static inline void sipc_smem_release_resource(struct sprd_pms *pms, u8 dst)
+{
+	if (smsg_ipcs[dst]->smem_type != SMEM_LOCAL)
+		sprd_pms_release_resource(pms);
+}
 
 #endif

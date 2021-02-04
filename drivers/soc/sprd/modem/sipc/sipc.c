@@ -73,7 +73,10 @@ static void sprd_rx_callback(struct mbox_client *client, void *message)
 		dev_err(dev, "receive data is null !\n");
 	} else {
 		msg = (struct smsg *)&data;
-		smsg_msg_process(ipc, msg);
+		if (ipc->sensor_core == (uintptr_t)(ipc->chan->con_priv))
+			smsg_msg_process(ipc, msg, 0);
+		else
+			smsg_msg_process(ipc, msg, 1);
 	}
 }
 
@@ -191,6 +194,8 @@ static int sprd_ipc_probe(struct platform_device *pdev)
 		ipc->sensor_chan = mbox_request_channel(&ipc->cl, 1);
 		if (IS_ERR(ipc->sensor_chan))
 			dev_err(dev, "failed to sipc sensor mailbox\n");
+		else
+			ipc->sensor_core = (uintptr_t)ipc->sensor_chan->con_priv;
 	}
 
 	init_waitqueue_head(&ipc->suspend_wait);

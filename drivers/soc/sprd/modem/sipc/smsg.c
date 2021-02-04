@@ -40,9 +40,6 @@
 
 #include "sipc_priv.h"
 
-#include <linux/mailbox_client.h>
-#include <linux/mailbox_controller.h>
-
 #define SMSG_TXBUF_ADDR		(0)
 #define SMSG_TXBUF_SIZE		(SZ_1K)
 #define SMSG_RXBUF_ADDR		(SMSG_TXBUF_SIZE)
@@ -89,7 +86,7 @@ void smsg_init_channel2index(void)
 	}
 }
 
-void smsg_msg_process(struct smsg_ipc *ipc, struct smsg *msg)
+void smsg_msg_process(struct smsg_ipc *ipc, struct smsg *msg, bool wake_lock)
 {
 	struct smsg_channel *ch = NULL;
 	u32 wr;
@@ -149,7 +146,9 @@ void smsg_msg_process(struct smsg_ipc *ipc, struct smsg *msg)
 	}
 
 	wake_up_interruptible_all(&ch->rxwait);
-	__pm_wakeup_event(ch->sipc_wake_lock, jiffies_to_msecs(HZ / 2));
+
+	if (wake_lock)
+		sprd_pms_request_wakelock_period(ch->rx_pms, 500);
 
 exit_msg_proc:
 	atomic_dec(&ipc->busy[ch_index]);
@@ -276,12 +275,24 @@ static int smsg_ipc_smem_init(struct smsg_ipc *ipc)
 	return 0;
 }
 
+static void smsg_ipc_mpm_init(struct smsg_ipc *ipc)
+{
+	/* create modem power manger instance for this sipc */
+	sprd_mpm_create(ipc->dst, ipc->name, ipc->latency);
+
+	/* init a power manager source */
+	ipc->sipc_pms = sprd_pms_create(ipc->dst, ipc->name, true);
+	if (!ipc->sipc_pms)
+		pr_warn("create pms %s failed!\n", ipc->name);
+}
+
 void smsg_ipc_create(struct smsg_ipc *ipc)
 {
 	pr_info("%s\n", ipc->name);
 
 	smsg_ipcs[ipc->dst] = ipc;
 
+	smsg_ipc_mpm_init(ipc);
 	smsg_ipc_smem_init(ipc);
 }
 
@@ -289,6 +300,7 @@ void smsg_ipc_destroy(struct smsg_ipc *ipc)
 {
 	shmem_ram_unmap(ipc->dst, ipc->smem_vbase);
 	smem_free(ipc->dst, ipc->ring_base, SZ_4K);
+	sprd_mpm_destroy(ipc->dst);
 
 	if (!IS_ERR_OR_NULL(ipc->thread))
 		kthread_stop(ipc->thread);
@@ -333,7 +345,7 @@ int smsg_ch_wake_unlock(u8 dst, u8 channel)
 	if (!ch)
 		return -ENODEV;
 
-	__pm_relax(ch->sipc_wake_lock);
+	sprd_pms_release_wakelock(ch->rx_pms);
 	return 0;
 }
 EXPORT_SYMBOL_GPL(smsg_ch_wake_unlock);
@@ -360,10 +372,16 @@ int smsg_ch_open(u8 dst, u8 channel, int timeout)
 	if (!ch)
 		return -ENOMEM;
 
-	sprintf(ch->wake_lock_name, "smsg-%d-%d", dst, channel);
+	sprintf(ch->tx_name, "smsg-%d-%d", dst, channel);
 
-	ch->sipc_wake_lock = wakeup_source_create(ch->wake_lock_name);
-	wakeup_source_add(ch->sipc_wake_lock);
+	ch->tx_pms = sprd_pms_create(dst, ch->tx_name, true);
+	if (!ch->tx_pms)
+		pr_warn("create pms %s failed!\n", ch->tx_name);
+
+	sprintf(ch->rx_name, "smsg-%d-%d-rx", dst, channel);
+	ch->rx_pms = sprd_pms_create(dst, ch->rx_name, true);
+	if (!ch->rx_pms)
+		pr_warn("create pms %s failed!\n", ch->rx_name);
 
 	atomic_set(&ipc->busy[ch_index], 1);
 	init_waitqueue_head(&ch->rxwait);
@@ -384,8 +402,7 @@ int smsg_ch_open(u8 dst, u8 channel, int timeout)
 		/* guarantee that channel resource isn't used in irq handler  */
 		while (atomic_read(&ipc->busy[ch_index]))
 			;
-		wakeup_source_remove(ch->sipc_wake_lock);
-		wakeup_source_destroy(ch->sipc_wake_lock);
+
 		kfree(ch);
 
 		return rval;
@@ -412,8 +429,6 @@ int smsg_ch_open(u8 dst, u8 channel, int timeout)
 			while (atomic_read(&ipc->busy[ch_index]))
 				;
 
-			wakeup_source_remove(ch->sipc_wake_lock);
-			wakeup_source_destroy(ch->sipc_wake_lock);
 			kfree(ch);
 			return rval;
 		}
@@ -510,6 +525,10 @@ int smsg_senddie(u8 dst)
 	pr_info("%s mailbox send die smsg\n", __func__);
 
 	if (ipc->ring_base) {
+		/* must wait resource before read or write share memory */
+		rval = sprd_pms_request_resource(ipc->sipc_pms, 0);
+		if (rval < 0)
+			return rval;
 		if ((int)(SIPC_READL(ipc->txbuf_wrptr) -
 			SIPC_READL(ipc->txbuf_rdptr)) >= ipc->txbuf_size) {
 			pr_err("smsg_send: smsg txbuf is full!\n");
@@ -529,10 +548,11 @@ int smsg_senddie(u8 dst)
 
 		/* update wrptr */
 		SIPC_WRITEL(SIPC_READL(ipc->txbuf_wrptr) + 1, ipc->txbuf_wrptr);
+
 	}
 
 send_failed:
-
+	sprd_pms_release_resource(ipc->sipc_pms);
 	return rval;
 }
 EXPORT_SYMBOL_GPL(smsg_senddie);
@@ -540,6 +560,7 @@ EXPORT_SYMBOL_GPL(smsg_senddie);
 int smsg_send(u8 dst, struct smsg *msg, int timeout)
 {
 	struct smsg_ipc *ipc = smsg_ipcs[dst];
+	struct smsg_channel *ch;
 	uintptr_t txpos;
 	int rval = 0;
 	unsigned long flags;
@@ -582,8 +603,12 @@ int smsg_send(u8 dst, struct smsg *msg, int timeout)
 	pr_debug("send smsg: channel=%d, type=%d, flag=0x%04x, value=0x%08x\n",
 		 msg->channel, msg->type, msg->flag, msg->value);
 
-	spin_lock_irqsave(&ipc->txpinlock, flags);
+	ch = ipc->channels[ch_index];
+	rval = sprd_pms_request_resource(ch->tx_pms, timeout);
+	if (rval < 0)
+		return rval;
 
+	spin_lock_irqsave(&ipc->txpinlock, flags);
 	if (ipc->ring_base) {
 		if (((int)(SIPC_READL(ipc->txbuf_wrptr) -
 				SIPC_READL(ipc->txbuf_rdptr)) >=
@@ -618,7 +643,7 @@ int smsg_send(u8 dst, struct smsg *msg, int timeout)
 
 send_failed:
 	spin_unlock_irqrestore(&ipc->txpinlock, flags);
-
+	sprd_pms_release_resource(ch->tx_pms);
 	return rval;
 }
 EXPORT_SYMBOL_GPL(smsg_send);
@@ -773,6 +798,9 @@ static int smsg_debug_show(struct seq_file *m, void *private)
 		seq_printf(m, "dst: 0x%0x, irq: 0x%0x\n",
 			   ipc->dst, ipc->irq);
 		if (ipc->ring_base) {
+			if (sipc_smem_request_resource(ipc->sipc_pms, ipc->dst, 1000) < 0)
+				continue;
+
 			seq_printf(m, "txbufAddr: 0x%p, txbufsize: 0x%x, txbufrdptr: [0x%p]=%d, txbufwrptr: [0x%p]=%d\n",
 				   (void *)ipc->txbuf_addr,
 				   ipc->txbuf_size,
@@ -787,6 +815,9 @@ static int smsg_debug_show(struct seq_file *m, void *private)
 				   SIPC_READL(ipc->rxbuf_rdptr),
 				   (void *)ipc->rxbuf_wrptr,
 				   SIPC_READL(ipc->rxbuf_wrptr));
+
+			/* release resource */
+			sipc_smem_release_resource(ipc->sipc_pms, ipc->dst);
 		}
 		sipc_debug_putline(m, '-', 80);
 		seq_puts(m, "1. all channel state list:\n");

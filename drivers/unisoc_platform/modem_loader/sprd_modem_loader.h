@@ -13,6 +13,8 @@
 #ifndef SPRD_MODEM_LOADER_H
 #define SPRD_MODEM_LOADER_H
 
+#include <linux/soc/sprd/sprd_mpm.h>
+
 /* modem region data define */
 #define MAX_REGION_NAME_LEN	20
 #define MAX_REGION_CNT		20
@@ -96,8 +98,10 @@ struct modem_device {
 	char	rd_lock_name[TASK_COMM_LEN];
 	char	wt_lock_name[TASK_COMM_LEN];
 
-	struct wakeup_source	*rd_ws;
-	struct wakeup_source	*wt_ws;
+	struct sprd_pms	*rd_pms;
+	struct sprd_pms	*wt_pms;
+	char		rd_pms_name[20];
+	char		wt_pms_name[20];
 
 	struct device	*p_dev;
 	dev_t		devid;

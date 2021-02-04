@@ -90,6 +90,11 @@ struct sblock_ring {
 	struct sblock_header	*header;
 	struct sblock_header_op header_op;
 
+	struct sprd_pms	*tx_pms;
+	struct sprd_pms	*rx_pms;
+	char	tx_pms_name[20];
+	char	rx_pms_name[20];
+
 	void	*txblk_virt; /* virt of header->txblk_addr */
 	void	*rxblk_virt; /* virt of header->rxblk_addr */
 
@@ -101,6 +106,10 @@ struct sblock_ring {
 	struct sblock_blks	*p_txblks;
 	/* virt of header->pool->rxblk_blks */
 	struct sblock_blks	*p_rxblks;
+
+	unsigned int	poll_mask;
+	/* protect the poll_mask menber */
+	spinlock_t	poll_lock;
 
 	int	*txrecord; /* record the state of every txblk */
 	int	*rxrecord; /* record the state of every rxblk */

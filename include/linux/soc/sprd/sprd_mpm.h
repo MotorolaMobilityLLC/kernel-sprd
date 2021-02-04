@@ -58,6 +58,7 @@ struct sprd_pms {
 	unsigned long	expires;
 	spinlock_t	active_lock;
 	spinlock_t	expires_lock;
+	spinlock_t	awake_lock;
 	struct list_head	entry;
 	struct timer_list	wake_timer;
 };

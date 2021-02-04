@@ -55,10 +55,11 @@
 #define MODEM_ASSERT_CMD _IO(MODEM_MAGIC, 0xe)
 
 #ifdef CONFIG_SPRD_EXT_MODEM_POWER_CTRL
-#define MODEM_REBOOT_EXT_MODEM_CMD _IO(MODEM_MAGIC, 0xe)
-#define MODEM_POWERON_EXT_MODEM_CMD _IO(MODEM_MAGIC, 0xf)
-#define MODEM_POWEROFF_EXT_MODEM_CMD _IO(MODEM_MAGIC, 0x10)
+#define MODEM_REBOOT_EXT_MODEM_CMD _IO(MODEM_MAGIC, 0xf)
+#define MODEM_POWERON_EXT_MODEM_CMD _IO(MODEM_MAGIC, 0x10)
+#define MODEM_POWEROFF_EXT_MODEM_CMD _IO(MODEM_MAGIC, 0x11)
 #endif
+#define MODEM_ENTER_SLEEP_CMD _IO(MODEM_MAGIC, 0x12)
 
 #define	MODEM_READ_ALL_MEM 0xff
 #define	MODEM_READ_MODEM_MEM 0xfe
@@ -134,6 +135,30 @@ typedef int (*MODEM_PARSE_FUN)(struct modem_device *modem,
 
 static struct class *modem_class;
 
+static int sprd_modem_pms_request_resource(struct sprd_pms *pms, int timeout)
+{
+	int ret = sprd_pms_request_resource(pms, timeout);
+
+	if (!ret)
+		sprd_pms_request_wakelock(pms);
+
+	return ret;
+}
+
+static void sprd_modem_pms_release_resource(struct sprd_pms *pms)
+{
+	sprd_pms_release_wakelock(pms);
+	sprd_pms_release_resource(pms);
+}
+
+static int modem_enter_sleep(struct modem_device *modem)
+{
+	int ret = sprd_mpm_disable_later_idle_for_sleep(modem->modem_dst);
+
+	dev_info(modem->p_dev, "modem enter sleep, ret=%d!\n", ret);
+	return ret;
+}
+
 static int modem_open(struct inode *inode, struct file *filp)
 {
 	struct modem_device *modem;
@@ -166,7 +191,7 @@ static void modem_get_base_range(struct modem_device *modem,
 			size = modem->all_size;
 			break;
 
-		case  MODEM_READ_MODEM_MEM:
+		case MODEM_READ_MODEM_MEM:
 			base = modem->modem_base;
 			size = modem->modem_size;
 			break;
@@ -220,6 +245,7 @@ static ssize_t modem_read(struct file *filp,
 	void *vmem;
 	struct modem_device *modem = filp->private_data;
 	phys_addr_t addr;
+	int ret;
 
 	dev_dbg(modem->p_dev, "read, %s!\n", modem->modem_name);
 
@@ -242,10 +268,15 @@ static ssize_t modem_read(struct file *filp,
 	r = count;
 	do {
 		addr = base + offset + (count - r);
+		ret = sprd_modem_pms_request_resource(modem->rd_pms, -1);
+		if (ret)
+			return ret;
+
 		vmem = modem_map_memory(modem, addr, r, &map_size);
 		if (!vmem) {
 			dev_err(modem->p_dev,
 				"read, Unable to map  base: 0x%llx\n", addr);
+			sprd_modem_pms_release_resource(modem->rd_pms);
 			return -ENOMEM;
 		}
 
@@ -254,9 +285,11 @@ static ssize_t modem_read(struct file *filp,
 			dev_err(modem->p_dev,
 				"read, copy data from user err!\n");
 			memunmap(vmem);
+			sprd_modem_pms_release_resource(modem->rd_pms);
 			return -EFAULT;
 		}
 		memunmap(vmem);
+		sprd_modem_pms_release_resource(modem->rd_pms);
 		r -= copy_size;
 		buf += copy_size;
 	} while (r > 0);
@@ -274,6 +307,7 @@ static ssize_t modem_write(struct file *filp,
 	void *vmem;
 	struct modem_device *modem = filp->private_data;
 	phys_addr_t addr;
+	int ret;
 
 	dev_dbg(modem->p_dev, "write, %s!\n", modem->modem_name);
 
@@ -296,11 +330,16 @@ static ssize_t modem_write(struct file *filp,
 	r = count;
 	do {
 		addr = base + offset + (count - r);
+		ret = sprd_modem_pms_request_resource(modem->wt_pms, -1);
+		if (ret)
+			return ret;
+
 		vmem = modem_map_memory(modem, addr, r, &map_size);
 		if (!vmem) {
 			dev_err(modem->p_dev,
 				"write, Unable to map  base: 0x%llx\n",
 				addr);
+			sprd_modem_pms_release_resource(modem->wt_pms);
 			return -ENOMEM;
 		}
 		copy_size = min_t(size_t, r, map_size);
@@ -308,9 +347,11 @@ static ssize_t modem_write(struct file *filp,
 			dev_err(modem->p_dev,
 				"write, copy data from user err!\n");
 			memunmap(vmem);
+			sprd_modem_pms_release_resource(modem->wt_pms);
 			return -EFAULT;
 		}
 		memunmap(vmem);
+		sprd_modem_pms_release_resource(modem->wt_pms);
 		r -= copy_size;
 		buf += copy_size;
 	} while (r > 0);
@@ -336,11 +377,12 @@ static int modem_cmd_lock(struct file *filp,
 			  struct modem_device *modem, int b_rx)
 {
 	struct mutex *mut; /* mutex point to rd_mutex or wt_mutex*/
-	struct wakeup_source *ws;
+	struct sprd_pms *pms;
 	char *name;
+	int ret;
 
 	mut = b_rx ? &modem->rd_mutex : &modem->wt_mutex;
-	ws = b_rx ? modem->rd_ws : modem->wt_ws;
+	pms = b_rx ? modem->rd_pms : modem->wt_pms;
 	name = b_rx ? modem->rd_lock_name : modem->wt_lock_name;
 
 	if (filp->f_flags & O_NONBLOCK) {
@@ -355,8 +397,13 @@ static int modem_cmd_lock(struct file *filp,
 		mutex_lock(mut);
 	}
 
-	/* lock, get wake lock, cpy task to name */
-	__pm_stay_awake(ws);
+	ret = sprd_modem_pms_request_resource(pms, -1);
+
+	if (ret < 0) {
+		mutex_unlock(mut);
+		return ret;
+	}
+
 	strcpy(name, current->comm);
 	return 0;
 }
@@ -364,20 +411,22 @@ static int modem_cmd_lock(struct file *filp,
 static int modem_cmd_unlock(struct modem_device *modem, int b_rx)
 {
 	struct mutex *mut; /* mutex point to rd_mutex or wt_mutex*/
-	struct wakeup_source *ws;
+	struct sprd_pms *pms;
 	char *name;
 
 	mut = b_rx ? &modem->rd_mutex : &modem->wt_mutex;
-	ws = b_rx ? modem->rd_ws : modem->wt_ws;
+	pms = b_rx ? modem->rd_pms : modem->wt_pms;
 	name = b_rx ? modem->rd_lock_name : modem->wt_lock_name;
 
 	if (strlen(name) == 0)
 		/* means no lock, so don't unlock */
 		return 0;
 
-	/* unlock, release wake lock, set name[0] to 0 */
+	/* release resource */
+	sprd_modem_pms_release_resource(pms);
+
+	/* unlock, set name[0] to 0 */
 	name[0] = 0;
-	__pm_relax(ws);
 	mutex_unlock(mut);
 
 	dev_dbg(modem->p_dev,
@@ -633,6 +682,10 @@ static long modem_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		}
 		break;
 #endif
+
+	case MODEM_ENTER_SLEEP_CMD:
+		ret = modem_enter_sleep(modem);
+		break;
 
 	case MODEM_STOP_CMD:
 		ret = modem_run(modem, 0);
@@ -975,10 +1028,19 @@ static int modem_probe(struct platform_device *pdev)
 
 	mutex_init(&modem->rd_mutex);
 	mutex_init(&modem->wt_mutex);
-	modem->rd_ws = wakeup_source_create("modem_read");
-	wakeup_source_add(modem->rd_ws);
-	modem->wt_ws = wakeup_source_create("modem_write");
-	wakeup_source_add(modem->wt_ws);
+	snprintf(modem->rd_pms_name,
+		 sizeof(modem->rd_pms_name), "%s-rd", modem->modem_name);
+	snprintf(modem->wt_pms_name,
+		 sizeof(modem->wt_pms_name), "%s-wt", modem->modem_name);
+	modem->rd_pms = sprd_pms_create(modem->modem_dst,
+					modem->rd_pms_name, false);
+	if (!modem->rd_pms)
+		pr_warn("create pms %s failed!\n", modem->rd_pms_name);
+
+	modem->wt_pms = sprd_pms_create(modem->modem_dst,
+					modem->wt_pms_name, false);
+	if (!modem->rd_pms)
+		pr_warn("create pms %s failed!\n", modem->wt_pms_name);
 
 	platform_set_drvdata(pdev, modem);
 
@@ -994,10 +1056,8 @@ static int  modem_remove(struct platform_device *pdev)
 	struct modem_device *modem = platform_get_drvdata(pdev);
 
 	if (modem) {
-		wakeup_source_remove(modem->rd_ws);
-		wakeup_source_destroy(modem->rd_ws);
-		wakeup_source_remove(modem->wt_ws);
-		wakeup_source_destroy(modem->wt_ws);
+		sprd_pms_destroy(modem->rd_pms);
+		sprd_pms_destroy(modem->wt_pms);
 		mutex_destroy(&modem->rd_mutex);
 		mutex_destroy(&modem->wt_mutex);
 		device_destroy(modem_class, modem->devid);

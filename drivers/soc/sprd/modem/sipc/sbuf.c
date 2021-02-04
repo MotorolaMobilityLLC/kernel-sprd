@@ -195,6 +195,12 @@ static void sbuf_skip_old_data(struct sbuf_mgr *sbuf)
 	struct sbuf_ring *ring = NULL;
 	struct sbuf_ring_header_op *hd_op = NULL;
 	u32 i;
+	unsigned long flags;
+
+	ring = &sbuf->rings[0];
+	/* must reques resource before read or write share memory */
+	if (sipc_smem_request_resource(ring->rx_pms, sbuf->dst, -1) < 0)
+		return;
 
 	for (i = 0; i < sbuf->ringnr; i++) {
 		ring = &sbuf->rings[i];
@@ -204,7 +210,29 @@ static void sbuf_skip_old_data(struct sbuf_mgr *sbuf)
 		/* *(hd_op->tx_wt_p) = *(hd_op->tx_rd_p); */
 		/* clean sbuf rx ring */
 		*(hd_op->rx_rd_p) = *(hd_op->rx_wt_p);
+		/* restore write mask. */
+		spin_lock_irqsave(&ring->poll_lock, flags);
+		ring->poll_mask = POLLOUT | POLLWRNORM;
+		spin_unlock_irqrestore(&ring->poll_lock, flags);
 	}
+	ring = &sbuf->rings[0];
+	/* release resource */
+	sipc_smem_release_resource(ring->rx_pms, sbuf->dst);
+}
+
+static void sbuf_pms_init(struct sbuf_ring *ring,
+			  uint8_t dst, uint8_t ch, int index)
+{
+	ring->need_wake_lock = true;
+	sprintf(ring->tx_pms_name, "sbuf-%d-%d-%d-tx", dst, ch, index);
+	ring->tx_pms = sprd_pms_create(dst, ring->tx_pms_name, false);
+	if (!ring->tx_pms)
+		pr_warn("create pms %s failed!\n", ring->tx_pms_name);
+
+	sprintf(ring->rx_pms_name, "sbuf-%d-%d-%d-rx", dst, ch, index);
+	ring->rx_pms = sprd_pms_create(dst, ring->rx_pms_name, false);
+	if (!ring->rx_pms)
+		pr_warn("create pms %s failed!\n", ring->rx_pms_name);
 }
 
 static void sbuf_comm_init(struct sbuf_mgr *sbuf)
@@ -223,18 +251,11 @@ static void sbuf_comm_init(struct sbuf_mgr *sbuf)
 #endif
 		mutex_init(&ring->txlock);
 		mutex_init(&ring->rxlock);
-		ring->need_wake_lock = 1;
-		ring->tx_wakelock_state = 0;
-		ring->rx_wakelock_state = 0;
+		spin_lock_init(&ring->poll_lock);
 
-		sprintf(ring->tx_wakelock_name,
-			"sbuf-%d-%d-%d-tx",
-			sbuf->dst, sbuf->channel, i);
-		ring->tx_wake_lock = wakeup_source_create(ring->tx_wakelock_name);
-		wakeup_source_add(ring->tx_wake_lock);
-
-		ring->rx_wake_lock = wakeup_source_create(ring->rx_wakelock_name);
-		wakeup_source_add(ring->rx_wake_lock);
+		/* init, set write mask. */
+		ring->poll_mask = POLLOUT | POLLWRNORM;
+		sbuf_pms_init(ring, sbuf->dst, sbuf->channel, i);
 	}
 }
 
@@ -244,7 +265,7 @@ static int sbuf_host_init(struct smsg_ipc *sipc, struct sbuf_mgr *sbuf,
 	VOLA_SBUF_SMEM *smem;
 	VOLA_SBUF_RING *ringhd;
 	struct sbuf_ring_header_op *hd_op;
-	int hsize, i;
+	int hsize, i, rval;
 	phys_addr_t offset = 0;
 	u8 dst = sbuf->dst;
 	struct sbuf_ring *ring;
@@ -296,6 +317,15 @@ static int sbuf_host_init(struct smsg_ipc *sipc, struct sbuf_mgr *sbuf,
 		return -ENOMEM;
 	}
 
+	/* must request resource before read or write share memory */
+	rval = sipc_smem_request_resource(sipc->sipc_pms, sipc->dst, -1);
+	if (rval < 0) {
+		smem_free(dst, sbuf->smem_addr, sbuf->smem_size);
+		shmem_ram_unmap(dst, sbuf->smem_virt);
+		kfree(sbuf->rings);
+		return rval;
+	}
+
 	/* initialize all ring bufs */
 	smem = (VOLA_SBUF_SMEM *)sbuf->smem_virt;
 	smem->ringnr = bufnum;
@@ -326,6 +356,9 @@ static int sbuf_host_init(struct smsg_ipc *sipc, struct sbuf_mgr *sbuf,
 		hd_op->tx_size = ringhd->txbuf_size;
 	}
 
+	/* release resource */
+	sipc_smem_release_resource(sipc->sipc_pms, sipc->dst);
+
 	sbuf_comm_init(sbuf);
 
 	return 0;
@@ -337,7 +370,7 @@ static int sbuf_client_init(struct smsg_ipc *sipc, struct sbuf_mgr *sbuf)
 	VOLA_SBUF_RING *ringhd;
 	struct sbuf_ring_header_op *hd_op;
 	struct sbuf_ring *ring;
-	int hsize, i;
+	int hsize, i, rval;
 	u32 txbufsize, rxbufsize;
 	phys_addr_t offset = 0;
 	u32 bufnum;
@@ -404,6 +437,15 @@ static int sbuf_client_init(struct smsg_ipc *sipc, struct sbuf_mgr *sbuf)
 	pr_info("channel %d-%d, ringns = 0x%p!\n",
 		 sbuf->dst, sbuf->channel, sbuf->rings);
 
+	/* must request resource before read or write share memory */
+	rval = sipc_smem_request_resource(sipc->sipc_pms, sipc->dst, -1);
+	if (rval < 0) {
+		smem_free(dst, sbuf->smem_addr, sbuf->smem_size);
+		shmem_ram_unmap(dst, sbuf->smem_virt);
+		kfree(sbuf->rings);
+		return rval;
+	}
+
 	/* initialize all ring bufs */
 	smem = (VOLA_SBUF_SMEM *)sbuf->smem_virt;
 	for (i = 0; i < bufnum; i++) {
@@ -425,6 +467,9 @@ static int sbuf_client_init(struct smsg_ipc *sipc, struct sbuf_mgr *sbuf)
 		hd_op->tx_size = ringhd->rxbuf_size;
 	}
 
+	/* release resource */
+	sipc_smem_release_resource(sipc->sipc_pms, sipc->dst);
+
 	sbuf_comm_init(sbuf);
 
 	return 0;
@@ -437,6 +482,7 @@ static int sbuf_thread(void *data)
 	struct smsg mcmd, mrecv;
 	int rval, bufid;
 	struct smsg_ipc *sipc;
+	unsigned long flags;
 
 	/* since the channel open may hang, we call it in the sbuf thread */
 	rval = smsg_ch_open(sbuf->dst, sbuf->channel, -1);
@@ -547,27 +593,29 @@ static int sbuf_thread(void *data)
 			ring = &sbuf->rings[bufid];
 			switch (mrecv.flag) {
 			case SMSG_EVENT_SBUF_RDPTR:
+				if (ring->need_wake_lock)
+					sprd_pms_request_wakelock_period(ring->tx_pms, 500);
+				/* set write mask. */
+				spin_lock_irqsave(&ring->poll_lock, flags);
+				ring->poll_mask |= POLLOUT | POLLWRNORM;
+				spin_unlock_irqrestore(&ring->poll_lock, flags);
 				wake_up_interruptible_all(&ring->txwait);
 				if (ring->handler)
 					ring->handler(SBUF_NOTIFY_WRITE,
 						      ring->data);
-				__pm_wakeup_event(ring->tx_wake_lock,
-					jiffies_to_msecs(HZ / 2));
-				ring->tx_wakelock_state = 1;
-				pr_debug("sbuf %s : wake_lock hz/2!",
-					  ring->tx_wakelock_name);
 				break;
 			case SMSG_EVENT_SBUF_WRPTR:
+				/* set read mask. */
+				spin_lock_irqsave(&ring->poll_lock, flags);
+				ring->poll_mask |= POLLIN | POLLRDNORM;
+				spin_unlock_irqrestore(&ring->poll_lock, flags);
+
+				if (ring->need_wake_lock)
+					sprd_pms_request_wakelock_period(ring->rx_pms, 500);
 				wake_up_interruptible_all(&ring->rxwait);
 				if (ring->handler)
 					ring->handler(SBUF_NOTIFY_READ,
 						      ring->data);
-				__pm_wakeup_event(ring->rx_wake_lock,
-					jiffies_to_msecs(HZ / 2));
-				ring->rx_wakelock_state = 1;
-				pr_debug("sbuf %s : wake_lock hz/2!",
-					  ring->rx_wakelock_name);
-
 				break;
 			default:
 				rval = 1;
@@ -601,10 +649,9 @@ int sbuf_create_ex(u8 dst, u8 channel, u16 smem,
 {
 	struct sbuf_mgr *sbuf;
 	u8 ch_index;
-	int ret, i;
+	int ret;
 	struct smsg_ipc *sipc = NULL;
 	struct sched_param param = {.sched_priority = 89};
-	struct sbuf_ring *ring;
 
 	sipc = smsg_ipcs[dst];
 	ch_index = sipc_channel2index(channel);
@@ -636,13 +683,6 @@ int sbuf_create_ex(u8 dst, u8 channel, u16 smem,
 	if (!sipc->client) {
 		ret = sbuf_host_init(sipc, sbuf, bufnum, txbufsize, rxbufsize);
 		if (ret) {
-			for (i = 0; i < bufnum; i++) {
-				ring = &sbuf->rings[i];
-				wakeup_source_remove(ring->tx_wake_lock);
-				wakeup_source_destroy(ring->tx_wake_lock);
-				wakeup_source_remove(ring->rx_wake_lock);
-				wakeup_source_destroy(ring->rx_wake_lock);
-			}
 			kfree(sbuf);
 			return ret;
 		}
@@ -653,13 +693,6 @@ int sbuf_create_ex(u8 dst, u8 channel, u16 smem,
 	if (IS_ERR(sbuf->thread)) {
 		pr_err("Failed to create kthread: sbuf-%d-%d\n", dst, channel);
 		if (!sipc->client) {
-			for (i = 0; i < bufnum; i++) {
-				ring = &sbuf->rings[i];
-				wakeup_source_remove(ring->tx_wake_lock);
-				wakeup_source_destroy(ring->tx_wake_lock);
-				wakeup_source_remove(ring->rx_wake_lock);
-				wakeup_source_destroy(ring->rx_wake_lock);
-			}
 			kfree(sbuf->rings);
 			shmem_ram_unmap_ex(dst, sbuf->smem, sbuf->smem_virt);
 			smem_free_ex(dst, sbuf->smem,
@@ -732,10 +765,8 @@ void sbuf_destroy(u8 dst, u8 channel)
 #if defined(CONFIG_DEBUG_FS)
 			sbuf_destroy_rdwt_owner(&sbuf->rings[i]);
 #endif
-			wakeup_source_remove(sbuf->rings[i].tx_wake_lock);
-			wakeup_source_destroy(sbuf->rings[i].tx_wake_lock);
-			wakeup_source_remove(sbuf->rings[i].rx_wake_lock);
-			wakeup_source_destroy(sbuf->rings[i].rx_wake_lock);
+			sprd_pms_destroy(sbuf->rings[i].tx_pms);
+			sprd_pms_destroy(sbuf->rings[i].rx_pms);
 		}
 		kfree(sbuf->rings);
 	}
@@ -767,6 +798,8 @@ int sbuf_write(u8 dst, u8 channel, u32 bufid,
 	int rval, left, tail, txsize;
 	u8 ch_index;
 	union sbuf_buf u_buf;
+	bool no_data;
+	unsigned long flags;
 
 	u_buf.buf = buf;
 	ch_index = sipc_channel2index(channel);
@@ -814,6 +847,31 @@ int sbuf_write(u8 dst, u8 channel, u32 bufid,
 	sbuf_record_rdwt_owner(ring, 0);
 #endif
 
+	/* must request resource before read or write share memory */
+	rval = sipc_smem_request_resource(ring->tx_pms, sbuf->dst, -1);
+	if (rval < 0) {
+		mutex_unlock(&ring->txlock);
+		return rval;
+	}
+
+	pr_debug("%s: channel=%d, wrptr=%d, rdptr=%d\n",
+		 __func__,
+		 channel,
+		 *(hd_op->tx_wt_p),
+		 *(hd_op->tx_rd_p));
+	no_data = ((int)(*(hd_op->tx_wt_p) - *(hd_op->tx_rd_p)) >=
+					hd_op->tx_size);
+	/* update write mask */
+	spin_lock_irqsave(&ring->poll_lock, flags);
+	if (no_data)
+		ring->poll_mask &= ~(POLLOUT | POLLWRNORM);
+	else
+		ring->poll_mask |= POLLOUT | POLLWRNORM;
+	spin_unlock_irqrestore(&ring->poll_lock, flags);
+
+	/* release resource */
+	sipc_smem_release_resource(ring->tx_pms, sbuf->dst);
+
 	if (timeout == 0) {
 		/* no wait */
 		if ((int)(*(hd_op->tx_wt_p) - *(hd_op->tx_rd_p)) >=
@@ -855,6 +913,18 @@ int sbuf_write(u8 dst, u8 channel, u32 bufid,
 			pr_err("sbuf state is idle!\n");
 			rval = -EIO;
 		}
+	}
+
+	if (rval < 0) {
+		mutex_unlock(&ring->txlock);
+		return rval;
+	}
+
+	/* must request resource before read or write share memory */
+	rval = sipc_smem_request_resource(ring->tx_pms, sbuf->dst, -1);
+	if (rval < 0) {
+		mutex_unlock(&ring->txlock);
+		return rval;
 	}
 
 	while (left && (int)(*(hd_op->tx_wt_p) - *(hd_op->tx_rd_p)) <
@@ -921,26 +991,20 @@ int sbuf_write(u8 dst, u8 channel, u32 bufid,
 		u_buf.buf += txsize;
 	}
 
-	/* must tx_wakelock_state is 1(means have got a long wake lock) ,
-	 * we can do below actions, ortherwise system can't enter to sleep
-	 */
-	if (ring->tx_wakelock_state) {
-		ring->tx_wakelock_state = 0;
+	/* update write mask */
+	spin_lock_irqsave(&ring->poll_lock, flags);
+	if ((int)(*(hd_op->tx_wt_p) - *(hd_op->tx_rd_p)) >=
+	    hd_op->tx_size)
+		ring->poll_mask &= ~(POLLOUT | POLLWRNORM);
+	else
+		ring->poll_mask |= POLLOUT | POLLWRNORM;
+	spin_unlock_irqrestore(&ring->poll_lock, flags);
 
-		/* if need wake lock , update wake lock time to 20ms,
-		 * else unlock it immediately
-		 */
-		if (ring->need_wake_lock) {
-			pr_debug("sbuf %s : wake_lock hz/50!",
-				 ring->tx_wakelock_name);
-			__pm_wakeup_event(ring->tx_wake_lock,
-				jiffies_to_msecs(HZ / 50));
-		} else {
-			pr_debug("sbuf %s : wake_unlock!",
-				 ring->tx_wakelock_name);
-			__pm_relax(ring->tx_wake_lock);
-		}
-	}
+	/* release resource */
+	sipc_smem_release_resource(ring->tx_pms, sbuf->dst);
+	if (ring->need_wake_lock)
+		sprd_pms_release_wakelock_later(ring->tx_pms, 20);
+
 	mutex_unlock(&ring->txlock);
 
 	pr_debug("done, channel=%d, len=%d\n",
@@ -964,6 +1028,8 @@ int sbuf_read(u8 dst, u8 channel, u32 bufid,
 	int rval, left, tail, rxsize;
 	u8 ch_index;
 	union sbuf_buf u_buf;
+	bool no_data;
+	unsigned long flags;
 
 	u_buf.buf = buf;
 	ch_index = sipc_channel2index(channel);
@@ -1006,6 +1072,28 @@ int sbuf_read(u8 dst, u8 channel, u32 bufid,
 	sbuf_record_rdwt_owner(ring, 1);
 #endif
 
+	/* must request resource before read or write share memory */
+	rval = sipc_smem_request_resource(ring->rx_pms, sbuf->dst, -1);
+	if (rval < 0) {
+		mutex_unlock(&ring->rxlock);
+		return rval;
+	}
+
+	pr_debug("%s: channel=%d, wrptr=%d, rdptr=%d\n",
+				__func__, channel,
+				*(hd_op->rx_wt_p), *(hd_op->rx_rd_p));
+	no_data = (*(hd_op->rx_wt_p) == *(hd_op->rx_rd_p));
+	/* update read mask */
+	spin_lock_irqsave(&ring->poll_lock, flags);
+	if (no_data)
+		ring->poll_mask &= ~(POLLIN | POLLRDNORM);
+	else
+		ring->poll_mask |= POLLIN | POLLRDNORM;
+	spin_unlock_irqrestore(&ring->poll_lock, flags);
+
+	/* release resource */
+	sipc_smem_release_resource(ring->rx_pms, sbuf->dst);
+
 	if (*(hd_op->rx_wt_p) == *(hd_op->rx_rd_p)) {
 		if (timeout == 0) {
 			/* no wait */
@@ -1043,6 +1131,18 @@ int sbuf_read(u8 dst, u8 channel, u32 bufid,
 				rval = -EIO;
 			}
 		}
+	}
+
+	if (rval < 0) {
+		mutex_unlock(&ring->rxlock);
+		return rval;
+	}
+
+	/* must request resource before read or write share memory */
+	rval = sipc_smem_request_resource(ring->rx_pms, sbuf->dst, -1);
+	if (rval < 0) {
+		mutex_unlock(&ring->rxlock);
+		return rval;
 	}
 
 	while (left &&
@@ -1118,26 +1218,18 @@ int sbuf_read(u8 dst, u8 channel, u32 bufid,
 		u_buf.buf += rxsize;
 	}
 
-	/* must rx_wakelock_state is 1(means have got a long wake lock) ,
-	 * we can do below actions, ortherwise system can't enter to sleep
-	 */
-	if (ring->rx_wakelock_state) {
-		ring->rx_wakelock_state = 0;
+	/* update read mask */
+	spin_lock_irqsave(&ring->poll_lock, flags);
+	if (*(hd_op->rx_wt_p) == *(hd_op->rx_rd_p))
+		ring->poll_mask &= ~(POLLIN | POLLRDNORM);
+	else
+		ring->poll_mask |= POLLIN | POLLRDNORM;
+	spin_unlock_irqrestore(&ring->poll_lock, flags);
 
-		/* if need wake lock , update wake lock time to 20ms,
-		 * else unlock it immediately
-		 */
-		if (ring->need_wake_lock) {
-			pr_debug("sbuf %s : wake_lock hz/50!",
-				 ring->rx_wakelock_name);
-			__pm_wakeup_event(ring->rx_wake_lock,
-				jiffies_to_msecs(HZ / 50));
-		} else {
-			pr_debug("sbuf %s : wake_unlock!",
-				 ring->rx_wakelock_name);
-			__pm_relax(ring->rx_wake_lock);
-		}
-	}
+	/* release resource */
+	sipc_smem_release_resource(ring->rx_pms, sbuf->dst);
+	if (ring->need_wake_lock)
+		sprd_pms_release_wakelock_later(ring->rx_pms, 20);
 
 	mutex_unlock(&ring->rxlock);
 
@@ -1257,6 +1349,10 @@ void sbuf_get_status(u8 dst, char *status_info, int size)
 		sbuf = sbufs[dst][i];
 		if (!sbuf)
 			continue;
+		ring = &sbuf->rings[0];
+		/* must request resource before read or write share memory */
+		if (sipc_smem_request_resource(ring->rx_pms, dst, 1000) < 0)
+			continue;
 
 		for (n = 0;  n < sbuf->ringnr && len < size; n++) {
 			ring = &sbuf->rings[n];
@@ -1317,6 +1413,9 @@ void sbuf_get_status(u8 dst, char *status_info, int size)
 			spin_unlock_irqrestore(&ring->rxwait.lock, flags);
 #endif
 		}
+		ring = &sbuf->rings[0];
+		/* release resource */
+		sipc_smem_release_resource(ring->rx_pms, sbuf->dst);
 	}
 }
 EXPORT_SYMBOL_GPL(sbuf_get_status);
@@ -1368,9 +1467,7 @@ static void sbuf_debug_task_show(struct seq_file *m,
 				   task->pid);
 			cnt++;
 		}
-		spin_unlock_irqrestore(
-			&phead->lock,
-			flags);
+		spin_unlock_irqrestore(&phead->lock, flags);
 	}
 }
 
@@ -1426,6 +1523,12 @@ static int sbuf_debug_show(struct seq_file *m, void *private)
 		sipc = smsg_ipcs[i];
 		if (!sipc)
 			continue;
+
+		/* must request resource before read or write share memory */
+		if (sipc_smem_request_resource(sipc->sipc_pms,
+					       sipc->dst, 1000) < 0)
+			continue;
+
 		sipc_debug_putline(m, '*', 120);
 		seq_printf(m, "dst: 0x%0x, sipc: %s:\n", i, sipc->name);
 		sipc_debug_putline(m, '*', 120);
@@ -1505,6 +1608,8 @@ static int sbuf_debug_show(struct seq_file *m, void *private)
 				}
 			}
 		}
+		/* release resource */
+		sipc_smem_release_resource(sipc->sipc_pms, sipc->dst);
 	}
 
 	return 0;
