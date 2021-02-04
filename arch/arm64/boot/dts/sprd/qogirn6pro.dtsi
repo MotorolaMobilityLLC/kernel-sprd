@@ -1195,6 +1195,21 @@
 					"ipa_core_source", "ipa_core_default";
 			};
 
+			timer@40000 {
+				compatible = "sprd,qogirn6pro-timer",
+						"sprd,sc9860-timer";
+				reg = <0x40000 0x20>;
+				interrupts = <GIC_SPI 47 IRQ_TYPE_LEVEL_HIGH>;
+				clocks = <&ext_32k>;
+			};
+
+			timer@40020 {
+				compatible = "sprd,qogirn6pro-suspend-timer",
+						"sprd,sc9860-suspend-timer";
+				reg = <0x40020 0x20>;
+				clocks = <&ext_32k>;
+			};
+
 			watchdog@1e0000 {
 				compatible = "sprd,wdt-r2p0-fiq";
 				reg = <0x1e0000 0x10000>;
