@@ -227,15 +227,15 @@
 	};
 
 	ipi: interrupt-controller {
-		compatible = "android,CustomIPI";
+		compatible = "sprd,CustomIPI";
 		#interrupt-cells = <1>;
 		interrupt-controller;
 	};
 
 	trusty {
-		compatible = "android,trusty-smc-v1";
+		compatible = "sprd,trusty-smc-v1";
 		irq {
-			compatible = "android,trusty-irq-v1";
+			compatible = "sprd,trusty-irq-v1";
 			interrupt-templates = <&ipi 0>,
 						<&gic 1 GIC_PPI 0>,
 						<&gic 1 GIC_SPI 0>;
@@ -245,11 +245,11 @@
 		};
 
 		virtio {
-			compatible = "android,trusty-virtio-v1";
+			compatible = "sprd,trusty-virtio-v1";
 		};
 
 		log {
-			compatible = "android,trusty-log-v1";
+			compatible = "sprd,trusty-log-v1";
 		};
 	};
 };
