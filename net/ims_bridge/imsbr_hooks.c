@@ -47,6 +47,7 @@ static bool is_icmp_error(struct nf_conntrack_tuple *nft)
 		case ICMP_REDIRECT:
 			return true;
 		}
+		fallthrough;
 	case IPPROTO_ICMPV6:
 		if (type < 128)
 			return true;
