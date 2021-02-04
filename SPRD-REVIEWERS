@@ -115,7 +115,7 @@ T: soc:sprd:iommu:
 T: staging:android:ion:
 
 [ling_ling.xu]
-R: +1
+R: +2
 T: devfreq:sprd:
 T: cpufreq:sprd:
 T: cpufreq:
