@@ -332,7 +332,13 @@ static int bq2560x_charger_hw_init(struct bq2560x_charger_info *info)
 		ret = bq2560x_update_bits(info, BQ2560X_REG_5,
 					  BQ2560X_REG_EN_TIMER_MASK,
 					  0);
-		
+		ret = bq2560x_update_bits(info, BQ2560X_REG_5,     //WATCHDOG
+					  0x30,
+					  0);		
+		ret = bq2560x_update_bits(info, BQ2560X_REG_4,   //TOPOFF_TIMER
+					  0x06,
+					  0);
+
 	}
 
 	return ret;
