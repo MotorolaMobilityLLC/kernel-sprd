@@ -79,30 +79,6 @@ static int sipa_sys_wait_power_on(struct sipa_sys_pd_drv *drv,
 	return ret;
 }
 
-static int sipa_sys_wait_power_off(struct sipa_sys_pd_drv *drv,
-				   struct sipa_sys_register *reg_info)
-{
-	int ret = 0;
-	u32 val;
-
-	if (reg_info->rmap)
-		ret = regmap_read_poll_timeout(reg_info->rmap,
-					       reg_info->reg,
-					       val,
-					       (((u32)(val & reg_info->mask)
-						 & 0x1F00) >> 8) == 0x7,
-					       SPRD_IPA_POWERON_POLL_US,
-					       SPRD_IPA_POWERON_TIMEOUT);
-	else
-		usleep_range((SPRD_IPA_POWERON_TIMEOUT >> 2) + 1, 5000);
-
-	if (ret)
-		dev_err(drv->dev,
-			"Polling check power off reg timed out: %x\n", val);
-
-	return ret;
-}
-
 int sipa_sys_do_power_on_cb_v3(void *priv)
 {
 	u32 val;
@@ -204,13 +180,8 @@ int sipa_sys_do_power_off_cb_v3(void *priv)
 					 reg_info->mask,
 					 reg_info->mask);
 		if (ret < 0)
-			dev_warn(drv->dev, "clear forcewakeup bits fail\n");
+			dev_warn(drv->dev, "set dslp en bits fail\n");
 	}
-
-	/* wait ipa_sys power off */
-	ret = sipa_sys_wait_power_off(drv, reg_info);
-	if (ret)
-		dev_warn(drv->dev, "wait pwr off timeout\n");
 
 	/* disable ipa_access eb bit */
 	reg_info = &drv->regs[IPA_SYS_ACCESSEN];
