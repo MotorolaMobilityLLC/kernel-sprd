@@ -196,6 +196,15 @@ T: usb:musb:
 T: usb:misc:
 T: usb:phy:
 
+[mingming.zhong]
+R: +1
+C: 2020.02.04
+T: misc:sprdwcn:
+T: misc:sprd_gnss:
+T: mmc:sprd:
+T: arm64:dts:
+T: arm:configs:
+
 [nianfu.bai]
 R: +2
 T: arm:dts:
