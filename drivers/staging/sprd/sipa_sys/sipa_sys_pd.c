@@ -36,6 +36,8 @@
 
 #define DRV_NAME "sprd-sipa-sys"
 
+struct sipa_sys_pd_drv *ipa_sys_drv;
+
 static int sipa_sys_clk_init(struct sipa_sys_pd_drv *drv)
 {
 	drv->ipa_core_clk = devm_clk_get(drv->dev, "ipa_core");
@@ -216,6 +218,7 @@ static int sipa_sys_drv_probe(struct platform_device *pdev_p)
 			   GFP_KERNEL);
 	if (!drv)
 		return -ENOMEM;
+	ipa_sys_drv = drv;
 
 	platform_set_drvdata(pdev_p, drv);
 	drv->dev = &pdev_p->dev;

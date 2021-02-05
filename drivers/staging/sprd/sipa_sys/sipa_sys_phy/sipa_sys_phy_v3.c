@@ -112,9 +112,14 @@ int sipa_sys_do_power_on_cb_v3(void *priv)
 				 "read ipa sys autoshutdownen error\n");
 		}
 
-		if (!((val & reg_info->mask) >> 24))
-			dev_warn(drv->dev,
-				 "ipa sys autoshutdownen error: %x\n", val);
+		if (!((val & reg_info->mask) >> 24)) {
+			ret = regmap_update_bits(reg_info->rmap,
+						 reg_info->reg,
+						 reg_info->mask,
+						 reg_info->mask);
+			if (ret < 0)
+				dev_warn(drv->dev, "set ipa sys autoshutdown en\n");
+		}
 	}
 
 	/* wait ipa_sys power on */
@@ -143,13 +148,13 @@ int sipa_sys_do_power_on_cb_v3(void *priv)
 				"enable ipa_core_parent error\n");
 			return ret;
 		}
-		clk_set_parent(drv->ipa_core_clk, drv->ipa_core_parent);
 		ret = clk_prepare_enable(drv->clk_ipa_ckg_eb);
 		if (ret) {
 			dev_err(drv->dev,
 				"enable clk_ipa_ckg_eb error\n");
 			return ret;
 		}
+		clk_set_parent(drv->ipa_core_clk, drv->ipa_core_parent);
 	}
 	return ret;
 }
