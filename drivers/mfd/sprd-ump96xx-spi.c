@@ -139,7 +139,7 @@ static const struct sprd_pmic_matrix pmic_ump9620_matrix = {
 	.sprd_pmic_dev = sprd_ump9620_devs,
 	.slave_id = 0x0,
 	.irq_base = 0x80,
-	.irq_nums = 10,
+	.irq_nums = 11,
 	.dev_nr = ARRAY_SIZE(sprd_ump9620_devs),
 	.pmic_name = "UMP9620"
 };
