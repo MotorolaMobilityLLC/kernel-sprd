@@ -226,8 +226,8 @@ u32 sprd_iommuex_cll_map(sprd_iommu_hdl  p_iommu_hdl,
 		fault_page = p_iommu_priv->default_addr >> MMU_MAPING_PAGESIZE_SHIFFT;
 		if (iommu_id == IOMMU_EX_ISP)
 			fault_page = fault_page | 0x80000000;
-		//memset32((void *)(p_iommu_priv->ppn_base_addr + vir_base_entry * 4),
-				  //fault_page, valid_page_entries);
+		memset32((void *)(p_iommu_priv->ppn_base_addr + vir_base_entry * 4),
+				  fault_page, valid_page_entries);
 		total_page_entries += valid_page_entries;
 	} else {
 		for_each_sg(p_map_param->p_sg_table->sgl, sg,

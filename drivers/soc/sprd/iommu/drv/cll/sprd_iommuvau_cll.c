@@ -226,9 +226,9 @@ u32 sprd_iommuvau_cll_map(sprd_iommu_hdl  p_iommu_hdl,
 		align_map_size = MAP_SIZE_PAGE_ALIGN_UP(p_map_param->total_map_size);
 		valid_page_entries  = (u32)SIZE_TO_ENTRIES(align_map_size);
 		fault_page = p_iommu_priv->default_addr >> MMU_MAPING_PAGESIZE_SHIFFT;
-		//memset32((void *)(p_iommu_priv->ppn_base_addr +
-				  //vir_base_entry * 4),
-				  //fault_page, valid_page_entries);
+		memset32((void *)(p_iommu_priv->ppn_base_addr +
+				  vir_base_entry * 4),
+				  fault_page, valid_page_entries);
 		total_page_entries += valid_page_entries;
 
 	} else {
