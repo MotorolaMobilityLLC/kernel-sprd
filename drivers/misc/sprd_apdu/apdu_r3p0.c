@@ -386,7 +386,7 @@ static ssize_t sprd_apdu_read(struct file *fp, char __user *buf,
 {
 	struct sprd_apdu_device *apdu = fp->private_data;
 	ssize_t r = count;
-	u32 xfer, header, data_len, word_len, wait_time;
+	u32 xfer, data_len, word_len, wait_time, header = 0;
 	int ret;
 
 	mutex_lock(&apdu->mutex);
@@ -513,7 +513,8 @@ end:
 
 static void sprd_apdu_get_atr(struct sprd_apdu_device *apdu)
 {
-	u32 word_len, atr_len, i, ret;
+	u32 word_len, atr_len, i;
+	int ret;
 
 	atr_len = APDU_ATR_DATA_MAX_SIZE + 4;
 	memset((void *)apdu->atr, 0x0, atr_len);
@@ -679,8 +680,9 @@ static void ise_fault_status_caching(struct sprd_apdu_device *apdu,
 
 static void sprd_apdu_get_med_rewrite_info(struct sprd_apdu_device *apdu)
 {
-	u32 word_len, med_rewrite_len, i, j, ret;
+	u32 word_len, med_rewrite_len, i, j;
 	u32 msg_buf[APDU_MED_INFO_PARSE_SZ + 1] = {0};
+	int ret;
 
 	med_rewrite_len = APDU_MED_INFO_SIZE * 4 + 4;
 	memset((void *)apdu->med_rewrite, 0x0, med_rewrite_len);
@@ -982,7 +984,7 @@ static ssize_t get_random_show(struct device *dev,
 			       struct device_attribute *attr, char *buf)
 {
 	struct sprd_apdu_device *apdu = dev_get_drvdata(dev);
-	u32 rep_data[0x10];
+	u32 rep_data[0x10] = {0};
 	int ret;
 	char cmd_get_random[8] = {
 		0x00, 0x84, 0x00, 0x00,
@@ -1118,7 +1120,7 @@ static ssize_t packet_send_rcv_show(struct device *dev,
 				    struct device_attribute *attr, char *buf)
 {
 	struct sprd_apdu_device *apdu = dev_get_drvdata(dev);
-	u32 header, data_len, word_len;
+	u32 data_len, word_len, header = 0;
 	int ret;
 
 	if (!apdu)
