@@ -16770,8 +16770,8 @@ CONFIG_SPRD_WATCHDOG
 	[function] Spreadtrum watchdog driver.
 CONFIG_SPRD_WATCHDOG_FIQ
 	[arch] arm64
-	[plat] sharkl5Pro
-	[missing plat] sharkl3
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
 	[field]
 	[subsys]
 	[must]
@@ -16779,8 +16779,8 @@ CONFIG_SPRD_WATCHDOG_FIQ
 	[function]
 CONFIG_SPRD_WATCHDOG_PMIC
 	[arch] arm64
-	[plat] sharkl5Pro
-	[missing plat] sharkl3
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
 	[field]
 	[subsys]
 	[must]
