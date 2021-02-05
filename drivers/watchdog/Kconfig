@@ -967,7 +967,7 @@ config RTD119X_WATCHDOG
 	  Realtek RTD1295 SoCs.
 
 config SPRD_WATCHDOG_FIQ
-	tristate "Spreadtrum watchdog support with FIQ ISR
+	tristate "Spreadtrum watchdog support with FIQ ISR"
 	depends on ARCH_SPRD || COMPILE_TEST
 	select WATCHDOG_CORE
 	help
@@ -987,7 +987,7 @@ config SPRD_WATCHDOG
 	  by Spreadtrum system.
 
 config SPRD_WATCHDOG_PMIC
-	tristate "SPRD PMIC WDT Watchdog timer
+	tristate "SPRD PMIC WDT Watchdog timer"
 	depends on ARCH_SPRD && SPI_SPRD_ADI
 	help
 	  If you have a PMIC  watchdog board, say Y here, When PMIC watchdog
