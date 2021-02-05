@@ -16349,39 +16349,39 @@ CONFIG_SPRD_GPU_COOLING_DEVICE
 	[function] create gpu cooling device and build gpu power model
 CONFIG_SPRD_HANG_DEBUG
 	[arch] arm64
-	[plat] sharkl5Pro
-	[missing plat] sharkl3
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
 	[field]
 	[subsys]
 	[must]
-	[missing plat description]
+	[missing plat description] none
 	[function]
 CONFIG_SPRD_HANG_DEBUG_UART
 	[arch] arm64
-	[plat] sharkl5Pro
-	[missing plat] sharkl3
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
 	[field]
 	[subsys]
 	[must]
-	[missing plat description]
+	[missing plat description] none
 	[function]
 CONFIG_SPRD_HANG_WDF
 	[arch] arm64
-	[plat] sharkl5Pro
-	[missing plat] sharkl3
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
 	[field]
 	[subsys]
 	[must]
-	[missing plat description]
+	[missing plat description] none
 	[function]
 CONFIG_SPRD_HANG_WDH
 	[arch] arm64
-	[plat] sharkl5Pro
-	[missing plat] sharkl3
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
 	[field]
 	[subsys]
 	[must]
-	[missing plat description]
+	[missing plat description] none
 	[function]
 CONFIG_SPRD_IMS_BRIDGE
 	[arch] all
