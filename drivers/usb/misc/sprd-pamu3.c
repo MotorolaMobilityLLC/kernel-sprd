@@ -697,6 +697,8 @@ static int sprd_pamu3_probe(struct platform_device *pdev)
 		goto err;
 	}
 
+	pm_runtime_enable(dev);
+
 	ret = sysfs_create_groups(&dev->kobj, usb_pamu3_groups);
 	if (ret)
 		dev_warn(dev, "failed to create usb pamu3 attributes\n");
