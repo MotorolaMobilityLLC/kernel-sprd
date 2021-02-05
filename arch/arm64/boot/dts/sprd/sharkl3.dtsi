@@ -341,6 +341,16 @@
 			#size-cells = <2>;
 			ranges;
 
+			aon_systimer: timer@40230000 {
+				compatible = "sprd,syst-timer";
+				reg = <0x0 0x40230000 0x0 0x10>;
+			};
+
+			aon_sysfrt: timer@40040000 {
+				compatible = "sprd,sysfrt-timer";
+				reg = <0x0 0x40040000 0x0 0x10>;
+			};
+
 			timer@40050000 {
 				compatible = "sprd,sharkl3-timer",
 						"sprd,sc9860-timer";
