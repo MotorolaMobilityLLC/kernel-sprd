@@ -5469,7 +5469,7 @@ static void cm_track_capacity_monitor(struct charger_manager *cm)
 			 */
 			capacity = (clbcnt - cm->track.start_clbcnt) / 1000;
 			capacity =
-				(total_cap * cm->track.start_cap) / 1000 + (u32)capacity;
+				(total_cap * (u32)cm->track.start_cap) / 1000 + (u32)capacity;
 
 			if (abs(capacity - total_cap) < total_cap / 2) {
 				set_batt_total_cap(cm, capacity);
