@@ -694,14 +694,26 @@ static int sprd_hardware_cpufreq_init(struct cpufreq_policy *policy)
 	struct cpufreq_frequency_table *freq_table;
 	struct sprd_cpufreq_info *info;
 	int ret;
+	unsigned int cpumask;
+	cpumask_t cluster_cpumask;
 
 	info = sprd_cpufreq_info_lookup(policy->cpu);
 	if (IS_ERR(info))
 		return PTR_ERR(info);
 
 	/* CPUs in the same cluster share same clock and power domain */
-	cpumask_or(policy->cpus, policy->cpus,
-		   topology_core_cpumask(policy->cpu));
+	if (!info->cpufreq_np) {
+		dev_err(info->pdev, "cpu device or cluster info is missing\n");
+		return -EINVAL;
+	}
+	ret = of_property_read_u32(info->cpufreq_np, "cpufreq-cluster-cpumask",
+			     &cpumask);
+	if (ret) {
+		dev_err(info->pdev, "cpufreq cluster cpumask read fail");
+		return ret;
+	}
+	cluster_cpumask.bits[0] = (unsigned long)cpumask;
+	cpumask_or(policy->cpus, policy->cpus, &cluster_cpumask);
 	cpumask_copy(&info->cpus, policy->cpus);
 
 	if (!info->pcluster) { /* Just do once for every policy */
