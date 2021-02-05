@@ -992,13 +992,13 @@ static SPRD_SC_GATE_CLK(aux2_eb, "aux2-eb", "ext-26m", 0x0,
 static SPRD_SC_GATE_CLK(probe_eb, "probe-eb", "ext-26m", 0x0,
 			0x1000, BIT(7), 0, 0);
 static SPRD_SC_GATE_CLK(mm_eb, "mm-eb", "ext-26m", 0x0,
-			0x1000, BIT(9), 0, 0);
+			0x1000, BIT(9), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(gpu_eb, "gpu-eb", "ext-26m", 0x0,
-			0x1000, BIT(11), 0, 0);
+			0x1000, BIT(11), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(mspi_eb, "mspi-eb", "ext-26m", 0x0,
 			0x1000, BIT(12), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(ai_eb, "ai-eb", "ext-26m", 0x0,
-			0x1000, BIT(13), 0, 0);
+			0x1000, BIT(13), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(apcpu_dap_eb, "apcpu-dap-eb", "ext-26m", 0x0,
 			0x1000, BIT(14), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(aon_cssys_eb, "aon-cssys-eb", "ext-26m", 0x0,
@@ -1008,7 +1008,7 @@ static SPRD_SC_GATE_CLK(cssys_apb_eb, "cssys-apb-eb", "ext-26m", 0x0,
 static SPRD_SC_GATE_CLK(cssys_pub_eb, "cssys-pub-eb", "ext-26m", 0x0,
 			0x1000, BIT(17), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(dpu_vsp_eb, "dpu-vsp-eb", "ext-26m", 0x0,
-			0x1000, BIT(21), 0, 0);
+			0x1000, BIT(21), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(dsi_cfg_eb, "dsi-cfg-eb", "ext-26m", 0x0,
 			0x1000, BIT(31), 0, 0);
 static SPRD_SC_GATE_CLK(efuse_eb, "efuse-eb", "ext-26m", 0x4,
@@ -2776,8 +2776,8 @@ static SPRD_MUX_CLK(gsp1, "gsp1", gsp_parents, 0x64,
 		    0, 2, UMS9620_MUX_FLAG);
 
 static const char * const dispc0_parents[] = { "tgpll-256m", "tgpll-307m2",
-					       "tgpll-384m", "v4nrpll_409m6",
-					       "tgpll-512m", "v4nrpll_614m4" };
+					       "tgpll-384m", "v4nrpll-409m6",
+					       "tgpll-512m", "v4nrpll-614m4" };
 static SPRD_MUX_CLK(dispc0, "dispc0", dispc0_parents, 0x70,
 		    0, 3, UMS9620_MUX_FLAG);
 
