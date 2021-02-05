@@ -185,6 +185,7 @@
 		sprd,hw-dvfs-device = <&cpudvfs_dev>;
 		temp-threshold = <65>;
 		sprd,multi-version;
+		cpufreq-cluster-cpumask = <0x3f>;
 		transition_delay_us = <500>;
 		operating-points = <
 			/*kHZ	uV*/
@@ -231,6 +232,7 @@
 		sprd,hw-dvfs-device = <&cpudvfs_dev>;
 		temp-threshold = <65>;
 		sprd,multi-version;
+		cpufreq-cluster-cpumask = <0xc0>;
 		transition_delay_us = <500>;
 		operating-points = <
 			/*kHZ	uV*/
