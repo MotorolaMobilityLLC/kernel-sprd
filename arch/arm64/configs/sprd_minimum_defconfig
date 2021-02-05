@@ -395,7 +395,7 @@ CONFIG_ARCH_SPRD=y
 #
 # CPU info trans to compiler
 #
-CONFIG_SPRD_ARCH=""
+CONFIG_SPRD_CPU_ARCH=""
 CONFIG_SPRD_CPU_TYPE=""
 
 #

@@ -270,7 +270,7 @@ if ARCH_SPRD
 
 menu "CPU info trans to compiler"
 
-config SPRD_ARCH
+config SPRD_CPU_ARCH
        string "Architecture info for compiler"
        help
          Transfer the architecture info to compiler by "-march" flag.

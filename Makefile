@@ -672,16 +672,16 @@ ARCH_AFLAGS :=
 ARCH_CFLAGS :=
 include arch/$(SRCARCH)/Makefile
 
-SPRD_MARCH_FLAG = $(patsubst "%",%,$(CONFIG_SPRD_ARCH))
+SPRD_MARCH_FLAG = $(patsubst "%",%,$(CONFIG_SPRD_CPU_ARCH))
 ifneq ($(SPRD_MARCH_FLAG),)
-ARCH_AFLAGS   += -march=$(SPRD_MARCH_FLAG)
-ARCH_CFLAGS   += -march=$(SPRD_MARCH_FLAG)
+ARCH_AFLAGS   += $(call cc-option, -march=$(SPRD_MARCH_FLAG))
+ARCH_CFLAGS   += $(call cc-option, -march=$(SPRD_MARCH_FLAG))
 endif
 
 SPRD_MCPU_FLAG = $(patsubst "%",%,$(CONFIG_SPRD_CPU_TYPE))
 ifneq ($(SPRD_MCPU_FLAG),)
-ARCH_AFLAGS   += -mcpu=$(SPRD_MCPU_FLAG)
-ARCH_CFLAGS   += -mcpu=$(SPRD_MCPU_FLAG)
+ARCH_AFLAGS   += $(call cc-option, -mcpu=$(SPRD_MCPU_FLAG))
+ARCH_CFLAGS   += $(call cc-option, -mcpu=$(SPRD_MCPU_FLAG))
 endif
 
 KBUILD_CFLAGS	+= $(call cc-option,-fno-delete-null-pointer-checks,)
@@ -1310,6 +1310,17 @@ endif
 ifdef cfi-flags
   ifeq ($(call cc-option, $(cfi-flags)),)
 	@echo Cannot use CONFIG_CFI: $(cfi-flags) not supported by compiler >&2 && exit 1
+  endif
+endif
+# Warn when invalid -march or -mcpu flags are used
+ifneq ($(SPRD_MARCH_FLAG),)
+  ifeq ($(call cc-option, -march=$(SPRD_MARCH_FLAG)),)
+	@echo Cannot apply CONFIG_SPRD_CPU_ARCH: -march=$(SPRD_MARCH_FLAG) not supported by compiler >&2
+  endif
+endif
+ifneq ($(SPRD_MCPU_FLAG),)
+  ifeq ($(call cc-option, -mcpu=$(SPRD_MCPU_FLAG)),)
+	@echo Cannot apply CONFIG_SPRD_CPU_TYPE: -mcpu=$(SPRD_MCPU_FLAG) not supported by compiler >&2
   endif
 endif
 	@:

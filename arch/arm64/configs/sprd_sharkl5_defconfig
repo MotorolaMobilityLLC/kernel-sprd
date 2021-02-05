@@ -411,7 +411,7 @@ CONFIG_ARCH_SPRD=y
 #
 # CPU info trans to compiler
 #
-CONFIG_SPRD_ARCH="armv8.2-a"
+CONFIG_SPRD_CPU_ARCH="armv8.2-a"
 CONFIG_SPRD_CPU_TYPE="cortex-a55"
 
 #

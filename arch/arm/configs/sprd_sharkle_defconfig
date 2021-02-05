@@ -446,7 +446,7 @@ CONFIG_ARCH_SPRD=y
 #
 # CPU info trans to compiler
 #
-CONFIG_SPRD_ARCH=""
+CONFIG_SPRD_CPU_ARCH=""
 CONFIG_SPRD_CPU_TYPE=""
 # CONFIG_ARCH_STI is not set
 # CONFIG_ARCH_S5PV210 is not set
