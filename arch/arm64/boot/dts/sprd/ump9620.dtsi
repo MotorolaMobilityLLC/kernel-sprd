@@ -64,9 +64,9 @@
 			status = "disabled";
 		};
 
-		pmic_adc: adc@500 {
+		pmic_adc: adc@504 {
 			compatible = "sprd,ump9620-adc", "sprd,sc27xx-adc";
-			reg = <0x500>;
+			reg = <0x504>;
 			interrupt-parent = <&ump9620_pmic>;
 			interrupts = <0 IRQ_TYPE_LEVEL_HIGH>;
 			#io-channel-cells = <1>;
