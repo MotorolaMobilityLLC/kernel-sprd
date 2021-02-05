@@ -440,35 +440,9 @@ bq2560x_charger_get_charge_voltage(struct bq2560x_charger_info *info,
 	return 0;
 }
 
- static bool disable_power_path;
-#define BQ2560X_REG_HIZ_MASK          GENMASK(7, 7)
-  #define BQ2560X_REG_HIZ_SHIFT            7
-   static int __init boot_mode(char *str)
-    {
-       if (!str)
-              return 0;
-  
-       if (!strncmp(str, "cali", strlen("cali")))
-              disable_power_path = true;
-       else if (!strncmp(str, "autotest", strlen("autotest")))
-              disable_power_path = true;
-       else if (!strncmp(str, "factorytest", strlen("factorytest")))
-              disable_power_path = true;
-  
-       return 0;
-   }
-  __setup("androidboot.mode=", boot_mode);
-
-
 static int bq2560x_charger_start_charge(struct bq2560x_charger_info *info)
 {
 	int ret;
-
-       ret = bq2560x_update_bits(info, BQ2560X_REG_0,
-                              BQ2560X_REG_HIZ_MASK, 0);
-       if (ret)
-             dev_err(info->dev, "disable HIZ mode failed\n");
-
 
 	ret = bq2560x_update_bits(info, BQ2560X_REG_0,
 				  BQ2560X_REG_EN_HIZ_MASK, 0);
@@ -498,15 +472,6 @@ static void bq2560x_charger_stop_charge(struct bq2560x_charger_info *info)
 {
 	int ret;
 	bool present = bq2560x_charger_is_bat_present(info);
-
-       if (disable_power_path){
-          ret = bq2560x_update_bits(info, BQ2560X_REG_0,
-                                           BQ2560X_REG_HIZ_MASK,
-                                           0x01 << BQ2560X_REG_HIZ_SHIFT);
-           if (ret)
-             dev_err(info->dev, "enable HIZ mode failed\n");
-        }
-
 
 	if (info->role == BQ2560X_ROLE_MASTER_DEFAULT) {
 		if (!present || info->need_disable_Q1) {
