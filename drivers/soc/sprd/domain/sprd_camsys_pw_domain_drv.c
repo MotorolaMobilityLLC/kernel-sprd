@@ -6,7 +6,6 @@
 // Author: Hongjian Wang <hongjian.wang@spreadtrum.com>
 
 #include <linux/kernel.h>
-#include <linux/version.h>
 #include <linux/module.h>
 #include <linux/of.h>
 #include <linux/of_device.h>
@@ -107,13 +106,13 @@ static int sprd_cam_pw_off(struct generic_pm_domain *domain)
 
 static const struct of_device_id sprd_campw_match_table[] = {
 	{ .compatible = "sprd,pike2-camsys-domain",
-	   .data = (void *)(CAM_PW_PIKE2)},
+	   .data = (void *)(&camsys_power_ops_pike2)},
 
 	{ .compatible = "sprd,sharkl3-camsys-domain",
-	   .data = (void *)(CAM_PW_SHARKL3)},
+	   .data = (void *)(&camsys_power_ops_l3)},
 
 	{ .compatible = "sprd,sharkl5pro-camsys-domain",
-	   .data = (void *)(CAM_PW_SHARKL5PRO)},
+	   .data = (void *)(&camsys_power_ops_l5pro)},
 
 	{},
 };
@@ -122,7 +121,7 @@ static int sprd_campw_probe(struct platform_device *pdev)
 {
 	struct device_node *np = pdev->dev.of_node;
 	struct camsys_power_info *pw_info;
-	uint32_t projetc_id = CAM_PW_SHARKL3;
+	struct camsys_power_ops *ops = NULL;
 
 	pw_info = devm_kzalloc(&pdev->dev, sizeof(*pw_info), GFP_KERNEL);
 	if (IS_ERR_OR_NULL(pw_info)) {
@@ -130,19 +129,14 @@ static int sprd_campw_probe(struct platform_device *pdev)
 		return -ENOMEM;
 	}
 
-	projetc_id = (uint32_t)((enum sprd_campw_id)
-		((of_match_node(sprd_campw_match_table, np))->data));
-
-	switch (projetc_id) {
-	case CAM_PW_SHARKL3:
-		pw_info->ops = &camsys_power_ops_l3;
-		break;
-	case CAM_PW_SHARKL5PRO:
-		pw_info->ops = &camsys_power_ops_l5pro;
-		break;
-	default:return -ENOENT;
+	ops = (struct camsys_power_ops *)
+		((of_match_node(sprd_campw_match_table, np))->data);
+	if (IS_ERR_OR_NULL(ops)) {
+		pr_err("fail to parse sprd_campw_match_table item\n");
+		return -ENOENT;
 	}
 
+	pw_info->ops = ops;
 	pw_info->ops->sprd_campw_init(pdev, pw_info);
 	pw_info->pd.name = kstrdup(np->name, GFP_KERNEL);
 	pw_info->pd.power_off = sprd_cam_pw_off;

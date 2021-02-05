@@ -9,17 +9,12 @@
 #include <linux/delay.h>
 #include <linux/io.h>
 #include <linux/kernel.h>
-#include <linux/version.h>
-#include <linux/kthread.h>
 #include <linux/mfd/syscon.h>
-#include <linux/module.h>
 #include <linux/of.h>
 #include <linux/of_device.h>
 #include <linux/platform_device.h>
 #include <linux/regmap.h>
 #include <linux/pm_domain.h>
-#include <asm/cacheflush.h>
-#include <linux/notifier.h>
 
 #include "sprd_camsys_domain.h"
 

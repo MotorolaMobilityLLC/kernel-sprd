@@ -75,10 +75,26 @@ struct camsys_power_info {
 
 			struct register_gpr syscon_regs[5];
 		} l3;
+		struct {
+			unsigned int chip_id0;
+			unsigned int chip_id1;
+
+			struct clk *cam_ckg_eb;
+			struct clk *cam_mm_eb;
+
+			struct clk *cam_ahb_clk;
+			struct clk *cam_ahb_clk_default;
+			struct clk *cam_ahb_clk_parent;
+
+			struct regmap *cam_ahb_gpr;
+			struct regmap *pmu_apb_gpr;
+			struct regmap *aon_apb_gpr;
+		} pike2;
 	} u;
 };
 
-extern  struct camsys_power_ops camsys_power_ops_l3;
 extern  struct camsys_power_ops camsys_power_ops_l5pro;
+extern  struct camsys_power_ops camsys_power_ops_l3;
+extern  struct camsys_power_ops camsys_power_ops_pike2;
 
 #endif
