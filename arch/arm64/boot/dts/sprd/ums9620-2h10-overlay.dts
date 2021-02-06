@@ -371,3 +371,11 @@
 &avdd18 {
 	regulator-always-on;
 };
+
+&vddufs1v2 {
+	regulator-always-on;
+};
+
+&vdd28 {
+	regulator-always-on;
+};
