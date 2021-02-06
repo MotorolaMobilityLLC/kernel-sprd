@@ -48,11 +48,6 @@ void ufs_sprd_reset(struct ufs_sprd_host *host)
 {
 	dev_info(host->hba->dev, "ufs hardware reset!\n");
 
-	regmap_update_bits(host->ap_ahb_ufs_rst.regmap,
-			   host->ap_ahb_ufs_rst.reg,
-			   host->ap_ahb_ufs_rst.mask,
-			   host->ap_ahb_ufs_rst.mask);
-
 	regmap_update_bits(host->aon_apb_ufs_rst.regmap,
 			   host->aon_apb_ufs_rst.reg,
 			   host->aon_apb_ufs_rst.mask,
@@ -61,11 +56,18 @@ void ufs_sprd_reset(struct ufs_sprd_host *host)
 	regmap_update_bits(host->ap_ahb_ufs_rst.regmap,
 			   host->ap_ahb_ufs_rst.reg,
 			   host->ap_ahb_ufs_rst.mask,
-			   0);
+			   host->ap_ahb_ufs_rst.mask);
+
+	mdelay(1);
 
 	regmap_update_bits(host->aon_apb_ufs_rst.regmap,
 			   host->aon_apb_ufs_rst.reg,
 			   host->aon_apb_ufs_rst.mask,
+			   0);
+
+	regmap_update_bits(host->ap_ahb_ufs_rst.regmap,
+			   host->ap_ahb_ufs_rst.reg,
+			   host->ap_ahb_ufs_rst.mask,
 			   0);
 }
 
@@ -109,7 +111,6 @@ static int ufs_sprd_init(struct ufs_hba *hba)
 	struct device *dev = hba->dev;
 	struct platform_device *pdev = to_platform_device(dev);
 	struct ufs_sprd_host *host;
-	struct resource *res;
 	int ret = 0;
 
 	host = devm_kzalloc(dev, sizeof(*host), GFP_KERNEL);
@@ -118,21 +119,6 @@ static int ufs_sprd_init(struct ufs_hba *hba)
 
 	host->hba = hba;
 	ufshcd_set_variant(hba, host);
-
-	/* map ufshci_reg */
-	res = platform_get_resource_byname(pdev, IORESOURCE_MEM, "ufshci_reg");
-	if (!res) {
-		dev_err(dev, "Missing ufs hci register resource\n");
-		return -ENODEV;
-	}
-	host->ufshci_reg = devm_ioremap_nocache(dev, res->start,
-						resource_size(res));
-	if (IS_ERR(host->ufshci_reg)) {
-		dev_err(dev, "%s: could not map ufshci_reg, err %ld\n",
-			__func__, PTR_ERR(host->ufshci_reg));
-		host->ufsutp_reg = NULL;
-		return -ENODEV;
-	}
 
 	ret = ufs_sprd_get_syscon_reg(dev->of_node, &host->ap_ahb_ufs_rst,
 				      "ap_ahb_ufs_rst");
@@ -198,7 +184,7 @@ static u32 ufs_sprd_get_ufs_hci_version(struct ufs_hba *hba)
 static int ufs_sprd_phy_sram_init_done(struct ufs_hba *hba)
 {
 	uint32_t val = 0;
-	int retry = 4;
+	uint32_t retry = 10;
 	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
 
 	do {
@@ -220,7 +206,7 @@ static int ufs_sprd_phy_sram_init_done(struct ufs_hba *hba)
 
 			return 0;
 		} else {
-			udelay(1);
+			udelay(1000);
 			retry--;
 		}
 	} while (retry > 0);
@@ -265,6 +251,13 @@ static int ufs_sprd_hce_enable_notify(struct ufs_hba *hba,
 		ufs_sprd_hw_init(hba);
 		break;
 	case POST_CHANGE:
+		 if (hba->vops->phy_initialization) {
+			err = hba->vops->phy_initialization(hba);
+			if (err) {
+				dev_err(hba->dev, "Phy setup failed (%d)\n",
+												err);
+			}
+		}
 		break;
 	default:
 		dev_err(hba->dev, "%s: invalid status %d\n", __func__, status);
@@ -286,13 +279,6 @@ static int ufs_sprd_link_startup_notify(struct ufs_hba *hba,
 
 	switch (status) {
 	case PRE_CHANGE:
-		if (hba->vops->phy_initialization) {
-			err = hba->vops->phy_initialization(hba);
-			if (err) {
-				dev_err(hba->dev, "Phy setup failed (%d)\n",
-									err);
-			}
-		}
 		break;
 	case POST_CHANGE:
 #if IS_ENABLED(CONFIG_SCSI_UFS_CRYPTO)
@@ -332,13 +318,13 @@ static int ufs_sprd_pwr_change_notify(struct ufs_hba *hba,
 
 	switch (status) {
 	case PRE_CHANGE:
-		dev_req_params->gear_rx = UFS_HS_G4;
-		dev_req_params->gear_tx = UFS_HS_G4;
-		dev_req_params->lane_rx = 2;
-		dev_req_params->lane_tx = 2;
+		dev_req_params->gear_rx = UFS_HS_G1;
+		dev_req_params->gear_tx = UFS_HS_G1;
+		dev_req_params->lane_rx = 1;
+		dev_req_params->lane_tx = 1;
 		dev_req_params->pwr_rx = FAST_MODE;
 		dev_req_params->pwr_tx = FAST_MODE;
-		dev_req_params->hs_rate = PA_HS_MODE_B;
+		dev_req_params->hs_rate = PA_HS_MODE_A;
 		break;
 	case POST_CHANGE:
 		break;
