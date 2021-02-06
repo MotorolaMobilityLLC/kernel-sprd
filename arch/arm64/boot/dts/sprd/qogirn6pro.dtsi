@@ -335,8 +335,10 @@
 
 			ufs: ufs@2000000 {
 				compatible  = "sprd,ufshc";
+				reg = <0x2000000 0x1000>;
 				interrupts = <GIC_SPI 159 IRQ_TYPE_LEVEL_HIGH>;
 				vcc-supply = <&vddemmccore>;
+				vcc-fixed-regulator;
 				clock-names = "ufs_eb",
 					      "ufs_cfg_eb",
 					      "ufs_hclk",
