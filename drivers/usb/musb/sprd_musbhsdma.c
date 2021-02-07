@@ -1198,6 +1198,67 @@ static int sprd_dma_channel_abort(struct dma_channel *channel)
 	return 0;
 }
 
+static struct sprd_musb_request_info sg_request_info;
+
+static void sprd_musb_record_dma_buf_info(u32 length, u8 *data, u8 transmit)
+{
+	u8 count;
+	u8 save_length;
+
+	if (sg_request_info.cur_count >= DUMP_COUNT)
+		sg_request_info.cur_count = 0;
+	count = sg_request_info.cur_count;
+
+	sg_request_info.data_info[count].length = length;
+	sg_request_info.data_info[count].transmit = transmit;
+	if (length > 32)
+		save_length = 32;
+	else
+		save_length = length;
+	sg_request_info.data_info[count].offset = sg_request_info.cur_offset;
+
+	if ((sg_request_info.cur_offset + save_length) > DUMP_COUNT*64)
+		sg_request_info.cur_offset = 0;
+	memcpy(sg_request_info.buf + sg_request_info.cur_offset, data, save_length);
+	sg_request_info.cur_offset += save_length;
+	sg_request_info.cur_count++;
+}
+
+void sprd_musb_dma_data_print(void)
+{
+	u8 i, j;
+	u8 count = sg_request_info.cur_count;
+	u32 offset;
+	u8 save_length;
+
+	if (!count)
+		count = DUMP_COUNT - 1;
+	else
+		count--;
+
+	for (i = 0; i < DUMP_COUNT; i++) {
+		printk(KERN_EMERG"%s cnt:%d data length:%d\n",
+			sg_request_info.data_info[count].transmit?"TX":"RX",
+			count, sg_request_info.data_info[count].length);
+		if (sg_request_info.data_info[count].length > 32)
+			save_length = 32;
+		else
+			save_length = sg_request_info.data_info[count].length;
+		offset = sg_request_info.data_info[count].offset;
+
+		printk(KERN_EMERG"data:");
+		for (j = 0; j < save_length; j++) {
+			printk(KERN_EMERG"0x%02x ", sg_request_info.buf[offset + j]);
+		}
+		printk(KERN_EMERG"\n");
+
+		if (!count)
+			count = DUMP_COUNT - 1;
+		else
+			count--;
+	}
+}
+
 static void sprd_musb_dma_completion(struct musb *musb, u8 epnum, u8 transmit)
 {
 	struct musb_ep *musb_ep;
@@ -1235,6 +1296,9 @@ static void sprd_musb_dma_completion(struct musb *musb, u8 epnum, u8 transmit)
 			request->actual = request->length - blk_len;
 		} else
 			request->actual = request->length;
+		if (musb_channel->ep_num == 0x01)
+			sprd_musb_record_dma_buf_info(request->actual,
+				request->buf, transmit);
 
 		if (request->num_mapped_sgs)
 			musb_channel->busy_slot += request->num_mapped_sgs;

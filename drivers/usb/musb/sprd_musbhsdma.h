@@ -163,7 +163,7 @@ enum {
 #else
 #define ADDR_FLAG GENMASK(31, 28)
 #endif /* CONFIG_64BIT */
-
+#define DUMP_COUNT 32
 
 struct sprd_musb_dma_controller;
 
@@ -212,6 +212,20 @@ struct sprd_musb_dma_controller {
 	wait_queue_head_t	wait;
 };
 
+struct sprd_dma_buf_info {
+	u32 offset;
+	u32 length;
+	u8 transmit;
+};
+
+struct sprd_musb_request_info {
+	struct sprd_dma_buf_info data_info[DUMP_COUNT];
+	u8 cur_count;
+	u32 cur_offset;
+	char buf[DUMP_COUNT*64];
+};
+
+void sprd_musb_dma_data_print(void);
 u32 musb_linknode_full(struct musb *musb, u32 is_tx);
 irqreturn_t sprd_dma_interrupt(struct musb *musb, u32 int_hsdma);
 struct dma_controller *sprd_musb_dma_controller_create(struct musb *musb,
