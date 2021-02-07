@@ -361,7 +361,7 @@ static int sprd_ssphy_init(struct usb_phy *x)
 	/* usb3 switch port */
 	ret |= regmap_read(phy->aon_apb, REG_AON_APB_BOOT_MODE, &reg);
 	msk = readl_relaxed(phy->base + 0x14);
-	if ((reg & BIT(10)) == BIT(0)) {
+	if ((reg & BIT(10))) {
 		msk &= ~(BIT(1) | BIT(2) | BIT(3));
 		msk |= BIT(0) | BIT(4);
 	} else {
