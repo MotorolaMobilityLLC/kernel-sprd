@@ -3221,59 +3221,7 @@ void himax_chip_common_deinit(void)
 	I("%s: Common section deinited!\n", __func__);
 }
 
-#ifdef HX_UPDATE_FW_FROM_DISPLAY
-static void himax_notifie_resume_workqueue(struct work_struct *work)
-{
-	I("%s: Entering! \n", __func__);
-	himax_chip_common_resume(private_ts);
-	return;
-}
 
-static void himax_lcd_resume_func(void)
-{
-	schedule_work(&private_ts->notifie_resume_work_queue);
-	return;
-}
-
-static void himax_recovery_work_func(struct work_struct *work)
-{
-	I("%s: Entering! \n", __func__);
-#if defined(HX_EXCP_RECOVERY)
-	if (!mutex_trylock(&private_ts->fw_update_lock))
-	{
-		I("%s: already in esd resume! \n", __func__);
-		return;
-	}
-	himax_excp_hw_reset();
-	mutex_unlock(&private_ts->fw_update_lock);
-#endif
-	return;
-
-}
-
-static void himax_esd_resume_func(void)
-{
-
-	I("%s: Entering! \n", __func__);
-	queue_delayed_work(private_ts->ts_recovery_workqueue, &private_ts->recovery_work_queue,
-			msecs_to_jiffies(50));
-	I("%s: end! \n", __func__);
-}
-
-int himax_notifie_update_fw(unsigned long value)
-{
-	unsigned long update_fw_state = value;
-	I("update_fw_state == %ld \n",update_fw_state);
-	if(update_fw_state == 1) {
-		himax_lcd_resume_func();
-	}else if(update_fw_state == 2){
-		himax_esd_resume_func();
-	}else
-		E("invalid update_fw_state == %ld \n",update_fw_state);
-	return 0;
-}
-
-#endif
 
 void himax_esd_resume_func(void)
 {
@@ -3282,7 +3230,12 @@ void himax_esd_resume_func(void)
 	queue_delayed_work(private_ts->ts_int_workqueue,&private_ts->ts_int_work,msecs_to_jiffies(DELAY_TIME));
 	I("%s: end! \n", __func__);
 }
-
+void himax_lcd_resume_func(void)
+{
+	I("%s: early TP resume Entering! \n", __func__);
+	queue_delayed_work(private_ts->ts_int_workqueue,&private_ts->ts_int_work,msecs_to_jiffies(0));
+	I("%s: end! \n", __func__);
+}
 int himax_chip_common_suspend(struct himax_ts_data *ts)
 {
 	if (ts->suspended) {
