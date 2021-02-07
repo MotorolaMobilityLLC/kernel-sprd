@@ -225,3 +225,7 @@
 	status = "okay";
 	vbus-supply = <&vddvbus>;
 };
+
+&sdio0 {
+	cd-gpios = <&eic_async 9 1>;
+};

@@ -194,27 +194,6 @@
 	status = "disabled";
 };
 
-&sdio0 {
-	cd-gpios = <&eic_async 9 1>;
-	vmmc-supply = <&vddsdcore>;
-	vqmmc-supply = <&vddsdio>;
-	sd-uhs-sdr104;
-	sd-uhs-sdr50;
-	bus-width = <4>;
-	no-sdio;
-	no-mmc;
-	status = "okay";
-};
-
-&sdio3 {
-	bus-width = <8>;
-	non-removable;
-	no-sdio;
-	no-sd;
-	cap-mmc-hw-reset;
-	status = "okay";
-};
-
 &i2c7 {
 	status = "okay";
 	clock-frequency = <400000>;
