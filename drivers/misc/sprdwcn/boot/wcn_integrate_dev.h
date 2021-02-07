@@ -201,8 +201,8 @@ struct wcn_clock_info {
 };
 
 enum flag_emmc_or_ufs {
-	emmc = 1,
-	ufs = 0
+	ufs = 0,
+	emmc = 1
 };
 
 struct wcn_device {

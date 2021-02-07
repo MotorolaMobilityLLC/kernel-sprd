@@ -376,6 +376,57 @@ static int wcn_download_image_new(struct wcn_device *wcn_dev)
 	int ret = 0;
 
 	memset(firmware_file_path, 0, FIRMWARE_FILEPATHNAME_LENGTH_MAX);
+
+	/* Default is UFS, check it first */
+	if (s_wcn_device.wcn_mm_flag == 0) {
+		if (wcn_dev->file_path_ufs) {
+			strncpy(firmware_file_path,
+				wcn_dev->file_path_ufs,
+				sizeof(firmware_file_path));
+			fstab_ab(wcn_dev);
+			if (wcn_dev_is_gnss(wcn_dev)) {
+				if (s_wcn_device.gnss_type == WCN_GNSS_TYPE_BD) {
+					strncpy(firmware_file_path,
+						wcn_dev->file_path_ext_ufs,
+						sizeof(firmware_file_path));
+					fstab_ab(wcn_dev);
+				}
+				gnss_file_path_set(firmware_file_path);
+			}
+
+			WCN_INFO("load config file:%s\n", firmware_file_path);
+			ret = wcn_load_firmware_img(wcn_dev,
+						    firmware_file_path,
+						    wcn_dev->file_length);
+
+	/* For gnss fix file path isn't fit with actual file type */
+			if (wcn_dev_is_gnss(wcn_dev) && ret == 1) {
+				if (s_wcn_device.gnss_type == WCN_GNSS_TYPE_BD)
+					strncpy(firmware_file_path,
+						wcn_dev->file_path,
+						sizeof(firmware_file_path));
+				else
+					strncpy(firmware_file_path,
+						wcn_dev->file_path_ext_ufs,
+						sizeof(firmware_file_path));
+				fstab_ab(wcn_dev);
+				gnss_file_path_set(firmware_file_path);
+				WCN_INFO("load config file:%s\n", firmware_file_path);
+				ret = wcn_load_firmware_img(wcn_dev,
+							    firmware_file_path,
+							    wcn_dev->file_length);
+			}
+			if (ret >= 0) {
+				WCN_INFO("%s:UFS succ", __func__);
+				s_wcn_device.wcn_mm_flag = ufs;
+				return ret;
+			} else {
+				WCN_INFO("%s:UFS failed, check emmc", __func__);
+				s_wcn_device.wcn_mm_flag = emmc;
+			}
+		}
+	}
+
 	/* file_path used in dts */
 	if (s_wcn_device.wcn_mm_flag == 1) {
 		if (wcn_dev->file_path) {
@@ -416,59 +467,18 @@ static int wcn_download_image_new(struct wcn_device *wcn_dev)
 							    wcn_dev->file_length);
 			}
 			if (ret >= 0) {
+				WCN_INFO("%s:EMMC succ", __func__);
 				s_wcn_device.wcn_mm_flag = emmc;
 				return ret;
-			} else
+			} else {
+				WCN_ERR("%s:EMMC error", __func__);
 				s_wcn_device.wcn_mm_flag = ufs;
-		}
-	}
-
-	if (s_wcn_device.wcn_mm_flag == 0) {
-		if (wcn_dev->file_path_ufs) {
-			strncpy(firmware_file_path,
-				wcn_dev->file_path_ufs,
-				sizeof(firmware_file_path));
-			fstab_ab(wcn_dev);
-			if (wcn_dev_is_gnss(wcn_dev)) {
-				if (s_wcn_device.gnss_type == WCN_GNSS_TYPE_BD) {
-					strncpy(firmware_file_path,
-						wcn_dev->file_path_ext_ufs,
-						sizeof(firmware_file_path));
-					fstab_ab(wcn_dev);
-				}
-				gnss_file_path_set(firmware_file_path);
 			}
 
-			WCN_INFO("load config file:%s\n", firmware_file_path);
-			ret = wcn_load_firmware_img(wcn_dev,
-						    firmware_file_path,
-						    wcn_dev->file_length);
-
-	/* For gnss fix file path isn't fit with actual file type */
-			if (wcn_dev_is_gnss(wcn_dev) && ret == 1) {
-				if (s_wcn_device.gnss_type == WCN_GNSS_TYPE_BD)
-					strncpy(firmware_file_path,
-						wcn_dev->file_path,
-						sizeof(firmware_file_path));
-				else
-					strncpy(firmware_file_path,
-						wcn_dev->file_path_ext_ufs,
-						sizeof(firmware_file_path));
-				fstab_ab(wcn_dev);
-				gnss_file_path_set(firmware_file_path);
-				WCN_INFO("load config file:%s\n", firmware_file_path);
-				ret = wcn_load_firmware_img(wcn_dev,
-							    firmware_file_path,
-							    wcn_dev->file_length);
-			}
-			if (ret >= 0) {
-				s_wcn_device.wcn_mm_flag = ufs;
-				return ret;
-			} else
-				s_wcn_device.wcn_mm_flag = emmc;
 			return ret;
 		}
 	}
+
 	/* old function */
 	return wcn_download_image(wcn_dev);
 }
@@ -800,8 +810,12 @@ void wcn_power_wq(struct work_struct *pwork)
 
 	wcn_power_enable_sys_domain(true);
 	ret = wcn_proc_native_start(wcn_dev);
-
+	if (ret) {	/* do no complete download done flag */
+		WCN_INFO("[-]%s: ret=%d!\n", __func__, ret);
+		return;
+	}
 	WCN_INFO("finish %s!\n", ret ? "ERR" : "OK");
+
 	complete(&wcn_dev->download_done);
 }
 
@@ -986,7 +1000,7 @@ err_boot_marlin:
 	/* warnning! fake status for poweroff in usr mode */
 	wcn_dev->wcn_open_status |= subsys_bit;
 	mutex_unlock(&wcn_dev->power_lock);
-
+	WCN_ERR("[-]%s:subsys=%d", __func__, subsys);
 	return -ETIMEDOUT;
 }
 

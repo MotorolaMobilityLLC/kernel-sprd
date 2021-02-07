@@ -1136,8 +1136,10 @@ static inline void wcn_platform_fs_exit(struct wcn_device *wcn_dev)
 static void wcn_probe_power_wq(struct work_struct *work)
 {
 	WCN_INFO("%s start itself\n", __func__);
-	if (start_marlin(MARLIN_MDBG))
+	if (start_marlin(MARLIN_MDBG)) {
 		WCN_ERR("%s power on failed\n", __func__);
+		return;
+	}
 
 	if (stop_marlin(MARLIN_MDBG))
 		WCN_ERR("%s power down failed\n", __func__);
