@@ -92,6 +92,7 @@
 /*
  * Synopsys common M-PHY Attributes
  */
+#define CBRATESEL				0x8114
 #define CBCREGADDRLSB				0x8116
 #define CBCREGADDRMSB				0x8117
 #define CBCREGWRLSB				0x8118

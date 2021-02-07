@@ -225,6 +225,8 @@ static int ufs_sprd_phy_init(struct ufs_hba *hba)
 	ufshcd_dme_set(hba, UIC_ARG_MIB_SEL(RXSQCONTROL,
 		       UIC_ARG_MPHY_RX_GEN_SEL_INDEX(1)), 0x01);
 	ufshcd_dme_set(hba, UIC_ARG_MIB(VS_MPHYCFGUPDT), 0x01);
+	ufshcd_dme_set(hba, UIC_ARG_MIB(CBRATESEL), 0x01);
+
 	ret = ufs_sprd_phy_sram_init_done(hba);
 	if (ret)
 		return ret;
@@ -318,13 +320,13 @@ static int ufs_sprd_pwr_change_notify(struct ufs_hba *hba,
 
 	switch (status) {
 	case PRE_CHANGE:
-		dev_req_params->gear_rx = UFS_HS_G1;
-		dev_req_params->gear_tx = UFS_HS_G1;
-		dev_req_params->lane_rx = 1;
-		dev_req_params->lane_tx = 1;
+		dev_req_params->gear_rx = UFS_HS_G3;
+		dev_req_params->gear_tx = UFS_HS_G3;
+		dev_req_params->lane_rx = 2;
+		dev_req_params->lane_tx = 2;
 		dev_req_params->pwr_rx = FAST_MODE;
 		dev_req_params->pwr_tx = FAST_MODE;
-		dev_req_params->hs_rate = PA_HS_MODE_A;
+		dev_req_params->hs_rate = PA_HS_MODE_B;
 		break;
 	case POST_CHANGE:
 		break;
