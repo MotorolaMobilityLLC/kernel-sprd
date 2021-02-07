@@ -683,11 +683,11 @@ static int sipa_dummy_netdev_event_handler(
 	pr_info("dev %s event %lu\n", ndev->name, event);
 
 	switch (event) {
-	case NETDEV_UP:
+	case NETDEV_REGISTER:
 		ret = NOTIFY_OK;
 		sipa_dummy_netdev_join(ndev);
 		break;
-	case NETDEV_DOWN:
+	case NETDEV_UNREGISTER:
 		ret = NOTIFY_OK;
 		sipa_dummy_netdev_leave(ndev);
 		break;
