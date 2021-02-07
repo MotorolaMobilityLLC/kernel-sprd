@@ -1506,6 +1506,7 @@ int xfrm_state_update(struct xfrm_state *x)
 	int err;
 	int use_spi = xfrm_id_proto_match(x->id.proto, IPSEC_PROTO_ANY);
 	struct net *net = xs_net(x);
+	unsigned int h = 0;
 
 	to_put = NULL;
 
@@ -1556,6 +1557,38 @@ out:
 		memcpy(&x1->lft, &x->lft, sizeof(x1->lft));
 		x1->km.dying = 0;
 
+		/*UNISOC:update the srcaddr*/
+		memcpy(&x1->props.saddr, &x->props.saddr,
+		      sizeof(x1->props.saddr));
+		pr_info("update the xfrm state\n");
+		if (x1->encap && x->encap &&
+		    x1->encap->encap_type == x->encap->encap_type) {
+			x1->encap->encap_sport = x->encap->encap_sport;
+			x1->encap->encap_dport = x->encap->encap_dport;
+			x1->props.reqid = x->props.reqid;
+			/*delete old index info*/
+			hlist_del_rcu(&x1->bydst);
+			hlist_del_rcu(&x1->bysrc);
+			if (x1->id.spi)
+				hlist_del_rcu(&x1->byspi);
+			/*update new index*/
+			h = xfrm_dst_hash(net, &x1->id.daddr, &x1->props.saddr,
+					  x1->props.reqid, x1->props.family);
+			hlist_add_head_rcu(&x1->bydst,
+					   net->xfrm.state_bydst + h);
+			h = xfrm_src_hash(net, &x1->id.daddr,
+					  &x1->props.saddr,
+					  x1->props.family);
+			hlist_add_head_rcu(&x1->bysrc,
+					   net->xfrm.state_bysrc + h);
+			if (x1->id.spi) {
+				h = xfrm_spi_hash(net, &x1->id.daddr,
+						  x1->id.spi, x1->id.proto,
+						  x1->props.family);
+				hlist_add_head_rcu(&x1->byspi,
+						   net->xfrm.state_byspi + h);
+			}
+		}
 		tasklet_hrtimer_start(&x1->mtimer, ktime_set(1, 0), HRTIMER_MODE_REL);
 		if (x1->curlft.use_time)
 			xfrm_state_check_expire(x1);
