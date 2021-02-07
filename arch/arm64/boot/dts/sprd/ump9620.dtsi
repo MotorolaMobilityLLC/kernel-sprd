@@ -71,8 +71,8 @@
 			interrupts = <0 IRQ_TYPE_LEVEL_HIGH>;
 			#io-channel-cells = <1>;
 			hwlocks = <&hwlock 4>;
-			nvmem-cells = <&adc_bcal1>, <&adc_bcal2>, <&adc_scal1>, <&adc_scal2>;
-			nvmem-cell-names = "big_scale_calib1", "big_scale_calib2", "small_scale_calib1", "small_scale_calib2";
+			nvmem-cells = <&adc_bcal1>, <&adc_bcal2>, <&adc_scal1>, <&adc_scal2>, <&vbat_det_cal1>, <&vbat_det_cal2>;
+			nvmem-cell-names = "big_scale_calib1", "big_scale_calib2", "small_scale_calib1", "small_scale_calib2", "vbat_det_cal1", "vbat_det_cal2";
 		};
 
 		pmic_fgu: fgu@800 {
@@ -108,6 +108,14 @@
 
 			adc_scal2: calib@40 {
 				reg = <0x40 0x2>;
+			};
+
+			vbat_det_cal1: calib@46 {
+				reg = <0x46 0x2>;
+			};
+
+			vbat_det_cal2: calib@44 {
+				reg = <0x44 0x2>;
 			};
 
 			typec_cc1_cal: calib@1b {
