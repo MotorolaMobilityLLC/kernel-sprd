@@ -15,9 +15,10 @@ gki_diff_path = "Documentation/sprd-gki-diff-config"
 clang_path = os.path.abspath("../../toolchain/prebuilts/clang/host/linux-x86/clang-r353983c/bin")
 gcc_path = os.path.abspath("../../toolchain/prebuilts/gcc/linux-x86/aarch64/gcc-linaro-aarch64-linux-gnu-7.4/bin/aarch64-linux-gnu-")
 
-def check_consistency():
+def check_consistency(android_version):
 	global failure_flag
 
+	print("======================================" + android_version + "======================================")
 	for soc in d_defconfig:
 		print("======================================" + soc + "======================================")
 		for config in d_defconfig[soc]:
@@ -97,7 +98,7 @@ def create_gki_defconfig_dict():
 	f.close()
 
 #d_defconfig={'project_name':{config_name:y/n},}
-def create_defconfig_dict():
+def create_defconfig_dict(android_version):
 	(status, output)=commands.getstatusoutput("find ./arch/arm64 -name 'sprd_*_defconfig'|grep -v sprd_debian_defconfig")
 	print("Checking defconfig as following:\n" + output)
 
@@ -118,7 +119,7 @@ def create_defconfig_dict():
 		print("Compile first time for " + defconfig)
 		ret=os.system("make CC=clang CLANG_TRIPLE=aarch64-linux-gnu- ARCH=arm64 CROSS_COMPILE=" + gcc_path + " O=" + tmp_path_def + " " + defconfig)
 
-		(status, diffconfig)=commands.getstatusoutput("find sprd-diffconfig/androidr/" + soc + "/" + arch + " -name *user_diff_config")
+		(status, diffconfig)=commands.getstatusoutput("find " + android_version + "/" + soc + "/" + arch + " -name *user_diff_config")
 		if (status == 0 and diffconfig != ""):
 			print("Add user diffconfig for " + soc)
 			ret += os.system("bash scripts/sprd/sprd_create_user_config.sh " + tmp_path_def + "/.config " + diffconfig)
@@ -197,8 +198,11 @@ def main():
 	pre_env()
 	create_gki_diff_config_dict()
 	create_gki_defconfig_dict()
-	create_defconfig_dict()
-	check_consistency()
+	(stat, android_versions) = commands.getstatusoutput("find sprd-diffconfig/ -type d -name \"android*\"")
+	for android_version in android_versions.split('\n'):
+		d_defconfig = {}
+		create_defconfig_dict(android_version)
+		check_consistency(android_version)
 	clean()
 	if (failure_flag != 0):
 		sys.exit(1)
