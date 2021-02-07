@@ -94,20 +94,20 @@
 			#size-cells = <1>;
 			hwlocks = <&hwlock 12>;
 			/* Data cells */
-			adc_bcal1: calib@0 {
+			adc_bcal1: calib@38 {
 				reg = <0x38 0x2>;
 			};
 
-			adc_bcal2: calib@1 {
+			adc_bcal2: calib@3a {
 				reg = <0x3a 0x2>;
 			};
 
-			adc_scal1: calib@2 {
-				reg = <0x40 0x2>;
+			adc_scal1: calib@42 {
+				reg = <0x42 0x2>;
 			};
 
-			adc_scal2: calib@3 {
-				reg = <0x42 0x2>;
+			adc_scal2: calib@40 {
+				reg = <0x40 0x2>;
 			};
 
 			typec_cc1_cal: calib@1b {
