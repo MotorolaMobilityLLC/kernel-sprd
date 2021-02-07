@@ -63,9 +63,12 @@ static u32 xmit_code[20] = {
 struct sprd_pamu3 {
 	struct usb_phy      pam;
 	void __iomem        *base;
-	void __iomem        *dwc3_dma;
+	dma_addr_t          dwc3_dma;
 	void __iomem        *dwc3_base;
 	struct clk		*clk;
+	struct regmap           *sys_regmap;
+	u32 reset_reg;
+	u32 reset_mask;
 
 	struct pamu3_dwc3_trb		*tx_trb_pool;
 	struct pamu3_dwc3_trb		*rx_trb_pool;
@@ -96,7 +99,6 @@ static void pamu3_set_netid(struct sprd_pamu3 *pamu3, u8 netid)
 {
 	u32 value;
 
-	sipa_rm_enable_usb_tether();
 	value = readl_relaxed(pamu3->base + PAM_U3_UL_NODE_HEADER);
 	value &= ~PAMU3_MASK_NETID;
 	value |= netid;
@@ -196,7 +198,7 @@ void pamu3_memory_init(struct sprd_pamu3 *pamu3)
 	u32 *trb_reg;
 	u32 value;
 	int i;
-	char *bufaddr;
+	dma_addr_t bufaddr;
 
 	/* IPA common FIFOs IRAM addresses */
 	pamu3->sipa_params.send_param.tx_intr_threshold = pamu3->max_dl_pkts;
@@ -254,27 +256,26 @@ void pamu3_memory_init(struct sprd_pamu3 *pamu3)
 	writel_relaxed(value, pamu3->base + PAM_U3_ULPUTIPAFIFO_ADDRL);
 	writel_relaxed(0, pamu3->base + PAM_U3_ULPUTIPAFIFO_ADDRH);
 
-	/* setup PAM_U3 rx buffef and rx TRBs */
-	bufaddr = (char *)pamu3->rx_max_buf_dma;
+	/* setup PAM_U3 rx buffer and rx TRBs */
+	bufaddr = pamu3->rx_max_buf_dma;
 	reg = pamu3->base + PAM_U3_RXBUF0_ADDRL;
 	trb = (struct pamu3_dwc3_trb *)pamu3->rx_trb_pool;
 	trb_dma = pamu3->rx_trb_pool_dma;
 	trb_reg = pamu3->base + PAM_U3_RXTRBBUF0_ADDRL;
 	for (i = 0; i < PAMU3_RX_TRBBUF_NUM; i++) {
-		trb->bpl = (u64)bufaddr & PAMU3_MASK_LOWADDR32;
-		trb->bph = ((u64)bufaddr >> PAMU3_BITS_LOWADDR32) &
-				PAMU3_MASK_ADDR32_LSB;
+		trb->bpl = lower_32_bits(bufaddr);
+		trb->bph = upper_32_bits(bufaddr) & PAMU3_MASK_ADDR32_LSB;
 		trb->size = PAMU3_RX_TRBBUF_SIZE;
 		trb->ctrl = PAMU3_TRB_CTRL_DEFVAL;
 		writel_relaxed(trb->bpl, reg);
 		reg++;
 		writel_relaxed(trb->bph, reg);
 		reg++;
-		value = (u32)((u64)trb_dma & PAMU3_MASK_LOWADDR32);
+		value = lower_32_bits(trb_dma);
 		writel_relaxed(value, trb_reg);
 		trb_reg++;
-		value = (u32)(((u64)trb_dma >> PAMU3_BITS_LOWADDR32) &
-				PAMU3_MASK_ADDR32_LSB);
+		value = upper_32_bits(trb_dma) & PAMU3_MASK_ADDR32_LSB;
+
 		writel_relaxed(value, trb_reg);
 		trb_reg++;
 		bufaddr += PAMU3_RX_TRBBUF_SIZE;
@@ -292,11 +293,10 @@ void pamu3_memory_init(struct sprd_pamu3 *pamu3)
 	trb_dma = pamu3->tx_trb_pool_dma;
 	trb_reg = pamu3->base + PAM_U3_TXTRBBUF0_ADDRL;
 	for (i = 0; i < PAMU3_TX_TRBBUF_NUM; i++) {
-		value = (u32)((u64)trb_dma & PAMU3_MASK_LOWADDR32);
+		value = lower_32_bits(trb_dma);
 		writel_relaxed(value, trb_reg);
 		trb_reg++;
-		value = (u32)(((u64)trb_dma >> PAMU3_BITS_LOWADDR32) &
-				PAMU3_MASK_ADDR32_LSB);
+		value = upper_32_bits(trb_dma) & PAMU3_MASK_ADDR32_LSB;
 		writel_relaxed(value, trb_reg);
 		trb_reg++;
 		trb_dma = pamu3->tx_trb_pool_dma +
@@ -308,17 +308,19 @@ void pamu3_memory_init(struct sprd_pamu3 *pamu3)
 	value &= ~PAMU3_MASK_ULNODE_SRC;
 	value |= (1 << PAMU3_SHIFT_ULNODE_SRC);
 	writel_relaxed(value, pamu3->base + PAM_U3_UL_NODE_HEADER);
-	value = (u64)pamu3->rndis_header_buf_dma;
+
+	value = lower_32_bits(pamu3->rndis_header_buf_dma);
 	writel_relaxed(value, pamu3->base + PAM_U3_HEADER_ENDBASE_ADDRL);
-	value = (u32)(((u64)pamu3->rndis_header_buf_dma >>
-			PAMU3_BITS_LOWADDR32) & PAMU3_MASK_ADDR32_LSB);
+	value = upper_32_bits(pamu3->rndis_header_buf_dma) &
+		PAMU3_MASK_ADDR32_LSB;
 	writel_relaxed(value, pamu3->base + PAM_U3_HEADER_ENDBASE_ADDRH);
 
-	value = (u64)pamu3->rndis_header_buf_dma2;
+	value = lower_32_bits(pamu3->rndis_header_buf_dma2);
 	writel_relaxed(value, pamu3->base + PAM_U3_HEADER2_ENDBASE_ADDRL);
-	value = (u32)(((u64)pamu3->rndis_header_buf_dma2 >>
-			PAMU3_BITS_LOWADDR32) & PAMU3_MASK_ADDR32_LSB);
+	value = upper_32_bits(pamu3->rndis_header_buf_dma2) &
+		PAMU3_MASK_ADDR32_LSB;
 	writel_relaxed(value, pamu3->base + PAM_U3_HEADER2_ENDBASE_ADDRH);
+
 
 	/* Set MBIM NTH and NDP */
 	value = PAM_U3_MBIM_DEFNTH;
@@ -327,61 +329,81 @@ void pamu3_memory_init(struct sprd_pamu3 *pamu3)
 	writel_relaxed(value, pamu3->base + PAM_U3_MBIM_NCM_NDP);
 }
 
+/* PAMU3 main reset */
+static int sprd_pamu3_reset(struct usb_phy *x)
+{
+	struct sprd_pamu3 *pamu3 = container_of(x, struct sprd_pamu3, pam);
+
+	regmap_update_bits(pamu3->sys_regmap, pamu3->reset_reg,
+			   pamu3->reset_mask, pamu3->reset_mask);
+
+	/*
+	 * Reset signal should hold on for a while
+	 * to insure resret process reliable.
+	 */
+	udelay(5);
+	regmap_update_bits(pamu3->sys_regmap, pamu3->reset_reg,
+			   pamu3->reset_mask, 0);
+
+	return 0;
+}
+
 /* pamu3_init will be called when controller initializes */
 static int sprd_pamu3_open(struct sprd_pamu3 *pamu3)
 {
-	u64 temp;
 	u32 reg;
 	int ret;
+	dma_addr_t dwc3_dma;
 
 	/* Enable ipa pamu3 */
-	ret = clk_prepare_enable(pamu3->clk);
+	ret = clk_enable(pamu3->clk);
 	if (ret)
 		return ret;
+
+	sprd_pamu3_reset(&pamu3->pam);
 
 	/* Event buffer regs */
 	reg = readl_relaxed(pamu3->dwc3_base + REG_DWC3_GEVNTADRLO(1));
 	writel_relaxed(reg, pamu3->base + PAM_U3_TXEVENTTBUFFER_ADDRL);
-	temp = (u64)readl_relaxed(pamu3->dwc3_base +
-			REG_DWC3_GEVNTADRLO(1));
-	reg = (temp >> PAMU3_BITS_LOWADDR32) & PAMU3_MASK_ADDR32_LSB;
+	reg = readl_relaxed(pamu3->dwc3_base + REG_DWC3_GEVNTADRHI(1));
+	reg &= PAMU3_MASK_ADDR32_LSB;
 	writel_relaxed(reg, pamu3->base + PAM_U3_TXEVENTTBUFFER_ADDRH);
 
 	reg = readl_relaxed(pamu3->dwc3_base + REG_DWC3_GEVNTADRLO(2));
 	writel_relaxed(reg, pamu3->base + PAM_U3_RXEVENTTBUFFER_ADDRL);
-	temp = (u64)readl_relaxed(pamu3->dwc3_base +
-			REG_DWC3_GEVNTADRLO(2));
-	reg = (temp >> PAMU3_BITS_LOWADDR32) & PAMU3_MASK_ADDR32_LSB;
+	reg = readl_relaxed(pamu3->dwc3_base +	REG_DWC3_GEVNTADRHI(2));
+	reg &= PAMU3_MASK_ADDR32_LSB;
 	writel_relaxed(reg, pamu3->base + PAM_U3_RXEVENTTBUFFER_ADDRH);
 
+	dwc3_dma = pamu3->dwc3_dma;
 	/* Event buffer size regs */
-	reg = (u64)(pamu3->dwc3_dma + REG_DWC3_GEVNTSIZ(1));
+	reg = lower_32_bits(dwc3_dma + REG_DWC3_GEVNTSIZ(1));
 	writel_relaxed(reg, pamu3->base + PAM_U3_TXEVTBUFFER_ADDRL);
-	reg = (((u64)(pamu3->dwc3_dma + REG_DWC3_GEVNTSIZ(1)) >>
-		PAMU3_BITS_LOWADDR32) & PAMU3_MASK_ADDR32_LSB) |
+	reg = (upper_32_bits(dwc3_dma + REG_DWC3_GEVNTSIZ(1))
+		& PAMU3_MASK_ADDR32_LSB) |
 		((readl_relaxed(pamu3->dwc3_base + REG_DWC3_GEVNTSIZ(1)) &
 		PAMU3_MASK_EVTSZ) << PAMU3_BITS_STARTEVTSZ);
 	writel_relaxed(reg, pamu3->base + PAM_U3_TXEVTBUFFER_ADDRH);
 
-	reg = (u64)(pamu3->dwc3_dma + REG_DWC3_GEVNTSIZ(2));
+	reg = lower_32_bits(dwc3_dma + REG_DWC3_GEVNTSIZ(2));
 	writel_relaxed(reg, pamu3->base + PAM_U3_RXEVTBUFFER_ADDRL);
-	reg = (((u64)(pamu3->dwc3_dma + REG_DWC3_GEVNTSIZ(2)) >>
-		PAMU3_BITS_LOWADDR32) & PAMU3_MASK_ADDR32_LSB) |
+	reg = (upper_32_bits(dwc3_dma + REG_DWC3_GEVNTSIZ(2))
+		& PAMU3_MASK_ADDR32_LSB) |
 		((readl_relaxed(pamu3->dwc3_base + REG_DWC3_GEVNTSIZ(2)) &
 		PAMU3_MASK_EVTSZ) << PAMU3_BITS_STARTEVTSZ);
 	writel_relaxed(reg, pamu3->base + PAM_U3_RXEVTBUFFER_ADDRH);
 
 	/* Event count regs */
-	reg = (u64)(pamu3->dwc3_dma + REG_DWC3_GEVNTCOUNT(1));
+	reg = lower_32_bits(dwc3_dma + REG_DWC3_GEVNTCOUNT(1));
 	writel_relaxed(reg, pamu3->base + PAM_U3_TXEVTCOUNT_ADDRL);
-	reg = ((u64)(pamu3->dwc3_dma + REG_DWC3_GEVNTCOUNT(1)) >>
-			PAMU3_BITS_LOWADDR32) & PAMU3_MASK_ADDR32_LSB;
+	reg = upper_32_bits(dwc3_dma + REG_DWC3_GEVNTCOUNT(1));
+	reg &= PAMU3_MASK_ADDR32_LSB;
 	writel_relaxed(reg, pamu3->base + PAM_U3_TXEVTCOUNT_ADDRH);
 
-	reg = (u64)(pamu3->dwc3_dma + REG_DWC3_GEVNTCOUNT(2));
+	reg = lower_32_bits(dwc3_dma + REG_DWC3_GEVNTCOUNT(2));
 	writel_relaxed(reg, pamu3->base + PAM_U3_RXEVTCOUNT_ADDRL);
-	reg = ((u64)(pamu3->dwc3_dma + REG_DWC3_GEVNTCOUNT(2)) >>
-			PAMU3_BITS_LOWADDR32) & PAMU3_MASK_ADDR32_LSB;
+	reg = upper_32_bits(dwc3_dma + REG_DWC3_GEVNTCOUNT(2));
+	reg &= PAMU3_MASK_ADDR32_LSB;
 	writel_relaxed(reg, pamu3->base + PAM_U3_RXEVTCOUNT_ADDRH);
 
 	/* Packets per transfer */
@@ -389,8 +411,8 @@ static int sprd_pamu3_open(struct sprd_pamu3 *pamu3)
 	pamu3->max_ul_pkts = PAM_U3_MAX_ULPKTS_DEF;
 
 	pamu3_memory_init(pamu3);
-	pamu3_load_code(pamu3, pamu3->dwc3_dma + REG_DWC3_DEP_BASE(3),
-			pamu3->dwc3_dma + REG_DWC3_DEP_BASE(2));
+	pamu3_load_code(pamu3, (void *)(pamu3->dwc3_dma + REG_DWC3_DEP_BASE(3)),
+			(void *)(pamu3->dwc3_dma + REG_DWC3_DEP_BASE(2)));
 
 	atomic_set(&pamu3->inited, 1);
 
@@ -451,12 +473,6 @@ static int sprd_pamu3_init(struct usb_phy *x)
 	return 0;
 }
 
-/* PAMU3 main reset */
-static int sprd_pamu3_reset(struct usb_phy *x)
-{
-	return 0;
-}
-
 /* pamu3_post_init will be called when uether function setups */
 static int sprd_pamu3_post_init(struct usb_phy *x)
 {
@@ -472,7 +488,7 @@ static int sprd_pamu3_set_suspend(struct usb_phy *x, int a)
 {
 	struct sprd_pamu3 *pamu3 = container_of(x, struct sprd_pamu3, pam);
 	u32 value;
-	int timeout = 500;
+	int timeout = 2;
 
 	if (!atomic_read(&pamu3->inited)) {
 		dev_warn(pamu3->dev, "is already disabled\n");
@@ -497,7 +513,7 @@ static int sprd_pamu3_set_suspend(struct usb_phy *x, int a)
 		value &= ~(PAMU3_CTL0_BIT_USB_EN | PAMU3_CTL0_BIT_PAM_EN |
 			   PAMU3_CTL0_BIT_RELEASE);
 		writel_relaxed(value, pamu3->base + PAM_U3_CTL0);
-		clk_disable_unprepare(pamu3->clk);
+		clk_disable(pamu3->clk);
 		atomic_set(&pamu3->inited, 0);
 		sipa_disconnect(SIPA_EP_USB, SIPA_DISCONNECT_END);
 	}
@@ -600,6 +616,7 @@ static int sprd_pamu3_probe(struct platform_device *pdev)
 	struct sprd_pamu3 *pamu3;
 	struct device *dev = &pdev->dev;
 	struct resource *res;
+	u32 reg_info[2];
 	int ret;
 
 	pamu3 = devm_kzalloc(dev, sizeof(*pamu3), GFP_KERNEL);
@@ -626,6 +643,25 @@ static int sprd_pamu3_probe(struct platform_device *pdev)
 		return -ENODEV;
 	}
 
+	/* get enable register information */
+	pamu3->sys_regmap = syscon_regmap_lookup_by_name(pdev->dev.of_node,
+							 "reset");
+	if (IS_ERR(pamu3->sys_regmap)) {
+		dev_err(&pdev->dev, "get sys regmap fail!\n");
+		ret = PTR_ERR(pamu3->sys_regmap);
+		return ret;
+	}
+
+	ret = syscon_get_args_by_name(pdev->dev.of_node,
+				      "reset", 2, reg_info);
+	if (ret == 2) {
+		pamu3->reset_reg = reg_info[0];
+		pamu3->reset_mask = reg_info[1];
+	} else {
+		dev_err(&pdev->dev, "get reset register info fail!\n");
+		return ret;
+	}
+
 	pamu3->clk = devm_clk_get(dev, "pamu3_clk");
 	if (IS_ERR(pamu3->clk)) {
 		dev_err(dev, "failed to get ipa pamu3 clock\n");
@@ -634,18 +670,26 @@ static int sprd_pamu3_probe(struct platform_device *pdev)
 		return ret;
 	}
 
-	pamu3->dwc3_dma = (void __iomem *)res->start;
+	ret = clk_prepare(pamu3->clk);
+	if (ret)
+		return ret;
+
+	pamu3->dwc3_dma = res->start;
 	pamu3->dwc3_base = devm_ioremap_nocache(dev,
 			res->start, resource_size(res));
-	if (!pamu3->dwc3_base)
-		return -ENOMEM;
+	if (!pamu3->dwc3_base) {
+		ret = -ENOMEM;
+		goto err1;
+	}
 
 	pamu3->tx_trb_pool = (struct pamu3_dwc3_trb *)dma_alloc_coherent(
 			pamu3->dev, sizeof(struct pamu3_dwc3_trb) *
 			PAMU3_TX_TRB_NUM * 2,
 			&pamu3->tx_trb_pool_dma, GFP_KERNEL);
-	if (!pamu3->tx_trb_pool)
-		return -ENOMEM;
+	if (!pamu3->tx_trb_pool) {
+		ret = -ENOMEM;
+		goto err1;
+	}
 
 	pamu3->rx_trb_pool = (struct pamu3_dwc3_trb *)dma_alloc_coherent(
 			pamu3->dev, sizeof(struct pamu3_dwc3_trb) *
@@ -714,13 +758,17 @@ err:
 		dma_free_coherent(pamu3->dev,
 			sizeof(struct pamu3_dwc3_trb) * PAMU3_RX_TRB_NUM * 2,
 			pamu3->rx_trb_pool, pamu3->rx_trb_pool_dma);
+
 	if (pamu3->rndis_header_buf)
 		dma_free_coherent(pamu3->dev, PAMU3_RNDIS_HEADER_SIZE,
 			pamu3->rndis_header_buf, pamu3->rndis_header_buf_dma);
+
 	if (pamu3->rndis_header_buf2)
 		dma_free_coherent(pamu3->dev, PAMU3_RNDIS_HEADER_SIZE,
 			pamu3->rndis_header_buf2, pamu3->rndis_header_buf_dma2);
 
+err1:
+	clk_unprepare(pamu3->clk);
 
 	return ret;
 }
@@ -744,6 +792,8 @@ static int sprd_pamu3_remove(struct platform_device *pdev)
 			pamu3->rx_max_buf, pamu3->rx_max_buf_dma);
 
 	sysfs_remove_groups(&pdev->dev.kobj, usb_pamu3_groups);
+
+	clk_unprepare(pamu3->clk);
 
 	return 0;
 }
