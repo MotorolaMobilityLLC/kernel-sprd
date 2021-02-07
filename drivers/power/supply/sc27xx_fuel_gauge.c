@@ -1235,7 +1235,7 @@ static void sc27xx_fgu_low_capacity_match_ocv(struct sc27xx_fgu_data *data,
 		sc27xx_fgu_adjust_cap(data, 0);
 	} else if (data->first_calib_volt > 0 && data->first_calib_cap > 0 &&
 		   ocv <= data->first_calib_volt && cap > data->first_calib_cap) {
-		data->init_cap -= 5;
+		data->init_cap -= 1;		/*discharge uniformity debug by pony date20210207*/
 		if (data->init_cap < 0)
 			data->init_cap = 0;
 	}
