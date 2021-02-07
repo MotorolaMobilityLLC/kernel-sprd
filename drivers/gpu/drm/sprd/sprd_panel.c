@@ -79,6 +79,7 @@ static int sprd_panel_send_cmds(struct mipi_dsi_device *dsi,
 extern volatile int gesture_dubbleclick_en;
 #ifdef CONFIG_TOUCHSCREEN_HIMAX_CHIPSET
 extern void himax_esd_resume_func(void);
+extern void himax_lcd_resume_func(void);
 #endif
 static int sprd_panel_unprepare(struct drm_panel *p)
 {
@@ -171,6 +172,12 @@ static int sprd_panel_prepare(struct drm_panel *p)
 			mdelay(timing[i].delay);
 		}
 	}
+#ifdef CONFIG_TOUCHSCREEN_HIMAX_CHIPSET
+		if(strncmp(lcd_name, "lcd_hx83102_skyworth_mipi_hd",strlen(lcd_name)) == 0){
+			himax_lcd_resume_func();
+		}
+#endif
+	printk(KERN_ERR "ontim: early TP resume end!\n");
 	return 0;
 }
 
@@ -256,6 +263,9 @@ static int sprd_panel_enable(struct drm_panel *p)
 			     panel->info.cmds[CMD_CODE_INIT],
 			     panel->info.cmds_len[CMD_CODE_INIT]);
 
+#ifdef CONFIG_TOUCHSCREEN_HIMAX_CHIPSET
+	mdelay(250);
+#endif
 	if (panel->backlight) {
 		panel->backlight->props.power = FB_BLANK_UNBLANK;
 		panel->backlight->props.state &= ~BL_CORE_FBBLANK;
