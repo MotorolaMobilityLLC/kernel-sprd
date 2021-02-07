@@ -186,7 +186,6 @@ static void sipa_remove_fifo_params(struct device *dev,
 int sipa_hal_init(struct device *dev)
 {
 	int i, ret;
-	char multi_irq_name[20];
 	struct cpumask cpu_mask;
 	struct sipa_plat_drv_cfg *ipa = dev_get_drvdata(dev);
 
@@ -203,11 +202,14 @@ int sipa_hal_init(struct device *dev)
 	enable_irq_wake(ipa->general_intr);
 
 	for (i = 0; i < SIPA_RECV_QUEUES_MAX; i++) {
-		memset(multi_irq_name, 0, sizeof(multi_irq_name));
-		sprintf(multi_irq_name, "sprd,multi-sipa-%d", i);
+		ipa->multi_irq_name[i] = devm_kzalloc(dev, SIPA_IRQ_NAME_SIZE,
+						      GFP_KERNEL);
+
+		memset(ipa->multi_irq_name[i], 0x30, SIPA_IRQ_NAME_SIZE);
+		sprintf(ipa->multi_irq_name[i], "sprd,multi-sipa-%d", i);
 		ret = devm_request_irq(dev, ipa->multi_intr[i],
 				       sipa_multi_int_callback_func, 0,
-				       multi_irq_name, ipa);
+				       ipa->multi_irq_name[i], ipa);
 		if (ret) {
 			dev_err(dev, "request multi irq err = %d i = %d\n",
 				ret, i);

@@ -782,6 +782,7 @@ struct sipa_plat_drv_cfg {
 
 	int general_intr;
 	int multi_intr[SIPA_MULTI_IRQ_NUM];
+	char *multi_irq_name[SIPA_MULTI_IRQ_NUM];
 
 	int is_bypass;
 	bool wiap_ul_dma;
