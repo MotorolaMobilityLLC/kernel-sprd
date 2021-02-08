@@ -24,7 +24,6 @@ static struct clk *clk_ap_ahb_disp_eb;
 static void *apb_pd_dpu;
 static void *apb_eb;
 static void *dpu_vsp_eb;
-static void *dpu_soft_reset;
 
 static struct dpu_clk_context {
 	struct clk *clk_src_256m;
@@ -90,14 +89,12 @@ static struct clk *val_to_clk(struct dpu_clk_context *ctx, u32 val)
 static int dpu_clk_parse_dt(struct dpu_context *ctx,
 				struct device_node *np)
 {
-	unsigned int val;
 	struct dpu_clk_context *clk_ctx = &dpu_clk_ctx;
 
 
 	apb_pd_dpu = ioremap_nocache(0x64910308, 4);
 	apb_eb = ioremap_nocache(0x64900000, 8);
 	dpu_vsp_eb = ioremap_nocache(0x30100000, 4);
-	dpu_soft_reset = ioremap_nocache(0x30100004, 4);
 
 	if (!apb_pd_dpu) {
 		pr_err("apb_pd_dpu remap again\n");
@@ -113,31 +110,6 @@ static int dpu_clk_parse_dt(struct dpu_context *ctx,
 		dpu_vsp_eb = ioremap_nocache(0x30100000, 4);
 		pr_err("apb_vsp_dpu remap again\n");
 	}
-
-	if (!dpu_soft_reset) {
-		pr_err("dpu_soft_reset map again\n");
-		 dpu_soft_reset = ioremap_nocache(0x30100004, 4);
-	}
-
-	val = readl(apb_pd_dpu);
-	val &= ~((1 << 24) | 1 << 25);
-	writel(val, apb_pd_dpu);
-
-	val = readl(apb_eb);
-	val |= (1<<21);
-	writel(val, apb_eb);
-	val = readl(apb_eb);
-	mdelay(5);
-	val = readl(dpu_vsp_eb);
-	val |= 1;
-	writel(val, dpu_vsp_eb);
-
-	val = readl(dpu_soft_reset);
-	val |= 1;
-	writel(val, dpu_soft_reset);
-	mdelay(1);
-	val &= 0xfffffe;
-	writel(val, dpu_soft_reset);
 
 
 	clk_ctx->clk_src_256m =
@@ -257,6 +229,21 @@ static int dpu_clk_init(struct dpu_context *ctx)
 
 static int dpu_clk_enable(struct dpu_context *ctx)
 {
+
+	unsigned int val;
+
+	val = readl(apb_pd_dpu);
+	val &= ~((1 << 24) | 1 << 25);
+	writel(val, apb_pd_dpu);
+
+	val = readl(apb_eb);
+	val |= (1<<21);
+	writel(val, apb_eb);
+	val = readl(apb_eb);
+	mdelay(5);
+	val = readl(dpu_vsp_eb);
+	val |= 1;
+	writel(val, dpu_vsp_eb);
 #if 0
 	int ret;
 	struct dpu_clk_context *clk_ctx = &dpu_clk_ctx;
@@ -291,7 +278,7 @@ static int dpu_clk_disable(struct dpu_context *ctx)
 }
 
 static int dpu_glb_parse_dt(struct dpu_context *ctx,
-				struct device_node *np)
+		struct device_node *np)
 {
 	unsigned int syscon_args[2];
 	struct device_node *qos_np = NULL;
