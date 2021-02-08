@@ -94,6 +94,7 @@ static bool wcn_ca_tipc_connect(struct wcn_ca_tipc_ctx *tipc, const char *port)
 	struct tipc_chan *chan;
 	bool ret = false;
 	int chan_conn_ret = 0;
+	long timeout;
 
 	if (tipc->state == TIPC_CHANNEL_CONNECTED) {
 		WCN_ERR("channel already connected\n");
@@ -119,10 +120,11 @@ static bool wcn_ca_tipc_connect(struct wcn_ca_tipc_ctx *tipc, const char *port)
 	}
 	ret = true;
 
-	if (!wait_event_interruptible_timeout(tipc->readq,
+	timeout = wait_event_interruptible_timeout(tipc->readq,
 		(tipc->state == TIPC_CHANNEL_CONNECTED),
-		msecs_to_jiffies(2000))) {
-		WCN_ERR("fail to %s, waiting timeout!\n", __func__);
+		msecs_to_jiffies(2000));
+	if (timeout <= 0) {
+		WCN_ERR("fail to %s, waiting exit %d!\n", __func__, timeout);
 		ret = false;
 		return ret;
 	}
@@ -169,11 +171,13 @@ static ssize_t wcn_ca_tipc_read(struct wcn_ca_tipc_ctx *tipc,
 {
 	struct tipc_msg_buf *mb;
 	ssize_t len;
+	long timeout;
 
-	if (!wait_event_interruptible_timeout(tipc->readq,
+	timeout = wait_event_interruptible_timeout(tipc->readq,
 		!list_empty(&tipc->rx_msg_queue),
-		msecs_to_jiffies(2000))) {
-		WCN_ERR("fail to %s, waiting timeout!\n", __func__);
+		msecs_to_jiffies(2000));
+	if (timeout <= 0) {
+		WCN_ERR("fail to %s, waiting exit %d!\n", __func__, timeout);
 		return -ETIMEDOUT;
 	}
 

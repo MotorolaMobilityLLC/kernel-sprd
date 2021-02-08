@@ -588,6 +588,7 @@ static int marlin_download_from_partition(void)
 	if (sec_img_magic != SEC_IMAGE_MAGIC) {
 		pr_info("%s image magic 0x%x.\n",
 			__func__, sec_img_magic);
+		img_size = FIRMWARE_MAX_SIZE;
 	} else if (marlin_dev->maxsz_btwf > 0) {
 		wcn_write_data_to_phy_addr(marlin_dev->base_addr_btwf, buffer, marlin_dev->maxsz_btwf);
 		if (wcn_firmware_sec_verify(1, marlin_dev->base_addr_btwf, marlin_dev->maxsz_btwf) < 0) {
@@ -599,6 +600,9 @@ static int marlin_download_from_partition(void)
 			wcn_read_data_from_phy_addr(marlin_dev->base_addr_btwf + SEC_IMAGE_HDR_SIZE,
 				buffer, img_size);
 		}
+	} else {
+		pr_info("%s sec image without reserved memory, check DTS pls.\n",
+			__func__);
 	}
 
 	ret = marlin_judge_imagepack(buffer);
@@ -760,6 +764,9 @@ static int gnss_download_from_partition(void)
 			wcn_read_data_from_phy_addr(marlin_dev->base_addr_gnss + SEC_IMAGE_HDR_SIZE,
 				buffer, img_size);
 		}
+	} else {
+		pr_info("%s sec image without reserved memory, check DTS pls.\n",
+			__func__);
 	}
 
 	len = 0;
