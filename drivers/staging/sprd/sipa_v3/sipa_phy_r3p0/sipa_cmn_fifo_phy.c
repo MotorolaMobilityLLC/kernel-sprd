@@ -1493,10 +1493,10 @@ static int ipa_cmn_fifo_phy_set_hw_intr_thres(enum sipa_cmn_fifo_index id,
 	fifo = b + id;
 
 	if (enable) {
-		if (ipa_phy_set_tx_fifo_intr_thres(fifo->fifo_reg_base, cnt))
+		if (ipa_phy_set_tx_fifo_intr_thres(fifo->fifo_reg_base, cnt)) {
 			pr_err("sipa fifo %d set threshold fail\n", id);
 			return -EINVAL;
-
+		}
 		if (ipa_phy_enable_int_bit(fifo->fifo_reg_base,
 					   IPA_TX_FIFO_THRESHOLD_EN)) {
 			pr_err("sipa fifo %d enable hw threshold err\n", id);
