@@ -10,18 +10,18 @@ if [[ ! -f Makefile ]] || [[ `cat Makefile | head -n 2 | tail -n 1 | awk -F" " {
 fi
 
 if [[ $# -eq 0 ]]; then
-	clang_version=`cat ../../build/set_toolchain.sh | grep clang-r | awk -F"/" {'print $(NF-1)'} | tail -n 1`
-	clang_path=$(readlink -f "../../toolchain/prebuilts/clang/host/linux-x86/$clang_version/bin")
 	gcc_path=$(readlink -f "../../toolchain/prebuilts/gcc/linux-x86/aarch64/gcc-linaro-aarch64-linux-gnu-7.4/bin/aarch64-linux-gnu-")
-	# Add clang and gcc absolute path to env
-	PATH=$clang_path:$PATH
 	PATH=$gcc_path:$PATH
-elif [[ $# -eq 2 ]] && [[ $1 == "--env" ]] && [[ $2 == env ]]; then
-	echo "Using the TOOLCHAIN in env."
+	# Add gcc absolute path to env
+	has_clang=$(echo $PATH | grep "clang-r")
+	if [ -z $has_clang ];then
+		echo "Error: clang not in env, please \"source/lunch\" at bsp first."
+		exit 1
+	fi
 else
 	echo "Parameters Error."
 	echo "Usage:"
-	echo "    ./scripts/sprd/defconfig_update.sh"
+	echo -e "\t./scripts/sprd/defconfig_update.sh"
 	exit 1
 fi
 
