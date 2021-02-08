@@ -116,13 +116,20 @@
 
 	display-subsystem {
 		compatible = "sprd,display-subsystem";
-		status = "disable";
 		ports = <&dpu_port>;
 	};
 };
 
+&dpu {
+	status = "okay";
+};
+
+&iommu_dispc {
+	status = "okay";
+};
+
 &dsi {
-	status = "disable";
+	status = "okay";
 	#address-cells = <1>;
 	#size-cells = <0>;
 
@@ -141,6 +148,9 @@
 	};
 };
 
+&dphy {
+	status = "okay";
+};
 
 &pwms {
 	status = "okay";

@@ -529,9 +529,20 @@
 			iommu_dispc: iommu@31001800 {
 				compatible = "sprd,iommuvau-dispc";
 				reg = <0x0 0x31001800 0x0 0x80>;
-				iova-base = <0x30000000>;
-				iova-size = <0x10000000>;
+				sprd,iova-base = <0x30000000>;
+				sprd,iova-size = <0x10000000>;
 				reg_name = "mmu_reg";
+				status = "disabled";
+				#iommu-cells = <0>;
+			};
+
+			iommu_gsp: iommu@31100000 {
+				compatible = "sprd,iommuvaul5p-gsp";
+				reg = <0x0 0x31100000 0x0 0x1000>,
+				      <0x0 0x31101000 0x0 0x80>;
+				sprd,iova-base = <0x30000000>;
+				sprd,iova-size = <0x10000000>;
+				reg_name = "mmu_interrupt_reg","mmu_reg";
 				status = "disabled";
 				#iommu-cells = <0>;
 			};

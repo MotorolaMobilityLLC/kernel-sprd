@@ -49,7 +49,7 @@
 
 			pwm_backlight: backlight {
 				compatible = "sprd,qogirn6pro-backlight";
-				/*pwms = <&pwms 0 40000>;*/
+				pwms = <&pwms 0 40000>;
 				pwm-names = "backlight";
 				sprd,max-brightness-level = <880>;
 				default-brightness-level = <250>;
