@@ -367,6 +367,7 @@ static void musb_prepare_node(struct sprd_musb_dma_channel *musb_channel,
 {
 	u32 queue = musb_channel->used_queue;
 
+	pr_info("%s,dma address:%x, blk_len:%x\r\n", __func__, dma_addr, len);
 	musb_channel->free_slot++;
 
 	musb_channel->dma_linklist[queue][index].addr = (unsigned int)dma_addr;
@@ -410,6 +411,7 @@ static struct dma_channel *sprd_dma_channel_allocate(struct dma_controller *c,
 	u8 bit;
 	u16 csr;
 	struct musb *musb;
+	u32 reg_val;
 
 	bit = hw_ep->epnum;
 	musb = controller->private_data;
@@ -444,6 +446,15 @@ static struct dma_channel *sprd_dma_channel_allocate(struct dma_controller *c,
 
 	/* Wait 9 more cycles for ensuring DMA can get USB request length */
 	musb_writel(controller->base, MUSB_DMA_FRAG_WAIT, 0x8);
+
+	/* debug for zero packet*/
+	reg_val = musb_readl(controller->base, MUSB_ZEROPACKET_DEBUG_STATUS);
+	pr_info("%s, read MUSB_ZEROPACKET_DEBUG_STATUS:0x%08x\n", __func__, reg_val);
+	reg_val &= ~(0x1F << 11);
+	reg_val |= (0x10 << 11);
+	musb_writel(controller->base, MUSB_ZEROPACKET_DEBUG_STATUS, reg_val);
+	reg_val = musb_readl(controller->base, MUSB_ZEROPACKET_DEBUG_STATUS);
+	pr_info("%s, write MUSB_ZEROPACKET_DEBUG_STATUS:0x%08x\n", __func__, reg_val);
 
 	musb_channel->controller = controller;
 	musb_channel->ep_num = bit;
@@ -528,6 +539,7 @@ EXPORT_SYMBOL_GPL(musb_linknode_full);
 static void musb_prepare_node(struct sprd_musb_dma_channel *musb_channel,
 			dma_addr_t dma_addr, u32 len, u8 last, u8 sp, u32 index)
 {
+	pr_info("%s,dma address:%x\r\n", __func__, dma_addr);
 	musb_channel->free_slot++;
 
 	musb_channel->dma_linklist[index].addr = (unsigned int)dma_addr;
@@ -988,9 +1000,13 @@ static int sprd_dma_channel_program(struct dma_channel *channel,
 	struct musb_ep *musb_ep;
 	struct musb_hw_ep *hw_ep;
 
+	dev_info(musb->controller, "%s\n", __func__);
 	if (channel->status == MUSB_DMA_STATUS_UNKNOWN ||
-		channel->status == MUSB_DMA_STATUS_BUSY)
+		channel->status == MUSB_DMA_STATUS_BUSY) {
+		dev_info(musb->controller, "%s channel status:%d\n",
+			__func__, channel->status);
 		return -EINVAL;
+	}
 
 	/* Let targets check/tweak the arguments */
 	if (musb->ops->adjust_channel_params) {
@@ -1014,8 +1030,9 @@ static int sprd_dma_channel_program(struct dma_channel *channel,
 	 * Fail such DMA transfers, so that the backup PIO mode
 	 * can carry out the transfer
 	 */
-	if ((musb->hwvers >= MUSB_HWVERS_1800) && (dma_addr % 4))
+	if ((musb->hwvers >= MUSB_HWVERS_1800) && (dma_addr % 4)) {
 		return -EINVAL;
+	}
 
 	if (musb_ep->end_point.linkfifo) {
 		if (!musb_linknode_full(musb, musb_channel->transmit)) {
@@ -1055,7 +1072,7 @@ static int sprd_dma_channel_program(struct dma_channel *channel,
 		musb_channel->node_num = 0;
 		musb_host_listnodes(musb_channel, dma_addr, len);
 	}
-	dev_dbg(musb->controller,
+	dev_info(musb->controller,
 		"ep%d-%s  dma_addr 0x%x length %d\n",
 		musb_channel->ep_num,
 		musb_channel->transmit ? "Tx" : "Rx",
@@ -1197,7 +1214,11 @@ static int sprd_dma_channel_abort(struct dma_channel *channel)
 
 	return 0;
 }
-
+#define DUMP_NUM 8
+u32 dma_reg_list[17][DUMP_NUM] = { {0} };
+u16 musb_reg_list[3][DUMP_NUM] = { {0} };
+u8 dma_reg_cnt;
+u8 musb_epnum_list[DUMP_NUM] = {0};
 static void sprd_musb_dma_completion(struct musb *musb, u8 epnum, u8 transmit)
 {
 	struct musb_ep *musb_ep;
@@ -1205,7 +1226,14 @@ static void sprd_musb_dma_completion(struct musb *musb, u8 epnum, u8 transmit)
 	struct usb_request *request;
 	struct dma_channel *channel;
 	struct sprd_musb_dma_channel *musb_channel;
+	struct sprd_musb_dma_controller *controller;
+	void __iomem		*epio = musb->endpoints[epnum].regs;
+
 	u32 blk_len	=	0;
+	u16 regs;
+	u32 reg_val;
+	u8 bchannel;
+	u8 j;
 
 	if (transmit)
 		musb_ep = &musb->endpoints[epnum].ep_in;
@@ -1236,6 +1264,101 @@ static void sprd_musb_dma_completion(struct musb *musb, u8 epnum, u8 transmit)
 		} else
 			request->actual = request->length;
 
+	if (!transmit && (musb_channel->ep_num == 0x1)) {
+		if (dma_reg_cnt > (DUMP_NUM - 1))
+			dma_reg_cnt = 0;
+		musb_epnum_list[dma_reg_cnt] = musb_channel->ep_num;
+
+		controller = musb_channel->controller;
+		reg_val = musb_readl(controller->base, MUSB_EP_DEBUG_OUT_LOW);
+		dma_reg_list[0][dma_reg_cnt] = reg_val;
+		reg_val = musb_readl(controller->base, MUSB_EP_DEBUG_OUT_MID);
+		dma_reg_list[1][dma_reg_cnt] = reg_val;
+		reg_val = musb_readl(controller->base, MUSB_EP_DEBUG_OUT_HIGH);
+		dma_reg_list[2][dma_reg_cnt] = reg_val;
+		reg_val = musb_readl(controller->base, MUSB_ZEROPACKET_DEBUG_STATUS);
+		dma_reg_list[3][dma_reg_cnt] = reg_val;
+		reg_val = musb_readl(controller->base, MUSB_DMA_FRAG_WAIT);
+		dma_reg_list[4][dma_reg_cnt] = reg_val;
+		reg_val = musb_readl(controller->base, MUSB_DMA_REQ_STATUS);
+		dma_reg_list[5][dma_reg_cnt] = reg_val;
+		reg_val = musb_readl(controller->base, MUSB_DMA_EN_STATUS);
+		dma_reg_list[6][dma_reg_cnt] = reg_val;
+		reg_val = musb_readl(controller->base, MUSB_DMA_DEBUG_STATUS);
+		dma_reg_list[7][dma_reg_cnt] = reg_val;
+
+		regs = musb_readw(epio, MUSB_RXMAXP);
+		musb_reg_list[0][dma_reg_cnt] = regs;
+		regs = musb_readw(epio, MUSB_RXCSR);
+		pr_info("%s ep%d-RX request->actual:%d, MUSB_RXCSR:0x%x\n",
+			__func__, musb_channel->ep_num, request->actual, regs);
+		musb_reg_list[1][dma_reg_cnt] = regs;
+		regs = musb_readw(epio, MUSB_RXCOUNT);
+		musb_reg_list[2][dma_reg_cnt] = regs;
+
+		bchannel = musb_channel->channel_num;
+		dma_reg_list[16][dma_reg_cnt] = (u32)bchannel;
+		reg_val = musb_readl(controller->base, MUSB_DMA_CHN_PAUSE(bchannel));
+		dma_reg_list[8][dma_reg_cnt] = reg_val;
+		reg_val = musb_readl(controller->base, MUSB_DMA_CHN_CFG(bchannel));
+		dma_reg_list[9][dma_reg_cnt] = reg_val;
+		reg_val = musb_readl(controller->base, MUSB_DMA_CHN_INTR(bchannel));
+		dma_reg_list[10][dma_reg_cnt] = reg_val;
+		reg_val = musb_readl(controller->base, MUSB_DMA_CHN_ADDR(bchannel));
+		dma_reg_list[11][dma_reg_cnt] = reg_val;
+		reg_val = musb_readl(controller->base, MUSB_DMA_CHN_LEN(bchannel));
+		dma_reg_list[12][dma_reg_cnt] = reg_val;
+		reg_val = musb_readl(controller->base, MUSB_DMA_CHN_LLIST_PTR(bchannel));
+		dma_reg_list[13][dma_reg_cnt] = reg_val;
+		reg_val = musb_readl(controller->base, MUSB_DMA_CHN_ADDR_H(bchannel));
+		dma_reg_list[14][dma_reg_cnt] = reg_val;
+		reg_val = musb_readl(controller->base, MUSB_DMA_CHN_REQ(bchannel));
+		dma_reg_list[15][dma_reg_cnt] = reg_val;
+		if (!request->actual) {
+			pr_info("%s-musb and dma reg values:\n", __func__);
+			for (j = 0; j < DUMP_NUM; j++) {
+				pr_info("[ep%d-rx]--[N-%d]------dump save num:%d\n",
+					musb_epnum_list[dma_reg_cnt], j, dma_reg_cnt);
+				pr_info("EP_DEBUG_OUT_LOW:0x%08x,XXX_MID:0x%08x,XXX_HIGH:0x%08x\r\n",
+					dma_reg_list[0][dma_reg_cnt],
+					dma_reg_list[1][dma_reg_cnt],
+					dma_reg_list[2][dma_reg_cnt]);
+				pr_info("MUSB_RXMAXP:0x%x, MUSB_RXCSR:0x%x, MUSB_RXCOUNT:0x%x\r\n",
+					musb_reg_list[0][dma_reg_cnt],
+					musb_reg_list[1][dma_reg_cnt],
+					musb_reg_list[2][dma_reg_cnt]);
+				pr_info("DMA_ZEROPACKET_BEBUG_STATUS:0x%08x\r\n",
+					dma_reg_list[3][dma_reg_cnt]);
+				pr_info("DMA_WAIT:0x%08x, DMA_REQ_STATUS:0x%08x,\
+					DMA_EN_STATUS:0x%08x, DMA_DEBUG_STATUS:0x%08x\r\n",
+					dma_reg_list[4][dma_reg_cnt],
+					dma_reg_list[5][dma_reg_cnt],
+					dma_reg_list[6][dma_reg_cnt],
+					dma_reg_list[7][dma_reg_cnt]);
+
+				pr_info("bchannel:[%d], DMA_CHN_PAUSE:0x%08x, DMA_CHN_CFG:0x%08x,\
+					DMA_CHN_INTR:0x%08x, DMA_CHN_ADDR:0x%08x, DMA_CHN_LEN:0x%08x,\
+					DMA_CHN_LLIST_PTR:0x%08x, DMA_CHN_ADDR_H:0x%08x,\
+					DMA_CHN_REQ:0x%08x\r\n",
+					(u8)dma_reg_list[16][dma_reg_cnt],
+					dma_reg_list[8][dma_reg_cnt],
+					dma_reg_list[9][dma_reg_cnt],
+					dma_reg_list[10][dma_reg_cnt],
+					dma_reg_list[11][dma_reg_cnt],
+					dma_reg_list[12][dma_reg_cnt],
+					dma_reg_list[13][dma_reg_cnt],
+					dma_reg_list[14][dma_reg_cnt],
+					dma_reg_list[15][dma_reg_cnt]);
+				if (!dma_reg_cnt)
+					dma_reg_cnt = DUMP_NUM - 1;
+				else
+					dma_reg_cnt--;
+			}
+
+			panic("musb abnormal zero packet Exception!!!");
+		}
+		dma_reg_cnt++;
+	}
 		if (request->num_mapped_sgs)
 			musb_channel->busy_slot += request->num_mapped_sgs;
 		else
