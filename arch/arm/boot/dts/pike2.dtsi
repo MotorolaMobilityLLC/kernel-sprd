@@ -287,13 +287,14 @@
 					<&apahb_gate CLK_GSP_EB>;
 			};
 
-			iommu_gsp: iommu@20a00804 {
-				compatible = "sprd,iommuex-gsp";
-				reg = <0x20a00804 0x80>;
-				sprd,iova-base = <0x20000000>;
-				sprd,iova-size = <0x10000000>;
-				reg_name = "mmu_reg";
-				status = "ok";
+			iommu_gsp: iommu@20a00000 {
+				compatible = "sprd,iommuexpk2-gsp";
+				reg = <0x20a00000 0x804>,
+					<0x20a00804 0x80>;
+				iova-base = <0x20000000>;
+				iova-size = <0x10000000>;
+				reg_name = "mmu_interrupt_reg","mmu_reg";
+				status = "okay";
 				#iommu-cells = <0>;
 			};
 
