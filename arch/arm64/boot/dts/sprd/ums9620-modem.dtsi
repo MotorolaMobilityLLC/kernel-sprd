@@ -195,6 +195,17 @@
 		sprd,size-txbuf = <0x1000>; /* 4*1024 */
 	};
 
+	data0_gnss: spipe@9 {
+		compatible = "sprd,spipe";
+		sprd,name = "data0_gnss";
+		sprd,dst = <9>;
+		sprd,smem = <1>;
+		sprd,channel = <7>;
+		sprd,ringnr = <1>;
+		sprd,size-rxbuf = <0x20000>;
+		sprd,size-txbuf = <0x18000>;
+	};
+
 	slog_nr: spool@0{
 		compatible = "sprd,spool";
 		sprd,name = "slog_nr";
