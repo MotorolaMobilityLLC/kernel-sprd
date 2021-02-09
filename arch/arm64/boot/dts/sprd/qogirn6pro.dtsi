@@ -335,7 +335,7 @@
 
 			ufs: ufs@2000000 {
 				compatible  = "sprd,ufshc";
-				reg = <0x2000000 0x1000>;
+				reg = <0x2000000 0x10000>;
 				interrupts = <GIC_SPI 159 IRQ_TYPE_LEVEL_HIGH>;
 				vcc-supply = <&vddemmccore>;
 				vcc-fixed-regulator;
