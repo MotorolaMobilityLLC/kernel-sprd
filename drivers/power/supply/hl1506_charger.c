@@ -30,7 +30,7 @@
 /* Register bits */
 /* HL1506_REG_0 (0x00) PMID Voltage Limit DAC reg */
 #define HL1506_REG_PMID_DAC_MASK		GENMASK(7, 0)
-#define HL1506_REG_PMID_DAC_SHIFT		(7)
+#define HL1506_REG_PMID_DAC_SHIFT		(0)
 /* HL1506_REG_1 (0x01) Input Current Limit reg */
 #define HL1506_REG_IIN_LIMIT_MASK		GENMASK(7, 3)
 #define HL1506_REG_IIN_LIMIT_SHIFT		(3)
@@ -108,19 +108,22 @@
 #define HL1506_PMID_OV_12V   0x02
 #define HL1506_PMID_OV_13V   0x03
 
+#define HL1506_CURRENT_WORK_MS		msecs_to_jiffies(100)
+
 struct hl1506_charger_info {
 	struct i2c_client *client;
 	struct device *dev;
 	struct power_supply *psy;
 	struct power_supply_charge_current cur;
-	struct work_struct work;
 	struct mutex lock;
 	bool charging;
 	u32 limit;
+	u32 current_limit;
 	u32 charger_detect;
 	u32 charger_pd;
 	u32 charger_pd_mask;
 	unsigned int chg_pump_en;
+	struct delayed_work work;
 };
 
 static int hl1506_charger_hw_init(struct hl1506_charger_info *info);
@@ -159,7 +162,7 @@ static int hl1506_update_bits(struct hl1506_charger_info *info, u8 reg, u8 mask,
 
 static int hl1506_set_pmid_dac(struct hl1506_charger_info *info, u32 val)
 {
-	return hl1506_update_bits(info, HL1506_REG_1, HL1506_REG_PMID_DAC_MASK,
+	return hl1506_update_bits(info, HL1506_REG_0, HL1506_REG_PMID_DAC_MASK,
 				  (val << HL1506_REG_PMID_DAC_SHIFT));
 }
 
@@ -223,7 +226,7 @@ static int hl1506_force_cp_mode(struct hl1506_charger_info *info, bool enable)
 				  (reg_val << HL1506_REG_FORCE_CP_SHIFT));
 }
 
-static int hl1506_device_enable(struct hl1506_charger_info *info, bool enable)
+static void hl1506_device_enable(struct hl1506_charger_info *info, bool enable)
 {
 	u8 en_pin;
 
@@ -232,9 +235,7 @@ static int hl1506_device_enable(struct hl1506_charger_info *info, bool enable)
 	else
 		en_pin = HL1506_DEVICE_DISABLE;
 
-	gpio_direction_output(info->chg_pump_en, en_pin);
-
-	return 0;
+	gpio_set_value(info->chg_pump_en, en_pin);
 }
 
 static int hl1506_set_cp_clk(struct hl1506_charger_info *info, u32 clk)
@@ -538,7 +539,7 @@ static int hl1506_charger_get_property(struct power_supply *psy,
 			goto out;
 		}
 
-		val->intval = cur;
+		val->intval = cur * 1000;
 		break;
 	default:
 		ret = -EINVAL;
@@ -560,16 +561,20 @@ static int hl1506_charger_set_property(struct power_supply *psy,
 
 	switch (psp) {
 	case POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT:
-		ret = hl1506_set_iin_limit(info, val->intval);
-		if (ret < 0)
-			dev_err(info->dev, "set input current limit failed\n");
+		info->limit = val->intval / 1000;
+		schedule_delayed_work(&info->work, HL1506_CURRENT_WORK_MS * 20);
 		break;
 	case POWER_SUPPLY_PROP_CHARGE_ENABLED:
 		if (val->intval) {
-			hl1506_charger_hw_init(info);
+			ret = hl1506_charger_hw_init(info);
 			hl1506_device_enable(info, true);
+			info->limit = HL1506_INN_LIMIT_MAX;
+			info->charging = true;
+			schedule_delayed_work(&info->work, HL1506_CURRENT_WORK_MS * 20);
 		} else {
+			cancel_delayed_work_sync(&info->work);
 			hl1506_device_enable(info, false);
+			info->charging = false;
 		}
 		break;
 	default:
@@ -618,6 +623,7 @@ static const struct power_supply_desc hl1506_charge_pump_converter_desc = {
 static int hl1506_parse_dt(struct hl1506_charger_info *info)
 {
 	struct device_node *node = info->dev->of_node;
+	int ret = 0;
 
 	info->chg_pump_en  = of_get_named_gpio(node, "chg_pump_en_gpio", 0);
 	if (!gpio_is_valid(info->chg_pump_en)) {
@@ -626,40 +632,124 @@ static int hl1506_parse_dt(struct hl1506_charger_info *info)
 		return -EINVAL;
 	}
 
-	return 0;
+	ret = devm_gpio_request_one(info->dev, info->chg_pump_en,
+				    GPIOF_DIR_OUT | GPIOF_INIT_LOW, "chg_pump_en_pin");
+	if (ret)
+		dev_err(info->dev, "int switch chg en pin failed, ret = %d\n", ret);
+
+	return ret;
 }
 
 static int hl1506_charger_hw_init(struct hl1506_charger_info *info)
 {
 	int ret = 0;
 
-	hl1506_parse_dt(info);
+	usleep_range(500, 600);
 
-	ret = hl1506_force_bypass_mode(info, true);
-	if (ret < 0) {
-		dev_err(info->dev, "force bypass mode fail\n");
+	ret = hl1506_set_cp_clk(info, 500);
+	if (ret) {
+		dev_err(info->dev, "set cp clk fail, ret = %d\n", ret);
+		return ret;
+	}
+
+	ret = hl1506_disable_ldo5(info, false);
+	if (ret) {
+		dev_err(info->dev, "disable ldo5 fail, ret = %d\n", ret);
+		return ret;
+	}
+
+	ret = hl1506_set_ldo5_voltage(info, 400);
+	if (ret) {
+		dev_err(info->dev, "set ldo5 voltage fail, ret = %d\n", ret);
+		return ret;
+	}
+
+	ret = hl1506_host_enable(info, true);
+	if (ret) {
+		dev_err(info->dev, "host enable fail, ret = %d\n", ret);
+		return ret;
+	}
+
+	ret = hl1506_disable_qrb(info, false);
+	if (ret) {
+		dev_err(info->dev, "disable qrb fail, ret = %d\n", ret);
+		return ret;
+	}
+
+	ret = hl1506_set_pmid_ov_debounce(info, 10);
+	if (ret) {
+		dev_err(info->dev, "set pmid ov debounce fail, ret = %d\n", ret);
+		return ret;
+	}
+
+	ret = hl1506_set_pmid_ov(info, 13);
+	if (ret) {
+		dev_err(info->dev, "set pmid ov fail, ret = %d\n", ret);
+		return ret;
+	}
+
+	/* set pmid dac to 13v bypass mode */
+	ret = hl1506_set_pmid_dac(info, 0x50);
+	if (ret) {
+		dev_err(info->dev, "set pmid dac fail, ret = %d\n", ret);
+		return ret;
+	}
+
+	ret = hl1506_set_iin_limit(info, HL1506_INN_LIMIT_MIN);
+	if (ret) {
+		dev_err(info->dev, "set iin limit fail, ret = %d\n", ret);
 		return ret;
 	}
 
 	ret = hl1506_force_cp_mode(info, false);
 	if (ret < 0) {
-		dev_err(info->dev, "force cp mode fail\n");
+		dev_err(info->dev, "force cp mode fail, ret = %d\n", ret);
 		return ret;
 	}
 
-	hl1506_set_iin_limit(info, HL1506_INN_LIMIT_MAX);
-	hl1506_set_cp_clk(info, 500);
-	hl1506_disable_ldo5(info, false);
-	hl1506_set_ldo5_voltage(info, 400);
-	hl1506_host_enable(info, true);
-	hl1506_disable_qrb(info, false);
-	hl1506_set_pmid_ov_debounce(info, 10);
-	hl1506_set_pmid_ov(info, 12);
-	hl1506_set_pmid_dac(info, 0);
+	ret = hl1506_force_bypass_mode(info, true);
+	if (ret < 0) {
+		dev_err(info->dev, "force bypass mode fail, ret = %d\n", ret);
+		return ret;
+	}
+
+	info->current_limit = HL1506_INN_LIMIT_MIN;
 
 	hl1506_dump_status(info);
 
-	return 0;
+	return ret;
+}
+
+static void hl1506_current_work(struct work_struct *data)
+{
+	struct delayed_work *dwork = to_delayed_work(data);
+	struct hl1506_charger_info *info =
+		container_of(dwork, struct hl1506_charger_info, work);
+	int ret = 0;
+
+	if (info->current_limit > info->limit) {
+		ret = hl1506_set_iin_limit(info, info->current_limit);
+		if (ret < 0) {
+			dev_err(info->dev, "set input current limit failed\n");
+			return;
+		}
+	}
+
+	if (!info->charging)
+		return;
+
+	if (info->current_limit + HL1506_INN_LIMIT_STEP <= info->limit)
+		info->current_limit += HL1506_INN_LIMIT_STEP;
+	else
+		return;
+
+	ret = hl1506_set_iin_limit(info, info->current_limit);
+	if (ret < 0) {
+		dev_err(info->dev, "set input current limit failed\n");
+		return;
+	}
+
+	schedule_delayed_work(&info->work, HL1506_CURRENT_WORK_MS);
 }
 
 static int hl1506_charger_probe(struct i2c_client *client,
@@ -693,6 +783,13 @@ static int hl1506_charger_probe(struct i2c_client *client,
 	if (IS_ERR(info->psy)) {
 		dev_err(dev, "failed to register power supply\n");
 		return PTR_ERR(info->psy);
+	}
+
+	INIT_DELAYED_WORK(&info->work, hl1506_current_work);
+	ret = hl1506_parse_dt(info);
+	if (ret < 0) {
+		dev_err(info->dev, "parse dt fail, ret = %d\n", ret);
+		return ret;
 	}
 
 	ret = hl1506_charger_hw_init(info);

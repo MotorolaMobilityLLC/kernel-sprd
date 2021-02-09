@@ -421,11 +421,6 @@ static void sc2720_charger_work(struct work_struct *data)
 		if (ret)
 			goto out;
 
-		ret = sc2720_charger_start_charge(info);
-		if (ret)
-			goto out;
-
-		info->charging = true;
 	} else if ((!info->limit && info->charging) || !present) {
 		/* Stop charging */
 		info->charging = false;

@@ -23,6 +23,7 @@
 #include <linux/power/charger-manager.h>
 #include <linux/power_supply.h>
 #include <linux/regmap.h>
+#include <linux/usb/phy.h>
 #include "rx1619.h"
 
 /* used registers define */
@@ -95,11 +96,11 @@
 #define NU1619_RX_INT_SEND_PKT_SUCCESS		BIT(11)
 #define NU1619_RX_INT_SLEEP_MODE		BIT(14)
 
-#define NU1619_RX_WORK_CYCLE_MS			1000
-#define NU1619_RPP_TYPE_BPP			0x04
-#define NU1619_RPP_TYPE_EPP			0x31
+#define NU1619_RX_WORK_CYCLE_MS			2000
+#define NU1619_RPP_TYPE_BPP			(0x04)
+#define NU1619_RPP_TYPE_EPP			(0x31)
 
-u8 fod_param[8] = {
+static u8 fod_param[8] = {
 	0x44, 0x1E,
 	0x44, 0x37,
 	0x3A, 0x46,
@@ -136,7 +137,12 @@ struct nu1619_rx {
 	struct power_supply    *wip_psy;
 
 	bool is_charging;
+	struct usb_phy *usb_phy;
+	struct notifier_block usb_notify;
+	u32 limit;
 };
+
+static struct nu1619_rx *g_chip;
 
 static int nu1619_rx_read(struct nu1619_rx *chip, u8 *val, u16 addr)
 {
@@ -170,13 +176,6 @@ static int nu1619_read_rx_buffer(struct nu1619_rx *chip, u8 *buf, u16 addr, u32 
     return regmap_bulk_read(chip->regmap, addr, buf, size);
 }
 
-/*
- * static int nu1619_rx_write_buffer(struct nu1619_rx *chip, u8 *val, u16 addr, u32 size)
- * {
- * return regmap_bulk_write(chip->regmap, addr, val, size);
- * }
- */
-
 static void write_cmd_d(struct nu1619_rx *chip, u8 val)
 {
 	static u8 cmd_d;
@@ -185,7 +184,6 @@ static void write_cmd_d(struct nu1619_rx *chip, u8 val)
 	cmd_d |= val;
 	cmd_d ^= 0x20;
 	nu1619_rx_write(chip, cmd_d, NU1619_RX_REG_0D);
-	dev_info(chip->dev, "[rx1619] cmd_d=0x%x\n", cmd_d);
 }
 
 /*
@@ -202,9 +200,6 @@ static u8 nu1619_rx_get_rx_rpp_type(struct nu1619_rx *chip)
 	nu1619_read_rx_buffer(chip, read_buffer, NU1619_RX_REG_08, 3);
 	if (read_buffer[0] == (NU1619_RX_CMD_RPP_TYPE ^ 0x80))
 		rpp_type = read_buffer[1];
-
-	dev_info(chip->dev, "%s, 0x000C->0x9d, 0x0008=0x%x, 0x0009=0x%x, 0x000a=0x%x, rpp_type=0x%x\n",
-		__func__, read_buffer[0], read_buffer[1], read_buffer[2], rpp_type);
 
 	return rpp_type;
 }
@@ -565,8 +560,8 @@ static bool nu1619_req_checksum_and_fw_version(struct nu1619_rx *chip, u8 *boot_
 					       u8 *rx_check_sum, u8 *tx_check_sum,
 					       u8 *boot_ver, u8 *rx_ver, u8 *tx_ver)
 {
-	u8 read_buffer1[4];
-	u8 read_buffer2[4];
+	u8 read_buffer1[5];
+	u8 read_buffer2[5];
 
 	nu1619_rx_write(chip, 0x21, NU1619_RX_REG_0D);
 	msleep(20);
@@ -793,7 +788,7 @@ static bool nu1619_rx_check_i2c_is_ok(struct nu1619_rx *chip)
 }
 
 #define RETRY_COUNT 2
-bool nu1619_rx_download_firmware_area(struct nu1619_rx *chip, u8 area)
+static bool nu1619_rx_download_firmware_area(struct nu1619_rx *chip, u8 area)
 {
 	bool status = false;
 
@@ -811,7 +806,7 @@ bool nu1619_rx_download_firmware_area(struct nu1619_rx *chip, u8 area)
 	return true;
 }
 
-bool nu1619_rx_download_firmware(struct nu1619_rx *chip)
+static bool nu1619_rx_download_firmware(struct nu1619_rx *chip)
 {
 	bool status = false;
 
@@ -840,7 +835,7 @@ bool nu1619_rx_download_firmware(struct nu1619_rx *chip)
 	return true;
 }
 
-bool nu1619_rx_check_firmware(struct nu1619_rx *chip)
+static bool nu1619_rx_check_firmware(struct nu1619_rx *chip)
 {
 	bool status = false;
 
@@ -865,7 +860,7 @@ bool nu1619_rx_check_firmware(struct nu1619_rx *chip)
 	return true;
 }
 
-bool nu1619_rx_onekey_download_firmware(struct nu1619_rx *chip)
+static bool nu1619_rx_onekey_download_firmware(struct nu1619_rx *chip)
 {
 	bool status = false;
 
@@ -898,12 +893,10 @@ bool nu1619_rx_onekey_download_firmware(struct nu1619_rx *chip)
 		return false;
 	}
 
-	dev_info(chip->dev, "[rx1619] [%s] --------\n", __func__);
-
 	return true;
 }
 
-void nu1619_rx_dump_reg(struct nu1619_rx *chip)
+static void nu1619_rx_dump_reg(struct nu1619_rx *chip)
 {
 	u8 data[32] = {0};
 
@@ -984,44 +977,25 @@ static void nu1619_rx_transparent_data(struct nu1619_rx *chip, u8 cmd, u8 value0
 
 static void nu1619_rx_wireless_work(struct work_struct *work)
 {
-	u8 read_buffer[3] = {0, 0, 0};
-	static unsigned long int error_count;
-	static unsigned long int pass_count;
 	struct nu1619_rx *chip = container_of(work, struct nu1619_rx, wireless_work.work);
-	static int i;
+	u8 rpp_type;
 
 	mutex_lock(&chip->wireless_chg_lock);
+	rpp_type = nu1619_rx_get_rx_rpp_type(chip);
 
-	i++;
-	if (i%2 == 0) {
-		nu1619_rx_write(chip, 0x87, NU1619_RX_REG_0C);
-		nu1619_read_rx_buffer(chip, read_buffer, NU1619_RX_REG_08, 3);
-		if (read_buffer[0] != (0x87 ^ 0x80)) {
-			error_count++;
-			dev_err(chip->dev, "PPP Header: 0x000C->0x87, 0x0008=0x%x,"
-				"0x0009=0x%x, 0x000a=0x%x\n",
-				read_buffer[0], read_buffer[1], read_buffer[2]);
-		} else {
-			pass_count++;
-		}
+	if (rpp_type == NU1619_RPP_TYPE_BPP || rpp_type == NU1619_RPP_TYPE_EPP) {
+		schedule_delayed_work(&chip->wireless_work,
+				      msecs_to_jiffies(NU1619_RX_WORK_CYCLE_MS));
+		mutex_unlock(&chip->wireless_chg_lock);
 	} else {
-		nu1619_rx_write(chip, 0x95, NU1619_RX_REG_0C);
-		nu1619_read_rx_buffer(chip, read_buffer, NU1619_RX_REG_08, 3);
-		if (read_buffer[0] != (0x95 ^ 0x80)) {
-			error_count++;
-			dev_err(chip->dev, "PPP Header: 0x000C->0x95, 0x0008=0x%x,"
-				"0x0009=0x%x, 0x000a=0x%x\n",
-				read_buffer[0], read_buffer[1], read_buffer[2]);
-		} else {
-			pass_count++;
-		}
+		dev_info(chip->dev, "%s, stop wireless charge, rpp_type = 0x%x\n",
+			 __func__, rpp_type);
+		chip->is_charging = false;
+		chip->online = 0;
+		gpio_set_value(chip->switch_flag_en_gpio, 0);
+		mutex_unlock(&chip->wireless_chg_lock);
+		cm_notify_event(chip->wip_psy, CM_EVENT_WL_CHG_START_STOP, NULL);
 	}
-
-	dev_info(chip->dev, "err = %ld, pass = %ld\n",  error_count, pass_count);
-
-	schedule_delayed_work(&chip->wireless_work, msecs_to_jiffies(NU1619_RX_WORK_CYCLE_MS));
-
-	mutex_unlock(&chip->wireless_chg_lock);
 }
 
 static void nu1619_rx_wireless_int_work(struct work_struct *work)
@@ -1079,8 +1053,9 @@ static void nu1619_rx_wireless_int_work(struct work_struct *work)
 		nu1619_rx_write(chip, 0x00, NU1619_RX_REG_01);
 		nu1619_rx_write(chip, 0x40, NU1619_RX_REG_00);
 		write_cmd_d(chip, NU1619_RX_CMD_CLEAR_INT);
+		gpio_set_value(chip->switch_chg_en_gpio, 0);
+		gpio_set_value(chip->switch_flag_en_gpio, 1);
 		chip->online = 1;
-		rpp_type = nu1619_rx_get_rx_rpp_type(chip);
 	}
 	if (int_flag & NU1619_RX_INT_LDO_OFF) {
 		nu1619_rx_write(chip, 0x00, NU1619_RX_REG_01);
@@ -1182,11 +1157,13 @@ static void nu1619_rx_wireless_int_work(struct work_struct *work)
 		write_cmd_d(chip, NU1619_RX_CMD_CLEAR_INT);
 	}
 
-	if (int_flag == 0x0000)
+	rpp_type = nu1619_rx_get_rx_rpp_type(chip);
+	if (rpp_type != NU1619_RPP_TYPE_BPP && rpp_type != NU1619_RPP_TYPE_EPP) {
+		dev_info(chip->dev, "%s, stop wl charge, rpp_type = 0x%x\n", __func__, rpp_type);
+		cancel_delayed_work_sync(&chip->wireless_work);
 		chip->online = 0;
-
-	dev_info(chip->dev, "[rx1619] [%s] rx_rev_data=0x%x%x\n",
-		 __func__, rx_rev_data[1], rx_rev_data[0]);
+		gpio_set_value(chip->switch_flag_en_gpio, 0);
+	}
 
 	mutex_unlock(&chip->wireless_chg_int_lock);
 
@@ -1195,7 +1172,9 @@ static void nu1619_rx_wireless_int_work(struct work_struct *work)
 	if ((!chip->is_charging && chip->online == 1) ||
 	    (chip->is_charging && chip->online == 0)) {
 		chip->is_charging = !chip->is_charging;
-		cm_notify_event(chip->wip_psy, CM_EVENT_WIRELESS_CHARGE, NULL);
+		cm_notify_event(chip->wip_psy, CM_EVENT_WL_CHG_START_STOP, NULL);
+		schedule_delayed_work(&chip->wireless_work,
+				      msecs_to_jiffies(NU1619_RX_WORK_CYCLE_MS));
 	}
 }
 
@@ -1211,6 +1190,7 @@ static irqreturn_t nu1619_rx_chg_stat_handler(int irq, void *dev_id)
 static int nu1619_rx_parse_dt(struct nu1619_rx *chip)
 {
 	struct device_node *node = chip->dev->of_node;
+	int ret;
 
 	if (!node) {
 		dev_err(chip->dev, "[rx1619] [%s] No DT data Failing Probe\n", __func__);
@@ -1230,6 +1210,13 @@ static int nu1619_rx_parse_dt(struct nu1619_rx *chip)
 			__func__, chip->switch_chg_en_gpio);
 		return -EINVAL;
 	}
+	ret = devm_gpio_request_one(chip->dev,  chip->switch_chg_en_gpio,
+				   GPIOF_DIR_OUT | GPIOF_INIT_LOW,
+				   "switch_chg_en_gpio");
+	if (ret) {
+		dev_err(chip->dev, "init switch chg en gpio fail\n");
+		return -EINVAL;
+	}
 
 	chip->switch_flag_en_gpio  = of_get_named_gpio(node, "switch_flag_en_gpio", 0);
 	if (!gpio_is_valid(chip->switch_flag_en_gpio)) {
@@ -1237,11 +1224,18 @@ static int nu1619_rx_parse_dt(struct nu1619_rx *chip)
 			__func__, chip->switch_flag_en_gpio);
 		return -EINVAL;
 	}
+	ret = devm_gpio_request_one(chip->dev,  chip->switch_flag_en_gpio,
+				   GPIOF_OUT_INIT_HIGH, "switch_flag_en_gpio");
+	if (ret) {
+		dev_err(chip->dev, "init switch flag en gpio fail\n");
+		return -EINVAL;
+	}
 
-	gpio_direction_output(chip->switch_chg_en_gpio, 1);
-	gpio_direction_output(chip->switch_flag_en_gpio, 0);
 
-	return 0;
+	gpio_set_value(chip->switch_chg_en_gpio, 0);
+	gpio_set_value(chip->switch_flag_en_gpio, 0);
+
+	return ret;
 }
 
 static int nu1619_rx_gpio_init(struct nu1619_rx *chip)
@@ -1276,7 +1270,10 @@ static ssize_t chip_cep_show(struct device *dev,
 			     char *buf)
 {
 	u8 cep_value, rpp_type;
-	struct nu1619_rx *chip = dev_get_drvdata(dev);
+	struct nu1619_rx *chip = g_chip;
+
+	if (!chip)
+		return scnprintf(buf, PAGE_SIZE, "chip is null\n");
 
 	cep_value = nu1619_rx_get_cep_value(chip);
 
@@ -1290,7 +1287,10 @@ static ssize_t chip_vrect_show(struct device *dev,
 			       char *buf)
 {
 	unsigned int vrect = 0;
-	struct nu1619_rx *chip = dev_get_drvdata(dev);
+	struct nu1619_rx *chip = g_chip;
+
+	if (!chip)
+		return scnprintf(buf, PAGE_SIZE, "chip is null\n");
 
 	vrect = nu1619_rx_get_rx_vrect(chip);
 
@@ -1302,7 +1302,10 @@ static ssize_t chip_vout_show(struct device *dev,
 			      char *buf)
 {
 	unsigned int vout = 0;
-	struct nu1619_rx *chip = dev_get_drvdata(dev);
+	struct nu1619_rx *chip = g_chip;
+
+	if (!chip)
+		return scnprintf(buf, PAGE_SIZE, "chip is null\n");
 
 	vout = nu1619_rx_get_rx_vout(chip);
 
@@ -1314,8 +1317,10 @@ static ssize_t chip_iout_show(struct device *dev,
 			      char *buf)
 {
 	unsigned int iout = 0;
-	struct nu1619_rx *chip = dev_get_drvdata(dev);
+	struct nu1619_rx *chip = g_chip;
 
+	if (!chip)
+		return scnprintf(buf, PAGE_SIZE, "chip is null\n");
 
 	iout = nu1619_rx_get_rx_iout(chip);
 
@@ -1329,7 +1334,10 @@ static ssize_t chip_vtx_store(struct device *dev,
 {
 	int ret;
 	unsigned long index;
-	struct nu1619_rx *chip = dev_get_drvdata(dev);
+	struct nu1619_rx *chip = g_chip;
+
+	if (!chip)
+		return count;
 
 	ret = kstrtoul(buf, 10, &index);
 	if (ret)
@@ -1356,7 +1364,10 @@ static ssize_t chip_vout_store(struct device *dev,
 {
 	int ret;
 	unsigned long index;
-	struct nu1619_rx *chip = dev_get_drvdata(dev);
+	struct nu1619_rx *chip = g_chip;
+
+	if (!chip)
+		return count;
 
 	ret = kstrtoul(buf, 10, &index);
 	if (ret)
@@ -1378,7 +1389,10 @@ static ssize_t chip_debug_show(struct device *dev,
 			       struct device_attribute *attr,
 			       char *buf)
 {
-	struct nu1619_rx *chip = dev_get_drvdata(dev);
+	struct nu1619_rx *chip = g_chip;
+
+	if (!chip)
+		return scnprintf(buf, PAGE_SIZE, "chip is null\n");
 
 	nu1619_rx_dump_reg(chip);
 	msleep(100);
@@ -1396,7 +1410,10 @@ static ssize_t chip_debug_store(struct device *dev,
 {
 	int ret;
 	unsigned long index;
-	struct nu1619_rx *chip = dev_get_drvdata(dev);
+	struct nu1619_rx *chip = g_chip;
+
+	if (!chip)
+		return count;
 
 	ret = kstrtoul(buf, 10, &index);
 	if (ret)
@@ -1417,7 +1434,10 @@ static ssize_t chip_fod_parameter_store(struct device *dev,
 {
 	int ret, i;
 	unsigned long val;
-	struct nu1619_rx *chip = dev_get_drvdata(dev);
+	struct nu1619_rx *chip = g_chip;
+
+	if (!chip)
+		return count;
 
 	for (i = 0; i < 8; i++) {
 		val = 0;
@@ -1443,7 +1463,10 @@ static ssize_t chip_firmware_update_show(struct device *dev,
 					 char *buf)
 {
 	bool status = false;
-	struct nu1619_rx *chip = dev_get_drvdata(dev);
+	struct nu1619_rx *chip = g_chip;
+
+	if (!chip)
+		return scnprintf(buf, PAGE_SIZE, "chip is null\n");
 
 	dev_info(chip->dev, "[sp6001] [%s] Firmware Update begin\n", __func__);
 
@@ -1469,7 +1492,10 @@ static ssize_t chip_version_show(struct device *dev,
 				 struct device_attribute *attr,
 				 char *buf)
 {
-	struct nu1619_rx *chip = dev_get_drvdata(dev);
+	struct nu1619_rx *chip = g_chip;
+
+	if (!chip)
+		return scnprintf(buf, PAGE_SIZE, "chip is null\n");
 
 	nu1619_rx_check_firmware_version(chip);
 
@@ -1544,7 +1570,6 @@ static int nu1619_wireless_get_property(struct power_supply *psy,
 
 	switch (prop) {
 	case POWER_SUPPLY_PROP_ONLINE:
-		dev_info(chip->dev, "%s, wireless online = %d\n", __func__, chip->online);
 		val->intval = chip->online;
 		break;
 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE_MAX:
@@ -1605,6 +1630,42 @@ static const struct power_supply_desc nu1619_wireless_charger_desc = {
 	.property_is_writeable	= nu1619_prop_is_writeable,
 };
 
+static int nu1619_rx_usb_change(struct notifier_block *nb,
+				       unsigned long limit, void *data)
+{
+	struct nu1619_rx *chip = container_of(nb, struct nu1619_rx, usb_notify);
+
+	chip->limit = limit;
+
+	if (chip->limit) {
+		gpio_set_value(chip->switch_chg_en_gpio, 0);
+		gpio_set_value(chip->switch_flag_en_gpio, 0);
+	}
+
+	return NOTIFY_OK;
+}
+
+static void nu1619_rx_detect_status(struct nu1619_rx *chip)
+{
+	u32 min, max;
+
+	/*
+	 * If the USB charger status has been USB_CHARGER_PRESENT before
+	 * registering the notifier, we should start to charge with getting
+	 * the charge current.
+	 */
+	if (chip->usb_phy->chg_state != USB_CHARGER_PRESENT)
+		return;
+
+	usb_phy_get_charger_current(chip->usb_phy, &min, &max);
+	chip->limit = min;
+
+	if (chip->limit) {
+		gpio_set_value(chip->switch_chg_en_gpio, 0);
+		gpio_set_value(chip->switch_flag_en_gpio, 0);
+	}
+}
+
 static int nu1619_rx_charger_probe(struct i2c_client *client,
 				   const struct i2c_device_id *id)
 {
@@ -1621,9 +1682,15 @@ static int nu1619_rx_charger_probe(struct i2c_client *client,
 	}
 
 	chip->regmap = regmap_init_i2c(client, &nu1619_rx_regmap_config);
-	if (!chip->regmap) {
+	if (IS_ERR(chip->regmap)) {
 		dev_err(&client->dev, "parent regmap is missing\n");
-		return -EINVAL;
+		return PTR_ERR(chip->regmap);
+	}
+
+	chip->usb_phy = devm_usb_get_phy_by_phandle(dev, "phys", 0);
+	if (IS_ERR(chip->usb_phy)) {
+		dev_err(dev, "failed to find USB phy\n");
+		return -EPROBE_DEFER;
 	}
 
 	chip->client = client;
@@ -1656,20 +1723,23 @@ static int nu1619_rx_charger_probe(struct i2c_client *client,
 	}
 
 	if (chip->client->irq) {
-		ret = devm_request_threaded_irq(&chip->client->dev,
-						chip->client->irq, NULL,
-						nu1619_rx_chg_stat_handler,
-						(IRQF_TRIGGER_FALLING |
-						 IRQF_TRIGGER_RISING |
-						 IRQF_ONESHOT),
-						"nu1619_rx_chg_stat_irq",
-						chip);
+		ret = devm_request_threaded_irq(&chip->client->dev, chip->client->irq, NULL,
+						nu1619_rx_chg_stat_handler, IRQF_TRIGGER_FALLING |
+						 IRQF_TRIGGER_RISING | IRQF_ONESHOT,
+						"nu1619_rx_chg_stat_irq", chip);
 		if (ret) {
 			dev_err(chip->dev, "Failed irq = %d ret = %d\n", chip->client->irq, ret);
 			goto error_irq;
 		}
 
 		enable_irq_wake(chip->client->irq);
+	}
+
+	chip->usb_notify.notifier_call = nu1619_rx_usb_change;
+	ret = usb_register_notifier(chip->usb_phy, &chip->usb_notify);
+	if (ret) {
+		dev_err(dev, "failed to register notifier:%d\n", ret);
+		goto error_irq;
 	}
 
 	rx1619_kobj = kobject_create_and_add("nu1619_rx", NULL);
@@ -1684,6 +1754,9 @@ static int nu1619_rx_charger_probe(struct i2c_client *client,
 		dev_err(chip->dev, "sysfs_create_group fail %d\n", ret);
 		goto error_sysfs;
 	}
+
+	nu1619_rx_detect_status(chip);
+	g_chip = chip;
 
 	return 0;
 
@@ -1706,6 +1779,7 @@ static int nu1619_rx_charger_remove(struct i2c_client *client)
 
 	cancel_delayed_work_sync(&chip->wireless_work);
 	cancel_delayed_work_sync(&chip->wireless_int_work);
+	regmap_exit(chip->regmap);
 
 	return 0;
 }

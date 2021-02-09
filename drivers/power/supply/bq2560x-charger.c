@@ -12,6 +12,7 @@
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/of.h>
+#include <linux/of_gpio.h>
 #include <linux/of_platform.h>
 #include <linux/platform_device.h>
 #include <linux/power_supply.h>
@@ -85,6 +86,7 @@
 
 #define BQ2560X_FCHG_OVP_6V			6000
 #define BQ2560X_FCHG_OVP_9V			9000
+#define BQ2560X_FCHG_OVP_14V			14000
 #define BQ2560X_FAST_CHARGER_VOLTAGE_MAX	10500000
 #define BQ2560X_NORMAL_CHARGER_VOLTAGE_MAX	6500000
 
@@ -114,6 +116,8 @@ struct bq2560x_charger_info {
 	u32 actual_limit_current;
 	bool otg_enable;
 	struct alarm otg_timer;
+	unsigned int irq_gpio;
+	bool is_wireless_charge;
 };
 
 static int
@@ -561,6 +565,25 @@ static int bq2560x_charger_get_online(struct bq2560x_charger_info *info,
 	return 0;
 }
 
+static void bq2560x_dump_register(struct bq2560x_charger_info *info)
+{
+	int addr, ret, len, idx = 0;
+	u8 reg_val;
+	char buf[256];
+
+	memset(buf, '\0', sizeof(buf));
+	for (addr = 0; addr <= BQ2560X_REG_B; addr++) {
+		ret = bq2560x_read(info, addr, &reg_val);
+		if (ret == 0) {
+			len = snprintf(buf + idx, sizeof(buf) - idx,
+				       "[REG_0x%.2x]=0x%.2x  ", addr, reg_val);
+			idx += len;
+		}
+	}
+
+	dev_info(info->dev, "%s: %s", __func__, buf);
+}
+
 static int bq2560x_charger_feed_watchdog(struct bq2560x_charger_info *info,
 					 u32 val)
 {
@@ -591,6 +614,16 @@ static int bq2560x_charger_feed_watchdog(struct bq2560x_charger_info *info,
 	}
 
 	return 0;
+}
+
+static irqreturn_t bq2560x_int_handler(int irq, void *dev_id)
+{
+	struct bq2560x_charger_info *info = dev_id;
+
+	dev_info(info->dev, "interrupt occurs\n");
+	bq2560x_dump_register(info);
+
+	return IRQ_HANDLED;
 }
 
 static int bq2560x_charger_set_fchg_current(struct bq2560x_charger_info *info,
@@ -733,11 +766,6 @@ static void bq2560x_charger_work(struct work_struct *data)
 		if (ret)
 			goto out;
 
-		ret = bq2560x_charger_start_charge(info);
-		if (ret)
-			goto out;
-
-		info->charging = true;
 	} else if ((!info->limit && info->charging) || !present) {
 		/* Stop charging */
 		info->charging = false;
@@ -784,7 +812,7 @@ static int bq2560x_charger_usb_get_property(struct power_supply *psy,
 
 	switch (psp) {
 	case POWER_SUPPLY_PROP_STATUS:
-		if (info->limit)
+		if (info->limit || info->is_wireless_charge)
 			val->intval = bq2560x_charger_get_status(info);
 		else
 			val->intval = POWER_SUPPLY_STATUS_DISCHARGING;
@@ -927,6 +955,21 @@ static int bq2560x_charger_usb_set_property(struct power_supply *psy,
 			bq2560x_charger_stop_charge(info);
 		}
 		break;
+	case POWER_SUPPLY_PROP_WIRELESS_TYPE:
+		if (val->intval == POWER_SUPPLY_WIRELESS_CHARGER_TYPE_BPP) {
+			info->is_wireless_charge = true;
+			ret = bq2560x_charger_set_ovp(info, BQ2560X_FCHG_OVP_6V);
+		} else if (val->intval == POWER_SUPPLY_WIRELESS_CHARGER_TYPE_EPP) {
+			info->is_wireless_charge = true;
+			ret = bq2560x_charger_set_ovp(info, BQ2560X_FCHG_OVP_14V);
+		} else {
+			info->is_wireless_charge = false;
+			ret = bq2560x_charger_set_ovp(info, BQ2560X_FCHG_OVP_6V);
+		}
+		if (ret)
+			dev_err(info->dev, "failed to set fast charge ovp\n");
+
+		break;
 	default:
 		ret = -EINVAL;
 	}
@@ -943,8 +986,9 @@ static int bq2560x_charger_property_is_writeable(struct power_supply *psy,
 	switch (psp) {
 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT:
 	case POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT:
-	case POWER_SUPPLY_PROP_STATUS:
 	case POWER_SUPPLY_PROP_CHARGE_ENABLED:
+	case POWER_SUPPLY_PROP_WIRELESS_TYPE:
+	case POWER_SUPPLY_PROP_STATUS:
 		ret = 1;
 		break;
 
@@ -974,6 +1018,7 @@ static enum power_supply_property bq2560x_usb_props[] = {
 	POWER_SUPPLY_PROP_HEALTH,
 	POWER_SUPPLY_PROP_USB_TYPE,
 	POWER_SUPPLY_PROP_CHARGE_ENABLED,
+	POWER_SUPPLY_PROP_WIRELESS_TYPE,
 };
 
 static const struct power_supply_desc bq2560x_charger_desc = {
@@ -1235,6 +1280,7 @@ static int bq2560x_charger_probe(struct i2c_client *client,
 	}
 
 	info->usb_phy = devm_usb_get_phy_by_phandle(dev, "phys", 0);
+
 	if (IS_ERR(info->usb_phy)) {
 		dev_err(dev, "failed to find USB phy\n");
 		return PTR_ERR(info->usb_phy);
@@ -1321,6 +1367,34 @@ static int bq2560x_charger_probe(struct i2c_client *client,
 		dev_err(dev, "failed to register power supply\n");
 		return PTR_ERR(info->psy_usb);
 	}
+
+	info->irq_gpio = of_get_named_gpio(info->dev->of_node, "irq-gpio", 0);
+	if (gpio_is_valid(info->irq_gpio)) {
+		ret = devm_gpio_request_one(info->dev, info->irq_gpio,
+					    GPIOF_DIR_IN, "bq2560x_int");
+		if (!ret)
+			info->client->irq = gpio_to_irq(info->irq_gpio);
+		else
+			dev_err(dev, "int request failed, ret = %d\n", ret);
+
+		if (info->client->irq < 0) {
+			dev_err(dev, "failed to get irq no\n");
+			gpio_free(info->irq_gpio);
+		} else {
+			ret = devm_request_threaded_irq(&info->client->dev, info->client->irq,
+							NULL, bq2560x_int_handler,
+							IRQF_TRIGGER_FALLING | IRQF_ONESHOT,
+							"bq2560x interrupt", info);
+			if (ret)
+				dev_err(info->dev, "Failed irq = %d ret = %d\n",
+					info->client->irq, ret);
+			else
+				enable_irq_wake(client->irq);
+		}
+	} else {
+		dev_err(dev, "failed to get irq gpio\n");
+	}
+
 
 	ret = bq2560x_charger_hw_init(info);
 	if (ret) {

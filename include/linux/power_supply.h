@@ -402,6 +402,10 @@ struct power_supply_charge_current {
 	int fchg_cur;
 	int flash_limit;
 	int flash_cur;
+	int wl_bpp_cur;
+	int wl_bpp_limit;
+	int wl_epp_cur;
+	int wl_epp_limit;
 };
 
 #define POWER_SUPPLY_OCV_TEMP_MAX 20
