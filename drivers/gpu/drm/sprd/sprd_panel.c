@@ -733,6 +733,11 @@ static int sprd_oled_set_brightness(struct backlight_device *bdev)
 				oled->cmds[0]->payload[1] = level & 0x00;
 				oled->cmds[0]->payload[2] = level;
 			}
+			else if(strncmp(lcd_name, "lcd_ili7806_tianma_mipi_hd", strlen(lcd_name)) == 0)
+			{
+				oled->cmds[0]->payload[1] = level;
+				oled->cmds[0]->payload[2] = level & 0x00;
+			}
 			else
 			{
 			oled->cmds[0]->payload[1] = (level >> 4) & 0x0f;

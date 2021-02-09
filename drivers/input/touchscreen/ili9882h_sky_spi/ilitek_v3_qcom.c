@@ -697,6 +697,14 @@ static int __init ilitek_plat_dev_init(void)
 	}
 	return 0;
 	}
+	else if(strncmp(lcd_name, "lcd_ili7806_tianma_mipi_hd",strlen(lcd_name)) == 0)
+	{
+		if (ili_dev_init(&hwif) < 0) {
+		ILI_ERR("Failed to register i2c/spi bus driver\n");
+		return -ENODEV;
+	}
+	return 0;
+	}
 	else
 		return 0;
 }

@@ -572,9 +572,9 @@ int ili_sleep_handler(int mode)
 	mutex_unlock(&ilits->touch_mutex);
 	return ret;
 }
-/*
-static const char *lcd_name;
-static int __init lcd_name_get(char *str)
+
+extern const char *lcd_name;
+/*static int __init lcd_name_get(char *str)
 {
         if (str != NULL)
                 lcd_name = str;
@@ -618,6 +618,7 @@ int ili_fw_upgrade_handler(void *data)
 		ili_wq_ctrl(WQ_ESD, ENABLE);
 		ili_wq_ctrl(WQ_BAT, ENABLE);
 	}
+	if(strncmp(lcd_name, "lcd_ili9882h_skyworth_mipi_hd", strlen(lcd_name)) == 0){
 /* yangyuxiang <add LCD and CTP hardware infomation node> start*/
 	ILI_INFO("ilits->chip->fw_ver  = 0x%02x \n",(ilits->chip->fw_ver >> 8) & 0xff);
         snprintf(lcdname, sizeof(lcdname), "skyworth-ili9882h");
@@ -625,6 +626,15 @@ int ili_fw_upgrade_handler(void *data)
     	ILI_INFO("fw_ver = %d\n",fw_ver);
         snprintf(version, sizeof(version),"fw:0x%d VID:0x64",fw_ver);
 /* yangyuxiang <add LCD and CTP hardware infomation node> end*/
+	}
+	else if(strncmp(lcd_name, "lcd_ili7806_tianma_mipi_hd", strlen(lcd_name)) == 0){
+                ILI_INFO("ilits->chip->fw_ver  = 0x%02x \n",(ilits->chip->fw_ver >> 8) & 0xff);
+                snprintf(lcdname, sizeof(lcdname), "tianma-ili7806s");
+                snprintf(vendor_name, sizeof(vendor_name), "tianma-ili7806s");
+                fw_ver = (ilits->chip->fw_ver >> 8) & 0xFF;
+                ILI_INFO("fw_ver = %d\n",fw_ver);
+                snprintf(version, sizeof(version),"fw:0x%d VID:0x64",fw_ver);
+        }
 
 	atomic_set(&ilits->fw_stat, END);
 	return ret;
@@ -945,13 +955,16 @@ int ili_reset_ctrl(int mode)
 	atomic_set(&ilits->tp_reset, END);
 	return ret;
 }
-
 static int ilitek_get_tp_module(void)
 {
 	/*
 	 * TODO: users should implement this function
 	 * if there are various tp modules been used in projects.
 	 */
+	if(strncmp(lcd_name, "lcd_ili7806_tianma_mipi_hd", strlen(lcd_name)) == 0)
+	{
+		return MODEL_TM1;
+	}
 
 	return 0;
 }
@@ -1025,6 +1038,15 @@ static void ili_update_tp_module_info(void)
 		ilits->md_ini_rq_path = TM_INI_REQUEST_PATH;
 		ilits->md_fw_ili = CTPM_FW_TM;
 		ilits->md_fw_ili_size = sizeof(CTPM_FW_TM);
+		break;
+	case MODEL_TM1:
+		ilits->md_name = "TM1";
+		ilits->md_fw_filp_path = TM_FW_FILP_PATH1;
+		ilits->md_fw_rq_path = TM_FW_REQUEST_PATH1;
+		ilits->md_ini_path = TM_INI_NAME_PATH1;
+		ilits->md_ini_rq_path = TM_INI_REQUEST_PATH1;
+		ilits->md_fw_ili = CTPM_FW_TM1;
+		ilits->md_fw_ili_size = sizeof(CTPM_FW_TM1);
 		break;
 	default:
 		break;
