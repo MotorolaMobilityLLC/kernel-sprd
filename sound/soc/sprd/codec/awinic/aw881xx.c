@@ -66,8 +66,7 @@ static unsigned int g_aw881xx_dev_cnt;
 static unsigned int g_fade_in_time = AW_1000_US / 10;
 static unsigned int g_fade_out_time = AW_1000_US >> 1;
 static unsigned int g_fade_step = AW_VOLUME_STEP_DB;
-
-
+static unsigned int g_start_work_delay = AW881XX_START_WORK_DELAY_MS;
 
 static char *profile_name[AW_PROFILE_MAX] = {"Music", "Voice", "Voip", "Ringtone", "Ringtone_hs", "Lowpower",
 						"Bypass", "Mmi", "Fm", "Notification", "Receiver"};
@@ -937,48 +936,111 @@ static int aw881xx_get_vmax(struct aw881xx *aw881xx, uint16_t *vmax_val)
 	return 0;
 }
 
+static int aw881xx_mode1_pll_check(struct aw881xx *aw881xx)
+{
+	int ret = -1;
+	uint16_t iis_check_max = 5;
+	uint16_t i = 0;
+
+	for (i = 0; i < iis_check_max; i++) {
+		ret = aw881xx_get_iis_status(aw881xx);
+		if (ret < 0) {
+			aw_dev_err(aw881xx->dev,
+					"%s: mode1 iis signal check error, reg=0x%x\n", __func__);
+			msleep(2);
+		} else {
+			return 0;
+		}
+	}
+
+	return ret;
+}
+
+static int aw881xx_mode2_pll_check(struct aw881xx *aw881xx)
+{
+	int ret = -1;
+	uint16_t iis_check_max = 5;
+	uint16_t i = 0;
+
+	/* change mode2 */
+	aw881xx_reg_write_bits(aw881xx, AW881XX_REG_PLLCTRL1,
+		AW881XX_I2S_CCO_MUX_MASK, AW881XX_I2S_CCO_MUX_8_16_32KHZ_VALUE);
+
+	for (i = 0; i < iis_check_max; i++) {
+		ret = aw881xx_get_iis_status(aw881xx);
+		if (ret < 0) {
+			aw_dev_err(aw881xx->dev,
+					"%s: mode2 iis signal check error\n", __func__);
+			msleep(2);
+		} else {
+			break;
+		}
+	}
+
+	/* change mode1*/
+	aw881xx_reg_write_bits(aw881xx, AW881XX_REG_PLLCTRL1,
+		AW881XX_I2S_CCO_MUX_MASK, AW881XX_I2S_CCO_MUX_EXC_8_16_32KHZ_VALUE);
+
+	if (ret == 0) {
+		msleep(2);
+		for (i = 0; i < iis_check_max; i++) {
+			ret = aw881xx_get_iis_status(aw881xx);
+			if (ret < 0) {
+				aw_dev_err(aw881xx->dev,
+						"%s: mode2 switch to mode1, iis signal check error\n", __func__);
+				msleep(2);
+			} else {
+				break;
+			}
+		}
+	}
+
+	return ret;
+}
 static int aw881xx_dsp_check(struct aw881xx *aw881xx)
 {
 	int ret = -1;
-	uint16_t reg_val = 0;
-	uint16_t iis_check_max = 5;
-	uint16_t i = 0;
 
 	aw_dev_dbg(aw881xx->dev, "%s: enter\n", __func__);
 
 	aw881xx_run_pwd(aw881xx, false);
 	usleep_range(AW_2000_US, AW_2000_US + 100);
 	aw881xx_memclk_select(aw881xx, AW881XX_MEMCLK_PLL);
-	for (i = 0; i < iis_check_max; i++) {
-		ret = aw881xx_get_iis_status(aw881xx);
+
+	/*PLL check*/
+	ret = aw881xx_mode1_pll_check(aw881xx);
+	if (ret < 0) {
+		aw_dev_info(aw881xx->dev,
+			"%s: mode1 check iis failed try switch to mode2 check\n", __func__);
+		ret= aw881xx_mode2_pll_check(aw881xx);
 		if (ret < 0) {
 			aw_dev_err(aw881xx->dev,
-					"%s: iis signal check error, reg=0x%x\n",
-					__func__, reg_val);
-			msleep(2);
-		} else {
-			if (aw881xx->dsp_cfg == AW881XX_DSP_WORK) {
-				aw881xx_dsp_enable(aw881xx, false);
-				aw881xx_dsp_update_cali_re(aw881xx);
-				aw881xx_dsp_enable(aw881xx, true);
-				msleep(1);
-				ret = aw881xx_get_dsp_status(aw881xx);
-				if (ret < 0) {
-					aw_dev_err(aw881xx->dev,
-							"%s: dsp wdt status error=%d\n",
-							__func__, ret);
-				} else {
-					return 0;
-				}
-			} else if (aw881xx->dsp_cfg == AW881XX_DSP_BYPASS) {
-				return 0;
-			} else {
-				aw_dev_err(aw881xx->dev, "%s: unknown dsp cfg=%d\n",
-						__func__, aw881xx->dsp_cfg);
-				goto error;
-			}
+				"%s: mode2 check iis failed \n", __func__);
+			goto error;
 		}
 	}
+
+	/*PLL success, check dsp status*/
+	if (aw881xx->dsp_cfg == AW881XX_DSP_WORK) {
+		aw881xx_dsp_enable(aw881xx, false);
+		aw881xx_dsp_update_cali_re(aw881xx);
+		aw881xx_dsp_enable(aw881xx, true);
+		msleep(1);
+		ret = aw881xx_get_dsp_status(aw881xx);
+		if (ret < 0) {
+			aw_dev_err(aw881xx->dev,
+					"%s: dsp wdt status error=%d\n",
+					__func__, ret);
+		} else {
+			return 0;
+		}
+	} else if (aw881xx->dsp_cfg == AW881XX_DSP_BYPASS) {
+		return 0;
+	} else {
+		aw_dev_err(aw881xx->dev, "%s: unknown dsp cfg=%d\n",
+				__func__, aw881xx->dsp_cfg);
+	}
+
 error:
 	aw881xx_run_mute(aw881xx, true);
 	aw881xx_run_pwd(aw881xx, true);
@@ -1371,7 +1433,7 @@ static void aw881xx_start(struct aw881xx *aw881xx)
 
 	queue_delayed_work(aw881xx->work_queue,
 			&aw881xx->start_work,
-			msecs_to_jiffies(AW881XX_START_WORK_DELAY_MS));
+			msecs_to_jiffies(g_start_work_delay));
 }
 
 static int aw881xx_dsp_cfg_update_when_stop(struct aw881xx *aw881xx)
@@ -3709,7 +3771,34 @@ static ssize_t aw881xx_fade_enable_show(struct device *dev,
 	return len;
 }
 
+static ssize_t aw881xx_delay_work_ms_store(struct device *dev,
+	struct device_attribute *attr, const char *buf, size_t count)
+{
+	struct aw881xx *aw881xx = dev_get_drvdata(dev);
+	uint32_t delay_ms;
 
+	if (1 == sscanf(buf, "%u", &delay_ms))
+		g_start_work_delay = delay_ms;
+
+	aw_dev_info(aw881xx->dev, "%s: g_start_work_delay %d\n",
+		__func__, g_start_work_delay);
+
+	return count;
+}
+
+static ssize_t aw881xx_delay_work_ms_show(struct device *dev,
+	struct device_attribute *attr, char *buf)
+{
+	struct aw881xx *aw881xx = dev_get_drvdata(dev);
+	ssize_t len = 0;
+
+	aw_dev_info(aw881xx->dev, "%s: g_start_work_delay %d\n",
+		__func__, g_start_work_delay);
+	len += snprintf(buf+len, PAGE_SIZE-len,
+		"g_start_work_delay: %u\n", g_start_work_delay);
+
+	return len;
+}
 
 static DEVICE_ATTR(reg, S_IWUSR | S_IRUGO,
 			aw881xx_reg_show, aw881xx_reg_store);
@@ -3727,7 +3816,8 @@ static DEVICE_ATTR(driver_ver, S_IRUGO,
 			aw881xx_diver_ver_show, NULL);
 static DEVICE_ATTR(fade_en, S_IWUSR | S_IRUGO,
 	aw881xx_fade_enable_show, aw881xx_fade_enable_store);
-
+static DEVICE_ATTR(delay_ms, S_IWUSR | S_IRUGO,
+	aw881xx_delay_work_ms_show, aw881xx_delay_work_ms_store);
 
 static struct attribute *aw881xx_attributes[] = {
 	&dev_attr_reg.attr,
@@ -3738,6 +3828,7 @@ static struct attribute *aw881xx_attributes[] = {
 	&dev_attr_spk_temp.attr,
 	&dev_attr_driver_ver.attr,
 	&dev_attr_fade_en.attr,
+	&dev_attr_delay_ms.attr,
 	NULL
 };
 

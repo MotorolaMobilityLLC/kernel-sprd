@@ -384,12 +384,28 @@ static int aw881xx_monitor_check_sysint(struct aw881xx *aw881xx)
 	return ret;
 }
 
+void aw881xx_monitor_get_spk_temp(struct aw881xx *aw881xx)
+{
+	int16_t reg_val;
+
+	if (aw881xx != NULL) {
+		if (aw881xx_reg_read(aw881xx, AW881XX_REG_ASR2, (uint16_t *)&reg_val) < 0)
+			aw_dev_err(aw881xx->dev, "%s: read addr:0x%x failed\n",
+						__func__, AW881XX_REG_ASR2);
+		else if (reg_val >= 50)
+			aw_dev_err(aw881xx->dev, "%s: speaker temp is %d\n",
+				__func__, reg_val);
+	}
+}
+
 static int aw881xx_monitor_work(struct aw881xx *aw881xx)
 {
 	int ret = -1;
 	struct aw881xx_monitor *monitor = &aw881xx->monitor;
 	struct aw_monitor_cfg *monitor_cfg = &monitor->monitor_cfg;
 	struct aw_table set_table;
+
+	aw881xx_monitor_get_spk_temp(aw881xx);
 
 	ret = aw881xx_monitor_get_temp_and_vol(aw881xx);
 	if (ret < 0)
