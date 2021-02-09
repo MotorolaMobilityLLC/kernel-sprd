@@ -6,6 +6,7 @@
 #include <linux/of.h>
 #include <linux/of_address.h>
 #include <linux/seqlock.h>
+#include <linux/spinlock.h>
 #include <linux/timer.h>
 #include <linux/timekeeping.h>
 #include <linux/soc/sprd/sprd_systimer.h>
@@ -22,12 +23,17 @@
 
 #define DEFAULT_TIMEVALE_MS (1000 * 60 * 10) //10min
 
+#undef pr_fmt
+#define pr_fmt(fmt) "sprd_systimer: " fmt
+
 static struct cnter_to_boottime cnter_to_boottime;
 
 static void __iomem *sprd_systimer_addr_base;
 static void __iomem *sprd_sysfrt_addr_base;
 
 static struct hrtimer cnt_to_boot_timer;
+
+static DEFINE_SPINLOCK(sprd_systimer_lock);
 
 static seqcount_t systimer_seq;
 
@@ -67,6 +73,8 @@ u64 sprd_systimer_to_boottime(u64 counter, int src)
 			boottime = cnter_to_boottime.last_boottime +
 				((delta * cnter_to_boottime.sysfrt_mult) >> cnter_to_boottime.sysfrt_shift);
 		} while (read_seqcount_retry(&systimer_seq, seq));
+	} else {
+		pr_err("input src error.\n");
 	}
 
 	return boottime;
@@ -102,11 +110,15 @@ EXPORT_SYMBOL(sprd_sysfrt_read);
 
 static enum hrtimer_restart sync_cnter_boottime(struct hrtimer *hr)
 {
+	unsigned long flags;
+
 	write_seqcount_begin(&systimer_seq);
 
+	spin_lock_irqsave(&sprd_systimer_lock, flags);
 	cnter_to_boottime.last_boottime = ktime_get_boot_fast_ns();
 	cnter_to_boottime.last_systimer_counter = sprd_systimer_read();
 	cnter_to_boottime.last_sysfrt_counter = sprd_sysfrt_read();
+	spin_unlock_irqrestore(&sprd_systimer_lock, flags);
 
 	write_seqcount_end(&systimer_seq);
 
@@ -118,6 +130,7 @@ static enum hrtimer_restart sync_cnter_boottime(struct hrtimer *hr)
 static int __init sprd_systimer_init(void)
 {
 	struct device_node *np;
+	unsigned long flags;
 
 	np = of_find_compatible_node(NULL, NULL, "sprd,syst-timer");
 	if (np) {
@@ -126,7 +139,7 @@ static int __init sprd_systimer_init(void)
 			clocks_calc_mult_shift(&(cnter_to_boottime.systimer_mult),
 				&(cnter_to_boottime.systimer_shift), 1000, NSEC_PER_SEC, 10);
 		} else {
-			pr_err("sprd_systimer: Can't map sprd systimer reg!\n");
+			pr_err("Can't map sprd systimer reg!\n");
 		}
 	}
 
@@ -137,17 +150,19 @@ static int __init sprd_systimer_init(void)
 			clocks_calc_mult_shift(&(cnter_to_boottime.sysfrt_mult),
 				&(cnter_to_boottime.sysfrt_shift), 32768, NSEC_PER_SEC, 10);
 		} else {
-			pr_err("sprd_systimer: Can't map sprd sysfrt reg!\n");
+			pr_err("Can't map sprd sysfrt reg!\n");
 		}
 	}
 
 	if (!sprd_systimer_addr_base && !sprd_sysfrt_addr_base)
 		return -ENOMEM;
 
+	spin_lock_irqsave(&sprd_systimer_lock, flags);
 	/* init the base value */
 	cnter_to_boottime.last_boottime = ktime_get_boot_fast_ns();
 	cnter_to_boottime.last_systimer_counter = sprd_systimer_read();
 	cnter_to_boottime.last_sysfrt_counter = sprd_sysfrt_read();
+	spin_unlock_irqrestore(&sprd_systimer_lock, flags);
 
 	hrtimer_init(&cnt_to_boot_timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
 	cnt_to_boot_timer.function = sync_cnter_boottime;
