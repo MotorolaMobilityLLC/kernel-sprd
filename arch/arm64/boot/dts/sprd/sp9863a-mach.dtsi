@@ -44,6 +44,10 @@
 		interrupt-controller;
 	};
 
+	sprd-sensorhub {
+		compatible = "sprd,sharkl3-sensorhub", "sprd,sensor-hub";
+	};
+
 	trusty {
 		compatible = "sprd,trusty-smc-v1";
 
