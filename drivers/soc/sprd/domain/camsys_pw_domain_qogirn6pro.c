@@ -39,10 +39,6 @@
 #define PD_ISP_STATUS_SHIFT_BIT    16
 #define PD_DCAM_STATUS_SHIFT_BIT   0
 
-#define AON_APB_AHB_EN             0x64900000
-#define MM_AHB_SYS_EN              0x30000000
-#define PW_ON_HAPS
-
 static const char * const syscon_name[] = {
 	"force_shutdown",
 	"shutdown_en",
@@ -81,12 +77,6 @@ struct camsys_power_info {
 	atomic_t inited;
 	struct mutex mlock;
 
-#ifdef PW_ON_HAPS
-	uint32_t mm_eb;
-	uint32_t mm_mtx_data_en;
-	uint32_t dvfs_en;
-	uint32_t ckg_en;
-#else
 	struct clk *mm_eb;
 	struct clk *mm_mtx_data_en;
 	struct clk *ckg_en;
@@ -94,39 +84,11 @@ struct camsys_power_info {
 	struct clk *mm_mtx_clk;
 	struct clk *mm_mtx_clk_parent;
 	struct clk *mm_mtx_clk_defalut;
-#endif
 	struct register_gpr regs[ARRAY_SIZE(syscon_name)];
 };
 
 static struct camsys_power_info *pw_info;
 
-#ifdef PW_ON_HAPS
-static void reg_awr(unsigned int addr, unsigned int val)
-{
-	void __iomem *io_tmp = NULL;
-	unsigned int tmp;
-
-	io_tmp = ioremap_nocache(addr, 0x4);
-	tmp = __raw_readl(io_tmp);
-	__raw_writel(tmp&val, io_tmp);
-	mb();/* asm/barrier.h */
-	val = __raw_readl(io_tmp);
-	iounmap(io_tmp);
-}
-
-static void reg_owr(unsigned int addr, unsigned int val)
-{
-	void __iomem *io_tmp = NULL;
-	unsigned int tmp;
-
-	io_tmp = ioremap_nocache(addr, 0x4);
-	tmp = *(volatile u32*)(io_tmp);
-	*(volatile u32*)(io_tmp) = tmp|val;
-	mb();/* asm/barrier.h */
-	val = __raw_readl(io_tmp);
-	iounmap(io_tmp);
-}
-#endif
 static void regmap_update_bits_mmsys(struct register_gpr *p, uint32_t val)
 {
 	if ((!p) || (!(p->gpr)))
@@ -172,15 +134,6 @@ static int sprd_campw_init(struct platform_device *pdev)
 	if (!pw_info)
 		return -ENOMEM;
 
-#ifdef PW_ON_HAPS
-	pw_info->mm_eb = 0x200;
-
-	pw_info->mm_mtx_data_en = 0x100;
-
-	pw_info->dvfs_en = 0x8;
-
-	pw_info->ckg_en = 0x2;
-#else
 	pw_info->mm_eb = of_clk_get_by_name(np, "clk_mm_eb");
 	if (IS_ERR_OR_NULL(pw_info->mm_eb))
 		return PTR_ERR(pw_info->mm_eb);
@@ -201,7 +154,6 @@ static int sprd_campw_init(struct platform_device *pdev)
 	if (IS_ERR_OR_NULL(pw_info->mm_mtx_clk_parent))
 		return PTR_ERR(pw_info->mm_mtx_clk_parent);
 
-#endif
 	/* read global register */
 	for (i = 0; i < ARRAY_SIZE(syscon_name); i++) {
 		pname = syscon_name[i];
@@ -404,6 +356,9 @@ int sprd_cam_pw_off(void)
 		return -ENODEV;
 	}
 
+	pr_info("power off state %d, cb %p\n",
+		atomic_read(&pw_info->users_pw),
+		__builtin_return_address(0));
 	mutex_lock(&pw_info->mlock);
 	if (atomic_dec_return(&pw_info->users_pw) == 0) {
 
@@ -631,6 +586,10 @@ int sprd_cam_pw_on(void)
 		return -ENODEV;
 	}
 
+	pr_info("power on state %d, cb %p\n",
+		atomic_read(&pw_info->users_pw),
+		__builtin_return_address(0));
+
 	mutex_lock(&pw_info->mlock);
 	if (atomic_inc_return(&pw_info->users_pw) == 1) {
 		/* cam domain power on */
@@ -707,22 +666,11 @@ int sprd_cam_domain_eb(void)
 	mutex_lock(&pw_info->mlock);
 	if (atomic_inc_return(&pw_info->users_clk) == 1) {
 		/* config cam emc clk */
-#ifdef PW_ON_HAPS
-
-		reg_owr(AON_APB_AHB_EN, pw_info->mm_eb);
-
-		/* mm bus enable */
-		reg_owr(MM_AHB_SYS_EN, pw_info->mm_mtx_data_en);
-		reg_owr(MM_AHB_SYS_EN, pw_info->dvfs_en);
-
-		reg_owr(MM_AHB_SYS_EN, pw_info->ckg_en);
-#else
 		clk_prepare_enable(pw_info->mm_eb);
 		clk_prepare_enable(pw_info->ckg_en);
 		clk_set_parent(pw_info->mm_mtx_clk, pw_info->mm_mtx_clk_parent);
 		clk_prepare_enable(pw_info->mm_mtx_clk);
 		clk_prepare_enable(pw_info->mm_mtx_data_en);
-#endif
 	}
 	mutex_unlock(&pw_info->mlock);
 
@@ -748,20 +696,11 @@ int sprd_cam_domain_disable(void)
 	mutex_lock(&pw_info->mlock);
 	if (atomic_dec_return(&pw_info->users_clk) == 0) {
 		/* mm bus enable */
-#ifdef PW_ON_HAPS
-
-		reg_awr(MM_AHB_SYS_EN, ~pw_info->mm_mtx_data_en);
-		reg_awr(MM_AHB_SYS_EN, ~pw_info->dvfs_en);
-
-		reg_awr(MM_AHB_SYS_EN, ~pw_info->ckg_en);
-		reg_awr(AON_APB_AHB_EN, ~pw_info->mm_eb);
-#else
 		clk_set_parent(pw_info->mm_mtx_clk, pw_info->mm_mtx_clk_parent);
 		clk_disable_unprepare(pw_info->mm_mtx_clk);
 		clk_disable_unprepare(pw_info->mm_mtx_data_en);
 		clk_disable_unprepare(pw_info->ckg_en);
 		clk_disable_unprepare(pw_info->mm_eb);
-#endif
 	}
 	mutex_unlock(&pw_info->mlock);
 
