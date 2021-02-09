@@ -416,23 +416,26 @@ static int sc27xx_pd_set_vconn(struct tcpc_dev *tcpc, bool enable)
 {
 	struct sc27xx_pd *pd = tcpc_to_sc27xx_pd(tcpc);
 	int ret = 0;
-	u32 mask;
+
+	if (!pd->vconn) {
+		dev_warn(pd->dev, "vconn NULL!!!\n");
+		return -EINVAL;
+	}
 
 	mutex_lock(&pd->lock);
+
 	if (pd->vconn_on == enable) {
 		dev_info(pd->dev, "vconn already %s\n", enable ? "On" : "Off");
 		goto unlock;
 	}
 
-	mask = ((pd->cc_polarity == TYPEC_POLARITY_CC1) ?
-		SC27XX_TYPEC_SW_SWITCH(0x3) : SC27XX_TYPEC_SW_SWITCH(0x2));
-
 	if (enable)
 		ret = regulator_enable(pd->vconn);
 	else
-		regulator_disable(pd->vconn);
+		ret = regulator_disable(pd->vconn);
 
-	pd->vconn_on = enable;
+	if (!ret)
+		pd->vconn_on = enable;
 
 unlock:
 	mutex_unlock(&pd->lock);
@@ -1401,6 +1404,7 @@ static int sc27xx_pd_probe(struct platform_device *pdev)
 		ret = PTR_ERR(pd->vconn);
 		if (ret == -ENODEV) {
 			dev_warn(pd->dev, "unable to get vddldo supply\n");
+			pd->vconn = NULL;
 		} else {
 			dev_err(pd->dev, "failed to get vddldo supply\n");
 			return ret;
