@@ -660,22 +660,34 @@ config CHARGER_SC2720
 	tristate "Spreadtrum SC2720 charger driver"
 	depends on MFD_SC27XX_PMIC || COMPILE_TEST
 	help
-	 Say Y here to enable support for battery charging with SC2720
-	 PMIC chips.
+	  Say Y here to enable support for battery charging with SC2720
+	  PMIC chips.
 
 config CHARGER_SC2721
 	tristate "Spreadtrum SC2721 charger driver"
 	depends on MFD_SC27XX_PMIC || COMPILE_TEST
 	help
-	 Say Y here to enable support for battery charging with SC2721
-	 PMIC chips.
+	  Say Y here to enable support for battery charging with SC2721
+	  PMIC chips.
+
+config WIRELESS_CHARGER_NU1619
+	tristate "NU1619 Wireless Charger"
+	depends on I2C || COMPILE_TEST
+	help
+	  Say Y to include support for NoVolta NU619 Wireless charger.
+
+config WIRELESS_CHARGE_PUMPS_CONVERTER_HL1506
+	tristate "Halo wireless charge pump converter hl1506"
+	depends on I2C || COMPILE_TEST
+	help
+	  Say Y to include support for Halo hl1506 wireless charge pump converter.
 
 config FUEL_GAUGE_SC27XX
 	tristate "Spreadtrum SC27XX fuel gauge driver"
 	depends on MFD_SC27XX_PMIC || MFD_UMP96XX_PMIC || COMPILE_TEST
 	help
-	 Say Y here to enable support for fuel gauge with SC27XX
-	 PMIC chips.
+	  Say Y here to enable support for fuel gauge with SC27XX
+	  PMIC chips.
 
 config FAST_CHARGER_SC2730
 	tristate "Spreadtrum SC2730 fast charger driver"

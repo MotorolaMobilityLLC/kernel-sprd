@@ -15851,6 +15851,24 @@ CONFIG_WIRELESS
 	[must] user
 	[missing plat description] none
 	[function] wireless support
+CONFIG_WIRELESS_CHARGER_NU1619
+	[arch] arm64
+	[plat] qogirl6
+	[missing plat] sharkl3,sharkl5,sharkl5Pro,pike2,sharkle,roc1
+	[field] make
+	[subsys] power supply
+	[must] user
+	[missing plat description] sharkl3,sharkl5,sharkl5pro,pike2,sharkle,roc1
+	[function] wireless charge
+CONFIG_WIRELESS_CHARGE_PUMPS_CONVERTER_HL1506
+	[arch] arm64
+	[plat] qogirl6
+	[missing plat] sharkl3,sharkl5,sharkl5Pro,pike2,sharkle,roc1
+	[field] make
+	[subsys] power supply
+	[must] user
+	[missing plat description] sharkl3,sharkl5,sharkl5pro,pike2,sharkle,roc1
+	[function] wireless charge
 CONFIG_WLAN
 	[arch] all
 	[plat] all
