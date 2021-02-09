@@ -1075,6 +1075,7 @@
 				compatible = "sprd,qogirn6pro-pamu3";
 				clocks = <&ipaapb_gate CLK_PAM_USB_EB>;
 				clock-names = "pamu3_clk";
+				power-domains = <&pd_ipa_sys>;
 				reg = <0 0x25210000 0 0x10000>,
 					<0 0x25100000 0 0x100000>;
 				reg-names = "pamu3_glb_regs",
@@ -1085,6 +1086,7 @@
 				compatible = "sprd,qogirn6pro-ssphy";
 				reg = <0 0x25310000 0 0x10000>;
 				reg-names = "phy_glb_regs";
+				power-domains = <&pd_ipa_sys>;
 				sprd,syscon-aon-apb = <&aon_apb_regs>;
 				sprd,syscon-ana-g0l = <&anlg_phy_g0l_regs>;
 				sprd,syscon-ipa-apb = <&ipa_apb_regs>;
