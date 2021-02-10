@@ -9,6 +9,7 @@
 #include <dt-bindings/gpio/gpio.h>
 #include "sc9863a.dtsi"
 #include "sc2721.dtsi"
+#include "sprd-sound-sharkl.dtsi"
 #include "sp9863a-mach.dtsi"
 #include "lcd/lcd_nt35695_truly_mipi_fhd.dtsi"
 #include "lcd/lcd_nt35532_truly_mipi_fhd.dtsi"
@@ -351,5 +352,26 @@
 
 &usb {
 	extcon = <&extcon_gpio>;
+	status = "okay";
+};
+
+&i2s0 {
+	status = "okay";
+};
+
+&sprd_audio_codec_ana {
+	status = "okay";
+	digital-codec = <&sprd_audio_codec_dig>;
+};
+
+&sprd_headset {
+	status = "okay";
+};
+
+&sound_vbc_r1p0v3_sprd_codec {
+	status = "okay";
+};
+
+&sound_sprd_ap_alliis {
 	status = "okay";
 };

@@ -145,8 +145,8 @@
 		};
 
 		sprd_audio_codec_ana: audio-codec@700 {
-			compatible = "sprd,sc2721-audio-codec",
-				"sprd,sc2731-audio-codec";
+			compatible = "unisoc,sc2721-audio-codec",
+				"unisoc,sc2731-audio-codec";
 			#sound-dai-cells = <1>;
 			reg = <0x700>;
 			interrupts = <6>;
