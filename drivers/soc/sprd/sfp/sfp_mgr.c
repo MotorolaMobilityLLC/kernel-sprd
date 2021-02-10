@@ -129,6 +129,13 @@ static bool is_filter_port(u8 l4proto, u16 src_port, u16 dst_port)
 	return false;
 }
 
+/* When sfp_ct is created, the default value of sfp_ct->used is 2,
+ * because sfp_ct is associated with tuplehash[IP_CT_DIR_ORIGINAL]
+ * and tuplehash[IP_CT_DIR_REPLY]. The value of sfp_ct->used is 1,
+ * when we delete tuplehash[IP_CT_DIR_ORIGINAL], so it will delete
+ * sfp_ct timer before free sfp_ct. When the value becomes 0, sfp_ct
+ * will be freed.
+ */
 static void sfp_mgr_fwd_entry_free(struct rcu_head *head)
 {
 	struct sfp_mgr_fwd_tuple_hash *sfp_hash;
@@ -139,6 +146,8 @@ static void sfp_mgr_fwd_entry_free(struct rcu_head *head)
 	if (sfp_ct && refcount_dec_and_test(&sfp_ct->used)) {
 		FP_PRT_DBG(FP_PRT_WARN, "sfp_ct free %p\n", sfp_ct);
 		kfree(sfp_ct);
+	} else if (sfp_ct) {
+		del_timer(&sfp_ct->timeout);
 	}
 }
 
