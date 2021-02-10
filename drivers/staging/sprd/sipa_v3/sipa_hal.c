@@ -885,12 +885,14 @@ void sipa_hal_resume_glb_reg_cfg(struct device *dev)
 	ipa->glb_ops.set_work_mode(glb_base, ipa->is_bypass);
 
 	ipa->glb_ops.enable_def_interrupt_src(glb_base);
-	//ipa->glb_ops.map_multi_fifo_mode_en(glb_base, true);
+	ipa->glb_ops.map_multi_fifo_mode_en(glb_base, true);
 	ipa->glb_ops.set_map_fifo_cnt(glb_base, SIPA_RECV_QUEUES_MAX);
 	ipa->glb_ops.map_fifo_sel_mode(glb_base, true);
 	ipa->glb_ops.out_map_en(glb_base, 0xff);
 	ipa->glb_ops.ctrl_def_hash_en(glb_base);
 	ipa->glb_ops.ctrl_def_chksum_en(glb_base);
+	ipa->glb_ops.input_filter_en(glb_base, true);
+	ipa->glb_ops.output_filter_en(glb_base, true);
 }
 
 u32 sipa_multi_int_callback_func(int irq, void *cookie)
@@ -898,15 +900,31 @@ u32 sipa_multi_int_callback_func(int irq, void *cookie)
 	struct sipa_plat_drv_cfg *ipa = cookie;
 
 	ipa->fifo_ops.traverse_int_bit(SIPA_FIFO_MAP_IN, ipa->cmn_fifo_cfg);
-	ipa->fifo_ops.traverse_int_bit(SIPA_FIFO_MAP0_OUT, ipa->cmn_fifo_cfg);
-	ipa->fifo_ops.traverse_int_bit(SIPA_FIFO_MAP1_OUT, ipa->cmn_fifo_cfg);
-	ipa->fifo_ops.traverse_int_bit(SIPA_FIFO_MAP2_OUT, ipa->cmn_fifo_cfg);
-	ipa->fifo_ops.traverse_int_bit(SIPA_FIFO_MAP3_OUT, ipa->cmn_fifo_cfg);
+	switch (smp_processor_id()) {
+	case 0:
+		ipa->fifo_ops.traverse_int_bit(SIPA_FIFO_MAP0_OUT,
+					       ipa->cmn_fifo_cfg);
+		break;
+	case 1:
+		ipa->fifo_ops.traverse_int_bit(SIPA_FIFO_MAP1_OUT,
+					       ipa->cmn_fifo_cfg);
+		break;
+	case 2:
+		ipa->fifo_ops.traverse_int_bit(SIPA_FIFO_MAP2_OUT,
+					       ipa->cmn_fifo_cfg);
+		break;
+	case 3:
+		ipa->fifo_ops.traverse_int_bit(SIPA_FIFO_MAP3_OUT,
+					       ipa->cmn_fifo_cfg);
+		break;
+	default:
+		break;
+	}
 
 	if (ipa->dev->power.wakeup->active)
 		pm_wakeup_dev_event(ipa->dev, 500, true);
 
-	return 0;
+	return IRQ_HANDLED;
 }
 
 /**
