@@ -25,7 +25,7 @@
 #include <linux/of.h>
 #include <linux/of_platform.h>
 #include <linux/platform_device.h>
-#include <linux/power/sc2730-usb-charger.h>
+#include <linux/power/ump9620-usb-charger.h>
 #include <linux/regmap.h>
 #include <linux/regulator/consumer.h>
 #include <linux/usb/phy.h>
@@ -579,7 +579,7 @@ static int sprd_ssphy_probe(struct platform_device *pdev)
 	if (!phy)
 		return -ENOMEM;
 
-	regmap_np = of_find_compatible_node(NULL, NULL, "sprd,sc27xx-syscon");
+	regmap_np = of_find_compatible_node(NULL, NULL, "sprd,ump962x-syscon");
 	if (!regmap_np) {
 		dev_warn(dev, "unable to get syscon node\n");
 	} else {
