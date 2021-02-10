@@ -315,6 +315,13 @@ static int sipa_dummy_rx_poll(struct napi_struct *napi, int budget)
 	sipa_fill_free_fifo();
 	napi_complete(napi);
 
+	if (!sipa_nic_check_recv_queue_empty()) {
+		/* not empty again, need re-schedule,
+		 * otherwise might stop rcv in a low possibility
+		 */
+		napi_reschedule(napi);
+	}
+
 	return pkts;
 }
 
