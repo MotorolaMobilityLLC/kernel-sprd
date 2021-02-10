@@ -396,7 +396,6 @@ int sipa_receiver_prepare_suspend(struct sipa_skb_receiver *receiver)
 		dev_err(receiver->dev, "sipa recv fifo %d tx fifo is not empty\n",
 			receiver->ep->recv_fifo.idx);
 		atomic_set(&receiver->check_suspend, 0);
-		sipa_dummy_recv_trigger(smp_processor_id());
 		return -EAGAIN;
 	}
 
@@ -408,9 +407,6 @@ int sipa_receiver_prepare_suspend(struct sipa_skb_receiver *receiver)
 int sipa_receiver_prepare_resume(struct sipa_skb_receiver *receiver)
 {
 	atomic_set(&receiver->check_suspend, 0);
-	if (!sipa_hal_get_tx_fifo_empty_status(receiver->dev,
-					       receiver->ep->recv_fifo.idx))
-		sipa_dummy_recv_trigger(smp_processor_id());
 
 	return sipa_hal_cmn_fifo_stop_recv(receiver->dev,
 					   receiver->ep->recv_fifo.idx,
