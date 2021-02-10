@@ -259,6 +259,7 @@ static bool dwc3_sprd_is_connect_host(struct dwc3_sprd *sdwc)
 	struct usb_phy *usb_phy = sdwc->ss_phy;
 	enum usb_charger_type type = usb_phy->charger_detect(usb_phy);
 
+	dev_info(sdwc->dev, "charger type:0x%x\n", type);
 	if (type == SDP_TYPE || type == CDP_TYPE)
 		return true;
 	return false;
