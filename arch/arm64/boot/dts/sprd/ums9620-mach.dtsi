@@ -172,10 +172,6 @@
 	status = "okay";
 };
 
-&pmic_typec {
-	status = "okay";
-};
-
 &hsphy {
 	vdd-supply = <&vddusb33>;
 	extcon = <&extcon_gpio>;
