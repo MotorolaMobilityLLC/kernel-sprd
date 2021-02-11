@@ -113,6 +113,10 @@ static int ufs_sprd_init(struct ufs_hba *hba)
 	struct ufs_sprd_host *host;
 	int ret = 0;
 
+#if IS_ENABLED(CONFIG_SCSI_UFS_CRYPTO)
+	struct sprd_sip_svc_handle *svc_handle;
+#endif
+
 	host = devm_kzalloc(dev, sizeof(*host), GFP_KERNEL);
 	if (!host)
 		return -ENOMEM;
@@ -160,6 +164,34 @@ static int ufs_sprd_init(struct ufs_hba *hba)
 			   host->aon_apb_ufs_clk_en.reg,
 			   host->aon_apb_ufs_clk_en.mask,
 			   0);
+
+#if IS_ENABLED(CONFIG_SCSI_UFS_CRYPTO)
+	regmap_update_bits(host->ap_ahb_ufs_rst.regmap,
+					  host->ap_ahb_ufs_rst.reg,
+					  host->ap_ahb_ufs_rst.mask,
+					  host->ap_ahb_ufs_rst.mask);
+
+	mdelay(1);
+
+	regmap_update_bits(host->ap_ahb_ufs_rst.regmap,
+					  host->ap_ahb_ufs_rst.reg,
+					  host->ap_ahb_ufs_rst.mask,
+					  0);
+
+	ufshcd_writel(hba, CONTROLLER_ENABLE, REG_CONTROLLER_ENABLE);
+	if ((ufshcd_readl(hba, REG_UFS_CCAP) & (1 << 27)) == 1)
+		ufshcd_writel(hba, (CRYPTO_GENERAL_ENABLE | CONTROLLER_ENABLE),
+			      REG_CONTROLLER_ENABLE);
+	svc_handle = sprd_sip_svc_get_handle();
+	pr_err("ufs init, get svc_handle:0x%x, get storage_ops handle: 0x%x\n",
+	       svc_handle, svc_handle->storage_ops);
+	if (!svc_handle) {
+		pr_err("%s: failed to get svc handle\n", __func__);
+		return -ENODEV;
+	}
+	ret = svc_handle->storage_ops.ufs_crypto_enable();
+	pr_err("smc: enable cfg, ret:0x%x", ret);
+#endif
 
 	hba->quirks |= UFSHCD_QUIRK_BROKEN_UFS_HCI_VERSION |
 		       UFSHCD_QUIRK_DELAY_BEFORE_DME_CMDS;
@@ -263,20 +295,39 @@ static int ufs_sprd_hce_enable_notify(struct ufs_hba *hba,
 				      enum ufs_notify_change_status status)
 {
 	int err = 0;
+#if IS_ENABLED(CONFIG_SCSI_UFS_CRYPTO)
+	int ret = 0;
+	struct sprd_sip_svc_handle *svc_handle;
+#endif
 
 	switch (status) {
 	case PRE_CHANGE:
 		/* Do hardware reset before host controller enable. */
 		ufs_sprd_hw_init(hba);
+#if IS_ENABLED(CONFIG_SCSI_UFS_CRYPTO)
+		ufshcd_writel(hba, CONTROLLER_ENABLE, REG_CONTROLLER_ENABLE);
+#endif
 		break;
 	case POST_CHANGE:
 		 if (hba->vops->phy_initialization) {
 			err = hba->vops->phy_initialization(hba);
 			if (err) {
 				dev_err(hba->dev, "Phy setup failed (%d)\n",
-												err);
+					err);
 			}
 		}
+
+#if IS_ENABLED(CONFIG_SCSI_UFS_CRYPTO)
+		svc_handle = sprd_sip_svc_get_handle();
+		pr_err("ufs init, get svc_handle:0x%x, get storage_ops handle: 0x%x\n",
+		       svc_handle, svc_handle->storage_ops);
+		if (!svc_handle) {
+			pr_err("%s: failed to get svc handle\n", __func__);
+			return -ENODEV;
+		}
+		ret = svc_handle->storage_ops.ufs_crypto_enable();
+		pr_err("smc: enable cfg, ret:0x%x", ret);
+#endif
 		break;
 	default:
 		dev_err(hba->dev, "%s: invalid status %d\n", __func__, status);
@@ -291,29 +342,11 @@ static int ufs_sprd_link_startup_notify(struct ufs_hba *hba,
 					enum ufs_notify_change_status status)
 {
 	int err = 0;
-#if IS_ENABLED(CONFIG_SCSI_UFS_CRYPTO)
-	int ret = 0;
-	struct sprd_sip_svc_handle *svc_handle;
-#endif
 
 	switch (status) {
 	case PRE_CHANGE:
 		break;
 	case POST_CHANGE:
-#if IS_ENABLED(CONFIG_SCSI_UFS_CRYPTO)
-		svc_handle = sprd_sip_svc_get_handle();
-		pr_err("ufs init, get svc_handle:0x%x, get storage_ops handle:
-			0x%x\n", svc_handle, svc_handle->storage_ops);
-		if (!svc_handle) {
-			pr_err("%s: failed to get svc handle\n", __func__);
-			return -ENODEV;
-		}
-		ret = svc_handle->storage_ops.ufs_crypto_enable();
-		pr_err("smc: enable cfg, ret:0x%x", ret);
-		ret = svc_handle->storage_ops.ufs_crypto_disable();
-		pr_err("smc: disable cfg, ret:0x%x", ret);
-#endif
-
 		break;
 	default:
 		break;
