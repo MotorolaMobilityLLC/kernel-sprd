@@ -696,7 +696,7 @@ static int sprd_pcie_probe(struct platform_device *pdev)
 power_off:
 	sprd_pcie_syscon_setting(pdev, "sprd,pcie-shutdown-syscons");
 err_get_sync:
-	ret = pm_runtime_put(&pdev->dev);
+	ret = pm_runtime_put_sync(&pdev->dev);
 	if (ret < 0)
 		dev_warn(&pdev->dev,
 			 "pm runtime put fail: %d, usage_count:%d\n",
