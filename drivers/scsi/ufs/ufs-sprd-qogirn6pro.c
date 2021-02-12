@@ -337,13 +337,8 @@ static int ufs_sprd_pwr_change_notify(struct ufs_hba *hba,
 
 	switch (status) {
 	case PRE_CHANGE:
-		dev_req_params->gear_rx = UFS_HS_G3;
-		dev_req_params->gear_tx = UFS_HS_G3;
-		dev_req_params->lane_rx = 2;
-		dev_req_params->lane_tx = 2;
-		dev_req_params->pwr_rx = FAST_MODE;
-		dev_req_params->pwr_tx = FAST_MODE;
-		dev_req_params->hs_rate = PA_HS_MODE_B;
+		memcpy(dev_req_params, dev_max_params,
+				       sizeof(struct ufs_pa_layer_attr));
 		break;
 	case POST_CHANGE:
 		/* Set auto h8 ilde time to 10ms */
