@@ -28,6 +28,7 @@
 #include <linux/rtnetlink.h>
 #include <linux/seq_file.h>
 #include <linux/skbuff.h>
+#include <linux/timekeeping.h>
 
 #include "sipa_eth.h"
 #include "sipa_dummy.h"
@@ -236,6 +237,32 @@ static void sipa_dummy_update_stats(struct sk_buff *skb,
 	real_stats->rx_bytes += skb->len;
 }
 
+static void sipa_dummy_set_bootts(struct sipa_dummy *dummy,
+				  enum sipa_dummy_ts_field field)
+{
+	u64 cur_ts;
+	struct sipa_dummy_ring *ring;
+
+	ring = &dummy->rings[smp_processor_id()];
+	cur_ts = ktime_get_boot_ns();
+	switch (field) {
+	case SIPA_DUMMY_TS_RD_EMPTY:
+		ring->last_read_empty = cur_ts;
+		break;
+	case SIPA_DUMMY_TS_NAPI_COMPLETE:
+		ring->last_napi_complete = cur_ts;
+		break;
+	case SIPA_DUMMY_TS_NAPI_RESCHEDULE:
+		ring->last_napi_reschedule = cur_ts;
+		break;
+	case SIPA_DUMMY_TS_IRQ_TRIGGER:
+		ring->last_irq_trigger = cur_ts;
+		break;
+	default:
+		break;
+	}
+}
+
 static int sipa_dummy_rx_clean(struct sipa_dummy *dummy, int budget,
 			       struct napi_struct *napi)
 {
@@ -253,6 +280,9 @@ static int sipa_dummy_rx_clean(struct sipa_dummy *dummy, int budget,
 		if (unlikely(ret1)) {
 			if (ret1 == -EINVAL)
 				stats->rx_errors++;
+			if (ret1 == -ENODATA)
+				sipa_dummy_set_bootts(dummy,
+						      SIPA_DUMMY_TS_RD_EMPTY);
 			break;
 		}
 
@@ -260,7 +290,7 @@ static int sipa_dummy_rx_clean(struct sipa_dummy *dummy, int budget,
 		ret2 = sipa_dummy_get_real_ndev(dummy, skb,
 						netid, src_id);
 		if (unlikely(ret2)) {
-			stats->rx_errors++;
+			stats->rx_dropped++;
 			dev_kfree_skb_any(skb);
 			break;
 		}
@@ -313,12 +343,14 @@ static int sipa_dummy_rx_poll(struct napi_struct *napi, int budget)
 		return budget;
 
 	sipa_fill_free_fifo();
+	sipa_dummy_set_bootts(dummy, SIPA_DUMMY_TS_NAPI_COMPLETE);
 	napi_complete(napi);
 
 	if (!sipa_nic_check_recv_queue_empty()) {
 		/* not empty again, need re-schedule,
 		 * otherwise might stop rcv in a low possibility
 		 */
+		sipa_dummy_set_bootts(dummy, SIPA_DUMMY_TS_NAPI_RESCHEDULE);
 		napi_reschedule(napi);
 	}
 
@@ -339,8 +371,7 @@ irqreturn_t sipa_dummy_recv_trigger(unsigned int cur_cpu)
 	}
 
 	dummy = netdev_priv(dummy_dev);
-
-	pr_info("cur napi %p\n", &dummy->rings[cur_cpu].napi);
+	sipa_dummy_set_bootts(dummy, SIPA_DUMMY_TS_IRQ_TRIGGER);
 	napi_schedule(&dummy->rings[cur_cpu].napi);
 
 err_exit:
@@ -456,6 +487,14 @@ static int sipa_dummy_debug_show(struct seq_file *m, void *v)
 		seq_printf(m, "CPU%d: rx_packet %lu, rx_bytes %lu\n",
 			   i, dummy->per_stats[i].rx_packets,
 			   dummy->per_stats[i].rx_bytes);
+		seq_printf(m, "last_read_empty\t\t%llu\n",
+			   dummy->rings[i].last_read_empty);
+		seq_printf(m, "last_napi_reschedule\t%llu\n",
+			   dummy->rings[i].last_napi_reschedule);
+		seq_printf(m, "last_napi_complete\t%llu\n",
+			   dummy->rings[i].last_napi_complete);
+		seq_printf(m, "last_irq_trigger\t%llu\n",
+			   dummy->rings[i].last_irq_trigger);
 	}
 
 	seq_puts(m, "Dev List:\n");
@@ -543,6 +582,10 @@ static void sipa_dummy_ndev_init(struct net_device *ndev)
 			       sipa_dummy_rx_poll,
 			       SIPA_DUMMY_NAPI_WEIGHT);
 		napi_enable(&dummy->rings[i].napi);
+		dummy->rings[i].last_read_empty = 0;
+		dummy->rings[i].last_napi_complete = 0;
+		dummy->rings[i].last_napi_reschedule = 0;
+		dummy->rings[i].last_irq_trigger = 0;
 	}
 }
 

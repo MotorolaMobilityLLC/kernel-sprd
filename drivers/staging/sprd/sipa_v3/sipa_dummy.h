@@ -31,6 +31,13 @@ enum sipa_dummy_ndev_id {
 	SIPA_DUMMY_NDEV_MAX
 };
 
+enum sipa_dummy_ts_field {
+	SIPA_DUMMY_TS_RD_EMPTY,
+	SIPA_DUMMY_TS_NAPI_COMPLETE,
+	SIPA_DUMMY_TS_NAPI_RESCHEDULE,
+	SIPA_DUMMY_TS_IRQ_TRIGGER,
+};
+
 struct sipa_dummy_ndev_info {
 	u32 src_id;
 	int netid;
@@ -61,6 +68,11 @@ struct sipa_dummy_self_stats {
 struct sipa_dummy_ring {
 	struct net_device *ndev;/* Linux net device */
 	struct napi_struct napi;/* Napi instance */
+
+	u64 last_read_empty;
+	u64 last_napi_complete;
+	u64 last_napi_reschedule;
+	u64 last_irq_trigger;
 };
 
 /* Device instance data. */
