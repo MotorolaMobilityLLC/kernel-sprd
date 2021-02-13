@@ -165,16 +165,13 @@ static int sfp_ipa_filter_config_v4(enum sfp_chain chain,
 	int i;
 	int ret = 0;
 
-	tbl->sipa_filter.depth = IPA_FILTER_V4_ENTRY_DEPTH;
-	tbl->sipa_filter.max_num = IPA_FILTER_V4_ENTRY_DEPTH *
-				   atomic_read(&tbl->entry_cnt);
+	tbl->sipa_filter.depth = atomic_read(&tbl->entry_cnt);
 	tbl->sipa_filter.is_ipv4 = true;
 	tbl->sipa_filter.filter_pre_rule = tbl->v_addr;
 
-	pr_info("%s depth %d max_num %d is_ipv4 %d pre_rule %pK\n",
+	pr_info("%s depth %d is_ipv4 %d pre_rule %pK\n",
 		__func__,
 		tbl->sipa_filter.depth,
-		tbl->sipa_filter.max_num,
 		tbl->sipa_filter.is_ipv4,
 		tbl->sipa_filter.filter_pre_rule);
 
@@ -206,9 +203,7 @@ static int sfp_ipa_filter_config_v6(enum sfp_chain chain,
 {
 	int ret = 0;
 
-	tbl->sipa_filter.depth = IPA_FILTER_V6_ENTRY_DEPTH;
-	tbl->sipa_filter.max_num = IPA_FILTER_V6_ENTRY_DEPTH *
-				   atomic_read(&tbl->entry_cnt);
+	tbl->sipa_filter.depth = atomic_read(&tbl->entry_cnt);
 	tbl->sipa_filter.is_ipv6 = true;
 	tbl->sipa_filter.filter_pre_rule = tbl->v_addr;
 	if (chain == SFP_CHAIN_PRE)
@@ -229,6 +224,7 @@ int sfp_ipa_filter_sync(enum sfp_rule_type type)
 	case SFP_RULE_TYPE_V4_PRE:
 		tbl = &ipa_filter_tbls.pre4;
 		atomic_set(&tbl->entry_cnt, 0);
+		memset(tbl->v_addr, 0, IPA_FILTER_V4_TOTAL_SIZE);
 		list_for_each_entry(node4, &sfp_filter_pre4_entries, list) {
 			struct sfp_filter_v4_rule *v4_rule =
 				(struct sfp_filter_v4_rule *)(tbl->v_addr) +
@@ -242,6 +238,7 @@ int sfp_ipa_filter_sync(enum sfp_rule_type type)
 	case SFP_RULE_TYPE_V4_POST:
 		tbl = &ipa_filter_tbls.post4;
 		atomic_set(&tbl->entry_cnt, 0);
+		memset(tbl->v_addr, 0, IPA_FILTER_V4_TOTAL_SIZE);
 		list_for_each_entry(node4, &sfp_filter_post4_entries, list) {
 			struct sfp_filter_v4_rule *v4_rule =
 				(struct sfp_filter_v4_rule *)(tbl->v_addr) +
@@ -249,11 +246,13 @@ int sfp_ipa_filter_sync(enum sfp_rule_type type)
 			memcpy(v4_rule, &node4->rule4, sizeof(*v4_rule));
 			atomic_inc(&tbl->entry_cnt);
 		}
+		pr_info("post4 entry_cnt %d\n", atomic_read(&tbl->entry_cnt));
 		ret = sfp_ipa_filter_config_v4(SFP_CHAIN_POST, tbl);
 		break;
 	case SFP_RULE_TYPE_V6_PRE:
 		tbl = &ipa_filter_tbls.pre6;
 		atomic_set(&tbl->entry_cnt, 0);
+		memset(tbl->v_addr, 0, IPA_FILTER_V6_TOTAL_SIZE);
 		list_for_each_entry(node6, &sfp_filter_pre6_entries, list) {
 			struct sfp_filter_v6_rule *v6_rule =
 				(struct sfp_filter_v6_rule *)(tbl->v_addr) +
@@ -264,8 +263,9 @@ int sfp_ipa_filter_sync(enum sfp_rule_type type)
 		ret = sfp_ipa_filter_config_v6(SFP_CHAIN_PRE, tbl);
 		break;
 	case SFP_RULE_TYPE_V6_POST:
-		tbl = &ipa_filter_tbls.pre6;
+		tbl = &ipa_filter_tbls.post6;
 		atomic_set(&tbl->entry_cnt, 0);
+		memset(tbl->v_addr, 0, IPA_FILTER_V6_TOTAL_SIZE);
 		list_for_each_entry(node6, &sfp_filter_post6_entries, list) {
 			struct sfp_filter_v6_rule *v6_rule =
 				(struct sfp_filter_v6_rule *)(tbl->v_addr) +
