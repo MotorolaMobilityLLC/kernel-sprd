@@ -24,7 +24,7 @@
 #define SIPA_RECV_BUF_LEN	1600
 #define SIPA_RECV_RSVD_LEN	NET_SKB_PAD
 
-static int sipa_init_recv_array(struct sipa_skb_array *p, u32 depth)
+static int sipa_init_recv_array(struct sipa_skb_receiver *receiver, u32 depth)
 {
 	int i;
 	struct sipa_skb_array *skb_array;
@@ -32,7 +32,12 @@ static int sipa_init_recv_array(struct sipa_skb_array *p, u32 depth)
 	struct sipa_plat_drv_cfg *ipa = sipa_get_ctrl_pointer();
 
 	for (i = 0; i < SIPA_RECV_QUEUES_MAX; i++) {
-		skb_array = per_cpu_ptr(p, i);
+		skb_array = devm_kzalloc(ipa->dev,
+					 sizeof(struct sipa_skb_array),
+					 GFP_KERNEL);
+		if (!skb_array)
+			return -ENOMEM;
+
 		skb_array->array = devm_kcalloc(ipa->dev, depth,
 						size, GFP_KERNEL);
 		if (!skb_array->array)
@@ -41,6 +46,8 @@ static int sipa_init_recv_array(struct sipa_skb_array *p, u32 depth)
 		skb_array->rp = 0;
 		skb_array->wp = 0;
 		skb_array->depth = depth;
+
+		receiver->fill_array[i] = skb_array;
 	}
 
 	return 0;
@@ -58,7 +65,7 @@ void sipa_reinit_recv_array(struct device *dev)
 	}
 
 	for (i = 0; i < SIPA_RECV_QUEUES_MAX; i++) {
-		skb_array = per_cpu_ptr(ipa->receiver->fill_array, i);
+		skb_array = ipa->receiver->fill_array[i];
 		if (!skb_array->array) {
 			dev_err(dev, "sipa p->array is null\n");
 			return;
@@ -143,7 +150,7 @@ static void sipa_prepare_free_node_init(struct sipa_skb_receiver *receiver,
 	enum sipa_cmn_fifo_index fifo_id = receiver->ep->recv_fifo.idx;
 
 	for (j = 0; j < cpu_num; j++) {
-		fill_arrays = per_cpu_ptr(receiver->fill_array, j);
+		fill_arrays = receiver->fill_array[j];
 		for (i = 0; i < cnt; i++) {
 			item = sipa_hal_get_rx_node_wptr(receiver->dev,
 							 fifo_id + j, i);
@@ -196,7 +203,7 @@ static void sipa_prepare_free_node_init(struct sipa_skb_receiver *receiver,
  * Because the ipa endpoint to the AP has the dma copy function, it it necessary
  * to call this interface to fill the new free buff after reading the data.
  */
-void sipa_fill_free_fifo(void)
+void sipa_fill_free_fifo(u32 index)
 {
 	int i;
 	u32 fail_cnt = 0;
@@ -206,22 +213,23 @@ void sipa_fill_free_fifo(void)
 	struct sipa_node_desc_tag *item = NULL;
 	struct sipa_plat_drv_cfg *ipa = sipa_get_ctrl_pointer();
 	struct sipa_skb_receiver *receiver = ipa->receiver;
-	struct sipa_skb_array *fill_array = per_cpu_ptr(receiver->fill_array,
-							smp_processor_id());
+	struct sipa_skb_array *fill_array = receiver->fill_array[index];
 
 	atomic_inc(&receiver->check_flag);
 	depth = receiver->ep->recv_fifo.rx_fifo.fifo_depth;
-	if (fill_array->need_fill_cnt > (depth - depth / 4)) {
+	if (atomic_read(&fill_array->need_fill_cnt) > (depth - depth / 4)) {
 		dev_warn(receiver->dev,
-			 "ep id = %d free node is not enough,need fill %d\n",
-			 receiver->ep->id, fill_array->need_fill_cnt);
+			 "ep id = %d free node is not enough,need fill %d cpu %d\n",
+			 receiver->ep->id,
+			 atomic_read(&fill_array->need_fill_cnt),
+			 smp_processor_id());
 		receiver->rx_danger_cnt++;
 	}
 
-	for (i = 0; i < fill_array->need_fill_cnt; i++) {
+	for (i = 0; i < atomic_read(&fill_array->need_fill_cnt); i++) {
 		item = sipa_hal_get_rx_node_wptr(receiver->dev,
 						 receiver->ep->recv_fifo.idx +
-						 smp_processor_id(), i);
+						 index, i);
 		if (!item) {
 			fail_cnt++;
 			break;
@@ -248,7 +256,7 @@ void sipa_fill_free_fifo(void)
 		item->address = dma_addr;
 		item->length = skb->len;
 		item->offset = skb_headroom(skb);
-		item->hash = smp_processor_id();
+		item->hash = index;
 
 		sipa_put_recv_array_node(fill_array, skb, dma_addr);
 		success_cnt++;
@@ -257,10 +265,10 @@ void sipa_fill_free_fifo(void)
 	if (success_cnt) {
 		sipa_hal_add_rx_fifo_wptr(receiver->dev,
 					  receiver->ep->recv_fifo.idx +
-					  smp_processor_id(),
+					  index,
 					  success_cnt);
-		if (fill_array->need_fill_cnt > 0)
-			fill_array->need_fill_cnt -= success_cnt;
+		if (atomic_read(&fill_array->need_fill_cnt) > 0)
+			atomic_sub(success_cnt, &fill_array->need_fill_cnt);
 	}
 	if (fail_cnt)
 		dev_err(receiver->dev, "fill free fifo fail_cnt = %d\n",
@@ -268,6 +276,26 @@ void sipa_fill_free_fifo(void)
 	atomic_dec(&receiver->check_flag);
 }
 EXPORT_SYMBOL(sipa_fill_free_fifo);
+
+void sipa_fill_all_free_fifo(void)
+{
+	int i;
+	struct sipa_plat_drv_cfg *ipa = sipa_get_ctrl_pointer();
+	struct sipa_skb_receiver *receiver = ipa->receiver;
+
+	for (i = 0; i < SIPA_RECV_QUEUES_MAX; i++) {
+		if (atomic_read(&receiver->fill_array[i]->need_fill_cnt))
+			sipa_fill_free_fifo(i);
+	}
+}
+
+void sipa_recv_wake_up(void)
+{
+	struct sipa_plat_drv_cfg *ipa = sipa_get_ctrl_pointer();
+
+	wake_up(&ipa->receiver->fill_recv_waitq);
+}
+EXPORT_SYMBOL(sipa_recv_wake_up);
 
 void sipa_init_free_fifo(struct sipa_skb_receiver *receiver, u32 cnt,
 			 enum sipa_cmn_fifo_index id)
@@ -279,15 +307,15 @@ void sipa_init_free_fifo(struct sipa_skb_receiver *receiver, u32 cnt,
 	if (i >= SIPA_RECV_QUEUES_MAX)
 		return;
 
-	skb_array = per_cpu_ptr(receiver->fill_array, i);
+	skb_array = receiver->fill_array[i];
 	sipa_hal_add_rx_fifo_wptr(receiver->dev,
 				  receiver->ep->recv_fifo.idx + i,
 				  cnt);
-	if (skb_array->need_fill_cnt > 0)
+	if (atomic_read(&skb_array->need_fill_cnt) > 0)
 		dev_info(receiver->dev,
 			 "a very serious problem, mem cover may appear\n");
 
-	skb_array->need_fill_cnt = 0;
+	atomic_set(&skb_array->need_fill_cnt, 0);
 }
 
 static void sipa_receiver_notify_cb(void *priv, enum sipa_hal_evt_type evt,
@@ -312,8 +340,8 @@ struct sk_buff *sipa_recv_skb(struct sipa_skb_receiver *receiver,
 	enum sipa_cmn_fifo_index id;
 	struct sk_buff *recv_skb = NULL;
 	struct sipa_node_desc_tag *node = NULL;
-	struct sipa_skb_array *fill_array = per_cpu_ptr(receiver->fill_array,
-							smp_processor_id());
+	struct sipa_skb_array *fill_array =
+		receiver->fill_array[smp_processor_id()];
 
 	atomic_inc(&receiver->check_flag);
 	if (atomic_read(&receiver->check_suspend)) {
@@ -337,7 +365,7 @@ struct sk_buff *sipa_recv_skb(struct sipa_skb_receiver *receiver,
 	}
 
 	ret = sipa_get_recv_array_node(fill_array, &recv_skb, &addr);
-	fill_array->need_fill_cnt++;
+	atomic_inc(&fill_array->need_fill_cnt);
 
 check_again:
 	if (ret) {
@@ -380,6 +408,36 @@ check_again:
 	return recv_skb;
 }
 
+static int sipa_check_need_fill_cnt(void)
+{
+	int i;
+	struct sipa_plat_drv_cfg *ipa = sipa_get_ctrl_pointer();
+	struct sipa_skb_receiver *receiver = ipa->receiver;
+
+	for (i = 0 ; i < SIPA_RECV_QUEUES_MAX; i++) {
+		if (atomic_read(&receiver->fill_array[i]->need_fill_cnt))
+			return true;
+	}
+
+	return 0;
+}
+
+static int sipa_fill_recv_thread(void *data)
+{
+	struct sipa_skb_receiver *receiver = (struct sipa_skb_receiver *)data;
+	struct sched_param param = {.sched_priority = 90};
+
+	sched_setscheduler(current, SCHED_RR, &param);
+
+	while (!kthread_should_stop()) {
+		wait_event_interruptible(receiver->fill_recv_waitq,
+					 sipa_check_need_fill_cnt());
+		sipa_fill_all_free_fifo();
+	}
+
+	return 0;
+}
+
 int sipa_receiver_prepare_suspend(struct sipa_skb_receiver *receiver)
 {
 	atomic_set(&receiver->check_suspend, 1);
@@ -407,6 +465,8 @@ int sipa_receiver_prepare_suspend(struct sipa_skb_receiver *receiver)
 int sipa_receiver_prepare_resume(struct sipa_skb_receiver *receiver)
 {
 	atomic_set(&receiver->check_suspend, 0);
+
+	wake_up_process(receiver->fill_recv_thread);
 
 	return sipa_hal_cmn_fifo_stop_recv(receiver->dev,
 					   receiver->ep->recv_fifo.idx,
@@ -472,28 +532,25 @@ int sipa_create_skb_receiver(struct sipa_plat_drv_cfg *ipa,
 	receiver->ep = ep;
 	receiver->rsvd = SIPA_RECV_RSVD_LEN;
 
-	receiver->fill_array = devm_alloc_percpu(ipa->dev,
-						 struct sipa_skb_array);
-	if (!receiver->fill_array) {
-		dev_err(ipa->dev, "recv_array kzalloc err.\n");
-		kfree(receiver);
-		return -ENOMEM;
-	}
-
-	sipa_init_recv_array(receiver->fill_array,
+	sipa_init_recv_array(receiver,
 			     receiver->ep->recv_fifo.rx_fifo.fifo_depth);
 
 	spin_lock_init(&receiver->lock);
 
+	init_waitqueue_head(&receiver->fill_recv_waitq);
 	sipa_receiver_init(receiver, SIPA_RECV_RSVD_LEN);
+
+	receiver->fill_recv_thread = kthread_create(sipa_fill_recv_thread,
+						    receiver,
+						    "sipa-fill-recv-%d",
+						    ep->id);
+	if (IS_ERR(receiver->fill_recv_thread)) {
+		dev_err(receiver->dev,
+			"Failed to create kthread: sipa-fill-recv-%d\n",
+			ep->id);
+		return PTR_ERR(receiver->fill_recv_thread);
+	}
 
 	*receiver_pp = receiver;
 	return 0;
-}
-
-void sipa_destroy_skb_receiver(struct sipa_skb_receiver *receiver)
-{
-	kfree(receiver->fill_array->array);
-	free_percpu(receiver->fill_array);
-	kfree(receiver);
 }

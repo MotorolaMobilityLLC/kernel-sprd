@@ -311,7 +311,7 @@ struct sipa_skb_array {
 	u32 rp;
 	u32 wp;
 	u32 depth;
-	u32 need_fill_cnt;
+	atomic_t need_fill_cnt;
 };
 
 struct sipa_nic_cons_res {
@@ -348,7 +348,7 @@ struct sipa_skb_receiver {
 	struct device *dev;
 	struct sipa_endpoint *ep;
 	u32 rsvd;
-	struct sipa_skb_array *fill_array;
+	struct sipa_skb_array *fill_array[SIPA_RECV_CMN_FIFO_NUM];
 
 	spinlock_t lock;	/*spinlock for skb_recv lock handling*/
 	u32 nic_cnt;
@@ -356,6 +356,10 @@ struct sipa_skb_receiver {
 
 	atomic_t check_suspend;
 	atomic_t check_flag;
+
+	wait_queue_head_t fill_recv_waitq;
+
+	struct task_struct *fill_recv_thread;
 
 	bool init_flag;
 	u32 tx_danger_cnt;
@@ -840,8 +844,6 @@ void sipa_skb_sender_remove_nic(struct sipa_skb_sender *sender,
 int sipa_create_skb_receiver(struct sipa_plat_drv_cfg *ipa,
 			     struct sipa_endpoint *ep,
 			     struct sipa_skb_receiver **receiver_pp);
-
-void destroy_sipa_skb_receiver(struct sipa_skb_receiver *receiver);
 
 void sipa_receiver_add_nic(struct sipa_skb_receiver *receiver,
 			   struct sipa_nic *nic);

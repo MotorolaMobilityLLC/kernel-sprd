@@ -382,8 +382,9 @@ struct sk_buff *sipa_find_sent_skb(dma_addr_t addr);
 /*
  * Prepare for dummy network.
  */
-void sipa_fill_free_fifo(void);
+void sipa_fill_free_fifo(u32 index);
 
+void sipa_recv_wake_up(void);
 
 /*
  * IPA hash table management
@@ -818,6 +819,7 @@ int sipa_nic_tx(enum sipa_nic_id nic_id, enum sipa_term_type dst,
 int sipa_nic_rx(enum sipa_nic_id nic_id, struct sk_buff **out_skb);
 
 int sipa_nic_trigger_flow_ctrl_work(enum sipa_nic_id, int err);
+
 /*
  * IPA hash table managment
  */

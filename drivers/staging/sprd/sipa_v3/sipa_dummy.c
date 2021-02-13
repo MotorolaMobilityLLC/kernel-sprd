@@ -342,10 +342,10 @@ static int sipa_dummy_rx_poll(struct napi_struct *napi, int budget)
 	struct sipa_dummy *dummy = netdev_priv(ring->ndev);
 
 	pkts = sipa_dummy_rx_clean(dummy, budget, napi);
+	sipa_recv_wake_up();
 	if (pkts >= budget)
 		return budget;
 
-	sipa_fill_free_fifo();
 	sipa_dummy_set_bootts(dummy, SIPA_DUMMY_TS_NAPI_COMPLETE);
 	napi_complete(napi);
 
