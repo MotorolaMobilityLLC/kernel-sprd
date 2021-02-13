@@ -71,9 +71,8 @@
 
 #define BQ2560X_REG_LIMIT_CURRENT_MASK		GENMASK(4, 0)
 
-#define BQ2560X_DISABLE_PIN_MASK_2730		BIT(0)
+#define BQ2560X_DISABLE_PIN_MASK		BIT(0)
 #define BQ2560X_DISABLE_PIN_MASK_2721		BIT(15)
-#define BQ2560X_DISABLE_PIN_MASK_2720		BIT(0)
 
 #define BQ2560X_OTG_VALID_MS			500
 #define BQ2560X_FEED_WATCHDOG_VALID_MS		50
@@ -1265,7 +1264,15 @@ static int bq2560x_charger_probe(struct i2c_client *client,
 	}
 
 	regmap_np = of_find_compatible_node(NULL, NULL, "sprd,sc27xx-syscon");
-	if (!regmap_np) {
+	if (!regmap_np)
+		regmap_np = of_find_compatible_node(NULL, NULL, "sprd,ump962x-syscon");
+
+	if (regmap_np) {
+		if (of_device_is_compatible(regmap_np->parent, "sprd,sc2721"))
+			info->charger_pd_mask = BQ2560X_DISABLE_PIN_MASK_2721;
+		else
+			info->charger_pd_mask = BQ2560X_DISABLE_PIN_MASK;
+	} else {
 		dev_err(dev, "unable to get syscon node\n");
 		return -ENODEV;
 	}
@@ -1282,17 +1289,6 @@ static int bq2560x_charger_probe(struct i2c_client *client,
 	if (ret) {
 		dev_err(dev, "failed to get charger_pd reg\n");
 		return ret;
-	}
-
-	if (of_device_is_compatible(regmap_np->parent, "sprd,sc2730"))
-		info->charger_pd_mask = BQ2560X_DISABLE_PIN_MASK_2730;
-	else if (of_device_is_compatible(regmap_np->parent, "sprd,sc2721"))
-		info->charger_pd_mask = BQ2560X_DISABLE_PIN_MASK_2721;
-	else if (of_device_is_compatible(regmap_np->parent, "sprd,sc2720"))
-		info->charger_pd_mask = BQ2560X_DISABLE_PIN_MASK_2720;
-	else {
-		dev_err(dev, "failed to get charger_pd mask\n");
-		return -EINVAL;
 	}
 
 	regmap_pdev = of_find_device_by_node(regmap_np);
@@ -1327,8 +1323,10 @@ static int bq2560x_charger_probe(struct i2c_client *client,
 	}
 
 	ret = bq2560x_charger_hw_init(info);
-	if (ret)
+	if (ret) {
+		dev_err(dev, "failed to bq2560x_charger_hw_init\n");
 		return ret;
+	}
 
 	info->usb_notify.notifier_call = bq2560x_charger_usb_change;
 	ret = usb_register_notifier(info->usb_phy, &info->usb_notify);
