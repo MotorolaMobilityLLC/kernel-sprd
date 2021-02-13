@@ -993,10 +993,8 @@ int sipa_config_ifilter(struct sipa_filter_tbl *ifilter)
 {
 	int ret = 0;
 	u32 depth = ifilter->depth;
-	u32 max_num = ifilter->max_num;
-	int i = depth;
-	int j;
-	u32 tmp;
+	int i, j;
+	u32 bytes, max_num, tmp;
 	u32 *filter = NULL;
 	struct sipa_plat_drv_cfg *ipa = sipa_get_ctrl_pointer();
 
@@ -1017,8 +1015,11 @@ int sipa_config_ifilter(struct sipa_filter_tbl *ifilter)
 
 	if (ifilter->is_ipv4) {
 		ipa->glb_ops.set_ifilter_depth_ipv4(ipa->glb_virt_base, depth);
+		bytes = 32;
+		max_num = 64 * bytes;
+		i = bytes;
 		while (i <= max_num) {
-			for (j = i; j > i - depth; j -= 4) {
+			for (j = i; j > i - bytes; j -= 4) {
 				filter = (u32 *)(ifilter->filter_pre_rule
 						 + j - 4);
 				tmp = ntohl(*filter);
@@ -1026,12 +1027,15 @@ int sipa_config_ifilter(struct sipa_filter_tbl *ifilter)
 					ipa->glb_virt_base, tmp);
 			}
 
-			i += depth;
+			i += bytes;
 		}
 	} else if (ifilter->is_ipv6) {
 		ipa->glb_ops.set_ifilter_depth_ipv6(ipa->glb_virt_base, depth);
+		bytes = 52;
+		max_num = 64 * bytes;
+		i = bytes;
 		while (i <= max_num) {
-			for (j = i; j > i - depth; j -= 4) {
+			for (j = i; j > i - bytes; j -= 4) {
 				filter = (u32 *)(ifilter->filter_pre_rule
 						 + j - 4);
 				tmp = ntohl(*filter);
@@ -1039,7 +1043,7 @@ int sipa_config_ifilter(struct sipa_filter_tbl *ifilter)
 					ipa->glb_virt_base, tmp);
 			}
 
-			i += depth;
+			i += bytes;
 		}
 	}
 
@@ -1062,10 +1066,8 @@ int sipa_config_ofilter(struct sipa_filter_tbl *ofilter)
 {
 	int ret = 0;
 	u32 depth = ofilter->depth;
-	u32 max_num = ofilter->max_num;
-	int i = depth;
-	int j;
-	u32 tmp;
+	int i, j;
+	u32 bytes, max_num, tmp;
 	u32 *filter = NULL;
 	struct sipa_plat_drv_cfg *ipa = sipa_get_ctrl_pointer();
 
@@ -1086,8 +1088,11 @@ int sipa_config_ofilter(struct sipa_filter_tbl *ofilter)
 
 	if (ofilter->is_ipv4) {
 		ipa->glb_ops.set_ofilter_depth_ipv4(ipa->glb_virt_base, depth);
+		bytes = 32;
+		max_num = 64 * bytes;
+		i = bytes;
 		while (i <= max_num) {
-			for (j = i; j > i - depth; j -= 4) {
+			for (j = i; j > i - bytes; j -= 4) {
 				filter = (u32 *)(ofilter->filter_pre_rule
 						 + j - 4);
 				tmp = ntohl(*filter);
@@ -1095,19 +1100,22 @@ int sipa_config_ofilter(struct sipa_filter_tbl *ofilter)
 					ipa->glb_virt_base, tmp);
 			}
 
-			i += depth;
+			i += bytes;
 		}
 	} else if (ofilter->is_ipv6) {
 		ipa->glb_ops.set_ofilter_depth_ipv6(ipa->glb_virt_base, depth);
+		bytes = 52;
+		max_num = 64 * bytes;
+		i = bytes;
 		while (i <= max_num) {
-			for (j = i; j > i - depth; j -= 4) {
+			for (j = i; j > i - bytes; j -= 4) {
 				filter = (u32 *)(ofilter->filter_pre_rule
 						 + j - 4);
 				tmp = ntohl(*filter);
 				ipa->glb_ops.fill_ofilter_ipv6(
 					ipa->glb_virt_base, tmp);
 			}
-			i += depth;
+			i += bytes;
 		}
 	}
 

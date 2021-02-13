@@ -289,7 +289,6 @@ struct sipa_hash_table {
 struct sipa_filter_tbl {
 	bool is_ipv4;
 	bool is_ipv6;
-	u32 max_num;
 	u32 depth;
 	u8 *filter_pre_rule;
 };
