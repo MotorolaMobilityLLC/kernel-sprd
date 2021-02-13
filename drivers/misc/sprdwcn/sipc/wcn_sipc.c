@@ -418,7 +418,7 @@ static int wcn_sipc_sbuf_send(struct sipc_chn_info *sipc_chn,
 	if (sipc_chn->need_reserve)
 		xmit_buf += PUB_HEAD_RSV;
 	ret = sbuf_write(sipc_chn->dst, sipc_chn->chn,
-			sipc_chn->sbuf.bufid, xmit_buf, len, -1);
+			sipc_chn->sbuf.bufid, xmit_buf, len, 3000);
 	WCN_DEBUG("sbuf index %d  chn[%d] write cnt=%d\n",
 		 sipc_chn->index, sipc_chn->chn, ret);
 
