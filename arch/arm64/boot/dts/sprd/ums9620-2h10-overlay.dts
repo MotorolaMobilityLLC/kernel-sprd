@@ -257,10 +257,9 @@
 	bq2560x_chg: charger@6b {
 		compatible = "ti,bq2560x_chg";
 		reg = <0x6b>;
-		phys = <&hsphy>;
+		phys = <&ssphy>;
 		monitored-battery = <&bat>;
-		extcon = <&extcon_gpio>;
-		pd-extcon-enable;
+		extcon = <&pmic_typec>;
 		vddvbus:otg-vbus {
 			regulator-name = "vddvbus";
 		};
