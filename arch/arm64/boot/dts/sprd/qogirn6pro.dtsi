@@ -857,6 +857,7 @@
 					MASK_MM_AHB_DVFS_EN>;
 				syscon-names = "fd_eb", "fd_rst", "fd_save_rst",
 					"fd_lpc", "fd_dvfs_eb";
+				iommus = <&iommu_fd>;
 				/*fd_qos = <&fd_qos>;*/
 				status = "okay";
 			};
@@ -888,6 +889,7 @@
 					<&mm_clk CLK_CPP>,
 					<&g5l_pll CLK_TGPLL_384M>;
 				sprd,cam-ahb-syscon = <&mm_ahb_regs>;
+				iommus = <&iommu_cpp>;
 				/*cpp_qos = <&cpp_qos>;*/
 				status = "okay";
 			};
