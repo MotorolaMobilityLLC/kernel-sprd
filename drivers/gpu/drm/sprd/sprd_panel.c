@@ -427,7 +427,8 @@ static int sprd_panel_te_check(struct sprd_panel *panel)
 
 	return ret < 0 ? ret : 0;
 }
-
+static int sprd_oled_set_brightness(struct backlight_device *bdev);
+struct backlight_device *g_bdev;
 static void sprd_panel_esd_work_func(struct work_struct *work)
 {
 	struct sprd_panel *panel = container_of(work, struct sprd_panel,
@@ -466,6 +467,7 @@ static void sprd_panel_esd_work_func(struct work_struct *work)
 			himax_esd_resume_func();
 		}
 #endif
+		sprd_oled_set_brightness(g_bdev);
 		DRM_INFO("======= esd recovery end =========\n");
 	} else
 		schedule_delayed_work(&panel->esd_work,
@@ -660,9 +662,7 @@ static int of_parse_oled_cmds(struct sprd_oled *oled,
 	return 0;
 }
 
-static int sprd_oled_set_brightness(struct backlight_device *bdev);
 unsigned int g_last_level = 25;
-struct backlight_device *g_bdev;
 #ifdef CONFIG_HBM_SUPPORT
 extern bool g_hbm_enable;
 int hbm_set_backlight_level(unsigned int level)
