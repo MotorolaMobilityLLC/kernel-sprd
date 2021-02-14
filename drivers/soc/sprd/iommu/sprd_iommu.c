@@ -51,6 +51,12 @@ static struct sprd_iommu_list_data sprd_iommu_list[SPRD_IOMMU_MAX] = {
 	{ .iommu_id = SPRD_IOMMU_VSP,
 	   .iommu_dev = NULL},
 
+	{ .iommu_id = SPRD_IOMMU_VSP1,
+	   .iommu_dev = NULL},
+
+	{ .iommu_id = SPRD_IOMMU_VSP2,
+	  .iommu_dev = NULL},
+
 	{ .iommu_id = SPRD_IOMMU_DCAM,
 	   .iommu_dev = NULL},
 
@@ -152,8 +158,17 @@ static const struct of_device_id sprd_iommu_ids[] = {
 	{ .compatible = "sprd,iommuvau-vsp",
 	   .data = (void *)(IOMMU_VAU_VSP)},
 
+	{ .compatible = "sprd,iommuvau-vsp1",
+	  .data = (void *)(IOMMU_VAU_VSP1)},
+
+	{ .compatible = "sprd,iommuvau-vsp2",
+	  .data = (void *)(IOMMU_VAU_VSP2)},
+
 	{ .compatible = "sprd,iommuvau-dcam",
 	   .data = (void *)(IOMMU_VAU_DCAM)},
+
+	{ .compatible = "sprd,iommuvau-dcam1",
+	  .data = (void *)(IOMMU_VAU_DCAM1)},
 
 	{ .compatible = "sprd,iommuvau-isp",
 	   .data = (void *)(IOMMU_VAU_ISP)},
@@ -205,10 +220,22 @@ static void sprd_iommu_set_list(struct sprd_iommu_dev *iommu_dev)
 		sprd_iommu_list[SPRD_IOMMU_VSP].iommu_dev = iommu_dev;
 		iommu_dev->id = SPRD_IOMMU_VSP;
 		break;
+	case IOMMU_VAU_VSP1:
+		sprd_iommu_list[SPRD_IOMMU_VSP1].iommu_dev = iommu_dev;
+		iommu_dev->id = SPRD_IOMMU_VSP1;
+		break;
+	case IOMMU_VAU_VSP2:
+		sprd_iommu_list[SPRD_IOMMU_VSP2].iommu_dev = iommu_dev;
+		iommu_dev->id = SPRD_IOMMU_VSP2;
+		break;
 	case IOMMU_EX_DCAM:
 	case IOMMU_VAU_DCAM:
 		sprd_iommu_list[SPRD_IOMMU_DCAM].iommu_dev = iommu_dev;
 		iommu_dev->id = SPRD_IOMMU_DCAM;
+		break;
+	case IOMMU_VAU_DCAM1:
+		sprd_iommu_list[SPRD_IOMMU_DCAM1].iommu_dev = iommu_dev;
+		iommu_dev->id = SPRD_IOMMU_DCAM1;
 		break;
 	case IOMMU_EX_CPP:
 	case IOMMU_VAU_CPP:
@@ -1149,8 +1176,10 @@ int sprd_iommu_restore(struct device *dev)
 		ret = -1;
 
 	if (iommu_dev->id != SPRD_IOMMU_VSP &&
+	    iommu_dev->id != SPRD_IOMMU_VSP1 &&
+	    iommu_dev->id != SPRD_IOMMU_VSP2 &&
 	    iommu_dev->id != SPRD_IOMMU_DISP &&
-		iommu_dev->id != SPRD_IOMMU_DISP1)
+	    iommu_dev->id != SPRD_IOMMU_DISP1)
 		sprd_iommu_pool_show(dev);
 
 	return ret;
@@ -1323,7 +1352,10 @@ static int sprd_iommu_probe(struct platform_device *pdev)
 	}
 	/*for roc1 iommu*/
 	case IOMMU_VAU_VSP:
+	case IOMMU_VAU_VSP1:
+	case IOMMU_VAU_VSP2:
 	case IOMMU_VAU_DCAM:
+	case IOMMU_VAU_DCAM1:
 	case IOMMU_VAU_CPP:
 	case IOMMU_VAU_GSP:
 	case IOMMU_VAU_GSP1:

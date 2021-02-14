@@ -44,7 +44,10 @@ u32 sprd_iommudrv_init(struct sprd_iommu_init_param *init_param,
 		drv_ops = (&iommuex_drv_ops);
 		break;
 	case IOMMU_VAU_VSP:
+	case IOMMU_VAU_VSP1:
+	case IOMMU_VAU_VSP2:
 	case IOMMU_VAU_DCAM:
+	case IOMMU_VAU_DCAM1:
 	case IOMMU_VAU_CPP:
 	case IOMMU_VAU_JPG:
 	case IOMMU_VAU_GSP:
