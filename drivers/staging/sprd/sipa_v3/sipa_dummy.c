@@ -201,6 +201,9 @@ static int sipa_dummy_get_real_ndev(struct sipa_dummy *dummy,
 		ndev_info = &sipa_dummy_ndev_arr[netid];
 		goto out1;
 	default:
+		if (src_id == 0)
+			pr_err("zero srcid on cpu%d!\n", smp_processor_id());
+
 		pr_info("skb from %s ignored\n", sipa_dummy_src2str(src_id));
 		ret = -EINVAL;
 		goto out2;
@@ -292,7 +295,7 @@ static int sipa_dummy_rx_clean(struct sipa_dummy *dummy, int budget,
 		if (unlikely(ret2)) {
 			stats->rx_dropped++;
 			dev_kfree_skb_any(skb);
-			break;
+			continue;
 		}
 
 		if (src_id == SIPA_TERM_WIFI1 || src_id == SIPA_TERM_WIFI2)
