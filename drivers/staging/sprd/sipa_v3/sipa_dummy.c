@@ -207,7 +207,7 @@ static int sipa_dummy_get_real_ndev(struct sipa_dummy *dummy,
 	}
 
 out1:
-	if (ndev_info->state == DEV_ON) {
+	if (ndev_info->state == SIPA_DUMMY_DEV_ON) {
 		skb->dev = ndev_info->ndev;
 	} else {
 		pr_info("ndev %s down, src_id %d netid %d\n",
@@ -671,52 +671,48 @@ static struct platform_driver sipa_dummy_driver = {
 static void sipa_dummy_netdev_join(struct net_device *ndev)
 {
 	void *priv;
-	int netid = 0;
-	u32 src_id = 0;
-	struct napi_struct *napi;
+	struct sipa_dummy_ndev_info *ndev_info;
 
 	priv = netdev_priv(ndev);
 	if (!strncmp(ndev->name, "sipa_usb", 8)) {
 		struct sipa_usb *usb_priv = (struct sipa_usb *)priv;
 
-		/*TODO*/
-		src_id = usb_priv->pdata->src_id;
-		netid = usb_priv->pdata->netid;
-		napi = &usb_priv->napi;
-
-		sipa_dummy_ndev_arr[SIPA_DUMMY_USB0].src_id = src_id;
-		sipa_dummy_ndev_arr[SIPA_DUMMY_USB0].netid = netid;
-		sipa_dummy_ndev_arr[SIPA_DUMMY_USB0].ndev = ndev;
-		sipa_dummy_ndev_arr[SIPA_DUMMY_USB0].napi = napi;
-		sipa_dummy_ndev_arr[SIPA_DUMMY_USB0].state = DEV_ON;
+		ndev_info = &sipa_dummy_ndev_arr[SIPA_DUMMY_USB0];
+		ndev_info->src_id = usb_priv->pdata->src_id;
+		ndev_info->netid = usb_priv->pdata->netid;
+		ndev_info->ndev = ndev;
+		ndev_info->napi = &usb_priv->napi;
+		ndev_info->state = SIPA_DUMMY_DEV_OFF;
 	} else if (!strncmp(ndev->name, "sipa_eth", 8)) {
+		int netid = 0;
 		struct sipa_eth *eth_priv = (struct sipa_eth *)priv;
 
-		src_id = eth_priv->pdata->src_id;
 		netid = eth_priv->pdata->netid;
-		napi = &eth_priv->napi;
-
-		sipa_dummy_ndev_arr[netid].src_id = src_id;
-		sipa_dummy_ndev_arr[netid].netid = netid;
-		sipa_dummy_ndev_arr[netid].ndev = ndev;
-		sipa_dummy_ndev_arr[netid].napi = napi;
-		sipa_dummy_ndev_arr[netid].state = DEV_ON;
+		ndev_info = &sipa_dummy_ndev_arr[netid];
+		ndev_info->src_id = eth_priv->pdata->src_id;
+		ndev_info->netid = eth_priv->pdata->netid;
+		ndev_info->ndev = ndev;
+		ndev_info->napi = &eth_priv->napi;
+		ndev_info->state = SIPA_DUMMY_DEV_OFF;
 	}
 }
 
-static void sipa_dummy_netdev_leave(struct net_device *ndev)
+static void sipa_dummy_netdev_set_state(struct net_device *ndev, bool up)
 {
 	void *priv;
 	int netid = 0;
+	struct sipa_dummy_ndev_info *ndev_info;
 
 	priv = netdev_priv(ndev);
 	if (!strncmp(ndev->name, "sipa_usb", 8)) {
-		sipa_dummy_ndev_arr[SIPA_DUMMY_USB0].state = DEV_OFF;
+		ndev_info = &sipa_dummy_ndev_arr[SIPA_DUMMY_USB0];
+		ndev_info->state = up ? SIPA_DUMMY_DEV_ON : SIPA_DUMMY_DEV_OFF;
 	} else if (!strncmp(ndev->name, "sipa_eth", 8)) {
 		struct sipa_eth *eth_priv = (struct sipa_eth *)priv;
 
 		netid = eth_priv->pdata->netid;
-		sipa_dummy_ndev_arr[netid].state = DEV_OFF;
+		ndev_info = &sipa_dummy_ndev_arr[netid];
+		ndev_info->state = up ? SIPA_DUMMY_DEV_ON : SIPA_DUMMY_DEV_OFF;
 	}
 }
 
@@ -730,16 +726,21 @@ static int sipa_dummy_netdev_event_handler(
 	if (!ndev)
 		return ret;
 
-	pr_info("dev %s event %lu\n", ndev->name, event);
+	pr_info("dev %s evt %lu\n", ndev->name, event);
 
 	switch (event) {
 	case NETDEV_REGISTER:
 		ret = NOTIFY_OK;
 		sipa_dummy_netdev_join(ndev);
 		break;
+	case NETDEV_UP:
+		ret = NOTIFY_OK;
+		sipa_dummy_netdev_set_state(ndev, true);
+		break;
+	case NETDEV_DOWN: /* fallthrough */
 	case NETDEV_UNREGISTER:
 		ret = NOTIFY_OK;
-		sipa_dummy_netdev_leave(ndev);
+		sipa_dummy_netdev_set_state(ndev, false);
 		break;
 	default:
 		break;

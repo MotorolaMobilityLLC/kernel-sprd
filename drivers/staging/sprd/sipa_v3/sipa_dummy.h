@@ -2,8 +2,8 @@
 #define __SIPA_DUMMY_H_
 
 /* Device status */
-#define DEV_ON 1
-#define DEV_OFF 0
+#define SIPA_DUMMY_DEV_ON 1
+#define SIPA_DUMMY_DEV_OFF 0
 
 #define SIPA_DUMMY_MAX_CPUS		8
 #define SIPA_DUMMY_MAX_PACKET_SIZE	16384
