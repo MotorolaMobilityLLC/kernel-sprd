@@ -251,6 +251,11 @@
 		<&pmu_apb_regs 0 2000
 			REG_PMU_APB_SNPS_PCIE3_SLP_CTRL
 			MASK_PMU_APB_REG_PERST_N_ASSERT
+			0x0>,
+		/* PCIEPLLV output clock will be gated for L1sub */
+		<&pmu_apb_regs 0 0
+			REG_PMU_APB_SNPS_PCIE3_SLP_CTRL
+			MASK_PMU_APB_PCIE_CLK_REQ_PLL_GATE_MASK
 			0x0>;
 
 	sprd,pcie-resume-syscons =
