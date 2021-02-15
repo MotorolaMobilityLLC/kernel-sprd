@@ -6,6 +6,7 @@
  * This file is licensed under a dual GPLv2 or X11 license.
  */
 
+#include "sprd-sound-fe-be.dtsi"
 #include "ump9620.dtsi"
 
 /{
@@ -192,6 +193,10 @@
 		};
 	};
 
+	audio-mem-mgr {
+		memory-region = <&audio_reserved &audiodsp_reserved>;
+	};
+
 	ion: ion {
 		compatible = "sprd,ion";
 		#address-cells = <1>;
@@ -351,6 +356,15 @@
 
 &ump9620_pmic {
 	interrupts = <GIC_SPI 230 IRQ_TYPE_LEVEL_HIGH>;
+};
+
+&sprd_audio_codec_ana {
+	status = "okay";
+	hp-use-inter-pa = <1>;
+	fixed-sample-rate = <48000 48000 48000>;
+	digital-codec = <&sprd_audio_codec_dig>;
+	set-offset = <0x1000>;
+	clr-offset = <0x2000>;
 };
 
 &sdio0 {

@@ -129,6 +129,18 @@
 			fgu_calib: calib@4 {
 				reg = <0x4c 0x2>;
 			};
+
+			neg_cp_efuse: calib@32 {
+				reg = <0x32 0x2>;
+			};
+
+			headset_adc_fir: calib@3c {
+				reg = <0x3c 0x2>;
+			};
+
+			headset_adc_sec: calib@3e {
+				reg = <0x3e 0x2>;
+			};
 		};
 
 		pmic_typec: typec@380 {
@@ -139,6 +151,19 @@
 			mode = <2>;
 			nvmem-cells = <&typec_cc1_cal>, <&typec_cc2_cal>;
 			nvmem-cell-names = "typec_cc1_cal", "typec_cc2_cal";
+		};
+
+		sprd_audio_codec_ana: audio-codec@1000 {
+			compatible = "sprd,ump9620-audio-codec",
+				"sprd,sc27xx-audio-codec";
+			#sound-dai-cells = <1>;
+			reg = <0x1000>;
+			sprd,syscon-pmu-apb = <&pmu_apb_regs>;
+			nvmem-cells = <&neg_cp_efuse>,
+				<&fgu_calib>;
+			nvmem-cell-names = "neg_cp_efuse",
+					"fgu_4p2_efuse";
+			status = "disabled";
 		};
 
 		syscon@2000 {
