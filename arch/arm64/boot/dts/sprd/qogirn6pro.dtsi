@@ -1077,6 +1077,36 @@
 				status = "okay";
 				#iommu-cells = <0>;
 			};
+
+			iommu_vpuenc0: iommu@32000000 {
+				compatible = "sprd,iommuvau-vsp1";
+				reg = <0x0 0x32000000 0x0 0x80>;
+				sprd,iova-base = <0x20000000>;
+				sprd,iova-size = <0x20000000>;
+				reg_name = "mmu_reg";
+				status = "okay";
+				#iommu-cells = <0>;
+			};
+
+			iommu_vpuenc1: iommu@32100000 {
+				compatible = "sprd,iommuvau-vsp2";
+				reg = <0x0 0x32100000 0x0 0x80>;
+				sprd,iova-base = <0x20000000>;
+				sprd,iova-size = <0x20000000>;
+				reg_name = "mmu_reg";
+				status = "okay";
+				#iommu-cells = <0>;
+			};
+
+			iommu_vpudec: iommu@32200000 {
+				compatible = "sprd,iommuvau-vsp";
+				reg = <0x0 0x32200000 0x0 0x80>;
+				sprd,iova-base = <0x20000000>;
+				sprd,iova-size = <0x20000000>;
+				reg_name = "mmu_reg";
+				status = "okay";
+				#iommu-cells = <0>;
+			};
 		};
 
 		ipa-apb {
