@@ -34,7 +34,6 @@ static unsigned long membase;
 static unsigned long memphys;
 static unsigned long mem_dma_phys;
 static unsigned int mcdt_reg_size;
-static unsigned int  mcdt_irq_no;
 
 static struct channel_status g_dac_channel[dac_channel_max];
 static struct channel_status g_adc_channel[adc_channel_max];
@@ -245,61 +244,6 @@ static void mcdt_chan_fifo_int_clr(enum MCDT_CHAN_NUM chan_num,
 		return;
 	}
 	mcdt_reg_update(reg, 1<<shift, 1<<shift);
-}
-
-static int mcdt_is_chan_fifo_int_raw(enum MCDT_CHAN_NUM chan_num,
-				enum MCDT_FIFO_INT int_type)
-{
-	unsigned long reg = 0;
-	unsigned int shift = 0;
-
-	if (!check_agcp_mcdt_clock()) {
-		pr_err("%s agcp mcdt clocl not available\n", __func__);
-		return 0;
-	}
-	if ((chan_num >= MCDT_CHAN0) && (chan_num <= MCDT_CHAN3))
-		reg = MCDT_INT_RAW1;
-	else if ((chan_num >= MCDT_CHAN4) && (chan_num <= MCDT_CHAN7))
-		reg = MCDT_INT_RAW2;
-	else if ((chan_num >= MCDT_CHAN8) && (chan_num <= MCDT_CHAN10))
-		reg = MCDT_INT_RAW3;
-	else
-		return 0;
-
-	switch (chan_num) {
-	case MCDT_CHAN0:
-	case MCDT_CHAN4:
-	case MCDT_CHAN8:
-		shift = 0 + int_type;
-		break;
-	case MCDT_CHAN1:
-	case MCDT_CHAN5:
-	case MCDT_CHAN9:
-		shift = 8 + int_type;
-		break;
-	case MCDT_CHAN2:
-	case MCDT_CHAN6:
-	case MCDT_CHAN10:
-		shift = 16 + int_type;
-		break;
-	case MCDT_CHAN3:
-	case MCDT_CHAN7:
-		shift = 24 + int_type;
-		break;
-	}
-	reg = reg + membase;
-
-	return !!(mcdt_reg_read(reg)&(1<<shift));
-}
-
-static unsigned int mcdt_is_da_empty_int(enum MCDT_CHAN_NUM chan_num)
-{
-	return mcdt_is_chan_fifo_int_raw(chan_num, MCDT_DAC_FIFO_AE_INT);
-}
-
-static unsigned int mcdt_is_ad_full_int(enum MCDT_CHAN_NUM chan_num)
-{
-	return mcdt_is_chan_fifo_int_raw(chan_num, MCDT_ADC_FIFO_AF_INT);
 }
 
 static void mcdt_da_int_en(enum MCDT_CHAN_NUM chan_num, unsigned int en)
@@ -720,7 +664,6 @@ static unsigned int mcdt_dac_int_init(enum MCDT_CHAN_NUM id)
 	mcdt_da_int_en(id, 1);
 	if (g_adc_channel[id].int_enabled == 0) {
 		mcdt_int_to_ap_enable(id, 1);
-		enable_irq(mcdt_irq_no);
 	}
 
 	return 0;
@@ -731,43 +674,6 @@ static unsigned int mcdt_adc_int_init(enum MCDT_CHAN_NUM id)
 	mcdt_ad_int_en(id, 1);
 	if (g_dac_channel[id].int_enabled == 0) {
 		mcdt_int_to_ap_enable(id, 1);
-		enable_irq(mcdt_irq_no);
-	}
-
-	return 0;
-}
-
-static void mcdt_isr_tx_handler(struct irq_desc_mcdt *tx_para,
-	unsigned int channel)
-{
-	tx_para->irq_handler(tx_para->data, channel);
-	g_dac_channel[channel].int_count++;
-	mcdt_clr_da_int(channel);/* TBD */
-}
-
-static void mcdt_isr_rx_handler(struct irq_desc_mcdt *rx_para,
-	unsigned int channel)
-{
-	rx_para->irq_handler(rx_para->data, channel);
-	g_adc_channel[channel].int_count++;
-	mcdt_clr_da_int(channel);/* TBD */
-}
-
-static irqreturn_t mcdt_isr_mcdt_all_handler(int irq, void *dev)
-{
-	unsigned int i;
-
-	for (i = MCDT_CHAN0; i <= MCDT_CHAN10; i++) {
-		if (g_dac_channel[i].int_enabled &&
-		    mcdt_is_da_empty_int(i)) {
-			mcdt_isr_tx_handler(&gdac_irq_desc[i], i);
-		}
-	}
-	for (i = MCDT_CHAN0; i <= MCDT_CHAN9; i++) {
-		if (g_adc_channel[i].int_enabled &&
-		    mcdt_is_ad_full_int(i)) {
-			mcdt_isr_rx_handler(&gadc_irq_desc[i], i);
-		}
 	}
 
 	return 0;
@@ -1170,10 +1076,8 @@ int mcdt_dac_disable(unsigned int channel)
 			mcdt_clr_da_int(channel);
 			gdac_irq_desc[channel].irq_handler = NULL;
 			gdac_irq_desc[channel].data = NULL;
-			if (g_adc_channel[channel].int_enabled == 0) {
+			if (g_adc_channel[channel].int_enabled == 0)
 				mcdt_int_to_ap_enable(channel, 0);
-				disable_irq_nosync(mcdt_irq_no);
-			}
 		}
 		g_dac_channel[channel].int_enabled = 0;
 	}
@@ -1198,10 +1102,8 @@ int mcdt_adc_disable(unsigned int channel)
 			mcdt_clr_ad_int(channel);
 			gadc_irq_desc[channel].irq_handler = NULL;
 			gadc_irq_desc[channel].data = NULL;
-			if (g_dac_channel[channel].int_enabled == 0) {
+			if (g_dac_channel[channel].int_enabled == 0)
 				mcdt_int_to_ap_enable(channel, 0);
-				disable_irq_nosync(mcdt_irq_no);
-			}
 		}
 		g_adc_channel[channel].int_enabled = 0;
 	}
@@ -1224,8 +1126,8 @@ static int mcdt_debug_info_show(struct seq_file *m, void *private)
 {
 	int i = 0;
 
-	seq_printf(m, "\nmembase=0x%lx, memphys=0x%lx, mem_dma_phys=0x%lx, mcdt_reg_size=0x%x, mcdt_irq_no=%d\n",
-		membase, memphys, mem_dma_phys, mcdt_reg_size, mcdt_irq_no);
+	seq_printf(m, "\nmembase=0x%lx, memphys=0x%lx, mem_dma_phys=0x%lx, mcdt_reg_size=0x%x\n",
+		membase, memphys, mem_dma_phys, mcdt_reg_size);
 	seq_puts(m, "\n");
 
 	for (i = 0; i < dac_channel_max; i++) {
@@ -1371,15 +1273,7 @@ static int mcdt_probe(struct platform_device *pdev)
 		return -ENOMEM;
 	}
 
-	mcdt_irq_no = platform_get_irq(pdev, 0);
 	mutex_init(&mcdt_mutex);
-	ret = devm_request_irq(&pdev->dev, mcdt_irq_no,
-		mcdt_isr_mcdt_all_handler, 0, "sprd_mcdt_ap", NULL);
-	if (ret) {
-		pr_err("mcdt ERR:Request irq ap failed!\n");
-		return ret;
-	}
-	disable_irq_nosync(mcdt_irq_no);
 
 	return 0;
 }

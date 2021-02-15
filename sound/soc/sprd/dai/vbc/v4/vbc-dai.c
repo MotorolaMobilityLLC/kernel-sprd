@@ -7325,6 +7325,7 @@ static const struct of_device_id vbc_of_match[] = {
 	{.compatible = "sprd,sharkl5-vbc",},
 	{.compatible = "sprd,roc1-vbc",},
 	{.compatible = "sprd,qogirl6-vbc",},
+	{.compatible = "sprd,qogirn6pro-vbc",},
 	{},
 };
 

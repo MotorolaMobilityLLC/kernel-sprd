@@ -86,6 +86,26 @@ static const char * const ag_iis4_mode_txt[] = {
 	"top_adc_iis1", "pdm_iis2", "l5_top",
 };
 
+static const char * const ag_iis0_mode_v2_txt[] = {
+	"pad_top", "aud_4ad_iis0_da0", "pdm_top_iis0",
+};
+
+static const char * const ag_iis1_mode_v2_txt[] = {
+	"pad_top", "aud_4ad_iis0_ad0", "pdm_top_iis1",
+};
+
+static const char * const ag_iis2_mode_v2_txt[] = {
+	"pad_top", "aud_4ad_iis1_ad0", "pdm_top_iis2",
+};
+
+static const char * const ag_iis4_mode_v2_txt[] = {
+	"pad_top", "aud_4ad_iis1_ad0", "pdm_top_iis2",
+};
+
+static const char * const ag_iis3_mode_v2_txt[] = {
+	"pad_top", "aud_4ad_iis_da0",
+};
+
 static const char * const dsp_voice_capture_type_txt[] = {
 	/* type 0, type 1, type 2 */
 	"VOICE_CAPTURE_DOWNLINK", "VOICE_CAPTURE_UPLINK",
@@ -111,6 +131,14 @@ static const struct soc_enum vbc_ag_iis_ext_sel_enum_v1[AG_IIS_V1_MAX] = {
 	SPRD_VBC_ENUM(AG_IIS1_V1, 3, ag_iis1_mode_txt),
 	SPRD_VBC_ENUM(AG_IIS2_V1, 3, ag_iis2_mode_txt),
 	SPRD_VBC_ENUM(AG_IIS4_V1, 3, ag_iis4_mode_txt),
+};
+
+static const struct soc_enum vbc_ag_iis_ext_sel_enum_v2[AG_IIS_V2_MAX] = {
+	SPRD_VBC_ENUM(AG_IIS0_V2, 3, ag_iis0_mode_v2_txt),
+	SPRD_VBC_ENUM(AG_IIS1_V2, 3, ag_iis1_mode_v2_txt),
+	SPRD_VBC_ENUM(AG_IIS2_V2, 3, ag_iis2_mode_v2_txt),
+	SPRD_VBC_ENUM(AG_IIS4_V2, 3, ag_iis4_mode_v2_txt),
+	SPRD_VBC_ENUM(AG_IIS3_V2, 3, ag_iis3_mode_v2_txt),
 };
 
 static const struct soc_enum vbc_dump_enum =
@@ -3033,6 +3061,44 @@ static int vbc_put_ag_iis_ext_sel_v1(struct snd_kcontrol *kcontrol,
 	return true;
 }
 
+static int vbc_get_ag_iis_ext_sel_v2(struct snd_kcontrol *kcontrol,
+				  struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
+	struct vbc_codec_priv *vbc_codec = snd_soc_codec_get_drvdata(codec);
+	struct soc_enum *e = (struct soc_enum *)kcontrol->private_value;
+	u32 ag_iis_num = e->reg;
+
+	ucontrol->value.integer.value[0] =
+		vbc_codec->ag_iis_ext_sel_v2[ag_iis_num];
+
+	return 0;
+}
+
+static int vbc_put_ag_iis_ext_sel_v2(struct snd_kcontrol *kcontrol,
+				  struct snd_ctl_elem_value *ucontrol)
+{
+	u16 mode;
+	struct soc_enum *texts = (struct soc_enum *)kcontrol->private_value;
+	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
+	struct vbc_codec_priv *vbc_codec = snd_soc_codec_get_drvdata(codec);
+	struct soc_enum *e = (struct soc_enum *)kcontrol->private_value;
+	u32 ag_iis_num = e->reg;
+
+	if (ucontrol->value.integer.value[0] >= texts->items) {
+		pr_err("ERR: %s,index outof bounds error\n", __func__);
+		return -EINVAL;
+	}
+
+	mode = ucontrol->value.enumerated.item[0];
+	sp_asoc_pr_dbg("%s ag_iis_num %d, value %d, texts->texts[] %s\n",
+		       __func__, ag_iis_num, mode, texts->texts[mode]);
+	arch_audio_iis_to_audio_top_enable_v2(ag_iis_num, mode);
+	vbc_codec->ag_iis_ext_sel_v2[ag_iis_num] = mode;
+
+	return true;
+}
+
 static int vbc_get_agdsp_access(struct snd_kcontrol *kcontrol,
 				struct snd_ctl_elem_value *ucontrol)
 {
@@ -3845,6 +3911,7 @@ static const struct snd_kcontrol_new vbc_codec_snd_controls[] = {
 	SOC_ENUM_EXT("ag_iis2_ext_sel", vbc_ag_iis_ext_sel_enum[2],
 		     vbc_get_ag_iis_ext_sel, vbc_put_ag_iis_ext_sel),
 
+	/* used for ums9230 */
 	SOC_ENUM_EXT("ag_iis0_ext_sel_v1", vbc_ag_iis_ext_sel_enum_v1[0],
 		     vbc_get_ag_iis_ext_sel_v1, vbc_put_ag_iis_ext_sel_v1),
 	SOC_ENUM_EXT("ag_iis1_ext_sel_v1", vbc_ag_iis_ext_sel_enum_v1[1],
@@ -3853,6 +3920,18 @@ static const struct snd_kcontrol_new vbc_codec_snd_controls[] = {
 		     vbc_get_ag_iis_ext_sel_v1, vbc_put_ag_iis_ext_sel_v1),
 	SOC_ENUM_EXT("ag_iis4_ext_sel_v1", vbc_ag_iis_ext_sel_enum_v1[3],
 		     vbc_get_ag_iis_ext_sel_v1, vbc_put_ag_iis_ext_sel_v1),
+
+	/* used for ums9620 */
+	SOC_ENUM_EXT("ag_iis0_ext_sel_v2", vbc_ag_iis_ext_sel_enum_v2[0],
+		     vbc_get_ag_iis_ext_sel_v2, vbc_put_ag_iis_ext_sel_v2),
+	SOC_ENUM_EXT("ag_iis1_ext_sel_v2", vbc_ag_iis_ext_sel_enum_v2[1],
+		     vbc_get_ag_iis_ext_sel_v2, vbc_put_ag_iis_ext_sel_v2),
+	SOC_ENUM_EXT("ag_iis2_ext_sel_v2", vbc_ag_iis_ext_sel_enum_v2[2],
+		     vbc_get_ag_iis_ext_sel_v2, vbc_put_ag_iis_ext_sel_v2),
+	SOC_ENUM_EXT("ag_iis4_ext_sel_v2", vbc_ag_iis_ext_sel_enum_v2[3],
+		     vbc_get_ag_iis_ext_sel_v2, vbc_put_ag_iis_ext_sel_v2),
+	SOC_ENUM_EXT("ag_iis3_ext_sel_v2", vbc_ag_iis_ext_sel_enum_v2[4],
+			 vbc_get_ag_iis_ext_sel_v2, vbc_put_ag_iis_ext_sel_v2),
 
 	SOC_ENUM_EXT("SYS_IIS0", vbc_sys_iis_enum[SYS_IIS0],
 		     sys_iis_sel_get, sys_iis_sel_put),

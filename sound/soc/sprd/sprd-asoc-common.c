@@ -142,7 +142,7 @@ void set_agcp_ahb_offset(u32 set_ahb_offset, u32 clr_ahb_offset)
 {
 	agcp_ahb_set_offset = set_ahb_offset;
 	agcp_ahb_clr_offset = clr_ahb_offset;
-	pr_info("%s agcp_ahb_set_offset %x, agcp_ahb_clr_offset %x", __func__,
+	pr_info("%s agcp_ahb_set_offset 0x%x, agcp_ahb_clr_offset 0x%x", __func__,
 		agcp_ahb_set_offset, agcp_ahb_clr_offset);
 }
 

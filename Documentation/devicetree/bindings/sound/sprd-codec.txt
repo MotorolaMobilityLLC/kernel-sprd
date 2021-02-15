@@ -17,7 +17,7 @@ Required properties:
 
 Example:
 sprd_audio_codec_ana: audio-codec@1000 {
-	compatible = "sprd,sc2730-audio-codec", "sprd,sc27xx-audio-codec";
+	compatible = "sprd,ump9620-audio-codec", "sprd,sc2730-audio-codec", "sprd,sc27xx-audio-codec";
 	#sound-dai-cells = <1>;
 	reg = <0x1000>;
 	interrupts = <8 IRQ_TYPE_NONE>;

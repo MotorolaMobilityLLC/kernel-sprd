@@ -42,6 +42,7 @@
 #define AUDIO_CODEC_RT5659	5
 #define AUDIO_CODEC_2721	6
 #define AUDIO_CODEC_2730	6
+#define AUDIO_CODEC_9620	8
 
 #define AUDIO_2723_VER_AA	0
 #define AUDIO_2723_VER_S	0x000
@@ -51,7 +52,7 @@
 
 #define CODEC_HW_INFO \
 	"2713", "2723", "2723E", "2723T", "2731S", \
-	"Realtek", "2721", "2730"
+	"Realtek", "2721", "2730", "ump9620"
 
 struct snd_card;
 int sprd_audio_debug_init(struct snd_card *card);

@@ -295,7 +295,7 @@ static int sprd_pcm_open(struct snd_pcm_substream *substream)
 
 	pm_dma = get_pm_dma();
 
-	pr_info("%s Open %s\n", sprd_dai_pcm_name(srtd->cpu_dai),
+	pr_info("%s %s Open %s\n", __func__, sprd_dai_pcm_name(srtd->cpu_dai),
 			PCM_DIR_NAME(substream->stream));
 
 	if (sprd_is_i2s(srtd->cpu_dai)) {
@@ -543,7 +543,7 @@ static int sprd_pcm_close(struct snd_pcm_substream *substream)
 	struct audio_pm_dma *pm_dma;
 
 	pm_dma = get_pm_dma();
-	pr_info("%s Close %s\n", sprd_dai_pcm_name(srtd->cpu_dai),
+	pr_info("%s %s Close %s\n", __func__, sprd_dai_pcm_name(srtd->cpu_dai),
 			PCM_DIR_NAME(substream->stream));
 	mutex_lock(&pm_dma->pm_mtx_cnt);
 	if (!sprd_is_normal_playback(srtd->cpu_dai->id,
@@ -1675,6 +1675,7 @@ static const struct of_device_id sprd_pcm_of_match[] = {
 	{.compatible = "sprd,sharkl5-pcm-platform",},
 	{.compatible = "sprd,roc1-pcm-platform",},
 	{.compatible = "sprd,qogirl6-pcm-platform",},
+	{.compatible = "sprd,qogirn6pro-pcm-platform",},
 	{},
 };
 
