@@ -982,8 +982,7 @@ int wcn_power_enable_sys_domain(bool enable)
 		if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_PIKE2)
 			wcn_xtl_auto_sel(false);
 
-		if (wcn_platform_chip_type() != WCN_PLATFORM_TYPE_QOGIRL6)
-			wcn_power_domain_set(s_wcn_device.btwf_device, 0);
+		wcn_power_domain_set(s_wcn_device.btwf_device, 0);
 
 		if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_PIKE2)
 			wcn_xtl_auto_sel(true);
@@ -994,8 +993,7 @@ int wcn_power_enable_sys_domain(bool enable)
 				WCN_PLATFORM_TYPE_PIKE2)
 			wcn_xtl_auto_sel(false);
 
-		if (wcn_platform_chip_type() != WCN_PLATFORM_TYPE_QOGIRL6)
-			wcn_power_domain_set(s_wcn_device.btwf_device, 1);
+		wcn_power_domain_set(s_wcn_device.btwf_device, 1);
 
 		sys_domain = false;
 		WCN_INFO("set WCN SYS TOP PD\n");

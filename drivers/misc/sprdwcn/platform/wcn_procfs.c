@@ -77,7 +77,7 @@ void wcn_assert_interface(enum wcn_source_type type, char *str)
 {
 	static int dump_cnt;
 
-	WCN_ERR("wcn_source_type:%s\n", type);
+	WCN_ERR("wcn_source_type:%d\n", type);
 	WCN_ERR("fw assert:%s\n", str);
 	if (g_dumpmem_switch == 0) {
 		WCN_ERR("dump disable!\n");
