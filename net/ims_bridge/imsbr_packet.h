@@ -3,6 +3,11 @@
 
 #define IMSBR_PACKET_VER	0
 
+#define IMSBR_SKB_MARK_SIP		(0x10000000)
+#define IMSBR_SKB_MARK_IKE		(0x20000000)
+#define IMSBR_SKB_MARK_VOICE	(0x04000000)
+#define IMSBR_SKB_MARK_VIDEO	(0x08000000)
+
 struct imsbr_packet {
 	__u8	version;
 	__u8	resv1;

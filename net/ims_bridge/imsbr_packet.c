@@ -507,6 +507,7 @@ void imsbr_process_packet(struct imsbr_sipc *sipc, struct sblock *blk,
 	int socket_type;
 	char *pktdata;
 	int pktlen;
+	int media_type;
 
 	IMSBR_STAT_INC(pkts_fromcp);
 
@@ -553,6 +554,14 @@ end:
 	if (socket_type == IMSBR_SOCKET_CP) {
 		if (__ratelimit(&rlimit_fromcp_pkt))
 			imsbr_packet_info("process packet from cp out", skb);
+		if (media_type == IMSBR_MEDIA_SIP) {
+			skb->mark |= IMSBR_SKB_MARK_SIP;
+		} else if (media_type == IMSBR_MEDIA_IKE) {
+			skb->mark |= IMSBR_SKB_MARK_IKE;
+		} else if (media_type == IMSBR_MEDIA_RTP_AUDIO ||
+			   media_type == IMSBR_MEDIA_RTCP_AUDIO) {
+			skb->mark |= IMSBR_SKB_MARK_VOICE;
+		}
 
 		imsbr_packet_output(skb);
 	} else {
