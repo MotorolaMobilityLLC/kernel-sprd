@@ -100,7 +100,7 @@ static int wcn_send_atcmd(void *cmd, unsigned char cmd_len,
 	}
 	head->buf = (unsigned char *)(dma_buf.vir);
 	head->phy = (unsigned long)(dma_buf.phy);
-	head->len = dma_buf.size;
+	head->len = cmd_len;
 	memset(head->buf, 0x0, head->len);
 	memcpy(head->buf, cmd, cmd_len);
 	head->next = NULL;
