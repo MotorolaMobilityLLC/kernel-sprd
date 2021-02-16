@@ -1102,14 +1102,127 @@
 				#iommu-cells = <0>;
 			};
 
+			vpu_pd_top: power-domain@0 {
+				compatible = "sprd,vpu-pd";
+				syscons = <&pmu_apb_regs
+					REG_PMU_APB_PD_DPU_VSP_CFG_0
+					MASK_PMU_APB_PD_DPU_VSP_FORCE_SHUTDOWN>,
+					<&pmu_apb_regs
+					REG_PMU_APB_PD_DPU_VSP_CFG_0
+					MASK_PMU_APB_PD_DPU_VSP_AUTO_SHUTDOWN_EN>,
+					<&pmu_apb_regs
+					REG_PMU_APB_PWR_STATUS_DBG_8
+					MASK_PMU_APB_PD_DPU_VSP_STATE>;
+				syscon-names = "pmu_vpu_force_shutdown",
+					"pmu_vpu_auto_shutdown",
+					"pmu_pwr_status";
+				#power-domain-cells = <0>;
+				status = "disabled";
+			};
+
+			vpu_pd_enc0: power-domain@1 {
+				compatible = "sprd,vpu-pd";
+				syscons = <&pmu_apb_regs
+					REG_PMU_APB_PD_VENC0_CFG_0
+					MASK_PMU_APB_PD_VENC0_FORCE_SHUTDOWN>,
+					<&pmu_apb_regs
+					REG_PMU_APB_PD_VENC0_CFG_0
+					MASK_PMU_APB_PD_VENC0_AUTO_SHUTDOWN_EN>,
+					<&pmu_apb_regs
+					REG_PMU_APB_PWR_STATUS_DBG_9
+					MASK_PMU_APB_PD_VENC0_STATE>;
+				syscon-names = "pmu_vpu_force_shutdown",
+					"pmu_vpu_auto_shutdown",
+					"pmu_pwr_status";
+				#power-domain-cells = <0>;
+				power-domains = <&vpu_pd_top>;
+				status = "disabled";
+			};
+
+			vpu_pd_enc1: power-domain@2 {
+				compatible = "sprd,vpu-pd";
+				syscons = <&pmu_apb_regs
+					REG_PMU_APB_PD_VENC1_CFG_0
+					MASK_PMU_APB_PD_VENC1_FORCE_SHUTDOWN>,
+					<&pmu_apb_regs
+					REG_PMU_APB_PD_VENC1_CFG_0
+					MASK_PMU_APB_PD_VENC1_AUTO_SHUTDOWN_EN>,
+					<&pmu_apb_regs
+					REG_PMU_APB_PWR_STATUS_DBG_9
+					MASK_PMU_APB_PD_VENC1_STATE>;
+				syscon-names = "pmu_vpu_force_shutdown",
+					"pmu_vpu_auto_shutdown",
+					"pmu_pwr_status";
+				#power-domain-cells = <0>;
+				power-domains = <&vpu_pd_top>;
+				status = "disabled";
+			};
+
+			vpu_pd_dec: power-domain@3 {
+				compatible = "sprd,vpu-pd";
+				syscons = <&pmu_apb_regs
+					REG_PMU_APB_PD_VDEC_CFG_0
+					MASK_PMU_APB_PD_VDEC_FORCE_SHUTDOWN>,
+					<&pmu_apb_regs
+					REG_PMU_APB_PD_VDEC_CFG_0
+					MASK_PMU_APB_PD_VDEC_AUTO_SHUTDOWN_EN>,
+					<&pmu_apb_regs
+					REG_PMU_APB_PWR_STATUS_DBG_9
+					MASK_PMU_APB_PD_VDEC_STATE>;
+				syscon-names = "pmu_vpu_force_shutdown",
+					"pmu_vpu_auto_shutdown",
+					"pmu_pwr_status";
+				#power-domain-cells = <0>;
+				power-domains = <&vpu_pd_top>;
+				status = "disabled";
+			};
+
+			vpu_enc0: video-codec@32000000 {
+				compatible = "sprd,vpu-enc-core0";
+				reg = <0 0x32000000 0 0xc000>;
+				interrupts = <GIC_SPI 149 IRQ_TYPE_LEVEL_HIGH>;
+				sprd,video_ip_version = <21>;
+				syscons = <&dpu_vsp_apb_regs
+					REG_DPU_VSP_APB_RST
+					(MASK_DPU_VSP_APB_VPU_ENC0_SOFT_RST |
+					MASK_DPU_VSP_APB_VPU_ENC0_VSP_SOFT_RST)>,
+					<&aon_apb_regs
+					REG_AON_APB_APB_EB1
+					MASK_AON_APB_AP_SYST_EB>;
+				syscon-names = "reset",
+					"vpu_domain_eb";
+				iommus = <&iommu_vpuenc0>;
+				power-domains = <&vpu_pd_enc0>;
+				status = "disabled";
+			};
+
 			iommu_vpuenc0: iommu@32000000 {
 				compatible = "sprd,iommuvau-vsp1";
 				reg = <0x0 0x32000000 0x0 0x80>;
 				sprd,iova-base = <0x20000000>;
 				sprd,iova-size = <0x20000000>;
 				reg_name = "mmu_reg";
-				status = "okay";
+				status = "disabled";
 				#iommu-cells = <0>;
+			};
+
+			vpu_enc1: enc-core1@32100000{
+				compatible = "sprd,vpu-enc-core1";
+				reg = <0 0x32100000 0 0xc000>;
+				sprd,video_ip_version = <21>;
+				interrupts = <GIC_SPI 148 IRQ_TYPE_LEVEL_HIGH>;
+				syscons = <&dpu_vsp_apb_regs
+					REG_DPU_VSP_APB_RST
+					(MASK_DPU_VSP_APB_VPU_ENC1_SOFT_RST |
+					MASK_DPU_VSP_APB_VPU_ENC1_VSP_SOFT_RST)>,
+					<&aon_apb_regs
+					REG_AON_APB_APB_EB1
+					MASK_AON_APB_AP_SYST_EB>;
+				syscon-names = "reset",
+					"vpu_domain_eb";
+				iommus = <&iommu_vpuenc1>;
+				power-domains = <&vpu_pd_enc1>;
+				status = "disabled";
 			};
 
 			iommu_vpuenc1: iommu@32100000 {
@@ -1118,8 +1231,27 @@
 				sprd,iova-base = <0x20000000>;
 				sprd,iova-size = <0x20000000>;
 				reg_name = "mmu_reg";
-				status = "okay";
+				status = "disabled";
 				#iommu-cells = <0>;
+			};
+
+			vpu_dec: video-codec@32200000 {
+				compatible = "sprd,vpu-dec-core0";
+				reg = <0 0x32200000 0 0xc000>;
+				interrupts = <GIC_SPI 147 IRQ_TYPE_LEVEL_HIGH>;
+				sprd,video_ip_version = <21>;
+				syscons = <&dpu_vsp_apb_regs
+					REG_DPU_VSP_APB_RST
+					(MASK_DPU_VSP_APB_VPU_DEC_SOFT_RST |
+					MASK_DPU_VSP_APB_VPU_DEC_VSP_SOFT_RST)>,
+					<&aon_apb_regs
+					REG_AON_APB_APB_EB1
+					MASK_AON_APB_AP_SYST_EB>;
+				syscon-names = "reset",
+					"vpu_domain_eb";
+				iommus = <&iommu_vpudec>;
+				power-domains = <&vpu_pd_dec>;
+				status = "disabled";
 			};
 
 			iommu_vpudec: iommu@32200000 {
@@ -1128,7 +1260,7 @@
 				sprd,iova-base = <0x20000000>;
 				sprd,iova-size = <0x20000000>;
 				reg_name = "mmu_reg";
-				status = "okay";
+				status = "disabled";
 				#iommu-cells = <0>;
 			};
 

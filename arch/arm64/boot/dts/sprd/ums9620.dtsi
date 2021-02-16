@@ -711,3 +711,72 @@
 	clocks = <&dpu_vsp_gate CLK_GSP0_EB>,
 		 <&aonapb_gate CLK_DPU_VSP_EB>;
 };
+
+&vpu_dec {
+	clock-names = "clk_domain_eb",
+			"clk_dev_eb",
+			"clk_ckg_eb",
+			"clk_ahb_vsp",
+			"clk_ahb_vsp_parent",
+			"clk_src_256m",
+			"clk_src_307m2",
+			"clk_src_384m",
+			"clk_src_512m",
+			"clk_vsp";
+	clocks = <&aonapb_gate CLK_DPU_VSP_EB>,
+			<&dpu_vsp_gate CLK_VPU_DEC_EB>,
+			<&dpu_vsp_gate CLK_DPU_CKG_EB>,
+			<&dpu_vsp_clk CLK_VPU_MTX>,
+			<&g5l_pll CLK_TGPLL_512M>,
+			<&g5l_pll CLK_TGPLL_256M>,
+			<&g5l_pll CLK_TGPLL_307M2>,
+			<&g5l_pll CLK_TGPLL_384M>,
+			<&g5l_pll CLK_TGPLL_512M>,
+			<&dpu_vsp_clk CLK_VPU_DEC>;
+};
+
+&vpu_enc0 {
+	clock-names = "clk_domain_eb",
+			"clk_dev_eb",
+			"clk_ckg_eb",
+			"clk_ahb_vsp",
+			"clk_ahb_vsp_parent",
+			"clk_src_256m",
+			"clk_src_307m2",
+			"clk_src_384m",
+			"clk_src_512m",
+			"clk_vsp";
+	clocks = <&aonapb_gate CLK_DPU_VSP_EB>,
+			<&dpu_vsp_gate CLK_VPU_ENC0_EB>,
+			<&dpu_vsp_gate CLK_DPU_CKG_EB>,
+			<&dpu_vsp_clk CLK_VPU_MTX>,
+			<&g5l_pll CLK_TGPLL_512M>,
+			<&g5l_pll CLK_TGPLL_256M>,
+			<&g5l_pll CLK_TGPLL_307M2>,
+			<&g5l_pll CLK_TGPLL_384M>,
+			<&g5l_pll CLK_TGPLL_512M>,
+			<&dpu_vsp_clk CLK_VPU_ENC>;
+};
+
+&vpu_enc1 {
+	clock-names = "clk_domain_eb",
+			"clk_dev_eb",
+			"clk_ckg_eb",
+			"clk_ahb_vsp",
+			"clk_ahb_vsp_parent",
+			"clk_src_256m",
+			"clk_src_307m2",
+			"clk_src_384m",
+			"clk_src_512m",
+			"clk_vsp";
+	clocks = <&aonapb_gate CLK_DPU_VSP_EB>,
+			<&dpu_vsp_gate CLK_VPU_ENC1_EB>,
+			<&dpu_vsp_gate CLK_DPU_CKG_EB>,
+			<&dpu_vsp_clk CLK_VPU_MTX>,
+			<&g5l_pll CLK_TGPLL_512M>,
+			<&g5l_pll CLK_TGPLL_256M>,
+			<&g5l_pll CLK_TGPLL_307M2>,
+			<&g5l_pll CLK_TGPLL_384M>,
+			<&g5l_pll CLK_TGPLL_512M>,
+			<&dpu_vsp_clk CLK_VPU_ENC>;
+};
