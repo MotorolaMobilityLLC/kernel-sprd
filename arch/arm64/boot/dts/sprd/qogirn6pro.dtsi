@@ -1107,6 +1107,30 @@
 				status = "okay";
 				#iommu-cells = <0>;
 			};
+
+			jpg: jpg-codec@36000000 {
+				compatible = "sprd,qogirn6pro-jpg";
+				reg = <0 0x36000000 0 0xc000>;
+				interrupts = <GIC_SPI 111 IRQ_TYPE_LEVEL_HIGH>;
+				syscons = <&mm_ahb_regs REG_MM_AHB_SYS_SOFT_RST
+					MASK_MM_AHB_JPG_SOFT_RST>,
+					<&aon_apb_regs REG_AON_APB_APB_EB0
+					MASK_AON_APB_MM_EB>;
+				syscon-names = "reset",
+					"aon_apb_eb";
+				iommus = <&iommu_jpg>;
+				status = "disabled";
+			};
+
+			iommu_jpg: iommu@36000300 {
+				compatible = "sprd,iommuvau-jpg";
+				reg = <0x0 0x36000300 0x0 0x80>;
+				sprd,iova-base = <0x60000000>;
+				sprd,iova-size = <0x10000000>;
+				reg_name = "mmu_reg";
+				status = "disabled";
+				#iommu-cells = <0>;
+			};
 		};
 
 		ipa-apb {

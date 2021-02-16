@@ -632,3 +632,25 @@
 	clocks = <&apapb_gate CLK_SPI2_EB>,
 		 <&aonapb_clk CLK_SPI2>, <&g5l_pll CLK_TGPLL_192M>;
 };
+
+&jpg {
+	clock-names = "jpg_domain_eb",
+			"jpg_dev_eb",
+			"jpg_ckg_eb",
+			"jpg_clk",
+			"clk_src_153m6",
+			"clk_src_256m",
+			"clk_src_307m2",
+			"clk_src_409m6",
+			"clk_src_512m";
+
+	clocks = <&aonapb_gate CLK_MM_EB>,
+			<&mm_gate CLK_JPG_EN>,
+			<&mm_gate CLK_CKG_EN>,
+			<&mm_clk CLK_JPG>,
+			<&g5l_pll CLK_TGPLL_153M6>,
+			<&g5l_pll CLK_TGPLL_256M>,
+			<&g5l_pll CLK_TGPLL_307M2>,
+			<&g5l_pll CLK_V4NRPLL_409M6>,
+			<&g5l_pll CLK_TGPLL_512M>;
+};
