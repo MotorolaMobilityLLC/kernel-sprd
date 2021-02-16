@@ -749,25 +749,18 @@ int gsp_r9p0_core_enable(struct gsp_core *c)
 
 	core = (struct gsp_r9p0_core *)c;
 
-	clk_set_parent(core->dpu_clk, NULL);
-	ret = clk_set_parent(core->dpu_clk, core->dpu_clk_parent);
+	ret = clk_prepare_enable(core->gsp_eb);
 	if (ret) {
-		GSP_ERR("select dpu clk fail !\n");
-		goto exit;
-	}
-
-	ret = clk_prepare_enable(core->dpu_clk);
-	if (ret) {
-		GSP_ERR("enable dpu_clk fail\n");
-		goto dpu_clk_unprepare;
+		GSP_ERR("enable gsp_eb fail\n");
+		goto gsp_clk_unprepare;
 	}
 
 	gsp_r9p0_int_clear(c);
 	gsp_r9p0_core_irq_enable(c);
 	goto exit;
 
-dpu_clk_unprepare:
-	clk_disable_unprepare(core->dpu_clk);
+gsp_clk_unprepare:
+	clk_disable_unprepare(core->gsp_eb);
 exit:
 	return ret;
 }
@@ -778,20 +771,16 @@ void gsp_r9p0_core_disable(struct gsp_core *c)
 
 	core = (struct gsp_r9p0_core *)c;
 	gsp_r9p0_int_clear_and_disable(c);
-	clk_disable_unprepare(core->dpu_clk);
+	clk_disable_unprepare(core->gsp_eb);
 }
 
 static int gsp_r9p0_core_parse_clk(struct gsp_r9p0_core *core)
 {
 	int status = 0;
 
-	core->dpu_clk = of_clk_get_by_name(core->common.node,
-			R4P0_DPU_CLOCK_NAME);
-	core->dpu_clk_parent = of_clk_get_by_name(core->common.node,
-				R4P0_DPU_CLOCK_PARENT);
-
-	if (IS_ERR_OR_NULL(core->dpu_clk)
-		|| IS_ERR_OR_NULL(core->dpu_clk_parent)) {
+	core->gsp_eb = of_clk_get_by_name(core->common.node,
+			R9P0_GSP_CLOCK_NAME);
+	if (IS_ERR_OR_NULL(core->gsp_eb)) {
 		GSP_ERR("parse dpu clk failed\n");
 		status = -1;
 	}
@@ -840,6 +829,8 @@ int gsp_r9p0_core_parse_dt(struct gsp_core *core)
 	}
 
 	gsp_r9p0_core_parse_clk(r9p0_core);
+
+	gsp_r9p0_core_enable(core);
 
 	sprd_iommu_restore(core->dev);
 	/*

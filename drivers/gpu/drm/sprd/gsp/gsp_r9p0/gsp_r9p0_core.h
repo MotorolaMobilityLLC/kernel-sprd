@@ -19,8 +19,7 @@
 #include "gsp_core.h"
 #include "gsp_debug.h"
 
-#define R4P0_DPU_CLOCK_NAME		("clk_dpu_core")
-#define R4P0_DPU_CLOCK_PARENT		("clk_dpu_core_src")
+#define R9P0_GSP_CLOCK_NAME		("clk_gsp_eb")
 
 #define MIN_POOL_SIZE			(6 * 1024)
 #define R9P0_GSP_COEF_CACHE_MAX		32
@@ -34,9 +33,8 @@ struct gsp_r9p0_core {
 	uint32_t cache_coef_init_flag;
 	char coef_buf_pool[MIN_POOL_SIZE];
 
-	struct clk *dpu_clk;
-	struct clk *dpu_clk_parent;
-	/* module ctl reg base, virtual	0x63000000 */
+	struct clk *gsp_eb;
+	/* module ctl reg base, virtual	0x31100000 */
 	void __iomem *gsp_ctl_reg_base;
 };
 

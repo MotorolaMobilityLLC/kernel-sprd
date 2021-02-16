@@ -21,7 +21,7 @@
 
 #define GSP_QOGIRN6PRO "qogirn6pro"
 
-#define QOGIRN6PRO_AP_AHB_DISP_EB_NAME	  ("clk_ap_ahb_disp_eb")
+#define QOGIRN6PRO_AP_AHB_DISP_EB_NAME	  ("clk_dpuvsp_eb")
 
 struct gsp_interface_qogirn6pro {
 	struct gsp_interface common;

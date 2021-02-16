@@ -19,13 +19,11 @@
 #include "../gsp_debug.h"
 #include "../gsp_interface.h"
 
-static void __iomem *base;
-
 int gsp_interface_qogirn6pro_parse_dt(struct gsp_interface *intf,
 				  struct device_node *node)
 {
 	int status = 0;
-#if 0
+
 	struct gsp_interface_qogirn6pro *gsp_interface = NULL;
 
 	gsp_interface = (struct gsp_interface_qogirn6pro *)intf;
@@ -37,22 +35,6 @@ int gsp_interface_qogirn6pro_parse_dt(struct gsp_interface *intf,
 		GSP_ERR("iread clk_ap_ahb_disp_eb  failed\n");
 		status = -1;
 	}
-#endif
-      unsigned int temp;
-      pr_err("Gsp disp_eb parse dt\n");
-      base = ioremap_nocache(0x30100000, 0x10000);
-      temp = readl(base);
-      temp = (temp | (1 << 6));
-      writel(temp, base);
-
-      pr_err("Gsp disp_reset parse dt\n");
-      base = ioremap_nocache(0x30110004, 0x10000);
-      temp = readl(base);
-      temp = (temp | (1 << 6));
-      writel(temp, base);
-      temp &= ~(1 << 6);
-      writel(temp, base);
-
       return status;
 }
 
