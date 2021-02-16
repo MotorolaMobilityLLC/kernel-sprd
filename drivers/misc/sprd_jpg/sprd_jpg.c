@@ -53,7 +53,9 @@ static char *jpg_clk_src[] = {
 	"clk_src_192m",
 	"clk_src_256m",
 	"clk_src_307m2",
-	"clk_src_384m"
+	"clk_src_384m",
+	"clk_src_409m6",
+	"clk_src_512m"
 };
 static char *syscon_name[] = {
 	"aon_apb_eb",
@@ -153,6 +155,12 @@ static const struct sprd_jpg_cfg_data qogirl6_jpg_data = {
 	.qos_reg_offset = 0x30
 };
 
+static const struct sprd_jpg_cfg_data qogirn6pro_jpg_data = {
+	.version = QOGIRN6PRO,
+	.max_freq_level = 5,
+	.qos_reg_offset = 0x30
+};
+
 static const struct of_device_id of_match_table_jpg[] = {
 
 	{.compatible = "sprd,sharkle-jpg", .data = &sharkle_jpg_data},
@@ -162,6 +170,7 @@ static const struct of_device_id of_match_table_jpg[] = {
 	{.compatible = "sprd,roc1-jpg", .data = &roc1_jpg_data},
 	{.compatible = "sprd,sharkl5pro-jpg", .data = &sharkl5pro_jpg_data},
 	{.compatible = "sprd,qogirl6-jpg", .data = &qogirl6_jpg_data},
+	{.compatible = "sprd,qogirn6pro-jpg", .data = &qogirn6pro_jpg_data},
 	{},
 };
 
