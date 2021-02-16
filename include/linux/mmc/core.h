@@ -163,6 +163,12 @@ struct mmc_request {
 	 */
 	void			(*recovery_notifier)(struct mmc_request *);
 	struct mmc_host		*host;
+#ifdef CONFIG_EMMC_SOFTWARE_CQ_SUPPORT
+	struct mmc_async_req	*areq;
+	int			flags;
+	struct list_head	link;
+	struct list_head	hlist;
+#endif
 
 	/* Allow other commands during this ongoing data transfer or busy wait */
 	bool			cap_cmd_during_tfr;
