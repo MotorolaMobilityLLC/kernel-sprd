@@ -18,13 +18,11 @@
 
 #include "sprd_dsi.h"
 
-static struct clk *clk_ap_ahb_dsi_eb;
-static void *dpu_vsp_eb;//0x30100000
+static struct clk *clk_dsi0_eb;
 
 static struct dsi_glb_context {
 	unsigned int ctrl_reg;
 	unsigned int ctrl_mask;
-
 	struct regmap *regmap;
 } ctx_reset;
 
@@ -32,19 +30,14 @@ static int dsi_glb_parse_dt(struct dsi_context *ctx,
 				struct device_node *np)
 {
 	unsigned int syscon_args[2];
-	int ret, val;
+	int ret;
 
-	dpu_vsp_eb = ioremap_nocache(0x30100000, 4);//0x30100000i
 
-	val = readl(dpu_vsp_eb);
-	val |= 2;
-	writel(val, dpu_vsp_eb);
-
-	clk_ap_ahb_dsi_eb =
-		of_clk_get_by_name(np, "clk_ap_ahb_dsi_eb");
-	if (IS_ERR(clk_ap_ahb_dsi_eb)) {
-		pr_warn("read clk_ap_ahb_dsi_eb failed\n");
-		clk_ap_ahb_dsi_eb = NULL;
+	clk_dsi0_eb =
+		of_clk_get_by_name(np, "clk_dsi0_eb");
+	if (IS_ERR(clk_dsi0_eb)) {
+		pr_warn("read clk_dsi0_eb failed\n");
+		clk_dsi0_eb = NULL;
 	}
 
 	ctx_reset.regmap = syscon_regmap_lookup_by_name(np, "reset");
@@ -66,23 +59,20 @@ static int dsi_glb_parse_dt(struct dsi_context *ctx,
 
 static void dsi_glb_enable(struct dsi_context *ctx)
 {
-#if 0
 	int ret;
 
-	ret = clk_prepare_enable(clk_ap_ahb_dsi_eb);
+	ret = clk_prepare_enable(clk_dsi0_eb);
 	if (ret)
-		pr_err("enable clk_ap_ahb_dsi_eb failed!\n");
-#endif
+		pr_err("enable clk_dsi0_eb failed!\n");
 }
 
 static void dsi_glb_disable(struct dsi_context *ctx)
 {
-	clk_disable_unprepare(clk_ap_ahb_dsi_eb);
+	clk_disable_unprepare(clk_dsi0_eb);
 }
 
 static void dsi_reset(struct dsi_context *ctx)
 {
-#if 0
 	regmap_update_bits(ctx_reset.regmap,
 			ctx_reset.ctrl_reg,
 			ctx_reset.ctrl_mask,
@@ -92,7 +82,6 @@ static void dsi_reset(struct dsi_context *ctx)
 			ctx_reset.ctrl_reg,
 			ctx_reset.ctrl_mask,
 			(unsigned int)(~ctx_reset.ctrl_mask));
-#endif
 }
 
 static struct dsi_glb_ops dsi_glb_ops = {

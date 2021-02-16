@@ -20,10 +20,8 @@
 
 #include "sprd_dpu.h"
 
-static struct clk *clk_ap_ahb_disp_eb;
-static void *apb_pd_dpu;
-static void *apb_eb;
-static void *dpu_vsp_eb;
+static struct clk *clk_dpuvsp_eb;
+static struct clk *clk_dpuvsp_disp_eb;
 
 static struct dpu_clk_context {
 	struct clk *clk_src_256m;
@@ -47,23 +45,23 @@ static const u32 dpu_core_clk[] = {
 	384000000,
 	409600000,
 	512000000,
-	614000000
+	614400000
 };
 
 static const u32 dpi_clk_src[] = {
 	256000000,
 	307200000,
-	384000000
+	312500000,
+	384000000,
+	416700000
 };
 
 static struct dpu_glb_context {
 	unsigned int enable_reg;
 	unsigned int mask_bit;
-
 	struct regmap *regmap;
-} ctx_reset, ctx_qos;
+} ctx_reset, vau_reset, ctx_qos;
 
-#if 0
 static struct clk *val_to_clk(struct dpu_clk_context *ctx, u32 val)
 {
 	switch (val) {
@@ -77,40 +75,18 @@ static struct clk *val_to_clk(struct dpu_clk_context *ctx, u32 val)
 		return ctx->clk_src_409m6;
 	case 512000000:
 		return ctx->clk_src_512m;
-	case 614000000:
+	case 614400000:
 		return ctx->clk_src_614m4;
 	default:
 		pr_err("invalid clock value %u\n", val);
 		return NULL;
 	}
 }
-#endif
 
 static int dpu_clk_parse_dt(struct dpu_context *ctx,
 				struct device_node *np)
 {
 	struct dpu_clk_context *clk_ctx = &dpu_clk_ctx;
-
-
-	apb_pd_dpu = ioremap_nocache(0x64910308, 4);
-	apb_eb = ioremap_nocache(0x64900000, 8);
-	dpu_vsp_eb = ioremap_nocache(0x30100000, 4);
-
-	if (!apb_pd_dpu) {
-		pr_err("apb_pd_dpu remap again\n");
-		apb_pd_dpu = ioremap_nocache(0x64910308, 4);
-	}
-
-	if (!apb_eb) {
-		apb_eb = ioremap_nocache(0x64900000, 8);
-		pr_err("apb_apb_eb remap again\n");
-	}
-
-	if (!dpu_vsp_eb) {
-		dpu_vsp_eb = ioremap_nocache(0x30100000, 4);
-		pr_err("apb_vsp_dpu remap again\n");
-	}
-
 
 	clk_ctx->clk_src_256m =
 		of_clk_get_by_name(np, "clk_src_256m");
@@ -172,7 +148,6 @@ static int dpu_clk_parse_dt(struct dpu_context *ctx,
 	return 0;
 }
 
-#if 0
 static u32 calc_dpu_core_clk(void)
 {
 	return dpu_core_clk[ARRAY_SIZE(dpu_core_clk) - 1];
@@ -190,11 +165,10 @@ static u32 calc_dpi_clk_src(u32 pclk)
 	pr_err("calc DPI_CLK_SRC failed, use default\n");
 	return 96000000;
 }
-#endif
 
 static int dpu_clk_init(struct dpu_context *ctx)
 {
-#if 0
+
 	int ret;
 	u32 dpu_core_val;
 	u32 dpi_src_val;
@@ -223,28 +197,11 @@ static int dpu_clk_init(struct dpu_context *ctx)
 		pr_err("dpu update dpi clk rate failed\n");
 
 	return ret;
-#endif
-	return 0;
+
 }
 
 static int dpu_clk_enable(struct dpu_context *ctx)
 {
-
-	unsigned int val;
-
-	val = readl(apb_pd_dpu);
-	val &= ~((1 << 24) | 1 << 25);
-	writel(val, apb_pd_dpu);
-
-	val = readl(apb_eb);
-	val |= (1<<21);
-	writel(val, apb_eb);
-	val = readl(apb_eb);
-	mdelay(5);
-	val = readl(dpu_vsp_eb);
-	val |= 1;
-	writel(val, dpu_vsp_eb);
-#if 0
 	int ret;
 	struct dpu_clk_context *clk_ctx = &dpu_clk_ctx;
 
@@ -260,7 +217,7 @@ static int dpu_clk_enable(struct dpu_context *ctx)
 		clk_disable_unprepare(clk_ctx->clk_dpu_core);
 		return ret;
 	}
-#endif
+
 	return 0;
 }
 
@@ -298,11 +255,32 @@ static int dpu_glb_parse_dt(struct dpu_context *ctx,
 		pr_warn("failed to parse dpu glb reg: reset\n");
 	}
 
-	clk_ap_ahb_disp_eb =
-		of_clk_get_by_name(np, "clk_ap_ahb_disp_eb");
-	if (IS_ERR(clk_ap_ahb_disp_eb)) {
-		pr_warn("read clk_ap_ahb_disp_eb failed\n");
-		clk_ap_ahb_disp_eb = NULL;
+	vau_reset.regmap = syscon_regmap_lookup_by_name(np, "vau_reset");
+	if (IS_ERR(vau_reset.regmap)) {
+		pr_warn("failed to map dpu glb reg: vau_reset\n");
+		return PTR_ERR(vau_reset.regmap);
+	}
+
+	ret = syscon_get_args_by_name(np, "vau_reset", 2, syscon_args);
+	if (ret == 2) {
+		vau_reset.enable_reg = syscon_args[0];
+		vau_reset.mask_bit = syscon_args[1];
+	} else {
+		pr_warn("failed to parse dpu glb reg: vau_reset\n");
+	}
+
+	clk_dpuvsp_eb =
+		of_clk_get_by_name(np, "clk_dpuvsp_eb");
+	if (IS_ERR(clk_dpuvsp_eb)) {
+		pr_warn("read clk_dpuvsp_eb failed\n");
+		clk_dpuvsp_eb = NULL;
+	}
+
+	clk_dpuvsp_disp_eb =
+		of_clk_get_by_name(np, "clk_dpuvsp_disp_eb");
+	if (IS_ERR(clk_dpuvsp_disp_eb)) {
+		pr_warn("read clk_dpuvsp_disp_eb failed\n");
+		clk_dpuvsp_disp_eb = NULL;
 	}
 
 	ctx_qos.regmap = syscon_regmap_lookup_by_name(np, "qos");
@@ -338,35 +316,48 @@ static int dpu_glb_parse_dt(struct dpu_context *ctx,
 
 static void dpu_glb_enable(struct dpu_context *ctx)
 {
-#if 0
-	unsigned int val;
+	unsigned int ret;
 
-	ret = clk_prepare_enable(clk_ap_ahb_disp_eb);
+	ret = clk_prepare_enable(clk_dpuvsp_eb);
 	if (ret) {
-		pr_err("enable clk_aon_apb_disp_eb failed!\n");
+		pr_err("enable clk_dpuvsp_eb failed!\n");
 		return;
 	}
-#endif
+
+	ret = clk_prepare_enable(clk_dpuvsp_disp_eb);
+	if (ret) {
+		pr_err("enable clk_dpuvsp_disp_eb failed!\n");
+		return;
+	}
 }
 
 static void dpu_glb_disable(struct dpu_context *ctx)
 {
-	clk_disable_unprepare(clk_ap_ahb_disp_eb);
+	clk_disable_unprepare(clk_dpuvsp_disp_eb);
+	clk_disable_unprepare(clk_dpuvsp_eb);
 }
 
 static void dpu_reset(struct dpu_context *ctx)
 {
-#if 0
 	regmap_update_bits(ctx_reset.regmap,
-		    ctx_reset.enable_reg,
-		    ctx_reset.mask_bit,
-		    ctx_reset.mask_bit);
+			ctx_reset.enable_reg,
+			ctx_reset.mask_bit,
+			ctx_reset.mask_bit);
 	udelay(10);
 	regmap_update_bits(ctx_reset.regmap,
-		    ctx_reset.enable_reg,
-		    ctx_reset.mask_bit,
-		    (unsigned int)(~ctx_reset.mask_bit));
-#endif
+			ctx_reset.enable_reg,
+			ctx_reset.mask_bit,
+			(unsigned int)(~ctx_reset.mask_bit));
+	regmap_update_bits(vau_reset.regmap,
+			vau_reset.enable_reg,
+			vau_reset.mask_bit,
+			vau_reset.mask_bit);
+	udelay(10);
+	regmap_update_bits(vau_reset.regmap,
+			vau_reset.enable_reg,
+			vau_reset.mask_bit,
+			(unsigned int)(~vau_reset.mask_bit));
+
 }
 
 static void dpu_power_domain(struct dpu_context *ctx, int enable)

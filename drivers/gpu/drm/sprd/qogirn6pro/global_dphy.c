@@ -24,19 +24,12 @@ static struct dphy_glb_context {
 	unsigned int ctrl_mask;
 	struct regmap *regmap;
 } ctx_enable, ctx_power;
-static void *dphy_eb;//0x30100000
 
 static int dphy_glb_parse_dt(struct dphy_context *ctx,
 				struct device_node *np)
 {
 	unsigned int syscon_args[2];
-	int ret, val;
-
-	dphy_eb = ioremap_nocache(0x3010001c, 4);//0x30100000
-	val = readl(dphy_eb);
-	val |= 3;
-	pr_err("dpu_clk_parse_dt dpu_eb %x %p\n", val, dphy_eb);
-	writel(val, dphy_eb);
+	int ret;
 
 	ctx_enable.regmap = syscon_regmap_lookup_by_name(np, "enable");
 	if (IS_ERR(ctx_enable.regmap)) {
@@ -69,27 +62,22 @@ static int dphy_glb_parse_dt(struct dphy_context *ctx,
 
 static void dphy_glb_enable(struct dphy_context *ctx)
 {
-#if 0
 	regmap_update_bits(ctx_enable.regmap,
 		ctx_enable.ctrl_reg,
 		ctx_enable.ctrl_mask,
 		ctx_enable.ctrl_mask);
-#endif
 }
 
 static void dphy_glb_disable(struct dphy_context *ctx)
 {
-#if 0
 	regmap_update_bits(ctx_enable.regmap,
 		ctx_enable.ctrl_reg,
 		ctx_enable.ctrl_mask,
 		(unsigned int)(~ctx_enable.ctrl_mask));
-#endif
 }
 
 static void dphy_power_domain(struct dphy_context *ctx, int enable)
 {
-#if 0
 	if (enable) {
 		regmap_update_bits(ctx_power.regmap,
 			ctx_power.ctrl_reg,
@@ -108,7 +96,6 @@ static void dphy_power_domain(struct dphy_context *ctx, int enable)
 			ctx_power.ctrl_mask,
 			ctx_power.ctrl_mask);
 	}
-#endif
 }
 
 static struct dphy_glb_ops dphy_glb_ops = {

@@ -1231,7 +1231,7 @@ static ssize_t disable_write(struct file *fp, struct kobject *kobj,
 }
 static BIN_ATTR_WO(disable, 4);
 
-static ssize_t update_luts_read(struct file *fp, struct kobject *kobj,
+static ssize_t luts_print_write(struct file *fp, struct kobject *kobj,
 		struct bin_attribute *attr, char *buf,
 		loff_t off, size_t count)
 {
@@ -1242,11 +1242,9 @@ static ssize_t update_luts_read(struct file *fp, struct kobject *kobj,
 	if (!dpu->core->enhance_get)
 		return -EIO;
 
-	if (off >= attr->size)
-		return 0;
-
-	if (off + count > attr->size)
-		count = attr->size - off;
+	/* I need to get my data in one piece */
+	if (off != 0 || count != attr->size)
+		return -EINVAL;
 
 	down(&ctx->refresh_lock);
 	if (!ctx->is_inited) {
@@ -1259,6 +1257,8 @@ static ssize_t update_luts_read(struct file *fp, struct kobject *kobj,
 
 	return count;
 }
+
+static BIN_ATTR_WO(luts_print, 4);
 
 static ssize_t update_luts_write(struct file *fp, struct kobject *kobj,
 			struct bin_attribute *attr, char *buf,
@@ -1282,8 +1282,7 @@ static ssize_t update_luts_write(struct file *fp, struct kobject *kobj,
 	return count;
 }
 
-
-static BIN_ATTR_RW(update_luts, 109584);
+static BIN_ATTR_WO(update_luts, 94208);
 
 static ssize_t status_show(struct device *dev,
 			struct device_attribute *attr,
@@ -1345,6 +1344,7 @@ static struct bin_attribute *pq_bin_attrs[] = {
 	&bin_attr_enable,
 	&bin_attr_disable,
 	&bin_attr_ud,
+	&bin_attr_luts_print,
 	&bin_attr_update_luts,
 	NULL,
 };
