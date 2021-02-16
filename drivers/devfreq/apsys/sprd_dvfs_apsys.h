@@ -72,9 +72,13 @@ struct ip_dvfs_map_cfg {
 struct ip_dvfs_status {
 	char *apsys_cur_volt;
 	char *dpu_vote_volt;
+	char *gsp0_vote_volt;
+	char *gsp1_vote_volt;
 	char *vsp_vote_volt;
 	char *vdsp_vote_volt;
 	char *dpu_cur_freq;
+	char *gsp0_cur_freq;
+	char *gsp1_cur_freq;
 	char *vsp_cur_freq;
 	char *vdsp_cur_freq;
 	u32 vdsp_edap_div;
