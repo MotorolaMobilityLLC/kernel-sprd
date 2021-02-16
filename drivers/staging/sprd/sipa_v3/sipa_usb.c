@@ -82,6 +82,13 @@ static netdev_tx_t sipa_usb_start_xmit(struct sk_buff *skb,
 
 	netid = pdata->netid;
 
+	ret = skb_linearize(skb);
+	if (unlikely(ret)) {
+		stats->tx_dropped++;
+		dev_kfree_skb_any(skb);
+		return ret;
+	}
+
 	ret = sipa_nic_tx(usb->nic_id, pdata->src_id, netid, skb);
 	if (unlikely(ret != 0)) {
 		pr_err("sipa_usb fail to send skb, ret %d\n", ret);
@@ -269,6 +276,9 @@ static int sipa_usb_debug_show(struct seq_file *m, void *v)
 	seq_printf(m, "DEVICE: %s, src_id %d, netid %d, state %s\n",
 		   pdata->name, pdata->src_id, pdata->netid,
 		   usb->state == DEV_ON ? "UP" : "DOWN");
+
+	seq_printf(m, "SG feature %s\n",
+		   usb->ndev->hw_features & NETIF_F_SG ? "on" : "off");
 	seq_puts(m, "\nRX statistics:\n");
 	seq_printf(m, "rx_bytes=%lu, rx_packets=%lu\n",
 		   stats->rx_bytes,
@@ -368,6 +378,7 @@ static int sipa_usb_probe(struct platform_device *pdev)
 	SET_NETDEV_DEVTYPE(ndev, &gadget_type);
 
 	ndev->hw_features |= NETIF_F_RXCSUM;
+	ndev->hw_features |= NETIF_F_SG;
 	ndev->features |= ndev->hw_features;
 	/* Register new Ethernet interface */
 	ret = register_netdev(ndev);

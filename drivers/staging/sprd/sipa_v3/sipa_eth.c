@@ -93,10 +93,15 @@ static netdev_tx_t sipa_eth_start_xmit(struct sk_buff *skb,
 		return NETDEV_TX_OK;
 	}
 
+	ret = skb_linearize(skb);
+	if (unlikely(ret)) {
+		stats->tx_dropped++;
+		dev_kfree_skb_any(skb);
+		return ret;
+	}
+
 	netid = pdata->netid;
 	len = skb->len;
-
-	//sipa_dev_skb_maybe_print(skb, SIPA_DEV_RX, SIPA_DEV_ETH_CONF);
 
 	ret = sipa_nic_tx(sipa_eth->nic_id, pdata->src_id, netid, skb);
 	if (unlikely(ret != 0)) {
@@ -328,6 +333,7 @@ static int sipa_eth_probe(struct platform_device *pdev)
 
 	random_ether_addr(netdev->dev_addr);
 
+	netdev->hw_features |= NETIF_F_SG;
 	netdev->hw_features |= NETIF_F_RXCSUM | NETIF_F_IP_CSUM |
 		NETIF_F_IPV6_CSUM;
 	netdev->features |= netdev->hw_features;
@@ -397,6 +403,10 @@ static int sipa_eth_debug_show(struct seq_file *m, void *v)
 	seq_printf(m, "DEVICE: %s, src_id %d, netid %d, state %s\n",
 		   pdata->name, pdata->src_id, pdata->netid,
 		   sipa_eth->state == DEV_ON ? "UP" : "DOWN");
+
+	seq_printf(m, "SG feature %s\n",
+		   sipa_eth->netdev->hw_features & NETIF_F_SG ? "on" : "off");
+
 	seq_puts(m, "\nRX statistics:\n");
 	seq_printf(m, "rx_bytes=%lu, rx_packets=%lu\n",
 		   stats->rx_bytes,
