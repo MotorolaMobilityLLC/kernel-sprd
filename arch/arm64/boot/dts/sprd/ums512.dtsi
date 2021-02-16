@@ -165,6 +165,23 @@
 				0		/* CORE_PD */
 			>;
 
+			busy-cost-data-T700 = <
+				183	31		//614MHz
+				229	51		//768MHz
+				287	63		//962MHz
+				342	75		//1144MHz
+				367	84		//1229MHz
+				443	127		//1482MHz
+				459	132		//1536MHz
+				513	182		//1716MHz
+				544	193		//1820MHz
+			>;
+			idle-cost-data-T700 = <
+				5		/* ACTIVE-IDLE */
+				5		/* WFI */
+				0		/* CORE_PD */
+			>;
+
 			busy-cost-data-T618 = <
 				167	34		//614MHz
 				209	54		//768MHz
@@ -206,6 +223,19 @@
 				1024	943		//1820MHz
 			>;
 			idle-cost-data-T610 = <
+				21		/* ACTIVE-IDLE */
+				21		/* WFI */
+				0		/* CORE_PD */
+			>;
+
+			busy-cost-data-T700 = <
+				691	360		//1229MHz
+				834	491		//1482MHz
+				864	644		//1536MHz
+				980	902		//1742MHz
+				1024	943		//1820MHz
+			>;
+			idle-cost-data-T700 = <
 				21		/* ACTIVE-IDLE */
 				21		/* WFI */
 				0		/* CORE_PD */
@@ -260,6 +290,23 @@
 				0		/* CORE_PD */
 			>;
 
+			busy-cost-data-T700 = <
+				183	1		//614MHz
+				229	2		//768MHz
+				287	3	        //962MHz
+				342	4		//1144MHz
+				367	5		//1229MHz
+				443	6		//1482MHz
+				459	7		//1536MHz
+				513	8		//1716MHz
+				544	9		//1820MHz
+			>;
+			idle-cost-data-T700 = <
+				0		/* ACTIVE-IDLE */
+				0		/* WFI */
+				0		/* CORE_PD */
+			>;
+
 			busy-cost-data-T618 = <
 				167	1		//614MHz
 				209	2		//768MHz
@@ -301,6 +348,19 @@
 				1024	46		//1820MHz
 			>;
 			idle-cost-data-T610 = <
+				5		/* ACTIVE-IDLE */
+				5		/* WFI */
+				5		/* CORE_PD */
+			>;
+
+			busy-cost-data-T700 = <
+				691	10		//1229MHz
+				834	22		//1482MHz
+				864	32		//1536MHz
+				980	44		//1742MHz
+				1024	46		//1820MHz
+			>;
+			idle-cost-data-T700 = <
 				5		/* ACTIVE-IDLE */
 				5		/* WFI */
 				5		/* CORE_PD */
