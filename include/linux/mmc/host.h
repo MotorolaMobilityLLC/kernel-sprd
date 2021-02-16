@@ -209,11 +209,31 @@ struct mmc_cqe_ops {
 struct mmc_async_req {
 	/* active mmc request */
 	struct mmc_request	*mrq;
+#ifdef CONFIG_EMMC_SOFTWARE_CQ_SUPPORT
+	struct mmc_request	*mrq_que;
+#endif
 	/*
 	 * Check error status of completed mmc request.
 	 * Returns 0 if success otherwise non zero.
 	 */
 	enum mmc_blk_status (*err_check)(struct mmc_card *, struct mmc_async_req *);
+#ifdef CONFIG_EMMC_SOFTWARE_CQ_SUPPORT
+#define MMC_QUEUE_BEFORE_ENQ	(0)	/* mrq is entered in driver */
+#define MMC_QUEUE_ENQ		(1)	/* mrq is enqueued in device */
+#define MMC_QUEUE_BEFORE_QRDY	(2)	/* mrq is 44/45 issue & wait for qrdy */
+	/* mrq is checking qrdy & ready to transfer */
+#define MMC_QUEUE_BEFORE_TRAN	(3)
+#define MMC_QUEUE_TRAN		(4)	/* mrq is transfer */
+	/* mrq is transfer done & cheking busy in case of write */
+#define MMC_QUEUE_BUSY		(5)
+	/* mrq is terminated transfer
+	 * including busy check & ready to post process
+	 */
+#define MMC_QUEUE_BEFORE_POST	(7)
+	unsigned long		state;
+	unsigned int		prio;
+#endif
+
 };
 
 /**
@@ -246,6 +266,11 @@ struct mmc_context_info {
 	bool			is_waiting_last_req;
 	wait_queue_head_t	wait;
 };
+
+#ifdef CONFIG_EMMC_SOFTWARE_CQ_SUPPORT
+#define EMMC_MAX_QUEUE_DEPTH		(32)
+#define EMMC_MIN_RT_CLASS_TAG_COUNT	(4)
+#endif
 
 struct regulator;
 struct mmc_pwrseq;
@@ -350,7 +375,7 @@ struct mmc_host {
 #define MMC_CAP2_CQE		(1 << 23)	/* Has eMMC command queue engine */
 #define MMC_CAP2_CQE_DCMD	(1 << 24)	/* CQE can issue a direct command */
 #define MMC_CAP2_CRYPTO		(1 << 27)	/* Host supports inline encryption */
-
+#define MMC_CAP2_INLINECRYPT	(1 << 25)	/* Support inline encryption */
 	mmc_pm_flag_t		pm_caps;	/* supported pm features */
 
 	/* host specific block data */
@@ -422,6 +447,49 @@ struct mmc_host {
 	/* Ongoing data transfer that allows commands during transfer */
 	struct mmc_request	*ongoing_mrq;
 
+#ifdef CONFIG_EMMC_SOFTWARE_CQ_SUPPORT
+	struct mmc_async_req	*areq_que[EMMC_MAX_QUEUE_DEPTH];
+	struct mmc_async_req	*areq_cur;
+	atomic_t		areq_cnt;
+
+	spinlock_t		cmd_que_lock;
+	spinlock_t		data_que_lock;
+	spinlock_t		que_lock;
+	struct list_head	cmd_que;
+	struct list_head	data_que;
+
+	unsigned long		state;
+	wait_queue_head_t	cmp_que;
+	wait_queue_head_t	cmdq_que;
+	struct mmc_request	*done_mrq;
+	struct mmc_command	chk_cmd;
+	struct mmc_request	chk_mrq;
+	struct mmc_command	que_cmd;
+	struct mmc_request	que_mrq;
+	struct mmc_command	deq_cmd;
+	struct mmc_request	deq_mrq;
+
+	struct mmc_queue_req	*mqrq_cur;
+	struct mmc_queue_req	*mqrq_prev;
+	struct mmc_request	*prev_mrq;
+
+	struct task_struct	*cmdq_thread;
+	atomic_t		cq_rw;
+	atomic_t		cq_w;
+	unsigned int		wp_error;
+	atomic_t		cq_wait_rdy;
+	atomic_t		cq_rdy_cnt;
+	unsigned long		task_id_index;
+	int			cur_rw_task;
+#define CQ_TASK_IDLE 99
+
+	atomic_t		is_data_dma;
+	atomic_t		cq_tuning_now;
+	unsigned int		data_mrq_queued[32];
+	unsigned int		cmdq_support_changed;
+	int			align_size;
+#endif
+
 #ifdef CONFIG_FAIL_MMC_REQUEST
 	struct fault_attr	fail_mmc_request;
 #endif
@@ -490,6 +558,14 @@ int mmc_power_restore_host(struct mmc_host *host);
 void mmc_detect_change(struct mmc_host *, unsigned long delay);
 void mmc_request_done(struct mmc_host *, struct mmc_request *);
 void mmc_command_done(struct mmc_host *host, struct mmc_request *mrq);
+
+#ifdef CONFIG_EMMC_SOFTWARE_CQ_SUPPORT
+int mmc_blk_end_queued_req(struct mmc_host *host,
+	struct mmc_async_req *areq_active, int index, int status);
+/* add for emmc reset when error happen */
+extern int current_mmc_part_type;
+extern int emmc_resetting_when_cmdq;
+#endif
 
 static inline void mmc_signal_sdio_irq(struct mmc_host *host)
 {

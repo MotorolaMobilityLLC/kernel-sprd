@@ -22,10 +22,18 @@
 #include <linux/pm_runtime.h>
 #include <linux/regulator/consumer.h>
 #include <linux/slab.h>
-
+#include "../core/card.h"
 #include "sprd-sdhcr11.h"
 
 #define DRIVER_NAME "sprd-sdhcr11"
+
+#ifdef CONFIG_EMMC_SOFTWARE_CQ_SUPPORT
+#define CMD_TIMEOUT             (HZ/10 * 5)     /* 100ms x5 */
+bool use_cmd_intr;
+static irqreturn_t sprd_sdhc_irq(int irq, void *param);
+static int irq_err_handle(struct sprd_sdhc_host *host, u32 intmask);
+static void sprd_sdhc_finish_tasklet(unsigned long param);
+#endif
 
 #ifdef CONFIG_PM
 static int sprd_sdhc_runtime_pm_get(struct sprd_sdhc_host *host)
@@ -491,11 +499,11 @@ static int sprd_sdhc_adma_table_pre(struct sprd_sdhc_host *host,
 		WARN_ON((desc - host->adma_desc) >= host->adma_table_sz);
 	}
 
-		/* Mark the last descriptor as the terminating descriptor */
-		if (desc != host->adma_desc) {
-			desc -= host->adma_desc_sz;
-			sprd_adma_mark_end(host, desc);
-		}
+	/* Mark the last descriptor as the terminating descriptor */
+	if (desc != host->adma_desc) {
+		desc -= host->adma_desc_sz;
+		sprd_adma_mark_end(host, desc);
+	}
 
 	return 0;
 }
@@ -608,7 +616,6 @@ static void sprd_sdmd_mode(struct sprd_sdhc_host *host, struct mmc_data *data)
 	}
 }
 
-
 static void sprd_send_cmd(struct sprd_sdhc_host *host, struct mmc_command *cmd)
 {
 	struct mmc_data *data = cmd->data;
@@ -620,6 +627,11 @@ static void sprd_send_cmd(struct sprd_sdhc_host *host, struct mmc_command *cmd)
 	int if_read = 0;
 	int if_dma = 0;
 	u16 auto_cmd = SPRD_SDHC_BIT_ACMD_DIS;
+#ifdef CONFIG_EMMC_SOFTWARE_CQ_SUPPORT
+	unsigned long timeout;
+	u32 intmask;
+#endif
+
 
 	dev_dbg(dev, "CMD%d, arg 0x%x, flag 0x%x\n",
 		cmd->opcode, cmd->arg, cmd->flags);
@@ -627,6 +639,7 @@ static void sprd_send_cmd(struct sprd_sdhc_host *host, struct mmc_command *cmd)
 		dev_dbg(dev, "block size %d, cnt %d\n",
 			cmd->data->blksz, cmd->data->blocks);
 	sprd_sdhc_disable_all_int(host);
+
 
 	if (cmd->opcode == MMC_ERASE) {
 		/*
@@ -722,6 +735,19 @@ static void sprd_send_cmd(struct sprd_sdhc_host *host, struct mmc_command *cmd)
 
 	host->int_filter = flag;
 	host->int_come = 0;
+#ifdef CONFIG_EMMC_SOFTWARE_CQ_SUPPORT
+	if (!use_cmd_intr && host->mmc->card
+	  && mmc_card_cmdq(host->mmc->card)
+	  && (cmd->opcode == MMC_SEND_STATUS
+	  || cmd->opcode == MMC_QUE_TASK_PARAMS
+	  || cmd->opcode == MMC_QUE_TASK_ADDR
+	  || cmd->opcode == MMC_EXECUTE_READ_TASK
+	  || cmd->opcode == MMC_EXECUTE_WRITE_TASK)) {
+		flag = 0;
+		host->need_polling = true;
+	} else
+		host->need_polling = false;
+#endif
 	sprd_sdhc_enable_int(host, flag);
 	dev_dbg(dev, "CMD%d rsp:0x%x intflag:0x%x\n"
 		"if_mult:0x%x if_read:0x%x auto_cmd:0x%x if_dma:0x%x\n",
@@ -732,6 +758,28 @@ static void sprd_send_cmd(struct sprd_sdhc_host *host, struct mmc_command *cmd)
 	wmb();
 	sprd_sdhc_set_trans_and_cmd(host, if_mult, if_read, auto_cmd,
 		if_mult, if_dma, cmd->opcode, if_has_data, rsp_type);
+
+#ifdef CONFIG_EMMC_SOFTWARE_CQ_SUPPORT
+	if (host->need_polling) {
+
+		timeout = jiffies + CMD_TIMEOUT;
+		while (!time_after(jiffies, timeout)) {
+			intmask = sprd_sdhc_readl(host,
+					SPRD_SDHC_REG_32_INT_STATE);
+			if (((intmask & host->int_filter) &&
+			  !(cmd->opcode == MMC_EXECUTE_READ_TASK
+			  || cmd->opcode == MMC_EXECUTE_WRITE_TASK))
+			  || ((intmask & SPRD_SDHC_BIT_INT_TRAN_END)
+			  && (cmd->opcode == MMC_EXECUTE_READ_TASK
+			  || cmd->opcode == MMC_EXECUTE_WRITE_TASK))) {
+				sprd_sdhc_irq(0, host);
+				return;
+			}
+		}
+		dump_sdio_reg(host);
+		irq_err_handle(host, SPRD_SDHC_BIT_INT_ERR_CMD_TIMEOUT);
+	}
+#endif
 
 }
 
@@ -810,7 +858,14 @@ static int irq_err_handle(struct sprd_sdhc_host *host, u32 intmask)
 		sprd_send_cmd(host, host->mrq->stop);
 	} else {
 		/* request finish with error, so reset and stop it */
-		tasklet_schedule(&host->finish_tasklet);
+#ifdef CONFIG_EMMC_SOFTWARE_CQ_SUPPORT
+		if (!use_cmd_intr && host->mmc->card &&
+			mmc_card_cmdq(host->mmc->card) &&
+			host->need_polling) {
+			sprd_sdhc_finish_tasklet((unsigned long)host);
+		} else
+#endif
+			tasklet_schedule(&host->finish_tasklet);
 	}
 
 	return IRQ_HANDLED;
@@ -847,11 +902,27 @@ static int irq_normal_handle(struct sprd_sdhc_host *host, u32 intmask,
 		sprd_sdhc_disable_all_int(host);
 		if (mrq->sbc == cmd)
 			sprd_send_cmd(host, mrq->cmd);
+#ifndef CONFIG_EMMC_SOFTWARE_CQ_SUPPORT
 		else if ((mrq->cmd == host->cmd) && (mrq->stop))
 			sprd_send_cmd(host, mrq->stop);
+#else
+		else if ((mrq->cmd == host->cmd) && (mrq->stop)
+				&& !(host->mmc->card
+				&& mmc_card_cmdq(host->mmc->card)))
+			sprd_send_cmd(host, mrq->stop);
+#endif
 		else {
 			/* finish with success and stop the request */
+#ifdef CONFIG_EMMC_SOFTWARE_CQ_SUPPORT
+			if (!use_cmd_intr && host->mmc->card &&
+				mmc_card_cmdq(host->mmc->card)
+				&& host->need_polling) {
+				sprd_sdhc_finish_tasklet((unsigned long)host);
+			} else
+				tasklet_schedule(&host->finish_tasklet);
+#else
 			tasklet_schedule(&host->finish_tasklet);
+#endif
 			return IRQ_HANDLED;
 		}
 	}
@@ -874,20 +945,30 @@ static irqreturn_t sprd_sdhc_irq(int irq, void *param)
 	struct mmc_command *cmd = host->cmd;
 	u32 ret_intmask = 0;
 
-	spin_lock(&host->lock);
+#ifdef CONFIG_EMMC_SOFTWARE_CQ_SUPPORT
+	if (!host->need_polling)
+#endif
+		spin_lock(&host->lock);
+
 	/*
 	 * maybe sprd_sdhc_timeout() run in one core and _irq() run in
 	 * another core, this will panic if access cmd->data
 	 */
 	if ((!mrq) || (!cmd)) {
-		spin_unlock(&host->lock);
+#ifdef CONFIG_EMMC_SOFTWARE_CQ_SUPPORT
+		if (!host->need_polling)
+#endif
+			spin_unlock(&host->lock);
 		return IRQ_NONE;
 	}
 
 	intmask = sprd_sdhc_readl(host, SPRD_SDHC_REG_32_INT_STATE);
 	host->int_come |= intmask;
 	if (!intmask) {
-		spin_unlock(&host->lock);
+#ifdef CONFIG_EMMC_SOFTWARE_CQ_SUPPORT
+		if (!host->need_polling)
+#endif
+			spin_unlock(&host->lock);
 		return IRQ_NONE;
 	} else if (((intmask & SPRD_SDHC_BIT_INT_ERR_CMD_CRC) |
 		    (intmask & SPRD_SDHC_BIT_INT_ERR_DATA_CRC)) &&
@@ -896,8 +977,8 @@ static irqreturn_t sprd_sdhc_irq(int irq, void *param)
 		dev_info(dev, "CMD%d, dll delay reg: 0x%x\n", cmd->opcode,
 			 sprd_sdhc_readl(host, SPRD_SDHC_REG_32_DLL_DLY));
 
-	dev_dbg(dev, "CMD%d, intmask 0x%x, filter = 0x%x\n",
-		cmd->opcode, intmask, host->int_filter);
+	dev_dbg(dev, "CMD%d, intmask 0x%x, filter = 0x%x pid=%d, comm=%s\n",
+	cmd->opcode, intmask, host->int_filter, current->pid, current->comm);
 
 	/*
 	 * sometimes an undesired interrupt will happen, so we must clear
@@ -924,7 +1005,10 @@ static irqreturn_t sprd_sdhc_irq(int irq, void *param)
 	};
 
 out_to_irq:
-	spin_unlock(&host->lock);
+#ifdef CONFIG_EMMC_SOFTWARE_CQ_SUPPORT
+	if (!host->need_polling)
+#endif
+		spin_unlock(&host->lock);
 	return IRQ_HANDLED;
 }
 
@@ -935,10 +1019,15 @@ static void sprd_sdhc_finish_tasklet(unsigned long param)
 	struct mmc_request *mrq;
 
 	del_timer(&host->timer);
-
-	spin_lock_irqsave(&host->lock, flags);
+#ifdef CONFIG_EMMC_SOFTWARE_CQ_SUPPORT
+	if (!host->need_polling)
+#endif
+		spin_lock_irqsave(&host->lock, flags);
 	if (!host->mrq) {
-		spin_unlock_irqrestore(&host->lock, flags);
+#ifdef CONFIG_EMMC_SOFTWARE_CQ_SUPPORT
+		if (!host->need_polling)
+#endif
+			spin_unlock_irqrestore(&host->lock, flags);
 		return;
 	}
 	mrq = host->mrq;
@@ -946,7 +1035,10 @@ static void sprd_sdhc_finish_tasklet(unsigned long param)
 	host->mrq = NULL;
 	host->cmd = NULL;
 	mmiowb();
-	spin_unlock_irqrestore(&host->lock, flags);
+#ifdef CONFIG_EMMC_SOFTWARE_CQ_SUPPORT
+	if (!host->need_polling)
+#endif
+		spin_unlock_irqrestore(&host->lock, flags);
 
 	mmc_request_done(host->mmc, mrq);
 	sprd_sdhc_runtime_pm_put(host);
@@ -990,7 +1082,12 @@ static void sprd_sdhc_request(struct mmc_host *mmc, struct mmc_request *mrq)
 
 	sprd_sdhc_runtime_pm_get(host);
 	present = mmc_gpio_get_cd(host->mmc);
+#ifndef CONFIG_EMMC_SOFTWARE_CQ_SUPPORT
 	spin_lock_irqsave(&host->lock, flags);
+#else
+	if ((strcmp(host->device_name, "sdio_emmc") != 0))
+		spin_lock_irqsave(&host->lock, flags);
+#endif
 
 	host->mrq = mrq;
 	/* 1 find whether card is still in slot */
@@ -999,7 +1096,12 @@ static void sprd_sdhc_request(struct mmc_host *mmc, struct mmc_request *mrq)
 			mrq->cmd->error = -ENOMEDIUM;
 			tasklet_schedule(&host->finish_tasklet);
 			mmiowb();
+#ifndef CONFIG_EMMC_SOFTWARE_CQ_SUPPORT
 			spin_unlock_irqrestore(&host->lock, flags);
+#else
+			if ((strcmp(host->device_name, "sdio_emmc") != 0))
+				spin_unlock_irqrestore(&host->lock, flags);
+#endif
 			return;
 		}
 		/* else asume sdcard is present */
@@ -1031,7 +1133,12 @@ static void sprd_sdhc_request(struct mmc_host *mmc, struct mmc_request *mrq)
 	}
 
 	mmiowb();
+#ifndef CONFIG_EMMC_SOFTWARE_CQ_SUPPORT
 	spin_unlock_irqrestore(&host->lock, flags);
+#else
+	if ((strcmp(host->device_name, "sdio_emmc") != 0))
+		spin_unlock_irqrestore(&host->lock, flags);
+#endif
 }
 
 static void sprd_signal_voltage_on_off(struct sprd_sdhc_host *host, u32 on_off)
@@ -1406,7 +1513,7 @@ static void sprd_sdhc_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 	sprd_set_delay_value(host);
 
 	if ((ios->clock > 52000000) && (clkchg_flag == 1)) {
-		clkchg_flag = 0;
+
 		sprd_sdhc_enable_dpll(host);
 	}
 
@@ -1868,7 +1975,12 @@ static int sprd_get_dt_resource(struct platform_device *pdev,
 
 	if (of_property_read_bool(np, "sprd,sdio-adma")) {
 		host->flags |= SPRD_USE_ADMA;
+#ifndef CONFIG_EMMC_SOFTWARE_CQ_SUPPORT
 		host->flags |= SPRD_AUTO_CMD23;
+#else
+		if ((strcmp(host->device_name, "sdio_emmc") != 0))
+			host->flags |= SPRD_AUTO_CMD23;
+#endif
 #ifdef CONFIG_64BIT
 		host->flags |= SPRD_USE_64_BIT_DMA;
 #endif
@@ -2201,6 +2313,9 @@ static int sprd_sdhc_probe(struct platform_device *pdev)
 	host->mmc = mmc;
 	host->pdev = pdev;
 	host->flags = 0;
+#ifdef CONFIG_EMMC_SOFTWARE_CQ_SUPPORT
+	host->need_polling = false;
+#endif
 	spin_lock_init(&host->lock);
 	platform_set_drvdata(pdev, host);
 
