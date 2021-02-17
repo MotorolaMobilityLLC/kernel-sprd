@@ -48,6 +48,7 @@ d_defconfig_path = {
             'sharkle32':{'defconfig':'arch/arm/configs/sprd_sharkle_defconfig', 'diffconfig':'sprd-diffconfig/'+platform+'/sharkle', 'arch':'arm'},
             'sharkl5Pro':{'defconfig':'arch/arm64/configs/sprd_sharkl5Pro_defconfig', 'diffconfig':'sprd-diffconfig/'+platform+'/sharkl5Pro', 'arch':'arm64'},
             'qogirl6':{'defconfig':'arch/arm64/configs/sprd_qogirl6_defconfig', 'diffconfig':'sprd-diffconfig/'+platform+'/qogirl6', 'arch':'arm64'},
+            'qogirn6pro':{'defconfig':'arch/arm64/configs/sprd_qogirn6pro_defconfig', 'diffconfig':'sprd-diffconfig/'+platform+'/qogirn6pro', 'arch':'arm64'},
         },
 }
 
@@ -162,6 +163,9 @@ def create_diffconfigs_dict():
                         elif tmp_arch == 'common' and tmp_plat == 'qogirl6':
                             tmp_arch = 'arm64'
                             tmp_plat = 'qogirl6'
+                        elif tmp_arch == 'common' and tmp_plat == 'qogirn6pro':
+                            tmp_arch = 'arm64'
+                            tmp_plat = 'qogirn6pro'
 
                         if lines[j][4:-1] in d_diffconfig:
                             if tmp_arch not in d_diffconfig[lines[j][4:-1]]['arch'].split(','):
