@@ -35,6 +35,9 @@ struct ufs_sprd_host {
 	struct clk *hclk;
 };
 
+/* Set auto h8 ilde time to 10ms */
+#define AUTO_H8_IDLE_TIME_10MS 0x1001
+
 /* UFS host controller vendor specific registers */
 #define REG_SW_RST	0xb0
 #define HCI_RST		(1 << 12)

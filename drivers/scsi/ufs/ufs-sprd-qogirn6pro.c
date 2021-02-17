@@ -329,6 +329,9 @@ static int ufs_sprd_pwr_change_notify(struct ufs_hba *hba,
 		dev_req_params->hs_rate = PA_HS_MODE_B;
 		break;
 	case POST_CHANGE:
+		/* Set auto h8 ilde time to 10ms */
+		ufshcd_writel(hba,
+			AUTO_H8_IDLE_TIME_10MS, REG_AUTO_HIBERNATE_IDLE_TIMER);
 		break;
 	default:
 		err = -EINVAL;
@@ -337,6 +340,29 @@ static int ufs_sprd_pwr_change_notify(struct ufs_hba *hba,
 
 out:
 	return err;
+}
+
+static void ufs_sprd_hibern8_notify(struct ufs_hba *hba,
+				enum uic_cmd_dme cmd,
+				enum ufs_notify_change_status status)
+{
+	switch (status) {
+	case PRE_CHANGE:
+		if (cmd == UIC_CMD_DME_HIBER_ENTER) {
+			ufshcd_writel(hba,
+				0x0, REG_AUTO_HIBERNATE_IDLE_TIMER);
+		}
+		break;
+	case POST_CHANGE:
+		if (cmd == UIC_CMD_DME_HIBER_EXIT) {
+			ufshcd_writel(hba,
+				AUTO_H8_IDLE_TIME_10MS,
+				REG_AUTO_HIBERNATE_IDLE_TIMER);
+		}
+		break;
+	default:
+		break;
+	}
 }
 
 /**
@@ -354,6 +380,7 @@ static struct ufs_hba_variant_ops ufs_hba_sprd_vops = {
 	.link_startup_notify = ufs_sprd_link_startup_notify,
 	.pwr_change_notify = ufs_sprd_pwr_change_notify,
 	.phy_initialization = ufs_sprd_phy_init,
+	.hibern8_notify = ufs_sprd_hibern8_notify,
 };
 
 /**
