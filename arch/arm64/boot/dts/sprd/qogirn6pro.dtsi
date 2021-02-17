@@ -1107,6 +1107,50 @@
 
 
 		};
+                gpu: gpu@23000000 {
+                                 compatible = "sprd,mali-natt";
+                                 reg = <0x0 0x23100000 0x0 0x4000>;
+				 /*
+                                 gpu-supply = <&vddgpu>;
+                                 system-coherency = <31>;
+                                 sprd,gpu-apb-syscon = <&gpu_apb_regs>;
+                                 sprd,gpu-dvfs-apb-syscon = <&gpu_dvfs_apb_regs>;
+                                 syscons = <&pmu_apb_regs
+                                         REG_PMU_APB_PD_GPU_TOP_CFG_0
+                                         MASK_PMU_APB_PD_GPU_TOP_FORCE_SHUTDOWN>;
+                                 syscon-names = "top-force-shutdown";
+				 */
+                                 interrupts = <0 146 0x4>,
+                                         <0 146 0x4>,
+                                         <0 146 0x4>;
+                                 interrupt-names = "JOB",
+                                         "MMU",
+                                         "GPU";
+                                 operating-points = <
+                                         /* kHz    uV */
+                                         384000    600000
+                                         512000    650000
+                                         680000    700000
+                                         850000    750000
+                                         850000    750000
+                                         >;
+                                 sprd,dvfs-lists = <
+                                         /* kHz   uV      idx div */
+                                         384000  600000    3    1
+                                         512000  650000    4    1
+                                         680000  700000    5    1
+                                         850000  750000    6    1
+                                         850000  750000    7    1
+                                         >;
+                                 /*sprd,qos = <&gpu_qos>;*/
+                                 sprd,dvfs-default = <0>;
+                                 sprd,dvfs-scene-extreme = <3>;
+                                 sprd,dvfs-scene-high = <2>;
+                                 sprd,dvfs-scene-medium = <1>;
+                                 sprd,dvfs-scene-low = <0>;
+                                 sprd,dvfs-range-max = <4>;
+                                 sprd,dvfs-range-min = <0>;
+                            };
 
 		aon {
 			compatible = "simple-bus";
