@@ -531,6 +531,8 @@ int ioctlcmd_deinit(struct wcn_pcie_info *bus)
 
 	cdev_del(&(drv->testcdev));
 	unregister_chrdev_region(dev, 1);
+	if (drv)
+		kfree(drv);
 	WCN_INFO("module exit ok....\n");
 
 	return 0;

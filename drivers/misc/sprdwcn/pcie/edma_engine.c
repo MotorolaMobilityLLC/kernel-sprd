@@ -1359,6 +1359,10 @@ static void dscr_ring_deinit(int chn)
 	dscr_ring->free = dscr_ring->size;
 	dscr_ring->head = dscr_ring->tail = dscr =
 					(struct desc *) dscr_ring->mem;
+	/*resolve mem lead*/
+	if (dscr_ring->lock.irq_spinlock_p)
+		kfree(dscr_ring->lock.irq_spinlock_p);
+	dscr_ring->lock.irq_spinlock_p = NULL;
 	if (!dscr)
 		return;
 	dscr_zero(dscr);
@@ -1573,8 +1577,17 @@ int edma_chn_init(int chn, int mode, int inout, int max_trans)
 
 int edma_chn_deinit(int chn)
 {
+	/*resolve mem leak*/
+	struct edma_info *edma = edma_info();
+
 	/* TODO: need add more deinit operation */
 	dscr_ring_deinit(chn);
+
+	/*resolve mem lead*/
+	if (edma->chn_sw[chn].pending_q.lock.irq_spinlock_p)
+		kfree(edma->chn_sw[chn].pending_q.lock.irq_spinlock_p);
+	edma->chn_sw[chn].pending_q.lock.irq_spinlock_p = NULL;
+	WCN_INFO("release irq_spinlock_p\n");
 	return 0;
 }
 
