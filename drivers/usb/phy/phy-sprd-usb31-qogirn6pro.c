@@ -133,31 +133,34 @@ struct sprd_ssphy {
 /* Rest USB Core*/
 static inline void sprd_ssphy_reset_core(struct sprd_ssphy *phy)
 {
-	u32 reg;
+	u32 reg, msk;
 	int ret = 0;
 
-	/* PMA power off */
-	/* phy_reset 50ns  */
+	dev_dbg(phy->phy.dev, "%s ipa usb&phy rst!\n", __func__);
+
+	/* Purpose: To soft-reset USB control */
+	msk = MASK_IPA_APB_USB_SOFT_RST | MASK_IPA_APB_PAM_U3_SOFT_RST;
+	reg = msk;
+	regmap_update_bits(phy->ipa_apb, REG_IPA_APB_IPA_RST, msk, reg);
+
+	/* Reset USB2 PHY */
+	msk = MASK_AON_APB_OTG_PHY_SOFT_RST | MASK_AON_APB_OTG_UTMI_SOFT_RST;
+	reg = msk;
+	regmap_update_bits(phy->aon_apb, REG_AON_APB_APB_RST1, msk, reg);
+	/* Reset USB31 PHY */
 	ret |= regmap_read(phy->ipa_dispc1_glb_apb, DISPC1_GLB_APB_RST, &reg);
 	reg |= BIT(4);
 	ret |= regmap_write(phy->ipa_dispc1_glb_apb, DISPC1_GLB_APB_RST, reg);
 
-	/* PHY_TEST_POWERDOWN:0x64900d14 */
-	ret |= regmap_read(phy->aon_apb, REG_AON_APB_USB31DPCOMBPHY_CTRL, &reg);
-	reg |= BIT(1);
-	ret |= regmap_write(phy->aon_apb, REG_AON_APB_USB31DPCOMBPHY_CTRL, reg);
-
-	/* PMA power on */
-	/* phy_reset 50ns  */
-	ret |= regmap_read(phy->ipa_dispc1_glb_apb, DISPC1_GLB_APB_RST, &reg);
-	reg |= BIT(4);
-	ret |= regmap_write(phy->ipa_dispc1_glb_apb, DISPC1_GLB_APB_RST, reg);
-	/* PHY_TEST_POWERDOWN:0x64900d14 */
-	ret |= regmap_read(phy->aon_apb, REG_AON_APB_USB31DPCOMBPHY_CTRL, &reg);
-	reg &= ~BIT(1);
-	ret |= regmap_write(phy->aon_apb, REG_AON_APB_USB31DPCOMBPHY_CTRL, reg);
-	/* keep 0 10us */
-	udelay(10);
+	/*
+	 *Reset signal should hold on for a while
+	 *to issue resret process reliable.
+	 */
+	usleep_range(20000, 30000);
+	msk = MASK_IPA_APB_USB_SOFT_RST | MASK_IPA_APB_PAM_U3_SOFT_RST;
+	regmap_update_bits(phy->ipa_apb, REG_IPA_APB_IPA_RST, msk, 0);
+	msk = MASK_AON_APB_OTG_PHY_SOFT_RST | MASK_AON_APB_OTG_UTMI_SOFT_RST;
+	regmap_update_bits(phy->aon_apb, REG_AON_APB_APB_RST1, msk, 0);
 	ret |= regmap_read(phy->ipa_dispc1_glb_apb, DISPC1_GLB_APB_RST, &reg);
 	reg &= ~BIT(4);
 	ret |= regmap_write(phy->ipa_dispc1_glb_apb, DISPC1_GLB_APB_RST, reg);
@@ -249,8 +252,11 @@ static int sprd_ssphy_init(struct usb_phy *x)
 	 */
 	if (phy->vdd) {
 		ret = regulator_enable(phy->vdd);
-		if (ret < 0)
+		if (ret) {
+			dev_err(x->dev,
+				"Failed to enable phy->vdd: %d\n", ret);
 			return ret;
+		}
 	}
 
 	/*enable analog:0x64900004*/
@@ -394,6 +400,25 @@ static int sprd_ssphy_init(struct usb_phy *x)
 	reg |= BIT(1) | BIT(3);
 	writel_relaxed(reg, phy->base + 0x40);
 
+	/* USB2 PHY power on */
+	msk = MASK_AON_APB_LVDSRF_PD_PD_L | MASK_AON_APB_LVDSRF_PS_PD_S;
+	regmap_update_bits(phy->aon_apb, REG_AON_APB_MIPI_CSI_POWER_CTRL, msk, 0);
+	/* ssphy power on @0x64900d14*/
+	msk = MASK_AON_APB_PHY_TEST_POWERDOWN;
+	regmap_update_bits(phy->aon_apb, REG_AON_APB_USB31DPCOMBPHY_CTRL, msk, 0);
+
+	/*hsphy vbus valid */
+	msk = MASK_AON_APB_OTG_VBUS_VALID_PHYREG;
+	reg = msk;
+	regmap_update_bits(phy->aon_apb, REG_AON_APB_OTG_PHY_TEST, msk, reg);
+	/*ssphy vbus valid */
+	msk = MASK_AON_APB_SYS_VBUSVALID;
+	reg = msk;
+	regmap_update_bits(phy->aon_apb, REG_AON_APB_USB31DPCOMBPHY_CTRL, msk, reg);
+
+	/* Reset PHY */
+	sprd_ssphy_reset_core(phy);
+
 	if (!phy->pmic) {
 		/*
 		 *In FPGA platform, Disable low power will take some time
@@ -402,8 +427,6 @@ static int sprd_ssphy_init(struct usb_phy *x)
 		usleep_range(1000, 2000);
 	}
 
-	/* Reset PHY */
-	sprd_ssphy_reset_core(phy);
 	atomic_set(&phy->inited, 1);
 
 	return ret;
@@ -413,6 +436,35 @@ static int sprd_ssphy_init(struct usb_phy *x)
 static void sprd_ssphy_shutdown(struct usb_phy *x)
 {
 	struct sprd_ssphy *phy = container_of(x, struct sprd_ssphy, phy);
+	u32 msk, reg;
+
+	if (!atomic_read(&phy->inited)) {
+		dev_dbg(x->dev, "%s is already shut down\n", __func__);
+		return;
+	}
+
+	/*hsphy vbus invalid */
+	msk = MASK_AON_APB_OTG_VBUS_VALID_PHYREG;
+	regmap_update_bits(phy->aon_apb, REG_AON_APB_OTG_PHY_TEST, msk, 0);
+	/*ssphy vbus invalid */
+	msk = MASK_AON_APB_SYS_VBUSVALID;
+	regmap_update_bits(phy->aon_apb, REG_AON_APB_USB31DPCOMBPHY_CTRL, msk, 0);
+
+	/* hsphy power off */
+	msk = MASK_AON_APB_LVDSRF_PD_PD_L | MASK_AON_APB_LVDSRF_PS_PD_S;
+	reg = msk;
+	regmap_update_bits(phy->aon_apb, REG_AON_APB_MIPI_CSI_POWER_CTRL, msk, reg);
+	/* ssphy power off @0x64900d14*/
+	msk = MASK_AON_APB_PHY_TEST_POWERDOWN;
+	reg = msk;
+	regmap_update_bits(phy->aon_apb, REG_AON_APB_USB31DPCOMBPHY_CTRL, msk, reg);
+
+	/*
+	 * Due to chip design, some chips may turn on vddusb by default,
+	 * We MUST avoid turning it off twice.
+	 */
+	if (phy->vdd)
+		regulator_disable(phy->vdd);
 
 	atomic_set(&phy->inited, 0);
 	atomic_set(&phy->reset, 0);
@@ -543,13 +595,6 @@ static int sprd_ssphy_vbus_notify(struct notifier_block *nb,
 	if (event) {
 		usb_phy_set_charger_state(usb_phy, USB_CHARGER_PRESENT);
 	} else {
-		u32 msk = MASK_AON_APB_SYS_VBUSVALID;
-		/* dwc3 vbus invalid */
-		if (atomic_read(&phy->inited))
-			/* utmisrp_bvalid  sys vbus valid:0x64900D14*/
-			regmap_update_bits(phy->aon_apb, REG_AON_APB_USB31DPCOMBPHY_CTRL,
-								msk, 0);
-
 		usb_phy_set_charger_state(usb_phy, USB_CHARGER_ABSENT);
 	}
 
