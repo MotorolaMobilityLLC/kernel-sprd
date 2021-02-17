@@ -302,6 +302,13 @@
 		type = <2>;
 		memory-region = <&mm_reserved>;
 	};
+
+	heap@3 {
+		reg = <3>;
+		label = "carveout_fb";
+		type = <2>;
+		memory-region = <&fb_reserved>;
+	};
 };
 
 &adi_bus {
