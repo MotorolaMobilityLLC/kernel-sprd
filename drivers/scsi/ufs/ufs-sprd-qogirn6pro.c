@@ -154,6 +154,9 @@ static int ufs_sprd_init(struct ufs_hba *hba)
 	hba->quirks |= UFSHCD_QUIRK_BROKEN_UFS_HCI_VERSION |
 		       UFSHCD_QUIRK_DELAY_BEFORE_DME_CMDS;
 
+	hba->caps |= UFSHCD_CAP_CLK_GATING |
+		     UFSHCD_CAP_HIBERN8_WITH_CLK_GATING;
+
 	return 0;
 }
 
