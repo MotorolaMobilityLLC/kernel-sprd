@@ -161,12 +161,12 @@ void dwc3_host_exit(struct dwc3 *dwc)
 	platform_device_unregister(dwc->xhci);
 }
 
-static int dwc3_host_suspend_child(struct device *dev, void *data)
+static int dwc3_host_suspend_detect(struct device *dev, void *data)
 {
 	int cnt = DWC3_HOST_SUSPEND_COUNT;
 
 	while (!pm_runtime_suspended(dev) && --cnt > 0)
-		msleep(500);
+		msleep(DWC3_HOST_SUSPEND_TIMEOUT);
 
 	if (cnt <= 0) {
 		dev_err(dev, "xHCI child device enters suspend failed!!!\n");
@@ -188,7 +188,7 @@ int dwc3_host_suspend(struct dwc3 *dwc)
 	 * We need make sure the children of the xhci device had been into
 	 * suspend state, or we will suspend xhci device failed.
 	 */
-	ret = device_for_each_child(xhci, NULL, dwc3_host_suspend_child);
+	ret = device_for_each_child(xhci, NULL, dwc3_host_suspend_detect);
 	if (ret) {
 		dev_err(xhci, "failed to suspend xHCI children device\n");
 		return ret;
@@ -200,10 +200,27 @@ int dwc3_host_suspend(struct dwc3 *dwc)
 	if (pm_runtime_suspended(xhci))
 		return 0;
 
-	/* Suspend the xhci device synchronously. */
-	ret = pm_runtime_put_sync(xhci);
+	/*
+	 * Only dwc3 glue layer device getting the usage count, here need to put
+	 * the xhci device usage count, otherwise just wait for the xhci device
+	 * being suspended automatically.
+	 */
+	if (atomic_read(&dwc->dev->parent->power.usage_count) > 0) {
+		ret = pm_runtime_put_sync(xhci);
+		if (ret) {
+			dev_err(xhci, "failed to suspend xHCI device\n");
+			return ret;
+		}
+	}
+
+	/*
+	 * If another process is suspending xhci, pm_runtime_put_sync return 0
+	 * immediately even xhci is in RPM_SUSPENDING status. So check xhci
+	 * status again to ensure xhci enter RPM_SUSPENDED status.
+	 */
+	ret = dwc3_host_suspend_detect(xhci, NULL);
 	if (ret) {
-		dev_err(xhci, "failed to suspend xHCI device\n");
+		dev_err(xhci, "failed to enter RPM_SUSPENDED\n");
 		return ret;
 	}
 
