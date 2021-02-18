@@ -330,13 +330,11 @@ void dw_pcie_ep_exit(struct dw_pcie_ep *ep)
 
 static u8 dw_pcie_iatu_unroll_enabled(struct dw_pcie *pci)
 {
-	u32 val;
-
-	val = dw_pcie_readl_dbi(pci, PCIE_ATU_VIEWPORT);
-	if (val == 0xffffffff)
-		return 1;
-
-	return 0;
+	/*
+	 * PCIE_ATU_VIEWPORT is for old PCIE IP,  and it is invalid now,
+	 * to prevent potential unknown issue, we ignore ATU_VIEWPORT.
+	 */
+	return 1;
 }
 
 int dw_pcie_ep_init(struct dw_pcie_ep *ep)
