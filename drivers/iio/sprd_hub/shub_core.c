@@ -50,6 +50,8 @@ static int reader_flag;
 struct shub_data *g_sensor;
 static struct wakeup_source sensorhub_wake_lock;
 static u32 sensorhub_version;
+/*Tinno CM light sensor set cali lux*/
+int target_lux = 500;
 
 #if SHUB_DATA_DUMP
 #define MAX_RX_LEN 102400
@@ -1490,7 +1492,8 @@ static int set_als_calib_cmd(struct shub_data *sensor, u8 cmd, u8 id)
 		als_cali_coef = CALIB_STATUS_FAIL;
 		status = CALIB_STATUS_FAIL;
 	} else {
-		als_cali_coef = LIGHT_SENSOR_CALI_VALUE / average_als;
+                /*Tinno CM light sensor set cali lux*/
+		als_cali_coef = target_lux * 10000 / average_als;
 		status = CALIB_STATUS_PASS;
 	}
 	memcpy(als_data, &als_cali_coef, sizeof(als_cali_coef));
@@ -1594,7 +1597,41 @@ static ssize_t light_sensor_calibrator_show(struct device *dev,
 
 	return sprintf(buf, "%d\n", status);
 }
+
+/*Tinno CM light sensor set cali lux*/
+static ssize_t light_sensor_calibrator_lux_store(struct device *dev,
+				  struct device_attribute *attr,
+				  const char *buf, size_t count)
+{
+	struct shub_data *sensor = dev_get_drvdata(dev);
+	int err = 0;
+        int val = 0;
+
+        if (!sensor)
+    	    return -EINVAL;
+
+        err = kstrtoint(buf, 10, &val);
+        target_lux = val;
+        pr_info("Light Sensor store lux = %d\n", val);
+
+	return count;
+}
+
+
+static ssize_t light_sensor_calibrator_lux_show(struct device *dev,
+				    struct device_attribute *attr, char *buf)
+{
+	struct shub_data *sensor = dev_get_drvdata(dev);
+
+        if (!sensor)
+    	    return -EINVAL;
+
+        return sprintf(buf, "%d\n", target_lux);
+}
+
 static DEVICE_ATTR_RW(light_sensor_calibrator);
+/*Tinno CM light sensor set cali lux*/
+static DEVICE_ATTR_RW(light_sensor_calibrator_lux);
 
 static ssize_t calibrator_cmd_show(struct device *dev,
 				   struct device_attribute *attr, char *buf)
@@ -2087,6 +2124,7 @@ static ssize_t cm4_operate_store(struct device *dev,
 
 static DEVICE_ATTR_RW(cm4_operate);
 
+/*Tinno CM add light_sensor_calibrator_lux set cali lux*/
 static struct attribute *sensorhub_attrs[] = {
 	&dev_attr_debug_data.attr,
 	&dev_attr_reader_enable.attr,
@@ -2099,6 +2137,7 @@ static struct attribute *sensorhub_attrs[] = {
 	&dev_attr_calibrator_cmd.attr,
 	&dev_attr_calibrator_data.attr,
 	&dev_attr_light_sensor_calibrator.attr,
+        &dev_attr_light_sensor_calibrator_lux.attr,
 	&dev_attr_version.attr,
 	&dev_attr_als_mode.attr,
 	&dev_attr_raw_data_acc.attr,
