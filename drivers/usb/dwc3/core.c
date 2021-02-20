@@ -759,7 +759,6 @@ static bool dwc3_core_is_valid(struct dwc3 *dwc)
 
 static void dwc3_core_setup_global_control(struct dwc3 *dwc)
 {
-	u32 hwparams4 = dwc->hwparams.hwparams4;
 	u32 reg;
 
 	reg = dwc3_readl(dwc->regs, DWC3_GCTL);
@@ -786,16 +785,6 @@ static void dwc3_core_setup_global_control(struct dwc3 *dwc)
 			reg |= DWC3_GCTL_DSBLCLKGTNG | DWC3_GCTL_SOFITPSYNC;
 		else
 			reg &= ~DWC3_GCTL_DSBLCLKGTNG;
-		break;
-	case DWC3_GHWPARAMS1_EN_PWROPT_HIB:
-		/* enable hibernation here */
-		dwc->nr_scratch = DWC3_GHWPARAMS4_HIBER_SCRATCHBUFS(hwparams4);
-
-		/*
-		 * REVISIT Enabling this bit so that host-mode hibernation
-		 * will work. Device-mode hibernation is not yet implemented.
-		 */
-		reg |= DWC3_GCTL_GBLHIBERNATIONEN;
 		break;
 	default:
 		/* nothing */
