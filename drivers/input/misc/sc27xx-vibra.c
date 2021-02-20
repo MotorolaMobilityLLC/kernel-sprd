@@ -11,6 +11,9 @@
 #include <linux/input.h>
 #include <linux/workqueue.h>
 
+#include <linux/proc_fs.h>
+#include <linux/uaccess.h>
+
 #define CUR_DRV_CAL_SEL			GENMASK(13, 12)
 #define SLP_LDOVIBR_PD_EN		BIT(9)
 #define LDO_VIBR_PD			BIT(8)
@@ -51,6 +54,131 @@ struct sc27xx_vibra_data sc2721_data = {
 	.slp_pd_en = SLP_LDOVIBR_PD_EN,
 	.ldo_pd = LDO_VIBR_PD,
 };
+
+
+// pony.ma, DATE2020220, vibrator debug, DATE2020220-01 START
+#define CONFIG_TINNO_VIBDEBUG_CONTROL
+#define LDO_VDDVIB_V			GENMASK(7, 0)
+#ifdef CONFIG_TINNO_VIBDEBUG_CONTROL
+
+/**********************************************************************************************************
+* Add vibrator debug.
+* Command: adb shell "echo 'VALUE' > /proc/tinno_vib_debug/enable"
+* enable=1:run. enable=0:stop.
+**********************************************************************************************************/
+
+int vib_debug_enable = 0;
+struct vibra_info *info_vib;
+static ssize_t vibdebug_enable_write(struct file *file, const char *buffer, size_t count, loff_t *data)
+{
+    int len = 0, enable= 0;
+    char desc[32];
+
+
+	printk("vibdebug_enable_write\n");
+
+    len = (count < (sizeof(desc) - 1)) ? count : (sizeof(desc) - 1);
+    if (copy_from_user(desc, buffer, len))
+        return 0;
+    desc[len] = '\0';
+
+    if (sscanf(desc, "%d", &enable) == 1)
+    {
+        printk("vibdebug_enable_write enable=%d\n", enable);
+		vib_debug_enable = enable;
+
+		if (enable) {
+			regmap_update_bits(info_vib->regmap, info_vib->base, SC2730_LDO_VIBR_PD, 0);
+			regmap_update_bits(info_vib->regmap, info_vib->base, SC2730_SLP_LDOVIBR_PD_EN, 0);
+		} else {
+			regmap_update_bits(info_vib->regmap, info_vib->base, SC2730_LDO_VIBR_PD, SC2730_LDO_VIBR_PD);
+			regmap_update_bits(info_vib->regmap, info_vib->base, SC2730_SLP_LDOVIBR_PD_EN, SC2730_SLP_LDOVIBR_PD_EN);
+		}
+
+		return count;
+    }
+
+    return -EINVAL;
+
+}
+
+static ssize_t vibdebug_voltage_write(struct file *file, const char *buffer, size_t count, loff_t *data)
+{
+    int len = 0, vib_voltage= 0;
+    char desc[32];
+	printk("vibdebug_voltage_write\n");
+
+    len = (count < (sizeof(desc) - 1)) ? count : (sizeof(desc) - 1);
+    if (copy_from_user(desc, buffer, len))
+        return 0;
+    desc[len] = '\0';
+
+    if (sscanf(desc, "%x", &vib_voltage) == 1)
+    {
+        printk("vibdebug_voltage_write vib_voltage=%x\n", vib_voltage);
+		regmap_update_bits(info_vib->regmap, info_vib->base, LDO_VDDVIB_V, vib_voltage);
+		return count;
+    }
+
+    return -EINVAL;
+
+}
+
+static int proc_enable_show(struct seq_file *m, void *v)
+{
+    seq_printf(m,"vib_debug_enable=%d\n",vib_debug_enable);
+    return 0;
+}
+
+static int proc_vib_voltagec_show(struct seq_file *m, void *v)
+{
+	int vib_debug_voltage = 0;
+	regmap_read(info_vib->regmap, info_vib->base, &vib_debug_voltage);
+    seq_printf(m,"vib_debug_voltage=0x%x\n",vib_debug_voltage);
+    return 0;
+}
+
+static int proc_enable_open(struct inode *inode, struct file *file)
+{
+    return single_open(file, proc_enable_show, NULL);
+}
+
+static int proc_vib_voltage_open(struct inode *inode, struct file *file)
+{
+    return single_open(file, proc_vib_voltagec_show, NULL);
+}
+
+static const struct file_operations vibdebug_enable_ops = {
+    .open = proc_enable_open,
+    .read = seq_read,
+	.write = vibdebug_enable_write,
+};
+
+static const struct file_operations vibdebug_voltage_ops = {
+    .open = proc_vib_voltage_open,
+    .read = seq_read,
+	.write = vibdebug_voltage_write,
+};
+
+static void vibrator_debug_init(void)
+{
+    struct proc_dir_entry *vibdebug_dir = NULL;
+
+    vibdebug_dir = proc_mkdir("tinno_vib_debug", NULL);
+    if (NULL == vibdebug_dir)
+    {
+        printk("create tinno_vib_debug error!\n");
+        return ;
+    }
+
+    proc_create("enable", S_IRUGO | S_IWUSR, vibdebug_dir, &vibdebug_enable_ops);
+    proc_create("voltage", S_IRUGO | S_IWUSR, vibdebug_dir, &vibdebug_voltage_ops);
+
+}
+#endif
+// pony.ma, DATE2020220-01 END
+
+
 
 static void sc27xx_vibra_set(struct vibra_info *info, bool on)
 {
@@ -172,6 +300,13 @@ static int sc27xx_vibra_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "failed to register input device.\n");
 		return error;
 	}
+
+	// pony.ma, DATE2020220, vibrator debug, DATE2020220-01 START
+	#ifdef CONFIG_TINNO_VIBDEBUG_CONTROL
+	info_vib = info;
+	vibrator_debug_init();
+	#endif
+	// pony.ma, DATE2020220-01 END
 
 	return 0;
 }
