@@ -147,10 +147,15 @@ static inline void sprd_ssphy_reset_core(struct sprd_ssphy *phy)
 	msk = MASK_AON_APB_OTG_PHY_SOFT_RST | MASK_AON_APB_OTG_UTMI_SOFT_RST;
 	reg = msk;
 	regmap_update_bits(phy->aon_apb, REG_AON_APB_APB_RST1, msk, reg);
+
 	/* Reset USB31 PHY */
 	ret |= regmap_read(phy->ipa_dispc1_glb_apb, DISPC1_GLB_APB_RST, &reg);
 	reg |= BIT(4);
 	ret |= regmap_write(phy->ipa_dispc1_glb_apb, DISPC1_GLB_APB_RST, reg);
+	usleep_range(1, 10);
+	/* ssphy power on @0x64900d14*/
+	msk = MASK_AON_APB_PHY_TEST_POWERDOWN;
+	regmap_update_bits(phy->aon_apb, REG_AON_APB_USB31DPCOMBPHY_CTRL, msk, 0);
 
 	/*
 	 *Reset signal should hold on for a while
@@ -200,7 +205,7 @@ static int sprd_ssphy_set_vbus(struct usb_phy *x, int on)
 			REG_ANLG_PHY_G0L_ANALOG_USB20_USB20_UTMI_CTL2,
 			msk, msk);
 
-		reg = 0x4002;
+		reg = 0x200;
 		msk = BIT_ANLG_PHY_G0L_ANALOG_USB20_USB20_RESERVED;
 		ret |= regmap_update_bits(phy->ana_g0l,
 			REG_ANLG_PHY_G0L_ANALOG_USB20_USB20_UTMI_CTL1,
@@ -291,10 +296,45 @@ static int sprd_ssphy_init(struct usb_phy *x)
 	reg |= MASK_AON_APB_CGM_USB_SUSPEND_EN;
 	ret |= regmap_write(phy->aon_apb, REG_AON_APB_CGM_REG1, reg);
 
-	/* set phy0 sram bypass */
-	ret |= regmap_read(phy->ipa_usb31_dp, PHY0_SRAM_BYPASS, &reg);
-	reg |= BIT(24);
-	ret |= regmap_write(phy->ipa_usb31_dp, PHY0_SRAM_BYPASS, reg);
+	ret |= regmap_update_bits(phy->ana_g0l,
+		REG_ANLG_PHY_G0L_ANALOG_USB20_USB20_PHY,
+		BIT_ANLG_PHY_G0L_ANALOG_USB20_USB20_ISO_SW_EN, 0);
+
+	/* USB2 PHY power on */
+	msk = MASK_AON_APB_LVDSRF_PD_PD_L | MASK_AON_APB_LVDSRF_PS_PD_S;
+	regmap_update_bits(phy->aon_apb, REG_AON_APB_MIPI_CSI_POWER_CTRL, msk, 0);
+	/* ssphy power on @0x64900d14*/
+	msk = MASK_AON_APB_PHY_TEST_POWERDOWN;
+	regmap_update_bits(phy->aon_apb, REG_AON_APB_USB31DPCOMBPHY_CTRL, msk, 0);
+
+	/*hsphy vbus valid */
+	msk = MASK_AON_APB_OTG_VBUS_VALID_PHYREG;
+	reg = msk;
+	regmap_update_bits(phy->aon_apb, REG_AON_APB_OTG_PHY_TEST, msk, reg);
+	/*ssphy vbus valid */
+	msk = MASK_AON_APB_SYS_VBUSVALID;
+	reg = msk;
+	regmap_update_bits(phy->aon_apb, REG_AON_APB_USB31DPCOMBPHY_CTRL, msk, reg);
+
+	msk = BIT_ANLG_PHY_G0L_ANALOG_USB20_USB20_VBUSVLDEXT;
+	reg = msk;
+	ret |= regmap_update_bits(phy->ana_g0l,
+			REG_ANLG_PHY_G0L_ANALOG_USB20_USB20_UTMI_CTL1,	msk, reg);
+
+	msk = BIT_ANLG_PHY_G0L_ANALOG_USB20_USB20_TUNEHSAMP;
+	reg = msk;
+	ret |= regmap_update_bits(phy->ana_g0l,
+		REG_ANLG_PHY_G0L_ANALOG_USB20_USB20_TRIMMING,
+		msk, reg);
+
+	msk = BIT_ANLG_PHY_G0L_ANALOG_USB20_USB20_TFREGRES;
+	reg = msk;
+	ret |= regmap_update_bits(phy->ana_g0l,
+		REG_ANLG_PHY_G0L_ANALOG_USB20_USB20_TRIMMING,
+		msk, reg);
+
+	/* Reset PHY */
+	sprd_ssphy_reset_core(phy);
 
 	/* wait phy_sram init down check bit2=1 */
 	timeout = PHY_INIT_TIMEOUT;
@@ -324,7 +364,11 @@ static int sprd_ssphy_init(struct usb_phy *x)
 	reg = readl_relaxed(phy->base + 0x010);
 	reg &= ~(0xffffffc0);
 	writel_relaxed(reg, phy->base + 0x010);
-	reg |= BIT(0) | BIT(4);
+	reg &= ~(BIT(0) | BIT(4));
+	if (phy->is_host)
+		reg |= BIT(0);
+	else
+		reg |= BIT(0) | BIT(4);
 	writel_relaxed(reg, phy->base + 0x010);
 
 	/* TCA SYSMODE CFG
@@ -400,25 +444,6 @@ static int sprd_ssphy_init(struct usb_phy *x)
 	reg |= BIT(1) | BIT(3);
 	writel_relaxed(reg, phy->base + 0x40);
 
-	/* USB2 PHY power on */
-	msk = MASK_AON_APB_LVDSRF_PD_PD_L | MASK_AON_APB_LVDSRF_PS_PD_S;
-	regmap_update_bits(phy->aon_apb, REG_AON_APB_MIPI_CSI_POWER_CTRL, msk, 0);
-	/* ssphy power on @0x64900d14*/
-	msk = MASK_AON_APB_PHY_TEST_POWERDOWN;
-	regmap_update_bits(phy->aon_apb, REG_AON_APB_USB31DPCOMBPHY_CTRL, msk, 0);
-
-	/*hsphy vbus valid */
-	msk = MASK_AON_APB_OTG_VBUS_VALID_PHYREG;
-	reg = msk;
-	regmap_update_bits(phy->aon_apb, REG_AON_APB_OTG_PHY_TEST, msk, reg);
-	/*ssphy vbus valid */
-	msk = MASK_AON_APB_SYS_VBUSVALID;
-	reg = msk;
-	regmap_update_bits(phy->aon_apb, REG_AON_APB_USB31DPCOMBPHY_CTRL, msk, reg);
-
-	/* Reset PHY */
-	sprd_ssphy_reset_core(phy);
-
 	if (!phy->pmic) {
 		/*
 		 *In FPGA platform, Disable low power will take some time
@@ -443,6 +468,11 @@ static void sprd_ssphy_shutdown(struct usb_phy *x)
 		return;
 	}
 
+	msk = BIT_ANLG_PHY_G0L_ANALOG_USB20_USB20_ISO_SW_EN;
+	reg = msk;
+	regmap_update_bits(phy->ana_g0l, REG_ANLG_PHY_G0L_ANALOG_USB20_USB20_PHY,
+		msk, reg);
+
 	/*hsphy vbus invalid */
 	msk = MASK_AON_APB_OTG_VBUS_VALID_PHYREG;
 	regmap_update_bits(phy->aon_apb, REG_AON_APB_OTG_PHY_TEST, msk, 0);
@@ -454,6 +484,13 @@ static void sprd_ssphy_shutdown(struct usb_phy *x)
 	msk = MASK_AON_APB_LVDSRF_PD_PD_L | MASK_AON_APB_LVDSRF_PS_PD_S;
 	reg = msk;
 	regmap_update_bits(phy->aon_apb, REG_AON_APB_MIPI_CSI_POWER_CTRL, msk, reg);
+
+	/* Reset USB31 PHY */
+	regmap_read(phy->ipa_dispc1_glb_apb, DISPC1_GLB_APB_RST, &reg);
+	reg |= BIT(4);
+	regmap_write(phy->ipa_dispc1_glb_apb, DISPC1_GLB_APB_RST, reg);
+
+	usleep_range(1, 10);
 	/* ssphy power off @0x64900d14*/
 	msk = MASK_AON_APB_PHY_TEST_POWERDOWN;
 	reg = msk;
