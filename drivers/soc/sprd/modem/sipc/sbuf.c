@@ -23,6 +23,7 @@
 #include <linux/io.h>
 #include <linux/kthread.h>
 #include <linux/module.h>
+#include <linux/mm.h>
 #include <linux/sched.h>
 #include <linux/seq_file.h>
 #include <linux/slab.h>

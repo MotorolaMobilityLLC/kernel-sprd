@@ -149,7 +149,7 @@ static int sprd_ipc_probe(struct platform_device *pdev)
 	struct smsg_ipc *ipc;
 	int ret;
 #if defined(CONFIG_DEBUG_FS)
-	struct dentry *root = debugfs_create_dir("sipc", NULL);
+	struct dentry *root;
 #endif
 	ipc = devm_kzalloc(&pdev->dev,
 			   sizeof(struct smsg_ipc), GFP_KERNEL);
@@ -201,6 +201,7 @@ static int sprd_ipc_probe(struct platform_device *pdev)
 	}
 
 #if defined(CONFIG_DEBUG_FS)
+	root = debugfs_create_dir("sipc", NULL);
 	if (!root)
 		return -ENXIO;
 
