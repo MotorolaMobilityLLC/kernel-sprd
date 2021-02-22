@@ -628,6 +628,7 @@ static const struct of_device_id sprd_bm_of_match[] = {
 	{ .compatible = "sprd,roc1-busmonitor", },
 	{ .compatible = "sprd,orca-busmonitor", },
 	{ .compatible = "sprd,sharkl5pro-busmonitor", },
+	{ .compatible = "sprd,qogirn6pro-busmonitor", },
 	{ /* sentinel */ },
 };
 
