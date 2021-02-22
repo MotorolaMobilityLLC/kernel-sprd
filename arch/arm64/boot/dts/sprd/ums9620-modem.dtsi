@@ -92,7 +92,7 @@
 		sprd,dst = <5>;
 		sprd,core = <3>;
 		/* <ap-addr dst-maped-addr size> */
-		sprd,smem-info = <0x87800000 0x87800000 0x600000>;
+		sprd,smem-info = <0x87800000 0x87800000 0x400000>;
 	};
 
 	sipc_phycp: sipc@3 {
@@ -102,7 +102,7 @@
 		sprd,dst = <7>;
 		sprd,core = <4>;
 		/* <ap-addr dst-maped-addr size> */
-		sprd,smem-info = <0x87E00000 0x87E00000 0x200000>;
+		sprd,smem-info = <0x87C00000 0x87C00000 0x400000>;
 	};
 
 	spipe_ch: spipe@0 {
@@ -227,6 +227,6 @@
 		sprd,tx-blksize = <0>;
 		sprd,tx-blknum = <0>;
 		sprd,rx-blksize = <0x800>;
-		sprd,rx-blknum = <1000>;
+		sprd,rx-blknum = <2000>;
 	};
 };
