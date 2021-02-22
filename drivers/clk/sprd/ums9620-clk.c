@@ -998,7 +998,7 @@ static SPRD_SC_GATE_CLK(gpu_eb, "gpu-eb", "ext-26m", 0x0,
 static SPRD_SC_GATE_CLK(mspi_eb, "mspi-eb", "ext-26m", 0x0,
 			0x1000, BIT(12), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(ai_eb, "ai-eb", "ext-26m", 0x0,
-			0x1000, BIT(13), CLK_IGNORE_UNUSED, 0);
+			0x1000, BIT(13), 0, 0);
 static SPRD_SC_GATE_CLK(apcpu_dap_eb, "apcpu-dap-eb", "ext-26m", 0x0,
 			0x1000, BIT(14), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(aon_cssys_eb, "aon-cssys-eb", "ext-26m", 0x0,
