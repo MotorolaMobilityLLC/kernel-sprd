@@ -44,7 +44,7 @@ struct trusty_irq_state {
 
 static int trusty_irq_cpuhp_slot = -1;
 
-#define SPRD_GIC_V2	2
+#define SPRD_GIC_DEFAULT	2
 #define SPRD_GIC_V3	3
 
 #define IPI_TRUSTY_SMC	13
@@ -174,7 +174,7 @@ static irqreturn_t trusty_irq_handler(int irq, void *data)
 		}
 		break;
 
-	case SPRD_GIC_V2:
+	case SPRD_GIC_DEFAULT:
 		if (trusty_irq->percpu) {
 			disable_percpu_irq(irq);
 			irqset = this_cpu_ptr(is->percpu_irqs);
@@ -494,12 +494,9 @@ static int trusty_irq_probe(struct platform_device *pdev)
 	spin_lock_init(&is->normal_irqs_lock);
 	if (of_find_compatible_node(NULL, NULL, "arm,gic-v3"))
 		is->gic_version = SPRD_GIC_V3;
-	else if (of_find_compatible_node(NULL, NULL, "arm,gic-v2"))
-		is->gic_version = SPRD_GIC_V2;
 	else {
-		dev_err(&pdev->dev, "gic_version not fund\n");
-		ret = -EFAULT;
-		goto err_find_gic_version;
+		is->gic_version = SPRD_GIC_DEFAULT;
+		dev_dbg(&pdev->dev, "gic_version is default gic_v2\n");
 	}
 
 
@@ -555,7 +552,6 @@ err_add_cpuhp_instance:
 err_trusty_call_notifier_register:
 	free_percpu(is->percpu_irqs);
 err_alloc_pending_percpu_irqs:
-err_find_gic_version:
 	kfree(is);
 err_alloc_is:
 	return ret;
