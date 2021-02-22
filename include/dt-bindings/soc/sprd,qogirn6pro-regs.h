@@ -926,5 +926,7 @@
 #define REG_IPA_GLB_APB_IPA_IP_RST                          0x0000
 #define REG_IPA_GLB_APB_IPA_IP_EB                           0x0004
 #define REG_IPA_GLB_APB_IPA_IP_LPC_CTRL                     0x0008
-
+#define REG_DPU_VSP_APB_RST                                 0x0004
+#define REG_DPU_VSP_APB_MISC_CKG_EB                         0x001C
+#define REG_PMU_APB_RF_ANALOG_PHY_PD_CFG                    0x009C
 #endif /* __DT_BINDINGS_SPRD_QOGIRN6PRO_REGS_H */

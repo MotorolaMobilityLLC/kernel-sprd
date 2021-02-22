@@ -4401,4 +4401,14 @@
 #define MASK_IPA_GLB_APB_IPA_EB                             0x0001
 #define MASK_IPA_GLB_APB_IPA_ACCESS_PSCP_EN                 0x0002
 #define MASK_IPA_GLB_APB_IPA_ACCESS_PHYCP_EN                0x0001
+#define MASK_DPU_VSP_APB_DISPC_SOFT_RST                     0x0001
+#define MASK_DPU_VSP_APB_DSI0_SOFT_RST                      0x0002
+#define MASK_DPU_VSP_APB_DSI1_SOFT_RST                      0x0004
+#define MASK_DPU_VSP_APB_DISPC_VAU_SOFT_RST                 0x40000
+#define MASK_DPU_VSP_APB_DPHY0_CFG_CKG_EN                   0x0001
+#define MASK_DPU_VSP_APB_DPHY0_REF_CKG_EN                   0x0002
+#define MASK_DPU_VSP_APB_DPHY1_CFG_CKG_EN                   0x0004
+#define MASK_DPU_VSP_APB_DPHY1_REF_CKG_EN                   0x0008
+#define MASK_PMU_APB_RF_DSI0_PD_REG                         0x0040
+#define MASK_PMU_APB_RF_DSI1_PD_REG                         0x0040
 #endif /* __DT_BINDINGS_SPRD_QOGIRN6PRO_MASK_H */
