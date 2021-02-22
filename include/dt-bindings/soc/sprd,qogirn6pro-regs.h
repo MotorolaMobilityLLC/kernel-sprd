@@ -923,6 +923,7 @@
 #define REG_DISPC1_GLB_APB_AP2IPA_M0_LPC                    0x00A8
 #define REG_DISPC1_GLB_APB_AP2IPA_S0_LPC                    0x00AC
 #define REG_DISPC1_GLB_APB_DPTX_CTRL                        0x00B0
+#define REG_DPU_VSP_APB_RST                                 0x0004
 #define REG_IPA_GLB_APB_IPA_IP_RST                          0x0000
 #define REG_IPA_GLB_APB_IPA_IP_EB                           0x0004
 #define REG_IPA_GLB_APB_IPA_IP_LPC_CTRL                     0x0008
