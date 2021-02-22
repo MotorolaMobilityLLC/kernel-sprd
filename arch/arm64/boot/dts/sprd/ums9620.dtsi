@@ -292,6 +292,18 @@
 		arm,no-tick-in-suspend;
 	};
 
+	pmu {
+		compatible = "arm,armv8-pmuv3";
+		interrupts = <GIC_SPI 177 IRQ_TYPE_LEVEL_HIGH>,
+			<GIC_SPI 178 IRQ_TYPE_LEVEL_HIGH>,
+			<GIC_SPI 179 IRQ_TYPE_LEVEL_HIGH>,
+			<GIC_SPI 180 IRQ_TYPE_LEVEL_HIGH>,
+			<GIC_SPI 181 IRQ_TYPE_LEVEL_HIGH>,
+			<GIC_SPI 182 IRQ_TYPE_LEVEL_HIGH>,
+			<GIC_SPI 183 IRQ_TYPE_LEVEL_HIGH>,
+			<GIC_SPI 184 IRQ_TYPE_LEVEL_HIGH>;
+	};
+
 	soc {
 		pmu_gate: pmu-gate {
 			compatible = "sprd,ums9620-pmu-gate";
