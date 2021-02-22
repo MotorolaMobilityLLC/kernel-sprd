@@ -28,6 +28,7 @@
 #include <linux/regulator/consumer.h>
 #include <linux/sched.h>
 #include <linux/slab.h>
+#include <linux/soc/sprd/sprd_usbpinmux.h>
 #include <linux/usb.h>
 #include <linux/usb/phy.h>
 #include <linux/usb/usb_phy_generic.h>
@@ -1070,6 +1071,11 @@ static int musb_sprd_probe(struct platform_device *pdev)
 	struct sprd_glue *glue;
 	u32 buf[2];
 	int ret;
+
+	if (sprd_usbmux_check_mode() == MUX_MODE) {
+		dev_info(&pdev->dev, "musb driver stop probe since usb mux jtag\n");
+		return 0;
+	}
 
 	glue = devm_kzalloc(&pdev->dev, sizeof(*glue), GFP_KERNEL);
 	if (!glue)
