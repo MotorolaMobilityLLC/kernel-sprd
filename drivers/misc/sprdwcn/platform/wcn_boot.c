@@ -1391,7 +1391,7 @@ static int check_cp_ready(void)
 {
 	int i, ret;
 
-	for (i = 0; i <= 25; i++) {
+	for (i = 0; i <= 2500; i++) {
 		ret = sprdwcn_bus_direct_read(SYNC_ADDR,
 			&(marlin_dev->sync_f), sizeof(struct wcn_sync_info_t));
 		if (ret < 0) {
@@ -1399,8 +1399,7 @@ static int check_cp_ready(void)
 			       __func__, ret);
 			return ret;
 		}
-		if (marlin_dev->sync_f.init_status == SYNC_IN_PROGRESS)
-			usleep_range(3000, 5000);
+		usleep_range(3000, 5000);
 		if (marlin_dev->sync_f.init_status == SYNC_ALL_FINISHED)
 			return 0;
 	}
@@ -1699,7 +1698,6 @@ static void pre_btwifi_download_sdio(struct work_struct *work)
 	}
 	/* Runtime PM is useless, mainly to enable sdio_func1 and rx irq */
 	sprdwcn_bus_runtime_get();
-	wcn_firmware_init();
 }
 
 static int bus_scan_card(void)
@@ -2013,6 +2011,7 @@ static int marlin_set_power(enum wcn_sub_sys subsys, int val)
 			atomic_set(&marlin_dev->download_finish_flag, 1);
 			pr_info("then marlin download finished and run ok\n");
 
+			wcn_firmware_init();
 			set_wifipa_status(subsys, val);
 			mutex_unlock(&marlin_dev->power_lock);
 

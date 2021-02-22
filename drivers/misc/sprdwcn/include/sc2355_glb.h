@@ -18,7 +18,7 @@
 
 #define PACKET_SIZE		(32*1024)
 /* time out in waiting wifi to come up */
-#define POWERUP_WAIT_MS	30000
+#define POWERUP_WAIT_MS	50000
 #define POWERUP_DELAY		200
 #define RESET_DELAY		1
 
