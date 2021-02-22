@@ -30,9 +30,9 @@
 		#size-cells = <2>;
 		ranges;
 
-		rebootescrow@0x81ff0000 {
+		rebootescrow@0x853f0000 {
 			no-map;
-			reg = <0x0 0x81ff0000 0x0 0x00010000>; /* 64K */
+			reg = <0x0 0x853f0000 0x0 0x00010000>; /* 64K */
 		};
 
 		wcn_reserved: wcn-mem@87000000 {
