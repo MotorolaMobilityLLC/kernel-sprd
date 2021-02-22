@@ -962,9 +962,12 @@ static void dwc3_sprd_enable(struct dwc3_sprd *sdwc)
 {
 	if (sdwc->ipa_usb_ref_clk && sdwc->ipa_usb_ref_parent)
 		clk_set_parent(sdwc->ipa_usb_ref_clk, sdwc->ipa_usb_ref_parent);
-	clk_prepare_enable(sdwc->core_clk);
-	clk_prepare_enable(sdwc->ref_clk);
-	clk_prepare_enable(sdwc->susp_clk);
+	if (!clk_prepare_enable(sdwc->core_clk))
+		dev_err(sdwc->dev, "core clk enable error.\n");
+	if (!clk_prepare_enable(sdwc->ref_clk))
+		dev_err(sdwc->dev, "ref clk enable error.\n");
+	if (!clk_prepare_enable(sdwc->susp_clk))
+		dev_err(sdwc->dev, "susp clk enable error.\n");
 	usb_phy_init(sdwc->hs_phy);
 	usb_phy_init(sdwc->ss_phy);
 }
