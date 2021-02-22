@@ -23,7 +23,7 @@
 #include <linux/slab.h>
 #include <linux/usb/otg.h>
 #include <linux/usb/phy.h>
-#include <linux/power/sc2730-usb-charger.h>
+#include <linux/power/ump9620-usb-charger.h>
 #include <dt-bindings/soc/sprd,qogirn6pro-mask.h>
 #include <dt-bindings/soc/sprd,qogirn6pro-regs.h>
 
@@ -122,15 +122,11 @@ static inline void sprd_hsphy_reset_core(struct sprd_hsphy *phy)
 
 	regmap_update_bits(phy->hsphy_glb, REG_AON_APB_APB_RST1,
 		msk, reg);
-	regmap_read(phy->hsphy_glb, REG_AON_APB_APB_RST1,
-		&reg);
 	/* USB PHY reset need to delay 20ms~30ms */
 	usleep_range(20000, 30000);
 
 	regmap_update_bits(phy->hsphy_glb, REG_AON_APB_APB_RST1,
 		msk, 0);
-	regmap_read(phy->hsphy_glb, REG_AON_APB_APB_RST1,
-		&reg);
 }
 
 static int sprd_hsphy_reset(struct usb_phy *x)
@@ -164,7 +160,7 @@ static int sprd_hostphy_set(struct usb_phy *x, int on)
 			REG_ANLG_PHY_G0L_ANALOG_USB20_USB20_UTMI_CTL2,
 			msk, msk);
 
-		reg = 0x4002;
+		reg = 0x200;
 		msk = BIT_ANLG_PHY_G0L_ANALOG_USB20_USB20_RESERVED;
 		ret |= regmap_update_bits(phy->ana_g0,
 			REG_ANLG_PHY_G0L_ANALOG_USB20_USB20_UTMI_CTL1,
@@ -239,8 +235,6 @@ static int sprd_hsphy_init(struct usb_phy *x)
 		MASK_AON_APB_OTG_PHY_EB;
 	ret |= regmap_update_bits(phy->hsphy_glb,
 		REG_AON_APB_APB_EB1, msk, reg);
-	regmap_read(phy->hsphy_glb, REG_AON_APB_APB_EB1,
-		&reg);
 
 	reg = msk = MASK_AON_APB_CGM_OTG_REF_EN |
 		MASK_AON_APB_CGM_DPHY_REF_EN;
@@ -257,54 +251,26 @@ static int sprd_hsphy_init(struct usb_phy *x)
 	ret |= regmap_update_bits(phy->hsphy_glb,
 		REG_AON_APB_MIPI_CSI_POWER_CTRL, msk, 0);
 
-	/* for SPRD phy utmi_width sel  16 bit phy*/
-	reg = msk = MASK_AON_APB_UTMI_WIDTH_SEL;
-	ret |= regmap_update_bits(phy->hsphy_glb,
-		REG_AON_APB_OTG_PHY_CTRL, msk, reg);
-
-	reg = msk = BIT_ANLG_PHY_G0L_ANALOG_USB20_USB20_DATABUS16_8;
-	ret |= regmap_update_bits(phy->ana_g0,
-		REG_ANLG_PHY_G0L_ANALOG_USB20_USB20_UTMI_CTL1,
-		msk, reg);
-
 	/* usb vbus valid */
 	reg = msk = MASK_AON_APB_OTG_VBUS_VALID_PHYREG;
 	ret |= regmap_update_bits(phy->hsphy_glb,
 		REG_AON_APB_OTG_PHY_TEST, msk, reg);
 
-
-	reg = msk = MASK_AON_APB_USB_REF_CLK_MUX_SEL;
-	ret |= regmap_update_bits(phy->hsphy_glb,
-		REG_AON_APB_USB_CLK_REF_SEL, msk, reg);
-
 	reg = msk = BIT_ANLG_PHY_G0L_ANALOG_USB20_USB20_VBUSVLDEXT;
 	ret |= regmap_update_bits(phy->ana_g0,
 		REG_ANLG_PHY_G0L_ANALOG_USB20_USB20_UTMI_CTL1,	msk, reg);
 
-	regmap_read(phy->ana_g0, REG_ANLG_PHY_G0L_ANALOG_USB20_USB20_UTMI_CTL1,
-		&reg);
-	reg &= ~0xFFFF;
-	reg |= 0x4002;
-	ret |= regmap_write(phy->ana_g0,
-		REG_ANLG_PHY_G0L_ANALOG_USB20_USB20_UTMI_CTL1, reg);
-	regmap_read(phy->ana_g0, REG_ANLG_PHY_G0L_ANALOG_USB20_USB20_UTMI_CTL1,
-		&reg);
-
-	reg = TUNEHSAMP_2_6MA;
 	msk = BIT_ANLG_PHY_G0L_ANALOG_USB20_USB20_TUNEHSAMP;
+	reg = msk;
 	ret |= regmap_update_bits(phy->ana_g0,
 		REG_ANLG_PHY_G0L_ANALOG_USB20_USB20_TRIMMING,
 		msk, reg);
 
-	reg = TFREGRES_TUNE_VALUE;
 	msk = BIT_ANLG_PHY_G0L_ANALOG_USB20_USB20_TFREGRES;
+	reg = msk;
 	ret |= regmap_update_bits(phy->ana_g0,
 		REG_ANLG_PHY_G0L_ANALOG_USB20_USB20_TRIMMING,
 		msk, reg);
-
-	reg = msk = MASK_AON_APB_USB2_PHY_IDDIG;
-	ret |= regmap_update_bits(phy->hsphy_glb,
-			REG_AON_APB_OTG_PHY_CTRL, msk, reg);
 
 	if (!atomic_read(&phy->reset)) {
 		sprd_hsphy_reset_core(phy);
@@ -320,7 +286,6 @@ static void sprd_hsphy_shutdown(struct usb_phy *x)
 {
 	struct sprd_hsphy *phy = container_of(x, struct sprd_hsphy, phy);
 	u32 reg, msk;
-	u32 msk;
 
 	if (!atomic_read(&phy->inited)) {
 		dev_dbg(x->dev, "%s is already shut down\n", __func__);
@@ -465,7 +430,7 @@ static int sprd_hsphy_probe(struct platform_device *pdev)
 	if (!phy)
 		return -ENOMEM;
 
-	regmap_np = of_find_compatible_node(NULL, NULL, "sprd,sc27xx-syscon");
+	regmap_np = of_find_compatible_node(NULL, NULL, "sprd,ump962x-syscon");
 	if (!regmap_np) {
 		dev_err(dev, "unable to get syscon node\n");
 		return -ENODEV;
@@ -527,15 +492,10 @@ static int sprd_hsphy_probe(struct platform_device *pdev)
 	ret |= regmap_update_bits(phy->hsphy_glb, REG_AON_APB_AON_SOC_USB_CTRL,
 				 msk, 0);
 
-	regmap_read(phy->hsphy_glb, REG_AON_APB_AON_SOC_USB_CTRL,
-		&reg);
-
 	/* enable usb module */
 	reg = msk = (MASK_AON_APB_AON_USB2_TOP_EB |
 		MASK_AON_APB_OTG_PHY_EB | MASK_AON_APB_ANA_EB);
 	regmap_update_bits(phy->hsphy_glb, REG_AON_APB_APB_EB1, msk, reg);
-	regmap_read(phy->hsphy_glb, REG_AON_APB_APB_EB1,
-		&reg);
 
 	reg = msk = MASK_AON_APB_CGM_OTG_REF_EN |
 		MASK_AON_APB_CGM_DPHY_REF_EN;
