@@ -171,8 +171,8 @@
 		sprd,dst = <9>;
 		sprd,channel = <5>;
 		sprd,ringnr = <1>;
-		sprd,size-rxbuf = <0x5c0>;
-		sprd,size-txbuf = <0x20>;
+		sprd,size-rxbuf = <0x500>;
+		sprd,size-txbuf = <0x0>;
 	};
 
 	sctl_ch: spipe@7 {
@@ -206,6 +206,16 @@
 		sprd,size-txbuf = <0x18000>;
 	};
 
+	stime_ch: spipe@10 {
+		compatible = "sprd,spipe";
+		sprd,name = "stime_ch";
+		sprd,dst = <9>;
+		sprd,channel = <41>;
+		sprd,ringnr = <1>;
+		sprd,size-rxbuf = <0x40>;
+		sprd,size-txbuf = <0x80>;
+	};
+
 	slog_nr: spool@0{
 		compatible = "sprd,spool";
 		sprd,name = "slog_nr";
@@ -228,5 +238,9 @@
 		sprd,tx-blknum = <0>;
 		sprd,rx-blksize = <0x800>;
 		sprd,rx-blknum = <2000>;
+	};
+
+	time_sync {
+		compatible = "sprd,time-sync";
 	};
 };

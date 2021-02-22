@@ -170,7 +170,7 @@
 			sprd,channel = <41>;
 			sprd,ringnr = <1>;
 			sprd,size-rxbuf = <0x40>;
-			sprd,size-txbuf = <0x40>;
+			sprd,size-txbuf = <0x80>;
 		};
 	};
 
