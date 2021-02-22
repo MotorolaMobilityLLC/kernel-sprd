@@ -1531,16 +1531,10 @@ int edma_chn_init(int chn, int mode, int inout, int max_trans)
 			edma->dma_chn_reg[chn].dma_dscr
 					      .rf_chn_tx_next_dscr_ptr_low =
 					local_DSCR.rf_chn_tx_next_dscr_ptr_low;
-			edma->dma_chn_reg[chn].dma_dscr.chn_ptr_high.bit
-						.rf_chn_tx_next_dscr_ptr_high =
-									0x80;
 		} else {
 			edma->dma_chn_reg[chn].dma_dscr
 					      .rf_chn_rx_next_dscr_ptr_low =
 					local_DSCR.rf_chn_rx_next_dscr_ptr_low;
-			edma->dma_chn_reg[chn].dma_dscr.chn_ptr_high.bit
-						.rf_chn_rx_next_dscr_ptr_high =
-									0x80;
 		}
 		edma->dma_chn_reg[chn].dma_dscr.chn_ptr_high.reg =
 		    local_DSCR.chn_ptr_high.reg;
@@ -1752,8 +1746,21 @@ int edma_init(struct wcn_pcie_info *pcie_info)
 		WCN_DBG("edma chn[%d] dma_int:0x%p, event:%p\n", i,
 			 &edma->dma_chn_reg[i].dma_int.reg,
 			 &edma->chn_sw[i].event);
+		WCN_DBG("0x%08x, 0x%08x, 0x%08x, 0x%08x, 0x%08x, 0x%08x\n",
+		     edma->dma_chn_reg[i].dma_dscr.chn_trans_len.reg,
+		     edma->dma_chn_reg[i].dma_dscr.chn_ptr_high.reg,
+		     edma->dma_chn_reg[i].dma_dscr.rf_chn_tx_next_dscr_ptr_low,
+		     edma->dma_chn_reg[i].dma_dscr.rf_chn_rx_next_dscr_ptr_low,
+		     edma->dma_chn_reg[i].dma_dscr.rf_chn_data_src_addr_low,
+		     edma->dma_chn_reg[i].dma_dscr.rf_chn_data_dst_addr_low);
 		create_wcnevent(&(edma->chn_sw[i].event), i);
 		edma->chn_sw[i].mode = -1;
+		edma->dma_chn_reg[i].dma_dscr.chn_trans_len.reg = 0;
+		edma->dma_chn_reg[i].dma_dscr.chn_ptr_high.reg = 0;
+		edma->dma_chn_reg[i].dma_dscr.rf_chn_tx_next_dscr_ptr_low = 0;
+		edma->dma_chn_reg[i].dma_dscr.rf_chn_rx_next_dscr_ptr_low = 0;
+		edma->dma_chn_reg[i].dma_dscr.rf_chn_data_src_addr_low = 0;
+		edma->dma_chn_reg[i].dma_dscr.rf_chn_data_dst_addr_low = 0;
 	}
 
 	wakeup_source_init(&edma->edma_push_ws, "wcn edma txrx push");
