@@ -6,6 +6,8 @@
 #include <dt-bindings/soc/sprd,qogirn6pro-regs.h>
 #include <dt-bindings/soc/sprd,qogirn6pro-mask.h>
 #include <dt-bindings/interrupt-controller/arm-gic.h>
+#include "lcd/lcd_g40396_truly_mipi_fhd.dtsi"
+#include "lcd/lcd_dummy_mipi.dtsi"
 
 / {
 
@@ -535,3 +537,20 @@
 	};
 };
 
+&lcd_g40396_truly_mipi_fhd {
+	sprd,phy-bit-clock = <1500000>;
+	sprd,esd-check-enable = <0>;
+	display-timings {
+		g40396_truly_timing0: timing0 {
+			clock-frequency = <192000000>;
+			hactive = <1080>;
+			vactive = <2400>;
+			hback-porch = <52>;
+			hfront-porch = <52>;
+			vback-porch = <36>;
+			vfront-porch = <220>;
+			hsync-len = <16>;
+			vsync-len = <4>;
+		};
+	};
+};

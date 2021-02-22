@@ -654,3 +654,32 @@
 			<&g5l_pll CLK_V4NRPLL_409M6>,
 			<&g5l_pll CLK_TGPLL_512M>;
 };
+
+&dpu {
+	clock-names = "clk_src_256m",
+			"clk_src_307m2",
+			"clk_src_384m",
+			"clk_src_409m6",
+			"clk_src_512m",
+			"clk_src_614m4",
+			"clk_dpu_core",
+			"clk_dpu_dpi",
+			"clk_dpuvsp_eb",
+			"clk_dpuvsp_disp_eb";
+
+	clocks = <&g5l_pll CLK_TGPLL_256M>,
+		<&g5l_pll CLK_TGPLL_307M2>,
+		<&g5l_pll CLK_TGPLL_384M>,
+		<&g5l_pll CLK_V4NRPLL_409M6>,
+		<&g5l_pll CLK_TGPLL_512M>,
+		<&g5l_pll CLK_V4NRPLL_614M4>,
+		<&dpu_vsp_clk CLK_DISPC0>,
+		<&dpu_vsp_clk CLK_DISPC0_DPI>,
+		<&aonapb_gate CLK_DPU_VSP_EB>,
+		<&dpu_vsp_gate CLK_DPU_EB>;
+};
+
+&dsi {
+	clock-names = "clk_dsi0_eb";
+	clocks = <&dpu_vsp_gate CLK_DSI0_EB>;
+};

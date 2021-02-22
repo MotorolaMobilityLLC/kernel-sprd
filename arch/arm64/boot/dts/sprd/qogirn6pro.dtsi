@@ -88,6 +88,12 @@
 			reg = <0 0x26000000 0 0x3000>;
 		};
 
+		dpu_vsp_apb_regs: syscon@30100000 {
+			compatible = "sprd,ums9520-glbregs", "syscon";
+			#syscon-cells = <2>;
+			reg = <0 0x30100000 0 0x4000>;
+		};
+
 		ipa_usb31_dp_regs: syscon@31810000 {
 			compatible = "sprd,ums9520-glbregs", "syscon";
 			#syscon-cells = <2>;
@@ -530,13 +536,12 @@
 			dpu: dpu@31000000 {
 				compatible = "sprd,display-processor";
 				reg = <0x0 0x31000000 0x0 0x3000>;
-				/*syscons = <&ap_ahb_regs REG_AP_AHB_RF_AHB_RST
-				MASK_AP_AHB_RF_DISPC_SOFT_RST>,
-				<&ap_ahb_regs REG_AP_AHB_RF_AP_QOS2
-				(MASK_AP_AHB_RF_ARQOS_THRESHHOLD_DISP |
-				MASK_AP_AHB_RF_AWQOS_THRESHHOLD_DISP)>;
-				syscon-names = "reset", "qos";
-				*/
+				syscons = <&dpu_vsp_apb_regs REG_DPU_VSP_APB_RST
+				MASK_DPU_VSP_APB_DISPC_SOFT_RST>,
+				<&dpu_vsp_apb_regs REG_DPU_VSP_APB_RST
+				MASK_DPU_VSP_APB_DISPC_VAU_SOFT_RST>;
+				syscon-names = "reset", "vau_reset";
+
 				interrupts = <GIC_SPI 152 IRQ_TYPE_LEVEL_HIGH>;
 				status = "disabled";
 				iommus = <&iommu_dispc>;
@@ -576,12 +581,12 @@
 			dsi: dsi@31300000 {
 				compatible = "sprd,dsi-host";
 				reg = <0x0 0x31300000 0x0 0x1000>;
-				/*syscons = <&ap_ahb_regs REG_AP_AHB_RF_AHB_RST
-				MASK_AP_AHB_RF_DSI_SOFT_RST>;
+				syscons = <&dpu_vsp_apb_regs REG_DPU_VSP_APB_RST
+				MASK_DPU_VSP_APB_DSI0_SOFT_RST>;
 				syscon-names = "reset";
 				interrupts = <GIC_SPI 158 IRQ_TYPE_LEVEL_HIGH>,
 				<GIC_SPI 157 IRQ_TYPE_LEVEL_HIGH>;
-				*/
+
 				status = "disabled";
 
 				sprd,ip = "sprd,dsi-ctrl", "r3p1";
@@ -612,14 +617,14 @@
 				#address-cells = <1>;
 				#size-cells = <0>;
 				reg = <0x0 0x31300000 0x0 0x1000>;
-				/*syscons = <&ap_ahb_regs
-				REG_AP_AHB_RF_MISC_CKG_EN
-				(MASK_AP_AHB_RF_DPHY_REF_CKG_EN |
-				MASK_AP_AHB_RF_DPHY_CFG_CKG_EN)>,
+				syscons = <&dpu_vsp_apb_regs
+				REG_DPU_VSP_APB_MISC_CKG_EB
+				(MASK_DPU_VSP_APB_DPHY0_REF_CKG_EN |
+				MASK_DPU_VSP_APB_DPHY0_CFG_CKG_EN)>,
 				<&pmu_apb_regs
 				REG_PMU_APB_RF_ANALOG_PHY_PD_CFG
-				MASK_PMU_APB_RF_DSI_PD_REG>;
-				syscon-names = "enable", "power";*/
+				MASK_PMU_APB_RF_DSI0_PD_REG>;
+				syscon-names = "enable", "power";
 				status = "disabled";
 				sprd,ip = "sprd,megacores-sharkl5";
 				sprd,soc = "qogirn6pro";
