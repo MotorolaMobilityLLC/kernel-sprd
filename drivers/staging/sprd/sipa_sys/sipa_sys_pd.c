@@ -202,8 +202,8 @@ static void sipa_sys_register_cb(struct sipa_sys_pd_drv *drv,
 
 static int sipa_sys_drv_probe(struct platform_device *pdev_p)
 {
-	int ret;
-	u32 num;
+	int ret = 0;
+	u32 num = 0;
 	struct sipa_sys_pd_drv *drv;
 	const struct sipa_sys_data *data;
 

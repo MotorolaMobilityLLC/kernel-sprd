@@ -20,7 +20,7 @@
 static int alloc_tx_fifo_ram(struct device *dev,
 			     enum sipa_cmn_fifo_index index)
 {
-	dma_addr_t dma_addr;
+	dma_addr_t dma_addr = 0;
 	struct sipa_plat_drv_cfg *ipa = dev_get_drvdata(dev);
 	struct sipa_cmn_fifo_cfg_tag *fifo_cfg = &ipa->cmn_fifo_cfg[index];
 	ssize_t size, node_size = sizeof(struct sipa_node_desc_tag);
@@ -43,7 +43,7 @@ static int alloc_tx_fifo_ram(struct device *dev,
 static int alloc_rx_fifo_ram(struct device *dev,
 			     enum sipa_cmn_fifo_index index)
 {
-	dma_addr_t dma_addr;
+	dma_addr_t dma_addr = 0;
 	struct sipa_plat_drv_cfg *ipa = dev_get_drvdata(dev);
 	ssize_t size, node_size = sizeof(struct sipa_node_desc_tag);
 	struct sipa_cmn_fifo_cfg_tag *fifo_cfg = &ipa->cmn_fifo_cfg[index];
@@ -66,7 +66,7 @@ static int alloc_rx_fifo_ram(struct device *dev,
 static void free_tx_fifo_ram(struct device *dev,
 			     enum sipa_cmn_fifo_index index)
 {
-	dma_addr_t dma_addr;
+	dma_addr_t dma_addr = 0;
 	struct sipa_plat_drv_cfg *ipa = dev_get_drvdata(dev);
 	struct sipa_cmn_fifo_cfg_tag *fifo_cfg = &ipa->cmn_fifo_cfg[index];
 
@@ -85,7 +85,7 @@ static void free_tx_fifo_ram(struct device *dev,
 static void free_rx_fifo_ram(struct device *dev,
 			     enum sipa_cmn_fifo_index index)
 {
-	dma_addr_t dma_addr;
+	dma_addr_t dma_addr = 0;
 	struct sipa_plat_drv_cfg *ipa = dev_get_drvdata(dev);
 	struct sipa_cmn_fifo_cfg_tag *fifo_cfg = &ipa->cmn_fifo_cfg[index];
 

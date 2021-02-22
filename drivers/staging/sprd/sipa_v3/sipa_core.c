@@ -366,7 +366,7 @@ static int sipa_check_ep_suspend(struct device *dev, enum sipa_ep_id id)
 		return 0;
 
 	sipa_hal_cmn_fifo_stop_recv(dev, ep->recv_fifo.idx, true);
-	sipa_hal_check_send_cmn_fifo_com(dev, ep->send_fifo.idx);
+
 	if (!sipa_hal_check_send_cmn_fifo_com(dev, ep->send_fifo.idx)) {
 		dev_err(dev, "check send cmn fifo finish status fail fifo id = %d\n",
 			ep->send_fifo.idx);
@@ -614,7 +614,7 @@ int sipa_pam_connect(const struct sipa_connect_params *in)
 	if (ep->recv_fifo_param.data_ptr) {
 		for (i = 0; i < ep->recv_fifo_param.data_ptr_cnt; i++) {
 			fifo_item.address = ep->recv_fifo_param.data_ptr +
-				i * ep->send_fifo_param.buf_size;
+				i * ep->recv_fifo_param.buf_size;
 			fifo_item.length = ep->recv_fifo_param.buf_size;
 			sipa_hal_put_node_to_rx_fifo(ipa->dev,
 						     ep->recv_fifo.idx,
@@ -815,7 +815,7 @@ EXPORT_SYMBOL(sipa_set_enabled);
 static int sipa_parse_dts_configuration(struct platform_device *pdev,
 					struct sipa_plat_drv_cfg *ipa)
 {
-	int i, j, ret;
+	int i, j, ret, count;
 	char name[20];
 	u32 *fifo_info;
 	u32 reg_info[2];
@@ -824,7 +824,6 @@ static int sipa_parse_dts_configuration(struct platform_device *pdev,
 	const char *sipa_eb_name;
 	const struct sipa_hw_data *pdata;
 	struct sipa_cmn_fifo_info *cmn_fifo_info;
-	u32 count;
 	const char *fifo_name;
 
 	/* get IPA  global  register  offset */
@@ -933,6 +932,9 @@ static int sipa_parse_dts_configuration(struct platform_device *pdev,
 	}
 
 	fifo_info = kzalloc(count * sizeof(*fifo_info), GFP_KERNEL);
+	if (!fifo_info)
+		return -ENOMEM;
+
 	of_property_read_u32_array(pdev->dev.of_node, "fifo-sizes",
 				   fifo_info, count * 4);
 
@@ -955,6 +957,7 @@ static int sipa_parse_dts_configuration(struct platform_device *pdev,
 			}
 		}
 	}
+	kfree(fifo_info);
 
 	return 0;
 }

@@ -108,7 +108,7 @@ static void sipa_free_sent_items(void)
 {
 	bool status = false;
 	unsigned long flags;
-	u32 i, num, success_cnt = 0, retry_cnt = 10;
+	u32 i, num = 0, success_cnt = 0, retry_cnt = 10;
 	struct sipa_node_desc_tag *node = NULL;
 	struct sipa_skb_sender *sender;
 	struct sipa_skb_dma_addr_pair *iter, *_iter;

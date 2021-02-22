@@ -1484,6 +1484,7 @@ static int ipa_cmn_fifo_phy_set_hw_intr_thres(enum sipa_cmn_fifo_index id,
 					      struct sipa_cmn_fifo_cfg_tag *b,
 					      u32 enable, u32 cnt)
 {
+	int ret = 0;
 	struct sipa_cmn_fifo_cfg_tag *fifo;
 
 	if (unlikely(id >= SIPA_FIFO_MAX)) {
@@ -1493,18 +1494,22 @@ static int ipa_cmn_fifo_phy_set_hw_intr_thres(enum sipa_cmn_fifo_index id,
 	fifo = b + id;
 
 	if (enable) {
-		if (ipa_phy_set_tx_fifo_intr_thres(fifo->fifo_reg_base, cnt)) {
+		ret = ipa_phy_set_tx_fifo_intr_thres(fifo->fifo_reg_base, cnt);
+		if (ret) {
 			pr_err("sipa fifo %d set threshold fail\n", id);
 			return -EINVAL;
 		}
-		if (ipa_phy_enable_int_bit(fifo->fifo_reg_base,
-					   IPA_TX_FIFO_THRESHOLD_EN)) {
+
+		ret = ipa_phy_enable_int_bit(fifo->fifo_reg_base,
+					     IPA_TX_FIFO_THRESHOLD_EN);
+		if (ret) {
 			pr_err("sipa fifo %d enable hw threshold err\n", id);
 			return -EINVAL;
 		}
 	} else {
-		if (ipa_phy_disable_int_bit(fifo->fifo_reg_base,
-					    IPA_TX_FIFO_THRESHOLD_EN)) {
+		ret = ipa_phy_disable_int_bit(fifo->fifo_reg_base,
+					      IPA_TX_FIFO_THRESHOLD_EN);
+		if (ret) {
 			pr_err("sipa fifo %d disable hw threshold err\n", id);
 			return -EINVAL;
 		}

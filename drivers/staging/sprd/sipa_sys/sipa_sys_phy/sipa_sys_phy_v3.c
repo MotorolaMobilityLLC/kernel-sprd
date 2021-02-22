@@ -59,7 +59,7 @@ static int sipa_sys_wait_power_on(struct sipa_sys_pd_drv *drv,
 				  struct sipa_sys_register *reg_info)
 {
 	int ret = 0;
-	u32 val;
+	u32 val = 0;
 
 	if (reg_info->rmap)
 		ret = regmap_read_poll_timeout(reg_info->rmap,
@@ -81,7 +81,7 @@ static int sipa_sys_wait_power_on(struct sipa_sys_pd_drv *drv,
 
 int sipa_sys_do_power_on_cb_v3(void *priv)
 {
-	u32 val;
+	u32 val = 0;
 	int ret = 0;
 	struct sipa_sys_register *reg_info;
 	struct sipa_sys_pd_drv *drv = (struct sipa_sys_pd_drv *)priv;

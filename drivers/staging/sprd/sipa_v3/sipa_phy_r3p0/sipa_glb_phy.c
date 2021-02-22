@@ -1135,8 +1135,8 @@ static int ipa_phy_monitor_ipa_or_tft(void __iomem *reg_base, u32 flag)
 	tmp |= (flag << 14);
 	writel_relaxed(tmp, reg_base + IPA_MODE_N_FLOWCTRL);
 
-	if ((readl_relaxed(reg_base + IPA_MODE_N_FLOWCTRL) &
-	     IPA_MONITOR_IPA_OR_TFT_MASK) != (flag << 14))
+	if ((u32)(readl_relaxed(reg_base + IPA_MODE_N_FLOWCTRL) &
+		  IPA_MONITOR_IPA_OR_TFT_MASK) != (flag << 14))
 		return -EIO;
 
 	return 0;

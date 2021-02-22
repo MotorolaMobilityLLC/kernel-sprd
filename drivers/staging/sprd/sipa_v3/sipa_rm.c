@@ -94,7 +94,7 @@ static void sipa_rm_wq_handler(struct work_struct *work);
  */
 const char *sipa_rm_res_str(enum sipa_rm_res_id resource_name)
 {
-	if (resource_name < 0 || resource_name >= SIPA_RM_RES_MAX)
+	if (resource_name >= SIPA_RM_RES_MAX)
 		return "INVALID RESOURCE";
 
 	return resource_name_to_str[resource_name];
@@ -166,7 +166,7 @@ bool sipa_rm_is_initialized(void)
  */
 int sipa_rm_create_resource(struct sipa_rm_create_params *create_params)
 {
-	struct sipa_rm_resource *resource;
+	struct sipa_rm_resource *resource = NULL;
 	unsigned long flags;
 	int result;
 
@@ -181,8 +181,7 @@ int sipa_rm_create_resource(struct sipa_rm_create_params *create_params)
 	}
 	pr_debug("%s\n", sipa_rm_res_str(create_params->name));
 
-	if (create_params->floor_voltage < 0 ||
-	    create_params->floor_voltage >= SIPA_VOLTAGE_MAX) {
+	if (create_params->floor_voltage >= SIPA_VOLTAGE_MAX) {
 		pr_err("invalid voltage %d\n",
 		       create_params->floor_voltage);
 		return -EINVAL;
@@ -597,8 +596,7 @@ int sipa_rm_inactivity_timer_init(enum sipa_rm_res_id resource_name,
 {
 	pr_debug("resource %d\n", resource_name);
 
-	if (resource_name < 0 ||
-	    resource_name >= SIPA_RM_RES_MAX) {
+	if (resource_name >= SIPA_RM_RES_MAX) {
 		pr_err("Invalid parameter\n");
 		return -EINVAL;
 	}
@@ -639,8 +637,7 @@ int sipa_rm_inactivity_timer_destroy(enum sipa_rm_res_id resource_name)
 {
 	pr_debug("resource %d\n", resource_name);
 
-	if (resource_name < 0 ||
-	    resource_name >= SIPA_RM_RES_MAX) {
+	if (resource_name >= SIPA_RM_RES_MAX) {
 		pr_err("Invalid parameter\n");
 		return -EINVAL;
 	}
@@ -679,8 +676,7 @@ int sipa_rm_inactivity_timer_request_resource(enum sipa_rm_res_id resource_name)
 
 	pr_debug(" resource %d\n", resource_name);
 
-	if (resource_name < 0 ||
-	    resource_name >= SIPA_RM_RES_MAX) {
+	if (resource_name >= SIPA_RM_RES_MAX) {
 		pr_err("Invalid parameter\n");
 		return -EINVAL;
 	}
@@ -723,8 +719,7 @@ int sipa_rm_inactivity_timer_release_resource(enum sipa_rm_res_id resource_name)
 
 	pr_debug("resource %d\n", resource_name);
 
-	if (resource_name < 0 ||
-	    resource_name >= SIPA_RM_RES_MAX) {
+	if (resource_name >= SIPA_RM_RES_MAX) {
 		pr_err("Invalid parameter\n");
 		return -EINVAL;
 	}
