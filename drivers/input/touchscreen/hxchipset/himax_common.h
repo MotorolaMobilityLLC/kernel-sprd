@@ -64,7 +64,7 @@
 #define HX_RESUME_SEND_CMD	/*Need to enable on TDDI chipset*/
 /*#define HX_HIGH_SENSE*/
 /*#define HX_PALM_REPORT*/
-/*#define HX_USB_DETECT_GLOBAL*/
+#define HX_USB_DETECT_GLOBAL
 
 /* for MTK special platform.If turning on,
  * it will report to system by using specific format.
