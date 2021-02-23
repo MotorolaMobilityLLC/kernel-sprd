@@ -18,7 +18,7 @@
 					 "detect_h", "detect_mic",
 					 "detect_all";
 		adc-threshold-3pole-detect = <3054>;
-		sprd,adc-gnd = <990>;
+		sprd,adc-gnd = <336>;
 		sprd,stable-value = <2223>;
 		sprd,coefficient = <939836>;
 		irq-threshold-button = <9>;
