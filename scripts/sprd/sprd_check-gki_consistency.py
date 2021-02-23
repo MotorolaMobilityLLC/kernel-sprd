@@ -18,23 +18,27 @@ gcc_path = os.path.abspath("../../toolchain/prebuilts/gcc/linux-x86/aarch64/gcc-
 def check_consistency(android_version):
 	global failure_flag
 
-	print("======================================" + android_version + "======================================")
+	print("======================================" + android_version.split('/')[1] + "======================================")
 	for soc in d_defconfig:
 		print("======================================" + soc + "======================================")
 		for config in d_defconfig[soc]:
 			if d_defconfig[soc][config] == "y":
 				if ( config not in d_gki_defconfig or d_gki_defconfig[config] != "y" ) and ( config not in d_gki_diff_config or d_gki_diff_config[config] != "y" ):
 					if check_gki_choice_config(config, "y"):
-						print("ERROR: " + config + " isn't the subset of gki_defconfig + gki_diffconfig.")
+						print("\033[1;31;40m ERROR: " + config + " isn't the subset of gki_defconfig + gki_diffconfig.\033[0m")
 						failure_flag = 1
 			elif d_defconfig[soc][config] == "m":
 				if ( config not in d_gki_defconfig or d_gki_defconfig[config] != "m" ) and ( config not in d_gki_diff_config or d_gki_diff_config[config] != "m" ):
 					if check_gki_choice_config(config, "m"):
-						print("ERROR: " + config + " isn't the subset of gki_defconfig + gki_diffconfig.")
+						print("\033[1;31;40m ERROR: " + config + " isn't the subset of gki_defconfig + gki_diffconfig.\033[0m")
 						failure_flag = 1
 			elif d_defconfig[soc][config] == "n":
 				if ( config in d_gki_defconfig and d_gki_defconfig[config] != "n" ) and ( config in d_gki_diff_config and d_gki_diff_config[config] != "n" ):
-					print("WARNING: " + config + " is not set, but is set y or m in gki_defconfig + gki_diffconfig.")
+					if check_gki_choice_config(config, "n"):
+						print("\033[1;31;40m ERROR: " + config + " is not set, but is set y or m in gki_defconfig + gki_diffconfig.\033[0m")
+						failure_flag = 1
+					else:
+						print("WARNING: " + config + " is not set, and is set y or m in gki_defconfig + gki_diffconfig, but exists in sprd-gki-choice-config.")
 		print("======================================" + soc + "======================================")
 
 def check_gki_choice_config(config, status):
@@ -46,7 +50,7 @@ def check_gki_choice_config(config, status):
 				return 0
 	elif status == "n":
 		for i in range(len(lines)):
-			if lines[i].strip() == "DEL:"+config:
+			if ( lines[i].strip() == "ADD:"+config or lines[i].strip() == "MOD:"+config ):
 				return 0
 	elif status == "m":
 		for i in range(len(lines)):
