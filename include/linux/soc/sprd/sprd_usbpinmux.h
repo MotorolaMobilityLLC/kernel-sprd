@@ -14,6 +14,15 @@
 #ifndef __SPRD_USBPINMUX_H
 #define __SPRD_USBPINMUX_H
 
+#define	MUX_MODE	1
+
+#if IS_ENABLED(CONFIG_SPRD_USBPINMUX)
 int sprd_usbmux_check_mode(void);
+#else
+int sprd_usbmux_check_mode(void)
+{
+	return 0;
+}
+#endif
 
 #endif
