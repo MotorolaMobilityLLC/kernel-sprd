@@ -1747,14 +1747,17 @@
 			dptx: dptx@31890000 {
 				compatible = "sprd,dptx";
 				reg = <0x0 0x31890000 0x0 0x70000>;
+				sprd,syscon-usb31-dp-phy = <&ipa_usb31_dp_regs>;
 				status = "disable";
 				interrupts = <GIC_SPI 123 IRQ_TYPE_LEVEL_HIGH>;
 
 				sprd,soc = "qogirn6pro1";
 
 				power-domains = <&pd_ipa_sys>;
-				clock-names = "clk_ipa_apb_dptx_eb";
-				clocks = <&ipadispc_gate CLK_IPA_DPTX_EB>;
+				clock-names = "clk_ipa_apb_dpu1_eb",
+						"clk_ipa_apb_dptx_eb";
+				clocks = <&ipadispc_gate CLK_IPA_DPU1_EB>,
+					<&ipadispc_gate CLK_IPA_DPTX_EB>;
 
 				ports {
 					#address-cells = <1>;
