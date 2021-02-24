@@ -2695,7 +2695,13 @@ static void dwc3_stop_active_transfer(struct dwc3 *dwc, u32 epnum, bool force)
 	dep->resource_index = 0;
 	dep->flags &= ~DWC3_EP_BUSY;
 
-	if (dwc3_is_usb31(dwc) || dwc->revision < DWC3_REVISION_310A) {
+	/* There is a high probablity crash issue on usb31 projects when users
+	 * issue 'adb root' cmd, we don't see this issue in our usb30 projects,
+	 * DWC3_EP_END_TRANSFER_PENDING needn't be set here for usb31 IP,
+	 * remove dwc3_is_usb31() from the below condition:
+	 * if (dwc3_is_usb31(dwc) || dwc->revision < DWC3_REVISION_310A)
+	 */
+	if (dwc->revision < DWC3_REVISION_310A) {
 		dep->flags |= DWC3_EP_END_TRANSFER_PENDING;
 		udelay(100);
 	}
