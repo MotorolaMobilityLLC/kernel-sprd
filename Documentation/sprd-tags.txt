@@ -178,6 +178,7 @@ soc:sprd:ptm:
 soc:sprd:sysdump:
 spi:sprd:
 sprd-diffconfig:*
+sprd-reserved-memory:
 staging:android:ion:
 staging:sprd:debug_log:
 staging:sprd:mailbox:
