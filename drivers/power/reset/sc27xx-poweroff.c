@@ -14,6 +14,9 @@
 #include <linux/regmap.h>
 #include <linux/syscore_ops.h>
 
+#define SC2720_PWR_PD_HW	0xc20
+#define SC2720_SLP_CTRL		0xd68
+#define SC2720_LDO_XTL_EN	BIT(2)
 #define SC2721_PWR_PD_HW	0xc20
 #define SC2721_SLP_CTRL		0xd98
 #define SC2721_LDO_XTL_EN	BIT(2)
@@ -47,6 +50,12 @@ static const struct sc27xx_poweroff_data sc2731_data = {
 	.poweroff_reg = SC2731_PWR_PD_HW,
 	.slp_ctrl_reg = SC2731_SLP_CTRL,
 	.ldo_xtl_en = SC2731_LDO_XTL_EN,
+};
+
+static const struct sc27xx_poweroff_data sc2720_data = {
+	.poweroff_reg = SC2720_PWR_PD_HW,
+	.slp_ctrl_reg = SC2720_SLP_CTRL,
+	.ldo_xtl_en = SC2720_LDO_XTL_EN,
 };
 
 static struct regmap *regmap;
@@ -109,6 +118,7 @@ static const struct of_device_id sc27xx_poweroff_of_match[] = {
 	{ .compatible = "sprd,sc2721-poweroff", .data = &sc2721_data },
 	{ .compatible = "sprd,sc2730-poweroff", .data = &sc2730_data },
 	{ .compatible = "sprd,sc2731-poweroff", .data = &sc2731_data },
+	{ .compatible = "sprd,sc2720-poweroff", .data = &sc2720_data },
 	{ }
 };
 
