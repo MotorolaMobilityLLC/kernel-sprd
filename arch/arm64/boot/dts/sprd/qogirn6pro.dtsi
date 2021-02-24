@@ -904,77 +904,46 @@
 				compatible = "sprd,qogirn6pro-cam";
 				reg = <0 0x3e000000 0 0x10000>,
 					<0 0x3e010000 0 0x10000>,
-					<0 0x3e100000 0 0x80>,
-					<0 0x3e104000 0 0x80>,
 					<0 0x3e030000 0 0xB0>,
-					<0 0x3e108000 0 0x50>,
 					<0 0x3e038000 0 0x40>;
 				reg-names = "dcam0_reg",
 						"dcam1_reg",
-						"dcam2_reg",
-						"dcam3_reg",
 						"dcam01_axi_ctrl_reg",
-						"dcam23_axi_ctrl_reg",
 						"fmcu_ctrl_reg";
 				interrupts = <GIC_SPI 108 IRQ_TYPE_LEVEL_HIGH>,
-					<GIC_SPI 107 IRQ_TYPE_LEVEL_HIGH>,
-					<GIC_SPI 110 IRQ_TYPE_LEVEL_HIGH>,
-					<GIC_SPI 109 IRQ_TYPE_LEVEL_HIGH>;
+					<GIC_SPI 107 IRQ_TYPE_LEVEL_HIGH>;
 				interrupt-names = "dcam0",
-							"dcam1",
-							"dcam2",
-							"dcam3";
+							"dcam1";
 				syscons = <&mm_ahb_regs REG_MM_AHB_DCAM_BLK_SOFT_RST
 					MASK_MM_AHB_DCAM0_1_ALL_SOFT_RST>,
 					<&mm_ahb_regs REG_MM_AHB_DCAM_BLK_SOFT_RST
-					MASK_MM_AHB_DCAM2_3_ALL_SOFT_RST>,
-					<&mm_ahb_regs REG_MM_AHB_DCAM_BLK_SOFT_RST
 					MASK_MM_AHB_DCAM0_SOFT_RST>,
 					<&mm_ahb_regs REG_MM_AHB_DCAM_BLK_SOFT_RST
-					MASK_MM_AHB_DCAM1_SOFT_RST>,
-					<&mm_ahb_regs REG_MM_AHB_DCAM_BLK_SOFT_RST
-					MASK_MM_AHB_DCAM2_SOFT_RST>,
-					<&mm_ahb_regs REG_MM_AHB_DCAM_BLK_SOFT_RST
-					MASK_MM_AHB_DCAM3_SOFT_RST>;
+					MASK_MM_AHB_DCAM1_SOFT_RST>;
 				syscon-names = "dcam01_all_reset",
-						"dcam23_all_reset",
 						"dcam0_reset",
-						"dcam1_reset",
-						"dcam2_reset",
-						"dcam3_reset";
+						"dcam1_reset";
 
 				clock-names = "dcam_eb",
 					"dcam_blk_cfg_en",
-					"dcam_lite_eb",
 					"dcam_tck_en",
 					"dcam_mtx_en",
-					"dcam_lite_mtx_en",
 					"dcam_clk",
 					"dcam_clk_parent",
-					"dcam_lite_clk",
-					"dcam_lite_clk_parent",
 					"dcam_axi_clk",
 					"dcam_axi_clk_parent",
-					"dcam_lite_axi_clk",
-					"dcam_lite_axi_clk_parent",
 					"dcam_mtx_clk",
 					"dcam_mtx_clk_parent",
 					"dcam_blk_cfg_clk",
 					"dcam_blk_cfg_clk_parent";
 				clocks = <&mm_gate CLK_DCAM_IF_EN>,
 					<&mm_gate CLK_DCAM_BLK_CFG_EN>,
-					<&mm_gate CLK_DCAM_IF_LITE_EN>,
 					<&mm_gate CLK_DCAM_TCK_EN>,
 					<&mm_gate CLK_DCAM_MTX_EN>,
-					<&mm_gate CLK_DCAM_LITE_MTX_EN>,
 					<&mm_clk CLK_DCAM0_1>,
 					<&g5l_pll CLK_TGPLL_512M>,
-					<&mm_clk CLK_DCAM2_3>,
-					<&g5l_pll CLK_TGPLL_256M>,
 					<&mm_clk CLK_DCAM0_1_AXI>,
 					<&g5l_pll CLK_TGPLL_512M>,
-					<&mm_clk CLK_DCAM2_3_AXI>,
-					<&g5l_pll CLK_TGPLL_256M>,
 					<&mm_clk CLK_DCAM_MTX>,
 					<&g5l_pll CLK_TGPLL_512M>,
 					<&mm_clk CLK_DCAM_BLK_CFG>,
@@ -983,7 +952,8 @@
 				sprd,cam-ahb-syscon = <&mm_ahb_regs>;
 				sprd,csi-switch = <&mm_csi_switch_regs>;
 				sprd,isp = <&isp>;
-				sprd,dcam-count = <4>;
+				sprd,dcam-lite = <&dcam_lite>;
+				sprd,dcam-count = <2>;
 				sprd,dcam-superzoom = <2>;
 				sprd,project-id = <4>;
 				iommus = <&iommu_dcam>;
@@ -993,6 +963,54 @@
 			iommu_dcam: iommu@3e03f000 {
 				compatible = "sprd,iommuvau-dcam";
 				reg = <0x0 0x3e03f000 0x0 0xB0>;
+				sprd,iova-base = <0x40000000>;
+				sprd,iova-size = <0xc0000000>;
+				reg_name = "mmu_reg";
+				status = "okay";
+				#iommu-cells = <0>;
+			};
+
+			dcam_lite: dcam_lite@0x3e100000 {
+				compatible = "sprd,dcam_lite";
+				reg = <0 0x3e100000 0 0x80>,
+					<0 0x3e104000 0 0x80>,
+					<0 0x3e108000 0 0x50>;
+				reg-names = "dcam2_reg",
+						"dcam3_reg",
+						"dcam23_axi_ctrl_reg";
+				interrupts = <GIC_SPI 110 IRQ_TYPE_LEVEL_HIGH>,
+					<GIC_SPI 109 IRQ_TYPE_LEVEL_HIGH>;
+				interrupt-names = "dcam2",
+							"dcam3";
+				syscons = <&mm_ahb_regs REG_MM_AHB_DCAM_BLK_SOFT_RST
+					MASK_MM_AHB_DCAM2_3_ALL_SOFT_RST>,
+					<&mm_ahb_regs REG_MM_AHB_DCAM_BLK_SOFT_RST
+					MASK_MM_AHB_DCAM2_SOFT_RST>,
+					<&mm_ahb_regs REG_MM_AHB_DCAM_BLK_SOFT_RST
+					MASK_MM_AHB_DCAM3_SOFT_RST>;
+				syscon-names = "lite_all_reset",
+						"lite0_reset",
+						"lite1_reset";
+				clock-names = "dcam_lite_eb",
+					"dcam_lite_mtx_en",
+					"dcam_lite_clk",
+					"dcam_lite_clk_parent",
+					"dcam_lite_axi_clk",
+					"dcam_lite_axi_clk_parent";
+				clocks = <&mm_gate CLK_DCAM_IF_LITE_EN>,
+					<&mm_gate CLK_DCAM_LITE_MTX_EN>,
+					<&mm_clk CLK_DCAM2_3>,
+					<&g5l_pll CLK_TGPLL_256M>,
+					<&mm_clk CLK_DCAM2_3_AXI>,
+					<&g5l_pll CLK_TGPLL_256M>;
+				sprd,dcam-lite-count = <2>;
+				iommus = <&iommu_dcam_lite>;
+				status = "okay";
+			};
+
+			iommu_dcam_lite: iommu@3e13f000 {
+				compatible = "sprd,iommuvau-dcam1";
+				reg = <0x0 0x3e13f000 0x0 0xB0>;
 				sprd,iova-base = <0x40000000>;
 				sprd,iova-size = <0xc0000000>;
 				reg_name = "mmu_reg";
