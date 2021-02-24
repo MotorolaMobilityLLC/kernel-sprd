@@ -223,6 +223,10 @@
 		reg = <0x0 0x9e000000 0x0 0x007e9000>;
 	};
 
+	fd_reserved: faceid-mem@fdd69000{
+		reg = <0x0 0xfdd69000 0x0 0x00500000>;
+	};
+
 	fb_reserved: framebuffer@fe769000 {
 		reg = <0x0 0xfe769000 0x0 0x1817000>;
 	};
@@ -600,6 +604,12 @@
 			label = "carveout_fb";
 			type = <2>;
 			memory-region = <&fb_reserved>;
+	};
+	heap@4 {
+			reg = <4>;
+			label = "carveout_fd";
+			type = <2>;
+			memory-region = <&fd_reserved>;
 	};
 };
 

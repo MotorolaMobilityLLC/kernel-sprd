@@ -124,6 +124,13 @@
 			type = <2>;
 			memory-region = <&fb_reserved>;
 		};
+
+		heap@4 {
+			reg = <4>;
+			label = "carveout_fd";
+			type = <2>;
+			memory-region = <&fd_reserved>;
+		};
 	};
 
 	gpio-keys {
@@ -284,6 +291,10 @@
 
 	fb_reserved: framebuffer@fe769000 {
 		reg = <0x0 0xfe769000 0x0 0x1817000>;
+	};
+
+	fd_reserved: faceid-mem@fdd69000{
+		reg = <0x0 0xfdd69000 0x0 0x00500000>;
 	};
 };
 
