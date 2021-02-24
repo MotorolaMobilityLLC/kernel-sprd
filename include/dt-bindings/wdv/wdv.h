@@ -1,5 +1,7 @@
 #ifndef __DT_BINDINGS_WIDEVINE_L1_H__
 #define __DT_BINDINGS_WIDEVINE_L1_H__
 
+#define BSP_KERNEL_CONFIG_WIDEVINE_L1 1
+
 #endif
 
