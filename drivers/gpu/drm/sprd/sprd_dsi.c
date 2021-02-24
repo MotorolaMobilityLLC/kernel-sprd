@@ -38,6 +38,8 @@ LIST_HEAD(dsi_core_head);
 LIST_HEAD(dsi_glb_head);
 static DEFINE_MUTEX(dsi_lock);
 
+struct sprd_dsi *dsi_v2;
+
 static int sprd_dsi_resume(struct sprd_dsi *dsi)
 {
 	if (dsi->glb && dsi->glb->power)
@@ -765,6 +767,7 @@ static int sprd_dsi_probe(struct platform_device *pdev)
 	if (ret)
 		return ret;
 
+	dsi_v2 = dsi;
 	pm_runtime_set_active(&pdev->dev);
 	pm_runtime_get_noresume(&pdev->dev);
 	pm_runtime_enable(&pdev->dev);

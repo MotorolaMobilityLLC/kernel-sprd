@@ -18,10 +18,13 @@
 #include <linux/workqueue.h>
 #include "sprd_bl.h"
 #include "sprd_dpu.h"
+#include "sprd_dsi.h"
 #include "sprd_dvfs_dpu.h"
 #include "dpu_r4p0_corner_param.h"
 #include "dpu_enhance_param.h"
 #include "disp_trusty.h"
+#include "../dsi/sprd_dsi_api.h"
+#include "../dsi/sprd_dsi_hal.h"
 
 #define DISPC_INT_FBC_PLD_ERR_MASK	BIT(8)
 #define DISPC_INT_FBC_HDR_ERR_MASK	BIT(9)
@@ -2270,16 +2273,40 @@ static int dpu_cabc_trigger(struct dpu_context *ctx)
 static int dpu_modeset(struct dpu_context *ctx,
 		struct drm_mode_modeinfo *mode)
 {
-	scale_copy.in_w = mode->hdisplay;
-	scale_copy.in_h = mode->vdisplay;
+	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
 
-	if ((mode->hdisplay != ctx->vm.hactive) ||
-	    (mode->vdisplay != ctx->vm.vactive))
-		need_scale = true;
-	else
-		need_scale = false;
+	if (dynamic_frame_mode) {
+		dpu_stop(ctx);
 
-	mode_changed = true;
+		if (mode->vtotal == 1674) {
+			pr_info("high frame rate mode\n");
+			ctx->vm.vfront_porch = 48;
+			reg->dpi_v_timing = (ctx->vm.vsync_len << 0) |
+					    (ctx->vm.vback_porch << 8) |
+					    (ctx->vm.vfront_porch << 20);
+			dsi_hal_dpi_vfp(dsi_v2, 48);
+		} else {
+			pr_info("low frame rate mode\n");
+			ctx->vm.vfront_porch = 883;
+			reg->dpi_v_timing = (ctx->vm.vsync_len << 0) |
+					    (ctx->vm.vback_porch << 8) |
+					    (ctx->vm.vfront_porch << 20);
+			dsi_hal_dpi_vfp(dsi_v2, 883);
+		}
+
+		dpu_run(ctx);
+	} else {
+		scale_copy.in_w = mode->hdisplay;
+		scale_copy.in_h = mode->vdisplay;
+
+		if ((mode->hdisplay != ctx->vm.hactive) ||
+		    (mode->vdisplay != ctx->vm.vactive))
+			need_scale = true;
+		else
+			need_scale = false;
+
+		mode_changed = true;
+	}
 	pr_info("begin switch to %u x %u\n", mode->hdisplay, mode->vdisplay);
 
 	return 0;

@@ -60,6 +60,7 @@ LIST_HEAD(dpu_clk_head);
 LIST_HEAD(dpu_glb_head);
 
 bool calibration_mode;
+bool dynamic_frame_mode;
 static unsigned long frame_count;
 module_param(frame_count, ulong, 0444);
 
