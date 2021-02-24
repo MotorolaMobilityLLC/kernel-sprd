@@ -33,7 +33,7 @@
         				sprd,power-i2c-addr = <0x3E>;
         				/*sprd,power-i2c-speed = <400000>;*/
         				sprd,power-i2c-reg = [00 01 03 FF];
-					sprd,power-i2c-val = [14 14 03 80];
+					sprd,power-i2c-val = [12 12 03 80];
 
 					sprd,reset-on-sequence = <1 10>, <0 10>, <1 100>;
 					sprd,reset-off-sequence = <1 10>;
