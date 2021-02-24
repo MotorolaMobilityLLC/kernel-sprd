@@ -14,6 +14,7 @@
 #include "ums512.dtsi"
 #include "ums512-t610dvfs.dtsi"
 #include "ums512-t618dvfs.dtsi"
+#include "ums512-t700dvfs.dtsi"
 #include "sc2730.dtsi"
 #include "ums512-modem.dtsi"
 #include "sprd-sound-fe-be.dtsi"
