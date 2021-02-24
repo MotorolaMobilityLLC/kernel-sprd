@@ -679,7 +679,7 @@
 			sound-dai = <&sprd_route_pcm>;
 		};
 		cpu {
-			sound-dai = <&vbc_v4 3>;
+			sound-dai = <&vbc_v4 31>;
 		};
 		codec {
 			sound-dai = <&ucp1301_spk 0>;
@@ -704,7 +704,7 @@
 			sound-dai = <&sprd_route_pcm>;
 		};
 		cpu {
-			sound-dai = <&vbc_v4 3>;
+			sound-dai = <&vbc_v4 31>;
 		};
 		codec {
 			sound-dai = <&ucp1301_rcv 0>;
@@ -724,7 +724,7 @@
 			sound-dai = <&sprd_route_pcm>;
 		};
 		cpu {
-			sound-dai = <&vbc_v4 3>;
+			sound-dai = <&vbc_v4 31>;
 		};
 		codec {
 			sound-dai = <&pdm_dmic 0>;
