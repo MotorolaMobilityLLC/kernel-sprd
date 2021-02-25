@@ -15,11 +15,13 @@ if [[ $# -eq 0 ]]; then
 	# Add gcc absolute path to env
 	has_clang=$(echo $PATH | grep "clang-r")
 	if [ -z $has_clang ];then
-		echo "Error: clang not in env, please \"source/lunch\" at bsp first."
+		echo "ERROR: clang not in env, please \"source/lunch\" at bsp first."
 		exit 1
 	fi
+elif [[ $# -eq 2 ]] && [[ $1 == "--env" ]] && [[ $2 == env ]]; then
+	echo "Using the TOOLCHAIN in env."
 else
-	echo "Parameters Error."
+	echo "ERROR: Parameters Error."
 	echo "Usage:"
 	echo -e "\t./scripts/sprd/defconfig_update.sh"
 	exit 1

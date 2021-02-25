@@ -573,6 +573,8 @@ CONFIG_ARCH_HIBERNATION_POSSIBLE=y
 #
 # Firmware Drivers
 #
+# CONFIG_ARM_SCMI_PROTOCOL is not set
+# CONFIG_ARM_SCPI_PROTOCOL is not set
 # CONFIG_FIRMWARE_MEMMAP is not set
 # CONFIG_FW_CFG_SYSFS is not set
 # CONFIG_QCOM_SCM is not set
@@ -1275,6 +1277,9 @@ CONFIG_RFKILL_LEDS=y
 # CONFIG_CAIF is not set
 # CONFIG_CEPH_LIB is not set
 # CONFIG_NFC is not set
+CONFIG_SPRD_IMS_BRIDGE=m
+CONFIG_SPRD_IMS_BRIDGE_TEST=y
+CONFIG_SPRD_IMS_BRIDGE_TRANSIT=m
 # CONFIG_PSAMPLE is not set
 # CONFIG_NET_IFE is not set
 # CONFIG_LWTUNNEL is not set
@@ -1492,6 +1497,7 @@ CONFIG_UID_SYS_STATS=y
 # CONFIG_SPRD_AUDIO_AGDSP_ACCESS is not set
 # CONFIG_SPRD_AUDIO_MEMORY_MANAGER is not set
 # CONFIG_SPRD_AUDIO_DSP_DUMP is not set
+# CONFIG_SPRD_AUDIO_SAUDIO is not set
 # CONFIG_SPRD_AUDIO_MCDT is not set
 # end of Spreadtrum Audio Assistant Modules
 # end of Misc devices
@@ -3958,6 +3964,7 @@ CONFIG_SPRD_MBOX=m
 #
 # Rpmsg drivers
 #
+# CONFIG_RPMSG_QCOM_GLINK_RPM is not set
 # CONFIG_RPMSG_VIRTIO is not set
 # end of Rpmsg drivers
 
@@ -4505,6 +4512,7 @@ CONFIG_IIO=y
 #
 # Spreadtrum Sensor Hub
 #
+# CONFIG_SPRD_SENSOR_HUB is not set
 # end of Spreadtrum Sensor Hub
 
 CONFIG_PWM=y
