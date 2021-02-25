@@ -370,12 +370,9 @@ static int sprd_hardware_cpufreq_init(struct cpufreq_policy *policy)
 	/* CPUs in the same cluster share a clock and power domain */
 	of_property_read_u32(cpufreq_of_node, "cpufreq-cluster-cpumask",
 			     &cluster_cpumask);
-	pr_err("cluster_cpumask is %x \n", cluster_cpumask);
 	data->cluster_cpumask.bits[0] = cluster_cpumask;
-	pr_err("cpumask debug 1\n");
 	cpumask_or(policy->cpus, policy->cpus,
 		   &(data->cluster_cpumask));
-	pr_err("policy->cpus is %lx", policy->cpus->bits[0]);
 #endif
 
 	if (!cpufreq_datas[data->cluster])
