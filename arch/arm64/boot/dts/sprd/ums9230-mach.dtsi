@@ -30,6 +30,10 @@
 		#size-cells = <2>;
 		ranges;
 
+		ddrbist_reserved: ddrbist-mem@0x80000000 {
+			reg = <0x0 0x80000000 0x0 0x00001000>;
+		};
+
 		rebootescrow@0x853f0000 {
 			no-map;
 			reg = <0x0 0x853f0000 0x0 0x00010000>; /* 64K */
