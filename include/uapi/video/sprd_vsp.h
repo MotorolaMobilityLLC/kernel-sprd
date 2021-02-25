@@ -96,6 +96,8 @@ enum vsp_version_e {
 	SHARKL5 = 17,
 	ROC1 = 18,
 	SHARKL5Pro  = 19,
+	SHARKL6 = 20,
+	QOGIRN6PRO = 21,
 	MAX_VERSIONS,
 };
 
