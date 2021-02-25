@@ -8820,8 +8820,8 @@ CONFIG_INPUT_MOUSEDEV_SCREEN_Y
 	[missing plat description] none
 	[function] Vertical screen resolution
 CONFIG_INPUT_SC27XX_VIBRA
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field] menu,make
 	[subsys] input
@@ -10059,8 +10059,8 @@ CONFIG_LEDS_CLASS_FLASH
 	[missing plat description] none
 	[function]
 CONFIG_LEDS_SC27XX_BLTC
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field] menu,make
 	[subsys] led
