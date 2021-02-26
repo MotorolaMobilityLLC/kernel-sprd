@@ -919,6 +919,11 @@
 			apetb-sink = <&soc_etb>;
 		};
 	};
+	ddr_dfs: scene-frequency {
+		compatible = "sprd,dfs";
+		freq-num = <8>;
+		backdoor = <2133>;
+	};
 };
 
 &i2c0 {
