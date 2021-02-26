@@ -190,62 +190,121 @@ static inline void ufs_sprd_rmwl(void __iomem *base, u32 mask, u32 val, u32 reg)
 	writel(tmp, (base) + (reg));
 }
 
+void ufs_sprd_reset_pre(struct ufs_sprd_host *host)
+{
+	unsigned int value = 0;
+
+	regmap_read(host->ahb_ufs_lp.regmap,
+			host->ahb_ufs_lp.reg, &value);
+	value = value | host->ahb_ufs_lp.mask;
+	regmap_write(host->ahb_ufs_lp.regmap,
+			host->ahb_ufs_lp.reg, value);
+
+	regmap_read(host->ahb_ufs_force_isol.regmap,
+			host->ahb_ufs_force_isol.reg, &value);
+	value = value & (~host->ahb_ufs_force_isol.mask);
+	regmap_write(host->ahb_ufs_force_isol.regmap,
+			host->ahb_ufs_force_isol.reg, value);
+
+}
+
 void ufs_sprd_reset(struct ufs_sprd_host *host)
 {
-
 	unsigned int value = 0;
 
 	dev_info(host->hba->dev, "ufs hardware reset!\n");
 	/* TODO: HW reset will be simple in next version. */
 	/* Configs need strict squence. */
 
-	ufs_sprd_rmwl(host->ufs_analog_reg, FIFO_ENABLE_MASK,
-		      FIFO_ENABLE_MASK, MPHY_LANE0_FIFO);
-
-	ufs_sprd_rmwl(host->ufs_analog_reg, FIFO_ENABLE_MASK,
-		      FIFO_ENABLE_MASK, MPHY_LANE1_FIFO);
-
-	ufs_sprd_rmwl(host->ufs_analog_reg, MPHY_TACTIVATE_TIME_200US,
-		      MPHY_TACTIVATE_TIME_200US, MPHY_TACTIVATE_TIME_LANE0);
-
-	ufs_sprd_rmwl(host->ufs_analog_reg, MPHY_TACTIVATE_TIME_200US,
-		      MPHY_TACTIVATE_TIME_200US, MPHY_TACTIVATE_TIME_LANE1);
-
-	regmap_read(host->ufs_refclk_on.regmap,
-		    host->ufs_refclk_on.reg, &value);
-	value = value | host->ufs_refclk_on.mask;
-	regmap_write(host->ufs_refclk_on.regmap,
-		     host->ufs_refclk_on.reg, value);
-
-	regmap_read(host->ahb_ufs_lp.regmap, host->ahb_ufs_lp.reg, &value);
-	value = value | host->ahb_ufs_lp.mask;
-	regmap_write(host->ahb_ufs_lp.regmap, host->ahb_ufs_lp.reg, value);
-
-	regmap_read(host->ahb_ufs_force_isol.regmap,
-			   host->ahb_ufs_force_isol.reg, &value);
-	value = value & (~host->ahb_ufs_force_isol.mask);
-	regmap_write(host->ahb_ufs_force_isol.regmap,
-			   host->ahb_ufs_force_isol.reg, value);
-
-	regmap_read(host->ap_apb_ufs_en.regmap,
-		    host->ap_apb_ufs_en.reg, &value);
-	value =	value | host->ap_apb_ufs_en.mask;
-	regmap_write(host->ap_apb_ufs_en.regmap,
-		     host->ap_apb_ufs_en.reg, value);
-
+	/* cbline reset */
 	regmap_read(host->ahb_ufs_cb.regmap, host->ahb_ufs_cb.reg, &value);
 	value = value | host->ahb_ufs_cb.mask;
 	regmap_write(host->ahb_ufs_cb.regmap, host->ahb_ufs_cb.reg, value);
 
+	/* apb reset */
 	ufs_sprd_rmwl(host->ufs_analog_reg, MPHY_2T2R_APB_RESETN,
-		      0, MPHY_2T2R_APB_REG1);
+			0, MPHY_2T2R_APB_REG1);
 	mdelay(1);
 	ufs_sprd_rmwl(host->ufs_analog_reg, MPHY_2T2R_APB_RESETN,
-		      MPHY_2T2R_APB_RESETN, MPHY_2T2R_APB_REG1);
+			MPHY_2T2R_APB_RESETN, MPHY_2T2R_APB_REG1);
 
-	regmap_read(host->ahb_ufs_cb.regmap, host->ahb_ufs_cb.reg, &value);
+
+	/* phy config */
+	ufs_sprd_rmwl(host->ufs_analog_reg, MPHY_CDR_MONITOR_BYPASS_MASK,
+			MPHY_CDR_MONITOR_BYPASS_ENABLE, MPHY_DIG_CFG7_LANE0);
+	ufs_sprd_rmwl(host->ufs_analog_reg, MPHY_CDR_MONITOR_BYPASS_MASK,
+			MPHY_CDR_MONITOR_BYPASS_ENABLE, MPHY_DIG_CFG7_LANE1);
+	ufs_sprd_rmwl(host->ufs_analog_reg, MPHY_RXOFFSETCALDONEOVR_MASK,
+			MPHY_RXOFFSETCALDONEOVR_ENABLE, MPHY_DIG_CFG20_LANE0);
+	ufs_sprd_rmwl(host->ufs_analog_reg, MPHY_RXOFFOVRVAL_MASK,
+			MPHY_RXOFFOVRVAL_ENABLE, MPHY_DIG_CFG20_LANE0);
+	ufs_sprd_rmwl(host->ufs_analog_reg, MPHY_RXCFGG1_MASK,
+			MPHY_RXCFGG1_VAL, MPHY_DIG_CFG49_LANE0);
+	ufs_sprd_rmwl(host->ufs_analog_reg, MPHY_RXCFGG1_MASK,
+			MPHY_RXCFGG1_VAL, MPHY_DIG_CFG49_LANE1);
+	ufs_sprd_rmwl(host->ufs_analog_reg, MPHY_RXCFGG3_MASK,
+			MPHY_RXCFGG3_VAL, MPHY_DIG_CFG51_LANE0);
+	ufs_sprd_rmwl(host->ufs_analog_reg, MPHY_RXCFGG3_MASK,
+			MPHY_RXCFGG3_VAL, MPHY_DIG_CFG51_LANE1);
+	ufs_sprd_rmwl(host->ufs_analog_reg, FIFO_ENABLE_MASK,
+			FIFO_ENABLE_MASK, MPHY_LANE0_FIFO);
+	ufs_sprd_rmwl(host->ufs_analog_reg, FIFO_ENABLE_MASK,
+			FIFO_ENABLE_MASK, MPHY_LANE1_FIFO);
+	ufs_sprd_rmwl(host->ufs_analog_reg, MPHY_TACTIVATE_TIME_200US,
+			MPHY_TACTIVATE_TIME_200US, MPHY_TACTIVATE_TIME_LANE0);
+	ufs_sprd_rmwl(host->ufs_analog_reg, MPHY_TACTIVATE_TIME_200US,
+			MPHY_TACTIVATE_TIME_200US, MPHY_TACTIVATE_TIME_LANE1);
+	ufs_sprd_rmwl(host->ufs_analog_reg, MPHY_CDR_MONITOR_BYPASS_MASK,
+			MPHY_CDR_MONITOR_BYPASS_ENABLE, MPHY_DIG_CFG7_LANE0);
+	ufs_sprd_rmwl(host->ufs_analog_reg, MPHY_CDR_MONITOR_BYPASS_MASK,
+			MPHY_CDR_MONITOR_BYPASS_ENABLE, MPHY_DIG_CFG7_LANE1);
+	ufs_sprd_rmwl(host->ufs_analog_reg, MPHY_RXOFFSETCALDONEOVR_MASK,
+			MPHY_RXOFFSETCALDONEOVR_ENABLE, MPHY_DIG_CFG20_LANE0);
+	ufs_sprd_rmwl(host->ufs_analog_reg, MPHY_RXOFFOVRVAL_MASK,
+			MPHY_RXOFFOVRVAL_ENABLE, MPHY_DIG_CFG20_LANE0);
+	ufs_sprd_rmwl(host->ufs_analog_reg, MPHY_RXHSG3SYNCCAP_MASK,
+			MPHY_RXHSG3SYNCCAP_VAL, MPHY_DIG_CFG72_LANE0);
+	ufs_sprd_rmwl(host->ufs_analog_reg, MPHY_RXHSG3SYNCCAP_MASK,
+			MPHY_RXHSG3SYNCCAP_VAL, MPHY_DIG_CFG72_LANE1);
+
+	/* add cdr count time */
+	ufs_sprd_rmwl(host->ufs_analog_reg, MPHY_RX_STEP4_CYCLE_G3_MASK,
+			MPHY_RX_STEP4_CYCLE_G3_VAL, MPHY_DIG_CFG60_LANE0);
+	ufs_sprd_rmwl(host->ufs_analog_reg, MPHY_RX_STEP4_CYCLE_G3_MASK,
+			MPHY_RX_STEP4_CYCLE_G3_VAL, MPHY_DIG_CFG60_LANE1);
+
+	/* cbline reset */
+	regmap_read(host->ahb_ufs_cb.regmap,
+			host->ahb_ufs_cb.reg, &value);
 	value = value & (~host->ahb_ufs_cb.mask);
-	regmap_write(host->ahb_ufs_cb.regmap, host->ahb_ufs_cb.reg, value);
+	regmap_write(host->ahb_ufs_cb.regmap,
+			host->ahb_ufs_cb.reg, value);
+
+	/* enable refclk */
+	regmap_read(host->ufs_refclk_on.regmap,
+			host->ufs_refclk_on.reg, &value);
+	value = value | host->ufs_refclk_on.mask;
+	regmap_write(host->ufs_refclk_on.regmap,
+			host->ufs_refclk_on.reg, value);
+
+	regmap_read(host->ahb_ufs_lp.regmap,
+			host->ahb_ufs_lp.reg, &value);
+	value = value | host->ahb_ufs_lp.mask;
+	regmap_write(host->ahb_ufs_lp.regmap,
+			host->ahb_ufs_lp.reg, value);
+
+	regmap_read(host->ahb_ufs_force_isol.regmap,
+			host->ahb_ufs_force_isol.reg, &value);
+	value = value & (~host->ahb_ufs_force_isol.mask);
+	regmap_write(host->ahb_ufs_force_isol.regmap,
+			host->ahb_ufs_force_isol.reg, value);
+	/* ahb enable */
+	regmap_read(host->ap_apb_ufs_en.regmap,
+			host->ap_apb_ufs_en.reg, &value);
+	value = value | host->ap_apb_ufs_en.mask;
+	regmap_write(host->ap_apb_ufs_en.regmap,
+			host->ap_apb_ufs_en.reg, value);
+
 }
 
 /*
@@ -300,8 +359,7 @@ static int ufs_sprd_init(struct ufs_hba *hba)
 			   host->aon_apb_ufs_en.mask,
 			   host->aon_apb_ufs_en.mask);
 
-	ufs_sprd_reset(host);
-
+	ufs_sprd_reset_pre(host);
 	return 0;
 }
 
