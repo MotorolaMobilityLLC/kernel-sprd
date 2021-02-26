@@ -233,8 +233,8 @@ static long sprd_apdu_set_med_high_addr(struct sprd_apdu_device *apdu,
 
 static void sprd_apdu_enable(struct sprd_apdu_device *apdu)
 {
-	/* REG_PMU_APB_ESE_DSLP_ENA and REG_PMU_APB_PD_ESE_SYS_CFG
-	 * should be configured in uboot to power up ISE.
+	/* pmu reg:REG_PMU_APB_PD_ISE_CFG_0
+	 * should be pre-configured to power up ISE.
 	 */
 
 	sprd_apdu_clear_int(apdu->base, APDU_INT_BITS);
@@ -387,6 +387,7 @@ static ssize_t sprd_apdu_read(struct file *fp, char __user *buf,
 	struct sprd_apdu_device *apdu = fp->private_data;
 	ssize_t r = count;
 	u32 xfer, data_len, word_len, wait_time, header = 0;
+	unsigned long wait_event_time;
 	int ret;
 
 	mutex_lock(&apdu->mutex);
@@ -397,11 +398,12 @@ static ssize_t sprd_apdu_read(struct file *fp, char __user *buf,
 		goto end;
 	}
 
+	wait_event_time = msecs_to_jiffies(MAX_WAIT_TIME);
 	wait_time = AP_WAIT_TIMES;
 	do {
 		if (!apdu->rx_done) {
 			ret = wait_event_interruptible_timeout(apdu->read_wq, apdu->rx_done,
-							       msecs_to_jiffies(MAX_WAIT_TIME));
+							       wait_event_time);
 			if (ret < 0) {
 				r = ret;
 				goto end;
@@ -470,7 +472,7 @@ static ssize_t sprd_apdu_write(struct file *fp, const char __user *buf,
 			       size_t count, loff_t *f_pos)
 {
 	struct sprd_apdu_device *apdu = fp->private_data;
-	ssize_t r = count;
+	ssize_t r = 0;
 	u32 xfer;
 	int ret;
 
@@ -481,6 +483,7 @@ static ssize_t sprd_apdu_write(struct file *fp, const char __user *buf,
 			"ISE has no power on or apdu has not release\n");
 		goto end;
 	}
+	r = count;
 
 	while (count > 0) {
 		if (count > APDU_TX_MAX_SIZE) {
@@ -985,6 +988,7 @@ static ssize_t get_random_show(struct device *dev,
 {
 	struct sprd_apdu_device *apdu = dev_get_drvdata(dev);
 	u32 rep_data[0x10] = {0};
+	unsigned long wait_event_time;
 	int ret;
 	char cmd_get_random[8] = {
 		0x00, 0x84, 0x00, 0x00,
@@ -1006,8 +1010,9 @@ static ssize_t get_random_show(struct device *dev,
 		return ret;
 	}
 
+	wait_event_time = msecs_to_jiffies(MAX_WAIT_TIME);
 	ret = wait_event_interruptible_timeout(apdu->read_wq, apdu->rx_done,
-					       msecs_to_jiffies(MAX_WAIT_TIME));
+					       wait_event_time);
 	if (ret < 0) {
 		return ret;
 	} else if (ret == 0 && apdu->rx_done == 0) {
