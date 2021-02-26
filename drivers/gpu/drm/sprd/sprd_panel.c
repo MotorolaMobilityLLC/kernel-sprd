@@ -561,7 +561,7 @@ static int of_parse_oled_cmds(struct sprd_oled *oled,
 
 static int sprd_oled_set_brightness(struct backlight_device *bdev)
 {
-	int level, brightness;
+	int brightness;
 	struct sprd_oled *oled = bl_get_data(bdev);
 	struct sprd_panel *panel = oled->panel;
 
@@ -573,22 +573,26 @@ static int sprd_oled_set_brightness(struct backlight_device *bdev)
 	}
 
 	brightness = bdev->props.brightness;
-	level = brightness * oled->max_level / 255;
 
-	DRM_INFO("%s level: %d\n", __func__, level);
+	DRM_INFO("%s brightness: %d\n", __func__, brightness);
 
 	sprd_panel_send_cmds(panel->slave,
 			     panel->info.cmds[CMD_OLED_REG_LOCK],
 			     panel->info.cmds_len[CMD_OLED_REG_LOCK]);
 
 	if (oled->cmds_total == 1) {
-		oled->cmds[0]->payload[1] = level;
+		if (oled->cmds[0]->wc_l == 3) {
+			oled->cmds[0]->payload[1] = brightness >> 8;
+			oled->cmds[0]->payload[2] = brightness & 0xFF;
+		} else
+			oled->cmds[0]->payload[1] = brightness;
+
 		sprd_panel_send_cmds(panel->slave,
 			     oled->cmds[0],
 			     oled->cmd_len);
 	} else
 		sprd_panel_send_cmds(panel->slave,
-			     oled->cmds[level],
+			     oled->cmds[brightness],
 			     oled->cmd_len);
 
 	sprd_panel_send_cmds(panel->slave,
@@ -664,7 +668,7 @@ static int sprd_oled_backlight_init(struct sprd_panel *panel)
 	else
 		oled->max_level = 255;
 
-	oled->bdev->props.max_brightness = 255;
+	oled->bdev->props.max_brightness = oled->max_level;
 	oled->panel = panel;
 	of_parse_oled_cmds(oled,
 			panel->info.cmds[CMD_OLED_BRIGHTNESS],

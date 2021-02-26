@@ -112,7 +112,7 @@ struct sprd_panel {
 struct sprd_oled {
 	struct backlight_device *bdev;
 	struct sprd_panel *panel;
-	struct dsi_cmd_desc *cmds[255];
+	struct dsi_cmd_desc *cmds[256];
 	int cmd_len;
 	int cmds_total;
 	int max_level;
