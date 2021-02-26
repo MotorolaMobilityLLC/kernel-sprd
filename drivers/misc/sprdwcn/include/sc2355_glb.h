@@ -6,6 +6,11 @@
 #include "mem_pd_mgr.h"
 #include "rdc_debug.h"
 
+#ifdef CONFIG_WCN_PCIE
+#include "pcie.h"
+#endif
+
+
 /* log buf size */
 #define MDBG_RX_RING_SIZE		(96 * 1024)
 

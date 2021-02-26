@@ -24,6 +24,7 @@ struct wcn_loopcheck {
 
 static struct wcn_loopcheck loopcheck;
 
+#ifndef CONFIG_WCN_PCIE
 static int loopcheck_send(char *buf, unsigned int len)
 {
 	unsigned char *send_buf = NULL;
@@ -55,6 +56,52 @@ static int loopcheck_send(char *buf, unsigned int len)
 
 	return len;
 }
+#else
+static int loopcheck_send(char *cmd, unsigned int len)
+{
+	struct mbuf_t *head = NULL;
+	struct mbuf_t *tail = NULL;
+	int num = 1;
+	int ret;
+	/* dma_buf for dma */
+	static struct dma_buf dma_buf;
+	static int at_buf_flag;
+	struct wcn_pcie_info *pcie_dev;
+
+	pcie_dev = get_wcn_device_info();
+	if (!pcie_dev) {
+		WCN_ERR("%s:PCIE device link error\n", __func__);
+		return -1;
+	}
+
+	ret = sprdwcn_bus_list_alloc(0, &head, &tail, &num);
+	if (ret || head == NULL || tail == NULL) {
+		WCN_ERR("%s:%d mbuf_link_alloc fail\n", __func__, __LINE__);
+		return -1;
+	}
+
+	if (at_buf_flag == 0) {
+		ret = dmalloc(pcie_dev, &dma_buf, 128);
+		if (ret != 0) {
+			return -1;
+		}
+		at_buf_flag = 1;
+	}
+	head->buf = (unsigned char *)(dma_buf.vir);
+	head->phy = (unsigned long)(dma_buf.phy);
+	head->len = len;
+	memset(head->buf, 0x0, dma_buf.size);
+	memcpy(head->buf, cmd, len);
+	head->next = NULL;
+	ret = sprdwcn_bus_push_list(0, head, tail, num);
+	if (ret)
+		WCN_INFO("sprdwcn_bus_push_list error=%d\n", ret);
+
+	WCN_INFO("tx:%s in %s\n", cmd, __func__);
+
+	return len;
+}
+#endif
 
 static void loopcheck_work_queue(struct work_struct *work)
 {
