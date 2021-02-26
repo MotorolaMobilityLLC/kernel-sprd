@@ -15,11 +15,15 @@
 #include <linux/platform_device.h>
 #include <linux/random.h>
 #include <linux/pm.h>
+#include <linux/pm_runtime.h>
 
 #ifdef pr_fmt
 #undef pr_fmt
 #endif
 #define pr_fmt(fmt) "sprd_trng: " fmt
+
+#define RNG_DATABUF_SIZE 32
+#define CE_TRNG_DATA_REG_SIZE 4
 
 /**reg**/
 #define REG_CE_CLK              0x018
@@ -51,6 +55,7 @@ struct sprd_trng {
 	struct clk *clk;
 	struct clk *ce_eb;
 	struct clk *parent;
+	struct device *dev;
 };
 
 static int sprd_trng_init(struct hwrng *rng)
@@ -65,7 +70,6 @@ static int sprd_trng_init(struct hwrng *rng)
 	if (err)
 		return err;
 
-	pr_info("ce ip version = %x \n", readl_relaxed(trng->base + REG_CE_VERSION));
 	/*enable trng clk*/
 	val = readl_relaxed(trng->base + REG_CE_CLK);
 	val |= TRNG_CLK_EN;
@@ -106,10 +110,24 @@ static int sprd_trng_read(struct hwrng *rng, void *buf, size_t max, bool wait)
 {
 	struct sprd_trng *trng = to_sprd_trng(rng);
 	u32 *data = (u32 *)buf;
+	int index = 0, count;
 
-	*data = readl_relaxed(trng->base + REG_CE_RNG_DATA);
+	if (max > RNG_DATABUF_SIZE)
+		max = RNG_DATABUF_SIZE;
+	if (max < 1)
+		return 0;
 
-	return 4;
+	pm_runtime_get_sync(trng->dev);
+	if (readl_relaxed(trng->base + REG_CE_RNG_WORK_STATUS) & RNG_DATA_VALID) {
+		count = (max - 1) / CE_TRNG_DATA_REG_SIZE + 1;
+		while (count--)
+			data[index++] = readl_relaxed(trng->base + REG_CE_RNG_DATA);
+	} else {
+		pr_info("RNG doesn't generate random!\n");
+	}
+
+	pm_runtime_put(trng->dev);
+	return index * CE_TRNG_DATA_REG_SIZE;
 }
 
 static int sprd_trng_probe(struct platform_device *pdev)
@@ -144,11 +162,15 @@ static int sprd_trng_probe(struct platform_device *pdev)
 
 	clk_set_parent(rng->clk, rng->parent);
 
+	rng->dev = &pdev->dev;
 
 	rng->rng.name = pdev->name;
 	rng->rng.init = sprd_trng_init;
 	rng->rng.cleanup = sprd_trng_cleanup;
 	rng->rng.read = sprd_trng_read;
+
+	pm_runtime_set_active(&pdev->dev);
+	pm_runtime_enable(&pdev->dev);
 
 	ret = devm_hwrng_register(&pdev->dev, &rng->rng);
 	if (ret) {
@@ -164,7 +186,6 @@ static int sprd_suspend(struct device *dev)
 {
 	struct sprd_trng *trng = dev_get_drvdata(dev);
 
-	pr_info("pubce suspend\n");
 	sprd_trng_cleanup(&(trng->rng));
 	clk_disable_unprepare(trng->clk);
 
@@ -177,16 +198,17 @@ static int sprd_resume(struct device *dev)
 	struct sprd_trng *trng = dev_get_drvdata(dev);
 
 	err = clk_prepare_enable(trng->clk);
-	if (!err)
-		err = sprd_trng_init(&(trng->rng));
 	if (err)
-		goto error;
-	pr_info("pubce resume\n");
-	return err;
-error:
-	clk_disable_unprepare(trng->clk);
-	dev_err(dev, "pubce resume failed!\n");
-	return err;
+		return err;
+
+	err = sprd_trng_init(&(trng->rng));
+	if (err) {
+		clk_disable_unprepare(trng->clk);
+		dev_err(dev, "pubce resume failed!\n");
+		return err;
+	}
+
+	return 0;
 }
 #endif
 
