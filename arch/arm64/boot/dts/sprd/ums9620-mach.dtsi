@@ -539,6 +539,16 @@
 		interrupt-controller;
 	};
 
+	firmware {
+		android {
+			compatible = "android,firmware";
+			vbmeta {
+				compatible = "android,vbmeta";
+				parts = "vbmeta,socko,odmko,boot,dtbo,nr_modem,nr_phy,l_agdsp,pm_sys";
+			};
+		};
+	};
+
 	trusty {
 		compatible = "android,trusty-smc-v1";
 		irq {
