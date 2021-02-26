@@ -90,8 +90,8 @@
 #define PMIC_CLK_EN			0xc18
 #define PMIC_WDT_BASE			0x80
 #define UMP9620_RST_STATUS		0x23ac
-#define UMP9620_MODULE_EN		0x2308
-#define UMP9620_CLK_EN			0x2310
+#define UMP9620_MODULE_EN		0x2008
+#define UMP9620_CLK_EN			0x2010
 #define UMP9620_WDT_BASE		0x40
 #define SC2730_RST_STATUS		0x1bac
 #define SC2730_MODULE_EN		0x1808
@@ -124,7 +124,7 @@
 #define HWRST_STATUS_WATCHDOG		0xf0
 
 /* Use default timeout 50 ms that converts to watchdog values */
-#define WDG_LOAD_VAL			((50 * 1000) / 32768)
+#define WDG_LOAD_VAL			((50 * 32768) / 1000)
 #define WDG_LOAD_MASK			GENMASK(15, 0)
 #define WDG_UNLOCK_KEY			0xe551
 
