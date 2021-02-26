@@ -16222,9 +16222,9 @@ CONFIG_SPRD_EIRQSOFF
 	[missing plat description] none
 	[function]
 CONFIG_SPRD_EMERGENCY_RESTART
-	[arch] arm64
-	[plat] sharkl5Pro
-	[missing plat] sharkl3
+	[arch] all
+	[plat] all
+	[missing plat] none
 	[field] make
 	[subsys] reboot
 	[must] reboot
@@ -16348,8 +16348,8 @@ CONFIG_SPRD_MEMDISK
 	[missing plat description] none
 	[function] Using reserved memory generate block device node.
 CONFIG_SPRD_MINI_SYSDUMP
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field] make,code
 	[subsys] soc
