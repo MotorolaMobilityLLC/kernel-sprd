@@ -204,6 +204,7 @@ struct sprd_dsi {
 
 extern struct list_head dsi_core_head;
 extern struct list_head dsi_glb_head;
+extern struct sprd_dsi *dsi_v2;
 
 #define dsi_core_ops_register(entry) \
 	disp_ops_register(entry, &dsi_core_head)
