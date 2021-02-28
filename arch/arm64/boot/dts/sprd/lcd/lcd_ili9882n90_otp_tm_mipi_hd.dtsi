@@ -33,6 +33,7 @@
         				sprd,power-i2c-addr = <0x3E>;
         				/*sprd,power-i2c-speed = <400000>;*/
         				sprd,power-i2c-reg = [00 01 03 FF];
+					sprd,power-i2c-val = [14 14 03 80];
 
 					sprd,reset-on-sequence = <1 10>, <0 10>, <1 10>;
 					sprd,reset-off-sequence = <1 10>;
@@ -68,24 +69,13 @@
 							hsync-len = <50>;
 							vsync-len = <2>;
 						};
-						ili9882n90_otp_tm_timing1: timing1 {
-							clock-frequency = <128000000>;
-							hactive = <720>;
-							vactive = <1600>;
-							hback-porch = <40>;
-							hfront-porch = <40>;
-							vback-porch = <24>;
-							vfront-porch = <48>;
-							hsync-len = <50>;
-							vsync-len = <2>;
-						};
 					};
 
-					oled-backlight {
-						default-brightness = <33>;
+					oled-backlight {			
+						default-brightness = <33>;	
 						sprd,max-level = <254>;
-						brightness-levels = [
-							29 00 00 03 51 00 00
+						brightness-levels = [				
+            		    	29 00 00 03 51 00 00
 							29 00 00 03 51 00 0C
 							29 00 00 03 51 00 14
 							29 00 00 03 51 00 1C
