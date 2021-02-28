@@ -215,6 +215,7 @@ extern struct list_head dpu_core_head;
 extern struct list_head dpu_clk_head;
 extern struct list_head dpu_glb_head;
 extern bool calibration_mode;
+extern bool dynamic_frame_mode;
 
 static inline struct sprd_dpu *crtc_to_dpu(struct drm_crtc *crtc)
 {

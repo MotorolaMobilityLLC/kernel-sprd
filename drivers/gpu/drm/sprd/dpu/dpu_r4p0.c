@@ -18,10 +18,13 @@
 #include <linux/workqueue.h>
 #include "sprd_bl.h"
 #include "sprd_dpu.h"
+#include "sprd_dsi.h"
 #include "sprd_dvfs_dpu.h"
 #include "dpu_r4p0_corner_param.h"
 #include "dpu_enhance_param.h"
 #include "disp_trusty.h"
+#include "../dsi/sprd_dsi_api.h"
+#include "../dsi/sprd_dsi_hal.h"
 
 #define DISPC_INT_FBC_PLD_ERR_MASK	BIT(8)
 #define DISPC_INT_FBC_HDR_ERR_MASK	BIT(9)
@@ -613,10 +616,9 @@ static void dpu_cabc_work_func(struct work_struct *data)
 
 static void dpu_cabc_bl_update_func(struct work_struct *data)
 {
-	struct sprd_backlight *bl = bl_get_data(bl_dev);
-
-	msleep(cabc_bl_set_delay);
 	if (bl_dev) {
+		struct sprd_backlight *bl = bl_get_data(bl_dev);
+		msleep(cabc_bl_set_delay);
 		if (cabc_disable == CABC_WORKING) {
 			sprd_backlight_normalize_map(bl_dev, &cabc_para.cur_bl);
 
@@ -1172,52 +1174,47 @@ static void dpu_layer(struct dpu_context *ctx,
 
 	tmp.pos = (hwlayer->dst_x & 0xffff) | ((hwlayer->dst_y) << 16);
 
-	if (hwlayer->pallete_en) {
-		//layer->pos = tmp.pos;
-		tmp.size = (hwlayer->dst_w & 0xffff) |
-			     ((hwlayer->dst_h) << 16);
-		tmp.alpha = hwlayer->alpha;
-		tmp.pallete = hwlayer->pallete_color;
-
-		/* pallete layer enable */
-		tmp.ctrl = 0x2005;
-
-		pr_debug("dst_x = %d, dst_y = %d, dst_w = %d, dst_h = %d, pallete:%d\n",
-			hwlayer->dst_x, hwlayer->dst_y,
-			hwlayer->dst_w, hwlayer->dst_h, tmp.pallete);
-		return;
-	}
-
 	if (hwlayer->src_w && hwlayer->src_h)
 		tmp.size = (hwlayer->src_w & 0xffff) | ((hwlayer->src_h) << 16);
 	else
 		tmp.size = (hwlayer->dst_w & 0xffff) | ((hwlayer->dst_h) << 16);
 
-	for (i = 0; i < hwlayer->planes; i++) {
-		if (hwlayer->addr[i] % 16)
-			pr_err("layer addr[%d] is not 16 bytes align, it's 0x%08x\n",
-				i, hwlayer->addr[i]);
-		tmp.addr[i] = hwlayer->addr[i];
-	}
-
-	tmp.crop_start = (hwlayer->src_y << 16) | hwlayer->src_x;
 	tmp.alpha = hwlayer->alpha;
 
-	wd = drm_format_plane_cpp(hwlayer->format, 0);
-	if (wd == 0) {
-		pr_err("layer[%d] bytes per pixel is invalid\n", hwlayer->index);
-		return;
+	if (hwlayer->pallete_en) {
+		tmp.pallete = hwlayer->pallete_color;
+
+		/* pallete layer enable */
+		tmp.ctrl = 0x2005;
+
+		pr_debug("pallete:0x%x\n", tmp.pallete);
+	} else {
+		for (i = 0; i < hwlayer->planes; i++) {
+			if (hwlayer->addr[i] % 16)
+				pr_err("layer addr[%d] is not 16 bytes align, it's 0x%08x\n",
+					i, hwlayer->addr[i]);
+			tmp.addr[i] = hwlayer->addr[i];
+		}
+
+		tmp.crop_start = (hwlayer->src_y << 16) | hwlayer->src_x;
+
+		wd = drm_format_plane_cpp(hwlayer->format, 0);
+		if (wd == 0) {
+			pr_err("layer[%d] bytes per pixel is invalid\n",
+				hwlayer->index);
+			return;
+		}
+
+		if (hwlayer->planes == 3)
+			/* UV pitch is 1/2 of Y pitch*/
+			tmp.pitch = (hwlayer->pitch[0] / wd) |
+					(hwlayer->pitch[0] / wd << 15);
+		else
+			tmp.pitch = hwlayer->pitch[0] / wd;
+
+		tmp.ctrl = dpu_img_ctrl(hwlayer->format, hwlayer->blending,
+			hwlayer->xfbc, hwlayer->y2r_coef, hwlayer->rotation);
 	}
-
-	if (hwlayer->planes == 3)
-		/* UV pitch is 1/2 of Y pitch*/
-		tmp.pitch = (hwlayer->pitch[0] / wd) |
-				(hwlayer->pitch[0] / wd << 15);
-	else
-		tmp.pitch = hwlayer->pitch[0] / wd;
-
-	tmp.ctrl = dpu_img_ctrl(hwlayer->format, hwlayer->blending,
-		hwlayer->xfbc, hwlayer->y2r_coef, hwlayer->rotation);
 
 	if (hwlayer->secure_en || secure_debug) {
 		if (!reg->dpu_secure) {
@@ -1244,6 +1241,7 @@ static void dpu_layer(struct dpu_context *ctx,
 	layer->alpha = tmp.alpha;
 	layer->pitch = tmp.pitch;
 	layer->ctrl = tmp.ctrl;
+	layer->pallete = tmp.pallete;
 
 	pr_debug("dst_x = %d, dst_y = %d, dst_w = %d, dst_h = %d\n",
 				hwlayer->dst_x, hwlayer->dst_y,
@@ -2195,7 +2193,7 @@ static int dpu_cabc_trigger(struct dpu_context *ctx)
 	struct device_node *backlight_node;
 
 	if (cabc_disable) {
-		if (cabc_disable == CABC_STOPPING) {
+		if ((cabc_disable == CABC_STOPPING) && bl_dev) {
 			memset(&cabc_para, 0, sizeof(cabc_para));
 			memcpy(&cm, &cm_copy, sizeof(struct cm_cfg));
 			reg->cm_coef01_00 = (cm.coef01 << 16) | cm.coef00;
@@ -2259,7 +2257,8 @@ static int dpu_cabc_trigger(struct dpu_context *ctx)
 		reg->cm_coef21_20 = (cm.coef21 << 16) | cm.coef20;
 		reg->cm_coef23_22 = (cm.coef23 << 16) | cm.coef22;
 
-		cabc_bl_set = true;
+		if (bl_dev)
+			cabc_bl_set = true;
 
 		if (frame_no == 1)
 			frame_no++;
@@ -2270,16 +2269,40 @@ static int dpu_cabc_trigger(struct dpu_context *ctx)
 static int dpu_modeset(struct dpu_context *ctx,
 		struct drm_mode_modeinfo *mode)
 {
-	scale_copy.in_w = mode->hdisplay;
-	scale_copy.in_h = mode->vdisplay;
+	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
 
-	if ((mode->hdisplay != ctx->vm.hactive) ||
-	    (mode->vdisplay != ctx->vm.vactive))
-		need_scale = true;
-	else
-		need_scale = false;
+	if (dynamic_frame_mode) {
+		dpu_stop(ctx);
 
-	mode_changed = true;
+		if (mode->vtotal == 1674) {
+			pr_info("high frame rate mode\n");
+			ctx->vm.vfront_porch = 48;
+			reg->dpi_v_timing = (ctx->vm.vsync_len << 0) |
+					    (ctx->vm.vback_porch << 8) |
+					    (ctx->vm.vfront_porch << 20);
+			dsi_hal_dpi_vfp(dsi_v2, 48);
+		} else {
+			pr_info("low frame rate mode\n");
+			ctx->vm.vfront_porch = 883;
+			reg->dpi_v_timing = (ctx->vm.vsync_len << 0) |
+					    (ctx->vm.vback_porch << 8) |
+					    (ctx->vm.vfront_porch << 20);
+			dsi_hal_dpi_vfp(dsi_v2, 883);
+		}
+
+		dpu_run(ctx);
+	} else {
+		scale_copy.in_w = mode->hdisplay;
+		scale_copy.in_h = mode->vdisplay;
+
+		if ((mode->hdisplay != ctx->vm.hactive) ||
+		    (mode->vdisplay != ctx->vm.vactive))
+			need_scale = true;
+		else
+			need_scale = false;
+
+		mode_changed = true;
+	}
 	pr_info("begin switch to %u x %u\n", mode->hdisplay, mode->vdisplay);
 
 	return 0;
