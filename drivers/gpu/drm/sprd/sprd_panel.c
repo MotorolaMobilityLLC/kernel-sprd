@@ -532,9 +532,15 @@ static int of_parse_buildin_modes(struct panel_info *info,
 
 		info->buildin_modes[i].width_mm = info->mode.width_mm;
 		info->buildin_modes[i].height_mm = info->mode.height_mm;
+		info->mode.vrefresh = drm_mode_vrefresh(&info->buildin_modes[i]);
 		info->buildin_modes[i].vrefresh = info->mode.vrefresh;
 	}
 	info->num_buildin_modes = num_timings;
+
+	if (info->num_buildin_modes == 2 &&
+	   (info->buildin_modes[0].htotal == info->buildin_modes[1].htotal))
+		dynamic_frame_mode = true;
+
 	DRM_INFO("info->num_buildin_modes = %d\n", num_timings);
 	goto done;
 
