@@ -144,7 +144,6 @@
 
 					display-timings {
 						native-mode = <&ili9882n_txd_timing0>;
-
 						ili9882n_txd_timing0: timing0 {
 							clock-frequency = <128000000>;
 							hactive = <720>;
