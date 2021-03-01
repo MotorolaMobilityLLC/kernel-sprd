@@ -31,6 +31,7 @@ struct ufs_sprd_host {
 	struct syscon_ufs ap_ahb_ufs_rst;
 	struct syscon_ufs aon_apb_ufs_rst;
 	struct syscon_ufs phy_sram_init_done;
+	struct syscon_ufs aon_apb_ufs_clk_en;
 	struct clk *hclk_source;
 	struct clk *hclk;
 };

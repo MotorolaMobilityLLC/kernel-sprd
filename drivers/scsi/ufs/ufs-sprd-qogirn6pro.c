@@ -135,6 +135,11 @@ static int ufs_sprd_init(struct ufs_hba *hba)
 	if (ret < 0)
 		return -ENODEV;
 
+	ret = ufs_sprd_get_syscon_reg(dev->of_node, &host->aon_apb_ufs_clk_en,
+				      "aon_apb_ufs_clk_en");
+	if (ret < 0)
+		 return -ENODEV;
+
 	host->hclk = devm_clk_get(&pdev->dev, "ufs_hclk");
 	if (IS_ERR(host->hclk)) {
 		dev_warn(&pdev->dev,
@@ -150,6 +155,11 @@ static int ufs_sprd_init(struct ufs_hba *hba)
 	}
 
 	clk_set_parent(host->hclk, host->hclk_source);
+
+	regmap_update_bits(host->aon_apb_ufs_clk_en.regmap,
+			   host->aon_apb_ufs_clk_en.reg,
+			   host->aon_apb_ufs_clk_en.mask,
+			   0);
 
 	hba->quirks |= UFSHCD_QUIRK_BROKEN_UFS_HCI_VERSION |
 		       UFSHCD_QUIRK_DELAY_BEFORE_DME_CMDS;
