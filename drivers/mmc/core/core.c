@@ -2346,10 +2346,27 @@ static unsigned int mmc_do_calc_max_discard(struct mmc_card *card,
 	return max_discard;
 }
 
+static bool recovery_mode;
+static int boot_mode_check(char *str)
+{
+    if (str != NULL && !strncmp(str, "recovery", strlen("recovery")))
+        recovery_mode = true;
+    else
+        recovery_mode = false;
+    return 0;
+}
+__setup("androidboot.mode=", boot_mode_check);
+
+
 unsigned int mmc_calc_max_discard(struct mmc_card *card)
 {
 	struct mmc_host *host = card->host;
 	unsigned int max_discard, max_trim;
+    if(recovery_mode)
+    {
+        printk("%s: manfid=0x%x oemid=0x%x name=%s\n", __func__,card->cid.manfid,card->cid.oemid,card->cid.prod_name);
+        return UINT_MAX;
+    }
 
 	/*
 	 * Without erase_group_def set, MMC erase timeout depends on clock

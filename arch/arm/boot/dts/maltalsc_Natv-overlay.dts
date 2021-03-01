@@ -1,0 +1,244 @@
+/dts-v1/;
+/plugin/;
+#include <dt-bindings/gpio/gpio.h>
+
+/ {
+	fragment {
+		target-path = "/";
+		__overlay__ {
+			//fingerprint@0 {
+			//	compatible = "microarray,afs121";
+				//fpint-gpios = <&ap_gpio 130 0>;
+			//};
+/*
+			flash-gpios {
+				compatible = "sprd,flash-sgm37891";
+				flash-ic = <37891>;
+				flash-1w-gpios = <&ap_gpio 62 0>;
+				flash-torch-en-gpios = <&ap_gpio 63 0>;
+				flash-en-gpios = <&ap_gpio 72 0>;
+			};
+*/
+/*			pwm_backlight: sprd_backlight {
+				compatible = "pwm-backlight";
+				pwms = <&pwms 1 30000>;
+				pwm-names = "backlight";
+				brightness-levels = <
+						  2   2   2   2   2   2   2   2
+					  2   2   2   3   4   5   6   7   8   9
+					 10  11  12  13  14  15  16  17  18  19
+					 20  21  22  23  24  25  26  27  28  29
+					 30  31  32  33  34  35  36  37  38  39
+					 40  41  42  43  44  45  46  47  48  49
+					 50  51  52  53  54  55  56  57  58  59
+					 60  61  62  63  64  65  66  67  68  69
+					 70  71  72  73  74  75  76  77  78  79
+					 80  81  82  83  84  85  86  87  88  89
+					 90  91  92  93  94  95  96  97  98  99
+					100 101 102 103 104 105 106 107 108 109
+					110 111 112 113 114 115 116 117 118 119
+					120 121 122 123 124 125 126 127 128 129
+					130 131 132 133 134 135 136 137 138 139
+					140 141 142 143 144 145 146 147 148 149
+					150 151 152 153 154 155 156 157 158 159
+					160 161 162 163 164 165 166 167 168 169
+					170 171 172 173 174 175 176 177 178 179
+					180 181 182 183 184 185 186 187 188 189
+					190 191 192 193 194 195 196 197 198 199
+					200 201 202 203 204 205 206 207 208 209
+					210 211 212 213 214 215 216 217 218 219
+					220 221 222 223 224 225 226 227 228 229
+					230 231 232 233 234 235 236 237 238 239
+					240 241 242 243 244 245 246 247
+				>;
+				default-brightness-level = <33>;
+			};*/
+		};
+	};
+};
+
+/*
+&i2c3 {
+	status = "disable";
+
+	ilitek_touch_mtk:ilitek_touch@41{
+		compatible = "tchip,ilitek";
+		reg = <0x41>;
+		touch,irq-gpio = <&ap_gpio 144 0>;
+		touch,reset-gpio = <&ap_gpio 145 0>;
+		status = "disable";
+	};
+
+	gt9xx_ts@5d{
+		compatible = "goodix,gt9xx_ts";
+		reg = <0x5d>;
+		status = "disable";
+		reset-gpios = <&ap_gpio 145 0x0>;
+		irq-gpios = <&ap_gpio 144 0x0>;
+		irq-flags = <2>;
+
+		touchscreen-max-id = <11>;
+		touchscreen-size-x = <720>;
+		touchscreen-size-y = <1440>;
+		touchscreen-max-w = <512>;
+		touchscreen-max-p = <512>;
+		touchscreen-key-map = <172>, <158>; 
+		goodix,slide-wakeup = <0>;
+		goodix,type-a-report = <0>;
+		goodix,driver-send-cfg = <1>;
+		goodix,resume-in-workqueue = <0>;
+		goodix,int-sync = <1>;
+		goodix,swap-x2y = <0>;
+		goodix,esd-protect = <1>;
+		goodix,auto-update-cfg = <0>;
+		goodix,power-off-sleep = <1>;
+		goodix,pen-suppress-finger = <0>;
+		goodix,cfg-group2 = [
+		44 D0 02 A0 05 05 3D 08 01 0A 1E 0F 50 37 03 05 00 00 00 00 00 00 06 18 1A 1E 14 86 26 BC 4A 4C B5 06 BB 0A 00 1A 32 11 00 00 00 00 00 00 00 23 C8 A0 42 32 7D 85 80 C5 01 1E 00 04 A6 37 00 8D 42 00 78 4F 00 67 5F 00 59 72 00 59 00 00 00 00 00 00 00 00 00 00 00 01 02 00 00 00 00 00 7F 67 00 00 0A 23 00 00 00 00 46 00 46 00 00 00 00 32 00 01 02 03 04 05 06 07 08 09 0A 0B 16 15 14 13 12 11 10 0F 0E 0D 0C 17 18 19 1A 1B FF FF 05 06 08 0A 0C 0E 1E 1F 20 22 24 2A 29 2A FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 A2 01
+		];
+	};
+        chipone_tddi@48 {
+                status = "disable";
+                compatible = "chipone-tddi";
+                reg = <0x48>;
+                interrupt-parent = <&ap_gpio>;
+                interrupts = <144 0x2008>;
+ 
+                chipone,rst-gpio = <&ap_gpio 145 0x00>;
+                chipone,irq-gpio = <&ap_gpio 144 0x00>;
+                chipone,x-res = <720>;
+                chipone,y-res = <1560>;
+
+                
+                chipone,touch-charger-detect-enable;
+                chipone,touch-charger-detect-type = "notify"; 
+                chipone,touch-charger-detect-psy-name = "charger";
+                chipone,touch-charger-detect-psp = "POWER_SUPPLY_PROP_ONLINE";
+                chipone,touch-charger-detect-psp-poll-interval = <1000>;
+
+                
+                chipone,touch-earjack-detect-enable;
+                
+                chipone,touch-earjack-state-filepath = "/sys/kernel/headset/state";
+                chipone,touch-earjack-poll-interval = <1000>;
+       };
+};
+*/
+
+&i2c3{
+	status = "okay";
+        clock-frequency = <400000>;
+
+        Semtech_sx932x@28 {
+                compatible = "Semtech,sx932x";
+                reg = <0x28>;
+                interrupt-parent = <&ap_gpio>;
+                interrupts = <54 0>;
+
+                Semtech,nirq-gpio = <&ap_gpio 54 0x00>;
+                status = "ok";  /**/
+        Semtech,reg-num = <46>; /* total registers number to initialize*/
+        Semtech,reg-init  = /bits/ 8 < 0x10 0x16
+                                0x20 0x00
+                                0x23 0x00
+                                0x24 0x44
+                                0x26 0x01
+                                0x27 0x44
+                                0x28 0x04 /*PH0 to CS0 input*/
+                                0x29 0x10
+                                0x2A 0x01 /*PH2 CS2-input,CS1-dync,CS0-HZ*/
+                                0x2B 0x00
+                                0x2C 0x12
+                                0x2D 0x08
+                                0x30 0x09
+                                0x31 0x09
+                                0x32 0x08
+                                0x33 0x20
+                                0x34 0x0C
+                                0x35 0x00
+                                0x36 0x1B
+                                0x37 0x1B
+                                0x40 0x00
+                                0x41 0x00
+                                0x42 0x00
+                                0x43 0x00
+                                0x44 0x00
+                                0x45 0x05
+                                0x46 0x00
+                                0x47 0x00
+                                0x48 0x00
+                                0x49 0x80
+                                0x4A 0x00
+                                0x4B 0x00
+                                0x4C 0x00
+                                0x4D 0x00
+                                0x4E 0x80
+                                0x4F 0x0C
+				0x50 0x00
+                                0x51 0x70
+                                0x52 0x20
+                                0x53 0xE1
+                                0x54 0xF0
+                                0x05 0x60
+                                0x06 0x00
+                                0x07 0x00
+                                0x08 0x00
+                                                                0x11 0x27>;
+
+        };
+};
+
+&spi1 {
+        status = "okay";
+        spi@0 {
+                status = "okay";
+                compatible = "chipone-tddi","tchip,ilitek", "himax,hxcommon";
+                reg = <0>;
+                spi-max-frequency = <10000000>;
+                interrupt-parent = <&ap_gpio>;
+                interrupts = <144 0x2008>;
+		/*ili9882h start */
+                touch,irq-gpio = <&ap_gpio 144 0>;
+                touch,reset-gpio = <&ap_gpio 145 0>;
+		/* ili9882h end */
+                chipone,rst-gpio = <&ap_gpio 145 0x00>;
+                chipone,irq-gpio = <&ap_gpio 144 0x00>;
+                chipone,x-res = <720>;
+                chipone,y-res = <1600>;
+
+                /* Charger detect */
+                chipone,touch-charger-detect-enable;
+                chipone,touch-charger-detect-type = "notify"; /* notify, poll */
+                chipone,touch-charger-detect-psy-name = "charger";
+                chipone,touch-charger-detect-psp = "POWER_SUPPLY_PROP_ONLINE";
+                chipone,touch-charger-detect-psp-poll-interval = <1000>;
+
+                /* Earjack detect */
+                chipone,touch-earjack-detect-enable;
+                /* MTK:  /sys/bus/platform/drivers/Accdet_Driver/state,
+                   Sprd: /sys/kernel/headset/state
+                   QCOM: None, and disable it */
+                chipone,touch-earjack-state-filepath = "/sys/kernel/headset/state";
+                chipone,touch-earjack-poll-interval = <1000>;
+
+				himax,panel-coords = <0 720 0 1600>;
+				himax,display-coords = <0 720 0 1600>;
+				himax,irq-gpio = <&ap_gpio 144 0x00>;
+				himax,rst-gpio = <&ap_gpio 145 0x00>;
+				report_type = <1>;
+       };
+};
+
+&ddr_dfs {
+	sprd-scene = "boost", "lcdon", "lcdoff", "camlow",
+			"camhigh", "camveryhigh";
+	sprd-freq = <933 800 233 400 622 933>;
+};
+
+&sdio0 {
+	cd-gpios = <&eic_sync 9 0>;
+	vmmc-supply = <>;
+	vddsdcore_en-gpios = <&ap_gpio 64 1>;
+};
+#include "maltasc_Natv-overlay-fpsensor.dtsi"
+#include "lcm_i2c_bias.dtsi"

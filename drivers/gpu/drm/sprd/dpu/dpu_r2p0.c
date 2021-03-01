@@ -668,7 +668,7 @@ static int dpu_init(struct dpu_context *ctx)
 	reg->dpu_cfg0 = BIT(4) | BIT(5);
 	prev_y2r_coef = 3;
 
-	reg->dpu_cfg1 = 0x004466da;
+	reg->dpu_cfg1 = 0x004466fc;
 	reg->dpu_cfg2 = 0;
 
 	if (ctx->is_stopped)
@@ -1657,7 +1657,7 @@ static int dpu_capability(struct dpu_context *ctx,
 	if (!cap)
 		return -EINVAL;
 
-	cap->max_layers = 6;
+	cap->max_layers = 2;
 	cap->fmts_ptr = primary_fmts;
 	cap->fmts_cnt = ARRAY_SIZE(primary_fmts);
 

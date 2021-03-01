@@ -1073,6 +1073,9 @@ dtb-$(CONFIG_ARCH_ASPEED) += aspeed-bmc-opp-palmetto.dtb \
 dtb-$(CONFIG_ARCH_SPRD) += \
 	sp9832e-1h10-gofu.dtb \
 	sp9863a-1h10_go_32b_Natv.dtb \
+	maltalsc_Natv.dtb \
+	fijisc_Natv.dtb \
+	fiji_Natv.dtb \
 	sp7731e-1h10-native.dtb \
 	sp7731e-1h20-native.dtb \
 	ums312-1h10-go.dtb \
@@ -1081,6 +1084,9 @@ dtb-$(CONFIG_ARCH_SPRD) += \
 dtbo-$(CONFIG_ARCH_SPRD) += \
 	sp9832e-1h10-gofu-overlay.dtbo \
 	sp9863a-1h10_go_32b_Natv-overlay.dtbo \
+	maltalsc_Natv-overlay.dtbo \
+	fijisc_Natv-overlay.dtbo \
+	fiji_Natv-overlay.dtbo \
 	sp7731e-1h10-overlay.dtbo \
 	sp7731e-1h20-overlay.dtbo \
 	ums312-1h10-go-overlay.dtbo \

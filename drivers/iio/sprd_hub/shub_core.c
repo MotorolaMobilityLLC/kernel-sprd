@@ -40,6 +40,9 @@
 #include "shub_protocol.h"
 #include "shub_opcode.h"
 #include <linux/pm_wakeup.h>
+#include <linux/gpio.h>
+#include <linux/of_gpio.h>
+
 
 static struct task_struct *thread;
 static struct task_struct *thread_nwu;
@@ -83,6 +86,10 @@ static int shub_send_event_to_iio(struct shub_data *sensor, u8 *data, u16 len);
 static int shub_download_calibration_data(struct shub_data *sensor);
 static void shub_save_calibration_data(struct work_struct *work);
 static void shub_synctimestamp(struct shub_data *sensor);
+static int shub_send_command(struct shub_data *sensor, int sensor_ID,
+			     enum shub_subtype_id opcode,
+			     const char *data, int len);
+
 
 #define MAX_COMPATIBLE_SENSORS 6
 static unsigned int sensor_fusion_mode;
@@ -110,6 +117,195 @@ static struct sensor_cali_info mag_cali_info;
 static struct sensor_cali_info light_cali_info;
 static struct sensor_cali_info prox_cali_info;
 static struct sensor_cali_info pressure_cali_info;
+static int als_cali_data = 0;
+static u8  als_get_vendor_flag = false;
+static unsigned int als_cali_target_lux = 0;
+
+#define ALS_WORK_MODE 0
+#define ALS_CALI_MODE 1
+#define ALS_CALI_SKIP_COUNT 3
+
+#define BUF_SIZE 64
+#define FIJI_TP_VENDOR_SKYWORTH 0x00
+#define FIJI_TP_VENDOR_TRULY 0x01
+#define FIJI_TP_VENDOR_EASYQUICK 0x02
+#define MALTA_TP_VENDOR_HLT 0x10
+#define MALTA_TP_VENDOR_SKYWORTH 0x11
+
+
+#define GPIO_BOARD_ID 89
+
+static int hwinfo_read_file(struct shub_data *sensor, char *file_name, char buf[], int buf_size)
+{
+	struct file *fp;
+	mm_segment_t fs;
+	loff_t pos = 0;
+	ssize_t len = 0;
+
+	if (file_name == NULL || buf == NULL)
+		return -1;
+
+	fp = filp_open(file_name, O_RDONLY, 0);
+	if (IS_ERR(fp)) {
+		dev_err(&sensor->sensor_pdev->dev, "file not found/n");
+		return -1;
+	}
+
+	fs = get_fs();
+	set_fs(KERNEL_DS);
+	memset(buf, 0x00, buf_size);
+	len = vfs_read(fp, buf, buf_size, &pos);
+	buf[buf_size - 1] = '\n';
+	filp_close(fp, NULL);
+	set_fs(fs);
+
+	return 0;
+}
+
+static int katoi(char *str)
+{
+	int result = 0;
+	unsigned int digit;
+	int sign;
+
+	if (*str == '-') {
+		sign = 1;
+		str += 1;
+	} else {
+		sign = 0;
+		if (*str == '+') {
+			str += 1;
+		}
+	}
+
+	for (;; str += 1) {
+		digit = *str - '0';
+		if (digit > 9)
+			break;
+		result = (10 * result) + digit;
+	}
+
+	if (sign) {
+		return -result;
+	}
+
+	return result;
+}
+
+static char *str_split(char *src,char *dst, int n)
+{
+	char *p = src;
+	char *q = dst;
+	int len = strlen(src);
+
+	if(n>len) n = len;
+	p += (len-n);
+	while((*(q++) = *(p++)));
+
+	return dst;
+}
+
+static u32 get_board_id(struct shub_data *sensor)
+{
+	char file_path[BUF_SIZE] = "/sys/hwinfo/prj_ver_flag";
+	char buf[BUF_SIZE] = {0};
+	int  ret = 0;
+	u32 board_id = 0;
+	char dst[5] = {0};
+
+	ret = hwinfo_read_file(sensor, file_path, buf, sizeof(buf));
+	if (ret != 0)
+	{
+		dev_err(&sensor->sensor_pdev->dev, "hwinfo_read_file failed.");
+		return -1;
+	}
+
+	if (buf[strlen(buf) - 1] == '\n')
+		buf[strlen(buf) - 1] = '\0';
+
+	str_split(buf, dst, 4);
+	board_id = katoi(dst);
+
+	dev_info(&sensor->sensor_pdev->dev, "board id:(0x%x)  buf(%s)  dst(%s)\n", board_id, buf, dst);
+
+	return board_id;
+}
+
+static int get_tp_vendor(struct shub_data *sensor)
+{
+	char file_path[BUF_SIZE] = "/sys/ontim_dev_debug/touch_screen/vendor";
+	char buf[BUF_SIZE] = {0};
+	char str[BUF_SIZE] = {0};
+	int  ret = 0;
+	int vendor = 0;
+	u32 board_id = 0;
+
+	ret = hwinfo_read_file(sensor, file_path, buf, sizeof(buf));
+	if (ret != 0)
+	{
+		dev_err(&sensor->sensor_pdev->dev, "hwinfo_read_file failed.");
+		return -1;
+	}
+
+	if (buf[strlen(buf) - 1] == '\n')
+		buf[strlen(buf) - 1] = '\0';
+
+	sprintf(str, "%s", buf);
+
+	board_id = get_board_id(sensor);
+
+	if (board_id == 0x1){
+		if (strncmp(buf,"hlt",3) == 0)
+			vendor = MALTA_TP_VENDOR_HLT;
+		else if (strncmp(buf,"skyworth",8) == 0)
+			vendor = MALTA_TP_VENDOR_SKYWORTH;
+	} else {
+		if (strncmp(buf,"skyworth",8) == 0)
+			vendor = FIJI_TP_VENDOR_SKYWORTH;
+		else if (strncmp(buf,"truly",5) == 0)
+			vendor = FIJI_TP_VENDOR_TRULY;
+		else if (strncmp(buf,"easyquick",9) == 0)
+			vendor = FIJI_TP_VENDOR_EASYQUICK;
+	}
+
+	vendor = vendor | (board_id << 4);
+	als_get_vendor_flag = true;
+
+	dev_info(&sensor->sensor_pdev->dev, "tp vendor:(0x%x)%s, board id:%d\n", vendor, buf, board_id);
+
+	return vendor;
+}
+
+static int set_als_para(struct shub_data *sensor, int mode)
+{
+	u32 sensor_para[3] = {0};
+	int ret = 0;
+	int tp_vendor = 0;
+
+	tp_vendor = get_tp_vendor(sensor);
+
+	sensor_para[0] = mode;
+	sensor_para[1] = tp_vendor < 0 ? 0 : tp_vendor;
+	sensor_para[2] = als_cali_data < 0 ? 0 : als_cali_data;
+
+	dev_info(&sensor->sensor_pdev->dev,
+		"set_als_para: sensor_para[0]=%d, sensor_para[1]=%d, sensor_para[2]=%d\n",
+		sensor_para[0], sensor_para[1], sensor_para[2]);
+
+	ret = shub_send_command(sensor, 5, SHUB_SET_CUSTOM_PARA, (char *)sensor_para, sizeof(sensor_para));
+	if (ret < 0)
+		dev_err(&sensor->sensor_pdev->dev, "%s: send SHUB_SET_CUSTOM_PARA command fail, ret = %d\n", __func__, ret);
+
+	ret = shub_send_command(sensor, 5, SHUB_SET_DISABLE_SUBTYPE, NULL, 0);
+	if (ret < 0)
+		dev_err(&sensor->sensor_pdev->dev, "%s: Write SHUB_SET_DISABLE_SUBTYPE fail, ret = %d\n", __func__, ret);
+
+	ret = shub_send_command(sensor, 5, SHUB_SET_ENABLE_SUBTYPE, NULL, 0);
+	if (ret < 0)
+		dev_err(&sensor->sensor_pdev->dev, "Write SHUB_SET_ENABLE_SUBTYPE fail\n");
+
+	return ret;
+}
 
 static void get_sensor_info(char **sensor_name, int sensor_type, int success_num)
 {
@@ -559,7 +755,7 @@ static void request_send_firmware(struct shub_data *sensor,
 					SHUB_DOWNLOAD_OPCODE_SUBTYPE, fw_data,
 					size);
 			opcode_download_count++;
-		} while (ret == RESPONSE_TIMEOUT &&
+		} while ((ret == RESPONSE_TIMEOUT || (ret == 248)) &&
 			opcode_download_count < 10);
 
 		if (ret) {
@@ -988,6 +1184,7 @@ static ssize_t logctl_store(struct device *dev,
 }
 static DEVICE_ATTR_RW(logctl);
 
+#if 0
 static int check_proximity_cali_data(void *cali_data)
 {
 	struct prox_cali_data prox_cali;
@@ -1020,6 +1217,7 @@ static int check_proximity_cali_data(void *cali_data)
 
 	return 0;
 }
+#endif
 
 static int check_acc_cali_data(void *cali_data)
 {
@@ -1091,7 +1289,7 @@ static void shub_save_calibration_data(struct work_struct *work)
 		err = check_gyro_cali_data(sensor->calibrated_data);
 		break;
 	case SENSOR_PROXIMITY:
-		err = check_proximity_cali_data(sensor->calibrated_data);
+		//err = check_proximity_cali_data(sensor->calibrated_data);
 		break;
 	default:
 		break;
@@ -1243,6 +1441,12 @@ static int shub_download_calibration_data(struct shub_data *sensor)
 		err = shub_send_command(sensor, sensor_type,
 					SHUB_SET_CALIBRATION_DATA_SUBTYPE,
 					raw_cali_data, cal_file_size);
+
+		if (sensor_type == SENSOR_TYPE_LIGHT) {
+			memcpy(&als_cali_data, raw_cali_data, cal_file_size);
+			set_als_para(sensor, ALS_WORK_MODE);
+		}
+
 		kfree(raw_cali_data);
 		raw_cali_data = NULL;
 		if (pfile)
@@ -1275,8 +1479,13 @@ static ssize_t enable_store(struct device *dev,
 		"handle = %d, enabled = %d\n", handle, enabled);
 	subtype = (enabled == 0) ? SHUB_SET_DISABLE_SUBTYPE :
 		SHUB_SET_ENABLE_SUBTYPE;
-	if (shub_send_command(sensor, handle, subtype, NULL, 0) < 0)
-		dev_err(&sensor->sensor_pdev->dev, "Write SetEn/Disable fail\n");
+
+	if (handle == SENSOR_TYPE_LIGHT && !als_get_vendor_flag) {
+		set_als_para(sensor, ALS_WORK_MODE);
+	} else {
+		if (shub_send_command(sensor, handle, subtype, NULL, 0) < 0)
+			dev_err(&sensor->sensor_pdev->dev, "Write SetEn/Disable fail\n");
+	}
 
 	return count;
 }
@@ -1414,7 +1623,7 @@ static int shub_save_als_cali_data(struct shub_data *sensor,
 	}
 	snprintf(file_path, sizeof(file_path), "%s%s",
 		 CALIBRATION_NODE, calibration_filename[5]);
-	pfile = filp_open(file_path, O_WRONLY | O_CREAT | O_TRUNC, 0600);
+	pfile = filp_open(file_path, O_WRONLY | O_CREAT | O_TRUNC, 0666);
 	if (IS_ERR(pfile)) {
 		err = PTR_ERR(pfile);
 		pr_err("open file %s error=%d\n", file_path, err);
@@ -1426,7 +1635,7 @@ static int shub_save_als_cali_data(struct shub_data *sensor,
 	if (err < 0)
 		pr_err("err=%d\n", err);
 	filp_close(pfile, NULL);
-	pr_debug("shub_save_als_cali_data end\n");
+	pr_info("shub_save_als_cali_data end\n");
 
 	return err;
 }
@@ -1436,8 +1645,9 @@ static int set_als_calib_cmd(struct shub_data *sensor, u8 cmd, u8 id)
 	int err, i, average_als, als_cali_coef, status;
 	u8 data[2];
 	u16 *ptr = (u16 *)data;
-	char als_data[30];
+	char als_data[30] = {0};
 	int light_sum = 0;
+	int target_lux;
 
 	for (i = 0; i < LIGHT_CALI_DATA_COUNT; i++) {
 		err = shub_sipc_read(sensor,
@@ -1448,10 +1658,14 @@ static int set_als_calib_cmd(struct shub_data *sensor, u8 cmd, u8 id)
 		}
 		/*sleep for light senor collect data every 100ms*/
 		msleep(100);
-		pr_debug("shub_sipc_read: ptr[0] = %d\n", ptr[0]);
+
+		if (i < ALS_CALI_SKIP_COUNT)
+			continue;
+
+		pr_info("shub_sipc_read: ptr[0] = %d\n", ptr[0]);
 		light_sum += ptr[0];
 	}
-	average_als = light_sum / LIGHT_CALI_DATA_COUNT;
+	average_als = light_sum / (LIGHT_CALI_DATA_COUNT - ALS_CALI_SKIP_COUNT);
 	pr_info("light sensor cali light_sum:%d, average_als = %d\n",
 		light_sum, average_als);
 
@@ -1460,7 +1674,13 @@ static int set_als_calib_cmd(struct shub_data *sensor, u8 cmd, u8 id)
 		als_cali_coef = CALIB_STATUS_FAIL;
 		status = CALIB_STATUS_FAIL;
 	} else {
-		als_cali_coef = LIGHT_SENSOR_CALI_VALUE / average_als;
+		if (als_cali_target_lux == 0) {
+			target_lux = LIGHT_SENSOR_CALI_VALUE;
+		} else {
+			target_lux = als_cali_target_lux * 10000;
+		}
+
+		als_cali_coef = target_lux / average_als;
 		status = CALIB_STATUS_PASS;
 	}
 	memcpy(als_data, &als_cali_coef, sizeof(als_cali_coef));
@@ -1478,7 +1698,10 @@ static int set_als_calib_cmd(struct shub_data *sensor, u8 cmd, u8 id)
 		pr_err("Write Light Sensor CalibratorData Fail\n");
 		return err;
 	}
-	pr_debug("Light Sensor Calibrator status = %d\n", status);
+
+	als_cali_data = als_cali_coef;
+
+	pr_info("Light Sensor Calibrator status = %d, als_cali_data = %d\n", status, als_cali_data);
 
 	return status;
 }
@@ -1505,9 +1728,19 @@ static ssize_t light_sensor_calibrator_store(struct device *dev,
 		return -EINVAL;
 	}
 
+	err = set_als_para(sensor, ALS_CALI_MODE);
+	if (err < 0)
+		pr_err("set als to calib mode Fail!\n");
+
+	msleep(200);
+
 	err = set_als_calib_cmd(sensor, sensor->cal_cmd, sensor->cal_id);
 	if (err < 0)
 		pr_err("light sensor cali Fail!\n");
+
+	err = set_als_para(sensor, ALS_WORK_MODE);
+	if (err < 0)
+		pr_err("set als to work mode Fail!\n");
 
 	return err < 0 ? err : count;
 }
@@ -2078,6 +2311,78 @@ static ssize_t cm4_operate_store(struct device *dev,
 
 static DEVICE_ATTR_RW(cm4_operate);
 
+static ssize_t acc_info_show(struct device *dev,
+				struct device_attribute *attr, char *buf)
+{
+	if (hw_sensor_id[0].id_status != _IDSTA_OK)
+		return -EINVAL;
+
+	return sprintf(buf, "%s", hw_sensor_id[0].pname);
+}
+static DEVICE_ATTR_RO(acc_info);
+
+static ssize_t mag_info_show(struct device *dev,
+				struct device_attribute *attr, char *buf)
+{
+	if (hw_sensor_id[1].id_status != _IDSTA_OK)
+		return -EINVAL;
+
+	return sprintf(buf, "%s", hw_sensor_id[1].pname);
+}
+static DEVICE_ATTR_RO(mag_info);
+
+static ssize_t prox_info_show(struct device *dev,
+				struct device_attribute *attr, char *buf)
+{
+	if (hw_sensor_id[3].id_status != _IDSTA_OK)
+		return -EINVAL;
+
+	return sprintf(buf, "%s", hw_sensor_id[3].pname);
+}
+static DEVICE_ATTR_RO(prox_info);
+
+static ssize_t light_info_show(struct device *dev,
+				struct device_attribute *attr, char *buf)
+{
+	if (hw_sensor_id[4].id_status != _IDSTA_OK)
+		return -EINVAL;
+
+	return sprintf(buf, "%s", hw_sensor_id[4].pname);
+}
+static DEVICE_ATTR_RO(light_info);
+
+static ssize_t als_target_lux_show(struct device *dev,
+				struct device_attribute *attr, char *buf)
+{
+	return snprintf(buf, PAGE_SIZE, "%d\n", als_cali_target_lux);
+}
+
+static ssize_t als_target_lux_store(struct device *dev,
+				 struct device_attribute *attr,
+				 const char *buf, size_t count)
+{
+	int ret = 0;
+	unsigned int lux = 0;
+
+	ret = sscanf(buf, "%d", &lux);
+	if (ret != 1) {
+		pr_err("invalid content: '%s', length = %zu\n", buf, count);
+		return count;
+	}
+
+	als_cali_target_lux = lux;
+
+	return count;
+}
+static DEVICE_ATTR_RW(als_target_lux);
+
+static ssize_t als_cali_para_show(struct device *dev,
+				struct device_attribute *attr, char *buf)
+{
+	return snprintf(buf, PAGE_SIZE, "%d\n", als_cali_data);
+}
+static DEVICE_ATTR_RO(als_cali_para);
+
 static struct attribute *sensorhub_attrs[] = {
 	&dev_attr_debug_data.attr,
 	&dev_attr_reader_enable.attr,
@@ -2104,6 +2409,12 @@ static struct attribute *sensorhub_attrs[] = {
 	&dev_attr_mag_cali_flag.attr,
 	&dev_attr_shub_debug.attr,
 	&dev_attr_cm4_operate.attr,
+	&dev_attr_acc_info.attr,
+	&dev_attr_mag_info.attr,
+	&dev_attr_prox_info.attr,
+	&dev_attr_light_info.attr,
+	&dev_attr_als_target_lux.attr,
+	&dev_attr_als_cali_para.attr,
 	NULL,
 };
 ATTRIBUTE_GROUPS(sensorhub);
@@ -2385,6 +2696,25 @@ static void shub_config_init(struct shub_data *sensor)
 	sensor->is_sensorhub = 1;
 }
 
+static void shub_ps_led_enable(struct device *dev)
+{
+	struct device_node *np = dev->of_node;
+	int ps_en_gpio;
+	int ret;
+
+	ps_en_gpio = of_get_named_gpio(np, "psled-en-gpios", 0);
+
+	if (gpio_is_valid(ps_en_gpio)) {
+		ret = gpio_request(ps_en_gpio, "ps_led_en");
+		if (ret < 0)
+			dev_err(dev, "request ps led gpio fail");
+	}
+
+	if (ps_en_gpio) {
+		gpio_direction_output(ps_en_gpio, 1);
+	}
+}
+
 static int shub_probe(struct platform_device *pdev)
 {
 	struct shub_data *mcu;
@@ -2480,6 +2810,8 @@ static int shub_probe(struct platform_device *pdev)
 				   SMSG_CH_PIPE, SIPC_PM_BUFID1);
 	mcu->early_suspend.notifier_call = shub_notifier_fn;
 	register_pm_notifier(&mcu->early_suspend);
+
+	shub_ps_led_enable(&pdev->dev);
 
 	return 0;
 

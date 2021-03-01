@@ -95,5 +95,5 @@ int asoc_sprd_register_card(struct device *dev, struct snd_soc_card *card);
 int asoc_sprd_card_probe(struct platform_device *pdev,
 			 struct snd_soc_card **card);
 int asoc_sprd_card_remove(struct platform_device *pdev);
-
+int hook_spk_aw87xx(int id, int on);
 #endif /* __SPRD_ASOC_CARD_UTILS_H */

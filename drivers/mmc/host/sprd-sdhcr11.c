@@ -1280,6 +1280,8 @@ static void sprd_sdhc_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 				sprd_sdhc_fast_hotplug_disable(host);
 			spin_unlock_irqrestore(&host->lock, flags);
 			sprd_signal_voltage_on_off(host, 0);
+			if(host->vddsdcore_en_gpio >= 0)
+				gpio_set_value(host->vddsdcore_en_gpio, !host->vddsdcore_en_gpio_polar);
 			if (!IS_ERR(mmc->supply.vmmc))
 				mmc_regulator_set_ocr(host->mmc,
 						mmc->supply.vmmc, 0);
@@ -1291,6 +1293,8 @@ static void sprd_sdhc_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 		case MMC_POWER_UP:
 			mmiowb();
 			spin_unlock_irqrestore(&host->lock, flags);
+			if(host->vddsdcore_en_gpio >= 0)
+				gpio_set_value(host->vddsdcore_en_gpio, host->vddsdcore_en_gpio_polar);
 			if (!IS_ERR(mmc->supply.vmmc))
 				mmc_regulator_set_ocr(host->mmc,
 					mmc->supply.vmmc, ios->vdd);
@@ -1856,6 +1860,21 @@ static int sprd_get_dt_resource(struct platform_device *pdev,
 		dev_info(dev, "find sdio-adma\n");
 	}
 
+	host->vddsdcore_en_gpio = of_get_named_gpio_flags(np, "vddsdcore_en-gpios", 0, &flags);
+	if (!gpio_is_valid(host->vddsdcore_en_gpio)) {
+		dev_warn(dev, "no valid vddsdcore_en GPIO");
+		host->vddsdcore_en_gpio = -1;
+	} else {
+		ret = gpio_request(host->vddsdcore_en_gpio, "vddsdcore_en");
+		if (ret < 0) {
+			dev_err(dev, "Failed to request vddsdcore_en GPIO:%d, ERRNO:%d\n", host->vddsdcore_en_gpio, ret);
+			goto err;
+		}
+		gpio_direction_output(host->vddsdcore_en_gpio, !flags);
+		host->vddsdcore_en_gpio_polar = flags;
+		dev_info(dev, "Success request vddsdcore_en GPIO\n");
+	}
+
 	host->detect_gpio = of_get_named_gpio_flags(np, "cd-gpios", 0, &flags);
 	if (!gpio_is_valid(host->detect_gpio)) {
 		host->detect_gpio = -1;
@@ -2182,6 +2201,7 @@ static int sprd_sdhc_probe(struct platform_device *pdev)
 	host->mmc = mmc;
 	host->pdev = pdev;
 	host->flags = 0;
+	host->vddsdcore_en_gpio = -1;
 	spin_lock_init(&host->lock);
 	platform_set_drvdata(pdev, host);
 
@@ -2244,6 +2264,8 @@ static int sprd_sdhc_remove(struct platform_device *pdev)
 	struct sprd_sdhc_host *host = platform_get_drvdata(pdev);
 	struct mmc_host *mmc = host->mmc;
 
+	if(host->vddsdcore_en_gpio >= 0)
+		gpio_free(host->vddsdcore_en_gpio);
 	mmc_remove_host(mmc);
 	clk_disable_unprepare(host->clk);
 	clk_disable_unprepare(host->sdio_ahb);

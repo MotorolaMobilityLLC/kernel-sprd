@@ -44,6 +44,8 @@ int reboot_cpu;
 enum reboot_type reboot_type = BOOT_ACPI;
 int reboot_force;
 
+bool g_bpower_down = false;
+
 /*
  * If set, this is used for preparing the system to power off.
  */
@@ -332,6 +334,7 @@ SYSCALL_DEFINE4(reboot, int, magic1, int, magic2, unsigned int, cmd,
 
 	case LINUX_REBOOT_CMD_POWER_OFF:
 		kernel_power_off();
+        g_bpower_down = true;
 		do_exit(0);
 		break;
 

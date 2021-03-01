@@ -62,6 +62,7 @@
 #include <linux/random.h>
 #include <linux/rcuwait.h>
 #include <linux/compat.h>
+#include <linux/reboot.h>
 
 #include <linux/uaccess.h>
 #include <asm/unistd.h>
@@ -783,7 +784,7 @@ void __noreturn do_exit(long code)
 		panic("Aiee, killing interrupt handler!");
 	if (unlikely(!tsk->pid))
 		panic("Attempted to kill the idle task!");
-	if (unlikely(tsk->pid == 1))
+    if (unlikely(tsk->pid == 1) && !g_bpower_down)
 		panic("Attempted to kill the init task!");
 
 	/*
