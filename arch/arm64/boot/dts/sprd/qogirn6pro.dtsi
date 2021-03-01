@@ -426,10 +426,13 @@
 					  MASK_AP_AHB_UFS_SOFT_RST>,
 					<&aon_apb_regs REG_AON_APB_UFSDEV_REG
 					  MASK_AON_APB_UFSDEV_SOFT_RST>,
-					<&anlg_phy_g12_regs 0x0c 0x01>;
+					<&anlg_phy_g12_regs 0x0c 0x01>,
+					<&aon_apb_regs REG_AON_APB_UFSHC_CTRL
+					 (MASK_AON_APB_UFSHC_PCLK_EN|MASK_AON_APB_UFSHC_HCLK_EN)>;
 				syscon-names = "ap_ahb_ufs_rst",
 					       "aon_apb_ufs_rst",
-					       "phy_sram_init_done";
+					       "phy_sram_init_done",
+					       "aon_apb_ufs_clk_en";
 				status = "okay";
 			};
 
