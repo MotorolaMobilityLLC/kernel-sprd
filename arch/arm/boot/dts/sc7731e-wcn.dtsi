@@ -84,99 +84,110 @@
 				   "gnss_efuse_blk2";
 	};
 
-	wcn_sipc {
-		compatible = "sprd,sipc";
-
-		sipc2: sipc@84180000 {
-			sprd,name = "sipc-wcn";
-			sprd,dst = <3 4>; /* <dst core-id> */
-			/* <ap-addr dst-maped-addr size> */
-			sprd,smem-info = <0x84180000 0x00180000 0x180000>;
-		};
-
-		sipc3: sipc@8441b000 {
-			sprd,name = "sipc-gnss";
-			sprd,dst = <4 5>; /* <dst core-id> */
-			/* <ap-addr dst-maped-addr size> */
-			sprd,smem-info = <0x8441b000 0x11b000 0x32000>;
-		};
-	};
-
-	wcn_spipe {
-		compatible = "sprd,spipe";
-		spipe_cpwcn {
-			sprd,name = "spipe_wcn";
-			sprd,dst = <3>;
-			sprd,channel = <4>;
-			sprd,ringnr = <16>; /* bufid=5:ATCMD, */
-			sprd,size-rxbuf = <0x2400>; /* 9 * 1024 */
-			sprd,size-txbuf = <0x2400>; /* 9 * 1024 */
-		};
-
-		spipe_gnss {
-			sprd,name = "sttygnss0";
-			sprd,dst = <4>;
-			sprd,channel = <4>;
-			sprd,ringnr = <1>;
-			sprd,size-rxbuf = <0x19000>; /* 100*1024 */
-			sprd,size-txbuf = <0xc800>; /* 50*1024 */
-		};
-	};
-
-	wcn_wifi_cmd {
-		compatible = "sprd,swcnblk";
-		sprd,name = "wcn_wifi_cmd";
-		sprd,dst = <3>;
-		sprd,channel = <7>;
-		sprd,tx-blksize = <2048>;
-		sprd,tx-blknum = <4>;
-		sprd,rx-blksize = <2048>;
-		sprd,rx-blknum = <16>;
-	};
-
-	wcn_wifi_data0 {
-		compatible = "sprd,swcnblk";
-		sprd,name = "wcn_wifi_data0";
-		sprd,dst = <3>;
-		sprd,channel = <8>;
-		sprd,tx-blksize = <1664>;
-		sprd,tx-blknum = <64>;
-		sprd,rx-blksize = <1664>;
-		sprd,rx-blknum = <256>;
-	};
-
-	wcn_wifi_data1 {
-		compatible = "sprd,swcnblk";
-		sprd,name = "wcn_wifi_data1";
-		sprd,dst = <3>;
-		sprd,channel = <9>;
-		sprd,tx-blksize = <1664>;
-		sprd,tx-blknum = <64>;
-		sprd,rx-blksize = <0>;
-		sprd,rx-blknum = <0>;
-	};
-
-	wcn_bt {
-		compatible = "sprd,wcn_internal_chip";
-		sprd,name = "ttyBT";
-		sprd,dst = <3>;
-		sprd,channel = <4>;
-		sprd,tx_bufid = <11>;
-		sprd,rx_bufid = <10>;
-	};
-
-	wcn_fm {
-		compatible = "sprd,wcn_internal_chip";
-		sprd,name = "fm";
-		sprd,dst = <3>;
-		sprd,tx_channel = <4>;
-		sprd,rx_channel = <4>;
-		sprd,tx_bufid = <14>;
-		sprd,rx_bufid = <13>;
-	};
-
 	gnss_common_ctl {
 		compatible = "sprd,gnss_common_ctl";
 		sprd,name = "gnss_common_ctl";
 	};
 };
+
+/*
+ * quote sipc: sipc-virt bus node
+ * This is a child node
+ * core@3 is wcn, mailbox id is 5
+ * core@4 is gnss, mailbox id is 6
+ */
+&sipc {
+	sipc_wcn: core@3 {
+		compatible = "sprd,sipc";
+		#address-cells = <1>;
+		#size-cells = <0>;
+		/* endpoint id - should be same with mailbox channel id */
+		reg = <3>;
+		label = "sipc-wcn";
+		/* <&mailbox  channel_id  is_no_wakeup(default 0)> */
+		mboxes = <&mailbox 4 0>;
+		/* This is temporary plan*/
+		sprd,smem-info = <0x84180000 0x00180000 0x180000>;
+
+		/* these nodes of channel should be probed by its parent node */
+		spipe_wcn: channel@4 {
+			compatible = "sprd,spipe";
+			/* channel number */
+			reg = <4>;
+			label = "spipe_wcn";
+			sprd,ringnr = <16>;
+			sprd,size-rxbuf = <0x2400>;	/* 9*1024 */
+			sprd,size-txbuf = <0x2400>;	/* 9*1024 */
+		};
+
+		wcn_wifi_cmd: channel@7 {
+			compatible = "sprd,spool";
+			/* channel number */
+			reg = <7>;
+			label = "wcn_wifi_cmd";
+			sprd,tx-blksize = <2048>;
+			sprd,tx-blknum = <4>;
+			sprd,rx-blksize = <2048>;
+			sprd,rx-blknum = <16>;
+		};
+
+		wcn_wifi_data0: channel@8 {
+			compatible = "sprd,spool";
+			/* channel number */
+			reg = <8>;
+			label = "wcn_wifi_data0";
+			sprd,tx-blksize = <1664>;
+			sprd,tx-blknum = <64>;
+			sprd,rx-blksize = <1664>;
+			sprd,rx-blknum = <256>;
+		};
+
+		wcn_wifi_data1: channel@9 {
+			compatible = "sprd,spool";
+			/* channel number */
+			reg = <9>;
+			label = "wcn_wifi_data1";
+			sprd,tx-blksize = <1664>;
+			sprd,tx-blknum = <64>;
+			sprd,rx-blksize = <0>;
+			sprd,rx-blknum = <0>;
+		};
+
+		sprd-mtty {
+			compatible = "sprd,wcn_bt";
+			extcon = <&spipe_wcn>;
+			sprd,name = "ttyBT";
+		};
+
+		sprd-fm {
+			compatible = "sprd,wcn_fm";
+			extcon = <&spipe_wcn>;
+			sprd,name = "sprd-fm";
+		};
+	};
+
+	sipc_gnss: core@4 {
+		compatible = "sprd,sipc";
+		#address-cells = <1>;
+		#size-cells = <0>;
+		/* endpoint id - should be same with mailbox channel id */
+		reg = <4>;
+		label = "sipc-gnss";
+		/* <&mailbox  channel_id  is_no_wakeup(default 0)> */
+		mboxes = <&mailbox 5 0>;
+		/* This is temporary plan*/
+		sprd,smem-info = <0x8441b000 0x11b000 0x32000>;
+
+		/* these nodes of channel should be probed by its parent node */
+		sttygnss0: channel@4 {
+			compatible = "sprd,spipe";
+			/* channel number */
+			reg = <4>;
+			label = "sttygnss0";
+			sprd,ringnr = <1>;
+			sprd,size-rxbuf = <0x19000>;	/* 100*1024 */
+			sprd,size-txbuf = <0xc800>;	/* 50*1024 */
+		};
+	};
+};
+
