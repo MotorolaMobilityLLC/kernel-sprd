@@ -1034,7 +1034,7 @@ static int sprd_spi_probe(struct platform_device *pdev)
 	struct sprd_spi *ss;
 	struct property *prop;
 	u32 num_chipselect = 1;
-	u32 i;
+	u32 i, realtime_task;
 	int ret;
 
 	pdev->id = of_alias_get_id(pdev->dev.of_node, "spi");
@@ -1100,6 +1100,18 @@ static int sprd_spi_probe(struct platform_device *pdev)
 				goto free_controller;
 			}
 		}
+	}
+
+	/* SPI controller transfer with high thread priority. */
+	prop = of_find_property(pdev->dev.of_node, "realtime-task", NULL);
+	if (prop && prop->length) {
+		ret = of_property_read_u32(pdev->dev.of_node,
+				   "realtime-task", &realtime_task);
+		if (ret < 0)
+			dev_warn(&pdev->dev,
+				"realtime-task property not found\n");
+		else
+			sctlr->rt = realtime_task;
 	}
 
 	init_completion(&ss->xfer_completion);
