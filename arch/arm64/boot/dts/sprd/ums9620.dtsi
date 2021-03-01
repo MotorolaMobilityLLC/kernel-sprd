@@ -1152,3 +1152,8 @@
 	<&g5r_pll CLK_GPLL_680M>,
 	<&g5r_pll CLK_GPLL>;
 };
+
+&dsi1 {
+	clock-names = "clk_dsi1_eb";
+	clocks = <&dpu_vsp_gate CLK_DSI1_EB>;
+};
