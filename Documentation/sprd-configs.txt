@@ -54,8 +54,8 @@ CONFIG_ALIGNMENT_TRAP
 	[must] console
 	[missing plat description] none
 	[function] ARM processors cannot fetch/store information which is not
-			naturally aligned on the bus. This is necessary for correct
-			operation of some network protocols.
+		   naturally aligned on the bus. This is necessary for correct
+		   operation of some network protocols.
 CONFIG_ALLOW_DEV_COREDUMP
 	[arch] all
 	[plat] all
@@ -4062,11 +4062,11 @@ CONFIG_DRM_SPRD_GSP
 CONFIG_DRM_SPRD_GSP_IPC_TRUSTY
 	[arch] arm64
 	[plat] qogirl6
-	[missing plat] sharkl3,sharkl5,sharkl5Pro
+	[missing plat] qogirn6pro,sharkl3,sharkl5,sharkl5Pro
 	[field] make,code
 	[subsys] drm
 	[must] home
-	[missing plat description] none
+	[missing plat description] support after l5pro SoC，now only enable it on qogirl6.
 	[function] DRM_SPRD_GSP_IPC_TRUSTY is used for enable gsp widevine.
 CONFIG_DST_CACHE
 	[arch] all
@@ -4243,7 +4243,7 @@ CONFIG_EMBEDDED
 CONFIG_EMMC_SOFTWARE_CQ_SUPPORT
 	[arch] arm64
 	[plat] sharkl5Pro
-	[missing plat] qogirl6,sharkl3,sharkl5
+	[missing plat] qogirl6,qogirn6pro,sharkl3,sharkl5
 	[field] make
 	[subsys] emmc
 	[must] user
@@ -13007,13 +13007,22 @@ CONFIG_SND_SOC_SPRD_CODEC_SC2721
 	[function] sc2721 codec driver
 CONFIG_SND_SOC_SPRD_CODEC_SC2730
 	[arch] all
-	[plat] qogirl6,qogirn6pro,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,sharkl3,sharkl3_32,sharkle32
+	[plat] qogirl6,sharkl5,sharkl5Pro,sharkl5_32
+	[missing plat] pike2,qogirn6pro,sharkl3,sharkl3_32,sharkle32
 	[field] make, code
 	[subsys] sound
 	[must] user
 	[missing plat description] codec is another one
 	[function] snd codec driver of 2730
+CONFIG_SND_SOC_SPRD_CODEC_UMP9620
+	[arch] arm64
+	[plat] qogirn6pro
+	[missing plat] qogirl6,sharkl3,sharkl5,sharkl5Pro
+	[field] code, make
+	[subsys] sound
+	[must] user
+	[missing plat description] only for n6pro.
+	[function] support the ump9620 codec.
 CONFIG_SND_SOC_SPRD_I2S
 	[arch] all
 	[plat] pike2,sharkl3,sharkl3_32,sharkle32
@@ -13115,8 +13124,8 @@ CONFIG_SND_SOC_SPRD_VBC_V4
 	[function] VBC version flag
 CONFIG_SND_SOC_SPRD_VBC_V4_SC2730
 	[arch] all
-	[plat] qogirn6pro,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,qogirl6,sharkl3,sharkl3_32,sharkle32
+	[plat] sharkl5,sharkl5Pro,sharkl5_32
+	[missing plat] pike2,qogirl6,qogirn6pro,sharkl3,sharkl3_32,sharkle32
 	[field] make
 	[subsys] sound
 	[must] user
@@ -13131,6 +13140,16 @@ CONFIG_SND_SOC_SPRD_VBC_V4_SC2730_MCDT_R2P0
 	[must] user
 	[missing plat description] machine driver is different
 	[function] snd soc machine code
+CONFIG_SND_SOC_SPRD_VBC_V4_UMP9620_MCDT_R2P0
+	[arch] arm64
+	[plat] qogirn6pro
+	[missing plat] qogirl6,sharkl3,sharkl5,sharkl5Pro
+	[field] make
+	[subsys] sound
+	[must] user
+	[missing plat description] only for n6pro
+	[function] support for ASoC audio on Spreadtrum boards
+			using the VBC v4 and the ump9620 codec
 CONFIG_SND_SUPPORT_OLD_API
 	[arch] all
 	[plat] all
@@ -13360,8 +13379,8 @@ CONFIG_SPRD_APDU_R3P0
 	[function] Support for sprd APDU R3P0 driver
 CONFIG_SPRD_APSYS_DVFS_DEVFREQ
 	[arch] all
-	[plat] qogirl6,qogirn6pro,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,sharkl3,sharkl3_32,sharkle32
+	[plat] qogirl6,sharkl5,sharkl5Pro,sharkl5_32
+	[missing plat] pike2,qogirn6pro,sharkl3,sharkl3_32,sharkle32
 	[field] make
 	[subsys] devfreq
 	[must] user
@@ -13398,8 +13417,8 @@ CONFIG_SPRD_AUDIO_DSP_DUMP
 	[function] audio dsp memory and log dump
 CONFIG_SPRD_AUDIO_MCDT
 	[arch] all
-	[plat] qogirn6pro,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,qogirl6,sharkl3,sharkl3_32,sharkle32
+	[plat] sharkl5,sharkl5Pro,sharkl5_32
+	[missing plat] pike2,qogirl6,qogirn6pro,sharkl3,sharkl3_32,sharkle32
 	[field] make
 	[subsys] sound
 	[must] user
@@ -13408,8 +13427,8 @@ CONFIG_SPRD_AUDIO_MCDT
 	[function] sound data transmission channel with dsp
 CONFIG_SPRD_AUDIO_MCDT_R2P0
 	[arch] arm64
-	[plat] qogirl6
-	[missing plat] qogirn6pro,sharkl3,sharkl5,sharkl5Pro
+	[plat] qogirl6,qogirn6pro
+	[missing plat] sharkl3,sharkl5,sharkl5Pro
 	[field] make
 	[subsys] sound
 	[must] user
@@ -14470,6 +14489,15 @@ CONFIG_SPRD_THERMAL
 	[missing plat description] Only enable on roc1,sharkl5,sharkl5Pro,sharkl5_32,
 				   because project thermal ip.
 	[function] This function is used to config thermal moudle.
+CONFIG_SPRD_THERMAL_R5P0
+	[arch] arm64
+	[plat] qogirn6pro
+	[missing plat] qogirl6,sharkl3,sharkl5,sharkl5Pro
+	[field] make
+	[subsys] thermal
+	[must] user
+	[missing plat description] thermal ip only for n6pro ?
+	[function] thermal framework to get the temp of cpu/gpu thermal zone
 CONFIG_SPRD_TIMER
 	[arch] all
 	[plat] all
@@ -14544,14 +14572,23 @@ CONFIG_SPRD_USBPINMUX
 	[must] debug
 	[missing plat description] This function is only used for qogirl6
 	[function] This function is used to enable qogirl6 platform usbpinmux driver.
+CONFIG_SPRD_VPU
+	[arch] arm64
+	[plat] qogirn6pro
+	[missing plat] qogirl6,sharkl3,sharkl5,sharkl5Pro
+	[field] make
+	[subsys] video
+	[must] user
+	[missing plat description] only for n6pro, while others use another way.
+	[function] driver for vpu device
 CONFIG_SPRD_VSP
 	[arch] all
-	[plat] all
-	[missing plat] none
+	[plat] pike2,qogirl6,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
+	[missing plat] qogirn6pro
 	[field] make,code,menu
 	[subsys] misc
 	[must] user
-	[missing plat description] none
+	[missing plat description] n6pro use another driver.
 	[function] The VSP is a video CODEC accelerator.
 CONFIG_SPRD_VSP_CALL_CAM_PW_DOMAIN
 	[arch] arm
@@ -14567,8 +14604,8 @@ CONFIG_SPRD_VSP_CALL_CAM_PW_DOMAIN
 		Vsp calls the interface implemented by camera.
 CONFIG_SPRD_VSP_PW_DOMAIN
 	[arch] all
-	[plat] qogirl6,qogirn6pro,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,sharkle32
+	[plat] qogirl6,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
+	[missing plat] pike2,qogirn6pro,sharkle32
 	[field] make,code,menu
 	[subsys] misc
 	[must] user
