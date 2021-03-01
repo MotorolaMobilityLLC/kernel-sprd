@@ -97,6 +97,7 @@ GCOV_PROFILE_fan54015-charger.o := $(CONFIG_SPRD_SUPPLY_GCOV)
 obj-$(CONFIG_CHARGER_ETA6937)	+= eta6937-charger.o
 GCOV_PROFILE_eta6937-charger.o := $(CONFIG_SPRD_SUPPLY_GCOV)
 obj-$(CONFIG_CHARGER_BQ2560X)	+= bq2560x-charger.o
+obj-$(CONFIG_CHARGER_BQ25890)	+= bq25890_charger.o
 obj-$(CONFIG_CHARGER_BQ2597X)	+= bq2597x-charger.o
 obj-$(CONFIG_CHARGER_SC2720)	+= sc2720_charger.o
 obj-$(CONFIG_CHARGER_SC2721)	+= sc2721_charger.o
