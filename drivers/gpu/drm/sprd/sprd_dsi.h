@@ -200,6 +200,8 @@ struct sprd_dsi {
 	struct dsi_core_ops *core;
 	struct dsi_glb_ops *glb;
 	struct dsi_context ctx;
+	struct sprd_dsi *dsi_master;
+	struct sprd_dsi *dsi_slave;
 };
 
 extern struct list_head dsi_core_head;

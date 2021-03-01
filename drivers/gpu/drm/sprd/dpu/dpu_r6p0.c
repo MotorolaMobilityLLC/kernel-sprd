@@ -22,6 +22,7 @@
 #include "dpu_r6p0_corner_param.h"
 #include "dpu_enhance_param.h"
 #include "dpu_r6p0_scale_param.h"
+#include "sprd_dsi.h"
 
 #define DPU_INT_DONE_MASK			BIT(0)
 #define DPU_INT_TE_MASK				BIT(1)
@@ -66,6 +67,10 @@
 #define CABC_MODE_CAMERA                (1 << 6)
 #define CABC_MODE_FULL_FRAME            (1 << 7)
 
+/* DSC_PicW_PicH_SliceW_SliceH  */
+#define DSC_1440_2560_720_2560	0
+#define DSC_1080_2408_540_8	1
+#define DSC_720_2560_720_8	2
 
 static u32 dpu_luts_paddr;
 static u8 *dpu_luts_vaddr;
@@ -141,6 +146,7 @@ struct dpu_reg {
 	u32 dpu_enhance_cfg;
 	u32 enhance_update;
 	u32 enhance_sts;
+	u32 reserved_0x50c;
 	u32 slp_lut_base_addr;
 	u32 threed_lut_base_addr;
 	u32 hsv_lut_base_addr;
@@ -170,15 +176,17 @@ struct dpu_reg {
 	u32 sw_tuning_bth_step;
 	u32 hsv_cfg;
 	u32 reserved_0x584_0x58c[3];
-	u32 cabc_cfg[7];
+	u32 cabc_cfg[6];
 	u32 reserved_0x5a8_0x5ac[2];
 	u32 ud_cfg0;
 	u32 ud_cfg1;
-	u32 reserved_0x5b8_0x5fc[12];
-	u32 cabc_hist[32];
-	u32 dpu_sts[18];
+	u32 reserved_0x5b8_0x5fc[18];
+	u32 cabc_hist[64];
+	u32 dpu_sts[24];
+	u32 reserved_0x760_0x77c[8];
 	u32 gamma_lut_addr;
 	u32 gamma_lut_rdata;
+	u32 reserved_0x788_0x794[4];
 	u32 slp_lut_addr;
 	u32 slp_lut_rdata;
 	u32 hsv_lut0_addr;
@@ -206,6 +214,61 @@ struct dpu_reg {
 	u32 threed_lut7_addr;
 	u32 threed_lut7_rdata;
 	u32 reserved_0x800_0x17fc[1024];
+	u32 s_mmu_0x1800_0x19ac[108];
+	u32 reserved_0x19b0_0x19fc[20];
+	u32 dsc_ctrl;
+	u32 dsc_pic_size;
+	u32 dsc_grp_size;
+	u32 dsc_slice_size;
+	u32 dsc_h_timing;
+	u32 dsc_v_timing;
+	u32 dsc_cfg0;
+	u32 dsc_cfg1;
+	u32 dsc_cfg2;
+	u32 dsc_cfg3;
+	u32 dsc_cfg4;
+	u32 dsc_cfg5;
+	u32 dsc_cfg6;
+	u32 dsc_cfg7;
+	u32 dsc_cfg8;
+	u32 dsc_cfg9;
+	u32 dsc_cfg10;
+	u32 dsc_cfg11;
+	u32 dsc_cfg12;
+	u32 dsc_cfg13;
+	u32 dsc_cfg14;
+	u32 dsc_cfg15;
+	u32 dsc_cfg16;
+	u32 dsc_sts0;
+	u32 dsc_sts1;
+	u32 dsc_version;
+	u32 reserved_0x1a68_0x1afc[38];
+	u32 dsc1_ctrl;
+	u32 dsc1_pic_size;
+	u32 dsc1_grp_size;
+	u32 dsc1_slice_size;
+	u32 dsc1_h_timing;
+	u32 dsc1_v_timing;
+	u32 dsc1_cfg0;
+	u32 dsc1_cfg1;
+	u32 dsc1_cfg2;
+	u32 dsc1_cfg3;
+	u32 dsc1_cfg4;
+	u32 dsc1_cfg5;
+	u32 dsc1_cfg6;
+	u32 dsc1_cfg7;
+	u32 dsc1_cfg8;
+	u32 dsc1_cfg9;
+	u32 dsc1_cfg10;
+	u32 dsc1_cfg11;
+	u32 dsc1_cfg12;
+	u32 dsc1_cfg13;
+	u32 dsc1_cfg14;
+	u32 dsc1_cfg15;
+	u32 dsc1_cfg16;
+	u32 dsc1_sts0;
+	u32 dsc1_sts1;
+	u32 dsc1_version;
 };
 
 struct enhance_module {
@@ -417,6 +480,13 @@ struct cabc_para {
 	u8 video_mode;
 };
 
+struct dpu_dsc_cfg {
+	char name[128];
+	bool dual_dsi_en;
+	bool dsc_en;
+	int  dsc_mode;
+};
+
 static struct scale_cfg scale_copy;
 
 static struct cm_cfg cm_copy;
@@ -459,12 +529,48 @@ module_param(cabc_bl_set_delay, int, 0644);
 module_param(cabc_disable, int, 0644);
 module_param(frame_no, int, 0644);
 
+/*
+ * FIXME:
+ * We don't know what's the best binding to link the panel with dpu dsc.
+ * Fow now, we just add all panels that we support dsc, and search them
+ */
+static struct dpu_dsc_cfg dsc_cfg[] = {
+	{
+		.name = "lcd_nt35597_boe_mipi_qhd",
+		.dual_dsi_en = 0,
+		.dsc_en = 1,
+		.dsc_mode = 0,
+	},
+	{
+		.name = "lcd_nt57860_boe_mipi_qhd",
+		.dual_dsi_en = 1,
+		.dsc_en = 1,
+		.dsc_mode = 2,
+	},
+	{
+		.name = "lcd_nt36672c_truly_mipi_fhd",
+		.dual_dsi_en = 0,
+		.dsc_en = 1,
+		.dsc_mode = 1,
+	},
+};
+
 static void dpu_sr_config(struct dpu_context *ctx);
 static void dpu_enhance_reload(struct dpu_context *ctx);
 static void dpu_clean_all(struct dpu_context *ctx);
 static void dpu_layer(struct dpu_context *ctx,
 		    struct sprd_dpu_layer *hwlayer);
 static int dpu_cabc_trigger(struct dpu_context *ctx);
+
+const char *lcd_name_str;
+static int __init lcd_name_get(char *str)
+{
+	if (str != NULL)
+		lcd_name_str = str;
+	DRM_INFO("lcd name from uboot: %s\n", lcd_name_str);
+	return 0;
+}
+__setup("lcd_name=", lcd_name_get);
 
 static u32 dpu_get_version(struct dpu_context *ctx)
 {
@@ -1063,11 +1169,150 @@ static void dpu_luts_init_addr(struct dpu_context *ctx)
 	reg->enhance_update |= BIT(0);
 }
 
+/*
+ * FIXME:
+ * We don't know what's the best binding to link the panel with dpu dsc.
+ * Fow now, we just hunt for all panels that we support, and get dsc cfg
+ */
+static void dpu_get_dsc_cfg(struct dpu_context *ctx)
+{
+	int index;
+
+	for (index = 0; index < ARRAY_SIZE(dsc_cfg); index++) {
+		if (!strcmp(dsc_cfg[index].name, lcd_name_str)) {
+			ctx->dual_dsi_en = dsc_cfg[index].dual_dsi_en;
+			ctx->dsc_en = dsc_cfg[index].dsc_en;
+			ctx->dsc_mode = dsc_cfg[index].dsc_mode;
+			return;
+		}
+	}
+	pr_info("no found compatible, use dsc off\n");
+}
+
+static int dpu_config_dsc_param(struct dpu_context *ctx)
+{
+	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
+	struct sprd_dpu *dpu =
+		(struct sprd_dpu *)container_of(ctx, struct sprd_dpu, ctx);
+
+	if (ctx->dual_dsi_en)
+		reg->dsc_pic_size = (ctx->vm.vactive << 16) |
+			((ctx->vm.hactive >> 1)  << 0);
+	else
+		reg->dsc_pic_size = (ctx->vm.vactive << 16) |
+			(ctx->vm.hactive << 0);
+	if (ctx->dual_dsi_en)
+		reg->dsc_h_timing = ((ctx->vm.hsync_len >> 1) << 0) |
+			((ctx->vm.hback_porch  >> 1) << 8) |
+			((ctx->vm.hfront_porch >> 1) << 20);
+	else
+		reg->dsc_h_timing = (ctx->vm.hsync_len << 0) |
+			(ctx->vm.hback_porch  << 8) |
+			(ctx->vm.hfront_porch << 20);
+	reg->dsc_v_timing = (ctx->vm.vsync_len << 0) |
+			(ctx->vm.vback_porch  << 8) |
+			(ctx->vm.vfront_porch << 20);
+
+	reg->dsc_cfg0 = 0x306c81db;
+	reg->dsc_cfg3 = 0x12181800;
+	reg->dsc_cfg4 = 0x003316b6;
+	reg->dsc_cfg5 = 0x382a1c0e;
+	reg->dsc_cfg6 = 0x69625446;
+	reg->dsc_cfg7 = 0x7b797770;
+	reg->dsc_cfg8 = 0x00007e7d;
+	reg->dsc_cfg9 = 0x01000102;
+	reg->dsc_cfg10 = 0x09be0940;
+	reg->dsc_cfg11 = 0x19fa19fc;
+	reg->dsc_cfg12 = 0x1a3819f8;
+	reg->dsc_cfg13 = 0x1ab61a78;
+	reg->dsc_cfg14 = 0x2b342af6;
+	reg->dsc_cfg15 = 0x3b742b74;
+	reg->dsc_cfg16 = 0x00006bf4;
+
+	switch (ctx->dsc_mode) {
+	case DSC_1440_2560_720_2560:
+		reg->dsc_grp_size = 0x000000f0;
+		reg->dsc_slice_size = 0x04096000;
+		reg->dsc_cfg1 = 0x000ae4bd;
+		reg->dsc_cfg2 = 0x0008000a;
+		break;
+	case DSC_1080_2408_540_8:
+		reg->dsc_grp_size = 0x800b4;
+		reg->dsc_slice_size = 0x050005a0;
+		reg->dsc_cfg1 = 0x7009b;
+		reg->dsc_cfg2 = 0xcb70db7;
+		break;
+	case DSC_720_2560_720_8:
+		reg->dsc_grp_size = 0x800f0;
+		reg->dsc_slice_size = 0x1000780;
+		reg->dsc_cfg1 = 0x000a00b1;
+		reg->dsc_cfg2 = 0x9890db7;
+		if (ctx->dual_dsi_en) {
+			reg->dsc1_pic_size = (ctx->vm.vactive << 16) |
+				((ctx->vm.hactive >> 1)  << 0);
+			reg->dsc1_h_timing = ((ctx->vm.hsync_len >> 1) << 0) |
+				((ctx->vm.hback_porch  >> 1) << 8) |
+				((ctx->vm.hfront_porch >> 1) << 20);
+			reg->dsc1_v_timing = (ctx->vm.vsync_len << 0) |
+				(ctx->vm.vback_porch  << 8) |
+				(ctx->vm.vfront_porch << 20);
+			reg->dsc1_cfg0 = 0x306c81db;
+			reg->dsc1_cfg3 = 0x12181800;
+			reg->dsc1_cfg4 = 0x003316b6;
+			reg->dsc1_cfg5 = 0x382a1c0e;
+			reg->dsc1_cfg6 = 0x69625446;
+			reg->dsc1_cfg7 = 0x7b797770;
+			reg->dsc1_cfg8 = 0x00007e7d;
+			reg->dsc1_cfg9 = 0x01000102;
+			reg->dsc1_cfg10 = 0x09be0940;
+			reg->dsc1_cfg11 = 0x19fa19fc;
+			reg->dsc1_cfg12 = 0x1a3819f8;
+			reg->dsc1_cfg13 = 0x1ab61a78;
+			reg->dsc1_cfg14 = 0x2b342af6;
+			reg->dsc1_cfg15 = 0x3b742b74;
+			reg->dsc1_cfg16 = 0x00006bf4;
+			reg->dsc1_grp_size = 0x800f0;
+			reg->dsc1_slice_size = 0x1000780;
+			reg->dsc1_cfg1 = 0x000a00b1;
+			reg->dsc1_cfg2 = 0x9890db7;
+			if (dpu->dsi->ctx.work_mode == DSI_MODE_CMD)
+				reg->dsc1_ctrl = 0x2000010b;
+			else
+				reg->dsc1_ctrl = 0x2000000b;
+		}
+
+		break;
+	default:
+		reg->dsc_grp_size = 0x000000f0;
+		reg->dsc_slice_size = 0x04096000;
+		reg->dsc_cfg1 = 0x000ae4bd;
+		reg->dsc_cfg2 = 0x0008000a;
+		break;
+	}
+
+	if (dpu->dsi->ctx.work_mode == DSI_MODE_CMD)
+		reg->dsc_ctrl = 0x2000010b;
+	else
+		reg->dsc_ctrl = 0x2000000b;
+
+	return 0;
+}
+
 static int dpu_init(struct dpu_context *ctx)
 {
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
 	u32 size;
 	int ret;
+	struct sprd_dpu *dpu =
+		(struct sprd_dpu *)container_of(ctx, struct sprd_dpu, ctx);
+
+	dpu_get_dsc_cfg(ctx);
+
+	if (ctx->dual_dsi_en)
+		reg->dpu_mode = BIT(0);
+
+	if (ctx->dsc_en)
+		dpu_config_dsc_param(ctx);
 
 	/* set bg color */
 	reg->bg_color = 0;
@@ -1078,6 +1323,11 @@ static int dpu_init(struct dpu_context *ctx)
 	reg->blend_size = size;
 
 	reg->dpu_cfg0 = 0;
+	if ((dpu->dsi->ctx.work_mode == DSI_MODE_CMD) && ctx->dsc_en) {
+		reg->dpu_cfg0 |= BIT(1);
+		ctx->is_single_run = true;
+	}
+
 	reg->dpu_cfg1 = (qos_cfg.awqos_high << 12) |
 		(qos_cfg.awqos_low << 8) |
 		(qos_cfg.arqos_high << 4) |
@@ -1334,12 +1584,17 @@ static void dpu_bgcolor(struct dpu_context *ctx, u32 color)
 
 	dpu_clean_all(ctx);
 
-	if ((ctx->if_type == SPRD_DISPC_IF_DPI) && !ctx->is_stopped) {
-		reg->dpu_ctrl |= BIT(2);
-		dpu_wait_update_done(ctx);
+	if (ctx->is_single_run) {
+		reg->dpu_ctrl |= BIT(4);
+		reg->dpu_ctrl |= BIT(0);
 	} else if (ctx->if_type == SPRD_DISPC_IF_EDPI) {
 		reg->dpu_ctrl |= BIT(0);
 		ctx->is_stopped = false;
+	} else if (ctx->if_type == SPRD_DISPC_IF_DPI) {
+		if (!ctx->is_stopped) {
+			reg->dpu_ctrl |= BIT(4);
+			dpu_wait_update_done(ctx);
+		}
 	}
 }
 
@@ -1474,18 +1729,20 @@ static void dpu_flip(struct dpu_context *ctx,
 		dpu_layer(ctx, &layers[i]);
 
 	/* update trigger and wait */
-	if (ctx->if_type == SPRD_DISPC_IF_DPI) {
+	if (ctx->is_single_run) {
+		reg->dpu_ctrl |= BIT(4);
+		reg->dpu_ctrl |= BIT(0);
+	} else if (ctx->if_type == SPRD_DISPC_IF_EDPI) {
+		reg->dpu_ctrl |= BIT(0);
+
+		ctx->is_stopped = false;
+	} else if (ctx->if_type == SPRD_DISPC_IF_DPI) {
 		if (!ctx->is_stopped) {
 			reg->dpu_ctrl |= BIT(4);
 			dpu_wait_update_done(ctx);
 		}
 
 		reg->dpu_int_en |= DPU_INT_ERR_MASK;
-
-	} else if (ctx->if_type == SPRD_DISPC_IF_EDPI) {
-		reg->dpu_ctrl |= BIT(0);
-
-		ctx->is_stopped = false;
 	}
 
 	/*
@@ -1516,6 +1773,9 @@ static void dpu_dpi_init(struct dpu_context *ctx)
 	if (ctx->if_type == SPRD_DISPC_IF_DPI) {
 		/* use dpi as interface */
 		reg->dpu_cfg0 &= ~BIT(0);
+
+		if (ctx->is_single_run)
+			reg->dpi_ctrl |= BIT(0);
 
 		/* set dpi timing */
 		reg->dpi_h_timing = (ctx->vm.hsync_len << 0) |

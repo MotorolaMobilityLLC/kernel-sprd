@@ -28,6 +28,7 @@
 #include <drm/drm_vblank.h>
 #include <uapi/drm/drm_mode.h>
 #include "disp_lib.h"
+#include "sprd_dsi.h"
 
 #define DRM_MODE_BLEND_PREMULTI		2
 #define DRM_MODE_BLEND_COVERAGE		1
@@ -186,6 +187,7 @@ struct dpu_context {
 	u8 id;
 	bool is_inited;
 	bool is_stopped;
+	bool is_single_run;
 	bool disable_flip;
 	struct videomode vm;
 	struct semaphore refresh_lock;
@@ -201,6 +203,9 @@ struct dpu_context {
 	struct work_struct cabc_work;
 	struct work_struct cabc_bl_update;
 	int dpi_clk_div;
+	bool dual_dsi_en;
+	bool dsc_en;
+	int  dsc_mode;
 };
 
 struct sprd_dpu {
@@ -212,6 +217,7 @@ struct sprd_dpu {
 	struct dpu_glb_ops *glb;
 	struct drm_display_mode *mode;
 	struct sprd_dpu_layer *layers;
+	struct sprd_dsi *dsi;
 	u8 pending_planes;
 };
 

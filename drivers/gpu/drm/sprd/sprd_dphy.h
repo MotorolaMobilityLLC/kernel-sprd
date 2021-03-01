@@ -74,6 +74,8 @@ struct sprd_dphy {
 	struct dphy_ppi_ops *ppi;
 	struct dphy_pll_ops *pll;
 	struct dphy_glb_ops *glb;
+	struct sprd_dphy *master;
+	struct sprd_dphy *slave;
 };
 
 extern struct list_head dphy_pll_head;

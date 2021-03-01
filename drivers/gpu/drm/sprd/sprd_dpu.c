@@ -1082,6 +1082,27 @@ static int sprd_dpu_irq_request(struct sprd_dpu *dpu)
 	return 0;
 }
 
+static struct sprd_dsi *sprd_dpu_dsi_attach(struct sprd_dpu *dpu)
+{
+	struct device *dev;
+	struct sprd_dsi *dsi;
+
+	DRM_INFO("dpu attach dsi\n");
+	dev = sprd_disp_pipe_get_output(&dpu->dev);
+	if (!dev) {
+		DRM_ERROR("dpu pipe get output failed\n");
+		return NULL;
+	}
+
+	dsi = dev_get_drvdata(dev);
+	if (!dsi) {
+		DRM_ERROR("dpu attach dsi failed\n");
+		return NULL;
+	}
+
+	return dsi;
+}
+
 static int sprd_dpu_bind(struct device *dev, struct device *master, void *data)
 {
 	struct drm_device *drm = data;
@@ -1105,6 +1126,7 @@ static int sprd_dpu_bind(struct device *dev, struct device *master, void *data)
 	sprd_dpu_irq_request(dpu);
 
 	sprd->dpu_dev = dev;
+	dpu->dsi = sprd_dpu_dsi_attach(dpu);
 
 	return 0;
 }

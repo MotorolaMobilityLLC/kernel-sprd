@@ -17,6 +17,7 @@
 #include <linux/module.h>
 #include <linux/of.h>
 #include <linux/of_graph.h>
+#include <linux/of_platform.h>
 #include <linux/of_address.h>
 #include <linux/of_platform.h>
 #include <linux/pm_runtime.h>
@@ -122,6 +123,7 @@ int sprd_dphy_resume(struct sprd_dphy *dphy)
 	int ret;
 
 	mutex_lock(&dphy->ctx.lock);
+
 	if (dphy->glb && dphy->glb->power)
 		dphy->glb->power(&dphy->ctx, true);
 	if (dphy->glb && dphy->glb->enable)
@@ -132,6 +134,20 @@ int sprd_dphy_resume(struct sprd_dphy *dphy)
 		mutex_unlock(&dphy->ctx.lock);
 		DRM_ERROR("sprd dphy init failed\n");
 		return -EINVAL;
+	}
+
+	if (dphy->slave) {
+		if (dphy->slave->glb && dphy->slave->glb->power)
+			dphy->slave->glb->power(&dphy->slave->ctx, true);
+		if (dphy->slave->glb && dphy->slave->glb->enable)
+			dphy->slave->glb->enable(&dphy->slave->ctx);
+
+		ret = sprd_dphy_configure(dphy->slave);
+		if (ret) {
+			mutex_unlock(&dphy->ctx.lock);
+			DRM_ERROR("sprd dphy slave init failed\n");
+			return -EINVAL;
+		}
 	}
 
 	dphy->ctx.is_enabled = true;
@@ -155,6 +171,17 @@ int sprd_dphy_suspend(struct sprd_dphy *dphy)
 	if (dphy->glb && dphy->glb->power)
 		dphy->glb->power(&dphy->ctx, false);
 
+	if (dphy->slave) {
+		ret = sprd_dphy_close(dphy->slave);
+		if (ret)
+			DRM_ERROR("sprd dphy slave close failed\n");
+
+		if (dphy->slave->glb && dphy->slave->glb->disable)
+			dphy->slave->glb->disable(&dphy->slave->ctx);
+		if (dphy->slave->glb && dphy->slave->glb->power)
+			dphy->slave->glb->power(&dphy->slave->ctx, false);
+
+	}
 	dphy->ctx.is_enabled = false;
 	mutex_unlock(&dphy->ctx.lock);
 
@@ -230,6 +257,27 @@ static int sprd_dphy_context_init(struct sprd_dphy *dphy,
 	return 0;
 }
 
+static int sprd_dphy_dual_channel_init(struct sprd_dphy *dphy)
+{
+	struct device_node *np;
+	struct platform_device *secondary;
+
+	np = of_parse_phandle(dphy->dev.of_node, "sprd,dual-channel", 0);
+	if (np) {
+		DRM_INFO("find sprd,dual-channel\n");
+		secondary = of_find_device_by_node(np);
+		dphy->slave = platform_get_drvdata(secondary);
+		of_node_put(np);
+
+		if (!dphy->slave)
+			return -EPROBE_DEFER;
+
+		dphy->slave->master = dphy;
+	}
+
+	return 0;
+}
+
 static int sprd_dphy_probe(struct platform_device *pdev)
 {
 	struct device_node *np = pdev->dev.of_node;
@@ -265,10 +313,16 @@ static int sprd_dphy_probe(struct platform_device *pdev)
 	if (ret)
 		return ret;
 
+	DRM_INFO("dphy driver probe (dphy->ctx.id=%d)\n", dphy->ctx.id);
+
 	sprd_dphy_device_create(dphy, &pdev->dev);
 	sprd_dphy_sysfs_init(&dphy->dev);
 	sprd_dphy_regmap_init(dphy);
 	platform_set_drvdata(pdev, dphy);
+
+	ret = sprd_dphy_dual_channel_init(dphy);
+	if (ret)
+		return ret;
 
 	DRM_INFO("dphy driver probe success\n");
 

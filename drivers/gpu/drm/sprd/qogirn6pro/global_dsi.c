@@ -19,12 +19,13 @@
 #include "sprd_dsi.h"
 
 static struct clk *clk_dsi0_eb;
+static struct clk *clk_dsi1_eb;
 
 static struct dsi_glb_context {
 	unsigned int ctrl_reg;
 	unsigned int ctrl_mask;
 	struct regmap *regmap;
-} ctx_reset;
+} ctx_reset, s_ctx_reset;
 
 static int dsi_glb_parse_dt(struct dsi_context *ctx,
 				struct device_node *np)
@@ -57,6 +58,37 @@ static int dsi_glb_parse_dt(struct dsi_context *ctx,
 	return 0;
 }
 
+static int dsi_s_glb_parse_dt(struct dsi_context *ctx,
+				struct device_node *np)
+{
+	unsigned int syscon_args[2];
+	int ret;
+
+	pr_info("%s enter\n", __func__);
+
+	clk_dsi1_eb =
+		of_clk_get_by_name(np, "clk_dsi1_eb");
+	if (IS_ERR(clk_dsi1_eb)) {
+		pr_warn("read clk_dsi1_eb failed\n");
+		clk_dsi1_eb = NULL;
+	}
+
+	s_ctx_reset.regmap = syscon_regmap_lookup_by_name(np, "reset");
+	if (IS_ERR(s_ctx_reset.regmap)) {
+		pr_warn("failed to map dsi glb reg\n");
+		return PTR_ERR(s_ctx_reset.regmap);
+	}
+
+	ret = syscon_get_args_by_name(np, "reset", 2, syscon_args);
+	if (ret == 2) {
+		s_ctx_reset.ctrl_reg = syscon_args[0];
+		s_ctx_reset.ctrl_mask = syscon_args[1];
+	} else {
+		pr_warn("failed to parse dsi glb reg\n");
+	}
+	return 0;
+}
+
 static void dsi_glb_enable(struct dsi_context *ctx)
 {
 	int ret;
@@ -66,9 +98,23 @@ static void dsi_glb_enable(struct dsi_context *ctx)
 		pr_err("enable clk_dsi0_eb failed!\n");
 }
 
+static void dsi_s_glb_enable(struct dsi_context *ctx)
+{
+	int ret;
+
+	ret = clk_prepare_enable(clk_dsi1_eb);
+	if (ret)
+		pr_err("enable clk_dsi1_eb failed!\n");
+}
+
 static void dsi_glb_disable(struct dsi_context *ctx)
 {
 	clk_disable_unprepare(clk_dsi0_eb);
+}
+
+static void dsi_s_glb_disable(struct dsi_context *ctx)
+{
+	clk_disable_unprepare(clk_dsi1_eb);
 }
 
 static void dsi_reset(struct dsi_context *ctx)
@@ -84,6 +130,19 @@ static void dsi_reset(struct dsi_context *ctx)
 			(unsigned int)(~ctx_reset.ctrl_mask));
 }
 
+static void dsi_s_reset(struct dsi_context *ctx)
+{
+	regmap_update_bits(s_ctx_reset.regmap,
+			s_ctx_reset.ctrl_reg,
+			s_ctx_reset.ctrl_mask,
+			s_ctx_reset.ctrl_mask);
+	udelay(10);
+	regmap_update_bits(s_ctx_reset.regmap,
+			s_ctx_reset.ctrl_reg,
+			s_ctx_reset.ctrl_mask,
+			(unsigned int)(~s_ctx_reset.ctrl_mask));
+}
+
 static struct dsi_glb_ops dsi_glb_ops = {
 	.parse_dt = dsi_glb_parse_dt,
 	.reset = dsi_reset,
@@ -91,9 +150,21 @@ static struct dsi_glb_ops dsi_glb_ops = {
 	.disable = dsi_glb_disable,
 };
 
+static struct dsi_glb_ops dsi_s_glb_ops = {
+	.parse_dt = dsi_s_glb_parse_dt,
+	.reset = dsi_s_reset,
+	.enable = dsi_s_glb_enable,
+	.disable = dsi_s_glb_disable,
+};
+
 static struct ops_entry entry = {
 	.ver = "qogirn6pro",
 	.ops = &dsi_glb_ops,
+};
+
+static struct ops_entry entry_slave = {
+	.ver = "qogirn6pro_s",
+	.ops = &dsi_s_glb_ops,
 };
 
 static int __init dsi_glb_register(void)
@@ -102,6 +173,13 @@ static int __init dsi_glb_register(void)
 }
 
 subsys_initcall(dsi_glb_register);
+
+static int __init dsi_s_glb_register(void)
+{
+	return dsi_glb_ops_register(&entry_slave);
+}
+
+subsys_initcall(dsi_s_glb_register);
 
 MODULE_LICENSE("GPL v2");
 MODULE_AUTHOR("Junxiao.feng@unisoc.com");
