@@ -818,7 +818,7 @@ u32 wcn_shutdown_status(struct wcn_device *wcn_dev)
 
 void wcn_set_auto_shutdown(struct wcn_device *wcn_dev)
 {
-	u32 reg_val;
+	u32 reg_val = 0;
 
 	wcn_regmap_read(wcn_dev->rmap[REGMAP_PMU_APB],
 				 0x03a8, &reg_val);
