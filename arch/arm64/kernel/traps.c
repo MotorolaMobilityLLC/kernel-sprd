@@ -102,6 +102,7 @@ void dump_backtrace(struct pt_regs *regs, struct task_struct *tsk)
 {
 	struct stackframe frame;
 	int skip = 0;
+	unsigned long frame_fp_saved;
 
 	pr_debug("%s(regs = %p tsk = %p)\n", __func__, regs, tsk);
 
@@ -133,6 +134,7 @@ void dump_backtrace(struct pt_regs *regs, struct task_struct *tsk)
 
 	printk("Call trace:\n");
 	do {
+		frame_fp_saved = frame.fp;
 		/* skip until specified stack frame */
 		if (!skip) {
 			dump_backtrace_entry(frame.pc);
@@ -147,7 +149,7 @@ void dump_backtrace(struct pt_regs *regs, struct task_struct *tsk)
 			 */
 			dump_backtrace_entry(regs->pc);
 		}
-	} while (!unwind_frame(tsk, &frame));
+	} while (!unwind_frame(tsk, &frame) && (frame_fp_saved != frame.fp));
 
 	put_task_stack(tsk);
 }
