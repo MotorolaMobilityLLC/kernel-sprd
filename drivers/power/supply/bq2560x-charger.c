@@ -48,6 +48,7 @@
 #define BQ2560X_REG_ICHG_MASK			GENMASK(5, 0)
 
 #define BQ2560X_REG_CHG_MASK			GENMASK(4, 4)
+#define BQ2560X_REG_CHG_SHIFT			4
 
 
 #define BQ2560X_REG_RESET_MASK			GENMASK(6, 6)
@@ -411,6 +412,14 @@ static int bq2560x_charger_start_charge(struct bq2560x_charger_info *info)
 			dev_err(info->dev, "enable bq2560x charge failed\n");
 			return ret;
 		}
+
+		ret = bq2560x_update_bits(info, BQ2560X_REG_1,
+					  BQ2560X_REG_CHG_MASK,
+					  0x1 << BQ2560X_REG_CHG_SHIFT);
+		if (ret) {
+			dev_err(info->dev, "enable bq2560x charge en failed\n");
+			return ret;
+		}
 	} else if (info->role == BQ2560X_ROLE_SLAVE) {
 		gpiod_set_value_cansleep(info->gpiod, 0);
 	}
@@ -450,6 +459,14 @@ static void bq2560x_charger_stop_charge(struct bq2560x_charger_info *info)
 					 info->charger_pd_mask);
 		if (ret)
 			dev_err(info->dev, "disable bq2560x charge failed\n");
+
+		if (info->is_wireless_charge) {
+			ret = bq2560x_update_bits(info, BQ2560X_REG_1,
+						BQ2560X_REG_CHG_MASK,
+						0x0);
+			if (ret)
+				dev_err(info->dev, "disable bq2560x charge en failed\n");
+		}
 	} else if (info->role == BQ2560X_ROLE_SLAVE) {
 		ret = bq2560x_update_bits(info, BQ2560X_REG_0,
 					  BQ2560X_REG_EN_HIZ_MASK,
