@@ -143,7 +143,7 @@ static unsigned int nf_ipv4_ipsec_dec_dump_in(void *priv,
 	if (!get_vowifi_dec_status())
 		return NF_ACCEPT;
 
-	if (((skb->active_extensions | (1 << SKB_EXT_SEC_PATH))) && ext)
+	if (((skb->active_extensions & (1 << SKB_EXT_SEC_PATH))) && ext)
 		nf_xfrm4_input_decode_cap_log(skb);
 
 	return NF_ACCEPT;
