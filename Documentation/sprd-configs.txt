@@ -12984,15 +12984,6 @@ CONFIG_SND_SOC
 	[must] user
 	[missing plat description] none
 	[function] ALSA for SoC audio support
-CONFIG_SND_SOC_AK4377_HIFI
-	[arch] arm64
-	[plat] qogirl6
-	[missing plat] qogirn6pro,sharkl3,sharkl5,sharkl5Pro
-	[field] make
-	[subsys] sound
-	[must] user
-	[missing plat description] Don't support hifi
-	[function] support hifi
 CONFIG_SND_SOC_COMPRESS
 	[arch] all
 	[plat] qogirl6,qogirn6pro,sharkl5,sharkl5Pro,sharkl5_32
