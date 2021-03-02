@@ -692,6 +692,11 @@
 	status = "okay";
 };
 
+&spi0 {
+	/*used for fingerprint sensor*/
+	status = "okay";
+};
+
 &hsphy {
 	vdd-supply = <&vddusb33>;
 	extcon = <&extcon_gpio>;

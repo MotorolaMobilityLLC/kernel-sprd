@@ -49,6 +49,11 @@
 				};
 			};
 
+			fingerprint@0 {
+				compatible = "microarray,afs121";
+				fpint-gpios = <&eic_async 29 0>;
+			};
+
 			pwm_backlight: backlight {
 				compatible = "sprd,qogirn6pro-backlight";
 				pwms = <&pwms 0 40000>;
