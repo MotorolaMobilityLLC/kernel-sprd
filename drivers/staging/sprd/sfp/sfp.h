@@ -604,8 +604,6 @@ static inline char *get_tcp_flag(struct tcphdr *hp)
 	default:
 		return s_tcp_state[0];
 	}
-
-	return s_tcp_state[0];
 }
 
 static inline bool sfp_ct_tuple_equal(const struct sfp_mgr_fwd_tuple_hash *t1,

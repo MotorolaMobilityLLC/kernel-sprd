@@ -161,8 +161,6 @@ bool sfp_pkt_to_tuple(void *data,
 		       sizeof(tuple->dst.u3.ip6));
 		l4offset = sfp_ipv6_skip_exthdr(data, extoff, &nexthdr);
 		l4proto = nexthdr;
-		if (l4offset < 0)
-			return false;
 		tuple->src.l3num = NFPROTO_IPV6;
 	}
 	*l4offsetp = l4offset;

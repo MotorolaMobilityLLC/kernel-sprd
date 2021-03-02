@@ -97,10 +97,12 @@ static bool is_relevant_protocol(u8 proto, struct nf_conntrack_tuple *tuple)
 		if (tuple->dst.u.icmp.type == ICMP_ECHO ||
 		    tuple->dst.u.icmp.type == ICMP_ECHOREPLY)
 			return true;
+		break;
 	case IP_L4_PROTO_ICMP6:
 		if (tuple->dst.u.icmp.type == ICMPV6_ECHO_REQUEST ||
 		    tuple->dst.u.icmp.type == ICMPV6_ECHO_REPLY)
 			return true;
+		break;
 	default:
 		return false;
 	}
