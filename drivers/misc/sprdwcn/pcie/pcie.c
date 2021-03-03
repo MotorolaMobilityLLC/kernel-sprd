@@ -43,8 +43,78 @@
 #define LTSSM_STATE_L1_IDLE		0x14
 #define LTSSM_STATE_L2_IDLE		0x15
 
+#define N	16
+
 static int (*scan_card_notify)(void);
 static struct wcn_pcie_info *g_pcie_dev;
+
+void wcn_dump_ep_mems(struct wcn_pcie_info *priv)
+{
+	u32 reg;
+	u32 mem[N];
+	int i;
+
+	pci_read_config_dword(priv->dev, 00, &reg);
+	WCN_INFO("EP [00] =0x%x\n", reg);
+	pci_read_config_dword(priv->dev, 04, &reg);
+	WCN_INFO("EP [04] =0x%x\n", reg);
+	pci_read_config_dword(priv->dev, 0x10, &reg);
+	WCN_INFO("EP [10] =0x%x\n", reg);
+	pci_read_config_dword(priv->dev, 0x18, &reg);
+	WCN_INFO("EP [18] =0x%x\n", reg);
+	pci_read_config_dword(priv->dev, 0x20, &reg);
+	WCN_INFO("EP [20] =0x%x\n", reg);
+	pci_read_config_dword(priv->dev, 0x24, &reg);
+	WCN_INFO("EP [24] =0x%x\n", reg);
+	sprd_pcie_mem_read(0x40500000, mem, N * 4);
+	for (i = 0; i < N; i++)
+		WCN_INFO("mem[%d]= 0x%x\n", i, mem[i]);
+
+	sprd_pcie_mem_read(0x40130000, mem, N * 4);
+	for (i = 0; i < N; i++)
+		WCN_INFO("4013[%d]= 0x%x\n", i, mem[i]);
+
+	sprd_pcie_mem_read(0x40160000, mem, N * 4);
+	for (i = 0; i < N; i++)
+		WCN_INFO("EDMA_GLB[%d]= 0x%x\n", i, mem[i]);
+}
+
+void wcn_dump_ep_breg(struct wcn_pcie_info *priv, u32 breg_offset_addr)
+{
+	struct inbound_reg *breg;
+
+	if (!pcie_bar_vmem(priv, 4)) {
+		WCN_INFO("get bar4 base err\n");
+		return;
+	}
+	breg = (struct inbound_reg *) (pcie_bar_vmem(priv, 4) +
+		breg_offset_addr);
+	WCN_INFO("type = 0x%x\n", breg->type);
+	WCN_INFO("en = 0x%x\n", breg->en);
+	WCN_INFO("lower_base_addr = 0x%x\n", breg->lower_base_addr);
+	WCN_INFO("upper_base_addr = 0x%x\n", breg->upper_base_addr);
+	WCN_INFO("limit = 0x%x\n", breg->limit);
+	WCN_INFO("lower_target_addr = 0x%x\n", breg->lower_target_addr);
+	WCN_INFO("upper_target_addr = 0x%x\n", breg->upper_target_addr);
+}
+
+void wcn_dump_ep_regs(struct wcn_pcie_info *priv)
+{
+	u32 reg;
+
+	wcn_dump_ep_mems(priv);
+	pci_read_config_dword(priv->dev, WCN_PCIE_PHY_DEBUG_R0, &reg);
+	WCN_INFO("EP config reg [0x728]: 0x%x\n", reg);
+	pci_read_config_dword(priv->dev, PCI_VENDOR_ID, &reg);
+	WCN_INFO("EP config reg [0]: 0x%x\n", reg);
+	WCN_INFO("------------[ EP ibreg0 ]------------\n");
+	wcn_dump_ep_breg(priv, IBREG0_OFFSET_ADDR);
+	WCN_INFO("------------[ EP ibreg1 ]------------\n");
+	wcn_dump_ep_breg(priv, IBREG1_OFFSET_ADDR);
+	WCN_INFO("EP memory reg [0x0]: 0x%x, [0x4]: 0x%x\n",
+		sprd_pcie_read_reg32(priv, WCN_PCIE_DEV_AND_VND_ID),
+		sprd_pcie_read_reg32(priv, WCN_PCIE_CMD));
+}
 
 struct wcn_pcie_info *get_wcn_device_info(void)
 {
@@ -588,9 +658,12 @@ int sprd_pcie_set_aspm_policy(enum sub_sys subsys, enum wcn_bus_pm_state state)
 
 	if (state == BUS_PM_DISABLE) {
 		ret = wcn_pcie_wait_for_link(priv->dev);
-		if (ret)
+		if (ret) {
+			if (priv->rc_pd)
+				sprd_pcie_dump_rc_regs(priv->rc_pd);
 			WCN_ERR("%s: aspm_policy can't restore to L0\n",
 				__func__);
+		}
 	}
 	mutex_unlock(&priv->pm_lock);
 	return	ret;
