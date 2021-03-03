@@ -209,6 +209,12 @@
 			reg = <0 0x562000c8 0 0x22f8>;
 		};
 
+		audcp_aon_apb_regs: syscon@56390000 {
+			compatible = "sprd,ums9620-glbregs", "syscon";
+			reg = <0 0x56390000 0 0x3000>;
+			#syscon-cells = <2>;
+		};
+
 		pub_apb_regs: syscon@60050000 {
 			compatible = "sprd,ums9620-glbregs", "syscon";
 			#syscon-cells = <2>;
@@ -2388,6 +2394,16 @@
 				pinctrl-8 = <&vbc_iis2_3>;
 				pinctrl-9 = <&vbc_iis3_3>;
 				pinctrl-10 = <&ap_iis0_3>;
+			};
+
+			pdm_dmic: pdm-dmic@56370000 {
+				compatible = "sprd,pdm-ums9620";
+				status = "disabled";
+				reg = <0 0x56370000 0 0x2000>;/* 56370000 5637ffff */
+				#sound-dai-cells = <1>;
+				aon-apb-set-offset = <0>;
+				aon-apb-clr-offset = <0>;
+				sprd,syscon-agcp-apb = <&audcp_aon_apb_regs>;
 			};
 
 			mcdt@56500000{
