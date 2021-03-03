@@ -1059,6 +1059,12 @@ config ARM64_PMEM
 	  operations if DC CVAP is not supported (following the behaviour of
 	  DC CVAP itself if the system does not define a point of persistence).
 
+config SPRD_ARM64_PMU_GCOV
+	bool "open gcov for arm64_pmu"
+	depends on GCOV_PROFILE_MODULES
+	help
+	  Say Y here to enable gcov for arm64_pmu
+
 endmenu
 
 config ARM64_MODULE_CMODEL_LARGE

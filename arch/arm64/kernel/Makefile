@@ -21,7 +21,7 @@ arm64-obj-y		:= debug-monitors.o entry.o irq.o fpsimd.o		\
 			   return_address.o cpuinfo.o cpu_errata.o		\
 			   cpufeature.o alternative.o cacheinfo.o		\
 			   smp.o smp_spin_table.o topology.o smccc-call.o
-
+GCOV_PROFILE				= ${CONFIG_SPRD_ARM64_PMU_GCOV}
 extra-$(CONFIG_EFI)			:= efi-entry.o
 
 OBJCOPYFLAGS := --prefix-symbols=__efistub_
