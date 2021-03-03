@@ -2872,7 +2872,15 @@ static void dwc3_gadget_conndone_interrupt(struct dwc3 *dwc)
 	    (speed != DWC3_DSTS_SUPERSPEED) &&
 	    (speed != DWC3_DSTS_SUPERSPEED_PLUS)) {
 		reg = dwc3_readl(dwc->regs, DWC3_DCFG);
-		reg |= DWC3_DCFG_LPM_CAP;
+		/* There is a usb2 link stable issue on usb31 ip,
+		 * we don't see this issue when link through a hub,
+		 * we need to disable LPM_CAP for usb31 ip
+		 */
+		dev_info(dwc->dev, "%s usb3_lpm_capable(%d)\n", __func__, dwc->usb3_lpm_capable);
+		if (dwc->usb3_lpm_capable)
+			reg |= DWC3_DCFG_LPM_CAP;
+		else
+			reg &= ~DWC3_DCFG_LPM_CAP;
 		dwc3_writel(dwc->regs, DWC3_DCFG, reg);
 
 		reg = dwc3_readl(dwc->regs, DWC3_DCTL);
