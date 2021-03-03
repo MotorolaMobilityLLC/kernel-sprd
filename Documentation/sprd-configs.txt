@@ -14924,8 +14924,8 @@ CONFIG_SC27XX_ADC
 	[missing plat description] none
 	[function] This function is used to support sc27xx adc moudle
 CONFIG_SC27XX_EFUSE
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field] make
 	[subsys] nvmem
