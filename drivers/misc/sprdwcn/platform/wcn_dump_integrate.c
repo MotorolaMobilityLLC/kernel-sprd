@@ -380,6 +380,20 @@ void mdbg_dump_gnss_unregister(void)
 	gnss_dump_handle = NULL;
 }
 
+u32 mdbg_check_wifi_mac_phy(struct wcn_device *wcn_dev)
+{
+	u32 need_dump_status = 0;
+	u32 btwf_wrap_mac_mask = (0x2);
+	u32 btwf_wrap_phy_mask = (0x4);
+
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_APB],
+					0x03b0, &need_dump_status);
+	WCN_INFO("%s:0x03b0=0x%x\n", __func__, need_dump_status);
+
+	return ((need_dump_status & btwf_wrap_mac_mask) &&
+			(need_dump_status & btwf_wrap_phy_mask));
+}
+
 static int btwf_dump_mem(void)
 {
 	u32 cp2_status = 0;
@@ -409,14 +423,12 @@ static int btwf_dump_mem(void)
 	mdbg_dump_ap_register(s_wcn_dump_regs);
 
 	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
-		if (cp2_status == WCN_CP2_STATUS_DUMP_REG) {
-			mdbg_dump_cp_aon_register(s_wcn_dump_regs);
-			WCN_INFO("dump cp AON register ok!\n");
-		} else if (cp2_status == WCN_CP2_STATUS_DUMP_AON_REG) {
+		if (mdbg_check_wifi_mac_phy(s_wcn_device.btwf_device)) {
 			mdbg_dump_cp_register(s_wcn_dump_regs);
 			WCN_INFO("dump register ok!\n");
 		} else {
-			WCN_INFO("dump register cp2_status: %x\n", cp2_status);
+			mdbg_dump_cp_aon_register(s_wcn_dump_regs);
+			WCN_INFO("dump cp AON register ok!\n");
 		}
 	} else {
 		if (cp2_status == WCN_CP2_STATUS_DUMP_REG) {
