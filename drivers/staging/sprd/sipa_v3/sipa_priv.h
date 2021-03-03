@@ -9,6 +9,7 @@
 #ifndef _SIPA_PRIV_H_
 #define _SIPA_PRIV_H_
 
+#include <linux/alarmtimer.h>
 #include <linux/skbuff.h>
 #include <linux/sipa.h>
 #include <linux/interrupt.h>
@@ -328,6 +329,7 @@ struct sipa_nic_cons_res {
 	bool request_in_progress;
 	bool rm_flow_ctrl;
 	unsigned long jiffies;
+	struct alarm delay_timer;
 };
 
 struct sipa_nic {

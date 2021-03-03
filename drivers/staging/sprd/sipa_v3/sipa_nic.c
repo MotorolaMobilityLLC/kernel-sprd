@@ -187,6 +187,17 @@ static bool sipa_nic_rm_res_reinit(struct sipa_nic *nic)
 	return ret;
 }
 
+static void sipa_nic_alarm_start(struct sipa_nic_cons_res *res)
+{
+	ktime_t now, add;
+
+	now = ktime_get_boottime();
+	add = ktime_set(SIPA_NIC_RM_INACTIVE_TIMER / MSEC_PER_SEC,
+			(SIPA_NIC_RM_INACTIVE_TIMER % MSEC_PER_SEC)
+			* NSEC_PER_SEC);
+	alarm_start(&res->delay_timer, ktime_add(now, add));
+}
+
 static void sipa_nic_rm_notify_cb(void *user_data, enum sipa_rm_event event,
 				  unsigned long data)
 {
@@ -227,13 +238,20 @@ static int sipa_nic_deregister_rm(struct sipa_nic *nic, enum sipa_nic_id nic_id)
 	return sipa_rm_deregister(s_sipa_nic_statics[nic_id].cons, &r_param);
 }
 
-static void sipa_nic_rm_timer_func(struct work_struct *work)
+static enum alarmtimer_restart sipa_nic_alarm_to_release(struct alarm *alarm,
+							 ktime_t time)
 {
-	struct sipa_nic_cons_res *res = container_of(to_delayed_work(work),
+	struct sipa_nic_cons_res *res = container_of(alarm,
 						     struct sipa_nic_cons_res,
-						     work);
+						     delay_timer);
+	ktime_t now, add;
 	unsigned long flags;
 	bool release_flag = false;
+
+	now = ktime_get_boottime();
+	add = ktime_set(SIPA_NIC_RM_INACTIVE_TIMER / MSEC_PER_SEC,
+			(SIPA_NIC_RM_INACTIVE_TIMER % MSEC_PER_SEC) *
+			NSEC_PER_SEC);
 
 	pr_debug("timer expired for resource %d!\n",
 		 res->cons);
@@ -243,14 +261,14 @@ static void sipa_nic_rm_timer_func(struct work_struct *work)
 	if (res->reschedule_work || !res->chk_func(res->chk_priv)) {
 		pr_debug("setting delayed work\n");
 		res->reschedule_work = false;
-		queue_delayed_work(system_unbound_wq,
-				   &res->work,
-				   res->jiffies);
+		alarm_forward(&res->delay_timer, now, add);
+		spin_unlock_irqrestore(&res->lock, flags);
+		return ALARMTIMER_RESTART;
 	} else if (res->resource_requested) {
 		pr_debug("not calling release\n");
-		queue_delayed_work(system_unbound_wq,
-				   &res->work,
-				   res->jiffies);
+		alarm_forward(&res->delay_timer, now, add);
+		spin_unlock_irqrestore(&res->lock, flags);
+		return ALARMTIMER_RESTART;
 	} else {
 		pr_debug("calling release_resource on resource %d!\n",
 			 res->cons);
@@ -263,6 +281,8 @@ static void sipa_nic_rm_timer_func(struct work_struct *work)
 
 	if (release_flag)
 		sipa_rm_release_resource(res->cons);
+
+	return ALARMTIMER_NORESTART;
 }
 
 static int sipa_nic_rm_init(struct sipa_nic_cons_res *res,
@@ -287,8 +307,8 @@ static int sipa_nic_rm_init(struct sipa_nic_cons_res *res,
 	res->request_in_progress = false;
 	res->rm_flow_ctrl = 0;
 
-	INIT_DELAYED_WORK(&res->work,
-			  sipa_nic_rm_timer_func);
+	alarm_init(&res->delay_timer, ALARM_BOOTTIME,
+		   sipa_nic_alarm_to_release);
 
 	return 0;
 }
@@ -346,9 +366,8 @@ static void sipa_nic_rm_res_release(struct sipa_nic *nic)
 
 	res->release_in_progress = true;
 	res->reschedule_work = false;
-	queue_delayed_work(system_unbound_wq,
-			   &res->work,
-			   res->jiffies);
+	sipa_nic_alarm_start(res);
+
 	spin_unlock_irqrestore(&res->lock, flags);
 }
 
