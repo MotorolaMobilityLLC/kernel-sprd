@@ -116,6 +116,13 @@ static inline int headset_reg_get_bits(unsigned int reg, int bits)
 	return temp;
 }
 
+enum sprd_lineout_status {
+	SPRD_NO_LINEOUT,
+	SPRD_ONLY_LINEOUT,
+	SPRD_LINEOUT_AND_HEADSET,
+	SPRD_LINEOUT_ERR = -1,
+};
+
 enum sprd_headset_type {
 	HEADSET_4POLE_NORMAL,
 	HEADSET_NO_MIC,
@@ -1334,6 +1341,8 @@ headset_type_detect_all(int last_gpio_detect_value)
 		return HEADSET_TYPE_ERR;
 	}
 
+	hdst->lineout_flag = SPRD_NO_LINEOUT;
+
 	adc_chan = hdst->adc_chan;
 	if (!adc_chan) {
 		pr_err("%s adc_chan is NULL!\n", __func__);
@@ -1348,6 +1357,23 @@ headset_type_detect_all(int last_gpio_detect_value)
 	headset_detect_clk_en();
 
 retry_again:
+	/* support lineout  */
+	if (pdata->support_line_out) {
+		headset_set_adc_to_headmic(0);
+		msleep(20);
+		adc_left_average = headset_get_adc_value(adc_chan);
+		sp_asoc_pr_dbg("adc_left_average = %d\n", adc_left_average);
+		if (adc_left_average < 0)
+			return HEADSET_TYPE_ERR;
+
+		if (adc_left_average > pdata->sprd_one_half_adc_gnd/2 &&
+				adc_left_average < pdata->sprd_one_half_adc_gnd) {
+			sprd_msleep(500);
+			hdst->lineout_flag = SPRD_ONLY_LINEOUT;
+			goto  retry_again;
+		}
+	}
+
 	pr_info("now get adc value of headmic in big scale\n");
 	/* set large scale */
 	headset_scale_set(1);
@@ -1635,10 +1661,37 @@ static void headset_fast_charge(struct sprd_headset *hdst)
 		msecs_to_jiffies(0));
 }
 
+static void headset_lineout_support_func(struct work_struct *work)
+{
+	struct sprd_headset *hdst = sprd_hdst;
+	struct sprd_headset_platform_data *pdata = (hdst ? &hdst->pdata : NULL);
+
+	if (!hdst) {
+		pr_err("%s: sprd_hdset is NULL!\n", __func__);
+		return;
+	}
+
+lineout_plugout_retry:
+	if (gpio_get_value(pdata->gpios[HDST_GPIO_DET_MIC])) {
+		sprd_msleep(100);
+		sp_asoc_pr_dbg("Headset lineout wait plugout!\n");
+		goto lineout_plugout_retry;
+	}
+	hdst->lineout_flag = SPRD_LINEOUT_AND_HEADSET;
+	queue_delayed_work(hdst->det_all_work_q,
+		&hdst->det_all_work, msecs_to_jiffies(0));
+}
+
 static void headset_fc_work_func(struct work_struct *work)
 {
 	int cnt = 0;
 	struct sprd_headset *hdst = sprd_hdst;
+	struct sprd_headset_platform_data *pdata = (hdst ? &hdst->pdata : NULL);
+
+	if (!hdst) {
+		pr_err("%s: sprd_hdset is NULL!\n", __func__);
+		return;
+	}
 
 	pr_debug("Start waiting for fast charging.\n");
 	/* Wait at least 50mS before DC-CAL. */
@@ -1651,6 +1704,13 @@ static void headset_fc_work_func(struct work_struct *work)
 		fast_charge_finished = true;
 	} else
 		pr_info("Wait for headphone fast charging aborted.\n");
+
+	if (gpio_get_value(pdata->gpios[HDST_GPIO_DET_MIC])
+			&& pdata->support_line_out) {
+		cancel_delayed_work(&hdst->lineout_work);
+		queue_delayed_work(hdst->lineout_work_q,
+			&hdst->lineout_work, msecs_to_jiffies(0));
+	}
 }
 
 static void headset_detect_all_work_func(struct work_struct *work)
@@ -1907,6 +1967,12 @@ out:
 		headset_button_irq_threshold(0);
 	}
 	pr_info("%s out\n", __func__);
+	if (hdst->lineout_flag == SPRD_LINEOUT_AND_HEADSET &&
+		gpio_get_value(pdata->gpios[HDST_GPIO_DET_ALL])
+		&& !gpio_get_value(pdata->gpios[HDST_GPIO_DET_MIC])) {
+		queue_delayed_work(hdst->det_all_work_q,
+				&hdst->det_all_work, msecs_to_jiffies(1000));
+	}
 	up(&hdst->sem);
 }
 
@@ -2576,6 +2642,14 @@ int sprd_headset_soc_probe(struct snd_soc_codec *codec)
 
 	INIT_DELAYED_WORK(&hdst->fc_work, headset_fc_work_func);
 
+	INIT_DELAYED_WORK(&hdst->lineout_work, headset_lineout_support_func);
+	hdst->lineout_work_q =
+		create_singlethread_workqueue("headset_lineout");
+	if (hdst->lineout_work_q == NULL) {
+		pr_err("create_singlethread_workqueue for headset_lineout failed!\n");
+		goto failed_to_headset_lineout;
+	}
+
 	wakeup_source_init(&hdst->det_all_wakelock, "headset_detect_wakelock");
 	wakeup_source_init(&hdst->btn_wakelock, "headset_button_wakelock");
 
@@ -2673,6 +2747,8 @@ failed_to_request_detect_mic_irq:
 	devm_free_irq(dev, hdst->irq_detect_all, hdst);
 failed_to_request_detect_irq:
 	devm_free_irq(dev, hdst->irq_button, hdst);
+failed_to_headset_lineout:
+	destroy_workqueue(hdst->lineout_work_q);
 failed_to_request_irq:
 	cancel_delayed_work_sync(&hdst->reg_dump_work);
 	destroy_workqueue(hdst->reg_dump_work_q);
@@ -2948,6 +3024,13 @@ static int sprd_headset_parse_dt(struct sprd_headset *hdst)
 	if (ret) {
 		pr_err("%s: fail to get irq-threshold-button\n", __func__);
 		return -ENXIO;
+	}
+
+	ret = of_property_read_u32(
+		np, "sprd,line_out_support", &pdata->support_line_out);
+	if (ret) {
+		pdata->support_line_out = 0;
+		pr_err("%s: fail to get line_out_support\n", __func__);
 	}
 
 	pdata->sprd_half_adc_gnd = pdata->sprd_adc_gnd >> 1;

@@ -84,6 +84,7 @@ struct sprd_headset_platform_data {
 	bool do_fm_mute;
 	bool support_typec_hdst;/* support typec analog headset */
 	bool hpr_spk;
+	int support_line_out;
 	u32 typec_lr_gpio_level;
 	struct regulator *switch_reg;
 	u32 switch_vol;
@@ -130,6 +131,8 @@ struct sprd_headset {
 	struct delayed_work reg_dump_work;
 	struct workqueue_struct *reg_dump_work_q;
 	struct delayed_work fc_work; /* for fast charge */
+	struct delayed_work lineout_work;
+	struct workqueue_struct *lineout_work_q;
 #ifdef ADPGAR_BYP_SELECT
 	/* used for adpgar bypass selecting. */
 	struct delayed_work adpgar_work;
@@ -146,6 +149,7 @@ struct sprd_headset {
 	 */
 	int plug_stat_last;
 	int report;
+	int lineout_flag;
 	bool re_detect;
 	struct wakeup_source det_wakelock;
 	struct wakeup_source det_all_wakelock;
