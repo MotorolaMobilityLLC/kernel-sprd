@@ -12530,6 +12530,15 @@ CONFIG_SCSI_UFSHCD_PLATFORM
 	[must] user
 	[missing plat description] This function is used to support qogirl6
 	[function] SCSI ufshcd platform support
+CONFIG_SCSI_UFS_CRYPTO
+	[arch] arm64
+	[plat] qogirn6pro
+	[missing plat] qogirl6,sharkl3,sharkl5,sharkl5Pro
+	[field] make,code
+	[subsys] scsi
+	[must] user
+	[missing plat description] This function is currently used for qogirn6pro
+	[function] SCSI ufshcd crypto funciont support
 CONFIG_SCSI_UFS_SPRD_QOGIRL6
 	[arch] arm64
 	[plat] qogirl6
