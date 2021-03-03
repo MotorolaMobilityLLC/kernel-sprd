@@ -2234,12 +2234,12 @@ CONFIG_CORESIGHT
 	[function] This function is used to enable coresight architecture.
 CONFIG_CORESIGHT_APETB
 	[arch] arm64
-	[plat] qogirl6,sharkl3,sharkl5,sharkl5Pro
-	[missing plat] qogirn6pro
+	[plat] qogirl6,qogirn6pro,sharkl3,sharkl5,sharkl5Pro
+	[missing plat] none
 	[field] make,code
 	[subsys] kernel core
 	[must] debug
-	[missing plat description] Not used in other projects
+	[missing plat description] none
 	[function] This function is used to enable apetb.
 CONFIG_CORESIGHT_LINKS_AND_SINKS
 	[arch] all
