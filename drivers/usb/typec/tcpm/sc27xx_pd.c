@@ -9,6 +9,7 @@
 #include <linux/mutex.h>
 #include <linux/nvmem-consumer.h>
 #include <linux/of.h>
+#include <linux/of_device.h>
 #include <linux/platform_device.h>
 #include <linux/regmap.h>
 #include <linux/regulator/consumer.h>
@@ -19,11 +20,15 @@
 
 /* PMIC global registers definition */
 #define SC27XX_MODULE_EN		0x1808
-#define SC27XX_TYPEC_PD_EN		BIT(13)
 #define SC27XX_ARM_CLK_EN0		0x180c
 #define SC27XX_RTC_CLK_EN0		0x1810
-#define SC27XX_CLK_PD_EN		BIT(9)
 #define SC27XX_XTL_WAIT_CTRL0		0x1b78
+#define UMP9620_MODULE_EN		0x2008
+#define UMP9620_ARM_CLK_EN0		0x200c
+#define UMP9620_RTC_CLK_EN0		0x2010
+#define UMP9620_XTL_WAIT_CTRL0		0x2378
+#define SC27XX_TYPEC_PD_EN		BIT(13)
+#define SC27XX_CLK_PD_EN		BIT(9)
 #define SC27XX_XTL_EN			BIT(8)
 
 /* Typec controller registers definition */
@@ -203,6 +208,20 @@
 #define SC27XX_PD_RDY_TIMEOUT		2000
 #define SC27XX_PD_POLL_RAW_STATUS	50
 
+/* pmic compatible */
+#define SC2730_RC_EFUSE_SHIFT		9
+#define SC2730_REF_EFUSE_SHIFT		12
+#define SC2730_DELTA_EFUSE_SHIFT	7
+
+#define UMP9620_RC_EFUSE_SHIFT		5
+#define UMP9620_REF_EFUSE_SHIFT		6
+#define UMP9620_DELTA_EFUSE_SHIFT	9
+
+#define SC27XX_PD_SHIFT(n)		(n)
+
+#define PMIC_SC2730			1
+#define PMIC_UMP9620			2
+
 enum sc27xx_state {
 	SC27XX_DETACHED_SNK,
 	SC27XX_ATTACHWAIT_SNK,
@@ -211,6 +230,39 @@ enum sc27xx_state {
 	SC27XX_ATTACHWAIT_SRC,
 	SC27XX_ATTACHED_SRC,
 	SC27XX_POWERED_CABLE,
+};
+
+struct sc27xx_pd_variant_data {
+	u32 efuse_rc_shift;
+	u32 efuse_ref_shift;
+	u32 efuse_delta_shift;
+	u32 id;
+	u32 module_en;
+	u32 arm_clk_en0;
+	u32 rtc_clk_en0;
+	u32 xtl_wait_ctrl0;
+};
+
+static const struct sc27xx_pd_variant_data sc2730_data = {
+	.efuse_rc_shift = SC2730_RC_EFUSE_SHIFT,
+	.efuse_ref_shift = SC2730_REF_EFUSE_SHIFT,
+	.efuse_delta_shift = SC2730_DELTA_EFUSE_SHIFT,
+	.id = PMIC_SC2730,
+	.module_en = SC27XX_MODULE_EN,
+	.arm_clk_en0 = SC27XX_ARM_CLK_EN0,
+	.rtc_clk_en0 = SC27XX_RTC_CLK_EN0,
+	.xtl_wait_ctrl0 = SC27XX_XTL_WAIT_CTRL0,
+};
+
+static const struct sc27xx_pd_variant_data ump9620_data = {
+	.efuse_rc_shift = UMP9620_RC_EFUSE_SHIFT,
+	.efuse_ref_shift = UMP9620_REF_EFUSE_SHIFT,
+	.efuse_delta_shift = UMP9620_DELTA_EFUSE_SHIFT,
+	.id = PMIC_UMP9620,
+	.module_en = UMP9620_MODULE_EN,
+	.arm_clk_en0 = UMP9620_ARM_CLK_EN0,
+	.rtc_clk_en0 = UMP9620_RTC_CLK_EN0,
+	.xtl_wait_ctrl0 = UMP9620_XTL_WAIT_CTRL0,
 };
 
 struct sc27xx_pd {
@@ -227,6 +279,7 @@ struct sc27xx_pd {
 	struct regulator *vconn;
 	struct tcpc_config config;
 	struct work_struct pd_work;
+	const struct sc27xx_pd_variant_data *var_data;
 	enum typec_cc_polarity cc_polarity;
 	enum typec_cc_status cc1;
 	enum typec_cc_status cc2;
@@ -255,17 +308,17 @@ static int sc27xx_pd_clk_cfg(struct sc27xx_pd *pd)
 {
 	int ret;
 
-	ret = regmap_update_bits(pd->regmap, SC27XX_MODULE_EN,
+	ret = regmap_update_bits(pd->regmap, pd->var_data->module_en,
 				 SC27XX_TYPEC_PD_EN, SC27XX_TYPEC_PD_EN);
 	if (ret)
 		return ret;
 
-	ret = regmap_update_bits(pd->regmap, SC27XX_ARM_CLK_EN0,
+	ret = regmap_update_bits(pd->regmap, pd->var_data->arm_clk_en0,
 				 SC27XX_CLK_PD_EN, SC27XX_CLK_PD_EN);
 	if (ret)
 		return ret;
 
-	return regmap_update_bits(pd->regmap, SC27XX_XTL_WAIT_CTRL0,
+	return regmap_update_bits(pd->regmap, pd->var_data->xtl_wait_ctrl0,
 				  SC27XX_XTL_EN, SC27XX_XTL_EN);
 }
 
@@ -647,12 +700,15 @@ static int sc27xx_pd_read_message(struct sc27xx_pd *pd, struct pd_message *msg)
 
 static int sc27xx_pd_rc_ref_cal(struct sc27xx_pd *pd)
 {
-	u32 vol = (pd->rc_cal >> 9)&0xfe;
-	u32 pd_ref = (pd->ref_cal >> 12)&0x7;
+	u32 vol = 0;
+	u32 pd_ref = 0;
 	u32 val = 0;
 	u32 cfg2_bit7, cfg0_vth = 0, cfg0_vtl = 0, typec_ibis = 0;
 	u32 cfg0, cfg2, cfg0_mask, cfg2_mask;
 	int ret;
+
+	vol = (pd->rc_cal >> SC27XX_PD_SHIFT(pd->var_data->efuse_rc_shift)) & 0x7f;
+	pd_ref = (pd->ref_cal >> SC27XX_PD_SHIFT(pd->var_data->efuse_ref_shift)) & 0x7;
 
 	/*
 	 * According to the datasheet, depending on the calibration
@@ -742,14 +798,14 @@ static int sc27xx_pd_rc_ref_cal(struct sc27xx_pd *pd)
 static int sc27xx_pd_delta_cal(struct sc27xx_pd *pd)
 {
 	u32 delta_cal = pd->delta_cal;
-	u32 vol, vref_sel = 0, ref_cal = 0, delta;
+	u32 vol, vref_sel = 0, ref_cal = 0, delta = 0;
 	u32 cfg1, cfg1_mask;
 
 	cfg1_mask = SC27XX_PD_CC1_SW | SC27XX_PD_CC2_SW |
 		    SC27XX_PD_CFG1_VREF_SEL_MASK |
 		    SC27XX_PD_CFG1_REF_CAL_MASK;
 
-	delta = ((delta_cal & 0x3F80) >> 7);
+	delta = ((delta_cal >> SC27XX_PD_SHIFT(pd->var_data->efuse_delta_shift)) & 0x7f);
 	/*
 	 * According to the datasheet, delta is efuse caliration
 	 * vol = delta * 2 + 1000
@@ -1218,7 +1274,21 @@ static int sc27xx_pd_cal(struct sc27xx_pd *pd)
 	if (ret)
 		return ret;
 
-	return sc27xx_pd_efuse_read(pd, "pdref_calib", &pd->ref_cal);
+	if (pd->var_data->id == PMIC_SC2730) {
+		ret = sc27xx_pd_efuse_read(pd, "pdref_calib", &pd->ref_cal);
+		if (ret)
+			return ret;
+	} else if (pd->var_data->id == PMIC_UMP9620) {
+		/*
+		 * ump9620 pdref_calib use the same block
+		 * with pddelta_calib--block 36.
+		 */
+		ret = sc27xx_pd_efuse_read(pd, "pddelta_calib", &pd->ref_cal);
+		if (ret)
+			return ret;
+	}
+
+	return 0;
 }
 
 static void sc27xx_pd_detect_typec_work(struct work_struct *work)
@@ -1239,7 +1309,14 @@ static const u32 sc27xx_pd_hardreset[] = {
 static int sc27xx_pd_probe(struct platform_device *pdev)
 {
 	struct sc27xx_pd *pd;
+	const struct sc27xx_pd_variant_data *pdata;
 	int pd_irq, ret;
+
+	pdata = of_device_get_match_data(&pdev->dev);
+	if (!pdata) {
+		dev_err(&pdev->dev, "No matching driver data found\n");
+		return -EINVAL;
+	}
 
 	pd = devm_kzalloc(&pdev->dev, sizeof(*pd), GFP_KERNEL);
 	if (!pd)
@@ -1302,6 +1379,7 @@ static int sc27xx_pd_probe(struct platform_device *pdev)
 	}
 
 	mutex_init(&pd->lock);
+	pd->var_data = pdata;
 	pd->vbus_present = false;
 	pd->constructed = false;
 	pd->tcpc.config = &pd->config;
@@ -1361,7 +1439,8 @@ static int sc27xx_pd_remove(struct platform_device *pdev)
 }
 
 static const struct of_device_id sc27xx_pd_of_match[] = {
-	{.compatible = "sprd,sc2730-pd"},
+	{.compatible = "sprd,sc2730-pd", .data = &sc2730_data},
+	{.compatible = "sprd,ump9620-pd", .data = &ump9620_data},
 	{}
 };
 

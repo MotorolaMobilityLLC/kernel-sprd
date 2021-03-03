@@ -37,7 +37,7 @@ config TYPEC_FUSB302
 
 config SC27XX_PD
 	tristate "Spreadtrum SC27XX Serials PMICs Power Delivery Controller Driver"
-	depends on MFD_SC27XX_PMIC || COMPILE_TEST
+	depends on MFD_SC27XX_PMIC || COMPILE_TEST || MFD_UMP96XX_PMIC
 	help
 	  Sc27xx Power Delivery Driver that works with
 	  Type-C Port Controller Manager to provide USB PD functionalities.
