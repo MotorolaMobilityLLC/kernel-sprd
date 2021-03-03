@@ -25,11 +25,27 @@
 #define SPRD_PDM_NAME    "pdm"
 #define PDM_DRIVER_VERSION  "v1.0.0"
 
+enum PDM_VERSION_TYPE {
+	BOARD_PDM_V_R2P0 = 0,
+};
+
+enum SOC_VERSION_TYPE {
+	BOARD_SOC_V_UMS9230 = 0,
+	BOARD_SOC_V_UMS9620,
+};
+
+struct sprd_pdm_data {
+	enum PDM_VERSION_TYPE pdm_type;
+	enum SOC_VERSION_TYPE soc_audio_type;
+};
+
 struct sprd_pdm_priv {
 	struct snd_soc_codec *codec;
 	struct platform_device *pdev;
 	struct device *dev;
 	struct regmap *regmap_ahb;
+	struct regmap *regmap_apb;
+	const struct sprd_pdm_data *board_data;
 	bool module_en;
 	void __iomem *regbase;
 	/* start address of resource */
@@ -70,7 +86,7 @@ static int pdm_ioremap_reg_update(struct sprd_pdm_priv *sprd_pdm,
 	return old != new;
 }
 
-void pdm_module_en(struct sprd_pdm_priv *sprd_pdm, bool en)
+void pdm_module_en_ums9230(struct sprd_pdm_priv *sprd_pdm, bool en)
 {
 	if (en) {
 		agcp_ahb_reg_set(AHB_MODULE_RST0_STS, PDM_SOFT_RST);
@@ -85,6 +101,46 @@ void pdm_module_en(struct sprd_pdm_priv *sprd_pdm, bool en)
 		agcp_ahb_reg_clr(AHB_MODULE_EB0_STS, PDM_EB);
 		sprd_pdm->module_en = false;
 	}
+}
+
+void pdm_module_en_ums9620(struct sprd_pdm_priv *sprd_pdm, bool en)
+{
+	if (en) {
+		aon_apb_reg_set(APB_MODULE_RST0_STS, APB_PDM_IIS_SOFT_RST);
+		udelay(10);
+		aon_apb_reg_clr(APB_MODULE_RST0_STS, APB_PDM_IIS_SOFT_RST);
+		aon_apb_reg_set(APB_MODULE_EB0_STS, PDM_IIS_EB);
+
+		aon_apb_reg_set(APB_MODULE_RST0_STS, APB_PDM_SOFT_RST);
+		udelay(10);
+		aon_apb_reg_clr(APB_MODULE_RST0_STS, APB_PDM_SOFT_RST);
+		aon_apb_reg_set(APB_MODULE_EB1_STS, PDM_AP_EB);
+		sprd_pdm->module_en = true;
+	} else {
+		aon_apb_reg_set(APB_MODULE_RST0_STS, APB_PDM_SOFT_RST);
+		udelay(10);
+		aon_apb_reg_clr(APB_MODULE_RST0_STS, APB_PDM_SOFT_RST);
+		aon_apb_reg_clr(APB_MODULE_EB1_STS, PDM_AP_EB);
+
+		aon_apb_reg_set(APB_MODULE_RST0_STS, APB_PDM_IIS_SOFT_RST);
+		udelay(10);
+		aon_apb_reg_clr(APB_MODULE_RST0_STS, APB_PDM_IIS_SOFT_RST);
+		aon_apb_reg_clr(APB_MODULE_EB0_STS, PDM_IIS_EB);
+		sprd_pdm->module_en = false;
+	}
+
+}
+
+void pdm_module_en(struct sprd_pdm_priv *sprd_pdm, bool en)
+{
+	if (sprd_pdm->board_data->soc_audio_type == BOARD_SOC_V_UMS9620)
+		pdm_module_en_ums9620(sprd_pdm, en);
+	else if (sprd_pdm->board_data->soc_audio_type == BOARD_SOC_V_UMS9230)
+		pdm_module_en_ums9230(sprd_pdm, en);
+	else
+		dev_err(&sprd_pdm->pdev->dev, " %s wrong board version\n",
+			__func__);
+	dev_err(&sprd_pdm->pdev->dev, " %s a log for test\n", __func__);
 }
 
 static int pdm_module_en_get(struct snd_kcontrol *kcontrol,
@@ -505,12 +561,96 @@ static int pdm_debug_sysfs_init(struct sprd_pdm_priv *sprd_pdm)
 	return ret;
 }
 
+static const struct platform_device_id pdm_id[] = {
+	{ "pdm", 0 },
+	{ "pdm-ums9620", 0 },
+	{ },
+};
+MODULE_DEVICE_TABLE(platform, pdm_id);
+
+static const struct sprd_pdm_data sprd_asoc_data_ums9230 = {
+	.pdm_type = BOARD_PDM_V_R2P0,
+	.soc_audio_type = BOARD_SOC_V_UMS9230,
+};
+
+static const struct sprd_pdm_data sprd_asoc_data_ums9620 = {
+	.pdm_type = BOARD_PDM_V_R2P0,
+	.soc_audio_type = BOARD_SOC_V_UMS9620,
+};
+
+static const struct of_device_id pdm_of_match[] = {
+	{ .compatible = "sprd,pdm",
+	  .data = &sprd_asoc_data_ums9230},
+	{ .compatible = "sprd,pdm-ums9620",
+	  .data = &sprd_asoc_data_ums9620},
+	{},
+};
+
+MODULE_DEVICE_TABLE(of, pdm_of_match);
+
+static int pdm_parse_dt_ums9230(struct sprd_pdm_priv *sprd_pdm,
+				struct device_node *np)
+{
+	struct regmap *agcp_ahb_gpr;
+
+	agcp_ahb_gpr =
+		syscon_regmap_lookup_by_phandle(np, "sprd,syscon-agcp-ahb");
+	if (IS_ERR(agcp_ahb_gpr)) {
+		pr_err("%s error, get the codec ahb syscon failed %ld\n",
+			__func__, PTR_ERR(agcp_ahb_gpr));
+		return -EPROBE_DEFER;
+	}
+
+	sprd_pdm->regmap_ahb = agcp_ahb_gpr;
+	arch_audio_set_agcp_ahb_gpr(agcp_ahb_gpr);
+
+	return 0;
+}
+
+static int pdm_parse_dt_ums9620(struct sprd_pdm_priv *sprd_pdm,
+				struct device_node *np)
+{
+	struct regmap *agcp_apb_gpr;
+	u32 set_apb_offset = 0;
+	u32 clr_apb_offset = 0;
+	int ret = 0;
+
+	agcp_apb_gpr =
+		syscon_regmap_lookup_by_phandle(np, "sprd,syscon-agcp-apb");
+	if (IS_ERR(agcp_apb_gpr)) {
+		pr_err("%s error, get the codec aon apb syscon failed %ld\n",
+			__func__, PTR_ERR(agcp_apb_gpr));
+		return -EPROBE_DEFER;
+	}
+
+	sprd_pdm->regmap_apb = agcp_apb_gpr;
+	arch_audio_set_aon_apb_gpr(agcp_apb_gpr);
+
+	ret = of_property_read_u32(np, "aon-apb-set-offset", &set_apb_offset);
+	if (ret) {
+		sp_asoc_pr_info("%s error, no set-offset attribute\n",
+				__func__);
+		set_apb_offset = 0;
+	}
+	ret = of_property_read_u32(np, "aon-apb-clr-offset", &clr_apb_offset);
+	if (ret) {
+		sp_asoc_pr_info("%s error, no clr-offset attribute\n",
+				__func__);
+		clr_apb_offset = 0;
+	}
+	sp_asoc_pr_info("%s set_offset 0x%x, clr_offset 0x%x\n", __func__,
+			   set_apb_offset, clr_apb_offset);
+
+	return ret;
+}
+
+
 static int pdm_probe(struct platform_device *pdev)
 {
 	struct sprd_pdm_priv *sprd_pdm;
 	struct device_node *np = pdev->dev.of_node;
 	struct device *dev = &pdev->dev;
-	struct regmap *agcp_ahb_gpr;
+	const struct of_device_id *of_id;
 	struct resource *res;
 	int ret = 0;
 
@@ -519,18 +659,24 @@ static int pdm_probe(struct platform_device *pdev)
 			       GFP_KERNEL);
 	if (!sprd_pdm)
 		return -ENOMEM;
-
-	agcp_ahb_gpr =
-		syscon_regmap_lookup_by_phandle(np, "sprd,syscon-agcp-ahb");
-	if (IS_ERR(agcp_ahb_gpr)) {
-		pr_err("ERR: [%s] Get the codec aon apb syscon failed!(%ld)\n",
-			__func__, PTR_ERR(agcp_ahb_gpr));
-		agcp_ahb_gpr = NULL;
-		return -EPROBE_DEFER;
+	of_id = of_match_node(pdm_of_match, pdev->dev.of_node);
+	if (!of_id) {
+		pr_err("%s get board pdm of device id failed\n", __func__);
+		return -ENODEV;
 	}
+	sprd_pdm->board_data = (struct sprd_pdm_data *)of_id->data;
 
-	sprd_pdm->regmap_ahb = agcp_ahb_gpr;
-	arch_audio_set_agcp_ahb_gpr(agcp_ahb_gpr);
+	if (sprd_pdm->board_data->soc_audio_type == BOARD_SOC_V_UMS9620) {
+		ret = pdm_parse_dt_ums9620(sprd_pdm, np);
+	} else if (sprd_pdm->board_data->soc_audio_type ==
+		   BOARD_SOC_V_UMS9230) {
+		pdm_parse_dt_ums9230(sprd_pdm, np);
+	} else {
+		dev_err(&pdev->dev, " %s board version error\n", __func__);
+		ret = ENODEV;
+	}
+	if (ret)
+		return ret;
 
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	if (!res) {
@@ -579,18 +725,6 @@ static int pdm_remove(struct platform_device *pdev)
 
 	return 0;
 }
-
-static const struct platform_device_id pdm_id[] = {
-	{ SPRD_PDM_NAME, 0 },
-	{ }
-};
-
-static const struct of_device_id pdm_of_match[] = {
-	{ .compatible = "sprd,pdm", },
-	{},
-};
-
-MODULE_DEVICE_TABLE(of, pdm_of_match);
 
 static struct platform_driver pdm_driver = {
 	.driver = {

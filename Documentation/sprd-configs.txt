@@ -13052,8 +13052,8 @@ CONFIG_SND_SOC_SPRD_PA_UCP1301
 	[function] UCP1301 driver
 CONFIG_SND_SOC_SPRD_PDM_R2P0
 	[arch] arm64
-	[plat] qogirl6
-	[missing plat] qogirn6pro,sharkl3,sharkl5,sharkl5Pro
+	[plat] qogirl6,qogirn6pro
+	[missing plat] sharkl3,sharkl5,sharkl5Pro
 	[field] make, code
 	[subsys] sound
 	[must] user

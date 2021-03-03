@@ -16,6 +16,17 @@
 #define	AHB_MODULE_RST0_STS			0x8
 #define	PDM_SOFT_RST				BIT(6)
 
+/* AUDCP AON APB REG */
+#define	APB_MODULE_EB0_STS          0x0
+#define	PDM_IIS_EB                  BIT(4)
+
+#define	APB_MODULE_EB1_STS          0x4
+#define	PDM_AP_EB                   BIT(1)
+
+#define	APB_MODULE_RST0_STS         0x8
+#define	APB_PDM_IIS_SOFT_RST        BIT(2)
+#define	APB_PDM_SOFT_RST            BIT(1)
+
 /* PDM REG */
 #define	ADC0_CTRL					0x0
 #define	ADC2_DMIC_EN_R				BIT(16)
