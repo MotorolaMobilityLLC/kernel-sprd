@@ -1767,11 +1767,11 @@ static int find_lowest_rq(struct task_struct *task)
 			unsigned long total_util = 0, total_cap = 0;
 
 			for_each_cpu(i, &tmp_mask) {
-				total_util += cpu_util_cfs(cpu_rq(i));
-				total_cap += capacity_of(i);
-			}
+				struct rq *rq = cpu_rq(i);
 
-			total_util += READ_ONCE(task->se.avg.util_avg);
+				total_util += cpu_util_cfs(rq) + cpu_util_rt(rq);
+				total_cap += capacity_orig_of(i);
+			}
 
 			/*
 			 * The margin used when comparing utilization
@@ -2500,6 +2500,8 @@ static void task_tick_rt(struct rq *rq, struct task_struct *p, int queued)
 
 	update_curr_rt(rq);
 	update_rt_rq_load_avg(rq_clock_pelt(rq), rq, 1);
+	/* Kick cpufreq (see the comment in kernel/sched/sched.h). */
+	cpufreq_update_util(rq, 0);
 
 	watchdog(rq, p);
 
