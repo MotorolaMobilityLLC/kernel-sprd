@@ -270,6 +270,7 @@ static int dwc3_sprd_start(struct dwc3_sprd *sdwc, enum usb_dr_mode mode)
 	struct dwc3 *dwc = platform_get_drvdata(sdwc->dwc3);
 	int ret, cnt = DWC3_SUSPEND_COUNT;
 	unsigned long flags;
+	unsigned long m_t_j = msecs_to_jiffies(5000);
 
 	/*
 	 * Need to notify the gadget state to change the usb charger state, when
@@ -339,7 +340,7 @@ static int dwc3_sprd_start(struct dwc3_sprd *sdwc, enum usb_dr_mode mode)
 
 	if (mode == USB_DR_MODE_HOST) {
 		ret = wait_event_timeout(sdwc->wait, !sdwc->suspend,
-			 msecs_to_jiffies(5000));
+			 m_t_j);
 		if (ret == 0)
 			dev_err(sdwc->dev, "wait for dwc3 resume timeout!\n");
 
