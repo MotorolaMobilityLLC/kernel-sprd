@@ -14915,8 +14915,8 @@ CONFIG_SC23XX
 	[missing plat description] none
 	[function]
 CONFIG_SC27XX_ADC
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field] make
 	[subsys] iio
