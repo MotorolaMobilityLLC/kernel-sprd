@@ -1027,14 +1027,74 @@ static int sprd_spi_dma_init(struct platform_device *pdev, struct sprd_spi *ss)
 	return 0;
 }
 
+static int sprd_spi_property_find(struct platform_device *pdev,
+				  struct spi_controller *sctlr)
+{
+	struct property *prop;
+	u32 num_chipselect = 1;
+	u32 i, realtime_task;
+	int ret;
+
+	/* SPI controller transfer with high (realtime) thread priority. */
+	prop = of_find_property(pdev->dev.of_node, "realtime-task", NULL);
+	if (prop && prop->length) {
+		ret = of_property_read_u32(pdev->dev.of_node,
+					   "realtime-task", &realtime_task);
+		if (ret < 0)
+			dev_warn(&pdev->dev,
+				 "realtime-task property not found\n");
+		else
+			sctlr->rt = realtime_task;
+	}
+
+	/* Set GPIOs as cs for SPI bus to hang devices. */
+	prop = of_find_property(pdev->dev.of_node, "cs-gpios", NULL);
+	if (prop && prop->length) {
+		ret = of_property_read_u32(pdev->dev.of_node,
+					   "num-chipselect", &num_chipselect);
+		if (ret < 0)
+			dev_warn(&pdev->dev,
+				 "num-chipselect property not found\n");
+		else
+			sctlr->num_chipselect = num_chipselect;
+
+		sctlr->cs_gpios = devm_kzalloc(&pdev->dev,
+					sizeof(int) * sctlr->num_chipselect,
+					GFP_KERNEL);
+		if (!sctlr->cs_gpios)
+			return -ENOMEM;
+
+		for (i = 0; i < sctlr->num_chipselect; i++) {
+			sctlr->cs_gpios[i] = of_get_named_gpio(
+							pdev->dev.of_node,
+							"cs-gpios", i);
+			if (!gpio_is_valid(sctlr->cs_gpios[i]))
+				dev_err(&pdev->dev,
+					"get gpio for cs_gpios[%d] failed!\n",
+					i);
+			else {
+				ret = devm_gpio_request_one(&pdev->dev,
+							    sctlr->cs_gpios[i],
+							    GPIOF_OUT_INIT_HIGH,
+							    "sprd-spi");
+				if (ret) {
+					sctlr->cs_gpios[i] = ret;
+					dev_err(&pdev->dev,
+						"could not request cs gpio %d\n",
+						sctlr->cs_gpios[i]);
+				}
+			}
+		}
+	}
+
+	return 0;
+}
+
 static int sprd_spi_probe(struct platform_device *pdev)
 {
 	struct spi_controller *sctlr;
 	struct resource *res;
 	struct sprd_spi *ss;
-	struct property *prop;
-	u32 num_chipselect = 1;
-	u32 i, realtime_task;
 	int ret;
 
 	pdev->id = of_alias_get_id(pdev->dev.of_node, "spi");
@@ -1065,54 +1125,9 @@ static int sprd_spi_probe(struct platform_device *pdev)
 	sctlr->max_speed_hz = min_t(u32, ss->src_clk >> 1,
 				    SPRD_SPI_MAX_SPEED_HZ);
 
-	ret = of_property_read_u32(pdev->dev.of_node,
-				   "num-chipselect", &num_chipselect);
-	if (ret < 0) {
-		dev_err(&pdev->dev,
-			"num-chipselect property not found\n");
-	} else {
-		sctlr->num_chipselect = num_chipselect;
-	}
-
-	prop = of_find_property(pdev->dev.of_node, "cs-gpios", NULL);
-	if (prop && prop->length) {
-		sctlr->cs_gpios = devm_kzalloc(&pdev->dev,
-					sizeof(int) * sctlr->num_chipselect,
-					GFP_KERNEL);
-		if (!sctlr->cs_gpios) {
-			ret = -ENOMEM;
-			goto free_controller;
-		}
-
-		for (i = 0; i < sctlr->num_chipselect; i++) {
-			sctlr->cs_gpios[i] = of_get_named_gpio(
-							pdev->dev.of_node,
-							"cs-gpios", i);
-
-			ret = devm_gpio_request_one(&pdev->dev,
-						    sctlr->cs_gpios[i],
-						    GPIOF_OUT_INIT_HIGH,
-						    "sprd-spi");
-			if (ret) {
-				dev_err(&pdev->dev,
-					"could not request cs gpio %d\n",
-					sctlr->cs_gpios[i]);
-				goto free_controller;
-			}
-		}
-	}
-
-	/* SPI controller transfer with high thread priority. */
-	prop = of_find_property(pdev->dev.of_node, "realtime-task", NULL);
-	if (prop && prop->length) {
-		ret = of_property_read_u32(pdev->dev.of_node,
-				   "realtime-task", &realtime_task);
-		if (ret < 0)
-			dev_warn(&pdev->dev,
-				"realtime-task property not found\n");
-		else
-			sctlr->rt = realtime_task;
-	}
+	ret = sprd_spi_property_find(pdev, sctlr);
+	if (ret)
+		goto free_controller;
 
 	init_completion(&ss->xfer_completion);
 	platform_set_drvdata(pdev, sctlr);
