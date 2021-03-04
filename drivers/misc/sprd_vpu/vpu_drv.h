@@ -134,12 +134,21 @@ struct vpu_platform_data {
 
 #define VPU_AQUIRE_TIMEOUT_MS	500
 #define VPU_INIT_TIMEOUT_MS	200
+/*vpu dec*/
+#define DEC_BSM_OVF_ERR 	BIT(0)
+#define DEC_VLD_ERR		BIT(4)
+#define DEC_TIMEOUT_ERR 	BIT(5)
+#define DEC_MMU_INT_ERR 	BIT(13)
+#define DEC_AFBCD_HERR		BIT(14)
+#define DEC_AFBCD_PERR		BIT(15)
 
-#define BSM_BUF_OVF_ERR 	BIT(2)
-#define TIMEOUT_ERR		BIT(3)
-#define VPU_AFBCD_HERR		BIT(4)
-#define VPU_AFBCD_PERR		BIT(5)
-#define VPU_MMU_INT_ERR 	BIT(6)
+/*vpu enc*/
+#define ENC_BSM_OVF_ERR 	BIT(2)
+#define ENC_TIMEOUT_ERR 	BIT(3)
+#define ENC_AFBCD_HERR		BIT(4)
+#define ENC_AFBCD_PERR		BIT(5)
+#define ENC_MMU_INT_ERR 	BIT(6)
+
 #define MMU_RD_WR_ERR		0xff
 
 irqreturn_t enc_core0_isr(int irq, void *data);

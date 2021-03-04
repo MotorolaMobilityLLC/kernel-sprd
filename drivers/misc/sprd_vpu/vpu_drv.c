@@ -34,7 +34,7 @@
 #include <linux/compat.h>
 #include "vpu_drv.h"
 
-static int handle_vpu_interrupt(struct vpu_platform_data *data, int *status)
+static int handle_vpu_dec_interrupt(struct vpu_platform_data *data, int *status)
 {
 	int i;
 	int int_status;
@@ -42,41 +42,92 @@ static int handle_vpu_interrupt(struct vpu_platform_data *data, int *status)
 	struct device *dev = data->dev;
 
 	int_status = readl_relaxed(data->glb_reg_base + VPU_INT_RAW_OFF);
-
 	mmu_status = readl_relaxed(data->vpu_base + VPU_MMU_INT_RAW_OFF);
 	*status |= int_status | (mmu_status << 16);
 
-	if (((int_status & 0x7f) == 0) &&
+	if (((int_status & 0xffff) == 0) &&
 		((mmu_status & 0xff) == 0)) {
-		dev_info(dev, "%s vpu IRQ_NONE int_status 0x%x 0x%x",
+		dev_info(dev, "%s dec IRQ_NONE int_status 0x%x 0x%x",
 			__func__, int_status, mmu_status);
 		return IRQ_NONE;
 	}
 
-	if (int_status & BSM_BUF_OVF_ERR)
-		dev_err(dev, "vpu_bsm_overflow");
+	if (int_status & DEC_BSM_OVF_ERR)
+		dev_err(dev, "dec_bsm_overflow");
 
-	if (int_status & TIMEOUT_ERR)
-		dev_err(dev, "vpu_timeout");
+	if (int_status & DEC_VLD_ERR)
+		dev_err(dev, "dec_vld_err");
 
-	if (int_status & VPU_AFBCD_HERR)
-		dev_err(dev, "vpu_afbcd_herr");
+	if (int_status & DEC_TIMEOUT_ERR)
+		dev_err(dev, "dec_timeout");
 
-	if (int_status & VPU_AFBCD_PERR)
-		dev_err(dev, "vpu_afbcd_perr");
+	if (int_status & DEC_MMU_INT_ERR)
+		dev_err(dev, "dec_mmu_int_err");
 
-	if (int_status & VPU_MMU_INT_ERR)
-		dev_err(dev, "vpu_mmu_int_err");
+	if (int_status & DEC_AFBCD_HERR)
+		dev_err(dev, "dec_afbcd_herr");
+
+	if (int_status & DEC_AFBCD_PERR)
+		dev_err(dev, "dec_afbcd_perr");
 
 	if (mmu_status & MMU_RD_WR_ERR) {
 		/* mmu ERR */
-		dev_err(dev, "vpu iommu addr: 0x%x\n",
+		dev_err(dev, "dec iommu addr: 0x%x\n",
 		       readl_relaxed(data->vpu_base + VPU_MMU_INT_RAW_OFF));
 
 		for (i = 0x44; i <= 0x68; i += 4)
 			dev_info(dev, "addr 0x%x is 0x%x\n", i,
 				readl_relaxed(data->vpu_base + i));
+		WARN_ON_ONCE(1);
+	}
 
+	/* clear VSP accelerator interrupt bit */
+	clr_vpu_interrupt_mask(data);
+
+	return IRQ_HANDLED;
+}
+
+static int handle_vpu_enc_interrupt(struct vpu_platform_data *data, int *status)
+{
+	int i;
+	int int_status;
+	int mmu_status;
+	struct device *dev = data->dev;
+
+	int_status = readl_relaxed(data->glb_reg_base + VPU_INT_RAW_OFF);
+	mmu_status = readl_relaxed(data->vpu_base + VPU_MMU_INT_RAW_OFF);
+	*status |= int_status | (mmu_status << 16);
+
+	if (((int_status & 0x7f) == 0) &&
+		((mmu_status & 0xff) == 0)) {
+		dev_info(dev, "%s enc IRQ_NONE int_status 0x%x 0x%x",
+			__func__, int_status, mmu_status);
+		return IRQ_NONE;
+	}
+
+	if (int_status & ENC_BSM_OVF_ERR)
+		dev_err(dev, "enc_bsm_overflow");
+
+	if (int_status & ENC_TIMEOUT_ERR)
+		dev_err(dev, "enc_timeout");
+
+	if (int_status & ENC_AFBCD_HERR)
+		dev_err(dev, "enc_afbcd_herr");
+
+	if (int_status & ENC_AFBCD_PERR)
+		dev_err(dev, "enc_afbcd_perr");
+
+	if (int_status & ENC_MMU_INT_ERR)
+		dev_err(dev, "enc_mmu_int_err");
+
+	if (mmu_status & MMU_RD_WR_ERR) {
+		/* mmu ERR */
+		dev_err(dev, "enc iommu addr: 0x%x\n",
+		       readl_relaxed(data->vpu_base + VPU_MMU_INT_RAW_OFF));
+
+		for (i = 0x44; i <= 0x68; i += 4)
+			dev_info(dev, "addr 0x%x is 0x%x\n", i,
+				readl_relaxed(data->vpu_base + i));
 		WARN_ON_ONCE(1);
 	}
 
@@ -103,7 +154,7 @@ void clr_vpu_interrupt_mask(struct vpu_platform_data *data)
 	writel_relaxed(mmu_int_mask, data->vpu_base + VPU_MMU_INT_CLR_OFF);
 }
 
-static irqreturn_t isr_handler(struct vpu_platform_data *data)
+static irqreturn_t vpu_dec_isr_handler(struct vpu_platform_data *data)
 {
 	int ret, status = 0;
 
@@ -118,7 +169,33 @@ static irqreturn_t isr_handler(struct vpu_platform_data *data)
 	}
 
 	/* check which module occur interrupt and clear corresponding bit */
-	ret = handle_vpu_interrupt(data, &status);
+	ret = handle_vpu_dec_interrupt(data, &status);
+	if (ret == IRQ_NONE)
+		return IRQ_NONE;
+
+	data->vpu_int_status = status;
+	data->condition_work = 1;
+	wake_up_interruptible(&data->wait_queue_work);
+
+	return IRQ_HANDLED;
+}
+
+static irqreturn_t vpu_enc_isr_handler(struct vpu_platform_data *data)
+{
+	int ret, status = 0;
+
+	if (data == NULL) {
+		pr_err("%s error occurred, data == NULL\n", __func__);
+		return IRQ_NONE;
+	}
+
+	if (data->is_clock_enabled == false) {
+		dev_err(data->dev, " vpu clk is disabled");
+		return IRQ_HANDLED;
+	}
+
+	/* check which module occur interrupt and clear corresponding bit */
+	ret = handle_vpu_enc_interrupt(data, &status);
 	if (ret == IRQ_NONE)
 		return IRQ_NONE;
 
@@ -135,7 +212,7 @@ irqreturn_t enc_core0_isr(int irq, void *data)
 	int ret = 0;
 	dev_info(vpu_core->dev, "%s, isr", vpu_core->p_data->name);
 
-	ret = isr_handler(data);
+	ret = vpu_enc_isr_handler(data);
 
 	/*
 		Do enc core0 specified work here, if needed.
@@ -150,7 +227,7 @@ irqreturn_t enc_core1_isr(int irq, void *data)
 	int ret = 0;
 	dev_info(vpu_core->dev, "%s, isr", vpu_core->p_data->name);
 
-	ret = isr_handler(data);
+	ret = vpu_enc_isr_handler(data);
 
 	/*
 		Do enc core1 specified work here, if needed.
@@ -164,7 +241,7 @@ irqreturn_t dec_core0_isr(int irq, void *data)
 	int ret = 0;
 	dev_info(vpu_core->dev, "%s, isr", vpu_core->p_data->name);
 
-	ret = isr_handler(data);
+	ret = vpu_dec_isr_handler(data);
 
 	/*
 		Do dec core0 specified work here, if needed.
