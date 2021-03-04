@@ -24,19 +24,19 @@
 		sprd,headset-button@0 {
 			/* media */
 			adc-min = <0>;
-			adc-max = <480>;
+			adc-max = <250>;
 			code = <226>;
 		};
 		sprd,headset-button@1 {
 			/* volume up */
-			adc-min = <481>;
-			adc-max = <990>;
+			adc-min = <711>;
+			adc-max = <953>;
 			code = <115>;
 		};
 		sprd,headset-button@2 {
 			/* volume down */
-			adc-min = <991>;
-			adc-max =<2500>;
+			adc-min = <1153>;
+			adc-max =<1952>;
 			code = <114>;
 		};
 	};
