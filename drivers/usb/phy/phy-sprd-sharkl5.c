@@ -43,6 +43,21 @@ struct sprd_hsphy {
 #define TUNEHSAMP_2_6MA		(3 << 25)
 #define TFREGRES_TUNE_VALUE	(0x14 << 19)
 
+/* Add for facotry test */
+static unsigned int g_tfregres_tune_value = TFREGRES_TUNE_VALUE;
+static int __init boot_mode(char *str)
+{
+	if (!str)
+		return 0;
+
+	if (!strncmp(str, "cali", strlen("cali"))
+		|| !strncmp(str, "autotest", strlen("autotest"))
+		|| !strncmp(str, "factorytest", strlen("factorytest")))
+		g_tfregres_tune_value = (0xE << 19);
+	return 0;
+}
+__setup("androidboot.mode=", boot_mode);
+
 static inline void sprd_hsphy_reset_core(struct sprd_hsphy *phy)
 {
 	u32 reg, msk;
@@ -204,8 +219,8 @@ static int sprd_hsphy_init(struct usb_phy *x)
 	ret |= regmap_update_bits(phy->ana_g2,
 		REG_ANLG_PHY_G2_ANALOG_USB20_USB20_TRIMMING,
 		msk, reg);
-
-	reg = TFREGRES_TUNE_VALUE;
+	/* Modify for factory test */
+	reg = g_tfregres_tune_value;
 	msk = MASK_ANLG_PHY_G2_ANALOG_USB20_USB20_TFREGRES;
 	ret |= regmap_update_bits(phy->ana_g2,
 		REG_ANLG_PHY_G2_ANALOG_USB20_USB20_TRIMMING,
