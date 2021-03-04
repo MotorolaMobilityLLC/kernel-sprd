@@ -2416,7 +2416,7 @@
 			pdm_dmic: pdm-dmic@56370000 {
 				compatible = "sprd,pdm-ums9620";
 				status = "disabled";
-				reg = <0 0x56370000 0 0x2000>;/* 56370000 5637ffff */
+				reg = <0 0x56370000 0 0x2000>;/* 56370000 56371fff */
 				#sound-dai-cells = <1>;
 				aon-apb-set-offset = <0>;
 				aon-apb-clr-offset = <0>;
