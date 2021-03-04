@@ -45,6 +45,8 @@ struct sprd_pdm_priv {
 	struct device *dev;
 	struct regmap *regmap_ahb;
 	struct regmap *regmap_apb;
+	u32 set_apb_offset;
+	u32 clr_apb_offset;
 	const struct sprd_pdm_data *board_data;
 	bool module_en;
 	void __iomem *regbase;
@@ -140,7 +142,6 @@ void pdm_module_en(struct sprd_pdm_priv *sprd_pdm, bool en)
 	else
 		dev_err(&sprd_pdm->pdev->dev, " %s wrong board version\n",
 			__func__);
-	dev_err(&sprd_pdm->pdev->dev, " %s a log for test\n", __func__);
 }
 
 static int pdm_module_en_get(struct snd_kcontrol *kcontrol,
@@ -611,8 +612,6 @@ static int pdm_parse_dt_ums9620(struct sprd_pdm_priv *sprd_pdm,
 				struct device_node *np)
 {
 	struct regmap *agcp_apb_gpr;
-	u32 set_apb_offset = 0;
-	u32 clr_apb_offset = 0;
 	int ret = 0;
 
 	agcp_apb_gpr =
@@ -626,20 +625,22 @@ static int pdm_parse_dt_ums9620(struct sprd_pdm_priv *sprd_pdm,
 	sprd_pdm->regmap_apb = agcp_apb_gpr;
 	arch_audio_set_aon_apb_gpr(agcp_apb_gpr);
 
-	ret = of_property_read_u32(np, "aon-apb-set-offset", &set_apb_offset);
+	ret = of_property_read_u32(np, "aon-apb-set-offset",
+				   &sprd_pdm->set_apb_offset);
 	if (ret) {
 		sp_asoc_pr_info("%s error, no set-offset attribute\n",
 				__func__);
-		set_apb_offset = 0;
+		sprd_pdm->set_apb_offset = 0;
 	}
-	ret = of_property_read_u32(np, "aon-apb-clr-offset", &clr_apb_offset);
+	ret = of_property_read_u32(np, "aon-apb-clr-offset",
+				   &sprd_pdm->clr_apb_offset);
 	if (ret) {
 		sp_asoc_pr_info("%s error, no clr-offset attribute\n",
 				__func__);
-		clr_apb_offset = 0;
+		sprd_pdm->clr_apb_offset = 0;
 	}
 	sp_asoc_pr_info("%s set_offset 0x%x, clr_offset 0x%x\n", __func__,
-			   set_apb_offset, clr_apb_offset);
+			   sprd_pdm->set_apb_offset, sprd_pdm->clr_apb_offset);
 
 	return ret;
 }
