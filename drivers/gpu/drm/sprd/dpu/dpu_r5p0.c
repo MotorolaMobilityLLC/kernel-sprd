@@ -829,7 +829,7 @@ static int dpu_wb_buf_alloc(struct sprd_dpu *dpu, size_t size,
 static int dpu_write_back_config(struct dpu_context *ctx)
 {
 	int ret;
-	static int need_config;
+	static int need_config = 1;
 	size_t wb_buf_size;
 	struct sprd_dpu *dpu =
 		(struct sprd_dpu *)container_of(ctx, struct sprd_dpu, ctx);
@@ -1246,52 +1246,47 @@ static void dpu_layer(struct dpu_context *ctx,
 
 	tmp.pos = (hwlayer->dst_x & 0xffff) | ((hwlayer->dst_y) << 16);
 
-	if (hwlayer->pallete_en) {
-		//layer->pos = tmp.pos;
-		tmp.size = (hwlayer->dst_w & 0xffff) |
-			     ((hwlayer->dst_h) << 16);
-		tmp.alpha = hwlayer->alpha;
-		tmp.pallete = hwlayer->pallete_color;
-
-		/* pallete layer enable */
-		tmp.ctrl = 0x2005;
-
-		pr_debug("dst_x = %d, dst_y = %d, dst_w = %d, dst_h = %d, pallete:%d\n",
-			hwlayer->dst_x, hwlayer->dst_y,
-			hwlayer->dst_w, hwlayer->dst_h, tmp.pallete);
-		return;
-	}
-
 	if (hwlayer->src_w && hwlayer->src_h)
 		tmp.size = (hwlayer->src_w & 0xffff) | ((hwlayer->src_h) << 16);
 	else
 		tmp.size = (hwlayer->dst_w & 0xffff) | ((hwlayer->dst_h) << 16);
 
-	for (i = 0; i < hwlayer->planes; i++) {
-		if (hwlayer->addr[i] % 16)
-			pr_err("layer addr[%d] is not 16 bytes align, it's 0x%08x\n",
-				i, hwlayer->addr[i]);
-		tmp.addr[i] = hwlayer->addr[i];
-	}
-
-	tmp.crop_start = (hwlayer->src_y << 16) | hwlayer->src_x;
 	tmp.alpha = hwlayer->alpha;
 
-	wd = drm_format_plane_cpp(hwlayer->format, 0);
-	if (wd == 0) {
-		pr_err("layer[%d] bytes per pixel is invalid\n", hwlayer->index);
-		return;
+	if (hwlayer->pallete_en) {
+		tmp.pallete = hwlayer->pallete_color;
+
+		/* pallete layer enable */
+		tmp.ctrl = 0x2005;
+
+		pr_debug("pallete:0x%x\n", tmp.pallete);
+	} else {
+		for (i = 0; i < hwlayer->planes; i++) {
+			if (hwlayer->addr[i] % 16)
+				pr_err("layer addr[%d] is not 16 bytes align, it's 0x%08x\n",
+					i, hwlayer->addr[i]);
+			tmp.addr[i] = hwlayer->addr[i];
+		}
+
+		tmp.crop_start = (hwlayer->src_y << 16) | hwlayer->src_x;
+
+		wd = drm_format_plane_cpp(hwlayer->format, 0);
+		if (wd == 0) {
+			pr_err("layer[%d] bytes per pixel is invalid\n",
+				hwlayer->index);
+			return;
+		}
+
+		if (hwlayer->planes == 3)
+			/* UV pitch is 1/2 of Y pitch*/
+			tmp.pitch = (hwlayer->pitch[0] / wd) |
+					(hwlayer->pitch[0] / wd << 15);
+		else
+			tmp.pitch = hwlayer->pitch[0] / wd;
+
+		tmp.ctrl = dpu_img_ctrl(hwlayer->format, hwlayer->blending,
+			hwlayer->xfbc, hwlayer->y2r_coef, hwlayer->rotation);
 	}
-
-	if (hwlayer->planes == 3)
-		/* UV pitch is 1/2 of Y pitch*/
-		tmp.pitch = (hwlayer->pitch[0] / wd) |
-				(hwlayer->pitch[0] / wd << 15);
-	else
-		tmp.pitch = hwlayer->pitch[0] / wd;
-
-	tmp.ctrl = dpu_img_ctrl(hwlayer->format, hwlayer->blending,
-		hwlayer->xfbc, hwlayer->y2r_coef, hwlayer->rotation);
 
 	if (hwlayer->secure_en || secure_debug) {
 		if (!reg->dpu_secure) {
@@ -1326,6 +1321,7 @@ static void dpu_layer(struct dpu_context *ctx,
 	layer->alpha = tmp.alpha;
 	layer->pitch = tmp.pitch;
 	layer->ctrl = tmp.ctrl;
+	layer->pallete = tmp.pallete;
 
 	pr_debug("dst_x = %d, dst_y = %d, dst_w = %d, dst_h = %d\n",
 				hwlayer->dst_x, hwlayer->dst_y,
