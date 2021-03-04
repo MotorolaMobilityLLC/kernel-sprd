@@ -424,6 +424,9 @@ static int wcn_download_image_new(struct wcn_device *wcn_dev)
 				WCN_INFO("%s:UFS failed, check emmc", __func__);
 				s_wcn_device.wcn_mm_flag = emmc;
 			}
+		} else {
+			WCN_INFO("%s: no ufs file, use emmc", __func__);
+			s_wcn_device.wcn_mm_flag = emmc;
 		}
 	}
 
