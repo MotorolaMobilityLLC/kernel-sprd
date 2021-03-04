@@ -38,6 +38,7 @@ struct gsp_r8p0_misc_cfg {
 	u8 pmargb_en;
 	struct gsp_rect workarea_src_rect;
 	struct gsp_pos workarea_des_pos;
+	u8 secure_en;
 };
 
 struct gsp_r8p0_cfg {
