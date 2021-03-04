@@ -509,7 +509,7 @@ config SPRD_DEDICATE_THERMAL
 
 config SPRD_CPU_COOLING
 	bool "sprd cpu cooling support"
-	depends on ARCH_SPRD && THERMAL
+	depends on ARCH_SPRD && THERMAL && CPU_FREQ
 	help
 	  This implements the sprd's cpu cooling mechanism through
 	  frequency reduction for devices using dvfs and trigger cpu hotplug.
