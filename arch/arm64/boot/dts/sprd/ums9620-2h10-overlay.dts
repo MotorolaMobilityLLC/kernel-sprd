@@ -389,10 +389,6 @@
 	regulator-always-on;
 };
 
-&vddsim2 {
-	regulator-always-on;
-};
-
 &vddufs1v2 {
 	regulator-always-on;
 };
