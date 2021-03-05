@@ -297,7 +297,7 @@
 };
 
 &vsp {
-	status = "okay";
+	status = "disabled";
 };
 
 &iommu_vsp {
