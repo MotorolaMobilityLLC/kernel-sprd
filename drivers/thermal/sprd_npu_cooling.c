@@ -189,20 +189,6 @@ static u64 get_leak_base(int cluster_id, int val, int *coeff)
 }
 #endif
 
-static struct thermal_cooling_device *
-cluster_data_get_dev_by_name(const char *name)
-{
-	int i = 0;
-
-	while (&cluster_data[i] != NULL) {
-		if (!strncmp(name, cluster_data[i].devname, strlen(name)))
-			return cluster_data[i].npu_cooling;
-		i++;
-	}
-
-	return NULL;
-}
-
 static unsigned long get_dynamic_power(struct devfreq *dev,
 		unsigned long freq,
 		unsigned long voltage)
@@ -413,12 +399,18 @@ int npu_cooling_device_unregister(void)
 	}
 
 	for_each_child_of_node(np, child) {
+		int id;
 		struct thermal_cooling_device *cdev;
-
-		cdev = cluster_data_get_dev_by_name(child->name);
+		id = of_alias_get_id(child, "npu-cooling");
+		if (id == -ENODEV) {
+			pr_err("fail to get cooling devices id\n");
+			return -ENODEV;
+		}
+		cdev = cluster_data[id].npu_cooling;
 		if (IS_ERR(cdev))
 			continue;
 		devfreq_cooling_unregister(cdev);
+		pr_info("unregister NPU cooling OK\n");
 	}
 
 	kfree(cluster_data);
