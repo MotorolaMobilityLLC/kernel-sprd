@@ -35,10 +35,11 @@
 					sprd,power-i2c-reg = [00 01 03 FF];
 					sprd,power-i2c-val = [0F 0F 03 80];
 
-					sprd,reset-on-sequence = <1 10>, <0 10>, <1 10>;
+					sprd,reset-on-sequence = <1 10>, <0 10>, <1 35>;
 					sprd,reset-off-sequence = <1 10>;
 
 					//sprd,use-dcs-write;
+					sprd,ft-type;
 
 					sprd,initial-command = [
 						29 01 00 02 00 00 
