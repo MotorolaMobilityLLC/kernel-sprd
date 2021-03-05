@@ -96,6 +96,7 @@ struct panel_info {
 	u32 lanes;
 	u32 mode_flags;
 	bool use_dcs;
+	bool ft_type;
 };
 
 struct sprd_panel {
