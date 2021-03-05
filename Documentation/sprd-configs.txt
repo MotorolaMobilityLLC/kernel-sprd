@@ -4561,8 +4561,8 @@ CONFIG_FANOTIFY_ACCESS_PERMISSIONS
 	[function] Filesystem wide access notification.
 CONFIG_FAST_CHARGER_SC2730
 	[arch] arm64
-	[plat] qogirl6,sharkl5Pro
-	[missing plat] qogirn6pro,sharkl3,sharkl5
+	[plat] qogirl6,qogirn6pro,sharkl5Pro
+	[missing plat] sharkl3,sharkl5
 	[field] make
 	[subsys] regulator
 	[must] user
