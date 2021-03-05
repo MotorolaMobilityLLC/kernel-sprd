@@ -152,7 +152,7 @@ static int sipa_dele_plat_drv_probe(struct platform_device *pdev_p)
 		return ret;
 	}
 	dev_dbg(dev, "third ap_delegator_init!\n");
-#endif /* CONFIG_SPRD_SIPA_DELE_AP_IN_MINIAP */
+#endif /* CONFIG_SPRD_SIPA_DELE_THIRD_IN_MINIAP */
 
 #ifdef CONFIG_SPRD_SIPA_DELE_CP_IN_MINIAP
 	create_params.prod_id = SIPA_RM_RES_PROD_CP;
@@ -166,7 +166,21 @@ static int sipa_dele_plat_drv_probe(struct platform_device *pdev_p)
 		return ret;
 	}
 	pr_debug("cp_delegator_init!\n");
-#endif /* CONFIG_SPRD_SIPA_DELE_AP_IN_MINIAP */
+#endif /* CONFIG_SPRD_SIPA_DELE_CP_IN_MINIAP */
+
+#ifdef CONFIG_SPRD_SIPA_DELE_CP_IN_AP
+	create_params.prod_id = SIPA_RM_RES_PROD_CP;
+	create_params.cons_prod = SIPA_RM_RES_CONS_WWAN_UL;
+	create_params.cons_user = SIPA_RM_RES_CONS_WWAN_DL;
+	create_params.dst = SIPC_ID_PSCP;
+
+	ret = cp_delegator_init(&create_params);
+	if (ret) {
+		dev_err(dev, "cp_delegator_init failed: %d\n", ret);
+		return ret;
+	}
+	pr_debug("cp_delegator_init!\n");
+#endif /* CONFIG_SPRD_SIPA_DELE_CP_IN_AP */
 
 	return ret;
 }
