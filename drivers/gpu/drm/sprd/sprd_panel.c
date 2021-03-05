@@ -135,6 +135,13 @@ static int sprd_panel_prepare(struct drm_panel *p)
 	if (ret < 0)
 		DRM_ERROR("enable lcd regulator failed\n");
 
+	if(panel->info.ft_type){
+		if (panel->info.reset_gpio) {
+			gpiod_direction_output(panel->info.reset_gpio, 0);
+			mdelay(5);
+		}
+	}
+
 	if (panel->info.avdd_gpio) {
 		gpiod_direction_output(panel->info.avdd_gpio, 1);
 		mdelay(5);
@@ -837,6 +844,11 @@ int sprd_panel_parse_lcddtb(struct device_node *lcd_node,
 		info->use_dcs = true;
 	else
 		info->use_dcs = false;
+
+	if (of_property_read_bool(lcd_node, "sprd,ft-type"))
+		info->ft_type = true;
+	else
+		info->ft_type = false;
 
 	rc = of_parse_reset_seq(lcd_node, info);
 	if (rc)
