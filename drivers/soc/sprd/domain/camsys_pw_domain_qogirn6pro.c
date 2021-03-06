@@ -88,6 +88,24 @@ struct camsys_power_info {
 };
 
 static struct camsys_power_info *pw_info;
+static BLOCKING_NOTIFIER_HEAD(mmsys_chain);
+/* register */
+int sprd_mm_pw_notify_register(struct notifier_block *nb)
+{
+	return blocking_notifier_chain_register(&mmsys_chain, nb);
+}
+EXPORT_SYMBOL(sprd_mm_pw_notify_register);
+/* unregister */
+int sprd_mm_pw_notify_unregister(struct notifier_block *nb)
+{
+	return blocking_notifier_chain_unregister(&mmsys_chain, nb);
+}
+EXPORT_SYMBOL(sprd_mm_pw_notify_unregister);
+
+static int mmsys_notifier_call_chain(unsigned long val, void *v)
+{
+	return blocking_notifier_call_chain(&mmsys_chain, val, v);
+}
 
 static void regmap_update_bits_mmsys(struct register_gpr *p, uint32_t val)
 {
@@ -202,7 +220,7 @@ int sprd_isp_pw_off(void)
 
 	mutex_lock(&pw_info->mlock);
 	if (atomic_dec_return(&pw_info->users_isp_pw) == 0) {
-
+		mmsys_notifier_call_chain(_E_PW_OFF, NULL);
 		usleep_range(300, 350);
 
 		/* cam domain power off */
@@ -557,6 +575,7 @@ int sprd_isp_pw_on(void)
 		}
 
 	}
+	mmsys_notifier_call_chain(_E_PW_ON, NULL);
 	mutex_unlock(&pw_info->mlock);
 	return 0;
 
