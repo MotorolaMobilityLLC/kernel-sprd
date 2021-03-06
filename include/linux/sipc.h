@@ -31,6 +31,7 @@ enum {
 	SIPC_ID_PM_SYS,		/* Power management processor */
 	SIPC_ID_NR_PHY,		/* New Radio PHY processor */
 	SIPC_ID_V3_PHY,		/* MODEM v3 PHY processor */
+	SIPC_ID_CH,		/* Contex Hub processor */
 	SIPC_ID_NR,		/* Max processor number */
 };
 
