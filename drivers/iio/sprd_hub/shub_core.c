@@ -150,9 +150,11 @@ static int shub_send_data(struct shub_data *sensor, u8 *buf, u32 len)
 
 	do {
 		nwrite =
-			sbuf_write(SIPC_ID_PM_SYS, SMSG_CH_PIPE, SIPC_PM_BUFID0,
-				   (void *)(buf + sent_len), len - sent_len,
-				   msecs_to_jiffies(timeout));
+			sbuf_write(sensor->sipc_sensorhub_id, SMSG_CH_PIPE,
+					SIPC_PM_BUFID0,
+					(void *)(buf + sent_len),
+					len - sent_len,
+					msecs_to_jiffies(timeout));
 		if (nwrite > 0)
 			sent_len += nwrite;
 		if (nwrite < len || nwrite < 0)
@@ -252,9 +254,9 @@ static int shub_sipc_channel_read(struct shub_data *sensor)
 
 	do {
 		nread =
-			sbuf_read(SIPC_ID_PM_SYS, SMSG_CH_PIPE, SIPC_PM_BUFID0,
-				  (void *)sensor->readbuff,
-				  SERIAL_READ_BUFFER_MAX - 1, -1);
+			sbuf_read(sensor->sipc_sensorhub_id, SMSG_CH_PIPE,
+				SIPC_PM_BUFID0, (void *)sensor->readbuff,
+				SERIAL_READ_BUFFER_MAX - 1, -1);
 		if (nread < 0) {
 			retry++;
 			msleep(500);
@@ -292,9 +294,9 @@ static int shub_sipc_channel_rdnwu(struct shub_data *sensor)
 
 	do {
 		nread =
-			sbuf_read(SIPC_ID_PM_SYS, SMSG_CH_PIPE, SIPC_PM_BUFID1,
-				  (void *)sensor->readbuff_nwu,
-				  SERIAL_READ_BUFFER_MAX - 1, -1);
+			sbuf_read(sensor->sipc_sensorhub_id, SMSG_CH_PIPE,
+				SIPC_PM_BUFID1, (void *)sensor->readbuff_nwu,
+				SERIAL_READ_BUFFER_MAX - 1, -1);
 		if (nread < 0) {
 			retry++;
 			msleep(500);
@@ -2421,6 +2423,13 @@ static int shub_probe(struct platform_device *pdev)
 	mcu->indio_dev = indio_dev;
 	g_sensor = mcu;
 
+	error = of_property_read_u32(pdev->dev.of_node,
+		"sipc_sensorhub_id", &(mcu->sipc_sensorhub_id));
+	if (error) {
+		mcu->sipc_sensorhub_id = SIPC_ID_PM_SYS;
+	}
+	dev_info(&pdev->dev, "sipc_sensorhub_id=%u\n", mcu->sipc_sensorhub_id);
+
 	mcu->mcu_mode = SHUB_BOOT;
 	dev_set_drvdata(&pdev->dev, mcu);
 
@@ -2489,7 +2498,7 @@ static int shub_probe(struct platform_device *pdev)
 		dev_warn(&pdev->dev,
 			 "failed to create kernel thread_nwu: %d\n", error);
 	}
-	sbuf_set_no_need_wake_lock(SIPC_ID_PM_SYS,
+	sbuf_set_no_need_wake_lock(mcu->sipc_sensorhub_id,
 				   SMSG_CH_PIPE, SIPC_PM_BUFID1);
 	mcu->early_suspend.notifier_call = shub_notifier_fn;
 	register_pm_notifier(&mcu->early_suspend);

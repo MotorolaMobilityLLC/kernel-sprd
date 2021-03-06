@@ -163,6 +163,8 @@ struct shub_data {
 	/* enable & batch list */
 	u32 enabled_list[HANDLE_ID_END];
 	u32 interrupt_status;
+	/* sipc sensorhub id value */
+	u32 sipc_sensorhub_id;
 	/* Calibrator status */
 	int cal_cmd;
 	int cal_type;
