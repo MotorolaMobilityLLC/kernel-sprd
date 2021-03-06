@@ -36,6 +36,11 @@
 		bootargs = "earlycon=sprd_serial,0x20210000,115200n8 console=ttyS1,115200n8 loglevel=1 init=/init root=/dev/ram0 rw printk.devkmsg=on androidboot.selinux=permissive pcie_ports=compat swiotlb=1";
 	};
 
+	sprd-sensorhub {
+		compatible = "sprd,qogirn6pro-sensorhub", "sprd,sensor-hub";
+		sipc_sensorhub_id = <9>;
+	};
+
 	reserved_memory: reserved-memory {
 		#address-cells = <2>;
 		#size-cells = <2>;
