@@ -189,12 +189,12 @@ static void imsbr_packet_output_v6(struct sk_buff *skb, struct ipv6hdr *ip6)
 
 	imsbr_flowi6_init(&fl6, ip6);
 	security_skb_classify_flow(skb, flowi6_to_flowi(&fl6));
-
+	fl6.flowi6_mark = skb->mark;
 	dst = ip6_route_output(&init_net, NULL, &fl6);
 	if (unlikely(dst->error)) {
 		IMSBR_STAT_INC(ip6_route_fail);
-		pr_err_ratelimited("ip6_route_output s=%pI6c d=%pI6c e=%d\n",
-				   &ip6->saddr, &ip6->daddr, dst->error);
+		pr_err_ratelimited("ip6_route_output s=%pI6c d=%pI6c m=0x%08x e=%d\n",
+				   &ip6->saddr, &ip6->daddr, fl6.flowi6_mark, dst->error);
 		dst_release(dst);
 		goto freeit;
 	}
@@ -228,10 +228,16 @@ static void imsbr_packet_output(struct sk_buff *skb)
 	 */
 	skb->ignore_df = 1;
 
-	if (ip->version == 4)
+	if (ip->version == 4) {
 		imsbr_packet_output_v4(skb, ip);
-	else
+	} else {
+		/* Ipv6 route rule 11000 can not prevent apps to hit this rule,
+		 * so add mark 0x80000000 for the rule to avoid apps hitting.
+		 * For vowifi pkts,they need add mark for all.
+		 */
+		skb->mark |= 0x80000000;
 		imsbr_packet_output_v6(skb, ipv6_hdr(skb));
+	}
 }
 
 static void imsbr_packet_input(struct sk_buff *skb)

@@ -4168,6 +4168,15 @@ CONFIG_EMBEDDED
 	[must] user
 	[missing plat description] none
 	[function] vts require, Embedded system.
+CONFIG_EMMC_SOFTWARE_CQ_SUPPORT
+	[arch] arm64
+	[plat] sharkl5Pro
+	[missing plat] qogirl6,sharkl3,sharkl5
+	[field] make
+	[subsys] emmc
+	[must] user
+	[missing plat description] customer requirement
+	[function] add software command queue support for emmc
 CONFIG_ENABLE_DEFAULT_TRACERS
 	[arch] all
 	[plat] all

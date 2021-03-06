@@ -51,6 +51,15 @@ config MMC_SPRD_SDHCR10
 
 	  If unsure, say N.
 
+config EMMC_SOFTWARE_CQ_SUPPORT
+	tristate "SPRD eMMC Command Queuing support"
+	default n
+	help
+	  This enables eMMC software Command Queuing support by Spreadtrum.
+	  Say Y if you want to
+	  use eMMC Command Queuing scheme.
+	  If unsure, say N.
+
 config MMC_SDHCI
 	tristate "Secure Digital Host Controller Interface support"
 	depends on HAS_DMA
