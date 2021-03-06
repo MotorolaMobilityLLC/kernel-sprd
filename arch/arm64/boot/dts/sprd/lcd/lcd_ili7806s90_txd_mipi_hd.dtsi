@@ -64,6 +64,18 @@
 								hback-porch = <100>;
 								hfront-porch = <110>;
 								vback-porch = <31>;
+								vfront-porch = <850>;
+								hsync-len = <100>;
+								vsync-len = <2>;
+						};
+
+						ili7806s90_txd_timing1: timing1 {
+								clock-frequency = <153600000>;
+								hactive = <720>;
+								vactive = <1600>;
+								hback-porch = <100>;
+								hfront-porch = <110>;
+								vback-porch = <31>;
 								vfront-porch = <17>;
 								hsync-len = <100>;
 								vsync-len = <2>;
