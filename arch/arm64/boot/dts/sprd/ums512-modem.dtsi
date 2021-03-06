@@ -10,6 +10,8 @@
 
 / {
 	aliases {
+		v2-modem0 = &pmsys;
+		v2-modem1 = &modem;
 		seth0 = &seth_ch0;
 		seth1 = &seth_ch1;
 		seth2 = &seth_ch2;
@@ -24,6 +26,34 @@
 		seth11 = &seth_ch11;
 		seth12 = &seth_ch12;
 		seth13 = &seth_ch13;
+	};
+
+	pmsys: modem@0 {
+		compatible = "unisoc,modem";
+		/* 0xff is invalid register offset */
+		syscon0 = <&aon_apb_regs 0xff 0x0>;
+		syscon1	= <&pmu_apb_regs 0xff 0x0>;
+		syscon2	= <&aon_apb_regs 0x8c 0x1>;
+		syscon3	= <&aon_apb_regs 0xff 0x0>;
+		syscon4	= <&aon_apb_regs 0xff 0x0>;
+		syscon5	= <&pmu_apb_regs 0xb0 0xc000>;
+		syscon-names = "shutdown", "deepsleep", "corereset",
+					"sysreset", "getstatus", "dspreset";
+		sprd,version = <0x02>;
+	};
+
+	modem: modem@1 {
+		compatible = "unisoc,modem";
+		sprd,decoup = "cproc-use-decoup";
+		/* 0xff is invalid register offset */
+		syscon0 = <&pmu_apb_regs 0x58 0x2000000>;
+		syscon1 = <&pmu_apb_regs 0xcc 0x40000>;
+		syscon2 = <&aon_apb_regs 0x174 0x400>;
+		syscon3 = <&pmu_apb_regs 0xb0 0x2>;
+		syscon4 = <&aon_apb_regs 0xff 0x0>;
+		syscon-names = "shutdown", "deepsleep", "corereset",
+					"sysreset", "getstatus";
+		sprd,version = <0x02>;
 	};
 };
 
