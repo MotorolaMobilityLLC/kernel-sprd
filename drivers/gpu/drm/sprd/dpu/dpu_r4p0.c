@@ -362,7 +362,7 @@ module_param(cabc_bl_set_delay, int, 0644);
 module_param(cabc_disable, int, 0644);
 module_param(frame_no, int, 0644);
 
-static void dpu_sr_config(struct dpu_context *ctx);
+//static void dpu_sr_config(struct dpu_context *ctx);
 static void dpu_enhance_reload(struct dpu_context *ctx);
 static void dpu_clean_all(struct dpu_context *ctx);
 static void dpu_layer(struct dpu_context *ctx,
@@ -519,6 +519,29 @@ static u32 dpu_isr(struct dpu_context *ctx)
 	return reg_val;
 }
 
+static int dpu_wait_stop_done_without_isr(struct dpu_context *ctx)
+{
+        int rc;
+
+        if (ctx->is_stopped)
+                return 0;
+
+        /* wait for stop done interrupt */
+        rc = wait_event_interruptible_timeout(wait_queue, evt_stop,
+                                               msecs_to_jiffies(17));
+        evt_stop = false;
+
+        ctx->is_stopped = true;
+
+        if (!rc) {
+                /* time out */
+                pr_err("wait dpu stop done isr 17ms\n");
+                return -1;
+        }
+
+        return 0;
+}
+
 static int dpu_wait_stop_done(struct dpu_context *ctx)
 {
 	int rc;
@@ -560,6 +583,17 @@ static int dpu_wait_update_done(struct dpu_context *ctx)
 	}
 
 	return 0;
+}
+
+static void dpu_stop_without_isr(struct dpu_context *ctx)
+{
+        struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
+
+        if (ctx->if_type == SPRD_DISPC_IF_DPI)
+                reg->dpu_ctrl |= BIT(1);
+
+        dpu_wait_stop_done_without_isr(ctx);
+        pr_info("dpu stop without isr\n");
 }
 
 static void dpu_stop(struct dpu_context *ctx)
@@ -1250,7 +1284,7 @@ static void dpu_layer(struct dpu_context *ctx,
 				hwlayer->src_x, hwlayer->src_y,
 				hwlayer->src_w, hwlayer->src_h);
 }
-
+#if 0
 static void dpu_scaling(struct dpu_context *ctx,
 			struct sprd_dpu_layer layers[], u8 count)
 {
@@ -1326,7 +1360,7 @@ static void dpu_scaling(struct dpu_context *ctx,
 		}
 	}
 }
-
+#endif
 static void dpu_flip(struct dpu_context *ctx,
 		     struct sprd_dpu_layer layers[], u8 count)
 {
@@ -1352,9 +1386,13 @@ static void dpu_flip(struct dpu_context *ctx,
 	dpu_clean_all(ctx);
 
 	/* to check if dpu need scaling the frame for SR */
-	dpu_scaling(ctx, layers, count);
+	//dpu_scaling(ctx, layers, count);
 
 	/* start configure dpu layers */
+	if (mode_changed) {
+		count = 1;
+		mode_changed = false;
+	}
 	for (i = 0; i < count; i++)
 		dpu_layer(ctx, &layers[i]);
 
@@ -2153,7 +2191,7 @@ static void dpu_enhance_reload(struct dpu_context *ctx)
 
 	reg->dpu_enhance_cfg = enhance_en;
 }
-
+#if 0
 static void dpu_sr_config(struct dpu_context *ctx)
 {
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
@@ -2185,7 +2223,7 @@ static void dpu_sr_config(struct dpu_context *ctx)
 		reg->dpu_enhance_cfg = enhance_en;
 	}
 }
-
+#endif
 static int dpu_cabc_trigger(struct dpu_context *ctx)
 {
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
@@ -2270,24 +2308,34 @@ static int dpu_modeset(struct dpu_context *ctx,
 		struct drm_mode_modeinfo *mode)
 {
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
+	static bool isr_disable = true;
+	static int vfp;
 
-	if (dynamic_frame_mode) {
-		dpu_stop(ctx);
+	if (dynamic_frame_mode && ctx->is_inited) {
+		if (isr_disable) {
+			isr_disable = false;
+			dpu_stop_without_isr(ctx);
+		} else
+			dpu_stop(ctx);
 
-		if (mode->vtotal == 1674) {
+		vfp = mode->vsync_start - mode->vdisplay;
+
+		if (vfp < 300) {
 			pr_info("high frame rate mode\n");
-			ctx->vm.vfront_porch = 48;
+			ctx->vm.vfront_porch = vfp;
 			reg->dpi_v_timing = (ctx->vm.vsync_len << 0) |
 					    (ctx->vm.vback_porch << 8) |
 					    (ctx->vm.vfront_porch << 20);
-			dsi_hal_dpi_vfp(dsi_v2, 48);
+			dsi_v2->ctx.vm.vfront_porch = vfp;
+			dsi_hal_dpi_vfp(dsi_v2, vfp);
 		} else {
 			pr_info("low frame rate mode\n");
-			ctx->vm.vfront_porch = 883;
+			ctx->vm.vfront_porch = vfp;
 			reg->dpi_v_timing = (ctx->vm.vsync_len << 0) |
 					    (ctx->vm.vback_porch << 8) |
 					    (ctx->vm.vfront_porch << 20);
-			dsi_hal_dpi_vfp(dsi_v2, 883);
+			dsi_v2->ctx.vm.vfront_porch = vfp;
+			dsi_hal_dpi_vfp(dsi_v2, vfp);
 		}
 
 		dpu_run(ctx);
@@ -2300,9 +2348,9 @@ static int dpu_modeset(struct dpu_context *ctx,
 			need_scale = true;
 		else
 			need_scale = false;
-
-		mode_changed = true;
 	}
+	mode_changed = true;
+
 	pr_info("begin switch to %u x %u\n", mode->hdisplay, mode->vdisplay);
 
 	return 0;
