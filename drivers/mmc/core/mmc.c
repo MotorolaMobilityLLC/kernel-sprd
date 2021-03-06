@@ -32,6 +32,10 @@
 #include <dev_info.h>
 #endif
 
+#ifdef CONFIG_EMMC_SOFTWARE_CQ_SUPPORT
+#include <linux/kthread.h>
+#endif
+
 #define DEFAULT_CMD6_TIMEOUT_MS	500
 #define MIN_CACHE_EN_TIMEOUT_MS 1600
 
@@ -638,6 +642,7 @@ static int mmc_decode_ext_csd(struct mmc_card *card, u8 *ext_csd)
 			ext_csd[EXT_CSD_DEVICE_LIFE_TIME_EST_TYP_B];
 	}
 
+#if defined(CONFIG_EMMC_SOFTWARE_CQ_SUPPORT)
 	/* eMMC v5.1 or later */
 	if (card->ext_csd.rev >= 8) {
 		card->ext_csd.cmdq_support = ext_csd[EXT_CSD_CMDQ_SUPPORT] &
@@ -647,7 +652,7 @@ static int mmc_decode_ext_csd(struct mmc_card *card, u8 *ext_csd)
 		/* Exclude inefficiently small queue depths */
 		if (card->ext_csd.cmdq_depth <= 2) {
 			card->ext_csd.cmdq_support = false;
-			card->ext_csd.cmdq_depth = 0;
+			card->ext_csd.cmdq_depth = 2;
 		}
 		if (card->ext_csd.cmdq_support) {
 			pr_debug("%s: Command Queue supported depth %u\n",
@@ -655,6 +660,8 @@ static int mmc_decode_ext_csd(struct mmc_card *card, u8 *ext_csd)
 				 card->ext_csd.cmdq_depth);
 		}
 	}
+#endif
+
 out:
 	return err;
 }
@@ -701,6 +708,15 @@ static int mmc_compare_ext_csds(struct mmc_card *card, unsigned bus_width)
 {
 	u8 *bw_ext_csd;
 	int err;
+
+#if defined(CONFIG_EMMC_SOFTWARE_CQ_SUPPORT)
+	/* add for emmc reset when error happen */
+	/* return directly because compare fail seldom happens when reinit
+	 * emmc
+	 */
+	if (emmc_resetting_when_cmdq)
+		return 0;
+#endif
 
 	if (bus_width == MMC_BUS_WIDTH_1)
 		return 0;
@@ -1497,6 +1513,29 @@ bus_speed:
 	return 0;
 }
 
+#if defined(CONFIG_EMMC_SOFTWARE_CQ_SUPPORT)
+static int mmc_select_cmdq(struct mmc_card *card)
+{
+	struct mmc_host *host = card->host;
+	int ret = 0;
+
+	ret = mmc_switch(card, EXT_CSD_CMD_SET_NORMAL,
+			EXT_CSD_CMDQ_MODE_EN, 1,
+			card->ext_csd.generic_cmd6_time);
+	if (ret)
+		goto out;
+
+	mmc_card_set_cmdq(card);
+	card->ext_csd.cmdq_en = true;
+
+out:
+	pr_notice("%s: CMDQ enable %s\n",
+		mmc_hostname(host), ret ? "fail":"done");
+
+	return ret;
+}
+#endif
+
 /*
  * Execute tuning sequence to seek the proper bus operating
  * conditions for HS200 and HS400, which sends CMD21 to the device.
@@ -1808,6 +1847,26 @@ static int mmc_init_card(struct mmc_host *host, u32 ocr,
 #ifdef CONFIG_T_PRODUCT_INFO
 	FULL_PRODUCT_DEVICE_CB(ID_FLASH, get_mmc_chip_info, card);
 #endif
+
+#if defined(CONFIG_EMMC_SOFTWARE_CQ_SUPPORT)
+	/*
+	 * Enable Command Queue if supported. Note that Packed Commands cannot
+	 * be used with Command Queue.
+	 */
+	card->ext_csd.cmdq_en = false;
+	if (card->ext_csd.cmdq_support) {
+		err = mmc_select_cmdq(card);
+		if (err && err != -EBADMSG)
+			goto free_card;
+		if (err) {
+			pr_notice("%s: Enabling CMDQ failed\n",
+				mmc_hostname(card->host));
+			card->ext_csd.cmdq_support = false;
+			card->ext_csd.cmdq_depth = 2;
+			err = 0;
+		}
+	}
+#endif
 	return 0;
 
 free_card:
@@ -1816,6 +1875,7 @@ free_card:
 err:
 	return err;
 }
+
 
 static int mmc_can_sleep(struct mmc_card *card)
 {

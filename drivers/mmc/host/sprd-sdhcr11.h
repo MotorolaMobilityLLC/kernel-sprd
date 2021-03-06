@@ -126,6 +126,9 @@ struct sprd_sdhc_host {
 	struct register_hotplug reg_protect_enable;
 	struct register_hotplug reg_debounce_en;
 	struct register_hotplug reg_debounce_cn;
+#ifdef CONFIG_EMMC_SOFTWARE_CQ_SUPPORT
+	bool need_polling;
+#endif
 /* Tuning for HS400 support emmc5.0 */
 #define SPRD_HS400_TUNING	(1<<0)
 /* Host is ADMA capable */
@@ -649,8 +652,13 @@ static inline void sprd_sdhc_disable_all_int(struct sprd_sdhc_host *host)
 
 static inline void sprd_sdhc_enable_int(struct sprd_sdhc_host *host, u32 mask)
 {
+#ifdef CONFIG_EMMC_SOFTWARE_CQ_SUPPORT
+	sprd_sdhc_writel(host, host->int_filter, SPRD_SDHC_REG_32_INT_STATE_EN);
+#else
 	sprd_sdhc_writel(host, mask, SPRD_SDHC_REG_32_INT_STATE_EN);
+#endif
 	sprd_sdhc_writel(host, mask, SPRD_SDHC_REG_32_INT_SIG_EN);
+
 }
 
 static inline void sprd_sdhc_clear_int(struct sprd_sdhc_host *host, u32 mask)
