@@ -1034,18 +1034,11 @@ EXPORT_SYMBOL(mmc_flush_cache);
 
 static int mmc_cmdq_switch(struct mmc_card *card, bool enable)
 {
-	u8 val = enable ? EXT_CSD_CMDQ_MODE_ENABLED : 0;
-	int err;
-
-	if (!card->ext_csd.cmdq_support)
-		return -EOPNOTSUPP;
-
-	err = mmc_switch(card, EXT_CSD_CMD_SET_NORMAL, EXT_CSD_CMDQ_MODE_EN,
-			 val, card->ext_csd.generic_cmd6_time);
-	if (!err)
-		card->ext_csd.cmdq_en = enable;
-
-	return err;
+#if defined(CONFIG_EMMC_SOFTWARE_CQ_SUPPORT)
+	return mmc_blk_cmdq_switch(card, enable);
+#else
+	return 0;
+#endif
 }
 
 int mmc_cmdq_enable(struct mmc_card *card)

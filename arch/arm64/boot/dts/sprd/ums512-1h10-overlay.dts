@@ -774,42 +774,6 @@
 ***/
 // modify use DSI command set backlight end
 
-&lcd_td4310_truly_mipi_fhd {
-	sprd,phy-bit-clock = <1104000>;  /* kbps */
-
-	display-timings {
-		td4310_truly_timing1: timing1 {
-			clock-frequency = <153600000>;
-			hactive = <720>;
-			vactive = <1440>;
-			hback-porch = <20>;
-			hfront-porch = <50>;
-			vback-porch = <28>;
-			vfront-porch = <4>;
-			hsync-len = <2>;
-			vsync-len = <2>;
-		};
-	};
-};
-
-&lcd_ssd2092_truly_mipi_fhd {
-	sprd,phy-bit-clock = <1104000>;  /* kbps */
-
-	display-timings {
-		ssd2092_truly_timing1: timing1 {
-			clock-frequency = <153600000>;
-			hactive = <720>;
-			vactive = <1440>;
-			hback-porch = <20>;
-			hfront-porch = <20>;
-			vback-porch = <43>;
-			vfront-porch = <76>;
-			hsync-len = <4>;
-			vsync-len = <1>;
-		};
-	};
-};
-
 &ddr_dfs {
 	sprd-scene = "boost", "lcdon", "lcdoff", "camlow",
 		"camhigh", "camveryhigh", "faceid";
