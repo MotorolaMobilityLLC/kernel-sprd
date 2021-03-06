@@ -676,6 +676,12 @@ config WIRELESS_CHARGER_NU1619
 	help
 	  Say Y to include support for NoVolta NU619 Wireless charger.
 
+config WIRELESS_CHARGER_SY65153
+	tristate "SY65153 Wireless Charger"
+	depends on I2C || COMPILE_TEST
+	help
+	  Say Y to include support for Silergy sy65153 Wireless charger.
+
 config WIRELESS_CHARGE_PUMPS_CONVERTER_HL1506
 	tristate "Halo wireless charge pump converter hl1506"
 	depends on I2C || COMPILE_TEST
