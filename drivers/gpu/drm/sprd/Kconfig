@@ -21,3 +21,10 @@ config DRM_SPRD_HDMI
 	bool "SPRD DRM HDMI DRIVER"
 	help
 	  Choose this option when you need mipi switch hdmi.
+
+config LCM_I2C_BIAS
+	bool "LCM I2C BIAS DRIVER"
+	default n
+	depends on I2C
+	help
+	  Choose this option when you need mipi switch hdmi.

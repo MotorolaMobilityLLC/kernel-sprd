@@ -74,6 +74,8 @@ struct sprd_sdhc_host {
 	const char *device_name;
 	struct platform_device *pdev;
 
+	int vddsdcore_en_gpio;
+	int vddsdcore_en_gpio_polar;
 	int detect_gpio;
 	u32 ocr_avail;
 	u32 ocr_mask;

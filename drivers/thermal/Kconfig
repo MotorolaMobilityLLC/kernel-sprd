@@ -461,6 +461,11 @@ config GENERIC_ADC_THERMAL
 	  to this driver. This driver reports the temperature by reading ADC
 	  channel and converts it to temperature based on lookup table.
 
+config GENERIC_PA_THERMAL
+	tristate "Generic PA based thermal sensor"
+	depends on IIO
+
+
 menu "Qualcomm thermal drivers"
 depends on (ARCH_QCOM && OF) || COMPILE_TEST
 source "drivers/thermal/qcom/Kconfig"

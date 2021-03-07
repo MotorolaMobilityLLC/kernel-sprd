@@ -128,13 +128,15 @@ static int sprd_hostphy_set(struct usb_phy *x, int on)
 static void sprd_hsphy_emphasis_set(struct usb_phy *x, bool enabled)
 {
 	struct sprd_hsphy *phy = container_of(x, struct sprd_hsphy, phy);
-	u32 msk;
+	u32 value,msk;
 
-	msk = MASK_ANLG_PHY_G4_ANALOG_USB20_USB20_TUNEHSAMP;
+
+	value =  MASK_ANLG_PHY_G4_ANALOG_USB20_USB20_TUNEHSAMP;
+	msk =0xffffffff;
 	if (enabled)
 		regmap_update_bits(phy->ana_g4,
 			REG_ANLG_PHY_G4_ANALOG_USB20_USB20_TRIMMING,
-			msk, msk);
+			msk, value);
 	else
 		regmap_update_bits(phy->ana_g4,
 			REG_ANLG_PHY_G4_ANALOG_USB20_USB20_TRIMMING,
@@ -188,7 +190,8 @@ static int sprd_hsphy_init(struct usb_phy *x)
 	value |= MASK_AP_AHB_UTMI_WIDTH_SEL;
 	writel_relaxed(value, phy->base + REG_AP_AHB_OTG_PHY_CTRL);
 
-	reg = msk = MASK_ANLG_PHY_G4_ANALOG_USB20_USB20_TUNEHSAMP;
+	reg =  MASK_ANLG_PHY_G4_ANALOG_USB20_USB20_TUNEHSAMP;
+	msk =0xffffffff;
 	regmap_update_bits(phy->ana_g4,
 		REG_ANLG_PHY_G4_ANALOG_USB20_USB20_TRIMMING, msk, reg);
 

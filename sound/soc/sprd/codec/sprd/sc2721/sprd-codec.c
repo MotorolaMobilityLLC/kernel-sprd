@@ -1905,23 +1905,23 @@ static int sprd_codec_charge_ext_cap(struct snd_soc_codec *codec)
 
 	if (headset_get_plug_state() != 1)
 		return 0;
-
-	/* Waiting for charging finish. only headset plug in need to waiting */
-	cnt = WAIT_CNT_CHG_CAP;
-	do {
-		val = snd_soc_read(codec, SOC_REG(ANA_STS2));
-		pr_debug("Check charging status, ANA_STS2: %#x\n", val);
-		if ((val & BIT(DEPOP_CHG_STS)) && (val & BIT(RCV_DPOP_DVLD)))
-			break;
-		sprd_codec_wait(20);
-	} while (--cnt);
-	if (!cnt) {
-		ret = -1;
-		pr_err("%s, waiting for charging finish timeout!\n", __func__);
+	if(1 == headset_get_plug_state()) {
+		/* Waiting for charging finish. only headset plug in need to waiting */
+		cnt = WAIT_CNT_CHG_CAP;
+		do {
+			val = snd_soc_read(codec, SOC_REG(ANA_STS2));
+			pr_debug("Check charging status, ANA_STS2: %#x\n", val);
+			if ((val & BIT(DEPOP_CHG_STS)) && (val & BIT(RCV_DPOP_DVLD)))
+				break;
+			sprd_codec_wait(20);
+		} while (--cnt);
+		if (!cnt) {
+			ret = -1;
+			pr_err("%s, waiting for charging finish timeout!\n", __func__);
+		}
+		pr_debug("Charging ext cap takes about %dms. cnt: %d\n",
+			(WAIT_CNT_CHG_CAP - cnt) * 20, cnt);
 	}
-	pr_debug("Charging ext cap takes about %dms. cnt: %d\n",
-		 (WAIT_CNT_CHG_CAP - cnt) * 20, cnt);
-
 	return ret;
 }
 
@@ -1971,18 +1971,20 @@ static int hp_drv_path_switch_event(struct snd_soc_dapm_widget *w,
 	if (headset_get_plug_state() != 1)
 		return 0;
 
-	while (--cnt) {
-		val = snd_soc_read(codec, SOC_REG(ANA_DCL5));
-		pr_debug("ANA_DCL5: %#x\n", val);
-		if (on && (val & bit))
-			break;
-		else if (!on && !(val & bit))
-			break;
-		sprd_codec_wait(20);
-	}
-	if (cnt == 0) {
-		pr_err("%s Waiting for RDAC status timeout!\n", __func__);
-		ret = -1;
+	if(1 == headset_get_plug_state()) {
+		while (--cnt) {
+			val = snd_soc_read(codec, SOC_REG(ANA_DCL5));
+			pr_debug("ANA_DCL5: %#x\n", val);
+			if (on && (val & bit))
+				break;
+			else if (!on && !(val & bit))
+				break;
+			sprd_codec_wait(20);
+		}
+		if (cnt == 0) {
+			pr_err("%s Waiting for RDAC status timeout!\n", __func__);
+			ret = -1;
+		}
 	}
 
 	return ret;
@@ -2017,6 +2019,8 @@ static int hp_switch_event(struct snd_soc_dapm_widget *w,
 		snd_soc_update_bits(codec, SOC_REG(ANA_CDC2), mask_drv, val);
 		break;
 	case SND_SOC_DAPM_PRE_PMD:
+		hook_spk_aw87xx(0,0);
+		udelay(200);
 		val = left ? BIT(HPL_FLOOPEN) : BIT(HPR_FLOOPEN);
 		snd_soc_update_bits(codec, SOC_REG(ANA_CDC2), mask_drv, val);
 		snd_soc_update_bits(codec, SOC_REG(ANA_CDC2), mask_drv, 0);
