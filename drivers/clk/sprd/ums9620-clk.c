@@ -451,6 +451,10 @@ static struct clk_bit_field f_audpll[PLL_FACT_MAX] = {
 static SPRD_PLL_WITH_ITABLE_K_FVCO(audpll, "audpll", "ext-26m", 0x68,
 				   3, audpll_ftable, f_audpll, 240,
 				   1000, 1000, 1, 1600000000);
+static CLK_FIXED_FACTOR(audpll_38m4, "audpll-38m4", "audpll", 32, 1, 0);
+static CLK_FIXED_FACTOR(audpll_24m57, "audpll-24m57", "audpll", 50, 1, 0);
+static CLK_FIXED_FACTOR(audpll_19m2, "audpll-19m2", "audpll", 64, 1, 0);
+static CLK_FIXED_FACTOR(audpll_12m28, "audpll-12m28", "audpll", 100, 1, 0);
 
 #define phyr8pll_ftable gpll_ftable
 #define f_phyr8pll f_gpll
@@ -485,6 +489,10 @@ static struct clk_hw_onecell_data ums9620_g5r_pll_hws = {
 		[CLK_VDSPPLL]		= &vdsppll.common.hw,
 		[CLK_CPLL]		= &cpll.common.hw,
 		[CLK_AUDPLL]		= &audpll.common.hw,
+		[CLK_AUDPLL_38M4]	= &audpll_38m4.hw,
+		[CLK_AUDPLL_24M57]	= &audpll_24m57.hw,
+		[CLK_AUDPLL_19M2]       = &audpll_19m2.hw,
+		[CLK_AUDPLL_12M28]	= &audpll_12m28.hw,
 		[CLK_PHYR8PLL]		= &phyr8pll.common.hw,
 		[CLK_PIXELPLL]		= &pixelpll.common.hw,
 		[CLK_PIXELPLL_668M25]	= &pixelpll_668m25.hw,
@@ -1205,7 +1213,7 @@ static const char * const aux_parents[] = { "ext-32k", "phyr8pll-38m18",
 					    "pciepll-50m", "pciepllv-26m-52m",
 					    "usb31pllv-26m", "vdsppll-31m68",
 					    "audpll-38m4", "audpll-19m2",
-					    "audpll-12m28" };
+					    "audpll-12m28", "audpll-24m57" };
 
 static SPRD_COMP_CLK(aux0_clk, "aux0-clk", aux_parents, 0x240,
 		    6, 6, 0, 6, 0);
