@@ -16807,6 +16807,15 @@ CONFIG_SPRD_PIKE2_USB2_PHY
 	[must]
 	[missing plat description] none
 	[function]
+CONFIG_SPRD_PMIC_SYSCON
+	[arch] arm64
+	[plat] sharkl5Pro
+	[missing plat] sharkl3
+	[field]
+	[subsys]
+	[must]
+	[missing plat description]
+	[function]
 CONFIG_SPRD_POWER_DEBUG
 	[arch] all
 	[plat] all
