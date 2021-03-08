@@ -32,8 +32,10 @@
 #include "mdbg_type.h"
 #include "../../include/wcn_glb_reg.h"
 
-#define GNSSDUMP_INFO(format, arg...) pr_info("gnss_dump: " format, ## arg)
-#define GNSSDUMP_ERR(format, arg...) pr_err("gnss_dump: " format, ## arg)
+#define GNSSDUMP_ERR(fmt, args...) \
+    pr_err("%s:" fmt "\n", __func__, ## args)
+#define GNSSDUMP_INFO(fmt, args...) \
+    pr_info("%s:" fmt "\n", __func__, ## args)
 
 static struct file *gnss_dump_file;
 static	loff_t pos;
