@@ -354,6 +354,7 @@ static struct device_node *g_np;
 static int secure_debug;
 static int time = 5000;
 static struct disp_message tos_msg;
+static int vfp;
 module_param(time, int, 0644);
 module_param(secure_debug, int, 0644);
 module_param(wb_xfbc_en, int, 0644);
@@ -519,29 +520,6 @@ static u32 dpu_isr(struct dpu_context *ctx)
 	return reg_val;
 }
 
-static int dpu_wait_stop_done_without_isr(struct dpu_context *ctx)
-{
-        int rc;
-
-        if (ctx->is_stopped)
-                return 0;
-
-        /* wait for stop done interrupt */
-        rc = wait_event_interruptible_timeout(wait_queue, evt_stop,
-                                               msecs_to_jiffies(17));
-        evt_stop = false;
-
-        ctx->is_stopped = true;
-
-        if (!rc) {
-                /* time out */
-                pr_err("wait dpu stop done isr 17ms\n");
-                return -1;
-        }
-
-        return 0;
-}
-
 static int dpu_wait_stop_done(struct dpu_context *ctx)
 {
 	int rc;
@@ -583,17 +561,6 @@ static int dpu_wait_update_done(struct dpu_context *ctx)
 	}
 
 	return 0;
-}
-
-static void dpu_stop_without_isr(struct dpu_context *ctx)
-{
-        struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
-
-        if (ctx->if_type == SPRD_DISPC_IF_DPI)
-                reg->dpu_ctrl |= BIT(1);
-
-        dpu_wait_stop_done_without_isr(ctx);
-        pr_info("dpu stop without isr\n");
 }
 
 static void dpu_stop(struct dpu_context *ctx)
@@ -1284,6 +1251,31 @@ static void dpu_layer(struct dpu_context *ctx,
 				hwlayer->src_x, hwlayer->src_y,
 				hwlayer->src_w, hwlayer->src_h);
 }
+
+static void dpu_framerate(struct dpu_context *ctx)
+{
+	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
+
+	dpu_stop(ctx);
+	if (vfp < 300) {
+		pr_info("high frame rate mode\n");
+		ctx->vm.vfront_porch = vfp;
+		reg->dpi_v_timing = (ctx->vm.vsync_len << 0) |
+				    (ctx->vm.vback_porch << 8) |
+				    (ctx->vm.vfront_porch << 20);
+		dsi_v2->ctx.vm.vfront_porch = vfp;
+		dsi_hal_dpi_vfp(dsi_v2, vfp);
+	} else {
+		pr_info("low frame rate mode\n");
+		ctx->vm.vfront_porch = vfp;
+		reg->dpi_v_timing = (ctx->vm.vsync_len << 0) |
+				    (ctx->vm.vback_porch << 8) |
+				    (ctx->vm.vfront_porch << 20);
+		dsi_v2->ctx.vm.vfront_porch = vfp;
+		dsi_hal_dpi_vfp(dsi_v2, vfp);
+	}
+	dpu_run(ctx);
+}
 #if 0
 static void dpu_scaling(struct dpu_context *ctx,
 			struct sprd_dpu_layer layers[], u8 count)
@@ -1388,11 +1380,14 @@ static void dpu_flip(struct dpu_context *ctx,
 	/* to check if dpu need scaling the frame for SR */
 	//dpu_scaling(ctx, layers, count);
 
-	/* start configure dpu layers */
+	/* to check if dpu need change the frame rate */
 	if (mode_changed) {
+		dpu_framerate(ctx);
 		count = 1;
 		mode_changed = false;
 	}
+
+	/* start configure dpu layers */
 	for (i = 0; i < count; i++)
 		dpu_layer(ctx, &layers[i]);
 
@@ -2307,39 +2302,9 @@ static int dpu_cabc_trigger(struct dpu_context *ctx)
 static int dpu_modeset(struct dpu_context *ctx,
 		struct drm_mode_modeinfo *mode)
 {
-	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
-	static bool isr_disable = true;
-	static int vfp;
-
-	if (dynamic_frame_mode && ctx->is_inited) {
-		if (isr_disable) {
-			isr_disable = false;
-			dpu_stop_without_isr(ctx);
-		} else
-			dpu_stop(ctx);
-
+	if (dynamic_frame_mode)
 		vfp = mode->vsync_start - mode->vdisplay;
-
-		if (vfp < 300) {
-			pr_info("high frame rate mode\n");
-			ctx->vm.vfront_porch = vfp;
-			reg->dpi_v_timing = (ctx->vm.vsync_len << 0) |
-					    (ctx->vm.vback_porch << 8) |
-					    (ctx->vm.vfront_porch << 20);
-			dsi_v2->ctx.vm.vfront_porch = vfp;
-			dsi_hal_dpi_vfp(dsi_v2, vfp);
-		} else {
-			pr_info("low frame rate mode\n");
-			ctx->vm.vfront_porch = vfp;
-			reg->dpi_v_timing = (ctx->vm.vsync_len << 0) |
-					    (ctx->vm.vback_porch << 8) |
-					    (ctx->vm.vfront_porch << 20);
-			dsi_v2->ctx.vm.vfront_porch = vfp;
-			dsi_hal_dpi_vfp(dsi_v2, vfp);
-		}
-
-		dpu_run(ctx);
-	} else {
+	else {
 		scale_copy.in_w = mode->hdisplay;
 		scale_copy.in_h = mode->vdisplay;
 
