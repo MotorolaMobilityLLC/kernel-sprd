@@ -14622,9 +14622,9 @@ CONFIG_SPRD_VSP_PW_DOMAIN
 	                           missing sharkle32 because the hardware is defferent
 	[function] power on vsp domain.
 CONFIG_SPRD_WATCHDOG
-	[arch] all
-	[plat] pike2,qogirn6pro,sharkle32
-	[missing plat] qogirl6,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
+	[arch] arm
+	[plat] pike2,sharkle32
+	[missing plat] sharkl3_32,sharkl5_32
 	[field] menu,code
 	[subsys] core
 	[must] user
@@ -14632,8 +14632,8 @@ CONFIG_SPRD_WATCHDOG
 	[function] Spreadtrum watchdog driver.
 CONFIG_SPRD_WATCHDOG_FIQ
 	[arch] all
-	[plat] qogirl6,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,qogirn6pro,sharkle32
+	[plat] qogirl6,qogirn6pro,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
+	[missing plat] pike2,sharkle32
 	[field] make,code,menu
 	[subsys] core
 	[must] user
@@ -14641,12 +14641,12 @@ CONFIG_SPRD_WATCHDOG_FIQ
 	[function] support watchdog fig mode
 CONFIG_SPRD_WATCHDOG_PMIC
 	[arch] all
-	[plat] pike2,qogirl6,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
-	[missing plat] qogirn6pro
+	[plat] all
+	[missing plat] none
 	[field] make,code,menu
 	[subsys] watchdog
 	[must] user
-	[missing plat description] Not used in other projects
+	[missing plat description] none
 	[function] add ap sys watchdog.
 CONFIG_SRCU
 	[arch] all
@@ -16443,27 +16443,27 @@ CONFIG_WATCHDOG_HANDLE_BOOT_ENABLED
 	[missing plat description] none
 	[function] Update boot-enabled watchdog until userspace takes over
 CONFIG_WATCHDOG_PRETIMEOUT_DEFAULT_GOV_PANIC
-	[arch] all
-	[plat] pike2,qogirn6pro,sharkle32
-	[missing plat] qogirl6,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
+	[arch] arm
+	[plat] pike2,sharkle32
+	[missing plat] sharkl3_32,sharkl5_32
 	[field] menu,code
 	[subsys] core
 	[must] user
 	[missing plat description] use it for user,sharkl5_32 bring up is not yet.
 	[function] watchdog pretimeout default gov panic
 CONFIG_WATCHDOG_PRETIMEOUT_GOV
-	[arch] all
-	[plat] pike2,qogirn6pro,sharkle32
-	[missing plat] qogirl6,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
+	[arch] arm
+	[plat] pike2,sharkle32
+	[missing plat] sharkl3_32,sharkl5_32
 	[field] menu,code
 	[subsys] core
 	[must] user
 	[missing plat description] use it for user,sharkl5_32 bring up is not yet.
 	[function] watchdog pretimeout gov
 CONFIG_WATCHDOG_PRETIMEOUT_GOV_PANIC
-	[arch] all
-	[plat] pike2,qogirn6pro,sharkle32
-	[missing plat] qogirl6,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
+	[arch] arm
+	[plat] pike2,sharkle32
+	[missing plat] sharkl3_32,sharkl5_32
 	[field] menu,code
 	[subsys] core
 	[must] user
