@@ -813,12 +813,8 @@ void wcn_power_wq(struct work_struct *pwork)
 
 	wcn_power_enable_sys_domain(true);
 	ret = wcn_proc_native_start(wcn_dev);
-	if (ret) {	/* do no complete download done flag */
-		WCN_INFO("[-]%s: ret=%d!\n", __func__, ret);
-		return;
-	}
-	WCN_INFO("finish %s!\n", ret ? "ERR" : "OK");
 
+	WCN_INFO("finish %s!\n", ret ? "ERR" : "OK");
 	complete(&wcn_dev->download_done);
 }
 
@@ -1057,10 +1053,10 @@ int start_integrate_wcn(u32 subsys)
 				btwf_subsys = subsys;
 			ret = start_integrate_wcn_truely(btwf_subsys);
 			if (ret) {
-				mutex_unlock(&marlin_lock);
 				if (ret == -ETIMEDOUT)
 					mdbg_assert_interface(
 						"MARLIN boot cp timeout 0\n");
+				mutex_unlock(&marlin_lock);
 				return ret;
 			}
 		}
@@ -1075,9 +1071,9 @@ int start_integrate_wcn(u32 subsys)
 		}
 	}
 	ret = start_integrate_wcn_truely(subsys);
-	mutex_unlock(&marlin_lock);
 	if (ret == -ETIMEDOUT)
 		mdbg_assert_interface("MARLIN boot cp timeout");
+	mutex_unlock(&marlin_lock);
 	return ret;
 }
 
