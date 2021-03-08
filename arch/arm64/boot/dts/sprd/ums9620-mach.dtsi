@@ -90,6 +90,11 @@
 
 	};
 
+	rebootescrow@0 {
+		compatible = "pmem-region";
+		reg = <0x0 0x853f0000 0x0 0x00010000>;
+	};
+
 	thm_zone: thermal-zones {
 		soc_thmzone: soc-thmzone {
 			polling-delay-passive = <100>;
