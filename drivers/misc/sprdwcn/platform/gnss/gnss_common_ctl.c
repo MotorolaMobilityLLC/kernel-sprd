@@ -37,8 +37,10 @@
 #include "gnss_dump.h"
 #include "wcn_glb.h"
 
-#define GNSSCOMM_INFO(format, arg...) pr_info("gnss_ctl: " format, ## arg)
-#define GNSSCOMM_ERR(format, arg...) pr_err("gnss_ctl: " format, ## arg)
+#define GNSSCOMM_ERR(fmt, args...) \
+    pr_err("%s:" fmt "\n", __func__, ## args)
+#define GNSSCOMM_INFO(fmt, args...) \
+    pr_info("%s:" fmt "\n", __func__, ## args)
 
 #define GNSS_DATA_BASE_TYPE_H  16
 #define GNSS_MAX_STRING_LEN	10
@@ -464,7 +466,6 @@ static ssize_t gnss_subsys_show(struct device *dev,
 {
 	int i = 0;
 
-	GNSSCOMM_INFO("%s\n", __func__);
 	if (gnss_common_ctl_dev.gnss_status == GNSS_STATUS_POWERON) {
 		i += scnprintf(buf + i, PAGE_SIZE - i, "%d:%s\n",
 				gnss_common_ctl_dev.gnss_subsys,
