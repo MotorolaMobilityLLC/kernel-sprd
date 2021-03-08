@@ -575,6 +575,10 @@
 		 * -> soc_etf
 		 */
 
+		tmc_group {
+			compatible = "arm,coresight-tmc_group", "arm,tmc_group";
+		};
+
 		/* soc_funnel */
 		funnel@78002000 {
 			compatible = "arm,coresight-funnel", "arm,primecell";
