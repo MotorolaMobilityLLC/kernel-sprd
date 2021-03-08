@@ -103,10 +103,8 @@ static int sipa_dele_plat_drv_probe(struct platform_device *pdev_p)
 	memset(cfg, 0, sizeof(*cfg));
 
 	ret = sipa_dele_parse_dts_cfg(pdev_p, cfg);
-	if (ret) {
+	if (ret)
 		dev_err(dev, "dts parsing failed\n");
-		return ret;
-	}
 
 	create_params.pdev = dev;
 	create_params.cfg = cfg;

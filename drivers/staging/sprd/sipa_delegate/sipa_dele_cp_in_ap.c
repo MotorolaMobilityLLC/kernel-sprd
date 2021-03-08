@@ -73,11 +73,6 @@ int cp_delegator_init(struct sipa_delegator_create_params *params)
 	s_cp_delegator->delegator.local_request_prod = cp_dele_local_req_r_prod;
 	sipa_delegator_start(&s_cp_delegator->delegator);
 
-	ret = sipa_rm_add_dependency(s_cp_delegator->delegator.cons_user,
-				     SIPA_RM_RES_PROD_PAM_WIFI);
-	if (ret)
-		return ret;
-
 	ret = sipa_rm_add_dependency(SIPA_RM_RES_CONS_WIFI_UL,
 				     s_cp_delegator->delegator.prod_id);
 	if (ret)
