@@ -489,7 +489,7 @@ int clock_enable(struct vpu_platform_data *data)
 		ret = clk_prepare_enable(clk->clk_domain_eb);
 		if (ret) {
 			dev_err(dev, "vsp clk_domain_eb: clk_enable failed!\n");
-			return ret;
+			goto error1;
 		}
 		dev_dbg(dev, "vsp clk_domain_eb: clk_prepare_enable ok.\n");
 	}
@@ -499,18 +499,9 @@ int clock_enable(struct vpu_platform_data *data)
 		ret = clk_prepare_enable(clk->clk_dev_eb);
 		if (ret) {
 			dev_err(dev, "clk_dev_eb: clk_prepare_enable failed!\n");
-			return ret;
+			goto error2;
 		}
 		dev_dbg(dev, "clk_dev_eb: clk_prepare_enable ok.\n");
-	}
-
-	if (clk->clk_ckg_eb) {
-		ret = clk_prepare_enable(clk->clk_ckg_eb);
-		if (ret) {
-			dev_err(dev, "clk_ckg_eb: clk_prepare_enable failed!\n");
-			return ret;
-		}
-		dev_dbg(dev, "clk_ckg_eb: clk_prepare_enable ok.\n");
 	}
 
 	if (clk->clk_ahb_vsp) {
@@ -518,12 +509,12 @@ int clock_enable(struct vpu_platform_data *data)
 		if (ret) {
 			dev_err(dev, "clock[%s]: clk_set_parent() failed!",
 				"ahb_parent_clk");
-			return -EINVAL;
+			goto error3;
 		}
 		ret = clk_prepare_enable(clk->clk_ahb_vsp);
 		if (ret) {
 			dev_err(dev, "clk_ahb_vsp: clk_prepare_enable failed!\n");
-			return ret;
+			goto error3;
 		}
 		dev_dbg(dev, "clk_ahb_vsp: clk_prepare_enable ok.\n");
 	}
@@ -532,19 +523,28 @@ int clock_enable(struct vpu_platform_data *data)
 	ret = clk_set_parent(clk->core_clk, clk->core_parent_clk);
 	if (ret) {
 		dev_err(dev, "clock[%s]: clk_set_parent() failed!", "clk_core");
-		return -EINVAL;
+		goto error4;
 	}
 
 	ret = clk_prepare_enable(clk->core_clk);
 	if (ret) {
 		dev_err(dev, "core_clk: clk_prepare_enable failed!\n");
-		return ret;
+		goto error4;
 	}
 	dev_dbg(dev, "vsp_clk: clk_prepare_enable ok.\n");
 #endif
 
 	dev_dbg(data->dev, "%s %d,OK\n", __func__, __LINE__);
 
+	return ret;
+
+error4:
+	clk_disable_unprepare(clk->clk_ahb_vsp);
+error3:
+	clk_disable_unprepare(clk->clk_dev_eb);
+error2:
+	clk_disable_unprepare(clk->clk_domain_eb);
+error1:
 	return ret;
 }
 
@@ -555,7 +555,6 @@ void clock_disable(struct vpu_platform_data *data)
 	clk_disable_unprepare(clk->core_clk);
 #endif
 	clk_disable_unprepare(clk->clk_ahb_vsp);
-	clk_disable_unprepare(clk->clk_ckg_eb);
 	clk_disable_unprepare(clk->clk_dev_eb);
 	clk_disable_unprepare(clk->clk_domain_eb);
 	dev_dbg(data->dev, "%s %d,OK\n", __func__, __LINE__);
