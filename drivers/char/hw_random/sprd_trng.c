@@ -102,8 +102,8 @@ static void sprd_trng_cleanup(struct hwrng *rng)
 	val = readl_relaxed(trng->base + REG_CE_CLK);
 	val &= TRNG_CLK_DIS;
 	writel_relaxed(val, trng->base + REG_CE_CLK);
-
 	clk_disable_unprepare(trng->ce_eb);
+	clk_disable_unprepare(trng->clk);
 }
 
 static int sprd_trng_read(struct hwrng *rng, void *buf, size_t max, bool wait)
@@ -186,8 +186,10 @@ static int sprd_suspend(struct device *dev)
 {
 	struct sprd_trng *trng = dev_get_drvdata(dev);
 
+	if (pm_runtime_status_suspended(dev))
+		return 0;
+
 	sprd_trng_cleanup(&(trng->rng));
-	clk_disable_unprepare(trng->clk);
 
 	return 0;
 }
@@ -197,9 +199,8 @@ static int sprd_resume(struct device *dev)
 	u32 err;
 	struct sprd_trng *trng = dev_get_drvdata(dev);
 
-	err = clk_prepare_enable(trng->clk);
-	if (err)
-		return err;
+	if (pm_runtime_status_suspended(dev))
+		return 0;
 
 	err = sprd_trng_init(&(trng->rng));
 	if (err) {
