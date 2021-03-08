@@ -2590,6 +2590,12 @@
 				sprd,ddr-offset = <0x80000000>;
 				status = "okay";
 			};
+
+			dmc_controller: dmc-controller@60050000  {
+				compatible = "sprd,pub-dmc";
+				reg = <0x0 0x60050000 0x0 0x8010>,
+					<0x0 0x65000800 0x0 0x100>;
+			};
 		};
 
 		ai-axi {
