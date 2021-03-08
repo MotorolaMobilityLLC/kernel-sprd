@@ -3,6 +3,7 @@
 #include <dt-bindings/input/input.h>
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/clock/sprd,ums9620-clk.h>
+#include <dt-bindings/usb/pd.h>
 #include "lcd/lcd_g40396_truly_mipi_fhd.dtsi"
 #include "lcd/lcd_dummy_mipi.dtsi"
 / {
@@ -111,6 +112,7 @@
 				charge-dcp-current-microamp = <2000000 3000000>;
 				charge-cdp-current-microamp = <1500000 1500000>;
 				charge-unknown-current-microamp = <500000 500000>;
+				charge-fchg-current-microamp = <3000000 2000000>;
 			};
 
 			charger-manager {
@@ -127,7 +129,9 @@
 				cm-fullbatt-capacity = <100>;
 
 				cm-num-chargers = <1>;
+				cm-num-fast-chargers = <1>;
 				cm-chargers = "bq2560x_charger";
+				cm-fast-chargers = "sc2730_fast_charger";
 				cm-fuel-gauge = "sc27xx-fgu";
 
 				/* in deci centigrade */
@@ -152,11 +156,18 @@
 
 				/* how much time to allow capacity change */
 				cm-one-cap-time = <30>;
+
 				/* cm-thermal-zone = "board-thmzone"; */
+
 				/* when the safe charging voltage is exceeded, stop charging */
 				cm-charge-voltage-max = <6500000>;
 				/* drop voltage in microVolts to restart charging */
 				cm-charge-voltage-drop = <700000>;
+
+				/* when the safe charging voltage is exceeded, stop charging */
+				cm-fast-charge-voltage-max = <10500000>;
+				/* drop voltage in microVolts to restart charging */
+				cm-fast-charge-voltage-drop = <700000>;
 
 				cm-dcp-jeita-temp-table = <1000 1030 0 4340000>, <1150 1180 700000 4340000>,
 					<1450 1420 2000000 4340000>, <1600 1570 700000 4100000>;
@@ -166,6 +177,8 @@
 					<1450 1420 1500000 4340000>, <1600 1570 700000 4100000>;
 				cm-unknown-jeita-temp-table = <1000 1030 0 4340000>, <1150 1180 500000 4340000>,
 					<1450 1420 500000 4340000>, <1600 1570 500000 4100000>;
+				cm-fchg-jeita-temp-table = <1000 1030 0 4340000>, <1150 1180 700000 4340000>,
+					<1450 1420 3250000 4340000>, <1600 1570 700000 4100000>;
 
 				cm-cap-remap-table = <1 2 3>, <2 3 2>, <98 99 2>, <99 100 3>;
 
@@ -322,6 +335,11 @@
 	sprd,calib-resistance-spec = <20000>;
 	first-calib-voltage = <3580000>;
 	first-calib-capacity = <50>;
+};
+
+&pmic_fchg {
+	sprd,input-voltage-microvolt = <5000000>;
+	phys = <&ssphy>;
 };
 
 &panel {
