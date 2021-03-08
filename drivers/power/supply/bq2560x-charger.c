@@ -969,7 +969,7 @@ static int bq2560x_charger_usb_set_property(struct power_supply *psy,
 		ret = -EINVAL;
 	}
 
-	bq2560x_dump_register(info);		//for dump register and optimize driver by pony date20201124
+//	bq2560x_dump_register(info);		//for dump register and optimize driver by pony date20201124
 
 	mutex_unlock(&info->lock);
 	return ret;
