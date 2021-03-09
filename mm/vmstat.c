@@ -1072,6 +1072,12 @@ const char * const vmstat_text[] = {
 	"nr_inactive_file",
 	"nr_active_file",
 	"nr_unevictable",
+#ifdef CONFIG_PROTECT_LRU
+	"nr_protect_inactive_anon",
+	"nr_protect_active_anon",
+	"nr_protect_inactive_file",
+	"nr_protect_active_file",
+#endif
 	"nr_slab_reclaimable",
 	"nr_slab_unreclaimable",
 	"nr_isolated_anon",
