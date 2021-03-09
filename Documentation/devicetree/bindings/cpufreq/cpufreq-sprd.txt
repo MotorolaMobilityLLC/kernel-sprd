@@ -47,8 +47,10 @@ Optional properties:
 	-transition_delay_us: Specify parameter for the Schedutil governor to adjust the frequency interval.
 
 - sprd_swdvfs node.
-	- compatible: Describe which soc will use swdvfs driver,for example:
-			"sprd,sharkl3-swdvfs";
+	- compatible: Describe which soc will use swdvfs driver, select one config from following options:
+			"sprd,sharkl3-swdvfs",
+			"sprd,pike2-swdvfs",
+			"sprd,sharkle-swdvfs".
 
 Example 1: Example for quad core, single cluster architecture.
 --------
