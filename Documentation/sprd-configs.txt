@@ -14516,15 +14516,6 @@ CONFIG_SPRD_TIME_SYNC
 	[must] user
 	[missing plat description] none
 	[function] Spreadtrum time sync driver.
-CONFIG_SPRD_TIME_SYNC_CH
-	[arch] arm64
-	[plat] qogirn6pro
-	[missing plat] qogirl6,sharkl3,sharkl5,sharkl5Pro
-	[field] make
-	[subsys] soc
-	[must] user
-	[missing plat description] Not used config in other projects
-	[function] Support for sprd sensor time synchronization between AP
 CONFIG_SPRD_TIME_SYNC_CP
 	[arch] all
 	[plat] all
