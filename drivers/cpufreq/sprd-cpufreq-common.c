@@ -34,11 +34,11 @@ struct sprd_cpufreq_driver_data *cpufreq_datas[SPRD_CPUFREQ_MAX_MODULE];
 EXPORT_SYMBOL_GPL(cpufreq_datas);
 //void sprd_kproperty_get(const char *key, char *value, const char *default_value);
 
-/*__weak struct sprd_cpudvfs_device *sprd_hardware_dvfs_device_get(void)
+__weak struct sprd_cpudvfs_device *sprd_hardware_dvfs_device_get(void)
 {
-	pr_err("use weak sprd_hardware_dvfs_device_get\n");
+	pr_debug("use weak sprd hardware dvfs device get\n");
 	return NULL;
-}*/
+}
 
 static int sprd_cpufreq_read_soc_version(char *p_version)
 {
