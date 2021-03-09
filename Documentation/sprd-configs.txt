@@ -16250,8 +16250,8 @@ CONFIG_SPRD_AUTOTEST_PINCTRL
 	[function] Spreadtrum pinctrl autotest support
 CONFIG_SPRD_BUSMONITOR
 	[arch] arm64
-	[plat] sharkl5Pro
-	[missing plat] sharkl3
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
 	[field] make
 	[subsys] debug
 	[must] debug
@@ -16313,8 +16313,8 @@ CONFIG_SPRD_DEBUG
 	[function] Enable/disable sprd debug function.
 CONFIG_SPRD_DJTAG
 	[arch] arm64
-	[plat] sharkl5Pro
-	[missing plat] sharkl3
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
 	[field] make
 	[subsys] debug
 	[must] debug
@@ -16322,8 +16322,8 @@ CONFIG_SPRD_DJTAG
 	[function] Enable Djtag function
 CONFIG_SPRD_DJTAG_CORE
 	[arch] arm64
-	[plat] sharkl5Pro
-	[missing plat] sharkl3
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
 	[field] make
 	[subsys] debug
 	[must] debug
