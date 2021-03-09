@@ -1,0 +1,5 @@
+config SND_SOC_UNISOC_VBC_V4
+	tristate "VBC V4"
+	help
+	  If the chip is the series of sharkl5,
+	  set Y or M, else N.

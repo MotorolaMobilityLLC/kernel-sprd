@@ -3,3 +3,4 @@ obj-$(CONFIG_UNISOC_MODEM_LOADER)		+= modem_loader/
 obj-$(CONFIG_UNISOC_SIPC_VIRT_BUS)		+= sipc_virt_bus/
 obj-$(CONFIG_UNISOC_MAILBOX)			+= mailbox/
 obj-$(CONFIG_UNISOC_WCN_BSP)			+= sprdwcn/
+obj-$(CONFIG_SND_SOC)				+= audio/
