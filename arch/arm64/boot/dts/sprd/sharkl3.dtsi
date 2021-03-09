@@ -975,7 +975,7 @@
 	};
 
 	sipc: sipc-virt {
-		compatible = "sprd,sipc-virt-bus";
+		compatible = "unisoc,sipc-virt-bus";
 		#address-cells = <1>;
 		#size-cells = <0>;
 	};
