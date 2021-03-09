@@ -2512,6 +2512,12 @@
   snd_pcm_rate_bit_to_rate
   snd_soc_bytes_info_ext
   snd_soc_new_compress
+  snd_card_new
+  snd_card_register
+  snd_ctl_add
+  snd_ctl_new1
+  snd_pcm_new
+  snd_pcm_set_ops
 
 # required by ssd20xx_ts.ko
   input_mt_report_pointer_emulation
