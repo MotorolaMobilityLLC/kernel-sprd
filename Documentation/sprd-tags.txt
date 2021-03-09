@@ -193,6 +193,7 @@ time:
 trace:
 trusty:
 
+unisoc:*
 usb:dwc3:
 usb:gadget:
 usb:misc:
