@@ -9,7 +9,7 @@
 
 / {
 	wcn_btwf: cpwcn_btwf {
-		compatible = "sprd,integrate_marlin";
+		compatible = "unisoc,integrate_marlin";
 		sprd,name = "wcn_btwf";
 		sprd,syscon-ap-apb = <&aon_apb_regs>;
 		sprd,syscon-ap-pmu = <&pmu_apb_regs>;
@@ -52,7 +52,7 @@
 	};
 
 	wcn_gnss: cpwcn_gnss {
-		compatible = "sprd,integrate_gnss";
+		compatible = "unisoc,integrate_gnss";
 		sprd,name = "wcn_gnss";
 		sprd,syscon-ap-apb = <&aon_apb_regs>;
 		sprd,syscon-ap-pmu = <&pmu_apb_regs>;
