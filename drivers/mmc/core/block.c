@@ -953,7 +953,7 @@ static inline int mmc_blk_part_switch(struct mmc_card *card,
 
 		card->ext_csd.part_config = part_config;
 
-		ret = mmc_blk_part_switch_post(card, main_md->part_curr);
+		ret = mmc_blk_part_switch_post(card, part_type);
 	}
 
 	main_md->part_curr = part_type;
@@ -2046,7 +2046,6 @@ static void mmc_blk_issue_rw_rq(struct mmc_queue *mq, struct request *new_req)
 	if (!atomic_read(&mq->qcnt))
 		return;
 
-	//mt_biolog_mmcqd_req_check();
 	do {
 		if (new_req) {
 			/*
