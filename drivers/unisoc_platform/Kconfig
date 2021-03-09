@@ -2,3 +2,4 @@
 # UNISOC MODEM drivers
 #
 source "drivers/unisoc_platform/modem_loader/Kconfig"
+source "drivers/unisoc_platform/sipc_virt_bus/Kconfig"
