@@ -16483,8 +16483,8 @@ CONFIG_SPRD_JPG
 	[missing plat description] none
 	[function] The JPG is the hardware accelerator for jpeg standard image compression.
 CONFIG_SPRD_LOOK_AT
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field] make
 	[subsys] soc
