@@ -807,7 +807,7 @@ static void dpu_run(struct dpu_context *ctx)
 {
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
 
-	reg->dpu_ctrl |= BIT(0);
+	reg->dpu_ctrl |= BIT(4) | BIT(0);
 
 	ctx->is_stopped = false;
 
