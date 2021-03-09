@@ -1221,6 +1221,10 @@ static void dpu_layer(struct dpu_context *ctx,
 			disp_ca_connect();
 			udelay(time);
 		}
+		tos_msg.cmd = TA_FIREWALL_SET;
+		disp_ca_write(&tos_msg, sizeof(tos_msg));
+		disp_ca_wait_response();
+
 		tos_msg.cmd = TA_REG_SET;
 		tos_msg.layer = tmp;
 		disp_ca_write(&tos_msg, sizeof(tos_msg));
@@ -1228,6 +1232,10 @@ static void dpu_layer(struct dpu_context *ctx,
 		return;
 	} else if (reg->dpu_secure) {
 		tos_msg.cmd = TA_REG_CLR;
+		disp_ca_write(&tos_msg, sizeof(tos_msg));
+		disp_ca_wait_response();
+
+		tos_msg.cmd = TA_FIREWALL_CLR;
 		disp_ca_write(&tos_msg, sizeof(tos_msg));
 		disp_ca_wait_response();
 	}
