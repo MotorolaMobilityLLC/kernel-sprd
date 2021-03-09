@@ -990,7 +990,7 @@
 			};
 
 			mailbox: mailbox@320a0000 {
-				compatible = "sprd,mailbox-r1p2";
+				compatible = "unisoc,mailbox-r1p2";
 				reg = <0 0x320a0000 0 0x8000>,
 				      <0 0x320a8000 0 0x8000>;
 				reg-names = "inbox", "outbox";
