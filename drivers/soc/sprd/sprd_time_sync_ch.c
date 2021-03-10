@@ -8,10 +8,11 @@
  */
 
 #include <clocksource/arm_arch_timer.h>
+#include <linux/cdev.h>
 #include <linux/init.h>
 #include <linux/io.h>
 #include <linux/kernel.h>
-#include <linux/cdev.h>
+#include <linux/kthread.h>
 #include <linux/module.h>
 #include <linux/of.h>
 #include <linux/of_address.h>
@@ -21,6 +22,7 @@
 #include <linux/spinlock.h>
 #include <linux/syscore_ops.h>
 #include <linux/soc/sprd/sprd_time_sync.h>
+#include <uapi/linux/sched/types.h>
 
 #define SENSOR_TS_CTRL_NUM	4
 #define SENSOR_TS_CTRL_SIZE	4
@@ -34,6 +36,8 @@
 static void __iomem *sprd_time_sync_ch_addr_base;
 
 static struct hrtimer sprd_time_sync_ch_timer;
+
+static struct task_struct *sprd_time_sync_task;
 
 static struct sprd_cnt_to_boot{
 	u64 ts_cnt;
@@ -71,16 +75,28 @@ static inline void update_cnt_to_boot(void)
 }
 
 /* send only once to ensure resume time */
-static void sprd_time_sync_ch_send(void)
+static int sprd_time_sync_ch_send_thread(void *data)
 {
-	sprd_send_ap_time();
+	struct sched_param param = {.sched_priority = 50};
+
+	/* set the thread as a real time thread, and its priority is 50 */
+	sched_setscheduler(sprd_time_sync_task, SCHED_RR, &param);
+
+	while (!kthread_should_stop()) {
+		set_current_state(TASK_UNINTERRUPTIBLE);
+		schedule();
+
+		sprd_send_ap_time();
 
 #if IS_ENABLED(CONFIG_SPRD_DEBUG)
-	pr_info("send time to ch. ts_cnt = %llu sysfrt_cnt = %lu boottime = %llu\n",
-		 sprd_ctb.ts_cnt,
-		 sprd_ctb.sysfrt_cnt,
-		 sprd_ctb.boottime);
+		pr_info("send time to ch. ts_cnt = %llu sysfrt_cnt = %lu boottime = %llu\n",
+			 sprd_ctb.ts_cnt,
+			 sprd_ctb.sysfrt_cnt,
+			 sprd_ctb.boottime);
 #endif
+	}
+
+	return 0;
 }
 
 void sprd_time_sync_ch_resume(void)
@@ -103,7 +119,7 @@ void sprd_time_sync_ch_resume(void)
 	update_cnt_to_boot();
 	spin_unlock_irqrestore(&sprd_time_sync_ch_lock, flags);
 
-	sprd_time_sync_ch_send();
+	wake_up_process(sprd_time_sync_task);
 }
 
 int sprd_time_sync_ch_suspend(void)
@@ -141,7 +157,7 @@ static enum hrtimer_restart sprd_sync_timer_ch(struct hrtimer *hr)
 	update_cnt_to_boot();
 	spin_unlock_irqrestore(&sprd_time_sync_ch_lock, flags);
 
-	sprd_time_sync_ch_send();
+	wake_up_process(sprd_time_sync_task);
 
 	hrtimer_forward_now(&sprd_time_sync_ch_timer, ms_to_ktime(DEFAULT_TIMEVALE_MS));
 
@@ -166,7 +182,15 @@ static int sprd_time_sync_ch_probe(struct platform_device *pdev)
 	update_cnt_to_boot();
 	spin_unlock_irqrestore(&sprd_time_sync_ch_lock, flags);
 
-	sprd_time_sync_ch_send();
+	sprd_time_sync_task = kthread_create(sprd_time_sync_ch_send_thread,
+					     NULL,
+					     pdev->name);
+	if (IS_ERR(sprd_time_sync_task)) {
+		pr_err("Create %s thread error.\n", pdev->name);
+		return PTR_ERR(sprd_time_sync_task);
+	}
+
+	wake_up_process(sprd_time_sync_task);
 
 	hrtimer_init(&sprd_time_sync_ch_timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
 	sprd_time_sync_ch_timer.function = sprd_sync_timer_ch;
