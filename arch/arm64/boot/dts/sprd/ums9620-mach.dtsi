@@ -338,31 +338,31 @@
 			/*core Tscale = aT^3 + bT^2 + cT +di   */
 			sprd,core-temp-scale =
 			/* a*10^7   b*10^7      c*10^7     d*10^7 */
-			<  18      (-1280)      96270    (-126100)>;
+			<  32      (-3740)      208490    (-1646820)>;
 			/*core Vscale = eV^3 + fV^2 + gV + h */
 			sprd,core-voltage-scale =
 			/* e*10^2   f*10^2     g*10^2  h*10^2*/
-			<  480     (-949)      738      (-170)>;
+			<  556     (-1125)      869      (-200)>;
 			/*cluster Tscale = aT^3 + bT^2 + cT +di   */
 			sprd,cluster-temp-scale =
 			/* a*10^7   b*10^7      c*10^7     d*10^7 */
-			<  22      (-1822)      120376    (-427426)>;
+			<  21      (-1871)      110281    (-303179)>;
 			/*cluster Vscale = eV^3 + fV^2 + gV + h */
 			sprd,cluster-voltage-scale =
 			/* e*10^2   f*10^2     g*10^2  h*10^2*/
-			<  787     (-1623)      1231      (-295)>;
+			<  1543     (-3288)      2419      (-574)>;
 			sprd,efuse-switch = <0>;
 			sprd,hotplug-period = <10>;
 			sprd,min-cpufreq = <614400>;
 			sprd,min-cpunum = <1>;
-			sprd,core-base = <3950>;
-			sprd,cluster-base = <3896>;
+			sprd,core-base = <2163>;
+			sprd,cluster-base = <9406>;
 			sprd,dynamic-core =
 			/*Pdynperghz*10    Freq     Vbase  */
-			< 927           1000     1000>;
+			< 774           1000     1000>;
 			sprd,dynamic-cluster =
 			/*Pdynperghz*10    Freq     Vbase  */
-			< 246           1000     1000>;
+			< 1544           1000     1000>;
 			sprd,sensor-names = "ank0-thmzone",
 				"ank1-thmzone",
 				"ank2-thmzone",
@@ -387,31 +387,31 @@
 			/*core Tscale = aT^3 + bT^2 + cT +d  */
 			sprd,core-temp-scale =
 			/* a*10^7   b*10^7	c*10^7	   d*10^7*/
-			<  18      (-1253)      93272    (-163827)>;
+			<  29      (-3437)      197879    (-1480529)>;
 			/* core  Vscale = eV^3 + fV^2 + gV + h */
 			sprd,core-voltage-scale =
 			/* e*10^2  f*10^2     g*10^2  h*10^2*/
-			<  364     (-708)      571      (-128)>;
+			<  660     (-1350)      1028      (-238)>;
 			/*cluster Tscale = aT^3 + bT^2 + cT +di   */
 			sprd,cluster-temp-scale =
 			/* a*10^7   b*10^7      c*10^7     d*10^7 */
-			<  22      (-1822)      120376    (-427426)>;
+			<  21      (-1871)      110281    (-303179)>;
 			/*cluster Vscale = eV^3 + fV^2 + gV + h */
 			sprd,cluster-voltage-scale =
 			/* e*10^2   f*10^2     g*10^2  h*10^2*/
-			<  787     (-1623)      1231      (-295)>;
+			<  1543     (-3288)      2419      (-574)>;
 			sprd,efuse-switch = <0>;
 			sprd,hotplug-period = <10>;
 			sprd,min-cpufreq = <1228800>;
 			sprd,min-cpunum = <0>;
-			sprd,core-base = <11552>;
-			sprd,cluster-base = <3896>;
+			sprd,core-base = <13764>;
+			sprd,cluster-base = <9406>;
 			sprd,dynamic-core =
 			/* Pdynperghz*10    Freq     Vbase */
-			<  4556          1000     1000>;
+			<  3602          1000     1000>;
 			sprd,dynamic-cluster =
 			/* Pdynperghz*10    Freq     Vbase */
-			<  246            1000     1000>;
+			<  1544            1000     1000>;
 			sprd,sensor-names = "prometheus6-tzone0",
 				"prometheus7-thmzone";
 			sprd,cii-per-core-tp = <85000 80000 75000 70000>;
@@ -432,31 +432,31 @@
 			/*core Tscale = aT^3 + bT^2 + cT +d  */
 			sprd,core-temp-scale =
 			/* a*10^7   b*10^7	c*10^7	   d*10^7*/
-			<  18      (-1253)      93272    (-163827)>;
+			<  31      (-3318)      196102    (-1472368)>;
 			/* core  Vscale = eV^3 + fV^2 + gV + h */
 			sprd,core-voltage-scale =
 			/* e*10^2  f*10^2     g*10^2  h*10^2*/
-			<  364     (-708)      571      (-128)>;
+			<  556     (-1125)      869      (-200)>;
 			/*cluster Tscale = aT^3 + bT^2 + cT +di   */
 			sprd,cluster-temp-scale =
 			/* a*10^7   b*10^7      c*10^7     d*10^7 */
-			<  22      (-1822)      120376    (-427426)>;
+			<  21      (-1871)      110281    (-303179)>;
 			/*cluster Vscale = eV^3 + fV^2 + gV + h */
 			sprd,cluster-voltage-scale =
 			/* e*10^2   f*10^2     g*10^2  h*10^2*/
-			<  787     (-1623)      1231      (-295)>;
+			<  1543     (-3288)      2419      (-574)>;
 			sprd,efuse-switch = <0>;
 			sprd,hotplug-period = <10>;
 			sprd,min-cpufreq = <1228800>;
 			sprd,min-cpunum = <0>;
-			sprd,core-base = <11552>;
-			sprd,cluster-base = <3896>;
+			sprd,core-base = <16032>;
+			sprd,cluster-base = <9406>;
 			sprd,dynamic-core =
 			/* Pdynperghz*10    Freq     Vbase */
-			<  4556          1000     1000>;
+			<  4479          1000     1000>;
 			sprd,dynamic-cluster =
 			/* Pdynperghz*10    Freq     Vbase */
-			<  246            1000     1000>;
+			<  1544            1000     1000>;
 			sprd,sensor-names = "prometheus6-tzone0",
 				"prometheus7-thmzone";
 			sprd,cii-per-core-tp = <85000 80000 75000 70000>;
@@ -480,19 +480,19 @@
 			/*Tscale = aT^3 + bT^2 + cT +di   */
 			sprd,temp-scale =
 			/* a*10^7   b*10^7      c*10^7     d*10^7 */
-			<  25     (-2204)     131423    (-740872)>;
+			<  26     (-2878)     158715    (-643060)>;
 			/*Vscale = eV^3 + fV^2 + gV + h */
 			sprd,voltage-scale =
 			/* e*10^2   f*10^2     g*10^2      h*10^2*/
-			<  801  (-1712)       1335     (-324)>;
+			<  1193  (-2521)       1869     (-441)>;
 			sprd,hotplug-period = <0>;
 			/* core Vbase*10^2*/
-			sprd,core-base = <9343>;
+			sprd,core-base = <11744>;
 			/* cluster Vbase*10^2*/
 			sprd,cluster-base = <966>;
 			sprd,dynamic-core =
 			/*Pdynperghz*10^2    Freq     Vbase  */
-			< 7150           850     800>;
+			< 282353           850     800>;
 			sprd,dynamic-cluster =
 			/*Pdynperghz*10^2    Freq     Vbase  */
 			< 6064           768     900>;
@@ -514,19 +514,19 @@
 			/*Tscale = aT^3 + bT^2 + cT +di   */
 			sprd,temp-scale =
 			/* a*10^7   b*10^7      c*10^7     d*10^7 */
-			<  25     (-2204)     131423    (-740872)>;
+			<  20     (-2873)     159152    (-647559)>;
 			/*Vscale = eV^3 + fV^2 + gV + h */
 			sprd,voltage-scale =
 			/* e*10^2   f*10^2     g*10^2      h*10^2*/
-			<  801  (-1712)       1335     (-324)>;
+			<  1197  (-2529)       1875     (-443)>;
 			sprd,hotplug-period = <0>;
 			/* core Vbase*10^2*/
-			sprd,core-base = <9343>;
+			sprd,core-base = <4977>;
 			/* cluster Vbase*10^2*/
 			sprd,cluster-base = <966>;
 			sprd,dynamic-core =
 			/*Pdynperghz*10^2    Freq     Vbase  */
-			< 7150           850     800>;
+			< 139556           850     800>;
 			sprd,dynamic-cluster =
 			/*Pdynperghz*10^2    Freq     Vbase  */
 			< 6064           768     900>;
