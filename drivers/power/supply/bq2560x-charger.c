@@ -82,6 +82,7 @@
 #define BQ2560X_OTG_RETRY_TIMES			10
 #define BQ2560X_LIMIT_CURRENT_MAX		3200000
 #define BQ2560X_LIMIT_CURRENT_OFFSET		100000
+#define BQ2560X_REG_IINDPM_LSB			100
 
 #define BQ2560X_ROLE_MASTER_DEFAULT		1
 #define BQ2560X_ROLE_SLAVE			2
@@ -92,7 +93,8 @@
 #define BQ2560X_FAST_CHARGER_VOLTAGE_MAX	10500000
 #define BQ2560X_NORMAL_CHARGER_VOLTAGE_MAX	6500000
 
-#define BQ2560X_WAKE_UP_MS                      2000
+#define BQ2560X_WAKE_UP_MS			1000
+#define BQ2560X_CURRENT_WORK_MS			msecs_to_jiffies(100)
 
 struct bq2560x_charger_info {
 	struct i2c_client *client;
@@ -103,23 +105,28 @@ struct bq2560x_charger_info {
 	struct power_supply_charge_current cur;
 	struct work_struct work;
 	struct mutex lock;
-	bool charging;
-	u32 limit;
 	struct delayed_work otg_work;
 	struct delayed_work wdt_work;
+	struct delayed_work cur_work;
 	struct regmap *pmic;
+	struct gpio_desc *gpiod;
+	struct extcon_dev *edev;
+	struct alarm otg_timer;
 	u32 charger_detect;
 	u32 charger_pd;
 	u32 charger_pd_mask;
-	struct gpio_desc *gpiod;
-	struct extcon_dev *edev;
-	u32 last_limit_current;
+	u32 limit;
+	u32 new_charge_limit_cur;
+	u32 current_charge_limit_cur;
+	u32 new_input_limit_cur;
+	u32 current_input_limit_cur;
+	u32 last_limit_cur;
+	u32 actual_limit_cur;
 	u32 role;
+	bool charging;
 	bool need_disable_Q1;
 	int termination_cur;
-	u32 actual_limit_current;
 	bool otg_enable;
-	struct alarm otg_timer;
 	unsigned int irq_gpio;
 	bool is_wireless_charge;
 };
@@ -357,6 +364,9 @@ static int bq2560x_charger_hw_init(struct bq2560x_charger_info *info)
 			dev_err(info->dev, "set bq2560x limit current failed\n");
 	}
 
+	info->current_charge_limit_cur = BQ2560X_REG_ICHG_LSB * 1000;
+	info->current_input_limit_cur = BQ2560X_REG_IINDPM_LSB * 1000;
+
 	return ret;
 }
 
@@ -425,7 +435,7 @@ static int bq2560x_charger_start_charge(struct bq2560x_charger_info *info)
 	}
 
 	ret = bq2560x_charger_set_limit_current(info,
-						info->last_limit_current);
+						info->last_limit_cur);
 	if (ret) {
 		dev_err(info->dev, "failed to set limit current\n");
 		return ret;
@@ -529,7 +539,7 @@ bq2560x_charger_set_limit_current(struct bq2560x_charger_info *info,
 	if (limit_cur >= BQ2560X_LIMIT_CURRENT_MAX)
 		limit_cur = BQ2560X_LIMIT_CURRENT_MAX;
 
-	info->last_limit_current = limit_cur;
+	info->last_limit_cur = limit_cur;
 	limit_cur -= BQ2560X_LIMIT_CURRENT_OFFSET;
 	limit_cur = limit_cur / 1000;
 	reg_val = limit_cur / BQ2560X_REG_IINLIM_BASE;
@@ -540,8 +550,8 @@ bq2560x_charger_set_limit_current(struct bq2560x_charger_info *info,
 	if (ret)
 		dev_err(info->dev, "set bq2560x limit cur failed\n");
 
-	info->actual_limit_current = reg_val * BQ2560X_REG_IINLIM_BASE * 1000;
-	info->actual_limit_current += BQ2560X_LIMIT_CURRENT_OFFSET;
+	info->actual_limit_cur = reg_val * BQ2560X_REG_IINLIM_BASE * 1000;
+	info->actual_limit_cur += BQ2560X_LIMIT_CURRENT_OFFSET;
 
 	return ret;
 }
@@ -624,10 +634,10 @@ static int bq2560x_charger_feed_watchdog(struct bq2560x_charger_info *info,
 		return ret;
 	}
 
-	if (info->actual_limit_current == limit_cur)
+	if (info->actual_limit_cur == limit_cur)
 		return 0;
 
-	ret = bq2560x_charger_set_limit_current(info, info->actual_limit_current);
+	ret = bq2560x_charger_set_limit_current(info, info->actual_limit_cur);
 	if (ret) {
 		dev_err(info->dev, "set limit cur failed\n");
 		return ret;
@@ -684,6 +694,38 @@ static int bq2560x_charger_get_status(struct bq2560x_charger_info *info)
 		return POWER_SUPPLY_STATUS_NOT_CHARGING;
 }
 
+static void bq2560x_check_wireless_charge(struct bq2560x_charger_info *info, bool enable)
+{
+	int ret;
+
+	if (!enable)
+		cancel_delayed_work_sync(&info->cur_work);
+
+	if (info->is_wireless_charge && enable) {
+		cancel_delayed_work_sync(&info->cur_work);
+		ret = bq2560x_charger_set_current(info, info->current_charge_limit_cur);
+		if (ret < 0)
+			dev_err(info->dev, "%s:set charge current failed\n", __func__);
+
+		ret = bq2560x_charger_set_current(info, info->current_input_limit_cur);
+		if (ret < 0)
+			dev_err(info->dev, "%s:set charge current failed\n", __func__);
+
+		pm_wakeup_event(info->dev, BQ2560X_WAKE_UP_MS);
+		schedule_delayed_work(&info->cur_work, BQ2560X_CURRENT_WORK_MS);
+	} else if (info->is_wireless_charge && !enable) {
+		info->new_charge_limit_cur = info->current_charge_limit_cur;
+		info->current_charge_limit_cur = BQ2560X_REG_ICHG_LSB * 1000;
+		info->new_input_limit_cur = info->current_input_limit_cur;
+		info->current_input_limit_cur = BQ2560X_REG_IINDPM_LSB * 1000;
+	} else if (!info->is_wireless_charge && !enable) {
+		info->new_charge_limit_cur = BQ2560X_REG_ICHG_LSB * 1000;
+		info->current_charge_limit_cur = BQ2560X_REG_ICHG_LSB * 1000;
+		info->new_input_limit_cur = BQ2560X_REG_IINDPM_LSB * 1000;
+		info->current_input_limit_cur = BQ2560X_REG_IINDPM_LSB * 1000;
+	}
+}
+
 static int bq2560x_charger_set_status(struct bq2560x_charger_info *info,
 				      int val)
 {
@@ -736,9 +778,11 @@ static int bq2560x_charger_set_status(struct bq2560x_charger_info *info,
 		return 0;
 
 	if (!val && info->charging) {
+		bq2560x_check_wireless_charge(info, false);
 		bq2560x_charger_stop_charge(info);
 		info->charging = false;
 	} else if (val && !info->charging) {
+		bq2560x_check_wireless_charge(info, true);
 		ret = bq2560x_charger_start_charge(info);
 		if (ret)
 			dev_err(info->dev, "start charge failed\n");
@@ -797,6 +841,58 @@ out:
 	dev_info(info->dev, "battery present = %d, charger type = %d\n",
 		 present, info->usb_phy->chg_type);
 	cm_notify_event(info->psy_usb, CM_EVENT_CHG_START_STOP, NULL);
+}
+
+static void bq2560x_current_work(struct work_struct *data)
+{
+	struct delayed_work *dwork = to_delayed_work(data);
+	struct bq2560x_charger_info *info =
+		container_of(dwork, struct bq2560x_charger_info, cur_work);
+	int ret = 0;
+	bool need_return = false;
+
+	if (info->current_charge_limit_cur > info->new_charge_limit_cur) {
+		ret = bq2560x_charger_set_current(info, info->new_charge_limit_cur);
+		if (ret < 0)
+			dev_err(info->dev, "%s: set charge limit cur failed\n", __func__);
+		return;
+	}
+
+	if (info->current_input_limit_cur > info->new_input_limit_cur) {
+		ret = bq2560x_charger_set_limit_current(info, info->new_input_limit_cur);
+		if (ret < 0)
+			dev_err(info->dev, "%s: set input limit cur failed\n", __func__);
+		return;
+	}
+
+	if (info->current_charge_limit_cur + BQ2560X_REG_ICHG_LSB * 1000 <=
+	    info->new_charge_limit_cur)
+		info->current_charge_limit_cur += BQ2560X_REG_ICHG_LSB * 1000;
+	else
+		need_return = true;
+
+	if (info->current_input_limit_cur + BQ2560X_REG_IINDPM_LSB * 1000 <=
+	    info->new_input_limit_cur)
+		info->current_input_limit_cur += BQ2560X_REG_IINDPM_LSB * 1000;
+	else if (need_return)
+		return;
+
+	ret = bq2560x_charger_set_current(info, info->current_charge_limit_cur);
+	if (ret < 0) {
+		dev_err(info->dev, "set charge limit current failed\n");
+		return;
+	}
+
+	ret = bq2560x_charger_set_limit_current(info, info->current_input_limit_cur);
+	if (ret < 0) {
+		dev_err(info->dev, "set input limit current failed\n");
+		return;
+	}
+
+	dev_info(info->dev, "set charge_limit_cur %duA, input_limit_curr %duA\n",
+		info->current_charge_limit_cur, info->current_input_limit_cur);
+
+	schedule_delayed_work(&info->cur_work, BQ2560X_CURRENT_WORK_MS);
 }
 
 
@@ -940,11 +1036,27 @@ static int bq2560x_charger_usb_set_property(struct power_supply *psy,
 
 	switch (psp) {
 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT:
+		if (info->is_wireless_charge) {
+			cancel_delayed_work_sync(&info->cur_work);
+			info->new_charge_limit_cur = val->intval;
+			pm_wakeup_event(info->dev, BQ2560X_WAKE_UP_MS);
+			schedule_delayed_work(&info->cur_work, BQ2560X_CURRENT_WORK_MS * 2);
+			break;
+		}
+
 		ret = bq2560x_charger_set_current(info, val->intval);
 		if (ret < 0)
 			dev_err(info->dev, "set charge current failed\n");
 		break;
 	case POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT:
+		if (info->is_wireless_charge) {
+			cancel_delayed_work_sync(&info->cur_work);
+			info->new_input_limit_cur = val->intval;
+			pm_wakeup_event(info->dev, BQ2560X_WAKE_UP_MS);
+			schedule_delayed_work(&info->cur_work, BQ2560X_CURRENT_WORK_MS * 2);
+			break;
+		}
+
 		ret = bq2560x_charger_set_limit_current(info, val->intval);
 		if (ret < 0)
 			dev_err(info->dev, "set input current limit failed\n");
@@ -970,10 +1082,12 @@ static int bq2560x_charger_usb_set_property(struct power_supply *psy,
 
 	case POWER_SUPPLY_PROP_CHARGE_ENABLED:
 		if (val->intval == true) {
+			bq2560x_check_wireless_charge(info, true);
 			ret = bq2560x_charger_start_charge(info);
 			if (ret)
 				dev_err(info->dev, "start charge failed\n");
 		} else if (val->intval == false) {
+			bq2560x_check_wireless_charge(info, false);
 			bq2560x_charger_stop_charge(info);
 		}
 		break;
@@ -1284,6 +1398,7 @@ static int bq2560x_charger_probe(struct i2c_client *client,
 
 	mutex_init(&info->lock);
 	INIT_WORK(&info->work, bq2560x_charger_work);
+	INIT_DELAYED_WORK(&info->cur_work, bq2560x_current_work);
 
 	i2c_set_clientdata(client, info);
 
@@ -1461,6 +1576,7 @@ static int bq2560x_charger_suspend(struct device *dev)
 		return 0;
 
 	cancel_delayed_work_sync(&info->wdt_work);
+	cancel_delayed_work_sync(&info->cur_work);
 
 	/* feed watchdog first before suspend */
 	ret = bq2560x_update_bits(info, BQ2560X_REG_1,
@@ -1495,6 +1611,7 @@ static int bq2560x_charger_resume(struct device *dev)
 		dev_warn(info->dev, "reset bq2560x failed after resume\n");
 
 	schedule_delayed_work(&info->wdt_work, HZ * 15);
+	schedule_delayed_work(&info->cur_work, 0);
 
 	return 0;
 }
