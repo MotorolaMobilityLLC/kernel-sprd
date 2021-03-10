@@ -1502,18 +1502,6 @@ CONFIG_ARM_SPRD_HW_CPUFREQ_SHARKL3
 	[missing plat description] none
 	[function] this driver enable hardware to adjust the voltage and frequency
 			automatically for DSU cluster and cores in sharkl3 platorm.
-CONFIG_ARM_SPRD_SW_CPUFREQ
-	[arch] arm
-	[plat] pike2
-	[missing plat] none
-	[field] make,code
-	[subsys] cpufreq
-	[must] user
-	[missing plat description] none
-	[function] The driver works for scaling the voltage and frequency of cpu and
-			cluster based on Regulator and clk functions independently.
-			Besides hw cpufreq driver, software cpufreq driver provides
-			another choice for scaling voltage and frequency.
 CONFIG_ARM_THUMB
 	[arch] arm
 	[plat] pike2
