@@ -654,7 +654,7 @@ static u32 dpu_isr(struct dpu_context *ctx)
 	/* dpu vsync isr */
 	if (reg_val & DPU_INT_DPI_VSYNC_MASK) {
 		/* write back feature */
-		if (wb_en)
+		if ((vsync_count == max_vsync_count) && wb_en)
 			schedule_work(&ctx->wb_work);
 
 		/* cabc update backlight */
@@ -839,7 +839,7 @@ static void dpu_cabc_work_func(struct work_struct *data)
 	dpu_cabc_trigger(ctx);
 
 	reg->dpu_ctrl |= BIT(2);
-	dpu_wait_update_done(ctx);
+	dpu_wait_all_update_done(ctx);
 
 	up(&ctx->refresh_lock);
 }
@@ -876,6 +876,8 @@ static void dpu_wb_trigger(struct dpu_context *ctx, u8 count, bool debug)
 
 	wb_layer.dst_w = mode_width;
 	wb_layer.dst_h = mode_height;
+	wb_layer.src_w = mode_width;
+	wb_layer.src_h = mode_height;
 	wb_layer.xfbc = wb_xfbc_en;
 	wb_layer.pitch[0] = ALIGN(mode_width, 16) * 4;
 	wb_layer.header_size_r = XFBC8888_HEADER_SIZE(mode_width,
@@ -904,7 +906,6 @@ static void dpu_wb_trigger(struct dpu_context *ctx, u8 count, bool debug)
 	reg->dpu_ctrl |= BIT(4);
 
 	dpu_wait_update_done(ctx);
-
 	pr_debug("write back trigger\n");
 }
 
@@ -914,10 +915,9 @@ static void dpu_wb_flip(struct dpu_context *ctx)
 
 	dpu_clean_all(ctx);
 	dpu_layer(ctx, &wb_layer);
+	reg->dpu_ctrl |= BIT(4);
 
-	reg->dpu_ctrl |= BIT(2);
 	dpu_wait_update_done(ctx);
-
 	pr_debug("write back flip\n");
 }
 
