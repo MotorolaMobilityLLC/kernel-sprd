@@ -239,6 +239,38 @@ static int sprd_ssphy_set_vbus(struct usb_phy *x, int on)
 	return ret;
 }
 
+/* Requirement from usb analog compliance tests */
+static void usb_config_4_cts(struct sprd_ssphy *phy)
+{
+	u32	reg;
+
+	dev_dbg(phy->phy.dev, "%s enter\n", __func__);
+
+	regmap_read(phy->ipa_usb31_dp, 0x20, &reg);
+	/*enable cr apb*/
+	reg |= BIT(4);
+	regmap_write(phy->ipa_usb31_dp, 0x20, reg);
+	/*enable cr clk*/
+	reg |= BIT(3);
+	regmap_write(phy->ipa_usb31_dp, 0x20, reg);
+
+	/*phy reg addr 0x0021 SUP_DIG_LVL_OVER_IN*/
+	reg = 0x10021;
+	regmap_write(phy->ipa_usb31_dp, 0x8, reg);
+	regmap_read(phy->ipa_usb31_dp, 0xc, &reg);
+	/*bit7: TX_VBOOST_LVL_EN; bit6L4=5 TX_TXVBOOST_LVL*/
+	reg &= ~(BIT(6) | BIT(5) | BIT(4));
+	reg |= BIT(7) | BIT(6) | BIT(4);
+	regmap_write(phy->ipa_usb31_dp, 0xc, reg);
+
+	/*cfg for enter gen2*/
+	reg = 0x10063;
+	regmap_write(phy->ipa_usb31_dp, 0x8, reg);
+	regmap_read(phy->ipa_usb31_dp, 0xc, &reg);
+	reg |= BIT(8) | BIT(7) | BIT(1) | BIT(0);
+	regmap_write(phy->ipa_usb31_dp, 0xc, reg);
+}
+
 static int sprd_ssphy_init(struct usb_phy *x)
 {
 	struct sprd_ssphy *phy = container_of(x, struct sprd_ssphy, phy);
@@ -350,6 +382,9 @@ static int sprd_ssphy_init(struct usb_phy *x)
 			}
 		}
 	}
+
+	usb_config_4_cts(phy);
+
 	/* REG_TYPEC_CTRL: TYPEC_DISABLE_ACK */
 	ret |= regmap_read(phy->ipa_usb31_dptx, TYPEC_DISABLE_ACK, &reg);
 	reg |= BIT(0);
@@ -376,18 +411,22 @@ static int sprd_ssphy_init(struct usb_phy *x)
 	bit2 => 0 typec_flip = normal
 	bit3 => 0 typec_disable = standard
 	Bit31:5 => 0x0
-	*/
+
 	reg = readl_relaxed(phy->base + 0x018);
 	reg &= ~(0xffffffc0);
 	writel_relaxed(reg, phy->base + 0x018);
 	reg = BIT(0) | BIT(1);
 	reg &= ~(BIT(2) | BIT(3) | BIT(4));
 	writel_relaxed(reg, phy->base + 0x018);
+	*/
 
 	/* TCA CTRLSYNCMODE CFG0 */
 	reg = readl_relaxed(phy->base + 0x020);
+	/*
 	reg &= ~(BIT(0) | BIT(1) | BIT(2) | BIT(3));
 	reg |= BIT(8) | BIT(9) | BIT(10) | BIT(16);
+	*/
+	reg |= BIT(1) | BIT(2);
 	writel_relaxed(reg, phy->base + 0x020);
 
 	/*  TCA CTRLSYNCMODE CFG1 */
@@ -439,10 +478,12 @@ static int sprd_ssphy_init(struct usb_phy *x)
 	}
 
 	/* TCA VBUS CTRL */
+	/*
 	reg = readl_relaxed(phy->base + 0x40);
 	reg &= ~(BIT(0) | BIT(2));
 	reg |= BIT(1) | BIT(3);
 	writel_relaxed(reg, phy->base + 0x40);
+	*/
 
 	if (!phy->pmic) {
 		/*
@@ -472,6 +513,17 @@ static void sprd_ssphy_shutdown(struct usb_phy *x)
 	reg = msk;
 	regmap_update_bits(phy->ana_g0l, REG_ANLG_PHY_G0L_ANALOG_USB20_USB20_PHY,
 		msk, reg);
+
+	/*
+	disable used clk @0x0x31800000
+	bit0:1 dpu dpi clock enable
+	bit1:1 dptx enable
+	bit3:1 combphy tca enable
+	bit4:1 usb31 pll enable
+	*/
+	regmap_read(phy->ipa_dispc1_glb_apb, DISPC1_GLB_APB_EB, &reg);
+	reg &= ~(BIT(0) | BIT(1) | BIT(3) | BIT(4));
+	regmap_write(phy->ipa_dispc1_glb_apb, DISPC1_GLB_APB_EB, reg);
 
 	/*hsphy vbus invalid */
 	msk = MASK_AON_APB_OTG_VBUS_VALID_PHYREG;
