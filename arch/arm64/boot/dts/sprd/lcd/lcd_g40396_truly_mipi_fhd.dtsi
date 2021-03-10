@@ -21,6 +21,8 @@
 					sprd,phy-bit-clock = <1070000>;	/* kbps */
 					sprd,phy-escape-clock = <20000>;/* kHz */
 
+					sprd,power-gpio-delay = <15>;/* ms */
+
 					sprd,width-mm = <68>;
 					sprd,height-mm = <152>;
 
