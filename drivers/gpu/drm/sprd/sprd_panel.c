@@ -83,7 +83,7 @@ static int sprd_panel_unprepare(struct drm_panel *p)
 
 	if (panel->info.avee_gpio) {
 		gpiod_direction_output(panel->info.avee_gpio, 0);
-		mdelay(5);
+		mdelay(panel->info.power_gpio_delay);
 	}
 
 	if (panel->info.avdd_gpio) {
@@ -120,7 +120,7 @@ static int sprd_panel_prepare(struct drm_panel *p)
 
 	if (panel->info.avdd_gpio) {
 		gpiod_direction_output(panel->info.avdd_gpio, 1);
-		mdelay(5);
+		mdelay(panel->info.power_gpio_delay);
 	}
 
 	if (panel->info.avee_gpio) {
@@ -776,6 +776,12 @@ int sprd_panel_parse_lcddtb(struct device_node *lcd_node,
 		info->esd_check_val = val;
 	else
 		info->esd_check_val = 0x9C;
+
+	rc = of_property_read_u32(lcd_node, "sprd,power-gpio-delay", &val);
+	if (!rc)
+		info->power_gpio_delay = val;
+	else
+		info->power_gpio_delay = 5;
 
 	if (of_property_read_bool(lcd_node, "sprd,use-dcs-write"))
 		info->use_dcs = true;

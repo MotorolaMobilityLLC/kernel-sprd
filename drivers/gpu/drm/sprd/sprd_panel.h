@@ -95,6 +95,9 @@ struct panel_info {
 	u32 lanes;
 	u32 mode_flags;
 	bool use_dcs;
+
+	/* delay time between set lcd avdd and avee */
+	u32 power_gpio_delay;
 };
 
 struct sprd_panel {
