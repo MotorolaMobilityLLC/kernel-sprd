@@ -1631,7 +1631,7 @@
 			};
 
 			ipa_delegate: sipa-dele {
-				compatible = "sprd,qogirn6pro-sipa-delegate";
+				compatible = "sprd,orca-sipa-delegate";
 
 				sprd,ul-fifo-depth = <4096>;
 				sprd,dl-fifo-depth = <4096>;
