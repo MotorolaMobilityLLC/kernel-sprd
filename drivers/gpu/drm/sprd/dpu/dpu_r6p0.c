@@ -431,23 +431,6 @@ struct dpu_cfg1 {
 	u8 awqos_high;
 };
 
-
-static struct epf_cfg epf = {
-	.e0 = 30,
-	.e1 = 1000,
-	.e2 = -8,
-	.e3 = 8,
-	.e4 = 32,
-	.e5 = 160,
-	.e6 = 24,
-	.e7 = 8,
-	.e8 = 32,
-	.e9 = 160,
-	.e10 = 80,
-	.e11 = 40,
-};
-
-
 static struct dpu_cfg1 qos_cfg = {
 	.arqos_low = 0xa,
 	.arqos_high = 0xc,
@@ -501,8 +484,6 @@ static struct threed_lut lut3d_copy;
 static struct hsv_luts hsv_copy;
 static u32 hsv_cfg_copy;
 static struct epf_cfg epf_copy;
-static struct epf_cfg sr_epf;
-static bool sr_epf_ready;
 static struct ud_cfg ud_copy;
 static struct luts_typeindex typeindex_cpy;
 struct lut_base_addrs lut_addrs_cpy;
@@ -1945,19 +1926,11 @@ static void dpu_enhance_backup(u32 id, void *param)
 		break;
 	case ENHANCE_CFG_ID_DISABLE:
 		p = param;
-		if (*p & BIT(1)) {
-			if ((enhance_en & BIT(0)) && sr_epf_ready) {
-				*p &= ~BIT(1);
-				pr_info("enhance backup epf shouldn't be disabled\n");
-			}
-		}
 		enhance_en &= ~(*p);
 		pr_info("enhance module disable backup: 0x%x\n", *p);
 		break;
 	case ENHANCE_CFG_ID_SCL:
 		memcpy(&scale_copy, param, sizeof(scale_copy));
-		if (!(enhance_en & BIT(6)))
-			enhance_en |= BIT(0);
 		enhance_en |= BIT(13);
 		pr_info("enhance scaling backup\n");
 		break;
@@ -2000,21 +1973,6 @@ static void dpu_enhance_backup(u32 id, void *param)
 		p = param;
 		cabc_state = *p;
 		return;
-	case ENHANCE_CFG_ID_SR_EPF:
-		memcpy(&sr_epf, param, sizeof(sr_epf));
-		/* valid range of gain3 is [128,255]; */
-		if (sr_epf.e5 == 0) {
-			/* eye comfort and super resolution are enabled*/
-			if (!(enhance_en & BIT(1)) && (enhance_en & BIT(13))) {
-				enhance_en &= ~BIT(0);
-				pr_info("enhance[ID_SR_EPF] backup disable epf\n");
-			}
-			sr_epf_ready = 0;
-		} else {
-			sr_epf_ready = 1;
-			pr_info("enhance[ID_SR_EPF] epf backup\n");
-		}
-		break;
 	case ENHANCE_CFG_ID_UPDATE_LUTS:
 		dpu_luts_backup(param);
 		pr_info("enhance ddr luts backup\n");
@@ -2075,7 +2033,7 @@ static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
 	struct gamma_lut *gamma;
 	struct threed_lut *lut3d;
 	struct hsv_luts *hsv_table;
-	struct epf_cfg *epf_slp;
+	struct epf_cfg *epf;
 	struct ud_cfg *ud;
 	struct cabc_para cabc_param;
 	u32 *p32, *tmp32;
@@ -2097,13 +2055,6 @@ static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
 		break;
 	case ENHANCE_CFG_ID_DISABLE:
 		p32 = param;
-		if (*p32 & BIT(1)) {
-			if ((enhance_en & BIT(0)) && sr_epf_ready) {
-				*p32 &= ~BIT(1);
-				dpu_epf_set(reg, &sr_epf);
-				pr_info("enhance epf shouldn't be disabled\n");
-			}
-		}
 		reg->dpu_enhance_cfg &= ~(*p32);
 		pr_info("enhance module disable: 0x%x\n", *p32);
 		break;
@@ -2111,13 +2062,7 @@ static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
 		memcpy(&scale_copy, param, sizeof(scale_copy));
 		scale = &scale_copy;
 		reg->blend_size = (scale->in_h << 16) | scale->in_w;
-		reg->epf_epsilon = (epf.e1 << 16) | epf.e0;
-		reg->epf_gain0_3 = (epf.e5 << 24) | (epf.e4 << 16) |
-				(epf.e3 << 8) | epf.e2;
-		reg->epf_gain4_7 = (epf.e9 << 24) | (epf.e8 << 16) |
-				(epf.e7 << 8) | epf.e6;
-		reg->epf_diff = (epf.e11 << 8) | epf.e10;
-		reg->dpu_enhance_cfg |= (BIT(0) | BIT(13));
+		reg->dpu_enhance_cfg |= BIT(13);
 		reg->scl_en = BIT(0);
 		pr_info("enhance scaling: %ux%u\n", scale->in_w, scale->in_h);
 		break;
@@ -2213,51 +2158,11 @@ static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
 		break;
 	case ENHANCE_CFG_ID_EPF:
 		memcpy(&epf_copy, param, sizeof(epf_copy));
-		if (((enhance_en & BIT(4)) &&
-			(slp_copy.s1 > SLP_BRIGHTNESS_THRESHOLD)) ||
-			!(enhance_en & BIT(0)) || !sr_epf_ready) {
-			epf_slp = &epf_copy;
-			pr_info("enhance epf set\n");
-		} else {
-			epf_slp = &sr_epf;
-			pr_info("enhance epf(sr) set\n");
-		}
-
-		dpu_epf_set(reg, epf_slp);
+		epf = &epf_copy;
+		dpu_epf_set(reg, epf);
 		reg->dpu_enhance_cfg |= BIT(0);
+		pr_info("enhance epf set\n");
 		break;
-	case ENHANCE_CFG_ID_SR_EPF:
-		memcpy(&sr_epf, param, sizeof(sr_epf));
-		/* valid range of gain3 is [128,255]; */
-		if (sr_epf.e5 == 0) {
-			sr_epf_ready = 0;
-
-			if ((enhance_en & BIT(1)) && (enhance_en & BIT(13))) {
-				epf_slp = &epf_copy;
-				dpu_epf_set(reg, epf_slp);
-				reg->scl_en = BIT(0);
-				pr_info("enhance[ID_SR_EPF] epf set\n");
-				break;
-			} else if (enhance_en & BIT(13)) {
-				reg->dpu_enhance_cfg &= ~BIT(0);
-				pr_info("enhance[ID_SR_EPF] disable epf\n");
-				break;
-			}
-			return;
-		}
-
-		sr_epf_ready = 1;
-		if ((enhance_en & BIT(13)) && (!(enhance_en & BIT(2)) ||
-			(slp_copy.s1 <= SLP_BRIGHTNESS_THRESHOLD))) {
-			epf_slp = &sr_epf;
-			dpu_epf_set(reg, epf_slp);
-			reg->dpu_enhance_cfg |= BIT(0);
-			pr_info("enhance[ID_SR_EPF] epf(sr) set\n");
-			break;
-		}
-
-		pr_info("enhance[ID_SR_EPF] epf(sr) set delay\n");
-		return;
 	case ENHANCE_CFG_ID_LUT3D:
 		memcpy(&lut3d_copy, param, sizeof(lut3d_copy));
 		lut3d = &lut3d_copy;
@@ -2401,7 +2306,7 @@ static void dpu_enhance_get(struct dpu_context *ctx, u32 id, void *param)
 {
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
 	struct scale_cfg *scale;
-	struct epf_cfg *ep;
+	struct epf_cfg *epf;
 	struct slp_cfg *slp;
 	struct cm_cfg *cm;
 	struct gamma_lut *gamma;
@@ -2428,27 +2333,27 @@ static void dpu_enhance_get(struct dpu_context *ctx, u32 id, void *param)
 		pr_info("enhance scaling get\n");
 		break;
 	case ENHANCE_CFG_ID_EPF:
-		ep = param;
+		epf = param;
 
 		val = reg->epf_epsilon;
-		ep->e0 = val;
-		ep->e1 = val >> 16;
+		epf->e0 = val;
+		epf->e1 = val >> 16;
 
 		val = reg->epf_gain0_3;
-		ep->e2 = val;
-		ep->e3 = val >> 8;
-		ep->e4 = val >> 16;
-		ep->e5 = val >> 24;
+		epf->e2 = val;
+		epf->e3 = val >> 8;
+		epf->e4 = val >> 16;
+		epf->e5 = val >> 24;
 
 		val = reg->epf_gain4_7;
-		ep->e6 = val;
-		ep->e7 = val >> 8;
-		ep->e8 = val >> 16;
-		ep->e9 = val >> 24;
+		epf->e6 = val;
+		epf->e7 = val >> 8;
+		epf->e8 = val >> 16;
+		epf->e9 = val >> 24;
 
 		val = reg->epf_diff;
-		ep->e10 = val;
-		ep->e11 = val >> 8;
+		epf->e10 = val;
+		epf->e11 = val >> 8;
 		pr_info("enhance epf get\n");
 		break;
 	case ENHANCE_CFG_ID_HSV:
@@ -2666,17 +2571,9 @@ static void dpu_enhance_reload(struct dpu_context *ctx)
 	}
 
 	if (enhance_en & BIT(0)) {
-		if (((enhance_en & BIT(6)) &&
-			(slp_copy.s1 > SLP_BRIGHTNESS_THRESHOLD)) ||
-			!(enhance_en & BIT(13)) || !sr_epf_ready) {
-			epf = &epf_copy;
-			pr_info("enhance epf reload\n");
-		} else {
-			epf = &sr_epf;
-			pr_info("enhance epf(sr) reload\n");
-		}
-
+		epf = &epf_copy;
 		dpu_epf_set(reg, epf);
+		pr_info("enhance epf reload\n");
 	}
 
 	if (enhance_en & BIT(1)) {
@@ -2778,28 +2675,10 @@ static void dpu_sr_config(struct dpu_context *ctx)
 
 	reg->blend_size = (scale_copy.in_h << 16) | scale_copy.in_w;
 	if (need_scale) {
-		/* SLP is disabled mode or bypass mode */
-		if ((slp_copy.s1 <= SLP_BRIGHTNESS_THRESHOLD) ||
-			!(enhance_en & BIT(4))) {
-
-		/*
-		 * valid range of gain3 is [128,255];dpu_scaling maybe
-		 * called before epf_copy is assinged a value
-		 */
-			if (sr_epf.e5 > 0) {
-				dpu_epf_set(reg, &sr_epf);
-				enhance_en |= BIT(1);
-			}
-		}
 		enhance_en |= BIT(13);
-		reg->scl_en  = BIT(0);
+		reg->scl_en = BIT(0);
 		reg->dpu_enhance_cfg = enhance_en;
 	} else {
-		if (enhance_en & BIT(6))
-			dpu_epf_set(reg, &epf_copy);
-		else
-			enhance_en &= ~(BIT(1));
-
 		enhance_en &= ~(BIT(13));
 		reg->scl_en = 0;
 		reg->dpu_enhance_cfg = enhance_en;
