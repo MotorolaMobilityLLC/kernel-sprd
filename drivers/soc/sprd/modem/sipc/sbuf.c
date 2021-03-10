@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (C) 2019 Spreadtrum Communications Inc.
  *
@@ -116,7 +117,7 @@ static struct task_struct *sbuf_wait_get_task(wait_queue_entry_t *pos, u32 *b_se
 	return NULL;
 }
 
-#if defined(SIPC_DEBUG_SBUF_RDWT_OWNER)
+#if defined(CONFIG_DEBUG_FS)
 static void sbuf_record_rdwt_owner(struct sbuf_ring *ring, int b_rx)
 {
 	int b_add;
@@ -216,7 +217,7 @@ static void sbuf_comm_init(struct sbuf_mgr *sbuf)
 		ring = &sbuf->rings[i];
 		init_waitqueue_head(&ring->txwait);
 		init_waitqueue_head(&ring->rxwait);
-#if defined(SIPC_DEBUG_SBUF_RDWT_OWNER)
+#if defined(CONFIG_DEBUG_FS)
 		INIT_LIST_HEAD(&ring->tx_list);
 		INIT_LIST_HEAD(&ring->rx_list);
 #endif
@@ -254,12 +255,15 @@ static int sbuf_host_init(struct smsg_ipc *sipc, struct sbuf_mgr *sbuf,
 	hsize = sizeof(struct sbuf_smem_header) +
 		sizeof(struct sbuf_ring_header) * bufnum;
 	sbuf->smem_size = hsize + (txbufsize + rxbufsize) * bufnum;
-	sbuf->smem_addr = smem_alloc(dst, sbuf->smem_size);
-	if (!sbuf->smem_addr)
+	sbuf->smem_addr = smem_alloc_ex(dst, sbuf->smem, sbuf->smem_size);
+	if (!sbuf->smem_addr) {
+		pr_err("%s: channel %d-%d, Failed to allocate smem for sbuf\n",
+			__func__, sbuf->dst, sbuf->channel);
 		return -ENOMEM;
-
-	sbuf->dst_smem_addr = sbuf->smem_addr - sipc->smem_base +
-		sipc->dst_smem_base;
+	}
+	sbuf->dst_smem_addr = sbuf->smem_addr -
+		sipc->smem_ptr[sbuf->smem].smem_base +
+		sipc->smem_ptr[sbuf->smem].dst_smem_base;
 
 	pr_debug("channel %d-%d, smem_addr=0x%x, smem_size=0x%x, dst_smem_addr=0x%x\n",
 		 sbuf->dst,
@@ -275,19 +279,20 @@ static int sbuf_host_init(struct smsg_ipc *sipc, struct sbuf_mgr *sbuf,
 
 	pr_info("channel %d-%d, offset = 0x%llx!\n",
 		sbuf->dst, sbuf->channel, offset);
-	sbuf->smem_virt = shmem_ram_vmap_nocache(dst,
+	sbuf->smem_virt = shmem_ram_vmap_nocache_ex(dst,
+						sbuf->smem,
 						sbuf->smem_addr + offset,
 						sbuf->smem_size);
 	if (!sbuf->smem_virt) {
-		smem_free(dst, sbuf->smem_addr, sbuf->smem_size);
+		smem_free_ex(dst, sbuf->smem, sbuf->smem_addr, sbuf->smem_size);
 		return -EFAULT;
 	}
 
 	/* allocate rings description */
 	sbuf->rings = kcalloc(bufnum, sizeof(struct sbuf_ring), GFP_KERNEL);
 	if (!sbuf->rings) {
-		smem_free(dst, sbuf->smem_addr, sbuf->smem_size);
-		shmem_ram_unmap(dst, sbuf->smem_virt);
+		smem_free_ex(dst, sbuf->smem, sbuf->smem_addr, sbuf->smem_size);
+		shmem_ram_unmap_ex(dst, sbuf->smem, sbuf->smem_virt);
 		return -ENOMEM;
 	}
 
@@ -348,7 +353,8 @@ static int sbuf_client_init(struct smsg_ipc *sipc, struct sbuf_mgr *sbuf)
 	/* get bufnum and bufsize */
 	hsize = sizeof(struct sbuf_smem_header) +
 		sizeof(struct sbuf_ring_header) * 1;
-	sbuf->smem_virt = shmem_ram_vmap_nocache(dst,
+	sbuf->smem_virt = shmem_ram_vmap_nocache_ex(dst,
+						 sbuf->smem,
 						 sbuf->smem_addr + offset,
 						 hsize);
 	if (!sbuf->smem_virt)
@@ -367,27 +373,32 @@ static int sbuf_client_init(struct smsg_ipc *sipc, struct sbuf_mgr *sbuf)
 		 sbuf->dst, sbuf->channel, txbufsize, rxbufsize);
 	pr_debug("channel %d-%d, smem_size = 0x%x, ringnr = %d!\n",
 		 sbuf->dst, sbuf->channel, sbuf->smem_size, bufnum);
-	shmem_ram_unmap(dst, sbuf->smem_virt);
+	shmem_ram_unmap_ex(dst, sbuf->smem, sbuf->smem_virt);
 
 	/* alloc debug smem */
-	sbuf->smem_addr_debug = smem_alloc(dst, sbuf->smem_size);
+	sbuf->smem_addr_debug = smem_alloc_ex(dst, sbuf->smem, sbuf->smem_size);
 	if (!sbuf->smem_addr_debug)
 		return -ENOMEM;
 
 	/* get smem virtual address */
-	sbuf->smem_virt = shmem_ram_vmap_nocache(dst,
+	sbuf->smem_virt = shmem_ram_vmap_nocache_ex(dst,
+						sbuf->smem,
 						sbuf->smem_addr + offset,
 						sbuf->smem_size);
 	if (!sbuf->smem_virt) {
-		smem_free(dst, sbuf->smem_addr_debug, sbuf->smem_size);
+		pr_err("%s: channel %d-%d,Failed to map smem for sbuf\n",
+			__func__, sbuf->dst, sbuf->channel);
+		smem_free_ex(dst, sbuf->smem,
+			     sbuf->smem_addr_debug, sbuf->smem_size);
 		return -EFAULT;
 	}
 
 	/* allocate rings description */
 	sbuf->rings = kcalloc(bufnum, sizeof(struct sbuf_ring), GFP_KERNEL);
 	if (!sbuf->rings) {
-		smem_free(dst, sbuf->smem_addr_debug, sbuf->smem_size);
-		shmem_ram_unmap(dst, sbuf->smem_virt);
+		smem_free_ex(dst, sbuf->smem,
+			     sbuf->smem_addr_debug, sbuf->smem_size);
+		shmem_ram_unmap_ex(dst, sbuf->smem, sbuf->smem_virt);
 		return -ENOMEM;
 	}
 	pr_info("channel %d-%d, ringns = 0x%p!\n",
@@ -585,7 +596,8 @@ static int sbuf_thread(void *data)
 }
 
 
-int sbuf_create(u8 dst, u8 channel, u32 bufnum, u32 txbufsize, u32 rxbufsize)
+int sbuf_create_ex(u8 dst, u8 channel, u16 smem,
+		   u32 bufnum, u32 txbufsize, u32 rxbufsize)
 {
 	struct sbuf_mgr *sbuf;
 	u8 ch_index;
@@ -620,6 +632,7 @@ int sbuf_create(u8 dst, u8 channel, u32 bufnum, u32 txbufsize, u32 rxbufsize)
 	sbuf->state = SBUF_STATE_IDLE;
 	sbuf->dst = dst;
 	sbuf->channel = channel;
+	sbuf->smem = smem;
 	if (!sipc->client) {
 		ret = sbuf_host_init(sipc, sbuf, bufnum, txbufsize, rxbufsize);
 		if (ret) {
@@ -648,8 +661,9 @@ int sbuf_create(u8 dst, u8 channel, u32 bufnum, u32 txbufsize, u32 rxbufsize)
 				wakeup_source_destroy(ring->rx_wake_lock);
 			}
 			kfree(sbuf->rings);
-			shmem_ram_unmap(dst, sbuf->smem_virt);
-			smem_free(dst, sbuf->smem_addr, sbuf->smem_size);
+			shmem_ram_unmap_ex(dst, sbuf->smem, sbuf->smem_virt);
+			smem_free_ex(dst, sbuf->smem,
+				     sbuf->smem_addr, sbuf->smem_size);
 		}
 		ret = PTR_ERR(sbuf->thread);
 		kfree(sbuf);
@@ -664,7 +678,7 @@ int sbuf_create(u8 dst, u8 channel, u32 bufnum, u32 txbufsize, u32 rxbufsize)
 
 	return 0;
 }
-EXPORT_SYMBOL_GPL(sbuf_create);
+EXPORT_SYMBOL_GPL(sbuf_create_ex);
 
 void sbuf_set_no_need_wake_lock(u8 dst, u8 channel, u32 bufnum)
 {
@@ -715,7 +729,7 @@ void sbuf_destroy(u8 dst, u8 channel)
 		for (i = 0; i < sbuf->ringnr; i++) {
 			wake_up_interruptible_all(&sbuf->rings[i].txwait);
 			wake_up_interruptible_all(&sbuf->rings[i].rxwait);
-#if defined(SIPC_DEBUG_SBUF_RDWT_OWNER)
+#if defined(CONFIG_DEBUG_FS)
 			sbuf_destroy_rdwt_owner(&sbuf->rings[i]);
 #endif
 			wakeup_source_remove(sbuf->rings[i].tx_wake_lock);
@@ -727,13 +741,14 @@ void sbuf_destroy(u8 dst, u8 channel)
 	}
 
 	if (sbuf->smem_virt)
-		shmem_ram_unmap(dst, sbuf->smem_virt);
+		shmem_ram_unmap_ex(dst, sbuf->smem, sbuf->smem_virt);
 
 	sipc = smsg_ipcs[dst];
 	if (sipc->client)
-		smem_free(dst, sbuf->smem_addr_debug, sbuf->smem_size);
+		smem_free_ex(dst, sbuf->smem,
+			     sbuf->smem_addr_debug, sbuf->smem_size);
 	else
-		smem_free(dst, sbuf->smem_addr, sbuf->smem_size);
+		smem_free_ex(dst, sbuf->smem, sbuf->smem_addr, sbuf->smem_size);
 
 	kfree(sbuf);
 
@@ -795,7 +810,7 @@ int sbuf_write(u8 dst, u8 channel, u32 bufid,
 		}
 	}
 
-#if defined(SIPC_DEBUG_SBUF_RDWT_OWNER)
+#if defined(CONFIG_DEBUG_FS)
 	sbuf_record_rdwt_owner(ring, 0);
 #endif
 
@@ -987,7 +1002,7 @@ int sbuf_read(u8 dst, u8 channel, u32 bufid,
 		}
 	}
 
-#if defined(SIPC_DEBUG_SBUF_RDWT_OWNER)
+#if defined(CONFIG_DEBUG_FS)
 	sbuf_record_rdwt_owner(ring, 1);
 #endif
 
@@ -1230,7 +1245,7 @@ void sbuf_get_status(u8 dst, char *status_info, int size)
 	int i, n, len, cnt;
 	u32 b_select;
 	char *phead;
-#if defined(SIPC_DEBUG_SBUF_RDWT_OWNER)
+#if defined(CONFIG_DEBUG_FS)
 	struct name_node *node = NULL;
 #endif
 
@@ -1286,7 +1301,7 @@ void sbuf_get_status(u8 dst, char *status_info, int size)
 			spin_unlock_irqrestore(&ring->rxwait.lock, flags);
 
 			/* only show the latest ever read task */
-#if defined(SIPC_DEBUG_SBUF_RDWT_OWNER)
+#if defined(CONFIG_DEBUG_FS)
 			spin_lock_irqsave(&ring->rxwait.lock, flags);
 			list_for_each_entry(node, &ring->rx_list, list) {
 				if (node->latest) {
@@ -1359,7 +1374,7 @@ static void sbuf_debug_task_show(struct seq_file *m,
 	}
 }
 
-#if defined(SIPC_DEBUG_SBUF_RDWT_OWNER)
+#if defined(CONFIG_DEBUG_FS)
 static void sbuf_debug_list_show(struct seq_file *m,
 				 struct sbuf_mgr *sbuf, int b_rx)
 {
@@ -1466,7 +1481,7 @@ static int sbuf_debug_show(struct seq_file *m, void *private)
 			sbuf_debug_task_show(m, sbuf, TASK_TXWAIT);
 			sbuf_debug_task_show(m, sbuf, TASK_SELECT);
 
-#ifdef SIPC_DEBUG_SBUF_RDWT_OWNER
+#ifdef CONFIG_DEBUG_FS
 			/* list all sbuf ever read task list in a chanel */;
 			sipc_debug_putline(m, '-', 80);
 			seq_puts(m, "  3. all ever rdwt list:\n");

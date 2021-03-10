@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (C) 2018 Spreadtrum Communications Inc.
  *
@@ -163,6 +164,11 @@ static int spipe_parse_dt(struct spipe_init_data **init,
 		goto error;
 	pdata->channel = (u8)data;
 
+	/* smem, optional, default value is 0. */
+	ret = of_property_read_u32(np, "sprd,smem", &data);
+	if (!ret)
+		pdata->smem = (u16)data;
+
 	/* Get the ringnr for the node of spipe */
 	ret = of_property_read_u32(np,  "sprd,ringnr", (u32 *)&pdata->ringnr);
 	if (ret)
@@ -180,15 +186,16 @@ static int spipe_parse_dt(struct spipe_init_data **init,
 	if (ret)
 		goto error;
 
+	dev_dbg(dev, "label = %s\n", pdata->name);
+	dev_dbg(dev, "dst = %d\n", pdata->dst);
+	dev_dbg(dev, "channel = %d\n", pdata->channel);
+	dev_dbg(dev, "smem = %d\n", pdata->smem);
+	dev_dbg(dev, "ringnr = %d\n", pdata->ringnr);
+	dev_dbg(dev, "size-rxbuf = %x\n", pdata->rxbuf_size);
+	dev_dbg(dev, "size-txbuf = %x\n", pdata->txbuf_size);
 
 	*init = pdata;
 
-	dev_dbg(dev, "label  =%s\n", pdata->name);
-	dev_dbg(dev, "dst    =%d\n", pdata->dst);
-	dev_dbg(dev, "channel=%d\n", pdata->channel);
-	dev_dbg(dev, "ringnr =%d\n", pdata->ringnr);
-	dev_dbg(dev, "size-rxbuf=%x\n", pdata->rxbuf_size);
-	dev_dbg(dev, "size-txbuf=%x\n", pdata->txbuf_size);
 
 	return ret;
 error:
@@ -233,8 +240,10 @@ static int spipe_probe(struct platform_device *pdev)
 			init->rxbuf_size,
 			init->txbuf_size);
 
-		rval = sbuf_create(init->dst, init->channel, init->ringnr,
-				   init->txbuf_size, init->rxbuf_size);
+		rval = sbuf_create_ex(init->dst, init->channel,
+				      init->smem, init->ringnr,
+				      init->txbuf_size, init->rxbuf_size);
+
 		if (rval != 0) {
 			dev_err(dev, "Failed to create sbuf: %d\n", rval);
 			spipe_destroy_pdata(&init, &pdev->dev);

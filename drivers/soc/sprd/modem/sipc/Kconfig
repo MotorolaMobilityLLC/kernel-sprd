@@ -41,4 +41,11 @@ config SPRD_SIPC_ZERO_COPY_SIPX
 	  It can transmit large blocks data and IP packets based on sblock.
 
 	  Say M here if you want to build a module.
+
+config SPRD_SIPC_WCN
+	bool "Enable sipc for WCN"
+	default n
+	depends on SPRD_SIPC
+	help
+	  This option enables sipc interface for WCN.
 endmenu

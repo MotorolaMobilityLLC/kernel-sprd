@@ -105,7 +105,7 @@ void smsg_msg_process(struct smsg_ipc *ipc, struct smsg *msg)
 
 	if (msg->type >= SMSG_TYPE_NR) {
 		/* invalid msg */
-		pr_debug("invalid smsg: channel=%d, type=%d, flag=0x%04x, value=0x%08x\n",
+		pr_info("invalid smsg: channel=%d, type=%d, flag=0x%04x, value=0x%08x\n",
 			msg->channel, msg->type, msg->flag, msg->value);
 		goto exit_msg_proc;
 	}
@@ -114,7 +114,7 @@ void smsg_msg_process(struct smsg_ipc *ipc, struct smsg *msg)
 		msg->flag == HIGH_OFFSET_FLAG) {
 		/* high offset msg */
 		ipc->high_offset = msg->value;
-		pr_debug("smsg:  high_offset = 0x%x\n",
+		pr_info("smsg:  high_offset = 0x%x\n",
 			msg->value);
 		goto exit_msg_proc;
 	}
@@ -129,7 +129,7 @@ void smsg_msg_process(struct smsg_ipc *ipc, struct smsg *msg)
 			/* drop this bad msg since channel
 			 * is not opened
 			 */
-			pr_debug("smsg channel %d not opened! drop smsg: type=%d, flag=0x%04x, value=0x%08x\n",
+			pr_info("smsg channel %d not opened! drop smsg: type=%d, flag=0x%04x, value=0x%08x\n",
 				msg->channel, msg->type,
 				msg->flag, msg->value);
 
@@ -139,7 +139,7 @@ void smsg_msg_process(struct smsg_ipc *ipc, struct smsg *msg)
 	if ((int)(SIPC_READL(ch->wrptr) - SIPC_READL(ch->rdptr)) >=
 		SMSG_CACHE_NR) {
 		/* msg cache is full, drop this msg */
-		pr_debug("smsg channel %d recv cache is full! drop smsg: type=%d, flag=0x%04x, value=0x%08x\n",
+		pr_info("smsg channel %d recv cache is full! drop smsg: type=%d, flag=0x%04x, value=0x%08x\n",
 			msg->channel, msg->type, msg->flag, msg->value);
 	} else {
 		/* write smsg to cache */
@@ -191,13 +191,20 @@ static void smsg_send_high_offset(struct smsg_ipc *ipc)
 static int smsg_ipc_smem_init(struct smsg_ipc *ipc)
 {
 	void __iomem *base, *p;
+	int i;
+	struct smem_item *smem_ptr;
 
 	if (ipc->smem_inited)
 		return 0;
 
 	ipc->smem_inited = 1;
 	pr_debug("%s!\n", ipc->name);
-	smem_init(ipc->smem_base, ipc->smem_size, ipc->dst, ipc->smem_type);
+
+	for (i = 0; i < ipc->smem_cnt; i++) {
+		smem_ptr = ipc->smem_ptr;
+		smem_init(smem_ptr[i].smem_base, smem_ptr[i].smem_size,
+			  ipc->dst, i, ipc->smem_type);
+	}
 
 	if (ipc->ring_base) {
 		base = (void __iomem *)shmem_ram_vmap_nocache(ipc->dst,
@@ -271,7 +278,7 @@ static int smsg_ipc_smem_init(struct smsg_ipc *ipc)
 
 void smsg_ipc_create(struct smsg_ipc *ipc)
 {
-	pr_debug("%s\n", ipc->name);
+	pr_info("%s\n", ipc->name);
 
 	smsg_ipcs[ipc->dst] = ipc;
 
@@ -412,11 +419,11 @@ int smsg_ch_open(u8 dst, u8 channel, int timeout)
 		}
 	} while (mrecv.type != SMSG_TYPE_OPEN || mrecv.flag != SMSG_OPEN_MAGIC);
 
-	pr_debug("channel %d-%d receive open msg!\n",
+	pr_info("channel %d-%d receive open msg!\n",
 		dst, channel);
 
 open_done:
-	pr_debug("channel %d-%d success\n", dst, channel);
+	pr_info("channel %d-%d success\n", dst, channel);
 	ipc->states[ch_index] = CHAN_STATE_OPENED;
 	atomic_dec(&ipc->busy[ch_index]);
 
@@ -493,16 +500,19 @@ int smsg_senddie(u8 dst)
 	 */
 
 	rc = mbox_send_message(ipc->chan, &msg);
-	mbox_chan_txdone(ipc->chan, 0);
-	if (rc < 0)
+	if (rc < 0) {
 		pr_err("mailbox chan[%d] send error\n", ipc->dst);
+		rval = -EBUSY;
+		goto send_failed;
+	} else
+		mbox_chan_txdone(ipc->chan, 0);
 
 	pr_info("%s mailbox send die smsg\n", __func__);
 
 	if (ipc->ring_base) {
 		if ((int)(SIPC_READL(ipc->txbuf_wrptr) -
 			SIPC_READL(ipc->txbuf_rdptr)) >= ipc->txbuf_size) {
-			pr_debug("smsg_send: smsg txbuf is full!\n");
+			pr_err("smsg_send: smsg txbuf is full!\n");
 			rval = -EBUSY;
 			goto send_failed;
 		}
@@ -565,7 +575,7 @@ int smsg_send(u8 dst, struct smsg *msg, int timeout)
 				ipc->suspend_wait,
 				!ipc->suspend);
 		if (rval) {
-			pr_debug("rval = %d!\n", rval);
+			pr_err("rval = %d!\n", rval);
 			return -EINVAL;
 		}
 	}
@@ -578,7 +588,7 @@ int smsg_send(u8 dst, struct smsg *msg, int timeout)
 		if (((int)(SIPC_READL(ipc->txbuf_wrptr) -
 				SIPC_READL(ipc->txbuf_rdptr)) >=
 				ipc->txbuf_size)) {
-			pr_debug("smsg txbuf is full!\n");
+			pr_err("smsg txbuf is full!\n");
 			rval = -EBUSY;
 			goto send_failed;
 		}
@@ -598,11 +608,13 @@ int smsg_send(u8 dst, struct smsg *msg, int timeout)
 	}
 
 	rc = mbox_send_message(ipc->chan, msg);
-	mbox_chan_txdone(ipc->chan, 0);
 	if (rc < 0) {
 		pr_err("mailbox chan send error\n");
-	}
-	pr_debug("%s Mailbox send smsg %llx\n", __func__, *(u64 *)msg);
+		rval = -EBUSY;
+		goto send_failed;
+	} else
+		mbox_chan_txdone(ipc->chan, 0);
+	pr_debug("%s mailbox send smsg  %llx\n", __func__, *(u64 *)msg);
 
 send_failed:
 	spin_unlock_irqrestore(&ipc->txpinlock, flags);

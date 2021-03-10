@@ -31,7 +31,7 @@ enum {
 	SIPC_ID_PM_SYS,		/* Power management processor */
 	SIPC_ID_NR_PHY,		/* New Radio PHY processor */
 	SIPC_ID_V3_PHY,		/* MODEM v3 PHY processor */
-	SIPC_ID_CH,		/* Contex Hub processor */
+	SIPC_ID_CH,             /* Contex Hub processor */
 	SIPC_ID_NR,		/* Max processor number */
 };
 
@@ -371,49 +371,56 @@ static inline void smsg_close_ack(u8 dst, u16 channel)
 /* ****************************************************************** */
 /* SMEM interfaces */
 /**
- * smem_alloc -- allocate shared memory block
+ * smem_alloc_ex -- allocate shared memory block
  *
  * @dst: dest processor ID
  * @size: size to be allocated, page-aligned
  * @return: phys addr or 0 if failed
  */
-u32 smem_alloc(u8 dst, u32 size);
+u32 smem_alloc_ex(u8 dst, u16 smem, u32 size);
+#define smem_alloc(dst, size) smem_alloc_ex((dst), (0), (size))
 
 /**
- * smem_free -- free shared memory block
+ * smem_free_ex -- free shared memory block
  *
  * @dst: dest processor ID
  * @addr: smem phys addr to be freed
  * @order: size to be freed
  */
-void smem_free(u8 dst, u32 addr, u32 size);
+void smem_free_ex(u8 dst, u16 smem, u32 addr, u32 size);
+#define smem_free(dst, addr, size) \
+	smem_free_ex((dst), (0), (addr), (size))
 
 /**
- * shmem_ram_unmap -- for sipc unmap ram address
+ * shmem_ram_unmap_ex -- for sipc unmap ram address
  *
  * @mem: vir mem
  */
-void shmem_ram_unmap(u8 dst, const void *mem);
+void shmem_ram_unmap_ex(u8 dst, u16 smem, const void *mem);
+#define shmem_ram_unmap(dst, mem) shmem_ram_unmap_ex((dst), (0), (mem))
 
 /**
- * shmem_ram_vmap_nocache -- for sipc map ram address
+ * shmem_ram_vmap_nocache_ex -- for sipc map ram address
  *
  * @start: start address
  * @size: size to be allocated, page-aligned
  * @return: phys addr or 0 if failed
  */
-void *shmem_ram_vmap_nocache(u8 dst, phys_addr_t start, size_t size);
+void *shmem_ram_vmap_nocache_ex(u8 dst, u16 smem,
+				phys_addr_t start, size_t size);
+#define shmem_ram_vmap_nocache(dst, start, size) \
+	shmem_ram_vmap_nocache_ex((dst), (0), (start), (size))
 
 /**
- * shmem_ram_vmap_cache -- for sipc map ram address
+ * shmem_ram_vmap_cache_ex -- for sipc map ram address
  *
  * @start: start address
  * @size: size to be allocated, page-aligned
  * @return: phys addr or 0 if failed
  */
-void *shmem_ram_vmap_cache(u8 dst, phys_addr_t start, size_t size);
-
-void smem_free(u8 dst, u32 addr, u32 size);
+void *shmem_ram_vmap_cache_ex(u8 dst, u16 smem, phys_addr_t start, size_t size);
+#define shmem_ram_vmap_cache(dst, start, size) \
+	shmem_ram_vmap_cache_ex((dst), (0), (start), (size))
 
 /**
  * modem_ram_unmap -- for modem unmap ram address
@@ -454,7 +461,7 @@ void *modem_ram_vmap_cache(u32 modem_type, phys_addr_t start, size_t size);
 void sbuf_set_no_need_wake_lock(u8 dst, u8 channel, u32 bufnum);
 
 /**
- * sbuf_create -- create pipe ring buffers on a channel
+ * sbuf_create_ex -- create pipe ring buffers on a channel
  *
  * @dst: dest processor ID
  * @channel: channel ID
@@ -464,8 +471,10 @@ void sbuf_set_no_need_wake_lock(u8 dst, u8 channel, u32 bufnum);
  * @return: 0 on success, <0 on failure
  */
 
-int sbuf_create(u8 dst, u8 channel, u32 bufnum,
-		u32 txbufsize, u32 rxbufsize);
+int sbuf_create_ex(u8 dst, u8 channel, u16 smem, u32 bufnum,
+		   u32 txbufsize, u32 rxbufsize);
+#define sbuf_create(dst, channel, bufnum, txbufsize, rxbufsize) \
+	sbuf_create_ex((dst), (channel), 0, (bufnum), (txbufsize), (rxbufsize))
 
 /**
  * sbuf_destroy -- destroy the pipe ring buffers on a channel
@@ -552,8 +561,8 @@ int sbuf_register_notifier(u8 dst, u8 channel, u32 bufid,
 struct sblock {
 	void	*addr;
 	u32	length;
-	u16     index;
-	u16     offset;
+	u16	index;
+	u16	offset;
 };
 
 /**
@@ -917,8 +926,6 @@ int sipx_get_free_count(u8 dst, u8 channel);
  */
 int sipx_put(u8 dst, u8 channel, struct sblock *blk);
 
-/* ****************************************************************** */
-
 #define SBLOCK_CREATE(dst, channel,\
 		txblocknum, txblocksize, txpoolsize, \
 		rxblocknum, rxblocksize, rxpoolsize)  \
@@ -1044,7 +1051,7 @@ static inline void unalign_memcpy(void *to, const void *from, size_t n)
 			to += 4;
 			from += 4;
 			n -= 4;
-	}
+		}
 		while (n) {
 			*(char *)(to++) = *(char *)(from++);
 			n--;

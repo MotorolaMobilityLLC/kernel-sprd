@@ -56,7 +56,7 @@ struct smem_pool {
 	void	*pcie_base;
 	u32	addr;
 	u32	size;
-	u32	dst;
+	u32	smem;
 	u32	mem_type;
 
 	atomic_t	used;
@@ -83,15 +83,20 @@ struct smem_map {
 	unsigned int		count;
 };
 
-static struct smem_phead	sipc_smem_phead;
+static struct smem_phead	sipc_smem_phead[SIPC_ID_NR];
 static struct smem_map_list	mem_mp;
 
-static struct smem_pool *shmem_find_pool(u8 dst)
+static struct smem_pool *shmem_find_pool(u32 dst, u32 smem)
 {
-	struct smem_phead *phead = &sipc_smem_phead;
+	struct smem_phead *phead;
 	struct smem_pool *spool = NULL;
 	struct smem_pool *pos;
 	unsigned long flags;
+
+	if (dst >= SIPC_ID_NR)
+		return NULL;
+
+	phead = &sipc_smem_phead[dst];
 
 	/* The num of one pool is 0, means the poll is not ready */
 	if (!phead->poolnum)
@@ -99,7 +104,7 @@ static struct smem_pool *shmem_find_pool(u8 dst)
 
 	spin_lock_irqsave(&phead->lock, flags);
 	list_for_each_entry(pos, &phead->smem_phead, smem_plist) {
-		if (pos->dst == dst) {
+		if (pos->smem == smem) {
 			spool = pos;
 			break;
 		}
@@ -211,13 +216,13 @@ static void soc_modem_ram_unmap(const void *mem)
 	}
 }
 
-static void *shmem_ram_vmap(u8 dst, phys_addr_t start,
+static void *shmem_ram_vmap(u8 dst, u16 smem, phys_addr_t start,
 			    size_t size,
 			    int noncached)
 {
 	struct smem_pool *spool;
 
-	spool = shmem_find_pool(dst);
+	spool = shmem_find_pool(dst, smem);
 	if (spool == NULL) {
 		pr_err("pool dst %d is not existed!\n", dst);
 		return NULL;
@@ -240,21 +245,22 @@ static void *shmem_ram_vmap(u8 dst, phys_addr_t start,
 
 }
 
-int smem_init(u32 addr, u32 size, u32 dst, u32 mem_type)
+int smem_init(u32 addr, u32 size, u32 dst, u32 smem, u32 mem_type)
 {
-	struct smem_phead *phead = &sipc_smem_phead;
-	struct smem_map_list *smem = &mem_mp;
+	struct smem_phead *phead;
+	struct smem_map_list *smem_list = &mem_mp;
 	struct smem_pool *spool;
 	unsigned long flags;
 
+	if (dst >= SIPC_ID_NR)
+		return -EINVAL;
+
+	phead = &sipc_smem_phead[dst];
 	/* fisrt init, create the pool head */
 	if (!phead->poolnum) {
 		spin_lock_init(&phead->lock);
 		INIT_LIST_HEAD(&phead->smem_phead);
 	}
-
-	if (shmem_find_pool(dst))
-		return 0;
 
 	spool = kzalloc(sizeof(struct smem_pool), GFP_KERNEL);
 	if (!spool)
@@ -266,7 +272,7 @@ int smem_init(u32 addr, u32 size, u32 dst, u32 mem_type)
 	spin_unlock_irqrestore(&phead->lock, flags);
 
 	spool->addr = addr;
-	spool->dst = dst;
+	spool->smem = smem;
 	spool->mem_type = mem_type;
 
 	if (size >= SMEM_ALIGN_POOLSZ)
@@ -279,9 +285,9 @@ int smem_init(u32 addr, u32 size, u32 dst, u32 mem_type)
 	spin_lock_init(&spool->lock);
 	INIT_LIST_HEAD(&spool->smem_head);
 
-	spin_lock_init(&smem->lock);
-	INIT_LIST_HEAD(&smem->map_head);
-	smem->inited = 1;
+	spin_lock_init(&smem_list->lock);
+	INIT_LIST_HEAD(&smem_list->map_head);
+	smem_list->inited = 1;
 
 	/* allocator block size is times of pages */
 	if (spool->size >= SMEM_ALIGN_POOLSZ)
@@ -304,39 +310,19 @@ int smem_init(u32 addr, u32 size, u32 dst, u32 mem_type)
 	pr_info("pool addr = 0x%x, size = 0x%x added.\n",
 		spool->addr, spool->size);
 
-	if (mem_type == SMEM_PCIE) {
-#ifdef CONFIG_SPRD_IPA_PCIE_WORKROUND
-#ifdef CONFIG_PCIE_EPF_SPRD
-		spool->pcie_base = sprd_epf_ipa_map(IPA_SRC_BASE,
-						    IPA_DST_BASE, IPA_SIZE);
-		if (!spool->pcie_base) {
-			gen_pool_destroy(spool->gen);
-			kfree(spool);
-			return -ENOMEM;
-		}
-		spool->pcie_base += (addr - IPA_DST_BASE);
-#else
-		gen_pool_destroy(spool->gen);
-		kfree(spool);
-		pr_err("Failed to pcie map, can't br here!\n");
-		return -ENOMEM;
-#endif
-#else
-		spool->pcie_base = pcie_modem_ram_vmap(addr, size, 1);
-#endif
-	}
 	return 0;
 }
 
 /* ****************************************************************** */
-u32 smem_alloc(u8 dst, u32 size)
+u32 smem_alloc_ex(u8 dst, u16 smem, u32 size)
+
 {
 	struct smem_pool *spool;
 	struct smem_record *recd;
 	unsigned long flags;
 	u32 addr = 0;
 
-	spool = shmem_find_pool(dst);
+	spool = shmem_find_pool(dst, smem);
 	if (spool == NULL) {
 		pr_err("pool dst %d is not existed!\n", dst);
 		return 0;
@@ -370,15 +356,15 @@ u32 smem_alloc(u8 dst, u32 size)
 
 	return addr;
 }
-EXPORT_SYMBOL_GPL(smem_alloc);
+EXPORT_SYMBOL_GPL(smem_alloc_ex);
 
-void smem_free(u8 dst, u32 addr, u32 size)
+void smem_free_ex(u8 dst, u16 smem, u32 addr, u32 size)
 {
 	struct smem_pool *spool;
 	struct smem_record *recd, *next;
 	unsigned long flags;
 
-	spool = shmem_find_pool(dst);
+	spool = shmem_find_pool(dst, smem);
 	if (spool == NULL) {
 		pr_err("pool dst %d is not existed!\n", dst);
 		return;
@@ -402,26 +388,27 @@ void smem_free(u8 dst, u32 addr, u32 size)
 	}
 	spin_unlock_irqrestore(&spool->lock, flags);
 }
-EXPORT_SYMBOL_GPL(smem_free);
+EXPORT_SYMBOL_GPL(smem_free_ex);
 
-void *shmem_ram_vmap_nocache(u8 dst, phys_addr_t start, size_t size)
+void *shmem_ram_vmap_nocache_ex(u8 dst, u16 smem,
+				phys_addr_t start, size_t size)
 {
-	return shmem_ram_vmap(dst, start, size, 1);
+	return shmem_ram_vmap(dst, smem, start, size, 1);
 }
-EXPORT_SYMBOL_GPL(shmem_ram_vmap_nocache);
+EXPORT_SYMBOL_GPL(shmem_ram_vmap_nocache_ex);
 
 
-void *shmem_ram_vmap_cache(u8 dst, phys_addr_t start, size_t size)
+void *shmem_ram_vmap_cache_ex(u8 dst, u16 smem, phys_addr_t start, size_t size)
 {
-	return shmem_ram_vmap(dst, start, size, 0);
+	return shmem_ram_vmap(dst, smem, start, size, 0);
 }
-EXPORT_SYMBOL_GPL(shmem_ram_vmap_cache);
+EXPORT_SYMBOL_GPL(shmem_ram_vmap_cache_ex);
 
-void shmem_ram_unmap(u8 dst, const void *mem)
+void shmem_ram_unmap_ex(u8 dst, u16 smem, const void *mem)
 {
 	struct smem_pool *spool;
 
-	spool = shmem_find_pool(dst);
+	spool = shmem_find_pool(dst, smem);
 	if (spool == NULL) {
 		pr_err("pool dst %d is not existed!\n", dst);
 		return;
@@ -433,7 +420,7 @@ void shmem_ram_unmap(u8 dst, const void *mem)
 	else
 		return soc_modem_ram_unmap(mem);
 }
-EXPORT_SYMBOL_GPL(shmem_ram_unmap);
+EXPORT_SYMBOL_GPL(shmem_ram_unmap_ex);
 
 void *modem_ram_vmap_nocache(u32 modem_type, phys_addr_t start, size_t size)
 {
@@ -466,35 +453,50 @@ EXPORT_SYMBOL_GPL(modem_ram_unmap);
 #ifdef CONFIG_DEBUG_FS
 static int smem_debug_show(struct seq_file *m, void *private)
 {
-	struct smem_phead *phead = &sipc_smem_phead;
+	struct smem_phead *phead;
 	struct smem_pool *spool, *pos;
 	struct smem_record *recd;
-	u32 fsize;
+	struct smsg_ipc *ipc;
+	u32 fsize, i;
 	unsigned long flags;
-	u32 cnt = 1;
+	u32 cnt = 0;
 
-	spin_lock_irqsave(&phead->lock, flags);
-	list_for_each_entry(pos, &phead->smem_phead, smem_plist) {
-		spool = pos;
-		fsize = gen_pool_avail(spool->gen);
+	for (i = 0; i < SIPC_ID_NR; i++) {
+		phead = &sipc_smem_phead[i];
+		ipc = smsg_ipcs[i];
+		if (!phead->poolnum || !ipc)
+			continue;
 
-		sipc_debug_putline(m, '*', 80);
-		seq_printf(m, "%d, dst:%d, name: %s, smem pool info:\n",
-			   cnt++, spool->dst,
-			   (smsg_ipcs[spool->dst])->name);
-		seq_printf(m, "phys_addr=0x%x, total=0x%x, used=0x%x, free=0x%x\n",
-			spool->addr, spool->size, spool->used.counter, fsize);
-		seq_puts(m, "smem record list:\n");
+		cnt = 0;
+		sipc_debug_putline(m, '*', 90);
+		seq_printf(m, "dst:%d, name: %s, smem pool list:\n",
+			   i, ipc->name);
 
-		list_for_each_entry(recd, &spool->smem_head, smem_list) {
-			seq_printf(m, "task %s: pid=%u, addr=0x%x, size=0x%x\n",
-				recd->task->comm,
-				recd->task->pid,
-				recd->addr,
-				recd->size);
+		spin_lock_irqsave(&phead->lock, flags);
+		list_for_each_entry(pos, &phead->smem_phead, smem_plist) {
+			spool = pos;
+			fsize = gen_pool_avail(spool->gen);
+			cnt++;
+			sipc_debug_putline(m, '*', 80);
+			seq_printf(m, "%d, dst:%d, name: %s, smem pool info:\n",
+				   cnt++, i,
+				   (smsg_ipcs[i])->name);
+			seq_printf(m, "phys_addr=0x%x, total=0x%x, used=0x%x, free=0x%x\n",
+				   spool->addr, spool->size,
+				   spool->used.counter, fsize);
+			seq_puts(m, "smem record list:\n");
+
+			list_for_each_entry(recd,
+					    &spool->smem_head, smem_list) {
+				seq_printf(m, "task %s: pid=%u, addr=0x%x, size=0x%x\n",
+					   recd->task->comm,
+					   recd->task->pid,
+					   recd->addr,
+					   recd->size);
+			}
 		}
+		spin_unlock_irqrestore(&phead->lock, flags);
 	}
-	spin_unlock_irqrestore(&phead->lock, flags);
 	return 0;
 }
 
@@ -524,6 +526,6 @@ EXPORT_SYMBOL_GPL(smem_init_debugfs);
 #endif /* endof CONFIG_DEBUG_FS */
 
 
-MODULE_AUTHOR("Chen Gaopeng");
+MODULE_AUTHOR("Wenping Zhou <wenping.zhou@unisoc.com>");
 MODULE_DESCRIPTION("SIPC/SMEM driver");
 MODULE_LICENSE("GPL v2");

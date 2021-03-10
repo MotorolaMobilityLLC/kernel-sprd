@@ -28,6 +28,7 @@
 #include <linux/sizes.h>
 #include "sipc_priv.h"
 
+
 #if defined(CONFIG_DEBUG_FS)
 void sipc_debug_putline(struct seq_file *m, char c, int n)
 {
@@ -76,12 +77,50 @@ static void sprd_rx_callback(struct mbox_client *client, void *message)
 	}
 }
 
+static int sprd_get_smem_info(struct device *dev,
+			      struct smsg_ipc *ipc, struct device_node *np)
+{
+	struct smem_item *smem_ptr;
+	int i, count;
+	const __be32 *list;
+
+	list = of_get_property(np, "sprd,smem-info", &count);
+	if (!list || !count) {
+		pr_err("no smem-info\n");
+		return -ENODEV;
+	}
+
+	count = count / sizeof(*smem_ptr);
+	smem_ptr = kcalloc(count, sizeof(*smem_ptr), GFP_KERNEL);
+	if (!smem_ptr)
+		return -ENOMEM;
+
+	for (i = 0; i < count; i++) {
+		smem_ptr[i].smem_base = be32_to_cpu(*list++);
+		smem_ptr[i].dst_smem_base = be32_to_cpu(*list++);
+		smem_ptr[i].smem_size = be32_to_cpu(*list++);
+		dev_info(dev, "smem count=%d, base=0x%x, dstbase=0x%x, size=0x%x\n",
+			 i,
+			 smem_ptr[i].smem_base,
+			 smem_ptr[i].dst_smem_base,
+			 smem_ptr[i].smem_size);
+	}
+
+	ipc->smem_cnt = count;
+	ipc->smem_ptr = smem_ptr;
+
+	/* default mem */
+	ipc->smem_base = smem_ptr[0].smem_base;
+	ipc->dst_smem_base = smem_ptr[0].dst_smem_base;
+	ipc->smem_size = smem_ptr[0].smem_size;
+
+	return 0;
+}
+
 static int sprd_ipc_parse_dt(struct device *dev,
 			     struct device_node *np, struct smsg_ipc *ipc)
 {
-	struct device_node *mem_np;
 	u32 value;
-	u32 val[3];
 	int err;
 
 	/* Get sipc label */
@@ -97,48 +136,15 @@ static int sprd_ipc_parse_dt(struct device *dev,
 	ipc->dst = (u8)value;
 	dev_info(dev, "dst    =%d\n", ipc->dst);
 
-	/* Get sipc reserved memory */
-	mem_np = of_parse_phandle(np, "memory-region", 0);
-	if (mem_np) {
-		struct resource r;
-		err = of_address_to_resource(mem_np, 0, &r);
-		of_node_put(mem_np);
-		if (err)
-			return err;
-		ipc->smem_base = r.start;;
-		ipc->smem_size = r.end + 1 - r.start;
-		dev_info(dev, "smem_base=0x%x", ipc->smem_base);
-		dev_info(dev, "smem_size=0x%x", ipc->smem_size);
-	}
+	/* default mailbox */
+	ipc->type = SIPC_BASE_MBOX;
 
-	/* Get sipc iram reserved memory */
-	mem_np = of_parse_phandle(np, "iram", 0);
-	if (mem_np) {
-		struct resource r;
-		err = of_address_to_resource(mem_np, 0, &r);
-		of_node_put(mem_np);
-		if (err)
-			return err;
-		ipc->smem_base = r.start;;
-		ipc->smem_size = r.end + 1 - r.start;
-		dev_info(dev, "smem_base=0x%x", ipc->smem_base);
-		dev_info(dev, "smem_size=0x%x", ipc->smem_size);
+	/* get smem info */
+	err = sprd_get_smem_info(dev, ipc, np);
+	if (err) {
+		dev_err(dev, "sipc: parse smem info failed.\n");
+		return err;
 	}
-
-	/* Get memory-base-addr, look at address from cp */
-	err = of_property_read_u32_array(np, "memory-base-addr", val, 1);
-	if (err >= 0) {
-		ipc->dst_smem_base = (u32)val[0];
-		dev_info(dev, "dst_base_addr=0x%x\n", ipc->dst_smem_base);
-	}
-
-	/* Get memory-iram-addr, look at address from sp */
-	err = of_property_read_u32_array(np, "memory-iram-addr", val, 1);
-	if (err >= 0) {
-		ipc->dst_smem_base = (u32)val[0];
-		dev_info(dev, "dst_iram_addr=0x%x\n", ipc->dst_smem_base);
-	}
-
 	return 0;
 }
 
@@ -160,6 +166,9 @@ static int sprd_ipc_probe(struct platform_device *pdev)
 		dev_err(dev, "failed to parse dt!\n");
 		return -ENODEV;
 	}
+
+	smsg_ipc_create(ipc);
+	platform_set_drvdata(pdev, ipc);
 
 	/* mailbox request */
 	ipc->cl.dev = &pdev->dev;
@@ -187,9 +196,6 @@ static int sprd_ipc_probe(struct platform_device *pdev)
 	init_waitqueue_head(&ipc->suspend_wait);
 	spin_lock_init(&ipc->suspend_pinlock);
 	spin_lock_init(&ipc->txpinlock);
-
-	smsg_ipc_create(ipc);
-	platform_set_drvdata(pdev, ipc);
 
 	dev_info(dev, "sprd ipc probe success\n");
 
@@ -224,6 +230,7 @@ static int sprd_ipc_remove(struct platform_device *pdev)
 	struct smsg_ipc *ipc = platform_get_drvdata(pdev);
 
 	smsg_ipc_destroy(ipc);
+	kfree(ipc->smem_ptr);
 
 	devm_kfree(&pdev->dev, ipc);
 	return 0;
