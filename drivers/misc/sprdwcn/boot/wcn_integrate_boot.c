@@ -673,6 +673,1724 @@ static void wcn_gnss_pre_boot(struct wcn_device *wcn_dev)
 	gnss_write_version_data();
 }
 
+/* WCN SYS power && clock support
+ * PMIC supports power and clock to WCN SYS.
+ * is_btwf_sys: special for BTWF SYS, it needs VDDWIFIPA
+ */
+int wcn_power_clock_support(bool is_btwf_sys)
+{
+	int ret;
+
+	WCN_INFO("[+]%s\n", __func__);
+
+	ret = wcn_power_enable_dcxo1v8(true);
+	if (ret) {
+		WCN_ERR("wcn_power_enable_dcxo1v8:%d", ret);
+		return -1;
+	}
+	usleep_range(10, 15); /* wait power stable */
+
+	ret = wcn_power_enable_vddcon(true);
+	if (ret) {
+		WCN_ERR("wcn_power_enable_vddcon:%d", ret);
+		return -1;
+	}
+	usleep_range(10, 15); /* wait power stable */
+
+	ret = wcn_power_enable_merlion_domain(true);
+	if (ret) {
+		WCN_ERR("wcn_power_enable_merlion_domain:%d", ret);
+		return -1;
+	}
+	usleep_range(10, 15); /* wait power stable */
+
+	if (is_btwf_sys) {
+		/* ASIC: enable vddcon and wifipa interval time > 1ms */
+		usleep_range(VDDWIFIPA_VDDCON_MIN_INTERVAL_TIME,
+			     VDDWIFIPA_VDDCON_MAX_INTERVAL_TIME);
+		ret = wcn_marlin_power_enable_vddwifipa(true);
+		if (ret) {
+			WCN_ERR("wcn_marlin_power_enable_vddwifipa:%d", ret);
+			return -1;
+		}
+	}
+
+	WCN_INFO("[-]%s\n", __func__);
+	return 0;
+}
+
+/* WCN SYS power && clock Unsupport
+ * PMIC un-supports power and clock to WCN SYS.
+ * is_btwf_sys: special for BTWF SYS, it needs release VDDWIFIPA
+ */
+int wcn_sys_power_clock_unsupport(bool is_btwf_sys)
+{
+	int ret;
+
+	WCN_INFO("[+]%s\n", __func__);
+
+	if (is_btwf_sys) {
+		ret = wcn_marlin_power_enable_vddwifipa(false);
+		if (ret) {
+			WCN_ERR("wcn_marlin_power_enable_vddwifipa:%d", ret);
+			return -1;
+		}
+
+		/* ASIC: disable vddcon, wifipa interval time > 1ms */
+		usleep_range(VDDWIFIPA_VDDCON_MIN_INTERVAL_TIME,
+			     VDDWIFIPA_VDDCON_MAX_INTERVAL_TIME);
+	}
+
+	ret = wcn_power_enable_merlion_domain(false);
+	if (ret) {
+		WCN_ERR("wcn_power_enable_merlion_domain:%d", ret);
+		return -1;
+	}
+	usleep_range(10, 15); /* wait power stable */
+
+	ret = wcn_power_enable_vddcon(false);
+	if (ret) {
+		WCN_ERR("wcn_power_enable_vddcon:%d", ret);
+		return -1;
+	}
+	usleep_range(10, 15); /* wait power stable */
+
+	ret = wcn_power_enable_dcxo1v8(false);
+	if (ret) {
+		WCN_ERR("wcn_power_enable_dcxo1v8:%d", ret);
+		return -1;
+	}
+
+	WCN_INFO("[-]%s\n", __func__);
+	return 0;
+}
+
+/* WCN SYS powerup:PMU support WCN SYS power switch on.
+ * The WCN SYS will be at power on and wakeup status.
+ */
+int wcn_sys_power_up(struct wcn_device *wcn_dev)
+{
+	u32 reg_val = 0;
+
+	WCN_INFO("[+]%s\n", __func__);
+	if (wcn_dev == NULL) {
+		WCN_ERR("[-]%s NULL\n", __func__);
+		return -1;
+	}
+
+	/* PMU XTL, XTL-Buf, PLL stable delay count for WCN SYS
+	 * one count time is 1/(32*1024) second.(PMU Clock is 32k)
+	 * bit[15:8]:power sequence delay, default 0x90=>0x4
+	 * bit[23:16]:power on delay,default 0x20=>0x2
+	 */
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_PMU_APB],
+				 0x03a8, &reg_val);
+	WCN_INFO("REG 0x640203a8:val=0x%x!\n", reg_val);
+	wcn_regmap_raw_write_bit(
+			wcn_dev->rmap[REGMAP_PMU_APB],
+			0x23a8, (0xffff<<8)); /* clear to 0 */
+	wcn_regmap_raw_write_bit(
+			wcn_dev->rmap[REGMAP_PMU_APB],
+			0x13a8, (0x0204<<8)); /* set to 0204 */
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_PMU_APB],
+				 0x03a8, &reg_val);
+	WCN_INFO("REG 0x640203a8:val=0x%x(Delay cnt)!\n", reg_val);
+
+	/*
+	 * PMU: WCN SYS Auto Shutdown Clear
+	 * The REG address is the same as XTL delay count,
+	 * but we should config this bits with two steps as ASIC required.
+	 * Bit[24] clear to 0
+	 */
+	wcn_regmap_raw_write_bit(
+			wcn_dev->rmap[REGMAP_PMU_APB],
+			0x23a8, (0x1<<24));
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_PMU_APB],
+				 0x03a8, &reg_val);
+	WCN_INFO("REG 0x640203a8:val=0x%x(auto shutdown clear)!\n",
+		     reg_val);
+
+	/*
+	 * PMU: WCN SYS Force Shutdown Clear
+	 * Power state machine start runs
+	 * The REG address is the same as XTL delay count, auto shutdown,
+	 * but we should config this bits with many steps as ASIC required.
+	 * Bit[25] clear to 0
+	 */
+	wcn_regmap_raw_write_bit(
+			wcn_dev->rmap[REGMAP_PMU_APB],
+			0x23a8, (0x1<<25));
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_PMU_APB],
+				 0x03a8, &reg_val);
+	WCN_INFO("REG 0x640203a8:val=0x%x(force shutdown clear)!\n",
+			 reg_val);
+	/* usleep_range(500, 500); */ /* wait power on */
+	/* check power on */
+	if (wcn_sys_polling_poweron(wcn_dev) == false) {
+		WCN_ERR("[-]%s wcn sys powerup fail\n", __func__);
+		return -1;
+	}
+
+	/* PMU: WCN SYS Force Deepsleep Clear
+	 * Clock state machine start runs
+	 * Bit[7] clear to 0
+	 */
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_PMU_APB],
+				 0x0818, &reg_val);
+	WCN_INFO("REG 0x64020818:val=0x%x!\n", reg_val);
+	wcn_regmap_raw_write_bit(
+			wcn_dev->rmap[REGMAP_PMU_APB],
+			0x2818, (0x1<<7));
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_PMU_APB],
+				 0x0818, &reg_val);
+	WCN_INFO("REG 0x64020818:val=0x%x(Force deep clear)!\n",
+		     reg_val);
+
+	/* usleep_range(500, 500); */ /* wait exit deep sleep */
+
+	/* check exit deep sleep */
+	if (wcn_sys_polling_wakeup(wcn_dev) == false) {
+		WCN_ERR("[-]%s wcn sys wakeup fail\n", __func__);
+		return -1;
+	}
+
+	/* WCN SYS power on:
+	 * The XTL, XTL-BUF, PLL1, PLL2 stable time is about 6.x ms
+	 */
+	msleep(WCN_SYS_POWER_ON_WAKEUP_TIME);
+
+	/*
+	 * Special Debug:maybe btwf,gnss sys wakeup too slow
+	 * If set sfware_core_lv_en caused wcn sys enter deep,
+	 * and then AP SYS can't access wcn REGs.
+	 */
+	/* double confirm WCN SYS power up success */
+	btwf_sys_polling_wakeup(wcn_dev);
+	btwf_sys_polling_poweron(wcn_dev);
+	gnss_sys_polling_wakeup(wcn_dev);
+	gnss_sys_polling_poweron(wcn_dev);
+
+	WCN_INFO("[-]%s\n", __func__);
+	return 0;
+}
+
+/* WCN SYS powerdown:PMU support WCN SYS power switch on.
+ * The WCN SYS will be at deepsleep and shutdown status.
+ */
+int wcn_sys_power_down(struct wcn_device *wcn_dev)
+{
+#if 1	//SPECIAL_DEBUG_EN	//Special debug
+	u32 reg_val = 0;
+#endif
+	WCN_INFO("[+]%s\n", __func__);
+	if (wcn_dev == NULL) {
+		WCN_ERR("[-]%s NULL\n", __func__);
+		return -1;
+	}
+
+#if 1	//SPECIAL_DEBUG_EN	//Special debug
+	/*
+	 * PMU: WCN SYS Auto Shutdown Set
+	 * The REG address is the same as XTL delay count,
+	 * but we should config this bits with two steps as ASIC required.
+	 * Bit[24] clear to 0
+	 */
+	wcn_regmap_raw_write_bit(
+			wcn_dev->rmap[REGMAP_PMU_APB],
+			0x13a8, (0x1<<24));
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_PMU_APB],
+				 0x03a8, &reg_val);
+	WCN_INFO("REG 0x640203a8:val=0x%x(auto shutdown set)!\n",
+		     reg_val);
+#endif
+	wcn_ip_allow_sleep(wcn_dev, true);
+
+#if 1	//SPECIAL_DEBUG_EN	//Special debug
+	if (wcn_sys_polling_powerdown(wcn_dev) == false) {
+		WCN_ERR("[-]%s wcn sys powerdown fail\n", __func__);
+		return -1;
+	}
+#endif
+
+	WCN_INFO("[-]%s\n", __func__);
+	return 0;
+}
+
+/* check wcn sys is whether at wakeup status:
+ * If wcn sys isn't at wakeup status,AP SYS can't operate WCN REGs
+ * or caused AP SYS kernel crash,doze screen,watchdog timeout
+ * and so on.
+ */
+bool wcn_sys_is_wakeup_status(struct wcn_device *wcn_dev)
+{
+	u32 reg_val = 0;
+	int i;
+
+	WCN_INFO("[+]%s?\n", __func__);
+	if (wcn_dev == NULL) {
+		WCN_ERR("[-]%s NULL\n", __func__);
+		return false;
+	}
+
+	/* bit[31:28]:6 wakeup, others(0:deep sleep...) isn't. */
+	for (i = 0; i < WCN_REG_POLL_STABLE_COUNT; i++) {
+		wcn_regmap_read(wcn_dev->rmap[REGMAP_PMU_APB],
+					 0x0860, &reg_val);
+		WCN_INFO("REG 0x64020860:val=0x%x!\n", reg_val);
+		if ((reg_val & 0xF0000000) != (0x6<<28)) {
+			WCN_INFO("wcn is not wakeup!\n");
+			return false;
+		}
+	}
+
+	WCN_INFO("wcn is wakeup!\n");
+	return true;
+}
+
+/* check wcn sys is whether at deepsleep status:
+ * If wcn sys is at deepsleep status,AP SYS can't operate WCN REGs
+ * or caused AP SYS kernel crash,doze screen,watchdog timeout
+ * and so on.
+ */
+bool wcn_sys_is_deepsleep_status(struct wcn_device *wcn_dev)
+{
+	u32 reg_val = 0;
+	int i;
+
+	WCN_INFO("[+]%s?\n", __func__);
+	if (wcn_dev == NULL) {
+		WCN_ERR("[-]%s NULL\n", __func__);
+		return false;
+	}
+
+	/* bit[31:28]:6 wakeup, others(0:deep sleep...) isn't. */
+	for (i = 0; i < WCN_REG_POLL_STABLE_COUNT; i++) {
+		wcn_regmap_read(wcn_dev->rmap[REGMAP_PMU_APB],
+					 0x0860, &reg_val);
+		WCN_INFO("REG 0x64020860:val=0x%x!\n", reg_val);
+		if ((reg_val & 0xF0000000) != (0x0<<28)) {
+			WCN_INFO("wcn isn't deepsleep!\n");
+			return false;
+		}
+	}
+
+	WCN_INFO("wcn is deepsleep!\n");
+	return true;
+}
+
+/* check wcn sys is whether at poweron status:
+ * If wcn sys isn't at poweron status,AP SYS can't operate WCN REGs
+ * or caused AP SYS kernel crash,doze screen,watchdog timeout
+ * and so on.
+ */
+bool wcn_sys_is_poweron_status(struct wcn_device *wcn_dev)
+{
+	u32 reg_val = 0;
+	int i;
+
+	WCN_INFO("[+]%s\n", __func__);
+	if (wcn_dev == NULL) {
+		WCN_ERR("[-]%s NULL\n", __func__);
+		return false;
+	}
+
+	/* Bit[28:24] 0 power domain on,work mode */
+	for (i = 0; i < WCN_REG_POLL_STABLE_COUNT; i++) {
+		wcn_regmap_read(wcn_dev->rmap[REGMAP_PMU_APB],
+					 0x0538, &reg_val);
+		WCN_INFO("REG 0x64020538:val=0x%x!\n", reg_val);
+		if (((reg_val)&(0x1f<<24)) != 0) {
+			WCN_INFO("wcn isn't poweron!\n");
+			return false;
+		}
+	}
+
+	WCN_INFO("wcn is poweron!\n");
+	return true;
+}
+
+/* check wcn sys is whether at shutdown status:
+ * If wcn sys isn't at poweron status,AP SYS can't operate WCN REGs
+ * or caused AP SYS kernel crash,doze screen,watchdog timeout
+ * and so on.
+ */
+bool wcn_sys_is_shutdown_status(struct wcn_device *wcn_dev)
+{
+	u32 reg_val = 0;
+	int i;
+
+	WCN_INFO("[+]%s\n", __func__);
+	if (wcn_dev == NULL) {
+		WCN_ERR("[-]%s NULL\n", __func__);
+		return false;
+	}
+
+	/* Bit[28:24] 0 power domain on,work mode */
+	for (i = 0; i < WCN_REG_POLL_STABLE_COUNT; i++) {
+		wcn_regmap_read(wcn_dev->rmap[REGMAP_PMU_APB],
+					 0x0538, &reg_val);
+		WCN_INFO("REG 0x64020538:val=0x%x!\n", reg_val);
+		if (((reg_val)&(0x1f<<24)) != (0x7<<24)) {
+			WCN_INFO("wcn isn't shutdown!\n");
+			return false;
+		}
+	}
+
+	WCN_INFO("wcn is shutdown!\n");
+	return true;
+}
+
+/* WCN_AON_IP_STOP:0xffffffff:allow WCN SYS enter deep sleep.
+ * After BTWF and GNSS SYS enter deep sleep, WCN SYS
+ * will check this REG, it means WCN IP is stopped working,
+ * so WCN SYS can enter deep sleep.
+ */
+int wcn_ip_allow_sleep(struct wcn_device *wcn_dev, bool allow)
+{
+	u32 reg_val = 0;
+
+	/* WCN_AON_IP_STOP:0xffffffff:allow WCN SYS enter deep sleep.
+	 * After BTWF and GNSS SYS enter deep sleep, WCN SYS
+	 * will check this REG, it means WCN IP is stopped working,
+	 * so WCN SYS can enter deep sleep.
+	 */
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_AHB],
+				 0x00c4, &reg_val);
+	WCN_INFO("REG 0x408800c4:val=0x%x, allow=%d!\n",
+		reg_val, allow);
+	if (allow)
+		reg_val = 0xffffffff;
+	else
+		reg_val = 0;
+	wcn_regmap_raw_write_bit(
+			wcn_dev->rmap[REGMAP_WCN_AON_AHB],
+			0x00c4, reg_val);
+
+	/* if allow deep, after ip stop set, the WCN SYS 26M clock is closed
+	 * it will cause AP SYS bus-hang if access WCN REGs.
+	 */
+	if (allow == false) {
+		wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_AHB],
+					 0x00c4, &reg_val);
+		WCN_INFO("Set REG 0x408800c4:val=0x%x(wcn stop ip)!\n",
+			      reg_val);
+	}
+
+	return 0;
+}
+
+/* wcn sys allow go to deep sleep status:
+ * If doesn't call this function, the WCN SYS can't go to
+ * deep sleep status.
+ * WARNING: Operate WCN SYS REGs, we should confirm WCN SYS
+ * is at wakeup and poweron status to call this function.
+ */
+int wcn_sys_allow_deep_sleep(struct wcn_device *wcn_dev)
+{
+	u32 reg_val = 0;
+
+	WCN_INFO("[+]%s\n", __func__);
+	if (wcn_dev == NULL) {
+		WCN_ERR("[-]%s NULL\n", __func__);
+		return -1;
+	}
+
+	/*
+	 * sfware_core_lv_en set:1 allow WCN SYS send deep sleep
+	 * signal to PMU.
+	 * After BTWF and GNSS SYS enter deep sleep
+	 * WCN SYS will check this value, if it is 1, it can send deep sleep
+	 * signal to PMU.
+	 * Bit[30] default is 0, set to 1
+	 */
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_APB],
+				 0x0090, &reg_val);
+	WCN_INFO("REG 0x4080c090:val=0x%x!\n", reg_val);
+	reg_val |= (0x1<<30);
+	wcn_regmap_raw_write_bit(
+			wcn_dev->rmap[REGMAP_WCN_AON_APB],
+			0x0090, reg_val);
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_APB],
+				 0x0090, &reg_val);
+	WCN_INFO("REG 0x4080c090:val=0x%x(sfware core lv en)!\n",
+		      reg_val);
+
+	wcn_ip_allow_sleep(wcn_dev, true);
+
+	return 0;
+}
+
+/* wcn sys forbid go to deep sleep status:
+ * If doesn't call this function, the WCN SYS can go to
+ * deep sleep status and caused AP SYS can't access WCN REGs.
+ */
+int wcn_sys_forbid_deep_sleep(struct wcn_device *wcn_dev)
+{
+	WCN_INFO("[+]%s\n", __func__);
+	if (wcn_dev == NULL) {
+		WCN_ERR("[-]%s NULL\n", __func__);
+		return -1;
+	}
+
+	/* force btwf sys exit deep, and then force wcn sys exit deep */
+	btwf_sys_force_exit_deep_sleep(wcn_dev);
+
+	btwf_sys_polling_wakeup(wcn_dev);
+	btwf_sys_polling_poweron(wcn_dev);
+	wcn_sys_polling_wakeup(wcn_dev);
+	wcn_sys_polling_poweron(wcn_dev);
+
+	wcn_ip_allow_sleep(wcn_dev, false);
+
+	/* restore btwf default status */
+	btwf_sys_clear_force_exit_deep_sleep(wcn_dev);
+
+	return 0;
+}
+
+bool wcn_sys_polling_poweron(struct wcn_device *wcn_dev)
+{
+	int i = 0;
+
+	/* Polling WCN SYS wakeup */
+	while (i < WCN_SYS_POWERON_WAKEUP_POLLING_COUNT) {
+		if (wcn_sys_is_poweron_status(wcn_dev)) {
+			WCN_INFO("wcn sys poweron i=%d!\n",
+					  i);
+			return true;
+		}
+
+		i++;
+		usleep_range(10, 15);
+	}
+
+	WCN_ERR("[-]%s wcn sys wakeup fail\n", __func__);
+	return false;
+}
+
+bool wcn_sys_polling_powerdown(struct wcn_device *wcn_dev)
+{
+	int i = 0;
+
+	/* Polling WCN SYS shutdown */
+	while (i < WCN_SYS_SHUTDOWN_POLLING_COUNT) {
+		if (wcn_sys_is_shutdown_status(wcn_dev)) {
+			WCN_INFO("wcn sys shutdown i=%d!\n",
+					  i);
+			return true;
+		}
+
+		i++;
+		usleep_range(10, 15);
+	}
+
+	WCN_ERR("[-]%s wcn sys shutdown fail\n", __func__);
+	return false;
+}
+
+bool wcn_sys_polling_wakeup(struct wcn_device *wcn_dev)
+{
+	int i = 0;
+
+	/* Polling WCN SYS wakeup */
+	while (i < WCN_SYS_POWERON_WAKEUP_POLLING_COUNT) {
+		if (wcn_sys_is_wakeup_status(wcn_dev)) {
+			WCN_INFO("wcn sys wakeup i=%d!\n",
+					  i);
+			return true;
+		}
+
+		i++;
+		usleep_range(10, 15);
+	}
+
+	WCN_ERR("[-]%s wcn sys wakeup fail\n", __func__);
+	return false;
+}
+
+bool btwf_sys_polling_deepsleep(struct wcn_device *wcn_dev)
+{
+	int i = 0;
+
+	/* Polling WCN SYS wakeup */
+	while (i < BTWF_SYS_DEEPSLEEP_POLLING_COUNT) {
+		if (btwf_sys_is_deepsleep_status(wcn_dev)) {
+			WCN_INFO("btwf sys is deepsleep i=%d!\n",
+					  i);
+			return true;
+		}
+
+		i++;
+		usleep_range(10, 15);
+	}
+
+	WCN_ERR("[-]%s btwf sys deepsleep fail\n", __func__);
+	return false;
+}
+
+bool btwf_sys_polling_wakeup(struct wcn_device *wcn_dev)
+{
+	int i = 0;
+
+	/* Polling WCN SYS wakeup */
+	while (i < BTWF_SYS_WAKEUP_POLLING_COUNT) {
+		if (btwf_sys_is_wakeup_status(wcn_dev)) {
+			WCN_INFO("btwf sys is wakeup i=%d!\n",
+					  i);
+			return true;
+		}
+
+		i++;
+		usleep_range(10, 15);
+	}
+
+	WCN_ERR("[-]%s btwf sys wakeup fail\n", __func__);
+	return false;
+}
+
+bool btwf_sys_polling_poweron(struct wcn_device *wcn_dev)
+{
+	int i = 0;
+
+	/* Polling BTWF SYS poweron */
+	while (i < BTWF_SYS_POWERON_POLLING_COUNT) {
+		if (btwf_sys_is_poweron_status(wcn_dev)) {
+			WCN_INFO("btwf sys is poweron i=%d!\n",
+					  i);
+			return true;
+		}
+
+		i++;
+		usleep_range(10, 15);
+	}
+
+	WCN_ERR("[-]%s btwf sys is powerdown\n", __func__);
+	return false;
+}
+
+bool btwf_sys_polling_powerdown(struct wcn_device *wcn_dev)
+{
+	int i = 0;
+
+	/* Polling BTWF SYS powerdown */
+	while (i < BTWF_SYS_POWERDOWN_POLLING_COUNT) {
+		if (btwf_sys_is_powerdown_status(wcn_dev)) {
+			WCN_INFO("btwf sys is powerdown i=%d!\n",
+					  i);
+			return true;
+		}
+
+		i++;
+		usleep_range(10, 15);
+	}
+
+	WCN_ERR("[-]%s btwf sys is not poweron\n", __func__);
+	return false;
+}
+
+bool gnss_sys_polling_wakeup(struct wcn_device *wcn_dev)
+{
+	int i = 0;
+
+	/* Polling WCN SYS wakeup */
+	while (i < GNSS_SYS_WAKEUP_POLLING_COUNT) {
+		if (gnss_sys_is_wakeup_status(wcn_dev)) {
+			WCN_INFO("gnss sys is wakeup i=%d!\n",
+					  i);
+			return true;
+		}
+
+		i++;
+		usleep_range(10, 15);
+	}
+
+	WCN_ERR("[-]%s gnss sys wakeup fail\n", __func__);
+	return false;
+}
+
+bool gnss_sys_polling_deepsleep(struct wcn_device *wcn_dev)
+{
+	int i = 0;
+
+	/* Polling GNSS SYS wakeup */
+	while (i < GNSS_SYS_DEEPSLEEP_POLLING_COUNT) {
+		if (gnss_sys_is_deepsleep_status(wcn_dev)) {
+			WCN_INFO("gnss sys is deepsleep i=%d!\n",
+					  i);
+			return true;
+		}
+
+		i++;
+		usleep_range(10, 15);
+	}
+
+	WCN_ERR("[-]%s gnss sys deepsleep fail\n", __func__);
+	return false;
+}
+
+bool gnss_sys_polling_poweron(struct wcn_device *wcn_dev)
+{
+	int i = 0;
+
+	/* Polling BTWF SYS poweron */
+	while (i < GNSS_SYS_POWERON_POLLING_COUNT) {
+		if (gnss_sys_is_poweron_status(wcn_dev)) {
+			WCN_INFO("gnss sys is poweron i=%d!\n", i);
+			return true;
+		}
+
+		i++;
+		usleep_range(10, 15);
+	}
+
+	WCN_ERR("[-]%s gnss sys is powerdown\n", __func__);
+	return false;
+}
+
+bool gnss_sys_polling_powerdown(struct wcn_device *wcn_dev)
+{
+	int i = 0;
+
+	/* Polling BTWF SYS poweron */
+	while (i < GNSS_SYS_POWERDOWN_POLLING_COUNT) {
+		if (gnss_sys_is_powerdown_status(wcn_dev)) {
+			WCN_INFO("gnss sys is powerdown i=%d!\n", i);
+			return true;
+		}
+
+		i++;
+		usleep_range(10, 15);
+	}
+
+	WCN_ERR("[-]%s gnss sys isn't powerdown\n", __func__);
+	return false;
+}
+
+bool gnss_sys_polling_wakeup_poweron(struct wcn_device *wcn_dev)
+{
+	int i = 0;
+
+	/* Polling GNSS SYS wakeup */
+	while (i < GNSS_SYS_POWERON_WAKEUP_POLLING_COUNT) {
+		if (gnss_sys_is_poweron_status(wcn_dev) &&
+			gnss_sys_is_wakeup_status(wcn_dev)) {
+			WCN_INFO("gnss sys wakeup i=%d!\n", i);
+			return true;
+		}
+
+		i++;
+		usleep_range(10, 15);
+	}
+
+	WCN_ERR("[-]%s gnss sys wakeup poweron fail\n", __func__);
+	return false;
+}
+
+/* Force BTWF SYS enter deep sleep and then set it auto shutdown.
+ * after this operate, BTWF SYS will enter shutdown mode.
+ */
+int btwf_sys_force_deep_to_shutdown(struct wcn_device *wcn_dev)
+{
+	u32 reg_val = 0;
+
+	WCN_INFO("[+]%s\n", __func__);
+	if (wcn_dev == NULL) {
+		WCN_ERR("[-]%s NULL\n", __func__);
+		return -1;
+	}
+
+	/* force deep sleep */
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_APB],
+				 0x0098, &reg_val);
+	WCN_INFO("REG 0x4080c098:val=0x%x!\n", reg_val);
+	/* btwf_ss_force_deep_sleep Bit[3] default 0=>1 */
+	reg_val |= (0x1<<3);
+	wcn_regmap_raw_write_bit(
+			wcn_dev->rmap[REGMAP_WCN_AON_APB],
+			0x0098, reg_val);
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_APB],
+				 0x0098, &reg_val);
+	WCN_INFO("Set REG 0x4080c098:val=0x%x(force deep)!\n",
+		      reg_val);
+
+	/* btwf_ss_arm_sys_pd_auto_en Bit[12] default 1=>1
+	 * maybe the value is cleared.
+	 */
+	reg_val |= (0x1<<12);
+	wcn_regmap_raw_write_bit(
+			wcn_dev->rmap[REGMAP_WCN_AON_APB],
+			0x0098, reg_val);
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_APB],
+				 0x0098, &reg_val);
+	WCN_INFO("Set REG 0x4080c098:val=0x%x(auto shutdown)!\n",
+		      reg_val);
+
+	return 0;
+}
+
+/* Force GNSS SYS enter deep sleep and then set it auto shutdown.
+ * after this operate, GNSS SYS will enter shutdown mode.
+ */
+int gnss_sys_force_deep_to_shutdown(struct wcn_device *wcn_dev)
+{
+	u32 reg_val = 0;
+
+	WCN_INFO("[+]%s\n", __func__);
+	if (wcn_dev == NULL) {
+		WCN_ERR("[-]%s NULL\n", __func__);
+		return -1;
+	}
+
+	/* force deep sleep */
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_APB],
+				 0x00c8, &reg_val);
+	WCN_INFO("REG 0x4080c0c8:val=0x%x!\n", reg_val);
+	/* gnss_ss_force_deep_sleep Bit[3] default 0=>1 */
+	reg_val |= (0x1<<3);
+	wcn_regmap_raw_write_bit(
+			wcn_dev->rmap[REGMAP_WCN_AON_APB],
+			0x00c8, reg_val);
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_APB],
+				 0x00c8, &reg_val);
+	WCN_INFO("Set REG 0x4080c0c8:val=0x%x(force deep)!\n",
+		      reg_val);
+
+	/* gnss_ss_arm_sys_pd_auto_en Bit[12] default 1=>1
+	 * maybe the value is cleared.
+	 */
+	reg_val |= (0x1<<12);
+	wcn_regmap_raw_write_bit(
+			wcn_dev->rmap[REGMAP_WCN_AON_APB],
+			0x00c8, reg_val);
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_APB],
+				 0x00c8, &reg_val);
+	WCN_INFO("Set REG 0x4080c0c8:val=0x%x(auto shutdown)!\n",
+		      reg_val);
+
+	return 0;
+}
+
+/* Force BTWF SYS power on and let CPU run.
+ * Clear BTWF SYS shutdown and force deep switch,
+ * and then let SYS,CPU,Cache... run.
+ */
+int btwf_sys_poweron(struct wcn_device *wcn_dev)
+{
+	u32 reg_val = 0;
+
+	WCN_INFO("[+]%s\n", __func__);
+	if (wcn_dev == NULL) {
+		WCN_ERR("[-]%s NULL\n", __func__);
+		return -1;
+	}
+
+	/*
+	 * Set SYS,CPU,Cache at reset status
+	 * to avoid after BTWF SYS power on, the CPU runs auto
+	 * without any control.
+	 */
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_AHB],
+				 0x000c, &reg_val);
+	WCN_INFO("REG 0x4088000c:val=0x%x!\n", reg_val);
+	/* cpu Bit[0],sys Bit[2],cache Bit[4],busmoitor Bit[6] */
+	reg_val |= ((0x1<<0)|(0x1<<2)|(0x1<<4)|(0x1<<6));
+	wcn_regmap_raw_write_bit(
+			wcn_dev->rmap[REGMAP_WCN_AON_AHB],
+			0x000c, reg_val);
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_AHB],
+				 0x000c, &reg_val);
+	WCN_INFO("Set REG 0x4088000c:val=0x%x(cpu...reset)!\n",
+		      reg_val);
+
+	/* force deep sleep clear Bit[3] =>0 */
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_APB],
+				 0x0098, &reg_val);
+	WCN_INFO("REG 0x4080c098:val=0x%x!\n", reg_val);
+	/* btwf_ss_force_deep_sleep Bit[3] default 0=>0 */
+	reg_val &= (~(0x1<<3));
+	wcn_regmap_raw_write_bit(
+			wcn_dev->rmap[REGMAP_WCN_AON_APB],
+			0x0098, reg_val);
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_APB],
+				 0x0098, &reg_val);
+	WCN_INFO("Set REG 0x4080c098:val=0x%x(clear deep)!\n",
+		      reg_val);
+
+	/*
+	 * btwf_ss_arm_sys_pd_auto_en Bit[12] default 1=>0
+	 * maybe the value is setted.
+	 */
+	/* be care: reg_val was read at previous step */
+	reg_val &= (~(0x1<<12));
+	wcn_regmap_raw_write_bit(
+			wcn_dev->rmap[REGMAP_WCN_AON_APB],
+			0x0098, reg_val);
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_APB],
+				 0x0098, &reg_val);
+	WCN_INFO("Set REG 0x4080c098:val=0x%x(clr auto shutdown)!\n",
+		      reg_val);
+
+	/* check btwf sys power on whether succ */
+	if ((btwf_sys_polling_wakeup(wcn_dev) == false) &&
+		btwf_sys_polling_poweron(wcn_dev) == false) {
+		WCN_ERR("[-]%s btwf sys wakeup fail\n", __func__);
+		return -1;
+	}
+
+	/* BTWF SYS boot select from DDR:Bit[25:24] => 3 */
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_BTWF_AHB],
+				 0x0410, &reg_val);
+	WCN_INFO("REG 0x40130410:val=0x%x!\n", reg_val);
+	reg_val |= (0x3<<24);
+	wcn_regmap_raw_write_bit(wcn_dev->rmap[REGMAP_WCN_BTWF_AHB],
+			0x0410, reg_val);
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_BTWF_AHB],
+				 0x0410, &reg_val);
+	WCN_INFO("Set REG 0x40130410:val=0x%x(DDR Boot)!\n", reg_val);
+
+	/* BTWF SYS SYNC Value set:
+	 * WARNING:WARNING:It will be used by BTWF SYS CPU.
+	 */
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_AHB],
+				 0x004c, &reg_val);
+	WCN_INFO("REG 0x4088004c:val=0x%x!\n", reg_val);
+	wcn_regmap_raw_write_bit(wcn_dev->rmap[REGMAP_WCN_AON_AHB],
+			0x004c, WCN_SPECIAL_SHARME_MEM_ADDR);
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_AHB],
+				 0x004c, &reg_val);
+	WCN_INFO("Set REG 0x4088004c:val=0x%x(Sync address)!\n",
+		      reg_val);
+
+	/* Set SYS,CPU,Cache at release status
+	 * let BTWF CPU run
+	 */
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_AHB],
+				 0x000c, &reg_val);
+	WCN_INFO("REG 0x4088000c:val=0x%x!\n", reg_val);
+	/* cpu Bit[0],sys Bit[2],cache Bit[4],busmoitor Bit[6] */
+	reg_val &= ~((0x1<<0)|(0x1<<2)|(0x1<<4)|(0x1<<6));
+	wcn_regmap_raw_write_bit(
+			wcn_dev->rmap[REGMAP_WCN_AON_AHB],
+			0x000c, reg_val);
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_AHB],
+				 0x000c, &reg_val);
+	WCN_INFO("Set REG 0x4088000c:val=0x%x(cpu...reset)!\n",
+		      reg_val);
+
+	WCN_INFO("[-]%s\n", __func__);
+	return 0;
+}
+
+int wcn_poweron_device(struct wcn_device *wcn_dev)
+{
+	int ret;
+	bool is_marlin;
+
+	WCN_INFO("[+]%s\n", __func__);
+
+	is_marlin = wcn_dev_is_marlin(wcn_dev);
+	if (is_marlin)
+		WCN_INFO("[+]%s: btwf!\n", __func__);
+
+	/* wcn sys has poweron, just power on self sys */
+	if (wcn_subsys_active_num() != 0) {
+		if (is_marlin) {
+			/* btwf power on */
+			ret = btwf_sys_poweron(wcn_dev);
+			if (ret) {
+				WCN_ERR("[-]%s:btwf power on fail!\n",
+					__func__);
+				return -1;
+			}
+		} else {
+			/* gnss power on */
+			ret = gnss_sys_poweron(wcn_dev);
+			if (ret) {
+				WCN_ERR("[-]%s:gnss power on fail!\n",
+					__func__);
+				return -1;
+			}
+		}
+
+		return 0;
+	}
+
+	/* first sys(btwf or gnss) power on */
+	ret = wcn_power_clock_support(is_marlin);
+	if (ret) {
+		WCN_ERR("[-]%s:wcn power support fail!\n", __func__);
+		return -1;
+	}
+
+	ret = wcn_sys_power_up(wcn_dev);
+	if (ret) {
+		WCN_ERR("[-]%s:wcn power up fail!\n", __func__);
+		return -1;
+	}
+
+#if 0	//SPECIAL_DEBUG_EN	//temp debug
+	msleep(1000);
+#endif
+	/* ap set allow wcn sys allow deep, btwf, gnss no need to set it */
+	ret = wcn_sys_allow_deep_sleep(wcn_dev);
+	if (ret) {
+		WCN_ERR("[-]%s: ret=%d!\n", __func__, ret);
+		return -1;
+	}
+
+	if (is_marlin) {
+		/*
+		 * When WCN power on, BTWF and GNSS is at power on status.
+		 * If just BTWF SYS wants to work, we should shutdown GNSS SYS,
+		 * or the WCN SYS can't enter deep.
+		 */
+		ret = gnss_sys_force_deep_to_shutdown(wcn_dev);
+		if (ret) {
+			WCN_ERR("[-]%s:gnss shutdown fail!\n", __func__);
+			return -1;
+		}
+
+		ret = btwf_sys_poweron(wcn_dev);
+		if (ret) {
+			WCN_ERR("[-]%s:btwf power on fail!\n", __func__);
+			return -1;
+		}
+	} else {
+		/* When WCN power on, BTWF and GNSS is at power on status.
+		 * If just GNSS SYS wants to work, we should shutdown BTWF SYS,
+		 * or GNSS SYS went to deep sleep, but WCN SYS can't enter deep.
+		 * But after GNSS SYS power up, BTWF SYS power up will be failed
+		 * as WCN SYS at deep sleep status, or we should send Mailbox
+		 * irq to GNSS SYS, which will cause the program too much hard.
+		 * GNSS SYS deep sleep will lock the AP SYS, so WCN SYS no needs
+		 * to enter deep sleep.(It means no need to shutdown BTWF SYS)
+		 */
+
+		/* gnss power on */
+		ret = gnss_sys_poweron(wcn_dev);
+		if (ret) {
+			WCN_ERR("[-]%s:gnss power on fail!\n", __func__);
+			return -1;
+		}
+	}
+
+	WCN_INFO("[-]%s\n", __func__);
+	return 0;
+}
+
+/* wait BTWF SYS enter deep sleep and then set it auto shutdown.
+ * after this operate, BTWF SYS will enter shutdown mode.
+ */
+int btwf_sys_shutdown(struct wcn_device *wcn_dev)
+{
+	u32 reg_val = 0;
+
+	WCN_INFO("[+]%s\n", __func__);
+	if (wcn_dev == NULL) {
+		WCN_ERR("[-]%s NULL\n", __func__);
+		return -1;
+	}
+
+	if (btwf_sys_polling_deepsleep(wcn_dev) == false) {
+		WCN_ERR("[-]%s btwf sys deep fail\n", __func__);
+
+		/* force assert */
+		wcn_assert_interface(0, "btwf sys deepsleep fail");
+		return -1;
+	}
+
+	/* btwf_ss_arm_sys_pd_auto_en Bit[12] default 1=>1
+	 * maybe the value is cleared.
+	 */
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_APB],
+				 0x0098, &reg_val);
+	WCN_INFO("REG 0x4080c098:val=0x%x!\n",
+		      reg_val);
+	reg_val |= (0x1<<12);
+	wcn_regmap_raw_write_bit(
+			wcn_dev->rmap[REGMAP_WCN_AON_APB],
+			0x0098, reg_val);
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_APB],
+				 0x0098, &reg_val);
+	WCN_INFO("Set REG 0x4080c098:val=0x%x(auto shutdown)!\n",
+		      reg_val);
+
+	if (btwf_sys_polling_powerdown(wcn_dev) == false) { /* shutdown fail */
+		WCN_ERR("[-]%s btwf sys shutdown fail\n", __func__);
+
+		/* force assert */
+		wcn_assert_interface(0, "btwf sys shutdown fail");
+		return -1;
+	}
+
+	/*
+	 * Set SYS,CPU,Cache at reset status
+	 * to avoid after BTWF SYS power on, the CPU runs auto
+	 * without any control.
+	 */
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_AHB],
+				 0x000c, &reg_val);
+	WCN_INFO("REG 0x4088000c:val=0x%x!\n", reg_val);
+	/* cpu Bit[0],sys Bit[2],cache Bit[4],busmoitor Bit[6] */
+	reg_val |= ((0x1<<0)|(0x1<<2)|(0x1<<4)|(0x1<<6));
+	wcn_regmap_raw_write_bit(
+			wcn_dev->rmap[REGMAP_WCN_AON_AHB],
+			0x000c, reg_val);
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_AHB],
+				 0x000c, &reg_val);
+	WCN_INFO("Set REG 0x4088000c:val=0x%x(cpu...reset)!\n",
+		      reg_val);
+
+	/*
+	 * Enable A-DIE Adjust voltage:
+	 * BTWF SYS set A-DIE Adjust voltage bypass when initilized
+	 * to ensure WCN SYS can enter deep sleep.
+	 * When shutdown BTWF SYS, A-DIE adjust voltage should
+	 * reserve to reduce A-DIE voltage.
+	 */
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_APB],
+				 0x0320, &reg_val);
+	WCN_INFO("REG 0x4080c0320:val=0x%x!\n", reg_val);
+	/* Bit[5]:1:enable adjust, 0: disable adjust */
+	reg_val |= (0x1<<5);
+	wcn_regmap_raw_write_bit(
+			wcn_dev->rmap[REGMAP_WCN_AON_APB],
+			0x0320, reg_val);
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_APB],
+				 0x0320, &reg_val);
+	WCN_INFO("Set REG 0x4080c0320:val=0x%x(vol adj en)!\n",
+			  reg_val);
+
+	return 0;
+}
+
+/* wait GNSS SYS enter deep sleep and then set it auto shutdown.
+ * after this operate, GNSS SYS will enter shutdown mode.
+ */
+int gnss_sys_shutdown(struct wcn_device *wcn_dev)
+{
+	u32 reg_val = 0;
+
+	WCN_INFO("[+]%s\n", __func__);
+	if (wcn_dev == NULL) {
+		WCN_ERR("[-]%s NULL\n", __func__);
+		return -1;
+	}
+
+	if (gnss_sys_polling_deepsleep(wcn_dev) == false) { /* isn't deep */
+		WCN_ERR("[-]%s gnss sys deep fail\n", __func__);
+
+		/* force assert */
+		wcn_assert_interface(1, "gnss sys deepsleep fail");
+		return -1;
+	}
+
+	/*
+	 * gnss_ss_arm_sys_pd_auto_en Bit[12] default 1=>1
+	 * maybe the value is cleared.
+	 */
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_APB],
+				 0x00c8, &reg_val);
+	WCN_INFO("Set REG 0x4080c0c8:val=0x%x(auto shutdown)!\n",
+		      reg_val);
+	reg_val |= (0x1<<12);
+	wcn_regmap_raw_write_bit(
+			wcn_dev->rmap[REGMAP_WCN_AON_APB],
+			0x00c8, reg_val);
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_APB],
+				 0x00c8, &reg_val);
+	WCN_INFO("Set REG 0x4080c0c8:val=0x%x(auto shutdown)!\n",
+		      reg_val);
+
+	if (gnss_sys_polling_powerdown(wcn_dev) == false) {
+		WCN_ERR("[-]%s gnss sys shutdown fail\n", __func__);
+
+		/* force assert */
+		wcn_assert_interface(1, "gnss sys shutdown fail");
+		return -1;
+	}
+
+	/*
+	 * Set SYS,CPU,Cache at reset status
+	 * to avoid after BTWF SYS power on, the CPU runs auto
+	 * without any control.
+	 */
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_AHB],
+				 0x000c, &reg_val);
+	WCN_INFO("REG 0x4088000c:val=0x%x!\n", reg_val);
+	/* cpu Bit[1],cache Bit[5] */
+	reg_val |= ((0x1<<1)|(0x1<<5));
+	wcn_regmap_raw_write_bit(
+			wcn_dev->rmap[REGMAP_WCN_AON_AHB],
+			0x000c, reg_val);
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_AHB],
+				 0x000c, &reg_val);
+	WCN_INFO("Set REG 0x4088000c:val=0x%x(cpu...reset)!\n",
+		      reg_val);
+
+	/*
+	 * Disable A-DIE Adjust voltage:
+	 * Adust voltage time is too long, if GNSS shutdown,
+	 * should disable A-DIE adjust voltage.
+	 */
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_APB],
+				 0x0320, &reg_val);
+	WCN_INFO("REG 0x4080c0320:val=0x%x!\n", reg_val);
+	/* Bit[5]:1:enable adjust, 0: disable adjust */
+	reg_val &= ~(0x1<<5);
+	wcn_regmap_raw_write_bit(
+			wcn_dev->rmap[REGMAP_WCN_AON_APB],
+			0x0320, reg_val);
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_APB],
+				 0x0320, &reg_val);
+	WCN_INFO("Set REG 0x4080c0320:val=0x%x(vol adj dis)!\n",
+			  reg_val);
+
+	wcn_ip_allow_sleep(wcn_dev, true);
+
+	return 0;
+}
+
+/* check btwf sys is whether at wakeup status:
+ * If btwf sys isn't at wakeup status,AP SYS can't operate BTWF REGs
+ * or caused AP SYS kernel crash,doze screen,watchdog timeout
+ * and so on.
+ */
+bool btwf_sys_is_wakeup_status(struct wcn_device *wcn_dev)
+{
+	u32 reg_val = 0;
+	int i;
+
+	WCN_INFO("[+]%s?\n", __func__);
+	if (wcn_dev == NULL) {
+		WCN_ERR("[-]%s NULL\n", __func__);
+		return false;
+	}
+
+#if 1
+	/* BTWF: bit[10:7]:0 deep sleep, others(6:wakeup...) isn't. */
+	for (i = 0; i < WCN_REG_POLL_STABLE_COUNT; i++) {
+		wcn_regmap_read(wcn_dev->rmap[REGMAP_AON_APB],
+					 0x0364, &reg_val);
+		WCN_INFO("REG 0x64000364:val=0x%x!\n", reg_val);
+		if ((reg_val & (0xf<<7)) != (0x6<<7)) {
+			WCN_INFO("btwf isn't wakeup!\n");
+			return false;
+		}
+	}
+#else
+	/* bit[21:12]:6 wakeup, others(0:deep sleep...) isn't. */
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_APB],
+				 0x03b4, &reg_val);
+	WCN_INFO("REG 0x4080c3b4:val=0x%x!\n", reg_val);
+	/* just low 4 bits is for wakeup or deep sleep status */
+	if ((reg_val & (0xf<<12)) == (0x6<<12)) {
+		WCN_INFO("btwf is wakeup!\n");
+		return true;
+	}
+#endif
+	WCN_INFO("btwf is wakeup!\n");
+	return true;
+}
+
+/* check btwf sys is whether at deepsleep status:
+ * If btwf sys isn't at deepsleep status,AP SYS shutdown BTWF SYS
+ * isn't safe, or caused BTWF SYS powerup, boot fail next time.
+ * and so on.
+ */
+bool btwf_sys_is_deepsleep_status(struct wcn_device *wcn_dev)
+{
+	u32 reg_val = 0;
+	int i;
+
+	WCN_INFO("[+]%s?\n", __func__);
+	if (wcn_dev == NULL) {
+		WCN_ERR("[-]%s NULL\n", __func__);
+		return false;
+	}
+
+#if 1
+	/* BTWF: bit[10:7]:0 deep sleep, others(6:wakeup...) isn't. */
+	for (i = 0; i < WCN_REG_POLL_STABLE_COUNT; i++) {
+		wcn_regmap_read(wcn_dev->rmap[REGMAP_AON_APB],
+					 0x0364, &reg_val);
+		WCN_INFO("REG 0x64000364:val=0x%x!\n", reg_val);
+		if ((reg_val & (0xf<<7)) != (0x0<<7)) {
+			WCN_INFO("btwf isn't deep sleep!\n");
+			return false;
+		}
+	}
+#else
+	/* bit[21:12]:6 wakeup, others(0:deep sleep...) isn't. */
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_APB],
+				 0x03b4, &reg_val);
+	WCN_INFO("REG 0x4080c3b4:val=0x%x!\n", reg_val);
+	if ((reg_val & (0xf<<12)) == (0x0<<12)) {
+		WCN_INFO("btwf is deepsleep!\n");
+		return true;
+	}
+#endif
+	WCN_INFO("btwf is deepsleep!\n");
+	return true;
+}
+
+/* check gnss sys is whether at wakeup status:
+ * If gnss sys isn't at wakeup status,AP SYS can't operate GNSS REGs
+ * or caused AP SYS kernel crash,doze screen,watchdog timeout
+ * and so on.
+ */
+bool gnss_sys_is_wakeup_status(struct wcn_device *wcn_dev)
+{
+	u32 reg_val = 0;
+	int i;
+
+	WCN_INFO("[+]%s?\n", __func__);
+	if (wcn_dev == NULL) {
+		WCN_ERR("[-]%s NULL\n", __func__);
+		return false;
+	}
+
+#if 1
+	/* GNSS: bit[6:3]:0 deep sleep, others(6:wakeup...) isn't. */
+	for (i = 0; i < WCN_REG_POLL_STABLE_COUNT; i++) {
+		wcn_regmap_read(wcn_dev->rmap[REGMAP_AON_APB],
+					 0x0364, &reg_val);
+		WCN_INFO("REG 0x64000364:val=0x%x!\n", reg_val);
+		if ((reg_val & (0xf<<3)) != (0x6<<3)) {
+			WCN_INFO("gnss isn't wakeup!\n");
+			return false;
+		}
+	}
+#else
+	/* bit[21:12]:6 wakeup, others(0:deep sleep...) isn't. */
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_APB],
+				 0x03c0, &reg_val);
+	WCN_INFO("REG 0x4080c3c0:val=0x%x!\n", reg_val);
+	if ((reg_val & (0xf<<9)) == (0x6<<9)) {
+		WCN_INFO("gnss is wakeup!\n");
+		return true;
+	}
+#endif
+
+	WCN_INFO("gnss is wakeup!\n");
+	return true;
+}
+
+/* check gnss sys is whether at deepsleep status:
+ * If gnss sys isn't at deepsleep status,AP SYS close
+ * gnss sys maybe cause gnss powerup,bootup fail
+ * next time.
+ */
+bool gnss_sys_is_deepsleep_status(struct wcn_device *wcn_dev)
+{
+	u32 reg_val = 0;
+	int i;
+
+	WCN_INFO("[+]%s?\n", __func__);
+	if (wcn_dev == NULL) {
+		WCN_ERR("[-]%s NULL\n", __func__);
+		return false;
+	}
+
+#if 1
+	/* GNSS: bit[6:3]:0 deep sleep, others(6:wakeup...) isn't. */
+	for (i = 0; i < WCN_REG_POLL_STABLE_COUNT; i++) {
+		wcn_regmap_read(wcn_dev->rmap[REGMAP_AON_APB],
+					 0x0364, &reg_val);
+		WCN_INFO("REG 0x64000364:val=0x%x!\n", reg_val);
+		if ((reg_val & (0xf<<3)) != (0x0<<3)) {
+			WCN_INFO("gnss isn't deepsleep!\n");
+			return false;
+		}
+	}
+#else
+	/* bit[21:12]:6 wakeup, others(0:deep sleep...) isn't. */
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_APB],
+				 0x03c0, &reg_val);
+	WCN_INFO("REG 0x4080c3c0:val=0x%x!\n", reg_val);
+	if ((reg_val & (0xf<<9)) == (0x0<<9)) {
+		WCN_INFO("gnss is deepsleep!\n");
+		return true;
+	}
+#endif
+	WCN_INFO("gnss is deepsleep!\n");
+	return true;
+}
+
+/*
+ * If WCN SYS is at deep sleep status, AP SYS can't operate WCN REGs
+ * AP SYS can use special signal to force BTWF SYS exit deep sleep status,
+ * and it cause WCN SYS exit deep sleep.
+ * Notes:there isn't a similar signal for GNSS SYS, so GNSS SYS
+ * power up/down will use this function to force wcn sys exit deep sleep.
+ */
+int btwf_sys_force_exit_deep_sleep(struct wcn_device *wcn_dev)
+{
+	u32 reg_val = 0;
+
+	WCN_INFO("[+]%s\n", __func__);
+	if (wcn_dev == NULL) {
+		WCN_ERR("[-]%s NULL\n", __func__);
+		return -1;
+	}
+
+	/* Bit[16] clear to 0 */
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_AON_APB],
+				 0x034c, &reg_val);
+	WCN_INFO("REG 0x6400034c:val=0x%x!\n", reg_val);
+	wcn_regmap_raw_write_bit(
+			wcn_dev->rmap[REGMAP_AON_APB],
+			0x234c, (0x1<<16));
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_AON_APB],
+				 0x034c, &reg_val);
+	WCN_INFO("Set REG 0x6400034c:val=0x%x(exit deep)!\n",
+		      reg_val);
+
+	/*
+	 * WCN SYS power on or exit from deep sleep:
+	 * The XTL, XTL-BUF, PLL1, PLL2 stable time is about 7.2 ms
+	 */
+	msleep(WCN_SYS_POWER_ON_WAKEUP_TIME);
+	WCN_INFO("[-]%s\n", __func__);
+
+	return 0;
+}
+
+int btwf_sys_clear_force_exit_deep_sleep(struct wcn_device *wcn_dev)
+{
+	u32 reg_val = 0;
+
+	WCN_INFO("[+]%s\n", __func__);
+	if (wcn_dev == NULL) {
+		WCN_ERR("[-]%s NULL\n", __func__);
+		return -1;
+	}
+
+	/* Bit[16] set to 1 */
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_AON_APB],
+				 0x034c, &reg_val);
+	WCN_INFO("REG 0x6400034c:val=0x%x!\n", reg_val);
+	wcn_regmap_raw_write_bit(
+			wcn_dev->rmap[REGMAP_AON_APB],
+			0x134c, (0x1<<16));
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_AON_APB],
+				 0x034c, &reg_val);
+	WCN_INFO("Set REG 0x6400034c:val=0x%x(exit deep)!\n",
+			  reg_val);
+
+	return 0;
+}
+
+/* check btwf sys is whether at poweron status:
+ * If btwf sys isn't at poweron status,AP SYS can't operate BTWF REGs
+ * or caused AP SYS kernel crash,doze screen,watchdog timeout
+ * and so on.
+ * If btwf sys is at poweron status but AP SYS close btwf sys,
+ * it maybe cause btwf sys powerup/bootup fail next time
+ */
+bool btwf_sys_is_poweron_status(struct wcn_device *wcn_dev)
+{
+	u32 reg_val = 0;
+	int i;
+
+	WCN_INFO("[+]%s\n", __func__);
+	if (wcn_dev == NULL) {
+		WCN_ERR("[-]%s NULL\n", __func__);
+		return false;
+	}
+
+#if 1
+	for (i = 0; i < WCN_REG_POLL_STABLE_COUNT; i++) {
+		/* Bit[29:25] 0x0 means poweron status */
+		wcn_regmap_read(wcn_dev->rmap[REGMAP_AON_APB],
+					 0x0360, &reg_val);
+		WCN_INFO("REG 0x64000360:val=0x%x!\n", reg_val);
+		if ((reg_val & (0x1f<<25)) != (0x0<<25)) {
+			WCN_INFO("btwf isn't poweron!\n");
+			return false;
+		}
+	}
+#else
+	/* Bit[0] 1 power domain is at poweron status */
+	for (i = 0; i < WCN_REG_POLL_STABLE_COUNT; i++) {
+		wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_APB],
+					 0x03b0, &reg_val);
+		WCN_INFO("REG 0x4080c3b0:val=0x%x!\n", reg_val);
+		if (((reg_val)&(0x1<<0)) != (0x1<<0)) {
+			WCN_INFO("btwf isn't poweron!\n");
+			return false;
+		}
+	}
+#endif
+
+	WCN_INFO("btwf is poweron!\n");
+	return true;
+}
+
+/*
+ * check btwf sys is whether at powerdown status:
+ * If btwf sys isn't at powerdown status,AP SYS can't shutdown
+ */
+bool btwf_sys_is_powerdown_status(struct wcn_device *wcn_dev)
+{
+	u32 reg_val = 0;
+	int i;
+
+	WCN_INFO("[+]%s\n", __func__);
+	if (wcn_dev == NULL) {
+		WCN_ERR("[-]%s NULL\n", __func__);
+		return false;
+	}
+
+#if 1
+	for (i = 0; i < WCN_REG_POLL_STABLE_COUNT; i++) {
+		/* Bit[29:25] 0x7 means powerdown status */
+		wcn_regmap_read(wcn_dev->rmap[REGMAP_AON_APB],
+					 0x0360, &reg_val);
+		WCN_INFO("REG 0x64000360:val=0x%x!\n", reg_val);
+		if ((reg_val & (0x1f<<25)) != (0x7<<25)) {
+			WCN_INFO("btwf isn't powerdown!\n");
+			return false;
+		}
+	}
+#else
+	/* Bit[8] 1 power domain is at powerdown status */
+	for (i = 0; i < WCN_REG_POLL_STABLE_COUNT; i++) {
+		wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_APB],
+					 0x03b0, &reg_val);
+		WCN_INFO("REG 0x4080c3b0:val=0x%x!\n", reg_val);
+		if (((reg_val)&(0x1<<8)) != (0x1<<8)) {
+			WCN_INFO("btwf isn't powerdown!\n");
+			return false;
+		}
+	}
+#endif
+
+	WCN_INFO("btwf is powerdown!\n");
+	return true;
+}
+
+/*
+ * Force GNSS SYS power on and let CPU run.
+ * Clear GNSS SYS shutdown and force deep switch,
+ * and then let CPU,Cache... run.
+ */
+int gnss_sys_poweron(struct wcn_device *wcn_dev)
+{
+	u32 reg_val = 0;
+
+	WCN_INFO("[+]%s\n", __func__);
+	if (wcn_dev == NULL) {
+		WCN_ERR("[-]%s NULL\n", __func__);
+		return -1;
+	}
+
+	/*
+	 * force btwf sys exit deep, and then force wcn sys exit deep
+	 * to avoid wcn sys at deep sleep caused AP SYS access
+	 * WCN REGs bus-hang.
+	 */
+	btwf_sys_force_exit_deep_sleep(wcn_dev);
+
+	/* Polling WCN SYS wakeup */
+	if (wcn_sys_polling_wakeup(wcn_dev) == false) {
+		WCN_ERR("[-]%s wcn sys wakeup fail\n", __func__);
+		return -1;
+	}
+
+	/* confirm WCN SYS is wakeup, it can access WCN REGs */
+	if (btwf_sys_polling_wakeup(wcn_dev) == false) {
+		WCN_ERR("[-]%s btwf sys wakeup fail\n", __func__);
+		return -1;
+	}
+
+	/*
+	 * Set CPU,Cache at reset status
+	 * to avoid after GNSS SYS power on, the CPU runs auto
+	 * without any control.
+	 */
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_AHB],
+				 0x000c, &reg_val);
+	WCN_INFO("REG 0x4088000c:val=0x%x!\n", reg_val);
+	/* cpu Bit[1],cache Bit[5] */
+	reg_val |= ((0x1<<1)|(0x1<<5));
+	wcn_regmap_raw_write_bit(
+			wcn_dev->rmap[REGMAP_WCN_AON_AHB],
+			0x000c, reg_val);
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_AHB],
+				 0x000c, &reg_val);
+	WCN_INFO("Set REG 0x4088000c:val=0x%x(cpu...reset)!\n",
+		      reg_val);
+
+	/* force deep sleep clear */
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_APB],
+				 0x00c8, &reg_val);
+	WCN_INFO("REG 0x4080c0c8:val=0x%x!\n", reg_val);
+	/* gnss_ss_force_deep_sleep Bit[3] default 0=>0 */
+	reg_val &= (~(0x1<<3));
+	wcn_regmap_raw_write_bit(
+			wcn_dev->rmap[REGMAP_WCN_AON_APB],
+			0x00c8, reg_val);
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_APB],
+				 0x00c8, &reg_val);
+	WCN_INFO("Set REG 0x4080c0c8:val=0x%x(clear deep)!\n",
+		      reg_val);
+
+	/*
+	 * gnss_ss_arm_sys_pd_auto_en Bit[12] default 1=>0
+	 * maybe the value is setted.
+	 */
+	reg_val &= (~(0x1<<12));
+	wcn_regmap_raw_write_bit(
+			wcn_dev->rmap[REGMAP_WCN_AON_APB],
+			0x00c8, reg_val);
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_APB],
+				 0x00c8, &reg_val);
+	WCN_INFO("Set REG 0x4080c0c8:val=0x%x(clr auto shutdown)!\n",
+		      reg_val);
+
+	/* check gnss sys power on whether succ */
+	if (gnss_sys_polling_wakeup_poweron(wcn_dev) == false) {
+		WCN_ERR("[-]%s gnss sys wakeup fail\n", __func__);
+		return -1;
+	}
+
+	/*
+	 * GNSS SYS boot select from DDR:Bit[25:24] => 3
+	 * GNSS SYS addr offset with BTWF SYS:Bit[23:0]=>0x600000.
+	 */
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_GNSS_SYS_AHB],
+				 0x0404, &reg_val);
+	WCN_INFO("REG 0x40b18404:val=0x%x!\n", reg_val);
+	reg_val |= (0x3<<24);
+	reg_val &= ~0x00ffffff;
+	reg_val |= WCN_GNSS_DDR_OFFSET;
+	wcn_regmap_raw_write_bit(wcn_dev->rmap[REGMAP_WCN_GNSS_SYS_AHB],
+			0x0404, reg_val);
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_GNSS_SYS_AHB],
+				 0x0404, &reg_val);
+	WCN_INFO("Set REG 0x40b18404:val=0x%x(DDR Boot)!\n", reg_val);
+
+	/* GNSS SYS SYNC Value set:
+	 * WARNING:WARNING:It will be used by GNSS SYS CPU.
+	 */
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_AHB],
+				 0x0050, &reg_val);
+	WCN_INFO("REG 0x40880050:val=0x%x!\n", reg_val);
+	wcn_regmap_raw_write_bit(wcn_dev->rmap[REGMAP_WCN_AON_AHB],
+			0x0050, WCN_GNSS_SPECIAL_SHARME_MEM_ADDR);
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_AHB],
+				 0x0050, &reg_val);
+	WCN_INFO("Set REG 0x40880050:val=0x%x(Sync address)!\n",
+		      reg_val);
+
+	/* Set SYS,CPU,Cache at release status
+	 * let BTWF CPU run
+	 */
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_AHB],
+				 0x000c, &reg_val);
+	WCN_INFO("REG 0x4088000c:val=0x%x!\n", reg_val);
+	/* cpu Bit[1],cache Bit[5] */
+	reg_val &= ~((0x1<<1)|(0x1<<5));
+	wcn_regmap_raw_write_bit(
+			wcn_dev->rmap[REGMAP_WCN_AON_AHB],
+			0x000c, reg_val);
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_AHB],
+				 0x000c, &reg_val);
+	WCN_INFO("Set REG 0x4088000c:val=0x%x(cpu...reset)!\n",
+		      reg_val);
+
+	/* Restore the default status of BTWF SYS */
+	btwf_sys_clear_force_exit_deep_sleep(wcn_dev);
+
+	return 0;
+}
+
+/* check btwf sys is whether at poweron status:
+ * If btwf sys isn't at poweron status,AP SYS can't operate BTWF REGs
+ * or caused AP SYS kernel crash,doze screen,watchdog timeout
+ * and so on.
+ */
+bool gnss_sys_is_poweron_status(struct wcn_device *wcn_dev)
+{
+	u32 reg_val = 0;
+	int i;
+
+	WCN_INFO("[+]%s\n", __func__);
+	if (wcn_dev == NULL) {
+		WCN_ERR("[-]%s NULL\n", __func__);
+		return false;
+	}
+
+#if 1
+	for (i = 0; i < WCN_REG_POLL_STABLE_COUNT; i++) {
+		/* Bit[9:5] 0x0 means powerdown status */
+		wcn_regmap_read(wcn_dev->rmap[REGMAP_AON_APB],
+					 0x0360, &reg_val);
+		WCN_INFO("REG 0x64000360:val=0x%x!\n", reg_val);
+		if ((reg_val & (0x1f<<5)) != (0x0<<5)) {
+			WCN_INFO("gnss isn't poweron!\n");
+			return false;
+		}
+	}
+#else
+	/* Bit[6] 0 power domain is at poweron status */
+	for (i = 0; i < WCN_REG_POLL_STABLE_COUNT; i++) {
+		wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_APB],
+					 0x03b0, &reg_val);
+		WCN_INFO("REG 0x4080c3b0:val=0x%x!\n", reg_val);
+		if (((reg_val)&(0x1<<6)) != (0x1<<6)) {
+			WCN_INFO("gnss isn't poweron!\n");
+			return false;
+		}
+	}
+#endif
+
+	WCN_INFO("gnss is poweron!\n");
+	return true;
+}
+
+/* check gnss sys is whether at powerdown status:
+ * If gnss sys isn't at powerdown status,WCN SYS can't shutdown
+ */
+bool gnss_sys_is_powerdown_status(struct wcn_device *wcn_dev)
+{
+	u32 reg_val = 0;
+	int i;
+
+	WCN_INFO("[+]%s\n", __func__);
+	if (wcn_dev == NULL) {
+		WCN_ERR("[-]%s NULL\n", __func__);
+		return false;
+	}
+
+#if 1
+	for (i = 0; i < WCN_REG_POLL_STABLE_COUNT; i++) {
+		/* Bit[9:5] 0x7 means powerdown status */
+		wcn_regmap_read(wcn_dev->rmap[REGMAP_AON_APB],
+					 0x0360, &reg_val);
+		WCN_INFO("REG 0x64000360:val=0x%x!\n", reg_val);
+		if ((reg_val & (0x1f<<5)) != (0x7<<5)) {
+			WCN_INFO("gnss isn't powerdown!\n");
+			return false;
+		}
+	}
+#else
+	/* Bit[14] 1 power domain is at poweron status */
+	for (i = 0; i < WCN_REG_POLL_STABLE_COUNT; i++) {
+		wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_APB],
+					 0x03b0, &reg_val);
+		WCN_INFO("REG 0x4080c3b0:val=0x%x!\n", reg_val);
+		if (((reg_val)&(0x1<<14)) != (0x1<<14)) {
+			WCN_INFO("gnss isn't powerdown!\n");
+			return false;
+		}
+	}
+#endif
+	WCN_INFO("gnss is powerdown!\n");
+	return true;
+}
+
 /* load firmware and boot up sys. */
 int wcn_proc_native_start(void *arg)
 {
@@ -711,7 +2429,10 @@ int wcn_proc_native_start(void *arg)
 		wcn_dfs_poweron_status_clear(wcn_dev);
 
 	/* boot up system */
-	wcn_cpu_bootup(wcn_dev);
+	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6)
+		wcn_poweron_device(wcn_dev);
+	else
+		wcn_cpu_bootup(wcn_dev);
 
 	wcn_dev->power_state = WCN_POWER_STATUS_ON;
 	WCN_DBG("device power_state:%d\n",
@@ -791,30 +2512,35 @@ void wcn_power_wq(struct work_struct *pwork)
 	ppower_wq = container_of(pwork, struct delayed_work, work);
 	wcn_dev = container_of(ppower_wq, struct wcn_device, power_wq);
 
-	WCN_INFO("start boot :%s\n", wcn_dev->name);
-	is_marlin = wcn_dev_is_marlin(wcn_dev);
-	if (!is_marlin)
-		gnss_clear_boot_flag();
 	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
-		wcn_power_enable_dcxo1v8(true);
-		usleep_range(10, 10); /* wait power stable */
+		ret = wcn_proc_native_start(wcn_dev);
+		if (ret) {
+			WCN_INFO("[-]%s wcn poweron module fail!\n", __func__);
+			return;
+		}
+	} else {
+		WCN_INFO("start boot :%s\n", wcn_dev->name);
+		is_marlin = wcn_dev_is_marlin(wcn_dev);
+		if (!is_marlin)
+			gnss_clear_boot_flag();
+
 		wcn_power_enable_vddcon(true);
-		usleep_range(10, 10); /* wait power stable */
-		wcn_power_enable_merlion_domain(true);
-		usleep_range(10, 10); /* wait power stable */
-	} else
-		wcn_power_enable_vddcon(true);
-	if (is_marlin) {
-		/* ASIC: enable vddcon and wifipa interval time > 1ms */
-		usleep_range(VDDWIFIPA_VDDCON_MIN_INTERVAL_TIME,
-			     VDDWIFIPA_VDDCON_MAX_INTERVAL_TIME);
-		wcn_marlin_power_enable_vddwifipa(true);
+		if (is_marlin) {
+			/* ASIC: enable vddcon and wifipa interval time > 1ms */
+			usleep_range(VDDWIFIPA_VDDCON_MIN_INTERVAL_TIME,
+				     VDDWIFIPA_VDDCON_MAX_INTERVAL_TIME);
+			wcn_marlin_power_enable_vddwifipa(true);
+		}
+
+		wcn_power_enable_sys_domain(true);
+		ret = wcn_proc_native_start(wcn_dev);
+		if (ret) {	/* do no complete download done flag */
+			WCN_INFO("[-]%s: ret=%d!\n", __func__, ret);
+			return;
+		}
+		WCN_INFO("finish %s!\n", ret ? "ERR" : "OK");
 	}
 
-	wcn_power_enable_sys_domain(true);
-	ret = wcn_proc_native_start(wcn_dev);
-
-	WCN_INFO("finish %s!\n", ret ? "ERR" : "OK");
 	complete(&wcn_dev->download_done);
 }
 
@@ -1248,6 +2974,128 @@ int stop_integrate_wcn_truely(u32 subsys)
 	return 0;
 }
 
+int stop_integrate_wcn_module(u32 subsys)
+{
+	bool is_marlin;
+	struct wcn_device *wcn_dev;
+	u32 subsys_bit = 1 << subsys;
+	int ret;
+
+	/* Check Parameter whether valid */
+	wcn_dev = wcn_get_dev_by_type(subsys_bit);
+	if (!wcn_dev) {
+		WCN_ERR("wcn dev NULL: subsys=%d!\n", subsys);
+		return -EINVAL;
+	}
+
+	wcn_show_dev_status("before stop");
+	if (unlikely(!(subsys_bit & wcn_dev->wcn_open_status))) {
+		/* It wants to stop not opened device */
+		WCN_ERR("%s not opend, err: subsys = %d\n",
+			wcn_dev->name, subsys);
+		return -EINVAL;
+	}
+
+	is_marlin = wcn_dev_is_marlin(wcn_dev);
+
+	mutex_lock(&wcn_dev->power_lock);
+	wcn_dev->wcn_open_status &= ~subsys_bit;
+	if (wcn_dev->wcn_open_status) {
+		WCN_INFO("%s subsys(%d) close, and subsys(%d) opend\n",
+			 wcn_dev->name, subsys, wcn_dev->wcn_open_status);
+		wcn_show_dev_status("after stop1");
+		mutex_unlock(&wcn_dev->power_lock);
+		return 0;
+	}
+
+	WCN_INFO("%s,subsys=%d do stop\n", wcn_dev->name, subsys);
+	if (is_marlin)
+		wcn_set_loopcheck_state(false);
+
+	wcn_dfs_poweroff_state_clear(wcn_dev);
+
+	/* confirm the shutdown sys is at deep status */
+	if (is_marlin) {
+		if (btwf_sys_polling_deepsleep(wcn_dev) == false) {
+			wcn_assert_interface(WCN_SOURCE_BTWF,
+							"btwf shutdown isn't at deepsleep");
+			mutex_unlock(&wcn_dev->power_lock);
+
+			return -1;
+		}
+	} else {
+		if (gnss_sys_polling_deepsleep(wcn_dev) == false) {
+			wcn_assert_interface(WCN_SOURCE_GNSS,
+							"gnss shutdown isn't at deepsleep");
+			mutex_unlock(&wcn_dev->power_lock);
+
+			return -1;
+		}
+	}
+
+	/*
+	 * forbid deep sleep:
+	 * confirm access wcn sys regs normally
+	 * when shutdown btwf or gnss sys
+	 */
+	wcn_sys_forbid_deep_sleep(wcn_dev);
+
+	if (is_marlin) {
+		ret = btwf_sys_shutdown(wcn_dev);
+		if (ret) {
+			WCN_ERR("[-]%s:btwf_sys_shutdown fail", __func__);
+			return -1;
+		}
+	} else {
+		ret = gnss_sys_shutdown(wcn_dev);
+		if (ret) {
+			WCN_ERR("[-]%s:gnss_sys_shutdown fail", __func__);
+			return -1;
+		}
+	}
+
+	if (wcn_subsys_active_num() == 0) {
+		/*
+		 * GNSS only:power up and then down:
+		 * wcn_sys_forbid_deep_sleep:it caused btwf sys can't
+		 * enter shutdown mode,so force btwf enter deepsleep
+		 * and then btwf can shutdown
+		 */
+		if (is_marlin == false) {
+			wcn_ip_allow_sleep(wcn_dev, false);
+			/* btwf force deep */
+			btwf_force_deepsleep();
+
+			/*
+			 * MAX wait is about 7.8ms(222 cycle,32k):A-DIE adjust voltage.
+			 * BTWF SYS bypass adjust voltage, GNSS SYS doesn't do it.
+			 * Reserve here as ADJUST VOLTAGE feature maybe enable
+			 * next time.
+			 */
+			/* msleep(WCN_SYS_DEEPSLEEP_ADJUST_VOLTAGE_TIME); */
+		}
+
+		/* wcn sys resource down */
+		wcn_sys_power_down(wcn_dev);
+		wcn_sys_power_clock_unsupport(is_marlin);
+	}
+
+	wcn_dfs_poweroff_shutdown_clear(wcn_dev);
+
+	wcn_dev->power_state = WCN_POWER_STATUS_OFF;
+
+	WCN_INFO("%s open_status = %d,power_state=%d,stop subsys=%d!\n",
+		 wcn_dev->name, wcn_dev->wcn_open_status,
+		 wcn_dev->power_state, subsys);
+
+	if (is_marlin)
+		wcn_set_module_state(false);
+	mutex_unlock(&wcn_dev->power_lock);
+
+	wcn_show_dev_status("after stop2");
+	return 0;
+}
+
 int stop_integrate_wcn(u32 subsys)
 {
 	u32 ret;
@@ -1264,7 +3112,11 @@ int stop_integrate_wcn(u32 subsys)
 		return -1;
 	}
 
-	ret = stop_integrate_wcn_truely(subsys);
+	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6)
+		ret = stop_integrate_wcn_module(subsys);
+	else
+		ret = stop_integrate_wcn_truely(subsys);
+
 	mutex_unlock(&marlin_lock);
 
 	return ret;

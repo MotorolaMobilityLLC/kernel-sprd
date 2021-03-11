@@ -1141,6 +1141,10 @@ static void wcn_probe_power_wq(struct work_struct *work)
 		return;
 	}
 
+	/* BTWF SYS calibration time consumption is about 250 ms */
+	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6)
+		msleep(WCCN_BTWF_CALIBRATION_TIME);
+
 	if (stop_marlin(MARLIN_MDBG))
 		WCN_ERR("%s power down failed\n", __func__);
 }
@@ -1272,6 +1276,24 @@ static int wcn_remove(struct platform_device *pdev)
 static void wcn_shutdown(struct platform_device *pdev)
 {
 	struct wcn_device *wcn_dev = platform_get_drvdata(pdev);
+	int ret = 0;
+
+	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
+		u32 open_status;
+		u32 subsys_bit = 0;
+
+		if (wcn_dev && wcn_dev->wcn_open_status) {
+			WCN_INFO("%s:dev name %s\n", __func__, wcn_dev->name);
+			open_status = wcn_dev->wcn_open_status;
+			for (subsys_bit = 0; subsys_bit < 32; subsys_bit++) {
+				if (open_status & (0x1<<subsys_bit))
+					ret = stop_marlin(0x1<<subsys_bit);
+				if (ret)
+					WCN_ERR("stop_marlin ret: %d\n", ret);
+			}
+		}
+		return;
+	}
 
 	if (wcn_dev && wcn_dev->wcn_open_status) {
 		/* CPU hold on */

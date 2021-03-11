@@ -66,6 +66,29 @@ enum wcn_gnss_sub_sys {
 #define WCN_GNSS_BD_MASK BIT(WCN_GNSS_BD)
 #define WCN_GNSS_ALL_MASK (WCN_GNSS_MASK | WCN_GNSS_BD_MASK)
 
+#define WCN_SYS_POWERON_WAKEUP_POLLING_COUNT (256) /* 256 * 10us */
+#define WCN_SYS_SHUTDOWN_POLLING_COUNT (256) /* 32 * 10us */
+#define BTWF_SYS_POWERON_WAKEUP_POLLING_COUNT (256) /* 256 * 10us */
+#define BTWF_SYS_WAKEUP_POLLING_COUNT (256)
+
+#define BTWF_SYS_DEEPSLEEP_POLLING_COUNT (256) /* 256 * 10us */
+#define BTWF_SYS_POWERON_POLLING_COUNT (256) /* 256 * 10us */
+#define BTWF_SYS_POWERDOWN_POLLING_COUNT (256) /* 256 * 10us */
+#define GNSS_SYS_POWERON_POLLING_COUNT (256) /* 256 * 10us */
+#define GNSS_SYS_POWERDOWN_POLLING_COUNT (256) /* 256 * 10us */
+#define GNSS_SYS_POWERON_WAKEUP_POLLING_COUNT (256) /* 256 * 10us */
+#define GNSS_SYS_DEEPSLEEP_POLLING_COUNT (256)
+#define GNSS_SYS_WAKEUP_POLLING_COUNT (256) /* 256 * 10us */
+#define WCN_SYS_POWER_ON_WAKEUP_TIME (8)	/* ms */
+#define WCN_SYS_DEEPSLEEP_ADJUST_VOLTAGE_TIME (8)	/* ms */
+#define WCCN_BTWF_CALIBRATION_TIME (250) /* ms */
+
+/*
+ * The REG bits is async, continuous read 3 times
+ * the same value should be comfirm is right
+ */
+#define WCN_REG_POLL_STABLE_COUNT (3)
+
 /* type for base REGs */
 enum {
 	REGMAP_AON_APB = 0x0,	/* AON APB */
@@ -311,4 +334,189 @@ static inline bool wcn_dev_is_gnss(struct wcn_device *dev)
 }
 
 void wcn_cpu_bootup(struct wcn_device *wcn_dev);
+
+
+/* WCN SYS power && clock support
+ * PMIC supports power and clock to WCN SYS.
+ * is_btwf_sys: special for BTWF SYS, it needs VDDWIFIPA
+ */
+int wcn_power_clock_support(bool is_btwf_sys);
+
+/* WCN SYS power && clock Unsupport
+ * PMIC un-supports power and clock to WCN SYS.
+ * is_btwf_sys: special for BTWF SYS, it needs release VDDWIFIPA
+ */
+int wcn_sys_power_clock_unsupport(bool is_btwf_sys);
+
+/* WCN SYS powerup:PMU support WCN SYS power switch on.
+ * The WCN SYS will be at power on and wakeup status.
+ */
+int wcn_sys_power_up(struct wcn_device *wcn_dev);
+
+/* WCN SYS powerdown:PMU support WCN SYS power switch on.
+ * The WCN SYS will be at deepsleep and shutdown status.
+ */
+int wcn_sys_power_down(struct wcn_device *wcn_dev);
+
+/* check wcn sys is whether at wakeup status:
+ * If wcn sys isn't at wakeup status,AP SYS can't operate WCN REGs
+ * or caused AP SYS kernel crash,doze screen,watchdog timeout
+ * and so on.
+ */
+bool wcn_sys_is_wakeup_status(struct wcn_device *wcn_dev);
+
+/* check wcn sys is whether at deepsleep status:
+ * If wcn sys is at deepsleep status,AP SYS can't operate WCN REGs
+ * or caused AP SYS kernel crash,doze screen,watchdog timeout
+ * and so on.
+ */
+bool wcn_sys_is_deepsleep_status(struct wcn_device *wcn_dev);
+
+/* check wcn sys is whether at poweron status:
+ * If wcn sys isn't at poweron status,AP SYS can't operate WCN REGs
+ * or caused AP SYS kernel crash,doze screen,watchdog timeout
+ * and so on.
+ */
+bool wcn_sys_is_poweron_status(struct wcn_device *wcn_dev);
+
+/* check wcn sys is whether at shutdown status:
+ * If wcn sys isn't at poweron status,AP SYS can't operate WCN REGs
+ * or caused AP SYS kernel crash,doze screen,watchdog timeout
+ * and so on.
+ */
+bool wcn_sys_is_shutdown_status(struct wcn_device *wcn_dev);
+
+/* WCN_AON_IP_STOP:0xffffffff:allow WCN SYS enter deep sleep.
+ * After BTWF and GNSS SYS enter deep sleep, WCN SYS
+ * will check this REG, it means WCN IP is stopped working,
+ * so WCN SYS can enter deep sleep.
+ */
+int wcn_ip_allow_sleep(struct wcn_device *wcn_dev, bool allow);
+
+/* wcn sys allow go to deep sleep status:
+ * If doesn't call this function, the WCN SYS can't go to
+ * deep sleep status.
+ * WARNING: Operate WCN SYS REGs, we should confirm WCN SYS
+ * is at wakeup and poweron status to call this function.
+ */
+int wcn_sys_allow_deep_sleep(struct wcn_device *wcn_dev);
+
+/* wcn sys forbid go to deep sleep status:
+ * If doesn't call this function, the WCN SYS can go to
+ * deep sleep status and caused AP SYS can't access WCN REGs.
+ */
+int wcn_sys_forbid_deep_sleep(struct wcn_device *wcn_dev);
+
+bool wcn_sys_polling_wakeup(struct wcn_device *wcn_dev);
+
+bool wcn_sys_polling_poweron(struct wcn_device *wcn_dev);
+
+bool wcn_sys_polling_powerdown(struct wcn_device *wcn_dev);
+
+bool btwf_sys_polling_wakeup(struct wcn_device *wcn_dev);
+bool btwf_sys_polling_poweron(struct wcn_device *wcn_dev);
+bool btwf_sys_polling_deepsleep(struct wcn_device *wcn_dev);
+bool gnss_sys_polling_wakeup(struct wcn_device *wcn_dev);
+bool gnss_sys_polling_deepsleep(struct wcn_device *wcn_dev);
+bool gnss_sys_polling_poweron(struct wcn_device *wcn_dev);
+bool gnss_sys_polling_powerdown(struct wcn_device *wcn_dev);
+bool gnss_sys_polling_wakeup_poweron(struct wcn_device *wcn_dev);
+
+/* Force BTWF SYS enter deep sleep and then set it auto shutdown.
+ * after this operate, BTWF SYS will enter shutdown mode.
+ */
+int btwf_sys_force_deep_to_shutdown(struct wcn_device *wcn_dev);
+
+/* Force GNSS SYS enter deep sleep and then set it auto shutdown.
+ * after this operate, GNSS SYS will enter shutdown mode.
+ */
+int gnss_sys_force_deep_to_shutdown(struct wcn_device *wcn_dev);
+
+/* Force BTWF SYS power on and let CPU run.
+ * Clear BTWF SYS shutdown and force deep switch,
+ * and then let SYS,CPU,Cache... run.
+ */
+int btwf_sys_poweron(struct wcn_device *wcn_dev);
+
+int wcn_poweron_device(struct wcn_device *wcn_dev);
+
+/* wait BTWF SYS enter deep sleep and then set it auto shutdown.
+ * after this operate, BTWF SYS will enter shutdown mode.
+ */
+int btwf_sys_shutdown(struct wcn_device *wcn_dev);
+
+/* wait GNSS SYS enter deep sleep and then set it auto shutdown.
+ * after this operate, GNSS SYS will enter shutdown mode.
+ */
+int gnss_sys_shutdown(struct wcn_device *wcn_dev);
+
+/* check btwf sys is whether at wakeup status:
+ * If btwf sys isn't at wakeup status,AP SYS can't operate BTWF REGs
+ * or caused AP SYS kernel crash,doze screen,watchdog timeout
+ * and so on.
+ */
+bool btwf_sys_is_wakeup_status(struct wcn_device *wcn_dev);
+
+/* check btwf sys is whether at deepsleep status:
+ * If btwf sys isn't at deepsleep status,AP SYS shutdown BTWF SYS
+ * isn't safe, or caused BTWF SYS powerup, boot fail next time.
+ * and so on.
+ */
+bool btwf_sys_is_deepsleep_status(struct wcn_device *wcn_dev);
+
+/* check gnss sys is whether at wakeup status:
+ * If gnss sys isn't at wakeup status,AP SYS can't operate GNSS REGs
+ * or caused AP SYS kernel crash,doze screen,watchdog timeout
+ * and so on.
+ */
+bool gnss_sys_is_wakeup_status(struct wcn_device *wcn_dev);
+
+/* check gnss sys is whether at deepsleep status:
+ * If gnss sys isn't at deepsleep status,AP SYS close
+ * gnss sys maybe cause gnss powerup,bootup fail
+ * next time.
+ */
+bool gnss_sys_is_deepsleep_status(struct wcn_device *wcn_dev);
+
+/*
+ * If WCN SYS is at deep sleep status, AP SYS can't operate WCN REGs
+ * AP SYS can use special signal to force BTWF SYS exit deep sleep status,
+ * and it cause WCN SYS exit deep sleep.
+ * Notes:there isn't a similar signal for GNSS SYS, so GNSS SYS
+ * power up/down will use this function to force wcn sys exit deep sleep.
+ */
+int btwf_sys_force_exit_deep_sleep(struct wcn_device *wcn_dev);
+
+int btwf_sys_clear_force_exit_deep_sleep(struct wcn_device *wcn_dev);
+
+/* check btwf sys is whether at poweron status:
+ * If btwf sys isn't at poweron status,AP SYS can't operate BTWF REGs
+ * or caused AP SYS kernel crash,doze screen,watchdog timeout
+ * and so on.
+ * If btwf sys is at poweron status but AP SYS close btwf sys,
+ * it maybe cause btwf sys powerup/bootup fail next time
+ */
+bool btwf_sys_is_poweron_status(struct wcn_device *wcn_dev);
+
+bool btwf_sys_is_powerdown_status(struct wcn_device *wcn_dev);
+
+
+/*
+ * Force GNSS SYS power on and let CPU run.
+ * Clear GNSS SYS shutdown and force deep switch,
+ * and then let CPU,Cache... run.
+ */
+int gnss_sys_poweron(struct wcn_device *wcn_dev);
+
+/* check btwf sys is whether at poweron status:
+ * If btwf sys isn't at poweron status,AP SYS can't operate BTWF REGs
+ * or caused AP SYS kernel crash,doze screen,watchdog timeout
+ * and so on.
+ */
+bool gnss_sys_is_poweron_status(struct wcn_device *wcn_dev);
+
+bool gnss_sys_is_powerdown_status(struct wcn_device *wcn_dev);
+
+
+
 #endif

@@ -717,13 +717,15 @@ u32 wcn_subsys_shutdown_status(struct wcn_device *wcn_dev)
 	else
 		shutdown_mask = gnss_shutdown_mask;
 
-	WCN_INFO("subsys shutdown:0x03b0=0x%x\n", shutdown_status);
+	WCN_INFO("subsys shutdown:0x4080c3b0=0x%x\n", shutdown_status);
 
 	return (shutdown_status & shutdown_mask);
 }
 /*
  * NOTES:This is for QogirL6 chip.
- * This function shuold be called after WCN wake up
+ * becare:after forcedeep, wcn sys maybe enter deepsleep,
+ * so if want to  access WCN REGs after this step, please
+ * confirm WCN SYS doesn't enter deep sleep.
  */
 int btwf_force_deepsleep(void)
 {
@@ -734,15 +736,11 @@ int btwf_force_deepsleep(void)
 	if (wcn_dev && wcn_dev->rmap[REGMAP_WCN_AON_APB]) {
 		wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_APB],
 						0x0098, &reg_val);
+		WCN_INFO("%s:reg0x4080c098=0x%x\n", __func__, reg_val);
 		reg_val |= (0x1<<3);
 		wcn_regmap_raw_write_bit(
 				wcn_dev->rmap[REGMAP_WCN_AON_APB],
 				0x0098, reg_val);
-		msleep(1);
-		wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_APB],
-						0x0098, &reg_val);
-		reg_val |= (0x1<<3);
-		WCN_INFO("%s:reg0x0098=0x%x\n", __func__, reg_val);
 		return 0;
 	}
 
@@ -761,7 +759,7 @@ int gnss_force_deepsleep(void)
 	if (wcn_dev && wcn_dev->rmap[REGMAP_WCN_AON_APB]) {
 		wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_APB],
 						0x00c8, &reg_val);
-		WCN_INFO("%s:reg0x00c8=0x%x\n", __func__, reg_val);
+		WCN_INFO("%s:reg0x4080c0c8=0x%x\n", __func__, reg_val);
 		reg_val |= (0x1<<3);
 		wcn_regmap_raw_write_bit(
 				wcn_dev->rmap[REGMAP_WCN_AON_APB],
@@ -769,7 +767,7 @@ int gnss_force_deepsleep(void)
 		msleep(1);
 		wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_APB],
 						0x00c8, &reg_val);
-		WCN_INFO("%s:reg0x00c8=0x%x\n", __func__, reg_val);
+		WCN_INFO("%s:reg0x4080c0c8=0x%x\n", __func__, reg_val);
 		return 0;
 	}
 
@@ -1367,7 +1365,7 @@ bool wcn_power_status_check(struct wcn_device *wcn_dev)
 	/* WCN PMU:sub sys power on */
 	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_APB],
 					0x3b0, &reg_value);
-	WCN_INFO("PD_SLP_STATUS:REG0x3b0=0x%x\n", reg_value);
+	WCN_INFO("PD_SLP_STATUS:REG0x4080c3b0=0x%x\n", reg_value);
 	/* btwf sys poweron finish */
 	if (wcn_dev == s_wcn_device.btwf_device)
 		wcn_pd_subsys_state = reg_value & BIT(0);
@@ -1381,7 +1379,7 @@ bool wcn_power_status_check(struct wcn_device *wcn_dev)
 	if (wcn_dev_is_marlin(wcn_dev)) {
 		wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_APB],
 						0x3b4, &reg_value);
-		WCN_INFO("BTWF SYS Wake up,Reg0x3b4=0x%x\n", reg_value);
+		WCN_INFO("BTWF SYS Wake up,Reg0x4080c3b4=0x%x\n", reg_value);
 		/* btwf sys wake up finish */
 		if ((reg_value & (0xF<<12)) == (0x6 << 12))
 			wcn_pd_state = true;
@@ -1390,7 +1388,7 @@ bool wcn_power_status_check(struct wcn_device *wcn_dev)
 	} else { /* GNSS SYS: wake up finish */
 		wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_APB],
 						0x3c0, &reg_value);
-		WCN_INFO("GNSS SYS Wake up,Reg0x3c0=0x%x\n", reg_value);
+		WCN_INFO("GNSS SYS Wake up,Reg0x4080c3c0=0x%x\n", reg_value);
 		/* btwf sys wake up finish */
 		if ((reg_value & (0xF<<9)) == (0x6 << 9))
 			wcn_pd_state = true;
