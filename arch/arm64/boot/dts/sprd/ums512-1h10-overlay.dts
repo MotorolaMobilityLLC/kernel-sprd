@@ -7,6 +7,7 @@
 #include <dt-bindings/clock/sprd,sharkl5pro-clk.h>
 #include <dt-bindings/mfd/sprd,sc2730-regs.h>
 #include <dt-bindings/mfd/sprd,sc2730-mask.h>
+#include <dt-bindings/wdv/wdv.h>
 #include "lcd/lcd_td4310_truly_mipi_fhd.dtsi"
 #include "lcd/lcd_ssd2092_truly_mipi_fhd.dtsi"
 #include "lcd/lcd_dummy_mipi.dtsi"
@@ -274,9 +275,11 @@
 		reg = <0x0 0x9e000000 0x0 0x009e4000>;
 	};
 
+#ifdef BSP_KERNEL_CONFIG_WIDEVINE_L1
 	drm_reserved: drm-mem@e32ae000 {
 		reg = <0x0 0xe32ae000 0x0 0x0c800000>;
 	};
+#endif
 
 	fd_reserved: faceid-mem@efaae000 {
 		reg = <0x0 0xefaae000 0x0 0x00f00000>;
@@ -400,12 +403,14 @@
 };
 
 &ion {
+#ifdef BSP_KERNEL_CONFIG_WIDEVINE_L1
 	heap@1 {
 		reg = <1>;
 		label = "carveout_mm";
 		type = <2>;
 		memory-region = <&drm_reserved>;
 	};
+#endif
 
 	heap@4 {
 		reg = <4>;
