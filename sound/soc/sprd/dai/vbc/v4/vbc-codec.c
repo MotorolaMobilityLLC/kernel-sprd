@@ -4161,6 +4161,7 @@ EXPORT_SYMBOL(sprd_vbc_codec);
 
 static void init_vbc_codec_data(struct vbc_codec_priv *vbc_codec)
 {
+	unsigned char i;
 	/* vbc dac */
 	vbc_codec->mux_iis_tx[VBC_MUX_IIS_TX_DAC0].id = VBC_MUX_IIS_TX_DAC0;
 	vbc_codec->mux_iis_tx[VBC_MUX_IIS_TX_DAC0].val = VBC_IIS_PORT_IIS0;
@@ -4233,6 +4234,22 @@ static void init_vbc_codec_data(struct vbc_codec_priv *vbc_codec)
 	vbc_codec->mst_sel_para[IIS_MST_SEL_2].mst_type = VBC_MASTER_EXTERNAL;
 	vbc_codec->mst_sel_para[IIS_MST_SEL_3].id = IIS_MST_SEL_3;
 	vbc_codec->mst_sel_para[IIS_MST_SEL_3].mst_type = VBC_MASTER_EXTERNAL;
+
+	/* mixer */
+	for (i = VBC_MIXER0_DAC0; i < VBC_MIXER_MAX; i++) {
+		vbc_codec->mixer[i].mixer_id = i;
+		vbc_codec->mixer[i].type = NOT_MIX;
+	}
+
+	/* vbc_if or iis */
+	for (i = VBC_MUX_ADC0_SOURCE; i < VBC_MUX_ADC_SOURCE_MAX; i++) {
+		vbc_codec->mux_adc_source[i].id = i;
+		vbc_codec->mux_adc_source[i].val = ADC_SOURCE_IIS;
+	}
+	for (i = VBC_MUX_DAC0_OUT_SEL; i < VBC_MUX_DAC_OUT_MAX ; i++) {
+		vbc_codec->mux_dac_out[i].id = i;
+		vbc_codec->mux_dac_out[i].val = DAC_OUT_FROM_IIS;
+	}
 }
 
 int sprd_vbc_codec_probe(struct platform_device *pdev)
