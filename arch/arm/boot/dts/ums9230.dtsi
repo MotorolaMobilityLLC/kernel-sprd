@@ -166,6 +166,41 @@
 			interrupts = <GIC_PPI 9 IRQ_TYPE_LEVEL_HIGH>;
 		};
 
+		pmu_gate: pmu-gate {
+			compatible = "sprd,ums9230-pmu-gate";
+			sprd,syscon = <&pmu_apb_regs>; /* 0x64020000 */
+			clocks = <&ext_26m>;
+			clock-names = "ext-26m";
+			#clock-cells = <1>;
+		};
+
+		dpll0: dpll0 {
+			compatible = "sprd,ums9230-g0-pll";
+			sprd,syscon = <&anlg_phy_g0_regs>; /* 0x64550000 */
+			#clock-cells = <1>;
+		};
+
+		pll0: pll0 {
+			compatible = "sprd,ums9230-g1-pll";
+			sprd,syscon = <&anlg_phy_g1_regs>; /* 0x64560000 */
+			clocks = <&ext_26m>;
+			#clock-cells = <1>;
+		};
+
+		mpll1: mpll1 {
+			compatible = "sprd,ums9230-g3-pll";
+			sprd,syscon = <&anlg_phy_g3_regs>; /* 0x64580000 */
+			#clock-cells = <1>;
+		};
+
+		pll1: pll1 {
+			compatible = "sprd,ums9230-gc-pll";
+			sprd,syscon = <&anlg_phy_gc_regs>; /* 0x645a0000 */
+			clocks = <&ext_26m>;
+			clock-names = "ext-26m";
+			#clock-cells = <1>;
+		};
+
 		apapb_gate: apapb-gate {
 			compatible = "sprd,ums9230-apapb-gate";
 			sprd,syscon = <&ap_apb_regs>; /* 0x20000000 */
@@ -193,6 +228,9 @@
 		gpu_clk: gpu-clk {
 			compatible = "sprd,ums9230-gpu-clk";
 			sprd,syscon = <&gpu_apb_regs>; /* 0x23000000 */
+			syscons = <&aon_apb_regs REG_AON_APB_APB_EB0 MASK_AON_APB_GPU_EB>,
+				<&pmu_apb_regs REG_PMU_APB_PD_GPU_TOP_CFG_0 MASK_PMU_APB_PD_GPU_TOP_FORCE_SHUTDOWN>;
+			syscon-names = "enable", "power";
 			clocks = <&ext_26m>;
 			clock-names = "ext-26m";
 			#clock-cells = <1>;
@@ -209,6 +247,9 @@
 		mm_gate: mm-gate {
 			compatible = "sprd,ums9230-mm-gate-clk";
 			sprd,syscon = <&mm_ahb_regs>; /* 0x30000000 */
+			syscons = <&aon_apb_regs REG_AON_APB_APB_EB0 MASK_AON_APB_MM_EB>,
+				<&pmu_apb_regs  REG_PMU_APB_PD_MM_CFG_0 MASK_PMU_APB_PD_MM_FORCE_SHUTDOWN>;
+			syscon-names = "enable", "power";
 			#clock-cells = <1>;
 		};
 
@@ -241,34 +282,6 @@
 		aonapb_gate: aonapb-gate {
 			compatible = "sprd,ums9230-aon-gate";
 			sprd,syscon = <&aon_apb_regs>; /* 0x64000000 */
-			clocks = <&ext_26m>;
-			clock-names = "ext-26m";
-			#clock-cells = <1>;
-		};
-
-		pmu_gate: pmu-gate {
-			compatible = "sprd,ums9230-pmu-gate";
-			sprd,syscon = <&pmu_apb_regs>; /* 0x64020000 */
-			clocks = <&ext_26m>;
-			clock-names = "ext-26m";
-			#clock-cells = <1>;
-		};
-
-		dpll0: dpll0 {
-			compatible = "sprd,ums9230-g0-pll";
-			sprd,syscon = <&anlg_phy_g0_regs>; /* 0x64550000 */
-			#clock-cells = <1>;
-		};
-
-		mpll1: mpll1 {
-			compatible = "sprd,ums9230-g3-pll";
-			sprd,syscon = <&anlg_phy_g3_regs>; /* 0x64580000 */
-			#clock-cells = <1>;
-		};
-
-		pll1: pll1 {
-			compatible = "sprd,ums9230-gc-pll";
-			sprd,syscon = <&anlg_phy_gc_regs>; /* 0x645a0000 */
 			clocks = <&ext_26m>;
 			clock-names = "ext-26m";
 			#clock-cells = <1>;
