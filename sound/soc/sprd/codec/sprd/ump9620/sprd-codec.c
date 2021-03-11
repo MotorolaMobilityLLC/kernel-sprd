@@ -1536,9 +1536,11 @@ static int sprd_codec_digital_open(struct snd_soc_codec *codec)
 	 * temporay method to disable DNS, waiting ASIC to improve
 	 * this feature
 	 */
+	/*
 	snd_soc_update_bits(codec, SOC_REG(AUD_DNS_AUTOGATE_EN), 0xffff,
 			    0x3303);
 	snd_soc_update_bits(codec, SOC_REG(AUD_DNS_SW), BIT(RG_DNS_SW), 0);
+	*/
 
 	return ret;
 }
@@ -2228,6 +2230,349 @@ static int cp_event(struct snd_soc_dapm_widget *w,
 	return ret;
 }
 
+static int dns_event(struct snd_soc_dapm_widget *w,
+				struct snd_kcontrol *kcontrol, int event)
+{
+	struct snd_soc_codec *codec = snd_soc_dapm_to_codec(w->dapm);
+	int ret = 0;
+
+	sp_asoc_pr_info("wname %s %s\n", w->name, get_event_name(event));
+
+	switch (event) {
+	case SND_SOC_DAPM_PRE_PMU:
+		snd_soc_update_bits(codec, SOC_REG(ANA_CDC11),
+				    RG_AUD_HPL_G_BP_EN,
+				    RG_AUD_HPL_G_BP_EN);
+		snd_soc_update_bits(codec, SOC_REG(ANA_CDC11),
+				    RG_AUD_HPR_G_BP_EN,
+				    RG_AUD_HPR_G_BP_EN);
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_AUTOGATE_EN),
+				    RG_DNS_HPL_G(0xf),
+				    RG_DNS_HPL_G(0x1));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_AUTOGATE_EN),
+				    RG_DNS_HPR_G(0xf),
+				    RG_DNS_HPR_G(0x1));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_AUTOGATE_EN),
+				    RG_DNS_BYPASS, 0);
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_SW),
+				    BIT(RG_DNS_SW),
+				    BIT(RG_DNS_SW));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_DG_SW),
+				    RG_DNS_DG_SW,
+				    RG_DNS_DG_SW);
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_ZC_SW),
+				    RG_DNS_ZC_SW,
+				    RG_DNS_ZC_SW);
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_MODE),
+				    RG_DNS_PGA_TH_L(0xf),
+				    RG_DNS_PGA_TH_L(0x1));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_MODE),
+				    RG_DNS_PGA_TH_R(0xf),
+				    RG_DNS_PGA_TH_R(0x1));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_MODE),
+				    RG_DNS_MODE(0x3),
+				    RG_DNS_MODE(0x3));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_GAIN_WT_SW),
+				    RG_DNS_DG_GAIN_WT_SW,
+				    RG_DNS_DG_GAIN_WT_SW);
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_BLOCK_MS),
+				    RG_DNS_BLOCK_MS(0xffff),
+				    RG_DNS_BLOCK_MS(0x2));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_BLOCK_SMPL),
+				    RG_DNS_MS_SMPL(0xffff),
+				    RG_DNS_MS_SMPL(0xC0));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_M_HOLD_SET_F),
+				    RG_DNS_M_HOLD_SET_F(0xffff),
+				    RG_DNS_M_HOLD_SET_F(0x400));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_M_HOLD_SET_N),
+				    RG_DNS_M_HOLD_SET_N(0xffff),
+				    RG_DNS_M_HOLD_SET_N(0x400));
+
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_LEVEL_SET_0),
+				    RG_DNS_LEVEL_SET_0(0xffff),
+				    RG_DNS_LEVEL_SET_0(0x7fff));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_LEVEL_SET_1),
+				    RG_DNS_LEVEL_SET_1(0xffff),
+				    RG_DNS_LEVEL_SET_1(0x07cc));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_LEVEL_SET_2),
+				    RG_DNS_LEVEL_SET_2(0xffff), 0);
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_LEVEL_SET_3),
+				    RG_DNS_LEVEL_SET_3(0xffff), 0);
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_LEVEL_SET_4),
+				    RG_DNS_LEVEL_SET_4(0xffff), 0);
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_LEVEL_SET_5),
+				    RG_DNS_LEVEL_SET_5(0xffff), 0);
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_LEVEL_SET_6),
+				    RG_DNS_LEVEL_SET_6(0xffff), 0);
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_LEVEL_SET_7),
+				    RG_DNS_LEVEL_SET_7(0xffff), 0);
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_LEVEL_SET_8),
+				    RG_DNS_LEVEL_SET_8(0xffff), 0);
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_LEVEL_SET_9),
+				    RG_DNS_LEVEL_SET_9(0xffff), 0);
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_LEVEL_SET_10),
+				    RG_DNS_LEVEL_SET_10(0xffff), 0);
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_LEVEL_SET_11),
+				    RG_DNS_LEVEL_SET_11(0xffff), 0);
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_LEVEL_SET_12),
+				    RG_DNS_LEVEL_SET_12(0xffff), 0);
+
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_DG_GAIN_SET_0),
+				    RG_DNS_DG_GAIN_SET_0(0xffff),
+				    RG_DNS_DG_GAIN_SET_0(0x0200));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_DG_GAIN_SET_1),
+				    RG_DNS_DG_GAIN_SET_1(0xffff),
+				    RG_DNS_DG_GAIN_SET_1(0x2000));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_DG_GAIN_SET_2),
+				    RG_DNS_DG_GAIN_SET_2(0xffff),
+				    RG_DNS_DG_GAIN_SET_2(0x2000));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_DG_GAIN_SET_3),
+				    RG_DNS_DG_GAIN_SET_3(0xffff),
+				    RG_DNS_DG_GAIN_SET_3(0x2000));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_DG_GAIN_SET_4),
+				    RG_DNS_DG_GAIN_SET_4(0xffff),
+				    RG_DNS_DG_GAIN_SET_4(0x2000));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_DG_GAIN_SET_5),
+				    RG_DNS_DG_GAIN_SET_5(0xffff),
+				    RG_DNS_DG_GAIN_SET_5(0x2000));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_DG_GAIN_SET_6),
+				    RG_DNS_DG_GAIN_SET_6(0xffff),
+				    RG_DNS_DG_GAIN_SET_6(0x2000));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_DG_GAIN_SET_7),
+				    RG_DNS_DG_GAIN_SET_7(0xffff),
+				    RG_DNS_DG_GAIN_SET_7(0x2000));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_DG_GAIN_SET_8),
+				    RG_DNS_DG_GAIN_SET_8(0xffff),
+				    RG_DNS_DG_GAIN_SET_8(0x2000));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_DG_GAIN_SET_9),
+				    RG_DNS_DG_GAIN_SET_9(0xffff),
+				    RG_DNS_DG_GAIN_SET_9(0x2000));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_DG_GAIN_SET_10),
+				    RG_DNS_DG_GAIN_SET_10(0xffff),
+				    RG_DNS_DG_GAIN_SET_10(0x2000));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_DG_GAIN_SET_11),
+				    RG_DNS_DG_GAIN_SET_11(0xffff),
+				    RG_DNS_DG_GAIN_SET_11(0x2000));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_DG_GAIN_SET_12),
+				    RG_DNS_DG_GAIN_SET_12(0xffff),
+				    RG_DNS_DG_GAIN_SET_12(0x2000));
+
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_DG_GAIN_VT_MAX),
+				    RG_DNS_DG_GAIN_VT_MAX(0xf),
+				    RG_DNS_DG_GAIN_VT_MAX(0xc));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_ZC_DG_UP_LAST_SET),
+				    RG_DNS_ZC_DG_UP_LAST_SET(0xffff),
+				    RG_DNS_ZC_DG_UP_LAST_SET(0x20));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_DG_USTEP),
+				    RG_DNS_DG_USTEP(0xf),
+				    RG_DNS_DG_USTEP(0x8));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_ZC_DG_DN_C),
+				    RG_DNS_ZC_DG_DN_C, 0);
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_ZC_PGA_C),
+				    RG_DNS_ZC_PGA_C,
+				    RG_DNS_ZC_PGA_C);
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_QUICKEXTI_N),
+				    RG_DNS_QUICKEXTI_N(0xf), 0);
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_DG_GAIN_DEFAULT),
+				    RG_DNS_DG_GAIN_DEFAULT(0x1f), 0);
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_PGA_MAX),
+				    RG_DNS_PGA_MAX(0x3f),
+				    RG_DNS_PGA_MAX(0xC));
+
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_PGA_GAIN_CAL_SET_0_L),
+				    RG_DNS_PGA_GAIN_CAL_SET_0_L(0x3fff),
+				    RG_DNS_PGA_GAIN_CAL_SET_0_L(0x1000));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_PGA_GAIN_CAL_SET_1_L),
+				    RG_DNS_PGA_GAIN_CAL_SET_1_L(0x3fff),
+				    RG_DNS_PGA_GAIN_CAL_SET_1_L(0x1000));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_PGA_GAIN_CAL_SET_2_L),
+				    RG_DNS_PGA_GAIN_CAL_SET_2_L(0x3fff),
+				    RG_DNS_PGA_GAIN_CAL_SET_2_L(0x1000));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_PGA_GAIN_CAL_SET_3_L),
+				    RG_DNS_PGA_GAIN_CAL_SET_3_L(0x3fff),
+				    RG_DNS_PGA_GAIN_CAL_SET_3_L(0x1000));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_PGA_GAIN_CAL_SET_4_L),
+				    RG_DNS_PGA_GAIN_CAL_SET_4_L(0x3fff),
+				    RG_DNS_PGA_GAIN_CAL_SET_4_L(0x1000));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_PGA_GAIN_CAL_SET_5_L),
+				    RG_DNS_PGA_GAIN_CAL_SET_5_L(0x3fff),
+				    RG_DNS_PGA_GAIN_CAL_SET_5_L(0x1000));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_PGA_GAIN_CAL_SET_6_L),
+				    RG_DNS_PGA_GAIN_CAL_SET_6_L(0x3fff),
+				    RG_DNS_PGA_GAIN_CAL_SET_6_L(0x1000));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_PGA_GAIN_CAL_SET_7_L),
+				    RG_DNS_PGA_GAIN_CAL_SET_7_L(0x3fff),
+				    RG_DNS_PGA_GAIN_CAL_SET_7_L(0x1000));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_PGA_GAIN_CAL_SET_8_L),
+				    RG_DNS_PGA_GAIN_CAL_SET_8_L(0x3fff),
+				    RG_DNS_PGA_GAIN_CAL_SET_8_L(0x1000));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_PGA_GAIN_CAL_SET_9_L),
+				    RG_DNS_PGA_GAIN_CAL_SET_9_L(0x3fff),
+				    RG_DNS_PGA_GAIN_CAL_SET_9_L(0x1000));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_PGA_GAIN_CAL_SET_10_L),
+				    RG_DNS_PGA_GAIN_CAL_SET_10_L(0x3fff),
+				    RG_DNS_PGA_GAIN_CAL_SET_10_L(0x1000));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_PGA_GAIN_CAL_SET_11_L),
+				    RG_DNS_PGA_GAIN_CAL_SET_11_L(0x3fff),
+				    RG_DNS_PGA_GAIN_CAL_SET_11_L(0x1000));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_PGA_GAIN_CAL_SET_12_L),
+				    RG_DNS_PGA_GAIN_CAL_SET_12_L(0x3fff),
+				    RG_DNS_PGA_GAIN_CAL_SET_12_L(0x1000));
+
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_PGA_DELAY_CAL_SET_0_L),
+				    RG_DNS_PGA_DELAY_CAL_SET_0_L(0x1f),
+				    RG_DNS_PGA_DELAY_CAL_SET_0_L(0x1f));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_PGA_DELAY_CAL_SET_1_L),
+				    RG_DNS_PGA_DELAY_CAL_SET_1_L(0x1f),
+				    RG_DNS_PGA_DELAY_CAL_SET_1_L(0x1f));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_PGA_DELAY_CAL_SET_2_L),
+				    RG_DNS_PGA_DELAY_CAL_SET_2_L(0x1f),
+				    RG_DNS_PGA_DELAY_CAL_SET_2_L(0x1f));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_PGA_DELAY_CAL_SET_3_L),
+				    RG_DNS_PGA_DELAY_CAL_SET_3_L(0x1f),
+				    RG_DNS_PGA_DELAY_CAL_SET_3_L(0x1f));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_PGA_DELAY_CAL_SET_4_L),
+				    RG_DNS_PGA_DELAY_CAL_SET_4_L(0x1f),
+				    RG_DNS_PGA_DELAY_CAL_SET_4_L(0x1f));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_PGA_DELAY_CAL_SET_5_L),
+				    RG_DNS_PGA_DELAY_CAL_SET_5_L(0x1f),
+				    RG_DNS_PGA_DELAY_CAL_SET_5_L(0x1f));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_PGA_DELAY_CAL_SET_6_L),
+				    RG_DNS_PGA_DELAY_CAL_SET_6_L(0x1f),
+				    RG_DNS_PGA_DELAY_CAL_SET_6_L(0x1f));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_PGA_DELAY_CAL_SET_7_L),
+				    RG_DNS_PGA_DELAY_CAL_SET_7_L(0x1f),
+				    RG_DNS_PGA_DELAY_CAL_SET_7_L(0x1f));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_PGA_DELAY_CAL_SET_8_L),
+				    RG_DNS_PGA_DELAY_CAL_SET_8_L(0x1f),
+				    RG_DNS_PGA_DELAY_CAL_SET_8_L(0x1f));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_PGA_DELAY_CAL_SET_9_L),
+				    RG_DNS_PGA_DELAY_CAL_SET_9_L(0x1f),
+				    RG_DNS_PGA_DELAY_CAL_SET_9_L(0x1f));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_PGA_DELAY_CAL_SET_10_L),
+				    RG_DNS_PGA_DELAY_CAL_SET_10_L(0x1f),
+				    RG_DNS_PGA_DELAY_CAL_SET_10_L(0x1f));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_PGA_DELAY_CAL_SET_11_L),
+				    RG_DNS_PGA_DELAY_CAL_SET_11_L(0x1f),
+				    RG_DNS_PGA_DELAY_CAL_SET_11_L(0x1f));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_PGA_DELAY_CAL_SET_12_L),
+				    RG_DNS_PGA_DELAY_CAL_SET_12_L(0x1f),
+				    RG_DNS_PGA_DELAY_CAL_SET_12_L(0x1f));
+
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_PGA_GAIN_CAL_SET_0_R),
+				    RG_DNS_PGA_GAIN_CAL_SET_0_R(0x3fff),
+				    RG_DNS_PGA_GAIN_CAL_SET_0_R(0x1000));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_PGA_GAIN_CAL_SET_1_R),
+				    RG_DNS_PGA_GAIN_CAL_SET_1_R(0x3fff),
+				    RG_DNS_PGA_GAIN_CAL_SET_1_R(0x1000));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_PGA_GAIN_CAL_SET_2_R),
+				    RG_DNS_PGA_GAIN_CAL_SET_2_R(0x3fff),
+				    RG_DNS_PGA_GAIN_CAL_SET_2_R(0x1000));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_PGA_GAIN_CAL_SET_3_R),
+				    RG_DNS_PGA_GAIN_CAL_SET_3_R(0x3fff),
+				    RG_DNS_PGA_GAIN_CAL_SET_3_R(0x1000));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_PGA_GAIN_CAL_SET_4_R),
+				    RG_DNS_PGA_GAIN_CAL_SET_4_R(0x3fff),
+				    RG_DNS_PGA_GAIN_CAL_SET_4_R(0x1000));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_PGA_GAIN_CAL_SET_5_R),
+				    RG_DNS_PGA_GAIN_CAL_SET_5_R(0x3fff),
+				    RG_DNS_PGA_GAIN_CAL_SET_5_R(0x1000));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_PGA_GAIN_CAL_SET_6_R),
+				    RG_DNS_PGA_GAIN_CAL_SET_6_R(0x3fff),
+				    RG_DNS_PGA_GAIN_CAL_SET_6_R(0x1000));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_PGA_GAIN_CAL_SET_7_R),
+				    RG_DNS_PGA_GAIN_CAL_SET_7_R(0x3fff),
+				    RG_DNS_PGA_GAIN_CAL_SET_7_R(0x1000));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_PGA_GAIN_CAL_SET_8_R),
+				    RG_DNS_PGA_GAIN_CAL_SET_8_R(0x3fff),
+				    RG_DNS_PGA_GAIN_CAL_SET_8_R(0x1000));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_PGA_GAIN_CAL_SET_9_R),
+				    RG_DNS_PGA_GAIN_CAL_SET_9_R(0x3fff),
+				    RG_DNS_PGA_GAIN_CAL_SET_9_R(0x1000));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_PGA_GAIN_CAL_SET_10_R),
+				    RG_DNS_PGA_GAIN_CAL_SET_10_R(0x3fff),
+				    RG_DNS_PGA_GAIN_CAL_SET_10_R(0x1000));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_PGA_GAIN_CAL_SET_11_R),
+				    RG_DNS_PGA_GAIN_CAL_SET_11_R(0x3fff),
+				    RG_DNS_PGA_GAIN_CAL_SET_11_R(0x1000));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_PGA_GAIN_CAL_SET_12_R),
+				    RG_DNS_PGA_GAIN_CAL_SET_12_R(0x3fff),
+				    RG_DNS_PGA_GAIN_CAL_SET_12_R(0x1000));
+
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_PGA_DELAY_CAL_SET_0_R),
+				    RG_DNS_PGA_DELAY_CAL_SET_0_R(0x1f),
+				    RG_DNS_PGA_DELAY_CAL_SET_0_R(0x1f));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_PGA_DELAY_CAL_SET_1_R),
+				    RG_DNS_PGA_DELAY_CAL_SET_1_R(0x1f),
+				    RG_DNS_PGA_DELAY_CAL_SET_1_R(0x1f));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_PGA_DELAY_CAL_SET_2_R),
+				    RG_DNS_PGA_DELAY_CAL_SET_2_R(0x1f),
+				    RG_DNS_PGA_DELAY_CAL_SET_2_R(0x1f));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_PGA_DELAY_CAL_SET_3_R),
+				    RG_DNS_PGA_DELAY_CAL_SET_3_R(0x1f),
+				    RG_DNS_PGA_DELAY_CAL_SET_3_R(0x1f));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_PGA_DELAY_CAL_SET_4_R),
+				    RG_DNS_PGA_DELAY_CAL_SET_4_R(0x1f),
+				    RG_DNS_PGA_DELAY_CAL_SET_4_R(0x1f));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_PGA_DELAY_CAL_SET_5_R),
+				    RG_DNS_PGA_DELAY_CAL_SET_5_R(0x1f),
+				    RG_DNS_PGA_DELAY_CAL_SET_5_R(0x1f));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_PGA_DELAY_CAL_SET_6_R),
+				    RG_DNS_PGA_DELAY_CAL_SET_6_R(0x1f),
+				    RG_DNS_PGA_DELAY_CAL_SET_6_R(0x1f));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_PGA_DELAY_CAL_SET_7_R),
+				    RG_DNS_PGA_DELAY_CAL_SET_7_R(0x1f),
+				    RG_DNS_PGA_DELAY_CAL_SET_7_R(0x1f));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_PGA_DELAY_CAL_SET_8_R),
+				    RG_DNS_PGA_DELAY_CAL_SET_8_R(0x1f),
+				    RG_DNS_PGA_DELAY_CAL_SET_8_R(0x1f));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_PGA_DELAY_CAL_SET_9_R),
+				    RG_DNS_PGA_DELAY_CAL_SET_9_R(0x1f),
+				    RG_DNS_PGA_DELAY_CAL_SET_9_R(0x1f));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_PGA_DELAY_CAL_SET_10_R),
+				    RG_DNS_PGA_DELAY_CAL_SET_10_R(0x1f),
+				    RG_DNS_PGA_DELAY_CAL_SET_10_R(0x1f));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_PGA_DELAY_CAL_SET_11_R),
+				    RG_DNS_PGA_DELAY_CAL_SET_11_R(0x1f),
+				    RG_DNS_PGA_DELAY_CAL_SET_11_R(0x1f));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_PGA_DELAY_CAL_SET_12_R),
+				    RG_DNS_PGA_DELAY_CAL_SET_12_R(0x1f),
+				    RG_DNS_PGA_DELAY_CAL_SET_12_R(0x1f));
+
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_CFG_LOAD_FLAG),
+				    RG_DNS_CFG_LOAD_FLAG, 0);
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_CFG_LOAD_FLAG),
+				    RG_DNS_CFG_LOAD_FLAG,
+				    RG_DNS_CFG_LOAD_FLAG);
+		break;
+	case SND_SOC_DAPM_POST_PMD:
+		snd_soc_update_bits(codec, SOC_REG(ANA_CDC11),
+				    RG_AUD_HPL_G_BP_EN, 0);
+		snd_soc_update_bits(codec, SOC_REG(ANA_CDC11),
+				    RG_AUD_HPR_G_BP_EN, 0);
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_AUTOGATE_EN),
+				    RG_DNS_HPL_G(0xf),
+				    RG_DNS_HPL_G(0x3));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_AUTOGATE_EN),
+				    RG_DNS_HPR_G(0xf),
+				    RG_DNS_HPR_G(0x3));
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_AUTOGATE_EN),
+				    RG_DNS_BYPASS,
+				    RG_DNS_BYPASS);
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_SW),
+				    BIT(RG_DNS_SW), 1);
+		snd_soc_update_bits(codec, SOC_REG(AUD_DNS_SW),
+				    BIT(RG_DNS_SW), 0);
+		break;
+	default:
+		pr_err("%s invalid event error 0x%x\n", __func__, event);
+		ret = -EINVAL;
+		break;
+	}
+
+	return ret;
+}
+
 #define REGU_CNT 2
 static void cp_short_check(struct sprd_codec_priv *sprd_codec)
 {
@@ -2666,6 +3011,9 @@ static const struct snd_soc_dapm_widget sprd_codec_dapm_widgets[] = {
 	SND_SOC_DAPM_PGA_S("DAHP OS", SPRD_CODEC_DC_OS_ORDER,
 			   SND_SOC_NOPM, 0, 0, dahp_os_event,
 			   SND_SOC_DAPM_POST_PMU | SND_SOC_DAPM_PRE_PMD),
+	SND_SOC_DAPM_PGA_S("DNS", SPRD_CODEC_DC_OS_ORDER,
+				SND_SOC_NOPM, 0, 0, dns_event,
+			    SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
 
 	/*
 	 * don't do cali on AA chip
@@ -2901,7 +3249,8 @@ static const struct snd_soc_dapm_route sprd_codec_intercon[] = {
 	{"SDM DC OS", NULL, "HP DEPOP"},
 
 	{"HPRCV COM Virt", NULL, "SDM DC OS"},
-	{"DAHP OS", NULL, "HPRCV COM Virt"},
+	{"DNS", NULL, "HPRCV COM Virt"},
+	{"DAHP OS", NULL, "DNS"},
 
 	{"DAHPL EN", NULL, "DAHP OS"},
 	{"DAHPL BUF DCCAL", NULL, "DAHPL EN"},

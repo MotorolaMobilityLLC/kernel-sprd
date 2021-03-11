@@ -21,7 +21,7 @@
 #include "agdsp_access.h"
 
 #define CODEC_DP_BASE		0x1000
-#define CODEC_AP_BASE		0x2000
+#define CODEC_AP_BASE		0x3000
 #define CODEC_AP_OFFSET		0
 
 /* AGCP AHB registers doesn't defined by global header file. So
