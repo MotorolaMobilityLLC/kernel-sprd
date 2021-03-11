@@ -196,13 +196,17 @@ static u32 ufs_sprd_get_ufs_hci_version(struct ufs_hba *hba)
 
 static int ufs_sprd_phy_sram_init_done(struct ufs_hba *hba)
 {
+	uint32_t ret = 0;
 	uint32_t val = 0;
 	uint32_t retry = 10;
 	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
 
 	do {
-		regmap_read(host->phy_sram_init_done.regmap,
-			    host->phy_sram_init_done.reg, &val);
+		ret = regmap_read(host->phy_sram_init_done.regmap,
+				  host->phy_sram_init_done.reg, &val);
+		if (ret < 0)
+			return ret;
+
 		if ((val&0x1) == 0x1) {
 			ufshcd_dme_set(hba, UIC_ARG_MIB(CBCREGADDRLSB), 0x1c);
 			ufshcd_dme_set(hba, UIC_ARG_MIB(CBCREGADDRMSB), 0x40);
