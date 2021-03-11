@@ -24,7 +24,7 @@
 // add LCD end
 #include "lcd/lcd_dummy_mipi.dtsi"
 /* Tinno add audio dts config */
-#include "ums512-1h10-audio-overlay.dtsi"
+/* #include "ums512-1h10-audio-overlay.dtsi" */
 
 / {
 
