@@ -216,6 +216,15 @@ void sipa_fill_free_fifo(u32 index)
 	struct sipa_skb_array *fill_array = receiver->fill_array[index];
 
 	atomic_inc(&receiver->check_flag);
+
+	if (atomic_read(&receiver->check_suspend)) {
+		dev_warn(receiver->dev,
+			 "encountered ipa suspend while fill free fifo cpu = %d\n",
+			 smp_processor_id());
+		atomic_dec(&receiver->check_flag);
+		return;
+	}
+
 	depth = receiver->ep->recv_fifo.rx_fifo.fifo_depth;
 	if (atomic_read(&fill_array->need_fill_cnt) > (depth - depth / 4)) {
 		dev_warn(receiver->dev,
@@ -344,12 +353,15 @@ struct sk_buff *sipa_recv_skb(struct sipa_skb_receiver *receiver,
 		receiver->fill_array[smp_processor_id()];
 
 	atomic_inc(&receiver->check_flag);
+
 	if (atomic_read(&receiver->check_suspend)) {
 		dev_warn(receiver->dev,
-			 "encountered ipa suspend while reading data\n");
+			 "encounter ipa suspend while reading data cpu = %d\n",
+			 smp_processor_id());
 		atomic_dec(&receiver->check_flag);
 		return NULL;
 	}
+
 	id = receiver->ep->recv_fifo.idx + smp_processor_id();
 	if (sipa_hal_get_tx_fifo_empty_status(receiver->dev, id)) {
 		atomic_dec(&receiver->check_flag);
@@ -440,6 +452,7 @@ static int sipa_fill_recv_thread(void *data)
 
 int sipa_receiver_prepare_suspend(struct sipa_skb_receiver *receiver)
 {
+	int i;
 	atomic_set(&receiver->check_suspend, 1);
 
 	if (atomic_read(&receiver->check_flag)) {
@@ -449,17 +462,24 @@ int sipa_receiver_prepare_suspend(struct sipa_skb_receiver *receiver)
 		return -EAGAIN;
 	}
 
-	if (!sipa_hal_get_tx_fifo_empty_status(receiver->dev,
-					       receiver->ep->recv_fifo.idx)) {
-		dev_err(receiver->dev, "sipa recv fifo %d tx fifo is not empty\n",
-			receiver->ep->recv_fifo.idx);
+	for (i = 0; i < SIPA_RECV_QUEUES_MAX; i++) {
+		if (!sipa_hal_get_tx_fifo_empty_status(receiver->dev,
+					receiver->ep->recv_fifo.idx + i)) {
+			dev_err(receiver->dev, "sipa recv fifo %d tx fifo is not empty\n",
+				receiver->ep->recv_fifo.idx);
+			atomic_set(&receiver->check_suspend, 0);
+			return -EAGAIN;
+		}
+	}
+
+	if (sipa_check_need_fill_cnt()) {
+		dev_err(receiver->dev, "task fill_recv %d\n",
+			receiver->ep->id);
 		atomic_set(&receiver->check_suspend, 0);
 		return -EAGAIN;
 	}
 
-	return sipa_hal_cmn_fifo_stop_recv(receiver->dev,
-					   receiver->ep->recv_fifo.idx,
-					   true);
+	return 0;
 }
 
 int sipa_receiver_prepare_resume(struct sipa_skb_receiver *receiver)

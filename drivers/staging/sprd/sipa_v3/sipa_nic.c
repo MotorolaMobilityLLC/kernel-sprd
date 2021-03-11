@@ -607,6 +607,11 @@ bool sipa_nic_check_recv_queue_empty(void)
 	struct sipa_plat_drv_cfg *ipa = sipa_get_ctrl_pointer();
 	enum sipa_cmn_fifo_index fifo_id;
 
+	if (ipa->enable_cnt == 0) {
+		dev_err(ipa->dev, "sipa check recv queue enable cnt is 0\n");
+		return true;
+	}
+
 	fifo_id = ipa->receiver->ep->recv_fifo.idx;
 	return sipa_hal_get_tx_fifo_empty_status(ipa->dev,
 						 fifo_id + smp_processor_id());
