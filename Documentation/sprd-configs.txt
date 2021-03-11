@@ -12119,8 +12119,8 @@ CONFIG_RPMB
 	[function] This function is used to support qogirl6
 CONFIG_RPMB_INTF_DEV
 	[arch] arm64
-	[plat] qogirl6
-	[missing plat] qogirn6pro,sharkl3,sharkl5,sharkl5Pro
+	[plat] qogirl6,qogirn6pro
+	[missing plat] sharkl3,sharkl5,sharkl5Pro
 	[field] make,code
 	[subsys] scsi
 	[must] user
