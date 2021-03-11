@@ -4327,7 +4327,7 @@ static int svm_set_msr(struct kvm_vcpu *vcpu, struct msr_data *msr)
 		    !guest_has_spec_ctrl_msr(vcpu))
 			return 1;
 
-		if (data & ~kvm_spec_ctrl_valid_bits(vcpu))
+		if (kvm_spec_ctrl_test_value(data))
 			return 1;
 
 		svm->spec_ctrl = data;
@@ -7104,7 +7104,6 @@ static int svm_register_enc_region(struct kvm *kvm,
 	region->uaddr = range->addr;
 	region->size = range->size;
 
-	mutex_lock(&kvm->lock);
 	list_add_tail(&region->list, &sev->regions_list);
 	mutex_unlock(&kvm->lock);
 

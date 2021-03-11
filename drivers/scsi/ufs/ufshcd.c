@@ -55,6 +55,9 @@
 #define CREATE_TRACE_POINTS
 #include <trace/events/ufs.h>
 
+#undef CREATE_TRACE_POINTS
+#include <trace/hooks/ufshcd.h>
+
 #define UFSHCD_ENABLE_INTRS	(UTP_TRANSFER_REQ_COMPL |\
 				 UTP_TASK_REQ_COMPL |\
 				 UFSHCD_ERROR_MASK)
@@ -349,6 +352,7 @@ static void ufshcd_add_tm_upiu_trace(struct ufs_hba *hba, unsigned int tag,
 	int off = (int)tag - hba->nutrs;
 	struct utp_task_req_desc *descp = &hba->utmrdl_base_addr[off];
 
+	trace_android_vh_ufs_send_tm_command(hba, tag, str);
 	trace_ufshcd_upiu(dev_name(hba->dev), str, &descp->req_header,
 			&descp->input_param1);
 }
@@ -358,6 +362,8 @@ static void ufshcd_add_uic_command_trace(struct ufs_hba *hba,
 					 const char *str)
 {
 	u32 cmd;
+
+	trace_android_vh_ufs_send_uic_command(hba, ucmd, str);
 
 	if (!trace_ufshcd_uic_command_enabled())
 		return;
@@ -2013,6 +2019,7 @@ void ufshcd_send_command(struct ufs_hba *hba, unsigned int task_tag)
 	lrbp->issue_time_stamp = ktime_get();
 	lrbp->compl_time_stamp = ktime_set(0, 0);
 	ufshcd_vops_setup_xfer_req(hba, task_tag, (lrbp->cmd ? true : false));
+	trace_android_vh_ufs_send_command(hba, lrbp);
 	ufshcd_add_command_trace(hba, task_tag, "send");
 	ufshcd_clk_scaling_start_busy(hba);
 	__set_bit(task_tag, &hba->outstanding_reqs);
@@ -2253,6 +2260,7 @@ static int ufshcd_map_sg(struct ufs_hba *hba, struct ufshcd_lrb *lrbp)
 	struct scsi_cmnd *cmd;
 	int sg_segments;
 	int i;
+	int err;
 
 	cmd = lrbp->cmd;
 	sg_segments = scsi_dma_map(cmd);
@@ -2284,7 +2292,9 @@ static int ufshcd_map_sg(struct ufs_hba *hba, struct ufshcd_lrb *lrbp)
 		lrbp->utr_descriptor_ptr->prd_table_length = 0;
 	}
 
-	return ufshcd_vops_fill_prdt(hba, lrbp, sg_segments);
+	err = 0;
+	trace_android_vh_ufs_fill_prdt(hba, lrbp, sg_segments, &err);
+	return err;
 }
 
 /**
@@ -2595,7 +2605,7 @@ static int ufshcd_queuecommand(struct Scsi_Host *host, struct scsi_cmnd *cmd)
 	lrbp->lun = ufshcd_scsi_to_upiu_lun(cmd->device->lun);
 	lrbp->intr_cmd = !ufshcd_is_intr_aggr_allowed(hba) ? true : false;
 
-	err = ufshcd_vops_prepare_command(hba, cmd->request, lrbp);
+	trace_android_vh_ufs_prepare_command(hba, cmd->request, lrbp, &err);
 	if (err) {
 		ufshcd_release(hba);
 		lrbp->cmd = NULL;
@@ -5119,6 +5129,7 @@ static void __ufshcd_transfer_req_compl(struct ufs_hba *hba,
 		lrbp = &hba->lrb[index];
 		cmd = lrbp->cmd;
 		if (cmd) {
+			trace_android_vh_ufs_compl_command(hba, lrbp);
 			ufshcd_add_command_trace(hba, index, "complete");
 			result = ufshcd_transfer_rsp_status(hba, lrbp);
 			scsi_dma_unmap(cmd);
@@ -5135,6 +5146,7 @@ static void __ufshcd_transfer_req_compl(struct ufs_hba *hba,
 			lrbp->command_type == UTP_CMD_TYPE_UFS_STORAGE) {
 			lrbp->compl_time_stamp = ktime_get();
 			if (hba->dev_cmd.complete) {
+				trace_android_vh_ufs_compl_command(hba, lrbp);
 				ufshcd_add_command_trace(hba, index,
 						"dev_complete");
 				complete(hba->dev_cmd.complete);
@@ -6220,6 +6232,8 @@ static irqreturn_t ufshcd_check_errors(struct ufs_hba *hba)
 		ufshcd_set_link_broken(hba);
 		queue_eh_work = true;
 	}
+
+	trace_android_vh_ufs_check_int_errors(hba, queue_eh_work);
 
 	if (queue_eh_work) {
 		/*
@@ -9201,7 +9215,6 @@ EXPORT_SYMBOL_GPL(ufshcd_remove);
  */
 void ufshcd_dealloc_host(struct ufs_hba *hba)
 {
-	ufshcd_crypto_destroy_keyslot_manager(hba);
 	scsi_host_put(hba->host);
 }
 EXPORT_SYMBOL_GPL(ufshcd_dealloc_host);
