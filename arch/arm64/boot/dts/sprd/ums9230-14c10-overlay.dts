@@ -6,6 +6,7 @@
 #include <dt-bindings/mfd/sprd,sc2730-regs.h>
 #include <dt-bindings/mfd/sprd,sc2730-mask.h>
 #include "lcd/lcd_nt36005b_mipi_hd.dtsi"
+#include "ums9230-wcn.dtsi"
 
 / {
 
