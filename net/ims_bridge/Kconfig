@@ -20,3 +20,9 @@ config SPRD_IMS_BRIDGE_TEST
 	  Support for ims bridge kernel test suite, the supported lists
 	  can be retrived by /d/ims_bridge/test-suite.
 	  If unsure, say N.
+
+config SPRD_IMS_BRIDGE_GCOV
+	bool "open gcov for ims stack bridge"
+	depends on GCOV_PROFILE_MODULES
+	help
+	  Say Y here to enable gcov for ims stack bridge

@@ -1,6 +1,7 @@
 #
 # Makefile for the ims bridge kernel modules
 #
+GCOV_PROFILE = ${CONFIG_SPRD_IMS_BRIDGE_GCOV}
 
 obj-$(CONFIG_SPRD_IMS_BRIDGE) += ims_bridge.o
 
