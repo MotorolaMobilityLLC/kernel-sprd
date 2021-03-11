@@ -64,7 +64,7 @@
 		};
 
 		ch_ddr_reserved: ch_ddr@ae600000 {
-			reg = <0x0 0xae600000 0x0 0x01000000>;
+			reg = <0x0 0xae600000 0x0 0x00300000>;
 		};
 
 		audio_reserved: audio-mem@af600000 {

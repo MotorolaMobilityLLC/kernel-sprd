@@ -150,8 +150,8 @@
 			reg = <0x0 0x87800000 0x0 0x00800000>;
 		};
 
-		sensorhub_reserved: sensorhub-mem@88000000 {
-			reg = <0x0 0x88000000 0x0 0x01000000>;
+		sp_ddr_reserved: sp-ddr-mem@88000000 {
+			reg = <0x0 0x88000000 0x0 0x00300000>;
 		};
 
 		audiodsp_reserved: audiodsp-mem@89000000 {
