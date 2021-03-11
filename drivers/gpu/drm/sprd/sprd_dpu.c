@@ -12,6 +12,7 @@
 #include <linux/of_irq.h>
 #include <linux/mm.h>
 #include <linux/sprd_iommu.h>
+#include <linux/memblock.h>
 
 #include <drm/drm_atomic_helper.h>
 #include <drm/drm_crtc_helper.h>
@@ -50,12 +51,45 @@ static void sprd_dpu_prepare_fb(struct sprd_crtc *crtc,
 	}
 }
 
+static unsigned long sprd_free_reserved_area(void *start, void *end, int poison, const char *s)
+{
+	void *pos;
+	unsigned long pages = 0;
+
+	start = (void *)PAGE_ALIGN((unsigned long)start);
+	end = (void *)((unsigned long)end & PAGE_MASK);
+	for (pos = start; pos < end; pos += PAGE_SIZE, pages++) {
+		struct page *page = virt_to_page(pos);
+		void *direct_map_addr;
+
+		/*
+		 * 'direct_map_addr' might be different from 'pos'
+		 * because some architectures' virt_to_page()
+		 * work with aliases.  Getting the direct map
+		 * address ensures that we get a _writeable_
+		 * alias for the memset().
+		 */
+		direct_map_addr = page_address(page);
+		if ((unsigned int)poison <= 0xFF)
+			memset(direct_map_addr, poison, PAGE_SIZE);
+
+		free_reserved_page(page);
+	}
+
+	if (pages && s)
+		pr_info("Freeing %s memory: %ldK\n",
+			s, pages << (PAGE_SHIFT - 10));
+
+	return pages;
+}
+
 static void sprd_dpu_cleanup_fb(struct sprd_crtc *crtc,
 				struct drm_plane_state *old_state)
 {
 	struct drm_gem_object *obj;
 	struct sprd_gem_obj *sprd_gem;
 	struct sprd_dpu *dpu = crtc->priv;
+	static atomic_t logo2animation = { -1 };
 	int i;
 
 	if (!dpu->ctx.enabled) {
@@ -67,6 +101,15 @@ static void sprd_dpu_cleanup_fb(struct sprd_crtc *crtc,
 		obj = drm_gem_fb_get_obj(old_state->fb, i);
 		sprd_gem = to_sprd_gem_obj(obj);
 		sprd_crtc_iommu_unmap(&dpu->dev, sprd_gem);
+	}
+
+	if (unlikely(atomic_inc_not_zero(&logo2animation)) &&
+		dpu->ctx.logo_addr) {
+		DRM_INFO("free logo memory addr:0x%lx size:0x%lx\n",
+			dpu->ctx.logo_addr, dpu->ctx.logo_size);
+		sprd_free_reserved_area(phys_to_virt(dpu->ctx.logo_addr),
+			phys_to_virt(dpu->ctx.logo_addr + dpu->ctx.logo_size),
+			-1, "logo");
 	}
 }
 
@@ -399,6 +442,34 @@ static int sprd_dpu_device_create(struct sprd_dpu *dpu,
 	return 0;
 }
 
+static int of_get_logo_memory_info(struct sprd_dpu *dpu,
+	struct device_node *np)
+{
+	struct device_node *node;
+	struct resource r;
+	int ret;
+	struct dpu_context *ctx = &dpu->ctx;
+
+	node = of_parse_phandle(np, "sprd,logo-memory", 0);
+	if (!node) {
+		DRM_INFO("no sprd,logo-memory specified\n");
+		return 0;
+	}
+
+	ret = of_address_to_resource(node, 0, &r);
+	of_node_put(node);
+	if (ret) {
+		DRM_ERROR("invalid logo reserved memory node!\n");
+		return -EINVAL;
+	}
+
+	ctx->logo_addr = r.start;
+	ctx->logo_size = resource_size(&r);
+
+	return 0;
+}
+
+
 static int sprd_dpu_context_init(struct sprd_dpu *dpu,
 				struct device_node *np)
 {
@@ -422,6 +493,8 @@ static int sprd_dpu_context_init(struct sprd_dpu *dpu,
 		DRM_ERROR("ioremap base address failed\n");
 		return -EFAULT;
 	}
+
+	of_get_logo_memory_info(dpu, np);
 
 	sema_init(&ctx->lock, 1);
 	init_waitqueue_head(&ctx->wait_queue);

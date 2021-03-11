@@ -132,6 +132,9 @@ struct dpu_context {
 
 	/* other specific parameters */
 	bool panel_ready;
+
+	unsigned long logo_addr;
+	unsigned long logo_size;
 };
 
 struct sprd_dpu_ops {
