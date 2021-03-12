@@ -6432,8 +6432,8 @@ CONFIG_GENERIC_PHY
 	[missing plat description] none
 	[function]
 CONFIG_GENERIC_PINCONF
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field] menu
 	[subsys] pinctrl
@@ -6450,8 +6450,8 @@ CONFIG_GENERIC_PINCTRL_GROUPS
 	[missing plat description] none
 	[function]
 CONFIG_GENERIC_PINMUX_FUNCTIONS
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field] make,core
 	[subsys] pinctrl
@@ -13480,8 +13480,8 @@ CONFIG_PID_IN_CONTEXTIDR
 	[missing plat description] none
 	[function] Write the current PID to the CONTEXTIDR register.
 CONFIG_PINCONF
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field] menu
 	[subsys] pinctrl
@@ -13516,14 +13516,23 @@ CONFIG_PINCTRL_SINGLE
 	[missing plat description] none
 	[function]
 CONFIG_PINCTRL_SPRD
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field] menu,make
 	[subsys] pinctrl
 	[must] user
 	[missing plat description] none
 	[function] Spreadtrum pinctrl driver.
+CONFIG_PINCTRL_SPRD_PIKE2
+	[arch] arm
+	[plat] pike2
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
 CONFIG_PINCTRL_SPRD_SHARKL3
 	[arch] arm64
 	[plat] sharkl3
@@ -13545,8 +13554,8 @@ CONFIG_PINCTRL_SPRD_SHARKL5PRO
 	and other projects have their own driver.
 	[function] Spreadtrum Sharkl5pro pinctrl driver
 CONFIG_PINMUX
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field] menu
 	[subsys] pinctrl
