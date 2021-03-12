@@ -44,7 +44,6 @@ static void __iomem *sprd_vsp_base;
 static void __iomem *vsp_glb_reg_base;
 
 static struct vsp_dev_t vsp_hw_dev;
-static struct wakeup_source vsp_wakelock;
 static atomic_t vsp_instance_cnt = ATOMIC_INIT(0);
 static char *vsp_clk_src[] = {
 	"clk_src_76m8",
@@ -112,7 +111,6 @@ static long vsp_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 
 	case VSP_ENABLE:
 		pr_debug("vsp ioctl VSP_ENABLE\n");
-		__pm_stay_awake(&vsp_wakelock);
 
 		ret = vsp_clk_enable(&vsp_hw_dev);
 		if (ret == 0)
@@ -127,7 +125,6 @@ static long vsp_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			vsp_fp->is_clock_enabled = 0;
 			vsp_clk_disable(&vsp_hw_dev);
 		}
-		__pm_relax(&vsp_wakelock);
 		break;
 
 	case VSP_ACQUAIRE:
@@ -359,7 +356,6 @@ static irqreturn_t vsp_isr(int irq, void *data)
 
 	if (vsp_fp == NULL) {
 		pr_err("%s error occurred, vsp_fp == NULL\n", __func__);
-		__pm_stay_awake(&vsp_wakelock);
 		return IRQ_WAKE_THREAD;
 	}
 
@@ -397,7 +393,6 @@ static irqreturn_t vsp_isr_thread(int irq, void *data)
 
 		vsp_clk_disable(&vsp_hw_dev);
 	}
-	__pm_relax(&vsp_wakelock);
 
 	return IRQ_HANDLED;
 }
@@ -588,7 +583,7 @@ static int vsp_open(struct inode *inode, struct file *filp)
 	vsp_fp->vsp_int_status = 0;
 	vsp_fp->condition_work = 0;
 
-	pm_runtime_get(vsp_hw_dev.vsp_dev);
+	pm_runtime_get_sync(vsp_hw_dev.vsp_dev);
 	//atomic_read(&vsp_hw_dev.vsp_dev->power.usage_count);
 
 	if (ret != 0) {
@@ -752,7 +747,7 @@ static int vsp_suspend(struct device *dev)
 
 static int vsp_resume(struct device *dev)
 {
-	pm_runtime_get(vsp_hw_dev.vsp_dev);
+	pm_runtime_get_sync(vsp_hw_dev.vsp_dev);
 	return 0;
 }
 
