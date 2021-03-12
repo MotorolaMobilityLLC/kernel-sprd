@@ -2311,7 +2311,7 @@ int mmc_blk_end_queued_req(struct mmc_host *host,
 		 * read a single sector.
 		 */
 		spin_lock_irqsave(&md->lock, flags);
-		ret = __blk_end_request(req, -EIO, brq->data.blksz);
+		ret = __blk_end_request(req, BLK_STS_IOERR, brq->data.blksz);
 		spin_unlock_irqrestore(&md->lock, flags);
 
 		mq->mqrq[index].req = NULL;
@@ -2351,7 +2351,7 @@ cmd_abort:
 	if (mmc_card_removed(card))
 		req->cmd_flags |= RQF_QUIET;
 	while (ret)
-		ret = __blk_end_request(req, -EIO,
+		ret = __blk_end_request(req, BLK_STS_IOERR,
 			blk_rq_cur_bytes(req));
 	spin_unlock_irq(&md->lock);
 
