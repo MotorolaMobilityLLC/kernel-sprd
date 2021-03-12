@@ -313,6 +313,20 @@ static void mdbg_dump_cp_register(struct wcn_dump_mem_reg *mem)
 	}
 }
 
+static void mdbg_dump_wifi_iram(struct wcn_dump_mem_reg *mem)
+{
+	u32 i;
+	int count;
+
+	for (i = WCN_DUMP_CP2_IRAM_START;
+		 i <= WCN_DUMP_CP2_IRAM_END - 1; i++) {
+		count = mdbg_dump_cp_register_data(mem[i].addr, mem[i].len);
+		WCN_INFO("dump iram section[%d] %d ok!\n", i, count);
+	}
+
+}
+
+
 static void mdbg_dump_iram(struct wcn_dump_mem_reg *mem)
 {
 	u32 i;
@@ -394,6 +408,19 @@ u32 mdbg_check_wifi_mac_phy(struct wcn_device *wcn_dev)
 			(need_dump_status & btwf_wrap_phy_mask));
 }
 
+u32 mdbg_check_gnss_poweron(struct wcn_device *wcn_dev)
+{
+	u32 need_dump_status = 0;
+	u32 gnss_poweron_mask = (0x6<<4);
+
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_APB],
+					0x03b0, &need_dump_status);
+	WCN_INFO("%s:0x03b0=0x%x\n", __func__, need_dump_status);
+
+	return (need_dump_status & gnss_poweron_mask);
+
+}
+
 static int btwf_dump_mem(void)
 {
 	u32 cp2_status = 0;
@@ -416,10 +443,23 @@ static int btwf_dump_mem(void)
 	mdbg_ring_reset(mdev_ring);
 	mdbg_atcmd_clean();
 	if (wcn_fill_dump_head_info(s_wcn_dump_regs,
-				    ARRAY_SIZE(s_wcn_dump_regs)))
+		ARRAY_SIZE(s_wcn_dump_regs)))
 		return -1;
+
 	mdbg_dump_share_memory(s_wcn_dump_regs);
-	mdbg_dump_iram(s_wcn_dump_regs);
+	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
+		if (mdbg_check_gnss_poweron(s_wcn_device.gnss_device)) {
+			mdbg_dump_iram(s_wcn_dump_regs);
+			WCN_INFO("dump iram ok!\n");
+		} else {
+			mdbg_dump_wifi_iram(s_wcn_dump_regs);
+			WCN_INFO("only dump WIFI iram ok!\n");
+		}
+	} else {
+		mdbg_dump_iram(s_wcn_dump_regs);
+		WCN_DEBUG("dump iram ok!\n");
+	}
+
 	mdbg_dump_ap_register(s_wcn_dump_regs);
 
 	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
