@@ -156,6 +156,10 @@
 	status = "okay";
 };
 
+&dmc_mpu {
+	status = "okay";
+};
+
 &uart0 {
 	status = "okay";
 };
