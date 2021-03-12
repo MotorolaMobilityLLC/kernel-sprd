@@ -12541,8 +12541,8 @@ CONFIG_SDCARD_FS
 	[function] sdcardfs support
 CONFIG_SDIOHAL
 	[arch] all
-	[plat] qogirn6pro,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,qogirl6,sharkl3,sharkl3_32,sharkle32
+	[plat] qogirl6,qogirn6pro,sharkl5,sharkl5Pro,sharkl5_32
+	[missing plat] pike2,sharkl3,sharkl3_32,sharkle32
 	[field] menu, make
 	[subsys] wcn
 	[must] user
@@ -15528,8 +15528,8 @@ CONFIG_UMW2631_I
 	[function] This function is used to support wcn umw2631_i chip
 CONFIG_UMW2652
 	[arch] all
-	[plat] qogirn6pro,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,qogirl6,sharkl3,sharkl3_32,sharkle32
+	[plat] qogirl6,qogirn6pro,sharkl5,sharkl5Pro,sharkl5_32
+	[missing plat] pike2,sharkl3,sharkl3_32,sharkle32
 	[field] menu
 	[subsys] wcn
 	[must] user
@@ -16498,8 +16498,8 @@ CONFIG_WATCHDOG_PRETIMEOUT_GOV_PANIC
 	[function] watchdog pretimeout gov panic
 CONFIG_WCN_BOOT
 	[arch] all
-	[plat] qogirn6pro,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,qogirl6,sharkl3,sharkl3_32,sharkle32
+	[plat] qogirl6,qogirn6pro,sharkl5,sharkl5Pro,sharkl5_32
+	[missing plat] pike2,sharkl3,sharkl3_32,sharkle32
 	[field] make
 	[subsys] wcn
 	[must] user
@@ -16546,8 +16546,8 @@ CONFIG_WCN_SIPC
 	[function] WCN integration chip 2342 sipc Support
 CONFIG_WCN_SLP
 	[arch] all
-	[plat] qogirn6pro,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,qogirl6,sharkl3,sharkl3_32,sharkle32
+	[plat] qogirl6,qogirn6pro,sharkl5,sharkl5Pro,sharkl5_32
+	[missing plat] pike2,sharkl3,sharkl3_32,sharkle32
 	[field] make
 	[subsys] wcn
 	[must] user
