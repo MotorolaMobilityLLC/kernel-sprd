@@ -14211,6 +14211,15 @@ CONFIG_SPRD_MINI_SYSDUMP
 	[must] user
 	[missing plat description] none
 	[function] This function is used to enable sprd brife sysdump feature
+CONFIG_SPRD_MIPI_LOG_QOGIRN6PRO
+	[arch] arm64
+	[plat] qogirn6pro
+	[missing plat] qogirl6,sharkl3,sharkl5,sharkl5Pro
+	[field] code
+	[subsys] staging
+	[must] debug
+	[missing plat description] SPRD_MIPI_SWITCH is just for qogirn6Pro and other projects have their own driver.
+	[function] This function is used to enable set MIPI level and voltage function for debug_log.
 CONFIG_SPRD_MIPI_LOG_R2P0
 	[arch] arm
 	[plat] sharkle32
@@ -14232,8 +14241,8 @@ CONFIG_SPRD_MIPI_LOG_R4P2
 	[function] This function is used to enable modem MIPI log function for modem log capture.
 CONFIG_SPRD_MIPI_LOG_R5P0
 	[arch] arm64
-	[plat] qogirn6pro,sharkl5,sharkl5Pro
-	[missing plat] qogirl6,sharkl3
+	[plat] sharkl5,sharkl5Pro
+	[missing plat] qogirl6,qogirn6pro,sharkl3
 	[field] make
 	[subsys] staging
 	[must] debug
@@ -14250,8 +14259,8 @@ CONFIG_SPRD_MIPI_LOG_R5P1
 	[function] This function is used to enable modem MIPI log function for modem log capture.
 CONFIG_SPRD_MIPI_SWITCH
 	[arch] arm64
-	[plat] qogirn6pro,sharkl5Pro
-	[missing plat] qogirl6,sharkl3,sharkl5
+	[plat] sharkl5Pro
+	[missing plat] qogirl6,qogirn6pro,sharkl3,sharkl5
 	[field] code
 	[subsys] staging
 	[must] debug

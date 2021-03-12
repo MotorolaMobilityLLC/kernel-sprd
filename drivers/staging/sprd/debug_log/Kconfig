@@ -56,6 +56,12 @@ config SPRD_MIPI_LOG_R5P1
 	  Just for sprd D-PHY that support SerDes R5P1 and CSI_DSI TWPLL
 	  Say Y here to support R5P1 MIPI LOG support.
 
+config SPRD_MIPI_LOG_QOGIRN6PRO
+	tristate "Spreadtrum SoC Modem Debug Log Driver_qogirn6pro"
+	help
+	  Just for sprd D-PHY that support SerDes qogirn6pro and CSI_DSI TWPLL
+	  Say Y here to support qogirn6pro MIPI LOG support.
+
 config SPRD_MIPI_SWITCH
 	tristate "Spreadtrum SoC Modem Debug Log MIPI_SWITCH"
 	help
