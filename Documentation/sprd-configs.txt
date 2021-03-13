@@ -1997,6 +1997,15 @@ CONFIG_CHARGER_BQ2560X
 	[must] user
 	[missing plat description] Not used in the project, so no configuration
 	[function] This function is used to enable charge
+CONFIG_CHARGER_BQ25890
+	[arch] arm64
+	[plat] qogirl6
+	[missing plat] sharkl3,sharkl5,sharkl5Pro
+	[field] make
+	[subsys] power
+	[must] user
+	[missing plat description] Not used in the project, so no configuration
+	[function] This function is used to enable charge
 CONFIG_CHARGER_BQ2597X
 	[arch] arm64
 	[plat] qogirl6,qogirn6pro
