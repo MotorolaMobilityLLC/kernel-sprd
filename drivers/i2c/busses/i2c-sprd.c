@@ -12,11 +12,13 @@
 #include <linux/init.h>
 #include <linux/interrupt.h>
 #include <linux/kernel.h>
+#include <linux/mfd/syscon.h>
 #include <linux/module.h>
 #include <linux/of.h>
 #include <linux/of_device.h>
 #include <linux/platform_device.h>
 #include <linux/pm_runtime.h>
+#include <linux/regmap.h>
 
 #define I2C_CTL			0x00
 #define I2C_ADDR_CFG		0x04
@@ -74,6 +76,12 @@
 
 /* timeout (ms) for pm runtime autosuspend */
 #define SPRD_I2C_PM_TIMEOUT	1000
+#define I2C_XFER_TIMEOUT	10000
+struct sprd_syscon_i2c {
+	struct regmap *regmap;
+	u32 reg;
+	u32 mask;
+};
 
 /* SPRD i2c data structure */
 struct sprd_i2c {
@@ -90,6 +98,7 @@ struct sprd_i2c {
 	int irq;
 	int err;
 	bool is_suspended;
+	struct sprd_syscon_i2c i2c_syscon_rst;
 };
 
 static void sprd_i2c_set_count(struct sprd_i2c *i2c_dev, u32 count)
@@ -112,6 +121,14 @@ static void sprd_i2c_clear_start(struct sprd_i2c *i2c_dev)
 	u32 tmp = readl(i2c_dev->base + I2C_CTL);
 
 	writel(tmp & ~I2C_START, i2c_dev->base + I2C_CTL);
+}
+
+static int sprd_i2c_get_ack_busy(struct sprd_i2c *i2c_dev)
+{
+	bool ack = (readl(i2c_dev->base + I2C_STATUS) & I2C_RX_ACK);
+	bool busy = !(readl(i2c_dev->base + I2C_STATUS) & SCL_IN);
+
+	return busy && ack;
 }
 
 static void sprd_i2c_clear_ack(struct sprd_i2c *i2c_dev)
@@ -247,6 +264,7 @@ static int sprd_i2c_handle_msg(struct i2c_adapter *i2c_adap,
 			       struct i2c_msg *msg, bool is_last_msg)
 {
 	struct sprd_i2c *i2c_dev = i2c_adap->algo_data;
+	unsigned long time_left;
 
 	i2c_dev->msg = msg;
 	i2c_dev->buf = msg->buf;
@@ -276,7 +294,10 @@ static int sprd_i2c_handle_msg(struct i2c_adapter *i2c_adap,
 
 	sprd_i2c_opt_start(i2c_dev);
 
-	wait_for_completion(&i2c_dev->complete);
+	time_left = wait_for_completion_timeout(&i2c_dev->complete,
+				msecs_to_jiffies(I2C_XFER_TIMEOUT));
+	if (!time_left)
+		return -EIO;
 
 	return i2c_dev->err;
 }
@@ -369,6 +390,20 @@ static void sprd_i2c_enable(struct sprd_i2c *i2c_dev)
 	writel(tmp | I2C_EN | I2C_INT_EN | I2C_TRANS_EN | I2C_NACK_EN, i2c_dev->base + I2C_CTL);
 }
 
+static void sprd_i2c_reset(struct sprd_i2c *i2c_dev)
+{
+	regmap_update_bits(i2c_dev->i2c_syscon_rst.regmap,
+			   i2c_dev->i2c_syscon_rst.reg,
+			   i2c_dev->i2c_syscon_rst.mask,
+			   i2c_dev->i2c_syscon_rst.mask);
+
+	regmap_update_bits(i2c_dev->i2c_syscon_rst.regmap,
+			   i2c_dev->i2c_syscon_rst.reg,
+			   i2c_dev->i2c_syscon_rst.mask,
+			   0);
+	sprd_i2c_enable(i2c_dev);
+}
+
 static irqreturn_t sprd_i2c_isr_thread(int irq, void *dev_id)
 {
 	struct sprd_i2c *i2c_dev = dev_id;
@@ -419,6 +454,7 @@ static irqreturn_t sprd_i2c_isr(int irq, void *dev_id)
 	struct i2c_msg *msg = i2c_dev->msg;
 	bool ack = !(readl(i2c_dev->base + I2C_STATUS) & I2C_RX_ACK);
 	u32 i2c_tran;
+	int ret;
 
 	if (msg->flags & I2C_M_RD)
 		i2c_tran = i2c_dev->count >= I2C_FIFO_FULL_THLD;
@@ -436,6 +472,10 @@ static irqreturn_t sprd_i2c_isr(int irq, void *dev_id)
 	 * means we can read all data in one time, then we can finish this
 	 * transmission too.
 	 */
+	ret = sprd_i2c_get_ack_busy(i2c_dev);
+	if (ret)
+		sprd_i2c_reset(i2c_dev);
+
 	if (!i2c_tran || !ack) {
 		sprd_i2c_clear_start(i2c_dev);
 		sprd_i2c_clear_irq(i2c_dev);
@@ -484,6 +524,36 @@ static int sprd_i2c_clk_init(struct sprd_i2c *i2c_dev)
 	return 0;
 }
 
+static int  sprd_get_i2c_syscon_reg(struct device_node *np,
+				    struct sprd_syscon_i2c *reg, const char *name)
+{
+	struct regmap *regmap;
+	u32 syscon_args[2];
+	int ret;
+
+	regmap = syscon_regmap_lookup_by_name(np, name);
+	if (IS_ERR(regmap)) {
+		pr_warn("read i2c syscons %s regmap fail\n", name);
+		reg->regmap = NULL;
+		reg->reg = 0x0;
+		reg->mask = 0x0;
+		return -EINVAL;
+	}
+
+	ret = syscon_get_args_by_name(np, name, 2, syscon_args);
+	if (ret < 0)
+		return ret;
+	else if (ret != 2) {
+		pr_err("read i2c syscons dts %s fail,ret = %d\n", name, ret);
+		return -EINVAL;
+	}
+	reg->regmap = regmap;
+	reg->reg = syscon_args[0];
+	reg->mask = syscon_args[1];
+
+	return 0;
+}
+
 static int sprd_i2c_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
@@ -508,6 +578,10 @@ static int sprd_i2c_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "failed to get irq resource\n");
 		return i2c_dev->irq;
 	}
+
+	ret = sprd_get_i2c_syscon_reg(dev->of_node, &i2c_dev->i2c_syscon_rst, "i2c_rst");
+	if (ret)
+		return ret;
 
 	i2c_set_adapdata(&i2c_dev->adap, i2c_dev);
 	init_completion(&i2c_dev->complete);
