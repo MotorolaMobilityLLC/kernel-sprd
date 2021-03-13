@@ -69,14 +69,38 @@ struct sprd_efuse {
 	const struct sprd_efuse_variant_data *data;
 };
 
+static const struct sprd_efuse_variant_data qogirn6pro_data = {
+	.blk_nums = 51,
+	.blk_offset = 53,
+	.blk_double = true,
+};
+
 static const struct sprd_efuse_variant_data ums312_data = {
-	.blk_nums = SPRD_EFUSE_NORMAL_BLOCK_NUMS,
-	.blk_offset = SPRD_EFUSE_NORMAL_BLOCK_OFFSET,
+	.blk_nums = 24,
+	.blk_offset = 72,
 	.blk_double = false,
+};
+
+static const struct sprd_efuse_variant_data roc1_data = {
+	.blk_nums = 43,
+	.blk_offset = 37,
+	.blk_double = true,
 };
 
 static const struct sprd_efuse_variant_data sharkl3_data = {
 	.blk_nums = 11,
+	.blk_offset = 36,
+	.blk_double = true,
+};
+
+static const struct sprd_efuse_variant_data orca_data = {
+	.blk_nums = 45,
+	.blk_offset = 2,
+	.blk_double = true,
+};
+
+static const struct sprd_efuse_variant_data pike2_data = {
+	.blk_nums = 12,
 	.blk_offset = 36,
 	.blk_double = true,
 };
@@ -314,7 +338,9 @@ static int sprd_efuse_read(void *context, u32 offset, void *val, size_t bytes)
 	if (ret)
 		goto unlock;
 
-	if (of_device_is_compatible(efuse->dev->of_node, "sprd,sharkl3-efuse")) {
+	if (of_device_is_compatible(efuse->dev->of_node, "sprd,sharkl3-efuse") ||
+	    of_device_is_compatible(efuse->dev->of_node, "sprd,ums312-efuse") ||
+	    of_device_is_compatible(efuse->dev->of_node, "sprd,orca-efuse")) {
 		if (index == 95 || index == 94)
 			blk_double = 0;
 	}
@@ -435,6 +461,10 @@ static int sprd_efuse_probe(struct platform_device *pdev)
 static const struct of_device_id sprd_efuse_of_match[] = {
 	{ .compatible = "sprd,ums312-efuse", .data = &ums312_data },
 	{ .compatible = "sprd,sharkl3-efuse", .data = &sharkl3_data },
+	{ .compatible = "sprd,roc1-efuse", .data = &roc1_data },
+	{ .compatible = "sprd,orca-efuse", .data = &orca_data },
+	{ .compatible = "sprd,pike2-efuse", .data = &pike2_data },
+	{ .compatible = "sprd,qogirn6pro-efuse", .data = &qogirn6pro_data },
 	{ }
 };
 
