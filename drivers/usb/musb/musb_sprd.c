@@ -414,6 +414,10 @@ static struct musb_hdrc_config sprd_musb_hdrc_config = {
 };
 #pragma GCC diagnostic pop
 
+#ifdef CONFIG_TOUCHSCREEN_HIMAX_CHIPSET
+extern bool USB_detect_flag;
+#endif
+
 static int musb_sprd_vbus_notifier(struct notifier_block *nb,
 				unsigned long event, void *data)
 {
@@ -451,7 +455,9 @@ static int musb_sprd_vbus_notifier(struct notifier_block *nb,
 		dev_info(glue->dev,
 			"device disconnect detected from VBUS GPIO.\n");
 	}
-
+#ifdef CONFIG_TOUCHSCREEN_HIMAX_CHIPSET
+	USB_detect_flag = glue->vbus_active;
+#endif
 	return 0;
 }
 
@@ -492,6 +498,9 @@ static int musb_sprd_id_notifier(struct notifier_block *nb,
 		dev_info(glue->dev,
 			"host disconnect detected from ID GPIO.\n");
 	}
+#ifdef CONFIG_TOUCHSCREEN_HIMAX_CHIPSET
+	USB_detect_flag = glue->vbus_active;
+#endif
 
 	return 0;
 }

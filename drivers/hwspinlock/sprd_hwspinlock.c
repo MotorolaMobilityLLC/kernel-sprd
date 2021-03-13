@@ -35,8 +35,6 @@
 
 /* unlocked value */
 #define HWSPINLOCK_NOTTAKEN		0x55aa10c5
-/* bits definition of RECCTRL reg */
-#define HWSPINLOCK_USER_BITS		0x1
 
 /* hwspinlock number */
 #define SPRD_HWLOCKS_NUM		32
@@ -116,9 +114,6 @@ static int sprd_hwspinlock_probe(struct platform_device *pdev)
 	}
 
 	clk_prepare_enable(sprd_hwlock->clk);
-
-	/* set the hwspinlock to record user id to identify subsystems */
-	writel(HWSPINLOCK_USER_BITS, sprd_hwlock->base + HWSPINLOCK_RECCTRL);
 
 	for (i = 0; i < SPRD_HWLOCKS_NUM; i++) {
 		lock = &sprd_hwlock->bank.lock[i];

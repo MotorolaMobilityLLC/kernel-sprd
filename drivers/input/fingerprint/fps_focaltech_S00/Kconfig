@@ -1,0 +1,13 @@
+if INPUT_FINGERPRINT
+config FPS_FOCALTECH_S00
+	tristate "focaltech fingureprint driver"
+	depends on SPI
+	default n
+	---help---
+	  focaltech fingureprint driver.
+	  This is a driver based on the SPI kernel layers.
+
+	  To compile this driver as a module, choose m here. The module will
+	  be called fpsensor.
+	  Say N if unsure.
+endif

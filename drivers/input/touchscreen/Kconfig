@@ -1248,4 +1248,100 @@ config TOUCHSCREEN_ROHM_BU21023
 	  To compile this driver as a module, choose M here: the
 	  module will be called bu21023_ts.
 
+config TOUCHSCREEN_GT9XX_TS
+	tristate "GT9XX TS Touchscreen interface support"
+	depends on I2C
+	help
+	  Say Y here if enable support for the Goodix GT9XX multi fingers
+	  touchscreen controller.
+
+	  If unsure, say N.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called gt9xx_ts.
+
+config TOUCHSCREEN_GT9XX_UPDATE
+	tristate "Goodix GT9xx touch controller auto update support"
+	depends on TOUCHSCREEN_GT9XX_TS
+	default y
+	help
+	  Enable this for support firmware update.
+
+	  Say Y here if you want update touch controller firmware.
+
+	  If unsure, say N.
+
+config TOUCHSCREEN_GT9XX_TOOL
+	tristate "Goodix GT9xx Tools for debuging"
+	depends on TOUCHSCREEN_GT9XX_TS
+	default y
+	help
+	  This implement interface support for Goodix GT9xx
+	  touchscreen debug.
+
+	  Say Y here if you want to have a Android app debug interface
+	  to your system.
+
+	  If unsure, say N.
+
+config TOUCHSCREEN_CHIPONE
+        tristate "Chipone TDDI touchscreen for QualComm package"
+        depends on I2C
+        default n
+        help
+          Say y here if you have chipone TDDI touch panel.
+
+          If unsure, say N.
+
+          To compile this driver as a module, choose M here: the
+          module will be called chipone-tddi.
+
+config TOUCHSCREEN_CHIPONE_SPI
+        tristate "Chipone TDDI touchscreen for QualComm package"
+        depends on SPI
+        default n
+        help
+          Say y here if you have chipone TDDI touch panel.
+
+          If unsure, say N.
+
+          To compile this driver as a module, choose M here: the
+          module will be called chipone-tddi.
+
+config TOUCHSCREEN_ILI9882N_SKY
+        tristate "ili9882N TDDI touchscreen for QualComm package"
+        depends on I2C
+        default n
+        help
+          Say y here if you have chipone TDDI touch panel.
+
+          If unsure, say N.
+
+          To compile this driver as a module, choose M here: the
+          module will be called ili9882n-tddi.
+config TOUCHSCREEN_ILI9882H_SKY_SPI
+        tristate "ili9882H TDDI touchscreen for QualComm package"
+        depends on SPI
+        default n
+        help
+          Say y here if you have chipone TDDI touch panel.
+
+          If unsure, say N.
+
+          To compile this driver as a module, choose M here: the
+          module will be called ili9882h-tddi.
+config TOUCHSCREEN_HIMAX_CHIPSET
+        tristate "HX83102D  touchscreen for QualComm package"
+        depends on SPI
+        default n
+        help
+          Say y here if you have chipone touch panel.
+
+          If unsure, say N.
+
+          To compile this driver as a module, choose M here: the
+          module will be called HX83102D.
+
+source drivers/input/touchscreen/hxchipset/Kconfig
+
 endif
