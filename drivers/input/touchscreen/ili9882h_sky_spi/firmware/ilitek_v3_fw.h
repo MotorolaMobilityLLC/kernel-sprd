@@ -93,7 +93,7 @@ static unsigned char CTPM_FW_TM[] = {
 #define TM_INI_REQUEST_PATH1		"mp_tm_7806s.ini"
 #define TM_FW_REQUEST_PATH1		"ILITEK_FW_TM1"
 static unsigned char CTPM_FW_TM1[] = {
-	#include "tianma/ili7806s/440_CZ3_TM_TM_652_LongH_V0x10.0x28.0x02_AP_0x01_MP_20210305.ili"
+	#include "tianma/ili7806s/440_CZ3_TM_TM_652_LongH_V0x10.0x28.0x03_AP_0x01_MP_20210312.ili"
 };
 
 #endif
