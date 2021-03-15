@@ -23,6 +23,13 @@ struct sprd_dmpu_violate {
 	u64 addr;
 };
 
+struct sprd_dmpu_remap {
+	u32 rf_mpu_en;
+	u32 rf_mpu_en_bit;
+	u32 ddrc_lock;
+	u32 ddrc_lock_value;
+};
+
 struct sprd_dmpu_chn_cfg {
 	u32 en;
 	u32 include;
@@ -60,6 +67,7 @@ struct sprd_dmpu_core {
 	struct sprd_dmpu_info *mpu_info;
 	struct sprd_dmpu_chn_cfg *cfg;
 	struct sprd_dmpu_ops *ops;
+	struct sprd_dmpu_remap *remap_cfg;
 };
 
 #define SPRD_MPU_W_MODE			0x1
