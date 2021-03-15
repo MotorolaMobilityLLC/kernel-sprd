@@ -45,4 +45,12 @@ config SPRD_SC7731E_CLK
 	help
 	  Support for the global clock controller on sc7731e devices.
 	  Say Y if you want to use peripheral devices on sc7731e SoC.
+
+config SPRD_SC9832E_CLK
+	tristate "Support for the Unisoc SC9832E clocks"
+	depends on (ARM && ARCH_SPRD) || COMPILE_TEST
+	default ARM && ARCH_SPRD
+	help
+	  Support for the global clock controller on sc9832e devices.
+	  Say Y if you want to use peripheral devices on sc9832e SoC.
 endif

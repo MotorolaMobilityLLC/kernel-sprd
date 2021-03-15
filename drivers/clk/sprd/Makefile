@@ -14,3 +14,4 @@ obj-$(CONFIG_SPRD_SC9863A_CLK)		+= sc9863a-clk.o
 obj-$(CONFIG_SPRD_UMS512_CLK)		+= ums512-clk.o
  obj-$(CONFIG_SPRD_UMS9230_CLK)		+= ums9230-clk.o
 obj-$(CONFIG_SPRD_SC7731E_CLK)		+= sc7731e-clk.o
+obj-$(CONFIG_SPRD_SC9832E_CLK)		+= sc9832e-clk.o
