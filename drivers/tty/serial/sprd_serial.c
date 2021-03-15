@@ -1191,7 +1191,7 @@ static int sprd_clk_init(struct uart_port *uport)
 		clk_parent = NULL;
 	}
 
-	if (!clk_uart || clk_set_parent(clk_uart, clk_parent))
+	if (!clk_uart || !clk_parent || clk_set_parent(clk_uart, clk_parent))
 		uport->uartclk = SPRD_DEFAULT_SOURCE_CLK;
 	else
 		uport->uartclk = clk_get_rate(clk_uart);
