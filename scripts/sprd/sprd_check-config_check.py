@@ -26,7 +26,7 @@ all_plat = []
 l_sprdconfig = []
 l_defproject = []
 l_diffconfig = []
-android_version = 'androidr'
+android_version = 'androids'
 
 d_defconfig_path = {
         'kernel5.4':{
