@@ -146,7 +146,7 @@ static struct nu1619_rx *g_chip;
 
 static int nu1619_rx_read(struct nu1619_rx *chip, u8 *val, u16 addr)
 {
-	unsigned int temp;
+	unsigned int temp = 0;
 	int rc;
 
 	rc = regmap_read(chip->regmap, addr, &temp);
@@ -194,7 +194,7 @@ static void write_cmd_d(struct nu1619_rx *chip, u8 val)
 static u8 nu1619_rx_get_rx_rpp_type(struct nu1619_rx *chip)
 {
 	u8 rpp_type = 0;
-	u8 read_buffer[3];
+	u8 read_buffer[3] = {0};
 
 	nu1619_rx_write(chip, NU1619_RX_CMD_RPP_TYPE, NU1619_RX_REG_0C);
 	nu1619_read_rx_buffer(chip, read_buffer, NU1619_RX_REG_08, 3);
@@ -206,12 +206,18 @@ static u8 nu1619_rx_get_rx_rpp_type(struct nu1619_rx *chip)
 
 static int nu1619_rx_read_C_team_reg(struct nu1619_rx *chip, u8 cmd, u8 *data1, u8 *data2)
 {
-	u8 read_buffer[3];
+	u8 read_buffer[3] = {0};
 	u8 rty_count = 0;
 	int ret;
 
+	*data1 = 0;
+	*data2 = 0;
+
 retry:
 	ret = nu1619_rx_write(chip, cmd, NU1619_RX_REG_0C);
+	if (ret)
+		return ret;
+
 	ret = nu1619_read_rx_buffer(chip, read_buffer, NU1619_RX_REG_08, 3);
 
 	if (read_buffer[0] == (cmd ^ 0x80)) {
@@ -281,7 +287,7 @@ static int nu1619_rx_set_vtx(struct nu1619_rx *chip, u32 volt)
 {
 	u8 value_h, value_l, ret;
 
-	if ((volt < NU1619_RX_VTX_MIN) && (volt > NU1619_RX_VTX_MAX))
+	if ((volt < NU1619_RX_VTX_MIN) || (volt > NU1619_RX_VTX_MAX))
 		volt = NU1619_RX_VTX_DEFAULT;
 
 	dev_info(chip->dev, "[rx1619] [%s] Vtx = %d\n", __func__, volt);
@@ -289,6 +295,9 @@ static int nu1619_rx_set_vtx(struct nu1619_rx *chip, u32 volt)
 	value_h = (u8)(volt >> 8);
 	value_l = (u8)(volt & 0xFF);
 	ret = nu1619_rx_write(chip, value_h, NU1619_RX_REG_01);
+	if (ret)
+		return ret;
+
 	ret = nu1619_rx_write(chip, value_l, NU1619_RX_REG_00);
 	write_cmd_d(chip, NU1619_RX_CMD_SET_VTX);
 
@@ -310,11 +319,19 @@ static int nu1619_rx_set_vout(struct nu1619_rx *chip, u32 volt)
 	vout_h = (u8)(volt >> 8);
 	vout_l = (u8)(volt & 0xFF);
 	ret = nu1619_rx_write(chip, vout_h, NU1619_RX_REG_00);
+	if (ret)
+		return ret;
+
 	ret = nu1619_rx_write(chip, vout_l, NU1619_RX_REG_01);
+	if (ret)
+		return ret;
 
 	vrect_h = (u8)((volt + NU1619_RX_VDROP_MV) >> 8);
 	vrect_l = (u8)((volt + NU1619_RX_VDROP_MV) & 0xFF);
 	ret = nu1619_rx_write(chip, vrect_h, NU1619_RX_REG_02);
+	if (ret)
+		return ret;
+
 	ret = nu1619_rx_write(chip, vrect_l, NU1619_RX_REG_03);
 
 	write_cmd_d(chip, NU1619_RX_CMD_SET_VOLT);
@@ -328,7 +345,7 @@ static int nu1619_rx_set_vout(struct nu1619_rx *chip, u32 volt)
 static u8 nu1619_rx_get_cep_value(struct nu1619_rx *chip)
 {
 	int cep = 0;
-	u8 read_buffer[3];
+	u8 read_buffer[3] = {0};
 
 	nu1619_rx_write(chip, NU1619_RX_CMD_READ_CEP, NU1619_RX_REG_0C);
 	nu1619_read_rx_buffer(chip, read_buffer, NU1619_RX_REG_08, 3);
@@ -426,6 +443,11 @@ static int nu1619_rx_write_firmware_data(struct nu1619_rx *chip, u16 addr, u16 l
 		fw_data = fw_data_rx;
 	if (addr == 4864)
 		fw_data = fw_data_tx;
+
+	if (!fw_data) {
+		dev_err(chip->dev, "[rx1619] [%s] fw_data is null\n", __func__);
+		return -EINVAL;
+	}
 
 	dev_info(chip->dev, "[rx1619] [%s] addr=%d length=%d\n", __func__, addr, length);
 
@@ -560,8 +582,8 @@ static bool nu1619_req_checksum_and_fw_version(struct nu1619_rx *chip, u8 *boot_
 					       u8 *rx_check_sum, u8 *tx_check_sum,
 					       u8 *boot_ver, u8 *rx_ver, u8 *tx_ver)
 {
-	u8 read_buffer1[5];
-	u8 read_buffer2[5];
+	u8 read_buffer1[5] = {0};
+	u8 read_buffer2[5] = {0};
 
 	nu1619_rx_write(chip, 0x21, NU1619_RX_REG_0D);
 	msleep(20);
@@ -660,6 +682,11 @@ static u32 nu1619_rx_check_firmware_area(struct nu1619_rx *chip, u8 area)
 		addr = 4864;
 		g_fw_data_length = sizeof(fw_data_tx);
 		fw_data = fw_data_tx;
+	}
+
+	if (!fw_data) {
+		dev_err(chip->dev, "[rx1619] [%s] fw_data is null\n", __func__);
+		return false;
 	}
 
 	/* prepare_for_mtp_read */
@@ -1333,7 +1360,7 @@ static ssize_t chip_vtx_store(struct device *dev,
 			      size_t count)
 {
 	int ret;
-	unsigned long index;
+	unsigned long index = 0;
 	struct nu1619_rx *chip = g_chip;
 
 	if (!chip)
@@ -1363,7 +1390,7 @@ static ssize_t chip_vout_store(struct device *dev,
 			       size_t count)
 {
 	int ret;
-	unsigned long index;
+	unsigned long index = 0;
 	struct nu1619_rx *chip = g_chip;
 
 	if (!chip)
@@ -1409,7 +1436,7 @@ static ssize_t chip_debug_store(struct device *dev,
 				size_t count)
 {
 	int ret;
-	unsigned long index;
+	unsigned long index = 0;
 	struct nu1619_rx *chip = g_chip;
 
 	if (!chip)
@@ -1547,6 +1574,9 @@ static int nu1619_wireless_set_property(struct power_supply *psy,
 	int ret = 0;
 	struct nu1619_rx *chip = power_supply_get_drvdata(psy);
 
+	if (!chip)
+		return -EINVAL;
+
 	switch (prop) {
 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE:
 		ret = nu1619_rx_set_vout(chip, (u32)val->intval);
@@ -1567,6 +1597,9 @@ static int nu1619_wireless_get_property(struct power_supply *psy,
 	int ret = 0;
 	u8 rpp_type;
 	struct nu1619_rx *chip = power_supply_get_drvdata(psy);
+
+	if (!chip)
+		return -EINVAL;
 
 	switch (prop) {
 	case POWER_SUPPLY_PROP_ONLINE:
