@@ -529,6 +529,9 @@ static int hl1506_charger_get_property(struct power_supply *psy,
 	u32 cur;
 	int ret = 0;
 
+	if (!info)
+		return -EINVAL;
+
 	mutex_lock(&info->lock);
 
 	switch (psp) {
@@ -556,6 +559,9 @@ static int hl1506_charger_set_property(struct power_supply *psy,
 {
 	struct hl1506_charger_info *info = power_supply_get_drvdata(psy);
 	int ret = 0;
+
+	if (!info)
+		return -EINVAL;
 
 	mutex_lock(&info->lock);
 
