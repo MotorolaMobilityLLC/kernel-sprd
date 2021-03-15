@@ -70,6 +70,7 @@ static struct hw_sensor_id_tag hw_sensor_id[_HW_SENSOR_TOTAL] = {
 	{0, 0xFF, 0xFF, ""},
 	{0, 0xFF, 0xFF, ""},
 	{0, 0xFF, 0xFF, ""},
+	{0, 0xFF, 0xFF, ""},
 };
 
 const char calibration_filename[SENSOR_ID_END][CALIB_PATH_MAX_LENG] = {
@@ -81,7 +82,8 @@ const char calibration_filename[SENSOR_ID_END][CALIB_PATH_MAX_LENG] = {
 	"light",
 	"pressure",
 	"tempreature",
-	"proximity"
+	"proximity",
+	"colortemp"
 };
 
 static int debug_flag;
@@ -99,6 +101,7 @@ static char *mag_firms[MAX_COMPATIBLE_SENSORS];
 static char *light_firms[MAX_COMPATIBLE_SENSORS];
 static char *prox_firms[MAX_COMPATIBLE_SENSORS];
 static char *pressure_firms[MAX_COMPATIBLE_SENSORS];
+static char *color_temp_firms[MAX_COMPATIBLE_SENSORS];
 module_param(sensor_fusion_mode, uint, 0644);
 module_param_array(acc_firms, charp, 0, 0644);
 module_param_array(gryo_firms, charp, 0, 0644);
@@ -106,6 +109,7 @@ module_param_array(mag_firms, charp, 0, 0644);
 module_param_array(light_firms, charp, 0, 0644);
 module_param_array(prox_firms, charp, 0, 0644);
 module_param_array(pressure_firms, charp, 0, 0644);
+module_param_array(color_temp_firms, charp, 0, 0644);
 struct sensor_cali_info {
 	unsigned char size;
 	void *data;
@@ -117,13 +121,15 @@ static struct sensor_cali_info mag_cali_info;
 static struct sensor_cali_info light_cali_info;
 static struct sensor_cali_info prox_cali_info;
 static struct sensor_cali_info pressure_cali_info;
+static struct sensor_cali_info color_temp_cali_info;
 
 static void get_sensor_info(char **sensor_name, int sensor_type, int success_num)
 {
 	int i, now_order = 0;
 	int show_info_order[_HW_SENSOR_TOTAL] = {ORDER_ACC, ORDER_MAG,
 						 ORDER_GYRO, ORDER_PROX,
-						 ORDER_LIGHT, ORDER_PRS};
+						 ORDER_LIGHT, ORDER_PRS,
+						 ORDER_COLOR_TEMP};
 
 	for (i = 0; i < _HW_SENSOR_TOTAL; i++) {
 		if (show_info_order[i] == sensor_type) {
@@ -622,7 +628,11 @@ static int shub_download_opcode(struct shub_data *sensor)
 			      SENSOR_PRESSURE, &pressure_cali_info);
 	msleep(200);
 
-	cali_data_size = 7 * sizeof(unsigned char);
+	request_send_firmware(sensor, color_temp_firms,
+			      SENSOR_COLOR_TEMP, &color_temp_cali_info);
+	msleep(200);
+
+	cali_data_size = 8 * sizeof(unsigned char);
 	cali_data_size += acc_cali_info.size;
 	cali_data_size += gyro_cali_info.size;
 	cali_data_size += mag_cali_info.size;
@@ -630,6 +640,7 @@ static int shub_download_opcode(struct shub_data *sensor)
 	cali_data_size += prox_cali_info.size;
 	cali_data_size += pressure_cali_info.size;
 	cali_data_size += sizeof(sensor_fusion_mode);
+	cali_data_size += color_temp_cali_info.size;
 	cali_data = kmalloc(cali_data_size, GFP_KERNEL);
 	if (!cali_data) {
 		dev_err(&sensor->sensor_pdev->dev,
@@ -644,7 +655,8 @@ static int shub_download_opcode(struct shub_data *sensor)
 	cali_data[4] = gyro_cali_info.size;
 	cali_data[5] = pressure_cali_info.size;
 	cali_data[6] = sizeof(sensor_fusion_mode);
-	p = &cali_data[7];
+	cali_data[7] = color_temp_cali_info.size;
+	p = &cali_data[8];
 	if (mag_cali_info.size != 0) {
 		memcpy(p, mag_cali_info.data, mag_cali_info.size);
 		p += mag_cali_info.size;
@@ -669,6 +681,10 @@ static int shub_download_opcode(struct shub_data *sensor)
 		memcpy(p, pressure_cali_info.data, pressure_cali_info.size);
 		p += pressure_cali_info.size;
 	}
+	if (color_temp_cali_info.size != 0) {
+		memcpy(p, color_temp_cali_info.data, color_temp_cali_info.size);
+		p += color_temp_cali_info.size;
+	}
 	memcpy(p, &sensor_fusion_mode, sizeof(sensor_fusion_mode));
 	p += sizeof(sensor_fusion_mode);
 	dev_info(&sensor->sensor_pdev->dev,
@@ -685,6 +701,8 @@ static int shub_download_opcode(struct shub_data *sensor)
 		 "pressure_cali_info.size = %d\n", pressure_cali_info.size);
 	dev_info(&sensor->sensor_pdev->dev,
 		 "sensor_fusion_mode = %d\n", sensor_fusion_mode);
+	dev_info(&sensor->sensor_pdev->dev,
+		 "color_temp_cali_info.size = %d\n", color_temp_cali_info.size);
 	dev_info(&sensor->sensor_pdev->dev,
 		 "cali_data_size = %d\n", cali_data_size);
 	dev_info(&sensor->sensor_pdev->dev,
@@ -711,6 +729,8 @@ release_cali_info:
 		kfree(prox_cali_info.data);
 	if (pressure_cali_info.size != 0)
 		kfree(pressure_cali_info.data);
+	if (color_temp_cali_info.size != 0)
+		kfree(color_temp_cali_info.data);
 
 	return ret;
 }
@@ -1887,7 +1907,7 @@ static ssize_t hwsensor_id_show(struct device *dev,
 	u32 temp_id;
 	const char * const TB_TYPENAME[] = {
 		"acc", "mag", "gyr",
-		"prox", "light", "prs"};
+		"prox", "light", "prs", "color"};
 
 	/* get_sensor_id(g_sensor); */
 	for (i = 0; i < _HW_SENSOR_TOTAL; i++) {
@@ -1919,7 +1939,7 @@ static ssize_t sensor_info_show(struct device *dev,
 	int len = 0;
 	const char * const SENSOR_TYPENAME[] = {
 		"acc", "mag", "gyro",
-		"prox", "light", "prs"};
+		"prox", "light", "prs", "color"};
 
 	for (i = 0; i < _HW_SENSOR_TOTAL;) {
 		len += snprintf(buf + len, 16, "%d %s name:",
