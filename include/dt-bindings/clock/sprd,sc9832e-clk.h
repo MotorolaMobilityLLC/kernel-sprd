@@ -1,23 +1,25 @@
-// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
-//
-// Spreadtrum SC9860 platform clocks
-//
-// Copyright (C) 2017, Spreadtrum Communications Inc.
+/* SPDX-License-Identifier: GPL-2.0-only */
+/*
+ * Unisoc SC9832E platform clocks
+ *
+ * Copyright (C) 2020, Unisoc Inc.
+ */
 
-#ifndef _DT_BINDINGS_CLK_SC9860_H_
-#define _DT_BINDINGS_CLK_SC9860_H_
+#ifndef _DT_BINDINGS_CLK_SC9832_H_
+#define _DT_BINDINGS_CLK_SC9832_H_
 
-#define CLK_FAC_13M		0
-#define CLK_FAC_6M5		1
-#define CLK_FAC_4M3		2
-#define CLK_FAC_2M		3
-#define CLK_FAC_1M		4
-#define CLK_FAC_250K		5
-#define CLK_ISPPLL_GATE		6
-#define	CLK_MPLL_GATE		7
-#define	CLK_DPLL_GATE		8
-#define	CLK_LPLL_GATE		9
-#define	CLK_GPLL_GATE		10
+#define CLK_26M_AUD		0
+#define CLK_13M			1
+#define CLK_6M5			2
+#define CLK_4M3			3
+#define CLK_2M			4
+#define CLK_1M			5
+#define CLK_250K		6
+#define CLK_ISPPLL_GATE		7
+#define	CLK_MPLL_GATE		8
+#define	CLK_DPLL_GATE		9
+#define	CLK_LPLL_GATE		10
+#define	CLK_GPLL_GATE		11
 #define	CLK_PMU_GATE_NUM	(CLK_GPLL_GATE + 1)
 
 #define	CLK_AUDIO_GATE		0
@@ -198,24 +200,27 @@
 #define CLK_AP_TMR2_RTC_EB	73
 #define CLK_DXCO_LC_RTC_EB	74
 #define CLK_BB_CAL_RTC_EB	75
-#define CLK_CSSYS_EB		76
-#define CLK_DMC_EB		77
-#define CLK_ROSC_EB		78
-#define CLK_S_D_CFG_EB		79
-#define CLK_S_D_REF_EB		80
-#define CLK_B_DMA_EB		81
-#define CLK_ANLG_EB		82
-#define CLK_PIN_APB_EB		83
-#define CLK_ANLG_APB_EB		84
-#define CLK_BSMTMR_EB		85
-#define CLK_AP_DAP_EB		86
-#define CLK_APSIM_AONTOP_EB     87
-#define CLK_TSEN_EB		88
-#define CLK_CSSYS_CA53_EB	89
-#define CLK_AP_HS_SPI_EB	90
-#define CLK_DET_32K_EB		91
-#define CLK_TMR_EB		92
-#define CLK_APLL_TEST_EB	93
+#define CLK_AUX0		76
+#define CLK_AUX1		77
+#define CLK_AUX2		78
+#define CLK_CSSYS_EB		79
+#define CLK_DMC_EB		80
+#define CLK_ROSC_EB		81
+#define CLK_S_D_CFG_EB		82
+#define CLK_S_D_REF_EB		83
+#define CLK_B_DMA_EB		84
+#define CLK_ANLG_EB		85
+#define CLK_PIN_APB_EB		86
+#define CLK_ANLG_APB_EB		87
+#define CLK_BSMTMR_EB		88
+#define CLK_AP_DAP_EB		89
+#define CLK_APSIM_AONTOP_EB     90
+#define CLK_TSEN_EB		91
+#define CLK_CSSYS_CA53_EB	92
+#define CLK_AP_HS_SPI_EB	93
+#define CLK_DET_32K_EB		94
+#define CLK_TMR_EB		95
+#define CLK_APLL_TEST_EB	96
 #define CLK_AON_APB_GATE_NUM	(CLK_APLL_TEST_EB + 1)
 
 #define CLK_GPU			0
