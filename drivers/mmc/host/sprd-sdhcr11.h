@@ -762,7 +762,11 @@ static inline void sprd_sdhc_set_adma2_len(struct sprd_sdhc_host *host)
 #define SPRD_SDHC_DLL_HALF_MODE		0x00010000
 #define	SPRD_SDHC_DLL_CPST_THRES	0x00000020
 #define SPRD_SDHC_DLL_INIT_COUNT	0x00000c00
+#ifdef CONFIG_MMC_SPRD_SDHCR11P3
+#define SPRD_SDHC_DLL_PHA_INTERNAL	0x00000002
+#else
 #define SPRD_SDHC_DLL_PHA_INTERNAL	0x00000003
+#endif
 
 #define SPRD_SDHC_REG_32_DLL_DLY	0x204
 #define SPRD_SDHC_REG_8_DATWR_DLY	0x204

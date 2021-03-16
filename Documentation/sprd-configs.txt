@@ -8761,6 +8761,15 @@ CONFIG_MMC_SPRD_SDHCR11
 				missing sharkle32 because sharkle32 used
 				CONFIG_MMC_SPRD_SDHCR10.
 	[function] add sprd mmc host controller driver(r11p0) to kernel.
+CONFIG_MMC_SPRD_SDHCR11P3
+	[arch] arm64
+	[plat] qogirn6pro
+	[missing plat] qogirl6,sharkl3,sharkl5,sharkl5Pro
+	[field] make
+	[subsys] mmc
+	[must] user
+	[missing plat description] only qogirn6pro support r11p3 at the moment.
+	[function] add sprd mmc host controller driver(r11p3) to kernel.
 CONFIG_MMU
 	[arch] all
 	[plat] all
