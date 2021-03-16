@@ -105,6 +105,9 @@
 			reg = <0x0 0xbd020000 0x0 0x05fe0000>;
 		};
 
+		dptx_hdcp_reserved: dptx_hdcp@fd548000 {
+			reg = <0x0 0xfd548000 0x0 0x00060000>;
+		};
 	};
 
 	rebootescrow@0 {

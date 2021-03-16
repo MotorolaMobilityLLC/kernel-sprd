@@ -256,24 +256,28 @@
 };
 
 &reserved_memory {
+	logo_reserved: logobuffer@b0000000 {
+		reg = <0x0 0xb0000000 0x0 0x009e4000>;
+	};
+
 	ai_reserved: ai@f6048000 {
 		reg = <0x0 0xf6048000 0x0 0x02000000>;
 	};
 
-	fb_reserved: framebuffer-mem@f8048000 {
-		reg = <0x0 0xf8048000 0x0 0x029d8000>;
+	fd_reserved: faceid-mem@f8048000 {
+		reg = <0x0 0xf8048000 0x0 0x02d00000>;
 	};
 
-	fd_reserved: faceid-mem@faa20000 {
-		reg = <0x0 0xfaa20000 0x0 0x02d00000>;
+	vdsp_reserved: vdsp-mem@fad48000 {
+		reg = <0x0 0xfad48000 0x0 0x02800000>;
 	};
 
-	vdsp_reserved: vdsp-mem@fd720000 {
-		reg = <0x0 0xfd720000 0x0 0x02800000>;
+	wb_reserved: writeback@fd5a8000 {
+		reg = <0x0 0xfd5a8000 0x0 0x00a1e000>;
 	};
 
-	dptx_hdcp_reserved: dptx_hdcp@fff20000 {
-		reg = <0x0 0xfff20000 0x0 0x00060000>;
+	fb_reserved: framebuffer-mem@fdfc6000 {
+		reg = <0x0 0xfdfc6000 0x0 0x01fba000>;
 	};
 };
 
