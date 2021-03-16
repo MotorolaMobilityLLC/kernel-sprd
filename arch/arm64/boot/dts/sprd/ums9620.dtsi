@@ -1047,30 +1047,44 @@
 &dpu {
 	clock-names = "clk_src_256m",
 			"clk_src_307m2",
+			"clk_src_312m5",
 			"clk_src_384m",
 			"clk_src_409m6",
+			"clk_src_416m7",
 			"clk_src_512m",
 			"clk_src_614m4",
 			"clk_dpu_core",
 			"clk_dpu_dpi",
 			"clk_dpuvsp_eb",
-			"clk_dpuvsp_disp_eb";
+			"clk_dpuvsp_disp_eb",
+			"clk_master_div6_eb";
 
 	clocks = <&g5l_pll CLK_TGPLL_256M>,
 		<&g5l_pll CLK_TGPLL_307M2>,
+		<&dphy_312m5>,
 		<&g5l_pll CLK_TGPLL_384M>,
 		<&g5l_pll CLK_V4NRPLL_409M6>,
+		<&dphy_416m7>,
 		<&g5l_pll CLK_TGPLL_512M>,
 		<&g5l_pll CLK_V4NRPLL_614M4>,
 		<&dpu_vsp_clk CLK_DISPC0>,
 		<&dpu_vsp_clk CLK_DISPC0_DPI>,
 		<&aonapb_gate CLK_DPU_VSP_EB>,
-		<&dpu_vsp_gate CLK_DPU_EB>;
+		<&dpu_vsp_gate CLK_DPU_EB>,
+		<&dpu_vsp_gate CLK_M_DIV6CLK_GATE_EN>;
 };
 
 &dsi {
-	clock-names = "clk_dsi0_eb";
-	clocks = <&dpu_vsp_gate CLK_DSI0_EB>;
+	clock-names = "clk_dsi0_eb",
+			"clk_dpu_dpi",
+			"clk_src_384m",
+			"clk_dpuvsp_eb",
+			"clk_dpuvsp_disp_eb";
+	clocks = <&dpu_vsp_gate CLK_DSI0_EB>,
+		<&dpu_vsp_clk CLK_DISPC0_DPI>,
+		<&g5l_pll CLK_TGPLL_384M>,
+		<&aonapb_gate CLK_DPU_VSP_EB>,
+		<&dpu_vsp_gate CLK_DPU_EB>;
 };
 
 &gsp_core0 {
