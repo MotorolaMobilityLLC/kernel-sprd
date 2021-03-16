@@ -351,7 +351,8 @@ static int __init lookat_debug_init(void)
 	if (!regmap_np)
 		goto error_pmic_node;
 
-	if (of_device_is_compatible(regmap_np->parent, "sprd,sc2730"))
+	if (of_device_is_compatible(regmap_np->parent, "sprd,sc2730") ||
+	    of_device_is_compatible(regmap_np->parent, "sprd,ump9620"))
 		lookat_desc.slave_offset = ADI_15BIT_OFFSET;
 	else
 		lookat_desc.slave_offset = ADI_OFFSET;
