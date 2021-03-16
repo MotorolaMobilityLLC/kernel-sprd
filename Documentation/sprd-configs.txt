@@ -2709,14 +2709,14 @@ CONFIG_CHARGER_MANAGER
 	[missing plat description] none
 	[function] Manage battery capacity and monitor charge status
 CONFIG_CHARGER_SC2720
- 	[arch] arm
- 	[plat] pike2
- 	[missing plat] sharkl3_32,sharkl5_32,sharkle32
- 	[field] make
- 	[subsys] power
- 	[must] user
- 	[missing plat description] Not used in the project, so no configuration
- 	[function] This function is used to enable charge
+	[arch] arm
+	[plat] pike2
+	[missing plat] none
+	[field] make
+	[subsys] power
+	[must] user
+	[missing plat description] none
+	[function] This function is used to enable charge
 CONFIG_CLANG_VERSION
 	[arch] all
 	[plat] all
@@ -14915,8 +14915,8 @@ CONFIG_SBITMAP
 	[missing plat description] none
 	[function] Support sbitmap feature.
 CONFIG_SC2342_I
-	[arch] arm64
-	[plat] sharkl3
+	[arch] all
+	[plat] pike2,sharkl3
 	[missing plat] sharkl5Pro
 	[field]
 	[subsys]
@@ -14924,8 +14924,8 @@ CONFIG_SC2342_I
 	[missing plat description]
 	[function]
 CONFIG_SC23XX
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -16345,7 +16345,7 @@ CONFIG_SPRD_DMC_MPU
 	[field] make
 	[subsys] debug
 	[must] debug
-	[missing plat description] pike2 sharkle32 use IP version is R3P0
+	[missing plat description] none
 	[function] Enable MPU R4P0 debug function
 CONFIG_SPRD_DMC_MPU_CORE
 	[arch] arm64
@@ -16354,7 +16354,7 @@ CONFIG_SPRD_DMC_MPU_CORE
 	[field] make
 	[subsys] debug
 	[must] debug
-	[missing plat description] pike2 sharkle32 use IP version is R3P0
+	[missing plat description] none
 	[function] Enable MPU core function
 CONFIG_SPRD_EFUSE
 	[arch] all
@@ -18096,8 +18096,8 @@ CONFIG_UNISOC_SIPC_VIRT_BUS
 	[missing plat description] none
 	[function]
 CONFIG_UNISOC_WCN_BSP
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -19313,14 +19313,15 @@ CONFIG_WCN_BOOT
 	[arch] arm64
 	[plat] sharkl5Pro
 	[missing plat] sharkl3
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[field] make
+	[subsys] wcn
+	[must] user
+	[missing plat description] This macro is a proprietary driver related to roc1,sharkl5,sharkl5Pro,sharkl5_32.
+		The missing plat is not relevant.
+	[function] wcn boot up for 2355 chip.
 CONFIG_WCN_INTEG
-	[arch] arm64
-	[plat] sharkl3
+	[arch] all
+	[plat] pike2,sharkl3
 	[missing plat] sharkl5Pro
 	[field]
 	[subsys]
@@ -19328,8 +19329,8 @@ CONFIG_WCN_INTEG
 	[missing plat description]
 	[function]
 CONFIG_WCN_SIPC
-	[arch] arm64
-	[plat] sharkl3
+	[arch] all
+	[plat] pike2,sharkl3
 	[missing plat] sharkl5Pro
 	[field]
 	[subsys]
