@@ -435,6 +435,9 @@ static bool is_ext_wl_pwr_online(struct charger_manager *cm)
 	bool online = false;
 	int i, ret;
 
+	if (!cm->desc->psy_wl_charger_stat)
+		return online;
+
 	/* If at least one of them has one, it's yes. */
 	for (i = 0; cm->desc->psy_wl_charger_stat[i]; i++) {
 		psy = power_supply_get_by_name(cm->desc->psy_wl_charger_stat[i]);
@@ -998,6 +1001,9 @@ static int get_wireless_charger_type(struct charger_manager *cm, u32 *type)
 	union power_supply_propval val;
 	struct power_supply *psy;
 	int ret = -EINVAL, i;
+
+	if (!cm->desc->psy_wl_charger_stat)
+		return 0;
 
 	mutex_lock(&cm->desc->charger_type_mtx);
 	for (i = 0; cm->desc->psy_wl_charger_stat[i]; i++) {
@@ -1874,7 +1880,7 @@ static int cm_enable_second_charger(struct charger_manager *cm, bool enable)
 	return 0;
 }
 
-static int cm_adjust_fast_charge_voltage(struct charger_manager *cm, int cmd)
+static int cm_adjust_fast_charge_voltage(struct charger_manager *cm, int vol)
 {
 	struct charger_desc *desc = cm->desc;
 	struct power_supply *psy;
@@ -1885,16 +1891,15 @@ static int cm_adjust_fast_charge_voltage(struct charger_manager *cm, int cmd)
 	if (!psy) {
 		dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
 			desc->psy_fast_charger_stat[0]);
-		power_supply_put(psy);
 		return -ENODEV;
 	}
 
-	val.intval = cmd;
+	val.intval = vol;
 	ret = power_supply_set_property(psy, POWER_SUPPLY_PROP_VOLTAGE_MAX, &val);
 	power_supply_put(psy);
 	if (ret) {
 		dev_err(cm->dev,
-			"failed to adjust fast charger voltage cmd = %d\n", cmd);
+			"failed to adjust fast charger voltage vol = %d\n", vol);
 		return ret;
 	}
 
@@ -2468,43 +2473,13 @@ static void cm_init_cp(struct charger_manager *cm)
 	}
 }
 
-static int cm_adjust_fast_pps_voltage(struct charger_manager *cm, int vol)
+static int cm_adjust_fast_charge_current(struct charger_manager *cm, int cur)
 {
 	struct charger_desc *desc = cm->desc;
 	struct power_supply *psy;
 	union power_supply_propval val;
 	int ret;
 
-	dev_info(cm->dev, "%s, pps target voltage = %d\n", __func__, vol);
-	psy = power_supply_get_by_name(desc->psy_fast_charger_stat[0]);
-	if (!psy) {
-		dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
-			desc->psy_fast_charger_stat[0]);
-		return -ENODEV;
-	}
-
-	val.intval = vol;
-	ret = power_supply_set_property(psy,
-					POWER_SUPPLY_PROP_VOLTAGE_MAX,
-					&val);
-	power_supply_put(psy);
-	if (ret) {
-		dev_err(cm->dev,
-			"failed to adjust fast charger voltage = %d\n", vol);
-		return ret;
-	}
-
-	return 0;
-}
-
-static int cm_adjust_fast_pps_current(struct charger_manager *cm, int cur)
-{
-	struct charger_desc *desc = cm->desc;
-	struct power_supply *psy;
-	union power_supply_propval val;
-	int ret;
-
-	dev_info(cm->dev, "%s, pps target current = %d\n", __func__, cur);
 	psy = power_supply_get_by_name(desc->psy_fast_charger_stat[0]);
 	if (!psy) {
 		dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
@@ -2513,9 +2488,7 @@ static int cm_adjust_fast_pps_current(struct charger_manager *cm, int cur)
 	}
 
 	val.intval = cur;
-	ret = power_supply_set_property(psy,
-					POWER_SUPPLY_PROP_CURRENT_MAX,
-					&val);
+	ret = power_supply_set_property(psy, POWER_SUPPLY_PROP_CURRENT_MAX, &val);
 	power_supply_put(psy);
 	if (ret) {
 		dev_err(cm->dev,
@@ -2546,9 +2519,7 @@ static int cm_fast_enable_pps(struct charger_manager *cm, bool enable)
 	else
 		val.intval = CM_PPS_CHARGE_DISABLE_CMD;
 
-	ret = power_supply_set_property(psy,
-					POWER_SUPPLY_PROP_VOLTAGE_MAX,
-					&val);
+	ret = power_supply_set_property(psy, POWER_SUPPLY_PROP_ONLINE, &val);
 	power_supply_put(psy);
 	if (ret) {
 		dev_err(cm->dev,
@@ -2951,11 +2922,12 @@ static void cm_cp_state_entry(struct charger_manager *cm)
 	cm->desc->cm_check_fault = false;
 	cm_fast_enable_pps(cm, false);
 	if (cm_fast_enable_pps(cm, true)) {
+		cm_cp_state_change(cm, CM_CP_STATE_EXIT);
 		dev_err(cm->dev, "fail to enable pps\n");
 		return;
 	}
 
-	cm_adjust_fast_pps_voltage(cm, CM_FAST_CHARGE_VOLTAGE_5V);
+	cm_adjust_fast_charge_voltage(cm, CM_FAST_CHARGE_VOLTAGE_5V);
 	cm_cp_master_charger_enable(cm, false);
 	cm_primary_charger_enable(cm, false);
 	cm_ir_compensation_enable(cm, false);
@@ -2992,11 +2964,11 @@ static void cm_cp_state_entry(struct charger_manager *cm)
 	       __func__, cp->cp_target_ibat, cp->cp_target_vbus);
 
 	cm_check_target_vbus(cm);
-	cm_adjust_fast_pps_voltage(cm, cp->cp_target_vbus);
+	cm_adjust_fast_charge_voltage(cm, cp->cp_target_vbus);
 	cp->cp_last_target_vbus = cp->cp_target_vbus;
 
 	cm_check_target_ibus(cm);
-	cm_adjust_fast_pps_current(cm, cp->cp_target_ibus);
+	cm_adjust_fast_charge_current(cm, cp->cp_target_ibus);
 	cm_cp_state_change(cm, CM_CP_STATE_CHECK_VBUS);
 }
 
@@ -3009,13 +2981,13 @@ static void cm_cp_state_check_vbus(struct charger_manager *cm)
 		cp->cp_target_vbus += CM_CP_VSTEP;
 		cm_check_target_vbus(cm);
 
-		if (cm_adjust_fast_pps_voltage(cm, cp->cp_target_vbus))
+		if (cm_adjust_fast_charge_voltage(cm, cp->cp_target_vbus))
 			cp->cp_target_vbus -= CM_CP_VSTEP;
 
 	} else if (cp->flt.vbus_error_hi && cp->vbus_uV > cp->vbatt_uV * 205 / 100) {
 		cp->tune_vbus_retry++;
 		cp->cp_target_vbus -= CM_CP_VSTEP;
-		if (cm_adjust_fast_pps_voltage(cm, cp->cp_target_vbus))
+		if (cm_adjust_fast_charge_voltage(cm, cp->cp_target_vbus))
 			dev_err(cm->dev, "fail to adjust pps voltage = %duV\n",
 				cp->cp_target_vbus);
 	} else {
@@ -3082,11 +3054,11 @@ static void cm_cp_state_tune(struct charger_manager *cm)
 			cp->recovery = false;
 		} else {
 			if (cp->cp_last_target_vbus != cp->cp_target_vbus) {
-				cm_adjust_fast_pps_voltage(cm, cp->cp_target_vbus);
+				cm_adjust_fast_charge_voltage(cm, cp->cp_target_vbus);
 				cp->cp_last_target_vbus = cp->cp_target_vbus;
 				cp->cp_adjust_cnt = 0;
 			} else if (cp->cp_adjust_cnt++ > 6) {
-				cm_adjust_fast_pps_voltage(cm, cp->cp_target_vbus);
+				cm_adjust_fast_charge_voltage(cm, cp->cp_target_vbus);
 				cp->cp_adjust_cnt = 0;
 			}
 		}
@@ -3270,6 +3242,9 @@ static int try_wireless_charger_enable_by_psy(struct charger_manager *cm, bool e
 	struct power_supply *psy;
 	int i, err;
 
+	if (!cm->desc->psy_wl_charger_stat)
+		return 0;
+
 	for (i = 0; desc->psy_wl_charger_stat[i]; i++) {
 		psy = power_supply_get_by_name(desc->psy_wl_charger_stat[i]);
 		if (!psy) {
@@ -3294,6 +3269,9 @@ static int try_wireless_cp_converter_enable_by_psy(struct charger_manager *cm, b
 	union power_supply_propval val;
 	struct power_supply *psy;
 	int i, err;
+
+	if (!cm->desc->psy_cp_converter_stat)
+		return 0;
 
 	for (i = 0; desc->psy_cp_converter_stat[i]; i++) {
 		psy = power_supply_get_by_name(desc->psy_cp_converter_stat[i]);
