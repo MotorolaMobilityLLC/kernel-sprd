@@ -3,8 +3,8 @@ Spreadtrum SPI Controller
 Required properties:
 - compatible: Should be one of the following:
 	"sprd,sc9860-spi",
-	"sprd,sharkl3-spi"
-	"sprd,sharkl5pro-spi".
+	"sprd,sc9863-spi",
+	"sprd,ums512-spi".
 - reg: Offset and length of SPI controller register space.
 - interrupts: Should contain SPI interrupt.
 - clock-names: Should contain following entries:
@@ -24,13 +24,15 @@ dmas: Should contain DMA channels and DMA slave ids which the SPI used
 
 Example:
 spi0: spi@70a00000{
-	compatible = "sprd,sc9860-spi";
+	compatible = "sprd,sc9863-spi";
 	reg = <0 0x70a00000 0 0x1000>;
 	interrupts = <GIC_SPI 7 IRQ_TYPE_LEVEL_HIGH>;
-	clock-names = "spi", "source","enable";
-	clocks = <&clk_spi0>, <&ext_26m>, <&clk_ap_apb_gates 5>;
+	clock-names = "enable", "spi", "source";
+	clocks = <&apapb_gate CLK_SPI0_EB>,
+		 <&ap_clk CLK_AP_SPI0>, <&pll CLK_TWPLL_192M>;
+	dmas = <&ap_dma 11 &ap_dma 12>;
 	dma-names = "rx_chn", "tx_chn";
-	dmas = <&apdma 11 11>, <&apdma 12 12>;
 	#address-cells = <1>;
 	#size-cells = <0>;
+	status = "disabled";
 };
