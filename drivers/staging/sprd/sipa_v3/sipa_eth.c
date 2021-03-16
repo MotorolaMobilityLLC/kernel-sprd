@@ -264,7 +264,7 @@ static int sipa_eth_parse_dt(
 
 	id = of_alias_get_id(np, "eth");
 	switch (id) {
-	case 0 ... 7:
+	case 0 ... 15:
 		snprintf(pdata->name, IFNAMSIZ, "%s%d",
 			 SIPA_ETH_IFACE_PREF, id);
 		break;

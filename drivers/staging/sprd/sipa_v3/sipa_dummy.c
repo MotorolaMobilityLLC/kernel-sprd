@@ -129,6 +129,22 @@ static char *sipa_dummy_ndev2str(int ndev_id)
 		return "sipa_eth6";
 	case SIPA_DUMMY_ETH7:
 		return "sipa_eth7";
+	case SIPA_DUMMY_ETH8:
+		return "sipa_eth8";
+	case SIPA_DUMMY_ETH9:
+		return "sipa_eth9";
+	case SIPA_DUMMY_ETH10:
+		return "sipa_eth10";
+	case SIPA_DUMMY_ETH11:
+		return "sipa_eth11";
+	case SIPA_DUMMY_ETH12:
+		return "sipa_eth12";
+	case SIPA_DUMMY_ETH13:
+		return "sipa_eth13";
+	case SIPA_DUMMY_ETH14:
+		return "sipa_eth14";
+	case SIPA_DUMMY_ETH15:
+		return "sipa_eth15";
 	case SIPA_DUMMY_USB0:
 		return "sipa_usb0";
 	case SIPA_DUMMY_WIFI0:
