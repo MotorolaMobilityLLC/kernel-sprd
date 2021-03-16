@@ -1,3 +1,4 @@
+GCOV_PROFILE 			= ${CONFIG_SPRD_SFP_GCOV}
 obj-$(CONFIG_SPRD_SFP_SUPPORT)  += sfp_mgr.o
 obj-$(CONFIG_SPRD_SFP_SUPPORT)  += sfp_fwd.o
 obj-$(CONFIG_SPRD_SFP_SUPPORT)  += sfp_intf.o

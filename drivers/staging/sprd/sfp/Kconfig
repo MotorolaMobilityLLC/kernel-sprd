@@ -37,4 +37,11 @@ config SPRD_IPA_V3_SUPPORT
 	help
 		Sfp ipa new entry switch.
 		This will compatible the new entry structure.
+
+config SPRD_SFP_GCOV
+	bool "open gcov for sfp"
+	depends on GCOV_PROFILE_MODULES
+	help
+	  Say Y here to enable sfp gcov
+
 endmenu
