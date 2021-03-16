@@ -92,6 +92,46 @@ static struct sipa_nic_statics_info s_sipa_nic_statics[SIPA_NIC_MAX] = {
 		.cons = SIPA_RM_RES_CONS_WWAN_UL,
 	},
 	{
+		.src_mask = SIPA_CP_SRC,
+		.netid = 8,
+		.cons = SIPA_RM_RES_CONS_WWAN_UL,
+	},
+	{
+		.src_mask = SIPA_CP_SRC,
+		.netid = 9,
+		.cons = SIPA_RM_RES_CONS_WWAN_UL,
+	},
+	{
+		.src_mask = SIPA_CP_SRC,
+		.netid = 10,
+		.cons = SIPA_RM_RES_CONS_WWAN_UL,
+	},
+	{
+		.src_mask = SIPA_CP_SRC,
+		.netid = 11,
+		.cons = SIPA_RM_RES_CONS_WWAN_UL,
+	},
+	{
+		.src_mask = SIPA_CP_SRC,
+		.netid = 12,
+		.cons = SIPA_RM_RES_CONS_WWAN_UL,
+	},
+	{
+		.src_mask = SIPA_CP_SRC,
+		.netid = 13,
+		.cons = SIPA_RM_RES_CONS_WWAN_UL,
+	},
+	{
+		.src_mask = SIPA_CP_SRC,
+		.netid = 14,
+		.cons = SIPA_RM_RES_CONS_WWAN_UL,
+	},
+	{
+		.src_mask = SIPA_CP_SRC,
+		.netid = 15,
+		.cons = SIPA_RM_RES_CONS_WWAN_UL,
+	},
+	{
 		.src_mask = SIPA_PCIE_SRC,
 		.netid = 0,
 		.cons = SIPA_RM_RES_CONS_WWAN_DL,
