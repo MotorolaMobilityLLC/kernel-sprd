@@ -1757,6 +1757,8 @@ void ufshcd_send_command(struct ufs_hba *hba, unsigned int task_tag)
 	hba->lrb[task_tag].compl_time_stamp = ktime_set(0, 0);
 	ufshcd_clk_scaling_start_busy(hba);
 	__set_bit(task_tag, &hba->outstanding_reqs);
+	if (hba->clk_gating.state != CLKS_ON)
+		return;
 	ufshcd_writel(hba, 1 << task_tag, REG_UTP_TRANSFER_REQ_DOOR_BELL);
 	/* Make sure that doorbell is committed immediately */
 	wmb();
@@ -2403,12 +2405,6 @@ static int ufshcd_queuecommand(struct Scsi_Host *host, struct scsi_cmnd *cmd)
 	}
 	/* Make sure descriptors are ready before ringing the doorbell */
 	wmb();
-
-	if (hba->clk_gating.state != CLKS_ON) {
-		err = SCSI_MLQUEUE_HOST_BUSY;
-		clear_bit_unlock(tag, &hba->lrb_in_use);
-		goto out;
-	}
 
 	/* issue command to the controller */
 	spin_lock_irqsave(hba->host->host_lock, flags);
