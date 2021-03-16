@@ -79,6 +79,9 @@
 #define SPRD_SPI_RX_MODE		BIT(12)
 #define SPRD_SPI_TX_MODE		BIT(13)
 #define SPRD_SPI_RTX_MD_MASK		GENMASK(13, 12)
+#define SPRD_SPI_DO_STAY_0		BIT(14)
+#define SPRD_SPI_DO_STAY_1		BIT(15)
+#define SPRD_SPI_DO_STAY_LASTBIT_MASK	GENMASK(15, 14)
 
 /* Bits & mask definition for register CTL2 */
 #define SPRD_SPI_DMA_EN			BIT(6)
@@ -172,6 +175,7 @@ struct sprd_spi {
 	u32 word_delay;
 	u32 hw_speed_hz;
 	u32 len;
+	u32 do_stay_value;
 	int status;
 	int datawidth;
 	u32 dma_trans_len;
@@ -900,6 +904,20 @@ static int sprd_spi_setup_transfer(struct spi_device *sdev,
 	if (t->rx_buf)
 		mode |= SPRD_SPI_RX_MODE;
 
+	/* Set SPI do stay value when in idle*/
+	val &= ~SPRD_SPI_DO_STAY_LASTBIT_MASK;
+	switch (ss->do_stay_value) {
+	case 0:
+		val |= SPRD_SPI_DO_STAY_0;
+		break;
+	case 1:
+		val |= SPRD_SPI_DO_STAY_1;
+		break;
+	default:
+		val |= SPRD_SPI_DO_STAY_LASTBIT_MASK;
+		break;
+	}
+
 	writel_relaxed(val | mode, ss->base + SPRD_SPI_CTL1);
 
 	ss->trans_mode = mode;
@@ -1042,9 +1060,10 @@ static int sprd_spi_dma_init(struct platform_device *pdev, struct sprd_spi *ss)
 static int sprd_spi_property_find(struct platform_device *pdev,
 				  struct spi_controller *sctlr)
 {
+	struct sprd_spi *ss = spi_controller_get_devdata(sctlr);
 	struct property *prop;
 	u32 num_chipselect = 1;
-	u32 i, realtime_task;
+	u32 i, realtime_task, do_stay_value;
 	int ret;
 
 	/* SPI controller transfer with high (realtime) thread priority. */
@@ -1058,6 +1077,19 @@ static int sprd_spi_property_find(struct platform_device *pdev,
 		else
 			sctlr->rt = realtime_task;
 	}
+
+	/* Set SPI do stay value when in idle. */
+	prop = of_find_property(pdev->dev.of_node, "do-stay-value", NULL);
+	if (prop && prop->length) {
+		ret = of_property_read_u32(pdev->dev.of_node,
+					   "do-stay-value", &do_stay_value);
+		if (ret < 0)
+			dev_warn(&pdev->dev,
+				 "do-stay-value property not found\n");
+		else
+			ss->do_stay_value = do_stay_value;
+	} else
+		ss->do_stay_value = 2;
 
 	/* Set GPIOs as cs for SPI bus to hang devices. */
 	prop = of_find_property(pdev->dev.of_node, "cs-gpios", NULL);
