@@ -602,7 +602,7 @@
 				compatible = "sprd,djtag";
 				reg = <0x40340000 0x1000>;
 				syscon-names = "soft_rst";
-				syscons = <&aon_apb_regs REG_AON_APB_APB_RST2
+				syscon = <&aon_apb_regs REG_AON_APB_APB_RST2
 					MASK_AON_APB_DJTAG_SOFT_RST>;
 				clock-names = "enable", "tck";
 				clocks = <&aonapb_gate CLK_DJTAG_EB>,
