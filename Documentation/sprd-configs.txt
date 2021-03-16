@@ -16823,8 +16823,8 @@ CONFIG_SPRD_WATCHDOG_FIQ
 	[missing plat description] none
 	[function]
 CONFIG_SPRD_WATCHDOG_PMIC
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
