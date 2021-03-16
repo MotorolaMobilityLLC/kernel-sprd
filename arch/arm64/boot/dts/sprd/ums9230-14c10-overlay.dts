@@ -737,7 +737,10 @@
 		"MIC Pin", "Mic Jack",
 		"MIC2 Pin", "Aux Mic Jack",
 		"HeadPhone Jack", "HP Pin",
+		"Ext Spk", "HP Pin",
+		"Ext Spk1", "HP Pin",
 		"Ext Spk", "SPK Pin",
+		"Ext Spk1", "SPK Pin",
 		"UCP1301 SPK ON", "SPK Pin",
 		"Ext Spk", "UCP1301 SPK",
 		"PDM DMIC2 ON", "SPK Pin",
@@ -745,6 +748,8 @@
 		"DMIC Pin", "DMic Jack",
 		"DMIC1 Pin", "DMic1 Jack",
 		"Ext Ear", "EAR Pin",
+		"Ext Ear", "SPK Pin",
+		"Ext Ear", "HP Pin",
 		"UCP1301 RCV ON", "EAR Pin",
 		"Ext Ear", "UCP1301 RCV";
 	/*ext_control_type, hook selection, mode, gpio share*/
