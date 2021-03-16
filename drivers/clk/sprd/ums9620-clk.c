@@ -267,7 +267,7 @@ static struct clk_bit_field f_tgpll[PLL_FACT_MAX] = {
 	{ .shift = 2,	.width = 1 },	/* sdm_en	*/
 	{ .shift = 0,	.width = 0 },	/* refin	*/
 	{ .shift = 3,	.width = 3 },	/* icp		*/
-	{ .shift = 7,	.width = 11 },	/* n		*/
+	{ .shift = 6,	.width = 11 },	/* n		*/
 	{ .shift = 32,	.width = 7 },	/* nint		*/
 	{ .shift = 39,	.width = 23},	/* kint		*/
 	{ .shift = 0,	.width = 0 },	/* prediv	*/
@@ -321,7 +321,7 @@ static struct clk_bit_field f_v4nrpll[PLL_FACT_MAX] = {
 	{ .shift = 2,	.width = 1 },	/* sdm_en	*/
 	{ .shift = 0,	.width = 0 },	/* refin	*/
 	{ .shift = 3,	.width = 3 },	/* icp		*/
-	{ .shift = 7,	.width = 11 },	/* n		*/
+	{ .shift = 6,	.width = 11 },	/* n		*/
 	{ .shift = 55,	.width = 8 },	/* nint		*/
 	{ .shift = 32,	.width = 23},	/* kint		*/
 	{ .shift = 0,	.width = 0 },	/* prediv	*/
@@ -422,7 +422,7 @@ static struct clk_bit_field f_cpll[PLL_FACT_MAX] = {
 	{ .shift = 2,	.width = 1 },	/* sdm_en	*/
 	{ .shift = 0,	.width = 0 },	/* refin	*/
 	{ .shift = 3,	.width = 3 },	/* icp		*/
-	{ .shift = 7,	.width = 11 },	/* n		*/
+	{ .shift = 6,	.width = 11 },	/* n		*/
 	{ .shift = 55,	.width = 7 },	/* nint		*/
 	{ .shift = 32,	.width = 23},	/* kint		*/
 	{ .shift = 0,	.width = 0 },	/* prediv	*/
@@ -440,7 +440,7 @@ static struct clk_bit_field f_audpll[PLL_FACT_MAX] = {
 	{ .shift = 2,	.width = 1 },	/* sdm_en	*/
 	{ .shift = 0,	.width = 0 },	/* refin	*/
 	{ .shift = 3,	.width = 3 },	/* icp		*/
-	{ .shift = 7,	.width = 11 },	/* n		*/
+	{ .shift = 6,	.width = 11 },	/* n		*/
 	{ .shift = 55,	.width = 7 },	/* nint		*/
 	{ .shift = 32,	.width = 23},	/* kint		*/
 	{ .shift = 0,	.width = 0 },	/* prediv	*/
@@ -1927,7 +1927,7 @@ static SPRD_MUX_CLK(ipa_dpu, "ipa-dpu", ipa_dpu_parents, 0x7c,
 		    0, 2, UMS9620_MUX_FLAG);
 
 static const char * const ipa_dpi_parents[] = { "tgpll-128m", "tgpll-192m",
-						"pixelpll-297m", "tgpll-307m2" };
+						"pixelpll", "tgpll-307m2" };
 static SPRD_COMP_CLK_OFFSET(ipa_dpi, "ipa-dpi", ipa_dpi_parents, 0x88,
 			    0, 2, 0, 4, 0);
 
