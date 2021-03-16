@@ -4094,12 +4094,12 @@ CONFIG_DRM_SPRD_GSP
 	[function] DRM_SPRD_GSP is used for enable gsp.
 CONFIG_DRM_SPRD_GSP_IPC_TRUSTY
 	[arch] arm64
-	[plat] qogirl6
-	[missing plat] qogirn6pro,sharkl3,sharkl5,sharkl5Pro
+	[plat] qogirl6,qogirn6pro
+	[missing plat] sharkl3,sharkl5,sharkl5Pro
 	[field] make,code
 	[subsys] drm
 	[must] home
-	[missing plat description] support after l5pro SoC，now only enable it on qogirl6.
+	[missing plat description] support after l5pro SoC，now only enable it on qogirl6 and qogirn6pro.
 	[function] DRM_SPRD_GSP_IPC_TRUSTY is used for enable gsp widevine.
 CONFIG_DST_CACHE
 	[arch] all
