@@ -308,7 +308,7 @@
 				dcxo18-supply = <&vddsim2>;
 
 				clock-names = "clk_32k","source","enable";
-				clocks = <&aonapb_gate CLK_AUX2>,
+				clocks = <&aon_clk CLK_AUX2>,
 					 <&ext_32k>,
 					 <&aonapb_gate CLK_AUX2_EB>;
 
