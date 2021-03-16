@@ -187,7 +187,8 @@
 		};
 
 		syscon@2000 {
-			compatible = "sprd,ump962x-syscon";
+			compatible = "sprd,ump962x-syscon",
+				   "sprd,sc27xx-syscon";
 			reg = <0x2000>, <0x23a0>, <0x2398>;
 		};
 
