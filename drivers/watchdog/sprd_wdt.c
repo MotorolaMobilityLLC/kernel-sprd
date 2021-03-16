@@ -53,15 +53,46 @@
 
 #define SPRD_WDT_CNT_HIGH_SHIFT		16
 #define SPRD_WDT_LOW_VALUE_MASK		GENMASK(15, 0)
-#define SPRD_WDT_LOAD_TIMEOUT		1000
+#define SPRD_WDT_LOAD_TIMEOUT		2000
+#define SPRD_WDTEN_MAGIC "e551"
+#define SPRD_WDTEN_MAGIC_LEN_MAX  10
 
 struct sprd_wdt {
 	void __iomem *base;
 	struct watchdog_device wdd;
 	struct clk *enable;
 	struct clk *rtc_enable;
+	bool reset_en;
 	int irq;
 };
+
+static bool sprd_wdt_en(void)
+{
+	struct device_node *cmdline_node;
+	const char *cmd_line, *wdten_name_p;
+	char wdten_value[SPRD_WDTEN_MAGIC_LEN_MAX] = "NULL";
+	int ret;
+
+	cmdline_node = of_find_node_by_path("/chosen");
+	ret = of_property_read_string(cmdline_node, "bootargs", &cmd_line);
+
+	if (ret) {
+		pr_err("can't not parse bootargs property\n");
+		return false;
+	}
+
+	wdten_name_p = strstr(cmd_line, "androidboot.wdten=");
+	if (!wdten_name_p) {
+		pr_err("can't find androidboot.wdten\n");
+		return false;
+	}
+
+	sscanf(wdten_name_p, "androidboot.wdten=%8s", wdten_value);
+	if (strncmp(wdten_value, SPRD_WDTEN_MAGIC, strlen(SPRD_WDTEN_MAGIC)))
+		return false;
+
+	return true;
+}
 
 static inline struct sprd_wdt *to_sprd_wdt(struct watchdog_device *wdd)
 {
@@ -125,12 +156,11 @@ static int sprd_wdt_load_value(struct sprd_wdt *wdt, u32 timeout,
 
 	sprd_wdt_unlock(wdt->base);
 	writel_relaxed((tmr_step >> SPRD_WDT_CNT_HIGH_SHIFT) &
-		      SPRD_WDT_LOW_VALUE_MASK, wdt->base + SPRD_WDT_LOAD_HIGH);
+		       SPRD_WDT_LOW_VALUE_MASK, wdt->base + SPRD_WDT_LOAD_HIGH);
 	writel_relaxed((tmr_step & SPRD_WDT_LOW_VALUE_MASK),
 		       wdt->base + SPRD_WDT_LOAD_LOW);
 	writel_relaxed((prtmr_step >> SPRD_WDT_CNT_HIGH_SHIFT) &
-			SPRD_WDT_LOW_VALUE_MASK,
-		       wdt->base + SPRD_WDT_IRQ_LOAD_HIGH);
+		       SPRD_WDT_LOW_VALUE_MASK, wdt->base + SPRD_WDT_IRQ_LOAD_HIGH);
 	writel_relaxed(prtmr_step & SPRD_WDT_LOW_VALUE_MASK,
 		       wdt->base + SPRD_WDT_IRQ_LOAD_LOW);
 	sprd_wdt_lock(wdt->base);
@@ -184,7 +214,11 @@ static int sprd_wdt_start(struct watchdog_device *wdd)
 
 	sprd_wdt_unlock(wdt->base);
 	val = readl_relaxed(wdt->base + SPRD_WDT_CTRL);
-	val |= SPRD_WDT_CNT_EN_BIT | SPRD_WDT_INT_EN_BIT | SPRD_WDT_RST_EN_BIT;
+	if (wdt->reset_en)
+		val |= SPRD_WDT_CNT_EN_BIT | SPRD_WDT_INT_EN_BIT |
+			SPRD_WDT_RST_EN_BIT;
+	else
+		val |= SPRD_WDT_CNT_EN_BIT | SPRD_WDT_INT_EN_BIT;
 	writel_relaxed(val, wdt->base + SPRD_WDT_CTRL);
 	sprd_wdt_lock(wdt->base);
 	set_bit(WDOG_HW_RUNNING, &wdd->status);
@@ -302,6 +336,7 @@ static int sprd_wdt_probe(struct platform_device *pdev)
 	wdt->wdd.max_timeout = SPRD_WDT_MAX_TIMEOUT;
 	wdt->wdd.timeout = SPRD_WDT_MAX_TIMEOUT;
 
+	wdt->reset_en = sprd_wdt_en();
 	ret = sprd_wdt_enable(wdt);
 	if (ret) {
 		dev_err(dev, "failed to enable wdt\n");
@@ -359,6 +394,7 @@ static const struct dev_pm_ops sprd_wdt_pm_ops = {
 
 static const struct of_device_id sprd_wdt_match_table[] = {
 	{ .compatible = "sprd,sp9860-wdt", },
+	{ .compatible = "sprd,sharkl3-wdt", },
 	{},
 };
 MODULE_DEVICE_TABLE(of, sprd_wdt_match_table);
