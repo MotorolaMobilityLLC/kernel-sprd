@@ -80,7 +80,7 @@ static int vsp_pw_on(struct generic_pm_domain *domain)
 	}
 
 	do {
-		usleep_range(200, 400);
+		udelay(300);
 		read_count++;
 		regmap_read(vsp_pd->regmap[PMU_PWR_STATUS],
 				vsp_pd->reg[PMU_PWR_STATUS], &power_state);
