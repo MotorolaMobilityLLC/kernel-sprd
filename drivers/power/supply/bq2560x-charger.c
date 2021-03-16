@@ -20,6 +20,7 @@
 #include <linux/regmap.h>
 #include <linux/regulator/driver.h>
 #include <linux/regulator/machine.h>
+#include <linux/sysfs.h>
 #include <linux/usb/phy.h>
 #include <uapi/linux/usb/charger.h>
 #include <linux/pm_wakeup.h>
@@ -36,6 +37,7 @@
 #define BQ2560X_REG_9				0x9
 #define BQ2560X_REG_A				0xa
 #define BQ2560X_REG_B				0xb
+#define BQ2560X_REG_NUM				12
 
 #define BQ2560X_BATTERY_NAME			"sc27xx-fgu"
 #define BIT_DP_DM_BC_ENB			BIT(0)
@@ -96,6 +98,18 @@
 #define BQ2560X_WAKE_UP_MS			1000
 #define BQ2560X_CURRENT_WORK_MS			msecs_to_jiffies(100)
 
+struct bq2560x_charger_sysfs {
+	char *name;
+	struct attribute_group attr_g;
+	struct device_attribute attr_bq2560x_dump_reg;
+	struct device_attribute attr_bq2560x_lookup_reg;
+	struct device_attribute attr_bq2560x_sel_reg_id;
+	struct device_attribute attr_bq2560x_reg_val;
+	struct attribute *attrs[5];
+
+	struct bq2560x_charger_info *info;
+};
+
 struct bq2560x_charger_info {
 	struct i2c_client *client;
 	struct device *dev;
@@ -112,6 +126,7 @@ struct bq2560x_charger_info {
 	struct gpio_desc *gpiod;
 	struct extcon_dev *edev;
 	struct alarm otg_timer;
+	struct bq2560x_charger_sysfs *sysfs;
 	u32 charger_detect;
 	u32 charger_pd;
 	u32 charger_pd_mask;
@@ -129,6 +144,32 @@ struct bq2560x_charger_info {
 	bool otg_enable;
 	unsigned int irq_gpio;
 	bool is_wireless_charge;
+
+	int reg_id;
+};
+
+struct bq2560x_charger_reg_tab {
+	int id;
+	u32 addr;
+	char *name;
+};
+
+static struct bq2560x_charger_reg_tab reg_tab[BQ2560X_REG_NUM + 1] = {
+	{0, BQ2560X_REG_0, "EN_HIZ/EN_ICHG_MON/IINDPM"},
+	{1, BQ2560X_REG_1, "PFM _DIS/WD_RST/OTG_CONFIG/CHG_CONFIG/SYS_Min/Min_VBAT_SEL"},
+	{2, BQ2560X_REG_2, "BOOST_LIM/Q1_FULLON/ICHG"},
+	{3, BQ2560X_REG_3, "IPRECHG/ITERM"},
+	{4, BQ2560X_REG_4, "VREG/TOPOFF_TIMER/VRECHG"},
+	{5, BQ2560X_REG_5, "EN_TERM/WATCHDOG/EN_TIMER/CHG_TIMER/TREG/JEITA_ISET"},
+	{6, BQ2560X_REG_6, "OVP/BOOSTV/VINDPM"},
+	{7, BQ2560X_REG_7, "IINDET_EN/TMR2X_EN/BATFET_DIS/JEITA_VSET/BATFET_DLY/"
+				"BATFET_RST_EN/VDPM_BAT_TRACK"},
+	{8, BQ2560X_REG_8, "VBUS_STAT/CHRG_STAT/PG_STAT/THERM_STAT/VSYS_STAT"},
+	{9, BQ2560X_REG_9, "WATCHDOG_FAULT/BOOST_FAULT/CHRG_FAULT/BAT_FAULT/NTC_FAULT"},
+	{10, BQ2560X_REG_A, "VBUS_GD/VINDPM_STAT/IINDPM_STAT/TOPOFF_ACTIVE/ACOV_STAT/"
+				"VINDPM_INT_ MASK/IINDPM_INT_ MASK"},
+	{11, BQ2560X_REG_B, "REG_RST/PN/DEV_REV"},
+	{12, 0, "null"},
 };
 
 static int
@@ -597,16 +638,17 @@ static int bq2560x_charger_get_online(struct bq2560x_charger_info *info,
 
 static void bq2560x_dump_register(struct bq2560x_charger_info *info)
 {
-	int addr, ret, len, idx = 0;
+	int i, ret, len, idx = 0;
 	u8 reg_val;
 	char buf[256];
 
 	memset(buf, '\0', sizeof(buf));
-	for (addr = 0; addr <= BQ2560X_REG_B; addr++) {
-		ret = bq2560x_read(info, addr, &reg_val);
+	for (i = 0; i < BQ2560X_REG_NUM; i++) {
+		ret = bq2560x_read(info,  reg_tab[i].addr, &reg_val);
 		if (ret == 0) {
 			len = snprintf(buf + idx, sizeof(buf) - idx,
-				       "[REG_0x%.2x]=0x%.2x  ", addr, reg_val);
+				       "[REG_0x%.2x]=0x%.2x  ",
+				       reg_tab[i].addr, reg_val);
 			idx += len;
 		}
 	}
@@ -1181,6 +1223,207 @@ static const struct power_supply_desc bq2560x_slave_charger_desc = {
 	.num_usb_types		= ARRAY_SIZE(bq2560x_charger_usb_types),
 };
 
+static ssize_t bq2560x_register_value_show(struct device *dev,
+					   struct device_attribute *attr,
+					   char *buf)
+{
+	struct bq2560x_charger_sysfs *bq2560x_sysfs =
+		container_of(attr, struct bq2560x_charger_sysfs,
+			     attr_bq2560x_reg_val);
+	struct  bq2560x_charger_info *info =  bq2560x_sysfs->info;
+	u8 val;
+	int ret;
+
+	if (!info)
+		return sprintf(buf, "%s  bq2560x_sysfs->info is null\n", __func__);
+
+	ret = bq2560x_read(info, reg_tab[info->reg_id].addr, &val);
+	if (ret) {
+		dev_err(info->dev, "fail to get  BQ2560X_REG_0x%.2x value, ret = %d\n",
+			reg_tab[info->reg_id].addr, ret);
+		return sprintf(buf, "fail to get  BQ2560X_REG_0x%.2x value\n",
+			       reg_tab[info->reg_id].addr);
+	}
+
+	return sprintf(buf, "BQ2560X_REG_0x%.2x = 0x%.2x\n", reg_tab[info->reg_id].addr, val);
+}
+
+static ssize_t bq2560x_register_value_store(struct device *dev,
+					    struct device_attribute *attr,
+					    const char *buf, size_t count)
+{
+	struct bq2560x_charger_sysfs *bq2560x_sysfs =
+		container_of(attr, struct bq2560x_charger_sysfs,
+			     attr_bq2560x_reg_val);
+	struct bq2560x_charger_info *info = bq2560x_sysfs->info;
+	u8 val;
+	int ret;
+
+	if (!info) {
+		dev_err(dev, "%s bq2560x_sysfs->info is null\n", __func__);
+		return count;
+	}
+
+	ret =  kstrtou8(buf, 16, &val);
+	if (ret) {
+		dev_err(info->dev, "fail to get addr, ret = %d\n", ret);
+		return count;
+	}
+
+	ret = bq2560x_write(info, reg_tab[info->reg_id].addr, val);
+	if (ret) {
+		dev_err(info->dev, "fail to wite 0x%.2x to REG_0x%.2x, ret = %d\n",
+				val, reg_tab[info->reg_id].addr, ret);
+		return count;
+	}
+
+	dev_info(info->dev, "wite 0x%.2x to REG_0x%.2x success\n", val, reg_tab[info->reg_id].addr);
+	return count;
+}
+
+static ssize_t bq2560x_register_id_store(struct device *dev,
+					 struct device_attribute *attr,
+					 const char *buf, size_t count)
+{
+	struct bq2560x_charger_sysfs *bq2560x_sysfs =
+		container_of(attr, struct bq2560x_charger_sysfs,
+			     attr_bq2560x_sel_reg_id);
+	struct bq2560x_charger_info *info = bq2560x_sysfs->info;
+	int ret, id;
+
+	if (!info) {
+		dev_err(dev, "%s bq2560x_sysfs->info is null\n", __func__);
+		return count;
+	}
+
+	ret =  kstrtoint(buf, 10, &id);
+	if (ret) {
+		dev_err(info->dev, "%s store register id fail\n", bq2560x_sysfs->name);
+		return count;
+	}
+
+	if (id < 0 || id >= BQ2560X_REG_NUM) {
+		dev_err(info->dev, "%s store register id fail, id = %d is out of range\n",
+			bq2560x_sysfs->name, id);
+		return count;
+	}
+
+	info->reg_id = id;
+
+	dev_info(info->dev, "%s store register id = %d success\n", bq2560x_sysfs->name, id);
+	return count;
+}
+
+static ssize_t bq2560x_register_id_show(struct device *dev,
+					struct device_attribute *attr,
+					char *buf)
+{
+	struct bq2560x_charger_sysfs *bq2560x_sysfs =
+		container_of(attr, struct bq2560x_charger_sysfs,
+			     attr_bq2560x_sel_reg_id);
+	struct bq2560x_charger_info *info = bq2560x_sysfs->info;
+
+	if (!info)
+		return sprintf(buf, "%s bq2560x_sysfs->info is null\n", __func__);
+
+	return sprintf(buf, "Curent register id = %d\n", info->reg_id);
+}
+
+static ssize_t bq2560x_register_table_show(struct device *dev,
+					   struct device_attribute *attr,
+					   char *buf)
+{
+	struct bq2560x_charger_sysfs *bq2560x_sysfs =
+		container_of(attr, struct bq2560x_charger_sysfs,
+			     attr_bq2560x_lookup_reg);
+	struct bq2560x_charger_info *info = bq2560x_sysfs->info;
+	int i, len, idx = 0;
+	char reg_tab_buf[2048];
+
+	if (!info)
+		return sprintf(buf, "%s bq2560x_sysfs->info is null\n", __func__);
+
+	memset(reg_tab_buf, '\0', sizeof(reg_tab_buf));
+	len = snprintf(reg_tab_buf + idx, sizeof(reg_tab_buf) - idx,
+		       "Format: [id] [addr] [desc]\n");
+	idx += len;
+
+	for (i = 0; i < BQ2560X_REG_NUM; i++) {
+		len = snprintf(reg_tab_buf + idx, sizeof(reg_tab_buf) - idx,
+			       "[%d] [REG_0x%.2x] [%s]; \n",
+			       reg_tab[i].id, reg_tab[i].addr, reg_tab[i].name);
+		idx += len;
+	}
+
+	return sprintf(buf, "%s\n", reg_tab_buf);
+}
+
+static ssize_t bq2560x_dump_register_show(struct device *dev,
+					  struct device_attribute *attr,
+					  char *buf)
+{
+	struct bq2560x_charger_sysfs *bq2560x_sysfs =
+		container_of(attr, struct bq2560x_charger_sysfs,
+			     attr_bq2560x_dump_reg);
+	struct bq2560x_charger_info *info = bq2560x_sysfs->info;
+
+	if (!info)
+		return sprintf(buf, "%s bq2560x_sysfs->info is null\n", __func__);
+
+	bq2560x_dump_register(info);
+
+	return sprintf(buf, "%s\n", bq2560x_sysfs->name);
+}
+
+static int bq2560x_register_sysfs(struct bq2560x_charger_info *info)
+{
+	struct bq2560x_charger_sysfs *bq2560x_sysfs;
+	int ret;
+
+	bq2560x_sysfs = devm_kzalloc(info->dev, sizeof(*bq2560x_sysfs), GFP_KERNEL);
+	if (!bq2560x_sysfs)
+		return -ENOMEM;
+
+	info->sysfs = bq2560x_sysfs;
+	bq2560x_sysfs->name = "bq2560x_sysfs";
+	bq2560x_sysfs->info = info;
+	bq2560x_sysfs->attrs[0] = &bq2560x_sysfs->attr_bq2560x_dump_reg.attr;
+	bq2560x_sysfs->attrs[1] = &bq2560x_sysfs->attr_bq2560x_lookup_reg.attr;
+	bq2560x_sysfs->attrs[2] = &bq2560x_sysfs->attr_bq2560x_sel_reg_id.attr;
+	bq2560x_sysfs->attrs[3] = &bq2560x_sysfs->attr_bq2560x_reg_val.attr;
+	bq2560x_sysfs->attrs[4] = NULL;
+	bq2560x_sysfs->attr_g.name = "debug";
+	bq2560x_sysfs->attr_g.attrs = bq2560x_sysfs->attrs;
+
+	sysfs_attr_init(&bq2560x_sysfs->attr_bq2560x_dump_reg.attr);
+	bq2560x_sysfs->attr_bq2560x_dump_reg.attr.name = "bq2560x_dump_reg";
+	bq2560x_sysfs->attr_bq2560x_dump_reg.attr.mode = 0444;
+	bq2560x_sysfs->attr_bq2560x_dump_reg.show = bq2560x_dump_register_show;
+
+	sysfs_attr_init(&bq2560x_sysfs->attr_bq2560x_lookup_reg.attr);
+	bq2560x_sysfs->attr_bq2560x_lookup_reg.attr.name = "bq2560x_lookup_reg";
+	bq2560x_sysfs->attr_bq2560x_lookup_reg.attr.mode = 0444;
+	bq2560x_sysfs->attr_bq2560x_lookup_reg.show = bq2560x_register_table_show;
+
+	sysfs_attr_init(&bq2560x_sysfs->attr_bq2560x_sel_reg_id.attr);
+	bq2560x_sysfs->attr_bq2560x_sel_reg_id.attr.name = "bq2560x_sel_reg_id";
+	bq2560x_sysfs->attr_bq2560x_sel_reg_id.attr.mode = 0644;
+	bq2560x_sysfs->attr_bq2560x_sel_reg_id.show = bq2560x_register_id_show;
+	bq2560x_sysfs->attr_bq2560x_sel_reg_id.store = bq2560x_register_id_store;
+
+	sysfs_attr_init(&bq2560x_sysfs->attr_bq2560x_reg_val.attr);
+	bq2560x_sysfs->attr_bq2560x_reg_val.attr.name = "bq2560x_reg_val";
+	bq2560x_sysfs->attr_bq2560x_reg_val.attr.mode = 0644;
+	bq2560x_sysfs->attr_bq2560x_reg_val.show = bq2560x_register_value_show;
+	bq2560x_sysfs->attr_bq2560x_reg_val.store = bq2560x_register_value_store;
+
+	ret = sysfs_create_group(&info->psy_usb->dev.kobj, &bq2560x_sysfs->attr_g);
+	if (ret < 0)
+		dev_err(info->dev, "Cannot create sysfs , ret = %d\n", ret);
+
+	return ret;
+}
+
 static void bq2560x_charger_detect_status(struct bq2560x_charger_info *info)
 {
 	unsigned int min, max;
@@ -1396,7 +1639,6 @@ static int bq2560x_charger_probe(struct i2c_client *client,
 
 	alarm_init(&info->otg_timer, ALARM_BOOTTIME, NULL);
 
-	mutex_init(&info->lock);
 	INIT_WORK(&info->work, bq2560x_charger_work);
 	INIT_DELAYED_WORK(&info->cur_work, bq2560x_current_work);
 
@@ -1487,6 +1729,7 @@ static int bq2560x_charger_probe(struct i2c_client *client,
 		dev_err(dev, "unable to get pmic regmap device\n");
 		return -ENODEV;
 	}
+	mutex_init(&info->lock);
 
 	charger_cfg.drv_data = info;
 	charger_cfg.of_node = dev->of_node;
@@ -1502,7 +1745,8 @@ static int bq2560x_charger_probe(struct i2c_client *client,
 
 	if (IS_ERR(info->psy_usb)) {
 		dev_err(dev, "failed to register power supply\n");
-		return PTR_ERR(info->psy_usb);
+		ret = PTR_ERR(info->psy_usb);
+		goto err_regmap_exit;
 	}
 
 	info->irq_gpio = of_get_named_gpio(info->dev->of_node, "irq-gpio", 0);
@@ -1532,11 +1776,10 @@ static int bq2560x_charger_probe(struct i2c_client *client,
 		dev_err(dev, "failed to get irq gpio\n");
 	}
 
-
 	ret = bq2560x_charger_hw_init(info);
 	if (ret) {
 		dev_err(dev, "failed to bq2560x_charger_hw_init\n");
-		return ret;
+		goto err_psy_usb;
 	}
 
 	device_init_wakeup(info->dev, true);
@@ -1544,7 +1787,13 @@ static int bq2560x_charger_probe(struct i2c_client *client,
 	ret = usb_register_notifier(info->usb_phy, &info->usb_notify);
 	if (ret) {
 		dev_err(dev, "failed to register notifier:%d\n", ret);
-		return ret;
+		goto err_psy_usb;
+	}
+
+	ret = bq2560x_register_sysfs(info);
+	if (ret) {
+		dev_err(info->dev, "register sysfs fail, ret = %d\n", ret);
+		goto error_sysfs;
 	}
 
 	bq2560x_charger_detect_status(info);
@@ -1553,6 +1802,18 @@ static int bq2560x_charger_probe(struct i2c_client *client,
 			  bq2560x_charger_feed_watchdog_work);
 
 	return 0;
+
+error_sysfs:
+	sysfs_remove_group(&info->psy_usb->dev.kobj, &info->sysfs->attr_g);
+	usb_unregister_notifier(info->usb_phy, &info->usb_notify);
+err_psy_usb:
+	power_supply_unregister(info->psy_usb);
+	if (info->irq_gpio)
+		gpio_free(info->irq_gpio);
+err_regmap_exit:
+	regmap_exit(info->pmic);
+	mutex_destroy(&info->lock);
+	return ret;
 }
 
 static int bq2560x_charger_remove(struct i2c_client *client)
