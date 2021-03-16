@@ -5431,8 +5431,8 @@ CONFIG_EVENT_TRACING
 	[missing plat description] none
 	[function] The main switch butten for event ftrace.
 CONFIG_EXFAT_DEFAULT_CODEPAGE
-	[arch] arm
-	[plat] pike2
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -5440,8 +5440,8 @@ CONFIG_EXFAT_DEFAULT_CODEPAGE
 	[missing plat description] none
 	[function]
 CONFIG_EXFAT_DEFAULT_IOCHARSET
-	[arch] arm
-	[plat] pike2
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -5449,8 +5449,8 @@ CONFIG_EXFAT_DEFAULT_IOCHARSET
 	[missing plat description] none
 	[function]
 CONFIG_EXFAT_DISCARD
-	[arch] arm
-	[plat] pike2
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -5458,8 +5458,8 @@ CONFIG_EXFAT_DISCARD
 	[missing plat description] none
 	[function]
 CONFIG_EXFAT_DONT_MOUNT_VFAT
-	[arch] arm
-	[plat] pike2
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -5467,8 +5467,8 @@ CONFIG_EXFAT_DONT_MOUNT_VFAT
 	[missing plat description] none
 	[function]
 CONFIG_EXFAT_FS
-	[arch] arm
-	[plat] pike2
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field] make
 	[subsys] fs
