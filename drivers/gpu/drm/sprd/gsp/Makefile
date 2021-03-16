@@ -1,3 +1,4 @@
+subdir-ccflags-y += -Idrivers/devfreq/apsys/
 subdir-ccflags-y += -Idrivers/staging/android/
 subdir-ccflags-y += -Idrivers/staging/android/ion
 

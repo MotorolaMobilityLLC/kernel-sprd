@@ -13,7 +13,6 @@
 
 #include <linux/delay.h>
 #include <linux/device.h>
-#include <linux/interrupt.h>
 #include <linux/kernel.h>
 #include <linux/list.h>
 #include <linux/mfd/syscon.h>
@@ -38,6 +37,7 @@
 #include "gsp_r9p0_reg.h"
 #include "gsp_r9p0_coef_cal.h"
 #include "../gsp_interface.h"
+#include "gsp_r9p0_dvfs.h"
 
 static int zorder_used[R9P0_IMGL_NUM + R9P0_OSDL_NUM] = {0};
 int gsp_r9p0_layer_num;//gsp_enabled_layer_count->gsp_r9p0_layer_num;
@@ -625,6 +625,8 @@ int gsp_r9p0_core_init(struct gsp_core *core)
 			(struct gsp_r9p0_cfg *)kcfg->cfg, kcfg);
 	}
 
+	gsp_dvfs_task_init(c);
+
 	return ret;
 }
 
@@ -835,19 +837,20 @@ int gsp_r9p0_core_parse_dt(struct gsp_core *core)
 	return ret;
 }
 
-
 static void gsp_r9p0_core_misc_reg_set(struct gsp_core *core,
 			struct gsp_r9p0_cfg *cfg)
 {
 	void __iomem *base = NULL;
+	struct gsp_r9p0_core *c = (struct gsp_r9p0_core *)core;
 	struct R9P0_WORK_AREA_XY_REG  work_area_xy_value;
 	struct R9P0_WORK_AREA_XY_REG work_area_xy_mask;
 	struct R9P0_WORK_AREA_SIZE_REG work_area_size_value;
 	struct R9P0_WORK_AREA_SIZE_REG work_area_size_mask;
 	struct R9P0_GSP_MOD_CFG_REG gsp_mod_cfg_value;
 	struct R9P0_GSP_MOD_CFG_REG gsp_mod_cfg_mask;
-
 	base = core->base;
+
+	gsp_dvfs_tasklet_schedule(c, cfg->misc.work_freq);
 
 	gsp_mod_cfg_value.value = 0x0;
 	gsp_mod_cfg_value.CORE_NUM = cfg->misc.core_num;
