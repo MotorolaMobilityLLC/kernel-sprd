@@ -410,9 +410,13 @@ static int sprd_spi_read_bufs_u32(struct sprd_spi *ss, u32 len)
 static int sprd_spi_txrx_bufs(struct spi_device *sdev, struct spi_transfer *t)
 {
 	struct sprd_spi *ss = spi_controller_get_devdata(sdev->controller);
-	u32 trans_len = ss->trans_len, len, *tmp_txbuf = NULL;
+	u32 trans_len = ss->trans_len, len, *tmp_txbuf = NULL, val;
 	int ret = 0, write_size = 0, read_size = 0;
 
+	/*
+	 * For RX mode only, we need to alloc and send a all 0 or
+	 * all 1 tx_buf and enable SPI TX mode to provide clk.
+	 */
 	if (!(ss->trans_mode & SPRD_SPI_TX_MODE)) {
 		tmp_txbuf = kzalloc(trans_len, GFP_ATOMIC);
 		if (!tmp_txbuf) {
@@ -423,6 +427,9 @@ static int sprd_spi_txrx_bufs(struct spi_device *sdev, struct spi_transfer *t)
 			goto complete;
 		}
 		ss->tx_buf = tmp_txbuf;
+		val = readl_relaxed(ss->base + SPRD_SPI_CTL1);
+		writel_relaxed(val | SPRD_SPI_TX_MODE,
+					ss->base + SPRD_SPI_CTL1);
 	}
 
 	while (trans_len) {
@@ -481,9 +488,8 @@ static int sprd_spi_txrx_bufs(struct spi_device *sdev, struct spi_transfer *t)
 		kfree(tmp_txbuf);
 		ss->tx_buf = NULL;
 		ret = read_size;
-	} else {
+	} else
 		ret = write_size;
-	}
 
 complete:
 	sprd_spi_enter_idle(ss);
@@ -709,6 +715,12 @@ static int sprd_spi_dma_txrx_bufs(struct spi_device *sdev,
 		if (!(ss->trans_mode & SPRD_SPI_TX_MODE)) {
 			/* The SPI device is used for RXonly mode.*/
 			sprd_spi_set_tx_length(ss, trans_len);
+
+			/*
+			 * For RX mode only, we need to alloc and send a all 0
+			 * or all 1 tx_buf and enable SPI TX mode to provide
+			 * clk.
+			 */
 			val = readl_relaxed(ss->base + SPRD_SPI_CTL1);
 			writel_relaxed(val | SPRD_SPI_TX_MODE,
 						ss->base + SPRD_SPI_CTL1);
