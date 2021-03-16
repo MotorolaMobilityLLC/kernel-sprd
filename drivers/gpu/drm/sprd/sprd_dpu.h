@@ -41,6 +41,9 @@ extern const struct sprd_crtc_core_ops dpu_lite_r1p0_core_ops;
 extern const struct sprd_crtc_clk_ops pike2_dpu_clk_ops;
 extern const struct sprd_crtc_glb_ops pike2_dpu_glb_ops;
 
+extern const struct sprd_crtc_clk_ops sharkle_dpu_clk_ops;
+extern const struct sprd_crtc_glb_ops sharkle_dpu_glb_ops;
+
 extern const struct sprd_crtc_core_ops dpu_r2p0_core_ops;
 extern const struct sprd_crtc_clk_ops sharkl3_dpu_clk_ops;
 extern const struct sprd_crtc_glb_ops sharkl3_dpu_glb_ops;

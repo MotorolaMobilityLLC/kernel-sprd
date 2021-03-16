@@ -34,6 +34,9 @@ sprd-drm-y += \
 	pike2/global_dpu.o \
 	pike2/global_dsi.o \
 	pike2/global_dphy.o \
+	sharkle/global_dpu.o \
+	sharkle/global_dsi.o \
+	sharkle/global_dphy.o \
 	sharkl3/global_dispc.o \
 	sharkl3/global_dsi.o \
 	sharkl3/global_dphy.o \

@@ -627,6 +627,11 @@ static int sprd_dsi_context_init(struct sprd_dsi *dsi, struct device_node *np)
 	return 0;
 }
 
+static const struct sprd_dsi_ops sharkle_dsi = {
+	.core = &dsi_ctrl_r1p0_ops,
+	.glb = &sharkle_dsi_glb_ops,
+};
+
 static const struct sprd_dsi_ops pike2_dsi = {
 	.core = &dsi_ctrl_r1p0_ops,
 	.glb = &pike2_dsi_glb_ops,
@@ -643,6 +648,8 @@ static const struct sprd_dsi_ops sharkl5pro_dsi = {
 };
 
 static const struct of_device_id dsi_match_table[] = {
+	{ .compatible = "sprd,sharkle-dsi-host",
+	  .data = &sharkle_dsi },
 	{ .compatible = "sprd,pike2-dsi-host",
 	  .data = &pike2_dsi },
 	{ .compatible = "sprd,sharkl3-dsi-host",

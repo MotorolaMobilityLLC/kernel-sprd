@@ -684,7 +684,7 @@ int sprd_panel_parse_lcddtb(struct device_node *lcd_node,
 	if (rc)
 		DRM_ERROR("parse lcd reset sequence failed\n");
 
-	p = of_get_property(lcd_node, "sprd,init-command", &bytes);
+	p = of_get_property(lcd_node, "sprd,initial-command", &bytes);
 	if (p) {
 		info->cmds[CMD_CODE_INIT] = p;
 		info->cmds_len[CMD_CODE_INIT] = bytes;
