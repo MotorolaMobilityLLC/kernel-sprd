@@ -225,6 +225,10 @@
 		 compatible = "sprd,qogirl6-sensorhub", "sprd,sensor-hub";
 	};
 
+	sprd-map-user {
+		compatible = "sprd,map-user";
+	};
+
 	thm_zone: thermal-zones {
 		soc_thmzone: soc-thmzone {
 			polling-delay-passive = <100>;
