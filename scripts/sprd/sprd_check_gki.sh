@@ -62,6 +62,7 @@ GKI_DIFF_CONFIG=gki_diff_config.diff
 ABIGIAL_PATH_FLAG=0
 COMPILE_CHECK_PASS_FLAG=0
 RET_VAL=0
+RET_COUNT=0
 
 if [ $# -ge 2  ]; then
   for arg in $*
@@ -101,6 +102,7 @@ function do_gki_ckeck() {
   OUT_ABI_DIR=$(find ${KERNEL_CODE_DIR} -type d -name "out_abi")
   if [ -d "${OUT_ABI_DIR}" ]; then
     ABI_DIR=$(find ${OUT_ABI_DIR} -name "abi.report")
+    ABI_DIR_SHORT=$(find ${OUT_ABI_DIR} -name "abi.report.short")
     WHITELIST_DIFF_DIR=$(find ${OUT_ABI_DIR} -name "diff_whitelist.report")
   fi
 
@@ -111,19 +113,57 @@ function do_gki_ckeck() {
     echo "ERROR: abi.report is not exist! "
   else
     #check abi report
+    grep -E "Removed function:|Removed variable:" ${ABI_DIR} > /dev/null
+    REMOVED_REPORT=$?
+    grep -E "Added function:|Added variable:|Changed function:|Changed variable:" ${ABI_DIR} > /dev/null
+    OTHER_REPORT=$?
     file_size=`ls -l ${ABI_DIR} | awk '{print $5}'`
     file_rows_count=$(awk 'END{print NR}' ${ABI_DIR})
-    diff ${ABI_DIR} ${KERNEL_CODE_DIR}/${KERNEL_DIR}/Documentation/abi_base.report
+    diff ${ABI_DIR} ${KERNEL_CODE_DIR}/${KERNEL_DIR}/Documentation/abi_base.report > /dev/null
     if [ $? -ne 0 -a ${file_size} -gt 0 ]; then
       if [[ $file_rows_count -le 5 ]]; then
         echo -e "WARNING-GKI: filtered out in GKI check! abi.report size: ${file_size}, rows: ${file_rows_count}"
         echo "check gki --------------------------------------------- PASS"
+      elif [[ ${REMOVED_REPORT} -eq 0 ]] && [[ ${OTHER_REPORT} -eq 1 ]]; then
+        REMOVED_FUNCTIONS=`grep "\[\D\]" ${ABI_DIR} | grep "function" | awk '{print $4}' | awk -F '(' '{print $1}'`
+        REMOVED_VARIABLE=`grep -v "function" ${ABI_DIR} | grep "\[\D\]" | awk '{print $4}' | awk -F ''\' '{print $1}' `
+        for function in $REMOVED_FUNCTIONS
+        do
+          grep -w $function /$KERNEL_CODE_DIR/$KERNEL_DIR/android/abi_gki_aarch64_unisoc > /dev/null
+          if [ $? -eq 0 ];then
+            let RET_COUNT+=1
+          else
+            echo "WARNING-GKI:Functions $function not in abi_gki_aarch64_unisoc, overlooked"
+            sed -i "/\<${function}\>/s/$/ **overlooked**/g" ${ABI_DIR}
+            sed -i "/\<${function}\>/s/$/ **overlooked**/g" ${ABI_DIR_SHORT}
+          fi
+        done
+        for variable in $REMOVED_VARIABLE
+        do
+          grep -w $variable /$KERNEL_CODE_DIR/$KERNEL_DIR/android/abi_gki_aarch64_unisoc > /dev/null
+          if [ $? -eq 0 ]; then
+            let RET_COUNT+=1
+          else
+            echo "WARNING-GKI:Variable $variable not in abi_gki_aarch64_unisoc, overlooked"
+            sed -i "/\<${variable}\>/s/$/ **overlooked**/g" ${ABI_DIR}
+            sed -i "/\<${variable}\>/s/$/ **overlooked**/g" ${ABI_DIR_SHORT}
+          fi
+        done
+        if [[ $RET_COUNT -eq 0 ]];then
+          echo -e "WARNING-GKI: filtered out in GKI check!abi.report size: ${file_size}, rows: ${file_rows_count}"
+          echo "check gki --------------------------------------------- PASS"
+        else
+          let RET_VAL+=4
+          echo -e "ERROR: GKI check failed! abi.report size:${file_size} \nPlease read ${ABI_DIR}"
+          echo -e "\nabi report info:"
+          cat ${ABI_DIR}
+        fi
       else
         let RET_VAL+=4
         echo -e "ERROR: GKI check failed! abi.report size:${file_size} \nPlease read ${ABI_DIR}"
+        echo -e "\nabi report info:"
+        cat ${ABI_DIR}
       fi
-      echo -e "\nabi report info:"
-      cat ${ABI_DIR}
     else
       echo "abi.report size: ${file_size}"
       echo "check gki --------------------------------------------- PASS"
@@ -136,14 +176,14 @@ function do_gki_ckeck() {
     fi
     echo "ERROR: diff_whitelist.report is not exist"
   else
-    grep "to google" ${WHITELIST_DIFF_DIR} > null
+    grep "to google" ${WHITELIST_DIFF_DIR} > /dev/null
     if [ $? -eq 0 ] ;then
       let RET_VAL+=16
 	  whitelist_diff_flag=1
       echo -e "ERROR: whitelist has changed!\nPlease read ${WHITELIST_DIFF_DIR}"
       echo -e "New symbols need to be update to google!"
     fi
-    grep "abi_gki_aarch64_unisoc" ${WHITELIST_DIFF_DIR} > null
+    grep "abi_gki_aarch64_unisoc" ${WHITELIST_DIFF_DIR} > /dev/null
     if [ $? -eq 0 ] ;then
       let RET_VAL+=32
 	  whitelist_diff_flag=1
