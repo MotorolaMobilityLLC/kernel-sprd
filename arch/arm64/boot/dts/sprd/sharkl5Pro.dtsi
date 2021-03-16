@@ -1290,7 +1290,7 @@
 			};
 
 			pwms: pwm@32260000 {
-				compatible = "sprd,ums512-pwm";
+				compatible = "sprd,sharkl5pro-pwm";
 				reg = <0 0x32260000 0 0x10000>;
 				clock-names = "pwm0", "enable0",
 					      "pwm1", "enable1",
