@@ -1,0 +1,111 @@
+// SPDX-License-Identifier: GPL-2.0-only
+/*
+ * Unisoc SP9863A board common DTS file
+ *
+ * Copyright (C) 2019, Unisoc Inc.
+ *
+ */
+
+#include "lcd/lcd_dummy_mipi.dtsi"
+
+/ {
+	display-subsystem {
+		compatible = "sprd,display-subsystem";
+		memory-region = <&drm_reserved>;
+		ports = <&dpu_port>;
+		gsp = <&gsp>;
+	};
+
+	firmware {
+		android {
+			compatible = "android,firmware";
+			vbmeta {
+				compatible = "android,vbmeta";
+				parts = "vbmeta,boot,dtbo,l_modem,pm_sys,l_ldsp,l_gdsp";
+			};
+		};
+	};
+
+	reserved_memory: reserved-memory {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges;
+
+		drm_reserved: framebuffer {
+			compatible = "shared-dma-pool";
+			size = <0x01400000>;
+			reusable;
+		};
+	};
+
+	ipi: interrupt-controller {
+		compatible = "sprd,customipi";
+		#interrupt-cells = <1>;
+		interrupt-controller;
+	};
+
+	sprd-sensorhub {
+		compatible = "sprd,sharkl3-sensorhub", "sprd,sensor-hub";
+	};
+
+	trusty {
+		compatible = "sprd,trusty-smc-v1";
+
+		irq {
+			compatible = "sprd,trusty-irq-v1";
+			interrupt-templates = <&ipi 0>,
+					      <&gic 1 GIC_PPI 0>,
+					      <&gic 1 GIC_SPI 0>;
+			interrupt-ranges = < 0  15 0>,
+					   <16  31 1>,
+					   <32 223 2>;
+		};
+
+		virtio {
+			compatible = "sprd,trusty-virtio-v1";
+		};
+
+		log {
+			compatible = "sprd,trusty-log-v1";
+		};
+	};
+};
+
+&adi_bus {
+	sprd,hw-channels = <33 0x8c20>, <35 0x8cc4>, <36 0x8cd0>,
+		<19 0x8c44>, <20 0x8c44>, <21 0x8c44>, <22 0x8c44>;
+};
+
+&sdio0 {
+	sprd,phy-delay-sd-uhs-sdr104 = <0x7f 0xd1 0xd1 0xd1>;
+	sprd,phy-delay-sd-uhs-sdr50 = <0x7f 0xff 0xff 0xff>;
+	sprd,phy-delay-sd-highspeed = <0x7f 0x23 0x22 0x22>;
+	vmmc-supply = <&vddsdcore>;
+	vqmmc-supply = <&vddsdio>;
+	voltage-ranges = <3000 3000>;
+	bus-width = <4>;
+	sd-uhs-sdr104;
+	sd-uhs-sdr50;
+	no-sdio;
+	no-mmc;
+	status = "okay";
+};
+
+&sdio3 {
+	sprd,phy-delay-mmc-hs400es = <0x55 0x7f 0x38 0x38>;
+	sprd,phy-delay-mmc-hs400 = <0x55 0xd3 0x35 0x35>;
+	sprd,phy-delay-mmc-hs200 = <0x7f 0xcd 0xcd 0xcd>;
+	sprd,phy-delay-mmc-ddr52 = <0x32 0x23 0x18 0x18>;
+	vmmc-supply = <&vddemmccore>;
+	voltage-ranges = <3000 3000>;
+	bus-width = <8>;
+	non-removable;
+	cap-mmc-hw-reset;
+	mmc-hs400-enhanced-strobe;
+	mmc-hs400-1_8v;
+	mmc-hs200-1_8v;
+	mmc-ddr-1_8v;
+	no-sdio;
+	no-sd;
+	status = "okay";
+};

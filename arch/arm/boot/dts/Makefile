@@ -1322,16 +1322,25 @@ dtbo-$(CONFIG_ARCH_SPRD) += \
 sp9832e-1h10_go-overlay.dtbo-base := sp9832e.dtb
 endif
 
+ifeq ($(BSP_BUILD_FAMILY),sharkl3)
+dtbo-$(CONFIG_ARCH_SPRD) += \
+	sp9863a-1h10-go_32b-overlay.dtbo
+
+sp9863a-1h10-go_32b-overlay.dtbo-base := sp9863a.dtb
+endif
+
 endif #//BSP_BUILD_ANDROID_OS
 
 else #//AiAiAi or No DTBO
 dtb-$(CONFIG_ARCH_SPRD) += \
 	sp7731e.dtb \
-	sp9832e.dtb
+	sp9832e.dtb \
+    sp9863a.dtb
 
 dtbo-$(CONFIG_ARCH_SPRD) += \
 	sp7731e-1h10-overlay.dtbo \
-	sp9832e-1h10_go-overlay.dtbo
+	sp9832e-1h10_go-overlay.dtbo \
+    sp9863a-1h10-go_32b-overlay.dtbo
 
 endif #//BSP_BUILD_DT_OVERLAY
 

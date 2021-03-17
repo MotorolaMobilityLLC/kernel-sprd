@@ -1,19 +1,21 @@
 /*
  * Spreadtrum SC2721 PMIC dts file
  *
- * Copyright (C) 2019, Spreadtrum Communications Inc.
+ * Copyright (C) 2020, Spreadtrum Communications Inc.
  *
  * SPDX-License-Identifier: (GPL-2.0+ OR MIT)
  */
 
 &adi_bus {
+	#address-cells = <1>;
+	#size-cells = <0>;
 	sc2721_pmic: pmic@0 {
 		compatible = "sprd,sc2721";
 		reg = <0>;
 		spi-max-frequency = <26000000>;
 		interrupts = <GIC_SPI 38 IRQ_TYPE_LEVEL_HIGH>;
 		interrupt-controller;
-		#interrupt-cells = <2>;
+		#interrupt-cells = <1>;
 		#address-cells = <1>;
 		#size-cells = <0>;
 
@@ -23,7 +25,7 @@
 		};
 
 		led-controller@180 {
-			compatible = "sprd,sc27xx-bltc", "sprd,sc2721-bltc";
+			compatible = "sprd,sc2731-bltc", "sprd,sc2721-bltc";
 			#address-cells = <1>;
 			#size-cells = <0>;
 			reg = <0x180>;
@@ -45,17 +47,17 @@
 		};
 
 		rtc@200 {
-			compatible = "sprd,sc27xx-rtc", "sprd,sc2721-rtc";
+			compatible = "sprd,sc2731-rtc", "sprd,sc2721-rtc";
 			reg = <0x200>;
 			interrupt-parent = <&sc2721_pmic>;
-			interrupts = <1 IRQ_TYPE_LEVEL_HIGH>;
+			interrupts = <1>;
 		};
 
 		pmic_eic: gpio-controller@280 {
-			compatible = "sprd,sc27xx-eic", "sprd,sc2721-eic";
+			compatible = "sprd,sc2731-eic", "sprd,sc2721-eic";
 			reg = <0x280>;
-			interrupts = <4 IRQ_TYPE_LEVEL_HIGH>;
 			interrupt-parent = <&sc2721_pmic>;
+			interrupts = <4>;
 			gpio-controller;
 			#gpio-cells = <2>;
 			interrupt-controller;
@@ -63,13 +65,13 @@
 		};
 
 		pmic_flash: flash@2a8 {
-			compatible = "sprd,sc27xx-flash", "sprd,sc2721-flash";
+			compatible = "sprd,sc2731-flash", "sprd,sc2721-flash";
 			reg = <0x2a8>;
 			status = "disabled";
 		};
 
 		efuse@300 {
-			compatible = "sprd,sc27xx-efuse", "sprd,sc2721-efuse";
+			compatible = "sprd,sc2731-efuse", "sprd,sc2721-efuse";
 			reg = <0x300>;
 			#address-cells = <1>;
 			#size-cells = <1>;
@@ -105,20 +107,20 @@
 		};
 
 		pmic_typec: typec@380 {
-			compatible = "sprd,sc27xx-typec", "sprd,sc2721-typec";
+			compatible = "sprd,sc2721-typec";
 			interrupt-parent = <&sc2721_pmic>;
-			interrupts = <10 IRQ_TYPE_LEVEL_HIGH>;
+			interrupts = <10>;
 			reg = <0x380>;
-			mode = <2>;
+			sprd,mode = <2>;
 			nvmem-cells = <&cc_cal>;
 			nvmem-cell-names = "cc_calib";
 		};
 
 		pmic_adc: adc@400 {
-			compatible = "sprd,sc27xx-adc", "sprd,sc2721-adc";
+			compatible = "sprd,sc2731-adc", "sprd,sc2721-adc";
 			reg = <0x400>;
 			interrupt-parent = <&sc2721_pmic>;
-			interrupts = <0 IRQ_TYPE_LEVEL_HIGH>;
+			interrupts = <0>;
 			#io-channel-cells = <1>;
 			hwlocks = <&hwlock 4>;
 			nvmem-cells = <&adc_bcal>, <&adc_scal>;
@@ -126,34 +128,34 @@
 		};
 
 		pmic_fgu: fgu@a00 {
-			compatible = "sprd,sc27xx-fgu", "sprd,sc2731-fgu";
+			compatible = "sprd,sc2731-fgu", "sprd,sc2720-fgu", "sprd,sc2721-fgu";
 			reg = <0xa00>;
-			bat-detect-gpio = <&pmic_eic 9 0>;
+			bat-detect-gpio = <&pmic_eic 9 GPIO_ACTIVE_HIGH>;
 			nvmem-cell-names = "fgu_calib";
 			nvmem-cells = <&fgu_calib>;
 			io-channels = <&pmic_adc 0>, <&pmic_adc 14>;
 			io-channel-names = "bat-temp", "charge-vol";
 			interrupt-parent = <&sc2721_pmic>;
-			interrupts = <3 IRQ_TYPE_LEVEL_HIGH>;
+			interrupts = <3>;
 		};
 
 		syscon@c00 {
-			compatible = "sprd,sc27xx-syscon";
+			compatible = "sprd,sc2731-syscon", "sprd,sc27xx-syscon";
 			reg = <0xc00>, <0xecc>, <0xec0>;
 		};
 
 		sprd_audio_codec_ana: audio-codec@700 {
 			compatible = "sprd,sc2721-audio-codec",
-				"sprd,sc27xx-audio-codec";
+				"sprd,sc2731-audio-codec";
 			#sound-dai-cells = <1>;
 			reg = <0x700>;
-			interrupts = <6 IRQ_TYPE_NONE>;
+			interrupts = <6>;
 			sprd,syscon-pmu-apb = <&pmu_apb_regs>;
 			status = "disabled";
 		};
 
 		power-controller@c00 {
-			compatible = "sprd,sc27xx-regulator", "sprd,sc2721-regulator";
+			compatible = "sprd,sc2731-regulator", "sprd,sc2721-regulator";
 
 			vddcpu: DCDC_CPU {
 				regulator-name = "vddcpu";
@@ -244,8 +246,8 @@
 				regulator-ramp-delay = <25000>;
 			};
 
-			vdd18_dcxo: LDO_VDD18_DCXO {
-				regulator-name = "vdd18_dcxo";
+			vdddcxo: LDO_VDDDCXO {
+				regulator-name = "vdddcxo";
 				regulator-min-microvolt = <1200000>;
 				regulator-max-microvolt = <3750000>;
 				regulator-ramp-delay = <25000>;
@@ -316,17 +318,17 @@
 			};
 		};
 
+		poweroff@c20 {
+			compatible = "sprd,sc27xx-poweroff", "sprd,sc2721-poweroff";
+			reg = <0xc20>;
+		};
+
 		vibrator@eb4 {
-			compatible = "sprd,sc27xx-vibrator", "sprd,sc2721-vibrator";
+			compatible = "sprd,sc2731-vibrator", "sprd,sc2721-vibrator";
 			reg = <0xeb4>;
 		};
 
-		poweroff@efc {
-			compatible = "sprd,sc27xx-poweroff", "sprd,sc2721-poweroff";
-			reg = <0xefc>;
-		};
-
-		hw-reset@f1c{
+		hw-reset@eec {
 			compatible = "sprd,sc27xx-7sreset", "sprd,sc2721-7sreset";
 			reg = <0xf1c>, <0xeec>;
 		};
