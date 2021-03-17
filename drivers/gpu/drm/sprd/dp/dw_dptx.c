@@ -146,8 +146,6 @@ static int handle_hotplug(struct dptx *dptx)
 
 	dptx_soft_reset(dptx, DPTX_SRST_CTRL_AUX);
 
-	dptx_core_init_phy(dptx);
-
 	/* Move PHY to P0 */
 	phyifctrl = dptx_readl(dptx, DPTX_PHYIF_CTRL);
 	phyifctrl &= ~DPTX_PHYIF_CTRL_LANE_PWRDOWN_MASK;
@@ -155,14 +153,14 @@ static int handle_hotplug(struct dptx *dptx)
 
 	ret_dpcd = drm_dp_dpcd_readb(&dptx->aux_dev, DP_MSTM_CAP, &byte);
 	if (ret_dpcd < 0) {
-		DRM_DEBUG("read DP_MSTM_CAP err %d\n", ret_dpcd);
+		DRM_ERROR("read DP_MSTM_CAP err %d\n", ret_dpcd);
 		return ret_dpcd;
 	}
 
 	if (byte & DP_MST_CAP) {
 		ret_dpcd = drm_dp_dpcd_writeb(&dptx->aux_dev, DP_MSTM_CTRL, 0);
 		if (ret_dpcd < 0) {
-			DRM_DEBUG("write DP_MSTM_CTRL err %d\n", ret_dpcd);
+			DRM_ERROR("write DP_MSTM_CTRL err %d\n", ret_dpcd);
 			return ret_dpcd;
 		}
 	}
@@ -175,7 +173,7 @@ static int handle_hotplug(struct dptx *dptx)
 					   dptx->rx_caps,
 					   DPTX_RECEIVER_CAP_SIZE);
 	if (ret_dpcd < 0) {
-		DRM_DEBUG("read rx_caps err %d\n", ret_dpcd);
+		DRM_ERROR("read rx_caps err %d\n", ret_dpcd);
 		return ret_dpcd;
 	}
 
@@ -185,7 +183,7 @@ static int handle_hotplug(struct dptx *dptx)
 						   dptx->rx_caps,
 						   DPTX_RECEIVER_CAP_SIZE);
 		if (ret_dpcd < 0) {
-			DRM_DEBUG("read rx EXTENDED caps err %d\n",
+			DRM_ERROR("read rx EXTENDED caps err %d\n",
 				 ret_dpcd);
 			return ret_dpcd;
 		}
@@ -258,7 +256,7 @@ irqreturn_t dptx_irq(int irq, void *dev)
 {
 	irqreturn_t retval = IRQ_HANDLED;
 	struct dptx *dptx = dev;
-	u32 ists;
+	u32 ists, reg, phyifctrl;
 
 	ists = dptx_readl(dptx, DPTX_ISTS);
 	DRM_DEBUG("%s: ISTS=0x%08x\n", __func__, ists);
@@ -288,14 +286,36 @@ irqreturn_t dptx_irq(int irq, void *dev)
 	}
 
 	if (ists & DPTX_ISTS_TYPE_C) {
-		DRM_DEBUG("%s: DPTX_ISTS_TYPE_C\n", __func__);
+		DRM_INFO("%s: DPTX_ISTS_TYPE_C\n", __func__);
 		dptx_writel(dptx, DPTX_ISTS, DPTX_ISTS_TYPE_C);
+
+		reg = dptx_readl(dptx, DPTX_TYPE_C_CTRL);
+		if (reg & 0x2) {
+			/* Move PHY to P3 */
+			phyifctrl = dptx_readl(dptx, DPTX_PHYIF_CTRL);
+
+			phyifctrl |= (3 << DPTX_PHYIF_CTRL_LANE_PWRDOWN_SHIFT);
+
+			dptx_writel(dptx, DPTX_PHYIF_CTRL, phyifctrl);
+
+			dptx_phy_wait_busy(dptx, DPTX_MAX_LINK_LANES);
+
+			dptx_phy_soft_reset(dptx);
+
+			dptx_phy_wait_busy(dptx, DPTX_MAX_LINK_LANES);
+
+			dptx_writel(dptx, DPTX_TYPE_C_CTRL, 0x5);
+		} else {
+			dptx_phy_soft_reset(dptx);
+			dptx_phy_wait_busy(dptx, DPTX_MAX_LINK_LANES);
+			dptx_writel(dptx, DPTX_TYPE_C_CTRL, 0x4);
+		}
 	}
 
 	if (ists & DPTX_ISTS_HPD) {
 		u32 hpdsts;
 
-		DRM_DEBUG("%s: DPTX_ISTS_HPD\n", __func__);
+		DRM_INFO("%s: DPTX_ISTS_HPD\n", __func__);
 		hpdsts = dptx_readl(dptx, DPTX_HPDSTS);
 
 		DRM_DEBUG("%s: HPDSTS = 0x%08x\n", __func__, hpdsts);
@@ -308,7 +328,7 @@ irqreturn_t dptx_irq(int irq, void *dev)
 		}
 
 		if (hpdsts & DPTX_HPDSTS_HOT_PLUG) {
-			DRM_DEBUG("%s: DPTX_HPDSTS_HOT_PLUG\n", __func__);
+			DRM_INFO("%s: DPTX_HPDSTS_HOT_PLUG\n", __func__);
 			dptx_writel(dptx, DPTX_HPDSTS, DPTX_HPDSTS_HOT_PLUG);
 			atomic_set(&dptx->aux.abort, 1);
 			atomic_set(&dptx->c_connect, 1);
@@ -316,7 +336,7 @@ irqreturn_t dptx_irq(int irq, void *dev)
 		}
 
 		if (hpdsts & DPTX_HPDSTS_HOT_UNPLUG) {
-			DRM_DEBUG("%s: DPTX_HPDSTS_HOT_UNPLUG\n",
+			DRM_INFO("%s: DPTX_HPDSTS_HOT_UNPLUG\n",
 				 __func__);
 			dptx_writel(dptx, DPTX_HPDSTS, DPTX_HPDSTS_HOT_UNPLUG);
 			atomic_set(&dptx->aux.abort, 1);

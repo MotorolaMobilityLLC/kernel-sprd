@@ -273,7 +273,6 @@ int dptx_core_init(struct dptx *dptx)
 
 	DRM_DEBUG("Core version: %s\n", str);
 	dptx->version = version;
-	dptx_core_init_phy(dptx);
 
 	/* Enable all HPD interrupts */
 	hpd_ien = dptx_readl(dptx, DPTX_HPD_IEN);
@@ -285,6 +284,8 @@ int dptx_core_init(struct dptx *dptx)
 
 	/* Enable all top-level interrupts */
 	dptx_global_intr_en(dptx);
+
+	dptx_writel(dptx, DPTX_TYPE_C_CTRL, 0x5);
 
 	return 0;
 }
@@ -357,27 +358,6 @@ void dptx_phy_set_rate(struct dptx *dptx, u32 rate)
 	DRM_DEBUG("%s: rate=%d\n", __func__, rate);
 
 	phyifctrl = dptx_readl(dptx, DPTX_PHYIF_CTRL);
-	switch (rate) {
-	case DPTX_PHYIF_CTRL_RATE_RBR:
-	case DPTX_PHYIF_CTRL_RATE_HBR:
-		/* Set 20-bit PHY width */
-		phyifctrl = dptx_readl(dptx, DPTX_PHYIF_CTRL);
-		phyifctrl &= ~DPTX_PHYIF_CTRL_WIDTH;
-		dptx_writel(dptx, DPTX_PHYIF_CTRL, phyifctrl);
-		break;
-	case DPTX_PHYIF_CTRL_RATE_HBR2:
-	case DPTX_PHYIF_CTRL_RATE_HBR3:
-		/* Set 40-bit PHY width */
-		phyifctrl = dptx_readl(dptx, DPTX_PHYIF_CTRL);
-		phyifctrl |= DPTX_PHYIF_CTRL_WIDTH;
-		dptx_writel(dptx, DPTX_PHYIF_CTRL, phyifctrl);
-		break;
-	default:
-		DRM_ERROR("Invalid PHY rate %d\n", rate);
-		break;
-	}
-
-	phyifctrl = dptx_readl(dptx, DPTX_PHYIF_CTRL);
 	phyifctrl &= ~DPTX_PHYIF_CTRL_RATE_MASK;
 	phyifctrl |= rate << DPTX_PHYIF_CTRL_RATE_SHIFT;
 	dptx_writel(dptx, DPTX_PHYIF_CTRL, phyifctrl);
@@ -431,7 +411,7 @@ int dptx_phy_wait_busy(struct dptx *dptx, u32 lanes)
 			break;
 
 		count++;
-		if (count > 10) {
+		if (count > 100000) {
 			DRM_WARN("%s: PHY BUSY timed out\n", __func__);
 			return 0;
 		}

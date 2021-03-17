@@ -371,7 +371,7 @@ int dptx_video_ts_calculate(struct dptx *dptx, int lane_num, int rate,
 	ts = (8 * color_dep * pixel_clock) / (lane_num * link_rate);
 	tu = ts / 1000;
 	if (tu >= 65) {
-		DRM_DEBUG("%s: tu(%d) > 65", __func__, tu);
+		DRM_INFO("%s: tu(%d) > 65", __func__, tu);
 		return -EINVAL;
 	}
 
@@ -385,10 +385,11 @@ int dptx_video_ts_calculate(struct dptx *dptx, int lane_num, int rate,
 		else
 			vparams->init_threshold = 12;
 	} else {
-		vparams->init_threshold = 15;
+		vparams->init_threshold = 16;
 	}
 
-	DRM_DEBUG("tu = %d, tu_frac = %d\n", tu, tu_frac);
+	DRM_INFO("tu = %d, tu_frac = %d\n", tu, tu_frac);
+
 	vparams->aver_bytes_per_tu = tu;
 	vparams->aver_bytes_per_tu_frac = tu_frac;
 

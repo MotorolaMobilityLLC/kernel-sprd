@@ -214,7 +214,7 @@ static int dptx_link_training_start(struct dptx *dptx)
 
 	/* Initialize PHY */
 
-	/* Move PHY to P3 to program SSC */
+	/* Move PHY to P3 */
 	phyifctrl = dptx_readl(dptx, DPTX_PHYIF_CTRL);
 
 	phyifctrl |= (3 << DPTX_PHYIF_CTRL_LANE_PWRDOWN_SHIFT);
@@ -229,6 +229,7 @@ static int dptx_link_training_start(struct dptx *dptx)
 
 	dptx_phy_set_lanes(dptx, dptx->link.lanes);
 	dptx_phy_set_rate(dptx, dptx->link.rate);
+	udelay(100);
 
 	/* Move PHY to P0 */
 	phyifctrl = dptx_readl(dptx, DPTX_PHYIF_CTRL);
@@ -537,7 +538,7 @@ again:
 	dptx_phy_enable_xmit(dptx, dptx->link.lanes, true);
 	dptx->link.trained = true;
 
-	DRM_DEBUG("Link training succeeded rate=%d lanes=%d\n",
+	DRM_INFO("Link training succeeded rate=%d lanes=%d\n",
 		 dptx->link.rate, dptx->link.lanes);
 
 	return 0;
