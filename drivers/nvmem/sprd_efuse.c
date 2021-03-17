@@ -326,7 +326,9 @@ static int sprd_efuse_raw_read(struct sprd_efuse *efuse, int blk, u32 *val,
 	}
 	writel(SPRD_ERR_CLR_MASK, efuse->base + SPRD_EFUSE_NS_FLAG_CLR);
 
-	clk_disable(efuse->clk);
+	if (!of_device_is_compatible(efuse->dev->of_node, "sprd,qogirn6pro-efuse"))
+		clk_disable(efuse->clk);
+
 	sprd_efuse_unlock(efuse);
 
 	return ret;
@@ -347,7 +349,9 @@ static int sprd_efuse_prog(struct sprd_efuse *efuse, int blk, bool doub,
 
 	ret = sprd_efuse_raw_prog(efuse, blk, doub, lock, val);
 
-	clk_disable(efuse->clk);
+	if (!of_device_is_compatible(efuse->dev->of_node, "sprd,qogirn6pro-efuse"))
+		clk_disable(efuse->clk);
+
 unlock_hwlock:
 	sprd_efuse_unlock(efuse);
 	return ret;
