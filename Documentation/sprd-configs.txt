@@ -16158,15 +16158,6 @@ CONFIG_SPRD_LOOK_AT
 	[must] debug
 	[missing plat description] none
 	[function] This config is used to enable lookat tool for debug.
-CONFIG_SPRD_MBOX
-	[arch] all
-	[plat] pike2,sharkl3
-	[missing plat] sharkl5Pro
-	[field]
-	[subsys]
-	[must]
-	[missing plat description] none
-	[function]
 CONFIG_SPRD_MEMDISK
 	[arch] arm
 	[plat] pike2
@@ -16187,8 +16178,8 @@ CONFIG_SPRD_MINI_SYSDUMP
 	[function] This function is used to enable sprd brife sysdump feature
 CONFIG_SPRD_MODEM_POWER_MANAGER
 	[arch] all
-	[plat] pike2,sharkl3
-	[missing plat] sharkl5Pro
+	[plat] all
+	[missing plat] none
 	[field]
 	[subsys]
 	[must]
@@ -17592,31 +17583,31 @@ CONFIG_UNINLINE_SPIN_UNLOCK
 	[missing plat description] none
 	[function] vts require, Enable uninlie spin.
 CONFIG_UNISOC_MAILBOX
-	[arch] arm64
-	[plat] sharkl5Pro
-	[missing plat] sharkl3
+	[arch] all
+	[plat] all
+	[missing plat] none
 	[field]
 	[subsys]
 	[must]
-	[missing plat description]
+	[missing plat description] none
 	[function]
 CONFIG_UNISOC_MODEM_LOADER
-	[arch] arm64
-	[plat] sharkl5Pro
-	[missing plat] sharkl3
+	[arch] all
+	[plat] all
+	[missing plat] none
 	[field]
 	[subsys]
 	[must]
-	[missing plat description]
+	[missing plat description] none
 	[function]
 CONFIG_UNISOC_SIPC_VIRT_BUS
-	[arch] arm64
-	[plat] sharkl5Pro
-	[missing plat] sharkl3
+	[arch] all
+	[plat] all
+	[missing plat] none
 	[field]
 	[subsys]
 	[must]
-	[missing plat description]
+	[missing plat description] none
 	[function]
 CONFIG_UNIX
 	[arch] all
