@@ -38,10 +38,9 @@
 					<&pmu_apb_regs 0xff 0x100000>,
 					<&aon_apb_regs 0x8c 0x1>,
 					<&aon_apb_regs 0xff 0x0>,
-					<&aon_apb_regs 0xff 0x0>,
-					<&pmu_apb_regs 0xb88 0x18>;
+					<&aon_apb_regs 0xff 0x0>;
 			syscon-names = "shutdown", "deepsleep", "corereset",
-					"sysreset", "getstatus", "dspreset";
+					"sysreset", "getstatus";
 			reg = <0x62010000 0x4E000>,
 				<0x62010000 0x4E000>;
 			/* iram-addr size */
@@ -73,9 +72,10 @@
 					<&pmu_apb_regs 0x818 0x2>,
 					<&aon_apb_regs 0x174 0x400>,
 					<&pmu_apb_regs 0xb98 0x800>,
-					<&aon_apb_regs 0xff 0x0>;
+					<&aon_apb_regs 0xff 0x0>,
+					<&pmu_apb_regs 0xb88 0x18>;
 			syscon-names = "shutdown", "deepsleep", "corereset",
-						"sysreset", "getstatus";
+					"sysreset", "getstatus", "dspreset";
 			reg = <0x65003400 0x1000>;
 		};
 	};
