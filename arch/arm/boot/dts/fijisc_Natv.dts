@@ -377,6 +377,11 @@
         interrupts = <53 IRQ_TYPE_LEVEL_LOW>;
         debounce = <256000>;
 	};
+        sprd_uid {
+		compatible = "sprd-uid";
+		nvmem-cells = <&uid_start>, <&uid_end>;
+		nvmem-cell-names = "uid_start", "uid_end";
+	 };
 };
 
 &reserved_memory {
