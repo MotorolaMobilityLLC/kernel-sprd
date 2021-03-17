@@ -2854,7 +2854,9 @@ void device_shutdown(void)
 	wait_for_device_probe();
 	device_block_probing();
 
+	cpu_hotplug_disable();
 	cpufreq_suspend();
+	cpu_hotplug_enable();
 
 	spin_lock(&devices_kset->list_lock);
 	/*

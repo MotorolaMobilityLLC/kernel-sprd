@@ -1042,6 +1042,9 @@ static void sugov_stop(struct cpufreq_policy *policy)
 	unsigned int cpu;
 	unsigned long flags;
 
+	if (unlikely(!sg_policy))
+		return;
+
 	del_timer_sync(&sg_policy->freq_margin_timer);
 
 	spin_lock_irqsave(&sg_policy->commit_lock, flags);
