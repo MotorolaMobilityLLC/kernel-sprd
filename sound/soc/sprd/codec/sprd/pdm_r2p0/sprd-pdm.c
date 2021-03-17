@@ -58,6 +58,25 @@ struct sprd_pdm_priv {
 	unsigned long membase;
 };
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-function"
+int agdsp_access_enable(void)
+	__attribute__ ((weak, alias("__agdsp_access_enable")));
+static int __agdsp_access_enable(void)
+{
+	pr_debug("%s\n", __func__);
+	return 0;
+}
+
+int agdsp_access_disable(void)
+	__attribute__ ((weak, alias("__agdsp_access_disable")));
+static int __agdsp_access_disable(void)
+{
+	pr_debug("%s\n", __func__);
+	return 0;
+}
+#pragma GCC diagnostic pop
+
 static inline int pdm_ioremap_reg_read(struct sprd_pdm_priv *sprd_pdm,
 				       unsigned int offset)
 {
@@ -90,7 +109,16 @@ static int pdm_ioremap_reg_update(struct sprd_pdm_priv *sprd_pdm,
 
 void pdm_module_en_ums9230(struct sprd_pdm_priv *sprd_pdm, bool en)
 {
+	int ret;
+
 	if (en) {
+		ret = agdsp_access_enable();
+		if (ret) {
+			pr_err("%s agdsp_access_enable error %d", __func__,
+			       ret);
+			return;
+		}
+
 		agcp_ahb_reg_set(AHB_MODULE_RST0_STS, PDM_SOFT_RST);
 		udelay(10);
 		agcp_ahb_reg_clr(AHB_MODULE_RST0_STS, PDM_SOFT_RST);
@@ -102,12 +130,23 @@ void pdm_module_en_ums9230(struct sprd_pdm_priv *sprd_pdm, bool en)
 		agcp_ahb_reg_clr(AHB_MODULE_RST0_STS, PDM_SOFT_RST);
 		agcp_ahb_reg_clr(AHB_MODULE_EB0_STS, PDM_EB);
 		sprd_pdm->module_en = false;
+
+		agdsp_access_disable();
 	}
 }
 
 void pdm_module_en_ums9620(struct sprd_pdm_priv *sprd_pdm, bool en)
 {
+	int ret;
+
 	if (en) {
+		ret = agdsp_access_enable();
+		if (ret) {
+			pr_err("%s agdsp_access_enable error %d", __func__,
+			       ret);
+			return;
+		}
+
 		aon_apb_reg_set(APB_MODULE_RST0_STS, APB_PDM_IIS_SOFT_RST);
 		udelay(10);
 		aon_apb_reg_clr(APB_MODULE_RST0_STS, APB_PDM_IIS_SOFT_RST);
@@ -129,12 +168,21 @@ void pdm_module_en_ums9620(struct sprd_pdm_priv *sprd_pdm, bool en)
 		aon_apb_reg_clr(APB_MODULE_RST0_STS, APB_PDM_IIS_SOFT_RST);
 		aon_apb_reg_clr(APB_MODULE_EB0_STS, PDM_IIS_EB);
 		sprd_pdm->module_en = false;
-	}
 
+		agdsp_access_disable();
+	}
 }
 
 void pdm_module_en(struct sprd_pdm_priv *sprd_pdm, bool en)
 {
+	int ret;
+
+	ret = agdsp_access_enable();
+	if (ret) {
+		pr_err("%s agdsp_access_enable error %d", __func__, ret);
+		return;
+	}
+
 	if (sprd_pdm->board_data->soc_audio_type == BOARD_SOC_V_UMS9620)
 		pdm_module_en_ums9620(sprd_pdm, en);
 	else if (sprd_pdm->board_data->soc_audio_type == BOARD_SOC_V_UMS9230)
@@ -142,6 +190,8 @@ void pdm_module_en(struct sprd_pdm_priv *sprd_pdm, bool en)
 	else
 		dev_err(&sprd_pdm->pdev->dev, " %s wrong board version\n",
 			__func__);
+
+	agdsp_access_disable();
 }
 
 static int pdm_module_en_get(struct snd_kcontrol *kcontrol,
