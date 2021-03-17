@@ -908,6 +908,7 @@
   sync_mapping_buffers
   time64_to_tm
   touch_buffer
+  trace_print_symbols_seq
   truncate_pagecache
   unload_nls
   unlock_buffer
@@ -1311,6 +1312,7 @@
   sdhci_enable_v4_mode
   sdhci_pltfm_free
   sdhci_pltfm_init
+  sdhci_remove_host
   sdhci_request
   sdhci_request_atomic
   sdhci_reset
