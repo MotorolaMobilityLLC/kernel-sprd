@@ -276,7 +276,7 @@
 				#dma-cells = <1>;
 				#dma-channels = <28>;
 				clock-names = "enable";
-				clocks = <&apahb_gate DMA_PUB_EB>;
+				clocks = <&apahb_gate CLK_DMA_PUB_EB>;
 
 			};
 
@@ -326,7 +326,7 @@
 					"clk_gsp_eb";
 				clocks = <&ap_clk CLK_GSP>,
 					<&pll CLK_TWPLL_384M>,
-					<&apahb_gate GSP_EB>;
+					<&apahb_gate CLK_GSP_EB>;
 			};
 
 			iommu_gsp: iommu@20a00804 {
@@ -450,7 +450,7 @@
 					"sdio_ahb_enable";
 				clocks = <&ap_clk CLK_EMMC_2X >,
 					 <&rpll CLK_RPLL_390M>,
-					 <&apahb_gate EMMC_EB>;
+					 <&apahb_gate CLK_EMMC_EB>;
 				status = "disabled";
 			};
 
@@ -462,7 +462,7 @@
 					      "sdio_ahb_enable";
 				clocks = <&ap_clk CLK_SDIO0_2X>,
 					 <&rpll CLK_RPLL_390M>,
-					 <&apahb_gate SDIO0_EB>;
+					 <&apahb_gate CLK_SDIO0_EB>;
 				status = "disabled";
 			};
 
@@ -471,7 +471,7 @@
 				reg = <0x20200000 0x2000>;
 				interrupts = <GIC_SPI 55 IRQ_TYPE_LEVEL_HIGH>;
 				interrupt-names = "mc";
-				clocks = <&apahb_gate OTG_EB>;
+				clocks = <&apahb_gate CLK_OTG_EB>;
 				clock-names = "core_clk";
 				usb-phy = <&hsphy>;
 				phy-names = "usb";
@@ -1125,13 +1125,6 @@
 		#clock-cells = <0>;
 		clock-frequency = <32768>;
 		clock-output-names = "ext-32k";
-	};
-
-	ext_26m_aud: ext-26m-aud {
-		compatible = "fixed-clock";
-		#clock-cells = <0>;
-		clock-frequency = <26000000>;
-		clock-output-names = "ext-26m-aud";
 	};
 
 	sprd_pcm: sprd-pcm-audio {
