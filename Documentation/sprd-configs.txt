@@ -13807,8 +13807,8 @@ CONFIG_SPRD_EFUSE
 	[function] get sprdtrum soc series efuse value
 CONFIG_SPRD_EIRQSOFF
 	[arch] arm64
-	[plat] qogirl6,qogirn6pro,sharkl3,sharkl5Pro
-	[missing plat] sharkl5
+	[plat] qogirl6,sharkl3,sharkl5Pro
+	[missing plat] qogirn6pro,sharkl5
 	[field] make,code
 	[subsys] soc
 	[must] debug
