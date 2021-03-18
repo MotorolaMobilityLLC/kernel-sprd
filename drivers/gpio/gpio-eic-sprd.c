@@ -10,8 +10,11 @@
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/of_device.h>
+#include <linux/of_gpio.h>
 #include <linux/platform_device.h>
 #include <linux/spinlock.h>
+#include <linux/sprd-debuglog.h>
+#include "gpiolib.h"
 
 /* EIC registers definition */
 #define SPRD_EIC_DBNC_DATA		0x0
@@ -511,7 +514,8 @@ static int sprd_eic_match_chip_by_type(struct gpio_chip *chip, void *data)
 static void sprd_eic_handle_one_type(struct gpio_chip *chip)
 {
 	struct sprd_eic *sprd_eic = gpiochip_get_data(chip);
-	u32 bank, n, girq;
+	struct gpio_desc *desc;
+	u32 bank, n, girq, offset;
 
 	for (bank = 0; bank * SPRD_EIC_PER_BANK_NR < chip->ngpio; bank++) {
 		void __iomem *base = sprd_eic_offset_base(sprd_eic, bank);
@@ -540,12 +544,16 @@ static void sprd_eic_handle_one_type(struct gpio_chip *chip)
 		}
 
 		for_each_set_bit(n, &reg, SPRD_EIC_PER_BANK_NR) {
-			u32 offset = bank * SPRD_EIC_PER_BANK_NR + n;
+			offset = bank * SPRD_EIC_PER_BANK_NR + n;
 
 			girq = irq_find_mapping(chip->irq.domain, offset);
 
 			generic_handle_irq(girq);
 			sprd_eic_toggle_trigger(chip, girq, offset);
+
+			desc = gpiochip_get_desc(chip, offset);
+			if (!IS_ERR_OR_NULL(desc))
+				desc->flags &= ~BIT(FLAG_IS_WAKEUP);
 		}
 	}
 }
@@ -574,12 +582,87 @@ static void sprd_eic_irq_handler(struct irq_desc *desc)
 	chained_irq_exit(ic, desc);
 }
 
+static int sprd_eic_get_info(void *out, void *data)
+{
+	struct wakeup_info *src = (struct wakeup_info *)out;
+	struct sprd_eic *sprd_eic;
+	struct gpio_chip *chip;
+	struct gpio_desc *desc;
+	enum sprd_eic_type type;
+	u32 bank, n, offset;
+	unsigned long reg;
+	void __iomem *base;
+
+	if (!out) {
+		pr_err("%s: parameters is null\n", __func__);
+		return -EINVAL;
+	}
+
+	for (type = SPRD_EIC_DEBOUNCE; type < SPRD_EIC_MAX; type++) {
+		chip = gpiochip_find(&type, sprd_eic_match_chip_by_type);
+		if (!chip)
+			continue;
+
+		sprd_eic = gpiochip_get_data(chip);
+		if (!sprd_eic)
+			continue;
+
+		for (bank = 0; bank * SPRD_EIC_PER_BANK_NR < chip->ngpio; bank++) {
+			base = sprd_eic_offset_base(sprd_eic, bank);
+
+			switch (sprd_eic->type) {
+			case SPRD_EIC_DEBOUNCE:
+				reg = readl_relaxed(base + SPRD_EIC_DBNC_MIS) &
+					SPRD_EIC_DATA_MASK;
+				break;
+			case SPRD_EIC_LATCH:
+				reg = readl_relaxed(base + SPRD_EIC_LATCH_INTMSK) &
+					SPRD_EIC_DATA_MASK;
+				break;
+			case SPRD_EIC_ASYNC:
+				reg = readl_relaxed(base + SPRD_EIC_ASYNC_INTMSK) &
+					SPRD_EIC_DATA_MASK;
+				break;
+			case SPRD_EIC_SYNC:
+				reg = readl_relaxed(base + SPRD_EIC_SYNC_INTMSK) &
+					SPRD_EIC_DATA_MASK;
+				break;
+			default:
+				dev_err(chip->parent, "Unsupported EIC type.\n");
+				return -EINVAL;
+			}
+
+			for_each_set_bit(n, &reg, SPRD_EIC_PER_BANK_NR) {
+				offset = bank * SPRD_EIC_PER_BANK_NR + n;
+
+				desc = gpiochip_get_desc(chip, offset);
+
+				if (IS_ERR_OR_NULL(desc) ||
+				    IS_ERR_OR_NULL(desc->label))
+					snprintf(src->name, WAKEUP_NAME_LEN,
+						 "eic%u", offset);
+				else {
+					snprintf(src->name, WAKEUP_NAME_LEN,
+						 "%s(%u)", desc->label, offset);
+					desc->flags |= BIT(FLAG_IS_WAKEUP);
+				}
+				src->type = WAKEUP_EIC_DBNC + sprd_eic->type;
+				src->gpio = offset;
+				return 0;
+			}
+		}
+	}
+	return -EINVAL;
+}
+
 static int sprd_eic_probe(struct platform_device *pdev)
 {
 	const struct sprd_eic_variant_data *pdata;
 	struct gpio_irq_chip *irq;
 	struct sprd_eic *sprd_eic;
 	struct resource *res;
+	struct irq_data *data;
+	u32 hwirq;
 	int ret, i;
 
 	pdata = of_device_get_match_data(&pdev->dev);
@@ -664,6 +747,19 @@ static int sprd_eic_probe(struct platform_device *pdev)
 	}
 
 	platform_set_drvdata(pdev, sprd_eic);
+
+	data = irq_get_irq_data(sprd_eic->irq);
+	if (!data) {
+		dev_err(&pdev->dev, "Fail to get eic irqd\n");
+		return -ENODEV;
+	}
+	hwirq = irqd_to_hwirq(data);
+	ret = wakeup_info_register((int)hwirq, INVALID_SUB_NUM,
+				   sprd_eic_get_info, (void *)sprd_eic);
+	if (ret)
+		dev_err(&pdev->dev, "Register debuglog error(%u)\n",
+			hwirq);
+
 	return 0;
 }
 

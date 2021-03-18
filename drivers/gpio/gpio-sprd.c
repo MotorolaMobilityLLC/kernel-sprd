@@ -9,8 +9,11 @@
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/of_device.h>
+#include <linux/of_gpio.h>
 #include <linux/platform_device.h>
 #include <linux/spinlock.h>
+#include <linux/sprd-debuglog.h>
+#include "gpiolib.h"
 
 /* GPIO registers definition */
 #define SPRD_GPIO_DATA		0x0
@@ -189,7 +192,8 @@ static void sprd_gpio_irq_handler(struct irq_desc *desc)
 	struct gpio_chip *chip = irq_desc_get_handler_data(desc);
 	struct irq_chip *ic = irq_desc_get_chip(desc);
 	struct sprd_gpio *sprd_gpio = gpiochip_get_data(chip);
-	u32 bank, n, girq;
+	struct gpio_desc *gpio_desc;
+	u32 bank, n, girq, offset;
 
 	chained_irq_enter(ic, desc);
 
@@ -199,10 +203,13 @@ static void sprd_gpio_irq_handler(struct irq_desc *desc)
 			SPRD_GPIO_BANK_MASK;
 
 		for_each_set_bit(n, &reg, SPRD_GPIO_BANK_NR) {
-			girq = irq_find_mapping(chip->irq.domain,
-						bank * SPRD_GPIO_BANK_NR + n);
+			offset = bank * SPRD_GPIO_BANK_NR + n;
+			girq = irq_find_mapping(chip->irq.domain, offset);
 
 			generic_handle_irq(girq);
+			gpio_desc = gpiochip_get_desc(chip, offset);
+			if (!IS_ERR_OR_NULL(gpio_desc))
+				gpio_desc->flags &= ~BIT(FLAG_IS_WAKEUP);
 		}
 
 	}
@@ -218,11 +225,55 @@ static struct irq_chip sprd_gpio_irqchip = {
 	.flags = IRQCHIP_SKIP_SET_WAKE,
 };
 
+static int sprd_gpio_get_info(void *out, void *data)
+{
+	struct sprd_gpio *sprd_gpio = (struct sprd_gpio *)data;
+	struct wakeup_info *src = (struct wakeup_info *)out;
+	struct gpio_desc *gpio_desc;
+	struct gpio_chip *chip;
+	void __iomem *base;
+	u32 bank, n, offset;
+	unsigned long reg;
+
+	if (!out || !data) {
+		pr_err("%s: parameters is null\n", __func__);
+		return -EINVAL;
+	}
+
+	chip = &sprd_gpio->chip;
+	for (bank = 0; bank * SPRD_GPIO_BANK_NR < chip->ngpio; bank++) {
+		base = sprd_gpio_bank_base(sprd_gpio, bank);
+		reg = readl_relaxed(base + SPRD_GPIO_MIS) &
+			SPRD_GPIO_BANK_MASK;
+
+		for_each_set_bit(n, &reg, SPRD_GPIO_BANK_NR) {
+			offset = bank * SPRD_GPIO_BANK_NR + n;
+			gpio_desc = gpiochip_get_desc(chip, offset);
+
+			if (IS_ERR_OR_NULL(gpio_desc) ||
+			    IS_ERR_OR_NULL(gpio_desc->label))
+				snprintf(src->name, WAKEUP_NAME_LEN, "gpio%u",
+					 offset);
+			else {
+				snprintf(src->name, WAKEUP_NAME_LEN, "%s",
+					 gpio_desc->label);
+				gpio_desc->flags |= BIT(FLAG_IS_WAKEUP);
+			}
+			src->type = WAKEUP_GPIO;
+			src->gpio = offset;
+			return 0;
+		}
+	}
+	return -EINVAL;
+}
+
 static int sprd_gpio_probe(struct platform_device *pdev)
 {
 	struct gpio_irq_chip *irq;
 	struct sprd_gpio *sprd_gpio;
 	struct resource *res;
+	struct irq_data *data;
+	u32 hwirq;
 	int ret;
 
 	sprd_gpio = devm_kzalloc(&pdev->dev, sizeof(*sprd_gpio), GFP_KERNEL);
@@ -270,6 +321,19 @@ static int sprd_gpio_probe(struct platform_device *pdev)
 	}
 
 	platform_set_drvdata(pdev, sprd_gpio);
+
+	data = irq_get_irq_data(sprd_gpio->irq);
+	if (!data) {
+		dev_err(&pdev->dev, "Fail to get gpio irqd\n");
+		return -ENODEV;
+	}
+	hwirq = irqd_to_hwirq(data);
+	ret = wakeup_info_register((int)hwirq, INVALID_SUB_NUM,
+				   sprd_gpio_get_info, (void *)sprd_gpio);
+	if (ret)
+		dev_err(&pdev->dev, "Register debuglog error(%u)\n",
+			hwirq);
+
 	return 0;
 }
 
