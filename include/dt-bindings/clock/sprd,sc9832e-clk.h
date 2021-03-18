@@ -2,7 +2,7 @@
 /*
  * Unisoc SC9832E platform clocks
  *
- * Copyright (C) 2020, Unisoc Inc.
+ * Copyright (C) 2021, Unisoc Inc.
  */
 
 #ifndef _DT_BINDINGS_CLK_SC9832_H_
@@ -251,22 +251,22 @@
 #define CLK_MM_CLK_NUM		(CLK_MCSI_S + 1)
 
 #define CLK_DSI_EB		0
-#define DISPC_EB		1
-#define VSP_EB			2
-#define GSP_EB			3
-#define OTG_EB			4
-#define DMA_PUB_EB		5
-#define CE_PUB_EB		6
-#define AHB_CKG_EB		7
-#define SDIO0_EB		8
-#define SDIO1_EB		9
-#define NANDC_EB		10
-#define EMMC_EB			11
-#define SPINLOCK_EB		12
-#define CE_EFUSE_EB		13
-#define EMMC_32K_EB		14
-#define SDIO0_32K_EB		15
-#define SDIO1_32K_EB		16
+#define CLK_DISPC_EB		1
+#define CLK_VSP_EB		2
+#define CLK_GSP_EB		3
+#define CLK_OTG_EB		4
+#define CLK_DMA_PUB_EB		5
+#define CLK_CE_PUB_EB		6
+#define CLK_AHB_CKG_EB		7
+#define CLK_SDIO0_EB		8
+#define CLK_SDIO1_EB		9
+#define CLK_NANDC_EB		10
+#define CLK_EMMC_EB		11
+#define CLK_SPINLOCK_EB		12
+#define CLK_CE_EFUSE_EB		13
+#define CLK_EMMC_32K_EB		14
+#define CLK_SDIO0_32K_EB	15
+#define CLK_SDIO1_32K_EB	16
 #define CLK_MCU			17
 #define CLK_APAHB_GATE_NUM	(CLK_MCU + 1)
 
@@ -288,4 +288,4 @@
 #define CLK_INTC3_EB		15
 #define CLK_AP_APB_GATE_NUM	(CLK_INTC3_EB + 1)
 
-#endif /* _DT_BINDINGS_CLK_SC9860_H_ */
+#endif /* _DT_BINDINGS_CLK_SC9832E_H_ */
