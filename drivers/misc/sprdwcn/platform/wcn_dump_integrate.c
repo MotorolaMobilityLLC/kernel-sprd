@@ -438,6 +438,12 @@ static int btwf_dump_mem(void)
 	sleep_addr = wcn_get_btwf_sleep_addr();
 	wcn_read_data_from_phy_addr(sleep_addr, &cp2_status, sizeof(u32));
 	mdev_ring = mdbg_dev->ring_dev->ring;
+  	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
+		if (btwf_sys_force_exit_deep_sleep(s_wcn_device.btwf_device)){
+			WCN_INFO("QOGIRL6 dump need prerequisite!\n");
+			return 0;
+		}
+	}
 	mdbg_hold_cpu();
 	msleep(100);
 	mdbg_ring_reset(mdev_ring);
@@ -447,14 +453,17 @@ static int btwf_dump_mem(void)
 		return -1;
 
 	mdbg_dump_share_memory(s_wcn_dump_regs);
+
 	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
-		if (mdbg_check_gnss_poweron(s_wcn_device.gnss_device)) {
+		if (mdbg_check_gnss_poweron(s_wcn_device.gnss_device) &&
+			mdbg_check_wifi_mac_phy(s_wcn_device.btwf_device)) {
 			mdbg_dump_iram(s_wcn_dump_regs);
 			WCN_INFO("dump iram ok!\n");
-		} else {
+		} else if (mdbg_check_wifi_mac_phy(s_wcn_device.btwf_device)) {
 			mdbg_dump_wifi_iram(s_wcn_dump_regs);
 			WCN_INFO("only dump WIFI iram ok!\n");
-		}
+		} else
+			WCN_DEBUG("donot dump iarm!\n");
 	} else {
 		mdbg_dump_iram(s_wcn_dump_regs);
 		WCN_DEBUG("dump iram ok!\n");
