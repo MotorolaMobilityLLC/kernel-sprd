@@ -556,7 +556,7 @@ done:
 static int sc27xx_pd_tx_msg(struct sc27xx_pd *pd, const struct pd_message *msg)
 {
 	u16 header;
-	u32 data_obj_num, data[PD_MAX_PAYLOAD * 2];
+	u32 data_obj_num, data[PD_MAX_PAYLOAD * 2] = {0};
 	int i, ret;
 
 	ret = sc27xx_pd_tx_flush(pd);
@@ -627,8 +627,8 @@ static int sc27xx_pd_transmit(struct tcpc_dev *tcpc,
 static int sc27xx_pd_read_message(struct sc27xx_pd *pd, struct pd_message *msg)
 {
 	int ret, i;
-	u32 data[PD_MAX_PAYLOAD * 2];
-	u32 data_obj_num, spec, header;
+	u32 data[PD_MAX_PAYLOAD * 2] = {0};
+	u32 data_obj_num, spec, header = 0;
 
 	ret = regmap_read(pd->regmap, pd->base + SC27XX_PD_RX_BUF,
 			  &header);
@@ -823,72 +823,63 @@ static int sc27xx_pd_delta_cal(struct sc27xx_pd *pd)
 	if (vol >= 1185 && vol <= 1195) {
 		vref_sel = 0x0;
 		ref_cal = 0x0;
-	} else if (vol >= 1175 && vol <= 1185) {
+	} else if (vol >= 1175 && vol < 1185) {
 		vref_sel = 0x0;
 		ref_cal = 0x1;
-	} else if (vol >= 1165 && vol <= 1175) {
+	} else if (vol >= 1165 && vol < 1175) {
 		vref_sel = 0x0;
 		ref_cal = 0x2;
-	} else if (vol >= 1155 && vol <= 1165) {
+	} else if (vol >= 1155 && vol < 1165) {
 		vref_sel = 0x0;
 		ref_cal = 0x3;
-	} else if (vol >= 1145 && vol <= 1155) {
+	} else if (vol >= 1145 && vol < 1155) {
 		vref_sel = 0x0;
 		ref_cal = 0x4;
-	} else if (vol >= 1135 && vol <= 1145) {
+	} else if (vol >= 1135 && vol < 1145) {
 		vref_sel = 0x0;
 		ref_cal = 0x5;
-	} else if (vol >= 1125 && vol <= 1135) {
+	} else if (vol >= 1125 && vol < 1135) {
 		vref_sel = 0x0;
 		ref_cal = 0x6;
-	} else if (vol >= 1115 && vol <= 1125) {
+	} else if (vol >= 1115 && vol < 1125) {
 		vref_sel = 0x1;
 		ref_cal = 0x2;
-	} else if (vol >= 1105 && vol <= 1115) {
+	} else if (vol >= 1105 && vol < 1115) {
 		vref_sel = 0x1;
 		ref_cal = 0x3;
-	} else if (vol >= 1095 && vol <= 1105) {
+	} else if (vol >= 1095 && vol < 1105) {
 		vref_sel = 0x1;
 		ref_cal = 0x4;
-	} else if (vol >= 1085 && vol <= 1095) {
+	} else if (vol >= 1085 && vol < 1095) {
 		vref_sel = 0x1;
 		ref_cal = 0x5;
-	} else if (vol >= 1075 && vol <= 1085) {
+	} else if (vol >= 1075 && vol < 1085) {
 		vref_sel = 0x1;
 		ref_cal = 0x6;
-	} else if (vol >= 1065 && vol <= 1075) {
+	} else if (vol >= 1065 && vol < 1075) {
 		vref_sel = 0x2;
 		ref_cal = 0x2;
-	} else if (vol >= 1055 && vol <= 1065) {
+	} else if (vol >= 1055 && vol < 1065) {
 		vref_sel = 0x2;
 		ref_cal = 0x3;
-	} else if (vol >= 1045 && vol <= 1055) {
+	} else if (vol >= 1045 && vol < 1055) {
 		vref_sel = 0x2;
 		ref_cal = 0x4;
-	} else if (vol >= 1035 && vol <= 1045) {
+	} else if (vol >= 1035 && vol < 1045) {
 		vref_sel = 0x2;
 		ref_cal = 05;
-	} else if (vol >= 1025 && vol <= 1035) {
+	} else if (vol >= 1025 && vol < 1035) {
 		vref_sel = 0x2;
 		ref_cal = 0x6;
-	} else if (vol >= 1015 && vol <= 1025) {
+	} else if (vol >= 1015 && vol < 1025) {
 		vref_sel = 0x3;
 		ref_cal = 0x2;
-	} else if (vol >= 1005 && vol <= 1015) {
+	} else if (vol >= 1005 && vol < 1015) {
 		vref_sel = 0x3;
 		ref_cal = 0x3;
-	} else if (vol >= 995 && vol <= 1005) {
+	} else if (vol >= 1000 && vol < 1005) {
 		vref_sel = 0x3;
 		ref_cal = 0x4;
-	} else if (vol >= 985 && vol <= 995) {
-		vref_sel = 0x2;
-		ref_cal = 0x6;
-	} else if (vol >= 975 && vol <= 985) {
-		vref_sel = 0x2;
-		ref_cal = 0x6;
-	} else if (vol >= 965 && vol <= 975) {
-		vref_sel = 0x2;
-		ref_cal = 0x7;
 	}
 
 	cfg1 = SC27XX_PD_CC1_SW | SC27XX_PD_CC2_SW;
@@ -955,7 +946,7 @@ static irqreturn_t sc27xx_pd_irq(int irq, void *dev_id)
 {
 	struct sc27xx_pd *pd = dev_id;
 	struct pd_message pd_msg;
-	u32 status;
+	u32 status = 0;
 	int ret, state;
 
 	mutex_lock(&pd->lock);
@@ -1103,7 +1094,7 @@ done:
 
 static int sc27xx_get_vbus_status(struct sc27xx_pd *pd)
 {
-	u32 status;
+	u32 status = 0;
 	bool vbus_present;
 	int ret;
 
@@ -1189,7 +1180,7 @@ static void sc27xx_cc_status(struct sc27xx_pd *pd, u32 status)
 
 static int sc27xx_pd_check_vbus_cc_status(struct sc27xx_pd *pd)
 {
-	u32 val;
+	u32 val = 0;
 	int ret;
 
 	ret = regmap_read(pd->regmap, pd->typec_base + SC27XX_TYPEC_STATUS,
@@ -1250,7 +1241,7 @@ static int sc27xx_pd_efuse_read(struct sc27xx_pd *pd,
 	size_t len = 0;
 
 	cell = nvmem_cell_get(pd->dev, cell_id);
-	if (IS_ERR(cell))
+	if (IS_ERR_OR_NULL(cell))
 		return PTR_ERR(cell);
 
 	buf = nvmem_cell_read(cell, &len);
