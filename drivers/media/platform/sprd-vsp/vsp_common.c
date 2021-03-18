@@ -62,7 +62,7 @@ int vsp_get_dmabuf(int fd, struct dma_buf **dmabuf, void **buf, size_t *size)
 
 	if (fd < 0 && !dmabuf) {
 		pr_err("%s, input fd: %d, dmabuf: %p error\n", __func__, fd, dmabuf);
-		return PTR_ERR(buffer);
+		return -EINVAL;
 	}
 
 	if (fd >= 0) {
