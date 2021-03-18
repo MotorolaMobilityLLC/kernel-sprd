@@ -5,6 +5,11 @@
  * Copyright (c) 2020 Spreadtrum Communications Inc.
  */
 
+#ifdef pr_fmt
+#undef pr_fmt
+#endif
+#define pr_fmt(fmt) "sprd-mailbox: " fmt
+
 #include <linux/delay.h>
 #include <linux/err.h>
 #include <linux/debugfs.h>
@@ -410,13 +415,13 @@ static void put_msg_in_tx_fifo(unsigned long id, void *msg)
 {
 	u32 pos, wt, rd;
 
-	pr_debug("mailbox: put msg in tx_fifo\n");
+	pr_debug("put msg in tx_fifo\n");
 	wt = tx_data[id].wt_cnt;
 	rd = tx_data[id].rd_cnt;
 	pos = wt % SPRD_MBOX_TX_FIFO_LEN;
 
 	if ((rd != wt) && (rd % SPRD_MBOX_TX_FIFO_LEN == pos)) {
-		pr_err("mailbox: tx_fifo full, drop msg, dst = %ld, rd =%d, wt = %d\n",
+		pr_err("tx_fifo full, drop msg, dst = %d, rd =%d, wt = %d\n",
 		       id, rd, wt);
 		return;
 	}
@@ -532,21 +537,20 @@ static int sprd_mbox_flush(struct mbox_chan *chan, unsigned long timeout)
 static void sprd_mbox_process_rx_fifo(struct mbox_chan *chan)
 {
 	int i, cnt = 0;
-	unsigned long target_id;
+	unsigned long id, target_id = (unsigned long)chan->con_priv;
 
 	for (i = 0; i < mbox_rx_fifo_cnt; i++) {
-		target_id = mbox_rx_fifo[i].core_id;
+		id = mbox_rx_fifo[i].core_id;
 		/* has been procced */
-		if (target_id == SPRD_MBOX_CHAN_MAX) {
+		if (id == SPRD_MBOX_CHAN_MAX) {
 			cnt++;
 			continue;
 		}
-		if (chan->cl) {
+		if (chan->cl && (id == target_id)) {
 			mbox_chan_received_data(chan, &mbox_rx_fifo[i].msg);
 			mbox_rx_fifo[i].core_id = SPRD_MBOX_CHAN_MAX;
 			cnt++;
-		} else
-			pr_err("mailbox: client is NULL, id = %ld\n", target_id);
+		}
 	}
 	/* reset mbox_mbox_rx_fifo_cnt*/
 	if (cnt == mbox_rx_fifo_cnt)
@@ -557,6 +561,8 @@ static int sprd_mbox_startup(struct mbox_chan *chan)
 {
 	struct sprd_mbox_priv *priv = to_sprd_mbox_priv(chan->mbox);
 	u32 val;
+
+	dev_info(priv->dev, "startup chan%d\n", (unsigned long)chan->con_priv);
 
 	if (!(priv->started++)) {
 		/* Select outbox FIFO mode and reset the outbox FIFO status */
@@ -595,6 +601,8 @@ static int sprd_mbox_startup(struct mbox_chan *chan)
 static void sprd_mbox_shutdown(struct mbox_chan *chan)
 {
 	struct sprd_mbox_priv *priv = to_sprd_mbox_priv(chan->mbox);
+
+	dev_info(priv->dev, "shutdown chan%d\n", (unsigned long)chan->con_priv);
 
 	if (!(--priv->started)) {
 		/* Disable inbox & outbox interrupt */
