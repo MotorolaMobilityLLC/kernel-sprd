@@ -392,7 +392,7 @@ static int vpu_open(struct inode *inode, struct file *filp)
 	struct vpu_platform_data *data = container_of(miscdev, struct vpu_platform_data, mdev);
 
 	filp->private_data = data;
-	atomic_inc_return(&data->instance_cnt);
+	atomic_inc(&data->instance_cnt);
 	dev_info(data->dev, "%s, open", data->p_data->name);
 	pm_runtime_get_sync(data->dev);
 	return ret;
@@ -403,7 +403,7 @@ static int vpu_release(struct inode *inode, struct file *filp)
 	struct vpu_platform_data *data = filp->private_data;
 
 	dev_info(data->dev, "%s, release", data->p_data->name);
-	atomic_dec_return(&data->instance_cnt);
+	atomic_dec(&data->instance_cnt);
 	pm_runtime_mark_last_busy(data->dev);
 	pm_runtime_put_autosuspend(data->dev);
 	return 0;
