@@ -207,7 +207,7 @@ static int shub_send_command(struct shub_data *sensor, int sensor_ID,
 	cmddata.subtype = opcode;
 	cmddata.length = len;
 	/* no data command  set default data 0xFF */
-	if (len == 0) {
+	if ((len == 0) || (data == NULL)) {
 		cmddata.buff[0] = 0xFF;
 		cmddata.length = 1;
 		len = 1;
