@@ -210,6 +210,31 @@ u32 dwc3_core_fifo_space(struct dwc3_ep *dep, u8 type)
 }
 
 /**
+ * dwc3_txdeemphsis_adj - change main_cursor,pre_cursor,post_cursor
+ * for eye diagram, from ASIC
+ * @dwc: pointer to our context structure
+ */
+static int dwc3_txdeemphsis_adj(struct dwc3 *dwc)
+{
+	u32 reg;
+
+	/* gen2 txdeemphsis */
+	reg = 0x8c45;
+	dwc3_writel(dwc->regs, LCSR_TX_DEEMPH, reg);
+	/* CP13 txdeemphsis */
+	reg = 0xe45;
+	dwc3_writel(dwc->regs, LCSR_TX_DEEMPH_1, reg);
+	/* CP14 txdeemphsis */
+	reg = 0x8d80;
+	dwc3_writel(dwc->regs, LCSR_TX_DEEMPH_2, reg);
+	/* CP16 txdeemphsis */
+	reg = 0xf80;
+	dwc3_writel(dwc->regs, LCSR_TX_DEEMPH_3, reg);
+
+	return 0;
+}
+
+/**
  * dwc3_core_soft_reset - Issues core soft reset and PHY reset
  * @dwc: pointer to our context structure
  */
@@ -270,6 +295,9 @@ static int dwc3_core_soft_reset(struct dwc3 *dwc)
 	return -ETIMEDOUT;
 
 done:
+
+	dwc3_txdeemphsis_adj(dwc);
+
 	/*
 	 * For DWC_usb31 controller, once DWC3_DCTL_CSFTRST bit is cleared,
 	 * we must wait at least 50ms before accessing the PHY domain
