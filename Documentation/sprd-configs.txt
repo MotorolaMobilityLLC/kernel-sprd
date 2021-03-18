@@ -7971,6 +7971,15 @@ CONFIG_HID_PLANTRONICS
 	[must]
 	[missing plat description] none
 	[function]
+CONFIG_HID_PLAYSTATION
+	[arch] arm64
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
+	[field] menu,make
+	[subsys] hid
+	[must] user
+	[missing plat description] none
+	[function] sony playstation support
 CONFIG_HID_PRIMAX
 	[arch] arm
 	[plat] pike2
@@ -13436,6 +13445,15 @@ CONFIG_PKCS7_MESSAGE_PARSER
 	[must] user
 	[missing plat description] none
 	[function] Support PKCS7_MESSAGE_PARSER.
+CONFIG_PLAYSTATION_FF
+	[arch] arm64
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
+	[field] menu,make
+	[subsys] hid
+	[must] user
+	[missing plat description] none
+	[function] sony playstation support
 CONFIG_PM
 	[arch] all
 	[plat] all
