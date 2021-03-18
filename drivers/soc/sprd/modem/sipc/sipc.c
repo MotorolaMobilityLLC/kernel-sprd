@@ -73,10 +73,7 @@ static void sprd_rx_callback(struct mbox_client *client, void *message)
 		dev_err(dev, "receive data is null !\n");
 	} else {
 		msg = (struct smsg *)&data;
-		if (ipc->sensor_core == (uintptr_t)(ipc->chan->con_priv))
-			smsg_msg_process(ipc, msg, 0);
-		else
-			smsg_msg_process(ipc, msg, 1);
+		smsg_msg_process(ipc, msg, 1);
 	}
 }
 
