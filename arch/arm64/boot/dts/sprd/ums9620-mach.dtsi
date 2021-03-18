@@ -36,6 +36,23 @@
 		bootargs = "earlycon=sprd_serial,0x20210000,115200n8 console=ttyS1,115200n8 loglevel=1 init=/init root=/dev/ram0 rw printk.devkmsg=on androidboot.selinux=permissive pcie_ports=compat swiotlb=1";
 	};
 
+	gsp_dvfs: gsp-dvfs {
+		compatible = "sprd,hwdvfs-gsp-qogirn6pro";
+		sprd,hw-dfs-en = <0>;
+		sprd,work-index-def = <3>;
+		sprd,idle-index-def = <1>;
+		sprd,freq-upd-delay-en = <0>;
+		sprd,freq-upd-hdsk-en = <1>;
+
+		operating-points = <
+			/* kHz    uV */
+			256000    600000
+			307200    650000
+			384000    700000
+			512000    750000
+			>;
+	};
+
 	sprd-sensorhub {
 		compatible = "sprd,qogirn6pro-sensorhub", "sprd,sensor-hub";
 		sipc_sensorhub_id = <9>;
