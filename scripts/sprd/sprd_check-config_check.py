@@ -462,7 +462,7 @@ def ai_check_missing_plat():
             if l_doc_missing_plat != l_code_missing_plat:
                 print("ERROR: doc: Value is different between code and sprd-configs.txt. " + \
                         " CONFIG:" + key + \
-                        " CODE:[missing plat]:" + missing_plat[:-1] + \
+                        " CODE:[missing plat]:" + corrected_missing_plat[:-1] + \
                         " DOC:[missing plat]:" + d_sprdconfig[key]['missing plat'])
             if d_sprdconfig[key]['missing plat description'] == 'none':
                 print("ERROR: doc: " + key + " : [missing plat description] couldn't be none" \

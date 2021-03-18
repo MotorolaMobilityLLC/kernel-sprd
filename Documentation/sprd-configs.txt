@@ -2000,7 +2000,7 @@ CONFIG_CHARGER_BQ2560X
 CONFIG_CHARGER_BQ25890
 	[arch] arm64
 	[plat] qogirl6
-	[missing plat] sharkl3,sharkl5,sharkl5Pro
+	[missing plat] qogirn6pro,sharkl3,sharkl5,sharkl5Pro
 	[field] make
 	[subsys] power
 	[must] user
