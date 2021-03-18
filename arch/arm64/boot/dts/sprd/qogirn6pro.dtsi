@@ -299,6 +299,12 @@
 			reg = <0 0x64910000 0 0x3000>;
 		};
 
+		top_dvfs_apb_regs: syscon@64940000 {
+			compatible = "sprd,ums9620-glbregs", "syscon";
+			#syscon-cells = <2>;
+			reg = <0 0x64940000 0 0x3000>;
+		};
+
 		ap-apb {
 			compatible = "simple-bus";
 			#address-cells = <1>;
@@ -942,31 +948,19 @@
 				sprd,gpu-apb-syscon = <&gpu_apb_regs>;
 				sprd,gpu-dvfs-apb-syscon = <&gpu_dvfs_apb_regs>;
 
-				syscons = <&pmu_apb_regs
+				syscons = <&top_dvfs_apb_regs
+					REG_TOP_DVFS_APB_SUBSYS_SW_DVFS_EN_CFG
+					MASK_TOP_DVFS_APB_GPU_SW_DVFS_EN>,
+					<&top_dvfs_apb_regs
+					REG_TOP_DVFS_APB_DCDC_GPU_SW_DVFS_CTRL
+					MASK_TOP_DVFS_APB_DCDC_GPU_SW_TUNE_EN>,
+					<&pmu_apb_regs
 					REG_PMU_APB_PD_GPU_CFG_0
-					MASK_PMU_APB_PD_GPU_FORCE_SHUTDOWN>,
-					<&pmu_apb_regs
-					REG_PMU_APB_PD_GPU_CORE0_CFG_0
-					(MASK_PMU_APB_PD_GPU_CORE0_PDCA_M_B_REG |
-					MASK_PMU_APB_PD_GPU_CORE0_PDCA_D_B_REG)>,
-					<&pmu_apb_regs
-					REG_PMU_APB_PD_GPU_CORE1_CFG_0
-					(MASK_PMU_APB_PD_GPU_CORE1_PDCA_M_B_REG |
-					MASK_PMU_APB_PD_GPU_CORE1_PDCA_D_B_REG)>,
-					<&pmu_apb_regs
-					REG_PMU_APB_PD_GPU_CORE2_CFG_0
-					(MASK_PMU_APB_PD_GPU_CORE2_PDCA_M_B_REG |
-					MASK_PMU_APB_PD_GPU_CORE2_PDCA_D_B_REG)>,
-					<&pmu_apb_regs
-					REG_PMU_APB_PD_GPU_CORE3_CFG_0
-					(MASK_PMU_APB_PD_GPU_CORE3_PDCA_M_B_REG |
-					MASK_PMU_APB_PD_GPU_CORE3_PDCA_D_B_REG)>;
+					MASK_PMU_APB_PD_GPU_FORCE_SHUTDOWN>;
 
-				syscon-names = "top-force-shutdown",
-					"core0_cfg",
-					"core1_cfg",
-					"core2_cfg",
-					"core3_cfg";
+				syscon-names = "top_dvfs_cfg",
+					"gpu_sw_dvfs_ctrl",
+					"top_force_shutdown";
 
 				interrupts = <GIC_SPI 146 IRQ_TYPE_LEVEL_HIGH>,
 					<GIC_SPI 146 IRQ_TYPE_LEVEL_HIGH>,
