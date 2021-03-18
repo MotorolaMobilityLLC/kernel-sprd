@@ -11,7 +11,7 @@
 #define to_sprd_plane(x)		container_of(x, struct sprd_plane, base)
 #define to_sprd_plane_state(x)	container_of(x, struct sprd_plane_state, base)
 
-struct dpu_layer {
+struct sprd_layer_state {
 	u8 index;
 	u8 planes;
 	u32 addr[4];
@@ -39,7 +39,7 @@ struct dpu_layer {
 
 struct sprd_plane_state {
 	struct drm_plane_state base;
-	struct dpu_layer layer;
+	struct sprd_layer_state layer;
 };
 
 struct sprd_plane {

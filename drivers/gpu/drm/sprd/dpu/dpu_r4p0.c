@@ -331,7 +331,8 @@ static struct dpu_cfg1 qos_cfg = {
 };
 
 static void dpu_clean_all(struct dpu_context *ctx);
-static void dpu_layer(struct dpu_context *ctx, struct dpu_layer *hwlayer);
+static void dpu_layer(struct dpu_context *ctx,
+		struct sprd_layer_state *hwlayer);
 static void dpu_enhance_reload(struct dpu_context *ctx);
 static int dpu_cabc_trigger(struct dpu_context *ctx);
 static void dpu_version(struct dpu_context *ctx)
@@ -994,7 +995,8 @@ static void dpu_bgcolor(struct dpu_context *ctx, u32 color)
 	}
 }
 
-static void dpu_layer(struct dpu_context *ctx, struct dpu_layer *hwlayer)
+static void dpu_layer(struct dpu_context *ctx,
+		struct sprd_layer_state *hwlayer)
 {
 	const struct drm_format_info *info;
 	u32 size, offset, ctrl, reg_val, pitch;

@@ -48,19 +48,16 @@ static void sprd_plane_atomic_update(struct drm_plane *drm_plane,
 				    struct drm_plane_state *old_state)
 {
 	struct drm_plane_state *drm_state = drm_plane->state;
-	struct drm_framebuffer *fb = drm_plane->state->fb;
-	struct drm_gem_object *obj;
-	struct sprd_gem_obj *sprd_gem;
-	struct sprd_crtc *crtc = to_sprd_crtc(drm_plane->state->crtc);
+	struct sprd_crtc *crtc = to_sprd_crtc(drm_state->crtc);
 	struct sprd_plane *plane = to_sprd_plane(drm_plane);
 	struct sprd_plane_state *state = to_sprd_plane_state(drm_state);
-	struct dpu_layer *layer = &state->layer;
+	struct sprd_layer_state *layer = &state->layer;
+	struct drm_gem_object *obj;
+	struct sprd_gem_obj *sprd_gem;
 	int i;
 
-	if (drm_plane->state->crtc->state->active_changed) {
-		DRM_DEBUG("resume or suspend, no need to update plane\n");
+	if (!drm_state->fb)
 		return;
-	}
 
 	if (layer->pallete_en) {
 		layer->index = plane->index;
@@ -89,22 +86,23 @@ static void sprd_plane_atomic_update(struct drm_plane *drm_plane,
 	layer->rotation = drm_state->rotation;
 	layer->blending = drm_state->pixel_blend_mode;
 	layer->rotation = drm_state->rotation;
-	layer->planes = fb->format->num_planes;
-	layer->format = fb->format->format;
-	layer->xfbc = fb->modifier;
+	layer->planes = drm_state->fb->format->num_planes;
+	layer->format = drm_state->fb->format->format;
+	layer->xfbc = drm_state->fb->modifier;
 
 	DRM_DEBUG("%s() alpha = %u, blending = %u, rotation = %u, y2r_coef = %u\n",
-		  __func__, layer->alpha, layer->blending, layer->rotation, layer->y2r_coef);
+		  __func__, layer->alpha, layer->blending,
+		  layer->rotation, layer->y2r_coef);
 
 	DRM_DEBUG("%s() xfbc = %u, hsize_r = %u, hsize_y = %u, hsize_uv = %u\n",
 		  __func__, layer->xfbc, layer->fbc_hsize_r,
 		  layer->fbc_hsize_y, layer->fbc_hsize_uv);
 
 	for (i = 0; i < layer->planes; i++) {
-		obj = drm_gem_fb_get_obj(fb, i);
+		obj = drm_gem_fb_get_obj(drm_state->fb, i);
 		sprd_gem = to_sprd_gem_obj(obj);
-		layer->addr[i] = sprd_gem->dma_addr + fb->offsets[i];
-		layer->pitch[i] = fb->pitches[i];
+		layer->addr[i] = sprd_gem->dma_addr + drm_state->fb->offsets[i];
+		layer->pitch[i] = drm_state->fb->pitches[i];
 	}
 
 	crtc->pending_planes++;
@@ -118,30 +116,11 @@ static int sprd_plane_atomic_check(struct drm_plane *plane,
 	return 0;
 }
 
-static void sprd_plane_atomic_disable(struct drm_plane *drm_plane,
-				     struct drm_plane_state *old_state)
-{
-	struct sprd_plane *plane = to_sprd_plane(drm_plane);
-
-	/*
-	 * NOTE:
-	 * The dpu->core->flip() will disable all the planes each time.
-	 * So there is no need to impliment the atomic_disable() function.
-	 * But this function can not be removed, because it will change
-	 * to call atomic_update() callback instead. Which will cause
-	 * kernel panic in sprd_plane_atomic_update().
-	 *
-	 * We do nothing here but just print a debug log.
-	 */
-	DRM_DEBUG("%s() layer_id = %u\n", __func__, plane->index);
-}
-
 static const struct drm_plane_helper_funcs sprd_plane_helper_funcs = {
 	.prepare_fb = sprd_plane_prepare_fb,
 	.cleanup_fb = sprd_plane_cleanup_fb,
 	.atomic_check = sprd_plane_atomic_check,
 	.atomic_update = sprd_plane_atomic_update,
-	.atomic_disable = sprd_plane_atomic_disable,
 };
 
 static void sprd_plane_reset(struct drm_plane *drm_plane)
@@ -206,7 +185,7 @@ static int sprd_plane_atomic_set_property(struct drm_plane *drm_plane,
 {
 	struct sprd_plane *plane = to_sprd_plane(drm_plane);
 	struct sprd_plane_state *state = to_sprd_plane_state(drm_state);
-	struct dpu_layer *layer = &state->layer;
+	struct sprd_layer_state *layer = &state->layer;
 
 	DRM_DEBUG("%s() name = %s, val = %llu\n",
 		  __func__, property->name, val);
@@ -238,7 +217,7 @@ static int sprd_plane_atomic_get_property(struct drm_plane *drm_plane,
 {
 	struct sprd_plane *plane = to_sprd_plane(drm_plane);
 	const struct sprd_plane_state *state = to_sprd_plane_state(drm_state);
-	const struct dpu_layer *layer = &state->layer;
+	const struct sprd_layer_state *layer = &state->layer;
 
 	DRM_DEBUG("%s() name = %s\n", __func__, property->name);
 

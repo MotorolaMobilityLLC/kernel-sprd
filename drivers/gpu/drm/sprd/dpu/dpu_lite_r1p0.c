@@ -138,7 +138,8 @@
 static bool panel_ready = true;
 
 static void dpu_clean_all(struct dpu_context *ctx);
-static void dpu_layer(struct dpu_context *ctx, struct dpu_layer *hwlayer);
+static void dpu_layer(struct dpu_context *ctx,
+		struct sprd_layer_state *hwlayer);
 
 static void dpu_version(struct dpu_context *ctx)
 {
@@ -452,7 +453,7 @@ static void dpu_bgcolor(struct dpu_context *ctx, u32 color)
 }
 
 static void dpu_layer(struct dpu_context *ctx,
-		    struct dpu_layer *hwlayer)
+		    struct sprd_layer_state *hwlayer)
 {
 	const struct drm_format_info *info;
 	u32 size, offset, ctrl, reg_val, pitch;

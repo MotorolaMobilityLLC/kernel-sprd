@@ -18,6 +18,7 @@
 
 #include "sprd_crtc.h"
 #include "sprd_plane.h"
+#include "disp_lib.h"
 
 enum {
 	SPRD_DPU_IF_DBI = 0,
@@ -126,7 +127,7 @@ struct dpu_context {
 	int wb_xfbc_en;
 	int max_vsync_count;
 	int vsync_count;
-	struct dpu_layer wb_layer;
+	struct sprd_layer_state wb_layer;
 	struct work_struct wb_work;
 	dma_addr_t wb_addr_p;
 	void *wb_addr_v;

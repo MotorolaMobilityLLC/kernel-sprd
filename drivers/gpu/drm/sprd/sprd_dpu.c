@@ -484,6 +484,7 @@ static int sprd_dpu_context_init(struct sprd_dpu *dpu,
 {
 	struct resource r;
 	struct dpu_context *ctx = &dpu->ctx;
+
 	if (dpu->core->enhance_init)
 		dpu->core->enhance_init(ctx);
 	if (dpu->core->parse_dt)
