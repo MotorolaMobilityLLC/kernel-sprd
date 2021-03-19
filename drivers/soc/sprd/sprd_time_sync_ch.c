@@ -13,10 +13,12 @@
 #include <linux/io.h>
 #include <linux/kernel.h>
 #include <linux/kthread.h>
+#include <linux/mfd/syscon.h>
 #include <linux/module.h>
 #include <linux/of.h>
 #include <linux/of_address.h>
 #include <linux/platform_device.h>
+#include <linux/regmap.h>
 #include <linux/sipc.h>
 #include <linux/soc/sprd/sprd_systimer.h>
 #include <linux/spinlock.h>
@@ -46,6 +48,12 @@ static struct sprd_cnt_to_boot{
 } sprd_ctb;
 
 static DEFINE_SPINLOCK(sprd_time_sync_ch_lock);
+
+static struct ch_cfg_bus_context {
+	unsigned int ctrl_reg;
+	unsigned int ctrl_mask;
+	struct regmap *regmap;
+} ch_cfg_bus;
 
 #if IS_ENABLED(CONFIG_ARM)
 static inline u64 sprd_arch_counter_get_cntpct(void)
@@ -105,16 +113,24 @@ void sprd_time_sync_ch_resume(void)
 	unsigned long flags;
 	int i;
 
-	if (!sprd_time_sync_ch_addr_base)
+	if (!sprd_time_sync_ch_addr_base || !ch_cfg_bus.regmap)
 		return;
 
 	spin_lock_irqsave(&sprd_time_sync_ch_lock, flags);
+	/* set REG_AON_APB_CH_CFG_BUS bit[0] to 0 */
+	regmap_update_bits(ch_cfg_bus.regmap, ch_cfg_bus.ctrl_reg,
+			   ch_cfg_bus.ctrl_mask, 0);
+
 	/* set 0 since ap active */
 	for (i = 0; i < SENSOR_TS_CTRL_NUM; i++) {
 		time_sync_ch_ctrl = readl_relaxed(sprd_time_sync_ch_addr_base + i * SENSOR_TS_CTRL_SIZE);
 		time_sync_ch_ctrl &= ~SENSOR_TS_CTRL_SEL;
 		writel_relaxed(time_sync_ch_ctrl, sprd_time_sync_ch_addr_base + i * SENSOR_TS_CTRL_SIZE);
 	}
+
+	/* set REG_AON_APB_CH_CFG_BUS bit[0] to 1 */
+	regmap_update_bits(ch_cfg_bus.regmap, ch_cfg_bus.ctrl_reg,
+			   ch_cfg_bus.ctrl_mask, 1);
 
 	update_cnt_to_boot();
 	spin_unlock_irqrestore(&sprd_time_sync_ch_lock, flags);
@@ -128,16 +144,24 @@ int sprd_time_sync_ch_suspend(void)
 	unsigned long flags;
 	int i;
 
-	if (!sprd_time_sync_ch_addr_base)
+	if (!sprd_time_sync_ch_addr_base || !ch_cfg_bus.regmap)
 		return 0;
 
 	spin_lock_irqsave(&sprd_time_sync_ch_lock, flags);
+	/* set REG_AON_APB_CH_CFG_BUS bit[0] to 0 */
+	regmap_update_bits(ch_cfg_bus.regmap, ch_cfg_bus.ctrl_reg,
+			   ch_cfg_bus.ctrl_mask, 0);
+
 	/* set 1 since AP suspend */
 	for (i = 0; i < SENSOR_TS_CTRL_NUM; i++) {
 		time_sync_ch_ctrl = readl_relaxed(sprd_time_sync_ch_addr_base + i * SENSOR_TS_CTRL_SIZE);
 		time_sync_ch_ctrl |= SENSOR_TS_CTRL_SEL;
 		writel_relaxed(time_sync_ch_ctrl, sprd_time_sync_ch_addr_base + i * SENSOR_TS_CTRL_SIZE);
 	}
+
+	/* set REG_AON_APB_CH_CFG_BUS bit[0] to 1 */
+	regmap_update_bits(ch_cfg_bus.regmap, ch_cfg_bus.ctrl_reg,
+			   ch_cfg_bus.ctrl_mask, 1);
 	spin_unlock_irqrestore(&sprd_time_sync_ch_lock, flags);
 
 	return 0;
@@ -167,11 +191,28 @@ static enum hrtimer_restart sprd_sync_timer_ch(struct hrtimer *hr)
 static int sprd_time_sync_ch_probe(struct platform_device *pdev)
 {
 	struct device_node *np = pdev->dev.of_node;
+	unsigned int syscon_args[2];
 	unsigned long flags;
+	int ret = 0;
 
 	sprd_time_sync_ch_addr_base = of_iomap(np, 0);
 	if (!sprd_time_sync_ch_addr_base) {
 		pr_err("Can't map sprd time sync ch addr.\n");
+		return -EFAULT;
+	}
+
+	ch_cfg_bus.regmap = syscon_regmap_lookup_by_name(np, "ch_cfg_bus");
+	if (IS_ERR(ch_cfg_bus.regmap)) {
+		pr_err("failed to map ch_cfg_bus reg.\n");
+		return PTR_ERR(ch_cfg_bus.regmap);
+	}
+
+	ret = syscon_get_args_by_name(np, "ch_cfg_bus", 2, syscon_args);
+	if (ret == 2) {
+		ch_cfg_bus.ctrl_reg = syscon_args[0];
+		ch_cfg_bus.ctrl_mask = syscon_args[1];
+	} else {
+		pr_err("failed to parse ch_cfg_bus reg.\n");
 		return -EFAULT;
 	}
 
