@@ -67,6 +67,7 @@ enum wcn_gnss_sub_sys {
 #define WCN_GNSS_ALL_MASK (WCN_GNSS_MASK | WCN_GNSS_BD_MASK)
 
 #define WCN_SYS_POWERON_WAKEUP_POLLING_COUNT (256) /* 256 * 10us */
+#define WCN_SYS_DEEPSLEEP_POLLING_COUNT (256) /* 256 * 10us */
 #define WCN_SYS_SHUTDOWN_POLLING_COUNT (256) /* 32 * 10us */
 #define BTWF_SYS_POWERON_WAKEUP_POLLING_COUNT (256) /* 256 * 10us */
 #define BTWF_SYS_WAKEUP_POLLING_COUNT (256)
@@ -408,7 +409,7 @@ int wcn_sys_allow_deep_sleep(struct wcn_device *wcn_dev);
 int wcn_sys_forbid_deep_sleep(struct wcn_device *wcn_dev);
 
 bool wcn_sys_polling_wakeup(struct wcn_device *wcn_dev);
-
+bool wcn_sys_polling_deepsleep(struct wcn_device *wcn_dev);
 bool wcn_sys_polling_poweron(struct wcn_device *wcn_dev);
 
 bool wcn_sys_polling_powerdown(struct wcn_device *wcn_dev);
@@ -431,6 +432,12 @@ int btwf_sys_force_deep_to_shutdown(struct wcn_device *wcn_dev);
  * after this operate, GNSS SYS will enter shutdown mode.
  */
 int gnss_sys_force_deep_to_shutdown(struct wcn_device *wcn_dev);
+
+/*
+ * Force WCN SYS enter deep sleep and then run auto shutdown.
+ * after this operate, WCN SYS will enter shutdown mode.
+ */
+int wcn_sys_force_deep_to_shutdown(struct wcn_device *wcn_dev);
 
 /* Force BTWF SYS power on and let CPU run.
  * Clear BTWF SYS shutdown and force deep switch,

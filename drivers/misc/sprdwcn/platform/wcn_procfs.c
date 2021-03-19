@@ -96,7 +96,7 @@ void wcn_assert_interface(enum wcn_source_type type, char *str)
 		mdbg_proc->assert_notify_flag = 1;
 	}
 
-	if (wcn_sysfs_get_reset_prop()) {
+	if (wcn_sysfs_get_reset_prop()) {/* user version */
 		WCN_INFO("%s reset begin\n", __func__);
 		stop_loopcheck();
 		wcnlog_clear_log();

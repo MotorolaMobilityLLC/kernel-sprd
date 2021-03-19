@@ -51,7 +51,10 @@ void wcn_device_poweroff(void)
 void wcn_chip_power_off(void)
 {
 	sprdwcn_bus_set_carddump_status(false);
-	wcn_device_poweroff();
+	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6)
+		wcn_sys_force_deep_to_shutdown(s_wcn_device.btwf_device);
+	else
+		wcn_device_poweroff();
 }
 EXPORT_SYMBOL_GPL(wcn_chip_power_off);
 
@@ -1208,6 +1211,25 @@ bool wcn_sys_polling_wakeup(struct wcn_device *wcn_dev)
 	return false;
 }
 
+bool wcn_sys_polling_deepsleep(struct wcn_device *wcn_dev)
+{
+	int i = 0;
+
+	/* Polling WCN SYS deepsleep */
+	while (i < WCN_SYS_DEEPSLEEP_POLLING_COUNT) {
+		if (wcn_sys_is_deepsleep_status(wcn_dev)) {
+			WCN_INFO("wcn sys deepsleep i=%d!\n", i);
+			return true;
+		}
+
+		i++;
+		usleep_range(10, 15);
+	}
+
+	WCN_ERR("[-]%s wcn sys deepsleep fail\n", __func__);
+	return false;
+}
+
 bool btwf_sys_polling_deepsleep(struct wcn_device *wcn_dev)
 {
 	int i = 0;
@@ -1466,6 +1488,69 @@ int gnss_sys_force_deep_to_shutdown(struct wcn_device *wcn_dev)
 				 0x00c8, &reg_val);
 	WCN_INFO("Set REG 0x4080c0c8:val=0x%x(auto shutdown)!\n",
 		      reg_val);
+
+	return 0;
+}
+
+/*
+ * Force WCN SYS enter deep sleep and then run auto shutdown.
+ * after this operate, WCN SYS will enter shutdown mode.
+ */
+int wcn_sys_force_deep_to_shutdown(struct wcn_device *wcn_dev)
+{
+	u32 reg_val = 0;
+
+	WCN_INFO("[+]%s\n", __func__);
+	if (wcn_dev == NULL) {
+		WCN_ERR("[-]%s NULL\n", __func__);
+		return -1;
+	}
+
+	/*
+	 * PMU: WCN SYS Auto Shutdown Set
+	 * The REG address is the same as XTL delay count,
+	 * but we should config this bits with two steps as ASIC required.
+	 * Bit[24] clear to 0
+	 */
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_PMU_APB],
+				 0x03a8, &reg_val);
+	WCN_INFO("REG 0x640203a8:val=0x%x(auto shutdown)!\n",
+			  reg_val);
+	wcn_regmap_raw_write_bit(
+			wcn_dev->rmap[REGMAP_PMU_APB],
+			0x13a8, (0x1<<24));
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_PMU_APB],
+				 0x03a8, &reg_val);
+	WCN_INFO("REG 0x640203a8:val=0x%x(auto shutdown set)!\n",
+		     reg_val);
+
+	/*
+	 * PMU: WCN SYS Force Deepsleep Set
+	 * Clock state machine start runs
+	 * Bit[7] set to 1
+	 */
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_PMU_APB],
+				 0x0818, &reg_val);
+	WCN_INFO("REG 0x64020818:val=0x%x!\n", reg_val);
+	wcn_regmap_raw_write_bit(
+			wcn_dev->rmap[REGMAP_PMU_APB],
+			0x1818, (0x1<<7));
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_PMU_APB],
+				 0x0818, &reg_val);
+	WCN_INFO("REG 0x64020818:val=0x%x(Force deep clear)!\n",
+		     reg_val);
+
+	/* check enter deep sleep */
+	if (wcn_sys_polling_deepsleep(wcn_dev) == false) {
+		WCN_ERR("[-]%s wcn sys deepsleep fail\n", __func__);
+		return -1;
+	}
+
+	/* check shutdown */
+	if (wcn_sys_polling_powerdown(wcn_dev) == false) {
+		WCN_ERR("[-]%s wcn sys powerdown fail\n", __func__);
+		return -1;
+	}
 
 	return 0;
 }
