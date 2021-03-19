@@ -65,6 +65,7 @@ struct smsg_ipc {
 
 	/* target core_id over mailbox */
 	struct mbox_client cl;
+	struct mbox_client sensor_cl;
 	struct mbox_chan *chan;
 	struct mbox_chan *sensor_chan;
 	u32 sensor_core;

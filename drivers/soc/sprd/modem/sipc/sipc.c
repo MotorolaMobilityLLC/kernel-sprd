@@ -77,6 +77,23 @@ static void sprd_rx_callback(struct mbox_client *client, void *message)
 	}
 }
 
+static void sprd_sensor_rx_callback(struct mbox_client *client, void *message)
+{
+
+	struct smsg_ipc *ipc  = dev_get_drvdata(client->dev);
+	struct smsg *msg = NULL;
+	struct device *dev = client->dev;
+	u64 data;
+
+	data = sprd_u32_to_u64(message);
+	if (!data) {
+		dev_err(dev, "receive data is null !\n");
+	} else {
+		msg = (struct smsg *)&data;
+		smsg_msg_process(ipc, msg, 0);
+	}
+}
+
 static int sprd_get_smem_info(struct device *dev,
 			      struct smsg_ipc *ipc, struct device_node *np)
 {
@@ -188,7 +205,10 @@ static int sprd_ipc_probe(struct platform_device *pdev)
 
 	/* request sensor mailbox channel */
 	if (ipc->dst == SIPC_ID_PM_SYS) {
-		ipc->sensor_chan = mbox_request_channel(&ipc->cl, 1);
+		/* mailbox request */
+		ipc->sensor_cl = ipc->cl;
+		ipc->sensor_cl.rx_callback = sprd_sensor_rx_callback;
+		ipc->sensor_chan = mbox_request_channel(&ipc->sensor_cl, 1);
 		if (IS_ERR(ipc->sensor_chan))
 			dev_err(dev, "failed to sipc sensor mailbox\n");
 		else
