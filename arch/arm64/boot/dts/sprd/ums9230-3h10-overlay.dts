@@ -800,3 +800,56 @@
 		memory-region = <&widevine_reserved>;
 	};
 };
+
+&pin_controller {
+	pinctrl-names =
+	/* rfctl16 ,rfctl3, rfctl5 */
+	"gpio_8", "gpio_22", "gpio_24",
+	/* rfctl6, rfctl7, keyin0 */
+	"gpio_25", "gpio_26", "gpio_124",
+	/* bt_rfctl2 */
+	"gpio_175";
+	pinctrl-0 = <&gpio_8>;
+	pinctrl-1 = <&gpio_22>;
+	pinctrl-2 = <&gpio_24>;
+	pinctrl-3 = <&gpio_25>;
+	pinctrl-4 = <&gpio_26>;
+	pinctrl-5 = <&gpio_124>;
+	pinctrl-6 = <&gpio_175>;
+
+	gpio_8: rfctl16 {
+		pins = "QOGIRL6_RFCTL16";
+		function = "func4";
+	};
+
+	gpio_22: rfctl3 {
+		pins = "QOGIRL6_RFCTL3";
+		function = "func4";
+	};
+
+	gpio_24: rfctl5 {
+		pins = "QOGIRL6_RFCTL5";
+		function = "func4";
+	};
+
+	gpio_25: rfctl6 {
+		pins = "QOGIRL6_RFCTL6";
+		function = "func4";
+	};
+
+	gpio_26: rfctl7 {
+		pins = "QOGIRL6_RFCTL7";
+		function = "func4";
+	};
+
+	gpio_124: keyin0 {
+		pins = "QOGIRL6_KEYIN0";
+		function = "func4";
+	};
+
+	gpio_175: bt_rfctl2 {
+		pins = "QOGIRL6_BT_RFCTL2";
+		function = "func4";
+	};
+};
+
