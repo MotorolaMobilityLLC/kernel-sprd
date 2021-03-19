@@ -635,6 +635,9 @@
 			time_sync_ch@62110080 {
 				compatible = "sprd,time-sync-ch";
 				reg = <0x0 0x62110080 0x0 0x10>;
+				syscons = <&aon_apb_regs REG_AON_APB_CH_CFG_BUS
+					MASK_AON_APB_CH_CFG_BUS_SLEEP>;
+				syscon-names = "ch_cfg_bus";
 			};
 		};
 
