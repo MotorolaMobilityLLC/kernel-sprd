@@ -107,6 +107,10 @@ struct marlin_device {
 	struct tsx_cali tsxcali;
 	char *btwf_path;
 	char *gnss_path;
+	phys_addr_t	base_addr_btwf;
+	u32	maxsz_btwf;
+	phys_addr_t	base_addr_gnss;
+	u32	maxsz_gnss;
 };
 
 struct wifi_calibration {

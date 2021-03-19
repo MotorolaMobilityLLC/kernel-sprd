@@ -13,6 +13,7 @@
 #include "wcn_parn_parser.h"
 #include "wcn_txrx.h"
 #include "wcn_log.h"
+#include "wcn_misc.h"
 
 #ifdef CONFIG_WCN_INTEG
 #include "wcn_integrate_glb.h"

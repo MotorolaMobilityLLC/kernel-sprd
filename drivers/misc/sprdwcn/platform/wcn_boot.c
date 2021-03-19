@@ -14,6 +14,7 @@
 #include <linux/kernel.h>
 #include <linux/mfd/syscon.h>
 #include <linux/module.h>
+#include <linux/of_address.h>
 #include <linux/of_device.h>
 #include <linux/of_gpio.h>
 #include <linux/platform_device.h>
@@ -46,6 +47,7 @@
 #include "wcn_txrx.h"
 #include "mdbg_type.h"
 #include "wcn_glb_reg.h"
+#include "wcn_ca_trusty.h"
 
 #ifdef MODULE_PARAM_PREFIX
 #undef MODULE_PARAM_PREFIX
@@ -423,8 +425,13 @@ static int marlin_download_from_partition(void)
 	char *buffer = NULL;
 	char *temp = NULL;
 	struct imageinfo *imginfo = NULL;
+	u32 sec_img_magic;
+	struct sys_img_header *pimghdr = NULL;
 
-	img_size = FIRMWARE_MAX_SIZE;
+	if (marlin_dev->maxsz_btwf > FIRMWARE_MAX_SIZE)
+		img_size = marlin_dev->maxsz_btwf;
+	else
+		img_size = FIRMWARE_MAX_SIZE;
 
 	pr_info("%s entry\n", __func__);
 	buffer = btwf_load_firmware_data(0, img_size);
@@ -434,6 +441,57 @@ static int marlin_download_from_partition(void)
 	}
 	temp = buffer;
 
+	img_size = FIRMWARE_MAX_SIZE;
+	pimghdr = (struct sys_img_header *)buffer;
+	sec_img_magic = pimghdr->magic_num;
+	if (sec_img_magic != SEC_IMAGE_MAGIC) {
+		pr_info("%s image magic 0x%x.\n",
+			__func__, sec_img_magic);
+		goto judge_image;
+	}
+
+	if (pimghdr->img_real_size > FIRMWARE_MAX_SIZE ||
+		pimghdr->img_real_size == 0 ||
+		(pimghdr->img_signed_size <=
+		(SEC_IMAGE_HDR_SIZE + pimghdr->img_real_size))) {
+		pr_err("%s check signed img fail.\n", __func__);
+		vfree(temp);
+		return -1;
+	}
+
+	if (marlin_dev->maxsz_btwf >= pimghdr->img_signed_size) {
+		wcn_write_data_to_phy_addr(
+			marlin_dev->base_addr_btwf,
+			buffer, pimghdr->img_signed_size);
+		if (wcn_firmware_sec_verify(1, marlin_dev->base_addr_btwf,
+			pimghdr->img_signed_size) < 0) {
+			pr_err("%s sec verify fail.\n", __func__);
+			vfree(temp);
+			return -1;
+		}
+		memset(buffer + pimghdr->img_real_size, 0,
+			pimghdr->img_signed_size - pimghdr->img_real_size);
+		wcn_read_data_from_phy_addr(
+			marlin_dev->base_addr_btwf + SEC_IMAGE_HDR_SIZE,
+			buffer, pimghdr->img_real_size);
+	} else if (marlin_dev->maxsz_btwf > 0) {
+		// we only get part of the signed-image.
+		pr_info("%s without enough reserved memory, check DTS pls.\n",
+			__func__);
+		vfree(temp);
+		return -1;
+	} else {
+		vfree(temp);
+		buffer = btwf_load_firmware_data(SEC_IMAGE_HDR_SIZE,
+			img_size);
+		if (!buffer) {
+			pr_info("%s signed img buff is NULL\n", __func__);
+			return -1;
+		}
+		temp = buffer;
+	}
+
+judge_image:
 	ret = marlin_judge_imagepack(buffer);
 	if (!ret) {
 		pr_info("marlin %s imagepack is WCNM type,need parse it\n",
@@ -563,8 +621,14 @@ static int gnss_download_from_partition(void)
 	unsigned long int imgpack_size, img_size;
 	char *buffer = NULL;
 	char *temp = NULL;
+	char *temp_img = NULL;
+	u32 sec_img_magic, img_copy_len;
+	struct sys_img_header *pimghdr = NULL;
 
 	img_size = imgpack_size =  GNSS_FIRMWARE_MAX_SIZE;
+
+	if (marlin_dev->maxsz_gnss > GNSS_FIRMWARE_MAX_SIZE)
+		imgpack_size = marlin_dev->maxsz_gnss;
 
 	pr_info("GNSS %s entry\n", __func__);
 	temp = buffer = gnss_load_firmware_data(imgpack_size);
@@ -573,6 +637,70 @@ static int gnss_download_from_partition(void)
 		return -1;
 	}
 
+	pimghdr = (struct sys_img_header *)buffer;
+	sec_img_magic = pimghdr->magic_num;
+	if (sec_img_magic != SEC_IMAGE_MAGIC) {
+		pr_info("%s image magic 0x%x.\n",
+			__func__, sec_img_magic);
+		goto write_gnss_img;
+	}
+
+	if (pimghdr->img_real_size == 0 ||
+		(pimghdr->img_signed_size <=
+		(SEC_IMAGE_HDR_SIZE + pimghdr->img_real_size))) {
+		vfree(temp);
+		pr_err("%s check signed img fail.\n", __func__);
+		return -1;
+	}
+
+	if (marlin_dev->maxsz_gnss >= pimghdr->img_signed_size) {
+		wcn_write_data_to_phy_addr(
+			marlin_dev->base_addr_gnss,
+			buffer, pimghdr->img_signed_size);
+		if (wcn_firmware_sec_verify(2, marlin_dev->base_addr_gnss,
+			pimghdr->img_signed_size) < 0) {
+			vfree(temp);
+			pr_err("%s sec verify fail.\n", __func__);
+			return -1;
+		}
+
+		if (img_size > pimghdr->img_real_size) {
+			memset(buffer + pimghdr->img_real_size, 0,
+				img_size - pimghdr->img_real_size);
+			img_copy_len = pimghdr->img_real_size;
+		} else {
+			img_copy_len = img_size;
+		}
+		wcn_read_data_from_phy_addr(
+			marlin_dev->base_addr_gnss + SEC_IMAGE_HDR_SIZE,
+			buffer, img_copy_len);
+	} else if (marlin_dev->maxsz_gnss > 0) {
+		// we only get part of the signed-image.
+		pr_info("%s without enough reserved memory, check DTS pls.\n",
+			__func__);
+		vfree(temp);
+		return -1;
+	} else {
+		if (img_size > pimghdr->img_real_size) {
+			memset(buffer + pimghdr->img_real_size, 0,
+				img_size - pimghdr->img_real_size);
+			img_copy_len = pimghdr->img_real_size;
+		} else {
+			img_copy_len = img_size;
+		}
+
+		temp_img = gnss_load_firmware_data(
+			SEC_IMAGE_HDR_SIZE + img_copy_len);
+		if (!temp_img) {
+			pr_info("%s read gnss buff is NULL\n", __func__);
+			vfree(temp);
+			return -1;
+		}
+		memcpy(buffer, (temp_img + SEC_IMAGE_HDR_SIZE), img_copy_len);
+		vfree(temp_img);
+	}
+
+write_gnss_img:
 	len = 0;
 	while (len < img_size) {
 		trans_size = (img_size - len) > PACKET_SIZE ?
@@ -599,6 +727,9 @@ static int gnss_download_firmware(void)
 	char *buf;
 	int err;
 	int i, len, count, trans_size;
+	char *tx_img_ptr = NULL;
+	u32 sec_img_magic, tx_img_size;
+	struct sys_img_header *pimghdr = NULL;
 
 	if (marlin_dev->is_gnss_in_sysfs) {
 		err = gnss_download_from_partition();
@@ -616,12 +747,39 @@ static int gnss_download_firmware(void)
 
 		return err;
 	}
-	count = (firmware->size + PACKET_SIZE - 1) / PACKET_SIZE;
+
+	pimghdr = (struct sys_img_header *)(firmware->data);
+	sec_img_magic = pimghdr->magic_num;
+	if (sec_img_magic == SEC_IMAGE_MAGIC) {
+		if (pimghdr->img_real_size == 0 ||
+			(pimghdr->img_signed_size <=
+			(SEC_IMAGE_HDR_SIZE + pimghdr->img_real_size)) ||
+			pimghdr->img_signed_size > firmware->size) {
+			release_firmware(firmware);
+			pr_err("%s check signed img fail.\n", __func__);
+			return -1;
+		}
+
+		tx_img_size = pimghdr->img_real_size;
+		tx_img_ptr = vmalloc(tx_img_size);
+		if (!tx_img_ptr) {
+			release_firmware(firmware);
+			pr_err("%s no memory for image\n", __func__);
+			return -1;
+		}
+		memcpy(tx_img_ptr, (firmware->data + SEC_IMAGE_HDR_SIZE),
+			tx_img_size);
+	} else {
+		tx_img_size = firmware->size;
+		tx_img_ptr = (char *)firmware->data;
+	}
+
+	count = (tx_img_size + PACKET_SIZE - 1) / PACKET_SIZE;
 	len = 0;
 	for (i = 0; i < count; i++) {
-		trans_size = (firmware->size - len) > PACKET_SIZE ?
-				PACKET_SIZE : (firmware->size - len);
-		memcpy(buf, firmware->data + len, trans_size);
+		trans_size = (tx_img_size - len) > PACKET_SIZE ?
+				PACKET_SIZE : (tx_img_size - len);
+		memcpy(buf, tx_img_ptr + len, trans_size);
 		err = sprdwcn_bus_direct_write(GNSS_CP_START_ADDR + len, buf,
 				trans_size);
 		if (err < 0) {
@@ -635,6 +793,9 @@ static int gnss_download_firmware(void)
 	release_firmware(firmware);
 	pr_info("%s successfully through request_firmware!\n", __func__);
 
+	if (sec_img_magic == SEC_IMAGE_MAGIC && tx_img_ptr)
+		vfree(tx_img_ptr);
+
 	return 0;
 }
 
@@ -645,6 +806,9 @@ static int btwifi_download_firmware(void)
 	char *buf;
 	int err;
 	int i, len, count, trans_size;
+	char *tx_img_ptr = NULL;
+	u32 sec_img_magic, tx_img_size;
+	struct sys_img_header *pimghdr = NULL;
 
 	if (marlin_dev->is_btwf_in_sysfs) {
 		err = marlin_download_from_partition();
@@ -662,13 +826,39 @@ static int btwifi_download_firmware(void)
 		return err;
 	}
 
-	count = (firmware->size + PACKET_SIZE - 1) / PACKET_SIZE;
+	pimghdr = (struct sys_img_header *)(firmware->data);
+	sec_img_magic = pimghdr->magic_num;
+	if (sec_img_magic == SEC_IMAGE_MAGIC) {
+		if (pimghdr->img_real_size == 0 ||
+			(pimghdr->img_signed_size <=
+			(SEC_IMAGE_HDR_SIZE + pimghdr->img_real_size)) ||
+			pimghdr->img_signed_size > firmware->size) {
+			release_firmware(firmware);
+			pr_err("%s check signed img fail.\n", __func__);
+			return -1;
+		}
+
+		tx_img_size = pimghdr->img_real_size;
+		tx_img_ptr = vmalloc(tx_img_size);
+		if (!tx_img_ptr) {
+			release_firmware(firmware);
+			pr_err("%s no memory for image\n", __func__);
+			return -1;
+		}
+		memcpy(tx_img_ptr, (firmware->data + SEC_IMAGE_HDR_SIZE),
+			tx_img_size);
+	} else {
+		tx_img_size = firmware->size;
+		tx_img_ptr = (char *)firmware->data;
+	}
+
+	count = (tx_img_size + PACKET_SIZE - 1) / PACKET_SIZE;
 	len = 0;
 
 	for (i = 0; i < count; i++) {
-		trans_size = (firmware->size - len) > PACKET_SIZE ?
-				PACKET_SIZE : (firmware->size - len);
-		memcpy(buf, firmware->data + len, trans_size);
+		trans_size = (tx_img_size - len) > PACKET_SIZE ?
+				PACKET_SIZE : (tx_img_size - len);
+		memcpy(buf, tx_img_ptr + len, trans_size);
 		pr_info("download count=%d,len =%d,trans_size=%d\n", count,
 			 len, trans_size);
 		err = sprdwcn_bus_direct_write(CP_START_ADDR + len,
@@ -683,6 +873,9 @@ static int btwifi_download_firmware(void)
 
 	release_firmware(firmware);
 	pr_info("marlin %s successfully!\n", __func__);
+
+	if (sec_img_magic == SEC_IMAGE_MAGIC && tx_img_ptr)
+		vfree(tx_img_ptr);
 
 	return 0;
 }
@@ -801,6 +994,7 @@ static int marlin_parse_dt(struct platform_device *pdev)
 	int ret;
 	char *buf;
 	struct wcn_clock_info *clk;
+	struct resource res;
 
 	if (!marlin_dev)
 		return -1;
@@ -936,6 +1130,28 @@ static int marlin_parse_dt(struct platform_device *pdev)
 		ret = gpio_request(clk->gpio, "wcn_xtal_26m_type");
 		if (ret)
 			pr_err("xtal 26m gpio request err: %d\n", ret);
+	}
+
+	ret = of_address_to_resource(np, 0, &res);
+	if (ret) {
+		pr_info("No BTWF mem.\n");
+	} else {
+		marlin_dev->base_addr_btwf = res.start;
+		marlin_dev->maxsz_btwf = resource_size(&res);
+		pr_info("cp base = 0x%x, size = 0x%x\n",
+			 (u64)marlin_dev->base_addr_btwf,
+			 marlin_dev->maxsz_btwf);
+	}
+
+	ret = of_address_to_resource(np, 1, &res);
+	if (ret) {
+		pr_info("No GNSS mem.\n");
+	} else {
+		marlin_dev->base_addr_gnss = res.start;
+		marlin_dev->maxsz_gnss = resource_size(&res);
+		pr_info("cp base = 0x%x, size = 0x%x\n",
+			 (u64)marlin_dev->base_addr_gnss,
+			 marlin_dev->maxsz_gnss);
 	}
 
 	pr_info("BTWF_FIRMWARE_PATH len=%ld\n",
