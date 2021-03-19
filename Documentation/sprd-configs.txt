@@ -14579,6 +14579,15 @@ CONFIG_SPRD_TIME_SYNC
 	[must] user
 	[missing plat description] none
 	[function] Spreadtrum time sync driver.
+CONFIG_SPRD_TIME_SYNC_CH
+	[arch] arm64
+	[plat] qogirn6pro
+	[missing plat] qogirl6,sharkl3,sharkl5,sharkl5Pro
+	[field] make
+	[subsys] time
+	[must] user
+	[missing plat description] Only qogirn6pro has ch sub-system.
+	[function] Enable AP/CH time sync.
 CONFIG_SPRD_TIME_SYNC_CP
 	[arch] all
 	[plat] all
@@ -14587,7 +14596,7 @@ CONFIG_SPRD_TIME_SYNC_CP
 	[subsys] time
 	[must] user
 	[missing plat description] none
-	[function] Spreadtrum APCP time sync.
+	[function] Enable AP/CP time sync.
 CONFIG_SPRD_TOP_DVFS_DEVFREQ
 	[arch] all
 	[plat] qogirl6,qogirn6pro,sharkl5,sharkl5Pro,sharkl5_32
