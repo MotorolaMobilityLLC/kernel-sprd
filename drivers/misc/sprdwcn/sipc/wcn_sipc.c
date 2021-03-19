@@ -919,6 +919,19 @@ static void wcn_sipc_resource_init(void)
 		spin_lock_init(&g_sipc_chn[index].chn_static.lock);
 	}
 }
+static void wcn_sipc_resource_deinit(void)
+{
+	int index;
+
+	for (index = 0; index < SIPC_CHN_NUM; index++) {
+		if (g_sipc_chn[index].dst != SIPC_WCN_DST)
+			continue;
+		mutex_destroy(&g_sipc_chn[index].pushq_lock);
+		mutex_destroy(&g_sipc_chn[index].popq_lock);
+		spin_unlock(&g_sipc_chn[index].chn_static.lock);
+	}
+	mutex_destroy(&g_sipc_info.status_lock);
+}
 
 static void wcn_sipc_module_init(void)
 {
@@ -928,7 +941,7 @@ static void wcn_sipc_module_init(void)
 
 static void wcn_sipc_module_deinit(void)
 {
-	mutex_destroy(&g_sipc_info.status_lock);
+	wcn_sipc_resource_deinit();
 	WCN_INFO("sipc module deinit success\n");
 }
 
