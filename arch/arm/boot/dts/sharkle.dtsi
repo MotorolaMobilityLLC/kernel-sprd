@@ -297,8 +297,8 @@
 				};
 			};
 
-			iommu_dispc: iommu@20800800 {
-				compatible = "unisoc,iommuex-dispc";
+			iommu_dispc: iommu@20800000 {
+				compatible = "unisoc,iommuexle-dispc";
 				reg = <0x20800000 0x800>,
 				      <0x20800800 0x80>;
 				iova-base = <0x70000000>;
