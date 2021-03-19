@@ -422,6 +422,14 @@ KBUILD_CFLAGS   := -Wall -Werror -Wundef -Wstrict-prototypes -Wno-trigraphs \
 		   -Werror-implicit-function-declaration \
 		   -Wno-format-security \
 		   -std=gnu89
+		   
+ifeq ($(JOURNEY_BUILD_SCRIPT),yes)
+KBUILD_CFLAGS += -DJOURNEY_FEATURE_SYSTEM_ENHANCED
+$(warning KBUILD_CFLAGS $(KBUILD_CFLAGS))
+else
+$(error journey build script error)
+endif
+
 KBUILD_CPPFLAGS := -D__KERNEL__
 KBUILD_AFLAGS_KERNEL :=
 KBUILD_CFLAGS_KERNEL :=
