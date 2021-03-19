@@ -335,7 +335,7 @@ static const struct soc_enum lrclk_sel_enum =
 	SOC_ENUM_SINGLE_EXT(2, lrclk_sel_text);
 
 static const char * const clk_26m_in_sel_text[] = {
-	"26m_in", "pll_in"
+	"in_26m", "in_pll"
 };
 
 static const struct soc_enum clk_26m_in_sel_enum =
