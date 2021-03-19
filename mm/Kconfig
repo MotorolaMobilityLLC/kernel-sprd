@@ -748,4 +748,10 @@ config DIRECT_SWAPPINESS
 
 	  only 0 to 60 is valid. If unsure, say N to use it's original value(60).
 
+config SPRD_MEM_OVERLAY_CHECK
+	bool "Detect reserved-memory region is overlay"
+	default y
+	help
+	  It's will panic when detect overlay in reserved-memory region
+
 endmenu
