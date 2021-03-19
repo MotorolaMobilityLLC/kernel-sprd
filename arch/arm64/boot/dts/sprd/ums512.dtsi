@@ -411,20 +411,10 @@
 	debug_log: debuglog {
 		compatible = "sprd,debuglog-sharkl5pro";
 
-		sprd,scan-enable = <1>;
-		sprd,scan-interval = <30>;
-
 		sprd,sys-ap-ahb = <&ap_ahb_regs>;
 		sprd,sys-ap-apb = <&ap_apb_regs>;
 		sprd,sys-pmu-apb = <&pmu_apb_regs>;
 		sprd,sys-aon-apb = <&aon_apb_regs>;
-
-		sprd,sys-ap-intc0 = <&ap_intc0_regs>;
-		sprd,sys-ap-intc1 = <&ap_intc1_regs>;
-		sprd,sys-ap-intc2 = <&ap_intc2_regs>;
-		sprd,sys-ap-intc3 = <&ap_intc3_regs>;
-		sprd,sys-ap-intc4 = <&ap_intc4_regs>;
-		sprd,sys-ap-intc5 = <&ap_intc5_regs>;
 	};
 
 	cpufreq_clus0: cpufreq-clus0 {
