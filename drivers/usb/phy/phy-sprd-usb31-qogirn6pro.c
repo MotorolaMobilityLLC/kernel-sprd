@@ -302,17 +302,6 @@ static int sprd_ssphy_init(struct usb_phy *x)
 						MASK_AON_APB_ANA_EB;
 	ret |= regmap_write(phy->aon_apb, REG_AON_APB_APB_EB1, reg);
 
-	/*
-	bit0:1 dpu dpi clock enable
-	bit1:1 dptx enable
-	bit3:1 combphy tca enable
-	bit4:1 usb31 pll enable
-	0x0x31800000
-	*/
-	ret |= regmap_read(phy->ipa_dispc1_glb_apb, DISPC1_GLB_APB_EB, &reg);
-	reg |= BIT(0) | BIT(1) | BIT(3) | BIT(4);
-	ret |= regmap_write(phy->ipa_dispc1_glb_apb, DISPC1_GLB_APB_EB, reg);
-
 	/* utmisrp_bvalid  sys vbus valid:0x64900D14*/
 	ret |= regmap_read(phy->aon_apb, REG_AON_APB_USB31DPCOMBPHY_CTRL, &reg);
 	reg |= MASK_AON_APB_SYS_VBUSVALID;
@@ -513,17 +502,6 @@ static void sprd_ssphy_shutdown(struct usb_phy *x)
 	reg = msk;
 	regmap_update_bits(phy->ana_g0l, REG_ANLG_PHY_G0L_ANALOG_USB20_USB20_PHY,
 		msk, reg);
-
-	/*
-	disable used clk @0x0x31800000
-	bit0:1 dpu dpi clock enable
-	bit1:1 dptx enable
-	bit3:1 combphy tca enable
-	bit4:1 usb31 pll enable
-	*/
-	regmap_read(phy->ipa_dispc1_glb_apb, DISPC1_GLB_APB_EB, &reg);
-	reg &= ~(BIT(0) | BIT(1) | BIT(3) | BIT(4));
-	regmap_write(phy->ipa_dispc1_glb_apb, DISPC1_GLB_APB_EB, reg);
 
 	/*hsphy vbus invalid */
 	msk = MASK_AON_APB_OTG_VBUS_VALID_PHYREG;
