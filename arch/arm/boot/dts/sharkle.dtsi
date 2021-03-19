@@ -443,15 +443,14 @@
 			};
 
 			sdio3: sdio@20600000 {
-				compatible  = "sprd,sdhc-r10";
+				compatible  = "sprd,sdhci-r11";
 				reg = <0x20600000 0x1000>;
 				interrupts = <GIC_SPI 60 IRQ_TYPE_LEVEL_HIGH>;
-				clock-names = "sdio_clk","sdio_clk_source",
-					"sdio_ahb_enable";
+				clock-names = "sdio", "enable";
 				clocks = <&ap_clk CLK_EMMC_2X >,
-					 <&rpll CLK_RPLL_390M>,
-					 <&apahb_gate CLK_EMMC_EB>;
-				status = "disabled";
+					   <&apahb_gate CLK_EMMC_EB>;
+				assigned-clocks = <&ap_clk CLK_EMMC_2X>;
+				assigned-clocks-parents = <&rpll CLK_RPLL_390M>;
 			};
 
 			sdio0: sdio@20300000 {
