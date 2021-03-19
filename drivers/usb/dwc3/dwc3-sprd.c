@@ -49,6 +49,10 @@ struct dwc3_sprd {
 	struct clk		*ipa_usb_ref_clk;
 	struct clk		*ipa_usb_ref_parent;
 	struct clk		*ipa_usb_ref_default;
+	struct clk		*ipa_dpu1_clk;
+	struct clk		*ipa_dptx_clk;
+	struct clk		*ipa_tca_clk;
+	struct clk		*ipa_usb31pll_clk;
 
 	struct usb_phy		*hs_phy;
 	struct usb_phy		*ss_phy;
@@ -671,6 +675,78 @@ static void dwc3_sprd_detect_cable(struct dwc3_sprd *sdwc)
 			"host connection detected from ID GPIO.\n");
 }
 
+
+static int dwc3_sprd_clk_probe(struct device *dev, struct dwc3_sprd *sdwc)
+{
+	int ret = 0;
+
+	sdwc->ipa_dpu1_clk = devm_clk_get(dev, "ipa_dpu1_clk");
+	if (IS_ERR(sdwc->ipa_dpu1_clk)) {
+		dev_err(dev, "no dpu1 clk specified\n");
+		return PTR_ERR(sdwc->ipa_dpu1_clk);
+	} else {
+		ret = clk_prepare_enable(sdwc->ipa_dpu1_clk);
+		if (ret)
+			dev_err(dev, "ipa-dpu1-clock enable failed\n");
+	}
+
+	sdwc->ipa_dptx_clk = devm_clk_get(dev, "ipa_dptx_clk");
+	if (IS_ERR(sdwc->ipa_dptx_clk)) {
+		dev_err(dev, "no dptx clk specified\n");
+		return PTR_ERR(sdwc->ipa_dptx_clk);
+	} else {
+		ret = clk_prepare_enable(sdwc->ipa_dptx_clk);
+		if (ret)
+			dev_err(dev, "ipa-dptx-clock enable failed\n");
+	}
+
+	sdwc->ipa_tca_clk = devm_clk_get(dev, "ipa_tca_clk");
+	if (IS_ERR(sdwc->ipa_tca_clk)) {
+		dev_err(dev, "no tca clk specified\n");
+		return PTR_ERR(sdwc->ipa_tca_clk);
+	} else {
+		ret = clk_prepare_enable(sdwc->ipa_tca_clk);
+		if (ret)
+			dev_err(dev, "ipa-tca-clock enable failed\n");
+	}
+
+	sdwc->ipa_usb31pll_clk = devm_clk_get(dev, "ipa_usb31pll_clk");
+	if (IS_ERR(sdwc->ipa_usb31pll_clk)) {
+		dev_err(dev, "no usb31pll clk specified\n");
+		return PTR_ERR(sdwc->ipa_usb31pll_clk);
+	} else {
+		ret = clk_prepare_enable(sdwc->ipa_usb31pll_clk);
+		if (ret)
+			dev_err(dev, "ipa-usb31pll-clock enable failed\n");
+	}
+
+	return ret;
+}
+
+static int usb_clk_prepare_enable(struct dwc3_sprd *sdwc)
+{
+	if (clk_prepare_enable(sdwc->ipa_dpu1_clk))
+		dev_err(sdwc->dev, "ipa dpu1 clk enable error.\n");
+	if (clk_prepare_enable(sdwc->ipa_dptx_clk))
+		dev_err(sdwc->dev, "ipa dptx clk enable error.\n");
+	if (clk_prepare_enable(sdwc->ipa_tca_clk))
+		dev_err(sdwc->dev, "ipa tca clk enable error.\n");
+	if (clk_prepare_enable(sdwc->ipa_usb31pll_clk))
+		dev_err(sdwc->dev, "ipa usb31pll clk enable error.\n");
+	return 0;
+}
+
+
+static int usb_clk_prepare_disable(struct dwc3_sprd *sdwc)
+{
+
+	clk_disable_unprepare(sdwc->ipa_dpu1_clk);
+	clk_disable_unprepare(sdwc->ipa_dptx_clk);
+	clk_disable_unprepare(sdwc->ipa_tca_clk);
+	clk_disable_unprepare(sdwc->ipa_usb31pll_clk);
+	return 0;
+}
+
 static int dwc3_sprd_probe(struct platform_device *pdev)
 {
 	struct device_node *node = pdev->dev.of_node, *dwc3_node;
@@ -698,6 +774,9 @@ static int dwc3_sprd_probe(struct platform_device *pdev)
 		dev_err(dev, "failed to find dwc3 child\n");
 		return PTR_ERR(dwc3_node);
 	}
+
+	if (dwc3_sprd_clk_probe(dev, sdwc))
+		goto err_ipa_clk;
 
 	sdwc->hs_phy = devm_usb_get_phy_by_phandle(dev,
 			"usb-phy", 0);
@@ -903,6 +982,8 @@ err_ref_clk:
 	clk_disable_unprepare(sdwc->ref_clk);
 err_core_clk:
 	clk_disable_unprepare(sdwc->core_clk);
+err_ipa_clk:
+	usb_clk_prepare_disable(sdwc);
 
 	return ret;
 }
@@ -922,6 +1003,7 @@ static int dwc3_sprd_remove(struct platform_device *pdev)
 	clk_disable_unprepare(sdwc->core_clk);
 	clk_disable_unprepare(sdwc->ref_clk);
 	clk_disable_unprepare(sdwc->susp_clk);
+	usb_clk_prepare_disable(sdwc);
 
 	usb_phy_shutdown(sdwc->hs_phy);
 	usb_phy_shutdown(sdwc->ss_phy);
@@ -963,12 +1045,15 @@ static void dwc3_sprd_enable(struct dwc3_sprd *sdwc)
 {
 	if (sdwc->ipa_usb_ref_clk && sdwc->ipa_usb_ref_parent)
 		clk_set_parent(sdwc->ipa_usb_ref_clk, sdwc->ipa_usb_ref_parent);
-	if (!clk_prepare_enable(sdwc->core_clk))
+	if (clk_prepare_enable(sdwc->core_clk))
 		dev_err(sdwc->dev, "core clk enable error.\n");
-	if (!clk_prepare_enable(sdwc->ref_clk))
+	if (clk_prepare_enable(sdwc->ref_clk))
 		dev_err(sdwc->dev, "ref clk enable error.\n");
-	if (!clk_prepare_enable(sdwc->susp_clk))
+	if (clk_prepare_enable(sdwc->susp_clk))
 		dev_err(sdwc->dev, "susp clk enable error.\n");
+
+	usb_clk_prepare_enable(sdwc);
+
 	usb_phy_init(sdwc->hs_phy);
 	usb_phy_init(sdwc->ss_phy);
 }
@@ -980,6 +1065,7 @@ static void dwc3_sprd_disable(struct dwc3_sprd *sdwc)
 	clk_disable_unprepare(sdwc->susp_clk);
 	clk_disable_unprepare(sdwc->ref_clk);
 	clk_disable_unprepare(sdwc->core_clk);
+	usb_clk_prepare_disable(sdwc);
 	/*
 	 * set usb ref clock to default when dwc3 was not used,
 	 * or else the clock can't be really switch to another
