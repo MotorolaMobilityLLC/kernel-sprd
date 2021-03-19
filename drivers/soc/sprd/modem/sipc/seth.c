@@ -39,9 +39,6 @@
 #include <linux/seq_file.h>
 #include <linux/of_device.h>
 #include <linux/sipc.h>
-#if defined(CONFIG_SPRD_SFP_SUPPORT) && !defined(CONFIG_SPRD_IPA_SUPPORT)
-#include <net/sfp.h>
-#endif
 
 /* Defination of sblock length, set to 1600 for non-zerocopy solution, */
 /* otherwise, modem(wcdma) will assert */
@@ -206,15 +203,6 @@ seth_rx_prepare_skb(struct seth *seth, struct sk_buff *skb, struct sblock *blk)
 	skb->ip_summed = CHECKSUM_NONE;
 }
 
-#if defined(CONFIG_SPRD_SFP_SUPPORT) && !defined(CONFIG_SPRD_IPA_SUPPORT)
-static int seth_sfp_start_xmit(struct sk_buff *skb, struct net_device *dev)
-{
-	const struct net_device_ops *ops = dev->netdev_ops;
-
-	return ops->ndo_start_xmit(skb, dev);
-}
-#endif
-
 static int seth_rx_poll_handler(struct napi_struct *napi, int budget)
 {
 	struct seth *seth = container_of(napi, struct seth, napi);
@@ -223,10 +211,6 @@ static int seth_rx_poll_handler(struct napi_struct *napi, int budget)
 	struct sblock blk = {};
 	struct seth_dtrans_stats *dt_stats;
 	int skb_cnt, blk_ret, ret;
-#if defined(CONFIG_SPRD_SFP_SUPPORT) && !defined(CONFIG_SPRD_IPA_SUPPORT)
-	struct net_device *net;
-	int out_index;
-#endif
 
 	if (!seth) {
 		dev_err(NULL, "%s no seth device\n", __func__);
@@ -278,19 +262,6 @@ static int seth_rx_poll_handler(struct napi_struct *napi, int budget)
 		/* Update fifo rd_ptr */
 		seth->stats.rx_bytes += skb->len;
 		seth->stats.rx_packets++;
-#if defined(CONFIG_SPRD_SFP_SUPPORT) && !defined(CONFIG_SPRD_IPA_SUPPORT)
-		ret = soft_fastpath_process(SFP_INTERFACE_LTE,
-					(void *)skb, NULL, NULL, &out_index);
-		if (!ret) {
-			net = netdev_get_by_index(out_index);
-			skb_cnt++;
-			if (!net || seth_sfp_start_xmit(skb, net)) {
-				dev_kfree_skb_any(skb);
-				pr_err("fast xmit fail, netif recv!\n");
-			}
-			continue;
-		}
-#endif
 		/* Send to IP layer */
 		if (gro_enable)
 			napi_gro_receive(napi, skb);

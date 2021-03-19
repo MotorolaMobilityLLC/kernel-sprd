@@ -679,6 +679,20 @@ static bool sfp_clatd_dev_check(struct net_device *dev)
 	return false;
 }
 
+static bool sfp_ppp_tun_dev_check(struct net_device *dev)
+{
+	if (strstr(dev->name, "ppp"))
+		return true;
+
+	if (strstr(dev->name, "tun"))
+		return true;
+
+	if (strstr(dev->name, "p2p"))
+		return true;
+
+	return false;
+}
+
 /*
  * Hook 1: in FORWARD
  * create a new mgr forward entry
@@ -734,6 +748,17 @@ int sfp_filter_mgr_fwd_create_entries(u8 pf, struct sk_buff *skb)
 	if (sfp_clatd_dev_check(rt->dst.dev)) {
 		FP_PRT_DBG(FP_PRT_DEBUG,
 			   "clatd check failed, wont create sfp\n");
+		return 0;
+	}
+
+	/* if forward ppp or tun related pkt directly,
+	 * we may fail to compress them into a certain
+	 * format.
+	 */
+	if (sfp_ppp_tun_dev_check(skb->dev) ||
+	    sfp_ppp_tun_dev_check(rt->dst.dev)) {
+		FP_PRT_DBG(FP_PRT_DEBUG,
+			   "ppp/p2p/tun check failed, wont create sfp\n");
 		return 0;
 	}
 
