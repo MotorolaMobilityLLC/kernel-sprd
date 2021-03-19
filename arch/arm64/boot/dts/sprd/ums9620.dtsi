@@ -1086,6 +1086,7 @@
 			"clk_src_307m2",
 			"clk_src_384m",
 			"clk_src_512m",
+			"clk_src_680m",
 			"clk_vsp";
 	clocks = <&aonapb_gate CLK_DPU_VSP_EB>,
 			<&dpu_vsp_gate CLK_VPU_DEC_EB>,
@@ -1096,6 +1097,7 @@
 			<&g5l_pll CLK_TGPLL_307M2>,
 			<&g5l_pll CLK_TGPLL_384M>,
 			<&g5l_pll CLK_TGPLL_512M>,
+			<&g5r_pll CLK_PIXELPLL_668M25>,
 			<&dpu_vsp_clk CLK_VPU_DEC>;
 };
 
