@@ -191,6 +191,23 @@ void wcn_dfs_status_clear(void)
 	wcn_dfs_status_show(&dfs_info);
 }
 
+/*
+ * BTWF,GNSS SYS will initialize RFI and set the status
+ * After BTWF,GNSS both close, AP SYS clear them.
+ */
+void wcn_rfi_status_clear(void)
+{
+	struct wcn_device *wcn_dev = s_wcn_device.btwf_device;
+	phys_addr_t phy_addr;
+	u32 status;
+	u32 clear_value = 0;
+
+	phy_addr = wcn_dev->base_addr + WCN_SYS_RFI_SYNC_ADDR_OFFSET;
+	wcn_read_data_from_phy_addr(phy_addr, &status, sizeof(u32));
+	wcn_write_data_to_phy_addr(phy_addr, &clear_value, sizeof(u32));
+	WCN_INFO("[-]%s:status=%d\n", __func__, status);
+}
+
 enum wcn_aon_chip_id wcn_get_aon_chip_id(void)
 {
 	u32 aon_chip_id;

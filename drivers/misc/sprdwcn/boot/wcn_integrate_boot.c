@@ -1700,6 +1700,8 @@ int wcn_poweron_device(struct wcn_device *wcn_dev)
 		return 0;
 	}
 
+	wcn_rfi_status_clear();
+
 	/* first sys(btwf or gnss) power on */
 	ret = wcn_power_clock_support(is_marlin);
 	if (ret) {
@@ -3163,6 +3165,8 @@ int stop_integrate_wcn_module(u32 subsys)
 		/* wcn sys resource down */
 		wcn_sys_power_down(wcn_dev);
 		wcn_sys_power_clock_unsupport(is_marlin);
+
+		wcn_rfi_status_clear();
 	}
 
 	wcn_dfs_poweroff_shutdown_clear(wcn_dev);

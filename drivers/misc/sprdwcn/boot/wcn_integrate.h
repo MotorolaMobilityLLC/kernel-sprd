@@ -236,6 +236,7 @@ void wcn_dfs_poweroff_state_clear(struct wcn_device *wcn_dev);
 void wcn_dfs_poweroff_shutdown_clear(struct wcn_device *wcn_dev);
 void wcn_dfs_poweron_status_clear(struct wcn_device *wcn_dev);
 void wcn_dfs_status_clear(void);
+void wcn_rfi_status_clear(void);
 u32 wcn_platform_chip_id(void);
 u32 wcn_platform_chip_type(void);
 u32 wcn_get_cp2_comm_rx_count(void);
