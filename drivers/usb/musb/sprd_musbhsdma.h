@@ -51,6 +51,7 @@
 #define MUSB_DMA_CHN_REQ(n)		(0x1c1c + (n - 1) * 0x20)
 
 #define MUSB_DMA_CHN_BASE(n)		(0x1c00 + (n - 1) * 0x20)
+#define MUSB_DMA_CHN_PAUSE_OFFSET	0x0
 #define MUSB_DMA_CFG			0x04
 #define MUSB_DMA_INTR			0x08
 #define MUSB_DMA_ADDR			0x0c

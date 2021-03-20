@@ -131,7 +131,7 @@ static void musb_ep_regdump(struct seq_file *s)
 
 #ifdef CONFIG_USB_SPRD_DMA
 static const struct musb_register_map dma_regmap[] = {
-	{ "Pause",	MUSB_DMA_PAUSE,	32 },
+	{ "Pause",	MUSB_DMA_CHN_PAUSE_OFFSET,	32 },
 	{ "Cfg",	MUSB_DMA_CFG,	32 },
 	{ "Intr",	MUSB_DMA_INTR,	32 },
 	{ "Addr",	MUSB_DMA_ADDR,	32 },
