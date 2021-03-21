@@ -5200,6 +5200,16 @@ CONFIG_UNISOC_SIPC_VIRT_BUS=m
 CONFIG_UNISOC_MAILBOX=m
 
 #
+# Unisoc WCN Device Drivers
+#
+# CONFIG_UNISOC_WCN_BSP is not set
+# CONFIG_SC23XX is not set
+# CONFIG_WCN_BOOT is not set
+# CONFIG_WCN_UTILS is not set
+# CONFIG_WCN_RDCDBG is not set
+# end of Unisoc WCN Device Drivers
+
+#
 # Trusty
 #
 CONFIG_TRUSTY=m

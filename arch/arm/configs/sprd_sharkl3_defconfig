@@ -1,6 +1,6 @@
 #
 # Automatically generated file; DO NOT EDIT.
-# Linux/arm 5.4.104 Kernel Configuration
+# Linux/arm 5.4.105 Kernel Configuration
 #
 CONFIG_CC_VERSION_TEXT="Android (7141649, based on r412851) clang version 12.0.3 (https://android.googlesource.com/toolchain/llvm-project 756ad17abf0622fecdd08ec40f71c5f25829a0bc)"
 CONFIG_GCC_VERSION=0
@@ -3359,6 +3359,7 @@ CONFIG_HID_PICOLCD=y
 # CONFIG_HID_PICOLCD_LEDS is not set
 # CONFIG_HID_PICOLCD_CIR is not set
 CONFIG_HID_PLANTRONICS=y
+# CONFIG_HID_PLAYSTATION is not set
 # CONFIG_HID_PRIMAX is not set
 # CONFIG_HID_RETRODE is not set
 CONFIG_HID_ROCCAT=y
@@ -4772,6 +4773,16 @@ CONFIG_INTERCONNECT=y
 # CONFIG_UNISOC_MODEM_LOADER is not set
 # CONFIG_UNISOC_SIPC_VIRT_BUS is not set
 # CONFIG_UNISOC_MAILBOX is not set
+
+#
+# Unisoc WCN Device Drivers
+#
+# CONFIG_UNISOC_WCN_BSP is not set
+# CONFIG_SC23XX is not set
+# CONFIG_WCN_BOOT is not set
+# CONFIG_WCN_UTILS is not set
+# CONFIG_WCN_RDCDBG is not set
+# end of Unisoc WCN Device Drivers
 
 #
 # Trusty

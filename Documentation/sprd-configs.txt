@@ -14788,6 +14788,15 @@ CONFIG_SBITMAP
 	[must] user
 	[missing plat description] none
 	[function] Support sbitmap feature.
+CONFIG_SC23XX
+	[arch] arm64
+	[plat] sharkl5Pro
+	[missing plat] sharkl3
+	[field]
+	[subsys]
+	[must]
+	[missing plat description]
+	[function]
 CONFIG_SC27XX_ADC
 	[arch] arm64
 	[plat] sharkl3,sharkl5Pro
@@ -14967,6 +14976,15 @@ CONFIG_SCSI_UFS_DWC_TC_PLATFORM
 	[subsys]
 	[must]
 	[missing plat description] none
+	[function]
+CONFIG_SDIOHAL
+	[arch] arm64
+	[plat] sharkl5Pro
+	[missing plat] sharkl3
+	[field]
+	[subsys]
+	[must]
+	[missing plat description]
 	[function]
 CONFIG_SECCOMP
 	[arch] all
@@ -17061,6 +17079,15 @@ CONFIG_THERMAL_WRITABLE_TRIPS
 	[must] user
 	[missing plat description] none
 	[function] Enable writable trip points.
+CONFIG_THINLTO
+	[arch] arm64
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
 CONFIG_THREAD_INFO_IN_TASK
 	[arch] arm64
 	[plat] sharkl3,sharkl5Pro
@@ -17555,6 +17582,15 @@ CONFIG_UIO
 	[must]
 	[missing plat description] none
 	[function]
+CONFIG_UMW2652
+	[arch] arm64
+	[plat] sharkl5Pro
+	[missing plat] sharkl3
+	[field]
+	[subsys]
+	[must]
+	[missing plat description]
+	[function]
 CONFIG_UNCOMPRESS_INCLUDE
 	[arch] arm
 	[plat] pike2
@@ -17608,6 +17644,15 @@ CONFIG_UNISOC_SIPC_VIRT_BUS
 	[subsys]
 	[must]
 	[missing plat description] none
+	[function]
+CONFIG_UNISOC_WCN_BSP
+	[arch] arm64
+	[plat] sharkl5Pro
+	[missing plat] sharkl3
+	[field]
+	[subsys]
+	[must]
+	[missing plat description]
 	[function]
 CONFIG_UNIX
 	[arch] all
@@ -18777,6 +18822,24 @@ CONFIG_WATCHDOG_PRETIMEOUT_GOV_SEL
 	[subsys]
 	[must]
 	[missing plat description] none
+	[function]
+CONFIG_WCN_BOOT
+	[arch] arm64
+	[plat] sharkl5Pro
+	[missing plat] sharkl3
+	[field]
+	[subsys]
+	[must]
+	[missing plat description]
+	[function]
+CONFIG_WCN_SLP
+	[arch] arm64
+	[plat] sharkl5Pro
+	[missing plat] sharkl3
+	[field]
+	[subsys]
+	[must]
+	[missing plat description]
 	[function]
 CONFIG_WEXT_CORE
 	[arch] arm64
