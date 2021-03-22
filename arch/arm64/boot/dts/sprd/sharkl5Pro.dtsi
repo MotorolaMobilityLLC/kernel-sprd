@@ -575,7 +575,7 @@
 			};
 
 			iommu_isp: iommu@62000000 {
-				compatible = "sprd,iommuvaul5p-isp";
+				compatible = "unisoc,iommuvaul5p-isp";
 				reg = <0x0 0x62000000 0x0 0xff000>,
 				      <0x0 0x620ff000 0x0 0x80>;
 				iova-base = <0x40000000>;
@@ -655,7 +655,7 @@
 			};
 
 			iommu_dcam: iommu@62900000 {
-				compatible = "sprd,iommuvaul5p-dcam";
+				compatible = "unisoc,iommuvaul5p-dcam";
 				reg = <0x0 0x62900000 0x0 0xf000>,
 				      <0x0 0x6290f000 0x0 0x80>;
 				iova-base = <0x40000000>;
@@ -685,7 +685,7 @@
 			};
 
 			iommu_cpp: iommu@62800000 {
-				compatible = "sprd,iommuvaul5p-cpp";
+				compatible = "unisoc,iommuvaul5p-cpp";
 				reg = <0x0 0x62800000 0x0 0x200>,
 				      <0x0 0x62800200 0x0 0x80>;
 				iova-base = <0x40000000>;
@@ -730,7 +730,7 @@
 			};
 
 			iommu_fd: iommu@62a00000 {
-				compatible = "sprd,iommuvaul5p-fd";
+				compatible = "unisoc,iommuvaul5p-fd";
 				reg = <0 0x62a00000 0 0x200>,
 				      <0 0x62a00110 0 0x80>;
 				iova-base = <0x10000000>;
@@ -757,7 +757,7 @@
 			};
 
 			iommu_jpg: iommu@62700300 {
-				compatible = "sprd,iommuvaul5p-jpg";
+				compatible = "unisoc,iommuvaul5p-jpg";
 				reg = <0x0 0x62700300 0x0 0x80>,
 					<0x0 0x62700300 0x0 0x80>;
 				iova-base = <0x60000000>;
@@ -792,7 +792,7 @@
 			};
 
 			iommu_dispc: iommu@20300000 {
-				compatible = "sprd,iommuvaul5p-dispc";
+				compatible = "unisoc,iommuvaul5p-dispc";
 				reg = <0x0 0x20300000 0x0 0x800>,
 				      <0x0 0x20300800 0x0 0x80>;
 				iova-base = <0x30000000>;
@@ -878,7 +878,7 @@
 			};
 
 			iommu_vsp: iommu@20500000 {
-				compatible = "sprd,iommuvaul5p-vsp";
+				compatible = "unisoc,iommuvaul5p-vsp";
 				reg = <0x0 0x20500000 0x0 0x80>,
 				      <0x0 0x20500000 0x0 0x80>;
 				iova-base = <0x20000000>;

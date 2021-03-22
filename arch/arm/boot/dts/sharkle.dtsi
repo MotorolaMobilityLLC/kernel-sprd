@@ -298,7 +298,7 @@
 			};
 
 			iommu_dispc: iommu@20800800 {
-				compatible = "sprd,iommuex-dispc";
+				compatible = "unisoc,iommuex-dispc";
 				reg = <0x20800000 0x800>,
 				      <0x20800800 0x80>;
 				iova-base = <0x70000000>;
@@ -397,7 +397,7 @@
 			};
 
 			iommu_vsp: iommu@21901140 {
-				compatible = "sprd,iommuex-vsp";
+				compatible = "unisoc,iommuex-vsp";
 				reg = <0x21901140 0x60>;
 				sprd,iova-base = <0x10000000>;
 				sprd,iova-size = <0x10000000>;
@@ -882,7 +882,7 @@
 			};
 
 			iommu_dcam: iommu@60802100 {
-				compatible = "sprd,iommuex-dcam";
+				compatible = "unisoc,iommuex-dcam";
 				reg = <0x60802100 0x60>;
 				sprd,frc-reg = <0x60802010>;
 				sprd,iova-base = <0x40000000>;
@@ -910,7 +910,7 @@
 			};
 
 			iommu_isp: iommu@60a00800 {
-				compatible = "sprd,iommuex-isp";
+				compatible = "unisoc,iommuex-isp";
 				/* sharkle isp need pagetable size */
 				reg = <0x60a00800 0x400>;
 				sprd,iova-base = <0x50000000>;
@@ -931,7 +931,7 @@
 			};
 
 			iommu_cpp: iommu@61000200 {
-				compatible = "sprd,iommuex-cpp";
+				compatible = "unisoc,iommuex-cpp";
 				reg = <0x61000200 0x60>;
 				sprd,iova-base = <0x60000000>;
 				sprd,iova-size = <0x8000000>;
@@ -1054,7 +1054,7 @@
 			};
 
 			iommu_jpg: iommu@60b00100 {
-				compatible = "sprd,iommuex-jpg";
+				compatible = "unisoc,iommuex-jpg";
 				reg = <0x60b00100 0x400>;
 				sprd,iova-base = <0x70000000>;
 				sprd,iova-size = <0x10000000>;
