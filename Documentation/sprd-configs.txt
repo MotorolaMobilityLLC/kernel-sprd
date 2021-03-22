@@ -6305,6 +6305,15 @@ CONFIG_GENERIC_IRQ_EFFECTIVE_AFF_MASK
 	[must] user
 	[missing plat description] none
 	[function] Supports effective affinity mask.
+CONFIG_GENERIC_IRQ_IPI
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field] menu,make
+	[subsys] irq
+	[must] user
+	[missing plat description] none
+	[function] IPI support
 CONFIG_GENERIC_IRQ_MIGRATION
 	[arch] all
 	[plat] all
