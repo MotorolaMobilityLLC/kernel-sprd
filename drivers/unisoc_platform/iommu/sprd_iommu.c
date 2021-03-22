@@ -96,151 +96,151 @@ static struct sprd_iommu_list_data sprd_iommu_list[SPRD_IOMMU_MAX] = {
 };
 
 static const struct of_device_id sprd_iommu_ids[] = {
-	{ .compatible = "sprd,iommuexle-gsp",
+	{ .compatible = "unisoc,iommuexle-gsp",
 	   .data = (void *)(IOMMU_EXLE_GSP)},
 
-	{ .compatible = "sprd,iommuexle-dispc",
+	{ .compatible = "unisoc,iommuexle-dispc",
 	   .data = (void *)(IOMMU_EXLE_DISP)},
 
-	{ .compatible = "sprd,iommuexle-vsp",
+	{ .compatible = "unisoc,iommuexle-vsp",
 	   .data = (void *)(IOMMU_EXLE_VSP)},
 
-	{ .compatible = "sprd,iommuexle-dcam",
+	{ .compatible = "unisoc,iommuexle-dcam",
 	   .data = (void *)(IOMMU_EXLE_DCAM)},
 
-	{ .compatible = "sprd,iommuexle-isp",
+	{ .compatible = "unisoc,iommuexle-isp",
 	   .data = (void *)(IOMMU_EXLE_ISP)},
 
-	{ .compatible = "sprd,iommuexle-cpp",
+	{ .compatible = "unisoc,iommuexle-cpp",
 	   .data = (void *)(IOMMU_EXLE_CPP)},
 
-	{ .compatible = "sprd,iommuexle-jpg",
+	{ .compatible = "unisoc,iommuexle-jpg",
 	   .data = (void *)(IOMMU_EXLE_JPG)},
 
-	{ .compatible = "sprd,iommuexpk2-gsp",
+	{ .compatible = "unisoc,iommuexpk2-gsp",
 	   .data = (void *)(IOMMU_EXPK2_GSP)},
 
-	{ .compatible = "sprd,iommuexpk2-dispc",
+	{ .compatible = "unisoc,iommuexpk2-dispc",
 	   .data = (void *)(IOMMU_EXPK2_DISP)},
 
-	{ .compatible = "sprd,iommuexpk2-vsp",
+	{ .compatible = "unisoc,iommuexpk2-vsp",
 	   .data = (void *)(IOMMU_EXPK2_VSP)},
 
-	{ .compatible = "sprd,iommuexpk2-dcam",
+	{ .compatible = "unisoc,iommuexpk2-dcam",
 	   .data = (void *)(IOMMU_EXPK2_DCAM)},
 
-	{ .compatible = "sprd,iommuexpk2-isp",
+	{ .compatible = "unisoc,iommuexpk2-isp",
 	   .data = (void *)(IOMMU_EXPK2_ISP)},
 
-	{ .compatible = "sprd,iommuexpk2-cpp",
+	{ .compatible = "unisoc,iommuexpk2-cpp",
 	   .data = (void *)(IOMMU_EXPK2_CPP)},
 
-	{ .compatible = "sprd,iommuexpk2-jpg",
+	{ .compatible = "unisoc,iommuexpk2-jpg",
 	   .data = (void *)(IOMMU_EXPK2_JPG)},
 
-	{ .compatible = "sprd,iommuexl3-dispc",
+	{ .compatible = "unisoc,iommuexl3-dispc",
 	   .data = (void *)(IOMMU_EXL3_DISP)},
 
-	{ .compatible = "sprd,iommuexl3-vsp",
+	{ .compatible = "unisoc,iommuexl3-vsp",
 	   .data = (void *)(IOMMU_EXL3_VSP)},
 
-	{ .compatible = "sprd,iommuexl3-dcam",
+	{ .compatible = "unisoc,iommuexl3-dcam",
 	   .data = (void *)(IOMMU_EXL3_DCAM)},
 
-	{ .compatible = "sprd,iommuexl3-isp",
+	{ .compatible = "unisoc,iommuexl3-isp",
 	   .data = (void *)(IOMMU_EXL3_ISP)},
 
-	{ .compatible = "sprd,iommuexl3-cpp",
+	{ .compatible = "unisoc,iommuexl3-cpp",
 	   .data = (void *)(IOMMU_EXL3_CPP)},
 
-	{ .compatible = "sprd,iommuexl3-jpg",
+	{ .compatible = "unisoc,iommuexl3-jpg",
 	   .data = (void *)(IOMMU_EXL3_JPG)},
-	{ .compatible = "sprd,iommuexl5-dispc",
+	{ .compatible = "unisoc,iommuexl5-dispc",
 	   .data = (void *)(IOMMU_EXL5_DISP)},
 
-	{ .compatible = "sprd,iommuexl5-vsp",
+	{ .compatible = "unisoc,iommuexl5-vsp",
 	   .data = (void *)(IOMMU_EXL5_VSP)},
 
-	{ .compatible = "sprd,iommuexl5-dcam",
+	{ .compatible = "unisoc,iommuexl5-dcam",
 	   .data = (void *)(IOMMU_EXL5_DCAM)},
 
-	{ .compatible = "sprd,iommuexl5-isp",
+	{ .compatible = "unisoc,iommuexl5-isp",
 	   .data = (void *)(IOMMU_EXL5_ISP)},
 
-	{ .compatible = "sprd,iommuexl5-cpp",
+	{ .compatible = "unisoc,iommuexl5-cpp",
 	   .data = (void *)(IOMMU_EXL5_CPP)},
 
-	{ .compatible = "sprd,iommuexl5-jpg",
+	{ .compatible = "unisoc,iommuexl5-jpg",
 	   .data = (void *)(IOMMU_EXL5_JPG)},
 
-	{ .compatible = "sprd,iommuexl5-fd",
+	{ .compatible = "unisoc,iommuexl5-fd",
 	  .data = (void *)(IOMMU_EXL5_FD)},
 
-	{ .compatible = "sprd,iommuexroc1-dispc",
+	{ .compatible = "unisoc,iommuexroc1-dispc",
 	   .data = (void *)(IOMMU_EXROC1_DISP)},
 
-	{ .compatible = "sprd,iommuexroc1-vsp",
+	{ .compatible = "unisoc,iommuexroc1-vsp",
 	   .data = (void *)(IOMMU_EXROC1_VSP)},
 
-	{ .compatible = "sprd,iommuexroc1-dcam",
+	{ .compatible = "unisoc,iommuexroc1-dcam",
 	   .data = (void *)(IOMMU_EXROC1_DCAM)},
 
-	{ .compatible = "sprd,iommuexroc1-isp",
+	{ .compatible = "unisoc,iommuexroc1-isp",
 	   .data = (void *)(IOMMU_EXROC1_ISP)},
 
-	{ .compatible = "sprd,iommuexroc1-cpp",
+	{ .compatible = "unisoc,iommuexroc1-cpp",
 	   .data = (void *)(IOMMU_EXROC1_CPP)},
 
-	{ .compatible = "sprd,iommuexroc1-jpg",
+	{ .compatible = "unisoc,iommuexroc1-jpg",
 	   .data = (void *)(IOMMU_EXROC1_JPG)},
 
-	{ .compatible = "sprd,iommuexroc1-fd",
+	{ .compatible = "unisoc,iommuexroc1-fd",
 	  .data = (void *)(IOMMU_EXROC1_FD)},
 
-	{ .compatible = "sprd,iommuexroc1-ai",
+	{ .compatible = "unisoc,iommuexroc1-ai",
 	  .data = (void *)(IOMMU_EXROC1_AI)},
 
-	{ .compatible = "sprd,iommuexroc1-epp",
+	{ .compatible = "unisoc,iommuexroc1-epp",
 	  .data = (void *)(IOMMU_EXROC1_EPP)},
 
-	{ .compatible = "sprd,iommuexroc1-edp",
+	{ .compatible = "unisoc,iommuexroc1-edp",
 
 	  .data = (void *)(IOMMU_EXROC1_EDP)},
 
-	{ .compatible = "sprd,iommuvaul5p-dispc",
+	{ .compatible = "unisoc,iommuvaul5p-dispc",
 	   .data = (void *)(IOMMU_VAUL5P_DISP)},
 
-	{ .compatible = "sprd,iommuvaul5p-vsp",
+	{ .compatible = "unisoc,iommuvaul5p-vsp",
 	   .data = (void *)(IOMMU_VAUL5P_VSP)},
 
-	{ .compatible = "sprd,iommuvaul5p-dcam",
+	{ .compatible = "unisoc,iommuvaul5p-dcam",
 	   .data = (void *)(IOMMU_VAUL5P_DCAM)},
 
-	{ .compatible = "sprd,iommuvaul5p-isp",
+	{ .compatible = "unisoc,iommuvaul5p-isp",
 	   .data = (void *)(IOMMU_VAUL5P_ISP)},
 
-	{ .compatible = "sprd,iommuvaul5p-cpp",
+	{ .compatible = "unisoc,iommuvaul5p-cpp",
 	   .data = (void *)(IOMMU_VAUL5P_CPP)},
 
-	{ .compatible = "sprd,iommuvaul5p-jpg",
+	{ .compatible = "unisoc,iommuvaul5p-jpg",
 	   .data = (void *)(IOMMU_VAUL5P_JPG)},
 
-	{ .compatible = "sprd,iommuvaul5p-fd",
+	{ .compatible = "unisoc,iommuvaul5p-fd",
 	  .data = (void *)(IOMMU_VAUL5P_FD)},
 
-	{ .compatible = "sprd,iommuvaul5p-ai",
+	{ .compatible = "unisoc,iommuvaul5p-ai",
 	  .data = (void *)(IOMMU_VAUL5P_AI)},
 
-	{ .compatible = "sprd,iommuvaul5p-epp",
+	{ .compatible = "unisoc,iommuvaul5p-epp",
 	  .data = (void *)(IOMMU_VAUL5P_EPP)},
 
-	{ .compatible = "sprd,iommuvaul5p-edp",
+	{ .compatible = "unisoc,iommuvaul5p-edp",
 	  .data = (void *)(IOMMU_VAUL5P_EDP)},
 
-	{ .compatible = "sprd,iommuvaul5p-idma",
+	{ .compatible = "unisoc,iommuvaul5p-idma",
 	  .data = (void *)(IOMMU_VAUL5P_IDMA)},
 
-	{ .compatible = "sprd,iommuvaul5p-vdma",
+	{ .compatible = "unisoc,iommuvaul5p-vdma",
 	  .data = (void *)(IOMMU_VAUL5P_VDMA)},
 	{},
 };

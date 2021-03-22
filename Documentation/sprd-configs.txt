@@ -16302,15 +16302,6 @@ CONFIG_SPRD_IMS_BRIDGE_TRANSIT
 	[must]
 	[missing plat description] none
 	[function]
-CONFIG_SPRD_IOMMU
-	[arch] all
-	[plat] all
-	[missing plat] none
-	[field] make
-	[subsys] soc
-	[must] home
-	[missing plat description] none
-	[function] This macro is to support Sprd iommu.
 CONFIG_SPRD_IRQS_MONITOR
 	[arch] all
 	[plat] all
@@ -17861,6 +17852,15 @@ CONFIG_UNISOC_HW_DEVICE_DVFS_AGCP
 	[must] user
 	[missing plat description] not used
 	[function] dvfs agcp driver code
+CONFIG_UNISOC_IOMMU
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field] make
+	[subsys] unisoc_platform
+	[must] home
+	[missing plat description] none
+	[function] This macro is to support unisoc_platform iommu.
 CONFIG_UNISOC_MAILBOX
 	[arch] all
 	[plat] all

@@ -14,7 +14,6 @@ source "drivers/soc/sprd/power_debug/Kconfig"
 source "drivers/soc/sprd/autotest/Kconfig"
 source "drivers/soc/sprd/domain/Kconfig"
 source "drivers/soc/sprd/modem/Kconfig"
-source "drivers/soc/sprd/iommu/Kconfig"
 source "drivers/soc/sprd/sfp/Kconfig"
 source "drivers/soc/sprd/performance/Kconfig"
 

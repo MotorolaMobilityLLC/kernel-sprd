@@ -141,7 +141,7 @@ struct sprd_iommu_list_data {
 };
 
 /*kernel API for Iommu map/unmap*/
-#if IS_ENABLED(CONFIG_SPRD_IOMMU)
+#if IS_ENABLED(CONFIG_UNISOC_IOMMU)
 int sprd_iommu_attach_device(struct device *dev);
 int sprd_iommu_dettach_device(struct device *dev);
 
