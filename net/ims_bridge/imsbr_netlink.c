@@ -512,46 +512,55 @@ static struct genl_ops imsbr_genl_ops[] = {
 		.cmd = IMSBR_C_CALL_STATE,
 		.flags = GENL_ADMIN_PERM,
 		.doit = imsbr_do_call_state,
+		.validate = GENL_DONT_VALIDATE_STRICT,
 	},
 	{
 		.cmd = IMSBR_C_ADD_TUPLE,
 		.flags = GENL_ADMIN_PERM,
 		.doit = imsbr_add_aptuple,
+		.validate = GENL_DONT_VALIDATE_STRICT,
 	},
 	{
 		.cmd = IMSBR_C_DEL_TUPLE,
 		.flags = GENL_ADMIN_PERM,
 		.doit = imsbr_del_aptuple,
+		.validate = GENL_DONT_VALIDATE_STRICT,
 	},
 	{
 		.cmd = IMSBR_C_RESET_TUPLE,
 		.flags = GENL_ADMIN_PERM,
 		.doit = imsbr_reset_aptuple,
+		.validate = GENL_DONT_VALIDATE_STRICT,
 	},
 	{
 		.cmd = IMSBR_C_SEND_LOCALMAC,
 		.flags = GENL_ADMIN_PERM,
 		.doit = imsbr_notify_local_mac,
+		.validate = GENL_DONT_VALIDATE_STRICT,
 	},
 	{
 		.cmd = IMSBR_C_SEND_REMOTEMAC,
 		.flags = GENL_ADMIN_PERM,
 		.doit = imsbr_notify_remote_mac,
+		.validate = GENL_DONT_VALIDATE_STRICT,
 	},
 	{
 		.cmd = IMSBR_C_LOWPOWER_ST,
 		.flags = GENL_ADMIN_PERM,
 		.doit = imsbr_do_lp_state,
+		.validate = GENL_DONT_VALIDATE_STRICT,
 	},
 	{
 		.cmd = IMSBR_C_ADD_SPI,
 		.flags = GENL_ADMIN_PERM,
 		.doit = imsbr_add_spi,
+		.validate = GENL_DONT_VALIDATE_STRICT,
 	},
 	{
 		.cmd = IMSBR_C_DEL_SPI,
 		.flags = GENL_ADMIN_PERM,
 		.doit = imsbr_del_spi,
+		.validate = GENL_DONT_VALIDATE_STRICT,
 	},
 };
 
