@@ -408,20 +408,20 @@
 			};
 
 			pwms: pwm@40260000 {
-				compatible = "sprd,pike2-pwm", "sprd,ums512-pwm";
+				compatible = "sprd,pike2-pwm", "sprd,sharkl5pro-pwm";
 				reg = <0x40260000 0x10000>;
 				clock-names = "pwm0", "enable0",
-					"pwm1", "enable1",
-					"pwm2", "enable2";
+					      "pwm1", "enable1",
+					      "pwm2", "enable2";
 				clocks = <&aon_clk CLK_PWM0>, <&aonapb_gate CLK_PWM0_EB>,
-					<&aon_clk CLK_PWM1>, <&aonapb_gate CLK_PWM1_EB>,
-					<&aon_clk CLK_PWM2>, <&aonapb_gate CLK_PWM2_EB>;
+					 <&aon_clk CLK_PWM1>, <&aonapb_gate CLK_PWM1_EB>,
+					 <&aon_clk CLK_PWM2>, <&aonapb_gate CLK_PWM2_EB>;
 				assigned-clocks = <&aon_clk CLK_PWM0>,
-					<&aon_clk CLK_PWM1>,
-					<&aon_clk CLK_PWM2>;
+						  <&aon_clk CLK_PWM1>,
+						  <&aon_clk CLK_PWM2>;
 				assigned-clock-parents = <&ext_26m>,
-					<&ext_26m>,
-					<&ext_26m>;
+							 <&ext_26m>,
+							 <&ext_26m>;
 				#pwm-cells = <2>;
 				status = "disabled";
 			};
