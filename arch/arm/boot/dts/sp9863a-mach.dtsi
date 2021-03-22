@@ -9,13 +9,6 @@
 #include "lcd/lcd_dummy_mipi.dtsi"
 
 / {
-	display-subsystem {
-		compatible = "sprd,display-subsystem";
-		memory-region = <&drm_reserved>;
-		ports = <&dpu_port>;
-		gsp = <&gsp>;
-	};
-
 	firmware {
 		android {
 			compatible = "android,firmware";
@@ -36,6 +29,12 @@
 			size = <0x01400000>;
 			reusable;
 		};
+	};
+
+	display-subsystem {
+		compatible = "sprd,display-subsystem";
+		ports = <&dpu_port>;
+		gsp = <&gsp>;
 	};
 
 	ipi: interrupt-controller {
