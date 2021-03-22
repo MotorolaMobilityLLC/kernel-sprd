@@ -573,6 +573,10 @@ static int sprd_thm_suspend(struct platform_device *pdev, pm_message_t state)
 		sen->ready = false;
 
 	ret = sprd_thm_hw_suspend(thm);
+
+	writel(0x00, thm->regbase + SPRD_THM_CTL);
+	udelay(2000);
+
 	clk_disable_unprepare(thm->clk);
 
 	return ret;
