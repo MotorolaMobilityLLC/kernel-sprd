@@ -324,7 +324,7 @@ static bool evt_update;
 static bool evt_stop;
 static int frame_no;
 static bool cabc_bl_set;
-static int cabc_disable = CABC_DISABLED;
+static int cabc_state = CABC_DISABLED;
 static int cabc_bl_set_delay;
 static struct cabc_para cabc_para;
 static struct backlight_device *bl_dev;
@@ -339,7 +339,7 @@ static u8 skip_layer_index;
 module_param(wb_xfbc_en, int, 0644);
 module_param(max_vsync_count, int, 0644);
 module_param(cabc_bl_set_delay, int, 0644);
-module_param(cabc_disable, int, 0644);
+module_param(cabc_state, int, 0644);
 module_param(frame_no, int, 0644);
 
 static void dpu_sr_config(struct dpu_context *ctx);
@@ -599,7 +599,7 @@ static void dpu_cabc_bl_update_func(struct work_struct *data)
 	if (bl_dev) {
 		struct sprd_backlight *bl = bl_get_data(bl_dev);
 		msleep(cabc_bl_set_delay);
-		if (cabc_disable == CABC_WORKING) {
+		if (cabc_state == CABC_WORKING) {
 			sprd_backlight_normalize_map(bl_dev, &cabc_para.cur_bl);
 
 			bl->cabc_en = true;
@@ -1431,7 +1431,7 @@ static void dpu_enhance_backup(u32 id, void *param)
 		break;
 	case ENHANCE_CFG_ID_SLP:
 		memcpy(&slp_copy, param, sizeof(slp_copy));
-		if (!cabc_disable) {
+		if (!cabc_state) {
 			slp_copy.cabc_startv = 0;
 			slp_copy.cabc_endv = 255;
 		}
@@ -1568,7 +1568,7 @@ static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
 		break;
 	case ENHANCE_CFG_ID_SLP:
 		memcpy(&slp_copy, param, sizeof(slp_copy));
-		if (!cabc_disable) {
+		if (!cabc_state) {
 			slp_copy.cabc_startv = 0;
 			slp_copy.cabc_endv = 255;
 		}
@@ -1708,12 +1708,12 @@ static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
 		cabc_para.bl_fix = *p;
 		return;
 	case ENHANCE_CFG_ID_CABC_RUN:
-		if (cabc_disable != CABC_DISABLED)
+		if (cabc_state != CABC_DISABLED)
 			schedule_work(&ctx->cabc_work);
 		return;
-	case ENHANCE_CFG_ID_CABC_DISABLE:
+	case ENHANCE_CFG_ID_CABC_STATE:
 		p = param;
-		cabc_disable = *p;
+		cabc_state = *p;
 		return;
 	default:
 		break;
@@ -1931,9 +1931,9 @@ static void dpu_enhance_get(struct dpu_context *ctx, u32 id, void *param)
 		p32 = param;
 		*p32 = frame_no;
 		break;
-	case ENHANCE_CFG_ID_CABC_DISABLE:
+	case ENHANCE_CFG_ID_CABC_STATE:
 		p32 = param;
-		*p32 = cabc_disable;
+		*p32 = cabc_state;
 		break;
 	default:
 		break;
@@ -2117,8 +2117,8 @@ static int dpu_cabc_trigger(struct dpu_context *ctx)
 	struct cm_cfg cm;
 	struct device_node *backlight_node;
 
-	if (cabc_disable) {
-		if ((cabc_disable == CABC_STOPPING) && bl_dev) {
+	if (cabc_state) {
+		if ((cabc_state == CABC_STOPPING) && bl_dev) {
 			memset(&cabc_para, 0, sizeof(cabc_para));
 			memcpy(&cm, &cm_copy, sizeof(struct cm_cfg));
 			reg->cm_coef01_00 = (cm.coef01 << 16) | cm.coef00;
@@ -2130,7 +2130,7 @@ static int dpu_cabc_trigger(struct dpu_context *ctx)
 
 			cabc_bl_set = true;
 
-			cabc_disable = CABC_DISABLED;
+			cabc_state = CABC_DISABLED;
 
 		}
 		return 0;

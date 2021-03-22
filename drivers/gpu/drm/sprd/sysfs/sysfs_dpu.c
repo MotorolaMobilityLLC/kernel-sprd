@@ -986,7 +986,7 @@ static ssize_t cabc_run_write(struct file *fp, struct kobject *kobj,
 
 static BIN_ATTR_WO(cabc_run, 4);
 
-static ssize_t cabc_disable_read(struct file *fp, struct kobject *kobj,
+static ssize_t cabc_state_read(struct file *fp, struct kobject *kobj,
 			struct bin_attribute *attr, char *buf,
 			loff_t off, size_t count)
 {
@@ -1004,13 +1004,13 @@ static ssize_t cabc_disable_read(struct file *fp, struct kobject *kobj,
 		count = attr->size - off;
 
 	down(&ctx->refresh_lock);
-	dpu->core->enhance_get(ctx, ENHANCE_CFG_ID_CABC_DISABLE, buf);
+	dpu->core->enhance_get(ctx, ENHANCE_CFG_ID_CABC_STATE, buf);
 	up(&ctx->refresh_lock);
 
 	return count;
 }
 
-static ssize_t cabc_disable_write(struct file *fp, struct kobject *kobj,
+static ssize_t cabc_state_write(struct file *fp, struct kobject *kobj,
 			struct bin_attribute *attr, char *buf,
 			loff_t off, size_t count)
 {
@@ -1027,13 +1027,13 @@ static ssize_t cabc_disable_write(struct file *fp, struct kobject *kobj,
 		count = attr->size - off;
 
 	down(&ctx->refresh_lock);
-	dpu->core->enhance_set(ctx, ENHANCE_CFG_ID_CABC_DISABLE, buf);
+	dpu->core->enhance_set(ctx, ENHANCE_CFG_ID_CABC_STATE, buf);
 	up(&ctx->refresh_lock);
 
 	return count;
 }
 
-static BIN_ATTR_RW(cabc_disable, 8);
+static BIN_ATTR_RW(cabc_state, 8);
 
 static ssize_t hsv_read(struct file *fp, struct kobject *kobj,
 			struct bin_attribute *attr, char *buf,
@@ -1339,7 +1339,7 @@ static struct bin_attribute *pq_bin_attrs[] = {
 	&bin_attr_frame_no,
 	&bin_attr_cabc_run,
 	&bin_attr_cabc_cur_bl,
-	&bin_attr_cabc_disable,
+	&bin_attr_cabc_state,
 	&bin_attr_lut3d,
 	&bin_attr_enable,
 	&bin_attr_disable,
