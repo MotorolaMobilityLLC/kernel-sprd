@@ -85,7 +85,7 @@
 	};
 
 	gnss_common_ctl {
-		compatible = "sprd,gnss_common_ctl";
+		compatible = "sprd,gnss";
 		sprd,name = "gnss_common_ctl";
 	};
 };
