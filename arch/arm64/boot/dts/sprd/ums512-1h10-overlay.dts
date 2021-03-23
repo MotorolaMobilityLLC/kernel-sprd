@@ -129,7 +129,7 @@
 				avdd33-bound-wbreq = <REG_ANA_LDO_XTL_EN11 MASK_ANA_LDO_VDDWIFIPA_EXT_XTL3_EN 0x0 MASK_ANA_LDO_VDDWIFIPA_EXT_XTL3_EN>;
 
 				wlan {
-					compatible = "sprd,sc2355-wifi";
+					compatible = "sprd,sc2355-sdio-wifi";
 				};
 
 				gnss {
