@@ -29,12 +29,12 @@ static ssize_t reg_read_store(struct device *dev,
 				struct device_attribute *attr,
 				const char *buf, size_t count)
 {
-	int i;
-	u32 reg;
-	u8 reg_stride;
 	struct sprd_dphy *dphy = dev_get_drvdata(dev);
 	struct dphy_context *ctx = &dphy->ctx;
 	struct regmap *regmap = ctx->regmap;
+	int i;
+	u32 reg;
+	u8 reg_stride;
 
 	if (!regmap)
 		return -ENODEV;
@@ -63,14 +63,14 @@ static ssize_t reg_read_show(struct device *dev,
 			       struct device_attribute *attr,
 			       char *buf)
 {
+	struct sprd_dphy *dphy = dev_get_drvdata(dev);
+	struct dphy_context *ctx = &dphy->ctx;
+	struct regmap *regmap = ctx->regmap;
+	const char *fmt = NULL;
 	int i;
 	int ret = 0;
 	u8 val_width;
 	u8 reg_stride;
-	const char *fmt = NULL;
-	struct sprd_dphy *dphy = dev_get_drvdata(dev);
-	struct dphy_context *ctx = &dphy->ctx;
-	struct regmap *regmap = ctx->regmap;
 
 	if (!regmap)
 		return -ENODEV;
@@ -106,12 +106,13 @@ static ssize_t reg_write_store(struct device *dev,
 			struct device_attribute *attr,
 			const char *buf, size_t count)
 {
-	int i, len;
-	u8 reg_stride;
-	u32 reg, val;
 	struct sprd_dphy *dphy = dev_get_drvdata(dev);
 	struct dphy_context *ctx = &dphy->ctx;
 	struct regmap *regmap = ctx->regmap;
+	int i, len;
+	u8 reg_stride;
+	u32 reg, val;
+
 	if (!regmap)
 		return -ENODEV;
 
@@ -150,8 +151,8 @@ static ssize_t ssc_store(struct device *dev,
 			struct device_attribute *attr,
 			const char *buf, size_t count)
 {
-	int ret;
 	struct sprd_dphy *dphy = dev_get_drvdata(dev);
+	int ret;
 
 	mutex_lock(&dphy->ctx.lock);
 	if (!dphy->ctx.enabled) {
@@ -188,10 +189,10 @@ static ssize_t hop_store(struct device *dev,
 			struct device_attribute *attr,
 			const char *buf, size_t count)
 {
-	int ret;
-	int delta;
 	struct sprd_dphy *dphy = dev_get_drvdata(dev);
 	struct dphy_context *ctx = &dphy->ctx;
+	int ret;
+	int delta;
 
 	mutex_lock(&dphy->ctx.lock);
 	if (!dphy->ctx.enabled) {
@@ -241,8 +242,8 @@ static ssize_t ulps_store(struct device *dev,
 			struct device_attribute *attr,
 			const char *buf, size_t count)
 {
-	int ret;
 	struct sprd_dphy *dphy = dev_get_drvdata(dev);
+	int ret;
 
 	mutex_lock(&dphy->ctx.lock);
 	if (!dphy->ctx.enabled) {
@@ -271,9 +272,9 @@ static DEVICE_ATTR_RW(ulps);
 static ssize_t freq_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
-	int ret = 0;
 	struct sprd_dphy *dphy = dev_get_drvdata(dev);
 	struct dphy_context *ctx = &dphy->ctx;
+	int ret;
 
 	ret = snprintf(buf, PAGE_SIZE, "%u\n", ctx->freq);
 
@@ -284,10 +285,10 @@ static ssize_t freq_store(struct device *dev,
 			struct device_attribute *attr,
 			const char *buf, size_t count)
 {
-	int ret;
-	int freq;
 	struct sprd_dphy *dphy = dev_get_drvdata(dev);
 	struct dphy_context *ctx = &dphy->ctx;
+	int ret;
+	int freq;
 
 	ret = kstrtoint(buf, 10, &freq);
 	if (ret) {

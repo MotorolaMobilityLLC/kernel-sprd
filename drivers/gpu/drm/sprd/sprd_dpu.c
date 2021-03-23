@@ -190,7 +190,7 @@ static const struct sprd_crtc_ops sprd_dpu_ops = {
 
 void sprd_dpu_run(struct sprd_dpu *dpu)
 {
-	struct sprd_crtc_context *ctx = &dpu->ctx;
+	struct dpu_context *ctx = &dpu->ctx;
 
 	down(&ctx->lock);
 	if (!ctx->enabled) {
@@ -214,7 +214,7 @@ void sprd_dpu_run(struct sprd_dpu *dpu)
 
 void sprd_dpu_stop(struct sprd_dpu *dpu)
 {
-	struct sprd_crtc_context *ctx = &dpu->ctx;
+	struct dpu_context *ctx = &dpu->ctx;
 
 	down(&ctx->lock);
 
@@ -240,7 +240,7 @@ void sprd_dpu_stop(struct sprd_dpu *dpu)
 
 static void sprd_dpu_enable(struct sprd_dpu *dpu)
 {
-	struct sprd_crtc_context *ctx = &dpu->ctx;
+	struct dpu_context *ctx = &dpu->ctx;
 
 	down(&ctx->lock);
 
@@ -274,7 +274,7 @@ static void sprd_dpu_enable(struct sprd_dpu *dpu)
 
 static void sprd_dpu_disable(struct sprd_dpu *dpu)
 {
-	struct sprd_crtc_context *ctx = &dpu->ctx;
+	struct dpu_context *ctx = &dpu->ctx;
 
 	down(&ctx->lock);
 
@@ -300,7 +300,7 @@ static void sprd_dpu_disable(struct sprd_dpu *dpu)
 static irqreturn_t sprd_dpu_isr(int irq, void *data)
 {
 	struct sprd_dpu *dpu = data;
-	struct sprd_crtc_context *ctx = &dpu->ctx;
+	struct dpu_context *ctx = &dpu->ctx;
 	u32 int_mask = 0;
 
 	int_mask = dpu->core->isr(ctx);
@@ -316,7 +316,7 @@ static irqreturn_t sprd_dpu_isr(int irq, void *data)
 
 static int sprd_dpu_irq_request(struct sprd_dpu *dpu)
 {
-	struct sprd_crtc_context *ctx = &dpu->ctx;
+	struct dpu_context *ctx = &dpu->ctx;
 	int irq_num;
 	int ret;
 
@@ -357,7 +357,7 @@ static int sprd_dpu_bind(struct device *dev, struct device *master, void *data)
 		return PTR_ERR(plane);
 
 	dpu->crtc = sprd_crtc_init(drm, plane, SPRD_DISPLAY_TYPE_LCD,
-				&sprd_dpu_ops, &dpu->ctx, dpu);
+				&sprd_dpu_ops, dpu->ctx.version, dpu);
 	if (IS_ERR(dpu->crtc))
 		return PTR_ERR(dpu->crtc);
 
@@ -410,7 +410,7 @@ static int sprd_dpu_context_init(struct sprd_dpu *dpu,
 				struct device_node *np)
 {
 	struct resource r;
-	struct sprd_crtc_context *ctx = &dpu->ctx;
+	struct dpu_context *ctx = &dpu->ctx;
 
 	if (dpu->core->parse_dt)
 		dpu->core->parse_dt(ctx, np);
@@ -418,6 +418,9 @@ static int sprd_dpu_context_init(struct sprd_dpu *dpu,
 		dpu->clk->parse_dt(ctx, np);
 	if (dpu->glb->parse_dt)
 		dpu->glb->parse_dt(ctx, np);
+
+	if (dpu->core->enhance_init)
+		dpu->core->enhance_init(ctx);
 
 	if (of_address_to_resource(np, 0, &r)) {
 		DRM_ERROR("parse dt base address failed\n");
@@ -431,6 +434,8 @@ static int sprd_dpu_context_init(struct sprd_dpu *dpu,
 
 	sema_init(&ctx->lock, 1);
 	init_waitqueue_head(&ctx->wait_queue);
+
+	ctx->panel_ready = true;
 
 	return 0;
 }

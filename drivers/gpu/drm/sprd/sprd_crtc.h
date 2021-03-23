@@ -37,30 +37,6 @@ enum sprd_crtc_output_type {
 	SPRD_DISPLAY_TYPE_HDMI,
 };
 
-enum {
-	SPRD_DPU_IF_DBI = 0,
-	SPRD_DPU_IF_DPI,
-	SPRD_DPU_IF_EDPI,
-	SPRD_DPU_IF_LIMIT
-};
-
-enum {
-	ENHANCE_CFG_ID_ENABLE,
-	ENHANCE_CFG_ID_DISABLE,
-	ENHANCE_CFG_ID_SCL,
-	ENHANCE_CFG_ID_EPF,
-	ENHANCE_CFG_ID_HSV,
-	ENHANCE_CFG_ID_CM,
-	ENHANCE_CFG_ID_SLP,
-	ENHANCE_CFG_ID_GAMMA,
-	ENHANCE_CFG_ID_LTM,
-	ENHANCE_CFG_ID_CABC,
-	ENHANCE_CFG_ID_SLP_LUT,
-	ENHANCE_CFG_ID_LUT3D,
-	ENHANCE_CFG_ID_SR_EPF,
-	ENHANCE_CFG_ID_MAX
-};
-
 struct sprd_crtc_capability {
 	u32 max_layers;
 	const u32 *fmts_ptr;
@@ -94,67 +70,10 @@ struct sprd_crtc_layer {
 	u32 pallete_color;
 };
 
-struct sprd_crtc_context;
-
-struct sprd_crtc_core_ops {
-	int (*parse_dt)(struct sprd_crtc_context *ctx,
-			struct device_node *np);
-	void (*version)(struct sprd_crtc_context *ctx);
-	int (*init)(struct sprd_crtc_context *ctx);
-	void (*fini)(struct sprd_crtc_context *ctx);
-	void (*run)(struct sprd_crtc_context *ctx);
-	void (*stop)(struct sprd_crtc_context *ctx);
-	void (*disable_vsync)(struct sprd_crtc_context *ctx);
-	void (*enable_vsync)(struct sprd_crtc_context *ctx);
-	u32 (*isr)(struct sprd_crtc_context *ctx);
-	void (*ifconfig)(struct sprd_crtc_context *ctx);
-	void (*flip)(struct sprd_crtc_context *ctx,
-		     struct sprd_crtc_layer layers[], u8 count);
-	void (*capability)(struct sprd_crtc_context *ctx,
-			 struct sprd_crtc_capability *cap);
-	void (*bg_color)(struct sprd_crtc_context *ctx, u32 color);
-};
-
-struct sprd_crtc_clk_ops {
-	int (*parse_dt)(struct sprd_crtc_context *ctx,
-			struct device_node *np);
-	int (*init)(struct sprd_crtc_context *ctx);
-	int (*uinit)(struct sprd_crtc_context *ctx);
-	int (*enable)(struct sprd_crtc_context *ctx);
-	int (*disable)(struct sprd_crtc_context *ctx);
-	int (*update)(struct sprd_crtc_context *ctx, int clk_id, int val);
-};
-
-struct sprd_crtc_glb_ops {
-	int (*parse_dt)(struct sprd_crtc_context *ctx,
-			struct device_node *np);
-	void (*enable)(struct sprd_crtc_context *ctx);
-	void (*disable)(struct sprd_crtc_context *ctx);
-	void (*reset)(struct sprd_crtc_context *ctx);
-	void (*power)(struct sprd_crtc_context *ctx, int enable);
-};
-
-struct sprd_crtc_context {
-	void __iomem *base;
-	u32 base_offset[2];
-	const char *version;
-	int irq;
-	u8 if_type;
-	struct videomode vm;
-	struct semaphore lock;
-	bool enabled;
-	bool stopped;
-	wait_queue_head_t wait_queue;
-	bool evt_update;
-	bool evt_stop;
-	irqreturn_t (*dpu_isr)(int irq, void *data);
-};
-
 struct sprd_crtc {
 	struct drm_crtc base;
 	enum sprd_crtc_output_type type;
 	const struct sprd_crtc_ops *ops;
-	struct sprd_crtc_context *ctx;
 	struct sprd_crtc_layer *layers;
 	u8 pending_planes;
 	void *priv;
@@ -188,7 +107,7 @@ struct sprd_crtc *sprd_crtc_init(struct drm_device *drm,
 					struct drm_plane *plane,
 					enum sprd_crtc_output_type type,
 					const struct sprd_crtc_ops *ops,
-					struct sprd_crtc_context *ctx,
+					const char *version,
 					void *priv);
 int sprd_drm_set_possible_crtcs(struct drm_encoder *encoder,
 		enum sprd_crtc_output_type out_type);

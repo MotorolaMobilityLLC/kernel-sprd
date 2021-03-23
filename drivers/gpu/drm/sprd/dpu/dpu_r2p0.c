@@ -132,16 +132,16 @@
 
 static bool panel_ready = true;
 
-static void dpu_clean_all(struct sprd_crtc_context *ctx);
-static void dpu_layer(struct sprd_crtc_context *ctx,
+static void dpu_clean_all(struct dpu_context *ctx);
+static void dpu_layer(struct dpu_context *ctx,
 		    struct sprd_crtc_layer *hwlayer);
 
-static void dpu_version(struct sprd_crtc_context *ctx)
+static void dpu_version(struct dpu_context *ctx)
 {
 	ctx->version = "dpu-r2p0";
 }
 
-static u32 check_mmu_isr(struct sprd_crtc_context *ctx, u32 reg_val)
+static u32 check_mmu_isr(struct dpu_context *ctx, u32 reg_val)
 {
 	u32 mmu_mask = BIT_DPU_INT_MMU_VAOR_RD |
 			BIT_DPU_INT_MMU_VAOR_WR |
@@ -189,7 +189,7 @@ static u32 check_mmu_isr(struct sprd_crtc_context *ctx, u32 reg_val)
 	return val;
 }
 
-static u32 dpu_isr(struct sprd_crtc_context *ctx)
+static u32 dpu_isr(struct dpu_context *ctx)
 {
 	u32 reg_val, int_mask = 0;
 
@@ -231,7 +231,7 @@ static u32 dpu_isr(struct sprd_crtc_context *ctx)
 	return reg_val;
 }
 
-static int dpu_wait_stop_done(struct sprd_crtc_context *ctx)
+static int dpu_wait_stop_done(struct dpu_context *ctx)
 {
 	int rc;
 
@@ -252,7 +252,7 @@ static int dpu_wait_stop_done(struct sprd_crtc_context *ctx)
 	return 0;
 }
 
-static int dpu_wait_update_done(struct sprd_crtc_context *ctx)
+static int dpu_wait_update_done(struct dpu_context *ctx)
 {
 	int rc;
 
@@ -269,7 +269,7 @@ static int dpu_wait_update_done(struct sprd_crtc_context *ctx)
 	return 0;
 }
 
-static void dpu_stop(struct sprd_crtc_context *ctx)
+static void dpu_stop(struct dpu_context *ctx)
 {
 	if (ctx->if_type == SPRD_DPU_IF_DPI)
 		DPU_REG_SET(ctx->base + REG_DPU_CTRL, BIT_DPU_STOP);
@@ -279,7 +279,7 @@ static void dpu_stop(struct sprd_crtc_context *ctx)
 	pr_info("dpu stop\n");
 }
 
-static void dpu_run(struct sprd_crtc_context *ctx)
+static void dpu_run(struct dpu_context *ctx)
 {
 	DPU_REG_SET(ctx->base + REG_DPU_CTRL, BIT_DPU_RUN);
 
@@ -303,7 +303,7 @@ static void dpu_run(struct sprd_crtc_context *ctx)
 	}
 }
 
-static int dpu_init(struct sprd_crtc_context *ctx)
+static int dpu_init(struct dpu_context *ctx)
 {
 	u32 reg_val, size;
 
@@ -334,7 +334,7 @@ static int dpu_init(struct sprd_crtc_context *ctx)
 	return 0;
 }
 
-static void dpu_fini(struct sprd_crtc_context *ctx)
+static void dpu_fini(struct dpu_context *ctx)
 {
 	DPU_REG_WR(ctx->base + REG_DPU_INT_EN, 0x00);
 	DPU_REG_WR(ctx->base + REG_DPU_INT_CLR, 0xff);
@@ -541,7 +541,7 @@ static u32 dpu_img_ctrl(u32 format, u32 blending, u32 compression, u32 rotation)
 	return reg_val;
 }
 
-static void dpu_clean_all(struct sprd_crtc_context *ctx)
+static void dpu_clean_all(struct dpu_context *ctx)
 {
 	int i;
 
@@ -549,7 +549,7 @@ static void dpu_clean_all(struct sprd_crtc_context *ctx)
 		DPU_REG_WR(ctx->base + DPU_LAY_REG(REG_LAY_CTRL, i), 0x00);
 }
 
-static void dpu_bgcolor(struct sprd_crtc_context *ctx, u32 color)
+static void dpu_bgcolor(struct dpu_context *ctx, u32 color)
 {
 	if (ctx->if_type == SPRD_DPU_IF_EDPI)
 		dpu_wait_stop_done(ctx);
@@ -567,7 +567,7 @@ static void dpu_bgcolor(struct sprd_crtc_context *ctx, u32 color)
 	}
 }
 
-static void dpu_layer(struct sprd_crtc_context *ctx,
+static void dpu_layer(struct dpu_context *ctx,
 		    struct sprd_crtc_layer *hwlayer)
 {
 	const struct drm_format_info *info;
@@ -666,7 +666,7 @@ static void dpu_layer(struct sprd_crtc_context *ctx,
 				hwlayer->src_w, hwlayer->src_h);
 }
 
-static void dpu_flip(struct sprd_crtc_context *ctx,
+static void dpu_flip(struct dpu_context *ctx,
 		     struct sprd_crtc_layer layers[], u8 count)
 {
 	int i;
@@ -718,7 +718,7 @@ static void dpu_flip(struct sprd_crtc_context *ctx,
 
 }
 
-static void dpu_dpi_init(struct sprd_crtc_context *ctx)
+static void dpu_dpi_init(struct dpu_context *ctx)
 {
 	u32 int_mask = 0;
 	u32 reg_val;
@@ -795,12 +795,12 @@ static void dpu_dpi_init(struct sprd_crtc_context *ctx)
 	DPU_REG_WR(ctx->base + REG_DPU_INT_EN, int_mask);
 }
 
-static void enable_vsync(struct sprd_crtc_context *ctx)
+static void enable_vsync(struct dpu_context *ctx)
 {
 	DPU_REG_SET(ctx->base + REG_DPU_INT_EN, BIT_DPU_INT_VSYNC);
 }
 
-static void disable_vsync(struct sprd_crtc_context *ctx)
+static void disable_vsync(struct dpu_context *ctx)
 {
 	DPU_REG_CLR(ctx->base + REG_DPU_INT_EN, BIT_DPU_INT_VSYNC);
 }
@@ -816,7 +816,7 @@ static const u32 primary_fmts[] = {
 	DRM_FORMAT_YUV420, DRM_FORMAT_YVU420,
 };
 
-static void dpu_capability(struct sprd_crtc_context *ctx,
+static void dpu_capability(struct dpu_context *ctx,
 			struct sprd_crtc_capability *cap)
 {
 	cap->max_layers = 6;
@@ -824,7 +824,7 @@ static void dpu_capability(struct sprd_crtc_context *ctx,
 	cap->fmts_cnt = ARRAY_SIZE(primary_fmts);
 }
 
-const struct sprd_crtc_core_ops dpu_r2p0_core_ops = {
+const struct dpu_core_ops dpu_r2p0_core_ops = {
 	.version = dpu_version,
 	.init = dpu_init,
 	.fini = dpu_fini,

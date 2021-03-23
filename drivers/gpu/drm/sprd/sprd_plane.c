@@ -372,8 +372,7 @@ struct drm_plane *sprd_plane_init(struct drm_device *drm,
 		err = drm_universal_plane_init(drm, &p->plane,
 					       1 << drm->mode_config.num_crtc,
 					       &sprd_plane_funcs, cap->fmts_ptr,
-					       cap->fmts_cnt, NULL,
-					       type, NULL);
+					       cap->fmts_cnt, NULL, type, NULL);
 		if (err) {
 			DRM_ERROR("failed to initialize primary plane\n");
 			return ERR_PTR(err);

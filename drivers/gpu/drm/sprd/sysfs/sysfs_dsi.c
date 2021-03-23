@@ -29,9 +29,9 @@ static ssize_t phy_freq_store(struct device *dev,
 				struct device_attribute *attr,
 				const char *buf, size_t count)
 {
+	struct sprd_dsi *dsi = dev_get_drvdata(dev);
 	int ret;
 	int freq;
-	struct sprd_dsi *dsi = dev_get_drvdata(dev);
 
 	ret = kstrtoint(buf, 10, &freq);
 	if (ret) {
@@ -55,8 +55,8 @@ static ssize_t phy_freq_store(struct device *dev,
 static ssize_t phy_freq_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
-	int ret;
 	struct sprd_dsi *dsi = dev_get_drvdata(dev);
+	int ret;
 
 	ret = snprintf(buf, PAGE_SIZE, "%u Kbps\n", dsi->phy->ctx.freq);
 
@@ -67,8 +67,8 @@ static DEVICE_ATTR_RW(phy_freq);
 static ssize_t byte_clk_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
-	int ret;
 	struct sprd_dsi *dsi = dev_get_drvdata(dev);
+	int ret;
 
 	ret = snprintf(buf, PAGE_SIZE, "%u KHz\n", dsi->ctx.byte_clk);
 
@@ -80,8 +80,9 @@ static ssize_t escape_clk_store(struct device *dev,
 				struct device_attribute *attr,
 				const char *buf, size_t count)
 {
-	int ret, esc_clk;
 	struct sprd_dsi *dsi = dev_get_drvdata(dev);
+	int ret;
+	int esc_clk;
 
 	ret = kstrtoint(buf, 10, &esc_clk);
 	if (ret) {
@@ -104,8 +105,8 @@ static ssize_t escape_clk_store(struct device *dev,
 static ssize_t escape_clk_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
-	int ret;
 	struct sprd_dsi *dsi = dev_get_drvdata(dev);
+	int ret;
 
 	ret = snprintf(buf, PAGE_SIZE, "%u KHz\n", dsi->ctx.esc_clk);
 
@@ -153,8 +154,8 @@ static ssize_t gen_read_show(struct device *dev,
 			       struct device_attribute *attr,
 			       char *buf)
 {
-	int i;
 	int ret = 0;
+	int i;
 
 	for (i = 0; i < sysfs->input_param[1]; i++)
 		ret += snprintf(buf + ret, PAGE_SIZE,
@@ -201,8 +202,8 @@ static ssize_t gen_write_show(struct device *dev,
 			       struct device_attribute *attr,
 			       char *buf)
 {
-	int i;
 	int ret = 0;
+	int i;
 
 	for (i = 0; i < sysfs->input_len; i++)
 		ret += snprintf(buf + ret, PAGE_SIZE,
@@ -253,8 +254,8 @@ static ssize_t dcs_read_show(struct device *dev,
 			       struct device_attribute *attr,
 			       char *buf)
 {
-	int i;
 	int ret = 0;
+	int i;
 
 	for (i = 0; i < sysfs->input_param[1]; i++)
 		ret += snprintf(buf + ret, PAGE_SIZE,
@@ -301,8 +302,8 @@ static ssize_t dcs_write_show(struct device *dev,
 			       struct device_attribute *attr,
 			       char *buf)
 {
-	int i;
 	int ret = 0;
+	int i;
 
 	for (i = 0; i < sysfs->input_len; i++)
 		ret += snprintf(buf + ret, PAGE_SIZE,
@@ -339,7 +340,7 @@ static ssize_t work_mode_show(struct device *dev,
 {
 	struct sprd_dsi *dsi = dev_get_drvdata(dev);
 	struct dsi_context *ctx = &dsi->ctx;
-	int ret = 0;
+	int ret;
 	int mode;
 
 	if (!ctx->enabled)

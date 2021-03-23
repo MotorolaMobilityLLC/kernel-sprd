@@ -9,7 +9,7 @@
 #include <linux/mfd/syscon.h>
 #include <linux/regmap.h>
 
-#include "sprd_crtc.h"
+#include "sprd_dpu.h"
 
 static struct dpu_clk_context {
 	struct clk *clk_src_128m;
@@ -60,7 +60,7 @@ static struct clk *val_to_clk(struct dpu_clk_context *ctx, u32 val)
 	}
 }
 
-static int dpu_clk_parse_dt(struct sprd_crtc_context *ctx,
+static int dpu_clk_parse_dt(struct dpu_context *ctx,
 				struct device_node *np)
 {
 	struct dpu_clk_context *clk_ctx = &dpu_clk_ctx;
@@ -136,7 +136,7 @@ static u32 calc_dpi_clk_src(u32 pclk)
 	return 128000000;
 }
 
-static int dpu_clk_init(struct sprd_crtc_context *ctx)
+static int dpu_clk_init(struct dpu_context *ctx)
 {
 	struct dpu_clk_context *clk_ctx = &dpu_clk_ctx;
 	struct clk *clk_src;
@@ -168,7 +168,7 @@ static int dpu_clk_init(struct sprd_crtc_context *ctx)
 	return ret;
 }
 
-static int dpu_clk_enable(struct sprd_crtc_context *ctx)
+static int dpu_clk_enable(struct dpu_context *ctx)
 {
 	struct dpu_clk_context *clk_ctx = &dpu_clk_ctx;
 	int ret;
@@ -189,7 +189,7 @@ static int dpu_clk_enable(struct sprd_crtc_context *ctx)
 	return 0;
 }
 
-static int dpu_clk_disable(struct sprd_crtc_context *ctx)
+static int dpu_clk_disable(struct dpu_context *ctx)
 {
 	struct dpu_clk_context *clk_ctx = &dpu_clk_ctx;
 
@@ -202,7 +202,7 @@ static int dpu_clk_disable(struct sprd_crtc_context *ctx)
 	return 0;
 }
 
-static int dpu_glb_parse_dt(struct sprd_crtc_context *ctx,
+static int dpu_glb_parse_dt(struct dpu_context *ctx,
 				struct device_node *np)
 {
 	struct dpu_glb_context *glb_ctx = &dpu_glb_ctx;
@@ -228,7 +228,7 @@ static int dpu_glb_parse_dt(struct sprd_crtc_context *ctx,
 	return 0;
 }
 
-static void dpu_glb_enable(struct sprd_crtc_context *ctx)
+static void dpu_glb_enable(struct dpu_context *ctx)
 {
 	struct dpu_glb_context *glb_ctx = &dpu_glb_ctx;
 	int ret;
@@ -240,14 +240,14 @@ static void dpu_glb_enable(struct sprd_crtc_context *ctx)
 	}
 }
 
-static void dpu_glb_disable(struct sprd_crtc_context *ctx)
+static void dpu_glb_disable(struct dpu_context *ctx)
 {
 	struct dpu_glb_context *glb_ctx = &dpu_glb_ctx;
 
 	clk_disable_unprepare(glb_ctx->clk_aon_apb_disp_eb);
 }
 
-static void dpu_reset(struct sprd_crtc_context *ctx)
+static void dpu_reset(struct dpu_context *ctx)
 {
 	struct dpu_glb_context *glb_ctx = &dpu_glb_ctx;
 
@@ -258,19 +258,19 @@ static void dpu_reset(struct sprd_crtc_context *ctx)
 			   glb_ctx->mask, (u32)~glb_ctx->mask);
 }
 
-static void dpu_power_domain(struct sprd_crtc_context *ctx, int enable)
+static void dpu_power_domain(struct dpu_context *ctx, int enable)
 {
 	/* The dpu power domain code is in drivers/soc/sprd/domain/. */
 }
 
-const struct sprd_crtc_clk_ops sharkl3_dpu_clk_ops = {
+const struct dpu_clk_ops sharkl3_dpu_clk_ops = {
 	.parse_dt = dpu_clk_parse_dt,
 	.init = dpu_clk_init,
 	.enable = dpu_clk_enable,
 	.disable = dpu_clk_disable,
 };
 
-const struct sprd_crtc_glb_ops sharkl3_dpu_glb_ops = {
+const struct dpu_glb_ops sharkl3_dpu_glb_ops = {
 	.parse_dt = dpu_glb_parse_dt,
 	.reset = dpu_reset,
 	.enable = dpu_glb_enable,

@@ -9,7 +9,7 @@
 #include <linux/mfd/syscon.h>
 #include <linux/regmap.h>
 
-#include "sprd_crtc.h"
+#include "sprd_dpu.h"
 
 static struct clk *clk_ap_ahb_disp_eb;
 
@@ -69,7 +69,7 @@ static struct clk *val_to_clk(struct dpu_clk_context *ctx, u32 val)
 	}
 }
 
-static int dpu_clk_parse_dt(struct sprd_crtc_context *ctx,
+static int dpu_clk_parse_dt(struct dpu_context *ctx,
 				struct device_node *np)
 {
 	struct dpu_clk_context *clk_ctx = &dpu_clk_ctx;
@@ -152,7 +152,7 @@ static u32 calc_dpi_clk_src(u32 pclk)
 	return 96000000;
 }
 
-static int dpu_clk_init(struct sprd_crtc_context *ctx)
+static int dpu_clk_init(struct dpu_context *ctx)
 {
 	int ret;
 	u32 dpu_core_val;
@@ -184,7 +184,7 @@ static int dpu_clk_init(struct sprd_crtc_context *ctx)
 	return ret;
 }
 
-static int dpu_clk_enable(struct sprd_crtc_context *ctx)
+static int dpu_clk_enable(struct dpu_context *ctx)
 {
 	int ret;
 	struct dpu_clk_context *clk_ctx = &dpu_clk_ctx;
@@ -205,7 +205,7 @@ static int dpu_clk_enable(struct sprd_crtc_context *ctx)
 	return 0;
 }
 
-static int dpu_clk_disable(struct sprd_crtc_context *ctx)
+static int dpu_clk_disable(struct dpu_context *ctx)
 {
 	struct dpu_clk_context *clk_ctx = &dpu_clk_ctx;
 
@@ -218,7 +218,7 @@ static int dpu_clk_disable(struct sprd_crtc_context *ctx)
 	return 0;
 }
 
-static int dpu_glb_parse_dt(struct sprd_crtc_context *ctx,
+static int dpu_glb_parse_dt(struct dpu_context *ctx,
 				struct device_node *np)
 {
 	unsigned int syscon_args[2];
@@ -244,7 +244,7 @@ static int dpu_glb_parse_dt(struct sprd_crtc_context *ctx,
 	return 0;
 }
 
-static void dpu_glb_enable(struct sprd_crtc_context *ctx)
+static void dpu_glb_enable(struct dpu_context *ctx)
 {
 	int ret;
 
@@ -255,12 +255,12 @@ static void dpu_glb_enable(struct sprd_crtc_context *ctx)
 	}
 }
 
-static void dpu_glb_disable(struct sprd_crtc_context *ctx)
+static void dpu_glb_disable(struct dpu_context *ctx)
 {
 	clk_disable_unprepare(clk_ap_ahb_disp_eb);
 }
 
-static void dpu_reset(struct sprd_crtc_context *ctx)
+static void dpu_reset(struct dpu_context *ctx)
 {
 	regmap_update_bits(ctx_reset.regmap,
 		    ctx_reset.enable_reg,
@@ -273,19 +273,19 @@ static void dpu_reset(struct sprd_crtc_context *ctx)
 		    (unsigned int)(~ctx_reset.mask_bit));
 }
 
-static void dpu_power_domain(struct sprd_crtc_context *ctx, int enable)
+static void dpu_power_domain(struct dpu_context *ctx, int enable)
 {
 
 }
 
-const struct sprd_crtc_clk_ops pike2_dpu_clk_ops = {
+const struct dpu_clk_ops pike2_dpu_clk_ops = {
 	.parse_dt = dpu_clk_parse_dt,
 	.init = dpu_clk_init,
 	.enable = dpu_clk_enable,
 	.disable = dpu_clk_disable,
 };
 
-const struct sprd_crtc_glb_ops pike2_dpu_glb_ops = {
+const struct dpu_glb_ops pike2_dpu_glb_ops = {
 	.parse_dt = dpu_glb_parse_dt,
 	.reset = dpu_reset,
 	.enable = dpu_glb_enable,

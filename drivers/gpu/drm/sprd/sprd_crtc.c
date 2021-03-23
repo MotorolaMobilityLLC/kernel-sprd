@@ -218,17 +218,15 @@ static const struct drm_crtc_funcs sprd_crtc_funcs = {
 	.disable_vblank	= sprd_crtc_disable_vblank,
 };
 
-static int sprd_crtc_create_properties(struct drm_crtc *crtc)
+static int sprd_crtc_create_properties(struct drm_crtc *crtc, const char *version)
 {
-	struct sprd_crtc *sprd_crtc = to_sprd_crtc(crtc);
 	struct drm_property *prop;
 	struct drm_property_blob *blob;
 	size_t blob_size;
 
-	blob_size = strlen(sprd_crtc->ctx->version) + 1;
+	blob_size = strlen(version) + 1;
 
-	blob = drm_property_create_blob(crtc->dev, blob_size,
-			sprd_crtc->ctx->version);
+	blob = drm_property_create_blob(crtc->dev, blob_size, version);
 	if (IS_ERR(blob)) {
 		DRM_ERROR("drm_property_create_blob dpu version failed\n");
 		return PTR_ERR(blob);
@@ -251,7 +249,7 @@ struct sprd_crtc *sprd_crtc_init(struct drm_device *drm,
 					struct drm_plane *plane,
 					enum sprd_crtc_output_type type,
 					const struct sprd_crtc_ops *ops,
-					struct sprd_crtc_context *ctx,
+					const char *version,
 					void *priv)
 {
 	struct sprd_crtc *sprd_crtc;
@@ -263,7 +261,6 @@ struct sprd_crtc *sprd_crtc_init(struct drm_device *drm,
 
 	sprd_crtc->type = type;
 	sprd_crtc->ops = ops;
-	sprd_crtc->ctx = ctx;
 	sprd_crtc->priv = priv;
 
 	ret = drm_crtc_init_with_planes(drm, &sprd_crtc->base, plane, NULL,
@@ -273,11 +270,9 @@ struct sprd_crtc *sprd_crtc_init(struct drm_device *drm,
 		goto err_crtc;
 	}
 
-	drm_mode_crtc_set_gamma_size(&sprd_crtc->base, 256);
-
 	drm_crtc_helper_add(&sprd_crtc->base, &sprd_crtc_helper_funcs);
 
-	sprd_crtc_create_properties(&sprd_crtc->base);
+	sprd_crtc_create_properties(&sprd_crtc->base, version);
 
 	return sprd_crtc;
 
