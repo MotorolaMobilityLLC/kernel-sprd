@@ -362,6 +362,7 @@
 					<&mm_clk CLK_MM_MTX>,
 					<&pll1 CLK_TWPLL_512M>,
 					<&pll1 CLK_ISPPLL_468M>;
+				mm_qos_threshold = <&mm_qos_threshold>;
 			};
 
 			vsp: video-codec@32000000 {
@@ -418,7 +419,7 @@
 				syscon-names = "reset",
 					"aon_apb_eb";
 					iommus = <&iommu_jpg>;
-					/*sprd,qos = <&jpg_qos>;*/
+					jpg_qos = <&jpg_qos>;
 				status = "disabled";
 			};
 
@@ -587,6 +588,7 @@
 					"isp_enable";
 				sprd,isp-count = <1>;
 				iommus = <&iommu_isp>;
+				isp_qos = <&isp_qos>;
 				status = "okay";
 			};
 			iommu_isp: iommu@3a000000 {
@@ -648,6 +650,7 @@
 				sprd,dcam-superzoom = <2>;
 				sprd,project-id = <5>;
 				iommus = <&iommu_dcam>;
+				dcam_qos = <&dcam_qos>;
 				status = "okay";
 			};
 			iommu_dcam: iommu@3e000000 {
@@ -685,7 +688,7 @@
 				syscon-names = "fd_eb", "fd_rst", "fd_save_rst",
 					"fd_lpc", "fd_dvfs_eb";
 				iommus = <&iommu_fd>;
-				/*fd_qos = <&fd_qos>;*/
+				fd_qos = <&fd_qos>;
 				status = "okay";
 			};
 			iommu_fd: iommu@3C000000 {
@@ -711,7 +714,7 @@
 					<&pll1 CLK_TWPLL_384M>;
 				sprd,cam-ahb-syscon = <&mm_ahb_regs>;
 				iommus = <&iommu_cpp>;
-				/*cpp_qos = <&cpp_qos>;*/
+				cpp_qos = <&cpp_qos>;
 				status = "okay";
 			};
 
