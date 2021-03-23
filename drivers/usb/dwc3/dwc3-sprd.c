@@ -114,7 +114,7 @@ static ssize_t maximum_speed_store(struct device *dev,
 	if (kstrtouint(buf, 0, &max_speed))
 		return -EINVAL;
 
-	if (max_speed <= USB_SPEED_UNKNOWN || max_speed > USB_SPEED_SUPER)
+	if (max_speed <= USB_SPEED_UNKNOWN || max_speed > USB_SPEED_SUPER_PLUS)
 		return -EINVAL;
 
 	dwc = platform_get_drvdata(sdwc->dwc3);
