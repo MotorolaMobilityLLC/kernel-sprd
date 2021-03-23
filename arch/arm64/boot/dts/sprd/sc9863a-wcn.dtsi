@@ -46,9 +46,9 @@
 		vddwifipa-supply = <&vddwifipa>;
 		#address-cells = <1>;
 		#size-cells = <1>;
-		nvmem-cells = <&wcn_alpha>, <&wcn_beta>, <&wcn_gamma>;
+		nvmem-cells = <&wcn_alpha>, <&wcn_beta>, <&wcn_gamma>, <&wcn_delta>;
 		nvmem-cell-names = "wcn_efuse_blk0", "wcn_efuse_blk1",
-				   "wcn_efuse_blk2";
+				   "wcn_efuse_blk2", "wcn_efuse_blk3";
 	};
 
 	wcn_gnss: cpwcn_gnss {
