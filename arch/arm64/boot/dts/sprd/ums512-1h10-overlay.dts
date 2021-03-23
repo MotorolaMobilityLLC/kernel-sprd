@@ -179,6 +179,7 @@
 
 &dpu {
 	sprd,backlight = <&pwm_backlight>;
+	sprd,logo-memory = <&logo_reserved>;
 };
 
 &chosen {
