@@ -33,7 +33,8 @@
 
 /* MUST equal to the iio total channel bytes size */
 #define MAX_CM4_MSG_SIZE			40
-#define SYNC_TIME_DELAY_MS		600000
+// Modify by Tinno, temporary code for PDFCCE-4612, please use baselice code override this modify
+#define SYNC_TIME_DELAY_MS		10000
 
 /* dont open the macro,
  * system crash if sensor run long time

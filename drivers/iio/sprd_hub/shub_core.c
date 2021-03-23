@@ -386,8 +386,33 @@ static void channel_data_hook(void *data)
 	}
 }
 
+// Modify by Tinno, temporary code for PDFCCE-4612, please use baselice code override this modify
+typedef struct {
+    uint8_t Cmd;
+    uint8_t Length;
+    uint16_t HandleID;
+    union {
+        uint8_t udata[4];
+        struct {
+            int8_t status;
+            int8_t type;
+        };
+    };
+    union {
+        float fdata[6];
+        struct {
+            float uncalib[3];
+            float bias[3];
+        };
+    };
+    int64_t timestamp;     // millisecond
+}mSenMsgTpB_t, *pmSenMsgTpB_t;
+pmSenMsgTpB_t sensor_event;
+
 static void shub_data_callback(struct shub_data *sensor, u8 *data, u32 len)
 {
+	s64 boottime = 0;
+
 	switch (data[0]) {
 	case HAL_FLUSH:
 #if SHUB_DATA_DUMP
@@ -399,6 +424,16 @@ static void shub_data_callback(struct shub_data *sensor, u8 *data, u32 len)
  */
 		channel_data_hook(data);
 		shub_send_event_to_iio(sensor, data, len);
+		// Modify by Tinno, temporary code for PDFCCE-4612, please use baselice code override this modify
+		boottime = ktime_to_us(ktime_get_boottime());
+		sensor_event = (pmSenMsgTpB_t)data;
+
+		if (abs(sensor_event->timestamp - boottime) > 5000) {
+			dev_err(&sensor->sensor_pdev->dev,
+		 "sensor_event->HandleID=%u, sensor_event->timestamp=%lld, boottime=%lld\n",
+		 sensor_event->HandleID, sensor_event->timestamp, boottime);
+		}
+		// Modify by Tinno, temporary code for PDFCCE-4612, please use baselice code override this modify
 		break;
 
 	default:
@@ -825,15 +860,21 @@ static void shub_synctimestamp(struct shub_data *sensor)
 		return;
 
 	get_convert_para(&convert_para);
-	if (sensorhub_version == 20181201) {
-		local_irq_save(irq_flags);
-		preempt_disable();
-		convert_para.last_boottime = ktime_to_ms(ktime_get_boottime());
-		convert_para.last_systimer_counter = sprd_systimer_read();
-		convert_para.last_sysfrt_counter = sprd_sysfrt_read();
-		local_irq_restore(irq_flags);
-		preempt_enable();
-	}
+	// Modify by Tinno, temporary code for PDFCCE-4612, please use baselice code override this modify
+	dev_info(&sensor->sensor_pdev->dev, "111 boottime=%lld, systimer_counter=%lld, sysfrt_counter=%lld\n",
+		convert_para.last_boottime, convert_para.last_systimer_counter, convert_para.last_sysfrt_counter);
+
+	local_irq_save(irq_flags);
+	preempt_disable();
+	convert_para.last_boottime = ktime_to_ns(ktime_get_boottime());
+	convert_para.last_systimer_counter = sprd_systimer_read();
+	convert_para.last_sysfrt_counter = sprd_sysfrt_read();
+	local_irq_restore(irq_flags);
+	preempt_enable();
+	dev_info(&sensor->sensor_pdev->dev, "222 boottime=%lld, systimer_counter=%lld, sysfrt_counter=%lld\n",
+		convert_para.last_boottime, convert_para.last_systimer_counter, convert_para.last_sysfrt_counter);
+	// Modify by Tinno, temporary code for PDFCCE-4612, please use baselice code override this modify
+
 	shub_send_command(sensor,
 			  HANDLE_MAX,
 			  SHUB_SET_TIMESYNC_SUBTYPE,
