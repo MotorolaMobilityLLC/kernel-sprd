@@ -23,7 +23,7 @@ static struct dphy_glb_context {
 	unsigned int ctrl_reg;
 	unsigned int ctrl_mask;
 	struct regmap *regmap;
-} ctx_enable, ctx_power, s_ctx_enable, s_ctx_power;
+} ctx_enable, ctx_power, s_ctx_enable, s_ctx_power, ctx_aod_mode, ctx_aod_pd;
 
 static int dphy_glb_parse_dt(struct dphy_context *ctx,
 				struct device_node *np)
@@ -56,6 +56,32 @@ static int dphy_glb_parse_dt(struct dphy_context *ctx,
 		ctx_power.ctrl_mask = syscon_args[1];
 	} else
 		pr_warn("failed to parse dphy glb reg: power");
+
+	ctx_aod_mode.regmap = syscon_regmap_lookup_by_name(np, "aod_mode");
+	if (IS_ERR(ctx_aod_mode.regmap)) {
+		pr_warn("failed to map dphy glb reg: aod_mode\n");
+		return PTR_ERR(ctx_aod_mode.regmap);
+	}
+
+	ret = syscon_get_args_by_name(np, "aod_mode", 2, syscon_args);
+	if (ret == 2) {
+		ctx_aod_mode.ctrl_reg = syscon_args[0];
+		ctx_aod_mode.ctrl_mask = syscon_args[1];
+	} else
+		pr_warn("failed to parse dphy glb reg: aod_mode");
+
+	ctx_aod_pd.regmap = syscon_regmap_lookup_by_name(np, "aod_pd");
+	if (IS_ERR(ctx_aod_pd.regmap)) {
+		pr_warn("failed to map dphy glb reg: aod_mode\n");
+		return PTR_ERR(ctx_aod_pd.regmap);
+	}
+
+	ret = syscon_get_args_by_name(np, "aod_pd", 2, syscon_args);
+	if (ret == 2) {
+		ctx_aod_pd.ctrl_reg = syscon_args[0];
+		ctx_aod_pd.ctrl_mask = syscon_args[1];
+	} else
+		pr_warn("failed to parse dphy glb reg: aod_pd");
 
 	return 0;
 }
@@ -98,6 +124,17 @@ static int dphy_s_glb_parse_dt(struct dphy_context *ctx,
 }
 static void dphy_glb_enable(struct dphy_context *ctx)
 {
+	if (ctx->aod_mode)
+		regmap_update_bits(ctx_aod_mode.regmap,
+				ctx_aod_mode.ctrl_reg,
+				ctx_aod_mode.ctrl_mask,
+				ctx_enable.ctrl_mask & (ctx->aod_mode << 9));
+	if (ctx->aod_mode == 5)
+		regmap_update_bits(ctx_aod_pd.regmap,
+				ctx_aod_pd.ctrl_reg,
+				ctx_aod_pd.ctrl_mask,
+				(unsigned int)(~ctx_aod_pd.ctrl_mask));
+
 	regmap_update_bits(ctx_enable.regmap,
 		ctx_enable.ctrl_reg,
 		ctx_enable.ctrl_mask,
@@ -111,8 +148,16 @@ static void dphy_s_glb_enable(struct dphy_context *ctx)
 		s_ctx_enable.ctrl_mask,
 		s_ctx_enable.ctrl_mask);
 }
+
 static void dphy_glb_disable(struct dphy_context *ctx)
 {
+
+	if (ctx->aod_mode == 5)
+		regmap_update_bits(ctx_aod_pd.regmap,
+				ctx_aod_pd.ctrl_reg,
+				ctx_aod_pd.ctrl_mask,
+				ctx_aod_pd.ctrl_mask);
+
 	regmap_update_bits(ctx_enable.regmap,
 		ctx_enable.ctrl_reg,
 		ctx_enable.ctrl_mask,

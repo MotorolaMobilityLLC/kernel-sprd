@@ -15,6 +15,7 @@ struct dphy_context {
 	unsigned long ctrlbase;
 	unsigned long apbbase;
 	struct mutex lock;
+	u8 aod_mode;
 	u32 freq;
 	u8 lanes;
 	u8 id;
