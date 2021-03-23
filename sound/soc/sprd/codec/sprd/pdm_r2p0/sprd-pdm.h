@@ -27,6 +27,9 @@
 #define	APB_PDM_IIS_SOFT_RST        BIT(2)
 #define	APB_PDM_SOFT_RST            BIT(1)
 
+#define	CLK_CGM_PDM_SEL_CFG         0x28
+#define	CLK_CGM_PDM_SEL             BIT(0)
+
 /* PDM REG */
 #define	ADC0_CTRL					0x0
 #define	ADC2_DMIC_EN_R				BIT(16)

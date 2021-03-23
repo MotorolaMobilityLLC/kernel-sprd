@@ -45,6 +45,7 @@ struct sprd_pdm_priv {
 	struct device *dev;
 	struct regmap *regmap_ahb;
 	struct regmap *regmap_apb;
+	u32 base_addr;
 	u32 set_apb_offset;
 	u32 clr_apb_offset;
 	const struct sprd_pdm_data *board_data;
@@ -56,6 +57,9 @@ struct sprd_pdm_priv {
 	unsigned int reg_size;
 	/* base address after ioremap */
 	unsigned long membase;
+	unsigned long clk_memphys;
+	unsigned int clk_reg_size;
+	unsigned long clk_membase;
 };
 
 #pragma GCC diagnostic push
@@ -103,6 +107,36 @@ static int pdm_ioremap_reg_update(struct sprd_pdm_priv *sprd_pdm,
 	old = pdm_ioremap_reg_read(sprd_pdm, offset);
 	new = (old & ~mask) | (val & mask);
 	pdm_ioremap_reg_raw_write(sprd_pdm, offset, new);
+
+	return old != new;
+}
+
+static inline int pdm_clk_ioremap_reg_read(struct sprd_pdm_priv *sprd_pdm,
+					   unsigned int offset)
+{
+	unsigned long reg;
+
+	reg = sprd_pdm->clk_membase + offset;
+	return readl_relaxed((void *__iomem)reg);
+}
+
+static inline void pdm_clk_ioremap_reg_raw_write(struct sprd_pdm_priv *sprd_pdm,
+						 unsigned int offset, int val)
+{
+	unsigned long reg;
+
+	reg = sprd_pdm->clk_membase + offset;
+	writel_relaxed(val, (void *__iomem)reg);
+}
+
+static int pdm_clk_ioremap_reg_update(struct sprd_pdm_priv *sprd_pdm,
+				      unsigned int offset, int val, int mask)
+{
+	int new, old;
+
+	old = pdm_clk_ioremap_reg_read(sprd_pdm, offset);
+	new = (old & ~mask) | (val & mask);
+	pdm_clk_ioremap_reg_raw_write(sprd_pdm, offset, new);
 
 	return old != new;
 }
@@ -156,6 +190,11 @@ void pdm_module_en_ums9620(struct sprd_pdm_priv *sprd_pdm, bool en)
 		udelay(10);
 		aon_apb_reg_clr(APB_MODULE_RST0_STS, APB_PDM_SOFT_RST);
 		aon_apb_reg_set(APB_MODULE_EB1_STS, PDM_AP_EB);
+		pdm_clk_ioremap_reg_update(sprd_pdm, CLK_CGM_PDM_SEL_CFG,
+					   CLK_CGM_PDM_SEL, CLK_CGM_PDM_SEL);
+		pr_debug("%s CGM_PDM_SEL_CFG %0x", __func__,
+			 pdm_clk_ioremap_reg_read(sprd_pdm,
+						  CLK_CGM_PDM_SEL_CFG));
 		sprd_pdm->module_en = true;
 	} else {
 		aon_apb_reg_set(APB_MODULE_RST0_STS, APB_PDM_SOFT_RST);
@@ -555,7 +594,7 @@ static ssize_t pdm_get_read_regs(struct device *dev,
 
 	for (reg = ADC0_CTRL; reg < PDM_REG_MAX; reg += 0x10) {
 		len += sprintf(buf + len, "0x%04x | 0x%04x 0x%04x 0x%04x 0x%04x\n",
-			(unsigned int)(reg + 0x56401000)
+			(unsigned int)(reg + sprd_pdm->base_addr)
 			, pdm_ioremap_reg_read(sprd_pdm, reg + 0x00)
 			, pdm_ioremap_reg_read(sprd_pdm, reg + 0x04)
 			, pdm_ioremap_reg_read(sprd_pdm, reg + 0x08)
@@ -662,6 +701,7 @@ static int pdm_parse_dt_ums9620(struct sprd_pdm_priv *sprd_pdm,
 				struct device_node *np)
 {
 	struct regmap *agcp_apb_gpr;
+	struct resource *res;
 	int ret = 0;
 
 	agcp_apb_gpr =
@@ -690,11 +730,30 @@ static int pdm_parse_dt_ums9620(struct sprd_pdm_priv *sprd_pdm,
 		sprd_pdm->clr_apb_offset = 0;
 	}
 	sp_asoc_pr_info("%s set_offset 0x%x, clr_offset 0x%x\n", __func__,
-			   sprd_pdm->set_apb_offset, sprd_pdm->clr_apb_offset);
+			sprd_pdm->set_apb_offset, sprd_pdm->clr_apb_offset);
+
+	res = platform_get_resource(sprd_pdm->pdev, IORESOURCE_MEM, 1);
+	if (!res) {
+		pr_err("%s pdm clk reg parse error!\n", __func__);
+		return -EINVAL;
+	}
+
+	sprd_pdm->clk_memphys = res->start;
+	sprd_pdm->clk_reg_size = (unsigned int)(res->end - res->start) + 1;
+	sprd_pdm->clk_membase =
+		(unsigned long)devm_ioremap_resource(&sprd_pdm->pdev->dev, res);
+	if (IS_ERR_VALUE(sprd_pdm->clk_membase)) {
+		pr_err("%s ERR: pdm clk reg address ioremap_nocache error!\n",
+		       __func__);
+		return -ENOMEM;
+	}
+	pr_info("%s clk_membase 0x%lx, clk_memphys 0x%lx, end 0x%lx, reg_size 0x%x\n",
+		__func__, sprd_pdm->clk_membase, sprd_pdm->clk_memphys,
+		(unsigned long)res->end,
+		sprd_pdm->clk_reg_size);
 
 	return ret;
 }
-
 
 static int pdm_probe(struct platform_device *pdev)
 {
@@ -715,6 +774,10 @@ static int pdm_probe(struct platform_device *pdev)
 		pr_err("%s get board pdm of device id failed\n", __func__);
 		return -ENODEV;
 	}
+
+	sprd_pdm->dev = dev;
+	sprd_pdm->pdev = pdev;
+	platform_set_drvdata(pdev, sprd_pdm);
 	sprd_pdm->board_data = (struct sprd_pdm_data *)of_id->data;
 
 	if (sprd_pdm->board_data->soc_audio_type == BOARD_SOC_V_UMS9620) {
@@ -735,6 +798,7 @@ static int pdm_probe(struct platform_device *pdev)
 		return -EINVAL;
 	}
 
+	sprd_pdm->base_addr = res->start;
 	sprd_pdm->memphys = res->start;
 	sprd_pdm->reg_size = (unsigned int)(res->end - res->start) + 1;
 	sprd_pdm->membase = (unsigned long)devm_ioremap_resource(&pdev->dev,
@@ -750,9 +814,6 @@ static int pdm_probe(struct platform_device *pdev)
 		(unsigned long)res->end,
 		sprd_pdm->reg_size);
 
-	sprd_pdm->dev = dev;
-	sprd_pdm->pdev = pdev;
-	platform_set_drvdata(pdev, sprd_pdm);
 	pdm_debug_sysfs_init(sprd_pdm);
 
 	ret = snd_soc_register_codec(&pdev->dev, &soc_codec_dev_pdm,
