@@ -38,6 +38,14 @@
 		eth5 = &sipa_eth5;
 		eth6 = &sipa_eth6;
 		eth7 = &sipa_eth7;
+		eth8 = &sipa_eth8;
+		eth9 = &sipa_eth9;
+		eth10 = &sipa_eth10;
+		eth11 = &sipa_eth11;
+		eth12 = &sipa_eth12;
+		eth13 = &sipa_eth13;
+		eth14 = &sipa_eth14;
+		eth15 = &sipa_eth15;
 	};
 
 	soc: soc {
@@ -3016,6 +3024,54 @@
 	sipa_eth7: sipa-eth7 {
 		compatible = "sprd,sipa_eth";
 		sprd,netid = <8>;
+		sprd,term-type = <0x6>;
+	};
+
+	sipa_eth8: sipa-eth8 {
+		compatible = "sprd,sipa_eth";
+		sprd,netid = <9>;
+		sprd,term-type = <0x6>;
+	};
+
+	sipa_eth9: sipa-eth9 {
+		compatible = "sprd,sipa_eth";
+		sprd,netid = <10>;
+		sprd,term-type = <0x6>;
+	};
+
+	sipa_eth10: sipa-eth10 {
+		compatible = "sprd,sipa_eth";
+		sprd,netid = <11>;
+		sprd,term-type = <0x6>;
+	};
+
+	sipa_eth11: sipa-eth11 {
+		compatible = "sprd,sipa_eth";
+		sprd,netid = <12>;
+		sprd,term-type = <0x6>;
+	};
+
+	sipa_eth12: sipa-eth12 {
+		compatible = "sprd,sipa_eth";
+		sprd,netid = <13>;
+		sprd,term-type = <0x6>;
+	};
+
+	sipa_eth13: sipa-eth13 {
+		compatible = "sprd,sipa_eth";
+		sprd,netid = <14>;
+		sprd,term-type = <0x6>;
+	};
+
+	sipa_eth14: sipa-eth14 {
+		compatible = "sprd,sipa_eth";
+		sprd,netid = <15>;
+		sprd,term-type = <0x6>;
+	};
+
+	sipa_eth15: sipa-eth15 {
+		compatible = "sprd,sipa_eth";
+		sprd,netid = <16>;
 		sprd,term-type = <0x6>;
 	};
 
