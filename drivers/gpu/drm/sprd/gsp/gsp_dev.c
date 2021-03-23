@@ -833,6 +833,12 @@ static int sprd_gsp_bind(struct device *dev, struct device *master, void *data)
 
 	gsp_drm_dev_set(drm_dev, dev);
 
+	pm_runtime_set_active(&pdev->dev);
+	pm_runtime_set_autosuspend_delay(&pdev->dev, PM_RUNTIME_DELAY_MS);
+	pm_runtime_use_autosuspend(&pdev->dev);
+
+	pm_runtime_enable(&pdev->dev);
+
 	GSP_DEV_INFO(dev, "dev bind success\n");
 
 	return ret;
@@ -878,12 +884,6 @@ static int gsp_dev_probe(struct platform_device *pdev)
 	}
 
 	gsp_dev_set(gsp, pdev);
-
-	pm_runtime_set_active(&pdev->dev);
-	pm_runtime_set_autosuspend_delay(&pdev->dev, PM_RUNTIME_DELAY_MS);
-	pm_runtime_use_autosuspend(&pdev->dev);
-
-	pm_runtime_enable(&pdev->dev);
 
 	GSP_DEV_INFO(gsp->dev, "probe success\n");
 
