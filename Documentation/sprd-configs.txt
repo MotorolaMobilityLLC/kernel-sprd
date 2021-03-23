@@ -16153,11 +16153,11 @@ CONFIG_SPRD_CORE_ISOLATION
 	[arch] arm64
 	[plat] sharkl5Pro
 	[missing plat] sharkl3
-	[field]
-	[subsys]
-	[must]
+	[field] make,code
+	[subsys] sched
+	[must] user
 	[missing plat description]
-	[function]
+	[function] enable cpu isolation feature
 CONFIG_SPRD_CPU_COOLING
 	[arch] all
 	[plat] all
