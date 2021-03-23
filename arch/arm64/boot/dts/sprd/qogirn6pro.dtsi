@@ -796,8 +796,15 @@
 				MASK_DPU_VSP_APB_DPHY0_CFG_CKG_EN)>,
 				<&pmu_apb_regs
 				REG_PMU_APB_RF_ANALOG_PHY_PD_CFG
-				MASK_PMU_APB_RF_DSI0_PD_REG>;
-				syscon-names = "enable", "power";
+				MASK_PMU_APB_RF_DSI0_PD_REG>,
+				<&aon_apb_regs
+				REG_AON_APB_MIPI_DSI8_CTRL
+				(MASK_AON_APB_MIPI_DSI_8LANE_DSI_AOD_EN_M |
+				MASK_AON_APB_MIPI_DSI_8LANE_DSI_AOD_MOD_M)>,
+				<&aon_apb_regs
+				REG_AON_APB_MIPI_DSI8_CTRL
+				MASK_AON_APB_MIPI_DSI_8LANE_DSI_AOD_PD_M>;
+				syscon-names = "enable", "power", "aod_mode", "aod_pd";
 				status = "disabled";
 				sprd,ip = "sprd,megacores-sharkl5";
 				sprd,soc = "qogirn6pro";
