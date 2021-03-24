@@ -526,6 +526,11 @@ static void sprd_ssphy_shutdown(struct usb_phy *x)
 	reg = msk;
 	regmap_update_bits(phy->aon_apb, REG_AON_APB_USB31DPCOMBPHY_CTRL, msk, reg);
 
+
+	/*disable analog:0x64900004*/
+	msk = MASK_AON_APB_AON_USB2_TOP_EB | MASK_AON_APB_OTG_PHY_EB;
+	regmap_update_bits(phy->aon_apb, REG_AON_APB_APB_EB1, msk, 0);
+
 	/*
 	 * Due to chip design, some chips may turn on vddusb by default,
 	 * We MUST avoid turning it off twice.
