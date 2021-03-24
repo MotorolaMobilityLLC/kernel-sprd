@@ -18,7 +18,7 @@
 
 		sprd,use-dcs-write;
 
-		sprd,init-command = [
+		sprd,initial-command = [
 			39 00 00 02 b0 00
 			39 00 00 04 B3 31 00 06
 			39 00 00 02 b4 00

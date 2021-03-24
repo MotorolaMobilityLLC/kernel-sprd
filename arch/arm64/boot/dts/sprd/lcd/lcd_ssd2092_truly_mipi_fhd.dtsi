@@ -13,7 +13,7 @@
 		sprd,reset-on-sequence = <1 5>, <0 5>, <1 20>;
 		sprd,reset-off-sequence = <0 5>;
 
-		sprd,init-command = [
+		sprd,initial-command = [
 			29 00 00 03 B5 00 00
 			29 00 00 03 B3 03 96
 			29 00 00 03 B4 21 FF
