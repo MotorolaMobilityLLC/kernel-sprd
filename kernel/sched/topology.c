@@ -1113,7 +1113,7 @@ static void init_sched_groups_energy(int cpu, struct sched_domain *sd,
 #ifdef CONFIG_SCHED_DEBUG
 //JSTINNO_SRC:xiaoyan.yu, change the log level for preventing too much print in cfc firmware
 #ifdef JOURNEY_FEATURE_SYSTEM_ENHANCED
-		printk(KERN_DEBUG "WARN: cpu=%d, domain=%s: incr. energy eff %lu[%d]->%lu[%d]\n",
+		pr_debug("WARN: cpu=%d, domain=%s: incr. energy eff %lu[%d]->%lu[%d]\n",
 			cpu, sd->name, energy_eff(sge, i), i,
 			energy_eff(sge, i+1), i+1);
 #else
