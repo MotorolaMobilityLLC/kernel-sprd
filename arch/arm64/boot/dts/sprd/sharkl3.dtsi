@@ -45,22 +45,22 @@
 
 		pub_apb_regs: syscon@300e0000 {
 			compatible = "sprd,sc9863a-glbregs", "syscon";
-			reg = <0 0x300e0000 0 0x10000>;
+			reg = <0 0x300e0000 0 0x6000>;
 		};
 
 		pub_wrap_regs: syscon@300f0000 {
 			compatible = "sprd,sc9863a-glbregs", "syscon";
-			reg = <0 0x300f0000 0 0x1000>;
+			reg = <0 0x300f0000 0 0x3000>;
 		};
 
 		pmu_apb_regs: syscon@402b0000 {
 			compatible = "sprd,sc9863a-glbregs", "syscon";
-			reg = <0 0x402b0000 0 0x4000>;
+			reg = <0 0x402b0000 0 0x6000>;
 		};
 
 		aon_apb_regs: syscon@402e0000 {
 			compatible = "sprd,sc9863a-glbregs", "syscon";
-			reg = <0 0x402e0000 0 0x4000>;
+			reg = <0 0x402e0000 0 0x6000>;
 		};
 
 		anlg_phy_g1_regs: syscon@40350000 {
@@ -135,7 +135,7 @@
 
 		ap_apb_regs: syscon@71300000 {
 			compatible = "sprd,sc9863a-glbregs", "syscon";
-			reg = <0 0x71300000 0 0x4000>;
+			reg = <0 0x71300000 0 0x6000>;
 		};
 
 		ap_intc5_regs: syscon@40550000 {
