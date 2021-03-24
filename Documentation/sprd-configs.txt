@@ -16277,8 +16277,8 @@ CONFIG_SPRD_COMMON_CLK
 	[function] This function is used to enable sprd common clock driver.
 CONFIG_SPRD_CORE_CTL
 	[arch] arm64
-	[plat] sharkl5Pro
-	[missing plat] sharkl3
+	[plat] sharkl5Pro,sharkl3
+	[missing plat] none
 	[field] make,code
 	[subsys] sched
 	[must] user
@@ -16286,8 +16286,8 @@ CONFIG_SPRD_CORE_CTL
 	[function] similar effect as hotplug but at lower latency cost
 CONFIG_SPRD_CORE_ISOLATION
 	[arch] arm64
-	[plat] sharkl5Pro
-	[missing plat] sharkl3
+	[plat] sharkl5Pro,sharkl3
+	[missing plat] none
 	[field] make,code
 	[subsys] sched
 	[must] user
