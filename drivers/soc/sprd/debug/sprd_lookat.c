@@ -29,6 +29,7 @@
 #include <asm/fixmap.h>
 #include <asm/pgalloc.h>
 #include <linux/slab.h>
+#include <linux/mod_devicetable.h>
 
 #define ADI_15BIT_OFFSET		0x20000
 #define ADI_OFFSET			0x8000
@@ -324,6 +325,30 @@ static int __init debug_add(struct sprd_lookat *lookat, struct dentry *parent)
 	return 0;
 }
 
+struct sprd_lookat_variant_data {
+	u32 slave_offset;
+};
+
+static const struct sprd_lookat_variant_data ump962x_data = {
+	.slave_offset = ADI_15BIT_OFFSET,
+};
+
+static const struct sprd_lookat_variant_data sc27xx_data = {
+	.slave_offset = ADI_OFFSET,
+};
+
+static const struct of_device_id sprd_lookat_of_match[] = {
+	{
+		.compatible = "sprd,ump962x-syscon",
+		.data = &ump962x_data,
+	},
+	{
+		.compatible = "sprd,sc27xx-syscon",
+		.data = &sc27xx_data,
+	},
+	{},
+};
+
 static int __init lookat_debug_init(void)
 {
 	int i;
@@ -332,6 +357,7 @@ static int __init lookat_debug_init(void)
 	struct device_node *adi_np;
 	const __be32 *reg;
 	struct dentry *lookat_base;
+	const struct of_device_id *lookat_id;
 
 	lookat_base = debugfs_create_dir("lookat", NULL);
 	if (!lookat_base)
@@ -347,14 +373,16 @@ static int __init lookat_debug_init(void)
 	mutex_init(&lookat_desc.list_lock);
 	INIT_LIST_HEAD(&lookat_desc.request_list);
 
-	regmap_np = of_find_compatible_node(NULL, NULL, "sprd,sc27xx-syscon");
+	regmap_np = of_find_matching_node_and_match(NULL, sprd_lookat_of_match,
+						    &lookat_id);
 	if (!regmap_np)
 		goto error_pmic_node;
 
 	if (of_device_is_compatible(regmap_np->parent, "sprd,sc2730"))
 		lookat_desc.slave_offset = ADI_15BIT_OFFSET;
 	else
-		lookat_desc.slave_offset = ADI_OFFSET;
+		lookat_desc.slave_offset = ((struct sprd_lookat_variant_data *)
+					    (lookat_id->data))->slave_offset;
 
 	pdev_regmap = of_find_device_by_node(regmap_np);
 	if (!pdev_regmap)
