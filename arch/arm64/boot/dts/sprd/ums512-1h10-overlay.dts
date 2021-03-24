@@ -57,13 +57,6 @@
 					wakeup-source;
 				};
 
-				key-unplug {
-					label = "Unplug Key";
-					linux,code = <KEY_TV>;
-					gpios = <&ap_gpio 30 GPIO_ACTIVE_LOW>;
-					debounce-interval = <30>;
-					wakeup-source;
-				};
 			};
 
 			pwm_backlight: backlight {
