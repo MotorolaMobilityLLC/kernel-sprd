@@ -3151,7 +3151,7 @@ static void musb_unmap_urb_for_dma(struct usb_hcd *hcd, struct urb *urb)
 }
 #endif /* !CONFIG_MUSB_PIO_ONLY */
 
-static const struct hc_driver musb_hc_driver = {
+static struct hc_driver musb_hc_driver = {
 	.description		= "musb-hcd",
 	.product_desc		= "MUSB HDRC host driver",
 	.hcd_priv_size		= sizeof(struct musb *),
@@ -3181,8 +3181,6 @@ static const struct hc_driver musb_hc_driver = {
 	.bus_resume		= musb_bus_resume,
 	/* .start_port_reset	= NULL, */
 	/* .hub_irq_enable	= NULL, */
-	.android_vendor_data1[0] = (uintptr_t)musb_offload_config,
-	.android_vendor_data1[1] = (uintptr_t)musb_set_offload_mode,
 
 };
 
@@ -3191,6 +3189,8 @@ int musb_host_alloc(struct musb *musb)
 	struct device	*dev = musb->controller;
 
 	/* usbcore sets dev->driver_data to hcd, and sometimes uses that... */
+	musb_hc_driver.android_vendor_data1[0] = (uintptr_t)musb_offload_config;
+	musb_hc_driver.android_vendor_data1[1] = (uintptr_t)musb_set_offload_mode;
 	musb->hcd = usb_create_hcd(&musb_hc_driver, dev, dev_name(dev));
 	if (!musb->hcd)
 		return -EINVAL;
