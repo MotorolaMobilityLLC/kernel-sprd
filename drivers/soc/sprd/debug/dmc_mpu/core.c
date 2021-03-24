@@ -30,7 +30,6 @@
 #define SPRD_MPU_RANGE_ADDRS_SIZE	4
 #define SPRD_MPU_PORT_SIZE		1
 #define SPRD_MPU_CHN_CFG_CELL_SIZE	4
-#define SPRD_MPU_DDRC_CFG_CELL_SIZE	4
 #define SPRD_MPU_DUMP_SIZE		(128 << 4)
 #define SPRD_MPU_VIO_MAX_WORD		16
 #define SPRD_WORD_SWAPPED(u)		((u) << 32 | (u) >> 32)
@@ -481,38 +480,6 @@ static int sprd_dmc_mpu_core_monitor_cfg(struct sprd_dmpu_core *core, int pub)
 	return 0;
 }
 
-static int sprd_dmc_mpu_remap_get_cfg(struct sprd_dmpu_core *core)
-{
-	u32 *val_p;
-	const u32 *val;
-	struct property *prop;
-	int size;
-
-	if (!core)
-		return -EINVAL;
-
-	size = sizeof(struct sprd_dmpu_remap);
-	core->remap_cfg = devm_kzalloc(core->dev, size, GFP_KERNEL);
-	if (!core->remap_cfg)
-		return -ENOMEM;
-	val_p = (u32 *)core->remap_cfg;
-
-	prop = of_find_property(core->dev->of_node,
-				"sprd,ddrc-remap", NULL);
-	if (!prop) {
-		dev_err(core->dev, "skip %s property\n",
-			"sprd,ddrc-remap");
-		return 0;
-	}
-
-	val = (const u32 *)prop->value;
-	size = SPRD_MPU_DDRC_CFG_CELL_SIZE;
-	while (size--)
-		*val_p++ = be32_to_cpup(val++);
-
-	return 0;
-}
-
 static int sprd_dmc_mpu_core_init(struct platform_device *pdev,
 				  struct sprd_dmpu_core *core)
 {
@@ -532,8 +499,6 @@ static int sprd_dmc_mpu_core_init(struct platform_device *pdev,
 			"dmc mpu init failed ret = %d\n", ret);
 		return ret;
 	}
-
-	sprd_dmc_mpu_remap_get_cfg(core);
 
 	ret = sprd_dmc_mpu_core_init_cfg(core);
 	if (ret) {
@@ -562,46 +527,6 @@ static int sprd_dmc_mpu_core_init(struct platform_device *pdev,
 	return 0;
 }
 
-static int sprd_dmc_mpu_ddrc_remap(struct sprd_dmpu_core *core)
-{
-	void __iomem *ptr;
-	u32 val, size, en_bit;
-
-	if (!core)
-		return -EINVAL;
-
-	en_bit = core->remap_cfg->rf_mpu_en_bit;
-	size = sizeof(u32);
-	ptr = ioremap_nocache(core->remap_cfg->rf_mpu_en, size);
-	if (!ptr)
-		return -ENOMEM;
-	val = (*((u32 *)ptr) & BIT(en_bit)) >> en_bit;
-	iounmap(ptr);
-
-	if (!val) {
-		ptr = ioremap_nocache(core->remap_cfg->ddrc_lock, size);
-		if (!ptr)
-			return -ENOMEM;
-		val = *(u32 *)ptr;
-		*(u32 *)ptr = core->remap_cfg->ddrc_lock_value;
-		iounmap(ptr);
-
-		ptr = ioremap_nocache(core->remap_cfg->rf_mpu_en, size);
-		if (!ptr)
-			return -ENOMEM;
-		*(u32 *)ptr = *(u32 *)ptr | BIT(en_bit);
-		iounmap(ptr);
-
-		ptr = ioremap_nocache(core->remap_cfg->ddrc_lock, size);
-		if (!ptr)
-			return -ENOMEM;
-		*(u32 *)ptr = val;
-		iounmap(ptr);
-	}
-
-	return 0;
-}
-
 int sprd_dmc_mpu_register(struct platform_device *pdev,
 			  struct sprd_dmpu_core *core,
 			  struct sprd_dmpu_ops *ops)
@@ -609,10 +534,6 @@ int sprd_dmc_mpu_register(struct platform_device *pdev,
 	int i, ret;
 
 	ret = sprd_dmc_mpu_core_init(pdev, core);
-	if (ret)
-		return ret;
-
-	ret = sprd_dmc_mpu_ddrc_remap(core);
 	if (ret)
 		return ret;
 
