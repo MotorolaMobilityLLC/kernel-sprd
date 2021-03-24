@@ -20,6 +20,14 @@
 
 #include "audio_mem.h"
 
+/* Remove some audio log for user version by Tinno */
+#ifdef CONFIG_SPRD_AUDIO_NODEBUG
+#ifdef pr_info
+#undef pr_info
+#define pr_info pr_debug
+#endif
+#endif
+
 enum {
 	PLATFORM_SHARKL2 = 0,
 	PLATFORM_WHALE2 = 1,
@@ -1021,7 +1029,7 @@ static int audio_mem_orca_probe(struct platform_device *pdev)
 		ret = audio_smem_init(audio_mem[DDR32].addr,
 				      audio_mem[DDR32].size);
 		if (ret) {
-			pr_info("%s audio_smem_init failed ret =%d\n", __func__,
+			pr_err("%s audio_smem_init failed ret =%d\n", __func__,
 				ret);
 			return ret;
 		}
@@ -1096,7 +1104,7 @@ static int audio_mem_sharkl5_probe(struct platform_device *pdev)
 		ret = audio_smem_init(audio_mem[DDR32].addr,
 				      audio_mem[DDR32].size);
 		if (ret) {
-			pr_info("%s audio_smem_init failed ret =%d\n", __func__,
+			pr_err("%s audio_smem_init failed ret =%d\n", __func__,
 				ret);
 			return ret;
 		}
@@ -1140,7 +1148,7 @@ static int audio_mem_whale2_probe(struct platform_device *pdev)
 		ret = audio_smem_init(audio_mem[DDR32].addr,
 				      audio_mem[DDR32].size);
 		if (ret) {
-			pr_info("%s audio_smem_init failed ret =%d\n", __func__,
+			pr_err("%s audio_smem_init failed ret =%d\n", __func__,
 				ret);
 			return ret;
 		}

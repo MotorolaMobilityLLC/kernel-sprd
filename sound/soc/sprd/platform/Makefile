@@ -15,3 +15,9 @@ else
 endif
 
 obj-$(CONFIG_SND_SOC_SPRD)       += snd-soc-sprd-audio-dma.o
+
+# Remove some audio log for user version by Tinno
+ifneq ($(TARGET_BUILD_VARIANT),userdebug)
+CFLAGS_sprd-dmaengine-pcm.o += -DCONFIG_SPRD_AUDIO_NODEBUG
+CFLAGS_sprd-compr-2stage-dma.o += -DCONFIG_SPRD_AUDIO_NODEBUG
+endif
