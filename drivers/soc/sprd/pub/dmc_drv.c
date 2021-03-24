@@ -287,6 +287,37 @@ static const struct file_operations sprd_ddr_info_fops = {
 	.release = single_release,
 };
 
+extern unsigned long totalram_pages;
+static int proc_ddr_info_show(struct seq_file *m, void *v)
+{
+	u32 size, manu_id, size_meminfo;
+
+	size = (drv_data.size / 1024 / 1024 / 1024);
+	size_meminfo = ((totalram_pages<<(PAGE_SHIFT-10))/1024/1024) + 1;
+	if (size < size_meminfo)
+		size = size_meminfo;
+
+	size = size << 8;
+	manu_id = drv_data.mr_val[0] & 0xff;
+
+	seq_printf(m, "ddr_info:\n");
+	seq_printf(m, "0x%x\n", size | manu_id);
+	return 0;
+}
+
+static int proc_ddr_info_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, proc_ddr_info_show, PDE_DATA(inode));
+}
+
+static const struct file_operations proc_ddr_info_fops = {
+	.open = proc_ddr_info_open,
+	.read = seq_read,
+	.llseek = seq_lseek,
+	.release = single_release,
+};
+
+
 static int sprd_ddr_proc_creat(void)
 {
 	drv_data.proc_dir = proc_mkdir(DMC_PROC_NAME, NULL);
@@ -308,6 +339,9 @@ static int sprd_ddr_proc_creat(void)
 		remove_proc_entry(DMC_PROC_NAME, NULL);
 		return -ENOMEM;
 	}
+	if (!proc_create(DDR_INFO_NAME, 0444, NULL,
+			 &proc_ddr_info_fops))
+		pr_err("Failed to register /proc/ddr_info\n");
 	return 0;
 }
 #endif
