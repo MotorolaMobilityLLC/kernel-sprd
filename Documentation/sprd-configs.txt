@@ -18288,8 +18288,8 @@ CONFIG_USB_CONFIGFS_F_MIDI
 	[missing plat description] none
 	[function] The MIDI Function acts as a USB Audio device.
 CONFIG_USB_CONFIGFS_F_VSERIAL
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field] config
 	[subsys] usb
@@ -18522,8 +18522,8 @@ CONFIG_USB_F_SERIAL
 	[missing plat description] none
 	[function] USB gadget SERIAL support.
 CONFIG_USB_F_VSERIAL
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field] make
 	[subsys] usb
