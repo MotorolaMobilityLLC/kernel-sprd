@@ -596,7 +596,7 @@ static int vsp_open(struct inode *inode, struct file *filp)
 		return ret;
 	}
 
-	atomic_inc_return(&vsp_instance_cnt);
+	atomic_inc(&vsp_instance_cnt);
 	return ret;
 }
 
@@ -612,7 +612,7 @@ static int vsp_release(struct inode *inode, struct file *filp)
 
 	pr_info("%s: instance_cnt %d\n", __func__, instance_cnt);
 
-	atomic_dec_return(&vsp_instance_cnt);
+	atomic_dec(&vsp_instance_cnt);
 	codec_instance_count[vsp_fp->codec_id]--;
 	pr_debug("release codec_id %d counter %d\n", vsp_fp->codec_id,
 		codec_instance_count[vsp_fp->codec_id]);
