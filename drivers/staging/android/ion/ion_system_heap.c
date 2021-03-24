@@ -211,9 +211,16 @@ static int ion_system_heap_allocate(struct ion_heap *heap,
 
 	do_gettimeofday(&val_end);
 	time_end = val_end.tv_sec * 1000000LL + val_end.tv_usec;
+	#ifdef JOURNEY_FEATURE_SYSTEM_ENHANCED
+	//JSTINNO_SRC:xiaoyan.yu, change the log level for preventing too much print in cfc firmware
+	pr_debug("%s, size:%8ld, time:%lldus, pool:%ld, bud:%ld, ord 8:%d, 4:%d, 0:%d\n",
+		 __func__, size, time_end - time_start, pool_sz, buddy_sz,
+		 buddy_orders[0], buddy_orders[1], buddy_orders[2]);
+	#else
 	pr_info("%s, size:%8ld, time:%lldus, pool:%ld, bud:%ld, ord 8:%d, 4:%d, 0:%d\n",
 		 __func__, size, time_end - time_start, pool_sz, buddy_sz,
 		 buddy_orders[0], buddy_orders[1], buddy_orders[2]);
+	#endif/*JOURNEY_FEATURE_SYSTEM_ENHANCED*/
 
 	table = kmalloc(sizeof(*table), GFP_KERNEL);
 	if (!table)
