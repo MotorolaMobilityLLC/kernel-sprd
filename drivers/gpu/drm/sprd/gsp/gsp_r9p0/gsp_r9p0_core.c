@@ -38,7 +38,9 @@
 #include "gsp_r9p0_coef_cal.h"
 #include "../gsp_interface.h"
 #include "gsp_r9p0_dvfs.h"
+#include "../gsp_ipc_trusty.h"
 
+static bool tipc_init;
 static int zorder_used[R9P0_IMGL_NUM + R9P0_OSDL_NUM] = {0};
 int gsp_r9p0_layer_num;//gsp_enabled_layer_count->gsp_r9p0_layer_num;
 
@@ -1515,6 +1517,9 @@ int gsp_r9p0_core_trigger(struct gsp_core *c)
 	struct gsp_r9p0_cfg *cfg = NULL;
 	struct gsp_r9p0_core *core = (struct gsp_r9p0_core *)c;
 	struct R9P0_GSP_GLB_CFG_REG gsp_mod1_cfg_value;
+	unsigned char buf[32];
+	struct gsp_message in_buf;
+	struct gsp_message out_buf;
 
 	if (gsp_core_verify(c)) {
 		GSP_ERR("gsp_r9p0 core trigger params error\n");
@@ -1538,6 +1543,16 @@ int gsp_r9p0_core_trigger(struct gsp_core *c)
 	base = c->base;
 	cfg = (struct gsp_r9p0_cfg *)kcfg->cfg;
 
+	if (!tipc_init && cfg->misc.secure_en == 1) {
+		ret = gsp_tipc_init();
+		if (!ret) {
+			tipc_init = true;
+			gsp_tipc_read(buf, sizeof(buf));
+			GSP_DEBUG("tipc init succsess\n");
+		} else
+			GSP_ERR("tipc init failed\n");
+	}
+
 	gsp_r9p0_coef_gen_and_cfg(core, cfg);
 
 	gsp_r9p0_core_misc_reg_set(c, cfg);
@@ -1552,6 +1567,15 @@ int gsp_r9p0_core_trigger(struct gsp_core *c)
 		return GSP_K_CLK_CHK_ERR;
 	}
 
+	if (cfg->misc.secure_en == 1) {
+		in_buf.cmd = TA_SET_SECURE;
+		gsp_tipc_write(&in_buf, sizeof(in_buf));
+		gsp_tipc_read(&out_buf, sizeof(out_buf));
+		if ((out_buf.cmd == TA_SET_SECURE) &&
+			(out_buf.payload[0] == 1))
+			GSP_DEBUG("TA_SET_SECURE success\n");
+	}
+
 	gsp_r9p0_core_run(c);
 
 	return 0;
@@ -1560,8 +1584,34 @@ int gsp_r9p0_core_trigger(struct gsp_core *c)
 int gsp_r9p0_core_release(struct gsp_core *c)
 {
 	struct gsp_r9p0_core *core = NULL;
+	struct gsp_kcfg *kcfg = NULL;
+	struct gsp_r9p0_cfg *cfg = NULL;
+	struct gsp_message in_buf;
+	struct gsp_message out_buf;
 
 	core = (struct gsp_r9p0_core *)c;
+
+	if (gsp_core_verify(c)) {
+		GSP_ERR("gsp_r9p0 core trigger params error\n");
+		return -1;
+	}
+
+	kcfg = c->current_kcfg;
+	if (gsp_kcfg_verify(kcfg)) {
+		GSP_ERR("gsp_r9p0 trigger invalidate kcfg\n");
+		return -1;
+	}
+
+	cfg = (struct gsp_r9p0_cfg *)kcfg->cfg;
+
+	if (cfg->misc.secure_en == 1) {
+		in_buf.cmd = TA_SET_UNSECURE;
+		gsp_tipc_write(&in_buf, sizeof(in_buf));
+		gsp_tipc_read(&out_buf, sizeof(out_buf));
+		if ((out_buf.cmd == TA_SET_UNSECURE)
+			&& (out_buf.payload[0] == 1))
+			GSP_DEBUG("TA_SET_UNSECURE success\n");
+	}
 
 	return 0;
 }
