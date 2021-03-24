@@ -36,22 +36,22 @@
 #include <linux/usb/phy.h>
 #include <uapi/linux/usb/charger.h>
 
-#define BQ25890_REG_0				0x0
-#define BQ25890_REG_1				0x1
-#define BQ25890_REG_2				0x2
-#define BQ25890_REG_3				0x3
-#define BQ25890_REG_4				0x4
-#define BQ25890_REG_5				0x5
-#define BQ25890_REG_6				0x6
-#define BQ25890_REG_7				0x7
-#define BQ25890_REG_8				0x8
-#define BQ25890_REG_9				0x9
-#define BQ25890_REG_A				0xa
-#define BQ25890_REG_B				0xb
-#define BQ25890_REG_C				0xc
-#define BQ25890_REG_D				0xd
-#define BQ25890_REG_E				0xe
-#define BQ25890_REG_F				0xf
+#define BQ25890_REG_00				0x00
+#define BQ25890_REG_01				0x01
+#define BQ25890_REG_02				0x02
+#define BQ25890_REG_03				0x03
+#define BQ25890_REG_04				0x04
+#define BQ25890_REG_05				0x05
+#define BQ25890_REG_06				0x06
+#define BQ25890_REG_07				0x07
+#define BQ25890_REG_08				0x08
+#define BQ25890_REG_09				0x09
+#define BQ25890_REG_0A				0x0a
+#define BQ25890_REG_0B				0x0b
+#define BQ25890_REG_0C				0x0c
+#define BQ25890_REG_0D				0x0d
+#define BQ25890_REG_0E				0x0e
+#define BQ25890_REG_0F				0x0f
 #define BQ25890_REG_10				0x10
 #define BQ25890_REG_11				0x11
 #define BQ25890_REG_12				0x12
@@ -59,74 +59,415 @@
 #define BQ25890_REG_14				0x14
 #define BQ25890_REG_NUM				21
 
+/* Register 0x00 */
+#define REG00_ENHIZ_MASK			0x80
+#define REG00_ENHIZ_SHIFT			7
+#define REG00_EN_ILIM_MASK			0x40
+#define REG00_EN_ILIM_SHIFT			6
+#define REG00_IINLIM_MASK			0x3f
+#define REG00_IINLIM_SHIFT			0
+
+/* Register 0x01*/
+#define REG01_BHOT_MASK				0xc0
+#define REG01_BHOT_SHIFT			6
+#define REG01_BCOLD_MASK			0x20
+#define REG01_BCOLD_SHIFT			5
+#define REG01_VINDPM_OS_MASK			0x1f
+#define REG01_VINDPM_OS_SHIFT			0
+
+/* Register 0x02*/
+#define REG02_CONV_START_MASK			0x80
+#define REG02_CONV_START_SHIFT			7
+#define REG02_CONV_RATE_MASK			0x40
+#define REG02_CONV_RATE_SHIFT			6
+#define REG02_BOOST_FREQ_MASK			0x20
+#define REG02_BOOST_FREQ_SHIFT			5
+#define REG02_ICO_EN_MASK			0x10
+#define REG02_ICO_EN_SHIFT			4
+#define REG02_HVDCP_EN_MASK			0x08
+#define REG02_HVDCP_EN_SHIFT			3
+#define REG02_MAXC_EN_MASK			0x04
+#define REG02_MAXC_EN_SHIFT			2
+#define REG02_FORCE_DPDM_MASK			0x02
+#define REG02_FORCE_DPDM_SHIFT			1
+#define REG02_AUTO_DPDM_EN_MASK			0x01
+#define REG02_AUTO_DPDM_EN_SHIFT		0
+
+/* Register 0x03 */
+#define REG03_BAT_LOADEN_MASK			0x80
+#define REG03_BAT_LOADEN_SHIFT			7
+#define REG03_WDT_RESET_MASK			0x40
+#define REG03_WDT_RESET_SHIFT			6
+#define REG03_OTG_CONFIG_MASK			0x20
+#define REG03_OTG_CONFIG_SHIFT			5
+#define REG03_CHG_CONFIG_MASK			0x10
+#define REG03_CHG_CONFIG_SHIFT			4
+#define REG03_SYS_MINV_MASK			0x0e
+#define REG03_SYS_MINV_SHIFT			1
+
+/* Register 0x04*/
+#define REG04_EN_PUMPX_MASK			0x80
+#define REG04_EN_PUMPX_SHIFT			7
+#define REG04_ICHG_MASK				0x7f
+#define REG04_ICHG_SHIFT			0
+
+/* Register 0x05*/
+#define REG05_IPRECHG_MASK			0xf0
+#define REG05_IPRECHG_SHIFT			4
+#define REG05_ITERM_MASK			0x0f
+#define REG05_ITERM_SHIFT			0
+
+/* Register 0x06*/
+#define REG06_VREG_MASK				0xfc
+#define REG06_VREG_SHIFT			2
+#define REG06_BATLOWV_MASK			0x02
+#define REG06_BATLOWV_SHIFT			1
+#define REG06_VRECHG_MASK			0x01
+#define REG06_VRECHG_SHIFT			0
+
+/* Register 0x07*/
+#define REG07_EN_TERM_MASK			0x80
+#define REG07_EN_TERM_SHIFT			7
+#define REG07_STAT_DIS_MASK			0x40
+#define REG07_STAT_DIS_SHIFT			6
+#define REG07_WDT_MASK				0x30
+#define REG07_WDT_SHIFT				4
+#define REG07_EN_TIMER_MASK			0x08
+#define REG07_EN_TIMER_SHIFT			3
+#define REG07_CHG_TIMER_MASK			0x06
+#define REG07_CHG_TIMER_SHIFT			1
+#define REG07_JEITA_ISET_MASK			0x01
+#define REG07_JEITA_ISET_SHIFT			0
+
+/* Register 0x08*/
+#define REG08_IR_COMP_MASK			0xe0
+#define REG08_IR_COMP_SHIFT			5
+#define REG08_VCLAMP_MASK			0x1c
+#define REG08_VCLAMP_SHIFT			2
+#define REG08_TREG_MASK				0x03
+#define REG08_TREG_SHIFT			2
+
+/* Register 0x09*/
+#define REG09_FORCE_ICO_MASK			0x80
+#define REG09_FORCE_ICO_SHIFT			7
+#define REG09_TMR2X_EN_MASK			0x40
+#define REG09_TMR2X_EN_SHIFT			6
+#define REG09_BATFET_DIS_MASK			0x20
+#define REG09_BATFET_DIS_SHIFT			5
+#define REG09_JEITA_VSET_MASK			0x10
+#define REG09_JEITA_VSET_SHIFT			4
+#define REG09_BATFET_DLY_MASK			0x08
+#define REG09_BATFET_DLY_SHIFT			3
+#define REG09_BATFET_RST_EN_MASK		0x04
+#define REG09_BATFET_RST_EN_SHIFT		2
+#define REG09_PUMPX_UP_MASK			0x02
+#define REG09_PUMPX_UP_SHIFT			1
+#define REG09_PUMPX_DN_MASK			0x01
+#define REG09_PUMPX_DN_SHIFT			0
+
+/* Register 0x0A*/
+#define REG0A_BOOSTV_MASK			0xf0
+#define REG0A_BOOSTV_SHIFT			4
+#define REG0A_BOOSTV_LIM_MASK			0x07
+#define REG0A_BOOSTV_LIM_SHIFT			0
+
+/* Register 0x0B*/
+#define REG0B_VBUS_STAT_MASK			0xe0
+#define REG0B_VBUS_STAT_SHIFT			5
+#define REG0B_CHRG_STAT_MASK			0x18
+#define REG0B_CHRG_STAT_SHIFT			3
+#define REG0B_PG_STAT_MASK			0x04
+#define REG0B_PG_STAT_SHIFT			2
+#define REG0B_VSYS_STAT_MASK			0x01
+#define REG0B_VSYS_STAT_SHIFT			0
+
+/* Register 0x0C*/
+#define REG0C_FAULT_WDT_MASK			0x80
+#define REG0C_FAULT_WDT_SHIFT			7
+#define REG0C_FAULT_BOOST_MASK			0x40
+#define REG0C_FAULT_BOOST_SHIFT			6
+#define REG0C_FAULT_CHRG_MASK			0x30
+#define REG0C_FAULT_CHRG_SHIFT			4
+#define REG0C_FAULT_BAT_MASK			0x08
+#define REG0C_FAULT_BAT_SHIFT			3
+#define REG0C_FAULT_NTC_MASK			0x07
+#define REG0C_FAULT_NTC_SHIFT			0
+
+/* Register 0x0D*/
+#define REG0D_FORCE_VINDPM_MASK			0x80
+#define REG0D_FORCE_VINDPM_SHIFT		7
+#define REG0D_VINDPM_MASK			0x7f
+#define REG0D_VINDPM_SHIFT			0
+
+/* Register 0x0E*/
+#define REG0E_THERM_STAT_MASK			0x80
+#define REG0E_THERM_STAT_SHIFT			7
+#define REG0E_BATV_MASK				0x7f
+#define REG0E_BATV_SHIFT			0
+
+/* Register 0x0F*/
+#define REG0F_SYSV_MASK				0x7f
+#define REG0F_SYSV_SHIFT			0
+
+/* Register 0x10*/
+#define REG10_TSPCT_MASK			0x7f
+#define REG10_TSPCT_SHIFT			0
+
+/* Register 0x11*/
+#define REG11_VBUS_GD_MASK			0x80
+#define REG11_VBUS_GD_SHIFT			7
+#define REG11_VBUSV_MASK			0x7f
+#define REG11_VBUSV_SHIFT			0
+
+/* Register 0x12*/
+#define REG12_ICHGR_MASK			0x7f
+#define REG12_ICHGR_SHIFT			0
+
+/* Register 0x13*/
+#define REG13_VDPM_STAT_MASK			0x80
+#define REG13_VDPM_STAT_SHIFT			7
+#define REG13_IDPM_STAT_MASK			0x40
+#define REG13_IDPM_STAT_SHIFT			6
+#define REG13_IDPM_LIM_MASK			0x3f
+#define REG13_IDPM_LIM_SHIFT			0
+
+/* Register 0x14 */
+#define REG14_REG_RESET_MASK			0x80
+#define REG14_REG_RESET_SHIFT			7
+#define REG14_REG_ICO_OP_MASK			0x40
+#define REG14_REG_ICO_OP_SHIFT			6
+#define REG14_PN_MASK				0x38
+#define REG14_PN_SHIFT				3
+#define REG14_TS_PROFILE_MASK			0x04
+#define REG14_TS_PROFILE_SHIFT			2
+#define REG14_DEV_REV_MASK			0x03
+#define REG14_DEV_REV_SHIFT			0
+
+#define REG00_HIZ_DISABLE			0
+#define REG00_HIZ_ENABLE			1
+#define REG00_EN_ILIM_DISABLE			0
+#define REG00_EN_ILIM_ENABLE			1
+#define REG00_IINLIM_OFFSET			100
+#define REG00_IINLIM_STEP			50
+#define REG00_IINLIM_MIN			100
+#define REG00_IINLIM_MAX			3250
+
+#define REG01_BHOT_VBHOT1			0
+#define REG01_BHOT_VBHOT0			1
+#define REG01_BHOT_VBHOT2			2
+#define REG01_BHOT_DISABLE			3
+#define REG01_BHOT_VBCOLD0			0
+#define REG01_BHOT_VBCOLD1			1
+#define REG01_VINDPM_OS_OFFSET			0
+#define REG01_VINDPM_OS_STEP			100
+#define REG01_VINDPM_OS_MIN			0
+#define REG01_VINDPM_OS_MAX			3100
+
+#define REG02_CONV_START_DISABLE		0
+#define REG02_CONV_START_ENABLE			1
+#define REG02_CONV_START_DISABLE		0
+#define REG02_CONV_START_ENABLE			1
+#define REG02_BOOST_FREQ_1p5M			0
+#define REG02_BOOST_FREQ_500K			1
+#define REG02_ICO_EN_DISABLE			0
+#define REG02_ICO_EN_DENABLE			1
+#define REG02_HVDCP_EN_DISABLE			0
+#define REG02_HVDCP_EN_DENABLE			1
+#define REG02_MAXC_EN_DISABLE			0
+#define REG02_MAXC_EN_DENABLE			1
+#define REG02_FORCE_DPDM_DISABLE		0
+#define REG02_FORCE_DPDM_DENABLE		1
+#define REG02_AUTO_DPDM_EN_DISABLE		0
+#define REG02_AUTO_DPDM_EN_DENABLE		1
+
+#define REG03_BAT_ENABLE			0
+#define REG03_BAT_DISABLE			1
+#define REG03_WDT_RESET				1
+#define REG03_OTG_DISABLE			0
+#define REG03_OTG_ENABLE			1
+#define REG03_CHG_DISABLE			0
+#define REG03_CHG_ENABLE			1
+#define REG03_SYS_MINV_OFFSET			3000
+#define REG03_SYS_MINV_STEP			100
+#define REG03_SYS_MINV_MIN			3000
+#define REG03_SYS_MINV_MAX			3700
+
+#define REG04_EN_PUMPX_DISABLE			0
+#define REG04_EN_PUMPX_ENABLE			1
+#define REG04_ICHG_OFFSET			0
+#define REG04_ICHG_STEP				64
+#define REG04_ICHG_MIN				0
+#define REG04_ICHG_MAX				5056
+
+#define REG05_IPRECHG_OFFSET			64
+#define REG05_IPRECHG_STEP			64
+#define REG05_IPRECHG_MIN			64
+#define REG05_IPRECHG_MAX			1024
+#define REG05_ITERM_OFFSET			64
+#define REG05_ITERM_STEP			64
+#define REG05_ITERM_MIN				64
+#define REG05_ITERM_MAX				1024
+
+#define REG06_VREG_OFFSET			3840
+#define REG06_VREG_STEP				16
+#define REG06_VREG_MIN				3840
+#define REG06_VREG_MAX				4608
+#define REG06_BATLOWV_2p8v			0
+#define REG06_BATLOWV_3v			1
+#define REG06_VRECHG_100MV			0
+#define REG06_VRECHG_200MV			1
+
+#define REG07_TERM_DISABLE			0
+#define REG07_TERM_ENABLE			1
+#define REG07_STAT_DIS_DISABLE			1
+#define REG07_STAT_DIS_ENABLE			0
+#define REG07_WDT_DISABLE			0
+#define REG07_WDT_40S				1
+#define REG07_WDT_80S				2
+#define REG07_WDT_160S				3
+#define REG07_CHG_TIMER_DISABLE			0
+#define REG07_CHG_TIMER_ENABLE			1
+#define REG07_CHG_TIMER_5HOURS			0
+#define REG07_CHG_TIMER_8HOURS			1
+#define REG07_CHG_TIMER_12HOURS			2
+#define REG07_CHG_TIMER_20HOURS			3
+#define REG07_JEITA_ISET_50PCT			0
+#define REG07_JEITA_ISET_20PCT			1
+
+#define REG08_COMP_R_OFFSET			0
+#define REG08_COMP_R_STEP			20
+#define REG08_COMP_R_MIN			0
+#define REG08_COMP_R_MAX			140
+#define REG08_VCLAMP_OFFSET			0
+#define REG08_VCLAMP_STEP			32
+#define REG08_VCLAMP_MIN			0
+#define REG08_VCLAMP_MAX			224
+#define REG08_TREG_60				0
+#define REG08_TREG_80				1
+#define REG08_TREG_100				2
+#define REG08_TREG_120				3
+
+#define REG09_FORCE_ICO_DISABLE			0
+#define REG09_FORCE_ICO_ENABLE			1
+#define REG09_TMR2X_EN_DISABLE			0
+#define REG09_TMR2X_EN_ENABLE			1
+#define REG09_BATFET_DIS_DISABLE		0
+#define REG09_BATFET_DIS_ENABLE			1
+#define REG09_JEITA_VSET_DISABLE		0
+#define REG09_JEITA_VSET_ENABLE			1
+#define REG09_BATFET_DLY_DISABLE		0
+#define REG09_BATFET_DLY_ENABLE			1
+#define REG09_BATFET_RST_EN_DISABLE		0
+#define REG09_BATFET_RST_EN_ENABLE		1
+#define REG09_PUMPX_UP_DISABLE			0
+#define REG09_PUMPX_UP_ENABLE			1
+#define REG09_PUMPX_DN_DISABLE			0
+#define REG09_PUMPX_DN_ENABLE			1
+
+#define REG0A_BOOSTV_OFFSET			4550
+#define REG0A_BOOSTV_STEP			64
+#define REG0A_BOOSTV_MIN			4550
+#define REG0A_BOOSTV_MAX			5510
+#define REG0A_BOOSTV_LIM_500MA			0
+#define REG0A_BOOSTV_LIM_750MA			1
+#define REG0A_BOOSTV_LIM_1200MA			2
+#define REG0A_BOOSTV_LIM_1400MA			3
+#define REG0A_BOOSTV_LIM_1650MA			4
+#define REG0A_BOOSTV_LIM_1875MA			5
+#define REG0A_BOOSTV_LIM_2150MA			6
+#define REG0A_BOOSTV_LIM_2450MA			7
+
+#define REG0B_VBUS_TYPE_NONE			0
+#define REG0B_VBUS_TYPE_USB_SDP			1
+#define REG0B_VBUS_TYPE_USB_CDP			2
+#define REG0B_VBUS_TYPE_USB_DCP			3
+#define REG0B_VBUS_TYPE_DCP			4
+#define REG0B_VBUS_TYPE_UNKNOWN			5
+#define REG0B_VBUS_TYPE_ADAPTER			6
+#define REG0B_VBUS_TYPE_OTG			7
+
+
+#define REG0B_CHRG_STAT_IDLE			0
+#define REG0B_CHRG_STAT_PRECHG			1
+#define REG0B_CHRG_STAT_FASTCHG			2
+#define REG0B_CHRG_STAT_CHGDONE			3
+#define REG0B_POWER_NOT_GOOD			0
+#define REG0B_POWER_GOOD			1
+#define REG0B_NOT_IN_VSYS_STAT			0
+#define REG0B_IN_VSYS_STAT			1
+
+#define REG0C_FAULT_WDT				1
+#define REG0C_FAULT_BOOST			1
+#define REG0C_FAULT_CHRG_NORMAL			0
+#define REG0C_FAULT_CHRG_INPUT			1
+#define REG0C_FAULT_CHRG_THERMAL		2
+#define REG0C_FAULT_CHRG_TIMER			3
+#define REG0C_FAULT_BAT_OVP			1
+#define REG0C_FAULT_NTC_NORMAL			0
+#define REG0C_FAULT_NTC_WARM			2
+#define REG0C_FAULT_NTC_COOL			3
+#define REG0C_FAULT_NTC_COLD			5
+#define REG0C_FAULT_NTC_HOT			6
+
+#define REG0D_FORCE_VINDPM_DISABLE		0
+#define REG0D_FORCE_VINDPM_ENABLE		1
+#define REG0D_VINDPM_OFFSET			2600
+#define REG0D_VINDPM_STEP			100
+#define REG0D_VINDPM_MIN			3900
+#define REG0D_VINDPM_MAX			15300
+
+#define REG0E_THERM_STAT			1
+#define REG0E_BATV_OFFSET			2304
+#define REG0E_BATV_STEP				20
+#define REG0E_BATV_MIN				2304
+#define REG0E_BATV_MAX				4848
+
+#define REG0F_SYSV_OFFSET			2304
+#define REG0F_SYSV_STEP				20
+#define REG0F_SYSV_MIN				2304
+#define REG0F_SYSV_MAX				4848
+
+#define REG10_TSPCT_OFFSET			21
+#define REG10_TSPCT_STEP			0.465
+#define REG10_TSPCT_MIN				21
+#define REG10_TSPCT_MAX				80
+
+#define REG11_VBUS_GD				1
+#define REG11_VBUSV_OFFSET			2600
+#define REG11_VBUSV_STEP			100
+#define REG11_VBUSV_MIN				2600
+#define REG11_VBUSV_MAX				15300
+
+#define REG12_ICHGR_OFFSET			0
+#define REG12_ICHGR_MIN				0
+#define REG12_ICHGR_MAX				6350
+
+#define REG13_VDPM_STAT				1
+#define REG13_IDPM_STAT				1
+#define REG13_IDPM_LIM_OFFSET			100
+#define REG13_IDPM_LIM_STEP			50
+#define REG13_IDPM_LIM_MIN			100
+#define REG13_IDPM_LIM_MAX			3250
+
+#define REG14_REG_RESET				1
+#define REG14_REG_ICO_OP			1
+
+/* Other Realted Definition*/
 #define BQ25890_BATTERY_NAME			"sc27xx-fgu"
+
 #define BIT_DP_DM_BC_ENB			BIT(0)
 
-/* set limit current register */
-#define BQ25890_REG_ICHG_MIN			0
-#define BQ25890_REG_ICHG_MAX			5056
-#define BQ25890_REG_ICHG_STEP			64
-#define BQ25890_REG_ICHG_MASK			GENMASK(6, 0)
+#define BQ25890_WDT_VALID_MS			50
 
-/* set terminal current register */
-#define BQ25890_REG_TERMINAL_CUR_MIN		64
-#define BQ25890_REG_TERMINAL_CUR_MAX		1024
-#define BQ25890_REG_TERMINAL_CUR_STEP		64
-#define BQ25890_REG_TERMINAL_CUR_OFFSET		64
-#define BQ25890_REG_TERMINAL_CUR_MASK		GENMASK(3, 0)
-
-/* set terminal voltage register*/
-#define BQ25890_REG_TERMINAL_VOLTAGE_MIN	3840
-#define BQ25890_REG_TERMINAL_VOLTAGE_MAX	4608
-#define BQ25890_REG_TERMINAL_VOLTAGE_STEP	16
-#define BQ25890_REG_TERMINAL_VOLTAGE_OFFSET	3840
-#define BQ25890_REG_TERMINAL_VOLTAGE_SHIFT	2
-#define BQ25890_REG_TERMINAL_VOLTAGE_MASK	GENMASK(7, 2)
-
-/* set vindpm register */
-#define BQ25890_REG_VINDPM_MIN			3900
-#define BQ25890_REG_VINDPM_MAX			15300
-#define BQ25890_REG_VINDPM_STEP			100
-#define BQ25890_REG_VINDPM_OFFSET		2600
-#define BQ25890_REG_VINDPM_FORCE_ENABLE		0x1
-#define BQ25890_REG_VINDPM_FORCE_MASK		GENMASK(7, 7)
-#define BQ25890_REG_VINDPM_VOLTAGE_MASK		GENMASK(6, 0)
-
-/* set input limit current register */
-#define BQ25890_REG_LIMIT_CURRENT_MIN		100
-#define BQ25890_REG_LIMIT_CURRENT_MAX		3250
-#define BQ25890_REG_LIMIT_CURRENT_STEP		50
-#define BQ25890_REG_LIMIT_CURRENT_OFFSET	100
-#define BQ25890_REG_LIMIT_CURRENT_MASK		GENMASK(5, 0)
-
-/* enable hiz related definition */
-#define BQ25890_REG_EN_HIZ_SHIFT		7
-#define BQ25890_REG_EN_HIZ_MASK			GENMASK(7, 7)
-
-/* set watchdog register */
-#define BQ25890_FEED_WATCHDOG_VALID_MS		50
-#define BQ25890_REG_WATCHDOG_TIMER_DISABLE	0x00
-#define BQ25890_REG_WATCHDOG_TIMER_ENABLE	0x01
-#define BQ25890_REG_WATCHDOG_ENABLE		0x1
-#define BQ25890_REG_WATCHDOG_MASK		GENMASK(6, 6)
-#define BQ25890_REG_WATCHDOG_TIMER_MASK		GENMASK(5, 4)
-
-/* otg related definition */
 #define BQ25890_OTG_ALARM_TIMER_MS		15000
 #define BQ25890_OTG_VALID_MS			500
 #define BQ25890_OTG_RETRY_TIMES			10
-#define BQ25890_REG_OTG_DISABLE			0x0
-#define BQ25890_REG_OTG_ENABLE			0x1
-#define BQ25890_REG_OTG_MASK			GENMASK(5, 5)
-
-/* reset register definition */
-#define BQ25890_REG_RESET_MASK			GENMASK(7, 7)
 
 #define BQ25890_DISABLE_PIN_MASK		BIT(0)
 #define BQ25890_DISABLE_PIN_MASK_2721		BIT(15)
 
-#define BQ25890_FAST_CHARGER_VOLTAGE_MAX	10500000
-#define BQ25890_NORMAL_CHARGER_VOLTAGE_MAX	6500000
+#define BQ25890_FAST_CHG_VOL_MAX		10500000
+#define BQ25890_NORMAL_CHG_VOL_MAX		6500000
 
 #define BQ25890_WAKE_UP_MS			2000
 
@@ -180,22 +521,22 @@ struct bq25890_charger_reg_tab {
 };
 
 static struct bq25890_charger_reg_tab reg_tab[BQ25890_REG_NUM + 1] = {
-	{0, BQ25890_REG_0, "Setting Input Limit Current reg"},
-	{1, BQ25890_REG_1, "Setting Vindpm_OS reg"},
-	{2, BQ25890_REG_2, "Related Function Enable reg"},
-	{3, BQ25890_REG_3, "Related Function Config reg"},
-	{4, BQ25890_REG_4, "Setting Charge Limit Current reg"},
-	{5, BQ25890_REG_5, "Setting Terminal Current reg"},
-	{6, BQ25890_REG_6, "Setting Charge Limit Voltage reg"},
-	{7, BQ25890_REG_7, "Related Function Config reg"},
-	{8, BQ25890_REG_8, "IR Compensation Resistor Setting reg"},
-	{9, BQ25890_REG_9, "Related Function Config reg"},
-	{10, BQ25890_REG_A, "Boost Mode Related Setting reg"},
-	{11, BQ25890_REG_B, "Status reg"},
-	{12, BQ25890_REG_C, "Fault reg"},
-	{13, BQ25890_REG_D, "Setting Vindpm reg"},
-	{14, BQ25890_REG_E, "ADC Conversion of Battery Voltage reg"},
-	{15, BQ25890_REG_F, "ADDC Conversion of System Voltage reg"},
+	{0, BQ25890_REG_00, "Setting Input Limit Current reg"},
+	{1, BQ25890_REG_01, "Setting Vindpm_OS reg"},
+	{2, BQ25890_REG_02, "Related Function Enable reg"},
+	{3, BQ25890_REG_03, "Related Function Config reg"},
+	{4, BQ25890_REG_04, "Setting Charge Limit Current reg"},
+	{5, BQ25890_REG_05, "Setting Terminal Current reg"},
+	{6, BQ25890_REG_06, "Setting Charge Limit Voltage reg"},
+	{7, BQ25890_REG_07, "Related Function Config reg"},
+	{8, BQ25890_REG_08, "IR Compensation Resistor Setting reg"},
+	{9, BQ25890_REG_09, "Related Function Config reg"},
+	{10, BQ25890_REG_0A, "Boost Mode Related Setting reg"},
+	{11, BQ25890_REG_0B, "Status reg"},
+	{12, BQ25890_REG_0C, "Fault reg"},
+	{13, BQ25890_REG_0D, "Setting Vindpm reg"},
+	{14, BQ25890_REG_0E, "ADC Conversion of Battery Voltage reg"},
+	{15, BQ25890_REG_0F, "ADDC Conversion of System Voltage reg"},
 	{16, BQ25890_REG_10, "ADC Conversion of TS Voltage as Percentage of REGN reg"},
 	{17, BQ25890_REG_11, "ADC Conversion of VBUS voltage reg"},
 	{18, BQ25890_REG_12, "ICHGR Setting reg"},
@@ -303,54 +644,48 @@ static int bq25890_charger_set_vindpm(struct bq25890_charger_info *info, u32 vol
 	u8 reg_val;
 	int ret;
 
-	ret = bq25890_update_bits(info, BQ25890_REG_D,
-				  BQ25890_REG_VINDPM_FORCE_MASK,
-				  BQ25890_REG_VINDPM_FORCE_ENABLE);
+	ret = bq25890_update_bits(info, BQ25890_REG_0D, REG0D_FORCE_VINDPM_MASK,
+				  REG0D_FORCE_VINDPM_ENABLE << REG0D_FORCE_VINDPM_SHIFT);
 	if (ret) {
 		dev_err(info->dev, "set force vindpm failed\n");
 		return ret;
 	}
 
-	if (vol < BQ25890_REG_VINDPM_MIN)
-		vol = BQ25890_REG_VINDPM_MIN;
-	else if (vol > BQ25890_REG_VINDPM_MAX)
-		vol = BQ25890_REG_VINDPM_MAX;
-	reg_val = (vol - BQ25890_REG_VINDPM_OFFSET) / BQ25890_REG_VINDPM_STEP;
+	if (vol < REG0D_VINDPM_MIN)
+		vol = REG0D_VINDPM_MIN;
+	else if (vol > REG0D_VINDPM_MAX)
+		vol = REG0D_VINDPM_MAX;
+	reg_val = (vol - REG0D_VINDPM_OFFSET) / REG0D_VINDPM_STEP;
 
-	return bq25890_update_bits(info, BQ25890_REG_D,
-				   BQ25890_REG_VINDPM_VOLTAGE_MASK, reg_val);
+	return bq25890_update_bits(info, BQ25890_REG_0D,
+				   REG0D_FORCE_VINDPM_MASK, reg_val);
 }
 
 static int bq25890_charger_set_termina_vol(struct bq25890_charger_info *info, u32 vol)
 {
 	u8 reg_val;
 
-	if (vol < BQ25890_REG_TERMINAL_VOLTAGE_MIN)
-		vol = BQ25890_REG_TERMINAL_VOLTAGE_MIN;
-	else if (vol >= BQ25890_REG_TERMINAL_VOLTAGE_MAX)
-		vol = BQ25890_REG_TERMINAL_VOLTAGE_MAX;
-	reg_val = (vol - BQ25890_REG_TERMINAL_VOLTAGE_OFFSET) /
-		BQ25890_REG_TERMINAL_VOLTAGE_STEP;
+	if (vol < REG06_VREG_MIN)
+		vol = REG06_VREG_MIN;
+	else if (vol >= REG06_VREG_MAX)
+		vol = REG06_VREG_MAX;
+	reg_val = (vol - REG06_VREG_OFFSET) / REG06_VREG_STEP;
 
-	return bq25890_update_bits(info, BQ25890_REG_6,
-				   BQ25890_REG_TERMINAL_VOLTAGE_MASK,
-				   reg_val << BQ25890_REG_TERMINAL_VOLTAGE_SHIFT);
+	return bq25890_update_bits(info, BQ25890_REG_06, REG06_VREG_MASK,
+				   reg_val << REG06_VREG_SHIFT);
 }
 
 static int bq25890_charger_set_termina_cur(struct bq25890_charger_info *info, u32 cur)
 {
 	u8 reg_val;
 
-	if (cur <= BQ25890_REG_TERMINAL_CUR_MIN)
-		cur = BQ25890_REG_TERMINAL_CUR_MIN;
-	else if (cur >= BQ25890_REG_TERMINAL_CUR_MAX)
-		cur = BQ25890_REG_TERMINAL_CUR_MAX;
-	reg_val = (cur - BQ25890_REG_TERMINAL_CUR_OFFSET) /
-		BQ25890_REG_TERMINAL_CUR_STEP;
+	if (cur <= REG05_ITERM_MIN)
+		cur = REG05_ITERM_MIN;
+	else if (cur >= REG05_ITERM_MAX)
+		cur = REG05_ITERM_MAX;
+	reg_val = (cur - REG05_ITERM_OFFSET) / REG05_ITERM_STEP;
 
-	return bq25890_update_bits(info, BQ25890_REG_5,
-				   BQ25890_REG_TERMINAL_CUR_MASK,
-				   reg_val);
+	return bq25890_update_bits(info, BQ25890_REG_05, REG05_ITERM_MASK, reg_val);
 }
 
 static int bq25890_charger_hw_init(struct bq25890_charger_info *info)
@@ -391,9 +726,8 @@ static int bq25890_charger_hw_init(struct bq25890_charger_info *info)
 		info->termination_cur = bat_info.charge_term_current_ua / 1000;
 		power_supply_put_battery_info(info->psy_usb, &bat_info);
 
-		ret = bq25890_update_bits(info, BQ25890_REG_14,
-					  BQ25890_REG_RESET_MASK,
-					  BQ25890_REG_RESET_MASK);
+		ret = bq25890_update_bits(info, BQ25890_REG_14, REG14_REG_RESET_MASK,
+					  REG14_REG_RESET << REG14_REG_RESET_SHIFT);
 		if (ret) {
 			dev_err(info->dev, "reset bq25890 failed\n");
 			return ret;
@@ -458,14 +792,13 @@ static int bq25890_charger_start_charge(struct bq25890_charger_info *info)
 {
 	int ret;
 
-	ret = bq25890_update_bits(info, BQ25890_REG_0,
-				  BQ25890_REG_EN_HIZ_MASK, 0);
+	ret = bq25890_update_bits(info, BQ25890_REG_00,
+				  REG00_ENHIZ_MASK, REG00_HIZ_DISABLE);
 	if (ret)
 		dev_err(info->dev, "disable HIZ mode failed\n");
 
-	ret = bq25890_update_bits(info, BQ25890_REG_7,
-				  BQ25890_REG_WATCHDOG_TIMER_MASK,
-				  BQ25890_REG_WATCHDOG_TIMER_ENABLE);
+	ret = bq25890_update_bits(info, BQ25890_REG_07, REG07_WDT_MASK,
+				  REG07_WDT_40S << REG07_WDT_SHIFT);
 	if (ret) {
 		dev_err(info->dev, "Failed to enable bq25890 watchdog\n");
 		return ret;
@@ -498,9 +831,8 @@ static void bq25890_charger_stop_charge(struct bq25890_charger_info *info)
 	bool present = bq25890_charger_is_bat_present(info);
 
 	if (!present || info->need_disable_Q1) {
-		ret = bq25890_update_bits(info, BQ25890_REG_0,
-					  BQ25890_REG_EN_HIZ_MASK,
-					  0x01 << BQ25890_REG_EN_HIZ_SHIFT);
+		ret = bq25890_update_bits(info, BQ25890_REG_00, REG00_ENHIZ_MASK,
+					  REG00_HIZ_ENABLE << REG00_ENHIZ_SHIFT);
 		if (ret)
 			dev_err(info->dev, "enable HIZ mode failed\n");
 		info->need_disable_Q1 = false;
@@ -512,9 +844,8 @@ static void bq25890_charger_stop_charge(struct bq25890_charger_info *info)
 	if (ret)
 		dev_err(info->dev, "disable bq25890 charge failed\n");
 
-	ret = bq25890_update_bits(info, BQ25890_REG_7,
-				  BQ25890_REG_WATCHDOG_TIMER_MASK,
-				  BQ25890_REG_WATCHDOG_TIMER_DISABLE);
+	ret = bq25890_update_bits(info, BQ25890_REG_07, REG07_WDT_MASK,
+				  REG07_WDT_DISABLE);
 	if (ret)
 		dev_err(info->dev, "Failed to disable bq25890 watchdog\n");
 
@@ -527,15 +858,13 @@ static int bq25890_charger_set_current(struct bq25890_charger_info *info,
 	int ret;
 
 	cur = cur / 1000;
-	if (cur <= BQ25890_REG_ICHG_MIN)
-		cur = BQ25890_REG_ICHG_MIN;
-	else if (cur >= BQ25890_REG_ICHG_MAX)
-		cur = BQ25890_REG_ICHG_MAX;
-	reg_val = cur / BQ25890_REG_ICHG_STEP;
+	if (cur <= REG04_ICHG_MIN)
+		cur = REG04_ICHG_MIN;
+	else if (cur >= REG04_ICHG_MAX)
+		cur = REG04_ICHG_MAX;
+	reg_val = cur / REG04_ICHG_STEP;
 
-	ret = bq25890_update_bits(info, BQ25890_REG_4,
-				  BQ25890_REG_ICHG_MASK,
-				  reg_val);
+	ret = bq25890_update_bits(info, BQ25890_REG_04, REG04_ICHG_MASK, reg_val);
 
 	return ret;
 }
@@ -546,12 +875,12 @@ static int bq25890_charger_get_current(struct bq25890_charger_info *info,
 	u8 reg_val;
 	int ret;
 
-	ret = bq25890_read(info, BQ25890_REG_4, &reg_val);
+	ret = bq25890_read(info, BQ25890_REG_04, &reg_val);
 	if (ret < 0)
 		return ret;
 
-	reg_val &= BQ25890_REG_ICHG_MASK;
-	*cur = reg_val * BQ25890_REG_ICHG_STEP * 1000;
+	reg_val &= REG04_ICHG_MASK;
+	*cur = reg_val * REG04_ICHG_STEP * 1000;
 
 	return 0;
 }
@@ -562,25 +891,28 @@ static int bq25890_charger_set_limit_current(struct bq25890_charger_info *info,
 	u8 reg_val;
 	int ret;
 
+	ret = bq25890_update_bits(info, BQ25890_REG_00, REG00_EN_ILIM_MASK,
+				  REG00_EN_ILIM_DISABLE);
+	if (ret) {
+		dev_err(info->dev, "disable en_ilim failed\n");
+		return ret;
+	}
+
 	limit_cur = limit_cur / 1000;
-	if (limit_cur >= BQ25890_REG_LIMIT_CURRENT_MAX)
-		limit_cur = BQ25890_REG_LIMIT_CURRENT_MAX;
-	if (limit_cur <= BQ25890_REG_LIMIT_CURRENT_MIN)
-		limit_cur = BQ25890_REG_LIMIT_CURRENT_MIN;
+	if (limit_cur >= REG00_IINLIM_MAX)
+		limit_cur = REG00_IINLIM_MAX;
+	if (limit_cur <= REG00_IINLIM_MIN)
+		limit_cur = REG00_IINLIM_MIN;
 
 	info->last_limit_current = limit_cur * 1000;
-	reg_val = (limit_cur - BQ25890_REG_LIMIT_CURRENT_OFFSET) /
-		BQ25890_REG_LIMIT_CURRENT_STEP;
+	reg_val = (limit_cur - REG00_IINLIM_OFFSET) / REG00_IINLIM_STEP;
 
-	ret = bq25890_update_bits(info, BQ25890_REG_0,
-				  BQ25890_REG_LIMIT_CURRENT_MASK,
-				  reg_val);
+	ret = bq25890_update_bits(info, BQ25890_REG_00, REG00_IINLIM_MASK, reg_val);
 	if (ret)
 		dev_err(info->dev, "set bq25890 limit cur failed\n");
 
 	info->actual_limit_current =
-		(reg_val * BQ25890_REG_LIMIT_CURRENT_STEP +
-		 BQ25890_REG_LIMIT_CURRENT_OFFSET) * 1000;
+		(reg_val * REG00_IINLIM_STEP + REG00_IINLIM_OFFSET) * 1000;
 
 	return ret;
 }
@@ -591,15 +923,14 @@ static u32 bq25890_charger_get_limit_current(struct bq25890_charger_info *info,
 	u8 reg_val;
 	int ret;
 
-	ret = bq25890_read(info, BQ25890_REG_0, &reg_val);
+	ret = bq25890_read(info, BQ25890_REG_00, &reg_val);
 	if (ret < 0)
 		return ret;
 
-	reg_val &= BQ25890_REG_LIMIT_CURRENT_MASK;
-	*limit_cur = reg_val * BQ25890_REG_LIMIT_CURRENT_STEP +
-		BQ25890_REG_LIMIT_CURRENT_OFFSET;
-	if (*limit_cur >= BQ25890_REG_LIMIT_CURRENT_MAX)
-		*limit_cur = BQ25890_REG_LIMIT_CURRENT_MAX * 1000;
+	reg_val &= REG00_IINLIM_MASK;
+	*limit_cur = reg_val * REG00_IINLIM_STEP + REG00_IINLIM_OFFSET;
+	if (*limit_cur >= REG00_IINLIM_MAX)
+		*limit_cur = REG00_IINLIM_MAX * 1000;
 	else
 		*limit_cur = *limit_cur * 1000;
 
@@ -631,9 +962,8 @@ static int bq25890_charger_feed_watchdog(struct bq25890_charger_info *info,
 	int ret;
 	u32 limit_cur = 0;
 
-	ret = bq25890_update_bits(info, BQ25890_REG_3,
-				  BQ25890_REG_WATCHDOG_MASK,
-				  BQ25890_REG_WATCHDOG_ENABLE);
+	ret = bq25890_update_bits(info, BQ25890_REG_03, REG03_WDT_RESET_MASK,
+				  REG03_WDT_RESET << REG03_WDT_RESET_SHIFT);
 	if (ret) {
 		dev_err(info->dev, "reset bq25890 failed\n");
 		return ret;
@@ -718,7 +1048,7 @@ static int bq25890_charger_set_status(struct bq25890_charger_info *info,
 			dev_err(info->dev, "failed to get 9V charge voltage\n");
 			return ret;
 		}
-		if (input_vol > BQ25890_FAST_CHARGER_VOLTAGE_MAX)
+		if (input_vol > BQ25890_FAST_CHG_VOL_MAX)
 			info->need_disable_Q1 = true;
 	} else if (val == false) {
 		ret = bq25890_charger_get_charge_voltage(info, &input_vol);
@@ -726,7 +1056,7 @@ static int bq25890_charger_set_status(struct bq25890_charger_info *info,
 			dev_err(info->dev, "failed to get 5V charge voltage\n");
 			return ret;
 		}
-		if (input_vol > BQ25890_NORMAL_CHARGER_VOLTAGE_MAX)
+		if (input_vol > BQ25890_NORMAL_CHG_VOL_MAX)
 			info->need_disable_Q1 = true;
 	}
 
@@ -1025,6 +1355,9 @@ static int bq25890_charger_usb_get_property(struct power_supply *psy,
 	enum usb_charger_type type;
 	int ret = 0;
 
+	if (!info)
+		return -ENOMEM;
+
 	mutex_lock(&info->lock);
 
 	switch (psp) {
@@ -1126,6 +1459,9 @@ static int bq25890_charger_usb_set_property(struct power_supply *psy,
 {
 	struct bq25890_charger_info *info = power_supply_get_drvdata(psy);
 	int ret = 0;
+
+	if (!info)
+		return -ENOMEM;
 
 	mutex_lock(&info->lock);
 
@@ -1260,9 +1596,8 @@ static void bq25890_charger_feed_watchdog_work(struct work_struct *work)
 							 wdt_work);
 	int ret;
 
-	ret = bq25890_update_bits(info, BQ25890_REG_3,
-				  BQ25890_REG_WATCHDOG_MASK,
-				  BQ25890_REG_WATCHDOG_ENABLE);
+	ret = bq25890_update_bits(info, BQ25890_REG_03, REG03_WDT_RESET_MASK,
+				  REG03_WDT_RESET << REG03_WDT_RESET_SHIFT);
 	if (ret) {
 		dev_err(info->dev, "reset bq25890 failed\n");
 		return;
@@ -1283,9 +1618,8 @@ static void bq25890_charger_otg_work(struct work_struct *work)
 		goto out;
 
 	do {
-		ret = bq25890_update_bits(info, BQ25890_REG_3,
-					  BQ25890_REG_OTG_MASK,
-					  BQ25890_REG_OTG_ENABLE);
+		ret = bq25890_update_bits(info, BQ25890_REG_03, REG03_OTG_CONFIG_MASK,
+					  REG03_OTG_ENABLE << REG03_OTG_CONFIG_SHIFT);
 		if (ret)
 			dev_err(info->dev, "restart bq25890 charger otg failed\n");
 
@@ -1317,9 +1651,8 @@ static int bq25890_charger_enable_otg(struct regulator_dev *dev)
 		return ret;
 	}
 
-	ret = bq25890_update_bits(info, BQ25890_REG_3,
-				  BQ25890_REG_OTG_MASK,
-				  BQ25890_REG_OTG_ENABLE);
+	ret = bq25890_update_bits(info, BQ25890_REG_03, REG03_OTG_CONFIG_MASK,
+				  REG03_OTG_ENABLE << REG03_OTG_CONFIG_SHIFT);
 
 	if (ret) {
 		dev_err(info->dev, "enable bq25890 otg failed\n");
@@ -1330,7 +1663,7 @@ static int bq25890_charger_enable_otg(struct regulator_dev *dev)
 
 	info->otg_enable = true;
 	schedule_delayed_work(&info->wdt_work,
-			      msecs_to_jiffies(BQ25890_FEED_WATCHDOG_VALID_MS));
+			      msecs_to_jiffies(BQ25890_WDT_VALID_MS));
 	schedule_delayed_work(&info->otg_work,
 			      msecs_to_jiffies(BQ25890_OTG_VALID_MS));
 
@@ -1345,9 +1678,8 @@ static int bq25890_charger_disable_otg(struct regulator_dev *dev)
 	info->otg_enable = false;
 	cancel_delayed_work_sync(&info->wdt_work);
 	cancel_delayed_work_sync(&info->otg_work);
-	ret = bq25890_update_bits(info, BQ25890_REG_3,
-				  BQ25890_REG_OTG_MASK,
-				  BQ25890_REG_OTG_DISABLE);
+	ret = bq25890_update_bits(info, BQ25890_REG_03,
+				  REG03_OTG_CONFIG_MASK, REG03_OTG_DISABLE);
 	if (ret) {
 		dev_err(info->dev, "disable bq25890 otg failed\n");
 		return ret;
@@ -1364,13 +1696,13 @@ static int bq25890_charger_vbus_is_enabled(struct regulator_dev *dev)
 	int ret;
 	u8 val;
 
-	ret = bq25890_read(info, BQ25890_REG_3, &val);
+	ret = bq25890_read(info, BQ25890_REG_03, &val);
 	if (ret) {
 		dev_err(info->dev, "failed to get bq25890 otg status\n");
 		return ret;
 	}
 
-	val &= BQ25890_REG_OTG_MASK;
+	val &= REG03_OTG_CONFIG_MASK;
 
 	return val;
 }
@@ -1545,9 +1877,8 @@ static int bq25890_charger_probe(struct i2c_client *client,
 
 	bq25890_charger_detect_status(info);
 
-	ret = bq25890_update_bits(info, BQ25890_REG_7,
-				  BQ25890_REG_WATCHDOG_TIMER_MASK,
-				  BQ25890_REG_WATCHDOG_TIMER_ENABLE);
+	ret = bq25890_update_bits(info, BQ25890_REG_07, REG07_WDT_MASK,
+				  REG07_WDT_40S << REG07_WDT_SHIFT);
 	if (ret) {
 		dev_err(info->dev, "Failed to enable bq25890 watchdog\n");
 		return ret;
@@ -1593,9 +1924,8 @@ static int bq25890_charger_suspend(struct device *dev)
 	cancel_delayed_work_sync(&info->wdt_work);
 
 	/* feed watchdog first before suspend */
-	ret = bq25890_update_bits(info, BQ25890_REG_3,
-				  BQ25890_REG_WATCHDOG_MASK,
-				  BQ25890_REG_WATCHDOG_ENABLE);
+	ret = bq25890_update_bits(info, BQ25890_REG_03, REG03_WDT_RESET_MASK,
+				  REG03_WDT_RESET << REG03_WDT_RESET_SHIFT);
 	if (ret)
 		dev_warn(info->dev, "reset bq25890 failed before suspend\n");
 
@@ -1618,9 +1948,8 @@ static int bq25890_charger_resume(struct device *dev)
 	alarm_cancel(&info->otg_timer);
 
 	/* feed watchdog first after resume */
-	ret = bq25890_update_bits(info, BQ25890_REG_3,
-				  BQ25890_REG_WATCHDOG_MASK,
-				  BQ25890_REG_WATCHDOG_ENABLE);
+	ret = bq25890_update_bits(info, BQ25890_REG_03, REG03_WDT_RESET_MASK,
+				  REG03_WDT_RESET << REG03_WDT_RESET_SHIFT);
 	if (ret)
 		dev_warn(info->dev, "reset bq25890 failed after resume\n");
 
