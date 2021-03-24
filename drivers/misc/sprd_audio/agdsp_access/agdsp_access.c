@@ -65,6 +65,14 @@ enum adsp_state {
 #define AGDSP_ACCESS_DEBUG 0
 #define TRY_CNT_MAX 1000000
 
+/* Remove some audio log for user version by Tinno */
+#ifdef CONFIG_SPRD_AUDIO_NODEBUG
+#ifdef pr_info
+#undef pr_info
+#define pr_info pr_debug
+#endif
+#endif
+
 #if AGDSP_ACCESS_DEBUG
 #define pr_dbg(fmt, ...) pr_err(fmt, ##__VA_ARGS__)
 #else
@@ -117,7 +125,7 @@ static int agdsp_access_init_thread(void *data)
 	/* since the channel open may hang, we call it in the sblock thread */
 	rval = smsg_ch_open(dsp_ac->dst, dsp_ac->channel, -1);
 	if (rval != 0) {
-		pr_info("Failed to open channel %d,dst=%d,rval=%d\n",
+		pr_err("Failed to open channel %d,dst=%d,rval=%d\n",
 			dsp_ac->channel, dsp_ac->dst, rval);
 		/* assign NULL to thread poniter as failed to open channel */
 		dsp_ac->thread = NULL;

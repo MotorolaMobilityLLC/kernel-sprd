@@ -48,6 +48,14 @@
 #include "vbc-phy-v4.h"
 #include "audio_mem.h"
 
+/* Remove some audio log for user version by Tinno */
+#ifdef CONFIG_SPRD_AUDIO_NODEBUG
+#ifdef pr_info
+#undef pr_info
+#define pr_info pr_debug
+#endif
+#endif
+
 /* for vbc define here for pcm define in pcm driver */
 #define sprd_is_normal_playback(cpu_dai_id, stream) \
 	((((cpu_dai_id) == BE_DAI_ID_NORMAL_AP01_CODEC) ||\

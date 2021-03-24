@@ -54,6 +54,14 @@
 #define NORMAL_PLAYBACK_BUFFER_BYTES_MAX		(64 * 1024)
 #define NORMAL_CAPTURE_BUFFER_BYTES_MAX		(64 * 1024)
 
+/* Remove some audio log for user version by Tinno */
+#ifdef CONFIG_SPRD_AUDIO_NODEBUG
+#ifdef pr_info
+#undef pr_info
+#define pr_info pr_debug
+#endif
+#endif
+
 #undef sp_asoc_pr_info
 #define sp_asoc_pr_info pr_info
 

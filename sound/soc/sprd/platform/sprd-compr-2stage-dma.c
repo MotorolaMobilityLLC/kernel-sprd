@@ -57,6 +57,14 @@
 #define COMPR_DUMP_DEBUG	0
 #define COMPR_DUMP_MEM_DEBUG	0
 
+/* Remove some audio log for user version by Tinno */
+#ifdef CONFIG_SPRD_AUDIO_NODEBUG
+#ifdef pr_info
+#undef pr_info
+#define pr_info pr_debug
+#endif
+#endif
+
 #define ADEBUG() sp_asoc_pr_info("%s, line: %d\n", __func__, __LINE__)
 
 #define DMA_LINKLIST_CFG_NODE_SIZE (sizeof(struct sprd_dma_linklist))
