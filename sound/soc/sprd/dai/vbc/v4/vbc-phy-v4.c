@@ -39,6 +39,14 @@
 #include "sprd-asoc-common.h"
 #include "vbc-phy-v4.h"
 
+/* Remove some audio log for user version by Tinno */
+#ifdef CONFIG_SPRD_AUDIO_NODEBUG
+#ifdef pr_info
+#undef pr_info
+#define pr_info pr_debug
+#endif
+#endif
+
 int sprd_get_codec_dp_base(void)
 	__attribute__((weak, alias("__sprd_get_codec_dp_base")));
 int __sprd_get_codec_dp_base(void)

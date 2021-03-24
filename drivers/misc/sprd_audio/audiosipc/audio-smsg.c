@@ -30,6 +30,14 @@
 #include <linux/sprd_mailbox.h>
 #include "sprd-string.h"
 
+/* Remove some audio log for user version by Tinno */
+#ifdef CONFIG_SPRD_AUDIO_NODEBUG
+#ifdef pr_info
+#undef pr_info
+#define pr_info pr_debug
+#endif
+#endif
+
 #define sp_asoc_pr_dbg pr_debug
 #define sp_asoc_pr_info pr_info
 

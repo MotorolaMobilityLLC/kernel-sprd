@@ -48,6 +48,14 @@
 
 #define TO_STRING(e) #e
 
+/* Remove some audio log for user version by Tinno */
+#ifdef CONFIG_SPRD_AUDIO_NODEBUG
+#ifdef pr_info
+#undef pr_info
+#define pr_info pr_debug
+#endif
+#endif
+
 static struct sprd_pcm_dma_params vbc_pcm_normal_ap01_p;
 static struct sprd_pcm_dma_params vbc_pcm_normal_ap01_c;
 static struct sprd_pcm_dma_params vbc_pcm_normal_ap23_p;
