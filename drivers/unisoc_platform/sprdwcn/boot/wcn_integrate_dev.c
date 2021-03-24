@@ -930,8 +930,9 @@ static int wcn_parse_dt(struct platform_device *pdev,
 			wcn_efuse_val[2] = 0x33333333;
 			WCN_ERR("wcn_efuse_blk2 read error, ret %d\n", ret);
 		}
-		/* sharkle only */
-		if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_SHARKLE) {
+
+		if ((wcn_platform_chip_type() == WCN_PLATFORM_TYPE_SHARKLE) ||
+			(wcn_platform_chip_type() == WCN_PLATFORM_TYPE_SHARKL3)) {
 			ret = wcn_efuse_cal_read(np, "wcn_efuse_blk3",
 						 &wcn_efuse_val[3]);
 			if (ret)
