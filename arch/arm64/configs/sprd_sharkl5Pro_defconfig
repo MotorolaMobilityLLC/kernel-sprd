@@ -4810,3 +4810,5 @@ CONFIG_T_PRODUCT_INFO=y
 CONFIG_T_PROJECT_P352=y
 # Tinno add for demomode require by pony date20201226
 CONFIG_TINNO_DEMOMODECHG_CONTROL=y
+#optimize boot cap by pony date20210324
+CONFIG_TINNO_FGU_BOOT_OPTIMIZE=y
