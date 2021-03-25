@@ -1,6 +1,13 @@
+// SPDX-License-Identifier: GPL-2.0-only
+/*
+ * Unisoc Audio DTS file
+ *
+ * Copyright (C) 2020, Unisoc Inc.
+ */
+
 / {
 	sprd_headset: sprd-headset {
-		compatible = "sprd,headset";
+		compatible = "unisoc,headset";
 		status = "disabled";
 		jack-type = <0>; /* 0: normal-open jack; 1: normal-close jack */
 		io-channels =  <&pmic_adc 20>;
@@ -54,7 +61,7 @@
 	};
 
 	sound_vbc_r1p0v3_sprd_codec: sound@0 {
-		compatible = "sprd,vbc-r1p0v3-codec-sc2721";
+		compatible = "unisoc,vbc-r1p0v3-codec-sc2721";
 		status = "disabled";
 		sprd-audio-card,name = "sprdphone";
 		sprd-audio-card,routing =
@@ -74,11 +81,11 @@
 
 			/* For vbc loopback */
 			"Aud input", "AD Clk",
-			"Aud input1", "AD Clk",
+			"Aud1 input", "AD Clk",
 			"Aud input", "Digital ADCL Switch",
 			"Aud input", "Digital ADCR Switch",
-			"Aud input1", "Digital ADC1L Switch",
-			"Aud input1", "Digital ADC1R Switch";
+			"Aud1 input", "Digital ADC1L Switch",
+			"Aud1 input", "Digital ADC1R Switch";
 		sprd-audio-card,headset = <&sprd_headset>;
 		/* fm-open-src:0 not open, 1 open */
 		sprd-audio-card,fm-open-src = <1>;
@@ -167,7 +174,7 @@
 	};
 
 	sound_sprd_ap_alliis: sound@1 {
-		compatible = "sprd,i2s-null-codec";
+		compatible = "unisoc,i2s-null-codec";
 		status = "disabled";
 		sprd-audio-card,name = "all-i2s";
 		/* dai-links */
