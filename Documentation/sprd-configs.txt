@@ -2747,50 +2747,50 @@ CONFIG_CLZ_TAB
 	[missing plat description] none
 	[function] selected by MPILIB.
 CONFIG_CMA
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] code
+	[subsys]memory
+	[must]console
 	[missing plat description] none
-	[function]
+	[function] enable CMA
 CONFIG_CMA_ALIGNMENT
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] code
+	[subsys]memory
+	[must]console
 	[missing plat description] none
-	[function]
+	[function]enable CMA
 CONFIG_CMA_AREAS
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] code
+	[subsys]memory
+	[must]console
 	[missing plat description] none
-	[function]
+	[function]enable CMA
 CONFIG_CMA_SIZE_MBYTES
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field]code
+	[subsys]memory
+	[must]console
 	[missing plat description] none
-	[function]
+	[function]enable CMAC
 CONFIG_CMA_SIZE_SEL_MBYTES
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field]code
+	[subsys]memory
+	[must]console
 	[missing plat description] none
-	[function]
+	[function]enbale CMA
 CONFIG_CMDLINE
 	[arch] all
 	[plat] all
@@ -2935,14 +2935,14 @@ CONFIG_CONTEXT_SWITCH_TRACER
 	[missing plat description] none
 	[function] Scheduler switch trace event
 CONFIG_CONTIG_ALLOC
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field]code
+	[subsys]memory
+	[must]console
 	[missing plat description] none
-	[function]
+	[function]enable CMA
 CONFIG_COREDUMP
 	[arch] all
 	[plat] all
@@ -4668,14 +4668,14 @@ CONFIG_DMADEVICES
 	[missing plat description] none
 	[function] Support DMA devices.
 CONFIG_DMA_CMA
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] code
+	[subsys]memory
+	[must]console
 	[missing plat description] none
-	[function]
+	[function]enable CMA
 CONFIG_DMA_DECLARE_COHERENT
 	[arch] all
 	[plat] all
@@ -10569,14 +10569,14 @@ CONFIG_MEMORY_HOTPLUG_SPARSE
 	[missing plat description] none
 	[function]
 CONFIG_MEMORY_ISOLATION
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] code
+	[subsys]memory
+	[must]console
 	[missing plat description] none
-	[function]
+	[function]enable CMA
 CONFIG_MESSAGE_LOGLEVEL_DEFAULT
 	[arch] all
 	[plat] all
