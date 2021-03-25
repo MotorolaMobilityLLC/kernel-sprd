@@ -533,6 +533,21 @@ static int sc27xx_fgu_get_boot_capacity(struct sc27xx_fgu_data *data, int *cap)
 	int ocv, ret;
 	bool is_first_poweron = sc27xx_fgu_is_first_poweron(data);
 
+	/*optimize boot cap by pony date20210324*/
+	#ifdef CONFIG_TINNO_FGU_BOOT_OPTIMIZE
+	int this_cap,diff_cap = 1;
+	ret = sc27xx_fgu_read_last_cap(data, cap);
+	sc27xx_fgu_get_boot_voltage(data, &ocv);
+	this_cap = power_supply_ocv2cap_simple(data->cap_table, data->table_len,
+				ocv);
+	this_cap *= 10;
+
+	if(abs(*cap - this_cap) > 150)
+		diff_cap = 0;
+	dev_info(data->dev, "poweron battery cap: ocv = %d, this_cap = %d, last_cap = %d, diff_cap = %d\n", 
+		ocv,this_cap,*cap,diff_cap);
+	#endif
+
 	if (is_charger_mode)
 		sc27xx_fgu_get_boot_voltage(data, &data->boot_vol);
 	/*
@@ -540,7 +555,13 @@ static int sc27xx_fgu_get_boot_capacity(struct sc27xx_fgu_data *data, int *cap)
 	 * battery capacity as the initial battery capacity. Otherwise we should
 	 * re-calculate the initial battery capacity.
 	 */
-	if (!is_first_poweron) {
+	/*optimize boot cap by pony date20210324*/
+	#ifdef CONFIG_TINNO_FGU_BOOT_OPTIMIZE
+	if ((!is_first_poweron) && diff_cap)
+	#else
+	if (!is_first_poweron)
+	#endif
+	{
 		ret = sc27xx_fgu_read_last_cap(data, cap);
 		if (ret) {
 			dev_err(data->dev, "Failed to read last cap, ret = %d\n",
