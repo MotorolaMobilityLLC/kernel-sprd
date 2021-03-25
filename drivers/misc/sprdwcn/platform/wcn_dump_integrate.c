@@ -374,7 +374,7 @@ static int mdbg_dump_share_memory(struct wcn_dump_mem_reg *mem)
 		wake_up_log_wait();
 		if (time_after(jiffies, timeout)) {
 			WCN_ERR("Dump share mem timeout:count:%u\n", count);
-			break;
+			return -1;
 		}
 	}
 	wcn_mem_ram_unmap(virt_addr, cnt);
@@ -452,7 +452,10 @@ static int btwf_dump_mem(void)
 		ARRAY_SIZE(s_wcn_dump_regs)))
 		return -1;
 
-	mdbg_dump_share_memory(s_wcn_dump_regs);
+	if (mdbg_dump_share_memory(s_wcn_dump_regs)) {
+		WCN_INFO("Dump ringbuf is full!\n");
+		return 0;
+	}
 
 	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
 		if (mdbg_check_gnss_poweron(s_wcn_device.gnss_device) &&
