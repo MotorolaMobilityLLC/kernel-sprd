@@ -14914,6 +14914,24 @@ CONFIG_SBITMAP
 	[must] user
 	[missing plat description] none
 	[function] Support sbitmap feature.
+CONFIG_SC2332_SIPC_WLAN
+	[arch] arm64
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
+CONFIG_SC2332_WLAN
+	[arch] arm64
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
 CONFIG_SC2342_I
 	[arch] all
 	[plat] pike2,sharkl3
@@ -14922,6 +14940,24 @@ CONFIG_SC2342_I
 	[subsys]
 	[must]
 	[missing plat description]
+	[function]
+CONFIG_SC2355_SDIO_WLAN
+	[arch] arm64
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
+CONFIG_SC2355_WLAN
+	[arch] arm64
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
 	[function]
 CONFIG_SC23XX
 	[arch] all
@@ -16683,9 +16719,9 @@ CONFIG_SPRD_SIPC_SPOOL
 	[missing plat description] none
 	[function] This function is used to enable spool function.
 CONFIG_SPRD_SIPC_WCN
-	[arch] arm
-	[plat] pike2
-	[missing plat] none
+	[arch] all
+	[plat] pike2,sharkl3
+	[missing plat] sharkl5Pro
 	[field]
 	[subsys]
 	[must]
@@ -16834,6 +16870,24 @@ CONFIG_SPRD_WATCHDOG_FIQ
 CONFIG_SPRD_WATCHDOG_PMIC
 	[arch] all
 	[plat] all
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
+CONFIG_SPRD_WLAN
+	[arch] arm64
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
+CONFIG_SPRD_WLAN_VENDOR_SPECIFIC
+	[arch] arm64
+	[plat] sharkl3,sharkl5Pro
 	[missing plat] none
 	[field]
 	[subsys]
@@ -19429,6 +19483,15 @@ CONFIG_WLAN
 	[function] This section contains all the pre 802.11 and 802.11 wireless
 		device drivers. For a complete list of drivers and documentation
 		on them refer to the wireless wiki:
+CONFIG_WLAN_VENDOR_SPREADTRUM
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
 CONFIG_WQ_POWER_EFFICIENT_DEFAULT
 	[arch] all
 	[plat] all

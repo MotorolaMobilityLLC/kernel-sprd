@@ -1,0 +1,460 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
+/*
+ * Copyright © 2021 Unisoc Technologies Co., Ltd.
+ * <https://www.unisoc.com>
+ *
+ * Abstract: cfg80211 header.
+ */
+
+#ifndef __CFG80211_H__
+#define __CFG80211_H__
+
+#include <net/cfg80211.h>
+
+/* auth type */
+#define SPRD_AUTH_OPEN			0
+#define SPRD_AUTH_SHARED		1
+#define SPRD_AUTH_SAE			4
+/* parise or group key type */
+#define SPRD_GROUP			0
+#define SPRD_PAIRWISE			1
+/* WPA version */
+#define SPRD_WPA_VERSION_NONE		0
+#define SPRD_WPA_VERSION_1		BIT(0)
+#define SPRD_WPA_VERSION_2		BIT(1)
+#define SPRD_WAPI_VERSION_1		BIT(2)
+#define SPRD_WPA_VERSION_3		BIT(3)
+/* cipher type */
+#define SPRD_CIPHER_NONE		0
+#define SPRD_CIPHER_WEP40		1
+#define SPRD_CIPHER_WEP104		2
+#define SPRD_CIPHER_TKIP		3
+#define SPRD_CIPHER_CCMP		4
+#define SPRD_CIPHER_AP_TKIP		5
+#define SPRD_CIPHER_AP_CCMP		6
+#define SPRD_CIPHER_WAPI		7
+#define SPRD_CIPHER_AES_CMAC		8
+/* cipher suite */
+#define WLAN_CIPHER_SUITE_PMK		0x000FACFF
+#define WLAN_CIPHER_SUITE_DPP		0x506F9A02
+/* AKM suite */
+#define WLAN_AKM_SUITE_WAPI_CERT	0x00147201
+#define WLAN_AKM_SUITE_WAPI_PSK		0x00147202
+#define WLAN_AKM_SUITE_OWE		0x000FAC12
+
+#define SPRD_AKM_SUITE_NONE		(0)
+#define SPRD_AKM_SUITE_8021X		(1)
+#define SPRD_AKM_SUITE_PSK		(2)
+#define SPRD_AKM_SUITE_FT_8021X	(3)
+#define SPRD_AKM_SUITE_FT_PSK		(4)
+#define SPRD_AKM_SUITE_WAPI_PSK	(4)
+#define SPRD_AKM_SUITE_8021X_SHA256	(5)
+#define SPRD_AKM_SUITE_PSK_SHA256	(6)
+#define SPRD_AKM_SUITE_SAE		(8)
+#define SPRD_AKM_SUITE_WAPI_CERT	(12)
+#define SPRD_AKM_SUITE_OWE		(18)
+
+#define WLAN_REASON_DEAUTH_LEAVING	3
+
+#define WIPHY_FLAG_SUPPORTS_SCHED_SCAN	BIT(11)
+
+/* determine the actual values for the macros below*/
+#define SPRD_MAX_SCAN_SSIDS		12
+#define SPRD_MAX_SCAN_IE_LEN		2304
+#define SPRD_MAX_NUM_PMKIDS		4
+#define SPRD_MAX_KEY_INDEX		3
+#define SPRD_SCAN_TIMEOUT_MS		8000
+#define SPRD_MIN_IE_LEN			6
+#define SPRD_MAX_IE_LEN			500
+#define SPRD_SCAN_RESULT_MAX_IE_LEN	1500
+
+#define SPRD_2G_CHAN_NR			14
+#define SPRD_5G_CHAN_NR			25
+#define SPRD_TOTAL_CHAN_NR		\
+	(SPRD_2G_CHAN_NR + SPRD_5G_CHAN_NR)
+#define SPRD_TOTAL_SSID_NR		9
+
+#define SPRD_AP_HIDDEN_FLAG_LEN		1
+#define SPRD_AP_SSID_LEN_OFFSET		(37)
+/* set wfa_cap a specified value to pass WFA Certification */
+#define SPRD_WFA_CAP_11R		BIT(0)
+#define SPRD_WFA_CAP_11K		BIT(1)
+#define SPRD_WFA_CAP_WMM_AC		BIT(2)
+#define SPRD_WFA_CAP_11U_QOS_MAP	BIT(3)
+#define SPRD_WFA_CAP_11N_WMM		BIT(4)
+#define SPRD_WFA_CAP_NON_RAN_MAC	BIT(5)
+
+#define RATETAB_ENT(_rate, _rateid, _flags)				\
+{									\
+	.bitrate	= (_rate),					\
+	.hw_value	= (_rateid),					\
+	.flags		= (_flags),					\
+}
+
+#define CHAN2G(_channel, _freq, _flags)					\
+{									\
+	.band                   = NL80211_BAND_2GHZ,			\
+	.center_freq            = (_freq),				\
+	.hw_value               = (_channel),				\
+	.flags                  = (_flags),				\
+	.max_antenna_gain       = 0,					\
+	.max_power              = 30,					\
+}
+
+#define CHAN5G(_channel, _flags)					\
+{									\
+	.band                   = NL80211_BAND_5GHZ,			\
+	.center_freq		= 5000 + (5 * (_channel)),		\
+	.hw_value		= (_channel),				\
+	.flags			= (_flags),				\
+	.max_antenna_gain	= 0,					\
+	.max_power		= 30,					\
+}
+
+static struct ieee80211_rate sprd_rates[] = {
+	RATETAB_ENT(10, 0x1, 0),
+	RATETAB_ENT(20, 0x2, 0),
+	RATETAB_ENT(55, 0x5, 0),
+	RATETAB_ENT(110, 0xb, 0),
+	RATETAB_ENT(60, 0x6, 0),
+	RATETAB_ENT(90, 0x9, 0),
+	RATETAB_ENT(120, 0xc, 0),
+	RATETAB_ENT(180, 0x12, 0),
+	RATETAB_ENT(240, 0x18, 0),
+	RATETAB_ENT(360, 0x24, 0),
+	RATETAB_ENT(480, 0x30, 0),
+	RATETAB_ENT(540, 0x36, 0),
+
+	RATETAB_ENT(65, 0x80, 0),
+	RATETAB_ENT(130, 0x81, 0),
+	RATETAB_ENT(195, 0x82, 0),
+	RATETAB_ENT(260, 0x83, 0),
+	RATETAB_ENT(390, 0x84, 0),
+	RATETAB_ENT(520, 0x85, 0),
+	RATETAB_ENT(585, 0x86, 0),
+	RATETAB_ENT(650, 0x87, 0),
+	RATETAB_ENT(130, 0x88, 0),
+	RATETAB_ENT(260, 0x89, 0),
+	RATETAB_ENT(390, 0x8a, 0),
+	RATETAB_ENT(520, 0x8b, 0),
+	RATETAB_ENT(780, 0x8c, 0),
+	RATETAB_ENT(1040, 0x8d, 0),
+	RATETAB_ENT(1170, 0x8e, 0),
+	RATETAB_ENT(1300, 0x8f, 0),
+};
+
+static struct ieee80211_channel sprd_2ghz_channels[] = {
+	CHAN2G(1, 2412, 0),
+	CHAN2G(2, 2417, 0),
+	CHAN2G(3, 2422, 0),
+	CHAN2G(4, 2427, 0),
+	CHAN2G(5, 2432, 0),
+	CHAN2G(6, 2437, 0),
+	CHAN2G(7, 2442, 0),
+	CHAN2G(8, 2447, 0),
+	CHAN2G(9, 2452, 0),
+	CHAN2G(10, 2457, 0),
+	CHAN2G(11, 2462, 0),
+	CHAN2G(12, 2467, 0),
+	CHAN2G(13, 2472, 0),
+	CHAN2G(14, 2484, 0),
+};
+
+static struct ieee80211_channel sprd_5ghz_channels[] = {
+	CHAN5G(34, 0), CHAN5G(36, 0),
+	CHAN5G(40, 0), CHAN5G(44, 0),
+	CHAN5G(48, 0), CHAN5G(52, 0),
+	CHAN5G(56, 0), CHAN5G(60, 0),
+	CHAN5G(64, 0), CHAN5G(100, 0),
+	CHAN5G(104, 0), CHAN5G(108, 0),
+	CHAN5G(112, 0), CHAN5G(116, 0),
+	CHAN5G(120, 0), CHAN5G(124, 0),
+	CHAN5G(128, 0), CHAN5G(132, 0),
+	CHAN5G(136, 0), CHAN5G(140, 0),
+	CHAN5G(144, 0), CHAN5G(149, 0),
+	CHAN5G(153, 0), CHAN5G(157, 0),
+	CHAN5G(161, 0), CHAN5G(165, 0),
+};
+
+static const u32 sprd_cipher_suites[] = {
+	WLAN_CIPHER_SUITE_WEP40,
+	WLAN_CIPHER_SUITE_WEP104,
+	WLAN_CIPHER_SUITE_TKIP,
+	WLAN_CIPHER_SUITE_CCMP,
+	WLAN_CIPHER_SUITE_SMS4,
+	/* required by ieee802.11w */
+	WLAN_CIPHER_SUITE_AES_CMAC,
+	WLAN_CIPHER_SUITE_PMK,
+};
+
+/* Supported mgmt frame types to be advertised to cfg80211 */
+static const struct ieee80211_txrx_stypes
+sprd_mgmt_stypes[NUM_NL80211_IFTYPES] = {
+	[NL80211_IFTYPE_STATION] = {
+		.tx = 0xffff,
+		.rx = BIT(IEEE80211_STYPE_ACTION >> 4) |
+		BIT(IEEE80211_STYPE_PROBE_REQ >> 4)
+		},
+	[NL80211_IFTYPE_AP] = {
+		.tx = 0xffff,
+		.rx = BIT(IEEE80211_STYPE_ASSOC_REQ >> 4) |
+		BIT(IEEE80211_STYPE_REASSOC_REQ >> 4) |
+		BIT(IEEE80211_STYPE_PROBE_REQ >> 4) |
+		BIT(IEEE80211_STYPE_DISASSOC >> 4) |
+		BIT(IEEE80211_STYPE_AUTH >> 4) |
+		BIT(IEEE80211_STYPE_DEAUTH >> 4) |
+		BIT(IEEE80211_STYPE_ACTION >> 4)
+		},
+	[NL80211_IFTYPE_P2P_CLIENT] = {
+		.tx = 0xffff,
+		.rx = BIT(IEEE80211_STYPE_ACTION >> 4) |
+		BIT(IEEE80211_STYPE_PROBE_REQ >> 4)
+		},
+	[NL80211_IFTYPE_P2P_GO] = {
+		.tx = 0xffff,
+		.rx = BIT(IEEE80211_STYPE_ASSOC_REQ >> 4) |
+		BIT(IEEE80211_STYPE_REASSOC_REQ >> 4) |
+		BIT(IEEE80211_STYPE_PROBE_REQ >> 4) |
+		BIT(IEEE80211_STYPE_DISASSOC >> 4) |
+		BIT(IEEE80211_STYPE_AUTH >> 4) |
+		BIT(IEEE80211_STYPE_DEAUTH >> 4) |
+		BIT(IEEE80211_STYPE_ACTION >> 4)
+		},
+	[NL80211_IFTYPE_P2P_DEVICE] = {
+		.tx = 0xffff,
+		.rx = BIT(IEEE80211_STYPE_ACTION >> 4) |
+		BIT(IEEE80211_STYPE_PROBE_REQ >> 4)
+		},
+};
+
+static const struct ieee80211_iface_limit sprd_iface_limits[] = {
+	{
+		.max = 1,
+		.types = BIT(NL80211_IFTYPE_STATION) | BIT(NL80211_IFTYPE_AP)
+	},
+	{
+		.max = 1,
+		.types = BIT(NL80211_IFTYPE_P2P_CLIENT) |
+			BIT(NL80211_IFTYPE_P2P_GO)
+	},
+	{
+		.max = 1,
+		.types = BIT(NL80211_IFTYPE_P2P_DEVICE)
+	}
+};
+
+static const struct ieee80211_iface_combination sprd_iface_combos[] = {
+	{
+		.max_interfaces = 3,
+		.num_different_channels = 2,
+		.n_limits = ARRAY_SIZE(sprd_iface_limits),
+		.limits = sprd_iface_limits
+	}
+};
+
+#ifdef CONFIG_PM
+static const struct wiphy_wowlan_support sprd_wowlan_support = {
+	.flags = WIPHY_WOWLAN_ANY | WIPHY_WOWLAN_DISCONNECT,
+};
+#endif
+
+enum sprd_mode {
+	SPRD_MODE_NONE,
+	SPRD_MODE_STATION,
+	SPRD_MODE_AP,
+
+	SPRD_MODE_P2P_DEVICE = 4,
+	SPRD_MODE_P2P_CLIENT,
+	SPRD_MODE_P2P_GO,
+
+	SPRD_MODE_MAX,
+};
+
+enum sprd_sm_state {
+	SPRD_UNKNOWN = 0,
+	SPRD_SCANNING,
+	SPRD_SCAN_ABORTING,
+	SPRD_DISCONNECTING,
+	SPRD_DISCONNECTED,
+	SPRD_CONNECTING,
+	SPRD_CONNECTED
+};
+
+enum sprd_connect_result {
+	SPRD_CONNECT_SUCCESS,
+	SPRD_CONNECT_FAILED,
+	SPRD_ROAM_SUCCESS,
+	SPRD_ROAM_FAILED
+};
+
+enum sprd_acl_mode {
+	SPRD_ACL_MODE_DISABLE,
+	SPRD_ACL_MODE_WHITELIST,
+	SPRD_ACL_MODE_BLACKLIST,
+};
+
+struct sprd_scan_ssid {
+	u8 len;
+	u8 ssid[0];
+} __packed;
+
+struct sprd_sched_scan {
+	u32 interval;
+	u32 flags;
+	s32 rssi_thold;
+	u8 channel[SPRD_TOTAL_CHAN_NR];
+
+	u32 n_ssids;
+	u8 *ssid[SPRD_TOTAL_CHAN_NR];
+	u32 n_match_ssids;
+	u8 *mssid[SPRD_TOTAL_CHAN_NR];
+
+	const u8 *ie;
+	size_t ie_len;
+};
+
+struct sprd_connect_info {
+	u8 *bssid;
+	u8 chan;
+	s8 signal;
+	u8 *bea_ie;
+	u16 bea_ie_len;
+	u8 *req_ie;
+	u16 req_ie_len;
+	u8 *resp_ie;
+	u16 resp_ie_len;
+} __packed;
+
+struct sprd_reg_rule {
+	struct ieee80211_freq_range freq_range;
+	struct ieee80211_power_rule power_rule;
+	u32 flags;
+	u32 dfs_cac_ms;
+};
+
+struct sprd_ieee80211_regdomain {
+	u32 n_reg_rules;
+	char alpha2[2];
+	struct sprd_reg_rule reg_rules[];
+};
+
+static inline __le32 sprd_convert_wpa_version(u32 version)
+{
+	u32 ret;
+
+	switch (version) {
+	case NL80211_WPA_VERSION_1:
+		ret = SPRD_WPA_VERSION_1;
+		break;
+	case NL80211_WPA_VERSION_2:
+		ret = SPRD_WPA_VERSION_2;
+		break;
+	case NL80211_WPA_VERSION_3:
+		ret = SPRD_WPA_VERSION_3;
+		break;
+	default:
+		ret = SPRD_WPA_VERSION_NONE;
+		break;
+	}
+
+	return cpu_to_le32(ret);
+}
+
+static inline u8 sprd_parse_akm(u32 akm)
+{
+	u8 ret;
+
+	switch (akm) {
+	case WLAN_AKM_SUITE_PSK:
+		ret = SPRD_AKM_SUITE_PSK;
+		break;
+	case WLAN_AKM_SUITE_8021X:
+		ret = SPRD_AKM_SUITE_8021X;
+		break;
+	case WLAN_AKM_SUITE_FT_PSK:
+		ret = SPRD_AKM_SUITE_FT_PSK;
+		break;
+	case WLAN_AKM_SUITE_FT_8021X:
+		ret = SPRD_AKM_SUITE_FT_8021X;
+		break;
+	case WLAN_AKM_SUITE_WAPI_PSK:
+		ret = SPRD_AKM_SUITE_WAPI_PSK;
+		break;
+	case WLAN_AKM_SUITE_WAPI_CERT:
+		ret = SPRD_AKM_SUITE_WAPI_CERT;
+		break;
+	case WLAN_AKM_SUITE_PSK_SHA256:
+		ret = SPRD_AKM_SUITE_PSK_SHA256;
+		break;
+	case WLAN_AKM_SUITE_8021X_SHA256:
+		ret = SPRD_AKM_SUITE_8021X_SHA256;
+		break;
+	case WLAN_AKM_SUITE_OWE:
+		ret = SPRD_AKM_SUITE_OWE;
+		break;
+	case WLAN_AKM_SUITE_SAE:
+		ret = SPRD_AKM_SUITE_SAE;
+		break;
+	default:
+		ret = SPRD_AKM_SUITE_NONE;
+		break;
+	}
+
+	return ret;
+}
+
+static inline u8 sprd_parse_cipher(u32 cipher)
+{
+	u8 ret;
+
+	switch (cipher) {
+	case WLAN_CIPHER_SUITE_WEP40:
+		ret = SPRD_CIPHER_WEP40;
+		break;
+	case WLAN_CIPHER_SUITE_WEP104:
+		ret = SPRD_CIPHER_WEP104;
+		break;
+	case WLAN_CIPHER_SUITE_TKIP:
+		ret = SPRD_CIPHER_TKIP;
+		break;
+	case WLAN_CIPHER_SUITE_CCMP:
+		ret = SPRD_CIPHER_CCMP;
+		break;
+	case WLAN_CIPHER_SUITE_SMS4:
+		ret = SPRD_CIPHER_WAPI;
+		break;
+	case WLAN_CIPHER_SUITE_AES_CMAC:
+		ret = SPRD_CIPHER_AES_CMAC;
+		break;
+	default:
+		ret = SPRD_CIPHER_NONE;
+		break;
+	}
+
+	return ret;
+}
+
+static inline u16 sprd_channel_to_band(u16 chan)
+{
+	return chan <= SPRD_2G_CHAN_NR ? NL80211_BAND_2GHZ : NL80211_BAND_5GHZ;
+}
+
+struct sprd_vif;
+struct sprd_priv;
+struct sprd_chip_ops;
+
+int sprd_cfg80211_scan(struct wiphy *wiphy,
+		       struct cfg80211_scan_request *request);
+int sprd_cfg80211_sched_scan_start(struct wiphy *wiphy, struct net_device *ndev,
+				   struct cfg80211_sched_scan_request *request);
+void sprd_cfg80211_abort_scan(struct wiphy *wiphy, struct wireless_dev *wdev);
+int sprd_cfg80211_sched_scan_stop(struct wiphy *wiphy, struct net_device *ndev,
+				  u64 reqid);
+void sprd_dump_frame_prot_info(int send, int freq, const unsigned char *buf,
+			       int len);
+int sprd_init_fw(struct sprd_vif *vif);
+int sprd_uninit_fw(struct sprd_vif *vif);
+struct sprd_priv *sprd_core_create(struct sprd_chip_ops *chip_ops);
+void sprd_core_free(struct sprd_priv *priv);
+
+#endif

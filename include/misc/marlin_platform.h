@@ -58,7 +58,6 @@ extern void *marlin_callback_para;
 enum wcn_clock_type wcn_get_xtal_26m_clk_type(void);
 enum wcn_clock_mode wcn_get_xtal_26m_clk_mode(void);
 const char *wcn_get_chip_name(void);
-enum wcn_chip_id_type wcn_get_chip_type(void);
 void marlin_power_off(enum wcn_sub_sys subsys);
 int marlin_get_power(void);
 int marlin_set_wakeup(enum wcn_sub_sys subsys);
@@ -77,7 +76,6 @@ void wcn_set_module_status_changed(bool status);
 int marlin_reset_register_notify(void *callback_func, void *para);
 int marlin_reset_unregister_notify(void);
 int is_first_power_on(enum wcn_sub_sys subsys);
-int cali_ini_need_download(enum wcn_sub_sys subsys);
 const char *strno(enum wcn_sub_sys subsys);
 void wcn_chip_power_on(void);
 void wcn_chip_power_off(void);
@@ -85,6 +83,14 @@ void mdbg_assert_interface(char *str);
 char *gnss_firmware_path_get(void);
 
 #else
+static inline int marlin_reset_register_notify(void *callback_func, void *para)
+{
+	return 0;
+}
+static inline int marlin_reset_unregister_notify(void)
+{
+	return 0;
+}
 static inline void wcn_chip_power_off(void) {}
 static inline const char *wcn_get_chip_name(void)
 {
@@ -138,6 +144,21 @@ static inline enum wcn_clock_type wcn_get_xtal_26m_clk_type(void)
 static inline char *gnss_firmware_path_get(void)
 {
 	return NULL;
+}
+#endif
+
+#if (defined CONFIG_SC2355) || (defined CONFIG_UMW2652) \
+	|| (defined CONFIG_UMW2653) || (defined CONFIG_UMW2631_I)
+enum wcn_chip_id_type wcn_get_chip_type(void);
+int cali_ini_need_download(enum wcn_sub_sys subsys);
+#else
+static inline enum wcn_chip_id_type wcn_get_chip_type(void)
+{
+	return WCN_CHIP_ID_INVALID;
+}
+static inline int cali_ini_need_download(enum wcn_sub_sys subsys)
+{
+	return 0;
 }
 #endif
 

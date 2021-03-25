@@ -4656,6 +4656,9 @@ CONFIG_UNISOC_AUDIO_SAUDIO=m
 # end of UNISOC Audio Assistant Modules
 # end of UNISOC audio devices
 
+CONFIG_WLAN_VENDOR_SPREADTRUM=y
+# CONFIG_SPRD_WLAN is not set
+
 #
 # Trusty
 #
