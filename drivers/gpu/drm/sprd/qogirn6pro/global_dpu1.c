@@ -204,12 +204,12 @@ static int dpu_clk_init(struct dpu_context *ctx)
 	dpi_clock = ctx->bypass_mode ?
 		ctx->vm.pixelclock / 2 : ctx->vm.pixelclock;
 
-	pixelpll_clock = calc_pixelpll_clk(dpi_clock, 297000);
+	pixelpll_clock = calc_pixelpll_clk(dpi_clock, 297000000);
 	ret = clk_set_rate(clk_ctx->clk_pixelpll, pixelpll_clock);
 	if (ret)
 		pr_err("dpu update pixelpll clk rate failed\n");
 
-	ret = clk_set_rate(clk_ctx->clk_dpu_dpi, dpi_clock);
+	ret = clk_set_rate(clk_ctx->clk_dpu_dpi, dpi_clock * 9);
 	if (ret)
 		pr_err("dpu update dpi clk rate failed\n");
 
@@ -319,6 +319,7 @@ static void dpu_glb_disable(struct dpu_context *ctx)
 
 static void dpu_reset(struct dpu_context *ctx)
 {
+/*
 	regmap_update_bits(ctx_reset.regmap,
 		    ctx_reset.enable_reg,
 		    ctx_reset.mask_bit,
@@ -328,6 +329,7 @@ static void dpu_reset(struct dpu_context *ctx)
 		    ctx_reset.enable_reg,
 		    ctx_reset.mask_bit,
 		    (unsigned int)(~ctx_reset.mask_bit));
+*/
 }
 
 static void dpu_power_domain(struct dpu_context *ctx, int enable)

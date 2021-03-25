@@ -11,11 +11,19 @@
 
 #include "sprd_dp.h"
 
+static struct clk *clk_ipa_apb_dpu1_eb;
 static struct clk *clk_ipa_apb_dptx_eb;
 
 static int dp_glb_parse_dt(struct dp_context *ctx,
 				struct device_node *np)
 {
+	clk_ipa_apb_dpu1_eb =
+		of_clk_get_by_name(np, "clk_ipa_apb_dpu1_eb");
+	if (IS_ERR(clk_ipa_apb_dpu1_eb)) {
+		pr_warn("read clk_ipa_apb_dpu1_eb failed\n");
+		clk_ipa_apb_dpu1_eb = NULL;
+	}
+
 	clk_ipa_apb_dptx_eb =
 		of_clk_get_by_name(np, "clk_ipa_apb_dptx_eb");
 	if (IS_ERR(clk_ipa_apb_dptx_eb)) {
@@ -30,6 +38,10 @@ static void dp_glb_enable(struct dp_context *ctx)
 {
 	int ret;
 
+	ret = clk_prepare_enable(clk_ipa_apb_dpu1_eb);
+	if (ret)
+		pr_err("enable clk_ipa_apb_dptx_eb failed!\n");
+
 	ret = clk_prepare_enable(clk_ipa_apb_dptx_eb);
 	if (ret)
 		pr_err("enable clk_ipa_apb_dptx_eb failed!\n");
@@ -38,6 +50,7 @@ static void dp_glb_enable(struct dp_context *ctx)
 static void dp_glb_disable(struct dp_context *ctx)
 {
 	clk_disable_unprepare(clk_ipa_apb_dptx_eb);
+	clk_disable_unprepare(clk_ipa_apb_dpu1_eb);
 }
 
 static void dp_reset(struct dp_context *ctx)

@@ -50,6 +50,27 @@ static int sprd_dp_suspend(struct sprd_dp *dp)
 	return 0;
 }
 
+static void sprd_dp_timing_set(struct sprd_dp *dp)
+{
+	dptx_video_ts_calculate(dp->snps_dptx,
+				dp->snps_dptx->link.lanes,
+				dp->snps_dptx->link.rate,
+				dp->snps_dptx->vparams.bpc,
+				dp->snps_dptx->vparams.pix_enc,
+				dp->snps_dptx->vparams.mdtd.pixel_clock);
+
+	dptx_video_reset(dp->snps_dptx, 1, 0);
+	dptx_video_reset(dp->snps_dptx, 0, 0);
+	dptx_video_timing_change(dp->snps_dptx, 0);
+
+	/* enable VSC if YCBCR420 is enabled */
+	if (dp->snps_dptx->vparams.pix_enc == YCBCR420)
+		dptx_vsc_ycbcr420_send(dp->snps_dptx, 1);
+
+	DRM_INFO("%s() set mode %dx%d\n", __func__,
+		dp->ctx.vm.hactive, dp->ctx.vm.vactive);
+}
+
 static void sprd_dp_encoder_enable(struct drm_encoder *encoder)
 {
 
@@ -66,6 +87,8 @@ static void sprd_dp_encoder_enable(struct drm_encoder *encoder)
 	pm_runtime_get_sync(dp->dev.parent);
 
 	sprd_dp_resume(dp);
+
+	sprd_dp_timing_set(dp);
 
 	sprd_dpu1_run(dpu);
 
@@ -125,20 +148,9 @@ static void sprd_dp_encoder_mode_set(struct drm_encoder *encoder,
 		vparams->pix_enc = RGB;
 	}
 
-	dptx_video_ts_calculate(dp->snps_dptx, dp->snps_dptx->link.lanes,
-				dp->snps_dptx->link.rate,
-				vparams->bpc, vparams->pix_enc,
-				vparams->mdtd.pixel_clock);
+	drm_display_mode_to_videomode(mode, &dp->ctx.vm);
 
-	dptx_video_reset(dp->snps_dptx, 1, 0);
-	dptx_video_reset(dp->snps_dptx, 0, 0);
-	dptx_video_timing_change(dp->snps_dptx, 0);
-
-	/* enable VSC if YCBCR420 is enabled */
-	if (vparams->pix_enc == YCBCR420)
-		dptx_vsc_ycbcr420_send(dp->snps_dptx, 1);
-
-	DRM_INFO("%s() set mode: %s\n", __func__, dp->mode->name);
+	DRM_INFO("%s() set mode: %s\n", __func__, mode->name);
 }
 
 static int sprd_dp_encoder_atomic_check(struct drm_encoder *encoder,
@@ -221,9 +233,7 @@ sprd_dp_connector_mode_valid(struct drm_connector *connector,
 	if (vic == 16 && mode->clock == 148500) {
 		DRM_INFO("%s() mode: "DRM_MODE_FMT"\n", __func__,
 			 DRM_MODE_ARG(mode));
-		dp->mode = mode;
 		mode->type |= DRM_MODE_TYPE_PREFERRED;
-		drm_display_mode_to_videomode(dp->mode, &dp->ctx.vm);
 	}
 
 	/* 3840x2160@60Hz yuv420 bypass */
@@ -349,10 +359,10 @@ sprd_dp_connector_detect(struct drm_connector *connector, bool force)
 
 	DRM_INFO("%s()\n", __func__);
 
-	if (dptx_get_hotplug_status(dp->snps_dptx))
+	if (dp->snps_dptx->link.trained)
 		return connector_status_connected;
-
-	return connector_status_disconnected;
+	else
+		return connector_status_disconnected;
 }
 
 static void sprd_dp_connector_destroy(struct drm_connector *connector)

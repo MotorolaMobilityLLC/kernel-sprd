@@ -467,6 +467,7 @@ static int dpu_init(struct dpu_context *ctx)
 	reg->dpu_int_clr = 0xffff;
 
 	dpu_sdp_disable(ctx);
+	reg->cursor_en = 0;
 	//dpu_write_back_config(ctx);
 
 	return 0;
@@ -833,6 +834,11 @@ static void dpu_dpi_init(struct dpu_context *ctx)
 	reg->dpu_cfg0 &= ~BIT(0);
 
 	/* set dpi timing */
+	if (!(ctx->vm.flags & DISPLAY_FLAGS_HSYNC_LOW))
+		reg->dpi_ctrl |= BIT(0);
+	if (!(ctx->vm.flags & DISPLAY_FLAGS_VSYNC_LOW))
+		reg->dpi_ctrl |= BIT(1);
+
 	reg->dpi_h_timing = (ctx->vm.hsync_len << 0) |
 			    (ctx->vm.hback_porch << 8) |
 			    (ctx->vm.hfront_porch << 20);

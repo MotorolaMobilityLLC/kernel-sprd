@@ -47,7 +47,6 @@ struct sprd_dp {
 	struct drm_connector connector;
 	struct drm_bridge *bridge;
 	struct drm_panel *panel;
-	struct drm_display_mode *mode;
 	const struct dp_glb_ops *glb;
 	struct dp_context ctx;
 	struct dptx *snps_dptx;
