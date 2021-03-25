@@ -30,7 +30,7 @@
 #include "crypto.h"
 #include "card.h"
 #ifdef CONFIG_EMMC_SOFTWARE_CQ_SUPPORT
-#define CONFIG_EMMC_SOFTWARE_CQ_BIND_CPUS
+//#define CONFIG_EMMC_SOFTWARE_CQ_BIND_CPUS
 #endif
 
 /*
