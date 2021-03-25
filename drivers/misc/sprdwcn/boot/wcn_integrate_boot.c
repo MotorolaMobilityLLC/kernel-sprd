@@ -1164,7 +1164,7 @@ bool wcn_sys_polling_poweron(struct wcn_device *wcn_dev)
 		}
 
 		i++;
-		usleep_range(10, 15);
+		usleep_range(64, 128);
 	}
 
 	WCN_ERR("[-]%s wcn sys wakeup fail\n", __func__);
@@ -1184,7 +1184,7 @@ bool wcn_sys_polling_powerdown(struct wcn_device *wcn_dev)
 		}
 
 		i++;
-		usleep_range(10, 15);
+		usleep_range(64, 128);
 	}
 
 	WCN_ERR("[-]%s wcn sys shutdown fail\n", __func__);
@@ -1204,7 +1204,7 @@ bool wcn_sys_polling_wakeup(struct wcn_device *wcn_dev)
 		}
 
 		i++;
-		usleep_range(10, 15);
+		usleep_range(64, 128);
 	}
 
 	WCN_ERR("[-]%s wcn sys wakeup fail\n", __func__);
@@ -1223,7 +1223,7 @@ bool wcn_sys_polling_deepsleep(struct wcn_device *wcn_dev)
 		}
 
 		i++;
-		usleep_range(10, 15);
+		usleep_range(64, 128);
 	}
 
 	WCN_ERR("[-]%s wcn sys deepsleep fail\n", __func__);
@@ -1243,7 +1243,7 @@ bool btwf_sys_polling_deepsleep(struct wcn_device *wcn_dev)
 		}
 
 		i++;
-		usleep_range(10, 15);
+		usleep_range(64, 128);
 	}
 
 	WCN_ERR("[-]%s btwf sys deepsleep fail\n", __func__);
@@ -1263,7 +1263,7 @@ bool btwf_sys_polling_wakeup(struct wcn_device *wcn_dev)
 		}
 
 		i++;
-		usleep_range(10, 15);
+		usleep_range(64, 128);
 	}
 
 	WCN_ERR("[-]%s btwf sys wakeup fail\n", __func__);
@@ -1283,7 +1283,7 @@ bool btwf_sys_polling_poweron(struct wcn_device *wcn_dev)
 		}
 
 		i++;
-		usleep_range(10, 15);
+		usleep_range(64, 128);
 	}
 
 	WCN_ERR("[-]%s btwf sys is powerdown\n", __func__);
@@ -1303,7 +1303,7 @@ bool btwf_sys_polling_powerdown(struct wcn_device *wcn_dev)
 		}
 
 		i++;
-		usleep_range(10, 15);
+		usleep_range(64, 128);
 	}
 
 	WCN_ERR("[-]%s btwf sys is not poweron\n", __func__);
@@ -1323,7 +1323,7 @@ bool gnss_sys_polling_wakeup(struct wcn_device *wcn_dev)
 		}
 
 		i++;
-		usleep_range(10, 15);
+		usleep_range(64, 128);
 	}
 
 	WCN_ERR("[-]%s gnss sys wakeup fail\n", __func__);
@@ -1343,7 +1343,7 @@ bool gnss_sys_polling_deepsleep(struct wcn_device *wcn_dev)
 		}
 
 		i++;
-		usleep_range(10, 15);
+		usleep_range(64, 128);
 	}
 
 	WCN_ERR("[-]%s gnss sys deepsleep fail\n", __func__);
@@ -1362,7 +1362,7 @@ bool gnss_sys_polling_poweron(struct wcn_device *wcn_dev)
 		}
 
 		i++;
-		usleep_range(10, 15);
+		usleep_range(64, 128);
 	}
 
 	WCN_ERR("[-]%s gnss sys is powerdown\n", __func__);
@@ -1381,7 +1381,7 @@ bool gnss_sys_polling_powerdown(struct wcn_device *wcn_dev)
 		}
 
 		i++;
-		usleep_range(10, 15);
+		usleep_range(64, 128);
 	}
 
 	WCN_ERR("[-]%s gnss sys isn't powerdown\n", __func__);
@@ -1401,7 +1401,7 @@ bool gnss_sys_polling_wakeup_poweron(struct wcn_device *wcn_dev)
 		}
 
 		i++;
-		usleep_range(10, 15);
+		usleep_range(64, 128);
 	}
 
 	WCN_ERR("[-]%s gnss sys wakeup poweron fail\n", __func__);
