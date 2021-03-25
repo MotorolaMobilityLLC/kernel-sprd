@@ -30,7 +30,7 @@
 static void sprd_dpu_enable(struct sprd_dpu *dpu);
 static void sprd_dpu_disable(struct sprd_dpu *dpu);
 
-static void sprd_plane_prepare_fb(struct sprd_crtc *crtc,
+static void sprd_dpu_prepare_fb(struct sprd_crtc *crtc,
 				struct drm_plane_state *new_state)
 {
 	struct drm_gem_object *obj;
@@ -50,7 +50,7 @@ static void sprd_plane_prepare_fb(struct sprd_crtc *crtc,
 	}
 }
 
-static void sprd_plane_cleanup_fb(struct sprd_crtc *crtc,
+static void sprd_dpu_cleanup_fb(struct sprd_crtc *crtc,
 				struct drm_plane_state *old_state)
 {
 	struct drm_gem_object *obj;
@@ -135,8 +135,6 @@ static void sprd_dpu_atomic_begin(struct sprd_crtc *crtc)
 
 	down(&dpu->ctx.lock);
 
-	memset(crtc->layers, 0, sizeof(*crtc->layers) * crtc->pending_planes);
-
 	crtc->pending_planes = 0;
 }
 
@@ -148,7 +146,7 @@ static void sprd_dpu_atomic_flush(struct sprd_crtc *crtc)
 	DRM_DEBUG("%s()\n", __func__);
 
 	if (crtc->pending_planes)
-		dpu->core->flip(&dpu->ctx, crtc->layers, crtc->pending_planes);
+		dpu->core->flip(&dpu->ctx, crtc->planes, crtc->pending_planes);
 
 	up(&dpu->ctx.lock);
 }
@@ -184,8 +182,8 @@ static const struct sprd_crtc_ops sprd_dpu_ops = {
 	.atomic_disable	= sprd_dpu_atomic_disable,
 	.enable_vblank	= sprd_dpu_enable_vblank,
 	.disable_vblank	= sprd_dpu_disable_vblank,
-	.prepare_fb = sprd_plane_prepare_fb,
-	.cleanup_fb = sprd_plane_cleanup_fb,
+	.prepare_fb = sprd_dpu_prepare_fb,
+	.cleanup_fb = sprd_dpu_cleanup_fb,
 };
 
 void sprd_dpu_run(struct sprd_dpu *dpu)
@@ -345,26 +343,21 @@ static int sprd_dpu_bind(struct device *dev, struct device *master, void *data)
 	struct drm_device *drm = data;
 	struct sprd_dpu *dpu = dev_get_drvdata(dev);
 	struct sprd_crtc_capability cap = {};
-	struct drm_plane *plane;
+	struct sprd_plane *planes;
 
 	DRM_INFO("%s()\n", __func__);
 
 	dpu->core->version(&dpu->ctx);
 	dpu->core->capability(&dpu->ctx, &cap);
 
-	plane = sprd_plane_init(drm, &cap, DRM_PLANE_TYPE_PRIMARY);
-	if (IS_ERR_OR_NULL(plane))
-		return PTR_ERR(plane);
+	planes = sprd_plane_init(drm, &cap, DRM_PLANE_TYPE_PRIMARY);
+	if (IS_ERR_OR_NULL(planes))
+		return PTR_ERR(planes);
 
-	dpu->crtc = sprd_crtc_init(drm, plane, SPRD_DISPLAY_TYPE_LCD,
+	dpu->crtc = sprd_crtc_init(drm, planes, SPRD_DISPLAY_TYPE_LCD,
 				&sprd_dpu_ops, dpu->ctx.version, dpu);
 	if (IS_ERR(dpu->crtc))
 		return PTR_ERR(dpu->crtc);
-
-	dpu->crtc->layers = devm_kcalloc(drm->dev, cap.max_layers,
-				  sizeof(struct sprd_crtc_layer), GFP_KERNEL);
-	if (!dpu->crtc->layers)
-		return -ENOMEM;
 
 	sprd_dpu_irq_request(dpu);
 
@@ -411,16 +404,14 @@ static int sprd_dpu_context_init(struct sprd_dpu *dpu,
 {
 	struct resource r;
 	struct dpu_context *ctx = &dpu->ctx;
-
+	if (dpu->core->enhance_init)
+		dpu->core->enhance_init(ctx);
 	if (dpu->core->parse_dt)
 		dpu->core->parse_dt(ctx, np);
 	if (dpu->clk->parse_dt)
 		dpu->clk->parse_dt(ctx, np);
 	if (dpu->glb->parse_dt)
 		dpu->glb->parse_dt(ctx, np);
-
-	if (dpu->core->enhance_init)
-		dpu->core->enhance_init(ctx);
 
 	if (of_address_to_resource(np, 0, &r)) {
 		DRM_ERROR("parse dt base address failed\n");

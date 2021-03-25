@@ -9,6 +9,7 @@
 #include <linux/workqueue.h>
 
 #include "sprd_crtc.h"
+#include "sprd_plane.h"
 #include "sprd_dpu.h"
 
 #define XFBC8888_HEADER_SIZE(w, h) (ALIGN((w) * (h) / (8 * 8) / 2, 128))
@@ -133,8 +134,7 @@
 static bool panel_ready = true;
 
 static void dpu_clean_all(struct dpu_context *ctx);
-static void dpu_layer(struct dpu_context *ctx,
-		    struct sprd_crtc_layer *hwlayer);
+static void dpu_layer(struct dpu_context *ctx, struct dpu_layer *hwlayer);
 
 static void dpu_version(struct dpu_context *ctx)
 {
@@ -567,8 +567,7 @@ static void dpu_bgcolor(struct dpu_context *ctx, u32 color)
 	}
 }
 
-static void dpu_layer(struct dpu_context *ctx,
-		    struct sprd_crtc_layer *hwlayer)
+static void dpu_layer(struct dpu_context *ctx, struct dpu_layer *hwlayer)
 {
 	const struct drm_format_info *info;
 	u32 addr, size, offset, ctrl, reg_val, pitch;
@@ -610,7 +609,7 @@ static void dpu_layer(struct dpu_context *ctx,
 
 		/* dpu r2p0 just support xfbc-rgb */
 		if (hwlayer->xfbc)
-			addr += hwlayer->header_size_r;
+			addr += hwlayer->fbc_hsize_r;
 
 		if (addr % 16)
 			pr_err("layer addr[%d] is not 16 bytes align, it's 0x%08x\n",
@@ -666,8 +665,7 @@ static void dpu_layer(struct dpu_context *ctx,
 				hwlayer->src_w, hwlayer->src_h);
 }
 
-static void dpu_flip(struct dpu_context *ctx,
-		     struct sprd_crtc_layer layers[], u8 count)
+static void dpu_flip(struct dpu_context *ctx, struct sprd_plane planes[], u8 count)
 {
 	int i;
 	u32 reg_val;
@@ -687,8 +685,12 @@ static void dpu_flip(struct dpu_context *ctx,
 	dpu_clean_all(ctx);
 
 	/* start configure dpu layers */
-	for (i = 0; i < count; i++)
-		dpu_layer(ctx, &layers[i]);
+	for (i = 0; i < count; i++) {
+		struct sprd_plane_state *state;
+
+		state = to_sprd_plane_state(planes[i].base.state);
+		dpu_layer(ctx, &state->layer);
+	}
 
 	/* update trigger and wait */
 	if (ctx->if_type == SPRD_DPU_IF_DPI) {

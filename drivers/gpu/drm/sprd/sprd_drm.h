@@ -21,6 +21,7 @@ extern struct platform_driver sprd_dummy_connector_driver;
 
 #ifdef CONFIG_DRM_SPRD_DPU0
 extern struct platform_driver sprd_dpu_driver;
+extern struct platform_driver sprd_backlight_driver;
 #endif
 
 #ifdef CONFIG_DRM_SPRD_DSI

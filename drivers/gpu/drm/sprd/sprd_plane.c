@@ -44,69 +44,61 @@ static void sprd_plane_cleanup_fb(struct drm_plane *plane,
 		crtc->ops->cleanup_fb(crtc, old_state);
 }
 
-static void sprd_plane_atomic_update(struct drm_plane *plane,
+static void sprd_plane_atomic_update(struct drm_plane *drm_plane,
 				    struct drm_plane_state *old_state)
 {
-	struct drm_plane_state *state = plane->state;
-	struct drm_framebuffer *fb = plane->state->fb;
+	struct drm_plane_state *drm_state = drm_plane->state;
+	struct drm_framebuffer *fb = drm_plane->state->fb;
 	struct drm_gem_object *obj;
 	struct sprd_gem_obj *sprd_gem;
-	struct sprd_crtc *crtc = to_sprd_crtc(plane->state->crtc);
-	struct sprd_plane *p = to_sprd_plane(plane);
-	struct sprd_plane_state *s = to_sprd_plane_state(state);
-	struct sprd_crtc_layer *layer = &crtc->layers[p->index];
+	struct sprd_crtc *crtc = to_sprd_crtc(drm_plane->state->crtc);
+	struct sprd_plane *plane = to_sprd_plane(drm_plane);
+	struct sprd_plane_state *state = to_sprd_plane_state(drm_state);
+	struct dpu_layer *layer = &state->layer;
 	int i;
 
-	if (plane->state->crtc->state->active_changed) {
+	if (drm_plane->state->crtc->state->active_changed) {
 		DRM_DEBUG("resume or suspend, no need to update plane\n");
 		return;
 	}
 
-	if (s->pallete_en) {
-		layer->index = p->index;
-		layer->dst_x = state->crtc_x;
-		layer->dst_y = state->crtc_y;
-		layer->dst_w = state->crtc_w;
-		layer->dst_h = state->crtc_h;
-		layer->alpha = state->alpha;
-		layer->blending = state->pixel_blend_mode;
-		layer->pallete_en = s->pallete_en;
-		layer->pallete_color = s->pallete_color;
+	if (layer->pallete_en) {
+		layer->index = plane->index;
+		layer->dst_x = drm_state->crtc_x;
+		layer->dst_y = drm_state->crtc_y;
+		layer->dst_w = drm_state->crtc_w;
+		layer->dst_h = drm_state->crtc_h;
+		layer->alpha = drm_state->alpha;
+		layer->blending = drm_state->pixel_blend_mode;
 		crtc->pending_planes++;
 		DRM_DEBUG("%s() pallete_color = %u, index = %u\n",
 			__func__, layer->pallete_color, layer->index);
 		return;
 	}
 
-	layer->index = p->index;
-	layer->src_x = state->src_x >> 16;
-	layer->src_y = state->src_y >> 16;
-	layer->src_w = state->src_w >> 16;
-	layer->src_h = state->src_h >> 16;
-	layer->dst_x = state->crtc_x;
-	layer->dst_y = state->crtc_y;
-	layer->dst_w = state->crtc_w;
-	layer->dst_h = state->crtc_h;
-	layer->alpha = state->alpha;
-	layer->rotation = state->rotation;
-	layer->blending = state->pixel_blend_mode;
-	layer->rotation = state->rotation;
+	layer->index = plane->index;
+	layer->src_x = drm_state->src_x >> 16;
+	layer->src_y = drm_state->src_y >> 16;
+	layer->src_w = drm_state->src_w >> 16;
+	layer->src_h = drm_state->src_h >> 16;
+	layer->dst_x = drm_state->crtc_x;
+	layer->dst_y = drm_state->crtc_y;
+	layer->dst_w = drm_state->crtc_w;
+	layer->dst_h = drm_state->crtc_h;
+	layer->alpha = drm_state->alpha;
+	layer->rotation = drm_state->rotation;
+	layer->blending = drm_state->pixel_blend_mode;
+	layer->rotation = drm_state->rotation;
 	layer->planes = fb->format->num_planes;
 	layer->format = fb->format->format;
 	layer->xfbc = fb->modifier;
-	layer->header_size_r = s->fbc_hsize_r;
-	layer->header_size_y = s->fbc_hsize_y;
-	layer->header_size_uv = s->fbc_hsize_uv;
-	layer->y2r_coef = s->y2r_coef;
-	layer->pallete_en = s->pallete_en;
-	layer->pallete_color = s->pallete_color;
 
 	DRM_DEBUG("%s() alpha = %u, blending = %u, rotation = %u, y2r_coef = %u\n",
-		  __func__, layer->alpha, layer->blending, layer->rotation, s->y2r_coef);
+		  __func__, layer->alpha, layer->blending, layer->rotation, layer->y2r_coef);
 
 	DRM_DEBUG("%s() xfbc = %u, hsize_r = %u, hsize_y = %u, hsize_uv = %u\n",
-		  __func__, layer->xfbc, layer->header_size_r,
-		  layer->header_size_y, layer->header_size_uv);
+		  __func__, layer->xfbc, layer->fbc_hsize_r,
+		  layer->fbc_hsize_y, layer->fbc_hsize_uv);
 
 	for (i = 0; i < layer->planes; i++) {
 		obj = drm_gem_fb_get_obj(fb, i);
@@ -126,10 +118,10 @@ static int sprd_plane_atomic_check(struct drm_plane *plane,
 	return 0;
 }
 
-static void sprd_plane_atomic_disable(struct drm_plane *plane,
+static void sprd_plane_atomic_disable(struct drm_plane *drm_plane,
 				     struct drm_plane_state *old_state)
 {
-	struct sprd_plane *p = to_sprd_plane(plane);
+	struct sprd_plane *plane = to_sprd_plane(drm_plane);
 
 	/*
 	 * NOTE:
@@ -141,7 +133,7 @@ static void sprd_plane_atomic_disable(struct drm_plane *plane,
 	 *
 	 * We do nothing here but just print a debug log.
 	 */
-	DRM_DEBUG("%s() layer_id = %u\n", __func__, p->index);
+	DRM_DEBUG("%s() layer_id = %u\n", __func__, plane->index);
 }
 
 static const struct drm_plane_helper_funcs sprd_plane_helper_funcs = {
@@ -152,55 +144,50 @@ static const struct drm_plane_helper_funcs sprd_plane_helper_funcs = {
 	.atomic_disable = sprd_plane_atomic_disable,
 };
 
-static void sprd_plane_reset(struct drm_plane *plane)
+static void sprd_plane_reset(struct drm_plane *drm_plane)
 {
-	struct sprd_plane *p = to_sprd_plane(plane);
-	struct sprd_plane_state *s;
+	struct sprd_plane *plane = to_sprd_plane(drm_plane);
+	struct sprd_plane_state *state;
 
 	DRM_INFO("%s()\n", __func__);
 
-	if (plane->state) {
-		__drm_atomic_helper_plane_destroy_state(plane->state);
+	if (drm_plane->state) {
+		__drm_atomic_helper_plane_destroy_state(drm_plane->state);
 
-		s = to_sprd_plane_state(plane->state);
-		memset(s, 0, sizeof(*s));
+		state = to_sprd_plane_state(drm_plane->state);
+		memset(state, 0, sizeof(*state));
 	} else {
-		s = kzalloc(sizeof(*s), GFP_KERNEL);
-		if (!s)
+		state = kzalloc(sizeof(*state), GFP_KERNEL);
+		if (!state)
 			return;
-		plane->state = &s->state;
+		drm_plane->state = &state->base;
 	}
 
-	s->state.plane = plane;
-	s->state.zpos = p->index;
-	s->state.alpha = 255;
-	s->state.pixel_blend_mode = DRM_MODE_BLEND_PIXEL_NONE;
+	state->base.plane = drm_plane;
+	state->base.zpos = plane->index;
+	state->base.alpha = 255;
+	state->base.pixel_blend_mode = DRM_MODE_BLEND_PIXEL_NONE;
 }
 
 static struct drm_plane_state *
 sprd_plane_atomic_duplicate_state(struct drm_plane *plane)
 {
-	struct sprd_plane_state *s;
+	struct sprd_plane_state *state;
 	struct sprd_plane_state *old_state = to_sprd_plane_state(plane->state);
 
 	DRM_DEBUG("%s()\n", __func__);
 
-	s = kzalloc(sizeof(*s), GFP_KERNEL);
-	if (!s)
+	state = kzalloc(sizeof(*state), GFP_KERNEL);
+	if (!state)
 		return NULL;
 
-	__drm_atomic_helper_plane_duplicate_state(plane, &s->state);
+	__drm_atomic_helper_plane_duplicate_state(plane, &state->base);
 
-	WARN_ON(s->state.plane != plane);
+	WARN_ON(state->base.plane != plane);
 
-	s->fbc_hsize_r = old_state->fbc_hsize_r;
-	s->fbc_hsize_y = old_state->fbc_hsize_y;
-	s->fbc_hsize_uv = old_state->fbc_hsize_uv;
-	s->y2r_coef = old_state->y2r_coef;
-	s->pallete_en = old_state->pallete_en;
-	s->pallete_color = old_state->pallete_color;
+	state->layer = old_state->layer;
 
-	return &s->state;
+	return &state->base;
 }
 
 static void sprd_plane_atomic_destroy_state(struct drm_plane *plane,
@@ -212,29 +199,30 @@ static void sprd_plane_atomic_destroy_state(struct drm_plane *plane,
 	kfree(to_sprd_plane_state(state));
 }
 
-static int sprd_plane_atomic_set_property(struct drm_plane *plane,
-					  struct drm_plane_state *state,
+static int sprd_plane_atomic_set_property(struct drm_plane *drm_plane,
+					  struct drm_plane_state *drm_state,
 					  struct drm_property *property,
 					  u64 val)
 {
-	struct sprd_plane *p = to_sprd_plane(plane);
-	struct sprd_plane_state *s = to_sprd_plane_state(state);
+	struct sprd_plane *plane = to_sprd_plane(drm_plane);
+	struct sprd_plane_state *state = to_sprd_plane_state(drm_state);
+	struct dpu_layer *layer = &state->layer;
 
 	DRM_DEBUG("%s() name = %s, val = %llu\n",
 		  __func__, property->name, val);
 
-	if (property == p->fbc_hsize_r_property)
-		s->fbc_hsize_r = val;
-	else if (property == p->fbc_hsize_y_property)
-		s->fbc_hsize_y = val;
-	else if (property == p->fbc_hsize_uv_property)
-		s->fbc_hsize_uv = val;
-	else if (property == p->y2r_coef_property)
-		s->y2r_coef = val;
-	else if (property == p->pallete_en_property)
-		s->pallete_en = val;
-	else if (property == p->pallete_color_property)
-		s->pallete_color = val;
+	if (property == plane->fbc_hsize_r_property)
+		layer->fbc_hsize_r = val;
+	else if (property == plane->fbc_hsize_y_property)
+		layer->fbc_hsize_y = val;
+	else if (property == plane->fbc_hsize_uv_property)
+		layer->fbc_hsize_uv = val;
+	else if (property == plane->y2r_coef_property)
+		layer->y2r_coef = val;
+	else if (property == plane->pallete_en_property)
+		layer->pallete_en = val;
+	else if (property == plane->pallete_color_property)
+		layer->pallete_color = val;
 	else {
 		DRM_ERROR("property %s is invalid\n", property->name);
 		return -EINVAL;
@@ -243,28 +231,29 @@ static int sprd_plane_atomic_set_property(struct drm_plane *plane,
 	return 0;
 }
 
-static int sprd_plane_atomic_get_property(struct drm_plane *plane,
-					  const struct drm_plane_state *state,
+static int sprd_plane_atomic_get_property(struct drm_plane *drm_plane,
+					  const struct drm_plane_state *drm_state,
 					  struct drm_property *property,
 					  u64 *val)
 {
-	struct sprd_plane *p = to_sprd_plane(plane);
-	const struct sprd_plane_state *s = to_sprd_plane_state(state);
+	struct sprd_plane *plane = to_sprd_plane(drm_plane);
+	const struct sprd_plane_state *state = to_sprd_plane_state(drm_state);
+	const struct dpu_layer *layer = &state->layer;
 
 	DRM_DEBUG("%s() name = %s\n", __func__, property->name);
 
-	if (property == p->fbc_hsize_r_property)
-		*val = s->fbc_hsize_r;
-	else if (property == p->fbc_hsize_y_property)
-		*val = s->fbc_hsize_y;
-	else if (property == p->fbc_hsize_uv_property)
-		*val = s->fbc_hsize_uv;
-	else if (property == p->y2r_coef_property)
-		*val = s->y2r_coef;
-	else if (property == p->pallete_en_property)
-		*val = s->pallete_en;
-	else if (property == p->pallete_color_property)
-		*val = s->pallete_color;
+	if (property == plane->fbc_hsize_r_property)
+		*val = layer->fbc_hsize_r;
+	else if (property == plane->fbc_hsize_y_property)
+		*val = layer->fbc_hsize_y;
+	else if (property == plane->fbc_hsize_uv_property)
+		*val = layer->fbc_hsize_uv;
+	else if (property == plane->y2r_coef_property)
+		*val = layer->y2r_coef;
+	else if (property == plane->pallete_en_property)
+		*val = layer->pallete_en;
+	else if (property == plane->pallete_color_property)
+		*val = layer->pallete_color;
 	else {
 		DRM_ERROR("property %s is invalid\n", property->name);
 		return -EINVAL;
@@ -284,7 +273,7 @@ static const struct drm_plane_funcs sprd_plane_funcs = {
 	.atomic_get_property = sprd_plane_atomic_get_property,
 };
 
-static int sprd_plane_create_properties(struct sprd_plane *p, int index)
+static int sprd_plane_create_properties(struct sprd_plane *plane, int index)
 {
 	struct drm_property *prop;
 	unsigned int supported_modes = BIT(DRM_MODE_BLEND_PIXEL_NONE) |
@@ -292,84 +281,82 @@ static int sprd_plane_create_properties(struct sprd_plane *p, int index)
 				       BIT(DRM_MODE_BLEND_COVERAGE);
 
 	/* create rotation property */
-	drm_plane_create_rotation_property(&p->plane,
+	drm_plane_create_rotation_property(&plane->base,
 					   DRM_MODE_ROTATE_0,
 					   DRM_MODE_ROTATE_MASK |
 					   DRM_MODE_REFLECT_MASK);
 
 	/* create alpha property */
-	drm_plane_create_alpha_property(&p->plane);
+	drm_plane_create_alpha_property(&plane->base);
 
 	/* create blend mode property */
-	drm_plane_create_blend_mode_property(&p->plane, supported_modes);
+	drm_plane_create_blend_mode_property(&plane->base, supported_modes);
 
 	/* create zpos property */
-	drm_plane_create_zpos_immutable_property(&p->plane, index);
+	drm_plane_create_zpos_immutable_property(&plane->base, index);
 
 	/* create fbc header size property */
-	prop = drm_property_create_range(p->plane.dev, 0,
+	prop = drm_property_create_range(plane->base.dev, 0,
 			"FBC header size RGB", 0, UINT_MAX);
 	if (!prop)
 		return -ENOMEM;
-	drm_object_attach_property(&p->plane.base, prop, 0);
-	p->fbc_hsize_r_property = prop;
+	drm_object_attach_property(&plane->base.base, prop, 0);
+	plane->fbc_hsize_r_property = prop;
 
-	prop = drm_property_create_range(p->plane.dev, 0,
+	prop = drm_property_create_range(plane->base.dev, 0,
 			"FBC header size Y", 0, UINT_MAX);
 	if (!prop)
 		return -ENOMEM;
-	drm_object_attach_property(&p->plane.base, prop, 0);
-	p->fbc_hsize_y_property = prop;
+	drm_object_attach_property(&plane->base.base, prop, 0);
+	plane->fbc_hsize_y_property = prop;
 
-	prop = drm_property_create_range(p->plane.dev, 0,
+	prop = drm_property_create_range(plane->base.dev, 0,
 			"FBC header size UV", 0, UINT_MAX);
 	if (!prop)
 		return -ENOMEM;
-	drm_object_attach_property(&p->plane.base, prop, 0);
-	p->fbc_hsize_uv_property = prop;
+	drm_object_attach_property(&plane->base.base, prop, 0);
+	plane->fbc_hsize_uv_property = prop;
 
 	/* create y2r coef property */
-	prop = drm_property_create_range(p->plane.dev, 0,
+	prop = drm_property_create_range(plane->base.dev, 0,
 			"YUV2RGB coef", 0, UINT_MAX);
 	if (!prop)
 		return -ENOMEM;
-	drm_object_attach_property(&p->plane.base, prop, 0);
-	p->y2r_coef_property = prop;
+	drm_object_attach_property(&plane->base.base, prop, 0);
+	plane->y2r_coef_property = prop;
 
 	/* create pallete enable property */
-	prop = drm_property_create_range(p->plane.dev, 0,
+	prop = drm_property_create_range(plane->base.dev, 0,
 			"pallete enable", 0, UINT_MAX);
 	if (!prop)
 		return -ENOMEM;
-	drm_object_attach_property(&p->plane.base, prop, 0);
-	p->pallete_en_property = prop;
+	drm_object_attach_property(&plane->base.base, prop, 0);
+	plane->pallete_en_property = prop;
 
 	/* create pallete color property */
-	prop = drm_property_create_range(p->plane.dev, 0,
+	prop = drm_property_create_range(plane->base.dev, 0,
 			"pallete color", 0, UINT_MAX);
 	if (!prop)
 		return -ENOMEM;
-	drm_object_attach_property(&p->plane.base, prop, 0);
-	p->pallete_color_property = prop;
+	drm_object_attach_property(&plane->base.base, prop, 0);
+	plane->pallete_color_property = prop;
 
 	return 0;
 }
 
-struct drm_plane *sprd_plane_init(struct drm_device *drm,
+struct sprd_plane *sprd_plane_init(struct drm_device *drm,
 					struct sprd_crtc_capability *cap,
 					enum drm_plane_type type)
 {
-	struct drm_plane *primary = NULL;
-	struct sprd_plane *p = NULL;
+	struct sprd_plane *planes = NULL;
 	int err, i;
 
+	planes = devm_kcalloc(drm->dev, cap->max_layers, sizeof(*planes), GFP_KERNEL);
+	if (!planes)
+		return ERR_PTR(-ENOMEM);
+
 	for (i = 0; i < cap->max_layers; i++) {
-
-		p = devm_kzalloc(drm->dev, sizeof(*p), GFP_KERNEL);
-		if (!p)
-			return ERR_PTR(-ENOMEM);
-
-		err = drm_universal_plane_init(drm, &p->plane,
+		err = drm_universal_plane_init(drm, &planes[i].base,
 					       1 << drm->mode_config.num_crtc,
 					       &sprd_plane_funcs, cap->fmts_ptr,
 					       cap->fmts_cnt, NULL, type, NULL);
@@ -378,17 +365,12 @@ struct drm_plane *sprd_plane_init(struct drm_device *drm,
 			return ERR_PTR(err);
 		}
 
-		drm_plane_helper_add(&p->plane, &sprd_plane_helper_funcs);
+		drm_plane_helper_add(&planes[i].base, &sprd_plane_helper_funcs);
 
-		sprd_plane_create_properties(p, i);
+		sprd_plane_create_properties(&planes[i], i);
 
-		p->index = i;
-		if (i == 0)
-			primary = &p->plane;
+		planes[i].index = i;
 	}
 
-	if (p)
-		DRM_INFO("dpu plane init ok\n");
-
-	return primary;
+	return planes;
 }

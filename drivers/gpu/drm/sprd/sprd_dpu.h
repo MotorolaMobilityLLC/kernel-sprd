@@ -17,6 +17,7 @@
 #include <uapi/drm/drm_mode.h>
 
 #include "sprd_crtc.h"
+#include "sprd_plane.h"
 
 enum {
 	SPRD_DPU_IF_DBI = 0,
@@ -36,6 +37,16 @@ enum {
 	ENHANCE_CFG_ID_GAMMA,
 	ENHANCE_CFG_ID_LTM,
 	ENHANCE_CFG_ID_CABC,
+	ENHANCE_CFG_ID_CABC_MODE,
+	ENHANCE_CFG_ID_CABC_HIST,
+	ENHANCE_CFG_ID_VSYNC_COUNT,
+	ENHANCE_CFG_ID_FRAME_NO,
+	ENHANCE_CFG_ID_CABC_NO,
+	ENHANCE_CFG_ID_CABC_GAIN,
+	ENHANCE_CFG_ID_CABC_BL_FIX,
+	ENHANCE_CFG_ID_CABC_CUR_BL,
+	ENHANCE_CFG_ID_CABC_RUN,
+	ENHANCE_CFG_ID_CABC_STATE,
 	ENHANCE_CFG_ID_SLP_LUT,
 	ENHANCE_CFG_ID_LUT3D,
 	ENHANCE_CFG_ID_SR_EPF,
@@ -55,9 +66,10 @@ struct dpu_core_ops {
 	void (*disable_vsync)(struct dpu_context *ctx);
 	void (*enable_vsync)(struct dpu_context *ctx);
 	u32 (*isr)(struct dpu_context *ctx);
+	void (*write_back)(struct dpu_context *ctx, u8 count, bool debug);
 	void (*ifconfig)(struct dpu_context *ctx);
 	void (*flip)(struct dpu_context *ctx,
-		     struct sprd_crtc_layer layers[], u8 count);
+		     struct sprd_plane planes[], u8 count);
 	void (*capability)(struct dpu_context *ctx,
 			 struct sprd_crtc_capability *cap);
 	void (*bg_color)(struct dpu_context *ctx, u32 color);
@@ -96,6 +108,7 @@ struct dpu_context {
 	struct semaphore lock;
 	bool enabled;
 	bool stopped;
+	bool flip_pending;
 	wait_queue_head_t wait_queue;
 	bool evt_update;
 	bool evt_stop;
@@ -104,10 +117,18 @@ struct dpu_context {
 	/* pq enhance parameters */
 	void *enhance;
 	int corner_radius;
+	struct work_struct cabc_work;
+	struct work_struct cabc_bl_update;
 
 	/* write back parameters */
 	int wb_en;
 	int wb_xfbc_en;
+	int max_vsync_count;
+	int vsync_count;
+	struct dpu_layer wb_layer;
+	struct work_struct wb_work;
+	dma_addr_t wb_addr_p;
+	void *wb_addr_v;
 
 	/* other specific parameters */
 	bool panel_ready;

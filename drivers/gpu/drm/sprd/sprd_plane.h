@@ -6,21 +6,44 @@
 #ifndef _SPRD_PLANE_H_
 #define _SPRD_PLANE_H_
 
-#define to_sprd_plane(x)		container_of(x, struct sprd_plane, plane)
-#define to_sprd_plane_state(x)	container_of(x, struct sprd_plane_state, state)
+#include <drm/drm_plane.h>
 
-struct sprd_plane_state {
-	struct drm_plane_state state;
+#define to_sprd_plane(x)		container_of(x, struct sprd_plane, base)
+#define to_sprd_plane_state(x)	container_of(x, struct sprd_plane_state, base)
+
+struct dpu_layer {
+	u8 index;
+	u8 planes;
+	u32 addr[4];
+	u32 pitch[4];
+	s16 src_x;
+	s16 src_y;
+	s16 src_w;
+	s16 src_h;
+	s16 dst_x;
+	s16 dst_y;
+	u16 dst_w;
+	u16 dst_h;
+	u32 format;
+	u32 alpha;
+	u32 blending;
+	u32 rotation;
+	u32 xfbc;
 	u32 fbc_hsize_r;
 	u32 fbc_hsize_y;
 	u32 fbc_hsize_uv;
 	u32 y2r_coef;
-	u32 pallete_en;
+	u8 pallete_en;
 	u32 pallete_color;
 };
 
+struct sprd_plane_state {
+	struct drm_plane_state base;
+	struct dpu_layer layer;
+};
+
 struct sprd_plane {
-	struct drm_plane plane;
+	struct drm_plane base;
 	struct drm_property *fbc_hsize_r_property;
 	struct drm_property *fbc_hsize_y_property;
 	struct drm_property *fbc_hsize_uv_property;
@@ -30,7 +53,7 @@ struct sprd_plane {
 	u32 index;
 };
 
-struct drm_plane *sprd_plane_init(struct drm_device *dev,
+struct sprd_plane *sprd_plane_init(struct drm_device *dev,
 					struct sprd_crtc_capability *cap,
 					enum drm_plane_type type);
 

@@ -33,282 +33,6 @@
 #define DRIVER_MAJOR	1
 #define DRIVER_MINOR	0
 
-/**
- * drm_crtc_commit_put - release a reference to the CRTC commmit
- * @commit: CRTC commit
- *
- * This releases a reference to @commit which is freed after removing the
- * final reference. No locking required and callable from any context.
- */
-static inline void sprd_drm_crtc_commit_put(struct drm_crtc_commit *commit)
-{
-	kref_put(&commit->ref, __drm_crtc_commit_free);
-}
-
-
-/**
- * DOC: implementing nonblocking commit
- *
- * Nonblocking atomic commits have to be implemented in the following sequence:
- *
- * 1. Run drm_atomic_helper_prepare_planes() first. This is the only function
- * which commit needs to call which can fail, so we want to run it first and
- * synchronously.
- *
- * 2. Synchronize with any outstanding nonblocking commit worker threads which
- * might be affected the new state update. This can be done by either cancelling
- * or flushing the work items, depending upon whether the driver can deal with
- * cancelled updates. Note that it is important to ensure that the framebuffer
- * cleanup is still done when cancelling.
- *
- * Asynchronous workers need to have sufficient parallelism to be able to run
- * different atomic commits on different CRTCs in parallel. The simplest way to
- * achieve this is by running them on the &system_unbound_wq work queue. Note
- * that drivers are not required to split up atomic commits and run an
- * individual commit in parallel - userspace is supposed to do that if it cares.
- * But it might be beneficial to do that for modesets, since those necessarily
- * must be done as one global operation, and enabling or disabling a CRTC can
- * take a long time. But even that is not required.
- *
- * 3. The software state is updated synchronously with
- * drm_atomic_helper_swap_state(). Doing this under the protection of all modeset
- * locks means concurrent callers never see inconsistent state. And doing this
- * while it's guaranteed that no relevant nonblocking worker runs means that
- * nonblocking workers do not need grab any locks. Actually they must not grab
- * locks, for otherwise the work flushing will deadlock.
- *
- * 4. Schedule a work item to do all subsequent steps, using the split-out
- * commit helpers: a) pre-plane commit b) plane commit c) post-plane commit and
- * then cleaning up the framebuffers after the old framebuffer is no longer
- * being displayed.
- *
- * The above scheme is implemented in the atomic helper libraries in
- * drm_atomic_helper_commit() using a bunch of helper functions. See
- * drm_atomic_helper_setup_commit() for a starting point.
- */
-
-static int sprd_stall_checks(struct drm_crtc *crtc, bool nonblock)
-{
-	struct drm_crtc_commit *commit, *stall_commit = NULL;
-	bool completed = true;
-	int i;
-	long ret = 0;
-
-	spin_lock(&crtc->commit_lock);
-	i = 0;
-	list_for_each_entry(commit, &crtc->commit_list, commit_entry) {
-		if (i == 0) {
-			completed = try_wait_for_completion(&commit->flip_done);
-			/* Userspace is not allowed to get ahead of the previous
-			 * commit with nonblocking ones. */
-			if (!completed && nonblock) {
-				spin_unlock(&crtc->commit_lock);
-				return -EBUSY;
-			}
-		} else if (i == 1) {
-			stall_commit = drm_crtc_commit_get(commit);
-			break;
-		}
-
-		i++;
-	}
-	spin_unlock(&crtc->commit_lock);
-
-	if (!stall_commit)
-		return 0;
-
-	/* We don't want to let commits get ahead of cleanup work too much,
-	 * stalling on 2nd previous commit means triple-buffer won't ever stall.
-	 */
-	ret = wait_for_completion_interruptible_timeout(&stall_commit->cleanup_done,
-							10*HZ);
-	if (ret == 0)
-		DRM_ERROR("[CRTC:%d:%s] cleanup_done timed out\n",
-			  crtc->base.id, crtc->name);
-
-	sprd_drm_crtc_commit_put(stall_commit);
-
-	return ret < 0 ? ret : 0;
-}
-
-static void sprd_release_crtc_commit(struct completion *completion)
-{
-	struct drm_crtc_commit *commit = container_of(completion,
-						      typeof(*commit),
-						      flip_done);
-
-	sprd_drm_crtc_commit_put(commit);
-}
-
-static void sprd_init_commit(struct drm_crtc_commit *commit, struct drm_crtc *crtc)
-{
-	init_completion(&commit->flip_done);
-	init_completion(&commit->hw_done);
-	init_completion(&commit->cleanup_done);
-	INIT_LIST_HEAD(&commit->commit_entry);
-	kref_init(&commit->ref);
-	commit->crtc = crtc;
-}
-
-static struct drm_crtc_commit *
-sprd_crtc_or_fake_commit(struct drm_atomic_state *state, struct drm_crtc *crtc)
-{
-	if (crtc) {
-		struct drm_crtc_state *new_crtc_state;
-
-		new_crtc_state = drm_atomic_get_new_crtc_state(state, crtc);
-
-		return new_crtc_state->commit;
-	}
-
-	if (!state->fake_commit) {
-		state->fake_commit = kzalloc(sizeof(*state->fake_commit), GFP_KERNEL);
-		if (!state->fake_commit)
-			return NULL;
-
-		sprd_init_commit(state->fake_commit, NULL);
-	}
-
-	return state->fake_commit;
-}
-
-/**
- * Gki check failed, it takes a long time to join the Linux community.
- * here is a bypass scheme.
- * sprd_drm_atomic_helper_setup_commit - setup possibly nonblocking commit
- * @state: new modeset state to be committed
- * @nonblock: whether nonblocking behavior is requested.
- *
- * This function prepares @state to be used by the atomic helper's support for
- * nonblocking commits. Drivers using the nonblocking commit infrastructure
- * should always call this function from their
- * &drm_mode_config_funcs.atomic_commit hook.
- *
- * To be able to use this support drivers need to use a few more helper
- * functions. drm_atomic_helper_wait_for_dependencies() must be called before
- * actually committing the hardware state, and for nonblocking commits this call
- * must be placed in the async worker. See also drm_atomic_helper_swap_state()
- * and its stall parameter, for when a driver's commit hooks look at the
- * &drm_crtc.state, &drm_plane.state or &drm_connector.state pointer directly.
- *
- * Completion of the hardware commit step must be signalled using
- * drm_atomic_helper_commit_hw_done(). After this step the driver is not allowed
- * to read or change any permanent software or hardware modeset state. The only
- * exception is state protected by other means than &drm_modeset_lock locks.
- * Only the free standing @state with pointers to the old state structures can
- * be inspected, e.g. to clean up old buffers using
- * drm_atomic_helper_cleanup_planes().
- *
- * At the very end, before cleaning up @state drivers must call
- * drm_atomic_helper_commit_cleanup_done().
- *
- * This is all implemented by in drm_atomic_helper_commit(), giving drivers a
- * complete and easy-to-use default implementation of the atomic_commit() hook.
- *
- * The tracking of asynchronously executed and still pending commits is done
- * using the core structure &drm_crtc_commit.
- *
- * By default there's no need to clean up resources allocated by this function
- * explicitly: drm_atomic_state_default_clear() will take care of that
- * automatically.
- *
- * Returns:
- *
- * 0 on success. -EBUSY when userspace schedules nonblocking commits too fast,
- * -ENOMEM on allocation failures and -EINTR when a signal is pending.
- */
-int sprd_drm_atomic_helper_setup_commit(struct drm_atomic_state *state,
-				   bool nonblock)
-{
-	struct drm_crtc *crtc;
-	struct drm_crtc_state *old_crtc_state, *new_crtc_state;
-	struct drm_connector *conn;
-	struct drm_connector_state *old_conn_state, *new_conn_state;
-	struct drm_plane *plane;
-	struct drm_plane_state *old_plane_state, *new_plane_state;
-	struct drm_crtc_commit *commit;
-	int i, ret;
-
-	for_each_oldnew_crtc_in_state(state, crtc, old_crtc_state, new_crtc_state, i) {
-		commit = kzalloc(sizeof(*commit), GFP_KERNEL);
-		if (!commit)
-			return -ENOMEM;
-
-		sprd_init_commit(commit, crtc);
-
-		new_crtc_state->commit = commit;
-
-		ret = sprd_stall_checks(crtc, nonblock);
-		if (ret)
-			return ret;
-
-		/* Drivers only send out events when at least either current or
-		 * new CRTC state is active. Complete right away if everything
-		 * stays off. */
-		if (!old_crtc_state->active && !new_crtc_state->active) {
-			complete_all(&commit->flip_done);
-			continue;
-		}
-
-		/* Legacy cursor updates are fully unsynced. */
-		if (state->legacy_cursor_update) {
-			complete_all(&commit->flip_done);
-			continue;
-		}
-
-		if (!new_crtc_state->event) {
-			commit->event = kzalloc(sizeof(*commit->event),
-						GFP_KERNEL);
-			if (!commit->event)
-				return -ENOMEM;
-
-			new_crtc_state->event = commit->event;
-		}
-
-		new_crtc_state->event->base.completion = &commit->flip_done;
-		new_crtc_state->event->base.completion_release = sprd_release_crtc_commit;
-		drm_crtc_commit_get(commit);
-
-		commit->abort_completion = true;
-
-		state->crtcs[i].commit = commit;
-		drm_crtc_commit_get(commit);
-	}
-
-	for_each_oldnew_connector_in_state(state, conn, old_conn_state, new_conn_state, i) {
-		/* Userspace is not allowed to get ahead of the previous
-		 * commit with nonblocking ones. */
-		if (nonblock && old_conn_state->commit &&
-		    !try_wait_for_completion(&old_conn_state->commit->flip_done))
-			return -EBUSY;
-
-		/* Always track connectors explicitly for e.g. link retraining. */
-		commit = sprd_crtc_or_fake_commit(state, new_conn_state->crtc ?: old_conn_state->crtc);
-		if (!commit)
-			return -ENOMEM;
-
-		new_conn_state->commit = drm_crtc_commit_get(commit);
-	}
-
-	for_each_oldnew_plane_in_state(state, plane, old_plane_state, new_plane_state, i) {
-		/* Userspace is not allowed to get ahead of the previous
-		 * commit with nonblocking ones. */
-		if (nonblock && old_plane_state->commit &&
-		    !try_wait_for_completion(&old_plane_state->commit->flip_done))
-			return -EBUSY;
-
-		/* Always track planes explicitly for async pageflip support. */
-		commit = sprd_crtc_or_fake_commit(state, new_plane_state->crtc ?: old_plane_state->crtc);
-		if (!commit)
-			return -ENOMEM;
-
-		new_plane_state->commit = drm_crtc_commit_get(commit);
-	}
-
-	return 0;
-}
-
-
 static void sprd_commit_tail(struct drm_atomic_state *old_state)
 {
 	struct drm_device *dev = old_state->dev;
@@ -346,7 +70,18 @@ int sprd_atomic_helper_commit(struct drm_device *dev,
 {
 	int ret;
 
-	ret = sprd_drm_atomic_helper_setup_commit(state, false);
+	/*
+	 * FIXME:
+	 * In some extreme scenes, there will be FPS drops or screen freeze,
+	 * it's may be due to poor gpu capabilities or rendering heavy loads.
+	 * If nonblock flag is true, userspace is not allowed to get ahead of the
+	 * previous commit with nonblocking ones, it maybe cause drm atomic_commit
+	 * pipeline occur performance issues.
+	 *
+	 * -EBUSY when userspace schedules nonblocking commits too fast, that's
+	 * not the case for us, maybe caused by FPS drops or screen freezes.
+	 */
+	ret = drm_atomic_helper_setup_commit(state, false);
 	if (ret)
 		return ret;
 
@@ -686,6 +421,7 @@ static struct platform_driver *sprd_drm_drivers[]  = {
 #endif
 #ifdef CONFIG_DRM_SPRD_DPU0
 	&sprd_dpu_driver,
+	&sprd_backlight_driver,
 #endif
 #ifdef CONFIG_DRM_SPRD_DSI
 	&sprd_dsi_driver,

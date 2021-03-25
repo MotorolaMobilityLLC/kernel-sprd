@@ -15,6 +15,7 @@
 #include "sprd_drm.h"
 #include "sprd_gem.h"
 #include "sprd_crtc.h"
+#include "sprd_plane.h"
 
 int sprd_crtc_iommu_map(struct device *dev,
 				struct sprd_gem_obj *sprd_gem)
@@ -246,39 +247,40 @@ static int sprd_crtc_create_properties(struct drm_crtc *crtc, const char *versio
 }
 
 struct sprd_crtc *sprd_crtc_init(struct drm_device *drm,
-					struct drm_plane *plane,
+					struct sprd_plane *planes,
 					enum sprd_crtc_output_type type,
 					const struct sprd_crtc_ops *ops,
 					const char *version,
 					void *priv)
 {
-	struct sprd_crtc *sprd_crtc;
+	struct sprd_crtc *crtc;
+	struct drm_plane *primary = &planes[0].base;
 	int ret;
 
-	sprd_crtc = kzalloc(sizeof(*sprd_crtc), GFP_KERNEL);
-	if (!sprd_crtc)
+	crtc = devm_kzalloc(drm->dev, sizeof(*crtc), GFP_KERNEL);
+	if (!crtc)
 		return ERR_PTR(-ENOMEM);
 
-	sprd_crtc->type = type;
-	sprd_crtc->ops = ops;
-	sprd_crtc->priv = priv;
+	crtc->type = type;
+	crtc->ops = ops;
+	crtc->priv = priv;
+	crtc->planes = planes;
 
-	ret = drm_crtc_init_with_planes(drm, &sprd_crtc->base, plane, NULL,
+	ret = drm_crtc_init_with_planes(drm, &crtc->base, primary, NULL,
 					&sprd_crtc_funcs, NULL);
 	if (ret < 0) {
 		DRM_ERROR("failed to initial crtc.\n");
 		goto err_crtc;
 	}
 
-	drm_crtc_helper_add(&sprd_crtc->base, &sprd_crtc_helper_funcs);
+	drm_crtc_helper_add(&crtc->base, &sprd_crtc_helper_funcs);
 
-	sprd_crtc_create_properties(&sprd_crtc->base, version);
+	sprd_crtc_create_properties(&crtc->base, version);
 
-	return sprd_crtc;
+	return crtc;
 
 err_crtc:
-	plane->funcs->destroy(plane);
-	kfree(sprd_crtc);
+	//plane->funcs->destroy(primary);
 	return ERR_PTR(ret);
 }
 

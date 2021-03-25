@@ -4,14 +4,21 @@
  */
 
 #include <linux/delay.h>
+#include <linux/dma-buf.h>
+#include <linux/module.h>
 #include <linux/io.h>
 #include <linux/wait.h>
 #include <linux/workqueue.h>
+#include <linux/backlight.h>
+#include <linux/of_address.h>
+#include <drm/drm_prime.h>
 
 #include "dpu_enhance_param.h"
 #include "dpu_r4p0_corner_param.h"
 #include "sprd_crtc.h"
+#include "sprd_plane.h"
 #include "sprd_dpu.h"
+#include "sprd_bl.h"
 
 #define XFBC8888_HEADER_SIZE(w, h) (ALIGN((ALIGN((w), 16)) * \
 				(ALIGN((h), 16)) / 16, 128))
@@ -61,7 +68,8 @@
 #define REG_LAY_PALLETE		0x58
 #define REG_LAY_CROP_START	0x5C
 
-/* Write back control registers */
+/* Write back config registers */
+#define REG_WB_BASE_ADDR	0x1B0
 #define REG_WB_CTRL		0x1B4
 #define REG_WB_CFG		0x1B8
 #define REG_WB_PITCH		0x1BC
@@ -104,6 +112,7 @@
 #define REG_GAMMA_LUT_ADDR	0x300
 #define REG_GAMMA_LUT_WDATA	0x304
 #define REG_GAMMA_LUT_RDATA	0x308
+#define REG_DPU_STS0		0x360
 #define REG_SLP_CFG4		0x3C0
 #define REG_SLP_CFG5		0x3C4
 #define REG_SLP_CFG6		0x3C8
@@ -111,6 +120,7 @@
 #define REG_SLP_CFG8		0x3D0
 #define REG_SLP_CFG9		0x3D4
 #define REG_SLP_CFG10		0x3D8
+#define REG_CABC_HIST0		0X400
 
 /* Corner config registers */
 #define REG_CORNER_CONFIG		0x500
@@ -168,6 +178,19 @@
 #define BIT_TOP_CORNER_EN		BIT(0)
 #define BIT_BOT_CORNER_EN		BIT(16)
 
+#define CABC_MODE_UI			(1 << 2)
+#define CABC_MODE_GAME			(1 << 3)
+#define CABC_MODE_VIDEO			(1 << 4)
+#define CABC_MODE_IMAGE			(1 << 5)
+#define CABC_MODE_CAMERA		(1 << 6)
+#define CABC_MODE_FULL_FRAME		(1 << 7)
+
+enum {
+	CABC_WORKING,
+	CABC_STOPPING,
+	CABC_DISABLED
+};
+
 struct dpu_cfg1 {
 	u8 arqos_low;
 	u8 arqos_high;
@@ -210,6 +233,14 @@ struct ltm_cfg {
 	u16 limit_clip_step;
 };
 
+struct cabc_para {
+	u32 cabc_hist[32];
+	u16 gain;
+	u16 bl_fix;
+	u16 cur_bl;
+	u8 video_mode;
+};
+
 struct slp_cfg {
 	u8 brightness;
 	u16 brightness_step;
@@ -226,6 +257,8 @@ struct slp_cfg {
 	u8 scene_change_percent_th;
 	u8 local_weight;
 	u8 fst_pth;
+	u8 cabc_endv;
+	u8 cabc_startv;
 };
 
 struct gamma_lut {
@@ -256,6 +289,9 @@ struct threed_lut {
 struct dpu_enhance {
 	int enhance_en;
 	bool sr_epf_ready;
+	int cabc_state;
+	int frame_no;
+	bool cabc_bl_set;
 
 	struct scale_cfg scale_copy;
 	struct hsv_lut hsv_copy;
@@ -266,6 +302,9 @@ struct dpu_enhance {
 	struct epf_cfg epf_copy;
 	struct threed_lut lut3d_copy;
 	struct epf_cfg sr_epf;
+	struct backlight_device *bl_dev;
+	struct cabc_para cabc_para;
+	struct device_node *g_np;
 };
 
 static struct epf_cfg epf = {
@@ -291,10 +330,9 @@ static struct dpu_cfg1 qos_cfg = {
 };
 
 static void dpu_clean_all(struct dpu_context *ctx);
-static void dpu_layer(struct dpu_context *ctx,
-		    struct sprd_crtc_layer *hwlayer);
+static void dpu_layer(struct dpu_context *ctx, struct dpu_layer *hwlayer);
 static void dpu_enhance_reload(struct dpu_context *ctx);
-
+static int dpu_cabc_trigger(struct dpu_context *ctx);
 static void dpu_version(struct dpu_context *ctx)
 {
 	ctx->version = "dpu-r4p0";
@@ -305,6 +343,9 @@ static int dpu_parse_dt(struct dpu_context *ctx,
 {
 	int ret;
 	struct device_node *qos_np;
+	struct dpu_enhance *enhance = ctx->enhance;
+
+	enhance->g_np = np;
 
 	ret = of_property_read_u32(np, "sprd,corner-radius",
 					&ctx->corner_radius);
@@ -363,6 +404,7 @@ static void dpu_corner_init(struct dpu_context *ctx)
 static u32 dpu_isr(struct dpu_context *ctx)
 {
 	u32 reg_val, int_mask = 0;
+	struct dpu_enhance *enhance = ctx->enhance;
 
 	reg_val = DPU_REG_RD(ctx->base + REG_DPU_INT_STS);
 
@@ -376,10 +418,48 @@ static u32 dpu_isr(struct dpu_context *ctx)
 		wake_up_interruptible_all(&ctx->wait_queue);
 	}
 
+	/* dpu vsync isr */
+	if (reg_val & BIT_DPU_INT_VSYNC) {
+		/* write back feature */
+		if ((ctx->vsync_count == ctx->max_vsync_count) && ctx->wb_en)
+			schedule_work(&ctx->wb_work);
+
+		/* cabc update backlight */
+		if (enhance->cabc_bl_set)
+			schedule_work(&ctx->cabc_bl_update);
+
+		ctx->vsync_count++;
+	}
+
 	/* dpu stop done isr */
 	if (reg_val & BIT_DPU_INT_DONE) {
 		ctx->evt_stop = true;
 		wake_up_interruptible_all(&ctx->wait_queue);
+	}
+
+	/* dpu write back done isr */
+	if (reg_val & BIT_DPU_INT_WB_DONE) {
+		/*
+		 * The write back is a time-consuming operation. If there is a
+		 * flip occurs before write back done, the write back buffer is
+		 * no need to display. Otherwise the new frame will be covered
+		 * by the write back buffer, which is not what we wanted.
+		 */
+		if ((ctx->vsync_count > ctx->max_vsync_count) && ctx->wb_en) {
+			ctx->wb_en = false;
+			schedule_work(&ctx->wb_work);
+			/*reg_val |= DISPC_INT_FENCE_SIGNAL_REQUEST;*/
+		}
+
+		pr_debug("wb done\n");
+	}
+
+	/* dpu write back error isr */
+	if (reg_val & BIT_DPU_INT_WB_ERR) {
+		pr_err("dpu write back fail\n");
+		/*give a new chance to write back*/
+		ctx->wb_en = true;
+		ctx->vsync_count = 0;
 	}
 
 	/* dpu afbc payload error isr */
@@ -472,9 +552,168 @@ static void dpu_run(struct dpu_context *ctx)
 	}
 }
 
+static void dpu_cabc_work_func(struct work_struct *data)
+{
+	struct dpu_context *ctx =
+		container_of(data, struct dpu_context, cabc_work);
+
+	down(&ctx->lock);
+	dpu_cabc_trigger(ctx);
+	DPU_REG_SET(ctx->base + REG_DPU_CTRL, BIT(2));
+	dpu_wait_update_done(ctx);
+
+	up(&ctx->lock);
+}
+
+static void dpu_cabc_bl_update_func(struct work_struct *data)
+{
+	struct dpu_context *ctx =
+		container_of(data, struct dpu_context, cabc_bl_update);
+	struct dpu_enhance *enhance = ctx->enhance;
+
+	if (enhance->bl_dev) {
+		struct sprd_backlight *bl = bl_get_data(enhance->bl_dev);
+		if (enhance->cabc_state == CABC_WORKING) {
+			sprd_backlight_normalize_map(enhance->bl_dev, &enhance->cabc_para.cur_bl);
+
+			bl->cabc_en = true;
+			bl->cabc_level = enhance->cabc_para.bl_fix *
+					enhance->cabc_para.cur_bl / 1020;
+			bl->cabc_refer_level = enhance->cabc_para.cur_bl;
+			sprd_cabc_backlight_update(enhance->bl_dev);
+		} else
+			backlight_update_status(enhance->bl_dev);
+	}
+
+	enhance->cabc_bl_set = false;
+}
+
+static void dpu_wb_trigger(struct dpu_context *ctx, u8 count, bool debug)
+{
+	u32 vcnt;
+	int mode_width  = DPU_REG_RD(ctx->base + REG_BLEND_SIZE) & 0xFFFF;
+	int mode_height = DPU_REG_RD(ctx->base + REG_BLEND_SIZE) >> 16;
+
+	ctx->wb_layer.dst_w = mode_width;
+	ctx->wb_layer.dst_h = mode_height;
+	ctx->wb_layer.xfbc = ctx->wb_xfbc_en;
+	ctx->wb_layer.pitch[0] = ALIGN(mode_width, 16) * 4;
+	ctx->wb_layer.fbc_hsize_r = XFBC8888_HEADER_SIZE(mode_width,
+					mode_height) / 128;
+
+	DPU_REG_WR(ctx->base + REG_WB_PITCH, ALIGN((mode_width), 16));
+
+	ctx->wb_layer.xfbc = ctx->wb_xfbc_en;
+
+	if (ctx->wb_xfbc_en && !debug)
+		DPU_REG_WR(ctx->base + REG_WB_CFG, (ctx->wb_layer.fbc_hsize_r << 16) | BIT(0));
+	else
+		DPU_REG_WR(ctx->base + REG_WB_CFG, 0);
+
+	DPU_REG_WR(ctx->base + REG_WB_BASE_ADDR, ctx->wb_addr_p);
+
+	vcnt = (DPU_REG_RD(ctx->base + REG_DPU_STS0) & 0x1FFF);
+	/*
+	 * Due to AISC design problem, after the wb enable, Dpu
+	 * update register operation must be connected immediately.
+	 * There can be no vsync interrupts between them.
+	 */
+	if (vcnt * 100 / mode_height < 70) {
+		if (debug)
+			/* writeback debug trigger */
+			DPU_REG_WR(ctx->base + REG_WB_CTRL, BIT(1));
+		else
+			DPU_REG_SET(ctx->base + REG_WB_CTRL, BIT(0));
+
+		/* update trigger */
+		DPU_REG_SET(ctx->base + REG_DPU_CTRL, BIT(2));
+
+		dpu_wait_update_done(ctx);
+
+		pr_debug("write back trigger\n");
+	} else
+		ctx->vsync_count = 0;
+}
+
+static void dpu_wb_flip(struct dpu_context *ctx)
+{
+	dpu_clean_all(ctx);
+	dpu_layer(ctx, &ctx->wb_layer);
+
+	DPU_REG_SET(ctx->base + REG_DPU_CTRL, BIT(2));
+	dpu_wait_update_done(ctx);
+
+	pr_debug("write back flip\n");
+}
+
+static void dpu_wb_work_func(struct work_struct *data)
+{
+	struct dpu_context *ctx =
+		container_of(data, struct dpu_context, wb_work);
+
+	down(&ctx->lock);
+
+	if (!ctx->enabled) {
+		up(&ctx->lock);
+		pr_err("dpu is not initialized\n");
+		return;
+	}
+
+	if (ctx->flip_pending) {
+		up(&ctx->lock);
+		pr_warn("dpu flip is disabled\n");
+		return;
+	}
+
+	if (ctx->wb_en && (ctx->vsync_count > ctx->max_vsync_count))
+		dpu_wb_trigger(ctx, 1, false);
+	else if (!ctx->wb_en)
+		dpu_wb_flip(ctx);
+
+	up(&ctx->lock);
+}
+
+static int dpu_write_back_config(struct dpu_context *ctx)
+{
+	static int need_config = 1;
+	size_t wb_buf_size;
+	struct sprd_dpu *dpu =
+		(struct sprd_dpu *)container_of(ctx, struct sprd_dpu, ctx);
+	struct drm_device *drm = dpu->crtc->base.dev;
+
+	if (!need_config) {
+		pr_debug("write back has configed\n");
+		return 0;
+	}
+
+	wb_buf_size = XFBC8888_BUFFER_SIZE(dpu->mode->hdisplay,
+						dpu->mode->vdisplay);
+	pr_info("use cma memory for writeback, size:0x%zx\n", wb_buf_size);
+	ctx->wb_addr_v = dma_alloc_wc(drm->dev, wb_buf_size, &ctx->wb_addr_p, GFP_KERNEL);
+	if (!ctx->wb_addr_p) {
+		ctx->max_vsync_count = 0;
+		return -ENOMEM;
+	}
+
+	ctx->wb_xfbc_en = 1;
+	ctx->wb_layer.index = 7;
+	ctx->wb_layer.planes = 1;
+	ctx->wb_layer.alpha = 0xff;
+	ctx->wb_layer.format = DRM_FORMAT_ABGR8888;
+	ctx->wb_layer.addr[0] = ctx->wb_addr_p;
+
+	ctx->max_vsync_count = 4;
+	need_config = 0;
+
+	INIT_WORK(&ctx->wb_work, dpu_wb_work_func);
+
+	return 0;
+}
+
 static int dpu_init(struct dpu_context *ctx)
 {
 	u32 reg_val, size;
+	struct dpu_enhance *enhance = ctx->enhance;
 
 	DPU_REG_WR(ctx->base + REG_BG_COLOR, 0x00);
 
@@ -498,9 +737,12 @@ static int dpu_init(struct dpu_context *ctx)
 
 	dpu_enhance_reload(ctx);
 
+	dpu_write_back_config(ctx);
+
 	if (ctx->corner_radius)
 		dpu_corner_init(ctx);
 
+	enhance->frame_no = 0;
 	return 0;
 }
 
@@ -595,11 +837,11 @@ static u32 dpu_img_ctrl(u32 format, u32 blending, u32 compression, u32 y2r_coef,
 	case DRM_FORMAT_RGBA8888:
 		/* RGBA8888 -> ABGR8888 */
 		reg_val |= BIT_DPU_LAY_DATA_ENDIAN_B3B2B1B0;
-		fallthrough;
+		/* FALLTHRU */
 	case DRM_FORMAT_ABGR8888:
 		/* rb switch */
 		reg_val |= BIT_DPU_LAY_RGB888_RB_SWITCH;
-		fallthrough;
+		/* FALLTHRU */
 	case DRM_FORMAT_ARGB8888:
 		if (compression)
 			/* XFBC-ARGB8888 */
@@ -610,7 +852,6 @@ static u32 dpu_img_ctrl(u32 format, u32 blending, u32 compression, u32 y2r_coef,
 	case DRM_FORMAT_XBGR8888:
 		/* rb switch */
 		reg_val |= BIT_DPU_LAY_RGB888_RB_SWITCH;
-		fallthrough;
 		/* FALLTHRU */
 	case DRM_FORMAT_XRGB8888:
 		if (compression)
@@ -622,7 +863,7 @@ static u32 dpu_img_ctrl(u32 format, u32 blending, u32 compression, u32 y2r_coef,
 	case DRM_FORMAT_BGR565:
 		/* rb switch */
 		reg_val |= BIT_DPU_LAY_RGB565_RB_SWITCH;
-		fallthrough;
+		/* FALLTHRU */
 	case DRM_FORMAT_RGB565:
 		if (compression)
 			/* XFBC-RGB565 */
@@ -740,8 +981,7 @@ static void dpu_bgcolor(struct dpu_context *ctx, u32 color)
 	}
 }
 
-static void dpu_layer(struct dpu_context *ctx,
-		    struct sprd_crtc_layer *hwlayer)
+static void dpu_layer(struct dpu_context *ctx, struct dpu_layer *hwlayer)
 {
 	const struct drm_format_info *info;
 	u32 size, offset, ctrl, reg_val, pitch;
@@ -822,11 +1062,14 @@ static void dpu_layer(struct dpu_context *ctx,
 				hwlayer->src_w, hwlayer->src_h);
 }
 
-static void dpu_flip(struct dpu_context *ctx,
-		     struct sprd_crtc_layer layers[], u8 count)
+static void dpu_flip(struct dpu_context *ctx, struct sprd_plane planes[], u8 count)
 {
 	int i;
 	u32 reg_val;
+
+	ctx->vsync_count = 0;
+	if (ctx->max_vsync_count > 0 && count > 1)
+		ctx->wb_en = true;
 
 	/*
 	 * Make sure the dpu is in stop status. DPU_R4P0 has no shadow
@@ -843,8 +1086,12 @@ static void dpu_flip(struct dpu_context *ctx,
 	dpu_clean_all(ctx);
 
 	/* start configure dpu layers */
-	for (i = 0; i < count; i++)
-		dpu_layer(ctx, &layers[i]);
+	for (i = 0; i < count; i++) {
+		struct sprd_plane_state *state;
+
+		state = to_sprd_plane_state(planes[i].base.state);
+		dpu_layer(ctx, &state->layer);
+	}
 
 	/* update trigger and wait */
 	if (ctx->if_type == SPRD_DPU_IF_DPI) {
@@ -907,6 +1154,10 @@ static void dpu_dpi_init(struct dpu_context *ctx)
 		int_mask |= BIT_DPU_INT_TE;
 		/* enable underflow err INT */
 		int_mask |= BIT_DPU_INT_ERR;
+		/* enable write back done INT */
+		int_mask |= BIT_DPU_INT_WB_DONE;
+		/* enable write back fail INT */
+		int_mask |= BIT_DPU_INT_WB_ERR;
 
 	} else if (ctx->if_type == SPRD_DPU_IF_EDPI) {
 		/* use edpi as interface */
@@ -952,6 +1203,9 @@ static int dpu_enhance_init(struct dpu_context *ctx)
 		return -ENOMEM;
 
 	ctx->enhance = enhance;
+	enhance->cabc_state = CABC_DISABLED;
+	INIT_WORK(&ctx->cabc_work, dpu_cabc_work_func);
+	INIT_WORK(&ctx->cabc_bl_update, dpu_cabc_bl_update_func);
 
 	return 0;
 }
@@ -1012,6 +1266,10 @@ static void dpu_enhance_backup(struct dpu_context *ctx, u32 id, void *param)
 		break;
 	case ENHANCE_CFG_ID_SLP:
 		memcpy(&enhance->slp_copy, param, sizeof(enhance->slp_copy));
+		if (!enhance->cabc_state) {
+			enhance->slp_copy.cabc_startv = 0;
+			enhance->slp_copy.cabc_endv = 255;
+		}
 		enhance->enhance_en |= BIT(4);
 		pr_info("enhance slp backup\n");
 		break;
@@ -1119,7 +1377,11 @@ static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
 	case ENHANCE_CFG_ID_CM:
 		memcpy(&enhance->cm_copy, param, sizeof(enhance->cm_copy));
 		memcpy(&cm, &enhance->cm_copy, sizeof(struct cm_cfg));
-
+		if (enhance->cabc_para.gain) {
+			cm.coef00 = (cm.coef00 * enhance->cabc_para.gain) / 0x400;
+			cm.coef11 = (cm.coef11 * enhance->cabc_para.gain) / 0x400;
+			cm.coef22 = (cm.coef22 * enhance->cabc_para.gain) / 0x400;
+		}
 		DPU_REG_WR(ctx->base + REG_CM_COEF01_00, (cm.coef01 << 16) | cm.coef00);
 		DPU_REG_WR(ctx->base + REG_CM_COEF03_02, (cm.coef03 << 16) | cm.coef02);
 		DPU_REG_WR(ctx->base + REG_CM_COEF11_10, (cm.coef11 << 16) | cm.coef10);
@@ -1140,6 +1402,10 @@ static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
 		break;
 	case ENHANCE_CFG_ID_SLP:
 		memcpy(&enhance->slp_copy, param, sizeof(enhance->slp_copy));
+		if (!enhance->cabc_state) {
+			enhance->slp_copy.cabc_startv = 0;
+			enhance->slp_copy.cabc_endv = 255;
+		}
 		slp = &enhance->slp_copy;
 		DPU_REG_WR(ctx->base + REG_SLP_CFG0, (slp->brightness_step << 0) |
 			((slp->brightness & 0x7f) << 16));
@@ -1172,6 +1438,8 @@ static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
 			(slp->scene_change_percent_th << 17) |
 			((slp->local_weight & 0xf) << 13) |
 			((slp->fst_pth & 0x7f) << 6));
+		DPU_REG_WR(ctx->base + REG_SLP_CFG10, (slp->cabc_endv << 8) |
+			(slp->cabc_startv << 0));
 		DPU_REG_SET(ctx->base + REG_DPU_ENHANCE_CFG, BIT(4));
 		pr_info("enhance slp set\n");
 		break;
@@ -1256,6 +1524,33 @@ static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
 		pr_info("enhance lut3d set\n");
 		enhance->enhance_en = DPU_REG_RD(ctx->base + REG_DPU_ENHANCE_CFG);
 		return;
+	case ENHANCE_CFG_ID_CABC_MODE:
+		p = param;
+
+		if (*p & CABC_MODE_UI)
+			enhance->cabc_para.video_mode = 0;
+		else if (*p & CABC_MODE_FULL_FRAME)
+			enhance->cabc_para.video_mode = 1;
+		else if (*p & CABC_MODE_VIDEO)
+			enhance->cabc_para.video_mode = 2;
+		pr_info("enhance CABC mode: 0x%x\n", *p);
+		return;
+	case ENHANCE_CFG_ID_CABC_GAIN:
+		p = param;
+		enhance->cabc_para.gain = *p;
+		return;
+	case ENHANCE_CFG_ID_CABC_BL_FIX:
+		p = param;
+		enhance->cabc_para.bl_fix = *p;
+		return;
+	case ENHANCE_CFG_ID_CABC_RUN:
+		if (enhance->cabc_state != CABC_DISABLED)
+			schedule_work(&ctx->cabc_work);
+		return;
+	case ENHANCE_CFG_ID_CABC_STATE:
+		p = param;
+		enhance->cabc_state = *p;
+		return;
 	default:
 		break;
 	}
@@ -1278,6 +1573,7 @@ static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
 
 static void dpu_enhance_get(struct dpu_context *ctx, u32 id, void *param)
 {
+	struct dpu_enhance *enhance = ctx->enhance;
 	struct scale_cfg *scale;
 	struct epf_cfg *ep;
 	struct slp_cfg *slp;
@@ -1286,6 +1582,7 @@ static void dpu_enhance_get(struct dpu_context *ctx, u32 id, void *param)
 	struct threed_lut *lut3d;
 	u32 *p32;
 	int i, val;
+	u16 *p16;
 
 	switch (id) {
 	case ENHANCE_CFG_ID_ENABLE:
@@ -1407,6 +1704,9 @@ static void dpu_enhance_get(struct dpu_context *ctx, u32 id, void *param)
 		slp->local_weight = (val >> 13) & 0xf;
 		slp->fst_pth = (val >> 6) & 0x7f;
 
+		val = DPU_REG_RD(ctx->base + REG_SLP_CFG10);
+		slp->cabc_endv = (val >> 8) & 0xff;
+		slp->cabc_startv = (val >> 0) & 0xff;
 		pr_info("enhance slp get\n");
 		break;
 	case ENHANCE_CFG_ID_GAMMA:
@@ -1447,6 +1747,28 @@ static void dpu_enhance_get(struct dpu_context *ctx, u32 id, void *param)
 		}
 		dpu_run(ctx);
 		pr_info("enhance lut3d get\n");
+		break;
+	case ENHANCE_CFG_ID_CABC_HIST:
+		p32 = param;
+		for (i = 0; i < 32; i++) {
+			*p32++ = DPU_REG_RD(ctx->base + REG_CABC_HIST0 + i * DPU_REG_SIZE);
+		}
+		break;
+	case ENHANCE_CFG_ID_CABC_CUR_BL:
+		p16 = param;
+		*p16 = enhance->cabc_para.cur_bl;
+		break;
+	case ENHANCE_CFG_ID_VSYNC_COUNT:
+		p32 = param;
+		*p32 = ctx->vsync_count;
+		break;
+	case ENHANCE_CFG_ID_FRAME_NO:
+		p32 = param;
+		*p32 = enhance->frame_no;
+		break;
+	case ENHANCE_CFG_ID_CABC_STATE:
+		p32 = param;
+		*p32 = enhance->cabc_state;
 		break;
 	default:
 		break;
@@ -1549,6 +1871,8 @@ static void dpu_enhance_reload(struct dpu_context *ctx)
 			(slp->scene_change_percent_th << 17) |
 			((slp->local_weight & 0xf) << 13) |
 			((slp->fst_pth & 0x7f) << 6));
+		DPU_REG_WR(ctx->base + REG_SLP_CFG10, (slp->cabc_endv << 8)|
+			(slp->cabc_startv << 0));
 		pr_info("enhance slp reload\n");
 	}
 
@@ -1588,6 +1912,83 @@ static void dpu_enhance_reload(struct dpu_context *ctx)
 	DPU_REG_WR(ctx->base + REG_DPU_ENHANCE_CFG, enhance->enhance_en);
 }
 
+
+static int dpu_cabc_trigger(struct dpu_context *ctx)
+{
+	struct dpu_enhance *enhance = ctx->enhance;
+	struct cm_cfg cm;
+	struct device_node *backlight_node;
+
+	if (enhance->cabc_state) {
+		if ((enhance->cabc_state == CABC_STOPPING) && (enhance->bl_dev)) {
+			memset(&enhance->cabc_para, 0, sizeof(enhance->cabc_para));
+			memcpy(&cm, &enhance->cm_copy, sizeof(struct cm_cfg));
+			DPU_REG_WR(ctx->base + REG_CM_COEF01_00, (cm.coef01 << 16) | cm.coef00);
+			DPU_REG_WR(ctx->base + REG_CM_COEF03_02, (cm.coef03 << 16) | cm.coef02);
+			DPU_REG_WR(ctx->base + REG_CM_COEF11_10, (cm.coef11 << 16) | cm.coef10);
+			DPU_REG_WR(ctx->base + REG_CM_COEF13_12, (cm.coef13 << 16) | cm.coef12);
+			DPU_REG_WR(ctx->base + REG_CM_COEF21_20, (cm.coef21 << 16) | cm.coef20);
+			DPU_REG_WR(ctx->base + REG_CM_COEF23_22, (cm.coef23 << 16) | cm.coef22);
+			enhance->cabc_bl_set = true;
+
+			enhance->cabc_state = CABC_DISABLED;
+
+		}
+		return 0;
+	}
+
+	if (enhance->frame_no == 0) {
+		if (!(enhance->bl_dev)) {
+			backlight_node = of_parse_phandle(enhance->g_np,
+						 "sprd,backlight", 0);
+			if (backlight_node) {
+				enhance->bl_dev =
+				of_find_backlight_by_node(backlight_node);
+				of_node_put(backlight_node);
+			} else {
+				pr_warn("dpu backlight node not found\n");
+			}
+		}
+
+		DPU_REG_SET(ctx->base + REG_DPU_ENHANCE_CFG, BIT(3));
+		DPU_REG_SET(ctx->base + REG_DPU_ENHANCE_CFG, BIT(8));
+		enhance->enhance_en |= BIT(3) | BIT(8);
+
+		enhance->slp_copy.cabc_startv = 0;
+		enhance->slp_copy.cabc_endv = 255;
+		DPU_REG_WR(ctx->base + REG_SLP_CFG10, (enhance->slp_copy.cabc_endv << 8) |
+			(enhance->slp_copy.cabc_startv << 0));
+		enhance->frame_no++;
+	} else {
+		memcpy(&cm, &enhance->cm_copy, sizeof(struct cm_cfg));
+
+		if (cm.coef00 == 0 && cm.coef11 == 0 && cm.coef22 == 0) {
+			cm.coef00 = cm.coef11 = cm.coef22 = enhance->cabc_para.gain;
+		} else {
+			cm.coef00 = (cm.coef00 * enhance->cabc_para.gain) / 0x400;
+			cm.coef11 = (cm.coef11 * enhance->cabc_para.gain) / 0x400;
+			cm.coef22 = (cm.coef22 * enhance->cabc_para.gain) / 0x400;
+		}
+
+		if ((cm.coef00 < 0) || (cm.coef11 < 0) || (cm.coef22 < 0))
+			return 0;
+
+		DPU_REG_WR(ctx->base + REG_CM_COEF01_00, (cm.coef01 << 16) | cm.coef00);
+		DPU_REG_WR(ctx->base + REG_CM_COEF03_02, (cm.coef03 << 16) | cm.coef02);
+		DPU_REG_WR(ctx->base + REG_CM_COEF11_10, (cm.coef11 << 16) | cm.coef10);
+		DPU_REG_WR(ctx->base + REG_CM_COEF13_12, (cm.coef13 << 16) | cm.coef12);
+		DPU_REG_WR(ctx->base + REG_CM_COEF21_20, (cm.coef21 << 16) | cm.coef20);
+		DPU_REG_WR(ctx->base + REG_CM_COEF23_22, (cm.coef23 << 16) | cm.coef22);
+
+		if (enhance->bl_dev)
+			enhance->cabc_bl_set = true;
+
+		if (enhance->frame_no == 1)
+			enhance->frame_no++;
+	}
+	return 0;
+}
+
 static const u32 primary_fmts[] = {
 	DRM_FORMAT_XRGB8888, DRM_FORMAT_XBGR8888,
 	DRM_FORMAT_ARGB8888, DRM_FORMAT_ABGR8888,
@@ -1624,4 +2025,5 @@ const struct dpu_core_ops dpu_r4p0_core_ops = {
 	.enhance_init = dpu_enhance_init,
 	.enhance_set = dpu_enhance_set,
 	.enhance_get = dpu_enhance_get,
+	.write_back = dpu_wb_trigger,
 };

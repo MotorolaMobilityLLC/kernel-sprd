@@ -43,38 +43,11 @@ struct sprd_crtc_capability {
 	u32 fmts_cnt;
 };
 
-struct sprd_crtc_layer {
-	u8 index;
-	u8 planes;
-	u32 addr[4];
-	u32 pitch[4];
-	s16 src_x;
-	s16 src_y;
-	s16 src_w;
-	s16 src_h;
-	s16 dst_x;
-	s16 dst_y;
-	u16 dst_w;
-	u16 dst_h;
-	u32 format;
-	u32 alpha;
-	u32 blending;
-	u32 rotation;
-	u32 xfbc;
-	u32 height;
-	u32 header_size_r;
-	u32 header_size_y;
-	u32 header_size_uv;
-	u32 y2r_coef;
-	u8 pallete_en;
-	u32 pallete_color;
-};
-
 struct sprd_crtc {
 	struct drm_crtc base;
 	enum sprd_crtc_output_type type;
 	const struct sprd_crtc_ops *ops;
-	struct sprd_crtc_layer *layers;
+	struct sprd_plane *planes;
 	u8 pending_planes;
 	void *priv;
 };
@@ -104,7 +77,7 @@ int sprd_crtc_iommu_map(struct device *dev, struct sprd_gem_obj *sprd_gem);
 void sprd_crtc_iommu_unmap(struct device *dev, struct sprd_gem_obj *sprd_gem);
 void sprd_crtc_wait_last_commit_complete(struct drm_crtc *crtc);
 struct sprd_crtc *sprd_crtc_init(struct drm_device *drm,
-					struct drm_plane *plane,
+					struct sprd_plane *planes,
 					enum sprd_crtc_output_type type,
 					const struct sprd_crtc_ops *ops,
 					const char *version,

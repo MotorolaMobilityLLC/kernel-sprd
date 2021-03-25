@@ -15,6 +15,7 @@ sprd-drm-$(CONFIG_DRM_SPRD_DUMMY) += \
 
 sprd-drm-$(CONFIG_DRM_SPRD_DPU0) += \
 	sprd_dpu.o \
+	sprd_bl.o \
 	dpu/dpu_lite_r1p0.o \
 	dpu/dpu_r2p0.o \
 	dpu/dpu_r4p0.o

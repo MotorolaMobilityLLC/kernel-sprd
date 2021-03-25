@@ -9,6 +9,7 @@
 #include <linux/workqueue.h>
 
 #include "sprd_crtc.h"
+#include "sprd_plane.h"
 #include "sprd_dpu.h"
 
 /* DPU registers size, 4 Bytes(32 Bits) */
@@ -137,8 +138,7 @@
 static bool panel_ready = true;
 
 static void dpu_clean_all(struct dpu_context *ctx);
-static void dpu_layer(struct dpu_context *ctx,
-		    struct sprd_crtc_layer *hwlayer);
+static void dpu_layer(struct dpu_context *ctx, struct dpu_layer *hwlayer);
 
 static void dpu_version(struct dpu_context *ctx)
 {
@@ -320,25 +320,21 @@ static u32 dpu_img_ctrl(u32 format, u32 blending)
 	case DRM_FORMAT_RGBA8888:
 		/* RGBA8888 -> ABGR8888 */
 		reg_val |= BIT_DPU_LAY_DATA_ENDIAN_B3B2B1B0;
-		fallthrough;
 	case DRM_FORMAT_ABGR8888:
 		/* rb switch */
 		reg_val |= BIT_DPU_LAY_RGBUV_SWITCH;
-		fallthrough;
 	case DRM_FORMAT_ARGB8888:
 		reg_val |= BIT_DPU_LAY_FORMAT_ARGB8888;
 		break;
 	case DRM_FORMAT_XBGR8888:
 		/* rb switch */
 		reg_val |= BIT_DPU_LAY_RGBUV_SWITCH;
-		fallthrough;
 	case DRM_FORMAT_XRGB8888:
 		reg_val |= BIT_DPU_LAY_FORMAT_ARGB8888;
 		break;
 	case DRM_FORMAT_BGR565:
 		/* rb switch */
 		reg_val |= BIT_DPU_LAY_RGBUV_SWITCH;
-		fallthrough;
 	case DRM_FORMAT_RGB565:
 		reg_val |= BIT_DPU_LAY_FORMAT_RGB565;
 		break;
@@ -440,7 +436,7 @@ static void dpu_bgcolor(struct dpu_context *ctx, u32 color)
 }
 
 static void dpu_layer(struct dpu_context *ctx,
-		    struct sprd_crtc_layer *hwlayer)
+		    struct dpu_layer *hwlayer)
 {
 	const struct drm_format_info *info;
 	u32 size, offset, ctrl, reg_val, pitch;
@@ -509,8 +505,7 @@ static void dpu_layer(struct dpu_context *ctx,
 		 hwlayer->src_x, hwlayer->src_y, hwlayer->src_w, hwlayer->src_h);
 }
 
-static void dpu_flip(struct dpu_context *ctx,
-		     struct sprd_crtc_layer layers[], u8 count)
+static void dpu_flip(struct dpu_context *ctx, struct sprd_plane planes[], u8 count)
 {
 	int i;
 	u32 reg_val;
@@ -530,8 +525,12 @@ static void dpu_flip(struct dpu_context *ctx,
 	dpu_clean_all(ctx);
 
 	/* start configure dpu layers */
-	for (i = 0; i < count; i++)
-		dpu_layer(ctx, &layers[i]);
+	for (i = 0; i < count; i++) {
+		struct sprd_plane_state *state;
+
+		state = to_sprd_plane_state(planes[i].base.state);
+		dpu_layer(ctx, &state->layer);
+	}
 
 	/* update trigger and wait */
 	if (ctx->if_type == SPRD_DISPC_IF_DPI) {
