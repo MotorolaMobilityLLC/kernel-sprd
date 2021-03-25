@@ -584,7 +584,202 @@ static struct mpll_index_tbl ums9230_mpll_index_tbl[MAX_MPLL] = {
 		.entry = {
 			{
 				.output = {
-					},
+					GENREGVALSET(0xa8, 0, 0x7, 4),
+					GENREGVALSET(0xa8, 3, 0x1, 1),
+					GENREGVALSET(0xa8, 4, 0x7ff, 0x4a),
+				},
+			},
+
+			{
+				.output = {
+					GENREGVALSET(0xac, 0, 0x7, 0),
+					GENREGVALSET(0xac, 3, 0x1, 0),
+					GENREGVALSET(0xac, 4, 0x7ff, 0x2c),
+				},
+			},
+
+			{
+				.output = {
+					GENREGVALSET(0xb0, 0, 0x7, 2),
+					GENREGVALSET(0xb0, 3, 0x1, 0),
+					GENREGVALSET(0xb0, 4, 0x7ff, 0x39),
+				},
+			},
+
+			{
+				.output = {
+					GENREGVALSET(0xb4, 0, 0x7, 3),
+					GENREGVALSET(0xb4, 3, 0x1, 0),
+					GENREGVALSET(0xb4, 4, 0x7ff, 0x3e),
+				},
+			},
+
+			{
+				.output = {
+					GENREGVALSET(0xb8, 0, 0x7, 3),
+					GENREGVALSET(0xb8, 3, 0x1, 0),
+					GENREGVALSET(0xb8, 4, 0x7ff, 0x42),
+				},
+			},
+
+			{
+				.output = {
+					GENREGVALSET(0xbc, 0, 0x7, 4),
+					GENREGVALSET(0xbc, 3, 0x1, 0),
+					GENREGVALSET(0xbc, 4, 0x7ff, 0x46),
+				},
+			},
+
+			{
+				.output = {
+					GENREGVALSET(0xc0, 0, 0x7, 4),
+					GENREGVALSET(0xc0, 3, 0x1, 0),
+					GENREGVALSET(0xc0, 4, 0x7ff, 0x4b),
+				},
+			},
+
+			{
+				.output = {
+					GENREGVALSET(0xc4, 0, 0x7, 5),
+					GENREGVALSET(0xc4, 3, 0x1, 0),
+					GENREGVALSET(0xc4, 4, 0x7ff, 0x4d),
+				},
+			},
+		},
+	},
+
+	[MPLL1] = {
+		.entry = {
+			{
+				.output = {
+					GENREGVALSET(0x78, 0, 0x7, 2),
+					GENREGVALSET(0x78, 3, 0x1, 0),
+					GENREGVALSET(0x78, 4, 0x7ff, 0x39),
+				},
+			},
+
+			{
+				.output = {
+					GENREGVALSET(0x7c, 0, 0x7, 3),
+					GENREGVALSET(0x7c, 3, 0x1, 0),
+					GENREGVALSET(0x7c, 4, 0x7ff, 0x3e),
+				},
+			},
+
+			{
+				.output = {
+					GENREGVALSET(0x80, 0, 0x7, 3),
+					GENREGVALSET(0x80, 3, 0x1, 0),
+					GENREGVALSET(0x80, 4, 0x7ff, 0x43),
+				},
+			},
+
+			{
+				.output = {
+					GENREGVALSET(0x84, 0, 0x7, 4),
+					GENREGVALSET(0x84, 3, 0x1, 0),
+					GENREGVALSET(0x84, 4, 0x7ff, 0x46),
+				},
+			},
+
+			{
+				.output = {
+					GENREGVALSET(0x88, 0, 0x7, 4),
+					GENREGVALSET(0x88, 3, 0x1, 0),
+					GENREGVALSET(0x88, 4, 0x7ff, 0x48),
+				},
+			},
+
+			{
+				.output = {
+					GENREGVALSET(0x8c, 0, 0x7, 4),
+					GENREGVALSET(0x8c, 3, 0x1, 0),
+					GENREGVALSET(0x8c, 4, 0x7ff, 0x49),
+				},
+			},
+
+			{
+				.output = {
+					GENREGVALSET(0x90, 0, 0x7, 4),
+					GENREGVALSET(0x90, 3, 0x1, 0),
+					GENREGVALSET(0x90, 4, 0x7ff, 0x4b),
+				},
+			},
+
+			{
+				.output = {
+					GENREGVALSET(0x94, 0, 0x7, 5),
+					GENREGVALSET(0x94, 3, 0x1, 0),
+					GENREGVALSET(0x94, 4, 0x7ff, 0x4d),
+				},
+			},
+		},
+	},
+
+	[MPLL2] = {
+		.entry = {
+			{
+				.output = {
+					GENREGVALSET(0xec, 0, 0x7, 0),
+					GENREGVALSET(0xec, 3, 0x1, 1),
+					GENREGVALSET(0xec, 4, 0x7ff, 0x2a),
+				},
+			},
+
+			{
+				.output = {
+					GENREGVALSET(0xf0, 0, 0x7, 1),
+					GENREGVALSET(0xf0, 3, 0x1, 1),
+					GENREGVALSET(0xf0, 4, 0x7ff, 0x32),
+				},
+			},
+
+			{
+				.output = {
+					GENREGVALSET(0xf4, 0, 0x7, 4),
+					GENREGVALSET(0xf4, 3, 0x1, 1),
+					GENREGVALSET(0xf4, 4, 0x7ff, 0x4a),
+				},
+			},
+
+			{
+				.output = {
+					GENREGVALSET(0xf8, 0, 0x7, 0),
+					GENREGVALSET(0xf8, 3, 0x1, 0),
+					GENREGVALSET(0xf8, 4, 0x7ff, 0x27),
+				},
+			},
+
+			{
+				.output = {
+					GENREGVALSET(0xfc, 0, 0x7, 0),
+					GENREGVALSET(0xfc, 3, 0x1, 0),
+					GENREGVALSET(0xfc, 4, 0x7ff, 0x2b),
+				},
+			},
+
+			{
+				.output = {
+					GENREGVALSET(0x100, 0, 0x7, 1),
+					GENREGVALSET(0x100, 3, 0x1, 0),
+					GENREGVALSET(0x100, 4, 0x7ff, 0x2f),
+				},
+			},
+
+			{
+				.output = {
+					GENREGVALSET(0x104, 0, 0x7, 1),
+					GENREGVALSET(0x104, 3, 0x1, 0),
+					GENREGVALSET(0x104, 4, 0x7ff, 0x33),
+				},
+			},
+
+			{
+				.output = {
+					GENREGVALSET(0x108, 0, 0x7, 2),
+					GENREGVALSET(0x108, 3, 0x1, 0),
+					GENREGVALSET(0x108, 4, 0x7ff, 0x36),
+				},
 			},
 		},
 	},
