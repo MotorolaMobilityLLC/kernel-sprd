@@ -22,16 +22,16 @@ void gsp_dvfs_task_init(struct gsp_r9p0_core *core)
 #else
 void gsp_dvfs_tasklet_schedule(struct gsp_r9p0_core *core, unsigned long data)
 {
-	GSP_INFO("core %s do not support dvfs: %s", __func__);
+	GSP_DEBUG("core do not support dvfs: %s", __func__);
 }
 
 void gsp_dvfs_task_func(unsigned long data)
 {
-	GSP_INFO("core %s do not support dvfs: %s", __func__);
+	GSP_DEBUG("core do not support dvfs: %s", __func__);
 }
 
 void gsp_dvfs_task_init(struct gsp_r9p0_core *core)
 {
-	GSP_INFO("core %s do not support dvfs: %s", __func__);
+	GSP_DEBUG("core do not support dvfs: %s", __func__);
 }
 #endif
