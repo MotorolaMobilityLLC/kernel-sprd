@@ -194,6 +194,7 @@ trace:
 trusty:
 
 unisoc:*
+usb:core:
 usb:dwc3:
 usb:gadget:
 usb:misc:
