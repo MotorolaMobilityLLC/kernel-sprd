@@ -2596,9 +2596,12 @@ static void battout_handler(struct charger_manager *cm)
 		dev_emerg(cm->dev, "Battery Pulled in!\n");
 
 		if (cm->charging_status) {
-			dev_emerg(cm->dev, "Charger status abnormal, stop charge!\n");
+			dev_emerg(cm->dev, "Charger status = %d abnormal, stop charge!\n",
+				cm->charging_status);
 			try_charger_enable(cm, false);
 		} else {
+			dev_emerg(cm->dev, "Charger status = %d start charge!\n",
+				cm->charging_status);
 			try_charger_enable(cm, true);
 		}
 
