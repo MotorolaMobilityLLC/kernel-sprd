@@ -3033,6 +3033,7 @@ CONFIG_USB_SERIAL=y
 # USB PAM drivers
 #
 # CONFIG_SPRD_PAMU3 is not set
+# CONFIG_SPRD_USBM is not set
 
 #
 # USB Physical Layer drivers

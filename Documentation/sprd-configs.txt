@@ -14245,6 +14245,15 @@ CONFIG_SPRD_QOGIRL6_USB2_PHY
 	[must] user
 	[missing plat description] This function is used to support qogirl6
 	[function] usb phy init
+CONFIG_SPRD_QOGIRN6PRO_USB2_PHY
+	[arch] arm64
+	[plat] qogirn6pro
+	[missing plat] qogirl6,sharkl3,sharkl5,sharkl5Pro
+	[field] make
+	[subsys] usb
+	[must] user
+	[missing plat description] Not used USB2 PHY in other projects
+	[function] Support for Unisoc qogirn6pro USB2 PHY
 CONFIG_SPRD_QOGIRN6PRO_USB31_PHY
 	[arch] arm64
 	[plat] qogirn6pro
@@ -14608,6 +14617,15 @@ CONFIG_SPRD_UMS9620_CLK
 	[must] home
 	[missing plat description] This function is only used for qogirn6pro
 	[function] Support for the sprd qogirn6pro clocks
+CONFIG_SPRD_USBM
+	[arch] arm64
+	[plat] qogirn6pro
+	[missing plat] qogirl6,sharkl3,sharkl5,sharkl5Pro
+	[field] make
+	[subsys] usb
+	[must] user
+	[missing plat description] Not used USBM in other projects
+	[function] Support for Unisoc USB management for usb audio offload feature
 CONFIG_SPRD_USBPINMUX
 	[arch] arm64
 	[plat] qogirl6

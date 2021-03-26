@@ -26,6 +26,7 @@
 #include <linux/power/ump9620-usb-charger.h>
 #include <dt-bindings/soc/sprd,qogirn6pro-mask.h>
 #include <dt-bindings/soc/sprd,qogirn6pro-regs.h>
+#include <linux/usb/sprd_usbm.h>
 
 struct sprd_hsphy {
 	struct device		*dev;
@@ -117,11 +118,14 @@ static inline void sprd_hsphy_reset_core(struct sprd_hsphy *phy)
 	u32 reg, msk;
 
 	/* Reset PHY */
-	reg = msk = MASK_AON_APB_OTG_PHY_SOFT_RST |
+	msk = MASK_AON_APB_OTG_PHY_SOFT_RST |
 				MASK_AON_APB_OTG_UTMI_SOFT_RST;
+	reg = msk;
 
-	regmap_update_bits(phy->hsphy_glb, REG_AON_APB_APB_RST1,
-		msk, reg);
+	if (!sprd_usbm_ssphy_get_onoff())
+		regmap_update_bits(phy->hsphy_glb, REG_AON_APB_APB_RST1,
+			msk, reg);
+
 	/* USB PHY reset need to delay 20ms~30ms */
 	usleep_range(20000, 30000);
 
@@ -230,6 +234,13 @@ static int sprd_hsphy_init(struct usb_phy *x)
 	if (ret)
 		return ret;
 
+	sprd_usbm_hsphy_set_onoff(1);
+
+	/* select the AON-SYS USB controller */
+	msk = MASK_AON_APB_USB20_CTRL_MUX_REG;
+	ret |= regmap_update_bits(phy->hsphy_glb, REG_AON_APB_AON_SOC_USB_CTRL,
+		msk, 0);
+
 	/* usb enable */
 	reg = msk = MASK_AON_APB_AON_USB2_TOP_EB |
 		MASK_AON_APB_OTG_PHY_EB;
@@ -292,28 +303,31 @@ static void sprd_hsphy_shutdown(struct usb_phy *x)
 		return;
 	}
 
-	/* usb vbus */
-	msk = MASK_AON_APB_OTG_VBUS_VALID_PHYREG;
-	regmap_update_bits(phy->hsphy_glb, REG_AON_APB_OTG_PHY_TEST, msk, 0);
-	msk = BIT_ANLG_PHY_G0L_ANALOG_USB20_USB20_VBUSVLDEXT;
-	regmap_update_bits(phy->ana_g0,
-		REG_ANLG_PHY_G0L_ANALOG_USB20_USB20_UTMI_CTL1, msk, 0);
+	sprd_usbm_hsphy_set_onoff(0);
+	if (!sprd_usbm_ssphy_get_onoff()) {
+		/* usb vbus */
+		msk = MASK_AON_APB_OTG_VBUS_VALID_PHYREG;
+		regmap_update_bits(phy->hsphy_glb, REG_AON_APB_OTG_PHY_TEST, msk, 0);
+		msk = BIT_ANLG_PHY_G0L_ANALOG_USB20_USB20_VBUSVLDEXT;
+		regmap_update_bits(phy->ana_g0,
+			REG_ANLG_PHY_G0L_ANALOG_USB20_USB20_UTMI_CTL1, msk, 0);
 
-	/* usb power down */
-	reg = msk = (MASK_AON_APB_C2G_ANALOG_USB20_USB20_PS_PD_L |
-		MASK_AON_APB_C2G_ANALOG_USB20_USB20_PS_PD_S);
-	regmap_update_bits(phy->hsphy_glb,
-		REG_AON_APB_MIPI_CSI_POWER_CTRL, msk, reg);
+		/* usb power down */
+		reg = msk = (MASK_AON_APB_C2G_ANALOG_USB20_USB20_PS_PD_L |
+			MASK_AON_APB_C2G_ANALOG_USB20_USB20_PS_PD_S);
+		regmap_update_bits(phy->hsphy_glb,
+			REG_AON_APB_MIPI_CSI_POWER_CTRL, msk, reg);
 
-	reg = msk = BIT_ANLG_PHY_G0L_ANALOG_USB20_USB20_ISO_SW_EN;
-	regmap_update_bits(phy->ana_g0,
-		REG_ANLG_PHY_G0L_ANALOG_USB20_USB20_PHY,
-		msk, reg);
+		reg = msk = BIT_ANLG_PHY_G0L_ANALOG_USB20_USB20_ISO_SW_EN;
+		regmap_update_bits(phy->ana_g0,
+			REG_ANLG_PHY_G0L_ANALOG_USB20_USB20_PHY,
+			msk, reg);
 
-	/* usb cgm ref */
-	msk = MASK_AON_APB_CGM_OTG_REF_EN |
-		MASK_AON_APB_CGM_DPHY_REF_EN;
-	regmap_update_bits(phy->hsphy_glb, REG_AON_APB_CGM_REG1, msk, 0);
+		/* usb cgm ref */
+		msk = MASK_AON_APB_CGM_OTG_REF_EN |
+			MASK_AON_APB_CGM_DPHY_REF_EN;
+		regmap_update_bits(phy->hsphy_glb, REG_AON_APB_CGM_REG1, msk, 0);
+	}
 
 	if (regulator_is_enabled(phy->vdd))
 		regulator_disable(phy->vdd);
@@ -487,25 +501,25 @@ static int sprd_hsphy_probe(struct platform_device *pdev)
 		return PTR_ERR(phy->hsphy_glb);
 	}
 
-	/* select the AON-SYS USB controller */
-	msk = MASK_AON_APB_USB20_CTRL_MUX_REG;
-	ret |= regmap_update_bits(phy->hsphy_glb, REG_AON_APB_AON_SOC_USB_CTRL,
-				 msk, 0);
+	if (!sprd_usbm_ssphy_get_onoff()) {
+		/* enable usb module */
+		msk = (MASK_AON_APB_AON_USB2_TOP_EB |
+			MASK_AON_APB_OTG_PHY_EB | MASK_AON_APB_ANA_EB);
+		reg = msk;
+		regmap_update_bits(phy->hsphy_glb, REG_AON_APB_APB_EB1, msk, reg);
 
-	/* enable usb module */
-	reg = msk = (MASK_AON_APB_AON_USB2_TOP_EB |
-		MASK_AON_APB_OTG_PHY_EB | MASK_AON_APB_ANA_EB);
-	regmap_update_bits(phy->hsphy_glb, REG_AON_APB_APB_EB1, msk, reg);
+		msk = MASK_AON_APB_CGM_OTG_REF_EN |
+			MASK_AON_APB_CGM_DPHY_REF_EN;
+		reg = msk;
+		regmap_update_bits(phy->hsphy_glb, REG_AON_APB_CGM_REG1, msk, reg);
 
-	reg = msk = MASK_AON_APB_CGM_OTG_REF_EN |
-		MASK_AON_APB_CGM_DPHY_REF_EN;
-	regmap_update_bits(phy->hsphy_glb, REG_AON_APB_CGM_REG1, msk, reg);
-
-	/* usb power down */
-	reg = msk = (MASK_AON_APB_C2G_ANALOG_USB20_USB20_PS_PD_L |
-		MASK_AON_APB_C2G_ANALOG_USB20_USB20_PS_PD_S);
-	regmap_update_bits(phy->hsphy_glb,
-		REG_AON_APB_MIPI_CSI_POWER_CTRL, msk, reg);
+		/* usb power down */
+		msk = (MASK_AON_APB_C2G_ANALOG_USB20_USB20_PS_PD_L |
+			MASK_AON_APB_C2G_ANALOG_USB20_USB20_PS_PD_S);
+		reg = msk;
+		regmap_update_bits(phy->hsphy_glb,
+			REG_AON_APB_MIPI_CSI_POWER_CTRL, msk, reg);
+	}
 
 	phy->phy.dev = dev;
 	phy->phy.label = "sprd-hsphy";

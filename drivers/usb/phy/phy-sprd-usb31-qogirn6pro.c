@@ -31,6 +31,7 @@
 #include <linux/usb/phy.h>
 #include <dt-bindings/soc/sprd,qogirn6pro-mask.h>
 #include <dt-bindings/soc/sprd,qogirn6pro-regs.h>
+#include <linux/usb/sprd_usbm.h>
 
 struct sprd_ssphy {
 	struct usb_phy		phy;
@@ -144,9 +145,11 @@ static inline void sprd_ssphy_reset_core(struct sprd_ssphy *phy)
 	regmap_update_bits(phy->ipa_apb, REG_IPA_APB_IPA_RST, msk, reg);
 
 	/* Reset USB2 PHY */
-	msk = MASK_AON_APB_OTG_PHY_SOFT_RST | MASK_AON_APB_OTG_UTMI_SOFT_RST;
-	reg = msk;
-	regmap_update_bits(phy->aon_apb, REG_AON_APB_APB_RST1, msk, reg);
+	if (!sprd_usbm_hsphy_get_onoff()) {
+		msk = MASK_AON_APB_OTG_PHY_SOFT_RST | MASK_AON_APB_OTG_UTMI_SOFT_RST;
+		reg = msk;
+		regmap_update_bits(phy->aon_apb, REG_AON_APB_APB_RST1, msk, reg);
+	}
 
 	/* Reset USB31 PHY */
 	ret |= regmap_read(phy->ipa_dispc1_glb_apb, DISPC1_GLB_APB_RST, &reg);
@@ -212,27 +215,29 @@ static int sprd_ssphy_set_vbus(struct usb_phy *x, int on)
 			msk, reg);
 		phy->is_host = true;
 	} else {
-		reg = msk = MASK_AON_APB_USB2_PHY_IDDIG;
-		ret |= regmap_update_bits(phy->aon_apb,
-			REG_AON_APB_OTG_PHY_CTRL, msk, reg);
+		if (!sprd_usbm_hsphy_get_onoff()) {
+			reg = msk = MASK_AON_APB_USB2_PHY_IDDIG;
+			ret |= regmap_update_bits(phy->aon_apb,
+				REG_AON_APB_OTG_PHY_CTRL, msk, reg);
 
-		msk = BIT_ANLG_PHY_G0L_DBG_SEL_ANALOG_USB20_USB20_DMPULLDOWN |
-			BIT_ANLG_PHY_G0L_DBG_SEL_ANALOG_USB20_USB20_DPPULLDOWN;
-		ret |= regmap_update_bits(phy->ana_g0l,
-			REG_ANLG_PHY_G0L_ANALOG_USB20_REG_SEL_CFG_0,
-			msk, msk);
+			msk = BIT_ANLG_PHY_G0L_DBG_SEL_ANALOG_USB20_USB20_DMPULLDOWN |
+				BIT_ANLG_PHY_G0L_DBG_SEL_ANALOG_USB20_USB20_DPPULLDOWN;
+			ret |= regmap_update_bits(phy->ana_g0l,
+				REG_ANLG_PHY_G0L_ANALOG_USB20_REG_SEL_CFG_0,
+				msk, msk);
 
-		/* the pull down resistance on D-/D+ enable */
-		msk = BIT_ANLG_PHY_G0L_ANALOG_USB20_USB20_DMPULLDOWN |
-			BIT_ANLG_PHY_G0L_ANALOG_USB20_USB20_DPPULLDOWN;
-		ret |= regmap_update_bits(phy->ana_g0l,
-			REG_ANLG_PHY_G0L_ANALOG_USB20_USB20_UTMI_CTL2,
-			msk, 0);
+			/* the pull down resistance on D-/D+ enable */
+			msk = BIT_ANLG_PHY_G0L_ANALOG_USB20_USB20_DMPULLDOWN |
+				BIT_ANLG_PHY_G0L_ANALOG_USB20_USB20_DPPULLDOWN;
+			ret |= regmap_update_bits(phy->ana_g0l,
+				REG_ANLG_PHY_G0L_ANALOG_USB20_USB20_UTMI_CTL2,
+				msk, 0);
 
-		msk = BIT_ANLG_PHY_G0L_ANALOG_USB20_USB20_RESERVED;
-		ret |= regmap_update_bits(phy->ana_g0l,
-			REG_ANLG_PHY_G0L_ANALOG_USB20_USB20_UTMI_CTL1,
-			msk, 0);
+			msk = BIT_ANLG_PHY_G0L_ANALOG_USB20_USB20_RESERVED;
+			ret |= regmap_update_bits(phy->ana_g0l,
+				REG_ANLG_PHY_G0L_ANALOG_USB20_USB20_UTMI_CTL1,
+				msk, 0);
+		}
 		phy->is_host = false;
 	}
 
@@ -295,6 +300,19 @@ static int sprd_ssphy_init(struct usb_phy *x)
 			return ret;
 		}
 	}
+
+	sprd_usbm_ssphy_set_onoff(1);
+
+	/* select the IPA_SYS USB controller */
+	msk = MASK_AON_APB_USB20_CTRL_MUX_REG;
+	reg = msk;
+	ret |= regmap_update_bits(phy->aon_apb, REG_AON_APB_AON_SOC_USB_CTRL,
+			 msk, reg);
+
+	/* enable analog */
+	msk = MASK_AON_APB_CGM_OTG_REF_EN | MASK_AON_APB_CGM_DPHY_REF_EN;
+	reg = msk;
+	ret |= regmap_update_bits(phy->aon_apb, REG_AON_APB_CGM_REG1, msk, reg);
 
 	/*enable analog:0x64900004*/
 	ret |= regmap_read(phy->aon_apb, REG_AON_APB_APB_EB1, &reg);
@@ -395,26 +413,8 @@ static int sprd_ssphy_init(struct usb_phy *x)
 		reg |= BIT(0) | BIT(4);
 	writel_relaxed(reg, phy->base + 0x010);
 
-	/* TCA SYSMODE CFG
-	bit1:0 => 2b11 typec_conn_mode = Pin configuration D,F
-	bit2 => 0 typec_flip = normal
-	bit3 => 0 typec_disable = standard
-	Bit31:5 => 0x0
-
-	reg = readl_relaxed(phy->base + 0x018);
-	reg &= ~(0xffffffc0);
-	writel_relaxed(reg, phy->base + 0x018);
-	reg = BIT(0) | BIT(1);
-	reg &= ~(BIT(2) | BIT(3) | BIT(4));
-	writel_relaxed(reg, phy->base + 0x018);
-	*/
-
 	/* TCA CTRLSYNCMODE CFG0 */
 	reg = readl_relaxed(phy->base + 0x020);
-	/*
-	reg &= ~(BIT(0) | BIT(1) | BIT(2) | BIT(3));
-	reg |= BIT(8) | BIT(9) | BIT(10) | BIT(16);
-	*/
 	reg |= BIT(1) | BIT(2);
 	writel_relaxed(reg, phy->base + 0x020);
 
@@ -466,14 +466,6 @@ static int sprd_ssphy_init(struct usb_phy *x)
 		}
 	}
 
-	/* TCA VBUS CTRL */
-	/*
-	reg = readl_relaxed(phy->base + 0x40);
-	reg &= ~(BIT(0) | BIT(2));
-	reg |= BIT(1) | BIT(3);
-	writel_relaxed(reg, phy->base + 0x40);
-	*/
-
 	if (!phy->pmic) {
 		/*
 		 *In FPGA platform, Disable low power will take some time
@@ -498,22 +490,30 @@ static void sprd_ssphy_shutdown(struct usb_phy *x)
 		return;
 	}
 
-	msk = BIT_ANLG_PHY_G0L_ANALOG_USB20_USB20_ISO_SW_EN;
-	reg = msk;
-	regmap_update_bits(phy->ana_g0l, REG_ANLG_PHY_G0L_ANALOG_USB20_USB20_PHY,
-		msk, reg);
+	sprd_usbm_ssphy_set_onoff(0);
+	if (!sprd_usbm_hsphy_get_onoff()) {
+		msk = BIT_ANLG_PHY_G0L_ANALOG_USB20_USB20_ISO_SW_EN;
+		reg = msk;
+		regmap_update_bits(phy->ana_g0l, REG_ANLG_PHY_G0L_ANALOG_USB20_USB20_PHY,
+			msk, reg);
 
-	/*hsphy vbus invalid */
-	msk = MASK_AON_APB_OTG_VBUS_VALID_PHYREG;
-	regmap_update_bits(phy->aon_apb, REG_AON_APB_OTG_PHY_TEST, msk, 0);
+		/*hsphy vbus invalid */
+		msk = MASK_AON_APB_OTG_VBUS_VALID_PHYREG;
+		regmap_update_bits(phy->aon_apb, REG_AON_APB_OTG_PHY_TEST, msk, 0);
+
+		/* hsphy power off */
+		msk = MASK_AON_APB_LVDSRF_PD_PD_L | MASK_AON_APB_LVDSRF_PS_PD_S;
+		reg = msk;
+		regmap_update_bits(phy->aon_apb, REG_AON_APB_MIPI_CSI_POWER_CTRL, msk, reg);
+
+		/* disable usb cgm ref */
+		msk = MASK_AON_APB_CGM_OTG_REF_EN | MASK_AON_APB_CGM_DPHY_REF_EN;
+		regmap_update_bits(phy->aon_apb, REG_AON_APB_CGM_REG1, msk, 0);
+	}
+
 	/*ssphy vbus invalid */
 	msk = MASK_AON_APB_SYS_VBUSVALID;
 	regmap_update_bits(phy->aon_apb, REG_AON_APB_USB31DPCOMBPHY_CTRL, msk, 0);
-
-	/* hsphy power off */
-	msk = MASK_AON_APB_LVDSRF_PD_PD_L | MASK_AON_APB_LVDSRF_PS_PD_S;
-	reg = msk;
-	regmap_update_bits(phy->aon_apb, REG_AON_APB_MIPI_CSI_POWER_CTRL, msk, reg);
 
 	/* Reset USB31 PHY */
 	regmap_read(phy->ipa_dispc1_glb_apb, DISPC1_GLB_APB_RST, &reg);
@@ -653,6 +653,11 @@ static int sprd_ssphy_vbus_notify(struct notifier_block *nb,
 {
 	struct usb_phy *usb_phy = container_of(nb, struct usb_phy, vbus_nb);
 	struct sprd_ssphy *phy = container_of(usb_phy, struct sprd_ssphy, phy);
+
+	if (sprd_usbm_event_is_active()) {
+		dev_dbg(usb_phy->dev, "%s is_active\n", __func__);
+		return 0;
+	}
 
 	if (phy->is_host) {
 		dev_info(usb_phy->dev, "USB PHY is host mode\n");

@@ -3245,6 +3245,7 @@ CONFIG_USB_SERIAL=y
 #
 CONFIG_USB_PAM=y
 CONFIG_SPRD_PAMU3=y
+# CONFIG_SPRD_USBM is not set
 
 #
 # USB Physical Layer drivers

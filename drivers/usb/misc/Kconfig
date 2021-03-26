@@ -278,4 +278,12 @@ config SPRD_PAMU3
 	  Enable this to support the SPREADTRUM PAMU3 that is part of SOC.
 	  This driver normally paired with DesignWare USB30 (DRD) Controller.
 
+config SPRD_USBM
+	tristate "SPREADTRUM USB management Driver"
+	default n
+	help
+	  Enable this to support the SPREADTRUM usb management that is part of SOC.
+	  This driver is used for DesignWare USB30 (DRD) Controllers works as the main,
+	  and SPRD MUSB works as the slave.
+
 endmenu
