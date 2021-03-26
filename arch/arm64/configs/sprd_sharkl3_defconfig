@@ -5205,11 +5205,20 @@ CONFIG_UNISOC_MAILBOX=m
 #
 # Unisoc WCN Device Drivers
 #
-# CONFIG_UNISOC_WCN_BSP is not set
-# CONFIG_SC23XX is not set
+CONFIG_UNISOC_WCN_BSP=m
+CONFIG_SC23XX=y
+CONFIG_WCN_INTEG=y
+# CONFIG_SC2355 is not set
+# CONFIG_UMW2652 is not set
+# CONFIG_UMW2653 is not set
+CONFIG_SC2342_I=y
+# CONFIG_UMW2631_I is not set
+# CONFIG_SDIOHAL is not set
 # CONFIG_WCN_BOOT is not set
 # CONFIG_WCN_UTILS is not set
 # CONFIG_WCN_RDCDBG is not set
+# CONFIG_WCN_PLATFORM is not set
+CONFIG_WCN_SIPC=y
 # end of Unisoc WCN Device Drivers
 
 #

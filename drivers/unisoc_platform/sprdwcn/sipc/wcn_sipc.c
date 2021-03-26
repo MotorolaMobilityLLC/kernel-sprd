@@ -542,32 +542,32 @@ static int wcn_sipc_sblk_send(struct sipc_chn_info *sipc_chn,
 {
 	int ret;
 	u8 *addr = NULL;
-	struct swcnblk_blk blk;
+	struct sblock blk;
 
 	WCN_HERE_CHN(sipc_chn->index);
-	/* get a free swcnblk. */
-	ret = swcnblk_get(sipc_chn->dst, sipc_chn->chn, &blk, 0);
+	/* get a free sblock. */
+	ret = sblock_get(sipc_chn->dst, sipc_chn->chn, &blk, 0);
 	if (ret) {
-		WCN_ERR("[%s]:Failed to get free swcnblk(%d)!\n",
+		WCN_ERR("[%s]:Failed to get free sblock(%d)!\n",
 			sipc_chn_tostr(sipc_chn->chn, 0), ret);
 		return -ENOMEM;
 	}
 	WCN_HERE_CHN(sipc_chn->index);
 	if (blk.length < len) {
-		WCN_ERR("[%s]:The size of swcnblk is so tiny!\n",
+		WCN_ERR("[%s]:The size of sblock is so tiny!\n",
 			sipc_chn_tostr(sipc_chn->chn, 0));
-		swcnblk_put(sipc_chn->dst, sipc_chn->chn, &blk);
+		sblock_put(sipc_chn->dst, sipc_chn->chn, &blk);
 		WARN_ON(1);
 		return E_INVALIDPARA;
 	}
 	addr = (u8 *)blk.addr + SIPC_SBLOCK_HEAD_RESERV;
 	blk.length = len + SIPC_SBLOCK_HEAD_RESERV;
 	memcpy(((u8 *)addr), buf, len);
-	ret = swcnblk_send_prepare(sipc_chn->dst, sipc_chn->chn, &blk);
+	ret = sblock_send_prepare(sipc_chn->dst, sipc_chn->chn, &blk);
 	WCN_HERE_CHN(sipc_chn->index);
 	if (ret) {
 		WCN_ERR("[%s]:err:%d\n", sipc_chn_tostr(sipc_chn->chn, 0), ret);
-		swcnblk_put(sipc_chn->dst, sipc_chn->chn, &blk);
+		sblock_put(sipc_chn->dst, sipc_chn->chn, &blk);
 	}
 
 	return ret;
@@ -587,7 +587,7 @@ static void wcn_sipc_sblk_push_list_dequeue(struct sipc_chn_info *sipc_chn)
 		WCN_HERE_CHN(sipc_chn->index);
 		return;
 	}
-	free_blk_num  = swcnblk_get_free_count(sipc_chn->dst, sipc_chn->chn);
+	free_blk_num  = sblock_get_free_count(sipc_chn->dst, sipc_chn->chn);
 	/* sblock busy */
 	if (free_blk_num <= 0) {
 		WCN_HERE_CHN(sipc_chn->index);
@@ -640,20 +640,20 @@ static void wcn_sipc_sblk_recv(struct sipc_chn_info *sipc_chn)
 {
 	u32 length = 0;
 	int ret;
-	struct swcnblk_blk blk;
+	struct sblock blk;
 
 	WCN_DEBUG("[%s] idx %d recv sblock msg",
 		  sipc_chn_tostr(sipc_chn->chn, 0), sipc_chn->index);
 
-	while (!swcnblk_receive(sipc_chn->dst, sipc_chn->chn, &blk, 0)) {
+	while (!sblock_receive(sipc_chn->dst, sipc_chn->chn, &blk, 0)) {
 		length = blk.length - SIPC_SBLOCK_HEAD_RESERV;
 		WCN_DEBUG("sblk length %d", length);
 		wcn_sipc_record_mbuf_recv_from_bus(sipc_chn->index, 1);
 		wcn_sipc_recv(sipc_chn,
 			      (u8 *)blk.addr + SIPC_SBLOCK_HEAD_RESERV, length);
-		ret = swcnblk_release(sipc_chn->dst, sipc_chn->chn, &blk);
+		ret = sblock_release(sipc_chn->dst, sipc_chn->chn, &blk);
 		if (ret)
-			WCN_ERR("release swcnblk[%d] err:%d\n",
+			WCN_ERR("release sblock[%d] err:%d\n",
 				sipc_chn->chn, ret);
 	}
 }
@@ -675,7 +675,7 @@ static void wcn_sipc_sblk_notifer(int event, void *data)
 		wcn_sipc_wakeup_tx(sipc_chn);
 		break;
 	default:
-		WCN_ERR("Invalid event swcnblk notify:%d\n", event);
+		WCN_ERR("Invalid event sblock notify:%d\n", event);
 		break;
 	}
 }
@@ -780,7 +780,11 @@ static int wcn_sipc_chn_init(struct mchn_ops_t *ops)
 	u8 chntype = 0;
 	int idx = 0;
 	struct sipc_chn_info *sipc_chn;
+//K54_TAG begin
+#if 0
 	struct swcnblk_create_info info = {0};
+#endif
+//K54_TAG end
 
 	idx = ops->channel;
 	if (unlikely(SIPC_INVALID_CHN(idx)))
@@ -833,6 +837,8 @@ static int wcn_sipc_chn_init(struct mchn_ops_t *ops)
 			  sipc_chn->sblk.rxblocknum,
 			  sipc_chn->sblk.rxblocksize);
 
+//K54_TAG begin
+#if 0
 		info.dst = sipc_chn->dst;
 		info.channel = sipc_chn->chn;
 		info.txblocknum = sipc_chn->sblk.txblocknum;
@@ -842,11 +848,14 @@ static int wcn_sipc_chn_init(struct mchn_ops_t *ops)
 		info.basemem = sipc_chn->sblk.basemem;
 		info.alignsize = sipc_chn->sblk.alignsize;
 		info.mapped_smem_base = sipc_chn->sblk.mapped_smem_base;
+#endif
+//K54_TAG end
 		/* rx chn record tx chn */
 		sipc_chn->relate_index = sipc_chn->index;
 		/* sblock */
 		if (SIPC_CHN_STATUS(sipc_chn->chn) == SIPC_CHANNEL_UNCREATED) {
-			ret = swcnblk_create(&info, NULL, NULL);
+			ret = sblock_create(sipc_chn->dst, sipc_chn->chn, sipc_chn->sblk.txblocknum,	\
+				sipc_chn->sblk.txblocksize, sipc_chn->sblk.rxblocknum, sipc_chn->sblk.rxblocksize);
 			if (ret < 0) {
 				WCN_ERR("sblock chn[%d] create fail!\n", idx);
 				return ret;
@@ -854,7 +863,7 @@ static int wcn_sipc_chn_init(struct mchn_ops_t *ops)
 			SIPC_CHN_STATUS(sipc_chn->chn) = SIPC_CHANNEL_CREATED;
 		}
 		if (SIPC_CHN_DIR_RX(idx)) {
-			ret = swcnblk_register_notifier(
+			ret = sblock_register_notifier(
 					sipc_chn->dst,
 					sipc_chn->chn,
 					sipc_data_ops[chntype].sipc_notifer,
@@ -862,7 +871,7 @@ static int wcn_sipc_chn_init(struct mchn_ops_t *ops)
 			if (ret < 0) {
 				WCN_ERR("sblock chn[%d] register fail!\n",
 					idx);
-				swcnblk_destroy(sipc_chn->dst, sipc_chn->chn);
+				sblock_destroy(sipc_chn->dst, sipc_chn->chn);
 				return ret;
 			}
 			sipc_chn->relate_index = sipc_chn->index - 1;
@@ -876,7 +885,7 @@ static int wcn_sipc_chn_init(struct mchn_ops_t *ops)
 				}
 			}
 		}
-		WCN_INFO("swcn_blk chn[%d] create success!\n", idx);
+		WCN_INFO("sblock chn[%d] create success!\n", idx);
 	} else {
 		WCN_ERR("invalid sipc type!");
 		return -E_INVALIDPARA;

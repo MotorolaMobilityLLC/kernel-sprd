@@ -14797,14 +14797,23 @@ CONFIG_SBITMAP
 	[must] user
 	[missing plat description] none
 	[function] Support sbitmap feature.
-CONFIG_SC23XX
+CONFIG_SC2342_I
 	[arch] arm64
-	[plat] sharkl5Pro
-	[missing plat] sharkl3
+	[plat] sharkl3
+	[missing plat] sharkl5Pro
 	[field]
 	[subsys]
 	[must]
 	[missing plat description]
+	[function]
+CONFIG_SC23XX
+	[arch] arm64
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
 	[function]
 CONFIG_SC27XX_ADC
 	[arch] arm64
@@ -17899,12 +17908,12 @@ CONFIG_UNISOC_SIPC_VIRT_BUS
 	[function]
 CONFIG_UNISOC_WCN_BSP
 	[arch] arm64
-	[plat] sharkl5Pro
-	[missing plat] sharkl3
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
 	[field]
 	[subsys]
 	[must]
-	[missing plat description]
+	[missing plat description] none
 	[function]
 CONFIG_UNIX
 	[arch] all
@@ -19088,6 +19097,24 @@ CONFIG_WCN_BOOT
 	[arch] arm64
 	[plat] sharkl5Pro
 	[missing plat] sharkl3
+	[field]
+	[subsys]
+	[must]
+	[missing plat description]
+	[function]
+CONFIG_WCN_INTEG
+	[arch] arm64
+	[plat] sharkl3
+	[missing plat] sharkl5Pro
+	[field]
+	[subsys]
+	[must]
+	[missing plat description]
+	[function]
+CONFIG_WCN_SIPC
+	[arch] arm64
+	[plat] sharkl3
+	[missing plat] sharkl5Pro
 	[field]
 	[subsys]
 	[must]

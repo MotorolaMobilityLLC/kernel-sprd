@@ -207,7 +207,7 @@ enum flag_emmc_or_ufs {
 struct wcn_device {
 	char	*name;
 	/* DTS info: */
-
+	struct device *dev;
 	/*
 	 * wcn and gnss ctrl_reg num
 	 * from ctrl-reg[0] to ctrl-reg[ctrl-probe-num - 1]

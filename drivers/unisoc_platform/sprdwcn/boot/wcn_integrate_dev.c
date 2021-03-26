@@ -1138,6 +1138,26 @@ static inline void wcn_platform_fs_exit(struct wcn_device *wcn_dev)
 	remove_proc_entry(wcn_dev->name, NULL);
 }
 
+static void wcn_subdts_init(void)
+{
+	int ret;
+
+	if (s_wcn_device.btwf_device == NULL) {
+		WCN_ERR("s_wcn_device.btwf_device is NULL!\n");
+		return;
+	}
+
+	if (s_wcn_device.btwf_device->dev == NULL) {
+		WCN_ERR("s_wcn_device.btwf_device->dev is NULL!\n");
+		return;
+	}
+
+	WCN_INFO("%s start, s_wcn_device.btwf_device->name = %s\n", __func__, s_wcn_device.btwf_device->name);
+	ret = devm_of_platform_populate(s_wcn_device.btwf_device->dev);
+	if (ret)
+		WCN_ERR("init BTWF subdts error\n");
+}
+
 /* wcn triggers power on and off by itself in probe */
 static void wcn_probe_power_wq(struct work_struct *work)
 {
@@ -1148,6 +1168,8 @@ static void wcn_probe_power_wq(struct work_struct *work)
 
 	if (stop_marlin(MARLIN_MDBG))
 		WCN_ERR("%s power down failed\n", __func__);
+
+	wcn_subdts_init();
 }
 
 static int wcn_probe(struct platform_device *pdev)
@@ -1161,6 +1183,7 @@ static int wcn_probe(struct platform_device *pdev)
 	if (!wcn_dev)
 		return -ENOMEM;
 
+	wcn_dev->dev = &pdev->dev;
 	if (wcn_parse_dt(pdev, wcn_dev) < 0) {
 		WCN_ERR("wcn_parse_dt Failed!\n");
 		kfree(wcn_dev);

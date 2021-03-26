@@ -18,6 +18,7 @@
 #include <linux/mutex.h>
 #include <linux/time.h>
 #include <linux/sched/clock.h>
+#include <asm/div64.h>
 
 #include "wcn_misc.h"
 #include "wcn_procfs.h"
@@ -102,19 +103,34 @@ long int mdbg_send_atcmd(char *buf, size_t len, enum atcmd_owner owner)
 /* copy from function: kdb_gmtime */
 static void wcn_gmtime(struct timespec64 *tv, struct wcn_tm *tm)
 {
+	uint64_t result = 0;
+	uint64_t divisor = 0;
 	/* This will work from 1970-2099, 2100 is not a leap year */
 	static int mon_day[] = { 31, 29, 31, 30, 31, 30, 31,
 				 31, 30, 31, 30, 31 };
 	memset(tm, 0, sizeof(*tm));
-	tm->tm_msec =  tv->tv_nsec / 1000000;
-	tm->tm_sec  = tv->tv_sec % (24 * 60 * 60);
-	tm->tm_mday = tv->tv_sec / (24 * 60 * 60) +
-		(2 * 365 + 1); /* shift base from 1970 to 1968 */
-	tm->tm_min =  tm->tm_sec / 60 % 60;
-	tm->tm_hour = tm->tm_sec / 60 / 60;
-	tm->tm_sec =  tm->tm_sec % 60;
-	tm->tm_year = 68 + 4 * (tm->tm_mday / (4 * 365 + 1));
-	tm->tm_mday %= (4 * 365 + 1);
+	result = tv->tv_nsec;
+	divisor = 1000000;
+	do_div(result, divisor);
+	tm->tm_msec = result;
+
+	result = tv->tv_sec;
+	divisor = 24 * 60 * 60;
+	tm->tm_sec = do_div(result, divisor);
+	tm->tm_mday = result + (2 * 365 + 1);
+
+	result = tm->tm_sec;
+	divisor = 60;
+	tm->tm_sec = do_div(result, divisor);
+
+	tm->tm_min = do_div(result, divisor);
+	tm->tm_hour = result;
+
+	result = tm->tm_mday;
+	divisor = 4 * 365 + 1;
+	tm->tm_mday = do_div(result, divisor);
+	tm->tm_year = 68 + 4 * result;
+
 	mon_day[1] = 29;
 	while (tm->tm_mday >= mon_day[tm->tm_mon]) {
 		tm->tm_mday -= mon_day[tm->tm_mon];
