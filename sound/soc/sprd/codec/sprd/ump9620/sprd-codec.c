@@ -3158,15 +3158,18 @@ static const struct snd_soc_dapm_route sprd_codec_intercon[] = {
 	{"CLK_DAC", NULL, "DIG_CLK_DAC_BUF"},
 	{"DALDO EN", NULL, "DRV SOFT EN"},
 	/* check further, exist a more appropriate route? */
-	{"CLK_DAC", NULL, "DALDO EN"},
+	{"CLK_CP", NULL, "DALDO EN"},
+	{"CP_LDO", NULL, "CLK_CP"},
+	{"CP", NULL, "CP_LDO"},
+	{"CLK_CP_32K", NULL, "CP"},
+	{"CP AD Cali", NULL, "CLK_CP_32K"},
+	{"CLK_DAC", NULL, "CP AD Cali"},
 
 	{"CLK_ADC", NULL, "CLK_DIG_6M5"},
 	{"CLK_ADC", NULL, "DCL"},
 	{"CLK_ADC", NULL, "DIG_CLK_DRV_SOFT"},
 	{"CLK_ADC", NULL, "Digital Power"},
 	{"CLK_ADC", NULL, "ADC_IBIAS"},
-
-	{"DIG_CLK_HPDPOP", NULL, "DIG_CLK_INTC"},
 
 /* DA route */
 	{"DAC", NULL, "CLK_DAC"},
@@ -3234,20 +3237,12 @@ static const struct snd_soc_dapm_route sprd_codec_intercon[] = {
 	{"SPK PA", NULL, "AO EN"},
 	{"SPK PA", NULL, "DIG_CLK_RCV"},/* check further, enable rcv in spk? */
 	{"SPK Pin", NULL, "SPK PA"},
-/* HP */
-	{"CP AD Cali", NULL, "CLK_CP"},
-	{"CP", NULL, "CP AD Cali"},
-	{"CP", NULL, "CP_LDO"},
-	{"HP DEPOP", NULL, "CP"},
-	{"HP DEPOP", NULL, "CLK_CP_32K"},
-	{"HP DEPOP", NULL, "DIG_CLK_HPDPOP"},
-	/* check further, following four route is abnormal? */
-	{"DAC Gain", NULL, "HP DEPOP"},
-	{"SDM DC OS", NULL, "DAC Gain"},
 
+/* HP */
+	{"HP DEPOP", NULL, "DIG_CLK_HPDPOP"},
+	{"HP DEPOP", NULL, "DIG_CLK_INTC"},
 	{"HP DEPOP", NULL, "DAC Gain"},
 	{"SDM DC OS", NULL, "HP DEPOP"},
-
 	{"HPRCV COM Virt", NULL, "SDM DC OS"},
 	{"DNS", NULL, "HPRCV COM Virt"},
 	{"DAHP OS", NULL, "DNS"},
@@ -3274,13 +3269,8 @@ static const struct snd_soc_dapm_route sprd_codec_intercon[] = {
 	{"HP Pin", NULL, "SDAHP DPOP"},
 
 /* EAR */
-	{"CP_LDO", NULL, "CLK_CP"},
-	{"CP", NULL, "CP_LDO"},
-	{"DIG_CLK_RCV", NULL, "CP"},
-	{"RCV DEPOP", NULL, "DIG_CLK_RCV"},
 	{"RCV DEPOP", NULL, "DIG_CLK_INTC"},
-	{"RCV DEPOP", NULL, "CLK_CP_32K"},
-
+	{"RCV DEPOP", NULL, "DIG_CLK_RCV"},
 	{"RCV DEPOP", NULL, "DAC Gain"},
 	{"HPL EAR Sel", NULL, "RCV DEPOP"},
 	{"AOL EAR Sel", NULL, "RCV DEPOP"},
