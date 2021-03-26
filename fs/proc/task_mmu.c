@@ -2035,8 +2035,10 @@ static ssize_t reclaim_write(struct file *file, const char __user *buf,
 			if (vma->vm_start > end)
 				break;
 			if (is_vm_hugetlb_page(vma) ||
-			   (vma->vm_flags & VM_MIXEDMAP))
+			   (vma->vm_flags & VM_MIXEDMAP)) {
+				vma = vma->vm_next;
 				continue;
+			}
 
 			rp.vma = vma;
 			walk_page_range(max(vma->vm_start, start),
