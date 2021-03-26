@@ -1908,6 +1908,7 @@ static void sprd_headset_type_report(struct sprd_headset *hdst)
 		if (pdata->eu_us_switch != 0)
 			gpio_direction_output(pdata->eu_us_switch, 1);
 		/* Repeated detection 5 times when 3P is detected */
+		fallthrough;
 	case HEADSET_NO_MIC:
 		if (hdst->det_3pole_cnt < 5 && !hdst->mdet_tried) {
 			pr_err("type_report det_3pole_cnt %d\n",

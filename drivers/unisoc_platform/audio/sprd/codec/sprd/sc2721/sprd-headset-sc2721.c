@@ -1775,6 +1775,7 @@ static void headset_detect_all_work_func(struct work_struct *work)
 			if (hdst->type_status == HEADSET_TYPEC_NOT && pdata->gpio_switch != 0)
 				gpio_direction_output(pdata->gpio_switch, 1);
 			/* Repeated detection 5 times when 3P is detected */
+			fallthrough;
 		case HEADSET_NO_MIC:
 			pr_info("headset_type = %d (HEADSET_NO_MIC)\n",
 				headset_type);

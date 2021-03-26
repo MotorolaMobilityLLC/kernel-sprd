@@ -3067,7 +3067,7 @@ sprd_pcm_pointer_1stage(struct snd_pcm_substream *substream)
 	}
 	normal_dma_protect_spin_unlock(substream);
 	x = bytes_to_frames(runtime, bytes_of_pointer);
-	pr_debug("x=%#lx, bytes_of_pointer=%d, buffer_size=%x\n",
+	pr_debug("x=%#lx, bytes_of_pointer=%d, buffer_size=%lx\n",
 			x, bytes_of_pointer, runtime->buffer_size);
 	if (x == runtime->buffer_size)
 		x = 0;
