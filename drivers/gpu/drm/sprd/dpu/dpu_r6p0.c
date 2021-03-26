@@ -494,6 +494,7 @@ static struct slp_cfg slp_copy;
 static struct gamma_lut gamma_copy;
 static struct threed_lut lut3d_copy;
 static struct hsv_luts hsv_copy;
+static u32 hsv_cfg_copy;
 static struct epf_cfg epf_copy;
 static struct epf_cfg sr_epf;
 static bool sr_epf_ready;
@@ -1603,15 +1604,16 @@ static void dpu_layer(struct dpu_context *ctx,
 {
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
 	struct layer_reg *layer;
-	u32 dst_size, src_size, offset, wd;
+	u32 dst_size, src_size, offset, wd, rot;
 	int i;
 
 	layer = &reg->layers[hwlayer->index];
 	offset = (hwlayer->dst_x & 0xffff) | ((hwlayer->dst_y) << 16);
+	src_size = (hwlayer->src_w & 0xffff) | ((hwlayer->src_h) << 16);
+	dst_size = (hwlayer->dst_w & 0xffff) | ((hwlayer->dst_h) << 16);
+	layer->ctrl = 0;
 
 	if (hwlayer->pallete_en) {
-		dst_size = (hwlayer->dst_w & 0xffff) | ((hwlayer->dst_h) << 16);
-		src_size = (hwlayer->src_w & 0xffff) | ((hwlayer->src_h) << 16);
 		layer->pos = offset;
 		layer->src_size = src_size;
 		layer->dst_size = dst_size;
@@ -1627,8 +1629,13 @@ static void dpu_layer(struct dpu_context *ctx,
 		return;
 	}
 
-	src_size = (hwlayer->src_w & 0xffff) | ((hwlayer->src_h) << 16);
-	dst_size = (hwlayer->dst_w & 0xffff) | ((hwlayer->dst_h) << 16);
+	if (src_size != dst_size) {
+		rot = to_dpu_rotation(hwlayer->rotation);
+		if ((rot == DPU_LAYER_ROTATION_90) || (rot == DPU_LAYER_ROTATION_270) ||
+		  (rot == DPU_LAYER_ROTATION_90_M) || (rot == DPU_LAYER_ROTATION_270_M))
+			dst_size = (hwlayer->dst_h & 0xffff) | ((hwlayer->dst_w) << 16);
+		layer->ctrl = BIT(24);
+	}
 
 	for (i = 0; i < hwlayer->planes; i++) {
 		if (hwlayer->addr[i] % 16)
@@ -1656,7 +1663,7 @@ static void dpu_layer(struct dpu_context *ctx,
 	else
 		layer->pitch = hwlayer->pitch[0] / wd;
 
-	layer->ctrl = dpu_img_ctrl(hwlayer->format, hwlayer->blending,
+	layer->ctrl |= dpu_img_ctrl(hwlayer->format, hwlayer->blending,
 		hwlayer->xfbc, hwlayer->y2r_coef, hwlayer->rotation);
 
 	pr_debug("dst_x = %d, dst_y = %d, dst_w = %d, dst_h = %d\n",
@@ -1665,9 +1672,6 @@ static void dpu_layer(struct dpu_context *ctx,
 	pr_debug("start_x = %d, start_y = %d, start_w = %d, start_h = %d\n",
 				hwlayer->src_x, hwlayer->src_y,
 				hwlayer->src_w, hwlayer->src_h);
-
-	if (src_size != dst_size)
-		layer->ctrl |= BIT(24);
 
 	reg->layer_enable |= (1 << hwlayer->index);
 }
@@ -1933,9 +1937,17 @@ static void dpu_luts_copyfrom_user(u32 *param)
 	static u32 i;
 	u8 *luts_tmp_vaddr;
 
-	luts_tmp_vaddr = dpu_luts_vaddr;
+	/* 46 means 46*2k, all luts size.
+	 * each time writes 2048 bytes from
+	 * user space.
+	 */
+	if (i == 46)
+		i = 0;
+
+	luts_tmp_vaddr = (u8 *)lut_gamma_vaddr;
 	luts_tmp_vaddr += 2048 * i;
-	memcpy(luts_tmp_vaddr, param, PAGE_SIZE);
+	memcpy(luts_tmp_vaddr, param, 2048);
+
 	i++;
 }
 
@@ -1953,21 +1965,25 @@ static void dpu_luts_update(struct dpu_context *ctx, void *param)
 		reg->gamma_lut_base_addr = dpu_luts_paddr +
 			DPU_LUTS_GAMMA_OFFSET + typeindex_cpy.index * 4096;
 		lut_addrs_cpy.lut_gamma_addr = reg->gamma_lut_base_addr;
+		reg->dpu_enhance_cfg |= BIT(3) | BIT(5);
 		break;
 	case LUTS_HSV_TYPE:
 		p32++;
 		hsv_cfg = (struct hsv_params *) p32;
 		reg->hsv_cfg = (hsv_cfg->h0 & 0xff) |
-			((hsv_cfg->h1 << 8) & 0x3) |
-			((hsv_cfg->h2 << 12) & 0x3);
+			((hsv_cfg->h1 & 0x3) << 8) |
+			((hsv_cfg->h2 & 0x3) << 12);
+		hsv_cfg_copy = reg->hsv_cfg;
 		reg->hsv_lut_base_addr = dpu_luts_paddr +
 			DPU_LUTS_HSV_OFFSET + typeindex_cpy.index * 4096;
 		lut_addrs_cpy.lut_hsv_addr = reg->hsv_lut_base_addr;
+		reg->dpu_enhance_cfg |= BIT(1);
 		break;
 	case LUTS_LUT3D_TYPE:
 		reg->threed_lut_base_addr = dpu_luts_paddr +
-			DPU_LUTS_LUT3D_OFFSET + typeindex_cpy.index * 4096;
+			DPU_LUTS_LUT3D_OFFSET + typeindex_cpy.index * 4096 * 6;
 		lut_addrs_cpy.lut_lut3d_addr = reg->threed_lut_base_addr;
+		reg->dpu_enhance_cfg |= BIT(4);
 		break;
 	case LUTS_ALL:
 		p32++;
@@ -2104,10 +2120,13 @@ static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
 		reg->slp_cfg7 = ((slp->s29 & 0x1ff) << 23) |
 			((slp->s28 & 0x1ff) << 14) |
 			((slp->s27 & 0x1ff) << 5);
-		reg->slp_cfg9 = ((slp->s33 & 0x7f) << 25) |
-			(slp->s32 << 17) |
-			((slp->s31 & 0xf) << 13) |
-			((slp->s30 & 0x7f) << 6);
+		reg->slp_cfg8 = ((slp->s32 & 0x1ff) << 23) |
+			((slp->s31 & 0x1ff) << 14) |
+			((slp->s30 & 0x1fff) << 0);
+		reg->slp_cfg9 = ((slp->s36 & 0x7f) << 25) |
+			((slp->s35 & 0xff) << 17) |
+			((slp->s34 & 0xf) << 13) |
+			((slp->s33 & 0x7f) << 6);
 		reg->slp_cfg10 = (slp->s38 << 8) | (slp->s37 << 0);
 		reg->dpu_enhance_cfg |= BIT(6);
 		pr_info("enhance slp set\n");
@@ -2292,7 +2311,7 @@ static void dpu_luts_copyto_user(u32 *param)
 	if (type_index->type == LUTS_LUT3D_TYPE) {
 		p32 = lut_lut3d_vaddr;
 		mode = type_index->index >> 8;
-		mode_index =  type_index->index & 0xff;
+		mode_index = type_index->index & 0xff;
 		pr_info("3dlut: mode%d index%d\n", mode, mode_index);
 		p32 += mode * 1024 * 6;
 		p32 += mode_index;
@@ -2315,7 +2334,6 @@ static void dpu_enhance_get(struct dpu_context *ctx, u32 id, void *param)
 	struct slp_cfg *slp;
 	struct cm_cfg *cm;
 	struct gamma_lut *gamma;
-	struct lut_3ds *lut3d;
 	struct hsv_luts *hsv_table;
 	struct ud_cfg *ud;
 	struct hsv_params *hsv_cfg;
@@ -2374,7 +2392,7 @@ static void dpu_enhance_get(struct dpu_context *ctx, u32 id, void *param)
 		dpu_lut_raddr = (u32 *)&reg->hsv_lut0_raddr;
 		for (i = 0; i < 4; i++) {
 			for (j = 0; j < 64; j++) {
-				*dpu_lut_addr = i;
+				*dpu_lut_addr = j;
 				udelay(1);
 				hsv_table->hsv_lut[i].h_o[j] =
 					(*dpu_lut_raddr >> 9)  & 0x7f;
@@ -2393,7 +2411,7 @@ static void dpu_enhance_get(struct dpu_context *ctx, u32 id, void *param)
 		cm->c01 = (reg->cm_coef01_00 >> 16) & 0x3fff;
 		cm->c02 = reg->cm_coef03_02 & 0x3fff;
 		cm->c03 = (reg->cm_coef03_02 >> 16) & 0x3fff;
-		cm->c22 = reg->cm_coef11_10 & 0x3fff;
+		cm->c10 = reg->cm_coef11_10 & 0x3fff;
 		cm->c11 = (reg->cm_coef11_10 >> 16) & 0x3fff;
 		cm->c12 = reg->cm_coef13_12 & 0x3fff;
 		cm->c13 = (reg->cm_coef13_12 >> 16) & 0x3fff;
@@ -2401,13 +2419,6 @@ static void dpu_enhance_get(struct dpu_context *ctx, u32 id, void *param)
 		cm->c21 = (reg->cm_coef21_20 >> 16) & 0x3fff;
 		cm->c22 = reg->cm_coef23_22 & 0x3fff;
 		cm->c23 = (reg->cm_coef23_22 >> 16) & 0x3fff;
-
-		*p32++ = reg->cm_coef01_00;
-		*p32++ = reg->cm_coef03_02;
-		*p32++ = reg->cm_coef11_10;
-		*p32++ = reg->cm_coef13_12;
-		*p32++ = reg->cm_coef21_20;
-		*p32++ = reg->cm_coef23_22;
 
 		pr_info("enhance cm get\n");
 		break;
@@ -2505,20 +2516,14 @@ static void dpu_enhance_get(struct dpu_context *ctx, u32 id, void *param)
 		pr_info("enhance slp lut get\n");
 		break;
 	case ENHANCE_CFG_ID_LUT3D:
-		lut3d = param;
 		dpu_stop(ctx);
+		p32 = param;
 		dpu_lut_addr = (u32 *)&reg->threed_lut0_addr;
 		dpu_lut_raddr = (u32 *)&reg->threed_lut0_rdata;
-		for (i = 0; i < 8; i++) {
-			for (j = 0; j < 729; j++) {
-				*dpu_lut_addr = i;
-				udelay(1);
-				lut3d->luts[i].r[j] = (*dpu_lut_raddr >> 20) & 0x3ff;
-				lut3d->luts[i].g[j] = (*dpu_lut_raddr >> 10) & 0x3ff;
-				lut3d->luts[i].b[j] = *dpu_lut_raddr & 0x3ff;
-			}
-			dpu_lut_addr += 2;
-			dpu_lut_raddr += 2;
+		for (j = 0; j < 729; j++) {
+			*dpu_lut_addr = j;
+			udelay(1);
+			*p32++ = *dpu_lut_raddr;
 		}
 		dpu_run(ctx);
 		pr_info("enhance lut3d get\n");
@@ -2567,19 +2572,14 @@ static void dpu_enhance_reload(struct dpu_context *ctx)
 	struct scale_cfg *scale;
 	struct cm_cfg *cm;
 	struct slp_cfg *slp;
-	struct gamma_lut *gamma;
-	struct hsv_luts *hsv_table;
 	struct epf_cfg *epf;
-	struct threed_lut *lut3d;
 	struct ud_cfg *ud;
-	int i, j;
+	int i;
 	u16 *p16;
-	u32 *p32;
 
 	p16 = (u16 *)lut_slp_vaddr;
 	for (i = 0; i < 256; i++)
 		*p16++ = slp_lut[i];
-	reg->gamma_lut_base_addr = lut_addrs_cpy.lut_gamma_addr;
 	reg->enhance_update |= BIT(4);
 
 	if (enhance_en & reg->scl_en) {
@@ -2604,19 +2604,9 @@ static void dpu_enhance_reload(struct dpu_context *ctx)
 	}
 
 	if (enhance_en & BIT(1)) {
-		hsv_table = &hsv_copy;
-		p32 = lut_hsv_vaddr;
-		for (i = 0; i < 4; i++) {
-			for (j = 0; j < 64; j++) {
-				*p32 = (hsv_table->hsv_lut[i].h_o[j] << 9) |
-					hsv_table->hsv_lut[i].s_g[j];
-				p32 += 4;
-			}
-			p32 = lut_hsv_vaddr;
-			p32 += i;
-		}
+		reg->hsv_cfg = hsv_cfg_copy;
 		reg->hsv_lut_base_addr = lut_addrs_cpy.lut_hsv_addr;
-		reg->enhance_update |= BIT(1);
+		reg->enhance_update |= BIT(2);
 		pr_info("enhance hsv set\n");
 		pr_info("enhance hsv reload\n");
 	}
@@ -2672,15 +2662,8 @@ static void dpu_enhance_reload(struct dpu_context *ctx)
 	}
 
 	if (enhance_en & BIT(3)) {
-		gamma = &gamma_copy;
-		p32 = lut_gamma_vaddr;
-		for (i = 0; i < 256; i++) {
-			*p32 = (gamma->r[i] << 20) |
-				(gamma->g[i] << 10) |
-				gamma->b[i];
-			p32 += 4;
-		}
-		reg->enhance_update |= BIT(0);
+		reg->gamma_lut_base_addr = lut_addrs_cpy.lut_gamma_addr;
+		reg->enhance_update |= BIT(1);
 		pr_info("enhance gamma reload\n");
 	}
 
@@ -2693,23 +2676,12 @@ static void dpu_enhance_reload(struct dpu_context *ctx)
 	}
 
 	if (enhance_en & BIT(4)) {
-		lut3d = &lut3d_copy;
-		p32 = lut_lut3d_vaddr;
-		for (i = 0; i < 8; i++) {
-			p32 = lut_lut3d_vaddr + 4 * i;
-			for (j = 0; j < 729; j++) {
-				*p32 = (lut3d->r[i] << 20) |
-				    (lut3d->g[i] << 10) |
-				    lut3d->b[i];
-				p32 += 8;
-			}
-		}
 		reg->threed_lut_base_addr = lut_addrs_cpy.lut_lut3d_addr;
-		reg->enhance_update |= BIT(2);
+		reg->enhance_update |= BIT(3);
 		pr_info("enhance lut3d reload\n");
 	}
 
-	if (enhance_en & BIT(5)) {
+	if (enhance_en & BIT(10)) {
 		ud = &ud_copy;
 		reg->ud_cfg0 = ud->u0 | (ud->u1 << 16) | (ud->u2 << 24);
 		reg->ud_cfg1 = ud->u3 | (ud->u4 << 16) | (ud->u5 << 24);

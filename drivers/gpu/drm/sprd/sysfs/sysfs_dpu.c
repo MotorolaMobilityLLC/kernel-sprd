@@ -1271,18 +1271,27 @@ static ssize_t update_luts_write(struct file *fp, struct kobject *kobj,
 	if (!dpu->core->enhance_set)
 		return -EIO;
 
-	/* I need to get my data in one piece */
-	if (off != 0 || count != attr->size)
+	/* I need to get my data in one piece
+	 * count: header + payload, header 4 bytes:
+	 * header:type + index , type: enhance_type,
+	 * index: the choosed luts table
+	 */
+	if (off != 0 && (count == 2052 || count == 4 || count == 10))
 		return -EINVAL;
 
 	down(&ctx->refresh_lock);
+	if (!ctx->is_inited) {
+		pr_err("dpu is not initialized\n");
+		up(&ctx->refresh_lock);
+		return -EINVAL;
+	}
 	dpu->core->enhance_set(ctx, ENHANCE_CFG_ID_UPDATE_LUTS, buf);
 	up(&ctx->refresh_lock);
 
 	return count;
 }
 
-static BIN_ATTR_WO(update_luts, 94208);
+static BIN_ATTR_WO(update_luts, 2052);
 
 static ssize_t status_show(struct device *dev,
 			struct device_attribute *attr,
