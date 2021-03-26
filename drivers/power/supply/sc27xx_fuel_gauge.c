@@ -533,7 +533,7 @@ static int sc27xx_fgu_get_boot_capacity(struct sc27xx_fgu_data *data, int *cap)
 
 	if(!is_first_poweron)
 	{
-		sc27xx_fgu_get_boot_voltage(data, &current_ocv);
+		sc27xx_fgu_get_vbat_ocv(data, &current_ocv);
 		current_cap = power_supply_ocv2cap_simple(data->cap_table, data->table_len,
 						   current_ocv);
 		 sc27xx_fgu_read_last_cap(data, cap);
@@ -543,9 +543,19 @@ static int sc27xx_fgu_get_boot_capacity(struct sc27xx_fgu_data *data, int *cap)
 		 else
 		 	delta = *cap - current_cap*10;
 
-	//	 if(delta >100)	 	
-	//	 	is_first_poweron= true;
-	dev_err(data->dev, "%s 10;%d;%d;%d;%d;%d;\n",__func__,is_first_poweron,delta,current_ocv,current_cap*10,*cap);
+       //       if(delta >100)         
+       //              is_first_poweron= true;
+       //dev_err(data->dev, "%s 10;%d;%d;%d;%d;%d;\n",__func__,is_first_poweron,delta,current_ocv,current_cap*10,*cap);
+
+		 if(delta >300)
+		 {
+			data->boot_cap = current_cap*10;
+			dev_err(data->dev, "%s >300;%d;%d;%d;%d;\n",__func__,current_ocv,current_cap*10,*cap,delta);
+			*cap = current_cap*10;
+			return 0;
+
+		 }	
+	         dev_err(data->dev, "%s <300;%d;%d;%d;%d;\n",__func__,current_ocv,current_cap*10,*cap,delta);
 	}
 
 	if (is_charger_mode)
@@ -719,6 +729,13 @@ static int sc27xx_fgu_get_capacity(struct sc27xx_fgu_data *data, int *cap,
 	else if (data->normal_temperature_cap > 1000)
 		data->normal_temperature_cap = 1000;
 
+	if (*cap < 0) {
+		dev_err(data->dev, "%s;cap=%d;\n",__func__,*cap );	
+		*cap = 0;
+		sc27xx_fgu_adjust_cap(data, 0);
+		return 0;
+	}
+
 	if (data->cap_table_len > 0) {
 		temp_cap = sc27xx_fgu_temp_to_cap(data->cap_temp_table,
 						  data->cap_table_len,
@@ -740,13 +757,11 @@ static int sc27xx_fgu_get_capacity(struct sc27xx_fgu_data *data, int *cap,
 		temp_cap *= 10;
 
 		*cap = DIV_ROUND_CLOSEST((*cap + temp_cap - 1000) * 1000, temp_cap);
+		if (*cap < 0)
+			*cap = 0;
 	}
 
-	if (*cap < 0) {
-		*cap = 0;
-	//	sc27xx_fgu_adjust_cap(data, 0);
-		return 0;
-	} else if (*cap > 1000) {
+	if (*cap > 1000) {
 		*cap = 1000;
 		data->init_cap = 1000 - delta_cap;
 		return 0;
