@@ -28,11 +28,63 @@
 		#size-cells = <2>;
 		ranges;
 
+		rebootescrow@0x83ef0000 {
+			no-map;
+			reg = <0x0 0x83ef0000 0x0 0x00010000>; /* 64K */
+		};
+
+		audio_reserved: audio-mem@84100000 {
+			reg = <0x0 0x84100000 0x0 0x00400000>;
+		};
+
+		/* Only used for iq, will be removed in normal mode by uboot */
+		iq_reserved: iq-mem@84500000{
+			compatible = "sprd,iq-mem";
+			reg = <0x0 0x84500000 0x0 0x4000000>;
+		};
+
+		sensorhub_reserved: sensorhub-mem@88500000 {
+			reg = <0x0 0x88500000 0x0 0x00300000>;
+		};
+
+		smem_reserved: sipc-mem@88800000 {
+			reg = <0x0 0x88800000 0x0 0x00800000>;
+		};
+
+		audiodsp_reserved: audiodsp-mem@89000000 {
+			reg = <0x0 0x89000000 0x0 0x00600000>;
+		};
+
+		cp_reserved: cp-mem@89600000 {
+			reg = <0x0 0x89600000 0x0 0x04900000>;
+		};
+
+		sml_reserved: sml-mem@b0000000 {
+			reg = <0x0 0xb0000000 0x0 0x00040000>;
+		};
+
+		tos_reserved: tos-mem@b0040000 {
+			reg = <0x0 0xb0040000 0x0 0x05fc0000>;
+		};
+
+		pstore_reserved: ramoops@fff80000 {
+			compatible = "ramoops";
+			reg = <0x0 0xfff80000 0x0 0x00040000>;
+			record-size = <0x8000>;
+			console-size = <0x8000>;
+			pmsg-size = <0x8000>;
+		};
+
 		drm_reserved: framebuffer {
 			compatible = "shared-dma-pool";
 			size = <0x0 0x01800000>;
 			reusable;
 		};
+	};
+
+	rebootescrow@0 {
+		compatible = "pmem-region";
+		reg = <0x0 0x83ef0000 0x0 0x00010000>;
 	};
 
 	firmware {

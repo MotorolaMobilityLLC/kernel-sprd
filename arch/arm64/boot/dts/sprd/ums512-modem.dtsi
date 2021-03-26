@@ -74,7 +74,7 @@
 		/* <&mailbox  channel_id  is_no_wakeup(default 0)> */
 		mboxes = <&mailbox 2 0>;
 		/* This is temporary plan*/
-		sprd,smem-info = <0x87800000 0x87800000 0x800000>;
+		sprd,smem-info = <0x88800000 0x88800000 0x800000>;
 
 		imsbr_data: channel@2 {
 			compatible = "sprd,spool";
