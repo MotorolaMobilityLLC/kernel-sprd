@@ -430,10 +430,8 @@ bool check_have_permission(int log_print)
 
 	current_euid_egid(&cur_euid, &cur_egid);
 
-	if (is_in_white_list()) {
-		pr_info("whitelist: egid is in egid groups.\n");
+	if (is_in_white_list())
 		return ret = true;
-	}
 
 	if (0 != app_guid) {
 		ret = (cur_euid.val < app_guid || cur_egid.val < app_guid) ?
