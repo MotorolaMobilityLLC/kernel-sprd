@@ -2602,7 +2602,10 @@ static void battout_handler(struct charger_manager *cm)
 		} else {
 			dev_emerg(cm->dev, "Charger status = %d start charge!\n",
 				cm->charging_status);
-			try_charger_enable(cm, true);
+			#ifdef CONFIG_TINNO_DEMOMODECHG_CONTROL
+			if(cm->desc->temperature > -200)
+			#endif
+				try_charger_enable(cm, true);
 		}
 
 		uevent_notify(cm, default_event_names[CM_EVENT_BATT_IN]);
