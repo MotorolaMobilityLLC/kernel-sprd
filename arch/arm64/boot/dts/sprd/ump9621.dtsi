@@ -15,8 +15,7 @@
 		#size-cells = <0>;
 
 		syscon@2000 {
-			compatible = "sprd,ump9621-syscon",
-				   "sprd,sc27xx-syscon";
+			compatible = "sprd,ump9621-syscon";
 			reg = <0x2000>;
 		};
 
