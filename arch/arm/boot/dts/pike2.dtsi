@@ -168,6 +168,9 @@
 				#address-cells = <1>;
 				#size-cells = <0>;
 				status = "disabled";
+				syscon-names = "i2c_rst";
+				syscons =
+					<&ap_apb_regs REG_AP_APB_APB_RST MASK_AP_APB_I2C0_SOFT_RST>;
 			};
 
 			i2c1: i2c@70600000 {
@@ -179,6 +182,9 @@
 				#address-cells = <1>;
 				#size-cells = <0>;
 				status = "disabled";
+				syscon-names = "i2c_rst";
+				syscons =
+					<&ap_apb_regs REG_AP_APB_APB_RST MASK_AP_APB_I2C1_SOFT_RST>;
 			};
 
 			i2c2: i2c@70700000 {
@@ -190,6 +196,9 @@
 				#address-cells = <1>;
 				#size-cells = <0>;
 				status = "disabled";
+				syscon-names = "i2c_rst";
+				syscons =
+					<&ap_apb_regs REG_AP_APB_APB_RST MASK_AP_APB_I2C2_SOFT_RST>;
 			};
 
 			spi0: spi@70a00000{
