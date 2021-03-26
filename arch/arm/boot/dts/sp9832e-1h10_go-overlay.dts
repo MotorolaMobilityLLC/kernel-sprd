@@ -552,3 +552,7 @@
 		memory-region = <&fd_reserved>;
 	};
 };
+
+&vddemmccore {
+	regulator-always-on;
+};
