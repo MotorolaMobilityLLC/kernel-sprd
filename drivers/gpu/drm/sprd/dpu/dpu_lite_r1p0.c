@@ -320,21 +320,25 @@ static u32 dpu_img_ctrl(u32 format, u32 blending)
 	case DRM_FORMAT_RGBA8888:
 		/* RGBA8888 -> ABGR8888 */
 		reg_val |= BIT_DPU_LAY_DATA_ENDIAN_B3B2B1B0;
+		fallthrough;
 	case DRM_FORMAT_ABGR8888:
 		/* rb switch */
 		reg_val |= BIT_DPU_LAY_RGBUV_SWITCH;
+		fallthrough;
 	case DRM_FORMAT_ARGB8888:
 		reg_val |= BIT_DPU_LAY_FORMAT_ARGB8888;
 		break;
 	case DRM_FORMAT_XBGR8888:
 		/* rb switch */
 		reg_val |= BIT_DPU_LAY_RGBUV_SWITCH;
+		fallthrough;
 	case DRM_FORMAT_XRGB8888:
 		reg_val |= BIT_DPU_LAY_FORMAT_ARGB8888;
 		break;
 	case DRM_FORMAT_BGR565:
 		/* rb switch */
 		reg_val |= BIT_DPU_LAY_RGBUV_SWITCH;
+		fallthrough;
 	case DRM_FORMAT_RGB565:
 		reg_val |= BIT_DPU_LAY_FORMAT_RGB565;
 		break;
