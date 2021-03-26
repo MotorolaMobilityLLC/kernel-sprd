@@ -265,7 +265,7 @@ static inline struct regmap *arch_audio_get_anlg_phy_g(void)
 #elif defined(CONFIG_SND_SOC_UNISOC_SHARKLE)
 #include "sprd-audio-sharkle.h"
 /* pike2 */
-#elif defined(CONFIG_SND_SOC_UNISOC_PIKE2)
+#elif (defined(CONFIG_SND_SOC_UNISOC_PIKE2) || defined(CONFIG_SND_SOC_UNISOC_PIKE2_MODULE))
 #include "sprd-audio-pike2.h"
 /* sharkl3 */
 #elif (defined(CONFIG_SND_SOC_UNISOC_SHARKL3) || defined(CONFIG_SND_SOC_UNISOC_SHARKL3_MODULE))
