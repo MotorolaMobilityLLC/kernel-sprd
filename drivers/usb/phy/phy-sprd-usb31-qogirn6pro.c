@@ -45,7 +45,8 @@ struct sprd_ssphy {
 	struct regmap           *pmic;
 	struct regulator	*vdd;
 	u32			vdd_vol;
-	u32			phy_tune1;
+	u32			host_eye_pattern;
+	u32			device_eye_pattern;
 	u32			phy_tune2;
 	u32			revision;
 	atomic_t		reset;
@@ -131,6 +132,9 @@ struct sprd_ssphy {
 #define REG_ANLG_PHY_G0L_ANALOG_USB20_USB20_PHY             0x001C
 #define REG_ANLG_PHY_G0L_ANALOG_USB20_REG_SEL_CFG_0         0x0020
 
+#define DEFAULT_DEVICE_EYE_PATTERN			0x067bd1c0
+#define DEFAULT_HOST_EYE_PATTERN			0x067bd1c0
+
 /* Rest USB Core*/
 static inline void sprd_ssphy_reset_core(struct sprd_ssphy *phy)
 {
@@ -190,6 +194,8 @@ static int sprd_ssphy_set_vbus(struct usb_phy *x, int on)
 	int ret = 0;
 
 	if (on) {
+		regmap_write(phy->ana_g0l, REG_ANLG_PHY_G0L_ANALOG_USB20_USB20_TRIMMING,
+					phy->host_eye_pattern);
 		/* set USB connector type is A-type*/
 		msk = MASK_AON_APB_USB2_PHY_IDDIG;
 		ret |= regmap_update_bits(phy->aon_apb,
@@ -215,6 +221,8 @@ static int sprd_ssphy_set_vbus(struct usb_phy *x, int on)
 			msk, reg);
 		phy->is_host = true;
 	} else {
+		regmap_write(phy->ana_g0l, REG_ANLG_PHY_G0L_ANALOG_USB20_USB20_TRIMMING,
+					phy->device_eye_pattern);
 		if (!sprd_usbm_hsphy_get_onoff()) {
 			reg = msk = MASK_AON_APB_USB2_PHY_IDDIG;
 			ret |= regmap_update_bits(phy->aon_apb,
@@ -360,18 +368,8 @@ static int sprd_ssphy_init(struct usb_phy *x)
 	ret |= regmap_update_bits(phy->ana_g0l,
 			REG_ANLG_PHY_G0L_ANALOG_USB20_USB20_UTMI_CTL1,	msk, reg);
 
-	msk = BIT_ANLG_PHY_G0L_ANALOG_USB20_USB20_TUNEHSAMP;
-	reg = msk;
-	ret |= regmap_update_bits(phy->ana_g0l,
-		REG_ANLG_PHY_G0L_ANALOG_USB20_USB20_TRIMMING,
-		msk, reg);
-
-	msk = BIT_ANLG_PHY_G0L_ANALOG_USB20_USB20_TFREGRES;
-	reg = msk;
-	ret |= regmap_update_bits(phy->ana_g0l,
-		REG_ANLG_PHY_G0L_ANALOG_USB20_USB20_TRIMMING,
-		msk, reg);
-
+	regmap_write(phy->ana_g0l, REG_ANLG_PHY_G0L_ANALOG_USB20_USB20_TRIMMING,
+					phy->device_eye_pattern);
 	/* Reset PHY */
 	sprd_ssphy_reset_core(phy);
 
@@ -511,6 +509,10 @@ static void sprd_ssphy_shutdown(struct usb_phy *x)
 		regmap_update_bits(phy->aon_apb, REG_AON_APB_CGM_REG1, msk, 0);
 	}
 
+	/*hsphy vbus invalid */
+	msk = MASK_AON_APB_OTG_VBUS_VALID_PHYREG;
+	regmap_update_bits(phy->aon_apb, REG_AON_APB_OTG_PHY_TEST, msk, 0);
+
 	/*ssphy vbus invalid */
 	msk = MASK_AON_APB_SYS_VBUSVALID;
 	regmap_update_bits(phy->aon_apb, REG_AON_APB_USB31DPCOMBPHY_CTRL, msk, 0);
@@ -542,8 +544,9 @@ static void sprd_ssphy_shutdown(struct usb_phy *x)
 	atomic_set(&phy->reset, 0);
 }
 
-static ssize_t phy_tune1_show(struct device *dev, struct device_attribute *attr,
-			      char *buf)
+static ssize_t hsphy_device_eye_pattern_show(struct device *dev,
+				struct device_attribute *attr,
+				char *buf)
 {
 	struct usb_phy *x = dev_get_drvdata(dev);
 	struct sprd_ssphy *phy;
@@ -553,10 +556,10 @@ static ssize_t phy_tune1_show(struct device *dev, struct device_attribute *attr,
 
 	phy = container_of(x, struct sprd_ssphy, phy);
 
-	return sprintf(buf, "0x%x\n", phy->phy_tune1);
+	return sprintf(buf, "0x%x\n", phy->device_eye_pattern);
 }
 
-static ssize_t phy_tune1_store(struct device *dev,
+static ssize_t hsphy_device_eye_pattern_store(struct device *dev,
 			       struct device_attribute *attr,
 			       const char *buf, size_t size)
 {
@@ -567,15 +570,16 @@ static ssize_t phy_tune1_store(struct device *dev,
 		return -EINVAL;
 
 	phy = container_of(x, struct sprd_ssphy, phy);
-	if (kstrtouint(buf, 16, &phy->phy_tune1) < 0)
+	if (kstrtouint(buf, 16, &phy->device_eye_pattern) < 0)
 		return -EINVAL;
 
 	return size;
 }
-static DEVICE_ATTR_RW(phy_tune1);
+static DEVICE_ATTR_RW(hsphy_device_eye_pattern);
 
-static ssize_t phy_tune2_show(struct device *dev, struct device_attribute *attr,
-			      char *buf)
+static ssize_t hsphy_host_eye_pattern_show(struct device *dev,
+				struct device_attribute *attr,
+				char *buf)
 {
 	struct usb_phy *x = dev_get_drvdata(dev);
 	struct sprd_ssphy *phy;
@@ -585,10 +589,10 @@ static ssize_t phy_tune2_show(struct device *dev, struct device_attribute *attr,
 
 	phy = container_of(x, struct sprd_ssphy, phy);
 
-	return sprintf(buf, "0x%x\n", phy->phy_tune2);
+	return sprintf(buf, "0x%x\n", phy->host_eye_pattern);
 }
 
-static ssize_t phy_tune2_store(struct device *dev,
+static ssize_t hsphy_host_eye_pattern_store(struct device *dev,
 			       struct device_attribute *attr,
 			       const char *buf, size_t size)
 {
@@ -599,12 +603,12 @@ static ssize_t phy_tune2_store(struct device *dev,
 		return -EINVAL;
 
 	phy = container_of(x, struct sprd_ssphy, phy);
-	if (kstrtouint(buf, 16, &phy->phy_tune2) < 0)
+	if (kstrtouint(buf, 16, &phy->host_eye_pattern) < 0)
 		return -EINVAL;
 
 	return size;
 }
-static DEVICE_ATTR_RW(phy_tune2);
+static DEVICE_ATTR_RW(hsphy_host_eye_pattern);
 
 static ssize_t vdd_voltage_show(struct device *dev,
 				struct device_attribute *attr,
@@ -646,8 +650,8 @@ static ssize_t vdd_voltage_store(struct device *dev,
 static DEVICE_ATTR_RW(vdd_voltage);
 
 static struct attribute *usb_ssphy_attrs[] = {
-	&dev_attr_phy_tune1.attr,
-	&dev_attr_phy_tune2.attr,
+	&dev_attr_hsphy_device_eye_pattern.attr,
+	&dev_attr_hsphy_host_eye_pattern.attr,
 	&dev_attr_vdd_voltage.attr,
 	NULL
 };
@@ -788,6 +792,20 @@ static int sprd_ssphy_probe(struct platform_device *pdev)
 			dev_warn(dev, "fail to set ssphy vdd voltage:%dmV\n",
 				phy->vdd_vol);
 		}
+	}
+
+	ret = of_property_read_u32(dev->of_node, "hsphy-device-eye-pattern",
+							&phy->device_eye_pattern);
+	if (ret < 0) {
+		dev_err(dev, "unable to get hsphy-device-eye-pattern node\n");
+		phy->device_eye_pattern = DEFAULT_DEVICE_EYE_PATTERN;
+	}
+
+	ret = of_property_read_u32(dev->of_node, "hsphy-host-eye-pattern",
+							&phy->host_eye_pattern);
+	if (ret < 0) {
+		dev_err(dev, "unable to get hsphy-host-eye-pattern node\n");
+		phy->host_eye_pattern = DEFAULT_HOST_EYE_PATTERN;
 	}
 
 	if (!phy->pmic) {
