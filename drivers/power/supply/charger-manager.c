@@ -328,7 +328,6 @@ static int cm_init_cap_remap_table(struct charger_desc *desc,
 
 int demomode_chg_enable = 0, demomode_chg_max_soc = 70, demomode_chg_min_soc = 30;
 int demomode_over_soc = 0;
-int normal_temp = 1;
 static ssize_t demomode_enable_write(struct file *file, const char *buffer, size_t count, loff_t *data)
 {
     int len = 0, enable= 0;
@@ -2368,7 +2367,7 @@ static bool _cm_monitor(struct charger_manager *cm)
 	for (i = 0; i < cm->desc->num_charger_regulators; i++) {
 		if (cm->desc->charger_regulators[i].externally_control
 			#ifdef CONFIG_TINNO_DEMOMODECHG_CONTROL
-			|| (demomode_over_soc && demomode_chg_enable && normal_temp)
+			|| (demomode_over_soc && demomode_chg_enable)
 			#endif
 			) {
 			dev_info(cm->dev,
@@ -4611,8 +4610,6 @@ static void cm_batt_works(struct work_struct *work)
 	if (demomode_chg_enable && (ui_soc >= demomode_chg_max_soc)) {
 		ret = try_charger_enable(cm, false);
 		demomode_over_soc = true;
-		if(cur_temp < -210)
-			normal_temp = 0;
 		uevent_notify(cm, "Discharging");
 	//	dev_err(cm->dev, "demomodechg try_charger_enable stop charger.\n");
 		if (ret)
