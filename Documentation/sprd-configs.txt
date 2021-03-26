@@ -2751,8 +2751,8 @@ CONFIG_CMA
 	[plat] all
 	[missing plat] none
 	[field] code
-	[subsys]memory
-	[must]console
+	[subsys] memory
+	[must] console
 	[missing plat description] none
 	[function] enable CMA
 CONFIG_CMA_ALIGNMENT
@@ -2760,37 +2760,37 @@ CONFIG_CMA_ALIGNMENT
 	[plat] all
 	[missing plat] none
 	[field] code
-	[subsys]memory
-	[must]console
+	[subsys] memory
+	[must] console
 	[missing plat description] none
-	[function]enable CMA
+	[function] enable CMA
 CONFIG_CMA_AREAS
 	[arch] all
 	[plat] all
 	[missing plat] none
 	[field] code
-	[subsys]memory
-	[must]console
+	[subsys] memory
+	[must] console
 	[missing plat description] none
-	[function]enable CMA
+	[function] enable CMA
 CONFIG_CMA_SIZE_MBYTES
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]code
-	[subsys]memory
-	[must]console
+	[field] code
+	[subsys] memory
+	[must] console
 	[missing plat description] none
-	[function]enable CMAC
+	[function] enable CMAC
 CONFIG_CMA_SIZE_SEL_MBYTES
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]code
-	[subsys]memory
-	[must]console
+	[field] code
+	[subsys] memory
+	[must] console
 	[missing plat description] none
-	[function]enbale CMA
+	[function] enbale CMA
 CONFIG_CMDLINE
 	[arch] all
 	[plat] all
@@ -2938,11 +2938,11 @@ CONFIG_CONTIG_ALLOC
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]code
-	[subsys]memory
-	[must]console
+	[field] code
+	[subsys] memory
+	[must] console
 	[missing plat description] none
-	[function]enable CMA
+	[function] enable CMA
 CONFIG_COREDUMP
 	[arch] all
 	[plat] all
@@ -4672,10 +4672,10 @@ CONFIG_DMA_CMA
 	[plat] all
 	[missing plat] none
 	[field] code
-	[subsys]memory
-	[must]console
+	[subsys] memory
+	[must] console
 	[missing plat description] none
-	[function]enable CMA
+	[function] enable CMA
 CONFIG_DMA_DECLARE_COHERENT
 	[arch] all
 	[plat] all
@@ -10573,10 +10573,10 @@ CONFIG_MEMORY_ISOLATION
 	[plat] all
 	[missing plat] none
 	[field] code
-	[subsys]memory
-	[must]console
+	[subsys] memory
+	[must] console
 	[missing plat description] none
-	[function]enable CMA
+	[function] enable CMA
 CONFIG_MESSAGE_LOGLEVEL_DEFAULT
 	[arch] all
 	[plat] all
