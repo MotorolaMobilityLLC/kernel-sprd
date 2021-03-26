@@ -1901,7 +1901,7 @@ static void dpu_enhance_reload(struct dpu_context *ctx)
 	if (enhance->enhance_en & BIT(9)) {
 		lut3d = &enhance->lut3d_copy;
 		for (i = 0; i < 729; i++) {
-			DPU_REG_WR(ctx->base + REG_TREED_LUT_RDATA, i);
+			DPU_REG_WR(ctx->base + REG_TREED_LUT_ADDR, i);
 			udelay(1);
 			DPU_REG_WR(ctx->base + REG_TREED_LUT_WDATA, lut3d->value[i]);
 			pr_debug("0x%02x:0x%x\n", i, lut3d->value[i]);
