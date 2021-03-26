@@ -228,7 +228,7 @@
 			ranges;
 
 			ap_dma: dma-controller@20100000 {
-				compatible = "sprd,pike2-dma";
+				compatible = "sprd,pike2-dma", "sprd,sc9860-dma";
 				reg = <0x20100000 0x4000>;
 				interrupts = <GIC_SPI 50 IRQ_TYPE_LEVEL_HIGH>;
 				#dma-cells = <1>;
@@ -399,7 +399,7 @@
 			};
 
 			aon_dma: dma-controller@40100000 {
-				compatible = "sprd,pike2-dma";
+				compatible = "sprd,pike2-dma", "sprd,sc9860-dma";
 				reg = <0x40100000 0x4000>;
 				#dma-cells = <1>;
 				#dma-channels = <13>;
@@ -950,12 +950,12 @@
 		 * do not conflict with others
 		 * ap_dma (29-32 for security)
 		 */
-		dmas = <&aon_dma 1 &aon_dma 2
-			&aon_dma 3 &aon_dma 4
-			&aon_dma 5 &aon_dma 6
-			&aon_dma 7 &aon_dma 8
-			&ap_dma 1 &ap_dma 2
-			&ap_dma 3 &ap_dma 4>;
+		dmas = <&aon_dma 7 &aon_dma 8
+			&aon_dma 9 &aon_dma 10
+			&aon_dma 0 &aon_dma 0
+			&aon_dma 0 &aon_dma 0
+			&ap_dma 31 &ap_dma 32
+			&ap_dma 33 &ap_dma 34>;
 		dma-names = "da01-l", "da01-r", "da23-l", "da23-r",
 			"normal-2stage-p", "normal-2stage-c",
 			"deep-2stage-p", "ad23-2stage-c",
@@ -980,10 +980,10 @@
 		compatible = "sprd,7731e-pcm-platform",
 			"sprd,sharkl3-pcm-platform";
 		#sound-dai-cells = <0>;
-		dmas = <&ap_dma 5 &ap_dma 6
-			&ap_dma 7 &ap_dma 8
-			&ap_dma 9 &ap_dma 10
-			&ap_dma 11 &ap_dma 12>;
+		dmas = <&ap_dma 4 &ap_dma 3
+			&ap_dma 6 &ap_dma 5
+			&ap_dma 8 &ap_dma 7
+			&ap_dma 10 &ap_dma 9>;
 		dma-names = "iis0_tx", "iis0_rx",
 			"iis1_tx", "iis1_rx",
 			"iis2_tx", "iis2_rx",

@@ -76,11 +76,11 @@
 
 			/* For vbc loopback */
 			"Aud input", "AD Clk",
-			"Aud input1", "AD Clk",
+			"Aud1 input", "AD Clk",
 			"Aud input", "Digital ADCL Switch",
 			"Aud input", "Digital ADCR Switch",
-			"Aud input1", "Digital ADC1L Switch",
-			"Aud input1", "Digital ADC1R Switch";
+			"Aud1 input", "Digital ADC1L Switch",
+			"Aud1 input", "Digital ADC1R Switch";
 		sprd-audio-card,headset = <&sprd_headset>;
 		/* fm-open-src:0 not open, 1 open */
 		sprd-audio-card,fm-open-src = <1>;
