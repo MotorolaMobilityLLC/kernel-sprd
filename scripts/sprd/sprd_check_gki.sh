@@ -113,10 +113,12 @@ function do_gki_ckeck() {
     echo "ERROR: abi.report is not exist! "
   else
     #check abi report
-    grep -E "Removed function:|Removed variable:" ${ABI_DIR} > /dev/null
+    grep -E "Removed function.*:|Removed variable.*:" ${ABI_DIR} > /dev/null
     REMOVED_REPORT=$?
-    grep -E "Added function:|Added variable:|Changed function:|Changed variable:" ${ABI_DIR} > /dev/null
-    OTHER_REPORT=$?
+    grep -E "Added function:|Added variable:|Added functions:|Added variables:" ${ABI_DIR} > /dev/null
+    ADD_REPORT=$?
+    grep -E "Changed function.*:|Changed variable.*:|type change.*:|struct.* changed" ${ABI_DIR} > /dev/null
+    CHANGED_REPORT=$?
     file_size=`ls -l ${ABI_DIR} | awk '{print $5}'`
     file_rows_count=$(awk 'END{print NR}' ${ABI_DIR})
     diff ${ABI_DIR} ${KERNEL_CODE_DIR}/${KERNEL_DIR}/Documentation/abi_base.report > /dev/null
@@ -124,7 +126,10 @@ function do_gki_ckeck() {
       if [[ $file_rows_count -le 5 ]]; then
         echo -e "WARNING-GKI: filtered out in GKI check! abi.report size: ${file_size}, rows: ${file_rows_count}"
         echo "check gki --------------------------------------------- PASS"
-      elif [[ ${REMOVED_REPORT} -eq 0 ]] && [[ ${OTHER_REPORT} -eq 1 ]]; then
+      elif [[ $file_rows_count -ge 16 ]]; then
+        let RET_VAL+=4
+        echo -e "ERROR: GKI check failed! abi.report size:${file_size} \nPlease read ${ABI_DIR}"
+      elif [[ ${REMOVED_REPORT} -eq 0 ]] && [[ ${ADD_REPORT} -eq 1 ]] && [[ ${CHANGED_REPORT} -eq 1 ]]; then
         REMOVED_FUNCTIONS=`grep "\[\D\]" ${ABI_DIR} | grep "function" | awk '{print $4}' | awk -F '(' '{print $1}'`
         REMOVED_VARIABLE=`grep -v "function" ${ABI_DIR} | grep "\[\D\]" | awk '{print $4}' | awk -F ''\' '{print $1}' `
         for function in $REMOVED_FUNCTIONS
@@ -155,19 +160,18 @@ function do_gki_ckeck() {
         else
           let RET_VAL+=4
           echo -e "ERROR: GKI check failed! abi.report size:${file_size} \nPlease read ${ABI_DIR}"
-          echo -e "\nabi report info:"
-          cat ${ABI_DIR}
         fi
       else
         let RET_VAL+=4
         echo -e "ERROR: GKI check failed! abi.report size:${file_size} \nPlease read ${ABI_DIR}"
-        echo -e "\nabi report info:"
-        cat ${ABI_DIR}
+
       fi
     else
       echo "abi.report size: ${file_size}"
       echo "check gki --------------------------------------------- PASS"
     fi
+    echo -e "\nabi report info:"
+    cat ${ABI_DIR}
   fi
 
   if [ ! -f "${WHITELIST_DIFF_DIR}" ]; then
