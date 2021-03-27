@@ -15806,8 +15806,8 @@ CONFIG_SND_SOC_TOPOLOGY
 	[missing plat description] none
 	[function]
 CONFIG_SND_SOC_UNISOC
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field] make
 	[subsys] sound
@@ -15824,8 +15824,8 @@ CONFIG_SND_SOC_UNISOC_AUDIO_DMAENGINE
 	[missing plat description] not used
 	[function] dma platform
 CONFIG_SND_SOC_UNISOC_AUDIO_TWO_STAGE_DMAENGINE
-	[arch] arm64
-	[plat] sharkl3
+	[arch] all
+	[plat] pike2,sharkl3
 	[missing plat] sharkl5Pro
 	[field] make
 	[subsys] sound
@@ -15833,8 +15833,8 @@ CONFIG_SND_SOC_UNISOC_AUDIO_TWO_STAGE_DMAENGINE
 	[missing plat description] not used
 	[function] 2 stage dma platform
 CONFIG_SND_SOC_UNISOC_CODEC_DUMMY
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field] make
 	[subsys] sound
@@ -15842,8 +15842,8 @@ CONFIG_SND_SOC_UNISOC_CODEC_DUMMY
 	[missing plat description] none
 	[function] dummy codec
 CONFIG_SND_SOC_UNISOC_CODEC_SC2721
-	[arch] arm64
-	[plat] sharkl3
+	[arch] all
+	[plat] pike2,sharkl3
 	[missing plat] sharkl5Pro
 	[field] make,code
 	[subsys] sound
@@ -15860,8 +15860,8 @@ CONFIG_SND_SOC_UNISOC_CODEC_SC2730
 	[missing plat description] not used
 	[function] sc2730 codec driver code
 CONFIG_SND_SOC_UNISOC_I2S
-	[arch] arm64
-	[plat] sharkl3
+	[arch] all
+	[plat] pike2,sharkl3
 	[missing plat] sharkl5Pro
 	[field] make,code
 	[subsys] sound
@@ -15869,8 +15869,8 @@ CONFIG_SND_SOC_UNISOC_I2S
 	[missing plat description] not used
 	[function] i2s driver code
 CONFIG_SND_SOC_UNISOC_I2S_DUMMY
-	[arch] arm64
-	[plat] sharkl3
+	[arch] all
+	[plat] pike2,sharkl3
 	[missing plat] sharkl5Pro
 	[field] make,code
 	[subsys] sound
@@ -15886,9 +15886,18 @@ CONFIG_SND_SOC_UNISOC_PA_UCP1301
 	[must] user
 	[missing plat description] not used
 	[function] ucp1301 driver code
+CONFIG_SND_SOC_UNISOC_PIKE2
+	[arch] arm
+	[plat] pike2
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
 CONFIG_SND_SOC_UNISOC_R1P0V3_SC2721
-	[arch] arm64
-	[plat] sharkl3
+	[arch] all
+	[plat] pike2,sharkl3
 	[missing plat] sharkl5Pro
 	[field] make
 	[subsys] sound
@@ -15905,8 +15914,8 @@ CONFIG_SND_SOC_UNISOC_SHARKL3
 	[missing plat description] not match
 	[function] sharkl3 soc platform
 CONFIG_SND_SOC_UNISOC_VAUDIO
-	[arch] arm64
-	[plat] sharkl3
+	[arch] all
+	[plat] pike2,sharkl3
 	[missing plat] sharkl5Pro
 	[field] make
 	[subsys] sound
@@ -15914,8 +15923,8 @@ CONFIG_SND_SOC_UNISOC_VAUDIO
 	[missing plat description] not used
 	[function] vaudio driver code
 CONFIG_SND_SOC_UNISOC_VBC_R1P0V3
-	[arch] arm64
-	[plat] sharkl3
+	[arch] all
+	[plat] pike2,sharkl3
 	[missing plat] sharkl5Pro
 	[field] make
 	[subsys] sound
@@ -16291,7 +16300,7 @@ CONFIG_SPRD_CORE_ISOLATION
 	[field] make,code
 	[subsys] sched
 	[must] user
-	[missing plat description]
+	[missing plat description] none
 	[function] enable cpu isolation feature
 CONFIG_SPRD_CPU_COOLING
 	[arch] all
@@ -17979,8 +17988,8 @@ CONFIG_UNISOC_AUDIO_MCDT
 	[missing plat description] not used
 	[function] mcdt driver code
 CONFIG_UNISOC_AUDIO_MEMORY_MANAGER
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field] make
 	[subsys] sound
@@ -17997,8 +18006,8 @@ CONFIG_UNISOC_AUDIO_PIPE
 	[missing plat description] none
 	[function] audio pipe driver code
 CONFIG_UNISOC_AUDIO_SAUDIO
-	[arch] arm64
-	[plat] sharkl3
+	[arch] all
+	[plat] pike2,sharkl3
 	[missing plat] sharkl5Pro
 	[field] make
 	[subsys] sound
