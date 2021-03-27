@@ -2602,8 +2602,9 @@ static void battout_handler(struct charger_manager *cm)
 		} else {
 			dev_emerg(cm->dev, "Charger status = %d start charge!\n",
 				cm->charging_status);
+			/*for alt test fail by pony date20210327*/
 			#ifdef CONFIG_TINNO_DEMOMODECHG_CONTROL
-			if(cm->desc->temperature > -200)
+			if(cm->desc->temperature > 0)
 			#endif
 				try_charger_enable(cm, true);
 		}
@@ -4603,9 +4604,15 @@ static void cm_batt_works(struct work_struct *work)
 	#ifdef CONFIG_TINNO_DEMOMODECHG_CONTROL
 	ui_soc = DIV_ROUND_CLOSEST(fuel_cap, 10);
 	if (demomode_chg_enable && (ui_soc <= demomode_chg_min_soc)) {
-		ret = try_charger_enable(cm, true);
-		demomode_over_soc = false;
-		uevent_notify(cm, "CHARGING");
+		if(cur_temp > 0 && cur_temp < 600){
+			ret = try_charger_enable(cm, true);
+			uevent_notify(cm, "CHARGING");
+		}
+		else{
+			ret = try_charger_enable(cm, false);
+			uevent_notify(cm, "Discharging");
+		}
+		demomode_over_soc = true;
 	//	dev_err(cm->dev, "demomodechg try_charger_enable start charger.\n");
 		if (ret)
 			dev_err(cm->dev, "failed to start charger.\n");
