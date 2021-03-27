@@ -439,7 +439,7 @@
 &usb {
 	extcon = <&extcon_gpio>, <&pmic_typec>;
 	vbus-supply = <&vddvbus>;
-	status = "disable";
+	status = "okay";
 };
 
 &usb3 {
