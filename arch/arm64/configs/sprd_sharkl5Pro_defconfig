@@ -5225,6 +5225,15 @@ CONFIG_WCN_SLP=y
 # end of Unisoc WCN Device Drivers
 
 #
+# Unisoc GNSS Device Drivers
+#
+CONFIG_UNISOC_GNSS=m
+CONFIG_UNISOC_GNSS_COMMON_CTL=m
+CONFIG_UNISOC_GNSS_PMNOTIFY_CTL=m
+CONFIG_UNISOC_GNSS_DBG=m
+# end of Unisoc GNSS Device Drivers
+
+#
 # UNISOC audio devices
 #
 CONFIG_SND_SOC_UNISOC=m

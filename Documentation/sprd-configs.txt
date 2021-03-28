@@ -17861,6 +17861,42 @@ CONFIG_UNISOC_AUDIO_SIPC
 	[must] user
 	[missing plat description] not used
 	[function] sipc driver code
+CONFIG_UNISOC_GNSS
+	[arch] arm64
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
+CONFIG_UNISOC_GNSS_COMMON_CTL
+	[arch] arm64
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
+CONFIG_UNISOC_GNSS_DBG
+	[arch] arm64
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
+CONFIG_UNISOC_GNSS_PMNOTIFY_CTL
+	[arch] arm64
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
 CONFIG_UNISOC_HW_DEVICE_DVFS_AGCP
 	[arch] arm64
 	[plat] sharkl5Pro

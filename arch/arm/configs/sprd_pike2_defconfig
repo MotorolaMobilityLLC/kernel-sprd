@@ -4574,6 +4574,15 @@ CONFIG_UNISOC_MAILBOX=m
 # end of Unisoc WCN Device Drivers
 
 #
+# Unisoc GNSS Device Drivers
+#
+# CONFIG_UNISOC_GNSS is not set
+# CONFIG_UNISOC_GNSS_COMMON_CTL is not set
+# CONFIG_UNISOC_GNSS_PMNOTIFY_CTL is not set
+# CONFIG_UNISOC_GNSS_DBG is not set
+# end of Unisoc GNSS Device Drivers
+
+#
 # UNISOC audio devices
 #
 # CONFIG_SND_SOC_UNISOC is not set
