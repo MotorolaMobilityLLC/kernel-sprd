@@ -50,6 +50,21 @@ int syscon_get_args(struct device *dev, struct ufs_sprd_host *host)
 		pr_err("failed to parse aon aph ufs en reg\n");
 	}
 
+	host->ap_ahb_ufs_clk.regmap =
+			syscon_regmap_lookup_by_name(np, "ap_ahb_ufs_clk");
+	if (IS_ERR(host->ap_ahb_ufs_clk.regmap)) {
+		pr_err("failed to get apb ufs ap_ahb_ufs_clk\n");
+		return PTR_ERR(host->ap_ahb_ufs_clk.regmap);
+	}
+
+	ret = syscon_get_args_by_name(np, "ap_ahb_ufs_clk", 2, args);
+	if (ret == 2) {
+		host->ap_ahb_ufs_clk.reg = args[0];
+		host->ap_ahb_ufs_clk.mask = args[1];
+	} else {
+		pr_err("failed to parse ap_ahb_ufs_clk\n");
+	}
+
 	host->ap_apb_ufs_en.regmap =
 			syscon_regmap_lookup_by_name(np, "ap_apb_ufs_en");
 	if (IS_ERR(host->ap_apb_ufs_en.regmap)) {
@@ -189,37 +204,53 @@ static inline void ufs_sprd_rmwl(void __iomem *base, u32 mask, u32 val, u32 reg)
 	tmp |= (val & mask);
 	writel(tmp, (base) + (reg));
 }
-
-void ufs_sprd_reset_pre(struct ufs_sprd_host *host)
+static void ufs_remap_and(struct syscon_ufs *sysconufs)
 {
 	unsigned int value = 0;
 
-	regmap_read(host->ahb_ufs_lp.regmap,
-			host->ahb_ufs_lp.reg, &value);
-	value = value | host->ahb_ufs_lp.mask;
-	regmap_write(host->ahb_ufs_lp.regmap,
-			host->ahb_ufs_lp.reg, value);
+	regmap_read(sysconufs->regmap,
+		    sysconufs->reg, &value);
+	value =	value & (~(sysconufs->mask));
+	regmap_write(sysconufs->regmap,
+		     sysconufs->reg, value);
+}
+static void ufs_remap_or(struct syscon_ufs *sysconufs)
+{
+	unsigned int value = 0;
 
-	regmap_read(host->ahb_ufs_force_isol.regmap,
-			host->ahb_ufs_force_isol.reg, &value);
-	value = value & (~host->ahb_ufs_force_isol.mask);
-	regmap_write(host->ahb_ufs_force_isol.regmap,
-			host->ahb_ufs_force_isol.reg, value);
-
+	regmap_read(sysconufs->regmap,
+		    sysconufs->reg, &value);
+	value =	value | sysconufs->mask;
+	regmap_write(sysconufs->regmap,
+		     sysconufs->reg, value);
+}
+void ufs_sprd_reset_pre(struct ufs_sprd_host *host)
+{
+	ufs_remap_or(&(host->ap_ahb_ufs_clk));
+	regmap_update_bits(host->aon_apb_ufs_en.regmap,
+			   host->aon_apb_ufs_en.reg,
+			   host->aon_apb_ufs_en.mask,
+			   host->aon_apb_ufs_en.mask);
+	ufs_remap_or(&(host->ahb_ufs_lp));
+	ufs_remap_and(&(host->ahb_ufs_force_isol));
 }
 
 void ufs_sprd_reset(struct ufs_sprd_host *host)
 {
-	unsigned int value = 0;
-
 	dev_info(host->hba->dev, "ufs hardware reset!\n");
 	/* TODO: HW reset will be simple in next version. */
 	/* Configs need strict squence. */
+	ufs_remap_or(&(host->ap_apb_ufs_en));
+	/* ahb enable */
+	ufs_remap_or(&(host->ap_ahb_ufs_clk));
+
+	regmap_update_bits(host->aon_apb_ufs_en.regmap,
+			   host->aon_apb_ufs_en.reg,
+			   host->aon_apb_ufs_en.mask,
+			   host->aon_apb_ufs_en.mask);
 
 	/* cbline reset */
-	regmap_read(host->ahb_ufs_cb.regmap, host->ahb_ufs_cb.reg, &value);
-	value = value | host->ahb_ufs_cb.mask;
-	regmap_write(host->ahb_ufs_cb.regmap, host->ahb_ufs_cb.reg, value);
+	ufs_remap_or(&(host->ahb_ufs_cb));
 
 	/* apb reset */
 	ufs_sprd_rmwl(host->ufs_analog_reg, MPHY_2T2R_APB_RESETN,
@@ -254,14 +285,6 @@ void ufs_sprd_reset(struct ufs_sprd_host *host)
 			MPHY_TACTIVATE_TIME_200US, MPHY_TACTIVATE_TIME_LANE0);
 	ufs_sprd_rmwl(host->ufs_analog_reg, MPHY_TACTIVATE_TIME_200US,
 			MPHY_TACTIVATE_TIME_200US, MPHY_TACTIVATE_TIME_LANE1);
-	ufs_sprd_rmwl(host->ufs_analog_reg, MPHY_CDR_MONITOR_BYPASS_MASK,
-			MPHY_CDR_MONITOR_BYPASS_ENABLE, MPHY_DIG_CFG7_LANE0);
-	ufs_sprd_rmwl(host->ufs_analog_reg, MPHY_CDR_MONITOR_BYPASS_MASK,
-			MPHY_CDR_MONITOR_BYPASS_ENABLE, MPHY_DIG_CFG7_LANE1);
-	ufs_sprd_rmwl(host->ufs_analog_reg, MPHY_RXOFFSETCALDONEOVR_MASK,
-			MPHY_RXOFFSETCALDONEOVR_ENABLE, MPHY_DIG_CFG20_LANE0);
-	ufs_sprd_rmwl(host->ufs_analog_reg, MPHY_RXOFFOVRVAL_MASK,
-			MPHY_RXOFFOVRVAL_ENABLE, MPHY_DIG_CFG20_LANE0);
 	ufs_sprd_rmwl(host->ufs_analog_reg, MPHY_RXHSG3SYNCCAP_MASK,
 			MPHY_RXHSG3SYNCCAP_VAL, MPHY_DIG_CFG72_LANE0);
 	ufs_sprd_rmwl(host->ufs_analog_reg, MPHY_RXHSG3SYNCCAP_MASK,
@@ -274,36 +297,14 @@ void ufs_sprd_reset(struct ufs_sprd_host *host)
 			MPHY_RX_STEP4_CYCLE_G3_VAL, MPHY_DIG_CFG60_LANE1);
 
 	/* cbline reset */
-	regmap_read(host->ahb_ufs_cb.regmap,
-			host->ahb_ufs_cb.reg, &value);
-	value = value & (~host->ahb_ufs_cb.mask);
-	regmap_write(host->ahb_ufs_cb.regmap,
-			host->ahb_ufs_cb.reg, value);
+	ufs_remap_and(&(host->ahb_ufs_cb));
 
 	/* enable refclk */
-	regmap_read(host->ufs_refclk_on.regmap,
-			host->ufs_refclk_on.reg, &value);
-	value = value | host->ufs_refclk_on.mask;
-	regmap_write(host->ufs_refclk_on.regmap,
-			host->ufs_refclk_on.reg, value);
-
-	regmap_read(host->ahb_ufs_lp.regmap,
-			host->ahb_ufs_lp.reg, &value);
-	value = value | host->ahb_ufs_lp.mask;
-	regmap_write(host->ahb_ufs_lp.regmap,
-			host->ahb_ufs_lp.reg, value);
-
-	regmap_read(host->ahb_ufs_force_isol.regmap,
-			host->ahb_ufs_force_isol.reg, &value);
-	value = value & (~host->ahb_ufs_force_isol.mask);
-	regmap_write(host->ahb_ufs_force_isol.regmap,
-			host->ahb_ufs_force_isol.reg, value);
-	/* ahb enable */
-	regmap_read(host->ap_apb_ufs_en.regmap,
-			host->ap_apb_ufs_en.reg, &value);
-	value = value | host->ap_apb_ufs_en.mask;
-	regmap_write(host->ap_apb_ufs_en.regmap,
-			host->ap_apb_ufs_en.reg, value);
+	ufs_remap_or(&(host->ufs_refclk_on));
+	ufs_remap_or(&(host->ahb_ufs_lp));
+	ufs_remap_and(&(host->ahb_ufs_force_isol));
+	ufs_remap_or(&(host->ap_apb_ufs_rst));
+	ufs_remap_and(&(host->ap_apb_ufs_rst));
 
 }
 
@@ -318,7 +319,6 @@ static int ufs_sprd_init(struct ufs_hba *hba)
 	struct platform_device *pdev = to_platform_device(dev);
 	struct ufs_sprd_host *host;
 	struct resource *res;
-	unsigned int value = 0;
 
 	host = devm_kzalloc(dev, sizeof(*host), GFP_KERNEL);
 	if (!host)
@@ -348,16 +348,6 @@ static int ufs_sprd_init(struct ufs_hba *hba)
 		return -ENODEV;
 	}
 
-	regmap_read(host->ap_apb_ufs_en.regmap,
-		    host->ap_apb_ufs_en.reg, &value);
-	value =	value | host->ap_apb_ufs_en.mask;
-	regmap_write(host->ap_apb_ufs_en.regmap,
-		     host->ap_apb_ufs_en.reg, value);
-
-	regmap_update_bits(host->aon_apb_ufs_en.regmap,
-			   host->aon_apb_ufs_en.reg,
-			   host->aon_apb_ufs_en.mask,
-			   host->aon_apb_ufs_en.mask);
 
 	ufs_sprd_reset_pre(host);
 	return 0;

@@ -25,8 +25,9 @@ struct ufs_sprd_host {
 	struct ufs_hba *hba;
 	void __iomem *ufs_analog_reg;
 	struct syscon_ufs aon_apb_ufs_en;
-	struct syscon_ufs ap_apb_ufs_en;
+	struct syscon_ufs ap_ahb_ufs_clk;
 	struct syscon_ufs ap_apb_ufs_rst;
+	struct syscon_ufs ap_apb_ufs_en;
 	struct syscon_ufs ufs_refclk_on;
 	struct syscon_ufs ahb_ufs_lp;
 	struct syscon_ufs ahb_ufs_force_isol;
