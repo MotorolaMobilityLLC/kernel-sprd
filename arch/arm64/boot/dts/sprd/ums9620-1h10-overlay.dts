@@ -238,6 +238,11 @@
 				sprd,btwf-file-name = "/dev/block/platform/soc/soc:ap-ahb/22000000.ufs/by-name/wcnmodem";
 				sprd,gnss-file-name = "/dev/block/platform/soc/soc:ap-ahb/22000000.ufs/by-name/gnssmodem";
 				sprd,rc-ctrl = <&pcie1>;
+
+				gnss_common_ctl {
+					compatible = "sprd,gnss_common_ctl";
+					sprd,name = "gnss_common_ctl";
+				};
 			};
 
 			sprd-mtty {
@@ -248,11 +253,6 @@
 			sprd-fm {
 				compatible = "sprd,marlin3-fm";
 				sprd,name = "sprd-fm";
-			};
-
-			gnss_common_ctl {
-				compatible = "sprd,gnss_common_ctl";
-				sprd,name = "gnss_common_ctl";
 			};
 
 			sprd-wlan {
