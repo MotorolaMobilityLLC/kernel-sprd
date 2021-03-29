@@ -1607,6 +1607,7 @@ static int audio_dcl_event(struct snd_soc_dapm_widget *w,
 			      struct snd_kcontrol *kcontrol, int event)
 {
 	struct snd_soc_codec *codec = snd_soc_dapm_to_codec(w->dapm);
+	struct sprd_codec_priv *sprd_codec = snd_soc_codec_get_drvdata(codec);
 	int ret = 0;
 	unsigned int msk, val;
 
@@ -1626,6 +1627,11 @@ static int audio_dcl_event(struct snd_soc_dapm_widget *w,
 
 		val = RSTN_AUD_DIG_INTC;
 		snd_soc_update_bits(codec, SOC_REG(ANA_DCL1), val, val);
+
+		val = DAL_DAT_SEL | DAR_DAT_SEL;
+		if (sprd_codec->lrdat_sel)
+			snd_soc_update_bits(codec, SOC_REG(ANA_CDC5), val, val);
+
 		udelay(200);
 		break;
 	default:
@@ -3301,33 +3307,6 @@ static int sprd_codec_ivsence_dmic_put(struct snd_kcontrol *kcontrol,
 	return 0;
 }
 
-static int sprd_codec_dac_lrdat_sel_get(struct snd_kcontrol *kcontrol,
-				      struct snd_ctl_elem_value *ucontrol)
-{
-	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
-	struct sprd_codec_priv *sprd_codec = snd_soc_codec_get_drvdata(codec);
-
-	ucontrol->value.enumerated.item[0] = !!sprd_codec->lrdat_sel;
-
-	return 0;
-}
-
-static int sprd_codec_dac_lrdat_sel_put(struct snd_kcontrol *kcontrol,
-				      struct snd_ctl_elem_value *ucontrol)
-{
-	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
-	struct sprd_codec_priv *sprd_codec = snd_soc_codec_get_drvdata(codec);
-	unsigned int mask;
-	unsigned int val;
-
-	sprd_codec->lrdat_sel = !!ucontrol->value.enumerated.item[0];
-	mask = DAL_DAT_SEL | DAR_DAT_SEL;
-	val = sprd_codec->lrdat_sel ? mask : 0;
-	snd_soc_update_bits(codec, SOC_REG(ANA_CDC5), mask, val);
-
-	return 0;
-}
-
 static const struct snd_kcontrol_new sprd_codec_snd_controls[] = {
 
 	SOC_ENUM_EXT("Aud Codec Info", codec_info_enum,
@@ -3358,9 +3337,6 @@ static const struct snd_kcontrol_new sprd_codec_snd_controls[] = {
 		sprd_codec_ivsence_dmic_put),
 	SOC_SINGLE_EXT("MICBIAS1 Power", SND_SOC_NOPM, 0, 1, 0,
 		micbias1_power_get, micbias1_power_put),
-	SOC_ENUM_EXT("DAC LRDAT Select", lrdat_sel_enum,
-		sprd_codec_dac_lrdat_sel_get,
-		sprd_codec_dac_lrdat_sel_put),
 };
 
 static unsigned int sprd_codec_read(struct snd_soc_codec *codec,
@@ -4309,6 +4285,7 @@ static int sprd_codec_probe(struct platform_device *pdev)
 	u32 ana_chip_id;
 	u32 set_offset;
 	u32 clr_offset;
+	u32 lrdat_sel;
 	struct regmap *pmu_apb_gpr;
 
 	pr_info("%s\n", __func__);
@@ -4359,6 +4336,13 @@ static int sprd_codec_probe(struct platform_device *pdev)
 		clr_offset = 0x200;
 	}
 	set_agcp_ahb_offset(set_offset, clr_offset);
+
+	ret = of_property_read_u32(np, "lrdat-sel", &lrdat_sel);
+	if (ret) {
+		pr_info("%s Don't need lrdat_sel attribute !\n", __func__);
+		lrdat_sel = 0x0;
+	}
+	sprd_codec->lrdat_sel = lrdat_sel;
 
 	arch_audio_set_pmu_apb_gpr(pmu_apb_gpr);
 	of_node_put(np);

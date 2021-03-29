@@ -280,6 +280,7 @@ struct sprd_codec_priv {
 
 	u32 fixed_sample_rate[CODEC_PATH_MAX];
 	u32 lrclk_sel[LRCLK_SEL_MAX];
+	u32 lrdat_sel;
 	unsigned int replace_rate;
 	enum PA_SHORT_T pa_short_stat;
 	enum CP_SHORT_T cp_short_stat;
@@ -1674,6 +1675,7 @@ static int audio_dcl_event(struct snd_soc_dapm_widget *w,
 			   struct snd_kcontrol *kcontrol, int event)
 {
 	struct snd_soc_codec *codec = snd_soc_dapm_to_codec(w->dapm);
+	struct sprd_codec_priv *sprd_codec = snd_soc_codec_get_drvdata(codec);
 	int ret = 0;
 	unsigned int val;
 
@@ -1694,6 +1696,10 @@ static int audio_dcl_event(struct snd_soc_dapm_widget *w,
 		val = RSTN_AUD_DIG_INTC;
 		snd_soc_update_bits(codec, SOC_REG(ANA_DCL1), val, val);
 		usleep_range(180, 200);
+
+		val = DAHP_DSEL_R2L | DAHP_DSEL_L2R;
+		if (sprd_codec->lrdat_sel)
+			snd_soc_update_bits(codec, SOC_REG(ANA_DAC3), val, val);
 		break;
 	default:
 		pr_err("%s invalid event error 0x%x\n", __func__, event);
@@ -5099,6 +5105,7 @@ static int sprd_codec_probe(struct platform_device *pdev)
 	u32 ana_chip_id;
 	u32 set_offset;
 	u32 clr_offset;
+	u32 lrdat_sel;
 	struct regmap *pmu_apb_gpr;
 
 	sp_asoc_pr_info("%s\n", __func__);
@@ -5151,6 +5158,13 @@ static int sprd_codec_probe(struct platform_device *pdev)
 	sp_asoc_pr_dbg("%s set_offset 0x%x, clr_offset 0x%x\n", __func__,
 		       set_offset, clr_offset);
 	set_agcp_ahb_offset(set_offset, clr_offset);
+
+	ret = of_property_read_u32(np, "lrdat-sel", &lrdat_sel);
+	if (ret) {
+		sp_asoc_pr_info("%s Don't need lrdat-sel\n", __func__);
+		lrdat_sel = 0x0;
+	}
+	sprd_codec->lrdat_sel = lrdat_sel;
 
 	arch_audio_set_pmu_apb_gpr(pmu_apb_gpr);
 	of_node_put(np);
