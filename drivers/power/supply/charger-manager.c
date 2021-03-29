@@ -2604,7 +2604,8 @@ static void battout_handler(struct charger_manager *cm)
 				cm->charging_status);
 			/*for alt test fail by pony date20210327*/
 			#ifdef CONFIG_TINNO_DEMOMODECHG_CONTROL
-			if(cm->desc->temperature > 0)
+			if(((cm->desc->temperature > 0) && demomode_chg_enable)
+				|| !demomode_chg_enable)
 			#endif
 				try_charger_enable(cm, true);
 		}
