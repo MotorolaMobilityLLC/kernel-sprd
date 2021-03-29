@@ -281,7 +281,7 @@ static int trusty_irq_create_irq_mapping(struct trusty_irq_state *is, int irq)
 	/* read irq template */
 	ret = of_parse_phandle_with_args(is->dev->of_node,
 					 "interrupt-templates",
-					 "#interrupt-cells",
+					 "#sgi-cells",
 					 templ_idx, &oirq);
 	if (ret)
 		return ret;
