@@ -14314,8 +14314,8 @@ CONFIG_SPRD_SENSOR_HUB
 	[function] enable sensor hub driver built in kernel
 CONFIG_SPRD_SFP_SUPPORT
 	[arch] arm64
-	[plat] qogirn6pro
-	[missing plat] qogirl6,sharkl3,sharkl5,sharkl5Pro
+	[plat] qogirl6,qogirn6pro
+	[missing plat] sharkl3,sharkl5,sharkl5Pro
 	[field] make,code
 	[subsys] staging
 	[must] user
