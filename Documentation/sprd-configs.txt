@@ -1577,6 +1577,15 @@ CONFIG_ASYMMETRIC_PUBLIC_KEY_SUBTYPE
 	[must] user
 	[missing plat description] none
 	[function] Asymmetric public-key crypto algorithm subtype
+CONFIG_AS_VFP_VMRS_FPINST
+	[arch] arm
+	[plat] pike2
+	[missing plat] none
+	[field] make
+	[subsys] build
+	[must] user
+	[missing plat description] none
+	[function] default from clang
 CONFIG_ATAGS
 	[arch] arm
 	[plat] pike2
@@ -8394,6 +8403,15 @@ CONFIG_I2C_SPRD_HW
 	[must] user
 	[missing plat description] none
 	[function] Enable i2c which support hw channel
+CONFIG_IFB
+	[arch] arm64
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
 CONFIG_IIO
 	[arch] all
 	[plat] all
@@ -11624,6 +11642,33 @@ CONFIG_NETWORK_SECMARK
 	[must] user
 	[missing plat description] none
 	[function] This enables security marking of network packets, similar to nfmark, but designated for security purposes.
+CONFIG_NET_ACT_GACT
+	[arch] arm64
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
+CONFIG_NET_ACT_MIRRED
+	[arch] arm64
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
+CONFIG_NET_ACT_POLICE
+	[arch] arm64
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
 CONFIG_NET_CLS
 	[arch] all
 	[plat] all
@@ -11645,6 +11690,15 @@ CONFIG_NET_CLS_ACT
 	get attached to classifiers and are invoked after a successful
 	classification. They are used to overwrite the classification
 	result, instantly drop or redirect packets, etc.
+CONFIG_NET_CLS_BASIC
+	[arch] arm64
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
 CONFIG_NET_CLS_BPF
 	[arch] all
 	[plat] all
@@ -11655,8 +11709,8 @@ CONFIG_NET_CLS_BPF
 	[missing plat description] none
 	[function] AndroidQ Must Enable. BPF-based classifier.
 CONFIG_NET_CLS_FW
-	[arch] arm
-	[plat] pike2
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field] make
 	[subsys] net
@@ -11664,6 +11718,24 @@ CONFIG_NET_CLS_FW
 	[missing plat description] none
 	[function] This option enable you to classify packets according
 	  to netfilter/firewall marks.
+CONFIG_NET_CLS_MATCHALL
+	[arch] arm64
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
+CONFIG_NET_CLS_TCINDEX
+	[arch] arm64
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
 CONFIG_NET_CLS_U32
 	[arch] all
 	[plat] all
@@ -11814,6 +11886,15 @@ CONFIG_NET_NS
 	[must] user
 	[missing plat description] none
 	[function] add mount/net/uts namespace support
+CONFIG_NET_REDIRECT
+	[arch] arm64
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
 CONFIG_NET_RX_BUSY_POLL
 	[arch] all
 	[plat] all
@@ -11867,6 +11948,15 @@ CONFIG_NET_SCH_INGRESS
 	[must] user
 	[missing plat description] none
 	[function] AndroidQ Must Enable. Ingress/classifier-action Qdisc.
+CONFIG_NET_SCH_TBF
+	[arch] arm64
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
 CONFIG_NET_UDP_TUNNEL
 	[arch] all
 	[plat] all
@@ -18485,6 +18575,15 @@ CONFIG_USB_MUSB_SPRD
 	[must] user
 	[missing plat description] none
 	[function] This macro is to suppor SPRD platforms musb driver.
+CONFIG_USB_NET_AQC111
+	[arch] arm64
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
 CONFIG_USB_NET_AX88179_178A
 	[arch] arm
 	[plat] pike2
@@ -18503,6 +18602,24 @@ CONFIG_USB_NET_AX8817X
 	[must] user
 	[missing plat description] none
 	[function] This macro is to support AX8817X usb-network device
+CONFIG_USB_NET_CDCETHER
+	[arch] arm64
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
+CONFIG_USB_NET_CDC_NCM
+	[arch] arm64
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
 CONFIG_USB_NET_DRIVERS
 	[arch] all
 	[plat] all

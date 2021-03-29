@@ -1,6 +1,6 @@
 #
 # Automatically generated file; DO NOT EDIT.
-# Linux/arm 5.4.107 Kernel Configuration
+# Linux/arm 5.4.108 Kernel Configuration
 #
 CONFIG_CC_VERSION_TEXT="Android (7211189, based on r416183) clang version 12.0.4 (https://android.googlesource.com/toolchain/llvm-project c935d99d7cf2016289302412d708641d52d2f7ee)"
 CONFIG_GCC_VERSION=0
@@ -613,6 +613,7 @@ CONFIG_CRYPTO_CHACHA20_NEON=y
 CONFIG_CRYPTO_NHPOLY1305_NEON=y
 # CONFIG_CRYPTO_CURVE25519_NEON is not set
 # CONFIG_VIRTUALIZATION is not set
+CONFIG_AS_VFP_VMRS_FPINST=y
 
 #
 # General architecture-dependent options
@@ -3741,6 +3742,7 @@ CONFIG_SW_SYNC=y
 
 # CONFIG_AUXDISPLAY is not set
 # CONFIG_UIO is not set
+# CONFIG_VFIO is not set
 # CONFIG_VIRT_DRIVERS is not set
 CONFIG_VIRTIO=y
 CONFIG_VIRTIO_MENU=y
