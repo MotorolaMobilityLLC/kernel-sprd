@@ -2637,8 +2637,8 @@ static void dpu_enhance_reload(struct dpu_context *ctx)
 		reg->slp_cfg3 = ((slp->s14 & 0xfff) << 19) |
 			((slp->s13 & 0xf) << 15) |
 			((slp->s12 & 0xf) << 11) |
-			((slp->s30 & 0xf) << 7) |
-			((slp->s30 & 0xf) << 3);
+			((slp->s11 & 0xf) << 7) |
+			((slp->s10 & 0xf) << 3);
 		reg->slp_cfg4 = (slp->s18 << 24) |
 			(slp->s17 << 16) | (slp->s16 << 8) |
 			(slp->s15 << 0);
@@ -2652,10 +2652,13 @@ static void dpu_enhance_reload(struct dpu_context *ctx)
 		reg->slp_cfg7 = ((slp->s29 & 0x1ff) << 23) |
 			((slp->s28 & 0x1ff) << 14) |
 			((slp->s27 & 0x1ff) << 5);
-		reg->slp_cfg9 = ((slp->s33 & 0x7f) << 25) |
-			(slp->s32 << 17) |
-			((slp->s31 & 0xf) << 13) |
-			((slp->s30 & 0x7f) << 6);
+		reg->slp_cfg8 = ((slp->s32 & 0x1ff) << 23) |
+			((slp->s31 & 0x1ff) << 14) |
+			((slp->s30 & 0x1fff) << 0);
+		reg->slp_cfg9 = ((slp->s36 & 0x7f) << 25) |
+			((slp->s35 & 0xff) << 17) |
+			((slp->s34 & 0xf) << 13) |
+			((slp->s33 & 0x7f) << 6);
 		reg->slp_cfg10 = (slp->s38 << 8) |
 			(slp->s37 << 0);
 		pr_info("enhance slp reload\n");
