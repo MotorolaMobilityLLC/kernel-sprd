@@ -856,8 +856,9 @@ static int sc2730_fchg_property_is_writeable(struct power_supply *psy,
 	int ret;
 
 	switch (psp) {
-	case  POWER_SUPPLY_PROP_VOLTAGE_MAX:
-	case  POWER_SUPPLY_PROP_CURRENT_MAX:
+	case POWER_SUPPLY_PROP_ONLINE:
+	case POWER_SUPPLY_PROP_VOLTAGE_MAX:
+	case POWER_SUPPLY_PROP_CURRENT_MAX:
 		ret = 1;
 		break;
 	default:

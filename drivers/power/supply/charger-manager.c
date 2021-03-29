@@ -2735,7 +2735,7 @@ static bool cm_is_reach_cp_threshold(struct charger_manager *cm)
 	}
 
 	cp_ocv_threshold = CM_CP_START_VOLTAGE_HTHRESHOLD;
-	if (!cm->desc->cp.cp_ocv_threshold)
+	if (cm->desc->cp.cp_ocv_threshold)
 		cp_ocv_threshold = cm->desc->cp.cp_ocv_threshold;
 
 	if (cur_jeita_status == STATUS_T1_TO_T2 &&
@@ -2788,16 +2788,17 @@ static void cm_cp_check_vbus_status(struct charger_manager *cm)
 static void cm_check_target_ibus(struct charger_manager *cm)
 {
 	struct cm_charge_pump_status *cp = &cm->desc->cp;
+	int target_ibus;
 
-	if (cp->cp_max_ibus > 0)
-		cp->cp_target_ibus = min(cp->cp_target_ibus, cp->cp_max_ibus);
+	target_ibus = cp->cp_max_ibus;
 
 	if (cp->adapter_max_ibus > 0)
-		cp->cp_target_ibus = min(cp->cp_target_ibus, cp->adapter_max_ibus);
+		target_ibus = min(target_ibus, cp->adapter_max_ibus);
 
 	if (cm->desc->thm_info.thm_adjust_cur > 0)
-		cp->cp_target_ibus = min(cp->cp_target_ibus,
-					 cm->desc->thm_info.thm_adjust_cur);
+		target_ibus = min(target_ibus, cm->desc->thm_info.thm_adjust_cur);
+
+	cp->cp_target_ibus = target_ibus;
 
 	dev_info(cm->dev, "%s, adp_max_ibus = %d, cp_max_ibus = %d, thm_cur = %d, target_ibus = %d\n",
 	       __func__, cp->adapter_max_ibus, cp->cp_max_ibus,
@@ -4379,7 +4380,7 @@ static void fast_charge_handler(struct charger_manager *cm)
 	if (cm->desc->fast_charger_type == POWER_SUPPLY_USB_CHARGER_TYPE_PD_PPS &&
 	    !cm->desc->cp.cp_running && cm->charger_enabled) {
 		cm_check_cp_start_condition(cm, true);
-		_cm_monitor(cm);
+		schedule_delayed_work(&cm_monitor_work, 0);
 	}
 }
 
@@ -4488,7 +4489,7 @@ static void misc_event_handler(struct charger_manager *cm, enum cm_event_types t
 	cm_update_charger_type_status(cm);
 
 	if (is_polling_required(cm) && cm->desc->polling_interval_ms)
-		schedule_work(&setup_polling);
+		schedule_delayed_work(&cm_monitor_work, 0);
 	uevent_notify(cm, default_event_names[type]);
 }
 
@@ -6025,8 +6026,6 @@ static struct charger_desc *of_cm_parse_desc(struct device *dev)
 			     &desc->double_ic_total_limit_current);
 	of_property_read_u32(np, "cm-cp-taper-current",
 			     &desc->cp.cp_taper_current);
-	of_property_read_s32(np, "charge-pumps-threshold-microvolt",
-			     &desc->cp.cp_ocv_threshold);
 	of_property_read_u32(np, "cm-ir-rc", &desc->ir_comp.rc);
 	of_property_read_u32(np, "cm-ir-us-upper-limit-microvolt",
 			     &desc->ir_comp.us_upper_limit);
@@ -6132,6 +6131,7 @@ static int cm_get_bat_info(struct charger_manager *cm)
 	cm->desc->cp.cp_max_ibat = info.cur.flash_cur;
 	cm->desc->cp.cp_target_ibat = info.cur.flash_cur;
 	cm->desc->cp.cp_max_ibus = info.cur.flash_limit;
+	cm->desc->cp.cp_ocv_threshold = info.cp_ocv_threshold;
 	cm->desc->cur.sdp_limit = info.cur.sdp_limit;
 	cm->desc->cur.sdp_cur = info.cur.sdp_cur;
 	cm->desc->cur.dcp_limit = info.cur.dcp_limit;
