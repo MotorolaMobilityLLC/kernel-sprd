@@ -484,7 +484,7 @@ static int sc27xx_fgu_get_boot_voltage(struct sc27xx_fgu_data *data, int *pocv)
 	}
 
 	cur <<= 1;
-	oci = sc27xx_fgu_adc_to_current(data, cur - SC27XX_FGU_CUR_BASIC_ADC);
+	oci = sc27xx_fgu_adc_to_current(data, (s64)cur - SC27XX_FGU_CUR_BASIC_ADC);
 
 	/*
 	 * Should get the OCV from SC27XX_FGU_POCV register at the system
@@ -650,7 +650,7 @@ static int sc27xx_fgu_get_cur_now(struct sc27xx_fgu_data *data, int *val)
 	 * It is ADC values reading from registers which need to convert to
 	 * corresponding current values.
 	 */
-	*val = sc27xx_fgu_adc_to_current(data, cur - SC27XX_FGU_CUR_BASIC_ADC);
+	*val = sc27xx_fgu_adc_to_current(data, (s64)cur - SC27XX_FGU_CUR_BASIC_ADC);
 
 	return 0;
 }
@@ -757,7 +757,7 @@ static int sc27xx_fgu_get_current(struct sc27xx_fgu_data *data, int *val)
 	 * It is ADC values reading from registers which need to convert to
 	 * corresponding current values.
 	 */
-	*val = sc27xx_fgu_adc_to_current(data, cur - SC27XX_FGU_CUR_BASIC_ADC);
+	*val = sc27xx_fgu_adc_to_current(data, (s64)cur - SC27XX_FGU_CUR_BASIC_ADC);
 
 	return 0;
 }
