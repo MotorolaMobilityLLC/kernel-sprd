@@ -1154,7 +1154,7 @@ no_dma:
 hw_param_err:
 	pr_err("hw_param_err\n");
 ok_go_out:
-	pr_err("return %i\n", ret);
+	pr_debug("return %i\n", ret);
 
 	return ret;
 }
