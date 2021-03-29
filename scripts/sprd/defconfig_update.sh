@@ -9,10 +9,15 @@ if [[ ! -f Makefile ]] || [[ `cat Makefile | head -n 2 | tail -n 1 | awk -F" " {
 	exit 1
 fi
 
+KERNEL_ROOT_DIR=`pwd`
+BSP_ROOT_DIR=$(dirname $(dirname "$KERNEL_ROOT_DIR"))
+echo "$BSP_ROOT_DIR"
+
 if [[ $# -eq 0 ]]; then
-	gcc_path=$(readlink -f "../../toolchain/prebuilts/gcc/linux-x86/aarch64/gcc-linaro-aarch64-linux-gnu-7.4/bin/aarch64-linux-gnu-")
-	PATH=$gcc_path:$PATH
-	# Add gcc absolute path to env
+	ARM32_TOOLCHAIN_PATH="$BSP_ROOT_DIR/toolchain/prebuilts/gcc/linux-x86/arm/arm-linux-androideabi-4.9/bin"
+	PATH=$ARM32_TOOLCHAIN_PATH:$PATH
+
+	# make sure to use the same version of clang as in our build system
 	has_clang=$(echo $PATH | grep "clang-r")
 	if [ -z $has_clang ];then
 		echo "ERROR: clang not in env, please \"source/lunch\" at bsp first."
@@ -35,12 +40,11 @@ do
 	arch=`echo $sprd_defconfig | awk -F"/" {'print $3'}`
 
 	if [[ $arch == "arm64" ]]; then
-		clang_triple="aarch64-linux-gnu-"
+		# should be consistent with make_config() in envsetup.sh!
+		make LLVM=1 LLVM_IAS=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CROSS_COMPILE_COMPAT=arm-linux-androidkernel- $defconfig_name O=$tmp_path_def
 	elif [[ $arch == "arm" ]]; then
-		clang_triple="arm-linux-gnueabi-"
+		make LLVM=1 ARCH=arm CROSS_COMPILE=arm-linux-androidkernel- CLANG_TRIPLE=arm-linux-gnueabi- $defconfig_name O=$tmp_path_def
 	fi
-
-	make LLVM=1 LLVM_IAS=1 CLANG_TRIPLE=$clang_triple ARCH=$arch CROSS_COMPILE="aarch64-linux-gnu-" $defconfig_name O=$tmp_path_def
 
 	cp $tmp_path_def/.config $sprd_defconfig
 

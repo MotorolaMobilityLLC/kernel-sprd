@@ -2911,6 +2911,17 @@ CONFIG_COMPAT_OLD_SIGACTION
 	[must] user
 	[missing plat description] none
 	[function] Enable kernel support compat old signal action.
+CONFIG_COMPAT_VDSO
+	[arch] arm64
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
+	[field]	code
+	[subsys] core
+	[must] none
+	[missing plat description] none
+	[function] Place in the process address space of 32-bit applications an
+		   ELF shared object providing fast implementations of
+		   gettimeofday and clock_gettime.
 CONFIG_CONFIGFS_FS
 	[arch] all
 	[plat] all
@@ -6262,6 +6273,17 @@ CONFIG_GENERIC_CLOCKEVENTS_BROADCAST
 	[must] console
 	[missing plat description] none
 	[function] Clockevents broadcasting infrastructure.
+CONFIG_GENERIC_COMPAT_VDSO
+	[arch] arm64
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
+	[field] code
+	[subsys] core
+	[must] none
+	[missing plat description] none
+	[function] Place in the process address space of 32-bit applications an
+		   ELF shared object providing fast implementations of
+		   gettimeofday and clock_gettime.
 CONFIG_GENERIC_CPU_AUTOPROBE
 	[arch] all
 	[plat] all
