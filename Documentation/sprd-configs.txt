@@ -18151,6 +18151,15 @@ CONFIG_UNISOC_MAILBOX
 	[must]
 	[missing plat description] none
 	[function]
+CONFIG_UNISOC_MAILBOX_R1
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
 CONFIG_UNISOC_MODEM_LOADER
 	[arch] all
 	[plat] all
