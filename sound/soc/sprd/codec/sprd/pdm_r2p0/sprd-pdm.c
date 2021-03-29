@@ -60,6 +60,8 @@ struct sprd_pdm_priv {
 	unsigned long clk_memphys;
 	unsigned int clk_reg_size;
 	unsigned long clk_membase;
+	u32 adc2_l_dg;
+	u32 adc2_r_dg;
 };
 
 #pragma GCC diagnostic push
@@ -139,6 +141,24 @@ static int pdm_clk_ioremap_reg_update(struct sprd_pdm_priv *sprd_pdm,
 	pdm_clk_ioremap_reg_raw_write(sprd_pdm, offset, new);
 
 	return old != new;
+}
+
+static void pdm_adc2_l_dg(struct sprd_pdm_priv *sprd_pdm)
+{
+	pdm_ioremap_reg_update(sprd_pdm, ADC2_CTRL, ADC2_CTRL_EN_L,
+			       ADC2_CTRL_EN_L);
+	pdm_ioremap_reg_update(sprd_pdm, DG_CFG1,
+			       ADC2_DG_L(sprd_pdm->adc2_l_dg),
+			       ADC2_DG_L(0xff));
+}
+
+static void pdm_adc2_r_dg(struct sprd_pdm_priv *sprd_pdm)
+{
+	pdm_ioremap_reg_update(sprd_pdm, ADC2_CTRL, ADC2_CTRL_EN_R,
+			       ADC2_CTRL_EN_R);
+	pdm_ioremap_reg_update(sprd_pdm, DG_CFG1,
+			       ADC2_DG_R(sprd_pdm->adc2_r_dg),
+			       ADC2_DG_R(0xff));
 }
 
 void pdm_module_en_ums9230(struct sprd_pdm_priv *sprd_pdm, bool en)
@@ -257,9 +277,81 @@ static int pdm_module_en_set(struct snd_kcontrol *kcontrol,
 	return 0;
 }
 
+static int pdm_adc2_l_dg_get(struct snd_kcontrol *kcontrol,
+			     struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
+	struct sprd_pdm_priv *sprd_pdm = snd_soc_codec_get_drvdata(codec);
+
+	ucontrol->value.integer.value[0] = sprd_pdm->adc2_l_dg;
+
+	return 0;
+}
+
+static int pdm_adc2_l_dg_set(struct snd_kcontrol *kcontrol,
+			     struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
+	struct sprd_pdm_priv *sprd_pdm = snd_soc_codec_get_drvdata(codec);
+	int ret;
+
+	ret = agdsp_access_enable();
+	if (ret) {
+		pr_err("%s agdsp_access_enable error %d", __func__,
+		       ret);
+		return ret;
+	}
+	sprd_pdm->adc2_l_dg = ucontrol->value.integer.value[0];
+	if (sprd_pdm->module_en)
+		pdm_adc2_l_dg(sprd_pdm);
+	agdsp_access_disable();
+	dev_info(sprd_pdm->dev, "module_en %d, set adc2_l_dg %d\n",
+		 sprd_pdm->module_en, sprd_pdm->adc2_l_dg);
+
+	return 0;
+}
+
+static int pdm_adc2_r_dg_get(struct snd_kcontrol *kcontrol,
+			     struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
+	struct sprd_pdm_priv *sprd_pdm = snd_soc_codec_get_drvdata(codec);
+
+	ucontrol->value.integer.value[0] = sprd_pdm->adc2_r_dg;
+
+	return 0;
+}
+
+static int pdm_adc2_r_dg_set(struct snd_kcontrol *kcontrol,
+			     struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
+	struct sprd_pdm_priv *sprd_pdm = snd_soc_codec_get_drvdata(codec);
+	int ret;
+
+	ret = agdsp_access_enable();
+	if (ret) {
+		pr_err("%s agdsp_access_enable error %d", __func__,
+		       ret);
+		return ret;
+	}
+	sprd_pdm->adc2_r_dg = ucontrol->value.integer.value[0];
+	if (sprd_pdm->module_en)
+		pdm_adc2_r_dg(sprd_pdm);
+	agdsp_access_disable();
+	dev_info(sprd_pdm->dev, "module_en %d, set adc2_r_dg %d\n",
+		 sprd_pdm->module_en, sprd_pdm->adc2_r_dg);
+
+	return 0;
+}
+
 static const struct snd_kcontrol_new pdm_snd_controls[] = {
 	SOC_SINGLE_EXT("PDM MODULE EN", 0, 0, 1, 0,
 		       pdm_module_en_get, pdm_module_en_set),
+	SOC_SINGLE_EXT("PDM ADC2L DG", 0, 0, 255, 0,
+		       pdm_adc2_l_dg_get, pdm_adc2_l_dg_set),
+	SOC_SINGLE_EXT("PDM ADC2R DG", 0, 0, 255, 0,
+		       pdm_adc2_r_dg_get, pdm_adc2_r_dg_set),
 };
 
 void pdm_dmic2_on(struct sprd_pdm_priv *sprd_pdm, bool on_off)
@@ -269,6 +361,8 @@ void pdm_dmic2_on(struct sprd_pdm_priv *sprd_pdm, bool on_off)
 	pr_info("%s on_off %d\n", __func__, on_off);
 	if (on_off) {
 		pdm_module_en(sprd_pdm, true);
+		pdm_adc2_l_dg(sprd_pdm);
+		pdm_adc2_r_dg(sprd_pdm);
 		pdm_ioremap_reg_update(sprd_pdm, TX_CFG3, TX2_BCK_DIV_NUM(0x3),
 				       TX2_BCK_DIV_NUM(0xffff));
 		pdm_ioremap_reg_update(sprd_pdm, TX_CFG3,
@@ -815,6 +909,8 @@ static int pdm_probe(struct platform_device *pdev)
 		sprd_pdm->reg_size);
 
 	pdm_debug_sysfs_init(sprd_pdm);
+	sprd_pdm->adc2_l_dg = 0x10;
+	sprd_pdm->adc2_r_dg = 0x10;
 
 	ret = snd_soc_register_codec(&pdev->dev, &soc_codec_dev_pdm,
 				     &pdm_dai[0],
