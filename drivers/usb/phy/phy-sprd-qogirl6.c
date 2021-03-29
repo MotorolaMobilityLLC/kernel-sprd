@@ -60,7 +60,8 @@
 
 #define TUNEHSAMP_2_6MA			(3 << 25)
 #define TFREGRES_TUNE_VALUE		(0xe << 19)
-
+#define DEFAULT_HOST_EYE_PATTERN					0x04f3d1c0
+#define DEFAULT_DEVICE_EYE_PATTERN					0x04f3d1c0
 struct sprd_hsphy {
 	struct device		*dev;
 	struct usb_phy		phy;
@@ -69,6 +70,8 @@ struct sprd_hsphy {
 	struct regmap           *ana_g2;
 	struct regmap           *pmic;
 	u32			vdd_vol;
+	u32			host_eye_pattern;
+	u32			device_eye_pattern;
 	atomic_t		reset;
 	atomic_t		inited;
 	bool			is_host;
@@ -142,6 +145,10 @@ static int sprd_hostphy_set(struct usb_phy *x, int on)
 	int ret = 0;
 
 	if (on) {
+		reg = phy->host_eye_pattern;
+		regmap_write(phy->ana_g2,
+			REG_ANLG_PHY_G2_ANALOG_USB20_USB20_TRIMMING, reg);
+
 		msk = MASK_AON_APB_USB2_PHY_IDDIG;
 		ret |= regmap_update_bits(phy->hsphy_glb,
 			REG_AON_APB_OTG_PHY_CTRL, msk, 0);
@@ -165,6 +172,10 @@ static int sprd_hostphy_set(struct usb_phy *x, int on)
 			msk, reg);
 		phy->is_host = true;
 	} else {
+		reg = phy->device_eye_pattern;
+		regmap_write(phy->ana_g2,
+			REG_ANLG_PHY_G2_ANALOG_USB20_USB20_TRIMMING, reg);
+
 		reg = msk = MASK_AON_APB_USB2_PHY_IDDIG;
 		ret |= regmap_update_bits(phy->hsphy_glb,
 			REG_AON_APB_OTG_PHY_CTRL, msk, reg);
@@ -193,23 +204,6 @@ static int sprd_hostphy_set(struct usb_phy *x, int on)
 
 static void sprd_hsphy_emphasis_set(struct usb_phy *x, bool enabled)
 {
-	struct sprd_hsphy *phy;
-	u32 reg, msk;
-
-	if (!x)
-		return;
-
-	phy = container_of(x, struct sprd_hsphy, phy);
-	reg = TUNEHSAMP_2_6MA;
-	msk = MASK_ANLG_PHY_G2_ANALOG_USB20_USB20_TUNEHSAMP;
-	if (enabled)
-		regmap_update_bits(phy->ana_g2,
-			REG_ANLG_PHY_G2_ANALOG_USB20_USB20_TRIMMING,
-			msk, reg);
-	else
-		regmap_update_bits(phy->ana_g2,
-			REG_ANLG_PHY_G2_ANALOG_USB20_USB20_TRIMMING,
-			msk, 0);
 }
 
 static int sprd_hsphy_init(struct usb_phy *x)
@@ -270,17 +264,9 @@ static int sprd_hsphy_init(struct usb_phy *x)
 		REG_ANLG_PHY_G2_ANALOG_USB20_USB20_UTMI_CTL1,
 		msk, reg);
 
-	reg = TUNEHSAMP_2_6MA;
-	msk = MASK_ANLG_PHY_G2_ANALOG_USB20_USB20_TUNEHSAMP;
-	ret |= regmap_update_bits(phy->ana_g2,
-		REG_ANLG_PHY_G2_ANALOG_USB20_USB20_TRIMMING,
-		msk, reg);
-
-	reg = TFREGRES_TUNE_VALUE;
-	msk = MASK_ANLG_PHY_G2_ANALOG_USB20_USB20_TFREGRES;
-	ret |= regmap_update_bits(phy->ana_g2,
-		REG_ANLG_PHY_G2_ANALOG_USB20_USB20_TRIMMING,
-		msk, reg);
+	reg = phy->device_eye_pattern;
+	regmap_write(phy->ana_g2,
+		REG_ANLG_PHY_G2_ANALOG_USB20_USB20_TRIMMING, reg);
 
 	if (!atomic_read(&phy->reset)) {
 		sprd_hsphy_reset_core(phy);
@@ -376,8 +362,69 @@ static ssize_t vdd_voltage_store(struct device *dev,
 }
 static DEVICE_ATTR_RW(vdd_voltage);
 
+static ssize_t hsphy_device_eye_pattern_show(struct device *dev,
+			struct device_attribute *attr,
+			char *buf)
+{
+	struct sprd_hsphy *x = dev_get_drvdata(dev);
+
+	if (!x)
+		return -EINVAL;
+
+
+	return sprintf(buf, "0x%x\n", x->device_eye_pattern);
+}
+
+static ssize_t hsphy_device_eye_pattern_store(struct device *dev,
+				struct device_attribute *attr,
+				const char *buf, size_t size)
+{
+	struct sprd_hsphy *x = dev_get_drvdata(dev);
+
+	if (!x)
+		return -EINVAL;
+
+	if (kstrtouint(buf, 16, &x->device_eye_pattern) < 0)
+		return -EINVAL;
+
+	return size;
+}
+static DEVICE_ATTR_RW(hsphy_device_eye_pattern);
+
+static ssize_t hsphy_host_eye_pattern_show(struct device *dev,
+			struct device_attribute *attr,
+			char *buf)
+{
+	struct sprd_hsphy *x = dev_get_drvdata(dev);
+
+	if (!x)
+		return -EINVAL;
+
+
+	return sprintf(buf, "0x%x\n", x->host_eye_pattern);
+}
+
+static ssize_t hsphy_host_eye_pattern_store(struct device *dev,
+				struct device_attribute *attr,
+				const char *buf, size_t size)
+{
+	struct sprd_hsphy *x = dev_get_drvdata(dev);
+
+	if (!x)
+		return -EINVAL;
+
+	if (kstrtouint(buf, 16, &x->host_eye_pattern) < 0)
+		return -EINVAL;
+
+	return size;
+}
+
+static DEVICE_ATTR_RW(hsphy_host_eye_pattern);
+
 static struct attribute *usb_hsphy_attrs[] = {
 	&dev_attr_vdd_voltage.attr,
+	&dev_attr_hsphy_device_eye_pattern.attr,
+	&dev_attr_hsphy_host_eye_pattern.attr,
 	NULL
 };
 ATTRIBUTE_GROUPS(usb_hsphy);
@@ -501,6 +548,20 @@ static int sprd_hsphy_probe(struct platform_device *pdev)
 	if (IS_ERR(phy->hsphy_glb)) {
 		dev_err(&pdev->dev, "ap USB aon apb syscon failed!\n");
 		return PTR_ERR(phy->hsphy_glb);
+	}
+
+	ret = of_property_read_u32(dev->of_node, "hsphy-device-eye-pattern",
+					&phy->device_eye_pattern);
+	if (ret < 0) {
+		dev_err(dev, "unable to get hsphy-device-eye-pattern node\n");
+		phy->device_eye_pattern = DEFAULT_DEVICE_EYE_PATTERN;
+	}
+
+	ret = of_property_read_u32(dev->of_node, "hsphy-host-eye-pattern",
+					&phy->host_eye_pattern);
+	if (ret < 0) {
+		dev_err(dev, "unable to get hsphy-host-eye-pattern node\n");
+		phy->host_eye_pattern = DEFAULT_HOST_EYE_PATTERN;
 	}
 
 	/* enable usb module */
