@@ -92,12 +92,6 @@
 		reg = <0x0 0x83ef0000 0x0 0x00010000>;
 	};
 
-	ipi: interrupt-controller {
-		compatible = "sprd,customipi";
-		#interrupt-cells = <1>;
-		interrupt-controller;
-	};
-
 	sprd-sensorhub {
 		compatible = "sprd,sharkl3-sensorhub", "sprd,sensor-hub";
 	};
@@ -107,9 +101,9 @@
 
 		irq {
 			compatible = "sprd,trusty-irq-v1";
-			interrupt-templates = <&ipi 0>,
-					      <&gic 1 GIC_PPI 0>,
-					      <&gic 1 GIC_SPI 0>;
+			interrupt-templates = <&gic IRQ_TYPE_NONE>,
+					      <&gic 1 GIC_PPI IRQ_TYPE_LEVEL_LOW>,
+					      <&gic 1 GIC_SPI IRQ_TYPE_LEVEL_HIGH>;
 			interrupt-ranges = < 0  15 0>,
 					   <16  31 1>,
 					   <32 223 2>;
