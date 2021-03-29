@@ -369,6 +369,7 @@ struct dptx *dptx_init(struct device *dev, struct drm_device *drm_dev)
 
 	dptx->dev = dev;
 	dptx->base = dp->ctx.base;
+	dptx->ipa_usb31_dp = dp->ctx.ipa_usb31_dp;
 
 	if (IS_ERR(dptx->base)) {
 		dev_err(dev, "Failed to map memory resource\n");

@@ -4,6 +4,7 @@
  * Copyright (C) 2020 Unisoc Inc.
  */
 
+#include <linux/regmap.h>
 #include "dw_dptx.h"
 
 static int dptx_link_check_cr_done(struct dptx *dptx, bool *out_done)
@@ -64,16 +65,118 @@ static int dptx_link_check_ch_eq_done(struct dptx *dptx,
 void dptx_link_set_preemp_vswing(struct dptx *dptx)
 {
 	int i;
+	u8 pe, vs;
+	u32 reg;
 
 	for (i = 0; i < dptx->link.lanes; i++) {
-		u8 pe;
-		u8 vs;
-
 		pe = dptx->link.preemp_level[i];
 		vs = dptx->link.vswing_level[i];
 
 		dptx_phy_set_pre_emphasis(dptx, i, pe);
 		dptx_phy_set_vswing(dptx, i, vs);
+	}
+
+	regmap_read(dptx->ipa_usb31_dp, 0x20, &reg);
+	/* enable cr apb */
+	reg |= BIT(4);
+	regmap_write(dptx->ipa_usb31_dp, 0x20, reg);
+	/* enable cr clk */
+	reg |= BIT(3);
+	regmap_write(dptx->ipa_usb31_dp, 0x20, reg);
+
+	/*
+	 * 0x8 bit7:PHY_REG_EN; bit0~15:PHY_REG_ADDR.
+	 * 0xc bit0-31: PHY_REG_DATA.
+	 */
+
+	/* phy ram addr 0x21: SUP_DIG_LVL_OVER_IN. */
+	reg = 0x10021;
+	regmap_write(dptx->ipa_usb31_dp, 0x8, reg);
+	regmap_read(dptx->ipa_usb31_dp, 0xc, &reg);
+	/* bit7: TX_VBOOST_LVL_EN; bit6L4=5 TX_TXVBOOST_LVL */
+	reg &= ~BIT(5);
+	reg |= BIT(7) | BIT(6) | BIT(4);
+	regmap_write(dptx->ipa_usb31_dp, 0xc, reg);
+
+	/* tuning override phy eq value */
+	if (vs == 0 && pe == 0) {
+		regmap_write(dptx->ipa_usb31_dp, 0x8, 0x19002);
+		regmap_write(dptx->ipa_usb31_dp, 0xc, 0x570);
+
+		regmap_write(dptx->ipa_usb31_dp, 0x8, 0x19003);
+		regmap_write(dptx->ipa_usb31_dp, 0xc, 0x2000);
+	}
+
+	if (vs == 0 && pe == 1) {
+		regmap_write(dptx->ipa_usb31_dp, 0x8, 0x19002);
+		regmap_write(dptx->ipa_usb31_dp, 0xc, 0x5d0);
+
+		regmap_write(dptx->ipa_usb31_dp, 0x8, 0x19003);
+		regmap_write(dptx->ipa_usb31_dp, 0xc, 0x2300);
+	}
+
+	if (vs == 0 && pe == 2) {
+		regmap_write(dptx->ipa_usb31_dp, 0x8, 0x19002);
+		regmap_write(dptx->ipa_usb31_dp, 0xc, 0x620);
+
+		regmap_write(dptx->ipa_usb31_dp, 0x8, 0x19003);
+		regmap_write(dptx->ipa_usb31_dp, 0xc, 0x2580);
+	}
+
+	if (vs == 0 && pe == 3) {
+		regmap_write(dptx->ipa_usb31_dp, 0x8, 0x19002);
+		regmap_write(dptx->ipa_usb31_dp, 0xc, 0x6a0);
+
+		regmap_write(dptx->ipa_usb31_dp, 0x8, 0x19003);
+		regmap_write(dptx->ipa_usb31_dp, 0xc, 0x2980);
+	}
+
+	if (vs == 1 && pe == 0) {
+		regmap_write(dptx->ipa_usb31_dp, 0x8, 0x19002);
+		regmap_write(dptx->ipa_usb31_dp, 0xc, 0x620);
+
+		regmap_write(dptx->ipa_usb31_dp, 0x8, 0x19003);
+		regmap_write(dptx->ipa_usb31_dp, 0xc, 0x2000);
+	}
+
+	if (vs == 1 && pe == 1) {
+		regmap_write(dptx->ipa_usb31_dp, 0x8, 0x19002);
+		regmap_write(dptx->ipa_usb31_dp, 0xc, 0x6a0);
+
+		regmap_write(dptx->ipa_usb31_dp, 0x8, 0x19003);
+		regmap_write(dptx->ipa_usb31_dp, 0xc, 0x2400);
+	}
+
+	if (vs == 1 && pe == 2) {
+		regmap_write(dptx->ipa_usb31_dp, 0x8, 0x19002);
+		regmap_write(dptx->ipa_usb31_dp, 0xc, 0x700);
+
+		regmap_write(dptx->ipa_usb31_dp, 0x8, 0x19003);
+		regmap_write(dptx->ipa_usb31_dp, 0xc, 0x2700);
+	}
+
+	if (vs == 2 && pe == 0) {
+		regmap_write(dptx->ipa_usb31_dp, 0x8, 0x19002);
+		regmap_write(dptx->ipa_usb31_dp, 0xc, 0x6e0);
+
+		regmap_write(dptx->ipa_usb31_dp, 0x8, 0x19003);
+		regmap_write(dptx->ipa_usb31_dp, 0xc, 0x2000);
+	}
+
+	if (vs == 2 && pe == 1) {
+		regmap_write(dptx->ipa_usb31_dp, 0x8, 0x19002);
+		regmap_write(dptx->ipa_usb31_dp, 0xc, 0x760);
+
+		regmap_write(dptx->ipa_usb31_dp, 0x8, 0x19003);
+		regmap_write(dptx->ipa_usb31_dp, 0xc, 0x2400);
+	}
+
+	if (vs == 3 && pe == 0) {
+		regmap_write(dptx->ipa_usb31_dp, 0x8, 0x19002);
+		regmap_write(dptx->ipa_usb31_dp, 0xc, 0x7e0);
+
+		regmap_write(dptx->ipa_usb31_dp, 0x8, 0x19003);
+		regmap_write(dptx->ipa_usb31_dp, 0xc, 0x2000);
 	}
 }
 

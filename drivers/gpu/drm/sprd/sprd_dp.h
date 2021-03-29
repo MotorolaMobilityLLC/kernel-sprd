@@ -20,6 +20,7 @@
 
 struct dp_context {
 	void __iomem *base;
+	struct regmap *ipa_usb31_dp;
 	struct videomode vm;
 	bool enabled;
 	u8 lanes;

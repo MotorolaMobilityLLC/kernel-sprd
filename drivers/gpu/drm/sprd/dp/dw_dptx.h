@@ -115,6 +115,7 @@ struct dptx {
 	} hwparams;
 
 	void __iomem *base;
+	struct regmap *ipa_usb31_dp;
 
 	int irq;
 	u32 version;

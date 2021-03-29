@@ -31,6 +31,13 @@ static int dp_glb_parse_dt(struct dp_context *ctx,
 		clk_ipa_apb_dptx_eb = NULL;
 	}
 
+	ctx->ipa_usb31_dp = syscon_regmap_lookup_by_phandle(np,
+							 "sprd,syscon-usb31-dp-phy");
+	if (IS_ERR(ctx->ipa_usb31_dp)) {
+		pr_err("ipa usb31 dp phy syscon failed!\n");
+		ctx->ipa_usb31_dp = NULL;
+	}
+
 	return 0;
 }
 
