@@ -111,7 +111,7 @@
 				capacity-temp-table = <45 100>, <25 100>, <10 100>, <0 95>, <(-10) 90>;
 				resistance-temp-table = <45 53>, <25 100>, <10 395>, <0 567>, <(-10) 793>;
 				charge-sdp-current-microamp = <500000 500000>;
-				charge-dcp-current-microamp = <2000000 3000000>;
+				charge-dcp-current-microamp = <2000000 2500000>;
 				charge-cdp-current-microamp = <1500000 1500000>;
 				charge-unknown-current-microamp = <500000 500000>;
 				charge-fchg-current-microamp = <3000000 2000000>;
