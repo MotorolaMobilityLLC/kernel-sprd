@@ -25,7 +25,3 @@ config SPRD_POWER_LOG_SHARKL3
 config SPRD_POWER_LOG_SHARKLE
 	tristate "SharkLE debug power log"
 	depends on SPRD_POWER_LOG
-
-config SPRD_POWER_LOG_PIKE2
-	tristate "Pike2 debug power log"
-	depends on SPRD_POWER_LOG

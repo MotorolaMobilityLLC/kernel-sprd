@@ -17,6 +17,3 @@ sprd_powerlog_sharkl3-objs := $(sprd_debuglog_common) sprd_debuglog_sharkl3.o
 
 obj-$(CONFIG_SPRD_POWER_LOG_SHARKLE)	+= sprd_powerlog_sharkle.o
 sprd_powerlog_sharkle-objs := $(sprd_debuglog_common) sprd_debuglog_sharkle.o
-
-obj-$(CONFIG_SPRD_POWER_LOG_PIKE2)	+= sprd_powerlog_pike2.o
-sprd_powerlog_pike2-objs := $(sprd_debuglog_common) sprd_debuglog_pike2.o

@@ -3,9 +3,9 @@
 #
 menuconfig SPRD_POWER_LOG
 	tristate "Spreadtrum debug power log output"
-	depends on SPRD_POWER
-	default y
+	depends on SPRD_POWER && SPRD_SIP_FW
+	default n
 	help
-	Select this to enable debug power log driver for sprd soc.
+	  Select this to enable debug power log driver for sprd soc.
 
 source "drivers/soc/sprd/power/log/Kconfig"

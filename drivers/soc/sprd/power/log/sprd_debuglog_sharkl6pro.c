@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020 Spreadtrum Communications Inc.
+ * Copyright (C) 2021 Spreadtrum Communications Inc.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -10,15 +10,21 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
-
 #include <linux/device.h>
+#include <linux/list.h>
 #include <linux/module.h>
 #include <linux/mfd/syscon.h>
 #include <linux/of_platform.h>
 #include <linux/platform_device.h>
-#include <linux/regmap.h>
-#include <linux/sprd_sip_svc.h>
-#include "sprd_debuglog_data.h"
+#include <linux/slab.h>
+#include <linux/sprd-debuglog.h>
+#include "sprd_debuglog_drv.h"
+
+#define INTC_TO_GIC(i)			((i) + 32)
+
+struct intc_desc {
+	char *bit[32];
+};
 
 #define AP_INTC0_BIT_NAME			\
 {						\
@@ -308,45 +314,11 @@
 	"ACC_PROT_PMU",				\
 }
 
-/* Int anlyise */
-static int gpio_int_handler(char *buff, u32 second, u32 thrid);
-static int eic_int_handler(char *buff, u32 second, u32 thrid);
-//static int mbox_int_handler(char *buff, u32 second, u32 thrid);
-static int ana_int_handler(char *buff, u32 second, u32 thrid);
-
-/* AP INTC */
-static struct intc_info ap_intc_set[] = {
-	INTC_INFO_INIT("sprd,sys-ap-intc0", AP_INTC0_BIT_NAME),
-	INTC_INFO_INIT("sprd,sys-ap-intc1", AP_INTC1_BIT_NAME),
-	INTC_INFO_INIT("sprd,sys-ap-intc2", AP_INTC2_BIT_NAME),
-	INTC_INFO_INIT("sprd,sys-ap-intc3", AP_INTC3_BIT_NAME),
-	INTC_INFO_INIT("sprd,sys-ap-intc4", AP_INTC4_BIT_NAME),
-	INTC_INFO_INIT("sprd,sys-ap-intc5", AP_INTC5_BIT_NAME),
-	INTC_INFO_INIT("sprd,sys-ap-intc6", AP_INTC6_BIT_NAME),
-	INTC_INFO_INIT("sprd,sys-ap-intc7", AP_INTC7_BIT_NAME),
-};
-
-static struct intc_handler ap_intc0_handler[] = {
-	INTC_HANDLER_INIT(24, eic_int_handler),
-};
-
-static struct intc_handler ap_intc1_handler[] = {
-	INTC_HANDLER_INIT(8, gpio_int_handler),
-};
-
-static struct intc_handler ap_intc7_handler[] = {
-	INTC_HANDLER_INIT(6, ana_int_handler),
-};
-
-static struct intc_handler_set ap_intc_handler_set[] = {
-	INTC_HANDLER_SET_INIT(1, ap_intc0_handler),
-	INTC_HANDLER_SET_INIT(1, ap_intc1_handler),
-	INTC_HANDLER_SET_INIT(0, NULL),
-	INTC_HANDLER_SET_INIT(0, NULL),
-	INTC_HANDLER_SET_INIT(0, NULL),
-	INTC_HANDLER_SET_INIT(0, NULL),
-	INTC_HANDLER_SET_INIT(0, NULL),
-	INTC_HANDLER_SET_INIT(1, ap_intc7_handler),
+static struct intc_desc ap_intc[] = {
+	AP_INTC0_BIT_NAME, AP_INTC1_BIT_NAME,
+	AP_INTC2_BIT_NAME, AP_INTC3_BIT_NAME,
+	AP_INTC4_BIT_NAME, AP_INTC5_BIT_NAME,
+	AP_INTC6_BIT_NAME, AP_INTC7_BIT_NAME,
 };
 
 /* PMU APB */
@@ -557,27 +529,149 @@ static struct reg_info pmu_apb[] = {
 /*
  * Register table
  */
-static struct reg_table reg_table_check[] = {
-	REG_TABLE_INIT("PMU_APB", "sprd,sys-pmu-apb", pmu_apb),
-};
-
 static struct reg_table reg_table_monitor[] = {
 	REG_TABLE_INIT("PMU_APB", "sprd,sys-pmu-apb", pmu_apb),
 };
 
 /**
+ * Wakeup source information
+ */
+static struct wakeup_info wakeup_info;
+static char wakeup_name[WAKEUP_NAME_LEN];
+static char *wakeup_source[2] = {NULL, NULL};
+
+/* For plat to register node */
+
+struct wakeup_node {
+	int gic_num, sub_num;
+	int (*get)(void *info, void *data);
+	void *data;
+	struct list_head list;
+};
+
+LIST_HEAD(wakeup_node_list);
+
+/**
+ * wakeup_info_register - Register wakeup source to debug log
+ */
+int wakeup_info_register(int gic_num, int sub_num,
+				int (*get)(void *info, void *data), void *data)
+{
+	struct wakeup_node *pos;
+	struct wakeup_node *pn;
+
+	if (!get) {
+		pr_err("%s: Parameter is error\n", __func__);
+		return -EINVAL;
+	}
+
+	list_for_each_entry(pos, &wakeup_node_list, list) {
+		if (pos->gic_num != gic_num || pos->sub_num != sub_num)
+			continue;
+		pr_err("%s: Node(%u:%u) is exist\n", __func__, gic_num, sub_num);
+		return -EEXIST;
+	}
+
+	pn = kzalloc(sizeof(struct wakeup_node), GFP_KERNEL);
+	if (!pn) {
+		pr_err("%s: Wakeup node memory alloc error\n", __func__);
+		return -ENOMEM;
+	}
+
+	pn->gic_num = gic_num;
+	pn->sub_num = sub_num;
+	pn->get = get;
+	pn->data = data;
+
+	list_add_tail(&pn->list, &wakeup_node_list);
+
+	return 0;
+}
+EXPORT_SYMBOL_GPL(wakeup_info_register);
+
+/**
+ * wakeup_info_register - Register wakeup source to debug log
+ */
+int wakeup_info_unregister(int gic_num, int sub_num)
+{
+	struct wakeup_node *pos;
+
+	list_for_each_entry(pos, &wakeup_node_list, list) {
+		if (pos->gic_num != gic_num || pos->sub_num != sub_num)
+			continue;
+		list_del(&pos->list);
+		kfree(pos);
+		return 0;
+	}
+
+	pr_err("%s: Node(%u:%u) not found\n", __func__, gic_num, sub_num);
+
+	return -ENODEV;
+}
+EXPORT_SYMBOL_GPL(wakeup_info_unregister);
+
+/* Wakeup source parse */
+
+#define INT_HANDLE_INIT(bit_num, phandle)			\
+{								\
+	.bit = bit_num,						\
+	.ph = phandle,						\
+}
+
+#define INT_HANDLE_SET_INIT(handle_set)				\
+{								\
+	.set = handle_set,					\
+	.num = ARRAY_SIZE(handle_set),				\
+}
+
+struct int_handle {
+	u32 bit;
+	int (*ph)(char **o1, char **o2, u32 m, u32 s, u32 t);
+};
+
+struct int_handle_set {
+	struct int_handle *set;
+	u32 num;
+};
+
+/**
  * GPIO int anlyise
  */
-static int gpio_int_handler(char *buff, u32 second, u32 thrid)
+static int gpio_int_handler(char **o1, char **o2, u32 m, u32 s, u32 t)
 {
-	#define GPIO_BIT_SHIFT	4
+	#define GPIO_BIT_SHIFT		4
 
-	u32 grp, bit;
+	struct wakeup_node *node;
+	int inum, ibit, gnum;
+	int grp, bit;
+	char *iname;
+	int ret;
 
-	grp = (second >> 16) & 0xFFFF;
-	bit = second & 0xFFFF;
+	inum = (m >> 16) & 0xFFFF;
+	ibit = m & 0xFFFF;
+	iname = ap_intc[inum].bit[ibit];
 
-	sprintf(buff, "%u", (grp << GPIO_BIT_SHIFT) + bit);
+	grp = (s >> 16) & 0xFFFF;
+	bit = s & 0xFFFF;
+
+	sprintf(wakeup_name, "%s(%u)", iname, (grp << GPIO_BIT_SHIFT) + bit);
+	*o1 = wakeup_name;
+
+	gnum = INTC_TO_GIC((inum << 5) + ibit);
+
+	list_for_each_entry(node, &wakeup_node_list, list) {
+		if (node->gic_num != gnum)
+			continue;
+		ret = node->get(&wakeup_info, node->data);
+		if (ret) {
+			pr_err("%s: Get wakeup info error\n", __func__);
+			return -EINVAL;
+		}
+		break;
+	}
+
+	if (&node->list != &wakeup_node_list)
+		*o2 = wakeup_info.name;
 
 	return 0;
 }
@@ -585,33 +679,105 @@ static int gpio_int_handler(char *buff, u32 second, u32 thrid)
 /**
  * AP EIC int anlyise
  */
-static int eic_int_handler(char *buff, u32 second, u32 thrid)
+static int eic_int_handler(char **o1, char **o2, u32 m, u32 s, u32 t)
 {
-	/* EIC int list */
-	#define EIC_EXT_NUM	6
-	#define EIC_TYPE_NUM	4
-	#define EIC_NUM		8
+	#define EIC_EXT_NUM			6
+	#define EIC_TYPE_NUM			4
+	#define EIC_NUM				8
 
-	static const char *eic_index[] = {
-		"AON_AON_EIC_0", "AON_AON_EIC_1", "AON_AON_EIC_2",
-		"AON_AON_EIC_2", "AON_AON_EIC_4", "AON_AON_EIC_5",
+	static const char *eic_index[EIC_EXT_NUM] = {
+		"AON_EIC_0", "AON_EIC_1", "AON_EIC_2",
+		"AON_EIC_3", "AON_EIC_4", "AON_EIC_5"
 	};
 
-	static const char *eic_type[] = {
-		"DBNC", "LATCH",
-		"ASYNC", "SYNC",
+	static const char *eic_type[EIC_TYPE_NUM] = {
+		"DBNC", "LATCH", "ASYNC", "SYNC"
 	};
 
-	u32 grp, bit, num;
+	struct wakeup_node *node;
+	int inum, ibit, gnum;
+	int grp, bit, num;
+	int ret;
 
-	grp = (second >> 16) & 0xFFFF;
-	bit = second & 0xFFFF;
-	num = thrid & 0xFFFF;
+	inum = (m >> 16) & 0xFFFF;
+	ibit = m & 0xFFFF;
+	gnum = INTC_TO_GIC((inum << 5) + ibit);
 
-	if (grp >= EIC_EXT_NUM || bit >= EIC_TYPE_NUM || num >= EIC_NUM)
+	grp = (s >> 16) & 0xFFFF;
+	bit = s & 0xFFFF;
+	num = t & 0xFFFF;
+
+	if (grp >= EIC_EXT_NUM || bit >= EIC_TYPE_NUM || num >= EIC_NUM) {
+		pr_err("%s: EIC index out of range\n", __func__);
 		return -EINVAL;
+	}
 
-	sprintf(buff, "%s-%s-%u", eic_index[grp], eic_type[bit], num);
+	sprintf(wakeup_name, "%s(%s.%s.%u)",
+		   ap_intc[inum].bit[ibit], eic_index[grp], eic_type[bit], num);
+	*o1 = wakeup_name;
+
+	list_for_each_entry(node, &wakeup_node_list, list) {
+		if (node->gic_num != gnum)
+			continue;
+		ret = node->get(&wakeup_info, node->data);
+		if (ret) {
+			pr_err("%s: Get wakeup info error\n", __func__);
+			return -EINVAL;
+		}
+		break;
+	}
+
+	if (&node->list != &wakeup_node_list)
+		*o2 = wakeup_info.name;
+
+	return 0;
+}
+
+/**
+ * Mailbox int anlyise
+ */
+static int mbox_int_handler(char **o1, char **o2, u32 m, u32 s, u32 t)
+{
+	#define MBOX_SRC_NUM		7
+
+	static const char *mbox_src[MBOX_SRC_NUM] = {
+		"APCPU", "SP CMStar", "CH CMStar", "PSCP CR8",
+		"PHYCP CR8", "AUD DSP", "APCPU"
+	};
+
+	struct wakeup_node *node;
+	int inum, ibit, gnum;
+	int grp, bit;
+	int ret;
+
+	inum = (m >> 16) & 0xFFFF;
+	ibit = m & 0xFFFF;
+	gnum = INTC_TO_GIC((inum << 5) + ibit);
+
+	grp = (s >> 16) & 0xFFFF;
+	bit = s & 0xFFFF;
+
+	if (bit >= MBOX_SRC_NUM) {
+		pr_err("%s: Mailbox index out of range\n", __func__);
+		return -EINVAL;
+	}
+
+	sprintf(wakeup_name, "%s(%s)", ap_intc[inum].bit[ibit], mbox_src[bit]);
+	*o1 = wakeup_name;
+
+	list_for_each_entry(node, &wakeup_node_list, list) {
+		if (node->gic_num != gnum)
+			continue;
+		ret = node->get(&wakeup_info, node->data);
+		if (ret) {
+			pr_err("%s: Get wakeup info error\n", __func__);
+			return -EINVAL;
+		}
+		break;
+	}
+
+	if (&node->list != &wakeup_node_list)
+		*o2 = wakeup_info.name;
 
 	return 0;
 }
@@ -619,75 +785,160 @@ static int eic_int_handler(char *buff, u32 second, u32 thrid)
 /**
  * PMIC int anlyise
  */
-static int ana_int_handler(char *buff, u32 second, u32 thrid)
+static int ana_int_handler(char **o1, char **o2, u32 m, u32 s, u32 t)
 {
 	/* PMIC ANA int list */
-	#define ANA_INT_NUM		9
-	#define ANA_EIC_NUM		7
+	#define ANA_INT_NUM			11
+	#define ANA_EIC_IDX			4
+	#define ANA_EIC_NUM			7
 
-	static const char *ana_int[] = {
-		"ADC_INT", "RTC_INT", "WDG_INT",
-		"FGU_INT", "EIC_INT", "FAST_CHG_INT",
-		"TMR_INT", "NULL", "TYPEC_INT",
-		"USB_PD_INT", "CHG_INT",
+	static const char *ana_int[ANA_INT_NUM] = {
+		"ADC_INT", "RTC_INT", "WDG_INT", "FGU_INT", "EIC_INT",
+		"FAST_CHG_INT", "TMR_INT", "NULL", "TYPEC_INT",
+		"USB_PD_INT", "CHG_INT"
 	};
 
-	static const char *ana_eic[] = {
+	static const char *ana_eic[ANA_EIC_NUM] = {
 		"CHGR_INT", "PBINT", "PBINT2", "BATDET_OK",
 		"KEY2_7S_EXT_RSTN", "EXT_XTL0_EN",
-		"AUD_INT_ALL",
+		"AUD_INT_ALL"
 	};
 
-	u32 bit, num;
-	int pos;
+	struct wakeup_node *node;
+	int inum, ibit, gnum;
+	int bit, num;
+	int pos, ret;
+	char *iname;
 
-	bit = second & 0xFFFF;
-	num = thrid & 0xFFFF;
+	inum = (m >> 16) & 0xFFFF;
+	ibit = m & 0xFFFF;
+	iname = ap_intc[inum].bit[ibit];
 
-	if (bit >= ANA_INT_NUM)
+	bit = s & 0xFFFF;
+	num = t & 0xFFFF;
+
+	if (bit >= ANA_INT_NUM) {
+		pr_err("%s: Ana int out of range\n", __func__);
 		return -EINVAL;
+	}
 
-	pos = sprintf(buff, "%s", ana_int[bit]);
+	pos = sprintf(wakeup_name, "%s(%s", iname, ana_int[bit]);
+	if (bit == ANA_EIC_IDX && num < ANA_EIC_NUM)
+		pos += sprintf(wakeup_name + pos, ".%s", ana_eic[num]);
+	sprintf(wakeup_name + pos, ")");
 
-	if (bit == 4 && num < ANA_EIC_NUM)
-		sprintf(buff + pos, ".%s", ana_eic[num]);
+	*o1 = wakeup_name;
+
+	gnum = INTC_TO_GIC((inum << 5) + ibit);
+
+	list_for_each_entry(node, &wakeup_node_list, list) {
+		if (node->gic_num != gnum || node->sub_num != bit)
+			continue;
+		ret = node->get(&wakeup_info, node->data);
+		if (ret) {
+			pr_err("%s: Get wakeup info error\n", __func__);
+			return -EINVAL;
+		}
+		break;
+	}
+
+	if (&node->list != &wakeup_node_list)
+		*o2 = wakeup_info.name;
 
 	return 0;
 }
+
+static struct int_handle ap_intc0_handle[] = {
+	/* Empty */
+};
+
+static struct int_handle ap_intc1_handle[] = {
+	INT_HANDLE_INIT(8,  gpio_int_handler),
+	INT_HANDLE_INIT(12, mbox_int_handler),
+	INT_HANDLE_INIT(29, eic_int_handler),
+};
+
+static struct int_handle ap_intc2_handle[] = {
+	/* Empty */
+};
+
+static struct int_handle ap_intc3_handle[] = {
+	/* Empty */
+};
+
+static struct int_handle ap_intc4_handle[] = {
+	/* Empty */
+};
+
+static struct int_handle ap_intc5_handle[] = {
+	/* Empty */
+};
+
+static struct int_handle ap_intc6_handle[] = {
+	/* Empty */
+};
+
+static struct int_handle ap_intc7_handle[] = {
+	INT_HANDLE_INIT(6, ana_int_handler),
+};
+
+static struct int_handle_set ap_intc_handle_set[] = {
+	INT_HANDLE_SET_INIT(ap_intc0_handle),
+	INT_HANDLE_SET_INIT(ap_intc1_handle),
+	INT_HANDLE_SET_INIT(ap_intc2_handle),
+	INT_HANDLE_SET_INIT(ap_intc3_handle),
+	INT_HANDLE_SET_INIT(ap_intc4_handle),
+	INT_HANDLE_SET_INIT(ap_intc5_handle),
+	INT_HANDLE_SET_INIT(ap_intc6_handle),
+	INT_HANDLE_SET_INIT(ap_intc7_handle),
+};
 
 /* Wakeup source match */
-static int intc_match(char *buff, u32 intc, u32 second, u32 thrid)
+static int plat_match(u32 major, u32 second, u32 thrid, void *data, int num)
 {
-	struct intc_handler_set *pset;
-	u32 inum, ibit;
-	int i;
+	struct int_handle_set *pset;
+	int inum, ibit;
+	char **pstr;
+	int pos, i;
+	int ret;
 
-	inum = (intc >> 16) & 0xFFFF;
-	ibit = intc & 0xFFFF;
-
-	if (inum >= ARRAY_SIZE(ap_intc_handler_set) || ibit >= 32)
+	if (!data || num != 2) {
+		pr_err("%s: Data is error\n", __func__);
 		return -EINVAL;
+	}
 
-	pset = &ap_intc_handler_set[inum];
+	inum = (major >> 16) & 0xFFFF;
+	ibit = major & 0xFFFF;
 
-	for (i = 0; i < pset->num; ++i)
-		if ((ibit == pset->set[i].bit) && pset->set[i].ph)
-			return pset->set[i].ph(buff, second, thrid);
+	if (inum >= ARRAY_SIZE(ap_intc_handle_set) || ibit >= 32) {
+		pr_err("%s: Wakeup source out of range\n", __func__);
+		return -EINVAL;
+	}
+
+	pstr = (char **)data;
+	pset = &ap_intc_handle_set[inum];
+
+	for (i = 0; i < pset->num; ++i) {
+		if (ibit != pset->set[i].bit || !pset->set[i].ph)
+			continue;
+		ret = pset->set[i].ph(&pstr[0], &pstr[1], major, second, thrid);
+		if (!ret)
+			return 0;
+		break;
+	}
+
+	pos = sprintf(wakeup_name, "%s", ap_intc[inum].bit[ibit]);
+	pstr[0] = wakeup_name;
 
 	return 0;
 }
 
-/* Platform debug power data */
-struct debug_data sprd_sharkl6pro_debug_data = {
-	/* debug check */
-	.check = {ARRAY_SIZE(reg_table_check), reg_table_check},
-
-	/* debug monitor */
-	.monitor = {ARRAY_SIZE(reg_table_monitor), reg_table_monitor},
-
-	/* intc set */
-	.intc = {ARRAY_SIZE(ap_intc_set), ap_intc_set},
-
-	/* wakeup source match callback */
-	.wakeup_source_match = intc_match,
+struct plat_data sprd_sharkl6pro_debug_data = {
+	.sleep_condition_table = NULL,
+	.sleep_condition_table_num = 0,
+	.subsys_state_table = reg_table_monitor,
+	.subsys_state_table_num = 1,
+	.wakeup_source_info = wakeup_source,
+	.wakeup_source_info_num = 2,
+	.wakeup_source_match = plat_match,
 };

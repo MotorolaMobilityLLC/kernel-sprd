@@ -16,93 +16,95 @@
 #include <linux/of_platform.h>
 #include <linux/platform_device.h>
 #include <linux/regmap.h>
+#include <linux/slab.h>
 #include <linux/sprd_sip_svc.h>
-#include "sprd_debuglog_data.h"
+#include "sprd_debuglog_core.h"
+#include "sprd_debuglog_drv.h"
 
-static struct debug_log *dbg_log;
+static int (*wakeup_source_match)(u32 m, u32 s, u32 t, void *data, int num);
+static struct sprd_sip_svc_pwr_ops *power_ops;
 
-#if defined(CONFIG_SPRD_SIP_FW)
-static int (*plat_match)(char *buff, u32 intc, u32 second, u32 thrid);
-#endif
-
-static int display_register_bit(char *reg_name,
-					struct reg_bit *bit, int num, u32 value)
+static int disp_bits(struct reg_bit *bit_list, int list_num, u32 reg_val)
 {
 	u32 val;
 	int i;
 
-	if (!bit) {
-		pr_info("   #--Bit is null\n");
+	if (!bit_list || !list_num) {
+		pr_err("   #--Bit list is empty\n");
 		return -EINVAL;
 	}
 
-	for (i = 0; i < num; ++i) {
-		val = (value >> bit[i].offset) & bit[i].mask;
-		if (val != bit[i].expect)
-			pr_info("   #--%s: %u", bit[i].name, val);
+	for (i = 0; i < list_num; ++i) {
+		val = (reg_val >> bit_list[i].offset) & bit_list[i].mask;
+		if (val == bit_list[i].expect)
+			continue;
+		pr_info("   #--%s: %u", bit_list[i].name, val);
 	}
 
 	return 0;
 }
 
-static int display_register(char *table_name,
-			      struct reg_info *reg, int num, struct regmap *map)
+static int disp_regs(struct regmap *table_map, char *table_name,
+					struct reg_info *reg_list, int list_num)
 {
 	int i, ret;
 	u32 val;
 
-	if (!table_name || !reg || !map) {
-		pr_info("  ##--Parameters is null\n");
+	if (!table_map || !table_name) {
+		pr_err("  ##--Register table is error\n");
 		return -EINVAL;
 	}
 
-	for (i = 0; i < num; ++i) {
-		ret = regmap_read(map, reg[i].offset, &val);
+	if (!reg_list || !list_num) {
+		pr_err("  ##--Register list is empty\n");
+		return -EINVAL;
+	}
+
+	for (i = 0; i < list_num; ++i) {
+		ret = regmap_read(table_map, reg_list[i].offset, &val);
 		if (ret) {
-			pr_info("  ##--Read %s.%s(0x%08x) error\n",
-					table_name, reg[i].name, reg[i].offset);
+			pr_err("  ##--Read %s.%s(0x%08x) error\n",
+			      table_name, reg_list[i].name, reg_list[i].offset);
 			continue;
 		}
 
-		pr_info("  ##--%s.%s: 0x%08x\n", table_name, reg[i].name, val);
+		pr_info("  ##--%s.%s: 0x%08x\n",
+					     table_name, reg_list[i].name, val);
 
-		ret = display_register_bit(reg[i].name,
-						   reg[i].bit, reg[i].num, val);
+		ret = disp_bits(reg_list[i].bit, reg_list[i].num, val);
 		if (ret)
-			pr_info("  ##--Display %s error\n", reg[i].name);
+			pr_err("  ##--Display %s error\n", reg_list[i].name);
 	}
 
 	return 0;
 }
 
 /**
- * debug_sleep_check - display ap deep sleep condition
+ * ap_sleep_condition_check - Ap sleep condition check
  */
-static int debug_sleep_check(struct device *dev, void *data, int num)
+static int ap_sleep_condition_check(struct device *dev, struct debug_data *dat)
 {
-	struct device_node *node;
 	struct reg_table *table;
 	struct regmap *map;
-	int ret, i;
+	int ret, num, i;
 
-	if (!data || !num) {
-		dev_err(dev, "Check parameter is error.\n");
+	if (!dev || !dat) {
+		pr_err("%s: Parameter is error\n", __func__);
 		return -EINVAL;
 	}
 
-	node = dev->of_node;
-	table = (struct reg_table *)data;
+	table = (struct reg_table *)(dat->data);
+	num = dat->num;
 
 	pr_info(" ###--AP DEEP SLEEP CONDITION CHECK\n");
 
 	for (i = 0; i < num; ++i) {
-		map = syscon_regmap_lookup_by_phandle(node, table[i].dts);
+		map = syscon_regmap_lookup_by_phandle(dev->of_node, table[i].dts);
 		if (IS_ERR(map)) {
 			pr_info("  ##--Get %s regmap error\n", table[i].dts);
 			continue;
 		}
-		ret = display_register(table[i].name,
-					       table[i].reg, table[i].num, map);
+		ret = disp_regs(map, table[i].name, table[i].reg, table[i].num);
 		if (ret)
 			pr_info("  ##--Display %s error\n", table[i].name);
 	}
@@ -113,122 +115,109 @@ static int debug_sleep_check(struct device *dev, void *data, int num)
 }
 
 /**
- * debug_wakeup_source - display wake up source
+ * ap_wakeup_source_get - Get ap wakeup source from intc
  */
-static int debug_wakeup_source(struct device *dev, void *data, int num)
+static int ap_wakeup_source_get(struct device *dev, struct debug_data *dat)
 {
-#if defined(CONFIG_SPRD_SIP_FW)
-	struct sprd_sip_svc_pwr_ops *ops;
-	struct sprd_sip_svc_handle *sip;
-	u32 major, second, thrid;
-	char str[128];
-#else
-	struct device_node *node;
-	struct regmap *map;
-	u32 val;
-#endif
-	struct intc_info *intc;
-	u32 inum, ibit;
+	u32 major, second, third;
 	int ret;
 
-	if (!data || !num) {
-		dev_err(dev, "Wakeup source parameter is error.\n");
+	if (!dev || !dat) {
+		pr_err("%s: Parameter is error\n", __func__);
 		return -EINVAL;
 	}
 
-	intc = (struct intc_info *)data;
-
-#if defined(CONFIG_SPRD_SIP_FW)
-	sip = sprd_sip_svc_get_handle();
-	if (!sip) {
-		dev_err(dev, "Get wakeup sip error.\n");
+	if (!wakeup_source_match) {
+		dev_err(dev, "The wakeup source parse is error\n");
 		return -EINVAL;
 	}
 
-	ops = &sip->pwr_ops;
-
-	ret = ops->get_wakeup_source(&major, &second, &thrid);
+	ret = power_ops->get_wakeup_source(&major, &second, &third);
 	if (ret) {
-		dev_err(dev, "Get wakeup source error.\n");
+		dev_err(dev, "Get wakeup source error\n");
 		return -EINVAL;
 	}
 
-	inum = (major >> 16) & 0xFFFF;
-	ibit = major & 0xFFFF;
-#else
-	node = dev->of_node;
-
-	for (inum = 0; inum < num; ++inum) {
-		map = syscon_regmap_lookup_by_phandle(node, intc[inum].dts);
-		if (IS_ERR(map)) {
-			dev_err(dev, "Get %s regmap error\n", intc[inum].dts);
-			return -EINVAL;
-		}
-
-		ret = regmap_read(map, 0, &val); /* INTC MASK reg offset is 0 */
-		if (ret) {
-			dev_err(dev, "Read %s%d error\n", "AP_INTC", inum);
-			return -EINVAL;
-		}
-
-		if (!val)
-			continue;
-
-		for (ibit = 0U; !(val & 1); ++ibit)
-			val >>= 1;
-
-		break;
+	/**
+	 * The interface is called in the process of entering the suspend, and
+	 * if the entry into the suspend fails, the wake-up source
+	 * cannot be obtained.
+	 */
+	if (!major) {
+		dev_warn(dev, "The system has not yet entered sleep mode\n");
+		return 0;
 	}
-#endif
 
-	if (inum >= num || ibit >= 32) {
-		dev_err(dev, "Intc num or bit error.\n");
+	ret = wakeup_source_match(major, second, third, dat->data, dat->num);
+	if (ret) {
+		dev_err(dev, "Match wakeup source error\n");
 		return -EINVAL;
 	}
-
-	pr_info(" ###--WAKEUP SOURCE\n");
-
-	pr_info("  ##--%s(%d:%d)\n", intc[inum].bits[ibit], inum, ibit);
-
-#if defined(CONFIG_SPRD_SIP_FW)
-	ret = plat_match ? plat_match(str, major, second, thrid) : -EINVAL;
-	if (!ret)
-		pr_info("   #--%s\n", str);
-#endif
-
-	pr_info(" ###--END\n");
 
 	return 0;
 }
 
 /**
- * debug_monitor_scan - display power state in cycle
+ * ap_wakeup_source_print - Print wakeup source informaiton
  */
-static int debug_monitor_scan(struct device *dev, void *data, int num)
+static int ap_wakeup_source_print(struct device *dev, struct debug_data *dat)
 {
-	struct device_node *node;
-	struct reg_table *table;
-	struct regmap *map;
-	int ret, i;
+	char *wakeup_name, *wakeup_device;
+	char **str_list;
 
-	if (!data || !num) {
-		dev_err(dev, "Scan parameter is error.\n");
+	if (!dev || !dat) {
+		pr_err("%s: Parameter is error\n", __func__);
 		return -EINVAL;
 	}
 
-	node = dev->of_node;
-	table = (struct reg_table *)data;
+	str_list = (char **)(dat->data);
+
+	wakeup_name = str_list[0];
+	wakeup_device = str_list[1];
+
+	if (!wakeup_name) {
+		dev_warn(dev, "The wakeup source is empty\n");
+		return 0;
+	}
+
+	pr_info(" ###--WAKEUP SOURCE\n");
+	pr_info("  ##--%s\n", wakeup_name);
+	if (wakeup_device)
+		pr_info("   #--%s\n", wakeup_device);
+	pr_info(" ###--END\n");
+
+	str_list[0] = NULL;
+	str_list[1] = NULL;
+
+	return 0;
+}
+
+/**
+ * subsys_state_monitor - display power state
+ */
+static int subsys_state_monitor(struct device *dev, struct debug_data *dat)
+{
+	struct reg_table *table;
+	struct regmap *map;
+	int ret, num, i;
+
+	if (!dev || !dat) {
+		pr_err("%s: Parameter is error\n", __func__);
+		return -EINVAL;
+	}
+
+	table = (struct reg_table *)(dat->data);
+	num = dat->num;
 
 	pr_info(" ###--POWER DOMAIN STATE\n");
 
 	for (i = 0; i < num; ++i) {
-		map = syscon_regmap_lookup_by_phandle(node, table[i].dts);
+		map = syscon_regmap_lookup_by_phandle(dev->of_node, table[i].dts);
 		if (IS_ERR(map)) {
 			pr_info("  ##--Get %s regmap error\n", table[i].dts);
 			continue;
 		}
-		ret = display_register(table[i].name,
-					       table[i].reg, table[i].num, map);
+		ret = disp_regs(map, table[i].name, table[i].reg, table[i].num);
 		if (ret)
 			pr_info("  ##--Display %s error\n", table[i].name);
 	}
@@ -243,89 +232,111 @@ static int debug_monitor_scan(struct device *dev, void *data, int num)
  */
 static int debug_driver_probe(struct platform_device *pdev)
 {
-	const struct debug_data *data;
-	struct device_node *node;
+	struct sprd_sip_svc_handle *sip;
+	const struct plat_data *pdata;
+	struct debug_log *log;
 	struct device *dev;
 	int ret;
 
+	pr_info("%s: Init debug log driver\n", __func__);
+
 	dev = &pdev->dev;
-
-	dev_info(dev, "Init debug log driver.\n");
-
-	node = dev->of_node;
-	if (!node) {
-		dev_err(dev, "Not found device node!\n");
-		return -ENODEV;
+	if (!dev) {
+		pr_err("%s: Get debug device error\n", __func__);
+		return -EINVAL;
 	}
 
-	dbg_log = devm_kzalloc(dev, sizeof(struct debug_log), GFP_KERNEL);
-	if (!dbg_log) {
-		dev_err(dev, "Debug memory alloc error.\n");
+	sip = sprd_sip_svc_get_handle();
+	if (!sip) {
+		dev_err(dev, "Get wakeup sip error.\n");
+		return -EINVAL;
+	}
+
+	power_ops = &sip->pwr_ops;
+
+	log = devm_kzalloc(dev, sizeof(struct debug_log), GFP_KERNEL);
+	if (!log) {
+		dev_err(dev, "%s: Debug memory alloc error\n", __func__);
 		return -ENOMEM;
 	}
 
-	dbg_log->dev = dev;
+	log->dev = dev;
 
-	data = of_device_get_match_data(dev);
-	if (!data) {
+	pdata = of_device_get_match_data(dev);
+	if (!pdata) {
 		dev_err(dev, "No matched private driver data found\n");
 		return -EINVAL;
 	}
 
-#if defined(CONFIG_SPRD_SIP_FW)
-	plat_match = data->wakeup_source_match;
-#endif
+	if (pdata->sleep_condition_table && pdata->sleep_condition_table_num) {
+		log->sleep_condition_check =
+		      devm_kzalloc(dev, sizeof(struct debug_event), GFP_KERNEL);
+		if (!log->sleep_condition_check) {
+			dev_err(dev, "Check event memory alloc error\n");
+			return -ENOMEM;
+		}
 
-	dbg_log->sleep = devm_kzalloc(dev,
-					sizeof(struct debug_event), GFP_KERNEL);
-	if (!dbg_log->sleep) {
-		dev_err(dev, "Debug sleep memory alloc error.\n");
-		return -ENOMEM;
+		log->sleep_condition_check->data.data =
+					pdata->sleep_condition_table;
+		log->sleep_condition_check->data.num =
+					pdata->sleep_condition_table_num;
+		log->sleep_condition_check->handle =
+					ap_sleep_condition_check;
 	}
 
-	dbg_log->sleep->num = data->check.num;
-	dbg_log->sleep->data = data->check.data;
-	dbg_log->sleep->ph = debug_sleep_check;
+	if (pdata->wakeup_source_info && pdata->wakeup_source_info_num) {
+		log->wakeup_soruce_get =
+		      devm_kzalloc(dev, sizeof(struct debug_event), GFP_KERNEL);
+		if (!log->wakeup_soruce_get) {
+			dev_err(dev, "Get event memory alloc error\n");
+			return -ENOMEM;
+		}
 
-	dbg_log->wakeup = devm_kzalloc(dev,
-					sizeof(struct debug_event), GFP_KERNEL);
-	if (!dbg_log->wakeup) {
-		dev_err(dev, "Debug wakeup memory alloc error.\n");
-		return -ENOMEM;
+		log->wakeup_soruce_get->data.data =
+					pdata->wakeup_source_info;
+		log->wakeup_soruce_get->data.num =
+					pdata->wakeup_source_info_num;
+		log->wakeup_soruce_get->handle =
+					ap_wakeup_source_get;
 	}
 
-	dbg_log->wakeup->num = data->intc.num;
-	dbg_log->wakeup->data = data->intc.data;
-	dbg_log->wakeup->ph = debug_wakeup_source;
+	if (pdata->wakeup_source_info && pdata->wakeup_source_info_num) {
+		log->wakeup_soruce_print =
+		      devm_kzalloc(dev, sizeof(struct debug_event), GFP_KERNEL);
+		if (!log->wakeup_soruce_print) {
+			dev_err(dev, "Print event memory alloc error\n");
+			return -ENOMEM;
+		}
 
-	dbg_log->monitor = devm_kzalloc(dev,
-				      sizeof(struct debug_monitor), GFP_KERNEL);
-	if (!dbg_log->monitor) {
-		dev_err(dev, "The debug memory alloc error.\n");
-		return -ENOMEM;
+		log->wakeup_soruce_print->data.data =
+					pdata->wakeup_source_info;
+		log->wakeup_soruce_print->data.num =
+					pdata->wakeup_source_info_num;
+		log->wakeup_soruce_print->handle =
+					ap_wakeup_source_print;
 	}
 
-	ret = of_property_read_u32(node,
-				 "sprd,scan-enable", &dbg_log->monitor->enable);
+	if (pdata->subsys_state_table && pdata->subsys_state_table_num) {
+		log->subsys_state_monitor =
+		      devm_kzalloc(dev, sizeof(struct debug_event), GFP_KERNEL);
+		if (!log->subsys_state_monitor) {
+			dev_err(dev, "Monitor event memory alloc error\n");
+			return -ENOMEM;
+		}
+
+		log->subsys_state_monitor->data.data =
+					pdata->subsys_state_table;
+		log->subsys_state_monitor->data.num =
+					pdata->subsys_state_table_num;
+		log->subsys_state_monitor->handle =
+					subsys_state_monitor;
+	}
+
+	wakeup_source_match = pdata->wakeup_source_match;
+
+	ret = sprd_debug_log_register(log);
 	if (ret) {
-		dev_err(dev, "Get scan enable attribute error.\n");
-		return -EINVAL;
-	}
-
-	ret = of_property_read_u32(node,
-			     "sprd,scan-interval", &dbg_log->monitor->interval);
-	if (ret) {
-		dev_err(dev, "Get scan interval attribute error.\n");
-		return -EINVAL;
-	}
-
-	dbg_log->monitor->event.num = data->monitor.num;
-	dbg_log->monitor->event.data = data->monitor.data;
-	dbg_log->monitor->event.ph = debug_monitor_scan;
-
-	ret = sprd_debug_log_register(dbg_log);
-	if (ret) {
-		dev_err(dev, "Register debug log error.\n");
+		dev_err(dev, "Register debug log error\n");
 		return -EINVAL;
 	}
 
@@ -347,9 +358,8 @@ const struct debug_data __weak sprd_sharkl5pro_debug_data;
 const struct debug_data __weak sprd_sharkl5_debug_data;
 const struct debug_data __weak sprd_sharkl3_debug_data;
 const struct debug_data __weak sprd_sharkle_debug_data;
-const struct debug_data __weak sprd_pike2_debug_data;
 
-static const struct of_device_id debug_of_match[] = {
+static const struct of_device_id debuglog_of_match[] = {
 	{
 		.compatible = "sprd,debuglog-sharkl6pro",
 		.data = &sprd_sharkl6pro_debug_data,
@@ -375,25 +385,20 @@ static const struct of_device_id debug_of_match[] = {
 		.data = &sprd_sharkle_debug_data,
 	},
 	{
-		.compatible = "sprd,debuglog-pike2",
-		.data = &sprd_pike2_debug_data,
-	},
-	{
 	},
 };
-MODULE_DEVICE_TABLE(of, debug_of_match);
+MODULE_DEVICE_TABLE(of, debuglog_of_match);
 
-static struct platform_driver sprd_debug_driver = {
+static struct platform_driver sprd_debuglog_driver = {
 	.driver = {
 		.name = "sprd-debuglog",
-		.of_match_table = debug_of_match,
+		.of_match_table = debuglog_of_match,
 	},
 	.probe = debug_driver_probe,
 	.remove = debug_driver_remove,
 };
 
-module_platform_driver(sprd_debug_driver);
+module_platform_driver(sprd_debuglog_driver);
 
 MODULE_LICENSE("GPL v2");
-MODULE_AUTHOR("Jamesj Chen<Jamesj.Chen@unisoc.com>");
 MODULE_DESCRIPTION("sprd debug log driver");

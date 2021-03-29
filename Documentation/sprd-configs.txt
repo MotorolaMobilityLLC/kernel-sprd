@@ -14191,23 +14191,23 @@ CONFIG_SPRD_PMIC_SYSCON
 	[missing plat description] sharkl3 does not have this function
 	[function] This function is used to calibrate PMIC 26M.
 CONFIG_SPRD_POWER
-	[arch] all
-	[plat] all
-	[missing plat] none
+	[arch] arm64
+	[plat] qogirn6pro,sharkl5Pro
+	[missing plat] qogirl6,sharkl3,sharkl5
 	[field] make
 	[subsys] soc
 	[must] user
-	[missing plat description] none
-	[function] Power debug function
+	[missing plat description] the platform is not yet suitable
+	[function] sprd lowpower function
 CONFIG_SPRD_POWER_LOG
-	[arch] all
-	[plat] all
-	[missing plat] none
-	[field] make
+	[arch] arm64
+	[plat] qogirn6pro,sharkl5Pro
+	[missing plat] qogirl6,sharkl3,sharkl5
+	[field] make,code
 	[subsys] soc
 	[must] user
-	[missing plat description] none
-	[function] Debug log function in power debug
+	[missing plat description] the platform is not yet suitable
+	[function] sprd lowpower log function
 CONFIG_SPRD_POWER_LOG_SHARKL5PRO
 	[arch] arm64
 	[plat] sharkl5Pro
@@ -14215,17 +14215,17 @@ CONFIG_SPRD_POWER_LOG_SHARKL5PRO
 	[field] make
 	[subsys] soc
 	[must] user
-	[missing plat description] missing plat is not used this config
-	[function] support for sharkl5pro debug log
+	[missing plat description] for sharkl5pro only
+	[function] sharkl5pro lowpower log function
 CONFIG_SPRD_POWER_LOG_SHARKL6PRO
 	[arch] arm64
 	[plat] qogirn6pro
 	[missing plat] qogirl6,sharkl3,sharkl5,sharkl5Pro
 	[field] make
-	[subsys] power
+	[subsys] soc
 	[must] user
-	[missing plat description] Not used config in other projects
-	[function] Support for qogirn6pro power debug log
+	[missing plat description] for sharkl6pro only
+	[function] sharkl6pro lowpower log function
 CONFIG_SPRD_PTM
 	[arch] all
 	[plat] qogirl6,qogirn6pro,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32

@@ -86,8 +86,8 @@ source "drivers/soc/sprd/pub/Kconfig"
 menuconfig SPRD_POWER
 	tristate "Spreadtrum debug power driver"
 	depends on PM_SLEEP && ARCH_SPRD
-	default y
+	default n
 	help
-	Select this to enable debug power driver for sprd soc.
+	  Select this to enable debug power driver for sprd soc.
 
 source "drivers/soc/sprd/power/Kconfig"
