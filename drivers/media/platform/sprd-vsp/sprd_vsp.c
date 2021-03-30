@@ -689,6 +689,7 @@ static int vsp_probe(struct platform_device *pdev)
 	vsp_hw_dev.clk_vsp_ahb_mmu_eb = NULL;
 	vsp_hw_dev.vsp_fp = NULL;
 	vsp_hw_dev.light_sleep_en = false;
+	INIT_LIST_HEAD(&vsp_hw_dev.map_list);
 
 	ret = vsp_get_mm_clk(&vsp_hw_dev);
 	if (ret) {

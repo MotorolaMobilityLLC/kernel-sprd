@@ -11,6 +11,7 @@
 #include <linux/semaphore.h>
 #include <uapi/video/sprd_vsp.h>
 #include <linux/dma-buf.h>
+#include <linux/mutex.h>
 extern unsigned int codec_instance_count[VSP_CODEC_INSTANCE_COUNT_MAX];
 #define VSP_MINOR MISC_DYNAMIC_MINOR
 #define VSP_AQUIRE_TIMEOUT_MS	500
@@ -83,6 +84,9 @@ struct vsp_dev_t {
 	bool light_sleep_en;
 	bool iommu_exist_flag;
 	bool vsp_qos_exist_flag;
+
+	struct mutex map_lock;
+	struct list_head map_list;
 };
 
 struct clock_name_map_t {
