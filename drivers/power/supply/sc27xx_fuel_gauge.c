@@ -593,6 +593,8 @@ static int sc27xx_fgu_get_boot_capacity(struct sc27xx_fgu_data *data, int *cap)
 			if (ret < 0)
 				dev_err(data->dev, "Failed to initialize fgu user area status1 register\n");
 		}
+		dev_info(data->dev, "init: boot_cap = %d, normal_cap = %d\n", data->boot_cap, *cap);
+
 		return sc27xx_fgu_save_boot_mode(data, SC27XX_FGU_NORMAIL_POWERTON);
 	}
 
@@ -735,8 +737,14 @@ static int sc27xx_fgu_get_capacity(struct sc27xx_fgu_data *data, int *cap,
 	else if (data->normal_temperature_cap > 1000)
 		data->normal_temperature_cap = 1000;
 
+	dev_info(data->dev, "init_cap = %d, init_clbcnt = %d, cur_clbcnt = %d, normal_cap = %d, "
+		 "delta_cap = %d, Tbat  = %d\n",
+		 data->init_cap, data->init_clbcnt, cur_clbcnt,
+		 data->normal_temperature_cap, delta_cap, data->bat_temp);
+
 	if (*cap < 0) {
 		*cap = 0;
+		dev_err(data->dev, "ERORR: normal_cap is < 0 !!!\n");
 		sc27xx_fgu_adjust_cap(data, 0);
 		return 0;
 	}
