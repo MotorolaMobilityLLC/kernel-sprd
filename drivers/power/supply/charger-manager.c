@@ -83,6 +83,8 @@
 
 #define CM_IR_COMPENSATION_TIME		3
 
+#define CM_CP_WORK_TIME_MS			500
+
 #define CM_TRACK_FILE_PATH "/mnt/vendor/battery/calibration_data/.battery_file"
 
 static const char * const default_event_names[] = {
@@ -3152,7 +3154,7 @@ static void cm_cp_work(struct work_struct *work)
 		cm_check_cp_fault_status(cm);
 
 	if (cm->desc->cp.cp_running && !cm_cp_state_machine(cm))
-		schedule_delayed_work(&cm->cp_work, 1 * HZ);
+		schedule_delayed_work(&cm->cp_work, msecs_to_jiffies(CM_CP_WORK_TIME_MS));
 }
 
 static void cm_check_cp_start_condition(struct charger_manager *cm, bool enable)
