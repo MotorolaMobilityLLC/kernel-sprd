@@ -141,6 +141,7 @@
 #define SC27XX_PD_RX_FIFO_OVERFLOW_FLAG	BIT(10)
 
 /* Bits definitions for SC27XX_PD_STS1 register */
+#define SC27XX_PD_RX_DATA_NUM_MASK	GENMASK(8, 0)
 #define SC27XX_PD_RX_EMPTY		BIT(13)
 
 /* Bits definitions for SC27XX_INT_CLR register */
@@ -272,6 +273,7 @@ struct sc27xx_pd {
 	struct notifier_block extcon_nb;
 	struct tcpm_port *tcpm_port;
 	struct delayed_work typec_detect_work;
+	struct delayed_work  read_msg_work;
 	struct regmap *regmap;
 	struct tcpc_dev tcpc;
 	struct mutex lock;
@@ -297,6 +299,7 @@ struct sc27xx_pd {
 	u32 delta_cal;
 	u32 ref_cal;
 	int msg_flag;
+	int need_retry;
 };
 
 static inline struct sc27xx_pd *tcpc_to_sc27xx_pd(struct tcpc_dev *tcpc)
@@ -628,17 +631,32 @@ static int sc27xx_pd_read_message(struct sc27xx_pd *pd, struct pd_message *msg)
 {
 	int ret, i;
 	u32 data[PD_MAX_PAYLOAD * 2] = {0};
-	u32 data_obj_num, spec, header = 0;
+	u32 data_obj_num, spec, reg_val, header = 0;
 
 	ret = regmap_read(pd->regmap, pd->base + SC27XX_PD_RX_BUF,
 			  &header);
 	if (ret < 0)
 		return ret;
 
+	ret = regmap_read(pd->regmap, pd->base + SC27XX_PD_STS1, &reg_val);
+	if (ret < 0)
+		return ret;
+
+	if (pd->need_retry) {
+		pd->need_retry = false;
+		cancel_delayed_work(&pd->read_msg_work);
+	}
+	reg_val &= SC27XX_PD_RX_DATA_NUM_MASK;
+
 	header &= SC27XX_TX_RX_BUF_MASK;
 	msg->header = cpu_to_le16(header);
 	data_obj_num = pd_header_cnt_le(msg->header);
 	spec = pd_header_rev_le(msg->header);
+
+	if ((data_obj_num * 2 + 1) < reg_val) {
+		pd->need_retry = true;
+		schedule_delayed_work(&pd->read_msg_work, msecs_to_jiffies(5));
+	}
 
 	if (spec == 1) {
 		ret = regmap_update_bits(pd->regmap, pd->base + SC27XX_PD_CFG1,
@@ -1285,6 +1303,26 @@ static int sc27xx_pd_cal(struct sc27xx_pd *pd)
 	return 0;
 }
 
+static void sc27xx_pd_read_msg_work(struct work_struct *work)
+{
+	struct delayed_work *dwork = to_delayed_work(work);
+	struct sc27xx_pd *pd = container_of(dwork, struct sc27xx_pd,
+					   read_msg_work);
+	struct pd_message pd_msg;
+
+	mutex_lock(&pd->lock);
+
+	if (!pd->need_retry)
+		goto out;
+
+	pd->need_retry = false;
+
+	sc27xx_pd_read_message(pd, &pd_msg);
+
+out:
+	mutex_unlock(&pd->lock);
+}
+
 static void sc27xx_pd_detect_typec_work(struct work_struct *work)
 {
 	struct delayed_work *dwork = to_delayed_work(work);
@@ -1403,6 +1441,7 @@ static int sc27xx_pd_probe(struct platform_device *pdev)
 	}
 
 	INIT_DELAYED_WORK(&pd->typec_detect_work, sc27xx_pd_detect_typec_work);
+	INIT_DELAYED_WORK(&pd->read_msg_work, sc27xx_pd_read_msg_work);
 	INIT_WORK(&pd->pd_work, sc27xx_pd_work);
 
 	pd->tcpm_port = tcpm_register_port(pd->dev, &pd->tcpc);
