@@ -29,7 +29,7 @@
 
 #include "sfp.h"
 
-int sysctl_net_sfp_enable  __read_mostly;
+int sysctl_net_sfp_enable  __read_mostly = 1;
 /*
  * sysctl_net_sfp_tether_scheme default value is 0
  * roc1+orca only supports usb tether, so it should use IPA.
