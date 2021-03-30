@@ -219,6 +219,11 @@
 					};
 				};
 			};
+
+			extcon_gpio: extcon-gpio {
+				compatible = "linux,extcon-usb-gpio";
+				vbus-gpio = <&pmic_eic 0 0>;
+			};
 		};
 	};
 };
@@ -413,9 +418,16 @@
 	};
 };
 
+&hsphy{
+	vdd-supply = <&vddusb33>;
+	extcon = <&extcon_gpio>;
+	status = "okay";
+};
+
 &usb {
-	extcon = <&extcon_gpio>, <&pmic_typec>;
-	vbus-supply = <&vddvbus>;
+	extcon = <&extcon_gpio>;
+	/*vbus-supply = <&vddvbus>;*/
+	status = "okay";
 };
 
 &pmic_fgu {
