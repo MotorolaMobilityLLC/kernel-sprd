@@ -35,10 +35,10 @@ def check_consistency(android_version):
 			elif d_defconfig[soc][config] == "n":
 				if ( config in d_gki_defconfig and d_gki_defconfig[config] != "n" ) and ( config in d_gki_diff_config and d_gki_diff_config[config] != "n" ):
 					if check_gki_choice_config(config, "n"):
-						print("\033[1;31;40m ERROR: " + config + " is not set, but is set y or m in gki_defconfig + gki_diffconfig.\033[0m")
+						print("\033[1;31;40m ERROR: " + config + " is not set, but is set y or m in the .config compiled by (gki_defconfig + gki_diffconfig).\033[0m")
 						failure_flag = 1
 					else:
-						print("WARNING: " + config + " is not set, and is set y or m in gki_defconfig + gki_diffconfig, but exists in sprd-gki-choice-config.")
+						print("WARNING: " + config + " is not set, and is set y or m in the .config compiled by (gki_defconfig + gki_diffconfig), but exists in sprd-gki-choice-config.")
 		print("======================================" + soc + "======================================")
 
 def check_gki_choice_config(config, status):
