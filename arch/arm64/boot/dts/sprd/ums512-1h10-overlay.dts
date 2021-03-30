@@ -7,6 +7,9 @@
 #include <dt-bindings/mfd/sprd,sc2730-regs.h>
 #include <dt-bindings/mfd/sprd,sc2730-mask.h>
 
+#include "lcd/lcd_td4310_truly_mipi_fhd.dtsi"
+#include "lcd/lcd_ssd2092_truly_mipi_fhd.dtsi"
+
 / {
 	model = "Spreadtrum UMS512-1H10 Board";
 
@@ -201,6 +204,10 @@
 		reg = <0x0 0xff562000 0x0 0x00a1e000>;
 	};
 
+};
+
+&lcd_td4310_truly_mipi_fhd {
+	sprd,phy-bit-clock = <1104000>;  /* kbps */
 };
 
 &adi_bus {

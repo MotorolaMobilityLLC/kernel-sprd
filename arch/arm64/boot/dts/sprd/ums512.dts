@@ -10,8 +10,6 @@
 #include <dt-bindings/gpio/gpio.h>
 #include "ums512.dtsi"
 #include "sc2730.dtsi"
-#include "lcd/lcd_td4310_truly_mipi_fhd.dtsi"
-#include "lcd/lcd_ssd2092_truly_mipi_fhd.dtsi"
 #include "sprd-sound-fe-be.dtsi"
 #include "ums512-mach.dtsi"
 #include "ums512-t610dvfs.dtsi"
@@ -481,10 +479,6 @@
 
 &iommu_jpg {
 	status = "okay";
-};
-
-&lcd_td4310_truly_mipi_fhd {
-	sprd,phy-bit-clock = <1104000>;  /* kbps */
 };
 
 &vddldo0 {

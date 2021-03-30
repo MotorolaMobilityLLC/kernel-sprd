@@ -2,7 +2,7 @@
 /*
  * Unisoc NT35695 Truly LCD config DTS file
  *
- * Copyright (C) 2019, Unisoc Inc.
+ * Copyright (C) 2021, Unisoc Inc.
  */
 
 / { lcds {
