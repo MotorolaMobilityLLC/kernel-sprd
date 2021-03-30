@@ -778,7 +778,7 @@ static int sc27xx_fgu_get_vbat_ocv(struct sc27xx_fgu_data *data, int *val)
 	if (data->resist_table_len > 0) {
 		resistance = power_supply_temp2resist_simple(data->resist_table,
 							     data->resist_table_len,
-							     data->bat_temp);
+							     data->bat_temp / 10);
 		resistance = data->internal_resist * resistance / 100;
 	}
 
