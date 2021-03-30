@@ -492,6 +492,7 @@ int mmc_cmd_queue_thread(void *data)
 		}
 		if (done_mrq) {
 			if (done_mrq->data->error || done_mrq->cmd->error) {
+				emmc_resetting_when_cmdq = 1;
 				mmc_wait_tran(host);
 				mmc_discard_cmdq(host);
 				mmc_wait_tran(host);
