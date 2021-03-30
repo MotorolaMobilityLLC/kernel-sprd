@@ -740,6 +740,7 @@
 	digital-codec = <&sprd_audio_codec_dig>;
 	set-offset = <0x1000>;
 	clr-offset = <0x2000>;
+	lrdat-sel = <0x1>;
 };
 
 &sdio0 {
