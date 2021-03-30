@@ -16,6 +16,13 @@ dtbo-$(CONFIG_ARCH_SPRD) += ums512-1h10-overlay.dtbo
 ums512-1h10-overlay.dtbo-base := ums512.dtb
 endif
 
+ifeq ($(BSP_BUILD_FAMILY),sharkl5)
+dtbo-$(CONFIG_ARCH_SPRD) += \
+	ums312-2h10-overlay.dtbo
+
+ums312-2h10-overlay.dtbo-base := ums312.dtb
+endif
+
 ifeq ($(BSP_BUILD_FAMILY),qogirl6)
 dtbo-$(CONFIG_ARCH_SPRD) += ums9230-haps-backdoor-overlay.dtbo \
 			ums9230-haps-flash-overlay.dtbo
@@ -40,12 +47,14 @@ dtb-$(CONFIG_ARCH_SPRD) += \
 dtb-$(CONFIG_ARCH_SPRD) += \
 	sp9863a.dtb \
 	ums512.dtb \
+	ums312.dtb \
 	ums9230-haps.dtb \
 	ums9520-haps.dtb
 
 dtbo-$(CONFIG_ARCH_SPRD) += \
 	sp9863a-1h10-overlay.dtbo \
 	ums512-1h10-overlay.dtbo \
+	ums312-2h10-overlay.dtbo \
 	ums9230-haps-backdoor-overlay.dtbo \
 	ums9230-haps-flash-overlay.dtbo \
 	ums9520-haps-backdoor-overlay.dtbo
