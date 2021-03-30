@@ -28,7 +28,7 @@
 #define DRIVER_NAME "sprd-sdhcr11"
 
 #ifdef CONFIG_EMMC_SOFTWARE_CQ_SUPPORT
-#define CMD_TIMEOUT             (HZ/10 * 5)     /* 100ms x5 */
+#define CMD_TIMEOUT             (HZ * 2)     /* 100ms x5 */
 bool use_cmd_intr;
 static irqreturn_t sprd_sdhc_irq(int irq, void *param);
 static int irq_err_handle(struct sprd_sdhc_host *host, u32 intmask);
