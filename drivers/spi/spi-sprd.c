@@ -1289,12 +1289,12 @@ static int __maybe_unused sprd_spi_suspend(struct device *dev)
 	struct spi_controller *sctlr = dev_get_drvdata(dev);
 	int ret;
 
+	if (pm_runtime_status_suspended(dev))
+		return 0;
+
 	ret = spi_master_suspend(sctlr);
 	if (ret)
 		return ret;
-
-	if (pm_runtime_status_suspended(dev))
-		return 0;
 
 	return sprd_spi_runtime_suspend(dev);
 }
