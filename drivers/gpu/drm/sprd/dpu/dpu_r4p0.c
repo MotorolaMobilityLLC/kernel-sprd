@@ -78,6 +78,7 @@
 #define REG_DPU_INT_EN		0x1E0
 #define REG_DPU_INT_CLR		0x1E4
 #define REG_DPU_INT_STS		0x1E8
+#define REG_DPU_INT_RAW		0x1EC
 
 /* DPI control registers */
 #define REG_DPI_CTRL		0x1F0
@@ -336,6 +337,18 @@ static int dpu_cabc_trigger(struct dpu_context *ctx);
 static void dpu_version(struct dpu_context *ctx)
 {
 	ctx->version = "dpu-r4p0";
+}
+
+static bool dpu_check_raw_int(struct dpu_context *ctx, u32 mask)
+{
+	u32 reg_val;
+
+	reg_val = DPU_REG_RD(ctx->base + REG_DPU_INT_RAW);
+	if (reg_val & mask)
+		return true;
+
+	pr_err("dpu_int_raw:0x%x\n", reg_val);
+	return false;
 }
 
 static int dpu_parse_dt(struct dpu_context *ctx,
@@ -2026,4 +2039,5 @@ const struct dpu_core_ops dpu_r4p0_core_ops = {
 	.enhance_set = dpu_enhance_set,
 	.enhance_get = dpu_enhance_get,
 	.write_back = dpu_wb_trigger,
+	.check_raw_int = dpu_check_raw_int,
 };

@@ -145,6 +145,18 @@ static void dpu_version(struct dpu_context *ctx)
 	ctx->version = "dpu-lite-r1p0";
 }
 
+static bool dpu_check_raw_int(struct dpu_context *ctx, u32 mask)
+{
+	u32 reg_val;
+
+	reg_val = DPU_REG_RD(ctx->base + REG_DPU_INT_RAW);
+	if (reg_val & mask)
+		return true;
+
+	pr_err("dpu_int_raw:0x%x\n", reg_val);
+	return false;
+}
+
 static int dpu_parse_dt(struct dpu_context *ctx,
 				struct device_node *np)
 {
@@ -680,4 +692,5 @@ const struct dpu_core_ops dpu_lite_r1p0_core_ops = {
 	.bg_color = dpu_bgcolor,
 	.enable_vsync = enable_vsync,
 	.disable_vsync = disable_vsync,
+	.check_raw_int = dpu_check_raw_int,
 };

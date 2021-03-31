@@ -346,6 +346,15 @@ static irqreturn_t sprd_dpu_isr(int irq, void *data)
 
 	int_mask = dpu->core->isr(ctx);
 
+	if (int_mask & BIT_DPU_INT_TE) {
+		if (ctx->te_check_en) {
+			ctx->evt_te = true;
+			wake_up_interruptible_all(&ctx->te_wq);
+		}
+		if (ctx->if_type == SPRD_DPU_IF_EDPI)
+			drm_crtc_handle_vblank(&dpu->crtc->base);
+	}
+
 	if (int_mask & BIT_DPU_INT_ERR)
 		DRM_WARN("Warning: dpu underflow!\n");
 
@@ -500,6 +509,8 @@ static int sprd_dpu_context_init(struct sprd_dpu *dpu,
 	init_waitqueue_head(&ctx->wait_queue);
 
 	ctx->panel_ready = true;
+
+	init_waitqueue_head(&dpu->ctx.te_wq);
 
 	return 0;
 }

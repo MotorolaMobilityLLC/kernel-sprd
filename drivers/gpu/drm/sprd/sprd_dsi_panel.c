@@ -254,6 +254,56 @@ static int sprd_panel_esd_check(struct sprd_panel *panel)
 	return 0;
 }
 
+static int sprd_panel_te_check(struct sprd_panel *panel)
+{
+	struct sprd_dpu *dpu;
+	struct sprd_crtc *crtc;
+	int ret;
+	bool irq_occur = false;
+
+	if (!panel->base.connector ||
+	    !panel->base.connector->encoder ||
+	    !panel->base.connector->encoder->crtc) {
+		return 0;
+	}
+
+	crtc = to_sprd_crtc(panel->base.connector->encoder->crtc);
+	dpu = (struct sprd_dpu *)crtc->priv;
+
+	/* DPU TE irq maybe enabled in kernel */
+	if (!dpu->ctx.enabled)
+		return 0;
+
+	dpu->ctx.te_check_en = true;
+
+	/* wait for TE interrupt */
+	ret = wait_event_interruptible_timeout(dpu->ctx.te_wq,
+		dpu->ctx.evt_te, msecs_to_jiffies(500));
+	if (!ret) {
+		/* double check TE interrupt through dpu_int_raw register */
+		if (dpu->core && dpu->core->check_raw_int) {
+			down(&dpu->ctx.lock);
+			if (dpu->ctx.enabled)
+				irq_occur = dpu->core->check_raw_int(&dpu->ctx,
+					BIT_DPU_INT_TE);
+			up(&dpu->ctx.lock);
+			if (!irq_occur) {
+				DRM_ERROR("TE esd timeout.\n");
+				ret = -ETIMEDOUT;
+			} else
+				DRM_WARN("TE occur, but isr schedule delay\n");
+		} else {
+			DRM_ERROR("TE esd timeout.\n");
+			ret = -ETIMEDOUT;
+		}
+	}
+
+	dpu->ctx.te_check_en = false;
+	dpu->ctx.evt_te = false;
+
+	return ret < 0 ? ret : 0;
+}
+
 static void sprd_panel_esd_work_func(struct work_struct *work)
 {
 	struct sprd_panel *panel = container_of(work, struct sprd_panel,
@@ -263,6 +313,8 @@ static void sprd_panel_esd_work_func(struct work_struct *work)
 
 	if (info->esd_check_mode == ESD_MODE_REG_CHECK)
 		ret = sprd_panel_esd_check(panel);
+	else if (info->esd_check_mode == ESD_MODE_TE_CHECK)
+		ret = sprd_panel_te_check(panel);
 	else {
 		DRM_ERROR("unknown esd check mode:%d\n", info->esd_check_mode);
 		return;

@@ -66,6 +66,7 @@
 #define REG_DPU_INT_EN		0x1E0
 #define REG_DPU_INT_CLR		0x1E4
 #define REG_DPU_INT_STS		0x1E8
+#define REG_DPU_INT_RAW		0x1EC
 
 /* DPI control registers */
 #define REG_DPI_CTRL		0x1F0
@@ -139,6 +140,18 @@ static void dpu_layer(struct dpu_context *ctx, struct dpu_layer *hwlayer);
 static void dpu_version(struct dpu_context *ctx)
 {
 	ctx->version = "dpu-r2p0";
+}
+
+static bool dpu_check_raw_int(struct dpu_context *ctx, u32 mask)
+{
+	u32 reg_val;
+
+	reg_val = DPU_REG_RD(ctx->base + REG_DPU_INT_RAW);
+	if (reg_val & mask)
+		return true;
+
+	pr_err("dpu_int_raw:0x%x\n", reg_val);
+	return false;
 }
 
 static u32 check_mmu_isr(struct dpu_context *ctx, u32 reg_val)
@@ -839,4 +852,5 @@ const struct dpu_core_ops dpu_r2p0_core_ops = {
 	.bg_color = dpu_bgcolor,
 	.enable_vsync = enable_vsync,
 	.disable_vsync = disable_vsync,
+	.check_raw_int = dpu_check_raw_int,
 };
