@@ -66,8 +66,8 @@
 			reg = <0x0 0x90000000 0x0 0x4000000>;
 		};
 
-		audio_reserved: audio-mem@94000000 {
-			reg = <0x0 0x94000000 0x0 0x00400000>;
+		audio_reserved: audio-mem@94100000 {
+			reg = <0x0 0x94100000 0x0 0x00300000>;
 		};
 
 		sml_reserved: sml-mem@b0000000 {
