@@ -100,34 +100,26 @@ struct sprd_eic {
 
 struct sprd_eic_variant_data {
 	enum sprd_eic_type type;
-	u32 num_eics;
 };
 
-#define SPRD_EIC_VAR_DATA(soc_name, num)				\
+#define SPRD_EIC_VAR_DATA(soc_name)				\
 static const struct sprd_eic_variant_data soc_name##_eic_dbnc_data = {	\
 	.type = SPRD_EIC_DEBOUNCE,					\
-	.num_eics = (num),						\
 };									\
 									\
 static const struct sprd_eic_variant_data soc_name##_eic_latch_data = {	\
 	.type = SPRD_EIC_LATCH,						\
-	.num_eics = (num),						\
 };									\
 									\
 static const struct sprd_eic_variant_data soc_name##_eic_async_data = {	\
 	.type = SPRD_EIC_ASYNC,						\
-	.num_eics = (num),						\
 };									\
 									\
 static const struct sprd_eic_variant_data soc_name##_eic_sync_data = {	\
 	.type = SPRD_EIC_SYNC,						\
-	.num_eics = (num),						\
 }
 
-SPRD_EIC_VAR_DATA(sc9860, SPRD_EIC_PER_BANK_NR * 2);
-SPRD_EIC_VAR_DATA(sharkl3, SPRD_EIC_PER_BANK_NR * 2);
-SPRD_EIC_VAR_DATA(qogirl6, SPRD_EIC_PER_BANK_NR * 4);
-SPRD_EIC_VAR_DATA(sharkl5pro, SPRD_EIC_PER_BANK_NR * 4);
+SPRD_EIC_VAR_DATA(sc9860);
 
 static const char *sprd_eic_label_name[SPRD_EIC_MAX] = {
 	"eic-debounce", "eic-latch", "eic-async",
@@ -578,6 +570,7 @@ static int sprd_eic_probe(struct platform_device *pdev)
 	struct sprd_eic *sprd_eic;
 	struct resource *res;
 	int ret, i;
+	u16 num_banks = 0;
 
 	pdata = of_device_get_match_data(&pdev->dev);
 	if (!pdata) {
@@ -608,12 +601,13 @@ static int sprd_eic_probe(struct platform_device *pdev)
 			break;
 
 		sprd_eic->base[i] = devm_ioremap_resource(&pdev->dev, res);
+		num_banks++;
 		if (IS_ERR(sprd_eic->base[i]))
 			return PTR_ERR(sprd_eic->base[i]);
 	}
 
 	sprd_eic->chip.label = sprd_eic_label_name[sprd_eic->type];
-	sprd_eic->chip.ngpio = pdata->num_eics;
+	sprd_eic->chip.ngpio = num_banks * SPRD_EIC_PER_BANK_NR;
 	sprd_eic->chip.base = -1;
 	sprd_eic->chip.parent = &pdev->dev;
 	sprd_eic->chip.of_node = pdev->dev.of_node;
@@ -678,54 +672,6 @@ static const struct of_device_id sprd_eic_of_match[] = {
 	{
 		.compatible = "sprd,sc9860-eic-sync",
 		.data = &sc9860_eic_sync_data,
-	},
-	{
-		.compatible = "sprd,sharkl3-eic-debounce",
-		.data = &sharkl3_eic_dbnc_data,
-	},
-	{
-		.compatible = "sprd,sharkl3-eic-latch",
-		.data = &sharkl3_eic_latch_data,
-	},
-	{
-		.compatible = "sprd,sharkl3-eic-async",
-		.data = &sharkl3_eic_async_data,
-	},
-	{
-		.compatible = "sprd,sharkl3-eic-sync",
-		.data = &sharkl3_eic_sync_data,
-	},
-	{
-		.compatible = "sprd,qogirl6-eic-debounce",
-		.data = &qogirl6_eic_dbnc_data,
-	},
-	{
-		.compatible = "sprd,qogirl6-eic-latch",
-		.data = &qogirl6_eic_latch_data,
-	},
-	{
-		.compatible = "sprd,qogirl6-eic-async",
-		.data = &qogirl6_eic_async_data,
-	},
-	{
-		.compatible = "sprd,qogirl6-eic-sync",
-		.data = &qogirl6_eic_sync_data,
-	},
-	{
-		.compatible = "sprd,sharkl5pro-eic-debounce",
-		.data = &sharkl5pro_eic_dbnc_data,
-	},
-	{
-		.compatible = "sprd,sharkl5pro-eic-latch",
-		.data = &sharkl5pro_eic_latch_data,
-	},
-	{
-		.compatible = "sprd,sharkl5pro-eic-async",
-		.data = &sharkl5pro_eic_async_data,
-	},
-	{
-		.compatible = "sprd,sharkl5pro-eic-sync",
-		.data = &sharkl5pro_eic_sync_data,
 	},
 	{
 		/* end of list */
