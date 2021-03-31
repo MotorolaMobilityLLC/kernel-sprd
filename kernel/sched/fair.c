@@ -6103,8 +6103,19 @@ static unsigned long cpu_util_without(int cpu, struct task_struct *p)
 	 * utilization from cpu utilization. Instead just use
 	 * cpu_util for this case.
 	 */
-	if (likely(!walt_disabled && sysctl_sched_use_walt_cpu_util))
-		return cpu_util(cpu);
+	if (likely(!walt_disabled && sysctl_sched_use_walt_cpu_util)) {
+		if (likely(p->state == TASK_WAKING))
+			return cpu_util(cpu);
+
+		/* Task has no contribution or is new */
+		if (cpu != task_cpu(p) ||
+		    !READ_ONCE(p->se.avg.last_update_time))
+			return cpu_util(cpu);
+
+		util = max_t(long, cpu_util(cpu) - task_util(p), 0);
+
+		return min_t(unsigned long, util, capacity_orig_of(cpu));
+	}
 #endif
 
 	/* Task has no contribution or is new */
