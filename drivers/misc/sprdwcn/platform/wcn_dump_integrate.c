@@ -15,6 +15,7 @@
 #include "wcn_log.h"
 #include "wcn_misc.h"
 #include "mdbg_type.h"
+#include "loopcheck.h"
 #include "../include/wcn_dbg.h"
 
 /* units is ms, 2500ms */
@@ -444,7 +445,8 @@ static int btwf_dump_mem(void)
 			return 0;
 		}
 	}
-	mdbg_hold_cpu();
+	if (loopcheck_status() & (0x1<<3))
+		mdbg_hold_cpu();
 	msleep(100);
 	mdbg_ring_reset(mdev_ring);
 	mdbg_atcmd_clean();
@@ -454,6 +456,10 @@ static int btwf_dump_mem(void)
 
 	if (mdbg_dump_share_memory(s_wcn_dump_regs)) {
 		WCN_INFO("Dump ringbuf is full!\n");
+		return 0;
+	}
+	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
+		WCN_INFO("QOGIRL6 not dump!\n");
 		return 0;
 	}
 

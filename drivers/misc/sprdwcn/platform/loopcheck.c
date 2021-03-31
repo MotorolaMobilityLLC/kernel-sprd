@@ -163,6 +163,11 @@ void complete_kernel_loopcheck(void)
 	complete(&loopcheck.completion);
 }
 
+int loopcheck_status(void)
+{
+	return loopcheck.status;
+}
+
 int loopcheck_init(void)
 {
 	loopcheck.status = 0;
