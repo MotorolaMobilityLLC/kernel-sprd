@@ -199,6 +199,8 @@ static unsigned int g_send_cnt[MBOX_MAX_CORE_CNT];
 static struct mbox_chn_tag mbox_chns[MBOX_MAX_CORE_CNT];
 static struct mbox_cfg_tag mbox_cfg;
 
+static spinlock_t mbox_rxlock;
+
 extern int sipc_get_wakeup_flag(void);
 extern void sipc_clear_wakeup_flag(void);
 
@@ -278,6 +280,8 @@ static irqreturn_t mbox_recv_irqhandle(int irq_num, void *dev)
 	pr_debug("mbox:%s,fifo_sts_1=0x%08x,  irq_status =0x%08x\n",
 		 __func__, fifo_sts_1, irq_status);
 
+	spin_lock(&mbox_rxlock);
+
 	fifo_len = mbox_read_all_fifo_msg();
 
 	/* clear irq mask & irq after read all msg, if clear before read,
@@ -295,6 +299,7 @@ static irqreturn_t mbox_recv_irqhandle(int irq_num, void *dev)
 		target_id = mbox_fifo[i].core_id;
 
 		if (target_id >= mbox_cfg.core_cnt) {
+			spin_unlock(&mbox_rxlock);
 			pr_err("mbox:ERR on line %d, target_id >= mbox_cfg.core_cnt\n",
 			       __LINE__);
 			return IRQ_NONE;
@@ -336,6 +341,8 @@ static irqreturn_t mbox_recv_irqhandle(int irq_num, void *dev)
 
 	max_total_irq_cnt++;
 
+	spin_unlock(&mbox_rxlock);
+
 	return IRQ_HANDLED;
 }
 
@@ -360,6 +367,8 @@ static irqreturn_t mbox_sensor_recv_irqhandle(int irq_num, void *dev)
 	pr_debug("mbox:%s,fifo_sts_1=0x%08x,  irq_status =0x%08x\n",
 		 __func__, fifo_sts_1, irq_status);
 
+	spin_lock(&mbox_rxlock);
+
 	fifo_len = mbox_sensor_read_all_fifo_msg();
 
 	/* clear irq mask & irq after read all msg, if clear before read,
@@ -372,6 +381,7 @@ static irqreturn_t mbox_sensor_recv_irqhandle(int irq_num, void *dev)
 		target_id = mbox_fifo[i].core_id;
 
 		if (target_id >= mbox_cfg.core_cnt) {
+			spin_unlock(&mbox_rxlock);
 			pr_err("mbox:ERR on line %d, target_id >= mbox_cfg.core_cnt\n",
 			       __LINE__);
 			return IRQ_NONE;
@@ -409,6 +419,8 @@ static irqreturn_t mbox_sensor_recv_irqhandle(int irq_num, void *dev)
 		max_total_irq_proc_time = jiff_total;
 
 	max_total_irq_cnt++;
+
+	spin_unlock(&mbox_rxlock);
 
 	return IRQ_HANDLED;
 }
@@ -1170,6 +1182,9 @@ static int mbox_cfg_init(struct mbox_dts_cfg_tag *mbox_dts_cfg, u8 *mbox_inited)
 	/* set outbox irq mask */
 	writel_relaxed(mbox_cfg.outbox_irq_mask,
 		     (void __iomem *)(sprd_outbox_base + MBOX_IRQ_MSK));
+
+	/* mbox recv spinlock for protect interrupt context resource*/
+	spin_lock_init(&mbox_rxlock);
 
 	/* set outbox irq mask */
 	if ((mbox_cfg.outbox_sensor_irq) && (mbox_cfg.sensor_core <= MBOX_MAX_CORE_CNT)) {
