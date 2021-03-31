@@ -799,20 +799,25 @@ static void shub_synctimestamp(struct shub_data *sensor)
 {
 	unsigned long irq_flags;
 	struct cnter_to_boottime convert_para;
+	ktime_t kt = 0;
 
 	if (sensor->mcu_mode != SHUB_NORMAL)
 		return;
 
 	get_convert_para(&convert_para);
-	if (sensorhub_version == 20181201) {
-		local_irq_save(irq_flags);
-		preempt_disable();
-		convert_para.last_boottime = ktime_to_ms(ktime_get_boottime());
-		convert_para.last_systimer_counter = sprd_systimer_read();
-		convert_para.last_sysfrt_counter = sprd_sysfrt_read();
-		local_irq_restore(irq_flags);
-		preempt_enable();
-	}
+	local_irq_save(irq_flags);
+	preempt_disable();
+	kt = ktime_get_boottime();
+	convert_para.last_systimer_counter = sprd_systimer_read();
+	convert_para.last_sysfrt_counter = sprd_sysfrt_read();
+	local_irq_restore(irq_flags);
+	preempt_enable();
+
+	if (unlikely(sensorhub_version == 20181201))
+		convert_para.last_boottime = ktime_to_ms(kt);
+	else
+		convert_para.last_boottime = ktime_to_ns(kt);
+
 	shub_send_command(sensor,
 			  HANDLE_MAX,
 			  SHUB_SET_TIMESYNC_SUBTYPE,
