@@ -87,6 +87,16 @@ else
   exit 1
 fi
 
+# Determine if there is a git repository
+GITTOOL=`find $KERNEL_CODE_DIR/$KERNEL_DIR -type d -name ".git"`
+if [ ! ${GITTOOL} ]; then
+  echo "create abigail git repository"
+  cd ${KERNEL_CODE_DIR}/${KERNEL_DIR}
+  git init
+  git add -A
+  git commit -m "abigail git repository"
+fi
+
 function do_gki_ckeck() {
   cd ${SCRIPTS_DIR}
 
@@ -238,12 +248,12 @@ fi
 # 2: run gki check to end
 RUN_GKI_CHECK_FLAG=0
 
-if [ -f ${KERNEL_CODE_DIR}/${KERNEL_DIR}/Documentation/sprd-gki-choice-config ]; then
 # get patch title
-  cd ${KERNEL_CODE_DIR}/${KERNEL_DIR}
-  PATCH_TITLE=$(git log -1 --pretty=format:"%s")
-  echo "= patch title: ${PATCH_TITLE}"
+cd ${KERNEL_CODE_DIR}/${KERNEL_DIR}
+PATCH_TITLE=$(git log -1 --pretty=format:"%s")
+echo "= patch title: ${PATCH_TITLE}"
 
+if [ -f ${KERNEL_CODE_DIR}/${KERNEL_DIR}/Documentation/sprd-gki-choice-config ]; then
   while read choice_config
   do
     if [[ $choice_config =~ ^[a-z:] ]]; then
@@ -292,6 +302,13 @@ fi
 if [ "$COMPILE_CHECK_PASS_FLAG" -ne 1 ]; then
 #  let RET_VAL+=128
   echo "WARNING: check compile warning!"
+fi
+
+# if create a new git repository, remove it
+
+if [[ ${PATCH_TITLE} == "abigail git repository" ]]; then
+  echo "remove git repository"
+  rm -rf ${KERNEL_CODE_DIR}/${KERNEL_DIR}/.git
 fi
 
 echo -e  "++++++++++++++++++++++check gki end+++++++++++++++++++++"
