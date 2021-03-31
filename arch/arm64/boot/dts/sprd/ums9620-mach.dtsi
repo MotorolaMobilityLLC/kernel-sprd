@@ -84,8 +84,8 @@
 			reg = <0x0 0xae600000 0x0 0x00300000>;
 		};
 
-		audio_reserved: audio-mem@af600000 {
-			reg = <0x0 0xaf600000 0x0 0x00400000>;
+		audio_reserved: audio-mem@af700000 {
+			reg = <0x0 0xaf700000 0x0 0x00300000>;
 		};
 
 		audiodsp_reserved: audiodsp-mem@afa00000 {
