@@ -896,6 +896,17 @@ static inline void sprd_codec_inter_pa_init(struct sprd_codec_priv *sprd_codec)
 	sprd_codec->spk_fall_dg = 0x1;
 }
 
+static void sprd_hp_thd_n(struct snd_soc_codec *codec)
+{
+	int val, mask;
+	val = DALDO_V(0x3) | DALDO_TRIM(0xf);
+	mask = DALDO_V(0x3) | DALDO_TRIM(0xf);
+
+	snd_soc_update_bits(codec, SOC_REG(ANA_DAC1), DAHP_BUF_ITRIM,
+			DAHP_BUF_ITRIM);
+	snd_soc_update_bits(codec, SOC_REG(ANA_DAC0), mask, val);
+}
+
 static void sprd_codec_sdm_ramp(struct snd_soc_codec *codec, bool on)
 {
 	struct sprd_codec_priv *sprd_codec = snd_soc_codec_get_drvdata(codec);
@@ -1086,6 +1097,7 @@ static int dahp_os_event(struct snd_soc_dapm_widget *w,
 	case SND_SOC_DAPM_POST_PMU:
 		snd_soc_update_bits(codec, SOC_REG(ANA_DAC1), DAHP_OS_EN,
 				    DAHP_OS_EN);
+		sprd_hp_thd_n(codec);
 		if (sprd_codec->dahp_os_inv == INVERT_MODE)
 			snd_soc_update_bits(codec, SOC_REG(ANA_DAC1),
 					    DAHP_OS_INV, DAHP_OS_INV);
@@ -2210,9 +2222,11 @@ static int cp_event(struct snd_soc_dapm_widget *w,
 		neg_cp = (sprd_codec->neg_cp_efuse >> 7) & 0xff;
 		/* set negative voltalge to 1.62 by ASIC suggest */
 		neg_cp = (neg_cp * 162) / 165;
+		neg_cp = 0xe1;
 		snd_soc_update_bits(codec, SOC_REG(ANA_DCL14),
 				    CP_NEG_HV(0xFFFF), CP_NEG_HV(neg_cp));
 		neg_cp = (neg_cp * 110) / 165;
+		neg_cp = 0x9e;
 		snd_soc_update_bits(codec, SOC_REG(ANA_DCL14),
 				    CP_NEG_LV(0xFFFF), CP_NEG_LV(neg_cp));
 		sp_asoc_pr_dbg("%s ANA_DCL14 0x%x\n", __func__,
