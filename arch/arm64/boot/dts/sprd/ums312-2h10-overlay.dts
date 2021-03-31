@@ -121,7 +121,7 @@
 				compatible = "simple-battery";
 				charge-full-design-microamp-hours = <2780000>;
 				charge-term-current-microamp = <120000>;
-				constant_charge_voltage_max_microvolt = <4350000>;
+				constant-charge-voltage-max-microvolt = <4350000>;
 				factory-internal-resistance-micro-ohms = <320000>;
 				voltage-min-design-microvolt = <3450000>;
 				ocv-capacity-celsius = <20>;
