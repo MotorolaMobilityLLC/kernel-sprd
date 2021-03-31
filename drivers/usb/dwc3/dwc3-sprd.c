@@ -836,13 +836,15 @@ static int dwc3_sprd_probe(struct platform_device *pdev)
 			"usb-phy", 0);
 	if (IS_ERR(sdwc->hs_phy)) {
 		dev_err(dev, "unable to get usb2.0 phy device\n");
-		return PTR_ERR(sdwc->hs_phy);
+		ret = PTR_ERR(sdwc->hs_phy);
+		goto err_ipa_clk;
 	}
 	sdwc->ss_phy = devm_usb_get_phy_by_phandle(dev,
 			"usb-phy", 1);
 	if (IS_ERR(sdwc->ss_phy)) {
 		dev_err(dev, "unable to get usb3.0 phy device\n");
-		return PTR_ERR(sdwc->ss_phy);
+		ret = PTR_ERR(sdwc->ss_phy);
+		goto err_ipa_clk;
 	}
 
 	if (IS_ENABLED(CONFIG_USB_DWC3_DUAL_ROLE) ||
@@ -884,7 +886,7 @@ static int dwc3_sprd_probe(struct platform_device *pdev)
 		ret = clk_prepare_enable(sdwc->core_clk);
 		if (ret) {
 			dev_err(dev, "core-clock enable failed\n");
-			return ret;
+			goto err_ipa_clk;
 		}
 	}
 	sdwc->ref_clk = devm_clk_get(dev, "ref_clk");
@@ -1105,6 +1107,9 @@ static int dwc3_sprd_pm_resume(struct device *dev)
 
 static void dwc3_sprd_enable(struct dwc3_sprd *sdwc)
 {
+	if (usb_clk_prepare_enable(sdwc))
+		dev_err(sdwc->dev, "usb clk enable error.\n");
+
 	if (sdwc->ipa_usb_ref_clk && sdwc->ipa_usb_ref_parent)
 		clk_set_parent(sdwc->ipa_usb_ref_clk, sdwc->ipa_usb_ref_parent);
 	if (clk_prepare_enable(sdwc->core_clk))
@@ -1113,8 +1118,6 @@ static void dwc3_sprd_enable(struct dwc3_sprd *sdwc)
 		dev_err(sdwc->dev, "ref clk enable error.\n");
 	if (clk_prepare_enable(sdwc->susp_clk))
 		dev_err(sdwc->dev, "susp clk enable error.\n");
-
-	usb_clk_prepare_enable(sdwc);
 
 	usb_phy_init(sdwc->hs_phy);
 	usb_phy_init(sdwc->ss_phy);
