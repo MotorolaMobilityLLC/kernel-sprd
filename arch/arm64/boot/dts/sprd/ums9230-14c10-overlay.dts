@@ -705,9 +705,18 @@
 	id-gpio = <&eic_debounce 20 GPIO_ACTIVE_HIGH>;
 };
 
+&hsphy {
+	vdd-supply = <&vddusb33>;
+	extcon = <&extcon_gpio>;
+	sprd,hsphy-device-eye-pattern = <0x04f3d1c0>;
+	sprd,hsphy-host-eye-pattern = <0x04f3d1c0>;
+	status = "okay";
+};
+
 &usb {
 	extcon = <&extcon_gpio>;
 	vbus-supply = <&vddvbus>;
+	status = "okay";
 };
 
 &sdio0 {
