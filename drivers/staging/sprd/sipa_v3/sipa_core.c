@@ -931,7 +931,7 @@ static int sipa_parse_dts_configuration(struct platform_device *pdev,
 		return count;
 	}
 
-	fifo_info = kzalloc(count * sizeof(*fifo_info), GFP_KERNEL);
+	fifo_info = kzalloc(count * 4 * sizeof(*fifo_info), GFP_KERNEL);
 	if (!fifo_info)
 		return -ENOMEM;
 
