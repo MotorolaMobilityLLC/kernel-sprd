@@ -34,8 +34,8 @@
 #endif
 
 static DEFINE_PER_CPU(struct task_struct *, hang_debug_task_store);
-static unsigned int cpu_feed_mask;
-static unsigned int cpu_feed_bitmap;
+unsigned int cpu_feed_mask;
+unsigned int cpu_feed_bitmap;
 static DEFINE_SPINLOCK(lock);
 static DEFINE_PER_CPU(struct hrtimer, sprd_wdt_hrtimer);
 static DEFINE_PER_CPU(int, g_enable);
