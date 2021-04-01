@@ -759,7 +759,9 @@ static int sprd_dma_fill_desc(struct dma_chan *chan,
 	phys_addr_t llist_ptr;
 
 	if (dir == DMA_MEM_TO_DEV) {
-		src_step = sprd_dma_get_step(slave_cfg->src_addr_width);
+		src_step = slave_cfg->src_port_window_size ?
+			   slave_cfg->src_port_window_size :
+			   sprd_dma_get_step(slave_cfg->src_addr_width);
 		if (src_step < 0) {
 			dev_err(sdev->dma_dev.dev, "invalid source step\n");
 			return src_step;
@@ -775,7 +777,9 @@ static int sprd_dma_fill_desc(struct dma_chan *chan,
 		else
 			dst_step = SPRD_DMA_NONE_STEP;
 	} else {
-		dst_step = sprd_dma_get_step(slave_cfg->dst_addr_width);
+		dst_step = slave_cfg->dst_port_window_size ?
+			   slave_cfg->dst_port_window_size :
+			   sprd_dma_get_step(slave_cfg->dst_addr_width);
 		if (dst_step < 0) {
 			dev_err(sdev->dma_dev.dev, "invalid destination step\n");
 			return dst_step;
