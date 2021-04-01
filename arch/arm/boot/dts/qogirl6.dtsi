@@ -1573,34 +1573,34 @@
 	audio-mem-mgr {
 		compatible = "sprd,audio-mem-sharkl5", "sprd,audio-mem-sharkl5pro";
 		/*
-		 * base is 0x94000000 for ums9230
-		 * 1. reserved ddr layout total 4M:
-		 * 3M (ap used. include dma data,dma node(dynamic),
+		 * base is 0x94100000 for ums9230
+		 * 1. reserved ddr layout total 3M:
+		 * 2M (ap used. include dma data,dma node(dynamic),
 		 * dsp log(65K), dsp pcm(65K)) + 1k(cmd param) 2K + 16b(cmd) +
 		 * 1K AUDIO_STRUCT_PARA + 1K(nxp/cvs) + dsp used(4k)) +
 		 * 0.5M dsp memdump
 		 */
 		ddr32-ap-dsp-map-offset = <0x0>;
 		/*
-		 * 3M for dynamic alloc, 0x87400000 - 0x87700000 ddr32-dma,
+		 * 2M for dynamic alloc, 0x94100000 - 0x94300000 ddr32-dma,
 		 * 1M for other
 		 */
-		sprd,ddr32-dma = <0x94000000 0x300000>;
-		/* 512K,  0x87700000 - 0x87780000*/
+		sprd,ddr32-dma = <0x94100000 0x200000>;
+		/* 512K,  0x94300000 - 0x94380000*/
 		sprd,ddr32-dspmemdump = <0x94300000 0x80000>;
-		/* 1K cmd para, 0x87780000 - 0x87780400 */
+		/* 1K cmd para, 0x94380000 - 0x94380400 */
 		sprd,cmdaddr = <0x94380000 0x400>;
-		/* 2K + 16byte,0x87780400 - 0x87780e10 */
+		/* 2K + 16byte,0x94380400 - 0x94380e10 */
 		sprd,smsg-addr = <0x94380400 0xa10>;
-		/* 1K AUDIO_STRUCT_PARA 0x87780e10 - 0x87781210*/
+		/* 1K AUDIO_STRUCT_PARA 0x94380e10 - 0x94381210*/
 		sprd,shmaddr-aud-str = <0x94380e10 0x400>;
-		/* 5K DSP_VBC_PARA, 0x87781210 - 0x87782610 */
+		/* 5K DSP_VBC_PARA, 0x94381210 - 0x94382610 */
 		sprd,shmaddr-dsp-vbc = <0x94381210 0x1400>;
-		/* 1K nxp/cvs para, 0x87782610 - 0x87782a10 */
+		/* 1K nxp/cvs para, 0x94382610 - 0x94382a10 */
 		sprd,shmaddr-nxp = <0x94382610 0x400>;
-		/* 2K ivsence smartpa param, 0x87782a10 - 0x87783210 */
+		/* 2K ivsence smartpa param, 0x94382a10 - 0x94383a10 */
 		sprd,shmaddr-dsp-smartpa = <0x94382a10 0x1000>;
-		/* 1K REG DUMP, 0x87783a10 - 0x87783a50 */
+		/* 1K REG DUMP, 0x94383a10 - 0x94383e10 */
 		sprd,shmaddr-reg-dump = <0x94383a10 0x400>;
 
 		/* 2. iram layout total 32K */
