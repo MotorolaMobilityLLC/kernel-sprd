@@ -694,8 +694,11 @@ static int wcn_get_syscon_regmap(void)
 
 	regmap_np = of_find_compatible_node(NULL, NULL, "sprd,sc27xx-syscon");
 	if (!regmap_np) {
-		pr_err("unable to get syscon node\n");
-		return -ENODEV;
+		regmap_np = of_find_compatible_node(NULL, NULL, "sprd,ump962x-syscon");
+		if (!regmap_np) {
+			pr_err("unable to get syscon node\n");
+			return -ENODEV;
+		}
 	}
 
 	regmap_pdev = of_find_device_by_node(regmap_np);
@@ -1809,9 +1812,9 @@ static int chip_power_off(enum wcn_sub_sys subsys)
 	wifipa_enable(0);
 	marlin_avdd18_dcxo_enable(false);
 	marlin_clk_enable(false);
+	marlin_analog_power_enable(false);
 	marlin_chip_en(false, false);
 	marlin_digital_power_enable(false);
-	marlin_analog_power_enable(false);
 	chip_reset_release(0);
 	marlin_dev->wifi_need_download_ini_flag = 0;
 #ifndef CONFIG_WCN_PCIE
