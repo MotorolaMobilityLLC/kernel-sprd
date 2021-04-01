@@ -1,6 +1,7 @@
 
 config UNISOC_MODEM_LOADER
 	tristate "UNISOC Modem Loader"
+	select SPRD_MODEM_POWER_MANAGER
 	default n
 	help
 	  UNISOC modem loader driver. It be user for modem poweron,
