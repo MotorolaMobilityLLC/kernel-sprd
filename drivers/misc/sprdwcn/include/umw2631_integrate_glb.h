@@ -14,7 +14,7 @@
 #define WCN_DUMP_CP2_IRAM_END 2
 /* AP regs start and end */
 #define WCN_DUMP_AP_REGS_START (WCN_DUMP_CP2_IRAM_END + 1)
-#define WCN_DUMP_AP_REGS_END 7
+#define WCN_DUMP_AP_REGS_END 8
 /* CP2 regs start and end */
 #define WCN_DUMP_CP2_REGS_START (WCN_DUMP_AP_REGS_END + 1)
 #define WCN_DUMP_CP2_REGS_END (ARRAY_SIZE(s_wcn_dump_regs) - 1)

@@ -3,7 +3,6 @@
 
 #define WCN_DUMP_END_STRING "marlin_memdump_finish"
 #define WCN_CP2_STATUS_DUMP_REG	0x6a6b6c6d
-#define WCN_CP2_STATUS_DUMP_AON_REG 0xa6b6c6d6
 
 #define DUMP_PACKET_SIZE	(1024)
 
@@ -14,4 +13,11 @@ void mdbg_dump_gnss_unregister(void);
 int mdbg_snap_shoot_iram(void *buf);
 void mdbg_dump_mem(void);
 int dump_arm_reg(void);
+u32 mdbg_check_wifi_ip_status(void);
+u32 mdbg_check_wifi_poweron(void);
+u32 mdbg_check_bt_poweron(void);
+u32 mdbg_check_gnss_poweron(void);
+u32 mdbg_check_wcn_sys_exit_sleep(void);
+u32 mdbg_check_btwf_sys_exit_sleep(void);
+
 #endif
