@@ -855,6 +855,7 @@ static void shub_synctimestamp(struct shub_data *sensor)
 {
 	unsigned long irq_flags;
 	struct cnter_to_boottime convert_para;
+	ktime_t kt = 0;
 
 	if (sensor->mcu_mode != SHUB_NORMAL)
 		return;
@@ -866,7 +867,7 @@ static void shub_synctimestamp(struct shub_data *sensor)
 
 	local_irq_save(irq_flags);
 	preempt_disable();
-	convert_para.last_boottime = ktime_to_ns(ktime_get_boottime());
+	kt = ktime_get_boottime();
 	convert_para.last_systimer_counter = sprd_systimer_read();
 	convert_para.last_sysfrt_counter = sprd_sysfrt_read();
 	local_irq_restore(irq_flags);
@@ -874,6 +875,11 @@ static void shub_synctimestamp(struct shub_data *sensor)
 	dev_info(&sensor->sensor_pdev->dev, "222 boottime=%lld, systimer_counter=%lld, sysfrt_counter=%lld\n",
 		convert_para.last_boottime, convert_para.last_systimer_counter, convert_para.last_sysfrt_counter);
 	// Modify by Tinno, temporary code for PDFCCE-4612, please use baselice code override this modify
+
+	if (unlikely(sensorhub_version == 20181201))
+		convert_para.last_boottime = ktime_to_ms(kt);
+	else
+		convert_para.last_boottime = ktime_to_ns(kt);
 
 	shub_send_command(sensor,
 			  HANDLE_MAX,
