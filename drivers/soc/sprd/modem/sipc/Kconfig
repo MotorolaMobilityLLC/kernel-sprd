@@ -3,6 +3,7 @@ menu "SPRD SIPC modules"
 config SPRD_SIPC
 	tristate "Sprd IPC support"
 	depends on SPRD_MBOX || UNISOC_MAILBOX
+	select SPRD_MODEM_POWER_MANAGER
 	default n
 	help
 	  SIPC is a module for spreadtrum AP/CP communicaiton system,
