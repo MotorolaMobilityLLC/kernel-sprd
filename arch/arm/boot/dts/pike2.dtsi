@@ -446,7 +446,7 @@
 
 			eic_debounce: gpio@40210000 {
 				compatible = "sprd,pike2-eic-debounce",
-					 "sprd,sharkl3-eic-debounce";
+					 "sprd,sc9860-eic-debounce";
 				reg = <0x40210000 0x80>,
 				      <0x40370000 0x80>;
 				gpio-controller;
@@ -458,7 +458,7 @@
 
 			eic_latch: gpio@40210080 {
 				compatible = "sprd,pike2-eic-latch",
-					   "sprd,sharkl3-eic-latch";
+					   "sprd,sc9860-eic-latch";
 				reg = <0x40210080 0x20>,
 				      <0x40370080 0x20>;
 				gpio-controller;
@@ -470,7 +470,7 @@
 
 			eic_async: gpio@402100a0 {
 				compatible = "sprd,pike2-eic-async",
-					   "sprd,sharkl3-eic-async";
+					   "sprd,sc9860-eic-async";
 				reg = <0x402100a0 0x20>,
 				      <0x403700a0 0x20>;
 				gpio-controller;
@@ -482,7 +482,7 @@
 
 			eic_sync: gpio@402100c0 {
 				compatible = "sprd,pike2-eic-sync",
-					   "sprd,sharkl3-eic-sync";
+					   "sprd,sc9860-eic-sync";
 				reg = <0x402100c0 0x20>,
 				      <0x403700c0 0x20>;
 				gpio-controller;
