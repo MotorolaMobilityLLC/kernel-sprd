@@ -60,6 +60,8 @@ static raw_spinlock_t sprd_wdh_wclock;
 static atomic_t sprd_enter_wdh;
 extern void sysdump_ipi(struct pt_regs *regs);
 extern unsigned long gic_get_gicd_base(void);
+extern unsigned int cpu_feed_mask;
+extern unsigned int cpu_feed_bitmap;
 
 char sprd_log_buf[SPRD_PRINT_BUF_LEN];
 static int log_buf_pos;
@@ -566,6 +568,10 @@ asmlinkage __visible void wdh_atf_entry(struct pt_regs *data)
 	cpu = smp_processor_id();
 	wdh_step[cpu] = SPRD_HANG_DUMP_ENTER;
 	sprd_hang_debug_printf("---wdh enter!---\n");
+
+	sprd_hang_debug_printf("cpu_feed_mask:0x%04x cpu_feed_bitmap:0x%04x\n",
+			       (unsigned int)cpu_feed_mask,
+			       (unsigned int)cpu_feed_bitmap);
 
 	oops_in_progress = 1;
 	pregs = &cpu_context[cpu];
