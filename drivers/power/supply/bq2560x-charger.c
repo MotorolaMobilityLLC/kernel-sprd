@@ -22,8 +22,8 @@
 #include <linux/regulator/machine.h>
 #include <linux/sysfs.h>
 #include <linux/usb/phy.h>
-#include <uapi/linux/usb/charger.h>
 #include <linux/pm_wakeup.h>
+#include <uapi/linux/usb/charger.h>
 
 #define BQ2560X_REG_0				0x0
 #define BQ2560X_REG_1				0x1
@@ -146,6 +146,7 @@ struct bq2560x_charger_info {
 	bool is_wireless_charge;
 
 	int reg_id;
+	bool disable_power_path;
 };
 
 struct bq2560x_charger_reg_tab {
@@ -171,6 +172,20 @@ static struct bq2560x_charger_reg_tab reg_tab[BQ2560X_REG_NUM + 1] = {
 	{11, BQ2560X_REG_B, "REG_RST/PN/DEV_REV"},
 	{12, 0, "null"},
 };
+
+static void power_path_control(struct bq2560x_charger_info *info)
+{
+	extern char *saved_command_line;
+	char result[5];
+	char *match = strstr(saved_command_line, "androidboot.mode=");
+
+	if (match) {
+		memcpy(result, (match + strlen("androidboot.mode=")),
+		       sizeof(result) - 1);
+		if ((!strcmp(result, "cali")) || (!strcmp(result, "auto")))
+			info->disable_power_path = true;
+	}
+}
 
 static int
 bq2560x_charger_set_limit_current(struct bq2560x_charger_info *info,
@@ -528,12 +543,18 @@ static void bq2560x_charger_stop_charge(struct bq2560x_charger_info *info)
 		gpiod_set_value_cansleep(info->gpiod, 1);
 	}
 
+	if (info->disable_power_path) {
+		ret = bq2560x_update_bits(info, BQ2560X_REG_0,
+					  BQ2560X_REG_EN_HIZ_MASK,
+					  0x01 << BQ2560X_REG_EN_HIZ_SHIFT);
+		if (ret)
+			dev_err(info->dev, "Failed to disable power path\n");
+	}
+
 	ret = bq2560x_update_bits(info, BQ2560X_REG_5,
                                  BQ2560X_REG_WATCHDOG_TIMER_MASK, 0);
-
-        if (ret)
-                dev_err(info->dev, "Failed to disable bq2560x watchdog\n");
-
+	if (ret)
+		dev_err(info->dev, "Failed to disable bq2560x watchdog\n");
 }
 
 static int bq2560x_charger_set_current(struct bq2560x_charger_info *info,
@@ -1634,6 +1655,7 @@ static int bq2560x_charger_probe(struct i2c_client *client,
 	info = devm_kzalloc(dev, sizeof(*info), GFP_KERNEL);
 	if (!info)
 		return -ENOMEM;
+
 	info->client = client;
 	info->dev = dev;
 
@@ -1643,7 +1665,7 @@ static int bq2560x_charger_probe(struct i2c_client *client,
 	INIT_DELAYED_WORK(&info->cur_work, bq2560x_current_work);
 
 	i2c_set_clientdata(client, info);
-
+	power_path_control(info);
 	ret = device_property_read_bool(dev, "role-slave");
 	if (ret)
 		info->role = BQ2560X_ROLE_SLAVE;
