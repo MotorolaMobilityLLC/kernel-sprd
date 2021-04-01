@@ -281,7 +281,7 @@ static void sy65153_wl_charger_dump_register(struct sy65153_wl_charger_info *inf
 
 static int sy65153_wl_charger_get_part_number(struct sy65153_wl_charger_info *info)
 {
-	u8 part_num[2];
+	u8 part_num[2] = {0};
 	int ret;
 
 	ret = regmap_bulk_read(info->regmap, SY65153_REG_00,
@@ -300,7 +300,7 @@ static int sy65153_wl_charger_get_part_number(struct sy65153_wl_charger_info *in
 
 static int sy65153_wl_charger_get_fw_major_revision(struct sy65153_wl_charger_info *info)
 {
-	u8 major_rev[2];
+	u8 major_rev[2] = {0};
 	int ret;
 
 	ret = regmap_bulk_read(info->regmap, SY65153_REG_04,
@@ -319,7 +319,7 @@ static int sy65153_wl_charger_get_fw_major_revision(struct sy65153_wl_charger_in
 
 static int sy65153_wl_charger_get_fw_minor_revision(struct sy65153_wl_charger_info *info)
 {
-	u8 minor_rev[2];
+	u8 minor_rev[2] = {0};
 	int ret;
 
 	ret = regmap_bulk_read(info->regmap, SY65153_REG_06,
@@ -345,7 +345,7 @@ static bool sy65153_wl_charger_get_vout_status(struct sy65153_wl_charger_info *i
 	ret = regmap_read(info->regmap, SY65153_REG_34, &val);
 	if (ret) {
 		dev_err(info->dev, "fail to get vout status, ret = %d\n", ret);
-		return ret;
+		return status;
 	}
 
 	val = (val & SY65153_REG_VOUT_STATUS_MASK) >> SY65153_REG_VOUT_STATUS_SHIFT;
@@ -353,7 +353,7 @@ static bool sy65153_wl_charger_get_vout_status(struct sy65153_wl_charger_info *i
 	if (val)
 		status = true;
 
-	return ret;
+	return status;
 }
 
 /**
@@ -446,6 +446,8 @@ static int sy65153_wl_charger_get_batt_charge_status(struct sy65153_wl_charger_i
 {
 	int ret;
 
+	*value = 0;
+
 	ret = regmap_read(info->regmap, SY65153_REG_3A, value);
 	if (ret)
 		dev_err(info->dev, "fail to set batt_charge status, ret = %d\n", ret);
@@ -456,6 +458,8 @@ static int sy65153_wl_charger_get_batt_charge_status(struct sy65153_wl_charger_i
 static int sy65153_wl_charger_get_ept_code_status(struct sy65153_wl_charger_info *info, u32 *ept_code)
 {
 	int ret;
+
+	*ept_code = 0;
 
 	ret = regmap_read(info->regmap, SY65153_REG_3B, ept_code);
 	if (ret)
@@ -468,9 +472,9 @@ static int sy65153_wl_charger_get_ept_code_status(struct sy65153_wl_charger_info
 
 static int sy65153_wl_charger_get_vout(struct sy65153_wl_charger_info *info, u32 *vout)
 {
-	u8 vout_adc[2];
+	u8 vout_adc[2] = {0};
 	int ret;
-	u32 voutadc;
+	u32 voutadc = 0;
 
 	ret = regmap_bulk_read(info->regmap, SY65153_REG_3C,
 			       vout_adc, ARRAY_SIZE(vout_adc));
@@ -513,9 +517,9 @@ static int sy65153_wl_charger_set_vout(struct sy65153_wl_charger_info *info, u32
 
 static int sy65153_wl_charger_get_vrect(struct sy65153_wl_charger_info *info, u32 *vrect)
 {
-	u8 vrect_adc[2];
+	u8 vrect_adc[2] = {0};
 	int ret;
-	u32 vrectadc;
+	u32 vrectadc = 0;
 
 	ret = regmap_bulk_read(info->regmap, SY65153_REG_40,
 			       vrect_adc, ARRAY_SIZE(vrect_adc));
@@ -537,8 +541,8 @@ static int sy65153_wl_charger_get_vrect(struct sy65153_wl_charger_info *info, u3
 
 static int sy65153_wl_charger_get_rx_iout(struct sy65153_wl_charger_info *info, u32 *iout)
 {
-	u8 rx_iout[2];
-	u32 ioutadc;
+	u8 rx_iout[2] = {0};
+	u32 ioutadc = 0;
 	int ret;
 
 	ret = regmap_bulk_read(info->regmap, SY65153_REG_44,
@@ -561,9 +565,11 @@ static int sy65153_wl_charger_get_rx_iout(struct sy65153_wl_charger_info *info, 
 
 static int sy65153_wl_charger_get_rx_tdie(struct sy65153_wl_charger_info *info, u32 *tdie)
 {
-	u8 tdie_adc[2];
-	u32 dieadc;
+	u8 tdie_adc[2] = {0};
+	u32 dieadc = 0;
 	int ret;
+
+	*tdie = 0;
 
 	ret = regmap_bulk_read(info->regmap, SY65153_REG_44,
 			       tdie_adc, ARRAY_SIZE(tdie_adc));
@@ -606,8 +612,10 @@ static int sy65153_wl_charger_set_rx_ilim(struct sy65153_wl_charger_info *info, 
 
 static int sy65153_wl_charger_get_rx_ilim(struct sy65153_wl_charger_info *info, u32 *ilim)
 {
-	u32 val;
+	u32 val = 0;
 	int ret;
+
+	*ilim = 0;
 
 	ret = regmap_read(info->regmap, SY65153_REG_4A, &val);
 	if (ret)
@@ -673,6 +681,9 @@ static int sy65153_wl_charger_set_property(struct power_supply *psy,
 	int ret = 0;
 	struct sy65153_wl_charger_info *info = power_supply_get_drvdata(psy);
 
+	if (!info)
+		return -EINVAL;
+
 	switch (prop) {
 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE:
 		ret = sy65153_wl_charger_set_vout(info, (u32)val->intval);
@@ -697,6 +708,9 @@ static int sy65153_wl_charger_get_property(struct power_supply *psy,
 	int ret = 0;
 	u32 rpp_type;
 	struct sy65153_wl_charger_info *info = power_supply_get_drvdata(psy);
+
+	if (!info)
+		return -EINVAL;
 
 	switch (prop) {
 	case POWER_SUPPLY_PROP_ONLINE:
@@ -1004,7 +1018,7 @@ static void sy65153_wl_charger_intb_int_work(struct work_struct *work)
 	struct sy65153_wl_charger_info *info =
 		container_of(work, struct sy65153_wl_charger_info, wireless_intb_int_work.work);
 	bool is_thm_shtdn, is_vrect_ovp, is_current_ocp, is_vout_ready;
-	u32 tdie, rx_ilim, batt_charge_status, ept_cope;
+	u32 tdie, rx_ilim, batt_charge_status, ept_code;
 
 	mutex_lock(&info->wireless_chg_intb_lock);
 	sy65153_wl_charger_clear_interrupt(info, 1);
@@ -1012,18 +1026,18 @@ static void sy65153_wl_charger_intb_int_work(struct work_struct *work)
 	is_thm_shtdn = sy65153_wl_charger_get_thermal_shtdn_status(info);
 	is_vrect_ovp = sy65153_wl_charger_get_vrect_ovp_status(info);
 	is_current_ocp = sy65153_wl_charger_get_current_limit_status(info);
-	is_current_ocp = sy65153_wl_charger_get_vout_status(info);
+	is_vout_ready = sy65153_wl_charger_get_vout_status(info);
 	sy65153_wl_charger_get_rx_tdie(info, &tdie);
 	sy65153_wl_charger_get_rx_ilim(info, &rx_ilim);
 	sy65153_wl_charger_get_batt_charge_status(info, &batt_charge_status);
-	sy65153_wl_charger_get_ept_code_status(info, &ept_cope);
+	sy65153_wl_charger_get_ept_code_status(info, &ept_code);
 
 	dev_info(info->dev, "is_thm_shtdn:[%s]; is_vrect_ovp:[%s]; is_current_ocp:[%s]; "
 		 "is_vout_ready:[%s]; Tdie:[%d]; rx_ilim:[%d]; batt_charge_status:[0x%x]; "
 		 "ept_code:[0x%x]\n",
 		 is_thm_shtdn ? "true" : "false", is_vrect_ovp ? "true" : "false",
 		 is_current_ocp ? "true" : "false", is_vout_ready ? "true" : "false",
-		 tdie, rx_ilim, batt_charge_status, ept_cope);
+		 tdie, rx_ilim, batt_charge_status, ept_code);
 
 	sy65153_wl_charger_dump_register(info);
 	mutex_unlock(&info->wireless_chg_intb_lock);
