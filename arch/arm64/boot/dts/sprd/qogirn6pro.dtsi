@@ -2677,7 +2677,9 @@
 					"dvfs_reg",
 					"mtx_reg",
 					"busmon",
-					"pd_ai_sys";
+					"pd_ai_sys",
+					"ai_sw_dvfs_ctrl",
+					"top_dvfs_cfg";
 				syscons = <&ai_apb_regs 0x0 0x0>,
 					<&ai_clock_regs 0x0 0x0>,
 					<&ai_dvfs_regs 0x0 0x0>,
@@ -2685,7 +2687,13 @@
 					<&ai_busmon_regs 0x0 0x0>,
 					<&pmu_apb_regs
 					REG_PMU_APB_PD_AI_CFG_0
-					MASK_PMU_APB_PD_AI_FORCE_SHUTDOWN>;
+					MASK_PMU_APB_PD_AI_FORCE_SHUTDOWN>,
+					<&top_dvfs_apb_regs
+					REG_TOP_DVFS_APB_DCDC_AI_SW_DVFS_CTRL
+					MASK_TOP_DVFS_APB_DCDC_AI_SW_TUNE_EN>,
+					<&top_dvfs_apb_regs
+					REG_TOP_DVFS_APB_SUBSYS_SW_DVFS_EN_CFG
+					MASK_TOP_DVFS_APB_AI_SW_DVFS_EN>;
 				clock-names = "ai_apll",
 					"ai_eb",
 					"powervr_eb",
