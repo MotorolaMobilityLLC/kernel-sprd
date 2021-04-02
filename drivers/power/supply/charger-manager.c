@@ -4604,7 +4604,7 @@ static void cm_batt_works(struct work_struct *work)
 	// pony.ma, date20201226, stop charging when reach set soc on demomode, date20201226-01 START
 	#ifdef CONFIG_TINNO_DEMOMODECHG_CONTROL
 	ui_soc = DIV_ROUND_CLOSEST(cm->desc->cap, 10);
-	if (demomode_chg_enable && (ui_soc <= demomode_chg_min_soc)) {
+	if (demomode_chg_enable && (ui_soc <= demomode_chg_min_soc) && (cur_temp > 0)) {
 		ret = try_charger_enable(cm, true);
 		uevent_notify(cm, "CHARGING");
 		demomode_over_soc = false;
