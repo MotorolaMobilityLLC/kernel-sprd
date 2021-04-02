@@ -4423,6 +4423,8 @@
 #define MASK_DPU_VSP_APB_DPHY1_REF_CKG_EN                   0x0008
 #define MASK_PMU_APB_RF_DSI0_PD_REG                         0x0040
 #define MASK_PMU_APB_RF_DSI1_PD_REG                         0x0040
+#define MASK_TOP_DVFS_APB_DCDC_AI_SW_TUNE_EN                0x0001
+#define MASK_TOP_DVFS_APB_AI_SW_DVFS_EN                     0x0020
 #define MASK_TOP_DVFS_APB_GPU_SW_DVFS_EN                    0x0040
 #define MASK_TOP_DVFS_APB_DCDC_GPU_SW_TUNE_EN               0x0001
 #endif /* __DT_BINDINGS_SPRD_QOGIRN6PRO_MASK_H */

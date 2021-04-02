@@ -932,4 +932,5 @@
 #define REG_PMU_APB_RF_ANALOG_PHY_PD_CFG                    0x009C
 #define REG_TOP_DVFS_APB_SUBSYS_SW_DVFS_EN_CFG              0x0D84
 #define REG_TOP_DVFS_APB_DCDC_GPU_SW_DVFS_CTRL              0x04B8
+#define REG_TOP_DVFS_APB_DCDC_AI_SW_DVFS_CTRL               0x05D4
 #endif /* __DT_BINDINGS_SPRD_QOGIRN6PRO_REGS_H */
