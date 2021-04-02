@@ -139,6 +139,8 @@ struct minidump_info  minidump_info_g =	{
 	},
 	.compressed			=	1,
 };
+int vaddr_to_paddr_flag;
+
 static int prepare_exception_info(struct pt_regs *regs,
 			struct task_struct *tsk, const char *reason);
 static char *ylog_buffer;
@@ -1142,24 +1144,87 @@ void section_info_pt(int section_index)
 #endif
 	return;
 }
-int add_extend_section(const char *name, unsigned long paddr_start, unsigned long paddr_end, int index)
+/**
+ * save extend debug information of modules in minidump, such as: cm4, iram...
+ *
+ * @name:	the name of the modules, and the string will be a part
+ *		of the file name.
+ *		note: special characters can't be included in the file name,
+ *		such as:'?','*','/','\','<','>',':','"','|'.
+ *
+ * @paddr_start:the start paddr in memory of the modules debug information
+ * @paddr_end:	the end paddr in memory of the modules debug information
+ *
+ * Return: 0 means success, -1 means fail.
+ */
+int minidump_save_extend_information(const char *name, unsigned long paddr_start, unsigned long paddr_end)
 {
-	struct section_info *extend_section = &minidump_info_g.section_info_total.section_info[index];
 
+	int i, j, index, section_tail;
+	struct section_info *extend_section, *tail_section;
+	char str_name[SECTION_NAME_MAX];
+	char tmp;
+
+	/* check name valid first */
+	if (strlen(name) > (SECTION_NAME_MAX - strlen(EXTEND_STRING) - 1)) {
+		pr_err("The length of name is too long!!, add extend section fail!!\n");
+		return -1;
+	}
+	if (!strlen(name)) {
+		pr_err("The name is empty, invalid!!\n");
+		return -1;
+	}
+	memcpy(str_name, name, strlen(name));
+	for (j = 0; j < strlen(str_name); j++) {
+		tmp = str_name[j];
+		if (tmp == '?' || tmp == '*' || tmp == '/' || tmp == '>' || tmp == '<' || tmp == '"' || tmp == '|') {
+			pr_err("the name=%s include special character:%c that not supported!!\n", name, tmp);
+			return -1;
+		}
+	}
+
+	/* check insert repeatly and acquire total seciton num before insert new section */
+	for (i = 0; i < SECTION_NUM_MAX; i++) {
+		if (!memcmp(str_name, minidump_info_g.section_info_total.section_info[i].section_name, strlen(str_name)))
+			return -1;
+		if (!strlen(minidump_info_g.section_info_total.section_info[i].section_name))
+			break;
+	}
+	minidump_info_g.section_info_total.total_num = i;
+	index = minidump_info_g.section_info_total.total_num++;
+
+	/* add new section in the tail of section_info */
+	extend_section = &minidump_info_g.section_info_total.section_info[index];
 	if (SECTION_NUM_MAX <= index) {
 		pr_err("No space for new section \n");
 		return -1;
 	}
-	sprintf(extend_section->section_name, "%s", name);
-	extend_section->section_start_paddr = paddr_start;
-	extend_section->section_end_paddr = paddr_end;
-	extend_section->section_size = extend_section->section_end_paddr - extend_section->section_start_paddr;
+	sprintf(extend_section->section_name, "%s_%s", EXTEND_STRING, name);
+	if (vaddr_to_paddr_flag == 0) {
+		extend_section->section_start_vaddr = (unsigned long)__va(paddr_start);
+		extend_section->section_end_vaddr = (unsigned long)__va(paddr_end);
+	} else {
+		extend_section->section_start_paddr = paddr_start;
+		extend_section->section_end_paddr = paddr_end;
+		extend_section->section_size = extend_section->section_end_paddr - extend_section->section_start_paddr;
+		minidump_info_g.section_info_total.total_size += extend_section->section_size;
+		minidump_info_g.minidump_data_size += extend_section->section_size;
+	}
 
-	minidump_info_g.section_info_total.total_size += extend_section->section_size;
-	minidump_info_g.section_info_total.total_num++;
-	minidump_info_g.minidump_data_size += extend_section->section_size  ;
+	/* add empty section in the section_info tail */
+	section_tail = minidump_info_g.section_info_total.total_num + 1;
+	if (section_tail > SECTION_NUM_MAX) {
+		pr_err("No space for new section\n");
+		return -1;
+	}
+	pr_emerg("%s added successfully in minidump section:paddr_start=%lx,paddr_end=%lx\n",
+			name, paddr_start, paddr_end);
+
+	tail_section = &minidump_info_g.section_info_total.section_info[section_tail];
+	sprintf(tail_section->section_name, "");
 	return 0;
 }
+EXPORT_SYMBOL(minidump_save_extend_information);
 
 int extend_section_cm4dump(int index)
 {
@@ -1184,7 +1249,7 @@ int extend_section_cm4dump(int index)
 			return -1;
 		}
 	}
-	add_extend_section(CM4_DUMP_IRAM, cm4_dump_start, cm4_dump_end, index);
+	minidump_save_extend_information(CM4_DUMP_IRAM, cm4_dump_start, cm4_dump_end);
 	return 0;
 }
 void section_info_per_cpu(int section_index)
@@ -1232,14 +1297,17 @@ void minidump_info_init(void)
 			minidump_info_g.section_info_total.section_info[i].section_size = minidump_info_g.section_info_total.section_info[i].section_end_paddr - minidump_info_g.section_info_total.section_info[i].section_start_paddr;
 		}
 		minidump_info_g.section_info_total.total_size += minidump_info_g.section_info_total.section_info[i].section_size;
-	}
-	minidump_info_g.section_info_total.total_num = i;
 
+	}
+	/* vaddr to paddr flag must nearby section info init */
+	vaddr_to_paddr_flag = 1;
+
+	minidump_info_g.section_info_total.total_num = i;
 
 	minidump_info_g.minidump_data_size =  minidump_info_g.regs_info.size + minidump_info_g.regs_memory_info.size + minidump_info_g.section_info_total.total_size;
 
 	extend_section_cm4dump(minidump_info_g.section_info_total.total_num);
-	add_extend_section("vmcoreinfo", (unsigned long)__pa(vmcoreinfo_data), (unsigned long)__pa(vmcoreinfo_data + vmcoreinfo_size), minidump_info_g.section_info_total.total_num);
+	minidump_save_extend_information("vmcoreinfo", (unsigned long)__pa(vmcoreinfo_data), (unsigned long)__pa(vmcoreinfo_data + vmcoreinfo_size));
 
 	return;
 }
