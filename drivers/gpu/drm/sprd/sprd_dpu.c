@@ -188,7 +188,7 @@ static void sprd_dpu_atomic_flush(struct sprd_crtc *crtc)
 
 	DRM_DEBUG("%s()\n", __func__);
 
-	if (crtc->pending_planes)
+	if (crtc->pending_planes && !dpu->ctx.flip_pending)
 		dpu->core->flip(&dpu->ctx, crtc->planes, crtc->pending_planes);
 
 	up(&dpu->ctx.lock);

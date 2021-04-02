@@ -77,6 +77,8 @@ static ssize_t refresh_store(struct device *dev,
 		return -1;
 	}
 
+	ctx->flip_pending = false;
+
 	dpu->core->flip(ctx, crtc->planes, crtc->pending_planes);
 
 	up(&ctx->lock);
@@ -122,6 +124,7 @@ static ssize_t bg_color_store(struct device *dev,
 		return -EINVAL;
 	}
 
+	ctx->flip_pending = true;
 	dpu->core->bg_color(ctx, sysfs->bg_color);
 
 	up(&ctx->lock);
@@ -129,6 +132,21 @@ static ssize_t bg_color_store(struct device *dev,
 	return count;
 }
 static DEVICE_ATTR_RW(bg_color);
+
+static ssize_t disable_flip_show(struct device *dev,
+	struct device_attribute *attr, char *buf)
+{
+	int ret;
+	struct sprd_dpu *dpu = dev_get_drvdata(dev);
+	struct dpu_context *ctx = &dpu->ctx;
+
+	pr_info("[drm] %s()\n", __func__);
+
+	ret = snprintf(buf, PAGE_SIZE, "%d\n", ctx->flip_pending);
+
+	return ret;
+}
+static DEVICE_ATTR_RO(disable_flip);
 
 static ssize_t cabc_mode_write(struct file *fp, struct kobject *kobj,
 			struct bin_attribute *attr, char *buf,
@@ -603,6 +621,7 @@ static struct attribute *dpu_attrs[] = {
 	&dev_attr_run.attr,
 	&dev_attr_refresh.attr,
 	&dev_attr_bg_color.attr,
+	&dev_attr_disable_flip.attr,
 	&dev_attr_actual_fps.attr,
 	&dev_attr_regs_offset.attr,
 	&dev_attr_wr_regs.attr,
