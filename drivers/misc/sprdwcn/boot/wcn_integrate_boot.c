@@ -52,9 +52,21 @@ void wcn_device_poweroff(void)
 void wcn_chip_power_off(void)
 {
 	sprdwcn_bus_set_carddump_status(false);
-	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6)
+	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
 		wcn_sys_force_deep_to_shutdown(s_wcn_device.btwf_device);
-	else
+		wcn_dfs_poweroff_state_clear(s_wcn_device.btwf_device);
+		wcn_dfs_poweroff_state_clear(s_wcn_device.gnss_device);
+		wcn_set_module_state(false);
+		wcn_set_loopcheck_state(false);
+		wcn_rfi_status_clear();
+		wcn_sys_power_clock_unsupport(true);
+		s_wcn_device.btwf_device->power_state = WCN_POWER_STATUS_OFF;
+		s_wcn_device.btwf_device->wcn_open_status = 0;
+		s_wcn_device.gnss_device->power_state = WCN_POWER_STATUS_OFF;
+		s_wcn_device.gnss_device->wcn_open_status = 0;
+		s_wcn_device.btwf_device->boot_cp_status = 0;
+		s_wcn_device.gnss_device->boot_cp_status = 0;
+	} else
 		wcn_device_poweroff();
 }
 EXPORT_SYMBOL_GPL(wcn_chip_power_off);
