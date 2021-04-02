@@ -4610,7 +4610,7 @@ static int charger_manager_probe(struct platform_device *pdev)
 	if (!fuel_gauge) {
 		dev_err(&pdev->dev, "Cannot find power supply \"%s\"\n",
 			desc->psy_fuel_gauge);
-		return -ENODEV;
+		return -EPROBE_DEFER;
 	}
 	if (!power_supply_get_property(fuel_gauge,
 					  POWER_SUPPLY_PROP_CHARGE_NOW, &val)) {
