@@ -54,7 +54,7 @@
 
 #define SLP_BRIGHTNESS_THRESHOLD 0x20
 
-#define DPU_LUTS_SIZE			(23 * 4096)
+#define DPU_LUTS_SIZE			(29 * 4096)
 #define DPU_LUTS_SLP_OFFSET		0
 #define DPU_LUTS_GAMMA_OFFSET		4096
 #define DPU_LUTS_HSV_OFFSET		(4096 * 3)
@@ -1938,11 +1938,11 @@ static void dpu_luts_copyfrom_user(u32 *param)
 	static u32 i;
 	u8 *luts_tmp_vaddr;
 
-	/* 46 means 46*2k, all luts size.
+	/* 58 means 58*2k, all luts size.
 	 * each time writes 2048 bytes from
 	 * user space.
 	 */
-	if (i == 46)
+	if (i == 58)
 		i = 0;
 
 	luts_tmp_vaddr = (u8 *)lut_gamma_vaddr;
