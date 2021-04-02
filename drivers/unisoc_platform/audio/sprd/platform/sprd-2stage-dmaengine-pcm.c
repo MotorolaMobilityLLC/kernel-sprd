@@ -1605,6 +1605,8 @@ static void dma_cfg_com(struct sprd_dma_cfg *dma_cfg,
 	dma_cfg->config.direction = direction;
 	dma_cfg->config.slave_id = dev_id;
 	//dma_cfg->config.step = step;
+	dma_cfg->config.src_port_window_size = step;
+	dma_cfg->config.dst_port_window_size = step;
 	dma_cfg->config.src_addr = source_addr_p;
 	dma_cfg->config.dst_addr = dst_addr_p;
 	dma_cfg->ll_cfg.virt_addr = cfg_addr_v;

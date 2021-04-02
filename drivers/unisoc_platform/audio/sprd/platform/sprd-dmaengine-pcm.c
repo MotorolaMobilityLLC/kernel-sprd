@@ -893,12 +893,14 @@ static int sprd_pcm_config_dma(struct snd_pcm_substream *substream,
 		cfg->config.slave_id =  dma_data->channels[i];
 		if (is_playback) {
 			//cfg->config.step = dma_data->desc.src_step;
+			cfg->config.src_port_window_size = dma_data->desc.src_step;
 			cfg->config.src_addr = audio_addr_ap2dsp(DDR32,
 				dma_buff_phys[i], 0);
 			cfg->config.dst_addr = dma_data->dev_paddr[i];
 			cfg->config.direction = DMA_MEM_TO_DEV;
 		} else {
 			//cfg->config.step = dma_data->desc.des_step;
+			cfg->config.dst_port_window_size = dma_data->desc.des_step;
 			cfg->config.src_addr = dma_data->dev_paddr[i];
 			if (srtd->cpu_dai->id ==
 				FE_DAI_ID_NORMAL_AP01 &&
