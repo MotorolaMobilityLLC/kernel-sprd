@@ -359,6 +359,7 @@ struct cm_alarm_status {
  * @ibus_uV: record the current bus voltage
  * @tune_vbus_retry: record the retry time from vbus low to vbus high
  * @cp_taper_trigger_cnt: record the count of battery current reach taper current
+ * @cp_ibat_ucp_cnt: record the count of battery current reach ucp current
  * @cp_taper_current: record the battery current threshold of exit charge pump
  * @cp_fault_event: record the fault event
  * @flt: record the all fault status
@@ -386,6 +387,7 @@ struct cm_charge_pump_status {
 	int tune_vbus_retry;
 	int cp_taper_trigger_cnt;
 	int cp_adjust_cnt;
+	int cp_ibat_ucp_cnt;
 	int cp_taper_current;
 	bool cp_fault_event;
 
