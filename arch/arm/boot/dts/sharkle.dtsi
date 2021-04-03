@@ -511,16 +511,17 @@
 				clocks = <&aonapb_gate CLK_SPLK_EB>;
 			};
 
-			aon_mailbox: mailbox@400a0000 {
-				compatible = "sprd,mailbox";
+			mailbox: mailbox@400a0000 {
+				compatible = "unisoc,mailbox-r1p2";
 				reg = <0x400a0000 0x8000>,
 				      <0x400a8000 0x8000>;
-				syscons = <&aon_apb_regs 0x4 0x200000>;
-				syscon-names = "clk";
+				reg-names = "inbox", "outbox";
+				clocks = <&aonapb_gate CLK_MBOX_EB>;
+				clock-names = "enable";
 				interrupts = <GIC_SPI 68 IRQ_TYPE_LEVEL_HIGH>,
 					     <GIC_SPI 69 IRQ_TYPE_LEVEL_HIGH>;
-				sprd,core-cnt = <7>;
-				sprd,version = <0x102>;
+				interrupt-names = "inbox", "outbox";
+				#mbox-cells = <2>;
 			};
 
 			uart0: serial@508d0000 {
@@ -1088,6 +1089,13 @@
 		#clock-cells = <0>;
 		clock-frequency = <32768>;
 		clock-output-names = "ext-32k";
+	};
+
+
+	sipc: sipc-virt {
+		compatible = "sprd,sipc-virt-bus";
+		#address-cells = <1>;
+		#size-cells = <0>;
 	};
 
 	sprd_pcm: sprd-pcm-audio {
