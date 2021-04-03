@@ -186,6 +186,13 @@ static unsigned int nf_imsbr_input(void *priv,
 	if (!flow)
 		return NF_ACCEPT;
 
+    /*for cp vowifi */
+	if (flow->socket_type == IMSBR_SOCKET_CP && flow->media_type == IMSBR_MEDIA_IKE) {
+		pr_info("input skb=%p is ike pkt, go to cp socket\n", skb);
+		imsbr_packet_relay2cp(skb);
+		return NF_STOLEN;
+	}
+
 	/* c2k: downlink ike pkt always go to ap socket */
 	if (flow->media_type == IMSBR_MEDIA_IKE) {
 		pr_info("input skb=%p is ike pkt, go to ap socket\n", skb);
