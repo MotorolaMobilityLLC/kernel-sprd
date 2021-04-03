@@ -8,7 +8,7 @@
 
 / {
 	sprd_headset: sprd-headset {
-		compatible = "sprd,headset";
+		compatible = "unisoc,headset";
 		status = "disabled";
 		jack-type = <0>; /* 0: normal-open jack; 1: normal-close jack */
 		io-channels =  <&pmic_adc 20>;
@@ -55,8 +55,8 @@
 	};
 
 	sound_vbc_r1p0v3_sprd_codec: sound@0 {
-		compatible = "sprd,vbc-r1p0v3-codec-sc2721",
-			     "sprd,vbc-r1p0v3-codec-sc2731";
+		compatible = "unisoc,vbc-r1p0v3-codec-sc2721",
+			     "unisoc,vbc-r1p0v3-codec-sc2731";
 		status = "disabled";
 		sprd-audio-card,name = "sprdphone";
 		sprd-audio-card,routing =
@@ -169,7 +169,7 @@
 	};
 
 	sound_sprd_ap_alliis: sound@1 {
-		compatible = "sprd,i2s-null-codec";
+		compatible = "unisoc,i2s-null-codec";
 		status = "disabled";
 		sprd-audio-card,name = "all-i2s";
 		/* dai-links */

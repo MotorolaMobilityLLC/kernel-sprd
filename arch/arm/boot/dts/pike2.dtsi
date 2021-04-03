@@ -207,7 +207,7 @@
 			};
 
 			i2s0: i2s@70d00000  {
-				compatible = "sprd,i2s";
+				compatible = "unisoc,i2s";
 				#sound-dai-cells = <0>;
 				reg = <0x70d00000 0x100000>;
 				sprd,dai_name = "i2s_bt_sco0";
@@ -316,7 +316,7 @@
 			ranges;
 
 			sprd_audio_codec_dig: audio-codec@40000000 {
-				compatible = "sprd,sharkl3-audio-codec";
+				compatible = "unisoc,sharkl3-audio-codec";
 				reg = <0x40000000 0x2000>;
 				sprd,def-da-fs = <44100>;
 				interrupts = <GIC_SPI 20 IRQ_TYPE_NONE>;
@@ -324,7 +324,7 @@
 			};
 
 			vbc: vbc@40020000 {
-				compatible = "sprd,vbc-r1p0v3";
+				compatible = "unisoc,vbc-r1p0v3";
 				#sound-dai-cells = <1>;
 				reg = <0x40020000 0x10000>;
 				sprd,clk-stable = <0x402d0060 0x4>;
@@ -942,8 +942,8 @@
 	};
 
 	sprd_pcm: sprd-pcm-audio {
-		compatible = "sprd,7731e-pcm-platform",
-			"sprd,sharkl3-pcm-platform";
+		compatible = "unisoc,7731e-pcm-platform",
+			"unisoc,sharkl3-pcm-platform";
 		#sound-dai-cells = <0>;
 		/* non-i2s playbacks use aon dma */
 		/* reference dma node dma-channels proporty
@@ -977,8 +977,8 @@
 	};
 
 	sprd_pcm_iis: sprd-pcm-iis {
-		compatible = "sprd,7731e-pcm-platform",
-			"sprd,sharkl3-pcm-platform";
+		compatible = "unisoc,7731e-pcm-platform",
+			"unisoc,sharkl3-pcm-platform";
 		#sound-dai-cells = <0>;
 		dmas = <&ap_dma 4 &ap_dma 3
 			&ap_dma 6 &ap_dma 5
@@ -995,12 +995,12 @@
 	};
 
 	vaudio: vaudio {
-		compatible = "sprd,vaudio";
+		compatible = "unisoc,vaudio";
 		#sound-dai-cells = <1>;
 	};
 
 	saudio_lte{
-		compatible = "sprd,saudio";
+		compatible = "unisoc,saudio";
 		sprd,saudio-dst-id = <5>;	/* SIPC_ID_LTE */
 		sprd,ctrl_channel = <10>;	/* SMSG_CH_VBC */
 		sprd,playback_channel = <11 131 132>;	/* SMSG_CH_PLAYBACK */
@@ -1011,7 +1011,7 @@
 	};
 
 	saudio_voip{
-		compatible = "sprd,saudio";
+		compatible = "unisoc,saudio";
 		sprd,saudio-dst-id = <5>;	/* SIPC_ID_LTE */
 		sprd,ctrl_channel = <14>;	/* SMSG_CH_CTRL_VOIP */
 		sprd,playback_channel = <15 151>;	/* SMSG_CH_PLAYBACK_VOIP */
@@ -1022,8 +1022,8 @@
 	};
 
 	audio-mem-mgr {
-		compatible = "sprd,sharkl3-audio-mem",
-			"sprd,pike2-audio-mem";
+		compatible = "unisoc,sharkl3-audio-mem",
+			"unisoc,pike2-audio-mem";
 		sprd,iram_phy_addr = <0x50000000 0xb000>;
 		/* note:mmap address must paga_size align */
 		/* normal 18k for data, 2k for linklist */
