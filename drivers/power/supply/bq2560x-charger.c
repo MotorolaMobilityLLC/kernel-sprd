@@ -56,6 +56,7 @@
 #define BQ2560X_REG_RESET_MASK			GENMASK(6, 6)
 
 #define BQ2560X_REG_OTG_MASK			GENMASK(5, 5)
+#define BQ2560X_REG_BOOST_FAULT_MASK		GENMASK(6, 6)
 
 #define BQ2560X_REG_WATCHDOG_MASK		GENMASK(6, 6)
 
@@ -1490,25 +1491,69 @@ bq2560x_charger_feed_watchdog_work(struct work_struct *work)
 }
 
 #ifdef CONFIG_REGULATOR
+static bool bq2560x_charger_check_otg_valid(struct bq2560x_charger_info *info)
+{
+	int ret;
+	u8 value = 0;
+	bool status = false;
+
+	ret = bq2560x_read(info, BQ2560X_REG_1, &value);
+	if (ret) {
+		dev_err(info->dev, "get bq2560x charger otg valid status failed\n");
+		return status;
+	}
+
+	if (value & BQ2560X_REG_OTG_MASK)
+		status = true;
+	else
+		dev_err(info->dev, "otg is not valid, REG_1 = 0x%x\n", value);
+
+	return status;
+}
+
+static bool bq2560x_charger_check_otg_fault(struct bq2560x_charger_info *info)
+{
+	int ret;
+	u8 value = 0;
+	bool status = true;
+
+	ret = bq2560x_read(info, BQ2560X_REG_9, &value);
+	if (ret) {
+		dev_err(info->dev, "get bq2560x charger otg fault status failed\n");
+		return status;
+	}
+
+	if (!(value & BQ2560X_REG_BOOST_FAULT_MASK))
+		status = false;
+	else
+		dev_err(info->dev, "boost fault occurs, REG_9 = 0x%x\n", value);
+
+	return status;
+}
+
 static void bq2560x_charger_otg_work(struct work_struct *work)
 {
 	struct delayed_work *dwork = to_delayed_work(work);
 	struct bq2560x_charger_info *info = container_of(dwork,
 			struct bq2560x_charger_info, otg_work);
-	bool otg_valid = extcon_get_state(info->edev, EXTCON_USB);
+	bool otg_valid = bq2560x_charger_check_otg_valid(info);
+	bool otg_fault;
 	int ret, retry = 0;
 
 	if (otg_valid)
 		goto out;
 
 	do {
-		ret = bq2560x_update_bits(info, BQ2560X_REG_1,
-					  BQ2560X_REG_OTG_MASK,
-					  BQ2560X_REG_OTG_MASK);
-		if (ret)
-			dev_err(info->dev, "restart bq2560x charger otg failed\n");
+		otg_fault = bq2560x_charger_check_otg_fault(info);
+		if (!otg_fault) {
+			ret = bq2560x_update_bits(info, BQ2560X_REG_1,
+						  BQ2560X_REG_OTG_MASK,
+						  BQ2560X_REG_OTG_MASK);
+			if (ret)
+				dev_err(info->dev, "restart bq2560x charger otg failed\n");
+		}
 
-		otg_valid = extcon_get_state(info->edev, EXTCON_USB);
+		otg_valid = bq2560x_charger_check_otg_valid(info);
 	} while (!otg_valid && retry++ < BQ2560X_OTG_RETRY_TIMES);
 
 	if (retry >= BQ2560X_OTG_RETRY_TIMES) {
