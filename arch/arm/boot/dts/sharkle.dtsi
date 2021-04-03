@@ -249,7 +249,7 @@
 			};
 
 			i2s0: i2s@70d00000 {
-				compatible = "sprd,i2s";
+				compatible = "unisoc,i2s";
 				reg = <0x70d00000 0x100000>;
 				sprd,dai_name = "i2s_bt_sco0";
 				sprd,hw_port = <0>;
@@ -270,7 +270,7 @@
 			ranges;
 
 			ap_dma: dma-controller@20100000 {
-				compatible = "sprd,sharkle-dma";
+				compatible = "sprd,sharkle-dma", "sprd,sc9860-dma";
 				reg = <0x20100000 0x4000>;
 				interrupts = <GIC_SPI 50 IRQ_TYPE_LEVEL_HIGH>;
 				#dma-cells = <1>;
@@ -458,7 +458,7 @@
 			ranges;
 
 			sprd_audio_codec_dig: audio-codec@40000000 {
-				compatible = "sprd,sharkl3-audio-codec","sprd,sharkle-audio-codec";
+				compatible = "unisoc,sharkl3-audio-codec","unisoc,sharkle-audio-codec";
 				reg = <0x40000000 0x2000>;
 
 				interrupts = <GIC_SPI 20  IRQ_TYPE_NONE>;
@@ -467,7 +467,7 @@
 			};
 
 			vbc: vbc@40020000 {
-				compatible = "sprd,vbc-r1p0v3";
+				compatible = "unisoc,vbc-r1p0v3";
 				#sound-dai-cells = <1>;
 				reg = <0x40020000 0x10000>;
 				sprd,clk-stable = <0x402d0060 0x4>;
@@ -533,7 +533,7 @@
 			};
 
 			aon_dma: dma-controller@40100000 {
-				compatible = "sprd,sharkle-dma";
+				compatible = "sprd,sharkle-dma", "sprd,sc9860-dma";
 				reg = <0x40100000 0x4000>;
 				#dma-cells = <1>;
 				#dma-channels = <8>;
@@ -1099,18 +1099,18 @@
 	};
 
 	sprd_pcm: sprd-pcm-audio {
-		compatible = "sprd,sharkl3-pcm-platform","sprd,sharkle-pcm-platform";
+		compatible = "unisoc,sharkl3-pcm-platform","unisoc,sharkle-pcm-platform";
 		#sound-dai-cells = <0>;
 		/* non-i2s playbacks use aon dma */
 		/* reference dma node dma-channels proporty
 		 * do not conflict with others
 		 * ap_dma (29-32 for security)
 		 */
-		dmas = <&aon_dma 1 &aon_dma 2
-			&aon_dma 3 &aon_dma 4
-			&aon_dma 5 &aon_dma 6
-			&aon_dma 7 &aon_dma 8
-			&ap_dma 1 &ap_dma 2>;
+		dmas = <&aon_dma 7 &aon_dma 8
+			&aon_dma 9 &aon_dma 10
+			&aon_dma 0 &aon_dma 0
+			&aon_dma 0 &aon_dma 0
+			&ap_dma 31 &ap_dma 32>;
 		dma-names = "da01-l", "da01-r", "da23-l", "da23-r",
 			"normal-2stage-p", "normal-2stage-c",
 			"deep-2stage-p", "ad23-2stage-c",
@@ -1130,17 +1130,18 @@
 		 */
 		sprd,dma-2stage-level-1-int-source = <1>;
 	};
+
 	vaudio: vaudio {
-		compatible = "sprd,vaudio";
+		compatible = "unisoc,vaudio";
 		#sound-dai-cells = <1>;
 		clock-names = "tuned_26m";
 		clocks = <&rpll CLK_AUDIO_GATE>;
 	};
 
 	sprd_pcm_iis: sprd-pcm-iis {
-		compatible = "sprd,sharkl3-pcm-platform","sprd,sharkle-pcm-platform";
+		compatible = "unisoc,sharkl3-pcm-platform","unisoc,sharkle-pcm-platform";
 		#sound-dai-cells = <0>;
-		dmas = <&ap_dma 5 &ap_dma 6>;
+		dmas = <&ap_dma 4 &ap_dma 3>;
 		dma-names = "iis0_tx", "iis0_rx";
 		sprd,dma-2stage-usecase = <2>;
 		sprd,node-count-2stage-level-1 = <1>;
@@ -1149,7 +1150,7 @@
 	};
 
 	saudio_lte{
-		compatible = "sprd,saudio";
+		compatible = "unisoc,saudio";
 		sprd,saudio-dst-id = <5>;               /* SIPC_ID_LTE */
 		sprd,ctrl_channel = <10>;               /* SMSG_CH_VBC */
 		sprd,playback_channel = <11 131 132>; /* SMSG_CH_PLAYBACK */
@@ -1160,7 +1161,7 @@
 	};
 
 	saudio_voip{
-		compatible = "sprd,saudio";
+		compatible = "unisoc,saudio";
 		sprd,saudio-dst-id = <5>;               /* SIPC_ID_LTE */
 		sprd,ctrl_channel = <14>;               /* SMSG_CH_CTRL_VOIP */
 		sprd,playback_channel = <15 151>;/* SMSG_CH_PLAYBACK_VOIP */
@@ -1171,7 +1172,7 @@
 	};
 
 	audio-mem-mgr {
-		compatible = "sprd,sharkl3-audio-mem","sprd,sharkle-audio-mem";
+		compatible = "unisoc,sharkl3-audio-mem","unisoc,sharkle-audio-mem";
 		sprd,iram_phy_addr = <0x00003400 0xb000>;
 		/* note:mmap address must paga_size align */
 		sprd,iram_normal = <0x00003400 0x0>;
@@ -1180,14 +1181,14 @@
 	};
 
 	apipe-pcm {
-		compatible = "sprd,apipe";
+		compatible = "unisoc,apipe";
 	};
 
 	apipe-cmd-in {
-		compatible = "sprd,apipe";
+		compatible = "unisoc,apipe";
 	};
 
 	apipe-cmd-out {
-		compatible = "sprd,apipe";
+		compatible = "unisoc,apipe";
 	};
 };
