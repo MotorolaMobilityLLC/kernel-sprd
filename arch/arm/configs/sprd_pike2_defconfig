@@ -4060,6 +4060,12 @@ CONFIG_SPRD_AUTOTEST=y
 CONFIG_SPRD_CAMSYS_PW_DOMAIN=y
 
 #
+# SPRD IQ modules
+#
+CONFIG_SPRD_IQ=m
+# end of SPRD IQ modules
+
+#
 # SPRD SIPC modules
 #
 CONFIG_SPRD_SIPC=m
