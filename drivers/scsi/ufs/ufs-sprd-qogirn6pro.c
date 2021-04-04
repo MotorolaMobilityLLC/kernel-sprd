@@ -160,11 +160,6 @@ static int ufs_sprd_init(struct ufs_hba *hba)
 
 	clk_set_parent(host->hclk, host->hclk_source);
 
-	regmap_update_bits(host->aon_apb_ufs_clk_en.regmap,
-			   host->aon_apb_ufs_clk_en.reg,
-			   host->aon_apb_ufs_clk_en.mask,
-			   0);
-
 #if IS_ENABLED(CONFIG_SCSI_UFS_CRYPTO)
 	regmap_update_bits(host->ap_ahb_ufs_rst.regmap,
 					  host->ap_ahb_ufs_rst.reg,
@@ -217,6 +212,11 @@ static void ufs_sprd_exit(struct ufs_hba *hba)
 {
 	struct device *dev = hba->dev;
 	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
+
+	regmap_update_bits(host->aon_apb_ufs_clk_en.regmap,
+			   host->aon_apb_ufs_clk_en.reg,
+			   host->aon_apb_ufs_clk_en.mask,
+			   0);
 
 	devm_kfree(dev, host);
 }
