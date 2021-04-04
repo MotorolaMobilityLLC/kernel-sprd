@@ -557,13 +557,13 @@ static void sfp_ipa_alloc_tbl(int sz)
 	fwd_tbl.ipa_tbl_mgr.tbl[T0].h_tbl.v_addr = v0;
 	fwd_tbl.ipa_tbl_mgr.tbl[T0].h_tbl.handle = h0;
 	fwd_tbl.ipa_tbl_mgr.tbl[T0].h_tbl.sz = sz;
-	fwd_tbl.ipa_tbl_mgr.tbl[T0].sipa_tbl.depth = IPA_HASH_TABLE_SIZE;
+	fwd_tbl.ipa_tbl_mgr.tbl[T0].sipa_tbl.depth = SFP_ENTRIES_HASH_SIZE;
 	fwd_tbl.ipa_tbl_mgr.tbl[T0].sipa_tbl.tbl_phy_addr = (u64)h0;
 
 	fwd_tbl.ipa_tbl_mgr.tbl[T1].h_tbl.v_addr = v1;
 	fwd_tbl.ipa_tbl_mgr.tbl[T1].h_tbl.handle = h1;
 	fwd_tbl.ipa_tbl_mgr.tbl[T1].h_tbl.sz = sz;
-	fwd_tbl.ipa_tbl_mgr.tbl[T1].sipa_tbl.depth = IPA_HASH_TABLE_SIZE;
+	fwd_tbl.ipa_tbl_mgr.tbl[T1].sipa_tbl.depth = SFP_ENTRIES_HASH_SIZE;
 	fwd_tbl.ipa_tbl_mgr.tbl[T1].sipa_tbl.tbl_phy_addr = (u64)h1;
 
 	/*zero hash tbl*/
