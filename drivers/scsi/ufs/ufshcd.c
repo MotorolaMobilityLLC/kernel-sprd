@@ -6232,18 +6232,12 @@ out_put_dev:
 
 static inline void ufshcd_rpmb_remove(struct ufs_hba *hba)
 {
-	unsigned long flags;
-
 	if (!hba->sdev_ufs_rpmb)
 		return;
-
-	spin_lock_irqsave(hba->host->host_lock, flags);
 
 	rpmb_dev_unregister(hba->dev);
 	scsi_device_put(hba->sdev_ufs_rpmb);
 	hba->sdev_ufs_rpmb = NULL;
-
-	spin_unlock_irqrestore(hba->host->host_lock, flags);
 }
 
 /**
