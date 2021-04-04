@@ -779,6 +779,7 @@
 		"HPMIC Pin", "HP Mic Jack",
 		"MIC Pin", "Mic Jack",
 		"MIC2 Pin", "Aux Mic Jack",
+		"MIC3 Pin", "Aux Mic2 Jack",
 		"HeadPhone Jack", "HP Pin",
 		"Ext Spk", "SPK Pin",
 		"UCP1301 SPK ON", "SPK Pin",
