@@ -363,11 +363,23 @@ void pdm_dmic2_on(struct sprd_pdm_priv *sprd_pdm, bool on_off)
 		pdm_module_en(sprd_pdm, true);
 		pdm_adc2_l_dg(sprd_pdm);
 		pdm_adc2_r_dg(sprd_pdm);
-		pdm_ioremap_reg_update(sprd_pdm, TX_CFG3, TX2_BCK_DIV_NUM(0x3),
-				       TX2_BCK_DIV_NUM(0xffff));
-		pdm_ioremap_reg_update(sprd_pdm, TX_CFG3,
-				       TX2_LRCK_DIV_NUM(0xff),
-				       TX2_LRCK_DIV_NUM(0xffff));
+
+		if (sprd_pdm->board_data->soc_audio_type ==
+		    BOARD_SOC_V_UMS9620) {
+			pdm_ioremap_reg_update(sprd_pdm, TX_CFG3,
+					       TX2_BCK_DIV_NUM(0x7),
+					       TX2_BCK_DIV_NUM(0xffff));
+			pdm_ioremap_reg_update(sprd_pdm, TX_CFG3,
+					       TX2_LRCK_DIV_NUM(0x1ff),
+					       TX2_LRCK_DIV_NUM(0xffff));
+		} else {
+			pdm_ioremap_reg_update(sprd_pdm, TX_CFG3,
+					       TX2_BCK_DIV_NUM(0x3),
+					       TX2_BCK_DIV_NUM(0xffff));
+			pdm_ioremap_reg_update(sprd_pdm, TX_CFG3,
+					       TX2_LRCK_DIV_NUM(0xff),
+					       TX2_LRCK_DIV_NUM(0xffff));
+		}
 		/* down */
 		pdm_ioremap_reg_update(sprd_pdm, ADC2_FIRST_DECIM_CFG,
 				       ADC2_DECIM_1ST_DOWN_NUM(0x5),
