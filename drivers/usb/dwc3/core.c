@@ -275,7 +275,7 @@ static int dwc3_core_soft_reset(struct dwc3 *dwc)
 	 * for 10 times instead.
 	 */
 	if (dwc3_is_usb31(dwc) && dwc->revision >= DWC3_USB31_REVISION_190A)
-		retries = 10;
+		retries = 100;
 
 	do {
 		reg = dwc3_readl(dwc->regs, DWC3_DCTL);
@@ -292,6 +292,7 @@ static int dwc3_core_soft_reset(struct dwc3 *dwc)
 	phy_exit(dwc->usb3_generic_phy);
 	phy_exit(dwc->usb2_generic_phy);
 
+	dev_err(dwc->dev, "core reset timeout\n");
 	return -ETIMEDOUT;
 
 done:
