@@ -1725,6 +1725,7 @@ int sc2355_tx(struct sprd_chip *chip, struct sprd_msg *msg)
 		}
 		dscr->buffer_info.msdu_tid = tid;
 		peer_entry = &hif->peer_entry[dscr->sta_lut_index];
+		tx_prepare_addba(hif, dscr->sta_lut_index, peer_entry, tid);
 		data_list =
 		    &tx_mgmt->tx_list[msg->mode]->q_list[qos_index].p_list[dscr->sta_lut_index];
 		tx_mgmt->tx_list[msg->mode]->lut_id = dscr->sta_lut_index;
@@ -1744,8 +1745,6 @@ int sc2355_tx(struct sprd_chip *chip, struct sprd_msg *msg)
 
 	if (msg->msg_type != SPRD_TYPE_DATA)
 		sprd_queue_msg(msg, msg->msglist);
-
-	tx_prepare_addba(hif, dscr->sta_lut_index, peer_entry, tid);
 
 	if (msg->msg_type == SPRD_TYPE_CMD)
 		queue_work(tx_mgmt->tx_queue, &tx_mgmt->tx_work);
