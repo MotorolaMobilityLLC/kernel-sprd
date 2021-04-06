@@ -56,10 +56,20 @@
 				>;
 			};
 */
-			fingerprint@0 {
+/*			fingerprint@0 {
 				compatible = "microarray,afs121";
 				fpint-gpios = <&eic_async 29 0>;
 			};
+*/
+
+            fingerprint_fpc {
+                 compatible = "sprd,fingerprint-fpc1520";
+                 fpsensor,eint-gpio   = <&ap_gpio 168 0 >;
+                 fpsensor,reset-gpio  = <&ap_gpio 169 0 >;
+             };
+            fingerprint_goodix {
+                 compatible = "goodix,goodix-fp";
+             };
 
 			gpio-keys {
 				compatible = "gpio-keys";
