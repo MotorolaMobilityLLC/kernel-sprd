@@ -1622,7 +1622,7 @@ static void dpu_layer(struct dpu_context *ctx,
 
 		/* pallete layer enable */
 		layer->ctrl = 0x2005;
-
+		reg->layer_enable |= (1 << hwlayer->index);
 		pr_debug("dst_x = %d, dst_y = %d, dst_w = %d, dst_h = %d, pallete:%d\n",
 			hwlayer->dst_x, hwlayer->dst_y,
 			hwlayer->dst_w, hwlayer->dst_h, layer->pallete);
