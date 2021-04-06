@@ -1861,7 +1861,7 @@ INT32 exfat_alloc_cluster(struct super_block *sb, INT32 num_alloc, CHAIN_T *p_ch
 		hint_clu = test_alloc_bitmap(sb, p_fs->clu_srch_ptr-2);
 		if (hint_clu == CLUSTER_32(~0))
 			return 0;
-	} else if (hint_clu >= p_fs->num_clusters) {
+	} else if (hint_clu >= p_fs->num_clusters || hint_clu < 2) {
 		hint_clu = 2;
 		p_chain->flags = 0x01;
 	}
