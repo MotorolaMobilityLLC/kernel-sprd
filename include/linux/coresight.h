@@ -313,4 +313,16 @@ extern int coresight_get_cpu(struct device *dev);
 
 struct coresight_platform_data *coresight_get_platform_data(struct device *dev);
 
+extern struct device *of_coresight_get_device_by_node(struct device_node *endpoint);
+
+int coresight_enable_sink_show_export(struct coresight_device *csdev);
+int coresight_enable_sink_store_export(struct coresight_device *csdev, int val);
+int coresight_enable_source_show_export(struct coresight_device *csdev);
+int coresight_enable_source_store_export(struct coresight_device *csdev, int val);
+
+int tmc_enable_sink_show(struct device *dev);
+int tmc_enable_sink_store(struct device *dev, int val);
+int etm4_enable_source_show(struct device *dev);
+int etm4_enable_source_store(struct device *dev, int val);
+
 #endif

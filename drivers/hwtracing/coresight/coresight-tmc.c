@@ -431,6 +431,39 @@ static u32 tmc_etr_get_default_buffer_size(struct device *dev)
 	return size;
 }
 
+int tmc_enable_sink_show(struct device *dev)
+{
+	int val;
+	struct tmc_drvdata *drvdata = dev_get_drvdata(dev);
+
+	pr_info("%s entry\n", __func__);
+
+	if (!drvdata)
+		return 0;
+
+	val = coresight_enable_sink_show_export(drvdata->csdev);
+
+	return val;
+}
+
+int tmc_enable_sink_store(struct device *dev, int val)
+{
+	int ret;
+	struct tmc_drvdata *drvdata = dev_get_drvdata(dev);
+
+	pr_info("%s entry\n", __func__);
+
+	if (!drvdata)
+		return -1;
+
+	if (val)
+		ret = coresight_enable_sink_store_export(drvdata->csdev, true);
+	else
+		ret = coresight_enable_sink_store_export(drvdata->csdev, false);
+
+	return ret;
+}
+
 static int tmc_probe(struct amba_device *adev, const struct amba_id *id)
 {
 	int ret = 0;

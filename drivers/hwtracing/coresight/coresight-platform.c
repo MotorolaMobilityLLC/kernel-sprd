@@ -123,6 +123,21 @@ of_coresight_count_ports(struct device_node *port_parent)
 	return i;
 }
 
+struct device *
+of_coresight_get_device_by_node(struct device_node *endpoint)
+{
+	struct fwnode_handle *rdev_fwnode;
+	struct device *rdev = NULL;
+
+	rdev_fwnode = of_fwnode_handle(endpoint);
+	/* If the remote device is not available, defer probing */
+	rdev = coresight_find_device_by_fwnode(rdev_fwnode);
+
+	return rdev;
+}
+
+EXPORT_SYMBOL_GPL(of_coresight_get_device_by_node);
+
 static void of_coresight_get_ports(const struct device_node *node,
 				   int *nr_inport, int *nr_outport)
 {

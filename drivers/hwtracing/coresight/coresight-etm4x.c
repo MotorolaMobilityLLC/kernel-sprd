@@ -750,8 +750,8 @@ static void etm4_set_default_config(struct etmv4_config *config)
 	/* disable stalling */
 	config->stall_ctrl = 0x0;
 
-	/* enable trace synchronization every 4096 bytes, if available */
-	config->syncfreq = 0xC;
+	/* enable trace synchronization every 256 bytes, if available */
+	config->syncfreq = 0x8;
 
 	/* disable timestamp event */
 	config->ts_ctrl = 0x0;
@@ -1093,6 +1093,35 @@ static int etm4_dying_cpu(unsigned int cpu)
 static void etm4_init_trace_id(struct etmv4_drvdata *drvdata)
 {
 	drvdata->trcid = coresight_get_trace_id(drvdata->cpu);
+}
+
+int etm4_enable_source_show(struct device *dev)
+{
+	int val;
+	struct etmv4_drvdata *drvdata = dev_get_drvdata(dev);
+
+	if (!drvdata)
+		return 0;
+
+	val = coresight_enable_source_show_export(drvdata->csdev);
+
+	return val;
+}
+
+int etm4_enable_source_store(struct device *dev, int val)
+{
+	int ret;
+	struct etmv4_drvdata *drvdata = dev_get_drvdata(dev);
+
+	if (!drvdata)
+		return -1;
+
+	if (val)
+		ret = coresight_enable_source_store_export(drvdata->csdev, true);
+	else
+		ret = coresight_enable_source_store_export(drvdata->csdev, false);
+
+	return ret;
 }
 
 static int etm4_probe(struct amba_device *adev, const struct amba_id *id)

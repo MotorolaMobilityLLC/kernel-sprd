@@ -885,9 +885,23 @@ static ssize_t enable_sink_store(struct device *dev,
 		csdev->activated = false;
 
 	return size;
-
 }
 static DEVICE_ATTR_RW(enable_sink);
+
+int coresight_enable_sink_show_export(struct coresight_device *csdev)
+{
+    return csdev->activated;
+}
+
+int coresight_enable_sink_store_export(struct coresight_device *csdev, int val)
+{
+	if (val)
+		csdev->activated = true;
+	else
+		csdev->activated = false;
+
+	return 0;
+}
 
 static ssize_t enable_source_show(struct device *dev,
 				  struct device_attribute *attr, char *buf)
@@ -920,6 +934,26 @@ static ssize_t enable_source_store(struct device *dev,
 	return size;
 }
 static DEVICE_ATTR_RW(enable_source);
+
+int coresight_enable_source_show_export(struct coresight_device *csdev)
+{
+	return csdev->enable;
+}
+
+int coresight_enable_source_store_export(struct coresight_device *csdev, int val)
+{
+	int ret;
+
+	if (val) {
+		ret = coresight_enable(csdev);
+		if (ret)
+			return ret;
+	} else {
+		coresight_disable(csdev);
+	}
+
+	return 0;
+}
 
 static struct attribute *coresight_sink_attrs[] = {
 	&dev_attr_enable_sink.attr,
