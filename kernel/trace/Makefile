@@ -30,6 +30,7 @@ endif
 
 CFLAGS_trace_benchmark.o := -I$(src)
 CFLAGS_trace_events_filter.o := -I$(src)
+CFLAGS_trace_irqsoff.o := -I$(srctree)
 
 obj-$(CONFIG_TRACE_CLOCK) += trace_clock.o
 
