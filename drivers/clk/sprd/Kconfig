@@ -41,4 +41,10 @@ config SPRD_SC9832E_CLK
 	help
 	  Support for the global clock controller on sc9832e devices.
 	  Say Y if you want to use peripheral devices on sc9832e SoC.
+
+config SPRD_UMS312_CLK
+	tristate "Support for the Unisoc UMS312 clocks"
+	help
+	  Support for the global clock controller on ums312 devices.
+	  Say Y if you want to use peripheral devices on ums312 SoC.
 endif
