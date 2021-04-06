@@ -17477,15 +17477,6 @@ CONFIG_THERMAL_WRITABLE_TRIPS
 	[must] user
 	[missing plat description] none
 	[function] Enable writable trip points.
-CONFIG_THINLTO
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
-	[missing plat] none
-	[field]
-	[subsys]
-	[must]
-	[missing plat description] none
-	[function]
 CONFIG_THREAD_INFO_IN_TASK
 	[arch] arm64
 	[plat] sharkl3,sharkl5Pro
