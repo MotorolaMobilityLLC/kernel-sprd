@@ -2591,7 +2591,7 @@ static SPRD_MUX_CLK(mm_mtx_data, "mm-mtx-data", mm_mtx_data_parents,
 		    0x16c, 0, 2, UMS9620_MUX_FLAG);
 
 static const char * const jpg_parents[] = { "tgpll-153m6", "tgpll-256m",
-					    "tgpll-307m2", "v4nrpll-409m6a",
+					    "tgpll-307m2", "v4nrpll-409m6",
 					    "tgpll-512m" };
 static SPRD_MUX_CLK(jpg, "jpg", jpg_parents, 0x178,
 		    0, 3, UMS9620_MUX_FLAG);
