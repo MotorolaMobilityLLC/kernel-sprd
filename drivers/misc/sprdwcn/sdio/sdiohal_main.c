@@ -22,7 +22,7 @@
 #define CP_GPIO1_REG 0x40840014
 #define CP_PIN_FUNC_WPU BIT(8)
 
-static int (*scan_card_notify)(void);
+static void (*scan_card_notify)(void);
 static struct sdiohal_data_t *sdiohal_data;
 
 struct sdiohal_data_t *sdiohal_get_data(void)
