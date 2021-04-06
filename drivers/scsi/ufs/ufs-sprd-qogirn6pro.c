@@ -306,18 +306,6 @@ static int ufs_sprd_hce_enable_notify(struct ufs_hba *hba,
 		ufs_sprd_hw_init(hba);
 #if IS_ENABLED(CONFIG_SCSI_UFS_CRYPTO)
 		ufshcd_writel(hba, CONTROLLER_ENABLE, REG_CONTROLLER_ENABLE);
-#endif
-		break;
-	case POST_CHANGE:
-		 if (hba->vops->phy_initialization) {
-			err = hba->vops->phy_initialization(hba);
-			if (err) {
-				dev_err(hba->dev, "Phy setup failed (%d)\n",
-					err);
-			}
-		}
-
-#if IS_ENABLED(CONFIG_SCSI_UFS_CRYPTO)
 		svc_handle = sprd_sip_svc_get_handle();
 		pr_err("ufs init, get svc_handle:0x%x, get storage_ops handle: 0x%x\n",
 		       svc_handle, svc_handle->storage_ops);
@@ -328,6 +316,15 @@ static int ufs_sprd_hce_enable_notify(struct ufs_hba *hba,
 		ret = svc_handle->storage_ops.ufs_crypto_enable();
 		pr_err("smc: enable cfg, ret:0x%x", ret);
 #endif
+		break;
+	case POST_CHANGE:
+		 if (hba->vops->phy_initialization) {
+			err = hba->vops->phy_initialization(hba);
+			if (err) {
+				dev_err(hba->dev, "Phy setup failed (%d)\n",
+					err);
+			}
+		}
 		break;
 	default:
 		dev_err(hba->dev, "%s: invalid status %d\n", __func__, status);
