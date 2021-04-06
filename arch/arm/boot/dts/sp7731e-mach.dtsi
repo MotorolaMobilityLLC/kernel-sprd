@@ -89,6 +89,11 @@
 			reg = <0x9e000000 0x384000>;
 		};
 
+		drm_reserved: framebuffer {
+			compatible = "shared-dma-pool";
+			size = <0xc00000>;
+			reusable;
+		};
 	};
 
 	sprd-map-user {
@@ -204,6 +209,7 @@
 
 	display-subsystem {
 		compatible = "sprd,display-subsystem";
+		memory-region = <&drm_reserved>;
 		ports = <&dpu_port>;
 		gsp = <&gsp>;
 	};

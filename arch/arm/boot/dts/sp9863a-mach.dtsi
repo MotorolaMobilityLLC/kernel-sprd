@@ -26,13 +26,14 @@
 
 		drm_reserved: framebuffer {
 			compatible = "shared-dma-pool";
-			size = <0x01400000>;
+			size = <0x01800000>;
 			reusable;
 		};
 	};
 
 	display-subsystem {
 		compatible = "sprd,display-subsystem";
+		memory-region = <&drm_reserved>;
 		ports = <&dpu_port>;
 		gsp = <&gsp>;
 	};

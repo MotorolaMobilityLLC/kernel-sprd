@@ -134,6 +134,7 @@
 
 	display-subsystem {
 		compatible = "sprd,display-subsystem";
+		memory-region = <&drm_reserved>;
 		ports = <&dpu_port>;
 	};
 
@@ -195,6 +196,12 @@
 			record-size = <0x8000>;
 			console-size = <0x8000>;
 			pmsg-size = <0x8000>;
+		};
+
+		drm_reserved: framebuffer {
+			compatible = "shared-dma-pool";
+			size = <0xc00000>;
+			reusable;
 		};
 	};
 
