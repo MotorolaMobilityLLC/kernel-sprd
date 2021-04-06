@@ -1391,7 +1391,6 @@ static void dpu_flip(struct dpu_context *ctx,
 	/* to check if dpu need change the frame rate */
 	if (mode_changed) {
 		dpu_framerate(ctx);
-		count = 1;
 		mode_changed = false;
 	}
 
