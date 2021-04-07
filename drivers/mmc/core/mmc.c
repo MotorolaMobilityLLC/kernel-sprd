@@ -28,6 +28,7 @@
 #include "quirks.h"
 #include "sd_ops.h"
 #include "pwrseq.h"
+#include <linux/mmc/sprd-proc-bootdevice.h>
 
 #ifdef CONFIG_EMMC_SOFTWARE_CQ_SUPPORT
 #include <linux/kthread.h>
@@ -362,7 +363,35 @@ static void mmc_manage_gp_partitions(struct mmc_card *card, u8 *ext_csd)
 
 /* Minimum partition switch timeout in milliseconds */
 #define MMC_MIN_PART_SWITCH_TIME	300
-
+#ifdef CONFIG_MMC_SPRD_BOOTDEVICE
+static void sprd_bootdevice_csdinfo_get(struct mmc_card *card)
+{
+	set_bootdevice_fwrev(card->ext_csd.fwrev);
+	set_bootdevice_ife_time_est_typ(card->ext_csd.device_life_time_est_typ_a,
+					card->ext_csd.device_life_time_est_typ_b);
+	set_bootdevice_rev(card->ext_csd.rev);
+	set_bootdevice_pre_eol_info(card->ext_csd.pre_eol_info);
+	set_bootdevice_enhanced_area_offset(card->ext_csd.enhanced_area_offset);
+	set_bootdevice_enhanced_area_size(card->ext_csd.enhanced_area_size);
+	set_bootdevice_size(((u32)card->ext_csd.raw_sectors[3]<<24)+
+		((u32)card->ext_csd.raw_sectors[2]<<16) +
+		((u32)card->ext_csd.raw_sectors[1]<<8)+
+		((u32)card->ext_csd.raw_sectors[0]));
+	set_bootdevice_type();
+}
+static void sprd_bootdevice_cidinfo_get(struct mmc_card *card)
+{
+	set_bootdevice_csd(card->raw_csd);
+	set_bootdevice_product_name(card->cid.prod_name);
+	set_bootdevice_manfid(card->cid.manfid);
+	set_bootdevice_oemid(card->cid.oemid);
+	set_bootdevice_serial(card->cid.serial);
+	set_bootdevice_prv(card->cid.prv);
+	set_bootdevice_hwrev(card->cid.hwrev);
+	set_bootdevice_ocr(card->ocr);
+	set_bootdevice_erase_size(card->erase_size << 9);
+}
+#endif
 /*
  * Decode extended CSD.
  */
@@ -659,6 +688,9 @@ static int mmc_decode_ext_csd(struct mmc_card *card, u8 *ext_csd)
 	}
 #endif
 
+#ifdef CONFIG_MMC_SPRD_BOOTDEVICE
+	sprd_bootdevice_csdinfo_get(card);
+#endif
 out:
 	return err;
 }
@@ -695,7 +727,9 @@ static int mmc_read_ext_csd(struct mmc_card *card)
 
 		return err;
 	}
-
+#ifdef CONFIG_MMC_SPRD_BOOTDEVICE
+	set_bootdevice_ext_csd(ext_csd);
+#endif
 	err = mmc_decode_ext_csd(card, ext_csd);
 	kfree(ext_csd);
 	return err;
@@ -1753,7 +1787,11 @@ static int mmc_init_card(struct mmc_host *host, u32 ocr,
 		if (!err)
 			card->ext_csd.power_off_notification = EXT_CSD_POWER_ON;
 	}
-
+#ifdef CONFIG_MMC_SPRD_BOOTDEVICE
+	set_bootdevice_cid(cid);
+	set_bootdevice_name(host->parent->driver->name);
+	sprd_bootdevice_cidinfo_get(card);
+#endif
 	/*
 	 * Select timing interface
 	 */

@@ -8838,6 +8838,16 @@ CONFIG_MMC_CRYPTO
 	[must] user
 	[missing plat description] none
 	[function] Enable MMC controller encryption
+CONFIG_MMC_SPRD_BOOTDEVICE
+	[arch] all
+	[plat] sharkl3,sharkl3_32,sharkl5Pro
+	[missing plat] pike2,qogirl6,qogirn6pro,sharkl5,sharkl5_32,sharkle32
+	[field] make,code
+	[subsys] mmc
+	[must] user
+	[missing plat description] only two customers' requirement whom use
+				sharkl3 & sharkl5 pro
+	[function] Create a node in proc/bootdevice to display emmc cid info
 CONFIG_MMC_SPRD_SDHCR10
 	[arch] arm
 	[plat] pike2,sharkle32
