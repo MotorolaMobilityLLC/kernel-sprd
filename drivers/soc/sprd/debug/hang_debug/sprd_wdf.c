@@ -48,7 +48,7 @@ static enum hrtimer_restart sprd_wdt_timer_func(struct hrtimer *hrtimer)
 {
 	__this_cpu_write(g_enable, 1);
 	wake_up_process(__this_cpu_read(hang_debug_task_store));
-	hrtimer_forward_now(hrtimer, ms_to_ktime(g_timeout * MSEC_PER_SEC));
+	hrtimer_forward_now(hrtimer, ms_to_ktime((u64)(g_timeout * MSEC_PER_SEC)));
 	return HRTIMER_RESTART;
 }
 
@@ -58,7 +58,7 @@ static void sprd_wdf_hrtimer_enable(unsigned int cpu)
 
 	hrtimer_init(hrtimer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
 	hrtimer->function = sprd_wdt_timer_func;
-	hrtimer_start(hrtimer, ms_to_ktime(g_timeout * MSEC_PER_SEC),
+	hrtimer_start(hrtimer, ms_to_ktime((u64)(g_timeout * MSEC_PER_SEC)),
 		      HRTIMER_MODE_REL_PINNED);
 }
 
