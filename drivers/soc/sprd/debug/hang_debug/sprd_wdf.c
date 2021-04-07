@@ -84,7 +84,7 @@ static void hang_debug_park(unsigned int cpu)
 	struct hrtimer *hrtimer = this_cpu_ptr(&sprd_wdt_hrtimer);
 
 	spin_lock(&lock);
-	cpu_feed_mask &= (~(1 << cpu));
+	cpu_feed_mask &= (~(1U << cpu));
 	cpu_feed_bitmap = 0;
 	pr_debug("%s cpu = %u\n", __func__, cpu);
 	spin_unlock(&lock);
@@ -98,7 +98,7 @@ static void hang_debug_park(unsigned int cpu)
 static void hang_debug_unpark(unsigned int cpu)
 {
 	spin_lock(&lock);
-	cpu_feed_mask |= (1 << cpu);
+	cpu_feed_mask |= (1U << cpu);
 	cpu_feed_bitmap = 0;
 	pr_debug("%s cpu = %u\n", __func__, cpu);
 	spin_unlock(&lock);
@@ -114,7 +114,7 @@ static void hang_debug_task(unsigned int cpu)
 
 	spin_lock(&lock);
 
-	cpu_feed_bitmap |= (1 << cpu);
+	cpu_feed_bitmap |= (1U << cpu);
 	if (cpu_feed_mask == cpu_feed_bitmap) {
 		pr_debug("%s feed wdt cpu_feed_bitmap = 0x%08x\n",
 			__func__, cpu_feed_bitmap);

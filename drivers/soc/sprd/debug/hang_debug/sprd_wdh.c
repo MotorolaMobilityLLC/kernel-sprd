@@ -216,7 +216,7 @@ static unsigned long smcc_get_regs(enum smcc_regs_id id)
 	ret = svc_handle->dbg_ops.get_hang_ctx(id, &val);
 	if (ret) {
 		sprd_hang_debug_printf("%s: failed to get cpu statue\n", __func__);
-		return -EPERM;
+		return EPERM;
 	}
 #endif
 	return val;
@@ -229,7 +229,7 @@ static unsigned short smcc_get_cpu_state(void)
 	ret = svc_handle->dbg_ops.get_hang_ctx(CPU_STATUS, &val);
 	if (ret) {
 		pr_err("%s: failed to get cpu statue\n", __func__);
-		return -EPERM;
+		return EPERM;
 	}
 #endif
 	return val;
@@ -383,7 +383,7 @@ static void cpu_stack_data_dump(int cpu)
 	print_step(cpu);
 }
 
-static int get_gicc_regs(struct gicc_data *c)
+static void get_gicc_regs(struct gicc_data *c)
 {
 #ifdef CONFIG_ARM64
 	c->gicc_ctlr = (u32)read_sysreg_s(SYS_ICC_CTLR_EL1);
@@ -407,7 +407,6 @@ static int get_gicc_regs(struct gicc_data *c)
 	c->gicc_iidr = 0;
 #endif
 	isb();
-	return 0;
 }
 
 static int get_gicd_regs(struct gicd_data *d)
@@ -431,26 +430,23 @@ static int get_gicd_regs(struct gicd_data *d)
 
 static void gicc_regs_value_dump(int cpu)
 {
-	int ret;
-
 	if (!gicc_regs) {
 		sprd_hang_debug_printf("gicc_regs allocation failed\n");
 		return;
 	}
 
-	ret = get_gicc_regs(gicc_regs);
-	if (!ret) {
-		sprd_hang_debug_printf("gicc_ctlr  : %08x, gicc_pmr : %08x, gicc_bpr : %08x\n",
-			     gicc_regs->gicc_ctlr, gicc_regs->gicc_pmr, gicc_regs->gicc_bpr);
-		sprd_hang_debug_printf("gicc_rpr  : %08x, gicc_hppir0 : %08x, gicc_abpr : %08x\n",
-			     gicc_regs->gicc_rpr, gicc_regs->gicc_hppir, gicc_regs->gicc_abpr);
-		sprd_hang_debug_printf("gicc_aiar  : %08x, gicc_ahppir : %08x, gicc_statusr : %08x\n",
-			     gicc_regs->gicc_aiar, gicc_regs->gicc_ahppir, gicc_regs->gicc_statusr);
-		sprd_hang_debug_printf("gicc_iidr  : %08x\n", gicc_regs->gicc_iidr);
+	get_gicc_regs(gicc_regs);
 
-		wdh_step[cpu] = SPRD_HANG_DUMP_GICC_REGS;
-		print_step(cpu);
-	}
+	sprd_hang_debug_printf("gicc_ctlr  : %08x, gicc_pmr : %08x, gicc_bpr : %08x\n",
+		     gicc_regs->gicc_ctlr, gicc_regs->gicc_pmr, gicc_regs->gicc_bpr);
+	sprd_hang_debug_printf("gicc_rpr  : %08x, gicc_hppir0 : %08x, gicc_abpr : %08x\n",
+		     gicc_regs->gicc_rpr, gicc_regs->gicc_hppir, gicc_regs->gicc_abpr);
+	sprd_hang_debug_printf("gicc_aiar  : %08x, gicc_ahppir : %08x, gicc_statusr : %08x\n",
+		     gicc_regs->gicc_aiar, gicc_regs->gicc_ahppir, gicc_regs->gicc_statusr);
+	sprd_hang_debug_printf("gicc_iidr  : %08x\n", gicc_regs->gicc_iidr);
+
+	wdh_step[cpu] = SPRD_HANG_DUMP_GICC_REGS;
+	print_step(cpu);
 }
 
 static void gicd_regs_value_dump(int cpu)
@@ -462,8 +458,8 @@ static void gicd_regs_value_dump(int cpu)
 		return;
 	}
 	for (i = 0; i < 7; i++) {
-		gicd_regs->gicd_igroup[i] = smcc_get_regs(GICD_IGROUP_0 + i);
-		gicd_regs->gicd_igrpmodr[i] = smcc_get_regs(GICD_IGRPMODR_0 + i);
+		gicd_regs->gicd_igroup[i] = (u32)smcc_get_regs(GICD_IGROUP_0 + i);
+		gicd_regs->gicd_igrpmodr[i] = (u32)smcc_get_regs(GICD_IGRPMODR_0 + i);
 	}
 
 	ret = get_gicd_regs(gicd_regs);
