@@ -548,6 +548,7 @@ source "drivers/misc/sprd_vsp/Kconfig"
 source "drivers/misc/sprd_vpu/Kconfig"
 source "drivers/misc/sprd_jpg/Kconfig"
 source "drivers/misc/sprdwcn/Kconfig"
+source "drivers/misc/sprd_wcn_bsp/Kconfig"
 source "drivers/misc/sprd_audio/Kconfig"
 source "drivers/misc/sprd_apdu/Kconfig"
 endmenu

@@ -1419,6 +1419,18 @@ CONFIG_WCN_SIPC=y
 CONFIG_WCN_PLATFORM=y
 
 #
+# Spreadtrum WCN SDIO Device Drivers
+#
+# CONFIG_WCN_BSP_SDIO is not set
+# CONFIG_UMW2652_S is not set
+
+#
+# Spreadtrum WCN PCIE Device Drivers
+#
+# CONFIG_WCN_BSP_PCIE is not set
+# CONFIG_SC2355_P is not set
+
+#
 # Spreadtrum Audio Assistant Modules
 #
 # CONFIG_SPRD_AUDIO_AGDSP_ACCESS is not set
