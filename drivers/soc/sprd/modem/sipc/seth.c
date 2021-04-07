@@ -553,7 +553,7 @@ static bool pkt_use_ackpool(struct sk_buff *skb)
 }
 
 /* Transmit interface */
-static int seth_start_xmit(struct sk_buff *skb, struct net_device *dev)
+static netdev_tx_t seth_start_xmit(struct sk_buff *skb, struct net_device *dev)
 {
 	struct seth *seth = netdev_priv(dev);
 	struct seth_dtrans_stats *dt_stats;
