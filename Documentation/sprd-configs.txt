@@ -1904,6 +1904,35 @@ CONFIG_CFG80211_REG_CELLULAR_HINTS
 	[must] user
 	[missing plat description] none
 	[function] Give top priority to country code from SIM card.
+CONFIG_CFI
+	[arch] arm64
+	[plat] qogirl6
+	[missing plat] qogirn6pro,sharkl3,sharkl5,sharkl5Pro
+	[field] code, make
+	[subsys] security
+	[must] user
+	[missing plat description] enable CFI_CLANG,while others no needs now.
+	[function] enable control flow integrity
+CONFIG_CFI_CLANG
+	[arch] arm64
+	[plat] qogirl6
+	[missing plat] qogirn6pro,sharkl3,sharkl5,sharkl5Pro
+	[field] make, code
+	[subsys] security
+	[must] user
+	[missing plat description] enable CFI_CLANG,while others no needs now.
+	[function] enables clang Control Flow Integrity (CFI), which adds
+			runtime checking for indirect function calls.
+CONFIG_CFI_CLANG_SHADOW
+	[arch] arm64
+	[plat] qogirl6
+	[missing plat] qogirn6pro,sharkl3,sharkl5,sharkl5Pro
+	[field] code
+	[subsys] security
+	[must] user
+	[missing plat description] enable CFI_CLANG,while others no needs now.
+	[function] kernel builds a fast look-up table of CFI check functions
+			in loaded modules to reduce overhead
 CONFIG_CFQ_GROUP_IOSCHED
 	[arch] all
 	[plat] pike2,qogirl6,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
@@ -8438,14 +8467,32 @@ CONFIG_LSM_MMAP_MIN_ADDR
 	[must] console
 	[missing plat description] none
 	[function] Low address space for LSM to protect from user allocation.
+CONFIG_LTO
+	[arch] arm64
+	[plat] qogirl6
+	[missing plat] qogirn6pro,sharkl3,sharkl5,sharkl5Pro
+	[field] make
+	[subsys] compiler
+	[must] user
+	[missing plat description] enable it if you want
+	[function] link time optimization
+CONFIG_LTO_CLANG
+	[arch] arm64
+	[plat] qogirl6
+	[missing plat] qogirn6pro,sharkl3,sharkl5,sharkl5Pro
+	[field] make, code
+	[subsys] compiler
+	[must] user
+	[missing plat description] enable it if you want
+	[function] Use clang Link Time Optimization (LTO) (EXPERIMENTAL)
 CONFIG_LTO_NONE
 	[arch] all
-	[plat] all
-	[missing plat] none
+	[plat] pike2,qogirn6pro,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
+	[missing plat] qogirl6
 	[field] menu
 	[subsys] core
 	[must] user
-	[missing plat description] none
+	[missing plat description] enable LTO,while other no needs now.
 	[function] Using NONE for Link-Time Optimization (LTO) (EXPERIMENTAL).
 CONFIG_LZ4_COMPRESS
 	[arch] all
@@ -11828,12 +11875,12 @@ CONFIG_RANDOMIZE_BASE
 	[function] Randomize the address of the kernel image.
 CONFIG_RANDOMIZE_MODULE_REGION_FULL
 	[arch] arm64
-	[plat] qogirl6,qogirn6pro,sharkl3,sharkl5,sharkl5Pro
-	[missing plat] none
+	[plat] qogirn6pro,sharkl3,sharkl5,sharkl5Pro
+	[missing plat] qogirl6
 	[field] make
 	[subsys] arch
 	[must] console
-	[missing plat description] none
+	[missing plat description] default disable while enabling LTO_CLANG.
 	[function] Randomize the module region independently from the core kernel.
 CONFIG_RAS
 	[arch] all
@@ -15202,6 +15249,15 @@ CONFIG_THERMAL_WRITABLE_TRIPS
 	[must] user
 	[missing plat description] none
 	[function] Enable writable trip points.
+CONFIG_THINLTO
+	[arch] arm64
+	[plat] qogirl6
+	[missing plat] qogirn6pro,sharkl3,sharkl5,sharkl5Pro
+	[field] code make
+	[subsys] compiler
+	[must] user
+	[missing plat description] enable it if you want
+	[function] Use ThinLTO to speed up Link Time Optimization.
 CONFIG_THIN_ARCHIVES
 	[arch] all
 	[plat] all
