@@ -120,6 +120,7 @@ misc:sprd_map:
 misc:sprd_vsp:
 misc:sprd_vpu:
 misc:sprd_uid:
+misc:sprd_wcn_bsp:
 misc:sprdwcn:
 mm:
 mm:memblock:
