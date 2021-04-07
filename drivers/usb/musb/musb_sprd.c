@@ -1134,7 +1134,7 @@ static int musb_sprd_probe(struct platform_device *pdev)
 
 	if (sprd_usbmux_check_mode() == MUX_MODE) {
 		dev_info(&pdev->dev, "musb driver stop probe since usb mux jtag\n");
-		return 0;
+		return -ENODEV;
 	}
 
 	glue = devm_kzalloc(&pdev->dev, sizeof(*glue), GFP_KERNEL);
