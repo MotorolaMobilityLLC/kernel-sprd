@@ -2600,8 +2600,8 @@ CONFIG_CEC_PLATFORM_DRIVERS
 	[missing plat description] none
 	[function]
 CONFIG_CFG80211
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field] code, menu,make
 	[subsys] wireless
@@ -2609,8 +2609,8 @@ CONFIG_CFG80211
 	[missing plat description] none
 	[function] is the Linux wireless LAN (802.11) configuration API
 CONFIG_CFG80211_REQUIRE_SIGNED_REGDB
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -2618,8 +2618,8 @@ CONFIG_CFG80211_REQUIRE_SIGNED_REGDB
 	[missing plat description] none
 	[function]
 CONFIG_CFG80211_USE_KERNEL_REGDB_KEYS
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -14984,8 +14984,8 @@ CONFIG_SBITMAP
 	[missing plat description] none
 	[function] Support sbitmap feature.
 CONFIG_SC2332_SIPC_WLAN
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -14993,8 +14993,8 @@ CONFIG_SC2332_SIPC_WLAN
 	[missing plat description] none
 	[function]
 CONFIG_SC2332_WLAN
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -15011,8 +15011,8 @@ CONFIG_SC2342_I
 	[missing plat description]
 	[function]
 CONFIG_SC2355_SDIO_WLAN
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -15020,8 +15020,8 @@ CONFIG_SC2355_SDIO_WLAN
 	[missing plat description] none
 	[function]
 CONFIG_SC2355_WLAN
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -16955,8 +16955,8 @@ CONFIG_SPRD_WATCHDOG_PMIC
 	[missing plat description] none
 	[function]
 CONFIG_SPRD_WLAN
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -16964,8 +16964,8 @@ CONFIG_SPRD_WLAN
 	[missing plat description] none
 	[function]
 CONFIG_SPRD_WLAN_VENDOR_SPECIFIC
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
