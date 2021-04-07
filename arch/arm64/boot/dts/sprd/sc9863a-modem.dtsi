@@ -68,7 +68,7 @@
 		compatible = "sprd,sipc";
 		#address-cells = <1>;
 		#size-cells = <0>;
-		/* endpoint id - should be same with mailbox channel id */
+		/* endpoint id - should be same with sipc processor id */
 		reg = <5>;
 		label = "sipc-lte";
 		/* <&mailbox  channel_id  is_no_wakeup(default 0)> */
@@ -246,7 +246,7 @@
 		compatible = "sprd,sipc";
 		#address-cells = <1>;
 		#size-cells = <0>;
-		/* endpoint id - should be same with mailbox channel id */
+		/* endpoint id - should be same with sipc processor id */
 		reg = <6>;
 		label = "sipc-pmsys";
 		/* <&mailbox  channel_id  is_no_wakeup(default 0)> */

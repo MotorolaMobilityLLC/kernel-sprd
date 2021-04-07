@@ -28,7 +28,7 @@
 	};
 
 	pmsys: modem@0 {
-		compatible = "sprd,modem";
+		compatible = "unisoc,modem";
 		/* 0xff is invalid register offset */
 		syscon0 = <&aon_apb_regs 0xff 0x0>;
 		syscon1 = <&pmu_apb_regs 0xff 0x0>;
@@ -41,7 +41,7 @@
 	};
 
 	modem: modem@1 {
-		compatible = "sprd,modem";
+		compatible = "unisoc,modem";
 		sprd,decoup = "cproc-use-decoup";
 		/* 0xff is invalid register offset */
 		syscon0 = <&pmu_apb_regs 0x48 0x2000000>;
@@ -67,7 +67,7 @@
 		compatible = "sprd,sipc";
 		#address-cells = <1>;
 		#size-cells = <0>;
-		/* endpoint id - should be same with mailbox channel id */
+		/* endpoint id - should be same with sipc processor id */
 		reg = <5>;
 		label = "sipc-lte";
 		/* <&mailbox  channel_id  is_no_wakeup(default 0)> */
@@ -245,7 +245,7 @@
 		compatible = "sprd,sipc";
 		#address-cells = <1>;
 		#size-cells = <0>;
-		/* endpoint id - should be same with mailbox channel id */
+		/* endpoint id - should be same with sipc processor id */
 		reg = <6>;
 		label = "sipc-pmsys";
 		/* <&mailbox  channel_id  is_no_wakeup(default 0)> */
