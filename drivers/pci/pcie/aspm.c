@@ -1199,6 +1199,7 @@ ssize_t sprd_pcie_aspm_set_policy(struct pci_dev *pdev, int val)
 
 	return 0;
 }
+EXPORT_SYMBOL(sprd_pcie_aspm_set_policy);
 
 ssize_t sprd_pcie_aspm_get_policy(struct pci_dev *pdev, int *val)
 {
@@ -1223,6 +1224,7 @@ ssize_t sprd_pcie_aspm_get_policy(struct pci_dev *pdev, int *val)
 
 	return 0;
 }
+EXPORT_SYMBOL(sprd_pcie_aspm_get_policy);
 
 #ifdef CONFIG_PCIEASPM_DEBUG
 static ssize_t link_state_show(struct device *dev,
