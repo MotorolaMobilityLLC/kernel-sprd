@@ -565,9 +565,9 @@
 	};
 
 	flash_ic: flash-ic@63 {
-		compatible = "sprd,flash-ocp8137";
+		compatible = "sprd,flash-aw3643";
 		reg = <0x63>;
-		sprd,flash-ic = <8137>;
+		sprd,flash-ic = <3643>;
 		sprd,torch = <1>;
 		sprd,preflash = <1>;
 		sprd,highlight = <1>;
@@ -577,11 +577,12 @@
 		sprd,lvfm-enable = <1>;
 		flash-torch-en-gpios = <&ap_gpio 32 0>;
 		flash-chip-en-gpios = <&ap_gpio 138 0>;
-		flash-en-gpios = <&ap_gpio 139 0>;
-		flash-sync-gpios = <&ap_gpio 121 0>;
+		//flash-en-gpios = <&ap_gpio 139 0>;
+		//flash-sync-gpios = <&ap_gpio 121 0>;
+		status = "okay";
 	};
 };
-
+/*
 &i2c6 {
 	status = "okay";
 	clock-frequency = <400000>;
@@ -601,12 +602,12 @@
 		vddcammot-supply = <&vddcammot>;
 		mot-gpios = <&ap_gpio 112 0>;
 		reset-gpios = <&ap_gpio 114 0>;
-	/*	power-down-gpios = <&ap_gpio 40 0>;*/
+		power-down-gpios = <&ap_gpio 40 0>;
 		sprd,phyid = <3>;
 		csi = <&csi2>;
 	};
 };
-
+*/
 &spi3 {
 	status = "okay";
 
