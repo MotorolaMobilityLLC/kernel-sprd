@@ -240,8 +240,7 @@ static int audio_sblock_handle_event(struct sblock_mgr *sblock,
 		ringhd = (volatile struct sblock_ring_header *)
 			(&ring->header->ring);
 		if (ringhd->rxblk_wrptr == ringhd->rxblk_rdptr) {
-			pr_info("p_tt: %d,%d\n", ringhd->rxblk_wrptr,
-				ringhd->rxblk_rdptr);
+
 			return 0;
 		}
 
