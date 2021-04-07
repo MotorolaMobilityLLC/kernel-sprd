@@ -15,8 +15,8 @@
 #include <trace/hooks/sched.h>
 
 #define IOWAIT_BOOST_MIN	(SCHED_CAPACITY_SCALE / 8)
-#define MIN_CAP_CPUMASK_FREQ_MARGIN	0
-#define OTHER_CPUMASK_FREQ_MARGIN	0
+#define MIN_CAP_CPUMASK_FREQ_MARGIN	25
+#define OTHER_CPUMASK_FREQ_MARGIN	25
 
 struct sugov_tunables {
 	struct gov_attr_set	attr_set;
