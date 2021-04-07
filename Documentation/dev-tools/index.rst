@@ -26,6 +26,7 @@ whole; patches welcome!
    kgdb
    kselftest
    kunit/index
+   pgo
 
 
 .. only::  subproject and html
