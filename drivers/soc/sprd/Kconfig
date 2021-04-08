@@ -91,3 +91,4 @@ menuconfig SPRD_POWER
 	  Select this to enable debug power driver for sprd soc.
 
 source "drivers/soc/sprd/power/Kconfig"
+source "drivers/soc/sprd/usbpinmux/Kconfig"
