@@ -17,11 +17,25 @@
 #include "wcn_glb.h"
 #include "../sdio/sdiohal.h"
 #include "slp_dbg.h"
+#include "../../../gpio/gpiolib.h"
 
 struct sdio_int_t sdio_int = {0};
 
 static atomic_t flag_pub_int_done;
 static bool sdio_power_notify;
+
+//wakeup flag by pub int
+bool wcn_pub_int_wakeup_flag;
+char *PUB_INT_NAME[PUB_INT_MAX] = {
+	"MEM_SAVE_BIN",
+	"WAKEUP_ACK",
+	"REQ_SLP",
+	"WIFI_OPEN",
+	"BT_OPEN",
+	"WIFI_CLOSE",
+	"BT_CLOSE",
+	"GNSS_CALI_DONE"
+};
 
 static inline int sdio_pub_int_clr0(unsigned char int_sts0)
 {
@@ -91,6 +105,11 @@ static int pub_int_handle_thread(void *data)
 		do {
 			if ((pub_int_sts0.reg & BIT(bit_num)) &&
 				sdio_int.pub_int_cb[bit_num]) {
+				if (wcn_pub_int_wakeup_flag == true) {
+					WCN_INFO("wake up by int:%s\n",
+						 PUB_INT_NAME[bit_num]);
+					wcn_pub_int_wakeup_flag = false;
+				}
 				sdio_int.pub_int_cb[bit_num]();
 			}
 			bit_num++;
@@ -111,6 +130,8 @@ static int pub_int_handle_thread(void *data)
 static int irq_cnt;
 static irqreturn_t pub_int_isr(int irq, void *para)
 {
+	struct gpio_desc *p_desc;
+
 	disable_irq_nosync(irq);
 	/*
 	 * for wifi powersave special handle, when wifi driver send
@@ -124,6 +145,11 @@ static irqreturn_t pub_int_isr(int irq, void *para)
 
 	irq_cnt++;
 	WCN_INFO("irq_cnt%d!!\n", irq_cnt);
+	p_desc = gpio_to_desc(sdio_int.gpio_num);
+	if (p_desc && (p_desc->flags & BIT(FLAG_IS_WAKEUP)))
+		wcn_pub_int_wakeup_flag = true;
+	else
+		wcn_pub_int_wakeup_flag = false;
 
 	complete(&(sdio_int.pub_int_completion));
 
@@ -158,6 +184,7 @@ static int sdio_pub_int_register(int irq)
 		return ret;
 	}
 
+	sdio_int.gpio_num = irq;
 	sdio_int.pub_int_num = gpio_to_irq(irq);
 
 	ret = request_irq(sdio_int.pub_int_num,
