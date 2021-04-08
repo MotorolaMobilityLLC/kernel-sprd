@@ -29,7 +29,6 @@
 #include <linux/random.h>
 #include <linux/slab.h>
 #include <linux/of.h>
-#include <uapi/linux/sched/types.h>
 
 #include <linux/mmc/card.h>
 #include <linux/mmc/host.h>
@@ -50,8 +49,11 @@
 #include "mmc_ops.h"
 #include "sd_ops.h"
 #include "sdio_ops.h"
+#ifdef CONFIG_EMMC_SOFTWARE_CQ_SUPPORT
+#include <uapi/linux/sched/types.h>
 #include "queue.h"
-
+#include "../host/sprd-sdhcr11.h"
+#endif
 /* If the device is not responding */
 #define MMC_CORE_TIMEOUT_MS	(10 * 60 * 1000) /* 10 minute timeout */
 
@@ -190,7 +192,7 @@ static int mmc_blk_status_check(struct mmc_card *card, unsigned int *status)
 	return err;
 }
 
-static void mmc_discard_cmdq(struct mmc_host *host)
+static int mmc_discard_cmdq(struct mmc_host *host)
 {
 	memset(&host->deq_cmd, 0, sizeof(struct mmc_command));
 	memset(&host->deq_mrq, 0, sizeof(struct mmc_request));
@@ -224,6 +226,11 @@ static void mmc_discard_cmdq(struct mmc_host *host)
 	};
 
 	pr_notice("%s: CMDQ send distard (CMD48)\n", __func__);
+	if (!host->deq_mrq.cmd->retries &&
+		host->deq_mrq.cmd->error)
+		return 1;
+	else
+		return 0;
 }
 
 static void mmc_post_req(struct mmc_host *host, struct mmc_request *mrq,
@@ -391,7 +398,7 @@ void mmc_do_stop(struct mmc_host *host)
 	};
 }
 
-static int mmc_wait_tran(struct mmc_host *host)
+static int mmc_wait_transfer(struct mmc_host *host)
 {
 	u32 status;
 	int err;
@@ -444,7 +451,7 @@ static int mmc_check_write(struct mmc_host *host, struct mmc_request *mrq)
 				__func__, mrq->data->error, status,
 				__LINE__, mq_rq->brq.que.arg);
 		} else if (R1_CURRENT_STATE(status) != R1_STATE_TRAN) {
-			mmc_wait_tran(host);
+			mmc_wait_transfer(host);
 			mrq->data->error = 0;
 			host->wp_error = 0;
 			atomic_set(&host->cq_w, false);
@@ -465,12 +472,13 @@ int mmc_cmd_queue_thread(void *data)
 	struct mmc_request *cmd_mrq = NULL;
 	struct mmc_request *data_mrq = NULL;
 	struct mmc_request *done_mrq = NULL;
-	unsigned int task_id, areq_cnt_chk, tmo;
+	unsigned int task_id, areq_cnt_chk, timeout;
 	bool is_done = false;
 
 	int err;
 	u64 chk_time = 0;
 	struct sched_param scheduler_params = {0};
+	struct sprd_sdhc_host *sprd_host = mmc_priv(host);
 
 	/* Set as RT priority */
 	scheduler_params.sched_priority = 1;
@@ -492,21 +500,32 @@ int mmc_cmd_queue_thread(void *data)
 		}
 		if (done_mrq) {
 			if (done_mrq->data->error || done_mrq->cmd->error) {
-				mmc_wait_tran(host);
-				mmc_discard_cmdq(host);
-				mmc_wait_tran(host);
-				mmc_clear_data_list(host);
-				atomic_set(&host->cq_rdy_cnt, 0);
+				emmc_resetting_when_cmdq = 1;
+				if (mmc_wait_transfer(host)
+				    || mmc_discard_cmdq(host)
+				    || mmc_wait_transfer(host))
+					goto reset_card;
 
 				if (host->ops->execute_tuning) {
 					err = host->ops->execute_tuning(host,
 				MMC_SEND_TUNING_BLOCK_HS200);
-					if (err && mmc_reset_for_cmdq(host)) {
+					if (err) {
 						pr_notice("[CQ] reinit fail\n");
 						WARN_ON(1);
-					} else
+						goto reset_card;
+					} else {
 						pr_notice("[CQ] tuning pass\n");
+						goto restore_task;
+					}
 				}
+reset_card:
+				if (mmc_reset_for_cmdq(host)) {
+					pr_err("cmq reset err, trigger exception!\n");
+					WARN_ON(1);
+				}
+restore_task:
+				mmc_clear_data_list(host);
+				atomic_set(&host->cq_rdy_cnt, 0);
 
 				host->cur_rw_task = CQ_TASK_IDLE;
 				task_id = (done_mrq->cmd->arg >> 16) & 0x1f;
@@ -550,6 +569,12 @@ int mmc_cmd_queue_thread(void *data)
 				task_id = ((data_mrq->cmd->arg >> 16) & 0x1f);
 				host->cur_rw_task = task_id;
 				host->ops->request(host, data_mrq);
+				if (sprd_host->need_intr) {
+					timeout = wait_event_interruptible_timeout(
+					host->cmdq_que, host->done_mrq, 10 * HZ);
+					if (!timeout)
+						pr_info("[CQ] time out occurred!\n");
+				}
 				atomic_dec(&host->cq_rdy_cnt);
 				data_mrq = NULL;
 			}
@@ -613,17 +638,17 @@ int mmc_cmd_queue_thread(void *data)
 			/* wait for event to wakeup */
 			/* wake up when new request arrived and dma done */
 			areq_cnt_chk = atomic_read(&host->areq_cnt);
-			tmo = wait_event_interruptible_timeout(host->cmdq_que,
+			timeout = wait_event_interruptible_timeout(host->cmdq_que,
 				host->done_mrq ||
 				(atomic_read(&host->areq_cnt) > areq_cnt_chk),
 				10 * HZ);
-			if (!tmo) {
-				pr_info("%s:tmo,mrq(%p),chk(%d),cnt(%d)\n",
+			if (!timeout) {
+				pr_info("%s:timeout,mrq(%p),chk(%d),cnt(%d)\n",
 					__func__,
 					host->done_mrq,
 					areq_cnt_chk,
 					atomic_read(&host->areq_cnt));
-				pr_info("%s:tmo,rw(%d),wait(%d),rdy(%d)\n",
+				pr_info("%s:timeout,rw(%d),wait(%d),rdy(%d)\n",
 					__func__,
 					atomic_read(&host->cq_rw),
 					atomic_read(&host->cq_wait_rdy),
@@ -646,7 +671,7 @@ int mmc_cmd_queue_thread(void *data)
 				/* clear when got ready task */
 				chk_time = 0;
 			else if (sched_clock() - chk_time > CMD13_TMO_NS)
-				/* sleep when TMO */
+				/* sleep when timeout */
 				usleep_range(2000, 5000);
 		}
 
@@ -1164,7 +1189,7 @@ static int mmc_start_request(struct mmc_host *host, struct mmc_request *mrq)
 			/* cannot wait cmdq empty for init requests
 			 * when emmc resetting when cmdq
 			 */
-			if (strncmp(current->comm, "exe_cq", 6)
+			if (strncmp(current->comm, "mmc_cq", 6)
 				|| !emmc_resetting_when_cmdq)
 				mmc_wait_cmdq_empty(host);
 
