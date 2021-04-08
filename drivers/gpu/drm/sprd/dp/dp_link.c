@@ -65,8 +65,8 @@ static int dptx_link_check_ch_eq_done(struct dptx *dptx,
 void dptx_link_set_preemp_vswing(struct dptx *dptx)
 {
 	int i;
-	u8 pe, vs;
-	u32 reg;
+	u8 pe = 0, vs = 0;
+	u32 reg = 0;
 
 	for (i = 0; i < dptx->link.lanes; i++) {
 		pe = dptx->link.preemp_level[i];
