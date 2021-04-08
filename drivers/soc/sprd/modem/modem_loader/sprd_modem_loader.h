@@ -59,13 +59,21 @@ struct modem_ctrl {
 	u32	ctrl_reg[MODEM_CTRL_NR];	/* offset value*/
 	u32	ctrl_mask[MODEM_CTRL_NR];	/* mask bit */
 	u32	ctrl_type[MODEM_CTRL_NR];	/* pmu or apb, 0 apb, 1 pmu */
-	struct regmap *ctrl_map[MODEM_CTRL_NR];
+	struct regmap	*ctrl_map[MODEM_CTRL_NR];
+};
+
+struct pm_reg_ctrl {
+	u32	reg_offset;  /* offset value*/
+	u32	reg_mask;  /* mask bit */
+	u32	reg_save;  /* pre reg bit */
+	struct regmap	*ctrl_map;
 };
 
 struct modem_device {
 	struct modem_load_info	*load;
 	const char		*modem_name;
 	struct modem_ctrl	*modem_ctrl;
+	struct pm_reg_ctrl	*pm_reg_ctrl;
 
 #ifdef CONFIG_SPRD_EXT_MODEM_POWER_CTRL
 	struct gpio_desc	*modem_reset;
