@@ -19,3 +19,4 @@ obj-$(CONFIG_SPRD_HWFEATURE)	+= sprd_hwfeature.o
 obj-$(CONFIG_SPRD_PIKE2_SLEEP)  += sprd_pike2_sleep.o
 obj-$(CONFIG_SPRD_HRTIMER_DEBUG)	+= sprd_hrtimer_debug.o
 obj-$(CONFIG_SPRD_TIME_SYNC_CH)	+= sprd_time_sync_ch.o
+obj-$(CONFIG_SPRD_USBPINMUX)	+= usbpinmux/

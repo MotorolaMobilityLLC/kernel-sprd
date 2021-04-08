@@ -16,7 +16,7 @@
 
 #define	MUX_MODE	1
 
-#if IS_ENABLED(CONFIG_SPRD_DEBUG) && IS_ENABLED(CONFIG_SPRD_USBPINMUX)
+#if IS_ENABLED(CONFIG_SPRD_USBPINMUX)
 int sprd_usbmux_check_mode(void);
 #else
 static inline int sprd_usbmux_check_mode(void)
