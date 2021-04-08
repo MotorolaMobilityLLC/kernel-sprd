@@ -466,19 +466,19 @@ static int sprd_hsphy_probe(struct platform_device *pdev)
 	ret = of_property_read_u32(dev->of_node, "sprd,vdd-voltage",
 				   &phy->vdd_vol);
 	if (ret < 0) {
-		dev_err(dev, "unable to read ssphy vdd voltage\n");
+		dev_err(dev, "unable to read hsphy vdd voltage\n");
 		return ret;
 	}
 
 	phy->vdd = devm_regulator_get(dev, "vdd");
 	if (IS_ERR(phy->vdd)) {
-		dev_err(dev, "unable to get ssphy vdd supply\n");
+		dev_err(dev, "unable to get hsphy vdd supply\n");
 		return PTR_ERR(phy->vdd);
 	}
 
 	ret = regulator_set_voltage(phy->vdd, phy->vdd_vol, phy->vdd_vol);
 	if (ret < 0) {
-		dev_err(dev, "fail to set ssphy vdd voltage at %dmV\n",
+		dev_err(dev, "fail to set hsphy vdd voltage at %dmV\n",
 			phy->vdd_vol);
 		return ret;
 	}
@@ -572,7 +572,7 @@ static const struct of_device_id sprd_hsphy_match[] = {
 	{},
 };
 
-MODULE_DEVICE_TABLE(of, sprd_ssphy_match);
+MODULE_DEVICE_TABLE(of, sprd_hsphy_match);
 
 static struct platform_driver sprd_hsphy_driver = {
 	.probe = sprd_hsphy_probe,
