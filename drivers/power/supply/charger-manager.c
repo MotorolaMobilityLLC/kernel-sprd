@@ -650,14 +650,14 @@ static int get_cp_ibus_uA(struct charger_manager *cm, int *cur)
 }
 
  /**
-  * get_batt_uA - Get the current level of the battery
+  * get_ibat_avg_uA - Get the current level of the battery
   * @cm: the Charger Manager representing the battery.
   * @uA: the current level returned.
   *
   * Returns 0 if there is no error.
   * Returns a negative value on error.
   */
-static int get_batt_uA(struct charger_manager *cm, int *uA)
+static int get_ibat_avg_uA(struct charger_manager *cm, int *uA)
 {
 	union power_supply_propval val;
 	struct power_supply *fuel_gauge;
@@ -677,14 +677,14 @@ static int get_batt_uA(struct charger_manager *cm, int *uA)
 }
 
  /**
-  * get_batt_cur_now - Get the current level of the battery
+  * get_ibat_now_uA - Get the current level of the battery
   * @cm: the Charger Manager representing the battery.
   * @uA: the current level returned.
   *
   * Returns 0 if there is no error.
   * Returns a negative value on error.
   */
-static int get_batt_cur_now(struct charger_manager *cm, int *uA)
+static int get_ibat_now_uA(struct charger_manager *cm, int *uA)
 {
 	union power_supply_propval val;
 	struct power_supply *fuel_gauge;
@@ -705,14 +705,14 @@ static int get_batt_cur_now(struct charger_manager *cm, int *uA)
 
 /**
  *
- * get_batt_uV - Get the voltage level of the battery
+ * get_vbat_avg_uV - Get the voltage level of the battery
  * @cm: the Charger Manager representing the battery.
  * @uV: the voltage level returned.
  *
  * Returns 0 if there is no error.
  * Returns a negative value on error.
  */
-static int get_batt_uV(struct charger_manager *cm, int *uV)
+static int get_vbat_avg_uV(struct charger_manager *cm, int *uV)
 {
 	union power_supply_propval val;
 	struct power_supply *fuel_gauge;
@@ -768,7 +768,7 @@ static int get_batt_ocv(struct charger_manager *cm, int *ocv)
  * Returns 0 if there is no error.
  * Returns a negative value on error.
  */
-static int get_batt_vol_now(struct charger_manager *cm, int *ocv)
+static int get_vbat_now_uV(struct charger_manager *cm, int *ocv)
 {
 	union power_supply_propval val;
 	struct power_supply *fuel_gauge;
@@ -1354,11 +1354,11 @@ static bool is_full_charged(struct charger_manager *cm)
 
 	/* Full, if it's over the fullbatt voltage */
 	if (desc->fullbatt_uV > 0 && desc->fullbatt_uA > 0) {
-		ret = get_batt_uV(cm, &uV);
+		ret = get_vbat_now_uV(cm, &uV);
 		if (ret)
 			goto out;
 
-		ret = get_batt_uA(cm, &uA);
+		ret = get_ibat_now_uA(cm, &uA);
 		if (ret)
 			goto out;
 
@@ -1941,13 +1941,13 @@ static int cm_fast_charge_enable_check(struct charger_manager *cm)
 	if (!desc->is_fast_charge || desc->enable_fast_charge)
 		return 0;
 
-	ret = get_batt_uV(cm, &batt_uV);
+	ret = get_vbat_now_uV(cm, &batt_uV);
 	if (ret) {
 		dev_err(cm->dev, "failed to get batt uV\n");
 		return ret;
 	}
 
-	ret = get_batt_uA(cm, &batt_uA);
+	ret = get_ibat_now_uA(cm, &batt_uA);
 	if (ret) {
 		dev_err(cm->dev, "failed to get batt uA\n");
 		return ret;
@@ -2082,13 +2082,13 @@ static int cm_fast_charge_disable_check(struct charger_manager *cm)
 	if (!cm->desc->enable_fast_charge)
 		return 0;
 
-	ret = get_batt_uV(cm, &batt_uV);
+	ret = get_vbat_now_uV(cm, &batt_uV);
 	if (ret) {
 		dev_err(cm->dev, "failed to get batt uV\n");
 		return ret;
 	}
 
-	ret = get_batt_uA(cm, &batt_uA);
+	ret = get_ibat_now_uA(cm, &batt_uA);
 	if (ret) {
 		dev_err(cm->dev, "failed to get batt uA\n");
 		return ret;
@@ -2208,7 +2208,7 @@ static int cm_get_ibat_avg(struct charger_manager *cm, int *ibat)
 	int ret, batt_uA, min, max, i, sum = 0;
 	struct cm_ir_compensation *ir_sts = &cm->desc->ir_comp;
 
-	ret = get_batt_uA(cm, &batt_uA);
+	ret = get_ibat_now_uA(cm, &batt_uA);
 	if (ret) {
 		dev_err(cm->dev, "get bat_uA error.\n");
 		return ret;
@@ -2704,7 +2704,7 @@ static void cm_update_cp_charger_status(struct charger_manager *cm)
 			dev_err(cm->dev, "get ibus current error.\n");
 		}
 
-		if (get_batt_uV(cm, &cp->vbatt_uV)) {
+		if (get_vbat_now_uV(cm, &cp->vbatt_uV)) {
 			cp->vbatt_uV = 0;
 			dev_err(cm->dev, "get vbatt error.\n");
 		}
@@ -2715,7 +2715,7 @@ static void cm_update_cp_charger_status(struct charger_manager *cm)
 		}
 
 
-		if (get_batt_uA(cm, &cp->ibatt_uA)) {
+		if (get_ibat_now_uA(cm, &cp->ibatt_uA)) {
 			cp->ibatt_uA = 0;
 			dev_err(cm->dev, "get vbatt error.\n");
 		}
@@ -2742,8 +2742,8 @@ static bool cm_is_reach_cp_threshold(struct charger_manager *cm)
 		return false;
 	}
 
-	if (get_batt_uA(cm, &batt_uA)) {
-		dev_err(cm->dev, "get_batt_uA error.\n");
+	if (get_ibat_now_uA(cm, &batt_uA)) {
+		dev_err(cm->dev, "get_ibat_now_uA error.\n");
 		return false;
 	}
 
@@ -4713,21 +4713,16 @@ static int charger_get_property(struct power_supply *psy,
 			val->intval = 0;
 		break;
 	case POWER_SUPPLY_PROP_VOLTAGE_AVG:
-		ret = get_batt_uV(cm, &val->intval);
-		break;
-	case POWER_SUPPLY_PROP_CURRENT_AVG:
-		fuel_gauge = power_supply_get_by_name(cm->desc->psy_fuel_gauge);
-		if (!fuel_gauge) {
-			ret = -ENODEV;
-			break;
-		}
-		ret = power_supply_get_property(fuel_gauge, POWER_SUPPLY_PROP_CURRENT_AVG, val);
+		ret = get_vbat_avg_uV(cm, &val->intval);
 		break;
 	case POWER_SUPPLY_PROP_VOLTAGE_NOW:
-		ret = get_batt_vol_now(cm, &val->intval);
+		ret = get_vbat_now_uV(cm, &val->intval);
+		break;
+	case POWER_SUPPLY_PROP_CURRENT_AVG:
+		ret = get_ibat_avg_uA(cm, &val->intval);
 		break;
 	case POWER_SUPPLY_PROP_CURRENT_NOW:
-		ret = get_batt_cur_now(cm, &val->intval);
+		ret = get_ibat_now_uA(cm, &val->intval);
 		break;
 	case POWER_SUPPLY_PROP_TECHNOLOGY:
 		val->intval = POWER_SUPPLY_TECHNOLOGY_UNKNOWN;
@@ -5814,13 +5809,13 @@ static void cm_track_capacity_monitor(struct charger_manager *cm)
 		return;
 	}
 
-	ret = get_batt_cur_now(cm, &cur_now);
+	ret = get_ibat_now_uA(cm, &cur_now);
 	if (ret) {
 		dev_err(cm->dev, "failed to get relax current.\n");
 		return;
 	}
 
-	ret = get_batt_uV(cm, &batt_uV);
+	ret = get_vbat_now_uV(cm, &batt_uV);
 	if (ret) {
 		dev_err(cm->dev, "failed to get battery voltage.\n");
 		return;
@@ -6316,9 +6311,9 @@ static void cm_uvlo_check_work(struct work_struct *work)
 				struct charger_manager, uvlo_work);
 	int batt_uV, ret;
 
-	ret = get_batt_uV(cm, &batt_uV);
+	ret = get_vbat_now_uV(cm, &batt_uV);
 	if (ret) {
-		dev_err(cm->dev, "get_batt_uV error.\n");
+		dev_err(cm->dev, "get_vbat_now_uV error.\n");
 		return;
 	}
 
@@ -6346,14 +6341,18 @@ static void cm_batt_works(struct work_struct *work)
 	int batt_uV, batt_ocV, bat_uA, fuel_cap, chg_sts, ret;
 	int period_time, flush_time, cur_temp, board_temp = 0;
 	int chg_cur = 0, chg_limit_cur = 0, input_cur = 0;
-	int chg_vol = 0;
+	int chg_vol = 0, vbat_avg = 0, ibat_avg = 0;
 	static int last_fuel_cap = CM_MAGIC_NUM;
 
-	ret = get_batt_uV(cm, &batt_uV);
+	ret = get_vbat_now_uV(cm, &batt_uV);
 	if (ret) {
-		dev_err(cm->dev, "get_batt_uV error.\n");
+		dev_err(cm->dev, "get_vbat_now_uV error.\n");
 		goto schedule_cap_update_work;
 	}
+
+	ret = get_vbat_avg_uV(cm, &vbat_avg);
+	if (ret)
+		dev_err(cm->dev, "get_vbat_avg_uV error.\n");
 
 	ret = get_batt_ocv(cm, &batt_ocV);
 	if (ret) {
@@ -6361,11 +6360,15 @@ static void cm_batt_works(struct work_struct *work)
 		goto schedule_cap_update_work;
 	}
 
-	ret = get_batt_uA(cm, &bat_uA);
+	ret = get_ibat_now_uA(cm, &bat_uA);
 	if (ret) {
 		dev_err(cm->dev, "get bat_uA error.\n");
 		goto schedule_cap_update_work;
 	}
+
+	ret = get_ibat_avg_uA(cm, &ibat_avg);
+	if (ret)
+		dev_err(cm->dev, "get ibat_avg_uA error.\n");
 
 	ret = get_batt_cap(cm, &fuel_cap);
 	if (ret) {
@@ -6459,11 +6462,12 @@ static void cm_batt_works(struct work_struct *work)
 	else
 		cm->desc->charger_status = chg_sts;
 
-	dev_info(cm->dev, "vbatt = %d, OCV = %d, ibat = %d, ibus = %d, vbus = %d, "
-		 "msoc = %d, chg_sts = %d, frce_full = %d, chg_lmt_cur = %d, "
-		 "inpt_lmt_cur = %d, chgr_type = %d, Tboard = %d, Tbatt = %d ,"
-		 "track_sts = %d, thm_cur = %d, thm_pwr = %dmW, is_fst_chg = %d, fst_chg_en = %d\n",
-		 batt_uV, batt_ocV, bat_uA, input_cur,  chg_vol, fuel_cap, cm->desc->charger_status,
+	dev_info(cm->dev, "vbatt = %d, vbat_avg = %d, OCV = %d, ibat = %d, ibat_avg = %d,"
+		 " ibus = %d, vbus = %d, msoc = %d, chg_sts = %d, frce_full = %d, chg_lmt_cur = %d,"
+		 " inpt_lmt_cur = %d, chgr_type = %d, Tboard = %d, Tbatt = %d,"
+		 " track_sts = %d, thm_cur = %d, thm_pwr = %dmW, is_fst_chg = %d, fst_chg_en = %d\n",
+		 batt_uV, vbat_avg, batt_ocV, bat_uA, ibat_avg, input_cur,
+		 chg_vol, fuel_cap, cm->desc->charger_status,
 		 cm->desc->force_set_full, chg_cur, chg_limit_cur, cm->desc->charger_type,
 		 board_temp, cur_temp, cm->track.state, cm->desc->thm_info.thm_adjust_cur,
 		 cm->desc->thm_info.thm_pwr, cm->desc->is_fast_charge,

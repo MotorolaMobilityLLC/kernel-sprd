@@ -98,6 +98,9 @@
 #define UMP9620_FGU_CAL			GENMASK(15, 7)
 #define UMP9620_FGU_CAL_SHIFT		7
 
+#define SC27XX_FGU_CURRENT_BUF_CNT	8
+#define SC27XX_FGU_VOLTAGE_BUF_CNT	8
+
 #define interpolate(x, x1, y1, x2, y2) \
 	((y1) + ((((y2) - (y1)) * ((x) - (x1))) / ((x2) - (x1))))
 
@@ -226,7 +229,7 @@ static void sc27xx_fgu_low_capacity_calibration(struct sc27xx_fgu_data *data,
 static int sc27xx_fgu_get_temp(struct sc27xx_fgu_data *data, int *temp);
 static void sc27xx_fgu_adjust_cap(struct sc27xx_fgu_data *data, int cap);
 static int sc27xx_fgu_get_vbat_ocv(struct sc27xx_fgu_data *data, int *val);
-static int sc27xx_fgu_get_vbat_vol(struct sc27xx_fgu_data *data, int *val);
+static int sc27xx_fgu_get_vbat_now(struct sc27xx_fgu_data *data, int *val);
 
 static const char * const sc27xx_charger_supply_name[] = {
 	"fan54015_charger",
@@ -661,33 +664,39 @@ static int sc27xx_fgu_get_clbcnt(struct sc27xx_fgu_data *data, int *clb_cnt)
 	return 0;
 }
 
-static int sc27xx_fgu_get_vol_now(struct sc27xx_fgu_data *data, int *val)
+static int sc27xx_fgu_get_vbat_avg(struct sc27xx_fgu_data *data, int *val)
 {
 	int ret;
 	u32 vol;
+	int i;
 
-	ret = regmap_read(data->regmap,
-			  data->base + SC27XX_FGU_VOLTAGE_BUF,
-			  &vol);
-	if (ret)
-		return ret;
+	*val = 0;
+	for (i = 0; i < SC27XX_FGU_VOLTAGE_BUF_CNT; i++) {
+		ret = regmap_read(data->regmap,
+				  data->base + SC27XX_FGU_VOLTAGE_BUF + i * 4,
+				  &vol);
+		if (ret)
+			return ret;
 
-	/*
-	 * It is ADC values reading from registers which need to convert to
-	 * corresponding voltage values.
-	 */
-	*val = sc27xx_fgu_adc_to_voltage(data, vol);
+		/*
+		 * It is ADC values reading from registers which need to convert to
+		 * corresponding voltage values.
+		 */
+		*val += sc27xx_fgu_adc_to_voltage(data, vol);
+	}
+
+	*val /= 8;
 
 	return 0;
 }
 
-static int sc27xx_fgu_get_cur_now(struct sc27xx_fgu_data *data, int *val)
+static int sc27xx_fgu_get_current_now(struct sc27xx_fgu_data *data, int *val)
 {
 	int ret;
 	u32 cur;
 
 	ret = regmap_read(data->regmap,
-			  data->base + SC27XX_FGU_CURRENT_BUF,
+			  data->base + SC27XX_FGU_CURRENT,
 			  &cur);
 	if (ret)
 		return ret;
@@ -785,7 +794,7 @@ static int sc27xx_fgu_get_capacity(struct sc27xx_fgu_data *data, int *cap,
 	return 0;
 }
 
-static int sc27xx_fgu_get_vbat_vol(struct sc27xx_fgu_data *data, int *val)
+static int sc27xx_fgu_get_vbat_now(struct sc27xx_fgu_data *data, int *val)
 {
 	int ret, vol;
 
@@ -802,19 +811,25 @@ static int sc27xx_fgu_get_vbat_vol(struct sc27xx_fgu_data *data, int *val)
 	return 0;
 }
 
-static int sc27xx_fgu_get_current(struct sc27xx_fgu_data *data, int *val)
+static int sc27xx_fgu_get_current_avg(struct sc27xx_fgu_data *data, int *val)
 {
 	int ret, cur;
+	int i;
 
-	ret = regmap_read(data->regmap, data->base + SC27XX_FGU_CURRENT, &cur);
-	if (ret)
-		return ret;
+	*val = 0;
 
-	/*
-	 * It is ADC values reading from registers which need to convert to
-	 * corresponding current values.
-	 */
-	*val = sc27xx_fgu_adc_to_current(data, cur - SC27XX_FGU_CUR_BASIC_ADC);
+	for (i = 0; i < SC27XX_FGU_CURRENT_BUF_CNT; i++) {
+		ret = regmap_read(data->regmap, data->base + SC27XX_FGU_CURRENT_BUF + i * 4, &cur);
+		if (ret)
+			return ret;
+		/*
+		 * It is ADC values reading from registers which need to convert to
+		 * corresponding current values.
+		 */
+		*val += sc27xx_fgu_adc_to_current(data, cur - SC27XX_FGU_CUR_BASIC_ADC);
+	}
+
+	*val /= 8;
 
 	return 0;
 }
@@ -823,11 +838,11 @@ static int sc27xx_fgu_get_vbat_ocv(struct sc27xx_fgu_data *data, int *val)
 {
 	int vol, cur, resistance, ret;
 
-	ret = sc27xx_fgu_get_vbat_vol(data, &vol);
+	ret = sc27xx_fgu_get_vbat_now(data, &vol);
 	if (ret)
 		return ret;
 
-	ret = sc27xx_fgu_get_current(data, &cur);
+	ret = sc27xx_fgu_get_current_now(data, &cur);
 	if (ret)
 		return ret;
 
@@ -924,7 +939,7 @@ static int sc27xx_fgu_get_temp(struct sc27xx_fgu_data *data, int *temp)
 	if (data->comp_resistance) {
 		int bat_current, resistance_vol;
 
-		ret = sc27xx_fgu_get_current(data, &bat_current);
+		ret = sc27xx_fgu_get_current_now(data, &bat_current);
 		if (ret) {
 			dev_err(data->dev, "failed to get battery current\n");
 			return ret;
@@ -967,7 +982,7 @@ static int sc27xx_fgu_get_health(struct sc27xx_fgu_data *data, int *health)
 {
 	int ret, vol;
 
-	ret = sc27xx_fgu_get_vbat_vol(data, &vol);
+	ret = sc27xx_fgu_get_vbat_now(data, &vol);
 	if (ret)
 		return ret;
 
@@ -1068,7 +1083,15 @@ static int sc27xx_fgu_get_property(struct power_supply *psy,
 		break;
 
 	case POWER_SUPPLY_PROP_VOLTAGE_AVG:
-		ret = sc27xx_fgu_get_vbat_vol(data, &value);
+		ret = sc27xx_fgu_get_vbat_avg(data, &value);
+		if (ret)
+			goto error;
+
+		val->intval = value * 1000;
+		break;
+
+	case POWER_SUPPLY_PROP_VOLTAGE_NOW:
+		ret = sc27xx_fgu_get_vbat_now(data, &value);
 		if (ret)
 			goto error;
 
@@ -1092,7 +1115,15 @@ static int sc27xx_fgu_get_property(struct power_supply *psy,
 		break;
 
 	case POWER_SUPPLY_PROP_CURRENT_AVG:
-		ret = sc27xx_fgu_get_current(data, &value);
+		ret = sc27xx_fgu_get_current_avg(data, &value);
+		if (ret)
+			goto error;
+
+		val->intval = value * 1000;
+		break;
+
+	case POWER_SUPPLY_PROP_CURRENT_NOW:
+		ret = sc27xx_fgu_get_current_now(data, &value);
 		if (ret)
 			goto error;
 
@@ -1112,22 +1143,6 @@ static int sc27xx_fgu_get_property(struct power_supply *psy,
 					  36 * SC27XX_FGU_SAMPLE_HZ);
 		val->intval = sc27xx_fgu_adc_to_current(data, value);
 
-		break;
-
-	case POWER_SUPPLY_PROP_VOLTAGE_NOW:
-		ret = sc27xx_fgu_get_vol_now(data, &value);
-		if (ret)
-			goto error;
-
-		val->intval = value * 1000;
-		break;
-
-	case POWER_SUPPLY_PROP_CURRENT_NOW:
-		ret = sc27xx_fgu_get_cur_now(data, &value);
-		if (ret)
-			goto error;
-
-		val->intval = value * 1000;
 		break;
 
 	case POWER_SUPPLY_PROP_VOLTAGE_BOOT:
@@ -1259,7 +1274,7 @@ static void sc27xx_fgu_low_capacity_match_ocv(struct sc27xx_fgu_data *data,
 		return;
 	}
 
-	ret = sc27xx_fgu_get_vbat_vol(data, &batt_uV);
+	ret = sc27xx_fgu_get_vbat_now(data, &batt_uV);
 	if (ret) {
 		dev_err(data->dev, "get battery vol error.\n");
 		return;
