@@ -272,19 +272,20 @@ struct dpu_reg {
 };
 
 struct enhance_module {
-	u32 scl_en: 1;
 	u32 epf_en: 1;
 	u32 hsv_en: 1;
 	u32 cm_en: 1;
-	u32 slp_en: 1;
 	u32 gamma_en: 1;
-	u32 blp_en: 1;
+	u32 lut3d_en: 1;
+	u32 dither_en: 1;
+	u32 slp_en: 1;
 	u32 ltm_en: 1;
 	u32 slp_mask_en: 1;
 	u32 cabc_en: 1;
 	u32 ud_en: 1;
 	u32 ud_local_en: 1;
 	u32 ud_mask_en: 1;
+	u32 scl_en: 1;
 };
 
 struct luts_typeindex {
@@ -1872,9 +1873,9 @@ static void dpu_enhance_backup(u32 id, void *param)
 		break;
 	case ENHANCE_CFG_ID_SCL:
 		memcpy(&scale_copy, param, sizeof(scale_copy));
-		if (!(enhance_en & BIT(4)))
-			enhance_en |= BIT(1);
-		enhance_en |= BIT(0);
+		if (!(enhance_en & BIT(6)))
+			enhance_en |= BIT(0);
+		enhance_en |= BIT(13);
 		pr_info("enhance scaling backup\n");
 		break;
 	case ENHANCE_CFG_ID_HSV:
@@ -1917,8 +1918,8 @@ static void dpu_enhance_backup(u32 id, void *param)
 		/* valid range of gain3 is [128,255]; */
 		if (sr_epf.e5 == 0) {
 			/* eye comfort and super resolution are enabled*/
-			if (!(enhance_en & BIT(2)) && (enhance_en & BIT(0))) {
-				enhance_en &= ~BIT(1);
+			if (!(enhance_en & BIT(1)) && (enhance_en & BIT(13))) {
+				enhance_en &= ~BIT(0);
 				pr_info("enhance[ID_SR_EPF] backup disable epf\n");
 			}
 			sr_epf_ready = 0;
@@ -2045,7 +2046,8 @@ static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
 		reg->epf_gain4_7 = (epf.e9 << 24) | (epf.e8 << 16) |
 				(epf.e7 << 8) | epf.e6;
 		reg->epf_diff = (epf.e11 << 8) | epf.e10;
-		reg->dpu_enhance_cfg |= (BIT(0) | BIT(1));
+		reg->dpu_enhance_cfg |= (BIT(0) | BIT(13));
+		reg->scl_en = BIT(0);
 		pr_info("enhance scaling: %ux%u\n", scale->in_w, scale->in_h);
 		break;
 	case ENHANCE_CFG_ID_HSV:
@@ -2165,14 +2167,14 @@ static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
 		if (sr_epf.e5 == 0) {
 			sr_epf_ready = 0;
 
-			if ((enhance_en & BIT(0)) && reg->scl_en) {
+			if ((enhance_en & BIT(1)) && (enhance_en & BIT(13))) {
 				epf_slp = &epf_copy;
 				dpu_epf_set(reg, epf_slp);
-				reg->dpu_enhance_cfg |= BIT(0);
+				reg->scl_en = BIT(0);
 				pr_info("enhance[ID_SR_EPF] epf set\n");
 				break;
-			} else if (enhance_en & reg->scl_en) {
-				reg->dpu_enhance_cfg &= ~BIT(1);
+			} else if (enhance_en & BIT(13)) {
+				reg->dpu_enhance_cfg &= ~BIT(0);
 				pr_info("enhance[ID_SR_EPF] disable epf\n");
 				break;
 			}
@@ -2180,7 +2182,7 @@ static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
 		}
 
 		sr_epf_ready = 1;
-		if ((enhance_en & reg->scl_en) && (!(enhance_en & BIT(2)) ||
+		if ((enhance_en & BIT(13)) && (!(enhance_en & BIT(2)) ||
 			(slp_copy.s1 <= SLP_BRIGHTNESS_THRESHOLD))) {
 			epf_slp = &sr_epf;
 			dpu_epf_set(reg, epf_slp);
@@ -2261,7 +2263,7 @@ static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
 		ctx->is_stopped = false;
 	}
 
-	enhance_en = reg->dpu_enhance_cfg;
+	enhance_en = reg->dpu_enhance_cfg | (reg->scl_en << 13);
 
 }
 
@@ -2582,9 +2584,10 @@ static void dpu_enhance_reload(struct dpu_context *ctx)
 		*p16++ = slp_lut[i];
 	reg->enhance_update |= BIT(4);
 
-	if (enhance_en & reg->scl_en) {
+	if (enhance_en & BIT(13)) {
 		scale = &scale_copy;
 		reg->blend_size = (scale->in_h << 16) | scale->in_w;
+		reg->scl_en = BIT(0);
 		pr_info("enhance scaling from %ux%u to %ux%u\n", scale->in_w,
 			scale->in_h, ctx->vm.hactive, ctx->vm.vactive);
 	}
@@ -2592,7 +2595,7 @@ static void dpu_enhance_reload(struct dpu_context *ctx)
 	if (enhance_en & BIT(0)) {
 		if (((enhance_en & BIT(6)) &&
 			(slp_copy.s1 > SLP_BRIGHTNESS_THRESHOLD)) ||
-			!(enhance_en & reg->scl_en) || !sr_epf_ready) {
+			!(enhance_en & BIT(13)) || !sr_epf_ready) {
 			epf = &epf_copy;
 			pr_info("enhance epf reload\n");
 		} else {
@@ -2714,7 +2717,8 @@ static void dpu_sr_config(struct dpu_context *ctx)
 				enhance_en |= BIT(1);
 			}
 		}
-		enhance_en |= BIT(0);
+		enhance_en |= BIT(13);
+		reg->scl_en  = BIT(0);
 		reg->dpu_enhance_cfg = enhance_en;
 	} else {
 		if (enhance_en & BIT(6))
@@ -2722,7 +2726,8 @@ static void dpu_sr_config(struct dpu_context *ctx)
 		else
 			enhance_en &= ~(BIT(1));
 
-		enhance_en &= ~(BIT(0));
+		enhance_en &= ~(BIT(13));
+		reg->scl_en = 0;
 		reg->dpu_enhance_cfg = enhance_en;
 	}
 }
