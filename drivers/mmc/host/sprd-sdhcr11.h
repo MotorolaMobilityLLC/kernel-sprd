@@ -61,7 +61,19 @@ struct register_hotplug {
 	u32 reg;
 	u32 mask;
 };
-
+#ifdef CONFIG_EMMC_SOFTWARE_CQ_SUPPORT
+/*POLLING_SAMPLE_NUM must >= (max_req_size/16KB) + 1*/
+#ifdef CONFIG_MMC_FFU_FUNCTION
+#define POLLING_SAMPLE_NUM (65)
+#else
+#define POLLING_SAMPLE_NUM (33)
+#endif
+struct polling_info {
+	int wait[POLLING_SAMPLE_NUM];
+	int count[POLLING_SAMPLE_NUM];
+	bool first[POLLING_SAMPLE_NUM];
+};
+#endif
 struct sprd_sdhc_host {
 	/* --globe resource--- */
 	spinlock_t lock;
@@ -128,6 +140,8 @@ struct sprd_sdhc_host {
 	struct register_hotplug reg_debounce_cn;
 #ifdef CONFIG_EMMC_SOFTWARE_CQ_SUPPORT
 	bool need_polling;
+	bool need_intr;
+	struct polling_info poll[2];//0:read, 1:write
 #endif
 /* Tuning for HS400 support emmc5.0 */
 #define SPRD_HS400_TUNING	(1<<0)

@@ -24,15 +24,17 @@
 #include <linux/slab.h>
 #include "../core/card.h"
 #include "sprd-sdhcr11.h"
+#include <linux/sched/clock.h>
 
 #define DRIVER_NAME "sprd-sdhcr11"
 
 #ifdef CONFIG_EMMC_SOFTWARE_CQ_SUPPORT
-#define CMD_TIMEOUT             (HZ/10 * 5)     /* 100ms x5 */
-bool use_cmd_intr;
+#define POLL_TIMEOUT             (500*1000)     /* 500us */
+#define CMD_TIMEOUT             (5*1000*1000*1000UL)     /* 5s */
 static irqreturn_t sprd_sdhc_irq(int irq, void *param);
 static int irq_err_handle(struct sprd_sdhc_host *host, u32 intmask);
 static void sprd_sdhc_finish_tasklet(unsigned long param);
+static unsigned long long pre_time, second_time, now;
 #endif
 
 #ifdef CONFIG_PM
@@ -616,6 +618,55 @@ static void sprd_sdmd_mode(struct sprd_sdhc_host *host, struct mmc_data *data)
 	}
 }
 
+#ifdef CONFIG_EMMC_SOFTWARE_CQ_SUPPORT
+static inline void cmdq_poll_wait_calc(struct sprd_sdhc_host *host,
+										struct mmc_command *cmd)
+{
+	struct mmc_data *data = cmd->data;
+	struct device *dev = &host->pdev->dev;
+	int index;
+	int delta = 0;
+	int dir;
+	struct polling_info *poll;
+
+	if (data) {
+		if (host->need_intr)
+			now = sched_clock();
+		index = data->blocks/(POLLING_SAMPLE_NUM - 1);
+		dir = (cmd->opcode == MMC_EXECUTE_READ_TASK)?0:1;
+		poll = &host->poll[dir];
+
+		delta = ((int)(now - pre_time))/1000;
+		if (!poll->first[index]
+			&& poll->wait[index] > delta)
+			poll->wait[index] = delta;
+
+		if (poll->first[index]) {
+			if (!poll->wait[index]) {
+				poll->wait[index] = delta;
+				return;
+			}
+			if (poll->wait[index] > delta)
+				poll->wait[index] = delta;
+
+			poll->count[index]++;
+			if (poll->count[index] > 10)
+				poll->first[index] = false;
+		}
+
+		dev_dbg(dev, "CMD%d, blocks %d "
+		"poll[%d].wait[%d]: %d "
+		"pre %llx second %llx now %llx "
+		"delta %d second-pre=%d Intr %s\n",
+		cmd->opcode, data->blocks, dir,
+		index, poll->wait[index],
+		pre_time, second_time, now, delta,
+		((int)(second_time - pre_time))/1000,
+		host->need_intr?"true":"false");
+	}
+}
+#endif
+
 static void sprd_send_cmd(struct sprd_sdhc_host *host, struct mmc_command *cmd)
 {
 	struct mmc_data *data = cmd->data;
@@ -628,7 +679,6 @@ static void sprd_send_cmd(struct sprd_sdhc_host *host, struct mmc_command *cmd)
 	int if_dma = 0;
 	u16 auto_cmd = SPRD_SDHC_BIT_ACMD_DIS;
 #ifdef CONFIG_EMMC_SOFTWARE_CQ_SUPPORT
-	unsigned long timeout;
 	u32 intmask;
 #endif
 
@@ -736,15 +786,17 @@ static void sprd_send_cmd(struct sprd_sdhc_host *host, struct mmc_command *cmd)
 	host->int_filter = flag;
 	host->int_come = 0;
 #ifdef CONFIG_EMMC_SOFTWARE_CQ_SUPPORT
-	if (!use_cmd_intr && host->mmc->card
+	if (host->mmc->card
 	  && mmc_card_cmdq(host->mmc->card)
 	  && (cmd->opcode == MMC_SEND_STATUS
+	  || cmd->opcode == MMC_CMDQ_TASK_MGMT
 	  || cmd->opcode == MMC_QUE_TASK_PARAMS
 	  || cmd->opcode == MMC_QUE_TASK_ADDR
 	  || cmd->opcode == MMC_EXECUTE_READ_TASK
 	  || cmd->opcode == MMC_EXECUTE_WRITE_TASK)) {
 		flag = 0;
 		host->need_polling = true;
+		host->need_intr = false;
 	} else
 		host->need_polling = false;
 #endif
@@ -761,9 +813,23 @@ static void sprd_send_cmd(struct sprd_sdhc_host *host, struct mmc_command *cmd)
 
 #ifdef CONFIG_EMMC_SOFTWARE_CQ_SUPPORT
 	if (host->need_polling) {
+		int index;
+		int dir;
+		struct polling_info *poll;
 
-		timeout = jiffies + CMD_TIMEOUT;
-		while (!time_after(jiffies, timeout)) {
+		pre_time = sched_clock();
+		if (data) {
+			index = data->blocks/(POLLING_SAMPLE_NUM - 1);
+			dir = (cmd->opcode == MMC_EXECUTE_READ_TASK)?0:1;
+			poll = &host->poll[dir];
+
+			if (poll->wait[index] > 100
+				&& !poll->first[index])
+				usleep_range(poll->wait[index] - 50,
+							poll->wait[index] - 30);
+		}
+		second_time = sched_clock();
+		while (1) {
 			intmask = sprd_sdhc_readl(host,
 					SPRD_SDHC_REG_32_INT_STATE);
 			if (((intmask & host->int_filter) &&
@@ -772,12 +838,31 @@ static void sprd_send_cmd(struct sprd_sdhc_host *host, struct mmc_command *cmd)
 			  || ((intmask & SPRD_SDHC_BIT_INT_TRAN_END)
 			  && (cmd->opcode == MMC_EXECUTE_READ_TASK
 			  || cmd->opcode == MMC_EXECUTE_WRITE_TASK))) {
+				now = sched_clock();
 				sprd_sdhc_irq(0, host);
+				cmdq_poll_wait_calc(host, cmd);
 				return;
 			}
+			now = sched_clock();
+			if (now - second_time > POLL_TIMEOUT) {
+				if (data)
+					break;
+				else {
+					if (now - pre_time > CMD_TIMEOUT) {
+						irq_err_handle(host,
+					SPRD_SDHC_BIT_INT_ERR_CMD_TIMEOUT);
+						return;
+					}
+					usleep_range(50, 100);
+					second_time = sched_clock();
+				}
+			}
 		}
-		dump_sdio_reg(host);
-		irq_err_handle(host, SPRD_SDHC_BIT_INT_ERR_CMD_TIMEOUT);
+
+		/*switch to int mode*/
+		host->need_intr = true;
+		sprd_sdhc_writel(host, host->int_filter,
+				 SPRD_SDHC_REG_32_INT_SIG_EN);
 	}
 #endif
 
@@ -859,9 +944,9 @@ static int irq_err_handle(struct sprd_sdhc_host *host, u32 intmask)
 	} else {
 		/* request finish with error, so reset and stop it */
 #ifdef CONFIG_EMMC_SOFTWARE_CQ_SUPPORT
-		if (!use_cmd_intr && host->mmc->card &&
+		if (host->mmc->card &&
 			mmc_card_cmdq(host->mmc->card) &&
-			host->need_polling) {
+			host->need_polling && !host->need_intr) {
 			sprd_sdhc_finish_tasklet((unsigned long)host);
 		} else
 #endif
@@ -914,9 +999,9 @@ static int irq_normal_handle(struct sprd_sdhc_host *host, u32 intmask,
 		else {
 			/* finish with success and stop the request */
 #ifdef CONFIG_EMMC_SOFTWARE_CQ_SUPPORT
-			if (!use_cmd_intr && host->mmc->card &&
+			if (host->mmc->card &&
 				mmc_card_cmdq(host->mmc->card)
-				&& host->need_polling) {
+				&& host->need_polling && !host->need_intr) {
 				sprd_sdhc_finish_tasklet((unsigned long)host);
 			} else
 				tasklet_schedule(&host->finish_tasklet);
@@ -961,6 +1046,11 @@ static irqreturn_t sprd_sdhc_irq(int irq, void *param)
 			spin_unlock(&host->lock);
 		return IRQ_NONE;
 	}
+
+#ifdef CONFIG_EMMC_SOFTWARE_CQ_SUPPORT
+	if (host->need_intr && host->need_polling)
+		cmdq_poll_wait_calc(host, cmd);
+#endif
 
 	intmask = sprd_sdhc_readl(host, SPRD_SDHC_REG_32_INT_STATE);
 	host->int_come |= intmask;
@@ -1051,6 +1141,13 @@ static void sprd_sdhc_timeout(unsigned long data)
 	struct device *dev = &host->pdev->dev;
 
 	spin_lock_irqsave(&host->lock, flags);
+	if (!host->cmd || !host->mrq) {
+		dev_info(dev, "Timeout waiting for hardware interrupt!"
+				" but cmd or mrq null point\n");
+		dump_sdio_reg(host);
+		spin_unlock_irqrestore(&host->lock, flags);
+		return;
+	}
 	if (host->mrq) {
 		dev_info(dev, "Timeout waiting for hardware interrupt!\n");
 		dump_sdio_reg(host);
@@ -2301,6 +2398,9 @@ static int sprd_sdhc_probe(struct platform_device *pdev)
 	struct sprd_sdhc_host *host;
 	struct device *dev = &pdev->dev;
 	int ret;
+#ifdef CONFIG_EMMC_SOFTWARE_CQ_SUPPORT
+	int i;
+#endif
 
 	/* globe resource */
 	mmc = mmc_alloc_host(sizeof(struct sprd_sdhc_host), &pdev->dev);
@@ -2315,6 +2415,15 @@ static int sprd_sdhc_probe(struct platform_device *pdev)
 	host->flags = 0;
 #ifdef CONFIG_EMMC_SOFTWARE_CQ_SUPPORT
 	host->need_polling = false;
+	host->need_intr = false;
+	for (i = 0; i < POLLING_SAMPLE_NUM; i++) {
+		host->poll[0].first[i] = true;
+		host->poll[0].wait[i] = 0;
+		host->poll[0].count[i] = 0;
+		host->poll[1].first[i] = true;
+		host->poll[1].wait[i] = 0;
+		host->poll[1].count[i] = 0;
+	}
 #endif
 	spin_lock_init(&host->lock);
 	platform_set_drvdata(pdev, host);
