@@ -958,6 +958,12 @@
 			reg = <0x84300000 0x0015b000>;
 		};
 
+		/* Only used for iq, will be removed in normal mode by uboot */
+		iq_reserved: iq-mem@84e00000 {
+			compatible = "sprd,iq-mem";
+			reg = <0x0 0x84e00000 0x0 0x04000000>;
+		};
+
 		smem_reserved: sipc-mem@88e00000 {
 			reg = <0x88e00000 0x00800000>;
 		};
@@ -990,6 +996,12 @@
 
 	iram_reserved: sp-iram@d000 {
 		reg = <0xd000 0x2000>;
+	};
+
+	sprd-iq {
+		compatible = "sprd,iq";
+		sprd,region = <&iq_reserved>;
+		sprd,mapping-offs = <0x0>;
 	};
 
 	resume_on_reboot {
