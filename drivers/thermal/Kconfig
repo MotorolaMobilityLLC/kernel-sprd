@@ -603,4 +603,11 @@ config SPRD_VIRTUAL_THERMAL
 	help
 	  Say Y here to support virtual thermal for cp chip
 	  We can use it to monitor cp junction temperature
+
+config SPRD_THERMAL_GCOV
+	bool "open gcov for kernel thermal"
+	depends on GCOV_PROFILE_MODULES
+	help
+	  Say Y here to enable thermal gcov
+
 endif

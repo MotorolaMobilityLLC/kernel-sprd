@@ -3,12 +3,14 @@
 # Makefile for sensor chip drivers.
 #
 # UT kunit test GCOV
+
 ifdef CONFIG_TEST
 GCOV_PROFILE := y
 else
 GCOV_PROFILE := n
 endif
 
+GCOV_PROFILE			= ${CONFIG_SPRD_THERMAL_GCOV}
 obj-$(CONFIG_THERMAL)		+= thermal_sys.o
 thermal_sys-y			+= thermal_core.o thermal_sysfs.o \
 					thermal_helpers.o
