@@ -18,6 +18,7 @@
 #include <linux/module.h>
 #include <linux/of.h>
 #include <linux/platform_device.h>
+#include <linux/pm_runtime.h>
 #include <linux/sipa.h>
 #include <linux/sipc.h>
 
@@ -32,6 +33,7 @@ static void cp_dele_on_commad(void *priv, u16 flag, u32 data)
 	pr_debug("prod_id:%d\n", delegator->prod_id);
 	switch (flag) {
 	case SMSG_FLG_DELE_ENABLE:
+		pm_runtime_get_sync(delegator->pdev);
 		sipa_set_enabled(true);
 		sipa_dele_start_done_work(delegator,
 					  SMSG_FLG_DELE_ENABLE,
@@ -40,6 +42,7 @@ static void cp_dele_on_commad(void *priv, u16 flag, u32 data)
 	case SMSG_FLG_DELE_DISABLE:
 		/* do release operation */
 		sipa_set_enabled(false);
+		pm_runtime_put(delegator->pdev);
 		break;
 	default:
 		break;
