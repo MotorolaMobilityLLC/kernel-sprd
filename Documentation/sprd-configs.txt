@@ -2555,8 +2555,8 @@ CONFIG_CC_VERSION_TEXT
 	[missing plat description] none
 	[function]
 CONFIG_CEC_CORE
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -2564,8 +2564,8 @@ CONFIG_CEC_CORE
 	[missing plat description] none
 	[function]
 CONFIG_CEC_NOTIFIER
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -2573,8 +2573,8 @@ CONFIG_CEC_NOTIFIER
 	[missing plat description] none
 	[function]
 CONFIG_CEC_PIN
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -2915,7 +2915,7 @@ CONFIG_COMPAT_VDSO
 	[arch] arm64
 	[plat] sharkl3,sharkl5Pro
 	[missing plat] none
-	[field]	code
+	[field] 	code
 	[subsys] core
 	[must] none
 	[missing plat description] none
@@ -3861,8 +3861,8 @@ CONFIG_CRYPTO_ECHAINIV
 	[missing plat description] none
 	[function] Encrypted Chain IV Generator.
 CONFIG_CRYPTO_ENGINE
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field] make
 	[subsys] crypto
@@ -4680,6 +4680,15 @@ CONFIG_DEVFREQ_THERMAL
 	[must] user
 	[missing plat description] none
 	[function] gpu thermal policy
+CONFIG_DEV_COREDUMP
+	[arch] arm
+	[plat] pike2
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
 CONFIG_DIRECT_SWAPPINESS
 	[arch] all
 	[plat] all
@@ -5079,8 +5088,8 @@ CONFIG_DRM_SPRD_GSP
 	[missing plat description] none
 	[function] DRM_SPRD_GSP is used for enable gsp.
 CONFIG_DRM_TTM
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -5932,8 +5941,8 @@ CONFIG_FRAME_POINTER
 	[function] Compile the kernel with frame pointers, kernel image will be slightly
 	larger and slower, but it gives very useful debugging information in case of kernel bugs.
 CONFIG_FRAME_VECTOR
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -6348,8 +6357,8 @@ CONFIG_GENERIC_IDLE_POLL_SETUP
 	[missing plat description] none
 	[function] Enable kernel support generic idle poll.
 CONFIG_GENERIC_IRQ_CHIP
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -6474,8 +6483,8 @@ CONFIG_GENERIC_PINCONF
 	[missing plat description] none
 	[function] Generic pin configuration support.
 CONFIG_GENERIC_PINCTRL_GROUPS
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -6546,8 +6555,8 @@ CONFIG_GENERIC_TRACER
 	[missing plat description] none
 	[function] Enable/disalbe generic tracer.
 CONFIG_GKI_HACKS_TO_FIX
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -6555,8 +6564,8 @@ CONFIG_GKI_HACKS_TO_FIX
 	[missing plat description] none
 	[function]
 CONFIG_GKI_HIDDEN_CRYPTO_CONFIGS
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -6564,8 +6573,8 @@ CONFIG_GKI_HIDDEN_CRYPTO_CONFIGS
 	[missing plat description] none
 	[function]
 CONFIG_GKI_HIDDEN_DRM_CONFIGS
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -6573,8 +6582,8 @@ CONFIG_GKI_HIDDEN_DRM_CONFIGS
 	[missing plat description] none
 	[function]
 CONFIG_GKI_HIDDEN_GPIO_CONFIGS
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -6582,8 +6591,8 @@ CONFIG_GKI_HIDDEN_GPIO_CONFIGS
 	[missing plat description] none
 	[function]
 CONFIG_GKI_HIDDEN_GPU_CONFIGS
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -6591,8 +6600,8 @@ CONFIG_GKI_HIDDEN_GPU_CONFIGS
 	[missing plat description] none
 	[function]
 CONFIG_GKI_HIDDEN_HYPERVISOR_CONFIGS
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -6600,8 +6609,8 @@ CONFIG_GKI_HIDDEN_HYPERVISOR_CONFIGS
 	[missing plat description] none
 	[function]
 CONFIG_GKI_HIDDEN_IRQ_CONFIGS
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -6609,8 +6618,8 @@ CONFIG_GKI_HIDDEN_IRQ_CONFIGS
 	[missing plat description] none
 	[function]
 CONFIG_GKI_HIDDEN_MEDIA_CONFIGS
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -6618,8 +6627,8 @@ CONFIG_GKI_HIDDEN_MEDIA_CONFIGS
 	[missing plat description] none
 	[function]
 CONFIG_GKI_HIDDEN_MMC_CONFIGS
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -6627,8 +6636,8 @@ CONFIG_GKI_HIDDEN_MMC_CONFIGS
 	[missing plat description] none
 	[function]
 CONFIG_GKI_HIDDEN_QCOM_CONFIGS
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -6636,8 +6645,8 @@ CONFIG_GKI_HIDDEN_QCOM_CONFIGS
 	[missing plat description] none
 	[function]
 CONFIG_GKI_HIDDEN_REGMAP_CONFIGS
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -6645,8 +6654,8 @@ CONFIG_GKI_HIDDEN_REGMAP_CONFIGS
 	[missing plat description] none
 	[function]
 CONFIG_GKI_HIDDEN_RPMSG_CONFIGS
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -6654,8 +6663,8 @@ CONFIG_GKI_HIDDEN_RPMSG_CONFIGS
 	[missing plat description] none
 	[function]
 CONFIG_GKI_HIDDEN_SND_CONFIGS
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -6663,8 +6672,8 @@ CONFIG_GKI_HIDDEN_SND_CONFIGS
 	[missing plat description] none
 	[function]
 CONFIG_GKI_HIDDEN_SND_SOC_CONFIGS
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -6672,8 +6681,8 @@ CONFIG_GKI_HIDDEN_SND_SOC_CONFIGS
 	[missing plat description] none
 	[function]
 CONFIG_GKI_HIDDEN_SOC_BUS_CONFIGS
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -6681,8 +6690,8 @@ CONFIG_GKI_HIDDEN_SOC_BUS_CONFIGS
 	[missing plat description] none
 	[function]
 CONFIG_GKI_HIDDEN_USB_CONFIGS
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -6690,8 +6699,8 @@ CONFIG_GKI_HIDDEN_USB_CONFIGS
 	[missing plat description] none
 	[function]
 CONFIG_GKI_HIDDEN_VIRTUAL_CONFIGS
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -6699,8 +6708,8 @@ CONFIG_GKI_HIDDEN_VIRTUAL_CONFIGS
 	[missing plat description] none
 	[function]
 CONFIG_GKI_LEGACY_WEXT_ALLCONFIG
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -6763,8 +6772,8 @@ CONFIG_GPIO_EIC_SPRD
 	[missing plat description] none
 	[function] Sprd gpio eic support
 CONFIG_GPIO_PL061
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -8293,8 +8302,8 @@ CONFIG_HOTPLUG_CPU
 	[missing plat description] none
 	[function] Enable arm/arm64 cpuhotplug/SMP function
 CONFIG_HVC_DRIVER
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -8925,8 +8934,8 @@ CONFIG_INTERCONNECT
 	[missing plat description] none
 	[function]
 CONFIG_INTERVAL_TREE
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -13540,8 +13549,8 @@ CONFIG_PINCTRL_AMD
 	[missing plat description] none
 	[function]
 CONFIG_PINCTRL_SINGLE
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -14264,8 +14273,8 @@ CONFIG_QCOM_QDF2400_ERRATUM_0065
 	[missing plat description] none
 	[function]
 CONFIG_QCOM_SMEM_STATE
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -14741,8 +14750,8 @@ CONFIG_RODATA_FULL_DEFAULT_ENABLED
 	[missing plat description] none
 	[function]
 CONFIG_RPMSG
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -15676,8 +15685,8 @@ CONFIG_SND
 	[missing plat description] none
 	[function] enable Advanced Linux Sound Architecture
 CONFIG_SND_COMPRESS_OFFLOAD
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field] make
 	[subsys] sound
@@ -15685,8 +15694,8 @@ CONFIG_SND_COMPRESS_OFFLOAD
 	[missing plat description] none
 	[function] audio compress offload support
 CONFIG_SND_DMAENGINE_PCM
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -15785,8 +15794,8 @@ CONFIG_SND_PCM
 	[missing plat description] none
 	[function] enable ALSA pcm
 CONFIG_SND_PCM_ELD
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -15794,8 +15803,8 @@ CONFIG_SND_PCM_ELD
 	[missing plat description] none
 	[function]
 CONFIG_SND_PCM_IEC958
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -15839,8 +15848,8 @@ CONFIG_SND_SOC
 	[missing plat description] none
 	[function] ALSA for SoC audio support
 CONFIG_SND_SOC_COMPRESS
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field] make
 	[subsys] sound
@@ -15848,8 +15857,8 @@ CONFIG_SND_SOC_COMPRESS
 	[missing plat description] none
 	[function] sound support compress
 CONFIG_SND_SOC_GENERIC_DMAENGINE_PCM
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -15866,8 +15875,8 @@ CONFIG_SND_SOC_I2C_AND_SPI
 	[missing plat description] none
 	[function] enable I2C and SPI bus for audio codec
 CONFIG_SND_SOC_TOPOLOGY
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -16082,8 +16091,8 @@ CONFIG_SND_VERBOSE_PROCFS
 	[missing plat description] none
 	[function] Verbose procfs contents
 CONFIG_SND_VMASTER
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -16109,8 +16118,8 @@ CONFIG_SOCK_CGROUP_DATA
 	[missing plat description] none
 	[function] Support cgroup. Select by NET_PRIO and NET_CLASSID.
 CONFIG_SOC_BUS
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -17236,8 +17245,8 @@ CONFIG_SYSTEM_TRUSTED_KEYS
 	[missing plat description] none
 	[function] Support SYSTEM_TRUSTED_KEYS.
 CONFIG_SYS_HYPERVISOR
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -17675,8 +17684,8 @@ CONFIG_TRACE_CLOCK
 	[missing plat description] none
 	[function] Report clock of trace.
 CONFIG_TRACE_GPU_MEM
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -19096,8 +19105,8 @@ CONFIG_VHOST_VSOCK
 	[missing plat description] none
 	[function]
 CONFIG_VIDEOBUF2_CORE
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -19105,8 +19114,8 @@ CONFIG_VIDEOBUF2_CORE
 	[missing plat description] none
 	[function]
 CONFIG_VIDEOBUF2_DMA_CONTIG
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -19114,8 +19123,8 @@ CONFIG_VIDEOBUF2_DMA_CONTIG
 	[missing plat description] none
 	[function]
 CONFIG_VIDEOBUF2_MEMOPS
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -19123,8 +19132,8 @@ CONFIG_VIDEOBUF2_MEMOPS
 	[missing plat description] none
 	[function]
 CONFIG_VIDEOBUF2_V4L2
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -19325,8 +19334,8 @@ CONFIG_VT_CONSOLE_SLEEP
 	[missing plat description] none
 	[function] Enable vt console sleep
 CONFIG_WANT_DEV_COREDUMP
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -19443,8 +19452,8 @@ CONFIG_WCN_SLP
 	[missing plat description]
 	[function]
 CONFIG_WEXT_CORE
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -19452,8 +19461,8 @@ CONFIG_WEXT_CORE
 	[missing plat description] none
 	[function]
 CONFIG_WEXT_PRIV
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -19461,8 +19470,8 @@ CONFIG_WEXT_PRIV
 	[missing plat description] none
 	[function]
 CONFIG_WEXT_PROC
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -19470,8 +19479,8 @@ CONFIG_WEXT_PROC
 	[missing plat description] none
 	[function]
 CONFIG_WEXT_SPY
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -19497,8 +19506,8 @@ CONFIG_WIRELESS
 	[missing plat description] none
 	[function] wireless support
 CONFIG_WIRELESS_EXT
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
