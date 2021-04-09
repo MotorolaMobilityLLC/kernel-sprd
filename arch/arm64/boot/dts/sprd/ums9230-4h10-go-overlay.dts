@@ -67,8 +67,9 @@
                  fpsensor,eint-gpio   = <&eic_async 29 0 >;
                  fpsensor,reset-gpio  = <&ap_gpio 169 0 >;
              };
+
             fingerprint_goodix {
-                 compatible = "goodix,goodix-fp";
+                 compatible = "goodix,fingerprint";
              };
 
 			gpio-keys {

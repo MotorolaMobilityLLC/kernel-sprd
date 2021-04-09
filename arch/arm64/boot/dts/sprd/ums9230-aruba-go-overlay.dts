@@ -61,10 +61,15 @@
 				fpint-gpios = <&eic_async 29 0>;
 			};
         */
+
             fingerprint_fpc {
-                compatible = "sprd,fingerprint-fpc1520";
-                fpsensor,eint-gpio   = <&eic_async 29 0 >;
-                fpsensor,reset-gpio  = <&ap_gpio 169 0 >;
+                 compatible = "sprd,fingerprint-fpc1520";
+                 fpsensor,eint-gpio   = <&eic_async 29 0 >;
+                 fpsensor,reset-gpio  = <&ap_gpio 169 0 >;
+            };
+
+            fingerprint_goodix {
+                 compatible = "goodix,fingerprint";
             };
 
 			gpio-keys {
