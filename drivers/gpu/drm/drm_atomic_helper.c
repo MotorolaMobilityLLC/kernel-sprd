@@ -2729,9 +2729,9 @@ static int __drm_atomic_helper_disable_all(struct drm_device *dev,
 		if (ret < 0)
 			goto free;
 
-		/*ret = drm_atomic_add_affected_planes(state, crtc);
+		ret = drm_atomic_add_affected_planes(state, crtc);
 		if (ret < 0)
-			goto free;*/
+			goto free;
 
 		ret = drm_atomic_add_affected_connectors(state, crtc);
 		if (ret < 0)
