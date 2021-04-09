@@ -108,18 +108,20 @@ static netdev_tx_t sipa_eth_start_xmit(struct sk_buff *skb,
 	netid = pdata->netid;
 	len = skb->len;
 
-	if (skb->protocol == htons(ETH_P_IP)) {
-		iph = ip_hdr(skb);
-		if (iph->protocol == IPPROTO_TCP)
-			tcp_hdr(skb)->check = 0;
-		else if (iph->protocol == IPPROTO_UDP)
-			udp_hdr(skb)->check = 0;
-	} else if (skb->protocol == htons(ETH_P_IPV6)) {
-		ipv6h = ipv6_hdr(skb);
-		if (ipv6h->nexthdr == NEXTHDR_TCP)
-			tcp_hdr(skb)->check = 0;
-		else if (ipv6h->nexthdr == NEXTHDR_UDP)
-			udp_hdr(skb)->check = 0;
+	if (skb->ip_summed == CHECKSUM_PARTIAL) {
+		if (skb->protocol == htons(ETH_P_IP)) {
+			iph = ip_hdr(skb);
+			if (iph->protocol == IPPROTO_TCP)
+				tcp_hdr(skb)->check = 0;
+			else if (iph->protocol == IPPROTO_UDP)
+				udp_hdr(skb)->check = 0;
+		} else if (skb->protocol == htons(ETH_P_IPV6)) {
+			ipv6h = ipv6_hdr(skb);
+			if (ipv6h->nexthdr == NEXTHDR_TCP)
+				tcp_hdr(skb)->check = 0;
+			else if (ipv6h->nexthdr == NEXTHDR_UDP)
+				udp_hdr(skb)->check = 0;
+		}
 	}
 
 	ret = sipa_nic_tx(sipa_eth->nic_id, pdata->src_id, netid, skb);
