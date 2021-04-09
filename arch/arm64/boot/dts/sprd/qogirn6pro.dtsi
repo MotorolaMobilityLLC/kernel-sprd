@@ -1677,6 +1677,8 @@
 
 				sprd,ul-fifo-depth = <4096>;
 				sprd,dl-fifo-depth = <4096>;
+
+				power-domains = <&pd_ipa_sys>;
 			};
 
 			dpu1: dpu1@31880000 {
