@@ -7,7 +7,7 @@
 
 #include <dt-bindings/soc/sprd,sharkl5-regs.h>
 #include <dt-bindings/soc/sprd,sharkl5-mask.h>
-#include <dt-bindings/clock/sprd,sharkl5-clk.h>
+#include <dt-bindings/clock/sprd,ums312-clk.h>
 #include <dt-bindings/debug/dmc_mpu/sharkl5_dmc_mpu.h>
 #include <dt-bindings/debug/busmonitor/busmonitor.h>
 
@@ -940,7 +940,7 @@
 				#dma-cells = <1>;
 				#dma-channels = <28>;
 				clock-names = "enable";
-				clocks = <&apahb_gate CLK_DMA_EB>;
+				clocks = <&apahb_gate CLK_DMA_PUB_EB>;
 			};
 
 			dpu: dpu@20300000 {
@@ -2561,6 +2561,13 @@
 		clock-output-names = "ext-26m";
 	};
 
+	ext_4m: ext-4m {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <4000000>;
+		clock-output-names = "ext-4m";
+	};
+
 	ext_32k: ext_32k {
 		compatible = "fixed-clock";
 		#clock-cells = <0>;
@@ -2568,18 +2575,25 @@
 		clock-output-names = "ext-32k";
 	};
 
-	ext_26m_aud: ext-26m-aud {
-		compatible = "fixed-clock";
-		#clock-cells = <0>;
-		clock-frequency = <26000000>;
-		clock-output-names = "ext-26m-aud";
-	};
-
 	rco_100m: rco-100m {
 		compatible = "fixed-clock";
 		#clock-cells = <0>;
 		clock-frequency = <100000000>;
 		clock-output-names = "rco-100m";
+	};
+
+	dphy_273m: dphy-273m {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <273000000>;
+		clock-output-names = "dphy-273m";
+	};
+
+	dphy_204m8: dphy-204m8 {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <204800000>;
+		clock-output-names = "dphy-204m8";
 	};
 
 	cache_efuse: efuse@15c00 {
