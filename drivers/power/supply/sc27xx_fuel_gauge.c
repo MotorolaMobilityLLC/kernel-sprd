@@ -1158,7 +1158,7 @@ static enum power_supply_property sc27xx_fgu_props[] = {
 
 static const struct power_supply_desc sc27xx_fgu_desc = {
 	.name			= "sc27xx-fgu",
-	.type			= POWER_SUPPLY_TYPE_BATTERY,
+	.type			= POWER_SUPPLY_TYPE_UNKNOWN,
 	.properties		= sc27xx_fgu_props,
 	.num_properties		= ARRAY_SIZE(sc27xx_fgu_props),
 	.get_property		= sc27xx_fgu_get_property,
