@@ -82,6 +82,14 @@
 					wakeup-source;
 				};
 
+				key-google {
+					label = "Google Key";
+					linux,code = <KEY_GOOGLE>;
+					gpios = <&ap_gpio 126 GPIO_ACTIVE_LOW>;
+					debounce-interval = <2>;
+					wakeup-source;
+				};
+
 				key-volumeup {
 					label = "Volume Up Key";
 					linux,code = <KEY_VOLUMEUP>;
@@ -517,7 +525,7 @@
 			regulator-name = "vddvbus";
 		};
 	};
-
+/* modify by yrn: gpio126 use to key_google, and bq2597x is not used.
 	bq2597x_chg: charger@65 {
 		compatible = "ti,bq2597x-standalone";
 		reg = <0x65>;
@@ -548,7 +556,7 @@
 		ti,bq2597x,ss-timeout = <100000>;
 		ti,bq2597x,watchdog-timer = <30000>;
 	};
-
+*/
 	hl1506_cp_converter: charger@1b {
 		compatible = "halo,hl1506_cp_converter";
 		reg = <0x1b>;
