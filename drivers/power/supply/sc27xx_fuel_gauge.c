@@ -98,8 +98,9 @@
 #define UMP9620_FGU_CAL			GENMASK(15, 7)
 #define UMP9620_FGU_CAL_SHIFT		7
 
-#define SC27XX_FGU_CURRENT_BUF_CNT	8
-#define SC27XX_FGU_VOLTAGE_BUF_CNT	8
+#define SC27XX_FGU_CURRENT_BUFF_CNT	8
+#define SC27XX_FGU_VOLTAGE_BUFF_CNT	8
+#define SC27XX_FGU_MAGIC_NUMBER		0x5a5aa5a5
 
 #define interpolate(x, x1, y1, x2, y2) \
 	((y1) + ((((y2) - (y1)) * ((x) - (x1))) / ((x2) - (x1))))
@@ -165,6 +166,7 @@ struct sc27xx_fgu_data {
 	bool bat_para_adapt_support;
 	unsigned int bat_para_adapt_mode;
 	int temp_buff[SC27XX_FGU_TEMP_BUFF_CNT];
+	int cur_now_buff[SC27XX_FGU_CURRENT_BUFF_CNT];
 	int bat_temp;
 	struct power_supply_battery_ocv_table *cap_table;
 	struct power_supply_vol_temp_table *temp_table;
@@ -671,7 +673,7 @@ static int sc27xx_fgu_get_vbat_avg(struct sc27xx_fgu_data *data, int *val)
 	int i;
 
 	*val = 0;
-	for (i = 0; i < SC27XX_FGU_VOLTAGE_BUF_CNT; i++) {
+	for (i = 0; i < SC27XX_FGU_VOLTAGE_BUFF_CNT; i++) {
 		ret = regmap_read(data->regmap,
 				  data->base + SC27XX_FGU_VOLTAGE_BUF + i * 4,
 				  &vol);
@@ -818,7 +820,7 @@ static int sc27xx_fgu_get_current_avg(struct sc27xx_fgu_data *data, int *val)
 
 	*val = 0;
 
-	for (i = 0; i < SC27XX_FGU_CURRENT_BUF_CNT; i++) {
+	for (i = 0; i < SC27XX_FGU_CURRENT_BUFF_CNT; i++) {
 		ret = regmap_read(data->regmap, data->base + SC27XX_FGU_CURRENT_BUF + i * 4, &cur);
 		if (ret)
 			return ret;
@@ -1297,6 +1299,57 @@ static void sc27xx_fgu_low_capacity_match_ocv(struct sc27xx_fgu_data *data,
 	}
 }
 
+static bool sc27xx_fgu_discharging_trend(struct sc27xx_fgu_data *data)
+{
+	int i, ret, cur;
+	bool is_discharging = true;
+
+	if (data->cur_now_buff[SC27XX_FGU_CURRENT_BUFF_CNT - 1] == SC27XX_FGU_MAGIC_NUMBER) {
+		is_discharging = false;
+		for (i = 0; i < SC27XX_FGU_CURRENT_BUFF_CNT; i++) {
+			ret = regmap_read(data->regmap,
+					  data->base + SC27XX_FGU_CURRENT_BUF + i * 4,
+					  &cur);
+			if (ret) {
+				dev_err(data->dev, "fail to init cur_now_buff[i]\n", i);
+				return is_discharging;
+			}
+
+			data->cur_now_buff[i] =
+				sc27xx_fgu_adc_to_current(data, cur - SC27XX_FGU_CUR_BASIC_ADC);
+		}
+
+		return is_discharging;
+	}
+
+	for (i = 0; i < SC27XX_FGU_CURRENT_BUFF_CNT; i++) {
+		if (data->cur_now_buff[i] > 0)
+			is_discharging = false;
+	}
+
+	for (i = 0; i < SC27XX_FGU_CURRENT_BUFF_CNT; i++) {
+		ret = regmap_read(data->regmap,
+				  data->base + SC27XX_FGU_CURRENT_BUF + i * 4,
+				  &cur);
+		if (ret) {
+			dev_err(data->dev, "fail to get cur_now_buff[i]\n", i);
+			data->cur_now_buff[SC27XX_FGU_CURRENT_BUFF_CNT - 1] =
+				SC27XX_FGU_MAGIC_NUMBER;
+				is_discharging = false;
+				return is_discharging;
+		}
+
+		data->cur_now_buff[i] =
+			sc27xx_fgu_adc_to_current(data, cur - SC27XX_FGU_CUR_BASIC_ADC);
+		if (data->cur_now_buff[i] > 0)
+			is_discharging = false;
+	}
+
+	dev_info(data->dev, "%s, is_discharging = %d\n", __func__, is_discharging);
+
+	return is_discharging;
+}
+
 static void sc27xx_fgu_low_capacity_calibration(struct sc27xx_fgu_data *data,
 						int cap, int int_mode,
 						int chg_sts)
@@ -1314,7 +1367,7 @@ static void sc27xx_fgu_low_capacity_calibration(struct sc27xx_fgu_data *data,
 	 * 10 degrees or less, then we do not need to calibrate the
 	 * lower capacity.
 	 */
-	if (chg_sts == POWER_SUPPLY_STATUS_CHARGING ||
+	if ((chg_sts == POWER_SUPPLY_STATUS_CHARGING && !sc27xx_fgu_discharging_trend(data)) ||
 	    data->bat_temp <= SC27XX_FGU_LOW_TEMP_REGION)
 		return;
 
@@ -1507,6 +1560,8 @@ static int sc27xx_fgu_hw_init(struct sc27xx_fgu_data *data,
 	struct power_supply_battery_ocv_table *table;
 	int ret, delta_clbcnt, alarm_adc, num;
 	struct device_node *np = data->dev->of_node;
+
+	data->cur_now_buff[SC27XX_FGU_CURRENT_BUFF_CNT - 1] = SC27XX_FGU_MAGIC_NUMBER;
 
 	if (data->bat_para_adapt_support) {
 		ret = of_property_read_u32(np, "sprd-battery-parameter-adapt-mode", &data->bat_para_adapt_mode);
