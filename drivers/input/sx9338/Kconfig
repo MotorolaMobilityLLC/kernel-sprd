@@ -1,0 +1,9 @@
+config INPUT_SX9338
+	tristate "SX9338 sar sensor support"
+	depends on I2C
+	help
+	  Say Y here if you have SX9338
+	  sar sensor hooked to an I2C bus.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called sx9338.
