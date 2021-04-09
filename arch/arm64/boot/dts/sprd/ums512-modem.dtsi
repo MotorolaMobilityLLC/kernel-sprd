@@ -12,20 +12,20 @@
 	aliases {
 		v2-modem0 = &pmsys;
 		v2-modem1 = &modem;
-		seth0 = &seth_ch0;
-		seth1 = &seth_ch1;
-		seth2 = &seth_ch2;
-		seth3 = &seth_ch3;
-		seth4 = &seth_ch4;
-		seth5 = &seth_ch5;
-		seth6 = &seth_ch6;
-		seth7 = &seth_ch7;
-		seth8 = &seth_ch8;
-		seth9 = &seth_ch9;
-		seth10 = &seth_ch10;
-		seth11 = &seth_ch11;
-		seth12 = &seth_ch12;
-		seth13 = &seth_ch13;
+		seth0 = &seth_ch7;
+		seth1 = &seth_ch8;
+		seth2 = &seth_ch9;
+		seth3 = &seth_ch18;
+		seth4 = &seth_ch19;
+		seth5 = &seth_ch20;
+		seth6 = &seth_ch24;
+		seth7 = &seth_ch25;
+		seth8 = &seth_ch26;
+		seth9 = &seth_ch27;
+		seth10 = &seth_ch28;
+		seth11 = &seth_ch29;
+		seth12 = &seth_ch30;
+		seth13 = &seth_ch31;
 	};
 
 	pmsys: modem@0 {
@@ -147,7 +147,7 @@
 			sprd,ul-ack-pool = <1024>;
 		};
 
-		seth_ch0: channel@7 {
+		seth_ch7: channel@7 {
 			compatible = "sprd,seth";
 			/* reg channel number */
 			reg = <7>;
@@ -156,7 +156,7 @@
 			sprd,blknum = <256>;
 		};
 
-		seth_ch1: channel@8 {
+		seth_ch8: channel@8 {
 			compatible = "sprd,seth";
 			/* channel number */
 			reg = <8>;
@@ -164,7 +164,7 @@
 			sprd,blknum = <256>;
 		};
 
-		seth_ch2: channel@9 {
+		seth_ch9: channel@9 {
 			compatible = "sprd,seth";
 			/* channel number */
 			reg = <9>;
@@ -172,7 +172,7 @@
 			sprd,blknum = <256>;
 		};
 
-		seth_ch3: channel@18 {
+		seth_ch18: channel@18 {
 			compatible = "sprd,seth";
 			/* channel number */
 			reg = <18>;
@@ -180,7 +180,7 @@
 			sprd,blknum = <256>;
 		};
 
-		seth_ch4: channel@19 {
+		seth_ch19: channel@19 {
 			compatible = "sprd,seth";
 			/* channel number */
 			reg = <19>;
@@ -188,7 +188,7 @@
 			sprd,blknum = <256>;
 		};
 
-		seth_ch5: channel@20 {
+		seth_ch20: channel@20 {
 			compatible = "sprd,seth";
 			/* channel number */
 			reg = <20>;
@@ -196,7 +196,7 @@
 			sprd,blknum = <256>;
 		};
 
-		seth_ch6: channel@24 {
+		seth_ch24: channel@24 {
 			compatible = "sprd,seth";
 			/* channel number */
 			reg = <24>;
@@ -204,7 +204,7 @@
 			sprd,blknum = <256>;
 		};
 
-		seth_ch7: channel@25 {
+		seth_ch25: channel@25 {
 			compatible = "sprd,seth";
 			/* channel number */
 			reg = <25>;
@@ -212,7 +212,7 @@
 			sprd,blknum = <256>;
 		};
 
-		seth_ch8: channel@26 {
+		seth_ch26: channel@26 {
 			compatible = "sprd,seth";
 			/* channel number */
 			reg = <26>;
@@ -220,7 +220,7 @@
 			sprd,blknum = <256>;
 		};
 
-		seth_ch9: channel@27 {
+		seth_ch27: channel@27 {
 			compatible = "sprd,seth";
 			/* channel number */
 			reg = <27>;
@@ -228,7 +228,7 @@
 			sprd,blknum = <256>;
 		};
 
-		seth_ch10: channel@28 {
+		seth_ch28: channel@28 {
 			compatible = "sprd,seth";
 			/* channel number */
 			reg = <28>;
@@ -236,7 +236,7 @@
 			sprd,blknum = <256>;
 		};
 
-		seth_ch11: channel@29 {
+		seth_ch29: channel@29 {
 			compatible = "sprd,seth";
 			/* channel number */
 			reg = <29>;
@@ -244,7 +244,7 @@
 			sprd,blknum = <256>;
 		};
 
-		seth_ch12: channel@30 {
+		seth_ch30: channel@30 {
 			compatible = "sprd,seth";
 			/* channel number */
 			reg = <30>;
@@ -252,7 +252,7 @@
 			sprd,blknum = <256>;
 		};
 
-		seth_ch13: channel@31 {
+		seth_ch31: channel@31 {
 			compatible = "sprd,seth";
 			/* channel number */
 			reg = <31>;
