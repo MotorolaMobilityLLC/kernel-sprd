@@ -240,6 +240,7 @@ static const char * const sc27xx_charger_supply_name[] = {
 	"eta6937_charger",
 	"ump9620_charger",
 	"aw32257",
+	"charger"
 };
 
 static int sc27xx_fgu_adc_to_current(struct sc27xx_fgu_data *data, int adc)
@@ -563,6 +564,34 @@ static int sc27xx_fgu_get_boot_capacity(struct sc27xx_fgu_data *data, int *cap)
 {
 	int ocv, ret;
 	bool is_first_poweron = sc27xx_fgu_is_first_poweron(data);
+	int current_ocv,current_cap,delta;
+
+	if(!is_first_poweron)
+	{
+		sc27xx_fgu_get_vbat_ocv(data, &current_ocv);
+		current_cap = power_supply_ocv2cap_simple(data->cap_table, data->table_len,
+						   current_ocv);
+		 sc27xx_fgu_read_last_cap(data, cap);
+
+		 if( current_cap*10 >= *cap)
+		 	delta = current_cap*10 -*cap;
+		 else
+		 	delta = *cap - current_cap*10;
+
+       //       if(delta >100)         
+       //              is_first_poweron= true;
+       //dev_err(data->dev, "%s 10;%d;%d;%d;%d;%d;\n",__func__,is_first_poweron,delta,current_ocv,current_cap*10,*cap);
+
+		 if(delta >300)
+		 {
+			data->boot_cap = current_cap*10;
+			dev_err(data->dev, "%s >300;%d;%d;%d;%d;\n",__func__,current_ocv,current_cap*10,*cap,delta);
+			*cap = current_cap*10;
+			return 0;
+
+		 }	
+	         dev_err(data->dev, "%s <300;%d;%d;%d;%d;\n",__func__,current_ocv,current_cap*10,*cap,delta);
+	}
 
 	if (is_charger_mode)
 		sc27xx_fgu_get_boot_voltage(data, &data->boot_vol);
@@ -615,7 +644,7 @@ static int sc27xx_fgu_get_boot_capacity(struct sc27xx_fgu_data *data, int *cap)
 		return ret;
 	}
 
-	dev_info(data->dev, "First_poweron: ocv = %d, cap = %d\n", ocv, *cap);
+	dev_err(data->dev, "First_poweron: ocv = %d, cap = %d\n", ocv, *cap);
 	return sc27xx_fgu_save_boot_mode(data, SC27XX_FGU_NORMAIL_POWERTON);
 }
 
@@ -913,6 +942,13 @@ static int sc27xx_fgu_get_average_temp(struct sc27xx_fgu_data *data, int temp)
 	return sum / (SC27XX_FGU_TEMP_BUFF_CNT - 2);
 }
 
+#ifdef    DUAL_85_VERSION
+int d85_temp=0;
+int sc27xx_fgu_get_d85_temp( void)
+{
+	return d85_temp;
+}
+#endif
 static int sc27xx_fgu_get_temp(struct sc27xx_fgu_data *data, int *temp)
 {
 	int vol, ret;
@@ -1046,8 +1082,20 @@ static int sc27xx_fgu_get_property(struct power_supply *psy,
 			if (ret < 0)
 				goto error;
 
+#ifdef    DUAL_85_VERSION
+			if(value >=540)
+				val->intval = 540;
+                      else if(value <= 100)
+	                     val->intval  = 100;
+			else
+				val->intval = value;
+			
+			d85_temp =value;
+			ret = 0;
+#else
 			ret = 0;
 			val->intval = value;
+#endif			
 		}
 		break;
 
@@ -1267,15 +1315,22 @@ static void sc27xx_fgu_low_capacity_match_ocv(struct sc27xx_fgu_data *data,
 
 	if ((batt_uV < SC27XX_FGU_LOW_VBAT_REGION || ocv < data->min_volt) &&
 	    cap > data->alarm_cap) {
+		dev_err(data->dev, "%s 1;%d;%d;%d;\n",__func__,batt_uV,ocv,data->min_volt);
+		dev_err(data->dev, "%s 1;%d;%d;%d;\n",__func__,cap,data->alarm_cap,data->init_cap);
+	    
 		data->init_cap -= 5;
 		if (data->init_cap < 0)
 			data->init_cap = 0;
 	} else if (ocv > data->min_volt && cap <= data->alarm_cap) {
+		dev_err(data->dev, "%s 2;%d;%d;%d;%d;\n",__func__,ocv,data->min_volt,cap,data->alarm_cap);
+
 		sc27xx_fgu_adjust_cap(data, data->alarm_cap);
 	} else if (ocv <= data->cap_table[data->table_len - 1].ocv) {
+		dev_err(data->dev, "%s 3;%d;%d;\n",__func__,ocv,data->cap_table[data->table_len - 1].ocv);
 		sc27xx_fgu_adjust_cap(data, 0);
 	} else if (data->first_calib_volt > 0 && data->first_calib_cap > 0 &&
 		   ocv <= data->first_calib_volt && cap > data->first_calib_cap) {
+		dev_err(data->dev, "%s 4;%d;%d;%d;\n",__func__,ocv,cap,data->init_cap);
 		data->init_cap -= 5;
 		if (data->init_cap < 0)
 			data->init_cap = 0;
@@ -1308,6 +1363,7 @@ static void sc27xx_fgu_low_capacity_calibration(struct sc27xx_fgu_data *data,
 	if (ocv <= data->min_volt) {
 		if (!int_mode)
 			return;
+		dev_err(data->dev, "%s;%d;%d;\n",__func__,ocv,data->min_volt);
 
 		/*
 		 * After adjusting the battery capacity, we should set the
@@ -1319,6 +1375,8 @@ static void sc27xx_fgu_low_capacity_calibration(struct sc27xx_fgu_data *data,
 							      data->min_volt);
 
 		data->alarm_cap *= 10;
+
+		dev_err(data->dev, "%s;%d;%d;\n",__func__,data->alarm_cap ,data->min_volt);
 
 		adc = sc27xx_fgu_voltage_to_adc(data, data->min_volt / 1000);
 		regmap_update_bits(data->regmap,
@@ -1383,7 +1441,12 @@ static irqreturn_t sc27xx_fgu_bat_detection(int irq, void *dev_id)
 		return IRQ_RETVAL(state);
 	}
 
+#ifdef    DUAL_85_VERSION
+	dev_err(data->dev, "%s;bat_present =%d; \n",__func__,!!state);
+	data->bat_present = true;
+#else
 	data->bat_present = !!state;
+#endif
 
 	mutex_unlock(&data->lock);
 
@@ -1452,6 +1515,7 @@ static int sc27xx_fgu_calibration(struct sc27xx_fgu_data *data)
 				  data->calib_resist_spec);
 
 	kfree(buf);
+	dev_err(data->dev, "%s;%x;%d;%d;%d;\n",__func__,calib_data,cal_4200mv,data->vol_1000mv_adc,data->cur_1000ma_adc);
 	return 0;
 }
 
@@ -1785,8 +1849,12 @@ static int sc27xx_fgu_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "failed to get gpio state\n");
 		return ret;
 	}
-
+#ifdef    DUAL_85_VERSION
+	dev_err(&pdev->dev, "%s;bat_present=%d;\n",__func__,!!ret);
+	data->bat_present = true;
+#else
 	data->bat_present = !!ret;
+#endif
 	mutex_init(&data->lock);
 	data->dev = &pdev->dev;
 	platform_set_drvdata(pdev, data);
