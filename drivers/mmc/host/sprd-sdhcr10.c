@@ -1795,7 +1795,7 @@ static void sprd_set_mmc_struct(struct sprd_sdhc_host *host,
 	mmc = host->mmc;
 	mmc->ops = &sprd_sdhc_ops;
 	mmc->f_max = host->base_clk;
-	mmc->f_min = 400000;
+	mmc->f_min = 100000;
 
 	mmc->caps = MMC_CAP_SD_HIGHSPEED | MMC_CAP_MMC_HIGHSPEED |
 		MMC_CAP_ERASE | MMC_CAP_CMD23;
