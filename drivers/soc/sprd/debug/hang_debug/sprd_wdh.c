@@ -33,6 +33,9 @@
 #include "../sysdump/sysdump64.h"
 #endif
 
+#undef pr_fmt
+#define pr_fmt(fmt) "sprd_wdh: " fmt
+
 #define MAX_CALLBACK_LEVEL  16
 #define SPRD_PRINT_BUF_LEN  524288
 #define SPRD_STACK_SIZE 256
@@ -187,12 +190,11 @@ static int __nocfi set_panic_debug_entry(unsigned long func_addr, unsigned long 
 
 	ret = svc_handle->dbg_ops.set_hang_hdl(func_addr, pgd);
 	if (ret) {
-		pr_err("%s: failed to set panic debug entry\n", __func__);
+		pr_err("failed to set panic debug entry\n");
 		return -EPERM;
 	}
 #endif
-	pr_emerg("%s func_addr = 0x%lx, pgd = 0x%lx\n", __func__, func_addr, pgd);
-
+	pr_emerg("func_addr = 0x%lx, pgd = 0x%lx\n", func_addr, pgd);
 	return 0;
 }
 
@@ -223,7 +225,7 @@ static unsigned short smcc_get_cpu_state(void)
 
 	ret = svc_handle->dbg_ops.get_hang_ctx(CPU_STATUS, &val);
 	if (ret) {
-		pr_err("%s: failed to get cpu statue\n", __func__);
+		pr_err("failed to get cpu statue\n");
 		return EPERM;
 	}
 #endif
@@ -669,7 +671,7 @@ static int __nocfi sprd_module_notifier_fn(struct notifier_block *nb,
 
 	svc_handle = sprd_sip_svc_get_handle_ptr();
 	if (!svc_handle) {
-		pr_err("%s: failed to get svc handle\n", __func__);
+		pr_err("failed to get svc handle\n");
 		return NOTIFY_DONE;
 	}
 
@@ -682,7 +684,7 @@ static int __nocfi sprd_module_notifier_fn(struct notifier_block *nb,
 	);
 
 	if (ret)
-		pr_emerg("%s init ATF el1_entry_for_wdh error[%d]\n", __func__, ret);
+		pr_emerg("init ATF el1_entry_for_wdh error[%d]\n", ret);
 
 
 	return NOTIFY_DONE;
