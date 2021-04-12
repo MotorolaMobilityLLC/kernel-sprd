@@ -720,7 +720,7 @@
 
 	soc {
 		pmu_gate: pmu-gate {
-			compatible = "sprd,sharkl5-pmu-gate";
+			compatible = "sprd,ums312-pmu-gate";
 			sprd,syscon = <&pmu_apb_regs>; /* 0x327e0000 */
 			clocks = <&ext_26m>;
 			clock-names = "ext-26m";
@@ -728,19 +728,19 @@
 		};
 
 		dpll0: dpll0 {
-			compatible = "sprd,sharkl5-g0-pll";
+			compatible = "sprd,ums312-g0-pll";
 			sprd,syscon = <&anlg_phy_g0_regs>; /* 0x32390000 */
 			#clock-cells = <1>;
 		};
 
 		mpll1: mpll1 {
-			compatible = "sprd,sharkl5-g2-pll";
+			compatible = "sprd,ums312-g2-pll";
 			sprd,syscon = <&anlg_phy_g2_regs>; /* 0x323b0000 */
 			#clock-cells = <1>;
 		};
 
 		pll1: pll1 {
-			compatible = "sprd,sharkl5-g3-pll";
+			compatible = "sprd,ums312-g3-pll";
 			sprd,syscon = <&anlg_phy_g3_regs>; /* 0x323c0000 */
 			clocks = <&ext_26m>;
 			clock-names = "ext-26m";
@@ -748,7 +748,7 @@
 		};
 
 		pll2: pll2 {
-			compatible = "sprd,sharkl5-gc-pll";
+			compatible = "sprd,ums312-gc-pll";
 			sprd,syscon = <&anlg_phy_gc_regs>; /* 0x323e0000 */
 			clocks = <&ext_26m>;
 			clock-names = "ext-26m";
@@ -756,7 +756,7 @@
 		};
 
 		apahb_gate: apahb-gate {
-			compatible = "sprd,sharkl5-apahb-gate";
+			compatible = "sprd,ums312-apahb-gate";
 			sprd,syscon = <&ap_ahb_regs>; /* 0x20100000 */
 			clocks = <&ext_26m>;
 			clock-names = "ext-26m";
@@ -764,7 +764,7 @@
 		};
 
 		ap_clk: clock-controller@20200000 {
-			compatible = "sprd,sharkl5-ap-clk";
+			compatible = "sprd,ums312-ap-clk";
 			reg = <0 0x20200000 0 0x1000>;
 			clocks = <&ext_26m>;
 			clock-names = "ext-26m";
@@ -772,7 +772,7 @@
 		};
 
 		aon_clk: clock-controller@32080000 {
-			compatible = "sprd,sharkl5-aonapb-clk";
+			compatible = "sprd,ums312-aonapb-clk";
 			reg = <0 0x32080000 0 0x1000>;
 			clocks = <&ext_26m>, <&rco_100m>, <&ext_32k>,
 				 <&ext_4m>;
@@ -782,7 +782,7 @@
 		};
 
 		aonapb_gate: aonapb-gate {
-			compatible = "sprd,sharkl5-aon-gate";
+			compatible = "sprd,ums312-aon-gate";
 			sprd,syscon = <&aon_apb_regs>; /* 0x327d0000 */
 			clocks = <&ext_26m>;
 			clock-names = "ext-26m";
@@ -790,7 +790,7 @@
 		};
 
 		mm_clk: clock-controller@62100000 {
-			compatible = "sprd,sharkl5-mm-clk";
+			compatible = "sprd,ums312-mm-clk";
 			reg = <0 0x62100000 0 0x1000>;
 			clocks = <&ext_26m>;
 			clock-names = "ext-26m";
@@ -798,7 +798,7 @@
 		};
 
 		gpu_clk: gpu-clk {
-			compatible = "sprd,sharkl5-gpu-clk";
+			compatible = "sprd,ums312-gpu-clk";
 			sprd,syscon = <&gpu_apb_regs>;
 			clocks = <&ext_26m>;
 			clock-names = "ext-26m";
@@ -806,13 +806,13 @@
 		};
 
 		mm_gate: clock-controller@62200000 {
-			compatible = "sprd,sharkl5-mm-gate-clk";
+			compatible = "sprd,ums312-mm-gate-clk";
 			sprd,syscon = <&mm_ahb_regs>;
 			#clock-cells = <1>;
 		};
 
 		apapb_gate: apapb-gate {
-			compatible = "sprd,sharkl5-apapb-gate";
+			compatible = "sprd,ums312-apapb-gate";
 			sprd,syscon = <&ap_apb_regs>; /* 0x71000000 */
 			clocks = <&ext_26m>;
 			clock-names = "ext-26m";
@@ -820,13 +820,13 @@
 		};
 
 		audcpapb_gate: audcpapb-gate {
-			compatible = "sprd,sharkl5-audcpapb-gate";
+			compatible = "sprd,ums312-audcpapb-gate";
 			sprd,syscon = <&audcp_apb_regs>; /* 0x3350d000 */
 			#clock-cells = <1>;
 		};
 
 		audcpahb_gate: audcpahb-gate {
-			compatible = "sprd,sharkl5-audcpahb-gate";
+			compatible = "sprd,ums312-audcpahb-gate";
 			sprd,syscon = <&audcp_ahb_regs>; /* 0x335e0000 */
 			#clock-cells = <1>;
 		};
