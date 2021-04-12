@@ -105,6 +105,12 @@ its hardware characteristcs.
 	* interrupts : Exactly one SPI may be listed for reporting the address
 	  error
 
+* Optional property for APETB :
+
+	* apetb-source : apcpu etm source associated to apetb
+
+	* apetb-sink : etb sink associated to apetb
+
 Graph bindings for Coresight
 -------------------------------
 
@@ -359,6 +365,14 @@ Example:
 				};
 			};
 		};
+	};
+
+6. APETB
+
+	ap_etb: apetb {
+		compatible = "sprd,apetb";
+		apetb-source = <&etm0 &etm1 &etm2 &etm3 &etm4 &etm5 &etm6 &etm7>;
+		apetb-sink = <&soc_etb>;
 	};
 
 [1]. There is currently two version of STM: STM32 and STM500.  Both
