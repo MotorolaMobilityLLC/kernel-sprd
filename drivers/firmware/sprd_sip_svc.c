@@ -286,7 +286,7 @@ static int sprd_sip_svc_storage_ufs_crypto_enable(void)
 	arm_smccc_smc(SPRD_SIP_SVC_STORAGE_UFS_CRYPTO_ENABLE,
 			0, 0, 0, 0, 0, 0, 0, &res);
 
-	return res.a0;
+	return sprd_sip_remap_err(res.a0);
 }
 
 static int sprd_sip_svc_storage_ufs_crypto_disable(void)
@@ -296,7 +296,7 @@ static int sprd_sip_svc_storage_ufs_crypto_disable(void)
 	arm_smccc_smc(SPRD_SIP_SVC_STORAGE_UFS_CRYPTO_DISABLE,
 			0, 0, 0, 0, 0, 0, 0, &res);
 
-	return res.a0;
+	return sprd_sip_remap_err(res.a0);
 }
 #endif
 
