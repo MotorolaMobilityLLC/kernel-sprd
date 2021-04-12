@@ -1547,18 +1547,12 @@ static void wcn_check_xtal_26m_clk(void)
 static int check_cp_clock_mode(void)
 {
 	struct wcn_clock_info *clk;
-	struct device_node *regmap_np;
 
 	pr_info("%s\n", __func__);
 
 	clk = &marlin_dev->clk_xtal_26m;
 	if (clk->mode == WCN_CLOCK_MODE_BUFFER) {
 		pr_info("xtal_26m clock use BUFFER mode\n");
-		regmap_np = of_find_compatible_node(NULL, NULL, "sprd,ump962x-syscon");
-		if (regmap_np) {
-			pr_info("get ump962x syscon node, keep avdd18 enable.\n");
-			return 0;
-		}
 		marlin_avdd18_dcxo_enable(false);
 		return 0;
 	} else if (clk->mode == WCN_CLOCK_MODE_XO) {
