@@ -1020,8 +1020,9 @@ static int sprd_dpu_uninit(struct sprd_dpu *dpu)
 	struct dpu_context *ctx = &dpu->ctx;
 
 	down(&ctx->refresh_lock);
-
+	down(&ctx->cabc_lock);
 	if (!dpu->ctx.is_inited) {
+		up(&ctx->cabc_lock);
 		up(&ctx->refresh_lock);
 		return 0;
 	}
@@ -1037,6 +1038,7 @@ static int sprd_dpu_uninit(struct sprd_dpu *dpu)
 
 	ctx->is_inited = false;
 
+	up(&ctx->cabc_lock);
 	up(&ctx->refresh_lock);
 
 	return 0;
@@ -1212,7 +1214,7 @@ static int sprd_dpu_context_init(struct sprd_dpu *dpu,
 	of_get_logo_memory_info(dpu, np);
 
 	sema_init(&ctx->refresh_lock, 1);
-
+	sema_init(&ctx->cabc_lock, 1);
 	return 0;
 }
 
