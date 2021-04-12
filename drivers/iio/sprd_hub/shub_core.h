@@ -38,7 +38,7 @@
 /* light sensor calibrate value is 400lux; Due to kernel seldom use
  * float data, so calibrate value multiply 10000
  */
-#define LIGHT_SENSOR_CALI_VALUE (400 * 10000)
+#define LIGHT_SENSOR_CALI_VALUE (500 * 10000)
 /* prox sensor auto calibrate ground noise min value is 0 */
 #define PROX_SENSOR_MIN_VALUE   0
 
