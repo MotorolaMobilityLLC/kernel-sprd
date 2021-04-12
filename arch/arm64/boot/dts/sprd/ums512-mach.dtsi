@@ -33,22 +33,16 @@
 			reg = <0x0 0x83ef0000 0x0 0x00010000>; /* 64K */
 		};
 
-		audio_reserved: audio-mem@84100000 {
-			reg = <0x0 0x84100000 0x0 0x00400000>;
+		smem_reserved: sipc-mem@87800000 {
+			reg = <0x0 0x87800000 0x0 0x00800000>;
 		};
 
-		/* Only used for iq, will be removed in normal mode by uboot */
-		iq_reserved: iq-mem@84500000{
-			compatible = "sprd,iq-mem";
-			reg = <0x0 0x84500000 0x0 0x4000000>;
+		sp_ddr_reserved: sp_ddr-mem@88900000 {
+			reg = <0x0 0x88900000 0x0 0x00300000>;
 		};
 
-		sensorhub_reserved: sensorhub-mem@88500000 {
-			reg = <0x0 0x88500000 0x0 0x00300000>;
-		};
-
-		smem_reserved: sipc-mem@88800000 {
-			reg = <0x0 0x88800000 0x0 0x00800000>;
+		audio_reserved: audio-mem@88c00000 {
+			reg = <0x0 0x88c00000 0x0 0x00400000>;
 		};
 
 		audiodsp_reserved: audiodsp-mem@89000000 {
@@ -57,6 +51,12 @@
 
 		cp_reserved: cp-mem@89600000 {
 			reg = <0x0 0x89600000 0x0 0x04900000>;
+		};
+
+		/* Only used for iq, will be removed in normal mode by uboot */
+		iq_reserved: iq-mem@90000000{
+			compatible = "sprd,iq-mem";
+			reg = <0x0 0x90000000 0x0 0x4000000>;
 		};
 
 		sml_reserved: sml-mem@b0000000 {
