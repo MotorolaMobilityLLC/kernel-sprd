@@ -116,6 +116,7 @@ static void sprd_dpu_cleanup_fb(struct sprd_crtc *crtc,
 static void sprd_dpu_mode_set_nofb(struct sprd_crtc *crtc)
 {
 	struct sprd_dpu *dpu = crtc->priv;
+	struct drm_display_mode *mode = &crtc->base.state->adjusted_mode;
 
 	DRM_INFO("%s() set mode: %s\n", __func__, dpu->mode->name);
 
@@ -124,6 +125,9 @@ static void sprd_dpu_mode_set_nofb(struct sprd_crtc *crtc)
 		dpu->ctx.if_type = SPRD_DPU_IF_EDPI;
 	else
 		dpu->ctx.if_type = SPRD_DPU_IF_DPI;
+
+	if (dpu->core->modeset && crtc->base.state->mode_changed)
+		dpu->core->modeset(&dpu->ctx, mode);
 }
 
 static enum drm_mode_status sprd_dpu_mode_valid(struct sprd_crtc *crtc,

@@ -73,6 +73,46 @@
 #define REG_DPI_H_TIMING	0x1F4
 #define REG_DPI_V_TIMING	0x1F8
 
+/* DPU enhance config register */
+#define REG_DPU_ENHANCE_CFG	0x200
+
+/* DPU enhance epf register */
+#define REG_EPF_EPSILON		0x210
+#define REG_EPF_GAIN0_3		0x214
+#define REG_EPF_GAIN4_7		0x218
+#define REG_EPF_DIFF		0x21C
+
+/* DPU enhance hsv register */
+#define REG_HSV_LUT_ADDR		0x240
+#define REG_HSV_LUT_WDATA		0x244
+#define REG_HSV_LUT_RDATA		0x248
+
+/* DPU enhance coef register */
+#define REG_CM_COEF01_00		0x280
+#define REG_CM_COEF03_02		0x284
+#define REG_CM_COEF11_10		0x288
+#define REG_CM_COEF13_12		0x28C
+#define REG_CM_COEF21_20		0x290
+#define REG_CM_COEF23_22		0x294
+
+/* DPU enhance slp register */
+#define REG_SLP_CFG0		0x2C0
+#define REG_SLP_CFG1		0x2C4
+
+/* DPU enhance gamma register */
+#define REG_GAMMA_LUT_ADDR		0x300
+#define REG_GAMMA_LUT_WDATA		0x304
+#define REG_GAMMA_LUT_RDATA		0x308
+
+/* DPU enhance checksum register */
+#define REG_CHECKSUM_EN				0x340
+#define REG_CHECKSUM0_START_POS		0x344
+#define REG_CHECKSUM0_END_POS		0x348
+#define REG_CHECKSUM1_START_POS		0x34C
+#define REG_CHECKSUM1_END_POS		0x350
+#define REG_CHECKSUM0_RESULT			0x354
+#define REG_CHECKSUM1_RESULT			0x358
+
 /* MMU control registers */
 #define REG_MMU_EN			0x800
 #define REG_MMU_VPN_RANGE		0x80C
@@ -132,8 +172,81 @@
 #define BIT_DPU_EDPI_FROM_EXTERNAL_PAD	BIT(10)
 #define BIT_DPU_DPI_HALT_EN		BIT(16)
 
-static bool panel_ready = true;
+#define SLP_BRIGHTNESS_THRESHOLD 0x20
 
+struct scale_cfg {
+	u32 in_w;
+	u32 in_h;
+};
+
+struct epf_cfg {
+	u16 epsilon0;
+	u16 epsilon1;
+	u8 gain0;
+	u8 gain1;
+	u8 gain2;
+	u8 gain3;
+	u8 gain4;
+	u8 gain5;
+	u8 gain6;
+	u8 gain7;
+	u8 max_diff;
+	u8 min_diff;
+};
+
+struct hsv_entry {
+	u16 hue;
+	u16 sat;
+};
+
+struct hsv_lut {
+	struct hsv_entry table[360];
+};
+
+struct gamma_lut {
+	u16 r[256];
+	u16 g[256];
+	u16 b[256];
+};
+
+struct cm_cfg {
+	short coef00;
+	short coef01;
+	short coef02;
+	short coef03;
+	short coef10;
+	short coef11;
+	short coef12;
+	short coef13;
+	short coef20;
+	short coef21;
+	short coef22;
+	short coef23;
+};
+
+struct slp_cfg {
+	u8 brightness;
+	u8 conversion_matrix;
+	u8 brightness_step;
+	u8 second_bright_factor;
+	u8 first_percent_th;
+	u8 first_max_bright_th;
+};
+
+struct dpu_enhance {
+	struct cm_cfg cm_copy;
+	struct slp_cfg slp_copy;
+	struct gamma_lut gamma_copy;
+	struct hsv_lut hsv_copy;
+	struct epf_cfg epf_copy;
+	struct scale_cfg scale_copy;
+
+	u32 enhance_en;
+	bool need_scale;
+	bool mode_changed;
+};
+
+static void dpu_enhance_reload(struct dpu_context *ctx);
 static void dpu_clean_all(struct dpu_context *ctx);
 static void dpu_layer(struct dpu_context *ctx,
 		struct sprd_layer_state *hwlayer);
@@ -308,11 +421,11 @@ static void dpu_run(struct dpu_context *ctx)
 		 * mass on screen when backlight on. So wait
 		 * a TE period after flush the GRAM.
 		 */
-		if (!panel_ready) {
+		if (!ctx->panel_ready) {
 			dpu_wait_stop_done(ctx);
 			/* wait for TE again */
 			mdelay(20);
-			panel_ready = true;
+			ctx->panel_ready = true;
 		}
 	}
 }
@@ -345,6 +458,8 @@ static int dpu_init(struct dpu_context *ctx)
 
 	DPU_REG_WR(ctx->base + REG_DPU_INT_CLR, 0xffff);
 
+	dpu_enhance_reload(ctx);
+
 	return 0;
 }
 
@@ -353,7 +468,7 @@ static void dpu_fini(struct dpu_context *ctx)
 	DPU_REG_WR(ctx->base + REG_DPU_INT_EN, 0x00);
 	DPU_REG_WR(ctx->base + REG_DPU_INT_CLR, 0xff);
 
-	panel_ready = false;
+	ctx->panel_ready = false;
 }
 
 enum {
@@ -841,6 +956,380 @@ static void dpu_capability(struct dpu_context *ctx,
 	cap->fmts_cnt = ARRAY_SIZE(primary_fmts);
 }
 
+static int dpu_enhance_init(struct dpu_context *ctx)
+{
+	struct dpu_enhance *enhance;
+
+	enhance = kzalloc(sizeof(*enhance), GFP_KERNEL);
+	if (!enhance)
+		return -ENOMEM;
+
+	ctx->enhance = enhance;
+
+	return 0;
+}
+
+static void dpu_enhance_backup(struct dpu_context *ctx, u32 id, void *param)
+{
+	struct dpu_enhance *enhance = ctx->enhance;
+	u32 *p;
+
+	switch (id) {
+	case ENHANCE_CFG_ID_ENABLE:
+		p = param;
+		enhance->enhance_en |= *p;
+		pr_info("enhance enable backup: 0x%x\n", *p);
+		break;
+	case ENHANCE_CFG_ID_DISABLE:
+		p = param;
+		enhance->enhance_en &= ~(*p);
+		pr_info("enhance disable backup: 0x%x\n", *p);
+		break;
+	case ENHANCE_CFG_ID_SCL:
+		memcpy(&enhance->scale_copy, param, sizeof(enhance->scale_copy));
+		enhance->enhance_en |= BIT(0);
+		pr_info("enhance scaling backup\n");
+		break;
+	case ENHANCE_CFG_ID_HSV:
+		memcpy(&enhance->hsv_copy, param, sizeof(enhance->hsv_copy));
+		enhance->enhance_en |= BIT(2);
+		pr_info("enhance hsv backup\n");
+		break;
+	case ENHANCE_CFG_ID_CM:
+		memcpy(&enhance->cm_copy, param, sizeof(enhance->cm_copy));
+		enhance->enhance_en |= BIT(3);
+		pr_info("enhance cm backup\n");
+		break;
+	case ENHANCE_CFG_ID_SLP:
+		memcpy(&enhance->slp_copy, param, sizeof(enhance->slp_copy));
+		enhance->enhance_en |= BIT(4);
+		pr_info("enhance slp backup\n");
+		break;
+	case ENHANCE_CFG_ID_GAMMA:
+		memcpy(&enhance->gamma_copy, param, sizeof(enhance->gamma_copy));
+		enhance->enhance_en |= BIT(5);
+		pr_info("enhance gamma backup\n");
+		break;
+	case ENHANCE_CFG_ID_EPF:
+		memcpy(&enhance->epf_copy, param, sizeof(enhance->epf_copy));
+		enhance->enhance_en |= BIT(1);
+		break;
+	default:
+		break;
+	}
+}
+
+static void dpu_epf_set(struct dpu_context *ctx, struct epf_cfg *epf)
+{
+	DPU_REG_WR(ctx->base + REG_EPF_EPSILON, (epf->epsilon1 << 16) | epf->epsilon0);
+	DPU_REG_WR(ctx->base + REG_EPF_GAIN0_3, (epf->gain3 << 24) | (epf->gain2 << 16) |
+			   (epf->gain1 << 8) | epf->gain0);
+	DPU_REG_WR(ctx->base + REG_EPF_GAIN4_7, (epf->gain7 << 24) | (epf->gain6 << 16) |
+			   (epf->gain5 << 8) | epf->gain4);
+	DPU_REG_WR(ctx->base + REG_EPF_DIFF, (epf->max_diff << 8) | epf->min_diff);
+}
+
+static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
+{
+	struct dpu_enhance *enhance = ctx->enhance;
+	struct scale_cfg *scale;
+	struct cm_cfg *cm;
+	struct slp_cfg *slp;
+	struct gamma_lut *gamma;
+	struct hsv_lut *hsv;
+	u32 *p, i;
+
+	if (!ctx->enabled) {
+		dpu_enhance_backup(ctx, id, param);
+		return;
+	}
+
+	if (ctx->if_type == SPRD_DPU_IF_EDPI)
+		dpu_wait_stop_done(ctx);
+
+	switch (id) {
+	case ENHANCE_CFG_ID_ENABLE:
+		p = param;
+		DPU_REG_SET(ctx->base + REG_DPU_ENHANCE_CFG, *p);
+		pr_info("enhance module enable: 0x%x\n", *p);
+		break;
+	case ENHANCE_CFG_ID_DISABLE:
+		p = param;
+		DPU_REG_CLR(ctx->base + REG_DPU_ENHANCE_CFG, *p);
+		pr_info("enhance module disable: 0x%x\n", *p);
+		break;
+	case ENHANCE_CFG_ID_SCL:
+		memcpy(&enhance->scale_copy, param, sizeof(enhance->scale_copy));
+		scale = &enhance->scale_copy;
+		DPU_REG_WR(ctx->base + REG_BLEND_SIZE, (scale->in_h << 16) | scale->in_w);
+		DPU_REG_SET(ctx->base + REG_DPU_ENHANCE_CFG, BIT(0));
+		pr_info("enhance scaling: %ux%u\n", scale->in_w, scale->in_h);
+		break;
+	case ENHANCE_CFG_ID_HSV:
+		memcpy(&enhance->hsv_copy, param, sizeof(enhance->hsv_copy));
+		hsv = &enhance->hsv_copy;
+		for (i = 0; i < 360; i++) {
+			DPU_REG_WR(ctx->base + REG_HSV_LUT_ADDR, i);
+			udelay(1);
+			DPU_REG_WR(ctx->base + REG_HSV_LUT_WDATA, (hsv->table[i].sat << 16) |
+						hsv->table[i].hue);
+		}
+		DPU_REG_SET(ctx->base + REG_DPU_ENHANCE_CFG, BIT(2));
+		pr_info("enhance hsv set\n");
+		break;
+	case ENHANCE_CFG_ID_CM:
+		memcpy(&enhance->cm_copy, param, sizeof(enhance->cm_copy));
+		cm = &enhance->cm_copy;
+		DPU_REG_WR(ctx->base + REG_CM_COEF01_00, (cm->coef01 << 16) | cm->coef00);
+		DPU_REG_WR(ctx->base + REG_CM_COEF03_02, (cm->coef03 << 16) | cm->coef02);
+		DPU_REG_WR(ctx->base + REG_CM_COEF11_10, (cm->coef11 << 16) | cm->coef10);
+		DPU_REG_WR(ctx->base + REG_CM_COEF13_12, (cm->coef13 << 16) | cm->coef12);
+		DPU_REG_WR(ctx->base + REG_CM_COEF21_20, (cm->coef21 << 16) | cm->coef20);
+		DPU_REG_WR(ctx->base + REG_CM_COEF23_22, (cm->coef23 << 16) | cm->coef22);
+		DPU_REG_SET(ctx->base + REG_DPU_ENHANCE_CFG, BIT(3));
+		pr_info("enhance cm set\n");
+		break;
+	case ENHANCE_CFG_ID_SLP:
+		memcpy(&enhance->slp_copy, param, sizeof(enhance->slp_copy));
+		slp = &enhance->slp_copy;
+		DPU_REG_WR(ctx->base + REG_SLP_CFG0, (slp->second_bright_factor << 24) |
+				(slp->brightness_step << 16) |
+				(slp->conversion_matrix << 8) |
+				slp->brightness);
+		DPU_REG_WR(ctx->base + REG_SLP_CFG1, (slp->first_max_bright_th << 8) |
+				slp->first_percent_th);
+		DPU_REG_SET(ctx->base + REG_DPU_ENHANCE_CFG, BIT(4));
+		pr_info("enhance slp set\n");
+		break;
+	case ENHANCE_CFG_ID_GAMMA:
+		memcpy(&enhance->gamma_copy, param, sizeof(enhance->gamma_copy));
+		gamma = &enhance->gamma_copy;
+		for (i = 0; i < 256; i++) {
+			DPU_REG_SET(ctx->base + REG_GAMMA_LUT_ADDR, i);
+			udelay(1);
+			DPU_REG_WR(ctx->base + REG_GAMMA_LUT_ADDR, (gamma->r[i] << 20) |
+						(gamma->g[i] << 10) | gamma->b[i]);
+			pr_debug("0x%02x: r=%u, g=%u, b=%u\n", i,
+				gamma->r[i], gamma->g[i], gamma->b[i]);
+		}
+		DPU_REG_SET(ctx->base + REG_DPU_ENHANCE_CFG, BIT(5));
+		pr_info("enhance gamma set\n");
+		break;
+	default:
+		break;
+	}
+
+	if ((ctx->if_type == SPRD_DPU_IF_DPI) && !ctx->stopped) {
+		DPU_REG_SET(ctx->base + REG_DPU_CTRL, BIT(2));
+		dpu_wait_update_done(ctx);
+	} else if ((ctx->if_type == SPRD_DPU_IF_EDPI) && ctx->panel_ready) {
+		/*
+		 * In EDPI mode, we need to wait panel initializatin
+		 * completed. Otherwise, the dpu enhance settings may
+		 * start before panel initialization.
+		 */
+		DPU_REG_SET(ctx->base + REG_DPU_CTRL, BIT(0));
+		ctx->stopped = false;
+	}
+
+	enhance->enhance_en = DPU_REG_RD(ctx->base + REG_DPU_ENHANCE_CFG);
+}
+
+static void dpu_enhance_get(struct dpu_context *ctx, u32 id, void *param)
+{
+	struct scale_cfg *scale;
+	struct epf_cfg *ep;
+	struct slp_cfg *slp;
+	struct gamma_lut *gamma;
+	u32 *p32, i, val;
+
+	switch (id) {
+	case ENHANCE_CFG_ID_ENABLE:
+		p32 = param;
+		*p32 = DPU_REG_RD(ctx->base + REG_DPU_ENHANCE_CFG);
+		pr_info("enhance module enable get\n");
+		break;
+	case ENHANCE_CFG_ID_SCL:
+		scale = param;
+		val = DPU_REG_RD(ctx->base + REG_BLEND_SIZE);
+		scale->in_w = val & 0xffff;
+		scale->in_h = val >> 16;
+		pr_info("enhance scaling get\n");
+		break;
+	case ENHANCE_CFG_ID_EPF:
+		ep = param;
+
+		val = DPU_REG_RD(ctx->base + REG_EPF_EPSILON);
+		ep->epsilon0 = val;
+		ep->epsilon1 = val >> 16;
+
+		val = DPU_REG_RD(ctx->base + REG_EPF_GAIN0_3);
+		ep->gain0 = val;
+		ep->gain1 = val >> 8;
+		ep->gain2 = val >> 16;
+		ep->gain3 = val >> 24;
+
+		val = DPU_REG_RD(ctx->base + REG_EPF_GAIN4_7);
+		ep->gain4 = val;
+		ep->gain5 = val >> 8;
+		ep->gain6 = val >> 16;
+		ep->gain7 = val >> 24;
+
+		val = DPU_REG_RD(ctx->base + REG_EPF_DIFF);
+		ep->min_diff = val;
+		ep->max_diff = val >> 8;
+		pr_info("enhance epf get\n");
+		break;
+	case ENHANCE_CFG_ID_HSV:
+		dpu_stop(ctx);
+		p32 = param;
+		for (i = 0; i < 360; i++) {
+			DPU_REG_WR(ctx->base + REG_HSV_LUT_ADDR, i);
+			udelay(1);
+			*p32++ = DPU_REG_RD(ctx->base + REG_HSV_LUT_RDATA);
+		}
+		dpu_run(ctx);
+		pr_info("enhance hsv get\n");
+		break;
+	case ENHANCE_CFG_ID_CM:
+		p32 = param;
+		*p32++ = DPU_REG_RD(ctx->base + REG_CM_COEF01_00);
+		*p32++ = DPU_REG_RD(ctx->base + REG_CM_COEF03_02);
+		*p32++ = DPU_REG_RD(ctx->base + REG_CM_COEF11_10);
+		*p32++ = DPU_REG_RD(ctx->base + REG_CM_COEF13_12);
+		*p32++ = DPU_REG_RD(ctx->base + REG_CM_COEF21_20);
+		*p32++ = DPU_REG_RD(ctx->base + REG_CM_COEF23_22);
+		pr_info("enhance cm get\n");
+		break;
+	case ENHANCE_CFG_ID_SLP:
+		slp = param;
+
+		val = DPU_REG_RD(ctx->base + REG_SLP_CFG0);
+		slp->brightness = val;
+		slp->conversion_matrix = val >> 8;
+		slp->brightness_step = val >> 16;
+		slp->second_bright_factor = val >> 24;
+
+		val = DPU_REG_RD(ctx->base + REG_SLP_CFG1);
+		slp->first_percent_th = val;
+		slp->first_max_bright_th = val >> 8;
+		pr_info("enhance slp get\n");
+		break;
+	case ENHANCE_CFG_ID_GAMMA:
+		dpu_stop(ctx);
+		gamma = param;
+		for (i = 0; i < 256; i++) {
+			DPU_REG_WR(ctx->base + REG_GAMMA_LUT_ADDR, i);
+			udelay(1);
+			val = DPU_REG_RD(ctx->base + REG_GAMMA_LUT_RDATA);
+			gamma->r[i] = (val >> 20) & 0x3FF;
+			gamma->g[i] = (val >> 10) & 0x3FF;
+			gamma->b[i] = val & 0x3FF;
+			pr_debug("0x%02x: r=%u, g=%u, b=%u\n", i,
+				gamma->r[i], gamma->g[i], gamma->b[i]);
+		}
+		dpu_run(ctx);
+		pr_info("enhance gamma get\n");
+		break;
+	default:
+		break;
+	}
+}
+
+static void dpu_enhance_reload(struct dpu_context *ctx)
+{
+	struct dpu_enhance *enhance = ctx->enhance;
+	struct scale_cfg *scale;
+	struct cm_cfg *cm;
+	struct slp_cfg *slp;
+	struct gamma_lut *gamma;
+	struct hsv_lut *hsv;
+	struct epf_cfg *epf;
+	int i;
+
+	if (enhance->enhance_en & BIT(0)) {
+		scale = &enhance->scale_copy;
+		DPU_REG_WR(ctx->base + REG_BLEND_SIZE, (scale->in_h << 16) | scale->in_w);
+		pr_info("enhance scaling from %ux%u to %ux%u\n", scale->in_w,
+			scale->in_h, ctx->vm.hactive, ctx->vm.vactive);
+	}
+
+	if (enhance->enhance_en & BIT(1)) {
+		epf = &enhance->epf_copy;
+		dpu_epf_set(ctx, epf);
+		pr_info("enhance epf reload\n");
+	}
+
+	if (enhance->enhance_en & BIT(2)) {
+		hsv = &enhance->hsv_copy;
+		for (i = 0; i < 360; i++) {
+			DPU_REG_WR(ctx->base + REG_HSV_LUT_ADDR, i);
+			udelay(1);
+			DPU_REG_WR(ctx->base + REG_HSV_LUT_WDATA, (hsv->table[i].sat << 16) |
+						hsv->table[i].hue);
+		}
+		pr_info("enhance hsv reload\n");
+	}
+
+	if (enhance->enhance_en & BIT(3)) {
+		cm = &enhance->cm_copy;
+		DPU_REG_WR(ctx->base + REG_CM_COEF01_00, (cm->coef01 << 16) | cm->coef00);
+		DPU_REG_WR(ctx->base + REG_CM_COEF03_02, (cm->coef03 << 16) | cm->coef02);
+		DPU_REG_WR(ctx->base + REG_CM_COEF11_10, (cm->coef11 << 16) | cm->coef10);
+		DPU_REG_WR(ctx->base + REG_CM_COEF13_12, (cm->coef13 << 16) | cm->coef12);
+		DPU_REG_WR(ctx->base + REG_CM_COEF21_20, (cm->coef21 << 16) | cm->coef20);
+		DPU_REG_WR(ctx->base + REG_CM_COEF23_22, (cm->coef23 << 16) | cm->coef22);
+		pr_info("enhance cm reload\n");
+	}
+
+	if (enhance->enhance_en & BIT(4)) {
+		slp = &enhance->slp_copy;
+		DPU_REG_WR(ctx->base + REG_SLP_CFG0, (slp->second_bright_factor << 24) |
+				(slp->brightness_step << 16) |
+				(slp->conversion_matrix << 8) |
+				slp->brightness);
+		DPU_REG_WR(ctx->base + REG_SLP_CFG1, (slp->first_max_bright_th << 8) |
+				slp->first_percent_th);
+		pr_info("enhance slp reload\n");
+	}
+
+	if (enhance->enhance_en & BIT(5)) {
+		gamma = &enhance->gamma_copy;
+		for (i = 0; i < 256; i++) {
+			DPU_REG_WR(ctx->base + REG_GAMMA_LUT_ADDR, i);
+			udelay(1);
+			DPU_REG_WR(ctx->base + REG_GAMMA_LUT_WDATA, (gamma->r[i] << 20) |
+						(gamma->g[i] << 10) |
+						gamma->b[i]);
+			pr_debug("0x%02x: r=%u, g=%u, b=%u\n", i,
+				gamma->r[i], gamma->g[i], gamma->b[i]);
+		}
+		pr_info("enhance gamma reload\n");
+	}
+
+	DPU_REG_WR(ctx->base + REG_DPU_ENHANCE_CFG, enhance->enhance_en);
+}
+
+static int dpu_modeset(struct dpu_context *ctx,
+		struct drm_display_mode *mode)
+{
+	struct dpu_enhance *enhance = ctx->enhance;
+
+	enhance->scale_copy.in_w = mode->hdisplay;
+	enhance->scale_copy.in_h = mode->vdisplay;
+
+	if ((mode->hdisplay != ctx->vm.hactive) ||
+		(mode->vdisplay != ctx->vm.vactive))
+		enhance->need_scale = true;
+	else
+		enhance->need_scale = false;
+
+	enhance->mode_changed = true;
+	pr_info("begin switch to %u x %u\n", mode->hdisplay, mode->vdisplay);
+
+	return 0;
+}
+
 const struct dpu_core_ops dpu_r2p0_core_ops = {
 	.version = dpu_version,
 	.init = dpu_init,
@@ -855,4 +1344,8 @@ const struct dpu_core_ops dpu_r2p0_core_ops = {
 	.enable_vsync = enable_vsync,
 	.disable_vsync = disable_vsync,
 	.check_raw_int = dpu_check_raw_int,
+	.enhance_init = dpu_enhance_init,
+	.enhance_set = dpu_enhance_set,
+	.enhance_get = dpu_enhance_get,
+	.modeset = dpu_modeset,
 };
