@@ -54,13 +54,13 @@
 #include "tee_client_api.h"
 #endif
 
-/*#include "ontim/ontim_dev_dgb.h"
+#include "ontim/ontim_dev_dgb.h"
 #define FPS_HW_INFO "FPC1520"
 DEV_ATTR_DECLARE(fingersensor)
 DEV_ATTR_DEFINE("vendor", FPS_HW_INFO)
 DEV_ATTR_DECLARE_END;
 ONTIM_DEBUG_DECLARE_AND_INIT(fingersensor, fingersensor, 8);
-*/
+
 
 #ifdef FPC_DRIVER_FOR_ISEE
 struct TEEC_UUID vendor_uuid = { 0x7778c03f, 0xc30c, 0x4dd0,
@@ -381,8 +381,8 @@ static ssize_t hwinfo_set(struct device *device,
         struct device_attribute *attr, const char *buf, size_t count)
 {
     //struct fpc_data *fpc = dev_get_drvdata(device);
-    //CHECK_THIS_DEV_DEBUG_AREADY_EXIT();
-   // REGISTER_AND_INIT_ONTIM_DEBUG_FOR_THIS_DEV();
+    CHECK_THIS_DEV_DEBUG_AREADY_EXIT();
+    REGISTER_AND_INIT_ONTIM_DEBUG_FOR_THIS_DEV();
 
     fpsensor_log(INFO_LOG, "set hwinfo");
 
