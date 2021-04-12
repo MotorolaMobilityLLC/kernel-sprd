@@ -1002,6 +1002,49 @@
 			};
 		};
 
+		ap-apb {
+			compatible = "simple-bus";
+			#address-cells = <2>;
+			#size-cells = <2>;
+			ranges;
+
+			sdio3: sdio@71400000 {
+				compatible = "sprd,sdhci-r11";
+				reg = <0 0x71400000 0 0x1000>;
+				interrupts = <GIC_SPI 10 IRQ_TYPE_LEVEL_HIGH>;
+				clock-names = "sdio","enable";
+				clocks = <&ap_clk CLK_EMMC_2X>,
+					<&apapb_gate CLK_EMMC_EB>;
+				assigned-clocks = <&ap_clk CLK_EMMC_2X>;
+				assigned-clock-parents = <&pll1 CLK_RPLL>;
+			};
+
+			sdio0: sdio@71100000 {
+				compatible = "sprd,sdhci-r11";
+				reg = <0 0x71100000 0 0x1000>;
+				interrupts = <GIC_SPI 19 IRQ_TYPE_LEVEL_HIGH>;
+				clock-names = "sdio","enable";
+				clocks = <&ap_clk  CLK_SDIO0_2X>,
+					<&apapb_gate CLK_SDIO0_EB>;
+				assigned-clocks = <&ap_clk CLK_SDIO0_2X>;
+				assigned-clock-parents = <&pll1 CLK_RPLL>;
+			};
+
+			sdio1: sdio@71200000 {
+				compatible = "sprd,sdhci-r11";
+				reg = <0 0x71200000 0 0x1000>;
+				interrupts = <GIC_SPI 20 IRQ_TYPE_LEVEL_HIGH>;
+				status = "disabled";
+			};
+
+			sdio2: sdio@71300000 {
+				compatible = "sprd,sdhci-r11";
+				reg = <0 0x71300000 0 0x1000>;
+				interrupts = <GIC_SPI 21 IRQ_TYPE_LEVEL_HIGH>;
+				status = "disabled";
+			};
+		};
+
 		ap_etb: apetb {
 			compatible = "sprd,apetb";
 		    apetb-source = <&etm0 &etm1	&etm2 &etm3>;
@@ -1010,46 +1053,6 @@
 	};
 };
 
-&sdio0 {
-	clock-names = "sdio_clk", "sdio_clk_source",
-		"sdio_ahb_enable", "sdio_hp_det_clk";
-	clocks = <&ap_clk CLK_SDIO0_2X>,
-		<&pll1 CLK_RPLL>,
-		<&apapb_gate CLK_SDIO0_EB>,
-		<&apapb_gate CLK_SDIO0_32K_EB>;
-};
-
-&sdio1 {
-	clock-names = "sdio_clk","sdio_clk_source","sdio_ahb_enable";
-	clocks = <&ap_clk CLK_SDIO1_2X>,
-		 <&pll2 CLK_LPLL_409M6>,
-		 <&apapb_gate CLK_SDIO1_EB>;
-};
-
-&sdio3 {
-	clock-names = "sdio_clk","sdio_clk_source","sdio_ahb_enable";
-	clocks = <&ap_clk CLK_EMMC_2X>,
-		 <&pll1 CLK_RPLL>,
-		 <&apapb_gate CLK_EMMC_EB>;
-};
-
-&uart0 {
-	clock-names = "enable", "uart", "source";
-	clocks = <&apapb_gate CLK_UART0_EB>,
-		 <&ap_clk CLK_AP_UART0>, <&ext_26m>;
-};
-
-&uart1 {
-	clock-names = "enable", "uart", "source";
-	clocks = <&apapb_gate CLK_UART1_EB>,
-		 <&ap_clk CLK_AP_UART1>, <&ext_26m>;
-};
-
-&uart2 {
-	clock-names = "enable", "uart", "source";
-	clocks = <&apapb_gate CLK_UART2_EB>,
-		 <&ap_clk CLK_AP_UART2>, <&ext_26m>;
-};
 
 &i2c0 {
 	clock-names ="enable", "i2c", "source";

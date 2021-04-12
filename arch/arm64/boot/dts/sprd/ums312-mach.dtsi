@@ -541,10 +541,10 @@
 };
 
 &sdio0 {
-	sprd,sdr104-dly = <0x86 0x6e 0x70 0x70>;
-	sprd,sdr50-dly = <0x7f 0x7f 0xf6 0xf6>;
-	sprd,sdhs-dly = <0x0 0x24 0x24 0x24>;
-	sprd,legacy-dly = <0x0 0x24 0x24 0x24>;
+	sprd,phy-delay-sd-uhs-sdr104 = <0x86 0x6e 0x70 0x70>;
+	sprd,phy-delay-sd-uhs-sdr50 = <0x7f 0x7f 0xf6 0xf6>;
+	sprd,phy-delay-sd-highspeed = <0x0 0x24 0x24 0x24>;
+	sprd,phy-delay-legacy = <0x0 0x24 0x24 0x24>;
 	vmmc-supply = <&vddsdcore>;
 	vqmmc-supply = <&vddsdio>;
 	voltage-ranges = <3000 3000>;
@@ -555,12 +555,12 @@
 	sprd,sdio-adma;
 	no-sdio;
 	no-mmc;
-	status = "okay";
+	status = "disable";
 };
 
 &sdio1 {
-	sprd,sdr104-dly = <0x7f 0x8f 0x93 0x93>;
-	sprd,sdr50-dly = <0xff 0x0c 0x0e 0x0e>;
+	sprd,phy-delay-sd-uhs-sdr104 = <0x7f 0x8f 0x93 0x93>;
+	sprd,phy-delay-sd-uhs-sdr50 = <0xff 0x0c 0x0e 0x0e>;
 	sd-uhs-sdr104;
 	sd-uhs-sdr50;
 	bus-width = <4>;
@@ -568,26 +568,13 @@
 	sprd,sdio-adma;
 	no-sd;
 	no-mmc;
-	status = "okay";
+	status = "disable";
 };
 
 &sdio3 {
-	sprd,hs400es-dly = <0x4f 0x7f 0x32 0x32>;
-	sprd,hs400-dly = <0x4b 0x72 0x38 0x38>;
-	sprd,hs200-dly = <0x7f 0xde 0xca 0xca>;
-	sprd,ddr52-dly = <0x30 0x27 0x19 0x19>;
-	sprd,mmchs-dly = <0x7f 0x94 0x7f 0x7f>;
-	vmmc-supply = <&vddemmccore>;
-	voltage-ranges = <3000 3000>;
 	bus-width = <8>;
 	non-removable;
 	cap-mmc-hw-reset;
-	mmc-hs400-enhanced-strobe;
-	mmc-hs400-1_8v;
-	mmc-hs200-1_8v;
-	mmc-ddr-1_8v;
-	sprd,name = "sdio_emmc";
-	sprd,sdio-adma;
 	no-sdio;
 	no-sd;
 	status = "okay";
