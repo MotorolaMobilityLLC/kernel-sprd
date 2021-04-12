@@ -43,6 +43,15 @@ config MMC_BLOCK
 	  mount the filesystem. Almost everyone wishing MMC support
 	  should say Y or M here.
 
+config MMC_FFU_FUNCTION
+	tristate "mmc ffu function"
+	default y
+	help
+	  say y here to enable the mmc ffu funciton support.
+	  this provides enbale mmc function, which you can use to
+	  emmc field firmware update.
+	  should say y or m here.
+
 config MMC_BLOCK_MINORS
 	int "Number of minors per block device"
 	depends on MMC_BLOCK

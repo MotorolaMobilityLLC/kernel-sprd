@@ -8838,6 +8838,15 @@ CONFIG_MMC_CRYPTO
 	[must] user
 	[missing plat description] none
 	[function] Enable MMC controller encryption
+CONFIG_MMC_FFU_FUNCTION
+	[arch] all
+	[plat] sharkl3,sharkl3_32,sharkl5Pro
+	[missing plat] pike2,qogirl6,qogirn6pro,sharkl5,sharkl5_32,sharkle32
+	[field] make,code
+	[subsys] mmc
+	[must] user
+	[missing plat description] customer requirement
+	[function] Add ffu function to update emmc firmware
 CONFIG_MMC_SPRD_BOOTDEVICE
 	[arch] all
 	[plat] sharkl3,sharkl3_32,sharkl5Pro
