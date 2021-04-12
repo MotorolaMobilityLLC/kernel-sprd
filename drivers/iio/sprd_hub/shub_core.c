@@ -2444,6 +2444,7 @@ static struct attribute *sensorhub_attrs[] = {
 	&dev_attr_light_sensor_calibrator.attr,
 	&dev_attr_version.attr,
 	&dev_attr_als_mode.attr,
+    &dev_attr_custom_para.attr,
 	&dev_attr_raw_data_acc.attr,
 	&dev_attr_raw_data_mag.attr,
 	&dev_attr_raw_data_gyro.attr,
