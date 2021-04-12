@@ -97,6 +97,15 @@ static struct gf_key_map maps[] = {
 #endif
 };
 
+//begin, add fpvendor for goodix by jiali.du
+#include "ontim/ontim_dev_dgb.h"
+#define FPC_HW_INFO "GF3988"
+DEV_ATTR_DECLARE(fingersensor)
+DEV_ATTR_DEFINE("vendor", FPC_HW_INFO)
+DEV_ATTR_DECLARE_END;
+ONTIM_DEBUG_DECLARE_AND_INIT(fingersensor, fingersensor, 8);
+//end
+
 static void gf_enable_irq(struct gf_dev *gf_dev)
 {
 	if (gf_dev->irq_enabled) {
@@ -453,6 +462,8 @@ static long gf_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	case GF_IOC_ENABLE_POWER:
 		pr_info("%s GF_IOC_ENABLE_POWER\n", __func__);
 		gf_power_on(gf_dev);
+		CHECK_THIS_DEV_DEBUG_AREADY_EXIT();
+		REGISTER_AND_INIT_ONTIM_DEBUG_FOR_THIS_DEV();
 		break;
 
 	case GF_IOC_DISABLE_POWER:
