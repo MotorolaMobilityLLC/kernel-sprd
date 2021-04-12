@@ -430,8 +430,8 @@
 			reg = <0x0 0x81ff0000 0x0 0x00010000>; /* 64K */
 		};
 
-		audio_reserved: audio-mem@87400000{
-			reg = <0x0 0x87400000 0x0 0x00400000>;
+		audio_reserved: audio-mem@87500000{
+			reg = <0x0 0x87500000 0x0 0x00300000>;
 		};
 
 		smem_reserved: sipc-mem@87800000{
