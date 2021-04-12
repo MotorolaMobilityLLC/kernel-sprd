@@ -41,7 +41,7 @@ do
 
 	if [[ $arch == "arm64" ]]; then
 		# should be consistent with make_config() in envsetup.sh!
-		make LLVM=1 LLVM_IAS=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CROSS_COMPILE_COMPAT=arm-linux-androidkernel- $defconfig_name O=$tmp_path_def
+		make LLVM=1 LLVM_IAS=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CLANG_TRIPLE=aarch64-linux-gnu- CROSS_COMPILE_COMPAT=arm-linux-androidkernel- $defconfig_name O=$tmp_path_def
 	elif [[ $arch == "arm" ]]; then
 		make LLVM=1 ARCH=arm CROSS_COMPILE=arm-linux-androidkernel- CLANG_TRIPLE=arm-linux-gnueabi- $defconfig_name O=$tmp_path_def
 	fi
