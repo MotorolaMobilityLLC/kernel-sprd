@@ -462,8 +462,6 @@ static long gf_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	case GF_IOC_ENABLE_POWER:
 		pr_info("%s GF_IOC_ENABLE_POWER\n", __func__);
 		gf_power_on(gf_dev);
-		CHECK_THIS_DEV_DEBUG_AREADY_EXIT();
-		REGISTER_AND_INIT_ONTIM_DEBUG_FOR_THIS_DEV();
 		break;
 
 	case GF_IOC_DISABLE_POWER:
@@ -491,6 +489,8 @@ static long gf_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			retval = -EFAULT;
 			break;
 		}
+		CHECK_THIS_DEV_DEBUG_AREADY_EXIT();
+		REGISTER_AND_INIT_ONTIM_DEBUG_FOR_THIS_DEV();
 		pr_info("vendor_id : 0x%x\n", info.vendor_id);
 		pr_info("mode : 0x%x\n", info.mode);
 		pr_info("operation: 0x%x\n", info.operation);
