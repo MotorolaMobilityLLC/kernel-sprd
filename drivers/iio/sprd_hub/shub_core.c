@@ -1769,6 +1769,47 @@ static ssize_t als_mode_store(struct device *dev,
 }
 static DEVICE_ATTR_WO(als_mode);
 
+void get_dynamic_data(struct shub_data *sensor)
+{
+	int i;
+	u8 data[30], type, len;
+
+	type = sensor->dynamic_data_get.type;
+	len = sensor->dynamic_data_get.length;
+	memcpy(data, sensor->dynamic_data_get.customer_data, len);
+	for (i = 0; i < len; i++)
+		dev_dbg(&sensor->sensor_pdev->dev,
+			"handle %d get dynamic data is %d\n", type, data[i]);
+}
+
+static ssize_t data_to_dynamic_store(struct device *dev,
+				     struct device_attribute *attr,
+				     const char *buf, size_t count)
+{
+	int err, len;
+	ssize_t num;
+	uint8_t data[CALIBRATION_DATA_LENGTH];
+	struct shub_data *sensor = dev_get_drvdata(dev);
+
+	num = count;
+	if (count <= CALIBRATION_DATA_LENGTH) {
+		len = count;
+	} else {
+		len = CALIBRATION_DATA_LENGTH;
+		dev_err(&sensor->sensor_pdev->dev, "buf length is beyond 30 bytes\n");
+	}
+	memcpy(data, buf, len);
+	err = shub_send_command(sensor, HANDLE_MAX,
+				AP_SEND_DATA_TO_DYNAMIC_SUBTYPE,
+				(char *)data, len);
+	if (err < 0) {
+		dev_err(&sensor->sensor_pdev->dev, "Send dynamic para_data fail\n");
+	}
+
+	return num;
+}
+static DEVICE_ATTR_WO(data_to_dynamic);
+
 static ssize_t raw_data_acc_show(struct device *dev,
 				struct device_attribute *attr, char *buf)
 {
@@ -2116,6 +2157,7 @@ static struct attribute *sensorhub_attrs[] = {
 	&dev_attr_light_sensor_calibrator.attr,
 	&dev_attr_version.attr,
 	&dev_attr_als_mode.attr,
+	&dev_attr_data_to_dynamic.attr,
 	&dev_attr_raw_data_acc.attr,
 	&dev_attr_raw_data_mag.attr,
 	&dev_attr_raw_data_gyro.attr,
@@ -2462,6 +2504,7 @@ static int shub_probe(struct platform_device *pdev)
 	mcu->save_mag_offset = shub_save_mag_offset;
 	mcu->readcmd_callback = shub_readcmd_callback;
 	mcu->cm4_read_callback = shub_cm4_read_callback;
+	mcu->dynamic_read = get_dynamic_data;
 	init_waitqueue_head(&mcu->rxwq);
 
 	mcu->resp_cmdstatus_callback = parse_cmd_response_callback;

@@ -157,6 +157,12 @@ struct sensor_log_control {
 	u32 udata[MAX_SENSOR_LOG_CTL_FLAG_LEN];
 };
 
+struct customer_data_get {
+	u8 type;
+	u8 customer_data[30];
+	u8 length;
+};
+
 struct shub_data {
 	struct platform_device *sensor_pdev;
 	enum shub_mode mcu_mode;
@@ -205,6 +211,7 @@ struct shub_data {
 	void (*cm4_read_callback)(struct shub_data *sensor,
 				  enum shub_subtype_id subtype,
 				  u8 *buff, u32 len);
+	void (*dynamic_read)(struct shub_data *sensor);
 	struct sensor_log_control log_control;
 	struct workqueue_struct *driver_wq;
 	struct delayed_work time_sync_work;
@@ -215,6 +222,7 @@ struct shub_data {
 	struct notifier_block shub_reboot_notifier;
 	int is_sensorhub;
 	u8 cm4_operate_data[6];
+	struct customer_data_get dynamic_data_get;
 };
 
 extern struct shub_data *g_sensor;
