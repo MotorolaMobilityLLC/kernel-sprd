@@ -149,24 +149,34 @@ struct wcn_gnss_special_share_mem {
 };
 
 struct wcn_dfs_sync_info {
-	/* btwf */
-	u32 btwf_record_gnss_current_clk:4;
-	u32 btwf_pwr_state:1;
-	u32 btwf_dfs_init:1;
-	u32 btwf_dfs_active:1;
-	u32 btwf_spinlock:1;
-	u32 reserved_btwf:8;
-	/* gnss */
-	u32 gnss_clk_req_ack:5;
-	u32 gnss_pwr_state:1;
-	u32 gnss_dfs_active:1;
-	u32 gnss_spinlock:1;
-	u32 reserved_gnss:8;
+	union {
+		struct {
+			/* btwf */
+			u32 btwf_record_gnss_current_clk:4;
+			u32 btwf_pwr_state:1;
+			u32 btwf_dfs_init:1;
+			u32 btwf_dfs_active:1;
+			u32 btwf_spinlock:1;
+			u32 reserved_btwf:24;
+		};
+		u32	btwf_dfs_info;
+	};
+	union {
+		struct {
+			/* gnss */
+			u32 gnss_clk_req_ack:5;
+			u32 gnss_pwr_state:1;
+			u32 gnss_dfs_active:1;
+			u32 gnss_spinlock:1;
+			u32 reserved_gnss:24;
+		};
+		u32	gnss_dfs_info;
+	};
 };
 
 #define WCN_GNSS_DDR_OFFSET (0x600000)
 #define WCN_SYS_DFS_SYNC_ADDR_OFFSET (0x007ffb00)
-#define WCN_SYS_RFI_SYNC_ADDR_OFFSET (0x007ffb04)
+#define WCN_SYS_RFI_SYNC_ADDR_OFFSET (0x007ffb10)
 
 #ifdef CONFIG_UMW2631_I
 #define WCN_SPECIAL_SHARME_MEM_ADDR	(0x007fdc00)

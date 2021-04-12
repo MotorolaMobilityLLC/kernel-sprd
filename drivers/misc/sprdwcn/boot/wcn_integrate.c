@@ -64,36 +64,48 @@ static void wcn_dfs_status_show(struct wcn_dfs_sync_info *dfs_info)
 		 dfs_info->gnss_clk_req_ack);
 	WCN_INFO("gnss_pwr_state %d\n", dfs_info->gnss_pwr_state);
 	WCN_INFO("gnss_dfs_active %d\n", dfs_info->gnss_dfs_active);
-	WCN_INFO("btwf_dfs_active %d\n", dfs_info->btwf_dfs_active);
 	WCN_INFO("gnss_spinlock %d\n", dfs_info->gnss_spinlock);
+	WCN_INFO("wcn_dfs_info: 0x%x-0x%x\n", dfs_info->btwf_dfs_info,
+		dfs_info->gnss_dfs_info);
 }
 
 void wcn_dfs_poweroff_state_clear(struct wcn_device *wcn_dev)
 {
 	bool is_marlin;
 	phys_addr_t phy_addr;
-	struct wcn_dfs_sync_info dfs_info = {0};
+	struct wcn_dfs_sync_info dfs_info;
+	u32 temp_btwf = 0, temp_gnss = 0;
 
 	is_marlin = wcn_dev_is_marlin(wcn_dev);
 	if (is_marlin) {
 		phy_addr = wcn_dev->base_addr + WCN_SYS_DFS_SYNC_ADDR_OFFSET;
-		wcn_read_data_from_phy_addr(phy_addr, &dfs_info, sizeof(u32));
-		WCN_INFO("poweroff_state before btwf clear :\n");
-		wcn_dfs_status_show(&dfs_info);
+		wcn_read_data_from_phy_addr(phy_addr, &dfs_info,
+			sizeof(struct wcn_dfs_sync_info));
+		temp_btwf = dfs_info.btwf_dfs_info;
+		temp_gnss = dfs_info.gnss_dfs_info;
 		dfs_info.btwf_pwr_state = 0;
-		wcn_write_data_to_phy_addr(phy_addr, &dfs_info, sizeof(u32));
-		wcn_read_data_from_phy_addr(phy_addr, &dfs_info, sizeof(u32));
+		wcn_write_data_to_phy_addr(phy_addr, &dfs_info.btwf_dfs_info,
+								   sizeof(u32));
+		wcn_read_data_from_phy_addr(phy_addr, &dfs_info,
+			sizeof(struct wcn_dfs_sync_info));
+		WCN_INFO("poweroff_state before btwf clear : 0x%x-0x%x\n",
+			temp_btwf, temp_gnss);
 		WCN_INFO("poweroff_state after btwf clear:\n");
 		wcn_dfs_status_show(&dfs_info);
 	} else {
 		phy_addr = wcn_dev->base_addr - WCN_GNSS_DDR_OFFSET
 					+ WCN_SYS_DFS_SYNC_ADDR_OFFSET;
-		wcn_read_data_from_phy_addr(phy_addr, &dfs_info, sizeof(u32));
-		WCN_INFO("poweroff_state before gnss clear:\n");
-		wcn_dfs_status_show(&dfs_info);
+		wcn_read_data_from_phy_addr(phy_addr, &dfs_info,
+			sizeof(struct wcn_dfs_sync_info));
+		temp_btwf = dfs_info.btwf_dfs_info;
+		temp_gnss = dfs_info.gnss_dfs_info;
 		dfs_info.gnss_pwr_state = 0;
-		wcn_write_data_to_phy_addr(phy_addr, &dfs_info, sizeof(u32));
-		wcn_read_data_from_phy_addr(phy_addr, &dfs_info, sizeof(u32));
+		wcn_write_data_to_phy_addr(phy_addr + sizeof(u32),
+			&dfs_info.gnss_dfs_info, sizeof(u32));
+		wcn_read_data_from_phy_addr(phy_addr, &dfs_info,
+			sizeof(struct wcn_dfs_sync_info));
+		WCN_INFO("poweroff_state before gnss clear: 0x%x-0x%x\n",
+			temp_btwf, temp_gnss);
 		WCN_INFO("poweroff_state after gnss clear:\n");
 		wcn_dfs_status_show(&dfs_info);
 	}
@@ -102,37 +114,47 @@ void wcn_dfs_poweroff_shutdown_clear(struct wcn_device *wcn_dev)
 {
 	bool is_marlin;
 	phys_addr_t phy_addr;
-	struct wcn_dfs_sync_info dfs_info = {0};
+	struct wcn_dfs_sync_info dfs_info;
+	u32 temp_btwf = 0, temp_gnss = 0;
 
 	is_marlin = wcn_dev_is_marlin(wcn_dev);
 	if (is_marlin) {
 		phy_addr = wcn_dev->base_addr + WCN_SYS_DFS_SYNC_ADDR_OFFSET;
-		wcn_read_data_from_phy_addr(phy_addr, &dfs_info, sizeof(u32));
-		WCN_INFO("poweroff_shutdown before btwf clear :\n");
-		wcn_dfs_status_show(&dfs_info);
+		wcn_read_data_from_phy_addr(phy_addr, &dfs_info,
+			sizeof(struct wcn_dfs_sync_info));
+		temp_btwf = dfs_info.btwf_dfs_info;
+		temp_gnss = dfs_info.gnss_dfs_info;
 
 		dfs_info.btwf_record_gnss_current_clk = 0;
 		dfs_info.btwf_dfs_init = 0;
 		dfs_info.btwf_dfs_active = 0;
 		dfs_info.btwf_spinlock = 0;
-		wcn_write_data_to_phy_addr(phy_addr, &dfs_info, sizeof(u32));
-
-		wcn_read_data_from_phy_addr(phy_addr, &dfs_info, sizeof(u32));
+		wcn_write_data_to_phy_addr(phy_addr, &dfs_info.btwf_dfs_info,
+								   sizeof(u32));
+		wcn_read_data_from_phy_addr(phy_addr, &dfs_info,
+			sizeof(struct wcn_dfs_sync_info));
+		WCN_INFO("poweroff_shutdown before btwf clear: 0x%x-0x%x\n",
+			temp_btwf, temp_gnss);
 		WCN_INFO("poweroff_shutdown after btwf clear:\n");
 		wcn_dfs_status_show(&dfs_info);
 		/* reset spinlock */
 	} else {
 		phy_addr = wcn_dev->base_addr - WCN_GNSS_DDR_OFFSET
 					+ WCN_SYS_DFS_SYNC_ADDR_OFFSET;
-		wcn_read_data_from_phy_addr(phy_addr, &dfs_info, sizeof(u32));
-		WCN_INFO("poweroff_shutdown before gnss clear:\n");
-		wcn_dfs_status_show(&dfs_info);
+		wcn_read_data_from_phy_addr(phy_addr, &dfs_info,
+			sizeof(struct wcn_dfs_sync_info));
+		temp_btwf = dfs_info.btwf_dfs_info;
+		temp_gnss = dfs_info.gnss_dfs_info;
 
 		dfs_info.gnss_dfs_active = 0;
 		dfs_info.gnss_spinlock = 0;
 		dfs_info.gnss_clk_req_ack = 0;
-		wcn_write_data_to_phy_addr(phy_addr, &dfs_info, sizeof(u32));
-		wcn_read_data_from_phy_addr(phy_addr, &dfs_info, sizeof(u32));
+		wcn_write_data_to_phy_addr(phy_addr + sizeof(u32),
+			&dfs_info.gnss_dfs_info, sizeof(u32));
+		wcn_read_data_from_phy_addr(phy_addr, &dfs_info,
+			sizeof(struct wcn_dfs_sync_info));
+		WCN_INFO("poweroff_shutdown before gnss clear: 0x%x-0x%x\n",
+			temp_btwf, temp_gnss);
 		WCN_INFO("poweroff_shutdown after gnss clear:\n");
 		wcn_dfs_status_show(&dfs_info);
 		/* reset spinlock */
@@ -143,38 +165,48 @@ void wcn_dfs_poweron_status_clear(struct wcn_device *wcn_dev)
 {
 	bool is_marlin;
 	phys_addr_t phy_addr;
-	struct wcn_dfs_sync_info dfs_info = {0};
+	struct wcn_dfs_sync_info dfs_info;
+	u32 temp_btwf = 0, temp_gnss = 0;
 
 	is_marlin = wcn_dev_is_marlin(wcn_dev);
 	if (is_marlin) {
 		phy_addr = wcn_dev->base_addr + WCN_SYS_DFS_SYNC_ADDR_OFFSET;
-		wcn_read_data_from_phy_addr(phy_addr, &dfs_info, sizeof(u32));
-		WCN_INFO("poweron before btwf clear :\n");
-		wcn_dfs_status_show(&dfs_info);
+		wcn_read_data_from_phy_addr(phy_addr, &dfs_info,
+			sizeof(struct wcn_dfs_sync_info));
+		temp_btwf = dfs_info.btwf_dfs_info;
+		temp_gnss = dfs_info.gnss_dfs_info;
 
 		dfs_info.btwf_record_gnss_current_clk = 0;
 		dfs_info.btwf_pwr_state = 0;
 		dfs_info.btwf_dfs_init = 0;
 		dfs_info.btwf_dfs_active = 0;
 		dfs_info.btwf_spinlock = 0;
-		wcn_write_data_to_phy_addr(phy_addr, &dfs_info, sizeof(u32));
-
-		wcn_read_data_from_phy_addr(phy_addr, &dfs_info, sizeof(u32));
+		wcn_write_data_to_phy_addr(phy_addr, &dfs_info.btwf_dfs_info,
+								   sizeof(u32));
+		wcn_read_data_from_phy_addr(phy_addr, &dfs_info,
+			sizeof(struct wcn_dfs_sync_info));
+		WCN_INFO("poweron before btwf clear: 0x%x-0x%x\n",
+			temp_btwf, temp_gnss);
 		WCN_INFO("poweron after btwf clear:\n");
 		wcn_dfs_status_show(&dfs_info);
 	} else {
 		phy_addr = wcn_dev->base_addr - WCN_GNSS_DDR_OFFSET
 					+ WCN_SYS_DFS_SYNC_ADDR_OFFSET;
-		wcn_read_data_from_phy_addr(phy_addr, &dfs_info, sizeof(u32));
-		WCN_INFO("poweron before gnss clear before:\n");
-		wcn_dfs_status_show(&dfs_info);
+		wcn_read_data_from_phy_addr(phy_addr, &dfs_info,
+			sizeof(struct wcn_dfs_sync_info));
+		temp_btwf = dfs_info.btwf_dfs_info;
+		temp_gnss = dfs_info.gnss_dfs_info;
 
 		dfs_info.gnss_pwr_state = 0;
 		dfs_info.gnss_dfs_active = 0;
 		dfs_info.gnss_spinlock = 0;
 		dfs_info.gnss_clk_req_ack = 0;
-		wcn_write_data_to_phy_addr(phy_addr, &dfs_info, sizeof(u32));
-		wcn_read_data_from_phy_addr(phy_addr, &dfs_info, sizeof(u32));
+		wcn_write_data_to_phy_addr(phy_addr + sizeof(u32),
+			&dfs_info.gnss_dfs_info, sizeof(u32));
+		wcn_read_data_from_phy_addr(phy_addr, &dfs_info,
+			sizeof(struct wcn_dfs_sync_info));
+		WCN_INFO("poweron before gnss clear before: 0x%x-0x%x\n",
+			temp_btwf, temp_gnss);
 		WCN_INFO("poweron after gnss clear:\n");
 		wcn_dfs_status_show(&dfs_info);
 	}
@@ -184,10 +216,13 @@ void wcn_dfs_status_clear(void)
 {
 	struct wcn_device *wcn_dev = s_wcn_device.btwf_device;
 	phys_addr_t phy_addr;
-	struct wcn_dfs_sync_info dfs_info = {0};
+	struct wcn_dfs_sync_info dfs_info;
+	dfs_info.btwf_dfs_info = 0;
+	dfs_info.gnss_dfs_info = 0;
 
 	phy_addr = wcn_dev->base_addr + WCN_SYS_DFS_SYNC_ADDR_OFFSET;
-	wcn_write_data_to_phy_addr(phy_addr, &dfs_info, sizeof(u32));
+	wcn_write_data_to_phy_addr(phy_addr, &dfs_info,
+		sizeof(struct wcn_dfs_sync_info));
 	WCN_INFO("first boot clear dfs status :\n");
 	wcn_dfs_status_show(&dfs_info);
 }
