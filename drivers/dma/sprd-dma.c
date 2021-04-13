@@ -1372,7 +1372,8 @@ static int __maybe_unused sprd_dma_runtime_resume(struct device *dev)
 
 static int __maybe_unused sprd_dma_suspend_late(struct device *dev)
 {
-	if (pm_runtime_status_suspended(dev))
+	if ((pm_runtime_status_suspended(dev)) ||
+	    (atomic_read(&(dev->power.usage_count)) > 1))
 		return 0;
 
 	return sprd_dma_runtime_suspend(dev);
@@ -1380,7 +1381,8 @@ static int __maybe_unused sprd_dma_suspend_late(struct device *dev)
 
 static int __maybe_unused sprd_dma_resume_early(struct device *dev)
 {
-	if (pm_runtime_status_suspended(dev))
+	if ((pm_runtime_status_suspended(dev)) ||
+	    (atomic_read(&(dev->power.usage_count)) > 1))
 		return 0;
 
 	return sprd_dma_runtime_resume(dev);
