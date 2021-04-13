@@ -327,12 +327,6 @@ static struct wcn_dump_mem_reg s_wcn_dump_regs[] = {
 	 "BT_TIM_EXT",
 	},
 
-	{0x4024f000,
-	 0x330,
-	 mdbg_check_bt_poweron,
-	 "BT_MODEM",
-	},
-
 	{0x40246000,
 	 0x8fff,
 	 mdbg_check_bt_poweron,
@@ -646,7 +640,8 @@ u32 mdbg_check_bt_poweron(void)
 u32 mdbg_check_gnss_poweron(void)
 {
 	u32 need_dump_status = 0;
-	u32 gnss_poweron_mask = (0x6<<4);
+	u32 gnss_ss_poweron_mask = (0x4<<4);
+	u32 gnss_poweron_mask = (0x2<<4);
 	struct wcn_device *wcn_dev;
 
 	wcn_dev = s_wcn_device.gnss_device;
@@ -654,7 +649,8 @@ u32 mdbg_check_gnss_poweron(void)
 					0x03b0, &need_dump_status);
 	WCN_INFO("%s:0x03b0=0x%x\n", __func__, need_dump_status);
 
-	return (need_dump_status & gnss_poweron_mask);
+	return ((need_dump_status & gnss_poweron_mask) &&
+			(need_dump_status & gnss_ss_poweron_mask));
 
 }
 
