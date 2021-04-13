@@ -2269,8 +2269,8 @@ static int sprd_switch_usb_audio(struct usb_device *udev)
 	}
 
 	dev_dbg(&udev->dev,
-		"config_desc: bNumInterfaces=%d, intf_desc: bInterfaceNumber=%d bInterfaceClass=%d \
-		bInterfaceSubClass=%d bInterfaceProtocol=%d\n",
+		"config_desc: bNumInterfaces=%d, intf_desc: bInterfaceNumber=%d bInterfaceClass=%d "
+		"bInterfaceSubClass=%d bInterfaceProtocol=%d\n",
 		config_desc->bNumInterfaces,
 		intf_desc->bInterfaceNumber,
 		intf_desc->bInterfaceClass,
