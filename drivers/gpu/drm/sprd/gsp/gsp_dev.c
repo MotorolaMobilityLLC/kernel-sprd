@@ -580,14 +580,21 @@ int sprd_gsp_get_capability_ioctl(struct drm_device *drm_dev, void *data,
 
 	size = drm_capa->size;
 
-	if (size < sizeof(*capa))
+	if (size < sizeof(*capa)) {
 		GSP_DEV_ERR(dev, "size: %zu less than request: %zu.\n",
 				size, sizeof(struct gsp_capability));
-	else
-		ret = gsp_dev_get_capability(gsp, &capa);
+		return -1;
+	}
+
+	ret = gsp_dev_get_capability(gsp, &capa);
 
 	if (ret) {
 		GSP_DEV_ERR(dev, "get capability error\n");
+		return -1;
+	}
+
+	if (size > capa->capa_size) {
+		GSP_DEV_ERR(dev, "get capability size exceed error\n");
 		return -1;
 	}
 
@@ -597,8 +604,8 @@ int sprd_gsp_get_capability_ioctl(struct drm_device *drm_dev, void *data,
 	if (ret)
 		GSP_DEV_ERR(dev, "get capability copy error\n");
 
-	GSP_DEV_INFO(dev, "get cap io_cnt:%d, core_cnt:%d ,size:%zu",
-		capa->io_cnt, capa->core_cnt, size);
+	GSP_DEV_INFO(dev, "io_cnt:%d, core_cnt:%d ,size:%zu, cap->size:%d",
+		capa->io_cnt, capa->core_cnt, size, capa->capa_size);
 
 	return ret;
 }
