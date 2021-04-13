@@ -1376,28 +1376,22 @@ CONFIG_SPRD_JPG=y
 #
 # Spreadtrum WCN Device Drivers
 #
-CONFIG_SC23XX=y
-# CONFIG_WCN_INTEG is not set
-CONFIG_SC2355=y
-# CONFIG_UMW2652 is not set
-# CONFIG_UMW2653 is not set
-# CONFIG_SDIOHAL is not set
-CONFIG_WCN_PCIE=y
-CONFIG_WCN_BOOT=y
-CONFIG_WCN_UTILS=y
+# CONFIG_SC23XX is not set
+# CONFIG_WCN_BOOT is not set
+# CONFIG_WCN_UTILS is not set
 # CONFIG_WCN_RDCDBG is not set
 
 #
 # Spreadtrum WCN SDIO Device Drivers
 #
-# CONFIG_WCN_BSP_SDIO is not set
-# CONFIG_UMW2652_S is not set
+CONFIG_WCN_BSP_SDIO=m
+CONFIG_UMW2652_S=y
 
 #
 # Spreadtrum WCN PCIE Device Drivers
 #
-# CONFIG_WCN_BSP_PCIE is not set
-# CONFIG_SC2355_P is not set
+CONFIG_WCN_BSP_PCIE=m
+CONFIG_SC2355_P=y
 
 #
 # Spreadtrum Audio Assistant Modules

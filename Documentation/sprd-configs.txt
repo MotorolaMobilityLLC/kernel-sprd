@@ -12459,23 +12459,23 @@ CONFIG_SC2342_I
 	[must] user
 	[missing plat description] This macro is a proprietary driver related to pike2,sharkl3,sharkl3_32,sharkle32.
 	[function] WCN integration SC2342 chip Support
-CONFIG_SC2355
+CONFIG_SC2355_P
 	[arch] arm64
 	[plat] qogirn6pro
 	[missing plat] qogirl6,sharkl3,sharkl5,sharkl5Pro
 	[field] code
 	[subsys] wcn
 	[must] user
-	[missing plat description] Not used SC2335 in other projects
-	[function] Support for sc2355 wcn chip
+	[missing plat description] The missing plat is not relevant
+	[function] Support wcn sc2355 pcie chip
 CONFIG_SC23XX
 	[arch] all
-	[plat] all
-	[missing plat] none
+	[plat] pike2,qogirl6,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
+	[missing plat] qogirn6pro
 	[field] menu
 	[subsys] msic
 	[must] user
-	[missing plat description] none
+	[missing plat description] The missing plat is not relevant
 	[function] This function is used to support wcn sc23xx chip
 	For pike2, this must be enable for buletooth.
 CONFIG_SC27XX_ADC
@@ -12688,8 +12688,8 @@ CONFIG_SDCARD_FS
 	[function] sdcardfs support
 CONFIG_SDIOHAL
 	[arch] all
-	[plat] qogirl6,qogirn6pro,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,sharkl3,sharkl3_32,sharkle32
+	[plat] qogirl6,sharkl5,sharkl5Pro,sharkl5_32
+	[missing plat] pike2,qogirn6pro,sharkl3,sharkl3_32,sharkle32
 	[field] menu, make
 	[subsys] wcn
 	[must] user
@@ -15768,14 +15768,23 @@ CONFIG_UMW2631_I
 	[function] This function is used to support wcn umw2631_i chip
 CONFIG_UMW2652
 	[arch] all
-	[plat] qogirl6,qogirn6pro,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,sharkl3,sharkl3_32,sharkle32
+	[plat] qogirl6,sharkl5,sharkl5Pro,sharkl5_32
+	[missing plat] pike2,qogirn6pro,sharkl3,sharkl3_32,sharkle32
 	[field] menu
 	[subsys] wcn
 	[must] user
 	[missing plat description] This macro is a proprietary driver related to marlin3 lite driver.
 		The missing plat is not marlin3 lite.
 	[function] This function is used to support wcn umw2652 chip
+CONFIG_UMW2652_S
+	[arch] arm64
+	[plat] qogirn6pro
+	[missing plat] qogirl6,sharkl3,sharkl5,sharkl5Pro
+	[field] code
+	[subsys] wcn
+	[must] user
+	[missing plat description] The missing plat is not relevant
+	[function] Support wcn umw2652 sdio chip
 CONFIG_UNCOMPRESS_INCLUDE
 	[arch] arm
 	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
@@ -16738,14 +16747,32 @@ CONFIG_WATCHDOG_PRETIMEOUT_GOV_PANIC
 	[function] watchdog pretimeout gov panic
 CONFIG_WCN_BOOT
 	[arch] all
-	[plat] qogirl6,qogirn6pro,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,sharkl3,sharkl3_32,sharkle32
+	[plat] qogirl6,sharkl5,sharkl5Pro,sharkl5_32
+	[missing plat] pike2,qogirn6pro,sharkl3,sharkl3_32,sharkle32
 	[field] make
 	[subsys] wcn
 	[must] user
 	[missing plat description] This macro is a proprietary driver related to roc1,sharkl5,sharkl5Pro,sharkl5_32.
 		The missing plat is not relevant.
 	[function] wcn boot up for 2355 chip.
+CONFIG_WCN_BSP_PCIE
+	[arch] arm64
+	[plat] qogirn6pro
+	[missing plat] qogirl6,sharkl3,sharkl5,sharkl5Pro
+	[field] make
+	[subsys] wcn
+	[must] user
+	[missing plat description] The missing plat is not relevant.
+	[function] Support wcn pcie chip
+CONFIG_WCN_BSP_SDIO
+	[arch] arm64
+	[plat] qogirn6pro
+	[missing plat] qogirl6,sharkl3,sharkl5,sharkl5Pro
+	[field] make
+	[subsys] wcn
+	[must] user
+	[missing plat description] The missing plat is not relevant
+	[function] Support wcn sdio chip
 CONFIG_WCN_INTEG
 	[arch] all
 	[plat] pike2,qogirl6,sharkl3,sharkl3_32,sharkle32
@@ -16755,15 +16782,6 @@ CONFIG_WCN_INTEG
 	[must] user
 	[missing plat description] This macro is a proprietary driver related to pike2,sharkl3,sharkl3_32,sharkle32.
 	[function] WCN integration chip Support
-CONFIG_WCN_PCIE
-	[arch] arm64
-	[plat] qogirn6pro
-	[missing plat] qogirl6,sharkl3,sharkl5,sharkl5Pro
-	[field] make,code
-	[subsys] wcn
-	[must] user
-	[missing plat description] Not used PCI in other projects
-	[function] Support for wcn pcie interface
 CONFIG_WCN_PLATFORM
 	[arch] all
 	[plat] pike2,qogirl6,sharkl3,sharkl3_32,sharkle32
@@ -16786,8 +16804,8 @@ CONFIG_WCN_SIPC
 	[function] WCN integration chip 2342 sipc Support
 CONFIG_WCN_SLP
 	[arch] all
-	[plat] qogirl6,qogirn6pro,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,sharkl3,sharkl3_32,sharkle32
+	[plat] qogirl6,sharkl5,sharkl5Pro,sharkl5_32
+	[missing plat] pike2,qogirn6pro,sharkl3,sharkl3_32,sharkle32
 	[field] make
 	[subsys] wcn
 	[must] user
@@ -16796,8 +16814,8 @@ CONFIG_WCN_SLP
 	[function] wcn sleep and wakeup for 2355 chip
 CONFIG_WCN_UTILS
 	[arch] all
-	[plat] qogirn6pro,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,qogirl6,sharkl3,sharkl3_32,sharkle32
+	[plat] sharkl5,sharkl5Pro,sharkl5_32
+	[missing plat] pike2,qogirl6,qogirn6pro,sharkl3,sharkl3_32,sharkle32
 	[field] make
 	[subsys] wcn
 	[must] user
