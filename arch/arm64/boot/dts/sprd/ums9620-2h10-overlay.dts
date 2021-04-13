@@ -485,6 +485,13 @@
 		type = <2>;
 		memory-region = <&vdsp_reserved>;
 	};
+
+	heap@6 {
+		reg = <6>;
+		label = "carveout_isemed";
+		type = <2>;
+		memory-region = <&ise_med_reserved>;
+	};
 };
 
 &adi_bus {
