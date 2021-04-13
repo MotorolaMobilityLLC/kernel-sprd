@@ -28,6 +28,8 @@
 #include <net/sock.h>
 #include <linux/netlink.h>
 #include "apdu_r3p0.h"
+#include <linux/dma-buf.h>
+#include <linux/sprd_ion.h>
 
 static struct sock *sprd_apdu_nlsk;
 
@@ -225,8 +227,10 @@ static long sprd_apdu_set_med_high_addr(struct sprd_apdu_device *apdu,
 
 	ret = regmap_write(apdu->pub_reg_base,
 			   apdu->pub_ise_reg_offset, base_addr);
-	if (ret < 0)
+	if (ret < 0) {
+		dev_err(apdu->dev, "regmap write med base addr fail\n");
 		return ret;
+	}
 
 	return 0;
 }
@@ -236,7 +240,6 @@ static void sprd_apdu_enable(struct sprd_apdu_device *apdu)
 	/* pmu reg:REG_PMU_APB_PD_ISE_CFG_0
 	 * should be pre-configured to power up ISE.
 	 */
-
 	sprd_apdu_clear_int(apdu->base, APDU_INT_BITS);
 	sprd_apdu_int_dis(apdu->base, APDU_INT_BITS);
 	sprd_apdu_inf_int_dis(apdu->base, APDU_INF_INT_BITS);
@@ -257,12 +260,16 @@ static long sprd_apdu_power_on_check(struct sprd_apdu_device *apdu, u32 times)
 		writel_relaxed(0x40, apdu->base + APDU_WATER_MARK);
 		status = readl_relaxed(apdu->base + APDU_WATER_MARK);
 		/* write reg succeed, apdu module enable complete */
-		if (status == 0x40)
+		if (status == 0x40) {
+			dev_info(apdu->dev, "apdu module enable success!\n");
 			return 0;
+		}
 		/* AP has up to 30ms window to shake hands with ISE */
 		usleep_range(10, 20);
 	} while (--timeout);
 
+
+	dev_err(apdu->dev, "apdu module enable failure!\n");
 	return -ENXIO;
 }
 
@@ -397,7 +404,6 @@ static ssize_t sprd_apdu_read(struct file *fp, char __user *buf,
 			"ISE has no power on or apdu has not release\n");
 		goto end;
 	}
-
 	wait_event_time = msecs_to_jiffies(MAX_WAIT_TIME);
 	wait_time = AP_WAIT_TIMES;
 	do {
@@ -454,6 +460,7 @@ static ssize_t sprd_apdu_read(struct file *fp, char __user *buf,
 			break;
 		}
 	} while (--wait_time);
+
 
 	if (((*(char *)apdu->rx_buf) == ISE_BUSY_STATUS) && (data_len == 0x1))
 		dev_err(apdu->dev, "ISE busy, exceed AP max wait times\n");
@@ -564,6 +571,9 @@ static long sprd_apdu_send_enter_apdu_loop_req(struct sprd_apdu_device *apdu)
 	if (ret < 0)
 		dev_err(apdu->dev,
 			"enter apdu loop ins:write error(%d)\n", ret);
+
+	dev_info(apdu->dev, "apdu send enter apdu loop return %ld!\n", ret);
+
 	return ret;
 }
 
@@ -760,6 +770,303 @@ static void sprd_apdu_send_fault_status(struct sprd_apdu_device *apdu)
 	apdu->ise_fault_status = 0;
 }
 
+static void poweroff_ise_aon_domain(struct sprd_apdu_device *apdu)
+{
+	u32 all_int = 0;
+
+	all_int = readl_relaxed(apdu->pmu_base + ADM_SOFT_RST);
+	all_int |= ISE_AON_SOFT_RESET_BIT;
+	writel_relaxed(all_int, apdu->pmu_base + ADM_SOFT_RST);
+}
+
+static void soft_reset_ise_aon_domain(struct sprd_apdu_device *apdu)
+{
+	u32 all_int = 0;
+
+	all_int = readl_relaxed(apdu->pmu_base + ADM_SOFT_RST);
+	all_int &= ~ISE_AON_SOFT_RESET_BIT;
+	writel_relaxed(all_int, apdu->pmu_base + ADM_SOFT_RST);
+}
+
+static void ise_sys_soft_reset(struct sprd_apdu_device *apdu)
+{
+	u32 all_int = 0;
+
+	all_int = readl_relaxed(apdu->pmu_base + ISE_SYS_SOFT_RST);
+	all_int &= ~ISE_SYS_SOFT_RST_BITS;
+	writel_relaxed(all_int, apdu->pmu_base + ISE_SYS_SOFT_RST);
+
+	all_int = readl_relaxed(apdu->pmu_base + ISE_SYS_SOFT_RST_0);
+	all_int |= ISE_SYS_SOFT_RST_BITS;
+	writel_relaxed(all_int, apdu->pmu_base + ISE_SYS_SOFT_RST_0);
+
+	all_int = readl_relaxed(apdu->pmu_base + ISE_SYS_SOFT_RST_0);
+	all_int &= ~ISE_SYS_SOFT_RST_BITS;
+	writel_relaxed(all_int, apdu->pmu_base + ISE_SYS_SOFT_RST_0);
+}
+
+static void ise_normal_poweron_and_reset(struct sprd_apdu_device *apdu)
+{
+	u32 all_int = 0;
+
+	all_int = readl_relaxed(apdu->pmu_base + FORCE_DEEP_SLEEP_CFG_0);
+	all_int &= ~ISE_FORCE_DEEP_SLEEP_REG;
+	writel_relaxed(all_int, apdu->pmu_base + FORCE_DEEP_SLEEP_CFG_0);
+
+	all_int = readl_relaxed(apdu->pmu_base + ISE_AON_RAM_CFG);
+	all_int &= ~REG_RAM_PD_ISE_AON_BIT;
+	writel_relaxed(all_int, apdu->pmu_base + ISE_AON_RAM_CFG);
+
+	all_int = readl_relaxed(apdu->aon_clock_base + GATE_EN_SEL6_CFG);
+	all_int &= ~CGM_XBUF_26M_ISE_AUTO_GATE_SEL;
+	all_int &= ~CGM_XBUF_2M_ISE_AUTO_GATE_SEL;
+	writel_relaxed(all_int, apdu->aon_clock_base + GATE_EN_SEL6_CFG);
+
+	usleep_range(10, 11);
+
+	all_int = readl_relaxed(apdu->aon_clock_base + GATE_EN_SW_CTL6_CFG);
+	all_int &= ~CGM_XBUF_26M_ISE_FORCE_EN;
+	all_int &= ~CGM_XBUF_2M_ISE_FORCE_EN;
+	writel_relaxed(all_int, apdu->aon_clock_base + GATE_EN_SW_CTL6_CFG);
+
+	usleep_range(10, 11);
+	all_int = readl_relaxed(apdu->pmu_base + RCO150M_REL_CFG);
+	all_int |= RCO150M_RFC_OFF;
+	writel_relaxed(all_int, apdu->pmu_base + RCO150M_REL_CFG);
+
+	usleep_range(10, 11);
+	all_int = readl_relaxed(apdu->pmu_base + ADM_SOFT_RST);
+	all_int &= ~ISE_AON_SOFT_RESET_BIT;
+	writel_relaxed(all_int, apdu->pmu_base + ADM_SOFT_RST);
+
+	usleep_range(10, 11);
+	all_int = readl_relaxed(apdu->pmu_base + RCO150M_REL_CFG);
+	all_int &= ~RCO150M_RFC_OFF;
+	writel_relaxed(all_int, apdu->pmu_base + RCO150M_REL_CFG);
+
+	usleep_range(10, 11);
+	all_int = readl_relaxed(apdu->aon_clock_base + GATE_EN_SEL6_CFG);
+	all_int |= CGM_XBUF_26M_ISE_AUTO_GATE_SEL;
+	all_int |= CGM_XBUF_2M_ISE_AUTO_GATE_SEL;
+	writel_relaxed(all_int, apdu->aon_clock_base + GATE_EN_SEL6_CFG);
+
+	usleep_range(10, 11);
+	all_int = readl_relaxed(apdu->aon_clock_base + GATE_EN_SW_CTL6_CFG);
+	all_int |= CGM_XBUF_26M_ISE_FORCE_EN;
+	all_int |= CGM_XBUF_2M_ISE_FORCE_EN;
+	writel_relaxed(all_int, apdu->aon_clock_base + GATE_EN_SW_CTL6_CFG);
+
+	usleep_range(10, 11);
+	all_int = readl_relaxed(apdu->pmu_base + PD_ISE_CFG_0);
+	all_int &= ~PD_ISE_FORCE_SHUTDOWN_BIT;
+	writel_relaxed(all_int, apdu->pmu_base + PD_ISE_CFG_0);
+
+	usleep_range(10, 11);
+	all_int = readl_relaxed(apdu->aon_rf_base + AON_CALI_RCO);
+	all_int |= AON_RF_CALI_RCO;
+	writel_relaxed(all_int, apdu->aon_rf_base + AON_CALI_RCO);
+
+	usleep_range(10, 11);
+	all_int = readl_relaxed(apdu->aon_rf_base + AON_CALI_RCO);
+	while (!(all_int & AON_RF_CHECK_RCO)) {
+		all_int = readl_relaxed(apdu->aon_rf_base + AON_CALI_RCO);
+		usleep_range(1000, 2000);
+	}
+
+	usleep_range(10, 11);
+	all_int = readl_relaxed(apdu->pmu_base + PD_ISE_CFG_0);
+	all_int |= PD_ISE_FORCE_SHUTDOWN_EN_BIT;
+	writel_relaxed(all_int, apdu->pmu_base + PD_ISE_CFG_0);
+}
+
+
+static int sprd_apdu_sync_counter(struct sprd_apdu_device *apdu)
+{
+
+	struct file *isedata_file = NULL;
+
+	loff_t ise_counter_offset = MEDDDR_ISEDATA_OFFSET_BASE_ADDRESS +
+								apdu->slot * MEDDDR_MAX_SIZE;
+	loff_t offset = 0;
+	int ret = -1;
+
+	isedata_file = filp_open(ISEDATA_DEV_PATH, O_RDWR, 0644);
+	if (IS_ERR(isedata_file)) {
+		pr_err("%s() open isedate partition error\n", __func__);
+		return -1;
+	}
+
+	offset = vfs_llseek(isedata_file, ise_counter_offset, SEEK_SET);
+
+	if (offset != ise_counter_offset) {
+		pr_err("%s() seek ise data partition error\n", __func__);
+		filp_close(isedata_file, NULL);
+		return -1;
+	}
+	dev_dbg(apdu->dev, "%s() ise_counter_offset = %ld,  offset = %ld\n",
+			__func__, ise_counter_offset, offset);
+
+	ret = kernel_write(isedata_file, apdu->medddr_address,
+						MEDDDR_COUNTER_AREA_MAX_SIZE, &offset);
+	if (ret != MEDDDR_COUNTER_AREA_MAX_SIZE) {
+		pr_err("ise medddr dump file write failed: %zd\n", ret);
+		filp_close(isedata_file, NULL);
+		return -1;
+	}
+
+	filp_close(isedata_file, NULL);
+
+	return 0;
+}
+
+
+static int sprd_apdu_save_medddr_area(struct sprd_apdu_device *apdu)
+{
+
+	struct file *isedata_file = NULL;
+
+	loff_t ise_counter_offset = MEDDDR_ISEDATA_OFFSET_BASE_ADDRESS +
+								apdu->slot * MEDDDR_MAX_SIZE;
+	loff_t offset = 0;
+	int ret = -1;
+
+	isedata_file = filp_open(ISEDATA_DEV_PATH, O_RDWR, 0644);
+	if (IS_ERR(isedata_file)) {
+		pr_err("%s() open isedate partition error\n", __func__);
+		return -1;
+	}
+
+	offset = vfs_llseek(isedata_file, ise_counter_offset, SEEK_SET);
+
+	if (offset != ise_counter_offset) {
+		pr_err("%s() seek ise data partition error\n", __func__);
+		filp_close(isedata_file, NULL);
+		return -1;
+	}
+	//dev_dbg(apdu->dev, "%s() medddr offset = %ld,
+				//offset = %ld\n", __func__, ise_counter_offset, offset);
+
+	ret = kernel_write(isedata_file, apdu->medddr_address,
+						MEDDDR_MAX_SIZE, &offset);
+	if (ret != MEDDDR_MAX_SIZE) {
+		pr_err("save all medddr to flash write failed: %zd\n", ret);
+		filp_close(isedata_file, NULL);
+		return -1;
+	}
+
+	filp_close(isedata_file, NULL);
+
+	return 0;
+}
+
+static int sprd_apdu_set_current_slot(struct sprd_apdu_device *apdu, u64 current_slot)
+{
+	if (current_slot == 0 || current_slot == 1) {
+		apdu->slot = current_slot;
+		return 0;
+	} else {
+
+		pr_err("%s() invalid slot value %lu\n", __func__, current_slot);
+		return -1;
+	}
+}
+
+static int sprd_apdu_restore_medddr_area(struct sprd_apdu_device *apdu)
+{
+
+	struct file *isedata_file = NULL;
+
+	loff_t ise_counter_offset = MEDDDR_ISEDATA_OFFSET_BASE_ADDRESS +
+								apdu->slot * MEDDDR_MAX_SIZE;
+	loff_t offset = 0;
+	int ret = -1;
+
+	isedata_file = filp_open(ISEDATA_DEV_PATH, O_RDWR, 0644);
+	if (IS_ERR(isedata_file)) {
+		pr_err("%s() open isedate partition error\n", __func__);
+		return -1;
+	}
+
+	offset = vfs_llseek(isedata_file, ise_counter_offset, SEEK_SET);
+
+	if (offset != ise_counter_offset) {
+		pr_err("%s() seek ise data partition error\n", __func__);
+		filp_close(isedata_file, NULL);
+		return -1;
+	}
+
+	ret = kernel_read(isedata_file, apdu->medddr_address,
+						MEDDDR_MAX_SIZE, &offset);
+	if (ret != MEDDDR_MAX_SIZE) {
+		pr_err("restore medddr area from isedata read failed: %zd\n", ret);
+		filp_close(isedata_file, NULL);
+		return -1;
+	}
+
+	filp_close(isedata_file, NULL);
+
+	return 0;
+}
+
+static void sprd_apdu_send_normal_power_down_cmd(struct sprd_apdu_device *apdu)
+{
+	long ret = 0;
+	u32 rep_data[0x10] = {0};
+	unsigned long wait_event_time;
+	loff_t offset = 0;
+	loff_t mem_pos = MEDDDR_ISEDATA_OFFSET_BASE_ADDRESS;
+	struct file *isedata_file = NULL;
+	char ise_normal_pd_cmd[8] = {0x00, 0xF6, 0xFF, 0xFA, 0x0, 0x0, 0x0, 0x0};
+	ssize_t res;
+
+	apdu->rx_done = 0;
+	ret = sprd_apdu_write_data(apdu, (void *)ise_normal_pd_cmd, 8);
+	if (ret < 0) {
+		pr_err("normal power down cmd:write error(%d)\n", ret);
+		return;
+	}
+
+	wait_event_time = msecs_to_jiffies(MAX_WAIT_TIME);
+	ret = wait_event_interruptible_timeout(apdu->read_wq, apdu->rx_done,
+					       wait_event_time);
+	if (ret < 0) {
+		return;
+	} else if (ret == 0 && apdu->rx_done == 0) {
+		sprd_apdu_clear_fifo(apdu->base);
+		pr_err("wait read counter timeout\n");
+		return;
+	}
+
+	/* get_random le=4 byte, return random data len = le + status(2 byte) */
+	ret = sprd_apdu_read_data(apdu, rep_data, 2);
+	if (ret < 0) {
+		pr_err("normal power down ise:read error(%d)\n", ret);
+		return;
+	}
+
+	isedata_file = filp_open(ISEDATA_DEV_PATH, O_RDWR, 0644);
+	if (IS_ERR(isedata_file)) {
+		pr_err("%s open ise data partition error\n", __func__);
+		return;
+	}
+
+	offset = vfs_llseek(isedata_file, mem_pos, SEEK_SET);
+
+	if (offset != mem_pos) {
+		pr_err("%s seek ise data partition error\n", __func__);
+		return;
+	}
+
+	res = kernel_write(isedata_file, apdu->medddr_address,
+						MEDDDR_COUNTER_AREA_MAX_SIZE, &mem_pos);
+	if (res != MEDDDR_COUNTER_AREA_MAX_SIZE) {
+		pr_err("ise normal power down write counter failed: %zd\n", res);
+		return;
+	}
+
+	filp_close(isedata_file, NULL);
+}
+
 static long sprd_apdu_ioctl(struct file *fp, unsigned int code,
 			    unsigned long value)
 {
@@ -767,31 +1074,34 @@ static long sprd_apdu_ioctl(struct file *fp, unsigned int code,
 	struct med_info_type med_info;
 	long ret = 0;
 	u64 rcv_data;
+	struct dma_buf *dmabuf = NULL;
+
+	pr_info("apdu ioctl code = %u\n", code);
 
 	mutex_lock(&apdu->mutex);
 	switch (code) {
 	case APDU_RESET:
-		ret = sprd_apdu_power_on_check(apdu, 10);
+		ret = sprd_apdu_power_on_check(apdu, APDU_POWER_ON_CHECK_TIMES);
 		if (ret < 0) {
-			dev_err(apdu->dev, "power on check fail\n");
+			pr_err("power on check fail\n");
 			break;
 		}
 		sprd_apdu_rst(apdu->base);
 		break;
 
 	case APDU_CLR_FIFO:
-		ret = sprd_apdu_power_on_check(apdu, 10);
+		ret = sprd_apdu_power_on_check(apdu, APDU_POWER_ON_CHECK_TIMES);
 		if (ret < 0) {
-			dev_err(apdu->dev, "power on check fail\n");
+			pr_err("power on check fail\n");
 			break;
 		}
 		sprd_apdu_clear_fifo(apdu->base);
 		break;
 
 	case APDU_CHECK_CLR_FIFO_DONE:
-		ret = sprd_apdu_power_on_check(apdu, 10);
+		ret = sprd_apdu_power_on_check(apdu, APDU_POWER_ON_CHECK_TIMES);
 		if (ret < 0) {
-			dev_err(apdu->dev, "power on check fail\n");
+			pr_err("power on check fail\n");
 			break;
 		}
 
@@ -828,6 +1138,33 @@ static long sprd_apdu_ioctl(struct file *fp, unsigned int code,
 		ret = sprd_apdu_set_med_high_addr(apdu, rcv_data);
 		break;
 
+	case APDU_ION_MAP_MEDDDR_IN_KERNEL:
+		ret = copy_from_user(&rcv_data, (void __user *)value,
+				     sizeof(u64)) ? (-EFAULT) : 0;
+		if (ret < 0) {
+			pr_err("copy meddddr address failed!\n");
+			break;
+		}
+
+		dmabuf = dma_buf_get((int)rcv_data);
+		apdu->medddr_address = sprd_ion_map_kernel(dmabuf, 0);
+		dma_buf_put(dmabuf);
+		break;
+
+	case APDU_ION_UNMAP_MEDDDR_IN_KERNEL:
+		ret = copy_from_user(&rcv_data, (void __user *)value,
+				     sizeof(u64)) ? (-EFAULT) : 0;
+		if (ret < 0) {
+			pr_err("copy medddr address failed!\n");
+			break;
+		}
+		dmabuf = dma_buf_get((int)rcv_data);
+		sprd_ion_unmap_kernel(dmabuf, 0);
+		dma_buf_put(dmabuf);
+
+		apdu->medddr_address = NULL;
+		break;
+
 	case APDU_MED_REWRITE_INFO_PARSE:
 		ret = copy_from_user(&rcv_data, (void __user *)value,
 				     sizeof(u64)) ? (-EFAULT) : 0;
@@ -843,10 +1180,7 @@ static long sprd_apdu_ioctl(struct file *fp, unsigned int code,
 		break;
 
 	case APDU_NORMAL_PWR_ON_CFG:
-		/* if ISE (apdu module) power on after apdu driver probe,
-		 * need enable apdu interrupt again.
-		 */
-		ret = sprd_apdu_power_on_check(apdu, 300);
+		ret = sprd_apdu_power_on_check(apdu, APDU_POWER_ON_CHECK_TIMES);
 		if (ret < 0)
 			break;
 		memset(apdu->atr, 0, (APDU_ATR_DATA_MAX_SIZE + 4));
@@ -855,18 +1189,82 @@ static long sprd_apdu_ioctl(struct file *fp, unsigned int code,
 		break;
 
 	case APDU_ENTER_APDU_LOOP:
-		ret = sprd_apdu_power_on_check(apdu, 300);
+		ise_sys_soft_reset(apdu);
+
+		ret = sprd_apdu_power_on_check(apdu, APDU_POWER_ON_CHECK_TIMES);
 		if (ret < 0)
 			break;
 		memset(apdu->atr, 0, (APDU_ATR_DATA_MAX_SIZE + 4));
 		memset(apdu->ise_fault_buf, 0, ISE_ATTACK_BUFFER_SIZE * 4);
-		/* send requset before interrupt enable */
+		sprd_apdu_enable(apdu);
 		ret = sprd_apdu_send_enter_apdu_loop_req(apdu);
+		break;
+
+	case APDU_SOFT_RESET_ISE:
+		ise_sys_soft_reset(apdu);
+
+		ret = sprd_apdu_power_on_check(apdu, APDU_POWER_ON_CHECK_TIMES);
+		if (ret < 0)
+			break;
+		memset(apdu->atr, 0, (APDU_ATR_DATA_MAX_SIZE + 4));
+		memset(apdu->ise_fault_buf, 0, ISE_ATTACK_BUFFER_SIZE * 4);
 		sprd_apdu_enable(apdu);
 		break;
 
 	case APDU_FAULT_INT_RESOLVE_DONE:
 		sprd_apdu_send_fault_status(apdu);
+		break;
+
+	case APDU_NORMAL_POWER_ON_ISE:
+		ise_normal_poweron_and_reset(apdu);
+
+		/* if ISE (apdu module) power on after apdu driver probe,
+		 * need enable apdu interrupt again.
+		 */
+		ret = sprd_apdu_power_on_check(apdu, APDU_POWER_ON_CHECK_TIMES);
+		if (ret < 0) {
+			pr_err("apdu power on check failed!\n");
+			break;
+		}
+
+		memset(apdu->atr, 0, (APDU_ATR_DATA_MAX_SIZE + 4));
+		memset(apdu->ise_fault_buf, 0, ISE_ATTACK_BUFFER_SIZE * 4);
+
+		sprd_apdu_enable(apdu);
+		pr_info("ise normal power on and reset success!\n");
+
+		break;
+
+	case APDU_NORMAL_POWER_DOWN_ISE:
+		sprd_apdu_send_normal_power_down_cmd(apdu);
+		break;
+
+	case APDU_POWEROFF_ISE_AON_DOMAIN:
+		poweroff_ise_aon_domain(apdu);
+		break;
+
+	case APDU_SOFT_RESET_ISE_AON_DOMAIN:
+		soft_reset_ise_aon_domain(apdu);
+		break;
+
+	case APDU_SAVE_MEDDDR_COUNTER_DATA:
+		sprd_apdu_sync_counter(apdu);
+		break;
+
+	case APDU_LOAD_MEDDDR_DATA_IN_KERNEL:
+		sprd_apdu_restore_medddr_area(apdu);
+		break;
+
+	case APDU_SAVE_MEDDDR_DATA_IN_KERNEL:
+		sprd_apdu_save_medddr_area(apdu);
+		break;
+
+	case APDU_SET_CURRENT_SLOT_IN_KERNEL:
+		ret = copy_from_user(&rcv_data, (void __user *)value,
+				     sizeof(u64)) ? (-EFAULT) : 0;
+		if (ret < 0)
+			break;
+		ret = sprd_apdu_set_current_slot(apdu, rcv_data);
 		break;
 
 	default:
@@ -916,6 +1314,8 @@ static irqreturn_t sprd_apdu_interrupt(int irq, void *data)
 
 	reg_inf_int_status = readl_relaxed(apdu->base + APDU_INF_INT_MASK);
 	writel_relaxed(reg_inf_int_status, apdu->base + APDU_INF_INT_CLR);
+	printk(KERN_INFO "sprd_apdu_interrupt() reg_int_status = 0x%x reg_inf_int_status = 0x%x\n",
+			reg_int_status, reg_inf_int_status);
 
 	if (reg_inf_int_status & APDU_INF_INT_FAULT) {
 		/* ise fault status, need to be saved as soon as possible */
@@ -997,7 +1397,7 @@ static ssize_t get_random_show(struct device *dev,
 
 	if (!apdu)
 		return -EINVAL;
-	if (sprd_apdu_power_on_check(apdu, 10) < 0) {
+	if (sprd_apdu_power_on_check(apdu, APDU_POWER_ON_CHECK_TIMES) < 0) {
 		dev_err(apdu->dev, "power on check fail\n");
 		return -ENXIO;
 	}
@@ -1107,7 +1507,7 @@ static ssize_t packet_send_rcv_store(struct device *dev,
 
 	if (!apdu)
 		return -EINVAL;
-	if (sprd_apdu_power_on_check(apdu, 10) < 0) {
+	if (sprd_apdu_power_on_check(apdu, APDU_POWER_ON_CHECK_TIMES) < 0) {
 		dev_err(apdu->dev, "power on check fail\n");
 		return -ENXIO;
 	}
@@ -1130,7 +1530,7 @@ static ssize_t packet_send_rcv_show(struct device *dev,
 
 	if (!apdu)
 		return -EINVAL;
-	if (sprd_apdu_power_on_check(apdu, 10) < 0) {
+	if (sprd_apdu_power_on_check(apdu, APDU_POWER_ON_CHECK_TIMES) < 0) {
 		dev_err(apdu->dev, "power on check fail\n");
 		return -ENXIO;
 	}
@@ -1227,7 +1627,7 @@ static ssize_t sprd_apdu_reset_show(struct device *dev,
 
 	if (!apdu)
 		return -EINVAL;
-	if (sprd_apdu_power_on_check(apdu, 10) < 0) {
+	if (sprd_apdu_power_on_check(apdu, APDU_POWER_ON_CHECK_TIMES) < 0) {
 		dev_err(apdu->dev, "power on check fail\n");
 		return -ENXIO;
 	}
@@ -1253,7 +1653,7 @@ static ssize_t sprd_apdu_reenable_show(struct device *dev,
 
 	if (!apdu)
 		return -EINVAL;
-	if (sprd_apdu_power_on_check(apdu, 10) < 0) {
+	if (sprd_apdu_power_on_check(apdu, APDU_POWER_ON_CHECK_TIMES) < 0) {
 		dev_err(apdu->dev, "power on check fail\n");
 		return -ENXIO;
 	}
@@ -1324,6 +1724,27 @@ static int sprd_apdu_probe(struct platform_device *pdev)
 	if (IS_ERR(apdu->pub_reg_base)) {
 		dev_err(&pdev->dev, "no pub reg base specified\n");
 		return PTR_ERR(apdu->pub_reg_base);
+	}
+
+	res = platform_get_resource(pdev, IORESOURCE_MEM, 1);
+	apdu->pmu_base = devm_ioremap_resource(&pdev->dev, res);
+	if (IS_ERR(apdu->pmu_base)) {
+		dev_err(&pdev->dev, "no base specified\n");
+		return PTR_ERR(apdu->pmu_base);
+	}
+
+	res = platform_get_resource(pdev, IORESOURCE_MEM, 2);
+	apdu->aon_clock_base = devm_ioremap_resource(&pdev->dev, res);
+	if (IS_ERR(apdu->aon_clock_base)) {
+		dev_err(&pdev->dev, "no base specified\n");
+		return PTR_ERR(apdu->aon_clock_base);
+	}
+
+	res = platform_get_resource(pdev, IORESOURCE_MEM, 3);
+	apdu->aon_rf_base = devm_ioremap_resource(&pdev->dev, res);
+	if (IS_ERR(apdu->aon_rf_base)) {
+		dev_err(&pdev->dev, "no base specified\n");
+		return PTR_ERR(apdu->aon_rf_base);
 	}
 
 	ret = of_property_read_u32(pdev->dev.of_node,
@@ -1397,10 +1818,6 @@ static int sprd_apdu_probe(struct platform_device *pdev)
 		return ret;
 	}
 
-	sprd_apdu_enable(apdu);
-	if (sprd_apdu_power_on_check(apdu, 10) < 0)
-		dev_warn(apdu->dev,
-			 "power on check fail before driver probe\n");
 	platform_set_drvdata(pdev, apdu);
 
 	return 0;
