@@ -1644,7 +1644,7 @@ static ssize_t notrace hwirq_gic_write(struct file *filep,
 	else
 		enable = SPRD_NONE;
 
-	hwirq = strtoul(kbuf, NULL, 10);
+	hwirq = (unsigned int)strtoul(kbuf, NULL, 10);
 
 	if ((hwirq < 32) || (hwirq > 1019)) {
 		ret = -EINVAL;
