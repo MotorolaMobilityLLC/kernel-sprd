@@ -423,6 +423,7 @@
 				interrupts = <GIC_SPI 159 IRQ_TYPE_LEVEL_HIGH>;
 				vcc-supply = <&vddemmccore>;
 				vcc-fixed-regulator;
+				vdd-mphy-supply = <&vddufs1v2>;
 				clock-names = "ufs_eb",
 					      "ufs_cfg_eb",
 					      "ufs_hclk",
