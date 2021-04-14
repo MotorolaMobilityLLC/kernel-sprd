@@ -3708,8 +3708,8 @@ CONFIG_CRYPTO_CHACHA20
 	[missing plat description] none
 	[function] Support ChaCha stream cipher algorithm in ARMv7 platform.
 CONFIG_CRYPTO_CHACHA20POLY1305
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -16163,8 +16163,8 @@ CONFIG_SOFTLOCKUP_DETECTOR
 	[missing plat description] none
 	[function] Detect Soft Lockups.
 CONFIG_SONY_FF
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -19663,8 +19663,8 @@ CONFIG_XFRM_IPCOMP
 	[missing plat description] none
 	[function] support for ip comparing
 CONFIG_XFRM_MIGRATE
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
