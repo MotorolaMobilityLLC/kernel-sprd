@@ -137,11 +137,8 @@ static unsigned int als_cali_target_lux = 0;
 #define ALS_CALI_SKIP_COUNT 3
 
 #define BUF_SIZE 64
-#define FIJI_TP_VENDOR_SKYWORTH 0x00
-#define FIJI_TP_VENDOR_TRULY 0x01
-#define FIJI_TP_VENDOR_EASYQUICK 0x02
-#define MALTA_TP_VENDOR_HLT 0x10
-#define MALTA_TP_VENDOR_SKYWORTH 0x11
+#define ARUBA_TP_VENDOR_NOVATEK 0x00
+#define ARUBA_TP_VENDOR_HIMAX 0x01
 
 
 static int hwinfo_read_file(struct shub_data *sensor, char *file_name, char buf[], int buf_size)
@@ -264,17 +261,10 @@ static int get_tp_vendor(struct shub_data *sensor)
 	board_id = get_board_id(sensor);
 
 	if (board_id == 0x1){
-		if (strncmp(buf,"hlt",3) == 0)
-			vendor = MALTA_TP_VENDOR_HLT;
-		else if (strncmp(buf,"skyworth",8) == 0)
-			vendor = MALTA_TP_VENDOR_SKYWORTH;
-	} else {
-		if (strncmp(buf,"skyworth",8) == 0)
-			vendor = FIJI_TP_VENDOR_SKYWORTH;
-		else if (strncmp(buf,"truly",5) == 0)
-			vendor = FIJI_TP_VENDOR_TRULY;
-		else if (strncmp(buf,"easyquick",9) == 0)
-			vendor = FIJI_TP_VENDOR_EASYQUICK;
+		if (strncmp(buf,"novatek",7) == 0)
+			vendor = ARUBA_TP_VENDOR_NOVATEK;
+		else if (strncmp(buf,"himax",5) == 0)
+			vendor = ARUBA_TP_VENDOR_HIMAX;
 	}
 
 	vendor = vendor | (board_id << 4);
@@ -1689,7 +1679,7 @@ static int set_als_calib_cmd(struct shub_data *sensor, u8 cmd, u8 id)
 	u16 *ptr = (u16 *)data;
 	char als_data[30];
 	int light_sum = 0;
-    int target_lux;
+	int target_lux;
 
 	for (i = 0; i < LIGHT_CALI_DATA_COUNT; i++) {
 		err = shub_sipc_read(sensor,
@@ -1766,19 +1756,23 @@ static ssize_t light_sensor_calibrator_store(struct device *dev,
 		return -EINVAL;
 	}
 
+#if 0
 	err = set_als_para(sensor, ALS_CALI_MODE);
 	if (err < 0)
 		pr_err("set als to calib mode Fail!\n");
 
 	msleep(200);
+#endif
 
 	err = set_als_calib_cmd(sensor, sensor->cal_cmd, sensor->cal_id);
 	if (err < 0)
 		pr_err("light sensor cali Fail!\n");
 
+#if 0
 	err = set_als_para(sensor, ALS_WORK_MODE);
 	if (err < 0)
 		pr_err("set als to work mode Fail!\n");
+#endif
 
 	return err < 0 ? err : count;
 }
@@ -2401,14 +2395,14 @@ static ssize_t als_target_lux_show(struct device *dev,
 {
     return snprintf(buf, PAGE_SIZE, "%d\n", als_cali_target_lux);
 }
-    
+
 static ssize_t als_target_lux_store(struct device *dev,
                  struct device_attribute *attr,
                  const char *buf, size_t count)
-{   
+{
     int ret = 0;
     unsigned int lux = 0;
-    
+
     ret = sscanf(buf, "%d", &lux);
     if (ret != 1) {
         pr_err("invalid content: '%s', length = %zu\n", buf, count);
@@ -2425,10 +2419,8 @@ static ssize_t als_cali_para_show(struct device *dev,
                 struct device_attribute *attr, char *buf)
 {
     return snprintf(buf, PAGE_SIZE, "%d\n", als_cali_data);
-}   
+}
 static DEVICE_ATTR_RO(als_cali_para);
-
-
 
 static struct attribute *sensorhub_attrs[] = {
 	&dev_attr_debug_data.attr,
