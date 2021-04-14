@@ -17,7 +17,6 @@
 #include "wcn_misc.h"
 #include "wcn_procfs.h"
 #include "../include/wcn_dbg.h"
-#include "wcn_ca_trusty.h"
 
 static struct mutex marlin_lock;
 static struct wifi_calibration wifi_data;
@@ -190,8 +189,6 @@ static int wcn_load_firmware_img(struct wcn_device *wcn_dev,
 	char *data = NULL;
 	char *wcn_image_buffer;
 	struct file *file;
-	u32 sec_img_magic, wcn_or_gnss = 0;
-	struct sys_img_header *pimghdr = NULL;
 
 	/* try to open file */
 	for (i = 1; i <= WCN_OPEN_MAX_CNT; i++) {
@@ -278,48 +275,6 @@ read_retry:
 	/* copy file data to target ddr address */
 	wcn_write_data_to_phy_addr(wcn_dev->base_addr, data, len);
 
-	pimghdr = (struct sys_img_header *)data;
-	sec_img_magic = pimghdr->magic_num;
-	if (sec_img_magic == SEC_IMAGE_MAGIC) {
-		if (wcn_dev_is_marlin(wcn_dev))
-			wcn_or_gnss = 1;
-		else if (wcn_dev_is_gnss(wcn_dev))
-			wcn_or_gnss = 2;
-	} else {
-		WCN_INFO("%s image magic 0x%x.\n",
-			wcn_dev->name, sec_img_magic);
-	}
-
-	if (sec_img_magic == SEC_IMAGE_MAGIC &&
-		wcn_or_gnss > 0) {
-		if ((SEC_IMAGE_HDR_SIZE + pimghdr->img_real_size) >=
-			pimghdr->img_signed_size ||
-			pimghdr->img_real_size == 0) {
-			WCN_ERR("%s check signed img fail.\n", __func__);
-			vfree(wcn_image_buffer);
-			return -EINVAL;
-		}
-		ret = wcn_firmware_sec_verify(wcn_or_gnss,
-					wcn_dev->base_addr,
-					pimghdr->img_signed_size);
-		if (ret < 0) {
-			WCN_ERR("%s sec verify fail.\n", wcn_dev->name);
-			vfree(wcn_image_buffer);
-			return ret;
-		}
-
-		wcn_write_zero_to_phy_addr(
-			wcn_dev->base_addr + pimghdr->img_real_size,
-			pimghdr->img_signed_size - pimghdr->img_real_size);
-		if (wcn_write_data_to_phy_addr(
-			wcn_dev->base_addr,
-			(data + SEC_IMAGE_HDR_SIZE), pimghdr->img_real_size)) {
-			WCN_ERR("copy sec bin to phy_addr error.\n");
-			vfree(wcn_image_buffer);
-			return -ENOMEM;
-		}
-	}
-
 	vfree(wcn_image_buffer);
 
 	WCN_INFO("%s finish\n", __func__);
@@ -372,8 +327,6 @@ static int wcn_download_image(struct wcn_device *wcn_dev)
 	int load_fimrware_ret;
 	bool is_marlin;
 	int err;
-	u32 sec_img_magic, wcn_or_gnss = 0;
-	struct sys_img_header *pimghdr = NULL;
 
 	is_marlin = wcn_dev_is_marlin(wcn_dev);
 	memset(firmware_file_name, 0, FIRMWARE_FILEPATHNAME_LENGTH_MAX);
@@ -413,53 +366,6 @@ static int wcn_download_image(struct wcn_device *wcn_dev)
 			WCN_ERR("wcn_mem_ram_vmap_nocache fail\n");
 			release_firmware(firmware);
 			return -ENOMEM;
-		}
-
-		pimghdr = (struct sys_img_header *)(firmware->data);
-		sec_img_magic = pimghdr->magic_num;
-		if (sec_img_magic == SEC_IMAGE_MAGIC) {
-			if (wcn_dev_is_marlin(wcn_dev))
-				wcn_or_gnss = 1;
-			else if (wcn_dev_is_gnss(wcn_dev))
-				wcn_or_gnss = 2;
-		} else {
-			WCN_INFO("%s image magic 0x%x.\n",
-				wcn_dev->name, sec_img_magic);
-		}
-
-		if (sec_img_magic == SEC_IMAGE_MAGIC &&
-			wcn_or_gnss > 0) {
-			if (((SEC_IMAGE_HDR_SIZE + pimghdr->img_real_size) >=
-				pimghdr->img_signed_size) ||
-				pimghdr->img_real_size == 0 ||
-				firmware->size < pimghdr->img_signed_size) {
-				release_firmware(firmware);
-				WCN_ERR("%s check signed size failed.\n",
-					wcn_dev->name);
-				return -EINVAL;
-			}
-
-			err = wcn_firmware_sec_verify(wcn_or_gnss,
-				wcn_dev->base_addr, pimghdr->img_signed_size);
-			if (err < 0) {
-				release_firmware(firmware);
-				WCN_ERR("%s sec verify fail.\n", wcn_dev->name);
-				return err;
-			}
-
-			wcn_write_zero_to_phy_addr(
-				wcn_dev->base_addr + pimghdr->img_real_size,
-				(pimghdr->img_signed_size -
-				pimghdr->img_real_size));
-
-			if (wcn_write_data_to_phy_addr(
-				wcn_dev->base_addr,
-				(void *)(firmware->data + SEC_IMAGE_HDR_SIZE),
-				pimghdr->img_real_size)) {
-				WCN_ERR("ram_vmap_nocache fail.\n");
-				release_firmware(firmware);
-				return -ENOMEM;
-			}
 		}
 
 		release_firmware(firmware);
