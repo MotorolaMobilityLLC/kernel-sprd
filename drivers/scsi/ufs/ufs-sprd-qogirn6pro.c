@@ -385,8 +385,7 @@ static int ufs_sprd_pwr_change_notify(struct ufs_hba *hba,
 		break;
 	case POST_CHANGE:
 		/* Set auto h8 ilde time to 10ms */
-		ufshcd_writel(hba,
-			AUTO_H8_IDLE_TIME_10MS, REG_AUTO_HIBERNATE_IDLE_TIMER);
+		ufshcd_auto_hibern8_enable(hba);
 		break;
 	default:
 		err = -EINVAL;
@@ -404,15 +403,14 @@ static void ufs_sprd_hibern8_notify(struct ufs_hba *hba,
 	switch (status) {
 	case PRE_CHANGE:
 		if (cmd == UIC_CMD_DME_HIBER_ENTER) {
-			ufshcd_writel(hba,
-				0x0, REG_AUTO_HIBERNATE_IDLE_TIMER);
+			/* Set auto h8 ilde time to 0ms */
+			ufshcd_auto_hibern8_disable(hba);
 		}
 		break;
 	case POST_CHANGE:
 		if (cmd == UIC_CMD_DME_HIBER_EXIT) {
-			ufshcd_writel(hba,
-				AUTO_H8_IDLE_TIME_10MS,
-				REG_AUTO_HIBERNATE_IDLE_TIMER);
+			/* Set auto h8 ilde time to 10ms */
+			ufshcd_auto_hibern8_enable(hba);
 		}
 		break;
 	default:
