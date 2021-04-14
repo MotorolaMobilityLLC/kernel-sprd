@@ -16,6 +16,7 @@
 #include "ion_private.h"
 
 static atomic_long_t total_heap_bytes;
+static atomic_long_t ion_heap_total_size;
 
 static void track_buffer_created(struct ion_buffer *buffer)
 {
@@ -84,6 +85,10 @@ static struct ion_buffer *ion_buffer_create(struct ion_heap *heap,
 	INIT_LIST_HEAD(&buffer->attachments);
 	mutex_init(&buffer->lock);
 	track_buffer_created(buffer);
+
+	if (buffer->heap->type == ION_HEAP_TYPE_SYSTEM)
+		atomic_long_add(buffer->size, &ion_heap_total_size);
+
 	return buffer;
 
 err1:
@@ -236,6 +241,9 @@ int ion_buffer_destroy(struct ion_device *dev, struct ion_buffer *buffer)
 	heap = buffer->heap;
 	track_buffer_destroyed(buffer);
 
+	if (buffer->heap->type == ION_HEAP_TYPE_SYSTEM)
+		atomic_long_sub(buffer->size, &ion_heap_total_size);
+
 	if (heap->flags & ION_HEAP_FLAG_DEFER_FREE)
 		ion_heap_freelist_add(heap, buffer);
 	else
@@ -275,4 +283,9 @@ void ion_buffer_kmap_put(struct ion_buffer *buffer)
 u64 ion_get_total_heap_bytes(void)
 {
 	return atomic_long_read(&total_heap_bytes);
+}
+
+long get_ion_heap_total_pages(void)
+{
+	return atomic_long_read(&ion_heap_total_size) >> PAGE_SHIFT;
 }

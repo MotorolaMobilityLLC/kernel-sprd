@@ -339,6 +339,9 @@ int ion_free(struct ion_buffer *buffer);
  */
 
 size_t ion_query_heaps_kernel(struct ion_heap_data *hdata, size_t size);
+
+long get_ion_heap_total_pages(void);
+long get_ion_pool_total_pages(void);
 #else
 
 static inline int __ion_device_add_heap(struct ion_heap *heap,
