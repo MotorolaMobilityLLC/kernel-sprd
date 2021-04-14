@@ -52,7 +52,7 @@ static struct ctl_table sprd_net_sys_table[] = {
 	{
 		.procname	= "enable_xfrm_fragment",
 		.maxlen		= sizeof(int),
-		.mode		= 0666,
+		.mode		= 0660,
 		.proc_handler	= proc_dointvec
 	},
 	{}
