@@ -1696,6 +1696,15 @@ CONFIG_BACKLIGHT_PWM
 	[must] home
 	[missing plat description] none
 	[function] Enable pwm backlight driver.
+CONFIG_BALLOON_COMPACTION
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
 CONFIG_BASE_FULL
 	[arch] all
 	[plat] all
@@ -4875,15 +4884,6 @@ CONFIG_DM_VERITY
 	[missing plat description] none
 	[function] Depends on BLK_DEV_DM, This device-mapper target creates a read-only device.
 	   Verity target one function in The device mapper.
-CONFIG_DM_VERITY_AVB
-	[arch] all
-	[plat] all
-	[missing plat] none
-	[field] make
-	[subsys] md
-	[must] none
-	[missing plat description] none
-	[function] Depends on DM_VERITY, Enables Android Verified Boot platform-specific error behavior.
 CONFIG_DM_VERITY_FEC
 	[arch] all
 	[plat] all
@@ -6635,6 +6635,15 @@ CONFIG_GKI_HIDDEN_MMC_CONFIGS
 	[must]
 	[missing plat description] none
 	[function]
+CONFIG_GKI_HIDDEN_MM_CONFIGS
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
 CONFIG_GKI_HIDDEN_QCOM_CONFIGS
 	[arch] all
 	[plat] all
@@ -7086,6 +7095,15 @@ CONFIG_HAVE_ARCH_TRANSPARENT_HUGEPAGE
 	[must] console
 	[missing plat description] none
 	[function] Enable kernel has ability of Transparent Hugepages.
+CONFIG_HAVE_ARCH_USERFAULTFD_MINOR
+	[arch] arm64
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
 CONFIG_HAVE_ARCH_VMAP_STACK
 	[arch] arm64
 	[plat] sharkl3,sharkl5Pro
@@ -10620,6 +10638,15 @@ CONFIG_MEMCG_SWAP_ENABLED
 	[missing plat description] none
 	[function] Memory Resource Controller Swap Extension enabled by default
 CONFIG_MEMFD_CREATE
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
+CONFIG_MEMORY_BALLOON
 	[arch] all
 	[plat] all
 	[missing plat] none
