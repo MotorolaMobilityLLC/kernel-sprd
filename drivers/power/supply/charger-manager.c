@@ -3707,7 +3707,7 @@ static void cm_batt_works(struct work_struct *work)
 	static int last_fuel_cap = CM_CAP_MAGIC_NUM;
 	static bool charge_done=false;
 	int term_vol;
-	static int is_cal_cap=0,cal_count=0;
+	static int is_cal_cap=0,cal_count=0,low_bat=0;
 	int real_cap; 
 	int charger_voltage;
 
@@ -3944,10 +3944,25 @@ static void cm_batt_works(struct work_struct *work)
 		break;
 	}
 
-	if (batt_ocV <= cm->desc->shutdown_voltage) {
+//	if (batt_ocV <= cm->desc->shutdown_voltage) {
 //		set_batt_cap(cm, 0);
-		dev_err(cm->dev, "WARN: batt_uV less than uvlo, will shutdown\n");
+//		dev_err(cm->dev, "WARN: batt_uV less than uvlo, will shutdown\n");
 //		orderly_poweroff(true);
+//    }
+	if (low_bat >=3  || batt_uV <= 3200000) {
+		low_bat ++;		
+		dev_err(cm->dev, "%s;WARN: batt_uV=%d;%d; will shutdown\n",__func__,batt_uV,low_bat);
+		if(low_bat >=3)
+		{
+			calibrate_batt_cap(cm,0);
+			if( low_bat >=4)
+				fuel_cap =0;
+			dev_err(cm->dev, "%s;WARN: batt_uV=%d; set fuel_cap %d;;\n",__func__,batt_uV,low_bat);
+		}
+	}
+	else
+	{
+		low_bat =0;
 	}
 
 	if( (term_vol ==4040000 || term_vol ==4048000) && fuel_cap > 750)
