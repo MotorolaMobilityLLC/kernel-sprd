@@ -39,7 +39,6 @@ struct ufs_sprd_host {
 
 };
 
-#define AUTO_H8_IDLE_TIME_10MS 0x1001
 /* UFS analog registers */
 #define MPHY_2T2R_APB_REG1 0x68
 #define MPHY_2T2R_APB_RESETN (0x1 << 3)
