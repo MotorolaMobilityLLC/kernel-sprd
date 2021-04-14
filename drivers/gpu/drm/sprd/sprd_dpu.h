@@ -171,6 +171,10 @@ extern const struct dpu_core_ops dpu_lite_r1p0_core_ops;
 extern const struct dpu_clk_ops pike2_dpu_clk_ops;
 extern const struct dpu_glb_ops pike2_dpu_glb_ops;
 
+extern const struct dpu_core_ops dpu_lite_r2p0_core_ops;
+extern const struct dpu_clk_ops sharkl5_dpu_clk_ops;
+extern const struct dpu_glb_ops sharkl5_dpu_glb_ops;
+
 extern const struct dpu_core_ops dpu_r2p0_core_ops;
 extern const struct dpu_clk_ops sharkl3_dpu_clk_ops;
 extern const struct dpu_glb_ops sharkl3_dpu_glb_ops;

@@ -538,6 +538,12 @@ static const struct sprd_dpu_ops sharkl3_dpu = {
 	.glb = &sharkl3_dpu_glb_ops,
 };
 
+static const struct sprd_dpu_ops sharkl5_dpu = {
+	.core = &dpu_lite_r2p0_core_ops,
+	.clk = &sharkl5_dpu_clk_ops,
+	.glb = &sharkl5_dpu_glb_ops,
+};
+
 static const struct sprd_dpu_ops sharkl5pro_dpu = {
 	.core = &dpu_r4p0_core_ops,
 	.clk = &sharkl5pro_dpu_clk_ops,
@@ -551,6 +557,8 @@ static const struct of_device_id dpu_match_table[] = {
 	  .data = &pike2_dpu },
 	{ .compatible = "sprd,sharkl3-dpu",
 	  .data = &sharkl3_dpu },
+	{ .compatible = "sprd,sharkl5-dpu",
+	  .data = &sharkl5_dpu },
 	{ .compatible = "sprd,sharkl5pro-dpu",
 	  .data = &sharkl5pro_dpu },
 	{ /* sentinel */ },
