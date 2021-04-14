@@ -49,7 +49,7 @@ static struct ctl_table xfrm_table[] = {
 	{
 		.procname	= "xfrm_vowifi_fragment",
 		.maxlen		= sizeof(int),
-		.mode		= 0666,
+		.mode		= 0660,
 		.proc_handler	= proc_dointvec
 	},
 #endif
