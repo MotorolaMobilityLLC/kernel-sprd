@@ -1280,11 +1280,6 @@ static ssize_t update_luts_write(struct file *fp, struct kobject *kobj,
 		return -EINVAL;
 
 	down(&ctx->refresh_lock);
-	if (!ctx->is_inited) {
-		pr_err("dpu is not initialized\n");
-		up(&ctx->refresh_lock);
-		return -EINVAL;
-	}
 	dpu->core->enhance_set(ctx, ENHANCE_CFG_ID_UPDATE_LUTS, buf);
 	up(&ctx->refresh_lock);
 

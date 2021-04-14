@@ -1016,7 +1016,7 @@ static int dpu_write_back_config(struct dpu_context *ctx)
 	return 0;
 }
 
-static int dpu_luts_alloc(struct dpu_context *ctx)
+static int dpu_luts_alloc(void)
 {
 	static bool is_configed;
 	u8 *buf;
@@ -1157,18 +1157,6 @@ static void dpu_scl_coef_cfg(struct dpu_context *ctx)
 			(r6p0_scl_coef[i+1] << 16);
 		j++;
 	}
-}
-
-static void dpu_luts_init_addr(struct dpu_context *ctx)
-{
-	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
-
-	reg->slp_lut_base_addr = DPU_LUTS_SLP_OFFSET + dpu_luts_paddr;
-	reg->threed_lut_base_addr = DPU_LUTS_LUT3D_OFFSET + dpu_luts_paddr;
-	reg->hsv_lut_base_addr = DPU_LUTS_HSV_OFFSET + dpu_luts_paddr;
-	reg->gamma_lut_base_addr = DPU_LUTS_GAMMA_OFFSET + dpu_luts_paddr;
-
-	reg->enhance_update |= BIT(0);
 }
 
 /*
@@ -1342,10 +1330,8 @@ static int dpu_init(struct dpu_context *ctx)
 
 	reg->dpu_int_clr = 0xffff;
 
-	ret = dpu_luts_alloc(ctx);
-	if (!ret)
-		dpu_luts_init_addr(ctx);
-	else
+	ret = dpu_luts_alloc();
+	if (ret)
 		pr_err("DPU lUTS table alloc buffer fail\n");
 
 	dpu_enhance_reload(ctx);
@@ -1850,6 +1836,69 @@ static void disable_vsync(struct dpu_context *ctx)
 }
 
 
+static void dpu_luts_copyfrom_user(u32 *param)
+{
+	static u32 i;
+	u8 *luts_tmp_vaddr;
+
+	/* 58 means 58*2k, all luts size.
+	 * each time writes 2048 bytes from
+	 * user space.
+	 */
+	if (i == 58)
+		i = 0;
+
+	luts_tmp_vaddr = (u8 *)lut_gamma_vaddr;
+	luts_tmp_vaddr += 2048 * i;
+	memcpy(luts_tmp_vaddr, param, 2048);
+
+	i++;
+}
+
+static void dpu_luts_backup(void *param)
+{
+	u32 *p32 = param;
+	struct hsv_params *hsv_cfg;
+	int ret = 0;
+
+	memcpy(&typeindex_cpy, param, sizeof(typeindex_cpy));
+
+	switch (typeindex_cpy.type) {
+	case LUTS_GAMMA_TYPE:
+		lut_addrs_cpy.lut_gamma_addr = dpu_luts_paddr +
+			DPU_LUTS_GAMMA_OFFSET + typeindex_cpy.index * 4096;
+		enhance_en |= BIT(3) | BIT(5);
+		break;
+	case LUTS_HSV_TYPE:
+		p32++;
+		hsv_cfg = (struct hsv_params *) p32;
+		hsv_cfg_copy = (hsv_cfg->h0 & 0xff) |
+			((hsv_cfg->h1 & 0x3) << 8) |
+			((hsv_cfg->h2 & 0x3) << 12);
+		lut_addrs_cpy.lut_hsv_addr = dpu_luts_paddr +
+			DPU_LUTS_HSV_OFFSET + typeindex_cpy.index * 4096;
+		enhance_en |= BIT(1);
+		break;
+	case LUTS_LUT3D_TYPE:
+		lut_addrs_cpy.lut_lut3d_addr = dpu_luts_paddr +
+			DPU_LUTS_LUT3D_OFFSET + typeindex_cpy.index * 4096 * 6;
+		enhance_en |= BIT(4);
+		break;
+	case LUTS_ALL:
+		ret = dpu_luts_alloc();
+		if (ret) {
+			pr_err("DPU lUTS table alloc buffer fail\n");
+			break;
+		}
+		p32++;
+		dpu_luts_copyfrom_user(p32);
+		break;
+	default:
+		pr_err("The type %d is unavaiable\n", typeindex_cpy.type);
+		break;
+	}
+}
+
 static void dpu_enhance_backup(u32 id, void *param)
 {
 	u32 *p;
@@ -1880,12 +1929,12 @@ static void dpu_enhance_backup(u32 id, void *param)
 		break;
 	case ENHANCE_CFG_ID_HSV:
 		memcpy(&hsv_copy, param, sizeof(hsv_copy));
-		enhance_en |= BIT(2);
+		enhance_en |= BIT(1);
 		pr_info("enhance hsv backup\n");
 		break;
 	case ENHANCE_CFG_ID_CM:
 		memcpy(&cm_copy, param, sizeof(cm_copy));
-		enhance_en |= BIT(3);
+		enhance_en |= BIT(2);
 		pr_info("enhance cm backup\n");
 		break;
 	case ENHANCE_CFG_ID_LTM:
@@ -1895,12 +1944,12 @@ static void dpu_enhance_backup(u32 id, void *param)
 			slp_copy.s37 = 0;
 			slp_copy.s38 = 255;
 		}
-		enhance_en |= BIT(4);
+		enhance_en |= BIT(6) | BIT(7);
 		pr_info("enhance slp backup\n");
 		break;
 	case ENHANCE_CFG_ID_GAMMA:
 		memcpy(&gamma_copy, param, sizeof(gamma_copy));
-		enhance_en |= BIT(5) | BIT(10);
+		enhance_en |= BIT(3) | BIT(5);
 		pr_info("enhance gamma backup\n");
 		break;
 	case ENHANCE_CFG_ID_EPF:
@@ -1910,7 +1959,7 @@ static void dpu_enhance_backup(u32 id, void *param)
 		break;
 	case ENHANCE_CFG_ID_LUT3D:
 		memcpy(&lut3d_copy, param, sizeof(lut3d_copy));
-		enhance_en |= BIT(9);
+		enhance_en |= BIT(4);
 		pr_info("enhance lut3d backup\n");
 		break;
 	case ENHANCE_CFG_ID_SR_EPF:
@@ -1928,30 +1977,13 @@ static void dpu_enhance_backup(u32 id, void *param)
 			pr_info("enhance[ID_SR_EPF] epf backup\n");
 		}
 		break;
+	case ENHANCE_CFG_ID_UPDATE_LUTS:
+		dpu_luts_backup(param);
+		pr_info("enhance ddr luts backup\n");
 	default:
 		break;
 	}
 }
-
-static void dpu_luts_copyfrom_user(u32 *param)
-{
-	static u32 i;
-	u8 *luts_tmp_vaddr;
-
-	/* 58 means 58*2k, all luts size.
-	 * each time writes 2048 bytes from
-	 * user space.
-	 */
-	if (i == 58)
-		i = 0;
-
-	luts_tmp_vaddr = (u8 *)lut_gamma_vaddr;
-	luts_tmp_vaddr += 2048 * i;
-	memcpy(luts_tmp_vaddr, param, 2048);
-
-	i++;
-}
-
 
 static void dpu_luts_update(struct dpu_context *ctx, void *param)
 {
