@@ -35,6 +35,7 @@
 #include <linux/wait.h>
 #include <misc/marlin_platform.h>
 #include "gnss_common.h"
+#include "../wcn_gnss.h"
 #define GNSS_DATA_MAX_LEN	16
 
 struct sprd_gnss {
@@ -115,7 +116,8 @@ static struct miscdevice gnss_pmnotify_ctl_device = {
 	.fops = &gnss_pmnotify_ctl_fops,
 };
 
-static int __init gnss_pmnotify_ctl_init(void)
+//static int __init gnss_pmnotify_ctl_init(void)
+int gnss_pmnotify_ctl_init(void)
 {
 	int err = 0;
 
@@ -130,12 +132,13 @@ static int __init gnss_pmnotify_ctl_init(void)
 	return err;
 }
 
-static void __exit gnss_pmnotify_ctl_cleanup(void)
+//static void __exit gnss_pmnotify_ctl_cleanup(void)
+void gnss_pmnotify_ctl_cleanup(void)
 {
 	misc_deregister(&gnss_pmnotify_ctl_device);
 }
 
-module_init(gnss_pmnotify_ctl_init);
-module_exit(gnss_pmnotify_ctl_cleanup);
-MODULE_LICENSE("GPL");
-MODULE_DESCRIPTION("sprd gnss pmnotify ctl driver");
+//module_init(gnss_pmnotify_ctl_init);
+//module_exit(gnss_pmnotify_ctl_cleanup);
+//MODULE_LICENSE("GPL");
+//MODULE_DESCRIPTION("sprd gnss pmnotify ctl driver");

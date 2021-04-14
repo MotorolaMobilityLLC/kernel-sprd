@@ -48,6 +48,7 @@
 #include "wcn_glb_reg.h"
 #include "sysfs.h"
 
+#include "wcn_gnss_ops.h"
 
 #ifdef MODULE_PARAM_PREFIX
 #undef MODULE_PARAM_PREFIX
@@ -519,11 +520,11 @@ static char *gnss_load_firmware_data(unsigned long int imag_size)
 	struct file *file;
 	loff_t pos = 0;
 
-	pr_debug("%s entry\n", __func__);
-	if (gnss_ops && (gnss_ops->set_file_path))
-		gnss_ops->set_file_path(&GNSS_FIRMWARE_PATH[0]);
-	else
-		pr_err("%s gnss_ops set_file_path error\n", __func__);
+	pr_info("%s entry\n", __func__);
+
+	gnss_file_path_set(&GNSS_FIRMWARE_PATH[0]);
+	pr_info("%s gnss file path=%s\n", __func__, GNSS_FIRMWARE_PATH);
+
 	file = filp_open(GNSS_FIRMWARE_PATH, O_RDONLY, 0);
 	for (i = 1; i <= opn_num_max; i++) {
 		if (IS_ERR(file)) {
@@ -1679,7 +1680,7 @@ static int find_firmware_path(void)
 static void pre_gnss_download_firmware(struct work_struct *work)
 {
 	static int cali_flag;
-	int ret;
+	int ret = -2;
 
 	/* ./fstab.xxx is prevent for user space progress */
 	find_firmware_path();
@@ -1689,11 +1690,10 @@ static void pre_gnss_download_firmware(struct work_struct *work)
 		return;
 	}
 
-	if (gnss_ops && (gnss_ops->write_data)) {
-		if (gnss_ops->write_data() != 0)
-			return;
-	} else {
-		pr_err("%s gnss_ops write_data error\n", __func__);
+	ret = gnss_write_data();
+	if (ret != 0) {
+		pr_err("%s gnss_write_data err=%d\n", __func__, ret);
+		return;
 	}
 
 	if (gnss_start_run() != 0)
@@ -1701,20 +1701,20 @@ static void pre_gnss_download_firmware(struct work_struct *work)
 
 	if (cali_flag == 0) {
 		pr_info("gnss start to backup calidata\n");
-		if (gnss_ops && gnss_ops->backup_data) {
-			ret = gnss_ops->backup_data();
-			if (ret == 0)
-				cali_flag = 1;
-		} else {
-			pr_err("%s gnss_ops backup_data error\n", __func__);
-		}
-	} else {
-		pr_info("gnss wait boot finish\n");
-		if (gnss_ops && gnss_ops->wait_gnss_boot)
-			gnss_ops->wait_gnss_boot();
+		ret = gnss_backup_data();
+		if (ret == 0)
+			cali_flag = 1;
 		else
-			pr_err("%s gnss_ops wait boot error\n", __func__);
+			pr_err("%s gnss_backup_data err=%d\n", __func__, ret);
+	} else {
+		pr_info("gnss wait boot start\n");
+		ret = gnss_boot_wait();
+		if (ret != 0)
+			pr_err("%s gnss wait boot err=%d\n", __func__, ret);
+		else
+			pr_info("%s gnss wait boot end\n", __func__);
 	}
+
 	complete(&marlin_dev->gnss_download_done);
 }
 
@@ -2550,14 +2550,18 @@ static int marlin_probe(struct platform_device *pdev)
 		goto error0;
 	}
 
+	/* init data for pre_gnss_download_firmware*/
+	gnss_data_init();
+
 	flag_reset = 0;
 	loopcheck_init();
 	reset_test_init();
 	init_wcn_sysfs();
 	wcn_init_debugfs();
-//	gnss_common_ctl_init();
-//	gnss_pmnotify_ctl_init();
-//	gnss_module_init();
+
+	gnss_common_ctl_init();
+	gnss_pmnotify_ctl_init();
+	gnss_module_init();
 
 	INIT_WORK(&marlin_dev->download_wq, pre_btwifi_download_sdio);
 	INIT_WORK(&marlin_dev->gnss_dl_wq, pre_gnss_download_firmware);
@@ -2696,6 +2700,8 @@ static struct platform_driver marlin_driver = {
 static int __init marlin_init(void)
 {
 	pr_info("%s entry!\n", __func__);
+
+
 	return platform_driver_register(&marlin_driver);
 }
 

@@ -36,6 +36,7 @@
 #define GNSS_ARCH_EB_REG		   (GNSS_AHB_BASE + 0x084)
 #define GNSS_ARCH_EB_REG_BYPASS    (1<<1)
 
+#if 0
 #ifdef CONFIG_UMW2652_S
 #define GNSS_CALI_ADDRESS 0x40aabf4c
 #define GNSS_CALI_DATA_SIZE 0x1c
@@ -43,22 +44,29 @@
 #define GNSS_CALI_ADDRESS 0x40aaff4c
 #define GNSS_CALI_DATA_SIZE 0x14
 #endif
+#endif
+
 #define GNSS_CALI_DONE_FLAG 0x1314520
 
+#if 0
 #ifdef CONFIG_UMW2652_S
 #define GNSS_EFUSE_ADDRESS 0x40aabf40
 #else
 #define GNSS_EFUSE_ADDRESS 0x40aaff40
 #endif
+#endif
 
 #define GNSS_EFUSE_DATA_SIZE 0xc
 
 /*  GNSS assert workaround */
+#if 0
 #ifdef CONFIG_UMW2652_S
 #define GNSS_BOOTSTATUS_ADDRESS  0x40aabf6c
 #else
 #define GNSS_BOOTSTATUS_ADDRESS  0x40aaff6c
 #endif
+#endif
+
 #define GNSS_BOOTSTATUS_SIZE     0x4
 #define GNSS_BOOTSTATUS_MAGIC    0x12345678
 
@@ -100,9 +108,6 @@ enum{
 };
 #endif
 
-int gnss_write_data(void);
-int gnss_backup_data(void);
-void gnss_file_path_set(char *buf);
 #endif
 
 /* qogirl6 begin */

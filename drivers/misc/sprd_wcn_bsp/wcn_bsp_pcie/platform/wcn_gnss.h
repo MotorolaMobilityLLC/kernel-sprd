@@ -29,4 +29,11 @@ struct sprdwcn_gnss_ops {
 int wcn_gnss_ops_register(struct sprdwcn_gnss_ops *ops);
 void wcn_gnss_ops_unregister(void);
 
+int gnss_common_ctl_init(void);
+void gnss_common_ctl_exit(void);
+int gnss_module_init(void);
+void gnss_module_exit(void);
+int gnss_pmnotify_ctl_init(void);
+void gnss_pmnotify_ctl_cleanup(void);
+
 #endif

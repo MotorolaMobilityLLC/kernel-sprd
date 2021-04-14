@@ -129,8 +129,8 @@ static int gnss_creat_gnss_dump_file(void)
 			__func__, gnss_dump_file);
 		return -1;
 	}
-	if (sys_chmod(GNSS_MEMDUMP_PATH, 0666) != 0)
-		GNSSDUMP_ERR("%s chmod	error\n", __func__);
+//	if (sys_chmod(GNSS_MEMDUMP_PATH, 0666) != 0)
+//		GNSSDUMP_ERR("%s chmod	error\n", __func__);
 
 	return 0;
 }

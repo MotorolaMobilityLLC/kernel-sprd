@@ -88,162 +88,8 @@ static const struct of_device_id gnss_common_ctl_of_match[] = {
 	{},
 };
 
-#ifndef CONFIG_WCN_INTEG
-struct gnss_cali {
-	bool cali_done;
-	u32 *cali_data;
-};
-static struct gnss_cali gnss_cali_data;
-static u32 *gnss_efuse_data;
 
-
-#ifdef GNSSDEBUG
-static void gnss_cali_done_isr(void)
-{
-	complete(&marlin_dev->gnss_cali_done);
-	GNSSCOMM_INFO("gnss cali done");
-}
-#endif
-static int gnss_data_init(void)
-{
-	gnss_cali_data.cali_done = false;
-
-	gnss_cali_data.cali_data = kzalloc(GNSS_CALI_DATA_SIZE, GFP_KERNEL);
-	if (gnss_cali_data.cali_data == NULL) {
-		GNSSCOMM_ERR("%s malloc fail.\n", __func__);
-		return -ENOMEM;
-	}
-
-	#ifdef GNSSDEBUG
-	init_completion(&marlin_dev.gnss_cali_done);
-	sdio_pub_int_RegCb(GNSS_CALI_DONE, (PUB_INT_ISR)gnss_cali_done_isr);
-	#endif
-	gnss_efuse_data = kzalloc(GNSS_EFUSE_DATA_SIZE, GFP_KERNEL);
-	if (gnss_efuse_data == NULL) {
-		GNSSCOMM_ERR("%s malloc efuse data fail.\n", __func__);
-		return -ENOMEM;
-	}
-
-	return 0;
-}
-
-static int gnss_write_cali_data(void)
-{
-	GNSSCOMM_INFO("gnss write calidata, flag %d\n",
-			gnss_cali_data.cali_done);
-	if (gnss_cali_data.cali_done) {
-		sprdwcn_bus_direct_write(GNSS_CALI_ADDRESS,
-			gnss_cali_data.cali_data, GNSS_CALI_DATA_SIZE);
-	}
-	return 0;
-}
-
-static int gnss_write_efuse_data(void)
-{
-	GNSSCOMM_INFO("%s flag %d\n", __func__,	gnss_cali_data.cali_done);
-	if (gnss_cali_data.cali_done && (gnss_efuse_data != NULL))
-		sprdwcn_bus_direct_write(GNSS_EFUSE_ADDRESS, gnss_efuse_data,
-					 GNSS_EFUSE_DATA_SIZE);
-
-	return 0;
-}
-
-int gnss_write_data(void)
-{
-	int ret = 0;
-
-	gnss_write_cali_data();
-	ret = gnss_write_efuse_data();
-
-	return ret;
-}
-
-static int gnss_backup_cali(void)
-{
-	int i = 15;
-	int tempvalue = 0;
-
-	if (!gnss_cali_data.cali_done) {
-		GNSSCOMM_INFO("%s begin\n", __func__);
-		if (gnss_cali_data.cali_data != NULL) {
-			while (i--) {
-				sprdwcn_bus_direct_read(GNSS_CALI_ADDRESS,
-					gnss_cali_data.cali_data,
-					GNSS_CALI_DATA_SIZE);
-				tempvalue = *(gnss_cali_data.cali_data);
-				GNSSCOMM_ERR(" cali %d time, value is 0x%x\n",
-							i, tempvalue);
-				if (tempvalue != GNSS_CALI_DONE_FLAG) {
-					msleep(100);
-					continue;
-				}
-				GNSSCOMM_INFO(" cali success\n");
-				gnss_cali_data.cali_done = true;
-				break;
-			}
-		}
-	} else
-		GNSSCOMM_INFO(" no need back again\n");
-
-	return 0;
-}
-
-static int gnss_backup_efuse(void)
-{
-	int ret = 1;
-
-	/* efuse data is ok when cali done */
-	if (gnss_cali_data.cali_done && (gnss_efuse_data != NULL)) {
-		sprdwcn_bus_direct_read(GNSS_EFUSE_ADDRESS, gnss_efuse_data,
-					GNSS_EFUSE_DATA_SIZE);
-		ret = 0;
-		GNSSCOMM_ERR("%s 0x%x\n", __func__, *gnss_efuse_data);
-	} else
-		GNSSCOMM_INFO("%s no need back again\n", __func__);
-
-	return ret;
-}
-
-int gnss_backup_data(void)
-{
-	int ret;
-
-	gnss_backup_cali();
-	ret = gnss_backup_efuse();
-
-	return ret;
-}
-
-static int gnss_boot_wait(void)
-{
-	int ret = -1;
-	int i = 125;
-	u32 *buffer = NULL;
-
-	buffer = kzalloc(GNSS_BOOTSTATUS_SIZE, GFP_KERNEL);
-	if (buffer == NULL) {
-		GNSSCOMM_ERR("%s, malloc fail\n", __func__);
-		return -1;
-	}
-	while (i--) {
-		sprdwcn_bus_direct_read(GNSS_BOOTSTATUS_ADDRESS, buffer,
-					GNSS_BOOTSTATUS_SIZE);
-		GNSSCOMM_ERR("boot read %d time, value is 0x%x\n", i, *buffer);
-		if (*buffer != GNSS_BOOTSTATUS_MAGIC) {
-			msleep(20);
-			continue;
-		}
-		ret = 0;
-		GNSSCOMM_INFO("boot read success\n");
-		break;
-	}
-	kfree(buffer);
-
-	return ret;
-}
-#endif
-
-#if defined(CONFIG_UMW2652_REMOVE_REMOVE) || defined(CONFIG_UMW2631_I)
+#if defined(CONFIG_UMW2652_S) || defined(CONFIG_UMW2631_I)
 static int gnss_tsen_enable(int type)
 {
 	struct platform_device *pdev_regmap;
@@ -435,7 +281,7 @@ static void gnss_power_on(bool enable)
 		      enable, gnss_common_ctl_dev.gnss_status, clk_type);
 	if (enable && gnss_common_ctl_dev.gnss_status == GNSS_STATUS_POWEROFF) {
 		gnss_common_ctl_dev.gnss_status = GNSS_STATUS_POWERON_GOING;
-#ifdef CONFIG_UMW2652_REMOVE_REMOVE
+#ifdef CONFIG_UMW2652_S
 		if (clk_type == WCN_CLOCK_TYPE_TSX)
 			gnss_tsen_enable(TSEN_EXT);
 #endif
@@ -456,7 +302,7 @@ static void gnss_power_on(bool enable)
 	} else if (!enable && gnss_common_ctl_dev.gnss_status
 			== GNSS_STATUS_POWERON) {
 		gnss_common_ctl_dev.gnss_status = GNSS_STATUS_POWEROFF_GOING;
-#ifdef CONFIG_UMW2652_REMOVE_REMOVE
+#ifdef CONFIG_UMW2652_S
 		if (clk_type == WCN_CLOCK_TYPE_TSX)
 			gnss_tsen_disable(TSEN_EXT);
 #endif
@@ -526,11 +372,6 @@ static ssize_t gnss_subsys_store(struct device *dev,
 		count = -EINVAL;
 #endif
 	return count;
-}
-
-void gnss_file_path_set(char *buf)
-{
-	strcpy(&gnss_common_ctl_dev.firmware_path[0], buf);
 }
 
 static ssize_t gnss_subsys_show(struct device *dev,
@@ -649,7 +490,7 @@ static ssize_t gnss_status_show(struct device *dev,
 }
 static DEVICE_ATTR_RO(gnss_status);
 
-#if defined(CONFIG_UMW2652_REMOVE_REMOVE) || defined(CONFIG_UMW2631_I)
+#if defined(CONFIG_UMW2652_S) || defined(CONFIG_UMW2631_I)
 static ssize_t gnss_clktype_show(struct device *dev,
 				 struct device_attribute *attr, char *buf)
 {
@@ -756,7 +597,7 @@ static struct attribute *gnss_common_ctl_attrs[] = {
 	&dev_attr_gnss_dump.attr,
 	&dev_attr_gnss_status.attr,
 	&dev_attr_gnss_subsys.attr,
-#if defined(CONFIG_UMW2652_REMOVE_REMOVE) || defined(CONFIG_UMW2631_I)
+#if defined(CONFIG_UMW2652_S) || defined(CONFIG_UMW2631_I)
 	&dev_attr_gnss_clktype.attr,
 #endif
 #ifndef CONFIG_WCN_INTEG
@@ -779,15 +620,6 @@ static struct miscdevice gnss_common_ctl_miscdev = {
 	.fops = NULL,
 };
 
-#ifndef CONFIG_WCN_INTEG
-static struct sprdwcn_gnss_ops gnss_common_ctl_ops = {
-	.backup_data = gnss_backup_data,
-	.write_data = gnss_write_data,
-	.set_file_path = gnss_file_path_set,
-	.wait_gnss_boot = gnss_boot_wait
-};
-#endif
-
 static int gnss_common_ctl_probe(struct platform_device *pdev)
 {
 	int ret;
@@ -799,7 +631,6 @@ static int gnss_common_ctl_probe(struct platform_device *pdev)
 	gnss_common_ctl_dev.gnss_status = GNSS_STATUS_POWEROFF;
 #ifndef CONFIG_WCN_INTEG
 	gnss_common_ctl_dev.gnss_subsys = MARLIN_GNSS;
-	gnss_data_init();
 #else
 	gnss_common_ctl_dev.gnss_subsys = WCN_GNSS;
 #endif
@@ -836,7 +667,6 @@ static int gnss_common_ctl_probe(struct platform_device *pdev)
 	init_completion(&gnss_dump_complete);
 #else
 	mdbg_dump_gnss_register(gnss_dump_mem_ctrl, NULL);
-	wcn_gnss_ops_register(&gnss_common_ctl_ops);
 #endif
 
 	return 0;
@@ -848,9 +678,6 @@ err_attr_failed:
 
 static int gnss_common_ctl_remove(struct platform_device *pdev)
 {
-#ifndef CONFIG_WCN_INTEG
-	wcn_gnss_ops_unregister();
-#endif
 	sysfs_remove_group(&gnss_common_ctl_miscdev.this_device->kobj,
 				&gnss_common_ctl_group);
 
@@ -866,18 +693,20 @@ static struct platform_driver gnss_common_ctl_drv = {
 	.remove = gnss_common_ctl_remove
 };
 
-static int __init gnss_common_ctl_init(void)
+//static int __init gnss_common_ctl_init(void)
+int gnss_common_ctl_init(void)
 {
+	GNSSCOMM_INFO("%s enter", __func__);
 	return platform_driver_register(&gnss_common_ctl_drv);
 }
 
-static void __exit gnss_common_ctl_exit(void)
+void gnss_common_ctl_exit(void)
 {
 	platform_driver_unregister(&gnss_common_ctl_drv);
 }
 
-module_init(gnss_common_ctl_init);
-module_exit(gnss_common_ctl_exit);
-MODULE_LICENSE("GPL v2");
-MODULE_DESCRIPTION("Spreadtrum Gnss Driver");
-MODULE_AUTHOR("Jun.an<jun.an@spreadtrum.com>");
+//module_init(gnss_common_ctl_init);
+//module_exit(gnss_common_ctl_exit);
+//MODULE_LICENSE("GPL v2");
+//MODULE_DESCRIPTION("Spreadtrum Gnss Driver");
+//MODULE_AUTHOR("Jun.an<jun.an@spreadtrum.com>");

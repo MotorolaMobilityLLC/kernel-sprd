@@ -20,6 +20,8 @@
 #include <linux/types.h>
 #include <linux/wait.h>
 
+#include "../wcn_gnss.h"
+
 #define GNSS_ERR(fmt, args...) \
 	pr_err("%s:" fmt "\n", __func__, ## args)
 #define GNSS_DEBUG(fmt, args...) \
@@ -373,7 +375,8 @@ static struct miscdevice gnss_slog_device = {
 	.fops = &gnss_slog_fops,
 };
 
-static int __init gnss_module_init(void)
+//static int __init gnss_module_init(void)
+int gnss_module_init(void)
 {
 	int ret;
 
@@ -406,7 +409,8 @@ static int __init gnss_module_init(void)
 	return ret;
 }
 
-static void __exit gnss_module_exit(void)
+//static void __exit gnss_module_exit(void)
+void gnss_module_exit(void)
 {
 	gnss_ring_destroy(gnss_rx_ring);
 	gnss_device_destroy();
@@ -414,6 +418,6 @@ static void __exit gnss_module_exit(void)
 	misc_deregister(&gnss_slog_device);
 }
 
-module_init(gnss_module_init);
-module_exit(gnss_module_exit);
-MODULE_LICENSE("GPL");
+//module_init(gnss_module_init);
+//module_exit(gnss_module_exit);
+//MODULE_LICENSE("GPL");

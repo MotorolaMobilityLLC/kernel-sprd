@@ -59,5 +59,4 @@
 #define GNSS_QOGIRL6_STATUS_OFFSET		   (0x001ffc34) /* Qogirl6 */
 #endif
 
-void gnss_file_path_set(char *buf);
 #endif
