@@ -118,6 +118,15 @@
 		};
 	};
 
+	debug_log: debuglog {
+		compatible = "sprd,debuglog-sharkl6";
+
+		sprd,sys-ap-ahb = <&ap_ahb_regs>;
+		sprd,sys-ap-apb = <&ap_apb_regs>;
+		sprd,sys-pmu-apb = <&pmu_apb_regs>;
+		sprd,sys-aon-apb = <&aon_apb_regs>;
+	};
+
 	psci {
 		compatible = "arm,psci-0.2";
 		method = "smc";
