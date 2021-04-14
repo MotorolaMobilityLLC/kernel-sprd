@@ -220,7 +220,6 @@ int sprd_isp_pw_off(void)
 
 	mutex_lock(&pw_info->mlock);
 	if (atomic_dec_return(&pw_info->users_isp_pw) == 0) {
-		mmsys_notifier_call_chain(_E_PW_OFF, NULL);
 		usleep_range(300, 350);
 
 		/* cam domain power off */
@@ -575,7 +574,6 @@ int sprd_isp_pw_on(void)
 		}
 
 	}
-	mmsys_notifier_call_chain(_E_PW_ON, NULL);
 	mutex_unlock(&pw_info->mlock);
 	return 0;
 
@@ -690,6 +688,7 @@ int sprd_cam_domain_eb(void)
 		clk_set_parent(pw_info->mm_mtx_clk, pw_info->mm_mtx_clk_parent);
 		clk_prepare_enable(pw_info->mm_mtx_clk);
 		clk_prepare_enable(pw_info->mm_mtx_data_en);
+		mmsys_notifier_call_chain(_E_PW_ON, NULL);
 	}
 	mutex_unlock(&pw_info->mlock);
 
@@ -714,6 +713,7 @@ int sprd_cam_domain_disable(void)
 
 	mutex_lock(&pw_info->mlock);
 	if (atomic_dec_return(&pw_info->users_clk) == 0) {
+		mmsys_notifier_call_chain(_E_PW_OFF, NULL);
 		/* mm bus enable */
 		clk_set_parent(pw_info->mm_mtx_clk, pw_info->mm_mtx_clk_parent);
 		clk_disable_unprepare(pw_info->mm_mtx_clk);
