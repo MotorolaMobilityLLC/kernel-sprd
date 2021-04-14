@@ -124,6 +124,11 @@ static int ufs_sprd_init(struct ufs_hba *hba)
 	host->hba = hba;
 	ufshcd_set_variant(hba, host);
 
+	host->vdd_mphy = devm_regulator_get(dev, "vdd-mphy");
+	ret = regulator_enable(host->vdd_mphy);
+	if (ret)
+		return -ENODEV;
+
 	ret = ufs_sprd_get_syscon_reg(dev->of_node, &host->ap_ahb_ufs_rst,
 				      "ap_ahb_ufs_rst");
 	if (ret < 0)
@@ -214,11 +219,16 @@ static void ufs_sprd_exit(struct ufs_hba *hba)
 {
 	struct device *dev = hba->dev;
 	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
+	int ret = 0;
 
 	regmap_update_bits(host->aon_apb_ufs_clk_en.regmap,
 			   host->aon_apb_ufs_clk_en.reg,
 			   host->aon_apb_ufs_clk_en.mask,
 			   0);
+
+	ret = regulator_disable(host->vdd_mphy);
+	if (ret)
+		pr_err("disable vdd_mphy failed ret =0x%x!\n", ret);
 
 	devm_kfree(dev, host);
 }
