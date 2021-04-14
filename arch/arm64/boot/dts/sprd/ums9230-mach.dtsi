@@ -34,6 +34,10 @@
 			reg = <0x0 0x80000000 0x0 0x00001000>;
 		};
 
+		sysdump_reserved: sysdumpinfo-mem@80001000 {
+			reg = <0x0 0x80001000 0x0 0x00001000>;
+		};
+
 		rebootescrow@0x853f0000 {
 			no-map;
 			reg = <0x0 0x853f0000 0x0 0x00010000>; /* 64K */
@@ -68,6 +72,10 @@
 
 		audio_reserved: audio-mem@94100000 {
 			reg = <0x0 0x94100000 0x0 0x00300000>;
+		};
+
+		uboot_reserved: sysdump-uboot@9f000000 {
+			reg = <0x0 0x9f000000 0x0 0x01000000>;
 		};
 
 		sml_reserved: sml-mem@b0000000 {
