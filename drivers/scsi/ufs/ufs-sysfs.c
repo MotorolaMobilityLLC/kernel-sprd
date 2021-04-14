@@ -117,12 +117,69 @@ static ssize_t spm_target_link_state_show(struct device *dev,
 				ufs_pm_lvl_states[hba->spm_lvl].link_state));
 }
 
+/* Convert Auto-Hibernate Idle Timer register value to microseconds */
+static int ufshcd_ahit_to_us(u32 ahit)
+{
+	int timer = FIELD_GET(UFSHCI_AHIBERN8_TIMER_MASK, ahit);
+	int scale = FIELD_GET(UFSHCI_AHIBERN8_SCALE_MASK, ahit);
+
+	for (; scale > 0; --scale)
+		timer *= UFSHCI_AHIBERN8_SCALE_FACTOR;
+
+	return timer;
+}
+
+/* Convert microseconds to Auto-Hibernate Idle Timer register value */
+static u32 ufshcd_us_to_ahit(unsigned int timer)
+{
+	unsigned int scale;
+
+	for (scale = 0; timer > UFSHCI_AHIBERN8_TIMER_MASK; ++scale)
+		timer /= UFSHCI_AHIBERN8_SCALE_FACTOR;
+
+	return FIELD_PREP(UFSHCI_AHIBERN8_TIMER_MASK, timer) |
+	       FIELD_PREP(UFSHCI_AHIBERN8_SCALE_MASK, scale);
+}
+
+static ssize_t auto_hibern8_show(struct device *dev,
+				 struct device_attribute *attr, char *buf)
+{
+	struct ufs_hba *hba = dev_get_drvdata(dev);
+
+	if (!ufshcd_is_auto_hibern8_supported(hba))
+		return -EOPNOTSUPP;
+
+	return snprintf(buf, PAGE_SIZE, "%d\n", ufshcd_ahit_to_us(hba->ahit));
+}
+
+static ssize_t auto_hibern8_store(struct device *dev,
+				  struct device_attribute *attr,
+				  const char *buf, size_t count)
+{
+	struct ufs_hba *hba = dev_get_drvdata(dev);
+	unsigned int timer;
+
+	if (!ufshcd_is_auto_hibern8_supported(hba))
+		return -EOPNOTSUPP;
+
+	if (kstrtouint(buf, 0, &timer))
+		return -EINVAL;
+
+	if (timer > UFSHCI_AHIBERN8_MAX)
+		return -EINVAL;
+
+	ufshcd_auto_hibern8_update(hba, ufshcd_us_to_ahit(timer));
+
+	return count;
+}
+
 static DEVICE_ATTR_RW(rpm_lvl);
 static DEVICE_ATTR_RO(rpm_target_dev_state);
 static DEVICE_ATTR_RO(rpm_target_link_state);
 static DEVICE_ATTR_RW(spm_lvl);
 static DEVICE_ATTR_RO(spm_target_dev_state);
 static DEVICE_ATTR_RO(spm_target_link_state);
+static DEVICE_ATTR_RW(auto_hibern8);
 
 static struct attribute *ufs_sysfs_ufshcd_attrs[] = {
 	&dev_attr_rpm_lvl.attr,
@@ -131,6 +188,7 @@ static struct attribute *ufs_sysfs_ufshcd_attrs[] = {
 	&dev_attr_spm_lvl.attr,
 	&dev_attr_spm_target_dev_state.attr,
 	&dev_attr_spm_target_link_state.attr,
+	&dev_attr_auto_hibern8.attr,
 	NULL
 };
 
