@@ -212,10 +212,6 @@
 					 <&ext_32k>,
 					 <&aonapb_gate CLK_AUX0_EB>;
 
-				reg = <0 0xc3000000 0 0x00100000>,
-					<0 0xc3100000 0 0xa0000>;
-				reg-names = "btwf_mem", "gnss_mem";
-
 				/* no need config dvdd12 because of share vddmem to DDR */
 				/* ufs  download*/
 				sprd,btwf-file-name = "/dev/block/platform/soc/soc:ap-ahb/22000000.ufs/by-name/wcnmodem";
@@ -260,10 +256,6 @@
 };
 
 &reserved_memory {
-	wcn_reserved: wcn-mem@c3000000 {
-		reg = <0x0 0xc3000000 0x0 0x001a0000>;
-	};
-
 	logo_reserved: logobuffer@b0000000 {
 		reg = <0x0 0xb0000000 0x0 0x009e4000>;
 	};
