@@ -303,6 +303,9 @@ static void sprd_hsphy_shutdown(struct usb_phy *x)
 		return;
 	}
 
+	dev_info(x->dev, "[%s]enter usbm_event_is_active(%d), usbm_ssphy_get_onoff(%d)\n",
+		__func__, sprd_usbm_event_is_active(), sprd_usbm_ssphy_get_onoff());
+
 	sprd_usbm_hsphy_set_onoff(0);
 	if (!sprd_usbm_ssphy_get_onoff()) {
 		/* usb vbus */
