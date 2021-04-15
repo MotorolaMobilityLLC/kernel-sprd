@@ -531,7 +531,7 @@ static int sc27xx_fgu_get_boot_capacity(struct sc27xx_fgu_data *data, int *cap)
 	bool is_first_poweron = sc27xx_fgu_is_first_poweron(data);
 	int current_ocv,current_cap,delta;
 
-	if(!is_first_poweron && data->bat_temp>200 && data->bat_temp <400)
+	if(!is_first_poweron && data->bat_temp>150 && data->bat_temp<450)
 	{
 		sc27xx_fgu_get_vbat_ocv(data, &current_ocv);
 		current_cap = power_supply_ocv2cap_simple(data->cap_table, data->table_len,
@@ -550,13 +550,13 @@ static int sc27xx_fgu_get_boot_capacity(struct sc27xx_fgu_data *data, int *cap)
 		 if(delta >300)
 		 {
 			data->boot_cap = current_cap*10;
-			dev_err(data->dev, "%s >300;%d;%d;%d;%d;\n",__func__,current_ocv,current_cap*10,*cap,data->bat_temp);
+			dev_err(data->dev, "%s >300;%d;%d;%d;T:%d;\n",__func__,current_ocv,current_cap*10,*cap,data->bat_temp);
 			*cap = current_cap*10;
 			return 0;
 
 		 }	
-	         dev_err(data->dev, "%s <300;%d;%d;%d;%d;\n",__func__,current_ocv,current_cap*10,*cap,data->bat_temp);
-	}
+	         dev_err(data->dev, "%s <300;%d;%d;%d;T:%d;\n",__func__,current_ocv,current_cap*10,*cap,data->bat_temp);
+	}		
 
 	if (is_charger_mode)
 		sc27xx_fgu_get_boot_voltage(data, &data->boot_vol);
