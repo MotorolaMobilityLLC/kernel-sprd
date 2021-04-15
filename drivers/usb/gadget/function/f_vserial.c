@@ -24,6 +24,7 @@
 #include <linux/interrupt.h>
 #include <linux/miscdevice.h>
 #include <linux/module.h>
+#include <linux/of.h>
 #include <linux/poll.h>
 #include <linux/timer.h>
 #include <linux/types.h>
@@ -46,8 +47,29 @@
 #define DOWNLINK_TEST		0x02
 #define LOOP_TEST		0x03
 
-#ifdef CONFIG_SPRD_IQ
-extern int in_iqmode(void);
+#if IS_ENABLED(CONFIG_SPRD_IQ)
+int in_iqmode(void)
+{
+	struct device_node *cmdline_node;
+	const char *cmdline, *mode;
+	int ret;
+
+	cmdline_node = of_find_node_by_path("/chosen");
+	ret = of_property_read_string(cmdline_node, "bootargs", &cmdline);
+
+	if (ret) {
+		pr_err("Can't not parse bootargs\n");
+		return 0;
+	}
+
+	mode = strstr(cmdline, "androidboot.mode=iq");
+
+	if (mode)
+		return 1;
+	else
+		return 0;
+}
+
 void (*bulk_in_complete_function)(char *buffer, int length) = NULL;
 #endif
 
@@ -72,8 +94,7 @@ struct vser_dev {
 	int open_count;
 
 	struct list_head tx_idle;
-
-#ifdef CONFIG_SPRD_IQ
+#if IS_ENABLED(CONFIG_SPRD_IQ)
 	struct list_head tx_iq_idle;
 #endif
 
@@ -269,7 +290,7 @@ static void vser_complete_in(struct usb_ep *ep, struct usb_request *req)
 	wake_up(&dev->write_wq);
 }
 
-#ifdef CONFIG_SPRD_IQ
+#if IS_ENABLED(CONFIG_SPRD_IQ)
 static void vser_iq_complete_in(struct usb_ep *ep, struct usb_request *req)
 {
 	struct vser_dev *dev = _vser_dev;
@@ -368,7 +389,7 @@ static int vser_create_bulk_endpoints(struct vser_dev *dev,
 	if (ret)
 		goto fail;
 
-#ifdef CONFIG_SPRD_IQ
+#if IS_ENABLED(CONFIG_SPRD_IQ)
 	if (in_iqmode()) {
 		int i;
 
@@ -488,7 +509,7 @@ static ssize_t vser_write(struct file *fp, const char __user *buf,
 	struct usb_request *req = 0;
 	int r = count, xfer, ret;
 
-#ifdef CONFIG_SPRD_IQ
+#if IS_ENABLED(CONFIG_SPRD_IQ)
 	if (in_iqmode()) {
 		msleep(100);
 		return count;
@@ -653,7 +674,7 @@ static int vser_init(struct vser_instance *fi_vser)
 	tx_req_count = 0;
 
 	INIT_LIST_HEAD(&dev->tx_idle);
-#ifdef CONFIG_SPRD_IQ
+#if IS_ENABLED(CONFIG_SPRD_IQ)
 	INIT_LIST_HEAD(&dev->tx_iq_idle);
 #endif
 
@@ -732,7 +753,7 @@ static void vser_function_unbind(struct usb_configuration *c,
 
 	vser_free_all_request(dev);
 
-#ifdef CONFIG_SPRD_IQ
+#if IS_ENABLED(CONFIG_SPRD_IQ)
 	if (in_iqmode()) {
 		struct usb_request *req;
 
@@ -993,11 +1014,12 @@ static struct usb_function *vser_alloc(struct usb_function_instance *fi)
 
 DECLARE_USB_FUNCTION_INIT(vser, vser_alloc_inst, vser_alloc);
 
-#ifdef CONFIG_SPRD_IQ
+#if IS_ENABLED(CONFIG_SPRD_IQ)
 void kernel_vser_register_callback(void *function)
 {
 	bulk_in_complete_function = function;
 }
+EXPORT_SYMBOL(kernel_vser_register_callback);
 
 ssize_t vser_iq_write(char *buf, size_t count)
 {
@@ -1049,6 +1071,7 @@ ssize_t vser_iq_write(char *buf, size_t count)
 	DBG(cdev, "%s: returning %x\n", __func__, r);
 	return r;
 }
+EXPORT_SYMBOL(vser_iq_write);
 #endif
 
 static int wait_vser_event(struct vser_dev *dev, struct usb_request *req_sent)
