@@ -6473,7 +6473,7 @@ static void cm_uvlo_check_work(struct work_struct *work)
 		orderly_poweroff(true);
 	}
 
-	if (batt_uV < CM_UVLO_CALIBRATION_VOLTAGE_THRESHOLD)
+	if (batt_uV < cm->desc->shutdown_voltage)
 		schedule_delayed_work(&cm->uvlo_work, msecs_to_jiffies(800));
 }
 #ifdef    DUAL_85_VERSION
