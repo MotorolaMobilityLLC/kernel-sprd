@@ -7098,7 +7098,7 @@ static int charger_manager_probe(struct platform_device *pdev)
 
 	queue_delayed_work(system_power_efficient_wq, &cm->cap_update_work, CM_CAP_CYCLE_TRACK_TIME * HZ);
 	INIT_DELAYED_WORK(&cm->uvlo_work, cm_uvlo_check_work);
-
+	schedule_delayed_work(&cm->uvlo_work, msecs_to_jiffies(500));
 	//+add by dongdong for ontim debug
 	REGISTER_AND_INIT_ONTIM_DEBUG_FOR_THIS_DEV();
 	//-add by dongdong for ontim debug
