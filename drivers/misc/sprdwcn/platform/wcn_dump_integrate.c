@@ -108,7 +108,7 @@ static struct wcn_dump_mem_reg s_wcn_dump_regs[] = {
 	/* iram mem */
 	{0x40500000,
 	 0x4000,
-	 mdbg_check_wifi_poweron,
+	 mdbg_check_wifi_ip_status,
 	 "wcn iram 16k",
 	},
 
@@ -607,21 +607,6 @@ u32 mdbg_check_wifi_ip_status(void)
 			(need_dump_status & btwf_wrap_phy_mask) &&
 			(need_dump_status & btwf_arm_domain_power));
 }
-
-u32 mdbg_check_wifi_poweron(void)
-{
-	u32 need_dump_status = 0;
-	u32 btwf_arm_domain_power = (0x1);
-	struct wcn_device *wcn_dev;
-	wcn_dev = s_wcn_device.btwf_device;
-
-	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_APB],
-					0x03b0, &need_dump_status);
-	WCN_INFO("%s:0x03b0=0x%x\n", __func__, need_dump_status);
-
-	return (need_dump_status & btwf_arm_domain_power);
-}
-
 
 u32 mdbg_check_bt_poweron(void)
 {
