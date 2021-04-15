@@ -14619,12 +14619,12 @@ CONFIG_SPRD_TOP_DVFS_DEVFREQ
 	[function] Enable device dvfs function.
 CONFIG_SPRD_UID
 	[arch] arm64
-	[plat] sharkl5Pro
-	[missing plat] qogirl6,qogirn6pro,sharkl3,sharkl5
+	[plat] qogirl6,sharkl5Pro
+	[missing plat] qogirn6pro,sharkl3,sharkl5
 	[field] make
 	[subsys] nvmem
 	[must] debug
-	[missing plat description] This function is need by ums512,others is no need at current.
+	[missing plat description] Others is no need at current.
 	[function] Support read uid only.
 CONFIG_SPRD_UMS9230_CLK
 	[arch] arm64
