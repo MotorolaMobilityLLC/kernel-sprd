@@ -99,6 +99,7 @@
 #define UMP9620_FGU_CAL_SHIFT		7
 
 #define SC27XX_FGU_CURRENT_BUFF_CNT	8
+#define SC27XX_FGU_DISCHG_CNT		4
 #define SC27XX_FGU_VOLTAGE_BUFF_CNT	8
 #define SC27XX_FGU_MAGIC_NUMBER		0x5a5aa5a5
 
@@ -167,6 +168,9 @@ struct sc27xx_fgu_data {
 	unsigned int bat_para_adapt_mode;
 	int temp_buff[SC27XX_FGU_TEMP_BUFF_CNT];
 	int cur_now_buff[SC27XX_FGU_CURRENT_BUFF_CNT];
+	bool dischg_trend[SC27XX_FGU_DISCHG_CNT];
+	int last_clbcnt;
+	int cur_clbcnt;
 	int bat_temp;
 	struct power_supply_battery_ocv_table *cap_table;
 	struct power_supply_vol_temp_table *temp_table;
@@ -723,6 +727,8 @@ static int sc27xx_fgu_get_capacity(struct sc27xx_fgu_data *data, int *cap,
 		return ret;
 
 	delta_clbcnt = cur_clbcnt - data->init_clbcnt;
+	data->last_clbcnt = data->cur_clbcnt;
+	data->cur_clbcnt = cur_clbcnt;
 
 	/*
 	 * Convert coulomb counter to delta capacity (mAh), and set multiplier
@@ -1299,7 +1305,7 @@ static void sc27xx_fgu_low_capacity_match_ocv(struct sc27xx_fgu_data *data,
 	}
 }
 
-static bool sc27xx_fgu_discharging_trend(struct sc27xx_fgu_data *data)
+static bool sc27xx_fgu_discharging_current_trend(struct sc27xx_fgu_data *data)
 {
 	int i, ret, cur;
 	bool is_discharging = true;
@@ -1345,9 +1351,53 @@ static bool sc27xx_fgu_discharging_trend(struct sc27xx_fgu_data *data)
 			is_discharging = false;
 	}
 
-	dev_info(data->dev, "%s, is_discharging = %d\n", __func__, is_discharging);
-
 	return is_discharging;
+}
+
+static bool sc27xx_fgu_discharging_clbcnt_trend(struct sc27xx_fgu_data *data)
+{
+	if (data->last_clbcnt - data->cur_clbcnt > 0)
+		return true;
+	else
+		return false;
+}
+
+static bool sc27xx_fgu_discharging_trend(struct sc27xx_fgu_data *data, int chg_sts)
+{
+	bool discharging = true;
+	static int dischg_cnt;
+	int i;
+
+	if (dischg_cnt >= SC27XX_FGU_DISCHG_CNT)
+		dischg_cnt = 0;
+
+	if (!sc27xx_fgu_discharging_current_trend(data)) {
+		discharging =  false;
+		goto charging;
+	}
+
+	if (!sc27xx_fgu_discharging_clbcnt_trend(data)) {
+		discharging =  false;
+		goto charging;
+	}
+
+	data->dischg_trend[dischg_cnt++] = true;
+
+	for (i = 0; i < SC27XX_FGU_DISCHG_CNT; i++) {
+		if (!data->dischg_trend[i]) {
+			discharging =  false;
+			return discharging;
+		}
+	}
+
+	if (chg_sts == POWER_SUPPLY_STATUS_CHARGING && discharging)
+		dev_info(data->dev, "%s: discharging\n", __func__);
+
+	return discharging;
+
+charging:
+	data->dischg_trend[dischg_cnt++] = false;
+	return discharging;
 }
 
 static void sc27xx_fgu_low_capacity_calibration(struct sc27xx_fgu_data *data,
@@ -1367,7 +1417,8 @@ static void sc27xx_fgu_low_capacity_calibration(struct sc27xx_fgu_data *data,
 	 * 10 degrees or less, then we do not need to calibrate the
 	 * lower capacity.
 	 */
-	if ((chg_sts == POWER_SUPPLY_STATUS_CHARGING && !sc27xx_fgu_discharging_trend(data)) ||
+	if ((!sc27xx_fgu_discharging_trend(data, chg_sts) &&
+	     chg_sts == POWER_SUPPLY_STATUS_CHARGING) ||
 	    data->bat_temp <= SC27XX_FGU_LOW_TEMP_REGION)
 		return;
 
@@ -1742,6 +1793,7 @@ static int sc27xx_fgu_hw_init(struct sc27xx_fgu_data *data,
 	 * and set into coulomb counter registers.
 	 */
 	data->init_clbcnt = sc27xx_fgu_cap_to_clbcnt(data, data->init_cap);
+	data->last_clbcnt = data->cur_clbcnt = data->init_clbcnt;
 	ret = sc27xx_fgu_set_clbcnt(data, data->init_clbcnt);
 	if (ret) {
 		dev_err(data->dev, "failed to initialize coulomb counter\n");
