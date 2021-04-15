@@ -554,6 +554,19 @@ static int sc27xx_fgu_get_boot_voltage(struct sc27xx_fgu_data *data, int *pocv)
 	return 0;
 }
 
+static int sc27xx_fgu_get_charge_vol(struct sc27xx_fgu_data *data, int *val)
+{
+	int ret, vol;
+
+	ret = iio_read_channel_processed(data->charge_cha, &vol);
+	if (ret < 0)
+		return ret;
+
+	*val = vol * 1000;
+	return 0;
+}
+
+
 /*
  * When system boots on, we can not read battery capacity from coulomb
  * registers, since now the coulomb registers are invalid. So we should
@@ -565,8 +578,11 @@ static int sc27xx_fgu_get_boot_capacity(struct sc27xx_fgu_data *data, int *cap)
 	int ocv, ret;
 	bool is_first_poweron = sc27xx_fgu_is_first_poweron(data);
 	int current_ocv,current_cap,delta;
+	int charger_voltage;
 
-	if(!is_first_poweron && data->bat_temp>200 && data->bat_temp<400)
+	sc27xx_fgu_get_charge_vol(data, &charger_voltage);
+
+	if(!is_first_poweron && data->bat_temp>150 && data->bat_temp<450 && charger_voltage<4000000)
 	{
 		sc27xx_fgu_get_vbat_ocv(data, &current_ocv);
 		current_cap = power_supply_ocv2cap_simple(data->cap_table, data->table_len,
@@ -585,13 +601,16 @@ static int sc27xx_fgu_get_boot_capacity(struct sc27xx_fgu_data *data, int *cap)
 		 if(delta >300)
 		 {
 			data->boot_cap = current_cap*10;
-			dev_err(data->dev, "%s >300;%d;%d;%d;%d;\n",__func__,current_ocv,current_cap*10,*cap,data->bat_temp);
+			dev_err(data->dev, "%s >300;%d;%d;%d;T:%d;\n",__func__,current_ocv,current_cap*10,*cap,data->bat_temp);
 			*cap = current_cap*10;
 			return 0;
 
 		 }	
-	         dev_err(data->dev, "%s <300;%d;%d;%d;%d;\n",__func__,current_ocv,current_cap*10,*cap,data->bat_temp);
+	         dev_err(data->dev, "%s <300;%d;%d;%d;T:%d;\n",__func__,current_ocv,current_cap*10,*cap,data->bat_temp);
 	}
+	else
+	         dev_err(data->dev, "%s first=%d;temp=%d;vbus=%d;\n",__func__,is_first_poweron,data->bat_temp,charger_voltage/1000);
+		
 
 	if (is_charger_mode)
 		sc27xx_fgu_get_boot_voltage(data, &data->boot_vol);
@@ -872,18 +891,6 @@ static int sc27xx_fgu_get_vbat_ocv(struct sc27xx_fgu_data *data, int *val)
 	/* Return the battery OCV in micro volts. */
 	*val = vol * 1000 - cur * resistance;
 
-	return 0;
-}
-
-static int sc27xx_fgu_get_charge_vol(struct sc27xx_fgu_data *data, int *val)
-{
-	int ret, vol;
-
-	ret = iio_read_channel_processed(data->charge_cha, &vol);
-	if (ret < 0)
-		return ret;
-
-	*val = vol * 1000;
 	return 0;
 }
 
@@ -1585,7 +1592,7 @@ static int sc27xx_fgu_hw_init(struct sc27xx_fgu_data *data,
 	 * For SC27XX fuel gauge device, we only use one ocv-capacity
 	 * table in normal temperature 20 Celsius.
 	 */
-	table = power_supply_find_ocv2cap_table(&info, 20, &data->table_len);
+	table = power_supply_find_ocv2cap_table(&info, 25, &data->table_len);
 	if (!table)
 		return -EINVAL;
 
