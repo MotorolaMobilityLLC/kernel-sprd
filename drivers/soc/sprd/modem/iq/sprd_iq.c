@@ -24,7 +24,7 @@ module_param_named(iq_size, iq_size, uint, 0444);
 
 static ssize_t sprd_iq_write(u32 paddr, u32 length)
 {
-#ifdef CONFIG_USB_F_VSERIAL
+#if IS_ENABLED(CONFIG_USB_F_VSERIAL)
 	void *vaddr;
 	u32 len;
 	u32 send_num = 0;
@@ -111,7 +111,7 @@ static int sprd_iq_thread(void *data)
 	return 0;
 }
 
-#ifdef CONFIG_USB_F_VSERIAL
+#if IS_ENABLED(CONFIG_USB_F_VSERIAL)
 static void sprd_iq_complete(char *buf,  int length)
 {
 	char *vaddr;
@@ -452,7 +452,7 @@ static int sprd_iq_probe(struct platform_device *pdev)
 	iq.header_info->head_1->WR_RD_FLAG = IQ_BUF_INIT;
 	iq.header_info->head_2->WR_RD_FLAG = IQ_BUF_INIT;
 
-#ifdef CONFIG_USB_F_VSERIAL
+#if IS_ENABLED(CONFIG_USB_F_VSERIAL)
 	kernel_vser_register_callback((void *)sprd_iq_complete);
 #endif
 

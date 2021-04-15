@@ -71,8 +71,10 @@
 
 #define CMDLINE_SIZE 0x1000
 
+#if IS_ENABLED(CONFIG_USB_F_VSERIAL)
 extern ssize_t vser_iq_write(char *buf, size_t count);
 extern void kernel_vser_register_callback(void *function);
+#endif
 
 enum {
 	CMD_GET_IQ_BUF_INFO = 0x0,
