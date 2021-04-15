@@ -52,6 +52,7 @@ void wcn_chip_power_off(void)
 {
 	sprdwcn_bus_set_carddump_status(false);
 	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
+		mutex_lock(&s_wcn_device.btwf_device->power_lock);
 		wcn_sys_force_deep_to_shutdown(s_wcn_device.btwf_device);
 		wcn_dfs_poweroff_state_clear(s_wcn_device.btwf_device);
 		wcn_dfs_poweroff_state_clear(s_wcn_device.gnss_device);
@@ -65,6 +66,7 @@ void wcn_chip_power_off(void)
 		s_wcn_device.gnss_device->wcn_open_status = 0;
 		s_wcn_device.btwf_device->boot_cp_status = 0;
 		s_wcn_device.gnss_device->boot_cp_status = 0;
+		mutex_unlock(&s_wcn_device.btwf_device->power_lock);
 	} else
 		wcn_device_poweroff();
 }
@@ -3143,12 +3145,14 @@ int stop_integrate_wcn_module(u32 subsys)
 		ret = btwf_sys_shutdown(wcn_dev);
 		if (ret) {
 			WCN_ERR("[-]%s:btwf_sys_shutdown fail", __func__);
+			mutex_unlock(&wcn_dev->power_lock);
 			return -1;
 		}
 	} else {
 		ret = gnss_sys_shutdown(wcn_dev);
 		if (ret) {
 			WCN_ERR("[-]%s:gnss_sys_shutdown fail", __func__);
+			mutex_unlock(&wcn_dev->power_lock);
 			return -1;
 		}
 	}
