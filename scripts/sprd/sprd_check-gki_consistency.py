@@ -12,7 +12,8 @@ d_defconfig = {}
 failure_flag = 0
 tmp_path_def = "./tmp_config_check/"
 gki_diff_path = "Documentation/sprd-gki-diff-config"
-clang_path = os.path.abspath("../../toolchain/prebuilts/clang/host/linux-x86/clang-r353983c/bin")
+clang_version=commands.getoutput("cat ./build.config.common |grep clang-r |awk -F'/' '{print $(NF-1)}'")
+clang_path = os.path.abspath("../../toolchain/prebuilts/clang/host/linux-x86/" + clang_version + "/bin")
 gcc_path = os.path.abspath("../../toolchain/prebuilts/gcc/linux-x86/aarch64/gcc-linaro-aarch64-linux-gnu-7.4/bin/aarch64-linux-gnu-")
 
 def check_consistency(android_version):

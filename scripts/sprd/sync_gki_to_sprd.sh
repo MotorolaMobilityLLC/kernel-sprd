@@ -7,7 +7,7 @@ fi
 
 tmp_path_def="./tmp_config_check/"
 
-clang_version=`cat ../../build/set_toolchain.sh | grep clang-r | awk -F"/" {'print $(NF-1)'} | tail -n 1`
+clang_version=`cat ./build.config.common | grep clang-r | awk -F"/" {'print $(NF-1)'} | tail -n 1`
 clang_path=$(readlink -f "../../toolchain/prebuilts/clang/host/linux-x86/$clang_version/bin")
 gcc_path=$(readlink -f "../../toolchain/prebuilts/gcc/linux-x86/aarch64/gcc-linaro-aarch64-linux-gnu-7.4/bin/aarch64-linux-gnu-")
 
