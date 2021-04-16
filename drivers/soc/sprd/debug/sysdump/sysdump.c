@@ -43,6 +43,7 @@
 #endif
 #include "sysdump.h"
 #include "sysdumpdb.h"
+#include "sprd_vmcoreinfo.h"
 #include <linux/kallsyms.h>
 #include <asm/stacktrace.h>
 #include <asm-generic/kdebug.h>
@@ -157,7 +158,12 @@ struct memelfnote {
 	unsigned int datasz;
 	void *data;
 };
-
+struct kaslr_info {
+	uint64_t kaslr_offset;
+	uint64_t kimage_voffset;
+	uint64_t phys_offset;
+	uint64_t vabits_actual;
+};
 struct sysdump_info {
 	char magic[16];
 	char time[32];
@@ -167,6 +173,7 @@ struct sysdump_info {
 	int mem_num;
 	unsigned long dump_mem_paddr;
 	int crash_key;
+	struct kaslr_info sprd_kaslrinfo;
 };
 
 struct sysdump_extra {
@@ -408,7 +415,31 @@ static unsigned long get_sprd_sysdump_info_paddr(void)
 	}
 	return reg_phy;
 }
+static int kaslr_info_init(void)
+{
+	/*get_sprd_sysdump_info_paddr(); */
+	unsigned long sprd_sysdump_info_paddr;
+	sprd_sysdump_info_paddr = get_sprd_sysdump_info_paddr();
+	if (!sprd_sysdump_info_paddr) {
+		pr_err("get sprd_sysdump_info_paddr failed.\n");
+		return -1;
+	}
+	sprd_sysdump_info = (struct sysdump_info *)phys_to_virt(sprd_sysdump_info_paddr);
 
+	/* can't write anything at SPRD_SYSDUMP_MAGIC before rootfs init */
+	if (sprd_sysdump_info_paddr != SPRD_SYSDUMP_MAGIC) {
+		/*get kaslr info for arm64*/
+#ifdef CONFIG_ARM64
+		sprd_sysdump_info->sprd_kaslrinfo.kaslr_offset = kaslr_offset();
+		sprd_sysdump_info->sprd_kaslrinfo.kimage_voffset = kimage_voffset;
+		sprd_sysdump_info->sprd_kaslrinfo.phys_offset = PHYS_OFFSET;
+		sprd_sysdump_info->sprd_kaslrinfo.vabits_actual = (uint64_t)VA_BITS;
+		pr_emerg("vmcore info init end!\n");
+#endif
+	}
+	return 0;
+
+}
 static void sysdump_prepare_info(int enter_id, const char *reason,
 				 struct pt_regs *regs)
 {
@@ -1195,6 +1226,7 @@ void minidump_info_init(void)
 	minidump_info_g.minidump_data_size =  minidump_info_g.regs_info.size + minidump_info_g.regs_memory_info.size + minidump_info_g.section_info_total.total_size;
 
 	extend_section_cm4dump(minidump_info_g.section_info_total.total_num);
+	add_extend_section("vmcoreinfo", (unsigned long)__pa(vmcoreinfo_data), (unsigned long)__pa(vmcoreinfo_data + vmcoreinfo_size), minidump_info_g.section_info_total.total_num);
 
 	return;
 }
@@ -1470,16 +1502,7 @@ static struct notifier_block sysdump_panic_event_nb = {
 
 int sysdump_sysctl_init(void)
 {
-	/*get_sprd_sysdump_info_paddr(); */
-	unsigned long sprd_sysdump_info_paddr;
 	struct proc_dir_entry *sysdump_proc;
-
-	sprd_sysdump_info_paddr = get_sprd_sysdump_info_paddr();
-	if (!sprd_sysdump_info_paddr)
-		pr_err("get sprd_sysdump_info_paddr failed.\n");
-	sprd_sysdump_info = (struct sysdump_info *)
-	    phys_to_virt(sprd_sysdump_info_paddr);
-
 	sysdump_sysctl_hdr =
 	    register_sysctl_table((struct ctl_table *)sysdump_sysctl_root);
 	if (!sysdump_sysctl_hdr)
@@ -1529,7 +1552,7 @@ void sysdump_sysctl_exit(void)
 	ylog_buffer_exit();
 #endif
 }
-
+early_initcall(kaslr_info_init);
 late_initcall_sync(sysdump_sysctl_init);
 module_exit(sysdump_sysctl_exit);
 
