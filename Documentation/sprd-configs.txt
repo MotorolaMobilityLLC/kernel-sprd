@@ -16461,6 +16461,17 @@ CONFIG_SPRD_DEBUG
 	[must] debug
 	[missing plat description] none
 	[function] Enable/disable sprd debug function.
+CONFIG_SPRD_DEDICATE_THERMAL
+	[arch] arm64
+	[plat] sharkl3
+	[missing plat] sharkl5Pro
+	[field] make
+	[subsys] thermal
+	[must] user
+	[missing plat description] Only enable on sharkl3,
+				   because project thermal ip.
+	[function] This function is config thermal driver to support read
+		   temperature of monitored area.
 CONFIG_SPRD_DJTAG
 	[arch] all
 	[plat] all
