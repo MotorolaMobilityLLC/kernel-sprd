@@ -411,7 +411,7 @@ static int sprd_dpu_bind(struct device *dev, struct device *master, void *data)
 		return PTR_ERR(planes);
 
 	dpu->crtc = sprd_crtc_init(drm, planes, SPRD_DISPLAY_TYPE_LCD,
-				&sprd_dpu_ops, dpu->ctx.version, dpu);
+				&sprd_dpu_ops, dpu->ctx.version, dpu->ctx.corner_size, dpu);
 	if (IS_ERR(dpu->crtc))
 		return PTR_ERR(dpu->crtc);
 
@@ -481,7 +481,6 @@ static int of_get_logo_memory_info(struct sprd_dpu *dpu,
 
 	return 0;
 }
-
 
 static int sprd_dpu_context_init(struct sprd_dpu *dpu,
 				struct device_node *np)

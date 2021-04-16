@@ -143,6 +143,16 @@ struct dpu_context {
 
 	unsigned long logo_addr;
 	unsigned long logo_size;
+
+	u32 prev_y2r_coef;
+
+	/* corner config parameter */
+	u32 corner_size;
+	int sprd_corner_radius;
+	bool sprd_corner_support;
+
+	unsigned int *layer_top;
+	unsigned int *layer_bottom;
 };
 
 struct sprd_dpu_ops {

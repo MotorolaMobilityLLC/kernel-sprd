@@ -9,6 +9,7 @@
 #include <linux/workqueue.h>
 
 #include "sprd_crtc.h"
+#include "sprd_corner.h"
 #include "sprd_plane.h"
 #include "sprd_dpu.h"
 
@@ -268,6 +269,36 @@ static bool dpu_check_raw_int(struct dpu_context *ctx, u32 mask)
 	return false;
 }
 
+static int dpu_parse_dt(struct dpu_context *ctx,
+				struct device_node *np)
+{
+	int ret = 0;
+
+	ret = of_property_read_u32(np, "sprd,corner-radius",
+					&ctx->sprd_corner_radius);
+	if (!ret) {
+		ctx->sprd_corner_support = 1;
+		ctx->corner_size = ctx->sprd_corner_radius;
+		pr_info("round corner support, radius = %d.\n",
+					ctx->sprd_corner_radius);
+	}
+
+	return 0;
+}
+
+static void dpu_corner_init(struct dpu_context *ctx)
+{
+	static bool corner_is_inited;
+
+	if (!corner_is_inited && ctx->sprd_corner_support) {
+		sprd_corner_hwlayer_init(ctx);
+
+		corner_layer_top.index = 5;
+		corner_layer_bottom.index = 6;
+		corner_is_inited = 1;
+	}
+}
+
 static u32 check_mmu_isr(struct dpu_context *ctx, u32 reg_val)
 {
 	u32 mmu_mask = BIT_DPU_INT_MMU_VAOR_RD |
@@ -446,6 +477,8 @@ static int dpu_init(struct dpu_context *ctx)
 	DPU_REG_WR(ctx->base + REG_DPU_CFG1, 0x004466da);
 	DPU_REG_WR(ctx->base + REG_DPU_CFG2, 0x00);
 
+	ctx->prev_y2r_coef = 3;
+
 	if (ctx->stopped)
 		dpu_clean_all(ctx);
 
@@ -459,6 +492,8 @@ static int dpu_init(struct dpu_context *ctx)
 	DPU_REG_WR(ctx->base + REG_DPU_INT_CLR, 0xffff);
 
 	dpu_enhance_reload(ctx);
+
+	dpu_corner_init(ctx);
 
 	return 0;
 }
@@ -678,6 +713,36 @@ static void dpu_clean_all(struct dpu_context *ctx)
 		DPU_REG_WR(ctx->base + DPU_LAY_REG(REG_LAY_CTRL, i), 0x00);
 }
 
+static int check_layer_y2r_coef(struct dpu_context *ctx,
+								struct sprd_plane planes[], u8 count)
+{
+	int i;
+
+	for (i = (count - 1); i >= 0; i--) {
+		struct sprd_plane_state *state = to_sprd_plane_state(planes[i].base.state);
+		struct sprd_layer_state *layer = &state->layer;
+		switch (layer->format) {
+		case DRM_FORMAT_NV12:
+		case DRM_FORMAT_NV21:
+		case DRM_FORMAT_NV16:
+		case DRM_FORMAT_NV61:
+		case DRM_FORMAT_YUV420:
+		case DRM_FORMAT_YVU420:
+			if (layer->y2r_coef == ctx->prev_y2r_coef)
+				return -1;
+
+			/* need to config dpu y2r coef */
+			ctx->prev_y2r_coef = layer->y2r_coef;
+			return ctx->prev_y2r_coef;
+		default:
+			break;
+		}
+	}
+
+	/* not find yuv layer */
+	return -1;
+}
+
 static void dpu_bgcolor(struct dpu_context *ctx, u32 color)
 {
 	if (ctx->if_type == SPRD_DPU_IF_EDPI)
@@ -799,6 +864,7 @@ static void dpu_flip(struct dpu_context *ctx, struct sprd_plane planes[], u8 cou
 {
 	int i;
 	u32 reg_val;
+	int y2r_coef;
 
 	/*
 	 * Make sure the dpu is in stop status. DPU_R2P0 has no shadow
@@ -807,6 +873,17 @@ static void dpu_flip(struct dpu_context *ctx, struct sprd_plane planes[], u8 cou
 	 */
 	if (ctx->if_type == SPRD_DPU_IF_EDPI)
 		dpu_wait_stop_done(ctx);
+
+	/* set Y2R conversion coef */
+	y2r_coef = check_layer_y2r_coef(ctx, planes, count);
+	if (y2r_coef >= 0) {
+		/* write dpu_cfg0 register after dpu is in idle status */
+		if (ctx->if_type == SPRD_DPU_IF_DPI)
+			dpu_stop(ctx);
+
+		DPU_REG_CLR(ctx->base + REG_DPU_CFG0, (0x7 << 4));
+		DPU_REG_SET(ctx->base + REG_DPU_CFG0, (y2r_coef << 4));
+	}
 
 	/* reset the bgcolor to black */
 	DPU_REG_WR(ctx->base + REG_BG_COLOR, 0x00);
@@ -820,6 +897,12 @@ static void dpu_flip(struct dpu_context *ctx, struct sprd_plane planes[], u8 cou
 
 		state = to_sprd_plane_state(planes[i].base.state);
 		dpu_layer(ctx, &state->layer);
+	}
+
+	/* special case for round corner */
+	if (ctx->sprd_corner_support) {
+		dpu_layer(ctx, &corner_layer_top);
+		dpu_layer(ctx, &corner_layer_bottom);
 	}
 
 	/* update trigger and wait */
@@ -1331,6 +1414,7 @@ static int dpu_modeset(struct dpu_context *ctx,
 }
 
 const struct dpu_core_ops dpu_r2p0_core_ops = {
+	.parse_dt = dpu_parse_dt,
 	.version = dpu_version,
 	.init = dpu_init,
 	.fini = dpu_fini,

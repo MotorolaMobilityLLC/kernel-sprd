@@ -219,7 +219,7 @@ static const struct drm_crtc_funcs sprd_crtc_funcs = {
 	.disable_vblank	= sprd_crtc_disable_vblank,
 };
 
-static int sprd_crtc_create_properties(struct drm_crtc *crtc, const char *version)
+static int sprd_crtc_create_properties(struct drm_crtc *crtc, const char *version, u32 corner_size)
 {
 	struct drm_property *prop;
 	struct drm_property_blob *blob;
@@ -243,6 +243,16 @@ static int sprd_crtc_create_properties(struct drm_crtc *crtc, const char *versio
 	}
 	drm_object_attach_property(&crtc->base, prop, blob->base.id);
 
+	/* create corner size property */
+	prop = drm_property_create(crtc->dev,
+		DRM_MODE_PROP_IMMUTABLE | DRM_MODE_PROP_RANGE,
+		"corner size", 0);
+	if (!prop) {
+		DRM_ERROR("drm_property_create corner size failed\n");
+		return -ENOMEM;
+	}
+	drm_object_attach_property(&crtc->base, prop, corner_size);
+
 	return 0;
 }
 
@@ -251,6 +261,7 @@ struct sprd_crtc *sprd_crtc_init(struct drm_device *drm,
 					enum sprd_crtc_output_type type,
 					const struct sprd_crtc_ops *ops,
 					const char *version,
+					u32 corner_size,
 					void *priv)
 {
 	struct sprd_crtc *crtc;
@@ -275,7 +286,7 @@ struct sprd_crtc *sprd_crtc_init(struct drm_device *drm,
 
 	drm_crtc_helper_add(&crtc->base, &sprd_crtc_helper_funcs);
 
-	sprd_crtc_create_properties(&crtc->base, version);
+	sprd_crtc_create_properties(&crtc->base, version, corner_size);
 
 	return crtc;
 
