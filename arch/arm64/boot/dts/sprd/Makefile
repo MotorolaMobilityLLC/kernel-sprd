@@ -79,6 +79,7 @@ else #//AiAiAi or No DTBO
 dtb-$(CONFIG_ARCH_SPRD) += \
 	sc9863a-w12v1.dtb   \
 	ums512-w27v1.dtb \
+	ums9620-v101.dtb \
 	sp9863a.dtb \
 	ums512.dtb \
 	ums312.dtb \
