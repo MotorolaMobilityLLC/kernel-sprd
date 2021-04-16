@@ -122,11 +122,11 @@ static int sprd_trng_read(struct hwrng *rng, void *buf, size_t max, bool wait)
 		count = (max - 1) / CE_TRNG_DATA_REG_SIZE + 1;
 		while (count--)
 			data[index++] = readl_relaxed(trng->base + REG_CE_RNG_DATA);
+		pm_runtime_put(trng->dev);
 	} else {
 		pr_info("RNG doesn't generate random!\n");
 	}
 
-	pm_runtime_put(trng->dev);
 	return index * CE_TRNG_DATA_REG_SIZE;
 }
 
