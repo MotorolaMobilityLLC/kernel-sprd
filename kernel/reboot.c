@@ -430,7 +430,7 @@ static int __orderly_poweroff(bool force)
 
 	ret = run_cmd(poweroff_cmd);
 
-	if (!ret && force) {//we dont have poweroff_cmd bin file,we force shutdown asap
+	if (ret && force) {
 		pr_warn("Failed to start orderly shutdown: forcing the issue\n");
 
 		/*

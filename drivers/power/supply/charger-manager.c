@@ -6473,7 +6473,7 @@ static void cm_uvlo_check_work(struct work_struct *work)
 		orderly_poweroff(true);
 	}
 
-	if (batt_uV < cm->desc->shutdown_voltage)
+	if (batt_uV < CM_UVLO_CALIBRATION_VOLTAGE_THRESHOLD)
 		schedule_delayed_work(&cm->uvlo_work, msecs_to_jiffies(800));
 }
 #ifdef    DUAL_85_VERSION
@@ -6492,7 +6492,7 @@ static void cm_batt_works(struct work_struct *work)
 	static int last_fuel_cap = CM_MAGIC_NUM;
 	static bool charge_done=false;
 	int term_vol;
-	static int is_cal_cap=0,cal_count=0;
+	static int is_cal_cap=0,cal_count=0,low_bat=0;
 	int real_cap; 
 
 	ret = get_batt_uV(cm, &batt_uV);
@@ -6738,7 +6738,21 @@ static void cm_batt_works(struct work_struct *work)
 //		dev_info(cm->dev, "batt_uV is less than UVLO calib volt\n");
 //		schedule_delayed_work(&cm->uvlo_work, msecs_to_jiffies(100));
 //	}
-
+	if (low_bat >=3  || batt_uV <= 3200000) {
+		low_bat ++;		
+		dev_err(cm->dev, "%s;WARN: batt_uV=%d;%d; will shutdown\n",__func__,batt_uV,low_bat);
+		if(low_bat >=3)
+		{
+			adjust_fuel_cap(cm,0);
+			if( low_bat >=4)
+				fuel_cap =0;
+			dev_err(cm->dev, "%s;WARN: batt_uV=%d; set fuel_cap %d;;\n",__func__,batt_uV,low_bat);
+		}
+	}
+	else
+	{
+		low_bat =0;
+	}
 	if( (term_vol ==4040000 || term_vol ==4048000) && fuel_cap > 750)
 	{
 		fuel_cap =750;
@@ -7098,7 +7112,6 @@ static int charger_manager_probe(struct platform_device *pdev)
 
 	queue_delayed_work(system_power_efficient_wq, &cm->cap_update_work, CM_CAP_CYCLE_TRACK_TIME * HZ);
 	INIT_DELAYED_WORK(&cm->uvlo_work, cm_uvlo_check_work);
-	schedule_delayed_work(&cm->uvlo_work, msecs_to_jiffies(500));
 	//+add by dongdong for ontim debug
 	REGISTER_AND_INIT_ONTIM_DEBUG_FOR_THIS_DEV();
 	//-add by dongdong for ontim debug
