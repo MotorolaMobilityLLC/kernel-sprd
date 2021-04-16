@@ -117,6 +117,21 @@
 			compatible = "sprd,trusty-log-v1";
 		};
 	};
+
+	thm_zone: thermal-zones {
+
+		cpu_thmzone: cpu-thmzone {
+			polling-delay-passive = <0>;
+			polling-delay = <0>;
+			thermal-sensors = <&cpu_thm  0>;
+		};
+
+		gpu_thmzone: gpu-thmzone {
+			polling-delay-passive = <0>;
+			polling-delay = <0>;
+			thermal-sensors = <&gpu_thm  0>;
+		};
+	};
 };
 
 &adi_bus {
