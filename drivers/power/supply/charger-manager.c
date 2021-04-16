@@ -4750,6 +4750,13 @@ static void cm_batt_works(struct work_struct *work)
 		orderly_poweroff(true);
 	}
 
+	/* for low temp shutdown by pony date20210416 start */
+	if ((batt_uV >= 3400000) &&  (fuel_cap <= 5) &&  (cur_temp < -100)){
+		dev_err(cm->dev, "WARN: keep ui_soc is soc1 when batt_uV is more than 3400mV fuel_cap = %d\n",fuel_cap);
+		fuel_cap = 5;
+	}
+	/* for low temp shutdown by pony date20210416 end */
+
 	dev_info(cm->dev, "battery cap = %d, charger manager cap = %d\n",
 		 fuel_cap, cm->desc->cap);
 
