@@ -16,6 +16,7 @@
 #include <linux/random.h>
 #include <linux/pm.h>
 #include <linux/pm_runtime.h>
+#include <linux/delay.h>
 
 #ifdef pr_fmt
 #undef pr_fmt
@@ -110,7 +111,7 @@ static int sprd_trng_read(struct hwrng *rng, void *buf, size_t max, bool wait)
 {
 	struct sprd_trng *trng = to_sprd_trng(rng);
 	u32 *data = (u32 *)buf;
-	int index = 0, count;
+	int index = 0, rng_not_got = 0, count;
 
 	if (max > RNG_DATABUF_SIZE)
 		max = RNG_DATABUF_SIZE;
@@ -118,14 +119,19 @@ static int sprd_trng_read(struct hwrng *rng, void *buf, size_t max, bool wait)
 		return 0;
 
 	pm_runtime_get_sync(trng->dev);
-	if (readl_relaxed(trng->base + REG_CE_RNG_WORK_STATUS) & RNG_DATA_VALID) {
-		count = (max - 1) / CE_TRNG_DATA_REG_SIZE + 1;
-		while (count--)
-			data[index++] = readl_relaxed(trng->base + REG_CE_RNG_DATA);
-		pm_runtime_put(trng->dev);
-	} else {
-		pr_info("RNG doesn't generate random!\n");
-	}
+	do {
+		if (readl_relaxed(trng->base + REG_CE_RNG_WORK_STATUS) & RNG_DATA_VALID) {
+			count = (max - 1) / CE_TRNG_DATA_REG_SIZE + 1;
+			while (count--)
+				data[index++] = readl_relaxed(trng->base + REG_CE_RNG_DATA);
+			rng_not_got = 0;
+		} else {
+			pr_info("RNG doesn't generate random!\n");
+			rng_not_got++;
+			msleep(1);
+		}
+	} while (rng_not_got > 0 && rng_not_got < 10);
+	pm_runtime_put(trng->dev);
 
 	return index * CE_TRNG_DATA_REG_SIZE;
 }
