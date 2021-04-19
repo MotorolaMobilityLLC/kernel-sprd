@@ -529,6 +529,7 @@
 
 	mmsys_dvfs: mmsys-dvfs {
 		compatible = "sprd,hwdvfs-mmsys";
+		sprd,syscon-topapb = <&top_dvfs_apb_regs>;
 	};
 
 
