@@ -739,11 +739,13 @@
 				status = "okay";
 				#iommu-cells = <0>;
 			};
+
 			gpu: gpu@23100000 {
 				compatible = "sprd,mali-natt";
 				reg = <0x0 0x23100000 0x0 0x100000>;
 				gpu-supply = <&vddgpu>;
 				system-coherency = <31>;
+				topdvfs-controller = <&topdvfs_controller>;
 				sprd,gpu-apb-syscon = <&gpu_apb_regs>;
 				sprd,gpu-dvfs-apb-syscon = <&gpu_dvfs_apb_regs>;
 				syscons = <&pmu_apb_regs
@@ -758,6 +760,9 @@
 				interrupt-names = "JOB",
 					"MMU",
 					"GPU";
+
+				nvmem-cells = <&gpu_bin>;
+				nvmem-cell-names = "gpu_bin";
 
 				operating-points = <
 					/* kHz    uV */
@@ -2382,6 +2387,11 @@
 		};
 		wcn_alpha: wcn-alpha@81 {
 			reg = <0x24 0x4>;
+		};
+
+		gpu_bin: gpu-bin@1b{
+			reg = <0x1b 0x4>;
+			bits = <3 3>;
 		};
 	};
 };
