@@ -175,12 +175,6 @@ static struct wcn_dump_mem_reg s_wcn_dump_regs[] = {
 	 "AON_CLK",
 	},
 
-	{0x400f0000,
-	 0x608,
-	 mdbg_check_wcn_sys_exit_sleep,
-	 "WIFI_MAC_APB_AON",
-	},
-
 	/* BTWF sys regs */
 	{0x40130000,
 	 0x420,
@@ -218,6 +212,12 @@ static struct wcn_dump_mem_reg s_wcn_dump_regs[] = {
 	},
 
 	/* wifi */
+	{0x400f0000,
+	 0x608,
+	 mdbg_check_wifi_ip_status,
+	 "WIFI_MAC_AON",
+	},
+
 	{0x40300000,
 	 0x18000,
 	 mdbg_check_wifi_ip_status,
