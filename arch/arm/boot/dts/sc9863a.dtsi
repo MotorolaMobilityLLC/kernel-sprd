@@ -422,6 +422,7 @@
 		gic: interrupt-controller@14000000 {
 			compatible = "arm,gic-v3";
 			#interrupt-cells = <3>;
+			#sgi-cells = <1>;
 			#address-cells = <1>;
 			#size-cells = <1>;
 			ranges;
