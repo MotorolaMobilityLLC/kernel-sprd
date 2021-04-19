@@ -145,6 +145,9 @@ static enum drm_mode_status sprd_dpu_mode_valid(struct sprd_crtc *crtc,
 		drm_display_mode_to_videomode(dpu->mode, &dpu->ctx.vm);
 	}
 
+	if (mode->type & DRM_MODE_TYPE_USERDEF)
+		dpu->mode = (struct drm_display_mode *)mode;
+
 	return MODE_OK;
 }
 

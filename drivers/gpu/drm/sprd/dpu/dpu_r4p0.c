@@ -293,6 +293,9 @@ struct dpu_enhance {
 	int cabc_state;
 	int frame_no;
 	bool cabc_bl_set;
+	bool mode_changed;
+	bool need_scale;
+	u8 skip_layer_index;
 
 	struct scale_cfg scale_copy;
 	struct hsv_lut hsv_copy;
@@ -329,6 +332,7 @@ static struct dpu_cfg1 qos_cfg = {
 	.awqos_high = 0x7,
 };
 
+static void dpu_sr_config(struct dpu_context *ctx);
 static void dpu_clean_all(struct dpu_context *ctx);
 static void dpu_layer(struct dpu_context *ctx,
 		struct sprd_layer_state *hwlayer);
@@ -1088,10 +1092,46 @@ static void dpu_layer(struct dpu_context *ctx,
 				hwlayer->src_w, hwlayer->src_h);
 }
 
+static void dpu_scaling(struct dpu_context *ctx,
+			struct sprd_plane planes[], u8 count)
+{
+	int i;
+	struct sprd_layer_state *layer_state;
+	struct sprd_plane_state *plane_state;
+	struct dpu_enhance *enhance = ctx->enhance;
+
+	if (enhance->mode_changed) {
+		pr_debug("------------------------------------\n");
+		for (i = 0; i < count; i++) {
+			plane_state = to_sprd_plane_state(planes[i].base.state);
+			layer_state = &plane_state->layer;
+			pr_debug("layer[%d] : %dx%d --- (%d)\n", i,
+				layer_state->dst_w, layer_state->dst_h,
+				enhance->scale_copy.in_w);
+			if (layer_state->dst_w != enhance->scale_copy.in_w) {
+				enhance->skip_layer_index = i;
+				break;
+			}
+		}
+
+		plane_state = to_sprd_plane_state(planes[count - 1].base.state);
+		layer_state = &plane_state->layer;
+		if  (layer_state->dst_w <= enhance->scale_copy.in_w) {
+			dpu_sr_config(ctx);
+			enhance->mode_changed = false;
+
+			pr_info("do scaling enhance: 0x%x, top layer(%dx%d)\n",
+				enhance->enhance_en, layer_state->dst_w,
+				layer_state->dst_h);
+		}
+	}
+}
+
 static void dpu_flip(struct dpu_context *ctx, struct sprd_plane planes[], u8 count)
 {
 	int i;
 	u32 reg_val;
+	struct dpu_enhance *enhance = ctx->enhance;
 
 	ctx->vsync_count = 0;
 	if (ctx->max_vsync_count > 0 && count > 1)
@@ -1111,11 +1151,20 @@ static void dpu_flip(struct dpu_context *ctx, struct sprd_plane planes[], u8 cou
 	/* disable all the layers */
 	dpu_clean_all(ctx);
 
+	/* to check if dpu need scaling the frame for SR */
+	dpu_scaling(ctx, planes, count);
+
 	/* start configure dpu layers */
 	for (i = 0; i < count; i++) {
 		struct sprd_plane_state *state;
 
 		state = to_sprd_plane_state(planes[i].base.state);
+
+		if (enhance->skip_layer_index == i && enhance->skip_layer_index) {
+			enhance->skip_layer_index = 0;
+			break;
+		}
+
 		dpu_layer(ctx, &state->layer);
 	}
 
@@ -1938,6 +1987,38 @@ static void dpu_enhance_reload(struct dpu_context *ctx)
 	DPU_REG_WR(ctx->base + REG_DPU_ENHANCE_CFG, enhance->enhance_en);
 }
 
+static void dpu_sr_config(struct dpu_context *ctx)
+{
+	struct dpu_enhance *enhance = ctx->enhance;
+
+	DPU_REG_WR(ctx->base + REG_BLEND_SIZE,
+			(enhance->scale_copy.in_h << 16) | enhance->scale_copy.in_w);
+	if (enhance->need_scale) {
+		/* SLP is disabled mode or bypass mode */
+		if ((enhance->slp_copy.brightness <= SLP_BRIGHTNESS_THRESHOLD) ||
+			!(enhance->enhance_en & BIT(4))) {
+
+		/*
+		 * valid range of gain3 is [128,255];dpu_scaling maybe
+		 * called before epf_copy is assinged a value
+		 */
+			if (enhance->sr_epf.gain3 > 0) {
+				dpu_epf_set(ctx, &enhance->epf_copy);
+				enhance->enhance_en |= BIT(1);
+			}
+		}
+		enhance->enhance_en |= BIT(0);
+		DPU_REG_WR(ctx->base + REG_DPU_ENHANCE_CFG, enhance->enhance_en);
+	} else {
+		if (enhance->enhance_en & BIT(6))
+			dpu_epf_set(ctx, &enhance->epf_copy);
+		else
+			enhance->enhance_en &= ~(BIT(1));
+
+		enhance->enhance_en &= ~(BIT(0));
+		DPU_REG_WR(ctx->base + REG_DPU_ENHANCE_CFG, enhance->enhance_en);
+	}
+}
 
 static int dpu_cabc_trigger(struct dpu_context *ctx)
 {
@@ -2002,6 +2083,26 @@ static int dpu_cabc_trigger(struct dpu_context *ctx)
 	return 0;
 }
 
+static int dpu_modeset(struct dpu_context *ctx,
+		struct drm_display_mode *mode)
+{
+	struct dpu_enhance *enhance = ctx->enhance;
+
+	enhance->scale_copy.in_w = mode->hdisplay;
+	enhance->scale_copy.in_h = mode->vdisplay;
+
+	if ((mode->hdisplay != ctx->vm.hactive) ||
+	    (mode->vdisplay != ctx->vm.vactive))
+		enhance->need_scale = true;
+	else
+		enhance->need_scale = false;
+
+	enhance->mode_changed = true;
+	pr_info("begin switch to %u x %u\n", mode->hdisplay, mode->vdisplay);
+
+	return 0;
+}
+
 static const u32 primary_fmts[] = {
 	DRM_FORMAT_XRGB8888, DRM_FORMAT_XBGR8888,
 	DRM_FORMAT_ARGB8888, DRM_FORMAT_ABGR8888,
@@ -2038,6 +2139,7 @@ const struct dpu_core_ops dpu_r4p0_core_ops = {
 	.enhance_init = dpu_enhance_init,
 	.enhance_set = dpu_enhance_set,
 	.enhance_get = dpu_enhance_get,
+	.modeset = dpu_modeset,
 	.write_back = dpu_wb_trigger,
 	.check_raw_int = dpu_check_raw_int,
 };
