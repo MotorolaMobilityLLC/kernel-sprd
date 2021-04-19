@@ -7,7 +7,6 @@
 #ifndef __NPI_H__
 #define __NPI_H__
 
-#define SPRD_NL_GENERAL_SOCK_ID			(1022)
 #define SPRD_NPI_CMD_START			(0)
 #define SPRD_NPI_CMD_SET_WLAN_CAP		(40)
 #define SPRD_STA_GC_EN_SLEEP			(0x3)

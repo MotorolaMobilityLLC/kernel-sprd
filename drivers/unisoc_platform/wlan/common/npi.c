@@ -138,6 +138,7 @@ static int npi_nl_get_info_handler(struct sk_buff *skb_2,
 }
 
 static struct nla_policy sprd_genl_policy[SPRD_NL_ATTR_MAX + 1] = {
+	[SPRD_NL_ATTR_IFINDEX] = {.type = NLA_U32},
 	[SPRD_NL_ATTR_AP2CP] = {.type = NLA_BINARY, .len = 1024},
 	[SPRD_NL_ATTR_CP2AP] = {.type = NLA_BINARY, .len = 1024}
 };
@@ -158,12 +159,12 @@ static struct genl_family sprd_nl_genl_family = {
 	.name = "SPRD_NL",
 	.version = 1,
 	.maxattr = SPRD_NL_ATTR_MAX,
+	.policy = sprd_genl_policy,
 	.pre_doit = npi_pre_doit,
 	.post_doit = npi_post_doit,
 	.module = THIS_MODULE,
-	.n_ops = ARRAY_SIZE(sprd_nl_ops),
 	.ops = sprd_nl_ops,
-	.policy = sprd_genl_policy,
+	.n_ops = ARRAY_SIZE(sprd_nl_ops),
 };
 
 static int npi_nl_send_generic(struct genl_info *info, u8 attr, u8 cmd, u32 len,
