@@ -75,6 +75,7 @@
 #define I2S_PHY_REG(i2s, offset) ((phys_addr_t)((i2s)->memphys + (offset)))
 
 static unsigned long membase;
+static int i2s_enable;
 static struct i2s_config *dup_config;
 char *use_dma_name[] = {
 	"iis0_tx", "iis0_rx",
@@ -212,6 +213,7 @@ static int i2s_reg_update(unsigned long reg, int val, int mask)
 static int i2s_global_disable(struct i2s_priv *i2s)
 {
 	sp_asoc_pr_dbg("%s\n", __func__);
+	i2s_enable = 0;
 	return arch_audio_i2s_disable(i2s->config.hw_port);
 }
 
@@ -219,6 +221,7 @@ static int i2s_global_enable(struct i2s_priv *i2s)
 {
 	sp_asoc_pr_dbg("%s\n", __func__);
 	arch_audio_i2s_enable(i2s->config.hw_port);
+	i2s_enable = 1;
 	return 0;
 }
 
@@ -1158,15 +1161,20 @@ void i2s_register_proc_read(struct snd_info_entry *entry,
 		return;
 	}
 	pr_debug("i2s membase 0x%lx\n", membase);
-	snd_iprintf(buffer, "i2s register dump\n");
-	for (reg = IIS_TXD + membase; reg <= IIS_CLKNH + membase; reg += 0x10) {
-		snd_iprintf(buffer, "0x%08lx | 0x%08x 0x%08x 0x%08x 0x%08x\n",
-			    (reg - IIS_TXD - membase)
-			, iis_reg_read(reg + 0x00)
-			, iis_reg_read(reg + 0x04)
-			, iis_reg_read(reg + 0x08)
-			, iis_reg_read(reg + 0x0C)
-			);
+	if (!i2s_enable) {
+		snd_iprintf(buffer, "i2s is not open\n");
+		return;
+	} else {
+		snd_iprintf(buffer, "i2s register dump\n");
+		for (reg = IIS_TXD + membase; reg <= IIS_CLKNH + membase; reg += 0x10) {
+			snd_iprintf(buffer, "0x%08lx | 0x%08x 0x%08x 0x%08x 0x%08x\n",
+				    (reg - IIS_TXD - membase)
+				, iis_reg_read(reg + 0x00)
+				, iis_reg_read(reg + 0x04)
+				, iis_reg_read(reg + 0x08)
+				, iis_reg_read(reg + 0x0C)
+				);
+		}
 	}
 }
 
@@ -1222,6 +1230,7 @@ static int i2s_drv_probe(struct platform_device *pdev)
 	if (!i2s)
 		return -ENOMEM;
 	i2s->dev = &pdev->dev;
+	i2s_enable = 0;
 	if (node) {
 		u32 val[2];
 
