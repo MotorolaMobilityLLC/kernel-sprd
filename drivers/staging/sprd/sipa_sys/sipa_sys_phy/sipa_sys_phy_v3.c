@@ -30,6 +30,7 @@
 #include <linux/sipa.h>
 
 #include "sipa_sys_phy_v3.h"
+#include "sipa_sys_qos_v3.h"
 #include "../sipa_sys_pd.h"
 
 #define SPRD_IPA_POWERON_POLL_US 50
@@ -54,6 +55,59 @@ enum sipa_sys_reg_v3 {
 	IPA_SYS_SMARTLSLPEN,
 	IPA_SYS_ACCESSEN,
 };
+
+void sipa_sys_qos_reg_setting(struct qos_reg qos_list_name[], int len)
+{
+	int i = 0;
+	u32 tmp, offset = 0x100;
+	void __iomem *qos_reg_base;
+
+	len = len - 1;
+	qos_reg_base = ioremap_nocache(qos_list_name[0].base_addr, offset);
+
+	for (i = 0; i < len; i++) {
+		tmp = readl_relaxed(qos_reg_base +
+				    (qos_list_name[i].base_addr -
+				    qos_list_name[0].base_addr));
+		tmp &= ~(qos_list_name[i].mask_value);
+		tmp |= qos_list_name[i].set_value;
+		writel_relaxed(tmp, qos_reg_base +
+			       (qos_list_name[i].base_addr -
+			       qos_list_name[0].base_addr));
+	}
+	iounmap(qos_reg_base);
+}
+
+void sipa_sys_qos_cfg(void)
+{
+	sipa_sys_qos_reg_setting(nic400_ipa_main_mtx_m2_qos_list,
+				 sizeof(nic400_ipa_main_mtx_m2_qos_list) /
+				 sizeof(nic400_ipa_main_mtx_m2_qos_list[0]));
+	sipa_sys_qos_reg_setting(nic400_ipa_main_mtx_m3_qos_list,
+				 sizeof(nic400_ipa_main_mtx_m3_qos_list) /
+				 sizeof(nic400_ipa_main_mtx_m3_qos_list[0]));
+	sipa_sys_qos_reg_setting(nic400_ipa_main_mtx_m4_qos_list,
+				 sizeof(nic400_ipa_main_mtx_m4_qos_list) /
+				 sizeof(nic400_ipa_main_mtx_m4_qos_list[0]));
+	sipa_sys_qos_reg_setting(nic400_ipa_main_mtx_m5_qos_list,
+				 sizeof(nic400_ipa_main_mtx_m5_qos_list) /
+				 sizeof(nic400_ipa_main_mtx_m5_qos_list[0]));
+	sipa_sys_qos_reg_setting(nic400_ipa_main_mtx_m6_qos_list,
+				 sizeof(nic400_ipa_main_mtx_m6_qos_list) /
+				 sizeof(nic400_ipa_main_mtx_m6_qos_list[0]));
+	sipa_sys_qos_reg_setting(nic400_dpu_lite_mtx_m0_qos_list,
+				 sizeof(nic400_dpu_lite_mtx_m0_qos_list) /
+				 sizeof(nic400_dpu_lite_mtx_m0_qos_list[0]));
+	sipa_sys_qos_reg_setting(nic400_dpu_lite_mtx_m1_qos_list,
+				 sizeof(nic400_dpu_lite_mtx_m1_qos_list) /
+				 sizeof(nic400_dpu_lite_mtx_m1_qos_list[0]));
+	sipa_sys_qos_reg_setting(dispc1_glb_apb_rf_qos_list,
+				 sizeof(dispc1_glb_apb_rf_qos_list) /
+				 sizeof(dispc1_glb_apb_rf_qos_list[0]));
+	sipa_sys_qos_reg_setting(ipa_apb_rf_qos_list,
+				 sizeof(ipa_apb_rf_qos_list) /
+				 sizeof(ipa_apb_rf_qos_list[0]));
+}
 
 static int sipa_sys_wait_power_on(struct sipa_sys_pd_drv *drv,
 				  struct sipa_sys_register *reg_info)
@@ -156,6 +210,10 @@ int sipa_sys_do_power_on_cb_v3(void *priv)
 		}
 		clk_set_parent(drv->ipa_core_clk, drv->ipa_core_parent);
 	}
+
+	/* cfg qos */
+	sipa_sys_qos_cfg();
+
 	return ret;
 }
 
