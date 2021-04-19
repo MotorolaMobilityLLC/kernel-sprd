@@ -244,35 +244,18 @@ static int gnss_boot_wait(void)
 #endif
 
 #if defined(CONFIG_UMW2652) || defined(CONFIG_UMW2631_I)
-static int gnss_tsen_enable(int type)
+static const struct of_device_id pmic_of_match[] = {
+	{ .compatible = "sprd,sc27xx-syscon",  },
+	{ .compatible = "sprd,ump9622-syscon", },
+	{ },
+};
+
+static void pmic_sc27xx_tsen_enable(struct regmap *regmap,
+				unsigned int base, int type)
 {
-	struct platform_device *pdev_regmap;
-	struct device_node *regmap_np;
-	static struct regmap *regmap;
-	static unsigned int base;
-	int ret;
 	unsigned int value, temp;
 
-	if (base == 0) {
-		regmap_np = of_find_compatible_node(NULL, NULL,
-						    "sprd,sc27xx-syscon");
-		if (!regmap_np) {
-			GNSSCOMM_ERR("%s, error np\n", __func__);
-			return -EINVAL;
-		}
-		pdev_regmap = of_find_device_by_node(regmap_np);
-		if (!pdev_regmap) {
-			GNSSCOMM_ERR("%s, error regmap\n", __func__);
-			return -EINVAL;
-		}
-		regmap = dev_get_regmap(pdev_regmap->dev.parent, NULL);
-		ret = of_property_read_u32_index(regmap_np, "reg", 0, &base);
-		if (ret) {
-			GNSSCOMM_ERR("%s, error base\n", __func__);
-			return -EINVAL;
-		}
-	}
-	GNSSCOMM_ERR("%s, base 0x%x\n", __func__, base);
+	GNSSCOMM_ERR("%s,sc27xx-syscon base 0x%x\n", __func__, base);
 	regmap_read(regmap, (REGS_ANA_APB_BASE + XTL_WAIT_CTRL0), &value);
 	GNSSCOMM_ERR("%s, XTL_WAIT_CTRL0 value read 0x%x\n", __func__, value);
 	temp = value | BIT_XTL_EN;
@@ -314,40 +297,14 @@ static int gnss_tsen_enable(int type)
 	else
 		regmap_read(regmap, (REGS_ANA_APB_BASE + TSEN_CTRL5), &value);
 	GNSSCOMM_ERR("%s, 0x%x read 0x%x\n", __func__, TSEN_CTRL4, value);
-
-	return 0;
 }
 
-static int gnss_tsen_disable(int type)
+static void pmic_sc27xx_tsen_disable(struct regmap *regmap,
+				unsigned int base, int type)
 {
-	struct platform_device *pdev_regmap;
-	struct device_node *regmap_np;
-	static struct regmap *regmap;
-	static unsigned int base;
-	int ret;
 	unsigned int value, temp;
 
-	if (base == 0) {
-		regmap_np = of_find_compatible_node(NULL, NULL,
-						    "sprd,sc27xx-syscon");
-		if (!regmap_np) {
-			GNSSCOMM_ERR("%s, error np\n", __func__);
-			return -EINVAL;
-		}
-		pdev_regmap = of_find_device_by_node(regmap_np);
-		if (!pdev_regmap) {
-			GNSSCOMM_ERR("%s, error regmap\n", __func__);
-			return -EINVAL;
-		}
-		regmap = dev_get_regmap(pdev_regmap->dev.parent, NULL);
-		ret = of_property_read_u32_index(regmap_np, "reg", 0, &base);
-		if (ret) {
-			GNSSCOMM_ERR("%s, error base\n", __func__);
-			return -EINVAL;
-		}
-	}
-	GNSSCOMM_ERR("%s, base 0x%x\n", __func__, base);
-
+	GNSSCOMM_ERR("%s,sc27xx-syscon base 0x%x\n", __func__, base);
 	regmap_read(regmap, (REGS_ANA_APB_BASE + TSEN_CTRL0), &value);
 	GNSSCOMM_ERR("%s, TSEN_CTRL0 value read 0x%x\n", __func__, value);
 	temp = BIT_TSEN_CLK_SRC_SEL | BIT_TSEN_ADCLDO_EN;
@@ -370,7 +327,140 @@ static int gnss_tsen_disable(int type)
 	regmap_write(regmap, (REGS_ANA_APB_BASE + TSEN_CTRL3), temp);
 	regmap_read(regmap, (REGS_ANA_APB_BASE + TSEN_CTRL3), &value);
 	GNSSCOMM_ERR("%s, 2nd read 0x%x\n", __func__, value);
+}
 
+static void pmic_ump9622_tsen_enable(struct regmap *regmap,
+					unsigned int base, int type)
+{
+	unsigned int value, temp;
+
+	GNSSCOMM_ERR("%s,ump9622-syscon base 0x%x\n", __func__, base);
+	regmap_read(regmap, (base + UMP7522_TSEN_CTRL1), &value);
+	GNSSCOMM_ERR("%s,TSEN_CTRL1 value read 0x%x\n", __func__, value);
+	temp = value | UMP7522_BIT_RG_CLK_26M_TSEN | UMP7522_BIT_TESN_SDADC_EN;
+	regmap_write(regmap, (base + UMP7522_TSEN_CTRL1), temp);
+	regmap_read(regmap, (base + UMP7522_TSEN_CTRL1), &value);
+	GNSSCOMM_ERR("%s, 1nd read 0x%x\n", __func__, value);
+
+	regmap_read(regmap, (base + UMP7522_TSEN_CTRL3), &value);
+	GNSSCOMM_ERR("%s, TSEN_CTRL3 value read 0x%x\n", __func__, value);
+	temp = value | UMP7522_BIT_TESE_ADCLDO_EN | UMP7522_BIT_TSEN_UGBUF_EN
+						| UMP7522_BIT_TSEN_EN;
+	regmap_write(regmap, (base + UMP7522_TSEN_CTRL3), temp);
+	regmap_read(regmap, (base + UMP7522_TSEN_CTRL3), &value);
+	GNSSCOMM_ERR("%s, 2nd read 0x%x\n", __func__, value);
+
+	regmap_read(regmap, (base + UMP7522_TSEN_CTRL6), &value);
+	GNSSCOMM_ERR("%s, TSEN_CTRL6 value read 0x%x\n", __func__, value);
+	temp = value & (~UMP7522_BIT_TESN_SEL_EN);
+	regmap_write(regmap, (base + UMP7522_TSEN_CTRL6), temp);
+	regmap_read(regmap, (base + UMP7522_TSEN_CTRL6), &value);
+	GNSSCOMM_ERR("%s, 3nd read 0x%x\n", __func__, value);
+
+	if (type == TSEN_EXT)
+		regmap_read(regmap, (base + UMP7522_TSEN_CTRL4), &value);
+	else
+		regmap_read(regmap, (base + UMP7522_TSEN_CTRL5), &value);
+	GNSSCOMM_ERR("%s, 0x%x read 0x%x\n", __func__, TSEN_CTRL4, value);
+}
+
+static void pmic_ump9622_tsen_disable(struct regmap *regmap,
+					unsigned int base, int type)
+{
+	unsigned int value, temp;
+
+	GNSSCOMM_ERR("%s,ump9622-syscon base 0x%x\n", __func__, base);
+	regmap_read(regmap, (base + UMP7522_TSEN_CTRL1), &value);
+	GNSSCOMM_ERR("%s, TSEN_CTRL0 value read 0x%x\n", __func__, value);
+	temp = UMP7522_BIT_RG_CLK_26M_TSEN | UMP7522_BIT_TESN_SDADC_EN;
+	temp = value & (~temp);
+	regmap_write(regmap, (base + UMP7522_TSEN_CTRL1), temp);
+	regmap_read(regmap, (base + UMP7522_TSEN_CTRL1), &value);
+	GNSSCOMM_ERR("%s, 1nd read 0x%x\n", __func__, value);
+
+	regmap_read(regmap, (base + UMP7522_TSEN_CTRL3), &value);
+	GNSSCOMM_ERR("%s, TSEN_CTRL3 value read 0x%x\n", __func__, value);
+	temp = UMP7522_BIT_TESE_ADCLDO_EN | UMP7522_BIT_TSEN_UGBUF_EN
+						| UMP7522_BIT_TSEN_EN;
+	temp = value & (~temp);
+	regmap_write(regmap, (base + UMP7522_TSEN_CTRL3), temp);
+	regmap_read(regmap, (base + UMP7522_TSEN_CTRL3), &value);
+	GNSSCOMM_ERR("%s, 2nd read 0x%x\n", __func__, value);
+
+	regmap_read(regmap, (base + UMP7522_TSEN_CTRL6), &value);
+	GNSSCOMM_ERR("%s, TSEN_CTRL6 value read 0x%x\n", __func__, value);
+	temp = value | UMP7522_BIT_TESN_SEL_EN;
+	regmap_write(regmap, (base + UMP7522_TSEN_CTRL6), temp);
+	regmap_read(regmap, (base + UMP7522_TSEN_CTRL6), &value);
+	GNSSCOMM_ERR("%s, 3nd read 0x%x\n", __func__, value);
+}
+
+static int gnss_tsen_enable(int type)
+{
+	struct platform_device *pdev_regmap;
+	static struct device_node *regmap_np;
+	static struct regmap *regmap;
+	static unsigned int base;
+	int ret;
+
+
+	if (base == 0) {
+		regmap_np = of_find_matching_node(NULL,
+						    pmic_of_match);
+		if (!regmap_np) {
+			GNSSCOMM_ERR("%s, error np\n", __func__);
+			return -EINVAL;
+		}
+		pdev_regmap = of_find_device_by_node(regmap_np);
+		if (!pdev_regmap) {
+			GNSSCOMM_ERR("%s, error regmap\n", __func__);
+			return -EINVAL;
+		}
+		regmap = dev_get_regmap(pdev_regmap->dev.parent, NULL);
+		ret = of_property_read_u32_index(regmap_np, "reg", 0, &base);
+		if (ret) {
+			GNSSCOMM_ERR("%s, error base\n", __func__);
+			return -EINVAL;
+		}
+	}
+	if (of_device_is_compatible(regmap_np, "sprd,sc27xx-syscon"))
+		pmic_sc27xx_tsen_enable(regmap, base, type);
+	if (of_device_is_compatible(regmap_np, "sprd,ump9622-syscon"))
+		pmic_ump9622_tsen_enable(regmap, base, type);
+	return 0;
+}
+
+static int gnss_tsen_disable(int type)
+{
+	struct platform_device *pdev_regmap;
+	static struct device_node *regmap_np;
+	static struct regmap *regmap;
+	static unsigned int base;
+	int ret;
+
+	if (base == 0) {
+		regmap_np = of_find_matching_node(NULL,
+						    pmic_of_match);
+		if (!regmap_np) {
+			GNSSCOMM_ERR("%s, error np\n", __func__);
+			return -EINVAL;
+		}
+		pdev_regmap = of_find_device_by_node(regmap_np);
+		if (!pdev_regmap) {
+			GNSSCOMM_ERR("%s, error regmap\n", __func__);
+			return -EINVAL;
+		}
+		regmap = dev_get_regmap(pdev_regmap->dev.parent, NULL);
+		ret = of_property_read_u32_index(regmap_np, "reg", 0, &base);
+		if (ret) {
+			GNSSCOMM_ERR("%s, error base\n", __func__);
+			return -EINVAL;
+		}
+	}
+	if (of_device_is_compatible(regmap_np, "sprd,sc27xx-syscon"))
+		pmic_sc27xx_tsen_disable(regmap, base, type);
+	if (of_device_is_compatible(regmap_np, "sprd,ump9622-syscon"))
+		pmic_ump9622_tsen_disable(regmap, base, type);
 	return 0;
 }
 #endif
