@@ -7,6 +7,7 @@
 #include <dt-bindings/mfd/sprd,sc2730-mask.h>
 #include <dt-bindings/usb/pd.h>
 #include "lcd/lcd_nt36525b_dj_mipi_hd.dtsi"
+#include "lcd/lcd_hx83102d_auo_mipi_hd.dtsi"
 #include "lcd/lcd_dummy_mipi.dtsi"
 
 / {
