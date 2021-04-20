@@ -143,7 +143,7 @@ static unsigned long get_static_power(struct devfreq *df, unsigned long m_volt)
 		return 0ul;
 	}
 
-	if (npu_tz) {
+	if (!IS_ERR_OR_NULL(npu_tz)) {
 		err = npu_tz->ops->get_temp(npu_tz, &temperature);
 		if (err) {
 			pr_warn("Error reading temperature:%d\n", err);
@@ -375,7 +375,9 @@ int npu_cooling_device_register(struct devfreq *npudev)
 			child->name, strlen(child->name));
 		cluster_data[cluster_id].npu_cooling = devfreq_cooling;
 
-		npu_tz = thermal_zone_get_zone_by_name("npu-thmzone");
+		npu_tz = thermal_zone_get_zone_by_name("ai0-thmzone");
+		if (IS_ERR(npu_tz))
+			pr_err("fail to get npu tz\n");
 	}
 
 	return ret;

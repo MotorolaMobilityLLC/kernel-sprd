@@ -155,7 +155,7 @@ static unsigned long get_static_power(struct devfreq *df, unsigned long m_volt)
 		return 0ul;
 	}
 
-	if (gpu_tz) {
+	if (!IS_ERR_OR_NULL(gpu_tz)) {
 		err = gpu_tz->ops->get_temp(gpu_tz, &temperature);
 		if (err) {
 			pr_warn("Error reading temperature:%d\n", err);
@@ -404,6 +404,8 @@ int create_gpu_cooling_device(struct devfreq *gpudev, u64 *mask)
 		cluster_data[cluster_id].gpu_cooling = devfreq_cooling;
 
 		gpu_tz = thermal_zone_get_zone_by_name("gpu-thmzone");
+		if (IS_ERR(gpu_tz))
+			pr_err("fail to get gpu tz\n");
 	}
 
 	return ret;
