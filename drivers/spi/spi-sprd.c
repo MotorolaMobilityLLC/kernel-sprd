@@ -187,6 +187,52 @@ struct sprd_spi {
 	int (*write_bufs)(struct sprd_spi *ss, u32 len);
 };
 
+//static void sprd_spi_dump_regs(struct sprd_spi *ss)
+//{
+//	dev_err(ss->dev, "SPI_CLKD:0x%x\n",
+//		readl_relaxed(ss->base + SPRD_SPI_CLKD));
+//	dev_err(ss->dev, "SPI_CTL0:0x%x\n",
+//		readl_relaxed(ss->base + SPRD_SPI_CTL0));
+//	dev_err(ss->dev, "SPI_CTL1:0x%x\n",
+//		readl_relaxed(ss->base + SPRD_SPI_CTL1));
+//	dev_err(ss->dev, "SPI_CTL2:0x%x\n",
+//		readl_relaxed(ss->base + SPRD_SPI_CTL2));
+//	dev_err(ss->dev, "SPI_CTL3:0x%x\n",
+//		readl_relaxed(ss->base + SPRD_SPI_CTL3));
+//	dev_err(ss->dev, "SPI_CTL4:0x%x\n",
+//		readl_relaxed(ss->base + SPRD_SPI_CTL4));
+//	dev_err(ss->dev, "SPI_CTL5:0x%x\n",
+//		readl_relaxed(ss->base + SPRD_SPI_CTL5));
+//	dev_err(ss->dev, "SPI_INT_EN:0x%x\n",
+//		readl_relaxed(ss->base + SPRD_SPI_INT_EN));
+//	dev_err(ss->dev, "SPI_STS2:0x%x\n",
+//		readl_relaxed(ss->base + SPRD_SPI_STS2));
+//	dev_err(ss->dev, "SPI_DSP_WAIT:0x%x\n",
+//		readl_relaxed(ss->base + SPRD_SPI_DSP_WAIT));
+//	dev_err(ss->dev, "SPI_CTL6:0x%x\n",
+//		readl_relaxed(ss->base + SPRD_SPI_CTL6));
+//	dev_err(ss->dev, "SPI_CTL7:0x%x\n",
+//		readl_relaxed(ss->base + SPRD_SPI_CTL7));
+//	dev_err(ss->dev, "SPI_CTL8:0x%x\n",
+//		readl_relaxed(ss->base + SPRD_SPI_CTL8));
+//	dev_err(ss->dev, "SPI_CTL9:0x%x\n",
+//		readl_relaxed(ss->base + SPRD_SPI_CTL9));
+//	dev_err(ss->dev, "SPI_CTL10:0x%x\n",
+//		readl_relaxed(ss->base + SPRD_SPI_CTL10));
+//	dev_err(ss->dev, "SPI_CTL11:0x%x\n",
+//		readl_relaxed(ss->base + SPRD_SPI_CTL11));
+//	dev_err(ss->dev, "SPI_STS6:0x%x\n",
+//		readl_relaxed(ss->base + SPRD_SPI_STS6));
+//	dev_err(ss->dev, "SPI_STS7:0x%x\n",
+//		readl_relaxed(ss->base + SPRD_SPI_STS7));
+//	dev_err(ss->dev, "SPI_STS8:0x%x\n",
+//		readl_relaxed(ss->base + SPRD_SPI_STS8));
+//	dev_err(ss->dev, "SPI_STS9:0x%x\n",
+//		readl_relaxed(ss->base + SPRD_SPI_STS9));
+//}
+
+u32 spi_timeout_count = 0;
+
 static void sprd_spi_set_rx_fifo_thld(struct sprd_spi *ss, unsigned int len)
 {
 	u32 val = readl_relaxed(ss->base + SPRD_SPI_CTL3);
@@ -235,6 +281,7 @@ static int sprd_spi_wait_for_tx_end(struct sprd_spi *ss, struct spi_transfer *t)
 					 val & SPRD_SPI_TX_END_IRQ, 0, us);
 	if (ret) {
 		dev_err(ss->dev, "SPI error, spi send timeout!\n");
+		spi_timeout_count += 1;
 		return ret;
 	}
 
@@ -416,11 +463,19 @@ static int sprd_spi_txrx_bufs(struct spi_device *sdev, struct spi_transfer *t)
 	struct sprd_spi *ss = spi_controller_get_devdata(sdev->controller);
 	u32 trans_len = ss->trans_len, len, *tmp_txbuf = NULL, val;
 	int ret = 0, write_size = 0, read_size = 0;
+	void __iomem *spi_ap_apb_base;
+	int i;
+
+	spi_ap_apb_base = ioremap(0x20000004, 0x3000);
 
 	/*
 	 * For RX mode only, we need to alloc and send a all 0 or
 	 * all 1 tx_buf and enable SPI TX mode to provide clk.
 	 */
+	//printk("ss->trans_len = %d\n", ss->trans_len);
+	for (i = 0; i < spi_timeout_count; i++)
+		printk("spi_timeout_count = %d\n", spi_timeout_count);
+	
 	if (!(ss->trans_mode & SPRD_SPI_TX_MODE)) {
 		tmp_txbuf = kzalloc(trans_len, GFP_ATOMIC);
 		if (!tmp_txbuf) {
@@ -497,6 +552,9 @@ static int sprd_spi_txrx_bufs(struct spi_device *sdev, struct spi_transfer *t)
 
 complete:
 	sprd_spi_enter_idle(ss);
+	writel_relaxed(0x80, spi_ap_apb_base + 0x1000);
+	udelay(10);
+	writel_relaxed(0x80, spi_ap_apb_base + 0x2000);
 
 	return ret;
 }
