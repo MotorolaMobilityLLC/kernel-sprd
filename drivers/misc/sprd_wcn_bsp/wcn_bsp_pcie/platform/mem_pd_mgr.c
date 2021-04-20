@@ -159,7 +159,7 @@ static int mem_pd_power_switch(enum wcn_sub_sys subsys, int val)
 			}
 			WCN_INFO("wifi irammem power on\n");
 			/* wifi dram mem pd range */
-#ifdef CONFIG_UMW2652_REMOVE_REMOVE
+#ifdef CONFIG_UMW2652_REMOVE
 			wif_bt_mem_cfg = REG_AON_APB_BTWF_MEM_CGG2;
 #else
 			wif_bt_mem_cfg = REG_AON_APB_BTWF_MEM_CGG3;
@@ -211,7 +211,7 @@ static int mem_pd_power_switch(enum wcn_sub_sys subsys, int val)
 			}
 			WCN_INFO("wifi irammem power down\n");
 			/* wifi dram mem pd range */
-#ifdef CONFIG_UMW2652_REMOVE_REMOVE
+#ifdef CONFIG_UMW2652_REMOVE
 			wif_bt_mem_cfg = REG_AON_APB_BTWF_MEM_CGG2;
 #else
 			wif_bt_mem_cfg = REG_AON_APB_BTWF_MEM_CGG3;
@@ -245,7 +245,7 @@ static int mem_pd_power_switch(enum wcn_sub_sys subsys, int val)
 				return ret;
 			}
 			/* bt iram mem pd range */
-#ifdef CONFIG_UMW2652_REMOVE_REMOVE
+#ifdef CONFIG_UMW2652_REMOVE
 			wif_bt_mem_cfg = REG_AON_APB_BTWF_MEM_CGG2;
 			bt_ram_mask = mem_info_cp.bt_dram_mask;
 #else
@@ -278,7 +278,7 @@ static int mem_pd_power_switch(enum wcn_sub_sys subsys, int val)
 				return ret;
 			}
 			/* bt iram mem pd range */
-#ifdef CONFIG_UMW2652_REMOVE_REMOVE
+#ifdef CONFIG_UMW2652_REMOVE
 			wif_bt_mem_cfg = REG_AON_APB_BTWF_MEM_CGG2;
 			bt_ram_mask = mem_info_cp.bt_dram_mask;
 #else
@@ -443,7 +443,7 @@ static int mem_pd_read_add_from_cp(void)
 	mem_info_cp.wifi_end_addr = wifi_end + SDIO_CP_BASE_ADD;
 	mem_info_cp.wifi_size = wifi_end - wifi_begin;
 
-#ifdef CONFIG_UMW2652_REMOVE_REMOVE
+#ifdef CONFIG_UMW2652_REMOVE
 	mem_info_cp.bt_iram_mask = 0;
 	mem_info_cp.bt_dram_mask = 0xC00;
 	mem_info_cp.wifi_iram_mask = 0xFC00;

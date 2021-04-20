@@ -23,7 +23,7 @@
 #include "wcn_dump.h"
 #endif
 
-#ifdef CONFIG_UMW2652_REMOVE_REMOVE
+#ifdef CONFIG_UMW2652_REMOVE
 #include "umw2652_glb.h"
 #include "wcn_dump.h"
 #endif

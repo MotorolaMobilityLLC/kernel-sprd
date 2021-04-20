@@ -173,7 +173,7 @@ EXPORT_SYMBOL_GPL(wcn_get_chip_type);
 
 #if defined(CONFIG_SC2355_P)
 #define WCN_CHIP_NAME_PRE "Marlin3_"
-#elif defined(CONFIG_UMW2652_REMOVE_REMOVE)
+#elif defined(CONFIG_UMW2652_REMOVE)
 #define WCN_CHIP_NAME_PRE "Marlin3Lite_"
 #else
 #define WCN_CHIP_NAME_PRE "ERRO_"
@@ -1530,7 +1530,7 @@ static int set_cp_mem_status(enum wcn_sub_sys subsys, int val)
 	int ret;
 	unsigned int temp_val;
 
-#if defined(CONFIG_UMW2652_REMOVE_REMOVE) || defined(CONFIG_WCN_BSP_PCIE_Y)
+#if defined(CONFIG_UMW2652_REMOVE) || defined(CONFIG_WCN_BSP_PCIE_Y)
 	return 0;
 #endif
 	ret = sprdwcn_bus_reg_read(REG_WIFI_MEM_CFG1, &temp_val, 4);

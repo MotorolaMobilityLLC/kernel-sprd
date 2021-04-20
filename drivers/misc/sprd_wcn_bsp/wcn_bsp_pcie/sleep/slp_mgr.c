@@ -77,7 +77,7 @@ int slp_mgr_wakeup(enum slp_subsys subsys)
 			}
 			slp_sts &= 0xF0;
 			if ((slp_sts != BTWF_IN_DEEPSLEEP) &&
-#ifdef CONFIG_UMW2652_S
+#ifdef CONFIG_UMW2652_REMOVE
 			   (slp_sts != BTWF_PLL_PWR_WAIT) &&
 			   (slp_sts != BTWF_XLT_WAIT) &&
 			   (slp_sts != BTWF_XLTBUF_WAIT) &&

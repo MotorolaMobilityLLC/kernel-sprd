@@ -37,7 +37,7 @@
 #define GNSS_ARCH_EB_REG_BYPASS    (1<<1)
 
 #if 0
-#ifdef CONFIG_UMW2652_S
+#ifdef CONFIG_UMW2652_REMOVE
 #define GNSS_CALI_ADDRESS 0x40aabf4c
 #define GNSS_CALI_DATA_SIZE 0x1c
 #else
@@ -49,7 +49,7 @@
 #define GNSS_CALI_DONE_FLAG 0x1314520
 
 #if 0
-#ifdef CONFIG_UMW2652_S
+#ifdef CONFIG_UMW2652_REMOVE
 #define GNSS_EFUSE_ADDRESS 0x40aabf40
 #else
 #define GNSS_EFUSE_ADDRESS 0x40aaff40
@@ -60,7 +60,7 @@
 
 /*  GNSS assert workaround */
 #if 0
-#ifdef CONFIG_UMW2652_S
+#ifdef CONFIG_UMW2652_REMOVE
 #define GNSS_BOOTSTATUS_ADDRESS  0x40aabf6c
 #else
 #define GNSS_BOOTSTATUS_ADDRESS  0x40aaff6c
@@ -72,7 +72,7 @@
 
 /* end: address map on gnss side */
 
-#ifdef CONFIG_UMW2652_S
+#ifdef CONFIG_UMW2652_REMOVE
 #define SC2730_PIN_REG_BASE     0x0480
 #define PTEST0			0x0
 #define PTEST0_MASK		(BIT(4) | BIT(5))

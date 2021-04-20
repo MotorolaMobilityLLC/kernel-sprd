@@ -4,7 +4,7 @@
 
 #ifndef CONFIG_WCN_INTEG
 /* start: address map on gnss side */
-#ifdef CONFIG_UMW2652_S
+#ifdef CONFIG_UMW2652_REMOVE
 #define GNSS_CALI_ADDRESS 0x40aabf4c
 #define GNSS_CALI_DATA_SIZE 0x1c
 #else
@@ -14,7 +14,7 @@
 
 #define GNSS_CALI_DONE_FLAG 0x1314520
 
-#ifdef CONFIG_UMW2652_S
+#ifdef CONFIG_UMW2652_REMOVE
 #define GNSS_EFUSE_ADDRESS 0x40aabf40
 #else
 #define GNSS_EFUSE_ADDRESS 0x40aaff40
@@ -22,7 +22,7 @@
 
 #define GNSS_EFUSE_DATA_SIZE 0xc
 
-#ifdef CONFIG_UMW2652_S
+#ifdef CONFIG_UMW2652_REMOVE
 #define GNSS_BOOTSTATUS_ADDRESS  0x40aabf6c
 #else
 #define GNSS_BOOTSTATUS_ADDRESS  0x40aaff6c

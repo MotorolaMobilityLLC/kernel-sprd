@@ -89,7 +89,7 @@ static const struct of_device_id gnss_common_ctl_of_match[] = {
 };
 
 
-#if defined(CONFIG_UMW2652_S) || defined(CONFIG_UMW2631_I)
+#if defined(CONFIG_UMW2652_REMOVE) || defined(CONFIG_UMW2631_I)
 static int gnss_tsen_enable(int type)
 {
 	struct platform_device *pdev_regmap;
@@ -281,7 +281,7 @@ static void gnss_power_on(bool enable)
 		      enable, gnss_common_ctl_dev.gnss_status, clk_type);
 	if (enable && gnss_common_ctl_dev.gnss_status == GNSS_STATUS_POWEROFF) {
 		gnss_common_ctl_dev.gnss_status = GNSS_STATUS_POWERON_GOING;
-#ifdef CONFIG_UMW2652_S
+#ifdef CONFIG_UMW2652_REMOVE
 		if (clk_type == WCN_CLOCK_TYPE_TSX)
 			gnss_tsen_enable(TSEN_EXT);
 #endif
@@ -302,7 +302,7 @@ static void gnss_power_on(bool enable)
 	} else if (!enable && gnss_common_ctl_dev.gnss_status
 			== GNSS_STATUS_POWERON) {
 		gnss_common_ctl_dev.gnss_status = GNSS_STATUS_POWEROFF_GOING;
-#ifdef CONFIG_UMW2652_S
+#ifdef CONFIG_UMW2652_REMOVE
 		if (clk_type == WCN_CLOCK_TYPE_TSX)
 			gnss_tsen_disable(TSEN_EXT);
 #endif
@@ -490,7 +490,7 @@ static ssize_t gnss_status_show(struct device *dev,
 }
 static DEVICE_ATTR_RO(gnss_status);
 
-#if defined(CONFIG_UMW2652_S) || defined(CONFIG_UMW2631_I)
+#if defined(CONFIG_UMW2652_REMOVE) || defined(CONFIG_UMW2631_I)
 static ssize_t gnss_clktype_show(struct device *dev,
 				 struct device_attribute *attr, char *buf)
 {
@@ -597,7 +597,7 @@ static struct attribute *gnss_common_ctl_attrs[] = {
 	&dev_attr_gnss_dump.attr,
 	&dev_attr_gnss_status.attr,
 	&dev_attr_gnss_subsys.attr,
-#if defined(CONFIG_UMW2652_S) || defined(CONFIG_UMW2631_I)
+#if defined(CONFIG_UMW2652_REMOVE) || defined(CONFIG_UMW2631_I)
 	&dev_attr_gnss_clktype.attr,
 #endif
 #ifndef CONFIG_WCN_INTEG

@@ -530,7 +530,7 @@ static int cp_dcache_clean_invalid_all(void)
 }
 
 /* select aon_apb_dap DAP(Debug Access Port) */
-#ifdef CONFIG_UMW2652_REMOVE_REMOVE
+#ifdef CONFIG_UMW2652_REMOVE
 void dap_sel_btwf_lite(void)
 {
 	int ret;
@@ -874,7 +874,7 @@ static void write_core_reg_value(unsigned int reg_index, unsigned int value)
 
 void sprdwcn_bus_armreg_write(unsigned int reg_index, unsigned int value)
 {
-#ifdef CONFIG_UMW2652_REMOVE_REMOVE
+#ifdef CONFIG_UMW2652_REMOVE
 	dap_sel_btwf_lite();
 	apb_eb_lite();
 #else
@@ -890,7 +890,7 @@ void sprdwcn_bus_armreg_write(unsigned int reg_index, unsigned int value)
 	/* make sure btwf core can run */
 	release_btwf_core();
 
-#ifndef CONFIG_UMW2652_REMOVE_REMOVE
+#ifndef CONFIG_UMW2652_REMOVE
 	/* make sure JTAG can connect dap */
 	dap_sel_default();
 #endif
@@ -939,7 +939,7 @@ int dump_arm_reg(void)
 	}
 
 	memset(p, 0, 19 * 4);
-#ifdef CONFIG_UMW2652_REMOVE_REMOVE
+#ifdef CONFIG_UMW2652_REMOVE
 	dap_sel_btwf_lite();
 	apb_eb_lite();
 #else
@@ -960,7 +960,7 @@ int dump_arm_reg(void)
 
 	WCN_INFO("------------[ ARM END ]------------\n");
 	kfree(p);
-#ifndef CONFIG_UMW2652_REMOVE_REMOVE
+#ifndef CONFIG_UMW2652_REMOVE
 	/* make sure JTAG can connect dap */
 	dap_sel_default();
 #endif
