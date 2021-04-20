@@ -74,6 +74,7 @@
 
 /* Bits & mask definition for register STS2 */
 #define SPRD_SPI_TX_BUSY		BIT(8)
+#define SPI_TX_FIFO_REALLY_EMPTY        BIT(7)
 
 /* Bits & mask definition for register CTL1 */
 #define SPRD_SPI_RX_MODE		BIT(12)
@@ -277,8 +278,8 @@ static int sprd_spi_wait_for_tx_end(struct sprd_spi *ss, struct spi_transfer *t)
 	int ret;
 
 	us = sprd_spi_transfer_max_timeout(ss, t);
-	ret = readl_relaxed_poll_timeout(ss->base + SPRD_SPI_INT_RAW_STS, val,
-					 val & SPRD_SPI_TX_END_IRQ, 0, us);
+	ret = readl_relaxed_poll_timeout(ss->base + SPRD_SPI_STS2, val,
+					 val & SPI_TX_FIFO_REALLY_EMPTY, 0, us);
 	if (ret) {
 		dev_err(ss->dev, "SPI error, spi send timeout!\n");
 		spi_timeout_count += 1;
