@@ -4279,7 +4279,7 @@ CONFIG_SPRD_CAMSYS_PW_DOMAIN=m
 #
 # SPRD IQ modules
 #
-# CONFIG_SPRD_IQ is not set
+CONFIG_SPRD_IQ=m
 # end of SPRD IQ modules
 
 #
