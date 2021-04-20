@@ -1894,6 +1894,12 @@
 					"ISP", "AP/VSP/AON", "WTLCP",
 					"PUBCP/AUDCP";
 			};
+
+			dmc_controller: dmc-controller@31050000 {
+				compatible = "sprd,pub-dmc";
+				reg = <0x0 0x31050000 0x0 0x7000>,
+					<0x0 0x3000 0x0 0x1000>;
+			};
 		};
 	};
 
