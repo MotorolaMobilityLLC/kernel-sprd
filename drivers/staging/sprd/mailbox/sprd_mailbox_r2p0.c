@@ -227,16 +227,14 @@ static irqreturn_t  mbox_src_irqhandle(int irq_num, void *dev)
 	succ = (fifo_sts_1 & MBOX_FIFO_DELIVER_STS_MASK) >>
 		MBOX_FIFO_DELIVER_STS_BIT;
 
-	/* if It's a send irq and have some send succ bits,
+	/* If it has some send succ bits and no-block,
 	 * and the corresponding send fifo is not empty
 	 */
-	if (g_inbox_irq_mask == MBOX_INBOX_DELIVERED_IRQ) {
-		g_inbox_send = mbox_get_send_fifo_mask(succ);
-		pr_debug("mbox: succ = 0x%x, 0x%x!\n", succ, g_inbox_send);
+	g_inbox_send = mbox_get_send_fifo_mask((~block) & succ);
+	pr_debug("mbox: succ = 0x%x, 0x%x!\n", succ, g_inbox_send);
 
-		if (g_inbox_send)
-			mbox_start_fifo_send(g_inbox_send);
-	}
+	if (g_inbox_send)
+		mbox_start_fifo_send(g_inbox_send);
 
 	/* if have some bits block, we enable delivered irq,
 	 * other wise we enable block irq

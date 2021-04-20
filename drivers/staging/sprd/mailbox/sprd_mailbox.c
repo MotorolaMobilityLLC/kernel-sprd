@@ -49,7 +49,7 @@ static u8 g_inbox_send;
 static struct task_struct *g_send_thread;
 static wait_queue_head_t g_send_wait;
 
-static void mbox_put1msg(u8 dst, u64 msg)
+static int mbox_put1msg(u8 dst, u64 msg)
 {
 	u16 rd, wt, pos;
 
@@ -59,8 +59,9 @@ static void mbox_put1msg(u8 dst, u64 msg)
 	pos = wt % SEND_FIFO_LEN;
 	/* if fifo full, return */
 	if ((rd != wt) && (rd % SEND_FIFO_LEN == pos)) {
-		pr_err("mbox:dst = %d, rd =%d, wt = %d\n", dst, rd, wt);
-		return;
+		pr_err("mbox: fifo full! dst = %d, rd =%d, wt = %d\n",
+		       dst, rd, wt);
+		return -EINVAL;
 	}
 
 	pr_debug("mbox:dst = %d, rd =%d, wt = %d, pos = %d\n",
@@ -68,6 +69,8 @@ static void mbox_put1msg(u8 dst, u64 msg)
 
 	g_send_fifo[dst][pos] = msg;
 	g_inptr[dst] = wt + 1;
+
+	return 0;
 }
 
 static int mbox_send_thread(void *pdata)
@@ -207,6 +210,7 @@ EXPORT_SYMBOL_GPL(mbox_core_fifo_full);
 int mbox_raw_sent(u8 core_id, u64 msg)
 {
 	unsigned long flag;
+	int ret = 0;
 
 	if (!g_mbox_inited) {
 		pr_err("mbox:ERR on line %d!\n", __LINE__);
@@ -224,13 +228,13 @@ int mbox_raw_sent(u8 core_id, u64 msg)
 	 * else if send failed , also put it into the fifo
 	 */
 	if (g_inptr[core_id] != g_outptr[core_id])
-		mbox_put1msg(core_id, msg);
+		ret = mbox_put1msg(core_id, msg);
 	else if (mbox_ops->fops->phy_send(core_id, msg) != 0)
-		mbox_put1msg(core_id, msg);
+		ret = mbox_put1msg(core_id, msg);
 
 	spin_unlock_irqrestore(&mbox_lock, flag);
 
-	return 0;
+	return ret;
 }
 EXPORT_SYMBOL_GPL(mbox_raw_sent);
 
