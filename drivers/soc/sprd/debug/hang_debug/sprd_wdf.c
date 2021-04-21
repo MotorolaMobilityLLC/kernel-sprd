@@ -154,8 +154,9 @@ static int hang_debug_proc_read(struct seq_file *s, void *v)
 {
 	int cpu;
 
-	seq_printf(s, "WDF: interval=%llu timeout=%llu bitmap=0x%08x/0x%08x\n",
-		       g_interval, g_timeout, cpu_feed_bitmap, cpu_feed_mask);
+	seq_printf(s, "WDF: interval=%llu pretimeout=%llu timeout=%llu bitmap=0x%08x/0x%08x\n",
+		       g_interval, g_pretimeout, g_timeout,
+		       cpu_feed_bitmap, cpu_feed_mask);
 
 	for_each_online_cpu(cpu) {
 		seq_printf(s, "[cpu%d] g_enable = %d\n", cpu, per_cpu(g_enable, cpu));
