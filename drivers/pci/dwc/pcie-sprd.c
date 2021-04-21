@@ -24,6 +24,7 @@
 #include <linux/property.h>
 #include <linux/pm_runtime.h>
 #include <linux/suspend.h>
+#include <qos/pcie_sys.h>
 
 #include "pcie-designware.h"
 #include "pcie-sprd.h"
@@ -31,6 +32,45 @@
 #define REINIT_RETRIES  200
 #define REINIT_WAIT_MIN  19000
 #define REINIT_WAIT_MAX  20000
+
+static int get_qos_array_length(struct QOS_REG_T array[])
+{
+	int i = 0;
+
+	while (array[i].base_addr != 0)
+		i++;
+
+	return i;
+}
+
+static void qos_parameters_set(struct QOS_REG_T array[])
+{
+	int i, length;
+	u32 val, temp;
+	void __iomem *addr;
+
+	length = get_qos_array_length(array);
+	for (i = 0; i < length; i++) {
+		addr = ioremap(array[i].base_addr, 4);
+		temp = readl(addr);
+		val = (temp & (~array[i].mask_value)) | array[i].set_value;
+		writel(val, addr);
+		iounmap(addr);
+	}
+}
+
+void set_pcie_sys_matrix_qos(void)
+{
+	void __iomem *addr;
+
+	addr = ioremap(SPRD_PCIE_EB, 4);
+	writel(readl(addr) | NIC400_CFG_EB, addr);
+	qos_parameters_set(nic400_pcie_main_mtx_m0_qos_list);
+	writel(readl(addr) & (~NIC400_CFG_EB), addr);
+	iounmap(addr);
+	qos_parameters_set(pcie_apb_rf_qos_list);
+}
+EXPORT_SYMBOL(set_pcie_sys_matrix_qos);
 
 static void sprd_pcie_buserr_enable(struct dw_pcie *pci)
 {
@@ -462,6 +502,8 @@ static int sprd_pcie_host_reinit(struct platform_device *pdev)
 		goto power_off;
 	}
 
+	set_pcie_sys_matrix_qos();
+
 	sprd_pcie_buserr_enable(pci);
 
 	ret = sprd_pcie_check_vendor_id(pci);
@@ -666,6 +708,8 @@ static int sprd_pcie_probe(struct platform_device *pdev)
 		dev_err(dev, "get pcie syscons fail, return %d\n", ret);
 		goto power_off;
 	}
+
+	set_pcie_sys_matrix_qos();
 
 	ret = sprd_pcie_syscon_setting(pdev, "sprd,pcie-aspml1p2-syscons");
 	if (ret < 0)

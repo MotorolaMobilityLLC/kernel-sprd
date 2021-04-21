@@ -42,6 +42,10 @@
 #define SPRD_PCIE_RST_CTRL			0xe4c
 #define SPRD_SOFT_WAKE				(0x1 << 4)
 
+/* TODO: For PCIe sys Qos config */
+#define SPRD_PCIE_EB	0x26000004
+#define NIC400_CFG_EB	(0x1<<9)
+
 struct sprd_pcie {
 	const char *label;
 	struct dw_pcie *pci;
