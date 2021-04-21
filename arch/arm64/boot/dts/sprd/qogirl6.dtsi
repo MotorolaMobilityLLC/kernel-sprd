@@ -262,6 +262,14 @@
 				status = "disabled";
 			};
 
+			apsys_dvfs: apsys-dvfs@71700000 {
+				compatible = "sprd,hwdvfs-apsys-qogirl6";
+				reg = <0x0 0x20014000 0x0 0x15c>;
+
+				sprd,ap-dvfs-up-window = <0x40>;
+				sprd,ap-dvfs-down-window = <0x80>;
+			};
+
 			crypto_engine_rng: rng@201e0000 {
 				compatible = "sprd,sprd-trng";
 				reg = <0x0 0x201e0000 0x0 0x10000>;
