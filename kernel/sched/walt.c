@@ -55,7 +55,7 @@ __read_mostly unsigned int walt_ravg_window =
 #define MIN_SCHED_RAVG_WINDOW ((10000000 / TICK_NSEC) * TICK_NSEC)
 #define MAX_SCHED_RAVG_WINDOW ((1000000000 / TICK_NSEC) * TICK_NSEC)
 
-unsigned int walt_busy_threshold = 75;
+unsigned int walt_busy_threshold = 50;
 unsigned int sysctl_sched_walt_cross_window_util = 1;
 
 static unsigned int sync_cpu;
