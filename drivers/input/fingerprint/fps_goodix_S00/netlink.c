@@ -56,7 +56,7 @@ int sendnlmsg(char *msg)
 	NETLINK_CB(skb).dst_group = 0;
 
 	memcpy(NLMSG_DATA(nlh), msg, sizeof(char));
-	pr_info("send message: %d\n", *(char *)NLMSG_DATA(nlh));
+	pr_debug("send message: %d\n", *(char *)NLMSG_DATA(nlh));
 
 	ret = netlink_unicast(nl_sk, skb, pid, MSG_DONTWAIT);
 	if (ret > 0)

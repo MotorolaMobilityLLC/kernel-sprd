@@ -42,31 +42,31 @@ int gf_parse_dts(struct gf_dev *gf_dev)
 
 	node = of_find_compatible_node(NULL, NULL, "sprd,fingerprint-fpc1520");
 	gf_dev->reset_gpio = of_get_named_gpio(node, "fpsensor,reset-gpio", 0);
-	pr_info("value of gf_dev->reset_gpio is %d!\n", gf_dev->reset_gpio);
+	pr_debug("value of gf_dev->reset_gpio is %d!\n", gf_dev->reset_gpio);
 	if (gf_dev->reset_gpio < 0) {
-		pr_info("falied to get reset gpio!\n");
+		pr_err("falied to get reset gpio!\n");
 		return gf_dev->reset_gpio;
 	}
 
 	rc = devm_gpio_request(dev, gf_dev->reset_gpio, "goodix_reset");
-	pr_info("value of rc for request gf_dev->reset_gpio is %d!\n", rc);
+	//pr_info("value of rc for request gf_dev->reset_gpio is %d!\n", rc);
 	if (rc) {
-		pr_info("failed to request reset gpio, rc = %d\n", rc);
+		pr_err("failed to request reset gpio, rc = %d\n", rc);
 		goto err_reset;
 	}
 	gpio_direction_output(gf_dev->reset_gpio, 1);
 
 	gf_dev->irq_gpio = of_get_named_gpio(node, "fpsensor,eint-gpio", 0);
-	pr_info("value of gf_dev->irq_gpio is %d!\n", gf_dev->irq_gpio);
+	pr_debug("value of gf_dev->irq_gpio is %d!\n", gf_dev->irq_gpio);
 	if (gf_dev->irq_gpio < 0) {
-		pr_info("falied to get irq gpio!\n");
+		pr_err("falied to get irq gpio!\n");
 		return gf_dev->irq_gpio;
 	}
 
 	rc = devm_gpio_request(dev, gf_dev->irq_gpio, "goodix_irq");
-	pr_info("value of rc for request gf_dev->irq_gpio is %d!\n", rc);
+	//pr_info("value of rc for request gf_dev->irq_gpio is %d!\n", rc);
 	if (rc) {
-		pr_info("failed to request irq gpio, rc = %d\n", rc);
+		pr_err("failed to request irq gpio, rc = %d\n", rc);
 		goto err_irq;
 	}
 	gpio_direction_input(gf_dev->irq_gpio);
