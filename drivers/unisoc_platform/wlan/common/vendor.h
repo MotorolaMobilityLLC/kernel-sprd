@@ -125,6 +125,14 @@ enum vendor_attr {
 	/* NAN */
 	ATTR_NAN,
 	ATTR_ROAMING_POLICY = 5,
+	ATTR_VENDOR_AFTER_LAST,
+	ATTR_VENDOR_MAX =
+		ATTR_VENDOR_AFTER_LAST - 1,
+};
+
+static const struct nla_policy
+	roaming_policy[ATTR_VENDOR_MAX + 1] = {
+	[ATTR_ROAMING_POLICY] = {.type = NLA_U32},
 };
 
 /*start of link layer stats, CMD ID:14,15,16*/
@@ -235,14 +243,20 @@ enum vendor_attr_ll_stats_results {
 };
 
 enum vendor_attr_ll_stats_type {
-	ATTR_CMD_LL_STATS_TYPE_INVALID = 0,
-	ATTR_CMD_LL_STATS_TYPE_RADIO = 1,
-	ATTR_CMD_LL_STATS_TYPE_IFACE = 2,
-	ATTR_CMD_LL_STATS_TYPE_PEERS = 3,
+	ATTR_CMD_LL_STATS_GET_TYPE_INVALID = 0,
+	ATTR_CMD_LL_STATS_GET_TYPE_RADIO = 1,
+	ATTR_CMD_LL_STATS_GET_TYPE_IFACE = 2,
+	ATTR_CMD_LL_STATS_GET_TYPE_PEERS = 3,
 
 	/* keep last */
 	ATTR_CMD_LL_STATS_TYPE_AFTER_LAST,
 	ATTR_CMD_LL_STATS_TYPE_MAX = ATTR_CMD_LL_STATS_TYPE_AFTER_LAST - 1,
+};
+
+static const struct
+nla_policy ll_stats_get_policy[ATTR_CMD_LL_STATS_TYPE_MAX + 1] = {
+		[ATTR_CMD_LL_STATS_GET_TYPE_RADIO] = {.type = NLA_U32},
+		[ATTR_CMD_LL_STATS_GET_TYPE_IFACE] = {.type = NLA_U32},
 };
 
 enum vendor_attr_ll_stats_clr {
@@ -254,6 +268,14 @@ enum vendor_attr_ll_stats_clr {
 	/* keep last */
 	ATTR_LL_STATS_CLR_AFTER_LAST,
 	ATTR_LL_STATS_CLR_MAX = ATTR_LL_STATS_CLR_AFTER_LAST - 1,
+};
+
+static const struct
+nla_policy ll_stats_clr_policy[ATTR_LL_STATS_CLR_MAX + 1] = {
+		[ATTR_LL_STATS_CLR_CONFIG_REQ_MASK] = {.type = NLA_U32},
+		[ATTR_LL_STATS_CLR_CONFIG_STOP_REQ] = {.type = NLA_U8},
+		[ATTR_LL_STATS_CLR_CONFIG_RSP_MASK] = {.type = NLA_U32},
+		[ATTR_LL_STATS_CLR_CONFIG_STOP_RSP] = {.type = NLA_U32},
 };
 
 /* end of link layer stats */
@@ -394,6 +416,48 @@ enum vendor_attr_gscan_config_params {
 	    GSCAN_ATTR_CONFIG_AFTER_LAST - 1,
 };
 
+static const struct nla_policy
+	wlan_gscan_config_policy[GSCAN_ATTR_CONFIG_MAX + 1] = {
+	[GSCAN_ATTR_CONFIG_REQUEST_ID] = {.type = NLA_U32},
+	[GSCAN_ATTR_CONFIG_WIFI_BAND] = {.type = NLA_U32},
+	[GSCAN_ATTR_CONFIG_MAX_CHANNELS] = {.type = NLA_U32},
+	[GSCAN_ATTR_CONFIG_CHANNEL_SPEC] = {.type = NLA_U32},
+	[GSCAN_ATTR_CONFIG_CHANNEL_DWELL_TIME] = {.type = NLA_U32},
+	[GSCAN_ATTR_CONFIG_CHANNEL_PASSIVE] = {.type = NLA_U8},
+	[GSCAN_ATTR_CONFIG_CHANNEL_CLASS] = {.type = NLA_U8},
+	[GSCAN_ATTR_CONFIG_BUCKET_INDEX] = {.type = NLA_U8},
+	[GSCAN_ATTR_CONFIG_BUCKET_BAND] = {.type = NLA_U8},
+	[GSCAN_ATTR_CONFIG_BUCKET_PERIOD] = {.type = NLA_U32},
+	[GSCAN_ATTR_CONFIG_BUCKET_REPORT_EVENTS] = {.type = NLA_U8},
+	[GSCAN_ATTR_CONFIG_BUCKET_NUM_CHANNEL_SPECS] = {.type = NLA_U32},
+	[GSCAN_ATTR_CONFIG_BUCKET_MAX_PERIOD] = {.type = NLA_U32},
+	[GSCAN_ATTR_CONFIG_BUCKET_BASE] = {.type = NLA_U32},
+	[GSCAN_ATTR_CONFIG_BUCKET_STEP_COUNT] = {.type = NLA_U32},
+	[GSCAN_ATTR_CONFIG_CHAN_SPEC] = {.type = NLA_U32},
+	[GSCAN_ATTR_CONFIG_BASE_PERIOD] = {.type = NLA_U32},
+	[GSCAN_ATTR_CONFIG_MAX_AP_PER_SCAN] = {.type = NLA_U32},
+	[GSCAN_ATTR_CONFIG_REPORT_THR] = {.type = NLA_U8},
+	[GSCAN_ATTR_CONFIG_REPORT_NUM_SCANS] = {.type = NLA_U8},
+	[GSCAN_ATTR_CONFIG_NUM_BUCKETS] = {.type = NLA_U8},
+	[GSCAN_ATTR_CONFIG_BUCKET_SPEC] = {.type = NLA_NESTED},
+	[GSCAN_ATTR_CONFIG_CACHED_PARAM_FLUSH] = {.type = NLA_U8},
+	[GSCAN_ATTR_CONFIG_CACHED_PARAM_MAX] = {.type = NLA_U32},
+	[GSCAN_ATTR_CONFIG_AP_THR_BSSID] = {.type = NLA_UNSPEC},
+	[GSCAN_ATTR_CONFIG_AP_THR_RSSI_LOW] = {.type = NLA_S32},
+	[GSCAN_ATTR_CONFIG_AP_THR_RSSI_HIGH] = {.type = NLA_S32},
+	[GSCAN_ATTR_CONFIG_AP_THR_CHANNEL] = {.type = NLA_U32},
+	[GSCAN_ATTR_CONFIG_BSSID_HOTLIST_NUM_AP] = {.type = NLA_U32},
+	[GSCAN_ATTR_CONFIG_AP_THR_PARAM] = {.type = NLA_NESTED},
+	[GSCAN_ATTR_CONFIG_SIGNIFICANT_RSSI_SAMPLE_SIZE] = {.type = NLA_U32},
+	[GSCAN_ATTR_CONFIG_SIGNIFICANT_LOST_AP_SAMPLE_SIZE] = {.type = NLA_U32},
+	[GSCAN_ATTR_CONFIG_SIGNIFICANT_MIN_BREACHING] = {.type = NLA_U32},
+	[GSCAN_ATTR_CONFIG_SIGNIFICANT_NUM_AP] = {.type = NLA_U32},
+	[GSCAN_ATTR_CONFIG_BSSID_HOTLIST_LOST_AP_SAMPLE_SIZE] = {.type = NLA_U32},
+	[GSCAN_ATTR_CONFIG_SSID_HOTLIST_LOST_SSID_SAMPLE_SIZE] = {.type = NLA_S32},
+	[GSCAN_ATTR_CONFIG_SSID_HOTLIST_NUM_SSID] = {.type = NLA_S32},
+	[GSCAN_ATTR_CONFIG_SSID_THR] = {.type = NLA_NESTED},
+};
+
 /*start of gscan----CMD ID:23*/
 enum vendor_attr_gscan_results {
 	ATTR_GSCAN_RESULTS_INVALID = 0,
@@ -470,6 +534,11 @@ enum vendor_attr_set_scanning_mac_oui {
 	    ATTR_SET_SCANNING_MAC_OUI_AFTER_LAST - 1,
 };
 
+static const struct nla_policy
+	mac_oui_policy[ATTR_SET_SCANNING_MAC_OUI_MAX + 1] = {
+	[ATTR_SET_SCANNING_MAC_OUI] = { .type = NLA_BINARY, .len = 3},
+};
+
 /* end of gscan capability---CMD ID:23 */
 
 /* start of get supported feature---CMD ID:38 */
@@ -541,6 +610,11 @@ enum vendor_attr_get_concurrency_matrix {
 	ATTR_CO_MATRIX_MAX = ATTR_CO_MATRIX_AFTER_LAST - 1,
 };
 
+static const struct
+nla_policy get_concurrency_matrix_policy[ATTR_CO_MATRIX_MAX + 1] = {
+		[ATTR_CO_MATRIX_CONFIG_PARAM_SET_SIZE_MAX] = {.type = NLA_U32},
+};
+
 /* end of get supported feature---CMD ID:42 */
 
 /* start of get wifi info----CMD ID:61 */
@@ -552,7 +626,35 @@ enum vendor_attr_get_wifi_info {
 	ATTR_WIFI_INFO_GET_MAX = ATTR_WIFI_INFO_GET_AFTER_LAST - 1,
 };
 
+static const struct
+nla_policy get_wifi_info_policy[ATTR_WIFI_INFO_GET_MAX + 1] = {
+		[ATTR_WIFI_INFO_DRIVER_VERSION] = {.type = NLA_U32},
+		[ATTR_WIFI_INFO_FIRMWARE_VERSION] = {.type = NLA_U32},
+};
+
 /* end of get wifi info----CMD ID:61 */
+
+/* start of wifi logger start, CMD ID:62 */
+enum vendor_attr_wifi_logger_start {
+	ATTR_WIFI_LOGGER_START_INVALID = 0,
+	ATTR_WIFI_LOGGER_RING_ID = 1,
+	ATTR_WIFI_LOGGER_VERBOSE_LEVEL = 2,
+	ATTR_WIFI_LOGGER_FLAGS = 3,
+
+	/* keep last */
+	ATTR_WIFI_LOGGER_START_AFTER_LAST,
+	ATTR_WIFI_LOGGER_START_GET_MAX =
+		ATTR_WIFI_LOGGER_START_AFTER_LAST - 1,
+};
+
+static const struct
+nla_policy wifi_logger_start_policy[ATTR_WIFI_LOGGER_START_GET_MAX + 1] = {
+		[ATTR_WIFI_LOGGER_RING_ID] = {.type = NLA_U32},
+		[ATTR_WIFI_LOGGER_VERBOSE_LEVEL] = {.type = NLA_U32},
+		[ATTR_WIFI_LOGGER_FLAGS] = {.type = NLA_U32},
+};
+
+/* end of wifi logger start----CMD ID:62 */
 
 /* start of roaming data structure,CMD ID:64,CMD ID:9 */
 enum fw_roaming_state {
@@ -590,6 +692,17 @@ enum vendor_attr_roaming_config_params {
 	ATTR_ROAM_MAX = ATTR_ROAM_AFTER_LAST - 1,
 };
 
+static const struct nla_policy roaming_config_policy[ATTR_ROAM_MAX + 1] = {
+		[ATTR_ROAM_SUBCMD] = {.type = NLA_U32},
+		[ATTR_ROAM_REQ_ID] = {.type = NLA_U32},
+		[ATTR_ROAM_WHITE_LIST_SSID_NUM_NETWORKS] = {.type = NLA_U32},
+		[ATTR_ROAM_WHITE_LIST_SSID_LIST] = {.type = NLA_NESTED},
+		[ATTR_ROAM_WHITE_LIST_SSID] = {.type = NLA_BINARY},
+		[ATTR_ROAM_SET_BSSID_PARAMS] = {.type = NLA_NESTED},
+		[ATTR_ROAM_SET_BSSID_PARAMS_NUM_BSSID] = {.type = NLA_U32},
+		[ATTR_ROAM_SET_BSSID_PARAMS_BSSID] = {.type = NLA_BINARY},
+};
+
 enum vendor_attr_roam_subcmd {
 	ATTR_ROAM_SUBCMD_INVALID = 0,
 	ATTR_ROAM_SUBCMD_SSID_WHITE_LIST = 1,
@@ -601,6 +714,16 @@ enum vendor_attr_roam_subcmd {
 	/*KEEP LAST */
 	ATTR_ROAM_SUBCMD_AFTER_LAST,
 	ATTR_ROAM_SUBCMD_MAX = ATTR_ROAM_SUBCMD_AFTER_LAST - 1,
+};
+
+static const struct
+nla_policy roam_policy[ATTR_ROAM_SUBCMD_MAX + 1] = {
+		[ATTR_ROAM_SUBCMD_SSID_WHITE_LIST] = {.type = NLA_U32},
+		[ATTR_ROAM_SUBCMD_SET_GSCAN_ROAM_PARAMS] = {.type = NLA_U32},
+		[ATTR_ROAM_SUBCMD_SET_LAZY_ROAM] = {.type = NLA_U32},
+		[ATTR_ROAM_SUBCMD_SET_BSSID_PREFS] = {.type = NLA_U32},
+		[ATTR_ROAM_SUBCMD_SET_BSSID_PARAMS] = {.type = NLA_U32},
+		[ATTR_ROAM_SUBCMD_SET_BLACKLIST_BSSID] = {.type = NLA_U32},
 };
 
 #define MAX_WHITE_SSID 4
@@ -672,7 +795,26 @@ enum vendor_attr_rssi_monitor {
 	    ATTR_RSSI_MONITOR_AFTER_LAST - 1,
 };
 
+static const struct nla_policy rssi_monitor_policy[ATTR_RSSI_MONITOR_MAX + 1] = {
+	[ATTR_RSSI_MONITOR_REQUEST_ID] = {.type = NLA_U32},
+	[ATTR_RSSI_MONITOR_CONTROL] = {.type = NLA_U32},
+	[ATTR_RSSI_MONITOR_MIN_RSSI] = {.type = NLA_S8},
+	[ATTR_RSSI_MONITOR_MAX_RSSI] = {.type = NLA_S8},
+};
+
 /*RSSI monitor End*/
+
+enum vendor_attr_nd_offload {
+	ATTR_ND_OFFLOAD_INVALID = 0,
+	ATTR_ND_OFFLOAD_FLAG,
+	ATTR_ND_OFFLOAD_AFTER_LAST,
+	ATTR_ND_OFFLOAD_MAX =
+		ATTR_ND_OFFLOAD_AFTER_LAST - 1,
+};
+
+static const struct nla_policy nd_offload_policy[ATTR_ND_OFFLOAD_MAX + 1] = {
+	[ATTR_ND_OFFLOAD_FLAG] = {.type = NLA_U8},
+};
 
 enum vendor_event_gscan {
 	VENDOR_EVENT_GSCAN_START = 6,
@@ -908,6 +1050,12 @@ enum vendor_attr_wake_stats {
 	ATTR_WAKE_MAX = ATTR_WAKE_AFTER_LAST - 1,
 };
 
+static const struct
+nla_policy wake_stats_policy[ATTR_WAKE_MAX + 1] = {
+	[ATTR_WAKE_CMD_EVT_WAKE_CNT_SZ] = { .type = NLA_U32 },
+	[ATTR_WAKE_DRV_FW_LOCAL_WAKE_CNT_SZ] = { .type = NLA_U32 },
+};
+
 /*end of wake sats---CMD ID:85*/
 
 /*start of SAR limit---- CMD ID:146*/
@@ -932,6 +1080,17 @@ enum vendor_attr_sar_limits {
 	ATTR_SAR_LIMITS_SPEC_POWER_LIMIT = 7,
 	ATTR_SAR_LIMITS_AFTER_LAST,
 	ATTR_SAR_LIMITS_MAX = ATTR_SAR_LIMITS_AFTER_LAST - 1
+};
+
+static const struct
+nla_policy vendor_sar_limits_policy[ATTR_SAR_LIMITS_MAX + 1] = {
+	[ATTR_SAR_LIMITS_SAR_ENABLE] = { .type = NLA_U32 },
+	[ATTR_SAR_LIMITS_NUM_SPECS] = { .type = NLA_U32 },
+	[ATTR_SAR_LIMITS_SPEC] = { .type = NLA_U32 },
+	[ATTR_SAR_LIMITS_SPEC_BAND] = { .type = NLA_U32 },
+	[ATTR_SAR_LIMITS_SPEC_CHAIN] = { .type = NLA_U32 },
+	[ATTR_SAR_LIMITS_SPEC_MODULATION] = { .type = NLA_U32 },
+	[ATTR_SAR_LIMITS_SPEC_POWER_LIMIT] = { .type = NLA_U32 },
 };
 
 /* end of SAR limit---CMD ID:146 */
@@ -1120,32 +1279,43 @@ enum vendor_attr_pno_config_params {
 	ATTR_PNO_MAX = ATTR_PNO_AFTER_LAST - 1,
 };
 
-#define SPRD_EPNO_PARAM_NETWORK_SSID \
-	ATTR_PNO_SET_LIST_PARAM_EPNO_NETWORK_SSID
-#define SPRD_EPNO_PARAM_MIN5GHZ_RSSI \
-	ATTR_EPNO_MIN5GHZ_RSSI
-#define SPRD_EPNO_PARAM_MIN24GHZ_RSSI  \
-	ATTR_EPNO_MIN24GHZ_RSSI
-#define SPRD_EPNO_PARAM_INITIAL_SCORE_MAX \
-	ATTR_EPNO_INITIAL_SCORE_MAX
-#define SPRD_EPNO_PARAM_CURRENT_CONNECTION_BONUS \
-	ATTR_EPNO_CURRENT_CONNECTION_BONUS
-#define SPRD_EPNO_PARAM_SAME_NETWORK_BONUS \
-	ATTR_EPNO_SAME_NETWORK_BONUS
-#define SPRD_EPNO_PARAM_SECURE_BONUS \
-	ATTR_EPNO_SECURE_BONUS
-#define SPRD_EPNO_PARAM_BAND5GHZ_BONUS \
-	ATTR_EPNO_BAND5GHZ_BONUS
-#define SPRD_EPNO_PARAM_NUM_NETWORKS \
-	ATTR_PNO_SET_LIST_PARAM_NUM_NETWORKS
-#define SPRD_EPNO_PARAM_NETWORKS_LIST \
-	ATTR_PNO_SET_LIST_PARAM_EPNO_NETWORKS_LIST
-#define SPRD_EPNO_PARAM_NETWORK_FLAGS \
-	ATTR_PNO_SET_LIST_PARAM_EPNO_NETWORK_FLAGS
-#define SPRD_EPNO_PARAM_NETWORK_AUTH_BIT \
-	ATTR_PNO_SET_LIST_PARAM_EPNO_NETWORK_AUTH_BIT
-#define SPRD_VENDOR_EVENT_EPNO_FOUND \
-	VENDOR_CMD_PNO_NETWORK_FOUND
+static const struct nla_policy
+	wlan_gscan_result_policy[ATTR_PNO_MAX + 1] = {
+	[ATTR_GSCAN_RESULTS_REQUEST_ID] = {.type = NLA_U32},
+	[ATTR_PNO_PASSPOINT_LIST_PARAM_NUM] = {.type = NLA_U32},
+	[ATTR_PNO_PASSPOINT_LIST_PARAM_NETWORK_ARRAY] = {.type = NLA_NESTED},
+	[ATTR_PNO_PASSPOINT_NETWORK_PARAM_ID] = {.type = NLA_U32},
+	[ATTR_PNO_PASSPOINT_NETWORK_PARAM_REALM] = {.type = NLA_STRING},
+	[ATTR_PNO_PASSPOINT_NETWORK_PARAM_ROAM_CNSRTM_ID] = {.type = NLA_BINARY},
+	[ATTR_PNO_PASSPOINT_NETWORK_PARAM_ROAM_PLMN] = {.type = NLA_BINARY},
+	[ATTR_EPNO_MIN5GHZ_RSSI] = {.type = NLA_U32},
+	[ATTR_EPNO_MIN24GHZ_RSSI] = {.type = NLA_U32},
+	[ATTR_EPNO_INITIAL_SCORE_MAX] = {.type = NLA_U32},
+	[ATTR_EPNO_CURRENT_CONNECTION_BONUS] = {.type = NLA_U32},
+	[ATTR_EPNO_SAME_NETWORK_BONUS] = {.type = NLA_U32},
+	[ATTR_EPNO_SECURE_BONUS] = {.type = NLA_U32},
+	[ATTR_EPNO_BAND5GHZ_BONUS] = {.type = NLA_U32},
+	[ATTR_PNO_SET_LIST_PARAM_NUM_NETWORKS] = {.type = NLA_U32},
+	[ATTR_PNO_SET_LIST_PARAM_EPNO_NETWORKS_LIST] = {.type = NLA_NESTED},
+	[ATTR_PNO_SET_LIST_PARAM_EPNO_NETWORK_SSID] = {.type = NLA_BINARY,
+						       .len = IEEE80211_MAX_SSID_LEN},
+	[ATTR_PNO_SET_LIST_PARAM_EPNO_NETWORK_FLAGS] = {.type = NLA_U8},
+	[ATTR_PNO_SET_LIST_PARAM_EPNO_NETWORK_AUTH_BIT] = {.type = NLA_U8},
+};
+
+enum qca_wlan_vendor_attr_get_logger_features {
+	ATTR_LOGGER_INVALID = 0,
+	ATTR_LOGGER_SUPPORTED = 1,
+	/* keep last */
+	ATTR_LOGGER_AFTER_LAST,
+	ATTR_LOGGER_MAX =
+	ATTR_LOGGER_AFTER_LAST - 1,
+};
+
+static const struct nla_policy
+	get_logger_features_policy[ATTR_LOGGER_MAX + 1] = {
+	[ATTR_LOGGER_SUPPORTED] = {.type = NLA_U32},
+};
 
 enum vendor_gscan_wifi_band {
 	VENDOR_GSCAN_WIFI_BAND_UNSPECIFIED,
@@ -1415,6 +1585,17 @@ enum vendor_attr_offloaded_packets {
 	ATTR_OFFLOADED_PACKETS_ETHER_PROTO_TYPE,
 	ATTR_OFFLOADED_PACKETS_AFTER_LAST,
 	ATTR_OFFLOADED_PACKETS_MAX = ATTR_OFFLOADED_PACKETS_AFTER_LAST - 1,
+};
+
+static const struct
+nla_policy offloaded_packets_policy[ATTR_OFFLOADED_PACKETS_MAX + 1] = {
+	[ATTR_OFFLOADED_PACKETS_SENDING_CONTROL] = { .type = NLA_U32 },
+	[ATTR_OFFLOADED_PACKETS_REQUEST_ID] = { .type = NLA_U32 },
+	[ATTR_OFFLOADED_PACKETS_IP_PACKET_DATA] = { .type = NLA_BINARY },
+	[ATTR_OFFLOADED_PACKETS_SRC_MAC_ADDR] = { .len = ETH_ALEN },
+	[ATTR_OFFLOADED_PACKETS_DST_MAC_ADDR] = { .len = ETH_ALEN },
+	[ATTR_OFFLOADED_PACKETS_PERIOD] = { .type = NLA_U32 },
+	[ATTR_OFFLOADED_PACKETS_ETHER_PROTO_TYPE] = { .type = NLA_U16 },
 };
 
 struct wmm_ac_stat {

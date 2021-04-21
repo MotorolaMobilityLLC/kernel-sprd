@@ -948,7 +948,7 @@ static int vendor_get_llstat_handler(struct wiphy *wiphy,
 			VENDOR_GET_LLSTAT))
 		goto put_radio_fail;
 	if (nla_put_u32(reply_radio, ATTR_LL_STATS_TYPE,
-			ATTR_CMD_LL_STATS_TYPE_RADIO))
+			ATTR_CMD_LL_STATS_GET_TYPE_RADIO))
 		goto put_radio_fail;
 	ret = vendor_compose_radio_st(reply_radio, radio_st);
 	ret = cfg80211_vendor_cmd_reply(reply_radio);
@@ -966,7 +966,7 @@ static int vendor_get_llstat_handler(struct wiphy *wiphy,
 			VENDOR_GET_LLSTAT))
 		goto put_iface_fail;
 	if (nla_put_u32(reply_iface, ATTR_LL_STATS_TYPE,
-			ATTR_CMD_LL_STATS_TYPE_IFACE))
+			ATTR_CMD_LL_STATS_GET_TYPE_IFACE))
 		goto put_iface_fail;
 	ret = vendor_compose_iface_st(reply_iface, iface_st);
 	ret = cfg80211_vendor_cmd_reply(reply_iface);
@@ -2205,7 +2205,8 @@ const struct wiphy_vendor_command vendor_cmd[] = {
 		.flags = WIPHY_VENDOR_CMD_NEED_WDEV |
 			WIPHY_VENDOR_CMD_NEED_NETDEV,
 		.doit = vendor_set_llstat_handler,
-		.policy = VENDOR_CMD_RAW_DATA,
+		.policy = ll_stats_policy,
+		.maxattr = ATTR_LL_STATS_SET_MAX,
 	},
 	{
 		{
@@ -2215,7 +2216,8 @@ const struct wiphy_vendor_command vendor_cmd[] = {
 		.flags = WIPHY_VENDOR_CMD_NEED_WDEV |
 			WIPHY_VENDOR_CMD_NEED_NETDEV,
 		.doit = vendor_get_llstat_handler,
-		.policy = VENDOR_CMD_RAW_DATA,
+		.policy = ll_stats_get_policy,
+		.maxattr = ATTR_CMD_LL_STATS_TYPE_MAX,
 	},
 	{
 		{
@@ -2225,7 +2227,8 @@ const struct wiphy_vendor_command vendor_cmd[] = {
 		.flags = WIPHY_VENDOR_CMD_NEED_WDEV |
 			WIPHY_VENDOR_CMD_NEED_NETDEV,
 		.doit = vendor_clr_llstat_handler,
-		.policy = VENDOR_CMD_RAW_DATA,
+		.policy = ll_stats_clr_policy,
+		.maxattr = ATTR_LL_STATS_CLR_MAX,
 	},
 	{
 		{
@@ -2235,7 +2238,8 @@ const struct wiphy_vendor_command vendor_cmd[] = {
 		.flags = WIPHY_VENDOR_CMD_NEED_WDEV |
 			 WIPHY_VENDOR_CMD_NEED_NETDEV,
 		.doit = vendor_get_gscan_capabilities,
-		.policy = VENDOR_CMD_RAW_DATA,
+		.policy = wlan_gscan_config_policy,
+		.maxattr = GSCAN_ATTR_CONFIG_MAX,
 	},
 	{
 		{
@@ -2245,7 +2249,8 @@ const struct wiphy_vendor_command vendor_cmd[] = {
 		.flags = WIPHY_VENDOR_CMD_NEED_WDEV |
 			 WIPHY_VENDOR_CMD_NEED_NETDEV,
 		.doit = vendor_get_channel_list,
-		.policy = VENDOR_CMD_RAW_DATA,
+		.policy = wlan_gscan_config_policy,
+		.maxattr = GSCAN_ATTR_CONFIG_MAX,
 	},
 	{
 		{
@@ -2255,7 +2260,8 @@ const struct wiphy_vendor_command vendor_cmd[] = {
 		.flags = WIPHY_VENDOR_CMD_NEED_WDEV |
 			 WIPHY_VENDOR_CMD_NEED_NETDEV,
 		.doit = vendor_gscan_start,
-		.policy = VENDOR_CMD_RAW_DATA,
+		.policy = wlan_gscan_config_policy,
+		.maxattr = GSCAN_ATTR_CONFIG_MAX,
 	},
 	{
 		{
@@ -2265,7 +2271,8 @@ const struct wiphy_vendor_command vendor_cmd[] = {
 		.flags = WIPHY_VENDOR_CMD_NEED_WDEV |
 			 WIPHY_VENDOR_CMD_NEED_NETDEV,
 		.doit = vendor_gscan_stop,
-		.policy = VENDOR_CMD_RAW_DATA,
+		.policy = wlan_gscan_config_policy,
+		.maxattr = GSCAN_ATTR_CONFIG_MAX,
 	},
 	{
 		{
@@ -2275,7 +2282,8 @@ const struct wiphy_vendor_command vendor_cmd[] = {
 		.flags = WIPHY_VENDOR_CMD_NEED_WDEV |
 			 WIPHY_VENDOR_CMD_NEED_NETDEV,
 		.doit = vendor_get_cached_gscan_results,
-		.policy = VENDOR_CMD_RAW_DATA,
+		.policy = wlan_gscan_config_policy,
+		.maxattr = GSCAN_ATTR_CONFIG_MAX,
 	},
 
 			{
@@ -2286,7 +2294,8 @@ const struct wiphy_vendor_command vendor_cmd[] = {
 		.flags = WIPHY_VENDOR_CMD_NEED_WDEV |
 			 WIPHY_VENDOR_CMD_NEED_NETDEV,
 		.doit = vendor_get_logger_feature,
-		.policy = VENDOR_CMD_RAW_DATA,
+		.policy = get_logger_features_policy,
+		.maxattr = ATTR_LOGGER_MAX,
 	},
 	{
 		{
@@ -2296,7 +2305,8 @@ const struct wiphy_vendor_command vendor_cmd[] = {
 		.flags = WIPHY_VENDOR_CMD_NEED_WDEV |
 			 WIPHY_VENDOR_CMD_NEED_NETDEV,
 		.doit = vendor_get_wake_state,
-		.policy = VENDOR_CMD_RAW_DATA,
+		.policy = wake_stats_policy,
+		.maxattr = ATTR_WAKE_MAX,
 	},
 	{
 		{
@@ -2316,7 +2326,8 @@ const struct wiphy_vendor_command vendor_cmd[] = {
 		.flags = WIPHY_VENDOR_CMD_NEED_WDEV |
 			 WIPHY_VENDOR_CMD_NEED_NETDEV,
 		.doit = vendor_enable_nd_offload,
-		.policy = VENDOR_CMD_RAW_DATA,
+		.policy = nd_offload_policy,
+		.maxattr = ATTR_ND_OFFLOAD_MAX,
 	},
 	{
 		{
@@ -2326,7 +2337,8 @@ const struct wiphy_vendor_command vendor_cmd[] = {
 		.flags = WIPHY_VENDOR_CMD_NEED_WDEV |
 			 WIPHY_VENDOR_CMD_NEED_NETDEV,
 		.doit = vendor_set_mac_oui,
-		.policy = VENDOR_CMD_RAW_DATA,
+		.policy = mac_oui_policy,
+		.maxattr = ATTR_SET_SCANNING_MAC_OUI_MAX,
 	},
 	{
 		{
@@ -2336,7 +2348,8 @@ const struct wiphy_vendor_command vendor_cmd[] = {
 		.flags = WIPHY_VENDOR_CMD_NEED_WDEV |
 			 WIPHY_VENDOR_CMD_NEED_NETDEV,
 		.doit = vendor_start_logging,
-		.policy = VENDOR_CMD_RAW_DATA,
+		.policy = wifi_logger_start_policy,
+		.maxattr = ATTR_WIFI_LOGGER_START_GET_MAX,
 	},
 	{
 		{
@@ -2346,7 +2359,8 @@ const struct wiphy_vendor_command vendor_cmd[] = {
 		.flags = WIPHY_VENDOR_CMD_NEED_WDEV |
 			 WIPHY_VENDOR_CMD_NEED_NETDEV,
 		.doit = vendor_get_driver_info,
-		.policy = VENDOR_CMD_RAW_DATA,
+		.policy = get_wifi_info_policy,
+		.maxattr = ATTR_WIFI_INFO_GET_MAX,
 	},
 	{
 		{
@@ -2356,7 +2370,8 @@ const struct wiphy_vendor_command vendor_cmd[] = {
 		.flags = WIPHY_VENDOR_CMD_NEED_WDEV |
 			 WIPHY_VENDOR_CMD_NEED_NETDEV,
 		.doit = vendor_get_ring_data,
-		.policy = VENDOR_CMD_RAW_DATA,
+		.policy = wifi_logger_start_policy,
+		.maxattr = ATTR_WIFI_LOGGER_START_GET_MAX,
 	},
 	{
 		{
@@ -2366,7 +2381,8 @@ const struct wiphy_vendor_command vendor_cmd[] = {
 		.flags = WIPHY_VENDOR_CMD_NEED_WDEV |
 			 WIPHY_VENDOR_CMD_NEED_NETDEV,
 		.doit = vendor_memory_dump,
-		.policy = VENDOR_CMD_RAW_DATA,
+		.policy = wifi_logger_start_policy,
+		.maxattr = ATTR_WIFI_LOGGER_START_GET_MAX,
 	},
 	{
 		{
@@ -2396,7 +2412,8 @@ const struct wiphy_vendor_command vendor_cmd[] = {
 		.flags = WIPHY_VENDOR_CMD_NEED_WDEV |
 			WIPHY_VENDOR_CMD_NEED_RUNNING,
 		.doit = vendor_set_offload_packet,
-		.policy = VENDOR_CMD_RAW_DATA,
+		.policy = offloaded_packets_policy,
+		.maxattr = ATTR_OFFLOADED_PACKETS_MAX,
 	},
 	{
 		{

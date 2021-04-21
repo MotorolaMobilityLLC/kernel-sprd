@@ -21,12 +21,6 @@
 #define MAX_CHANNELS			16
 #define MAX_BUCKETS			4
 
-#define MONITOR_MAX			ATTR_RSSI_MONITOR_MAX
-#define REQUEST_ID			ATTR_RSSI_MONITOR_REQUEST_ID
-#define MONITOR_CONTROL			ATTR_RSSI_MONITOR_CONTROL
-#define MIN_RSSI			ATTR_RSSI_MONITOR_MIN_RSSI
-#define MAX_RSSI			ATTR_RSSI_MONITOR_MAX_RSSI
-
 struct llstat_data {
 	int rssi_mgmt;
 	u32 bcn_rx_cnt;
@@ -113,36 +107,6 @@ struct cmd_gscan_set_config {
 struct cmd_gscan_channel_list {
 	int num_channels;
 	int channels[SPRD_TOTAL_CHAN_NR];
-};
-
-static const struct nla_policy
-	wlan_gscan_config_policy[GSCAN_ATTR_CONFIG_MAX + 1] = {
-	[GSCAN_ATTR_CONFIG_REQUEST_ID] = {.type = NLA_U32},
-	[GSCAN_ATTR_CONFIG_WIFI_BAND] = {.type = NLA_U32},
-	[GSCAN_ATTR_CONFIG_CHANNEL_SPEC] = {.type = NLA_U32},
-	[GSCAN_ATTR_CONFIG_CHANNEL_DWELL_TIME] = {.type = NLA_U32},
-	[GSCAN_ATTR_CONFIG_CHANNEL_PASSIVE] = {.type = NLA_U8},
-	[GSCAN_ATTR_CONFIG_CHANNEL_CLASS] = {.type = NLA_U8},
-	[GSCAN_ATTR_CONFIG_BUCKET_INDEX] = {.type = NLA_U8},
-	[GSCAN_ATTR_CONFIG_BUCKET_BAND] = {.type = NLA_U8},
-	[GSCAN_ATTR_CONFIG_BUCKET_PERIOD] = {.type = NLA_U32},
-	[GSCAN_ATTR_CONFIG_BUCKET_REPORT_EVENTS] = {.type = NLA_U8},
-	[GSCAN_ATTR_CONFIG_BUCKET_NUM_CHANNEL_SPECS] = {.type = NLA_U32},
-	[GSCAN_ATTR_CONFIG_BASE_PERIOD] = {.type = NLA_U32},
-	[GSCAN_ATTR_CONFIG_MAX_AP_PER_SCAN] = {.type = NLA_U32},
-	[GSCAN_ATTR_CONFIG_REPORT_THR] = {.type = NLA_U8},
-	[GSCAN_ATTR_CONFIG_NUM_BUCKETS] = {.type = NLA_U8},
-	[GSCAN_ATTR_CONFIG_CACHED_PARAM_FLUSH] = {.type = NLA_U8},
-	[GSCAN_ATTR_CONFIG_CACHED_PARAM_MAX] = {.type = NLA_U32},
-	[GSCAN_ATTR_CONFIG_AP_THR_BSSID] = {.type = NLA_UNSPEC},
-	[GSCAN_ATTR_CONFIG_AP_THR_RSSI_LOW] = {.type = NLA_S32},
-	[GSCAN_ATTR_CONFIG_AP_THR_RSSI_HIGH] = {.type = NLA_S32},
-	[GSCAN_ATTR_CONFIG_AP_THR_CHANNEL] = {.type = NLA_U32},
-	[GSCAN_ATTR_CONFIG_BSSID_HOTLIST_NUM_AP] = {.type = NLA_U32},
-	[GSCAN_ATTR_CONFIG_SIGNIFICANT_RSSI_SAMPLE_SIZE] = {.type = NLA_U32},
-	[GSCAN_ATTR_CONFIG_SIGNIFICANT_LOST_AP_SAMPLE_SIZE] = {.type = NLA_U32},
-	[GSCAN_ATTR_CONFIG_SIGNIFICANT_MIN_BREACHING] = {.type = NLA_U32},
-	[GSCAN_ATTR_CONFIG_SIGNIFICANT_NUM_AP] = {.type = NLA_U32},
 };
 
 /* Send link layer stats CMD */
@@ -881,7 +845,7 @@ static int vendor_get_llstat_handler(struct wiphy *wiphy,
 			VENDOR_GET_LLSTAT))
 		goto radio_out_put_fail;
 	if (nla_put_u32(reply_radio, ATTR_LL_STATS_TYPE,
-			ATTR_CMD_LL_STATS_TYPE_RADIO))
+			ATTR_CMD_LL_STATS_GET_TYPE_RADIO))
 		goto radio_out_put_fail;
 
 	ret = vendor_compose_radio_st(reply_radio, radio_st);
@@ -901,7 +865,7 @@ static int vendor_get_llstat_handler(struct wiphy *wiphy,
 			VENDOR_GET_LLSTAT))
 		goto iface_out_put_fail;
 	if (nla_put_u32(reply_iface, ATTR_LL_STATS_TYPE,
-			ATTR_CMD_LL_STATS_TYPE_IFACE))
+			ATTR_CMD_LL_STATS_GET_TYPE_IFACE))
 		goto iface_out_put_fail;
 	ret = vendor_compose_iface_st(reply_iface, iface_st);
 	ret = cfg80211_vendor_cmd_reply(reply_iface);
@@ -1239,13 +1203,13 @@ static int vendor_get_channel_list(struct wiphy *wiphy,
 		type = nla_type(pos);
 		switch (type) {
 		case GSCAN_ATTR_CONFIG_REQUEST_ID:
-			request_id = nla_get_s32(pos);
+			request_id = nla_get_u32(pos);
 			break;
 		case GSCAN_ATTR_CONFIG_WIFI_BAND:
-			band = nla_get_s32(pos);
+			band = nla_get_u32(pos);
 			break;
 		case GSCAN_ATTR_CONFIG_MAX_CHANNELS:
-			max_channel = nla_get_s32(pos);
+			max_channel = nla_get_u32(pos);
 			break;
 		default:
 			netdev_err(vif->ndev, "nla type 0x%x not support\n",
@@ -2256,12 +2220,6 @@ static int vendor_memory_dump(struct wiphy *wiphy,
 }
 
 /* CMD ID:61 */
-static const struct nla_policy get_wifi_info_policy[
-		ATTR_WIFI_INFO_GET_MAX + 1] = {
-		[ATTR_WIFI_INFO_DRIVER_VERSION] = {.type = NLA_U8},
-		[ATTR_WIFI_INFO_FIRMWARE_VERSION] = {.type = NLA_U8},
-};
-
 static int vendor_get_driver_info(struct wiphy *wiphy,
 				  struct wireless_dev *wdev,
 				  const void *data, int len)
@@ -2716,15 +2674,9 @@ static int vendor_monitor_rssi(struct wiphy *wiphy,
 			       struct wireless_dev *wdev,
 			       const void *data, int len)
 {
-	struct nlattr *tb[MONITOR_MAX + 1];
+	struct nlattr *tb[ATTR_RSSI_MONITOR_MAX + 1];
 	u32 control;
 	struct rssi_monitor_req req;
-	static const struct nla_policy policy[MONITOR_MAX + 1] = {
-		[REQUEST_ID] = {.type = NLA_U32},
-		[MONITOR_CONTROL] = {.type = NLA_U32},
-		[MIN_RSSI] = {.type = NLA_S8},
-		[MAX_RSSI] = {.type = NLA_S8},
-	};
 	struct sprd_vif *vif = container_of(wdev, struct sprd_vif, wdev);
 	struct sprd_priv *priv = wiphy_priv(wiphy);
 
@@ -2733,38 +2685,39 @@ static int vendor_monitor_rssi(struct wiphy *wiphy,
 		pr_err("Wifi not connected!\n");
 		return -ENOTSUPP;
 	}
-	if (nla_parse(tb, MONITOR_MAX, data, len, policy, NULL)) {
+	if (nla_parse(tb, ATTR_RSSI_MONITOR_MAX, data, len,
+		      rssi_monitor_policy, NULL)) {
 		pr_err("Invalid ATTR\n");
 		return -EINVAL;
 	}
 
-	if (!tb[REQUEST_ID]) {
+	if (!tb[ATTR_RSSI_MONITOR_REQUEST_ID]) {
 		pr_err("attr request id failed\n");
 		return -EINVAL;
 	}
 
-	if (!tb[MONITOR_CONTROL]) {
+	if (!tb[ATTR_RSSI_MONITOR_CONTROL]) {
 		pr_err("attr control failed\n");
 		return -EINVAL;
 	}
 
-	req.request_id = nla_get_u32(tb[REQUEST_ID]);
-	control = nla_get_u32(tb[MONITOR_CONTROL]);
+	req.request_id = nla_get_u32(tb[ATTR_RSSI_MONITOR_REQUEST_ID]);
+	control = nla_get_u32(tb[ATTR_RSSI_MONITOR_CONTROL]);
 
 	if (control == VENDOR_RSSI_MONITOR_START) {
 		req.control = true;
-		if (!tb[MIN_RSSI]) {
+		if (!tb[ATTR_RSSI_MONITOR_MIN_RSSI]) {
 			pr_err("get min rssi fail\n");
 			return -EINVAL;
 		}
 
-		if (!tb[MAX_RSSI]) {
+		if (!tb[ATTR_RSSI_MONITOR_MAX_RSSI]) {
 			pr_err("get max rssi fail\n");
 			return -EINVAL;
 		}
 
-		req.min_rssi = nla_get_s8(tb[MIN_RSSI]);
-		req.max_rssi = nla_get_s8(tb[MAX_RSSI]);
+		req.min_rssi = nla_get_s8(tb[ATTR_RSSI_MONITOR_MIN_RSSI]);
+		req.max_rssi = nla_get_s8(tb[ATTR_RSSI_MONITOR_MAX_RSSI]);
 
 		if (!(req.min_rssi < req.max_rssi)) {
 			pr_err("min rssi %d must be less than max_rssi:%d\n",
@@ -2844,42 +2797,42 @@ static int vendor_set_epno_list(struct wiphy *wiphy,
 			epno_params.request_id = nla_get_u32(pos);
 			break;
 
-		case SPRD_EPNO_PARAM_MIN5GHZ_RSSI:
+		case ATTR_EPNO_MIN5GHZ_RSSI:
 			epno_params.min5ghz_rssi = nla_get_u32(pos);
 			break;
 
-		case SPRD_EPNO_PARAM_MIN24GHZ_RSSI:
+		case ATTR_EPNO_MIN24GHZ_RSSI:
 			epno_params.min24ghz_rssi = nla_get_u32(pos);
 			break;
 
-		case SPRD_EPNO_PARAM_INITIAL_SCORE_MAX:
+		case ATTR_EPNO_INITIAL_SCORE_MAX:
 			epno_params.initial_score_max = nla_get_u32(pos);
 			break;
 
-		case SPRD_EPNO_PARAM_CURRENT_CONNECTION_BONUS:
+		case ATTR_EPNO_CURRENT_CONNECTION_BONUS:
 			epno_params.current_connection_bonus = nla_get_u32(pos);
 			break;
 
-		case SPRD_EPNO_PARAM_SAME_NETWORK_BONUS:
+		case ATTR_EPNO_SAME_NETWORK_BONUS:
 			epno_params.same_network_bonus = nla_get_u32(pos);
 			break;
 
-		case SPRD_EPNO_PARAM_SECURE_BONUS:
+		case ATTR_EPNO_SECURE_BONUS:
 			epno_params.secure_bonus = nla_get_u32(pos);
 			break;
 
-		case SPRD_EPNO_PARAM_BAND5GHZ_BONUS:
+		case ATTR_EPNO_BAND5GHZ_BONUS:
 			epno_params.band5ghz_bonus = nla_get_u32(pos);
 			break;
 
-		case SPRD_EPNO_PARAM_NUM_NETWORKS:
+		case ATTR_PNO_SET_LIST_PARAM_NUM_NETWORKS:
 			epno_params.num_networks = nla_get_u32(pos);
 			if (epno_params.num_networks == 0)
 				return vendor_flush_epno_list(vif);
 
 			break;
 
-		case SPRD_EPNO_PARAM_NETWORKS_LIST:
+		case ATTR_PNO_SET_LIST_PARAM_EPNO_NETWORKS_LIST:
 			i = 0;
 			nla_for_each_nested(outer_iter, pos, rem_outer_len) {
 				epno_network = &epno_params.networks[i];
@@ -2887,18 +2840,18 @@ static int vendor_set_epno_list(struct wiphy *wiphy,
 						    rem_inner_len) {
 					type = nla_type(inner_iter);
 					switch (type) {
-					case SPRD_EPNO_PARAM_NETWORK_SSID:
+					case ATTR_PNO_SET_LIST_PARAM_EPNO_NETWORK_SSID:
 						memcpy(epno_network->ssid,
 						       nla_data(inner_iter),
 						       IEEE80211_MAX_SSID_LEN);
 						break;
 
-					case SPRD_EPNO_PARAM_NETWORK_FLAGS:
+					case ATTR_PNO_SET_LIST_PARAM_EPNO_NETWORK_FLAGS:
 						epno_network->flags =
 						    nla_get_u8(inner_iter);
 						break;
 
-					case SPRD_EPNO_PARAM_NETWORK_AUTH_BIT:
+					case ATTR_PNO_SET_LIST_PARAM_EPNO_NETWORK_AUTH_BIT:
 						epno_network->auth_bit_field =
 						    nla_get_u8(inner_iter);
 						break;
@@ -3165,7 +3118,8 @@ const struct wiphy_vendor_command vendor_cmd[] = {
 		.flags = WIPHY_VENDOR_CMD_NEED_WDEV |
 			WIPHY_VENDOR_CMD_NEED_NETDEV,
 		.doit = vendor_roaming_enable,
-		.policy = VENDOR_CMD_RAW_DATA,
+		.policy = roaming_policy,
+		.maxattr = ATTR_VENDOR_MAX,
 	},
 	{/* 12 */
 		{
@@ -3185,7 +3139,8 @@ const struct wiphy_vendor_command vendor_cmd[] = {
 		.flags = WIPHY_VENDOR_CMD_NEED_WDEV |
 			WIPHY_VENDOR_CMD_NEED_NETDEV,
 		.doit = vendor_set_llstat_handler,
-		.policy = VENDOR_CMD_RAW_DATA,
+		.policy = ll_stats_policy,
+		.maxattr = ATTR_LL_STATS_SET_MAX,
 	},
 	{/* 15 */
 		{
@@ -3195,7 +3150,8 @@ const struct wiphy_vendor_command vendor_cmd[] = {
 		.flags = WIPHY_VENDOR_CMD_NEED_WDEV |
 			WIPHY_VENDOR_CMD_NEED_NETDEV,
 		.doit = vendor_get_llstat_handler,
-		.policy = VENDOR_CMD_RAW_DATA,
+		.policy = ll_stats_get_policy,
+		.maxattr = ATTR_CMD_LL_STATS_TYPE_MAX,
 	},
 	{/* 16 */
 		{
@@ -3205,7 +3161,8 @@ const struct wiphy_vendor_command vendor_cmd[] = {
 		.flags = WIPHY_VENDOR_CMD_NEED_WDEV |
 			WIPHY_VENDOR_CMD_NEED_NETDEV,
 		.doit = vendor_clr_llstat_handler,
-		.policy = VENDOR_CMD_RAW_DATA,
+		.policy = ll_stats_clr_policy,
+		.maxattr = ATTR_LL_STATS_CLR_MAX,
 	},
 	{/* 20 */
 		{
@@ -3215,7 +3172,8 @@ const struct wiphy_vendor_command vendor_cmd[] = {
 		.flags = WIPHY_VENDOR_CMD_NEED_WDEV |
 			 WIPHY_VENDOR_CMD_NEED_NETDEV,
 		.doit = vendor_gscan_start,
-		.policy = VENDOR_CMD_RAW_DATA,
+		.policy = wlan_gscan_config_policy,
+		.maxattr = GSCAN_ATTR_CONFIG_MAX,
 	},
 	{/* 21 */
 		{
@@ -3225,7 +3183,8 @@ const struct wiphy_vendor_command vendor_cmd[] = {
 		.flags = WIPHY_VENDOR_CMD_NEED_WDEV |
 			 WIPHY_VENDOR_CMD_NEED_NETDEV,
 		.doit = vendor_gscan_stop,
-		.policy = VENDOR_CMD_RAW_DATA,
+		.policy = wlan_gscan_config_policy,
+		.maxattr = GSCAN_ATTR_CONFIG_MAX,
 	},
 	{/* 22 */
 		{
@@ -3235,7 +3194,8 @@ const struct wiphy_vendor_command vendor_cmd[] = {
 		.flags = WIPHY_VENDOR_CMD_NEED_WDEV |
 			 WIPHY_VENDOR_CMD_NEED_NETDEV,
 		.doit = vendor_get_channel_list,
-		.policy = VENDOR_CMD_RAW_DATA,
+		.policy = wlan_gscan_config_policy,
+		.maxattr = GSCAN_ATTR_CONFIG_MAX,
 	},
 	{/* 23 */
 		{
@@ -3245,7 +3205,8 @@ const struct wiphy_vendor_command vendor_cmd[] = {
 		.flags = WIPHY_VENDOR_CMD_NEED_WDEV |
 			 WIPHY_VENDOR_CMD_NEED_NETDEV,
 		.doit = vendor_get_gscan_capabilities,
-		.policy = VENDOR_CMD_RAW_DATA,
+		.policy = wlan_gscan_config_policy,
+		.maxattr = GSCAN_ATTR_CONFIG_MAX,
 	},
 	{/* 24 */
 		{
@@ -3255,7 +3216,8 @@ const struct wiphy_vendor_command vendor_cmd[] = {
 		.flags = WIPHY_VENDOR_CMD_NEED_WDEV |
 			 WIPHY_VENDOR_CMD_NEED_NETDEV,
 		.doit = vendor_get_cached_gscan_results,
-		.policy = VENDOR_CMD_RAW_DATA,
+		.policy = wlan_gscan_config_policy,
+		.maxattr = GSCAN_ATTR_CONFIG_MAX,
 	},
 	{/* 29 */
 		{
@@ -3265,7 +3227,8 @@ const struct wiphy_vendor_command vendor_cmd[] = {
 		.flags = WIPHY_VENDOR_CMD_NEED_WDEV |
 			 WIPHY_VENDOR_CMD_NEED_NETDEV,
 		.doit = vendor_set_bssid_hotlist,
-		.policy = VENDOR_CMD_RAW_DATA,
+		.policy = wlan_gscan_config_policy,
+		.maxattr = GSCAN_ATTR_CONFIG_MAX,
 	},
 	{/* 30 */
 		{
@@ -3275,7 +3238,8 @@ const struct wiphy_vendor_command vendor_cmd[] = {
 		.flags = WIPHY_VENDOR_CMD_NEED_WDEV |
 			 WIPHY_VENDOR_CMD_NEED_NETDEV,
 		.doit = vendor_reset_bssid_hotlist,
-		.policy = VENDOR_CMD_RAW_DATA,
+		.policy = wlan_gscan_config_policy,
+		.maxattr = GSCAN_ATTR_CONFIG_MAX,
 	},
 	{/* 32 */
 		{
@@ -3285,7 +3249,8 @@ const struct wiphy_vendor_command vendor_cmd[] = {
 		.flags = WIPHY_VENDOR_CMD_NEED_WDEV |
 			 WIPHY_VENDOR_CMD_NEED_NETDEV,
 		.doit = vendor_set_significant_change,
-		.policy = VENDOR_CMD_RAW_DATA,
+		.policy = wlan_gscan_config_policy,
+		.maxattr = GSCAN_ATTR_CONFIG_MAX,
 	},
 	{/* 33 */
 		{
@@ -3296,7 +3261,8 @@ const struct wiphy_vendor_command vendor_cmd[] = {
 		.flags = WIPHY_VENDOR_CMD_NEED_WDEV |
 			 WIPHY_VENDOR_CMD_NEED_NETDEV,
 		.doit = vendor_reset_significant_change,
-		.policy = VENDOR_CMD_RAW_DATA,
+		.policy = wlan_gscan_config_policy,
+		.maxattr = GSCAN_ATTR_CONFIG_MAX,
 	},
 	{/* 38 */
 		{
@@ -3316,7 +3282,8 @@ const struct wiphy_vendor_command vendor_cmd[] = {
 		.flags = WIPHY_VENDOR_CMD_NEED_WDEV |
 			 WIPHY_VENDOR_CMD_NEED_NETDEV,
 		.doit = vendor_set_mac_oui,
-		.policy = VENDOR_CMD_RAW_DATA,
+		.policy = mac_oui_policy,
+		.maxattr = ATTR_SET_SCANNING_MAC_OUI_MAX,
 	},
 	{/* 42 */
 		{
@@ -3326,7 +3293,8 @@ const struct wiphy_vendor_command vendor_cmd[] = {
 		.flags = WIPHY_VENDOR_CMD_NEED_WDEV |
 			 WIPHY_VENDOR_CMD_NEED_NETDEV,
 		.doit = vendor_get_concurrency_matrix,
-		.policy = VENDOR_CMD_RAW_DATA,
+		.policy = get_concurrency_matrix_policy,
+		.maxattr = ATTR_CO_MATRIX_MAX,
 	},
 	{/* 55 */
 		{
@@ -3346,7 +3314,8 @@ const struct wiphy_vendor_command vendor_cmd[] = {
 		.flags = WIPHY_VENDOR_CMD_NEED_WDEV |
 			 WIPHY_VENDOR_CMD_NEED_NETDEV,
 		.doit = vendor_get_driver_info,
-		.policy = VENDOR_CMD_RAW_DATA,
+		.policy = get_wifi_info_policy,
+		.maxattr = ATTR_WIFI_INFO_GET_MAX,
 	},
 	{/* 62 */
 		{
@@ -3356,7 +3325,8 @@ const struct wiphy_vendor_command vendor_cmd[] = {
 		.flags = WIPHY_VENDOR_CMD_NEED_WDEV |
 			 WIPHY_VENDOR_CMD_NEED_NETDEV,
 		.doit = vendor_start_logging,
-		.policy = VENDOR_CMD_RAW_DATA,
+		.policy = wifi_logger_start_policy,
+		.maxattr = ATTR_WIFI_LOGGER_START_GET_MAX,
 	},
 	{/* 63 */
 		{
@@ -3366,7 +3336,8 @@ const struct wiphy_vendor_command vendor_cmd[] = {
 		.flags = WIPHY_VENDOR_CMD_NEED_WDEV |
 			 WIPHY_VENDOR_CMD_NEED_NETDEV,
 		.doit = vendor_memory_dump,
-		.policy = VENDOR_CMD_RAW_DATA,
+		.policy = wifi_logger_start_policy,
+		.maxattr = ATTR_WIFI_LOGGER_START_GET_MAX,
 	},
 	{/* 64 */
 		{
@@ -3376,7 +3347,8 @@ const struct wiphy_vendor_command vendor_cmd[] = {
 		.flags = WIPHY_VENDOR_CMD_NEED_WDEV |
 			WIPHY_VENDOR_CMD_NEED_NETDEV,
 		.doit = vendor_set_roam_params,
-		.policy = VENDOR_CMD_RAW_DATA,
+		.policy = roaming_config_policy,
+		.maxattr = ATTR_ROAM_MAX,
 	},
 	{/* 65 */
 		{
@@ -3386,7 +3358,8 @@ const struct wiphy_vendor_command vendor_cmd[] = {
 		.flags = WIPHY_VENDOR_CMD_NEED_WDEV |
 			WIPHY_VENDOR_CMD_NEED_NETDEV,
 		.doit = vendor_set_ssid_hotlist,
-		.policy = VENDOR_CMD_RAW_DATA,
+		.policy = wlan_gscan_config_policy,
+		.maxattr = GSCAN_ATTR_CONFIG_MAX,
 	},
 	{/* 66 */
 		{
@@ -3396,7 +3369,8 @@ const struct wiphy_vendor_command vendor_cmd[] = {
 		.flags = WIPHY_VENDOR_CMD_NEED_WDEV |
 			WIPHY_VENDOR_CMD_NEED_NETDEV,
 		.doit = vendor_reset_ssid_hotlist,
-		.policy = VENDOR_CMD_RAW_DATA,
+		.policy = wlan_gscan_config_policy,
+		.maxattr = GSCAN_ATTR_CONFIG_MAX,
 	},
 	{/* 69 */
 		{
@@ -3406,7 +3380,8 @@ const struct wiphy_vendor_command vendor_cmd[] = {
 		.flags = WIPHY_VENDOR_CMD_NEED_WDEV |
 			 WIPHY_VENDOR_CMD_NEED_NETDEV,
 		.doit = vendor_set_epno_list,
-		.policy = VENDOR_CMD_RAW_DATA,
+		.policy = wlan_gscan_result_policy,
+		.maxattr = ATTR_PNO_MAX,
 	},
 	{/* 70 */
 		{
@@ -3416,7 +3391,8 @@ const struct wiphy_vendor_command vendor_cmd[] = {
 		.flags = WIPHY_VENDOR_CMD_NEED_WDEV |
 			 WIPHY_VENDOR_CMD_NEED_NETDEV,
 		.doit = vendor_set_passpoint_list,
-		.policy = VENDOR_CMD_RAW_DATA,
+		.policy = wlan_gscan_result_policy,
+		.maxattr = ATTR_PNO_MAX,
 	},
 	{/* 71 */
 		{
@@ -3426,7 +3402,8 @@ const struct wiphy_vendor_command vendor_cmd[] = {
 		.flags = WIPHY_VENDOR_CMD_NEED_WDEV |
 			 WIPHY_VENDOR_CMD_NEED_NETDEV,
 		.doit = vendor_reset_passpoint_list,
-		.policy = VENDOR_CMD_RAW_DATA,
+		.policy = wlan_gscan_result_policy,
+		.maxattr = ATTR_PNO_MAX,
 	},
 	{/* 76 */
 		{
@@ -3436,7 +3413,8 @@ const struct wiphy_vendor_command vendor_cmd[] = {
 		.flags = WIPHY_VENDOR_CMD_NEED_WDEV |
 			 WIPHY_VENDOR_CMD_NEED_NETDEV,
 		.doit = vendor_get_logger_feature,
-		.policy = VENDOR_CMD_RAW_DATA,
+		.policy = get_logger_features_policy,
+		.maxattr = ATTR_LOGGER_MAX,
 	},
 	{/* 77 */
 		{
@@ -3446,7 +3424,8 @@ const struct wiphy_vendor_command vendor_cmd[] = {
 		.flags = WIPHY_VENDOR_CMD_NEED_WDEV |
 			 WIPHY_VENDOR_CMD_NEED_NETDEV,
 		.doit = vendor_get_ring_data,
-		.policy = VENDOR_CMD_RAW_DATA,
+		.policy = wifi_logger_start_policy,
+		.maxattr = ATTR_WIFI_LOGGER_START_GET_MAX,
 	},
 	{/* 79 */
 		{
@@ -3456,7 +3435,8 @@ const struct wiphy_vendor_command vendor_cmd[] = {
 		.flags = WIPHY_VENDOR_CMD_NEED_WDEV |
 			 WIPHY_VENDOR_CMD_NEED_RUNNING,
 		.doit = vendor_set_offload_packet,
-		.policy = VENDOR_CMD_RAW_DATA,
+		.policy = offloaded_packets_policy,
+		.maxattr = ATTR_OFFLOADED_PACKETS_MAX,
 	},
 	{/* 80 */
 		{
@@ -3466,7 +3446,8 @@ const struct wiphy_vendor_command vendor_cmd[] = {
 		.flags = WIPHY_VENDOR_CMD_NEED_WDEV |
 			 WIPHY_VENDOR_CMD_NEED_NETDEV,
 		.doit = vendor_monitor_rssi,
-		.policy = VENDOR_CMD_RAW_DATA,
+		.policy = rssi_monitor_policy,
+		.maxattr = ATTR_RSSI_MONITOR_MAX,
 	},
 	{/* 82 */
 		{
@@ -3476,7 +3457,8 @@ const struct wiphy_vendor_command vendor_cmd[] = {
 		.flags = WIPHY_VENDOR_CMD_NEED_WDEV |
 			 WIPHY_VENDOR_CMD_NEED_NETDEV,
 		.doit = vendor_enable_nd_offload,
-		.policy = VENDOR_CMD_RAW_DATA,
+		.policy = nd_offload_policy,
+		.maxattr = ATTR_ND_OFFLOAD_MAX,
 	},
 	{/* 85 */
 		{
@@ -3486,7 +3468,8 @@ const struct wiphy_vendor_command vendor_cmd[] = {
 		.flags = WIPHY_VENDOR_CMD_NEED_WDEV |
 			 WIPHY_VENDOR_CMD_NEED_NETDEV,
 		.doit = vendor_get_wake_state,
-		.policy = VENDOR_CMD_RAW_DATA,
+		.policy = wake_stats_policy,
+		.maxattr = ATTR_WAKE_MAX,
 	},
 	{/* 146 */
 		{
@@ -3496,7 +3479,8 @@ const struct wiphy_vendor_command vendor_cmd[] = {
 		.flags = WIPHY_VENDOR_CMD_NEED_WDEV |
 			 WIPHY_VENDOR_CMD_NEED_NETDEV,
 		.doit = vendor_set_sar_limits,
-		.policy = VENDOR_CMD_RAW_DATA,
+		.policy = vendor_sar_limits_policy,
+		.maxattr = ATTR_SAR_LIMITS_MAX,
 	},
 
 #ifdef CONFIG_SC2355_WLAN_NAN
@@ -3667,9 +3651,9 @@ static const struct nl80211_vendor_cmd_info vendor_events[] = {
 		.vendor_id = OUI_SPREAD,
 		.subcmd = VENDOR_EVENT_NAN,
 	},
-	[SPRD_VENDOR_EVENT_EPNO_FOUND] = {
+	[VENDOR_CMD_PNO_NETWORK_FOUND] = {
 		.vendor_id = OUI_SPREAD,
-		.subcmd = SPRD_VENDOR_EVENT_EPNO_FOUND,
+		.subcmd = VENDOR_CMD_PNO_NETWORK_FOUND,
 	},
 	[SPRD_EVENT_RTT_MEAS_RESULT_INDEX] = {
 		.vendor_id = OUI_SPREAD,
@@ -3866,7 +3850,7 @@ static void vendor_report_epno_results(struct sprd_vif *vif, u8 *data,
 	}
 
 	skb = cfg80211_vendor_event_alloc(wiphy, &vif->wdev, data_len,
-					  SPRD_VENDOR_EVENT_EPNO_FOUND,
+					  VENDOR_CMD_PNO_NETWORK_FOUND,
 					  GFP_KERNEL);
 	if (!skb) {
 		netdev_err(vif->ndev, "skb alloc failed");
