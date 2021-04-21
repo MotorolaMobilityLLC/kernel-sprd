@@ -111,7 +111,7 @@
 
 		irq {
 			compatible = "sprd,trusty-irq-v1";
-			interrupt-templates = <&gic IRQ_TYPE_NONE>,
+			interrupt-templates = <&gic 0 0 IRQ_TYPE_NONE>,
 					      <&gic 1 GIC_PPI IRQ_TYPE_LEVEL_LOW>,
 					      <&gic 1 GIC_SPI IRQ_TYPE_LEVEL_HIGH>;
 			interrupt-ranges = < 0  15 0>,
