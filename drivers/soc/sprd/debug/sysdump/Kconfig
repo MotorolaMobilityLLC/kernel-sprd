@@ -18,3 +18,9 @@ config SPRD_EMERGENCY_RESTART
 	help
 		This option enables Spreatrum emergency restart which transfer
 		argument as reboot reason for watchdog reboot handler
+
+config SPRD_NATIVE_HANG_MONITOR
+	bool "Enable SPRD android native hang detect handler"
+	help
+		This option enables Spreatrum android native hang detect which prepare debug info
+		for the case to debug.

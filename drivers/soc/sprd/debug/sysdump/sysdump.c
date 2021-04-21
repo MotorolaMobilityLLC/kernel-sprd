@@ -43,6 +43,7 @@
 #endif
 #include "sysdump.h"
 #include "sysdumpdb.h"
+#include "native_hang_monitor.h"
 #include <linux/kallsyms.h>
 #include <asm/stacktrace.h>
 #include <asm-generic/kdebug.h>
@@ -143,10 +144,6 @@ struct minidump_info  minidump_info_g =	{
 static int prepare_exception_info(struct pt_regs *regs,
 			struct task_struct *tsk, const char *reason);
 static char *ylog_buffer;
-#ifdef CONFIG_SPRD_NATIVE_HANG_MONITOR
-extern void get_native_hang_monitor_buffer(unsigned long *addr, unsigned long *size,
-						unsigned long *start);
-#endif
 #endif /*	minidump code end	*/
 typedef char note_buf_t[SYSDUMP_NOTE_BYTES];
 
