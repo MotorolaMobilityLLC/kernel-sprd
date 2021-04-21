@@ -320,6 +320,8 @@ static const struct of_device_id apsys_dvfs_of_match[] = {
 	  .data = "roc1" },
 	{ .compatible = "sprd,hwdvfs-apsys-sharkl5pro",
 	  .data = "sharkl5pro" },
+	{ .compatible = "sprd,hwdvfs-apsys-qogirl6",
+	  .data = "qogirl6" },
 	{ },
 };
 
