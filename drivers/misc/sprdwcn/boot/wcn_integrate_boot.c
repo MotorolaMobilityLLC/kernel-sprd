@@ -50,9 +50,8 @@ void wcn_device_poweroff(void)
 
 void wcn_chip_power_off(void)
 {
-	sprdwcn_bus_set_carddump_status(false);
 	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
-		mutex_lock(&s_wcn_device.btwf_device->power_lock);
+		sprdwcn_bus_set_carddump_status(true);
 		wcn_sys_force_deep_to_shutdown(s_wcn_device.btwf_device);
 		wcn_dfs_poweroff_state_clear(s_wcn_device.btwf_device);
 		wcn_dfs_poweroff_state_clear(s_wcn_device.gnss_device);
@@ -66,9 +65,12 @@ void wcn_chip_power_off(void)
 		s_wcn_device.gnss_device->wcn_open_status = 0;
 		s_wcn_device.btwf_device->boot_cp_status = 0;
 		s_wcn_device.gnss_device->boot_cp_status = 0;
-		mutex_unlock(&s_wcn_device.btwf_device->power_lock);
-	} else
+		sprdwcn_bus_set_carddump_status(false);
+	} else {
+		sprdwcn_bus_set_carddump_status(false);
 		wcn_device_poweroff();
+	}
+
 }
 EXPORT_SYMBOL_GPL(wcn_chip_power_off);
 
@@ -1155,7 +1157,10 @@ int wcn_sys_forbid_deep_sleep(struct wcn_device *wcn_dev)
 	btwf_sys_polling_wakeup(wcn_dev);
 	btwf_sys_polling_poweron(wcn_dev);
 	wcn_sys_polling_wakeup(wcn_dev);
-	wcn_sys_polling_poweron(wcn_dev);
+	if (!(wcn_sys_polling_poweron(wcn_dev)))  {
+		WCN_ERR("[-]%s wcn_sys_polling_poweron fail\n", __func__);
+		return -1;
+	}
 
 	wcn_ip_allow_sleep(wcn_dev, false);
 
@@ -2939,6 +2944,7 @@ int stop_integrate_wcn_truely(u32 subsys)
 	u32 subsys_bit = 1 << subsys;
 	int force_sleep = 0;
 
+	WCN_INFO("stop subsys:%d\n", subsys);
 	/* Check Parameter whether valid */
 	wcn_dev = wcn_get_dev_by_type(subsys_bit);
 	if (!wcn_dev) {
@@ -2969,8 +2975,6 @@ int stop_integrate_wcn_truely(u32 subsys)
 	WCN_INFO("%s,subsys=%d do stop\n", wcn_dev->name, subsys);
 	if (is_marlin)
 		wcn_set_loopcheck_state(false);
-	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6)
-		wcn_dfs_poweroff_state_clear(wcn_dev);
 	/* btwf use the send shutdown cp2 cmd way */
 	if (is_marlin && !sprdwcn_bus_get_carddump_status())
 		force_sleep = wcn_send_force_sleep_cmd(wcn_dev);
@@ -2979,66 +2983,7 @@ int stop_integrate_wcn_truely(u32 subsys)
 
 	/* only one module works: stop CPU */
 	wcn_proc_native_stop(wcn_dev);
-
-	/* QogirL6 WCN auto shutdown */
-	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
-		int i = 0;
-
-		/* check sub sys(btwf/gnss) shutdown */
-		for (i = 0; i < WCN_WAIT_SHUTDOWN_MAX_COUNT; i++) {
-			/* check sub sys shutdown */
-			if (wcn_subsys_shutdown_status(wcn_dev)) {
-				WCN_INFO("i=%d subsys shutdown suc!\n", i);
-				break;
-			}
-			msleep(10);
-		}
-		if (i == WCN_WAIT_SHUTDOWN_MAX_COUNT)
-			WCN_ERR("WCN subsys shutdown fail!\n");
-
-		/* force self deepsleep */
-		if (is_marlin)
-			btwf_force_deepsleep();
-		else
-			gnss_force_deepsleep();
-
-		/* last sys disable, wcn go to shutdown
-		 * WCN Sub SYS force peer side deep.WCN Power on, the Chip will power on
-		 * BTWF and GNSS sys, it means if BTWF power on, works, power off,
-		 * the GNSS SYS is at power on status, so when power off BTWF SYS,
-		 * should power off GNSS SYS if GNSS isn't working.
-		 */
-		if (wcn_subsys_active_num() == 0) {
-			if (is_marlin)
-				gnss_force_deepsleep();
-			else
-				btwf_force_deepsleep();
-
-			/* PMU set wcn auto shutdown */
-			wcn_set_auto_shutdown(wcn_dev);
-
-			/* aon ip stop */
-			WCN_INFO("stop wcn aon ip!\n");
-			wcn_regmap_raw_write_bit(
-				wcn_dev->rmap[REGMAP_WCN_AON_AHB],
-				0x00C4, 0x3FFC);
-
-			for (i = 0; i < WCN_WAIT_SHUTDOWN_MAX_COUNT; i++) {
-				if (wcn_shutdown_status(wcn_dev)) {
-					WCN_INFO("WCN shutdown suc!\n");
-					break;
-				}
-				msleep(2);
-			}
-			if (i == WCN_WAIT_SHUTDOWN_MAX_COUNT)
-				WCN_ERR("WCN shutdown fail!\n");
-		}
-	}
-
 	wcn_power_enable_sys_domain(false);
-
-	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6)
-		wcn_dfs_poweroff_shutdown_clear(wcn_dev);
 
 	if (is_marlin) {
 		/* stop common resources if can disable it */
@@ -3047,20 +2992,11 @@ int stop_integrate_wcn_truely(u32 subsys)
 		usleep_range(VDDWIFIPA_VDDCON_MIN_INTERVAL_TIME,
 			     VDDWIFIPA_VDDCON_MAX_INTERVAL_TIME);
 	}
-	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
-		wcn_power_enable_merlion_domain(false);
-		wcn_power_enable_vddcon(false);
-		wcn_power_enable_dcxo1v8(false);
-	} else
-		wcn_power_enable_vddcon(false);
 
-	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
-		WCN_INFO("QgoriL6 no needs softreset!\n");
-	} else {
-		wcn_sys_soft_reset();
-		wcn_sys_soft_release();
-		wcn_sys_deep_sleep_en();
-	}
+	wcn_power_enable_vddcon(false);
+	wcn_sys_soft_reset();
+	wcn_sys_soft_release();
+	wcn_sys_deep_sleep_en();
 	wcn_dev->power_state = WCN_POWER_STATUS_OFF;
 
 	WCN_INFO("%s open_status = %d,power_state=%d,stop subsys=%d!\n",
@@ -3082,6 +3018,7 @@ int stop_integrate_wcn_module(u32 subsys)
 	u32 subsys_bit = 1 << subsys;
 	int ret;
 
+	WCN_INFO("stop subsys:%d\n", subsys);
 	/* Check Parameter whether valid */
 	wcn_dev = wcn_get_dev_by_type(subsys_bit);
 	if (!wcn_dev) {
@@ -3119,7 +3056,7 @@ int stop_integrate_wcn_module(u32 subsys)
 	if (is_marlin) {
 		if (btwf_sys_polling_deepsleep(wcn_dev) == false) {
 			wcn_assert_interface(WCN_SOURCE_BTWF,
-							"btwf shutdown isn't at deepsleep");
+						"btwf shutdown isn't at deepsleep");
 			mutex_unlock(&wcn_dev->power_lock);
 
 			return -1;
@@ -3127,11 +3064,16 @@ int stop_integrate_wcn_module(u32 subsys)
 	} else {
 		if (gnss_sys_polling_deepsleep(wcn_dev) == false) {
 			wcn_assert_interface(WCN_SOURCE_GNSS,
-							"gnss shutdown isn't at deepsleep");
+						"gnss shutdown isn't at deepsleep");
 			mutex_unlock(&wcn_dev->power_lock);
 
 			return -1;
 		}
+	}
+	if (unlikely(sprdwcn_bus_get_carddump_status() != 0)) {
+		WCN_ERR("in dump or reset status subsys=%d!\n", subsys);
+		mutex_unlock(&wcn_dev->power_lock);
+		return -1;
 	}
 
 	/*
@@ -3139,7 +3081,11 @@ int stop_integrate_wcn_module(u32 subsys)
 	 * confirm access wcn sys regs normally
 	 * when shutdown btwf or gnss sys
 	 */
-	wcn_sys_forbid_deep_sleep(wcn_dev);
+	if (wcn_sys_forbid_deep_sleep(wcn_dev)) {
+		WCN_ERR("[-]%s:wcn_sys_forbid_deep_sleep fail", __func__);
+		mutex_unlock(&wcn_dev->power_lock);
+		return -1;
+	}
 
 	if (is_marlin) {
 		ret = btwf_sys_shutdown(wcn_dev);
@@ -3207,7 +3153,7 @@ int stop_integrate_wcn(u32 subsys)
 
 	mutex_lock(&marlin_lock);
 	if (unlikely(sprdwcn_bus_get_carddump_status() != 0)) {
-		WCN_ERR("err:in dump status subsys=%d!\n", subsys);
+		WCN_ERR("in dump or reset status subsys=%d!\n", subsys);
 		mutex_unlock(&marlin_lock);
 		return -1;
 	}
