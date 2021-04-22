@@ -96,6 +96,7 @@
 #define SPRD_SPI_ITVL_NUM		0x09
 
 /* Bits & mask definition for register SPI_INT_CLR */
+#define SPRD_SPI_ALL_INT_CLR		0x33f
 #define SPRD_SPI_RX_END_INT_CLR		BIT(9)
 #define SPRD_SPI_TX_END_INT_CLR		BIT(8)
 
@@ -245,7 +246,8 @@ static int sprd_spi_wait_for_tx_end(struct sprd_spi *ss, struct spi_transfer *t)
 		return ret;
 	}
 
-	writel_relaxed(SPRD_SPI_TX_END_INT_CLR, ss->base + SPRD_SPI_INT_CLR);
+	writel_relaxed(SPRD_SPI_TX_END_INT_CLR | SPRD_SPI_RX_END_INT_CLR,
+		       ss->base + SPRD_SPI_INT_CLR);
 
 	return 0;
 }
@@ -263,7 +265,8 @@ static int sprd_spi_wait_for_rx_end(struct sprd_spi *ss, struct spi_transfer *t)
 		return ret;
 	}
 
-	writel_relaxed(SPRD_SPI_RX_END_INT_CLR, ss->base + SPRD_SPI_INT_CLR);
+	writel_relaxed(SPRD_SPI_TX_END_INT_CLR | SPRD_SPI_RX_END_INT_CLR,
+		       ss->base + SPRD_SPI_INT_CLR);
 
 	return 0;
 }
@@ -836,6 +839,9 @@ static void sprd_spi_init_hw(struct sprd_spi *ss, struct spi_transfer *t)
 		val &= ~SPRD_SPI_DATA_LINE2_EN;
 
 	writel_relaxed(val, ss->base + SPRD_SPI_CTL7);
+
+	/* Clear all interrupt status */
+	writel_relaxed(SPRD_SPI_ALL_INT_CLR, ss->base + SPRD_SPI_INT_CLR);
 
 	/* Set SPI default fifo threshold */
 	writel_relaxed((FIFO_TX_EMPTY << TXF_THLD_OFFSET) | FIFO_TX_FULL,
