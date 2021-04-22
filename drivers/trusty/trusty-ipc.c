@@ -1216,9 +1216,6 @@ static ssize_t tipc_write_iter(struct kiocb *iocb, struct iov_iter *iter)
 
 	while (copyed_len < total_len) {
 
-		if (copyed_len != 0)
-			timeout = 0;
-
 		txbuf = tipc_chan_get_txbuf_timeout(dn->chan, timeout);
 		if (IS_ERR(txbuf)) {
 			if (copyed_len == 0) {
