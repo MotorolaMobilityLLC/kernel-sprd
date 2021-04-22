@@ -838,7 +838,7 @@ static int soc_modem_parse_dt(struct modem_device *modem,
 		pm_reg_ctl->ctrl_map = syscon_regmap_lookup_by_phandle(np, "sprd,sys-bus-ctrl");
 		if (IS_ERR(pm_reg_ctl->ctrl_map)) {
 			dev_err(modem->p_dev, "failed to find pm_aon_apb reg.\n");
-			return -EINVAL；
+			return -EINVAL;
 		}
 
 		dev_info(modem->p_dev, "offset = 0x%x, mask = 0x%x.\n",
