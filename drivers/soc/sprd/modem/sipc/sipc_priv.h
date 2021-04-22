@@ -136,7 +136,7 @@ struct smsg_ipc {
 	void			(*rxirq_clear)(u8 id);
 
 #ifdef CONFIG_SPRD_MAILBOX
-	void			(*txirq_trigger)(u8 id, u64 msg);
+	int			(*txirq_trigger)(u8 id, u64 msg);
 #else
 	void			(*txirq_trigger)(u8 id);
 #endif

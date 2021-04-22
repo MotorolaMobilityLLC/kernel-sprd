@@ -681,22 +681,20 @@ int smsg_send(u8 dst, struct smsg *msg, int timeout)
 
 	spin_lock_irqsave(&ipc->txpinlock, flags);
 
-	if (
 #ifdef CONFIG_SPRD_MAILBOX
-		(ipc->rxirq_status(ipc->id) > 0)
+	if (ipc->txirq_trigger(ipc->id, *(u64 *)msg)) {
+		pr_err("smsg_send: mbox send fail!\n");
+		rval = -EBUSY;
+		goto send_failed;
+	}
 #else
-		((int)(SIPC_READL(ipc->txbuf_wrptr) -
-			SIPC_READL(ipc->txbuf_rdptr)) >= ipc->txbuf_size)
-#endif
-	) {
+	if ((int)(SIPC_READL(ipc->txbuf_wrptr) -
+			SIPC_READL(ipc->txbuf_rdptr)) >= ipc->txbuf_size) {
 		pr_info("smsg_send: smsg txbuf is full!\n");
 		rval = -EBUSY;
 		goto send_failed;
 	}
 
-#ifdef CONFIG_SPRD_MAILBOX
-	ipc->txirq_trigger(ipc->id, *(u64 *)msg);
-#else
 	/* calc txpos and write smsg */
 	txpos = (SIPC_READL(ipc->txbuf_wrptr) & (ipc->txbuf_size - 1)) *
 		sizeof(struct smsg) + ipc->txbuf_addr;

@@ -89,11 +89,11 @@ static void sipc_rxirq_clear(u8 id)
 {
 }
 
-static void sipc_txirq_trigger(u8 id, u64 msg)
+static int sipc_txirq_trigger(u8 id, u64 msg)
 {
 	struct sipc_child_node_info *info = sipc_ap.sipc_tags[id];
 
-	mbox_raw_sent(info->core_id, msg);
+	return mbox_raw_sent(info->core_id, msg);
 }
 #else
 static u32 sipc_rxirq_status(u8 id)
