@@ -256,13 +256,10 @@ static irqreturn_t sprd_mbox_phy_inbox_isr(int irq, void *data)
 			SPRD_INBOX_FIFO_IRQ_MASK;
 
 	/* When deliver success, and corresponding tx_fifo is not empty, start send tx_fifo */
-	if (irq_msk == ((~(u32)SPRD_INBOX_FIFO_DELIVER_IRQ) &
-	    SPRD_INBOX_FIFO_IRQ_MASK)) {
-		tx_mask = get_tx_fifo_mask(deliver);
-		dev_dbg(priv->dev, "tx_mask = 0x%x\n", tx_mask);
-		if (tx_mask)
-			mbox_start_send_tx_fifo(tx_mask);
-	}
+	tx_mask = get_tx_fifo_mask(deliver & (~block));
+	dev_dbg(priv->dev, "tx_mask = 0x%x\n", tx_mask);
+	if (tx_mask)
+		mbox_start_send_tx_fifo(tx_mask);
 
 	/* If block, enable inbox deliver irq, if not, enable inbox block & overflow irq */
 	dev_dbg(priv->dev, "irq_msk = 0x%x\n", irq_msk);
