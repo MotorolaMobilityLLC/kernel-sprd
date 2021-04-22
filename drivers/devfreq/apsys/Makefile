@@ -12,5 +12,5 @@ obj-$(CONFIG_DRM_SPRD_GSP_DVFS) += sprd_dvfs_gsp.o
 obj-y += vsp/
 obj-y += sprd_dvfs_vsp.o
 
-obj-y += vdsp/
-obj-y += sprd_dvfs_vdsp.o
+obj-$(CONFIG_SPRD_APSYS_VDSP_DVFS_DEVFREQ) += vdsp/
+obj-$(CONFIG_SPRD_APSYS_VDSP_DVFS_DEVFREQ) += sprd_dvfs_vdsp.o

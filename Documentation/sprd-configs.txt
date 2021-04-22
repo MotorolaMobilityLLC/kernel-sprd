@@ -13486,6 +13486,17 @@ CONFIG_SPRD_APSYS_DVFS_DEVFREQ
 				   function, we will not user apsys dvfs devfreq function due to
 				   some reasons such as roc1.
 	[function] Enable apsys dvfs function.
+CONFIG_SPRD_APSYS_VDSP_DVFS_DEVFREQ
+	[arch] arm64
+	[plat] sharkl5Pro
+	[missing plat] qogirl6,qogirn6pro,sharkl3,sharkl5
+	[field] make
+	[subsys] devfreq
+	[must] user
+	[missing plat description] Since the dvfs of the qogirn6pro project will
+				   move under mmsys-dvfs. And only sharkl5Pro and qogirn6pro
+				   contain vdsp module.
+	[function] Enable apsys vdsp dvfs function.
 CONFIG_SPRD_AUDIO_AGDSP_ACCESS
 	[arch] all
 	[plat] qogirl6,qogirn6pro,sharkl5,sharkl5Pro,sharkl5_32
