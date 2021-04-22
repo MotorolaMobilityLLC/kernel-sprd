@@ -375,8 +375,8 @@
 		reg = <0x0 0xa3800000 0x0 0x0c800000>;
 	};
 
-	fd_reserved: faceid-mem@faaa0000 {
-		reg = <0x0 0xfaaa0000 0x0 0x01e00000>;
+	fd_reserved: faceid-mem@fc3a0000 {
+		reg = <0x0 0xfc3a0000 0x0 0x00500000>;
 	};
 
 	wb_reserved: writeback-mem@fc8a0000 {
