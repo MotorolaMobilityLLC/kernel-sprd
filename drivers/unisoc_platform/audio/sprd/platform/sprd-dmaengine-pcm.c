@@ -169,6 +169,7 @@ static const struct snd_pcm_hardware sprd_i2s_pcm_hardware = {
 	.buffer_bytes_max = I2S_BUFFER_BYTES_MAX,
 };
 
+#if 0
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-function"
 int agdsp_access_enable(void)
@@ -187,6 +188,7 @@ static int __agdsp_access_disable(void)
 	return 0;
 }
 #pragma GCC diagnostic pop
+#endif
 
 static inline int sprd_is_i2s(struct snd_soc_dai *cpu_dai)
 {
