@@ -197,7 +197,7 @@ static int sprd_7sreset_get_keymode(struct device *dev)
 	return !(r_val & BIT_KEY2_7S_RST_EN);
 }
 
-#if 0
+#ifdef AUTH_VERSION
 static int sprd_7sreset_set_resetmode(struct device *dev, int mode)
 {
 	struct sprd_7sreset *sprd_7sreset_dev = dev_get_drvdata(dev);
@@ -354,7 +354,9 @@ static ssize_t hard_mode_store(struct device *dev,
 	if (ret < 0)
 		return ret;
 
-	//ret = sprd_7sreset_set_resetmode(dev, set_value);
+#ifdef AUTH_VERSION
+	ret = sprd_7sreset_set_resetmode(dev, set_value);
+#endif
 	if (ret)
 		return ret;
 

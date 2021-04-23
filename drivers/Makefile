@@ -14,6 +14,10 @@ ifeq ($(BUILD_SMT),YES)
 subdir-ccflags-y += -DSMT_VERSION
 endif
 
+ifeq ($(BUILD_DPWK),YES)
+subdir-ccflags-y += -DAUTH_VERSION
+endif
+
 obj-y				+= irqchip/
 obj-y				+= bus/
 
