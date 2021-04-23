@@ -46,6 +46,8 @@
 		eth13 = &sipa_eth13;
 		eth14 = &sipa_eth14;
 		eth15 = &sipa_eth15;
+		serdes0 = &serdes0;
+		serdes1 = &serdes1;
 	};
 
 	soc: soc {
@@ -2239,6 +2241,28 @@
 				sprd,pub-ise-reg-offset = <0x3368>;
 				sprd,pub-ise-bit-offset = <15>;
 				interrupts = <GIC_SPI 49 IRQ_TYPE_LEVEL_HIGH>;
+			};
+
+			serdes0: modem-dbg-log@520000 {
+				compatible = "sprd,dbg-log-qogirn6pro";
+				reg = <0x520000 0x4000>;
+				sprd,syscon-pmu-apb = <&pmu_apb_regs>;
+				sprd,syscon-dsi-apb = <&anlg_phy_g4l_regs>;
+				sprd,ch-name = "TRAINING", "TPIU", "DBUS", "PHYCP";
+				sprd,ch-index = <15 1 0 2>;
+				sprd,dcfix;
+				status = "disabled";
+			};
+
+			serdes1: modem-dbg-log@530000 {
+				compatible = "sprd,dbg-log-qogirn6pro";
+				reg = <0x530000 0x4000>;
+				sprd,syscon-pmu-apb = <&pmu_apb_regs>;
+				sprd,syscon-dsi-apb = <&anlg_phy_g4_regs>;
+				sprd,ch-name = "TRAINING", "PHYCP";
+				sprd,ch-index = <15 0>;
+				sprd,dcfix;
+				status = "disabled";
 			};
 
 			djtag: djtag@64570000 {
