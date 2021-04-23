@@ -4773,6 +4773,7 @@ static int charger_manager_remove(struct platform_device *pdev)
 	cancel_work_sync(&setup_polling);
 	cancel_delayed_work_sync(&cm_monitor_work);
 	cancel_delayed_work_sync(&cm->cap_update_work);
+	cancel_delayed_work_sync(&cm->fullbatt_vchk_work);
 	if (cm->track.cap_tracking)
 		cancel_delayed_work_sync(&cm->track.track_capacity_work);
 
@@ -4791,6 +4792,12 @@ static void charger_manager_shutdown(struct platform_device *pdev)
 	struct charger_manager *cm = platform_get_drvdata(pdev);
 
 	set_batt_cap(cm, cm_capacity_unmap(cm, cm->desc->cap));
+	cancel_delayed_work_sync(&cm_monitor_work);
+
+	cancel_delayed_work_sync(&cm->fullbatt_vchk_work);
+	cancel_delayed_work_sync(&cm->cap_update_work);
+	if (cm->track.cap_tracking)
+		cancel_delayed_work_sync(&cm->track.track_capacity_work);
 }
 
 static const struct platform_device_id charger_manager_id[] = {
