@@ -596,6 +596,7 @@ u32 mdbg_check_wifi_ip_status(void)
 	u32 btwf_wrap_mac_mask = (0x2);
 	u32 btwf_wrap_phy_mask = (0x4);
 	u32 btwf_arm_domain_power = (0x1);
+	u32 btwf_arm_wrap_mask = (0x8);
 	struct wcn_device *wcn_dev;
 
 	wcn_dev = s_wcn_device.btwf_device;
@@ -605,6 +606,7 @@ u32 mdbg_check_wifi_ip_status(void)
 
 	return ((need_dump_status & btwf_wrap_mac_mask) &&
 			(need_dump_status & btwf_wrap_phy_mask) &&
+			(need_dump_status & btwf_arm_wrap_mask) &&
 			(need_dump_status & btwf_arm_domain_power));
 }
 
@@ -672,6 +674,16 @@ static int btwf_dump_mem(void)
 
 	if (mdbg_dump_share_memory(s_wcn_dump_regs)) {
 		WCN_INFO("Dump ringbuf is full!\n");
+		return 0;
+	}
+
+	/* The precondition provided by the current access register is
+	 incorrect and cannot cover the full scene dump access.
+         So return.*/
+	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
+		WCN_INFO("dump register ok!\n");
+		mdbg_dump_str(WCN_DUMP_END_STRING,
+					  strlen(WCN_DUMP_END_STRING));
 		return 0;
 	}
 
