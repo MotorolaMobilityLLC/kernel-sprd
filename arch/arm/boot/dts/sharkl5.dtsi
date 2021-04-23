@@ -2605,7 +2605,7 @@
 		};
 
 		thm1_sen1: thm1-sen1@42{
-			reg = <0x42 01>;
+			reg = <0x42 0x1>;
 		};
 
 		thm2_sign: thm2-sign@3e{
