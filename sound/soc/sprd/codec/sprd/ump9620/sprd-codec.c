@@ -1935,16 +1935,7 @@ static int hp_depop_event(struct snd_soc_dapm_widget *w,
 				    HP_DCV_VAL2(0x6));
 
 		mask = HP_DPOP_FDIN_EN | HP_DPOP_FDOUT_EN;
-		/*
-		 * choose one from following
-		 * option 1: for de-pop sequence
-		 */
-		/* val = mask; */
-
-		/* option 2: for only using HP path sequence */
-		val = 0;
-
-		ret = snd_soc_update_bits(codec, SOC_REG(ANA_DCL5), mask, val);
+		ret = snd_soc_update_bits(codec, SOC_REG(ANA_DCL5), mask, mask);
 	}
 
 	return ret;

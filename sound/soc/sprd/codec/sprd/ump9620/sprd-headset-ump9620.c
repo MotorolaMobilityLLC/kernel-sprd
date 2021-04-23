@@ -3122,12 +3122,15 @@ static int sprd_headset_parse_dt(struct sprd_headset *hdst)
 		dev_err(dev, "parse 'mic-gpios' fail\n");
 		return PTR_ERR(pdata->typec_mic_gpio);
 	}
+	gpiod_export(pdata->typec_mic_gpio, true);
+
 	pdata->typec_lr_gpio = devm_gpiod_get_index(dev, "lr",
 		0, GPIOD_ASIS);
 	if (IS_ERR(pdata->typec_lr_gpio)) {
 		dev_err(dev, "parse 'lr-gpios' fail\n");
 		return PTR_ERR(pdata->typec_lr_gpio);
 	}
+	gpiod_export(pdata->typec_lr_gpio, true);
 	ret = of_property_read_u32(np, "sprd,switch-voltage",
 				   &pdata->switch_vol);
 	if (ret < 0) {
