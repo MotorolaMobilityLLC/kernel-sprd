@@ -1947,8 +1947,8 @@ int gnss_sys_shutdown(struct wcn_device *wcn_dev)
 	WCN_INFO("Set REG 0x4080c0320:val=0x%x(vol adj dis)!\n",
 			  reg_val);
 
-	wcn_ip_allow_sleep(wcn_dev, true);
-
+	/* workround1 use after chip eco D-die sys dosen't sleep*/
+	//wcn_ip_allow_sleep(wcn_dev, true);
 	return 0;
 }
 
