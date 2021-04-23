@@ -406,10 +406,11 @@ int scene_exit(char *scenario)
 	}
 	del_scene(scene);
 	trace_sprd_scene(scene, 0);
+	err = send_scene_request(scene->vote_magic);
+	if (err < 0)
+		return err;
 	if (unlikely(scene->scene_freq == 0xbacd))
 		err = reset_backdoor();
-	else
-		err = send_scene_request(scene->vote_magic);
 	return err;
 }
 EXPORT_SYMBOL(scene_exit);
