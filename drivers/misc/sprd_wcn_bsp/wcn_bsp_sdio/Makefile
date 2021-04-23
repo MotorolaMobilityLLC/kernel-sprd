@@ -30,6 +30,7 @@ wcn_bsp_sdio-y += platform/loopcheck.o
 wcn_bsp_sdio-y += platform/wcn_boot.o
 wcn_bsp_sdio-y += platform/wcn_dump.o
 wcn_bsp_sdio-y += platform/wcn_gnss_ops.o
+wcn_bsp_sdio-y += platform/wcn_gnss_dump.o
 #CONFIG_WCN_SWD_DAP is not used in AndriodR
 wcn_bsp_sdio-$(CONFIG_WCN_SWD_DAP) += platform/wcn_swd_dap.o
 wcn_bsp_sdio-y += platform/mem_pd_mgr.o
@@ -50,4 +51,3 @@ wcn_bsp_sdio-y += sdio/sdiohal_ctl.o
 wcn_bsp_sdio-y += platform/gnss/gnss_common_ctl.o
 wcn_bsp_sdio-y += platform/gnss/gnss_dbg.o
 wcn_bsp_sdio-y += platform/gnss/gnss_pmnotify_ctl.o
-wcn_bsp_sdio-y += platform/gnss/gnss_dump.o

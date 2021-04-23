@@ -34,7 +34,7 @@
 #include <linux/uaccess.h>
 #include <linux/wait.h>
 #include <misc/marlin_platform.h>
-#include "gnss_common.h"
+#include "gnss_common_ctl.h"
 #include "../wcn_gnss.h"
 #define GNSS_DATA_MAX_LEN	16
 

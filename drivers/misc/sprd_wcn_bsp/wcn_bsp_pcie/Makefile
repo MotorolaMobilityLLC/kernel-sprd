@@ -31,6 +31,7 @@ wcn_bsp_pcie-y += platform/pcie_boot.o
 wcn_bsp_pcie-$(CONFIG_WCN_SWD_DAP) += platform/wcn_swd_dap.o
 wcn_bsp_pcie-y += platform/wcn_debugfs.o
 wcn_bsp_pcie-y += platform/wcn_gnss_ops.o
+wcn_bsp_pcie-y += platform/wcn_gnss_dump.o
 
 #PCIE FILE
 wcn_bsp_pcie-y += pcie/pcie.o
@@ -46,4 +47,3 @@ wcn_bsp_pcie-y += pcie/pcie_pm.o
 wcn_bsp_pcie-y += platform/gnss/gnss_common_ctl.o
 wcn_bsp_pcie-y += platform/gnss/gnss_dbg.o
 wcn_bsp_pcie-y += platform/gnss/gnss_pmnotify_ctl.o
-wcn_bsp_pcie-y += platform/gnss/gnss_dump.o

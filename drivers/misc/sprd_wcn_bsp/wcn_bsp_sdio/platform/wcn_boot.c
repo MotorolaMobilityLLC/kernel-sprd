@@ -27,7 +27,6 @@
 #include <misc/marlin_platform.h>
 #include <misc/wcn_bus.h>
 
-#include "gnss/gnss_common.h"
 #include "rf/rf.h"
 #include "../sleep/sdio_int.h"
 #include "../sleep/slp_mgr.h"
