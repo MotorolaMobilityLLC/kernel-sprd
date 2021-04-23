@@ -2,6 +2,7 @@
 /plugin/;
 #include <dt-bindings/input/input.h>
 #include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/interrupt-controller/arm-gic.h>
 #include <dt-bindings/clock/sprd,ums9620-clk.h>
 #include <dt-bindings/usb/pd.h>
 #include "lcd/lcd_g40396_truly_mipi_fhd.dtsi"
@@ -437,6 +438,20 @@
 		ti,bq2597x,vdrop-deglitch = <5000>;
 		ti,bq2597x,ss-timeout = <100000>;
 		ti,bq2597x,watchdog-timer = <30000>;
+	};
+
+	ams_tcs3430: tcs3430@39 {
+		compatible = "ams,tcs3430";
+		reg = <0x39>;
+		als_name = "ams_als";
+		persist = <0>;
+		als_time_ms = <100>;
+		als_gain = <64>;
+		int_config = <0>;
+		als_can_wake = <1>;
+		irq_gpios = <60>;
+		interrupt-parent = <&ap_gpio>;
+		interrupts = <60 IRQ_TYPE_LEVEL_LOW>;
 	};
 };
 
