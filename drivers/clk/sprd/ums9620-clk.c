@@ -1059,6 +1059,8 @@ static SPRD_SC_GATE_CLK(aon_iis_eb, "aon-iis-eb", "ext-26m", 0x4,
 			0x1000, BIT(19), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(scc_eb, "scc-eb", "ext-26m", 0x4,
 			0x1000, BIT(20), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(serdes_ctrl1_eb, "serdes-ctrl1-eb", "ext-26m", 0x4,
+			0x1000, BIT(22), 0, 0);
 static SPRD_SC_GATE_CLK(aux3_eb, "aux3-eb", "ext-26m", 0x4,
 			0x1000, BIT(30), 0, 0);
 static SPRD_SC_GATE_CLK(thm0_eb, "thm0-eb", "ext-26m", 0x8,
@@ -1117,7 +1119,7 @@ static SPRD_SC_GATE_CLK(ap_wdg_eb, "ap-wdg-eb", "ext-26m", 0x8,
 			0x1000, BIT(29), 0, 0);
 static SPRD_SC_GATE_CLK(apcpu_wdg_eb, "apcpu-wdg-eb", "ext-26m", 0x8,
 			0x1000, BIT(30), 0, 0);
-static SPRD_SC_GATE_CLK(serdes_eb, "serdes-eb", "ext-26m", 0x8,
+static SPRD_SC_GATE_CLK(serdes_ctrl0_eb, "serdes-ctrl0-eb", "ext-26m", 0x8,
 			0x1000, BIT(31), 0, 0);
 static SPRD_SC_GATE_CLK(arch_rtc_eb, "arch-rtc-eb", "ext-26m", 0x18,
 			0x1000, BIT(0), CLK_IGNORE_UNUSED, 0);
@@ -1265,6 +1267,7 @@ static struct sprd_clk_common *ums9620_aon_gate[] = {
 	&apb_busmon_eb.common,
 	&aon_iis_eb.common,
 	&scc_eb.common,
+	&serdes_ctrl1_eb.common,
 	&aux3_eb.common,
 	&thm0_eb.common,
 	&thm1_eb.common,
@@ -1294,7 +1297,7 @@ static struct sprd_clk_common *ums9620_aon_gate[] = {
 	&pwm3_eb.common,
 	&ap_wdg_eb.common,
 	&apcpu_wdg_eb.common,
-	&serdes_eb.common,
+	&serdes_ctrl0_eb.common,
 	&arch_rtc_eb.common,
 	&kpd_rtc_eb.common,
 	&aon_syst_rtc_eb.common,
@@ -1380,6 +1383,7 @@ static struct clk_hw_onecell_data ums9620_aon_gate_hws = {
 		[CLK_APB_BUSMON_EB]	= &apb_busmon_eb.common.hw,
 		[CLK_AON_IIS_EB]	= &aon_iis_eb.common.hw,
 		[CLK_SCC_EB]		= &scc_eb.common.hw,
+		[CLK_SERDES_CTRL1_EB]   = &serdes_ctrl1_eb.common.hw,
 		[CLK_AUX3_EB]		= &aux3_eb.common.hw,
 		[CLK_THM0_EB]		= &thm0_eb.common.hw,
 		[CLK_THM1_EB]		= &thm1_eb.common.hw,
@@ -1409,7 +1413,7 @@ static struct clk_hw_onecell_data ums9620_aon_gate_hws = {
 		[CLK_PWM3_EB]		= &pwm3_eb.common.hw,
 		[CLK_AP_WDG_EB]		= &ap_wdg_eb.common.hw,
 		[CLK_APCPU_WDG_EB]	= &apcpu_wdg_eb.common.hw,
-		[CLK_SERDES_EB]		= &serdes_eb.common.hw,
+		[CLK_SERDES_CTRL0_EB]	= &serdes_ctrl0_eb.common.hw,
 		[CLK_ARCH_RTC_EB]	= &arch_rtc_eb.common.hw,
 		[CLK_KPD_RTC_EB]	= &kpd_rtc_eb.common.hw,
 		[CLK_AON_SYST_RTC_EB]	= &aon_syst_rtc_eb.common.hw,
