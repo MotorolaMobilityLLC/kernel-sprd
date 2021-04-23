@@ -441,11 +441,7 @@ int agdsp_access_enable(void)
 		 * send a mail to AGDSP to wake up it,
 		 * 100 is an invalid command
 		 */
-		ret = mbox_raw_sent(dsp_ac->mbx_core, 100);
-		if (ret) {
-			pr_err("mbox_raw_sent error:%d\n", ret);
-			goto exit;
-		}
+		mbox_raw_sent(dsp_ac->mbx_core, 100);
 		udelay(20);
 
 		do {
