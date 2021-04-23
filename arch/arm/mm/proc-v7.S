@@ -27,11 +27,6 @@
 #include "proc-v7-2level.S"
 #endif
 
-#ifdef CONFIG_SPRD_CPU_HOTPLUG_WORKAROUND
-        .globl   save_lr
-save_lr:        .long 0x0
-#endif
-
 ENTRY(cpu_v7_proc_init)
 	ret	lr
 ENDPROC(cpu_v7_proc_init)
@@ -297,7 +292,7 @@ __v7_ca17mp_setup:
 	add	r12, r12, r0			@ the local stack
 	stmia	r12, {r1-r6, lr}		@ v7_invalidate_l1 touches r0-r6
 #ifdef CONFIG_SPRD_CPU_HOTPLUG_WORKAROUND
-	ldr     r11, =save_lr
+	adr     r11, save_lr
 	str     lr, [r11]
 #endif
 	bl      v7_invalidate_l1
@@ -314,6 +309,10 @@ __v7_ca17mp_setup:
 	mcrne	p15, 0, r10, c1, c0, 1		@ No, update register
 #endif
 	b	__v7_setup_cont
+
+#ifdef CONFIG_SPRD_CPU_HOTPLUG_WORKAROUND
+save_lr:        .long 0x0
+#endif
 
 /*
  * Errata:
