@@ -48,6 +48,7 @@
 #define TGLDSP_SLEEP_MODE		BIT(15)
 #define AGDSP_SLEEP_MODE		BIT(16)
 #define CM4_SLEEP_MODE			BIT(17)
+#define NONE_SLEEP_MODE			0x0
 #define SLEEP_MODE_MASK			GENMASK(5, 0)
 #define SLEEP_MODE_SHIFT		13
 
@@ -63,21 +64,22 @@
 #define DRIVE_STRENGTH_SHIFT		19
 
 #define SLEEP_PULL_DOWN			BIT(2)
-#define SLEEP_PULL_DOWN_MASK		0x1
+#define SLEEP_PULL_DOWN_MASK		0x3
 #define SLEEP_PULL_DOWN_SHIFT		2
 
 #define PULL_DOWN			BIT(6)
-#define PULL_DOWN_MASK			0x1
+#define PULL_DOWN_MASK			0x3
 #define PULL_DOWN_SHIFT			6
 
 #define SLEEP_PULL_UP			BIT(3)
-#define SLEEP_PULL_UP_MASK		0x1
-#define SLEEP_PULL_UP_SHIFT		3
+#define SLEEP_PULL_UP_MASK		0x3
+#define SLEEP_PULL_UP_SHIFT		2
 
-#define PULL_UP_20K			(BIT(12) | BIT(7))
-#define PULL_UP_4_7K			BIT(12)
-#define PULL_UP_MASK			0x21
-#define PULL_UP_SHIFT			7
+#define PULL_UP_WPUSP			(BIT(12) | BIT(7))
+#define PULL_UP_WPU			BIT(7)
+#define PULL_UP_WPUS			BIT(12)
+#define PULL_UP_MASK			0x43
+#define PULL_UP_SHIFT			6
 
 #define INPUT_SCHMITT			BIT(11)
 #define INPUT_SCHMITT_MASK		0x1
@@ -89,6 +91,7 @@ enum pin_sleep_mode {
 	TGLDSP_SLEEP = BIT(2),
 	AGDSP_SLEEP = BIT(3),
 	CM4_SLEEP = BIT(4),
+	NONE_SLEEP = 0x0,
 };
 
 enum pin_func_sel {
@@ -472,7 +475,7 @@ static int sprd_pinconf_get(struct pinctrl_dev *pctldev, unsigned int pin_id,
 		case PIN_CONFIG_INPUT_ENABLE:
 			arg = (reg >> SLEEP_INPUT_SHIFT) & SLEEP_INPUT_MASK;
 			break;
-		case PIN_CONFIG_OUTPUT:
+		case PIN_CONFIG_OUTPUT_ENABLE:
 			arg = reg & SLEEP_OUTPUT_MASK;
 			break;
 		case PIN_CONFIG_BIAS_HIGH_IMPEDANCE:
@@ -501,7 +504,7 @@ static int sprd_pinconf_get(struct pinctrl_dev *pctldev, unsigned int pin_id,
 			break;
 		case PIN_CONFIG_BIAS_DISABLE:
 			if ((reg & (SLEEP_PULL_DOWN | SLEEP_PULL_UP)) ||
-			    (reg & (PULL_DOWN | PULL_UP_4_7K | PULL_UP_20K)))
+				(reg & (PULL_DOWN | PULL_UP_WPUSP)))
 				return -EINVAL;
 
 			arg = 1;
@@ -631,6 +634,8 @@ static int sprd_pinconf_set(struct pinctrl_dev *pctldev, unsigned int pin_id,
 					val |= TGLDSP_SLEEP_MODE;
 				if (arg & AGDSP_SLEEP)
 					val |= AGDSP_SLEEP_MODE;
+				if (arg == NONE_SLEEP)
+					val |= NONE_SLEEP_MODE;
 
 				mask = SLEEP_MODE_MASK;
 				shift = SLEEP_MODE_SHIFT;
@@ -646,9 +651,14 @@ static int sprd_pinconf_set(struct pinctrl_dev *pctldev, unsigned int pin_id,
 					shift = SLEEP_INPUT_SHIFT;
 				}
 				break;
-			case PIN_CONFIG_OUTPUT:
+			case PIN_CONFIG_OUTPUT_ENABLE:
 				if (is_sleep_config == true) {
 					val |= SLEEP_OUTPUT;
+					if (arg > 0)
+						val |= SLEEP_OUTPUT;
+					else
+						val &= ~SLEEP_OUTPUT;
+
 					mask = SLEEP_OUTPUT_MASK;
 					shift = SLEEP_OUTPUT_SHIFT;
 				}
@@ -693,10 +703,12 @@ static int sprd_pinconf_set(struct pinctrl_dev *pctldev, unsigned int pin_id,
 					mask = SLEEP_PULL_UP_MASK;
 					shift = SLEEP_PULL_UP_SHIFT;
 				} else {
-					if (arg == 20000)
-						val |= PULL_UP_20K;
-					else if (arg == 4700)
-						val |= PULL_UP_4_7K;
+					if (arg == 3)
+						val |= PULL_UP_WPUSP;
+					else if (arg == 2)
+						val |= PULL_UP_WPUS;
+					else if (arg == 1)
+						val |= PULL_UP_WPU;
 
 					mask = PULL_UP_MASK;
 					shift = PULL_UP_SHIFT;
@@ -708,8 +720,7 @@ static int sprd_pinconf_set(struct pinctrl_dev *pctldev, unsigned int pin_id,
 					mask = SLEEP_PULL_DOWN | SLEEP_PULL_UP;
 				} else {
 					val = shift = 0;
-					mask = PULL_DOWN | PULL_UP_20K |
-						PULL_UP_4_7K;
+					mask = PULL_DOWN | PULL_UP_WPUSP;
 				}
 				break;
 			case PIN_CONFIG_SLEEP_HARDWARE_STATE:
