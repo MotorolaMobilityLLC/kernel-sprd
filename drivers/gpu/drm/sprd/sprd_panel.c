@@ -187,13 +187,13 @@ void  sprd_panel_enter_doze(struct drm_panel *p)
 
 	DRM_INFO("%s() enter\n", __func__);
 
-	mutex_lock(&panel_lock);
+//	mutex_lock(&panel_lock); //fix panel_lock issue.
 
 	if (panel->esd_work_pending) {
 		cancel_delayed_work_sync(&panel->esd_work);
 		panel->esd_work_pending = false;
 	}
-
+	mutex_lock(&panel_lock);//fix panel_lock issue.
 	sprd_panel_send_cmds(panel->slave,
 	       panel->info.cmds[CMD_CODE_DOZE_IN],
 	       panel->info.cmds_len[CMD_CODE_DOZE_IN]);
@@ -222,7 +222,7 @@ static int sprd_panel_disable(struct drm_panel *p)
 
 	DRM_INFO("%s()\n", __func__);
 
-	mutex_lock(&panel_lock);
+//	mutex_lock(&panel_lock); fix panel_lock issue.
 	/*
 	 * FIXME:
 	 * The cancel work should be executed before DPU stop,
@@ -235,6 +235,8 @@ static int sprd_panel_disable(struct drm_panel *p)
 		cancel_delayed_work_sync(&panel->esd_work);
 		panel->esd_work_pending = false;
 	}
+	
+	mutex_lock(&panel_lock); // fix panel_lock issue.
 
 	if (panel->backlight) {
 		panel->backlight->props.power = FB_BLANK_POWERDOWN;
@@ -274,7 +276,7 @@ static int sprd_panel_enable(struct drm_panel *p)
 
 	if (panel->info.esd_check_en) {
 		schedule_delayed_work(&panel->esd_work,
-				      msecs_to_jiffies(1000));
+				      msecs_to_jiffies(2000)); // fix ili7806s tianma  esd issue.
 		panel->esd_work_pending = true;
 	}
 
