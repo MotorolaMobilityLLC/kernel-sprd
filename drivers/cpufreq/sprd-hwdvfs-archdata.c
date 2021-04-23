@@ -50,6 +50,7 @@ static int default_dcdc_volt_update(struct regmap *map, struct reg_info *regs,
 static u32 default_cycle_calculate(u32 max_val_uV, u32 slew_rate,
 				   u32 module_clk_hz, u32 margin_us)
 {
+	margin_us = 80;
 	pr_debug("max_val_uV = %d, slew_rate = %d, module_clk_hz = %d margin = %d\n",
 		 max_val_uV, slew_rate, module_clk_hz, margin_us);
 
@@ -60,7 +61,7 @@ static struct pmic_data pmic_array[MAX_PMIC_TYPE_NUM] = {
 	[PMIC_SC2730] = {
 		.volt_base = 0,
 		.per_step = 3125,
-		.margin_us = 40,
+		.margin_us = 80,
 		.update = default_dcdc_volt_update,
 		.up_cycle_calculate = default_cycle_calculate,
 		.down_cycle_calculate = default_cycle_calculate,
