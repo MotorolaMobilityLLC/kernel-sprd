@@ -1051,7 +1051,7 @@ static int tx_mc_pkt(struct sk_buff *skb, struct net_device *ndev)
 		     __func__, hif->skb_da[0], hif->skb_da[1], hif->skb_da[2],
 		     hif->skb_da[3], hif->skb_da[4], hif->skb_da[5]);
 		tx_mc_pkt_checksum(skb, ndev);
-		sprd_xmit_data2cmd_wq(skb, ndev);
+		sc2355_xmit_data2cmd_wq(skb, ndev);
 		return NETDEV_TX_OK;
 	}
 	return 1;
@@ -1182,7 +1182,7 @@ static int tx_filter_ip_pkt(struct sk_buff *skb, struct net_device *ndev)
 			skb->ip_summed = CHECKSUM_NONE;
 		}
 
-		sprd_xmit_data2cmd_wq(skb, ndev);
+		sc2355_xmit_data2cmd_wq(skb, ndev);
 		return NETDEV_TX_OK;
 	}
 
@@ -1985,7 +1985,7 @@ int sprd_tx_filter_packet(struct sk_buff *skb, struct net_device *ndev)
 
 	if (ethhdr->h_proto == htons(ETH_P_ARP)) {
 		pr_info("incoming ARP packet\n");
-		sprd_xmit_data2cmd_wq(skb, ndev);
+		sc2355_xmit_data2cmd_wq(skb, ndev);
 		return NETDEV_TX_OK;
 	}
 	if (ethhdr->h_proto == htons(ETH_P_TDLS))

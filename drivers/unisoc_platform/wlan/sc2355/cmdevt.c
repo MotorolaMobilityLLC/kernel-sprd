@@ -2419,65 +2419,7 @@ int sprd_send_data2cmd(struct sprd_priv *priv, struct sprd_vif *vif, void *data,
 	return send_cmd_recv_rsp(priv, msg, NULL, NULL);
 }
 
-int sc2355_xmit_data2cmd(struct sk_buff *skb, struct net_device *ndev)
-{
-	struct sprd_vif *vif = netdev_priv(ndev);
-	struct sprd_msg *msg;
-	u8 *temp_flag = "01234";
-	struct tx_msdu_dscr *dscr;
-	struct sprd_cmd *cmd = &vif->priv->cmd;
-
-	if (unlikely(atomic_read(&cmd->refcnt) > 0)) {
-		pr_err("%s, cmd->refcnt = %d, Try later again\n",
-		       __func__, atomic_read(&cmd->refcnt));
-		return -EAGAIN;
-	}
-
-	if (skb->protocol == cpu_to_be16(ETH_P_PAE)) {
-		u8 *data = (u8 *)(skb->data) + sizeof(struct ethhdr);
-		struct sprd_eap_hdr *eap = (struct sprd_eap_hdr *)data;
-
-		if (eap->type == EAP_PACKET_TYPE &&
-		    eap->opcode == EAP_WSC_DONE) {
-			pr_info("%s, EAP_WSC_DONE!\n", __func__);
-			vif->wps_flag = 1;
-		}
-	}
-
-	/*fill dscr header first*/
-	if (sc2355_hif_fill_msdu_dscr(vif, skb, SPRD_TYPE_CMD, 0)) {
-		dev_kfree_skb(skb);
-		return -EPERM;
-	}
-	/*alloc five byte for fw 16 byte need
-	 *dscr:11+flag:5 =16
-	 */
-	skb_push(skb, FLAG_SIZE);
-	memcpy(skb->data, temp_flag, FLAG_SIZE);
-	/*malloc msg buffer*/
-	msg = get_databuf(vif->priv, vif, skb->len, CMD_TX_DATA);
-	if (!msg) {
-		pr_err("%s, %d, fail to get msg, free skb\n",
-		       __func__, __LINE__);
-		dev_kfree_skb(skb);
-		return -ENOMEM;
-	}
-	/*send group in BK to avoid FW hang*/
-	dscr = (struct tx_msdu_dscr *)skb->data;
-	if ((vif->mode == SPRD_MODE_AP ||
-	     vif->mode == SPRD_MODE_P2P_GO) && dscr->sta_lut_index < 6) {
-		dscr->buffer_info.msdu_tid = prio_1;
-		pr_info("%s, %d, SOFTAP/GO group go as BK\n", __func__,
-			__LINE__);
-	}
-
-	memcpy(msg->data, skb->data, skb->len);
-	dev_kfree_skb(skb);
-
-	return cmdevt_send_cmd(vif->priv, msg);
-}
-
-int sprd_xmit_data2cmd_wq(struct sk_buff *skb, struct net_device *ndev)
+int sc2355_xmit_data2cmd_wq(struct sk_buff *skb, struct net_device *ndev)
 {
 	struct sprd_vif *vif = netdev_priv(ndev);
 	u8 *temp_flag = "01234";
@@ -2745,6 +2687,8 @@ bool sc2355_do_delay_work(struct sprd_work *work)
 {
 	struct sprd_tdls_work *tdls;
 	unsigned char *data = NULL;
+	u8 mac_addr[ETH_ALEN];
+	u16 reason_code;
 	struct sprd_vif *vif;
 
 	if (!work)
@@ -2803,6 +2747,11 @@ bool sc2355_do_delay_work(struct sprd_work *work)
 		break;
 	case SPRD_WORK_VOWIFI_DATA_PROTECTION:
 		cmdevt_send_vowifi_data_prot(vif->priv, vif, work->data, work->len);
+		break;
+	case SPRD_P2P_GO_DEL_STATION:
+		memcpy(mac_addr, (u8 *)work->data, ETH_ALEN);
+		memcpy(&reason_code, (u16 *)(work->data + ETH_ALEN), sizeof(u16));
+		sc2355_del_station(vif->priv, vif, mac_addr, reason_code);
 		break;
 	default:
 		return false;

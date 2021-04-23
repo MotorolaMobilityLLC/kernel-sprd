@@ -36,6 +36,7 @@
 #define SPRD_PCIE_RX_FLUSH_BUF			20
 #define SPRD_PCIE_TX_MOVE_BUF			21
 #define SPRD_PCIE_TX_FREE_BUF			22
+#define SPRD_P2P_GO_DEL_STATION			23
 
 struct sprd_work {
 	struct list_head list;

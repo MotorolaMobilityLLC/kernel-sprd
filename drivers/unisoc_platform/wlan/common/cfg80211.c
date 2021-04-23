@@ -487,6 +487,26 @@ int sprd_cfg80211_add_station(struct wiphy *wiphy, struct net_device *ndev,
 	return 0;
 }
 
+int sprd_p2p_go_del_station(struct sprd_priv *priv, struct sprd_vif *vif,
+				  const u8 *mac_addr, u16 reason_code)
+{
+	struct sprd_work *misc_work;
+
+	misc_work = sprd_alloc_work(ETH_ALEN + sizeof(u16));
+	if (!misc_work) {
+		netdev_err(vif->ndev, "%s out of memory\n", __func__);
+		return -1;
+	}
+	misc_work->vif = vif;
+	misc_work->id = SPRD_P2P_GO_DEL_STATION;
+
+	memcpy(misc_work->data, mac_addr, ETH_ALEN);
+	memcpy(misc_work->data + ETH_ALEN, &reason_code, sizeof(u16));
+
+	sprd_queue_work(vif->priv, misc_work);
+	return 0;
+}
+
 int sprd_cfg80211_del_station(struct wiphy *wiphy, struct net_device *ndev,
 			      struct station_del_parameters *params)
 {
@@ -499,8 +519,10 @@ int sprd_cfg80211_del_station(struct wiphy *wiphy, struct net_device *ndev,
 
 	netdev_info(ndev, "%s %pM reason:%d\n", __func__, params->mac,
 		    params->reason_code);
-
-	sprd_del_station(vif->priv, vif, params->mac, params->reason_code);
+	if (vif->mode == SPRD_MODE_P2P_GO)
+		sprd_p2p_go_del_station(vif->priv, vif, params->mac, params->reason_code);
+	else
+		sprd_del_station(vif->priv, vif, params->mac, params->reason_code);
 
 out:
 	return 0;

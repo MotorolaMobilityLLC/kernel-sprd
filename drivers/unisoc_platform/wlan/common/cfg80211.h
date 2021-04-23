@@ -452,6 +452,8 @@ int sprd_cfg80211_sched_scan_stop(struct wiphy *wiphy, struct net_device *ndev,
 				  u64 reqid);
 void sprd_dump_frame_prot_info(int send, int freq, const unsigned char *buf,
 			       int len);
+int sprd_p2p_go_del_station(struct sprd_priv *priv, struct sprd_vif *vif,
+				const u8 *mac_addr, u16 reason_code);
 int sprd_init_fw(struct sprd_vif *vif);
 int sprd_uninit_fw(struct sprd_vif *vif);
 struct sprd_priv *sprd_core_create(struct sprd_chip_ops *chip_ops);
