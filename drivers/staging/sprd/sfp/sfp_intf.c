@@ -515,9 +515,12 @@ static void sfp_maybe_trim_skb(struct sk_buff *skb)
 			pskb_trim_rcsum(skb, len);
 	} else if (skb->protocol == htons(ETH_P_IPV6)) {
 		ipv6h = (struct ipv6hdr *)iph;
-		len = ntohs(ipv6h->payload_len) + sizeof(struct ipv6hdr);
-		if (len != skb->len)
-			pskb_trim_rcsum(skb, len);
+		if (ipv6h->nexthdr != NEXTHDR_HOP) {
+			len = ntohs(ipv6h->payload_len)
+				+ sizeof(struct ipv6hdr);
+			if (len != skb->len)
+				pskb_trim_rcsum(skb, len);
+		}
 	}
 }
 
