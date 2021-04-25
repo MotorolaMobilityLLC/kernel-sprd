@@ -102,6 +102,8 @@
 #define SC27XX_FGU_DISCHG_CNT		4
 #define SC27XX_FGU_VOLTAGE_BUFF_CNT	8
 #define SC27XX_FGU_MAGIC_NUMBER		0x5a5aa5a5
+#define SC27XX_FGU_DEBUG_EN_CMD		0x5a5aa5a5
+#define SC27XX_FGU_DEBUG_DIS_CMD	0x5a5a5a5a
 
 #define interpolate(x, x1, y1, x2, y2) \
 	((y1) + ((((y2) - (y1)) * ((x) - (x1))) / ((x2) - (x1))))
@@ -165,6 +167,8 @@ struct sc27xx_fgu_data {
 	int index;
 	int boot_vol;
 	bool bat_para_adapt_support;
+	bool temp_debug_en;
+	int debug_temp;
 	unsigned int bat_para_adapt_mode;
 	int temp_buff[SC27XX_FGU_TEMP_BUFF_CNT];
 	int cur_now_buff[SC27XX_FGU_CURRENT_BUFF_CNT];
@@ -1066,12 +1070,16 @@ static int sc27xx_fgu_get_property(struct power_supply *psy,
 			val->intval = 200;
 		} else {
 			ret = sc27xx_fgu_get_temp(data, &value);
-			if (ret < 0)
+			if (ret < 0 && !data->temp_debug_en)
 				goto error;
 
 			ret = 0;
 			val->intval = value;
 		}
+
+		if (data->temp_debug_en)
+			val->intval = data->debug_temp;
+
 		break;
 
 	case POWER_SUPPLY_PROP_TECHNOLOGY:
@@ -1198,7 +1206,24 @@ static int sc27xx_fgu_set_property(struct power_supply *psy,
 		data->total_cap = val->intval / 1000;
 		ret = 0;
 		break;
+	case POWER_SUPPLY_PROP_TEMP:
+		if (val->intval == SC27XX_FGU_DEBUG_EN_CMD) {
+			dev_info(data->dev, "Change battery temperature to debug mode\n");
+			data->temp_debug_en = true;
+			data->debug_temp = 200;
+			break;
+		} else if (val->intval == SC27XX_FGU_DEBUG_DIS_CMD) {
+			dev_info(data->dev, "Recovery battery temperature to normal mode\n");
+			data->temp_debug_en = false;
+			break;
+		} else if (!data->temp_debug_en) {
+			dev_info(data->dev, "Battery temperature not in debug mode\n");
+			break;
+		}
 
+		data->debug_temp = val->intval;
+		dev_info(data->dev, "Battery debug temperature = %d\n", val->intval);
+		break;
 	default:
 		ret = -EINVAL;
 	}
@@ -1219,6 +1244,7 @@ static int sc27xx_fgu_property_is_writeable(struct power_supply *psy,
 					    enum power_supply_property psp)
 {
 	switch (psp) {
+	case POWER_SUPPLY_PROP_TEMP:
 	case POWER_SUPPLY_PROP_CAPACITY:
 	case POWER_SUPPLY_PROP_CALIBRATE:
 	case POWER_SUPPLY_PROP_ENERGY_FULL_DESIGN:
