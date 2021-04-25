@@ -36,6 +36,25 @@
 		bootargs = "earlycon=sprd_serial,0x20210000,115200n8 console=ttyS1,115200n8 loglevel=1 init=/init root=/dev/ram0 rw printk.devkmsg=on pcie_ports=compat swiotlb=1";
 	};
 
+	dpu_dvfs: dpu-dvfs {
+		compatible = "sprd,hwdvfs-dpu-qogirn6pro";
+		sprd,hw-dfs-en = <4>;
+		sprd,work-index-def = <6>;
+		sprd,idle-index-def = <1>;
+		sprd,freq-upd-delay-en = <0>;
+		sprd,freq-upd-hdsk-en = <1>;
+
+		operating-points = <
+			/* kHz    uV */
+			256000    650000
+			307200    650000
+			384000    700000
+			409600    700000
+			512000    750000
+			614400    750000
+		>;
+	};
+
 	gsp_dvfs: gsp-dvfs {
 		compatible = "sprd,hwdvfs-gsp-qogirn6pro";
 		sprd,hw-dfs-en = <0>;
