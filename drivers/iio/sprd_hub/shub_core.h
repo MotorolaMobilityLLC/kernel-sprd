@@ -24,21 +24,21 @@
 #define HOST_REQUEST_WRITE           0x74
 #define HOST_REQUEST_READ            0x75
 #define HOST_REQUEST_LEN             2
-#define RECEIVE_TIMEOUT_MS           100
+#define RECEIVE_TIMEOUT_MS           500
 #define MAX_SENSOR_LOG_CTL_FLAG_LEN	8
 #define LOG_CTL_OUTPUT_FLAG	5
 #define SIPC_PM_BUFID0             0
 #define SIPC_PM_BUFID1             1
 #define SHUB_IIO_CHN_BITS             64
 /* light sensor calibrate min value is 280lux */
-#define LIGHT_SENSOR_MIN_VALUE  280
+#define LIGHT_SENSOR_MIN_VALUE  10
 /* light sensor calibrate max value is 520lux */
-#define LIGHT_SENSOR_MAX_VALUE  520
+#define LIGHT_SENSOR_MAX_VALUE  10000
 #define LIGHT_CALI_DATA_COUNT   5
 /* light sensor calibrate value is 400lux; Due to kernel seldom use
  * float data, so calibrate value multiply 10000
  */
-#define LIGHT_SENSOR_CALI_VALUE (400 * 10000)
+#define LIGHT_SENSOR_CALI_VALUE (500 * 10000)
 /* prox sensor auto calibrate ground noise min value is 0 */
 #define PROX_SENSOR_MIN_VALUE   0
 
