@@ -37,8 +37,8 @@ struct dpu_vspsys_dvfs_reg {
 	u32 dpu_vsp_vpu_dec_dvfs_cgm_cfg_dbg;
 	u32 dpu_vsp_vpu_gsp0_dvfs_cgm_cfg_dbg;
 	u32 dpu_vsp_vpu_gsp1_dvfs_cgm_cfg_dbg;
-	u32 dpu_vsp_vpu_dispc0_dvfs_cgm_cfg_dbg;
-	u32 reserved_0x80_0x12c[38];
+	u32 dpu_vsp_dispc0_dvfs_cgm_cfg_dbg;
+	u32 reserved_0x80_0x12c[44];
 	u32 dpu_vsp_dvfs_state_dbg;
 	u32 reserved_0x134_0x150[8];
 	u32 vpu_mtx_index0_map;
@@ -118,7 +118,7 @@ struct dpu_vspsys_dvfs_reg {
 	u32 dpu_vsp_dvfs_reserved_reg_cfg3;
 };
 
-char *qogirn6pro_dpu_vspsys_val_to_volt(u32 val);
+char *qogirn6pro_apsys_val_to_volt(u32 val);
 char *qogirn6pro_dpu_val_to_freq(u32 val);
 char *qogirn6pro_gsp_val_to_volt(u32 val);
 char *qogirn6pro_gsp_val_to_freq(u32 val);
