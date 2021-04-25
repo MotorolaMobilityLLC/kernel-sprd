@@ -2289,13 +2289,6 @@
 		#address-cells = <1>;
 		#size-cells = <1>;
 		reg = <0 0x65014c00 0 0x3ff>;
-		uid_start: uid-start@5c{
-			reg = <0x5c 0x4>;
-		};
-
-		uid_end: uid-end@58{
-			reg = <0x58 0x4>;
-		};
 
 		uid_start: uid-start@5c{
 			reg = <0x5c 0x4>;
