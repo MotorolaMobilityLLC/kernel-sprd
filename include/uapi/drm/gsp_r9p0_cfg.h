@@ -22,6 +22,9 @@
 #define R9P0_OSDL_NUM 2
 #define R9P0_IMGSEC_NUM 0
 #define R9P0_OSDSEC_NUM 1
+#define HDR_DEGAMMA_LUT_SIZE 1024
+#define HDR_REGAMMA_LUT_SIZE 1024
+#define HDR_TM_LUT_SIZE (1024 + 1)
 
 /*Original: B3B2B1B0*/
 enum gsp_r9p0_word_endian {
@@ -72,6 +75,7 @@ enum gsp_r9p0_img_layer_format {
 	GSP_R9P0_IMG_FMT_RGB565,
 	GSP_R9P0_IMG_FMT_YV12,
 	GSP_R9P0_IMG_FMT_MAX_NUM,
+	GSP_R9P0_IMG_FMT_YCBCR_P010,
 };
 
 enum gsp_r9p0_osd_layer_format {
@@ -128,7 +132,8 @@ struct gsp_r9p0_img_layer_params {
 	struct gsp_scale_para			scale_para;
 	__u32					header_size_r;
 	__u32					work_freq;
-	uint8_t secure_en;
+	uint8_t					secure_en;
+	uint8_t					hdr2rgb_mod;
 };
 
 struct gsp_r9p0_img_layer_user {
@@ -181,6 +186,120 @@ struct gsp_r9p0_des_layer_user {
 	struct gsp_r9p0_des_layer_params	params;
 };
 
+struct gsp_r9p0_hdr10_cfg {
+	int video_range; //0: narrow range, 1: full range
+	int transfer_char;
+
+	int maxcll;
+	int maxscl[3];
+	int max_maxscl;
+	int maxpanel;
+
+	int tone_map_en;
+	int sm_en;
+	int profile; //0: profile A; 1: profile B
+
+	__u8 num_bezier_curve_anchors;
+	__u16 bezier_curve_anchors[15];
+
+	__u32 hdr_degamma_lut[HDR_DEGAMMA_LUT_SIZE];
+	__u32 hdr_regamma_lut[HDR_REGAMMA_LUT_SIZE];
+	__u32 *hdr_bt1886_de_gamma_lut;
+	__u32 *hdr_bt1886_re_gamma_lut;
+	__u32 hdr_tone_mapping_lut[HDR_TM_LUT_SIZE];
+
+	bool reg_hdr_slp;
+	bool reg_hdr_bypass_csc1;
+	bool reg_hdr_bypass_degamma;
+	bool reg_hdr_bypass_csc2;
+	bool reg_hdr_maxcll_gain_bypass;
+	bool reg_hdr_bypass_gamma;
+	bool reg_hdr_bypass_csc3;
+	bool reg_hdr_force_in_range_csc1;
+	bool reg_hdr_force_in_range_csc3;
+	bool reg_hdr_gamut_map_en;
+	bool reg_hdr_csc1_cl_en;
+	bool reg_hdr_avg_en;
+	int reg_hdr_alpha_gain;
+	int reg_hdr_sat_thr;
+
+	int reg_hdr_csc1_ycr;
+	int reg_hdr_csc1_ucr;
+	int reg_hdr_csc1_vcr;
+	int reg_hdr_csc1_ycg;
+	int reg_hdr_csc1_ucg;
+	int reg_hdr_csc1_vcg;
+	int reg_hdr_csc1_ycb;
+	int reg_hdr_csc1_ucb;
+	int reg_hdr_csc1_vcb;
+	int reg_hdr_csc1_ucb2;
+	int reg_hdr_csc1_vcr2;
+	int reg_hdr_csc1_yls;
+	int reg_hdr_csc1_uls;
+	int reg_hdr_csc1_vls;
+
+	int reg_hdr_dgmlut_addr;
+	int reg_hdr_rgmlut_addr;
+	int reg_hdr_dgmlut_data;
+	int reg_hdr_rgmlut_data;
+
+	int reg_hdr_csc2_c11;
+	int reg_hdr_csc2_c12;
+	int reg_hdr_csc2_c13;
+	int reg_hdr_csc2_c21;
+	int reg_hdr_csc2_c22;
+	int reg_hdr_csc2_c23;
+	int reg_hdr_csc2_c31;
+	int reg_hdr_csc2_c32;
+	int reg_hdr_csc2_c33;
+	int reg_hdr_csc2_c11_2;
+	int reg_hdr_csc2_c12_2;
+	int reg_hdr_csc2_c13_2;
+	int reg_hdr_csc2_c21_2;
+	int reg_hdr_csc2_c22_2;
+	int reg_hdr_csc2_c23_2;
+	int reg_hdr_csc2_c31_2;
+	int reg_hdr_csc2_c32_2;
+	int reg_hdr_csc2_c33_2;
+	int reg_hdr_csc2_offset_r;
+	int reg_hdr_csc2_offset_g;
+	int reg_hdr_csc2_offset_b;
+	int reg_hdr_csc2_gain;
+
+	int reg_hdr_rg_step1;
+	int reg_hdr_rg_step2;
+	int reg_hdr_rg_step3;
+	int reg_hdr_rg_step4;
+	bool reg_hdr_before_gamma;
+	int reg_hdr_diff_sat_thr;
+	int reg_hdr_csc3_a11;
+	int reg_hdr_csc3_a12;
+	int reg_hdr_csc3_a13;
+	int reg_hdr_csc3_a21;
+	int reg_hdr_csc3_a22;
+	int reg_hdr_csc3_a23;
+	int reg_hdr_csc3_a31;
+	int reg_hdr_csc3_a32;
+	int reg_hdr_csc3_a33;
+
+	bool reg_hdr_tm_bypass;
+	bool reg_hdr_tm_force_in_range;
+	int reg_hdr_tm_rw_sel;
+	int reg_hdr_tm_use_sel;
+	bool reg_hdr_tm_force_rw_cur;
+	bool reg_hdr_tm1_en;
+	int reg_hdr_tm_step1;
+	int reg_hdr_tm_step2;
+	int reg_hdr_tm_step3;
+	int reg_hdr_tm_step4;
+	int reg_hdr_tm_norm_gain;
+	int reg_hdr_tm1_beta_gain;
+	int reg_hdr_tm2_beta_gain;
+	int reg_hdr_tm3_beta_gain;
+	int reg_hdr_tmlut_addr;
+	int reg_hdr_tmlut_data;
+};
+
 struct gsp_r9p0_misc_cfg_user {
 	uint8_t gsp_gap;
 	uint8_t core_num;
@@ -188,8 +307,11 @@ struct gsp_r9p0_misc_cfg_user {
 	uint8_t co_work1;
 	uint8_t work_mod;
 	uint8_t pmargb_en;
+	uint8_t secure_en;
+	bool hdr_flag;
 	struct gsp_rect workarea_src_rect;
 	struct gsp_pos workarea_des_pos;
+	struct gsp_r9p0_hdr10_cfg hdr10_para;
 };
 
 struct gsp_r9p0_cfg_user {

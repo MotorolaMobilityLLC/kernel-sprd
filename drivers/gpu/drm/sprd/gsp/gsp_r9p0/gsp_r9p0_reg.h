@@ -86,6 +86,46 @@
 #define R9P0_SCALE_COEF_ADDR(base)	(base + 0x300 + R9P0_GSP_BASE_OFFSET)
 #define R9P0_SCALE_COEF_OFFSET		0x200
 
+/*HDR2SDR*/
+#define R9P0_HDR0_CFG(base)		(base + 0x1810 + R9P0_GSP_BASE_OFFSET)
+#define R9P0_HDR1_CFG(base)		(base + 0x1814 + R9P0_GSP_BASE_OFFSET)
+#define R9P0_HDR2_CFG(base)		(base + 0x1818 + R9P0_GSP_BASE_OFFSET)
+#define R9P0_HDR3_CFG(base)		(base + 0x181c + R9P0_GSP_BASE_OFFSET)
+#define R9P0_HDR4_CFG(base)		(base + 0x1820 + R9P0_GSP_BASE_OFFSET)
+#define R9P0_HDR5_CFG(base)		(base + 0x1824 + R9P0_GSP_BASE_OFFSET)
+#define R9P0_HDR6_CFG(base)		(base + 0x1828 + R9P0_GSP_BASE_OFFSET)
+#define R9P0_HDR7_CFG(base)		(base + 0x182c + R9P0_GSP_BASE_OFFSET)
+#define R9P0_HDR8_CFG(base)		(base + 0x1830 + R9P0_GSP_BASE_OFFSET)
+#define R9P0_HDR9_CFG(base)		(base + 0x1834 + R9P0_GSP_BASE_OFFSET)
+#define R9P0_HDR10_CFG(base)		(base + 0x1838 + R9P0_GSP_BASE_OFFSET)
+#define R9P0_HDR11_CFG(base)		(base + 0x183c + R9P0_GSP_BASE_OFFSET)
+#define R9P0_HDR12_CFG(base)		(base + 0x1840 + R9P0_GSP_BASE_OFFSET)
+#define R9P0_HDR13_CFG(base)		(base + 0x1844 + R9P0_GSP_BASE_OFFSET)
+#define R9P0_HDR14_CFG(base)		(base + 0x1848 + R9P0_GSP_BASE_OFFSET)
+#define R9P0_HDR15_CFG(base)		(base + 0x184c + R9P0_GSP_BASE_OFFSET)
+#define R9P0_HDR16_CFG(base)		(base + 0x1850 + R9P0_GSP_BASE_OFFSET)
+#define R9P0_HDR17_CFG(base)		(base + 0x1854 + R9P0_GSP_BASE_OFFSET)
+#define R9P0_HDR18_CFG(base)		(base + 0x1858 + R9P0_GSP_BASE_OFFSET)
+#define R9P0_HDR19_CFG(base)		(base + 0x185c + R9P0_GSP_BASE_OFFSET)
+#define R9P0_HDR20_CFG(base)		(base + 0x1860 + R9P0_GSP_BASE_OFFSET)
+#define R9P0_HDR21_CFG(base)		(base + 0x1864 + R9P0_GSP_BASE_OFFSET)
+#define R9P0_HDR22_CFG(base)		(base + 0x1868 + R9P0_GSP_BASE_OFFSET)
+#define R9P0_HDR23_CFG(base)		(base + 0x186c + R9P0_GSP_BASE_OFFSET)
+#define R9P0_HDR24_CFG(base)		(base + 0x1870 + R9P0_GSP_BASE_OFFSET)
+#define R9P0_HDR25_CFG(base)		(base + 0x1874 + R9P0_GSP_BASE_OFFSET)
+#define R9P0_HDR26_CFG(base)		(base + 0x1878 + R9P0_GSP_BASE_OFFSET)
+#define R9P0_HDR27_CFG(base)		(base + 0x187c + R9P0_GSP_BASE_OFFSET)
+#define R9P0_HDR28_CFG(base)		(base + 0x1880 + R9P0_GSP_BASE_OFFSET)
+#define R9P0_HDR29_CFG(base)		(base + 0x1884 + R9P0_GSP_BASE_OFFSET)
+#define R9P0_HDR30_CFG(base)		(base + 0x1888 + R9P0_GSP_BASE_OFFSET)
+#define R9P0_HDR31_CFG(base)		(base + 0x188c + R9P0_GSP_BASE_OFFSET)
+#define R9P0_HDR32_CFG(base)		(base + 0x1890 + R9P0_GSP_BASE_OFFSET)
+#define R9P0_HDR33_CFG(base)		(base + 0x1894 + R9P0_GSP_BASE_OFFSET)
+#define R9P0_HDR34_CFG(base)		(base + 0x1898 + R9P0_GSP_BASE_OFFSET)
+#define R9P0_HDR35_CFG(base)		(base + 0x189c + R9P0_GSP_BASE_OFFSET)
+#define R9P0_HDR36_CFG(base)		(base + 0x18a0 + R9P0_GSP_BASE_OFFSET)
+#define R9P0_HDR37_CFG(base)		(base + 0x18a4 + R9P0_GSP_BASE_OFFSET)
+
 struct R9P0_GSP_GLB_CFG_REG {
 	union {
 		struct {
@@ -474,7 +514,7 @@ struct R9P0_LAYERIMG_CFG_REG {
 			uint32_t   Y2R_MOD		:  3;
 			uint32_t   Y2Y_MOD		:  1;
 			uint32_t   ZNUM_L		:  2;
-			uint32_t   H2R_MOD0		:  1;
+			uint32_t   H2R_MOD		:  1;
 			uint32_t   SCALE_EN		:  1;
 			uint32_t   Limg_en		:  1;
 		};

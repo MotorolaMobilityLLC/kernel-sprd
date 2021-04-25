@@ -44,10 +44,12 @@ struct gsp_r9p0_misc_cfg {
 	uint8_t co_work1;
 	uint8_t work_mod;
 	uint8_t pmargb_en;
+	uint8_t secure_en;
+	bool hdr_flag;
 	uint32_t work_freq;
 	struct gsp_rect workarea_src_rect;
 	struct gsp_pos workarea_des_pos;
-	uint8_t secure_en;
+	struct gsp_r9p0_hdr10_cfg hdr10_para;
 };
 
 struct gsp_r9p0_cfg {
