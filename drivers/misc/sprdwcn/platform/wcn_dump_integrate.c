@@ -679,7 +679,8 @@ static int btwf_dump_mem(void)
 
 	/* The precondition provided by the current access register is
 	 incorrect and cannot cover the full scene dump access.
-         So return.*/
+	 So return.
+	 */
 	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
 		WCN_INFO("dump register ok!\n");
 		mdbg_dump_str(WCN_DUMP_END_STRING,
