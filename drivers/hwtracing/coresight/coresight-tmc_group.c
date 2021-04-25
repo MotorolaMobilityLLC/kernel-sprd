@@ -144,6 +144,19 @@ static int tmc_read_prepare(struct tmc_drvdata_group *drvdata)
 static int tmc_read_unprepare(struct tmc_drvdata_group *drvdata)
 {
 	int ret = 0;
+	int i;
+
+	for (i = 0; i < drvdata->cs_element_num; i++) {
+		if (is_power_on(&(drvdata->cs_context[i]))) {
+			ret = tmc_read_unprepare_etb(&(drvdata->cs_context[i].context));
+			kfree(drvdata->cs_context[i].context.buf);
+			if (ret) {
+				pr_err("%s: tmc_read_unprepare_etb fail!\n", __func__);
+				ret = -EINVAL;
+				break;
+			}
+		}
+	}
 
 	kfree(drvdata->buf);
 	dev_info(drvdata->dev, "TMC read end\n");

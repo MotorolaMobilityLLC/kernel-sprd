@@ -669,7 +669,9 @@ int tmc_read_unprepare_etb(struct tmc_drvdata *drvdata)
 		 * can't be NULL.
 		 */
 		memset(drvdata->buf, 0, drvdata->size);
+#ifndef CONFIG_CORESIGHT_TMC_GROUP
 		__tmc_etb_enable_hw(drvdata);
+#endif
 	} else {
 		/*
 		 * The ETB/ETF is not tracing and the buffer was just read.
