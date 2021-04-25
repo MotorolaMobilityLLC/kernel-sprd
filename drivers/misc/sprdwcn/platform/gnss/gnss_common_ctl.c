@@ -243,13 +243,16 @@ static int gnss_boot_wait(void)
 }
 #endif
 
-#if defined(CONFIG_UMW2652) || defined(CONFIG_UMW2631_I)
+#if (defined(CONFIG_UMW2652) || defined(CONFIG_UMW2631_I) \
+	|| defined(CONFIG_SC2355))
 static const struct of_device_id pmic_of_match[] = {
 	{ .compatible = "sprd,sc27xx-syscon",  },
 	{ .compatible = "sprd,ump9622-syscon", },
 	{ },
 };
+#endif
 
+#if defined(CONFIG_UMW2652) || defined(CONFIG_UMW2631_I)
 static void pmic_sc27xx_tsen_enable(struct regmap *regmap,
 				unsigned int base, int type)
 {
@@ -739,7 +742,8 @@ static ssize_t gnss_status_show(struct device *dev,
 }
 static DEVICE_ATTR_RO(gnss_status);
 
-#if defined(CONFIG_UMW2652) || defined(CONFIG_UMW2631_I)
+#if (defined(CONFIG_UMW2652) || defined(CONFIG_UMW2631_I) \
+	|| defined(CONFIG_SC2355))
 static ssize_t gnss_clktype_show(struct device *dev,
 				 struct device_attribute *attr, char *buf)
 {
@@ -753,6 +757,33 @@ static ssize_t gnss_clktype_show(struct device *dev,
 	return i;
 }
 static DEVICE_ATTR_RO(gnss_clktype);
+
+static ssize_t gnss_pmic_chipid_show(struct device *dev,
+				     struct device_attribute *attr,
+				     char *buf)
+{
+	int i = 0;
+	static struct device_node *regmap_np;
+
+	if (wcn_get_xtal_26m_clk_type() != WCN_CLOCK_TYPE_TSX)
+		return -EINVAL;
+
+	regmap_np = of_find_matching_node(NULL, pmic_of_match);
+	if (!regmap_np) {
+		GNSSCOMM_ERR("%s, error np\n", __func__);
+		return -EINVAL;
+	}
+
+	if (of_device_is_compatible(regmap_np, "sprd,sc27xx-syscon"))
+		i = scnprintf(buf, PAGE_SIZE, "%x\n", PMIC_CHIPID_SC27XX);
+	else if (of_device_is_compatible(regmap_np, "sprd,ump9622-syscon"))
+		i = scnprintf(buf, PAGE_SIZE, "%x\n", PMIC_CHIPID_UMP9622);
+	else
+		return -EINVAL;
+
+	return i;
+}
+static DEVICE_ATTR_RO(gnss_pmic_chipid);
 #endif
 
 #ifndef CONFIG_WCN_INTEG
@@ -846,8 +877,10 @@ static struct attribute *gnss_common_ctl_attrs[] = {
 	&dev_attr_gnss_dump.attr,
 	&dev_attr_gnss_status.attr,
 	&dev_attr_gnss_subsys.attr,
-#if defined(CONFIG_UMW2652) || defined(CONFIG_UMW2631_I)
+#if (defined(CONFIG_UMW2652) || defined(CONFIG_UMW2631_I) \
+	|| defined(CONFIG_SC2355))
 	&dev_attr_gnss_clktype.attr,
+	&dev_attr_gnss_pmic_chipid.attr,
 #endif
 #ifndef CONFIG_WCN_INTEG
 	&dev_attr_gnss_regr.attr,
