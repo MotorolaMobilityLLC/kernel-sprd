@@ -6,7 +6,8 @@
 #include <dt-bindings/mfd/sprd,sc2730-regs.h>
 #include <dt-bindings/mfd/sprd,sc2730-mask.h>
 #include <dt-bindings/usb/pd.h>
-#include "lcd/lcd_g40396_truly_mipi_fhd.dtsi"
+#include "lcd/lcd_nt36525b_dj_mipi_hd.dtsi"
+#include "lcd/lcd_hx83102d_auo_mipi_hd.dtsi"
 #include "lcd/lcd_dummy_mipi.dtsi"
 
 / {
@@ -19,7 +20,7 @@
 	fragment {
 		target-path = "/";
 		__overlay__ {
-			pwm_backlight: sprd_backlight {
+/*			pwm_backlight: sprd_backlight {
 				compatible = "sprd,sharkl6-backlight";
 				pwms = <&pwms 2 40000>;
 				pwm-names = "backlight";
@@ -55,7 +56,7 @@
 					866 872 878 884 890 896 903 911 918 924
 				>;
 			};
-
+*/
 			fingerprint@0 {
 				compatible = "microarray,afs121";
 				fpint-gpios = <&eic_async 29 0>;
@@ -68,6 +69,14 @@
 					label = "Volume Down Key";
 					linux,code = <KEY_VOLUMEDOWN>;
 					gpios = <&ap_gpio 124 GPIO_ACTIVE_LOW>;
+					debounce-interval = <2>;
+					wakeup-source;
+				};
+
+				key-google {
+					label = "Google Key";
+					linux,code = <KEY_GOOGLE>;
+					gpios = <&ap_gpio 126 GPIO_ACTIVE_LOW>;
 					debounce-interval = <2>;
 					wakeup-source;
 				};
@@ -344,6 +353,16 @@
 			sprd-wlan{
 				compatible = "sprd,sc2355-wifi";
 			};
+
+			gpio_boardid:gpio_boardid {
+					compatible = "gpio,boardid";
+					gpio,boardid0 = <&ap_gpio 130 0>;
+					gpio,boardid1 = <&ap_gpio 131 0>;
+		                        gpio,boardid2 = <&ap_gpio 133 0>;
+					gpio,boardprjid = <&ap_gpio 112 0>;
+					gpio,boardprjid0 = <&ap_gpio 113 0>;
+			};
+
 		};
 	};
 };
@@ -498,7 +517,7 @@
 			regulator-name = "vddvbus";
 		};
 	};
-
+/* modify by yrn: gpio126 use to key_google, and bq2597x is not used.
 	bq2597x_chg: charger@65 {
 		compatible = "ti,bq2597x-standalone";
 		reg = <0x65>;
@@ -529,7 +548,7 @@
 		ti,bq2597x,ss-timeout = <100000>;
 		ti,bq2597x,watchdog-timer = <30000>;
 	};
-
+*/
 	hl1506_cp_converter: charger@1b {
 		compatible = "halo,hl1506_cp_converter";
 		reg = <0x1b>;
@@ -599,6 +618,27 @@
 		focaltech,max-touch-number = <5>;
 		focaltech,display-coords =  <0 0 1080 2400>;
 		spi-max-frequency = <6000000>;
+	};
+
+	novatek@0 {
+		status = "okay";
+	
+		compatible = "novatek,NVT-ts-spi", "himax,hxcommon";
+		reg = <0x0>;
+		spi-max-frequency = <9600000>;
+		
+		novatek,reset-gpio = <&ap_gpio 145 GPIO_ACTIVE_HIGH>;
+		novatek,irq-gpio = <&ap_gpio 144 GPIO_ACTIVE_HIGH>;
+		novatek,swrst-n8-addr = <0x03F0FE>;
+		
+		/*himax touch start*/
+		realtime-task = <1>;
+		himax,panel-coords = <0 720 0 1600>;
+		himax,display-coords = <0 720 0 1600>;
+		himax,irq-gpio = <&ap_gpio 144 GPIO_ACTIVE_HIGH>;
+		himax,rst-gpio = <&ap_gpio 145 GPIO_ACTIVE_HIGH>;
+		report_type = <1>;
+		/*himax touch end*/
 	};
 };
 
@@ -704,34 +744,14 @@
 
 &i2c2 {
 	status = "okay";
-	ucp1301_rcv: ucp1301@58 {
-		compatible = "sprd,ucp1301-rcv";
-		reg = <0x58>;
-		reset-gpios = <&ap_gpio 172 GPIO_ACTIVE_HIGH>;
-		#sound-dai-cells = <1>;
-	};
 };
 
 &i2c3 {
 	status = "okay";
 };
 
-&i2c4 {
-	status = "okay";
-	ucp1301_spk: ucp1301@58 {
-		compatible = "sprd,ucp1301-spk";
-		reg = <0x58>;
-		reset-gpios = <&ap_gpio 167 GPIO_ACTIVE_HIGH>;
-		#sound-dai-cells = <1>;
-	};
-};
-
 &sprd_headset {
 	status = "okay";
-	extcon = <&pmic_typec>;
-	mic-gpios = <&ap_gpio 175 GPIO_ACTIVE_HIGH>;
-	lr-gpios = <&ap_gpio 174 GPIO_ACTIVE_HIGH>;
-	sprd,3pole-adc-threshold = <112>;
 };
 
 &pdm_dmic {
@@ -740,86 +760,9 @@
 
 &sound_vbc_v4_sprd_codec {
 	status = "okay";
-	sprd-audio-card,routing =
-		"HPMIC Pin", "HP Mic Jack",
-		"MIC Pin", "Mic Jack",
-		"MIC2 Pin", "Aux Mic Jack",
-		"HeadPhone Jack", "HP Pin",
-		"Ext Spk", "SPK Pin",
-		"UCP1301 SPK ON", "SPK Pin",
-		"Ext Spk", "UCP1301 SPK",
-		"PDM DMIC2 ON", "SPK Pin",
-		"Ext Spk", "PDM_DMIC2",
-		"DMIC Pin", "DMic Jack",
-		"DMIC1 Pin", "DMic1 Jack",
-		"Ext Ear", "EAR Pin",
-		"UCP1301 RCV ON", "EAR Pin",
-		"Ext Ear", "UCP1301 RCV";
-
-	/* 35: ucp1301 normal ap01 */
-	sprd-audio-card,dai-link@53 {
-		ignore-suspend = <1>;
-		link-name = "BE_NORMAL_AP01_UCPSPK";
-		stream-name = "BE_ST_NORMAL_AP01_UCPSPK";
-		no-pcm = <1>;
-		dpcm-playback = <1>;
-		be-id = <0>;
-		dai-format = "i2s";
-		plat {
-			sound-dai = <&sprd_route_pcm>;
-		};
-		cpu {
-			sound-dai = <&vbc_v4 31>;
-		};
-		codec {
-			sound-dai = <&ucp1301_spk 0>;
-		};
-	};
-
-	/*
-	 * node 54 and node 55 (index 36 and 37) are reserved for
-	 * "ucp1301-spk2" and "ucp1301-rcv"
-	 * nodes from 56 to 67 (index from 38 to 49) are used by HIFI
-	 */
-	/* 37: ucp1301 normal ap01 rcv */
-	sprd-audio-card,dai-link@55 {
-		ignore-suspend = <1>;
-		link-name = "BE_NORMAL_AP01_UCPRCV";
-		stream-name = "BE_ST_NORMAL_AP01_UCPRCV";
-		no-pcm = <1>;
-		dpcm-playback = <1>;
-		be-id = <0>;
-		dai-format = "i2s";
-		plat {
-			sound-dai = <&sprd_route_pcm>;
-		};
-		cpu {
-			sound-dai = <&vbc_v4 31>;
-		};
-		codec {
-			sound-dai = <&ucp1301_rcv 0>;
-		};
-	};
-
-	/* 50: pdm dmic */
-	sprd-audio-card,dai-link@68 {
-		ignore-suspend = <1>;
-		link-name = "BE_PDM_DMIC";
-		stream-name = "BE_ST_PDM_DMIC";
-		no-pcm = <1>;
-		dpcm-capture = <1>;
-		be-id = <0>;
-		//dai-format = "i2s";
-		plat {
-			sound-dai = <&sprd_route_pcm>;
-		};
-		cpu {
-			sound-dai = <&vbc_v4 31>;
-		};
-		codec {
-			sound-dai = <&pdm_dmic 0>;
-		};
-	};
+	/*ext_control_type, hook selection, mode, gpio share*/
+	sprd,spk-ext-pa-info = <0 0 3 0>;
+	sprd,spk-ext-pa-gpio = <&ap_gpio 129 0>;
 };
 
 &vddldo0 {
@@ -835,10 +778,8 @@
 };
 
 &panel {
-	sprd,backlight = <&pwm_backlight>;
-
-	avdd-gpio = <&ap_gpio 135 GPIO_ACTIVE_HIGH>;
-	avee-gpio = <&ap_gpio 136 GPIO_ACTIVE_HIGH>;
+	avdd-gpio = <&ap_gpio 154 GPIO_ACTIVE_HIGH>;
+	avee-gpio = <&ap_gpio 155 GPIO_ACTIVE_HIGH>;
 	reset-gpio = <&ap_gpio 50 GPIO_ACTIVE_HIGH>;
 };
 
@@ -846,25 +787,8 @@
 	sprd,logo-memory = <&logo_reserved>;
 	sprd,wb-memory = <&wb_reserved>;
 
-	sprd,backlight = <&pwm_backlight>;
-	sprd,dpi-clk-div = <6>;
 };
 
-&lcd_g40396_truly_mipi_fhd {
-	display-timings {
-		g40396_truly_timing1: timing1 {
-			clock-frequency = <192000000>;
-			hactive = <720>;
-			vactive = <1600>;
-			hback-porch = <75>;
-			hfront-porch = <75>;
-			vback-porch = <32>;
-			vfront-porch = <8>;
-			hsync-len = <75>;
-			vsync-len = <8>;
-		};
-	};
-};
 
 &pmic_fchg {
 	sprd,input-voltage-microvolt = <5000000>;

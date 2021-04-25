@@ -720,6 +720,7 @@ static int sprd_oled_backlight_init(struct sprd_panel *panel)
 	return 0;
 }
 
+int hx83102_clk_div = 0;
 int sprd_panel_parse_lcddtb(struct device_node *lcd_node,
 	struct sprd_panel *panel)
 {
@@ -793,6 +794,11 @@ int sprd_panel_parse_lcddtb(struct device_node *lcd_node,
 	rc = of_property_read_u32(lcd_node, "sprd,esd-check-enable", &val);
 	if (!rc)
 		info->esd_check_en = val;
+
+	rc = of_property_read_u32(lcd_node, "sprd,dpi-clk-div", &val);
+	if (!rc)
+		hx83102_clk_div = val;
+	printk(KERN_ERR "%s(%d) clk_div:%d", __func__, __LINE__, hx83102_clk_div);
 
 	rc = of_property_read_u32(lcd_node, "sprd,esd-check-mode", &val);
 	if (!rc)
