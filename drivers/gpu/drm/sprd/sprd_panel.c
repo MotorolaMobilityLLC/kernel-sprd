@@ -593,16 +593,15 @@ static int of_parse_oled_cmds(struct sprd_oled *oled,
 		oled->cmds[i] = p;
 		p = (struct dsi_cmd_desc *)(p->payload + len);
 	}
-
 	oled->cmds_total = total;
 	oled->cmd_len = len + 4;
 
 	return 0;
 }
-
+extern const char *lcd_name;
 static int sprd_oled_set_brightness(struct backlight_device *bdev)
 {
-	int brightness;
+	int brightness, level;
 	struct sprd_oled *oled = bl_get_data(bdev);
 	struct sprd_panel *panel = oled->panel;
 
@@ -614,8 +613,18 @@ static int sprd_oled_set_brightness(struct backlight_device *bdev)
 	}
 
 	brightness = bdev->props.brightness;
+	level = brightness * oled->max_level / 255;
 
-	DRM_INFO("%s brightness: %d\n", __func__, brightness);
+/*
+	if(strncmp(lcd_name, "lcd_nt36525b_dj_mipi_hd",strlen(lcd_name)) == 0)
+	{
+		if(level < 256)
+			level = ((level * 81) + 22)/ 100;
+	}
+*/
+	if(level == 256)
+		level = 255;
+
 
 	sprd_panel_send_cmds(panel->slave,
 			     panel->info.cmds[CMD_OLED_REG_LOCK],
@@ -623,17 +632,21 @@ static int sprd_oled_set_brightness(struct backlight_device *bdev)
 
 	if (oled->cmds_total == 1) {
 		if (oled->cmds[0]->wc_l == 3) {
-			oled->cmds[0]->payload[1] = brightness >> 8;
-			oled->cmds[0]->payload[2] = brightness & 0xFF;
+			if(strncmp(lcd_name, "lcd_nt36525b_dj_mipi_hd", strlen(lcd_name)) == 0)
+			{
+				oled->cmds[0]->payload[1] = (level >> 4) & 0x0F;
+				oled->cmds[0]->payload[2] = (level << 4) & 0xF0;
+			printk("yyx payload[1]:0x%02X, payload[2]:0x%02X\n", oled->cmds[0]->payload[1], oled->cmds[0]->payload[2]);
+			}
 		} else
-			oled->cmds[0]->payload[1] = brightness;
+			oled->cmds[0]->payload[1] = level;
 
 		sprd_panel_send_cmds(panel->slave,
 			     oled->cmds[0],
 			     oled->cmd_len);
 	} else
 		sprd_panel_send_cmds(panel->slave,
-			     oled->cmds[brightness],
+			     oled->cmds[level],
 			     oled->cmd_len);
 
 	sprd_panel_send_cmds(panel->slave,
