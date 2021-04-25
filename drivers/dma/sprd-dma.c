@@ -68,6 +68,7 @@
 #define SPRD_DMA_GLB_TRANS_DONE_TRG	BIT(18)
 #define SPRD_DMA_GLB_BLOCK_DONE_TRG	BIT(17)
 #define SPRD_DMA_GLB_FRAG_DONE_TRG	BIT(16)
+#define SPRD_DMA_GLB_TRG_MASK		GENMASK(19, 16)
 #define SPRD_DMA_GLB_TRG_OFFSET		16
 #define SPRD_DMA_GLB_DEST_CHN_MASK	GENMASK(13, 8)
 #define SPRD_DMA_GLB_DEST_CHN_OFFSET	8
@@ -444,7 +445,10 @@ static int sprd_dma_set_2stage_config(struct sprd_dma_chn *schan)
 		if (schan->int_type != SPRD_DMA_NO_INT)
 			val |= SPRD_DMA_GLB_SRC_INT;
 
-		sprd_dma_glb_update(sdev, SPRD_DMA_GLB_2STAGE_GRP1, val, val);
+		sprd_dma_glb_update(sdev, SPRD_DMA_GLB_2STAGE_GRP1,
+				    SPRD_DMA_GLB_SRC_INT |
+				    SPRD_DMA_GLB_TRG_MASK |
+				    SPRD_DMA_GLB_SRC_CHN_MASK, val);
 		break;
 
 	case SPRD_DMA_SRC_CHN1:
@@ -454,7 +458,10 @@ static int sprd_dma_set_2stage_config(struct sprd_dma_chn *schan)
 		if (schan->int_type != SPRD_DMA_NO_INT)
 			val |= SPRD_DMA_GLB_SRC_INT;
 
-		sprd_dma_glb_update(sdev, SPRD_DMA_GLB_2STAGE_GRP2, val, val);
+		sprd_dma_glb_update(sdev, SPRD_DMA_GLB_2STAGE_GRP2,
+				    SPRD_DMA_GLB_SRC_INT |
+				    SPRD_DMA_GLB_TRG_MASK |
+				    SPRD_DMA_GLB_SRC_CHN_MASK, val);
 		break;
 
 	case SPRD_DMA_DST_CHN0:
@@ -464,7 +471,9 @@ static int sprd_dma_set_2stage_config(struct sprd_dma_chn *schan)
 		if (schan->int_type != SPRD_DMA_NO_INT)
 			val |= SPRD_DMA_GLB_DEST_INT;
 
-		sprd_dma_glb_update(sdev, SPRD_DMA_GLB_2STAGE_GRP1, val, val);
+		sprd_dma_glb_update(sdev, SPRD_DMA_GLB_2STAGE_GRP1,
+				    SPRD_DMA_GLB_DEST_INT |
+				    SPRD_DMA_GLB_DEST_CHN_MASK, val);
 		break;
 
 	case SPRD_DMA_DST_CHN1:
@@ -474,7 +483,9 @@ static int sprd_dma_set_2stage_config(struct sprd_dma_chn *schan)
 		if (schan->int_type != SPRD_DMA_NO_INT)
 			val |= SPRD_DMA_GLB_DEST_INT;
 
-		sprd_dma_glb_update(sdev, SPRD_DMA_GLB_2STAGE_GRP2, val, val);
+		sprd_dma_glb_update(sdev, SPRD_DMA_GLB_2STAGE_GRP2,
+				    SPRD_DMA_GLB_DEST_INT |
+				    SPRD_DMA_GLB_DEST_CHN_MASK, val);
 		break;
 
 	default:
