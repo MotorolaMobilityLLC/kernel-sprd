@@ -779,6 +779,8 @@ struct sipa_plat_drv_cfg {
 	bool power_flag;
 
 	/* IPA NIC interface */
+	spinlock_t mode_lock;
+	int mode_state;
 	struct sipa_nic *nic[SIPA_NIC_MAX];
 
 	/* sender & receiver */

@@ -16,6 +16,7 @@
 #include <linux/slab.h>
 #include <linux/sipa.h>
 
+#include "sipa_priv.h"
 #include "sipa_rm.h"
 #include "sipa_rm_res.h"
 #include "sipa_rm_peers_list.h"
@@ -483,6 +484,7 @@ int sipa_rm_request_resource(enum sipa_rm_res_id res_id)
 		pr_err("can be called on CONS only\n");
 		return -EINVAL;
 	}
+
 	spin_lock_irqsave(&sipa_rm_ctx->sipa_rm_lock, flags);
 	if (sipa_rm_dep_graph_get_resource(sipa_rm_ctx->dep_graph,
 					   res_id,
@@ -491,6 +493,7 @@ int sipa_rm_request_resource(enum sipa_rm_res_id res_id)
 		result = -EPERM;
 		goto bail;
 	}
+
 	result = sipa_rm_resource_consumer_request(
 			 (struct sipa_rm_res_cons *)resource);
 

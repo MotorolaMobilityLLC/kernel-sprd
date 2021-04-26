@@ -402,6 +402,7 @@ int sipa_nic_open(enum sipa_term_type src, int netid,
 		  sipa_notify_cb cb, void *priv)
 {
 	int i, ret;
+	unsigned long flags;
 	struct sipa_nic *nic = NULL;
 	struct sipa_skb_sender *sender;
 	enum sipa_nic_id nic_id = SIPA_NIC_MAX;
@@ -436,6 +437,18 @@ int sipa_nic_open(enum sipa_term_type src, int netid,
 		ipa->nic[nic_id] = nic;
 	}
 
+	spin_lock_irqsave(&ipa->mode_lock, flags);
+	if (nic_id == SIPA_NIC_USB || nic_id == SIPA_NIC_WIFI) {
+		ipa->mode_state |= 1 << nic_id;
+
+		ipa->is_bypass = 0;
+		if (ipa->enable_cnt) {
+			ipa->glb_ops.set_work_mode(ipa->glb_virt_base,
+						   ipa->is_bypass);
+		}
+	}
+	spin_unlock_irqrestore(&ipa->mode_lock, flags);
+
 	/* sipa rm operations */
 	sipa_nic_rm_init(&nic->rm_res,
 			 ipa->sender,
@@ -469,6 +482,7 @@ EXPORT_SYMBOL(sipa_nic_open);
  */
 void sipa_nic_close(enum sipa_nic_id nic_id)
 {
+	unsigned long flags;
 	struct sipa_nic *nic = NULL;
 	struct sipa_skb_sender *sender;
 	struct sipa_plat_drv_cfg *ipa = sipa_get_ctrl_pointer();
@@ -482,6 +496,18 @@ void sipa_nic_close(enum sipa_nic_id nic_id)
 		return;
 
 	nic = ipa->nic[nic_id];
+
+	spin_lock_irqsave(&ipa->mode_lock, flags);
+	if ((1 << nic_id) & ipa->mode_state)
+		ipa->mode_state &= ~(1 << nic_id);
+
+	if (!ipa->mode_state) {
+		ipa->is_bypass = 1;
+		if (ipa->enable_cnt)
+			ipa->glb_ops.set_work_mode(ipa->glb_virt_base,
+						   ipa->is_bypass);
+	}
+	spin_unlock_irqrestore(&ipa->mode_lock, flags);
 
 	atomic_set(&nic->status, NIC_CLOSE);
 	sipa_nic_deregister_rm(nic, nic_id);
