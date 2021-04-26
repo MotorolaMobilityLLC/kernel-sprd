@@ -14359,8 +14359,8 @@ CONFIG_SPRD_PMIC_SYSCON
 	[function] This function is used to calibrate PMIC 26M.
 CONFIG_SPRD_POWER
 	[arch] arm64
-	[plat] qogirn6pro,sharkl5Pro
-	[missing plat] qogirl6,sharkl3,sharkl5
+	[plat] qogirl6,qogirn6pro,sharkl5Pro
+	[missing plat] sharkl3,sharkl5
 	[field] make
 	[subsys] soc
 	[must] user
@@ -14368,8 +14368,8 @@ CONFIG_SPRD_POWER
 	[function] sprd lowpower function
 CONFIG_SPRD_POWER_LOG
 	[arch] arm64
-	[plat] qogirn6pro,sharkl5Pro
-	[missing plat] qogirl6,sharkl3,sharkl5
+	[plat] qogirl6,qogirn6pro,sharkl5Pro
+	[missing plat] sharkl3,sharkl5
 	[field] make,code
 	[subsys] soc
 	[must] user
@@ -14384,6 +14384,15 @@ CONFIG_SPRD_POWER_LOG_SHARKL5PRO
 	[must] user
 	[missing plat description] for sharkl5pro only
 	[function] sharkl5pro lowpower log function
+CONFIG_SPRD_POWER_LOG_SHARKL6
+	[arch] arm64
+	[plat] qogirl6
+	[missing plat] qogirn6pro,sharkl3,sharkl5,sharkl5Pro
+	[field] make
+	[subsys] soc
+	[must] user
+	[missing plat description] for qogirl6 only
+	[function] qogirl6 lowpower log function
 CONFIG_SPRD_POWER_LOG_SHARKL6PRO
 	[arch] arm64
 	[plat] qogirn6pro
