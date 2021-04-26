@@ -700,6 +700,9 @@ static ssize_t cproc_proc_write(struct file *filp,
 	unsigned long r = count;
 	unsigned int flag;
 
+	if (strcmp(current->comm, "modem_control"))
+		return -EPERM;
+
 	flag = entry->flag;
 	dev_dbg(dev, "type = %s flag = 0x%x\n", type, flag);
 
@@ -1108,6 +1111,9 @@ static int sprd_cproc_native_arm_start(void *arg)
 	struct cproc_ctrl *ctrl;
 	u32 state, cnt;
 
+	if (strcmp(current->comm, "modem_control"))
+		return -EPERM;
+
 	if (!pdata)
 		return -ENODEV;
 	ctrl = pdata->ctrl;
@@ -1219,6 +1225,9 @@ static int sprd_cproc_native_arm_stop(void *arg)
 	struct device *dev = cproc->miscdev.this_device;
 	struct cproc_init_data *pdata = cproc->initdata;
 	struct cproc_ctrl *ctrl;
+
+	if (strcmp(current->comm, "modem_control"))
+		return -EPERM;
 
 	if (!pdata)
 		return -ENODEV;
