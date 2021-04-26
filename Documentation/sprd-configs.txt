@@ -5214,6 +5214,17 @@ CONFIG_DUMMY_CONSOLE
 	[must] console
 	[missing plat description] none
 	[function] Enable dummy console
+CONFIG_DVFS_APSYS_SPRD
+	[arch] arm64
+	[plat] sharkl5Pro
+	[missing plat] sharkl3
+	[field] make
+	[subsys] devfreq
+	[must] user
+	[missing plat description] Since the project of sharkl5 can support scaling voltage and
+				   frequency ofsome devices which include gpu,modem and so
+				   on.sharkl3 don't have the function.
+	[function]
 CONFIG_DYNAMIC_DEBUG
 	[arch] all
 	[plat] pike2,sharkl5Pro

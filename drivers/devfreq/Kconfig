@@ -137,6 +137,12 @@ config SPRD_TOP_DVFS_DEVFREQ
           It accomplishes some necessory initialization which is required by
           subsys hardware dvfs.
 
+config DVFS_APSYS_SPRD
+        tristate "Sprd DVFS APSYS DEVFREQ Driver"
+        default n
+        help
+          This function is to support the apsys dvfs function.
+
 source "drivers/devfreq/event/Kconfig"
 
 endif # PM_DEVFREQ

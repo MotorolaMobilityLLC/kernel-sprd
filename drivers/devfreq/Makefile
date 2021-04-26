@@ -16,3 +16,6 @@ obj-$(CONFIG_SPRD_TOP_DVFS_DEVFREQ) 	+= sprd-top-dvfs.o
 
 # DEVFREQ Event Drivers
 obj-$(CONFIG_PM_DEVFREQ_EVENT)		+= event/
+
+# SPRD DVFS Driver
+obj-$(CONFIG_DVFS_APSYS_SPRD)		+= apsys/
