@@ -1797,6 +1797,15 @@ CONFIG_BLK_CGROUP
 	[must] none
 	[missing plat description] none
 	[function] enable blkio, you can limit the weight of per group
+CONFIG_BLK_CGROUP_IOCOST
+	[arch] arm64
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
 CONFIG_BLK_DEBUG_FS
 	[arch] all
 	[plat] all
@@ -1938,6 +1947,15 @@ CONFIG_BLK_DEV_SD
 	[must] user
 	[missing plat description] none
 	[function] This macro is to support host udisk function.
+CONFIG_BLK_DEV_THROTTLING
+	[arch] arm64
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
 CONFIG_BLK_INLINE_ENCRYPTION
 	[arch] all
 	[plat] all
@@ -1977,6 +1995,15 @@ CONFIG_BLK_MQ_VIRTIO
 CONFIG_BLK_PM
 	[arch] all
 	[plat] all
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
+CONFIG_BLK_RQ_ALLOC_TIME
+	[arch] arm64
+	[plat] sharkl3,sharkl5Pro
 	[missing plat] none
 	[field]
 	[subsys]
@@ -16693,8 +16720,7 @@ CONFIG_SPRD_PTM
 	[field] make
 	[subsys] debug
 	[must] debug
-	[missing plat description] pike2 and sharkle32 is not used, hardware have supported this
-                 feature, need software to enable it.
+	[missing plat description] none
 	[function] Support Spreadtrum PTM.
 CONFIG_SPRD_SC7731E_CLK
 	[arch] arm
