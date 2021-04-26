@@ -338,6 +338,8 @@
 				clock-names = "enable", "uart", "source";
 				clocks = <&apapb_gate CLK_UART1_EB>,
 					<&ap_clk CLK_AP_UART1>, <&ext_26m>;
+				dma-names = "rx", "tx";
+				dmas = <&ap_dma 15 &ap_dma 16>;
 				status = "disabled";
 			};
 
