@@ -1259,7 +1259,7 @@ static enum sprd_headset_type sprd_headset_type_plugged(void)
 
 	if (adc_left_ideal > pdata->sprd_adc_gnd &&
 		ABS(adc_mic_ideal - adc_left_ideal) < pdata->sprd_adc_gnd) {
-		sprd_headset_ldetl_ref_sel(LDETL_REF_SEL_20mV);
+		sprd_headset_ldetl_ref_sel(LDETL_REF_SEL_100mV);
 		sprd_hmicbias_hw_control_enable(false, pdata);
 		return HEADSET_4POLE_NOT_NORMAL;
 	} else if (adc_left_ideal > pdata->sprd_adc_gnd &&
@@ -1275,7 +1275,7 @@ static enum sprd_headset_type sprd_headset_type_plugged(void)
 		val = sprd_headset_part_is_inserted(HDST_INSERT_MDET);
 		pr_debug("%s val %d\n", __func__, val);
 		if (val != 0 && adc_left_ideal < pdata->sprd_half_adc_gnd) {
-			sprd_headset_ldetl_ref_sel(LDETL_REF_SEL_20mV);
+			sprd_headset_ldetl_ref_sel(LDETL_REF_SEL_100mV);
 			return HEADSET_4POLE_NORMAL;
 		} else if (val != 0 &&
 			adc_left_ideal >= pdata->sprd_half_adc_gnd) {
@@ -1290,7 +1290,7 @@ static enum sprd_headset_type sprd_headset_type_plugged(void)
 			 */
 			headset_type = sprd_detect_type_through_mdet(hdst);
 			if (headset_type == HEADSET_4POLE_NORMAL)
-				sprd_headset_ldetl_ref_sel(LDETL_REF_SEL_20mV);
+				sprd_headset_ldetl_ref_sel(LDETL_REF_SEL_100mV);
 			else
 				sprd_headset_ldetl_ref_sel(LDETL_REF_SEL_100mV);
 			return headset_type;
@@ -1312,7 +1312,7 @@ static enum sprd_headset_type sprd_headset_type_plugged(void)
 			hdst->lineout_status = true;
 			headset_type = sprd_detect_type_through_mdet(hdst);
 			if (headset_type == HEADSET_4POLE_NORMAL)
-				sprd_headset_ldetl_ref_sel(LDETL_REF_SEL_20mV);
+				sprd_headset_ldetl_ref_sel(LDETL_REF_SEL_100mV);
 			else
 				sprd_headset_ldetl_ref_sel(LDETL_REF_SEL_100mV);
 			return headset_type;
@@ -1429,7 +1429,7 @@ static enum sprd_headset_type sprd_headset_get_type(void)
 
 	if (left_vol_min <= TYPEC_SELFIE_STICK_THRESHOLD) {
 		/* typec headset */
-		sprd_headset_ldetl_ref_sel(LDETL_REF_SEL_20mV);
+		sprd_headset_ldetl_ref_sel(LDETL_REF_SEL_100mV);
 		return HEADSET_4POLE_NORMAL;
 	}
 	if (left_vol_min > TYPEC_SELFIE_STICK_THRESHOLD) {
