@@ -2635,6 +2635,33 @@ CONFIG_CFG80211
 	[must] user
 	[missing plat description] none
 	[function] is the Linux wireless LAN (802.11) configuration API
+CONFIG_CFG80211_CERTIFICATION_ONUS
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
+CONFIG_CFG80211_EXTRA_REGDB_KEYDIR
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
+CONFIG_CFG80211_REG_CELLULAR_HINTS
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
 CONFIG_CFG80211_REQUIRE_SIGNED_REGDB
 	[arch] all
 	[plat] all
