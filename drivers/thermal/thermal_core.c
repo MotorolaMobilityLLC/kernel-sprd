@@ -393,6 +393,8 @@ static void handle_critical_trips(struct thermal_zone_device *tz,
 			  "critical temperature reached (%d C), shutting down\n",
 			  tz->temperature / 1000);
 		mutex_lock(&poweroff_lock);
+
+#ifndef    DUAL_85_VERSION
 		if (!power_off_triggered) {
 			/*
 			 * Queue a backup emergency shutdown in the event of
@@ -402,6 +404,7 @@ static void handle_critical_trips(struct thermal_zone_device *tz,
 			orderly_poweroff(true);
 			power_off_triggered = true;
 		}
+#endif		
 		mutex_unlock(&poweroff_lock);
 	}
 }
