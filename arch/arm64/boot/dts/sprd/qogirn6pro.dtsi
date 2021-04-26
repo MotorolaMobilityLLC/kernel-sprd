@@ -1665,7 +1665,7 @@
 					MASK_IPA_GLB_APB_TFT_EB>;
 				syscon-names = "enable-ipa", "enable-tft";
 
-				sprd,sipa-bypass-mode = <0>;
+				sprd,sipa-bypass-mode = <1>;
 
 				power-domains = <&pd_ipa_sys>;
 
