@@ -1234,10 +1234,6 @@ static void dpu_layer(struct dpu_context *ctx,
 		tos_msg.cmd = TA_REG_CLR;
 		disp_ca_write(&tos_msg, sizeof(tos_msg));
 		disp_ca_wait_response();
-
-		tos_msg.cmd = TA_FIREWALL_CLR;
-		disp_ca_write(&tos_msg, sizeof(tos_msg));
-		disp_ca_wait_response();
 	}
 
 	layer = &reg->layers[hwlayer->index];
@@ -1370,7 +1366,13 @@ static void dpu_flip(struct dpu_context *ctx,
 	if (ctx->if_type == SPRD_DISPC_IF_DPI) {
 		if (!ctx->is_stopped) {
 			reg->dpu_ctrl |= BIT(2);
-			dpu_wait_update_done(ctx);
+			if ((!layers[0].secure_en) && reg->dpu_secure) {
+				dpu_wait_update_done(ctx);
+				tos_msg.cmd = TA_FIREWALL_CLR;
+				disp_ca_write(&tos_msg, sizeof(tos_msg));
+				disp_ca_wait_response();
+			} else
+				dpu_wait_update_done(ctx);
 		}
 
 		reg->dpu_int_en |= DISPC_INT_ERR_MASK;
