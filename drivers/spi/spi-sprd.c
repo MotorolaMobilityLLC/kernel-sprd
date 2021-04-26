@@ -83,6 +83,9 @@
 #define SPRD_SPI_START_RX		BIT(9)
 #define SPRD_SPI_ONLY_RECV_MASK		GENMASK(8, 0)
 
+/* Bits & mask definition for register CTL5 */
+#define SPRD_SPI_ITVL_NUM		0x09
+
 /* Bits & mask definition for register SPI_INT_CLR */
 #define SPRD_SPI_RX_END_INT_CLR		BIT(9)
 #define SPRD_SPI_TX_END_INT_CLR		BIT(8)
@@ -161,9 +164,10 @@ static u32 sprd_spi_transfer_max_timeout(struct sprd_spi *ss,
 	 * There is an interval between data and the data in our SPI hardware,
 	 * so the total transmission time need add the interval time.
 	 */
+	u32 clkd_cycle = SPRD_SPI_FIFO_SIZE * bit_time_us;
 	u32 interval_cycle = SPRD_SPI_FIFO_SIZE * ss->word_delay;
 	u32 interval_time_us = DIV_ROUND_UP(interval_cycle * USEC_PER_SEC,
-					    ss->src_clk);
+					    ss->src_clk) + clkd_cycle;
 
 	return total_time_us + interval_time_us;
 }
@@ -444,7 +448,7 @@ static void sprd_spi_set_speed(struct sprd_spi *ss, u32 speed_hz)
 
 static void sprd_spi_init_hw(struct sprd_spi *ss, struct spi_transfer *t)
 {
-	u16 word_delay, interval;
+	u16 word_delay, itvl_num;
 	u32 val;
 
 	val = readl_relaxed(ss->base + SPRD_SPI_CTL7);
@@ -457,13 +461,14 @@ static void sprd_spi_init_hw(struct sprd_spi *ss, struct spi_transfer *t)
 	/*
 	 * Set the intervals of two SPI frames, and the inteval calculation
 	 * formula as below per datasheet:
-	 * interval time (source clock cycles) = interval * 4 + 10.
+	 * interval time(source clock cycles) = 2 * clkd + itvl_num * 4 + 6.
 	 */
 	word_delay = clamp_t(u16, t->word_delay, SPRD_SPI_MIN_DELAY_CYCLE,
 			     SPRD_SPI_MAX_DELAY_CYCLE);
-	interval = DIV_ROUND_UP(word_delay - 10, 4);
-	ss->word_delay = interval * 4 + 10;
-	writel_relaxed(interval, ss->base + SPRD_SPI_CTL5);
+	itvl_num = max_t(u16, DIV_ROUND_UP(word_delay - 10, 4),
+			 SPRD_SPI_ITVL_NUM);
+	ss->word_delay = itvl_num * 4 + 6;
+	writel_relaxed(itvl_num, ss->base + SPRD_SPI_CTL5);
 
 	/* Reset SPI fifo */
 	writel_relaxed(1, ss->base + SPRD_SPI_FIFO_RST);
