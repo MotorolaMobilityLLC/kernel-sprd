@@ -586,6 +586,11 @@ static int sprd_hsphy_probe(struct platform_device *pdev)
 			REG_AON_APB_MIPI_CSI_POWER_CTRL, msk, reg);
 	}
 
+	/* musb_set_utmi_60m_flag() is used to control the must i2s clk
+	 * configuration, pass parameter "true" if we use 60MHz utmi phy
+	 */
+	musb_set_utmi_60m_flag(true);
+
 	phy->phy.dev = dev;
 	phy->phy.label = "sprd-hsphy";
 	phy->phy.otg = otg;
