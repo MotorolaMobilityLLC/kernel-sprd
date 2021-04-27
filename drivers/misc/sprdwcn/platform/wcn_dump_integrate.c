@@ -663,8 +663,8 @@ static int btwf_dump_mem(void)
 			return 0;
 		}
 	}
-	if (loopcheck_status() & (0x1<<3))
-		mdbg_hold_cpu();
+
+	mdbg_hold_cpu();
 	msleep(100);
 	mdbg_ring_reset(mdev_ring);
 	mdbg_atcmd_clean();
