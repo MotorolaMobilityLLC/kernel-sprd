@@ -17,8 +17,8 @@ Optional properties:
 - input-schmitt-enable: Disable schmitt-trigger mode.
 - bias-disable: Disable pin bias.
 - bias-pull-down: Pull down on pin.
-- bias-pull-up: Pull up on pin. Supported values: 20000 for pull-up resistor
-  is 20K and 4700 for pull-up resistor is 4.7K.
+- bias-pull-up: Pull up on pin. Supported values: 1 for pull-up resistor
+  is 20K, 2 for pull-up resistor is 4.7K and 3 for pull-up registor is 1.8k.
 - input-enable: Enable pin input.
 - input-disable: Enable pin output.
 - output-high: Set the pin as an output level high.
@@ -34,6 +34,7 @@ enum pin_sleep_mode {
 	PUBCP_SLEEP = BIT(1),
 	TGLDSP_SLEEP = BIT(2),
 	AGDSP_SLEEP = BIT(3),
+	NONE_SLEEP = 0x0,
 };
 
 Example:
@@ -42,29 +43,26 @@ pin_controller: pinctrl@402a0000 {
 	reg = <0x402a0000 0x10000>;
 
 	grp1: sd0 {
-		pins = "SC9860_VIO_SD2_IRTE", "SC9860_VIO_SD0_IRTE";
+		pins = "SC9860_VIO_SD2_IRTE";
 		sprd,control = <0x1>;
 	};
 
 	grp2: rfctl_33 {
 		pins = "SC9860_RFCTL33";
 		function = "func2";
-		sprd,sleep-mode = <AP_SLEEP | PUBCP_SLEEP>;
-		grp2_sleep_mode: rfctl_33_sleep {
-			pins = "SC9860_RFCTL33";
-			sleep-hardware-state;
-			output-low;
-		}
 	};
 
 	grp3: rfctl_misc_20 {
 		pins = "SC9860_RFCTL20_MISC";
-		drive-strength = <10>;
-		bias-pull-up = <4700>;
-		grp3_sleep_mode: rfctl_misc_sleep {
-			pins = "SC9860_RFCTL20_MISC";
-			sleep-hardware-state;
-			bias-pull-up;
-		}
+		drive-strength = <4>;
+		bias-pull-up = <2>;
+		sprd,sleep-mode = <AP_SLEEP>;
+	};
+
+	grp3_sleep_mode: rfctl_misc_sleep {
+		pins = "SC9860_RFCTL20_MISC";
+		sleep-hardware-state;
+		bias-disable;
+		output-enable;
 	};
 };
