@@ -22,12 +22,15 @@
 
 static struct clk *clk_dpuvsp_eb;
 static struct clk *clk_dpuvsp_disp_eb;
+static struct clk *clk_master_div6_eb;
 
 static struct dpu_clk_context {
 	struct clk *clk_src_256m;
 	struct clk *clk_src_307m2;
+	struct clk *clk_src_312m5;
 	struct clk *clk_src_384m;
 	struct clk *clk_src_409m6;
+	struct clk *clk_src_416m7;
 	struct clk *clk_src_512m;
 	struct clk *clk_src_614m4;
 	struct clk *clk_dpu_core;
@@ -38,6 +41,12 @@ static struct qos_thres {
 	u8 awqos_thres;
 	u8 arqos_thres;
 } qos_cfg;
+
+enum {
+	CLK_DPI_DIV6 = 6,
+	CLK_DPI_DIV8 = 8
+};
+
 
 static const u32 dpu_core_clk[] = {
 	256000000,
@@ -92,10 +101,14 @@ static int dpu_clk_parse_dt(struct dpu_context *ctx,
 		of_clk_get_by_name(np, "clk_src_256m");
 	clk_ctx->clk_src_307m2 =
 		of_clk_get_by_name(np, "clk_src_307m2");
+	clk_ctx->clk_src_312m5 =
+		of_clk_get_by_name(np, "clk_src_312m5");
 	clk_ctx->clk_src_384m =
 		of_clk_get_by_name(np, "clk_src_384m");
 	clk_ctx->clk_src_409m6 =
 		of_clk_get_by_name(np, "clk_src_409m6");
+	clk_ctx->clk_src_416m7 =
+		of_clk_get_by_name(np, "clk_src_416m7");
 	clk_ctx->clk_src_512m =
 		of_clk_get_by_name(np, "clk_src_512m");
 	clk_ctx->clk_src_614m4 =
@@ -115,6 +128,11 @@ static int dpu_clk_parse_dt(struct dpu_context *ctx,
 		clk_ctx->clk_src_307m2 = NULL;
 	}
 
+	if (IS_ERR(clk_ctx->clk_src_312m5)) {
+		pr_warn("read clk_src_312m5 failed\n");
+		clk_ctx->clk_src_384m = NULL;
+	}
+
 	if (IS_ERR(clk_ctx->clk_src_384m)) {
 		pr_warn("read clk_src_384m failed\n");
 		clk_ctx->clk_src_384m = NULL;
@@ -123,6 +141,11 @@ static int dpu_clk_parse_dt(struct dpu_context *ctx,
 	if (IS_ERR(clk_ctx->clk_src_409m6)) {
 		pr_warn("read clk_src_409m6 failed\n");
 		clk_ctx->clk_src_409m6 = NULL;
+	}
+
+	if (IS_ERR(clk_ctx->clk_src_416m7)) {
+		pr_warn("read clk_src_416m7 failed\n");
+		clk_ctx->clk_src_384m = NULL;
 	}
 
 	if (IS_ERR(clk_ctx->clk_src_512m)) {
@@ -166,9 +189,22 @@ static u32 calc_dpi_clk_src(u32 pclk)
 	return 96000000;
 }
 
+static struct clk *div_to_clk(struct dpu_clk_context *clk_ctx, u32 clk_div)
+{
+	switch (clk_div) {
+	case CLK_DPI_DIV6:
+		return clk_ctx->clk_src_416m7;
+	case CLK_DPI_DIV8:
+		return clk_ctx->clk_src_312m5;
+	default:
+		pr_err("invalid clock value %u\n", clk_div);
+		return NULL;
+	}
+}
+
+
 static int dpu_clk_init(struct dpu_context *ctx)
 {
-
 	int ret;
 	u32 dpu_core_val;
 	u32 dpi_src_val;
@@ -176,34 +212,46 @@ static int dpu_clk_init(struct dpu_context *ctx)
 	struct dpu_clk_context *clk_ctx = &dpu_clk_ctx;
 
 	dpu_core_val = calc_dpu_core_clk();
-	dpi_src_val = calc_dpi_clk_src(ctx->vm.pixelclock);
 
-	pr_info("DPU_CORE_CLK = %u, DPI_CLK_SRC = %u\n",
-		dpu_core_val, dpi_src_val);
-	pr_info("dpi clock is %lu\n", ctx->vm.pixelclock);
+	if (ctx->dpi_clk_div) {
+		pr_info("DPU_CORE_CLK = %u, DPI_CLK_DIV = %d\n",
+				dpu_core_val, ctx->dpi_clk_div);
+	} else {
+		dpi_src_val = calc_dpi_clk_src(ctx->vm.pixelclock);
+		pr_info("DPU_CORE_CLK = %u, DPI_CLK_SRC = %u\n",
+				dpu_core_val, dpi_src_val);
+		pr_info("dpi clock is %lu\n", ctx->vm.pixelclock);
+	}
 
 	clk_src = val_to_clk(clk_ctx, dpu_core_val);
 	ret = clk_set_parent(clk_ctx->clk_dpu_core, clk_src);
 	if (ret)
 		pr_warn("set dpu core clk source failed\n");
 
-	clk_src = val_to_clk(clk_ctx, dpi_src_val);
-	ret = clk_set_parent(clk_ctx->clk_dpu_dpi, clk_src);
-	if (ret)
-		pr_warn("set dpi clk source failed\n");
+	if (ctx->dpi_clk_div) {
+		clk_src = div_to_clk(clk_ctx, ctx->dpi_clk_div);
+		ret = clk_set_parent(clk_ctx->clk_dpu_dpi, clk_src);
+		if (ret)
+			pr_warn("set dpi clk source failed\n");
+	} else {
+		clk_src = val_to_clk(clk_ctx, dpi_src_val);
+		ret = clk_set_parent(clk_ctx->clk_dpu_dpi, clk_src);
+		if (ret)
+			pr_warn("set dpi clk source failed\n");
 
-	ret = clk_set_rate(clk_ctx->clk_dpu_dpi, ctx->vm.pixelclock);
-	if (ret)
-		pr_err("dpu update dpi clk rate failed\n");
+		ret = clk_set_rate(clk_ctx->clk_dpu_dpi, ctx->vm.pixelclock);
+		if (ret)
+			pr_err("dpu update dpi clk rate failed\n");
+	}
 
 	return ret;
-
 }
 
 static int dpu_clk_enable(struct dpu_context *ctx)
 {
 	int ret;
 	struct dpu_clk_context *clk_ctx = &dpu_clk_ctx;
+	static bool div6_uboot_enable = true;
 
 	ret = clk_prepare_enable(clk_ctx->clk_dpu_core);
 	if (ret) {
@@ -216,6 +264,16 @@ static int dpu_clk_enable(struct dpu_context *ctx)
 		pr_err("enable clk_dpu_dpi error\n");
 		clk_disable_unprepare(clk_ctx->clk_dpu_core);
 		return ret;
+	}
+
+	if (ctx->dpi_clk_div) {
+		if (div6_uboot_enable) {
+			div6_uboot_enable = false;
+			return 0;
+		}
+		clk_prepare_enable(clk_master_div6_eb);
+		clk_disable_unprepare(clk_master_div6_eb);
+
 	}
 
 	return 0;
@@ -283,6 +341,13 @@ static int dpu_glb_parse_dt(struct dpu_context *ctx,
 		clk_dpuvsp_disp_eb = NULL;
 	}
 
+	clk_master_div6_eb =
+		of_clk_get_by_name(np, "clk_master_div6_eb");
+	if (IS_ERR(clk_master_div6_eb)) {
+		pr_warn("read clk_master_div6_eb failed\n");
+		clk_master_div6_eb = NULL;
+	}
+
 	ctx_qos.regmap = syscon_regmap_lookup_by_name(np, "qos");
 	if (IS_ERR(ctx_qos.regmap)) {
 		pr_warn("failed to map dpu glb reg: qos\n");
@@ -316,19 +381,6 @@ static int dpu_glb_parse_dt(struct dpu_context *ctx,
 
 static void dpu_glb_enable(struct dpu_context *ctx)
 {
-	unsigned int ret;
-
-	ret = clk_prepare_enable(clk_dpuvsp_eb);
-	if (ret) {
-		pr_err("enable clk_dpuvsp_eb failed!\n");
-		return;
-	}
-
-	ret = clk_prepare_enable(clk_dpuvsp_disp_eb);
-	if (ret) {
-		pr_err("enable clk_dpuvsp_disp_eb failed!\n");
-		return;
-	}
 }
 
 static void dpu_glb_disable(struct dpu_context *ctx)
@@ -357,7 +409,6 @@ static void dpu_reset(struct dpu_context *ctx)
 			vau_reset.enable_reg,
 			vau_reset.mask_bit,
 			(unsigned int)(~vau_reset.mask_bit));
-
 }
 
 static void dpu_power_domain(struct dpu_context *ctx, int enable)

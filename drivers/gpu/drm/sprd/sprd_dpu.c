@@ -666,6 +666,14 @@ static enum drm_mode_status sprd_crtc_mode_valid(struct drm_crtc *crtc,
 	return MODE_OK;
 }
 
+void sprd_dpu_resume(struct sprd_dpu *dpu)
+{
+	sprd_dpu_init(dpu);
+	enable_irq(dpu->ctx.irq);
+	sprd_iommu_restore(&dpu->dev);
+	DRM_INFO("dpu resume OK\n");
+}
+
 static void sprd_crtc_atomic_enable(struct drm_crtc *crtc,
 				   struct drm_crtc_state *old_state)
 {
@@ -680,16 +688,20 @@ static void sprd_crtc_atomic_enable(struct drm_crtc *crtc,
 	if (crtc->state->mode_changed && !crtc->state->active_changed)
 		return;
 
-	if (is_enabled)
+	if (is_enabled) {
+		/* workaround:
+		 * dpu r6p0 need resume after dsi resume on div6 scences
+		 * for dsi core and dpi clk depends on dphy clk
+		 */
+		if (!strcmp(dpu->ctx.version, "dpu-r6p0"))
+			sprd_dpu_resume(dpu);
 		is_enabled = false;
+	}
 	else
 		pm_runtime_get_sync(dpu->dev.parent);
 
-	sprd_dpu_init(dpu);
-
-	enable_irq(dpu->ctx.irq);
-
-	sprd_iommu_restore(&dpu->dev);
+	if (strcmp(dpu->ctx.version, "dpu-r6p0"))
+		sprd_dpu_resume(dpu);
 }
 
 static void sprd_crtc_wait_last_commit_complete(struct drm_crtc *crtc)

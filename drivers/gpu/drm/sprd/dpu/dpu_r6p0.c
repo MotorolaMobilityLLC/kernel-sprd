@@ -509,6 +509,7 @@ static DECLARE_WAIT_QUEUE_HEAD(wait_queue);
 static bool panel_ready = true;
 static bool need_scale;
 static bool mode_changed;
+static bool wb_size_changed;
 static bool evt_update;
 static bool evt_all_update;
 static bool evt_stop;
@@ -871,32 +872,34 @@ static void dpu_cabc_bl_update_func(struct work_struct *data)
 static void dpu_wb_trigger(struct dpu_context *ctx, u8 count, bool debug)
 {
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
-	u32 vcnt;
-
 	int mode_width  = reg->blend_size & 0xFFFF;
 	int mode_height = reg->blend_size >> 16;
 
-	wb_layer.dst_w = mode_width;
-	wb_layer.dst_h = mode_height;
-	wb_layer.src_w = mode_width;
-	wb_layer.src_h = mode_height;
-	wb_layer.xfbc = wb_xfbc_en;
-	wb_layer.pitch[0] = ALIGN(mode_width, 16) * 4;
-	wb_layer.header_size_r = XFBC8888_HEADER_SIZE(mode_width,
-					mode_height) / 128;
+	if (wb_size_changed) {
+		wb_layer.dst_w = mode_width;
+		wb_layer.dst_h = mode_height;
+		wb_layer.src_w = mode_width;
+		wb_layer.src_h = mode_height;
+		wb_layer.pitch[0] = ALIGN(mode_width, 16) * 4;
+		wb_layer.header_size_r = XFBC8888_HEADER_SIZE(mode_width,
+			mode_height) / 128;
+		reg->wb_pitch = ALIGN((mode_width), 16);
+		if (wb_xfbc_en)
+			reg->wb_cfg = (wb_layer.header_size_r << 16) | BIT(0);
+	}
 
-	reg->wb_pitch = ALIGN((mode_width), 16);
-
-	wb_layer.xfbc = wb_xfbc_en;
-
-	if (wb_xfbc_en && !debug)
-		reg->wb_cfg = (wb_layer.header_size_r << 16) | BIT(0);
-	else
+	if (debug) {
+		mode_width  = reg->panel_size & 0xFFFF;
+		reg->wb_pitch = ALIGN((mode_width), 16);
 		reg->wb_cfg = 0;
+	}
 
-	reg->wb_base_addr = ctx->wb_addr_p;
-
-	vcnt = (reg->dpu_sts[0] & 0x1FFF);
+	if (debug || wb_size_changed) {
+		/* update trigger */
+		reg->dpu_ctrl |= BIT(4);
+		dpu_wait_update_done(ctx);
+		wb_size_changed = false;
+	}
 
 	if (debug)
 		/* writeback debug trigger */
@@ -904,10 +907,6 @@ static void dpu_wb_trigger(struct dpu_context *ctx, u8 count, bool debug)
 	else
 		reg->wb_ctrl |= BIT(0);
 
-	/* update trigger */
-	reg->dpu_ctrl |= BIT(4);
-
-	dpu_wait_update_done(ctx);
 	pr_debug("write back trigger\n");
 }
 
@@ -987,8 +986,14 @@ static int dpu_write_back_config(struct dpu_context *ctx)
 	size_t wb_buf_size;
 	struct sprd_dpu *dpu =
 		(struct sprd_dpu *)container_of(ctx, struct sprd_dpu, ctx);
+	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
+	int mode_width  = reg->blend_size & 0xFFFF;
 
 	if (!need_config) {
+		reg->wb_base_addr = ctx->wb_addr_p;
+		reg->wb_pitch = ALIGN((mode_width), 16);
+		if (wb_xfbc_en)
+			reg->wb_cfg = (wb_layer.header_size_r << 16) | BIT(0);
 		pr_debug("write back has configed\n");
 		return 0;
 	}
@@ -1007,7 +1012,12 @@ static int dpu_write_back_config(struct dpu_context *ctx)
 	wb_layer.alpha = 0xff;
 	wb_layer.format = DRM_FORMAT_ABGR8888;
 	wb_layer.addr[0] = ctx->wb_addr_p;
-
+	reg->wb_base_addr = ctx->wb_addr_p;
+	reg->wb_pitch = ALIGN((mode_width), 16);
+	if (wb_xfbc_en) {
+		wb_layer.xfbc = wb_xfbc_en;
+		reg->wb_cfg = (wb_layer.header_size_r << 16) | BIT(0);
+	}
 	max_vsync_count = 4;
 	need_config = 0;
 
@@ -1068,7 +1078,7 @@ static void dpu_dvfs_task_func(unsigned long data)
 	 * and the corresponding pos_x, pos_y, size_x and size_y.
 	 */
 	for (i = 0; i < ARRAY_SIZE(reg->layers); i++) {
-		layer_en = reg->layers[i].ctrl & BIT(0);
+		layer_en = reg->layer_enable & BIT(i);
 		if (layer_en) {
 			layers[count].dst_x = reg->layers[i].pos & 0xffff;
 			layers[count].dst_y = reg->layers[i].pos >> 16;
@@ -1125,10 +1135,14 @@ static void dpu_dvfs_task_func(unsigned long data)
 	 * Every IP here may be different, so need to modify it
 	 * according to the actual dpu core clock.
 	 */
-	if (max <= 3)
-		dvfs_freq = 307200000;
-	else
+	if (max <= 2)
 		dvfs_freq = 384000000;
+	else if (max == 3)
+		dvfs_freq = 409600000;
+	else if (max == 4)
+		dvfs_freq = 51200000;
+	else
+		dvfs_freq = 614400000;
 
 	dpu_dvfs_notifier_call_chain(&dvfs_freq);
 }
@@ -1586,6 +1600,13 @@ static void dpu_bgcolor(struct dpu_context *ctx, u32 color)
 	}
 }
 
+static void dpu_dma_request(struct dpu_context *ctx)
+{
+	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
+
+	reg->cabc_cfg[5] = 1;
+}
+
 static void dpu_layer(struct dpu_context *ctx,
 		    struct sprd_dpu_layer *hwlayer)
 {
@@ -1764,6 +1785,9 @@ static void dpu_dpi_init(struct dpu_context *ctx)
 	if (ctx->if_type == SPRD_DISPC_IF_DPI) {
 		/* use dpi as interface */
 		reg->dpu_cfg0 &= ~BIT(0);
+
+		/* enable Halt function for SPRD DSI */
+		reg->dpi_ctrl |= BIT(16);
 
 		if (ctx->is_single_run)
 			reg->dpi_ctrl |= BIT(0);
@@ -2852,6 +2876,7 @@ static int dpu_modeset(struct dpu_context *ctx,
 		need_scale = false;
 
 	mode_changed = true;
+	wb_size_changed = true;
 	pr_info("begin switch to %u x %u\n", mode->hdisplay, mode->vdisplay);
 
 	return 0;
@@ -2899,6 +2924,7 @@ static struct dpu_core_ops dpu_r6p0_ops = {
 	.enhance_get = dpu_enhance_get,
 	.modeset = dpu_modeset,
 	.write_back = dpu_wb_trigger,
+	.dma_request = dpu_dma_request,
 };
 
 static struct ops_entry entry = {

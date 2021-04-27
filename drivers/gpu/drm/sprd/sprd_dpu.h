@@ -156,6 +156,7 @@ struct dpu_core_ops {
 	int (*modeset)(struct dpu_context *ctx,
 			struct drm_mode_modeinfo *mode);
 	bool (*check_raw_int)(struct dpu_context *ctx, u32 mask);
+	void (*dma_request)(struct dpu_context *ctx);
 };
 
 struct dpu_clk_ops {
@@ -247,5 +248,6 @@ static inline struct sprd_dpu *crtc_to_dpu(struct drm_crtc *crtc)
 
 int sprd_dpu_run(struct sprd_dpu *dpu);
 int sprd_dpu_stop(struct sprd_dpu *dpu);
+void sprd_dpu_resume(struct sprd_dpu *dpu);
 
 #endif

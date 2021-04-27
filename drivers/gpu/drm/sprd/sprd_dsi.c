@@ -212,7 +212,12 @@ static void sprd_dsi_encoder_enable(struct drm_encoder *encoder)
 		else
 			sprd_dphy_hs_clk_en(dsi->phy->slave, true);
 	}
-
+	/* workaround:
+	 * dpu r6p0 need resume after dsi resume on div6 scences
+	 * for dsi core and dpi clk depends on dphy clk.
+	 */
+	if (!strcmp(dpu->ctx.version, "dpu-r6p0"))
+		sprd_dpu_resume(dpu);
 	/*
 	 * FIXME:
 	 * When last dpms is doze_suspend,cmd mode panel remain on in a low power state and continue displaying
@@ -248,6 +253,12 @@ static void sprd_dsi_encoder_disable(struct drm_encoder *encoder)
 	}
 
 	sprd_dpu_stop(dpu);
+	if (dpu->ctx.dpi_clk_div) {
+		if (!strcmp(dpu->ctx.version, "dpu-r6p0")) {
+			dsi->ctx.clk_dpi_384m = true;
+			dsi->glb->disable(&dsi->ctx);
+		}
+	}
 	sprd_dsi_set_work_mode(dsi, DSI_MODE_CMD);
 	sprd_dsi_lp_cmd_enable(dsi, true);
 
