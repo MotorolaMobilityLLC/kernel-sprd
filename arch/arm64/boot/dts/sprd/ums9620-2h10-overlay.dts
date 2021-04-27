@@ -366,12 +366,12 @@
 		reg = <0x0 0xc31a0000 0x0 0x0c800000>;
 	};
 
-	ai_reserved: ai@f6048000 {
-		reg = <0x0 0xf6048000 0x0 0x02000000>;
+	ai_reserved: ai@f8848000 {
+		reg = <0x0 0xf8848000 0x0 0x02000000>;
 	};
 
-	fd_reserved: faceid-mem@f8048000 {
-		reg = <0x0 0xf8048000 0x0 0x02d00000>;
+	fd_reserved: faceid-mem@fa848000 {
+		reg = <0x0 0xfa848000 0x0 0x00500000>;
 	};
 
 	vdsp_reserved: vdsp-mem@fad48000 {
