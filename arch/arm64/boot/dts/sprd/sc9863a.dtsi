@@ -1010,13 +1010,17 @@
 		"clk_mm_ahb",
 		"clk_mm_ahb_parent",
 		"clk_mm_emc",
-		"clk_mm_emc_parent";
+		"clk_mm_emc_parent",
+		"clk_mm_ckg_eb",
+		"clk_mipi_csi";
 	clocks = <&aonapb_gate CLK_CPHY_CFG_EB>,
 		<&aonapb_gate CLK_MM_EB>,
 		<&aon_clk CLK_MM_AHB>,
 		<&pll CLK_TWPLL_153M6>,
 		<&aon_clk CLK_MM_EMC>,
-		<&pll CLK_TWPLL_512M>;
+		<&pll CLK_TWPLL_512M>,
+		<&mm_gate CLK_MAHB_CKG_EB>,
+		<&mm_clk CLK_MIPI_CSI>;
 };
 
 &csi0 {
