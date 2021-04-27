@@ -175,6 +175,7 @@ static ssize_t emem_trigger_write(struct file *file, const char __user *buf,
 {
 	char buffer[12];
 	int trigger_adj;
+	int ret;
 
 	memset(buffer, 0, sizeof(buffer));
 	if (count > sizeof(buffer) - 1)
@@ -183,9 +184,11 @@ static ssize_t emem_trigger_write(struct file *file, const char __user *buf,
 	if (copy_from_user(buffer, buf, count))
 		return -EFAULT;
 
-	kstrtoint(buffer, 0, &trigger_adj);
-	sysctl_emem_trigger = trigger_adj;
+	ret = kstrtoint(buffer, 0, &trigger_adj);
+	if (ret)
+		return ret;
 
+	sysctl_emem_trigger = trigger_adj;
 	if (sysctl_emem_trigger <= DEFAULT_PROC_ADJ) {
 		spin_lock(&emem_lock);
 		queue_work(system_power_efficient_wq, &emem_work);
