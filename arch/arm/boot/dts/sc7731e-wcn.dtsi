@@ -9,7 +9,7 @@
 
 / {
 	wcn_btwf: cpwcn_btwf {    /* <WCN_BTWF_START_ADDR> */
-		compatible = "sprd,integrate_marlin";
+		compatible = "unisoc,integrate_marlin";
 		sprd,name = "wcn_btwf";
 		sprd,syscon-ap-apb = <&aon_apb_regs>;
 		sprd,syscon-ap-pmu = <&pmu_apb_regs>;
@@ -52,7 +52,7 @@
 	};
 
 	wcn_gnss: cpwcn_gnss {    /* <WCN_GNSS_START_ADDR> */
-		compatible = "sprd,integrate_gnss";
+		compatible = "unisoc,integrate_gnss";
 		sprd,name = "wcn_gnss";
 		sprd,syscon-ap-apb = <&aon_apb_regs>;
 		sprd,syscon-ap-pmu = <&pmu_apb_regs>;
@@ -97,8 +97,8 @@
 /*
  * quote sipc: sipc-virt bus node
  * This is a child node
- * core@3 is wcn, mailbox id is 5
- * core@4 is gnss, mailbox id is 6
+ * core@3 is wcn, mailbox id is 4
+ * core@4 is gnss, mailbox id is 5
  */
 &sipc {
 	sipc_wcn: core@3 {
