@@ -252,6 +252,13 @@ int ontim_get_battery_type(void)
 	int battery_type_name_len = 0;
 	const char *battery_type = NULL;
 	char battery_type_name_tmp[10];
+	static bool first=true;
+
+	if(!first)
+	{
+		printk("%s;not first. %d\n",__func__,battery_id_type);
+		return battery_id_type;
+	}
 
 	if (of_scan_flat_dt(fb_early_init_dt_get_chosen, NULL) > 0)
 		battery_type =
@@ -268,7 +275,7 @@ int ontim_get_battery_type(void)
 		printk("ontim battery_id_type = %d  battery_type_name_len = %d\n",battery_id_type,battery_type_name_len);
 	}
 
-
+	first = false;
 
 	return battery_id_type;
 }
