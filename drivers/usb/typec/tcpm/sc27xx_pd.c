@@ -274,6 +274,7 @@ struct sc27xx_pd {
 	struct tcpm_port *tcpm_port;
 	struct delayed_work typec_detect_work;
 	struct delayed_work  read_msg_work;
+	struct workqueue_struct *pd_wq;
 	struct regmap *regmap;
 	struct tcpc_dev tcpc;
 	struct mutex lock;
@@ -631,7 +632,7 @@ static int sc27xx_pd_read_message(struct sc27xx_pd *pd, struct pd_message *msg)
 {
 	int ret, i;
 	u32 data[PD_MAX_PAYLOAD * 2] = {0};
-	u32 data_obj_num, spec, reg_val, header = 0;
+	u32 data_obj_num, spec, reg_val = 0, header = 0;
 
 	ret = regmap_read(pd->regmap, pd->base + SC27XX_PD_RX_BUF,
 			  &header);
@@ -644,7 +645,7 @@ static int sc27xx_pd_read_message(struct sc27xx_pd *pd, struct pd_message *msg)
 
 	if (pd->need_retry) {
 		pd->need_retry = false;
-		cancel_delayed_work(&pd->read_msg_work);
+		cancel_delayed_work_sync(&pd->read_msg_work);
 	}
 	reg_val &= SC27XX_PD_RX_DATA_NUM_MASK;
 
@@ -655,7 +656,9 @@ static int sc27xx_pd_read_message(struct sc27xx_pd *pd, struct pd_message *msg)
 
 	if ((data_obj_num * 2 + 1) < reg_val) {
 		pd->need_retry = true;
-		schedule_delayed_work(&pd->read_msg_work, msecs_to_jiffies(5));
+		queue_delayed_work(pd->pd_wq,
+				   &pd->read_msg_work,
+				   msecs_to_jiffies(5));
 	}
 
 	if (spec == 1) {
@@ -1456,6 +1459,10 @@ static int sc27xx_pd_probe(struct platform_device *pdev)
 		tcpm_unregister_port(pd->tcpm_port);
 		return ret;
 	}
+
+	pd->pd_wq = create_singlethread_workqueue("sprd_pd_driver");
+	if (!pd->pd_wq)
+		return -ENOMEM;
 
 	platform_set_drvdata(pdev, pd);
 	schedule_delayed_work(&pd->typec_detect_work,
