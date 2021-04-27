@@ -742,6 +742,8 @@ static int bq2560x_charger_feed_watchdog(struct bq2560x_charger_info *info,
 		return ret;
 	}
 
+	bq2560x_dump_regs(info);
+
 	ret = bq2560x_charger_get_limit_current(info, &limit_cur);
 	if (ret) {
 		dev_err(info->dev, "get limit cur failed\n");
@@ -757,7 +759,6 @@ static int bq2560x_charger_feed_watchdog(struct bq2560x_charger_info *info,
 		return ret;
 	}
 
-	bq2560x_dump_regs(info);
 
 	return 0;
 }
