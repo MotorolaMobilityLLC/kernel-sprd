@@ -6462,16 +6462,16 @@ static void cm_batt_works(struct work_struct *work)
 	else
 		cm->desc->charger_status = chg_sts;
 
-	dev_info(cm->dev, "vbatt = %d, vbat_avg = %d, OCV = %d, ibat = %d, ibat_avg = %d,"
+	dev_info(cm->dev, "vbat = %d, vbat_avg = %d, OCV = %d, ibat = %d, ibat_avg = %d,"
 		 " ibus = %d, vbus = %d, msoc = %d, chg_sts = %d, frce_full = %d, chg_lmt_cur = %d,"
-		 " inpt_lmt_cur = %d, chgr_type = %d, Tboard = %d, Tbatt = %d,"
-		 " track_sts = %d, thm_cur = %d, thm_pwr = %dmW, is_fst_chg = %d, fst_chg_en = %d\n",
-		 batt_uV, vbat_avg, batt_ocV, bat_uA, ibat_avg, input_cur,
-		 chg_vol, fuel_cap, cm->desc->charger_status,
-		 cm->desc->force_set_full, chg_cur, chg_limit_cur, cm->desc->charger_type,
-		 board_temp, cur_temp, cm->track.state, cm->desc->thm_info.thm_adjust_cur,
-		 cm->desc->thm_info.thm_pwr, cm->desc->is_fast_charge,
-		 cm->desc->enable_fast_charge);
+		 " inpt_lmt_cur = %d, chgr_type = %d, Tboard = %d, Tbatt = %d, track_sts = %d,"
+		 " thm_cur = %d, thm_pwr = %dmW, is_fchg = %d, fchg_en = %d, tflush = %d,"
+		 " tperiod = %d\n",
+		 batt_uV, vbat_avg, batt_ocV, bat_uA, ibat_avg, input_cur, chg_vol, fuel_cap,
+		 cm->desc->charger_status, cm->desc->force_set_full, chg_cur, chg_limit_cur,
+		 cm->desc->charger_type, board_temp, cur_temp, cm->track.state,
+		 cm->desc->thm_info.thm_adjust_cur, cm->desc->thm_info.thm_pwr,
+		 cm->desc->is_fast_charge, cm->desc->enable_fast_charge, flush_time, period_time);
 
 	switch (cm->desc->charger_status) {
 	case POWER_SUPPLY_STATUS_CHARGING:
@@ -6480,31 +6480,46 @@ static void cm_batt_works(struct work_struct *work)
 			if (bat_uA >= 0) {
 				fuel_cap = cm->desc->cap;
 			} else {
-				/*
-				 * The percentage of electricity is not
-				 * allowed to change by 1% in cm->desc->cap_one_time.
-				 */
-				if (period_time < cm->desc->cap_one_time &&
-					(cm->desc->cap - fuel_cap) >= 5)
-					fuel_cap = cm->desc->cap - 5;
+				if (period_time < cm->desc->cap_one_time) {
+					/*
+					 * The percentage of electricity is not
+					 * allowed to change by 1% in cm->desc->cap_one_time.
+					 */
+					if ((cm->desc->cap - fuel_cap) >= 5)
+						fuel_cap = cm->desc->cap - 5;
+					if (flush_time < cm->desc->cap_one_time &&
+					    DIV_ROUND_CLOSEST(fuel_cap, 10) !=
+					    DIV_ROUND_CLOSEST(cm->desc->cap, 10))
+						fuel_cap = cm->desc->cap;
+				} else {
+					/*
+					 * If wake up from long sleep mode,
+					 * will make a percentage compensation based on time.
+					 */
+					if ((cm->desc->cap - fuel_cap) >=
+					    (period_time / cm->desc->cap_one_time) * 10)
+						fuel_cap = cm->desc->cap -
+							(period_time / cm->desc->cap_one_time) * 10;
+				}
+			}
+		} else if (fuel_cap > cm->desc->cap) {
+			if (period_time < cm->desc->cap_one_time) {
+				if ((fuel_cap - cm->desc->cap) >= 5)
+					fuel_cap = cm->desc->cap + 5;
+				if (flush_time < cm->desc->cap_one_time &&
+				    DIV_ROUND_CLOSEST(fuel_cap, 10) !=
+				    DIV_ROUND_CLOSEST(cm->desc->cap, 10))
+					fuel_cap = cm->desc->cap;
+			} else {
 				/*
 				 * If wake up from long sleep mode,
 				 * will make a percentage compensation based on time.
 				 */
-				if ((cm->desc->cap - fuel_cap) >=
-				    (flush_time / cm->desc->cap_one_time) * 10)
-					fuel_cap = cm->desc->cap -
-						(flush_time / cm->desc->cap_one_time) * 10;
+				if ((fuel_cap - cm->desc->cap) >=
+				    (period_time / cm->desc->cap_one_time) * 10)
+					fuel_cap = cm->desc->cap +
+						(period_time / cm->desc->cap_one_time) * 10;
 			}
-		} else if (fuel_cap > cm->desc->cap) {
-			if (period_time < cm->desc->cap_one_time &&
-					(fuel_cap - cm->desc->cap) >= 5)
-				fuel_cap = cm->desc->cap + 5;
-
-			if ((fuel_cap - cm->desc->cap) >=
-			    (flush_time / cm->desc->cap_one_time) * 10)
-				fuel_cap = cm->desc->cap +
-					(flush_time / cm->desc->cap_one_time) * 10;
 		}
 
 		if (cm->desc->cap >= 985 && cm->desc->cap <= 994 &&
@@ -6545,19 +6560,23 @@ static void cm_batt_works(struct work_struct *work)
 				fuel_cap = cm->desc->cap;
 			}
 		} else {
-			if (period_time < cm->desc->cap_one_time &&
-			    (cm->desc->cap - fuel_cap) >= 5)
-				fuel_cap = cm->desc->cap - 5;
-			/*
-			 * If wake up from long sleep mode,
-			 * will make a percentage compensation based on time.
-			 */
-			if ((cm->desc->cap - fuel_cap) >=
-			    (flush_time / cm->desc->cap_one_time) * 10)
-				fuel_cap = cm->desc->cap -
-					(flush_time / cm->desc->cap_one_time) * 10;
-			else if (cm->desc->cap - fuel_cap > CM_CAP_ONE_PERCENT)
-				fuel_cap = cm->desc->cap - CM_CAP_ONE_PERCENT;
+			if (period_time < cm->desc->cap_one_time) {
+				if ((cm->desc->cap - fuel_cap) >= 5)
+					fuel_cap = cm->desc->cap - 5;
+				if (flush_time < cm->desc->cap_one_time &&
+				    DIV_ROUND_CLOSEST(fuel_cap, 10) !=
+				    DIV_ROUND_CLOSEST(cm->desc->cap, 10))
+					fuel_cap = cm->desc->cap;
+			} else {
+				/*
+				 * If wake up from long sleep mode,
+				 * will make a percentage compensation based on time.
+				 */
+				if ((cm->desc->cap - fuel_cap) >=
+				    (period_time / cm->desc->cap_one_time) * 10)
+					fuel_cap = cm->desc->cap -
+						(period_time / cm->desc->cap_one_time) * 10;
+			}
 		}
 		break;
 
