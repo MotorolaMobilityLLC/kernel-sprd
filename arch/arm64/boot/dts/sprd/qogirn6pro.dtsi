@@ -892,11 +892,13 @@
 					"clk_ckg_en",
 					"clk_mm_mtx_data_en",
 					"clk_mm_mtx_data",
+					"clk_blk_cfg_en",
 					"clk_mm_mtx_parent";
 				clocks = <&aonapb_gate CLK_MM_EB>,
 					<&mm_gate CLK_CKG_EN>,
 					<&mm_gate CLK_MM_MTX_DATA_EN>,
 					<&mm_clk CLK_MM_MTX_DATA>,
+					<&mm_gate CLK_ISP_BLK_CFG_EN>,
 					<&g5l_pll CLK_TGPLL_512M>;
 			};
 
@@ -1248,7 +1250,6 @@
 							     "reset";
 				clock-names = "isp_eb",
 						"isp_mtx_en",
-						"isp_blk_cfg_en",
 						"isp_tck_en",
 						"isp_clk",
 						"isp_clk_153m6",
@@ -1259,7 +1260,6 @@
 						"isp_clk_parent";
 				clocks = <&mm_gate CLK_ISP_EN>,
 						<&mm_gate CLK_ISP_MTX_EN>,
-						<&mm_gate CLK_ISP_BLK_CFG_EN>,
 						<&mm_gate CLK_ISP_TCK_EN>,
 						<&mm_clk CLK_ISP>,
 						<&g5l_pll CLK_TGPLL_153M6>,
