@@ -979,6 +979,7 @@
 	sprd,comp-resistance-mohm = <20>;        /*battery ntc temp compensate*/
 	first-calib-voltage = <3621000>;
 	first-calib-capacity = <40>;
+	sprd,boot-capacity-calibration = <150>;		//add patch b57fb39 by pony 20210427
 };
 
 &usb {
