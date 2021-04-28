@@ -63,6 +63,9 @@
 #define SC27XX_FGU_LOW_OVERLOAD_INT	BIT(0)
 #define SC27XX_FGU_CLBCNT_DELTA_INT	BIT(2)
 
+//add patch b57fb39 by pony 20210427
+#define SC27XX_FGU_INVALID_POCV_MASK	GENMASK(7, 7)
+
 #define SC27XX_FGU_MODE_AREA_MASK	GENMASK(15, 12)
 #define SC27XX_FGU_CAP_AREA_MASK	GENMASK(11, 0)
 #define SC27XX_FGU_MODE_AREA_SHIFT	12
@@ -85,6 +88,14 @@
 #define SC27XX_FGU_DENSE_CAPACITY_LOW	3750000
 #define SC27XX_FGU_BAT_NTC_THRESHOLD	50
 #define SC27XX_FGU_LOW_VBAT_REGION	3300
+
+//add patch b57fb39 by pony 20210427 start
+#define SC27XX_FGU_HIGH_TEMP		450
+#define SC27XX_FGU_LOW_TEMP		150
+#define SC27XX_FGU_HIGH_POCV		4000
+#define SC27XX_FGU_LOW_POCV		3700
+#define SC27XX_FGU_OCV_CHECK		300000
+//add patch b57fb39 by pony 20210427 end
 
 #define interpolate(x, x1, y1, x2, y2) \
 	((y1) + ((((y2) - (y1)) * ((x) - (x1))) / ((x2) - (x1))))
@@ -131,6 +142,7 @@ struct sc27xx_fgu_data {
 	int alarm_cap;
 	int boot_cap;
 	int normal_temperature_cap;
+	int boot_cap_calib;			//add patch b57fb39 by pony 20210427 
 	int init_clbcnt;
 	int max_volt;
 	int min_volt;
@@ -522,6 +534,57 @@ static int sc27xx_fgu_get_boot_voltage(struct sc27xx_fgu_data *data, int *pocv)
 	return 0;
 }
 
+//add patch b57fb39 by pony 20210427 start
+static bool sc27xx_fgu_boot_cap_is_need_calibration(struct sc27xx_fgu_data *data, int pocv)
+{
+	int ret, fgu_status, invalid_pocv, sw_ocv;
+
+	if (!data->boot_cap_calib)
+		return false;
+
+	ret = regmap_read(data->regmap, data->base + SC27XX_FGU_STATUS,
+			  &fgu_status);
+	if (ret) {
+		dev_err(data->dev, "Failed to read fgu_status, ret = %d\n",
+			ret);
+		return false;
+	}
+
+	invalid_pocv = fgu_status & SC27XX_FGU_INVALID_POCV_MASK;
+	if (invalid_pocv)
+		return false;
+
+	if (data->bat_temp > SC27XX_FGU_HIGH_TEMP || data->bat_temp < SC27XX_FGU_LOW_TEMP)
+		return false;
+	if (pocv < SC27XX_FGU_HIGH_POCV && pocv > SC27XX_FGU_LOW_POCV)
+		return false;
+
+	ret = sc27xx_fgu_get_vbat_ocv(data, &sw_ocv);
+	if (ret) {
+		dev_err(data->dev, "Failed to read sw_ocv, ret = %d\n", ret);
+		return false;
+	}
+
+	if (abs(sw_ocv - pocv) > SC27XX_FGU_OCV_CHECK)
+		return false;
+
+	return true;
+
+}
+
+static void sc27xx_fgu_boot_cap_calibration(struct sc27xx_fgu_data *data,
+					    int ocv_cap, int pocv, int *cap)
+{
+	if (!sc27xx_fgu_boot_cap_is_need_calibration(data, pocv))
+		return;
+
+	if (ocv_cap > *cap && ocv_cap > *cap + data->boot_cap_calib)
+		*cap = ocv_cap - data->boot_cap_calib;
+	else if (ocv_cap < *cap && ocv_cap + data->boot_cap_calib < *cap)
+		*cap = ocv_cap + data->boot_cap_calib;
+}
+//add patch b57fb39 by pony 20210427 end
+
 /*
  * When system boots on, we can not read battery capacity from coulomb
  * registers, since now the coulomb registers are invalid. So we should
@@ -530,9 +593,22 @@ static int sc27xx_fgu_get_boot_voltage(struct sc27xx_fgu_data *data, int *pocv)
  */
 static int sc27xx_fgu_get_boot_capacity(struct sc27xx_fgu_data *data, int *cap)
 {
-	int ocv, ret;
+	int pocv, ret, ocv_cap;		//add patch b57fb39 by pony 20210427
 	bool is_first_poweron = sc27xx_fgu_is_first_poweron(data);
 
+	//add patch b57fb39 by pony 20210427 start
+	sc27xx_fgu_get_boot_voltage(data, &pocv);
+
+	/*
+	 * Parse the capacity table to look up the correct capacity percent
+	 * according to current battery's corresponding OCV values.
+	 */
+	*cap = power_supply_ocv2cap_simple(data->cap_table, data->table_len,
+					   pocv);
+	*cap *= 10;
+	ocv_cap = *cap;
+	//add patch b57fb39 by pony 20210427 end
+	
 	/*optimize boot cap by pony date20210324*/
 	#ifdef CONFIG_TINNO_FGU_BOOT_OPTIMIZE
 	int this_cap,diff_cap = 1;
@@ -549,7 +625,7 @@ static int sc27xx_fgu_get_boot_capacity(struct sc27xx_fgu_data *data, int *cap)
 	#endif
 
 	if (is_charger_mode)
-		sc27xx_fgu_get_boot_voltage(data, &data->boot_vol);
+		data->boot_vol = pocv;		//add patch b57fb39 by pony 20210427
 	/*
 	 * If system is not the first power on, we should use the last saved
 	 * battery capacity as the initial battery capacity. Otherwise we should
@@ -581,23 +657,21 @@ static int sc27xx_fgu_get_boot_capacity(struct sc27xx_fgu_data *data, int *cap)
 
 		if (*cap == SC27XX_FGU_DEFAULT_CAP || *cap == SC27XX_FGU_RTC2_RESET_VALUE) {
 			*cap = data->boot_cap;
-			ret = sc27xx_fgu_save_normal_temperature_cap(data, data->boot_cap);
+			
+			//add patch b57fb39 by pony 20210427 start
+			sc27xx_fgu_boot_cap_calibration(data, ocv_cap, pocv, cap);
+			ret = sc27xx_fgu_save_normal_temperature_cap(data, *cap);
+			//add patch b57fb39 by pony 20210427 end
+		
 			if (ret < 0)
 				dev_err(data->dev, "Failed to initialize fgu user area status1 register\n");
-		}
+		} else
+			sc27xx_fgu_boot_cap_calibration(data, ocv_cap, pocv, cap);		//add patch b57fb39 by pony 20210427
+		dev_info(data->dev, "init: boot_cap = %d, normal_cap = %d\n", data->boot_cap, *cap);
+		
 		return sc27xx_fgu_save_boot_mode(data, SC27XX_FGU_NORMAIL_POWERTON);
 	}
 
-	sc27xx_fgu_get_boot_voltage(data, &ocv);
-
-	/*
-	 * Parse the capacity table to look up the correct capacity percent
-	 * according to current battery's corresponding OCV values.
-	 */
-	*cap = power_supply_ocv2cap_simple(data->cap_table, data->table_len,
-					   ocv);
-
-	*cap *= 10;
 	data->boot_cap = *cap;
 	ret = sc27xx_fgu_save_last_cap(data, *cap);
 	if (ret) {
@@ -605,7 +679,7 @@ static int sc27xx_fgu_get_boot_capacity(struct sc27xx_fgu_data *data, int *cap)
 		return ret;
 	}
 
-	dev_info(data->dev, "First_poweron: ocv = %d, cap = %d\n", ocv, *cap);
+	dev_info(data->dev, "First_poweron: pocv = %d, cap = %d\n", pocv, *cap);
 	return sc27xx_fgu_save_boot_mode(data, SC27XX_FGU_NORMAIL_POWERTON);
 }
 
@@ -1634,6 +1708,14 @@ static int sc27xx_fgu_hw_init(struct sc27xx_fgu_data *data,
 		goto disable_clk;
 	}
 
+	//add patch b57fb39 by pony 20210427 start
+	ret = sc27xx_fgu_get_temp(data, &data->bat_temp);
+	if (ret) {
+		dev_err(data->dev, "failed to get battery temperature\n");
+		goto disable_clk;
+	}
+	//add patch b57fb39 by pony 20210427 end
+
 	/*
 	 * Get the boot battery capacity when system powers on, which is used to
 	 * initialize the coulomb counter. After that, we can read the coulomb
@@ -1653,12 +1735,6 @@ static int sc27xx_fgu_hw_init(struct sc27xx_fgu_data *data,
 	ret = sc27xx_fgu_set_clbcnt(data, data->init_clbcnt);
 	if (ret) {
 		dev_err(data->dev, "failed to initialize coulomb counter\n");
-		goto disable_clk;
-	}
-
-	ret = sc27xx_fgu_get_temp(data, &data->bat_temp);
-	if (ret) {
-		dev_err(data->dev, "failed to get battery temperature\n");
 		goto disable_clk;
 	}
 
@@ -1737,6 +1813,14 @@ static int sc27xx_fgu_probe(struct platform_device *pdev)
 				       &data->comp_resistance);
 	if (ret)
 		dev_warn(&pdev->dev, "no fgu compensated resistance support\n");
+
+	//add patch b57fb39 by pony 20210427 start
+	ret = device_property_read_u32(&pdev->dev,
+				       "sprd,boot-capacity-calibration",
+				       &data->boot_cap_calib);
+	if (ret)
+		dev_warn(&pdev->dev, "no boot capacity calibration support\n");
+	//add patch b57fb39 by pony 20210427 end
 
 	data->bat_para_adapt_support =
 		device_property_read_bool(&pdev->dev, "sprd-battery-parameter-adapt-support");
