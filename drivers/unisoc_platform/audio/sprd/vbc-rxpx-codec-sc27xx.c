@@ -28,16 +28,12 @@
 #include "sprd-asoc-card-utils.h"
 #include "sprd-asoc-common.h"
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-function"
-void dfm_priv_set(struct sprd_dfm_priv *in_dfm)
-__attribute__ ((weak, alias("__dfm_priv_set")));
-
-static void __dfm_priv_set(struct sprd_dfm_priv *in_dfm)
+static struct sprd_dfm_priv priv_dfm;
+struct sprd_dfm_priv dfm_priv_get(void)
 {
-	pr_debug("%s is empty.\n", __func__);
+	return priv_dfm;
 }
-#pragma GCC diagnostic pop
+EXPORT_SYMBOL(dfm_priv_get);
 
 static int dfm_rate(struct snd_pcm_substream *substream,
 		    struct snd_pcm_hw_params *params)
@@ -85,7 +81,7 @@ static int dfm_rate(struct snd_pcm_substream *substream,
 		}
 	}
 
-	dfm_priv_set(&dfm);
+	priv_dfm = dfm;
 
 	return 0;
 }

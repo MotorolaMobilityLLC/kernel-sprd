@@ -2748,6 +2748,7 @@ static int vbc_try_fm_ad_src_set(struct vbc_codec_priv *vbc_codec,
 		return 0;
 	}
 
+	dfm = dfm_priv_get();
 	if (mdata->is_fm_open_src)
 		vbc_ad_src_set(dfm.hw_rate, vbc_ad_src_idx);
 	else
@@ -6099,11 +6100,6 @@ MODULE_AUTHOR("Ken.Kuang <ken.kuang@spreadtrum.com>");
 MODULE_LICENSE("GPL");
 MODULE_ALIAS("Component:VBC Component");
 //end of "vbc-codec.c"
-
-void dfm_priv_set(struct sprd_dfm_priv *in_dfm)
-{
-	memcpy(&dfm, in_dfm, sizeof(struct sprd_dfm_priv));
-}
 
 static void vbc_dma_chn_en(u32 id, u32 en, u32 chan)
 {

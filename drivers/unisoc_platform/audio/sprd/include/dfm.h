@@ -24,6 +24,6 @@ struct sprd_dfm_priv {
 	int sample_rate;
 };
 
-void dfm_priv_set(struct sprd_dfm_priv *in_dfm);
+struct sprd_dfm_priv dfm_priv_get(void);
 
 #endif /* __SPRD_DFM_H */
