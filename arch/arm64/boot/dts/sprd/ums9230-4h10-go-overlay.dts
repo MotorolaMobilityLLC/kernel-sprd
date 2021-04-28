@@ -110,6 +110,14 @@
 				};
 			};
 
+                        usb_cable: usb_cable {
+                                compatible = "sprd,usb_cable_eint";
+                                status = "okay";
+                                usbcable-gpio = <&ap_gpio 121 0>;
+                                interrupt-parent = <&ap_gpio>;
+                                debounce = <256000>;
+                        };
+
 			bat: battery {
 				compatible = "simple-battery";
 				charge-full-design-microamp-hours-0 = <4000000>;
