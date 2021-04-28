@@ -1464,6 +1464,15 @@ CONFIG_ARM_SCPI_PROTOCOL
 	[must]
 	[missing plat description] none
 	[function]
+CONFIG_ARM_SPRD_CPUIDLE
+	[arch] arm
+	[plat] pike2
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
 CONFIG_ARM_SPRD_HW_CPUFREQ
 	[arch] arm64
 	[plat] sharkl3
@@ -5178,8 +5187,8 @@ CONFIG_DTC
 	[missing plat description] none
 	[function] Support the device-tree-compiler.
 CONFIG_DT_IDLE_STATES
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field] make
 	[subsys] cpuidle

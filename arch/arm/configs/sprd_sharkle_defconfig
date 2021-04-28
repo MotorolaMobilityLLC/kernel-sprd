@@ -524,6 +524,7 @@ CONFIG_CPU_IDLE_GOV_MENU=y
 #
 # CONFIG_ARM_CPUIDLE is not set
 # CONFIG_ARM_PSCI_CPUIDLE is not set
+# CONFIG_ARM_SPRD_CPUIDLE is not set
 # CONFIG_ARM_HIGHBANK_CPUIDLE is not set
 # end of ARM CPU Idle Drivers
 # end of CPU Idle
