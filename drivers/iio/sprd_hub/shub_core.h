@@ -24,7 +24,7 @@
 #define HOST_REQUEST_WRITE           0x74
 #define HOST_REQUEST_READ            0x75
 #define HOST_REQUEST_LEN             2
-#define RECEIVE_TIMEOUT_MS           500
+#define RECEIVE_TIMEOUT_MS           100
 #define MAX_SENSOR_LOG_CTL_FLAG_LEN	8
 #define LOG_CTL_OUTPUT_FLAG	5
 #define SIPC_PM_BUFID0             0
