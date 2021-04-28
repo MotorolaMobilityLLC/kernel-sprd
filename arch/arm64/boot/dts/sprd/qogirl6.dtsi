@@ -1375,6 +1375,15 @@
 				#size-cells = <0>;
 			};
 
+			ap_efuse: efuse@643d0000 {
+				status = "okay";
+				compatible = "sprd,qogirl6-efuse";
+				reg = <0 0x643d0000 0 0x10000>;
+				clock-names = "enable";
+				hwlocks = <&hwlock 8>;
+				clocks = <&aonapb_gate CLK_EFUSE_EB>;
+			};
+
 			pwms: pwm@643f0000 {
 				compatible = "sprd,qogirl6-pwm", "sprd,sharkl5-pwm";
 				reg = <0 0x643f0000 0 0x10000>;
