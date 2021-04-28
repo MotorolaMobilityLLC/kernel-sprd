@@ -131,6 +131,12 @@ static const struct sprd_efuse_variant_data pike2_data = {
 	.blk_double = 1,
 };
 
+static const struct sprd_efuse_variant_data qogirl6_data = {
+	.blk_max = 95,
+	.blk_start = 72,
+	.blk_double = 0,
+};
+
 static int sprd_efuse_lock(struct sprd_efuse *efuse)
 {
 	int ret;
@@ -265,7 +271,6 @@ static int sprd_efuse_raw_prog(struct sprd_efuse *efuse, u32 blk, bool doub,
 	if (lock)
 		sprd_efuse_set_auto_check(efuse, false);
 
-	sprd_efuse_set_data_double(efuse, false);
 	/*
 	 * Check the efuse error status, if the programming is successful,
 	 * we should lock this efuse block to avoid programming again.
@@ -276,9 +281,12 @@ static int sprd_efuse_raw_prog(struct sprd_efuse *efuse, u32 blk, bool doub,
 		ret = -EINVAL;
 	} else if (lock) {
 		sprd_efuse_set_prog_lock(efuse, lock);
-		writel(*data, efuse->base + SPRD_EFUSE_MEM(blk));
+		writel(0x0, efuse->base + SPRD_EFUSE_MEM(blk));
 		sprd_efuse_set_prog_lock(efuse, false);
 	}
+
+	if (doub)
+		sprd_efuse_set_data_double(efuse, false);
 
 	writel(SPRD_ERR_CLR_MASK, efuse->base + SPRD_EFUSE_NS_FLAG_CLR);
 	sprd_efuse_prog_power(efuse, false);
@@ -377,6 +385,11 @@ static int sprd_efuse_read(void *context, u32 offset, void *val, size_t bytes)
 			blk_double = 0;
 	}
 
+	if (of_device_is_compatible(efuse->dev->of_node, "sprd,sharkl5-efuse") ||
+	    of_device_is_compatible(efuse->dev->of_node, "sprd,qogirl6-efuse"))
+		if(index == 36 || index == 37 || index == 45 || index == 46)
+			blk_double = 1;
+
 	ret = sprd_efuse_raw_read(efuse, index, &data, blk_double);
 	if (!ret) {
 		data >>= blk_offset;
@@ -389,7 +402,15 @@ static int sprd_efuse_read(void *context, u32 offset, void *val, size_t bytes)
 static int sprd_efuse_write(void *context, u32 offset, void *val, size_t bytes)
 {
 	struct sprd_efuse *efuse = context;
-	bool lock;
+	bool blk_double = efuse->var_data->blk_double;
+	u32 index = offset / SPRD_EFUSE_BLOCK_WIDTH;
+	bool lock = false;
+
+	/*
+	 * efuse has two parts secure efuse block and public efuse block.
+	 * public eFuse starts is different according to projects.
+	 */
+	index += efuse->var_data->blk_start;
 
 	/*
 	 * Lock indicates if the block can be programmed or not. If the writing
@@ -397,12 +418,18 @@ static int sprd_efuse_write(void *context, u32 offset, void *val, size_t bytes)
 	 * be programmed. For this case, we should not allow this block to be
 	 * programmed again by locking this block.
 	 */
+	/*
 	if (bytes < SPRD_EFUSE_BLOCK_WIDTH)
 		lock = false;
 	else
 		lock = true;
+	*/
+	if (of_device_is_compatible(efuse->dev->of_node, "sprd,sharkl5-efuse")||
+	    of_device_is_compatible(efuse->dev->of_node, "sprd,qogirl6-efuse"))
+		if(index == 36 || index == 37 || index == 45 || index == 46)
+			blk_double = 1;
 
-	return sprd_efuse_prog(efuse, offset, true, lock, val);
+	return sprd_efuse_prog(efuse, index, blk_double, lock, val);
 }
 
 static int sprd_efuse_probe(struct platform_device *pdev)
@@ -498,6 +525,7 @@ static const struct of_device_id sprd_efuse_of_match[] = {
 	{ .compatible = "sprd,orca-efuse", .data = &orca_data},
 	{ .compatible = "sprd,pike2-efuse", .data = &pike2_data},
 	{ .compatible = "sprd,qogirn6pro-efuse", .data = &qogirn6pro_data},
+	{ .compatible = "sprd,qogirl6-efuse", .data = &qogirl6_data},
 	{ }
 };
 
