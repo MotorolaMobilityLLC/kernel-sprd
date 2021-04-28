@@ -92,9 +92,9 @@
 //add patch b57fb39 by pony 20210427 start
 #define SC27XX_FGU_HIGH_TEMP		450
 #define SC27XX_FGU_LOW_TEMP		150
-#define SC27XX_FGU_HIGH_POCV		4000
-#define SC27XX_FGU_LOW_POCV		3700
-#define SC27XX_FGU_OCV_CHECK		300000
+#define SC27XX_FGU_HIGH_POCV		4150
+#define SC27XX_FGU_LOW_POCV		3675
+#define SC27XX_FGU_OCV_CHECK		50000
 //add patch b57fb39 by pony 20210427 end
 
 #define interpolate(x, x1, y1, x2, y2) \
