@@ -18,13 +18,13 @@
 #include "wcn_procfs.h"
 #include "../include/wcn_dbg.h"
 
+#define GNSS_CALI_DONE_FLAG (0x1314520)
+
 static struct mutex marlin_lock;
 static struct wifi_calibration wifi_data;
 
 static char firmware_file_name[FIRMWARE_FILEPATHNAME_LENGTH_MAX];
 static char firmware_file_path[FIRMWARE_FILEPATHNAME_LENGTH_MAX];
-
-struct sprdwcn_gnss_ops *gnss_ops;
 
 void wcn_boot_init(void)
 {
@@ -47,12 +47,11 @@ void wcn_device_poweroff(void)
 	WCN_INFO("all subsys power off finish!\n");
 }
 
-void wcn_chip_power_off(void)
+void integ_wcn_chip_power_off(void)
 {
 	sprdwcn_bus_set_carddump_status(false);
 	wcn_device_poweroff();
 }
-EXPORT_SYMBOL_GPL(wcn_chip_power_off);
 
 /*judge status of sbuf until timeout*/
 static void wcn_sbuf_status(u8 dst, u8 channel)
@@ -82,16 +81,29 @@ static void marlin_write_cali_data(void)
 	get_connectivity_config_param(&wifi_data.config_data);
 	get_connectivity_cali_param(&wifi_data.cali_data);
 
-	/* copy calibration file data to target ddr address */
-	phy_addr = s_wcn_device.btwf_device->base_addr +
-		   (phys_addr_t)&s_wssm_phy_offset_p->wifi.calibration_data;
-	wcn_write_data_to_phy_addr(phy_addr, &wifi_data, sizeof(wifi_data));
+	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
+		/* copy calibration file data to target ddr address */
+		phy_addr = s_wcn_device.btwf_device->base_addr +
+		   (phys_addr_t)&qogirl6_s_wssm_phy_offset_p->wifi.calibration_data;
+		wcn_write_data_to_phy_addr(phy_addr, &wifi_data, sizeof(wifi_data));
 
-	/* notify CP to cali */
-	cali_flag = WIFI_CALIBRATION_FLAG_VALUE;
-	phy_addr = s_wcn_device.btwf_device->base_addr +
+		/* notify CP to cali */
+		cali_flag = WIFI_CALIBRATION_FLAG_VALUE;
+		phy_addr = s_wcn_device.btwf_device->base_addr +
+		   (phys_addr_t)&qogirl6_s_wssm_phy_offset_p->wifi.calibration_flag;
+		wcn_write_data_to_phy_addr(phy_addr, &cali_flag, sizeof(cali_flag));
+	} else {
+		/* copy calibration file data to target ddr address */
+		phy_addr = s_wcn_device.btwf_device->base_addr +
+		   (phys_addr_t)&s_wssm_phy_offset_p->wifi.calibration_data;
+		wcn_write_data_to_phy_addr(phy_addr, &wifi_data, sizeof(wifi_data));
+
+		/* notify CP to cali */
+		cali_flag = WIFI_CALIBRATION_FLAG_VALUE;
+		phy_addr = s_wcn_device.btwf_device->base_addr +
 		   (phys_addr_t)&s_wssm_phy_offset_p->wifi.calibration_flag;
-	wcn_write_data_to_phy_addr(phy_addr, &cali_flag, sizeof(cali_flag));
+		wcn_write_data_to_phy_addr(phy_addr, &cali_flag, sizeof(cali_flag));
+	}
 
 	WCN_INFO("finish\n");
 }
@@ -105,10 +117,17 @@ static void marlin_save_cali_data(void)
 		memset(&wifi_data.cali_data, 0x0,
 		       sizeof(struct wifi_cali_t));
 		/* copy calibration file data to target ddr address */
-		phy_addr = s_wcn_device.btwf_device->base_addr +
+		if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
+			phy_addr = s_wcn_device.btwf_device->base_addr +
+			   (phys_addr_t)
+			   &qogirl6_s_wssm_phy_offset_p->wifi.calibration_data +
+			   sizeof(struct wifi_config_t);
+		} else {
+			phy_addr = s_wcn_device.btwf_device->base_addr +
 			   (phys_addr_t)
 			   &s_wssm_phy_offset_p->wifi.calibration_data +
 			   sizeof(struct wifi_config_t);
+		}
 		wcn_read_data_from_phy_addr(phy_addr, &wifi_data.cali_data,
 					    sizeof(struct wifi_cali_t));
 		dump_cali_file(&wifi_data.cali_data);
@@ -431,7 +450,7 @@ static int wcn_download_image_new(struct wcn_device *wcn_dev)
 	return wcn_download_image(wcn_dev);
 }
 
-char *gnss_firmware_path_get(void)
+char *integ_gnss_firmware_path_get(void)
 {
 	char *fpath = firmware_file_path;
 
@@ -439,25 +458,39 @@ char *gnss_firmware_path_get(void)
 
 	return fpath;
 }
-EXPORT_SYMBOL_GPL(gnss_firmware_path_get);
 
 static void wcn_clean_marlin_ddr_flag(struct wcn_device *wcn_dev)
 {
 	phys_addr_t phy_addr;
 	u32 tmp_value;
 
-	tmp_value = MARLIN_CP_INIT_START_MAGIC;
-	phy_addr = wcn_dev->base_addr +
-		   (phys_addr_t)&s_wssm_phy_offset_p->marlin.init_status;
-	wcn_write_data_to_phy_addr(phy_addr, &tmp_value, sizeof(tmp_value));
+	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
+		tmp_value = MARLIN_CP_INIT_START_MAGIC;
+		phy_addr = wcn_dev->base_addr +
+		   (phys_addr_t)&qogirl6_s_wssm_phy_offset_p->marlin.init_status;
+		wcn_write_data_to_phy_addr(phy_addr, &tmp_value, sizeof(tmp_value));
 
-	tmp_value = 0;
-	phy_addr = wcn_dev->base_addr +
+		tmp_value = 0;
+		phy_addr = wcn_dev->base_addr +
+		   (phys_addr_t)&qogirl6_s_wssm_phy_offset_p->cp2_sleep_status;
+		wcn_write_data_to_phy_addr(phy_addr, &tmp_value, sizeof(tmp_value));
+		phy_addr = wcn_dev->base_addr +
+		   (phys_addr_t)&qogirl6_s_wssm_phy_offset_p->sleep_flag_addr;
+		wcn_write_data_to_phy_addr(phy_addr, &tmp_value, sizeof(tmp_value));
+	} else {
+		tmp_value = MARLIN_CP_INIT_START_MAGIC;
+		phy_addr = wcn_dev->base_addr +
+		   (phys_addr_t)&s_wssm_phy_offset_p->marlin.init_status;
+		wcn_write_data_to_phy_addr(phy_addr, &tmp_value, sizeof(tmp_value));
+
+		tmp_value = 0;
+		phy_addr = wcn_dev->base_addr +
 		   (phys_addr_t)&s_wssm_phy_offset_p->cp2_sleep_status;
-	wcn_write_data_to_phy_addr(phy_addr, &tmp_value, sizeof(tmp_value));
-	phy_addr = wcn_dev->base_addr +
+		wcn_write_data_to_phy_addr(phy_addr, &tmp_value, sizeof(tmp_value));
+		phy_addr = wcn_dev->base_addr +
 		   (phys_addr_t)&s_wssm_phy_offset_p->sleep_flag_addr;
-	wcn_write_data_to_phy_addr(phy_addr, &tmp_value, sizeof(tmp_value));
+		wcn_write_data_to_phy_addr(phy_addr, &tmp_value, sizeof(tmp_value));
+	}
 }
 
 static int wcn_wait_marlin_boot(struct wcn_device *wcn_dev)
@@ -465,14 +498,23 @@ static int wcn_wait_marlin_boot(struct wcn_device *wcn_dev)
 	u32 wait_count = 0;
 	u32 magic_value = 0;
 	phys_addr_t phy_addr;
+	u32 marlin_cp_init_ready_magic;
 
-	phy_addr = wcn_dev->base_addr +
+	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
+		marlin_cp_init_ready_magic = UMW2631_MARLIN_CP_INIT_READY_MAGIC;
+		phy_addr = wcn_dev->base_addr +
+		   (phys_addr_t)&qogirl6_s_wssm_phy_offset_p->marlin.init_status;
+	} else {
+		marlin_cp_init_ready_magic = MARLIN_CP_INIT_READY_MAGIC;
+		phy_addr = wcn_dev->base_addr +
 		   (phys_addr_t)&s_wssm_phy_offset_p->marlin.init_status;
+	}
+
 	for (wait_count = 0; wait_count < MARLIN_WAIT_CP_INIT_COUNT;
 	     wait_count++) {
 		wcn_read_data_from_phy_addr(phy_addr,
 					    &magic_value, sizeof(u32));
-		if (magic_value == MARLIN_CP_INIT_READY_MAGIC)
+		if (magic_value == marlin_cp_init_ready_magic)
 			break;
 
 		msleep(MARLIN_WAIT_CP_INIT_POLL_TIME_MS);
@@ -503,17 +545,28 @@ static void wcn_marlin_boot_finish(struct wcn_device *wcn_dev)
 		marlin_save_cali_data();
 		/* clear notify CP calibration flag */
 		cali_flag = WIFI_CALIBRATION_FLAG_CLEAR_VALUE;
-		phy_addr = s_wcn_device.btwf_device->base_addr +
+		if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
+			phy_addr = s_wcn_device.btwf_device->base_addr +
+			   (phys_addr_t)
+			   &qogirl6_s_wssm_phy_offset_p->wifi.calibration_flag;
+		} else {
+			phy_addr = s_wcn_device.btwf_device->base_addr +
 			   (phys_addr_t)
 			   &s_wssm_phy_offset_p->wifi.calibration_flag;
+		}
 		wcn_write_data_to_phy_addr(phy_addr, &cali_flag,
 					   sizeof(cali_flag));
 		s_wcn_device.btwf_calibrated = true;
 	}
 
 	/* set success flag */
-	phy_addr = wcn_dev->base_addr +
+	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
+		phy_addr = wcn_dev->base_addr +
+		   (phys_addr_t)&qogirl6_s_wssm_phy_offset_p->marlin.init_status;
+	} else {
+		phy_addr = wcn_dev->base_addr +
 		   (phys_addr_t)&s_wssm_phy_offset_p->marlin.init_status;
+	}
 	magic_value = MARLIN_CP_INIT_SUCCESS_MAGIC;
 	wcn_write_data_to_phy_addr(phy_addr, &magic_value, sizeof(u32));
 }
@@ -768,8 +821,13 @@ static void wcn_clear_ddr_gnss_cali_bit(void)
 	wcn_dev = s_wcn_device.btwf_device;
 	if (wcn_dev) {
 		value = GNSS_CALIBRATION_FLAG_CLEAR_ADDR_CP;
-		phy_addr = wcn_dev->base_addr +
+		if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
+			phy_addr = wcn_dev->base_addr +
+			   (phys_addr_t)&qogirl6_s_wssm_phy_offset_p->gnss_flag_addr;
+		} else {
+			phy_addr = wcn_dev->base_addr +
 			   (phys_addr_t)&s_wssm_phy_offset_p->gnss_flag_addr;
+		}
 		wcn_write_data_to_phy_addr(phy_addr, &value, sizeof(u32));
 		WCN_INFO("set gnss flag off:0x%x\n", value);
 	}
@@ -787,31 +845,17 @@ static void wcn_set_nognss(u32 val)
 
 	wcn_dev = s_wcn_device.btwf_device;
 	if (wcn_dev) {
-		phy_addr = wcn_dev->base_addr +
+		if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
+			phy_addr = wcn_dev->base_addr +
+			   (phys_addr_t)&qogirl6_s_wssm_phy_offset_p->include_gnss;
+		} else {
+			phy_addr = wcn_dev->base_addr +
 			   (phys_addr_t)&s_wssm_phy_offset_p->include_gnss;
+		}
 		wcn_write_data_to_phy_addr(phy_addr, &val, sizeof(u32));
 		WCN_DBG("gnss:%u\n", val);
 	}
 }
-
-int wcn_gnss_ops_register(struct sprdwcn_gnss_ops *ops)
-{
-	if (gnss_ops) {
-		WARN_ON(1);
-		return -EBUSY;
-	}
-
-	gnss_ops = ops;
-
-	return 0;
-}
-EXPORT_SYMBOL_GPL(wcn_gnss_ops_register);
-
-void wcn_gnss_ops_unregister(void)
-{
-	gnss_ops = NULL;
-}
-EXPORT_SYMBOL_GPL(wcn_gnss_ops_unregister);
 
 static struct wcn_device *wcn_get_dev_by_type(u32 subsys_bit)
 {
@@ -1019,11 +1063,10 @@ int start_integrate_wcn(u32 subsys)
 	return ret;
 }
 
-int start_marlin(u32 subsys)
+int start_integ_marlin(u32 subsys)
 {
 	return start_integrate_wcn(subsys);
 }
-EXPORT_SYMBOL_GPL(start_marlin);
 
 /* force_sleep: 1 for send cmd, 0 for the old way */
 static int wcn_wait_wcn_deep_sleep(struct wcn_device *wcn_dev, int force_sleep)
@@ -1144,10 +1187,9 @@ int stop_integrate_wcn(u32 subsys)
 	return ret;
 }
 
-int stop_marlin(u32 subsys)
+int stop_integ_marlin(u32 subsys)
 {
 	return stop_integrate_wcn(subsys);
 }
-EXPORT_SYMBOL_GPL(stop_marlin);
 
-MODULE_IMPORT_NS(VFS_internal_I_am_really_a_filesystem_and_am_NOT_a_driver);
+//MODULE_IMPORT_NS(VFS_internal_I_am_really_a_filesystem_and_am_NOT_a_driver);

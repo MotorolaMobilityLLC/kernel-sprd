@@ -71,21 +71,6 @@ enum wcn_aon_chip_id {
 	WCN_PIKE2_CHIP_AB,
 };
 
-/* type for base REGs */
-enum {
-	REGMAP_AON_APB = 0x0,	/* AON APB */
-	REGMAP_PMU_APB,
-	/*
-	 * NOTES:SharkLE use it,but PIKE2 not.
-	 * We should config the DTS for PIKE2 also.
-	 */
-	REGMAP_PUB_APB, /* SharkLE only:for ddr offset */
-	REGMAP_ANLG_WRAP_WCN,
-	REGMAP_ANLG_PHY_G6, /* SharkLE only */
-	REGMAP_WCN_REG,	/* SharkL3 only:0x403A 0000 */
-	REGMAP_TYPE_NR,
-};
-
 #define FIRMWARE_FILEPATHNAME_LENGTH_MAX 256
 #define WCN_MARLIN_MASK 0xcf /* Base on wcn_marlin_sub_sys */
 #define WCN_MARLIN_BTWIFI_MASK 0x05
@@ -132,10 +117,6 @@ enum {
 	WCN_POWER_STATUS_OFF = 0,
 	WCN_POWER_STATUS_ON,
 };
-
-typedef int (*marlin_reset_callback) (void *para);
-extern marlin_reset_callback marlin_reset_func;
-extern void *marlin_callback_para;
 
 typedef void (*gnss_dump_callback) (void);
 extern gnss_dump_callback gnss_dump_handle;

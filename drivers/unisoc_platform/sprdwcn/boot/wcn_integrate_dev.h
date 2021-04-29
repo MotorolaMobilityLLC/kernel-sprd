@@ -1,43 +1,13 @@
 #ifndef __WCN_INTEGRATE_DEV_H__
 #define __WCN_INTEGRATE_DEV_H__
 
+#include <misc/wcn_integrate_platform.h>
 #include "rf.h"
 #include "wcn_glb.h"
-
-/* The name should be set the same as DTS */
-#define WCN_MARLIN_DEV_NAME "wcn_btwf"
-#define WCN_GNSS_DEV_NAME "wcn_gnss"
-
-/*
- * ASIC: enable or disable vddwifipa and vddcon,
- * the interval time should more than 1ms.
- */
-#define VDDWIFIPA_VDDCON_MIN_INTERVAL_TIME	(10000)	/* us */
-#define VDDWIFIPA_VDDCON_MAX_INTERVAL_TIME	(30000)	/* us */
-
-enum wcn_marlin_sub_sys {
-	WCN_MARLIN_BLUETOOTH = 0,
-	WCN_MARLIN_FM,
-	WCN_MARLIN_WIFI,
-	WCN_MARLIN_MDBG = 6,
-	WCN_MARLIN_ALL = 7,
-};
-
-enum wcn_gnss_sub_sys {
-	/*
-	 * The value is different with wcn_marlin_sub_sys
-	 * Or the start interface can't distinguish
-	 * Marlin or GNSS
-	 */
-	WCN_GNSS = 16,
-	WCN_GNSS_BD,
-	WCN_GNSS_ALL,
-};
 
 #define WCN_BTWF_FILENAME "wcnmodem"
 #define WCN_GNSS_FILENAME "gpsgl"
 #define WCN_GNSS_BD_FILENAME "gpsbd"
-#define SUFFIX "androidboot.slot_suffix="
 
 /* NOTES:If DTS config more than REG_CTRL_CNT_MAX REGs */
 #define REG_CTRL_CNT_MAX 8
@@ -135,11 +105,6 @@ struct wcn_platform_fs {
 	struct platform_proc_file_entry entrys[MAX_PLATFORM_ENTRY_NUM];
 };
 
-struct wcn_proc_data {
-	int (*start)(void *arg);
-	int (*stop)(void *arg);
-};
-
 struct wcn_init_data {
 	char		*devname;
 	phys_addr_t	base;		/* CP base addr */
@@ -164,14 +129,8 @@ struct wcn_init_data {
 #define GNSS_CALIBRATION_FLAG_CLEAR_ADDR_CP \
 	(GNSS_CALIBRATION_FLAG_CLEAR_ADDR + 0x300000)
 #define GNSS_WAIT_CP_INIT_COUNT	(256)
-#define GNSS_CALI_DONE_FLAG (0x1314520)
 #define GNSS_WAIT_CP_INIT_POLL_TIME_MS	(20)	/* 20ms */
 #define GNSS_BOOT_DONE_FLAG (0x12345678)
-
-struct wifi_calibration {
-	struct wifi_config_t config_data;
-	struct wifi_cali_t cali_data;
-};
 
 /* wifi efuse data, default value comes from PHY team */
 #define WIFI_EFUSE_BLOCK_COUNT (3)
@@ -193,7 +152,7 @@ struct wifi_calibration {
 #define WCN_BOOT_CP2_ERR_DONW_IMG 1
 #define WCN_BOOT_CP2_ERR_BOOT 2
 
-struct wcn_clock_info {
+struct integ_wcn_clock_info {
 	enum wcn_clock_type type;
 	enum wcn_clock_mode mode;
 	int gpio;
@@ -292,7 +251,7 @@ struct wcn_device_manage {
 	struct gpio_desc *merlion_chip_en;
 	struct gpio_desc *merlion_reset;
 	struct gpio_desc *clk_26m_type_sel;
-	struct wcn_clock_info clk_xtal_26m;
+	struct integ_wcn_clock_info clk_xtal_26m;
 	/* debug */
 	bool boot_manually;
 };

@@ -1,10 +1,7 @@
 #ifndef __WCN_INTEGRATE_BOOT_H__
 #define __WCN_INTEGRATE_BOOT_H__
 
-enum {
-	WCN_POWER_STATUS_OFF = 0,
-	WCN_POWER_STATUS_ON,
-};
+#include <misc/wcn_integrate_platform.h>
 
 int start_integrate_wcn(u32 subsys);
 int stop_integrate_wcn(u32 subsys);

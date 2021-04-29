@@ -1,1 +1,1 @@
-obj-$(CONFIG_WCN_SIPC) += wcn_sipc.o
+obj-y += wcn_sipc.o

@@ -21,7 +21,7 @@ static int sleep_test_thread(void *data)
 		slp_mgr_drv_sleep(DT_READ, FALSE);
 		slp_mgr_wakeup(DT_READ);
 
-		sprdwcn_bus_reg_read(CP_START_ADDR, &ram_val, 0x4);
+		sprdwcn_bus_reg_read(get_cp_start_addr(), &ram_val, 0x4);
 		WCN_INFO("ram_val is 0x%x\n", ram_val);
 
 		msleep(5000);

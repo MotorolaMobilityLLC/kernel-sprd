@@ -15,6 +15,7 @@
  * GNU General Public License for more details.
  */
 
+#include <linux/mm.h>
 #include <linux/mutex.h>
 #include <linux/time.h>
 #include <linux/sched/clock.h>
@@ -196,4 +197,147 @@ unsigned long int marlin_bootup_time_get(void)
 {
 	return s_marlin_bootup_time;
 }
+
+#define WCN_VMAP_RETRY_CNT (20)
+static void *wcn_mem_ram_vmap(phys_addr_t start, size_t size,
+			      int noncached, unsigned int *count)
+{
+	struct page **pages;
+	phys_addr_t page_start;
+	unsigned int page_count;
+	pgprot_t prot;
+	unsigned int i;
+	void *vaddr;
+	phys_addr_t addr;
+	int retry = 0;
+
+	page_start = start - offset_in_page(start);
+	page_count = DIV_ROUND_UP(size + offset_in_page(start), PAGE_SIZE);
+	*count = page_count;
+	if (noncached)
+		prot = pgprot_noncached(PAGE_KERNEL);
+	else
+		prot = PAGE_KERNEL;
+
+retry1:
+	pages = kmalloc_array(page_count, sizeof(struct page *), GFP_KERNEL);
+	if (!pages) {
+		if (retry++ < WCN_VMAP_RETRY_CNT) {
+			usleep_range(8000, 10000);
+			goto retry1;
+		} else {
+			WCN_ERR("malloc err\n");
+			return NULL;
+		}
+	}
+
+	for (i = 0; i < page_count; i++) {
+		addr = page_start + i * PAGE_SIZE;
+		pages[i] = pfn_to_page(addr >> PAGE_SHIFT);
+	}
+retry2:
+	vaddr = vm_map_ram(pages, page_count, -1, prot);
+	if (!vaddr) {
+		if (retry++ < WCN_VMAP_RETRY_CNT) {
+			usleep_range(8000, 10000);
+			goto retry2;
+		} else {
+			WCN_ERR("vmap err\n");
+			goto out;
+		}
+	} else {
+		vaddr += offset_in_page(start);
+	}
+out:
+	kfree(pages);
+
+	return vaddr;
+}
+
+void wcn_mem_ram_unmap(const void *mem, unsigned int count)
+{
+	vm_unmap_ram(mem - offset_in_page(mem), count);
+}
+
+void *wcn_mem_ram_vmap_nocache(phys_addr_t start, size_t size,
+			       unsigned int *count)
+{
+	return wcn_mem_ram_vmap(start, size, 1, count);
+}
+
+#ifdef CONFIG_ARM64
+static inline void wcn_unalign_memcpy(void *to, const void *from, u32 len)
+{
+	if (((unsigned long)to & 7) == ((unsigned long)from & 7)) {
+		while (((unsigned long)from & 7) && len) {
+			*(char *)(to++) = *(char *)(from++);
+			len--;
+		}
+		memcpy(to, from, len);
+	} else if (((unsigned long)to & 3) == ((unsigned long)from & 3)) {
+		while (((unsigned long)from & 3) && len) {
+			*(char *)(to++) = *(char *)(from++);
+			len--;
+		}
+		while (len >= 4) {
+			*(u32 *)(to) = *(u32 *)(from);
+			to += 4;
+			from += 4;
+			len -= 4;
+		}
+		while (len) {
+			*(char *)(to++) = *(char *)(from++);
+			len--;
+		}
+	} else {
+		while (len) {
+			*(char *)(to++) = *(char *)(from++);
+			len--;
+		}
+	}
+}
+#else
+static inline void wcn_unalign_memcpy(void *to, const void *from, u32 len)
+{
+	memcpy(to, from, len);
+}
+#endif
+
+int wcn_write_data_to_phy_addr(phys_addr_t phy_addr,
+			       void *src_data, u32 size)
+{
+	char *virt_addr, *src;
+	unsigned int cnt;
+
+	src = (char *)src_data;
+	virt_addr = (char *)wcn_mem_ram_vmap_nocache(phy_addr, size, &cnt);
+	if (virt_addr) {
+		wcn_unalign_memcpy((void *)virt_addr, (void *)src, size);
+		wcn_mem_ram_unmap(virt_addr, cnt);
+		return 0;
+	}
+
+	WCN_ERR("wcn_mem_ram_vmap_nocache fail\n");
+	return -1;
+}
+EXPORT_SYMBOL_GPL(wcn_write_data_to_phy_addr);
+
+int wcn_read_data_from_phy_addr(phys_addr_t phy_addr,
+				void *tar_data, u32 size)
+{
+	char *virt_addr, *tar;
+	unsigned int cnt;
+
+	tar = (char *)tar_data;
+	virt_addr = wcn_mem_ram_vmap_nocache(phy_addr, size, &cnt);
+	if (virt_addr) {
+		wcn_unalign_memcpy((void *)tar, (void *)virt_addr, size);
+		wcn_mem_ram_unmap(virt_addr, cnt);
+		return 0;
+	}
+
+	WCN_ERR("wcn_mem_ram_vmap_nocache fail\n");
+	return -1;
+}
+EXPORT_SYMBOL_GPL(wcn_read_data_from_phy_addr);
 

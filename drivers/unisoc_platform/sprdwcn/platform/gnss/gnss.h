@@ -21,6 +21,7 @@
 #ifndef __GNSS_H__
 #define __GNSS_H__
 #include <linux/regmap.h>
+#include "gnss_common.h"
 
 #define FALSE								(0)
 #define TRUE								(1)

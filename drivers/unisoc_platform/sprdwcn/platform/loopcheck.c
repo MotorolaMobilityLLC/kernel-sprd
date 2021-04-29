@@ -30,6 +30,14 @@ static int loopcheck_send(char *buf, unsigned int len)
 	struct mbuf_t *head = NULL;
 	struct mbuf_t *tail = NULL;
 	int num = 1;
+	struct mchn_ops_t *p_mdbg_proc_ops = get_mdbg_proc_op();
+	struct wcn_match_data *g_match_config = get_wcn_match_config();
+	unsigned int pub_head_rsv;
+
+	if (g_match_config && g_match_config->unisoc_wcn_sdio)
+		pub_head_rsv = SDIOHAL_PUB_HEAD_RSV;
+	else
+		pub_head_rsv = PUB_HEAD_RSV;
 
 	WCN_INFO("tx:%s\n", buf);
 	if (unlikely(!marlin_get_module_status())) {
@@ -37,17 +45,17 @@ static int loopcheck_send(char *buf, unsigned int len)
 		return -EIO;
 	}
 
-	send_buf = kzalloc(len + PUB_HEAD_RSV + 1, GFP_KERNEL);
+	send_buf = kzalloc(len + pub_head_rsv + 1, GFP_KERNEL);
 	if (!send_buf)
 		return -ENOMEM;
-	memcpy(send_buf + PUB_HEAD_RSV, buf, len);
+	memcpy(send_buf + pub_head_rsv, buf, len);
 
-	if (!sprdwcn_bus_list_alloc(mdbg_proc_ops[MDBG_AT_TX_OPS].channel,
+	if (!sprdwcn_bus_list_alloc(p_mdbg_proc_ops[MDBG_AT_TX_OPS].channel,
 				    &head, &tail, &num)) {
 		head->buf = send_buf;
 		head->len = len;
 		head->next = NULL;
-		sprdwcn_bus_push_list(mdbg_proc_ops[MDBG_AT_TX_OPS].channel,
+		sprdwcn_bus_push_list(p_mdbg_proc_ops[MDBG_AT_TX_OPS].channel,
 				      head, tail, num);
 	} else {
 		kfree(send_buf);

@@ -13,32 +13,19 @@
 #include "wcn_parn_parser.h"
 #include "wcn_txrx.h"
 #include "wcn_log.h"
+#include "wcn_misc.h"
+#include "sprd_wcn.h"
+#include "wcn_dump.h"
+#include "wcn_glb_reg.h"
+#include "wcn_dump_integrate.h"
+#include "wcn_integrate.h"
+#include "wcn_integrate_boot.h"
+#include "wcn_integrate_dev.h"
 
-#if (!defined CONFIG_WCN_INTEG) && (!defined CONFIG_SC2355) && (!defined CONFIG_UMW2652) && (!defined CONFIG_UMW2653)
+/* log buf size */
+#define M3E_MDBG_RX_RING_SIZE		(64*1024)
+#define M3L_MDBG_RX_RING_SIZE		(96 * 1024)
+#define M3_MDBG_RX_RING_SIZE		(96 * 1024)
 #define MDBG_RX_RING_SIZE	(128 * 1024)
-static inline int mdbg_dump_mem(void)
-{
-	return 0;
-}
-#endif
-
-#ifdef CONFIG_WCN_INTEG
-#include "wcn_integrate_glb.h"
-#endif
-
-#ifdef CONFIG_SC2355
-#include "sc2355_glb.h"
-#include "wcn_dump.h"
-#endif
-
-#ifdef CONFIG_UMW2652
-#include "umw2652_glb.h"
-#include "wcn_dump.h"
-#endif
-
-#ifdef CONFIG_UMW2653
-#include "umw2653_glb.h"
-#include "wcn_dump.h"
-#endif
 
 #endif

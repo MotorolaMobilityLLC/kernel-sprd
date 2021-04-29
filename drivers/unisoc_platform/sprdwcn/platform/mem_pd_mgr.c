@@ -122,6 +122,7 @@ static int mem_pd_power_switch(enum wcn_sub_sys subsys, int val)
 	unsigned int reg_val = 0;
 	unsigned int wif_bt_mem_cfg = 0;
 	unsigned int bt_ram_mask;
+	struct wcn_match_data *g_match_config = get_wcn_match_config();
 
 	/* unsigned int mem_pd_power_delay; */
 	WCN_INFO("%s\n", __func__);
@@ -159,11 +160,10 @@ static int mem_pd_power_switch(enum wcn_sub_sys subsys, int val)
 			}
 			WCN_INFO("wifi irammem power on\n");
 			/* wifi dram mem pd range */
-#ifdef CONFIG_UMW2652
-			wif_bt_mem_cfg = REG_AON_APB_BTWF_MEM_CGG2;
-#else
-			wif_bt_mem_cfg = REG_AON_APB_BTWF_MEM_CGG3;
-#endif
+			if (g_match_config && g_match_config->unisoc_wcn_m3lite)
+				wif_bt_mem_cfg = REG_AON_APB_BTWF_MEM_CGG2;
+			else
+				wif_bt_mem_cfg = REG_AON_APB_BTWF_MEM_CGG3;
 
 			ret = sprdwcn_bus_reg_read(wif_bt_mem_cfg, &reg_val, 4);
 			if (!(ret == 0)) {
@@ -211,11 +211,10 @@ static int mem_pd_power_switch(enum wcn_sub_sys subsys, int val)
 			}
 			WCN_INFO("wifi irammem power down\n");
 			/* wifi dram mem pd range */
-#ifdef CONFIG_UMW2652
-			wif_bt_mem_cfg = REG_AON_APB_BTWF_MEM_CGG2;
-#else
-			wif_bt_mem_cfg = REG_AON_APB_BTWF_MEM_CGG3;
-#endif
+			if (g_match_config && g_match_config->unisoc_wcn_m3lite)
+				wif_bt_mem_cfg = REG_AON_APB_BTWF_MEM_CGG2;
+			else
+				wif_bt_mem_cfg = REG_AON_APB_BTWF_MEM_CGG3;
 
 			ret = sprdwcn_bus_reg_read(wif_bt_mem_cfg, &reg_val, 4);
 			if (!(ret == 0)) {
@@ -245,13 +244,14 @@ static int mem_pd_power_switch(enum wcn_sub_sys subsys, int val)
 				return ret;
 			}
 			/* bt iram mem pd range */
-#ifdef CONFIG_UMW2652
-			wif_bt_mem_cfg = REG_AON_APB_BTWF_MEM_CGG2;
-			bt_ram_mask = mem_info_cp.bt_dram_mask;
-#else
-			wif_bt_mem_cfg = REG_AON_APB_BTWF_MEM_CGG1;
-			bt_ram_mask = mem_info_cp.bt_iram_mask;
-#endif
+			if (g_match_config && g_match_config->unisoc_wcn_m3lite) {
+				wif_bt_mem_cfg = REG_AON_APB_BTWF_MEM_CGG2;
+				bt_ram_mask = mem_info_cp.bt_dram_mask;
+			} else {
+				wif_bt_mem_cfg = REG_AON_APB_BTWF_MEM_CGG1;
+				bt_ram_mask = mem_info_cp.bt_iram_mask;
+			}
+
 			ret = sprdwcn_bus_reg_read(wif_bt_mem_cfg, &reg_val, 4);
 			if (!(ret == 0)) {
 				mem_pd_spinlock_unlock(0);
@@ -278,13 +278,14 @@ static int mem_pd_power_switch(enum wcn_sub_sys subsys, int val)
 				return ret;
 			}
 			/* bt iram mem pd range */
-#ifdef CONFIG_UMW2652
-			wif_bt_mem_cfg = REG_AON_APB_BTWF_MEM_CGG2;
-			bt_ram_mask = mem_info_cp.bt_dram_mask;
-#else
-			wif_bt_mem_cfg = REG_AON_APB_BTWF_MEM_CGG1;
-			bt_ram_mask = mem_info_cp.bt_iram_mask;
-#endif
+			if (g_match_config && g_match_config->unisoc_wcn_m3lite) {
+				wif_bt_mem_cfg = REG_AON_APB_BTWF_MEM_CGG2;
+				bt_ram_mask = mem_info_cp.bt_dram_mask;
+			} else {
+				wif_bt_mem_cfg = REG_AON_APB_BTWF_MEM_CGG1;
+				bt_ram_mask = mem_info_cp.bt_iram_mask;
+			}
+
 			ret = sprdwcn_bus_reg_read(wif_bt_mem_cfg, &reg_val, 4);
 			if (!(ret == 0)) {
 				mem_pd_spinlock_unlock(0);
@@ -407,28 +408,29 @@ static int mem_pd_read_add_from_cp(void)
 	int ret;
 	unsigned int bt_begin = 0, bt_end = 0;
 	unsigned int wifi_begin = 0, wifi_end = 0;
+	struct wcn_match_data *g_match_config = get_wcn_match_config();
 
-	ret = sprdwcn_bus_reg_read(SYNC_ADDR + BT_BEGIN_OFFSET_SYNC,
+	ret = sprdwcn_bus_reg_read(get_sync_addr() + BT_BEGIN_OFFSET_SYNC,
 				   &bt_begin, 4);
 	if (ret < 0) {
 		WCN_ERR("%s mem_pd read  bt begin addr error:%d\n",
 			__func__, ret);
 		return ret;
 	}
-	ret = sprdwcn_bus_reg_read(SYNC_ADDR + BT_END_OFFSET_SYNC, &bt_end, 4);
+	ret = sprdwcn_bus_reg_read(get_sync_addr() + BT_END_OFFSET_SYNC, &bt_end, 4);
 	if (ret < 0) {
 		WCN_ERR("%s mem_pd read  bt end addr error:%d\n",
 			__func__, ret);
 		return ret;
 	}
-	ret = sprdwcn_bus_reg_read(SYNC_ADDR + WIFI_BEGIN_OFFSET_SYNC,
+	ret = sprdwcn_bus_reg_read(get_sync_addr() + WIFI_BEGIN_OFFSET_SYNC,
 				   &wifi_begin, 4);
 	if (ret < 0) {
 		WCN_ERR("%s mem_pd read  wifi begin addr error:%d\n",
 			__func__, ret);
 		return ret;
 	}
-	ret = sprdwcn_bus_reg_read(SYNC_ADDR + WIFI_END_OFFSET_SYNC,
+	ret = sprdwcn_bus_reg_read(get_sync_addr() + WIFI_END_OFFSET_SYNC,
 				   &wifi_end, 4);
 	if (ret < 0) {
 		WCN_ERR("%s mem_pd read  wifi end addr error:%d\n",
@@ -443,17 +445,18 @@ static int mem_pd_read_add_from_cp(void)
 	mem_info_cp.wifi_end_addr = wifi_end + SDIO_CP_BASE_ADD;
 	mem_info_cp.wifi_size = wifi_end - wifi_begin;
 
-#ifdef CONFIG_UMW2652
-	mem_info_cp.bt_iram_mask = 0;
-	mem_info_cp.bt_dram_mask = 0xC00;
-	mem_info_cp.wifi_iram_mask = 0xFC00;
-	mem_info_cp.wifi_dram_mask = 0x80;
-#else
-	mem_info_cp.bt_iram_mask = 0x0FE00000;
-	mem_info_cp.bt_dram_mask = 0;
-	mem_info_cp.wifi_iram_mask = 0xE0000000;
-	mem_info_cp.wifi_dram_mask = 0x1FFF0000;
-#endif
+	if (g_match_config && g_match_config->unisoc_wcn_m3lite) {
+		mem_info_cp.bt_iram_mask = 0;
+		mem_info_cp.bt_dram_mask = 0xC00;
+		mem_info_cp.wifi_iram_mask = 0xFC00;
+		mem_info_cp.wifi_dram_mask = 0x80;
+	} else {
+		mem_info_cp.bt_iram_mask = 0x0FE00000;
+		mem_info_cp.bt_dram_mask = 0;
+		mem_info_cp.wifi_iram_mask = 0xE0000000;
+		mem_info_cp.wifi_dram_mask = 0x1FFF0000;
+	}
+
 	mem_pd.wifi_mem = kmalloc(mem_info_cp.wifi_size, GFP_KERNEL);
 	if (!mem_pd.wifi_mem) {
 		WCN_INFO("mem pd wifi save buff malloc Failed.\n");

@@ -12,9 +12,7 @@
 #include <misc/wcn_bus.h>
 
 #include "bufring.h"
-#ifdef CONFIG_WCN_PCIE
 #include "edma_engine.h"
-#endif
 #include "wcn_glb.h"
 #include "wcn_procfs.h"
 #include "mdbg_type.h"
@@ -33,7 +31,6 @@ static atomic_t ring_reg_flag;
  * mutex) that may cause sleep. So handle it apart.
  * SDIO's log callback not in interrupt context, it in Kthread
  */
-#ifdef CONFIG_WCN_PCIE
 static int mdbg_log_cb(int channel, struct mbuf_t *head,
 		       struct mbuf_t *tail, int num)
 {
@@ -66,7 +63,7 @@ static int mdbg_log_push(int chn, struct mbuf_t **head,
 
 	return 0;
 }
-#elif defined  CONFIG_WCN_SIPC
+
 static int mdbg_sipc_log_cb(int channel, struct mbuf_t *head,
 			    struct mbuf_t *tail, int num)
 {
@@ -81,7 +78,7 @@ static int mdbg_sipc_log_cb(int channel, struct mbuf_t *head,
 
 	return 0;
 }
-#else
+
 static int mdbg_log_read(int channel, struct mbuf_t *head,
 			 struct mbuf_t *tail, int num)
 {
@@ -109,10 +106,8 @@ static int mdbg_log_read(int channel, struct mbuf_t *head,
 
 	return 0;
 }
-#endif
 
-#ifdef CONFIG_WCN_PCIE
-static struct mchn_ops_t mdbg_ringc_ops = {
+static struct mchn_ops_t mdbg_ringc_ops_pcie = {
 	.channel = WCN_RING_RX,
 	.inout = WCNBUS_RX,
 	.hif_type = 1,
@@ -124,23 +119,37 @@ static struct mchn_ops_t mdbg_ringc_ops = {
 	.pop_link = mdbg_log_cb,
 	.push_link = mdbg_log_push,
 };
-#else
-static struct mchn_ops_t mdbg_ringc_ops = {
-	.channel = WCN_RING_RX,
+
+static struct mchn_ops_t mdbg_ringc_ops_sipc = {
+	.channel = WCN_SIPC_RING_RX,
 	.inout = WCNBUS_RX,
 	.pool_size = 1,
-#ifdef CONFIG_WCN_SIPC
 	.pop_link = mdbg_sipc_log_cb,
 	.chn_config.sipc_ch = WCN_INIT_SIPC_SBUF(
 			WCN_SIPC_DST, SIPC_CHN_LOG,
 			WCN_CHN_CREATE | WCN_CHN_CALLBACK,
 			"sbuf_log", 0, 8 * 1024, 1,
 			0x8000, 0x30000),
-#else
-	.pop_link = mdbg_log_read,
-#endif
 };
-#endif
+
+static struct mchn_ops_t mdbg_ringc_ops = {
+	.channel = WCN_RING_RX,
+	.inout = WCNBUS_RX,
+	.pool_size = 1,
+	.pop_link = mdbg_log_read,
+};
+
+static struct mchn_ops_t *get_mdbg_ringc_ops(void)
+{
+	struct wcn_match_data *g_match_config = get_wcn_match_config();
+
+	if (g_match_config && g_match_config->unisoc_wcn_pcie)
+		return &mdbg_ringc_ops_pcie;
+	else if (g_match_config && g_match_config->unisoc_wcn_sipc)
+		return &mdbg_ringc_ops_sipc;
+	else
+		return &mdbg_ringc_ops;
+}
 
 bool mdbg_rx_count_change(void)
 {
@@ -181,16 +190,21 @@ static long int mdbg_comm_write(char *buf,
 	struct mbuf_t *tail = NULL;
 	int num = 1;
 	size_t rsvlen;
+	struct mchn_ops_t *p_mdbg_proc_ops = get_mdbg_proc_op();
+	struct wcn_match_data *g_match_config = get_wcn_match_config();
 
 	if (unlikely(marlin_get_module_status() != true)) {
 		WCN_WARN("WCN module have not open\n");
 		return -EIO;
 	}
-#ifdef CONFIG_WCN_SIPC
-	rsvlen = 0;
-#else
-	rsvlen = PUB_HEAD_RSV;
-#endif
+
+	if (g_match_config && g_match_config->unisoc_wcn_sipc)
+		rsvlen = 0;
+	else if (g_match_config && g_match_config->unisoc_wcn_sdio)
+		rsvlen = SDIOHAL_PUB_HEAD_RSV;
+	else
+		rsvlen = PUB_HEAD_RSV;
+
 	send_buf = kzalloc(len + rsvlen + 1, GFP_KERNEL);
 	if (!send_buf)
 		return -ENOMEM;
@@ -214,13 +228,13 @@ static long int mdbg_comm_write(char *buf,
 		kfree(send_buf);
 	} else {
 		if (!sprdwcn_bus_list_alloc(
-				mdbg_proc_ops[MDBG_AT_TX_OPS].channel,
+				p_mdbg_proc_ops[MDBG_AT_TX_OPS].channel,
 				&head, &tail, &num)) {
 			head->buf = send_buf;
 			head->len = len;
 			head->next = NULL;
 			sprdwcn_bus_push_list(
-				mdbg_proc_ops[MDBG_AT_TX_OPS].channel,
+				p_mdbg_proc_ops[MDBG_AT_TX_OPS].channel,
 				head, tail, num);
 		}
 	}
@@ -234,9 +248,15 @@ static void mdbg_ring_rx_task(struct work_struct *work)
 	struct mdbg_ring_t *ring = NULL;
 	struct mbuf_t *mbuf_node;
 	int i;
-#ifndef CONFIG_WCN_PCIE
 	struct bus_puh_t *puh = NULL;
-#endif
+	struct mchn_ops_t *p_mdbg_ringc_ops = get_mdbg_ringc_ops();
+	struct wcn_match_data *g_match_config = get_wcn_match_config();
+	unsigned int pub_head_rsv;
+
+	if (g_match_config && g_match_config->unisoc_wcn_sdio)
+		pub_head_rsv = SDIOHAL_PUB_HEAD_RSV;
+	else
+		pub_head_rsv = PUB_HEAD_RSV;
 
 	if (unlikely(!ring_dev)) {
 		WCN_ERR("ring_dev is NULL\n");
@@ -260,15 +280,15 @@ static void mdbg_ring_rx_task(struct work_struct *work)
 
 	for (i = 0, mbuf_node = rx->head; i < rx->num; i++,
 		mbuf_node = mbuf_node->next) {
-#ifndef CONFIG_WCN_PCIE
-		rx->addr = mbuf_node->buf + PUB_HEAD_RSV;
-		puh = (struct bus_puh_t *)mbuf_node->buf;
-		mdbg_ring_write(ring, rx->addr, puh->len);
-#else
-		mdbg_ring_write(ring, mbuf_node->buf, mbuf_node->len);
-#endif
+		if (g_match_config && !g_match_config->unisoc_wcn_pcie) {
+			rx->addr = mbuf_node->buf + pub_head_rsv;
+			puh = (struct bus_puh_t *)mbuf_node->buf;
+			mdbg_ring_write(ring, rx->addr, puh->len);
+		} else {
+			mdbg_ring_write(ring, mbuf_node->buf, mbuf_node->len);
+		}
 	}
-	sprdwcn_bus_push_list(mdbg_ringc_ops.channel,
+	sprdwcn_bus_push_list(p_mdbg_ringc_ops->channel,
 			      rx->head, rx->tail, rx->num);
 	wake_up_log_wait();
 	kfree(rx);
@@ -295,25 +315,25 @@ long int mdbg_receive(void *buf, int len)
 int mdbg_tx_cb(int channel, struct mbuf_t *head,
 	       struct mbuf_t *tail, int num)
 {
-#ifndef CONFIG_WCN_PCIE
 	struct mbuf_t *mbuf_node;
 	int i;
+	struct wcn_match_data *g_match_config = get_wcn_match_config();
 
-	mbuf_node = head;
-	for (i = 0; i < num; i++, mbuf_node = mbuf_node->next) {
-		kfree(mbuf_node->buf);
-		mbuf_node->buf = NULL;
+	if (g_match_config && !g_match_config->unisoc_wcn_pcie) {
+		mbuf_node = head;
+		for (i = 0; i < num; i++, mbuf_node = mbuf_node->next) {
+			kfree(mbuf_node->buf);
+			mbuf_node->buf = NULL;
+		}
 	}
-#endif
+
 	/* PCIe buf is witebuf[], not kmalloc, no need to free */
 	sprdwcn_bus_list_free(channel, head, tail, num);
 
 	return 0;
 }
 
-#ifdef CONFIG_WCN_PCIE
 static struct dma_buf log_buf[LOG_BUF_NUM];
-
 static int free_prepare_buf(struct dma_buf *dm)
 {
 	struct wcn_pcie_info *pcie_dev;
@@ -330,7 +350,7 @@ static int free_prepare_buf(struct dma_buf *dm)
 	return 0;
 }
 
-int prepare_free_buf_for_log(int chn, int size, int num)
+static int prepare_free_buf_for_log(int chn, int size, int num)
 {
 	int ret, i;
 	struct mbuf_t *mbuf, *head, *tail;
@@ -361,41 +381,54 @@ int prepare_free_buf_for_log(int chn, int size, int num)
 
 	return ret;
 }
-#endif
 
 void mdbg_pt_ring_reg(void)
 {
+	struct mchn_ops_t *p_mdbg_ringc_ops = get_mdbg_ringc_ops();
+	struct wcn_match_data *g_match_config = get_wcn_match_config();
+
 	WCN_INFO("%s\n", __func__);
 	atomic_set(&ring_reg_flag, 0x1);
-	sprdwcn_bus_chn_init(&mdbg_ringc_ops);
-#ifdef CONFIG_WCN_PCIE
-	prepare_free_buf_for_log(15, LOG_BUF_SIZE, LOG_BUF_NUM);
-#endif
+	sprdwcn_bus_chn_init(p_mdbg_ringc_ops);
+
+	if (g_match_config && g_match_config->unisoc_wcn_pcie)
+		prepare_free_buf_for_log(15, LOG_BUF_SIZE, LOG_BUF_NUM);
 }
 
 void mdbg_pt_ring_unreg(void)
 {
-#ifdef CONFIG_WCN_PCIE
 	int i;
-#endif
+	struct mchn_ops_t *p_mdbg_ringc_ops = get_mdbg_ringc_ops();
+	struct wcn_match_data *g_match_config = get_wcn_match_config();
 
 	WCN_INFO("%s\n", __func__);
 	atomic_set(&ring_reg_flag, 0x0);
-	sprdwcn_bus_chn_deinit(&mdbg_ringc_ops);
-#ifdef CONFIG_WCN_PCIE
-	for (i = 0; i < LOG_BUF_NUM; i++)
-		free_prepare_buf(&log_buf[i]);
-#endif
+	sprdwcn_bus_chn_deinit(p_mdbg_ringc_ops);
+	if (g_match_config && g_match_config->unisoc_wcn_pcie) {
+		for (i = 0; i < LOG_BUF_NUM; i++)
+			free_prepare_buf(&log_buf[i]);
+	}
 }
 
 int mdbg_ring_init(void)
 {
 	int err = 0;
+	unsigned int mdbg_rx_ring_size;
+	struct wcn_match_data *g_match_config = get_wcn_match_config();
+
+	if (g_match_config && g_match_config->unisoc_wcn_m3e)
+		mdbg_rx_ring_size = M3E_MDBG_RX_RING_SIZE;
+	else if (g_match_config && g_match_config->unisoc_wcn_m3)
+		mdbg_rx_ring_size = M3_MDBG_RX_RING_SIZE;
+	else if (g_match_config && g_match_config->unisoc_wcn_m3lite)
+		mdbg_rx_ring_size = M3L_MDBG_RX_RING_SIZE;
+	else
+		mdbg_rx_ring_size = MDBG_RX_RING_SIZE;
 
 	ring_dev = kmalloc(sizeof(struct ring_device), GFP_KERNEL);
 	if (!ring_dev)
 		return -ENOMEM;
-	ring_dev->ring = mdbg_ring_alloc(MDBG_RX_RING_SIZE);
+	ring_dev->ring = mdbg_ring_alloc(mdbg_rx_ring_size);
 	if (!(ring_dev->ring)) {
 		WCN_ERR("Ring malloc error.");
 		kfree(ring_dev);
@@ -409,9 +442,8 @@ int mdbg_ring_init(void)
 	INIT_LIST_HEAD(&ring_dev->rx_head);
 	INIT_WORK(&ring_dev->rx_task, mdbg_ring_rx_task);
 	ring_dev->flag_smp = 0;
-#ifndef CONFIG_WCN_PCIE
-	mdbg_pt_ring_reg();
-#endif
+	if (g_match_config && !g_match_config->unisoc_wcn_pcie)
+		mdbg_pt_ring_reg();
 	WCN_INFO("success!");
 
 	mdbg_dev->ring_dev = ring_dev;
@@ -422,11 +454,11 @@ int mdbg_ring_init(void)
 void mdbg_ring_remove(void)
 {
 	struct ring_rx_data *pos, *next;
+	struct wcn_match_data *g_match_config = get_wcn_match_config();
 
 	MDBG_FUNC_ENTERY;
-#ifndef CONFIG_WCN_PCIE
-	mdbg_pt_ring_unreg();
-#endif
+	if (g_match_config && !g_match_config->unisoc_wcn_pcie)
+		mdbg_pt_ring_unreg();
 	wakeup_source_destroy(ring_dev->rw_wake_lock);
 	cancel_work_sync(&ring_dev->rx_task);
 	mdbg_ring_destroy(ring_dev->ring);

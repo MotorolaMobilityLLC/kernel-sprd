@@ -13,6 +13,7 @@
 #include <misc/wcn_bus.h>
 
 #include "bus_common.h"
+#include "sprd_wcn.h"
 
 #ifdef pr_fmt
 #undef pr_fmt
@@ -30,17 +31,23 @@ struct buffer_pool_t {
 };
 
 struct chn_info_t {
-	struct mchn_ops_t *ops[CHN_MAX_NUM];
-	struct mutex callback_lock[CHN_MAX_NUM];
-	struct buffer_pool_t pool[CHN_MAX_NUM];
+	struct mchn_ops_t *ops;
+	struct mutex callback_lock;
+	struct buffer_pool_t pool;
 };
 
 static struct sprdwcn_bus_ops *wcn_bus_ops;
 
-static struct chn_info_t g_chn_info;
+static struct chn_info_t g_sipc_chn_info[SIPC_CHN_MAX_NUM];
+static struct chn_info_t g_chn_info[CHN_MAX_NUM];
 static struct chn_info_t *chn_info(void)
 {
-	return &g_chn_info;
+	struct wcn_match_data *g_match_config = get_wcn_match_config();
+
+	if (g_match_config && g_match_config->unisoc_wcn_sipc)
+		return g_sipc_chn_info;
+	else
+		return g_chn_info;
 }
 
 static int buf_list_check(struct buffer_pool_t *pool, struct mbuf_t *head,
@@ -169,7 +176,7 @@ int buf_list_alloc(int chn, struct mbuf_t **head,
 	struct mbuf_t *temp_tail;
 	struct chn_info_t *chn_inf = chn_info();
 
-	pool = &(chn_inf->pool[chn]);
+	pool = &((chn_inf + chn)->pool);
 
 	if ((*num <= 0) || (pool->free <= 0)) {
 		pr_err("[+]%s err, num %d, free %d)\n",
@@ -203,7 +210,7 @@ int buf_list_is_empty(int chn)
 	struct buffer_pool_t *pool;
 	struct chn_info_t *chn_inf = chn_info();
 
-	pool = &(chn_inf->pool[chn]);
+	pool = &((chn_inf + chn)->pool);
 	return pool->free <= 0;
 }
 
@@ -212,7 +219,7 @@ int buf_list_is_full(int chn)
 	struct buffer_pool_t *pool;
 	struct chn_info_t *chn_inf = chn_info();
 
-	pool = &(chn_inf->pool[chn]);
+	pool = &((chn_inf + chn)->pool);
 	return pool->free == pool->size;
 }
 
@@ -228,7 +235,7 @@ int buf_list_free(int chn, struct mbuf_t *head, struct mbuf_t *tail, int num)
 		return -1;
 	}
 
-	pool = &(chn_inf->pool[chn]);
+	pool = &((chn_inf + chn)->pool);
 	spin_lock_bh(&(pool->lock));
 	buf_list_check(pool, head, tail, num);
 	tail->next = pool->head;
@@ -246,20 +253,20 @@ int bus_chn_init(struct mchn_ops_t *ops, int hif_type)
 	struct chn_info_t *chn_inf = chn_info();
 
 	pr_info("[+]%s(%d, %d)\n", __func__, ops->channel, ops->hif_type);
-	if (chn_inf->ops[ops->channel] != NULL) {
+	if ((chn_inf + ops->channel)->ops != NULL) {
 		pr_err("%s err, hif_type %d\n", __func__, ops->hif_type);
 		WARN_ON_ONCE(1);
 		return -1;
 	}
 
-	mutex_init(&chn_inf->callback_lock[ops->channel]);
-	mutex_lock(&chn_inf->callback_lock[ops->channel]);
+	mutex_init(&(chn_inf + ops->channel)->callback_lock);
+	mutex_lock(&(chn_inf + ops->channel)->callback_lock);
 	ops->hif_type = hif_type;
-	chn_inf->ops[ops->channel] = ops;
+	(chn_inf + ops->channel)->ops = ops;
 	if (ops->pool_size > 0)
-		ret = buf_pool_init(&(chn_inf->pool[ops->channel]),
+		ret = buf_pool_init(&((chn_inf + ops->channel)->pool),
 				    ops->pool_size, 0);
-	mutex_unlock(&chn_inf->callback_lock[ops->channel]);
+	mutex_unlock(&(chn_inf + ops->channel)->callback_lock);
 
 	pr_info("[-]%s(%d)\n", __func__, ops->channel);
 
@@ -272,17 +279,17 @@ int bus_chn_deinit(struct mchn_ops_t *ops)
 	struct chn_info_t *chn_inf = chn_info();
 
 	pr_info("[+]%s(%d, %d)\n", __func__, ops->channel, ops->hif_type);
-	if (chn_inf->ops[ops->channel] == NULL) {
+	if ((chn_inf + ops->channel)->ops == NULL) {
 		pr_err("%s err\n", __func__);
 		return -1;
 	}
 
-	mutex_lock(&chn_inf->callback_lock[ops->channel]);
+	mutex_lock(&(chn_inf + ops->channel)->callback_lock);
 	if (ops->pool_size > 0)
-		ret = buf_pool_deinit(&(chn_inf->pool[ops->channel]));
-	chn_inf->ops[ops->channel] = NULL;
-	mutex_unlock(&chn_inf->callback_lock[ops->channel]);
-	mutex_destroy(&chn_inf->callback_lock[ops->channel]);
+		ret = buf_pool_deinit(&((chn_inf + ops->channel)->pool));
+	(chn_inf + ops->channel)->ops = NULL;
+	mutex_unlock(&(chn_inf + ops->channel)->callback_lock);
+	mutex_destroy(&(chn_inf + ops->channel)->callback_lock);
 
 	pr_info("[-]%s(%d)\n", __func__, ops->channel);
 
@@ -291,10 +298,19 @@ int bus_chn_deinit(struct mchn_ops_t *ops)
 
 struct mchn_ops_t *chn_ops(int channel)
 {
+	struct wcn_match_data *g_match_config = get_wcn_match_config();
+
+	if (g_match_config && g_match_config->unisoc_wcn_sipc) {
+		if (channel >= SIPC_CHN_MAX_NUM || channel < 0)
+			return NULL;
+
+		return g_sipc_chn_info[channel].ops;
+	}
+
 	if (channel >= CHN_MAX_NUM || channel < 0)
 		return NULL;
 
-	return g_chn_info.ops[channel];
+	return g_chn_info[channel].ops;
 }
 
 int module_ops_register(struct sprdwcn_bus_ops *ops)

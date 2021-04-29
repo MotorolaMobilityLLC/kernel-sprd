@@ -11,12 +11,8 @@
 #include <linux/slab.h>
 #include <misc/wcn_bus.h>
 
-#ifdef CONFIG_WCN_PCIE
 #include "pcie.h"
-#endif
-#ifdef CONFIG_SDIOHAL
 #include "../sdio/sdiohal.h"
-#endif
 #include "wcn_dbg.h"
 #include "wcn_glb.h"
 
@@ -55,32 +51,34 @@ static int wcn_send_atcmd(void *cmd, unsigned char cmd_len,
 	int num = 1;
 	int ret;
 	unsigned long timeleft;
-#ifdef CONFIG_WCN_PCIE
+	struct sdiohal_data_t *p_data = sdiohal_get_data();
+	struct wcn_match_data *g_match_config = get_wcn_match_config();
+	unsigned int pub_head_rsv;
 	/* dma_buf for dma */
 	static struct dma_buf dma_buf;
 	static int at_buf_flag;
 	struct wcn_pcie_info *pcie_dev;
-#else
 	/* common buf for kmalloc */
 	unsigned char *com_buf = NULL;
-#endif
 
-#ifdef CONFIG_WCN_PCIE
-	pcie_dev = get_wcn_device_info();
-	if (!pcie_dev) {
-		WCN_ERR("%s:PCIE device link error\n", __func__);
-		return -1;
+	if (g_match_config && g_match_config->unisoc_wcn_pcie) {
+		pcie_dev = get_wcn_device_info();
+		if (!pcie_dev) {
+			WCN_ERR("%s:PCIE device link error\n", __func__);
+			return -1;
+		}
 	}
-#endif
 
-#ifdef CONFIG_SDIOHAL
-	struct sdiohal_data_t *p_data = sdiohal_get_data();
-
-	if (!WCN_CARD_EXIST(&p_data->xmit_cnt)) {
-		WCN_INFO("%s:already power off\n", __func__);
-		return 0;
+	if (g_match_config && g_match_config->unisoc_wcn_sdio) {
+		pub_head_rsv = SDIOHAL_PUB_HEAD_RSV;
+		if (!WCN_CARD_EXIST(&p_data->xmit_cnt)) {
+			WCN_INFO("%s:already power off\n", __func__);
+			return 0;
+		}
+	} else {
+		pub_head_rsv = PUB_HEAD_RSV;
 	}
-#endif
+
 	mutex_lock(&sysfs_info.mutex);
 	ret = sprdwcn_bus_list_alloc(0, &head, &tail, &num);
 	if (ret || !head || !tail) {
@@ -89,45 +87,47 @@ static int wcn_send_atcmd(void *cmd, unsigned char cmd_len,
 		return -1;
 	}
 
-#ifdef CONFIG_WCN_PCIE
-	if (at_buf_flag == 0) {
-		ret = dmalloc(pcie_dev, &dma_buf, 128);
-		if (ret != 0) {
-			mutex_unlock(&sysfs_info.mutex);
-			return -1;
+	if (g_match_config && g_match_config->unisoc_wcn_pcie) {
+		if (at_buf_flag == 0) {
+			ret = dmalloc(pcie_dev, &dma_buf, 128);
+			if (ret != 0) {
+				mutex_unlock(&sysfs_info.mutex);
+				return -1;
+			}
+			at_buf_flag = 1;
 		}
-		at_buf_flag = 1;
+		head->buf = (unsigned char *)(dma_buf.vir);
+		head->phy = (unsigned long)(dma_buf.phy);
+		head->len = dma_buf.size;
+		memset(head->buf, 0x0, head->len);
+		memcpy(head->buf, cmd, cmd_len);
+		head->next = NULL;
+	} else {
+		com_buf = kzalloc(128 + pub_head_rsv + 1, GFP_KERNEL);
+		if (!com_buf) {
+			mutex_unlock(&sysfs_info.mutex);
+			return -ENOMEM;
+		}
+		memcpy(com_buf + pub_head_rsv, cmd, cmd_len);
+		head->buf = com_buf;
+		head->len = cmd_len;
+		head->next = NULL;
 	}
-	head->buf = (unsigned char *)(dma_buf.vir);
-	head->phy = (unsigned long)(dma_buf.phy);
-	head->len = dma_buf.size;
-	memset(head->buf, 0x0, head->len);
-	memcpy(head->buf, cmd, cmd_len);
-	head->next = NULL;
-#else
-	com_buf = kzalloc(128 + PUB_HEAD_RSV + 1, GFP_KERNEL);
-	if (!com_buf) {
-		mutex_unlock(&sysfs_info.mutex);
-		return -ENOMEM;
-	}
-	memcpy(com_buf + PUB_HEAD_RSV, cmd, cmd_len);
-	head->buf = com_buf;
-	head->len = cmd_len;
-	head->next = NULL;
-#endif
+
 	ret = sprdwcn_bus_push_list(0, head, tail, num);
 	if (ret)
 		WCN_INFO("sprdwcn_bus_push_list error=%d\n", ret);
 	reinit_completion(&sysfs_info.cmd_completion);
 	timeleft = wait_for_completion_timeout(&sysfs_info.cmd_completion,
 					       3 * HZ);
-#ifdef CONFIG_SDIOHAL
-	if (!WCN_CARD_EXIST(&p_data->xmit_cnt)) {
-		WCN_INFO("%s:already power off\n", __func__);
-		mutex_unlock(&sysfs_info.mutex);
-		return 0;
+	if (g_match_config && g_match_config->unisoc_wcn_sdio) {
+		if (!WCN_CARD_EXIST(&p_data->xmit_cnt)) {
+			WCN_INFO("%s:already power off\n", __func__);
+			mutex_unlock(&sysfs_info.mutex);
+			return 0;
+		}
 	}
-#endif
+
 	if (!timeleft) {
 		WCN_ERR("%s,Timeout(%d sec),didn't get at cmd(%s) response\n",
 			__func__, jiffies_to_msecs(3 * HZ) / 1000, (char *)cmd);
@@ -836,7 +836,7 @@ int init_wcn_sysfs(void)
 	mutex_init(&sysfs_info.mutex);
 	atomic_set(&sysfs_info.set_mask, 0x0);
 
-#ifdef CONFIG_WCN_USER
+#ifdef FLAG_WCN_USER
 		atomic_set(&sysfs_info.is_reset, 0x1);
 		sysfs_info.armlog_status = 0;
 #else

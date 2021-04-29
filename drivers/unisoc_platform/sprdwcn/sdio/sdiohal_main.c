@@ -946,6 +946,7 @@ static int sdiohal_suspend(struct device *dev)
 	struct sdio_func *func;
 	int chn;
 	int ret;
+	struct wcn_match_data *g_match_config = get_wcn_match_config();
 
 	pr_debug("[%s]enter\n", __func__);
 
@@ -953,9 +954,8 @@ static int sdiohal_suspend(struct device *dev)
 	for (chn = 0; chn < SDIO_CHANNEL_NUM; chn++) {
 		sdiohal_ops = chn_ops(chn);
 		if (sdiohal_ops && sdiohal_ops->power_notify) {
-#ifdef CONFIG_WCN_SLP
-			sdio_record_power_notify(true);
-#endif
+			if (g_match_config && g_match_config->unisoc_wcn_slp)
+				sdio_record_power_notify(true);
 			ret = sdiohal_ops->power_notify(chn, false);
 			if (ret != 0) {
 				pr_info("[%s] chn:%d suspend fail\n",
@@ -966,10 +966,10 @@ static int sdiohal_suspend(struct device *dev)
 		}
 	}
 
-#ifdef CONFIG_WCN_SLP
-	sdio_wait_pub_int_done();
-	sdio_record_power_notify(false);
-#endif
+	if (g_match_config && g_match_config->unisoc_wcn_slp) {
+		sdio_wait_pub_int_done();
+		sdio_record_power_notify(false);
+	}
 
 	atomic_set(&p_data->flag_suspending, 0);
 	atomic_set(&p_data->flag_resume, 0);
@@ -1016,22 +1016,24 @@ static int sdiohal_resume(struct device *dev)
 
 static int sdiohal_set_cp_pin_status(void)
 {
-#ifdef CONFIG_UMW2652
-	/*
-	 * Because of cp pin pull up on default, It's lead to
-	 * the sdio mistaken interruption before cp run,
-	 * So set the pin to no pull up on init.
-	 */
-	int reg_value;
+	struct wcn_match_data *g_match_config = get_wcn_match_config();
 
-	sdiohal_readl(CP_GPIO1_REG, &reg_value);
-	pr_info("reg_value: 0x%x\n", reg_value);
-	reg_value &= ~(CP_PIN_FUNC_WPU);
-	sdiohal_writel(CP_GPIO1_REG, &reg_value);
+	if (g_match_config && g_match_config->unisoc_wcn_m3lite) {
+		/*
+		 * Because of cp pin pull up on default, It's lead to
+		 * the sdio mistaken interruption before cp run,
+		 * So set the pin to no pull up on init.
+		 */
+		int reg_value;
 
-	sdiohal_readl(CP_GPIO1_REG, &reg_value);
-	pr_info("reg_value: 0x%x\n", reg_value);
-#endif
+		sdiohal_readl(CP_GPIO1_REG, &reg_value);
+		pr_info("reg_value: 0x%x\n", reg_value);
+		reg_value &= ~(CP_PIN_FUNC_WPU);
+		sdiohal_writel(CP_GPIO1_REG, &reg_value);
+
+		sdiohal_readl(CP_GPIO1_REG, &reg_value);
+		pr_info("reg_value: 0x%x\n", reg_value);
+	}
 	return 0;
 }
 

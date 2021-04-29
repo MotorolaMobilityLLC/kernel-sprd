@@ -96,6 +96,17 @@ static ssize_t wcnlog_read(struct file *filp,
 	int rval;
 	static unsigned int dum_send_size;
 	struct wcnlog_dev *dev = filp->private_data;
+	unsigned int mdbg_rx_ring_size;
+	struct wcn_match_data *g_match_config = get_wcn_match_config();
+
+	if (g_match_config && g_match_config->unisoc_wcn_m3e)
+		mdbg_rx_ring_size = M3E_MDBG_RX_RING_SIZE;
+	else if (g_match_config && g_match_config->unisoc_wcn_m3)
+		mdbg_rx_ring_size = M3_MDBG_RX_RING_SIZE;
+	else if (g_match_config && g_match_config->unisoc_wcn_m3lite)
+		mdbg_rx_ring_size = M3L_MDBG_RX_RING_SIZE;
+	else
+		mdbg_rx_ring_size = MDBG_RX_RING_SIZE;
 
 	if (mdbg_dev->exit_flag) {
 		WCN_ERR("%s exit!\n", __func__);
@@ -113,8 +124,13 @@ static ssize_t wcnlog_read(struct file *filp,
 	/* count :100K-log, 32K-mem ;cat :4096 */
 	WCN_DEBUG("%s len = %ld\n", __func__, (long)count);
 #if 0
-	if ((functionmask[7] & CP2_FLAG_YLOG) == 1)
-		return -EIO;
+	if (g_match_config && g_match_config->unisoc_wcn_integrated) {
+		if ((integ_functionmask[7] & CP2_FLAG_YLOG) == 1)
+			return -EIO;
+	} else {
+		if ((functionmask[7] & CP2_FLAG_YLOG) == 1)
+			return -EIO;
+	}
 #endif
 	if (MINOR(dev->cdev.dev) == 1) {
 		WCN_INFO("unsupported to read slog_wcn1: BT audio data\n");
@@ -124,8 +140,8 @@ static ssize_t wcnlog_read(struct file *filp,
 	if (filp->f_flags & O_NONBLOCK)
 		timeout = 0;
 
-	if (count > MDBG_RX_RING_SIZE)
-		count = MDBG_RX_RING_SIZE;
+	if (count > mdbg_rx_ring_size)
+		count = mdbg_rx_ring_size;
 
 	if (timeout < 0) {
 		/* when kernel go to sleep, it return -512 */

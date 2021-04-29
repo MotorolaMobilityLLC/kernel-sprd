@@ -108,9 +108,4 @@ struct marlin_device {
 	char *gnss_path;
 };
 
-struct wifi_calibration {
-	struct wifi_config_t config_data;
-	struct wifi_cali_t cali_data;
-};
-
 #endif

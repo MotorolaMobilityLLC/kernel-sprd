@@ -7,9 +7,21 @@ subdir-ccflags-y := \
 	-I $(srctree)/$(src)/sleep \
 	-I $(srctree)/$(src)/sipc
 
+# compile WCN_PCIE or not
+BUILD_WCN_PCIE := false
+
+ifeq ($(BUILD_WCN_PCIE),true)
+ccflags-y += -DBUILD_WCN_PCIE
+endif
+
+ifeq ($(TARGET_BUILD_VARIANT),user)
+ccflags-y += -DFLAG_WCN_USER
+endif
+
 #WCN MODULE
 obj-$(CONFIG_UNISOC_WCN_BSP) += wcn_bsp.o
 wcn_bsp-y += wcn_bus.o
+wcn_bsp-y += sprd_wcn.o
 
 #PLATFORM FILE
 wcn_bsp-y += platform/wcn_parn_parser.o
@@ -19,47 +31,49 @@ wcn_bsp-y += platform/wcn_txrx.o
 wcn_bsp-y += platform/wcn_log.o
 wcn_bsp-y += platform/wcn_misc.o
 wcn_bsp-y += platform/bufring.o
-wcn_bsp-$(CONFIG_WCN_BOOT) += platform/wcn_op.o
+wcn_bsp-y += platform/wcn_op.o
 wcn_bsp-y += platform/sysfs.o
 wcn_bsp-y += platform/reset.o
 wcn_bsp-y += platform/reset_test.o
 wcn_bsp-y += platform/loopcheck.o
-wcn_bsp-$(CONFIG_WCN_INTEG) += platform/rf/rf.o
-wcn_bsp-$(CONFIG_WCN_INTEG) += platform/wcn_dump_integrate.o
-wcn_bsp-$(CONFIG_WCN_BOOT) += platform/wcn_boot.o
-wcn_bsp-$(CONFIG_WCN_BOOT) += platform/gnss/gnss.o
-wcn_bsp-$(CONFIG_WCN_BOOT) += platform/wcn_dump.o
-#wcn_bsp-$(CONFIG_WCN_PCIE) += platform/pcie_boot.o
-wcn_bsp-$(CONFIG_WCN_SWD_DAP) += platform/wcn_swd_dap.o
-wcn_bsp-$(CONFIG_SDIOHAL) += platform/mem_pd_mgr.o
-wcn_bsp-$(CONFIG_WCN_UTILS) += platform/wcn_debugfs.o
-wcn_bsp-$(CONFIG_WCN_SLP) += sleep/sdio_int.o
-wcn_bsp-$(CONFIG_WCN_SLP) += sleep/slp_mgr.o
-wcn_bsp-$(CONFIG_WCN_SLP) += sleep/slp_sdio.o
-wcn_bsp-$(CONFIG_WCN_SLP) += sleep/slp_test.o
+wcn_bsp-y += platform/rf/rf.o
+wcn_bsp-y += platform/wcn_dump_integrate.o
+wcn_bsp-y += platform/wcn_boot.o
+wcn_bsp-y += platform/gnss/gnss.o
+wcn_bsp-y += platform/wcn_dump.o
+wcn_bsp-y += platform/wcn_swd_dap.o
+wcn_bsp-y += platform/mem_pd_mgr.o
+wcn_bsp-y += platform/wcn_debugfs.o
+wcn_bsp-y += sleep/sdio_int.o
+wcn_bsp-y += sleep/slp_mgr.o
+wcn_bsp-y += sleep/slp_sdio.o
+wcn_bsp-y += sleep/slp_test.o
 
 #BOOT FILE
-wcn_bsp-$(CONFIG_WCN_INTEG) += boot/wcn_integrate.o
-wcn_bsp-$(CONFIG_WCN_INTEG) += boot/wcn_integrate_dev.o
-wcn_bsp-$(CONFIG_WCN_INTEG) += boot/wcn_integrate_boot.o
+wcn_bsp-y += boot/wcn_integrate.o
+wcn_bsp-y += boot/wcn_integrate_dev.o
+wcn_bsp-y += boot/wcn_integrate_boot.o
 
 #SIPC FILE
-wcn_bsp-$(CONFIG_WCN_SIPC) += sipc/wcn_sipc.o
+wcn_bsp-y += sipc/wcn_sipc.o
 
 #PCIE FILE
-#wcn_bsp-$(CONFIG_WCN_PCIE) += pcie/pcie.o
-#wcn_bsp-$(CONFIG_WCN_PCIE) += pcie/edma_engine.o
-#wcn_bsp-$(CONFIG_WCN_PCIE) += pcie/pcie_dbg.o
-#wcn_bsp-$(CONFIG_WCN_PCIE) += pcie/ioctl.o
-#wcn_bsp-$(CONFIG_WCN_PCIE) += pcie/mchn.o
-#wcn_bsp-$(CONFIG_WCN_PCIE) += pcie/edma_test.o
-#wcn_bsp-$(CONFIG_WCN_PCIE) += pcie/pcie_attach_bus.o
-#wcn_bsp-$(CONFIG_WCN_PCIE) += pcie/pcie_pm.o
+ifeq ($(BUILD_WCN_PCIE),true)
+#wcn_bsp-y += platform/pcie_boot.o
+wcn_bsp-y += pcie/pcie.o
+wcn_bsp-y += pcie/edma_engine.o
+wcn_bsp-y += pcie/pcie_dbg.o
+wcn_bsp-y += pcie/ioctl.o
+wcn_bsp-y += pcie/mchn.o
+wcn_bsp-y += pcie/edma_util.o
+wcn_bsp-y += pcie/pcie_attach_bus.o
+wcn_bsp-y += pcie/pcie_pm.o
+endif
 
 #SDIO FILE
-wcn_bsp-$(CONFIG_SDIOHAL) += sdio/sdiohal_main.o
-wcn_bsp-$(CONFIG_SDIOHAL) += sdio/sdiohal_common.o
-wcn_bsp-$(CONFIG_SDIOHAL) += sdio/sdiohal_tx.o
-wcn_bsp-$(CONFIG_SDIOHAL) += sdio/sdiohal_rx.o
-wcn_bsp-$(CONFIG_SDIOHAL) += sdio/sdiohal_if.o
-#wcn_bsp-$(CONFIG_DEBUG_FS) += sdio/sdiohal_ctl.o
+wcn_bsp-y += sdio/sdiohal_main.o
+wcn_bsp-y += sdio/sdiohal_common.o
+wcn_bsp-y += sdio/sdiohal_tx.o
+wcn_bsp-y += sdio/sdiohal_rx.o
+wcn_bsp-y += sdio/sdiohal_if.o
+#wcn_bsp-$(DEBUG_FS) += sdio/sdiohal_ctl.o

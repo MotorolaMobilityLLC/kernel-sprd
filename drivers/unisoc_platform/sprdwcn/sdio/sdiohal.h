@@ -13,11 +13,10 @@
 #include <uapi/linux/sched/types.h>
 
 #include "bus_common.h"
+#include "sprd_wcn.h"
 
-#ifdef CONFIG_WCN_SLP
 #include "../sleep/sdio_int.h"
 #include "../sleep/slp_mgr.h"
-#endif
 
 #ifdef pr_fmt
 #undef pr_fmt
@@ -214,10 +213,8 @@ struct sdiohal_data_t {
 	atomic_t tx_wake_flag;
 	struct wakeup_source *rx_ws;
 	atomic_t rx_wake_flag;
-#ifdef CONFIG_WCN_SLP
 	atomic_t tx_wake_cp_count[SUBSYS_MAX];
 	atomic_t rx_wake_cp_count[SUBSYS_MAX];
-#endif
 	struct mutex xmit_lock;
 	struct mutex xmit_sdma;
 	spinlock_t tx_spinlock;
@@ -305,17 +302,10 @@ void sdiohal_callback_lock(struct mutex *mutex);
 void sdiohal_callback_unlock(struct mutex *mutex);
 
 /* for sleep */
-#ifdef CONFIG_WCN_SLP
 void sdiohal_cp_tx_sleep(enum slp_subsys subsys);
 void sdiohal_cp_tx_wakeup(enum slp_subsys subsys);
 void sdiohal_cp_rx_sleep(enum slp_subsys subsys);
 void sdiohal_cp_rx_wakeup(enum slp_subsys subsys);
-#else
-#define sdiohal_cp_tx_sleep(args...) do {} while (0)
-#define sdiohal_cp_tx_wakeup(args...) do {} while (0)
-#define sdiohal_cp_rx_sleep(args...) do {} while (0)
-#define sdiohal_cp_rx_wakeup(args...) do {} while (0)
-#endif
 
 void sdiohal_resume_check(void);
 void sdiohal_resume_wait(void);

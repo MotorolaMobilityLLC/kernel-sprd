@@ -47,6 +47,8 @@
 #include "../include/wcn_dbg.h"
 #include "wcn_txrx.h"
 
+#define SUFFIX "androidboot.slot_suffix="
+
 struct wcn_device_manage s_wcn_device;
 
 static u32 wcn_efuse_val[WCN_EFUSE_BLOCK_COUNT];
@@ -76,6 +78,7 @@ static void wcn_global_source_init(void)
 	WCN_DBG("%s finish!\n", __func__);
 }
 
+#if 0
 #ifdef CONFIG_PM_SLEEP
 static int wcn_resume(struct device *dev)
 {
@@ -99,6 +102,7 @@ static int wcn_suspend(struct device *dev)
 	return 0;
 }
 #endif /* CONFIG_PM_SLEEP */
+#endif
 
 #if WCN_INTEGRATE_PLATFORM_DEBUG
 static u32 s_wcn_debug_case;
@@ -153,13 +157,24 @@ static int wcn_codes_debug_thread(void *data)
 			break;
 
 		case WCN_PRINT_INFO:
-			WCN_INFO(
-				"cali[data=%p flag=%p]efuse=%p status=%p gnss=%p\n",
-				&s_wssm_phy_offset_p->wifi.calibration_data,
-				&s_wssm_phy_offset_p->wifi.calibration_flag,
-				&s_wssm_phy_offset_p->wifi.efuse[0],
-				&s_wssm_phy_offset_p->marlin.init_status,
-				&s_wssm_phy_offset_p->include_gnss);
+			if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
+				WCN_INFO(
+					"cali[data=%p flag=%p]efuse=%p status=%p gnss=%p\n",
+					&qogirl6_s_wssm_phy_offset_p->wifi.calibration_data,
+					&qogirl6_s_wssm_phy_offset_p->wifi.calibration_flag,
+					&qogirl6_s_wssm_phy_offset_p->wifi.efuse[0],
+					&qogirl6_s_wssm_phy_offset_p->marlin.init_status,
+					&qogirl6_s_wssm_phy_offset_p->include_gnss);
+			} else {
+				WCN_INFO(
+					"cali[data=%p flag=%p]efuse=%p status=%p gnss=%p\n",
+					&s_wssm_phy_offset_p->wifi.calibration_data,
+					&s_wssm_phy_offset_p->wifi.calibration_flag,
+					&s_wssm_phy_offset_p->wifi.efuse[0],
+					&s_wssm_phy_offset_p->marlin.init_status,
+					&s_wssm_phy_offset_p->include_gnss);
+
+			}
 			break;
 
 		case WCN_BRINGUP_DEBUG:
@@ -296,12 +311,13 @@ void wcn_cpu_bootup(struct wcn_device *wcn_dev)
 	wcn_config_ctrlreg(wcn_dev, wcn_dev->ctrl_probe_num, reg_nr);
 }
 
-static struct wcn_proc_data g_proc_data;
+#if 0
 static const struct of_device_id wcn_match_table[] = {
-	{ .compatible = "unisoc,integrate_marlin", .data = &g_proc_data},
-	{ .compatible = "unisoc,integrate_gnss", .data = &g_proc_data},
+	{ .compatible = "unisoc,integrate_marlin",},
+	{ .compatible = "unisoc,integrate_gnss",},
 	{ },
 };
+#endif
 
 static int wcn_efuse_cal_read(struct device_node *np, const char *cell_id,
 			      u32 *val)
@@ -344,8 +360,13 @@ static void marlin_write_efuse_data(void)
 			 tmp_value[iloop]);
 	}
 	/* copy efuse data to target ddr address */
-	phy_addr = s_wcn_device.btwf_device->base_addr +
+	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
+		phy_addr = s_wcn_device.btwf_device->base_addr +
+		   (phys_addr_t)&qogirl6_s_wssm_phy_offset_p->wifi.efuse[0];
+	} else {
+		phy_addr = s_wcn_device.btwf_device->base_addr +
 		   (phys_addr_t)&s_wssm_phy_offset_p->wifi.efuse[0];
+	}
 	wcn_write_data_to_phy_addr(phy_addr, &tmp_value,
 				   sizeof(tmp_value[0]) *
 				   WIFI_EFUSE_BLOCK_COUNT);
@@ -367,13 +388,23 @@ static void marlin_write_efuse_temperature(void)
 		goto out;
 	}
 	WCN_INFO("temperature efuse read 0x%x\n", wcn_efuse_val[3]);
-	phy_addr = s_wcn_device.btwf_device->base_addr +
+	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
+		phy_addr = s_wcn_device.btwf_device->base_addr +
+		  (phys_addr_t)&qogirl6_s_wssm_phy_offset_p->efuse_temper_val;
+	} else {
+		phy_addr = s_wcn_device.btwf_device->base_addr +
 		  (phys_addr_t)&s_wssm_phy_offset_p->efuse_temper_val;
+	}
 	wcn_write_data_to_phy_addr(phy_addr, &wcn_efuse_val[3],
 				   sizeof(wcn_efuse_val[3]));
 out:
-	phy_addr = s_wcn_device.btwf_device->base_addr +
+	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
+		phy_addr = s_wcn_device.btwf_device->base_addr +
+		   (phys_addr_t)&qogirl6_s_wssm_phy_offset_p->efuse_temper_magic;
+	} else {
+		phy_addr = s_wcn_device.btwf_device->base_addr +
 		   (phys_addr_t)&s_wssm_phy_offset_p->efuse_temper_magic;
+	}
 	wcn_write_data_to_phy_addr(phy_addr, &magic, sizeof(magic));
 }
 
@@ -459,22 +490,12 @@ static int wcn_parse_dt(struct platform_device *pdev,
 	int index, ret;
 	u32 i;
 	struct resource res;
-	const struct of_device_id *of_id =
-		of_match_node(wcn_match_table, np);
-	struct wcn_proc_data *pcproc_data;
 	struct wcn_device_manage *wcn_devm = &s_wcn_device;
 	struct device_node *cmdline_node;
 	u32 rc = 0;
 	const char *cmd_line;
 
 	WCN_INFO("%s start!\n", __func__);
-
-	if (of_id) {
-		pcproc_data = (struct wcn_proc_data *)of_id->data;
-	} else {
-		WCN_ERR("not find matched id!");
-		return -EINVAL;
-	}
 
 	if (!wcn_dev) {
 		WCN_ERR("wcn_dev NULL\n");
@@ -969,16 +990,11 @@ static int wcn_parse_dt(struct platform_device *pdev,
 		/* qogirl6 get apcp sync addr from  */
 		wcn_set_apcp_sync_addr(wcn_dev);
 	}
-	wcn_dev->start = pcproc_data->start;
-	wcn_dev->stop = pcproc_data->stop;
+	wcn_dev->start = wcn_proc_native_start;
+	wcn_dev->stop = wcn_proc_native_stop;
 
 	return 0;
 }
-
-static struct wcn_proc_data g_proc_data = {
-	.start = wcn_proc_native_start,
-	.stop  = wcn_proc_native_stop,
-};
 
 static int wcn_platform_open(struct inode *inode, struct file *filp)
 {
@@ -1173,7 +1189,7 @@ static void wcn_probe_power_wq(struct work_struct *work)
 	wcn_subdts_init();
 }
 
-static int wcn_probe(struct platform_device *pdev)
+int wcn_probe(struct platform_device *pdev)
 {
 	struct wcn_device *wcn_dev;
 	static int first = 1;
@@ -1271,7 +1287,7 @@ static int wcn_probe(struct platform_device *pdev)
 	return 0;
 }
 
-static int wcn_remove(struct platform_device *pdev)
+int wcn_remove(struct platform_device *pdev)
 {
 	struct wcn_device *wcn_dev = platform_get_drvdata(pdev);
 
@@ -1301,7 +1317,7 @@ static int wcn_remove(struct platform_device *pdev)
 	return 0;
 }
 
-static void wcn_shutdown(struct platform_device *pdev)
+void wcn_shutdown(struct platform_device *pdev)
 {
 	struct wcn_device *wcn_dev = platform_get_drvdata(pdev);
 
@@ -1327,6 +1343,7 @@ static void wcn_shutdown(struct platform_device *pdev)
 	}
 }
 
+#if 0
 static SIMPLE_DEV_PM_OPS(wcn_pm_ops, wcn_suspend, wcn_resume);
 static struct platform_driver wcn_driver = {
 	.driver = {
@@ -1355,3 +1372,4 @@ module_exit(wcn_exit);
 MODULE_LICENSE("GPL v2");
 MODULE_DESCRIPTION("Spreadtrum  WCN Integrate Platform Driver");
 MODULE_AUTHOR("YaoGuang Chen <yaoguang.chen@spreadtrum.com>");
+#endif

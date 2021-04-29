@@ -148,14 +148,14 @@ static struct sprdwcn_bus_ops sdiohal_bus_ops = {
 	.remove_card = sdio_remove_card,
 };
 
-void module_bus_init(void)
+void module_bus_sdio_init(void)
 {
 	module_ops_register(&sdiohal_bus_ops);
 }
-EXPORT_SYMBOL_GPL(module_bus_init);
+EXPORT_SYMBOL_GPL(module_bus_sdio_init);
 
-void module_bus_deinit(void)
+void module_bus_sdio_deinit(void)
 {
 	module_ops_unregister();
 }
-EXPORT_SYMBOL_GPL(module_bus_deinit);
+EXPORT_SYMBOL_GPL(module_bus_sdio_deinit);

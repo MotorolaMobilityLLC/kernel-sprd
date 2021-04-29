@@ -9,6 +9,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU General Public License for more details.
  */
+#include <misc/wcn_integrate_platform.h>
 #include "bufring.h"
 #include "wcn_glb.h"
 #include "wcn_glb_reg.h"
@@ -16,6 +17,24 @@
 #include "wcn_misc.h"
 #include "mdbg_type.h"
 #include "../include/wcn_dbg.h"
+
+/* SUB_NAME len not more than 15 bytes */
+#define UMW2631_WCN_DUMP_VERSION_SUB_NAME "SIPC_26xx"
+#define WCN_DUMP_VERSION_SUB_NAME "SIPC_23xx"
+
+/* CP2 iram start and end */
+#define WCN_DUMP_CP2_IRAM_START 1
+#define WCN_DUMP_CP2_IRAM_END 2
+/* AP regs start and end */
+#define WCN_DUMP_AP_REGS_START (WCN_DUMP_CP2_IRAM_END + 1)
+#define WCN_DUMP_AP_REGS_END 9
+/* CP2 regs start and end */
+#define WCN_DUMP_CP2_REGS_START (WCN_DUMP_AP_REGS_END + 1)
+
+#define WCN_DUMP_END_STRING "marlin_memdump_finish"
+#define WCN_CP2_STATUS_DUMP_REG	0x6a6b6c6d
+
+#define DUMP_PACKET_SIZE	(1024)
 
 /* units is ms, 2500ms */
 #define WCN_DUMP_TIMEOUT 2500
@@ -60,7 +79,6 @@ struct wcn_dump_head_info {
 	struct wcn_dump_section_info section[0];
 } __packed;
 
- #ifdef CONFIG_SC2342_I
 static struct wcn_dump_mem_reg s_wcn_dump_regs[] = {
 	/* share mem */
 	{1, 0, 0x300000},
@@ -91,10 +109,8 @@ static struct wcn_dump_mem_reg s_wcn_dump_regs[] = {
 	{0, 0x60700000, 0x400},    /* BT_CMD */
 	{0, 0x60740000, 0xa400}    /* BT */
 };
-#endif
 
-#ifdef CONFIG_UMW2631_I
-static struct wcn_dump_mem_reg s_wcn_dump_regs[] = {
+static struct wcn_dump_mem_reg s_wcn_dump_regs_l6[] = {
 	/* share mem */
 	{1, 0, 0x800000},
 	/* iram mem */
@@ -151,10 +167,24 @@ static struct wcn_dump_mem_reg s_wcn_dump_regs[] = {
 #endif
 	/* dump reg of merlion if merlion accessible:to be added */
 };
-#endif
+
+static struct wcn_dump_mem_reg *get_wcn_dump_mem_area(size_t *array_size)
+{
+	struct wcn_dump_mem_reg *reg_area = NULL;
+
+	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
+		reg_area = s_wcn_dump_regs_l6;
+		*array_size = ARRAY_SIZE(s_wcn_dump_regs_l6);
+	} else {
+		reg_area = s_wcn_dump_regs;
+		*array_size = ARRAY_SIZE(s_wcn_dump_regs);
+	}
+
+	return reg_area;
+}
 
 static struct mdbg_ring_t	*mdev_ring;
-static gnss_dump_callback gnss_dump_handle;
+gnss_dump_callback gnss_dump_handle;
 
 static int wcn_fill_dump_head_info(struct wcn_dump_mem_reg *mem_cfg, size_t cnt)
 {
@@ -172,8 +202,14 @@ static int wcn_fill_dump_head_info(struct wcn_dump_mem_reg *mem_cfg, size_t cnt)
 
 	strncpy(head->version, WCN_DUMP_VERSION_NAME,
 		strlen(WCN_DUMP_VERSION_NAME) + 1);
-	strncpy(head->sub_version, WCN_DUMP_VERSION_SUB_NAME,
-		strlen(WCN_DUMP_VERSION_SUB_NAME) + 1);
+	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
+		strncpy(head->sub_version, UMW2631_WCN_DUMP_VERSION_SUB_NAME,
+			strlen(UMW2631_WCN_DUMP_VERSION_SUB_NAME) + 1);
+	} else {
+		strncpy(head->sub_version, WCN_DUMP_VERSION_SUB_NAME,
+			strlen(WCN_DUMP_VERSION_SUB_NAME) + 1);
+	}
+
 	head->n_sec = cpu_to_le32(cnt);
 	len = head_len;
 	for (i = 0; i < cnt; i++) {
@@ -282,8 +318,13 @@ static int mdbg_dump_cp_register_data(u32 addr, u32 len)
 static void mdbg_dump_ap_register(struct wcn_dump_mem_reg *mem)
 {
 	u32 i;
+	u32 wcn_dump_ap_regs_end;
 
-	for (i = WCN_DUMP_AP_REGS_START; i <= WCN_DUMP_AP_REGS_END; i++) {
+	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6)
+		wcn_dump_ap_regs_end = UMW2631_WCN_DUMP_AP_REGS_END;
+	else
+		wcn_dump_ap_regs_end = WCN_DUMP_AP_REGS_END;
+	for (i = WCN_DUMP_AP_REGS_START; i <= wcn_dump_ap_regs_end; i++) {
 		mdbg_dump_ap_register_data(mem[i].addr, mem[i].len);
 		WCN_INFO("dump ap reg section[%d] ok!\n", i);
 	}
@@ -293,8 +334,15 @@ static void mdbg_dump_cp_register(struct wcn_dump_mem_reg *mem)
 {
 	u32 i;
 	int count;
+	size_t array_size;
+	u32 wcn_dump_cp2_regs_start;
 
-	for (i = WCN_DUMP_CP2_REGS_START; i <= WCN_DUMP_CP2_REGS_END; i++) {
+	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6)
+		wcn_dump_cp2_regs_start = UMW2631_WCN_DUMP_CP2_REGS_START;
+	else
+		wcn_dump_cp2_regs_start = WCN_DUMP_CP2_REGS_START;
+	get_wcn_dump_mem_area(&array_size);
+	for (i = wcn_dump_cp2_regs_start; i <= array_size - 1; i++) {
 		count = mdbg_dump_cp_register_data(mem[i].addr, mem[i].len);
 		WCN_INFO("dump cp reg section[%d] %d ok!\n", i, count);
 	}
@@ -373,12 +421,15 @@ static int btwf_dump_mem(void)
 {
 	u32 cp2_status = 0;
 	phys_addr_t sleep_addr;
+	size_t dump_array_size;
+	struct wcn_dump_mem_reg *p_wcn_dump_regs = NULL;
 
 	if (wcn_get_btwf_power_status() == WCN_POWER_STATUS_OFF) {
 		WCN_INFO("wcn power status off:can not dump btwf!\n");
 		return -1;
 	}
 
+	p_wcn_dump_regs = get_wcn_dump_mem_area(&dump_array_size);
 	mdbg_send_atcmd("at+sleep_switch=0\r",
 			strlen("at+sleep_switch=0\r"),
 			WCN_ATCMD_KERNEL);
@@ -390,14 +441,13 @@ static int btwf_dump_mem(void)
 	msleep(100);
 	mdbg_ring_reset(mdev_ring);
 	mdbg_atcmd_clean();
-	if (wcn_fill_dump_head_info(s_wcn_dump_regs,
-				    ARRAY_SIZE(s_wcn_dump_regs)))
+	if (wcn_fill_dump_head_info(p_wcn_dump_regs, dump_array_size))
 		return -1;
-	mdbg_dump_share_memory(s_wcn_dump_regs);
-	mdbg_dump_iram(s_wcn_dump_regs);
-	mdbg_dump_ap_register(s_wcn_dump_regs);
+	mdbg_dump_share_memory(p_wcn_dump_regs);
+	mdbg_dump_iram(p_wcn_dump_regs);
+	mdbg_dump_ap_register(p_wcn_dump_regs);
 	if (cp2_status == WCN_CP2_STATUS_DUMP_REG) {
-		mdbg_dump_cp_register(s_wcn_dump_regs);
+		mdbg_dump_cp_register(p_wcn_dump_regs);
 		WCN_INFO("dump register ok!\n");
 	}
 
@@ -406,7 +456,7 @@ static int btwf_dump_mem(void)
 	return 0;
 }
 
-void mdbg_dump_mem(void)
+void mdbg_dump_mem_integ(void)
 {
 	/* dump gnss */
 	if (gnss_dump_handle) {
@@ -418,7 +468,7 @@ void mdbg_dump_mem(void)
 	btwf_dump_mem();
 }
 
-int dump_arm_reg(void)
+int dump_arm_reg_integ(void)
 {
 	mdbg_hold_cpu();
 

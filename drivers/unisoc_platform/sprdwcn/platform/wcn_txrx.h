@@ -79,16 +79,16 @@ enum smp_diag_subtype_t {
 
 #define WCNBUS_TX 1
 #define WCNBUS_RX 0
-#ifdef CONFIG_WCN_SIPC
-enum wcnbus_channel_t {
-	WCN_AT_TX = 0,
-	WCN_LOOPCHECK_RX = 2,
-	WCN_AT_RX = 1,
-	WCN_ASSERT_RX = 3,
-	WCN_RING_RX = 4,
-	WCN_RSV_RX,
+
+enum wcn_sipcbus_channel_t {
+	WCN_SIPC_AT_TX = 0,
+	WCN_SIPC_LOOPCHECK_RX = 2,
+	WCN_SIPC_AT_RX = 1,
+	WCN_SIPC_ASSERT_RX = 3,
+	WCN_SIPC_RING_RX = 4,
+	WCN_SIPC_RSV_RX,
 };
-#else
+
 enum wcnbus_channel_t {
 	WCN_AT_TX = 0,
 	WCN_LOOPCHECK_RX = 12,
@@ -99,7 +99,6 @@ enum wcnbus_channel_t {
 	WCN_ADSP_RING_RX = 19,
 	WCN_RSV_RX,
 };
-#endif
 
 enum mdbg_channel_ops_t {
 	MDBG_AT_TX_OPS = 0,
@@ -118,7 +117,7 @@ enum {
 	MDBG_SUBTYPE_ASSERT,
 };
 
-extern struct mchn_ops_t mdbg_proc_ops[MDBG_ASSERT_RX_OPS + 1];
+struct mchn_ops_t *get_mdbg_proc_op(void);
 
 void mdbg_pt_ring_reg(void);
 void mdbg_pt_ring_unreg(void);

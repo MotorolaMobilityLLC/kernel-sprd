@@ -1058,18 +1058,18 @@ static struct sprdwcn_bus_ops sipc_bus_ops = {
 	.get_rx_total_cnt = wcn_sipc_get_rxcnt,
 };
 
-void module_bus_init(void)
+void module_bus_sipc_init(void)
 {
 	wcn_sipc_module_init();
 	module_ops_register(&sipc_bus_ops);
 	WCN_INFO("sipc bus init success\n");
 }
-EXPORT_SYMBOL(module_bus_init);
+EXPORT_SYMBOL(module_bus_sipc_init);
 
-void module_bus_deinit(void)
+void module_bus_sipc_deinit(void)
 {
 	module_ops_unregister();
 	wcn_sipc_module_deinit();
 	WCN_INFO("sipc bus deinit success\n");
 }
-EXPORT_SYMBOL(module_bus_deinit);
+EXPORT_SYMBOL(module_bus_sipc_deinit);

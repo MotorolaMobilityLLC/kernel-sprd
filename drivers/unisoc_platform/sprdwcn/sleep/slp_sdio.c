@@ -21,7 +21,7 @@ int slp_allow_sleep(void)
 	union CP_SLP_CTL_REG reg_slp_ctl = {0};
 
 	reg_slp_ctl.bit.cp_slp_ctl = 1;
-	sprdwcn_bus_aon_writeb(REG_CP_SLP_CTL, reg_slp_ctl.reg);
+	sprdwcn_bus_aon_writeb(get_cp_slp_ctl_reg(), reg_slp_ctl.reg);
 
 	sdio_ap_int_cp0(ALLOW_CP_SLP);
 	/* make SLP_CTL high_level keep 2 cycle of 32khz */

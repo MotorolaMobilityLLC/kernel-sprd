@@ -10,6 +10,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
+#include <misc/wcn_integrate_platform.h>
 #include "wcn_glb.h"
 #include "wcn_glb_reg.h"
 #include "wcn_procfs.h"
@@ -26,9 +27,7 @@ static int wcn_open_module;
 static int wcn_module_state_change;
 /* format: marlin2-built-in_id0_id1 */
 static char wcn_chip_name[40];
-char functionmask[8];
-marlin_reset_callback marlin_reset_func;
-void *marlin_callback_para;
+char integ_functionmask[8];
 struct platform_chip_id g_platform_chip_id;
 static u32 g_platform_chip_type;
 static const struct wcn_chip_type wcn_chip_type[] = {
@@ -38,6 +37,9 @@ static const struct wcn_chip_type wcn_chip_type[] = {
 	/* WCN_PIKE2_CHIP_AA and WCN_PIKE2_CHIP_AB is the same */
 	{0x96330000, WCN_PIKE2_CHIP},
 };
+
+struct qogirl6_wcn_special_share_mem *qogirl6_s_wssm_phy_offset_p =
+	(struct qogirl6_wcn_special_share_mem *)QOGIRL6_WCN_SPECIAL_SHARME_MEM_ADDR;
 
 struct wcn_special_share_mem *s_wssm_phy_offset_p =
 	(struct wcn_special_share_mem *)WCN_SPECIAL_SHARME_MEM_ADDR;
@@ -222,149 +224,6 @@ enum wcn_aon_chip_id wcn_get_aon_chip_id(void)
 }
 EXPORT_SYMBOL_GPL(wcn_get_aon_chip_id);
 
-#define WCN_VMAP_RETRY_CNT (20)
-static void *wcn_mem_ram_vmap(phys_addr_t start, size_t size,
-			      int noncached, unsigned int *count)
-{
-	struct page **pages;
-	phys_addr_t page_start;
-	unsigned int page_count;
-	pgprot_t prot;
-	unsigned int i;
-	void *vaddr;
-	phys_addr_t addr;
-	int retry = 0;
-
-	page_start = start - offset_in_page(start);
-	page_count = DIV_ROUND_UP(size + offset_in_page(start), PAGE_SIZE);
-	*count = page_count;
-	if (noncached)
-		prot = pgprot_noncached(PAGE_KERNEL);
-	else
-		prot = PAGE_KERNEL;
-
-retry1:
-	pages = kmalloc_array(page_count, sizeof(struct page *), GFP_KERNEL);
-	if (!pages) {
-		if (retry++ < WCN_VMAP_RETRY_CNT) {
-			usleep_range(8000, 10000);
-			goto retry1;
-		} else {
-			WCN_ERR("malloc err\n");
-			return NULL;
-		}
-	}
-
-	for (i = 0; i < page_count; i++) {
-		addr = page_start + i * PAGE_SIZE;
-		pages[i] = pfn_to_page(addr >> PAGE_SHIFT);
-	}
-retry2:
-	vaddr = vm_map_ram(pages, page_count, -1, prot);
-	if (!vaddr) {
-		if (retry++ < WCN_VMAP_RETRY_CNT) {
-			usleep_range(8000, 10000);
-			goto retry2;
-		} else {
-			WCN_ERR("vmap err\n");
-			goto out;
-		}
-	} else {
-		vaddr += offset_in_page(start);
-	}
-out:
-	kfree(pages);
-
-	return vaddr;
-}
-
-void wcn_mem_ram_unmap(const void *mem, unsigned int count)
-{
-	vm_unmap_ram(mem - offset_in_page(mem), count);
-}
-
-void *wcn_mem_ram_vmap_nocache(phys_addr_t start, size_t size,
-			       unsigned int *count)
-{
-	return wcn_mem_ram_vmap(start, size, 1, count);
-}
-
-#ifdef CONFIG_ARM64
-static inline void wcn_unalign_memcpy(void *to, const void *from, u32 len)
-{
-	if (((unsigned long)to & 7) == ((unsigned long)from & 7)) {
-		while (((unsigned long)from & 7) && len) {
-			*(char *)(to++) = *(char *)(from++);
-			len--;
-		}
-		memcpy(to, from, len);
-	} else if (((unsigned long)to & 3) == ((unsigned long)from & 3)) {
-		while (((unsigned long)from & 3) && len) {
-			*(char *)(to++) = *(char *)(from++);
-			len--;
-		}
-		while (len >= 4) {
-			*(u32 *)(to) = *(u32 *)(from);
-			to += 4;
-			from += 4;
-			len -= 4;
-		}
-		while (len) {
-			*(char *)(to++) = *(char *)(from++);
-			len--;
-		}
-	} else {
-		while (len) {
-			*(char *)(to++) = *(char *)(from++);
-			len--;
-		}
-	}
-}
-#else
-static inline void wcn_unalign_memcpy(void *to, const void *from, u32 len)
-{
-	memcpy(to, from, len);
-}
-#endif
-
-int wcn_write_data_to_phy_addr(phys_addr_t phy_addr,
-			       void *src_data, u32 size)
-{
-	char *virt_addr, *src;
-	unsigned int cnt;
-
-	src = (char *)src_data;
-	virt_addr = (char *)wcn_mem_ram_vmap_nocache(phy_addr, size, &cnt);
-	if (virt_addr) {
-		wcn_unalign_memcpy((void *)virt_addr, (void *)src, size);
-		wcn_mem_ram_unmap(virt_addr, cnt);
-		return 0;
-	}
-
-	WCN_ERR("wcn_mem_ram_vmap_nocache fail\n");
-	return -1;
-}
-EXPORT_SYMBOL_GPL(wcn_write_data_to_phy_addr);
-
-int wcn_read_data_from_phy_addr(phys_addr_t phy_addr,
-				void *tar_data, u32 size)
-{
-	char *virt_addr, *tar;
-	unsigned int cnt;
-
-	tar = (char *)tar_data;
-	virt_addr = wcn_mem_ram_vmap_nocache(phy_addr, size, &cnt);
-	if (virt_addr) {
-		wcn_unalign_memcpy((void *)tar, (void *)virt_addr, size);
-		wcn_mem_ram_unmap(virt_addr, cnt);
-		return 0;
-	}
-
-	WCN_ERR("wcn_mem_ram_vmap_nocache fail\n");
-	return -1;
-}
-EXPORT_SYMBOL_GPL(wcn_read_data_from_phy_addr);
-
 u32 wcn_platform_chip_id(void)
 {
 	return g_platform_chip_id.aon_chip_id;
@@ -381,8 +240,13 @@ u32 wcn_get_cp2_comm_rx_count(void)
 	u32 rx_count = 0;
 	phys_addr_t phy_addr;
 
-	phy_addr = s_wcn_device.btwf_device->base_addr +
-		   (phys_addr_t)&s_wssm_phy_offset_p->marlin.loopcheck_cnt;
+	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
+		phy_addr = s_wcn_device.btwf_device->base_addr +
+			(phys_addr_t)&qogirl6_s_wssm_phy_offset_p->marlin.loopcheck_cnt;
+	} else {
+		phy_addr = s_wcn_device.btwf_device->base_addr +
+			(phys_addr_t)&s_wssm_phy_offset_p->marlin.loopcheck_cnt;
+	}
 	wcn_read_data_from_phy_addr(phy_addr,
 				    &rx_count, sizeof(u32));
 	WCN_INFO("cp2 comm rx count :%d\n", rx_count);
@@ -402,7 +266,7 @@ int wcn_get_btwf_power_status(void)
 	return s_wcn_device.btwf_device->power_state;
 }
 
-int marlin_get_power(void)
+int integ_marlin_get_power(void)
 {
 	if (s_wcn_device.gnss_device &&
 	    s_wcn_device.gnss_device->power_state)
@@ -414,7 +278,6 @@ int marlin_get_power(void)
 
 	return 0;
 }
-EXPORT_SYMBOL_GPL(marlin_get_power);
 
 /* for qogirl6 */
 phys_addr_t wcn_get_apcp_sync_addr(struct wcn_device *wcn_dev)
@@ -426,24 +289,39 @@ phys_addr_t wcn_get_apcp_sync_addr(struct wcn_device *wcn_dev)
 
 void wcn_set_apcp_sync_addr(struct wcn_device *wcn_dev)
 {
-	if (strcmp(wcn_dev->name, WCN_MARLIN_DEV_NAME) == 0)
-		s_wssm_phy_offset_p =
-		(struct wcn_special_share_mem *)wcn_dev->apcp_sync_addr;
-	else
+	if (strcmp(wcn_dev->name, WCN_MARLIN_DEV_NAME) == 0) {
+		if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
+			qogirl6_s_wssm_phy_offset_p =
+			(struct qogirl6_wcn_special_share_mem *)wcn_dev->apcp_sync_addr;
+		} else {
+			s_wssm_phy_offset_p =
+			(struct wcn_special_share_mem *)wcn_dev->apcp_sync_addr;
+		}
+	} else
 		s_wcngnss_sync_addr.sync_base_addr = wcn_dev->apcp_sync_addr;
 	WCN_INFO("wcn_dev->apcp_sync_addr:%lu\n", wcn_dev->apcp_sync_addr);
 }
 
 phys_addr_t wcn_get_btwf_init_status_addr(void)
 {
-	return s_wcn_device.btwf_device->base_addr +
-	       (phys_addr_t)&s_wssm_phy_offset_p->marlin.init_status;
+	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
+		return s_wcn_device.btwf_device->base_addr +
+			   (phys_addr_t)&qogirl6_s_wssm_phy_offset_p->marlin.init_status;
+	} else {
+		return s_wcn_device.btwf_device->base_addr +
+			   (phys_addr_t)&s_wssm_phy_offset_p->marlin.init_status;
+	}
 }
 
 phys_addr_t wcn_get_btwf_sleep_addr(void)
 {
-	return s_wcn_device.btwf_device->base_addr +
-	       (phys_addr_t)&s_wssm_phy_offset_p->cp2_sleep_status;
+	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
+		return s_wcn_device.btwf_device->base_addr +
+			   (phys_addr_t)&qogirl6_s_wssm_phy_offset_p->cp2_sleep_status;
+	} else {
+		return s_wcn_device.btwf_device->base_addr +
+			   (phys_addr_t)&s_wssm_phy_offset_p->cp2_sleep_status;
+	}
 }
 
 struct regmap *wcn_get_btwf_regmap(u32 regmap_type)
@@ -473,17 +351,15 @@ void wcn_set_download_status(bool status)
 	s_wcn_device.btwf_device->download_status = status;
 }
 
-enum wcn_clock_type wcn_get_xtal_26m_clk_type(void)
+enum wcn_clock_type integ_wcn_get_xtal_26m_clk_type(void)
 {
 	return s_wcn_device.clk_xtal_26m.type;
 }
-EXPORT_SYMBOL_GPL(wcn_get_xtal_26m_clk_type);
 
-enum wcn_clock_mode wcn_get_xtal_26m_clk_mode(void)
+enum wcn_clock_mode integ_wcn_get_xtal_26m_clk_mode(void)
 {
 	return s_wcn_device.clk_xtal_26m.mode;
 }
-EXPORT_SYMBOL_GPL(wcn_get_xtal_26m_clk_mode);
 
 u32 gnss_get_boot_status(void)
 {
@@ -495,40 +371,21 @@ void gnss_set_boot_status(u32 status)
 	s_wcn_device.gnss_device->boot_cp_status = status;
 }
 
-int wcn_get_module_status_changed(void)
+int integ_wcn_get_module_status_changed(void)
 {
 	return wcn_module_state_change;
 }
-EXPORT_SYMBOL_GPL(wcn_get_module_status_changed);
 
-void wcn_set_module_status_changed(bool status)
+void integ_wcn_set_module_status_changed(bool status)
 {
 	wcn_module_state_change = status;
 }
 
-int marlin_get_module_status(void)
+int integ_marlin_get_module_status(void)
 {
 	return wcn_open_module;
 }
-EXPORT_SYMBOL_GPL(marlin_get_module_status);
-
-int marlin_reset_register_notify(void *callback_func, void *para)
-{
-	marlin_reset_func = (marlin_reset_callback)callback_func;
-	marlin_callback_para = para;
-
-	return 0;
-}
-EXPORT_SYMBOL_GPL(marlin_reset_register_notify);
-
-int marlin_reset_unregister_notify(void)
-{
-	marlin_reset_func = NULL;
-	marlin_callback_para = NULL;
-
-	return 0;
-}
-EXPORT_SYMBOL_GPL(marlin_reset_unregister_notify);
+EXPORT_SYMBOL_GPL(integ_marlin_get_module_status);
 
 void wcn_set_module_state(bool status)
 {
@@ -616,8 +473,13 @@ int wcn_send_force_sleep_cmd(struct wcn_device *wcn_dev)
 	u32 val = 0;
 	phys_addr_t phy_addr;
 
-	phy_addr = wcn_dev->base_addr +
-		   (phys_addr_t)&s_wssm_phy_offset_p->sleep_flag_addr;
+	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
+		phy_addr = wcn_dev->base_addr +
+			   (phys_addr_t)&qogirl6_s_wssm_phy_offset_p->sleep_flag_addr;
+	} else {
+		phy_addr = wcn_dev->base_addr +
+			   (phys_addr_t)&s_wssm_phy_offset_p->sleep_flag_addr;
+	}
 	wcn_read_data_from_phy_addr(phy_addr, &val, sizeof(val));
 	if  (val == MARLIN_USE_FORCE_SHUTDOWN) {
 		mdbg_send("at+sleep_switch=2\r",
@@ -641,8 +503,13 @@ u32 wcn_get_sleep_status(struct wcn_device *wcn_dev, int force_sleep)
 	phys_addr_t phy_addr;
 
 	if (wcn_dev_is_marlin(wcn_dev) && force_sleep) {
-		phy_addr = wcn_dev->base_addr +
-			   (phys_addr_t)&s_wssm_phy_offset_p->cp2_sleep_status;
+		if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
+			phy_addr = wcn_dev->base_addr +
+				   (phys_addr_t)&qogirl6_s_wssm_phy_offset_p->cp2_sleep_status;
+		} else {
+			phy_addr = wcn_dev->base_addr +
+				   (phys_addr_t)&s_wssm_phy_offset_p->cp2_sleep_status;
+		}
 		wcn_read_data_from_phy_addr(phy_addr, &val, sizeof(val));
 		WCN_INFO("foce shut down val:0x%x\n", val);
 		if (val == MARLIN_FORCE_SHUTDOWN_OK) {
@@ -1173,7 +1040,7 @@ u32 wcn_parse_platform_chip_id(struct wcn_device *wcn_dev)
 	return 0;
 }
 
-const char *wcn_get_chip_name(void)
+const char *integ_wcn_get_chip_name(void)
 {
 	snprintf(wcn_chip_name, sizeof(wcn_chip_name),
 		 "marlin2-built-in_0x%x_0x%x",
@@ -1182,7 +1049,6 @@ const char *wcn_get_chip_name(void)
 
 	return wcn_chip_name;
 }
-EXPORT_SYMBOL_GPL(wcn_get_chip_name);
 
 /* soft reset btwf without cache */
 static void wcn_soft_reset_release_btwf_cpu(u32 type)

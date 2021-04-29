@@ -303,12 +303,14 @@ void sdiohal_spinlock_init(void)
 	spin_lock_init(&p_data->rx_spinlock);
 }
 
-/* for sleep */
-#ifdef CONFIG_WCN_SLP
+/* for sleep, WCN_SLP */
 void sdiohal_cp_tx_sleep(enum slp_subsys subsys)
 {
 	struct sdiohal_data_t *p_data = sdiohal_get_data();
+	struct wcn_match_data *g_match_config = get_wcn_match_config();
 
+	if (g_match_config && !g_match_config->unisoc_wcn_slp)
+		return;
 	sdiohal_debug("%s subsys:%d count:%d\n",
 		      __func__, subsys,
 		      atomic_read(&p_data->tx_wake_cp_count[subsys]));
@@ -323,7 +325,10 @@ void sdiohal_cp_tx_sleep(enum slp_subsys subsys)
 void sdiohal_cp_tx_wakeup(enum slp_subsys subsys)
 {
 	struct sdiohal_data_t *p_data = sdiohal_get_data();
+	struct wcn_match_data *g_match_config = get_wcn_match_config();
 
+	if (g_match_config && !g_match_config->unisoc_wcn_slp)
+		return;
 	sdiohal_debug("%s subsys:%d count:%d\n",
 		      __func__, subsys,
 		      atomic_read(&p_data->tx_wake_cp_count[subsys]));
@@ -336,7 +341,10 @@ void sdiohal_cp_tx_wakeup(enum slp_subsys subsys)
 void sdiohal_cp_rx_sleep(enum slp_subsys subsys)
 {
 	struct sdiohal_data_t *p_data = sdiohal_get_data();
+	struct wcn_match_data *g_match_config = get_wcn_match_config();
 
+	if (g_match_config && !g_match_config->unisoc_wcn_slp)
+		return;
 	sdiohal_debug("%s subsys:%d count:%d\n",
 		      __func__, subsys,
 		      atomic_read(&p_data->rx_wake_cp_count[subsys]));
@@ -351,7 +359,10 @@ void sdiohal_cp_rx_sleep(enum slp_subsys subsys)
 void sdiohal_cp_rx_wakeup(enum slp_subsys subsys)
 {
 	struct sdiohal_data_t *p_data = sdiohal_get_data();
+	struct wcn_match_data *g_match_config = get_wcn_match_config();
 
+	if (g_match_config && !g_match_config->unisoc_wcn_slp)
+		return;
 	sdiohal_debug("%s subsys:%d count:%d\n",
 		      __func__, subsys,
 		      atomic_read(&p_data->rx_wake_cp_count[subsys]));
@@ -360,7 +371,6 @@ void sdiohal_cp_rx_wakeup(enum slp_subsys subsys)
 	slp_mgr_drv_sleep(subsys, false);
 	slp_mgr_wakeup(subsys);
 }
-#endif
 
 void sdiohal_resume_check(void)
 {

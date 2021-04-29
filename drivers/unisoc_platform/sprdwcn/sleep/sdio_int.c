@@ -271,7 +271,7 @@ EXPORT_SYMBOL(sdio_pub_int_poweron);
 
 int sdio_pub_int_init(int irq)
 {
-	sdio_int.cp_slp_ctl = REG_CP_SLP_CTL;
+	sdio_int.cp_slp_ctl = get_cp_slp_ctl_reg();
 	sdio_int.ap_int_cp0 = REG_AP_INT_CP0;
 	sdio_int.pub_int_en0 = REG_PUB_INT_EN0;
 	sdio_int.pub_int_clr0 = REG_PUB_INT_CLR0;

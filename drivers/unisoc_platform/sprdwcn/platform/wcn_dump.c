@@ -14,19 +14,17 @@
 #include <misc/wcn_bus.h>
 
 #include "bufring.h"
-#ifdef CONFIG_WCN_PCIE
 #include "edma_engine.h"
-#endif
 //#include "rdc_debug.h"
 #include "wcn_txrx.h"
 #include "wcn_log.h"
-#ifdef CONFIG_WCN_SWD
 #include "wcn_swd_dap.h"
-#endif
 
 #include "../include/wcn_glb_reg.h"
 #include "mdbg_type.h"
 #include "../include/wcn_dbg.h"
+
+#define DUMP_PACKET_SIZE		(32 * 1024)
 
 static int smp_calc_chsum(unsigned short *buf, unsigned int size)
 {
@@ -237,9 +235,9 @@ struct wcn_dump_mem_reg {
 /* used for HEAD, so all dump mem in this array.
  * if new member added, please modify the macor XXX_START XXX_end above.
  */
-static struct wcn_dump_mem_reg s_wcn_dump_regs[] = {
+static struct wcn_dump_mem_reg m3_s_wcn_dump_regs_pcie[] = {
 	/* IRAM + DRAM */
-	{1, 0x100000, FIRMWARE_MAX_SIZE},
+	{1, 0x100000, M3_FIRMWARE_MAX_SIZE},
 	/* top */
 	{1, 0x40880000, 0x54}, /* AON_AHB */
 	{1, 0x4083C000, 0x354}, /* AON_APB */
@@ -247,21 +245,18 @@ static struct wcn_dump_mem_reg s_wcn_dump_regs[] = {
 	{1, 0x40088000, 0x28c}, /* BTWF_APB */
 	{1, 0x40844200, 0x144}, /* AON_CLK */
 	{1, 0x40844000, 0x48}, /* PRE_DIV_CLK */
-#ifdef CONFIG_WCN_PCIE
+
 	{1, 0x40160000, 0x3c}, /* edma global regs */
 	{1, 0x40161000, 0x480}, /* edma chn regs(0~17) */
 	{1, 0x40180000, 0x17c}, /* pcie config */
 	{1, 0x40180720, 0x30}, /* pcie status */
 	{1, 0x40180e50, 0x30}, /* pcie Sub system */
-#else
-	/* SDIO regs */
-	{1, 0x40140000, 0x10000}, /* SDIO regs */
-#endif
+
 	/* WIFI regs */
-	{1, 0x400f0000, WIFI_AON_MAC_SIZE}, /* WIFI_AON_MAC */
+	{1, 0x400f0000, M3_WIFI_AON_MAC_SIZE}, /* WIFI_AON_MAC */
 	{1, 0x400f1000, 0xD100}, /* WIFI_RTN_PD_MAC */
-	{1, 0x40300000, WIFI_RAM_SIZE}, /* WIFI_352K/298K_RAM */
-	{1, 0x400a0000, WIFI_GLB_REG_SIZE}, /* Wifi_glb_reg */
+	{1, 0x40300000, M3_WIFI_RAM_SIZE}, /* WIFI_352K/298K_RAM */
+	{1, 0x400a0000, M3_WIFI_GLB_REG_SIZE}, /* Wifi_glb_reg */
 	{1, 0x400b0000, 0x388}, /* Wifi_phy_top_reg */
 	{1, 0x400b1000, 0x154}, /* Wifi_phy_tx11a_reg */
 	{1, 0x400b2000, 0xa8c}, /* Wifi_phy_rx11a_reg */
@@ -271,11 +266,11 @@ static struct wcn_dump_mem_reg s_wcn_dump_regs[] = {
 	/* FM regs */
 	{1, 0x40098000, 0xabc}, /* fm + rds */
 	/* Bluetooth (HW DEC and BB) Buffer regs */
-	{1, 0x40240000, BT_ACC_SIZE}, /* BT_ACC */
+	{1, 0x40240000, M3_BT_ACC_SIZE}, /* BT_ACC */
 	{1, 0x40246000, 0x738}, /* BT_JAL */
 	{1, 0x40248000, 0xA0},  /* BT_HAB */
 	{1, 0x4024A000, 0x21C},  /* BT_LEJAL */
-	{1, 0x4024F000, BT_MODEM_SIZE},  /* BT_MODEM */
+	{1, 0x4024F000, M3_BT_MODEM_SIZE},  /* BT_MODEM */
 	{1, 0x40200000, 0x200}, /* BT_CMD_BUF */
 	{1, 0x40204000, 0x200}, /* BT_EVENT_BUF */
 	{1, 0x40208000, 0x12A4},  /* BT_LMP_TX_BUF */
@@ -287,6 +282,116 @@ static struct wcn_dump_mem_reg s_wcn_dump_regs[] = {
 	{1, 0x40241000, 0x400},  /* BT_BB_TX_BUF */
 	{1, 0x40242000, 0x400}   /* BT_BB_RX_BUF */
 };
+
+static struct wcn_dump_mem_reg m3_s_wcn_dump_regs[] = {
+	/* IRAM + DRAM */
+	{1, 0x100000, M3_FIRMWARE_MAX_SIZE},
+	/* top */
+	{1, 0x40880000, 0x54}, /* AON_AHB */
+	{1, 0x4083C000, 0x354}, /* AON_APB */
+	{1, 0x40130000, 0x400}, /* BTWF_AHB */
+	{1, 0x40088000, 0x28c}, /* BTWF_APB */
+	{1, 0x40844200, 0x144}, /* AON_CLK */
+	{1, 0x40844000, 0x48}, /* PRE_DIV_CLK */
+
+	/* SDIO regs */
+	{1, 0x40140000, 0x10000}, /* SDIO regs */
+
+	/* WIFI regs */
+	{1, 0x400f0000, M3_WIFI_AON_MAC_SIZE}, /* WIFI_AON_MAC */
+	{1, 0x400f1000, 0xD100}, /* WIFI_RTN_PD_MAC */
+	{1, 0x40300000, M3_WIFI_RAM_SIZE}, /* WIFI_352K/298K_RAM */
+	{1, 0x400a0000, M3_WIFI_GLB_REG_SIZE}, /* Wifi_glb_reg */
+	{1, 0x400b0000, 0x388}, /* Wifi_phy_top_reg */
+	{1, 0x400b1000, 0x154}, /* Wifi_phy_tx11a_reg */
+	{1, 0x400b2000, 0xa8c}, /* Wifi_phy_rx11a_reg */
+	{1, 0x400b3000, 0xb0}, /* Wifi_phy_11b_reg */
+	{1, 0x400b4000, 0xa70}, /* Wifi_rfif_reg */
+	{1, 0x400b7000, 0x618}, /* Wifi_dfe_reg */
+	/* FM regs */
+	{1, 0x40098000, 0xabc}, /* fm + rds */
+	/* Bluetooth (HW DEC and BB) Buffer regs */
+	{1, 0x40240000, M3_BT_ACC_SIZE}, /* BT_ACC */
+	{1, 0x40246000, 0x738}, /* BT_JAL */
+	{1, 0x40248000, 0xA0},  /* BT_HAB */
+	{1, 0x4024A000, 0x21C},  /* BT_LEJAL */
+	{1, 0x4024F000, M3_BT_MODEM_SIZE},  /* BT_MODEM */
+	{1, 0x40200000, 0x200}, /* BT_CMD_BUF */
+	{1, 0x40204000, 0x200}, /* BT_EVENT_BUF */
+	{1, 0x40208000, 0x12A4},  /* BT_LMP_TX_BUF */
+	{1, 0x40200C00, 0xB744},  /* BT_LMP_RX_BUF */
+	{1, 0x40210000, 0x3000},  /* BT_ACL_TX_BUF */
+	{1, 0x40214000, 0x3000},  /* BT_ACL_RX_BUF */
+	{1, 0x40218000, 0x2D0},  /* BT_SCO_TX_BUF */
+	{1, 0x4021C000, 0x5C0},  /* BT_SCO_RX_BUF */
+	{1, 0x40241000, 0x400},  /* BT_BB_TX_BUF */
+	{1, 0x40242000, 0x400}   /* BT_BB_RX_BUF */
+};
+
+static struct wcn_dump_mem_reg m3l_s_wcn_dump_regs[] = {
+	/* IRAM + DRAM */
+	{1, 0x100000, M3L_FIRMWARE_MAX_SIZE},
+	/* top */
+	{1, 0x40880000, 0x54}, /* AON_AHB */
+	{1, 0x4083C000, 0x354}, /* AON_APB */
+	{1, 0x40130000, 0x400}, /* BTWF_AHB */
+	{1, 0x40088000, 0x28c}, /* BTWF_APB */
+	{1, 0x40844200, 0x144}, /* AON_CLK */
+	{1, 0x40844000, 0x48}, /* PRE_DIV_CLK */
+
+	/* SDIO regs */
+	{1, 0x40140000, 0x10000}, /* SDIO regs */
+
+	/* WIFI regs */
+	{1, 0x400f0000, M3L_WIFI_AON_MAC_SIZE}, /* WIFI_AON_MAC */
+	{1, 0x400f1000, 0xD100}, /* WIFI_RTN_PD_MAC */
+	{1, 0x40300000, M3L_WIFI_RAM_SIZE}, /* WIFI_352K/298K_RAM */
+	{1, 0x400a0000, M3L_WIFI_GLB_REG_SIZE}, /* Wifi_glb_reg */
+	{1, 0x400b0000, 0x388}, /* Wifi_phy_top_reg */
+	{1, 0x400b1000, 0x154}, /* Wifi_phy_tx11a_reg */
+	{1, 0x400b2000, 0xa8c}, /* Wifi_phy_rx11a_reg */
+	{1, 0x400b3000, 0xb0}, /* Wifi_phy_11b_reg */
+	{1, 0x400b4000, 0xa70}, /* Wifi_rfif_reg */
+	{1, 0x400b7000, 0x618}, /* Wifi_dfe_reg */
+	/* FM regs */
+	{1, 0x40098000, 0xabc}, /* fm + rds */
+	/* Bluetooth (HW DEC and BB) Buffer regs */
+	{1, 0x40240000, M3L_BT_ACC_SIZE}, /* BT_ACC */
+	{1, 0x40246000, 0x738}, /* BT_JAL */
+	{1, 0x40248000, 0xA0},  /* BT_HAB */
+	{1, 0x4024A000, 0x21C},  /* BT_LEJAL */
+	{1, 0x4024F000, M3L_BT_MODEM_SIZE},  /* BT_MODEM */
+	{1, 0x40200000, 0x200}, /* BT_CMD_BUF */
+	{1, 0x40204000, 0x200}, /* BT_EVENT_BUF */
+	{1, 0x40208000, 0x12A4},  /* BT_LMP_TX_BUF */
+	{1, 0x40200C00, 0xB744},  /* BT_LMP_RX_BUF */
+	{1, 0x40210000, 0x3000},  /* BT_ACL_TX_BUF */
+	{1, 0x40214000, 0x3000},  /* BT_ACL_RX_BUF */
+	{1, 0x40218000, 0x2D0},  /* BT_SCO_TX_BUF */
+	{1, 0x4021C000, 0x5C0},  /* BT_SCO_RX_BUF */
+	{1, 0x40241000, 0x400},  /* BT_BB_TX_BUF */
+	{1, 0x40242000, 0x400}   /* BT_BB_RX_BUF */
+};
+
+static struct wcn_dump_mem_reg *get_wcn_dump_mem_area(size_t *array_size)
+{
+	struct wcn_dump_mem_reg *reg_area = NULL;
+	struct wcn_match_data *g_match_config = get_wcn_match_config();
+
+	/* fixme */
+	if (g_match_config && g_match_config->unisoc_wcn_pcie) {
+		reg_area = m3_s_wcn_dump_regs_pcie;
+		*array_size = ARRAY_SIZE(m3_s_wcn_dump_regs_pcie);
+	} else if (g_match_config && g_match_config->unisoc_wcn_m3lite) {
+		reg_area = m3l_s_wcn_dump_regs;
+		*array_size = ARRAY_SIZE(m3l_s_wcn_dump_regs);
+	} else {
+		reg_area = m3_s_wcn_dump_regs;
+		*array_size = ARRAY_SIZE(m3_s_wcn_dump_regs);
+	}
+
+	return reg_area;
+}
 
 struct wcn_dump_section_info {
 	/* cp load start addr */
@@ -365,7 +470,6 @@ static void mdbg_dump_str(char *str, int str_len)
  * dump cp wifi phy reg
  * wifi phy start[11,17]
  */
- #ifndef CONFIG_WCN_PCIE
 static void wcn_dump_cp_register(struct wcn_dump_mem_reg *mem)
 {
 	int i;
@@ -376,7 +480,6 @@ static void wcn_dump_cp_register(struct wcn_dump_mem_reg *mem)
 	}
 }
 
-#else
 static void wcn_dump_cp_data(struct wcn_dump_mem_reg *mem, int start, int end)
 {
 	int i;
@@ -386,7 +489,6 @@ static void wcn_dump_cp_data(struct wcn_dump_mem_reg *mem, int start, int end)
 		WCN_INFO("dump cp data section[%d] ok!\n", i);
 	}
 }
-#endif
 
 #define  CACHE_STATUS_OFFSET  32
 #define  CACHE_START_OFFSET    36
@@ -423,7 +525,7 @@ static int cp_dcache_clean_invalid_all(void)
 	 *   cache_debug mode must be set normal mode.
 	 *   cache_size set 32K
 	 */
-	ret =  sprdwcn_bus_reg_read(SYNC_ADDR + CACHE_STATUS_OFFSET,
+	ret =  sprdwcn_bus_reg_read(get_sync_addr() + CACHE_STATUS_OFFSET,
 				    &cp_cache_status, 4);
 	if (!(ret == 0)) {
 		pr_info("Marlin3_Dcache status sdiohal_dt_read error !\n");
@@ -442,14 +544,14 @@ static int cp_dcache_clean_invalid_all(void)
 	if (cp_cache_status && !(reg_val & DCACHE_ENABLE_MASK)) {
 		/* need config cache as resetpin */
 		WCN_INFO("Config cache as pull reset pin");
-		ret = sprdwcn_bus_reg_read(SYNC_ADDR + CACHE_START_OFFSET,
+		ret = sprdwcn_bus_reg_read(get_sync_addr() + CACHE_START_OFFSET,
 					  &(s_cache_block_config[0].reg_value),
 					  4);
 		if (!(ret == 0)) {
 			pr_info("Marlin3_Dcache startaddr sdiohal_dt_read error !\n");
 			return ret;
 		}
-		ret = sprdwcn_bus_reg_read(SYNC_ADDR + CACHE_END_OFFSET,
+		ret = sprdwcn_bus_reg_read(get_sync_addr() + CACHE_END_OFFSET,
 					  &(s_cache_block_config[1].reg_value),
 					  4);
 		if (!(ret == 0)) {
@@ -515,14 +617,13 @@ static int cp_dcache_clean_invalid_all(void)
 	return ret;
 }
 
-/* select aon_apb_dap DAP(Debug Access Port) */
-#ifdef CONFIG_UMW2652
-void dap_sel_btwf_lite(void)
+/* select UMW2652 aon_apb_dap DAP(Debug Access Port) */
+static void dap_sel_btwf_lite(void)
 {
 	int ret;
 	unsigned int reg_val = 0;
 
-	ret = sprdwcn_bus_reg_read(DAP_CTRL, &reg_val, 4);
+	ret = sprdwcn_bus_reg_read(M3L_DAP_CTRL, &reg_val, 4);
 	if (ret < 0) {
 		WCN_ERR("%s read DJTAG_DAP_SEL error:%d\n", __func__, ret);
 		WCN_INFO("dt fail,start reset pin!\n");
@@ -531,7 +632,7 @@ void dap_sel_btwf_lite(void)
 			WCN_ERR("dt fail,reset pin fail!\n");
 			return;
 		}
-		ret = sprdwcn_bus_reg_read(DAP_CTRL, &reg_val, 4);
+		ret = sprdwcn_bus_reg_read(M3L_DAP_CTRL, &reg_val, 4);
 		if (ret < 0) {
 			WCN_ERR("after reset,dt read still fail!\n");
 			return;
@@ -539,15 +640,15 @@ void dap_sel_btwf_lite(void)
 	}
 	WCN_LOG("%s DJTAG_DAP_SEL:0x%x\n", __func__, reg_val);
 
-	reg_val |= CM4_DAP_SEL_BTWF_LITE;
-	ret = sprdwcn_bus_reg_write(DAP_CTRL, &reg_val, 4);
+	reg_val |= M3L_CM4_DAP_SEL_BTWF_LITE;
+	ret = sprdwcn_bus_reg_write(M3L_DAP_CTRL, &reg_val, 4);
 	if (ret < 0) {
 		WCN_ERR("%s write DJTAG_DAP_SEL error:%d\n", __func__, ret);
 		return;
 	}
 	WCN_LOG("%s DJTAG_DAP_SEL:0x%x\n", __func__, reg_val);
 
-	ret = sprdwcn_bus_reg_read(DAP_CTRL, &reg_val, 4);
+	ret = sprdwcn_bus_reg_read(M3L_DAP_CTRL, &reg_val, 4);
 	if (ret < 0) {
 		WCN_ERR("%s read2 DJTAG_DAP_SEL error:%d\n", __func__, ret);
 		return;
@@ -555,49 +656,49 @@ void dap_sel_btwf_lite(void)
 	WCN_LOG("%s 2:DJTAG_DAP_SEL:0x%x\n", __func__, reg_val);
 }
 
-/* select aon_apb_dap DAP(Debug Access Port) */
+/* select UMW2652 aon_apb_dap DAP(Debug Access Port) */
 void dap_sel_default_lite(void)
 {
 	int ret;
 	unsigned int reg_val;
 
 	reg_val = 0;
-	ret = sprdwcn_bus_reg_write(DAP_CTRL, &reg_val, 4);
+	ret = sprdwcn_bus_reg_write(M3L_DAP_CTRL, &reg_val, 4);
 	if (ret < 0) {
 		WCN_ERR("%s write DJTAG_DAP_SEL error:%d\n", __func__, ret);
 		return;
 	}
 }
 
-/* enable aon_apb_dap_en */
-void apb_eb_lite(void)
+/* enable UMW2652 aon_apb_dap_en */
+static void apb_eb_lite(void)
 {
 	int ret;
 	unsigned int reg_val = 0;
 
-	ret = sprdwcn_bus_reg_read(APB_ENB1, &reg_val, 4);
+	ret = sprdwcn_bus_reg_read(M3L_APB_ENB1, &reg_val, 4);
 	if (ret < 0) {
 		WCN_ERR("%s read APB_EB error:%d\n", __func__, ret);
 		return;
 	}
 	WCN_LOG("%s APB_EB:0x%x\n", __func__, reg_val);
 
-	reg_val |= DBG_CM4_EB;
-	ret = sprdwcn_bus_reg_write(APB_ENB1, &reg_val, 4);
+	reg_val |= M3L_DBG_CM4_EB;
+	ret = sprdwcn_bus_reg_write(M3L_APB_ENB1, &reg_val, 4);
 	if (ret < 0) {
 		WCN_ERR("%s write APB_EB error:%d\n", __func__, ret);
 		return;
 	}
 	WCN_LOG("%s APB_EB:0x%x\n", __func__, reg_val);
 
-	ret = sprdwcn_bus_reg_read(APB_ENB1, &reg_val, 4);
+	ret = sprdwcn_bus_reg_read(M3L_APB_ENB1, &reg_val, 4);
 	if (ret < 0) {
 		WCN_ERR("%s read2 APB_EB error:%d\n", __func__, ret);
 		return;
 	}
 	WCN_LOG("%s 2:APB_EB:0x%x\n", __func__, reg_val);
 }
-#else
+
 /* select aon_apb_dap DAP(Debug Access Port) */
 static void dap_sel_btwf(void)
 {
@@ -706,14 +807,13 @@ static void apb_eb(void)
 	}
 	WCN_LOG("%s 2:APB_EB:0x%x\n", __func__, reg_val);
 }
-#endif
 
 static void check_dap_is_ok(void)
 {
 	int ret;
 	unsigned int reg_val = 0;
 
-	ret = sprdwcn_bus_reg_read(BTWF_STATUS_REG, &reg_val, 4);
+	ret = sprdwcn_bus_reg_read(get_btwf_status_reg(), &reg_val, 4);
 	if (ret < 0) {
 		WCN_ERR("%s read error:%d\n", __func__, ret);
 		return;
@@ -733,9 +833,9 @@ static void hold_btwf_core(void)
 	int ret, i;
 	unsigned int reg_val;
 	unsigned int a[][2] = {
-			{ARM_DAP_REG1, 0x22000012},
-			{ARM_DAP_REG2, 0xe000edf0},
-			{ARM_DAP_REG3, 0xa05f0003} }; /* 0xa05f0007 try */
+			{get_arm_dap_reg1(), 0x22000012},
+			{get_arm_dap_reg2(), 0xe000edf0},
+			{get_arm_dap_reg3(), 0xa05f0003} }; /* 0xa05f0007 try */
 
 	for (i = 0; i < 3; i++) {
 		reg_val = a[i][1];
@@ -756,9 +856,9 @@ static void release_btwf_core(void)
 	int ret, i;
 	unsigned int reg_val;
 	unsigned int a[][2] = {
-			{ARM_DAP_REG1, 0x22000012},
-			{ARM_DAP_REG2, 0xe000edf0},
-			{ARM_DAP_REG3, 0xa05f0000} }; /* 0xa05f is a key */
+			{get_arm_dap_reg1(), 0x22000012},
+			{get_arm_dap_reg2(), 0xe000edf0},
+			{get_arm_dap_reg3(), 0xa05f0000} }; /* 0xa05f is a key */
 
 	for (i = 0; i < 3; i++) {
 		reg_val = a[i][1];
@@ -776,9 +876,9 @@ static void set_debug_mode(void)
 	int ret, i;
 	unsigned int reg_val;
 	unsigned int a[][2] = {
-			{ARM_DAP_REG1, 0x22000012},
-			{ARM_DAP_REG2, 0xe000edfC},
-			{ARM_DAP_REG3, 0x010007f1} };
+			{get_arm_dap_reg1(), 0x22000012},
+			{get_arm_dap_reg2(), 0xe000edfC},
+			{get_arm_dap_reg3(), 0x010007f1} };
 
 	for (i = 0; i < 3; i++) {
 		reg_val = a[i][1];
@@ -799,9 +899,9 @@ static void set_core_reg(unsigned int index)
 	int ret, i;
 	unsigned int reg_val;
 	unsigned int a[][2] = {
-			{ARM_DAP_REG1, 0x22000012},
-			{ARM_DAP_REG2, 0xe000edf4},
-			{ARM_DAP_REG3, index} };
+			{get_arm_dap_reg1(), 0x22000012},
+			{get_arm_dap_reg2(), 0xe000edf4},
+			{get_arm_dap_reg3(), index} };
 
 	for (i = 0; i < 3; i++) {
 		reg_val = a[i][1];
@@ -823,9 +923,9 @@ static void write_core_reg_value(unsigned int reg_index, unsigned int value)
 	int ret, i;
 	unsigned int reg_val;
 	unsigned int a[][3] = {
-			{ARM_DAP_REG1, 0x22000012, 0x22000012},
-			{ARM_DAP_REG2, 0xe000edf8, 0xe000edf4},
-			{ARM_DAP_REG3, value, 0x10000+reg_index} };
+			{get_arm_dap_reg1(), 0x22000012, 0x22000012},
+			{get_arm_dap_reg2(), 0xe000edf8, 0xe000edf4},
+			{get_arm_dap_reg3(), value, 0x10000+reg_index} };
 
 	for (i = 0; i < 3; i++) {
 		reg_val = a[i][1];
@@ -860,14 +960,17 @@ static void write_core_reg_value(unsigned int reg_index, unsigned int value)
 
 void sprdwcn_bus_armreg_write(unsigned int reg_index, unsigned int value)
 {
-#ifdef CONFIG_UMW2652
-	dap_sel_btwf_lite();
-	apb_eb_lite();
-#else
-	dap_sel_btwf();
-	apb_rst();
-	apb_eb();
-#endif
+	struct wcn_match_data *g_match_config = get_wcn_match_config();
+
+	if (g_match_config && g_match_config->unisoc_wcn_m3lite) {
+		dap_sel_btwf_lite();
+		apb_eb_lite();
+	} else {
+		dap_sel_btwf();
+		apb_rst();
+		apb_eb();
+	}
+
 	check_dap_is_ok();
 	hold_btwf_core();
 	set_debug_mode();
@@ -876,10 +979,10 @@ void sprdwcn_bus_armreg_write(unsigned int reg_index, unsigned int value)
 	/* make sure btwf core can run */
 	release_btwf_core();
 
-#ifndef CONFIG_UMW2652
-	/* make sure JTAG can connect dap */
-	dap_sel_default();
-#endif
+	if (g_match_config && (g_match_config->unisoc_wcn_m3lite == false)) {
+		/* make sure JTAG can connect dap */
+		dap_sel_default();
+	}
 }
 
 /* Debug Core register Data Register */
@@ -888,9 +991,9 @@ static void read_core_reg(unsigned int value, unsigned int *p)
 	int ret, i;
 	unsigned int reg_val;
 	unsigned int a[][2] = {
-			{ARM_DAP_REG1, 0x22000012},
-			{ARM_DAP_REG2, 0xe000edf8},
-			{ARM_DAP_REG3, 0x00000000} };
+			{get_arm_dap_reg1(), 0x22000012},
+			{get_arm_dap_reg2(), 0xe000edf8},
+			{get_arm_dap_reg3(), 0x00000000} };
 
 	for (i = 0; i < 2; i++) {
 		reg_val = a[i][1];
@@ -917,6 +1020,7 @@ int dump_arm_reg(void)
 		"PSP",
 	};
 	unsigned int *p;
+	struct wcn_match_data *g_match_config = get_wcn_match_config();
 
 	p = kzalloc(19 * 4, GFP_KERNEL);
 	if (!p) {
@@ -925,14 +1029,14 @@ int dump_arm_reg(void)
 	}
 
 	memset(p, 0, 19 * 4);
-#ifdef CONFIG_UMW2652
-	dap_sel_btwf_lite();
-	apb_eb_lite();
-#else
-	dap_sel_btwf();
-	apb_rst();
-	apb_eb();
-#endif
+	if (g_match_config && g_match_config->unisoc_wcn_m3lite) {
+		dap_sel_btwf_lite();
+		apb_eb_lite();
+	} else {
+		dap_sel_btwf();
+		apb_rst();
+		apb_eb();
+	}
 	check_dap_is_ok();
 	hold_btwf_core();
 	set_debug_mode();
@@ -946,10 +1050,11 @@ int dump_arm_reg(void)
 
 	WCN_INFO("------------[ ARM END ]------------\n");
 	kfree(p);
-#ifndef CONFIG_UMW2652
-	/* make sure JTAG can connect dap */
-	dap_sel_default();
-#endif
+
+	if (g_match_config && (g_match_config->unisoc_wcn_m3lite == false)) {
+		/* make sure JTAG can connect dap */
+		dap_sel_default();
+	}
 
 	return 0;
 }
@@ -1141,39 +1246,44 @@ int mdbg_dump_mem(void)
 {
 	long int count;
 	int ret;
-#ifdef CONFIG_WCN_PCIE
+	struct wcn_match_data *g_match_config = get_wcn_match_config();
 	int i;
+	size_t dump_array_size;
+	struct wcn_dump_mem_reg *p_wcn_dump_regs = NULL;
 
-	edma_dump_glb_reg();
-	for (i = 0; i < 16; i++)
-		edma_dump_chn_reg(i);
-#endif
+	if (g_match_config && g_match_config->unisoc_wcn_pcie) {
+		edma_dump_glb_reg();
+		for (i = 0; i < 16; i++)
+			edma_dump_chn_reg(i);
+	}
+
 	mdbg_dev->ring_dev->ring->is_mem = 1;
-	/* DUMP ARM REG */
-#ifndef CONFIG_UMW2653
-	dump_arm_reg();
-#endif
-#ifdef CONFIG_WCN_SWD
-	swd_dump_arm_reg();
-#endif
+	if (g_match_config && !g_match_config->unisoc_wcn_m3e) {
+		/* DUMP ARM REG */
+		dump_arm_reg();
+	}
+
+	if (g_match_config && g_match_config->unisoc_wcn_swd)
+		swd_dump_arm_reg();
 
 	mdbg_clear_log();
 	/* mdbg_atcmd_clean(); */
 	cp_dcache_clean_invalid_all();
 
-	if (wcn_fill_dump_head_info(s_wcn_dump_regs,
-				    ARRAY_SIZE(s_wcn_dump_regs)))
+	p_wcn_dump_regs = get_wcn_dump_mem_area(&dump_array_size);
+
+	if (wcn_fill_dump_head_info(p_wcn_dump_regs, dump_array_size))
 		return -1;
 
-	count = mdbg_dump_data(CP_START_ADDR, NULL, FIRMWARE_MAX_SIZE, 0);
+	count = mdbg_dump_data(get_cp_start_addr(), NULL, get_firmware_max_size(), 0);
 	if (count <= 0) {
 		WCN_INFO("mdbg start reset marlin reg!\n");
 		ret = marlin_reset_reg();
 		if (ret < 0)
 			return 0;
 		cp_dcache_clean_invalid_all();
-		count = mdbg_dump_data(CP_START_ADDR, NULL,
-				       FIRMWARE_MAX_SIZE, 0);
+		count = mdbg_dump_data(get_cp_start_addr(), NULL,
+				       get_firmware_max_size(), 0);
 
 		WCN_INFO("mdbg only dump ram %ld ok!\n", count);
 
@@ -1216,14 +1326,15 @@ int mdbg_dump_mem(void)
 	WCN_INFO("mdbg dump predivclk %ld ok!\n", count);
 #endif
 
-#ifdef CONFIG_WCN_PCIE
-	wcn_dump_cp_data(s_wcn_dump_regs, 7, 11);
-#else
-	count = mdbg_dump_data(DUMP_SDIO_ADDR, "start_dump_sdio_reg",
-			       DUMP_SDIO_ADDR_SIZE,
-			      strlen("start_dump_sdio_reg"));
-	WCN_INFO("mdbg dump sdio %ld ok!\n", count);
-#endif
+	if (g_match_config && g_match_config->unisoc_wcn_pcie) {
+		wcn_dump_cp_data(p_wcn_dump_regs, 7, 11);
+	} else {
+		count = mdbg_dump_data(DUMP_SDIO_ADDR, "start_dump_sdio_reg",
+				       DUMP_SDIO_ADDR_SIZE,
+				      strlen("start_dump_sdio_reg"));
+		WCN_INFO("mdbg dump sdio %ld ok!\n", count);
+	}
+
 	/* for dump wifi reg */
 	ret = check_wifi_power_domain_ison();
 	if (ret != 0) {
@@ -1235,7 +1346,7 @@ int mdbg_dump_mem(void)
 #ifdef DUMP_WIFI_AON_MAC_ADDR
 	count = mdbg_dump_data(DUMP_WIFI_AON_MAC_ADDR,
 			       "start_dump_wifi_aon_reg",
-				WIFI_AON_MAC_SIZE,
+				get_wifi_aon_mac_size(),
 				strlen("start_dump_wifi_aon_reg"));
 #endif
 
@@ -1250,15 +1361,14 @@ int mdbg_dump_mem(void)
 
 	count = mdbg_dump_data(DUMP_WIFI_352K_RAM_ADDR,
 			       "start_dump_wifi_352K_RAM_reg",
-			       WIFI_RAM_SIZE,
+			       get_wifi_ram_size(),
 			       strlen("start_dump_wifi_352K_RAM_reg"));
 	WCN_INFO("mdbg dump wifi %ld ok!\n", count);
 #endif
-#ifdef CONFIG_WCN_PCIE
-	wcn_dump_cp_data(s_wcn_dump_regs, 15, 21);
-#else
-	wcn_dump_cp_register(s_wcn_dump_regs);
-#endif
+	if (g_match_config && g_match_config->unisoc_wcn_pcie)
+		wcn_dump_cp_data(p_wcn_dump_regs, 15, 21);
+	else
+		wcn_dump_cp_register(p_wcn_dump_regs);
 
 next:
 #ifdef DUMP_INTC_ADDR
@@ -1333,7 +1443,7 @@ next:
 #endif
 #ifdef BT_ACC_ADDR
 	count = mdbg_dump_data(BT_ACC_ADDR, "start_dump_bt_acc_reg",
-			       BT_ACC_SIZE, strlen("start_dump_bt_acc_reg"));
+			       get_bt_acc_size(), strlen("start_dump_bt_acc_reg"));
 	WCN_INFO("mdbg dump btacc %ld ok!\n", count);
 #endif
 #ifdef BT_JAL_ADDR
@@ -1354,7 +1464,7 @@ next:
 #endif
 #ifdef BT_MODEM_ADDR
 	count = mdbg_dump_data(BT_MODEM_ADDR, "start_dump_bt_modem_reg",
-			       BT_MODEM_SIZE,
+			       get_bt_modem_size(),
 			       strlen("start_dump_bt_modem_reg"));
 	WCN_INFO("mdbg dump bt modem %ld ok!\n", count);
 #endif
@@ -1438,10 +1548,10 @@ end:
 
 	mdbg_dump_str(WCN_DUMP_END_STRING, strlen(WCN_DUMP_END_STRING));
 	WCN_INFO("mdbg dump memory finish\n");
-#ifdef CONFIG_WCN_RDCDBG
+#ifdef WCN_RDCDBG
+	/*rdc_debug.c*/
 	if ((functionmask[7] & CP2_FLAG_YLOG) == 1)
 		complete(&dumpmem_complete);
 #endif
 	return 0;
 }
-

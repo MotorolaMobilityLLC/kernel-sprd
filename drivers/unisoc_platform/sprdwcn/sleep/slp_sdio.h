@@ -15,7 +15,7 @@ union CP_SLP_CTL_REG {
 static inline
 int ap_wakeup_cp(void)
 {
-	return sprdwcn_bus_aon_writeb(REG_CP_SLP_CTL, 0);
+	return sprdwcn_bus_aon_writeb(get_cp_slp_ctl_reg(), 0);
 }
 int slp_allow_sleep(void);
 int slp_pub_int_regcb(void);

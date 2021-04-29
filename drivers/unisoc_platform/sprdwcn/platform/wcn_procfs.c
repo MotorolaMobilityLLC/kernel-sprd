@@ -26,11 +26,9 @@
 #include <misc/marlin_platform.h>
 #include <misc/wcn_bus.h>
 
-#ifdef CONFIG_WCN_PCIE
 #include "edma_engine.h"
 #include "pcie.h"
 #include "wcn_dump.h"
-#endif
 #include "wcn_misc.h"
 #include "wcn_glb.h"
 #include "wcn_log.h"
@@ -45,9 +43,7 @@ u32 wcn_print_level = WCN_DEBUG_OFF;
 
 static u32 g_dumpmem_switch =  1;
 static u32 g_loopcheck_switch;
-#ifdef CONFIG_WCN_PCIE
 struct wcn_pcie_info *pcie_dev;
-#endif
 
 struct mdbg_proc_entry {
 	char *name;
@@ -77,6 +73,7 @@ static struct mdbg_proc_t *mdbg_proc;
 void wcn_assert_interface(enum wcn_source_type type, char *str)
 {
 	static int dump_cnt;
+	struct wcn_match_data *g_match_config = get_wcn_match_config();
 
 	WCN_ERR("fw assert:%s\n", str);
 	if (!mutex_trylock(&mdbg_proc->mutex)) {
@@ -114,13 +111,16 @@ void wcn_assert_interface(enum wcn_source_type type, char *str)
 	WCN_INFO("%s dumpmem begin\n", __func__);
 	stop_loopcheck();
 	sprdwcn_bus_set_carddump_status(true);
-#ifdef CONFIG_WCN_PCIE
-	edma_hw_pause();
-	dump_arm_reg();
-#endif
+	if (g_match_config && g_match_config->unisoc_wcn_pcie) {
+		edma_hw_pause();
+		dump_arm_reg();
+	}
 	wcnlog_clear_log();
 	dump_cnt++;
-	mdbg_dump_mem();
+	if (g_match_config && g_match_config->unisoc_wcn_integrated)
+		mdbg_dump_mem_integ();
+	else
+		mdbg_dump_mem();
 	WCN_INFO("%s dumpmem end\n", __func__);
 
 out:
@@ -137,21 +137,29 @@ EXPORT_SYMBOL_GPL(mdbg_assert_interface);
 int mdbg_assert_read(int channel, struct mbuf_t *head,
 		     struct mbuf_t *tail, int num)
 {
-#if (!defined CONFIG_WCN_PCIE) && (!defined CONFIG_WCN_SIPC)
 	struct bus_puh_t *puh = NULL;
+	struct wcn_match_data *g_match_config = get_wcn_match_config();
+	unsigned int pub_head_rsv;
 
-	puh = (struct bus_puh_t *)head->buf;
-	if (puh->len > MDBG_ASSERT_SIZE) {
-		WCN_ERR("assert data len:%d,beyond max read:%d",
-			puh->len, MDBG_ASSERT_SIZE);
-		sprdwcn_bus_push_list(channel, head, tail, num);
-		return -1;
+	if (g_match_config && g_match_config->unisoc_wcn_sdio)
+		pub_head_rsv = SDIOHAL_PUB_HEAD_RSV;
+	else
+		pub_head_rsv = PUB_HEAD_RSV;
+
+	if (g_match_config && (!g_match_config->unisoc_wcn_pcie) &&
+		(!g_match_config->unisoc_wcn_sipc)) {
+		puh = (struct bus_puh_t *)head->buf;
+		if (puh->len > MDBG_ASSERT_SIZE) {
+			WCN_ERR("assert data len:%d,beyond max read:%d",
+				puh->len, MDBG_ASSERT_SIZE);
+			sprdwcn_bus_push_list(channel, head, tail, num);
+			return -1;
+		}
+
+		wcn_assert_interface(WCN_SOURCE_BTWF, head->buf + pub_head_rsv);
+	} else {
+		wcn_assert_interface(WCN_SOURCE_BTWF, head->buf);
 	}
-
-	wcn_assert_interface(WCN_SOURCE_BTWF, head->buf + PUB_HEAD_RSV);
-#else
-	wcn_assert_interface(WCN_SOURCE_BTWF, head->buf);
-#endif
 	sprdwcn_bus_push_list(channel, head, tail, num);
 
 	return 0;
@@ -161,25 +169,33 @@ EXPORT_SYMBOL_GPL(mdbg_assert_read);
 int mdbg_loopcheck_read(int channel, struct mbuf_t *head,
 			struct mbuf_t *tail, int num)
 {
-#if (!defined CONFIG_WCN_PCIE) && (!defined CONFIG_WCN_SIPC)
 	struct bus_puh_t *puh = NULL;
+	struct wcn_match_data *g_match_config = get_wcn_match_config();
+	unsigned int pub_head_rsv;
 
-	puh = (struct bus_puh_t *)head->buf;
-	if (puh->len > MDBG_LOOPCHECK_SIZE) {
-		WCN_ERR("The loopcheck data len:%d,beyond max read:%d",
-			puh->len, MDBG_LOOPCHECK_SIZE);
-		sprdwcn_bus_push_list(channel, head, tail, num);
-		return -1;
+	if (g_match_config && g_match_config->unisoc_wcn_sdio)
+		pub_head_rsv = SDIOHAL_PUB_HEAD_RSV;
+	else
+		pub_head_rsv = PUB_HEAD_RSV;
+
+	if (g_match_config && (!g_match_config->unisoc_wcn_pcie) &&
+		(!g_match_config->unisoc_wcn_sipc)) {
+		puh = (struct bus_puh_t *)head->buf;
+		if (puh->len > MDBG_LOOPCHECK_SIZE) {
+			WCN_ERR("The loopcheck data len:%d,beyond max read:%d",
+				puh->len, MDBG_LOOPCHECK_SIZE);
+			sprdwcn_bus_push_list(channel, head, tail, num);
+			return -1;
+		}
+
+		memset(mdbg_proc->loopcheck.buf, 0, MDBG_LOOPCHECK_SIZE);
+		memcpy(mdbg_proc->loopcheck.buf, head->buf + pub_head_rsv, puh->len);
+		mdbg_proc->loopcheck.rcv_len = puh->len;
+	} else {
+		memset(mdbg_proc->loopcheck.buf, 0, MDBG_LOOPCHECK_SIZE);
+		memcpy(mdbg_proc->loopcheck.buf, head->buf, head->len);
+		mdbg_proc->loopcheck.rcv_len = head->len;
 	}
-
-	memset(mdbg_proc->loopcheck.buf, 0, MDBG_LOOPCHECK_SIZE);
-	memcpy(mdbg_proc->loopcheck.buf, head->buf + PUB_HEAD_RSV, puh->len);
-	mdbg_proc->loopcheck.rcv_len = puh->len;
-#else
-	memset(mdbg_proc->loopcheck.buf, 0, MDBG_LOOPCHECK_SIZE);
-	memcpy(mdbg_proc->loopcheck.buf, head->buf, head->len);
-	mdbg_proc->loopcheck.rcv_len = head->len;
-#endif
 	WCN_INFO("rx:%s\n", (char *)(mdbg_proc->loopcheck.buf));
 	mdbg_proc->fail_count = 0;
 	complete(&mdbg_proc->loopcheck.completed);
@@ -193,40 +209,48 @@ EXPORT_SYMBOL_GPL(mdbg_loopcheck_read);
 int mdbg_at_cmd_read(int channel, struct mbuf_t *head,
 		     struct mbuf_t *tail, int num)
 {
-#if (!defined CONFIG_WCN_PCIE) && (!defined CONFIG_WCN_SIPC)
 	struct bus_puh_t *puh = NULL;
+	struct wcn_match_data *g_match_config = get_wcn_match_config();
+	unsigned int pub_head_rsv;
 
-	puh = (struct bus_puh_t *)head->buf;
-	if (puh->len > MDBG_AT_CMD_SIZE) {
-		WCN_ERR("The at cmd data len:%d,beyond max read:%d",
-			puh->len, MDBG_AT_CMD_SIZE);
+	if (g_match_config && g_match_config->unisoc_wcn_sdio)
+		pub_head_rsv = SDIOHAL_PUB_HEAD_RSV;
+	else
+		pub_head_rsv = PUB_HEAD_RSV;
+
+	if (g_match_config && (!g_match_config->unisoc_wcn_pcie) &&
+		(!g_match_config->unisoc_wcn_sipc)) {
+		puh = (struct bus_puh_t *)head->buf;
+		if (puh->len > MDBG_AT_CMD_SIZE) {
+			WCN_ERR("The at cmd data len:%d,beyond max read:%d",
+				puh->len, MDBG_AT_CMD_SIZE);
+			sprdwcn_bus_push_list(channel, head, tail, num);
+			return -1;
+		}
+
+		memset(mdbg_proc->at_cmd.buf, 0, MDBG_AT_CMD_SIZE);
+		memcpy(mdbg_proc->at_cmd.buf, head->buf + pub_head_rsv, puh->len);
+		mdbg_proc->at_cmd.rcv_len = puh->len;
+		WCN_INFO("at cmd read:%s\n",
+			(char *)(mdbg_proc->at_cmd.buf));
+		complete(&mdbg_proc->at_cmd.completed);
+		notify_at_cmd_finish(mdbg_proc->at_cmd.buf, mdbg_proc->at_cmd.rcv_len);
 		sprdwcn_bus_push_list(channel, head, tail, num);
-		return -1;
+	} else {
+		memset(mdbg_proc->at_cmd.buf, 0, MDBG_AT_CMD_SIZE);
+		memcpy(mdbg_proc->at_cmd.buf, head->buf, head->len);
+		mdbg_proc->at_cmd.rcv_len = head->len;
+		WCN_INFO("AT cmd read:%s\n",
+			 (char *)(mdbg_proc->at_cmd.buf));
+		complete(&mdbg_proc->at_cmd.completed);
+		notify_at_cmd_finish(mdbg_proc->at_cmd.buf, mdbg_proc->at_cmd.rcv_len);
+		sprdwcn_bus_push_list(channel, head, tail, num);
 	}
 
-	memset(mdbg_proc->at_cmd.buf, 0, MDBG_AT_CMD_SIZE);
-	memcpy(mdbg_proc->at_cmd.buf, head->buf + PUB_HEAD_RSV, puh->len);
-	mdbg_proc->at_cmd.rcv_len = puh->len;
-	WCN_INFO("at cmd read:%s\n",
-		(char *)(mdbg_proc->at_cmd.buf));
-	complete(&mdbg_proc->at_cmd.completed);
-	notify_at_cmd_finish(mdbg_proc->at_cmd.buf, mdbg_proc->at_cmd.rcv_len);
-	sprdwcn_bus_push_list(channel, head, tail, num);
-#else
-	memset(mdbg_proc->at_cmd.buf, 0, MDBG_AT_CMD_SIZE);
-	memcpy(mdbg_proc->at_cmd.buf, head->buf, head->len);
-	mdbg_proc->at_cmd.rcv_len = head->len;
-	WCN_INFO("AT cmd read:%s\n",
-		 (char *)(mdbg_proc->at_cmd.buf));
-	complete(&mdbg_proc->at_cmd.completed);
-	notify_at_cmd_finish(mdbg_proc->at_cmd.buf, mdbg_proc->at_cmd.rcv_len);
-	sprdwcn_bus_push_list(channel, head, tail, num);
-#endif
 	return 0;
 }
 EXPORT_SYMBOL_GPL(mdbg_at_cmd_read);
 
-#ifdef CONFIG_WCN_PCIE
 static int mdbg_tx_comptele_cb(int chn, int timeout)
 {
 	WCN_DBG("%s: chn=%d, timeout=%d\n", __func__, chn, timeout);
@@ -248,7 +272,7 @@ static int free_prepare_buf(struct dma_buf *dm)
 	return 0;
 }
 
-int prepare_free_buf(struct dma_buf *dm, int chn, int size, int num)
+static int prepare_free_buf(struct dma_buf *dm, int chn, int size, int num)
 {
 	int ret, i;
 	struct mbuf_t *mbuf, *head, *tail;
@@ -310,8 +334,6 @@ static int assert_prepare_buf(int chn, struct mbuf_t **head,
 	return ret;
 }
 
-#endif
-
 static ssize_t mdbg_snap_shoot_seq_write(struct file *file,
 						const char __user *buffer,
 						size_t count, loff_t *ppos)
@@ -325,22 +347,23 @@ static void *mdbg_snap_shoot_seq_start(struct seq_file *m, loff_t *pos)
 	u8 *pdata;
 	u8 *buf;
 	s32 ret = 0;
+	struct wcn_match_data *g_match_config = get_wcn_match_config();
 
 	if (!*(u32 *)pos) {
 		buf = mdbg_proc->snap_shoot.buf;
 		memset(buf, 0, MDBG_SNAP_SHOOT_SIZE);
-#ifdef CONFIG_WCN_INTEG
-		ret = mdbg_snap_shoot_iram(buf);
-		if (ret < 0) {
-			seq_puts(m, "==== IRAM DATA SNAP SHOOT FAIL ====\n");
+		if (g_match_config && g_match_config->unisoc_wcn_integrated) {
+			ret = mdbg_snap_shoot_iram(buf);
+			if (ret < 0) {
+				seq_puts(m, "==== IRAM DATA SNAP SHOOT FAIL ====\n");
+				return NULL;
+			}
+			seq_puts(m, "==== IRAM DATA SNAP SHOOT START ====\n");
+		} else {
+			WCN_ERR("not support iram snap shoot! ret %d\n", ret);
+			seq_puts(m, "==== IRAM DATA SNAP SHOOT NOT SUPPORT ====\n");
 			return NULL;
 		}
-		seq_puts(m, "==== IRAM DATA SNAP SHOOT START ====\n");
-#else
-		WCN_ERR("not support iram snap shoot! ret %d\n", ret);
-		seq_puts(m, "==== IRAM DATA SNAP SHOOT NOT SUPPORT ====\n");
-		return NULL;
-#endif
 	}
 
 	pdata = mdbg_proc->snap_shoot.buf + *(u32 *)pos * 16;
@@ -425,6 +448,7 @@ static ssize_t mdbg_proc_read(struct file *filp,
 	int timeout = -1;
 	int len = 0;
 	int ret;
+	struct wcn_match_data *g_match_config = get_wcn_match_config();
 
 	if (filp->f_flags & O_NONBLOCK)
 		timeout = 0;
@@ -504,11 +528,12 @@ static ssize_t mdbg_proc_read(struct file *filp,
 				WCN_INFO("loopcheck status:%d\n",
 					mdbg_proc->fail_count);
 			}
-#ifdef CONFIG_WCN_PCIE
-			pcie_dev = get_wcn_device_info();
-			if (!(atomic_dec_and_test(&pcie_dev->xmit_cnt)))
-				atomic_set(&pcie_dev->xmit_cnt, 0x0);
-#endif
+
+			if (g_match_config && g_match_config->unisoc_wcn_pcie) {
+				pcie_dev = get_wcn_device_info();
+				if (!(atomic_dec_and_test(&pcie_dev->xmit_cnt)))
+					atomic_set(&pcie_dev->xmit_cnt, 0x0);
+			}
 		} else {
 			if (copy_to_user((void __user *)buf, "poweroff", 8))
 				return -EFAULT;
@@ -564,18 +589,17 @@ static ssize_t mdbg_proc_read(struct file *filp,
 static ssize_t mdbg_proc_write(struct file *filp,
 		const char __user *buf, size_t count, loff_t *ppos)
 {
-#ifdef CONFIG_WCN_PCIE
 	struct mbuf_t *head = NULL, *tail = NULL, *mbuf = NULL;
 	int num = 1;
 	static struct dma_buf at_dm;
 	int ret = 0;
 	static int at_buf_flag;
-#endif
 	char x;
 #ifdef MDBG_PROC_CMD_DEBUG
 	char *tempbuf = NULL;
 	int ret = -1, i;
 #endif
+	struct wcn_match_data *g_match_config = get_wcn_match_config();
 
 	if (count < 1)
 		return -EINVAL;
@@ -584,41 +608,46 @@ static ssize_t mdbg_proc_write(struct file *filp,
 #ifdef MDBG_PROC_CMD_DEBUG
 /* for test boot */
 
-	if (x == '0')
-		dump_arm_reg();
+	if (g_match_config && g_match_config->unisoc_wcn_integrated) {
+		if (x == '0')
+			dump_arm_reg_integ();
+	} else {
+		if (x == '0')
+			dump_arm_reg();
+	}
 
 	if (x == 'B') {
 		WCN_INFO("wsh proc write =%c\n", x);
 		tempbuf = kzalloc(10, GFP_KERNEL);
 		memset(tempbuf, 0, 10);
-		ret = sprdwcn_bus_direct_read(CP_START_ADDR, tempbuf, 10);
+		ret = sprdwcn_bus_direct_read(get_cp_start_addr(), tempbuf, 10);
 		if (ret < 0)
-			WCN_ERR("wsh debug CP_START_ADDR error:%d\n", ret);
-		WCN_INFO("\nwsh debug CP_START_ADDR(10) :\n");
+			WCN_ERR("wsh debug get_cp_start_addr error:%d\n", ret);
+		WCN_INFO("\nwsh debug get_cp_start_addr(10) :\n");
 		for (i = 0; i < 10; i++)
 			WCN_INFO("0x%x\n", tempbuf[i]);
 
 		memset(tempbuf, 0, 10);
-		ret = sprdwcn_bus_reg_read(CP_RESET_REG, tempbuf, 4);
+		ret = sprdwcn_bus_reg_read(get_cp_reset_reg(), tempbuf, 4);
 		if (ret < 0)
-			WCN_ERR("wsh debug CP_RESET_REG error:%d\n", ret);
-		WCN_INFO("\nwsh debug CP_RESET_REG(4) :\n");
+			WCN_ERR("wsh debug get_cp_reset_reg error:%d\n", ret);
+		WCN_INFO("\nwsh debug get_cp_reset_reg(4) :\n");
 		for (i = 0; i < 4; i++)
 			WCN_INFO(":0x%x\n", tempbuf[i]);
 
 		memset(tempbuf, 0, 10);
-		ret = sprdwcn_bus_direct_read(GNSS_CP_START_ADDR, tempbuf, 10);
+		ret = sprdwcn_bus_direct_read(get_gnss_cp_start_addr(), tempbuf, 10);
 		if (ret < 0)
-			WCN_ERR("wsh debug GNSS_CP_START_ADDR error:%d\n", ret);
-		WCN_INFO("\nwsh debug GNSS_CP_START_ADDR(10) :\n");
+			WCN_ERR("wsh debug get_gnss_cp_start_addr error:%d\n", ret);
+		WCN_INFO("\nwsh debug get_gnss_cp_start_addr(10) :\n");
 		for (i = 0; i < 10; i++)
 			WCN_INFO(":0x%x\n", tempbuf[i]);
 
 		memset(tempbuf, 0, 10);
-		ret = sprdwcn_bus_reg_read(GNSS_CP_RESET_REG, tempbuf, 4);
+		ret = sprdwcn_bus_reg_read(get_gnss_cp_reset_reg(), tempbuf, 4);
 		if (ret < 0)
-			WCN_ERR("wsh debug GNSS_CP_RESET_REG error:%d\n", ret);
-		WCN_INFO("\nwsh debug GNSS_CP_RESET_REG(4) :\n");
+			WCN_ERR("wsh debug get_gnss_cp_reset_reg error:%d\n", ret);
+		WCN_INFO("\nwsh debug get_gnss_cp_reset_reg(4) :\n");
 		for (i = 0; i < 4; i++)
 			WCN_INFO(":0x%x\n", tempbuf[i]);
 
@@ -755,93 +784,93 @@ static ssize_t mdbg_proc_write(struct file *filp,
 		return count;
 	}
 
-#ifdef CONFIG_WCN_INTEG
-	if (strncmp(mdbg_proc->write_buf, "dumpmem", 7) == 0) {
-		mutex_lock(&mdbg_proc->mutex);
-		if (g_dumpmem_switch == 0) {
+	if (g_match_config && g_match_config->unisoc_wcn_integrated) {
+		if (strncmp(mdbg_proc->write_buf, "dumpmem", 7) == 0) {
+			mutex_lock(&mdbg_proc->mutex);
+			if (g_dumpmem_switch == 0) {
+				mutex_unlock(&mdbg_proc->mutex);
+				return count;
+			}
+			WCN_INFO("start mdbg dumpmem");
+			sprdwcn_bus_set_carddump_status(true);
+			mdbg_dump_mem_integ();
 			mutex_unlock(&mdbg_proc->mutex);
 			return count;
 		}
-		WCN_INFO("start mdbg dumpmem");
-		sprdwcn_bus_set_carddump_status(true);
-		mdbg_dump_mem();
-		mutex_unlock(&mdbg_proc->mutex);
-		return count;
-	}
-	if (strncmp(mdbg_proc->write_buf, "holdcp2cpu",
-		strlen("holdcp2cpu")) == 0) {
-		mdbg_hold_cpu();
-		WCN_INFO("hold cp cpu\n");
-		return count;
-	}
-	if (strncmp(mdbg_proc->write_buf, "rebootwcn", 9) == 0 ||
-		strncmp(mdbg_proc->write_buf, "rebootmarlin", 12) == 0) {
-		WCN_INFO("marlin gnss need reset\n");
-		WCN_INFO("fail_count is value %d\n", mdbg_proc->fail_count);
-		mdbg_proc->fail_count = 0;
-		sprdwcn_bus_set_carddump_status(false);
-		wcn_device_poweroff();
-		WCN_INFO("marlin gnss  reset finish!\n");
-		return count;
-	}
-#else
-	if (strncmp(mdbg_proc->write_buf, "dumpmem", 7) == 0) {
-		sprdwcn_bus_set_carddump_status(true);
-
-		mutex_lock(&mdbg_proc->mutex);
-		marlin_set_sleep(MARLIN_MDBG, FALSE);
-		marlin_set_wakeup(MARLIN_MDBG);
-		mdbg_dump_mem();
-		marlin_set_sleep(MARLIN_MDBG, TRUE);
-		mutex_unlock(&mdbg_proc->mutex);
-		return count;
-	}
-
-	if (strncmp(mdbg_proc->write_buf, "poweroff_wcn", 12) == 0) {
-		marlin_power_off(MARLIN_ALL);
-		return count;
-	}
-
-	if (strncmp(mdbg_proc->write_buf, "rebootmarlin", 12) == 0) {
-		flag_reset = 1;
-		WCN_INFO("marlin need reset\n");
-		WCN_INFO("fail_count is value %d\n", mdbg_proc->fail_count);
-		WCN_INFO("fail_reset is value %d\n", flag_reset);
-		mdbg_proc->fail_count = 0;
-		marlin_set_download_status(0);
-		sprdwcn_bus_set_carddump_status(false);
-		marlin_chip_en(false, true);
-		marlin_reset_func(marlin_callback_para);
-		return count;
-	}
-	if (strncmp(mdbg_proc->write_buf, "rebootwcn", 9) == 0) {
-		flag_reset = 1;
-		WCN_INFO("marlin gnss need reset\n");
-		WCN_INFO("fail_count is value %d\n", mdbg_proc->fail_count);
-		mdbg_proc->fail_count = 0;
-		marlin_set_download_status(0);
-		sprdwcn_bus_set_carddump_status(false);
-		marlin_chip_en(false, true);
-		marlin_reset_func(marlin_callback_para);
-		return count;
-	}
-	if (strncmp(mdbg_proc->write_buf, "at+getchipversion", 17) == 0) {
-		struct device_node *np_marlin2 = NULL;
-
-		WCN_INFO("marlin get chip version\n");
-		np_marlin2 = of_find_node_by_name(NULL, "sprd-marlin2");
-		if (np_marlin2) {
-			if (of_get_property(np_marlin2,
-				"common_chip_en", NULL)) {
-				WCN_INFO("marlin common_chip_en\n");
-				memcpy(mdbg_proc->at_cmd.buf,
-					"2342B", strlen("2342B"));
-				mdbg_proc->at_cmd.rcv_len = strlen("2342B");
-			}
+		if (strncmp(mdbg_proc->write_buf, "holdcp2cpu",
+			strlen("holdcp2cpu")) == 0) {
+			mdbg_hold_cpu();
+			WCN_INFO("hold cp cpu\n");
+			return count;
 		}
-		return count;
+		if (strncmp(mdbg_proc->write_buf, "rebootwcn", 9) == 0 ||
+			strncmp(mdbg_proc->write_buf, "rebootmarlin", 12) == 0) {
+			WCN_INFO("marlin gnss need reset\n");
+			WCN_INFO("fail_count is value %d\n", mdbg_proc->fail_count);
+			mdbg_proc->fail_count = 0;
+			sprdwcn_bus_set_carddump_status(false);
+			wcn_device_poweroff();
+			WCN_INFO("marlin gnss  reset finish!\n");
+			return count;
+		}
+	} else {
+		if (strncmp(mdbg_proc->write_buf, "dumpmem", 7) == 0) {
+			sprdwcn_bus_set_carddump_status(true);
+
+			mutex_lock(&mdbg_proc->mutex);
+			marlin_set_sleep(MARLIN_MDBG, FALSE);
+			marlin_set_wakeup(MARLIN_MDBG);
+			mdbg_dump_mem();
+			marlin_set_sleep(MARLIN_MDBG, TRUE);
+			mutex_unlock(&mdbg_proc->mutex);
+			return count;
+		}
+
+		if (strncmp(mdbg_proc->write_buf, "poweroff_wcn", 12) == 0) {
+			marlin_power_off(MARLIN_ALL);
+			return count;
+		}
+
+		if (strncmp(mdbg_proc->write_buf, "rebootmarlin", 12) == 0) {
+			flag_reset = 1;
+			WCN_INFO("marlin need reset\n");
+			WCN_INFO("fail_count is value %d\n", mdbg_proc->fail_count);
+			WCN_INFO("fail_reset is value %d\n", flag_reset);
+			mdbg_proc->fail_count = 0;
+			marlin_set_download_status(0);
+			sprdwcn_bus_set_carddump_status(false);
+			marlin_chip_en(false, true);
+			marlin_reset_func(marlin_callback_para);
+			return count;
+		}
+		if (strncmp(mdbg_proc->write_buf, "rebootwcn", 9) == 0) {
+			flag_reset = 1;
+			WCN_INFO("marlin gnss need reset\n");
+			WCN_INFO("fail_count is value %d\n", mdbg_proc->fail_count);
+			mdbg_proc->fail_count = 0;
+			marlin_set_download_status(0);
+			sprdwcn_bus_set_carddump_status(false);
+			marlin_chip_en(false, true);
+			marlin_reset_func(marlin_callback_para);
+			return count;
+		}
+		if (strncmp(mdbg_proc->write_buf, "at+getchipversion", 17) == 0) {
+			struct device_node *np_marlin2 = NULL;
+
+			WCN_INFO("marlin get chip version\n");
+			np_marlin2 = of_find_node_by_name(NULL, "sprd-marlin2");
+			if (np_marlin2) {
+				if (of_get_property(np_marlin2,
+					"common_chip_en", NULL)) {
+					WCN_INFO("marlin common_chip_en\n");
+					memcpy(mdbg_proc->at_cmd.buf,
+						"2342B", strlen("2342B"));
+					mdbg_proc->at_cmd.rcv_len = strlen("2342B");
+				}
+			}
+			return count;
+		}
 	}
-#endif
 
 	/*
 	 * One AP Code used for many different CP2.
@@ -850,70 +879,70 @@ static ssize_t mdbg_proc_write(struct file *filp,
 	 * to disable SharkLE-Marlin2/SharkL3-Marlin2
 	 * Pike2-Marlin2.
 	 */
-#ifndef CONFIG_WCN_INTEG
-	/* loopcheck add kernel time ms/1000 */
-	if (strncmp(mdbg_proc->write_buf, "at+loopcheck", 12) == 0) {
-		/* struct timespec now; */
-		unsigned long int ns = local_clock();
-		unsigned long int time = marlin_bootup_time_get();
-		unsigned int ap_t = MARLIN_64B_NS_TO_32B_MS(ns);
-		unsigned int marlin_boot_t = MARLIN_64B_NS_TO_32B_MS(time);
+	if (g_match_config && (g_match_config->unisoc_wcn_integrated == false)) {
+		/* loopcheck add kernel time ms/1000 */
+		if (strncmp(mdbg_proc->write_buf, "at+loopcheck", 12) == 0) {
+			/* struct timespec now; */
+			unsigned long ns = local_clock();
+			unsigned long time = marlin_bootup_time_get();
+			unsigned int ap_t = MARLIN_64B_NS_TO_32B_MS(ns);
+			unsigned int marlin_boot_t = MARLIN_64B_NS_TO_32B_MS(time);
 
-		sprintf(mdbg_proc->write_buf, "at+loopcheck=%u,%u\r",
-			ap_t, marlin_boot_t);
-		/* Be care the count value changed here before send to CP2 */
-		count = strlen(mdbg_proc->write_buf);
-		WCN_INFO("%s, count = %d", mdbg_proc->write_buf, (int)count);
-	}
-#endif
-
-#ifdef CONFIG_WCN_PCIE
-	pcie_dev = get_wcn_device_info();
-	if (!pcie_dev) {
-		WCN_ERR("%s:PCIE device link error\n", __func__);
-		return -1;
-	}
-	/* make sure don't send at cmd to pcie when chip has power off */
-	if ((strncmp(mdbg_proc->write_buf, "at+loopcheck", 12) == 0)) {
-		if (atomic_inc_return(&pcie_dev->xmit_cnt) >=
-			BUS_REMOVE_CARD_VAL) {
-			atomic_dec(&pcie_dev->xmit_cnt);
-			WCN_INFO("ignore AT, chip has powroff\n");
-			return count;
+			sprintf(mdbg_proc->write_buf, "at+loopcheck=%u,%u\r",
+				ap_t, marlin_boot_t);
+			/* Be care the count value changed here before send to CP2 */
+			count = strlen(mdbg_proc->write_buf);
+			WCN_INFO("%s, count = %d", mdbg_proc->write_buf, (int)count);
 		}
 	}
 
-	ret = sprdwcn_bus_list_alloc(0, &head, &tail, &num);
-	if (ret || head == NULL || tail == NULL) {
-		WCN_ERR("%s:%d mbuf_link_alloc fail\n", __func__, __LINE__);
-		return -1;
-	}
-
-	if (at_buf_flag == 0) {
-		ret = dmalloc(pcie_dev, &at_dm, MDBG_WRITE_SIZE);
-		if (ret != 0)
+	if (g_match_config && g_match_config->unisoc_wcn_pcie) {
+		pcie_dev = get_wcn_device_info();
+		if (!pcie_dev) {
+			WCN_ERR("%s:PCIE device link error\n", __func__);
 			return -1;
-		at_buf_flag = 1;
-	}
-	mbuf = head;
-	mbuf->buf = (unsigned char *)(at_dm.vir);
-	mbuf->phy = (unsigned long)(at_dm.phy);
-	mbuf->len = at_dm.size;
-	memset(mbuf->buf, 0x0, mbuf->len);
-	memcpy(mbuf->buf, mdbg_proc->write_buf, count);
-	mbuf->next = NULL;
-	WCN_DBG("mbuf->buf:%s\n", mbuf->buf);
+		}
+		/* make sure don't send at cmd to pcie when chip has power off */
+		if ((strncmp(mdbg_proc->write_buf, "at+loopcheck", 12) == 0)) {
+			if (atomic_inc_return(&pcie_dev->xmit_cnt) >=
+				BUS_REMOVE_CARD_VAL) {
+				atomic_dec(&pcie_dev->xmit_cnt);
+				WCN_INFO("ignore AT, chip has powroff\n");
+				return count;
+			}
+		}
 
-	ret = sprdwcn_bus_push_list(0, head, tail, num);
-	if (ret)
-		WCN_INFO("sprdwcn_bus_push_list error=%d\n", ret);
-#else
-#ifdef CONFIG_WCN_INTEG
-	mdbg_send_atcmd(mdbg_proc->write_buf, count, WCN_ATCMD_WCND);
-#else
-	mdbg_send(mdbg_proc->write_buf, count, MDBG_SUBTYPE_AT);
-#endif
-#endif
+		ret = sprdwcn_bus_list_alloc(0, &head, &tail, &num);
+		if (ret || head == NULL || tail == NULL) {
+			WCN_ERR("%s:%d mbuf_link_alloc fail\n", __func__, __LINE__);
+			return -1;
+		}
+
+		if (at_buf_flag == 0) {
+			ret = dmalloc(pcie_dev, &at_dm, MDBG_WRITE_SIZE);
+			if (ret != 0)
+				return -1;
+			at_buf_flag = 1;
+		}
+		mbuf = head;
+		mbuf->buf = (unsigned char *)(at_dm.vir);
+		mbuf->phy = (unsigned long)(at_dm.phy);
+		mbuf->len = at_dm.size;
+		memset(mbuf->buf, 0x0, mbuf->len);
+		memcpy(mbuf->buf, mdbg_proc->write_buf, count);
+		mbuf->next = NULL;
+		WCN_DBG("mbuf->buf:%s\n", mbuf->buf);
+
+		ret = sprdwcn_bus_push_list(0, head, tail, num);
+		if (ret)
+			WCN_INFO("sprdwcn_bus_push_list error=%d\n", ret);
+	} else {
+		if (g_match_config && g_match_config->unisoc_wcn_integrated)
+			mdbg_send_atcmd(mdbg_proc->write_buf, count, WCN_ATCMD_WCND);
+		else
+			mdbg_send(mdbg_proc->write_buf, count, MDBG_SUBTYPE_AT);
+	}
+
 	return count;
 }
 
@@ -984,8 +1013,7 @@ int mdbg_memory_alloc(void)
  * TX: pop_link(tx_cb), tx_complete(all_node_finish_tx_cb)
  * Rx: pop_link(rx_cb), push_link(prepare free buf)
  */
-#ifdef CONFIG_WCN_PCIE
-struct mchn_ops_t mdbg_proc_ops[MDBG_ASSERT_RX_OPS + 1] = {
+struct mchn_ops_t mdbg_proc_ops_pcie[MDBG_ASSERT_RX_OPS + 1] = {
 	{
 		.channel = WCN_AT_TX,
 		.inout = WCNBUS_TX,
@@ -1023,91 +1051,123 @@ struct mchn_ops_t mdbg_proc_ops[MDBG_ASSERT_RX_OPS + 1] = {
 		.push_link = assert_prepare_buf,
 	},
 };
-#else
+
+struct mchn_ops_t mdbg_proc_ops_sipc[MDBG_ASSERT_RX_OPS + 1] = {
+	{
+		.channel = WCN_SIPC_AT_TX,
+		.inout = WCNBUS_TX,
+		.pool_size = 5,
+		.pop_link = mdbg_tx_cb,
+		.chn_config.sipc_ch = WCN_INIT_SIPC_SBUF(
+				WCN_SIPC_DST, SIPC_CHN_ATCMD, 0,
+				"sbuf_atcmd_tx", 5, 128, 0,
+				0x2400, 0x2400)
+	},
+	{
+		.channel = WCN_SIPC_LOOPCHECK_RX,
+		.inout = WCNBUS_RX,
+		.pool_size = 1,
+		.pop_link = mdbg_loopcheck_read,
+		.chn_config.sipc_ch = WCN_INIT_SIPC_SBUF(
+				WCN_SIPC_DST, SIPC_CHN_LOOPCHECK,
+				WCN_CHN_CREATE | WCN_CHN_CALLBACK,
+				"sbuf_loopcheck", 0, 128, 1,
+				0x400, 0x400),
+	},
+	{
+		.channel = WCN_SIPC_AT_RX,
+		.inout = WCNBUS_RX,
+		.pool_size = 1,
+		.pop_link = mdbg_at_cmd_read,
+		.chn_config.sipc_ch = WCN_INIT_SIPC_SBUF(
+				WCN_SIPC_DST, SIPC_CHN_ATCMD, WCN_CHN_CALLBACK,
+				"sbuf_atcmd_rx", 5, 128, 0,
+				0x2400, 0x2400),
+	},
+	{
+		.channel = WCN_SIPC_ASSERT_RX,
+		.inout = WCNBUS_RX,
+		.pool_size = 1,
+		.pop_link = mdbg_assert_read,
+		.chn_config.sipc_ch = WCN_INIT_SIPC_SBUF(
+				WCN_SIPC_DST, SIPC_CHN_ASSERT,
+				WCN_CHN_CREATE | WCN_CHN_CALLBACK,
+				"sbuf_assert", 0, 1024, 1,
+				0x400, 0x400),
+	},
+};
+
 struct mchn_ops_t mdbg_proc_ops[MDBG_ASSERT_RX_OPS + 1] = {
 	{
 		.channel = WCN_AT_TX,
 		.inout = WCNBUS_TX,
 		.pool_size = 5,
 		.pop_link = mdbg_tx_cb,
-#ifdef CONFIG_WCN_SIPC
-		.chn_config.sipc_ch = WCN_INIT_SIPC_SBUF(
-				WCN_SIPC_DST, SIPC_CHN_ATCMD, 0,
-				"sbuf_atcmd_tx", 5, 128, 0,
-				0x2400, 0x2400)
-#endif
 	},
 	{
 		.channel = WCN_LOOPCHECK_RX,
 		.inout = WCNBUS_RX,
 		.pool_size = 1,
 		.pop_link = mdbg_loopcheck_read,
-#ifdef CONFIG_WCN_SIPC
-		.chn_config.sipc_ch = WCN_INIT_SIPC_SBUF(
-				WCN_SIPC_DST, SIPC_CHN_LOOPCHECK,
-				WCN_CHN_CREATE | WCN_CHN_CALLBACK,
-				"sbuf_loopcheck", 0, 128, 1,
-				0x400, 0x400),
-#endif
 	},
 	{
 		.channel = WCN_AT_RX,
 		.inout = WCNBUS_RX,
 		.pool_size = 1,
 		.pop_link = mdbg_at_cmd_read,
-#ifdef CONFIG_WCN_SIPC
-		.chn_config.sipc_ch = WCN_INIT_SIPC_SBUF(
-				WCN_SIPC_DST, SIPC_CHN_ATCMD, WCN_CHN_CALLBACK,
-				"sbuf_atcmd_rx", 5, 128, 0,
-				0x2400, 0x2400),
-#endif
 	},
 	{
 		.channel = WCN_ASSERT_RX,
 		.inout = WCNBUS_RX,
 		.pool_size = 1,
 		.pop_link = mdbg_assert_read,
-#ifdef CONFIG_WCN_SIPC
-		.chn_config.sipc_ch = WCN_INIT_SIPC_SBUF(
-				WCN_SIPC_DST, SIPC_CHN_ASSERT,
-				WCN_CHN_CREATE | WCN_CHN_CALLBACK,
-				"sbuf_assert", 0, 1024, 1,
-				0x400, 0x400),
-#endif
 	},
 };
-#endif
 
-#ifdef CONFIG_WCN_PCIE
+struct mchn_ops_t *get_mdbg_proc_op(void)
+{
+	struct wcn_match_data *g_match_config = get_wcn_match_config();
+
+	if (g_match_config && g_match_config->unisoc_wcn_pcie)
+		return mdbg_proc_ops_pcie;
+	else if (g_match_config && g_match_config->unisoc_wcn_sipc)
+		return mdbg_proc_ops_sipc;
+	else
+		return mdbg_proc_ops;
+}
+
 static struct dma_buf at_buf[3];
-#endif
-
 void mdbg_fs_channel_destroy(void)
 {
 	int i;
+	struct mchn_ops_t *p_mdbg_proc_ops = get_mdbg_proc_op();
+	struct wcn_match_data *g_match_config = get_wcn_match_config();
 
 	for (i = 0; i <= MDBG_ASSERT_RX_OPS; i++)
-		sprdwcn_bus_chn_deinit(&mdbg_proc_ops[i]);
-#ifdef CONFIG_WCN_PCIE
-	free_prepare_buf(&at_buf[0]);
-	free_prepare_buf(&at_buf[1]);
-	free_prepare_buf(&at_buf[2]);
-#endif
+		sprdwcn_bus_chn_deinit(p_mdbg_proc_ops + i);
+
+	if (g_match_config && g_match_config->unisoc_wcn_pcie) {
+		free_prepare_buf(&at_buf[0]);
+		free_prepare_buf(&at_buf[1]);
+		free_prepare_buf(&at_buf[2]);
+	}
 }
 
 void mdbg_fs_channel_init(void)
 {
 	int i;
+	struct mchn_ops_t *p_mdbg_proc_ops = get_mdbg_proc_op();
+	struct wcn_match_data *g_match_config = get_wcn_match_config();
 
 	for (i = 0; i <= MDBG_ASSERT_RX_OPS; i++)
-		sprdwcn_bus_chn_init(&mdbg_proc_ops[i]);
+		sprdwcn_bus_chn_init(p_mdbg_proc_ops + i);
 
-#ifdef CONFIG_WCN_PCIE
+	if (g_match_config && g_match_config->unisoc_wcn_pcie) {
 		/* PCIe: malloc for rx buf */
 		prepare_free_buf(&at_buf[0], 12, 256, 1);
 		prepare_free_buf(&at_buf[1], 13, 256, 1);
 		prepare_free_buf(&at_buf[2], 14, 256, 1);
-#endif
+	}
 }
 
 static  void mdbg_memory_free(void)
@@ -1127,6 +1187,8 @@ static  void mdbg_memory_free(void)
 
 int proc_fs_init(void)
 {
+	struct wcn_match_data *g_match_config = get_wcn_match_config();
+
 	mdbg_proc = kzalloc(sizeof(struct mdbg_proc_t), GFP_KERNEL);
 	if (!mdbg_proc)
 		return -ENOMEM;
@@ -1162,9 +1224,10 @@ int proc_fs_init(void)
 						mdbg_proc->procdir,
 						&mdbg_snap_shoot_seq_fops,
 						&(mdbg_proc->snap_shoot));
-#ifndef CONFIG_WCN_PCIE
-	mdbg_fs_channel_init();
-#endif
+
+	if (g_match_config && !g_match_config->unisoc_wcn_pcie)
+		mdbg_fs_channel_init();
+
 	init_completion(&mdbg_proc->assert.completed);
 	init_completion(&mdbg_proc->loopcheck.completed);
 	init_completion(&mdbg_proc->at_cmd.completed);

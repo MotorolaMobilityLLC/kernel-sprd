@@ -26,32 +26,30 @@ WCN_MARLIN_COMMON_FILES += bufring.o \
 #common obj end
 
 ifeq ($(TARGET_BUILD_VARIANT),user)
-ccflags-y += -DCONFIG_WCN_USER
+ccflags-y += -DFLAG_WCN_USER
 endif
 
-obj-$(CONFIG_WCN_BOOT) := marlin.o
-marlin-$(CONFIG_WCN_PCIE) += pcie_boot.o
-marlin-$(CONFIG_WCN_SWD) += wcn_swd_dap.o
+obj-y := marlin.o
+marlin-y += pcie_boot.o
+marlin-y += wcn_swd_dap.o
 
 #marlin3:sdio pcie
 MARLINOFILES += wcn_boot.o \
 		wcn_dump.o \
 		wcn_op.o
 
-marlin-$(CONFIG_SDIOHAL) += mem_pd_mgr.o
-marlin-$(CONFIG_WCN_UTILS) += wcn_debugfs.o
+marlin-y += mem_pd_mgr.o
+marlin-$(CONFIG_DEBUG_FS) += wcn_debugfs.o
 
 marlin-objs += $(WCN_MARLIN_COMMON_FILES)
 marlin-objs += $(MARLINOFILES)
 
 #WCN_PLATFORM
-obj-$(CONFIG_WCN_PLATFORM) := wcn_platform.o
+obj-y := wcn_platform.o
 
 wcn_platform-c-objs += $(WCN_MARLIN_COMMON_FILES)
 
-ifeq ($(CONFIG_WCN_INTEG),y)
 wcn_platform-c-objs += rf/rf.o
 wcn_platform-c-objs +=  wcn_dump_integrate.o
-endif
 
 wcn_platform-objs += $(wcn_platform-c-objs)

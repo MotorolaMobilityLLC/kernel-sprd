@@ -70,4 +70,12 @@ long int wcn_ap_notify_btwf_time(void);
 void marlin_bootup_time_update(void);
 unsigned long int marlin_bootup_time_get(void);
 char *wcn_get_kernel_time(void);
+
+int wcn_write_data_to_phy_addr(phys_addr_t phy_addr,
+			       void *src_data, u32 size);
+int wcn_read_data_from_phy_addr(phys_addr_t phy_addr,
+				void *tar_data, u32 size);
+void *wcn_mem_ram_vmap_nocache(phys_addr_t start, size_t size,
+			       unsigned int *count);
+void wcn_mem_ram_unmap(const void *mem, unsigned int count);
 #endif

@@ -41,7 +41,7 @@
 #include <linux/unistd.h>
 #include <linux/vmalloc.h>
 #include <linux/workqueue.h>
-
+#include <misc/wcn_integrate_platform.h>
 #include "linux/sipc.h"
 
 #include "wcn_integrate_dev.h"
@@ -83,38 +83,6 @@
 
 #define WCN_BTWF_CPU_RESET 1
 #define WCN_BTWF_CPU_RESET_RELEASE 2
-
-struct platform_chip_id {
-	u32 aon_chip_id0;
-	u32 aon_chip_id1;
-	u32 aon_platform_id0;
-	u32 aon_platform_id1;
-	u32 aon_chip_id;
-};
-
-enum {
-	WCN_PLATFORM_TYPE_SHARKLE,
-	WCN_PLATFORM_TYPE_PIKE2,
-	WCN_PLATFORM_TYPE_SHARKL3,
-	WCN_PLATFORM_TYPE_QOGIRL6,
-	WCN_PLATFORM_TYPE,
-};
-
-enum wcn_gnss_type {
-	WCN_GNSS_TYPE_INVALID,
-	WCN_GNSS_TYPE_GL,
-	WCN_GNSS_TYPE_BD,
-};
-
-enum wcn_aon_chip_id {
-	WCN_AON_CHIP_ID_INVALID,
-	WCN_SHARKLE_CHIP_AA_OR_AB,
-	WCN_SHARKLE_CHIP_AC,
-	WCN_SHARKLE_CHIP_AD,
-	WCN_PIKE2_CHIP,
-	WCN_PIKE2_CHIP_AA,
-	WCN_PIKE2_CHIP_AB,
-};
 
 struct wcn_chip_type {
 	u32 chipid;
@@ -167,9 +135,8 @@ struct wcn_dfs_sync_info {
 #define WCN_SYS_DFS_SYNC_ADDR_OFFSET (0x007ffb00)
 #define WCN_SYS_RFI_SYNC_ADDR_OFFSET (0x007ffb04)
 
-#ifdef CONFIG_UMW2631_I
-#define WCN_SPECIAL_SHARME_MEM_ADDR	(0x007fdc00)
-struct wcn_special_share_mem {
+#define QOGIRL6_WCN_SPECIAL_SHARME_MEM_ADDR	(0x007fdc00)
+struct qogirl6_wcn_special_share_mem {
 	struct marlin_special_share_mem marlin;
 	u32 gnss_flag_addr;
 	u32 include_gnss;
@@ -179,7 +146,7 @@ struct wcn_special_share_mem {
 	u32 efuse_temper_val;
 	struct wifi_special_share_mem wifi;
 };
-#else
+
 #define WCN_SPECIAL_SHARME_MEM_ADDR	(0x0017c000)
 struct wcn_special_share_mem {
 	/* 0x17c000 */
@@ -201,24 +168,13 @@ struct wcn_special_share_mem {
 	/* 0x17cf74 */
 	struct gnss_special_share_mem gnss;
 };
-#endif
-/* for qogirl6 */
-
-/* Already defined in include/misc/marlin_platform.h */
-//typedef int (*marlin_reset_callback) (void *para);
 
 extern struct platform_chip_id g_platform_chip_id;
-extern char functionmask[8];
+extern char integ_functionmask[8];
+extern struct qogirl6_wcn_special_share_mem *qogirl6_s_wssm_phy_offset_p;
 extern struct wcn_special_share_mem *s_wssm_phy_offset_p;
 extern struct wcn_gnss_special_share_mem s_wcngnss_sync_addr;
 
-int wcn_write_data_to_phy_addr(phys_addr_t phy_addr,
-			       void *src_data, u32 size);
-int wcn_read_data_from_phy_addr(phys_addr_t phy_addr,
-				void *tar_data, u32 size);
-void *wcn_mem_ram_vmap_nocache(phys_addr_t start, size_t size,
-			       unsigned int *count);
-void wcn_mem_ram_unmap(const void *mem, unsigned int count);
 void wcn_dfs_poweroff_state_clear(struct wcn_device *wcn_dev);
 void wcn_dfs_poweroff_shutdown_clear(struct wcn_device *wcn_dev);
 void wcn_dfs_poweron_status_clear(struct wcn_device *wcn_dev);
@@ -272,4 +228,12 @@ u32 wcn_parse_platform_chip_id(struct wcn_device *wcn_dev);
 void mdbg_hold_cpu(void);
 enum wcn_aon_chip_id wcn_get_aon_chip_id(void);
 void wcn_merlion_power_control(bool enable);
+
+enum wcn_clock_mode integ_wcn_get_xtal_26m_clk_mode(void);
+void integ_wcn_chip_power_off(void);
+int integ_wcn_get_module_status_changed(void);
+void integ_wcn_set_module_status_changed(bool status);
+int integ_marlin_get_module_status(void);
+int start_integ_marlin(u32 subsys);
+int stop_integ_marlin(u32 subsys);
 #endif

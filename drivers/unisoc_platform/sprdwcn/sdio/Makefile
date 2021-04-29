@@ -3,12 +3,10 @@
 # Makefile for Unisoc WCN sdio configuration
 #
 
-obj-$(CONFIG_SDIOHAL) += sdiohal_main.o
-obj-$(CONFIG_SDIOHAL) += sdiohal_common.o
-obj-$(CONFIG_SDIOHAL) += sdiohal_tx.o
-obj-$(CONFIG_SDIOHAL) += sdiohal_rx.o
-obj-$(CONFIG_SDIOHAL) += sdiohal_if.o
+obj-y += sdiohal_main.o
+obj-y += sdiohal_common.o
+obj-y += sdiohal_tx.o
+obj-y += sdiohal_rx.o
+obj-y += sdiohal_if.o
 
-ifdef CONFIG_DEBUG_FS
-obj-$(CONFIG_SDIOHAL) += sdiohal_ctl.o
-endif
+# obj-$(CONFIG_DEBUG_FS) += sdiohal_ctl.o

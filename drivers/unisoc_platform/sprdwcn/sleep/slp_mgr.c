@@ -63,27 +63,34 @@ int slp_mgr_wakeup(enum slp_subsys subsys)
 	int ret;
 	int do_dump = 0;
 	ktime_t time_end;
+	struct wcn_match_data *g_match_config = get_wcn_match_config();
 
 	mutex_lock(&(slp_mgr.wakeup_lock));
 	if (STAY_SLPING == (atomic_read(&(slp_mgr.cp2_state)))) {
 		ap_wakeup_cp();
 		time_end = ktime_add_ms(ktime_get(), 5);
 		while (1) {
-			ret = sprdwcn_bus_aon_readb(REG_BTWF_SLP_STS, &slp_sts);
+			ret = sprdwcn_bus_aon_readb(get_btwf_slp_sts_reg(), &slp_sts);
 			if (ret < 0) {
 				WCN_ERR("read slp sts err:%d\n", ret);
 				usleep_range(40, 80);
 				goto try_timeout;
 			}
 			slp_sts &= 0xF0;
-			if ((slp_sts != BTWF_IN_DEEPSLEEP) &&
-#ifdef CONFIG_UMW2652
-			   (slp_sts != BTWF_PLL_PWR_WAIT) &&
-			   (slp_sts != BTWF_XLT_WAIT) &&
-			   (slp_sts != BTWF_XLTBUF_WAIT) &&
-#endif
-			   (slp_sts != BTWF_IN_DEEPSLEEP_XLT_ON))
-				break;
+
+			if (g_match_config && g_match_config->unisoc_wcn_m3lite) {
+				if ((slp_sts != BTWF_IN_DEEPSLEEP) &&
+				   (slp_sts != M3L_BTWF_PLL_PWR_WAIT) &&
+				   (slp_sts != M3L_BTWF_XLT_WAIT) &&
+				   (slp_sts != M3L_BTWF_XLTBUF_WAIT) &&
+				   (slp_sts != get_btwf_in_deepslp_xtl_on()))
+					break;
+			} else {
+				if ((slp_sts != BTWF_IN_DEEPSLEEP) &&
+				   (slp_sts != get_btwf_in_deepslp_xtl_on()))
+					break;
+			}
+
 try_timeout:
 			if (do_dump) {
 				atomic_set(&(slp_mgr.cp2_state), STAY_AWAKING);

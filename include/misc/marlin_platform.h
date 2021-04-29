@@ -48,13 +48,6 @@ enum wcn_clock_mode {
 	WCN_CLOCK_MODE_BUFFER,
 };
 
-#if (defined CONFIG_WCN_INTEG) || (defined CONFIG_SC2355) || (defined CONFIG_UMW2652) \
-	|| (defined CONFIG_UMW2653) || (defined CONFIG_UMW2631_I)
-
-typedef int (*marlin_reset_callback) (void *para);
-extern marlin_reset_callback marlin_reset_func;
-extern void *marlin_callback_para;
-
 enum wcn_clock_type wcn_get_xtal_26m_clk_type(void);
 enum wcn_clock_mode wcn_get_xtal_26m_clk_mode(void);
 const char *wcn_get_chip_name(void);
@@ -82,84 +75,7 @@ void wcn_chip_power_off(void);
 void mdbg_assert_interface(char *str);
 char *gnss_firmware_path_get(void);
 
-#else
-static inline int marlin_reset_register_notify(void *callback_func, void *para)
-{
-	return 0;
-}
-static inline int marlin_reset_unregister_notify(void)
-{
-	return 0;
-}
-static inline void wcn_chip_power_off(void) {}
-static inline const char *wcn_get_chip_name(void)
-{
-	return NULL;
-}
-extern unsigned char flag_reset;
-static inline void wcn_set_module_status_changed(bool status) {}
-static inline int wcn_get_module_status_changed(void)
-{
-	return 0;
-}
-static inline void marlin_chip_en(bool enable, bool reset) {}
-static inline void marlin_set_download_status(int f) {}
-static inline void marlin_power_off(enum wcn_sub_sys subsys) {}
-static inline int marlin_set_wakeup(enum wcn_sub_sys subsys)
-{
-	return 0;
-}
-static inline int marlin_set_sleep(enum wcn_sub_sys subsys, bool enable)
-{
-	return 0;
-}
-static inline int start_marlin(enum wcn_sub_sys subsys)
-{
-	return 0;
-}
-static inline int stop_marlin(enum wcn_sub_sys subsys)
-{
-	return 0;
-}
-static inline int marlin_get_module_status(void)
-{
-	return 0;
-}
-static inline int marlin_get_power(void)
-{
-	return 0;
-}
-static inline void *marlin_reset_func(void *call_back)
-{
-	return NULL;
-}
-static inline void *marlin_callback_para(void)
-{
-	return NULL;
-}
-static inline enum wcn_clock_type wcn_get_xtal_26m_clk_type(void)
-{
-	return 0;
-}
-static inline char *gnss_firmware_path_get(void)
-{
-	return NULL;
-}
-#endif
-
-#if (defined CONFIG_SC2355) || (defined CONFIG_UMW2652) \
-	|| (defined CONFIG_UMW2653) || (defined CONFIG_UMW2631_I)
 enum wcn_chip_id_type wcn_get_chip_type(void);
 int cali_ini_need_download(enum wcn_sub_sys subsys);
-#else
-static inline enum wcn_chip_id_type wcn_get_chip_type(void)
-{
-	return WCN_CHIP_ID_INVALID;
-}
-static inline int cali_ini_need_download(enum wcn_sub_sys subsys)
-{
-	return 0;
-}
-#endif
 
 #endif

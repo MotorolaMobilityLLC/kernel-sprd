@@ -228,6 +228,11 @@ struct wifi_cali_t {
 	struct tpc_cfg_t tpc_cfg;
 };
 
+struct wifi_calibration {
+	struct wifi_config_t config_data;
+	struct wifi_cali_t cali_data;
+};
+
 int get_connectivity_config_param(struct wifi_config_t *p);
 int get_connectivity_cali_param(struct wifi_cali_t *p);
 void dump_cali_file(struct wifi_cali_t *p);
