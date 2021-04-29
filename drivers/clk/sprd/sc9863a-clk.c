@@ -27,19 +27,20 @@
 static SPRD_PLL_SC_GATE_CLK_FW_NAME(mpll0_gate, "mpll0-gate", "ext-26m", 0x94,
 				    0x1000, BIT(0), CLK_IGNORE_UNUSED, 0, 240);
 static SPRD_PLL_SC_GATE_CLK_FW_NAME(dpll0_gate, "dpll0-gate", "ext-26m", 0x98,
-				    0x1000, BIT(0), 0, 0, 240);
+				    0x1000, BIT(0), CLK_IGNORE_UNUSED, 0, 240);
 static SPRD_PLL_SC_GATE_CLK_FW_NAME(lpll_gate, "lpll-gate", "ext-26m", 0x9c,
-				    0x1000, BIT(0), 0, 0, 240);
+				    0x1000, BIT(0), CLK_IGNORE_UNUSED, 0, 240);
 static SPRD_PLL_SC_GATE_CLK_FW_NAME(gpll_gate, "gpll-gate", "ext-26m", 0xa8,
-				    0x1000, BIT(0), 0, 0, 240);
+				    0x1000, BIT(0), CLK_IGNORE_UNUSED, 0, 240);
 static SPRD_PLL_SC_GATE_CLK_FW_NAME(dpll1_gate, "dpll1-gate", "ext-26m", 0x1dc,
-				    0x1000, BIT(0), 0, 0, 240);
+				    0x1000, BIT(0), CLK_IGNORE_UNUSED, 0, 240);
 static SPRD_PLL_SC_GATE_CLK_FW_NAME(mpll1_gate, "mpll1-gate", "ext-26m", 0x1e0,
 				    0x1000, BIT(0), CLK_IGNORE_UNUSED, 0, 240);
 static SPRD_PLL_SC_GATE_CLK_FW_NAME(mpll2_gate, "mpll2-gate", "ext-26m", 0x1e4,
 				    0x1000, BIT(0), CLK_IGNORE_UNUSED, 0, 240);
 static SPRD_PLL_SC_GATE_CLK_FW_NAME(isppll_gate, "isppll-gate", "ext-26m",
-				    0x1e8, 0x1000, BIT(0), 0, 0, 240);
+				    0x1e8, 0x1000, BIT(0), CLK_IGNORE_UNUSED,
+				    0, 240);
 
 static struct sprd_clk_common *sc9863a_pmu_gate_clks[] = {
 	/* address base is 0x402b0000 */
