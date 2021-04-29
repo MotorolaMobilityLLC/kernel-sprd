@@ -247,6 +247,11 @@ config USB_CONFIGFS
 	  appropriate symbolic links.
 	  For more information see Documentation/usb/gadget_configfs.txt.
 
+config USB_F_VSERIAL_BYPASS_USER
+	bool "vser write bypass user"
+	help
+	  The function allow vser write in kernel.
+
 config USB_CONFIGFS_SERIAL
 	bool "Generic serial bulk in/out"
 	depends on USB_CONFIGFS

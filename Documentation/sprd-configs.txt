@@ -14806,11 +14806,11 @@ CONFIG_SPRD_TSHM
 	[arch] arm64
 	[plat] qogirl6
 	[missing plat] qogirn6pro,sharkl3,sharkl5,sharkl5Pro
-	[field]make
-	[subsys]tee
-	[must]user
-	[missing plat description]only enabled in GPAPI enabled projects.
-	[function]Enable tshm driver for GPAPI used.
+	[field] make
+	[subsys] tee
+	[must] user
+	[missing plat description] only enabled in GPAPI enabled projects.
+	[function] Enable tshm driver for GPAPI used.
 CONFIG_SPRD_UID
 	[arch] arm64
 	[plat] qogirl6,sharkl5Pro
@@ -16229,6 +16229,15 @@ CONFIG_USB_F_VSERIAL
 	[must] user
 	[missing plat description] none
 	[function] USB gadget VSERIAL support.
+CONFIG_USB_F_VSERIAL_BYPASS_USER
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field] make
+	[subsys] usb
+	[must] user
+	[missing plat description] none
+	[function] Bypass modem log to usb in kernel.
 CONFIG_USB_GADGET
 	[arch] all
 	[plat] all

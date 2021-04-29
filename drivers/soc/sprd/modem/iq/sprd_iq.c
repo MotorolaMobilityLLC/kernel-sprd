@@ -65,8 +65,15 @@
 
 #define SPRD_IQ_CLASS_NAME		"sprd_iq"
 
-extern ssize_t vser_iq_write(char *buf, size_t count);
-extern void kernel_vser_register_callback(void *function);
+#ifdef CONFIG_USB_F_VSERIAL_BYPASS_USER
+extern ssize_t vser_pass_user_write(char *buf, size_t count);
+extern void kernel_vser_register_callback(void *function, void *p);
+extern void kernel_vser_set_pass_mode(bool pass);
+#else
+static ssize_t vser_pass_user_write(char *buf, size_t count) { return count; }
+static void kernel_vser_register_callback(void *function, void *p) {}
+static void kernel_vser_set_pass_mode(bool pass) {}
+#endif
 
 enum {
 	CMD_GET_IQ_BUF_INFO = 0x0,
@@ -166,7 +173,7 @@ static ssize_t sprd_iq_write(u32 paddr, u32 length)
 			continue;
 		}
 
-		ret = vser_iq_write(vaddr, len);
+		ret = vser_pass_user_write(vaddr, len);
 		if (ret < 0)
 			msleep(200);
 		else
@@ -235,7 +242,7 @@ static int sprd_iq_thread(void *data)
 }
 
 #ifdef CONFIG_USB_F_VSERIAL
-static void sprd_iq_complete(char *buf,  int length)
+static void sprd_iq_complete(char *buf,  unsigned int length, void *unused)
 {
 	char *vaddr;
 
@@ -560,7 +567,7 @@ static int sprd_iq_probe(struct platform_device *pdev)
 	iq.header_info->head_2->WR_RD_FLAG = IQ_BUF_INIT;
 
 #ifdef CONFIG_USB_F_VSERIAL
-	kernel_vser_register_callback((void *)sprd_iq_complete);
+	kernel_vser_register_callback((void *)sprd_iq_complete, NULL);
 #endif
 
 	iq.iq_thread = kthread_create(sprd_iq_thread, (void *)&iq, "iq_thread");
@@ -625,6 +632,7 @@ static int __init sprd_iq_init(void)
 		pr_err("no in iq mode\n");
 		return -ENODEV;
 	}
+	kernel_vser_set_pass_mode(true);
 	pr_debug("in iq mode and register iq driver\n");
 	return platform_driver_register(&iq_driver);
 }
