@@ -85,6 +85,11 @@ struct musb_ep {
 	const struct usb_endpoint_descriptor	*desc;
 	struct dma_channel		*dma;
 
+#if IS_ENABLED(CONFIG_USB_SPRD_DMA)
+	struct linklist_node_s	*dma_linklist;
+	dma_addr_t list_dma_addr;
+#endif
+
 	/* later things are modified based on usage */
 	struct list_head		req_list;
 

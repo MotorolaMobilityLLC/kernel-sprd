@@ -20,7 +20,9 @@
 
 #include "musb_core.h"
 #include "musb_trace.h"
-
+#if IS_ENABLED(CONFIG_USB_SPRD_DMA)
+#include "sprd_musbhsdma.h"
+#endif
 
 /* ----------------------------------------------------------------------- */
 
@@ -1777,6 +1779,17 @@ init_peripheral_ep(struct musb *musb, struct musb_ep *ep, u8 epnum, int is_in)
 		list_add_tail(&ep->end_point.ep_list, &musb->g.ep_list);
 	}
 
+#if IS_ENABLED(CONFIG_USB_SPRD_DMA)
+	if (epnum) {
+		ep->dma_linklist = dma_alloc_coherent(musb->controller,
+			sizeof(struct linklist_node_s) * LISTNODE_NUM,
+			&ep->list_dma_addr, GFP_KERNEL);
+
+		if (!ep->dma_linklist)
+			dev_err(musb->controller, "failed to allocate dma linklist\n");
+	}
+#endif
+
 	if (!epnum || hw_ep->is_shared_fifo) {
 		ep->end_point.caps.dir_in = true;
 		ep->end_point.caps.dir_out = true;
@@ -1785,6 +1798,20 @@ init_peripheral_ep(struct musb *musb, struct musb_ep *ep, u8 epnum, int is_in)
 	else
 		ep->end_point.caps.dir_out = true;
 }
+
+#if IS_ENABLED(CONFIG_USB_SPRD_DMA)
+static void
+free_peripheral_ep(struct musb *musb, struct musb_ep *ep, u8 epnum)
+{
+	if (epnum) {
+		dma_free_coherent(musb->controller,
+			sizeof(struct linklist_node_s) * LISTNODE_NUM,
+			ep->dma_linklist, ep->list_dma_addr);
+		ep->dma_linklist = NULL;
+		ep->list_dma_addr = 0;
+	}
+}
+#endif
 
 /*
  * Initialize the endpoints exposed to peripheral drivers, with backlinks
@@ -1819,6 +1846,27 @@ static inline void musb_g_init_endpoints(struct musb *musb)
 		}
 	}
 }
+
+#if IS_ENABLED(CONFIG_USB_SPRD_DMA)
+static inline void musb_g_free_endpoints(struct musb *musb)
+{
+	u8			epnum;
+	struct musb_hw_ep	*hw_ep;
+
+	for (epnum = 0, hw_ep = musb->endpoints;
+			epnum < musb->nr_endpoints;
+			epnum++, hw_ep++) {
+		if (hw_ep->is_shared_fifo) {
+			free_peripheral_ep(musb, &hw_ep->ep_in, epnum);
+		} else {
+			if (hw_ep->max_packet_sz_tx)
+				free_peripheral_ep(musb, &hw_ep->ep_in, epnum);
+			if (hw_ep->max_packet_sz_rx)
+				free_peripheral_ep(musb, &hw_ep->ep_out, epnum);
+		}
+	}
+}
+#endif
 
 /* called once during driver setup to initialize and link into
  * the driver model; memory is zeroed.
@@ -1869,6 +1917,9 @@ void musb_gadget_cleanup(struct musb *musb)
 		return;
 
 	cancel_delayed_work_sync(&musb->gadget_work);
+#if IS_ENABLED(CONFIG_USB_SPRD_DMA)
+	musb_g_free_endpoints(musb);
+#endif
 	usb_del_gadget_udc(&musb->g);
 }
 

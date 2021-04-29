@@ -97,6 +97,8 @@ static struct dma_channel *sprd_dma_channel_allocate(struct dma_controller *c,
 				MUSB_TXCSR_AUTOSET;
 			musb_writew(hw_ep->regs, MUSB_TXCSR, csr);
 		}
+		musb_channel->dma_linklist = hw_ep->ep_in.dma_linklist;
+		musb_channel->list_dma_addr = hw_ep->ep_in.list_dma_addr;
 	} else {
 		musb_channel = &(controller->channel[bit + 15]);
 		controller->used_channels |= (1 << (bit + 15));
@@ -108,6 +110,8 @@ static struct dma_channel *sprd_dma_channel_allocate(struct dma_controller *c,
 				MUSB_RXCSR_AUTOCLEAR;
 			musb_writew(hw_ep->regs, MUSB_RXCSR, csr);
 		}
+		musb_channel->dma_linklist = hw_ep->ep_out.dma_linklist;
+		musb_channel->list_dma_addr = hw_ep->ep_out.list_dma_addr;
 	}
 
 	/* Wait 9 more cycles for ensuring DMA can get USB request length */
@@ -1050,35 +1054,13 @@ irqreturn_t sprd_dma_interrupt(struct musb *musb, u32 int_hsdma)
 }
 EXPORT_SYMBOL_GPL(sprd_dma_interrupt);
 
-static void sprd_musb_free_nodes(struct sprd_musb_dma_controller *controller)
-{
-	struct sprd_musb_dma_channel *chp = NULL;
-	struct musb *musb;
-	int ch;
-
-	if (!controller)
-		return;
-
-	musb = controller->private_data;
-	for (ch = 0; ch < MUSB_DMA_CHANNELS; ch++) {
-		chp = &controller->channel[ch];
-		if (chp->dma_linklist) {
-			dma_free_coherent(musb->controller,
-				sizeof(struct linklist_node_s) * LISTNODE_NUM,
-				chp->dma_linklist, chp->list_dma_addr);
-			chp->dma_linklist = NULL;
-			chp->list_dma_addr = 0;
-		}
-	}
-}
-
 void sprd_musb_dma_controller_destroy(struct dma_controller *c)
 {
 	struct sprd_musb_dma_controller *controller = container_of(c,
 			struct sprd_musb_dma_controller, controller);
 
 	sprd_dma_controller_stop(controller);
-	sprd_musb_free_nodes(controller);
+
 	kfree(controller);
 }
 EXPORT_SYMBOL_GPL(sprd_musb_dma_controller_destroy);
@@ -1087,8 +1069,6 @@ struct dma_controller *sprd_musb_dma_controller_create(struct musb *musb,
 						       void __iomem *base)
 {
 	struct sprd_musb_dma_controller *controller;
-	struct sprd_musb_dma_channel *chp = NULL;
-	int	ch;
 
 	controller = kzalloc(sizeof(*controller), GFP_KERNEL);
 	if (!controller)
@@ -1102,21 +1082,6 @@ struct dma_controller *sprd_musb_dma_controller_create(struct musb *musb,
 	controller->controller.channel_program = sprd_dma_channel_program;
 	controller->controller.channel_abort = sprd_dma_channel_abort;
 	init_waitqueue_head(&controller->wait);
-
-	for (ch = 0; ch < MUSB_DMA_CHANNELS; ch++) {
-		chp = &controller->channel[ch];
-		chp->dma_linklist = dma_alloc_coherent(musb->controller,
-			sizeof(struct linklist_node_s) * LISTNODE_NUM,
-			&chp->list_dma_addr, GFP_KERNEL);
-
-		if (!chp->dma_linklist) {
-			dev_err(musb->controller,
-				 "failed to allocate dma linklist\n");
-			sprd_musb_free_nodes(controller);
-			kfree(controller);
-			return NULL;
-		}
-	}
 
 	return &controller->controller;
 }
