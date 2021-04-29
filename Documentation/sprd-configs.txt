@@ -16760,6 +16760,15 @@ CONFIG_SPRD_PIKE2_POWER_DEBUG
 	[must]
 	[missing plat description] none
 	[function]
+CONFIG_SPRD_PIKE2_SLEEP
+	[arch] arm
+	[plat] pike2
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
 CONFIG_SPRD_PIKE2_USB2_PHY
 	[arch] arm
 	[plat] pike2
