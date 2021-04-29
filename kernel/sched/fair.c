@@ -6573,6 +6573,7 @@ static inline int select_energy_cpu_idx(struct energy_env *eenv)
 	int sd_cpu = -1;
 	int cpu_idx;
 	int margin;
+	int prefer_active = schedtune_prefer_active(eenv->p);
 
 	sd_cpu = eenv->cpu[EAS_CPU_PRV].cpu_id;
 	sd = rcu_dereference(per_cpu(sd_ea, sd_cpu));
@@ -6640,6 +6641,18 @@ static inline int select_energy_cpu_idx(struct energy_env *eenv)
 			eenv->next_idx = cpu_idx;
 			/* break out if we want to stop on first saving candidate */
 			if (sched_feat(FBT_STRICT_ORDER))
+				break;
+		}
+		if (eenv->cpu[cpu_idx].nrg_delta ==
+			eenv->cpu[eenv->next_idx].nrg_delta) {
+			int this_cpu = eenv->cpu[cpu_idx].cpu_id;
+			int next_cpu = eenv->cpu[eenv->next_idx].cpu_id;
+
+			if (prefer_active && idle_cpu(next_cpu)
+				&& !idle_cpu(this_cpu))
+				eenv->next_idx = cpu_idx;
+
+			if (prefer_active && sched_feat(FBT_STRICT_ORDER))
 				break;
 		}
 	}
@@ -7439,7 +7452,7 @@ static int start_cpu(struct task_struct *p, bool boosted)
 }
 
 static inline int find_best_target(struct task_struct *p, int *backup_cpu,
-				   bool boosted, bool prefer_idle)
+				   bool prefer_idle, bool prefer_active)
 {
 	unsigned long best_idle_min_cap_orig = ULONG_MAX;
 	unsigned long min_util = boosted_task_util(p);
@@ -7567,8 +7580,8 @@ static inline int find_best_target(struct task_struct *p, int *backup_cpu,
 				continue;
 
 			if (idle_cpu(i)) {
-				if (prefer_idle ||
-				    cpumask_test_cpu(i, &min_cap_cpu_mask)) {
+				if (prefer_idle || (!prefer_active &&
+				    cpumask_test_cpu(i, &min_cap_cpu_mask))) {
 					trace_sched_find_best_target(p,
 						prefer_idle, min_util, cpu,
 						best_idle_cpu, best_active_cpu,
@@ -7902,8 +7915,8 @@ static int find_energy_efficient_cpu(struct sched_domain *sd,
 				break;
 		}
 	} else {
-		int boosted = (schedtune_task_boost(p) > 0);
-		int prefer_idle;
+		int boosted = schedtune_task_boost(p);
+		int prefer_idle, prefer_active;
 
 		/*
 		 * give compiler a hint that if sched_features
@@ -7913,19 +7926,22 @@ static int find_energy_efficient_cpu(struct sched_domain *sd,
 		prefer_idle = sched_feat(EAS_PREFER_IDLE) ?
 				(schedtune_prefer_idle(p) > 0) : 0;
 
+		prefer_active = schedtune_prefer_active(p);
+
 		eenv->max_cpu_count = EAS_CPU_BKP + 1;
 
 		/* Find a cpu with sufficient capacity */
 		target_cpu = find_best_target(p, &eenv->cpu[EAS_CPU_BKP].cpu_id,
-					      boosted, prefer_idle);
+					      prefer_idle, prefer_active);
 
 		/* Immediately return a found idle CPU for a prefer_idle or boosted task */
 		if (((prefer_idle || boosted > 0) && target_cpu >= 0 && idle_cpu(target_cpu)) ||
-		    cpumask_test_cpu(target_cpu, &min_cap_cpu_mask))
+		    (!prefer_active && cpumask_test_cpu(target_cpu, &min_cap_cpu_mask)))
 			return target_cpu;
 
-
 		if (target_cpu == prev_cpu) {
+			if (prefer_active && boosted < 0)
+				return prev_cpu;
 			target_cpu = eenv->cpu[EAS_CPU_BKP].cpu_id;
 			eenv->cpu[EAS_CPU_BKP].cpu_id = -1;
 		}
