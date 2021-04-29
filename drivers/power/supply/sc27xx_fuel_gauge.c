@@ -764,7 +764,7 @@ static int sc27xx_fgu_get_capacity(struct sc27xx_fgu_data *data, int *cap,
 		data->normal_temp_cap = 1000;
 
 	dev_info(data->dev, "init_cap = %d, init_clbcnt = %d, cur_clbcnt = %d, normal_cap = %d, "
-		 "delta_cap = %d, Tbat  = %d, uusoc_vbat\n",
+		 "delta_cap = %d, Tbat  = %d, uusoc_vbat = %d\n",
 		 data->init_cap, data->init_clbcnt, cur_clbcnt,
 		 data->normal_temp_cap, delta_cap, data->bat_temp, data->uusoc_vbat);
 
