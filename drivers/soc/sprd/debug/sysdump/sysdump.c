@@ -613,6 +613,9 @@ void sysdump_ipi(struct pt_regs *regs)
 {
 	int cpu = smp_processor_id();
 
+	if (crash_notes == NULL)
+		crash_notes = &crash_notes_temp;
+
 	/*do flush and save only in oops path */
 	if (oops_in_progress) {
 		memcpy((void *)&(sprd_sysdump_extra.cpu_context[cpu]),
@@ -1530,10 +1533,11 @@ int sysdump_sysctl_init(void)
 	memset(g_ktxt_hash_data, 0x55, SHA1_DIGEST_SIZE);
 	if (sysdump_shash_init())
 		return -ENOMEM;
-
+#if 0
 	/*	register sysdump panic notifier  */
 	atomic_notifier_chain_register(&panic_notifier_list,
 					&sysdump_panic_event_nb);
+#endif
 	sprd_sysdump_init = 1;
 
 	sprd_sysdump_enable_prepare();
@@ -1546,7 +1550,25 @@ int sysdump_sysctl_init(void)
 #endif
 	return 0;
 }
-
+static int sysdump_panic_event_init(void)
+{
+	/* register sysdump panic notifier */
+	atomic_notifier_chain_register(&panic_notifier_list,
+						&sysdump_panic_event_nb);
+	return 0;
+}
+static __init int sysdump_early_init(void)
+{
+	int ret;
+	/* register sysdump panic notifier */
+	sysdump_panic_event_init();
+	/* init kaslr_offset if need */
+	ret = kaslr_info_init();
+	if (ret)
+		pr_emerg("kaslr_info init failed!!!\n");
+	return 0;
+}
+early_initcall(sysdump_early_init);
 void sysdump_sysctl_exit(void)
 {
 	if (sysdump_sysctl_hdr)
@@ -1562,7 +1584,6 @@ void sysdump_sysctl_exit(void)
 	ylog_buffer_exit();
 #endif
 }
-early_initcall(kaslr_info_init);
 late_initcall_sync(sysdump_sysctl_init);
 module_exit(sysdump_sysctl_exit);
 
