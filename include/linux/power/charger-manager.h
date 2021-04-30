@@ -15,9 +15,34 @@
 #ifndef _CHARGER_MANAGER_H
 #define _CHARGER_MANAGER_H
 
-#include <linux/power_supply.h>
-#include <linux/extcon.h>
 #include <linux/alarmtimer.h>
+#include <linux/extcon.h>
+#include <linux/power_supply.h>
+#include <linux/power/sprd_vote.h>
+
+enum power_supply_charger_type {
+	POWER_SUPPLY_CHARGER_TYPE_UNKNOWN = 0,
+	POWER_SUPPLY_USB_CHARGER_TYPE_SDP,		/* Standard Downstream Port */
+	POWER_SUPPLY_USB_CHARGER_TYPE_DCP,		/* Dedicated Charging Port */
+	POWER_SUPPLY_USB_CHARGER_TYPE_CDP,		/* Charging Downstream Port */
+	POWER_SUPPLY_USB_CHARGER_TYPE_ACA,		/* Accessory Charger Adapters */
+	POWER_SUPPLY_USB_CHARGER_TYPE_C,		/* Type C Port */
+	POWER_SUPPLY_USB_CHARGER_TYPE_PD,		/* Power Delivery Port */
+	POWER_SUPPLY_USB_CHARGER_TYPE_PD_DRP,		/* PD Dual Role Port */
+	POWER_SUPPLY_USB_CHARGER_TYPE_PD_PPS,		/* PD Programmable Power Supply */
+	POWER_SUPPLY_USB_CHARGER_TYPE_APPLE_BRICK_ID,	/* Apple Charging Method */
+	POWER_SUPPLY_USB_CHARGER_TYPE_SFCP_1P0,		/* SFCP1.0 Port*/
+	POWER_SUPPLY_USB_CHARGER_TYPE_SFCP_2P0,		/* SFCP2.0 Port*/
+	POWER_SUPPLY_WIRELESS_CHARGER_TYPE_BPP,		/* BPP wireless method */
+	POWER_SUPPLY_WIRELESS_CHARGER_TYPE_EPP,		/* EPP wiresess method */
+};
+
+enum cm_charge_info_cmd {
+	CM_CHARGE_INFO_CHARGE_LIMIT = BIT(0),
+	CM_CHARGE_INFO_INPUT_LIMIT = BIT(1),
+	CM_CHARGE_INFO_THERMAL_LIMIT = BIT(2),
+	CM_CHARGE_INFO_JEITA_LIMIT = BIT(3),
+};
 
 enum data_source {
 	CM_BATTERY_PRESENT,
@@ -705,6 +730,7 @@ struct charger_manager {
 	struct cm_track_capacity track;
 
 	struct wakeup_source charge_ws;
+	struct sprd_vote *cm_charge_vote;
 };
 
 #ifdef CONFIG_CHARGER_MANAGER
