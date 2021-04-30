@@ -3288,6 +3288,8 @@ static int try_charger_enable_by_psy(struct charger_manager *cm, bool enable)
 		power_supply_put(psy);
 		if (err)
 			return err;
+		if (desc->psy_charger_stat[1])
+			break;
 	}
 
 	return 0;
