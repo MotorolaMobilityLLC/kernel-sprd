@@ -271,54 +271,6 @@ static void iface_stop_net(struct sprd_vif *vif)
 	spin_unlock_bh(&priv->list_lock);
 }
 
-static int iface_get_mac_from_file(struct sprd_vif *vif, u8 *addr)
-{
-	const struct firmware *fw;
-	int ret;
-
-	ret = request_firmware(&fw, WIFI_MAC_ADDR_PATH,
-			       wiphy_dev(vif->wdev.wiphy));
-
-	if (ret) {
-		netdev_err(vif->ndev, "WIFI MAC not found in %s!\n",
-			   WIFI_MAC_ADDR_PATH);
-		if (request_firmware
-		    (&fw, WIFI_MAC_ADDR_PATH, wiphy_dev(vif->wdev.wiphy))) {
-			netdev_err(vif->ndev, "WIFI MAC not found in %s!\n",
-				   WIFI_MAC_ADDR_TEMP);
-			return -ENOENT;
-		}
-	}
-
-	if (!fw || !fw->data || fw->size <= 0) {
-		netdev_err(vif->ndev, "%s invalid firmware file\n", __func__);
-		release_firmware(fw);
-		return -EINVAL;
-	}
-
-	/* copy mac txt data to addr */
-	iface_str2mac(fw->data, addr);
-	release_firmware(fw);
-
-	if (!is_valid_ether_addr(addr)) {
-		netdev_err(vif->ndev, "%s invalid MAC address (%pM)\n",
-			   __func__, addr);
-		return -EINVAL;
-	}
-	if (is_local_ether_addr(addr)) {
-		netdev_warn(vif->ndev, "%s Warning: Assign a locally valid MAC address (%pM) to a device\n",
-			    __func__, addr);
-		netdev_warn(vif->ndev,
-			    "%s Should not set the 2nd rightmost bit in the first byte of the MAC\n",
-			    __func__);
-		vif->local_mac_flag = 1;
-	} else {
-		vif->local_mac_flag = 0;
-	}
-
-	return 0;
-}
-
 static void iface_set_mac_addr(struct sprd_vif *vif, u8 *pending_addr,
 			       u8 *addr)
 {
@@ -329,7 +281,7 @@ static void iface_set_mac_addr(struct sprd_vif *vif, u8 *pending_addr,
 		return;
 	} else if (priv && is_valid_ether_addr(priv->default_mac)) {
 		ether_addr_copy(addr, priv->default_mac);
-	} else if (iface_get_mac_from_file(vif, addr)) {
+	} else {
 		random_ether_addr(addr);
 		netdev_warn(vif->ndev, "%s Warning: use random MAC address\n",
 			    __func__);
