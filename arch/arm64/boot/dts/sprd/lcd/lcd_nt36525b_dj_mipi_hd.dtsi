@@ -1,0 +1,79 @@
+/ {
+	fragment {
+		target-path = "/";
+		__overlay__ {
+			lcds {
+			
+			lcd_nt36525b_dj_mipi_hd: lcd_nt36525b_dj_mipi_hd {
+
+					sprd,dsi-work-mode = <1>; /* video burst mode*/
+					sprd,dsi-lane-number = <4>;
+					sprd,dsi-color-format = "rgb888";
+
+					sprd,phy-bit-clock = <640000>;	/* kbps */
+					sprd,phy-escape-clock = <20000>;/* kHz */
+
+					sprd,width-mm = <68>;
+					sprd,height-mm = <121>;
+
+					sprd,esd-check-enable = <0>;
+					sprd,esd-check-mode = <0>;
+					sprd,esd-check-period = <2000>;
+					sprd,esd-check-regs = <0xA>;
+					sprd,esd-return-code = <0x9c>;
+
+					sprd,reset-on-sequence = <1 10>, <0 10>, <1 10>;
+					sprd,reset-off-sequence = <1 10>;
+
+					sprd,initial-command = [
+						
+						23 00 00 02 FF 10
+						23 00 00 02 FB 01
+						23 00 00 02 35 00
+						39 00 00 03 51 00 00
+						23 00 00 02 53 2C
+						23 00 00 02 55 02
+						13 78 00 01 11
+						13 14 00 01 29
+						
+						];
+
+					sprd,sleep-in-command = [
+						13 14 00 01 28
+						13 78 00 01 10
+						];
+
+					sprd,sleep-out-command = [
+						13 78 00 01 11
+						13 14 00 01 29
+						];
+
+					oled-backlight {
+						default-brightness-level = <33>;
+						sprd,max-level = <255>;
+
+						brightness-levels = [
+							23 00 00 03 51 0F FF
+							];
+						};
+
+					display-timings {
+						native-mode = <&nt36525b_dj_timing0>;
+
+						nt36525b_dj_timing0: timing0 {
+									clock-frequency = <96000000>;
+									hactive = <720>;
+									vactive = <1600>;
+									hback-porch = <80>;
+									hfront-porch = <80>;
+									vback-porch = <6>;
+									vfront-porch = <10>;
+									hsync-len = <80>;
+									vsync-len = <40>;
+						};
+					};
+				};
+			};
+		};
+	};
+};
