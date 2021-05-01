@@ -1478,13 +1478,13 @@
 						   <&gic_cluster>;
 				lit_core_cluster: lit-core-cluster {
 					cluster-name = "lit-core-cluster";
-					row-num = <10>;
+					row-num = <11>;
 					column-num = <7>;
 					work-index-cfg = <0x214 0xf>;
 					idle-index-cfg = <0x218 0xf>;
 					tuning-result-judge = <0>;
 					dcdc-name = "DCDC_CPU0";
-					map-tbl-regs = <0x60 0x64 0x68 0x6c 0x70 0x74 0x78 0x7c 0x80 0x84>;
+					map-tbl-regs = <0x60 0x64 0x68 0x6c 0x70 0x74 0x78 0x7c 0x80 0x84 0x88>;
 					column-entry-start-bit = <0 2 15 5 9 18 12>;
 					column-entry-mask = <0x3 0x7 0x7 0xf 0x7 0x7 0x7>;
 					cluster-devices = <&lit_core0_dev>,
@@ -1495,16 +1495,17 @@
 							  <&lit_core5_dev>;
 					/*sel, div, vol, vote_scu, vote_peri, vote_gic, mpllx*/
 					lit-core-dvfs-tbl = <
-						0 0 0 0 0 0 0
-						1 1 0 1 1 1 0
-						2 1 1 2 2 2 0
-						3 0 1 3 2 3 0
-						3 0 1 4 3 4 1
-						1 0 1 5 4 4 0
-						3 0 2 6 4 4 2
-						2 0 2 7 4 4 0
-						3 0 3 8 4 5 4
-						3 0 3 9 5 5 5
+						0 0 0 0  0 0 0
+						1 1 0 1  1 1 0
+						2 1 0 2  1 1 0
+						3 0 0 3  1 1 0
+						3 0 1 4  1 1 1
+						1 0 2 5  1 1 0
+						3 0 3 6  4 4 2
+						2 0 4 7  4 4 0
+						3 0 5 8  4 5 3
+						3 0 6 9  4 5 4
+						3 0 7 10 4 5 5
 					>;
 					lit_core0_dev:lit-core0-dev {
 						device-name = "cpu0";
@@ -1552,26 +1553,29 @@
 
 				big_core_cluster:big-core-cluster {
 					cluster-name = "big-core-cluster";
-					row-num = <7>;
+					row-num = <10>;
 					column-num = <7>;
 					work-index-cfg = <0x224 0xf>;
 					idle-index-cfg = <0x228 0xf>;
 					tuning-result-judge = <0>;
 					dcdc-name = "DCDC_CPU1";
-					map-tbl-regs = <0xa0 0xa4 0xa8 0xac 0xb0 0xb4 0xb8>;
+					map-tbl-regs = <0xa0 0xa4 0xa8 0xac 0xb0 0xb4 0xb8 0xbc 0xc0 0xc4>;
 					column-entry-start-bit = <0 2 15 5 9 21 12>;
 					column-entry-mask = <0x3 0x7 0x7 0xf 0x7  0x7 0x7>;
 					cluster-devices = <&big_core0_dev>,
 							  <&big_core1_dev>;
 					/*sel, div, vol, vote_scu, vote_peri, vote_gic, mpllx*/
 					big-core-dvfs-tbl = <
-						0 0 0 0 0 0 0
-						1 0 0 3 3 4 0
-						3 0 1 5 4 4 0
-						2 0 2 6 4 4 0
-						3 0 3 7 4 5 2
-						3 0 3 8 4 5 4
-						3 0 3 9 5 5 7
+						0 0 0 0  0 0 0
+						2 1 0 2  1 1 0
+						3 0 0 4  1 1 0
+						1 0 1 4  1 1 0
+						3 0 2 6  4 4 1
+						2 0 3 7  4 4 0
+						3 0 4 8  4 5 3
+						3 0 5 10 4 5 4
+						3 0 6 10 4 5 5
+						3 0 7 10 4 5 7
 					>;
 					big_core0_dev: big-core0-dev {
 						device-name = "cpu6";
@@ -1591,13 +1595,13 @@
 
 				scu_cluster: scu-cluster {
 					cluster-name = "scu-cluster";
-					row-num = <10>;
+					row-num = <11>;
 					column-num = <5>;
 					work-index-cfg = <0x22C 0xf>;
 					idle-index-cfg = <0x230 0xf>;
 					dcdc-name = "DCDC_CPU0";
 					tuning-func-cfg = <0x18 1>;
-					map-tbl-regs = <0x180 0x184 0x188 0x18c 0x190 0x194 0x198 0x19c 0x1a0 0x1a4>;
+					map-tbl-regs = <0x180 0x184 0x188 0x18c 0x190 0x194 0x198 0x19c 0x1a0 0x1a4 0x1a8>;
 					column-entry-start-bit = <0 2 11 5 8>;
 					column-entry-mask = <0x3 0x7 0x7 0x7 0x7>;
 					cluster-devices = <&scu_dev>, <&ace_dev>;
@@ -1605,14 +1609,15 @@
 					scu-dvfs-tbl = <
 						0 0 0 0 0
 						3 0 0 1 0
-						3 0 1 1 1
+						2 1 0 1 0
+						3 0 0 1 1
 						1 0 1 1 0
-						3 0 1 1 2
-						3 0 1 1 3
-						3 0 2 1 4
-						2 0 2 1 0
-						3 0 3 1 6
-						3 0 3 1 7
+						3 0 2 1 2
+						3 0 3 1 3
+						2 0 4 1 0
+						3 0 5 1 4
+						3 0 6 1 5
+						3 0 7 1 6
 					>;
 					scu_dev: scu-dev {
 						device-name = "scu";
@@ -1637,7 +1642,7 @@
 					idle-index-cfg = <0x240 0x7>;
 					dcdc-name = "DCDC_CPU0";
 					tuning-func-cfg = <0x18 0>;
-					map-tbl-regs = <0x1f4 0x1f8 0x1fc 0x200 0x204 0x208 0x20c>;
+					map-tbl-regs = <0x1f4 0x1f8 0x1fc 0x200 0x204 0x208>;
 					column-entry-start-bit = <0 2 5>;
 					column-entry-mask = <0x3 0x7 0x7>;
 					cluster-devices = <&periph_dev>;
@@ -1645,10 +1650,10 @@
 					periph-dvfs-tbl = <
 						0 0 0
 						1 0 0
-						2 1 1
-						3 1 1
-						2 0 1
-						3 0 3
+						2 1 2
+						3 1 2
+						2 0 2
+						3 0 6
 					>;
 					periph_dev: periph-dev {
 						device-name = "periph";
@@ -1667,7 +1672,7 @@
 					idle-index-cfg = <0x2e4 0x7>;
 					dcdc-name = "DCDC_CPU0";
 					tuning-func-cfg = <0x18 2>;
-					map-tbl-regs = <0x280 0x284 0x288 0x28c 0x290 0x294 0x298>;
+					map-tbl-regs = <0x280 0x284 0x288 0x28c 0x290 0x294>;
 					column-entry-start-bit = <0 2 5>;
 					column-entry-mask = <0x3 0x7 0x7>;
 					cluster-devices = <&gic_dev>;
@@ -1675,10 +1680,10 @@
 					gic-dvfs-tbl = <
 						0 0 0
 						1 0 0
-						2 1 1
-						3 1 1
-						2 0 1
-						3 0 1
+						2 1 2
+						3 1 2
+						2 0 2
+						3 0 2
 					>;
 					gic_dev: gic-dev {
 						device-name = "gic";
@@ -2392,6 +2397,21 @@
 		gpu_bin: gpu-bin@1b{
 			reg = <0x1b 0x4>;
 			bits = <3 3>;
+		};
+
+		dvfs_bin_dsu: dvfs-bin-dsu@13 {
+			reg = <0x13 0x4>;
+			bits = <0 3>;
+		};
+
+		dvfs_bin_cpu0: dvfs-bin-cpu0@17 {
+			reg = <0x17 0x4>;
+			bits = <0 3>;
+		};
+
+		dvfs_bin_cpu1: dvfs-bin-cpu1@1b {
+			reg = <0x1b 0x4>;
+			bits = <0 3>;
 		};
 	};
 };
