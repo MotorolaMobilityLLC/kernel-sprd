@@ -490,6 +490,7 @@ static struct udelay_tbl ums9230_down_udelay_tbl[] = {
 			GENREGSET(0x5c, 0, 0xffff),
 			GENREGSET(0x5c, 16, 0xffff),
 			GENREGSET(0x114, 0, 0xffff),
+			GENREGSET(0x114, 16, 0xffff),
 		},
 	},
 	[DCDC_CPU1] = {
@@ -501,6 +502,7 @@ static struct udelay_tbl ums9230_down_udelay_tbl[] = {
 			GENREGSET(0x1c4, 0, 0xff),
 			GENREGSET(0x1c4, 8, 0xff),
 			GENREGSET(0x1c4, 16, 0xff),
+			GENREGSET(0x1c4, 24, 0xff),
 		},
 	},
 };
@@ -516,6 +518,7 @@ static struct udelay_tbl ums9230_up_udelay_tbl[] = {
 			GENREGSET(0x50, 0, 0xffff),
 			GENREGSET(0x50, 16, 0xffff),
 			GENREGSET(0x110, 0, 0xffff),
+			GENREGSET(0x110, 16, 0xffff),
 		},
 	},
 	[DCDC_CPU1] = {
@@ -527,6 +530,7 @@ static struct udelay_tbl ums9230_up_udelay_tbl[] = {
 			GENREGSET(0x1bc, 0, 0xff),
 			GENREGSET(0x1bc, 8, 0xff),
 			GENREGSET(0x1bc, 16, 0xff),
+			GENREGSET(0x1bc, 24, 0xff),
 		},
 	},
 };
@@ -541,8 +545,9 @@ static struct volt_grades_table ums9230_volt_grades_tbl[] = {
 			GENREGSET(0xf8, 9, 0x1ff),
 			GENREGSET(0xf8, 18, 0x1ff),
 			GENREGSET(0xfc, 0, 0x1ff),
+			GENREGSET(0xfc, 9, 0x1ff),
 		},
-		.grade_count = 7,
+		.grade_count = 8,
 	},
 	[DCDC_CPU1] = {
 		.regs_array = {
@@ -552,8 +557,10 @@ static struct volt_grades_table ums9230_volt_grades_tbl[] = {
 			GENREGSET(0x104, 0, 0x1ff),
 			GENREGSET(0x104, 9, 0x1ff),
 			GENREGSET(0x104, 18, 0x1ff),
+			GENREGSET(0x108, 0, 0x1ff),
+			GENREGSET(0x108, 9, 0x1ff),
 		},
-		.grade_count = 6,
+		.grade_count = 8,
 	},
 	[DCDC_CPU1_I2C] = {
 		.regs_array = {
@@ -563,18 +570,20 @@ static struct volt_grades_table ums9230_volt_grades_tbl[] = {
 			GENREGSET(0x12c, 24, 0x7f),
 			GENREGSET(0x130, 0, 0x7f),
 			GENREGSET(0x130, 8, 0x7f),
+			GENREGSET(0x130, 16, 0x7f),
+			GENREGSET(0x130, 24, 0x7f),
 		},
-		.grade_count = 6,
+		.grade_count = 8,
 	},
 };
 
 static struct reg_info ums9230_freq_misc_cfg_array[] = {
-	/* Set default work index 7 for lit core */
+	/* Set default work index 2 for lit core */
 	GENREGVALSET(0x214, 0, 0xf, 2),
 	/* Set default work index 3 for big core */
-	GENREGVALSET(0x224, 0, 0xf, 1),
-	/* Set default work index 3 to twpll for scu */
-	GENREGVALSET(0x22c, 0, 0xf, 3),
+	GENREGVALSET(0x224, 0, 0xf, 3),
+	/* Set default work index 4 to twpll for scu */
+	GENREGVALSET(0x22c, 0, 0xf, 4),
 	/* The end of misc configurations */
 	GENREGVALSET(0, 0, 0, 0),
 };
@@ -584,25 +593,25 @@ static struct mpll_index_tbl ums9230_mpll_index_tbl[MAX_MPLL] = {
 		.entry = {
 			{
 				.output = {
-					GENREGVALSET(0xa8, 0, 0x7, 4),
+					GENREGVALSET(0xa8, 0, 0x7, 3),
 					GENREGVALSET(0xa8, 3, 0x1, 1),
-					GENREGVALSET(0xa8, 4, 0x7ff, 0x4a),
+					GENREGVALSET(0xa8, 4, 0x7ff, 0x44),
 				},
 			},
 
 			{
 				.output = {
-					GENREGVALSET(0xac, 0, 0x7, 0),
-					GENREGVALSET(0xac, 3, 0x1, 0),
-					GENREGVALSET(0xac, 4, 0x7ff, 0x2c),
+					GENREGVALSET(0xac, 0, 0x7, 5),
+					GENREGVALSET(0xac, 3, 0x1, 1),
+					GENREGVALSET(0xac, 4, 0x7ff, 0x50),
 				},
 			},
 
 			{
 				.output = {
-					GENREGVALSET(0xb0, 0, 0x7, 2),
+					GENREGVALSET(0xb0, 0, 0x7, 1),
 					GENREGVALSET(0xb0, 3, 0x1, 0),
-					GENREGVALSET(0xb0, 4, 0x7ff, 0x39),
+					GENREGVALSET(0xb0, 4, 0x7ff, 0x35),
 				},
 			},
 
@@ -652,17 +661,17 @@ static struct mpll_index_tbl ums9230_mpll_index_tbl[MAX_MPLL] = {
 		.entry = {
 			{
 				.output = {
-					GENREGVALSET(0x78, 0, 0x7, 2),
-					GENREGVALSET(0x78, 3, 0x1, 0),
-					GENREGVALSET(0x78, 4, 0x7ff, 0x39),
+					GENREGVALSET(0x78, 0, 0x7, 5),
+					GENREGVALSET(0x78, 3, 0x1, 1),
+					GENREGVALSET(0x78, 4, 0x7ff, 0x50),
 				},
 			},
 
 			{
 				.output = {
-					GENREGVALSET(0x7c, 0, 0x7, 3),
+					GENREGVALSET(0x7c, 0, 0x7, 2),
 					GENREGVALSET(0x7c, 3, 0x1, 0),
-					GENREGVALSET(0x7c, 4, 0x7ff, 0x3e),
+					GENREGVALSET(0x7c, 4, 0x7ff, 0x36),
 				},
 			},
 
@@ -670,15 +679,15 @@ static struct mpll_index_tbl ums9230_mpll_index_tbl[MAX_MPLL] = {
 				.output = {
 					GENREGVALSET(0x80, 0, 0x7, 3),
 					GENREGVALSET(0x80, 3, 0x1, 0),
-					GENREGVALSET(0x80, 4, 0x7ff, 0x43),
+					GENREGVALSET(0x80, 4, 0x7ff, 0x3e),
 				},
 			},
 
 			{
 				.output = {
-					GENREGVALSET(0x84, 0, 0x7, 4),
+					GENREGVALSET(0x84, 0, 0x7, 3),
 					GENREGVALSET(0x84, 3, 0x1, 0),
-					GENREGVALSET(0x84, 4, 0x7ff, 0x46),
+					GENREGVALSET(0x84, 4, 0x7ff, 0x41),
 				},
 			},
 
@@ -686,7 +695,7 @@ static struct mpll_index_tbl ums9230_mpll_index_tbl[MAX_MPLL] = {
 				.output = {
 					GENREGVALSET(0x88, 0, 0x7, 4),
 					GENREGVALSET(0x88, 3, 0x1, 0),
-					GENREGVALSET(0x88, 4, 0x7ff, 0x48),
+					GENREGVALSET(0x88, 4, 0x7ff, 0x46),
 				},
 			},
 
@@ -728,9 +737,9 @@ static struct mpll_index_tbl ums9230_mpll_index_tbl[MAX_MPLL] = {
 
 			{
 				.output = {
-					GENREGVALSET(0xf0, 0, 0x7, 1),
+					GENREGVALSET(0xf0, 0, 0x7, 2),
 					GENREGVALSET(0xf0, 3, 0x1, 1),
-					GENREGVALSET(0xf0, 4, 0x7ff, 0x32),
+					GENREGVALSET(0xf0, 4, 0x7ff, 0x36),
 				},
 			},
 
@@ -746,15 +755,15 @@ static struct mpll_index_tbl ums9230_mpll_index_tbl[MAX_MPLL] = {
 				.output = {
 					GENREGVALSET(0xf8, 0, 0x7, 0),
 					GENREGVALSET(0xf8, 3, 0x1, 0),
-					GENREGVALSET(0xf8, 4, 0x7ff, 0x27),
+					GENREGVALSET(0xf8, 4, 0x7ff, 0x2a),
 				},
 			},
 
 			{
 				.output = {
-					GENREGVALSET(0xfc, 0, 0x7, 0),
+					GENREGVALSET(0xfc, 0, 0x7, 1),
 					GENREGVALSET(0xfc, 3, 0x1, 0),
-					GENREGVALSET(0xfc, 4, 0x7ff, 0x2b),
+					GENREGVALSET(0xfc, 4, 0x7ff, 0x31),
 				},
 			},
 
@@ -762,7 +771,7 @@ static struct mpll_index_tbl ums9230_mpll_index_tbl[MAX_MPLL] = {
 				.output = {
 					GENREGVALSET(0x100, 0, 0x7, 1),
 					GENREGVALSET(0x100, 3, 0x1, 0),
-					GENREGVALSET(0x100, 4, 0x7ff, 0x2f),
+					GENREGVALSET(0x100, 4, 0x7ff, 0x33),
 				},
 			},
 
@@ -770,15 +779,15 @@ static struct mpll_index_tbl ums9230_mpll_index_tbl[MAX_MPLL] = {
 				.output = {
 					GENREGVALSET(0x104, 0, 0x7, 1),
 					GENREGVALSET(0x104, 3, 0x1, 0),
-					GENREGVALSET(0x104, 4, 0x7ff, 0x33),
+					GENREGVALSET(0x104, 4, 0x7ff, 0x34),
 				},
 			},
 
 			{
 				.output = {
-					GENREGVALSET(0x108, 0, 0x7, 2),
+					GENREGVALSET(0x108, 0, 0x7, 1),
 					GENREGVALSET(0x108, 3, 0x1, 0),
-					GENREGVALSET(0x108, 4, 0x7ff, 0x36),
+					GENREGVALSET(0x108, 4, 0x7ff, 0x34),
 				},
 			},
 		},
