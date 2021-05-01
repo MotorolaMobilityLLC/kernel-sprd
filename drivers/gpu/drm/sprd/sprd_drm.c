@@ -33,6 +33,23 @@
 #define DRIVER_MAJOR	1
 #define DRIVER_MINOR	0
 
+static bool cali_mode_check(const char *str)
+{
+	struct device_node *cmdline_node;
+	const char *cmd_line;
+	int rc;
+
+	cmdline_node = of_find_node_by_path("/chosen");
+	rc = of_property_read_string(cmdline_node, "bootargs", &cmd_line);
+	if (rc)
+		return false;
+
+	if (!strstr(cmd_line, str))
+		return false;
+
+	return true;
+}
+
 static void sprd_commit_tail(struct drm_atomic_state *old_state)
 {
 	struct drm_device *dev = old_state->dev;
@@ -433,6 +450,13 @@ static struct platform_driver *sprd_drm_drivers[]  = {
 static int __init sprd_drm_init(void)
 {
 	int ret;
+	bool cali_mode;
+
+	cali_mode = cali_mode_check("androidboot.mode=cali");
+	if (cali_mode) {
+		DRM_WARN("Calibration Mode! Don't register sprd drm driver");
+		return 0;
+	}
 
 	ret = sprd_display_class_init();
 	if (ret)
