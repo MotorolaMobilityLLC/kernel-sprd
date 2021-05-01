@@ -65,6 +65,7 @@
 #define CM_CAPACITY_LEVEL_FULL			100
 #define CM_FAST_CHARGE_ENABLE_BATTERY_VOLTAGE	3400000
 #define CM_FAST_CHARGE_ENABLE_CURRENT		1200000
+#define CM_FAST_CHARGE_ENABLE_THERMAL_CURRENT	1000000
 #define CM_FAST_CHARGE_DISABLE_BATTERY_VOLTAGE	3400000
 #define CM_FAST_CHARGE_DISABLE_CURRENT		1000000
 #define CM_FAST_CHARGE_CURRENT_2A		2000000
@@ -2653,13 +2654,7 @@ static void cm_update_cp_charger_status(struct charger_manager *cm)
 static bool cm_is_reach_cp_threshold(struct charger_manager *cm)
 {
 	int batt_ocv, batt_uA, cp_ocv_threshold, thm_cur;
-	int cur_jeita_status = cm->desc->force_jeita_status;
-
-	if (cm->desc->jeita_tab_size) {
-		cur_jeita_status = cm_manager_get_jeita_status(cm, cm->desc->temperature);
-		if (cm->desc->jeita_disabled)
-			cur_jeita_status = cm->desc->force_jeita_status;
-	}
+	int cur_jeita_status, target_cur;
 
 	if (get_batt_ocv(cm, &batt_ocv)) {
 		dev_err(cm->dev, "get_batt_ocv error.\n");
@@ -2671,27 +2666,32 @@ static bool cm_is_reach_cp_threshold(struct charger_manager *cm)
 		return false;
 	}
 
+	target_cur = batt_uA;
+	if (cm->desc->jeita_tab_size) {
+		cur_jeita_status = cm_manager_get_jeita_status(cm, cm->desc->temperature);
+		if (cm->desc->jeita_disabled)
+			cur_jeita_status = cm->desc->force_jeita_status;
+
+		target_cur = 0;
+		if (cur_jeita_status != cm->desc->jeita_tab_size)
+			target_cur = cm->desc->jeita_tab[cur_jeita_status].current_ua;
+	}
+
 	cp_ocv_threshold = CM_CP_START_VOLTAGE_HTHRESHOLD;
 	if (cm->desc->cp.cp_ocv_threshold)
 		cp_ocv_threshold = cm->desc->cp.cp_ocv_threshold;
 
-	thm_cur = CM_FAST_CHARGE_ENABLE_CURRENT / 2;
+	thm_cur = CM_FAST_CHARGE_ENABLE_THERMAL_CURRENT;
 	if (cm->desc->thm_info.thm_adjust_cur > 0)
 		thm_cur = cm->desc->thm_info.thm_adjust_cur;
 
-	if (thm_cur < CM_FAST_CHARGE_ENABLE_CURRENT / 2)
-		return false;
-	else if (cur_jeita_status == cm->desc->force_jeita_status &&
-	    batt_ocv > 0 && batt_ocv >= CM_CP_START_VOLTAGE_LTHRESHOLD &&
-	    batt_ocv < cp_ocv_threshold)
-		return true;
-	else if (cur_jeita_status != cm->desc->force_jeita_status &&
+	if (target_cur >= CM_FAST_CHARGE_ENABLE_CURRENT &&
+		 thm_cur >= CM_FAST_CHARGE_ENABLE_THERMAL_CURRENT &&
 		 batt_ocv > 0 && batt_ocv >= CM_CP_START_VOLTAGE_LTHRESHOLD &&
-		 batt_ocv < cp_ocv_threshold &&
-		 batt_uA > 0 && batt_uA >= CM_FAST_CHARGE_ENABLE_CURRENT)
+		 batt_ocv < cp_ocv_threshold)
 		return true;
-	else if (batt_ocv > 0 && batt_ocv >= cp_ocv_threshold &&
-	    batt_uA > 0 && batt_uA >= CM_FAST_CHARGE_ENABLE_CURRENT)
+	else if (batt_ocv > 0 && batt_ocv >= CM_CP_START_VOLTAGE_LTHRESHOLD &&
+		 batt_uA > 0 && batt_uA >= CM_FAST_CHARGE_ENABLE_CURRENT)
 		return true;
 
 	return false;
