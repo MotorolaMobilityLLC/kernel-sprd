@@ -266,7 +266,7 @@ static int dpu_parse_dt(struct dpu_context *ctx,
 	if (ret)
 		pr_warn("read awqos-high failed, use default\n");
 
-	return ret;
+	return 0;
 }
 
 static void dpu_dump(struct dpu_context *ctx)

@@ -305,7 +305,6 @@ struct dpu_enhance {
 	struct epf_cfg sr_epf;
 	struct backlight_device *bl_dev;
 	struct cabc_para cabc_para;
-	struct device_node *g_np;
 };
 
 static struct epf_cfg epf = {
@@ -355,11 +354,21 @@ static bool dpu_check_raw_int(struct dpu_context *ctx, u32 mask)
 static int dpu_parse_dt(struct dpu_context *ctx,
 				struct device_node *np)
 {
-	int ret;
-	struct device_node *qos_np;
+	struct device_node *qos_np, *bl_np;
 	struct dpu_enhance *enhance = ctx->enhance;
+	int ret;
 
-	enhance->g_np = np;
+	bl_np = of_parse_phandle(np, "sprd,backlight", 0);
+	if (bl_np) {
+		enhance->bl_dev = of_find_backlight_by_node(bl_np);
+		of_node_put(bl_np);
+		if (IS_ERR_OR_NULL(enhance->bl_dev)) {
+			DRM_WARN("backlight is not ready, dpu probe deferred\n");
+			return -EPROBE_DEFER;
+		}
+	} else {
+		pr_warn("dpu backlight node not found\n");
+	}
 
 	ret = of_property_read_u32(np, "sprd,corner-radius",
 					&ctx->corner_radius);
@@ -391,7 +400,9 @@ static int dpu_parse_dt(struct dpu_context *ctx,
 	if (ret)
 		pr_warn("read awqos-high failed, use default\n");
 
-	return ret;
+	of_node_put(qos_np);
+
+	return 0;
 }
 
 static void dpu_corner_init(struct dpu_context *ctx)
@@ -1932,7 +1943,6 @@ static int dpu_cabc_trigger(struct dpu_context *ctx)
 {
 	struct dpu_enhance *enhance = ctx->enhance;
 	struct cm_cfg cm;
-	struct device_node *backlight_node;
 
 	if (enhance->cabc_state) {
 		if ((enhance->cabc_state == CABC_STOPPING) && (enhance->bl_dev)) {
@@ -1953,18 +1963,6 @@ static int dpu_cabc_trigger(struct dpu_context *ctx)
 	}
 
 	if (enhance->frame_no == 0) {
-		if (!(enhance->bl_dev)) {
-			backlight_node = of_parse_phandle(enhance->g_np,
-						 "sprd,backlight", 0);
-			if (backlight_node) {
-				enhance->bl_dev =
-				of_find_backlight_by_node(backlight_node);
-				of_node_put(backlight_node);
-			} else {
-				pr_warn("dpu backlight node not found\n");
-			}
-		}
-
 		DPU_REG_SET(ctx->base + REG_DPU_ENHANCE_CFG, BIT(3));
 		DPU_REG_SET(ctx->base + REG_DPU_ENHANCE_CFG, BIT(8));
 		enhance->enhance_en |= BIT(3) | BIT(8);
