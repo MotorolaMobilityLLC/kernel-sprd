@@ -884,9 +884,8 @@ static int sprd_apdu_sync_counter(struct sprd_apdu_device *apdu)
 {
 
 	struct file *isedata_file = NULL;
-
 	loff_t ise_counter_offset = MEDDDR_ISEDATA_OFFSET_BASE_ADDRESS +
-								apdu->slot * MEDDDR_MAX_SIZE;
+				    (loff_t)(apdu->slot) * MEDDDR_MAX_SIZE;
 	loff_t offset = 0;
 	int ret = -1;
 
@@ -924,9 +923,8 @@ static int sprd_apdu_save_medddr_area(struct sprd_apdu_device *apdu)
 {
 
 	struct file *isedata_file = NULL;
-
 	loff_t ise_counter_offset = MEDDDR_ISEDATA_OFFSET_BASE_ADDRESS +
-								apdu->slot * MEDDDR_MAX_SIZE;
+				    (loff_t)(apdu->slot) * MEDDDR_MAX_SIZE;
 	loff_t offset = 0;
 	int ret = -1;
 
@@ -975,9 +973,8 @@ static int sprd_apdu_restore_medddr_area(struct sprd_apdu_device *apdu)
 {
 
 	struct file *isedata_file = NULL;
-
 	loff_t ise_counter_offset = MEDDDR_ISEDATA_OFFSET_BASE_ADDRESS +
-								apdu->slot * MEDDDR_MAX_SIZE;
+				    (loff_t)(apdu->slot) * MEDDDR_MAX_SIZE;
 	loff_t offset = 0;
 	int ret = -1;
 
