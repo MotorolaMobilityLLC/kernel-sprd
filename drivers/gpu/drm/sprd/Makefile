@@ -66,3 +66,5 @@ sprd-drm-y += \
 obj-$(CONFIG_DRM_SPRD) += sprd-drm.o
 
 obj-$(CONFIG_DRM_SPRD_GSP) += gsp/
+
+sprd-drm-$(CONFIG_COMPAT) += sprd_ioc32.o

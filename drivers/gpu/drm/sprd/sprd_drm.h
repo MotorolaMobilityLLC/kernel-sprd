@@ -30,4 +30,8 @@ extern struct platform_driver sprd_dphy_driver;
 extern struct mipi_dsi_driver sprd_panel_driver;
 #endif
 
+#ifdef CONFIG_COMPAT
+long sprd_compat_ioctl(struct file *filp, unsigned int cmd, unsigned long arg);
+#endif
+
 #endif /* _SPRD_DRM_H_ */
