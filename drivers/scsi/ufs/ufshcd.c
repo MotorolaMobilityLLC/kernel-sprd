@@ -7626,8 +7626,7 @@ disable_clks:
 	/* check if there is that the error handler is in execution
 	 * cancle  it
 	 */
-	if (work_pending(&hba->eh_work))
-		cancel_work_sync(&hba->eh_work);
+	cancel_work_sync(&hba->eh_work);
 
 	if (!ufshcd_is_link_active(hba))
 		ufshcd_setup_clocks(hba, false);
