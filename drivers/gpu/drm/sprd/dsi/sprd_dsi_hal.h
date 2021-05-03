@@ -739,7 +739,7 @@ bool dsi_hal_wait_tx_payload_fifo_empty(struct sprd_dsi *dsi)
 {
 	int timeout;
 
-	for (timeout = 0; timeout < 5000; timeout++) {
+	for (timeout = 0; timeout < 25000; timeout++) {
 		if (dsi_hal_is_tx_payload_fifo_empty(dsi))
 			return true;
 		udelay(1);
@@ -753,7 +753,7 @@ static inline bool dsi_hal_wait_tx_cmd_fifo_empty(struct sprd_dsi *dsi)
 {
 	int timeout;
 
-	for (timeout = 0; timeout < 5000; timeout++) {
+	for (timeout = 0; timeout < 25000; timeout++) {
 		if (dsi_hal_is_tx_cmd_fifo_empty(dsi))
 			return true;
 		udelay(1);
