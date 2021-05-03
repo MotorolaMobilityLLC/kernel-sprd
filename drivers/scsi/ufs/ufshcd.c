@@ -6084,6 +6084,13 @@ ufshcd_rpmb_security_out(struct scsi_device *sdev,
 	cmd[4] = 0;                              /* inc_512 bit 7 set to 0 */
 	put_unaligned_be32(trans_len, cmd + 6);  /* transfer length */
 
+	ret = scsi_test_unit_ready(sdev, SEC_PROTOCOL_TIMEOUT,
+				   SEC_PROTOCOL_RETRIES, &sshdr);
+	if (ret)
+		dev_err(&sdev->sdev_gendev,
+			"%s: rpmb scsi_test_unit_ready, ret=%d\n",
+			__func__, ret);
+
 retry:
 	ret = scsi_execute(sdev, cmd, DMA_TO_DEVICE, frames, trans_len,
 					sense, &sshdr, SEC_PROTOCOL_TIMEOUT,
@@ -6128,6 +6135,14 @@ ufshcd_rpmb_security_in(struct scsi_device *sdev,
 	put_unaligned_be16(SEC_SPECIFIC_UFS_RPMB, cmd + 2);
 	cmd[4] = 0;                             /* inc_512 bit 7 set to 0 */
 	put_unaligned_be32(alloc_len, cmd + 6); /* allocation length */
+
+	ret = scsi_test_unit_ready(sdev, SEC_PROTOCOL_TIMEOUT,
+				   SEC_PROTOCOL_RETRIES, &sshdr);
+	if (ret)
+		dev_err(&sdev->sdev_gendev,
+			"%s: rpmb scsi_test_unit_ready, ret=%d\n",
+			__func__, ret);
+
 retry:
 	ret = scsi_execute(sdev, cmd, DMA_FROM_DEVICE, frames, alloc_len,
 					sense, &sshdr, SEC_PROTOCOL_TIMEOUT,
