@@ -292,6 +292,19 @@ static int proc_maps_open(struct inode *inode, struct file *file,
 		return err;
 	}
 
+#ifdef CONFIG_ENHANCE_SMAPS_INFO
+	priv->rss = 0;
+	priv->pss = 0;
+	priv->uss = 0;
+	priv->filecache_pss = 0;
+	priv->anonymous_pss = 0;
+	priv->filecache_uss = 0;
+	priv->anonymous_uss = 0;
+	priv->swap = 0;
+	priv->swap_pss = 0;
+	priv->swap_uss = 0;
+#endif
+
 	return 0;
 }
 
@@ -480,6 +493,14 @@ struct mem_size_stats {
 	unsigned long swap;
 	unsigned long shared_hugetlb;
 	unsigned long private_hugetlb;
+#ifdef CONFIG_ENHANCE_SMAPS_INFO
+	unsigned long filecache;
+	unsigned long shared_filecache;
+	unsigned long private_filecache;
+	unsigned long shared_anonymous;
+	unsigned long private_anonymous;
+	u64 swap_uss;
+#endif
 	u64 pss;
 	u64 pss_anon;
 	u64 pss_file;
@@ -488,6 +509,46 @@ struct mem_size_stats {
 	u64 swap_pss;
 	bool check_shmem_swap;
 };
+
+#ifdef CONFIG_ENHANCE_SMAPS_INFO
+static void
+show_smap_vma_sum(struct seq_file *m, struct proc_maps_private *priv,
+		struct mem_size_stats *mss)
+{
+	seq_put_decimal_ull_width(m, "Rss_All:\t",
+			(unsigned long)((priv->rss + mss->resident) >> 10), 8);
+	seq_put_decimal_ull_width(m, " kB\nPss_All:\t",
+			(unsigned long)((priv->pss + mss->pss) >> (10 + PSS_SHIFT)), 8);
+	seq_put_decimal_ull_width(m, " kB\nUss_All:\t",
+			(unsigned long)((priv->uss + mss->private_clean +
+				mss->private_dirty) >> 10), 8);
+	seq_put_decimal_ull_width(m, " kB\nRss_Filecache_All:\t",
+			(unsigned long)((priv->filecache_rss + mss->filecache) >> 10), 8);
+	seq_put_decimal_ull_width(m, " kB\nRss_Anonymous_All:\t",
+			(unsigned long)((priv->anonymous_rss + mss->anonymous) >> 10), 8);
+	seq_put_decimal_ull_width(m, " kB\nPss_Filecache_All:\t",
+			(unsigned long)((priv->filecache_pss + mss->pss_file) >>
+				(10 + PSS_SHIFT)), 8);
+	seq_put_decimal_ull_width(m, " kB\nPss_Anonymous_All:\t",
+			(unsigned long)((priv->anonymous_pss + mss->pss_anon) >>
+				(10 + PSS_SHIFT)), 8);
+	seq_put_decimal_ull_width(m, " kB\nUss_Filecache_All:\t",
+			(unsigned long)((priv->filecache_uss + mss->private_filecache) >>
+				10), 8);
+	seq_put_decimal_ull_width(m, " kB\nUss_Anonymous_All:\t",
+			(unsigned long)((priv->anonymous_uss + mss->private_anonymous) >>
+				10), 8);
+	seq_put_decimal_ull_width(m, " kB\nSwap_All:\t",
+			(unsigned long)((priv->swap + mss->swap) >> 10), 8);
+	seq_put_decimal_ull_width(m, " kB\nSwap_Pss_All:\t",
+			(unsigned long)((priv->swap_pss + mss->swap_pss) >> (10 +
+				PSS_SHIFT)), 8);
+	seq_put_decimal_ull_width(m, " kB\nSwap_Uss_All:\t",
+			(unsigned long)((priv->swap_uss + mss->swap_uss) >> (10 +
+				PSS_SHIFT)), 8);
+	seq_puts(m, " kB\n");
+}
+#endif
 
 static void smaps_page_accumulate(struct mem_size_stats *mss,
 		struct page *page, unsigned long size, unsigned long pss,
@@ -516,6 +577,20 @@ static void smaps_page_accumulate(struct mem_size_stats *mss,
 		else
 			mss->shared_clean += size;
 	}
+
+#ifdef CONFIG_ENHANCE_SMAPS_INFO
+	if (private) {
+		if (PageAnon(page))
+			mss->private_anonymous += size;
+		else if (page_is_file_cache(page))
+			mss->private_filecache += size;
+	} else {
+		if (PageAnon(page))
+			mss->shared_anonymous += size;
+		else if (page_is_file_cache(page))
+			mss->shared_filecache += size;
+	}
+#endif
 }
 
 static void smaps_account(struct mem_size_stats *mss, struct page *page,
@@ -533,6 +608,11 @@ static void smaps_account(struct mem_size_stats *mss, struct page *page,
 		if (!PageSwapBacked(page) && !dirty && !PageDirty(page))
 			mss->lazyfree += size;
 	}
+#ifdef CONFIG_ENHANCE_SMAPS_INFO
+	else if (page_is_file_cache(page))
+		mss->filecache += size;
+#endif
+
 
 	mss->resident += size;
 	/* Accumulate the size in pages that have been accessed. */
@@ -602,6 +682,9 @@ static void smaps_pte_entry(pte_t *pte, unsigned long addr,
 				mss->swap_pss += pss_delta;
 			} else {
 				mss->swap_pss += (u64)PAGE_SIZE << PSS_SHIFT;
+#ifdef CONFIG_ENHANCE_SMAPS_INFO
+				mss->swap_uss += (u64)PAGE_SIZE << PSS_SHIFT;
+#endif
 			}
 		} else if (is_migration_entry(swpent))
 			page = migration_entry_to_page(swpent);
@@ -872,8 +955,16 @@ static void __show_smap(struct seq_file *m, const struct mem_size_stats *mss,
 		 */
 		SEQ_PUT_DEC(" kB\nPss_Anon:       ",
 			mss->pss_anon >> PSS_SHIFT);
+#ifdef CONFIG_ENHANCE_SMAPS_INFO
+		SEQ_PUT_DEC(" kB\nShared_Anon:    ", mss->shared_anonymous);
+		SEQ_PUT_DEC(" kB\nPrivate_Anon:   ", mss->private_anonymous);
+#endif
 		SEQ_PUT_DEC(" kB\nPss_File:       ",
 			mss->pss_file >> PSS_SHIFT);
+#ifdef CONFIG_ENHANCE_SMAPS_INFO
+		SEQ_PUT_DEC(" kB\nShared_File:    ", mss->shared_filecache);
+		SEQ_PUT_DEC(" kB\nPrivate_File:   ", mss->private_filecache);
+#endif
 		SEQ_PUT_DEC(" kB\nPss_Shmem:      ",
 			mss->pss_shmem >> PSS_SHIFT);
 	}
@@ -883,6 +974,9 @@ static void __show_smap(struct seq_file *m, const struct mem_size_stats *mss,
 	SEQ_PUT_DEC(" kB\nPrivate_Dirty:  ", mss->private_dirty);
 	SEQ_PUT_DEC(" kB\nReferenced:     ", mss->referenced);
 	SEQ_PUT_DEC(" kB\nAnonymous:      ", mss->anonymous);
+#ifdef CONFIG_ENHANCE_SMAPS_INFO
+	SEQ_PUT_DEC(" kB\nFilecache:      ", mss->filecache);
+#endif
 	SEQ_PUT_DEC(" kB\nLazyFree:       ", mss->lazyfree);
 	SEQ_PUT_DEC(" kB\nAnonHugePages:  ", mss->anonymous_thp);
 	SEQ_PUT_DEC(" kB\nShmemPmdMapped: ", mss->shmem_thp);
@@ -893,6 +987,10 @@ static void __show_smap(struct seq_file *m, const struct mem_size_stats *mss,
 	SEQ_PUT_DEC(" kB\nSwap:           ", mss->swap);
 	SEQ_PUT_DEC(" kB\nSwapPss:        ",
 					mss->swap_pss >> PSS_SHIFT);
+#ifdef CONFIG_ENHANCE_SMAPS_INFO
+	SEQ_PUT_DEC(" kB\nSwapUss:        ",
+					mss->swap_uss >> PSS_SHIFT);
+#endif
 	SEQ_PUT_DEC(" kB\nLocked:         ",
 					mss->pss_locked >> PSS_SHIFT);
 	seq_puts(m, " kB\n");
@@ -902,6 +1000,9 @@ static int show_smap(struct seq_file *m, void *v)
 {
 	struct vm_area_struct *vma = v;
 	struct mem_size_stats mss;
+#ifdef CONFIG_ENHANCE_SMAPS_INFO
+	struct proc_maps_private *priv = m->private;
+#endif
 
 	memset(&mss, 0, sizeof(mss));
 
@@ -927,6 +1028,26 @@ static int show_smap(struct seq_file *m, void *v)
 	if (arch_pkeys_enabled())
 		seq_printf(m, "ProtectionKey:  %8u\n", vma_pkey(vma));
 	show_smap_vma_flags(m, vma);
+
+#ifdef CONFIG_ENHANCE_SMAPS_INFO
+	if (m_next_vma(priv, vma) == NULL)
+		show_smap_vma_sum(m, priv, &mss);
+
+	if (m->count < m->size) {
+		priv->rss += mss.resident;
+		priv->pss += mss.pss;
+		priv->uss += mss.private_clean + mss.private_dirty;
+		priv->filecache_rss += mss.filecache;
+		priv->anonymous_rss += mss.anonymous;
+		priv->filecache_pss += mss.pss_file;
+		priv->anonymous_pss += mss.pss_anon;
+		priv->filecache_uss += mss.private_filecache;
+		priv->anonymous_uss += mss.private_anonymous;
+		priv->swap += mss.swap;
+		priv->swap_pss += mss.swap_pss;
+		priv->swap_uss += mss.swap_uss;
+	}
+#endif
 
 	m_cache_vma(m, vma);
 

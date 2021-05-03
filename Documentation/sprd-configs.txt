@@ -5459,6 +5459,15 @@ CONFIG_ENERGY_MODEL
 	[must]
 	[missing plat description] none
 	[function]
+CONFIG_ENHANCE_SMAPS_INFO
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field]code
+	[subsys]mm
+	[must]console
+	[missing plat description] none
+	[function]enhance smaps information
 CONFIG_EPOLL
 	[arch] all
 	[plat] all
