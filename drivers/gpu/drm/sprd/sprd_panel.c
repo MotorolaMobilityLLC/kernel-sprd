@@ -29,11 +29,6 @@
 #define SPRD_MIPI_DSI_FMT_DSC 0xff
 static DEFINE_MUTEX(panel_lock);
 
-static void __iomem *base;
-static void __iomem *base1;
-static void __iomem *base2;
-static void __iomem *base3;
-
 const char *lcd_name;
 static int __init lcd_name_get(char *str)
 {
@@ -331,10 +326,7 @@ static const struct drm_panel_funcs sprd_panel_funcs = {
 static int sprd_panel_esd_check(struct sprd_panel *panel)
 {
 	struct panel_info *info = &panel->info;
-	u8 read_val[2];
-
-	writel(0x8f02, base1 + 0x0038);
-	writel(0x80, base1 + 0x0064);
+	u8 read_val = 0;
 
 	/* FIXME: we should enable HS cmd tx here */
 	mipi_dsi_set_maximum_return_packet_size(panel->slave, 1);
@@ -345,11 +337,9 @@ static int sprd_panel_esd_check(struct sprd_panel *panel)
 	 * TODO:
 	 * Should we support multi-registers check in the future?
 	 */
-	printk(KERN_ERR "read_val[0]:0x%02X, esd_check_val:0x%02X\n", read_val[0], info->esd_check_val);
-	if (read_val[0] != info->esd_check_val) {
-		DRM_ERROR("esd check failed, read value = 0x%02x, 0x%02x\n",
-			  read_val[0], read_val[1]);
-		DRM_ERROR("INFO ESD CHECK value = 0x%02x\n", info->esd_check_val);
+	if (read_val != info->esd_check_val) {
+		DRM_ERROR("esd check failed, read value = 0x%02x\n",
+			  read_val);
 		return -EINVAL;
 	}
 
@@ -614,9 +604,6 @@ static int sprd_oled_set_brightness(struct backlight_device *bdev)
 	int brightness, level;
 	struct sprd_oled *oled = bl_get_data(bdev);
 	struct sprd_panel *panel = oled->panel;
-
-	writel(0x8f02, base1 + 0x0038);
-	writel(0x80, base1 + 0x0064);
 
 	mutex_lock(&panel_lock);
 	if (!panel->is_enabled) {
@@ -954,11 +941,6 @@ static int sprd_panel_probe(struct mipi_dsi_device *slave)
 	int ret;
 	struct sprd_panel *panel;
 	struct device_node *bl_node;
-
-	base = ioremap_nocache(0x31000000 , 0x1000);
-	base1 = ioremap_nocache(0x31100000, 0x1000);
-	base2 = ioremap_nocache(0x20010000 , 0x1000);
-	base3 = ioremap_nocache(0x64560000, 0x1000);
 
 	panel = devm_kzalloc(&slave->dev, sizeof(*panel), GFP_KERNEL);
 	if (!panel)
