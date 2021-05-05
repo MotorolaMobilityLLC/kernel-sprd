@@ -101,18 +101,6 @@
 
 #define CM_TRACK_FILE_PATH "/mnt/vendor/battery/calibration_data/.battery_file"
 
-static const char * const default_event_names[] = {
-	[CM_EVENT_UNKNOWN] = "Unknown",
-	[CM_EVENT_BATT_FULL] = "Battery Full",
-	[CM_EVENT_BATT_IN] = "Battery Inserted",
-	[CM_EVENT_BATT_OUT] = "Battery Pulled Out",
-	[CM_EVENT_BATT_OVERHEAT] = "Battery Overheat",
-	[CM_EVENT_BATT_COLD] = "Battery Cold",
-	[CM_EVENT_EXT_PWR_IN_OUT] = "External Power Attach/Detach",
-	[CM_EVENT_CHG_START_STOP] = "Charging Start/Stop",
-	[CM_EVENT_OTHERS] = "Other battery events"
-};
-
 static const char * const jeita_type_names[] = {
 	[CM_JEITA_UNKNOWN] = "cm-unknown-jeita-temp-table",
 	[CM_JEITA_SDP] = "cm-sdp-jeita-temp-table",
@@ -164,8 +152,6 @@ static char *charger_manager_supplied_to[] = {
  * rtc alarm. It should be 2 or larger
  */
 #define CM_RTC_SMALL		(2)
-
-#define UEVENT_BUF_SIZE		32
 
 struct charger_type {
 	int type;
@@ -3319,61 +3305,6 @@ static int try_charger_restart(struct charger_manager *cm)
 }
 
 /**
- * uevent_notify - Let users know something has changed.
- * @cm: the Charger Manager representing the battery.
- * @event: the event string.
- *
- * If @event is null, it implies that uevent_notify is called
- * by resume function. When called in the resume function, cm_suspended
- * should be already reset to false in order to let uevent_notify
- * notify the recent event during the suspend to users. While
- * suspended, uevent_notify does not notify users, but tracks
- * events so that uevent_notify can notify users later after resumed.
- */
-static void uevent_notify(struct charger_manager *cm, const char *event)
-{
-	static char env_str[UEVENT_BUF_SIZE + 1] = "";
-	static char env_str_save[UEVENT_BUF_SIZE + 1] = "";
-
-	if (cm_suspended) {
-		/* Nothing in suspended-event buffer */
-		if (env_str_save[0] == 0) {
-			if (!strncmp(env_str, event, UEVENT_BUF_SIZE))
-				return; /* status not changed */
-			strncpy(env_str_save, event, UEVENT_BUF_SIZE);
-			return;
-		}
-
-		if (!strncmp(env_str_save, event, UEVENT_BUF_SIZE))
-			return; /* Duplicated. */
-		strncpy(env_str_save, event, UEVENT_BUF_SIZE);
-		return;
-	}
-
-	if (event == NULL) {
-		/* No messages pending */
-		if (!env_str_save[0])
-			return;
-
-		strncpy(env_str, env_str_save, UEVENT_BUF_SIZE);
-		kobject_uevent(&cm->dev->kobj, KOBJ_CHANGE);
-		env_str_save[0] = 0;
-
-		return;
-	}
-
-	/* status not changed */
-	if (!strncmp(env_str, event, UEVENT_BUF_SIZE))
-		return;
-
-	/* save the status and notify the update */
-	strncpy(env_str, event, UEVENT_BUF_SIZE);
-	kobject_uevent(&cm->dev->kobj, KOBJ_CHANGE);
-
-	dev_info(cm->dev, "%s\n", event);
-}
-
-/**
  * fullbatt_vchk - Check voltage drop some times after "FULL" event.
  * @work: the work_struct appointing the function
  *
@@ -3410,7 +3341,7 @@ static void fullbatt_vchk(struct work_struct *work)
 
 	if (diff >= desc->fullbatt_vchkdrop_uV) {
 		try_charger_restart(cm);
-		uevent_notify(cm, "Recharging");
+		power_supply_changed(cm->charger_psy);
 	}
 }
 
@@ -3453,7 +3384,7 @@ static int check_charging_duration(struct charger_manager *cm)
 		    diff < desc->fullbatt_vchkdrop_uV) {
 			dev_info(cm->dev, "Charging duration exceed %ums\n",
 				 desc->charging_max_duration_ms);
-			uevent_notify(cm, "Discharging");
+			power_supply_changed(cm->charger_psy);
 			cm->charging_status |= CM_CHARGE_DURATION_ABNORMAL;
 			try_charger_enable(cm, false);
 			ret = true;
@@ -3466,7 +3397,7 @@ static int check_charging_duration(struct charger_manager *cm)
 		    is_ext_pwr_online(cm)) {
 			dev_info(cm->dev, "Discharging duration exceed %ums\n",
 				 desc->discharging_max_duration_ms);
-			uevent_notify(cm, "Recharging");
+			power_supply_changed(cm->charger_psy);
 			try_charger_enable(cm, true);
 			cm->charging_status &= ~CM_CHARGE_DURATION_ABNORMAL;
 			ret = true;
@@ -3586,7 +3517,7 @@ static int cm_check_charge_voltage(struct charger_manager *cm)
 	if (cm->charger_enabled && charge_vol > desc->charge_voltage_max) {
 		dev_info(cm->dev, "Charging voltage is larger than %d\n",
 			 desc->charge_voltage_max);
-		uevent_notify(cm, "Discharging");
+		power_supply_changed(cm->charger_psy);
 		cm->charging_status |= CM_CHARGE_VOLTAGE_ABNORMAL;
 		try_charger_enable(cm, false);
 		power_supply_changed(cm->charger_psy);
@@ -3596,7 +3527,7 @@ static int cm_check_charge_voltage(struct charger_manager *cm)
 		   (cm->charging_status & CM_CHARGE_VOLTAGE_ABNORMAL)) {
 		dev_info(cm->dev, "Charging voltage is less than %d, recharging\n",
 			 desc->charge_voltage_max - desc->charge_voltage_drop);
-		uevent_notify(cm, "Recharging");
+		power_supply_changed(cm->charger_psy);
 		try_charger_enable(cm, true);
 		cm->charging_status &= ~CM_CHARGE_VOLTAGE_ABNORMAL;
 		power_supply_changed(cm->charger_psy);
@@ -3641,7 +3572,7 @@ static int cm_check_charge_health(struct charger_manager *cm)
 
 	if (cm->charger_enabled && health != POWER_SUPPLY_HEALTH_GOOD) {
 		dev_info(cm->dev, "Charging health is not good\n");
-		uevent_notify(cm, "Discharging");
+		power_supply_changed(cm->charger_psy);
 		cm->charging_status |= CM_CHARGE_HEALTH_ABNORMAL;
 		try_charger_enable(cm, false);
 		return 0;
@@ -3649,7 +3580,7 @@ static int cm_check_charge_health(struct charger_manager *cm)
 		   health == POWER_SUPPLY_HEALTH_GOOD &&
 		   (cm->charging_status & CM_CHARGE_HEALTH_ABNORMAL)) {
 		dev_info(cm->dev, "Charging health is recover good\n");
-		uevent_notify(cm, "Recharging");
+		power_supply_changed(cm->charger_psy);
 		try_charger_enable(cm, true);
 		cm->charging_status &= ~CM_CHARGE_HEALTH_ABNORMAL;
 		return 0;
@@ -3723,7 +3654,7 @@ static bool cm_manager_adjust_current(struct charger_manager *cm,
 	if (jeita_status == 0 || jeita_status == desc->jeita_tab_size) {
 		dev_warn(cm->dev,
 			 "stop charging due to battery overheat or cold\n");
-		uevent_notify(cm, "Discharging");
+		power_supply_changed(cm->charger_psy);
 		try_charger_enable(cm, false);
 
 		if (jeita_status == 0)
@@ -3958,7 +3889,7 @@ static bool _cm_monitor(struct charger_manager *cm)
 		dev_info(cm->dev,
 			"Temperature is out of range normal state, stop charging\n");
 		if (!try_charger_enable(cm, false))
-			uevent_notify(cm, default_event_names[temp_alrt]);
+			power_supply_changed(cm->charger_psy);
 	/*
 	 * Check if the charge voltage is in the normal range.
 	 */
@@ -3995,7 +3926,7 @@ static bool _cm_monitor(struct charger_manager *cm)
 	} else if (!cm->emergency_stop && is_full_charged(cm) &&
 		   cm->charger_enabled) {
 		dev_info(cm->dev, "EVENT_HANDLE: Battery Fully Charged\n");
-		uevent_notify(cm, default_event_names[CM_EVENT_BATT_FULL]);
+		power_supply_changed(cm->charger_psy);
 
 		try_charger_enable(cm, false);
 
@@ -4011,7 +3942,7 @@ static bool _cm_monitor(struct charger_manager *cm)
 
 			dev_info(cm->dev, "No emergency stop, charging\n");
 			if (!try_charger_enable(cm, true))
-				uevent_notify(cm, "CHARGING");
+				power_supply_changed(cm->charger_psy);
 		}
 	}
 
@@ -4132,7 +4063,7 @@ static void fullbatt_handler(struct charger_manager *cm)
 
 out:
 	dev_info(cm->dev, "EVENT_HANDLE: Battery Fully Charged\n");
-	uevent_notify(cm, default_event_names[CM_EVENT_BATT_FULL]);
+	power_supply_changed(cm->charger_psy);
 }
 
 /**
@@ -4147,7 +4078,7 @@ static void battout_handler(struct charger_manager *cm)
 	if (!is_batt_present(cm)) {
 		dev_emerg(cm->dev, "Battery Pulled Out!\n");
 		try_charger_enable(cm, false);
-		uevent_notify(cm, default_event_names[CM_EVENT_BATT_OUT]);
+		power_supply_changed(cm->charger_psy);
 	} else {
 		dev_emerg(cm->dev, "Battery Pulled in!\n");
 
@@ -4158,7 +4089,7 @@ static void battout_handler(struct charger_manager *cm)
 			try_charger_enable(cm, true);
 		}
 
-		uevent_notify(cm, default_event_names[CM_EVENT_BATT_IN]);
+		power_supply_changed(cm->charger_psy);
 	}
 }
 
@@ -4331,7 +4262,7 @@ static void misc_event_handler(struct charger_manager *cm, enum cm_event_types t
 
 	if (is_polling_required(cm) && cm->desc->polling_interval_ms)
 		schedule_delayed_work(&cm_monitor_work, 0);
-	uevent_notify(cm, default_event_names[type]);
+	power_supply_changed(cm->charger_psy);
 }
 
 static int wireless_get_property(struct power_supply *psy, enum power_supply_property
@@ -6820,7 +6751,7 @@ static void cm_notify_type_handle(struct charger_manager *cm, enum cm_event_type
 		break;
 	case CM_EVENT_UNKNOWN:
 	case CM_EVENT_OTHERS:
-		uevent_notify(cm, msg ? msg : default_event_names[type]);
+		power_supply_changed(cm->charger_psy);
 		break;
 	case CM_EVENT_FAST_CHARGE:
 		fast_charge_handler(cm);
