@@ -3278,9 +3278,10 @@ static int try_charger_enable(struct charger_manager *cm, bool enable)
 		err = try_charger_enable_by_psy(cm, enable);
 	}
 
-	if (!err)
+	if (!err) {
 		cm->charger_enabled = enable;
-
+		power_supply_changed(cm->charger_psy);
+	}
 	return err;
 }
 
@@ -3339,10 +3340,9 @@ static void fullbatt_vchk(struct work_struct *work)
 
 	dev_info(cm->dev, "VBATT dropped %duV after full-batt\n", diff);
 
-	if (diff >= desc->fullbatt_vchkdrop_uV) {
+	if (diff >= desc->fullbatt_vchkdrop_uV)
 		try_charger_restart(cm);
-		power_supply_changed(cm->charger_psy);
-	}
+
 }
 
 /**
@@ -3384,7 +3384,6 @@ static int check_charging_duration(struct charger_manager *cm)
 		    diff < desc->fullbatt_vchkdrop_uV) {
 			dev_info(cm->dev, "Charging duration exceed %ums\n",
 				 desc->charging_max_duration_ms);
-			power_supply_changed(cm->charger_psy);
 			cm->charging_status |= CM_CHARGE_DURATION_ABNORMAL;
 			try_charger_enable(cm, false);
 			ret = true;
@@ -3397,7 +3396,6 @@ static int check_charging_duration(struct charger_manager *cm)
 		    is_ext_pwr_online(cm)) {
 			dev_info(cm->dev, "Discharging duration exceed %ums\n",
 				 desc->discharging_max_duration_ms);
-			power_supply_changed(cm->charger_psy);
 			try_charger_enable(cm, true);
 			cm->charging_status &= ~CM_CHARGE_DURATION_ABNORMAL;
 			ret = true;
@@ -3517,20 +3515,16 @@ static int cm_check_charge_voltage(struct charger_manager *cm)
 	if (cm->charger_enabled && charge_vol > desc->charge_voltage_max) {
 		dev_info(cm->dev, "Charging voltage is larger than %d\n",
 			 desc->charge_voltage_max);
-		power_supply_changed(cm->charger_psy);
 		cm->charging_status |= CM_CHARGE_VOLTAGE_ABNORMAL;
 		try_charger_enable(cm, false);
-		power_supply_changed(cm->charger_psy);
 		return 0;
 	} else if (is_ext_pwr_online(cm) && !cm->charger_enabled &&
 		   charge_vol <= (desc->charge_voltage_max - desc->charge_voltage_drop) &&
 		   (cm->charging_status & CM_CHARGE_VOLTAGE_ABNORMAL)) {
 		dev_info(cm->dev, "Charging voltage is less than %d, recharging\n",
 			 desc->charge_voltage_max - desc->charge_voltage_drop);
-		power_supply_changed(cm->charger_psy);
 		try_charger_enable(cm, true);
 		cm->charging_status &= ~CM_CHARGE_VOLTAGE_ABNORMAL;
-		power_supply_changed(cm->charger_psy);
 		return 0;
 	} else if (cm->charging_status & CM_CHARGE_VOLTAGE_ABNORMAL) {
 		dev_info(cm->dev, "Charging voltage is still abnormal\n");
@@ -3572,7 +3566,6 @@ static int cm_check_charge_health(struct charger_manager *cm)
 
 	if (cm->charger_enabled && health != POWER_SUPPLY_HEALTH_GOOD) {
 		dev_info(cm->dev, "Charging health is not good\n");
-		power_supply_changed(cm->charger_psy);
 		cm->charging_status |= CM_CHARGE_HEALTH_ABNORMAL;
 		try_charger_enable(cm, false);
 		return 0;
@@ -3580,7 +3573,6 @@ static int cm_check_charge_health(struct charger_manager *cm)
 		   health == POWER_SUPPLY_HEALTH_GOOD &&
 		   (cm->charging_status & CM_CHARGE_HEALTH_ABNORMAL)) {
 		dev_info(cm->dev, "Charging health is recover good\n");
-		power_supply_changed(cm->charger_psy);
 		try_charger_enable(cm, true);
 		cm->charging_status &= ~CM_CHARGE_HEALTH_ABNORMAL;
 		return 0;
@@ -3654,7 +3646,6 @@ static bool cm_manager_adjust_current(struct charger_manager *cm,
 	if (jeita_status == 0 || jeita_status == desc->jeita_tab_size) {
 		dev_warn(cm->dev,
 			 "stop charging due to battery overheat or cold\n");
-		power_supply_changed(cm->charger_psy);
 		try_charger_enable(cm, false);
 
 		if (jeita_status == 0)
@@ -3888,8 +3879,7 @@ static bool _cm_monitor(struct charger_manager *cm)
 		cm->emergency_stop = temp_alrt;
 		dev_info(cm->dev,
 			"Temperature is out of range normal state, stop charging\n");
-		if (!try_charger_enable(cm, false))
-			power_supply_changed(cm->charger_psy);
+		try_charger_enable(cm, false);
 	/*
 	 * Check if the charge voltage is in the normal range.
 	 */
@@ -3926,8 +3916,6 @@ static bool _cm_monitor(struct charger_manager *cm)
 	} else if (!cm->emergency_stop && is_full_charged(cm) &&
 		   cm->charger_enabled) {
 		dev_info(cm->dev, "EVENT_HANDLE: Battery Fully Charged\n");
-		power_supply_changed(cm->charger_psy);
-
 		try_charger_enable(cm, false);
 
 		fullbatt_vchk(&cm->fullbatt_vchk_work.work);
@@ -3941,8 +3929,7 @@ static bool _cm_monitor(struct charger_manager *cm)
 			}
 
 			dev_info(cm->dev, "No emergency stop, charging\n");
-			if (!try_charger_enable(cm, true))
-				power_supply_changed(cm->charger_psy);
+			try_charger_enable(cm, true);
 		}
 	}
 
@@ -4063,7 +4050,6 @@ static void fullbatt_handler(struct charger_manager *cm)
 
 out:
 	dev_info(cm->dev, "EVENT_HANDLE: Battery Fully Charged\n");
-	power_supply_changed(cm->charger_psy);
 }
 
 /**
@@ -4078,7 +4064,6 @@ static void battout_handler(struct charger_manager *cm)
 	if (!is_batt_present(cm)) {
 		dev_emerg(cm->dev, "Battery Pulled Out!\n");
 		try_charger_enable(cm, false);
-		power_supply_changed(cm->charger_psy);
 	} else {
 		dev_emerg(cm->dev, "Battery Pulled in!\n");
 
@@ -4088,8 +4073,6 @@ static void battout_handler(struct charger_manager *cm)
 		} else {
 			try_charger_enable(cm, true);
 		}
-
-		power_supply_changed(cm->charger_psy);
 	}
 }
 
@@ -5059,8 +5042,6 @@ static ssize_t charger_stop_store(struct device *dev,
 		}
 		charger->externally_control = true;
 	}
-
-	power_supply_changed(cm->charger_psy);
 
 	return count;
 }
@@ -6749,22 +6730,21 @@ static void cm_notify_type_handle(struct charger_manager *cm, enum cm_event_type
 	case CM_EVENT_EXT_PWR_IN_OUT ... CM_EVENT_CHG_START_STOP:
 		misc_event_handler(cm, type);
 		break;
-	case CM_EVENT_UNKNOWN:
-	case CM_EVENT_OTHERS:
-		power_supply_changed(cm->charger_psy);
-		break;
 	case CM_EVENT_FAST_CHARGE:
 		fast_charge_handler(cm);
 		break;
 	case CM_EVENT_INT:
 		cm_charger_int_handler(cm);
 		break;
+	case CM_EVENT_UNKNOWN:
+	case CM_EVENT_OTHERS:
 	default:
 		dev_err(cm->dev, "%s: type not specified\n", __func__);
 		break;
 	}
 
 	power_supply_changed(cm->charger_psy);
+
 }
 
 /**
