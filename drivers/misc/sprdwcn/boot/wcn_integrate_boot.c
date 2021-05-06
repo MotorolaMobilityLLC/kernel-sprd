@@ -2197,7 +2197,7 @@ int gnss_sys_shutdown(struct wcn_device *wcn_dev)
 			  reg_val);
 
 	/* workround1 use after chip eco D-die sys dosen't sleep*/
-	//wcn_ip_allow_sleep(wcn_dev, true);
+	wcn_ip_allow_sleep(wcn_dev, true);
 	return 0;
 }
 
