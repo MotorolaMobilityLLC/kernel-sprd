@@ -910,6 +910,10 @@ static void dpu_flip(struct dpu_context *ctx, struct sprd_plane planes[], u8 cou
 		if (!ctx->stopped) {
 			DPU_REG_SET(ctx->base + REG_DPU_CTRL, BIT_DPU_REG_UPDATE);
 			dpu_wait_update_done(ctx);
+		} else if (y2r_coef >= 0) {
+			DPU_REG_SET(ctx->base + REG_DPU_CTRL, BIT_DPU_RUN);
+			ctx->stopped = false;
+			pr_info("dpu start\n");
 		}
 
 		DPU_REG_SET(ctx->base + REG_DPU_INT_EN, BIT_DPU_INT_ERR);
