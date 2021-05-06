@@ -12511,7 +12511,7 @@ CONFIG_SC27XX_TSENSOR_THERMAL
 	[missing plat] pike2,qogirn6pro,sharkl3,sharkl3_32,sharkle32
 	[field] make
 	[subsys] thermal
-	[must] usr
+	[must] user
 	[missing plat description] Only enable on sharkl5 and sharkl5Pro because solution requirements.
 	[function] This function is used to config thermal moudle to get
 	osc and extern cystal temperature.
@@ -14775,6 +14775,16 @@ CONFIG_SPRD_UID
 	[must] debug
 	[missing plat description] Others is no need at current.
 	[function] Support read uid only.
+CONFIG_SPRD_UMP96XX_TSENSOR
+	[arch] arm64
+	[plat] qogirn6pro
+	[missing plat] qogirl6,sharkl3,sharkl5,sharkl5Pro
+	[field] make
+	[subsys] thermal
+	[must] user
+	[missing plat description] only N6pro with ump9622.
+	[function] This function is used to config thermal moudle to get
+		osc and extern cystal temperature for ump9622.
 CONFIG_SPRD_UMS9230_CLK
 	[arch] arm64
 	[plat] qogirl6
