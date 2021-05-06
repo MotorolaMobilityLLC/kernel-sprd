@@ -30,6 +30,7 @@
 #include <linux/uaccess.h>
 #include <linux/version.h>
 #include <linux/wait.h>
+#include <linux/dma-mapping.h>
 #include <uapi/video/sprd_jpg.h>
 #include "sprd_jpg_common.h"
 
@@ -571,6 +572,8 @@ static int jpg_probe(struct platform_device *pdev)
 
 	hw_dev.jpg_fp = NULL;
 
+	INIT_LIST_HEAD(&hw_dev.map_list);
+
 	ret = jpg_get_mm_clk(&hw_dev);
 	ret = 0;
 
@@ -579,6 +582,13 @@ static int jpg_probe(struct platform_device *pdev)
 		dev_err(dev, "cannot register miscdev on minor=%d (%d)\n",
 		       JPG_MINOR, ret);
 		goto errout;
+	}
+
+	if (dma_set_mask_and_coherent(dev, DMA_BIT_MASK(64))) {
+		if (dma_set_mask_and_coherent(dev, DMA_BIT_MASK(32)))
+			dev_err(dev, "jpg: failed to set dma mask!\n");
+	} else {
+		dev_info(dev, "jpg: set dma mask as 64bit\n");
 	}
 
 	/* register isr */
