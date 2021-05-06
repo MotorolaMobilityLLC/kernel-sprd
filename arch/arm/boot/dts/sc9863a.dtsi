@@ -947,8 +947,8 @@
 		#size-cells = <1>;
 		ranges;
 
-		warm_boot_reserved: warm-boot@0x81ff0000 {
-			reg = <0x81ff0000 0x10000>; /* 64K */
+		warm_boot_reserved: warm-boot@0x83ef0000 {
+			reg = <0x83ef0000 0x10000>; /* 64K */
 		};
 
 		wcn_reserved: wcn-mem@84000000 {
@@ -969,21 +969,17 @@
 			reg = <0x88e00000 0x00800000>;
 		};
 
-		sensorhub_reserved: sensorhub-mem@88000000 {
-			reg = <0x88000000 0x01000000>;
-		};
-
 		cp_reserved: cp-modem@89600000 {
 			reg = <0x89600000 0x03e00000>;
 		};
 
 		/* must be 1M aligned */
-		sml_reserved: sml-mem@94000000 {
-			reg = <0x94000000 0x00020000>;
+		sml_reserved: sml-mem@b0000000 {
+			reg = <0xb0000000 0x00020000>;
 		};
 
-		tos_reserved: tos-mem@94020000{
-			reg = <0x94020000 0x01fe0000>;
+		tos_reserved: tos-mem@b0020000{
+			reg = <0xb0020000 0x01fe0000>;
 		};
 
 		pstore_reserved: ramoops@fff80000 {
