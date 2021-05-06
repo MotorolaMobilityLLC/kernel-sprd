@@ -17001,8 +17001,8 @@ CONFIG_SPRD_VSP
 	[missing plat description] none
 	[function] The VSP is a video CODEC accelerator.
 CONFIG_SPRD_VSP_PW_DOMAIN
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field] make,code,menu
 	[subsys] misc
