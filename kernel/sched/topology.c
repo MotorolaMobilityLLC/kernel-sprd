@@ -1888,15 +1888,14 @@ build_sched_domains(const struct cpumask *cpu_map, struct sched_domain_attr *att
 	for_each_cpu(i, cpu_map) {
 		int max_cpu = READ_ONCE(d.rd->max_cap_orig_cpu);
 		int min_cpu = READ_ONCE(d.rd->min_cap_orig_cpu);
+		unsigned long cpu_cap = arch_scale_cpu_capacity(NULL, i);
 
 		sd = *per_cpu_ptr(d.sd, i);
 
-		if ((max_cpu < 0) || (cpu_rq(i)->cpu_capacity_orig >
-		    cpu_rq(max_cpu)->cpu_capacity_orig))
+		if (max_cpu < 0 || cpu_cap > arch_scale_cpu_capacity(NULL, max_cpu))
 			WRITE_ONCE(d.rd->max_cap_orig_cpu, i);
 
-		if ((min_cpu < 0) || (cpu_rq(i)->cpu_capacity_orig <
-		    cpu_rq(min_cpu)->cpu_capacity_orig))
+		if (min_cpu < 0 || cpu_cap < arch_scale_cpu_capacity(NULL, min_cpu))
 			WRITE_ONCE(d.rd->min_cap_orig_cpu, i);
 
 		cpu_attach_domain(sd, d.rd, i);
@@ -1906,11 +1905,13 @@ build_sched_domains(const struct cpumask *cpu_map, struct sched_domain_attr *att
 	for_each_cpu(i, cpu_map) {
 		int max_cpu = READ_ONCE(d.rd->max_cap_orig_cpu);
 		int min_cpu = READ_ONCE(d.rd->min_cap_orig_cpu);
+		unsigned long cpu_cap = arch_scale_cpu_capacity(NULL, i);
 
-		if ((cpu_rq(i)->cpu_capacity_orig !=
-		   cpu_rq(min_cpu)->cpu_capacity_orig) &&
-		   (cpu_rq(i)->cpu_capacity_orig !=
-		   cpu_rq(max_cpu)->cpu_capacity_orig)) {
+		if (max_cpu < 0 || min_cpu < 0)
+			break;
+
+		if (cpu_cap != arch_scale_cpu_capacity(NULL, min_cpu) &&
+		    cpu_cap != arch_scale_cpu_capacity(NULL, max_cpu)) {
 			WRITE_ONCE(d.rd->mid_cap_orig_cpu, i);
 			break;
 		}
