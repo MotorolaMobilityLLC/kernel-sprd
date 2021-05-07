@@ -114,7 +114,6 @@ struct vpu_platform_data {
 
 	bool is_vpu_acquired;
 	bool iommu_exist_flag;
-	bool qos_exist_flag;
 	bool is_clock_enabled;
 
 	wait_queue_head_t wait_queue_work;

@@ -35,6 +35,7 @@
 #include <linux/compat.h>
 #include <uapi/video/sprd_vpu.h>
 #include "vpu_drv.h"
+#include "vpu_sys.h"
 
 #ifdef pr_fmt
 #undef pr_fmt
@@ -62,6 +63,31 @@ static const struct of_device_id of_match_table_vpu[] = {
 	{.compatible = "sprd,vpu-dec-core0", .data = &dec_core0},
 	{},
 };
+
+static void vpu_qos_config(void)
+{
+	unsigned int i, vpu_qos_num, dpu_vpu_qos_num;
+	static volatile unsigned int *base_addr_virt;
+	int reg_val;
+
+	vpu_qos_num = sizeof(vpu_mtx_qos) / sizeof(vpu_mtx_qos[0]);
+	dpu_vpu_qos_num = sizeof(dpu_vpu_mtx_qos) / sizeof(dpu_vpu_mtx_qos[0]);
+
+	for (i = 0; i < vpu_qos_num; i++) {
+		base_addr_virt = ioremap(VPU_SOC_QOS_BASE + vpu_mtx_qos[i].offset, 4);
+		reg_val = readl_relaxed((void __iomem *)base_addr_virt);
+		writel_relaxed((reg_val & (~vpu_mtx_qos[i].mask)
+		|vpu_mtx_qos[i].value), (void __iomem *)base_addr_virt);
+	}
+
+	for (i = 0; i < dpu_vpu_qos_num; i++) {
+		base_addr_virt = ioremap(DPU_VPU_SOC_QOS_BASE + dpu_vpu_mtx_qos[i].offset, 4);
+		reg_val = readl_relaxed((void __iomem *)base_addr_virt);
+		writel_relaxed((reg_val & (~dpu_vpu_mtx_qos[i].mask)
+		|dpu_vpu_mtx_qos[i].value), (void __iomem *)base_addr_virt);
+	}
+}
+
 
 static long vpu_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
@@ -197,12 +223,6 @@ static long vpu_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		if (data->iommu_exist_flag)
 			sprd_iommu_restore(data->dev);
 
-		if (data->qos_exist_flag) {
-			writel_relaxed(((data->qos.awqos & 0x7) << 8) |
-				(data->qos.arqos_low & 0x7),
-				data->glb_reg_base + data->qos.reg_offset);
-		}
-
 		break;
 
 	case VPU_HW_INFO:
@@ -287,7 +307,6 @@ static int vpu_parse_dt(struct vpu_platform_data *data)
 	struct platform_device *pdev = data->pdev;
 	struct device *dev = &(pdev->dev);
 	struct device_node *np = dev->of_node;
-	struct device_node *qos_np = NULL;
 	struct resource *res;
 	int i, ret = 0;
 	char *pname;
@@ -337,30 +356,7 @@ static int vpu_parse_dt(struct vpu_platform_data *data)
 		data->p_data->name, data->irq, data->phys_addr);
 
 	get_clk(data, np);
-
-	qos_np = of_parse_phandle(np, "sprd,qos", 0);
-	if (!qos_np) {
-		dev_warn(dev, "can't find vpu qos cfg node\n");
-		data->qos_exist_flag = false;
-	} else {
-		ret = of_property_read_u8(qos_np, "awqos",
-						&data->qos.awqos);
-		if (ret)
-			dev_warn(dev, "read awqos_low failed, use default\n");
-
-		ret = of_property_read_u8(qos_np, "arqos-low",
-						&data->qos.arqos_low);
-		if (ret)
-			dev_warn(dev, "read arqos-low failed, use default\n");
-
-		ret = of_property_read_u8(qos_np, "arqos-high",
-						&data->qos.arqos_high);
-		if (ret)
-			dev_warn(dev, "read arqos-high failed, use default\n");
-		data->qos_exist_flag = true;
-	}
-	dev_info(dev, "%x, %x, %x, %x", data->qos.awqos, data->qos.arqos_high,
-		data->qos.arqos_low, data->qos.reg_offset);
+	vpu_qos_config();
 
 	data->iommu_exist_flag =
 		(sprd_iommu_attach_device(data->dev) == 0);
