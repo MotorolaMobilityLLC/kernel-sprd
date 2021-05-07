@@ -413,12 +413,20 @@ static void sugov_update_single(struct update_util_data *hook, u64 time,
 	unsigned int next_f;
 	bool busy;
 
+	util = sugov_get_util(&max, sg_cpu->cpu);
+
+	raw_spin_lock(&sg_policy->update_lock);
+
+	sg_cpu->util = util;
+	sg_cpu->max = max;
+	sg_cpu->flags = flags;
+
 	sugov_set_iowait_boost(sg_cpu, time, flags);
 	sg_cpu->last_update = time;
 
 	if (!sugov_should_update_freq(sg_policy, time, NULL)) {
 		sugov_performance_htimer_start(sg_policy, time);
-		return;
+		goto unlock;
 	}
 
 	sugov_performance_htimer_cancel(sg_policy);
@@ -428,7 +436,6 @@ static void sugov_update_single(struct update_util_data *hook, u64 time,
 	if (flags & SCHED_CPUFREQ_DL) {
 		next_f = policy->cpuinfo.max_freq;
 	} else {
-		util = sugov_get_util(&max, sg_cpu->cpu);
 		sugov_iowait_boost(sg_cpu, &util, &max);
 		next_f = get_next_freq(sg_policy, util, max, false);
 		/*
@@ -445,6 +452,9 @@ static void sugov_update_single(struct update_util_data *hook, u64 time,
 	}
 
 	sugov_update_commit(sg_policy, time, next_f);
+
+unlock:
+	raw_spin_unlock(&sg_policy->update_lock);
 }
 
 static unsigned int sugov_next_freq_policy(struct sugov_policy *sg_policy)
