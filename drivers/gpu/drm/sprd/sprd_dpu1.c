@@ -548,11 +548,6 @@ static void sprd_crtc_mode_set_nofb(struct drm_crtc *crtc)
 
 	DRM_INFO("%s() set mode: %s\n", __func__, mode->name);
 
-	if (!dpu->ctx.is_inited) {
-		DRM_WARN("dpu has already powered off\n");
-		return;
-	}
-
 	if (dpu->core && dpu->core->modeset && crtc->state->mode_changed)
 		dpu->core->modeset(&dpu->ctx, mode);
 }

@@ -128,7 +128,7 @@ static void sprd_dp_encoder_mode_set(struct drm_encoder *encoder,
 	dptx_timing_cfg(dp->snps_dptx, mode, info);
 
 	if (dpu->ctx.bypass_mode) {
-		switch (dpu->crtc.primary->fb->format->format) {
+		switch (dpu->crtc.primary->state->fb->format->format) {
 		case DRM_FORMAT_NV12:
 			vparams->bpc = COLOR_DEPTH_8;
 			vparams->pix_enc = YCBCR420;
