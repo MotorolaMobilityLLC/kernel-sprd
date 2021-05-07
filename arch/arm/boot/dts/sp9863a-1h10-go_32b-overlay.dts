@@ -191,7 +191,7 @@
 };
 
 &chosen {
-	bootargs_ext = "androidboot.hardware=s9863a1h10";
+	bootargs_ext = "androidboot.hardware=s9863a1h10_go_32b";
 };
 
 &panel {
