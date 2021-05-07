@@ -235,7 +235,7 @@ static const struct regmap_config bq25910_charger_regmap_config = {
 static void bq25910_charger_dump_register(struct bq25910_charger_info *info)
 {
 	int i, ret, len, idx = 0;
-	u32 reg_val;
+	u32 reg_val = 0;
 	char buf[128];
 
 	memset(buf, '\0', sizeof(buf));
@@ -455,7 +455,7 @@ static int bq25910_charger_set_current(struct bq25910_charger_info *info, u32 cu
 static int bq25910_charger_get_current(struct bq25910_charger_info *info,
 				       u32 *cur)
 {
-	u32 reg_val;
+	u32 reg_val = 0;
 	int ret;
 
 	ret = regmap_read(info->regmap, BQ25910_REG_1, &reg_val);
@@ -471,7 +471,7 @@ static int bq25910_charger_get_current(struct bq25910_charger_info *info,
 static u32 bq25910_charger_get_limit_current(struct bq25910_charger_info *info,
 					     u32 *limit_cur)
 {
-	u32 reg_val;
+	u32 reg_val = 0;
 	int ret;
 
 	ret = regmap_read(info->regmap, BQ25910_REG_3, &reg_val);
@@ -610,21 +610,21 @@ static ssize_t bq25910_reg_val_show(struct device *dev,
 		container_of(attr, struct bq25910_charger_sysfs,
 			     attr_bq25910_reg_val);
 	struct bq25910_charger_info *info = bq25910_sysfs->info;
-	u32 val;
+	u32 val = 0;
 	int ret;
 
 	if (!info)
-		return sprintf(buf, "%s bq25910_sysfs->info is null\n", __func__);
+		return snprintf(buf, PAGE_SIZE, "%s bq25910_sysfs->info is null\n", __func__);
 
 	ret = regmap_read(info->regmap, reg_tab[info->reg_id].addr, &val);
 	if (ret) {
 		dev_err(info->dev, "fail to get bq25910_REG_0x%.2x value, ret = %d\n",
 			reg_tab[info->reg_id].addr, ret);
-		return sprintf(buf, "fail to get bq25910_REG_0x%.2x value\n",
+		return snprintf(buf, PAGE_SIZE, "fail to get bq25910_REG_0x%.2x value\n",
 			       reg_tab[info->reg_id].addr);
 	}
 
-	return sprintf(buf, "bq25910_REG_0x%.2x = 0x%.2x\n",
+	return snprintf(buf, PAGE_SIZE, "bq25910_REG_0x%.2x = 0x%.2x\n",
 		       reg_tab[info->reg_id].addr, val);
 }
 
@@ -705,9 +705,9 @@ static ssize_t bq25910_reg_id_show(struct device *dev,
 	struct bq25910_charger_info *info = bq25910_sysfs->info;
 
 	if (!info)
-		return sprintf(buf, "%s bq25910_sysfs->info is null\n", __func__);
+		return snprintf(buf, PAGE_SIZE, "%s bq25910_sysfs->info is null\n", __func__);
 
-	return sprintf(buf, "Cuurent register id = %d\n", info->reg_id);
+	return snprintf(buf, PAGE_SIZE, "Cuurent register id = %d\n", info->reg_id);
 }
 
 static ssize_t bq25910_reg_table_show(struct device *dev,
@@ -722,7 +722,7 @@ static ssize_t bq25910_reg_table_show(struct device *dev,
 	char reg_tab_buf[2048];
 
 	if (!info)
-		return sprintf(buf, "%s bq25910_sysfs->info is null\n", __func__);
+		return snprintf(buf, PAGE_SIZE, "%s bq25910_sysfs->info is null\n", __func__);
 
 	memset(reg_tab_buf, '\0', sizeof(reg_tab_buf));
 	len = snprintf(reg_tab_buf + idx, sizeof(reg_tab_buf) - idx,
@@ -736,7 +736,7 @@ static ssize_t bq25910_reg_table_show(struct device *dev,
 		idx += len;
 	}
 
-	return sprintf(buf, "%s\n", reg_tab_buf);
+	return snprintf(buf, PAGE_SIZE, "%s\n", reg_tab_buf);
 }
 
 static ssize_t bq25910_dump_reg_show(struct device *dev,
@@ -749,11 +749,11 @@ static ssize_t bq25910_dump_reg_show(struct device *dev,
 	struct bq25910_charger_info *info = bq25910_sysfs->info;
 
 	if (!info)
-		return sprintf(buf, "%s bq25910_sysfs->info is null\n", __func__);
+		return snprintf(buf, PAGE_SIZE, "%s bq25910_sysfs->info is null\n", __func__);
 
 	bq25910_charger_dump_register(info);
 
-	return sprintf(buf, "%s\n", bq25910_sysfs->name);
+	return snprintf(buf, PAGE_SIZE, "%s\n", bq25910_sysfs->name);
 }
 
 static int bq25910_register_sysfs(struct bq25910_charger_info *info)
@@ -821,9 +821,12 @@ static int bq25910_charger_usb_get_property(struct power_supply *psy,
 					    union power_supply_propval *val)
 {
 	struct bq25910_charger_info *info = power_supply_get_drvdata(psy);
-	u32 cur, online, health, enabled;
+	u32 cur, online, health, enabled = 0;
 	enum usb_charger_type type;
 	int ret = 0;
+
+	if (!info)
+		return -EINVAL;
 
 	mutex_lock(&info->lock);
 
@@ -929,6 +932,9 @@ static int bq25910_charger_usb_set_property(struct power_supply *psy,
 {
 	struct bq25910_charger_info *info = power_supply_get_drvdata(psy);
 	int ret = 0;
+
+	if (!info)
+		return -EINVAL;
 
 	mutex_lock(&info->lock);
 
