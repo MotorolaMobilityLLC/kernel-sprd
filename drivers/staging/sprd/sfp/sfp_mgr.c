@@ -156,8 +156,6 @@ static void sfp_mgr_fwd_entry_free(struct rcu_head *head)
 	if (sfp_ct && atomic_dec_and_test(&sfp_ct->used)) {
 		FP_PRT_DBG(FP_PRT_WARN, "sfp_ct free %p\n", sfp_ct);
 		kfree(sfp_ct);
-	} else if (sfp_ct) {
-		del_timer(&sfp_ct->timeout);
 	}
 }
 
@@ -194,12 +192,12 @@ int sfp_mgr_fwd_entry_delete(const struct nf_conntrack_tuple *tuple)
 				&sfp_ct->tuplehash[IP_CT_DIR_REPLY]);
 		}
 		hlist_del_rcu(&sfp_ct->tuplehash[IP_CT_DIR_ORIGINAL].entry_lst);
-		call_rcu(&sfp_ct->tuplehash[IP_CT_DIR_ORIGINAL].rcu,
-			 sfp_mgr_fwd_entry_free);
+		call_rcu_bh(&sfp_ct->tuplehash[IP_CT_DIR_ORIGINAL].rcu,
+			    sfp_mgr_fwd_entry_free);
 
 		hlist_del_rcu(&sfp_ct->tuplehash[IP_CT_DIR_REPLY].entry_lst);
-		call_rcu(&sfp_ct->tuplehash[IP_CT_DIR_REPLY].rcu,
-			 sfp_mgr_fwd_entry_free);
+		call_rcu_bh(&sfp_ct->tuplehash[IP_CT_DIR_REPLY].rcu,
+			    sfp_mgr_fwd_entry_free);
 		break;
 	}
 	rcu_read_unlock_bh();
@@ -209,53 +207,56 @@ int sfp_mgr_fwd_entry_delete(const struct nf_conntrack_tuple *tuple)
 
 static void sfp_mgr_fwd_death_by_timeout(unsigned long ul_fwd_entry_conn)
 {
-	struct sfp_conn *sfp_entry;
+	struct sfp_conn *mgr_sfp_entry;
 
-	sfp_entry = (struct sfp_conn *)ul_fwd_entry_conn;
+	spin_lock_bh(&mgr_lock);
+	mgr_sfp_entry = (struct sfp_conn *)ul_fwd_entry_conn;
 
-	if (!sfp_entry) {
+	if (!mgr_sfp_entry || timer_pending(&mgr_sfp_entry->timeout)) {
 		FP_PRT_DBG(FP_PRT_ERR, "sfp_entry was free when time out.\n");
+		spin_unlock_bh(&mgr_lock);
 		return;
 	}
 
-	FP_PRT_DBG(FP_PRT_DEBUG, "SFP:<<check death by timeout(%p)>>.\n",
-		   sfp_entry);
+	FP_PRT_DBG(FP_PRT_ERR, "SFP:<<check death by timeout(%p)>>.\n",
+		   mgr_sfp_entry);
 
+	rcu_read_lock_bh();
 	if (!get_sfp_tether_scheme()) {
 		spin_lock_bh(&fwd_tbl.sp_lock);
-		if (!sfp_ipa_tbl_timeout(sfp_entry)) {
+		if (!sfp_ipa_tbl_timeout(mgr_sfp_entry)) {
 			spin_unlock_bh(&fwd_tbl.sp_lock);
+			rcu_read_unlock_bh();
+			spin_unlock_bh(&mgr_lock);
 			return;
 		}
 
-		FP_PRT_DBG(FP_PRT_DEBUG, "time out: delete ipa entry %p\n",
-			   sfp_entry);
-		sfp_ipa_fwd_delete(&sfp_entry->tuplehash[IP_CT_DIR_ORIGINAL],
-				   sfp_entry->hash[IP_CT_DIR_ORIGINAL]);
-		sfp_ipa_fwd_delete(&sfp_entry->tuplehash[IP_CT_DIR_REPLY],
-				   sfp_entry->hash[IP_CT_DIR_REPLY]);
+		FP_PRT_DBG(FP_PRT_ERR, "time out: delete ipa entry %p\n",
+			   mgr_sfp_entry);
+		sfp_ipa_fwd_delete(
+			&mgr_sfp_entry->tuplehash[IP_CT_DIR_ORIGINAL],
+			mgr_sfp_entry->hash[IP_CT_DIR_ORIGINAL]);
+		sfp_ipa_fwd_delete(&mgr_sfp_entry->tuplehash[IP_CT_DIR_REPLY],
+				   mgr_sfp_entry->hash[IP_CT_DIR_REPLY]);
 		spin_unlock_bh(&fwd_tbl.sp_lock);
-		spin_lock_bh(&mgr_lock);
 	} else {
-		spin_lock_bh(&mgr_lock);
 		delete_in_sfp_fwd_table(
-			&sfp_entry->tuplehash[IP_CT_DIR_ORIGINAL]);
+			&mgr_sfp_entry->tuplehash[IP_CT_DIR_ORIGINAL]);
 		delete_in_sfp_fwd_table(
-			&sfp_entry->tuplehash[IP_CT_DIR_REPLY]);
+			&mgr_sfp_entry->tuplehash[IP_CT_DIR_REPLY]);
 	}
 
 	FP_PRT_TRUPLE_INFO(FP_PRT_DEBUG,
-			   &sfp_entry->tuplehash[IP_CT_DIR_ORIGINAL].tuple);
+			   &mgr_sfp_entry->tuplehash[IP_CT_DIR_ORIGINAL].tuple);
 	FP_PRT_TRUPLE_INFO(FP_PRT_DEBUG,
-			   &sfp_entry->tuplehash[IP_CT_DIR_REPLY].tuple);
+			   &mgr_sfp_entry->tuplehash[IP_CT_DIR_REPLY].tuple);
 
-	rcu_read_lock_bh();
-	hlist_del_rcu(&sfp_entry->tuplehash[IP_CT_DIR_ORIGINAL].entry_lst);
-	call_rcu(&sfp_entry->tuplehash[IP_CT_DIR_ORIGINAL].rcu,
-		 sfp_mgr_fwd_entry_free);
-	hlist_del_rcu(&sfp_entry->tuplehash[IP_CT_DIR_REPLY].entry_lst);
-	call_rcu(&sfp_entry->tuplehash[IP_CT_DIR_REPLY].rcu,
-		 sfp_mgr_fwd_entry_free);
+	hlist_del_rcu(&mgr_sfp_entry->tuplehash[IP_CT_DIR_ORIGINAL].entry_lst);
+	call_rcu_bh(&mgr_sfp_entry->tuplehash[IP_CT_DIR_ORIGINAL].rcu,
+		    sfp_mgr_fwd_entry_free);
+	hlist_del_rcu(&mgr_sfp_entry->tuplehash[IP_CT_DIR_REPLY].entry_lst);
+	call_rcu_bh(&mgr_sfp_entry->tuplehash[IP_CT_DIR_REPLY].rcu,
+		    sfp_mgr_fwd_entry_free);
 	rcu_read_unlock_bh();
 	spin_unlock_bh(&mgr_lock);
 }
@@ -679,6 +680,7 @@ static int get_hw_iface_by_dev(struct net_device *dev)
 bool is_banned_ipa_netdev(struct net_device *dev)
 {
 	int i;
+
 	dev_hold(dev);
 	for (i = 0; i < IPA_BAN_MAX; i++) {
 		if (ipa_banned_netdev[i] &&
@@ -731,6 +733,7 @@ int sfp_filter_mgr_fwd_create_entries(u8 pf, struct sk_buff *skb)
 	int out_ipaifindex, in_ipaifindex;
 	u8  l4proto;
 	int dir;
+
 	if (!get_sfp_enable())
 		return 0;
 
@@ -752,7 +755,7 @@ int sfp_filter_mgr_fwd_create_entries(u8 pf, struct sk_buff *skb)
 	/* wifi/bt-pan does not support IPA due to their hardware drawback */
 	if (!get_sfp_tether_scheme()) {
 		if (is_banned_ipa_netdev(skb->dev) ||
-				is_banned_ipa_netdev(rt->dst.dev)) {
+		    is_banned_ipa_netdev(rt->dst.dev)) {
 			FP_PRT_DBG(FP_PRT_DEBUG,
 				   "dev filted, wont create sfp\n");
 			return 0;
@@ -1013,6 +1016,7 @@ static int sfp_check_netdevice_change(struct net_device *dev)
 void sfp_clear_fwd_table(int ifindex)
 {
 	struct sfp_mgr_fwd_tuple_hash *tuple_hash;
+	struct sfp_conn *sfp_ct;
 	int i;
 
 	if (ifindex == 0)
@@ -1026,10 +1030,14 @@ void sfp_clear_fwd_table(int ifindex)
 					 entry_lst) {
 			if (tuple_hash->ssfp_fwd_tuple.in_ifindex == ifindex ||
 			    tuple_hash->ssfp_fwd_tuple.out_ifindex == ifindex) {
+				sfp_ct = sfp_ct_tuplehash_to_ctrack(tuple_hash);
+				/* Unisoc: del timer first.*/
+				if (atomic_read(&sfp_ct->used) == 2)
+					del_timer(&sfp_ct->timeout);
 				hlist_del_rcu(&tuple_hash->entry_lst);
 				delete_in_sfp_fwd_table(tuple_hash);
-				call_rcu(&tuple_hash->rcu,
-					 sfp_mgr_fwd_entry_free);
+				call_rcu_bh(&tuple_hash->rcu,
+					    sfp_mgr_fwd_entry_free);
 			}
 		}
 	}
@@ -1041,19 +1049,26 @@ void sfp_clear_fwd_table(int ifindex)
 void clear_sfp_mgr_table(void)
 {
 	struct sfp_mgr_fwd_tuple_hash *tuple_hash;
+	struct sfp_conn *sfp_ct;
 	int i;
 
 	FP_PRT_DBG(FP_PRT_DEBUG, "SFP: Clearing all forward entries\n");
+	spin_lock_bh(&mgr_lock);
 	rcu_read_lock_bh();
 	for (i = 0; i < SFP_ENTRIES_HASH_SIZE; i++) {
 		hlist_for_each_entry_rcu(tuple_hash,
 					 &mgr_fwd_entries[i],
 					 entry_lst) {
+			sfp_ct = sfp_ct_tuplehash_to_ctrack(tuple_hash);
+			/* Unisoc: del timer first.*/
+			if (atomic_read(&sfp_ct->used) == 2)
+				del_timer(&sfp_ct->timeout);
 			hlist_del_rcu(&tuple_hash->entry_lst);
-			call_rcu(&tuple_hash->rcu, sfp_mgr_fwd_entry_free);
+			call_rcu_bh(&tuple_hash->rcu, sfp_mgr_fwd_entry_free);
 		}
 	}
 	rcu_read_unlock_bh();
+	spin_unlock_bh(&mgr_lock);
 }
 
 static int sfp_if_netdev_event_handler(

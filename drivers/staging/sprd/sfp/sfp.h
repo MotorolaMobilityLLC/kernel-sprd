@@ -484,7 +484,7 @@ extern unsigned int fp_dbg_lvl;
 #define SFP_LOG_TAG  "SFP"
 #define FP_PRT_DBG(FLG, fmt, arg...) {\
 	if (fp_dbg_lvl & (FLG))\
-		pr_info("SFP:"fmt, ##arg);\
+		pr_info("SFP:" fmt, ##arg);\
 	}
 #else
 #define FP_PRT_DBG(FLG, fmt, arg...)
