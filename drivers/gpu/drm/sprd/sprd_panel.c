@@ -652,8 +652,8 @@ static int sprd_oled_set_brightness(struct backlight_device *bdev)
 		if (oled->cmds[0]->wc_l == 3) {
 			if(strncmp(lcd_name, "lcd_nt36525b_dj_mipi_hd", strlen(lcd_name)) == 0)
 			{
-				oled->cmds[0]->payload[1] = (level >> 4) & 0x0F;
-				oled->cmds[0]->payload[2] = (level << 4) & 0xF0;
+				oled->cmds[0]->payload[1] = (level >> 5) & 0x0F;
+				oled->cmds[0]->payload[2] = (level & 0x07) | ((level << 3) & 0xF8);
 			printk("yyx payload[1]:0x%02X, payload[2]:0x%02X\n", oled->cmds[0]->payload[1], oled->cmds[0]->payload[2]);
 			}
 		} else
