@@ -449,10 +449,10 @@ static struct epf_cfg epf = {
 
 
 static struct dpu_cfg1 qos_cfg = {
-	.arqos_low = 0x1,
-	.arqos_high = 0x7,
-	.awqos_low = 0x1,
-	.awqos_high = 0x7,
+	.arqos_low = 0xa,
+	.arqos_high = 0xc,
+	.awqos_low = 0xa,
+	.awqos_high = 0xc,
 };
 
 enum {
@@ -523,7 +523,7 @@ static int wb_en;
 static int max_vsync_count;
 static int vsync_count;
 static struct sprd_dpu_layer wb_layer;
-static int wb_xfbc_en = 1;
+static int wb_xfbc_en;
 static int corner_radius;
 static struct device_node *g_np;
 module_param(wb_xfbc_en, int, 0644);
@@ -695,7 +695,7 @@ static u32 dpu_isr(struct dpu_context *ctx)
 		 * no need to display. Otherwise the new frame will be covered
 		 * by the write back buffer, which is not what we wanted.
 		 */
-		if (wb_en) {
+		if (wb_en && (vsync_count > max_vsync_count)) {
 			wb_en = false;
 			schedule_work(&ctx->wb_work);
 			/*reg_val |= DPU_INT_FENCE_SIGNAL_REQUEST;*/
@@ -886,6 +886,8 @@ static void dpu_wb_trigger(struct dpu_context *ctx, u8 count, bool debug)
 		reg->wb_pitch = ALIGN((mode_width), 16);
 		if (wb_xfbc_en)
 			reg->wb_cfg = (wb_layer.header_size_r << 16) | BIT(0);
+		else
+			reg->wb_cfg = 0;
 	}
 
 	if (debug) {
@@ -994,6 +996,8 @@ static int dpu_write_back_config(struct dpu_context *ctx)
 		reg->wb_pitch = ALIGN((mode_width), 16);
 		if (wb_xfbc_en)
 			reg->wb_cfg = (wb_layer.header_size_r << 16) | BIT(0);
+		else
+			reg->wb_cfg = 0;
 		pr_debug("write back has configed\n");
 		return 0;
 	}
@@ -1335,7 +1339,7 @@ static int dpu_init(struct dpu_context *ctx)
 	reg->dpu_cfg1 = (qos_cfg.awqos_high << 12) |
 		(qos_cfg.awqos_low << 8) |
 		(qos_cfg.arqos_high << 4) |
-		(qos_cfg.arqos_low) | BIT(18) | BIT(22);
+		(qos_cfg.arqos_low) | BIT(18) | BIT(22) | BIT(23);
 
 	if (ctx->is_stopped)
 		dpu_clean_all(ctx);
