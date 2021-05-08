@@ -232,10 +232,12 @@ static int sprd_hsphy_init(struct usb_phy *x)
 
 	sprd_usbm_hsphy_set_onoff(1);
 
-	/* select the AON-SYS USB controller */
-	msk = MASK_AON_APB_USB20_CTRL_MUX_REG;
-	ret |= regmap_update_bits(phy->hsphy_glb, REG_AON_APB_AON_SOC_USB_CTRL,
-		msk, 0);
+	if (sprd_usbm_event_is_active()) {
+		/* select the AON-SYS USB controller */
+		msk = MASK_AON_APB_USB20_CTRL_MUX_REG;
+		ret |= regmap_update_bits(phy->hsphy_glb, REG_AON_APB_AON_SOC_USB_CTRL,
+			msk, 0);
+	}
 
 	/* usb enable */
 	reg = msk = MASK_AON_APB_AON_USB2_TOP_EB |
