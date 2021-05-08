@@ -1344,6 +1344,11 @@
 				sprd,ddr-offset = <0x80000000>;
 				status = "disabled";
 			};
+
+			dmc_controller: dmc-controller@3000019c {
+				compatible = "sprd,pub-dmc";
+				reg = <0x0 0x3000019c 0x0 0x100>;
+			};
 		};
 	};
 
