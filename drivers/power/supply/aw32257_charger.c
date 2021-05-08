@@ -1193,48 +1193,10 @@ static void aw32257_charger_work(struct work_struct *data)
 {
 	struct aw32257_device *info =
 		container_of(data, struct aw32257_device, work);
-	int ret, limit_cur = 0, cur = 0;
 	bool present = aw32257_charger_is_bat_present(info);
 
-	mutex_lock(&info->lock);
-
-	if (info->limit > 0 && !info->charging && present) {
-		switch (info->usb_phy->chg_type) {
-		case SDP_TYPE:
-			limit_cur = info->cur.sdp_limit;
-			cur = info->cur.sdp_cur;
-			break;
-		case DCP_TYPE:
-			limit_cur = info->cur.dcp_limit;
-			cur = info->cur.dcp_cur;
-			break;
-		case CDP_TYPE:
-			limit_cur = info->cur.cdp_limit;
-			cur = info->cur.cdp_cur;
-			break;
-		default:
-			limit_cur = info->cur.unknown_limit;
-			cur = info->cur.unknown_cur;
-		}
-
-		ret = aw32257_set_current_limit(info, limit_cur);
-		if (ret)
-			goto out;
-
-		ret = aw32257_set_charge_current(info, cur);
-		if (ret)
-			goto out;
-
-	} else if ((!info->limit && info->charging) || !present) {
-		/* Stop charging */
-		info->charging = false;
-		aw32257_charger_stop_charge(info);
-	}
-
-out:
-	mutex_unlock(&info->lock);
-	dev_info(info->dev, "battery present = %d, charger type = %d, %d, %d\n",
-		 present, info->usb_phy->chg_type, limit_cur, cur);
+	dev_info(info->dev, "battery present = %d, charger type = %d\n",
+		 present, info->usb_phy->chg_type);
 	cm_notify_event(info->charger, CM_EVENT_CHG_START_STOP, NULL);
 }
 
