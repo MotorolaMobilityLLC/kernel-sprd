@@ -138,6 +138,7 @@ struct sprd_sdhc_host {
 	struct register_hotplug reg_protect_enable;
 	struct register_hotplug reg_debounce_en;
 	struct register_hotplug reg_debounce_cn;
+	struct register_hotplug reg_rmldo_en;
 #ifdef CONFIG_EMMC_SOFTWARE_CQ_SUPPORT
 	bool need_polling;
 	bool need_intr;
