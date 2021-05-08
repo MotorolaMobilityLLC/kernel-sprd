@@ -1058,6 +1058,15 @@
 			0x4 /* no corresponding macro */
 			0x80
 			0x80>,
+		/* phy_test_powerdown*/
+		<&anlg_phy_pcie3_regs 1 200
+			0x0
+			0x10
+			0x0>,
+		<&aon_apb_regs 2 0
+			REG_AON_APB_ANALOG_PD_STATUS1
+			0x2000
+			0x0>,
 		<&pmu_apb_regs 0 2000
 			REG_PMU_APB_SNPS_PCIE3_SLP_CTRL
 			MASK_PMU_APB_REG_PERST_N_ASSERT
@@ -1072,6 +1081,15 @@
 			REG_AON_APB_IPA_ACCESS_CFG
 			MASK_AON_APB_AON_ACCESS_PCIE_EN
 			0x2>,
+		/* phy_test_powerdown*/
+		<&anlg_phy_pcie3_regs 1 200
+			0x0
+			0x10
+			0x10>,
+		<&aon_apb_regs 2 0
+			REG_AON_APB_ANALOG_PD_STATUS1
+			0x2000
+			0x2000>,
 		/*disable pcie eb */
 		<&pcie_apb_regs 0 200
 			0x4
@@ -1105,6 +1123,15 @@
 			REG_AON_APB_IPA_ACCESS_CFG
 			MASK_AON_APB_AON_ACCESS_PCIE_EN
 			0x2>,
+		/* phy_test_powerdown*/
+		<&anlg_phy_pcie3_regs 1 200
+			0x0
+			0x10
+			0x10>,
+		<&aon_apb_regs 2 0
+			REG_AON_APB_ANALOG_PD_STATUS1
+			0x2000
+			0x2000>,
 		/*disable pcie eb */
 		<&pcie_apb_regs 0 200
 			0x4
