@@ -12,6 +12,9 @@ Required properties:
  - sprd,pub-ise-reg-offset: physical address offset of
 	ise med high addrress config reg at pub apb.
  - sprd,pub-ise-bit-offset: ise med high addrress config bit offset
+ - sprd,sys-ise-pd-reg: physical base address of pmu reg for ise.
+ - sprd,sys-ise-aon-reg: ise clock calibrating reg.
+ - sprd,sys-ise-aon-clk-reg: ise clock reg.
  - interrupts: interrupt number for the musb controller
 
 Example:
@@ -25,5 +28,8 @@ Board specific DT entry:
 		sprd,sys-pub-reg = <&pub_apb_regs>;
 		sprd,pub-ise-reg-offset = <0x3368>;
 		sprd,pub-ise-bit-offset = <15>;
+		sprd,sys-ise-pd-reg = <&pmu_apb_regs>;
+		sprd,sys-ise-aon-reg = <&aon_apb_regs>;
+		sprd,sys-ise-aon-clk-reg = <&aon_pre_div_clk_gen_regs>;
 		interrupts = <GIC_SPI 49 IRQ_TYPE_LEVEL_HIGH>;
 	};
