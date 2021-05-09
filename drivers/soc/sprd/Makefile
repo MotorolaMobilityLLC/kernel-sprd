@@ -8,6 +8,7 @@ obj-y				+= autotest/
 obj-y				+= domain/
 obj-y				+= modem/
 obj-y				+= performance/
+obj-y				+= pub/
 obj-$(CONFIG_SPRD_MEMDISK)	+= sprd_memdisk.o
 obj-$(CONFIG_SPRD_PIKE2_SLEEP)  += sprd_pike2_sleep.o
 obj-$(CONFIG_SPRD_SFP_SUPPORT)	+= sfp/

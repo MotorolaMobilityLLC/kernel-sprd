@@ -83,8 +83,8 @@ struct dmc_drv_data {
 #define PUB_DMC_CS1_MR_OFFSET	0x10
 
 static const struct dmc_data pub_dmc_data = {
-	.proc_res = 1,
-	.mon_res = 0,
+	.proc_res = 0,
+	.mon_res = 1,
 	.size_l_offset = PUB_DMC_SIZE_L_OFFSET,
 	.size_h_offset = PUB_DMC_SIZE_H_OFFSET,
 	.type_offset = PUB_DMC_TYPE_OFFSET,
