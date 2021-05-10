@@ -680,6 +680,11 @@
 	};
 };
 
+&aon_i2c0 {
+	status = "okay";
+	clock-frequency = <1000000>;
+};
+
 &sprd_headset {
 	status = "okay";
 	extcon = <&pmic_typec>;

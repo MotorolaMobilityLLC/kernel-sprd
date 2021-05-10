@@ -486,6 +486,11 @@
 	};
 };
 
+&aon_i2c0 {
+	status = "okay";
+	clock-frequency = <1000000>;
+};
+
 &spi3 {
 	status = "okay";
 
