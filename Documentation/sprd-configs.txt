@@ -15703,6 +15703,15 @@ CONFIG_TYPEC
 	[must] user
 	[missing plat description] missing pike2 because not support typec function
 	[function] Enable typec function.
+CONFIG_TYPEC_DP_ALTMODE
+	[arch] arm64
+	[plat] qogirn6pro
+	[missing plat] qogirl6,sharkl3,sharkl5,sharkl5Pro
+	[field] make,code
+	[subsys] usb
+	[must] user
+	[missing plat description] only qogirn6pro support displayport altmode function
+	[function] Enable displayport altmode function
 CONFIG_TYPEC_TCPCI
 	[arch] arm64
 	[plat] qogirl6,qogirn6pro
