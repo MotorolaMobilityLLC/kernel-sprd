@@ -119,6 +119,32 @@
 #define R9P0_HDR36_CFG(base, index)     (base + 0x18a0 + index * R9P0_HDR_OFFSET)
 #define R9P0_HDR37_CFG(base, index)     (base + 0x18a4 + index * R9P0_HDR_OFFSET)
 
+/* r9p0 gsp qos config reg */
+struct GSP_QOS_REG_STRUCT {
+	unsigned int offset;
+	unsigned int mask;
+	unsigned int value;
+
+};
+
+struct GSP_QOS_REG_STRUCT  r9p0_gsp_mtx_qos[] = {
+	{ 0x0000, 0x00000001, 0x00000001},
+	{ 0x0004, 0xffffffff, 0x02020202},
+	{ 0x0008, 0x3f3f3f3f, 0x02020202},
+	{ 0x000C, 0x3f3fffff, 0x02020202},
+	{ 0x0060, 0x80000003, 0x00000003},
+	{ 0x0064, 0x3fff3fff, 0x01110111},
+	{ 0x0068, 0x00000701, 0x00000001},
+
+	{ 0x0080, 0x00000001, 0x00000001},
+	{ 0x0084, 0xffffffff, 0x02020202},
+	{ 0x0088, 0x3f3f3f3f, 0x02020202},
+	{ 0x008C, 0x3f3fffff, 0x02020202},
+	{ 0x00E0, 0x80000003, 0x00000003},
+	{ 0x00E4, 0x3fff3fff, 0x01110111},
+	{ 0x00E8, 0x00000701, 0x00000001},
+};
+
 struct R9P0_GSP_GLB_CFG_REG {
 	union {
 		struct {

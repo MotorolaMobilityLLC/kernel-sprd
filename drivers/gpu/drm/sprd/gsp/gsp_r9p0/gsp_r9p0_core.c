@@ -5,6 +5,7 @@
 
 #include <linux/delay.h>
 #include <linux/device.h>
+#include <linux/io.h>
 #include <linux/kernel.h>
 #include <linux/list.h>
 #include <linux/mfd/syscon.h>
@@ -408,6 +409,15 @@ void gsp_r9p0_core_dump(struct gsp_core *c)
 	}
 }
 
+static void gsp_r9p0_soc_qos_init(struct gsp_r9p0_core *core)
+{
+	int i;
+
+	for (i = 0; i < ARRAY_SIZE(r9p0_gsp_mtx_qos); i++)
+		gsp_core_reg_update((core->gsp_qos_reg_base + r9p0_gsp_mtx_qos[i].offset),
+			r9p0_gsp_mtx_qos[i].value, r9p0_gsp_mtx_qos[i].mask);
+}
+
 static void gsp_r9p0_core_cfg_reinit(struct gsp_r9p0_cfg *cfg)
 {
 	struct gsp_layer *layer;
@@ -782,6 +792,8 @@ int gsp_r9p0_core_enable(struct gsp_core *c)
 	gsp_r9p0_int_clear(c);
 	gsp_r9p0_core_irq_enable(c);
 
+	gsp_r9p0_soc_qos_init(core);
+
 	sprd_iommu_restore(c->dev);
 
 	goto exit;
@@ -861,6 +873,8 @@ int gsp_r9p0_core_parse_dt(struct gsp_core *core)
 	int ret = -1;
 	struct device *dev = NULL;
 	struct gsp_r9p0_core *r9p0_core = NULL;
+	struct resource *res;
+	struct platform_device *pdev = to_platform_device(core->parent->dev);
 
 	dev = container_of(&core->node, struct device, of_node);
 	r9p0_core = (struct gsp_r9p0_core *)core;
@@ -875,6 +889,18 @@ int gsp_r9p0_core_parse_dt(struct gsp_core *core)
 	}
 
 	gsp_r9p0_core_parse_clk(r9p0_core);
+
+	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+	if (IS_ERR_OR_NULL(res)) {
+		GSP_ERR("core[%d] parse qos addr to res failed\n", core->id);
+		return PTR_ERR(res);
+	}
+
+	r9p0_core->gsp_qos_reg_base = devm_ioremap_resource(&pdev->dev, res);
+	if (IS_ERR(r9p0_core->gsp_qos_reg_base)) {
+		GSP_ERR("core[%d] parse qos addr failed\n", core->id);
+		return PTR_ERR(r9p0_core->gsp_qos_reg_base);
+	}
 
 	return ret;
 }
