@@ -1063,6 +1063,8 @@ static int fan54015_charger_probe(struct i2c_client *client,
 	if (ret)
 		return ret;
 
+	fan54015_charger_stop_charge(info);
+
 	info->usb_notify.notifier_call = fan54015_charger_usb_change;
 	ret = usb_register_notifier(info->usb_phy, &info->usb_notify);
 	if (ret) {

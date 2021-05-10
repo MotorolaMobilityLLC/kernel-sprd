@@ -1822,6 +1822,8 @@ static int bq25890_charger_probe(struct i2c_client *client,
 		goto err_mutex_lock;
 	}
 
+	bq25890_charger_stop_charge(info);
+
 	device_init_wakeup(info->dev, true);
 	info->usb_notify.notifier_call = bq25890_charger_usb_change;
 	ret = usb_register_notifier(info->usb_phy, &info->usb_notify);
