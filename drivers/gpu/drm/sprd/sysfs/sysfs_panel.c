@@ -23,7 +23,11 @@
 
 #include "disp_lib.h"
 #include "sprd_panel.h"
+#include "sprd_dsi.h"
 #include "sysfs_display.h"
+
+#define host_to_dsi(host) \
+	container_of(host, struct sprd_dsi, host)
 
 static ssize_t name_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
@@ -365,9 +369,14 @@ static ssize_t suspend_store(struct device *dev,
 				const char *buf, size_t count)
 {
 	struct sprd_panel *panel = dev_get_drvdata(dev);
+	struct mipi_dsi_host *host = panel->slave->host;
+	struct sprd_dsi *dsi = host_to_dsi(host);
 
-	drm_panel_disable(&panel->base);
-	drm_panel_unprepare(&panel->base);
+	if (dsi->ctx.is_inited && panel->is_enabled) {
+		drm_panel_disable(&panel->base);
+		drm_panel_unprepare(&panel->base);
+		panel->is_enabled = false;
+	}
 
 	return count;
 }
@@ -378,9 +387,14 @@ static ssize_t resume_store(struct device *dev,
 				const char *buf, size_t count)
 {
 	struct sprd_panel *panel = dev_get_drvdata(dev);
+	struct mipi_dsi_host *host = panel->slave->host;
+	struct sprd_dsi *dsi = host_to_dsi(host);
 
-	drm_panel_prepare(&panel->base);
-	drm_panel_enable(&panel->base);
+	if (dsi->ctx.is_inited && (!panel->is_enabled)) {
+		drm_panel_prepare(&panel->base);
+		drm_panel_enable(&panel->base);
+		panel->is_enabled = true;
+	}
 
 	return count;
 }
