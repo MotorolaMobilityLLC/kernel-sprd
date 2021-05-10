@@ -16537,12 +16537,12 @@ CONFIG_SPRD_DMA
 	[function] Support Spreadtrum DMA.
 CONFIG_SPRD_DMC_DRV
 	[arch] arm64
-	[plat] sharkl5Pro
-	[missing plat] sharkl3
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
 	[field]
 	[subsys]
 	[must]
-	[missing plat description]
+	[missing plat description] none
 	[function]
 CONFIG_SPRD_DMC_MPU
 	[arch] arm64
