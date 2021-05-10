@@ -2877,9 +2877,7 @@ static void run_state_machine(struct tcpm_port *port)
 			tcpm_set_state(port, AUDIO_ACC_ATTACHED,
 				       PD_T_CC_DEBOUNCE);
 		else if (tcpm_port_is_source(port))
-			tcpm_set_state(port,
-				       tcpm_try_snk(port) ? SNK_TRY
-							  : SRC_ATTACHED,
+			tcpm_set_state(port, SRC_ATTACHED,
 				       PD_T_CC_DEBOUNCE);
 		break;
 
@@ -2941,7 +2939,7 @@ static void run_state_machine(struct tcpm_port *port)
 
 	case SRC_ATTACHED:
 		ret = tcpm_src_attach(port);
-		tcpm_set_state(port, SRC_UNATTACHED,
+		tcpm_set_state(port, SRC_STARTUP,
 			       ret < 0 ? 0 : PD_T_PS_SOURCE_ON);
 		break;
 	case SRC_STARTUP:
@@ -3279,7 +3277,7 @@ static void run_state_machine(struct tcpm_port *port)
 		tcpm_set_vbus(port, true);
 		port->tcpc->set_pd_rx(port->tcpc, true);
 		tcpm_set_attached_state(port, true);
-		tcpm_set_state(port, SRC_UNATTACHED, PD_T_PS_SOURCE_ON);
+		tcpm_set_state(port, SRC_STARTUP, PD_T_PS_SOURCE_ON);
 		break;
 	case SNK_HARD_RESET_SINK_OFF:
 		memset(&port->pps_data, 0, sizeof(port->pps_data));

@@ -430,7 +430,7 @@ static inline unsigned int rdo_max_power(u32 rdo)
 /* USB PD timers and counters */
 #define PD_T_NO_RESPONSE	5000	/* 4.5 - 5.5 seconds */
 #define PD_T_DB_DETECT		10000	/* 10 - 15 seconds */
-#define PD_T_SEND_SOURCE_CAP	150	/* 100 - 200 ms */
+#define PD_T_SEND_SOURCE_CAP	200	/* 100 - 200 ms */
 #define PD_T_SENDER_RESPONSE	60	/* 24 - 30 ms, relaxed */
 #define PD_T_SOURCE_ACTIVITY	45
 #define PD_T_SINK_ACTIVITY	135
@@ -455,7 +455,7 @@ static inline unsigned int rdo_max_power(u32 rdo)
 #define PD_T_DRP_TRY		100	/* 75 - 150 ms */
 #define PD_T_DRP_TRYWAIT	600	/* 400 - 800 ms */
 
-#define PD_T_CC_DEBOUNCE	200	/* 100 - 200 ms */
+#define PD_T_CC_DEBOUNCE	100	/* 100 - 200 ms */
 #define PD_T_PD_DEBOUNCE	20	/* 10 - 20 ms */
 
 #define PD_N_CAPS_COUNT		(PD_T_NO_RESPONSE / PD_T_SEND_SOURCE_CAP)

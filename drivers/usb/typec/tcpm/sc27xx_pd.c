@@ -17,6 +17,7 @@
 #include <linux/usb/typec.h>
 #include <linux/usb/tcpm.h>
 #include <linux/usb/pd.h>
+#include <linux/usb/typec_dp.h>
 
 /* PMIC global registers definition */
 #define SC27XX_MODULE_EN		0x1808
@@ -293,6 +294,7 @@ struct sc27xx_pd {
 	bool constructed;
 	bool vconn_on;
 	bool vbus_on;
+	bool charge_on;
 	bool vbus_present;
 	u32 base;
 	u32 typec_base;
@@ -353,14 +355,50 @@ static int sc27xx_pd_get_cc(struct tcpc_dev *tcpc,
 static int sc27xx_pd_set_vbus(struct tcpc_dev *tcpc, bool on, bool charge)
 {
 	struct sc27xx_pd *pd = tcpc_to_sc27xx_pd(tcpc);
+	int ret;
 
 	mutex_lock(&pd->lock);
 	if (pd->vbus_on == on) {
 		dev_info(pd->dev, "vbus is already %s\n", on ? "On" : "Off");
 	} else {
+		if (!pd->vbus) {
+			pd->vbus = devm_regulator_get_optional(pd->dev, "vbus");
+			if (IS_ERR(pd->vbus)) {
+				dev_err(pd->dev, "failed to get vbus supply\n");
+				pd->vbus = NULL;
+				goto set_vbus_done;
+			}
+		}
+
+		if (on) {
+			if (!regulator_is_enabled(pd->vbus)) {
+				ret = regulator_enable(pd->vbus);
+				if (ret)  {
+					dev_err(pd->dev, "cannot enable vbus regulator, ret=%d\n", ret);
+					goto set_vbus_done;
+				}
+			}
+		} else {
+			if (regulator_is_enabled(pd->vbus)) {
+				ret = regulator_disable(pd->vbus);
+				if (ret)  {
+					dev_err(pd->dev, "cannot disable vbus regulator, ret=%d\n", ret);
+					goto set_vbus_done;
+				}
+			}
+		}
+
 		pd->vbus_on = on;
 		dev_info(pd->dev, "vbus := %s", on ? "On" : "Off");
 	}
+
+	if (pd->charge_on == charge)
+		dev_info(pd->dev,  "charge is already %s\n",
+			    charge ? "On" : "Off");
+	else
+		pd->charge_on = charge;
+
+set_vbus_done:
 	mutex_unlock(&pd->lock);
 
 	return 0;
@@ -632,7 +670,8 @@ static int sc27xx_pd_read_message(struct sc27xx_pd *pd, struct pd_message *msg)
 {
 	int ret, i;
 	u32 data[PD_MAX_PAYLOAD * 2] = {0};
-	u32 data_obj_num, spec, reg_val = 0, header = 0;
+	u32 data_obj_num, spec, reg_val = 0, header = 0, type;
+	bool vendor_define = false;
 
 	ret = regmap_read(pd->regmap, pd->base + SC27XX_PD_RX_BUF,
 			  &header);
@@ -653,8 +692,14 @@ static int sc27xx_pd_read_message(struct sc27xx_pd *pd, struct pd_message *msg)
 	msg->header = cpu_to_le16(header);
 	data_obj_num = pd_header_cnt_le(msg->header);
 	spec = pd_header_rev_le(msg->header);
+	type = pd_header_type_le(msg->header);
 
-	if ((data_obj_num * 2 + 1) < reg_val) {
+	if (msg->header & PD_HEADER_EXT_HDR)
+		vendor_define = false;
+	else if (data_obj_num && (type == PD_DATA_VENDOR_DEF))
+		vendor_define = true;
+
+	if ((data_obj_num * 2 + 1) < reg_val && !vendor_define) {
 		pd->need_retry = true;
 		queue_delayed_work(pd->pd_wq,
 				   &pd->read_msg_work,
@@ -1236,6 +1281,31 @@ static void sc27xx_pd_work(struct work_struct *work)
 		dev_err(pd->dev, "failed to check vbus and cc status\n");
 }
 
+#define DP_PIN_ASSIGN_GEN2_BR	(BIT(DP_PIN_ASSIGN_A) | \
+					 BIT(DP_PIN_ASSIGN_B))
+
+/* Pin assignments that use DP v1.3 signaling to carry DP protocol */
+#define DP_PIN_ASSIGN_DP_BR		(BIT(DP_PIN_ASSIGN_C) | \
+					 BIT(DP_PIN_ASSIGN_D) | \
+					 BIT(DP_PIN_ASSIGN_E) | \
+					 BIT(DP_PIN_ASSIGN_F))
+#define DP_CAP_PIN_DFP_ASSIGN(_cap_)	((((_cap_) & GENMASK(7, 0)) << 16) | \
+					 (((_cap_) & GENMASK(7, 0)) << 8))
+
+static const struct typec_altmode_desc sc27xx_alt_modes = {
+	.svid = USB_TYPEC_DP_SID,
+	.mode = USB_TYPEC_DP_MODE,
+	.vdo = DP_CAP_CAPABILITY(DP_CAP_DFP_D) | DP_CAP_DP_SIGNALING | \
+		DP_CAP_RECEPTACLE | \
+		DP_CAP_PIN_DFP_ASSIGN(DP_PIN_ASSIGN_DP_BR),
+};
+
+static const struct tcpc_config sc27xx_pd_config = {
+	.type = TYPEC_PORT_DRP,
+	.default_role = TYPEC_SOURCE,
+	.alt_modes = &sc27xx_alt_modes,
+};
+
 static void sc27xx_init_tcpc_dev(struct sc27xx_pd *pd)
 {
 	pd->tcpc.config = &pd->config;
@@ -1417,6 +1487,7 @@ static int sc27xx_pd_probe(struct platform_device *pdev)
 	pd->var_data = pdata;
 	pd->vbus_present = false;
 	pd->constructed = false;
+	pd->config = sc27xx_pd_config;
 	pd->tcpc.config = &pd->config;
 	pd->tcpc.fwnode = device_get_named_child_node(&pdev->dev, "connector");
 
