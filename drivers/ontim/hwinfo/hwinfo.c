@@ -74,15 +74,23 @@ typedef struct board_id {
 	const char *qcn_type;
 	const char *model;
 } boardid_match_t;
+/*
+Version gpio130 gpio131 gpio133
+P0      0		0		0
+DVT1    0		0		1
+DVT2    0		1		0
+PVT     0		1		1
 
+only care hw_version, DONOT care qcn_type and model.
+*/
 static boardid_match_t board_table[] = {
-	{ .index = 0,  .hw_version = "DVT1",       .qcn_type = "no-ca-split", .model = "advanced1"  },
+	{ .index = 0,  .hw_version = "P0",         .qcn_type = "no-ca-split", .model = "advanced1"  },//P0
 	{ .index = 1,  .hw_version = "DVT2",       .qcn_type = "no-ca"      , .model = "primary"    },
-	{ .index = 2,  .hw_version = "PVT",        .qcn_type = "no-ca-del"  , .model = "primary"    },
+	{ .index = 2,  .hw_version = "DVT2",       .qcn_type = "no-ca-del"  , .model = "primary"    },//DVT2
 	{ .index = 3,  .hw_version = "REL",        .qcn_type = "no-ca-del"  , .model = "primary"    },
-	{ .index = 4,  .hw_version = "DVT2",       .qcn_type = "no-ca-del"  , .model = "standard"   },
+	{ .index = 4,  .hw_version = "DVT1",       .qcn_type = "no-ca-del"  , .model = "standard"   },//DVT1
 	{ .index = 5,  .hw_version = "DVT2",       .qcn_type = "no-ca"      , .model = "advanced1"  },
-	{ .index = 6,  .hw_version = "DVT2-SPLIT", .qcn_type = "no-ca-split", .model = "advanced1"  },
+	{ .index = 6,  .hw_version = "PVT",        .qcn_type = "no-ca-split", .model = "advanced1"  },//PVT
 	{ .index = 7,  .hw_version = "REL",        .qcn_type = "no-ca-del"  , .model = "standard"   },
 	{ .index = 8,  .hw_version = "EVT",        .qcn_type = "ca"         , .model = "advanced1"  },
 	{ .index = 9,  .hw_version = "DVT1",       .qcn_type = "ca"         , .model = "advanced1"  },
