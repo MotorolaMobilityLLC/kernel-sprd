@@ -530,6 +530,7 @@ static struct sprd_dpu_layer wb_layer;
 static int wb_xfbc_en;
 static int corner_radius;
 static struct device_node *g_np;
+static bool first_frame;
 module_param(wb_xfbc_en, int, 0644);
 module_param(max_vsync_count, int, 0644);
 module_param(cabc_bl_set_delay, int, 0644);
@@ -1753,8 +1754,14 @@ static void dpu_flip(struct dpu_context *ctx,
 		ctx->is_stopped = false;
 	} else if (ctx->if_type == SPRD_DISPC_IF_DPI) {
 		if (!ctx->is_stopped) {
-			reg->dpu_ctrl |= BIT(4);
-			dpu_wait_update_done(ctx);
+			if (first_frame == true) {
+				reg->dpu_ctrl |= BIT(2);
+				dpu_wait_all_update_done(ctx);
+				first_frame = false;
+			} else {
+				reg->dpu_ctrl |= BIT(4);
+				dpu_wait_update_done(ctx);
+			}
 		}
 
 		reg->dpu_int_en |= DPU_INT_ERR_MASK;
@@ -2762,6 +2769,7 @@ static void dpu_enhance_reload(struct dpu_context *ctx)
 	}
 
 	reg->dpu_enhance_cfg = enhance_en;
+	first_frame = true;
 }
 
 static void dpu_sr_config(struct dpu_context *ctx)
