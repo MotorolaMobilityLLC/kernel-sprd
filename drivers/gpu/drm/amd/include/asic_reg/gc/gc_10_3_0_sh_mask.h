@@ -25818,6 +25818,15 @@
 //CP_CE_IB2_BUFSZ
 #define CP_CE_IB2_BUFSZ__IB2_BUFSZ__SHIFT                                                                     0x0
 #define CP_CE_IB2_BUFSZ__IB2_BUFSZ_MASK                                                                       0x000FFFFFL
+//CP_IB1_BASE_LO
+#define CP_IB1_BASE_LO__IB1_BASE_LO__SHIFT                                                                    0x2
+#define CP_IB1_BASE_LO__IB1_BASE_LO_MASK                                                                      0xFFFFFFFCL
+//CP_IB1_BASE_HI
+#define CP_IB1_BASE_HI__IB1_BASE_HI__SHIFT                                                                    0x0
+#define CP_IB1_BASE_HI__IB1_BASE_HI_MASK                                                                      0x0000FFFFL
+//CP_IB1_BUFSZ
+#define CP_IB1_BUFSZ__IB1_BUFSZ__SHIFT                                                                        0x0
+#define CP_IB1_BUFSZ__IB1_BUFSZ_MASK                                                                          0x000FFFFFL
 //CP_IB2_BASE_LO
 #define CP_IB2_BASE_LO__IB2_BASE_LO__SHIFT                                                                    0x2
 #define CP_IB2_BASE_LO__IB2_BASE_LO_MASK                                                                      0xFFFFFFFCL
