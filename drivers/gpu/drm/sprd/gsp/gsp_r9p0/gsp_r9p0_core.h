@@ -37,6 +37,7 @@ struct gsp_r9p0_core {
 	struct clk *gsp_eb;
 	/* module ctl reg base, virtual	0x31100000 */
 	void __iomem *gsp_ctl_reg_base;
+	void __iomem *gsp_qos_reg_base;
 	struct tasklet_struct dvfs_task;
 };
 
