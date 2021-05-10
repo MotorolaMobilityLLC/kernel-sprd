@@ -2518,10 +2518,8 @@ static int marlin_probe(struct platform_device *pdev)
 	INIT_WORK(&marlin_dev->gnss_dl_wq, pre_gnss_download_firmware);
 
 	INIT_DELAYED_WORK(&marlin_dev->power_wq, marlin_power_wq);
-#ifndef CONFIG_WCN_PCIE
 	schedule_delayed_work(&marlin_dev->power_wq,
 			      msecs_to_jiffies(3500));
-#endif
 
 	pr_info("%s driver match successful!\n", __func__);
 
