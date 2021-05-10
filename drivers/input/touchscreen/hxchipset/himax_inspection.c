@@ -2616,7 +2616,7 @@ static int himax_chip_self_test(struct seq_file *s, void *v)
 	uint8_t tmp_addr[DATA_LEN_4] = {0x94, 0x72, 0x00, 0x10};
 	uint8_t tmp_data[DATA_LEN_4] = {0x01, 0x00, 0x00, 0x00};
 	struct file *raw_file = NULL;
-	struct filename *vts_name = NULL;
+	// struct filename *vts_name = NULL;
 	mm_segment_t fs;
 	loff_t pos = 0;
 	uint32_t rslt = HX_INSP_OK;
@@ -2647,14 +2647,14 @@ static int himax_chip_self_test(struct seq_file *s, void *v)
 		I("%s:end sense on!\n", __func__);
 #endif
 
-	if (!kp_getname_kernel) {
-		E("kp_getname_kernel is NULL, not open file!\n");
-		file_w_flag = false;
-	} else
-		vts_name = kp_getname_kernel(g_file_path);
+	// if (!kp_getname_kernel) {
+	// 	E("kp_getname_kernel is NULL, not open file!\n");
+	// 	file_w_flag = false;
+	// } else
+	// 	vts_name = kp_getname_kernel(g_file_path);
 
 	if (raw_file == NULL && file_w_flag) {
-		raw_file = kp_file_open_name(vts_name,
+		raw_file = filp_open(g_file_path,
 			O_TRUNC|O_CREAT|O_RDWR, 0660);
 
 		if (IS_ERR(raw_file)) {
@@ -2731,11 +2731,11 @@ static int himax_chip_self_test(struct seq_file *s, void *v)
 	}
 	if (file_w_flag)
 		filp_close(raw_file, NULL);
-	if (!kp_putname_kernel) {
-		E("kp_putname_kernel is NULL, not open file!\n");
-		file_w_flag = false;
-	} else if (file_w_flag != false)
-		kp_putname_kernel(vts_name);
+	// if (!kp_putname_kernel) {
+	// 	E("kp_putname_kernel is NULL, not open file!\n");
+	// 	file_w_flag = false;
+	// } else if (file_w_flag != false)
+	// 	kp_putname_kernel(vts_name);
 
 	set_fs(fs);
 
