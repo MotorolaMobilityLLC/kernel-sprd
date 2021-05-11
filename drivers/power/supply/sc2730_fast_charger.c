@@ -696,12 +696,15 @@ static void sc2730_fchg_pd_change_work(struct work_struct *data)
 	if (pd_type == POWER_SUPPLY_USB_TYPE_PD ||
 	    (!info->support_pd_pps && pd_type == POWER_SUPPLY_USB_TYPE_PD_PPS)) {
 		info->pd_enable = true;
+		info->pps_enable = false;
+		info->pps_active = false;
 		info->state = POWER_SUPPLY_USB_TYPE_PD;
 		mutex_unlock(&info->lock);
 		cm_notify_event(info->psy_usb, CM_EVENT_FAST_CHARGE, NULL);
 		goto out1;
 	} else if (pd_type == POWER_SUPPLY_USB_TYPE_PD_PPS) {
 		info->pps_enable = true;
+		info->pd_enable = false;
 		info->state = POWER_SUPPLY_USB_TYPE_PD_PPS;
 		mutex_unlock(&info->lock);
 		cm_notify_event(info->psy_usb, CM_EVENT_FAST_CHARGE, NULL);
