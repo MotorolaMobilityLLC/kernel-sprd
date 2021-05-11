@@ -5759,10 +5759,10 @@ static void cm_track_capacity_monitor(struct charger_manager *cm)
 		 * tracking monitor initial percentage threshold to 20%.
 		 */
 		if (cm->track.start_cap > CM_TRACK_START_CAP_THRESHOLD) {
-			cm->track.start_cap = 0;
 			dev_info(cm->dev,
 				 "does not satisfy the track start condition, start_cap = %d\n",
 				 cm->track.start_cap);
+			cm->track.start_cap = 0;
 			return;
 		}
 
@@ -5836,8 +5836,8 @@ static void cm_track_capacity_monitor(struct charger_manager *cm)
 						   &cm->track.track_capacity_work,
 						   0);
 				dev_info(cm->dev,
-					 "track capacity is done capacity = %d\n",
-					 capacity);
+					 "track capacity is done capacity = %d, diff_cap = %d\n",
+					 capacity, (capacity - (int)total_cap));
 			} else {
 				cm->track.state = CAP_TRACK_IDLE;
 				dev_info(cm->dev,
