@@ -66,7 +66,7 @@
 
 #define SPRD_WDT_ALWAYS_ON
 #define SPRD_WDT_SLEEP_KICKTIME		240
-#define SPRD_WDT_SLEEP_PRETIMEOUT		270
+#define SPRD_WDT_SLEEP_PRETIMEOUT	(300-270)
 #define SPRD_WDT_SLEEP_TIMEOUT		300
 
 struct sprd_wdt {
@@ -74,7 +74,9 @@ struct sprd_wdt {
 	struct watchdog_device wdd;
 	struct clk *enable;
 	struct clk *rtc_enable;
+#ifdef SPRD_WDT_ALWAYS_ON
 	struct alarm sleep_tmr;
+#endif
 	int irq;
 };
 
@@ -274,6 +276,14 @@ static const struct watchdog_info sprd_wdt_info = {
 	.identity = "Spreadtrum Watchdog Timer",
 };
 
+#ifdef SPRD_WDT_ALWAYS_ON
+static enum alarmtimer_restart sprd_wdt_sleep_callback(struct alarm *p, ktime_t
+						       t)
+{
+	return ALARMTIMER_NORESTART;
+}
+#endif
+
 static int sprd_wdt_probe(struct platform_device *pdev)
 {
 	struct resource *wdt_res;
@@ -346,8 +356,9 @@ static int sprd_wdt_probe(struct platform_device *pdev)
 	}
 
 #ifdef SPRD_WDT_ALWAYS_ON
-	alarm_init(&wdt->sleep_tmr, ALARM_BOOTTIME, NULL);
+	alarm_init(&wdt->sleep_tmr, ALARM_BOOTTIME, sprd_wdt_sleep_callback);
 #endif
+
 	platform_set_drvdata(pdev, wdt);
 
 	return 0;
@@ -358,13 +369,9 @@ static int __maybe_unused sprd_wdt_pm_suspend(struct device *dev)
 	struct sprd_wdt *wdt = dev_get_drvdata(dev);
 
 #ifdef SPRD_WDT_ALWAYS_ON
-	ktime_t now, add;
 
 	if (watchdog_active(&wdt->wdd)) {
 		sprd_wdt_load_value(wdt, SPRD_WDT_SLEEP_TIMEOUT, SPRD_WDT_SLEEP_PRETIMEOUT);
-		now = ktime_get_boottime();
-		add = ktime_set(SPRD_WDT_SLEEP_KICKTIME, 0);
-		alarm_start(&wdt->sleep_tmr, ktime_add(now, add));
 	} else {
 		sprd_wdt_disable(wdt);
 	}
@@ -376,19 +383,36 @@ static int __maybe_unused sprd_wdt_pm_suspend(struct device *dev)
 	return 0;
 }
 
+#ifdef SPRD_WDT_ALWAYS_ON
+static int __maybe_unused sprd_wdt_alarm_prepare(struct device *dev)
+{
+	struct sprd_wdt *wdt = dev_get_drvdata(dev);
+	ktime_t now, add;
+	if (watchdog_active(&wdt->wdd)) {
+		now = ktime_get_boottime();
+		add = ktime_set(SPRD_WDT_SLEEP_KICKTIME, 0);
+		alarm_start(&wdt->sleep_tmr, ktime_add(now, add));
+	}
+	return 0;
+}
+#endif
+
 static int __maybe_unused sprd_wdt_pm_resume(struct device *dev)
 {
 	struct sprd_wdt *wdt = dev_get_drvdata(dev);
 	int ret;
 
 #ifdef SPRD_WDT_ALWAYS_ON
-	if (watchdog_active(&wdt->wdd))
-		alarm_cancel(&wdt->sleep_tmr);
-#endif
-
+	if (!watchdog_active(&wdt->wdd)) {
+		ret = sprd_wdt_enable(wdt);
+		if (ret)
+			return ret;
+	}
+#else
 	ret = sprd_wdt_enable(wdt);
 	if (ret)
 		return ret;
+#endif
 
 	if (watchdog_active(&wdt->wdd)) {
 		ret = sprd_wdt_start(&wdt->wdd);
@@ -401,7 +425,21 @@ static int __maybe_unused sprd_wdt_pm_resume(struct device *dev)
 	return 0;
 }
 
+#ifdef SPRD_WDT_ALWAYS_ON
+static void __maybe_unused sprd_wdt_alarm_complete(struct device *dev)
+{
+	struct sprd_wdt *wdt = dev_get_drvdata(dev);
+	if (watchdog_active(&wdt->wdd)) {
+		alarm_cancel(&wdt->sleep_tmr);
+	}
+}
+#endif
+
 static const struct dev_pm_ops sprd_wdt_pm_ops = {
+#ifdef SPRD_WDT_ALWAYS_ON
+	.prepare = sprd_wdt_alarm_prepare,
+	.complete = sprd_wdt_alarm_complete,
+#endif
 	SET_SYSTEM_SLEEP_PM_OPS(sprd_wdt_pm_suspend,
 				sprd_wdt_pm_resume)
 };
