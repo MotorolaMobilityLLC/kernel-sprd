@@ -6,6 +6,7 @@
 #include <dt-bindings/soc/sprd,qogirn6pro-regs.h>
 #include <dt-bindings/soc/sprd,qogirn6pro-mask.h>
 #include <dt-bindings/interrupt-controller/arm-gic.h>
+#include <dt-bindings/usb/pd.h>
 #include "lcd/lcd_g40396_truly_mipi_fhd.dtsi"
 #include "lcd/lcd_dummy_mipi.dtsi"
 
@@ -120,6 +121,7 @@
 				charge-cdp-current-microamp = <1500000 1500000>;
 				charge-unknown-current-microamp = <500000 500000>;
 				charge-fchg-current-microamp = <3000000 2000000>;
+				charge-flash-current-microamp = <5000000 2700000>;
 				charge-wl-bpp-current-microamp = <1000000 1000000>;
 				charge-wl-epp-current-microamp = <2000000 1000000>;
 			};
@@ -138,7 +140,10 @@
 				cm-fullbatt-capacity = <100>;
 
 				cm-num-chargers = <1>;
+				cm-num-charge-pumps = <1>;
+				cm-num-fast-chargers = <1>;
 				cm-chargers = "bq2560x_charger";
+				cm-charge-pumps = "bq2597x-standalone";
 				cm-fast-chargers = "sc2730_fast_charger";
 				cm-fuel-gauge = "sc27xx-fgu";
 				cm-num-wireless-chargers = <1>;
@@ -172,9 +177,11 @@
 				/* when the safe charging voltage is exceeded, stop charging */
 				cm-charge-voltage-max = <6500000>;
 				cm-fast-charge-voltage-max = <10500000>;
+				cm-flash-charge-voltage-max = <12000000>;
 				/* drop voltage in microVolts to restart charging */
 				cm-charge-voltage-drop = <700000>;
 				cm-fast-charge-voltage-drop = <700000>;
+				cm-flash-charge-voltage-drop = <1000000>;
 
 				cm-dcp-jeita-temp-table = <1000 1030 0 4340000>, <1150 1180 700000 4340000>,
 					<1450 1420 2000000 4340000>, <1600 1570 700000 4100000>;
@@ -186,6 +193,8 @@
 					<1450 1420 500000 4340000>, <1600 1570 500000 4100000>;
 				cm-fchg-jeita-temp-table = <1000 1030 0 4340000>, <1150 1180 700000 4340000>,
 					<1450 1420 3250000 4340000>, <1600 1570 700000 4100000>;
+				cm-flash-jeita-temp-table = <1000 1030 0 4340000>, <1150 1180 1000000 4340000>,
+					<1450 1420 5000000 4340000>, <1600 1570 1000000 4100000>;
 				cm-wl-bpp-jeita-temp-table = <1000 1030 0 4340000>, <1150 1180 500000 4340000>,
 					<1450 1420 1000000 4340000>, <1600 1570 5000000 4100000>;
 				cm-wl-epp-jeita-temp-table = <1000 1030 0 4340000>, <1150 1180 500000 4340000>,
@@ -195,6 +204,10 @@
 
 				monitored-battery = <&bat>;
 				cm-capacity-track;
+
+				cm-ir-cv-offset-microvolt = <100000>;
+				cm-ir-rc = <20>;
+				cm-ir-us-upper-limit-microvolt = <4500000>;
 
 				regulator@0 {
 					cm-regulator-name = "vddgen0";
@@ -309,10 +322,42 @@
 		reg = <0x6b>;
 		phys = <&ssphy>;
 		monitored-battery = <&bat>;
-		extcon = <&extcon_gpio>;
+		extcon = <&extcon_gpio>, <&pmic_pd>;
+		irq-gpio = <&ap_gpio 185 GPIO_ACTIVE_LOW>;
 		vddvbus:otg-vbus {
 			regulator-name = "vddvbus";
 		};
+	};
+
+	bq2597x_chg: charger@65 {
+		compatible = "ti,bq2597x-standalone";
+		reg = <0x65>;
+		irq-gpio = <&ap_gpio 193 GPIO_ACTIVE_LOW>;
+
+		ti,bq2597x,bus-therm-disable = <1>;
+		ti,bq2597x,regulation-disable = <1>;
+
+		ti,bq2597x,bat-ovp-threshold = <4400>;
+		ti,bq2597x,bat-ovp-alarm-threshold = <4340>;
+		ti,bq2597x,bat-ocp-threshold = <5500>;
+		ti,bq2597x,bat-ocp-alarm-threshold = <5000>;
+		ti,bq2597x,bus-ovp-threshold = <11500>;
+		ti,bq2597x,bus-ovp-alarm-threshold = <10500>;
+		ti,bq2597x,bus-ocp-threshold = <3000>;
+		ti,bq2597x,bus-ocp-alarm-threshold = <2700>;
+		ti,bq2597x,bat-ucp-alarm-threshold = <1000>;
+		ti,bq2597x,bat-therm-threshold = <0x15>;
+		ti,bq2597x,bus-therm-threshold = <0x15>;
+		ti,bq2597x,die-therm-threshold = <0xc8>;
+		ti,bq2597x,ac-ovp-threshold = <11>;
+		ti,bq2597x,sense-resistor-mohm = <5>;
+		ti,bq2597x,adc-sample-bits = <13>;
+		ti,bq2597x,ibat-regulation-threshold = <300>;
+		ti,bq2597x,vbat-regulation-threshold = <100>;
+		ti,bq2597x,vdrop-threshold = <400>;
+		ti,bq2597x,vdrop-deglitch = <5000>;
+		ti,bq2597x,ss-timeout = <100000>;
+		ti,bq2597x,watchdog-timer = <30000>;
 	};
 
 	sy65153_wl_charger: charger@61 {
@@ -419,7 +464,22 @@
 
 &pmic_fchg {
 	sprd,input-voltage-microvolt = <5000000>;
+	sprd,support-pd-pps;
 	phys = <&ssphy>;
+};
+
+&pmic_pd {
+	status = "okay";
+	usb_con: connector {
+		compatible = "usb-c-connector";
+		label = "USB-C";
+		power-role = "dual";
+		try-power-role = "sink";
+		source-pdos = <PDO_FIXED(5000, 400, PDO_FIXED_USB_COMM)>;
+		sink-pdos = <PDO_FIXED(5000, 2000, PDO_FIXED_USB_COMM)
+			     PDO_PPS_APDO(3300, 11000, 3000)>;
+		op-sink-microwatt = <10000000>;
+	};
 };
 
 &panel {
