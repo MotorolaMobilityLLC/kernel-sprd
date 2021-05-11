@@ -318,22 +318,13 @@
 		reg = <0x0 0x9e000000 0x0 0x009e4000>;
 	};
 
-	fd_reserved: faceid-mem@efaae000 {
-		reg = <0x0 0xefaae000 0x0 0x00f00000>;
+	fd_reserved: faceid-mem@fc880000 {
+		reg = <0x0 0xfc880000 0x0 0x00f00000>;
 	};
 
-	vdsp_reserved: vdsp-mem@f09ae000 {
-		reg = <0x0 0xf09ae000 0x0 0x03700000>;
+	vdsp_reserved: vdsp-mem@fd780000 {
+		reg = <0x0 0xfd780000 0x0 0x02800000>;
 	};
-
-	fb_reserved: framebuffer-mem@fd708000 {
-		reg = <0x0 0xfd708000 0x0 0x01e5a000>;
-	};
-
-	wb_reserved: writeback-mem@ff562000 {
-		reg = <0x0 0xff562000 0x0 0x00a1e000>;
-	};
-
 };
 
 &adi_bus {
