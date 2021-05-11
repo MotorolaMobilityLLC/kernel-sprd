@@ -7493,6 +7493,7 @@ static inline int find_best_target(struct task_struct *p, int *backup_cpu,
 	do {
 		for_each_cpu_and(i, &p->cpus_allowed, sched_group_span(sg)) {
 			unsigned long capacity_orig = capacity_orig_of(i);
+			unsigned long capacity_arch = arch_scale_cpu_capacity(NULL, i);
 			unsigned long wake_util, new_util;
 			long spare_cap;
 			int idle_idx = INT_MAX;
@@ -7520,9 +7521,6 @@ static inline int find_best_target(struct task_struct *p, int *backup_cpu,
 			wake_util = cpu_util_without(i, p);
 			new_util = wake_util + task_util_est(p);
 
-			if (idle_cpu(i))
-				idle_idx = idle_get_state_idx(cpu_rq(i));
-
 			/*
 			 * Ensure minimum capacity to grant the required boost.
 			 * The target CPU can be already at a capacity level higher
@@ -7531,6 +7529,7 @@ static inline int find_best_target(struct task_struct *p, int *backup_cpu,
 			new_util = max(min_util, new_util);
 			if (new_util > capacity_orig) {
 				if (idle_cpu(i)) {
+					idle_idx = idle_get_state_idx(cpu_rq(i));
 					if (capacity_orig >
 					    best_idle_cap_orig) {
 						best_idle_cap_orig =
@@ -7588,10 +7587,11 @@ static inline int find_best_target(struct task_struct *p, int *backup_cpu,
 						i);
 					return i;
 				}
-
 				/* Select idle CPU with lower cap_orig */
-				if (capacity_orig > best_idle_min_cap_orig)
+				if (capacity_arch > best_idle_min_cap_orig)
 					continue;
+
+				idle_idx = idle_get_state_idx(cpu_rq(i));
 
 				/*
 				 * Skip CPUs in deeper idle state, but only
@@ -7604,14 +7604,14 @@ static inline int find_best_target(struct task_struct *p, int *backup_cpu,
 					continue;
 
 				/* Keep track of best idle CPU */
-				best_idle_min_cap_orig = capacity_orig;
+				best_idle_min_cap_orig = capacity_arch;
 				best_idle_cstate = idle_idx;
 				best_idle_cpu = i;
 				continue;
 			}
 
 			/* Favor CPUs with smaller capacity */
-			if (capacity_orig > target_capacity)
+			if (capacity_arch > target_capacity)
 				continue;
 
 			/* Favor CPUs with maximum spare capacity */
@@ -7620,7 +7620,7 @@ static inline int find_best_target(struct task_struct *p, int *backup_cpu,
 				continue;
 
 			target_max_spare_cap = spare_cap;
-			target_capacity = capacity_orig;
+			target_capacity = capacity_arch;
 			target_cpu = i;
 		}
 
