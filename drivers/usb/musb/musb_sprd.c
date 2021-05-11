@@ -938,7 +938,7 @@ static void sprd_musb_work(struct work_struct *work)
 		}
 
 		musb->shutdowning = 0;
-		musb->offload_used = false;
+		atomic_set(&musb->offload_used, 0);
 
 		ret = device_for_each_child(glue->dev, NULL,
 					musb_sprd_suspend_child);
@@ -1423,7 +1423,7 @@ static int musb_sprd_suspend(struct device *dev)
 	u32 msk, val;
 	int ret;
 
-	if (musb->is_offload && !musb->offload_used) {
+	if (musb->is_offload && !atomic_read(&musb->offload_used)) {
 		if (glue->vbus) {
 			ret = regulator_disable(glue->vbus);
 			if (ret < 0)
@@ -1449,7 +1449,7 @@ static int musb_sprd_resume(struct device *dev)
 	u32 msk;
 	int ret;
 
-	if (musb->is_offload && !musb->offload_used) {
+	if (musb->is_offload && !atomic_read(&musb->offload_used)) {
 		if (glue->vbus) {
 			ret = regulator_enable(glue->vbus);
 			if (ret < 0)
