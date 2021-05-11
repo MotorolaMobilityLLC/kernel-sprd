@@ -13,6 +13,7 @@
  */
 
 #include <asm/compiler.h>
+#include <linux/arm-smccc.h>
 #include <linux/delay.h>
 #include <linux/module.h>
 #include <linux/of.h>
@@ -24,6 +25,8 @@
 #include <linux/trusty/smcall.h>
 #include "sm_err.h"
 #include "trusty.h"
+#define CREATE_TRACE_POINTS
+#include <trace/events/smccall.h>
 
 #ifdef pr_fmt
 #undef pr_fmt
@@ -58,52 +61,27 @@ struct smc_param {
 	ulong r3;
 };
 
-#ifdef CONFIG_ARM64
-#define SMC_ARG0		"x0"
-#define SMC_ARG1		"x1"
-#define SMC_ARG2		"x2"
-#define SMC_ARG3		"x3"
-#define SMC_ARCH_EXTENSION	""
-#define SMC_REGISTERS_TRASHED "x4", "x5", "x6", "x7", "x8", "x9", "x10", \
-			"x11", "x12", "x13", "x14", "x15", "x16", "x17"
-#else
-#define SMC_ARG0		"r0"
-#define SMC_ARG1		"r1"
-#define SMC_ARG2		"r2"
-#define SMC_ARG3		"r3"
-#define SMC_ARCH_EXTENSION	".arch_extension sec\n"
-#define SMC_REGISTERS_TRASHED	"ip"
-#endif
-
 #ifdef CONFIG_64BIT_ONLY_CPU /* only limit sharklj1 project */
 #define SMC_RESCHEDULE
 #define SMC_AVAILABLE_CPUS 2
 #endif
 
-static ulong smc_reschedule(void *param)
+static ulong __smc(void *param)
 {
-	struct smc_param *cpu_param = (struct smc_param *)param;
+	struct smc_param *p = (struct smc_param *)param;
+	unsigned long r0, r1, r2, r3;
+	struct arm_smccc_res res;
 
-	register ulong _r0 asm(SMC_ARG0) = cpu_param->r0;
-	register ulong _r1 asm(SMC_ARG1) = cpu_param->r1;
-	register ulong _r2 asm(SMC_ARG2) = cpu_param->r2;
-	register ulong _r3 asm(SMC_ARG3) = cpu_param->r3;
+	r0 = p->r0;
+	r1 = p->r1;
+	r2 = p->r2;
+	r3 = p->r3;
 
-	asm volatile(
-		__asmeq("%0", SMC_ARG0)
-		__asmeq("%1", SMC_ARG1)
-		__asmeq("%2", SMC_ARG2)
-		__asmeq("%3", SMC_ARG3)
-		__asmeq("%4", SMC_ARG0)
-		__asmeq("%5", SMC_ARG1)
-		__asmeq("%6", SMC_ARG2)
-		__asmeq("%7", SMC_ARG3)
-		SMC_ARCH_EXTENSION
-		"smc	#0"	/* switch to secure world */
-		: "=r" (_r0), "=r" (_r1), "=r" (_r2), "=r" (_r3)
-		: "r" (_r0), "r" (_r1), "r" (_r2), "r" (_r3)
-		: SMC_REGISTERS_TRASHED);
-	return _r0;
+	trace_smc_entry(r0, r1, r2, r3);
+	arm_smccc_smc(r0, r1, r2, r3, 0, 0, 0, 0, &res);
+	trace_smc_exit(r0, res.a0, 0, 0);
+
+	return res.a0;
 }
 
 static ulong smc(ulong r0, ulong r1, ulong r2, ulong r3, ulong fastcall)
@@ -128,21 +106,19 @@ static ulong smc(ulong r0, ulong r1, ulong r2, ulong r3, ulong fastcall)
 			cpu = smp_processor_id();
 			cpu = cpu % SMC_AVAILABLE_CPUS;
 			if (cpu_online(cpu)) {
-				ret = work_on_cpu(cpu, smc_reschedule,
-								(void *)&param);
+				ret = work_on_cpu(cpu, __smc, (void *)&param);
 			} else {
 				cpu += 1;
 				cpu %= SMC_AVAILABLE_CPUS;
-				ret = work_on_cpu(cpu, smc_reschedule,
-								(void *)&param);
+				ret = work_on_cpu(cpu, __smc, (void *)&param);
 			}
 		}
 		put_online_cpus();
 		return ret;
 	} else
-		return smc_reschedule((void *)&param);
+		return __smc((void *)&param);
 #else
-	return smc_reschedule((void *)&param);
+	return __smc((void *)&param);
 #endif
 }
 
@@ -161,7 +137,7 @@ s32 trusty_fast_call32_power(u32 smcnr, u32 a0, u32 a1, u32 a2)
 	if (a0 >= SMC_AVAILABLE_CPUS)
 		return 0;
 #endif
-	return smc_reschedule((void *)&param);
+	return __smc((void *)&param);
 }
 EXPORT_SYMBOL(trusty_fast_call32_power);
 
