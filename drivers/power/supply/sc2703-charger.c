@@ -1549,7 +1549,7 @@ static int sc2703_charger_probe(struct platform_device *pdev)
 	if (ret)
 		return ret;
 
-	sc2703_charger_stop_charge(info, sc2703_charger_is_bat_present);
+	sc2703_charger_stop_charge(info, sc2703_charger_is_bat_present(info));
 
 	info->usb_notify.notifier_call = sc2703_charger_usb_change;
 	ret = usb_register_notifier(info->usb_phy, &info->usb_notify);
