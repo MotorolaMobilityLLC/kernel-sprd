@@ -271,7 +271,12 @@ static int dpu_clk_enable(struct dpu_context *ctx)
 			div6_uboot_enable = false;
 			return 0;
 		}
-		clk_prepare_enable(clk_master_div6_eb);
+
+		ret = clk_prepare_enable(clk_master_div6_eb);
+		if (ret) {
+			pr_err("enable clk_master_div6_eb error\n");
+			return ret;
+		}
 		clk_disable_unprepare(clk_master_div6_eb);
 
 	}
