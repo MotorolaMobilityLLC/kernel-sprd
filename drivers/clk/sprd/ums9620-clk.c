@@ -332,8 +332,10 @@ static struct clk_bit_field f_v4nrpll[PLL_FACT_MAX] = {
 static SPRD_PLL_WITH_ITABLE_K_FVCO(v4nrpll, "v4nrpll", "ext-26m", 0x3c,
 				   3, v4nrpll_ftable, f_v4nrpll, 240,
 				   1000, 1000, 1, 1600000000);
+static CLK_FIXED_FACTOR(v4nrpll_38m4, "v4nrpll-38m4", "v4nrpll", 64, 1, 0);
 static CLK_FIXED_FACTOR(v4nrpll_409m6, "v4nrpll-409m6", "v4nrpll", 6, 1, 0);
 static CLK_FIXED_FACTOR(v4nrpll_614m4, "v4nrpll-614m4", "v4nrpll", 4, 1, 0);
+static CLK_FIXED_FACTOR(v4nrpll_819m2, "v4nrpll-819m2", "v4nrpll", 3, 1, 0);
 
 static struct sprd_clk_common *ums9620_g5l_pll_clks[] = {
 	/* address base is 0x64324000 */
@@ -364,8 +366,10 @@ static struct clk_hw_onecell_data ums9620_g5l_pll_hws = {
 		[CLK_TGPLL_768M]	= &tgpll_768m.hw,
 		[CLK_PSR8PLL]		= &psr8pll.common.hw,
 		[CLK_V4NRPLL]		= &v4nrpll.common.hw,
+		[CLK_V4NRPLL_38M4]	= &v4nrpll_38m4.hw,
 		[CLK_V4NRPLL_409M6]	= &v4nrpll_409m6.hw,
 		[CLK_V4NRPLL_614M4]	= &v4nrpll_614m4.hw,
+		[CLK_V4NRPLL_819M2]	= &v4nrpll_819m2.hw,
 	},
 	.num    = CLK_ANLG_PHY_G5L_NUM,
 };
@@ -2470,7 +2474,8 @@ static struct sprd_clk_desc ums9620_mm_gate_desc = {
 
 /* mm clocks */
 static const char * const vdsp_parents[] = { "ext-26m", "tgpll-307m2",
-					     "tgpll-512m", "tgpll-614m4" };
+					     "tgpll-512m", "tgpll-614m4",
+					     "v4nrpll-819m2", "vdsppll"};
 static SPRD_MUX_CLK(vdsp, "vdsp", vdsp_parents, 0x28,
 		    0, 2, UMS9620_MUX_FLAG);
 static SPRD_DIV_CLK(vdsp_m, "vdsp-m", "vdsp", 0x30,
@@ -2478,7 +2483,7 @@ static SPRD_DIV_CLK(vdsp_m, "vdsp-m", "vdsp", 0x30,
 
 static const char * const vdma_parents[] = { "ext-26m", "tgpll-153m6",
 					     "tgpll-256m", "tgpll-307m2",
-					     "v4nrpll_409m6", "tgpll-512m"};
+					     "v4nrpll-409m6", "tgpll-512m"};
 static SPRD_MUX_CLK(vdma, "vdma", vdma_parents, 0x40,
 		    0, 3, UMS9620_MUX_FLAG);
 
