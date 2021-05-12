@@ -371,3 +371,33 @@
 &sdio0 {
 	cd-gpios = <&eic_async 9 1>;
 };
+
+&pin_controller {
+	pinctrl-names =
+	"gpio_124", "gpio_144", "gpio_145", "gpio_146";
+
+	pinctrl-0 = <&gpio_124>;
+	pinctrl-1 = <&gpio_144>;
+	pinctrl-2 = <&gpio_145>;
+	pinctrl-3 = <&gpio_146>;
+
+	gpio_124: keyin0 {
+		pins = "SHARKL3_KEYIN0";
+		function = "func4";
+	};
+
+	gpio_144: extint0 {
+		pins = "SHARKL3_EXTINT0";
+		function = "func4";
+	};
+
+	gpio_145: extint1 {
+		pins = "SHARKL3_EXTINT1";
+		function = "func4";
+	};
+
+	gpio_146: scl3 {
+		pins = "SHARKL3_SCL3";
+		function = "func4";
+	};
+};
