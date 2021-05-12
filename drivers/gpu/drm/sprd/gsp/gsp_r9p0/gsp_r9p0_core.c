@@ -831,12 +831,10 @@ static int gsp_r9p0_core_parse_irq(struct gsp_core *core)
 int gsp_r9p0_core_parse_dt(struct gsp_core *core)
 {
 	int ret = -1;
-	struct device *dev = NULL;
 	struct gsp_r9p0_core *r9p0_core = NULL;
 	struct resource *res;
 	struct platform_device *pdev = to_platform_device(core->parent->dev);
 
-	dev = container_of(&core->node, struct device, of_node);
 	r9p0_core = (struct gsp_r9p0_core *)core;
 
 	r9p0_core->gsp_ctl_reg_base = core->base;
