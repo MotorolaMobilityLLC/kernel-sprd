@@ -388,6 +388,7 @@ struct power_supply_battery_info {
 	int cap_table_size;
 	int resistance_table_size;
 	struct power_supply_charge_current cur;
+	const char * battery_name;
 };
 
 extern struct atomic_notifier_head power_supply_notifier;
