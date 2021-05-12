@@ -1804,14 +1804,6 @@ int btwf_sys_shutdown(struct wcn_device *wcn_dev)
 		return -1;
 	}
 
-	if (btwf_sys_polling_deepsleep(wcn_dev) == false) {
-		WCN_ERR("[-]%s btwf sys deep fail\n", __func__);
-
-		/* force assert */
-		wcn_assert_interface(0, "btwf sys deepsleep fail");
-		return -1;
-	}
-
 	/* btwf_ss_arm_sys_pd_auto_en Bit[12] default 1=>1
 	 * maybe the value is cleared.
 	 */
@@ -1827,6 +1819,14 @@ int btwf_sys_shutdown(struct wcn_device *wcn_dev)
 				 0x0098, &reg_val);
 	WCN_INFO("Set REG 0x4080c098:val=0x%x(auto shutdown)!\n",
 		      reg_val);
+
+	if (btwf_sys_polling_deepsleep(wcn_dev) == false) {
+		WCN_ERR("[-]%s btwf sys deep fail\n", __func__);
+
+		/* force assert */
+		wcn_assert_interface(0, "btwf sys deepsleep fail");
+		return -1;
+	}
 
 	if (btwf_sys_polling_powerdown(wcn_dev) == false) { /* shutdown fail */
 		WCN_ERR("[-]%s btwf sys shutdown fail\n", __func__);
@@ -1890,14 +1890,6 @@ int gnss_sys_shutdown(struct wcn_device *wcn_dev)
 		return -1;
 	}
 
-	if (gnss_sys_polling_deepsleep(wcn_dev) == false) { /* isn't deep */
-		WCN_ERR("[-]%s gnss sys deep fail\n", __func__);
-
-		/* force assert */
-		wcn_assert_interface(1, "gnss sys deepsleep fail");
-		return -1;
-	}
-
 	/*
 	 * gnss_ss_arm_sys_pd_auto_en Bit[12] default 1=>1
 	 * maybe the value is cleared.
@@ -1914,6 +1906,14 @@ int gnss_sys_shutdown(struct wcn_device *wcn_dev)
 				 0x00c8, &reg_val);
 	WCN_INFO("Set REG 0x4080c0c8:val=0x%x(auto shutdown)!\n",
 		      reg_val);
+
+	if (gnss_sys_polling_deepsleep(wcn_dev) == false) { /* isn't deep */
+		WCN_ERR("[-]%s gnss sys deep fail\n", __func__);
+
+		/* force assert */
+		wcn_assert_interface(1, "gnss sys deepsleep fail");
+		return -1;
+	}
 
 	if (gnss_sys_polling_powerdown(wcn_dev) == false) {
 		WCN_ERR("[-]%s gnss sys shutdown fail\n", __func__);
