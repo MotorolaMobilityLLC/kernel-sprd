@@ -302,6 +302,7 @@
 	};
 
 	ise_med_reserved: ise_med@bc000000 {
+		compatible = "sprd,qogirn6pro-ise-med";
 		reg = <0x0 0xbc000000 0x0 0x01000000>;
 	};
 };
