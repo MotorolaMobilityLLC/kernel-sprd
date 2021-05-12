@@ -1572,6 +1572,11 @@ static void cm_update_charge_info(struct charger_manager *cm, int cmd)
 		 desc->charge_voltage_max, desc->charge_voltage_drop,
 		 thm_info->adapter_default_charge_vol * 1000, thm_info->thm_adjust_cur, cmd);
 
+	if (!cm->cm_charge_vote || !cm->cm_charge_vote->vote) {
+		dev_err(cm->dev, "%s: cm_charge_vote is null\n", __func__);
+		return;
+	}
+
 	if (cmd & CM_CHARGE_INFO_CHARGE_LIMIT)
 		cm->cm_charge_vote->vote(cm->cm_charge_vote, true,
 					 SPRD_VOTE_TYPE_IBAT,
@@ -6864,7 +6869,7 @@ void cm_notify_event(struct power_supply *psy, enum cm_event_types type,
 	}
 	mutex_unlock(&cm_list_mtx);
 
-	if (!found_power_supply) {
+	if (!found_power_supply || !cm->cm_charge_vote) {
 		cm_event_msg = msg;
 		cm_event_type = type;
 		return;
