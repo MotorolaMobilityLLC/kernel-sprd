@@ -12,6 +12,7 @@
  * General Public License for more details.
  */
 
+#include <linux/alarmtimer.h>
 #include <linux/bitops.h>
 #include <linux/clk.h>
 #include <linux/device.h>
@@ -63,11 +64,17 @@
 #define SPRD_WDT_LOW_VALUE_MASK		GENMASK(15, 0)
 #define SPRD_WDT_LOAD_TIMEOUT		1000
 
+#define SPRD_WDT_ALWAYS_ON
+#define SPRD_WDT_SLEEP_KICKTIME		240
+#define SPRD_WDT_SLEEP_PRETIMEOUT		270
+#define SPRD_WDT_SLEEP_TIMEOUT		300
+
 struct sprd_wdt {
 	void __iomem *base;
 	struct watchdog_device wdd;
 	struct clk *enable;
 	struct clk *rtc_enable;
+	struct alarm sleep_tmr;
 	int irq;
 };
 
@@ -337,6 +344,10 @@ static int sprd_wdt_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "failed to register watchdog\n");
 		return ret;
 	}
+
+#ifdef SPRD_WDT_ALWAYS_ON
+	alarm_init(&wdt->sleep_tmr, ALARM_BOOTTIME, NULL);
+#endif
 	platform_set_drvdata(pdev, wdt);
 
 	return 0;
@@ -346,10 +357,22 @@ static int __maybe_unused sprd_wdt_pm_suspend(struct device *dev)
 {
 	struct sprd_wdt *wdt = dev_get_drvdata(dev);
 
+#ifdef SPRD_WDT_ALWAYS_ON
+	ktime_t now, add;
+
+	if (watchdog_active(&wdt->wdd)) {
+		sprd_wdt_load_value(wdt, SPRD_WDT_SLEEP_TIMEOUT, SPRD_WDT_SLEEP_PRETIMEOUT);
+		now = ktime_get_boottime();
+		add = ktime_set(SPRD_WDT_SLEEP_KICKTIME, 0);
+		alarm_start(&wdt->sleep_tmr, ktime_add(now, add));
+	} else {
+		sprd_wdt_disable(wdt);
+	}
+#else
 	if (watchdog_active(&wdt->wdd))
 		sprd_wdt_stop(&wdt->wdd);
 	sprd_wdt_disable(wdt);
-
+#endif
 	return 0;
 }
 
@@ -357,6 +380,11 @@ static int __maybe_unused sprd_wdt_pm_resume(struct device *dev)
 {
 	struct sprd_wdt *wdt = dev_get_drvdata(dev);
 	int ret;
+
+#ifdef SPRD_WDT_ALWAYS_ON
+	if (watchdog_active(&wdt->wdd))
+		alarm_cancel(&wdt->sleep_tmr);
+#endif
 
 	ret = sprd_wdt_enable(wdt);
 	if (ret)
