@@ -22,17 +22,20 @@
 #define APDU_INF_INT_MASK	(APDU_REE_OFFSET + 0xb8)
 #define APDU_INF_INT_CLR	(APDU_REE_OFFSET + 0xbc)
 
-#define APDU_FIFO_TX_POINT_OFFSET	8
-#define APDU_FIFO_RX_OFFSET		16
-#define APDU_FIFO_RX_POINT_OFFSET	24
+#define APDU_FIFO_TX_POINT_OFFSET	(8)
+#define APDU_FIFO_RX_OFFSET		(16)
+#define APDU_FIFO_RX_POINT_OFFSET	(24)
 #define APDU_FIFO_LEN_MASK		GENMASK(7, 0)
 #define APDU_CNT_LEN_MASK		GENMASK(15, 0)
+#define APDU_TX_THRESHOLD		(0x40)
+#define APDU_INT_DEFAULT_EN		(0x1)
+#define APDU_INF_INT_DEFAULT_EN		(0x0)
 
 #define APDU_INT_BITS	(BIT(9) | BIT(8) | BIT(5) | BIT(4) | BIT(3) \
 				| BIT(2) | BIT(1) | BIT(0))
 #define APDU_INT_RX_EMPTY_TO_NOEMPTY	BIT(0)
 #define APDU_INT_MED_WR_DONE		BIT(8)
-#define APDU_INT_MED_WR_ERR		BIT(9)
+#define APDU_INT_MED_ERR		BIT(9)
 
 #define APDU_INF_INT_BITS		(0xffffffff)
 #define APDU_INF_INT_GET_ATR		BIT(31)
@@ -49,28 +52,33 @@
 
 #define APDU_DRIVER_NAME	"apdu"
 
-#define APDU_POWER_ON_CHECK_TIMES (10)
+#define APDU_POWER_ON_CHECK_TIMES	(10)
+#define APDU_POWER_ON_CHECK_TIMES2	(800)
 
-/* packet was alinged with 4 byte should not exceed max size+ pad byte */
+/* packet was alinged with 4 byte should not exceed max size + pad byte */
 #define APDU_TX_MAX_SIZE	(44 * 1024 + 4)
 #define APDU_RX_MAX_SIZE	(5120 + 4)
 #define APDU_ATR_DATA_MAX_SIZE	(32)
 #define MED_INFO_MAX_BLOCK	(5)
-/* MED_INFO_MAX_NUM groups offset and length info (each 2 word) */
-#define APDU_MED_INFO_SIZE	(MED_INFO_MAX_BLOCK * 2)
-/* 8--sizeof med_info_type in words*/
-#define APDU_MED_INFO_PARSE_SZ	(MED_INFO_MAX_BLOCK * 8)
-/* save (ISE_ATTACK_BUFFER_SIZE -1) attack status, 1 for message header */
+/* 2--sizeof med_origin_info_t in words */
+#define APDU_MED_INFO_BLK_SIZE	(2)
+#define APDU_MED_INFO_SIZE	(MED_INFO_MAX_BLOCK * APDU_MED_INFO_BLK_SIZE)
+/* 8--sizeof med_parse_info_t in words */
+#define APDU_MED_PARSE_BLK_SZ	(8)
+#define APDU_MED_INFO_PARSE_SZ	(MED_INFO_MAX_BLOCK * APDU_MED_PARSE_BLK_SZ)
+/* save (ISE_ATTACK_BUFFER_SIZE - 1) attack status, 1 for message header */
 #define ISE_ATTACK_BUFFER_SIZE	(33)
-#define APDU_FIFO_LENGTH	128
+#define APDU_FIFO_LENGTH	(128)
 #define APDU_FIFO_SIZE		(APDU_FIFO_LENGTH * 4)
-#define APDU_MAGIC_NUM		0x55AA
+#define APDU_MAGIC_NUM		(0x55AA)
+#define APDU_MAGIC_MASK(x)	(((x) >> 16) & 0xffff)
+#define APDU_DATA_LEN_MASK(x)	((x) & 0xffff)
 
 #define APDU_RESET			_IO('U', 0)
 #define APDU_CLR_FIFO			_IO('U', 1)
 #define APDU_SET_WATER			_IO('U', 2)
 #define APDU_CHECK_CLR_FIFO_DONE	_IO('U', 3)
-#define APDU_CHECK_MED_WR_ERROR_STATUS	_IO('U', 4)
+#define APDU_CHECK_MED_ERROR_STATUS	_IO('U', 4)
 #define APDU_CHECK_FAULT_STATUS		_IO('U', 5)
 #define APDU_GET_ATR_INF		_IO('U', 6)
 #define APDU_SET_MED_HIGH_ADDR		_IO('U', 7)
@@ -79,7 +87,7 @@
 #define APDU_ENTER_APDU_LOOP		_IO('U', 10)
 #define APDU_FAULT_INT_RESOLVE_DONE	_IO('U', 11)
 #define APDU_NORMAL_POWER_ON_ISE	_IO('U', 12)
-#define APDU_SOFT_RESET_ISE	_IO('U', 13)
+#define APDU_SOFT_RESET_ISE		_IO('U', 13)
 #define APDU_ION_MAP_MEDDDR_IN_KERNEL	_IO('U', 14)
 #define APDU_ION_UNMAP_MEDDDR_IN_KERNEL	_IO('U', 15)
 #define APDU_POWEROFF_ISE_AON_DOMAIN	_IO('U', 16)
@@ -89,91 +97,122 @@
 #define APDU_LOAD_MEDDDR_DATA_IN_KERNEL	_IO('U', 20)
 #define APDU_SAVE_MEDDDR_DATA_IN_KERNEL	_IO('U', 21)
 #define APDU_SET_CURRENT_SLOT_IN_KERNEL	_IO('U', 22)
-#define APDU_NORMAL_POWER_DOWN_ISE _IO('U', 26)
+#define APDU_ISE_STATUS_CHECK		_IO('U', 23)
+#define APDU_SEND_MED_HIGH_ADDR		_IO('U', 24)
+#define APDU_NORMAL_POWER_DOWN_ISE	_IO('U', 26)
 
-#define ISE_BUSY_STATUS		0x60
+#define ISE_BUSY_STATUS		(0x60)
 #define AP_WAIT_TIMES		(20)
 #define DIV_CEILING(a, b)	(((a) + ((b) - 1)) / (b))
 
-#define APDU_NETLINK		30
-#define APDU_USER_PORT		100
+#define APDU_NETLINK		(30)
+#define APDU_USER_PORT		(100)
 #define DDR_BASE		(0x80000000)
-#define MED_DDR_SIZE		(0x1C00000)
+#define MED_ISE_MAX_SIZE	(0x1C00000)
+#define MED_DDR_MIN_SIZE	(8 * 1024 * 1024)
+#define MED_DDR_MAX_SIZE	(64 * 1024 * 1024)
+/* ise just send med offset and length info */
+#define ISE_MED_BASE_ADDR	(0x0)
 
-#define MESSAGE_HEADER_MED_INFO	0x5AA55AA5
-#define MESSAGE_HEADER_FAULT	0x6BB66BB6
+#define MESSAGE_HEADER_MED_INFO	(0x5AA55AA5)
+#define MESSAGE_HEADER_FAULT	(0x6BB66BB6)
+#define MESSAGE_HEADER_MED_ERR	(0x7CC77CC7)
 
-/* MAX_WAIT_TIME milliseconds --ISE system hangs up and exits*/
+#define POWER_SWITCH_HARD	(0x55AA)
+#define POWER_SWITCH_SOFT	(0x6B6B)
+#define POWER_COLD_BOOT		(0x5A5A)
+
+/* MAX_WAIT_TIME milliseconds --ISE system hangs up and exits */
 #define MAX_WAIT_TIME		(5000)
 
-#define ISE_AON_RAM_CFG		0x80
-//default is 1 , software memory shutdown control, high active
-#define REG_RAM_PD_ISE_AON_BIT (BIT(2))
+#define APDU_PD_CHECK_TIMEOUT	(100)
+#define APDU_WR_PRE_TIMEOUT	(300)
+#define APDU_WR_PRE_TIMEOUT_2	(1000)
+#define APDU_WR_RD_TIMEOUT	(200)
 
-//force close rco 150M PD for timing violation before
-//relase reset signal(B8C) 10us, default is 0
-#define RCO150M_REL_CFG 0x9F0
-//RCO150M force OFF; 0:RCO150M not force OFF  1:RCO150M force OFF
-#define RCO150M_RFC_OFF	(BIT(1))
+/* data in big endian, 0x9000 */
+#define ISE_APDU_ANSWER_SUCCESS	(0x0090)
 
-#define ADM_SOFT_RST	0xB8C
-//ise aon domain soft reset, default is 1,
-//should set as 0 when reset ise aon domain
-//0 keep aon domain in normal mode, 1 reset ise aon domain
-#define ISE_AON_SOFT_RESET_BIT	(BIT(5))
+#define ISE_PD_PWR_ON		(0xAA)
+#define ISE_PD_PWR_DOWN		(0x55)
 
-#define PD_ISE_CFG_0    0x3f0
-//enable power domain "PD_ISE" automaticially power off when ise into deep sleep
-//0:power domain SHUTDOWN by "PD_ISE_FORCE_SHUTDOWN",
-//default is 0 when in force mode
-//1:power domain automatically SHUTDOWN
-#define PD_ISE_FORCE_SHUTDOWN_EN_BIT (BIT(24))
-//when PD_ISE_FORCE_SHUTDOWN_EN_BIT is 0,
-//we can set SHUTDOWN bit as 0 to poweron ise
-#define PD_ISE_FORCE_SHUTDOWN_BIT (BIT(25))
+/* AXI 35bit addressing */
+#define MED_LOW_ADDRESSING	GENMASK_ULL(25, 0)
+#define MED_HIGH_ADDRESSING	GENMASK_ULL(34, 26)
 
-#define SOFT_RST_SEL_0 0xBA8
-#define SOFT_RST_SEL_ISE_BIT (BIT(27))
+#define ISE_PD_MAGIC_NUM	(0xDEAD8810)
 
-#define FORCE_DEEP_SLEEP_CFG_0 0x818
-#define ISE_FORCE_DEEP_SLEEP_REG (BIT(5))
+#define MEDDDR_ISEDATA_OFFSET_BASE_ADDRESS	(0x200000)
+#define MEDDDR_MAX_SIZE				(0x1000000)
+#define MEDDDR_COUNTER_AREA_MAX_SIZE		(0x600) //0x24
+#define MEDDDR_COUNTER_LV1_AREA_MAX_SIZE	(0x600)
+#define ISEDATA_DEV_PATH	"dev/block/by-name/isedata"
 
-#define AON_CALI_RCO 0xCA4
-#define AON_RF_CALI_RCO (BIT(4))
-#define AON_RF_CHECK_RCO (BIT(5))
+struct sprd_apdu_pub_ise_cfg_t {
+	struct regmap *pub_reg_base;
+	u32 pub_ise_reg_offset;
+	u32 pub_ise_bit_offset;
+	u64 med_hi_addr;
+	u64 med_size;
+	u64 med_ise_size;
+};
 
-#define AON_APB_EB1 0x4
-#define AON_PIN_REG_ENABLE (BIT(11))
+struct sprd_apdu_pd_ise_config_t {
+	/* keep the same at dts reserved-memory */
+	const char *ise_compatible;
+	struct regmap *ise_pd_reg_base;
+	struct regmap *ise_aon_reg_base;
+	struct regmap *ise_aon_clk_reg_base;
+	u32 ise_pd_magic_num;
+	/* check ise power on status reg */
+	long (*ise_pd_status_check)(void *apdu_dev);
+	/* ise cold power on function (ise first time power on) */
+	long (*ise_cold_power_on)(void *apdu_dev);
+	/* ise full power down function (phone shutdown) */
+	long (*ise_full_power_down)(void *apdu_dev);
+	/* reset ise aon domain and power down domain
+	 * (ensure ise cannot reading med ddr)
+	 */
+	long (*ise_hard_reset)(void *apdu_dev);
+	/* reset ise power down domain (ise status not limit) */
+	long (*ise_soft_reset)(void *apdu_dev);
+	/* hard reset signal set high */
+	long (*ise_hard_reset_set)(void *apdu_dev);
+	/* hard reset signal release low */
+	long (*ise_hard_reset_clr)(void *apdu_dev);
+};
 
-#define SP_SYS_SOFT_RST 0x90
-#define SP_SYS_SOFT_RST_BIT (BIT(4))
-#define SP_CORE_SOFT_RST_BIT (BIT(0))
+struct sprd_apdu_ise_fault_status_t {
+	u32 *ise_fault_buf;
+	u32 ise_fault_ptr;
+	u32 ise_fault_status;
+	/* ensure user space have slove last fault status */
+	u32 ise_fault_allow_to_send_flag;
+};
 
-#define GATE_EN_SEL6_CFG 0x68
-//clock gating enable select.
-//0: soft register control
-//1: hw(pmu) auto control
-#define CGM_XBUF_26M_ISE_AUTO_GATE_SEL (BIT(22))
-#define CGM_XBUF_2M_ISE_AUTO_GATE_SEL (BIT(23))
+struct sprd_apdu_med_rewrite_t {
+	/* ise med rewrite origin format info */
+	u32 *med_rewrite;
+	/* indicate that ise sending med rewrite info */
+	u32 med_wr_done;
+	/* med rewrite info sending to user space
+	 * or med rewrite data writing to flash
+	 */
+	u32 med_data_processing;
+};
 
-#define GATE_EN_SW_CTL6_CFG 0x8c
-//clock gating enable sw control
-#define CGM_XBUF_26M_ISE_FORCE_EN (BIT(22))
-#define CGM_XBUF_2M_ISE_FORCE_EN (BIT(23))
+struct sprd_apdu_med_error_t {
+	/* indicate that ise sending med error status */
+	u32 med_error_status;
+};
 
-
-#define ISE_SYS_SOFT_RST_0  0xB98
-#define ISE_SYS_SOFT_RST  0xBa8
-//ise sys soft reset.
-//0 keep ise sys in normal mode; 1 reset ise sys
-#define ISE_SYS_SOFT_RST_BITS       (BIT(27))
-
-
-#define MEDDDR_RESERVED_ADDRESS (0xBC000000)
-#define MEDDDR_ISEDATA_OFFSET_BASE_ADDRESS (0x200000)
-#define MEDDDR_MAX_SIZE (0x1000000)
-#define MEDDDR_COUNTER_AREA_MAX_SIZE (0x600) //0x24
-#define ISEDATA_DEV_PATH "dev/block/by-name/isedata"
+struct sprd_apdu_atr_t {
+	u32 *atr;
+	/* indicate that ise sending atr info */
+	u32 atr_rcv_status;
+	u32 ise_gp_status[ISE_ATTACK_BUFFER_SIZE];
+	u32 gp_index;
+};
 
 struct sprd_apdu_device {
 	struct device *dev;
@@ -182,35 +221,31 @@ struct sprd_apdu_device {
 	int rx_done;
 	void *tx_buf;
 	void *rx_buf;
-	u32 *atr;
-	u32 *med_rewrite;
-	u32 *ise_fault_buf;
 
 	/* synchronize access to our device file */
 	struct mutex mutex;
 	void __iomem *base;
-	void __iomem *pub_ise_base;
-	void __iomem *pmu_base;
-	void __iomem *aon_clock_base;
-	void __iomem *aon_rf_base;
+	int irq;
 
+	/* for exchange data between DDR and FLASH */
 	void *medddr_address;
 	int slot;
 
-	struct regmap *pub_reg_base;
-	int irq;
-
-	u32 med_wr_done;
-	u32 med_wr_error;
-	u32 ise_fault_status;
-	u32 ise_fault_point;
-	u32 ise_fault_allow_to_send_flag;
-	u32 atr_rcv_status;
-	u32 pub_ise_reg_offset;
-	u32 pub_ise_bit_offset;
+	struct sprd_apdu_pub_ise_cfg_t pub_ise_cfg;
+	struct sprd_apdu_pd_ise_config_t *pd_ise;
+	struct sprd_apdu_ise_fault_status_t ise_fault;
+	struct sprd_apdu_med_rewrite_t med_rewr;
+	struct sprd_apdu_med_error_t med_err;
+	struct sprd_apdu_atr_t ise_atr;
 };
 
-struct med_info_type {
+/* origin data info from ISE */
+struct med_origin_info_t {
+	u32 med_data_offset;
+	u32 med_data_len;
+};
+
+struct med_parse_info_t {
 	u32 ap_side_data_offset;
 	u32 ap_side_data_length;
 	u32 level1_rng_offset;
@@ -222,6 +257,11 @@ struct med_info_type {
 };
 
 extern struct net init_net;
+
+long med_rewrite_post_process_check(struct sprd_apdu_device *apdu);
+long sprd_apdu_normal_pd_ise_req(struct sprd_apdu_device *apdu);
+long sprd_apdu_power_on_check(struct sprd_apdu_device *apdu, u32 times);
+void sprd_apdu_normal_pd_sync_cnt_lv1(struct sprd_apdu_device *apdu);
 
 #endif
 
