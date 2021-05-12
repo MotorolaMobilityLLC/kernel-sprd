@@ -64,10 +64,12 @@ struct register_hotplug {
 #ifdef CONFIG_EMMC_SOFTWARE_CQ_SUPPORT
 /*POLLING_SAMPLE_NUM must >= (max_req_size/16KB) + 1*/
 #ifdef CONFIG_MMC_FFU_FUNCTION
-#define POLLING_SAMPLE_NUM (65)
+#define BLOCK_MAX_SIZE (2048) /*1024KB*/
 #else
-#define POLLING_SAMPLE_NUM (33)
+#define BLOCK_MAX_SIZE (1024) /*512KB*/
 #endif
+#define POLLING_STEP_SIZE (32) /*16KB*/
+#define POLLING_SAMPLE_NUM (BLOCK_MAX_SIZE / POLLING_STEP_SIZE + 1)
 struct polling_info {
 	int wait[POLLING_SAMPLE_NUM];
 	int count[POLLING_SAMPLE_NUM];

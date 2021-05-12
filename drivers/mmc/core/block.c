@@ -79,6 +79,7 @@ MODULE_ALIAS("mmc:block");
  * boot2: 2
  */
 #define PART_CMDQ_EN 0
+extern int emmc_resetting_when_cmdq;
 #endif
 
 
@@ -1298,6 +1299,10 @@ static int mmc_blk_reset(struct mmc_blk_data *md, struct mmc_host *host,
 	if (md->reset_done & type)
 		return -EEXIST;
 
+#ifdef CONFIG_EMMC_SOFTWARE_CQ_SUPPORT
+	/*hanging if not set*/
+	emmc_resetting_when_cmdq = 1;
+#endif
 	md->reset_done |= type;
 	err = mmc_hw_reset(host);
 	/* Ensure we switch back to the correct partition */
@@ -1316,6 +1321,9 @@ static int mmc_blk_reset(struct mmc_blk_data *md, struct mmc_host *host,
 			return -ENODEV;
 		}
 	}
+#ifdef CONFIG_EMMC_SOFTWARE_CQ_SUPPORT
+	emmc_resetting_when_cmdq = 0;
+#endif
 	return err;
 }
 
@@ -2240,10 +2248,13 @@ bool mmc_blk_part_cmdq_en(struct mmc_queue *mq)
 #if defined(CONFIG_EMMC_SOFTWARE_CQ_SUPPORT)
 	int ret = false;
 	struct mmc_blk_data *md = mq->blkdata;
-	struct mmc_card *card = md->queue.card;
+	struct mmc_card *card;
 
 	if (!md)
 		return false;
+
+	card = md->queue.card;
+
 	/* enable cmdq at support partition */
 	if (card->ext_csd.cmdq_support
 		&& md->part_type <= PART_CMDQ_EN)

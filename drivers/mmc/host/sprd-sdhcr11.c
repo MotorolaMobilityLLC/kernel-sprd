@@ -630,7 +630,7 @@ static inline void cmdq_poll_wait_calc(struct sprd_sdhc_host *host,
 	if (data) {
 		if (host->need_intr)
 			now = sched_clock();
-		index = data->blocks/(POLLING_SAMPLE_NUM - 1);
+		index = data->blocks/POLLING_STEP_SIZE;
 		dir = (cmd->opcode == MMC_EXECUTE_READ_TASK) ? 0 : 1;
 		poll = &host->poll[dir];
 
@@ -818,8 +818,8 @@ static void sprd_send_cmd(struct sprd_sdhc_host *host, struct mmc_command *cmd)
 
 		pre_time = sched_clock();
 		if (data) {
-			index = data->blocks/(POLLING_SAMPLE_NUM - 1);
-			dir = (cmd->opcode == MMC_EXECUTE_READ_TASK)?0:1;
+			index = data->blocks/POLLING_STEP_SIZE;
+			dir = (cmd->opcode == MMC_EXECUTE_READ_TASK) ? 0 : 1;
 			poll = &host->poll[dir];
 
 			if (poll->wait[index] > 100
