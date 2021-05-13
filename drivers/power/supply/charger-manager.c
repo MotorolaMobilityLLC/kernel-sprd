@@ -253,6 +253,12 @@ static int cm_capacity_remap(struct charger_manager *cm, int fuel_cap)
 {
 	int i, temp, cap = 0;
 
+	if (cm->desc->cap_remap_full_percent) {
+		fuel_cap = fuel_cap * 100 / cm->desc->cap_remap_full_percent;
+		if (fuel_cap > CM_CAP_FULL_PERCENT)
+			fuel_cap  = CM_CAP_FULL_PERCENT;
+	}
+
 	if (!cm->desc->cap_remap_table)
 		return fuel_cap;
 
@@ -289,41 +295,6 @@ static int cm_capacity_remap(struct charger_manager *cm, int fuel_cap)
 	}
 
 	return cap;
-}
-
-/*
- * cm_capacity_unmap - unmap remapped cap to real fuel gauge cap
- * @remmaped_cap: remapped_cap from cm_capacity_remap function
- * Return real fuel gauge cap
- */
-static int cm_capacity_unmap(struct charger_manager *cm, int cap)
-{
-	int fuel_cap, i;
-
-	if (!cm->desc->cap_remap_table)
-		return cap;
-
-	for (i = cm->desc->cap_remap_table_len - 1; i >= 0; i--) {
-		if (cap >= (cm->desc->cap_remap_table[i].hcap * 10)) {
-			fuel_cap = (cap - cm->desc->cap_remap_table[i].hcap * 10) * 100 +
-				cm->desc->cap_remap_table[i].hb;
-			break;
-		} else if (cap >= (cm->desc->cap_remap_table[i].lcap * 10)) {
-			fuel_cap = (cap - cm->desc->cap_remap_table[i].lcap * 10) *
-				cm->desc->cap_remap_table[i].cnt * 100 +
-				cm->desc->cap_remap_table[i].lb;
-			break;
-		}
-
-		if (i == 0 && cap <= cm->desc->cap_remap_table[i].lcap * 10) {
-			fuel_cap = cap * 100;
-			break;
-		}
-	}
-
-	fuel_cap  = DIV_ROUND_CLOSEST(fuel_cap, cm->desc->cap_remap_total_cnt);
-
-	return fuel_cap;
 }
 
 static int cm_init_cap_remap_table(struct charger_desc *desc, struct device *dev)
@@ -5754,6 +5725,8 @@ static struct charger_desc *of_cm_parse_desc(struct device *dev)
 			     &desc->ir_comp.cp_upper_limit_offset);
 	of_property_read_u32(np, "cm-force-jeita-status",
 			     &desc->force_jeita_status);
+	of_property_read_u32(np, "cm-cap-full-advance-percent",
+			     &desc->cap_remap_full_percent);
 
 	/* Initialize the jeita temperature table. */
 	ret = cm_init_jeita_table(desc, dev);
@@ -6222,7 +6195,7 @@ static void cm_batt_works(struct work_struct *work)
 
 		cm->desc->cap = fuel_cap;
 		if (cm->desc->uvlo_trigger_cnt < CM_UVLO_CALIBRATION_CNT_THRESHOLD)
-			set_batt_cap(cm, cm_capacity_unmap(cm, cm->desc->cap));
+			set_batt_cap(cm, cm->desc->cap);
 	}
 
 schedule_cap_update_work:
@@ -6378,8 +6351,6 @@ static int charger_manager_probe(struct platform_device *pdev)
 	}
 
 	ret = get_boot_cap(cm, &cm->desc->cap);
-	cm->desc->cap = cm_capacity_remap(cm, cm->desc->cap);
-
 	if (ret) {
 		dev_err(&pdev->dev, "Failed to get initial battery capacity\n");
 		return ret;
@@ -6567,7 +6538,7 @@ static void charger_manager_shutdown(struct platform_device *pdev)
 	struct charger_manager *cm = platform_get_drvdata(pdev);
 
 	if (cm->desc->uvlo_trigger_cnt < CM_UVLO_CALIBRATION_CNT_THRESHOLD)
-		set_batt_cap(cm, cm_capacity_unmap(cm, cm->desc->cap));
+		set_batt_cap(cm, cm->desc->cap);
 }
 
 static const struct platform_device_id charger_manager_id[] = {
