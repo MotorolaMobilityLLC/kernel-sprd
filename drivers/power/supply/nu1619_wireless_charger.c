@@ -119,6 +119,23 @@ static u32 g_fw_data_length;
 #define RX_AREA     1
 #define TX_AREA     2
 
+struct nu1619_wl_charger_sysfs {
+	char *name;
+	struct attribute_group attr_g;
+	struct device_attribute attr_nu1619_rx_chip_cep;
+	struct device_attribute attr_nu1619_rx_chip_vrect;
+	struct device_attribute attr_nu1619_rx_chip_firmware_update;
+	struct device_attribute attr_nu1619_rx_chip_version;
+	struct device_attribute attr_nu1619_rx_chip_vout;
+	struct device_attribute attr_nu1619_rx_chip_vtx;
+	struct device_attribute attr_nu1619_rx_chip_iout;
+	struct device_attribute attr_nu1619_rx_chip_debug;
+	struct device_attribute attr_nu1619_rx_chip_fod_parameter;
+	struct attribute *attrs[10];
+
+	struct nu1619_rx *info;
+};
+
 struct nu1619_rx {
 	char *name;
 	struct i2c_client *client;
@@ -140,6 +157,8 @@ struct nu1619_rx {
 	struct usb_phy *usb_phy;
 	struct notifier_block usb_notify;
 	u32 limit;
+
+	struct nu1619_wl_charger_sysfs *sysfs;
 };
 
 static struct nu1619_rx *g_chip;
@@ -1530,33 +1549,6 @@ static ssize_t chip_version_show(struct device *dev,
 			 g_fw_boot_id, g_fw_rx_id, g_fw_tx_id, g_hw_id_h, g_hw_id_l);
 }
 
-static DEVICE_ATTR(chip_cep, 0444, chip_cep_show, NULL);
-static DEVICE_ATTR(chip_vrect, 0444, chip_vrect_show, NULL);
-static DEVICE_ATTR(chip_firmware_update, 0644, chip_firmware_update_show, NULL);
-static DEVICE_ATTR(chip_version, 0444, chip_version_show, NULL);
-static DEVICE_ATTR(chip_vout, 0644, chip_vout_show, chip_vout_store);
-static DEVICE_ATTR(chip_vtx, 0200, NULL, chip_vtx_store);
-static DEVICE_ATTR(chip_iout, 0444, chip_iout_show, NULL);
-static DEVICE_ATTR(chip_debug, 0644, chip_debug_show, chip_debug_store);
-static DEVICE_ATTR(chip_fod_parameter, 0200, NULL, chip_fod_parameter_store);
-
-static struct attribute *rx1619_sysfs_attrs[] = {
-	&dev_attr_chip_cep.attr,
-	&dev_attr_chip_vrect.attr,
-	&dev_attr_chip_version.attr,
-	&dev_attr_chip_vout.attr,
-	&dev_attr_chip_vtx.attr,
-	&dev_attr_chip_iout.attr,
-	&dev_attr_chip_debug.attr,
-	&dev_attr_chip_fod_parameter.attr,
-	&dev_attr_chip_firmware_update.attr,
-	NULL,
-};
-
-static const struct attribute_group rx1619_sysfs_group_attrs = {
-	.attrs = rx1619_sysfs_attrs,
-};
-
 static enum power_supply_property nu1619_wireless_properties[] = {
 	POWER_SUPPLY_PROP_PRESENT,
 	POWER_SUPPLY_PROP_ONLINE,
@@ -1663,6 +1655,85 @@ static const struct power_supply_desc nu1619_wireless_charger_desc = {
 	.property_is_writeable	= nu1619_prop_is_writeable,
 };
 
+static int nu1619_rx_register_sysfs(struct nu1619_rx *info)
+{
+	struct nu1619_wl_charger_sysfs *nu1619_sysfs;
+	int ret;
+
+	nu1619_sysfs = devm_kzalloc(info->dev, sizeof(*nu1619_sysfs), GFP_KERNEL);
+	if (!nu1619_sysfs)
+		return -EINVAL;
+
+	info->sysfs = nu1619_sysfs;
+	nu1619_sysfs->name = "nu1619_sysfs";
+	nu1619_sysfs->info = info;
+	nu1619_sysfs->attrs[0] = &nu1619_sysfs->attr_nu1619_rx_chip_cep.attr;
+	nu1619_sysfs->attrs[1] = &nu1619_sysfs->attr_nu1619_rx_chip_vrect.attr;
+	nu1619_sysfs->attrs[2] = &nu1619_sysfs->attr_nu1619_rx_chip_firmware_update.attr;
+	nu1619_sysfs->attrs[3] = &nu1619_sysfs->attr_nu1619_rx_chip_version.attr;
+	nu1619_sysfs->attrs[4] = &nu1619_sysfs->attr_nu1619_rx_chip_vout.attr;
+	nu1619_sysfs->attrs[5] = &nu1619_sysfs->attr_nu1619_rx_chip_vtx.attr;
+	nu1619_sysfs->attrs[6] = &nu1619_sysfs->attr_nu1619_rx_chip_iout.attr;
+	nu1619_sysfs->attrs[7] = &nu1619_sysfs->attr_nu1619_rx_chip_debug.attr;
+	nu1619_sysfs->attrs[8] = &nu1619_sysfs->attr_nu1619_rx_chip_fod_parameter.attr;
+	nu1619_sysfs->attrs[9] = NULL;
+	nu1619_sysfs->attr_g.name = "debug";
+	nu1619_sysfs->attr_g.attrs = nu1619_sysfs->attrs;
+
+	sysfs_attr_init(&nu1619_sysfs->attr_nu1619_rx_chip_cep.attr);
+	nu1619_sysfs->attr_nu1619_rx_chip_cep.attr.name = "nu1619_rx_chip_cep";
+	nu1619_sysfs->attr_nu1619_rx_chip_cep.attr.mode = 0444;
+	nu1619_sysfs->attr_nu1619_rx_chip_cep.show = chip_cep_show;
+
+	sysfs_attr_init(&nu1619_sysfs->attr_nu1619_rx_chip_vrect.attr);
+	nu1619_sysfs->attr_nu1619_rx_chip_vrect.attr.name = "nu1619_rx_chip_vrect";
+	nu1619_sysfs->attr_nu1619_rx_chip_vrect.attr.mode = 0444;
+	nu1619_sysfs->attr_nu1619_rx_chip_vrect.show = chip_vrect_show;
+
+	sysfs_attr_init(&nu1619_sysfs->attr_nu1619_rx_chip_firmware_update.attr);
+	nu1619_sysfs->attr_nu1619_rx_chip_firmware_update.attr.name = "nu1619_rx_chip_firmware_update";
+	nu1619_sysfs->attr_nu1619_rx_chip_firmware_update.attr.mode = 0644;
+	nu1619_sysfs->attr_nu1619_rx_chip_firmware_update.show = chip_firmware_update_show;
+
+	sysfs_attr_init(&nu1619_sysfs->attr_nu1619_rx_chip_version.attr);
+	nu1619_sysfs->attr_nu1619_rx_chip_version.attr.name = "nu1619_rx_chip_version";
+	nu1619_sysfs->attr_nu1619_rx_chip_version.attr.mode = 0644;
+	nu1619_sysfs->attr_nu1619_rx_chip_version.show = chip_version_show;
+
+	sysfs_attr_init(&nu1619_sysfs->attr_nu1619_rx_chip_vout.attr);
+	nu1619_sysfs->attr_nu1619_rx_chip_vout.attr.name = "nu1619_rx_chip_vout";
+	nu1619_sysfs->attr_nu1619_rx_chip_vout.attr.mode = 0644;
+	nu1619_sysfs->attr_nu1619_rx_chip_vout.show = chip_vout_show;
+	nu1619_sysfs->attr_nu1619_rx_chip_vout.store = chip_vout_store;
+
+	sysfs_attr_init(&nu1619_sysfs->attr_nu1619_rx_chip_vtx.attr);
+	nu1619_sysfs->attr_nu1619_rx_chip_vtx.attr.name = "nu1619_rx_chip_vtx";
+	nu1619_sysfs->attr_nu1619_rx_chip_vtx.attr.mode = 0200;
+	nu1619_sysfs->attr_nu1619_rx_chip_vtx.store = chip_vtx_store;
+
+	sysfs_attr_init(&nu1619_sysfs->attr_nu1619_rx_chip_iout.attr);
+	nu1619_sysfs->attr_nu1619_rx_chip_iout.attr.name = "nu1619_rx_chip_iout";
+	nu1619_sysfs->attr_nu1619_rx_chip_iout.attr.mode = 0444;
+	nu1619_sysfs->attr_nu1619_rx_chip_iout.show = chip_iout_show;
+
+	sysfs_attr_init(&nu1619_sysfs->attr_nu1619_rx_chip_debug.attr);
+	nu1619_sysfs->attr_nu1619_rx_chip_debug.attr.name = "nu1619_rx_chip_debug";
+	nu1619_sysfs->attr_nu1619_rx_chip_debug.attr.mode = 0644;
+	nu1619_sysfs->attr_nu1619_rx_chip_debug.show = chip_debug_show;
+	nu1619_sysfs->attr_nu1619_rx_chip_debug.store = chip_debug_store;
+
+	sysfs_attr_init(&nu1619_sysfs->attr_nu1619_rx_chip_fod_parameter.attr);
+	nu1619_sysfs->attr_nu1619_rx_chip_fod_parameter.attr.name = "nu1619_rx_chip_fod_parameter";
+	nu1619_sysfs->attr_nu1619_rx_chip_fod_parameter.attr.mode = 0200;
+	nu1619_sysfs->attr_nu1619_rx_chip_fod_parameter.store = chip_fod_parameter_store;
+
+	ret = sysfs_create_group(&info->wip_psy->dev.kobj, &nu1619_sysfs->attr_g);
+	if (ret < 0)
+		dev_err(info->dev, "Cannot create sysfs , ret = %d\n", ret);
+
+	return ret;
+}
+
 static int nu1619_rx_usb_change(struct notifier_block *nb,
 				       unsigned long limit, void *data)
 {
@@ -1704,7 +1775,6 @@ static int nu1619_rx_charger_probe(struct i2c_client *client,
 {
 	struct power_supply_config wip_psy_cfg = {};
 	struct device *dev = &client->dev;
-	struct kobject *rx1619_kobj;
 	struct nu1619_rx *chip;
 	int ret = 0;
 
@@ -1750,9 +1820,8 @@ static int nu1619_rx_charger_probe(struct i2c_client *client,
 						   &wip_psy_cfg);
 	if (IS_ERR(chip->wip_psy)) {
 		dev_err(dev, "Couldn't register wip psy rc=%ld\n", PTR_ERR(chip->wip_psy));
-		mutex_destroy(&chip->wireless_chg_lock);
-		mutex_destroy(&chip->wireless_chg_int_lock);
-		return  PTR_ERR(chip->wip_psy);
+		ret = PTR_ERR(chip->wip_psy);
+		goto error_mutex;
 	}
 
 	if (chip->client->irq) {
@@ -1775,16 +1844,9 @@ static int nu1619_rx_charger_probe(struct i2c_client *client,
 		goto error_irq;
 	}
 
-	rx1619_kobj = kobject_create_and_add("nu1619_rx", NULL);
-	if (!rx1619_kobj) {
-		dev_err(chip->dev, "sysfs_create_group fail");
-		ret = -EINVAL;
-		goto error_irq;
-	}
-
-	ret = sysfs_create_group(rx1619_kobj, &rx1619_sysfs_group_attrs);
-	if (ret < 0) {
-		dev_err(chip->dev, "sysfs_create_group fail %d\n", ret);
+	ret = nu1619_rx_register_sysfs(chip);
+	if (ret) {
+		dev_err(chip->dev, "register sysfs fail, ret = %d\n", ret);
 		goto error_sysfs;
 	}
 
@@ -1794,14 +1856,14 @@ static int nu1619_rx_charger_probe(struct i2c_client *client,
 	return 0;
 
 error_sysfs:
-	sysfs_remove_group(rx1619_kobj, &rx1619_sysfs_group_attrs);
-	if (chip->irq_gpio > 0)
-		gpio_free(chip->irq_gpio);
-
+	usb_unregister_notifier(chip->usb_phy, &chip->usb_notify);
 error_irq:
+	power_supply_unregister(chip->wip_psy);
+error_mutex:
 	mutex_destroy(&chip->wireless_chg_lock);
 	mutex_destroy(&chip->wireless_chg_int_lock);
-	power_supply_unregister(chip->wip_psy);
+	if (chip->irq_gpio > 0)
+		gpio_free(chip->irq_gpio);
 
 	return ret;
 }
@@ -1813,6 +1875,7 @@ static int nu1619_rx_charger_remove(struct i2c_client *client)
 	cancel_delayed_work_sync(&chip->wireless_work);
 	cancel_delayed_work_sync(&chip->wireless_int_work);
 	regmap_exit(chip->regmap);
+	sysfs_remove_group(&chip->wip_psy->dev.kobj, &chip->sysfs->attr_g);
 
 	return 0;
 }
