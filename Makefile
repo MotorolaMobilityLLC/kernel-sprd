@@ -708,6 +708,11 @@ ifeq ($(shell $(CONFIG_SHELL) $(srctree)/scripts/gcc-goto.sh $(CC) $(KBUILD_CFLA
 	KBUILD_AFLAGS += -DCC_HAVE_ASM_GOTO
 endif
 
+# add for smt version
+ifeq ($(BUILD_SMT), YES)
+KBUILD_CFLAGS += -DCONFIG_CHARGER_SMT
+endif
+
 include scripts/Makefile.kcov
 include scripts/Makefile.gcc-plugins
 
