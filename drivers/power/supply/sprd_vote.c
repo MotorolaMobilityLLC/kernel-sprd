@@ -160,12 +160,6 @@ struct sprd_vote *sprd_charge_vote_register(char *name,
 {
 	struct sprd_vote *vote_gov = NULL;
 
-	if (vote_gov) {
-		if (strcmp(vote_gov->name, name) == 0)
-			pr_err("vote_gov:%s is exist\n", name);
-		return ERR_PTR(-EEXIST);
-	}
-
 	vote_gov = kzalloc(sizeof(struct sprd_vote), GFP_KERNEL);
 	if (!vote_gov)
 		return ERR_PTR(-ENOMEM);
