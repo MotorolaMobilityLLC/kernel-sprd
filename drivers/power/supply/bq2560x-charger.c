@@ -1218,17 +1218,18 @@ static ssize_t bq2560x_register_value_show(struct device *dev,
 	int ret;
 
 	if (!info)
-		return sprintf(buf, "%s  bq2560x_sysfs->info is null\n", __func__);
+		return snprintf(buf, PAGE_SIZE, "%s  bq2560x_sysfs->info is null\n", __func__);
 
 	ret = bq2560x_read(info, reg_tab[info->reg_id].addr, &val);
 	if (ret) {
 		dev_err(info->dev, "fail to get  BQ2560X_REG_0x%.2x value, ret = %d\n",
 			reg_tab[info->reg_id].addr, ret);
-		return sprintf(buf, "fail to get  BQ2560X_REG_0x%.2x value\n",
+		return snprintf(buf, PAGE_SIZE, "fail to get  BQ2560X_REG_0x%.2x value\n",
 			       reg_tab[info->reg_id].addr);
 	}
 
-	return sprintf(buf, "BQ2560X_REG_0x%.2x = 0x%.2x\n", reg_tab[info->reg_id].addr, val);
+	return snprintf(buf, PAGE_SIZE, "BQ2560X_REG_0x%.2x = 0x%.2x\n",
+			reg_tab[info->reg_id].addr, val);
 }
 
 static ssize_t bq2560x_register_value_store(struct device *dev,
@@ -1307,9 +1308,9 @@ static ssize_t bq2560x_register_id_show(struct device *dev,
 	struct bq2560x_charger_info *info = bq2560x_sysfs->info;
 
 	if (!info)
-		return sprintf(buf, "%s bq2560x_sysfs->info is null\n", __func__);
+		return snprintf(buf, PAGE_SIZE, "%s bq2560x_sysfs->info is null\n", __func__);
 
-	return sprintf(buf, "Curent register id = %d\n", info->reg_id);
+	return snprintf(buf, PAGE_SIZE, "Curent register id = %d\n", info->reg_id);
 }
 
 static ssize_t bq2560x_register_table_show(struct device *dev,
@@ -1324,7 +1325,7 @@ static ssize_t bq2560x_register_table_show(struct device *dev,
 	char reg_tab_buf[2048];
 
 	if (!info)
-		return sprintf(buf, "%s bq2560x_sysfs->info is null\n", __func__);
+		return snprintf(buf, PAGE_SIZE, "%s bq2560x_sysfs->info is null\n", __func__);
 
 	memset(reg_tab_buf, '\0', sizeof(reg_tab_buf));
 	len = snprintf(reg_tab_buf + idx, sizeof(reg_tab_buf) - idx,
@@ -1338,7 +1339,7 @@ static ssize_t bq2560x_register_table_show(struct device *dev,
 		idx += len;
 	}
 
-	return sprintf(buf, "%s\n", reg_tab_buf);
+	return snprintf(buf, PAGE_SIZE, "%s\n", reg_tab_buf);
 }
 
 static ssize_t bq2560x_dump_register_show(struct device *dev,
@@ -1351,11 +1352,11 @@ static ssize_t bq2560x_dump_register_show(struct device *dev,
 	struct bq2560x_charger_info *info = bq2560x_sysfs->info;
 
 	if (!info)
-		return sprintf(buf, "%s bq2560x_sysfs->info is null\n", __func__);
+		return snprintf(buf, PAGE_SIZE, "%s bq2560x_sysfs->info is null\n", __func__);
 
 	bq2560x_dump_register(info);
 
-	return sprintf(buf, "%s\n", bq2560x_sysfs->name);
+	return snprintf(buf, PAGE_SIZE, "%s\n", bq2560x_sysfs->name);
 }
 
 static int bq2560x_register_sysfs(struct bq2560x_charger_info *info)
