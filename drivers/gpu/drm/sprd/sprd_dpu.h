@@ -118,6 +118,7 @@ struct dpu_context {
 	bool evt_all_update;
 	bool evt_stop;
 	irqreturn_t (*dpu_isr)(int irq, void *data);
+	struct tasklet_struct dvfs_task;
 
 	/* pq enhance parameters */
 	void *enhance;
