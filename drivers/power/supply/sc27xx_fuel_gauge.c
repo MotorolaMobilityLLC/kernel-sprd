@@ -1375,7 +1375,7 @@ static void sc27xx_fgu_low_capacity_match_ocv(struct sc27xx_fgu_data *data)
 		if (data->init_cap < 0)
 			data->init_cap = 0;
 	} else if (data->ocv > data->min_volt && data->normal_temp_cap <= data->alarm_cap) {
-		dev_err(data->dev, "%s 2;%d;%d;%d;%d;\n",__func__,data->ocv,data->min_volt,cap,data->alarm_cap);
+		dev_err(data->dev, "%s 2;%d;%d;%d;%d;\n",__func__,data->ocv,data->min_volt,data->normal_temp_cap,data->alarm_cap);
 		sc27xx_fgu_adjust_cap(data, data->alarm_cap);
 	} else if (data->ocv <= data->cap_table[data->table_len - 1].ocv) {
 		dev_err(data->dev, "%s 3;%d;%d;\n",__func__,data->ocv,data->cap_table[data->table_len - 1].ocv);
@@ -1383,7 +1383,7 @@ static void sc27xx_fgu_low_capacity_match_ocv(struct sc27xx_fgu_data *data)
 	} else if (data->first_calib_volt > 0 && data->first_calib_cap > 0 &&
 		   data->ocv <= data->first_calib_volt &&
 		   data->normal_temp_cap > data->first_calib_cap) {
-		dev_err(data->dev, "%s 4;%d;%d;%d;\n",__func__,data->ocv,cap,data->init_cap);
+		dev_err(data->dev, "%s 4;%d;%d;%d;\n",__func__,data->ocv,data->normal_temp_cap,data->init_cap);
 		data->init_cap -= 5;
 		if (data->init_cap < 0)
 			data->init_cap = 0;
