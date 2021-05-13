@@ -80,6 +80,7 @@ obj-$(CONFIG_SPRD_CLUSTER0_THERMAL)      += sprd_cluster0_thm.o sprd_thm_comm.o
 obj-$(CONFIG_SPRD_CLUSTER1_THERMAL)      += sprd_cluster1_thm.o
 obj-$(CONFIG_SPRD_SOC_THERMAL)      += sprd_soc_thm.o
 obj-$(CONFIG_SC27XX_TSENSOR_THERMAL)	+= sc27xx_tsensor_thermal.o
+obj-$(CONFIG_SPRD_UMP96XX_TSENSOR)	+= sprd_ump96xx_tsensor.o
 obj-$(CONFIG_SPRD_TEST_THERMAL)	+= sprd_test_thm.o sprd_thm_comm.o
 obj-$(CONFIG_SPRD_VIRTUAL_THERMAL)      += sprd_virtual_thm.o
 obj-$(CONFIG_SPRD_NPU_COOLING_DEVICE) += sprd_npu_cooling.o

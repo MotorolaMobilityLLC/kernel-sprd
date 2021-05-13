@@ -1193,48 +1193,10 @@ static void aw32257_charger_work(struct work_struct *data)
 {
 	struct aw32257_device *info =
 		container_of(data, struct aw32257_device, work);
-	int ret, limit_cur = 0, cur = 0;
 	bool present = aw32257_charger_is_bat_present(info);
 
-	mutex_lock(&info->lock);
-
-	if (info->limit > 0 && !info->charging && present) {
-		switch (info->usb_phy->chg_type) {
-		case SDP_TYPE:
-			limit_cur = info->cur.sdp_limit;
-			cur = info->cur.sdp_cur;
-			break;
-		case DCP_TYPE:
-			limit_cur = info->cur.dcp_limit;
-			cur = info->cur.dcp_cur;
-			break;
-		case CDP_TYPE:
-			limit_cur = info->cur.cdp_limit;
-			cur = info->cur.cdp_cur;
-			break;
-		default:
-			limit_cur = info->cur.unknown_limit;
-			cur = info->cur.unknown_cur;
-		}
-
-		ret = aw32257_set_current_limit(info, limit_cur);
-		if (ret)
-			goto out;
-
-		ret = aw32257_set_charge_current(info, cur);
-		if (ret)
-			goto out;
-
-	} else if ((!info->limit && info->charging) || !present) {
-		/* Stop charging */
-		info->charging = false;
-		aw32257_charger_stop_charge(info);
-	}
-
-out:
-	mutex_unlock(&info->lock);
-	dev_info(info->dev, "battery present = %d, charger type = %d, %d, %d\n",
-		 present, info->usb_phy->chg_type, limit_cur, cur);
+	dev_info(info->dev, "battery present = %d, charger type = %d\n",
+		 present, info->usb_phy->chg_type);
 	cm_notify_event(info->charger, CM_EVENT_CHG_START_STOP, NULL);
 }
 
@@ -2044,13 +2006,6 @@ static int aw32257_probe(struct i2c_client *client,
 		goto error_1;
 	}
 
-	bq->usb_notify.notifier_call = aw32257_charger_usb_change;
-	ret = usb_register_notifier(bq->usb_phy, &bq->usb_notify);
-	if (ret) {
-		dev_err(bq->dev, "failed to register notifier:%d\n", ret);
-		goto error_1;
-	}
-
 	mutex_init(&bq->lock);
 	INIT_WORK(&bq->work, aw32257_charger_work);
 	INIT_DELAYED_WORK(&bq->otg_work, aw32257_charger_otg_work);
@@ -2060,33 +2015,42 @@ static int aw32257_probe(struct i2c_client *client,
 	ret = aw32257_power_supply_init(bq, np);
 	if (ret) {
 		dev_err(dev, "failed to register power supply: %d\n", ret);
-		goto error_2;
+		goto error_1;
 	}
 
 #ifdef CONFIG_CHARGE_PD
 	ret = register_reboot_notifier(&chg_pd_notifier);
 	if (ret) {
 		dev_err(dev, "register_reboot_notifier error: %d\n", ret);
-		goto error_2;
+		goto error_1;
 	}
 #endif
 
 	ret = aw32257_sysfs_init(bq);
 	if (ret) {
 		dev_err(dev, "failed to create sysfs entries: %d\n", ret);
-		goto error_3;
+		goto error_2;
 	}
 
 	ret = aw32257_dts_init(bq, np);
 	if (ret) {
 		dev_err(dev, "failed init dts\n");
-		goto error_4;
+		goto error_3;
 	}
 
 	ret = aw32257_charger_hw_init(bq);
 	if (ret) {
 		dev_err(dev, "failed to hw init\n");
-		goto error_4;
+		goto error_3;
+	}
+
+	aw32257_charger_stop_charge(bq);
+
+	bq->usb_notify.notifier_call = aw32257_charger_usb_change;
+	ret = usb_register_notifier(bq->usb_phy, &bq->usb_notify);
+	if (ret) {
+		dev_err(bq->dev, "failed to register notifier:%d\n", ret);
+		goto error_3;
 	}
 
 	aw32257_set_termination_current(bq, bq->init_data.termination_current);
@@ -2096,12 +2060,10 @@ static int aw32257_probe(struct i2c_client *client,
 	dev_info(dev, "driver registered suc\n");
 	return 0;
 
-error_4:
-	aw32257_sysfs_exit(bq);
 error_3:
-	unregister_reboot_notifier(&chg_pd_notifier);
+	aw32257_sysfs_exit(bq);
 error_2:
-	usb_unregister_notifier(bq->usb_phy, &bq->usb_notify);
+	unregister_reboot_notifier(&chg_pd_notifier);
 error_1:
 	devm_kfree(&client->dev, bq);
 	return ret;

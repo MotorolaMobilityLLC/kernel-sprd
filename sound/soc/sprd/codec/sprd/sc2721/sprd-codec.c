@@ -3926,7 +3926,7 @@ static const char * const codec_hw_info[] = {
 };
 
 static const struct soc_enum codec_info_enum =
-	SOC_ENUM_SINGLE_EXT(SP_AUDIO_CODEC_NUM, codec_hw_info);
+	SOC_ENUM_SINGLE_EXT(ARRAY_SIZE(codec_hw_info), codec_hw_info);
 
 #define SPRD_CODEC_PGA(xname, xreg, tlv_array) \
 	SOC_SINGLE_EXT_TLV(xname, FUN_REG(xreg), 0, 15, 1, \

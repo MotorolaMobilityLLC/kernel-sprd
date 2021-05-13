@@ -25,6 +25,7 @@
 #include <net/netfilter/nf_conntrack_tuple.h>
 #include <linux/jhash.h>
 #include <linux/atomic.h>
+#include <linux/netdevice.h>
 #include <net/sfp.h>
 #include <linux/sipa.h>
 #include <net/genetlink.h>
@@ -697,6 +698,7 @@ void sfp_ipa_fwd_clear(void);
 void sfp_ipa_swap_tbl(void);
 void sfp_clear_all_ipa_tbl(void);
 int sfp_tbl_id(void);
+bool is_banned_ipa_netdev(struct net_device *dev);
 
 int sfp_mgr_fwd_entry_delete(const struct nf_conntrack_tuple *tuple);
 void sfp_ipa_entry_delete(u32 hash);

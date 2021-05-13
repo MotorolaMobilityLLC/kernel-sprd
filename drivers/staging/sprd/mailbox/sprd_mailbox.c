@@ -79,11 +79,16 @@ static int mbox_send_thread(void *pdata)
 	u32 dst;
 	u16 rd, pos;
 	u64 msg;
+	int ret;
 
 	pr_debug("mbox:%s!\n", __func__);
 
 	while (!kthread_should_stop()) {
-		wait_event(g_send_wait, g_inbox_send);
+		ret = wait_event_interruptible(g_send_wait, g_inbox_send);
+		if (ret) {
+			pr_debug("mbox:%s is interrupted\n", __func__);
+			continue;
+		}
 
 		pr_debug("mbox:%s, wait event!\n", __func__);
 

@@ -849,15 +849,10 @@ static void dpu_dpi_init(struct dpu_context *ctx)
 		pr_warn("Warning: (vsync + vbp) < 32, "
 			"underflow risk!\n");
 
-	/* only 3840x2160 use bypass mode */
-	if (ctx->vm.hsync_len == 3840 &&
-		ctx->vm.vsync_len == 2160) {
+	if (ctx->bypass_mode)
 		reg->dpu_mode = DPU_BYPASS_MODE;
-		ctx->bypass_mode = true;
-	} else {
+	else
 		reg->dpu_mode = DPU_NORMAL_MODE;
-		ctx->bypass_mode = false;
-	}
 
 	/* enable dpu update done INT */
 	int_mask |= DISPC_INT_UPDATE_DONE_MASK;
@@ -898,25 +893,19 @@ static void disable_vsync(struct dpu_context *ctx)
 static int dpu_modeset(struct dpu_context *ctx,
 		struct drm_display_mode *mode)
 {
-	struct sprd_dpu *dpu = container_of(ctx, struct sprd_dpu, ctx);
-
-	dpu_stop(ctx);
 	drm_display_mode_to_videomode(mode, &ctx->vm);
-	if (dpu->glb && dpu->glb->reset)
-		dpu->glb->reset(ctx);
-	if (dpu->clk && dpu->clk->disable)
-		dpu->clk->disable(ctx);
-	if (dpu->clk && dpu->clk->init)
-		dpu->clk->init(ctx);
-	if (dpu->clk && dpu->clk->enable)
-		dpu->clk->enable(ctx);
 
-	dpu_init(ctx);
-	dpu_dpi_init(ctx);
+	/* only 3840x2160 use bypass mode */
+	if (ctx->vm.hactive == 3840 &&
+		ctx->vm.vactive == 2160) {
+		ctx->bypass_mode = true;
+		pr_info("bypass_mode\n");
+	} else {
+		ctx->bypass_mode = false;
+		pr_info("normal mode\n");
+	}
 
-	pr_info("begin switch to %u x %u\n", mode->hdisplay, mode->vdisplay);
-
-	dpu_run(ctx);
+	pr_info("switch to %u x %u\n", mode->hdisplay, mode->vdisplay);
 
 	return 0;
 }

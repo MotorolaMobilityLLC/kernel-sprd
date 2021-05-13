@@ -46,6 +46,8 @@
 		eth13 = &sipa_eth13;
 		eth14 = &sipa_eth14;
 		eth15 = &sipa_eth15;
+		serdes0 = &serdes0;
+		serdes1 = &serdes1;
 	};
 
 	soc: soc {
@@ -338,6 +340,8 @@
 				clock-names = "enable", "uart", "source";
 				clocks = <&apapb_gate CLK_UART1_EB>,
 					<&ap_clk CLK_AP_UART1>, <&ext_26m>;
+				dma-names = "rx", "tx";
+				dmas = <&ap_dma 15 &ap_dma 16>;
 				status = "disabled";
 			};
 
@@ -1663,7 +1667,7 @@
 					MASK_IPA_GLB_APB_TFT_EB>;
 				syscon-names = "enable-ipa", "enable-tft";
 
-				sprd,sipa-bypass-mode = <0>;
+				sprd,sipa-bypass-mode = <1>;
 
 				power-domains = <&pd_ipa_sys>;
 
@@ -1743,14 +1747,17 @@
 			dptx: dptx@31890000 {
 				compatible = "sprd,dptx";
 				reg = <0x0 0x31890000 0x0 0x70000>;
+				sprd,syscon-usb31-dp-phy = <&ipa_usb31_dp_regs>;
 				status = "disable";
 				interrupts = <GIC_SPI 123 IRQ_TYPE_LEVEL_HIGH>;
 
 				sprd,soc = "qogirn6pro1";
 
 				power-domains = <&pd_ipa_sys>;
-				clock-names = "clk_ipa_apb_dptx_eb";
-				clocks = <&ipadispc_gate CLK_IPA_DPTX_EB>;
+				clock-names = "clk_ipa_apb_dpu1_eb",
+						"clk_ipa_apb_dptx_eb";
+				clocks = <&ipadispc_gate CLK_IPA_DPU1_EB>,
+					<&ipadispc_gate CLK_IPA_DPTX_EB>;
 
 				ports {
 					#address-cells = <1>;
@@ -2237,6 +2244,28 @@
 				sprd,pub-ise-reg-offset = <0x3368>;
 				sprd,pub-ise-bit-offset = <15>;
 				interrupts = <GIC_SPI 49 IRQ_TYPE_LEVEL_HIGH>;
+			};
+
+			serdes0: modem-dbg-log@520000 {
+				compatible = "sprd,dbg-log-qogirn6pro";
+				reg = <0x520000 0x4000>;
+				sprd,syscon-pmu-apb = <&pmu_apb_regs>;
+				sprd,syscon-dsi-apb = <&anlg_phy_g4l_regs>;
+				sprd,ch-name = "TRAINING", "TPIU", "DBUS", "PHYCP";
+				sprd,ch-index = <15 1 0 2>;
+				sprd,dcfix;
+				status = "disabled";
+			};
+
+			serdes1: modem-dbg-log@530000 {
+				compatible = "sprd,dbg-log-qogirn6pro";
+				reg = <0x530000 0x4000>;
+				sprd,syscon-pmu-apb = <&pmu_apb_regs>;
+				sprd,syscon-dsi-apb = <&anlg_phy_g4_regs>;
+				sprd,ch-name = "TRAINING", "PHYCP";
+				sprd,ch-index = <15 0>;
+				sprd,dcfix;
+				status = "disabled";
 			};
 
 			djtag: djtag@64570000 {

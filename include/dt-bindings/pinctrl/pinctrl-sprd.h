@@ -6,4 +6,5 @@
 #define TGLDSP_SLEEP		(1 << 2)
 #define AGDSP_SLEEP		(1 << 3)
 #define CM4_SLEEP		(1 << 4)
+#define NONE_SLEEP		(0 << 0)
 #endif

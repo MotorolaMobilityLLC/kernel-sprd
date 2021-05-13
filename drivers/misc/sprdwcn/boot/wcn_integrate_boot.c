@@ -198,7 +198,7 @@ static int wcn_load_firmware_img(struct wcn_device *wcn_dev,
 	for (i = 1; i <= WCN_OPEN_MAX_CNT; i++) {
 		file = filp_open(path, O_RDONLY, 0);
 		if (IS_ERR(file)) {
-			WCN_ERR("try open file %s,count_num:%d, file=%p\n",
+			WCN_ERR("try open file %s,count_num:%d, file=%d\n",
 				path, i, file);
 			if (i == WCN_OPEN_MAX_CNT) {
 				WCN_ERR("open file %s error\n", path);
@@ -390,120 +390,127 @@ static void fstab_ab(struct wcn_device *wcn_dev)
 			FIRMWARE_FILEPATHNAME_LENGTH_MAX - 1);
 }
 
-static int wcn_download_image_new(struct wcn_device *wcn_dev)
+int wcn_download_image_ufs(struct wcn_device *wcn_dev)
 {
 	int ret = 0;
+	struct file *file;
 
 	memset(firmware_file_path, 0, FIRMWARE_FILEPATHNAME_LENGTH_MAX);
 
-	/* Default is UFS, check it first */
-	if (s_wcn_device.wcn_mm_flag == 0) {
-		if (wcn_dev->file_path_ufs) {
-			strncpy(firmware_file_path,
-				wcn_dev->file_path_ufs,
-				sizeof(firmware_file_path));
-			fstab_ab(wcn_dev);
-			if (wcn_dev_is_gnss(wcn_dev)) {
-				if (s_wcn_device.gnss_type == WCN_GNSS_TYPE_BD) {
-					strncpy(firmware_file_path,
-						wcn_dev->file_path_ext_ufs,
-						sizeof(firmware_file_path));
-					fstab_ab(wcn_dev);
-				}
-				gnss_file_path_set(firmware_file_path);
-			}
-
-			WCN_INFO("load config file:%s\n", firmware_file_path);
-			ret = wcn_load_firmware_img(wcn_dev,
-						    firmware_file_path,
-						    wcn_dev->file_length);
-
-	/* For gnss fix file path isn't fit with actual file type */
-			if (wcn_dev_is_gnss(wcn_dev) && ret == 1) {
-				if (s_wcn_device.gnss_type == WCN_GNSS_TYPE_BD)
-					strncpy(firmware_file_path,
-						wcn_dev->file_path,
-						sizeof(firmware_file_path));
-				else
-					strncpy(firmware_file_path,
-						wcn_dev->file_path_ext_ufs,
-						sizeof(firmware_file_path));
-				fstab_ab(wcn_dev);
-				gnss_file_path_set(firmware_file_path);
-				WCN_INFO("load config file:%s\n", firmware_file_path);
-				ret = wcn_load_firmware_img(wcn_dev,
-							    firmware_file_path,
-							    wcn_dev->file_length);
-			}
-			if (ret >= 0) {
-				WCN_INFO("%s:UFS succ", __func__);
-				s_wcn_device.wcn_mm_flag = ufs;
-				return ret;
-			} else {
-				WCN_INFO("%s:UFS failed, check emmc", __func__);
-				s_wcn_device.wcn_mm_flag = emmc;
-			}
-		} else {
-			WCN_INFO("%s: no ufs file, use emmc", __func__);
-			s_wcn_device.wcn_mm_flag = emmc;
-		}
+	if (wcn_dev->file_path_ufs || wcn_dev->file_path_ext_ufs)
+		WCN_INFO("%s load ufs\n", __func__);
+	else {
+		s_wcn_device.wcn_mm_flag = emmc;
+		return 1;
 	}
 
-	/* file_path used in dts */
-	if (s_wcn_device.wcn_mm_flag == 1) {
-		if (wcn_dev->file_path) {
-			strncpy(firmware_file_path,
-				wcn_dev->file_path,
+	if (wcn_dev_is_gnss(wcn_dev) &&
+		s_wcn_device.gnss_type == WCN_GNSS_TYPE_BD) {
+		if (!(wcn_dev->file_path_ext_ufs))
+			return 1;
+		strncpy(firmware_file_path, wcn_dev->file_path_ext_ufs,
+			sizeof(firmware_file_path));
+		gnss_file_path_set(firmware_file_path);
+		fstab_ab(wcn_dev);
+	} else {
+		if (!(wcn_dev->file_path_ufs))
+			return 1;
+		strncpy(firmware_file_path, wcn_dev->file_path_ufs,
+			sizeof(firmware_file_path));
+		fstab_ab(wcn_dev);
+	}
+
+	WCN_INFO("load config ufs file:%s\n", firmware_file_path);
+	file = filp_open(firmware_file_path, O_RDONLY, 0);
+	if (IS_ERR(file)) {
+		WCN_INFO("%s:open UFS file failed, check emmc", __func__);
+		s_wcn_device.wcn_mm_flag = emmc;
+		return 1;
+	} else {
+		WCN_INFO("%s:open UFS file succ", __func__);
+		s_wcn_device.wcn_mm_flag = ufs;
+	}
+	ret = wcn_load_firmware_img(wcn_dev, firmware_file_path,
+				    wcn_dev->file_length);
+	if (ret == 1)
+		WCN_INFO("%s:change dts file path", __func__);
+	return ret;
+}
+
+int wcn_download_image_emmc(struct wcn_device *wcn_dev)
+{
+	int ret = 0;
+	struct file *file;
+
+	memset(firmware_file_path, 0, FIRMWARE_FILEPATHNAME_LENGTH_MAX);
+
+	if (wcn_dev->file_path || wcn_dev->file_path_ext)
+		WCN_INFO("%s load emmc\n", __func__);
+	else {
+		s_wcn_device.wcn_mm_flag = ufs;
+		return 1;
+	}
+
+	if (wcn_dev_is_gnss(wcn_dev) &&
+		s_wcn_device.gnss_type == WCN_GNSS_TYPE_BD) {
+		if (!(wcn_dev->file_path_ext))
+			return 1;
+		strncpy(firmware_file_path, wcn_dev->file_path_ext,
 				sizeof(firmware_file_path));
-			fstab_ab(wcn_dev);
-			if (wcn_dev_is_gnss(wcn_dev)) {
-				if (s_wcn_device.gnss_type == WCN_GNSS_TYPE_BD) {
-					strncpy(firmware_file_path,
-						wcn_dev->file_path_ext,
-						sizeof(firmware_file_path));
-					fstab_ab(wcn_dev);
-				}
-				gnss_file_path_set(firmware_file_path);
-			}
+		fstab_ab(wcn_dev);
+		gnss_file_path_set(firmware_file_path);
+	} else {
+		if (!(wcn_dev->file_path))
+			return 1;
+		strncpy(firmware_file_path, wcn_dev->file_path,
+			sizeof(firmware_file_path));
+		fstab_ab(wcn_dev);
+	}
 
-			WCN_INFO("load config file:%s\n", firmware_file_path);
-			ret = wcn_load_firmware_img(wcn_dev,
-						    firmware_file_path,
-						    wcn_dev->file_length);
+	WCN_INFO("load config emmc file:%s\n", firmware_file_path);
+	file = filp_open(firmware_file_path, O_RDONLY, 0);
+	if (IS_ERR(file)) {
+		WCN_INFO("%s:open EMMC file failed, check ufs", __func__);
+		s_wcn_device.wcn_mm_flag = ufs;
+		return 1;
+	} else {
+		WCN_INFO("%s:open EMMC file succ", __func__);
+		s_wcn_device.wcn_mm_flag = emmc;
+	}
+	ret = wcn_load_firmware_img(wcn_dev, firmware_file_path,
+				    wcn_dev->file_length);
+	if (ret == 1)
+		WCN_INFO("%s:change dts file path", __func__);
+	return ret;
 
-	/* For gnss fix file path isn't fit with actual file type */
-			if (wcn_dev_is_gnss(wcn_dev) && ret == 1) {
-				if (s_wcn_device.gnss_type == WCN_GNSS_TYPE_BD)
-					strncpy(firmware_file_path,
-						wcn_dev->file_path,
-						sizeof(firmware_file_path));
-				else
-					strncpy(firmware_file_path,
-						wcn_dev->file_path_ext,
-						sizeof(firmware_file_path));
-				fstab_ab(wcn_dev);
-				gnss_file_path_set(firmware_file_path);
-				WCN_INFO("load config file:%s\n", firmware_file_path);
-				ret = wcn_load_firmware_img(wcn_dev,
-							    firmware_file_path,
-							    wcn_dev->file_length);
-			}
-			if (ret >= 0) {
-				WCN_INFO("%s:EMMC succ", __func__);
-				s_wcn_device.wcn_mm_flag = emmc;
-				return ret;
-			} else {
-				WCN_ERR("%s:EMMC error", __func__);
-				s_wcn_device.wcn_mm_flag = ufs;
-			}
+}
 
+static int wcn_download_image_new(struct wcn_device *wcn_dev)
+{
+	int ret = 0;
+	int count = 0;
+
+	while (wcn_dev->file_path_ufs || wcn_dev->file_path) {
+		switch (s_wcn_device.wcn_mm_flag) {
+		case 0:
+			ret = wcn_download_image_ufs(wcn_dev);
+			break;
+		case 1:
+			ret = wcn_download_image_emmc(wcn_dev);
+			break;
+		default:
+			return -EINVAL;
+		}
+		count++;
+		if (count > 32)
+			return -EINVAL;
+		WCN_INFO("%s: ret=%d", __func__, ret);
+		if (ret == 0)
 			return ret;
-		}
 	}
-
-	/* old function */
 	return wcn_download_image(wcn_dev);
 }
+
 
 static void wcn_clean_marlin_ddr_flag(struct wcn_device *wcn_dev)
 {

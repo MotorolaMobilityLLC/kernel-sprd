@@ -323,6 +323,17 @@
 			thermal-sensors = <&cluster1_sensor 1>;
 		};
 
+		osctsen_thmzone: osctsen-thmzone {
+			 polling-delay-passive = <0>;
+			 polling-delay = <0>;
+			 thermal-sensors = <&pmic_tsensor 0>;
+		 };
+
+		outtsen_thmzone: outtsen-thmzone {
+			 polling-delay-passive = <0>;
+			 polling-delay = <0>;
+			 thermal-sensors = <&pmic_tsensor 1>;
+		 };
 	};
 
 	cluster0_sensor: cluster0-sensor@0 {
@@ -798,7 +809,7 @@
 
 	display-subsystem {
 		compatible = "sprd,display-subsystem";
-		ports = <&dpu_port>;
+		ports = <&dpu_port>, <&dpu1_port>;
 		gsp = <&gsp>;
 	};
 };
@@ -829,6 +840,18 @@
 			};
 		};
 	};
+};
+
+&dpu1 {
+	status = "okay";
+};
+
+&iommu_dispc1 {
+	status = "okay";
+};
+
+&dptx {
+	status = "okay";
 };
 
 &dphy {
@@ -1102,3 +1125,34 @@
 	status = "okay";
 };
 
+&serdes0 {
+	status = "okay";
+	clock-names =
+		"serdes0_eb",
+		"serdes1_eb",
+		"ana_eb",
+		"dsi_cfg_eb",
+		"cphy_cfg_en";
+	clocks =
+		<&aonapb_gate CLK_SERDES_CTRL0_EB>,
+		<&aonapb_gate CLK_SERDES_CTRL1_EB>,
+		<&aonapb_gate CLK_ANA_EB>,
+		<&aonapb_gate CLK_DSI_CFG_EB>,
+		<&aonapb_gate CLK_CPHY_CFG_EN>;
+};
+
+&serdes1 {
+	status = "okay";
+	clock-names =
+		"serdes0_eb",
+		"serdes1_eb",
+		"ana_eb",
+		"dsi_cfg_eb",
+		"cphy_cfg_en";
+	clocks =
+		<&aonapb_gate CLK_SERDES_CTRL0_EB>,
+		<&aonapb_gate CLK_SERDES_CTRL1_EB>,
+		<&aonapb_gate CLK_ANA_EB>,
+		<&aonapb_gate CLK_DSI_CFG_EB>,
+		<&aonapb_gate CLK_CPHY_CFG_EN>;
+};

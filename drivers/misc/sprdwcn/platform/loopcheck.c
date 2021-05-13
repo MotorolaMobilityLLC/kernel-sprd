@@ -10,10 +10,11 @@
 #include "wcn_misc.h"
 #include "wcn_procfs.h"
 
-#define LOOPCHECK_TIMER_INTERVAL      5
+#define LOOPCHECK_TIMER_INTERVAL	5
 #define WCN_LOOPCHECK_INIT	1
 #define WCN_LOOPCHECK_OPEN	2
 #define WCN_LOOPCHECK_FAIL	3
+#define LOOPCHECK_START_WAIT	2
 
 struct wcn_loopcheck {
 	unsigned long status;
@@ -140,18 +141,19 @@ static void loopcheck_work_queue(struct work_struct *work)
 void start_loopcheck(void)
 {
 	if (!test_bit(WCN_LOOPCHECK_INIT, &loopcheck.status) ||
-	    test_and_set_bit(WCN_LOOPCHECK_OPEN, &loopcheck.status))
+		test_and_set_bit(WCN_LOOPCHECK_OPEN, &loopcheck.status))
 		return;
 	WCN_INFO("%s\n", __func__);
 	reinit_completion(&loopcheck.completion);
-	queue_delayed_work(loopcheck.workqueue, &loopcheck.work, HZ);
+	queue_delayed_work(loopcheck.workqueue, &loopcheck.work,
+				LOOPCHECK_START_WAIT * HZ);
 }
 
 void stop_loopcheck(void)
 {
 	if (!test_bit(WCN_LOOPCHECK_INIT, &loopcheck.status) ||
-	    !test_and_clear_bit(WCN_LOOPCHECK_OPEN, &loopcheck.status) ||
-	    test_bit(WCN_LOOPCHECK_FAIL, &loopcheck.status))
+		!test_and_clear_bit(WCN_LOOPCHECK_OPEN, &loopcheck.status) ||
+		test_bit(WCN_LOOPCHECK_FAIL, &loopcheck.status))
 		return;
 	WCN_INFO("%s\n", __func__);
 	complete_all(&loopcheck.completion);

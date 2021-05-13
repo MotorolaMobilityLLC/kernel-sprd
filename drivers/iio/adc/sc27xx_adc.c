@@ -591,7 +591,7 @@ static void ump9620_adc_scale_init(struct sc27xx_adc_data *data)
 			data->channel_scale[i] = 3;
 		else if (i == 7 || i == 9)
 			data->channel_scale[i] = 2;
-		else if (i == 13)
+		else if (i == 0 || i == 13)
 			data->channel_scale[i] = 1;
 		else
 			data->channel_scale[i] = 0;
@@ -718,7 +718,10 @@ static int ump96xx_adc_convert_volt(struct sc27xx_adc_data *data, int channel,
 
 	switch (channel) {
 	case 0:
-		volt = sc27xx_adc_to_volt(&ump9620_bat_det_graph, raw_adc);
+		if (scale == 1)
+			return sc27xx_adc_to_volt(&ump9620_bat_det_graph, raw_adc);
+		else
+			volt = ump96xx_adc_to_volt(&small_scale_graph, scale, raw_adc);
 		break;
 	case 11:
 		volt = sc27xx_adc_to_volt(&big_scale_graph, raw_adc);

@@ -14,9 +14,6 @@
  */
 #include <linux/bug.h>
 #include <linux/delay.h>
-#ifdef CONFIG_WCN_INTEG
-#include "gnss.h"
-#endif
 #include <linux/init.h>
 #include <linux/kernel.h>
 #include <linux/miscdevice.h>
@@ -33,8 +30,7 @@
 
 #include "../wcn_gnss.h"
 #include "../../include/wcn_glb_reg.h"
-#include "gnss_common.h"
-#include "gnss_dump.h"
+#include "gnss_common_ctl.h"
 #include "wcn_glb.h"
 
 #define GNSSCOMM_INFO(format, arg...) pr_info("gnss_ctl: " format, ## arg)
@@ -42,14 +38,8 @@
 
 #define GNSS_DATA_BASE_TYPE_H  16
 #define GNSS_MAX_STRING_LEN	10
-/* gnss mem dump success return value is 3 */
-#define GNSS_DUMP_DATA_SUCCESS	3
+#define GNSS_DUMP_DATA_START_UP 1
 #define FIRMWARE_FILEPATHNAME_LENGTH_MAX 256
-
-#ifndef CONFIG_WCN_INTEG
-typedef int (*gnss_dump_callback) (void);
-extern void mdbg_dump_gnss_register(gnss_dump_callback callback_func, void *para);
-#endif
 
 struct gnss_common_ctl {
 	struct device *dev;
@@ -80,7 +70,6 @@ enum gnss_cp_status_subtype {
 	GNSS_CP_STATUS__MAX,
 };
 
-struct completion gnss_dump_complete;
 #endif
 static unsigned int gnssver = 0x22;
 static const struct of_device_id gnss_common_ctl_of_match[] = {
@@ -410,44 +399,47 @@ static int gnss_status_get(void)
 	return magic_value;
 }
 
-void gnss_dump_mem_ctrl_co(void)
+static void gnss_dump_mem_ctrl_co(char *trigStr)
 {
-	char flag = 0; /* 0: default, all, 1: only data, pmu, aon */
 	unsigned int temp_status = 0;
 	static char dump_flag;
+	char triggerStr[64];
 
 	GNSSCOMM_INFO("[%s], flag is %d\n", __func__, dump_flag);
 	if (dump_flag == 1)
 		return;
+	memset(triggerStr, 0, 64);
+	strcpy(triggerStr, trigStr);
+	GNSSCOMM_INFO("%s trigStr=%s\n", __func__, triggerStr);
+
 	dump_flag = 1;
 	temp_status = gnss_common_ctl_dev.gnss_status;
 	GNSSCOMM_INFO("%s: status=%u\n", __func__, temp_status);
 	if ((temp_status == GNSS_STATUS_POWERON_GOING) ||
 		((temp_status == GNSS_STATUS_POWERON) &&
 		(gnss_status_get() != GNSS_CP_STATUS_SLEEP))) {
-		flag = (temp_status == GNSS_STATUS_POWERON) ? 0 : 1;
-		gnss_dump_mem(flag);
+		wcn_assert_interface(WCN_SOURCE_GNSS, triggerStr);
 		gnss_common_ctl_dev.gnss_status = GNSS_STATUS_ASSERT;
 	}
-
-	complete(&gnss_dump_complete);
 }
 #else
-static int gnss_dump_mem_ctrl(void)
+static void gnss_dump_mem_ctrl(char *trigStr)
 {
-	int ret = -1;
 	static char dump_flag;
+	char triggerStr[64];
 
 	GNSSCOMM_INFO("[%s], flag is %d\n", __func__, dump_flag);
 	if (dump_flag == 1)
-		return 0;
+		return;
+	memset(triggerStr, 0, 64);
+	strcpy(triggerStr, trigStr);
+	GNSSCOMM_INFO("%s trigStr=%s\n", __func__, triggerStr);
+
 	dump_flag = 1;
 	if (gnss_common_ctl_dev.gnss_status == GNSS_STATUS_POWERON) {
-		ret = gnss_dump_mem(0);
+		wcn_assert_interface(WCN_SOURCE_GNSS, triggerStr);
 		gnss_common_ctl_dev.gnss_status = GNSS_STATUS_ASSERT;
 	}
-
-	return ret;
 }
 #endif
 static ssize_t gnss_dump_store(struct device *dev,
@@ -468,7 +460,11 @@ static ssize_t gnss_dump_store(struct device *dev,
 	GNSSCOMM_INFO("%s, trigger_str: %s\n", __func__, trigger_str);
 
 	if (set_value == 1) {
-		wcn_assert_interface(WCN_SOURCE_GNSS, trigger_str);
+#ifdef CONFIG_WCN_INTEG
+		gnss_dump_mem_ctrl_co(trigger_str);
+#else
+		gnss_dump_mem_ctrl(trigger_str);
+#endif
 	} else
 		count = -EINVAL;
 
@@ -626,6 +622,7 @@ static int gnss_common_ctl_probe(struct platform_device *pdev)
 	const struct of_device_id *of_id;
 
 	GNSSCOMM_INFO("%s enter", __func__);
+	GNSSCOMM_INFO("%s adj_dump_ops enter", __func__);
 	gnss_common_ctl_dev.dev = &pdev->dev;
 
 	gnss_common_ctl_dev.gnss_status = GNSS_STATUS_POWEROFF;
@@ -660,14 +657,6 @@ static int gnss_common_ctl_probe(struct platform_device *pdev)
 			__func__);
 		goto err_attr_failed;
 	}
-
-#ifdef CONFIG_WCN_INTEG
-	/* register dump callback func for mdbg */
-	mdbg_dump_gnss_register(gnss_dump_mem_ctrl_co, NULL);
-	init_completion(&gnss_dump_complete);
-#else
-	mdbg_dump_gnss_register(gnss_dump_mem_ctrl, NULL);
-#endif
 
 	return 0;
 

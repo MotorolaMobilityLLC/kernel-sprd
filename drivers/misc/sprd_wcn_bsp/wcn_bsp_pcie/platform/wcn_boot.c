@@ -27,7 +27,6 @@
 #include <misc/marlin_platform.h>
 #include <misc/wcn_bus.h>
 
-#include "gnss/gnss_common.h"
 #include "rf/rf.h"
 #include "../sleep/sdio_int.h"
 #include "../sleep/slp_mgr.h"
@@ -2457,7 +2456,6 @@ static void marlin_power_wq(struct work_struct *work)
 
 	/* WCN_AUTO is for auto backup gnss cali data */
 	marlin_set_power(WCN_AUTO, true);
-	marlin_subsys_init();
 }
 
 static int marlin_probe(struct platform_device *pdev)
@@ -2561,6 +2559,8 @@ static int marlin_probe(struct platform_device *pdev)
 	gnss_common_ctl_init();
 	gnss_pmnotify_ctl_init();
 	gnss_module_init();
+
+	marlin_subsys_init();
 
 	INIT_WORK(&marlin_dev->download_wq, pre_btwifi_download_sdio);
 	INIT_WORK(&marlin_dev->gnss_dl_wq, pre_gnss_download_firmware);

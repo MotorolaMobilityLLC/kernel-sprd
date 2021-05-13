@@ -451,7 +451,7 @@ static int sfp_ipa_proc_show(struct seq_file *seq, void *v)
 		}
 
 		seq_puts(seq, "################Table0 END####################\n");
-		seq_printf(seq, "T1: entry_cnt %d\n", fwd_tbl.entry_cnt);
+		seq_printf(seq, "T1: entry_cnt %d\n", atomic_read(&fwd_tbl.entry_cnt));
 		seq_puts(seq, "****************Table1 START******************\n");
 		v_hash = sfp_get_hash_vtbl(T1);
 

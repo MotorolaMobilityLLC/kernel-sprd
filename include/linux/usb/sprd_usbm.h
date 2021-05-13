@@ -31,6 +31,8 @@ enum sprd_usbm_event_mode {
 	SPRD_USBM_EVENT_MAX,
 };
 
+extern void musb_set_utmi_60m_flag(bool flag);
+
 #if IS_ENABLED(CONFIG_SPRD_USBM)
 extern int call_sprd_usbm_event_notifiers(unsigned int id, unsigned long val, void *v);
 extern int register_sprd_usbm_notifier(struct notifier_block *nb, unsigned int id);

@@ -77,6 +77,10 @@ static const char * const ipa_netdev[IPA_TERM_MAX] = {
 				    [2] = "wlan",
 				    [6] = "sipa_eth",
 				  };
+#define IPA_BAN_MAX 4
+static const char * const ipa_banned_netdev[IPA_BAN_MAX] = {
+				    "wlan", "bt-pan",
+				  };
 int sfp_rand(void)
 {
 	int rand;
@@ -672,6 +676,23 @@ static int get_hw_iface_by_dev(struct net_device *dev)
 	return 0;
 }
 
+bool is_banned_ipa_netdev(struct net_device *dev)
+{
+	int i;
+	dev_hold(dev);
+	for (i = 0; i < IPA_BAN_MAX; i++) {
+		if (ipa_banned_netdev[i] &&
+		    strncasecmp(dev->name, ipa_banned_netdev[i],
+				strlen(ipa_banned_netdev[i])) == 0) {
+			dev_put(dev);
+			return true;
+		}
+	}
+	dev_put(dev);
+
+	return false;
+}
+
 static bool sfp_clatd_dev_check(struct net_device *dev)
 {
 	if (strncasecmp(dev->name, "v4-", 3) == 0)
@@ -710,7 +731,6 @@ int sfp_filter_mgr_fwd_create_entries(u8 pf, struct sk_buff *skb)
 	int out_ipaifindex, in_ipaifindex;
 	u8  l4proto;
 	int dir;
-
 	if (!get_sfp_enable())
 		return 0;
 
@@ -727,6 +747,17 @@ int sfp_filter_mgr_fwd_create_entries(u8 pf, struct sk_buff *skb)
 
 	if (l4proto == IPPROTO_TCP && sfp_tcp_flag_chk(ct))
 		return 0;
+	net = nf_ct_net(ct);
+	rt = skb_rtable(skb);
+	/* wifi/bt-pan does not support IPA due to their hardware drawback */
+	if (!get_sfp_tether_scheme()) {
+		if (is_banned_ipa_netdev(skb->dev) ||
+				is_banned_ipa_netdev(rt->dst.dev)) {
+			FP_PRT_DBG(FP_PRT_DEBUG,
+				   "dev filted, wont create sfp\n");
+			return 0;
+		}
+	}
 
 	if (dir == IP_CT_DIR_ORIGINAL) {
 		if (l4proto == IPPROTO_TCP &&
@@ -736,9 +767,6 @@ int sfp_filter_mgr_fwd_create_entries(u8 pf, struct sk_buff *skb)
 		if (l4proto != IPPROTO_UDP)
 			return 0;
 	}
-
-	net = nf_ct_net(ct);
-	rt = skb_rtable(skb);
 
 	if (!net || !rt) {
 		FP_PRT_DBG(FP_PRT_DEBUG,

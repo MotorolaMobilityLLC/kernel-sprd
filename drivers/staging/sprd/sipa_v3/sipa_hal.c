@@ -945,12 +945,16 @@ void sipa_hal_set_hash_sync_req(void)
 
 void sipa_hal_resume_glb_reg_cfg(struct device *dev)
 {
+	unsigned long flags;
 	struct sipa_plat_drv_cfg *ipa = sipa_get_ctrl_pointer();
 	void __iomem *glb_base = ipa->glb_virt_base;
 
-	ipa->glb_ops.dl_pcie_dma_en(glb_base, (u32)ipa->pcie_dl_dma);
-
+	spin_lock_irqsave(&ipa->mode_lock, flags);
 	ipa->glb_ops.set_work_mode(glb_base, ipa->is_bypass);
+	spin_unlock_irqrestore(&ipa->mode_lock, flags);
+
+	ipa->glb_ops.dl_pcie_dma_en(glb_base, (u32)ipa->pcie_dl_dma);
+	ipa->glb_ops.cp_dl_dst_term_num(glb_base, SIPA_TERM_AP);
 
 	ipa->glb_ops.enable_def_interrupt_src(glb_base);
 	ipa->glb_ops.map_multi_fifo_mode_en(glb_base, true);

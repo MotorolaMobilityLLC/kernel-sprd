@@ -74,7 +74,7 @@ static struct sipa_cmn_fifo_info sipa_cmn_fifo_statics[SIPA_FIFO_MAX] = {
 		.rx_fifo = "sprd,map-in-rx",
 		.relate_ep = SIPA_EP_AP,
 		.src_id = SIPA_TERM_AP,
-		.dst_id = SIPA_TERM_USB,
+		.dst_id = SIPA_TERM_VCP,
 		.is_to_ipa = 1,
 		.is_pam = 0,
 	},
@@ -233,7 +233,7 @@ static void sipa_resume_for_pam(struct device *dev)
 	ipa->suspend_stage &= ~SIPA_BACKUP_SUSPEND;
 
 early_resume:
-	if (!ipa->is_bypass && (ipa->suspend_stage & SIPA_THREAD_SUSPEND)) {
+	if (ipa->suspend_stage & SIPA_THREAD_SUSPEND) {
 		sipa_receiver_prepare_resume(ipa->receiver);
 		ipa->suspend_stage &= ~SIPA_THREAD_SUSPEND;
 	}
@@ -295,7 +295,7 @@ early_resume:
 
 	ipa->suspend_stage &= ~SIPA_EP_SUSPEND;
 
-	if (!ipa->is_bypass && (ipa->suspend_stage & SIPA_THREAD_SUSPEND)) {
+	if (ipa->suspend_stage & SIPA_THREAD_SUSPEND) {
 		sipa_receiver_prepare_resume(ipa->receiver);
 		ipa->suspend_stage &= ~SIPA_THREAD_SUSPEND;
 	}
@@ -334,8 +334,7 @@ static int sipa_resume_work(struct device *dev)
 
 	sipa_prepare_resume(dev);
 
-	if (!ipa->is_bypass)
-		sipa_sender_prepare_resume(ipa->sender);
+	sipa_sender_prepare_resume(ipa->sender);
 
 	sipa_rm_notify_completion(SIPA_RM_EVT_GRANTED,
 				  SIPA_RM_RES_PROD_IPA);
@@ -421,7 +420,7 @@ static int sipa_thread_prepare_suspend(struct device *dev)
 {
 	struct sipa_plat_drv_cfg *ipa = dev_get_drvdata(dev);
 
-	if (ipa->is_bypass || (ipa->suspend_stage & SIPA_THREAD_SUSPEND))
+	if (ipa->suspend_stage & SIPA_THREAD_SUSPEND)
 		return 0;
 
 	if (!sipa_sender_prepare_suspend(ipa->sender) &&
@@ -864,9 +863,9 @@ static int sipa_parse_dts_configuration(struct platform_device *pdev,
 	ret = of_property_read_u32(pdev->dev.of_node, "sprd,sipa-bypass-mode",
 				   &ipa->is_bypass);
 	if (ret)
-		dev_info(&pdev->dev, "using non-bypass mode by default\n");
+		dev_info(&pdev->dev, "use normal mode = %d\n", ipa->is_bypass);
 	else
-		dev_info(&pdev->dev, "using bypass mode = %d", ipa->is_bypass);
+		dev_info(&pdev->dev, "use bypass mode by default\n");
 
 	/* get through pcie flag */
 	ipa->need_through_pcie =
@@ -1235,7 +1234,6 @@ static void sipa_destroy_ipa_prod(void)
 static int sipa_init(struct device *dev)
 {
 	int ret = 0;
-	struct sipa_plat_drv_cfg *ipa = dev_get_drvdata(dev);
 
 	/* init sipa hal */
 	ret = sipa_hal_init(dev);
@@ -1268,11 +1266,9 @@ static int sipa_init(struct device *dev)
 		goto prod_fail;
 
 	/* init sipa skb transfer layer */
-	if (!ipa->is_bypass) {
-		ret = sipa_create_skb_xfer(dev);
-		if (ret)
-			goto xfer_fail;
-	}
+	ret = sipa_create_skb_xfer(dev);
+	if (ret)
+		goto xfer_fail;
 
 	return 0;
 
@@ -1371,6 +1367,8 @@ static int sipa_plat_drv_probe(struct platform_device *pdev_p)
 
 	spin_lock_init(&ipa->enable_lock);
 	ipa->enable_cnt = 0;
+
+	spin_lock_init(&ipa->mode_lock);
 
 	mutex_init(&ipa->resume_lock);
 	INIT_WORK(&ipa->flow_ctrl_work, sipa_notify_sender_flow_ctrl);

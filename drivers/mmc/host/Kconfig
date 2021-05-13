@@ -594,6 +594,14 @@ config MMC_SPRD_SDHCR11
 
 	  If unsure, say N.
 
+config MMC_SPRD_BOOTDEVICE
+	tristate "Spreadtrum SDIO3 -mmc0-EMMC information"
+	help
+	  This selects to display sdio3-mmc0-EMMC information in proc/bootdevice.
+	  If you need to create a node in proc/bootdevice to display emmc info, say Y or M here.
+
+	  If unsure, say N.
+
 config MMC_SPRD_SDHCR11P3
 	tristate "Spreadtrum SDIO host Controller(IP version: R11P3) support"
 	depends on ARCH_SPRD

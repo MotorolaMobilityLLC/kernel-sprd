@@ -20,7 +20,7 @@
 #include <linux/moduleparam.h>
 #include <linux/module.h>
 #include <linux/init.h>
-
+#include <linux/math64.h>
 #include <linux/kernel.h>
 #include <linux/fs.h>
 #include <linux/slab.h>
@@ -44,7 +44,7 @@
 #include <linux/mmc/host.h>
 #include <linux/mmc/mmc.h>
 #include <linux/mmc/sd.h>
-
+#include <linux/mmc/ffu.h>
 #include <linux/uaccess.h>
 
 #include "queue.h"
@@ -390,10 +390,21 @@ static struct mmc_blk_ioc_data *mmc_blk_ioctl_copy_from_user(
 	}
 
 	idata->buf_bytes = (u64) idata->ic.blksz * idata->ic.blocks;
-	if (idata->buf_bytes > MMC_IOC_MAX_BYTES) {
-		err = -EOVERFLOW;
-		goto idata_err;
+#ifdef CONFIG_MMC_FFU_FUNCTION
+	if (idata->ic.opcode == MMC_FFU_DOWNLOAD_OP) {
+		if (idata->buf_bytes > MMC_IOC_MAX_BYTES*2) {
+			err = -EOVERFLOW;
+			goto idata_err;
+		}
+	} else {
+#endif
+		if (idata->buf_bytes > MMC_IOC_MAX_BYTES) {
+			err = -EOVERFLOW;
+			goto idata_err;
+		}
+#ifdef CONFIG_MMC_FFU_FUNCTION
 	}
+#endif
 
 	if (!idata->buf_bytes) {
 		idata->buf = NULL;
@@ -510,7 +521,13 @@ static int __mmc_blk_ioctl_cmd(struct mmc_card *card, struct mmc_blk_data *md,
 	int err;
 	unsigned int target_part;
 	u32 status = 0;
-
+#ifdef CONFIG_MMC_FFU_FUNCTION
+	bool ffu_mode = false;
+	struct scatterlist *sg_ptr;
+	struct sg_table sgtable;
+	unsigned int nents, left_size, i;
+	unsigned int seg_size = card->host->max_seg_size;  /* 65536 */
+#endif
 	if (!card || !md || !idata)
 		return -EINVAL;
 
@@ -531,15 +548,45 @@ static int __mmc_blk_ioctl_cmd(struct mmc_card *card, struct mmc_blk_data *md,
 	cmd.opcode = idata->ic.opcode;
 	cmd.arg = idata->ic.arg;
 	cmd.flags = idata->ic.flags;
-
+#ifdef CONFIG_MMC_FFU_FUNCTION
+	if (cmd.opcode == MMC_SWITCH) {
+		err = mmc_switch(card, EXT_CSD_CMD_SET_NORMAL,
+		(cmd.arg >> 16) & 0xff, (cmd.arg >> 8) & 0xff,
+		card->ext_csd.generic_cmd6_time);
+		return err;
+	}
+#endif
 	if (idata->buf_bytes) {
+#ifdef CONFIG_MMC_FFU_FUNCTION
+		if (cmd.opcode == MMC_FFU_DOWNLOAD_OP
+			|| cmd.opcode == MMC_FFU_INSTALL_OP) {
+			ffu_mode = true;
+			left_size = idata->buf_bytes;
+			pr_debug("left_size is %d\r\n", left_size);
+			nents = div_u64(idata->buf_bytes + seg_size - 1, seg_size);
+			if (sg_alloc_table(&sgtable, nents, GFP_KERNEL))
+				return -ENOMEM;
+			data.sg = sgtable.sgl;
+			data.sg_len = nents;
+			data.blksz = idata->ic.blksz;
+			data.blocks = idata->ic.blocks;
+			for_each_sg(data.sg, sg_ptr, data.sg_len, i) {
+				sg_set_buf(sg_ptr, idata->buf + i * seg_size,
+					min(seg_size, left_size));
+				left_size -= seg_size;
+				pr_debug("left_size1 is %d\r\n", left_size);
+			}
+		} else {
+#endif
 		data.sg = &sg;
 		data.sg_len = 1;
 		data.blksz = idata->ic.blksz;
 		data.blocks = idata->ic.blocks;
 
 		sg_init_one(data.sg, idata->buf, idata->buf_bytes);
-
+#ifdef CONFIG_MMC_FFU_FUNCTION
+		}
+#endif
 		if (idata->ic.write_flag)
 			data.flags = MMC_DATA_WRITE;
 		else
@@ -597,7 +644,12 @@ static int __mmc_blk_ioctl_cmd(struct mmc_card *card, struct mmc_blk_data *md,
 
 		return err;
 	}
-
+#ifdef CONFIG_MMC_FFU_FUNCTION
+	if (cmd.opcode == MMC_FFU_DOWNLOAD_OP
+		|| cmd.opcode == MMC_FFU_INSTALL_OP) {
+		mmc_wait_for_ffu_req(card->host, &mrq);
+	} else
+#endif
 	mmc_wait_for_req(card->host, &mrq);
 
 	if (cmd.error) {
@@ -649,7 +701,12 @@ static int __mmc_blk_ioctl_cmd(struct mmc_card *card, struct mmc_blk_data *md,
 					"%s: Card Status=0x%08X, error %d\n",
 					__func__, status, err);
 	}
-
+#ifdef CONFIG_MMC_FFU_FUNCTION
+	if (ffu_mode == true) {
+		if (nents > 1)
+			sg_free_table(&sgtable);
+	}
+#endif
 	return err;
 }
 

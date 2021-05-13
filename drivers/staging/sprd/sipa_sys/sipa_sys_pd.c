@@ -207,6 +207,8 @@ static int sipa_sys_drv_probe(struct platform_device *pdev_p)
 	struct sipa_sys_pd_drv *drv;
 	const struct sipa_sys_data *data;
 
+	dev_info(&pdev_p->dev, "sipa sys driver probing start\n");
+
 	data = of_device_get_match_data(&pdev_p->dev);
 	ret = of_property_read_u32(pdev_p->dev.of_node, "reg-size", &num);
 	if (ret)

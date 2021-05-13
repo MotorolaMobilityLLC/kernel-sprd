@@ -5381,7 +5381,7 @@ static void ufshcd_check_errors(struct ufs_hba *hba)
 				ufshcd_print_trs(hba, hba->outstanding_reqs,
 							pr_prdt);
 			}
-			schedule_work(&hba->eh_work);
+			queue_work(hba->eh_wq, &hba->eh_work);
 		}
 	}
 	/*
@@ -6084,6 +6084,13 @@ ufshcd_rpmb_security_out(struct scsi_device *sdev,
 	cmd[4] = 0;                              /* inc_512 bit 7 set to 0 */
 	put_unaligned_be32(trans_len, cmd + 6);  /* transfer length */
 
+	ret = scsi_test_unit_ready(sdev, SEC_PROTOCOL_TIMEOUT,
+				   SEC_PROTOCOL_RETRIES, &sshdr);
+	if (ret)
+		dev_err(&sdev->sdev_gendev,
+			"%s: rpmb scsi_test_unit_ready, ret=%d\n",
+			__func__, ret);
+
 retry:
 	ret = scsi_execute(sdev, cmd, DMA_TO_DEVICE, frames, trans_len,
 					sense, &sshdr, SEC_PROTOCOL_TIMEOUT,
@@ -6128,6 +6135,14 @@ ufshcd_rpmb_security_in(struct scsi_device *sdev,
 	put_unaligned_be16(SEC_SPECIFIC_UFS_RPMB, cmd + 2);
 	cmd[4] = 0;                             /* inc_512 bit 7 set to 0 */
 	put_unaligned_be32(alloc_len, cmd + 6); /* allocation length */
+
+	ret = scsi_test_unit_ready(sdev, SEC_PROTOCOL_TIMEOUT,
+				   SEC_PROTOCOL_RETRIES, &sshdr);
+	if (ret)
+		dev_err(&sdev->sdev_gendev,
+			"%s: rpmb scsi_test_unit_ready, ret=%d\n",
+			__func__, ret);
+
 retry:
 	ret = scsi_execute(sdev, cmd, DMA_FROM_DEVICE, frames, alloc_len,
 					sense, &sshdr, SEC_PROTOCOL_TIMEOUT,
@@ -7617,6 +7632,16 @@ disable_clks:
 	ret = ufshcd_vops_suspend(hba, pm_op);
 	if (ret)
 		goto set_link_active;
+	/*
+	 * Disable the host irq as host controller as there won't be any
+	 * host controller transaction expected till resume.
+	 */
+	ufshcd_disable_irq(hba);
+
+	/* check if there is that the error handler is in execution
+	 * cancle  it
+	 */
+	cancel_work_sync(&hba->eh_work);
 
 	if (!ufshcd_is_link_active(hba))
 		ufshcd_setup_clocks(hba, false);
@@ -7626,11 +7651,7 @@ disable_clks:
 
 	hba->clk_gating.state = CLKS_OFF;
 	trace_ufshcd_clk_gating(dev_name(hba->dev), hba->clk_gating.state);
-	/*
-	 * Disable the host irq as host controller as there won't be any
-	 * host controller transaction expected till resume.
-	 */
-	ufshcd_disable_irq(hba);
+
 	/* Put the host controller in low power mode if possible */
 	ufshcd_hba_vreg_set_lpm(hba);
 	goto out;
@@ -8053,6 +8074,7 @@ int ufshcd_init(struct ufs_hba *hba, void __iomem *mmio_base, unsigned int irq)
 	int err;
 	struct Scsi_Host *host = hba->host;
 	struct device *dev = hba->dev;
+	char eh_wq_name[sizeof("ufs_eh_wq_00")];
 
 	if (!mmio_base) {
 		dev_err(hba->dev,
@@ -8117,6 +8139,16 @@ int ufshcd_init(struct ufs_hba *hba, void __iomem *mmio_base, unsigned int irq)
 	/* Initailize wait queue for task management */
 	init_waitqueue_head(&hba->tm_wq);
 	init_waitqueue_head(&hba->tm_tag_wq);
+
+	snprintf(eh_wq_name, sizeof(eh_wq_name), "ufs_eh_wq_%d",
+		 hba->host->host_no);
+	hba->eh_wq = create_singlethread_workqueue(eh_wq_name);
+	if (!hba->eh_wq) {
+		dev_err(hba->dev, "%s: failed to create eh workqueue\n",
+			__func__);
+		err = -ENOMEM;
+		goto out_disable;
+	}
 
 	/* Initialize work queues */
 	INIT_WORK(&hba->eh_work, ufshcd_err_handler);
