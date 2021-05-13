@@ -42,7 +42,11 @@
 #define DISPC_INT_DPI_VSYNC_MASK	BIT(5)
 #define DISPC_INT_WB_DONE_MASK		BIT(6)
 #define DISPC_INT_WB_FAIL_MASK		BIT(7)
-
+#define cabc_cfg0			268439552
+#define cabc_cfg1			268439552
+#define cabc_cfg2			16777215
+#define cabc_cfg3			0
+#define cabc_cfg4			0
 /* NOTE: this mask is not a realy dpu interrupt mask */
 #define DISPC_INT_FENCE_SIGNAL_REQUEST	BIT(31)
 
@@ -84,12 +88,14 @@ enum {
 	ENHANCE_CFG_ID_SR_EPF,
 	ENHANCE_CFG_ID_CABC_MODE,
 	ENHANCE_CFG_ID_CABC_HIST,
+	ENHANCE_CFG_ID_CABC_HIST_V2,
 	ENHANCE_CFG_ID_VSYNC_COUNT,
 	ENHANCE_CFG_ID_FRAME_NO,
 	ENHANCE_CFG_ID_CABC_NO,
 	ENHANCE_CFG_ID_CABC_GAIN,
 	ENHANCE_CFG_ID_CABC_BL_FIX,
 	ENHANCE_CFG_ID_CABC_CUR_BL,
+	ENHANCE_CFG_ID_CABC_PARAM,
 	ENHANCE_CFG_ID_CABC_RUN,
 	ENHANCE_CFG_ID_CABC_STATE,
 	ENHANCE_CFG_ID_UD,
@@ -156,6 +162,7 @@ struct dpu_core_ops {
 	int (*modeset)(struct dpu_context *ctx,
 			struct drm_mode_modeinfo *mode);
 	bool (*check_raw_int)(struct dpu_context *ctx, u32 mask);
+	void (*dma_request)(struct dpu_context *ctx);
 };
 
 struct dpu_clk_ops {
@@ -191,6 +198,7 @@ struct dpu_context {
 	bool disable_flip;
 	struct videomode vm;
 	struct semaphore refresh_lock;
+	struct semaphore cabc_lock;
 	struct work_struct wb_work;
 	struct tasklet_struct dvfs_task;
 	u32 wb_addr_p;
@@ -247,5 +255,6 @@ static inline struct sprd_dpu *crtc_to_dpu(struct drm_crtc *crtc)
 
 int sprd_dpu_run(struct sprd_dpu *dpu);
 int sprd_dpu_stop(struct sprd_dpu *dpu);
+void sprd_dpu_resume(struct sprd_dpu *dpu);
 
 #endif

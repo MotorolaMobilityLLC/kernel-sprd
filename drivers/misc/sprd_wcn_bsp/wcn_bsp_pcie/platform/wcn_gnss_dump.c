@@ -13,9 +13,6 @@
 #include <linux/delay.h>
 #include <linux/file.h>
 #include <linux/fs.h>
-#ifdef CONFIG_WCN_INTEG
-#include "gnss.h"
-#endif
 #include <linux/kthread.h>
 #include <linux/printk.h>
 #include <linux/sipc.h>
@@ -27,13 +24,12 @@
 #include <misc/wcn_bus.h>
 
 #include "wcn_glb.h"
-#include "gnss_common.h"
-#include "gnss_dump.h"
+#include "wcn_gnss_dump.h"
 #include "mdbg_type.h"
-#include "../../include/wcn_glb_reg.h"
+#include "../include/wcn_glb_reg.h"
 
-#define GNSSDUMP_INFO(format, arg...) pr_info("gnss_dump: " format, ## arg)
-#define GNSSDUMP_ERR(format, arg...) pr_err("gnss_dump: " format, ## arg)
+#define GNSSDUMP_INFO(format, arg...) pr_info("wcn_gdb: " format, ## arg)
+#define GNSSDUMP_ERR(format, arg...) pr_err("wcn_gdb: " format, ## arg)
 
 static struct file *gnss_dump_file;
 static	loff_t pos;
@@ -123,7 +119,7 @@ static int gnss_creat_gnss_dump_file(void)
 {
 	gnss_dump_file = filp_open(GNSS_MEMDUMP_PATH,
 		O_RDWR | O_CREAT | O_TRUNC, 0666);
-	GNSSDUMP_ERR("gnss_creat_gnss_dump_file entry\n");
+	GNSSDUMP_ERR("%s entry\n", __func__);
 	if (IS_ERR(gnss_dump_file)) {
 		GNSSDUMP_ERR("%s error is %p\n",
 			__func__, gnss_dump_file);
@@ -141,7 +137,7 @@ static void gnss_write_data_to_phy_addr(phys_addr_t phy_addr,
 {
 	void *virt_addr;
 
-	GNSSDUMP_ERR("gnss_write_data_to_phy_addr entry\n");
+	GNSSDUMP_ERR("%s entry\n", __func__);
 	virt_addr = shmem_ram_vmap_nocache(phy_addr, size);
 	if (virt_addr) {
 		memcpy(virt_addr, src_data, size);
@@ -155,7 +151,7 @@ static void gnss_read_data_from_phy_addr(phys_addr_t phy_addr,
 {
 	void *virt_addr;
 
-	GNSSDUMP_ERR("gnss_read_data_from_phy_addr\n");
+	GNSSDUMP_ERR("%s entry\n", __func__);
 	virt_addr = shmem_ram_vmap_nocache(phy_addr, size);
 	if (virt_addr) {
 		memcpy(tar_data, virt_addr, size);
@@ -331,12 +327,10 @@ static int gnss_dump_cp_register_data(u32 addr, u32 len)
 	vfree(iram_buffer);
 	set_fs(fs);
 	if (ret != len) {
-		GNSSDUMP_ERR("gnss_dump_cp_register_data failed  size is %ld\n",
-			ret);
+		GNSSDUMP_ERR("%s failed  size is %ld\n", __func__, ret);
 		return -1;
 	}
-	GNSSDUMP_INFO("gnss_dump_cp_register_data finish  size is  %ld\n",
-		ret);
+	GNSSDUMP_INFO("%s finish  size is  %ld\n", __func__, ret);
 
 	return ret;
 }

@@ -397,39 +397,8 @@ static void sc2721_charger_work(struct work_struct *data)
 {
 	struct sc2721_charger_info *info =
 		container_of(data, struct sc2721_charger_info, work);
-	int cur, ret;
 	bool present = sc2721_charger_is_bat_present(info);
 
-	mutex_lock(&info->lock);
-
-	if (info->limit > 0 && !info->charging && present) {
-		/* set charger current and start to charge */
-		switch (info->usb_phy->chg_type) {
-		case SDP_TYPE:
-			cur = info->cur.sdp_cur;
-			break;
-		case DCP_TYPE:
-			cur = info->cur.dcp_cur;
-			break;
-		case CDP_TYPE:
-			cur = info->cur.cdp_cur;
-			break;
-		default:
-			cur = info->cur.unknown_cur;
-		}
-
-		ret = sc2721_charger_set_current(info, cur);
-		if (ret)
-			goto out;
-
-	} else if ((!info->limit && info->charging) || !present) {
-		/* Stop charging */
-		info->charging = false;
-		sc2721_charger_stop_charge(info);
-	}
-
-out:
-	mutex_unlock(&info->lock);
 	dev_info(info->dev, "battery present = %d, charger type = %d\n",
 		 present, info->usb_phy->chg_type);
 	cm_notify_event(info->psy_usb, CM_EVENT_CHG_START_STOP, NULL);
@@ -696,13 +665,6 @@ static int sc2721_charger_probe(struct platform_device *pdev)
 		return -ENODEV;
 	}
 
-	info->usb_notify.notifier_call = sc2721_charger_usb_change;
-	ret = usb_register_notifier(info->usb_phy, &info->usb_notify);
-	if (ret) {
-		dev_err(&pdev->dev, "failed to register notifier:%d\n", ret);
-		return ret;
-	}
-
 	charger_cfg.drv_data = info;
 	charger_cfg.of_node = np;
 	info->psy_usb = devm_power_supply_register(&pdev->dev,
@@ -710,15 +672,23 @@ static int sc2721_charger_probe(struct platform_device *pdev)
 						   &charger_cfg);
 	if (IS_ERR(info->psy_usb)) {
 		dev_err(&pdev->dev, "failed to register power supply\n");
-		usb_unregister_notifier(info->usb_phy, &info->usb_notify);
 		return PTR_ERR(info->psy_usb);
 	}
 
 	ret = sc2721_charger_hw_init(info);
 	if (ret) {
-		usb_unregister_notifier(info->usb_phy, &info->usb_notify);
+		dev_err(&pdev->dev, "failed to sc2721_charger_hw_init\n");
 		return ret;
 	}
+	sc2721_charger_stop_charge(info);
+
+	info->usb_notify.notifier_call = sc2721_charger_usb_change;
+	ret = usb_register_notifier(info->usb_phy, &info->usb_notify);
+	if (ret) {
+		dev_err(&pdev->dev, "failed to register notifier:%d\n", ret);
+		return ret;
+	}
+
 	sc2721_charger_detect_status(info);
 	return 0;
 }

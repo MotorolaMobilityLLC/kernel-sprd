@@ -132,6 +132,12 @@ enum{
 
 #endif
 
+#if (defined(CONFIG_UMW2652) || defined(CONFIG_UMW2631_I) \
+	|| defined(CONFIG_SC2355))
+#define PMIC_CHIPID_SC27XX     (0x2730)
+#define PMIC_CHIPID_UMP9622    (0x7522)
+#endif
+
 bool gnss_delay_ctl(void);
 
 #endif

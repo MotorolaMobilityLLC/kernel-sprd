@@ -69,6 +69,7 @@ struct phy_ctx {
 	struct regmap *dsi_apb;
 	struct regmap *pll_apb;
 	struct regmap *mm_ahb;
+	struct regmap *pmu_apb;
 };
 
 struct dbg_log_device {
@@ -82,6 +83,7 @@ struct dbg_log_device {
 	struct regmap *aon_apb;
 	struct serdes_drv_data serdes;
 	struct clk *clk_serdes_eb;
+	struct clk *clk_serdes1_eb;
 	struct clk *clk_mm_eb;
 	struct clk *clk_ana_eb;
 	struct clk *clk_dphy_cfg_eb;
@@ -89,6 +91,8 @@ struct dbg_log_device {
 	struct clk *clk_dsi_csi_test_eb;
 	struct clk *clk_dsi_ref_eb;
 	struct clk *clk_cphy_cfg_eb;
+	struct clk *clk_dsi_cfg_eb;
+	struct clk *clk_cgm_cphy_cfg_en;
 
 	struct clk *clk_src[CLK_SRC_MAX];
 };

@@ -483,6 +483,13 @@ static int power_enable(struct sprd_audio_power_info *info)
 		reg = ANA_PMU1;
 		value = HMIC_BIAS_VREF_SEL | HMIC_BIAS_SOFT_EN | HMIC_BIAS_EN;
 		ret = sprd_power_u_bits(info, reg, value, value);
+		if (ret < 0) {
+			sp_asoc_pr_info("audio power %d enable errer:%d,\n",
+				info->desc.id, ret);
+			return ret;
+		}
+		ret = sprd_power_u_bits(info, ANA_PMU5, HMIC_BIAS_V(0xf),
+					HMIC_BIAS_V(0xa));
 		break;
 	default:
 		WARN_ON(1);

@@ -107,6 +107,8 @@ static int sipa_nic_debug_show(struct seq_file *s, void *unused)
 	seq_printf(s, "suspend_stage = 0x%x rc = %d sc = %d pf = %d\n",
 		   ipa->suspend_stage, ipa->resume_cnt,
 		   ipa->suspend_cnt, ipa->power_flag);
+	seq_printf(s, "mode_state = 0x%x is_bypass = 0x%x\n",
+		   ipa->mode_state, ipa->is_bypass);
 
 	for (i = 0; i < SIPA_NIC_MAX; i++) {
 		if (!ipa->nic[i])

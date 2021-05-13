@@ -570,6 +570,9 @@ static int sprd_thm_suspend(struct platform_device *pdev, pm_message_t state)
 	if (ret)
 		dev_info(&pdev->dev, "thermal suspend fail\n");
 
+	writel(0x00, thm->regbase + SPRD_THM_CTL);
+	udelay(2000);
+
 	clk_disable_unprepare(thm->clk);
 
 	return ret;

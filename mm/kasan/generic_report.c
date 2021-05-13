@@ -111,7 +111,7 @@ const char *get_bug_type(struct kasan_access_info *info)
 		return get_shadow_bug_type(info);
 	return get_wild_bug_type(info);
 }
-
+#ifdef CONFIG_KASAN_LOAD
 #define DEFINE_ASAN_REPORT_LOAD(size)                     \
 void __asan_report_load##size##_noabort(unsigned long addr) \
 {                                                         \
@@ -125,6 +125,21 @@ void __asan_report_store##size##_noabort(unsigned long addr) \
 	kasan_report(addr, size, true, _RET_IP_);	   \
 }                                                          \
 EXPORT_SYMBOL(__asan_report_store##size##_noabort)
+#else
+#define DEFINE_ASAN_REPORT_LOAD(size)                     \
+void __asan_report_load##size##_noabort(unsigned long addr) \
+{                                                         \
+	return;	  \
+}                                                         \
+EXPORT_SYMBOL(__asan_report_load##size##_noabort)
+
+#define DEFINE_ASAN_REPORT_STORE(size)                     \
+void __asan_report_store##size##_noabort(unsigned long addr) \
+{                                                          \
+	kasan_report(addr, size, true, _RET_IP_);	   \
+}                                                          \
+EXPORT_SYMBOL(__asan_report_store##size##_noabort)
+#endif
 
 DEFINE_ASAN_REPORT_LOAD(1);
 DEFINE_ASAN_REPORT_LOAD(2);
@@ -139,7 +154,11 @@ DEFINE_ASAN_REPORT_STORE(16);
 
 void __asan_report_load_n_noabort(unsigned long addr, size_t size)
 {
+#ifdef CONFIG_KASAN_LOAD
 	kasan_report(addr, size, false, _RET_IP_);
+#else
+		return;
+#endif
 }
 EXPORT_SYMBOL(__asan_report_load_n_noabort);
 

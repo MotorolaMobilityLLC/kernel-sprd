@@ -193,6 +193,7 @@ struct sysdump_config {
 
 static struct sysdump_info *sprd_sysdump_info;
 static unsigned long sysdump_magic_paddr;
+static int sysdump_reflag;
 
 /* global var for memory hash */
 static u8 g_ktxt_hash_data[SHA1_DIGEST_SIZE];
@@ -376,8 +377,20 @@ static int __init sysdump_magic_setup(char *str)
 		 __func__, sysdump_magic_paddr);
 	return 1;
 }
-
+/* get sysdump reserve flag from uboot
+ * sysdump_reflag: 1 sysdump reserved in dts
+ *		   0 sysdump don't reserved in dts
+ */
+static int __init sysdump_reflag_setup(char *str)
+{
+	if (str != NULL)
+		sscanf(&str[0], "%d", &sysdump_reflag);
+	pr_info("[%s]sysdump reserve flag from uboot: %d\n",
+		__func__, sysdump_reflag);
+	return 1;
+}
 __setup("sysdump_magic=", sysdump_magic_setup);
+__setup("sysdump_re_flag=", sysdump_reflag_setup);
 
 static unsigned long get_sprd_sysdump_info_paddr(void)
 {
@@ -396,7 +409,7 @@ static unsigned long get_sprd_sysdump_info_paddr(void)
 		if (!node) {
 			pr_err
 			    ("Not find sprd-sysdump node from dts,use SPRD_SYSDUMP_MAGIC\n");
-			reg_phy = SPRD_SYSDUMP_MAGIC;
+			return 0;
 		} else {
 			magic_addr =
 			    (unsigned long *)of_get_property(node, "magic-addr",
@@ -404,7 +417,7 @@ static unsigned long get_sprd_sysdump_info_paddr(void)
 			if (!magic_addr) {
 				pr_err
 				    ("Not find magic-addr property from sprd-sysdump node\n");
-				reg_phy = SPRD_SYSDUMP_MAGIC;
+				return 0;
 			} else {
 				aw = of_n_addr_cells(node);
 				reg_phy =
@@ -427,14 +440,14 @@ static int kaslr_info_init(void)
 	sprd_sysdump_info = (struct sysdump_info *)phys_to_virt(sprd_sysdump_info_paddr);
 
 	/* can't write anything at SPRD_SYSDUMP_MAGIC before rootfs init */
-	if (sprd_sysdump_info_paddr != SPRD_SYSDUMP_MAGIC) {
+	if (sysdump_reflag) {
 		/*get kaslr info for arm64*/
 #ifdef CONFIG_ARM64
 		sprd_sysdump_info->sprd_kaslrinfo.kaslr_offset = kaslr_offset();
 		sprd_sysdump_info->sprd_kaslrinfo.kimage_voffset = kimage_voffset;
 		sprd_sysdump_info->sprd_kaslrinfo.phys_offset = PHYS_OFFSET;
 		sprd_sysdump_info->sprd_kaslrinfo.vabits_actual = (uint64_t)VA_BITS;
-		pr_emerg("vmcore info init end!\n");
+		pr_emerg("[%s]vmcore info init end!\n", __func__);
 #endif
 	}
 	return 0;
@@ -507,11 +520,8 @@ static int sysdump_panic_event(struct notifier_block *self,
 		unsigned long sprd_sysdump_info_paddr;
 		sprd_sysdump_info_paddr = get_sprd_sysdump_info_paddr();
 		if (!sprd_sysdump_info_paddr) {
-			pr_emerg("get sprd_sysdump_info_paddr failed2.\n");
-			while (1) {
-				pr_emerg("sprd_sysdump_info_paddr failed...\n");
-				mdelay(3000);
-			}
+			pr_emerg("get sprd_sysdump_info_paddr failed!!!.\n");
+			return -1;
 		}
 
 		sprd_sysdump_info = (struct sysdump_info *)phys_to_virt(sprd_sysdump_info_paddr);
@@ -602,6 +612,9 @@ static int sysdump_panic_event(struct notifier_block *self,
 void sysdump_ipi(struct pt_regs *regs)
 {
 	int cpu = smp_processor_id();
+
+	if (crash_notes == NULL)
+		crash_notes = &crash_notes_temp;
 
 	/*do flush and save only in oops path */
 	if (oops_in_progress) {
@@ -1520,10 +1533,11 @@ int sysdump_sysctl_init(void)
 	memset(g_ktxt_hash_data, 0x55, SHA1_DIGEST_SIZE);
 	if (sysdump_shash_init())
 		return -ENOMEM;
-
+#if 0
 	/*	register sysdump panic notifier  */
 	atomic_notifier_chain_register(&panic_notifier_list,
 					&sysdump_panic_event_nb);
+#endif
 	sprd_sysdump_init = 1;
 
 	sprd_sysdump_enable_prepare();
@@ -1536,7 +1550,25 @@ int sysdump_sysctl_init(void)
 #endif
 	return 0;
 }
-
+static int sysdump_panic_event_init(void)
+{
+	/* register sysdump panic notifier */
+	atomic_notifier_chain_register(&panic_notifier_list,
+						&sysdump_panic_event_nb);
+	return 0;
+}
+static __init int sysdump_early_init(void)
+{
+	int ret;
+	/* register sysdump panic notifier */
+	sysdump_panic_event_init();
+	/* init kaslr_offset if need */
+	ret = kaslr_info_init();
+	if (ret)
+		pr_emerg("kaslr_info init failed!!!\n");
+	return 0;
+}
+early_initcall(sysdump_early_init);
 void sysdump_sysctl_exit(void)
 {
 	if (sysdump_sysctl_hdr)
@@ -1552,7 +1584,6 @@ void sysdump_sysctl_exit(void)
 	ylog_buffer_exit();
 #endif
 }
-early_initcall(kaslr_info_init);
 late_initcall_sync(sysdump_sysctl_init);
 module_exit(sysdump_sysctl_exit);
 

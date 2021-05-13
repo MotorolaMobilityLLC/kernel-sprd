@@ -102,6 +102,8 @@ struct dsi_context {
 	/* supported dpms mode */
 	int dpms;
 	int last_dpms;
+	/* dpi clk need switch to 384m fot div6/div8 feature */
+	bool clk_dpi_384m;
 };
 
 struct dsi_core_ops {

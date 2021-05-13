@@ -28,19 +28,8 @@
 #include "mdbg_type.h"
 #include "../include/wcn_dbg.h"
 
-typedef int (*gnss_dump_callback) (void);
-gnss_dump_callback gnss_dump_handle;
+#include "wcn_gnss_dump.h"
 
-void mdbg_dump_gnss_register(gnss_dump_callback callback_func, void *para)
-{
-	gnss_dump_handle = (gnss_dump_callback)callback_func;
-	WCN_INFO("gnss_dump register success!\n");
-}
-
-void mdbg_dump_gnss_unregister(void)
-{
-	gnss_dump_handle = NULL;
-}
 
 static int smp_calc_chsum(unsigned short *buf, unsigned int size)
 {
@@ -1447,10 +1436,9 @@ next:
 #endif
 
 	/* dump gnss */
-	if (gnss_dump_handle) {
-		WCN_INFO("need dump gnss\n");
-		gnss_dump_handle();
-	}
+	WCN_INFO("wcn gdb\n");
+	gnss_dump_mem(0);
+
 end:
 	/* Make sure only string "marlin_memdump_finish" to slog one time */
 	msleep(40);

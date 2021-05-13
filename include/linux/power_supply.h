@@ -213,22 +213,6 @@ enum power_supply_wireless_type {
 	POWER_SUPPLY_WIRELESS_TYPE_EPP,		/* Standard wireless epp mode */
 };
 
-enum power_supply_charger_type {
-	POWER_SUPPLY_CHARGER_TYPE_UNKNOWN = 0,
-	POWER_SUPPLY_USB_CHARGER_TYPE_SDP,		/* Standard Downstream Port */
-	POWER_SUPPLY_USB_CHARGER_TYPE_DCP,		/* Dedicated Charging Port */
-	POWER_SUPPLY_USB_CHARGER_TYPE_CDP,		/* Charging Downstream Port */
-	POWER_SUPPLY_USB_CHARGER_TYPE_ACA,		/* Accessory Charger Adapters */
-	POWER_SUPPLY_USB_CHARGER_TYPE_C,		/* Type C Port */
-	POWER_SUPPLY_USB_CHARGER_TYPE_PD,		/* Power Delivery Port */
-	POWER_SUPPLY_USB_CHARGER_TYPE_PD_DRP,		/* PD Dual Role Port */
-	POWER_SUPPLY_USB_CHARGER_TYPE_PD_PPS,		/* PD Programmable Power Supply */
-	POWER_SUPPLY_USB_CHARGER_TYPE_APPLE_BRICK_ID,	/* Apple Charging Method */
-	POWER_SUPPLY_USB_CHARGER_TYPE_SFCP_1P0,		/* SFCP1.0 Port*/
-	POWER_SUPPLY_USB_CHARGER_TYPE_SFCP_2P0,		/* SFCP2.0 Port*/
-	POWER_SUPPLY_WIRELESS_CHARGER_TYPE_BPP,		/* BPP wireless method */
-	POWER_SUPPLY_WIRELESS_CHARGER_TYPE_EPP,		/* EPP wiresess method */
-};
 enum power_supply_charge_type {
 	USB_CHARGE_TYPE_NORMAL = 0,		/* Charging Power <= 10W*/
 	USB_CHARGE_TYPE_FAST,			/* 10W < Charging Power <= 20W */

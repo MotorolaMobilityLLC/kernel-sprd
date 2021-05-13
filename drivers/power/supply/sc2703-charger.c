@@ -901,47 +901,8 @@ static void sc2703_charger_work(struct work_struct *data)
 {
 	struct sc2703_charger_info *info =
 		container_of(data, struct sc2703_charger_info, work);
-	int limit_cur, cur, ret;
 	bool present = sc2703_charger_is_bat_present(info);
 
-	mutex_lock(&info->lock);
-
-	if (info->limit > 0 && !info->charging && present) {
-		/* set current limitation and start to charge */
-		switch (info->usb_phy->chg_type) {
-		case SDP_TYPE:
-			limit_cur = info->cur.sdp_limit;
-			cur = info->cur.sdp_cur;
-			break;
-		case DCP_TYPE:
-			limit_cur = info->cur.dcp_limit;
-			cur = info->cur.dcp_cur;
-			break;
-		case CDP_TYPE:
-			limit_cur = info->cur.cdp_limit;
-			cur = info->cur.cdp_cur;
-			break;
-		default:
-			limit_cur = info->cur.unknown_limit;
-			cur = info->cur.unknown_cur;
-		}
-
-		ret = sc2703_charger_set_limit_current(info, limit_cur);
-		if (ret)
-			goto out;
-
-		ret = sc2703_charger_set_current(info, cur);
-		if (ret)
-			goto out;
-
-	} else if ((!info->limit && info->charging) || !present) {
-		/* Stop charging */
-		info->charging = false;
-		sc2703_charger_stop_charge(info, present);
-	}
-
-out:
-	mutex_unlock(&info->lock);
 	dev_info(info->dev, "battery present = %d, charger type = %d\n",
 		 present, info->usb_phy->chg_type);
 	cm_notify_event(info->psy_usb, CM_EVENT_CHG_START_STOP, NULL);
@@ -1574,13 +1535,6 @@ static int sc2703_charger_probe(struct platform_device *pdev)
 	info->long_key_detect =
 		device_property_read_bool(&pdev->dev, "sprd,long-key-detection");
 
-	info->usb_notify.notifier_call = sc2703_charger_usb_change;
-	ret = usb_register_notifier(info->usb_phy, &info->usb_notify);
-	if (ret) {
-		dev_err(&pdev->dev, "failed to register notifier:%d\n", ret);
-		return ret;
-	}
-
 	charger_cfg.drv_data = info;
 	charger_cfg.of_node = np;
 	info->psy_usb = devm_power_supply_register(&pdev->dev,
@@ -1588,13 +1542,21 @@ static int sc2703_charger_probe(struct platform_device *pdev)
 						   &charger_cfg);
 	if (IS_ERR(info->psy_usb)) {
 		dev_err(&pdev->dev, "failed to register power supply\n");
-		usb_unregister_notifier(info->usb_phy, &info->usb_notify);
 		return PTR_ERR(info->psy_usb);
 	}
 
 	ret = sc2703_charger_hw_init(info);
 	if (ret)
 		return ret;
+
+	sc2703_charger_stop_charge(info, sc2703_charger_is_bat_present);
+
+	info->usb_notify.notifier_call = sc2703_charger_usb_change;
+	ret = usb_register_notifier(info->usb_phy, &info->usb_notify);
+	if (ret) {
+		dev_err(&pdev->dev, "failed to register notifier:%d\n", ret);
+		return ret;
+	}
 
 	sc2703_charger_detect_status(info);
 	INIT_DELAYED_WORK(&info->otg_work, sc2703_charger_otg_work);

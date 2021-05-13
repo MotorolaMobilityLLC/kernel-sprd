@@ -563,6 +563,11 @@ int soft_fastpath_process(int in_if,
 	/* Check whether is ip or ip6 header */
 	skb = (struct sk_buff *)data_header;
 
+	if (!get_sfp_tether_scheme()) {
+		if (is_banned_ipa_netdev(skb->dev))
+			return 1;
+	}
+
 	skb_reset_network_header(skb);
 	piphdr = ip_hdr(skb);
 
