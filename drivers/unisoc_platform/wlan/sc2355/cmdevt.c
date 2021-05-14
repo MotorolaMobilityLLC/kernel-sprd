@@ -3317,7 +3317,7 @@ static void cmdevt_report_wfd_mib_cnt(struct sprd_vif *vif, u8 *data, u16 len)
 	struct evt_wfd_mib_cnt *wfd = (struct evt_wfd_mib_cnt *)data;
 	u32 tx_cnt, busy_cnt, wfd_rate;
 
-	pr_info("%s, %d, drop=%d,%d,%d,%d, frame=%d, clear=%d, mib=%d\n",
+	pr_info("%s, %d, frame=%d, clear=%d, mib=%d\n",
 		__func__, __LINE__,
 		wfd->tx_frame_cnt, wfd->rx_clear_cnt, wfd->mib_cycle_cnt);
 	if (!wfd->mib_cycle_cnt)
