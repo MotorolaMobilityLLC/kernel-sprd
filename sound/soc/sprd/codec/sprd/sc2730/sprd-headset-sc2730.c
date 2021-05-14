@@ -1086,7 +1086,8 @@ static void sprd_enable_hmicbias_polling(bool enable, bool force_disable)
 			sprd_hmicbias_mode_set(hdst, REGULATOR_MODE_STANDBY);
 			sprd_headset_power_set(&hdst->power_manager,
 				"DIG_CLK_HID", true);
-			headset_reg_set_bits(ANA_HID0, HID_EN);
+			/* HW ask to disable polling */
+			/* headset_reg_set_bits(ANA_HID0, HID_EN); */
 			hdst->current_polling_state = true;
 		}
 	} else {
@@ -1259,7 +1260,7 @@ static enum sprd_headset_type sprd_headset_type_plugged(void)
 
 	if (adc_left_ideal > pdata->sprd_adc_gnd &&
 		ABS(adc_mic_ideal - adc_left_ideal) < pdata->sprd_adc_gnd) {
-		sprd_headset_ldetl_ref_sel(LDETL_REF_SEL_20mV);
+		sprd_headset_ldetl_ref_sel(LDETL_REF_SEL_100mV);
 		sprd_hmicbias_hw_control_enable(false, pdata);
 		return HEADSET_4POLE_NOT_NORMAL;
 	} else if (adc_left_ideal > pdata->sprd_adc_gnd &&
@@ -1275,7 +1276,7 @@ static enum sprd_headset_type sprd_headset_type_plugged(void)
 		val = sprd_headset_part_is_inserted(HDST_INSERT_MDET);
 		pr_debug("%s val %d\n", __func__, val);
 		if (val != 0 && adc_left_ideal < pdata->sprd_half_adc_gnd) {
-			sprd_headset_ldetl_ref_sel(LDETL_REF_SEL_20mV);
+			sprd_headset_ldetl_ref_sel(LDETL_REF_SEL_100mV);
 			return HEADSET_4POLE_NORMAL;
 		} else if (val != 0 &&
 			adc_left_ideal >= pdata->sprd_half_adc_gnd) {
@@ -1429,7 +1430,7 @@ static enum sprd_headset_type sprd_headset_get_type(void)
 
 	if (left_vol_min <= TYPEC_SELFIE_STICK_THRESHOLD) {
 		/* typec headset */
-		sprd_headset_ldetl_ref_sel(LDETL_REF_SEL_20mV);
+		sprd_headset_ldetl_ref_sel(LDETL_REF_SEL_100mV);
 		return HEADSET_4POLE_NORMAL;
 	}
 	if (left_vol_min > TYPEC_SELFIE_STICK_THRESHOLD) {
