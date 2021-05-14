@@ -4525,6 +4525,8 @@ static void misc_event_handler(struct charger_manager *cm, enum cm_event_types t
 
 	cm_update_charger_type_status(cm);
 
+	cm->is_full = false;
+	
 	if (is_polling_required(cm) && cm->desc->polling_interval_ms)
 		schedule_delayed_work(&cm_monitor_work, 0);
 	uevent_notify(cm, default_event_names[type]);
