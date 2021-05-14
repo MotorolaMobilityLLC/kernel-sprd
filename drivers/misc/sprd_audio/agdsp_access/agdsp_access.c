@@ -441,7 +441,7 @@ int agdsp_access_enable(void)
 		 * send a mail to AGDSP to wake up it,
 		 * 100 is an invalid command
 		 */
-		mbox_raw_sent(dsp_ac->mbx_core, 100);
+		mbox_just_sent(dsp_ac->mbx_core, 100);
 		udelay(20);
 
 		do {
