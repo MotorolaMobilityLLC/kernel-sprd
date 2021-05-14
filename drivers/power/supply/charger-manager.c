@@ -80,8 +80,9 @@
 #define CM_CP_VSTEP				20000
 #define CM_CP_ISTEP				50000
 #define CM_CP_PRIMARY_CHARGER_DIS_TIMEOUT	20
-#define CM_CP_IBAT_UCP_THRESHOLD		3
-#define CM_CP_ADJUST_VOLTAGE_THRESHOLD		(6 * 1000 / CM_CP_WORK_TIME_MS)
+#define CM_CP_IBAT_UCP_THRESHOLD		8
+#define CM_CP_ADJUST_VOLTAGE_THRESHOLD		(5 * 1000 / CM_CP_WORK_TIME_MS)
+#define CM_CP_ACC_VBAT_HTHRESHOLD		3850000
 #define CM_CP_VBAT_STEP1			300000
 #define CM_CP_VBAT_STEP2			150000
 #define CM_CP_VBAT_STEP3			50000
@@ -2717,10 +2718,12 @@ static bool cm_cp_check_ibat_ucp_status(struct charger_manager *cm)
 {
 	struct cm_charge_pump_status *cp = &cm->desc->cp;
 	bool status = false;
+	bool ibat_ucp_flag = false;
 
 	if (cp->alm.bat_ucp_alarm) {
 		dev_warn(cm->dev, "%s, bat_ucp_alarm = %d\n", __func__, cp->alm.bat_ucp_alarm);
 		cp->cp_ibat_ucp_cnt++;
+		ibat_ucp_flag = true;
 	}
 
 	if (!cp->cp_ibat_ucp_cnt)
@@ -2731,9 +2734,9 @@ static bool cm_cp_check_ibat_ucp_status(struct charger_manager *cm)
 		return status;
 	}
 
-	if (cp->ibat_uA < cp->cp_taper_current)
+	if (cp->ibat_uA < cp->cp_taper_current && !(ibat_ucp_flag))
 		cp->cp_ibat_ucp_cnt++;
-	else
+	else if (cp->ibat_uA >= cp->cp_taper_current)
 		cp->cp_ibat_ucp_cnt = 0;
 
 	if (cp->cp_ibat_ucp_cnt > CM_CP_IBAT_UCP_THRESHOLD)
@@ -2806,7 +2809,12 @@ static void cm_cp_state_entry(struct charger_manager *cm)
 	cp->cp_ibat_ucp_cnt = 0;
 
 	cp->cp_target_ibus = cp->cp_max_ibus;
-	cp->cp_target_vbus = cp->vbat_uV * 205 / 100 + 2 * CM_CP_VSTEP;
+
+	if (cp->vbat_uV <= CM_CP_ACC_VBAT_HTHRESHOLD)
+		cp->cp_target_vbus = cp->vbat_uV * 205 / 100 + 10 * CM_CP_VSTEP;
+	else
+		cp->cp_target_vbus = cp->vbat_uV * 205 / 100 + 2 * CM_CP_VSTEP;
+
 
 	dev_dbg(cm->dev, "%s, target_ibat = %d, cp_target_vbus = %d\n",
 	       __func__, cp->cp_target_ibat, cp->cp_target_vbus);
