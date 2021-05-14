@@ -8,6 +8,7 @@
 #include <linux/of.h>
 #include <linux/of_platform.h>
 #include <linux/platform_device.h>
+#include <linux/pm_wakeup.h>
 #include <linux/power_supply.h>
 #include <linux/power/charger-manager.h>
 #include <linux/regulator/driver.h>
@@ -136,6 +137,7 @@
 int chg_pd_gpio;
 #endif
 
+#define AW32257_WAKE_UP_MS                 2000
 enum aw32257_command {
 	AW32257_TIMER_RESET,
 	AW32257_OTG_STATUS,
@@ -1208,6 +1210,7 @@ static int aw32257_charger_usb_change(struct notifier_block *nb,
 
 	info->limit = limit;
 
+	pm_wakeup_event(info->dev, AW32257_WAKE_UP_MS);
 	schedule_work(&info->work);
 
 	return NOTIFY_OK;
@@ -2046,6 +2049,7 @@ static int aw32257_probe(struct i2c_client *client,
 
 	aw32257_charger_stop_charge(bq);
 
+	device_init_wakeup(bq->dev, true);
 	bq->usb_notify.notifier_call = aw32257_charger_usb_change;
 	ret = usb_register_notifier(bq->usb_phy, &bq->usb_notify);
 	if (ret) {

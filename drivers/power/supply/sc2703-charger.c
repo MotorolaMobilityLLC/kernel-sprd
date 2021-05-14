@@ -11,6 +11,7 @@
 #include <linux/of.h>
 #include <linux/of_platform.h>
 #include <linux/platform_device.h>
+#include <linux/pm_wakeup.h>
 #include <linux/power_supply.h>
 #include <linux/power/charger-manager.h>
 #include <linux/regmap.h>
@@ -47,6 +48,9 @@
 #define SC2703_FAST_CHARGER_VOLTAGE_MAX	11000000
 
 #define SC2703_INPUT_CUR_MASK		GENMASK(7, 0)
+
+#define SC2703_WAKE_UP_MS               2000
+
 struct sc2703_charger_info {
 	struct device *dev;
 	struct regmap *regmap;
@@ -916,6 +920,7 @@ static int sc2703_charger_usb_change(struct notifier_block *nb,
 
 	info->limit = limit;
 
+	pm_wakeup_event(info->dev, SC2703_WAKE_UP_MS);
 	schedule_work(&info->work);
 	return NOTIFY_OK;
 }
@@ -1551,6 +1556,7 @@ static int sc2703_charger_probe(struct platform_device *pdev)
 
 	sc2703_charger_stop_charge(info, sc2703_charger_is_bat_present(info));
 
+	device_init_wakeup(info->dev, true);
 	info->usb_notify.notifier_call = sc2703_charger_usb_change;
 	ret = usb_register_notifier(info->usb_phy, &info->usb_notify);
 	if (ret) {

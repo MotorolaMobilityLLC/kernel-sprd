@@ -24,6 +24,7 @@
 #include <uapi/linux/usb/charger.h>
 #include <linux/gpio.h>
 #include <linux/of_gpio.h>
+#include <linux/pm_wakeup.h>
 
 #define ETA6937_REG_0					0x0
 #define ETA6937_REG_1					0x1
@@ -148,6 +149,8 @@
 
 #define ENABLE_CHARGE 0
 #define DISABLE_CHARGE 1
+
+#define ETA6937_WAKE_UP_MS              2000
 
 static int eta6937_max_chg_cur[] = {
 	550000,
@@ -718,6 +721,7 @@ static int eta6937_charger_usb_change(struct notifier_block *nb,
 
 	info->limit = limit;
 
+	pm_wakeup_event(info->dev, ETA6937_WAKE_UP_MS);
 	schedule_work(&info->work);
 	return NOTIFY_OK;
 }
@@ -1203,6 +1207,7 @@ static int eta6937_charger_probe(struct i2c_client *client,
 
 	eta6937_charger_stop_charge(info);
 
+	device_init_wakeup(info->dev, true);
 	info->usb_notify.notifier_call = eta6937_charger_usb_change;
 	ret = usb_register_notifier(info->usb_phy, &info->usb_notify);
 	if (ret) {

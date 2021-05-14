@@ -4,6 +4,7 @@
 #include <linux/module.h>
 #include <linux/nvmem-consumer.h>
 #include <linux/platform_device.h>
+#include <linux/pm_wakeup.h>
 #include <linux/power_supply.h>
 #include <linux/power/charger-manager.h>
 #include <linux/usb/phy.h>
@@ -50,6 +51,7 @@
 #define SC2720_CHG_CC_I_MASK_SHIT		10
 
 #define SC2720_CHG_CCCV_MASK			GENMASK(5, 0)
+#define SC2720_WAKE_UP_MS                       2000
 
 struct sc2720_charger_info {
 	struct device *dev;
@@ -411,6 +413,7 @@ static int sc2720_charger_usb_change(struct notifier_block *nb,
 
 	info->limit = limit;
 
+	pm_wakeup_event(info->dev, SC2720_WAKE_UP_MS);
 	schedule_work(&info->work);
 	return NOTIFY_OK;
 }
@@ -680,6 +683,7 @@ static int sc2720_charger_probe(struct platform_device *pdev)
 
 	sc2720_charger_stop_charge(info);
 
+	device_init_wakeup(info->dev, true);
 	info->usb_notify.notifier_call = sc2720_charger_usb_change;
 	ret = usb_register_notifier(info->usb_phy, &info->usb_notify);
 	if (ret) {
