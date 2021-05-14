@@ -1459,11 +1459,11 @@ static int sprd_codec_digital_open(struct snd_soc_codec *codec)
 	 * temporay method to disable DNS, waiting ASIC to improve
 	 * this feature
 	 */
-	/*
+
 	snd_soc_update_bits(codec, SOC_REG(AUD_DNS_AUTOGATE_EN), 0xffff,
 			    0x3303);
 	snd_soc_update_bits(codec, SOC_REG(AUD_DNS_SW), BIT(RG_DNS_SW), 0);
-	*/
+
 
 	return ret;
 }
@@ -3245,8 +3245,8 @@ static const struct snd_soc_dapm_route sprd_codec_intercon[] = {
 	{"HP DEPOP", NULL, "DIG_CLK_INTC"},
 	{"HP DEPOP", NULL, "SDM DC OS"},
 	{"HPRCV COM Virt", NULL, "DAC Gain"},
-	{"DNS", NULL, "HPRCV COM Virt"},
-	{"DAHP OS", NULL, "DNS"},
+	{"DAHP OS", NULL, "HPRCV COM Virt"},
+	//{"DAHP OS", NULL, "DNS"},
 
 	{"DAHPL EN", NULL, "DAHP OS"},
 	{"DAHPL BUF DCCAL", NULL, "DAHPL EN"},
