@@ -170,6 +170,7 @@
 				cm-fullbatt-voltage = <4390000>;
 				cm-fullbatt-current = <180000>;
 				cm-fullbatt-capacity = <100>;
+				cm-fullbatt-soc =<950>;
 				/*Charge pump target charge current*/
 				cm-cp-taper-current = <1000000>;
 
@@ -222,7 +223,7 @@
 				cm-wireless-fast-charge-voltage-drop = <1000000>;
 
 				cm-dcp-jeita-temp-table = <1000 1020 0 4200000>, <1150 1180 1050000 4400000>,
-					<1450 1420 2000000 4400000>, <1550 1520 2000000 4200000>;
+					<1450 1420 2400000 4400000>, <1550 1520 2400000 4200000>;
 				cm-sdp-jeita-temp-table = <1000 1020 0 4200000>, <1150 1180 500000 4400000>,
 					<1450 1420 500000 4400000>, <1550 1520 500000 4200000>;
 				cm-cdp-jeita-temp-table = <1000 1020 0 4200000>, <1150 1180 500000 4400000>,
