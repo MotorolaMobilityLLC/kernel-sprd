@@ -387,6 +387,9 @@ static void handle_critical_trips(struct thermal_zone_device *tz,
 
 	if (tz->ops->notify)
 		tz->ops->notify(tz, trip, trip_type);
+#ifdef    DUAL_85_VERSION
+	return ;
+#endif		
 
 	if (trip_type == THERMAL_TRIP_CRITICAL) {
 		dev_emerg(&tz->device,
