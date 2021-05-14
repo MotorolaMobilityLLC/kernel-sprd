@@ -14,6 +14,7 @@
 #include <linux/of.h>
 #include <linux/of_platform.h>
 #include <linux/platform_device.h>
+#include <linux/pm_wakeup.h>
 #include <linux/power_supply.h>
 #include <linux/power/charger-manager.h>
 #include <linux/regmap.h>
@@ -73,6 +74,7 @@
 #define FAN54015_DISABLE_PIN_MASK_2730			BIT(0)
 #define FAN54015_DISABLE_PIN_MASK_2721			BIT(15)
 #define FAN54015_DISABLE_PIN_MASK_2720			BIT(0)
+#define FAN54015_WAKE_UP_MS                             2000
 
 struct fan54015_charge_current {
 	int sdp_limit;
@@ -651,6 +653,7 @@ static int fan54015_charger_usb_change(struct notifier_block *nb,
 
 	info->limit = limit;
 
+	pm_wakeup_event(info->dev, FAN54015_WAKE_UP_MS);
 	schedule_work(&info->work);
 	return NOTIFY_OK;
 }
@@ -1067,6 +1070,7 @@ static int fan54015_charger_probe(struct i2c_client *client,
 	info = devm_kzalloc(dev, sizeof(*info), GFP_KERNEL);
 	if (!info)
 		return -ENOMEM;
+
 	info->client = client;
 	info->dev = dev;
 
@@ -1164,6 +1168,7 @@ static int fan54015_charger_probe(struct i2c_client *client,
 		return ret;
 	}
 
+	device_init_wakeup(info->dev, true);
 	fan54015_charger_stop_charge(info);
 
 	fan54015_charger_detect_status(info);
