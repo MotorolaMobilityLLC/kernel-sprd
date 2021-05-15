@@ -50,6 +50,7 @@
 #include "sprd-compr.h"
 //#include "sprd-compr-util.c"
 #include "audio-sipc.h"
+#include "sprd-audio.h"
 
 #define COMPR_WAIT_FOREVER AUDIO_SIPC_WAIT_FOREVER
 
@@ -351,6 +352,7 @@ static void *compr_cb_data;
 static struct mutex g_lock;
 #endif
 
+#if 0
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-function"
 int agdsp_access_enable(void)
@@ -369,6 +371,7 @@ static int __agdsp_access_disable(void)
 	return 0;
 }
 #pragma GCC diagnostic pop
+#endif
 
 static void sprd_compr_drain_work(struct work_struct *work)
 {
