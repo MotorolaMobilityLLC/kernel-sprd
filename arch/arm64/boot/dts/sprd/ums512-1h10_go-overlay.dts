@@ -252,6 +252,14 @@
 								114889 57
 								124872 43 >;
 			};
+
+                        gpio_boardid:gpio_boardid {
+                                        compatible = "gpio,boardid";
+                                        gpio,boardid0 = <&ap_gpio 116 0>;
+                                        gpio,boardid1 = <&ap_gpio 115 0>;
+                                        gpio,boardid2 = <&ap_gpio 46 0>;
+                                        gpio,boardid3 = <&ap_gpio 47 0>;
+                        };
 		};
 	};
 };
