@@ -48,13 +48,14 @@ static bool Processing;
 static struct timespec64 ts_end;
 #ifdef CONFIG_SPRD_CPU_USAGE
 extern ulong sprd_g_irq_ratio;
-static int irqrunt_period;
+static unsigned int irqrunt_period;
 static struct timespec64 ts_ration[IRQ_RUNTIME_STAT_TIMES];
 #endif
 
 static void scan_burst_irq(struct timer_list *t)
 {
-	int i, j, irq_occur_value, index;
+	unsigned i, index;
+	int j, irq_occur_value;
 	unsigned int tmp_kstat_irq;
 	struct irq_desc *desc;
 	struct irqaction *action;
