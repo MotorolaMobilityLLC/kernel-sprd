@@ -95,7 +95,7 @@ extern const uint16_t gesture_key_array[];
 #define POINT_DATA_CHECKSUM_LEN 65
 
 //---ESD Protect.---
-#define NVT_TOUCH_ESD_PROTECT 0
+#define NVT_TOUCH_ESD_PROTECT 1
 #define NVT_TOUCH_ESD_CHECK_PERIOD 1500	/* ms */
 #define NVT_TOUCH_WDT_RECOVERY 1
 
@@ -204,6 +204,7 @@ int32_t nvt_ts_suspend(struct device *dev);
 
 #if NVT_TOUCH_ESD_PROTECT
 extern void nvt_esd_check_enable(uint8_t enable);
+extern struct delayed_work nvt_esd_check_work;
 #endif /* #if NVT_TOUCH_ESD_PROTECT */
 
 #endif /* _LINUX_NVT_TOUCH_H */

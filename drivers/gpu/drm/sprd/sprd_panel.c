@@ -366,6 +366,8 @@ static int sprd_panel_te_check(struct sprd_panel *panel)
 	int ret;
 	bool irq_occur = false;
 
+	printk(KERN_ERR "ontim:te check mode enter!\n");
+
 	if (!panel->base.connector ||
 	    !panel->base.connector->encoder ||
 	    !panel->base.connector->encoder->crtc) {
@@ -405,7 +407,7 @@ static int sprd_panel_te_check(struct sprd_panel *panel)
 			} else
 				DRM_WARN("TE occur, but isr schedule delay\n");
 		} else {
-			DRM_ERROR("TE esd timeout.\n");
+			DRM_ERROR("TE esd timeout!\n");
 			ret = -1;
 		}
 	}
@@ -416,6 +418,12 @@ static int sprd_panel_te_check(struct sprd_panel *panel)
 	return ret < 0 ? ret : 0;
 }
 
+static int sprd_oled_set_brightness(struct backlight_device *bdev);
+struct backlight_device *g_bdev;
+struct device *dev;
+extern int32_t nvt_ts_suspend(struct device *dev);
+extern int32_t nvt_ts_resume(struct device *dev);
+
 static void sprd_panel_esd_work_func(struct work_struct *work)
 {
 	struct sprd_panel *panel = container_of(work, struct sprd_panel,
@@ -423,6 +431,7 @@ static void sprd_panel_esd_work_func(struct work_struct *work)
 	struct panel_info *info = &panel->info;
 	int ret;
 
+	printk(KERN_ERR "ontim:%s(%d) check_mode:%d\n", __func__, __LINE__, info->esd_check_mode);
 	if (info->esd_check_mode == ESD_MODE_REG_CHECK)
 		ret = sprd_panel_esd_check(panel);
 	else if (info->esd_check_mode == ESD_MODE_TE_CHECK)
@@ -431,6 +440,8 @@ static void sprd_panel_esd_work_func(struct work_struct *work)
 		DRM_ERROR("unknown esd check mode:%d\n", info->esd_check_mode);
 		return;
 	}
+
+	printk(KERN_ERR "ontim:ret = %d\n", ret);
 
 	if (ret && panel->base.connector && panel->base.connector->encoder) {
 		const struct drm_encoder_helper_funcs *funcs;
@@ -447,8 +458,19 @@ static void sprd_panel_esd_work_func(struct work_struct *work)
 		}
 
 		DRM_INFO("====== esd recovery start ========\n");
+
+		if(strncmp(lcd_name, "lcd_nt36525b_dj_mipi_hd", strlen(lcd_name)) == 0){
+			nvt_ts_suspend(dev);
+		}
+
 		funcs->disable(encoder);
 		funcs->enable(encoder);
+
+		if(strncmp(lcd_name, "lcd_nt36525b_dj_mipi_hd", strlen(lcd_name)) == 0){
+			nvt_ts_resume(dev);
+		}
+
+		sprd_oled_set_brightness(g_bdev);
 		DRM_INFO("======= esd recovery end =========\n");
 	} else
 		schedule_delayed_work(&panel->esd_work,
@@ -745,6 +767,8 @@ static int sprd_oled_backlight_init(struct sprd_panel *panel)
 	of_parse_oled_cmds(oled,
 			panel->info.cmds[CMD_OLED_BRIGHTNESS],
 			panel->info.cmds_len[CMD_OLED_BRIGHTNESS]);
+
+	g_bdev = oled->bdev;
 
 	DRM_INFO("%s() ok\n", __func__);
 

@@ -42,7 +42,7 @@
 #endif /* #if NVT_TOUCH_ESD_PROTECT */
 
 #if NVT_TOUCH_ESD_PROTECT
-static struct delayed_work nvt_esd_check_work;
+struct delayed_work nvt_esd_check_work;
 static struct workqueue_struct *nvt_esd_check_wq;
 static unsigned long irq_timer = 0;
 uint8_t esd_check = false;
@@ -1001,6 +1001,7 @@ static ssize_t nvt_suspend_store(struct device *dev,
 	if (kstrtouint(buf, 10, &input))
 		return -EINVAL;
 
+	printk(KERN_ERR "ontim->%s(%d) input = %d\n", __func__, __LINE__, input);
 	if (input == 1)
 		nvt_ts_suspend(dev);
 	else if (input == 0)
