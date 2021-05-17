@@ -892,10 +892,6 @@
 
 &sprd_headset {
 	status = "okay";
-	extcon = <&pmic_typec>;
-	mic-gpios = <&ap_gpio 16 GPIO_ACTIVE_HIGH>;
-	lr-gpios = <&ap_gpio 15 GPIO_ACTIVE_HIGH>;
-	sprd,3pole-adc-threshold = <112>;
 };
 
 &sprd_audio_codec_ana {
