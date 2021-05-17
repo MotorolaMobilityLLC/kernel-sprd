@@ -1692,6 +1692,125 @@ int btwf_sys_poweron(struct wcn_device *wcn_dev)
 	return 0;
 }
 
+int btwf_gnss_force_unshutdown(struct wcn_device *wcn_dev)
+{
+	u32 reg_val = 0;
+
+	WCN_INFO("[+]%s\n", __func__);
+	if (wcn_dev == NULL) {
+		WCN_ERR("[-]%s NULL\n", __func__);
+		return -1;
+	}
+
+	/* Bit[22:21] 0x0 means poweron status */
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_AON_APB],
+					0x0360, &reg_val);
+	WCN_INFO("REG 0x64000360:val=0x%x!\n", reg_val);
+	reg_val |= (0x6<<21);
+	wcn_regmap_raw_write_bit(wcn_dev->rmap[REGMAP_AON_APB],
+				0x0360, reg_val);
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_AON_APB],
+						0x0360, &reg_val);
+	WCN_INFO("SET REG 0x64000360:val=0x%x!(unshutdown)\n", reg_val);
+
+	return 0;
+
+}
+
+int pll1_pll2_stable_time(struct wcn_device *wcn_dev)
+{
+	u32 reg_val = 0;
+
+	WCN_INFO("[+]%s\n", __func__);
+	if (wcn_dev == NULL) {
+		WCN_ERR("[-]%s NULL\n", __func__);
+		return -1;
+	}
+
+	/* Bit[27:12] 0x1458 */
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_APB],
+					 0x3c8, &reg_val);
+	WCN_INFO("REG 0x4080c3c8:val=0x%x!\n", reg_val);
+	reg_val |= (0x1458<<12);
+	wcn_regmap_raw_write_bit(wcn_dev->rmap[REGMAP_WCN_AON_APB],
+				0x3c8, reg_val);
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_APB],
+			0x3c8, &reg_val);
+	WCN_INFO("SET REG 0x4080c3c8:val=0x%x!(btwf pll2)\n", reg_val);
+
+	/* Bit[27:12] 0x1458 */
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_APB],
+					 0x3c4, &reg_val);
+	WCN_INFO("REG 0x4080c3c4:val=0x%x!\n", reg_val);
+	reg_val |= (0x1458<<12);
+	wcn_regmap_raw_write_bit(wcn_dev->rmap[REGMAP_WCN_AON_APB],
+				0x3c4, reg_val);
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_APB],
+			0x3c4, &reg_val);
+	WCN_INFO("SET REG 0x4080c3c4:val=0x%x!(btwf pll1)\n", reg_val);
+
+	/* Bit[27:12] 0x1458 */
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_APB],
+					 0x3cc, &reg_val);
+	WCN_INFO("REG 0x4080c3cc:val=0x%x!\n", reg_val);
+	reg_val |= (0x1458<<12);
+	wcn_regmap_raw_write_bit(wcn_dev->rmap[REGMAP_WCN_AON_APB],
+				0x3cc, reg_val);
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_APB],
+			0x3cc, &reg_val);
+	WCN_INFO("SET REG 0x4080c3cc:val=0x%x!(gnss pll)\n", reg_val);
+
+	/* Bit[23:16] 0x37 */
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_APB],
+			0x19c, &reg_val);
+	WCN_INFO("REG 0x4080c19c:val=0x%x!\n", reg_val);
+	reg_val |= (0x37<<16);
+	wcn_regmap_raw_write_bit(wcn_dev->rmap[REGMAP_WCN_AON_APB],
+				0x19c, reg_val);
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_APB],
+			0x19c, &reg_val);
+	WCN_INFO("SET REG 0x4080c19c:val=0x%x!(btwf pll1)\n", reg_val);
+
+	/* Bit[23:16] 0x37 */
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_APB],
+			0x168, &reg_val);
+	WCN_INFO("REG 0x4080c168:val=0x%x!\n", reg_val);
+	reg_val |= (0x7<<16);
+	wcn_regmap_raw_write_bit(wcn_dev->rmap[REGMAP_WCN_AON_APB],
+				 0x168, reg_val);
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_APB],
+			0x168, &reg_val);
+	WCN_INFO("SET REG 0x4080c168:val=0x%x!(btwf pll2)\n", reg_val);
+
+	return 0;
+
+}
+
+int btwf_clear_force_shutdown(struct wcn_device *wcn_dev)
+{
+	u32 reg_val = 0;
+
+	WCN_INFO("[+]%s\n", __func__);
+	if (wcn_dev == NULL) {
+		WCN_ERR("[-]%s NULL\n", __func__);
+		return -1;
+	}
+
+	/* Bit[22:21] 0x0 means poweron status */
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_AON_APB],
+					0x0360, &reg_val);
+	WCN_INFO("REG 0x64000360:val=0x%x!\n", reg_val);
+	reg_val &= ~(0x6<<21);
+	wcn_regmap_raw_write_bit(wcn_dev->rmap[REGMAP_AON_APB],
+				 0x0360, reg_val);
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_AON_APB],
+			0x0360, &reg_val);
+	WCN_INFO("SET REG 0x64000360:val=0x%x!\n", reg_val);
+
+	return 0;
+
+}
+
 int wcn_poweron_device(struct wcn_device *wcn_dev)
 {
 	int ret;
@@ -1735,6 +1854,12 @@ int wcn_poweron_device(struct wcn_device *wcn_dev)
 		return -1;
 	}
 
+	ret = btwf_gnss_force_unshutdown(wcn_dev);
+		if (ret) {
+			WCN_ERR("[-]%s:wcn force shutdown fail!\n", __func__);
+			return -1;
+		}
+
 	ret = wcn_sys_power_up(wcn_dev);
 	if (ret) {
 		WCN_ERR("[-]%s:wcn power up fail!\n", __func__);
@@ -1744,6 +1869,13 @@ int wcn_poweron_device(struct wcn_device *wcn_dev)
 #if 0	//SPECIAL_DEBUG_EN	//temp debug
 	msleep(1000);
 #endif
+
+	ret = pll1_pll2_stable_time(wcn_dev);
+		if (ret) {
+			WCN_ERR("[-]%s:wcn stable time fail!\n", __func__);
+			return -1;
+		}
+
 	/* ap set allow wcn sys allow deep, btwf, gnss no need to set it */
 	ret = wcn_sys_allow_deep_sleep(wcn_dev);
 	if (ret) {
@@ -1760,6 +1892,12 @@ int wcn_poweron_device(struct wcn_device *wcn_dev)
 		ret = gnss_sys_force_deep_to_shutdown(wcn_dev);
 		if (ret) {
 			WCN_ERR("[-]%s:gnss shutdown fail!\n", __func__);
+			return -1;
+		}
+
+		ret = btwf_clear_force_shutdown(wcn_dev);
+		if (ret) {
+			WCN_ERR("[-]%s:clear force fail!\n", __func__);
 			return -1;
 		}
 

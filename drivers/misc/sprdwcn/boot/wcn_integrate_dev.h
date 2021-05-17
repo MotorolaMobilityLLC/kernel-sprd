@@ -524,6 +524,9 @@ bool gnss_sys_is_poweron_status(struct wcn_device *wcn_dev);
 
 bool gnss_sys_is_powerdown_status(struct wcn_device *wcn_dev);
 
+int btwf_gnss_force_unshutdown(struct wcn_device *wcn_dev);
+int pll1_pll2_stable_time(struct wcn_device *wcn_dev);
+int btwf_clear_force_shutdown(struct wcn_device *wcn_dev);
 
 
 #endif
