@@ -50,6 +50,8 @@ struct modem_region_info {
 
 struct modem_load_info {
 	u32	region_cnt;
+	u64	mini_base;
+	u32	mini_size;
 	u64	modem_base;
 	u32	modem_size;
 	u64	all_base;
@@ -88,6 +90,8 @@ struct modem_device {
 	u32	write_pose;
 	u32	remote_flag;
 
+	phys_addr_t	mini_base;
+	size_t		mini_size;
 	phys_addr_t	modem_base;
 	size_t		modem_size;
 	phys_addr_t	all_base;
@@ -106,6 +110,13 @@ struct modem_device {
 	struct device	*p_dev;
 	dev_t		devid;
 	struct cdev	cdev;
+};
+
+struct modem_dump_info {
+	char	parent_name[20];
+	char	name[20];
+	u32	start_addr;
+	u32	size;
 };
 
 struct ext_modem_operations {
