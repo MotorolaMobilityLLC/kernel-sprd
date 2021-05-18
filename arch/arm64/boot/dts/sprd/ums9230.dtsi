@@ -358,6 +358,10 @@
 		sprd,sys-aon-apb = <&aon_apb_regs>;
 	};
 
+	debug_stat: debugstat {
+		compatible = "sprd,debugstat-sharkl6";
+	};
+
 	psci {
 		compatible = "arm,psci-0.2";
 		method = "smc";
