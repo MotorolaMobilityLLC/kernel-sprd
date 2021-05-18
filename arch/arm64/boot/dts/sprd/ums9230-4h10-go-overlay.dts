@@ -804,8 +804,8 @@
 		};
 	};
 
-	/* 50: pdm dmic */
-	sprd-audio-card,dai-link@68 {
+	/* 63: pdm dmic */
+	sprd-audio-card,dai-link@81 {
 		ignore-suspend = <1>;
 		link-name = "BE_PDM_DMIC";
 		stream-name = "BE_ST_PDM_DMIC";
