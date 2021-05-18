@@ -1084,7 +1084,7 @@ static void get_card_present(void)
 {
 	char card_holder_present[BUF_SIZE];
 // BEGIN Ontim, rd.zhigang.he, 8/28/2020, 9824711, St-result :PASS, detect card holder present
-	int  gpio_cd = 457;
+	int  gpio_cd = 403;
 
 	memset(card_holder_present, '\0', BUF_SIZE);
 	printk("%s: gpio(%d) value=%d\n", __func__, gpio_cd, gpio_get_value(gpio_cd));
