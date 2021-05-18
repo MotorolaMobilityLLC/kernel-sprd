@@ -789,6 +789,7 @@ static void med_rewrite_post_process(struct sprd_apdu_device *apdu)
 	struct med_origin_info_t *med_origin;
 	struct med_parse_info_t *med_post;
 	u32 i, len;
+	long ret;
 
 	msg_buf[0] = MESSAGE_HEADER_MED_INFO;
 	med_origin = (struct med_origin_info_t *)apdu->med_rewr.med_rewrite;
@@ -799,9 +800,14 @@ static void med_rewrite_post_process(struct sprd_apdu_device *apdu)
 		if (med_origin[i].med_data_offset == 0 &&
 		    med_origin[i].med_data_len == 0)
 			break;
-		med_rewrite_info_parse(apdu, &med_post[i],
-				       med_origin[i].med_data_offset,
-				       med_origin[i].med_data_len);
+		ret = med_rewrite_info_parse(apdu, &med_post[i],
+					     med_origin[i].med_data_offset,
+					     med_origin[i].med_data_len);
+		if (ret < 0) {
+			dev_err(apdu->dev,
+				"%s() med rewrite info prase fail\n", __func__);
+			break;
+		}
 	}
 	if (i > 0) {
 		len = i * sizeof(struct med_parse_info_t) + 4;
@@ -1016,9 +1022,9 @@ static int sprd_apdu_sync_counter(struct sprd_apdu_device *apdu)
 
 	struct file *isedata_file = NULL;
 	loff_t ise_counter_offset = MEDDDR_ISEDATA_OFFSET_BASE_ADDRESS +
-				    (loff_t)(apdu->slot) * MEDDDR_MAX_SIZE;
+				    (loff_t)(apdu->slot) * apdu->pub_ise_cfg.med_size;
 	loff_t offset = 0;
-	int ret = -1;
+	ssize_t ret = -1;
 
 	isedata_file = filp_open(ISEDATA_DEV_PATH, O_RDWR, 0644);
 	if (IS_ERR(isedata_file)) {
@@ -1056,9 +1062,9 @@ static int sprd_apdu_save_medddr_area(struct sprd_apdu_device *apdu)
 
 	struct file *isedata_file = NULL;
 	loff_t ise_counter_offset = MEDDDR_ISEDATA_OFFSET_BASE_ADDRESS +
-				    (loff_t)(apdu->slot) * MEDDDR_MAX_SIZE;
+				    (loff_t)(apdu->slot) * apdu->pub_ise_cfg.med_size;
 	loff_t offset = 0;
-	int ret = -1;
+	ssize_t ret = -1;
 
 	isedata_file = filp_open(ISEDATA_DEV_PATH, O_RDWR, 0644);
 	if (IS_ERR(isedata_file)) {
@@ -1079,8 +1085,8 @@ static int sprd_apdu_save_medddr_area(struct sprd_apdu_device *apdu)
 		__func__, ise_counter_offset, offset);
 
 	ret = kernel_write(isedata_file, apdu->medddr_address,
-			   MEDDDR_MAX_SIZE, &offset);
-	if (ret != MEDDDR_MAX_SIZE) {
+			   apdu->pub_ise_cfg.med_size, &offset);
+	if (ret != apdu->pub_ise_cfg.med_size) {
 		dev_err(apdu->dev, "save all medddr to flash write failed: %zd\n", ret);
 		filp_close(isedata_file, NULL);
 		return -1;
@@ -1095,9 +1101,9 @@ static int sprd_apdu_restore_medddr_area(struct sprd_apdu_device *apdu)
 
 	struct file *isedata_file = NULL;
 	loff_t ise_counter_offset = MEDDDR_ISEDATA_OFFSET_BASE_ADDRESS +
-				    (loff_t)(apdu->slot) * MEDDDR_MAX_SIZE;
+				    (loff_t)(apdu->slot) * apdu->pub_ise_cfg.med_size;
 	loff_t offset = 0;
-	int ret = -1;
+	ssize_t ret = -1;
 
 	isedata_file = filp_open(ISEDATA_DEV_PATH, O_RDWR, 0644);
 	if (IS_ERR(isedata_file)) {
@@ -1116,8 +1122,8 @@ static int sprd_apdu_restore_medddr_area(struct sprd_apdu_device *apdu)
 	}
 
 	ret = kernel_read(isedata_file, apdu->medddr_address,
-			  MEDDDR_MAX_SIZE, &offset);
-	if (ret != MEDDDR_MAX_SIZE) {
+			  apdu->pub_ise_cfg.med_size, &offset);
+	if (ret != apdu->pub_ise_cfg.med_size) {
 		dev_err(apdu->dev,
 			"restore medddr area from isedata read failed: %zd\n",
 			ret);
@@ -1257,6 +1263,14 @@ static long sprd_apdu_ioctl(struct file *fp, unsigned int code,
 				   ) ? (-EFAULT) : 0;
 		break;
 
+	case APDU_SEND_MED_RESERVED_SIZE:
+		/* the size of reseaved med size of DDR */
+		ret = copy_to_user((void __user *)value,
+				   &(apdu->pub_ise_cfg.med_size),
+				   sizeof(apdu->pub_ise_cfg.med_size)
+				   ) ? (-EFAULT) : 0;
+		break;
+
 	case APDU_ION_MAP_MEDDDR_IN_KERNEL:
 		ret = copy_from_user(&rcv_data, (void __user *)value,
 				     sizeof(u64)) ? (-EFAULT) : 0;
@@ -1369,7 +1383,7 @@ static long sprd_apdu_ioctl(struct file *fp, unsigned int code,
 			break;
 
 		/* just do one time when chip power on */
-		apdu->pd_ise->ise_cold_power_on(apdu);
+		ret = apdu->pd_ise->ise_cold_power_on(apdu);
 		if (ret) {
 			dev_err(apdu->dev, "ise cold boot fail\n");
 			break;
@@ -2057,7 +2071,7 @@ static ssize_t ise_pd_set_magic_num_store(struct device *dev,
 		return -EINVAL;
 	}
 
-	return ((ret < 0) ? ret : count);
+	return count;
 }
 
 static DEVICE_ATTR_RO(get_random);
