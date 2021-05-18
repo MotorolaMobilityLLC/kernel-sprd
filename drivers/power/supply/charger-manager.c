@@ -1631,7 +1631,7 @@ static void cm_sprd_vote_callback(struct sprd_vote *vote_gov, int vote_type,
 	struct charger_manager *cm = (struct charger_manager *)data;
 	const char **psy_charger_name;
 
-	dev_info(cm->dev, "%s, value = %d, vote_type = %d\n", __func__, value, vote_type);
+	dev_info(cm->dev, "%s, %s[%d]\n", __func__, vote_type_names[vote_type], value);
 	switch (vote_type) {
 	case SPRD_VOTE_TYPE_IBAT:
 		psy_charger_name = cm->desc->psy_charger_stat;
