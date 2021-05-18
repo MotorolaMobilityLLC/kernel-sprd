@@ -136,8 +136,6 @@ static int sprd_cpufreq_arch_update(struct sprd_cpufreq_info *info)
 		return opp_num;
 	}
 
-	clu->temp_max_freq = 0;
-
 	for (i = 0, rate = 0; i < opp_num; i++, rate++) {
 		opp = dev_pm_opp_find_freq_ceil(info->cpu_dev, &rate);
 		if (IS_ERR(opp))
@@ -145,8 +143,6 @@ static int sprd_cpufreq_arch_update(struct sprd_cpufreq_info *info)
 
 		volt = dev_pm_opp_get_voltage(opp);
 		freq = dev_pm_opp_get_freq(opp);		/* in HZ */
-		if (freq / 1000 > clu->temp_max_freq)		/* in KHZ */
-			clu->temp_max_freq = freq / 1000;
 
 		dev_pm_opp_put(opp);
 
@@ -190,6 +186,8 @@ static int sprd_dev_pm_opp_table_update(struct sprd_cpufreq_info *info)
 	struct sprd_cpu_cluster_info *clu;
 	struct property *prop;
 	const __be32 *value;
+	struct dev_pm_opp *opp;
+	unsigned long rate;
 	int ret, num;
 
 	if (!info) {
@@ -223,6 +221,7 @@ static int sprd_dev_pm_opp_table_update(struct sprd_cpufreq_info *info)
 	dev_dbg(info->pdev, "the final opp table name: %s opp num: %d\n",
 		clu->opp_name, num / 2);
 
+	clu->temp_max_freq = 0;
 	while (num) {
 		unsigned long freq = be32_to_cpup(value++) * 1000; /*in HZ*/
 		unsigned long volt = be32_to_cpup(value++);	   /*in uV */
@@ -237,8 +236,18 @@ static int sprd_dev_pm_opp_table_update(struct sprd_cpufreq_info *info)
 				return ret;
 			}
 		}
+		if (freq / 1000 > clu->temp_max_freq)
+			clu->temp_max_freq = freq / 1000;
+
 		num -= 2;
 		dev_dbg(info->pdev, "add opp: %luHZ-%luUV\n", freq, volt);
+	}
+
+	rate = clu->temp_max_freq * 1000 + 1;
+	while (!IS_ERR(opp = dev_pm_opp_find_freq_ceil(info->cpu_dev, &rate))) {
+		dev_pm_opp_put(opp);
+		dev_pm_opp_remove(info->cpu_dev, rate);
+		rate++;
 	}
 
 	ret = sprd_cpufreq_arch_update(info);
@@ -448,7 +457,9 @@ static int sprd_cpu_soc_version_parse(struct sprd_cpufreq_info *info)
 
 	value = of_get_property(hwf, "efuse", NULL);
 	if (strcmp(value, "T610") && strcmp(value, "T618") &&
-	    strcmp(value, "T610S")) {
+	    strcmp(value, "T700") && strcmp(value, "T610S") &&
+	    strcmp(value, "T606") && strcmp(value, "T612") &&
+	    strcmp(value, "T616")) {
 		dev_err(info->pdev, "the cpu version defined is error(%s)\n",
 			clu->cpu_diff_ver);
 		return -EINVAL;
@@ -635,7 +646,10 @@ int sprd_hardware_cpufreq_set_target_index(struct cpufreq_policy *policy,
 	if (unlikely(!time_after(jiffies, boot_done_timestamp)))
 		return 0;
 
+	mutex_lock(&info->pcluster->opp_mutex);
 	ret = driver->target_set(pdev, info->clu_id, index);
+	mutex_unlock(&info->pcluster->opp_mutex);
+
 	if (ret) {
 		dev_err(info->pdev, "failed to set target index%d for cpu%d\n",
 			index, info->cpu_id);
@@ -766,6 +780,7 @@ static int sprd_hardware_cpufreq_init(struct cpufreq_policy *policy)
 	}
 
 	policy->freq_table = freq_table;
+	policy->suspend_freq = freq_table[0].frequency;
 	info->pcluster->online = true;
 	mutex_unlock(&info->pcluster->opp_mutex);
 

@@ -272,6 +272,7 @@ static int dvfs_map_tbl_init(struct cpudvfs_device *pdev,
 
 table_free:
 	kfree(clu->opp_map_tbl);
+	clu->opp_map_tbl = NULL;
 
 	return ret;
 }
