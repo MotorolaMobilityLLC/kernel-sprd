@@ -804,7 +804,6 @@ void wcn_notify_fw_error(enum wcn_source_type type, char *buf)
 	kfree(pbuf);
 }
 
-//static int __init init_wcn_sysfs(void)
 int init_wcn_sysfs(void)
 {
 	int ret;
@@ -845,16 +844,9 @@ int init_wcn_sysfs(void)
 	return 0;
 }
 
-//static void __exit exit_wcn_sysfs(void)
 void exit_wcn_sysfs(void)
 {
 	misc_deregister(&wcn_misc_device);
 }
 
-//module_init(init_wcn_sysfs);
-//module_exit(exit_wcn_sysfs);
-//MODULE_DESCRIPTION(DRIVER_DESC);
-//MODULE_AUTHOR(DRIVER_AUTHOR);
-//MODULE_LICENSE("GPL");
-//MODULE_VERSION(WCN_SYSFS_VERSION);
 

@@ -708,8 +708,11 @@ static int wcn_get_syscon_regmap(void)
 
 	regmap_np = of_find_compatible_node(NULL, NULL, "sprd,sc27xx-syscon");
 	if (!regmap_np) {
-		pr_err("unable to get syscon node\n");
-		return -ENODEV;
+		regmap_np = of_find_compatible_node(NULL, NULL, "sprd,ump962x-syscon");
+		if (!regmap_np) {
+			pr_err("unable to get syscon node\n");
+			return -ENODEV;
+		}
 	}
 
 	regmap_pdev = of_find_device_by_node(regmap_np);
@@ -1734,6 +1737,9 @@ static void pre_btwifi_download_sdio(struct work_struct *work)
 	}
 	/* Runtime PM is useless, mainly to enable sdio_func1 and rx irq */
 	sprdwcn_bus_runtime_get();
+#ifndef CONFIG_WCN_PCIE
+	wcn_firmware_init();
+#endif
 }
 
 static int bus_scan_card(void)
@@ -1845,9 +1851,9 @@ static int chip_power_off(enum wcn_sub_sys subsys)
 	wifipa_enable(0);
 	marlin_avdd18_dcxo_enable(false);
 	marlin_clk_enable(false);
+	marlin_analog_power_enable(false);
 	marlin_chip_en(false, false);
 	marlin_digital_power_enable(false);
-	marlin_analog_power_enable(false);
 	chip_reset_release(0);
 	marlin_dev->wifi_need_download_ini_flag = 0;
 #ifndef CONFIG_WCN_PCIE_REMOVE
@@ -2046,8 +2052,9 @@ static int marlin_set_power(enum wcn_sub_sys subsys, int val)
 			}
 			atomic_set(&marlin_dev->download_finish_flag, 1);
 			pr_info("then marlin download finished and run ok\n");
-
+#ifdef CONFIG_WCN_PCIE
 			wcn_firmware_init();
+#endif
 			set_wifipa_status(subsys, val);
 			mutex_unlock(&marlin_dev->power_lock);
 
@@ -2607,9 +2614,9 @@ static int marlin_remove(struct platform_device *pdev)
 	mem_pd_exit();
 #endif
 
-//	gnss_module_exit();
-//	gnss_pmnotify_ctl_cleanup();
-//	gnss_common_ctl_exit();
+	gnss_module_exit();
+	gnss_pmnotify_ctl_cleanup();
+	gnss_common_ctl_exit();
 	exit_wcn_sysfs();
 	sprdwcn_bus_deinit();
 	if (marlin_dev->power_state != 0) {
