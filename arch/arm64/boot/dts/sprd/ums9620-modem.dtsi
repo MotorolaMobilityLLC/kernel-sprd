@@ -65,6 +65,12 @@
 		sprd,version = <0x04>;
 	};
 
+	nr_cp_dump: cp_dump {
+		compatible = "sprd,cp_dump";
+		sprd,sys-bus-ctrl-sp = <&aon_apb_regs 0x0128 0x1>;
+		sprd,sys-bus-ctrl-ch = <&aon_apb_regs 0x0124 0x1>;
+	};
+
 	sipc_pm: sipc@0 {
 		compatible = "sprd,sipc";
 		sprd,name = "sipc-pmsys";
