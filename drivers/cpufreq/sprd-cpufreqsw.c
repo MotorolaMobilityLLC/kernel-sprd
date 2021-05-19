@@ -1412,7 +1412,8 @@ static int sprd_cpufreq_set_boost(int state)
 static struct cpufreq_driver sprd_cpufreq_driver = {
 	.name = "sprd-cpufreq",
 	.flags = CPUFREQ_STICKY | CPUFREQ_NEED_INITIAL_FREQ_CHECK
-				| CPUFREQ_HAVE_GOVERNOR_PER_POLICY,
+				| CPUFREQ_HAVE_GOVERNOR_PER_POLICY
+				| CPUFREQ_IS_COOLING_DEV,
 	.init = sprd_cpufreq_init,
 	.exit = sprd_cpufreq_exit,
 	.verify = sprd_cpufreq_table_verify,
