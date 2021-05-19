@@ -517,7 +517,8 @@ int wcn_download_image_ufs(struct wcn_device *wcn_dev)
 	WCN_INFO("load config ufs file:%s\n", firmware_file_path);
 	file = filp_open(firmware_file_path, O_RDONLY, 0);
 	if (IS_ERR(file)) {
-		WCN_INFO("%s:open UFS file failed, check emmc", __func__);
+		WCN_INFO("%s:open UFS failed check emmc, file=%d\n",
+				 __func__, file);
 		s_wcn_device.wcn_mm_flag = emmc;
 		return 1;
 	} else {
@@ -564,7 +565,8 @@ int wcn_download_image_emmc(struct wcn_device *wcn_dev)
 	WCN_INFO("load config emmc file:%s\n", firmware_file_path);
 	file = filp_open(firmware_file_path, O_RDONLY, 0);
 	if (IS_ERR(file)) {
-		WCN_INFO("%s:open EMMC file failed, check ufs", __func__);
+		WCN_INFO("%s:open EMMC failed check ufs, file=%d\n",
+				 __func__, file);
 		s_wcn_device.wcn_mm_flag = ufs;
 		return 1;
 	} else {
