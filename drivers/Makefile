@@ -6,6 +6,18 @@
 # Rewritten to use lists instead of if-statements.
 #
 
+ifeq ($(BUILD_D85), YES)
+subdir-ccflags-y += -DDUAL_85_VERSION
+endif
+
+ifeq ($(BUILD_SMT),YES)
+subdir-ccflags-y += -DSMT_VERSION
+endif
+
+ifeq ($(BUILD_DPWK),YES)
+subdir-ccflags-y += -DAUTH_VERSION
+endif
+
 obj-y				+= irqchip/
 obj-y				+= bus/
 
@@ -181,6 +193,9 @@ obj-$(CONFIG_STM)		+= hwtracing/stm/
 obj-$(CONFIG_ANDROID)		+= android/
 obj-$(CONFIG_NVMEM)		+= nvmem/
 obj-$(CONFIG_FPGA)		+= fpga/
+# BEGIN Ontim, jiawentao, 17/10/2020, 9803594, St-result:PASS,android r porting.
+obj-y                           += ontim/
+# END 9803594.
 obj-$(CONFIG_FSI)		+= fsi/
 obj-$(CONFIG_TEE)		+= tee/
 obj-$(CONFIG_MULTIPLEXER)	+= mux/
