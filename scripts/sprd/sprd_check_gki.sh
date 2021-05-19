@@ -88,14 +88,16 @@ else
 fi
 
 # Determine if there is a git repository
-GITTOOL=`find $KERNEL_CODE_DIR/$KERNEL_DIR -type d -name ".git"`
-if [ ! ${GITTOOL} ]; then
+cd $KERNEL_CODE_DIR/$KERNEL_DIR
+GITTOOL=`find -type d -name ".git"`
+if [ ! -n "${GITTOOL}" ]; then
   echo "create abigail git repository"
   cd ${KERNEL_CODE_DIR}/${KERNEL_DIR}
   git init
   git add -A
   git commit -m "abigail git repository"
 fi
+cd -
 
 function do_gki_ckeck() {
   cd ${SCRIPTS_DIR}
