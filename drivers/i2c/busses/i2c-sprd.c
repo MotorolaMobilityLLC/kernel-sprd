@@ -410,6 +410,7 @@ static irqreturn_t sprd_i2c_isr_thread(int irq, void *dev_id)
 	struct i2c_msg *msg = i2c_dev->msg;
 	bool ack = !(readl(i2c_dev->base + I2C_STATUS) & I2C_RX_ACK);
 	u32 i2c_tran;
+	int ret;
 
 	if (msg->flags & I2C_M_RD)
 		i2c_tran = i2c_dev->count >= I2C_FIFO_FULL_THLD;
@@ -435,9 +436,13 @@ static irqreturn_t sprd_i2c_isr_thread(int irq, void *dev_id)
 	 * If we did not get one ACK from slave when writing data, we should
 	 * return -EIO to notify users.
 	 */
-	if (!ack)
+	if (!ack) {
+		ret = sprd_i2c_get_ack_busy(i2c_dev);
+		if (ret)
+			sprd_i2c_reset(i2c_dev);
+
 		i2c_dev->err = -EIO;
-	else if (msg->flags & I2C_M_RD && i2c_dev->count)
+	} else if (msg->flags & I2C_M_RD && i2c_dev->count)
 		sprd_i2c_read_bytes(i2c_dev, i2c_dev->buf, i2c_dev->count);
 
 	/* Transmission is done and clear ack and start operation */
@@ -454,7 +459,6 @@ static irqreturn_t sprd_i2c_isr(int irq, void *dev_id)
 	struct i2c_msg *msg = i2c_dev->msg;
 	bool ack = !(readl(i2c_dev->base + I2C_STATUS) & I2C_RX_ACK);
 	u32 i2c_tran;
-	int ret;
 
 	if (msg->flags & I2C_M_RD)
 		i2c_tran = i2c_dev->count >= I2C_FIFO_FULL_THLD;
@@ -472,10 +476,6 @@ static irqreturn_t sprd_i2c_isr(int irq, void *dev_id)
 	 * means we can read all data in one time, then we can finish this
 	 * transmission too.
 	 */
-	ret = sprd_i2c_get_ack_busy(i2c_dev);
-	if (ret)
-		sprd_i2c_reset(i2c_dev);
-
 	if (!i2c_tran || !ack) {
 		sprd_i2c_clear_start(i2c_dev);
 		sprd_i2c_clear_irq(i2c_dev);
