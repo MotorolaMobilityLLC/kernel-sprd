@@ -160,6 +160,7 @@ void dsi_hal_dpi_shut_down_pol(struct sprd_dsi *dsi, int active_low)
 	struct dsi_core_ops *ops = dsi->core;
 	struct dsi_context *ctx = &dsi->ctx;
 
+
 	if (ops->dpi_shut_down_pol)
 		ops->dpi_shut_down_pol(ctx, active_low);
 }
@@ -734,15 +735,26 @@ static inline bool dsi_hal_is_tx_cmd_fifo_empty(struct sprd_dsi *dsi)
 	return true;
 }
 
+extern const char *lcd_name;
+
 static inline
 bool dsi_hal_wait_tx_payload_fifo_empty(struct sprd_dsi *dsi)
 {
 	int timeout;
 
-	for (timeout = 0; timeout < 5000; timeout++) {
-		if (dsi_hal_is_tx_payload_fifo_empty(dsi))
-			return true;
-		udelay(1);
+	if(strncmp(lcd_name, "lcd_hx83102d_youda_mipi_hd",strlen(lcd_name)) == 0) {
+		for (timeout = 0; timeout < 25000; timeout++) {
+			if (dsi_hal_is_tx_payload_fifo_empty(dsi))
+				return true;
+			udelay(1);
+		}
+	}
+	else{
+		for (timeout = 0; timeout < 5000; timeout++) {
+			if (dsi_hal_is_tx_payload_fifo_empty(dsi))
+				return true;
+			udelay(1);
+		}
 	}
 
 	pr_err("tx payload fifo is not empty\n");
@@ -753,10 +765,19 @@ static inline bool dsi_hal_wait_tx_cmd_fifo_empty(struct sprd_dsi *dsi)
 {
 	int timeout;
 
-	for (timeout = 0; timeout < 5000; timeout++) {
-		if (dsi_hal_is_tx_cmd_fifo_empty(dsi))
-			return true;
-		udelay(1);
+	if(strncmp(lcd_name, "lcd_hx83102d_youda_mipi_hd",strlen(lcd_name)) == 0) {
+		for (timeout = 0; timeout < 25000; timeout++) {
+			if (dsi_hal_is_tx_cmd_fifo_empty(dsi))
+				return true;
+			udelay(1);
+		}
+	}
+	else{
+		for (timeout = 0; timeout < 5000; timeout++) {
+			if (dsi_hal_is_tx_cmd_fifo_empty(dsi))
+				return true;
+			udelay(1);
+		}
 	}
 
 	pr_err("tx cmd fifo is not empty\n");
