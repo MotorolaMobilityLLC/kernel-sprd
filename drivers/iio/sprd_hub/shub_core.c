@@ -32,11 +32,15 @@
 #include <linux/timekeeping.h>
 #include <linux/uaccess.h>
 #include <uapi/linux/sched/types.h>
+#include <linux/reboot.h>
 
 #include "shub_common.h"
 #include "shub_core.h"
 #include "shub_opcode.h"
 #include "shub_protocol.h"
+
+#define MAX_SENSOR_HANDLE 200
+static u8 sensor_status[MAX_SENSOR_HANDLE];
 
 static int reader_flag;
 static struct task_struct *thread;
@@ -1134,6 +1138,8 @@ static ssize_t enable_store(struct device *dev,
 		SHUB_SET_ENABLE_SUBTYPE;
 	if (shub_send_command(sensor, handle, subtype, NULL, 0) < 0)
 		dev_err(&sensor->sensor_pdev->dev, "Write SetEn/Disable fail\n");
+	if (handle < MAX_SENSOR_HANDLE && handle > 0)
+		sensor_status[handle] = enabled;
 
 	return count;
 }
@@ -1936,6 +1942,20 @@ static int shub_notifier_fn(struct notifier_block *nb,
 	return 0;
 }
 
+static int shub_reboot_notifier_fn(struct notifier_block *nb, unsigned long action, void *data)
+{
+	struct shub_data *sensor = container_of(nb, struct shub_data, shub_reboot_notifier);
+	int i = 0;
+
+	for (i = 0; i < MAX_SENSOR_HANDLE; i++) {
+		if (sensor_status[i]) {
+			if (shub_send_command(sensor, i, sensor_status[i], NULL, 0) < 0)
+				dev_err(&sensor->sensor_pdev->dev, "reboot write disable failed\n");
+		}
+	}
+	return NOTIFY_OK;
+}
+
 /* iio device reg */
 static void iio_trigger_work(struct irq_work *work)
 {
@@ -2285,6 +2305,8 @@ static int shub_probe(struct platform_device *pdev)
 				   SMSG_CH_PIPE, SIPC_PM_BUFID1);
 	mcu->early_suspend.notifier_call = shub_notifier_fn;
 	register_pm_notifier(&mcu->early_suspend);
+	mcu->shub_reboot_notifier.notifier_call = shub_reboot_notifier_fn;
+	register_reboot_notifier(&mcu->shub_reboot_notifier);
 
 	return 0;
 
