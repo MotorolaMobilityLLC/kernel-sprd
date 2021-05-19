@@ -284,12 +284,12 @@
 	};
 
 
-	fb_reserved: framebuffer-mem@befc0000 {
-		reg = <0x0 0xbefc0000 0x0 0x00c70000>;
+	fb_reserved: framebuffer-mem@bef80000 {
+		reg = <0x0 0xbef80000 0x0 0x00c70000>;
 	};
 
-	wb_reserved: writeback@bfc30000 {
-		reg = <0x0 0xbfc30000 0x0 0x00390000>;
+	wb_reserved: writeback@bfbf0000 {
+		reg = <0x0 0xbfbf0000 0x0 0x00390000>;
 	};
 
 };
