@@ -125,6 +125,8 @@ static int sprd_wdt_load_value(struct sprd_wdt *wdt, u32 timeout,
 	u32 tmr_step = timeout * SPRD_WDT_CNT_STEP;
 	u32 prtmr_step = pretimeout * SPRD_WDT_CNT_STEP;
 
+	pr_err("sprd_wdt: sprd wdt load value timeout =%d, pretimeout =%d\n",
+	       timeout, pretimeout);
 	sprd_wdt_unlock(wdt->base);
 	writel_relaxed((tmr_step >> SPRD_WDT_CNT_HIGH_SHIFT) &
 		      SPRD_WDT_LOW_VALUE_MASK, wdt->base + SPRD_WDT_LOAD_HIGH);
@@ -280,6 +282,7 @@ static const struct watchdog_info sprd_wdt_info = {
 static enum alarmtimer_restart sprd_wdt_sleep_callback(struct alarm *p, ktime_t
 						       t)
 {
+	pr_err("sprd_wdt: sprd wdt sleep callback\n");
 	return ALARMTIMER_NORESTART;
 }
 #endif
@@ -389,9 +392,11 @@ static int __maybe_unused sprd_wdt_alarm_prepare(struct device *dev)
 	struct sprd_wdt *wdt = dev_get_drvdata(dev);
 	ktime_t now, add;
 	if (watchdog_active(&wdt->wdd)) {
+		pr_err("sprd_wdt:alarm start\n");
 		now = ktime_get_boottime();
 		add = ktime_set(SPRD_WDT_SLEEP_KICKTIME, 0);
 		alarm_start(&wdt->sleep_tmr, ktime_add(now, add));
+		pr_err("sprd_wdt:alarm start end\n");
 	}
 	return 0;
 }
@@ -430,7 +435,9 @@ static void __maybe_unused sprd_wdt_alarm_complete(struct device *dev)
 {
 	struct sprd_wdt *wdt = dev_get_drvdata(dev);
 	if (watchdog_active(&wdt->wdd)) {
+		pr_err("sprd_wdt:alarm_cancel start\n");
 		alarm_cancel(&wdt->sleep_tmr);
+		pr_err("sprd_wdt:alarm_cancel end\n");
 	}
 }
 #endif
