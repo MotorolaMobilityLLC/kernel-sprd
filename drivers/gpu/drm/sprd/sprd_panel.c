@@ -577,11 +577,12 @@ static int sprd_oled_set_brightness(struct backlight_device *bdev)
 		DRM_WARN("oled panel has been powered off\n");
 		return -ENXIO;
 	}
-
+	DRM_INFO("bdev=%p,oled=%p\n",bdev,oled);
 	brightness = bdev->props.brightness;
+	 oled->max_level = 255;
 	level = brightness * oled->max_level / 255;
 
-	DRM_INFO("%s level: %d\n", __func__, level);
+	DRM_INFO("%s level: %d %d %d %d\n", __func__, level,bdev->props.brightness,brightness,oled->max_level);
 
 	sprd_panel_send_cmds(panel->slave,
 			     panel->info.cmds[CMD_OLED_REG_LOCK],
@@ -632,6 +633,9 @@ static int sprd_oled_backlight_init(struct sprd_panel *panel)
 	oled->bdev = devm_backlight_device_register(&panel->dev,
 			"sprd_backlight", &panel->dev, oled,
 			&sprd_oled_backlight_ops, NULL);
+	DRM_ERROR("oled->bdev=%x,oled=%x\n",oled->bdev,oled);
+
+
 	if (IS_ERR(oled->bdev)) {
 		DRM_ERROR("failed to register oled backlight ops\n");
 		return PTR_ERR(oled->bdev);
@@ -665,8 +669,10 @@ static int sprd_oled_backlight_init(struct sprd_panel *panel)
 		oled->bdev->props.brightness = 25;
 
 	rc = of_property_read_u32(oled_node, "sprd,max-level", &temp);
-	if (!rc)
+	if (!rc){
 		oled->max_level = temp;
+		DRM_INFO("oled->max_level=%d,temp=%d\n",temp);
+		}
 	else
 		oled->max_level = 255;
 
