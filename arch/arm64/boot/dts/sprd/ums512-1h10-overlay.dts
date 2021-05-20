@@ -8,8 +8,11 @@
 #include <dt-bindings/mfd/sprd,sc2730-regs.h>
 #include <dt-bindings/mfd/sprd,sc2730-mask.h>
 #include <dt-bindings/wdv/wdv.h>
-#include "lcd/lcd_td4310_truly_mipi_fhd.dtsi"
+#include "lcd/lcd_nt36525c_boe_mipi_fhd.dtsi"
+#include "lcd/lcd_hx83102d_auo_mipi_hd.dtsi"
+#include "lcd/lcd_nt36525c_boe_mipi_fhd.dtsi"
 #include "lcd/lcd_ssd2092_truly_mipi_fhd.dtsi"
+#include "lcd/lcd_ili9883a_auo_mipi_hd.dtsi"
 #include "lcd/lcd_dummy_mipi.dtsi"
 
 / {
@@ -68,7 +71,7 @@
 				};
 
 			};
-
+/*
 			pwm_backlight: backlight {
 				compatible = "sprd,sharkl5pro-backlight";
 				pwms = <&pwms 2 40000>;
@@ -106,7 +109,7 @@
 				>;
 			};
 
-			bat: battery {
+*/			bat: battery {
 				compatible = "simple-battery";
 				charge-full-design-microamp-hours-0 = <4900000>;
 				charge-term-current-microamp = <180000>;
@@ -595,6 +598,16 @@
 	};
 };
 
+&spi2{
+	status = "okay";
+	compatible = "tchip,ilitek";
+	reg = <0x0>;
+	spi-max-frequency = <9600000>;
+	touch,reset-gpio = <&ap_gpio 145 GPIO_ACTIVE_HIGH>;
+	touch,irq-gpio= <&ap_gpio 144 GPIO_ACTIVE_HIGH>;
+	ilitech,display-coords =  <0 0 720 1600>;
+};
+
 &i2c3 {
 	status = "okay";
 
@@ -691,7 +704,7 @@
 		dvfs-dcdc-i2c = <1>;
 	};
 };
-
+/*
 &panel {
 	sprd,backlight = <&pwm_backlight>;
 	avdd-gpio = <&ap_gpio 132 GPIO_ACTIVE_HIGH>;
@@ -702,7 +715,7 @@
 &dpu {
 	sprd,backlight = <&pwm_backlight>;
 };
-
+*/
 &ddr_dfs {
 	sprd-scene = "boost", "lcdon", "lcdoff", "camlow",
 		"camhigh", "camveryhigh", "faceid";
