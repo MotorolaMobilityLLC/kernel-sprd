@@ -269,6 +269,16 @@
 				#size-cells = <0>;
 				status = "disabled";
 			};
+
+			/*apsys_dvfs: apsys-dvfs@71700000 {*/
+			apsys_dvfs: apsys-dvfs@1700000 {
+				compatible = "sprd,hwdvfs-apsys-sharkl5pro";
+				/*reg = <0x0 0x71700000 0x0 0x15c>;*/
+				reg = <0x1700000 0x15c>;
+
+				sprd,ap-dvfs-up-window = <0x40>;
+				sprd,ap-dvfs-down-window = <0x80>;
+			};
 		};
 
 		ap_apb_regs: syscon@71000000 {
