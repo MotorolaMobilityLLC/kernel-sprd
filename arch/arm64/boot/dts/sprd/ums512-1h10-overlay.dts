@@ -553,15 +553,15 @@
 		csi = <&csi1>;
 	};
 
-	sensor_main3: sensor-main3@6c {
-		compatible = "sprd,sensor-main3";
-		reg = <0x6c>;
+	sensor_sub2: sensor-sub2@6e {
+		compatible = "sprd,sensor-sub2";
+		reg = <0x6e>;
 		clock-names = "clk_src","sensor_eb",
 			"clk_96m","clk_76m8",
 			"clk_48m","clk_26m";
 		clocks = <&mm_clk CLK_SENSOR1>,<&mm_gate CLK_MM_SENSOR1_EB>,
-				<&pll2 CLK_TWPLL_96M>,<&pll2 CLK_TWPLL_76M8>,
-				<&pll2 CLK_TWPLL_48M>,<&ext_26m>;
+			<&pll2 CLK_TWPLL_96M>,<&pll2 CLK_TWPLL_76M8>,
+			<&pll2 CLK_TWPLL_48M>,<&ext_26m>;
 		vddio-supply = <&vddcamio>;
 		vddcama-supply = <&vddcama1>;
 		//vddcamd-supply = <&vddcamd1>;
