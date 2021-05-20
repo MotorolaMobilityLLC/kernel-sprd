@@ -39,6 +39,8 @@ static const struct wcn_chip_type wcn_chip_type[] = {
 	{0x96360003, WCN_SHARKLE_CHIP_AD},
 	/* WCN_PIKE2_CHIP_AA and WCN_PIKE2_CHIP_AB is the same */
 	{0x96330000, WCN_PIKE2_CHIP},
+	/* WCN_SHARKL6_CHIP is error */
+	{0x00000000, WCN_SHARKL6_CHIP},
 };
 
 struct wcn_special_share_mem *s_wssm_phy_offset_p =
@@ -255,21 +257,36 @@ enum wcn_aon_chip_id wcn_get_aon_chip_id(void)
 		return WCN_AON_CHIP_ID_INVALID;
 
 	regmap = wcn_get_btwf_regmap(REGMAP_AON_APB);
-	wcn_regmap_read(regmap, WCN_AON_CHIP_ID, &aon_chip_id);
+	wcn_regmap_read(s_wcn_device.btwf_device->rmap[REGMAP_AON_APB],
+			WCN_AON_CHIP_ID, &aon_chip_id);
 	WCN_INFO("aon_chip_id=0x%08x\n", aon_chip_id);
 	for (i = 0; i < ARRAY_SIZE(wcn_chip_type); i++) {
 		if (wcn_chip_type[i].chipid == aon_chip_id) {
-			if (wcn_chip_type[i].chiptype != WCN_PIKE2_CHIP)
+			if (wcn_chip_type[i].chiptype == WCN_SHARKLE_CHIP_AA_OR_AB)
 				return wcn_chip_type[i].chiptype;
-			wcn_regmap_read(regmap, WCN_AON_VERSION_ID,
-					&version_id);
-			WCN_INFO("aon_version_id=0x%08x\n", version_id);
-			/* version_id:
-			 * 0 for WCN_PIKE2_CHIP_AA
-			 * others for WCN_PIKE2_CHIP_AB
-			 */
-			return (version_id == 0) ?
-			       WCN_PIKE2_CHIP_AA : WCN_PIKE2_CHIP_AB;
+
+			if (wcn_chip_type[i].chiptype == WCN_SHARKLE_CHIP_AC)
+				return wcn_chip_type[i].chiptype;
+
+			if (wcn_chip_type[i].chiptype == WCN_SHARKLE_CHIP_AD)
+				return wcn_chip_type[i].chiptype;
+
+			if (wcn_chip_type[i].chiptype == WCN_SHARKLE_CHIP_AD)
+				return wcn_chip_type[i].chiptype;
+
+			if (wcn_chip_type[i].chiptype == WCN_PIKE2_CHIP) {
+				wcn_regmap_read(regmap, WCN_AON_VERSION_ID,
+						&version_id);
+				WCN_INFO("aon_version_id=0x%08x\n", version_id);
+				/* version_id:
+				 * 0 for WCN_PIKE2_CHIP_AA
+				 * others for WCN_PIKE2_CHIP_AB
+				 */
+				return (version_id == 0) ? WCN_PIKE2_CHIP_AA : WCN_PIKE2_CHIP_AB;
+			}
+
+			if (wcn_chip_type[i].chiptype == WCN_SHARKL6_CHIP)
+				return wcn_chip_type[i].chiptype;
 		}
 	}
 
@@ -1334,10 +1351,15 @@ u32 wcn_parse_platform_chip_id(struct wcn_device *wcn_dev)
 
 const char *wcn_get_chip_name(void)
 {
-	snprintf(wcn_chip_name, sizeof(wcn_chip_name),
-		 "marlin2-built-in_0x%x_0x%x",
-		 g_platform_chip_id.aon_chip_id0,
-		 g_platform_chip_id.aon_chip_id1);
+	if (wcn_platform_chip_type() != WCN_PLATFORM_TYPE_QOGIRL6) {
+		snprintf(wcn_chip_name, sizeof(wcn_chip_name),
+			 "marlin2-built-in_0x%x_0x%x",
+			 g_platform_chip_id.aon_chip_id0,
+			 g_platform_chip_id.aon_chip_id1);
+	} else {
+		snprintf(wcn_chip_name, sizeof(wcn_chip_name),
+			 "SharkL6_0x%x_0x%x", QOGIRL6_CHIP_ID0, QOGIRL6_CHIP_ID1);
+	}
 
 	return wcn_chip_name;
 }

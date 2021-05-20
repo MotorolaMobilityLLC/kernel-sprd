@@ -114,6 +114,7 @@ enum wcn_aon_chip_id {
 	WCN_PIKE2_CHIP,
 	WCN_PIKE2_CHIP_AA,
 	WCN_PIKE2_CHIP_AB,
+	WCN_SHARKL6_CHIP,
 };
 
 struct wcn_chip_type {
@@ -296,5 +297,6 @@ bool wcn_power_status_check(struct wcn_device *wcn_dev);
 u32 wcn_parse_platform_chip_id(struct wcn_device *wcn_dev);
 void mdbg_hold_cpu(void);
 enum wcn_aon_chip_id wcn_get_aon_chip_id(void);
+const char *wcn_get_chip_name(void);
 void wcn_merlion_power_control(bool enable);
 #endif
