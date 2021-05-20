@@ -822,9 +822,12 @@ static void dpu_cabc_work_func(struct work_struct *data)
 {
 	struct dpu_context *ctx =
 		container_of(data, struct dpu_context, cabc_work);
-
+	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
 	down(&ctx->refresh_lock);
-	dpu_cabc_trigger(ctx);
+	if (ctx->is_inited) {
+		dpu_cabc_trigger(ctx);
+		reg->enhance_update |= BIT(0);
+	}
 	up(&ctx->refresh_lock);
 }
 
@@ -2701,6 +2704,8 @@ static int dpu_cabc_trigger(struct dpu_context *ctx)
 			cabc_bl_set = true;
 			frame_no = 0;
 			cabc_state = CABC_DISABLED;
+			enhance_en &= ~(BIT(9));
+			reg->dpu_enhance_cfg = enhance_en;
 
 		}
 		return 0;
@@ -2720,13 +2725,14 @@ static int dpu_cabc_trigger(struct dpu_context *ctx)
 		}
 		if (bl_dev)
 			sprd_backlight_normalize_map(bl_dev, &cabc_para.cur_bl);
-		reg->dpu_enhance_cfg |= BIT(9);
 
-		slp_copy.s37 = 0;
-		slp_copy.s38 = 255;
-		reg->slp_cfg10 = (slp_copy.s38 << 8) |
-			(slp_copy.s37 << 0);
-
+		reg->cabc_cfg[0] = cabc_cfg0;
+		reg->cabc_cfg[1] = cabc_cfg1;
+		reg->cabc_cfg[2] = cabc_cfg2;
+		reg->cabc_cfg[3] = cabc_cfg3;
+		reg->cabc_cfg[4] = cabc_cfg4;
+		enhance_en |= BIT(9);
+		reg->dpu_enhance_cfg |= enhance_en;
 		frame_no++;
 	} else {
 		reg->cabc_cfg[0] = cabc_para.cfg0;
