@@ -1,0 +1,15 @@
+Spreadtrum ddr dvfs bindings
+
+This dirver give functions for ddr frequency control to userspace.
+
+Required properties:
+- compatible:
+  -"sprd,sharkl5pro-ddr-dvfs" for ums512
+
+- freq-num: Specifies the max frequency points supported by soc.
+
+Example:
+ddr_dfs: scene-frequency {
+	compatible = "sprd,sharkl5pro-ddr-dvfs";
+	freq-num = <8>;
+};
