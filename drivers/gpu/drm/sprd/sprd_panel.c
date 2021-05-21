@@ -633,7 +633,7 @@ static int of_parse_oled_cmds(struct sprd_oled *oled,
 
 	return 0;
 }
-extern const char *lcd_name;
+
 static int sprd_oled_set_brightness(struct backlight_device *bdev)
 {
 	int brightness, level;
@@ -655,16 +655,16 @@ static int sprd_oled_set_brightness(struct backlight_device *bdev)
 	brightness = bdev->props.brightness;
 	level = brightness * oled->max_level / 255;
 
-/*
-	if(strncmp(lcd_name, "lcd_nt36525b_dj_mipi_hd",strlen(lcd_name)) == 0)
-	{
-		if(level < 256)
-			level = ((level * 81) + 22)/ 100;
+	DRM_INFO("%s Source level: %d\n", __func__, level);
+
+	if(level < 256){
+		level = ((level * 78) + 20)/ 100;
 	}
-*/
+
 	if(level == 256)
 		level = 255;
 
+	DRM_INFO("%s Target level: %d\n", __func__, level);
 
 	sprd_panel_send_cmds(panel->slave,
 			     panel->info.cmds[CMD_OLED_REG_LOCK],
