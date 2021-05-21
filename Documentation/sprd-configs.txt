@@ -4770,6 +4770,33 @@ CONFIG_DEV_COREDUMP
 	[must]
 	[missing plat description] none
 	[function]
+CONFIG_DEVFREQ_SPRD_DDR_DVFS
+	[arch] arm64
+	[plat] sharkl5Pro
+	[missing plat] sharkl3 pike2
+	[field]
+	[subsys]
+	[must]
+	[missing plat description]
+	[function] for DDR dfs governor
+CONFIG_DEVFREQ_SPRD_DDR_DVFS_SP
+	[arch] arm64
+	[plat] sharkl5Pro
+	[missing plat] sharkl3 pike2
+	[field]
+	[subsys]
+	[must]
+	[missing plat description]
+	[function] for DDR dfs governor
+CONFIG_DEVFREQ_GOV_SPRD_VOTE
+	[arch] arm64
+	[plat] sharkl5Pro
+	[missing plat] sharkl3 pike2
+	[field]
+	[subsys]
+	[must]
+	[missing plat description]
+	[function] for DDR dfs governor
 CONFIG_DIRECT_SWAPPINESS
 	[arch] all
 	[plat] all

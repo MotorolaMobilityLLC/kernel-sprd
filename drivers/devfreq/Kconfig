@@ -74,7 +74,36 @@ config DEVFREQ_GOV_PASSIVE
 	  through sysfs entries. The passive governor recommends that
 	  devfreq device uses the OPP table to get the frequency/voltage.
 
+config DEVFREQ_GOV_SPRD_VOTE
+	tristate "Sprd vote set from userspace"
+	depends on DEVFREQ_SPRD_DDR_DVFS
+	help
+	  Sprd govanor can selected by Sprd_ddr_dvfs driver.
+	  Userspace write sysfs nodes of this  governor to set freq&vol
+	  Then the govnor send request to driver.
+
 comment "DEVFREQ Drivers"
+
+config DEVFREQ_SPRD_DDR_DVFS
+	tristate "Sprd ddr dvfs"
+	help
+	  Sets frequency as user specidied or scenarios.
+	  This driver used on sprd ddrcv1 and after versions, can select
+	  governors.
+	  This driver send SIPC request to DFS core to change freq.
+
+choice
+	prompt "SPRD DVFS vote of each asic design"
+	depends on DEVFREQ_SPRD_DDR_DVFS && SPRD_SIPC
+	help
+	  Vote registers on pub has several different design
+
+config DEVFREQ_SPRD_DDR_DVFS_SP
+	tristate "Sprd ddr dvfs control SP driver"
+	help
+          dvfs registers control by sp .
+
+endchoice
 
 config ARM_EXYNOS_BUS_DEVFREQ
 	tristate "ARM EXYNOS Generic Memory Bus DEVFREQ Driver"
