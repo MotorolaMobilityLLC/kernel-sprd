@@ -336,6 +336,7 @@ static CLK_FIXED_FACTOR(v4nrpll_38m4, "v4nrpll-38m4", "v4nrpll", 64, 1, 0);
 static CLK_FIXED_FACTOR(v4nrpll_409m6, "v4nrpll-409m6", "v4nrpll", 6, 1, 0);
 static CLK_FIXED_FACTOR(v4nrpll_614m4, "v4nrpll-614m4", "v4nrpll", 4, 1, 0);
 static CLK_FIXED_FACTOR(v4nrpll_819m2, "v4nrpll-819m2", "v4nrpll", 3, 1, 0);
+static CLK_FIXED_FACTOR(v4nrpll_1228m8, "v4nrpll-1228m8", "v4nrpll", 2, 1, 0);
 
 static struct sprd_clk_common *ums9620_g5l_pll_clks[] = {
 	/* address base is 0x64324000 */
@@ -370,6 +371,7 @@ static struct clk_hw_onecell_data ums9620_g5l_pll_hws = {
 		[CLK_V4NRPLL_409M6]	= &v4nrpll_409m6.hw,
 		[CLK_V4NRPLL_614M4]	= &v4nrpll_614m4.hw,
 		[CLK_V4NRPLL_819M2]	= &v4nrpll_819m2.hw,
+		[CLK_V4NRPLL_1228M8]	= &v4nrpll_1228m8.hw,
 	},
 	.num    = CLK_ANLG_PHY_G5L_NUM,
 };
@@ -1813,6 +1815,111 @@ static struct sprd_clk_desc ums9620_aonapb_clk_desc = {
 	.hw_clks	= &ums9620_aonapb_clk_hws,
 };
 
+/* top dvfs clk */
+static const char * const lit_core_parents[] = { "ext-26m", "v4nrpll-614m4",
+						 "tgpll-768m", "v4nrpll-1228m8",
+						 "mplll" };
+static SPRD_COMP_CLK(core0, "core0", lit_core_parents, 0xe08,
+		     0, 3, 3, 1, 0);
+static SPRD_COMP_CLK(core1, "core1", lit_core_parents, 0xe08,
+		     4, 3, 7, 1, 0);
+static SPRD_COMP_CLK(core2, "core2", lit_core_parents, 0xe08,
+		     8, 3, 11, 1, 0);
+static SPRD_COMP_CLK(core3, "core3", lit_core_parents, 0xe08,
+		     12, 3, 15, 1, 0);
+
+static const char * const mid_core_parents[] = { "ext-26m", "tgpll-768m",
+						 "v4nrpll-1228m8",
+						 "tgpll-1536m",
+						 "mpllm" };
+static SPRD_COMP_CLK(core4, "core4", mid_core_parents, 0xe08,
+		     16, 3, 19, 1, 0);
+static SPRD_COMP_CLK(core5, "core5", mid_core_parents, 0xe08,
+		     20, 3, 23, 1, 0);
+static SPRD_COMP_CLK(core6, "core6", lit_core_parents, 0xe08,
+		     24, 3, 27, 1, 0);
+
+static const char * const big_core_parents[] = { "ext-26m", "v4nrpll-1228m8",
+						 "tgpll-1536m", "mpllb" };
+static SPRD_COMP_CLK(core7, "core7", big_core_parents, 0xe08,
+		     28, 3, 31, 1, 0);
+
+static const char * const scu_parents[] = { "ext-26m", "v4nrpll-614m4",
+					    "tgpll-768m", "v4nrpll-1228m8",
+					    "mplls" };
+static SPRD_COMP_CLK(scu, "scu", scu_parents, 0xe0c,
+		     0, 3, 3, 1, 0);
+static SPRD_DIV_CLK(ace, "ace", "scu", 0xe0c,
+		    24, 1, 0);
+
+static const char * const atb_parents[] = { "ext-26m", "tgpll-153m6",
+					    "tgpll-512m", "tgpll-768m" };
+static SPRD_COMP_CLK(atb, "atb", atb_parents, 0xe0c,
+		     4, 2, 6, 3, 0);
+static SPRD_DIV_CLK(debug_apb, "debug_apb", "atb", 0xe0c,
+		    25, 2, 0);
+
+static const char * const cps_parents[] = { "ext-26m", "tgpll-153m6",
+					    "tgpll-512m", "tgpll-768m" };
+static SPRD_COMP_CLK(cps, "cps", cps_parents, 0xe0c,
+		     9, 2, 11, 3, 0);
+
+static const char * const gic_parents[] = { "ext-26m", "tgpll-153m6",
+					    "tgpll-512m", "tgpll-768m" };
+static SPRD_COMP_CLK(gic, "gic", gic_parents, 0xe0c,
+		     14, 2, 16, 3, 0);
+
+static const char * const periph_parents[] = { "ext-26m", "tgpll-153m6",
+					       "tgpll-512m", "tgpll-768m" };
+static SPRD_COMP_CLK(periph, "periph", periph_parents, 0xe0c,
+		     19, 2, 21, 3, 0);
+
+static struct sprd_clk_common *ums9620_topdvfs_clk[] = {
+	/* address base is 0x64940000 */
+	&core0.common,
+	&core1.common,
+	&core2.common,
+	&core3.common,
+	&core4.common,
+	&core5.common,
+	&core6.common,
+	&core7.common,
+	&scu.common,
+	&ace.common,
+	&atb.common,
+	&debug_apb.common,
+	&cps.common,
+	&gic.common,
+	&periph.common,
+};
+
+static struct clk_hw_onecell_data ums9620_topdvfs_clk_hws = {
+	.hws    = {
+		[CLK_CORE0]		= &core0.common.hw,
+		[CLK_CORE1]		= &core1.common.hw,
+		[CLK_CORE2]		= &core2.common.hw,
+		[CLK_CORE3]		= &core3.common.hw,
+		[CLK_CORE4]		= &core4.common.hw,
+		[CLK_CORE5]		= &core5.common.hw,
+		[CLK_CORE6]		= &core6.common.hw,
+		[CLK_CORE7]		= &core7.common.hw,
+		[CLK_SCU]		= &scu.common.hw,
+		[CLK_ACE]		= &ace.common.hw,
+		[CLK_ATB]		= &atb.common.hw,
+		[CLK_DEBUG_APB]		= &debug_apb.common.hw,
+		[CLK_CPS]		= &cps.common.hw,
+		[CLK_GIC]		= &gic.common.hw,
+		[CLK_PERIPH]		= &periph.common.hw,
+	},
+	.num    = CLK_TOPDVFS_CLK_NUM,
+};
+
+static struct sprd_clk_desc ums9620_topdvfs_clk_desc = {
+	.clk_clks	= ums9620_topdvfs_clk,
+	.num_clk_clks	= ARRAY_SIZE(ums9620_topdvfs_clk),
+	.hw_clks	= &ums9620_topdvfs_clk_hws,
+};
+
 /* gpu apb gate */
 static SPRD_SC_GATE_CLK(gpu_core_eb, "gpu-core-eb", "gpu-eb", 0x0,
 			0x1000, BIT(0), CLK_IGNORE_UNUSED, 0);
@@ -3037,6 +3144,8 @@ static const struct of_device_id sprd_ums9620_clk_ids[] = {
 	  .data = &ums9620_aon_gate_desc },
 	{ .compatible = "sprd,ums9620-aonapb-clk",	/* 0x64920000 */
 	  .data = &ums9620_aonapb_clk_desc },
+	{ .compatible = "sprd,ums9620-topdvfs-clk",	/* 0x64940000 */
+	  .data = &ums9620_topdvfs_clk_desc },
 	{ .compatible = "sprd,ums9620-gpuapb-gate",	/* 0x23000000 */
 	  .data = &ums9620_gpuapb_gate_desc },
 	{ .compatible = "sprd,ums9620-gpu-clk",		/* 0x23010000 */
