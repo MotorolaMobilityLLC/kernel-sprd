@@ -3818,15 +3818,6 @@ CONFIG_DEVFREQ_THERMAL
 	[must] user
 	[missing plat description] gpu don't support dvfs
 	[function] gpu thermal policy
-CONFIG_DEVPORT
-	[arch] arm64
-	[plat] qogirn6pro
-	[missing plat] qogirl6,sharkl3,sharkl5,sharkl5Pro
-	[field] code
-	[subsys] core
-	[must] console
-	[missing plat description] Not used PCI in other projects
-	[function] Support fopr /dev/port character device
 CONFIG_DIRECT_SWAPPINESS
 	[arch] all
 	[plat] all
