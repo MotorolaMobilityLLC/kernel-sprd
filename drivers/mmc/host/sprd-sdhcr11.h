@@ -537,7 +537,7 @@ sprd_sdhc_clk_set_and_on(struct sprd_sdhc_host *host, u32 div)
 }
 
 #define SPRD_SDHC_REG_8_TIMEOUT			0x2E
-#define SPRD_SDHC_DATA_TIMEOUT_MAX_VAL		0xe
+#define SPRD_SDHC_DATA_TIMEOUT_MAX_VAL		0xf
 
 static inline
 u8 sprd_sdhc_calc_timeout(unsigned int clock, u8 timeout_value)
