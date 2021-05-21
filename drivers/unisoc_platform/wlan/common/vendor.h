@@ -1599,7 +1599,6 @@ nla_policy offloaded_packets_policy[ATTR_OFFLOADED_PACKETS_MAX + 1] = {
 };
 
 struct wmm_ac_stat {
-	u8 ac_num;
 	u32 tx_mpdu;
 	u32 rx_mpdu;
 	u32 mpdu_lost;
