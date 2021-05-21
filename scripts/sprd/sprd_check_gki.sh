@@ -63,6 +63,7 @@ ABIGIAL_PATH_FLAG=0
 COMPILE_CHECK_PASS_FLAG=0
 RET_VAL=0
 RET_COUNT=0
+check_idh_flag=1
 
 if [ $# -ge 2  ]; then
   for arg in $*
@@ -91,6 +92,7 @@ fi
 cd $KERNEL_CODE_DIR/$KERNEL_DIR
 GITTOOL=`find -type d -name ".git"`
 if [ ! -n "${GITTOOL}" ]; then
+  check_idh_flag=0
   echo "create abigail git repository"
   cd ${KERNEL_CODE_DIR}/${KERNEL_DIR}
   git init
@@ -213,8 +215,10 @@ function do_gki_ckeck() {
   fi
 
   if [ -d "${OUT_ABI_DIR}" ]; then
-    if [ $(which python3) ]; then
+    if [ $(which python3) ] && [[ "$check_idh_flag" == "1" ]]; then
       python3 $KERNEL_CODE_DIR/$KERNEL_DIR/scripts/sprd/sprd_check_compile.py ${OUT_ABI_DIR} 1
+    elif [[ "$check_idh_flag" == "0" ]]; then
+      echo -e "IDH version is not required!"
     else
       echo -e "\nWARNING: python3 is not exist! Please install python3!\n"
     fi
