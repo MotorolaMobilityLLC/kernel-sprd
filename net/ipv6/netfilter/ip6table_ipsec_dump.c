@@ -133,6 +133,7 @@ static void nf_xfrm6_input_decode_cap_log(struct sk_buff *skb)
 	}
 	copy_skb->dev = pseudo_dev;
 	dev_queue_xmit(copy_skb);
+	return;
 
 free_clone1:
 	/* Free clone skb. */
