@@ -205,21 +205,9 @@ static enum hrtimer_restart alarmtimer_fired(struct hrtimer *timer)
 	int ret = HRTIMER_NORESTART;
 	int restart = ALARMTIMER_NORESTART;
 
-	struct rtc_time tm;
-
 	spin_lock_irqsave(&base->lock, flags);
 	alarmtimer_dequeue(base, alarm);
 	spin_unlock_irqrestore(&base->lock, flags);
-
-	tm = rtc_ktime_to_tm(alarm->node.expires);
-	pr_err("alarm set by [%s],triggered at %d-%d-%d %d:%d:%d\n",
-		alarm->alrm_comm,
-		tm.tm_year + 1900,
-		tm.tm_mon + 1,
-		tm.tm_mday,
-		tm.tm_hour,
-		tm.tm_min,
-		tm.tm_sec);
 
 	if (alarm->function)
 		restart = alarm->function(alarm, base->gettime());
@@ -281,7 +269,6 @@ static int alarmtimer_suspend(struct device *dev)
 		struct timerqueue_node *next;
 		ktime_t delta;
 
-		pr_info("alarmtimer_suspend, alarm_type[%d]\n", i);
 		spin_lock_irqsave(&base->lock, flags);
 		next = timerqueue_getnext(&base->timerqueue);
 		spin_unlock_irqrestore(&base->lock, flags);
@@ -293,15 +280,6 @@ static int alarmtimer_suspend(struct device *dev)
 			min = delta;
 			type = i;
 		}
-	tm = rtc_ktime_to_tm(next->expires);
-	pr_info("alarmtimer_suspend, expires: %d-%d-%d %d:%d:%d\n", tm.tm_year + 1900,
-		tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
-	tm = rtc_ktime_to_tm(base->gettime());
-	pr_info("alarmtimer_suspend, gettime: %d-%d-%d %d:%d:%d\n", tm.tm_year + 1900,
-		tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
-	tm = rtc_ktime_to_tm(min);
-	pr_info("alarmtimer_suspend, min[%d]: %d-%d-%d %d:%d:%d\n", (int)min, tm.tm_year + 1900,
-		tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
 	}
 	if (min == 0)
 		return 0;
@@ -457,17 +435,10 @@ void alarm_start(struct alarm *alarm, ktime_t start)
 	struct alarm_base *base = &alarm_bases[alarm->type];
 	unsigned long flags;
 
-	struct rtc_time tm;
-
-	tm = rtc_ktime_to_tm(start);
-	pr_info("alarm_start[%d], start: %d-%d-%d %d:%d:%d\n", alarm->type, tm.tm_year + 1900,
-		tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
-	dump_stack();
 	spin_lock_irqsave(&base->lock, flags);
 	alarm->node.expires = start;
 	alarmtimer_enqueue(base, alarm);
 	hrtimer_start(&alarm->timer, alarm->node.expires, HRTIMER_MODE_ABS);
-	strlcpy(alarm->alrm_comm, current->comm, sizeof(alarm->alrm_comm));
 	spin_unlock_irqrestore(&base->lock, flags);
 
 	trace_alarmtimer_start(alarm, base->gettime());
@@ -483,16 +454,6 @@ void alarm_start_relative(struct alarm *alarm, ktime_t start)
 {
 	struct alarm_base *base = &alarm_bases[alarm->type];
 
-	struct rtc_time tm;
-
-	tm = rtc_ktime_to_tm(start);
-	pr_info("alarm_start_relative, start: %d-%d-%d %d:%d:%d\n", tm.tm_year + 1900,
-		tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
-	tm = rtc_ktime_to_tm(base->gettime());
-	pr_info("alarm_start_relative, gettime: %d-%d-%d %d:%d:%d\n", tm.tm_year + 1900,
-		tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
-
-	dump_stack();
 	start = ktime_add_safe(start, base->gettime());
 	alarm_start(alarm, start);
 }
@@ -558,16 +519,6 @@ u64 alarm_forward(struct alarm *alarm, ktime_t now, ktime_t interval)
 {
 	u64 overrun = 1;
 	ktime_t delta;
-
-	struct rtc_time tm1, tm2;
-
-	tm1 = rtc_ktime_to_tm(now);
-	pr_info("alarm_forward[%d], : %d-%d-%d %d:%d:%d\n", alarm->type, tm1.tm_year + 1900,
-		tm1.tm_mon + 1, tm1.tm_mday, tm1.tm_hour, tm1.tm_min, tm1.tm_sec);
-	tm2 = rtc_ktime_to_tm(interval);
-	pr_info("alarm_forward[%d], : %d-%d-%d %d:%d:%d\n", alarm->type, tm2.tm_year + 1900,
-		tm2.tm_mon + 1, tm2.tm_mday, tm2.tm_hour, tm2.tm_min, tm2.tm_sec);
-	//dump_stack();
 
 	delta = ktime_sub(now, alarm->node.expires);
 
