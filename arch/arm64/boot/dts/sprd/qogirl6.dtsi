@@ -1360,9 +1360,9 @@
 				compatible = "sprd,soc-thermal";
 				#thermal-sensor-cells = <1>;
 				sensor-names = "cluster0-thmzone","cluster1-thmzone","gpu-thmzone";
-				k-po = <0>;
-				k-pu = <0>;
-				k-i = <1>;
+				k-po = <164>;
+				k-pu = <328>;
+				k-i = <2>;
 				k-d = <0>;
 				cutoff = <0>;
 			};
