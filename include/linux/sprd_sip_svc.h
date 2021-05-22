@@ -108,6 +108,35 @@ struct sprd_sip_svc_pwr_ops {
 };
 
 /**
+ * struct sprd_sip_svc_dvfs_ops - represents the various operations
+ *      provided by SPRD SIP DVFS
+ *
+ * @chip_config: set the chip version
+ *
+ * @phy_enable: enable cluster dvfs
+ * @table_update: update dvfs table for cluster
+ * @cluster_config: set the cluster information
+ *
+ * @freq_set: set cluster frequency
+ * @freq_get: get cluster current frequency
+ * @index_info: get freq and volt of index
+ *
+ */
+struct sprd_sip_svc_dvfs_ops {
+	struct sprd_sip_svc_rev_info rev;
+
+	int (*chip_config)(u32 ver);
+
+	int (*phy_enable)(u32 cluster);
+	int (*table_update)(u32 cluster, u32 *num, u32 temp);
+	int (*cluster_config)(u32 cluster, u32 bin, u32 margin, u32 step);
+
+	int (*freq_set)(u32 cluster, u32 index);
+	int (*freq_get)(u32 cluster, u64 *freq);
+	int (*index_info)(u32 cluster, u32 index, u64 *freq, u64 *vol);
+};
+
+/**
  * struct sprd_sip_svc_handle - Handle returned to SPRD SIP clients for usage
  *
  * @perf_ops: pointer to set of performance operations
@@ -119,6 +148,7 @@ struct sprd_sip_svc_handle {
 	struct sprd_sip_svc_dbg_ops dbg_ops;
 	struct sprd_sip_svc_storage_ops storage_ops;
 	struct sprd_sip_svc_pwr_ops pwr_ops;
+	struct sprd_sip_svc_dvfs_ops dvfs_ops;
 };
 
 /**
