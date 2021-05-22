@@ -1089,8 +1089,8 @@ CONFIG_ARM_SPRD_CPUIDLE
 	[function] sprd cortex-a7 cpuidle driver.
 CONFIG_ARM_SPRD_HW_CPUFREQ
 	[arch] all
-	[plat] qogirl6,qogirn6pro,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,sharkle32
+	[plat] qogirl6,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
+	[missing plat] pike2,qogirn6pro,sharkle32
 	[field] make
 	[subsys] cpufreq
 	[must] user
@@ -1115,6 +1115,15 @@ CONFIG_ARM_SPRD_HW_CPUFREQ_SHARKL3
 	[missing plat description] support for sharkl3 soc sorely.
 	[function] this driver enable hardware to adjust the voltage and frequency
 			automatically for DSU cluster and cores in sharkl3 platorm.
+CONFIG_ARM_SPRD_SHARKL6PRO_CPUFREQ
+	[arch] arm64
+	[plat] qogirn6pro
+	[missing plat] qogirl6,sharkl3,sharkl5,sharkl5Pro
+	[field] make
+	[subsys] cpufreq
+	[must] user
+	[missing plat description] it is only for sharkl6pro.
+	[function] enable sharkl6pro dvfs.
 CONFIG_ARM_SPRD_SW_CPUFREQ
 	[arch] arm
 	[plat] pike2,sharkle32
