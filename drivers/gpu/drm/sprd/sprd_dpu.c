@@ -1083,6 +1083,27 @@ static int sprd_dpu_irq_request(struct sprd_dpu *dpu)
 	return 0;
 }
 
+static struct sprd_dsi *sprd_dpu_dsi_attach(struct sprd_dpu *dpu)
+{
+	struct device *dev;
+	struct sprd_dsi *dsi;
+
+	DRM_INFO("dpu attach dsi\n");
+	dev = sprd_disp_pipe_get_output(&dpu->dev);
+	if (!dev) {
+		DRM_ERROR("dpu pipe get output failed\n");
+		return NULL;
+	}
+
+	dsi = dev_get_drvdata(dev);
+	if (!dsi) {
+		DRM_ERROR("dpu attach dsi failed\n");
+		return NULL;
+	}
+
+	return dsi;
+}
+
 static int sprd_dpu_bind(struct device *dev, struct device *master, void *data)
 {
 	struct drm_device *drm = data;
@@ -1106,6 +1127,7 @@ static int sprd_dpu_bind(struct device *dev, struct device *master, void *data)
 	sprd_dpu_irq_request(dpu);
 
 	sprd->dpu_dev = dev;
+	dpu->dsi = sprd_dpu_dsi_attach(dpu);
 
 	return 0;
 }
@@ -1189,6 +1211,7 @@ static int sprd_dpu_probe(struct platform_device *pdev)
 	struct sprd_dpu *dpu;
 	const char *str;
 	int ret;
+	int val;
 
 	if (calibration_mode) {
 		DRM_WARN("Calibration Mode! Don't register sprd dpu driver\n");
@@ -1210,6 +1233,9 @@ static int sprd_dpu_probe(struct platform_device *pdev)
 		dpu->glb = dpu_glb_ops_attach(str);
 	} else
 		DRM_WARN("sprd,soc was not found\n");
+
+	if (!of_property_read_u32(np, "sprd,dpi-clk-div", &val))
+		dpu->ctx.dpi_clk_div = val;
 
 	ret = sprd_dpu_context_init(dpu, np);
 	if (ret)
