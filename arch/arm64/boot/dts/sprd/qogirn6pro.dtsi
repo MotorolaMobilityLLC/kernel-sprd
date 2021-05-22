@@ -2545,6 +2545,10 @@
 					nvmem-cell-names = "sen_delta_cal";
 				};
 			};
+			apcpu_dvfs: apcpu-dvfs@950000 {
+				compatible = "sprd,sharkl6pro-cpufreq";
+				//multi-version;
+			};
 		};
 
 		agcp {
