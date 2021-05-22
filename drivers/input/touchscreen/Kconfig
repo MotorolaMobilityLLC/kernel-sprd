@@ -12,6 +12,7 @@ menuconfig INPUT_TOUCHSCREEN
 if INPUT_TOUCHSCREEN
 
 source drivers/input/touchscreen/adaptive-ts/Kconfig
+source drivers/input/touchscreen/ili9883a/Kconfig
 
 config TOUCHSCREEN_PROPERTIES
 	def_tristate INPUT
