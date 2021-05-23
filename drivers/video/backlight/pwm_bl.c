@@ -41,25 +41,6 @@ struct pwm_bl_data {
 	void			(*exit)(struct device *);
 };
 
-#define WD_MODE_BACKLIGHT_OFF
-#ifdef WD_MODE_BACKLIGHT_OFF
-static bool wd_mode, apwd_mode;
-static int wd_bl_count = 0;
-static int boot_mode_check(char *str)
-{
-	wd_mode = false;
-	apwd_mode = false;
-	if (str != NULL && !strncmp(str, "wdgreboot", strlen("wdgreboot")))
-		wd_mode = true;
-	if (str != NULL && !strncmp(str, "apwdgreboot", strlen("apwdgreboot")))
-		apwd_mode = true;
-
-	pr_debug("#Eric: wd_mode = %d, apwd_mode = %d\n", wd_mode, apwd_mode);
-	return 0;
-}
-__setup("androidboot.mode=", boot_mode_check);
-#endif
-
 static void pwm_backlight_power_on(struct pwm_bl_data *pb)
 {
 	struct pwm_state state;
@@ -130,19 +111,6 @@ static int pwm_backlight_update_status(struct backlight_device *bl)
 
 	if (pb->notify)
 		brightness = pb->notify(pb->dev, brightness);
-
-#ifdef WD_MODE_BACKLIGHT_OFF
-	if (!brightness && wd_bl_count < 2) {
-		wd_bl_count ++;
-		pr_debug("#Eric: %s() wd_bl_count = %d\n",
-					__func__, wd_bl_count);
-	}
-
-	if (wd_bl_count < 2 && (wd_mode || apwd_mode)) {
-		pr_debug("#Eric: (ap) watchdog mode entry...\n");
-		brightness = 0;
-	}
-#endif
 
 	if (brightness > 0) {
 		pwm_get_state(pb->pwm, &state);
