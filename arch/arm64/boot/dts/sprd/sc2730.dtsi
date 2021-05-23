@@ -76,6 +76,17 @@
 				reg = <0x26 0x2>;
 			};
 
+			pddelta_calib: calib@2 {
+				reg = <0x2 0x2>;
+			};
+
+			pdrc_calib: calib@6 {
+				reg = <0x6 0x2>;
+			};
+
+			pdref_calib: calib@1e {
+				reg = <0x1e 0x2>;
+			};
 			fgu_calib: calib@3 {
 				reg = <0x6 0x2>;
 			};
@@ -140,6 +151,16 @@
 			io-channel-names = "bat-temp", "charge-vol";
 			interrupt-parent = <&sc2730_pmic>;
 			interrupts = <3>;
+		};
+		pmic_pd: pd@e00 {
+			compatible = "sprd,sc27xx-pd", "sprd,sc2730-pd";
+			reg = <0xe00>, <0x380>;
+			interrupt-parent = <&sc2730_pmic>;
+			interrupts = <9 IRQ_TYPE_LEVEL_HIGH>;
+			extcon = <&pmic_typec>;
+			nvmem-cells = <&pdrc_calib>, <&pddelta_calib>, <&pdref_calib>;
+			nvmem-cell-names = "pdrc_calib", "pddelta_calib", "pdref_calib";
+			status = "disabled";
 		};
 
 		sprd_audio_codec_ana: audio-codec@1000 {
