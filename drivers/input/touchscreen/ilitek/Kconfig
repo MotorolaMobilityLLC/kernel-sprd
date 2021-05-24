@@ -1,0 +1,7 @@
+
+config TOUCHSCREEN_ILITEK_S00
+    tristate "generic touchscreen ilitek driver"
+    help
+    add support for touchscreen driver.
+ 
+

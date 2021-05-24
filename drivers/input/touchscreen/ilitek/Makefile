@@ -22,8 +22,8 @@ endif
 
 ifeq ($(BUILD_PLATFORM),sprd)
 platform=ilitek_v3_qcom
-ccflags-y += -I$(srctree)/drivers/input/touchscreen/ili9883a/
-ccflags-y += -I$(srctree)/drivers/input/touchscreen/ili9883a/firmware/
+ccflags-y += -I$(srctree)/drivers/input/touchscreen/ilitek/
+ccflags-y += -I$(srctree)/drivers/input/touchscreen/ilitek/firmware/
 endif
 
 ifeq ($(BUILD_INFAE),i2c)
@@ -37,7 +37,7 @@ fwupdate=ilitek_v3_hostdl
 endif
 
 ifeq ($(BUILD_MODULE),n)
-obj-$(CONFIG_TP_ILI9883A_S00) += ilitek_v3.o \
+obj-$(CONFIG_TOUCHSCREEN_ILITEK_S00) += ilitek_v3.o \
 	$(interface).o \
 	$(platform).o \
 	ilitek_v3_ic.o \
