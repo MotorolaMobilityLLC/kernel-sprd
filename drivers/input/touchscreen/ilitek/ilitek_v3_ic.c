@@ -1302,8 +1302,8 @@ static struct ilitek_ic_info chip;
 void ili_ic_init(void)
 {
 	chip.pid_addr =		   	TDDI_PID_ADDR;
-	chip.pc_counter_addr = 		TDDI_PC_COUNTER_ADDR;
-	chip.pc_latch_addr =		TDDI_PC_LATCH_ADDR;
+	chip.pc_counter_addr = 	TDDI_PC_COUNTER_ADDR;
+	chip.pc_latch_addr =	TDDI_PC_LATCH_ADDR;
 	chip.otp_addr =		   	TDDI_OTP_ID_ADDR;
 	chip.ana_addr =		   	TDDI_ANA_ID_ADDR;
 	chip.reset_addr =	   	TDDI_CHIP_RESET_ADDR;

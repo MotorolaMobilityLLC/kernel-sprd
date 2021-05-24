@@ -1,7 +1,0 @@
-
-config TP_ILI9883A_S00
-    tristate "generic touchscreen driver"
-    help
-    add support for touchscreen driver.
- 
-

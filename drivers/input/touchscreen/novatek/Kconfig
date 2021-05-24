@@ -1,0 +1,7 @@
+
+config TOUCHSCREEN_NOVATEK_S00
+    tristate "generic touchscreen novatek driver"
+    help
+    add support for touchscreen driver.
+ 
+

@@ -599,15 +599,30 @@
 };
 
 &spi2{
-	status = "okay";
+    status = "okay";
     spi@0 {
-        status = "okay";
-        compatible = "tchip,ilitek";
+        compatible = "tchip,ilitek", "novatek,NVT-ts-spi";
         reg = <0x0>;
+
+        status = "okay";
+
         spi-max-frequency = <9600000>;
-        touch,reset-gpio = <&ap_gpio 145 GPIO_ACTIVE_HIGH>;
-        touch,irq-gpio= <&ap_gpio 144 GPIO_ACTIVE_HIGH>;
+
+        /*ilitek, 2-ILI9883A-THOM*/
+        touch,reset-gpio    = <&ap_gpio 145 GPIO_ACTIVE_HIGH>;
+        touch,irq-gpio      = <&ap_gpio 144 GPIO_ACTIVE_HIGH>;
         ilitech,display-coords =  <0 0 720 1600>;
+
+        /*novatek, 1-NT36525C-BOE*/
+        novatek,reset-gpio  = <&ap_gpio 145 0x00>;
+        novatek,irq-gpio    = <&ap_gpio 144 0x2001>;
+        /* 525 */
+        //novatek,swrst-n8-addr = <0x01F01A>;
+        /* 672A, 525B, 675, 526, 672C */
+        novatek,swrst-n8-addr       = <0x03F0FE>;
+        novatek,spi-rd-fast-addr    = <0x03F310>;
+        /* MP */
+        //novatek,mp-support-dt;
     };
 };
 
