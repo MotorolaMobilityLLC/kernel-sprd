@@ -878,6 +878,46 @@
 				cap-mmc-hw-reset;
 			};
 		};
+
+		aon {
+			compatible = "simple-bus";
+			#address-cells = <2>;
+			#size-cells = <2>;
+			ranges;
+
+			eic_sync: gpio@320000c0 {
+				compatible = "sprd,sharkl5pro-eic-sync", "sprd,sc9860-eic-sync";
+				reg = <0 0x320200c0 0 0x20>,
+				      <0 0x320300c0 0 0x20>,
+				      <0 0x322300c0 0 0x20>,
+				      <0 0x322700c0 0 0x20>;
+				gpio-controller;
+				#gpio-cells = <2>;
+				interrupt-controller;
+				#interrupt-cells = <2>;
+				interrupts = <GIC_SPI 72 IRQ_TYPE_LEVEL_HIGH>;
+			};
+
+			ap_gpio: gpio@32070000 {
+				compatible = "sprd,sharkl5Pro-gpio", "sprd,sc9860-gpio";
+				reg = <0 0x32070000 0 0x10000>;
+				gpio-controller;
+				#gpio-cells = <2>;
+				interrupt-controller;
+				#interrupt-cells = <2>;
+				interrupts = <GIC_SPI 61 IRQ_TYPE_LEVEL_HIGH>;
+			};
+
+			adi_bus: spi@32100000 {
+				compatible = "sprd,sharkl5Pro-adi";
+				reg = <0 0x32100000 0 0x100000>;
+				#address-cells = <1>;
+				#size-cells = <0>;
+				sprd,hw-channels = <2 0x18cc>, <3 0x18cc>, <13 0x1854>, <15 0x1874>,
+					<17 0x1844>,<19 0x1844>, <21 0x1864>, <30 0x1820>,
+					<35 0x19b8>, <39 0x19ac>;
+			};
+		};
 	};
 
 	ext_26m: ext-26m {

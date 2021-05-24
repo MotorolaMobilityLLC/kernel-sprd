@@ -7,7 +7,9 @@
 
 /dts-v1/;
 
+#include <dt-bindings/gpio/gpio.h>
 #include "ums512.dtsi"
+#include "sc2730.dtsi"
 
 / {
 	model = "Spreadtrum UMS512-1H10 Board";
@@ -41,9 +43,18 @@
 };
 
 &sdio0 {
+	//cd-gpios = <&eic_sync 19 GPIO_ACTIVE_HIGH>;
+	sprd,phy-delay-sd-uhs-sdr104 = <0x7f 0x73 0x72 0x72>;
+	sprd,phy-delay-sd-uhs-sdr50 = <0x6e 0x7f 0x01 0x01>;
+	sprd,phy-delay-sd-highspeed = <0x7f 0x1a 0x9a 0x9a>;
+	sprd,phy-delay-legacy = <0x7f 0x1a 0x9a 0x9a>;
+	vmmc-supply = <&vddsdcore>;
+	vqmmc-supply = <&vddsdio>;
 	bus-width = <4>;
 	no-sdio;
 	no-mmc;
+	sd-uhs-sdr104;
+	sd-uhs-sdr50;
 	status = "okay";
 };
 
