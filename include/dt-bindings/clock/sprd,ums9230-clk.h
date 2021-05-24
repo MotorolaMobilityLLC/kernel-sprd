@@ -12,26 +12,31 @@
 #define CLK_13M				1
 #define CLK_6M5				2
 #define CLK_4M3				3
-#define CLK_2M				4
-#define CLK_1M				5
-#define CLK_250K			6
-#define CLK_RCO_25M			7
-#define CLK_RCO_4M			8
-#define CLK_RCO_2M			9
-#define CLK_ISPPLL_GATE			10
-#define CLK_DPLL0_GATE			11
-#define CLK_LPLL_GATE			12
-#define CLK_TWPLL_GATE			13
-#define CLK_GPLL_GATE			14
-#define CLK_RPLL_GATE			15
-#define CLK_MPLL0_GATE			16
-#define CLK_MPLL1_GATE			17
-#define CLK_MPLL2_GATE			18
+#define CLK_4M				4
+#define CLK_2M				5
+#define CLK_1M				6
+#define CLK_250K			7
+#define CLK_RCO_25M			8
+#define CLK_RCO_4M			9
+#define CLK_RCO_2M			10
+#define CLK_ISPPLL_GATE			11
+#define CLK_DPLL0_GATE			12
+#define CLK_LPLL_GATE			13
+#define CLK_TWPLL_GATE			14
+#define CLK_GPLL_GATE			15
+#define CLK_RPLL_GATE			16
+#define CLK_MPLL0_GATE			17
+#define CLK_MPLL1_GATE			18
+#define CLK_MPLL2_GATE			19
 #define CLK_PMU_GATE_NUM		(CLK_MPLL2_GATE + 1)
 
 #define CLK_DPLL0			0
 #define CLK_DPLL0_50M			1
 #define CLK_ANLG_PHY_G0_NUM		(CLK_DPLL0_50M + 1)
+
+#define CLK_DSI_ISO_SW_EN		0
+#define CLK_DSI_DIV6CLK_GATE		1
+#define CLK_ANLG_PHY_G1_NUM		(CLK_DSI_DIV6CLK_GATE + 1)
 
 #define CLK_RPLL			0
 #define CLK_AUDIO_GATE			1
@@ -274,35 +279,50 @@
 #define CLK_THM0			13
 #define CLK_THM1			14
 #define CLK_THM2			15
-#define CLK_THM3			16
-#define CLK_AON_I2C			17
-#define CLK_AON_IIS			18
-#define CLK_SCC				19
-#define CLK_APCPU_DAP			20
-#define CLK_APCPU_DAP_MTCK		21
-#define CLK_APCPU_TS			22
-#define CLK_DEBUG_TS			23
-#define CLK_DSI_TEST_S			24
-#define CLK_DJTAG_TCK			25
-#define CLK_DJTAG_TCK_HW		26
-#define CLK_AON_TMR			27
-#define CLK_AON_PMU			28
-#define CLK_DEBOUNCE			29
-#define CLK_APCPU_PMU			30
-#define CLK_TOP_DVFS			31
-#define CLK_OTG_UTMI			32
-#define CLK_OTG_REF			33
-#define CLK_CSSYS			34
-#define CLK_CSSYS_APB			35
-#define CLK_AP_AXI			36
-#define CLK_AP_MM			37
-#define CLK_SDIO2_2X			38
-#define CLK_ANALOG_IO_APB		39
-#define CLK_DMC_REF_CLK			40
-#define CLK_EMC				41
-#define CLK_USB				42
-#define CLK_26M_PMU			43
+#define CLK_AON_I2C			16
+#define CLK_AON_IIS			17
+#define CLK_SCC				18
+#define CLK_APCPU_DAP			19
+#define CLK_APCPU_DAP_MTCK		20
+#define CLK_APCPU_TS			21
+#define CLK_DEBUG_TS			22
+#define CLK_DSI_TEST_S			23
+#define CLK_DJTAG_TCK			24
+#define CLK_DJTAG_TCK_HW		25
+#define CLK_AON_TMR			26
+#define CLK_AON_PMU			27
+#define CLK_DEBOUNCE			28
+#define CLK_APCPU_PMU			29
+#define CLK_TOP_DVFS			30
+#define CLK_OTG_UTMI			31
+#define CLK_OTG_REF			32
+#define CLK_CSSYS			33
+#define CLK_CSSYS_APB			34
+#define CLK_AP_AXI			35
+#define CLK_AP_MM			36
+#define CLK_SDIO2_2X			37
+#define CLK_ANALOG_IO_APB		38
+#define CLK_DMC_REF_CLK			39
+#define CLK_EMC				40
+#define CLK_USB				41
+#define CLK_26M_PMU			42
 #define CLK_AON_APB_NUM			(CLK_26M_PMU + 1)
+
+#define CLK_ACORE0			0
+#define CLK_ACORE1			1
+#define CLK_ACORE2			2
+#define CLK_ACORE3			3
+#define CLK_ACORE4			4
+#define CLK_ACORE5			5
+#define CLK_PCORE0			6
+#define CLK_PCORE1			7
+#define CLK_SCU				8
+#define CLK_ACE				9
+#define CLK_PERIPH			10
+#define CLK_GIC				11
+#define CLK_ATB				12
+#define CLK_DEBUG_APB			13
+#define CLK_APCPU_SEC_NUM		(CLK_DEBUG_APB + 1)
 
 #define CLK_GPU_CORE_EB			0
 #define CLK_GPU_CORE			1
@@ -345,29 +365,28 @@
 #define CLK_MM_MIPI_CSI2_EB		14
 #define CLK_MM_MIPI_CSI1_EB		15
 #define CLK_MM_MIPI_CSI0_EB		16
-#define CLK_DCAM_AXI_EB			17
-#define CLK_ISP_AXI_EB			18
-#define CLK_MM_CPHY_EB			19
+#define CLK_MM_CPHY_EB			17
 #define CLK_MM_GATE_CLK_NUM		(CLK_MM_CPHY_EB + 1)
 
 #define CLK_AUDCP_IIS0_EB		0
 #define CLK_AUDCP_IIS1_EB		1
 #define CLK_AUDCP_IIS2_EB		2
-#define CLK_AUDCP_UART_EB		3
-#define CLK_AUDCP_DMA_CP_EB		4
-#define CLK_AUDCP_DMA_AP_EB		5
-#define CLK_AUDCP_SRC48K_EB		6
-#define CLK_AUDCP_MCDT_EB		7
-#define CLK_AUDCP_VBCIFD_EB		8
-#define CLK_AUDCP_VBC_EB		9
-#define CLK_AUDCP_SPLK_EB		10
-#define CLK_AUDCP_ICU_EB		11
-#define CLK_AUDCP_DMA_AP_ASHB_EB	12
-#define CLK_AUDCP_DMA_CP_ASHB_EB	13
-#define CLK_AUDCP_AUD_EB		14
-#define CLK_AUDCP_VBC_24M_EB		15
-#define CLK_AUDCP_TMR_26M_EB		16
-#define CLK_AUDCP_DVFS_ASHB_EB		17
+#define CLK_AUDCP_PDM_EB		3
+#define CLK_AUDCP_UART_EB		4
+#define CLK_AUDCP_DMA_CP_EB		5
+#define CLK_AUDCP_DMA_AP_EB		6
+#define CLK_AUDCP_SRC48K_EB		7
+#define CLK_AUDCP_MCDT_EB		8
+#define CLK_AUDCP_VBCIFD_EB		9
+#define CLK_AUDCP_VBC_EB		10
+#define CLK_AUDCP_SPLK_EB		11
+#define CLK_AUDCP_ICU_EB		12
+#define CLK_AUDCP_DMA_AP_ASHB_EB	13
+#define CLK_AUDCP_DMA_CP_ASHB_EB	14
+#define CLK_AUDCP_AUD_EB		15
+#define CLK_AUDCP_VBC_24M_EB		16
+#define CLK_AUDCP_TMR_26M_EB		17
+#define CLK_AUDCP_DVFS_ASHB_EB		18
 #define CLK_AUDCP_AHB_GATE_NUM		(CLK_AUDCP_DVFS_ASHB_EB + 1)
 
 #define CLK_AUDCP_WDG_EB		0

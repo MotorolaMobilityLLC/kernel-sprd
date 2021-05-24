@@ -34,6 +34,7 @@ static CLK_FIXED_FACTOR_FW_NAME(clk_26m_aud, "clk-26m-aud", "ext-26m", 1, 1, 0);
 static CLK_FIXED_FACTOR_FW_NAME(clk_13m, "clk-13m", "ext-26m", 2, 1, 0);
 static CLK_FIXED_FACTOR_FW_NAME(clk_6m5, "clk-6m5", "ext-26m", 4, 1, 0);
 static CLK_FIXED_FACTOR_FW_NAME(clk_4m3, "clk-4m3", "ext-26m", 6, 1, 0);
+static CLK_FIXED_FACTOR_FW_NAME(clk_4m, "clk-4m", "ext-26m", 13, 2, 0);
 static CLK_FIXED_FACTOR_FW_NAME(clk_2m, "clk-2m", "ext-26m", 13, 1, 0);
 static CLK_FIXED_FACTOR_FW_NAME(clk_1m, "clk-1m", "ext-26m", 26, 1, 0);
 static CLK_FIXED_FACTOR_FW_NAME(clk_250k, "clk-250k", "ext-26m", 104, 1, 0);
@@ -79,6 +80,7 @@ static struct clk_hw_onecell_data ums9230_pmu_gate_hws = {
 		[CLK_13M]		= &clk_13m.hw,
 		[CLK_6M5]		= &clk_6m5.hw,
 		[CLK_4M3]		= &clk_4m3.hw,
+		[CLK_4M]		= &clk_4m.hw,
 		[CLK_2M]		= &clk_2m.hw,
 		[CLK_1M]		= &clk_1m.hw,
 		[CLK_250K]		= &clk_250k.hw,
@@ -144,6 +146,32 @@ static struct sprd_clk_desc ums9230_g0_pll_desc = {
 	.clk_clks	= ums9230_g0_pll_clks,
 	.num_clk_clks	= ARRAY_SIZE(ums9230_g0_pll_clks),
 	.hw_clks	= &ums9230_g0_pll_hws,
+};
+
+/* pll clock at g1 */
+static SPRD_SC_GATE_CLK_FW_NAME(dsi_iso_sw_en, "dsi-iso-sw-en", "ext-26m",
+				0x34, 0x1000, BIT(0), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK_FW_NAME(dsi_div6clk_gate, "dsi-div6clk-gate", "ext-26m",
+				0x34, 0x1000, BIT(1), CLK_IGNORE_UNUSED, 0);
+
+static struct sprd_clk_common *ums9230_g1_pll_clks[] = {
+	/* address base is 0x64560000 */
+	&dsi_iso_sw_en.common,
+	&dsi_div6clk_gate.common,
+};
+
+static struct clk_hw_onecell_data ums9230_g1_pll_hws = {
+	.hws	= {
+		[CLK_DSI_ISO_SW_EN]	= &dsi_iso_sw_en.common.hw,
+		[CLK_DSI_DIV6CLK_GATE]	= &dsi_div6clk_gate.common.hw,
+	},
+	.num	= CLK_ANLG_PHY_G1_NUM,
+};
+
+static struct sprd_clk_desc ums9230_g1_pll_desc = {
+	.clk_clks	= ums9230_g1_pll_clks,
+	.num_clk_clks	= ARRAY_SIZE(ums9230_g1_pll_clks),
+	.hw_clks	= &ums9230_g1_pll_hws,
 };
 
 /* pll clock at g3 */
@@ -1341,8 +1369,6 @@ static SPRD_MUX_CLK_DATA(thm1_clk, "thm1-clk", thm_parents,
 			 0x64, 0, 1, UMS9230_MUX_FLAG);
 static SPRD_MUX_CLK_DATA(thm2_clk, "thm2-clk", thm_parents,
 			 0x68, 0, 1, UMS9230_MUX_FLAG);
-static SPRD_MUX_CLK_DATA(thm3_clk, "thm3-clk", thm_parents,
-			 0x6c, 0, 1, UMS9230_MUX_FLAG);
 
 static const struct clk_parent_data aon_i2c_parents[] = {
 	{ .hw = &rco_4m.hw  },
@@ -1572,7 +1598,6 @@ static struct sprd_clk_common *ums9230_aon_apb[] = {
 	&thm0_clk.common,
 	&thm1_clk.common,
 	&thm2_clk.common,
-	&thm3_clk.common,
 	&aon_i2c_clk.common,
 	&aon_iis_clk.common,
 	&scc_clk.common,
@@ -1620,7 +1645,6 @@ static struct clk_hw_onecell_data ums9230_aon_apb_hws = {
 		[CLK_THM0]		= &thm0_clk.common.hw,
 		[CLK_THM1]		= &thm1_clk.common.hw,
 		[CLK_THM2]		= &thm2_clk.common.hw,
-		[CLK_THM3]		= &thm3_clk.common.hw,
 		[CLK_AON_I2C]		= &aon_i2c_clk.common.hw,
 		[CLK_AON_IIS]		= &aon_iis_clk.common.hw,
 		[CLK_SCC]		= &scc_clk.common.hw,
@@ -1953,58 +1977,61 @@ static struct sprd_clk_desc ums9230_mm_gate_clk_desc = {
  * kernel gates these clock.
  */
 static SPRD_SC_GATE_CLK_HW(audcp_iis0_eb, "audcp-iis0-eb",
-			   &access_aud_en.common.hw, 0x0, 0x100, BIT(0),
+			   &access_aud_en.common.hw, 0x0, 0x1000, BIT(0),
 			   CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(audcp_iis1_eb, "audcp-iis1-eb",
-			   &access_aud_en.common.hw, 0x0, 0x100, BIT(1),
+			   &access_aud_en.common.hw, 0x0, 0x1000, BIT(1),
 			   CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(audcp_iis2_eb, "audcp-iis2-eb",
-			   &access_aud_en.common.hw, 0x0, 0x100, BIT(2),
+			   &access_aud_en.common.hw, 0x0, 0x1000, BIT(2),
+			   CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
+static SPRD_SC_GATE_CLK_HW(audcp_pdm_eb, "audcp-pdm-eb",
+			   &access_aud_en.common.hw, 0x0, 0x1000, BIT(3),
 			   CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(audcp_uart_eb, "audcp-uart-eb",
-			   &access_aud_en.common.hw, 0x0, 0x100, BIT(4),
+			   &access_aud_en.common.hw, 0x0, 0x1000, BIT(4),
 			   CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(audcp_dma_cp_eb, "audcp-dma-cp-eb",
-			   &access_aud_en.common.hw, 0x0, 0x100, BIT(5),
+			   &access_aud_en.common.hw, 0x0, 0x1000, BIT(5),
 			   CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(audcp_dma_ap_eb, "audcp-dma-ap-eb",
-			   &access_aud_en.common.hw, 0x0, 0x100, BIT(6),
+			   &access_aud_en.common.hw, 0x0, 0x1000, BIT(6),
 			   CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(audcp_src48k_eb, "audcp-src48k-eb",
-			   &access_aud_en.common.hw, 0x0, 0x100, BIT(10),
+			   &access_aud_en.common.hw, 0x0, 0x1000, BIT(10),
 			   CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(audcp_mcdt_eb, "audcp-mcdt-eb",
-			   &access_aud_en.common.hw, 0x0, 0x100, BIT(12),
+			   &access_aud_en.common.hw, 0x0, 0x1000, BIT(12),
 			   CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(audcp_vbcifd_eb, "audcp-vbcifd-eb",
-			   &access_aud_en.common.hw, 0x0, 0x100, BIT(13),
+			   &access_aud_en.common.hw, 0x0, 0x1000, BIT(13),
 			   CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(audcp_vbc_eb, "audcp-vbc-eb",
-			   &access_aud_en.common.hw, 0x0, 0x100, BIT(14),
+			   &access_aud_en.common.hw, 0x0, 0x1000, BIT(14),
 			   CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(audcp_splk_eb,  "audcp-splk-eb",
-			   &access_aud_en.common.hw, 0x0, 0x100, BIT(15),
+			   &access_aud_en.common.hw, 0x0, 0x1000, BIT(15),
 			   CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(audcp_icu_eb, "audcp-icu-eb",
-			   &access_aud_en.common.hw, 0x0, 0x100, BIT(16),
+			   &access_aud_en.common.hw, 0x0, 0x1000, BIT(16),
 			   CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(dma_ap_ashb_eb, "dma-ap-ashb-eb",
-			   &access_aud_en.common.hw, 0x0, 0x100, BIT(17),
+			   &access_aud_en.common.hw, 0x0, 0x1000, BIT(17),
 			   CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(dma_cp_ashb_eb, "dma-cp-ashb-eb",
-			   &access_aud_en.common.hw, 0x0, 0x100, BIT(18),
+			   &access_aud_en.common.hw, 0x0, 0x1000, BIT(18),
 			   CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(audcp_aud_eb, "audcp-aud-eb",
-			   &access_aud_en.common.hw, 0x0, 0x100, BIT(19),
+			   &access_aud_en.common.hw, 0x0, 0x1000, BIT(19),
 			   CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(audcp_vbc_24m_eb, "audcp-vbc-24m-eb",
-			   &access_aud_en.common.hw, 0x0, 0x100, BIT(21),
+			   &access_aud_en.common.hw, 0x0, 0x1000, BIT(21),
 			   CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(audcp_tmr_26m_eb, "audcp-tmr-26m-eb",
-			   &access_aud_en.common.hw, 0x0, 0x100, BIT(22),
+			   &access_aud_en.common.hw, 0x0, 0x1000, BIT(22),
 			   CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(audcp_dvfs_ashb_eb, "audcp-dvfs-ashb-eb",
-			   &access_aud_en.common.hw, 0x0, 0x100, BIT(23),
+			   &access_aud_en.common.hw, 0x0, 0x1000, BIT(23),
 			   CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 
 static struct sprd_clk_common *ums9230_audcpahb_gate[] = {
@@ -2012,6 +2039,7 @@ static struct sprd_clk_common *ums9230_audcpahb_gate[] = {
 	&audcp_iis0_eb.common,
 	&audcp_iis1_eb.common,
 	&audcp_iis2_eb.common,
+	&audcp_pdm_eb.common,
 	&audcp_uart_eb.common,
 	&audcp_dma_cp_eb.common,
 	&audcp_dma_ap_eb.common,
@@ -2034,6 +2062,7 @@ static struct clk_hw_onecell_data ums9230_audcpahb_gate_hws = {
 		[CLK_AUDCP_IIS0_EB]		= &audcp_iis0_eb.common.hw,
 		[CLK_AUDCP_IIS1_EB]		= &audcp_iis1_eb.common.hw,
 		[CLK_AUDCP_IIS2_EB]		= &audcp_iis2_eb.common.hw,
+		[CLK_AUDCP_PDM_EB]		= &audcp_pdm_eb.common.hw,
 		[CLK_AUDCP_UART_EB]		= &audcp_uart_eb.common.hw,
 		[CLK_AUDCP_DMA_CP_EB]		= &audcp_dma_cp_eb.common.hw,
 		[CLK_AUDCP_DMA_AP_EB]		= &audcp_dma_ap_eb.common.hw,
@@ -2106,6 +2135,8 @@ static const struct of_device_id sprd_ums9230_clk_ids[] = {
 	  .data = &ums9230_pmu_gate_desc },
 	{ .compatible = "sprd,ums9230-g0-pll",		/* 0x64550000 */
 	  .data = &ums9230_g0_pll_desc },
+	{ .compatible = "sprd,ums9230-g1-pll",          /* 0x64560000 */
+	  .data = &ums9230_g1_pll_desc },
 	{ .compatible = "sprd,ums9230-g3-pll",		/* 0x64580000 */
 	  .data = &ums9230_g3_pll_desc },
 	{ .compatible = "sprd,ums9230-gc-pll",		/* 0x645a0000 */
