@@ -10056,8 +10056,8 @@ CONFIG_KRETPROBES
 	[missing plat description] none
 	[function]
 CONFIG_KUNIT
-	[arch] all
-	[plat] all
+	[arch] arm
+	[plat] pike2
 	[missing plat] none
 	[field]
 	[subsys]
@@ -10065,8 +10065,8 @@ CONFIG_KUNIT
 	[missing plat description] none
 	[function]
 CONFIG_KUNIT_DEBUGFS
-	[arch] all
-	[plat] all
+	[arch] arm
+	[plat] pike2
 	[missing plat] none
 	[field]
 	[subsys]
