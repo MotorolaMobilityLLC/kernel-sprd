@@ -742,19 +742,10 @@ bool dsi_hal_wait_tx_payload_fifo_empty(struct sprd_dsi *dsi)
 {
 	int timeout;
 
-	if(strncmp(lcd_name, "lcd_hx83102d_youda_mipi_hd",strlen(lcd_name)) == 0) {
-		for (timeout = 0; timeout < 25000; timeout++) {
-			if (dsi_hal_is_tx_payload_fifo_empty(dsi))
-				return true;
-			udelay(1);
-		}
-	}
-	else{
-		for (timeout = 0; timeout < 5000; timeout++) {
-			if (dsi_hal_is_tx_payload_fifo_empty(dsi))
-				return true;
-			udelay(1);
-		}
+	for (timeout = 0; timeout < 25000; timeout++) {
+		if (dsi_hal_is_tx_payload_fifo_empty(dsi))
+			return true;
+		udelay(1);
 	}
 
 	pr_err("tx payload fifo is not empty\n");
@@ -765,19 +756,10 @@ static inline bool dsi_hal_wait_tx_cmd_fifo_empty(struct sprd_dsi *dsi)
 {
 	int timeout;
 
-	if(strncmp(lcd_name, "lcd_hx83102d_youda_mipi_hd",strlen(lcd_name)) == 0) {
-		for (timeout = 0; timeout < 25000; timeout++) {
-			if (dsi_hal_is_tx_cmd_fifo_empty(dsi))
-				return true;
-			udelay(1);
-		}
-	}
-	else{
-		for (timeout = 0; timeout < 5000; timeout++) {
-			if (dsi_hal_is_tx_cmd_fifo_empty(dsi))
-				return true;
-			udelay(1);
-		}
+	for (timeout = 0; timeout < 25000; timeout++) {
+		if (dsi_hal_is_tx_cmd_fifo_empty(dsi))
+			return true;
+		udelay(1);
 	}
 
 	pr_err("tx cmd fifo is not empty\n");
@@ -874,6 +856,23 @@ void dsi_hal_max_read_time(struct sprd_dsi *dsi, u16 byte_cycle)
 	if (ops->max_read_time)
 		ops->max_read_time(ctx, byte_cycle);
 }
+
+/**
+ * Configure the largest packet that can fit in a line during vlank region
+ * when the transmission of commands in lp mode.
+ * @dsi pointer to structure holding the DSI Host core information
+ * @size, in bytes
+ */
+static inline
+void dsi_hal_vblk_cmd_trans_limit(struct sprd_dsi *dsi, u16 size)
+{
+	struct dsi_core_ops *ops = dsi->core;
+	struct dsi_context *ctx = &dsi->ctx;
+
+	if (ops->vblk_cmd_trans_limit)
+		ops->vblk_cmd_trans_limit(ctx, size);
+}
+
 /**
  * Enable the automatic mechanism to stop providing clock in the clock
  * lane when time allows
