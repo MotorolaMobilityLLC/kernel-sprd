@@ -403,10 +403,11 @@
 
 			iommu_vsp: iommu@32000000 {
 				compatible = "sprd,iommuvau-vsp";
-				reg = <0x0 0x32000000 0x0 0x80>;
-				sprd,iova-base = <0x20000000>;
-				sprd,iova-size = <0x10000000>;
-				reg_name = "mmu_reg";
+				reg = <0x0 0x32000000 0x0 0x80>,
+				      <0x0 0x32000000 0x0 0x80>;
+				iova-base = <0x20000000>;
+				iova-size = <0x10000000>;
+				reg_name = "mmu_interrupt_reg","mmu_reg";
 				status = "disable";
 				#iommu-cells = <0>;
 			};
@@ -430,10 +431,11 @@
 
 			iommu_jpg: iommu@36000300 {
 				compatible = "sprd,iommuvau-jpg";
-				reg = <0x0 0x36000300 0x0 0x80>;
-				sprd,iova-base = <0x60000000>;
-				sprd,iova-size = <0x10000000>;
-				reg_name = "mmu_reg";
+				reg = <0x0 0x36000000 0x0 0x300>,
+				      <0x0 0x36000300 0x0 0x80>;
+				iova-base = <0x60000000>;
+				iova-size = <0x10000000>;
+				reg_name = "mmu_interrupt_reg","mmu_reg";
 				status = "disabled";
 				#iommu-cells = <0>;
 			};
@@ -598,10 +600,11 @@
 			};
 			iommu_isp: iommu@3a000000 {
 				compatible = "sprd,iommuvau-isp";
-				reg = <0x0 0x3a0ff000 0x0 0x80>;
-				sprd,iova-base = <0x40000000>;
-				sprd,iova-size = <0x20000000>;
-				reg_name = "mmu_reg";
+				reg = <0x0 0x3a000000 0x0 0xff000>,
+				      <0x0 0x3a0ff000 0x0 0x80>;
+				iova-base = <0x40000000>;
+				iova-size = <0x20000000>;
+				reg_name = "mmu_interrupt_reg","mmu_reg";
 				status = "okay";
 				#iommu-cells = <0>;
 			};
@@ -660,10 +663,11 @@
 			};
 			iommu_dcam: iommu@3e000000 {
 				compatible = "sprd,iommuvau-dcam";
-				reg = <0x0 0x3e00f000 0x0 0x80>;
-				sprd,iova-base = <0x40000000>;
-				sprd,iova-size = <0x40000000>;
-				reg_name = "mmu_reg";
+				reg = <0x0 0x3e000000 0x0 0xf000>,
+				      <0x0 0x3e00f000 0x0 0x80>;
+				iova-base = <0x40000000>;
+				iova-size = <0x40000000>;
+				reg_name = "mmu_interrupt_reg","mmu_reg";
 				status = "okay";
 				#iommu-cells = <0>;
 			};
@@ -698,10 +702,11 @@
 			};
 			iommu_fd: iommu@3C000000 {
 				compatible = "sprd,iommuvau-fd";
-				reg = <0 0x3C000110 0 0x80>;
-				sprd,iova-base = <0x40000000>;
-				sprd,iova-size = <0x10000000>;
-				reg_name = "mmu_reg";
+				reg = <0 0x3C000000 0 0x110>,
+				      <0 0x3C000110 0 0x80>;
+				iova-base = <0x40000000>;
+				iova-size = <0x10000000>;
+				reg_name = "mmu_interrupt_reg","mmu_reg";
 				status = "okay";
 				#iommu-cells = <0>;
 			};
@@ -725,10 +730,11 @@
 
 			iommu_cpp: iommu@38000200 {
 				compatible = "sprd,iommuvau-cpp";
-				reg = <0x0 0x38000200 0x0 0x80>;
-				sprd,iova-base = <0x40000000>;
-				sprd,iova-size = <0x20000000>;
-				reg_name = "mmu_reg";
+				reg = <0x0 0x38000000 0x0 0x200>,
+				      <0x0 0x38000200 0x0 0x80>;
+				iova-base = <0x40000000>;
+				iova-size = <0x20000000>;
+				reg_name = "mmu_interrupt_reg","mmu_reg";
 				status = "okay";
 				#iommu-cells = <0>;
 			};
