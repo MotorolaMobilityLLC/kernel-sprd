@@ -14,6 +14,8 @@
 				sprd,width-mm = <68>;
 				sprd,height-mm = <121>;
 				sprd,dpi-clk-div = <6>;
+				sprd,video-lp-cmd-enable = <1>;
+				sprd,hporch-lp-disable = <1>;
 
 				sprd,esd-check-enable = <0>;
 				sprd,esd-check-mode = <0>;
