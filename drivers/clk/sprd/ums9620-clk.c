@@ -468,7 +468,7 @@ static SPRD_PLL_WITH_ITABLE_K_FVCO(phyr8pll, "phyr8pll", "phyr8pll-gate", 0x90,
 
 #define pixelpll_ftable gpll_ftable
 #define f_pixelpll f_audpll
-static SPRD_PLL_WITH_ITABLE_K_FVCO(pixelpll, "pixelpll", "pixelpll-gate", 0xa8,
+static SPRD_PLL_WITH_ITABLE_K_FVCO(pixelpll, "pixelpll", "ext-26m", 0xa8,
 				   3, pixelpll_ftable, f_pixelpll, 240,
 				   1000, 1000, 1, 1600000000);
 static CLK_FIXED_FACTOR(pixelpll_668m25, "pixelpll-668m25", "pixelpll", 4, 1, 0);
