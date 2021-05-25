@@ -1150,7 +1150,7 @@
 			ranges;
 
 			eic_debounce: gpio@64100000 {
-				compatible = "sprd,qogirl6-eic-debounce";
+				compatible = "sprd,qogirl6-eic-debounce", "sprd,sc9860-eic-debounce";
 				reg = <0 0x64100000 0 0x80>,
 				      <0 0x64110000 0 0x80>,
 				      <0 0x64120000 0 0x80>,
@@ -1165,7 +1165,7 @@
 			};
 
 			eic_latch: gpio@64100080 {
-				compatible = "sprd,qogirl6-eic-latch";
+				compatible = "sprd,qogirl6-eic-latch", "sprd,sc9860-eic-latch";
 				reg = <0 0x64100080 0 0x20>,
 				      <0 0x64110080 0 0x20>,
 				      <0 0x64120080 0 0x20>,
@@ -1180,7 +1180,7 @@
 			};
 
 			eic_async: gpio@641000a0 {
-				compatible = "sprd,qogirl6-eic-async";
+				compatible = "sprd,qogirl6-eic-async", "sprd,sc9860-eic-async";
 				reg = <0 0x641000a0 0 0x20>,
 				      <0 0x641100a0 0 0x20>,
 				      <0 0x641200a0 0 0x20>,
@@ -1195,7 +1195,7 @@
 			};
 
 			eic_sync: gpio@641000c0 {
-				compatible = "sprd,qogirl6-eic-sync";
+				compatible = "sprd,qogirl6-eic-sync", "sprd,sc9860-eic-sync";
 				reg = <0 0x641000c0 0 0x20>,
 				      <0 0x641100c0 0 0x20>,
 				      <0 0x641200c0 0 0x20>,
@@ -1210,7 +1210,7 @@
 			};
 
 			ap_gpio: gpio@641b0000 {
-				compatible = "sprd,qogirl6-gpio";
+				compatible = "sprd,qogirl6-gpio", "sprd,sc9860-gpio";
 				reg = <0 0x641b0000 0 0x10000>;
 				gpio-controller;
 				#gpio-cells = <2>;
