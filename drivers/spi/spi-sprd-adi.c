@@ -695,7 +695,7 @@ static const struct of_device_id sprd_adi_of_match[] = {
 		.data = &pike2_data,
 	},
 	{
-		.compatible = "sprd,sharkl5Pro-adi",
+		.compatible = "sprd,sharkl5pro-adi",
 		.data = &sharkl5pro_data,
 	},
 	{
