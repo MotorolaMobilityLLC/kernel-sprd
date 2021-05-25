@@ -242,6 +242,27 @@ static const struct of_device_id sprd_iommu_ids[] = {
 
 	{ .compatible = "unisoc,iommuvaul5p-vdma",
 	  .data = (void *)(IOMMU_VAUL5P_VDMA)},
+
+	{ .compatible = "sprd,iommuvaul6-dispc",
+	   .data = (void *)(IOMMU_VAUL5P_DISP)},
+
+	{ .compatible = "sprd,iommuvaul6-vsp",
+	   .data = (void *)(IOMMU_VAUL6_VSP)},
+
+	{ .compatible = "sprd,iommuvaul6-dcam",
+	   .data = (void *)(IOMMU_VAUL6_DCAM)},
+
+	{ .compatible = "sprd,iommuvaul6-isp",
+	   .data = (void *)(IOMMU_VAUL6_ISP)},
+
+	{ .compatible = "sprd,iommuvaul6-cpp",
+	   .data = (void *)(IOMMU_VAUL6_CPP)},
+
+	{ .compatible = "sprd,iommuvaul6-jpg",
+	   .data = (void *)(IOMMU_VAUL6_JPG)},
+
+	{ .compatible = "sprd,iommuvaul6-fd",
+	  .data = (void *)(IOMMU_VAUL6_FD)},
 	{},
 };
 
@@ -1604,7 +1625,32 @@ static int sprd_iommu_probe(struct platform_device *pdev)
 
 		break;
 	}
-
+	case IOMMU_VAUL6_VSP:
+	case IOMMU_VAUL6_DCAM:
+	case IOMMU_VAUL6_CPP:
+	case IOMMU_VAUL6_JPG:
+	case IOMMU_VAUL6_DISP:
+	case IOMMU_VAUL6_ISP:
+	case IOMMU_VAUL6_FD:
+	{
+		pdata->iommuex_rev = 13;
+		iommu_dev->ops = &sprd_iommuvau_hw_ops;
+		if (pdata->id == IOMMU_VAUL6_DISP)
+			pdata->id = IOMMU_EX_DISP;
+		else if (pdata->id == IOMMU_VAUL6_VSP)
+			pdata->id = IOMMU_EX_VSP;
+		else if (pdata->id == IOMMU_VAUL6_DCAM)
+			pdata->id = IOMMU_EX_DCAM;
+		else if (pdata->id == IOMMU_VAUL6_ISP)
+			pdata->id = IOMMU_EX_NEWISP;
+		else if (pdata->id == IOMMU_VAUL6_CPP)
+			pdata->id = IOMMU_EX_CPP;
+		else if (pdata->id == IOMMU_VAUL6_JPG)
+			pdata->id = IOMMU_EX_JPG;
+		else if (pdata->id == IOMMU_VAUL6_FD)
+			pdata->id = IOMMU_EX_FD;
+		break;
+	}
 	default:
 	{
 		IOMMU_ERR("unknown iommu id %d\n", pdata->id);
