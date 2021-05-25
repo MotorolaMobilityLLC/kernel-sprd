@@ -1587,12 +1587,8 @@ static void cm_vote_property(struct charger_manager *cm, int target_val,
 
 static int cm_check_parallel_charger(struct charger_manager *cm, int cur)
 {
-	if (cm->desc->enable_fast_charge && cm->desc->psy_charger_stat[1]) {
-		if (cm->desc->double_ic_total_limit_current &&
-		    (cur >= (int)cm->desc->double_ic_total_limit_current))
-			cur = (int)cm->desc->double_ic_total_limit_current;
+	if (cm->desc->enable_fast_charge && cm->desc->psy_charger_stat[1])
 		cur /= 2;
-	}
 
 	return cur;
 }
@@ -1607,6 +1603,7 @@ static void cm_sprd_vote_callback(struct sprd_vote *vote_gov, int vote_type,
 	switch (vote_type) {
 	case SPRD_VOTE_TYPE_IBAT:
 		psy_charger_name = cm->desc->psy_charger_stat;
+		value = cm_check_parallel_charger(cm, value);
 		cm_vote_property(cm, value, psy_charger_name,
 				 POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT);
 		break;
@@ -4425,7 +4422,7 @@ static int charger_get_property(struct power_supply *psy,
 							val);
 			power_supply_put(psy);
 			if (ret) {
-				dev_err(cm->dev, "set charge current failed\n");
+				dev_err(cm->dev, "get charge current failed\n");
 				continue;
 			}
 		}
@@ -5706,8 +5703,6 @@ static struct charger_desc *of_cm_parse_desc(struct device *dev)
 			     &desc->wireless_fast_charge_voltage_max);
 	of_property_read_u32(np, "cm-wireless-fast-charge-voltage-drop",
 			     &desc->wireless_fast_charge_voltage_drop);
-	of_property_read_u32(np, "cm-double-ic-total-limit-current",
-			     &desc->double_ic_total_limit_current);
 	of_property_read_u32(np, "cm-cp-taper-current",
 			     &desc->cp.cp_taper_current);
 	of_property_read_u32(np, "cm-ir-rc", &desc->ir_comp.rc);
