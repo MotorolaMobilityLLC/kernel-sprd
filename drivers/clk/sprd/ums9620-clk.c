@@ -408,6 +408,7 @@ static SPRD_PLL_WITH_ITABLE_K_FVCO(gpll, "gpll", "ext-26m", 0x0,
 				   3, gpll_ftable, f_gpll, 240,
 				   1000, 1000, 1, 1600000000);
 static CLK_FIXED_FACTOR(gpll_680m, "gpll-680m", "gpll", 5, 2, 0);
+static CLK_FIXED_FACTOR(gpll_850m, "gpll-850m", "gpll", 2, 1, 0);
 
 #define aipll_ftable gpll_ftable
 #define f_aipll f_gpll
@@ -491,6 +492,7 @@ static struct clk_hw_onecell_data ums9620_g5r_pll_hws = {
 	.hws    = {
 		[CLK_GPLL]		= &gpll.common.hw,
 		[CLK_GPLL_680M]		= &gpll_680m.hw,
+		[CLK_GPLL_850M]         = &gpll_850m.hw,
 		[CLK_AIPLL]		= &aipll.common.hw,
 		[CLK_VDSPPLL]		= &vdsppll.common.hw,
 		[CLK_CPLL]		= &cpll.common.hw,
@@ -1946,7 +1948,7 @@ static struct sprd_clk_desc ums9620_gpuapb_gate_desc = {
 static const char * const gpu_parents[] = { "ext-26m", "tgpll-76m8",
 					    "tgpll-153m6", "tgpll-384m",
 					    "tgpll-512m", "gpll-680m",
-					    "gpll" };
+					    "gpll-850m" };
 static SPRD_COMP_CLK_OFFSET(gpu, "gpu", gpu_parents, 0x28,
 			    0, 3, 0, 3, 0);
 

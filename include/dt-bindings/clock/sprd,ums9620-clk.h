@@ -82,18 +82,19 @@
 
 #define CLK_GPLL		0
 #define	CLK_GPLL_680M		1
-#define CLK_AIPLL		2
-#define CLK_VDSPPLL		3
-#define CLK_CPLL		4
-#define CLK_AUDPLL		5
-#define CLK_AUDPLL_38M4		6
-#define CLK_AUDPLL_24M57	7
-#define CLK_AUDPLL_19M2		8
-#define CLK_AUDPLL_12M28	9
-#define CLK_PHYR8PLL		10
-#define CLK_PIXELPLL		11
-#define CLK_PIXELPLL_668M25	12
-#define CLK_PIXELPLL_297M	13
+#define CLK_GPLL_850M           2
+#define CLK_AIPLL		3
+#define CLK_VDSPPLL		4
+#define CLK_CPLL		5
+#define CLK_AUDPLL		6
+#define CLK_AUDPLL_38M4		7
+#define CLK_AUDPLL_24M57	8
+#define CLK_AUDPLL_19M2		9
+#define CLK_AUDPLL_12M28	10
+#define CLK_PHYR8PLL		11
+#define CLK_PIXELPLL		12
+#define CLK_PIXELPLL_668M25	13
+#define CLK_PIXELPLL_297M	14
 #define CLK_ANLG_PHY_G5R_NUM	(CLK_PIXELPLL_297M + 1)
 
 #define CLK_MPLLB		0
