@@ -22,9 +22,9 @@
 
 #include "ilitek_v3.h"
 
-#define DTS_INT_GPIO	"touch,irq-gpio"
-#define DTS_RESET_GPIO	"touch,reset-gpio"
-#define DTS_OF_NAME	"tchip,ilitek"
+#define DTS_INT_GPIO	"ilitek,irq-gpio"
+#define DTS_RESET_GPIO	"ilitek,reset-gpio"
+#define DTS_OF_NAME	"sprd,tddi-ilitek"
 
 void ili_tp_reset(void)
 {

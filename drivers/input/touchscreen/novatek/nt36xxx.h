@@ -141,6 +141,7 @@ struct nvt_ts_data {
 #ifdef CONFIG_SPI_MT65XX
     struct mtk_chip_config spi_ctrl;
 #endif
+	bool suspended;
 };
 
 #if NVT_TOUCH_PROC
