@@ -21,6 +21,22 @@
 
 #include "nt36xxx.h"
 
+#ifdef TOUCHSCREEN_NOVATEK_MODEL
+//defined novatek model
+#include <ontim/ontim_dev_dgb.h>
+static char version[32]="unknown";
+static char vendor_name[32]="unknown";
+static char lcdname[32]="unknown";
+
+DEV_ATTR_DECLARE(touch_screen)
+DEV_ATTR_DEFINE("version",version)
+DEV_ATTR_DEFINE("vendor",vendor_name)
+DEV_ATTR_DEFINE("lcdvendor",lcdname)
+DEV_ATTR_DECLARE_END;
+ONTIM_DEBUG_DECLARE_AND_INIT(touch_screen,touch_screen,8);
+
+#endif
+
 #if BOOT_UPDATE_FIRMWARE
 
 #define SIZE_4KB 4096
@@ -943,6 +959,7 @@ Description:
 return:
 	n.a.
 *******************************************************/
+extern const char *lcd_name;
 int32_t nvt_update_firmware(char *firmware_name)
 {
 	int32_t ret = 0;
@@ -980,6 +997,19 @@ int32_t nvt_update_firmware(char *firmware_name)
 		NVT_ERR("nvt_get_fw_info failed. (%d)\n", ret);
 	}
 
+#ifdef TOUCHSCREEN_NOVATEK_MODEL
+	NVT_ERR("get_info, lcd_name:%s\n", lcd_name);
+	if(CHECK_THIS_DEV_DEBUG_AREADY_EXIT()==0) {
+        NVT_ERR("hwinfo already config, bootloader=%s,model=%s", lcd_name, TOUCHSCREEN_NOVATEK_MODEL);
+	} else {
+        if ( (NULL != strstr(lcd_name, "nt36525c"))|| (NULL != strstr(lcd_name, "nt36525b"))) {
+            snprintf(lcdname, sizeof(lcdname), TOUCHSCREEN_NOVATEK_MODEL);
+            snprintf(vendor_name, sizeof(vendor_name), TOUCHSCREEN_NOVATEK_MODEL);
+            snprintf(version, sizeof(version),"FW:%02x,VID:0xD5", ts->fw_ver);
+        }
+        REGISTER_AND_INIT_ONTIM_DEBUG_FOR_THIS_DEV();
+    }
+#endif
 download_fail:
 	if (!IS_ERR_OR_NULL(bin_map)) {
 		kfree(bin_map);
