@@ -2106,6 +2106,8 @@ static ssize_t cm4_operate_show(struct device *dev,
 		 sensor->cm4_operate_data[4],
 		 sensor->cm4_operate_data[5]);
 
+	memset(sensor->cm4_operate_data, 0, sizeof(sensor->cm4_operate_data));
+
 	return sprintf(buf, "\nDescription :\n"
 		 "\techo \"op intf addr reg value mask\" > cm4_operate\n"
 		 "\tcat cm4_operate\n\n"
@@ -2143,6 +2145,63 @@ static ssize_t cm4_operate_store(struct device *dev,
 
 static DEVICE_ATTR_RW(cm4_operate);
 
+static ssize_t cm4_spi_set_show(struct device *dev,
+				struct device_attribute *attr, char *buf)
+{
+	struct shub_data *sensor = dev_get_drvdata(dev);
+	char m[50];
+
+	snprintf(m, sizeof(m), "status:0x%x\n\n", sensor->cm4_operate_data[5]);
+
+	memset(sensor->cm4_operate_data, 0, sizeof(sensor->cm4_operate_data));
+
+	return sprintf(buf, "\nDescription :\n"
+		 "\techo \"bus_num set_op freq cs mode bit_per_word\" > cm4_operate\n"
+		 "\tcat cm4_spi_set\n\n"
+		 "Detail :\n"
+		 "\tbus_num: 0: cm4 spi0\n"
+		 "\tset_op: 3\n"
+		 "\tfreq: spi frequency, for example 9: 9MHz, a: 10MHz, b: 11MHz\n"
+		 "\tcs: spi chip_select num, default 0\n"
+		 "\tmode: configure spi CPOL, CPHA, invalid value: 0, 1, 2, or 3\n"
+		 "\tbit_per_word: invalid value: 8, 16 or 32\n\n"
+		 "\tstatus: show execution result. 1:success 0:fail\n\n"
+		 "%s\n", m);
+}
+static DEVICE_ATTR_RO(cm4_spi_set);
+
+static ssize_t cm4_spi_sync_show(struct device *dev,
+				struct device_attribute *attr, char *buf)
+{
+	struct shub_data *sensor = dev_get_drvdata(dev);
+	char l[50], m[50];
+
+	snprintf(l, sizeof(l), "[cm4_operate]read_val1:0x%x read_val2:0x%x ",
+		 sensor->cm4_operate_data[2],
+		 sensor->cm4_operate_data[3]);
+
+	snprintf(m, sizeof(m),
+		 "read_val3:0x%x bytes:%u\n\n",
+		 sensor->cm4_operate_data[4],
+		 sensor->cm4_operate_data[5]);
+
+	memset(sensor->cm4_operate_data, 0, sizeof(sensor->cm4_operate_data));
+
+	return sprintf(buf, "\nDescription :\n"
+		 "\techo \"op spi_sync reg_addr value1 value2 len\" > cm4_operate\n"
+		 "\tcat cm4_spi_sync\n\n"
+		 "Detail :\n"
+		 "\top: 1:read 0:write\n"
+		 "\tspi_sync: 4\n"
+		 "\treg_addr: the reg to be read or written\n"
+		 "\tvalue1: the first value to be written\n"
+		 "\tvalue2: the second value to be written\n"
+		 "\tlen: num of regs to be read or written\n\n"
+		 "\execution result:\n"
+		 "%s%s\n", l, m);
+}
+static DEVICE_ATTR_RO(cm4_spi_sync);
+
 static struct attribute *sensorhub_attrs[] = {
 	&dev_attr_debug_data.attr,
 	&dev_attr_reader_enable.attr,
@@ -2169,6 +2228,8 @@ static struct attribute *sensorhub_attrs[] = {
 	&dev_attr_mag_cali_flag.attr,
 	&dev_attr_shub_debug.attr,
 	&dev_attr_cm4_operate.attr,
+	&dev_attr_cm4_spi_set.attr,
+	&dev_attr_cm4_spi_sync.attr,
 	NULL,
 };
 ATTRIBUTE_GROUPS(sensorhub);
