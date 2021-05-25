@@ -94,6 +94,9 @@ enum wcn_aon_chip_id {
 #define SHARKL3_CHIP_ID0 0x6B4C3300	/* kl3 */
 #define SHARKL3_CHIP_ID1 0x53686172	/* Shar */
 
+#define QOGIRL6_CHIP_ID0 0x724C3600	/* rL6 */
+#define QOGIRL6_CHIP_ID1 0x516F6769	/* Qogi */
+
 #define AON_CHIP_ID_AA 0x96360000
 #define AON_CHIP_ID_AC 0x96360002
 
