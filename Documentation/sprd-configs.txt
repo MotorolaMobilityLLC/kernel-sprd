@@ -17029,6 +17029,33 @@ CONFIG_SPRD_UMS512_CLK
 	[must]
 	[missing plat description]
 	[function]
+CONFIG_SPRD_USB_CONFIGFS_RNDIS
+	[arch] arm64
+	[plat] sharkl3
+	[missing plat] sharkl5Pro
+	[field]
+	[subsys]
+	[must]
+	[missing plat description]
+	[function]
+CONFIG_SPRD_USB_F_RNDIS
+	[arch] arm64
+	[plat] sharkl3
+	[missing plat] sharkl5Pro
+	[field]
+	[subsys]
+	[must]
+	[missing plat description]
+	[function]
+CONFIG_SPRD_USB_U_ETHER
+	[arch] arm64
+	[plat] sharkl3
+	[missing plat] sharkl5Pro
+	[field]
+	[subsys]
+	[must]
+	[missing plat description]
+	[function]
 CONFIG_SPRD_VSP
 	[arch] all
 	[plat] all
@@ -18496,8 +18523,8 @@ CONFIG_USB_CONFIGFS
 	[function] A Linux USB "gadget" can be set up through configfs.
 CONFIG_USB_CONFIGFS_ACM
 	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
-	[missing plat] none
+	[plat] sharkl5Pro
+	[missing plat] sharkl3
 	[field]
 	[subsys]
 	[must]
@@ -18568,8 +18595,8 @@ CONFIG_USB_CONFIGFS_MASS_STORAGE
 	[function] This macro is to support USB Mass storage.
 CONFIG_USB_CONFIGFS_NCM
 	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
-	[missing plat] none
+	[plat] sharkl5Pro
+	[missing plat] sharkl3
 	[field]
 	[subsys]
 	[must]
@@ -18577,8 +18604,8 @@ CONFIG_USB_CONFIGFS_NCM
 	[function]
 CONFIG_USB_CONFIGFS_RNDIS
 	[arch] all
-	[plat] all
-	[missing plat] none
+	[plat] pike2,sharkl5Pro
+	[missing plat] sharkl3
 	[field] code
 	[subsys] usb
 	[must] user
@@ -18703,8 +18730,8 @@ CONFIG_USB_F_ACC
 	[function] USB gadget Accessory support
 CONFIG_USB_F_ACM
 	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
-	[missing plat] none
+	[plat] sharkl5Pro
+	[missing plat] sharkl3
 	[field]
 	[subsys]
 	[must]
@@ -18757,8 +18784,8 @@ CONFIG_USB_F_MIDI
 	[function] The MIDI Function acts as a USB Audio device.
 CONFIG_USB_F_NCM
 	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
-	[missing plat] none
+	[plat] sharkl5Pro
+	[missing plat] sharkl3
 	[field]
 	[subsys]
 	[must]
@@ -18766,8 +18793,8 @@ CONFIG_USB_F_NCM
 	[function]
 CONFIG_USB_F_RNDIS
 	[arch] all
-	[plat] all
-	[missing plat] none
+	[plat] pike2,sharkl5Pro
+	[missing plat] sharkl3
 	[field] code
 	[subsys] usb
 	[must] user
@@ -19099,8 +19126,8 @@ CONFIG_USB_USBNET
 	[function] This option adds usbnet function.
 CONFIG_USB_U_ETHER
 	[arch] all
-	[plat] all
-	[missing plat] none
+	[plat] pike2,sharkl5Pro
+	[missing plat] sharkl3
 	[field] code
 	[subsys] usb
 	[must] user

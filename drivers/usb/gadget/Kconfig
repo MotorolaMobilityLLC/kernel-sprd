@@ -222,6 +222,12 @@ config USB_F_ACC
 config USB_F_AUDIO_SRC
 	tristate
 
+config SPRD_USB_U_ETHER
+	tristate
+
+config SPRD_USB_F_RNDIS
+	tristate
+
 config USB_F_VSERIAL
 	tristate
 
@@ -525,6 +531,15 @@ config USB_CONFIGFS_F_VSERIAL
 	select USB_F_VSERIAL
 	help
 	USB gadget vendor serial support
+
+config SPRD_USB_CONFIGFS_RNDIS
+	tristate "Vendor Rndis"
+	depends on USB_CONFIGFS
+	depends on NET
+	select SPRD_USB_U_ETHER
+	select SPRD_USB_F_RNDIS
+	help
+	USB gadget vendor rndis support
 
 source "drivers/usb/gadget/legacy/Kconfig"
 
