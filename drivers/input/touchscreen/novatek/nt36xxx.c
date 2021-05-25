@@ -76,6 +76,9 @@ static void nvt_ts_early_suspend(struct early_suspend *h);
 static void nvt_ts_late_resume(struct early_suspend *h);
 #endif
 
+static int32_t nvt_ts_suspend(struct device *dev);
+static int32_t nvt_ts_resume(struct device *dev);
+
 uint32_t ENG_RST_ADDR  = 0x7FFF80;
 uint32_t SWRST_N8_ADDR = 0; //read from dtsi
 uint32_t SPI_RD_FAST_ADDR = 0;	//read from dtsi
@@ -984,6 +987,40 @@ void nvt_ts_wakeup_gesture_report(uint8_t gesture_id, uint8_t *data)
 }
 #endif
 
+static ssize_t nvt_suspend_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	struct nvt_ts_data *nvt_ts_data = dev_get_drvdata(dev);
+
+	return snprintf(buf, PAGE_SIZE, "%s\n", nvt_ts_data->suspended ? "true" : "false");
+}
+
+static ssize_t nvt_suspend_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count)
+{
+	unsigned int input;
+
+	if (kstrtouint(buf, 10, &input))
+		return -EINVAL;
+
+	if (input == 1)
+		nvt_ts_suspend(dev);
+	else if (input == 0)
+		nvt_ts_resume(dev);
+	else
+		return -EINVAL;
+
+	return count;
+}
+static DEVICE_ATTR(ts_suspend, 0664, nvt_suspend_show, nvt_suspend_store);
+static struct attribute *nvt_attrs[] = {
+
+	&dev_attr_ts_suspend.attr,
+	NULL
+};
+static const struct attribute_group nvt_attr_group = {
+	.attrs = nvt_attrs,
+};
 /*******************************************************
 Description:
 	Novatek touchscreen parse device tree function.
@@ -1460,6 +1497,7 @@ return:
 static int32_t nvt_ts_probe(struct spi_device *client)
 {
 	int32_t ret = 0;
+	int err = 0;
 #if ((TOUCH_KEY_NUM > 0) || WAKEUP_GESTURE)
 	int32_t retry = 0;
 #endif
@@ -1669,6 +1707,18 @@ static int32_t nvt_ts_probe(struct spi_device *client)
 			msecs_to_jiffies(NVT_TOUCH_ESD_CHECK_PERIOD));
 #endif /* #if NVT_TOUCH_ESD_PROTECT */
 
+	err = sysfs_create_group(&client->dev.kobj, &nvt_attr_group);
+	if (err < 0) {
+		printk("%s: Failed to crate sysfs attributes.\n", __func__);
+		goto err_sysfs;
+	}
+
+	err = sysfs_create_link(NULL, &client->dev.kobj, "touchscreen");
+	if (err < 0) {
+		printk("%s: Failed to crate sysfs link!\n", __func__);
+		goto err_sysfs;
+	}
+
 	//---set device node---
 #if NVT_TOUCH_PROC
 	ret = nvt_flash_proc_init();
@@ -1754,6 +1804,8 @@ err_extra_proc_init_failed:
 nvt_flash_proc_deinit();
 err_flash_proc_init_failed:
 #endif
+err_sysfs:
+	sysfs_remove_group(&client->dev.kobj, &nvt_attr_group);
 #if NVT_TOUCH_ESD_PROTECT
 	if (nvt_esd_check_wq) {
 		cancel_delayed_work_sync(&nvt_esd_check_work);
@@ -1949,6 +2001,7 @@ static int32_t nvt_ts_suspend(struct device *dev)
 	uint32_t i = 0;
 #endif
 
+	NVT_LOG("testlog: nvt_ts_suspend start.\n");
 	if (!bTouchIsAwake) {
 		NVT_LOG("Touch is already suspend\n");
 		return 0;
@@ -2003,10 +2056,12 @@ static int32_t nvt_ts_suspend(struct device *dev)
 	input_mt_sync(ts->input_dev);
 #endif
 	input_sync(ts->input_dev);
+	ts->suspended = 1;
 
 	msleep(50);
 
 	NVT_LOG("end\n");
+	NVT_LOG("testlog: nvt_ts_suspend end.\n");
 
 	return 0;
 }
@@ -2020,6 +2075,7 @@ return:
 *******************************************************/
 static int32_t nvt_ts_resume(struct device *dev)
 {
+	NVT_LOG("testlog: nvt_ts_resume start.\n");
 	if (bTouchIsAwake) {
 		NVT_LOG("Touch is already resume\n");
 		return 0;
@@ -2050,9 +2106,11 @@ static int32_t nvt_ts_resume(struct device *dev)
 #endif /* #if NVT_TOUCH_ESD_PROTECT */
 
 	bTouchIsAwake = 1;
+	ts->suspended = 0;
 
 	mutex_unlock(&ts->lock);
 
+	NVT_LOG("testlog: nvt_ts_resume end.\n");
 	NVT_LOG("end\n");
 
 	return 0;
@@ -2146,7 +2204,7 @@ static const struct spi_device_id nvt_ts_id[] = {
 
 #ifdef CONFIG_OF
 static struct of_device_id nvt_match_table[] = {
-	{ .compatible = "novatek,NVT-ts-spi",},
+	{ .compatible = "sprd,tddi-novatek",},
 	{ },
 };
 #endif
@@ -2176,7 +2234,7 @@ static int32_t __init nvt_driver_init(void)
 {
 	int32_t ret = 0;
 
-	NVT_LOG("start\n");
+	NVT_LOG("start, %s\n", TOUCHSCREEN_NOVATEK_MODEL);
 
 	//---add spi driver---
 	ret = spi_register_driver(&nvt_spi_driver);
