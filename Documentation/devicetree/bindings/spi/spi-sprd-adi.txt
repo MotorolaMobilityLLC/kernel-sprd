@@ -33,7 +33,8 @@ compatibility.
 Required properties:
 - compatible: Should be one of the following:
  "sprd,sc9860-adi",
- "sprd,sharkl3-adi".
+ "sprd,sharkl3-adi",
+ "sprd,sharkl5pro-adi".
 - reg: Offset and length of ADI-SPI controller register space.
 - #address-cells: Number of cells required to define a chip select address
 	on the ADI-SPI bus. Should be set to 1.
