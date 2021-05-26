@@ -456,7 +456,6 @@ static void sprd_dp_unbind(struct device *dev,
 	struct dptx *dptx = dp->snps_dptx;
 
 	dptx_core_deinit(dptx);
-	dptx_debugfs_exit(dptx);
 }
 
 static const struct component_ops dp_component_ops = {

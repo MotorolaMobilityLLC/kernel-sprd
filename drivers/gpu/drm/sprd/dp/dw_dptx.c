@@ -409,8 +409,6 @@ struct dptx *dptx_init(struct device *dev, struct drm_device *drm_dev)
 		return ERR_PTR(retval);
 	}
 
-	dptx_debugfs_init(dptx);
-
 	dptx_init_hwparams(dptx);
 
 	retval = dptx_core_init(dptx);
@@ -430,6 +428,5 @@ struct dptx *dptx_init(struct device *dev, struct drm_device *drm_dev)
 	return dptx;
 
 fail:
-	dptx_debugfs_exit(dptx);
 	return ERR_PTR(retval);
 }

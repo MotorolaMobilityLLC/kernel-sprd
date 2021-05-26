@@ -86,7 +86,6 @@ struct sdp_full_data {
  * @max_rate: The maximum rate that the controller supports
  * @max_lanes: The maximum lane count that the controller supports
  * @dev: The struct device
- * @root: The debugfs root
  * @vparams: The video params to use
  * @aparams: The audio params to use
  * @hparams: The HDCP params to use
@@ -126,8 +125,6 @@ struct dptx {
 	bool mst;
 	u8 multipixel;
 	bool ssc_en;
-
-	struct dentry *root;
 
 	struct video_params vparams;
 	struct audio_params aparams;
@@ -200,12 +197,6 @@ static inline u32 dptx_readl(struct dptx *dp, u32 offset)
 {
 	return readl(dp->base + offset);
 }
-
-/*
- * Debugfs
- */
-void dptx_debugfs_init(struct dptx *dptx);
-void dptx_debugfs_exit(struct dptx *dptx);
 
 void dptx_fill_sdp(struct dptx *dptx, struct sdp_full_data *data);
 struct dptx *dptx_init(struct device *dev, struct drm_device *drm_dev);
