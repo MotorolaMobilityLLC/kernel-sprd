@@ -275,7 +275,7 @@
 #endif
 
 	fd_reserved: faceid-mem@efaae000 {
-		reg = <0x0 0xefaae000 0x0 0x00f00000>;
+		reg = <0x0 0xefaae000 0x0 0x00500000>;
 	};
 
 	vdsp_reserved: vdsp-mem@f09ae000 {
