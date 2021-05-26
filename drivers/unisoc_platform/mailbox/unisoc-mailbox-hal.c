@@ -213,7 +213,7 @@ static int sprd_mbox_startup(struct mbox_chan *chan)
 {
 	struct sprd_mbox_priv *priv = to_sprd_mbox_priv(chan->mbox);
 
-	dev_info(priv->dev, "startup chan-%d\n", (unsigned long)chan->con_priv);
+	dev_info(priv->dev, "startup chan-%ld\n", (unsigned long)chan->con_priv);
 	priv->phy_ops->startup(chan);
 
 	return 0;
@@ -223,7 +223,7 @@ static void sprd_mbox_shutdown(struct mbox_chan *chan)
 {
 	struct sprd_mbox_priv *priv = to_sprd_mbox_priv(chan->mbox);
 
-	dev_info(priv->dev, "shutdown chan-%d\n", (unsigned long)chan->con_priv);
+	dev_info(priv->dev, "shutdown chan-%ld\n", (unsigned long)chan->con_priv);
 	priv->phy_ops->shutdown(chan);
 }
 
@@ -364,7 +364,7 @@ static int sprd_mbox_probe(struct platform_device *pdev)
 #if defined(CONFIG_DEBUG_FS)
 	ret = sprd_mbox_debugfs(priv);
 	if (ret)
-		dev_err(dev, "failed to create debugfs!\n", ret);
+		dev_err(dev, "failed to create debugfs! ret = %d\n", ret);
 #endif
 	dev_info(priv->dev, "probe done, version=0x%x\n", priv->version);
 
