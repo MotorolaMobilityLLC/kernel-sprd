@@ -924,11 +924,12 @@ static int iface_set_mac(struct net_device *dev, void *addr)
 		return -EINVAL;
 	}
 
-	if (vif->mode == SPRD_MODE_STATION) {
+	if (vif->wdev.iftype == NL80211_IFTYPE_STATION) {
 		if (!is_zero_ether_addr(sa->sa_data)) {
 			vif->has_rand_mac = true;
 			memcpy(vif->random_mac, sa->sa_data, ETH_ALEN);
 			memcpy(dev->dev_addr, sa->sa_data, ETH_ALEN);
+			netdev_info(dev, "vif random mac : %pM\n", vif->random_mac);
 		} else {
 			vif->has_rand_mac = false;
 			netdev_info(dev,
