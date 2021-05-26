@@ -49,6 +49,10 @@
 		#size-cells = <1>;
 		ranges;
 
+		sysdump_reserved: sysdumpinfo-mem80001000 {
+			reg = <0x80001000 0x00001000>;
+		};
+
 		warm_boot_reserved: warm-boot@0x83ef0000 {
 			reg = <0x83ef0000 0x10000>; /* 64K */
 		};
