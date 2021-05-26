@@ -91,10 +91,11 @@ fi
 # Determine if there is a git repository
 cd $KERNEL_CODE_DIR/$KERNEL_DIR
 GITTOOL=`find -type d -name ".git"`
-if [ ! -n "${GITTOOL}" ]; then
+GITCHECK=`git log -1`
+if [ ! -n "${GITTOOL}" ] || [ ! -n "${GITCHECK}" ]; then
   check_idh_flag=0
+  rm -rf .git
   echo "create abigail git repository"
-  cd ${KERNEL_CODE_DIR}/${KERNEL_DIR}
   git init
   git add -A
   git commit -m "abigail git repository"
