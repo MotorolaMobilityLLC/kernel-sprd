@@ -17,7 +17,7 @@
 				sprd,dsi-lane-number = <4>;
 				sprd,dsi-color-format = "rgb888";
 
-				sprd,phy-bit-clock = <840000>;	/* kbps */
+				sprd,phy-bit-clock = <852000>;	/* kbps */
 				sprd,phy-escape-clock = <20000>;/* kHz */
 				sprd,width-mm = <68>;
 				sprd,height-mm = <121>;
@@ -66,15 +66,15 @@
 						native-mode = <&nt36525c_boe_timing0>;
 
 						nt36525c_boe_timing0: timing0 {
-							clock-frequency = <140000000>;
+							clock-frequency = <142000000>;
 							hactive = <720>;
 							vactive = <1600>;
-							hback-porch = <60>;
-							hfront-porch = <20>;
-							vback-porch = <290>;
+							hback-porch = <44>;
+							hfront-porch = <44>;
+							vback-porch = <326>;
 							vfront-porch = <10>;
-							hsync-len = <8>;
-							vsync-len = <20>;
+							hsync-len = <4>;
+							vsync-len = <2>;
 						};
 					};
 				};
