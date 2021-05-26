@@ -196,6 +196,10 @@
 		sprd,mapping-offs = <0x0>;
 	};
 
+	sprd-map-user {
+		compatible = "sprd,map-user";
+	};
+
 	sprd-mtty {
 		compatible = "sprd,mtty";
 		sprd,name = "ttyBT";
