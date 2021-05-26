@@ -434,7 +434,7 @@ static ssize_t sprd_apdu_read(struct file *fp, char __user *buf,
 			      size_t count, loff_t *f_pos)
 {
 	struct sprd_apdu_device *apdu = fp->private_data;
-	ssize_t r = count;
+	ssize_t r = 0;
 	u32 xfer, data_len, word_len, wait_time, header = 0;
 	unsigned long wait_event_time;
 	long ret;
@@ -465,6 +465,13 @@ static ssize_t sprd_apdu_read(struct file *fp, char __user *buf,
 				r = -ETIMEDOUT;
 				goto end;
 			}
+		}
+
+		if (sprd_apdu_get_rx_fifo_len(apdu->base) == 0) {
+			r = -ENODATA;
+			dev_err(apdu->dev, "%s():rx fifo empty for header.\n",
+				__func__);
+			goto end;
 		}
 
 		/* check apdu packet valid */
@@ -1024,7 +1031,7 @@ static int sprd_apdu_sync_counter(struct sprd_apdu_device *apdu)
 	loff_t ise_counter_offset = MEDDDR_ISEDATA_OFFSET_BASE_ADDRESS +
 				    (loff_t)(apdu->slot) * apdu->pub_ise_cfg.med_size;
 	loff_t offset = 0;
-	ssize_t ret = -1;
+	ssize_t ret;
 
 	isedata_file = filp_open(ISEDATA_DEV_PATH, O_RDWR, 0644);
 	if (IS_ERR(isedata_file)) {
@@ -1064,7 +1071,7 @@ static int sprd_apdu_save_medddr_area(struct sprd_apdu_device *apdu)
 	loff_t ise_counter_offset = MEDDDR_ISEDATA_OFFSET_BASE_ADDRESS +
 				    (loff_t)(apdu->slot) * apdu->pub_ise_cfg.med_size;
 	loff_t offset = 0;
-	ssize_t ret = -1;
+	ssize_t ret;
 
 	isedata_file = filp_open(ISEDATA_DEV_PATH, O_RDWR, 0644);
 	if (IS_ERR(isedata_file)) {
@@ -1103,7 +1110,7 @@ static int sprd_apdu_restore_medddr_area(struct sprd_apdu_device *apdu)
 	loff_t ise_counter_offset = MEDDDR_ISEDATA_OFFSET_BASE_ADDRESS +
 				    (loff_t)(apdu->slot) * apdu->pub_ise_cfg.med_size;
 	loff_t offset = 0;
-	ssize_t ret = -1;
+	ssize_t ret;
 
 	isedata_file = filp_open(ISEDATA_DEV_PATH, O_RDWR, 0644);
 	if (IS_ERR(isedata_file)) {
