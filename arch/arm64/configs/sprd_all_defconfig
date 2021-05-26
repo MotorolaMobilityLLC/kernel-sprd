@@ -1349,6 +1349,7 @@ CONFIG_WCN_SLP=y
 CONFIG_WCN_BOOT=y
 CONFIG_WCN_UTILS=y
 # CONFIG_WCN_RDCDBG is not set
+# CONFIG_WCN_SLEEP_INFO is not set
 
 #
 # Spreadtrum WCN SDIO Device Drivers

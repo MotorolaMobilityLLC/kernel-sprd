@@ -17,4 +17,19 @@ void wakeup_loopcheck_int(void);
 void loopcheck_ready_clear(void);
 void loopcheck_ready_set(void);
 void mdbg_assert_interface(char *str);
+
+#ifdef CONFIG_WCN_SLEEP_INFO
+extern unsigned int wcn_reboot_count;
+#define WCN_CP2_SLP_INFO_SIZE		(128)
+#define WCN_CP2_SLP_INFO_ADDR 0x8417ff80
+
+int wcn_sleep_info_open(void);
+struct subsys_sleep_info *wcn_sleep_info_read(void *data);
+
+struct wcn_cp2_slp_duration_total {
+	unsigned long long int total_dut;
+	unsigned long long int slp_dut_total;
+	unsigned long long int idle_dut_total;
+} __aligned(4);
+#endif
 #endif

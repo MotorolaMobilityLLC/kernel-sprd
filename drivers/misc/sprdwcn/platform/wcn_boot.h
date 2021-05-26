@@ -15,6 +15,15 @@
 
 #define pr_fmt(fmt) "WCN BOOT: " fmt
 
+#ifdef CONFIG_WCN_SLEEP_INFO
+extern void *wcn_cp2_slp_info_recv;
+extern struct wcn_cp2_slp_duration_total wcn_cp2_slp_info_total;
+extern struct subsys_sleep_info *wcn_cp2_slp_info_buf;
+
+int wcn_sleep_info_open(void);
+struct subsys_sleep_info *wcn_sleep_info_read(void *data);
+#endif
+
 struct wcn_sync_info_t {
 	unsigned int init_status;
 	unsigned int mem_pd_bt_start_addr;

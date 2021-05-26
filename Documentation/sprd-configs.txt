@@ -16838,6 +16838,16 @@ CONFIG_WCN_SIPC
 	[missing plat description] This macro is a proprietary driver related to pike2,sharkl3,sharkl3_32,sharkle32.
 		The missing plat is not relevant.
 	[function] WCN integration chip 2342 sipc Support
+CONFIG_WCN_SLEEP_INFO
+	[arch] arm64
+	[plat] qogirl6
+	[missing plat] qogirn6pro,sharkl3,sharkl5,sharkl5Pro
+	[field] make,code
+	[subsys] wcn
+	[must] debug
+	[missing plat description] This macro is a proprietary driver related to marlin3 lite and marlin2_18a project.
+		The missing plat is not requested.
+	[function] static wcn suspend/resume information for marlin2_18a and marlin3_20a
 CONFIG_WCN_SLP
 	[arch] all
 	[plat] qogirl6,sharkl5,sharkl5Pro,sharkl5_32
