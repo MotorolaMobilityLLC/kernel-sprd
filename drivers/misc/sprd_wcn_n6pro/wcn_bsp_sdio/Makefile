@@ -1,4 +1,4 @@
-WCN_BSP_SDIO_TREE   := drivers/misc/sprd_wcn_bsp/wcn_bsp_sdio/
+WCN_BSP_SDIO_TREE   := drivers/misc/sprd_wcn_n6pro/wcn_bsp_sdio/
 ccflags-y += -I$(WCN_BSP_SDIO_TREE)/sipc/ \
 	-I$(WCN_BSP_SDIO_TREE)/include \
 	-I$(WCN_BSP_SDIO_TREE)/boot \
