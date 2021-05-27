@@ -4322,7 +4322,7 @@ CONFIG_EMBEDDED
 	[function] vts require, Embedded system.
 CONFIG_EMMC_SOFTWARE_CQ_SUPPORT
 	[arch] arm64
-	[plat] sharkl5Pro,qogirl6
+	[plat] qogirl6,sharkl5Pro
 	[missing plat] qogirn6pro,sharkl3,sharkl5
 	[field] make
 	[subsys] emmc
