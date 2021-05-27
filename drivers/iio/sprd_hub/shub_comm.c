@@ -72,6 +72,15 @@ static void shub_get_data(struct cmd_data *packet)
 			packet->length);
 		break;
 
+	case DYNAMIC_SEND_DATA_TO_AP_SUBTYPE:
+		g_sensor->dynamic_data_get.type = packet->type;
+		g_sensor->dynamic_data_get.length = packet->length;
+		memcpy(g_sensor->dynamic_data_get.customer_data,
+		       packet->buff,
+		       packet->length);
+		g_sensor->dynamic_read(g_sensor);
+		break;
+
 	default:
 		break;
 	}
