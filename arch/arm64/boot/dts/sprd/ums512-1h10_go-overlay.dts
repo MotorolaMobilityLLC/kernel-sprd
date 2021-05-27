@@ -316,7 +316,7 @@
 								124872 43 >;
 			};
 
-			ap_thermistor:ap-sensor {
+			pa_thermistor:pa-sensor {
 				compatible = "generic-adc-thermal";
 				#thermal-sensor-cells = <0>;
 				io-channels = <&pmic_adc 2>;
