@@ -685,7 +685,7 @@ static int sc27xx_pd_read_message(struct sc27xx_pd *pd, struct pd_message *msg)
 	int ret, i;
 	u32 data[PD_MAX_PAYLOAD * 2] = {0};
 	u32 data_obj_num, spec, reg_val = 0, header = 0, type;
-	bool vendor_define = false;
+	bool vendor_define = false, source_capabilities = false;
 
 	ret = regmap_read(pd->regmap, pd->base + SC27XX_PD_RX_BUF,
 			  &header);
@@ -712,8 +712,10 @@ static int sc27xx_pd_read_message(struct sc27xx_pd *pd, struct pd_message *msg)
 		vendor_define = false;
 	else if (data_obj_num && (type == PD_DATA_VENDOR_DEF))
 		vendor_define = true;
+	else if (data_obj_num && (type == PD_DATA_SOURCE_CAP))
+		source_capabilities = true;
 
-	if ((data_obj_num * 2 + 1) < reg_val && !vendor_define) {
+	if ((data_obj_num * 2 + 1) < reg_val && !vendor_define && !source_capabilities) {
 		pd->need_retry = true;
 		queue_delayed_work(pd->pd_wq,
 				   &pd->read_msg_work,
