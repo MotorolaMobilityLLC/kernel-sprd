@@ -9,7 +9,8 @@ sprd-gsp-y += gsp_r6p0/gsp_r6p0_core.o \
 
 sprd-gsp-y += gsp_interface/gsp_interface_sharkl3.o \
 	gsp_interface/gsp_interface_pike2.o \
-	gsp_interface/gsp_interface_sharkl5pro.o
+	gsp_interface/gsp_interface_sharkl5pro.o \
+	gsp_interface/gsp_interface_qogirl6.o
 
 sprd-gsp-y += gsp_core.o gsp_dev.o gsp_interface.o gsp_kcfg.o \
 	 gsp_layer.o gsp_sync.o gsp_sysfs.o gsp_workqueue.o
