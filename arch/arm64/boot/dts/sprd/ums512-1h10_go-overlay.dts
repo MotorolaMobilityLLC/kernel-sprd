@@ -9,6 +9,8 @@
 #include <dt-bindings/mfd/sprd,sc2730-mask.h>
 #include "lcd/lcd_td4310_truly_mipi_fhd.dtsi"
 #include "lcd/lcd_ssd2092_truly_mipi_fhd.dtsi"
+#include "lcd/lcd_ili9883a_auo_mipi_hd.dtsi"
+#include "lcd/lcd_nt36525c_boe_mipi_fhd.dtsi"
 #include "lcd/lcd_dummy_mipi.dtsi"
 
 / {
@@ -75,7 +77,7 @@
 				};
 			};
 
-			pwm_backlight: backlight {
+		/*	pwm_backlight: backlight {
 				compatible = "sprd,sharkl5pro-backlight";
 				pwms = <&pwms 2 40000>;
 				pwm-names = "backlight";
@@ -111,7 +113,7 @@
 					826 832 838 844 850 856 862 868 874 880
 				>;
 			};
-
+*/
 			bat: battery {
 				compatible = "simple-battery";
 				charge-full-design-microamp-hours-0 = <4900000>;
@@ -702,16 +704,16 @@
 };
 
 &panel {
-	sprd,backlight = <&pwm_backlight>;
+//	sprd,backlight = <&pwm_backlight>;
 	avdd-gpio = <&ap_gpio 132 GPIO_ACTIVE_HIGH>;
 	avee-gpio = <&ap_gpio 133 GPIO_ACTIVE_HIGH>;
 	reset-gpio = <&ap_gpio 50 GPIO_ACTIVE_HIGH>;
 };
-
+/*
 &dpu {
 	sprd,backlight = <&pwm_backlight>;
 };
-
+*/
 &lcd_td4310_truly_mipi_fhd {
 	sprd,phy-bit-clock = <1104000>;  /* kbps */
 
