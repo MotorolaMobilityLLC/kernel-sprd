@@ -599,6 +599,7 @@ static int wcn_download_image_new(struct wcn_device *wcn_dev)
 		default:
 			return -EINVAL;
 		}
+		ssleep(1);
 		count++;
 		if (count > 32)
 			return -EINVAL;
