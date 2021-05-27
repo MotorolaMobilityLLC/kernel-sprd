@@ -303,6 +303,7 @@ struct sc27xx_pd {
 	u32 ref_cal;
 	int msg_flag;
 	int need_retry;
+	bool typec_online;
 };
 
 static inline struct sc27xx_pd *tcpc_to_sc27xx_pd(struct tcpc_dev *tcpc)
@@ -326,6 +327,19 @@ static int sc27xx_pd_clk_cfg(struct sc27xx_pd *pd)
 
 	return regmap_update_bits(pd->regmap, pd->var_data->xtl_wait_ctrl0,
 				  SC27XX_XTL_EN, SC27XX_XTL_EN);
+}
+
+static int sc27xx_pd_disable_clk(struct sc27xx_pd *pd)
+{
+	int ret;
+
+	ret = regmap_update_bits(pd->regmap, pd->var_data->module_en,
+				 SC27XX_TYPEC_PD_EN, 0);
+	if (ret)
+		return ret;
+
+	return regmap_update_bits(pd->regmap, pd->var_data->arm_clk_en0,
+				 SC27XX_CLK_PD_EN, 0);
 }
 
 static int sc27xx_pd_start_drp_toggling(struct tcpc_dev *tcpc,
@@ -1254,7 +1268,16 @@ static int sc27xx_pd_check_vbus_cc_status(struct sc27xx_pd *pd)
 	if (ret)
 		return ret;
 
+	ret = sc27xx_pd_clk_cfg(pd);
+	if (ret)
+		return ret;
+
 	pd->state = val & SC27XX_STATE_MASK;
+	if (pd->state == SC27XX_ATTACHED_SNK || pd->state == SC27XX_ATTACHED_SRC)
+		pd->typec_online = true;
+	else
+		pd->typec_online = false;
+
 	sc27xx_cc_polarity_status(pd, val);
 	sc27xx_cc_status(pd, val);
 	sc27xx_get_vbus_status(pd);
@@ -1550,6 +1573,44 @@ static int sc27xx_pd_remove(struct platform_device *pdev)
 	return 0;
 }
 
+#ifdef CONFIG_PM_SLEEP
+static int sc27xx_pd_suspend(struct device *dev)
+{
+	struct sc27xx_pd *pd = dev_get_drvdata(dev);
+	int ret;
+
+	if (pd->typec_online)
+		return 0;
+
+	dev_info(pd->dev, "typec offline, disable pd clock when suspend\n");
+	ret = sc27xx_pd_disable_clk(pd);
+	if (ret) {
+		dev_err(pd->dev, "failed to disable pd clock when suspend, ret = %d\n", ret);
+		return ret;
+	}
+
+	return 0;
+}
+
+static int sc27xx_pd_resume(struct device *dev)
+{
+	struct sc27xx_pd *pd = dev_get_drvdata(dev);
+	int ret;
+
+	ret = sc27xx_pd_clk_cfg(pd);
+	if (ret) {
+		dev_err(pd->dev, "failed to enable pd clock when resume, ret = %d\n", ret);
+		return ret;
+	}
+
+	return 0;
+}
+#endif
+
+static const struct dev_pm_ops sc27xx_pd_pm_ops = {
+	SET_SYSTEM_SLEEP_PM_OPS(sc27xx_pd_suspend, sc27xx_pd_resume)
+};
+
 static const struct of_device_id sc27xx_pd_of_match[] = {
 	{.compatible = "sprd,sc2730-pd", .data = &sc2730_data},
 	{.compatible = "sprd,ump9620-pd", .data = &ump9620_data},
@@ -1562,6 +1623,7 @@ static struct platform_driver sc27xx_pd_driver = {
 	.driver = {
 		.name = "sc27xx-typec-pd",
 		.of_match_table = sc27xx_pd_of_match,
+		.pm = &sc27xx_pd_pm_ops,
 	},
 };
 
