@@ -153,7 +153,6 @@ static const struct file_operations reg_debug_fops = {
 	.llseek = default_llseek,
 };
 
-//static int __init wcn_init_debugfs(void)
 int wcn_init_debugfs(void)
 {
 	struct dentry *ent, *root = debugfs_create_dir("wcn", NULL);
@@ -168,5 +167,4 @@ int wcn_init_debugfs(void)
 	return PTR_ERR_OR_ZERO(ent);
 }
 
-//device_initcall(wcn_init_debugfs);
 

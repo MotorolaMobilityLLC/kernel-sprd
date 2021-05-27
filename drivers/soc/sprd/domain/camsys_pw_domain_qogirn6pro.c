@@ -74,12 +74,14 @@ struct camsys_power_info {
 	atomic_t users_dcam_pw;
 	atomic_t users_isp_pw;
 	atomic_t users_clk;
+	atomic_t users_blk_cfg_en;
 	atomic_t inited;
 	struct mutex mlock;
 
 	struct clk *mm_eb;
 	struct clk *mm_mtx_data_en;
 	struct clk *ckg_en;
+	struct clk *blk_cfg_en;
 
 	struct clk *mm_mtx_clk;
 	struct clk *mm_mtx_clk_parent;
@@ -167,6 +169,10 @@ static int sprd_campw_init(struct platform_device *pdev)
 	pw_info->mm_mtx_clk = of_clk_get_by_name(np, "clk_mm_mtx_data");
 	if (IS_ERR_OR_NULL(pw_info->mm_mtx_clk))
 		return PTR_ERR(pw_info->mm_mtx_clk);
+
+	pw_info->blk_cfg_en = of_clk_get_by_name(np, "clk_blk_cfg_en");
+	if (IS_ERR_OR_NULL(pw_info->blk_cfg_en))
+		return PTR_ERR(pw_info->blk_cfg_en);
 
 	pw_info->mm_mtx_clk_parent = of_clk_get_by_name(np, "clk_mm_mtx_parent");
 	if (IS_ERR_OR_NULL(pw_info->mm_mtx_clk_parent))
@@ -510,6 +516,59 @@ err_dcam_pw_on:
 }
 EXPORT_SYMBOL(sprd_dcam_pw_on);
 
+int sprd_isp_blk_cfg_en(void)
+{
+	int ret = 0;
+	ret = sprd_campw_check_drv_init();
+	if (ret) {
+		pr_info("fail to get init state %d, cb %p, ret %d\n",
+			atomic_read(&pw_info->users_blk_cfg_en),
+			__builtin_return_address(0), ret);
+		return -ENODEV;
+	}
+	mutex_lock(&pw_info->mlock);
+	if (atomic_inc_return(&pw_info->users_blk_cfg_en) == 1) {
+		/* config cam emc clk */
+		ret = clk_prepare_enable(pw_info->blk_cfg_en);
+
+		mmsys_notifier_call_chain(_E_PW_ON, NULL);
+	}
+	mutex_unlock(&pw_info->mlock);
+
+	if (ret) {
+		pr_err("fail to set parent, ret = %d\n", ret);
+		return -1;
+	}
+	return ret;
+}
+EXPORT_SYMBOL(sprd_isp_blk_cfg_en);
+
+int sprd_isp_blk_dis(void)
+{
+	int ret = 0;
+	ret = sprd_campw_check_drv_init();
+	if (ret) {
+		pr_info("fail to get init state %d, cb %p, ret %d\n",
+			atomic_read(&pw_info->users_blk_cfg_en),
+			__builtin_return_address(0), ret);
+		return -ENODEV;
+	}
+	mutex_lock(&pw_info->mlock);
+	if (atomic_dec_return(&pw_info->users_blk_cfg_en) == 0) {
+		/* config cam emc clk */
+		clk_disable_unprepare(pw_info->blk_cfg_en);
+
+		mmsys_notifier_call_chain(_E_PW_ON, NULL);
+	}
+	mutex_unlock(&pw_info->mlock);
+
+	if (ret) {
+		pr_err("fail to set parent, ret = %d\n", ret);
+		return -1;
+	}
+	return ret;
+}
+EXPORT_SYMBOL(sprd_isp_blk_dis);
 
 int sprd_isp_pw_on(void)
 {

@@ -7,6 +7,25 @@
  */
 
 #include "sdiohal.h"
+#include "wcn_dbg.h"
+
+extern bool wcn_rx_int_wakeup_flag;
+char *rx_port_arr[SDIO_CHN_RX_NUM] = {
+	"loopcheck",//channel 12
+	"atcmd",//channel 13
+	"channel:14",// channel 14
+	"log",//channel 15
+	"channel:16",//channel 16
+	"bt:17",//channel 17
+	"bt:18",//channel 18
+	"channel:19",//channel 19
+	"fm",//channel 20
+	"channel:21",//channel 21
+	"wifi:22",//channel 22
+	"wifi:23",//channel 23
+	"wifi:24",//channel 24
+	"channel:25" //channel 25
+};
 
 static unsigned int sdiohal_rx_adapt_get(void)
 {
@@ -107,6 +126,14 @@ static int sdiohal_rx_list_parser(struct sdiohal_list_t *data_list,
 				       puh->subtype, puh->len);
 				continue;
 			}
+
+			if (wcn_rx_int_wakeup_flag == true) {
+				WCN_INFO("wake up by module: %s\n",
+					 rx_port_arr[channel -
+					 SDIO_CHN_TX_NUM]);
+				wcn_rx_int_wakeup_flag = false;
+			}
+
 			p_data->rx_packer_cnt++;
 			mbuf_node->len = MAX_MBUF_SIZE;
 			sdiohal_data_list_assignment(mbuf_node, puh, channel);

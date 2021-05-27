@@ -69,6 +69,7 @@ enum wcn_aon_chip_id {
 	WCN_PIKE2_CHIP,
 	WCN_PIKE2_CHIP_AA,
 	WCN_PIKE2_CHIP_AB,
+	WCN_SHARKL6_CHIP,
 };
 
 /* type for base REGs */
@@ -177,6 +178,7 @@ void *wcn_mem_ram_vmap_nocache(phys_addr_t start, size_t size,
 			       unsigned int *count);
 void wcn_mem_ram_unmap(const void *mem, unsigned int count);
 enum wcn_aon_chip_id wcn_get_aon_chip_id(void);
+const char *wcn_get_chip_name(void);
 void wcn_device_poweroff(void);
 
 #endif

@@ -152,6 +152,55 @@
 			   ARM_SMCCC_OWNER_SIP,				\
 			   0x0501)
 
+/* SIP dvfs operations */
+#define SPRD_SIP_SVC_DVFS_REV						\
+	ARM_SMCCC_CALL_VAL(ARM_SMCCC_FAST_CALL,				\
+			   ARM_SMCCC_SMC_32,				\
+			   ARM_SMCCC_OWNER_SIP,				\
+			   0x0600)
+
+#define SPRD_SIP_SVC_DVFS_CHIP_CONFIG					\
+	ARM_SMCCC_CALL_VAL(ARM_SMCCC_FAST_CALL,				\
+			   ARM_SMCCC_SMC_32,				\
+			   ARM_SMCCC_OWNER_SIP,				\
+			   0x0601)
+
+#define SPRD_SIP_SVC_DVFS_PHY_ENABLE					\
+	ARM_SMCCC_CALL_VAL(ARM_SMCCC_FAST_CALL,				\
+			   ARM_SMCCC_SMC_32,				\
+			   ARM_SMCCC_OWNER_SIP,				\
+			   0x0602)
+
+#define SPRD_SIP_SVC_DVFS_TABLE_UPDATE					\
+	ARM_SMCCC_CALL_VAL(ARM_SMCCC_FAST_CALL,				\
+			   ARM_SMCCC_SMC_32,				\
+			   ARM_SMCCC_OWNER_SIP,				\
+			   0x0603)
+
+#define SPRD_SIP_SVC_DVFS_CLUSTER_CONFIG				\
+	ARM_SMCCC_CALL_VAL(ARM_SMCCC_FAST_CALL,				\
+			   ARM_SMCCC_SMC_32,				\
+			   ARM_SMCCC_OWNER_SIP,				\
+			   0x0604)
+
+#define SPRD_SIP_SVC_DVFS_FREQ_SET					\
+	ARM_SMCCC_CALL_VAL(ARM_SMCCC_FAST_CALL,				\
+			   ARM_SMCCC_SMC_32,				\
+			   ARM_SMCCC_OWNER_SIP,				\
+			   0x0605)
+
+#define SPRD_SIP_SVC_DVFS_FREQ_GET					\
+	ARM_SMCCC_CALL_VAL(ARM_SMCCC_FAST_CALL,				\
+			   ARM_SMCCC_SMC_32,				\
+			   ARM_SMCCC_OWNER_SIP,				\
+			   0x0606)
+
+#define SPRD_SIP_SVC_DVFS_INDEX_INFO					\
+	ARM_SMCCC_CALL_VAL(ARM_SMCCC_FAST_CALL,				\
+			   ARM_SMCCC_SMC_32,				\
+			   ARM_SMCCC_OWNER_SIP,				\
+			   0x0607)
+
 #define SPRD_SIP_RET_UNK	0xFFFFFFFFUL
 
 static struct sprd_sip_svc_handle sprd_sip_svc_handle = {};
@@ -320,6 +369,91 @@ static int sprd_sip_svc_pwr_get_wakeup_source(u32 *major,
 	return res.a0;
 }
 
+static int sprd_sip_svc_dvfs_chip_config(u32 ver)
+{
+	struct arm_smccc_res res;
+
+	arm_smccc_smc(SPRD_SIP_SVC_DVFS_CHIP_CONFIG,
+				ver, 0, 0, 0, 0, 0, 0, &res);
+
+	return sprd_sip_remap_err(res.a0);
+}
+
+static int sprd_sip_svc_dvfs_phy_enable(u32 cluster)
+{
+	struct arm_smccc_res res;
+
+	arm_smccc_smc(SPRD_SIP_SVC_DVFS_PHY_ENABLE,
+				cluster, 0, 0, 0, 0, 0, 0, &res);
+
+	return sprd_sip_remap_err(res.a0);
+}
+
+static int sprd_sip_svc_dvfs_table_update(u32 cluster, u32 *num, u32 temp)
+{
+	struct arm_smccc_res res;
+
+	arm_smccc_smc(SPRD_SIP_SVC_DVFS_TABLE_UPDATE,
+				cluster, temp, 0, 0, 0, 0, 0, &res);
+
+	if (num)
+		*num = res.a1;
+
+	return sprd_sip_remap_err(res.a0);
+}
+
+static int sprd_sip_svc_dvfs_cluster_config(u32 cluster,
+					    u32 bin, u32 margin, u32 step)
+{
+	struct arm_smccc_res res;
+
+	arm_smccc_smc(SPRD_SIP_SVC_DVFS_CLUSTER_CONFIG,
+				cluster, bin, margin, step, 0, 0, 0, &res);
+
+	return sprd_sip_remap_err(res.a0);
+}
+
+static int sprd_sip_svc_dvfs_freq_set(u32 cluster, u32 index)
+{
+	struct arm_smccc_res res;
+
+	arm_smccc_smc(SPRD_SIP_SVC_DVFS_FREQ_SET,
+					cluster, index, 0, 0, 0, 0, 0, &res);
+
+	return sprd_sip_remap_err(res.a0);
+}
+
+static int sprd_sip_svc_dvfs_freq_get(u32 cluster, u64 *freq)
+{
+	struct arm_smccc_res res;
+
+	arm_smccc_smc(SPRD_SIP_SVC_DVFS_FREQ_GET,
+					cluster, 0, 0, 0, 0, 0, 0, &res);
+
+	if (freq)
+		*freq = res.a1;
+
+	return sprd_sip_remap_err(res.a0);
+}
+
+
+static int sprd_sip_svc_dvfs_index_info(u32 cluster,
+					u32 index, u64 *freq, u64 *vol)
+{
+	struct arm_smccc_res res;
+
+	arm_smccc_smc(SPRD_SIP_SVC_DVFS_INDEX_INFO,
+				cluster, index, 0, 0, 0, 0, 0, &res);
+
+	if (freq)
+		*freq = res.a1;
+
+	if (vol)
+		*vol = res.a2;
+
+	return sprd_sip_remap_err(res.a0);
+}
+
 static int __init sprd_sip_svc_init(void)
 {
 	int ret = 0;
@@ -382,6 +516,32 @@ static int __init sprd_sip_svc_init(void)
 	pr_notice("SPRD SIP SVC PWR:v%d.%d detected in firmware.\n",
 		sprd_sip_svc_handle.pwr_ops.rev.major_ver,
 		sprd_sip_svc_handle.pwr_ops.rev.minor_ver);
+
+	/* init dvfs_ops */
+	arm_smccc_smc(SPRD_SIP_SVC_DVFS_REV, 0, 0, 0, 0, 0, 0, 0, &res);
+	sprd_sip_svc_handle.dvfs_ops.rev.major_ver = (u32)(res.a0);
+	sprd_sip_svc_handle.dvfs_ops.rev.minor_ver = (u32)(res.a1);
+
+	sprd_sip_svc_handle.dvfs_ops.chip_config =
+				sprd_sip_svc_dvfs_chip_config;
+
+	sprd_sip_svc_handle.dvfs_ops.phy_enable =
+				sprd_sip_svc_dvfs_phy_enable;
+	sprd_sip_svc_handle.dvfs_ops.table_update =
+				sprd_sip_svc_dvfs_table_update;
+	sprd_sip_svc_handle.dvfs_ops.cluster_config =
+				sprd_sip_svc_dvfs_cluster_config;
+
+	sprd_sip_svc_handle.dvfs_ops.freq_set =
+				sprd_sip_svc_dvfs_freq_set;
+	sprd_sip_svc_handle.dvfs_ops.freq_get =
+				sprd_sip_svc_dvfs_freq_get;
+	sprd_sip_svc_handle.dvfs_ops.index_info =
+				sprd_sip_svc_dvfs_index_info;
+
+	pr_notice("SPRD SIP SVC DVFS:v%d.%d detected in firmware.\n",
+		  sprd_sip_svc_handle.dvfs_ops.rev.major_ver,
+		  sprd_sip_svc_handle.dvfs_ops.rev.minor_ver);
 
 	return ret;
 }

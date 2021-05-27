@@ -204,12 +204,12 @@ long qogirn6pro_ise_cold_power_on(void *apdu_dev)
 	usleep_range(10, 20);
 
 	reg_mask = CGM_XBUF_26M_ISE_FORCE_EN | CGM_XBUF_2M_ISE_FORCE_EN;
-	regmap_read(apdu->pd_ise->ise_aon_clk_reg_base,
+	ret = regmap_read(apdu->pd_ise->ise_aon_clk_reg_base,
 		    GATE_EN_SW_CTL6_CFG, &reg_value);
 	if (ret)
 		goto err;
 	reg_value |= reg_mask;
-	regmap_write(apdu->pd_ise->ise_aon_clk_reg_base,
+	ret = regmap_write(apdu->pd_ise->ise_aon_clk_reg_base,
 		     GATE_EN_SW_CTL6_CFG, reg_value);
 	if (ret)
 		goto err;

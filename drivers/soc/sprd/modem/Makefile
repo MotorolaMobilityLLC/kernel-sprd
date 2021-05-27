@@ -13,4 +13,5 @@ obj-$(CONFIG_SPRD_IQ)		+= iq/
 obj-$(CONFIG_SPRD_HW_DEVICE_DVFS_CP)	+= dvfs/
 obj-$(CONFIG_SPRD_MCD)  += mcd/
 obj-$(CONFIG_SPRD_MODEM_LOADER)	+= modem_loader/
+obj-$(CONFIG_SPRD_CP_DUMP)	+= cp_dump/
 obj-$(CONFIG_SPRD_PCIE_EP_DEVICE)	+= pcie/

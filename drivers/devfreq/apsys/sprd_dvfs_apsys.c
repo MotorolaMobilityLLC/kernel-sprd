@@ -347,7 +347,7 @@ static void __exit apsys_dvfs_unregister(void)
 	platform_driver_unregister(&apsys_dvfs_driver);
 }
 
-subsys_initcall(apsys_dvfs_register);
+module_init(apsys_dvfs_register);
 module_exit(apsys_dvfs_unregister);
 
 MODULE_LICENSE("GPL v2");

@@ -118,6 +118,20 @@ struct sprd_hsphy {
 #define DEFAULT_DEVICE_EYE_PATTERN			0x067bd1c0
 #define DEFAULT_HOST_EYE_PATTERN			0x067bd1c0
 
+#define FULLSPEED_USB33_TUNE		2700000
+
+static int boot_cali;
+static __init int sprd_hsphy_cali_mode(char *str)
+{
+	if (strcmp(str, "cali"))
+		boot_cali = 0;
+	else
+		boot_cali = 1;
+
+	return 0;
+}
+__setup("androidboot.mode=", sprd_hsphy_cali_mode);
+
 static inline void sprd_hsphy_reset_core(struct sprd_hsphy *phy)
 {
 	u32 reg, msk;
@@ -232,10 +246,12 @@ static int sprd_hsphy_init(struct usb_phy *x)
 
 	sprd_usbm_hsphy_set_onoff(1);
 
-	/* select the AON-SYS USB controller */
-	msk = MASK_AON_APB_USB20_CTRL_MUX_REG;
-	ret |= regmap_update_bits(phy->hsphy_glb, REG_AON_APB_AON_SOC_USB_CTRL,
-		msk, 0);
+	if (sprd_usbm_event_is_active()) {
+		/* select the AON-SYS USB controller */
+		msk = MASK_AON_APB_USB20_CTRL_MUX_REG;
+		ret |= regmap_update_bits(phy->hsphy_glb, REG_AON_APB_AON_SOC_USB_CTRL,
+			msk, 0);
+	}
 
 	/* usb enable */
 	reg = msk = MASK_AON_APB_AON_USB2_TOP_EB |
@@ -519,6 +535,11 @@ static int sprd_hsphy_probe(struct platform_device *pdev)
 	if (ret < 0) {
 		dev_err(dev, "unable to read hsphy vdd voltage\n");
 		return ret;
+	}
+
+	if (boot_cali) {
+		phy->vdd_vol = FULLSPEED_USB33_TUNE;
+		dev_info(dev, "calimode vdd_vol:%d\n", phy->vdd_vol);
 	}
 
 	phy->vdd = devm_regulator_get(dev, "vdd");

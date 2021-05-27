@@ -102,6 +102,7 @@ struct sdio_int_t {
 	struct wakeup_source *pub_int_wakelock;
 	struct completion pub_int_completion;
 	unsigned int pub_int_num;
+	int gpio_num;
 	/* 1: power on, 0: power off */
 	atomic_t chip_power_on;
 };

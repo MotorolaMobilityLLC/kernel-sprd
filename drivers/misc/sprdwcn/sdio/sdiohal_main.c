@@ -18,12 +18,16 @@
 #include <linux/pm_runtime.h>
 
 #include "sdiohal.h"
+#include "../../../gpio/gpiolib.h"
 
 #define CP_GPIO1_REG 0x40840014
 #define CP_PIN_FUNC_WPU BIT(8)
 
 static void (*scan_card_notify)(void);
 static struct sdiohal_data_t *sdiohal_data;
+
+//wakeup flag by data int
+bool wcn_rx_int_wakeup_flag;
 
 struct sdiohal_data_t *sdiohal_get_data(void)
 {
@@ -809,10 +813,18 @@ static irqreturn_t sdiohal_irq_handler(int irq, void *para)
 {
 	struct sdiohal_data_t *p_data = sdiohal_get_data();
 
+	struct gpio_desc *p_desc;
+
 	sdiohal_debug("%s entry\n", __func__);
 
 	sdiohal_lock_rx_ws();
 	sdiohal_disable_rx_irq(irq);
+
+	p_desc = gpio_to_desc(p_data->gpio_num);
+	if  (p_desc && (p_desc->flags & BIT(FLAG_IS_WAKEUP)))
+		wcn_rx_int_wakeup_flag = true;
+	else
+		wcn_rx_int_wakeup_flag = false;
 
 	getnstimeofday(&p_data->tm_begin_irq);
 	sdiohal_rx_up();
