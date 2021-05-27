@@ -558,6 +558,12 @@ static const struct sprd_dpu_ops sharkl5pro_dpu = {
 	.glb = &sharkl5pro_dpu_glb_ops,
 };
 
+static const struct sprd_dpu_ops qogirl6_dpu = {
+	.core = &dpu_r5p0_core_ops,
+	.clk = &qogirl6_dpu_clk_ops,
+	.glb = &qogirl6_dpu_glb_ops,
+};
+
 static const struct of_device_id dpu_match_table[] = {
 	{ .compatible = "sprd,sharkle-dpu",
 	  .data = &sharkle_dpu },
@@ -569,6 +575,8 @@ static const struct of_device_id dpu_match_table[] = {
 	  .data = &sharkl5_dpu },
 	{ .compatible = "sprd,sharkl5pro-dpu",
 	  .data = &sharkl5pro_dpu },
+	{ .compatible = "sprd,qogirl6-dpu",
+	  .data = &qogirl6_dpu },
 	{ /* sentinel */ },
 };
 
@@ -577,7 +585,7 @@ static int sprd_dpu_probe(struct platform_device *pdev)
 	struct device_node *np = pdev->dev.of_node;
 	const struct sprd_dpu_ops *pdata;
 	struct sprd_dpu *dpu;
-	int ret;
+	int ret, val;
 
 	dpu = devm_kzalloc(&pdev->dev, sizeof(*dpu), GFP_KERNEL);
 	if (!dpu)
@@ -592,6 +600,9 @@ static int sprd_dpu_probe(struct platform_device *pdev)
 		DRM_ERROR("No matching driver data found\n");
 		return -EINVAL;
 	}
+
+	if (!of_property_read_u32(np, "sprd,dpi-clk-div", &val))
+		dpu->ctx.dpi_clk_div = val;
 
 	ret = sprd_dpu_context_init(dpu, np);
 	if (ret)

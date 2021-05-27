@@ -204,5 +204,6 @@ extern const struct dsi_glb_ops pike2_dsi_glb_ops;
 extern const struct dsi_glb_ops sharkl3_dsi_glb_ops;
 extern const struct dsi_glb_ops sharkl5_dsi_glb_ops;
 extern const struct dsi_glb_ops sharkl5pro_dsi_glb_ops;
+extern const struct dsi_glb_ops qogirl6_dsi_glb_ops;
 
 #endif /* _SPRD_DSI_H_ */

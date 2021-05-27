@@ -153,6 +153,8 @@ struct dpu_context {
 
 	unsigned int *layer_top;
 	unsigned int *layer_bottom;
+	
+	int dpi_clk_div;
 };
 
 struct sprd_dpu_ops {
@@ -192,5 +194,9 @@ extern const struct dpu_glb_ops sharkl3_dpu_glb_ops;
 extern const struct dpu_core_ops dpu_r4p0_core_ops;
 extern const struct dpu_clk_ops sharkl5pro_dpu_clk_ops;
 extern const struct dpu_glb_ops sharkl5pro_dpu_glb_ops;
+
+extern const struct dpu_core_ops dpu_r5p0_core_ops;
+extern const struct dpu_clk_ops qogirl6_dpu_clk_ops;
+extern const struct dpu_glb_ops qogirl6_dpu_glb_ops;
 
 #endif /* _SPRD_DPU_H_ */
