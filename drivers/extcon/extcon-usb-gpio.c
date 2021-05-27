@@ -27,9 +27,10 @@
 #include <linux/slab.h>
 #include <linux/workqueue.h>
 #include <linux/pinctrl/consumer.h>
+#include <linux/pm_wakeup.h>
 
 #define USB_GPIO_DEBOUNCE_MS	20	/* ms */
-
+#define USB_WAKE_UP_MS              2000 
 struct usb_extcon_info {
 	struct device *dev;
 	struct extcon_dev *edev;
@@ -97,6 +98,7 @@ static irqreturn_t usb_irq_handler(int irq, void *dev_id)
 {
 	struct usb_extcon_info *info = dev_id;
 
+	pm_wakeup_event(info->dev, USB_WAKE_UP_MS);
 	queue_delayed_work(system_power_efficient_wq, &info->wq_detcable,
 			   info->debounce_jiffies);
 
@@ -154,7 +156,7 @@ static int usb_extcon_probe(struct platform_device *pdev)
 
 	if (ret < 0)
 		info->debounce_jiffies = msecs_to_jiffies(USB_GPIO_DEBOUNCE_MS);
-
+	device_init_wakeup(info->dev,  true);
 	INIT_DELAYED_WORK(&info->wq_detcable, usb_extcon_detect_cable);
 
 	if (info->id_gpiod) {
