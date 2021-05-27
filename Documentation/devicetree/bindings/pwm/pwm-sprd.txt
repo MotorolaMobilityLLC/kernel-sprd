@@ -4,6 +4,7 @@ Spreadtrum SoCs PWM controller provides 4 PWM channels.
 
 - compatible : Should be one of the following:
   "sprd,sharkl5pro-pwm",
+  "sprd,qogirl6-pwm",
   "sprd,sharkl3-pwm",
   "sprd,pike2-pwm".
 
