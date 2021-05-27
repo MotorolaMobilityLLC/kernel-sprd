@@ -313,16 +313,8 @@
 		reg = <0x0 0x9e000000 0x0 0x00ab0000>;
 	};
 
-	fd_reserved: faceid-mem@fc3a0000 {
-		reg = <0x0 0xfc3a0000 0x0 0x00500000>;
-	};
-
-	wb_reserved: writeback-mem@fc8a0000 {
-		reg = <0x0 0xfc8a0000 0x0 0x00ae0000>;
-	};
-
-	fb_reserved: framebuffer-mem@fd380000 {
-		reg = <0x0 0xfd380000 0x0 0x02c00000>;
+	fd_reserved: faceid-mem@ffa80000 {
+		reg = <0x0 0xffa80000 0x0 0x00500000>;
 	};
 };
 
@@ -632,17 +624,6 @@
 
 &sdio0 {
 	cd-gpios = <&eic_sync 35 GPIO_ACTIVE_HIGH>;
-};
-
-&ion {
-	#address-cells = <1>;
-	#size-cells = <0>;
-	heap@3 {
-		reg = <3>;
-		label = "carveout_fb";
-		type = <2>;
-		memory-region = <&fb_reserved>;
-	};
 };
 
 &ufs {

@@ -39,9 +39,9 @@
 			reg = <0x0 0x80001000 0x0 0x00001000>;
 		};
 
-		rebootescrow@0x853f0000 {
+		rebootescrow@0x85ef0000 {
 			no-map;
-			reg = <0x0 0x853f0000 0x0 0x00010000>; /* 64K */
+			reg = <0x0 0x85ef0000 0x0 0x00010000>; /* 64K */
 		};
 
 		wcn_reserved: wcn-mem@87000000 {
@@ -57,6 +57,10 @@
 			reg = <0x0 0x88000000 0x0 0x00300000>;
 		};
 
+		audio_reserved: audio-mem@88d00000 {
+			reg = <0x0 0x88d00000 0x0 0x00300000>;
+		};
+
 		audiodsp_reserved: audiodsp-mem@89000000 {
 			reg = <0x0 0x89000000 0x0 0x00600000>;
 		};
@@ -69,10 +73,6 @@
 		iq_reserved: iq-mem@90000000{
 			compatible = "sprd,iq-mem";
 			reg = <0x0 0x90000000 0x0 0x4000000>;
-		};
-
-		audio_reserved: audio-mem@94100000 {
-			reg = <0x0 0x94100000 0x0 0x00300000>;
 		};
 
 		uboot_reserved: sysdump-uboot@9f000000 {
@@ -250,7 +250,7 @@
 
 	rebootescrow@0 {
 		compatible = "pmem-region";
-		reg = <0x0 0x853f0000 0x0 0x00010000>;
+		reg = <0x0 0x85ef0000 0x0 0x00010000>;
 	};
 
 	extcon_gpio: extcon-gpio {
