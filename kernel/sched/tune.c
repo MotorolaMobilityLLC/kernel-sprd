@@ -40,6 +40,7 @@ struct schedtune {
 	int account_wait_time;
 	int init_task_load_pct;
 #endif
+	int prefer_active;
 };
 
 static inline struct schedtune *css_st(struct cgroup_subsys_state *css)
@@ -74,6 +75,7 @@ root_schedtune = {
 	.account_wait_time = 0,
 	.init_task_load_pct = 0,
 #endif
+	.prefer_active = 0,
 };
 
 /*
@@ -483,6 +485,23 @@ int schedtune_init_task_load_pct(struct task_struct *p)
 }
 #endif
 
+int schedtune_prefer_active(struct task_struct *p)
+{
+	struct schedtune *st;
+	int prefer_active;
+
+	if (!unlikely(schedtune_initialized))
+		return 0;
+
+	/* Get init_task_load_pct value */
+	rcu_read_lock();
+	st = task_schedtune(p);
+	prefer_active = st->prefer_active;
+	rcu_read_unlock();
+
+	return prefer_active;
+}
+
 static u64
 prefer_idle_read(struct cgroup_subsys_state *css, struct cftype *cft)
 {
@@ -566,6 +585,25 @@ init_task_load_pct_write(struct cgroup_subsys_state *css, struct cftype *cft,
 }
 #endif
 
+static u64
+prefer_active_read(struct cgroup_subsys_state *css, struct cftype *cft)
+{
+	struct schedtune *st = css_st(css);
+
+	return st->prefer_active;
+}
+
+static int
+prefer_active_write(struct cgroup_subsys_state *css, struct cftype *cft,
+	    u64 prefer_active)
+{
+	struct schedtune *st = css_st(css);
+
+	st->prefer_active = !!prefer_active;
+
+	return 0;
+}
+
 static struct cftype files[] = {
 	{
 		.name = "boost",
@@ -589,6 +627,11 @@ static struct cftype files[] = {
 		.write_u64 = init_task_load_pct_write,
 	},
 #endif
+	{
+		.name = "prefer_active",
+		.read_u64 = prefer_active_read,
+		.write_u64 = prefer_active_write,
+	},
 	{ }	/* terminate */
 };
 

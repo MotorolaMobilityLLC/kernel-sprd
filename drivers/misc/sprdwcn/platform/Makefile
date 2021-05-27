@@ -17,6 +17,7 @@ WCN_MARLIN_COMMON_FILES += bufring.o \
 			   wcn_parn_parser.o \
 			   wcn_log.o \
 			   wcn_procfs.o \
+			   wcn_ca_trusty.o \
 			   loopcheck.o \
 			   reset.o \
 			   reset_test.o \

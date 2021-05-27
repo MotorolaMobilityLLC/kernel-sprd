@@ -47,6 +47,19 @@ struct sprd_hsphy {
 #define TFREGRES_TUNE_VALUE	(0x1c << 19)
 #define TRUNE_OTG_VALUE   (0x3 << 9)
 #define TUNEDSC_VALUE     (0x3 << 7)
+#define FULLSPEED_USB33_TUNE		2700000
+
+static int boot_cali;
+static __init int sprd_hsphy_cali_mode(char *str)
+{
+	if (strcmp(str, "cali"))
+		boot_cali = 0;
+	else
+		boot_cali = 1;
+
+	return 0;
+}
+__setup("androidboot.mode=", sprd_hsphy_cali_mode);
 
 static inline void sprd_hsphy_reset_core(struct sprd_hsphy *phy)
 {
@@ -397,6 +410,11 @@ static int sprd_hsphy_probe(struct platform_device *pdev)
 	if (ret < 0) {
 		dev_warn(dev, "unable to read ssphy vdd voltage\n");
 		phy->vdd_vol = 3300000;
+	}
+
+	if (boot_cali) {
+		phy->vdd_vol = FULLSPEED_USB33_TUNE;
+		dev_info(dev, "calimode vdd_vol:%d chipid:0x%x\n", phy->vdd_vol);
 	}
 
 	phy->vdd = devm_regulator_get_optional(dev, "vdd");

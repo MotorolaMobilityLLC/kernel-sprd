@@ -17,6 +17,7 @@
 #include <linux/of.h>
 #include <linux/of_address.h>
 #include <linux/of_device.h>
+#include <linux/regmap.h>
 #include <linux/slab.h>
 
 #include "sprd_dvfs_apsys.h"
@@ -176,27 +177,57 @@ static void apsys_dvfs_min_volt(u32 min_volt)
 	reg->dpu_vsp_min_voltage_cfg = min_volt;
 }
 
+static const struct of_device_id sprd_dvfs_of_match[] = {
+	{
+		.compatible = "sprd,ump962x-syscon",
+	},
+};
+
 static void apsys_top_dvfs_init(void)
 {
 	void __iomem *base;
+	u32 temp;
+	struct platform_device *pdev_regmap;
+	struct device_node *regmap_np;
+	const struct of_device_id *dev_id;
+	struct regmap *regmap;
 
-	pr_info("%s()\n", __func__);
-
-	base = ioremap_nocache(0x64400000, 0x400);
+	base = ioremap_nocache(0x64940000, 0x600);
 	if (IS_ERR(base))
-		pr_err("ioremap top dvfs address failed\n");
+		pr_err("ioremap top address failed\n");
 
 	regmap_ctx.top_base = (unsigned long)base;
 
+	temp = readl_relaxed(base + 0xd84);
+	temp &= 0xfffffffe;
+	writel_relaxed(temp, base + 0xd84);
+
+	regmap_np = of_find_matching_node_and_match(NULL, sprd_dvfs_of_match,
+			&dev_id);
+	if (!regmap_np) {
+		pr_err("regmap get device node fail\n");
+		return;
+	}
+
+	pdev_regmap = of_find_device_by_node(regmap_np);
+	if (!pdev_regmap) {
+		pr_err("parent device get device node fail\n");
+		return;
+	}
+
+	regmap = dev_get_regmap(pdev_regmap->dev.parent, NULL);
+
+	/*0xa158 pmic mm dvfs enable register*/
+	regmap_write(regmap, 0xa158, 0x4);
 }
 
 static int dcdc_modem_cur_volt(void)
 {
-	volatile u32 rw32;
+	struct dpu_vspsys_dvfs_reg *reg;
 
-	rw32 = *(volatile u32 *)(regmap_ctx.top_base + 0x03f8);
+	reg = (struct dpu_vspsys_dvfs_reg *)(regmap_ctx.apsys_base);
 
-	return (rw32 >> 20) & 0x07;
+	return (reg->dpu_vsp_dvfs_voltage_dbg >> 8) & 0x7;
 }
 
 static int apsys_dvfs_parse_dt(struct apsys_dev *apsys,

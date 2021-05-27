@@ -1360,9 +1360,9 @@
 				compatible = "sprd,soc-thermal";
 				#thermal-sensor-cells = <1>;
 				sensor-names = "cluster0-thmzone","cluster1-thmzone","gpu-thmzone";
-				k-po = <0>;
-				k-pu = <0>;
-				k-i = <1>;
+				k-po = <164>;
+				k-pu = <328>;
+				k-i = <2>;
 				k-d = <0>;
 				cutoff = <0>;
 			};
@@ -1373,6 +1373,15 @@
 				reg = <0 0x64200000 0 0x100000>;
 				#address-cells = <1>;
 				#size-cells = <0>;
+			};
+
+			ap_efuse: efuse@643d0000 {
+				status = "okay";
+				compatible = "sprd,qogirl6-efuse";
+				reg = <0 0x643d0000 0 0x10000>;
+				clock-names = "enable";
+				hwlocks = <&hwlock 8>;
+				clocks = <&aonapb_gate CLK_EFUSE_EB>;
 			};
 
 			pwms: pwm@643f0000 {

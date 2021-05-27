@@ -1158,7 +1158,6 @@ static struct pci_driver sprd_pcie_driver = {
 	},
 };
 
-//static int __init sprd_pcie_init(void)
 int sprd_pcie_init(void)
 {
 	int ret = 0;
@@ -1177,7 +1176,6 @@ int sprd_pcie_init(void)
 	return ret;
 }
 
-//static void __exit sprd_pcie_exit(void)
 void sprd_pcie_exit(void)
 {
 	struct wcn_pcie_info *priv = get_wcn_device_info();
@@ -1187,8 +1185,3 @@ void sprd_pcie_exit(void)
 	kfree(priv);
 }
 
-//module_init(sprd_pcie_init);
-//module_exit(sprd_pcie_exit);
-//
-//MODULE_LICENSE("GPL");
-//MODULE_DESCRIPTION("marlin3 pcie/edma drv");

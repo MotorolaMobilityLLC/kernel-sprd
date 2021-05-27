@@ -114,6 +114,7 @@ enum wcn_aon_chip_id {
 	WCN_PIKE2_CHIP,
 	WCN_PIKE2_CHIP_AA,
 	WCN_PIKE2_CHIP_AB,
+	WCN_SHARKL6_CHIP,
 };
 
 struct wcn_chip_type {
@@ -234,14 +235,6 @@ extern char functionmask[8];
 extern struct wcn_special_share_mem *s_wssm_phy_offset_p;
 extern struct wcn_gnss_special_share_mem s_wcngnss_sync_addr;
 
-int wcn_write_zero_to_phy_addr(phys_addr_t phy_addr, u32 size);
-int wcn_write_data_to_phy_addr(phys_addr_t phy_addr,
-			       void *src_data, u32 size);
-int wcn_read_data_from_phy_addr(phys_addr_t phy_addr,
-				void *tar_data, u32 size);
-void *wcn_mem_ram_vmap_nocache(phys_addr_t start, size_t size,
-			       unsigned int *count);
-void wcn_mem_ram_unmap(const void *mem, unsigned int count);
 void wcn_dfs_poweroff_state_clear(struct wcn_device *wcn_dev);
 void wcn_dfs_poweroff_shutdown_clear(struct wcn_device *wcn_dev);
 void wcn_dfs_poweron_status_clear(struct wcn_device *wcn_dev);
@@ -304,5 +297,6 @@ bool wcn_power_status_check(struct wcn_device *wcn_dev);
 u32 wcn_parse_platform_chip_id(struct wcn_device *wcn_dev);
 void mdbg_hold_cpu(void);
 enum wcn_aon_chip_id wcn_get_aon_chip_id(void);
+const char *wcn_get_chip_name(void);
 void wcn_merlion_power_control(bool enable);
 #endif

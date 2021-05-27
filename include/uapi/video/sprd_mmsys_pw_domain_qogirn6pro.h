@@ -24,6 +24,9 @@ int sprd_dcam_pw_on(void);
 int sprd_dcam_pw_off(void);
 int sprd_isp_pw_on(void);
 int sprd_isp_pw_off(void);
+int sprd_isp_blk_cfg_en(void);
+int sprd_isp_blk_dis(void);
+
 
 /* power on/off call back function, use as follow:
  * 1: static int ssss_event(struct notifier_block *self, unsigned long event,

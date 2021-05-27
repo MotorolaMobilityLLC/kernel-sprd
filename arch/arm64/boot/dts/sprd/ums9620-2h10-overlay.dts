@@ -235,11 +235,11 @@
 				avdd12-parent-bound-chip = <REG_ANA_SLP_DCDC_PD_CTRL MASK_ANA_SLP_DCDCGEN1_PD_EN 0x0 MASK_ANA_SLP_DCDCGEN1_PD_EN>;
 				avdd12-bound-wbreq = <REG_ANA_LDO_XTL_EN10 MASK_ANA_LDO_VDDWCN_EXT_XTL3_EN 0x0 MASK_ANA_LDO_VDDWCN_EXT_XTL3_EN>;
 				avdd33-bound-wbreq = <REG_ANA_LDO_XTL_EN11 MASK_ANA_LDO_VDDWIFIPA_EXT_XTL3_EN 0x0 MASK_ANA_LDO_VDDWIFIPA_EXT_XTL3_EN>;
-			};
 
-			fingerprint@0 {
-				compatible = "microarray,afs121";
-				fpint-gpios = <&eic_async 29 0>;
+				gnss_common_ctl {
+					compatible = "sprd,gnss_common_ctl";
+					sprd,name = "gnss_common_ctl";
+				};
 			};
 
 			sprd-mtty {
@@ -252,13 +252,13 @@
 				sprd,name = "sprd-fm";
 			};
 
-			gnss_common_ctl {
-				compatible = "sprd,gnss_common_ctl";
-				sprd,name = "gnss_common_ctl";
-			};
-
 			sprd-wlan{
 				compatible = "sprd,sc2355-wifi";
+			};
+
+			fingerprint@0 {
+				compatible = "microarray,afs121";
+				fpint-gpios = <&eic_async 29 0>;
 			};
 
 			tboard_thermistor: thermal-sensor {
@@ -366,12 +366,12 @@
 		reg = <0x0 0xc31a0000 0x0 0x0c800000>;
 	};
 
-	ai_reserved: ai@f6048000 {
-		reg = <0x0 0xf6048000 0x0 0x02000000>;
+	ai_reserved: ai@f8848000 {
+		reg = <0x0 0xf8848000 0x0 0x02000000>;
 	};
 
-	fd_reserved: faceid-mem@f8048000 {
-		reg = <0x0 0xf8048000 0x0 0x02d00000>;
+	fd_reserved: faceid-mem@fa848000 {
+		reg = <0x0 0xfa848000 0x0 0x00500000>;
 	};
 
 	vdsp_reserved: vdsp-mem@fad48000 {

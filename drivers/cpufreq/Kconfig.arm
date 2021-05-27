@@ -354,3 +354,14 @@ config ARM_SPRD_HW_CPUFREQ_NORMAL
 	 whose apcpu hardware DVFS IP is similar to sharkl5.
 
 	 If in doubt, say N.
+
+config ARM_SPRD_SHARKL6PRO_CPUFREQ
+	tristate "SPRD SharkL6Pro CPUFREQ"
+	depends on ARCH_SPRD && CPU_FREQ
+	select PM_OPP
+	help
+	 This driver enable hardware to adjust the voltage and frequency
+	 automatically for DSU cluster and cores in sharkl6pro and the platforms
+	 whose apcpu hardware DVFS IP is similar to sharkl6pro.
+
+	 If in doubt, say N.

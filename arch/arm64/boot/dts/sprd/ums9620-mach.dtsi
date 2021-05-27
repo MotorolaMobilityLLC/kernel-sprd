@@ -77,6 +77,10 @@
 		sipc_sensorhub_id = <9>;
 	};
 
+	sprd-map-user {
+		compatible = "sprd,map-user";
+	};
+
 	reserved_memory: reserved-memory {
 		#address-cells = <2>;
 		#size-cells = <2>;

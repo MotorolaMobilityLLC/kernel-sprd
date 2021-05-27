@@ -12,6 +12,7 @@
  */
 #include "wcn_glb.h"
 #include "wcn_glb_reg.h"
+#include "wcn_misc.h"
 #include "wcn_procfs.h"
 #include "../include/wcn_dbg.h"
 
@@ -38,6 +39,8 @@ static const struct wcn_chip_type wcn_chip_type[] = {
 	{0x96360003, WCN_SHARKLE_CHIP_AD},
 	/* WCN_PIKE2_CHIP_AA and WCN_PIKE2_CHIP_AB is the same */
 	{0x96330000, WCN_PIKE2_CHIP},
+	/* WCN_SHARKL6_CHIP is error */
+	{0x00000000, WCN_SHARKL6_CHIP},
 };
 
 struct wcn_special_share_mem *s_wssm_phy_offset_p =
@@ -254,188 +257,42 @@ enum wcn_aon_chip_id wcn_get_aon_chip_id(void)
 		return WCN_AON_CHIP_ID_INVALID;
 
 	regmap = wcn_get_btwf_regmap(REGMAP_AON_APB);
-	wcn_regmap_read(regmap, WCN_AON_CHIP_ID, &aon_chip_id);
+	wcn_regmap_read(s_wcn_device.btwf_device->rmap[REGMAP_AON_APB],
+			WCN_AON_CHIP_ID, &aon_chip_id);
 	WCN_INFO("aon_chip_id=0x%08x\n", aon_chip_id);
 	for (i = 0; i < ARRAY_SIZE(wcn_chip_type); i++) {
 		if (wcn_chip_type[i].chipid == aon_chip_id) {
-			if (wcn_chip_type[i].chiptype != WCN_PIKE2_CHIP)
+			if (wcn_chip_type[i].chiptype == WCN_SHARKLE_CHIP_AA_OR_AB)
 				return wcn_chip_type[i].chiptype;
-			wcn_regmap_read(regmap, WCN_AON_VERSION_ID,
-					&version_id);
-			WCN_INFO("aon_version_id=0x%08x\n", version_id);
-			/* version_id:
-			 * 0 for WCN_PIKE2_CHIP_AA
-			 * others for WCN_PIKE2_CHIP_AB
-			 */
-			return (version_id == 0) ?
-			       WCN_PIKE2_CHIP_AA : WCN_PIKE2_CHIP_AB;
+
+			if (wcn_chip_type[i].chiptype == WCN_SHARKLE_CHIP_AC)
+				return wcn_chip_type[i].chiptype;
+
+			if (wcn_chip_type[i].chiptype == WCN_SHARKLE_CHIP_AD)
+				return wcn_chip_type[i].chiptype;
+
+			if (wcn_chip_type[i].chiptype == WCN_SHARKLE_CHIP_AD)
+				return wcn_chip_type[i].chiptype;
+
+			if (wcn_chip_type[i].chiptype == WCN_PIKE2_CHIP) {
+				wcn_regmap_read(regmap, WCN_AON_VERSION_ID,
+						&version_id);
+				WCN_INFO("aon_version_id=0x%08x\n", version_id);
+				/* version_id:
+				 * 0 for WCN_PIKE2_CHIP_AA
+				 * others for WCN_PIKE2_CHIP_AB
+				 */
+				return (version_id == 0) ? WCN_PIKE2_CHIP_AA : WCN_PIKE2_CHIP_AB;
+			}
+
+			if (wcn_chip_type[i].chiptype == WCN_SHARKL6_CHIP)
+				return wcn_chip_type[i].chiptype;
 		}
 	}
 
 	return WCN_AON_CHIP_ID_INVALID;
 }
 EXPORT_SYMBOL_GPL(wcn_get_aon_chip_id);
-
-#define WCN_VMAP_RETRY_CNT (20)
-static void *wcn_mem_ram_vmap(phys_addr_t start, size_t size,
-			      int noncached, unsigned int *count)
-{
-	struct page **pages;
-	phys_addr_t page_start;
-	unsigned int page_count;
-	pgprot_t prot;
-	unsigned int i;
-	void *vaddr;
-	phys_addr_t addr;
-	int retry = 0;
-
-	page_start = start - offset_in_page(start);
-	page_count = DIV_ROUND_UP(size + offset_in_page(start), PAGE_SIZE);
-	*count = page_count;
-	if (noncached)
-		prot = pgprot_noncached(PAGE_KERNEL);
-	else
-		prot = PAGE_KERNEL;
-
-retry1:
-	pages = kmalloc_array(page_count, sizeof(struct page *), GFP_KERNEL);
-	if (!pages) {
-		if (retry++ < WCN_VMAP_RETRY_CNT) {
-			usleep_range(8000, 10000);
-			goto retry1;
-		} else {
-			WCN_ERR("malloc err\n");
-			return NULL;
-		}
-	}
-
-	for (i = 0; i < page_count; i++) {
-		addr = page_start + i * PAGE_SIZE;
-		pages[i] = pfn_to_page(addr >> PAGE_SHIFT);
-	}
-retry2:
-	vaddr = vm_map_ram(pages, page_count, -1, prot);
-	if (!vaddr) {
-		if (retry++ < WCN_VMAP_RETRY_CNT) {
-			usleep_range(8000, 10000);
-			goto retry2;
-		} else {
-			WCN_ERR("vmap err\n");
-			goto out;
-		}
-	} else {
-		vaddr += offset_in_page(start);
-	}
-out:
-	kfree(pages);
-
-	return vaddr;
-}
-
-void wcn_mem_ram_unmap(const void *mem, unsigned int count)
-{
-	vm_unmap_ram(mem - offset_in_page(mem), count);
-}
-
-void *wcn_mem_ram_vmap_nocache(phys_addr_t start, size_t size,
-			       unsigned int *count)
-{
-	return wcn_mem_ram_vmap(start, size, 1, count);
-}
-
-#ifdef CONFIG_ARM64
-static inline void wcn_unalign_memcpy(void *to, const void *from, u32 len)
-{
-	if (((unsigned long)to & 7) == ((unsigned long)from & 7)) {
-		while (((unsigned long)from & 7) && len) {
-			*(char *)(to++) = *(char *)(from++);
-			len--;
-		}
-		memcpy(to, from, len);
-	} else if (((unsigned long)to & 3) == ((unsigned long)from & 3)) {
-		while (((unsigned long)from & 3) && len) {
-			*(char *)(to++) = *(char *)(from++);
-			len--;
-		}
-		while (len >= 4) {
-			*(u32 *)(to) = *(u32 *)(from);
-			to += 4;
-			from += 4;
-			len -= 4;
-		}
-		while (len) {
-			*(char *)(to++) = *(char *)(from++);
-			len--;
-		}
-	} else {
-		while (len) {
-			*(char *)(to++) = *(char *)(from++);
-			len--;
-		}
-	}
-}
-#else
-static inline void wcn_unalign_memcpy(void *to, const void *from, u32 len)
-{
-	memcpy(to, from, len);
-}
-#endif
-
-int wcn_write_zero_to_phy_addr(phys_addr_t phy_addr, u32 size)
-{
-	char *virt_addr;
-	unsigned int cnt;
-	unsigned char zero = 0x00;
-	unsigned int loop = 0;
-
-	virt_addr = (char *)wcn_mem_ram_vmap_nocache(phy_addr, size, &cnt);
-	if (virt_addr) {
-		for (loop = 0; loop < size; loop++)
-			wcn_unalign_memcpy((void *)virt_addr, &zero, 1);
-
-		wcn_mem_ram_unmap(virt_addr, cnt);
-		return 0;
-	}
-
-	WCN_ERR("%s fail\n", __func__);
-	return -1;
-}
-
-int wcn_write_data_to_phy_addr(phys_addr_t phy_addr,
-			       void *src_data, u32 size)
-{
-	char *virt_addr, *src;
-	unsigned int cnt;
-
-	src = (char *)src_data;
-	virt_addr = (char *)wcn_mem_ram_vmap_nocache(phy_addr, size, &cnt);
-	if (virt_addr) {
-		wcn_unalign_memcpy((void *)virt_addr, (void *)src, size);
-		wcn_mem_ram_unmap(virt_addr, cnt);
-		return 0;
-	}
-
-	WCN_ERR("wcn_mem_ram_vmap_nocache fail\n");
-	return -1;
-}
-
-int wcn_read_data_from_phy_addr(phys_addr_t phy_addr,
-				void *tar_data, u32 size)
-{
-	char *virt_addr, *tar;
-	unsigned int cnt;
-
-	tar = (char *)tar_data;
-	virt_addr = wcn_mem_ram_vmap_nocache(phy_addr, size, &cnt);
-	if (virt_addr) {
-		wcn_unalign_memcpy((void *)tar, (void *)virt_addr, size);
-		wcn_mem_ram_unmap(virt_addr, cnt);
-		return 0;
-	}
-
-	WCN_ERR("wcn_mem_ram_vmap_nocache fail\n");
-	return -1;
-}
 
 u32 wcn_platform_chip_id(void)
 {
@@ -1494,10 +1351,15 @@ u32 wcn_parse_platform_chip_id(struct wcn_device *wcn_dev)
 
 const char *wcn_get_chip_name(void)
 {
-	snprintf(wcn_chip_name, sizeof(wcn_chip_name),
-		 "marlin2-built-in_0x%x_0x%x",
-		 g_platform_chip_id.aon_chip_id0,
-		 g_platform_chip_id.aon_chip_id1);
+	if (wcn_platform_chip_type() != WCN_PLATFORM_TYPE_QOGIRL6) {
+		snprintf(wcn_chip_name, sizeof(wcn_chip_name),
+			 "marlin2-built-in_0x%x_0x%x",
+			 g_platform_chip_id.aon_chip_id0,
+			 g_platform_chip_id.aon_chip_id1);
+	} else {
+		snprintf(wcn_chip_name, sizeof(wcn_chip_name),
+			 "SharkL6_0x%x_0x%x", QOGIRL6_CHIP_ID0, QOGIRL6_CHIP_ID1);
+	}
 
 	return wcn_chip_name;
 }
