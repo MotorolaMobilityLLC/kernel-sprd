@@ -5,6 +5,7 @@
 #include <linux/extcon.h>
 #include <linux/interrupt.h>
 #include <linux/kernel.h>
+#include <linux/mfd/syscon.h>
 #include <linux/module.h>
 #include <linux/mutex.h>
 #include <linux/nvmem-consumer.h>
@@ -219,6 +220,10 @@
 #define UMP9620_REF_EFUSE_SHIFT		6
 #define UMP9620_DELTA_EFUSE_SHIFT	9
 
+/* soc compatible */
+#define UMS9620_MASK_AON_APB_R2G_ANALOG_BB_TOP_SINDRV_ENA	0x0020
+#define UMS9620_REG_AON_APB_MIPI_CSI_POWER_CTRL			0x0350
+
 #define SC27XX_PD_SHIFT(n)		(n)
 
 #define PMIC_SC2730			1
@@ -243,6 +248,8 @@ struct sc27xx_pd_variant_data {
 	u32 arm_clk_en0;
 	u32 rtc_clk_en0;
 	u32 xtl_wait_ctrl0;
+	u32 aon_apb_r2g_analog_bb_top_sindrv_ena;
+	u32 reg_aon_apb_mipi_csi_power_ctrl;
 };
 
 static const struct sc27xx_pd_variant_data sc2730_data = {
@@ -265,6 +272,10 @@ static const struct sc27xx_pd_variant_data ump9620_data = {
 	.arm_clk_en0 = UMP9620_ARM_CLK_EN0,
 	.rtc_clk_en0 = UMP9620_RTC_CLK_EN0,
 	.xtl_wait_ctrl0 = UMP9620_XTL_WAIT_CTRL0,
+	.aon_apb_r2g_analog_bb_top_sindrv_ena =
+		UMS9620_MASK_AON_APB_R2G_ANALOG_BB_TOP_SINDRV_ENA,
+	.reg_aon_apb_mipi_csi_power_ctrl =
+		UMS9620_REG_AON_APB_MIPI_CSI_POWER_CTRL,
 };
 
 struct sc27xx_pd {
@@ -277,6 +288,7 @@ struct sc27xx_pd {
 	struct delayed_work  read_msg_work;
 	struct workqueue_struct *pd_wq;
 	struct regmap *regmap;
+	struct regmap *aon_apb;
 	struct tcpc_dev tcpc;
 	struct mutex lock;
 	struct regulator *vbus;
@@ -309,6 +321,32 @@ struct sc27xx_pd {
 static inline struct sc27xx_pd *tcpc_to_sc27xx_pd(struct tcpc_dev *tcpc)
 {
 	return container_of(tcpc, struct sc27xx_pd, tcpc);
+}
+
+static int sc27xx_pd_set_aon_clock(struct sc27xx_pd *pd, bool on)
+{
+	int ret;
+	u32 mask, reg;
+
+	if (!pd->aon_apb) {
+		dev_warn(pd->dev, "aon apb NULL\n");
+		return 0;
+	}
+
+	mask = pd->var_data->aon_apb_r2g_analog_bb_top_sindrv_ena;
+	reg = pd->var_data->reg_aon_apb_mipi_csi_power_ctrl;
+
+	if (on) {
+		ret = regmap_update_bits(pd->aon_apb, reg, mask, mask);
+		if (ret)
+			return ret;
+	} else {
+		ret = regmap_update_bits(pd->aon_apb, reg, mask, ~mask);
+		if (ret)
+			return ret;
+	}
+
+	return 0;
 }
 
 static int sc27xx_pd_clk_cfg(struct sc27xx_pd *pd)
@@ -1270,6 +1308,10 @@ static int sc27xx_pd_check_vbus_cc_status(struct sc27xx_pd *pd)
 	if (ret)
 		return ret;
 
+	ret = sc27xx_pd_set_aon_clock(pd, true);
+	if (ret)
+		return ret;
+
 	ret = sc27xx_pd_clk_cfg(pd);
 	if (ret)
 		return ret;
@@ -1539,6 +1581,17 @@ static int sc27xx_pd_probe(struct platform_device *pdev)
 		}
 	}
 
+	if (of_property_read_bool(pdev->dev.of_node, "sprd,syscon-aon-apb")) {
+		pd->aon_apb = syscon_regmap_lookup_by_phandle(pdev->dev.of_node,
+							      "sprd,syscon-aon-apb");
+		if (IS_ERR(pd->aon_apb)) {
+			dev_err(pd->dev, "failed to map aon registers (via syscon)\n");
+			return PTR_ERR(pd->aon_apb);
+		}
+	} else {
+		pd->aon_apb = NULL;
+	}
+
 	INIT_DELAYED_WORK(&pd->typec_detect_work, sc27xx_pd_detect_typec_work);
 	INIT_DELAYED_WORK(&pd->read_msg_work, sc27xx_pd_read_msg_work);
 	INIT_WORK(&pd->pd_work, sc27xx_pd_work);
@@ -1591,6 +1644,12 @@ static int sc27xx_pd_suspend(struct device *dev)
 		return ret;
 	}
 
+	ret = sc27xx_pd_set_aon_clock(pd, false);
+	if (ret) {
+		dev_err(pd->dev, "failed to disable aon pd clock when suspend, ret = %d\n", ret);
+		return ret;
+	}
+
 	return 0;
 }
 
@@ -1598,6 +1657,12 @@ static int sc27xx_pd_resume(struct device *dev)
 {
 	struct sc27xx_pd *pd = dev_get_drvdata(dev);
 	int ret;
+
+	ret = sc27xx_pd_set_aon_clock(pd, true);
+	if (ret) {
+		dev_err(pd->dev, "failed to enable aon pd clock when suspend, ret = %d\n", ret);
+		return ret;
+	}
 
 	ret = sc27xx_pd_clk_cfg(pd);
 	if (ret) {
