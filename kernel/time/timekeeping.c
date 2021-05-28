@@ -1234,7 +1234,10 @@ int sprd_time_sync_register_notifier(struct notifier_block *nb)
 	return ret;
 }
 
-static struct notifier_block *sprd_time_sync_notifier_ptr;
+#if IS_ENABLED(CONFIG_SPRD_TIME_SYNC_CP)
+/* define a notifier_block */
+static int (*sprd_time_sync_fn_ptr)(struct notifier_block *, unsigned long, void *);
+struct notifier_block sprd_time_sync_notifier;
 
 static int __nocfi sprd_module_notifier_fn(struct notifier_block *nb,
 					   unsigned long action,
@@ -1246,21 +1249,22 @@ static int __nocfi sprd_module_notifier_fn(struct notifier_block *nb,
 		return NOTIFY_DONE;
 
 	/* return immediately if the func has been found */
-	if (sprd_time_sync_notifier_ptr)
+	if (sprd_time_sync_fn_ptr)
 		return NOTIFY_DONE;
 
-	sprd_time_sync_notifier_ptr = (void *)
-		kallsyms_lookup_name("sprd_time_sync_notifier");
-	if (!sprd_time_sync_notifier_ptr)
+	sprd_time_sync_fn_ptr = (int (*)(struct notifier_block *, unsigned long, void *))
+		kallsyms_lookup_name("sprd_time_sync_fn");
+	if (!sprd_time_sync_fn_ptr)
 		return NOTIFY_DONE;
 
-	ret = sprd_time_sync_register_notifier(sprd_time_sync_notifier_ptr);
+	sprd_time_sync_notifier.notifier_call = sprd_time_sync_fn_ptr,
+	ret = sprd_time_sync_register_notifier(&sprd_time_sync_notifier);
 	if (ret) {
-		printk("sprd time sync notifier register failed.\n");
+		pr_err("sprd time sync notifier register failed.\n");
 		return NOTIFY_DONE;
 	}
 
-	printk("sprd time sync notifier register done.\n");
+	pr_info("sprd time sync cp notifier register done.\n");
 
 	return NOTIFY_OK;
 }
@@ -1268,6 +1272,7 @@ static int __nocfi sprd_module_notifier_fn(struct notifier_block *nb,
 static struct notifier_block sprd_module_notifier = {
 	.notifier_call = sprd_module_notifier_fn,
 };
+#endif
 
 /**
  * do_settimeofday64 - Sets the time of day.
@@ -1629,7 +1634,9 @@ void __init timekeeping_init(void)
 	write_seqcount_end(&tk_core.seq);
 	raw_spin_unlock_irqrestore(&timekeeper_lock, flags);
 
+#if IS_ENABLED(CONFIG_SPRD_TIME_SYNC)
 	register_module_notifier(&sprd_module_notifier);
+#endif
 }
 
 /* time in seconds when suspend began for persistent clock */

@@ -17072,6 +17072,15 @@ CONFIG_SPRD_TIME_SYNC
 	[must] user
 	[missing plat description] none
 	[function] Spreadtrum time sync driver.
+CONFIG_SPRD_TIME_SYNC_CP
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field] make
+	[subsys] time
+	[must] user
+	[missing plat description] none
+	[function] Enable AP/CP time sync.
 CONFIG_SPRD_TOP_DVFS_DEVFREQ
 	[arch] arm64
 	[plat] sharkl5Pro

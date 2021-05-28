@@ -1,6 +1,9 @@
 obj-$(CONFIG_SPRD_7SRESET)	+= sprd_7sreset.o
 obj-$(CONFIG_SPRD_PMIC_SYSCON)  += sprd_pmic_syscon.o
+obj-$(CONFIG_SPRD_SYSTIMER)	+= sprd_systimer.o
 obj-$(CONFIG_SPRD_TIME_SYNC)	+= sprd_time_sync.o
+obj-$(CONFIG_SPRD_TIME_SYNC_CH)	+= sprd_time_sync_ch.o
+obj-$(CONFIG_SPRD_TIME_SYNC_CP) += sprd_time_sync_cp.o
 obj-$(CONFIG_SPRD_DEBUG)	+= debug/
 obj-$(CONFIG_SPRD_POWER_DEBUG)	+= power_debug/
 obj-y				+= debug/sysdump/
@@ -13,4 +16,3 @@ obj-y				+= pub/
 obj-$(CONFIG_SPRD_MEMDISK)	+= sprd_memdisk.o
 obj-$(CONFIG_SPRD_PIKE2_SLEEP)  += sprd_pike2_sleep.o
 obj-$(CONFIG_SPRD_SFP_SUPPORT)	+= sfp/
-obj-$(CONFIG_SPRD_SYSTIMER)	+= sprd_systimer.o
