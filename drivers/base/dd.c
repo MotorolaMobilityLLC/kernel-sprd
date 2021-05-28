@@ -420,7 +420,7 @@ re_probe:
 	post_time = ktime_get_mono_fast_ns();
 	msec = post_time-pre_time;
 	dotmsec = do_div(msec, 1000000);
-	pr_info("drv: %s, dev: %s, taste_time: %d.%dms\n",
+	pr_info("drv: %s, dev: %s, taste_time: %lld.%lldms\n",
 		drv->name, dev_name(dev), msec, dotmsec);
 
 	if (test_remove) {
