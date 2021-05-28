@@ -20,12 +20,19 @@
 
 struct dp_context {
 	void __iomem *base;
+	void __iomem *dpu1_dpi_reg;
+	void __iomem *tca_base;
 	struct regmap *ipa_usb31_dp;
+	struct regmap *aon_apb;
+	struct regmap *ipa_dispc1_glb_apb;
+	struct regmap *ipa_apb;
+	struct regmap *force_shutdown;
 	struct videomode vm;
 	bool enabled;
 	u8 lanes;
 	u32 format;
-
+	int gpio_en1;
+	int gpio_en2;
 	int irq;
 };
 
@@ -36,6 +43,7 @@ struct dp_glb_ops {
 	void (*disable)(struct dp_context *ctx);
 	void (*reset)(struct dp_context *ctx);
 	void (*power)(struct dp_context *ctx, int enable);
+	void (*detect)(struct dp_context *ctx, int enable);
 };
 
 struct sprd_dp_ops {
@@ -53,6 +61,8 @@ struct sprd_dp {
 	struct dptx *snps_dptx;
 	struct platform_device *audio_pdev;
 	bool sink_has_audio;
+	bool hpd_status;
+	struct notifier_block dp_nb;
 };
 
 extern struct list_head dp_glb_head;
