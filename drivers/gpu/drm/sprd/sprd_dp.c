@@ -14,6 +14,7 @@
 #include <drm/drm_crtc_helper.h>
 #include <drm/drm_of.h>
 #include <linux/pm_runtime.h>
+#include <linux/usb/typec_dp.h>
 
 #include "disp_lib.h"
 #include "sprd_drm.h"
@@ -32,6 +33,13 @@
 
 LIST_HEAD(dp_glb_head);
 
+BLOCKING_NOTIFIER_HEAD(sprd_dp_notifier_list);
+
+int sprd_dp_notifier_call_chain(void *data)
+{
+	return blocking_notifier_call_chain(&sprd_dp_notifier_list, 0, data);
+}
+
 static int sprd_dp_resume(struct sprd_dp *dp)
 {
 	if (dp->glb && dp->glb->enable)
@@ -48,6 +56,40 @@ static int sprd_dp_suspend(struct sprd_dp *dp)
 
 	DRM_INFO("dp suspend OK\n");
 	return 0;
+}
+
+static int sprd_dp_detect(struct sprd_dp *dp, int enable)
+{
+	if (dp->glb && dp->glb->detect)
+		dp->glb->detect(&dp->ctx, enable);
+
+	DRM_INFO("dp detect\n");
+	return 0;
+}
+
+static int sprd_dp_notify_callback(struct notifier_block *nb,
+			unsigned long action, void *data)
+{
+	struct sprd_dp *dp = container_of(nb, struct sprd_dp, dp_nb);
+	enum dp_hpd_status *hpd_status = data;
+
+	if (*hpd_status ==  DP_HOT_PLUG &&
+		dp->hpd_status == false) {
+		pm_runtime_get_sync(dp->dev.parent);
+		sprd_dp_resume(dp);
+		sprd_dp_detect(dp, 1);
+		dp->hpd_status = true;
+	} else if (dp->hpd_status == true &&
+		(*hpd_status ==  DP_HOT_UNPLUG ||
+		*hpd_status == DP_TYPE_DISCONNECT)) {
+		sprd_dp_detect(dp, 0);
+		sprd_dp_suspend(dp);
+		pm_runtime_put(dp->dev.parent);
+		dp->hpd_status = false;
+	}
+
+	DRM_INFO("%s() hpd_status:%d\n", __func__, *hpd_status);
+	return NOTIFY_OK;
 }
 
 static void sprd_dp_timing_set(struct sprd_dp *dp)
@@ -439,6 +481,10 @@ static int sprd_dp_bind(struct device *dev, struct device *master, void *data)
 	pm_runtime_put(dev);
 
 	vparams = &dp->snps_dptx->vparams;
+
+	dp->dp_nb.notifier_call = sprd_dp_notify_callback;
+	blocking_notifier_chain_register(&sprd_dp_notifier_list,
+						&dp->dp_nb);
 
 	return 0;
 

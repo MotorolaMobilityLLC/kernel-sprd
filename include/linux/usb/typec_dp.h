@@ -92,4 +92,20 @@ enum {
 #define DP_CONF_PIN_ASSIGNEMENT_SHIFT	8
 #define DP_CONF_PIN_ASSIGNEMENT_MASK	GENMASK(15, 8)
 
+enum dp_hpd_status {
+	DP_HOT_UNPLUG = 0,
+	DP_HOT_PLUG,
+	DP_HPD_IRQ,
+	DP_TYPE_DISCONNECT,
+};
+
+#if IS_ENABLED(CONFIG_DRM_SPRD)
+int sprd_dp_notifier_call_chain(void *data);
+#else
+int sprd_dp_notifier_call_chain(void *data)
+{
+	return -1;
+}
+#endif
+
 #endif /* __USB_TYPEC_DP_H */
