@@ -272,7 +272,11 @@ static int mmc_init_request(struct request_queue *q, struct request *req,
 
 	card = mq->card;
 	host = card->host;
-
+#ifdef CONFIG_EMMC_SOFTWARE_CQ_SUPPORT
+	/* cmdq use preallocate sg buffer */
+	if (mmc_blk_part_cmdq_en(mq))
+		return 0;
+#endif
 	mq_rq->sg = mmc_alloc_sg(host->max_segs, gfp);
 	if (!mq_rq->sg)
 		return -ENOMEM;
@@ -283,6 +287,12 @@ static int mmc_init_request(struct request_queue *q, struct request *req,
 static void mmc_exit_request(struct request_queue *q, struct request *req)
 {
 	struct mmc_queue_req *mq_rq = req_to_mmc_queue_req(req);
+#ifdef CONFIG_EMMC_SOFTWARE_CQ_SUPPORT
+	/* cmdq use preallocate sg buffer */
+	if (q->queuedata &&
+		mmc_blk_part_cmdq_en(q->queuedata))
+		return;
+#endif
 
 	kfree(mq_rq->sg);
 	mq_rq->sg = NULL;
