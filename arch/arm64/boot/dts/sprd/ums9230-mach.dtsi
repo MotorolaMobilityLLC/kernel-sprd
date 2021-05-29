@@ -22,6 +22,10 @@
 		gsp = <&gsp>;
 	};
 
+	audcp_iram_reserved: audcp-iram@65009400 {
+		reg = <0x0 0x65009400 0x0 0x1000>;
+	};
+
 	audio-mem-mgr {
 		memory-region = <&audio_reserved &audiodsp_reserved>;
 	};
