@@ -11,8 +11,8 @@
  * GNU General Public License for more details.
  */
 
-#ifndef _MCDT_CTL_REG_V0_H
-#define _MCDT_CTL_REG_V0_H
+#ifndef _MCDT_CTL_REG_R1P0_H
+#define _MCDT_CTL_REG_R1P0_H
 #include <linux/bitops.h>
 
 #define MCDT_CTL_ADDR     0x41490000
@@ -147,19 +147,6 @@
 #define BIT_MCDT_ADC_DMA_CH0_SEL0(x)    ((x) & GENMASK(3, 0))
 #define BIT_GET_MCDT_ADC_DMA_CH0_SEL0(x)    ((x) & GENMASK(3, 0))
 
-enum MCDT_CHAN_NUM {
-	MCDT_CHAN0 = 0,
-	MCDT_CHAN1,
-	MCDT_CHAN2,
-	MCDT_CHAN3,
-	MCDT_CHAN4,
-	MCDT_CHAN5,
-	MCDT_CHAN6,
-	MCDT_CHAN7,
-	MCDT_CHAN8,
-	MCDT_CHAN9
-};
-
 enum MCDT_FIFO_INT {
 	MCDT_ADC_FIFO_AE_INT = 0,
 	MCDT_ADC_FIFO_AF_INT,
@@ -189,14 +176,6 @@ enum MCDT_DMA_ACK {
 	MCDT_PUB_CP_ACK0,
 	MCDT_TGDSP_ACK0,
 	MCDT_LDSP_ACK0
-};
-
-enum MCDT_AP_DMA_CHAN {
-	MCDT_AP_DMA_CH0 = 0,
-	MCDT_AP_DMA_CH1,
-	MCDT_AP_DMA_CH2,
-	MCDT_AP_DMA_CH3,
-	MCDT_AP_DMA_CH4
 };
 
 enum {

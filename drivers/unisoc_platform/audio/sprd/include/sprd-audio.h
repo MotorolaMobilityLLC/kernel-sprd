@@ -26,30 +26,23 @@ enum {
 
 /* aon apb global registers operating interfaces
  */
-static struct regmap *aon_apb_gpr;
-static inline int aon_apb_gpr_null_check(void)
-{
-	if (aon_apb_gpr == NULL) {
-		pr_err("ERR: %saon_apb_gpr is not initialized!\n",
-			__func__);
-		return -EINVAL;
-	}
+extern struct regmap *arch_audio_get_aon_apb_gpr(void);
+int aon_apb_gpr_null_check(void);
 
-	return 0;
-}
 #define aon_apb_reg_update(reg, msk, val) \
-	regmap_update_bits(aon_apb_gpr, (reg), (msk), (val))
+	regmap_update_bits(arch_audio_get_aon_apb_gpr(), (reg), (msk), (val))
 #define aon_apb_reg_set(reg, bit) \
-	regmap_update_bits(aon_apb_gpr, (reg), (bit), (bit))
+	regmap_update_bits(arch_audio_get_aon_apb_gpr(), (reg), (bit), (bit))
 #define aon_apb_reg_clr(reg, bit) \
-	regmap_update_bits(aon_apb_gpr, (reg), (bit), (0))
+	regmap_update_bits(arch_audio_get_aon_apb_gpr(), (reg), (bit), (0))
 #define aon_apb_reg_read(reg, val) \
-	regmap_read(aon_apb_gpr, (reg), (val))
+	regmap_read(arch_audio_get_aon_apb_gpr(), (reg), (val))
 
 #define aon_apb_reg_hw_set(reg, bit) \
-	regmap_hwlock_update_bits(aon_apb_gpr, (reg), (bit), (bit))
+	regmap_hwlock_update_bits(arch_audio_get_aon_apb_gpr(), (reg), (bit), (bit))
 #define aon_apb_reg_hw_clr(reg, bit) \
-	regmap_hwlock_update_bits(aon_apb_gpr, (reg), (bit), (0))
+	regmap_hwlock_update_bits(arch_audio_get_aon_apb_gpr(), (reg), (bit), (0))
+
 /*
  * Returns zero for success, a negative number on error.
  */
@@ -82,173 +75,94 @@ static inline int aud_aon_bit_raw_clear(u32 reg, u32 bit)
 	return ret;
 }
 
-static inline void arch_audio_set_aon_apb_gpr(struct regmap *gpr)
-{
-	aon_apb_gpr = gpr;
-}
-
-static inline struct regmap *arch_audio_get_aon_apb_gpr(void)
-{
-	return aon_apb_gpr;
-}
+void arch_audio_set_aon_apb_gpr(struct regmap *gpr);
 
 /*
  * agcp ahb global registers operating interfaces
  */
-static struct regmap *g_agcp_ahb_gpr;
-static inline int agcp_ahb_gpr_null_check(void)
-{
-	if (g_agcp_ahb_gpr == NULL) {
-		pr_err("ERR: %s g_agcp_ahb_gpr isn't initialized!\n",
-			__func__);
-		return -1;
-	}
-
-	return 0;
-}
+extern u32 get_agcp_ahb_set_offset(void);
+extern u32 get_agcp_ahb_clr_offset(void);
+extern struct regmap *arch_audio_get_agcp_ahb_gpr(void);
+void set_agcp_ahb_offset(u32 set_ahb_offset, u32 clr_ahb_offset);
+int agcp_ahb_gpr_null_check(void);
 
 #define agcp_ahb_reg_update(reg, msk, val) \
-	regmap_update_bits(g_agcp_ahb_gpr, (reg), (msk), (val))
-
+	regmap_update_bits(arch_audio_get_agcp_ahb_gpr(), (reg), (msk), (val))
 #define agcp_ahb_reg_set(reg, bit) \
-	regmap_write(g_agcp_ahb_gpr, (reg + 0x100), (bit))
-
+	regmap_write(arch_audio_get_agcp_ahb_gpr(), (reg + get_agcp_ahb_set_offset()), (bit))
 #define agcp_ahb_reg_clr(reg, bit) \
-	regmap_write(g_agcp_ahb_gpr, (reg + 0x200), (bit))
-
+	regmap_write(arch_audio_get_agcp_ahb_gpr(), (reg + get_agcp_ahb_clr_offset()), (bit))
 #define agcp_ahb_reg_read(reg, val) \
-	regmap_read(g_agcp_ahb_gpr, (reg), (val))
+	regmap_read(arch_audio_get_agcp_ahb_gpr(), (reg), (val))
 
-static inline void arch_audio_set_agcp_ahb_gpr(struct regmap *gpr)
-{
-	g_agcp_ahb_gpr = gpr;
-}
-
-static inline struct regmap *arch_audio_get_agcp_ahb_gpr(void)
-{
-	return g_agcp_ahb_gpr;
-}
+void arch_audio_set_agcp_ahb_gpr(struct regmap *gpr);
 
 /*
  * pmu apb global registers operating interfaces
  */
-static struct regmap *pmu_apb_gpr;
-static inline int pmu_apb_gpr_null_check(void)
-{
-	if (pmu_apb_gpr == NULL) {
-		pr_err("ERR: %s pmu_apb_gpr is not initialized!\n",
-			__func__);
-		return -1;
-	}
+extern struct regmap *arch_audio_get_pmu_apb_gpr(void);
+int pmu_apb_gpr_null_check(void);
 
-	return 0;
-}
 #define pmu_apb_reg_update(reg, msk, val) \
-	regmap_update_bits(pmu_apb_gpr, (reg), (msk), (val))
+	regmap_update_bits(arch_audio_get_pmu_apb_gpr(), (reg), (msk), (val))
 #define pmu_apb_reg_set(reg, bit) \
-	regmap_update_bits(pmu_apb_gpr, (reg), (bit), (bit))
+	regmap_update_bits(arch_audio_get_pmu_apb_gpr(), (reg), (bit), (bit))
 #define pmu_apb_reg_clr(reg, bit) \
-	regmap_update_bits(pmu_apb_gpr, (reg), (bit), (0))
+	regmap_update_bits(arch_audio_get_pmu_apb_gpr(), (reg), (bit), (0))
 #define pmu_apb_reg_read(reg, val) \
-	regmap_read(pmu_apb_gpr, (reg), (val))
+	regmap_read(arch_audio_get_pmu_apb_gpr(), (reg), (val))
 
-static inline void arch_audio_set_pmu_apb_gpr(struct regmap *gpr)
-{
-	pmu_apb_gpr = gpr;
-}
+void arch_audio_set_pmu_apb_gpr(struct regmap *gpr);
 
 /*
  * pmu completement apb global registers operating interfaces
  */
-static struct regmap *pmu_com_apb_gpr;
-static inline int pmu_com_apb_gpr_null_check(void)
-{
-	if (pmu_com_apb_gpr == NULL) {
-		pr_err("ERR: %s pmu_com_apb_gpr is not initialized!\n",
-			__func__);
-		return -1;
-	}
+extern struct regmap *arch_audio_get_pmu_com_apb_gpr(void);
+int pmu_com_apb_gpr_null_check(void);
 
-	return 0;
-}
 #define pmu_com_apb_reg_update(reg, msk, val) \
-	regmap_update_bits(pmu_com_apb_gpr, (reg), (msk), (val))
+	regmap_update_bits(arch_audio_get_pmu_com_apb_gpr(), (reg), (msk), (val))
 #define pmu_com_apb_reg_set(reg, bit) \
-	regmap_update_bits(pmu_com_apb_gpr, (reg), (bit), (bit))
+	regmap_update_bits(arch_audio_get_pmu_com_apb_gpr(), (reg), (bit), (bit))
 #define pmu_com_apb_reg_clr(reg, bit) \
-	regmap_update_bits(pmu_com_apb_gpr, (reg), (bit), (0))
+	regmap_update_bits(arch_audio_get_pmu_com_apb_gpr(), (reg), (bit), (0))
 #define pmu_com_apb_reg_read(reg, val) \
-	regmap_read(pmu_com_apb_gpr, (reg), (val))
+	regmap_read(arch_audio_get_pmu_com_apb_gpr(), (reg), (val))
 
-static inline void arch_audio_set_pmu_com_apb_gpr(struct regmap *gpr)
-{
-	pmu_com_apb_gpr = gpr;
-}
+void arch_audio_set_pmu_com_apb_gpr(struct regmap *gpr);
 
 /*
  * ap apb global registers operating interfaces
  * ap_apb_gpr will be set by i2s.c in its probe func.
  */
-static struct regmap *g_ap_apb_gpr;
-static inline int ap_apb_gpr_null_check(void)
-{
-	if (g_ap_apb_gpr == NULL) {
-		pr_err("ERR: %s g_ap_apb_gpr is not initialized!\n",
-			__func__);
-		return -1;
-	}
+extern struct regmap *arch_audio_get_ap_apb_gpr(void);
+int ap_apb_gpr_null_check(void);
 
-	return 0;
-}
 #define ap_apb_reg_update(reg, msk, val) \
-	regmap_update_bits(g_ap_apb_gpr, (reg), (msk), (val))
+	regmap_update_bits(arch_audio_get_ap_apb_gpr(), (reg), (msk), (val))
 #define ap_apb_reg_set(reg, bit) \
-	regmap_update_bits(g_ap_apb_gpr, (reg), (bit), (bit))
+	regmap_update_bits(arch_audio_get_ap_apb_gpr(), (reg), (bit), (bit))
 #define ap_apb_reg_clr(reg, bit) \
-	regmap_update_bits(g_ap_apb_gpr, (reg), (bit), (0))
-#define ap_apb_reg_read(reg, val) regmap_read(g_ap_apb_gpr, (reg), (val))
+	regmap_update_bits(arch_audio_get_ap_apb_gpr(), (reg), (bit), (0))
+#define ap_apb_reg_read(reg, val) \
+	regmap_read(arch_audio_get_ap_apb_gpr(), (reg), (val))
 
-static inline void arch_audio_set_ap_apb_gpr(struct regmap *gpr)
-{
-	g_ap_apb_gpr = gpr;
-}
-static inline struct regmap *arch_audio_get_ap_apb_gpr(void)
-{
-	return g_ap_apb_gpr;
-}
+void arch_audio_set_ap_apb_gpr(struct regmap *gpr);
 
 /* anlg_phy_g_controller */
-static struct regmap *anlg_phy_g;
-static inline int anlg_phy_g_null_check(void)
-{
-	if (anlg_phy_g == NULL) {
-		pr_err("ERR: %s anlg_phy_g2 is not initialized!\n",
-			__func__);
-		return -EFAULT;
-	}
-
-	return 0;
-}
+extern struct regmap *arch_audio_get_anlg_phy_g(void);
+int anlg_phy_g_null_check(void);
 
 #define anlg_phy_g_reg_update(reg, msk, val) \
-	regmap_update_bits(anlg_phy_g, (reg), (msk), (val))
+	regmap_update_bits(arch_audio_get_anlg_phy_g(), (reg), (msk), (val))
 #define anlg_phy_g_reg_set(reg, bit) \
-	regmap_update_bits(anlg_phy_g, (reg), (bit), (bit))
+	regmap_update_bits(arch_audio_get_anlg_phy_g(), (reg), (bit), (bit))
 #define anlg_phy_g_reg_clr(reg, bit) \
-	regmap_update_bits(anlg_phy_g, (reg), (bit), (0))
+	regmap_update_bits(arch_audio_get_anlg_phy_g(), (reg), (bit), (0))
 #define anlg_phy_g_reg_read(reg, val) \
-	regmap_read(anlg_phy_g, (reg), (val))
+	regmap_read(arch_audio_get_anlg_phy_g(), (reg), (val))
 
-static inline void arch_audio_set_anlg_phy_g(struct regmap *gpr)
-{
-	anlg_phy_g = gpr;
-}
-
-static inline struct regmap *arch_audio_get_anlg_phy_g(void)
-{
-	return anlg_phy_g;
-}
-
+void arch_audio_set_anlg_phy_g(struct regmap *gpr);
 
 #if (defined(CONFIG_SOC_IWHALE2) || defined(CONFIG_SOC_WHALE2))
 /* iwhale2 will include sprd-audio-whale2.h */
@@ -273,7 +187,6 @@ static inline struct regmap *arch_audio_get_anlg_phy_g(void)
 #else
 #include "sprd-audio-agcp.h"
 #endif
-
 
 struct glb_reg_dump {
 	char *reg_name;

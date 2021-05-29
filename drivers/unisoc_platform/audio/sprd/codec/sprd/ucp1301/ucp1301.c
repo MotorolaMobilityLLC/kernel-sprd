@@ -1,8 +1,8 @@
 /*
- * SPDX-License-Identifier: GPL-2.0
- * Core MFD(Charger, ADC, Flash and GPIO) driver for UCP1301
+ * License-Identifier: GPL-2.0
+ * Driver for UNISOC-UCP1301.
  *
- * Copyright (c) 2019 Dialog Semiconductor.
+ * Copyright (c) 2019 UNISOC.
  */
 #include "sprd-asoc-debug.h"
 #define pr_fmt(fmt) pr_sprd_fmt("ucp1301")""fmt
@@ -256,21 +256,6 @@ static void ucp1301_write_agc_gain(struct ucp1301_t *ucp1301, u32 agc_gain0)
 			 ret);
 }
 
-static int ucp1301_read_agc_gain(struct ucp1301_t *ucp1301, u32 *agc_gain0)
-{
-	u32 val_temp;
-	int ret;
-
-	ret = regmap_read(ucp1301->regmap, REG_AGC_GAIN0, &val_temp);
-	if (ret < 0) {
-		dev_err(ucp1301->dev, "read REG_AGC_GAIN0 reg fail, %d\n", ret);
-		return ret;
-	}
-
-	*agc_gain0 = val_temp;
-	return ret;
-}
-
 static int ucp1301_write_clsd_trim(struct ucp1301_t *ucp1301, u32 clsd_trim)
 {
 	u32 val;
@@ -318,7 +303,7 @@ static void ucp1301_calcu_power(struct ucp1301_t *ucp1301, u32 r_load,
 
 	/* calculate limit_p2 */
 	temp_val = UCP_POWER_BASE_DATA * power_p2 * r_load * ucp1301->agc_n2;
-	temp_val /= UCP_BASE_DIVISOR;
+	temp_val = div64_u64(temp_val, UCP_BASE_DIVISOR);
 	dev_dbg(ucp1301->dev, "power_p2 %u, r_load %u, agc_n2 %u, agc_n1 %u, agc_nb %u, temp_val 0x%llx\n",
 		power_p2, r_load, ucp1301->agc_n2, ucp1301->agc_n1,
 		ucp1301->agc_nb, temp_val);
@@ -332,7 +317,7 @@ static void ucp1301_calcu_power(struct ucp1301_t *ucp1301, u32 r_load,
 
 	/* calculate p1, p1 is max output power */
 	temp_val = UCP_POWER_BASE_DATA * power_p1 * r_load * ucp1301->agc_n1;
-	temp_val /= UCP_BASE_DIVISOR;
+	temp_val = div64_u64(temp_val, UCP_BASE_DIVISOR);
 	dev_dbg(ucp1301->dev, "power_p1 %u, temp_val 0x%llx\n",
 		power_p1, temp_val);
 	value = temp_val & BIT_AGC_P1_L(0xffff);
@@ -345,7 +330,7 @@ static void ucp1301_calcu_power(struct ucp1301_t *ucp1301, u32 r_load,
 
 	/* calculate pb, pb is min output power */
 	temp_val = UCP_POWER_BASE_DATA * power_pb * r_load * ucp1301->agc_nb;
-	temp_val /= UCP_BASE_DIVISOR;
+	temp_val = div64_u64(temp_val, UCP_BASE_DIVISOR);
 	dev_dbg(ucp1301->dev, "power_pb %u, temp_val 0x%llx\n",
 		power_pb, temp_val);
 	value = temp_val & BIT_AGC_PB_L(0xffff);
@@ -1319,7 +1304,8 @@ static int ucp1301_set_agc_en(struct snd_kcontrol *kcontrol,
 
 	mutex_lock(&ucp1301->ctrl_lock);
 	ucp1301->agc_en = ucontrol->value.integer.value[0];
-	ucp1301_write_agc_en(ucp1301, ucp1301->agc_en);
+	if (ucp1301->hw_enabled)
+		ucp1301_write_agc_en(ucp1301, ucp1301->agc_en);
 	mutex_unlock(&ucp1301->ctrl_lock);
 
 	dev_dbg(ucp1301->dev, "set_agc_en %d\n", ucp1301->agc_en);
@@ -1332,15 +1318,8 @@ static int ucp1301_get_agc_gain(struct snd_kcontrol *kcontrol,
 {
 	struct snd_soc_component *codec = snd_soc_kcontrol_component(kcontrol);
 	struct ucp1301_t *ucp1301 = snd_soc_component_get_drvdata(codec);
-	u32 val_temp;
-	int ret;
 
-	ret = ucp1301_read_agc_gain(ucp1301, &val_temp);
-	if (ret < 0) {
-		ucontrol->value.integer.value[0] = ucp1301->agc_gain0;
-		return 0;
-	}
-	ucontrol->value.integer.value[0] = val_temp & BIT_AGC_GAIN0(0x7f);
+	ucontrol->value.integer.value[0] = ucp1301->agc_gain0;
 
 	return 0;
 }
@@ -1356,7 +1335,8 @@ static int ucp1301_set_agc_gain(struct snd_kcontrol *kcontrol,
 
 	mutex_lock(&ucp1301->ctrl_lock);
 	ucp1301->agc_gain0 = ucontrol->value.integer.value[0];
-	ucp1301_write_agc_gain(ucp1301, ucp1301->agc_gain0);
+	if (ucp1301->hw_enabled)
+		ucp1301_write_agc_gain(ucp1301, ucp1301->agc_gain0);
 	mutex_unlock(&ucp1301->ctrl_lock);
 
 	dev_dbg(ucp1301->dev, "set_agc_gain %d\n", ucp1301->agc_gain0);
@@ -1369,16 +1349,8 @@ static int ucp1301_get_clasd_trim(struct snd_kcontrol *kcontrol,
 {
 	struct snd_soc_component *codec = snd_soc_kcontrol_component(kcontrol);
 	struct ucp1301_t *ucp1301 = snd_soc_component_get_drvdata(codec);
-	u32 clsd_trim;
-	int ret;
 
-	ret = ucp1301_read_clsd_trim(ucp1301, &clsd_trim);
-	if (ret) {
-		dev_warn(ucp1301->dev, "get_clasd_trim fail %d\n", ret);
-		ucontrol->value.integer.value[0] = ucp1301->clsd_trim;
-		return 0;
-	}
-	ucontrol->value.integer.value[0] = clsd_trim;
+	ucontrol->value.integer.value[0] = ucp1301->clsd_trim;
 
 	return 0;
 }
@@ -1391,7 +1363,8 @@ static int ucp1301_set_clasd_trim(struct snd_kcontrol *kcontrol,
 
 	mutex_lock(&ucp1301->ctrl_lock);
 	ucp1301->clsd_trim = ucontrol->value.integer.value[0];
-	ucp1301_write_clsd_trim(ucp1301, ucp1301->clsd_trim);
+	if (ucp1301->hw_enabled)
+		ucp1301_write_clsd_trim(ucp1301, ucp1301->clsd_trim);
 	mutex_unlock(&ucp1301->ctrl_lock);
 
 	return 0;
@@ -1416,8 +1389,9 @@ static int ucp1301_set_r_load(struct snd_kcontrol *kcontrol,
 
 	mutex_lock(&ucp1301->ctrl_lock);
 	ucp1301->r_load = ucontrol->value.integer.value[0];
-	ucp1301_calcu_power(ucp1301, ucp1301->r_load, ucp1301->power_p2,
-			    ucp1301->power_p1, ucp1301->power_pb);
+	if (ucp1301->hw_enabled)
+		ucp1301_calcu_power(ucp1301, ucp1301->r_load, ucp1301->power_p2,
+				    ucp1301->power_p1, ucp1301->power_pb);
 	mutex_unlock(&ucp1301->ctrl_lock);
 
 	dev_dbg(ucp1301->dev, "set_r_load %d\n", ucp1301->r_load);
@@ -1448,8 +1422,9 @@ static int ucp1301_set_limit_p2(struct snd_kcontrol *kcontrol,
 		ucp1301->power_p2 * UCP_P1_RATIO / UCP_P1_PB_DIVISOR;
 	ucp1301->power_pb =
 		ucp1301->power_p2 * UCP_PB_RATIO / UCP_P1_PB_DIVISOR;
-	ucp1301_calcu_power(ucp1301, ucp1301->r_load, ucp1301->power_p2,
-			    ucp1301->power_p1, ucp1301->power_pb);
+	if (ucp1301->hw_enabled)
+		ucp1301_calcu_power(ucp1301, ucp1301->r_load, ucp1301->power_p2,
+				    ucp1301->power_p1, ucp1301->power_pb);
 	mutex_unlock(&ucp1301->ctrl_lock);
 
 	dev_dbg(ucp1301->dev, "set_limit_p2 %d\n", ucp1301->power_p2);
@@ -1533,7 +1508,8 @@ static int ucp1301_set_regs(struct snd_kcontrol *kcontrol,
 	u32 reg_addr = ucontrol->value.integer.value[0];
 	u32 reg_value = ucontrol->value.integer.value[1];
 
-	regmap_update_bits(ucp1301->regmap, reg_addr, 0xff, reg_value);
+	if (ucp1301->hw_enabled)
+		regmap_update_bits(ucp1301->regmap, reg_addr, 0xff, reg_value);
 	dev_dbg(ucp1301->dev, "set_regs, reg_addr 0x%x, reg_value 0x%x\n",
 		reg_addr, reg_value);
 
@@ -1664,7 +1640,7 @@ static void ucp1301_audio_on(struct ucp1301_t *ucp1301, bool on_off)
 {
 	enum ucp1301_class_mode class_mode;
 
-	dev_dbg(ucp1301->dev, "audio_on, on_off %d, class_mode %d\n",
+	dev_info(ucp1301->dev, "audio_on, on_off %d, class_mode %d\n",
 		on_off, ucp1301->class_mode);
 
 	mutex_lock(&ucp1301->ctrl_lock);
@@ -1703,7 +1679,7 @@ static int ucp1301_power_on(struct snd_soc_dapm_widget *w,
 	struct snd_soc_component *codec = snd_soc_dapm_to_component(w->dapm);
 	struct ucp1301_t *ucp1301 = snd_soc_component_get_drvdata(codec);
 
-	dev_dbg(ucp1301->dev, "wname %s, %s, class_mode %d\n",
+	dev_info(ucp1301->dev, "wname %s, %s, class_mode %d\n",
 		w->name, ucp1301_get_event_name(event), ucp1301->class_mode);
 
 	switch (event) {
@@ -1721,6 +1697,10 @@ static int ucp1301_power_on(struct snd_soc_dapm_widget *w,
 
 	return 0;
 }
+
+static const struct snd_kcontrol_new ucp1301_switch[] = {
+	SOC_DAPM_SINGLE_VIRT("Switch", 1),
+};
 
 static const struct snd_soc_dapm_widget ucp1301_dapm_widgets[] = {
 	SND_SOC_DAPM_AIF_IN_E("UCP1301 PLAY", "Playback_SPK", 0, SND_SOC_NOPM,
@@ -1747,6 +1727,8 @@ static const struct snd_soc_dapm_widget ucp1301_dapm_widgets_rcv[] = {
 	SND_SOC_DAPM_PGA_E("UCP1301 RCV ON", SND_SOC_NOPM, 0, 0, NULL, 0,
 			   ucp1301_power_on,
 			   SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
+	SND_SOC_DAPM_SWITCH("UCP1301_RCV", SND_SOC_NOPM, 0, 1,
+			    &ucp1301_switch[0]),
 	SND_SOC_DAPM_OUTPUT("UCP1301 RCV"),
 };
 
@@ -1762,7 +1744,8 @@ static const struct snd_soc_dapm_route ucp1301_intercon_spk2[] = {
 
 static const struct snd_soc_dapm_route ucp1301_intercon_rcv[] = {
 	{"UCP1301 RCV", NULL, "UCP1301 PLAY RCV"},
-	{"UCP1301 RCV", NULL, "UCP1301 RCV ON"},
+	{"UCP1301_RCV", "Switch", "UCP1301 RCV ON"},
+	{"UCP1301 RCV", NULL, "UCP1301_RCV"},
 };
 
 static int ucp1301_soc_probe(struct snd_soc_component *codec)
@@ -2008,6 +1991,7 @@ static int ucp1301_i2c_probe(struct i2c_client *client,
 	struct regmap *regmap;
 	int ret;
 
+	pr_info("%s enter\n", __func__);
 	ucp1301 = devm_kzalloc(&client->dev, sizeof(struct ucp1301_t),
 			       GFP_KERNEL);
 	if (!ucp1301)

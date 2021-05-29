@@ -1086,7 +1086,8 @@ static void sprd_enable_hmicbias_polling(bool enable, bool force_disable)
 			sprd_hmicbias_mode_set(hdst, REGULATOR_MODE_STANDBY);
 			sprd_headset_power_set(&hdst->power_manager,
 				"DIG_CLK_HID", true);
-			headset_reg_set_bits(ANA_HID0, HID_EN);
+			/* HW ask to disable polling */
+			/* headset_reg_set_bits(ANA_HID0, HID_EN); */
 			hdst->current_polling_state = true;
 		}
 	} else {
@@ -1116,6 +1117,7 @@ sprd_detect_type_through_mdet(struct sprd_headset *hdst)
 {
 	enum sprd_headset_type headset_type;
 	unsigned long rc;
+	int ret;
 
 	pr_info("%s enter\n", __func__);
 	pr_debug(LG, FC, S0, T5, T6, T7, T8, T11, T32, T34);
@@ -1127,13 +1129,27 @@ sprd_detect_type_through_mdet(struct sprd_headset *hdst)
 	sprd_headset_eic_trig(HDST_MDET_EIC);
 	sprd_intc_force_clear(false, ANA_INT_CLR);
 	sprd_ldetl_filter_enable(false);
+loop_waiting:
+	pr_info("%s waiting \n", __func__);
+
 	rc = wait_for_completion_timeout(&hdst->wait_mdet,
 		msecs_to_jiffies(INSERT_ALL_WAIT_MDET_COMPL_MS));
 
 	if (rc == 0) {
-		sprd_headset_eic_enable(HDST_MDET_EIC, false);
+		if (!hdst->lineout_status)
+			sprd_headset_eic_enable(HDST_MDET_EIC, false);
 		headset_type = HEADSET_NO_MIC;
 		pr_err(LG, FC, S0, T5, T6, T7, T8, T11, T32, T34);
+		if (hdst->lineout_status) {
+			pr_info("%s hdst->lineout_status: %d\n",
+					__func__, hdst->lineout_status);
+			ret = sprd_headset_part_is_inserted(HDST_INSERT_ALL);
+			if (!ret) {
+				pr_info("%s line_out plug out!\n", __func__);
+				return HEADSET_TYPE_ERR;
+			}
+			goto loop_waiting;
+		}
 	} else {
 		headset_type = HEADSET_4POLE_NORMAL;
 	}
@@ -1244,7 +1260,7 @@ static enum sprd_headset_type sprd_headset_type_plugged(void)
 
 	if (adc_left_ideal > pdata->sprd_adc_gnd &&
 		ABS(adc_mic_ideal - adc_left_ideal) < pdata->sprd_adc_gnd) {
-		sprd_headset_ldetl_ref_sel(LDETL_REF_SEL_20mV);
+		sprd_headset_ldetl_ref_sel(LDETL_REF_SEL_100mV);
 		sprd_hmicbias_hw_control_enable(false, pdata);
 		return HEADSET_4POLE_NOT_NORMAL;
 	} else if (adc_left_ideal > pdata->sprd_adc_gnd &&
@@ -1260,7 +1276,7 @@ static enum sprd_headset_type sprd_headset_type_plugged(void)
 		val = sprd_headset_part_is_inserted(HDST_INSERT_MDET);
 		pr_debug("%s val %d\n", __func__, val);
 		if (val != 0 && adc_left_ideal < pdata->sprd_half_adc_gnd) {
-			sprd_headset_ldetl_ref_sel(LDETL_REF_SEL_20mV);
+			sprd_headset_ldetl_ref_sel(LDETL_REF_SEL_100mV);
 			return HEADSET_4POLE_NORMAL;
 		} else if (val != 0 &&
 			adc_left_ideal >= pdata->sprd_half_adc_gnd) {
@@ -1280,7 +1296,8 @@ static enum sprd_headset_type sprd_headset_type_plugged(void)
 				sprd_headset_ldetl_ref_sel(LDETL_REF_SEL_100mV);
 			return headset_type;
 		} else if (val == 0 &&
-			adc_left_ideal >= pdata->sprd_half_adc_gnd) {
+			adc_left_ideal >= pdata->sprd_half_adc_gnd &&
+			!pdata->support_line_out) {
 			/*
 			 * 4 pole normal which is not totally inserted.
 			 * 4 pole normal for selfie stick which is not
@@ -1288,6 +1305,17 @@ static enum sprd_headset_type sprd_headset_type_plugged(void)
 			 */
 			headset_type = sprd_detect_type_through_mdet(hdst);
 			sprd_headset_ldetl_ref_sel(LDETL_REF_SEL_100mV);
+			return headset_type;
+		} else if (val == 0 &&
+			adc_left_ideal >= pdata->sprd_half_adc_gnd &&
+			pdata->support_line_out) {
+			/* support 4 pole line_out. */
+			hdst->lineout_status = true;
+			headset_type = sprd_detect_type_through_mdet(hdst);
+			if (headset_type == HEADSET_4POLE_NORMAL)
+				sprd_headset_ldetl_ref_sel(LDETL_REF_SEL_20mV);
+			else
+				sprd_headset_ldetl_ref_sel(LDETL_REF_SEL_100mV);
 			return headset_type;
 		}
 	}
@@ -1402,7 +1430,7 @@ static enum sprd_headset_type sprd_headset_get_type(void)
 
 	if (left_vol_min <= TYPEC_SELFIE_STICK_THRESHOLD) {
 		/* typec headset */
-		sprd_headset_ldetl_ref_sel(LDETL_REF_SEL_20mV);
+		sprd_headset_ldetl_ref_sel(LDETL_REF_SEL_100mV);
 		return HEADSET_4POLE_NORMAL;
 	}
 	if (left_vol_min > TYPEC_SELFIE_STICK_THRESHOLD) {
@@ -1609,11 +1637,6 @@ static void sprd_headset_button_press(struct sprd_headset *hdst)
 	}
 
 	if (hdst->btn_state_last == 0) {
-		if (hdst->time_after_4pole_report > 0 &&
-		    time_before(jiffies, hdst->time_after_4pole_report)) {
-			pr_warn("discard one button report for lacking of time\n");
-			return;
-		}
 		sprd_headset_jack_report(hdst, &hdst->btn_jack,
 			hdst->btns_pressed, hdst->btns_pressed);
 		hdst->btn_state_last = 1;
@@ -1657,6 +1680,13 @@ static void headset_button_work_func(struct work_struct *work)
 	if (hdst->plug_state_last == 0) {
 		pr_err("button work, no headset insert!\n");
 		sprd_headset_button_release_verify();
+		return;
+	}
+
+	if (hdst->time_after_4pole_report > 0 &&
+		time_before(jiffies, hdst->time_after_4pole_report)) {
+		pr_info("discard one button event for lacking of time\n");
+		sprd_headset_button_eic_reenable();
 		return;
 	}
 
@@ -1857,12 +1887,17 @@ sprd_headset_prepare_next_plugin(struct sprd_headset_platform_data *pdata,
 		sprd_set_eic_trig_level(HDST_LDETL_EIC, false);
 		sprd_headset_eic_enable(HDST_LDETL_EIC, true);
 		sprd_headset_eic_trig(HDST_LDETL_EIC);
-		rc = wait_for_completion_timeout(
-			&hdst->wait_ldetl,
-			msecs_to_jiffies(INSERT_ALL_WAIT_LDETL_COMPL_MS));
-		if (rc == 0) {
-			pr_err("failed to wait ldetl plug out\n");
-			pr_err(LG, FC, S0, T5, T6, T7, T8, T11, T32, T34);
+		pr_info("%s hdst->lineout_status: %d\n", __func__, hdst->lineout_status);
+		if (!hdst->lineout_status) {
+			rc = wait_for_completion_timeout(
+				&hdst->wait_ldetl,
+				msecs_to_jiffies(INSERT_ALL_WAIT_LDETL_COMPL_MS));
+			if (rc == 0) {
+				pr_err("failed to wait ldetl plug out\n");
+				pr_err(LG, FC, S0, T5, T6, T7, T8, T11, T32, T34);
+				sprd_headset_reset(hdst);
+			}
+		} else {
 			sprd_headset_reset(hdst);
 		}
 		hdst->hdst_hw_status = HW_LDETL_PLUG_OUT;
@@ -2044,6 +2079,7 @@ static void sprd_headset_detect_plugout(struct sprd_headset *hdst)
 	sprd_headset_prepare_next_plugin(pdata, hdst);
 	hdst->hdst_hw_status = HW_LDETL_PLUG_OUT;
 	hdst->time_after_4pole_report = 0;
+	hdst->lineout_status = false;
 }
 
 static void headset_detect_all_work_func(struct work_struct *work)
@@ -2822,6 +2858,7 @@ int sprd_headset_soc_probe(struct snd_soc_component *codec)
 	hdst->report = 0;
 	hdst->det_err_cnt = 0;
 	hdst->hdst_hw_status = HW_LDETL_PLUG_OUT;
+	hdst->lineout_status = false;
 
 	INIT_DELAYED_WORK(&hdst->det_all_work, headset_detect_all_work_func);
 	hdst->det_all_work_q =
@@ -3058,6 +3095,13 @@ static int sprd_headset_parse_dt(struct sprd_headset *hdst)
 	if (ret) {
 		pr_err("%s: fail to get irq-threshold-button\n", __func__);
 		return -ENXIO;
+	}
+
+	ret = of_property_read_u32(
+		np, "sprd,line_out_support", &pdata->support_line_out);
+	if (ret) {
+		pdata->support_line_out = 0;
+		pr_err("%s: fail to get line_out_support\n", __func__);
 	}
 
 	pdata->sprd_one_half_adc_gnd = pdata->sprd_adc_gnd +

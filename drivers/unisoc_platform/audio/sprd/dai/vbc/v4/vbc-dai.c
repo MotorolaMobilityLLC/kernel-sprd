@@ -162,6 +162,8 @@ static const char *dai_id_to_str(int dai_id)
 		[BE_DAI_ID_FM_SMTPA] = TO_STRING(BE_DAI_ID_FM_SMTPA),
 		[BE_DAI_ID_LOOP_SMTPA] = TO_STRING(BE_DAI_ID_LOOP_SMTPA),
 		[BE_DAI_ID_FM_DSP_SMTPA] = TO_STRING(BE_DAI_ID_FM_DSP_SMTPA),
+		[BE_DAI_ID_HIFI_P] = TO_STRING(BE_DAI_ID_HIFI_P),
+		[BE_DAI_ID_HIFI_FAST_P] = TO_STRING(BE_DAI_ID_HIFI_FAST_P),
 	};
 
 	if (dai_id >= BE_DAI_ID_MAX) {
@@ -205,6 +207,8 @@ static const char *scene_id_to_str(int scene_id)
 		[VBC_DAI_ID_RECOGNISE_CAPTURE] =
 			TO_STRING(VBC_DAI_ID_RECOGNISE_CAPTURE),
 		[VBC_DAI_ID_VOICE_PCM_P] = TO_STRING(VBC_DAI_ID_VOICE_PCM_P),
+		[AUDCP_DAI_ID_HIFI] = TO_STRING(AUDCP_DAI_ID_HIFI),
+		[AUDCP_DAI_ID_FAST] = TO_STRING(AUDCP_DAI_ID_FAST),
 	};
 
 	if (scene_id >= VBC_DAI_ID_MAX) {
@@ -289,6 +293,7 @@ static int get_ivsense_adc_id(void)
 #define MIXERDG_STP_MAX_VAL (0xffff)
 #define OFFLOAD_DG_MAX (4096)
 #define MAX_32_BIT (0xffffffff)
+#define MAX_12_BIT (0xfff)
 #define SRC_MAX_VAL (48000)
 
 #define SPRD_VBC_ENUM(xreg, xmax, xtexts)\
@@ -305,6 +310,47 @@ static const char * const dsp_loopback_type_txt[] = {
 
 static const char * const enable_disable_txt[] = {
 	"disable", "enable",
+};
+
+static const char * const mute_unmute_txt[] = {
+	"mute", "unmute",
+};
+
+
+static const char * const ag_iis0_mode_txt[] = {
+	"top_dac_iis", "pdm_top_iis0", "l5_top",
+};
+
+static const char * const ag_iis1_mode_txt[] = {
+	"top_adc_iis0", "pdm_top_iis1", "l5_top",
+};
+
+static const char * const ag_iis2_mode_txt[] = {
+	"l5_top_usb_iism", "top_adc_iis1", "pdm_iis2",
+};
+
+static const char * const ag_iis4_mode_txt[] = {
+	"top_adc_iis1", "pdm_iis2", "l5_top",
+};
+
+static const char * const ag_iis0_mode_v2_txt[] = {
+	"pad_top", "aud_4ad_iis0_da0", "pdm_top_iis0",
+};
+
+static const char * const ag_iis1_mode_v2_txt[] = {
+	"pad_top", "aud_4ad_iis0_ad0", "pdm_top_iis1",
+};
+
+static const char * const ag_iis2_mode_v2_txt[] = {
+	"pad_top", "aud_4ad_iis1_ad0", "pdm_top_iis2",
+};
+
+static const char * const ag_iis4_mode_v2_txt[] = {
+	"pad_top", "aud_4ad_iis1_ad0", "pdm_top_iis2",
+};
+
+static const char * const ag_iis3_mode_v2_txt[] = {
+	"pad_top", "aud_4ad_iis_da0",
 };
 
 static const char * const dsp_voice_capture_type_txt[] = {
@@ -327,6 +373,20 @@ static const struct soc_enum vbc_ag_iis_ext_sel_enum[AG_IIS_MAX] = {
 	SPRD_VBC_ENUM(AG_IIS2, 2, enable_disable_txt),
 };
 
+static const struct soc_enum vbc_ag_iis_ext_sel_enum_v1[AG_IIS_V1_MAX] = {
+	SPRD_VBC_ENUM(AG_IIS0_V1, 3, ag_iis0_mode_txt),
+	SPRD_VBC_ENUM(AG_IIS1_V1, 3, ag_iis1_mode_txt),
+	SPRD_VBC_ENUM(AG_IIS2_V1, 3, ag_iis2_mode_txt),
+	SPRD_VBC_ENUM(AG_IIS4_V1, 3, ag_iis4_mode_txt),
+};
+
+static const struct soc_enum vbc_ag_iis_ext_sel_enum_v2[AG_IIS_V2_MAX] = {
+	SPRD_VBC_ENUM(AG_IIS0_V2, 3, ag_iis0_mode_v2_txt),
+	SPRD_VBC_ENUM(AG_IIS1_V2, 3, ag_iis1_mode_v2_txt),
+	SPRD_VBC_ENUM(AG_IIS2_V2, 3, ag_iis2_mode_v2_txt),
+	SPRD_VBC_ENUM(AG_IIS4_V2, 3, ag_iis4_mode_v2_txt),
+	SPRD_VBC_ENUM(AG_IIS3_V2, 3, ag_iis3_mode_v2_txt),
+};
 
 static const struct soc_enum vbc_dump_enum =
 SPRD_VBC_ENUM(SND_SOC_NOPM, 2, enable_disable_txt);
@@ -2122,6 +2182,73 @@ static int vbc_call_mute_put(struct snd_kcontrol *kcontrol,
 	return true;
 }
 
+/* FM_MUTE */
+static const struct soc_enum vbc_fm_mute_enum =
+	SPRD_VBC_ENUM(SND_SOC_NOPM, 2, mute_unmute_txt);
+
+static int vbc_fm_mute_get(struct snd_kcontrol *kcontrol,
+			     struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_component *codec = snd_soc_kcontrol_component(kcontrol);
+	struct vbc_codec_priv *vbc_codec = snd_soc_component_get_drvdata(codec);
+
+	ucontrol->value.integer.value[0] = vbc_codec->fm_mute.mute;
+
+	return 0;
+}
+
+static int vbc_fm_mute_put(struct snd_kcontrol *kcontrol,
+			     struct snd_ctl_elem_value *ucontrol)
+{
+	u16 value;
+	struct soc_enum *texts = (struct soc_enum *)kcontrol->private_value;
+	struct snd_soc_component *codec = snd_soc_kcontrol_component(kcontrol);
+	struct vbc_codec_priv *vbc_codec = snd_soc_component_get_drvdata(codec);
+	struct soc_enum *e = (struct soc_enum *)kcontrol->private_value;
+	u32 id = e->reg;
+
+	if (ucontrol->value.integer.value[0] >= texts->items) {
+		pr_err("ERR: %s,index outof bounds error\n", __func__);
+		return -EINVAL;
+	}
+
+	value = ucontrol->value.enumerated.item[0];
+	sp_asoc_pr_dbg("%s, fm_mute %s, mute step %d\n", __func__,
+				   texts->texts[value],
+				   vbc_codec->fm_mute_step.step);
+	vbc_codec->fm_mute.id = id;
+	vbc_codec->fm_mute.mute = value;
+	fm_mute_set(id, value, vbc_codec->fm_mute_step.step);
+
+	return true;
+}
+
+static int vbc_fm_mdg_stp_get(struct snd_kcontrol *kcontrol,
+			  struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_component *codec = snd_soc_kcontrol_component(kcontrol);
+	struct vbc_codec_priv *vbc_codec = snd_soc_component_get_drvdata(codec);
+
+	ucontrol->value.integer.value[0] = vbc_codec->fm_mute_step.step;
+
+	return 0;
+}
+
+static int vbc_fm_mdg_stp_put(struct snd_kcontrol *kcontrol,
+			  struct snd_ctl_elem_value *ucontrol)
+{
+	int value;
+	struct snd_soc_component *codec = snd_soc_kcontrol_component(kcontrol);
+	struct vbc_codec_priv *vbc_codec = snd_soc_component_get_drvdata(codec);
+
+	value = ucontrol->value.integer.value[0];
+	sp_asoc_pr_dbg("%s vbc_fm_mdg_stp = %d\n",
+			   __func__, value);
+	vbc_codec->fm_mute_step.step = value;
+
+	return value;
+}
+
 /* IIS_TX_WIDTH */
 static const char * const vbc_iis_width_txt[IIS_WD_MAX] = {
 	[WD_16BIT] = TO_STRING(WD_16BIT),
@@ -3058,17 +3185,18 @@ static int sys_iis_sel_get(struct snd_kcontrol *kcontrol,
 
 static const char * const sys_iis_sel_txt[] = {
 	"vbc_iis0", "vbc_iis1", "vbc_iis2", "vbc_iis3", "vbc_iism0", "ap_iis0",
+	"audcp_iis0", "audcp_iis1"
 };
 
 static const struct soc_enum
 vbc_sys_iis_enum[SYS_IIS_MAX] = {
-	SPRD_VBC_ENUM(SYS_IIS0, 6, sys_iis_sel_txt),
-	SPRD_VBC_ENUM(SYS_IIS1, 6, sys_iis_sel_txt),
-	SPRD_VBC_ENUM(SYS_IIS2, 6, sys_iis_sel_txt),
-	SPRD_VBC_ENUM(SYS_IIS3, 6, sys_iis_sel_txt),
-	SPRD_VBC_ENUM(SYS_IIS4, 6, sys_iis_sel_txt),
-	SPRD_VBC_ENUM(SYS_IIS5, 6, sys_iis_sel_txt),
-	SPRD_VBC_ENUM(SYS_IIS6, 6, sys_iis_sel_txt),
+	SPRD_VBC_ENUM(SYS_IIS0, 8, sys_iis_sel_txt),
+	SPRD_VBC_ENUM(SYS_IIS1, 8, sys_iis_sel_txt),
+	SPRD_VBC_ENUM(SYS_IIS2, 8, sys_iis_sel_txt),
+	SPRD_VBC_ENUM(SYS_IIS3, 8, sys_iis_sel_txt),
+	SPRD_VBC_ENUM(SYS_IIS4, 8, sys_iis_sel_txt),
+	SPRD_VBC_ENUM(SYS_IIS5, 8, sys_iis_sel_txt),
+	SPRD_VBC_ENUM(SYS_IIS6, 8, sys_iis_sel_txt),
 };
 
 static int sys_iis_sel_put(struct snd_kcontrol *kcontrol,
@@ -3141,8 +3269,83 @@ static int vbc_put_ag_iis_ext_sel(struct snd_kcontrol *kcontrol,
 	sp_asoc_pr_dbg("%s, ag_iis_num=%d,value=%d, texts->texts[] =%s\n",
 		       __func__, ag_iis_num, enable, texts->texts[enable]);
 	arch_audio_iis_to_audio_top_enable(ag_iis_num, enable);
-
 	vbc_codec->ag_iis_ext_sel[ag_iis_num] = enable;
+
+	return true;
+}
+
+static int vbc_get_ag_iis_ext_sel_v1(struct snd_kcontrol *kcontrol,
+				  struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_component *codec = snd_soc_kcontrol_component(kcontrol);
+	struct vbc_codec_priv *vbc_codec = snd_soc_component_get_drvdata(codec);
+	struct soc_enum *e = (struct soc_enum *)kcontrol->private_value;
+	u32 ag_iis_num = e->reg;
+
+	ucontrol->value.integer.value[0] =
+		vbc_codec->ag_iis_ext_sel_v1[ag_iis_num];
+
+	return 0;
+}
+
+static int vbc_put_ag_iis_ext_sel_v1(struct snd_kcontrol *kcontrol,
+				  struct snd_ctl_elem_value *ucontrol)
+{
+	u16 mode;
+	struct soc_enum *texts = (struct soc_enum *)kcontrol->private_value;
+	struct snd_soc_component *codec = snd_soc_kcontrol_component(kcontrol);
+	struct vbc_codec_priv *vbc_codec = snd_soc_component_get_drvdata(codec);
+	struct soc_enum *e = (struct soc_enum *)kcontrol->private_value;
+	u32 ag_iis_num = e->reg;
+
+	if (ucontrol->value.integer.value[0] >= texts->items) {
+		pr_err("ERR: %s,index outof bounds error\n", __func__);
+		return -EINVAL;
+	}
+
+	mode = ucontrol->value.enumerated.item[0];
+	sp_asoc_pr_dbg("%s, ag_iis_num=%d,value=%d, texts->texts[] =%s\n",
+		       __func__, ag_iis_num, mode, texts->texts[mode]);
+	arch_audio_iis_to_audio_top_enable_v1(ag_iis_num, mode);
+	vbc_codec->ag_iis_ext_sel_v1[ag_iis_num] = mode;
+
+	return true;
+}
+
+static int vbc_get_ag_iis_ext_sel_v2(struct snd_kcontrol *kcontrol,
+				  struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_component *codec = snd_soc_kcontrol_component(kcontrol);
+	struct vbc_codec_priv *vbc_codec = snd_soc_component_get_drvdata(codec);
+	struct soc_enum *e = (struct soc_enum *)kcontrol->private_value;
+	u32 ag_iis_num = e->reg;
+
+	ucontrol->value.integer.value[0] =
+		vbc_codec->ag_iis_ext_sel_v2[ag_iis_num];
+
+	return 0;
+}
+
+static int vbc_put_ag_iis_ext_sel_v2(struct snd_kcontrol *kcontrol,
+				  struct snd_ctl_elem_value *ucontrol)
+{
+	u16 mode;
+	struct soc_enum *texts = (struct soc_enum *)kcontrol->private_value;
+	struct snd_soc_component *codec = snd_soc_kcontrol_component(kcontrol);
+	struct vbc_codec_priv *vbc_codec = snd_soc_component_get_drvdata(codec);
+	struct soc_enum *e = (struct soc_enum *)kcontrol->private_value;
+	u32 ag_iis_num = e->reg;
+
+	if (ucontrol->value.integer.value[0] >= texts->items) {
+		pr_err("ERR: %s,index outof bounds error\n", __func__);
+		return -EINVAL;
+	}
+
+	mode = ucontrol->value.enumerated.item[0];
+	sp_asoc_pr_dbg("%s ag_iis_num %d, value %d, texts->texts[] %s\n",
+		       __func__, ag_iis_num, mode, texts->texts[mode]);
+	arch_audio_iis_to_audio_top_enable_v2(ag_iis_num, mode);
+	vbc_codec->ag_iis_ext_sel_v2[ag_iis_num] = mode;
 
 	return true;
 }
@@ -3835,6 +4038,12 @@ static const struct snd_kcontrol_new vbc_codec_snd_controls[] = {
 			    vbc_get_agdsp_access, vbc_put_agdsp_aud_access),
 	SOC_SINGLE_BOOL_EXT("agdsp_access_a2dp_en", 0,
 			    vbc_get_agdsp_access, vbc_put_agdsp_a2dp_access),
+	/*FM MUTE*/
+	SOC_SINGLE_EXT("VBC FM_MUTE_SMOOTHDG STEP", SND_SOC_NOPM, 0,
+		       MAX_12_BIT, 0,
+		       vbc_fm_mdg_stp_get, vbc_fm_mdg_stp_put),
+	SOC_ENUM_EXT("VBC_FM_UNMUTE_SMOOTH", vbc_fm_mute_enum,
+		     vbc_fm_mute_get, vbc_fm_mute_put),
 	/* VBC VOLUME */
 	SOC_SINGLE_EXT("VBC_VOLUME", SND_SOC_NOPM, 0,
 		       MAX_32_BIT, 0,
@@ -3952,6 +4161,29 @@ static const struct snd_kcontrol_new vbc_codec_snd_controls[] = {
 		     vbc_get_ag_iis_ext_sel, vbc_put_ag_iis_ext_sel),
 	SOC_ENUM_EXT("ag_iis2_ext_sel", vbc_ag_iis_ext_sel_enum[2],
 		     vbc_get_ag_iis_ext_sel, vbc_put_ag_iis_ext_sel),
+
+	/* used for ums9230 */
+	SOC_ENUM_EXT("ag_iis0_ext_sel_v1", vbc_ag_iis_ext_sel_enum_v1[0],
+		     vbc_get_ag_iis_ext_sel_v1, vbc_put_ag_iis_ext_sel_v1),
+	SOC_ENUM_EXT("ag_iis1_ext_sel_v1", vbc_ag_iis_ext_sel_enum_v1[1],
+		     vbc_get_ag_iis_ext_sel_v1, vbc_put_ag_iis_ext_sel_v1),
+	SOC_ENUM_EXT("ag_iis2_ext_sel_v1", vbc_ag_iis_ext_sel_enum_v1[2],
+		     vbc_get_ag_iis_ext_sel_v1, vbc_put_ag_iis_ext_sel_v1),
+	SOC_ENUM_EXT("ag_iis4_ext_sel_v1", vbc_ag_iis_ext_sel_enum_v1[3],
+		     vbc_get_ag_iis_ext_sel_v1, vbc_put_ag_iis_ext_sel_v1),
+
+	/* used for ums9620 */
+	SOC_ENUM_EXT("ag_iis0_ext_sel_v2", vbc_ag_iis_ext_sel_enum_v2[0],
+		     vbc_get_ag_iis_ext_sel_v2, vbc_put_ag_iis_ext_sel_v2),
+	SOC_ENUM_EXT("ag_iis1_ext_sel_v2", vbc_ag_iis_ext_sel_enum_v2[1],
+		     vbc_get_ag_iis_ext_sel_v2, vbc_put_ag_iis_ext_sel_v2),
+	SOC_ENUM_EXT("ag_iis2_ext_sel_v2", vbc_ag_iis_ext_sel_enum_v2[2],
+		     vbc_get_ag_iis_ext_sel_v2, vbc_put_ag_iis_ext_sel_v2),
+	SOC_ENUM_EXT("ag_iis4_ext_sel_v2", vbc_ag_iis_ext_sel_enum_v2[3],
+		     vbc_get_ag_iis_ext_sel_v2, vbc_put_ag_iis_ext_sel_v2),
+	SOC_ENUM_EXT("ag_iis3_ext_sel_v2", vbc_ag_iis_ext_sel_enum_v2[4],
+			 vbc_get_ag_iis_ext_sel_v2, vbc_put_ag_iis_ext_sel_v2),
+
 	SOC_ENUM_EXT("SYS_IIS0", vbc_sys_iis_enum[SYS_IIS0],
 		     sys_iis_sel_get, sys_iis_sel_put),
 	SOC_ENUM_EXT("SYS_IIS1", vbc_sys_iis_enum[SYS_IIS1],
@@ -4045,9 +4277,12 @@ static int dsp_vbc_reg_shm_proc_read(struct snd_info_buffer *buffer)
 	return 0;
 }
 
-static u32 ap_vbc_reg_proc_read(struct snd_info_buffer *buffer)
+static int ap_vbc_reg_proc_read(struct snd_info_buffer *buffer)
 {
 	int reg, ret;
+	bool active = false;
+	struct aud_pm_vbc *pm_vbc;
+	int scene_idx, stream;
 
 	ret = agdsp_access_enable();
 	if (ret) {
@@ -4055,6 +4290,33 @@ static u32 ap_vbc_reg_proc_read(struct snd_info_buffer *buffer)
 		return ret;
 	}
 	snd_iprintf(buffer, "ap-vbc register dump\n");
+
+	pm_vbc = aud_pm_vbc_get();
+	if (pm_vbc == NULL) {
+		agdsp_access_disable();
+		return -EPERM;
+	}
+	mutex_lock(&pm_vbc->lock_scene_flag);
+
+	for (scene_idx = 0; scene_idx < VBC_DAI_ID_MAX; scene_idx++) {
+		for (stream = 0; stream < STREAM_CNT; stream++) {
+			if (pm_vbc->scene_flag[scene_idx][stream] > 0) {
+				active = true;
+				break;
+			}
+		}
+		if (active == true)
+			break;
+	}
+
+	if (active == false) {
+		mutex_unlock(&pm_vbc->lock_scene_flag);
+		agdsp_access_disable();
+		snd_iprintf(buffer,
+			"vbc is inactive, can't dump ap-vbc register\n");
+		return -EPERM;
+	}
+
 	for (reg = REG_VBC_AUDPLY_FIFO_CTRL;
 	     reg <= VBC_AP_ADDR_END; reg += 0x10) {
 		snd_iprintf(buffer, "0x%04x | 0x%04x 0x%04x 0x%04x 0x%04x\n",
@@ -4063,6 +4325,7 @@ static u32 ap_vbc_reg_proc_read(struct snd_info_buffer *buffer)
 			    , ap_vbc_reg_read(reg + 0x08)
 			    , ap_vbc_reg_read(reg + 0x0C));
 	}
+	mutex_unlock(&pm_vbc->lock_scene_flag);
 	agdsp_access_disable();
 
 	return 0;
@@ -4176,6 +4439,7 @@ EXPORT_SYMBOL(sprd_vbc_codec);
 
 static void init_vbc_codec_data(struct vbc_codec_priv *vbc_codec)
 {
+	unsigned char i;
 	/* vbc dac */
 	vbc_codec->mux_iis_tx[VBC_MUX_IIS_TX_DAC0].id = VBC_MUX_IIS_TX_DAC0;
 	vbc_codec->mux_iis_tx[VBC_MUX_IIS_TX_DAC0].val = VBC_IIS_PORT_IIS0;
@@ -4248,6 +4512,22 @@ static void init_vbc_codec_data(struct vbc_codec_priv *vbc_codec)
 	vbc_codec->mst_sel_para[IIS_MST_SEL_2].mst_type = VBC_MASTER_EXTERNAL;
 	vbc_codec->mst_sel_para[IIS_MST_SEL_3].id = IIS_MST_SEL_3;
 	vbc_codec->mst_sel_para[IIS_MST_SEL_3].mst_type = VBC_MASTER_EXTERNAL;
+
+	/* mixer */
+	for (i = VBC_MIXER0_DAC0; i < VBC_MIXER_MAX; i++) {
+		vbc_codec->mixer[i].mixer_id = i;
+		vbc_codec->mixer[i].type = NOT_MIX;
+	}
+
+	/* vbc_if or iis */
+	for (i = VBC_MUX_ADC0_SOURCE; i < VBC_MUX_ADC_SOURCE_MAX; i++) {
+		vbc_codec->mux_adc_source[i].id = i;
+		vbc_codec->mux_adc_source[i].val = ADC_SOURCE_IIS;
+	}
+	for (i = VBC_MUX_DAC0_OUT_SEL; i < VBC_MUX_DAC_OUT_MAX ; i++) {
+		vbc_codec->mux_dac_out[i].id = i;
+		vbc_codec->mux_dac_out[i].val = DAC_OUT_FROM_IIS;
+	}
 }
 
 int sprd_vbc_codec_probe(struct platform_device *pdev)
@@ -4297,7 +4577,8 @@ int sprd_vbc_codec_remove(struct platform_device *pdev)
 
 	return 0;
 }
-//end of vbc-codec.c
+
+//endof "vbc-codec.c"
 
 static int to_vbc_chan(int channels)
 {
@@ -4418,6 +4699,12 @@ static int check_be_dai_id(int be_dai_id)
 		break;
 	case BE_DAI_ID_VOICE_PCM_P:
 		scene_id = VBC_DAI_ID_VOICE_PCM_P;
+		break;
+	case BE_DAI_ID_HIFI_P:
+		scene_id = AUDCP_DAI_ID_HIFI;
+		break;
+	case BE_DAI_ID_HIFI_FAST_P:
+		scene_id = AUDCP_DAI_ID_FAST;
 		break;
 	default:
 		scene_id = VBC_DAI_ID_MAX;
@@ -5104,7 +5391,10 @@ static int rate_to_src_mode(unsigned int rate)
 		{16000, SRC_MODE_16000},
 		{12000, SRC_MODE_12000},
 		{11025, SRC_MODE_11025},
+		{9600, SRC_MODE_NA},
 		{8000, SRC_MODE_8000},
+		{96000, SRC_MODE_96000},
+		{192000, SRC_MODE_192000},
 	};
 
 	for (i = 0; i < ARRAY_SIZE(src_tbl); i++) {
@@ -5938,6 +6228,116 @@ static int scene_normal_hw_free(struct snd_pcm_substream *substream,
 	hw_param_lock_mtx(scene_id, stream);
 	hw_param_dec_ref(scene_id, stream);
 	hw_param_unlock_mtx(scene_id, stream);
+
+	return 0;
+}
+
+static void fill_hifi_shutdown_data(int scene_id, int stream,
+	struct snd_pcm_hifi_stream *hifi_shutdown_info)
+{
+	hifi_shutdown_info->id = scene_id;
+	hifi_shutdown_info->stream = stream;
+	hifi_shutdown_info->enable = 0;
+	pr_info("%s enable: %d, scene_id: %d, stream: %d", __func__,
+			hifi_shutdown_info->enable, hifi_shutdown_info->id,
+			hifi_shutdown_info->stream);
+}
+
+void fill_hifi_dsp_hw_data(int scene_id, int stream, int chan_cnt, int rate, int fmt,
+	struct sprd_vbc_stream_hw_paras *hifi_data)
+{
+	hifi_data->stream_info.id = scene_id;
+	hifi_data->stream_info.stream = stream;
+	hifi_data->hw_params_info.channels = chan_cnt;
+	hifi_data->hw_params_info.format = fmt;
+	hifi_data->hw_params_info.rate = rate_to_src_mode(rate);
+	pr_info("%s id %d, stream %d, channel %d, fmt %d, rate_src_mode %d",
+			hifi_data->stream_info.id, hifi_data->stream_info.stream,
+			hifi_data->hw_params_info.channels,
+			hifi_data->hw_params_info.format,
+			hifi_data->hw_params_info.format,
+			hifi_data->hw_params_info.rate);
+}
+
+static void fill_hifi_startup_data(int scene_id, int stream,
+	struct snd_pcm_hifi_stream *hifi_startup_info)
+{
+	hifi_startup_info->id = scene_id;
+	hifi_startup_info->stream = stream;
+	hifi_startup_info->enable = 1;
+	pr_info("%s startup enable: %d, scene_id %d, stream %d",
+			__func__, hifi_startup_info->enable,
+			hifi_startup_info->id, hifi_startup_info->stream);
+}
+
+static int hifi_dsp_trigger(int scene_id, int stream, int up_down)
+{
+	int ret;
+
+	ret = hifi_func_trigger(scene_id, stream, up_down);
+	if (ret < 0) {
+		pr_err("vbc_dsp_func_trigger return error\n");
+		return ret;
+	}
+
+	return 0;
+}
+
+static void hifi_hw_params(int scene_id, int stream, int chan_cnt, u32 rate, int data_fmt)
+{
+	struct sprd_vbc_stream_hw_paras hifi_data;
+	int ret;
+
+	memset(&hifi_data, 0, sizeof(struct sprd_vbc_stream_hw_paras));
+	fill_hifi_dsp_hw_data(scene_id, stream, chan_cnt, rate, data_fmt,
+		&hifi_data);
+	ret = hifi_dsp_func_hwparam(scene_id, stream, &hifi_data);
+	if (ret < 0) {
+		pr_err("HIFI_func_hwparam return error, scene_id: %d\n", scene_id);
+		return;
+	}
+}
+
+static void hifi_shutdown(int scene_id, int stream)
+{
+	int ret;
+	struct snd_pcm_hifi_stream hifi_shutdown_info;
+
+	ret = agdsp_access_enable();
+	if (ret) {
+		pr_err("%s, agdsp_access_enable failed!\n", __func__);
+		return;
+	}
+	memset(&hifi_shutdown_info, 0,
+	       sizeof(struct snd_pcm_hifi_stream));
+	fill_hifi_shutdown_data(scene_id, stream, &hifi_shutdown_info);
+	ret = hifi_func_shutdown(scene_id, stream, &hifi_shutdown_info);
+	if (ret < 0) {
+		agdsp_access_disable();
+		return;
+	}
+	agdsp_access_disable();
+}
+
+static int hifi_startup(int scene_id, int stream)
+{
+	int ret = 0;
+	struct snd_pcm_hifi_stream hifi_startup_info;
+
+	ret = agdsp_access_enable();
+	if (ret) {
+		pr_err("%s:agdsp_access_enable:error:%d", __func__, ret);
+		return ret;
+	}
+	memset(&hifi_startup_info, 0, sizeof(struct snd_pcm_hifi_stream));
+	fill_hifi_startup_data(scene_id, stream, &hifi_startup_info);
+	ret = hifi_func_startup(scene_id, stream, &hifi_startup_info);
+	if (ret < 0) {
+		pr_err("vbc_dsp_func_startup return error");
+		agdsp_access_disable();
+		return ret;
+	}
+	agdsp_access_disable();
 
 	return 0;
 }
@@ -9701,6 +10101,330 @@ static struct snd_soc_dai_ops hfp_ops = {
 	.hw_free = scene_hfp_hw_free,
 };
 
+static int scene_hifi_startup(struct snd_pcm_substream *substream,
+			      struct snd_soc_dai *dai)
+{
+	int stream = substream->stream;
+	int scene_id = AUDCP_DAI_ID_HIFI;
+	int be_dai_id = dai->id;
+	int ret = 0;
+
+	pr_info("%s dai:%s(%d) scene:%s %s\n", __func__,
+		dai_id_to_str(be_dai_id),
+		be_dai_id, scene_id_to_str(scene_id), stream_to_str(stream));
+	if (scene_id != check_be_dai_id(be_dai_id)) {
+		pr_err("%s check_be_dai_id failed\n", __func__);
+		return -EINVAL;
+	}
+
+	startup_lock_mtx(scene_id, stream);
+	startup_add_ref(scene_id, stream);
+	if (startup_get_ref(scene_id, stream) == 1) {
+		ret = hifi_startup(scene_id, stream);
+		if (ret)
+			startup_dec_ref(scene_id, stream);
+		else
+			set_scene_flag(scene_id, stream);
+	}
+	startup_unlock_mtx(scene_id, stream);
+
+	return ret;
+}
+
+static void scene_hifi_shutdown(struct snd_pcm_substream *substream,
+				struct snd_soc_dai *dai)
+{
+	int stream = substream->stream;
+	int scene_id = AUDCP_DAI_ID_HIFI;
+	int be_dai_id = dai->id;
+
+	pr_info("%s dai:%s(%d) scene:%s %s\n", __func__,
+		dai_id_to_str(be_dai_id),
+		be_dai_id, scene_id_to_str(scene_id), stream_to_str(stream));
+	if (scene_id != check_be_dai_id(be_dai_id)) {
+		pr_err("%s check_be_dai_id failed\n", __func__);
+		return;
+	}
+
+	startup_lock_mtx(scene_id, stream);
+	startup_dec_ref(scene_id, stream);
+	if (startup_get_ref(scene_id, stream) == 0) {
+		clr_scene_flag(scene_id, stream);
+		hifi_shutdown(scene_id, stream);
+	}
+	startup_unlock_mtx(scene_id, stream);
+}
+
+static int scene_hifi_hw_params(struct snd_pcm_substream *substream,
+	struct snd_pcm_hw_params *params, struct snd_soc_dai *dai)
+{
+	unsigned int rate;
+	int data_fmt = VBC_DAT_L16;
+	int stream = substream->stream;
+	int scene_id = AUDCP_DAI_ID_HIFI;
+	int chan_cnt;
+
+	pr_info("%s dai:%s(%d) scene:%s %s\n", __func__, dai_id_to_str(dai->id),
+		dai->id, scene_id_to_str(scene_id), stream_to_str(stream));
+	if (scene_id != check_be_dai_id(dai->id)) {
+		pr_err("%s check_be_dai_id failed\n", __func__);
+		return -EINVAL;
+	}
+
+	switch (params_format(params)) {
+	case SNDRV_PCM_FORMAT_S16_LE:
+		data_fmt = VBC_DAT_L16;
+		break;
+	case SNDRV_PCM_FORMAT_S24_LE:
+		data_fmt = VBC_DAT_L24;
+		break;
+	default:
+		pr_err("%s, ERR:VBC not support data fmt =%d", __func__,
+		       data_fmt);
+		break;
+	}
+	chan_cnt = params_channels(params);
+	rate = params_rate(params);
+	pr_info("%s data_fmt=%s, chan=%u, rate =%u\n", __func__,
+		vbc_data_fmt_to_str(data_fmt), chan_cnt, rate);
+
+	if (chan_cnt > 2)
+		pr_warn("%s channel count invalid\n", __func__);
+
+	hw_param_lock_mtx(scene_id, stream);
+	hw_param_add_ref(scene_id, stream);
+	if (hw_param_get_ref(scene_id, stream) == 1) {
+		hifi_hw_params(scene_id, stream,
+			      chan_cnt, rate, data_fmt);
+	}
+	hw_param_unlock_mtx(scene_id, stream);
+
+	return 0;
+}
+
+static int scene_hifi_hw_free(struct snd_pcm_substream *substream,
+			      struct snd_soc_dai *dai)
+{
+	int stream = substream->stream;
+	int scene_id = AUDCP_DAI_ID_HIFI;
+
+	pr_info("%s dai:%s(%d) scene:%s %s\n", __func__, dai_id_to_str(dai->id),
+		dai->id, scene_id_to_str(scene_id), stream_to_str(stream));
+	if (scene_id != check_be_dai_id(dai->id)) {
+		pr_err("%s check_be_dai_id failed\n", __func__);
+		return -EINVAL;
+	}
+
+	hw_param_lock_mtx(scene_id, stream);
+	hw_param_dec_ref(scene_id, stream);
+	hw_param_unlock_mtx(scene_id, stream);
+
+	return 0;
+}
+
+static int scene_hifi_trigger(struct snd_pcm_substream *substream, int cmd,
+			      struct snd_soc_dai *dai)
+{
+	int up_down;
+	int stream = substream->stream;
+	int scene_id = AUDCP_DAI_ID_HIFI;
+	int ret;
+
+	pr_info("%s dai:%s(%d) scene:%s %s, cmd=%d\n", __func__,
+		dai_id_to_str(dai->id),
+		dai->id, scene_id_to_str(scene_id), stream_to_str(stream), cmd);
+	if (scene_id != check_be_dai_id(dai->id)) {
+		pr_err("%s check_be_dai_id failed\n", __func__);
+		return -EINVAL;
+	}
+	up_down = triggered_flag(cmd);
+	ret = 0;
+	if (up_down == 1) {
+		trigger_lock_spin(scene_id, stream);
+		trigger_add_ref(scene_id, stream);
+		if (trigger_get_ref(scene_id, stream) == 1)
+			ret = hifi_dsp_trigger(scene_id, stream, up_down);
+
+		trigger_unlock_spin(scene_id, stream);
+	} else {
+		trigger_lock_spin(scene_id, stream);
+		trigger_dec_ref(scene_id, stream);
+		trigger_unlock_spin(scene_id, stream);
+	}
+
+	return ret;
+}
+
+static struct snd_soc_dai_ops hifi_ops = {
+	.startup = scene_hifi_startup,
+	.shutdown = scene_hifi_shutdown,
+	.hw_params = scene_hifi_hw_params,
+	.trigger = scene_hifi_trigger,
+	.hw_free = scene_hifi_hw_free,
+};
+
+static int scene_hifi_fast_startup(struct snd_pcm_substream *substream,
+			      struct snd_soc_dai *dai)
+{
+	int stream = substream->stream;
+	int scene_id = AUDCP_DAI_ID_FAST;
+	int be_dai_id = dai->id;
+	int ret = 0;
+
+	pr_info("%s dai:%s(%d) scene:%s %s\n", __func__,
+		dai_id_to_str(be_dai_id),
+		be_dai_id, scene_id_to_str(scene_id), stream_to_str(stream));
+	if (scene_id != check_be_dai_id(be_dai_id)) {
+		pr_err("%s check_be_dai_id failed\n", __func__);
+		return -EINVAL;
+	}
+
+	startup_lock_mtx(scene_id, stream);
+	startup_add_ref(scene_id, stream);
+	if (startup_get_ref(scene_id, stream) == 1) {
+		ret = hifi_startup(scene_id, stream);
+		if (ret)
+			startup_dec_ref(scene_id, stream);
+		else
+			set_scene_flag(scene_id, stream);
+	}
+	startup_unlock_mtx(scene_id, stream);
+
+	return ret;
+}
+
+static void scene_hifi_fast_shutdown(struct snd_pcm_substream *substream,
+				struct snd_soc_dai *dai)
+{
+	int stream = substream->stream;
+	int scene_id = AUDCP_DAI_ID_FAST;
+	int be_dai_id = dai->id;
+
+	pr_info("%s dai:%s(%d) scene:%s %s\n", __func__,
+		dai_id_to_str(be_dai_id),
+		be_dai_id, scene_id_to_str(scene_id), stream_to_str(stream));
+	if (scene_id != check_be_dai_id(be_dai_id)) {
+		pr_err("%s check_be_dai_id failed\n", __func__);
+		return;
+	}
+
+	startup_lock_mtx(scene_id, stream);
+	startup_dec_ref(scene_id, stream);
+	if (startup_get_ref(scene_id, stream) == 0) {
+		clr_scene_flag(scene_id, stream);
+		hifi_shutdown(scene_id, stream);
+	}
+	startup_unlock_mtx(scene_id, stream);
+}
+
+static int scene_hifi_fast_hw_params(struct snd_pcm_substream *substream,
+	struct snd_pcm_hw_params *params, struct snd_soc_dai *dai)
+{
+	unsigned int rate;
+	int data_fmt = VBC_DAT_L16;
+	int stream = substream->stream;
+	int scene_id = AUDCP_DAI_ID_FAST;
+	int chan_cnt;
+
+	pr_info("%s dai:%s(%d) scene:%s %s\n", __func__, dai_id_to_str(dai->id),
+		dai->id, scene_id_to_str(scene_id), stream_to_str(stream));
+	if (scene_id != check_be_dai_id(dai->id)) {
+		pr_err("%s check_be_dai_id failed\n", __func__);
+		return -EINVAL;
+	}
+
+	switch (params_format(params)) {
+	case SNDRV_PCM_FORMAT_S16_LE:
+		data_fmt = VBC_DAT_L16;
+		break;
+	case SNDRV_PCM_FORMAT_S24_LE:
+		data_fmt = VBC_DAT_L24;
+		break;
+	default:
+		pr_err("%s, ERR:VBC not support data fmt =%d", __func__,
+		       data_fmt);
+		break;
+	}
+	chan_cnt = params_channels(params);
+	rate = params_rate(params);
+	pr_info("%s data_fmt=%s, chan=%u, rate =%u\n", __func__,
+		vbc_data_fmt_to_str(data_fmt), chan_cnt, rate);
+
+	if (chan_cnt > 2)
+		pr_warn("%s channel count invalid\n", __func__);
+
+	hw_param_lock_mtx(scene_id, stream);
+	hw_param_add_ref(scene_id, stream);
+	if (hw_param_get_ref(scene_id, stream) == 1) {
+		hifi_hw_params(scene_id, stream,
+			      chan_cnt, rate, data_fmt);
+	}
+	hw_param_unlock_mtx(scene_id, stream);
+
+	return 0;
+}
+
+static int scene_hifi_fast_hw_free(struct snd_pcm_substream *substream,
+			      struct snd_soc_dai *dai)
+{
+	int stream = substream->stream;
+	int scene_id = AUDCP_DAI_ID_FAST;
+
+	pr_info("%s dai:%s(%d) scene:%s %s\n", __func__, dai_id_to_str(dai->id),
+		dai->id, scene_id_to_str(scene_id), stream_to_str(stream));
+	if (scene_id != check_be_dai_id(dai->id)) {
+		pr_err("%s check_be_dai_id failed\n", __func__);
+		return -EINVAL;
+	}
+
+	hw_param_lock_mtx(scene_id, stream);
+	hw_param_dec_ref(scene_id, stream);
+	hw_param_unlock_mtx(scene_id, stream);
+
+	return 0;
+}
+
+static int scene_hifi_fast_trigger(struct snd_pcm_substream *substream, int cmd,
+			      struct snd_soc_dai *dai)
+{
+	int up_down;
+	int stream = substream->stream;
+	int scene_id = AUDCP_DAI_ID_FAST;
+	int ret;
+
+	pr_info("%s dai:%s(%d) scene:%s %s, cmd=%d\n", __func__,
+		dai_id_to_str(dai->id),
+		dai->id, scene_id_to_str(scene_id), stream_to_str(stream), cmd);
+	if (scene_id != check_be_dai_id(dai->id)) {
+		pr_err("%s check_be_dai_id failed\n", __func__);
+		return -EINVAL;
+	}
+	up_down = triggered_flag(cmd);
+	ret = 0;
+	if (up_down == 1) {
+		trigger_lock_spin(scene_id, stream);
+		trigger_add_ref(scene_id, stream);
+		if (trigger_get_ref(scene_id, stream) == 1)
+			ret = hifi_dsp_trigger(scene_id, stream, up_down);
+
+		trigger_unlock_spin(scene_id, stream);
+	} else {
+		trigger_lock_spin(scene_id, stream);
+		trigger_dec_ref(scene_id, stream);
+		trigger_unlock_spin(scene_id, stream);
+	}
+
+	return ret;
+}
+
+static struct snd_soc_dai_ops hifi_fast_ops = {
+	.startup = scene_hifi_fast_startup,
+	.shutdown = scene_hifi_fast_shutdown,
+	.hw_params = scene_hifi_fast_hw_params,
+	.trigger = scene_hifi_fast_trigger,
+	.hw_free = scene_hifi_fast_hw_free,
+};
+
 static struct snd_soc_dai_driver vbc_dais[BE_DAI_ID_MAX] = {
 	/* 0: BE_DAI_ID_NORMAL_AP01_CODEC */
 	{
@@ -10729,6 +11453,39 @@ static struct snd_soc_dai_driver vbc_dais[BE_DAI_ID_MAX] = {
 		.probe = sprd_dai_vbc_probe,
 		.ops = &fm_dsp_ops,
 	},
+	/* 55: BE_DAI_ID_HIFI_P */
+	{
+		.name = TO_STRING(BE_DAI_ID_HIFI_P),
+		.id = BE_DAI_ID_HIFI_P,
+		.playback = {
+			.stream_name = "BE_DAI_HIFI_P",
+			.aif_name = "BE_IF_HIFI_P",
+			.channels_min = 1,
+			.channels_max = 2,
+			.rates = SNDRV_PCM_RATE_CONTINUOUS,
+			.rate_max = 192000,
+			.formats = SPRD_VBC_DAI_PCM_FORMATS,
+		},
+		.probe = sprd_dai_vbc_probe,
+		.ops = &hifi_ops,
+	},
+
+	/* 56: BE_DAI_ID_HIFI_FAST_P */
+	{
+		.name = TO_STRING(BE_DAI_ID_HIFI_FAST_P),
+		.id = BE_DAI_ID_HIFI_FAST_P,
+		.playback = {
+			.stream_name = "BE_DAI_HIFI_FAST_P",
+			.aif_name = "BE_IF_HIFI_FAST_P",
+			.channels_min = 1,
+			.channels_max = 2,
+			.rates = SNDRV_PCM_RATE_CONTINUOUS,
+			.rate_max = 192000,
+			.formats = SPRD_VBC_DAI_PCM_FORMATS,
+		},
+		.probe = sprd_dai_vbc_probe,
+		.ops = &hifi_fast_ops,
+	},
 };
 
 static struct aud_pm_vbc *aud_pm_vbc_get(void)
@@ -10806,6 +11563,7 @@ int vbc_of_setup(struct platform_device *pdev)
 		return -EINVAL;
 	}
 	set_vbc_dsp_ap_offset(val);
+
 	/* PIN MUX */
 	pctrl = devm_pinctrl_get(&pdev->dev);
 	if (IS_ERR(pctrl)) {
@@ -10840,6 +11598,7 @@ static int vbc_drv_probe(struct platform_device *pdev)
 	}
 	aud_ipc_ch_open(AMSG_CH_DSP_GET_PARAM_FROM_SMSG_NOREPLY);
 	aud_ipc_ch_open(AMSG_CH_VBC_CTL);
+	aud_ipc_ch_open(AMSG_CH_DSP_HIFI);
 
 	/* 2. probe DAIS */
 	ret = snd_soc_register_component(&pdev->dev, &sprd_vbc_codec, vbc_dais,
@@ -10879,6 +11638,9 @@ static int vbc_drv_remove(struct platform_device *pdev)
 #ifdef CONFIG_OF
 static const struct of_device_id vbc_of_match[] = {
 	{.compatible = "unisoc,sharkl5-vbc",},
+	{.compatible = "unisoc,roc1-vbc",},
+	{.compatible = "unisoc,qogirl6-vbc",},
+	{.compatible = "unisoc,qogirn6pro-vbc",},
 	{},
 };
 

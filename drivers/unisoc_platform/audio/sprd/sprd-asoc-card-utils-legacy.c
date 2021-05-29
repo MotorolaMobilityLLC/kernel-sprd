@@ -42,6 +42,7 @@ static struct board_priv {
 #define BOARD_LINE_JACK "Line Jack"
 #define BOARD_MIC_JACK "Mic Jack"
 #define BOARD_AUX_MIC_JACK "Aux Mic Jack"
+#define BOARD_AUX_MIC2_JACK "Aux Mic2 Jack"
 #define BOARD_HP_MIC_JACK "HP Mic Jack"
 #define BOARD_DMIC_JACK "DMic Jack"
 #define BOARD_DMIC1_JACK "DMic1 Jack"
@@ -55,6 +56,7 @@ static const char *func_name[BOARD_FUNC_MAX] = {
 	BOARD_LINE_JACK,
 	BOARD_MIC_JACK,
 	BOARD_AUX_MIC_JACK,
+	BOARD_AUX_MIC2_JACK,
 	BOARD_HP_MIC_JACK,
 	BOARD_DMIC_JACK,
 	BOARD_DMIC1_JACK,
@@ -218,6 +220,17 @@ static int board_sub_mic_event(struct snd_soc_dapm_widget *w,
 	return 0;
 }
 
+static int board_sub_mic2_event(struct snd_soc_dapm_widget *w,
+				struct snd_kcontrol *k, int event)
+{
+	int on = !!SND_SOC_DAPM_EVENT_ON(event);
+
+	sp_asoc_pr_dbg("Sub MIC2 Switch %s\n", STR_ON_OFF(on));
+	board_ext_hook(BOARD_FUNC_AUXMIC2, on);
+
+	return 0;
+}
+
 static int board_head_mic_event(struct snd_soc_dapm_widget *w,
 				struct snd_kcontrol *k, int event)
 {
@@ -276,6 +289,7 @@ static int board_dig_fm_event(struct snd_soc_dapm_widget *w,
 static const struct snd_soc_dapm_widget _sprd_asoc_card_widgets[] = {
 	SND_SOC_DAPM_MIC(BOARD_MIC_JACK, board_main_mic_event),
 	SND_SOC_DAPM_MIC(BOARD_AUX_MIC_JACK, board_sub_mic_event),
+	SND_SOC_DAPM_MIC(BOARD_AUX_MIC2_JACK, board_sub_mic2_event),
 	SND_SOC_DAPM_MIC(BOARD_HP_MIC_JACK, board_head_mic_event),
 	SND_SOC_DAPM_MIC(BOARD_DMIC_JACK, board_dig0_mic_event),
 	SND_SOC_DAPM_MIC(BOARD_DMIC1_JACK, board_dig1_mic_event),
@@ -480,6 +494,7 @@ static const struct snd_kcontrol_new _sprd_asoc_card_controls[] = {
 	BOARD_CODEC_FUNC("Line Function", BOARD_FUNC_LINE),
 	BOARD_CODEC_FUNC("Mic Function", BOARD_FUNC_MIC),
 	BOARD_CODEC_FUNC("Aux Mic Function", BOARD_FUNC_AUXMIC),
+	BOARD_CODEC_FUNC("Aux Mic2 Function", BOARD_FUNC_AUXMIC2),
 	BOARD_CODEC_FUNC("HP Mic Function", BOARD_FUNC_HP_MIC),
 	BOARD_CODEC_FUNC("DMic Function", BOARD_FUNC_DMIC),
 	BOARD_CODEC_FUNC("DMic1 Function", BOARD_FUNC_DMIC1),

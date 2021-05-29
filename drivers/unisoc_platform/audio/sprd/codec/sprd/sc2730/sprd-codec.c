@@ -233,12 +233,15 @@ struct sprd_codec_priv {
 	struct regulator *main_mic;
 	struct regulator *head_mic;
 	struct regulator *vb;
+	struct regulator *micbias1;
+	struct regulator *bg;
 
 	int psg_state;
 	struct fgu fgu;
 
 	u32 fixed_sample_rate[CODEC_PATH_MAX];
 	u32 lrclk_sel[LRCLK_SEL_MAX];
+	u32 lrdat_sel;
 	unsigned int replace_rate;
 	enum PA_SHORT_T pa_short_stat;
 	enum CP_SHORT_T cp_short_stat;
@@ -257,6 +260,7 @@ struct sprd_codec_priv {
 	struct mutex dig_access_mutex;
 	bool dig_access_en;
 	bool user_dig_access_dis;
+	bool micbias1_power_en;
 	enum IVSENCE_DMIC_TYPE ivsence_dmic_type;
 };
 
@@ -284,11 +288,14 @@ static const char * const lrclk_sel_text[] = {
 static const struct soc_enum lrclk_sel_enum =
 	SOC_ENUM_SINGLE_EXT(2, lrclk_sel_text);
 
+static const struct soc_enum lrdat_sel_enum =
+	SOC_ENUM_SINGLE_EXT(2, lrclk_sel_text);
+
 static const char * const codec_hw_info[] = {
 	CODEC_HW_INFO
 };
 static const struct soc_enum codec_info_enum =
-	SOC_ENUM_SINGLE_EXT(SP_AUDIO_CODEC_NUM, codec_hw_info);
+	SOC_ENUM_SINGLE_EXT(ARRAY_SIZE(codec_hw_info), codec_hw_info);
 
 #define SPRD_CODEC_PGA_M(xname, xreg, xshift, max, tlv_array) \
 	SOC_SINGLE_EXT_TLV(xname, xreg, xshift, max, 0, \
@@ -522,6 +529,55 @@ static int dig_access_disable_get(struct snd_kcontrol *kcontrol,
 	return 0;
 }
 
+static int micbias1_power_get(struct snd_kcontrol *kcontrol,
+				   struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_component *codec = snd_soc_kcontrol_component(kcontrol);
+	struct sprd_codec_priv *sprd_codec = snd_soc_component_get_drvdata(codec);
+
+	ucontrol->value.integer.value[0] = sprd_codec->micbias1_power_en;
+
+	return 0;
+}
+
+static int micbias1_power_put(struct snd_kcontrol *kcontrol,
+				   struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_component *codec = snd_soc_kcontrol_component(kcontrol);
+	struct sprd_codec_priv *sprd_codec = snd_soc_component_get_drvdata(codec);
+	bool on_off;
+	int ret = 0;
+
+	on_off = !!ucontrol->value.integer.value[0];
+
+	if (sprd_codec->micbias1_power_en != on_off) {
+		if (on_off) {
+			/* Enable BG & MICBIAS1 */
+			ret = regulator_enable(sprd_codec->bg);
+			if (ret) {
+				pr_err("bg regulator_enable failed!");
+				return ret;
+			}
+
+			ret = regulator_enable(sprd_codec->micbias1);
+			if (ret) {
+				regulator_disable(sprd_codec->bg);
+				pr_err("micbias1 regulator_enable failed!");
+				return ret;
+			}
+		} else {
+			/* Disable BG & MICBIAS1 */
+			regulator_disable(sprd_codec->bg);
+			regulator_disable(sprd_codec->micbias1);
+		}
+		sprd_codec->micbias1_power_en = on_off;
+	} else {
+		pr_err("The micbias1 power cannot be turned %s twice!\n",
+			on_off ? "on" : "off");
+	}
+
+	return 0;
+}
 
 static const char *get_event_name(int event)
 {
@@ -1510,8 +1566,9 @@ static int digital_power_event(struct snd_soc_dapm_widget *w,
 
 		mutex_lock(&sprd_codec->dig_access_mutex);
 		if (sprd_codec->dig_access_en) {
+			if (sprd_codec->user_dig_access_dis == false)
+				agdsp_access_disable();
 			sprd_codec->user_dig_access_dis = false;
-			agdsp_access_disable();
 			sprd_codec->dig_access_en = false;
 		}
 		mutex_unlock(&sprd_codec->dig_access_mutex);
@@ -1552,6 +1609,7 @@ static int audio_dcl_event(struct snd_soc_dapm_widget *w,
 			      struct snd_kcontrol *kcontrol, int event)
 {
 	struct snd_soc_component *codec = snd_soc_dapm_to_component(w->dapm);
+	struct sprd_codec_priv *sprd_codec = snd_soc_component_get_drvdata(codec);
 	int ret = 0;
 	unsigned int msk, val;
 
@@ -1571,6 +1629,11 @@ static int audio_dcl_event(struct snd_soc_dapm_widget *w,
 
 		val = RSTN_AUD_DIG_INTC;
 		snd_soc_component_update_bits(codec, SOC_REG(ANA_DCL1), val, val);
+
+		val = DAL_DAT_SEL | DAR_DAT_SEL;
+		if (sprd_codec->lrdat_sel)
+			snd_soc_component_update_bits(codec, SOC_REG(ANA_CDC5), val, val);
+
 		udelay(200);
 		break;
 	default:
@@ -3274,6 +3337,8 @@ static const struct snd_kcontrol_new sprd_codec_snd_controls[] = {
 	SOC_ENUM_EXT("IVSENCE_DMIC_SEL", ivsence_dmic_sel_enum,
 		sprd_codec_ivsence_dmic_get,
 		sprd_codec_ivsence_dmic_put),
+	SOC_SINGLE_EXT("MICBIAS1 Power", SND_SOC_NOPM, 0, 1, 0,
+		micbias1_power_get, micbias1_power_put),
 };
 
 static unsigned int sprd_codec_read(struct snd_soc_component *codec,
@@ -3975,6 +4040,8 @@ static int sprd_codec_power_regulator_init(struct sprd_codec_priv *sprd_codec,
 	sprd_codec_power_get(dev, &sprd_codec->main_mic, "MICBIAS");
 	sprd_codec_power_get(dev, &sprd_codec->head_mic, "HEADMICBIAS");
 	sprd_codec_power_get(dev, &sprd_codec->vb, "VB");
+	sprd_codec_power_get(dev, &sprd_codec->bg, "BG");
+	sprd_codec_power_get(dev, &sprd_codec->micbias1, "MICBIAS1");
 	ret = regulator_enable(sprd_codec->vb);
 	if (!ret) {
 		regulator_set_mode(sprd_codec->vb, REGULATOR_MODE_STANDBY);
@@ -3988,6 +4055,8 @@ static void sprd_codec_power_regulator_exit(struct sprd_codec_priv *sprd_codec)
 	sprd_codec_power_put(&sprd_codec->main_mic);
 	sprd_codec_power_put(&sprd_codec->head_mic);
 	sprd_codec_power_put(&sprd_codec->vb);
+	sprd_codec_power_put(&sprd_codec->bg);
+	sprd_codec_power_put(&sprd_codec->micbias1);
 }
 
 static struct snd_soc_component_driver soc_codec_dev_sprd_codec = {
@@ -4213,6 +4282,9 @@ static int sprd_codec_probe(struct platform_device *pdev)
 	struct device_node *dig_np = NULL;
 	struct platform_device *dig_pdev = NULL;
 	u32 ana_chip_id;
+	u32 set_offset;
+	u32 clr_offset;
+	u32 lrdat_sel;
 	struct regmap *pmu_apb_gpr;
 
 	pr_info("%s\n", __func__);
@@ -4252,6 +4324,25 @@ static int sprd_codec_probe(struct platform_device *pdev)
 	mutex_init(&sprd_codec->dig_access_mutex);
 
 	mutex_init(&sprd_codec->digital_enable_mutex);
+	ret = of_property_read_u32(np, "set-offset", &set_offset);
+	if (ret) {
+		pr_info("%s No set-offset attribute !\n", __func__);
+		set_offset = 0x100;
+	}
+	ret = of_property_read_u32(np, "clr-offset", &clr_offset);
+	if (ret) {
+		pr_info("%s No clr-offset attribute !\n", __func__);
+		clr_offset = 0x200;
+	}
+	set_agcp_ahb_offset(set_offset, clr_offset);
+
+	ret = of_property_read_u32(np, "lrdat-sel", &lrdat_sel);
+	if (ret) {
+		pr_info("%s Don't need lrdat_sel attribute !\n", __func__);
+		lrdat_sel = 0x0;
+	}
+	sprd_codec->lrdat_sel = lrdat_sel;
+
 	arch_audio_set_pmu_apb_gpr(pmu_apb_gpr);
 	of_node_put(np);
 	dig_pdev = of_find_device_by_node(dig_np);

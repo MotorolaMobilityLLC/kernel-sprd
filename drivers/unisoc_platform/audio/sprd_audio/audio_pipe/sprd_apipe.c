@@ -52,6 +52,8 @@ struct point_info_k {
 #define SPRD_PIPE_NAME_MAX		64
 #define DEFAULT_BUFFER_SIZE		(10*1024)
 #define DEFAULT_RECORD_LENGTH_BYTES	3
+#define GET_USER_BUFFER_SIZE_MAX	(10*1024*1024)
+#define GET_USER_COUNT_MAX		500
 
 struct apipe_device {
 	struct miscdevice misc_dev;
@@ -89,7 +91,14 @@ static int apipe_open(struct inode *inode, struct file *filp)
 		int size = DEFAULT_BUFFER_SIZE;
 
 		size = roundup_pow_of_two(size);
-		apipe_dev->data = vmalloc(size);
+		if (size)
+			apipe_dev->data = vmalloc(size);
+		else {
+			mutex_unlock(&apipe_dev->mutex);
+			dev_err(apipe_dev->dev,
+				"failed: no mem\n");
+			return -ENOMEM;
+		}
 		if (!apipe_dev->data) {
 			mutex_unlock(&apipe_dev->mutex);
 			dev_err(apipe_dev->dev,
@@ -275,7 +284,10 @@ static long apipe_ioctl(struct file *filp,
 		if (get_user(buffer_size, (u32 __user *)argp))
 			return -EFAULT;
 		buffer_size = roundup_pow_of_two(buffer_size);
-		data = vmalloc(buffer_size);
+		if (buffer_size > 0 && buffer_size < GET_USER_BUFFER_SIZE_MAX)
+			data = vmalloc(buffer_size);
+		else
+			return -ENOMEM;
 		if (!data)
 			return -ENOMEM;
 
@@ -320,8 +332,13 @@ static long apipe_ioctl(struct file *filp,
 			vfree(apipe_dev->point_k);
 			apipe_dev->point_k = NULL;
 		}
-		apipe_dev->point_k = vmalloc(count *
-			sizeof(struct point_info_k));
+		if (count > 0 && count < GET_USER_COUNT_MAX)
+			apipe_dev->point_k = vmalloc(count *
+				sizeof(struct point_info_k));
+		else {
+			mutex_unlock(&apipe_dev->mutex);
+			return -ENOMEM;
+		}
 		if (!apipe_dev->point_k) {
 			mutex_unlock(&apipe_dev->mutex);
 			return -ENOMEM;

@@ -2324,6 +2324,9 @@ static int sprd_platform_compr_resume(struct platform_device *pdev)
 #ifdef CONFIG_OF
 static const struct of_device_id sprd_compress_of_match[] = {
 	{.compatible = "unisoc,sharkl5-compress-platform",},
+	{.compatible = "unisoc,roc1-compress-platform",},
+	{.compatible = "unisoc,qogirl6-compress-platform",},
+	{.compatible = "unisoc,qogirn6pro-compress-platform",},
 	{},
 };
 

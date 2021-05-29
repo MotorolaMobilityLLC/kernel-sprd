@@ -578,6 +578,9 @@ enum KCTL_TYPE {
 	SND_KCTL_TYPE_EXT_INNER_IIS_MST_SEL,
 	SND_KCTL_TYPE_VBC_IIS_MASTER_WIDTH_SET,
 	SND_KCTL_TYPE_VOICE_MIX_UL,
+	SND_KCTL_TYPE_FM_MUTE_EN,
+	SND_KCTL_TYPE_FM_MUTE,
+	SND_KCTL_TYPE_FM_MDG_STP,
 	SND_KCTL_TYPE_END,
 };
 
@@ -615,7 +618,9 @@ enum SRC_MODE_E {
 	SRC_MODE_12000,
 	SRC_MODE_11025,
 	SRC_MODE_NA,
-	SRC_MODE_8000
+	SRC_MODE_8000,
+	SRC_MODE_96000,
+	SRC_MODE_192000
 };
 
 enum VBC_SRC_ID_E {
@@ -1071,6 +1076,26 @@ struct call_mute_para {
 	u32 mute;
 };
 
+/* SND_KCTL_TYPE_FM_MUTE */
+enum fm_mute {
+	FM_MUTE_DISABLE,
+	FM_MUTE_ENABLE,
+};
+
+struct vbc_fm_mute_en_para {
+	int id;
+	u16 enable;
+};
+
+struct vbc_fm_mute_para {
+	int id;
+	u16 mute;
+};
+
+struct vbc_fm_mute_step {
+	u16 step;
+};
+
 /*
  * SND_KCTL_TYPE_IIS_TX_WIDTH_SEL
  * SND_KCTL_TYPE_IIS_TX_LRMOD_SEL
@@ -1176,7 +1201,6 @@ struct vbc_voice_pcm_play_t {
 /**********************************************************************
  * define for SND_VBC_DSP_IO_SHAREMEM_GET / SND_VBC_DSP_IO_SHAREMEM_SET
  **********************************************************************/
-
 /* --------------------defined in audio_sipc.h---------------------------- */
 
 enum{
@@ -1213,6 +1237,8 @@ enum {
 	VBC_DAI_ID_VOICE_PCM_P,
 	VBC_DAI_ID_HFP,
 	VBC_DAI_ID_RECOGNISE_CAPTURE,
+	AUDCP_DAI_ID_HIFI = 0x20,
+	AUDCP_DAI_ID_FAST,
 	VBC_DAI_ID_MAX
 };
 
@@ -1294,6 +1320,24 @@ struct snd_pcm_startup_paras {
 struct sprd_vbc_stream_startup_shutdown {
 	struct snd_pcm_stream_info stream_info;
 	struct snd_pcm_startup_paras startup_para;
+};
+
+struct snd_pcm_hifi_stream {
+	char name[32];
+	int id;
+	int stream;
+	int enable;
+};
+
+struct hifi_param_t {
+	u16 is_stereo;
+	u16 dat_format;
+	u16 sample_rate;
+};
+
+struct sprd_hifi_stream_hw_paras {
+	struct snd_pcm_stream_info stream_info;
+	struct hifi_param_t hifi_params;
 };
 
 /**********************************************************
@@ -1419,8 +1463,12 @@ struct vbc_codec_priv {
 	struct vbc_loopback_para loopback;
 	struct vbc_dp_en_para vbc_dp_en[VBC_DP_EN_MAX];
 	struct call_mute_para vbc_call_mute[VBC_MUTE_MAX];
+	struct vbc_fm_mute_para fm_mute;
+	struct vbc_fm_mute_step fm_mute_step;
 	u16 sys_iis_sel[SYS_IIS_MAX];
 	u16 ag_iis_ext_sel[AG_IIS_MAX];
+	u16 ag_iis_ext_sel_v1[AG_IIS_V1_MAX];
+	u16 ag_iis_ext_sel_v2[AG_IIS_V2_MAX];
 	u16 vbc_iis_inf_sys_sel;
 	struct mutex agcp_access_mutex;
 	int agcp_access_aud_cnt;
@@ -1511,6 +1559,7 @@ int dsp_vbc_adder_set(int id, int adder_mode_l, int adder_mode_r);
 int dsp_vbc_loopback_set(struct vbc_loopback_para *loopback);
 int dsp_vbc_dp_en_set(int id, u16 enable);
 int dsp_call_mute_set(int id, u16 mute);
+int fm_mute_set(int id, u16 mute, u16 step);
 int dsp_vbc_iis_tx_width_set(int id, u32 width);
 int dsp_vbc_iis_tx_lr_mod_set(int id, u32 lr_mod);
 int dsp_vbc_iis_rx_width_set(int id, u32 width);
@@ -1531,4 +1580,12 @@ int vbc_dsp_func_hwparam(int scene_id, int stream,
 int vbc_dsp_func_trigger(int id, int stream, int up_down);
 int aud_dig_iis_master(struct snd_soc_card *card, int setting);
 int pm_shutdown(void);
+int hifi_dsp_func_hwparam(int scene_id, int stream,
+	struct sprd_vbc_stream_hw_paras *hifi_data);
+int hifi_func_startup(int scene_id, int stream,
+	struct snd_pcm_hifi_stream *hifi_startup_info);
+int hifi_func_shutdown(int scene_id, int stream,
+	struct snd_pcm_hifi_stream *hifi_shutdown_info);
+int hifi_func_trigger(int id, int stream, int up_down);
+
 #endif /* __VBC_V4_PHY_DRV_H */

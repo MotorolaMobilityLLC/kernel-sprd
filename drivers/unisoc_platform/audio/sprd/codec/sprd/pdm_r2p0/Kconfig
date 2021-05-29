@@ -1,0 +1,4 @@
+config SND_SOC_UNISOC_PDM_R2P0
+	tristate "Sprd pdm r2p0"
+	help
+	  If using pdm r2p0, set this to Y or M, else N.

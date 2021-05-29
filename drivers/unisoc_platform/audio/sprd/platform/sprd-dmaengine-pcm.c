@@ -297,7 +297,7 @@ static int sprd_pcm_open(struct snd_pcm_substream *substream)
 
 	pm_dma = get_pm_dma();
 
-	pr_info("%s Open %s\n", sprd_dai_pcm_name(srtd->cpu_dai),
+	pr_info("%s %s Open %s\n", __func__, sprd_dai_pcm_name(srtd->cpu_dai),
 			PCM_DIR_NAME(substream->stream));
 
 	if (sprd_is_i2s(srtd->cpu_dai)) {
@@ -545,8 +545,11 @@ static int sprd_pcm_close(struct snd_pcm_substream *substream)
 	struct audio_pm_dma *pm_dma;
 
 	pm_dma = get_pm_dma();
-	pr_info("%s Close %s\n", sprd_dai_pcm_name(srtd->cpu_dai),
+	pr_info("%s %s Close %s\n", __func__, sprd_dai_pcm_name(srtd->cpu_dai),
 			PCM_DIR_NAME(substream->stream));
+	if (!rtd)
+		return -EINVAL;
+
 	mutex_lock(&pm_dma->pm_mtx_cnt);
 	if (!sprd_is_normal_playback(srtd->cpu_dai->id,
 		substream->stream)) {
@@ -939,12 +942,12 @@ static int sprd_pcm_config_dma(struct snd_pcm_substream *substream,
 				(unsigned long)audio_addr_ap2dsp(DDR32,
 				(rtd->dma_cfg_phy[i]), 0);
 
-		pr_info("src_dw=%d, dst_dw=%d frag=%lx, burst:%d, slave_id=%d, ll_cfg_virt_addr=%p, ll_cfg_phy_addr=%ld ,dst_addr:%ld, src_addr:%ld,chan=%d\n",
+		pr_info("src_dw=%d, dst_dw=%d frag=%lx, burst:%d, slave_id=%d, step=%d, ll_cfg_virt_addr=%p, ll_cfg_phy_addr=%ld ,dst_addr:%ld, src_addr:%ld,chan=%d\n",
 			(int)cfg->config.src_addr_width,
 			(int)cfg->config.dst_addr_width,
 			cfg->dma_config_flag,
 			(int)cfg->config.src_maxburst, cfg->config.slave_id,
-			 (void *)cfg->ll_cfg.virt_addr,
+			(int)cfg->config.src_port_window_size, (void *)cfg->ll_cfg.virt_addr,
 			(unsigned long)cfg->ll_cfg.phy_addr,
 			(unsigned long)cfg->config.dst_addr,
 			(unsigned long)cfg->config.src_addr, i);
@@ -1680,6 +1683,9 @@ static int sprd_soc_platform_remove(struct platform_device *pdev)
 #ifdef CONFIG_OF
 static const struct of_device_id sprd_pcm_of_match[] = {
 	{.compatible = "unisoc,sharkl5-pcm-platform",},
+	{.compatible = "unisoc,roc1-pcm-platform",},
+	{.compatible = "unisoc,qogirl6-pcm-platform",},
+	{.compatible = "unisoc,qogirn6pro-pcm-platform",},
 	{},
 };
 
