@@ -72,12 +72,14 @@ MODULE_ALIAS("mmc:block");
 #define mmc_req_rel_wr(req)	((req->cmd_flags & REQ_FUA) && \
 				  (rq_data_dir(req) == WRITE))
 
+#if defined(CONFIG_EMMC_SOFTWARE_CQ_SUPPORT)
 /* emmc soft cmdq enabled if part idx <= PART_CMDQ_EN
  * user:  0
  * boot1: 1
  * boot2: 2
  */
 #define PART_CMDQ_EN 0
+#endif
 
 
 static DEFINE_MUTEX(block_mutex);
@@ -114,7 +116,9 @@ struct mmc_blk_data {
 	unsigned int	flags;
 #define MMC_BLK_CMD23	(1 << 0)	/* Can do SET_BLOCK_COUNT for multiblock */
 #define MMC_BLK_REL_WR	(1 << 1)	/* MMC Reliable write support */
+#if defined(CONFIG_EMMC_SOFTWARE_CQ_SUPPORT)
 #define MMC_BLK_CMD_QUEUE	(1 << 3) /* MMC command queue support*/
+#endif
 
 	unsigned int	usage;
 	unsigned int	read_only;
@@ -1619,10 +1623,9 @@ static enum mmc_blk_status mmc_blk_err_check(struct mmc_card *card,
 	int need_retune = card->host->need_retune;
 	bool ecc_err = false;
 	bool gen_err = false;
-	bool cmdq_en = false;
 
 #ifdef CONFIG_EMMC_SOFTWARE_CQ_SUPPORT
-	cmdq_en = mmc_card_cmdq(card);
+	bool cmdq_en = mmc_card_cmdq(card);
 #endif
 
 	/*
@@ -1635,7 +1638,10 @@ static enum mmc_blk_status mmc_blk_err_check(struct mmc_card *card,
 	 * stop.error indicates a problem with the stop command.  Data
 	 * may have been transferred, or may still be transferring.
 	 */
-	if (!cmdq_en) {
+	#ifdef CONFIG_EMMC_SOFTWARE_CQ_SUPPORT
+	if (!cmdq_en)
+	#endif
+	{
 		mmc_blk_eval_resp_error(brq);
 
 		if (brq->sbc.error || brq->cmd.error ||
@@ -1669,8 +1675,13 @@ static enum mmc_blk_status mmc_blk_err_check(struct mmc_card *card,
 	 * kind.  If it was a write, we may have transitioned to
 	 * program mode, which we have to wait for it to complete.
 	 */
+#ifdef CONFIG_EMMC_SOFTWARE_CQ_SUPPORT
 	if (!mmc_host_is_spi(card->host) && rq_data_dir(req) != READ
-		&& !cmdq_en) {
+		&& !cmdq_en)
+#else
+	if (!mmc_host_is_spi(card->host) && rq_data_dir(req) != READ)
+#endif
+	{
 		int err;
 
 		/* Check stop command response */
@@ -2042,6 +2053,11 @@ static void mmc_blk_issue_rw_rq(struct mmc_queue *mq, struct request *new_req)
 		mqrq_cur = req_to_mmc_queue_req(new_req);
 		atomic_inc(&mq->qcnt);
 	}
+#ifdef CONFIG_EMMC_SOFTWARE_CQ_SUPPORT
+	if (mmc_card_cmdq(card))
+		mqrq_cur->sg =
+			mq->mqrq[atomic_read(&mqrq_cur->index) - 1].sg;
+#endif
 
 	if (!atomic_read(&mq->qcnt))
 		return;
@@ -2226,6 +2242,8 @@ bool mmc_blk_part_cmdq_en(struct mmc_queue *mq)
 	struct mmc_blk_data *md = mq->blkdata;
 	struct mmc_card *card = md->queue.card;
 
+	if (!md)
+		return false;
 	/* enable cmdq at support partition */
 	if (card->ext_csd.cmdq_support
 		&& md->part_type <= PART_CMDQ_EN)
