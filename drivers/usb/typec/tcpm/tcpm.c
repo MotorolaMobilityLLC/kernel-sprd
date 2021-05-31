@@ -286,6 +286,8 @@ struct tcpm_port {
 	unsigned int nr_src_pdo;
 	u32 snk_pdo[PDO_MAX_OBJECTS];
 	unsigned int nr_snk_pdo;
+	u32 snk_default_pdo[PDO_MAX_OBJECTS];
+	unsigned int nr_snk_default_pdo;
 	u32 snk_vdo[VDO_MAX_OBJECTS];
 	unsigned int nr_snk_vdo;
 
@@ -3745,6 +3747,12 @@ static void _tcpm_cc_change(struct tcpm_port *port, enum typec_cc_status cc1,
 
 static void _tcpm_pd_vbus_on(struct tcpm_port *port)
 {
+	int i;
+
+	port->nr_snk_pdo = port->nr_snk_default_pdo;
+	for (i = 0; i < port->nr_snk_default_pdo; i++)
+		port->snk_pdo[i] = port->snk_default_pdo[i];
+
 	tcpm_log_force(port, "VBUS on");
 	port->vbus_present = true;
 	switch (port->state) {
@@ -4368,7 +4376,7 @@ static int tcpm_fw_get_caps(struct tcpm_port *port,
 			    struct fwnode_handle *fwnode)
 {
 	const char *cap_str;
-	int ret;
+	int ret, i;
 	u32 mw;
 
 	if (!fwnode)
@@ -4431,6 +4439,10 @@ sink:
 	if ((ret < 0) || tcpm_validate_caps(port, port->snk_pdo,
 					    port->nr_snk_pdo))
 		return -EINVAL;
+
+	port->nr_snk_default_pdo = port->nr_snk_pdo;
+	for (i = 0; i < port->nr_snk_default_pdo; i++)
+		port->snk_default_pdo[i] = port->snk_pdo[i];
 
 	if (fwnode_property_read_u32(fwnode, "op-sink-microwatt", &mw) < 0)
 		return -EINVAL;
