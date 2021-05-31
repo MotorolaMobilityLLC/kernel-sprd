@@ -1173,6 +1173,8 @@ static bool is_full_charged(struct charger_manager *cm)
 	/* If there is no battery, it cannot be charged */
 	if (!is_batt_present(cm))
 		return false;
+	if(!cm->charger_enabled)
+		return false;
 
 	fuel_gauge = power_supply_get_by_name(cm->desc->psy_fuel_gauge);
 	if (!fuel_gauge)
@@ -4781,6 +4783,7 @@ static void cm_batt_works(struct work_struct *work)
 	if( (!charge_done)  && term_vol >4000000 && batt_ocV >(term_vol - 100000) &&  check_charge_done(cm)  )
 	{		
 		charge_done = true;
+		is_cal_cap = 1;
 		dev_err(cm->dev, "%s;full;fuel_cap=%d, ui cap=%d\n",__func__,
 			 fuel_cap, cm->desc->cap);
 		if( term_vol >= 4400000)
