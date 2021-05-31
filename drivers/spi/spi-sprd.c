@@ -92,6 +92,10 @@
 #define RXF_FULL_THLD_MASK		GENMASK(4, 0)
 #define RXF_THLD_OFFSET			8
 
+/* Bits & mask definition for register CTL4 */
+#define SPRD_SPI_START_RX		BIT(9)
+#define SPRD_SPI_ONLY_RECV_MASK		GENMASK(8, 0)
+
 /* Bits & mask definition for register CTL5 */
 #define SPRD_SPI_ITVL_NUM		0x09
 
@@ -342,6 +346,28 @@ static void sprd_spi_chipselect(struct spi_device *sdev, bool cs)
 	}
 }
 
+static int sprd_spi_write_only_receive(struct sprd_spi *ss, u32 len)
+{
+	u32 val;
+
+	/* Clear the start receive bit and reset receive data number */
+	val = readl_relaxed(ss->base + SPRD_SPI_CTL4);
+	val &= ~(SPRD_SPI_START_RX | SPRD_SPI_ONLY_RECV_MASK);
+	writel_relaxed(val, ss->base + SPRD_SPI_CTL4);
+
+	/* Set the receive data length */
+	val = readl_relaxed(ss->base + SPRD_SPI_CTL4);
+	val |= len & SPRD_SPI_ONLY_RECV_MASK;
+	writel_relaxed(val, ss->base + SPRD_SPI_CTL4);
+
+	/* Trigger to receive data */
+	val = readl_relaxed(ss->base + SPRD_SPI_CTL4);
+	val |= SPRD_SPI_START_RX;
+	writel_relaxed(val, ss->base + SPRD_SPI_CTL4);
+
+	return len;
+}
+
 static int sprd_spi_write_bufs_u8(struct sprd_spi *ss, u32 len)
 {
 	u8 *tx_p = (u8 *)ss->tx_buf;
@@ -417,32 +443,13 @@ static int sprd_spi_read_bufs_u32(struct sprd_spi *ss, u32 len)
 static int sprd_spi_txrx_bufs(struct spi_device *sdev, struct spi_transfer *t)
 {
 	struct sprd_spi *ss = spi_controller_get_devdata(sdev->controller);
-	u32 trans_len = ss->trans_len, len, *tmp_txbuf = NULL, val;
+	u32 trans_len = ss->trans_len, len;
 	int ret = 0, write_size = 0, read_size = 0;
-
-	/*
-	 * For RX mode only, we need to alloc and send a all 0 or
-	 * all 1 tx_buf and enable SPI TX mode to provide clk.
-	 */
-	if (!(ss->trans_mode & SPRD_SPI_TX_MODE)) {
-		tmp_txbuf = kzalloc(trans_len, GFP_ATOMIC);
-		if (!tmp_txbuf) {
-			ret = -ENOMEM;
-			dev_err(ss->dev,
-				"failed to alloc tmp_txbuf, ret = %d\n",
-				ret);
-			goto complete;
-		}
-		ss->tx_buf = tmp_txbuf;
-		val = readl_relaxed(ss->base + SPRD_SPI_CTL1);
-		writel_relaxed(val | SPRD_SPI_TX_MODE,
-					ss->base + SPRD_SPI_CTL1);
-	}
 
 	while (trans_len) {
 		len = trans_len > SPRD_SPI_FIFO_SIZE ? SPRD_SPI_FIFO_SIZE :
 			trans_len;
-		if (!(ss->trans_mode & SPRD_SPI_RX_MODE)) {
+		if (ss->trans_mode == SPRD_SPI_TX_MODE) {
 			/* The SPI device is used for TX mode only.*/
 			sprd_spi_set_tx_length(ss, len);
 			write_size += ss->write_bufs(ss, len);
@@ -457,10 +464,10 @@ static int sprd_spi_txrx_bufs(struct spi_device *sdev, struct spi_transfer *t)
 			ret = sprd_spi_wait_for_tx_end(ss, t);
 			if (ret)
 				goto complete;
-		} else if (!(ss->trans_mode & SPRD_SPI_TX_MODE)) {
+		} else if (ss->trans_mode == SPRD_SPI_RX_MODE) {
 			/* The SPI device is used for RX mode only.*/
-			sprd_spi_set_tx_length(ss, len);
 			sprd_spi_set_rx_length(ss, len);
+
 			/*
 			 * For our 3 wires mode or dual TX line mode, we need
 			 * to request the controller to read.
@@ -491,12 +498,10 @@ static int sprd_spi_txrx_bufs(struct spi_device *sdev, struct spi_transfer *t)
 		trans_len -= len;
 	}
 
-	if (!(ss->trans_mode & SPRD_SPI_TX_MODE)) {
-		kfree(tmp_txbuf);
-		ss->tx_buf = NULL;
-		ret = read_size;
-	} else
+	if (ss->trans_mode & SPRD_SPI_TX_MODE)
 		ret = write_size;
+	else
+		ret = read_size;
 
 complete:
 	sprd_spi_enter_idle(ss);
@@ -927,6 +932,13 @@ static int sprd_spi_setup_transfer(struct spi_device *sdev,
 	writel_relaxed(val | mode, ss->base + SPRD_SPI_CTL1);
 
 	ss->trans_mode = mode;
+
+	/*
+	 * If in only receive mode, we need to trigger the SPI controller to
+	 * receive data automatically.
+	 */
+	if (ss->trans_mode == SPRD_SPI_RX_MODE)
+		ss->write_bufs = sprd_spi_write_only_receive;
 
 	return 0;
 }
