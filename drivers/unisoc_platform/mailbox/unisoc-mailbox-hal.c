@@ -126,7 +126,7 @@ static void put_msg_in_tx_fifo(unsigned long id, void *msg)
 	pos = wt % SPRD_MBOX_TX_FIFO_LEN;
 
 	if ((rd != wt) && (rd % SPRD_MBOX_TX_FIFO_LEN == pos)) {
-		pr_err("tx_fifo full, drop msg, dst = %d, rd =%d, wt = %d\n",
+		pr_err("tx_fifo full, drop msg, dst = %ld, rd =%d, wt = %d\n",
 		       id, rd, wt);
 		return;
 	}
@@ -205,7 +205,7 @@ static int sprd_mbox_flush(struct mbox_chan *chan, unsigned long timeout)
 {
 	struct sprd_mbox_priv *priv = to_sprd_mbox_priv(chan->mbox);
 
-	dev_info(priv->dev, "flush chan%d\n", (unsigned long)chan->con_priv);
+	dev_info(priv->dev, "flush chan%ld\n", (unsigned long)chan->con_priv);
 	return priv->phy_ops->flush(chan, timeout);
 }
 

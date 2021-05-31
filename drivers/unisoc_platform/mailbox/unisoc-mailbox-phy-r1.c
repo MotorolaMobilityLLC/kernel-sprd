@@ -101,7 +101,7 @@ static int sprd_mbox_debug_show(struct seq_file *m, void *private)
 	seq_printf(m, "INBOX_IRQ : %d\n", priv->inbox_irq);
 	seq_printf(m, "OUTBOX_IRQ : %d\n", priv->outbox_irq);
 	seq_printf(m, "OOB_IRQ : %d\n", priv->oob_irq);
-	seq_printf(m, "OOB_ID : %d\n", priv->oob_id);
+	seq_printf(m, "OOB_ID : %ld\n", priv->oob_id);
 	seq_printf(m, "VERSION : 0x%x\n", priv->version);
 
 	for (i = 0; i < SPRD_MBOX_CHAN_MAX; i++) {
@@ -297,7 +297,7 @@ static int sprd_mbox_phy_send(struct mbox_chan *chan, void *msg)
 
 	ret = check_mbox_chan_state(chan);
 	if (ret) {
-		dev_dbg(priv->dev, "chan %d is blocked\n", id);
+		dev_dbg(priv->dev, "chan %ld is blocked\n", id);
 		return ret;
 	}
 
@@ -380,7 +380,7 @@ static void sprd_mbox_process_rx_fifo(struct mbox_chan *chan)
 			continue;
 		}
 		if (chan->cl && (id == target_id)) {
-			dev_dbg(priv->dev, "chan%d, receive data[%d] from rx_fifo\n", id, i);
+			dev_dbg(priv->dev, "chan%ld, receive data[%d] from rx_fifo\n", id, i);
 			mbox_chan_received_data(chan, &mbox_rx_fifo[i].msg);
 			mbox_rx_fifo[i].core_id = SPRD_MBOX_CHAN_MAX;
 			cnt++;
