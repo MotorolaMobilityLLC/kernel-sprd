@@ -99,6 +99,7 @@ void mmc_do_stop(struct mmc_host *host);
 void mmc_do_status(struct mmc_host *host);
 void mmc_wait_cmdq_done(struct mmc_request *mrq);
 int mmc_cmd_queue_thread(void *data);
+extern int mmc_blk_cmdq_switch(struct mmc_card *card, int enable);
 #endif
 
 int mmc_execute_tuning(struct mmc_card *card);
@@ -143,7 +144,6 @@ void mmc_get_card(struct mmc_card *card);
 void mmc_put_card(struct mmc_card *card);
 int mmc_try_claim_host(struct mmc_host *host, unsigned int delay);
 
-extern int mmc_blk_cmdq_switch(struct mmc_card *card, int enable);
 /**
  *	mmc_claim_host - exclusively claim a host
  *	@host: mmc host to claim
