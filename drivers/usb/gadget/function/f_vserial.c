@@ -51,28 +51,6 @@
 #define LOOP_TEST		0x03
 
 #if IS_ENABLED(CONFIG_USB_F_VSERIAL_BYPASS_USER)
-int in_iqmode(void)
-{
-	struct device_node *cmdline_node;
-	const char *cmdline, *mode;
-	int ret;
-
-	cmdline_node = of_find_node_by_path("/chosen");
-	ret = of_property_read_string(cmdline_node, "bootargs", &cmdline);
-
-	if (ret) {
-		pr_err("Can't not parse bootargs\n");
-		return 0;
-	}
-
-	mode = strstr(cmdline, "androidboot.mode=iq");
-
-	if (mode)
-		return 1;
-	else
-		return 0;
-}
-
 static void (*bulk_in_complete_function)(char *buffer,
 					 unsigned int length, void *p);
 static void *s_callback_data;
