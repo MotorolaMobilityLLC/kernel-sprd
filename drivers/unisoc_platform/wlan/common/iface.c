@@ -899,6 +899,55 @@ out:
 	return ret;
 }
 
+static int iface_set_ndev_mac(struct net_device *ndev, struct ifreq *ifr)
+{
+	struct sprd_vif *vif = netdev_priv(ndev);
+	struct android_wifi_priv_cmd priv_cmd;
+	char *command = NULL;
+	int ret = 0;
+	u8 addr[ETH_ALEN] = { 0 };
+
+	if (!ifr->ifr_data)
+		return -EINVAL;
+	if (copy_from_user(&priv_cmd, ifr->ifr_data, sizeof(priv_cmd)))
+		return -EFAULT;
+
+	/* add length check to avoid invalid NULL ptr */
+	if (!priv_cmd.total_len) {
+		netdev_info(ndev, "%s: priv cmd total len is invalid\n",
+			    __func__);
+		return -EINVAL;
+	}
+
+
+	command = kmalloc(priv_cmd.total_len, GFP_KERNEL);
+	if (!command)
+		return -ENOMEM;
+	if (copy_from_user(command, priv_cmd.buf, priv_cmd.total_len)) {
+		ret = -EFAULT;
+		goto out;
+	}
+
+	memcpy(addr, command, ETH_ALEN);
+	netdev_info(ndev, "Device addr of '%s' is %pM\n", ndev->name, addr);
+	if (is_multicast_ether_addr(addr) || is_zero_ether_addr(addr)) {
+		netdev_err(ndev, "%s invalid addr\n", __func__);
+		ret = -EINVAL;
+		goto out;
+	}
+
+	ether_addr_copy(ndev->dev_addr, addr);
+	ether_addr_copy(ndev->perm_addr, ndev->dev_addr);
+	ether_addr_copy(vif->wdev.address, addr);
+	ether_addr_copy(vif->priv->default_mac, addr);
+	ether_addr_copy(vif->mac, addr);
+
+out:
+	kfree(command);
+	return ret;
+}
+
+
 static int iface_ioctl(struct net_device *ndev, struct ifreq *req, int cmd)
 {
 	struct sprd_vif *vif = netdev_priv(ndev);
@@ -918,6 +967,8 @@ static int iface_ioctl(struct net_device *ndev, struct ifreq *req, int cmd)
 		return sprd_set_vowifi(priv, ndev, req);
 	case SPRDWLSETP2PMAC:
 		return iface_set_p2p_mac(ndev, req);
+	case SPRDWLSETNDEVMAC:
+		return iface_set_ndev_mac(ndev, req);
 	default:
 		netdev_err(ndev, "Unsupported IOCTL %d\n", cmd);
 		return -ENOTSUPP;
@@ -936,7 +987,7 @@ static int iface_set_mac(struct net_device *dev, void *addr)
 		return -EINVAL;
 	}
 
-	netdev_info(dev, "start set random mac: %pM\n", sa->sa_data);
+	netdev_info(dev, "%s() receive mac: %pM\n", __func__, sa->sa_data);
 	if (is_multicast_ether_addr(sa->sa_data)) {
 		netdev_err(dev, "invalid, it is multicast addr: %pM\n",
 			   sa->sa_data);
