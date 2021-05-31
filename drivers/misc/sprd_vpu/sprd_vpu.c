@@ -104,7 +104,7 @@ static long vpu_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	struct iommu_map_data ummapdata;
 	struct clock_name_map_t *clock_name_map = data->clock_name_map;
 
-	dev_info(dev, "%s, ioctl", data->p_data->name);
+	dev_dbg(dev, "%s, ioctl", data->p_data->name);
 
 	switch (cmd) {
 	case VPU_CONFIG_FREQ:
@@ -314,6 +314,11 @@ static int vpu_parse_dt(struct vpu_platform_data *data)
 	uint32_t syscon_args[2];
 
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+	if (!res) {
+		dev_err(&pdev->dev, "Failed to get vpu resource\n");
+		return -ENXIO;
+	}
+
 	data->vpu_base = devm_ioremap_resource(&pdev->dev, res);
 	data->phys_addr = res->start;
 	data->glb_reg_base = data->vpu_base + 0x1000;
@@ -425,8 +430,10 @@ static int vpu_probe(struct platform_device *pdev)
 	struct vpu_platform_data *vpu_core;
 
 	vpu_core = devm_kzalloc(&pdev->dev, sizeof(*vpu_core), GFP_KERNEL);
-	match = of_match_node(of_match_table_vpu, node);
+	if (!vpu_core)
+		return -ENOMEM;
 
+	match = of_match_node(of_match_table_vpu, node);
 	if (match) {
 		vpu_core->p_data = (struct core_data *)match->data;
 		dev_info(dev, "vpu probed: %s", vpu_core->p_data->name);
@@ -450,9 +457,18 @@ static int vpu_probe(struct platform_device *pdev)
 	vpu_core->mdev.parent = NULL;
 
 	ret = misc_register(&vpu_core->mdev);
+	if (ret) {
+		dev_err(&pdev->dev, "vpu misc_register failed\n");
+		return ret;
+	}
 
 	ret = devm_request_irq(&pdev->dev, vpu_core->irq, vpu_core->p_data->isr,
 		0, vpu_core->p_data->name, vpu_core);
+	if (ret) {
+		dev_err(&pdev->dev, "Failed to request 'vpu_core' IRQ: %d\n", ret);
+		misc_deregister(&vpu_core->mdev);
+		return ret;
+	}
 
 	sema_init(&vpu_core->vpu_mutex, 1);
 	wakeup_source_init(&vpu_core->vpu_wakelock, "pm_message_wakelock_vpu");
