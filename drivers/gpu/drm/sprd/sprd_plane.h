@@ -35,6 +35,7 @@ struct sprd_layer_state {
 	u32 y2r_coef;
 	u8 pallete_en;
 	u32 pallete_color;
+	u32 secure_en;
 };
 
 struct sprd_plane_state {
@@ -50,6 +51,7 @@ struct sprd_plane {
 	struct drm_property *y2r_coef_property;
 	struct drm_property *pallete_en_property;
 	struct drm_property *pallete_color_property;
+	struct drm_property *secure_en_property;
 	u32 index;
 };
 

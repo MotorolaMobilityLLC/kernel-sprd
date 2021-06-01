@@ -9,6 +9,8 @@ sprd-drm-y := \
 	sprd_plane.o \
 	disp_lib.o
 
+sprd-drm-$(CONFIG_TRUSTY_VIRTIO_IPC) += disp_trusty.o
+
 sprd-drm-$(CONFIG_DRM_SPRD_DUMMY) += \
 	dummy/dummy_crtc.o \
 	dummy/dummy_connector.o

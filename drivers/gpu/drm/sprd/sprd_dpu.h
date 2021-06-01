@@ -19,6 +19,7 @@
 #include "sprd_crtc.h"
 #include "sprd_plane.h"
 #include "disp_lib.h"
+#include "disp_trusty.h"
 
 enum {
 	SPRD_DPU_IF_DBI = 0,
@@ -146,15 +147,20 @@ struct dpu_context {
 
 	u32 prev_y2r_coef;
 
-	/* corner config parameter */
+	/* corner config parameters */
 	u32 corner_size;
 	int sprd_corner_radius;
 	bool sprd_corner_support;
 
 	unsigned int *layer_top;
 	unsigned int *layer_bottom;
-	
+
 	int dpi_clk_div;
+
+	/* widevine config parameters */
+	int secure_debug;
+	int time;
+	struct disp_message tos_msg;
 };
 
 struct sprd_dpu_ops {

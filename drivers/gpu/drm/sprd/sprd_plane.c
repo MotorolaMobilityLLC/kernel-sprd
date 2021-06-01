@@ -202,6 +202,8 @@ static int sprd_plane_atomic_set_property(struct drm_plane *drm_plane,
 		layer->pallete_en = val;
 	else if (property == plane->pallete_color_property)
 		layer->pallete_color = val;
+	else if (property == plane->secure_en_property)
+		layer->secure_en = val;
 	else {
 		DRM_ERROR("property %s is invalid\n", property->name);
 		return -EINVAL;
@@ -233,6 +235,8 @@ static int sprd_plane_atomic_get_property(struct drm_plane *drm_plane,
 		*val = layer->pallete_en;
 	else if (property == plane->pallete_color_property)
 		*val = layer->pallete_color;
+	else if (property == plane->secure_en_property)
+		*val = layer->secure_en;
 	else {
 		DRM_ERROR("property %s is invalid\n", property->name);
 		return -EINVAL;
@@ -319,6 +323,14 @@ static int sprd_plane_create_properties(struct sprd_plane *plane, int index)
 		return -ENOMEM;
 	drm_object_attach_property(&plane->base.base, prop, 0);
 	plane->pallete_color_property = prop;
+
+	/* create secure enable property */
+	prop = drm_property_create_range(plane->base.dev, 0,
+			"secure enable", 0, UINT_MAX);
+	if (!prop)
+		return -ENOMEM;
+	drm_object_attach_property(&plane->base.base, prop, 0);
+	plane->secure_en_property = prop;
 
 	return 0;
 }
