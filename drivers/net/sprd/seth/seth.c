@@ -64,6 +64,8 @@
 
 #define SETH_NAME_SIZE 16
 
+#define SMSG_EVENT_SBLOCK_SEND	0x1
+
 /* Struct of data transfer statistics */
 struct seth_dtrans_stats {
 	u32 rx_pkt_max;
@@ -840,6 +842,15 @@ static void seth_setup(struct net_device *dev)
 	dev->flags &= ~(IFF_BROADCAST | IFF_MULTICAST);
 }
 
+static void seth_recv_handler(const struct smsg *msg, void *data)
+{
+	if (((msg->channel >= SMSG_CH_DATA0 && msg->channel <= SMSG_CH_DATA2) ||
+	    (msg->channel >= SMSG_CH_DATA3 && msg->channel <= SMSG_CH_DATA5) ||
+	    (msg->channel >= SMSG_CH_DATA6 && msg->channel <= SMSG_CH_DATA13)) &&
+	     msg->type == SMSG_TYPE_EVENT && msg->flag == SMSG_EVENT_SBLOCK_SEND)
+		seth_handler(SBLOCK_NOTIFY_RECV, data);
+}
+
 static int seth_probe(struct platform_device *pdev)
 {
 	struct seth_init_data *pdata = pdev->dev.platform_data;
@@ -910,7 +921,6 @@ static int seth_probe(struct platform_device *pdev)
 		free_netdev(netdev);
 		return ret;
 	}
-
 	ret = SBLOCK_REGISTER_NOTIFIER(pdata->dst, pdata->channel,
 				       seth_handler, seth);
 
@@ -921,6 +931,7 @@ static int seth_probe(struct platform_device *pdev)
 		SBLOCK_DESTROY(pdata->dst, pdata->channel);
 		return ret;
 	}
+	smsg_callback_register(pdata->dst, seth_recv_handler, seth);
 
 	/* Register new Ethernet interface */
 	ret = register_netdev(netdev);

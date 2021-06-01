@@ -242,9 +242,18 @@ enum {
 	SMSG_TYPE_NR,		/* total type number */
 };
 
+struct smsg_callback_t {
+	void (*callback)(const struct smsg  *msg, void *data);
+	void *data;
+};
+
 /* flag for OPEN/CLOSE msg type */
 #define	SMSG_OPEN_MAGIC		0xBEEE
 #define	SMSG_CLOSE_MAGIC	0xEDDD
+
+void smsg_callback_register(u8 dst,
+			void (*callback)(const struct smsg *msg, void *data),
+			void *data);
 
 /**
 * sipc_get_wakeup_flag

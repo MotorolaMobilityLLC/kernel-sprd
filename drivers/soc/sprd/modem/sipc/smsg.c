@@ -59,12 +59,10 @@
 #define HIGH_OFFSET_FLAG (0xFEFE)
 
 static u8 g_wakeup_flag;
+static struct smsg_callback_t smsg_callback[SIPC_ID_NR];
 
 struct smsg_ipc *smsg_ipcs[SIPC_ID_NR];
 EXPORT_SYMBOL_GPL(smsg_ipcs);
-
-struct sipx_channel *sipx_chan_record[SMSG_CH_NR + 1];
-EXPORT_SYMBOL_GPL(sipx_chan_record);
 
 static u8 channel2index[SMSG_CH_NR + 1];
 
@@ -73,7 +71,6 @@ static int smsg_ipc_smem_init(struct smsg_ipc *ipc);
 void smsg_init_channel2index(void)
 {
 	u16 i, j;
-
 	for (i = 0; i < ARRAY_SIZE(channel2index); i++) {
 		for (j = 0; j < SMSG_VALID_CH_NR; j++) {
 			/* find the index of channel i */
@@ -91,13 +88,24 @@ void smsg_init_channel2index(void)
 	}
 }
 
+void smsg_callback_register(u8 dst,
+			void (*callback)(const struct smsg *msg, void *data),
+			void *data)
+{
+	smsg_callback[dst].callback = callback;
+	smsg_callback[dst].data = data;
+}
+EXPORT_SYMBOL_GPL(smsg_callback_register);
+
 void smsg_msg_process(struct smsg_ipc *ipc, struct smsg *msg, bool wake_lock)
 {
 	struct smsg_channel *ch = NULL;
+	struct smsg_callback_t *callback_handler;
 	u32 wr;
 	u8 ch_index;
 
 	ch_index = channel2index[msg->channel];
+	callback_handler = &smsg_callback[ipc->dst];
 	atomic_inc(&ipc->busy[ch_index]);
 
 	pr_debug("smsg:get dst=%d msg channel=%d, type=%d, flag=0x%04x, value=0x%08x\n",
@@ -150,15 +158,9 @@ void smsg_msg_process(struct smsg_ipc *ipc, struct smsg *msg, bool wake_lock)
 		SIPC_WRITEL(SIPC_READL(ch->wrptr) + 1, ch->wrptr);
 	}
 
-	if (((msg->channel >= SMSG_CH_DATA0 && msg->channel <= SMSG_CH_DATA2) ||
-	    (msg->channel >= SMSG_CH_DATA3 && msg->channel <= SMSG_CH_DATA5) ||
-	    (msg->channel >= SMSG_CH_DATA6 && msg->channel <= SMSG_CH_DATA13)) &&
-	    msg->type == SMSG_TYPE_EVENT && msg->flag == SMSG_EVENT_SBLOCK_SEND) {
-		if (sipx_chan_record[msg->channel]->handler)
-			sipx_chan_record[msg->channel]->handler(
-				   SBLOCK_NOTIFY_RECV,
-				   sipx_chan_record[msg->channel]->data);
-	}
+	if (callback_handler->callback)
+		callback_handler->callback(msg, callback_handler->data);
+
 	wake_up_interruptible_all(&ch->rxwait);
 
 	if (wake_lock)
@@ -305,7 +307,6 @@ void smsg_ipc_create(struct smsg_ipc *ipc)
 	pr_info("%s\n", ipc->name);
 
 	smsg_ipcs[ipc->dst] = ipc;
-
 	smsg_ipc_mpm_init(ipc);
 	smsg_ipc_smem_init(ipc);
 }

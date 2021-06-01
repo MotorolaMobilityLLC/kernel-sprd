@@ -74,6 +74,8 @@ static struct device *sipx_dev;
 static int  sipx_init_debugfs(void *root);
 #endif
 
+static struct sipx_channel *sipx_chan_record[SMSG_CH_NR + 1];
+
 #if defined(CONFIG_DEBUG_FS)
 
 static int sipx_debug_show(struct seq_file *m, void *private)

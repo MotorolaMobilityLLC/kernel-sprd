@@ -39,8 +39,6 @@ struct smem_item {
 };
 extern struct smsg_ipc *smsg_ipcs[];
 
-extern struct sipx_channel *sipx_chan_record[];
-
 #define SMSG_CACHE_NR		256
 
 struct smsg_channel {
