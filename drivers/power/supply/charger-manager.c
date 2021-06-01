@@ -7140,13 +7140,13 @@ void cm_notify_event(struct power_supply *psy, enum cm_event_types type,
 	list_for_each_entry(cm, &cm_list, entry) {
 		if (match_string(cm->desc->psy_charger_stat, -1,
 				 psy->desc->name) >= 0 ||
+		    match_string(&cm->desc->psy_fuel_gauge,
+				 -1, psy->desc->name) >= 0 ||		 
 		    match_string(cm->desc->psy_fast_charger_stat,
 				 -1, psy->desc->name) >= 0 ||
 		    match_string(cm->desc->psy_cp_stat,
 				 -1, psy->desc->name) >= 0 ||
 		    match_string(cm->desc->psy_wl_charger_stat,
-				 -1, psy->desc->name) >= 0 ||
-		    match_string(&cm->desc->psy_fuel_gauge,
 				 -1, psy->desc->name) >= 0) {
 			found_power_supply = true;
 			break;
