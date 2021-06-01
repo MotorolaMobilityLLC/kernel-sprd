@@ -60,6 +60,89 @@ static const char *sipc_channel_tostr(int channel)
 	}
 }
 
+static int sc2332_reset(struct sprd_hif *hif)
+{
+	struct sprd_priv *priv = NULL;
+	struct sprd_vif *vif, *tmp;
+
+	if (!hif) {
+		pr_err("%s can not get hif!\n", __func__);
+		return -1;
+	}
+
+	priv = hif->priv;
+	if (!priv) {
+		pr_err("%s can not get priv!\n", __func__);
+		return -1;
+	}
+
+	/* need reset hif->exit flag, if wcn reset happened */
+	if (unlikely(hif->exit)) {
+		hif->exit = 0;
+		pr_info("%s reset hif->exit flag:%d!\n", __func__, hif->exit);
+	}
+
+	/* need reset hif->cp_assert flag */
+	if (unlikely(hif->cp_asserted)) {
+		hif->cp_asserted = 0;
+		pr_info("%s reset hif->cp_asserted flag:%d!\n", __func__,
+			hif->cp_asserted);
+	}
+
+	list_for_each_entry_safe(vif, tmp, &priv->vif_list, vif_node) {
+		int ciphyr_type, key_index;
+		int ciphyr_type_max = 2, key_index_max = 4;
+		/* check connect state */
+		if (vif->mode == SPRD_MODE_STATION ||
+		    vif->mode == SPRD_MODE_P2P_CLIENT) {
+			if (vif->sm_state == SPRD_DISCONNECTING ||
+			    vif->sm_state == SPRD_CONNECTING ||
+			    vif->sm_state == SPRD_CONNECTED) {
+				pr_info("%s check connection state for sta or p2p gc\n", __func__);
+				pr_info("vif->mode : %d, vif->sm_state : %d\n",
+					vif->mode, vif->sm_state);
+				cfg80211_disconnected(vif->ndev, 0, NULL, 0,
+						      false, GFP_KERNEL);
+				vif->sm_state = SPRD_DISCONNECTED;
+			}
+		}
+
+		if (vif->mode == SPRD_MODE_AP) {
+			pr_info("softap mode, reset iftype to station, before reset:%d\n",
+				vif->wdev.iftype);
+			vif->wdev.iftype = NL80211_IFTYPE_STATION;
+			pr_info("after reset iftype:%d\n", vif->wdev.iftype);
+		}
+		if (vif->mode != SPRD_MODE_NONE) {
+			pr_info("need reset mode to none: %d\n", vif->mode);
+			vif->state &= ~VIF_STATE_OPEN;
+			vif->mode = SPRD_MODE_NONE;
+		}
+
+		/* reset ssid & bssid */
+		memset(vif->bssid, 0, sizeof(vif->bssid));
+		memset(vif->ssid, 0, sizeof(vif->ssid));
+		vif->ssid_len = 0;
+		vif->prwise_crypto = SPRD_CIPHER_NONE;
+		vif->grp_crypto = SPRD_CIPHER_NONE;
+
+		for (ciphyr_type = 0; ciphyr_type < ciphyr_type_max; ciphyr_type++) {
+			vif->key_index[ciphyr_type] = 0;
+			for (key_index = 0; key_index < key_index_max; key_index++) {
+				memset(vif->key[ciphyr_type][key_index], 0x00,
+				       WLAN_MAX_KEY_LEN);
+				vif->key_len[ciphyr_type][key_index] = 0;
+			}
+		}
+	}
+
+	/* flush cmd and data buffer */
+	pr_info("%s flust all tx list\n", __func__);
+	sc2332_flush_all_txlist(hif);
+
+	return 0;
+}
+
 static int sipc_reserv_len(struct sprd_hif *hif)
 {
 	return SPRD_SIPC_RESERV_LEN;
@@ -601,6 +684,10 @@ int sipc_init(struct sprd_hif *hif)
 	if (ret)
 		goto err_sblock_init;
 
+	hif->cp_asserted = 0;
+	hif->exit = 0;
+	hif->remove_flag = 0;
+
 	return 0;
 
 err_sblock_init:
@@ -620,6 +707,7 @@ err_tx_list0:
 void sipc_deinit(struct sprd_hif *hif)
 {
 	hif->exit = 1;
+	hif->remove_flag = 1;
 
 	sblock_register_notifier(WLAN_CP_ID, SPRD_SBLOCK_DATA1, NULL, NULL);
 	sblock_register_notifier(WLAN_CP_ID, SPRD_SBLOCK_DATA0, NULL, NULL);
@@ -650,6 +738,7 @@ struct sprd_hif_ops sc2332_sipc_ops = {
 	.init = sipc_init,
 	.deinit = sipc_deinit,
 	.reserv_len = sipc_reserv_len,
+	.reset = sc2332_reset,
 };
 
 extern struct sprd_chip_ops sc2332_chip_ops;

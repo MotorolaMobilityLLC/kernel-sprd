@@ -266,6 +266,7 @@ int sc2355_tx_prepare(struct sprd_chip *chip, struct sk_buff *skb);
 int sc2355_tx(struct sprd_chip *chip, struct sprd_msg *msg);
 int sc2355_tx_force_exit(struct sprd_chip *chip);
 int sc2355_tx_is_exit(struct sprd_chip *chip);
+int sc2355_reset(struct sprd_hif *hif);
 void sc2355_tx_drop_tcp_msg(struct sprd_chip *chip, struct sprd_msg *msg);
 int sc2355_sdio_process_credit(struct sprd_hif *hif, void *data);
 int sc2355_tx_init(struct sprd_hif *hif);

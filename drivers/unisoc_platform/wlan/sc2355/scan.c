@@ -11,6 +11,7 @@
 #include "common/cfg80211.h"
 #include "common/chip_ops.h"
 #include "common/common.h"
+#include "common/report.h"
 #include "scan.h"
 
 static void scan_clean_list(struct sprd_vif *vif)
@@ -428,10 +429,29 @@ void sc2355_abort_scan(struct wiphy *wiphy, struct wireless_dev *wdev)
 	struct sprd_vif *vif = container_of(wdev, struct sprd_vif, wdev);
 	struct sprd_api_version_t *api = (&priv->sync_api)->api_array;
 	u8 fw_ver = 0, drv_ver = 0;
+	struct sprd_hif *hif;
 
 	fw_ver = (api + CMD_SCAN)->fw_version;
 	drv_ver = (api + CMD_SCAN)->drv_version;
 	fw_ver = min(fw_ver, drv_ver);
+
+	if (!priv) {
+		pr_err("can not get priv!\n");
+		return;
+	}
+
+	hif = &priv->hif;
+
+	if (sprd_chip_is_exit(&priv->chip) || hif->cp_asserted) {
+		pr_info("%s Assert happened!\n", __func__);
+		if (vif->mode == SPRD_MODE_P2P_DEVICE) {
+			pr_info("p2p device need cancel scan\n");
+			sprd_report_scan_done(vif, true);
+			pr_info("%s p2p device cancel scan finished!\n",
+				__func__);
+		}
+	}
+
 	if (fw_ver < 3) {
 		wiphy_err(wiphy, "%s Abort scan not support.\n", __func__);
 		return;

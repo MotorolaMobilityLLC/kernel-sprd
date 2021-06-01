@@ -88,6 +88,7 @@ struct sprd_msg *sprd_alloc_msg(struct sprd_msg_list *list)
 	unsigned long flags = 0;
 
 	if (atomic_inc_return(&list->ref) >= SPRD_MSG_EXIT_VAL) {
+		pr_err("alloc msg failed ref > SPRD_MSG_EXIT_VAL\n");
 		atomic_dec(&list->ref);
 		return NULL;
 	}

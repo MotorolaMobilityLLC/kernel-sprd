@@ -198,6 +198,7 @@ struct sprd_hif {
 	void *mbuf_tail;
 	int mbuf_num;
 	int pushfail_count;
+	int remove_flag;
 };
 
 struct sprd_hif_ops {
@@ -216,6 +217,7 @@ struct sprd_hif_ops {
 	int (*tx_addr_trans)(struct sprd_hif *hif,
 			     unsigned char *data, int len,
 			     bool send_now);
+	int (*reset)(struct sprd_hif *hif);
 };
 
 void sprd_clean_work(struct sprd_priv *priv);
@@ -264,6 +266,13 @@ static inline int sprd_hif_power_on(struct sprd_hif *hif)
 
 	if (sprd_hif_post_init(hif))
 		return -ENODEV;
+
+	/* need reset hif->exit flag, if wcn reset happened */
+	if (unlikely(hif->exit) || unlikely(hif->cp_asserted)) {
+		pr_info("assert happended! need reset paras!\n");
+		if (hif->ops->reset)
+			hif->ops->reset(hif);
+	}
 
 	if (sprd_sync_version(hif))
 		return -EIO;

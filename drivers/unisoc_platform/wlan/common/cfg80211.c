@@ -291,11 +291,21 @@ int sprd_cfg80211_del_iface(struct wiphy *wiphy, struct wireless_dev *wdev)
 {
 	struct sprd_priv *priv = wiphy_priv(wiphy);
 	struct sprd_vif *vif = NULL, *tmp_vif = NULL;
+	struct sprd_hif *hif;
 
-	if (sprd_chip_is_exit(&priv->chip)) {
+	if (!priv) {
+		pr_err("can not get priv!\n");
+		return -ENODEV;
+	}
+	hif = &priv->hif;
+
+	if (hif->remove_flag == 1) {
 		wiphy_err(wiphy, "%s driver removing!\n", __func__);
 		return 0;
 	}
+	if (sprd_chip_is_exit(&priv->chip) || hif->cp_asserted)
+		pr_info("del interface while assert\n");
+
 	spin_lock_bh(&priv->list_lock);
 	list_for_each_entry_safe(vif, tmp_vif, &priv->vif_list, vif_node) {
 		if (&vif->wdev == wdev) {

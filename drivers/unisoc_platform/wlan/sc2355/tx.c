@@ -1334,8 +1334,10 @@ struct sprd_msg *sc2355_tx_get_msg(struct sprd_chip *chip,
 	tx_dev = (struct tx_mgmt *)hif->tx_mgmt;
 	tx_dev->mode = mode;
 
-	if (unlikely(hif->exit))
+	if (unlikely(hif->exit)) {
+		pr_err("%s can not get msg: hif->exit\n", __func__);
 		return NULL;
+	}
 
 	if (type == SPRD_TYPE_DATA)
 		list = &tx_dev->tx_list_qos_pool;
@@ -1514,6 +1516,116 @@ int sc2355_tx_is_exit(struct sprd_chip *chip)
 	return hif->exit;
 }
 
+int sc2355_reset(struct sprd_hif *hif)
+{
+	struct sprd_priv *priv = NULL;
+	struct tx_mgmt *tx_mgmt = NULL;
+	struct sprd_vif *vif, *tmp;
+	int i;
+
+	if (!hif) {
+		pr_err("%s can not get hif!\n", __func__);
+		return -1;
+	}
+
+	priv = hif->priv;
+	if (!priv) {
+		pr_err("%s can not get priv!\n", __func__);
+		return -1;
+	}
+
+	tx_mgmt = (struct tx_mgmt *)hif->tx_mgmt;
+	if (!tx_mgmt) {
+		pr_err("%s can not get tx mgmt!\n", __func__);
+		return -1;
+	}
+
+	/* need reset hif->exit flag, if wcn reset happened */
+	if (unlikely(hif->exit)) {
+		hif->exit = 0;
+		pr_info("%s reset hif->exit flag:%d!\n", __func__, hif->exit);
+	}
+
+	/* need reset hif->cp_assert flag */
+	if (unlikely(hif->cp_asserted)) {
+		hif->cp_asserted = 0;
+		pr_info("%s reset hif->cp_asserted flag:%d!\n", __func__,
+			hif->cp_asserted);
+	}
+
+	hif->fw_awake = 1;
+	hif->fw_power_down = 0;
+
+	list_for_each_entry_safe(vif, tmp, &priv->vif_list, vif_node) {
+		int ciphyr_type, key_index;
+		int ciphyr_type_max = 2, key_index_max = 4;
+		/* check connect state */
+		if (vif->mode == SPRD_MODE_STATION ||
+		    vif->mode == SPRD_MODE_P2P_CLIENT) {
+			if (vif->sm_state == SPRD_DISCONNECTING ||
+			    vif->sm_state == SPRD_CONNECTING ||
+			    vif->sm_state == SPRD_CONNECTED) {
+				pr_info("%s check connection state for sta or p2p gc\n", __func__);
+				pr_info("vif->mode : %d, vif->sm_state : %d\n",
+					vif->mode, vif->sm_state);
+				cfg80211_disconnected(vif->ndev, 0, NULL, 0,
+						      false, GFP_KERNEL);
+				vif->sm_state = SPRD_DISCONNECTED;
+			}
+		}
+
+		if (vif->mode == SPRD_MODE_AP) {
+			pr_info("softap mode, reset iftype to station, before reset:%d\n",
+				vif->wdev.iftype);
+			vif->wdev.iftype = NL80211_IFTYPE_STATION;
+			pr_info("after reset iftype:%d\n", vif->wdev.iftype);
+		}
+		if (vif->mode != SPRD_MODE_NONE) {
+			pr_info("need reset mode to none: %d\n", vif->mode);
+			vif->state &= ~VIF_STATE_OPEN;
+			vif->mode = SPRD_MODE_NONE;
+			vif->ctx_id = 0;
+			sc2355_handle_tx_status_after_close(vif);
+		}
+
+		/* reset ssid & bssid */
+		memset(vif->bssid, 0, sizeof(vif->bssid));
+		memset(vif->ssid, 0, sizeof(vif->ssid));
+		vif->ssid_len = 0;
+		vif->prwise_crypto = SPRD_CIPHER_NONE;
+		vif->grp_crypto = SPRD_CIPHER_NONE;
+
+		for (ciphyr_type = 0; ciphyr_type < ciphyr_type_max; ciphyr_type++) {
+			vif->key_index[ciphyr_type] = 0;
+			for (key_index = 0; key_index < key_index_max; key_index++) {
+				memset(vif->key[ciphyr_type][key_index], 0x00,
+				       WLAN_MAX_KEY_LEN);
+				vif->key_len[ciphyr_type][key_index] = 0;
+			}
+		}
+	}
+
+	for (i = 0; i < 32; i++) {
+		if (hif->peer_entry[i].ba_tx_done_map != 0) {
+			hif->peer_entry[i].ht_enable = 0;
+			hif->peer_entry[i].ip_acquired = 0;
+			hif->peer_entry[i].ba_tx_done_map = 0;
+		}
+		sc2355_peer_entry_delba(hif, i);
+		memset(&hif->peer_entry[i], 0x00,
+		       sizeof(struct sprd_peer_entry));
+		hif->peer_entry[i].ctx_id = 0xFF;
+		hif->tx_num[i] = 0;
+		sc2355_dis_flush_txlist(hif, i);
+	}
+
+	/* flush cmd and data buffer */
+	pr_info("%s flust all tx list\n", __func__);
+	tx_flush_all_txlist(tx_mgmt);
+
+	return 0;
+}
+
 void sc2355_tx_drop_tcp_msg(struct sprd_chip *chip, struct sprd_msg *msg)
 {
 	enum sprd_mode mode;
@@ -1593,6 +1705,7 @@ int sc2355_tx_init(struct sprd_hif *hif)
 	}
 
 	tx_mgmt->hang_recovery_status = HANG_RECOVERY_END;
+	hif->remove_flag = 0;
 
 	return ret;
 
@@ -1618,6 +1731,7 @@ void sc2355_tx_deinit(struct sprd_hif *hif)
 
 	/*let tx work queue exit */
 	hif->exit = 1;
+	hif->remove_flag = 1;
 
 	flush_workqueue(tx_mgmt->tx_queue);
 	destroy_workqueue(tx_mgmt->tx_queue);

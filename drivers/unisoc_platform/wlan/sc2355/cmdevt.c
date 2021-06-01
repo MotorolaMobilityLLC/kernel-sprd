@@ -604,6 +604,8 @@ int sc2355_send_cmd_recv_rsp(struct sprd_priv *priv, struct sprd_msg *msg, u8 *r
 	hif = &priv->hif;
 	if (hif->cp_asserted == 1) {
 		pr_info("%s CP2 assert\n", __func__);
+		sprd_chip_free_msg(&priv->chip, msg);
+		kfree(msg->tran_data);
 		return -EIO;
 	}
 
@@ -653,7 +655,8 @@ int sc2355_send_cmd_recv_rsp(struct sprd_priv *priv, struct sprd_msg *msg, u8 *r
 		if (vif) {
 			tx_mgmt = (struct tx_mgmt *)hif->tx_mgmt;
 			if (!hif->cp_asserted &&
-			    tx_mgmt->hang_recovery_status == HANG_RECOVERY_END)
+			    tx_mgmt->hang_recovery_status == HANG_RECOVERY_END &&
+			    !hif->exit)
 				sc2355_assert_cmd(priv, vif, cmd_id,
 						  CMD_RSP_TIMEOUT_ERROR);
 			sprd_put_vif(vif);

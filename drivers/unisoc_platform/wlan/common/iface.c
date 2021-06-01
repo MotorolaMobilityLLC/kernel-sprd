@@ -132,6 +132,9 @@ static int iface_host_reset(struct notifier_block *nb,
 	hif->cp_asserted = 1;
 
 	kobject_uevent_env(&hif->pdev->dev.kobj, KOBJ_CHANGE, envp);
+	pr_err("%s() dev_path: %s\n", __func__,
+	       kobject_get_path(&hif->pdev->dev.kobj, GFP_KERNEL));
+	sprd_chip_force_exit((void *)&priv->chip);
 
 	return NOTIFY_OK;
 }
@@ -241,20 +244,11 @@ static int iface_notify_init(struct sprd_priv *priv)
 		}
 	}
 
-	ret = marlin_reset_register_notify(sprd_chip_force_exit,
-					   (void *)&priv->chip);
-	if (ret) {
-		pr_err("%s failed to register wcn cp rest notify(%d)!\n",
-		       __func__, ret);
-		return ret;
-	}
-
 	return ret;
 }
 
 static void iface_notify_deinit(struct sprd_priv *priv)
 {
-	marlin_reset_unregister_notify();
 	atomic_notifier_chain_unregister(&wcn_reset_notifier_list,
 					 &iface_host_reset_cb);
 	unregister_inetaddr_notifier(&iface_inetaddr_cb);

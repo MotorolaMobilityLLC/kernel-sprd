@@ -1560,6 +1560,8 @@ int sc2355_sdio_init(struct sprd_hif *hif)
 		hif->fw_power_down = 0;
 	}
 
+	hif->cp_asserted = 0;
+	hif->exit = 0;
 	return 0;
 
 err:
@@ -1595,6 +1597,7 @@ static struct sprd_hif_ops sc2355_sdio_ops = {
 	.deinit = sc2355_sdio_deinit,
 	.sync_version = sc2355_sync_version,
 	.download_hw_param = sc2355_download_hw_param,
+	.reset = sc2355_reset,
 };
 
 extern struct sprd_chip_ops sc2355_chip_ops;

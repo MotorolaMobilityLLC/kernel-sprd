@@ -371,6 +371,15 @@ int sc2332_send_cmd_recv_rsp(struct sprd_priv *priv, struct sprd_msg *msg,
 	int ret = 0;
 	struct sprd_cmd *cmd = &priv->cmd;
 	struct sprd_cmd_hdr *hdr;
+	struct sprd_hif *hif;
+
+	hif = &priv->hif;
+	if (hif->cp_asserted == 1) {
+		pr_info("%s CP2 assert\n", __func__);
+		sprd_chip_free_msg(&priv->chip, msg);
+		kfree(msg->tran_data);
+		return -EIO;
+	}
 
 	if (cmdevt_lock_cmd(cmd)) {
 		sprd_chip_free_msg(&priv->chip, msg);
