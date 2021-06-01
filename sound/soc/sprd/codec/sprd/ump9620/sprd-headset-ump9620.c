@@ -2954,7 +2954,7 @@ static int sprd_headset_parse_dt(struct sprd_headset *hdst)
 	struct platform_device *pdev = hdst->pdev;
 	struct device *dev = &pdev->dev;
 	u32 val;
-	int index, ret, i;
+	int index, ret, i, mic_gpio_num, lr_gpio_num;
 
 	np = hdst->pdev->dev.of_node;
 	if (!np) {
@@ -3116,21 +3116,35 @@ static int sprd_headset_parse_dt(struct sprd_headset *hdst)
 	}
 
 	pdata->support_typec_hdst = true;
-	pdata->typec_mic_gpio = devm_gpiod_get_index(dev, "mic",
-		0, GPIOD_ASIS);
-	if (IS_ERR(pdata->typec_mic_gpio)) {
-		dev_err(dev, "parse 'mic-gpios' fail\n");
-		return PTR_ERR(pdata->typec_mic_gpio);
+
+	mic_gpio_num = of_get_named_gpio(np, "mic-gpios", 0);
+	if (!gpio_is_valid(mic_gpio_num)) {
+		dev_err(dev, "parse 'mic-gpios' fail %d\n", mic_gpio_num);
+		return mic_gpio_num;
+	}
+
+	pdata->typec_mic_gpio = gpio_to_desc(mic_gpio_num);
+	ret = gpio_request_one(mic_gpio_num, GPIOF_OUT_INIT_LOW, "mic");
+	if (ret < 0 && ret != -EBUSY) {
+		dev_err(dev, "mic_gpio request fail %d\n", ret);
+		return ret;
 	}
 	gpiod_export(pdata->typec_mic_gpio, true);
 
-	pdata->typec_lr_gpio = devm_gpiod_get_index(dev, "lr",
-		0, GPIOD_ASIS);
-	if (IS_ERR(pdata->typec_lr_gpio)) {
-		dev_err(dev, "parse 'lr-gpios' fail\n");
-		return PTR_ERR(pdata->typec_lr_gpio);
+	lr_gpio_num = of_get_named_gpio(np, "lr-gpios", 0);
+	if (!gpio_is_valid(lr_gpio_num)) {
+		dev_err(dev, "parse 'lr-gpios' fail %d\n", lr_gpio_num);
+		return lr_gpio_num;
+	}
+
+	pdata->typec_lr_gpio = gpio_to_desc(lr_gpio_num);
+	ret = gpio_request_one(lr_gpio_num, GPIOF_OUT_INIT_LOW, "lr");
+	if (ret < 0 && ret != -EBUSY) {
+		dev_err(dev, "lr_gpio request fail %d\n", ret);
+		return ret;
 	}
 	gpiod_export(pdata->typec_lr_gpio, true);
+
 	ret = of_property_read_u32(np, "sprd,switch-voltage",
 				   &pdata->switch_vol);
 	if (ret < 0) {
