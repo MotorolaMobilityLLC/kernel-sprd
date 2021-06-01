@@ -96,6 +96,7 @@ enum {
 	SPRD_CODEC_DC_OS_SWITCH_ORDER = 104,
 	SPRD_CODEC_DC_OS_ORDER = 105,
 	SPRD_CODEC_RCV_DEPOP_ORDER = 106,
+	SPRD_CODEC_HP_DALR_ORDER = 107,
 	SPRD_CODEC_MIXER_ORDER = 110,/* Must be the last one */
 };
 
@@ -431,9 +432,6 @@ static const struct snd_kcontrol_new virt_output_switch =
 	SOC_DAPM_SINGLE_VIRT("Switch", 1);
 
 static const struct snd_kcontrol_new ivsence_switch =
-	SOC_DAPM_SINGLE_VIRT("Switch", 1);
-
-static const struct snd_kcontrol_new hpr_pin_switch =
 	SOC_DAPM_SINGLE_VIRT("Switch", 1);
 
 static const struct snd_kcontrol_new aud_adc_switch[] = {
@@ -1898,6 +1896,32 @@ static int rcv_depop_event(struct snd_soc_dapm_widget *w,
 	return ret;
 }
 
+static int hpl_sdal_event(struct snd_soc_dapm_widget *w,
+			  struct snd_kcontrol *kcontrol, int event)
+{
+	struct snd_soc_codec *codec = snd_soc_dapm_to_codec(w->dapm);
+	int on = !!SND_SOC_DAPM_EVENT_ON(event);
+
+	sp_asoc_pr_dbg("%s wname %s %s\n", __func__, w->name,
+		       get_event_name(event));
+	update_switch(codec, SDALHPL, on);
+
+	return 0;
+}
+
+static int hpr_sdar_event(struct snd_soc_dapm_widget *w,
+			  struct snd_kcontrol *kcontrol, int event)
+{
+	struct snd_soc_codec *codec = snd_soc_dapm_to_codec(w->dapm);
+	int on = !!SND_SOC_DAPM_EVENT_ON(event);
+
+	sp_asoc_pr_dbg("%s wname %s %s\n", __func__, w->name,
+		       get_event_name(event));
+	update_switch(codec, SDARHPR, on);
+
+	return 0;
+}
+
 static int hp_depop_event(struct snd_soc_dapm_widget *w,
 			    struct snd_kcontrol *kcontrol, int event)
 {
@@ -2630,6 +2654,14 @@ static const struct snd_soc_dapm_widget sprd_codec_dapm_widgets[] = {
 	SND_SOC_DAPM_MIXER("HPR Mixer", SND_SOC_NOPM, 0, 0,
 		&hpr_mixer_controls[0],
 		ARRAY_SIZE(hpr_mixer_controls)),
+	SND_SOC_DAPM_PGA_S("HPL SDAL", SPRD_CODEC_HP_DALR_ORDER,
+		SND_SOC_NOPM,
+		0, 0, hpl_sdal_event,
+		SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_PRE_PMD),
+	SND_SOC_DAPM_PGA_S("HPR SDAR", SPRD_CODEC_HP_DALR_ORDER,
+		SND_SOC_NOPM,
+		0, 0, hpr_sdar_event,
+		SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_PRE_PMD),
 	SND_SOC_DAPM_PGA_S("HP DEPOP", SPRD_CODEC_DEPOP_ORDER,
 		SND_SOC_NOPM,
 		0, 0, hp_depop_event,
@@ -2723,8 +2755,6 @@ static const struct snd_soc_dapm_widget sprd_codec_dapm_widgets[] = {
 	 */
 	SND_SOC_DAPM_SWITCH("HP", SND_SOC_NOPM,
 			0, 0, &hp_jack_switch),
-	SND_SOC_DAPM_SWITCH("HPR Pin", SND_SOC_NOPM,
-			0, 0, &hpr_pin_switch),
 
 	SND_SOC_DAPM_MUX("Digital ADC In Sel", SND_SOC_NOPM, 0, 0,
 			 &dig_adc_in_sel),
@@ -2816,21 +2846,22 @@ static const struct snd_soc_dapm_route sprd_codec_intercon[] = {
 	{"DACL Switch", NULL, "DAC Gain"},
 	{"DACR Switch", NULL, "DAC Gain"},
 	{"HPL EAR Sel", NULL, "DACL Switch"},
-	{"HPL Path", "HPL", "HPL EAR Sel"},
+	{"DALR DC Offset", "HPL", "HPL EAR Sel"},
+	{"HPL Path", NULL, "DALR DC Offset"},
+	{"DACR Switch", NULL, "DALR DC Offset"},
 	{"HPL Mixer", "DACLHPL Switch", "HPL Path"},
 	{"HPR Mixer", "DACRHPR Switch", "DACR Switch"},
-	{"HP DEPOP", NULL, "HPL Mixer"},
-	{"HP DEPOP", NULL, "HPR Mixer"},
-	{"DALR DC Offset", NULL, "HP DEPOP"},
-	{"HP BUF Switch", NULL, "DALR DC Offset"},
-	{"HPL EAR Sel2", NULL, "HP BUF Switch"},
-	{"HPL Switch", "HPL", "HPL EAR Sel2"},
-	{"HPR Switch", NULL, "HP BUF Switch"},
+	{"HPL SDAL", NULL, "HPL Mixer"},
+	{"HPR SDAR", NULL, "HPR Mixer"},
+	{"HPL Switch", NULL, "HPL SDAL"},
+	{"HPR Switch", NULL, "HPR SDAR"},
 	{"HPL Gain", NULL, "HPL Switch"},
 	{"HPR Gain", NULL, "HPR Switch"},
-	{"HPR Pin", "Switch", "HPR Gain"},
-	{"HP Pin", NULL, "HPL Gain"},
-	{"HP Pin", NULL, "HPR Pin"},
+	{"HP DEPOP", NULL, "HPL Gain"},
+	{"HP DEPOP", NULL, "HPR Gain"},
+	{"HP BUF Switch", NULL, "HP DEPOP"},
+	{"HPL EAR Sel2", NULL, "HP BUF Switch"},
+	{"HP Pin", "HPL", "HPL EAR Sel2"},
 
 /* EAR */
 	{"RCV DEPOP", NULL, "CP"},
