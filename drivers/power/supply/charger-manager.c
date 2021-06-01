@@ -2109,11 +2109,6 @@ static void cm_ir_compensation(struct charger_manager *cm,
 		return;
 
 	target_cccv = ir_sts->us + (ibat_avg / 1000)  * ir_sts->rc;
-	dev_info(cm->dev, "%s, us = %d, rc = %d, upper_limit = %d, lower_limit = %d, "
-		 "target_cccv = %d, ibat_avg = %d, offset = %d\n",
-		 __func__, ir_sts->us, ir_sts->rc, ir_sts->us_upper_limit,
-		 ir_sts->us_lower_limit, target_cccv, ibat_avg,
-		 ir_sts->cp_upper_limit_offset);
 
 	if (target_cccv < ir_sts->us_lower_limit)
 		target_cccv = ir_sts->us_lower_limit;
@@ -2124,6 +2119,12 @@ static void cm_ir_compensation(struct charger_manager *cm,
 
 	if ((*target / 1000) == (ir_sts->last_target_cccv / 1000))
 		return;
+
+	dev_info(cm->dev, "%s, us = %d, rc = %d, upper_limit = %d, lower_limit = %d, "
+		 "target_cccv = %d, ibat_avg = %d, offset = %d\n",
+		 __func__, ir_sts->us, ir_sts->rc, ir_sts->us_upper_limit,
+		 ir_sts->us_lower_limit, target_cccv, ibat_avg,
+		 ir_sts->cp_upper_limit_offset);
 
 	ir_sts->last_target_cccv = *target;
 	switch (state) {
@@ -2701,12 +2702,13 @@ static bool cm_cp_tune_algo(struct charger_manager *cm)
 	       "cp_target_vbat = %duV, cp_target_ibat = %duA, cp_target_vbus = %duV, "
 	       "cp_target_ibus = %duA, cp_taper_current = %duA, taper_cnt = %d, "
 	       "vbat_step = %d, ibat_step = %d, vbus_step = %d, ibus_step = %d, alarm_step = %d, "
-	       "adapter_max_vbus = %duV, adapter_max_ibus = %duA\n",
+	       "adapter_max_vbus = %duV, adapter_max_ibus = %duA, ucp_cnt = %d\n",
 	       __func__, cp->vbat_uV, cp->ibat_uA, cp->vbus_uV,
 	       cp->ibus_uA, cp->cp_target_vbat, cp->cp_target_ibat,
 	       cp->cp_target_vbus, cp->cp_target_ibus, cp->cp_taper_current,
 	       cp->cp_taper_trigger_cnt, vbat_step, ibat_step, vbus_step,
-	       ibus_step, alarm_step, cp->adapter_max_vbus, cp->adapter_max_ibus);
+	       ibus_step, alarm_step, cp->adapter_max_vbus, cp->adapter_max_ibus,
+	       cp->cp_ibat_ucp_cnt);
 
 	return is_taper_done;
 }
@@ -2874,6 +2876,12 @@ static void cm_cp_state_tune(struct charger_manager *cm)
 	struct cm_charge_pump_status *cp = &cm->desc->cp;
 	int target_vbat = 0;
 
+	if (!cp->cp_state_tune_log) {
+		dev_info(cm->dev, "cm_cp_state_machine: state %d, %s\n",
+			 cp->cp_state, cm_cp_state_names[cp->cp_state]);
+		cp->cp_state_tune_log = true;
+	}
+
 	cm_ir_compensation(cm, CM_IR_COMP_STATE_CP, &target_vbat);
 	if (target_vbat > 0)
 		cp->cp_target_vbat = target_vbat;
@@ -2964,6 +2972,7 @@ static void cm_cp_state_exit(struct charger_manager *cm)
 	cm->desc->enable_fast_charge = false;
 	cp->cp_fault_event = false;
 	cp->cp_ibat_ucp_cnt = 0;
+	cp->cp_state_tune_log = false;
 
 	cm_ir_compensation_exit(cm);
 }
@@ -3876,11 +3885,11 @@ static bool _cm_monitor(struct charger_manager *cm)
 		} else {
 			cm->emergency_stop = 0;
 			cm->charging_status = 0;
+			try_charger_enable(cm, true);
 			if (cm_is_need_start_cp(cm)) {
 				dev_info(cm->dev, "%s, reach pps threshold\n", __func__);
 				cm_start_cp_state_machine(cm, true);
 			}
-			try_charger_enable(cm, true);
 		}
 	} else {
 		try_charger_enable(cm, false);
