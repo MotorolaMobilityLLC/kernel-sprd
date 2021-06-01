@@ -22,6 +22,7 @@
 struct cp_region_info {
 	u64	address;
 	u32	size;
+	u32	mini_dump_flag;
 	char	name[MAX_REGION_NAME_LEN + 1];
 };
 
