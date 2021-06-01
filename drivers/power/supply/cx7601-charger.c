@@ -258,7 +258,7 @@ static int cx7601_set_term_current(struct cx7601_charger_info *info, int curr)
 	if (curr < REG03_ITERM_BASE)
 		curr = REG03_ITERM_BASE;
 
-	iterm = (curr - REG03_ITERM_BASE) / REG03_ITERM_LSB;
+	iterm = (curr - REG03_ITERM_BASE) / REG03_ITERM_LSB +1;
 
 	return cx7601_update_bits(info, CX7601_REG_03, REG03_ITERM_MASK,
 				iterm << REG03_ITERM_SHIFT);
@@ -346,7 +346,7 @@ static int cx7601_get_hiz_mode(struct cx7601_charger_info *info, u8 *state)
 
 	return 0;
 }
-
+#endif
 
 static int cx7601_enable_term(struct cx7601_charger_info *info, bool enable)
 {
@@ -362,7 +362,7 @@ static int cx7601_enable_term(struct cx7601_charger_info *info, bool enable)
 
 	return ret;
 }
-#endif
+
 static int cx7601_set_boost_current(struct cx7601_charger_info *info, int curr)
 {
 	u8 val;
@@ -614,6 +614,7 @@ static int cx7601_init_device(struct cx7601_charger_info *info)
 	cx7601_disable_watchdog_timer(info);
 	cx7601_charger_set_vindpm(info,4500);
     cx7601_disable_safety_timer(info);     //modified
+    cx7601_enable_term(info,true);
 	
 	ret = cx7601_set_stat_ctrl(info, 3);//info->platform_data->statctrl);
 	if (ret)
