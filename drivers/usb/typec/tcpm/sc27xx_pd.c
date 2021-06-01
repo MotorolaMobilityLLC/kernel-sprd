@@ -316,6 +316,7 @@ struct sc27xx_pd {
 	int msg_flag;
 	int need_retry;
 	bool typec_online;
+	bool pd_attached;
 };
 
 static inline struct sc27xx_pd *tcpc_to_sc27xx_pd(struct tcpc_dev *tcpc)
@@ -607,14 +608,6 @@ static int sc27xx_pd_set_rx(struct tcpc_dev *tcpc, bool on)
 	int ret;
 
 	mutex_lock(&pd->lock);
-	ret = sc27xx_pd_rx_flush(pd);
-	if (ret < 0)
-		goto done;
-
-	ret = sc27xx_pd_tx_flush(pd);
-	if (ret < 0)
-		goto done;
-
 	ret = sc27xx_pd_reset(pd);
 	if (ret < 0)
 		goto done;
@@ -1012,7 +1005,7 @@ static int sc27xx_pd_delta_cal(struct sc27xx_pd *pd)
 				  cfg1_mask, cfg1);
 }
 
-static int sc27xx_pd_moudle_init(struct sc27xx_pd *pd)
+static int sc27xx_pd_module_init(struct sc27xx_pd *pd)
 {
 	int ret;
 
@@ -1059,7 +1052,7 @@ static int sc27xx_pd_init(struct tcpc_dev *tcpc)
 	if (ret)
 		return ret;
 
-	return sc27xx_pd_moudle_init(pd);
+	return sc27xx_pd_module_init(pd);
 }
 
 static irqreturn_t sc27xx_pd_irq(int irq, void *dev_id)
@@ -1334,7 +1327,9 @@ static int sc27xx_pd_extcon_event(struct notifier_block *nb,
 {
 	struct sc27xx_pd *pd = container_of(nb, struct sc27xx_pd, extcon_nb);
 
-	schedule_work(&pd->pd_work);
+	dev_info(pd->dev, "typec in or out, pd attached = %d\n", pd->pd_attached);
+	if (pd->pd_attached)
+		schedule_work(&pd->pd_work);
 	return NOTIFY_OK;
 }
 
@@ -1343,6 +1338,7 @@ static void sc27xx_pd_work(struct work_struct *work)
 	struct sc27xx_pd *pd = container_of(work, struct sc27xx_pd, pd_work);
 	int ret;
 
+	dev_info(pd->dev, "check vbus and cc\n");
 	ret = sc27xx_pd_check_vbus_cc_status(pd);
 	if (ret)
 		dev_err(pd->dev, "failed to check vbus and cc status\n");
@@ -1469,8 +1465,11 @@ static void sc27xx_pd_detect_typec_work(struct work_struct *work)
 	struct sc27xx_pd *pd = container_of(dwork, struct sc27xx_pd,
 					   typec_detect_work);
 
+	dev_info(pd->dev, "pd try to detect typec extcon\n");
 	if (extcon_get_state(pd->extcon, EXTCON_USB))
 		sc27xx_pd_check_vbus_cc_status(pd);
+
+	pd->pd_attached = true;
 }
 
 static const u32 sc27xx_pd_hardreset[] = {
@@ -1491,8 +1490,10 @@ static int sc27xx_pd_probe(struct platform_device *pdev)
 	}
 
 	pd = devm_kzalloc(&pdev->dev, sizeof(*pd), GFP_KERNEL);
-	if (!pd)
+	if (!pd) {
+		dev_err(&pdev->dev, "failed to alloc memory\n");
 		return -ENOMEM;
+	}
 
 	pd->dev = &pdev->dev;
 	pd->regmap = dev_get_regmap(pdev->dev.parent, NULL);
@@ -1559,8 +1560,10 @@ static int sc27xx_pd_probe(struct platform_device *pdev)
 	pd->tcpc.fwnode = device_get_named_child_node(&pdev->dev, "connector");
 
 	ret = sc27xx_pd_cal(pd);
-	if (ret)
+	if (ret) {
+		dev_err(&pdev->dev, "failed to calibrate with efuse data\n");
 		return ret;
+	}
 	sc27xx_init_tcpc_dev(pd);
 
 	pd->vbus = devm_regulator_get(pd->dev, "vbus");
@@ -1592,26 +1595,31 @@ static int sc27xx_pd_probe(struct platform_device *pdev)
 		pd->aon_apb = NULL;
 	}
 
-	INIT_DELAYED_WORK(&pd->typec_detect_work, sc27xx_pd_detect_typec_work);
-	INIT_DELAYED_WORK(&pd->read_msg_work, sc27xx_pd_read_msg_work);
-	INIT_WORK(&pd->pd_work, sc27xx_pd_work);
-
-	pd->tcpm_port = tcpm_register_port(pd->dev, &pd->tcpc);
-	if (IS_ERR(pd->tcpm_port))
-		return PTR_ERR(pd->tcpm_port);
-
 	ret = devm_request_threaded_irq(pd->dev, pd_irq, NULL,
 					sc27xx_pd_irq,
 					IRQF_ONESHOT | IRQF_TRIGGER_LOW,
 					"sc27xx_pd", pd);
 	if (ret < 0) {
-		tcpm_unregister_port(pd->tcpm_port);
+		dev_err(pd->dev, "failed to request irq\n");
 		return ret;
 	}
 
 	pd->pd_wq = create_singlethread_workqueue("sprd_pd_driver");
-	if (!pd->pd_wq)
+	if (!pd->pd_wq) {
+		dev_err(pd->dev, "failed to create singlethread workqueue\n");
 		return -ENOMEM;
+	}
+
+	pd->tcpm_port = tcpm_register_port(pd->dev, &pd->tcpc);
+	if (IS_ERR(pd->tcpm_port)) {
+		dev_err(pd->dev, "failed to register tcpm port\n");
+		destroy_workqueue(pd->pd_wq);
+		return PTR_ERR(pd->tcpm_port);
+	}
+
+	INIT_DELAYED_WORK(&pd->typec_detect_work, sc27xx_pd_detect_typec_work);
+	INIT_DELAYED_WORK(&pd->read_msg_work, sc27xx_pd_read_msg_work);
+	INIT_WORK(&pd->pd_work, sc27xx_pd_work);
 
 	platform_set_drvdata(pdev, pd);
 	schedule_delayed_work(&pd->typec_detect_work,
