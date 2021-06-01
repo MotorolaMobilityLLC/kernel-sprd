@@ -49,7 +49,6 @@ struct alarm {
 	enum alarmtimer_type	type;
 	int			state;
 	void			*data;
-	char			alrm_comm[128];
 };
 
 void alarm_init(struct alarm *alarm, enum alarmtimer_type type,
