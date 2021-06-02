@@ -21,6 +21,8 @@ static rwf_t fuse_iocb_to_rwf(struct kiocb *iocb)
 		flags |= RWF_DSYNC;
 	if (ifl & IOCB_SYNC)
 		flags |= RWF_SYNC;
+	if (ifl & IOCB_APPEND)
+		flags |= RWF_APPEND;
 
 	return flags;
 }
