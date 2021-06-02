@@ -210,4 +210,9 @@ void update_wmmac_vi_timeout(unsigned long data);
 unsigned int sc2355_qos_change_priority_if(struct sprd_priv *priv,
 					   unsigned char *tid,
 					   unsigned char *tos, u16 len);
+void sc2355_qos_init_default_map(void);
+void sc2355_qos_enable(int flag);
+void sc2355_qos_wmm_ac_init(struct sprd_priv *priv);
+void sc2355_qos_reset_wmmac_parameters(struct sprd_priv *priv);
+void sc2355_qos_reset_wmmac_ts_info(void);
 #endif
