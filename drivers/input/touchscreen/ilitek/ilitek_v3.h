@@ -1249,4 +1249,6 @@ static inline int ipio_strcmp(const char *s1, const char *s2)
 	return (strlen(s1) != strlen(s2)) ? -1 : strncmp(s1, s2, strlen(s1));
 }
 
+extern const char *lcd_name;
+
 #endif /* __ILI9881X_H */

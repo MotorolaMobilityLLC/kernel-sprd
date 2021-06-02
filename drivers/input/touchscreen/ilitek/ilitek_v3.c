@@ -646,7 +646,6 @@ int ili_sleep_handler(int mode)
 	mutex_unlock(&ilits->touch_mutex);
 	return ret;
 }
-extern const char *lcd_name;
 int ili_fw_upgrade_handler(void *data)
 {
 	int ret = 0;
