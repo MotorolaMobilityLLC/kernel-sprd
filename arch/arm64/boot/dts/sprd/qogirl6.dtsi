@@ -842,11 +842,11 @@
 			};
 
 			iommu_dispc: iommu@31000000 {
-				compatible = "unisoc,iommuvaul6-dispc";
+				compatible = "sprd,iommuvaul6-dispc";
 				reg = <0x0 0x31000000 0x0 0x800>,
 				      <0x0 0x31000800 0x0 0x80>;
-				sprd,iova-base = <0x30000000>;
-				sprd,iova-size = <0x10000000>;
+				iova-base = <0x30000000>;
+				iova-size = <0x10000000>;
 				reg_name = "mmu_interrupt_reg","mmu_reg";
 				status = "disabled";
 				#iommu-cells = <0>;
