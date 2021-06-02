@@ -307,6 +307,9 @@
 };
 
 &reserved_memory {
+	wcn_reserved: wcn-mem@87000000 {
+		reg = <0x0 0x87000000 0x0 0x00800000>;
+	};
 
 	logo_reserved: logobuffer@9e000000{
 		reg = <0x0 0x9e000000 0x0 0x00ab0000>;
