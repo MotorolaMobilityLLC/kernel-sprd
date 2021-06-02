@@ -4764,6 +4764,24 @@ static int tcpm_copy_caps(struct tcpm_port *port,
 	return 0;
 }
 
+void tcpm_shutdown(struct tcpm_port *port)
+{
+	int ret;
+
+	if (port->pps_data.active) {
+		ret = tcpm_pps_activate(port, false);
+		if (ret) {
+			pr_err("failed to disbale pps at shutdown, ret = %d", ret);
+			return;
+		}
+	}
+
+	cancel_delayed_work_sync(&port->state_machine);
+	cancel_delayed_work_sync(&port->vdm_state_machine);
+	cancel_work_sync(&port->event_work);
+}
+EXPORT_SYMBOL_GPL(tcpm_shutdown);
+
 struct tcpm_port *tcpm_register_port(struct device *dev, struct tcpc_dev *tcpc)
 {
 	struct tcpm_port *port;

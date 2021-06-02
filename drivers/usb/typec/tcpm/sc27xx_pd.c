@@ -317,6 +317,7 @@ struct sc27xx_pd {
 	int need_retry;
 	bool typec_online;
 	bool pd_attached;
+	bool shutdown_flag;
 };
 
 static inline struct sc27xx_pd *tcpc_to_sc27xx_pd(struct tcpc_dev *tcpc)
@@ -607,6 +608,9 @@ static int sc27xx_pd_set_rx(struct tcpc_dev *tcpc, bool on)
 	u32 mask = SC27XX_PD_CTL_EN, mask1 = SC27XX_PD_PKG_RV_EN;
 	u32 mask2 = SC27XX_PD_RX_AUTO_GOOD_CRC;
 	int ret;
+
+	if (pd->shutdown_flag)
+		return 0;
 
 	mutex_lock(&pd->lock);
 	ret = sc27xx_pd_reset(pd);
@@ -1083,6 +1087,14 @@ static irqreturn_t sc27xx_pd_irq(int irq, void *dev_id)
 	ret = regmap_read(pd->regmap, pd->base + SC27XX_INT_FLG, &status);
 	if (ret < 0)
 		goto done;
+
+	if (pd->shutdown_flag) {
+		ret = regmap_update_bits(pd->regmap, pd->base + SC27XX_INT_CLR,
+					 SC27XX_INT_CLR_MASK,
+					 SC27XX_INT_CLR_MASK);
+		dev_info(pd->dev, "SC27XX_INT_FLG(0x28)=0x%x, ret=%d ->: return!!!", status, ret);
+		goto done;
+	}
 
 	if (status & SC27XX_PD_HARD_RST_FLAG) {
 		dev_warn(pd->dev, "IRQ: PD received hardreset");
@@ -1660,6 +1672,31 @@ static int sc27xx_pd_remove(struct platform_device *pdev)
 	return 0;
 }
 
+static void sc27xx_pd_shutdown(struct platform_device *pdev)
+{
+	int ret;
+
+	struct sc27xx_pd *pd = platform_get_drvdata(pdev);
+
+	if (!pd->tcpm_port) {
+		dev_warn(pd->dev, "tcpm_port Null!!!\n");
+		return;
+	}
+
+	tcpm_shutdown(pd->tcpm_port);
+
+	ret = sc27xx_pd_set_rx(&pd->tcpc, false);
+	if (ret) {
+		dev_err(pd->dev, "failed to disable set_rx at shutdown, ret = %d\n", ret);
+		return;
+	}
+
+	pd->shutdown_flag = true;
+
+	cancel_delayed_work_sync(&pd->read_msg_work);
+	cancel_work_sync(&pd->pd_work);
+}
+
 #ifdef CONFIG_PM_SLEEP
 static int sc27xx_pd_suspend(struct device *dev)
 {
@@ -1719,6 +1756,7 @@ static const struct of_device_id sc27xx_pd_of_match[] = {
 static struct platform_driver sc27xx_pd_driver = {
 	.probe = sc27xx_pd_probe,
 	.remove = sc27xx_pd_remove,
+	.shutdown = sc27xx_pd_shutdown,
 	.driver = {
 		.name = "sc27xx-typec-pd",
 		.of_match_table = sc27xx_pd_of_match,
