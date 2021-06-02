@@ -959,7 +959,6 @@ Description:
 return:
 	n.a.
 *******************************************************/
-extern const char *lcd_name;
 int32_t nvt_update_firmware(char *firmware_name)
 {
 	int32_t ret = 0;
