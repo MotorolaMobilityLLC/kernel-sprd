@@ -29,6 +29,19 @@
 #define SPRD_MIPI_DSI_FMT_DSC 0xff
 static DEFINE_MUTEX(panel_lock);
 
+static bool is11digit_lcd(const char* lcd_name)
+{
+	if (strncmp(lcd_name, "lcd_nt36525b_dj_mipi_hd", strlen(lcd_name)) == 0) return true;
+	if (strncmp(lcd_name, "lcd_icnl9911c_dj_mipi_hd", strlen(lcd_name)) == 0) return true;
+	return false;
+}
+static bool isHigh8digit_lcd(const char* lcd_name)
+{
+	if (strncmp(lcd_name, "lcd_hx83102d_youda_mipi_hd", strlen(lcd_name)) == 0)
+		return true;
+	return false;
+}
+
 const char *lcd_name;
 static int __init lcd_name_get(char *str)
 {
@@ -656,13 +669,13 @@ static int sprd_oled_set_brightness(struct backlight_device *bdev)
 	//printk(KERN_ERR "ontim->%s(%d) cmds_total:%d, wc_l:%d\n", __func__, __LINE__, oled->cmds_total, oled->cmds[0]->wc_l);
 	if (oled->cmds_total == 1) {
 		if (oled->cmds[0]->wc_l == 3) {
-			if(strncmp(lcd_name, "lcd_nt36525b_dj_mipi_hd", strlen(lcd_name)) == 0)
+			 if (is11digit_lcd(lcd_name))
 			{
 				oled->cmds[0]->payload[1] = (level >> 5) & 0x0F;
 				oled->cmds[0]->payload[2] = (level & 0x07) | ((level << 3) & 0xF8);
 				//printk(KERN_ERR "yyx payload[1]:0x%02X, payload[2]:0x%02X\n", oled->cmds[0]->payload[1], oled->cmds[0]->payload[2]);
 			}
-			else if(strncmp(lcd_name, "lcd_hx83102d_youda_mipi_hd", strlen(lcd_name)) == 0)
+			else if (isHigh8digit_lcd(lcd_name))
 			{
 				oled->cmds[0]->payload[1] = level;
 				oled->cmds[0]->payload[2] = level & 0x00;
@@ -670,7 +683,6 @@ static int sprd_oled_set_brightness(struct backlight_device *bdev)
 			}
 		} else
 			oled->cmds[0]->payload[1] = level;
-
 		sprd_panel_send_cmds(panel->slave,
 			     oled->cmds[0],
 			     oled->cmd_len);
