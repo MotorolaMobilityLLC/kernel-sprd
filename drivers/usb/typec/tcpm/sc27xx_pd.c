@@ -1326,7 +1326,14 @@ static int sc27xx_pd_extcon_event(struct notifier_block *nb,
 				  unsigned long event, void *param)
 {
 	struct sc27xx_pd *pd = container_of(nb, struct sc27xx_pd, extcon_nb);
+#ifdef CONFIG_TYPEC_DP_ALTMODE
+	enum dp_hpd_status hpd_status;
 
+	if (!extcon_get_state(pd->extcon, EXTCON_USB)) {
+		hpd_status = DP_TYPE_DISCONNECT;
+		sprd_dp_notifier_call_chain(&hpd_status);
+	}
+#endif
 	dev_info(pd->dev, "typec in or out, pd attached = %d\n", pd->pd_attached);
 	if (pd->pd_attached)
 		schedule_work(&pd->pd_work);
