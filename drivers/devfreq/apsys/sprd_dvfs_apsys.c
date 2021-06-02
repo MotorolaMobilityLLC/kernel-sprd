@@ -41,7 +41,7 @@ struct apsys_dev *find_apsys_device_by_name(char *name)
 		pr_err("cannot find node by name :%s\n", name);
 	}
 
-	pr_info("find platform device by node with name :%s, address:%x\n",
+	pr_info("find platform device by node with name :%s, address:%lx\n",
 				name, apsys->apsys_base);
 	return apsys;
 }
