@@ -20,7 +20,7 @@ struct sprd_chip_ops {
 	void (*free_msg)(struct sprd_chip *chip, struct sprd_msg *msg);
 	int (*tx_prepare)(struct sprd_chip *chip, struct sk_buff *skb);
 	int (*tx)(struct sprd_chip *chip, struct sprd_msg *msg);
-	void (*force_exit)(struct sprd_chip *chip);
+	int (*force_exit)(struct sprd_chip *chip);
 	int (*is_exit)(struct sprd_chip *chip);
 	void (*drop_tcp_msg)(struct sprd_chip *chip, struct sprd_msg *msg);
 	void (*set_qos)(struct sprd_chip *chip, enum sprd_mode mode,
@@ -187,9 +187,11 @@ static inline int sprd_chip_tx(struct sprd_chip *chip, struct sprd_msg *msg)
 	return chip->ops->tx(chip, msg);
 }
 
-static inline void sprd_chip_force_exit(struct sprd_chip *chip)
+static inline int sprd_chip_force_exit(void *sprd_chip)
 {
-	chip->ops->force_exit(chip);
+	struct sprd_chip *chip = (struct sprd_chip *)sprd_chip;
+
+	return chip->ops->force_exit(chip);
 }
 
 static inline int sprd_chip_is_exit(struct sprd_chip *chip)

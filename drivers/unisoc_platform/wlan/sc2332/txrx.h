@@ -30,7 +30,7 @@ struct sprd_msg *sc2332_tx_get_msg(struct sprd_chip *chip,
 				   enum sprd_mode mode);
 void sc2332_tx_free_msg(struct sprd_chip *chip, struct sprd_msg *msg);
 int sc2332_tx(struct sprd_chip *chip, struct sprd_msg *msg);
-void sc2332_tx_force_exit(struct sprd_chip *chip);
+int sc2332_tx_force_exit(struct sprd_chip *chip);
 int sc2332_tx_is_exit(struct sprd_chip *chip);
 void sc2332_tx_drop_tcp_msg(struct sprd_chip *chip, struct sprd_msg *msg);
 void sc2332_tx_set_qos(struct sprd_chip *chip, enum sprd_mode mode, int enable);

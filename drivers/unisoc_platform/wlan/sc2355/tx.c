@@ -1756,12 +1756,13 @@ int sc2355_tx(struct sprd_chip *chip, struct sprd_msg *msg)
 	return 0;
 }
 
-void sc2355_tx_force_exit(struct sprd_chip *chip)
+int sc2355_tx_force_exit(struct sprd_chip *chip)
 {
 	struct sprd_priv *priv = chip->priv;
 	struct sprd_hif *hif = &priv->hif;
 
 	hif->exit = 1;
+	return 0;
 }
 
 int sc2355_tx_is_exit(struct sprd_chip *chip)

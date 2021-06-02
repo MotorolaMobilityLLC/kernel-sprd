@@ -157,13 +157,14 @@ int sc2332_tx(struct sprd_chip *chip, struct sprd_msg *msg)
 	return 0;
 }
 
-void sc2332_tx_force_exit(struct sprd_chip *chip)
+int sc2332_tx_force_exit(struct sprd_chip *chip)
 {
 	struct sprd_priv *priv = chip->priv;
 	struct sprd_hif *hif = &priv->hif;
 
 	hif->exit = 1;
 	wake_up_all(&hif->waitq);
+	return 0;
 }
 
 int sc2332_tx_is_exit(struct sprd_chip *chip)
