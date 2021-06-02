@@ -5,6 +5,7 @@
  * Filename : sdiohal_tx.c
  * Abstract : This file is a implementation for wcn sdio hal function
  */
+#include <linux/sched/clock.h>
 
 #include "sdiohal.h"
 
@@ -71,6 +72,7 @@ int sdiohal_tx_thread(void *data)
 		if (p_data->exit_flag)
 			break;
 
+		tm_enter_tx_thread = local_clock();
 		getnstimeofday(&p_data->tm_end_sch);
 		sdiohal_pr_perf("tx sch time:%ld\n",
 				(long)(timespec_to_ns(&p_data->tm_end_sch) -
@@ -108,6 +110,7 @@ int sdiohal_tx_thread(void *data)
 			}
 		}
 
+		tm_exit_tx_thread = local_clock();
 		sdiohal_cp_tx_sleep(PACKER_TX);
 		sdiohal_unlock_tx_ws();
 	}
