@@ -295,7 +295,7 @@ static ssize_t sprd_modem_seg_dump(u32 base, u32 maxsz, char __user *buf,
 				MODEM_VMALLOC_SIZE_LIMIT, MEMREMAP_WB);
 
 		if (!vmem) {
-			pr_err("unable to map base: 0x%08x\n",
+			pr_err("unable to map base: 0x%08llx\n",
 			       start_addr + MODEM_VMALLOC_SIZE_LIMIT * loop);
 			if (loop > 0)
 				return MODEM_VMALLOC_SIZE_LIMIT * loop;
