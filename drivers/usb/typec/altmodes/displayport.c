@@ -228,6 +228,7 @@ static void dp_altmode_attention(struct typec_altmode *alt, const u32 vdo)
 {
 	struct dp_altmode *dp = typec_altmode_get_drvdata(alt);
 	u8 old_state;
+	enum dp_hpd_status hpd_status;
 
 	mutex_lock(&dp->lock);
 
@@ -246,6 +247,18 @@ static void dp_altmode_attention(struct typec_altmode *alt, const u32 vdo)
 
 	if (old_state == DP_STATE_IDLE && dp->state != DP_STATE_IDLE)
 		schedule_work(&dp->work);
+
+	if (vdo & DP_STATUS_HPD_STATE) {
+		if (vdo & DP_STATUS_IRQ_HPD)
+			hpd_status = DP_HPD_IRQ;
+		else
+			hpd_status = DP_HOT_PLUG;
+	} else
+		hpd_status = DP_HOT_UNPLUG;
+
+	dev_info(&alt->dev, "%s: vdo:%d\n", __func__, vdo);
+
+	sprd_dp_notifier_call_chain(&hpd_status);
 
 	mutex_unlock(&dp->lock);
 }
