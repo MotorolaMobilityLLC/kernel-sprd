@@ -817,6 +817,8 @@ struct sipa_plat_drv_cfg {
 	u32 suspend_cnt;
 	u32 resume_cnt;
 
+	u32 *panic_reg;
+
 #ifdef CONFIG_DEBUG_FS
 	struct dentry *debugfs_root;
 #endif

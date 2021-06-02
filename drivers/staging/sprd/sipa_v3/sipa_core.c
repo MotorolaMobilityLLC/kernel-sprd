@@ -10,6 +10,7 @@
 #include <linux/io.h>
 #include <linux/init.h>
 #include <linux/kernel.h>
+#include <linux/notifier.h>
 #include <linux/mm.h>
 #include <linux/module.h>
 #include <linux/mfd/syscon.h>
@@ -1333,9 +1334,32 @@ static void sipa_power_work(struct work_struct *work)
 		sipa_prepare_suspend_work(ipa->dev);
 }
 
+static int sipa_panic(struct notifier_block *self,
+		      unsigned long val, void *reason)
+{
+	int i;
+	int index = 0;
+	struct sipa_plat_drv_cfg *ipa = sipa_get_ctrl_pointer();
+
+	if (!ipa->enable_cnt)
+		return NOTIFY_DONE;
+
+	for (i = 0; i < 0x2000; i += 0x4) {
+		ipa->panic_reg[index] = readl_relaxed(ipa->glb_virt_base + i);
+		index++;
+	}
+
+	return NOTIFY_DONE;
+}
+
+static struct notifier_block sipa_panic_cb = {
+	.notifier_call = sipa_panic,
+};
+
 static int sipa_plat_drv_probe(struct platform_device *pdev_p)
 {
 	int ret;
+	dma_addr_t dma_addr;
 	struct device *dev = &pdev_p->dev;
 	struct sipa_plat_drv_cfg *ipa;
 
@@ -1387,6 +1411,14 @@ static int sipa_plat_drv_probe(struct platform_device *pdev_p)
 		dev_err(dev, "power wq create failed\n");
 		return -ENOMEM;
 	}
+
+	ipa->panic_reg = dma_alloc_coherent(dev, 0x2000, &dma_addr, GFP_KERNEL);
+	if (!ipa->panic_reg)
+		return -ENOMEM;
+	memset(ipa->panic_reg, 0, 0x2000);
+
+	atomic_notifier_chain_register(&panic_notifier_list,
+				       &sipa_panic_cb);
 
 	pm_runtime_enable(dev);
 	sipa_init_debugfs(ipa);
