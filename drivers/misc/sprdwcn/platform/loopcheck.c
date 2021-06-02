@@ -31,7 +31,8 @@ static int loopcheck_send(char *buf, unsigned int len)
 	unsigned char *send_buf = NULL;
 	struct mbuf_t *head = NULL;
 	struct mbuf_t *tail = NULL;
-	int num = 1;
+	struct mchn_ops_t *mchn_ops = &mdbg_proc_ops[MDBG_AT_TX_OPS];
+	int ret = 0, num = 1;
 
 	WCN_INFO("tx:%s\n", buf);
 	if (unlikely(!marlin_get_module_status())) {
@@ -44,18 +45,32 @@ static int loopcheck_send(char *buf, unsigned int len)
 		return -ENOMEM;
 	memcpy(send_buf + PUB_HEAD_RSV, buf, len);
 
-	if (!sprdwcn_bus_list_alloc(mdbg_proc_ops[MDBG_AT_TX_OPS].channel,
-				    &head, &tail, &num)) {
+	if (!sprdwcn_bus_list_alloc(mchn_ops->channel, &head, &tail, &num)) {
 		head->buf = send_buf;
 		head->len = len;
 		head->next = NULL;
-		sprdwcn_bus_push_list(mdbg_proc_ops[MDBG_AT_TX_OPS].channel,
-				      head, tail, num);
-	} else {
-		kfree(send_buf);
-	}
+#ifdef CONFIG_SDIOHAL
+		ret = sprdwcn_bus_push_list_direct(mchn_ops->channel,
+						   head, tail, num);
 
-	return len;
+		if (mchn_ops->pop_link)
+			mchn_ops->pop_link(mchn_ops->channel,
+					   head, tail, num);
+		else
+			sprdwcn_bus_list_free(mchn_ops->channel,
+					      head, tail, num);
+#else
+		ret = sprdwcn_bus_push_list(mchn_ops->channel,
+					    head, tail, num);
+#endif
+		if (ret != 0)
+			WCN_ERR("loopcheck send fail!\n");
+	} else {
+		WCN_ERR("%s alloc buf fail!\n", __func__);
+		kfree(send_buf);
+		return -ENOMEM;
+	}
+	return ret;
 }
 #else
 static int loopcheck_send(char *cmd, unsigned int len)
@@ -107,31 +122,39 @@ static int loopcheck_send(char *cmd, unsigned int len)
 static void loopcheck_work_queue(struct work_struct *work)
 {
 	int ret;
-	unsigned long timeleft, ns, time;
-	unsigned int ap_t, marlin_boot_t;
 	char a[64];
+	unsigned long timeleft;
+	unsigned long long sprdwcn_rx_cnt_a = 0, sprdwcn_rx_cnt_b = 0;
+	unsigned long long loopcheck_tx_ns, marlin_boot_t;
 
-	ns = local_clock();
-	time = marlin_bootup_time_get();
-	ap_t = MARLIN_64B_NS_TO_32B_MS(ns);
-	marlin_boot_t = MARLIN_64B_NS_TO_32B_MS(time);
-	snprintf(a, (size_t)sizeof(a), "at+loopcheck=%u,%u\r\n",
-		 ap_t, marlin_boot_t);
+	loopcheck_tx_ns = local_clock();
+	marlin_boot_t = marlin_bootup_time_get();
+	MARLIN_64B_NS_TO_32B_MS(loopcheck_tx_ns);
+	MARLIN_64B_NS_TO_32B_MS(marlin_boot_t);
+	snprintf(a, (size_t)sizeof(a), "at+loopcheck=%llu,%llu\r\n",
+		 loopcheck_tx_ns, marlin_boot_t);
 
 	if (!test_bit(WCN_LOOPCHECK_OPEN, &loopcheck.status))
 		return;
 
-	loopcheck_send(a, strlen(a));
-	timeleft = wait_for_completion_timeout(&loopcheck.completion, (3 * HZ));
-	if (!test_bit(WCN_LOOPCHECK_OPEN, &loopcheck.status))
-		return;
-	if (!timeleft) {
-		set_bit(WCN_LOOPCHECK_FAIL, &loopcheck.status);
-		WCN_ERR("didn't get loopcheck ack\n");
-		mdbg_assert_interface("WCN loopcheck erro!");
-		clear_bit(WCN_LOOPCHECK_FAIL, &loopcheck.status);
+	sprdwcn_rx_cnt_a = sprdwcn_bus_get_rx_total_cnt();
+	usleep_range(4000, 6000);
+	sprdwcn_rx_cnt_b = sprdwcn_bus_get_rx_total_cnt();
 
-		return;
+	if (sprdwcn_rx_cnt_a == sprdwcn_rx_cnt_b) {
+		loopcheck_send(a, strlen(a));
+		timeleft = wait_for_completion_timeout(&loopcheck.completion,
+						       (4 * HZ));
+		if (!test_bit(WCN_LOOPCHECK_OPEN, &loopcheck.status))
+			return;
+		if (!timeleft) {
+			set_bit(WCN_LOOPCHECK_FAIL, &loopcheck.status);
+			WCN_ERR("didn't get loopcheck ack, printk=%d\n",
+				console_loglevel);
+			mdbg_assert_interface("WCN loopcheck erro!");
+			clear_bit(WCN_LOOPCHECK_FAIL, &loopcheck.status);
+			return;
+		}
 	}
 
 	ret = queue_delayed_work(loopcheck.workqueue, &loopcheck.work,
