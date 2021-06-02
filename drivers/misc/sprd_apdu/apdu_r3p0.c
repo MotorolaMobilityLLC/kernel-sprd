@@ -80,6 +80,16 @@ static u32 sprd_apdu_int_en_status(void __iomem *base)
 	return readl_relaxed(base + APDU_INT_EN);
 }
 
+static u32 sprd_apdu_int_raw_status(void __iomem *base)
+{
+	return readl_relaxed(base + APDU_INT_RAW);
+}
+
+static u32 sprd_apdu_int_mask_status(void __iomem *base)
+{
+	return readl_relaxed(base + APDU_INT_MASK);
+}
+
 static void sprd_apdu_clear_int(void __iomem *base, u32 clear_int)
 {
 	writel_relaxed(clear_int & APDU_INT_BITS, base + APDU_INT_CLR);
@@ -106,6 +116,16 @@ static void sprd_apdu_inf_int_dis(void __iomem *base, u32 int_dis)
 static u32 sprd_apdu_inf_int_en_status(void __iomem *base)
 {
 	return readl_relaxed(base + APDU_INF_INT_EN);
+}
+
+static u32 sprd_apdu_inf_int_raw_status(void __iomem *base)
+{
+	return readl_relaxed(base + APDU_INF_INT_RAW);
+}
+
+static u32 sprd_apdu_inf_int_mask_status(void __iomem *base)
+{
+	return readl_relaxed(base + APDU_INF_INT_MASK);
 }
 
 static void sprd_apdu_clear_inf_int(void __iomem *base, u32 clear_int)
@@ -1500,17 +1520,27 @@ static irqreturn_t sprd_apdu_interrupt(int irq, void *data)
 	u32 reg_int_status, reg_inf_int_status, mask;
 	struct sprd_apdu_device *apdu = (struct sprd_apdu_device *)data;
 
-	reg_int_status = readl_relaxed(apdu->base + APDU_INT_MASK);
+	/* may such interrupt not enable but triggered
+	 * because of ISE or APDU module reset will clear APDU REE reg
+	 * (but AP may unknown)
+	 */
+	if (sprd_apdu_enable_check(apdu)) {
+		reg_int_status = sprd_apdu_int_raw_status(apdu->base);
+		reg_inf_int_status = sprd_apdu_inf_int_raw_status(apdu->base);
+	} else {
+		reg_int_status = sprd_apdu_int_mask_status(apdu->base);
+		reg_inf_int_status = sprd_apdu_inf_int_mask_status(apdu->base);
+	}
+
 	/* APDU_INT_MED_WR_DONE not clear here,
 	 * clear after med_rewrite_post_process
 	 */
 	mask = (~APDU_INT_MED_WR_DONE) & APDU_INT_BITS;
-	writel_relaxed(reg_int_status & mask, apdu->base + APDU_INT_CLR);
+	sprd_apdu_clear_int(apdu->base, reg_int_status & mask);
+	sprd_apdu_clear_inf_int(apdu->base, reg_inf_int_status);
 
-	reg_inf_int_status = readl_relaxed(apdu->base + APDU_INF_INT_MASK);
-	writel_relaxed(reg_inf_int_status, apdu->base + APDU_INF_INT_CLR);
-
-	if (reg_inf_int_status)
+	/* all used inf interrupt */
+	if (reg_inf_int_status & (APDU_INF_INT_FAULT | APDU_INF_INT_GET_ATR))
 		sprd_apdu_ise_gp_status_caching(apdu, reg_inf_int_status);
 
 	if (reg_inf_int_status & APDU_INF_INT_FAULT) {
@@ -1537,11 +1567,13 @@ static irqreturn_t sprd_apdu_interrupt(int irq, void *data)
 	if (reg_int_status & APDU_INT_MED_ERR)
 		apdu->med_err.med_error_status = 1;
 	if (reg_int_status & APDU_INT_RX_EMPTY_TO_NOEMPTY) {
-		if (sprd_apdu_enable_check(apdu))
-			sprd_apdu_enable(apdu);
 		apdu->rx_done = 1;
 		wake_up(&apdu->read_wq);
 	}
+
+	/* using first interrupt to enable other interrupt when ISE reset */
+	if (sprd_apdu_enable_check(apdu))
+		sprd_apdu_enable(apdu);
 
 	if ((apdu->ise_fault.ise_fault_status &&
 	     apdu->ise_fault.ise_fault_allow_to_send_flag) ||
