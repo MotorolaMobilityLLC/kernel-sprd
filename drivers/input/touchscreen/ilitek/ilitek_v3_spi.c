@@ -564,6 +564,10 @@ static int ilitek_spi_probe(struct spi_device *spi)
 		struct touch_bus_info, bus_driver);
 
 	ILI_INFO("ilitek spi probe\n");
+    if ( NULL == strstr(lcd_name, "ili9883a")) {
+		ILI_ERR("failed to find ilitek device, cmdline=%s\n", lcd_name);
+		return -ENODEV;
+    }
 
 	if (!spi) {
 		ILI_ERR("spi device is NULL\n");

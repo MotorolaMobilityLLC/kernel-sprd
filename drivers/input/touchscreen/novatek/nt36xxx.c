@@ -998,14 +998,16 @@ static ssize_t nvt_suspend_show(struct device *dev,
 static ssize_t nvt_suspend_store(struct device *dev,
 		struct device_attribute *attr, const char *buf, size_t count)
 {
+	struct nvt_ts_data *nvt_ts_data = dev_get_drvdata(dev);
 	unsigned int input;
 
 	if (kstrtouint(buf, 10, &input))
 		return -EINVAL;
 
-	if (input == 1)
+	//NVT_ERR( "ontim->%s(%d) input = %d\n", __func__, __LINE__, input);
+	if (input == 1 && !(nvt_ts_data->suspended))
 		nvt_ts_suspend(dev);
-	else if (input == 0)
+	else if (input == 0 && nvt_ts_data->suspended)
 		nvt_ts_resume(dev);
 	else
 		return -EINVAL;
@@ -2000,6 +2002,7 @@ static int32_t nvt_ts_suspend(struct device *dev)
 #if MT_PROTOCOL_B
 	uint32_t i = 0;
 #endif
+	mutex_lock(&ts->lock);
 
 	NVT_LOG("testlog: nvt_ts_suspend start.\n");
 	if (!bTouchIsAwake) {
@@ -2016,8 +2019,6 @@ static int32_t nvt_ts_suspend(struct device *dev)
 	cancel_delayed_work_sync(&nvt_esd_check_work);
 	nvt_esd_check_enable(false);
 #endif /* #if NVT_TOUCH_ESD_PROTECT */
-
-	mutex_lock(&ts->lock);
 
 	NVT_LOG("start\n");
 
@@ -2040,7 +2041,6 @@ static int32_t nvt_ts_suspend(struct device *dev)
 	CTP_SPI_WRITE(ts->client, buf, 2);
 #endif // WAKEUP_GESTURE
 
-	mutex_unlock(&ts->lock);
 
 	/* release all touches */
 #if MT_PROTOCOL_B
@@ -2060,8 +2060,11 @@ static int32_t nvt_ts_suspend(struct device *dev)
 
 	msleep(50);
 
+
 	NVT_LOG("end\n");
 	NVT_LOG("testlog: nvt_ts_suspend end.\n");
+
+	mutex_unlock(&ts->lock);
 
 	return 0;
 }
@@ -2075,13 +2078,13 @@ return:
 *******************************************************/
 static int32_t nvt_ts_resume(struct device *dev)
 {
+	mutex_lock(&ts->lock);
+
 	NVT_LOG("testlog: nvt_ts_resume start.\n");
 	if (bTouchIsAwake) {
 		NVT_LOG("Touch is already resume\n");
 		return 0;
 	}
-
-	mutex_lock(&ts->lock);
 
 	NVT_LOG("start\n");
 
@@ -2108,10 +2111,10 @@ static int32_t nvt_ts_resume(struct device *dev)
 	bTouchIsAwake = 1;
 	ts->suspended = 0;
 
-	mutex_unlock(&ts->lock);
-
 	NVT_LOG("testlog: nvt_ts_resume end.\n");
 	NVT_LOG("end\n");
+
+	mutex_unlock(&ts->lock);
 
 	return 0;
 }
@@ -2235,6 +2238,10 @@ static int32_t __init nvt_driver_init(void)
 	int32_t ret = 0;
 
 	NVT_LOG("start, %s\n", TOUCHSCREEN_NOVATEK_MODEL);
+    if ( (NULL == strstr(lcd_name, "nt36525c")) && (NULL == strstr(lcd_name, "nt36525b"))) {
+        NVT_ERR("failed to find novatek device, cmdline=%s\n", lcd_name);
+        return -ENODEV;
+    }
 
 	//---add spi driver---
 	ret = spi_register_driver(&nvt_spi_driver);

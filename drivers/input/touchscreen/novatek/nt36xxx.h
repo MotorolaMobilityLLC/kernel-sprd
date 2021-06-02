@@ -80,11 +80,11 @@ extern const uint16_t touch_key_array[TOUCH_KEY_NUM];
 #define NVT_TOUCH_SUPPORT_HW_RST 0
 
 //---Customerized func.---
-#define NVT_TOUCH_PROC 1
-#define NVT_TOUCH_EXT_PROC 1
-#define NVT_TOUCH_MP 1
-#define MT_PROTOCOL_B 1
-#define WAKEUP_GESTURE 1
+#define NVT_TOUCH_PROC      1
+#define NVT_TOUCH_EXT_PROC  1
+#define NVT_TOUCH_MP        1
+#define MT_PROTOCOL_B       1
+#define WAKEUP_GESTURE      0
 #if WAKEUP_GESTURE
 extern const uint16_t gesture_key_array[];
 #endif
@@ -202,5 +202,7 @@ int32_t nvt_write_addr(uint32_t addr, uint8_t data);
 #if NVT_TOUCH_ESD_PROTECT
 extern void nvt_esd_check_enable(uint8_t enable);
 #endif /* #if NVT_TOUCH_ESD_PROTECT */
+
+extern const char *lcd_name;
 
 #endif /* _LINUX_NVT_TOUCH_H */
