@@ -544,31 +544,15 @@ static int gf_open(struct inode *inode, struct file *filp)
 		}
 	}
 
-	if (gf_parse_dts(gf_dev))
-        pr_err("failed to parse dts for gf\n");
-
     if (status == 0) {
         gf_dev->users++;
-		if(gf_dev->irq == 0) {
-			gf_dev->irq = gf_irq_num(gf_dev);
-			status = request_threaded_irq(gf_dev->irq, NULL, gf_irq,
-					IRQF_TRIGGER_RISING | IRQF_ONESHOT,
-					"gf", gf_dev);
-			if (status) {
-				pr_err("failed to request IRQ:%d\n", gf_dev->irq);
-				status = -1;
-			} else {
-				enable_irq_wake(gf_dev->irq);
-				gf_dev->irq_enabled = 1;
-				if (gf_dev->users == 1)
-					gf_enable_irq(gf_dev);
-				filp->private_data = gf_dev;
-				nonseekable_open(inode, filp);
-				pr_info("Succeed to open device. irq = %d\n",
-					gf_dev->irq);
-				gf_hw_reset(gf_dev, 3);
-			}
-		}
+        filp->private_data = gf_dev;
+        nonseekable_open(inode, filp);
+        pr_info("Succeed to open device. irq = %d\n",
+                gf_dev->irq);
+        if (gf_dev->users == 1)
+            gf_enable_irq(gf_dev);
+        gf_hw_reset(gf_dev, 3);
     } else {
         pr_info("No device for minor %d\n", iminor(inode));
     }
@@ -706,8 +690,8 @@ static int gf_probe(struct platform_device *pdev)
 
 	gf_dev->fb_black = 0;
 
-   /*	if (gf_parse_dts(gf_dev))
-		goto error_hw;*/
+	if (gf_parse_dts(gf_dev))
+		goto error_hw;
 
 	/* If we can allocate a minor number, hook up this device.
 	 * Reusing minors is fine so long as udev or mdev is working.
@@ -768,8 +752,8 @@ static int gf_probe(struct platform_device *pdev)
 
 	gf_dev->notifier = goodix_noti_block;
 	fb_register_client(&gf_dev->notifier);
-	wakeup_source_init(&fp_wakelock, "fp_wakelock");
-	/*gf_dev->irq = gf_irq_num(gf_dev);
+
+	gf_dev->irq = gf_irq_num(gf_dev);
 
 	wakeup_source_init(&fp_wakelock, "fp_wakelock");
 	status = request_threaded_irq(gf_dev->irq, NULL, gf_irq,
@@ -782,13 +766,15 @@ static int gf_probe(struct platform_device *pdev)
 	}
 	enable_irq_wake(gf_dev->irq);
 	gf_dev->irq_enabled = 1;
-	gf_disable_irq(gf_dev);*/
+	gf_disable_irq(gf_dev);
 
 	pr_info("version V%d.%d.%02d.%02d\n", VER_MAJOR, VER_MINOR, PATCH_LEVEL, EXTEND_VER);
 	pr_info("%s: exit\n", __func__);
 
 	return status;
 
+err_irq:
+		input_unregister_device(gf_dev->input);
 #ifdef AP_CONTROL_CLK
 gfspi_probe_clk_enable_failed:
 	gfspi_ioctl_clk_uninit(gf_dev);
