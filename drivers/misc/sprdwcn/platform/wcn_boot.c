@@ -27,6 +27,7 @@
 #include <linux/workqueue.h>
 #include <misc/marlin_platform.h>
 #include <misc/wcn_bus.h>
+#include <linux/sprd-debugstat.h>
 
 #include "gnss/gnss_common.h"
 #include "rf/rf.h"
@@ -1796,6 +1797,18 @@ static void set_fm_supe_freq(enum wcn_sub_sys subsys,
 	}
 }
 
+#ifdef CONFIG_WCN_SLEEP_INFO
+void wcn_slp_info_total_store(void)
+{
+	struct subsys_sleep_info *buf;
+
+	buf = wcn_cp2_slp_info_buf;
+	wcn_cp2_slp_info_total.total_dut = buf->total_duration;
+	wcn_cp2_slp_info_total.slp_dut_total = buf->sleep_duration_total;
+	wcn_cp2_slp_info_total.idle_dut_total = buf->idle_duration_total;
+}
+#endif
+
 /*
  * MARLIN_GNSS no need loopcheck action
  * MARLIN_AUTO no need loopcheck action
@@ -1823,6 +1836,9 @@ static void power_state_notify_or_not(enum wcn_sub_sys subsys, int poweron)
 		stop_loopcheck();
 		marlin_dev->loopcheck_status_change = 1;
 		wakeup_loopcheck_int();
+#ifdef CONFIG_WCN_SLEEP_INFO
+		wcn_slp_info_total_store();
+#endif
 	}
 }
 
@@ -2591,6 +2607,19 @@ int start_marlin(enum wcn_sub_sys subsys)
 	}
 	if (marlin_set_power(subsys, true) < 0)
 		return -1;
+
+#ifdef CONFIG_WCN_SLEEP_INFO
+	if ((test_bit(MARLIN_BLUETOOTH, &marlin_dev->power_state) +
+		test_bit(MARLIN_FM, &marlin_dev->power_state) +
+		test_bit(MARLIN_WIFI, &marlin_dev->power_state) +
+		test_bit(MARLIN_MDBG, &marlin_dev->power_state)) == 1) {
+		stat_info_register("wcn_sys", wcn_sleep_info_read, NULL);
+		wcn_reboot_count++;
+		if (wcn_sleep_info_open() < 0)
+			WCN_ERR("wcn_slp:Failed to send open sleep info cmd");
+		}
+#endif
+
 #ifndef CONFIG_WCN_PCIE
 	return mem_pd_mgr(subsys, true);
 #else

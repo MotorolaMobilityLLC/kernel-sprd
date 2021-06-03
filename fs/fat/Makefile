@@ -8,5 +8,8 @@ obj-$(CONFIG_VFAT_FS) += vfat.o
 obj-$(CONFIG_MSDOS_FS) += msdos.o
 
 fat-y := cache.o dir.o fatent.o file.o inode.o misc.o nfs.o
+GCOV_PROFILE_dir.o := $(CONFIG_SPRD_FS_GCOV)
+GCOV_PROFILE_file.o := $(CONFIG_SPRD_FS_GCOV)
+GCOV_PROFILE_inode.o := $(CONFIG_SPRD_FS_GCOV)
 vfat-y := namei_vfat.o
 msdos-y := namei_msdos.o

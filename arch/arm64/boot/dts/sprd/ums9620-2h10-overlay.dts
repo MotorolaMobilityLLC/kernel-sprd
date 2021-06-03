@@ -547,6 +547,7 @@
 
 &pmic_pd {
 	status = "okay";
+	sprd,syscon-aon-apb = <&aon_apb_regs>;
 	usb_con: connector {
 		compatible = "usb-c-connector";
 		label = "USB-C";

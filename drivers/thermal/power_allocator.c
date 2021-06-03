@@ -166,8 +166,8 @@ static void estimate_pid_constants(struct thermal_zone_device *tz,
 	if (!tz->tzp->k_i || force)
 		tz->tzp->k_i = int_to_frac(2) / 1000;
 	/*
-	 * The default for k_d and integral_cutoff is 0, so we can
-	 * leave them as they are.
+	 * The default for k_d, integral_cutoff and clear_integral_cutoff
+	 * is 0, so we can leave them as they are.
 	 */
 }
 
@@ -214,8 +214,10 @@ static u32 pid_controller(struct thermal_zone_device *tz,
 
 	/* Calculate the proportional term */
 	p = mul_frac(err < 0 ? tz->tzp->k_po : tz->tzp->k_pu, err);
-	if ((err >= int_to_frac(3000)) && (params->err_integral < 0))
-		params->err_integral = 0;
+	if (tz->tzp->clear_integral_cutoff)
+		if ((err >= int_to_frac(tz->tzp->clear_integral_cutoff)) &&
+			(params->err_integral < 0))
+			params->err_integral = 0;
 
 	/*
 	 * Calculate the integral term

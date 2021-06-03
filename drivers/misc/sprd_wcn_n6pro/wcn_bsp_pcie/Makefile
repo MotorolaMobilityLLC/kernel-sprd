@@ -1,4 +1,4 @@
-WCN_BSP_PCIE_TREE := drivers/misc/sprd_wcn_bsp/wcn_bsp_pcie/
+WCN_BSP_PCIE_TREE := drivers/misc/sprd_wcn_n6pro/wcn_bsp_pcie/
 ccflags-y += \
 	-I$(WCN_BSP_PCIE_TREE)/include \
 	-I$(WCN_BSP_PCIE_TREE)/boot \

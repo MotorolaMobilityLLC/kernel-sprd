@@ -712,7 +712,7 @@ int sblock_create_ex(u8 dst, u8 channel,
 	int result;
 	u8 ch_index;
 	struct smsg_ipc *sipc;
-	struct sched_param param = {.sched_priority = 11};
+	struct sched_param param = {.sched_priority = 88};
 
 	ch_index = sipc_channel2index(channel);
 	if (ch_index == INVALID_CHANEL_INDEX) {
@@ -812,7 +812,7 @@ int sblock_pcfg_create(u8 dst, u8 channel,
 				   rx_blk_num, rx_blk_sz,
 				   &sblock);
 	if (!result) {
-		struct sched_param param = {.sched_priority = 11};
+		struct sched_param param = {.sched_priority = 88};
 
 		sblock->thread = kthread_create(sblock_thread, sblock,
 						"sblock-%d-%d", dst, channel);
@@ -909,7 +909,7 @@ int sblock_pcfg_open(uint8_t dest, uint8_t channel,
 	struct sblock_mgr *sblock;
 	uint8_t idx;
 	int ret;
-	struct sched_param param = {.sched_priority = 11};
+	struct sched_param param = {.sched_priority = 88};
 
 	pr_debug("dst=%d channel=%d\n", dest, channel);
 
@@ -995,6 +995,39 @@ int sblock_register_notifier(u8 dst, u8 channel,
 	return 0;
 }
 EXPORT_SYMBOL_GPL(sblock_register_notifier);
+
+struct sblock_mgr *sblock_register_notifier_ex(u8 dst, u8 channel,
+					       void (*handler)(int event,
+							       void *data),
+					       void *data)
+{
+	struct sblock_mgr *sblock;
+	u8 ch_index;
+
+	ch_index = sipc_channel2index(channel);
+	if (ch_index == INVALID_CHANEL_INDEX) {
+		pr_err("%s:channel %d invalid!\n", __func__, channel);
+		return NULL;
+	}
+
+	sblock = sblocks[dst][ch_index];
+
+	if (!sblock) {
+		pr_err("%s:sblock-%d-%d not create!\n", __func__, dst, channel);
+		return NULL;
+	}
+
+	/* client block, after block ready, return the sblock. */
+	if (smsg_ipcs[dst]->client && sblock->state != SBLOCK_STATE_READY) {
+		pr_err("%s:sblock-%d-%d not ready!\n", __func__, dst, channel);
+		return NULL;
+	}
+
+	sblock->handler = handler;
+	sblock->data = data;
+
+	return sblock;
+}
 
 int sblock_get_smem_cp_addr(uint8_t dest, uint8_t channel,
 			    uint32_t *paddr)

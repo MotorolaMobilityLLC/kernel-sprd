@@ -44,6 +44,9 @@ struct sprd_ipa_info {
 
 	/* threshold below which the error is no longer accumulated */
 	s32 integral_cutoff;
+
+	/* The value that indicates err_integral needs to be cleared */
+	s32 clear_integral_cutoff;
 };
 
 struct soc_sensor {
@@ -128,6 +131,8 @@ static void sprd_ipa_info_copy(struct sprd_thermal_zone *pzone,
 		tzp->k_d = ipa_info->k_d;
 	if (ipa_info->integral_cutoff)
 		tzp->integral_cutoff = ipa_info->integral_cutoff;
+	if (ipa_info->clear_integral_cutoff)
+		tzp->clear_integral_cutoff = ipa_info->clear_integral_cutoff;
 }
 
 static void  sprd_ipa_info_parse_dt(const struct device_node *np,
@@ -159,6 +164,12 @@ static void  sprd_ipa_info_parse_dt(const struct device_node *np,
 	if (ret) {
 		ipa_info->integral_cutoff = 0;
 		pr_warn("no cutoff property for soc thm\n");
+	}
+	ret = of_property_read_u32(np, "clear_integral",
+				&ipa_info->clear_integral_cutoff);
+	if (ret) {
+		ipa_info->clear_integral_cutoff = 0;
+		pr_warn("no clear_integral property for soc thm\n");
 	}
 }
 

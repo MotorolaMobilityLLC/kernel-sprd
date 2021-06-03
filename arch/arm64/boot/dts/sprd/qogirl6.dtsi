@@ -1365,6 +1365,7 @@
 				k-i = <2>;
 				k-d = <0>;
 				cutoff = <0>;
+				clear_integral = <3000>;
 			};
 
 			adi_bus: spi@64200000 {

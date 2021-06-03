@@ -36,6 +36,10 @@
 #define MAX_INST_NAME_LEN	40
 /* number of tx requests to allocate */
 #define TX_REQ_MAX		4
+#ifdef CONFIG_USB_F_VSERIAL_BYPASS_USER
+#define TX_REQ_BYPASS_MAX		100
+#endif
+
 /* Device --> Host */
 #define SET_IN_SIZE		0x00
 /* Host --> Device */
@@ -46,9 +50,11 @@
 #define DOWNLINK_TEST		0x02
 #define LOOP_TEST		0x03
 
-#ifdef CONFIG_SPRD_IQ
-extern int in_iqmode(void);
-void (*bulk_in_complete_function)(char *buffer, int length) = NULL;
+#ifdef CONFIG_USB_F_VSERIAL_BYPASS_USER
+static void (*bulk_in_complete_function)(char *buffer,
+					 unsigned int length, void *p);
+static void *s_callback_data;
+static bool s_in_bypass_mode;
 #endif
 
 static const char vser_shortname[] = "vser";
@@ -73,8 +79,8 @@ struct vser_dev {
 
 	struct list_head tx_idle;
 
-#ifdef CONFIG_SPRD_IQ
-	struct list_head tx_iq_idle;
+#ifdef CONFIG_USB_F_VSERIAL_BYPASS_USER
+	struct list_head tx_pass_idle;
 #endif
 
 	wait_queue_head_t read_wq;
@@ -269,18 +275,19 @@ static void vser_complete_in(struct usb_ep *ep, struct usb_request *req)
 	wake_up(&dev->write_wq);
 }
 
-#ifdef CONFIG_SPRD_IQ
-static void vser_iq_complete_in(struct usb_ep *ep, struct usb_request *req)
+#ifdef CONFIG_USB_F_VSERIAL_BYPASS_USER
+static void vser_pass_complete_in(struct usb_ep *ep, struct usb_request *req)
 {
 	struct vser_dev *dev = _vser_dev;
 
 	if (req->status != 0)
 		dev->wr_error = 1;
 
-	vser_req_put(dev, &dev->tx_iq_idle, req);
+	vser_req_put(dev, &dev->tx_pass_idle, req);
 
 	if (bulk_in_complete_function != NULL)
-		bulk_in_complete_function(req->buf, req->length);
+		bulk_in_complete_function(req->buf, req->length,
+					  s_callback_data);
 
 	wake_up(&dev->write_wq);
 }
@@ -368,11 +375,11 @@ static int vser_create_bulk_endpoints(struct vser_dev *dev,
 	if (ret)
 		goto fail;
 
-#ifdef CONFIG_SPRD_IQ
-	if (in_iqmode()) {
+#ifdef CONFIG_USB_F_VSERIAL_BYPASS_USER
+	do {
 		int i;
 
-		for (i = 0; i < TX_REQ_MAX; i++) {
+		for (i = 0; i < TX_REQ_BYPASS_MAX; i++) {
 			struct usb_request *req = NULL;
 
 			req = usb_ep_alloc_request(dev->ep_in, GFP_KERNEL);
@@ -383,10 +390,10 @@ static int vser_create_bulk_endpoints(struct vser_dev *dev,
 			}
 
 			req->buf = NULL;
-			req->complete = vser_iq_complete_in;
-			vser_req_put(dev, &dev->tx_iq_idle, req);
+			req->complete = vser_pass_complete_in;
+			vser_req_put(dev, &dev->tx_pass_idle, req);
 		}
-	}
+	} while (0);
 #endif
 
 	return 0;
@@ -488,8 +495,8 @@ static ssize_t vser_write(struct file *fp, const char __user *buf,
 	struct usb_request *req = 0;
 	int r = count, xfer, ret;
 
-#ifdef CONFIG_SPRD_IQ
-	if (in_iqmode()) {
+#ifdef CONFIG_USB_F_VSERIAL_BYPASS_USER
+	if (s_in_bypass_mode) {
 		msleep(100);
 		return count;
 	}
@@ -653,8 +660,8 @@ static int vser_init(struct vser_instance *fi_vser)
 	tx_req_count = 0;
 
 	INIT_LIST_HEAD(&dev->tx_idle);
-#ifdef CONFIG_SPRD_IQ
-	INIT_LIST_HEAD(&dev->tx_iq_idle);
+#ifdef CONFIG_USB_F_VSERIAL_BYPASS_USER
+	INIT_LIST_HEAD(&dev->tx_pass_idle);
 #endif
 
 	INIT_WORK(&dev->test_work, vser_test_works);
@@ -732,13 +739,13 @@ static void vser_function_unbind(struct usb_configuration *c,
 
 	vser_free_all_request(dev);
 
-#ifdef CONFIG_SPRD_IQ
-	if (in_iqmode()) {
+#ifdef CONFIG_USB_F_VSERIAL_BYPASS_USER
+	do {
 		struct usb_request *req;
 
-		while ((req = vser_req_get(dev, &dev->tx_iq_idle)))
+		while ((req = vser_req_get(dev, &dev->tx_pass_idle)))
 			usb_ep_free_request(dev->ep_in, req);
-	}
+	} while (0);
 #endif
 
 	dev->online = 0;
@@ -994,21 +1001,36 @@ static struct usb_function *vser_alloc(struct usb_function_instance *fi)
 
 DECLARE_USB_FUNCTION_INIT(vser, vser_alloc_inst, vser_alloc);
 
-#ifdef CONFIG_SPRD_IQ
-void kernel_vser_register_callback(void *function)
+#ifdef CONFIG_USB_F_VSERIAL_BYPASS_USER
+void kernel_vser_register_callback(void *function, void *p)
 {
 	bulk_in_complete_function = function;
+	s_callback_data = p;
 }
 
-ssize_t vser_iq_write(char *buf, size_t count)
+void kernel_vser_set_pass_mode(bool pass)
+{
+	s_in_bypass_mode = pass;
+}
+
+ssize_t vser_pass_user_write(char *buf, size_t count)
 {
 	struct vser_dev *dev = _vser_dev;
-	struct usb_composite_dev *cdev = dev->cdev;
-	struct usb_request *req = NULL;
+	struct usb_composite_dev *cdev;
+	struct usb_request *req;
 	int r = count, xfer, ret;
 
+	if (!dev || !dev->online) {
+		return -ENODEV;
+	}
+	cdev = dev->cdev;
 	DBG(cdev, "%s: buf:0x%p, count:0x%llx, epname:%s\n",
 		__func__, buf, (long long)count, dev->ep_in->name);
+
+	if (!dev->ep_in->enabled) {
+		ERROR(cdev, "vser deactivated\n");
+		return -ENODEV;
+	}
 
 	if (vser_lock(&dev->write_excl))
 		return -EBUSY;
@@ -1017,7 +1039,7 @@ ssize_t vser_iq_write(char *buf, size_t count)
 		/* get an idle tx request to use */
 		req = 0;
 		ret = wait_event_interruptible(dev->write_wq,
-			(req = vser_req_get(dev, &dev->tx_iq_idle)));
+			(req = vser_req_get(dev, &dev->tx_pass_idle)));
 
 		if (ret < 0) {
 			r = ret;
@@ -1044,7 +1066,7 @@ ssize_t vser_iq_write(char *buf, size_t count)
 	}
 
 	if (req)
-		vser_req_put(dev, &dev->tx_iq_idle, req);
+		vser_req_put(dev, &dev->tx_pass_idle, req);
 
 	vser_unlock(&dev->write_excl);
 	DBG(cdev, "%s: returning %x\n", __func__, r);

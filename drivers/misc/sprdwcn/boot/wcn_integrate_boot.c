@@ -10,6 +10,8 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
+#include <linux/sprd-debugstat.h>
+
 #include "../platform/gnss/gnss.h"
 #include "wcn_glb.h"
 #include "wcn_glb_reg.h"
@@ -597,6 +599,7 @@ static int wcn_download_image_new(struct wcn_device *wcn_dev)
 		default:
 			return -EINVAL;
 		}
+		ssleep(1);
 		count++;
 		if (count > 32)
 			return -EINVAL;
@@ -2984,6 +2987,9 @@ int start_integrate_wcn_truely(u32 subsys)
 	bool is_marlin;
 	struct wcn_device *wcn_dev;
 	u32 subsys_bit = 1 << subsys;
+#ifdef CONFIG_WCN_SLEEP_INFO
+	struct subsys_sleep_info *sleep_info;
+#endif
 
 	WCN_INFO("start subsys:%d\n", subsys);
 	wcn_dev = wcn_get_dev_by_type(subsys_bit);
@@ -3061,6 +3067,15 @@ int start_integrate_wcn_truely(u32 subsys)
 		} else {
 			schedule_work(&wcn_dev->firmware_init_wq);
 		}
+#ifdef CONFIG_WCN_SLEEP_INFO
+		stat_info_register("wcn_sys", wcn_sleep_info_read, NULL);
+		wcn_reboot_count++;
+		if (wcn_sleep_info_open() < 0)
+			WCN_ERR("wcn_slp:Failed to send open sleep info cmd");
+		sleep_info = (struct subsys_sleep_info *)
+			phys_to_virt(WCN_CP2_SLP_INFO_ADDR);
+		sleep_info->subsystem_reboot_count = wcn_reboot_count;
+#endif
 	}
 	mutex_unlock(&wcn_dev->power_lock);
 
@@ -3133,6 +3148,10 @@ int start_integrate_wcn(u32 subsys)
 				return ret;
 			}
 		}
+#ifdef CONFIG_WCN_SLEEP_INFO
+		memset(phys_to_virt(WCN_CP2_SLP_INFO_ADDR), 0,
+		       WCN_CP2_SLP_INFO_SIZE);
+#endif
 		WCN_INFO("first time, start gnss and btwf\n");
 
 		if (s_wcn_device.btwf_device &&

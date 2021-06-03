@@ -530,8 +530,6 @@ int sprd_isp_blk_cfg_en(void)
 	if (atomic_inc_return(&pw_info->users_blk_cfg_en) == 1) {
 		/* config cam emc clk */
 		ret = clk_prepare_enable(pw_info->blk_cfg_en);
-
-		mmsys_notifier_call_chain(_E_PW_ON, NULL);
 	}
 	mutex_unlock(&pw_info->mlock);
 
@@ -558,7 +556,6 @@ int sprd_isp_blk_dis(void)
 		/* config cam emc clk */
 		clk_disable_unprepare(pw_info->blk_cfg_en);
 
-		mmsys_notifier_call_chain(_E_PW_ON, NULL);
 	}
 	mutex_unlock(&pw_info->mlock);
 

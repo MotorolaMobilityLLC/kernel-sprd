@@ -5,6 +5,7 @@
 #include <linux/extcon.h>
 #include <linux/interrupt.h>
 #include <linux/kernel.h>
+#include <linux/mfd/syscon.h>
 #include <linux/module.h>
 #include <linux/mutex.h>
 #include <linux/nvmem-consumer.h>
@@ -219,6 +220,10 @@
 #define UMP9620_REF_EFUSE_SHIFT		6
 #define UMP9620_DELTA_EFUSE_SHIFT	9
 
+/* soc compatible */
+#define UMS9620_MASK_AON_APB_R2G_ANALOG_BB_TOP_SINDRV_ENA	0x0020
+#define UMS9620_REG_AON_APB_MIPI_CSI_POWER_CTRL			0x0350
+
 #define SC27XX_PD_SHIFT(n)		(n)
 
 #define PMIC_SC2730			1
@@ -243,6 +248,8 @@ struct sc27xx_pd_variant_data {
 	u32 arm_clk_en0;
 	u32 rtc_clk_en0;
 	u32 xtl_wait_ctrl0;
+	u32 aon_apb_r2g_analog_bb_top_sindrv_ena;
+	u32 reg_aon_apb_mipi_csi_power_ctrl;
 };
 
 static const struct sc27xx_pd_variant_data sc2730_data = {
@@ -265,6 +272,10 @@ static const struct sc27xx_pd_variant_data ump9620_data = {
 	.arm_clk_en0 = UMP9620_ARM_CLK_EN0,
 	.rtc_clk_en0 = UMP9620_RTC_CLK_EN0,
 	.xtl_wait_ctrl0 = UMP9620_XTL_WAIT_CTRL0,
+	.aon_apb_r2g_analog_bb_top_sindrv_ena =
+		UMS9620_MASK_AON_APB_R2G_ANALOG_BB_TOP_SINDRV_ENA,
+	.reg_aon_apb_mipi_csi_power_ctrl =
+		UMS9620_REG_AON_APB_MIPI_CSI_POWER_CTRL,
 };
 
 struct sc27xx_pd {
@@ -277,6 +288,7 @@ struct sc27xx_pd {
 	struct delayed_work  read_msg_work;
 	struct workqueue_struct *pd_wq;
 	struct regmap *regmap;
+	struct regmap *aon_apb;
 	struct tcpc_dev tcpc;
 	struct mutex lock;
 	struct regulator *vbus;
@@ -303,11 +315,39 @@ struct sc27xx_pd {
 	u32 ref_cal;
 	int msg_flag;
 	int need_retry;
+	bool typec_online;
+	bool pd_attached;
 };
 
 static inline struct sc27xx_pd *tcpc_to_sc27xx_pd(struct tcpc_dev *tcpc)
 {
 	return container_of(tcpc, struct sc27xx_pd, tcpc);
+}
+
+static int sc27xx_pd_set_aon_clock(struct sc27xx_pd *pd, bool on)
+{
+	int ret;
+	u32 mask, reg;
+
+	if (!pd->aon_apb) {
+		dev_warn(pd->dev, "aon apb NULL\n");
+		return 0;
+	}
+
+	mask = pd->var_data->aon_apb_r2g_analog_bb_top_sindrv_ena;
+	reg = pd->var_data->reg_aon_apb_mipi_csi_power_ctrl;
+
+	if (on) {
+		ret = regmap_update_bits(pd->aon_apb, reg, mask, mask);
+		if (ret)
+			return ret;
+	} else {
+		ret = regmap_update_bits(pd->aon_apb, reg, mask, ~mask);
+		if (ret)
+			return ret;
+	}
+
+	return 0;
 }
 
 static int sc27xx_pd_clk_cfg(struct sc27xx_pd *pd)
@@ -326,6 +366,19 @@ static int sc27xx_pd_clk_cfg(struct sc27xx_pd *pd)
 
 	return regmap_update_bits(pd->regmap, pd->var_data->xtl_wait_ctrl0,
 				  SC27XX_XTL_EN, SC27XX_XTL_EN);
+}
+
+static int sc27xx_pd_disable_clk(struct sc27xx_pd *pd)
+{
+	int ret;
+
+	ret = regmap_update_bits(pd->regmap, pd->var_data->module_en,
+				 SC27XX_TYPEC_PD_EN, 0);
+	if (ret)
+		return ret;
+
+	return regmap_update_bits(pd->regmap, pd->var_data->arm_clk_en0,
+				 SC27XX_CLK_PD_EN, 0);
 }
 
 static int sc27xx_pd_start_drp_toggling(struct tcpc_dev *tcpc,
@@ -555,14 +608,6 @@ static int sc27xx_pd_set_rx(struct tcpc_dev *tcpc, bool on)
 	int ret;
 
 	mutex_lock(&pd->lock);
-	ret = sc27xx_pd_rx_flush(pd);
-	if (ret < 0)
-		goto done;
-
-	ret = sc27xx_pd_tx_flush(pd);
-	if (ret < 0)
-		goto done;
-
 	ret = sc27xx_pd_reset(pd);
 	if (ret < 0)
 		goto done;
@@ -671,7 +716,7 @@ static int sc27xx_pd_read_message(struct sc27xx_pd *pd, struct pd_message *msg)
 	int ret, i;
 	u32 data[PD_MAX_PAYLOAD * 2] = {0};
 	u32 data_obj_num, spec, reg_val = 0, header = 0, type;
-	bool vendor_define = false;
+	bool vendor_define = false, source_capabilities = false;
 
 	ret = regmap_read(pd->regmap, pd->base + SC27XX_PD_RX_BUF,
 			  &header);
@@ -698,8 +743,10 @@ static int sc27xx_pd_read_message(struct sc27xx_pd *pd, struct pd_message *msg)
 		vendor_define = false;
 	else if (data_obj_num && (type == PD_DATA_VENDOR_DEF))
 		vendor_define = true;
+	else if (data_obj_num && (type == PD_DATA_SOURCE_CAP))
+		source_capabilities = true;
 
-	if ((data_obj_num * 2 + 1) < reg_val && !vendor_define) {
+	if ((data_obj_num * 2 + 1) < reg_val && !vendor_define && !source_capabilities) {
 		pd->need_retry = true;
 		queue_delayed_work(pd->pd_wq,
 				   &pd->read_msg_work,
@@ -958,7 +1005,7 @@ static int sc27xx_pd_delta_cal(struct sc27xx_pd *pd)
 				  cfg1_mask, cfg1);
 }
 
-static int sc27xx_pd_moudle_init(struct sc27xx_pd *pd)
+static int sc27xx_pd_module_init(struct sc27xx_pd *pd)
 {
 	int ret;
 
@@ -1005,7 +1052,7 @@ static int sc27xx_pd_init(struct tcpc_dev *tcpc)
 	if (ret)
 		return ret;
 
-	return sc27xx_pd_moudle_init(pd);
+	return sc27xx_pd_module_init(pd);
 }
 
 static irqreturn_t sc27xx_pd_irq(int irq, void *dev_id)
@@ -1254,7 +1301,20 @@ static int sc27xx_pd_check_vbus_cc_status(struct sc27xx_pd *pd)
 	if (ret)
 		return ret;
 
+	ret = sc27xx_pd_set_aon_clock(pd, true);
+	if (ret)
+		return ret;
+
+	ret = sc27xx_pd_clk_cfg(pd);
+	if (ret)
+		return ret;
+
 	pd->state = val & SC27XX_STATE_MASK;
+	if (pd->state == SC27XX_ATTACHED_SNK || pd->state == SC27XX_ATTACHED_SRC)
+		pd->typec_online = true;
+	else
+		pd->typec_online = false;
+
 	sc27xx_cc_polarity_status(pd, val);
 	sc27xx_cc_status(pd, val);
 	sc27xx_get_vbus_status(pd);
@@ -1267,7 +1327,9 @@ static int sc27xx_pd_extcon_event(struct notifier_block *nb,
 {
 	struct sc27xx_pd *pd = container_of(nb, struct sc27xx_pd, extcon_nb);
 
-	schedule_work(&pd->pd_work);
+	dev_info(pd->dev, "typec in or out, pd attached = %d\n", pd->pd_attached);
+	if (pd->pd_attached)
+		schedule_work(&pd->pd_work);
 	return NOTIFY_OK;
 }
 
@@ -1276,6 +1338,7 @@ static void sc27xx_pd_work(struct work_struct *work)
 	struct sc27xx_pd *pd = container_of(work, struct sc27xx_pd, pd_work);
 	int ret;
 
+	dev_info(pd->dev, "check vbus and cc\n");
 	ret = sc27xx_pd_check_vbus_cc_status(pd);
 	if (ret)
 		dev_err(pd->dev, "failed to check vbus and cc status\n");
@@ -1402,8 +1465,11 @@ static void sc27xx_pd_detect_typec_work(struct work_struct *work)
 	struct sc27xx_pd *pd = container_of(dwork, struct sc27xx_pd,
 					   typec_detect_work);
 
+	dev_info(pd->dev, "pd try to detect typec extcon\n");
 	if (extcon_get_state(pd->extcon, EXTCON_USB))
 		sc27xx_pd_check_vbus_cc_status(pd);
+
+	pd->pd_attached = true;
 }
 
 static const u32 sc27xx_pd_hardreset[] = {
@@ -1424,8 +1490,10 @@ static int sc27xx_pd_probe(struct platform_device *pdev)
 	}
 
 	pd = devm_kzalloc(&pdev->dev, sizeof(*pd), GFP_KERNEL);
-	if (!pd)
+	if (!pd) {
+		dev_err(&pdev->dev, "failed to alloc memory\n");
 		return -ENOMEM;
+	}
 
 	pd->dev = &pdev->dev;
 	pd->regmap = dev_get_regmap(pdev->dev.parent, NULL);
@@ -1492,8 +1560,10 @@ static int sc27xx_pd_probe(struct platform_device *pdev)
 	pd->tcpc.fwnode = device_get_named_child_node(&pdev->dev, "connector");
 
 	ret = sc27xx_pd_cal(pd);
-	if (ret)
+	if (ret) {
+		dev_err(&pdev->dev, "failed to calibrate with efuse data\n");
 		return ret;
+	}
 	sc27xx_init_tcpc_dev(pd);
 
 	pd->vbus = devm_regulator_get(pd->dev, "vbus");
@@ -1514,26 +1584,42 @@ static int sc27xx_pd_probe(struct platform_device *pdev)
 		}
 	}
 
-	INIT_DELAYED_WORK(&pd->typec_detect_work, sc27xx_pd_detect_typec_work);
-	INIT_DELAYED_WORK(&pd->read_msg_work, sc27xx_pd_read_msg_work);
-	INIT_WORK(&pd->pd_work, sc27xx_pd_work);
-
-	pd->tcpm_port = tcpm_register_port(pd->dev, &pd->tcpc);
-	if (IS_ERR(pd->tcpm_port))
-		return PTR_ERR(pd->tcpm_port);
+	if (of_property_read_bool(pdev->dev.of_node, "sprd,syscon-aon-apb")) {
+		pd->aon_apb = syscon_regmap_lookup_by_phandle(pdev->dev.of_node,
+							      "sprd,syscon-aon-apb");
+		if (IS_ERR(pd->aon_apb)) {
+			dev_err(pd->dev, "failed to map aon registers (via syscon)\n");
+			return PTR_ERR(pd->aon_apb);
+		}
+	} else {
+		pd->aon_apb = NULL;
+	}
 
 	ret = devm_request_threaded_irq(pd->dev, pd_irq, NULL,
 					sc27xx_pd_irq,
 					IRQF_ONESHOT | IRQF_TRIGGER_LOW,
 					"sc27xx_pd", pd);
 	if (ret < 0) {
-		tcpm_unregister_port(pd->tcpm_port);
+		dev_err(pd->dev, "failed to request irq\n");
 		return ret;
 	}
 
 	pd->pd_wq = create_singlethread_workqueue("sprd_pd_driver");
-	if (!pd->pd_wq)
+	if (!pd->pd_wq) {
+		dev_err(pd->dev, "failed to create singlethread workqueue\n");
 		return -ENOMEM;
+	}
+
+	pd->tcpm_port = tcpm_register_port(pd->dev, &pd->tcpc);
+	if (IS_ERR(pd->tcpm_port)) {
+		dev_err(pd->dev, "failed to register tcpm port\n");
+		destroy_workqueue(pd->pd_wq);
+		return PTR_ERR(pd->tcpm_port);
+	}
+
+	INIT_DELAYED_WORK(&pd->typec_detect_work, sc27xx_pd_detect_typec_work);
+	INIT_DELAYED_WORK(&pd->read_msg_work, sc27xx_pd_read_msg_work);
+	INIT_WORK(&pd->pd_work, sc27xx_pd_work);
 
 	platform_set_drvdata(pdev, pd);
 	schedule_delayed_work(&pd->typec_detect_work,
@@ -1550,6 +1636,56 @@ static int sc27xx_pd_remove(struct platform_device *pdev)
 	return 0;
 }
 
+#ifdef CONFIG_PM_SLEEP
+static int sc27xx_pd_suspend(struct device *dev)
+{
+	struct sc27xx_pd *pd = dev_get_drvdata(dev);
+	int ret;
+
+	if (pd->typec_online)
+		return 0;
+
+	dev_info(pd->dev, "typec offline, disable pd clock when suspend\n");
+	ret = sc27xx_pd_disable_clk(pd);
+	if (ret) {
+		dev_err(pd->dev, "failed to disable pd clock when suspend, ret = %d\n", ret);
+		return ret;
+	}
+
+	ret = sc27xx_pd_set_aon_clock(pd, false);
+	if (ret) {
+		dev_err(pd->dev, "failed to disable aon pd clock when suspend, ret = %d\n", ret);
+		return ret;
+	}
+
+	return 0;
+}
+
+static int sc27xx_pd_resume(struct device *dev)
+{
+	struct sc27xx_pd *pd = dev_get_drvdata(dev);
+	int ret;
+
+	ret = sc27xx_pd_set_aon_clock(pd, true);
+	if (ret) {
+		dev_err(pd->dev, "failed to enable aon pd clock when suspend, ret = %d\n", ret);
+		return ret;
+	}
+
+	ret = sc27xx_pd_clk_cfg(pd);
+	if (ret) {
+		dev_err(pd->dev, "failed to enable pd clock when resume, ret = %d\n", ret);
+		return ret;
+	}
+
+	return 0;
+}
+#endif
+
+static const struct dev_pm_ops sc27xx_pd_pm_ops = {
+	SET_SYSTEM_SLEEP_PM_OPS(sc27xx_pd_suspend, sc27xx_pd_resume)
+};
+
 static const struct of_device_id sc27xx_pd_of_match[] = {
 	{.compatible = "sprd,sc2730-pd", .data = &sc2730_data},
 	{.compatible = "sprd,ump9620-pd", .data = &ump9620_data},
@@ -1562,6 +1698,7 @@ static struct platform_driver sc27xx_pd_driver = {
 	.driver = {
 		.name = "sc27xx-typec-pd",
 		.of_match_table = sc27xx_pd_of_match,
+		.pm = &sc27xx_pd_pm_ops,
 	},
 };
 

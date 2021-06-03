@@ -658,6 +658,7 @@ struct ufs_hba {
 	struct uic_command *active_uic_cmd;
 	struct mutex uic_cmd_mutex;
 	struct completion *uic_async_done;
+	struct mutex      ufshcd_clk_mutex;
 
 	u32 ufshcd_state;
 	u32 eh_flags;

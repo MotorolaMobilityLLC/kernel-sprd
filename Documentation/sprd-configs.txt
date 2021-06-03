@@ -3818,15 +3818,6 @@ CONFIG_DEVFREQ_THERMAL
 	[must] user
 	[missing plat description] gpu don't support dvfs
 	[function] gpu thermal policy
-CONFIG_DEVPORT
-	[arch] arm64
-	[plat] qogirn6pro
-	[missing plat] qogirl6,sharkl3,sharkl5,sharkl5Pro
-	[field] code
-	[subsys] core
-	[must] console
-	[missing plat description] Not used PCI in other projects
-	[function] Support fopr /dev/port character device
 CONFIG_DIRECT_SWAPPINESS
 	[arch] all
 	[plat] all
@@ -4331,8 +4322,8 @@ CONFIG_EMBEDDED
 	[function] vts require, Embedded system.
 CONFIG_EMMC_SOFTWARE_CQ_SUPPORT
 	[arch] arm64
-	[plat] sharkl5Pro
-	[missing plat] qogirl6,qogirn6pro,sharkl3,sharkl5
+	[plat] qogirl6,sharkl5Pro
+	[missing plat] qogirn6pro,sharkl3,sharkl5
 	[field] make
 	[subsys] emmc
 	[must] user
@@ -14811,6 +14802,15 @@ CONFIG_SPRD_TOP_DVFS_DEVFREQ
 				   frequency ofsome devices which include gpu,modem and so
 				   on.sharkl3 don't have the function.
 	[function] Enable device dvfs function.
+CONFIG_SPRD_TSHM
+	[arch] arm64
+	[plat] qogirl6
+	[missing plat] qogirn6pro,sharkl3,sharkl5,sharkl5Pro
+	[field] make
+	[subsys] tee
+	[must] user
+	[missing plat description] only enabled in GPAPI enabled projects.
+	[function] Enable tshm driver for GPAPI used.
 CONFIG_SPRD_UID
 	[arch] arm64
 	[plat] qogirl6,sharkl5Pro
@@ -16229,6 +16229,15 @@ CONFIG_USB_F_VSERIAL
 	[must] user
 	[missing plat description] none
 	[function] USB gadget VSERIAL support.
+CONFIG_USB_F_VSERIAL_BYPASS_USER
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field] make
+	[subsys] usb
+	[must] user
+	[missing plat description] none
+	[function] Bypass modem log to usb in kernel.
 CONFIG_USB_GADGET
 	[arch] all
 	[plat] all
@@ -16847,6 +16856,16 @@ CONFIG_WCN_SIPC
 	[missing plat description] This macro is a proprietary driver related to pike2,sharkl3,sharkl3_32,sharkle32.
 		The missing plat is not relevant.
 	[function] WCN integration chip 2342 sipc Support
+CONFIG_WCN_SLEEP_INFO
+	[arch] arm64
+	[plat] qogirl6
+	[missing plat] qogirn6pro,sharkl3,sharkl5,sharkl5Pro
+	[field] make,code
+	[subsys] wcn
+	[must] debug
+	[missing plat description] This macro is a proprietary driver related to marlin3 lite and marlin2_18a project.
+		The missing plat is not requested.
+	[function] static wcn suspend/resume information for marlin2_18a and marlin3_20a
 CONFIG_WCN_SLP
 	[arch] all
 	[plat] qogirl6,sharkl5,sharkl5Pro,sharkl5_32

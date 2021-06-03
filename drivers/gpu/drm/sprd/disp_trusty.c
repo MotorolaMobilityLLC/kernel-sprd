@@ -171,6 +171,11 @@ ssize_t disp_ca_read(void *buf, size_t max_len)
 	ssize_t	len;
 	struct disp_ca *ca = &disp_ca;
 
+	if (!ca->chan) {
+		pr_err("ca tipc chan null!\n");
+		return -1;
+	}
+
 	if (!wait_event_interruptible_timeout(ca->readq,
 					      !list_empty(&ca->rx_msg_queue),
 					      msecs_to_jiffies(500))) {
@@ -202,6 +207,11 @@ ssize_t disp_ca_write(void *buf, size_t len)
 
 	if (!ca) {
 		pr_err("kcademo tipc context null!\n");
+		return ret;
+	}
+
+	if (!ca->chan) {
+		pr_err("ca tipc chan null!\n");
 		return ret;
 	}
 
