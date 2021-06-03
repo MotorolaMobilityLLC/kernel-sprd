@@ -677,17 +677,6 @@ static int btwf_dump_mem(void)
 		return 0;
 	}
 
-	/* The precondition provided by the current access register is
-	 incorrect and cannot cover the full scene dump access.
-	 So return.
-	 */
-	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
-		WCN_INFO("dump register ok!\n");
-		mdbg_dump_str(WCN_DUMP_END_STRING,
-					  strlen(WCN_DUMP_END_STRING));
-		return 0;
-	}
-
 	mdbg_dump_iram(s_wcn_dump_regs);
 	mdbg_dump_ap_register(s_wcn_dump_regs);
 
