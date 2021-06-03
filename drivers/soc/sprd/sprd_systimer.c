@@ -39,7 +39,7 @@ static seqcount_t systimer_seq;
 
 void get_convert_para(struct cnter_to_boottime *convert_para)
 {
-	unsigned long seq;
+	unsigned int seq;
 
 	do {
 		seq = raw_read_seqcount(&systimer_seq);
@@ -50,7 +50,7 @@ EXPORT_SYMBOL(get_convert_para);
 
 u64 sprd_systimer_to_boottime(u64 counter, int src)
 {
-	unsigned long seq;
+	unsigned int seq;
 	u64 delta, boottime = 0;
 
 	if (src == SYSTEM_TIMER) {

@@ -52,3 +52,9 @@ config WCN_SWD
 
 	In order to control or debug your marlin chip, you will need to support
 	swd driver to access arm registers.
+
+config WCN_SLEEP_INFO
+	bool "for get wcn sleep info"
+	help
+	Choose Y here if you need to get wcn sleep info,
+	this is used for get wcn sleep info.

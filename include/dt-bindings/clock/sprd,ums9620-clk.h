@@ -77,22 +77,24 @@
 #define CLK_V4NRPLL_409M6	21
 #define CLK_V4NRPLL_614M4	22
 #define CLK_V4NRPLL_819M2	23
-#define CLK_ANLG_PHY_G5L_NUM	(CLK_V4NRPLL_819M2 + 1)
+#define CLK_V4NRPLL_1228M8	24
+#define CLK_ANLG_PHY_G5L_NUM	(CLK_V4NRPLL_1228M8 + 1)
 
 #define CLK_GPLL		0
 #define	CLK_GPLL_680M		1
-#define CLK_AIPLL		2
-#define CLK_VDSPPLL		3
-#define CLK_CPLL		4
-#define CLK_AUDPLL		5
-#define CLK_AUDPLL_38M4		6
-#define CLK_AUDPLL_24M57	7
-#define CLK_AUDPLL_19M2		8
-#define CLK_AUDPLL_12M28	9
-#define CLK_PHYR8PLL		10
-#define CLK_PIXELPLL		11
-#define CLK_PIXELPLL_668M25	12
-#define CLK_PIXELPLL_297M	13
+#define CLK_GPLL_850M           2
+#define CLK_AIPLL		3
+#define CLK_VDSPPLL		4
+#define CLK_CPLL		5
+#define CLK_AUDPLL		6
+#define CLK_AUDPLL_38M4		7
+#define CLK_AUDPLL_24M57	8
+#define CLK_AUDPLL_19M2		9
+#define CLK_AUDPLL_12M28	10
+#define CLK_PHYR8PLL		11
+#define CLK_PIXELPLL		12
+#define CLK_PIXELPLL_668M25	13
+#define CLK_PIXELPLL_297M	14
 #define CLK_ANLG_PHY_G5R_NUM	(CLK_PIXELPLL_297M + 1)
 
 #define CLK_MPLLB		0
@@ -345,6 +347,23 @@
 #define CLK_UFS_AON		51
 #define CLK_UFS_PCK		52
 #define CLK_AON_APB_NUM		(CLK_UFS_PCK + 1)
+
+#define CLK_CORE0		0
+#define CLK_CORE1		1
+#define CLK_CORE2		2
+#define CLK_CORE3		3
+#define CLK_CORE4		4
+#define CLK_CORE5		5
+#define CLK_CORE6		6
+#define CLK_CORE7		7
+#define CLK_SCU			8
+#define CLK_ACE			9
+#define CLK_ATB			10
+#define CLK_DEBUG_APB		11
+#define CLK_CPS			12
+#define CLK_GIC			13
+#define CLK_PERIPH		14
+#define CLK_TOPDVFS_CLK_NUM	(CLK_PERIPH + 1)
 
 #define CLK_GPU_CORE_EB		0
 #define CLK_GPU_APB_GATE_NUM	(CLK_GPU_CORE_EB + 1)

@@ -90,12 +90,20 @@
 			reg = <0x0 0xb0040000 0x0 0x05fc0000>;
 		};
 
+		tos_shm_reserved: sh-mem@b6000000{
+			reg = <0x0 0xb6000000 0x0 0x00100000>;
+		};
+
 		pstore_reserved: ramoops@fff80000 {
 			compatible = "ramoops";
 			reg = <0x0 0xfff80000 0x0 0x00040000>;
 			record-size = <0x8000>;
 			console-size = <0x8000>;
 			pmsg-size = <0x8000>;
+		};
+
+		debug_reserved: debug-mem@100000000 {
+			reg = <0x1 0x00000000 0x0 0x00001000>;
 		};
 	};
 
@@ -239,6 +247,12 @@
 		log {
 			compatible = "android,trusty-log-v1";
 		};
+
+		sprd-tshm {
+			compatible = "sprd,tshm";
+			memory-region = <&tos_shm_reserved>;
+		};
+
 	};
 
 	rebootescrow@0 {

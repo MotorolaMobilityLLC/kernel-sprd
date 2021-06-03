@@ -35,24 +35,38 @@ static void dbg_phy_test_write(struct regmap *base, u8 addr, u8 data)
 
 static void serdes_i_init(struct dbg_log_device *dbg)
 {
-//	u32 dsi_ctrl_offset = s_dsi_ctrl_offset_array[dbg->serdes_id];
-
+	int err = 0;
 	DEBUG_LOG_PRINT("***log: serdes_i_init.\n");
 
 	/* enable serdes DSI_CFG_EB */
-	clk_prepare_enable(dbg->clk_dsi_cfg_eb);
+	err = clk_prepare_enable(dbg->clk_dsi_cfg_eb);
+	if (err) {
+		DEBUG_LOG_PRINT("Can't enable clk_dsi_cfg_eb: %d\n", err);
+	}
 
 	/* enable ana eb */
-	clk_prepare_enable(dbg->clk_ana_eb);
+	err = clk_prepare_enable(dbg->clk_ana_eb);
+	if (err) {
+		DEBUG_LOG_PRINT("Can't enable clk_ana_eb: %d\n", err);
+	}
 
 	/* enable serdes0 */
-	clk_prepare_enable(dbg->clk_serdes_eb);
+	err = clk_prepare_enable(dbg->clk_serdes_eb);
+	if (err) {
+		DEBUG_LOG_PRINT("Can't enable clk_serdes_eb: %d\n", err);
+	}
 
 	/* enable serdes1 */
-	clk_prepare_enable(dbg->clk_serdes1_eb);
+	err = clk_prepare_enable(dbg->clk_serdes1_eb);
+	if (err) {
+		DEBUG_LOG_PRINT("Can't enable clk_serdes1_eb: %d\n", err);
+	}
 
 	/* enable cgm_cphy_cfg_en */
-	clk_prepare_enable(dbg->clk_cgm_cphy_cfg_en);
+	err = clk_prepare_enable(dbg->clk_cgm_cphy_cfg_en);
+	if (err) {
+		DEBUG_LOG_PRINT("Can't enable clk_cgm_cphy_cfg_en: %d\n", err);
+	}
 
 	regmap_update_bits(dbg->phy->pmu_apb, 0x564, 0x1, 0x1);
 	regmap_update_bits(dbg->phy->pmu_apb, 0x564, 0x4, 0x4);

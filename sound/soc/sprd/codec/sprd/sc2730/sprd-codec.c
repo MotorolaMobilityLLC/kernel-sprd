@@ -1566,8 +1566,9 @@ static int digital_power_event(struct snd_soc_dapm_widget *w,
 
 		mutex_lock(&sprd_codec->dig_access_mutex);
 		if (sprd_codec->dig_access_en) {
+			if (sprd_codec->user_dig_access_dis == false)
+				agdsp_access_disable();
 			sprd_codec->user_dig_access_dis = false;
-			agdsp_access_disable();
 			sprd_codec->dig_access_en = false;
 		}
 		mutex_unlock(&sprd_codec->dig_access_mutex);

@@ -390,6 +390,7 @@ create_s32_tzp_attr(integral_cutoff);
 create_s32_tzp_attr(slope);
 create_s32_tzp_attr(offset);
 create_s32_tzp_attr(thm_enable);
+create_s32_tzp_attr(clear_integral_cutoff);
 #undef create_s32_tzp_attr
 
 /*
@@ -426,6 +427,7 @@ static struct attribute *thermal_zone_dev_attrs[] = {
 	&dev_attr_slope.attr,
 	&dev_attr_offset.attr,
 	&dev_attr_thm_enable.attr,
+	&dev_attr_clear_integral_cutoff.attr,
 	NULL,
 };
 

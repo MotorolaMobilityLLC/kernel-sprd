@@ -115,6 +115,13 @@ struct dentry	*debug_file;
 	struct cdev	cdev;
 };
 
+struct modem_dump_info {
+	char	parent_name[20];
+	char	name[20];
+	u32	start_addr;
+	u32	size;
+};
+
 struct ext_modem_operations {
 	void (*get_remote_flag)(struct modem_device *modem);
 	void (*set_remote_flag)(struct modem_device *modem, u8 b_clear);

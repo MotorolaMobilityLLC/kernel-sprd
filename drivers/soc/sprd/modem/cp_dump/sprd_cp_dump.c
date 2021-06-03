@@ -421,6 +421,9 @@ static int cp_dump_probe(struct platform_device *pdev)
 			PTR_ERR(dev));
 
 	mutex_init(&cp_dump->rd_mutex);
+	mutex_init(&cp_dump->wt_mutex);
+	wakeup_source_init(&cp_dump->rd_ws, "cp_dump_rd_wakeup");
+	wakeup_source_init(&cp_dump->wt_ws, "cp_dump_wt_wakeup");
 	platform_set_drvdata(pdev, cp_dump);
 
 	return 0;

@@ -61,7 +61,11 @@
 
 #define	MODEM_READ_ALL_MEM 0xff
 #define	MODEM_READ_MODEM_MEM 0xfe
+#define	MODEM_READ_MINI_MEM 0xfd
+
 #define RUN_STATE_INVALID 0xff
+
+#define MODEM_VMALLOC_SIZE_LIMIT 4096
 
 enum {
 	VERSION_V2 = 0x2,
@@ -164,6 +168,11 @@ static void modem_get_base_range(struct modem_device *modem,
 			size = modem->modem_size;
 			break;
 
+		case MODEM_READ_MINI_MEM:
+			base = modem->mini_base;
+			size = modem->mini_size;
+			break;
+
 		default:
 			if (index < modem->load->region_cnt) {
 				region = &modem->load->regions[index];
@@ -206,6 +215,170 @@ static void *modem_map_memory(struct modem_device *modem, phys_addr_t start,
 	return NULL;
 }
 
+static int list_each_dump_info(struct modem_dump_info *base,
+			       struct modem_dump_info **info)
+{
+	struct modem_dump_info *next;
+	int ret = 1;
+
+	if (!info)
+		return 0;
+
+	next = *info;
+	if (!next)
+		next = base;
+	else
+		next++;
+
+	if (next->parent_name[0] != '\0') {
+		*info = next;
+	} else {
+		*info = NULL;
+		ret = 0;
+	}
+
+	return ret;
+}
+
+static ssize_t sprd_modem_seg_dump(u32 base, u32 maxsz, char __user *buf,
+						size_t count, loff_t offset)
+{
+	void *vmem;
+	phys_addr_t loop = 0;
+	u32 start_addr;
+	u32 total;
+
+	if (offset >= maxsz)
+		return 0;
+
+	if ((offset + count) > maxsz)
+		count = maxsz - offset;
+
+	start_addr = base + offset;
+	total = count;
+
+	do {
+		u32 copy_size = MODEM_VMALLOC_SIZE_LIMIT;
+
+		vmem = memremap(start_addr + MODEM_VMALLOC_SIZE_LIMIT * loop,
+				MODEM_VMALLOC_SIZE_LIMIT, MEMREMAP_WB);
+
+		if (!vmem) {
+			pr_err("unable to map base: 0x%08x\n",
+			       start_addr + MODEM_VMALLOC_SIZE_LIMIT * loop);
+			if (loop > 0)
+				return MODEM_VMALLOC_SIZE_LIMIT * loop;
+			else
+				return -ENOMEM;
+		}
+
+		if (count < MODEM_VMALLOC_SIZE_LIMIT)
+			copy_size = count;
+
+		if (unalign_copy_to_user(buf, vmem, copy_size)) {
+			pr_err("copy data to user error !\n");
+			memunmap(vmem);
+			return -EFAULT;
+		}
+
+		memunmap(vmem);
+
+		count -= copy_size;
+		loop++;
+		buf += copy_size;
+	} while (count);
+
+	return total;
+}
+
+static ssize_t modem_read_mini_dump(struct file *filp,
+			  char __user *buf, size_t count, loff_t *ppos)
+
+{
+	static struct modem_dump_info *s_cur_info;
+	struct modem_device *modem = filp->private_data;
+	u8 head[sizeof(struct modem_dump_info) + 32];
+	int len, total = 0, offset = 0;
+	ssize_t written = 0, map_size;
+	void *vmem;
+
+	dev_dbg(modem->p_dev, "read, %s mini_dump!\n", modem->modem_name);
+
+	if (!s_cur_info && *ppos)
+		return 0;
+
+	vmem = modem_map_memory(modem,
+				modem->mini_base,
+				modem->mini_size,
+				&map_size);
+	if (!vmem) {
+		dev_err(modem->p_dev,
+			"read, Unable to map  base: 0x%llx\n", modem->mini_base);
+		return -ENOMEM;
+	}
+
+	if (!s_cur_info)
+		list_each_dump_info(vmem, &s_cur_info);
+
+	while (s_cur_info) {
+		if (!count)
+			break;
+		len = sprintf(head,
+				  "%s_%s_0x%8x_0x%x.bin",
+				  s_cur_info->parent_name,
+				  s_cur_info->name,
+				  s_cur_info->start_addr,
+				  s_cur_info->size);
+
+		if (*ppos > len) {
+			offset = *ppos - len;
+		} else {
+			if (*ppos + count > len)
+				written = len - *ppos;
+			else
+				written = count;
+
+			if (unalign_copy_to_user(buf + total,
+					head + *ppos, written)) {
+				dev_err(modem->p_dev, "copy mini-dump data to user error !\n");
+				modem_ram_unmap(modem->modem_type, vmem);
+				return -EFAULT;
+			}
+			*ppos += written;
+		}
+		total += written;
+		count -= written;
+		if (count) {
+			written = sprd_modem_seg_dump(
+					s_cur_info->start_addr,
+					s_cur_info->size,
+					buf + total,
+					count,
+					offset);
+			if (written > 0) {
+				total += written;
+				count -= written;
+				*ppos += written;
+			} else if (written == 0) {
+				if (list_each_dump_info(vmem, &s_cur_info))
+					*ppos = 0;
+			} else {
+				modem_ram_unmap(modem->modem_type, vmem);
+				return written;
+			}
+
+		} else {
+			break;
+		}
+
+		written = 0;
+		offset = 0;
+	}
+
+	modem_ram_unmap(modem->modem_type, vmem);
+	return total;
+}
+
 static ssize_t modem_read(struct file *filp,
 			  char __user *buf, size_t count, loff_t *ppos)
 {
@@ -225,6 +398,9 @@ static ssize_t modem_read(struct file *filp,
 			current->comm);
 		return -EACCES;
 	}
+
+	if (modem->read_region == MODEM_READ_MINI_MEM)
+		return modem_read_mini_dump(filp, buf, count, ppos);
 
 	modem_get_base_range(modem, &base, &size, 1);
 	offset = *ppos;
@@ -622,6 +798,8 @@ static long modem_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			modem->modem_base = (phys_addr_t)
 					    modem->load->modem_base;
 			modem->modem_size = (size_t)modem->load->modem_size;
+			modem->mini_base = (phys_addr_t)modem->load->mini_base;
+			modem->mini_size = (size_t)modem->load->mini_size;
 		}
 		break;
 

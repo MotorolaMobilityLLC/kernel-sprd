@@ -25,6 +25,7 @@
 #include <linux/wait.h>
 #include <misc/marlin_platform.h>
 #include <misc/wcn_bus.h>
+#include <linux/sprd-debugstat.h>
 
 #ifdef CONFIG_WCN_PCIE
 #include "edma_engine.h"
@@ -190,6 +191,113 @@ static int mdbg_loopcheck_read(int channel, struct mbuf_t *head,
 }
 EXPORT_SYMBOL_GPL(mdbg_loopcheck_read);
 
+#ifdef CONFIG_WCN_SLEEP_INFO
+#define WCN_SLP_INFO_SYNC_CLOSE_CMD "at+debug=10\r"
+#define WCN_SLP_INFO_SYNC_OPEN_CMD "at+debug=11\r"
+#define WCN_SLP_INFO_SYNC_READ_CMD "at+debug=12\r"
+
+unsigned int wcn_reboot_count;
+void *wcn_cp2_slp_info_recv;
+struct completion wcn_sleep_info_completed;
+/*to store sleep info from boot to wcn power off   */
+struct wcn_cp2_slp_duration_total wcn_cp2_slp_info_total = {0};
+struct subsys_sleep_info *wcn_cp2_slp_info_buf;
+
+enum wcn_slp_info_cmd {
+	WCN_SLP_OPEN = 0,
+	WCN_SLP_READ,
+	WCN_SLP_CLOSE,
+};
+
+int wcn_slp_info_operation(enum wcn_slp_info_cmd cmd,
+			   struct subsys_sleep_info *buf)
+{
+	char *write_buf = NULL;
+	unsigned long ret;
+
+	if (unlikely(marlin_get_module_status() != true)) {
+		WCN_WARN("wcn_slp:WCN module have not open\n");
+		return -1;
+	}
+	if (cmd == WCN_SLP_OPEN) {
+		write_buf = WCN_SLP_INFO_SYNC_OPEN_CMD;
+	} else if (cmd == WCN_SLP_READ) {
+		write_buf = WCN_SLP_INFO_SYNC_READ_CMD;
+	} else if (cmd == WCN_SLP_CLOSE) {
+		write_buf = WCN_SLP_INFO_SYNC_CLOSE_CMD;
+	} else {
+		WCN_ERR("wcn_slp:wcn sleep debug cmd is valid");
+		return -1;
+	}
+	WCN_INFO("wcn_slp:%s, count = %d", write_buf, strlen(write_buf));
+	mdbg_send(write_buf, strlen(write_buf), MDBG_SUBTYPE_AT);
+
+	ret = wait_for_completion_timeout(
+			&wcn_sleep_info_completed,
+			msecs_to_jiffies(1000));
+	if (ret == 0) {
+		WCN_ERR("wcn_slp:read wcn sleep info time out\n");
+		return -1;
+	}
+
+	WCN_INFO("wcn_slp:%s", ((struct subsys_sleep_info *)
+		wcn_cp2_slp_info_recv)->subsystem_name);
+
+	if (buf) {
+		memcpy((void *)buf, wcn_cp2_slp_info_recv,
+		       WCN_CP2_SLP_INFO_SIZE);
+		buf->subsystem_reboot_count = wcn_reboot_count;
+
+		buf->total_duration += wcn_cp2_slp_info_total.total_dut;
+		buf->sleep_duration_total +=
+			wcn_cp2_slp_info_total.slp_dut_total;
+		buf->idle_duration_total +=
+			wcn_cp2_slp_info_total.idle_dut_total;
+	}
+	return 0;
+}
+
+struct subsys_sleep_info *wcn_sleep_info_read(void *data)
+{
+#if (defined CONFIG_SDIOHAL)
+	wcn_slp_info_operation(WCN_SLP_READ, wcn_cp2_slp_info_buf);
+
+	return wcn_cp2_slp_info_buf;
+#endif
+
+#if (defined CONFIG_WCN_SIPC)
+	wcn_cp2_slp_info_buf = (struct subsys_sleep_info *)
+		phys_to_virt(WCN_CP2_SLP_INFO_ADDR);
+	if (!wcn_cp2_slp_info_buf)
+		WCN_ERR("Failed to phys_to_virt wcn phy_addr");
+
+	return wcn_cp2_slp_info_buf;
+#endif
+}
+
+int wcn_sleep_info_open(void)
+{
+	return wcn_slp_info_operation(WCN_SLP_OPEN, NULL);
+}
+
+int wcn_sleep_info_close(void)
+{
+	return wcn_slp_info_operation(WCN_SLP_CLOSE, NULL);
+}
+
+int wcn_sleep_info_read_buf(int channel, struct mbuf_t *head,
+			    struct mbuf_t *tail, int num)
+{
+	memset(wcn_cp2_slp_info_recv, 0, WCN_CP2_SLP_INFO_SIZE);
+	memcpy(wcn_cp2_slp_info_recv,
+	       head->buf + PUB_HEAD_RSV, WCN_CP2_SLP_INFO_SIZE);
+
+	complete(&wcn_sleep_info_completed);
+	sprdwcn_bus_push_list(channel, head, tail, num);
+	return 0;
+}
+#endif
+
 static int mdbg_at_cmd_read(int channel, struct mbuf_t *head,
 		     struct mbuf_t *tail, int num)
 {
@@ -204,6 +312,13 @@ static int mdbg_at_cmd_read(int channel, struct mbuf_t *head,
 		return -1;
 	}
 
+#ifdef CONFIG_WCN_SLEEP_INFO
+	if (strncmp(head->buf + PUB_HEAD_RSV, "wcn_sys", 7) == 0) {
+		wcn_sleep_info_read_buf(channel, head, tail, num);
+		return 0;
+	}
+#endif
+
 	memset(mdbg_proc->at_cmd.buf, 0, MDBG_AT_CMD_SIZE);
 	memcpy(mdbg_proc->at_cmd.buf, head->buf + PUB_HEAD_RSV, puh->len);
 	mdbg_proc->at_cmd.rcv_len = puh->len;
@@ -213,6 +328,12 @@ static int mdbg_at_cmd_read(int channel, struct mbuf_t *head,
 	notify_at_cmd_finish(mdbg_proc->at_cmd.buf, mdbg_proc->at_cmd.rcv_len);
 	sprdwcn_bus_push_list(channel, head, tail, num);
 #else
+#ifdef CONFIG_WCN_SLEEP_INFO
+	if (strncmp(head->buf, "wcn_sys", 7) == 0) {
+		wcn_sleep_info_read_buf(channel, head, tail, num);
+		return 0;
+	}
+#endif
 	memset(mdbg_proc->at_cmd.buf, 0, MDBG_AT_CMD_SIZE);
 	memcpy(mdbg_proc->at_cmd.buf, head->buf, head->len);
 	mdbg_proc->at_cmd.rcv_len = head->len;
@@ -424,7 +545,7 @@ static ssize_t mdbg_proc_read(struct file *filp,
 	char *type = entry->name;
 	int timeout = -1;
 	int len = 0;
-	int ret;
+	unsigned long ret;
 
 	if (filp->f_flags & O_NONBLOCK)
 		timeout = 0;
@@ -1135,6 +1256,16 @@ int proc_fs_init(void)
 	if (!mdbg_proc)
 		return -ENOMEM;
 
+#ifdef CONFIG_WCN_SLEEP_INFO
+	wcn_cp2_slp_info_recv = kzalloc(WCN_CP2_SLP_INFO_SIZE, GFP_KERNEL);
+	if (!wcn_cp2_slp_info_recv)
+		return -ENOMEM;
+	wcn_cp2_slp_info_buf = kzalloc(WCN_CP2_SLP_INFO_SIZE, GFP_KERNEL);
+	if (!wcn_cp2_slp_info_buf)
+		return -ENOMEM;
+	init_completion(&wcn_sleep_info_completed);
+#endif
+
 	mdbg_proc->dir_name = "mdbg";
 	mdbg_proc->procdir = proc_mkdir(mdbg_proc->dir_name, NULL);
 
@@ -1197,6 +1328,12 @@ void proc_fs_exit(void)
 
 	kfree(mdbg_proc);
 	mdbg_proc = NULL;
+#ifdef CONFIG_WCN_SLEEP_INFO
+	kfree(wcn_cp2_slp_info_recv);
+	kfree(wcn_cp2_slp_info_buf);
+	wcn_cp2_slp_info_recv = NULL;
+	wcn_cp2_slp_info_buf = NULL;
+#endif
 }
 
 int get_loopcheck_status(void)

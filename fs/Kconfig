@@ -314,4 +314,10 @@ source "fs/nls/Kconfig"
 source "fs/dlm/Kconfig"
 source "fs/unicode/Kconfig"
 
+config SPRD_FS_GCOV
+	bool "open gcov for fs"
+	depends on GCOV_PROFILE_MODULES
+	help
+	  Say Y here to enable fs gcov
+
 endmenu

@@ -40,7 +40,7 @@ static inline int stat_info_register(char *name, get_info_t *get, void *data)
 {
 	return 0;
 }
-int stat_info_unregister(char *name)
+static inline int stat_info_unregister(char *name)
 {
 	return 0;
 }

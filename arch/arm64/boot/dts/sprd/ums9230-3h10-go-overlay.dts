@@ -116,7 +116,7 @@
 				charge-dcp-current-microamp = <2000000 3000000>;
 				charge-cdp-current-microamp = <1500000 1500000>;
 				charge-unknown-current-microamp = <500000 500000>;
-				charge-fchg-current-microamp = <1800000 1200000>;
+				charge-fchg-current-microamp = <3600000 2400000>;
 			};
 
 			charger-manager {
@@ -169,7 +169,6 @@
 				cm-charge-voltage-drop = <700000>;
 				cm-fast-charge-voltage-drop = <700000>;
 
-				cm-double-ic-total-limit-current = <2400000>;
 				cm-dcp-jeita-temp-table = <1000 1030 0 4340000>, <1150 1180 700000 4340000>,
 					<1450 1420 2000000 4340000>, <1600 1570 700000 4100000>;
 				cm-sdp-jeita-temp-table = <1000 1030 0 4340000>, <1150 1180 500000 4340000>,
@@ -178,8 +177,8 @@
 					<1450 1420 1500000 4340000>, <1600 1570 700000 4100000>;
 				cm-unknown-jeita-temp-table = <1000 1030 0 4340000>, <1150 1180 500000 4340000>,
 					<1450 1420 500000 4340000>, <1600 1570 500000 4100000>;
-				cm-fchg-jeita-temp-table = <1000 1030 0 4340000>, <1150 1180 1000000 4340000>,
-					<1450 1420 1800000 4340000>, <1600 1570 720000 4100000>;
+				cm-fchg-jeita-temp-table = <1000 1030 0 4340000>, <1150 1180 2000000 4340000>,
+					<1450 1420 3600000 4340000>, <1600 1570 1440000 4100000>;
 
 				cm-cap-remap-table = <1 2 3>, <2 3 2>, <98 99 2>, <99 100 3>;
 

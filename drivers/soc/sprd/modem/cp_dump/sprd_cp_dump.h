@@ -15,7 +15,7 @@
 #define SPRD_CP_DUMP_LOADER_H
 
 /* cp region data define */
-#define MAX_REGION_NAME_LEN	20
+#define MAX_REGION_NAME_LEN	30
 #define MAX_REGION_CNT		20
 
 

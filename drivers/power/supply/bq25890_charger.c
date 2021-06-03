@@ -1567,24 +1567,70 @@ static void bq25890_charger_feed_watchdog_work(struct work_struct *work)
 }
 
 #ifdef CONFIG_REGULATOR
+static bool bq25890_charger_check_otg_valid(struct bq25890_charger_info *info)
+{
+	int ret;
+	u8 value = 0;
+	bool status = false;
+
+	ret = bq25890_read(info, BQ25890_REG_03, &value);
+	if (ret) {
+		dev_err(info->dev, "get bq25890 charger otg valid status failed\n");
+		return status;
+	}
+
+	if (value & REG03_OTG_CONFIG_MASK)
+		status = true;
+	else
+		dev_err(info->dev, "otg is not valid, REG_3 = 0x%x\n", value);
+
+	return status;
+}
+
+static bool bq25890_charger_check_otg_fault(struct bq25890_charger_info *info)
+{
+	int ret;
+	u8 value = 0;
+	bool status = true;
+
+	ret = bq25890_read(info, BQ25890_REG_0C, &value);
+	if (ret) {
+		dev_err(info->dev, "get bq25890 charger otg fault status failed\n");
+		return status;
+	}
+
+	if (!(value & REG0C_FAULT_BOOST_MASK))
+		status = false;
+	else
+		dev_err(info->dev, "boost fault occurs, REG_0C = 0x%x\n",
+			value);
+
+	return status;
+}
+
 static void bq25890_charger_otg_work(struct work_struct *work)
 {
 	struct delayed_work *dwork = to_delayed_work(work);
 	struct bq25890_charger_info *info = container_of(dwork,
 			struct bq25890_charger_info, otg_work);
-	bool otg_valid = extcon_get_state(info->edev, EXTCON_USB);
+	bool otg_valid = bq25890_charger_check_otg_valid(info);
+	bool otg_fault;
 	int ret, retry = 0;
 
 	if (otg_valid)
 		goto out;
 
 	do {
-		ret = bq25890_update_bits(info, BQ25890_REG_03, REG03_OTG_CONFIG_MASK,
-					  REG03_OTG_ENABLE << REG03_OTG_CONFIG_SHIFT);
-		if (ret)
-			dev_err(info->dev, "restart bq25890 charger otg failed\n");
+		otg_fault = bq25890_charger_check_otg_fault(info);
+		if (!otg_fault) {
+			ret = bq25890_update_bits(info, BQ25890_REG_03,
+						  REG03_OTG_CONFIG_MASK,
+						  REG03_OTG_ENABLE << REG03_OTG_CONFIG_SHIFT);
+			if (ret)
+				dev_err(info->dev, "restart bq25890 charger otg failed\n");
+		}
 
-		otg_valid = extcon_get_state(info->edev, EXTCON_USB);
+		otg_valid = bq25890_charger_check_otg_valid(info);
 	} while (!otg_valid && retry++ < BQ25890_OTG_RETRY_TIMES);
 
 	if (retry >= BQ25890_OTG_RETRY_TIMES) {
