@@ -281,7 +281,7 @@ static int trusty_irq_create_irq_mapping(struct trusty_irq_state *is, int irq)
 	/* read irq template */
 	ret = of_parse_phandle_with_args(is->dev->of_node,
 					 "interrupt-templates",
-					 "#sgi-cells",
+					 "#interrupt-cells",
 					 templ_idx, &oirq);
 	if (ret)
 		return ret;
@@ -297,7 +297,17 @@ static int trusty_irq_create_irq_mapping(struct trusty_irq_state *is, int irq)
 	 * field omitted, so to convert irq template to interrupt specifier
 	 * array we have to move down one slot the first irq_pos entries and
 	 * replace the resulting gap with real irq id.
+	 *
+	 * After replace ipi to sgi for k54, the #interrupt-cells of sgi and
+	 * ppi and psi must be equal 3. However, there is only one args in sgi.
+	 * So modify args_count and args[0] for sgi mapping
 	 */
+
+	if (templ_idx == 0) {
+		oirq.args[0] = 0;
+		oirq.args_count = 1;
+	}
+
 	irq_pos = oirq.args[0];
 
 	if (irq_pos >= oirq.args_count) {
