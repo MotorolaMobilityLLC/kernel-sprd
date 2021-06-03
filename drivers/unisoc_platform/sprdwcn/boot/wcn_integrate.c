@@ -282,7 +282,7 @@ int integ_marlin_get_power(void)
 /* for qogirl6 */
 phys_addr_t wcn_get_apcp_sync_addr(struct wcn_device *wcn_dev)
 {
-	WCN_INFO("apcp_sync_addr:%lu\n", wcn_dev->apcp_sync_addr);
+	WCN_INFO("apcp_sync_addr:%llu\n", wcn_dev->apcp_sync_addr);
 
 	return wcn_dev->apcp_sync_addr;
 }
@@ -299,7 +299,7 @@ void wcn_set_apcp_sync_addr(struct wcn_device *wcn_dev)
 		}
 	} else
 		s_wcngnss_sync_addr.sync_base_addr = wcn_dev->apcp_sync_addr;
-	WCN_INFO("wcn_dev->apcp_sync_addr:%lu\n", wcn_dev->apcp_sync_addr);
+	WCN_INFO("wcn_dev->apcp_sync_addr:%llu\n", wcn_dev->apcp_sync_addr);
 }
 
 phys_addr_t wcn_get_btwf_init_status_addr(void)

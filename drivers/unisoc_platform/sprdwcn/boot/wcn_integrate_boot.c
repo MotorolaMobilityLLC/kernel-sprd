@@ -631,12 +631,12 @@ static int wcn_wait_gnss_boot(struct wcn_device *wcn_dev)
 		phy_addr = wcn_dev->base_addr +
 				wcn_get_apcp_sync_addr(wcn_dev) +
 				s_wcngnss_sync_addr.init_status_phy_addr;
-		WCN_DBG("gnss init sync flag addr %lu\n", phy_addr);
+		WCN_DBG("gnss init sync flag addr %llu\n", phy_addr);
 		boot_flag = GNSS_BOOT_DONE_FLAG;
 	} else {
 		phy_addr = wcn_dev->base_addr +
 			GNSS_CALIBRATION_FLAG_CLEAR_ADDR;
-		WCN_DBG("gnss init sync flag addr %lu\n", phy_addr);
+		WCN_DBG("gnss init sync flag addr %llu\n", phy_addr);
 	}
 
 	for (wait_count = 0; wait_count < GNSS_WAIT_CP_INIT_COUNT;

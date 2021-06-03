@@ -985,7 +985,7 @@ static int wcn_parse_dt(struct platform_device *pdev,
 		ret = of_property_read_u32_index(np,
 					 "sprd,apcp-sync-addr",
 					 0, (u32 *)&wcn_dev->apcp_sync_addr);
-		WCN_INFO("wcn_dev->apcp-sync-addr:0x%08x\n",
+		WCN_INFO("wcn_dev->apcp-sync-addr:0x%08llx\n",
 				    wcn_dev->apcp_sync_addr);
 		/* qogirl6 get apcp sync addr from  */
 		wcn_set_apcp_sync_addr(wcn_dev);

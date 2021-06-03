@@ -597,7 +597,7 @@ static int wifi_nvm_parse(const char *path, const int type, void *p_data)
 	}
 
 
-	pr_info("%s read %s data_len:0x%x\n", __func__, path, fw->size);
+	pr_info("%s read %s data_len:0x%lx\n", __func__, path, fw->size);
 	wifi_nvm_buf_operate(fw->data, fw->size, type, p_data);
 	release_firmware(fw);
 	pr_info("%s(), ok!\n", __func__);
