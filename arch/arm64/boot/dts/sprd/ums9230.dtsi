@@ -1016,7 +1016,7 @@
 &sdio1 {
 	clock-names = "sdio_clk","sdio_clk_source","sdio_ahb_enable";
 	clocks = <&ap_clk CLK_SDIO1_2X>,
-		 <&pll1 CLK_LPLL_409M6>,
+		 <&mpll1 CLK_RPLL>,
 		 <&apapb_gate CLK_SDIO1_EB>;
 };
 
