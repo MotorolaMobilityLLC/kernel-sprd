@@ -119,6 +119,7 @@ int vsp_get_mm_clk(struct vsp_dev_t *vsp_hw_dev);
 long compat_vsp_ioctl(struct file *filp, unsigned int cmd,
 			     unsigned long arg);
 #endif
+void vsp_check_pw_status(struct vsp_dev_t *vsp_hw_dev);
 int vsp_get_iova(struct vsp_dev_t *vsp_hw_dev,
 		 struct vsp_iommu_map_data *mapdata, void __user *arg);
 int vsp_free_iova(struct vsp_dev_t *vsp_hw_dev,

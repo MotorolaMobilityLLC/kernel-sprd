@@ -240,9 +240,10 @@ static long vsp_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			|| vsp_hw_dev.version == ROC1
 			|| vsp_hw_dev.version == SHARKL5Pro
 			|| vsp_hw_dev.version == QOGIRL6)
-			&& vsp_hw_dev.iommu_exist_flag)
+			&&vsp_hw_dev.iommu_exist_flag) {
+			vsp_check_pw_status(&vsp_hw_dev);
 			sprd_iommu_restore(vsp_hw_dev.vsp_dev);
-
+		}
 		if (vsp_hw_dev.vsp_qos_exist_flag) {
 			if (vsp_hw_dev.version == SHARKL5Pro
 				|| vsp_hw_dev.version == ROC1
@@ -471,7 +472,7 @@ static int vsp_parse_dt(struct platform_device *pdev)
 	struct device *dev = &(pdev->dev);
 	struct device_node *np = dev->of_node;
 	struct device_node *qos_np = NULL;
-	struct resource *res;
+	struct resource *res = NULL;
 	int i, ret, j = 0;
 	char *pname;
 	struct regmap *tregmap;
