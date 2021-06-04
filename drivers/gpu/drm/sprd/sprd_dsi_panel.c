@@ -206,7 +206,7 @@ static int sprd_panel_get_modes(struct drm_panel *p)
 	drm_mode_probed_add(p->connector, mode);
 	mode_count++;
 
-	for (i = 0; i < panel->info.num_buildin_modes - 1; i++)	{
+	for (i = 0; i < panel->info.num_buildin_modes; i++) {
 		mode = drm_mode_duplicate(p->drm,
 			&(panel->info.buildin_modes[i]));
 		if (!mode) {
@@ -214,7 +214,8 @@ static int sprd_panel_get_modes(struct drm_panel *p)
 				panel->info.buildin_modes[i].name);
 			return 0;
 		}
-		mode->type = DRM_MODE_TYPE_DRIVER | DRM_MODE_TYPE_DEFAULT;
+
+		mode->type = DRM_MODE_TYPE_DRIVER;
 		drm_mode_probed_add(p->connector, mode);
 		mode_count++;
 	}
@@ -230,7 +231,7 @@ static int sprd_panel_get_modes(struct drm_panel *p)
 
 		mode = drm_mode_create(p->drm);
 
-		mode->type = DRM_MODE_TYPE_DRIVER | DRM_MODE_TYPE_USERDEF;
+		mode->type = DRM_MODE_TYPE_USERDEF;
 		mode->vrefresh = 60;
 		drm_display_mode_from_videomode(&vm, mode);
 		drm_mode_probed_add(p->connector, mode);
@@ -461,7 +462,7 @@ static int of_parse_buildin_modes(struct panel_info *info,
 	info->buildin_modes = kzalloc(sizeof(struct drm_display_mode) *
 				num_timings, GFP_KERNEL);
 
-	for (i = 0; i < num_timings; i++) {
+	for (i = 0; i < num_timings - 1; i++) {
 		rc = of_get_drm_display_mode(lcd_node,
 			&info->buildin_modes[i], NULL, i);
 		if (rc) {
@@ -473,7 +474,7 @@ static int of_parse_buildin_modes(struct panel_info *info,
 		info->buildin_modes[i].height_mm = info->mode.height_mm;
 		info->buildin_modes[i].vrefresh = info->mode.vrefresh;
 	}
-	info->num_buildin_modes = num_timings;
+	info->num_buildin_modes = num_timings - 1;
 	DRM_INFO("info->num_buildin_modes = %d\n", num_timings);
 	goto done;
 
