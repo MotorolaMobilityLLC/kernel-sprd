@@ -1736,7 +1736,7 @@ int sc2355_tx(struct sprd_chip *chip, struct sprd_msg *msg)
 								msg->tran_data,
 								msg->len,
 								DMA_TO_DEVICE);
-			SAVE_ADDR(msg->tran_data, msg, sizeof(struct sprd_msg));
+			SAVE_ADDR(msg->tran_data, msg, 8);
 		}
 
 		tx_enqueue_data_msg(msg);

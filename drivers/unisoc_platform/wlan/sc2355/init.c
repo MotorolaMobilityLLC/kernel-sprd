@@ -6,6 +6,8 @@
 
 #include "cmdevt.h"
 #include "common/cfg80211.h"
+#include "common/channel_2g.h"
+#include "common/channel_5g.h"
 #include "common/chip_ops.h"
 #include "common/common.h"
 #include "qos.h"

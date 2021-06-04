@@ -515,7 +515,7 @@ static int vendor_parse_sae_entry(struct sae_entry *entry,
 
 static int vendor_softap_convert_para(struct sprd_vif *vif,
 				      struct softap_sae_setting *setting,
-			       char *para)
+				      char *para)
 {
 	char *pos;
 	int header_len, index, data_len, *d;
@@ -598,8 +598,8 @@ static int vendor_softap_convert_para(struct sprd_vif *vif,
 		tlv->type = VENDOR_SAE_PWD - 1;
 		tlv->len = setting->passphrase_len;
 		memcpy(tlv->data, setting->passphrase, setting->passphrase_len);
-		pr_info("%s passphrase: %s, len:%d\n", __func__,
-			setting->passphrase_len, setting->passphrase_len);
+		pr_info("%s passphrase: %s, len: %d\n", __func__,
+			setting->passphrase, setting->passphrase_len);
 		pos += (header_len + setting->passphrase_len);
 		data_len += (header_len + setting->passphrase_len);
 	}
@@ -3028,7 +3028,7 @@ static int vendor_softap_set_sae_para(struct sprd_priv *priv,
 	int len;
 
 	len = sizeof(*param) + data_len;
-	pr_info("total len is : %d, data len\n", len, data_len);
+	pr_info("total len: %d, data len: %d\n", len, data_len);
 
 	msg = get_cmdbuf(priv, vif, len, CMD_SET_SAE_PARAM);
 	if (!msg)

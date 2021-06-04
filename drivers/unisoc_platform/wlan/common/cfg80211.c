@@ -1105,9 +1105,9 @@ int sprd_cfg80211_start_p2p_device(struct wiphy *wiphy,
 	ret = sprd_hif_power_on(hif);
 	if (ret) {
 		if (ret == -ENODEV)
-			wiphy_err(wiphy, "%failed to power on WCN!\n");
+			wiphy_err(wiphy, "failed to power on WCN!\n");
 		else if (ret == -EIO)
-			wiphy_err(wiphy, "%SYNC cmd error!\n");
+			wiphy_err(wiphy, "SYNC cmd error!\n");
 
 		return ret;
 	}

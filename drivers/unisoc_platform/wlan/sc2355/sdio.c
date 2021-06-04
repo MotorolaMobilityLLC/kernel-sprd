@@ -919,7 +919,7 @@ int sc2355_push_link(struct sprd_hif *hif, int chn,
 		if ((memcmp(&pos->phy, &low, 4) == 0) ||
 		    (memcmp(&pos->phy, &low1, 4) == 0)) {
 			pr_err
-			    ("err phy address: %lx\n, err virt address: %lx\n, err port: %d\n",
+			    ("err phy address: %lx\n, err virt address: %p\n, err port: %d\n",
 			     pos->phy, pos->buf, chn);
 			return -ENOMEM;
 		}
@@ -1004,6 +1004,7 @@ void sc2355_event_sta_lut(struct sprd_vif *vif, u8 *data, u16 len)
 	case UPD_LUT_INDEX:
 		sc2355_peer_entry_delba(hif, i);
 		sc2355_dis_flush_txlist(hif, i);
+		fallthrough;
 	case ADD_LUT_INDEX:
 		hif->peer_entry[i].lut_index = i;
 		hif->peer_entry[i].ctx_id = sta_lut->ctx_id;

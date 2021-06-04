@@ -152,7 +152,7 @@ static int iface_inetaddr_event(struct notifier_block *this,
 
 	if (vif->wdev.iftype == NL80211_IFTYPE_STATION ||
 	    vif->wdev.iftype == NL80211_IFTYPE_P2P_CLIENT) {
-		netdev_info(ndev, "inetaddr event %d\n", event);
+		netdev_info(ndev, "inetaddr event %ld\n", event);
 		if (event == NETDEV_UP)
 			sprd_notify_ip(vif->priv, vif, SPRD_IPV4,
 				       (u8 *)&ifa->ifa_address);
@@ -301,8 +301,10 @@ static void iface_set_mac_addr(struct sprd_vif *vif, u8 *pending_addr,
 		ether_addr_copy(priv->default_mac, addr);
 		break;
 	case NL80211_IFTYPE_P2P_CLIENT:
+		fallthrough;
 	case NL80211_IFTYPE_P2P_GO:
 		addr[4] ^= 0x80;
+		fallthrough;
 	case NL80211_IFTYPE_P2P_DEVICE:
 		addr[0] ^= 0x02;
 		break;
