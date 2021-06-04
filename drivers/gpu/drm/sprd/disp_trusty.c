@@ -162,6 +162,16 @@ ssize_t disp_ca_read(void *buf, size_t len)
 	ssize_t avail;
 	struct disp_ca *ca = &disp_ca;
 
+	if (!ca) {
+		pr_err("kcademo tipc context null!\n");
+		return -EINVAL;
+	}
+
+	if (!ca->chan) {
+		pr_err("ca tipc chan null!\n");
+		return -EINVAL;
+	}
+
 	if (!wait_event_interruptible_timeout(ca->readq,
 					      !list_empty(&ca->rx_msg_queue),
 					      msecs_to_jiffies(500))) {
@@ -193,7 +203,12 @@ ssize_t disp_ca_write(void *buf, size_t len)
 
 	if (!ca) {
 		pr_err("kcademo tipc context null!\n");
-		return -ETIMEDOUT;
+		return -EINVAL;
+	}
+
+	if (!ca->chan) {
+		pr_err("ca tipc chan null!\n");
+		return -EINVAL;
 	}
 
 	txbuf = tipc_chan_get_txbuf_timeout(ca->chan, timeout);
