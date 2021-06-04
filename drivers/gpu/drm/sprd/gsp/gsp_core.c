@@ -490,17 +490,16 @@ void gsp_core_release(struct kthread_work *work)
 		return;
 	}
 
+	pm_runtime_mark_last_busy(core->parent->dev);
+	pm_runtime_put_autosuspend(core->parent->dev);
+	if (gsp_core_suspend_state_get(core) ==
+			 CORE_STATE_SUSPEND_WAIT) {
+		complete(&core->suspend_done);
+	}
+
 	if (!gsp_workqueue_is_filled(core->wq)) {
 		gsp_core_state_set(core, CORE_STATE_IDLE);
-		if (!gsp_workqueue_is_filled(core->wq)) {
-			pm_runtime_mark_last_busy(core->parent->dev);
-			pm_runtime_put_autosuspend(core->parent->dev);
-			if (gsp_core_suspend_state_get(core) ==
-					CORE_STATE_SUSPEND_WAIT) {
-				complete(&core->suspend_done);
-			}
-			return;
-		}
+		return;
 	}
 
 	gsp_core_state_set(core, CORE_STATE_TRIGGER);
@@ -615,6 +614,9 @@ void gsp_core_recover(struct kthread_work *work)
 	gsp_interface_unprepare(interface);
 
 	core->current_kcfg = NULL;
+
+	pm_runtime_mark_last_busy(core->parent->dev);
+	pm_runtime_put_autosuspend(core->parent->dev);
 
 	if (gsp_core_suspend_state_get(core))
 		complete(&core->suspend_done);

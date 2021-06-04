@@ -655,19 +655,11 @@ int sprd_gsp_trigger_ioctl(struct drm_device *drm_dev, void *data,
 		goto kcfg_list_release;
 	}
 
-	if (gsp_dev_is_suspending(gsp) ||
-		gsp_dev_is_suspend(gsp)) {
-		pm_runtime_mark_last_busy(gsp->dev);
-		pm_runtime_get_sync(gsp->dev);
+	pm_runtime_mark_last_busy(gsp->dev);
+	pm_runtime_get_sync(gsp->dev);
 
-		if (gsp_dev_resume_wait(gsp))
-			goto kcfg_list_release;
-		else
-			pm_runtime_mark_last_busy(gsp->dev);
-
-	} else {
-		pm_runtime_mark_last_busy(gsp->dev);
-	}
+	if (gsp_dev_resume_wait(gsp))
+		goto kcfg_list_release;
 
 	if (gsp_dev_is_suspend(gsp))
 		GSP_DEV_INFO(dev, "no need to process kcfg at suspend state\n");
