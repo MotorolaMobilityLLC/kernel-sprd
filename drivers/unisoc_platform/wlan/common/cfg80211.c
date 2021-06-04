@@ -227,7 +227,7 @@ static int cfg80211_add_cipher_key(struct sprd_vif *vif, bool pairwise,
 		ret = sprd_add_key(vif->priv, vif,
 				   vif->key[pairwise][key_index],
 				   vif->key_len[pairwise][key_index],
-				   pairwise, key_index, key_seq,
+				   (u8)pairwise, key_index, key_seq,
 				   *cipher_ptr, mac_addr);
 	}
 
