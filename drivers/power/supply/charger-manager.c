@@ -3531,7 +3531,7 @@ static void check_charging_duration(struct charger_manager *cm)
 	u64 curr = ktime_to_ms(ktime_get());
 	u64 duration;
 	int ret = false;
-		return ret;
+		return;
 
 	if (!desc->charging_max_duration_ms &&
 			!desc->discharging_max_duration_ms)
