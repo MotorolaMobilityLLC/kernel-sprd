@@ -653,15 +653,15 @@ static int sprd_oled_set_brightness(struct backlight_device *bdev)
 
 	DRM_INFO("%s Source level: %d\n", __func__, level);
 
-	if(level < 256){
+	if (level < 256){
 		level = ((level * 78) + 20)/ 100;
 	}
 
-	if(level == 256)
+	if (level == 256)
 		level = 255;
 
 	DRM_INFO("%s Target level: %d\n", __func__, level);
-
+        
 	sprd_panel_send_cmds(panel->slave,
 			     panel->info.cmds[CMD_OLED_REG_LOCK],
 			     panel->info.cmds_len[CMD_OLED_REG_LOCK]);
@@ -671,9 +671,17 @@ static int sprd_oled_set_brightness(struct backlight_device *bdev)
 		if (oled->cmds[0]->wc_l == 3) {
 			 if (is11digit_lcd(lcd_name))
 			{
-				oled->cmds[0]->payload[1] = (level >> 5) & 0x0F;
-				oled->cmds[0]->payload[2] = (level & 0x07) | ((level << 3) & 0xF8);
-				//printk(KERN_ERR "yyx payload[1]:0x%02X, payload[2]:0x%02X\n", oled->cmds[0]->payload[1], oled->cmds[0]->payload[2]);
+                if (strncmp(lcd_name, "lcd_nt36525b_dj_mipi_hd", strlen(lcd_name)) == 0)
+                {
+                    oled->cmds[0]->payload[1] = (level >> 5) & 0x0F;
+                    oled->cmds[0]->payload[2] = (level & 0x07) | ((level << 3) & 0xF8);
+                }
+                if (strncmp(lcd_name, "lcd_icnl9911c_dj_mipi_hd", strlen(lcd_name)) == 0)
+                {
+                    oled->cmds[0]->payload[1] = level & 0xFF;
+                    oled->cmds[0]->payload[2] = 0x0E;
+                }
+                DRM_INFO("zsh payload[1]:0x%02X, payload[2]:0x%02X\n", oled->cmds[0]->payload[1], oled->cmds[0]->payload[2]);
 			}
 			else if (isHigh8digit_lcd(lcd_name))
 			{
