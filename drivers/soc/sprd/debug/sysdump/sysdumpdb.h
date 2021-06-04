@@ -52,6 +52,8 @@
 #define MINIDUMP_MEM_MAX 50
 #define PT_BUF_SIZE	(2 * 1024 * 1024)
 
+#define EXTEND_STRING "extend"
+
 enum minidump_info_type {
 	MINIDUMP_INFO_PADDR,
 	MINIDUMP_INFO_SIZE,

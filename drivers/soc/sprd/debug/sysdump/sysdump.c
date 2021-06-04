@@ -13,6 +13,7 @@
 
 #define pr_fmt(fmt)  "sprd-sysdump: " fmt
 
+#include <linux/atomic.h>
 #include <asm/cacheflush.h>
 #include <linux/delay.h>
 #include <linux/elf.h>
@@ -26,6 +27,7 @@
 #include <linux/miscdevice.h>
 #include <linux/mm.h>
 #include <linux/module.h>
+#include <linux/mutex.h>
 #include <linux/of.h>
 #include <linux/proc_fs.h>
 #include <linux/reboot.h>
@@ -41,9 +43,13 @@
 #ifdef CONFIG_SPRD_SIPC
 #include <linux/sipc.h>
 #endif
+/* sysdump */
 #include "sysdump.h"
 #include "sysdumpdb.h"
+#include "sprd_vmcoreinfo.h"
 #include "native_hang_monitor.h"
+#include <linux/soc/sprd/sprd_sysdump.h>
+
 #include <linux/kallsyms.h>
 #include <asm/stacktrace.h>
 #include <asm-generic/kdebug.h>
@@ -81,16 +87,13 @@
 #define ANA_RST_STATUS_OFFSET_2721 (0xed8)  /* pmic 2721 rst status register offset */
 static unsigned int pmic_reg;
 
-#ifdef CONFIG_SPRD_MINI_SYSDUMP /*	minidump code start	*/
+/* minidump common data */
+#define MINIDUMP_MAGIC	"SPRD_MINIDUMP"
 #define REG_SP_INDEX	31
 #define REG_PC_INDEX	32
 extern void stext(void);
 struct pt_regs pregs_die_g;
-int  die_notify_flag;
 struct pt_regs minidump_regs_g;
-static int prepare_minidump_info(struct pt_regs *regs);
-struct info_desc minidump_info_desc_g;
-unsigned int pt_data_len;
 
 struct minidump_info  minidump_info_g =	{
 	.kernel_magic			=	KERNEL_MAGIC,
@@ -124,15 +127,6 @@ struct minidump_info  minidump_info_g =	{
 			{"inittext", (unsigned long)_sinittext, (unsigned long)_einittext, 0, 0, 0},
 			{"rodata", (unsigned long)__start_rodata, (unsigned long)__end_rodata, 0, 0,
 			0},
-			{"per_cpu", (unsigned long)__per_cpu_start, (unsigned long)__per_cpu_end, 0,
-			0, 0},
-			{"log_buf", 0, 0, 0, 0, 0},
-			{"ylog_buf", 0, 0, 0, 0, 0},
-			{"kernel_pt", 0, 0, 0, 0, 0},
-#ifdef CONFIG_SPRD_NATIVE_HANG_MONITOR
-			{"nhang", 0, 0, 0, 0, 0},
-#endif
-			{"etbdata_uboot.bin", 0, 0, 0, 0, 0},
 			{"", 0, 0, 0, 0, 0},
 
 		},
@@ -141,6 +135,14 @@ struct minidump_info  minidump_info_g =	{
 	},
 	.compressed			=	1,
 };
+static int vaddr_to_paddr_flag;
+static struct mutex section_mutex;
+static atomic_t mutex_init_flag = ATOMIC_INIT(0);
+
+#ifdef CONFIG_SPRD_MINI_SYSDUMP /*      minidump code start     */
+static int  die_notify_flag;
+static int prepare_minidump_info(struct pt_regs *regs);
+static struct info_desc minidump_info_desc_g;
 static int prepare_exception_info(struct pt_regs *regs,
 			struct task_struct *tsk, const char *reason);
 static char *ylog_buffer;
@@ -157,7 +159,17 @@ struct memelfnote {
 	unsigned int datasz;
 	void *data;
 };
-
+struct kaslr_info {
+	uint64_t kaslr_offset;
+	uint64_t kimage_voffset;
+	uint64_t phys_offset;
+	uint64_t vabits_actual;
+};
+struct minidump_info_record {
+	char magic[20];
+	uint64_t minidump_info_paddr;
+	int minidump_info_size;
+};
 struct sysdump_info {
 	char magic[16];
 	char time[32];
@@ -167,6 +179,8 @@ struct sysdump_info {
 	int mem_num;
 	unsigned long dump_mem_paddr;
 	int crash_key;
+	struct kaslr_info sprd_kaslrinfo;
+	struct minidump_info_record sprd_minidump_info;
 };
 
 struct sysdump_extra {
@@ -185,7 +199,9 @@ struct sysdump_config {
 };
 
 static struct sysdump_info *sprd_sysdump_info;
+static unsigned long sprd_sysdump_info_paddr;
 static unsigned long sysdump_magic_paddr;
+static int sysdump_reflag;
 
 /* global var for memory hash */
 static u8 g_ktxt_hash_data[SHA1_DIGEST_SIZE];
@@ -269,6 +285,94 @@ void sprd_debug_check_crash_key(unsigned int code, int value)
 		}
 	}
 }
+
+/**
+ * save extend debug information of modules in minidump, such as: cm4, iram...
+ *
+ * @name:	the name of the modules, and the string will be a part
+ *		of the file name.
+ *		note: special characters can't be included in the file name,
+ *		such as:'?','*','/','\','<','>',':','"','|'.
+ *
+ * @paddr_start:the start paddr in memory of the modules debug information
+ * @paddr_end:	the end paddr in memory of the modules debug information
+ *
+ * Return: 0 means success, -1 means fail.
+ */
+int minidump_save_extend_information(const char *name, unsigned long paddr_start,
+								unsigned long paddr_end)
+{
+
+	int i, j, index;
+	struct section_info *extend_section;
+	char str_name[SECTION_NAME_MAX];
+	char tmp;
+
+	/* check name valid first */
+	if (strlen(name) > (SECTION_NAME_MAX - strlen(EXTEND_STRING) - 1)) {
+		pr_err("The length of name is too long!!, add extend section fail!!\n");
+		return -1;
+	}
+	if (!strlen(name)) {
+		pr_err("The name is empty, invalid!!\n");
+		return -1;
+	}
+	memcpy(str_name, name, strlen(name));
+	for (j = 0; j < strlen(str_name); j++) {
+		tmp = str_name[j];
+		if (tmp == '?' || tmp == '*' || tmp == '/' || tmp == '>' || tmp == '<'
+								|| tmp == '"' || tmp == '|') {
+			pr_err("the name=%s include special character:%c that not supported!!\n",
+					name, tmp);
+			return -1;
+		}
+	}
+	/* section_mutex only be inited once */
+	if (atomic_read(&mutex_init_flag) == 0) {
+		mutex_init(&section_mutex);
+		atomic_inc(&mutex_init_flag);
+	}
+
+	mutex_lock(&section_mutex);
+	/* check insert repeatly and acquire total seciton num before insert new section */
+	for (i = 0; i < SECTION_NUM_MAX; i++) {
+		if (!memcmp(str_name,
+				minidump_info_g.section_info_total.section_info[i].section_name,
+				strlen(str_name))) {
+			mutex_unlock(&section_mutex);
+			return -1;
+		}
+		if (!strlen(minidump_info_g.section_info_total.section_info[i].section_name))
+			break;
+	}
+	minidump_info_g.section_info_total.total_num = i;
+	index = minidump_info_g.section_info_total.total_num++;
+
+	if (index >= (SECTION_NUM_MAX - 1)) {
+		pr_err("No space for new section.\n");
+		mutex_unlock(&section_mutex);
+		return -1;
+	}
+	/* add new section in the tail of section_info */
+	extend_section = &minidump_info_g.section_info_total.section_info[index];
+	sprintf(extend_section->section_name, "%s_%s", EXTEND_STRING, name);
+	if (vaddr_to_paddr_flag == 0) {
+		extend_section->section_start_vaddr = (unsigned long)__va(paddr_start);
+		extend_section->section_end_vaddr = (unsigned long)__va(paddr_end);
+	} else {
+		extend_section->section_start_paddr = paddr_start;
+		extend_section->section_end_paddr = paddr_end;
+		extend_section->section_size = extend_section->section_end_paddr -
+						extend_section->section_start_paddr;
+		minidump_info_g.section_info_total.total_size += extend_section->section_size;
+		minidump_info_g.minidump_data_size += extend_section->section_size;
+	}
+	pr_emerg("%s added successfully in minidump section:paddr_start=%lx,paddr_end=%lx\n",
+			name, paddr_start, paddr_end);
+	mutex_unlock(&section_mutex);
+	return 0;
+}
+EXPORT_SYMBOL(minidump_save_extend_information);
 
 static char *storenote(struct memelfnote *men, char *bufp)
 {
@@ -369,8 +473,20 @@ static int __init sysdump_magic_setup(char *str)
 		 __func__, sysdump_magic_paddr);
 	return 1;
 }
-
 __setup("sysdump_magic=", sysdump_magic_setup);
+/* get sysdump reserve flag from uboot
+ * sysdump_reflag: 1 sysdump reserved in dts
+ *		   0 sysdump don't reserved in dts
+ */
+static int __init sysdump_reflag_setup(char *str)
+{
+	if (str != NULL)
+		sscanf(&str[0], "%d", &sysdump_reflag);
+	pr_info("[%s]sysdump reserve flag from uboot: %d\n",
+		__func__, sysdump_reflag);
+	return 1;
+}
+__setup("sysdump_re_flag=", sysdump_reflag_setup);
 
 static unsigned long get_sprd_sysdump_info_paddr(void)
 {
@@ -389,7 +505,7 @@ static unsigned long get_sprd_sysdump_info_paddr(void)
 		if (!node) {
 			pr_err
 			    ("Not find sprd-sysdump node from dts,use SPRD_SYSDUMP_MAGIC\n");
-			reg_phy = SPRD_SYSDUMP_MAGIC;
+			return 0;
 		} else {
 			magic_addr =
 			    (unsigned long *)of_get_property(node, "magic-addr",
@@ -397,7 +513,7 @@ static unsigned long get_sprd_sysdump_info_paddr(void)
 			if (!magic_addr) {
 				pr_err
 				    ("Not find magic-addr property from sprd-sysdump node\n");
-				reg_phy = SPRD_SYSDUMP_MAGIC;
+				return 0;
 			} else {
 				aw = of_n_addr_cells(node);
 				reg_phy =
@@ -408,7 +524,32 @@ static unsigned long get_sprd_sysdump_info_paddr(void)
 	}
 	return reg_phy;
 }
+static int sysdump_info_init(void)
+{
+	/*get_sprd_sysdump_info_paddr(); */
+	sprd_sysdump_info_paddr = get_sprd_sysdump_info_paddr();
+	if (!sprd_sysdump_info_paddr) {
+		pr_err("get sprd_sysdump_info_paddr failed.\n");
+		return -1;
+	}
+	sprd_sysdump_info = (struct sysdump_info *)phys_to_virt(sprd_sysdump_info_paddr);
 
+	sprd_sysdump_init = 1;
+
+	/* can't write anything at SPRD_SYSDUMP_MAGIC before rootfs init */
+	if (sysdump_reflag) {
+		/*get kaslr info for arm64*/
+#ifdef CONFIG_ARM64
+		sprd_sysdump_info->sprd_kaslrinfo.kaslr_offset = kaslr_offset();
+		sprd_sysdump_info->sprd_kaslrinfo.kimage_voffset = kimage_voffset;
+		sprd_sysdump_info->sprd_kaslrinfo.phys_offset = PHYS_OFFSET;
+		sprd_sysdump_info->sprd_kaslrinfo.vabits_actual = (uint64_t)VA_BITS;
+		pr_emerg("[%s]vmcore info init end!\n", __func__);
+#endif
+	}
+	return 0;
+
+}
 static void sysdump_prepare_info(int enter_id, const char *reason,
 				 struct pt_regs *regs)
 {
@@ -418,6 +559,9 @@ static void sysdump_prepare_info(int enter_id, const char *reason,
 	strncpy(sprd_sysdump_extra.reason,
 		reason, sizeof(sprd_sysdump_extra.reason)-1);
 	sprd_sysdump_extra.enter_id = enter_id;
+
+	if (!sprd_sysdump_info_paddr)
+		return;
 	memcpy(sprd_sysdump_info->magic, SYSDUMP_MAGIC,
 	       sizeof(sprd_sysdump_info->magic));
 
@@ -472,19 +616,15 @@ static int sysdump_panic_event(struct notifier_block *self,
 	pr_emerg("(%s) ------ in (%d)\n", __func__, enter_id);
 	bust_spinlocks(1);
 	if (sprd_sysdump_init == 0) {
-		unsigned long sprd_sysdump_info_paddr;
 		sprd_sysdump_info_paddr = get_sprd_sysdump_info_paddr();
 		if (!sprd_sysdump_info_paddr) {
-			pr_emerg("get sprd_sysdump_info_paddr failed2.\n");
-			while (1) {
-				pr_emerg("sprd_sysdump_info_paddr failed...\n");
-				mdelay(3000);
-			}
+			pr_emerg("get sprd_sysdump_info_paddr failed!!!.\n");
+		} else {
+			sprd_sysdump_info =
+				(struct sysdump_info *)phys_to_virt(sprd_sysdump_info_paddr);
+			pr_emerg("vaddr is %p, paddr is %p.\n", sprd_sysdump_info,
+				(void *)sprd_sysdump_info_paddr);
 		}
-
-		sprd_sysdump_info = (struct sysdump_info *)phys_to_virt(sprd_sysdump_info_paddr);
-		pr_emerg("vaddr is %p, paddr is %p.\n", sprd_sysdump_info,
-			(void *)sprd_sysdump_info_paddr);
 		crash_notes = &crash_notes_temp;
 	}
 
@@ -1030,64 +1170,39 @@ static struct notifier_block dump_die_notifier = {
 	.notifier_call = dump_die_cb
 };
 
-void section_info_log_buf(int section_index)
+static void section_info_ylog_buf(void)
 {
-	int i = section_index;
-	unsigned long vaddr = (unsigned long)(log_buf_addr_get());
-	int len = log_buf_len_get();
-
-	pr_info("%s in. vaddr : 0x%lx  len :0x%x  section_index: %d\n",
-		__func__, vaddr, len, i);
-	minidump_info_g.section_info_total.section_info[i].section_start_vaddr = vaddr;
-	minidump_info_g.section_info_total.section_info[i].section_end_vaddr = vaddr + len;
-	minidump_info_g.section_info_total.section_info[i].section_start_paddr =
-		__pa(minidump_info_g.section_info_total.section_info[i].section_start_vaddr);
-	minidump_info_g.section_info_total.section_info[i].section_end_paddr =
-		__pa(minidump_info_g.section_info_total.section_info[i].section_end_vaddr);
-	minidump_info_g.section_info_total.section_info[i].section_size = len;
-}
-
-void section_info_ylog_buf(int section_index)
-{
-	int i = section_index;
+	int ret;
 	long vaddr = (long)(ylog_buffer);;
 
-	pr_info("%s in. vaddr : 0x%lx  len :0x%x  section_index: %d\n",
-		 __func__, vaddr, YLOG_BUF_SIZE, i);
-	minidump_info_g.section_info_total.section_info[i].section_start_vaddr = vaddr;
-	minidump_info_g.section_info_total.section_info[i].section_end_vaddr = vaddr +
-		YLOG_BUF_SIZE;
-	minidump_info_g.section_info_total.section_info[i].section_start_paddr =
-		__pa(minidump_info_g.section_info_total.section_info[i].section_start_vaddr);
-	minidump_info_g.section_info_total.section_info[i].section_end_paddr =
-		__pa(minidump_info_g.section_info_total.section_info[i].section_end_vaddr);
-	minidump_info_g.section_info_total.section_info[i].section_size = YLOG_BUF_SIZE;
+	pr_info("%s in. vaddr : 0x%lx  len :0x%x\n",
+		 __func__, vaddr, YLOG_BUF_SIZE);
+	ret = minidump_save_extend_information("ylog_buf", __pa(vaddr),
+						__pa(vaddr + YLOG_BUF_SIZE));
+	if (!ret)
+		pr_info("ylog_buf added to minidump section ok!!\n");
 }
 
 #ifdef CONFIG_SPRD_NATIVE_HANG_MONITOR
-static void section_native_hang(int section_index)
+static void section_native_hang(void)
 {
-	int i = section_index;
+	int ret;
 	unsigned long vaddr, len, start;
 
 	get_native_hang_monitor_buffer(&vaddr, &len, &start);
 	pr_debug("%s in.\n", __func__);
-	minidump_info_g.section_info_total.section_info[i].section_start_vaddr = vaddr;
-	minidump_info_g.section_info_total.section_info[i].section_end_vaddr = vaddr + len;
-	minidump_info_g.section_info_total.section_info[i].section_start_paddr =
-		__pa(minidump_info_g.section_info_total.section_info[i].section_start_vaddr);
-	minidump_info_g.section_info_total.section_info[i].section_end_paddr =
-		__pa(minidump_info_g.section_info_total.section_info[i].section_end_vaddr);
-	minidump_info_g.section_info_total.section_info[i].section_size = len;
+	ret = minidump_save_extend_information("nhang", __pa(vaddr), __pa(vaddr + len));
+	if (!ret)
+		pr_info("nhang added to minidump section ok!!\n");
 	pr_debug("%s out.\n", __func__);
 }
 #endif
 
-void section_info_pt(int section_index)
+static void section_info_pt(void)
 {
-	int i = section_index;
 	unsigned long vaddr;
 	int len;
+	int ret;
 	vaddr  = (unsigned long)swapper_pg_dir;
 
 #ifdef CONFIG_ARM
@@ -1096,46 +1211,21 @@ void section_info_pt(int section_index)
 #ifdef CONFIG_ARM64
 		len = 0x1000;
 #endif
-	minidump_info_g.section_info_total.section_info[i].section_start_vaddr = vaddr;
-	minidump_info_g.section_info_total.section_info[i].section_end_vaddr = vaddr + len;
-	minidump_info_g.section_info_total.section_info[i].section_start_paddr = __pa(vaddr);
-	minidump_info_g.section_info_total.section_info[i].section_end_paddr = __pa(vaddr + len);
-	minidump_info_g.section_info_total.section_info[i].section_size = len;
+	ret = minidump_save_extend_information("kernel_pt", __pa(vaddr), __pa(vaddr + len));
+	if (!ret)
+		pr_info("kernel pt added to minidump section ok!!\n");
 #ifdef CONFIG_ARM
-	pr_info("pgd vaddr start: 0x%lx  paddr start: 0x%x "
-		" len :0x%x  section_index: %d\n",
-		vaddr, __pa(vaddr), len, i);
+	pr_info("pgd vaddr start: 0x%lx  paddr start: 0x%x  len :0x%x\n",
+							vaddr, __pa(vaddr), len);
 #endif
 #ifdef CONFIG_ARM64
-	pr_info("pgd vaddr start: 0x%lx  paddr start: 0x%llx "
-		" len :0x%x  section_index: %d\n",
-		vaddr, __pa(vaddr), len, i);
+	pr_info("pgd vaddr start: 0x%lx  paddr start: 0x%llx  len :0x%x\n",
+							vaddr, __pa(vaddr), len);
 #endif
 	return;
 }
-static int add_extend_section(const char *name, unsigned long paddr_start, unsigned long paddr_end,
-			int index)
-{
-	struct section_info *extend_section =
-		&minidump_info_g.section_info_total.section_info[index];
 
-	if (SECTION_NUM_MAX <= index) {
-		pr_err("No space for new section \n");
-		return -1;
-	}
-	sprintf(extend_section->section_name, "%s", name);
-	extend_section->section_start_paddr = paddr_start;
-	extend_section->section_end_paddr = paddr_end;
-	extend_section->section_size = extend_section->section_end_paddr -
-		extend_section->section_start_paddr;
-
-	minidump_info_g.section_info_total.total_size += extend_section->section_size;
-	minidump_info_g.section_info_total.total_num++;
-	minidump_info_g.minidump_data_size += extend_section->section_size;
-	return 0;
-}
-
-int extend_section_cm4dump(int index)
+static int extend_section_cm4dump(void)
 {
 #define CM4_DUMP_IRAM "scproc"
 	struct device_node *node;
@@ -1159,79 +1249,20 @@ int extend_section_cm4dump(int index)
 			return -1;
 		}
 	}
-	add_extend_section(CM4_DUMP_IRAM, cm4_dump_start, cm4_dump_end, index);
+	minidump_save_extend_information(CM4_DUMP_IRAM, cm4_dump_start, cm4_dump_end);
 	return 0;
 }
-void section_info_per_cpu(int section_index)
-{
-	int i = section_index;
-	long vaddr = (long)(__per_cpu_start)+(long)(__per_cpu_offset[0]);
-	int len = (__per_cpu_offset[1] - __per_cpu_offset[0])*CONFIG_NR_CPUS;
-	minidump_info_g.section_info_total.section_info[i].section_start_vaddr = vaddr;
-	minidump_info_g.section_info_total.section_info[i].section_end_vaddr = vaddr + len;
-	minidump_info_g.section_info_total.section_info[i].section_start_paddr =
-		__pa(minidump_info_g.section_info_total.section_info[i].section_start_vaddr);
-	minidump_info_g.section_info_total.section_info[i].section_end_paddr =
-		__pa(minidump_info_g.section_info_total.section_info[i].section_end_vaddr);
-	minidump_info_g.section_info_total.section_info[i].section_size = len;
-	return;
-}
-static void minidump_addr_convert(int i)
-{
-	minidump_info_g.section_info_total.section_info[i].section_start_paddr =
-		__pa(minidump_info_g.section_info_total.section_info[i].section_start_vaddr);
-	minidump_info_g.section_info_total.section_info[i].section_end_paddr =
-		__pa(minidump_info_g.section_info_total.section_info[i].section_end_vaddr);
-	minidump_info_g.section_info_total.section_info[i].section_size =
-		minidump_info_g.section_info_total.section_info[i].section_end_paddr -
-		minidump_info_g.section_info_total.section_info[i].section_start_paddr;
-}
 /*	init section_info_all_item : name,paddr,size 	return: total_size */
-void minidump_info_init(void)
+static void section_extend_info_init(void)
 {
-	int i;
-
-	minidump_info_g.regs_info.paddr = __pa(&minidump_regs_g);
-	/*	regs_memory_info init*/
-	minidump_info_g.regs_memory_info.size = REGS_NUM_MAX *
-		minidump_info_g.regs_memory_info.per_reg_memory_size;
-
-	/*	section info init*/
-	for (i = 0; i < SECTION_NUM_MAX; i++) {
-		/*	when section name is null, break*/
-		if (!strlen(minidump_info_g.section_info_total.section_info[i].section_name))
-			break;
-		/*      when section name is log_buf */
-		if (!memcmp(minidump_info_g.section_info_total.section_info[i].section_name,
-				"log_buf", strlen("log_buf"))) {
-			section_info_log_buf(i);
-		} else if (!memcmp(minidump_info_g.section_info_total.section_info[i].section_name,
-				"ylog_buf", strlen("ylog_buf"))) {
-			section_info_ylog_buf(i);
-		} else if (!memcmp(minidump_info_g.section_info_total.section_info[i].section_name,
-				"kernel_pt", strlen("kernel_pt"))) {
-			section_info_pt(i);
-		} else if (!memcmp(minidump_info_g.section_info_total.section_info[i].section_name,
-				"per_cpu", strlen("per_cpu"))) {
-			section_info_per_cpu(i);
+	/* section info init */
+	section_info_ylog_buf();
+	section_info_pt();
 #ifdef CONFIG_SPRD_NATIVE_HANG_MONITOR
-		} else if (!memcmp(minidump_info_g.section_info_total.section_info[i].section_name,
-				"nhang", strlen("nhang"))) {
-			section_native_hang(i);
+	section_native_hang();
 #endif
-		} else {
-			minidump_addr_convert(i);
-		}
-		minidump_info_g.section_info_total.total_size +=
-			minidump_info_g.section_info_total.section_info[i].section_size;
-	}
-	minidump_info_g.section_info_total.total_num = i;
 
-
-	minidump_info_g.minidump_data_size =  minidump_info_g.regs_info.size +
-	minidump_info_g.regs_memory_info.size + minidump_info_g.section_info_total.total_size;
-
-	extend_section_cm4dump(minidump_info_g.section_info_total.total_num);
+	extend_section_cm4dump();
 
 	return;
 }
@@ -1312,7 +1343,7 @@ int minidump_init(void)
 	}
 	minidump_info_desc_g.paddr = __pa(&minidump_info_g);
 	minidump_info_desc_g.size = sizeof(minidump_info_g);
-	minidump_info_init();
+	section_extend_info_init();
 	pr_info("%s out.\n", __func__);
 	return 0;
 }
@@ -1500,29 +1531,122 @@ EXPORT_SYMBOL(prepare_dump_info_for_wdh);
 #endif /*	CONFIG_SPRD_HANG_DEBUG end*/
 #endif  /*	minidump code end	*/
 
+/* common data init */
+static void section_info_per_cpu(void)
+{
+	int ret;
+	long vaddr = (long)(__per_cpu_start) + (long)(__per_cpu_offset[0]);
+	int len = (__per_cpu_offset[1] - __per_cpu_offset[0]) * CONFIG_NR_CPUS;
+
+	ret = minidump_save_extend_information("per_cpu", __pa(vaddr), __pa(vaddr + len));
+	if (!ret)
+		pr_info("per_cpu added to minidump section ok!!\n");
+}
+static void section_info_log_buf(void)
+{
+	int ret;
+	unsigned long vaddr = (unsigned long)(log_buf_addr_get());
+	int len = log_buf_len_get();
+
+	pr_info("%s in. vaddr : 0x%lx  len :0x%x\n",
+		__func__, vaddr, len);
+	ret = minidump_save_extend_information("log_buf", __pa(vaddr), __pa(vaddr + len));
+	if (!ret)
+		pr_info("add log_buf to minidump section ok!!\n");
+}
+static void minidump_addr_convert(int i)
+{
+	minidump_info_g.section_info_total.section_info[i].section_start_paddr =
+		__pa(minidump_info_g.section_info_total.section_info[i].section_start_vaddr);
+	minidump_info_g.section_info_total.section_info[i].section_end_paddr =
+		__pa(minidump_info_g.section_info_total.section_info[i].section_end_vaddr);
+	minidump_info_g.section_info_total.section_info[i].section_size =
+		minidump_info_g.section_info_total.section_info[i].section_end_paddr -
+		minidump_info_g.section_info_total.section_info[i].section_start_paddr;
+}
+static void minidump_info_init(void)
+{
+	int i;
+
+	/* section_mutex only be inited once */
+	if (atomic_read(&mutex_init_flag) == 0) {
+		mutex_init(&section_mutex);
+		atomic_inc(&mutex_init_flag);
+	}
+	/* section init */
+	mutex_lock(&section_mutex);
+	for (i = 0; i < SECTION_NUM_MAX; i++) {
+		/* when section name is null, break */
+		if (!strlen(minidump_info_g.section_info_total.section_info[i].section_name))
+			break;
+		minidump_addr_convert(i);
+		minidump_info_g.section_info_total.total_size +=
+			minidump_info_g.section_info_total.section_info[i].section_size;
+	}
+	minidump_info_g.section_info_total.total_num = i;
+	/* vaddr to paddr flag must nearby section info init */
+	vaddr_to_paddr_flag = 1;
+	mutex_unlock(&section_mutex);
+
+	/* regs init */
+	minidump_info_g.regs_info.paddr = __pa(&minidump_regs_g);
+	/* regs_memory_info init*/
+	minidump_info_g.regs_memory_info.size = REGS_NUM_MAX *
+			minidump_info_g.regs_memory_info.per_reg_memory_size;
+	/* update minidump data size */
+	minidump_info_g.minidump_data_size = minidump_info_g.regs_info.size +
+			minidump_info_g.regs_memory_info.size +
+			minidump_info_g.section_info_total.total_size;
+
+	section_info_log_buf();
+	section_info_per_cpu();
+	/* add etb section */
+	minidump_save_extend_information("etb_data", 0, 0);
+	/* update minidump info */
+	if (sysdump_reflag && sprd_sysdump_info_paddr) {
+		sprd_sysdump_info->sprd_minidump_info.minidump_info_paddr = __pa(&minidump_info_g);
+		sprd_sysdump_info->sprd_minidump_info.minidump_info_size = sizeof(minidump_info_g);
+		memcpy(sprd_sysdump_info->sprd_minidump_info.magic, MINIDUMP_MAGIC,
+									sizeof(MINIDUMP_MAGIC));
+	}
+
+}
+
 static struct notifier_block sysdump_panic_event_nb = {
 	.notifier_call	= sysdump_panic_event,
 	.priority	= INT_MAX,
 };
 
-int sysdump_sysctl_init(void)
+static int sysdump_panic_event_init(void)
 {
-	/*get_sprd_sysdump_info_paddr(); */
-	unsigned long sprd_sysdump_info_paddr;
+	crash_notes = &crash_notes_temp;
+	/* register sysdump panic notifier */
+	atomic_notifier_chain_register(&panic_notifier_list,
+						&sysdump_panic_event_nb);
+	return 0;
+}
+static __init int sysdump_early_init(void)
+{
+	int ret;
+	/* register sysdump panic notifier */
+	sysdump_panic_event_init();
+	/* init kaslr_offset if need */
+	ret = sysdump_info_init();
+	if (ret)
+		pr_emerg("sysdump_info init failed!!!\n");
+
+	minidump_info_init();
+
+	return 0;
+}
+early_initcall(sysdump_early_init);
+static int sysdump_sysctl_init(void)
+{
 	struct proc_dir_entry *sysdump_proc;
-
-	sprd_sysdump_info_paddr = get_sprd_sysdump_info_paddr();
-	if (!sprd_sysdump_info_paddr)
-		pr_err("get sprd_sysdump_info_paddr failed.\n");
-	sprd_sysdump_info = (struct sysdump_info *)
-	    phys_to_virt(sprd_sysdump_info_paddr);
-
 	sysdump_sysctl_hdr =
 	    register_sysctl_table((struct ctl_table *)sysdump_sysctl_root);
 	if (!sysdump_sysctl_hdr)
 		return -ENOMEM;
-
-	crash_notes = &crash_notes_temp;
 
 	if (input_register_handler(&sysdump_handler))
 		pr_err("regist sysdump_handler failed.\n");
@@ -1534,7 +1658,6 @@ int sysdump_sysctl_init(void)
 	memset(g_ktxt_hash_data, 0x55, SHA1_DIGEST_SIZE);
 	if (sysdump_shash_init())
 		return -ENOMEM;
-	sprd_sysdump_init = 1;
 
 	sprd_sysdump_enable_prepare();
 #if defined(CONFIG_SPRD_DEBUG)
@@ -1546,14 +1669,6 @@ int sysdump_sysctl_init(void)
 #endif
 	return 0;
 }
-static __init int sysdump_panic_event_init(void)
-{
-	/* register sysdump panic notifier */
-	atomic_notifier_chain_register(&panic_notifier_list,
-						&sysdump_panic_event_nb);
-	return 0;
-}
-early_initcall(sysdump_panic_event_init);
 void sysdump_sysctl_exit(void)
 {
 	if (sysdump_sysctl_hdr)
