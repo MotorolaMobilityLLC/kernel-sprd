@@ -75,6 +75,7 @@ lkdtm-$(CONFIG_LKDTM)		+= lkdtm_rodata_objcopy.o
 lkdtm-$(CONFIG_LKDTM)		+= lkdtm_usercopy.o
 obj-y 				+= sprd_audio/
 obj-y				+= sprd_map/
+obj-$(CONFIG_SPRD_SOCID)	+= sprd_soc_id.o
 
 KCOV_INSTRUMENT_lkdtm_rodata.o	:= n
 CFLAGS_lkdtm_rodata.o		+= $(DISABLE_LTO)
