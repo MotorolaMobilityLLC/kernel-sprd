@@ -108,6 +108,8 @@ struct bq2560x_charger_info {
 	u32 last_limit_current;
 	u32 role;
 	bool need_disable_Q1;
+	int termination_cur;
+
 };
 
 #include <ontim/ontim_dev_dgb.h>
