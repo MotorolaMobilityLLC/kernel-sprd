@@ -1975,7 +1975,8 @@ static int cm_check_thermal_status(struct charger_manager *cm)
 	int temp, upper_limit, lower_limit;
 	int ret = 0;
 
-	ret = cm_get_battery_temperature(cm, &temp);
+//	ret = cm_get_battery_temperature(cm, &temp);
+	ret = cm_get_battery_temperature_by_psy(cm, &temp);
 	if (ret) {
 		/* FIXME:
 		 * No information of battery temperature might
