@@ -298,7 +298,7 @@ bq2560x_charger_set_termina_cur(struct bq2560x_charger_info *info, u32 cur)
 static int bq2560x_charger_hw_init(struct bq2560x_charger_info *info)
 {
 	struct power_supply_battery_info bat_info = { };
-	int voltage_max_microvolt, current_max_ua;
+	int voltage_max_microvolt, termination_cur;
 	int ret;
 
 	ret = power_supply_get_battery_info(info->psy_usb, &bat_info, 0);
@@ -332,7 +332,8 @@ static int bq2560x_charger_hw_init(struct bq2560x_charger_info *info)
 
 		voltage_max_microvolt =
 			bat_info.constant_charge_voltage_max_uv / 1000;
-		current_max_ua = bat_info.constant_charge_current_max_ua / 1000;
+		termination_cur = bat_info.charge_term_current_ua / 1000;
+		info->termination_cur = termination_cur;
 		power_supply_put_battery_info(info->psy_usb, &bat_info);
 
 		//ret = bq2560x_update_bits(info, BQ2560X_REG_B,
@@ -371,7 +372,7 @@ static int bq2560x_charger_hw_init(struct bq2560x_charger_info *info)
 			return ret;
 		}
 
-		ret = bq2560x_charger_set_termina_cur(info, current_max_ua);
+		ret = bq2560x_charger_set_termina_cur(info, termination_cur);
 		if (ret) {
 			dev_err(info->dev, "set bq2560x terminal cur failed\n");
 			return ret;
