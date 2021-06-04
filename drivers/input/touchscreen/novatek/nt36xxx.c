@@ -2237,7 +2237,12 @@ static int32_t __init nvt_driver_init(void)
 {
 	int32_t ret = 0;
 
-	NVT_LOG("start, %s\n", TOUCHSCREEN_NOVATEK_MODEL);
+    NVT_LOG("start, %s\n", TOUCHSCREEN_NOVATEK_MODEL);
+    if ( NULL == lcd_name) {
+        NVT_ERR("failed to crate lcd device\n");
+        return -ENODEV;
+    }
+
     if ( (NULL == strstr(lcd_name, "nt36525c")) && (NULL == strstr(lcd_name, "nt36525b"))) {
         NVT_ERR("failed to find novatek device, cmdline=%s\n", lcd_name);
         return -ENODEV;
