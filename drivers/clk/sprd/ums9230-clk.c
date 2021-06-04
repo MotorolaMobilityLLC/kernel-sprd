@@ -194,7 +194,7 @@ static struct clk_bit_field f_pll[PLL_FACT_MAX] = {
 	{ .shift = 77,	.width = 1 },	/* postdiv	*/
 };
 
-static SPRD_PLL_FW_NAME(rpll, "rpll", "ext-26m", 0x0, 3,
+static SPRD_PLL_HW(rpll, "rpll", &clk_26m_aud.hw, 0x0, 3,
 			itable, f_pll, 240, 1000, 1000, 1, 750000000);
 
 static SPRD_SC_GATE_CLK_FW_NAME(audio_gate, "audio-gate", "ext-26m", 0x24,
