@@ -643,6 +643,20 @@ static void wcn_sipc_sblk_push_list_dequeue(struct sipc_chn_info *sipc_chn)
 	WCN_HERE_CHN(sipc_chn->index);
 }
 
+int wcn_sipc_sblk_chn_rx_status_check(u8 index)
+{
+	struct sipc_chn_info *sipc_chn;
+
+	sipc_chn = SIPC_CHN(index + 1);
+	if (!sipc_chn->sipc_chn_status) {
+		WCN_ERR("chn status(%d)! sipc_chn(%d)\n",
+				 sipc_chn->sipc_chn_status, sipc_chn->chn);
+		return -E_INVALIDPARA;
+	} else
+		return 0;
+
+}
+
 static int wcn_sipc_sblk_push(u8 index,
 			struct mbuf_t *head, struct mbuf_t *tail, int num)
 {
@@ -650,6 +664,9 @@ static int wcn_sipc_sblk_push(u8 index,
 
 	if (unlikely(SIPC_INVALID_CHN(index)))
 		return -E_INVALIDPARA;
+	if (wcn_sipc_sblk_chn_rx_status_check(index))
+		return -E_INVALIDPARA;
+
 	sipc_chn = SIPC_CHN(index);
 	wcn_sipc_record_mbuf_recv_from_user(index, num);
 	wcn_sipc_push_list_enqueue(sipc_chn, head, tail, num);
@@ -684,6 +701,17 @@ static void wcn_sipc_sblk_recv(struct sipc_chn_info *sipc_chn)
 	}
 }
 
+void wcn_sipc_chn_set_status(void *data, bool flag)
+{
+	struct sipc_chn_info *sipc_chn = (struct sipc_chn_info *)data;
+
+	if (flag)
+		sipc_chn->sipc_chn_status = true;
+	else
+		sipc_chn->sipc_chn_status = false;
+
+}
+
 static void wcn_sipc_sblk_notifer(int event, void *data)
 {
 	struct sipc_chn_info *sipc_chn = (struct sipc_chn_info *)data;
@@ -699,6 +727,12 @@ static void wcn_sipc_sblk_notifer(int event, void *data)
 	/* SBLOCK_NOTIFY_GET sblock release */
 	case SBLOCK_NOTIFY_GET:
 		wcn_sipc_wakeup_tx(sipc_chn);
+		break;
+	case SBLOCK_NOTIFY_OPEN:
+		wcn_sipc_chn_set_status(sipc_chn, true);
+		break;
+	case SBLOCK_NOTIFY_CLOSE:
+		wcn_sipc_chn_set_status(sipc_chn, false);
 		break;
 	default:
 		WCN_ERR("Invalid event swcnblk notify:%d\n", event);
