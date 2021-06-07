@@ -110,7 +110,7 @@ struct sipc_chn_info {
 	u8 chntype;	/* sbuf/sblock */
 	u8 chn;
 	u8 dst;
-	u8 sipc_chn_status;
+	bool sipc_chn_status;
 	u8 need_reserve;
 	struct mchn_ops_t *ops;
 
