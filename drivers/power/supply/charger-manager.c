@@ -100,6 +100,7 @@
 
 #define CM_CP_WORK_TIME_MS			500
 
+#define CM_TRACK_WAKE_UP_MS			25000
 #define CM_TRACK_FILE_PATH "/mnt/vendor/battery/calibration_data/.battery_file"
 
 static const char * const jeita_type_names[] = {
@@ -5286,13 +5287,11 @@ static void cm_track_capacity_work(struct work_struct *work)
 					   &cm->track.track_capacity_work,
 					   5 * HZ);
 		} else {
-			cm->track.open_file_done = true;
 			cm->track.state = CAP_TRACK_ERR;
 		}
 		return;
 	}
 
-	cm->track.open_file_done = true;
 	ret = get_batt_total_cap(cm, &total_cap);
 	if (ret) {
 		dev_err(cm->dev, "failed to get total cap.\n");
@@ -5875,6 +5874,7 @@ static void cm_track_capacity_init(struct charger_manager *cm)
 	cm->track.end_cur =
 		cm->desc->fullbatt_uA + CM_TRACK_CAPACITY_CURRENT_OFFSET;
 	cm->track.state = CAP_TRACK_INIT;
+	__pm_wakeup_event(&cm->charge_ws, CM_TRACK_WAKE_UP_MS);
 	queue_delayed_work(system_power_efficient_wq,
 			   &cm->track.track_capacity_work,
 			   5 * HZ);
@@ -6475,11 +6475,8 @@ static int charger_manager_probe(struct platform_device *pdev)
 	cm->track.cap_tracking =
 		device_property_read_bool(&pdev->dev, "cm-capacity-track");
 
-	cm->track.open_file_done = true;
-	if (cm->track.cap_tracking) {
-		cm->track.open_file_done = false;
+	if (cm->track.cap_tracking)
 		cm_track_capacity_init(cm);
-	}
 
 	queue_delayed_work(system_power_efficient_wq, &cm->cap_update_work, CM_CAP_CYCLE_TRACK_TIME * HZ);
 	INIT_DELAYED_WORK(&cm->uvlo_work, cm_uvlo_check_work);
@@ -6559,9 +6556,6 @@ static int cm_suspend_noirq(struct device *dev)
 static int cm_suspend_prepare(struct device *dev)
 {
 	struct charger_manager *cm = dev_get_drvdata(dev);
-
-	if (!cm->track.open_file_done)
-		return -EAGAIN;
 
 	if (!cm_suspended)
 		cm_suspended = true;
