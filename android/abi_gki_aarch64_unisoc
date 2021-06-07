@@ -1834,6 +1834,7 @@
 
 # required by spi-sprd.ko
   dma_request_chan
+  spi_controller_resume
   spi_controller_suspend
   spi_finalize_current_transfer
 
