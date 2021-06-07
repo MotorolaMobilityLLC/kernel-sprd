@@ -5338,7 +5338,7 @@ static void cm_track_capacity_work(struct work_struct *work)
 			goto out;
 		}
 
-		if (abs(total_cap - capacity) < total_cap / 2)
+		if (abs(total_cap - capacity) < total_cap / 5)
 			set_batt_total_cap(cm, capacity);
 		break;
 
@@ -5365,9 +5365,9 @@ out:
 
 static void cm_track_capacity_monitor(struct charger_manager *cm)
 {
-	int cur_now, ret;
-	int capacity, clbcnt, ocv, boot_volt, batt_uV;
-	u32 total_cap;
+	int ibat_avg, ret;
+	int capacity, clbcnt, ocv, boot_volt, vbat_avg;
+	u32 total_cap, chg_type;
 
 	if (!cm->track.cap_tracking)
 		return;
@@ -5383,17 +5383,18 @@ static void cm_track_capacity_monitor(struct charger_manager *cm)
 		return;
 	}
 
-	ret = get_ibat_now_uA(cm, &cur_now);
+	ret = get_ibat_avg_uA(cm, &ibat_avg);
 	if (ret) {
 		dev_err(cm->dev, "failed to get relax current.\n");
 		return;
 	}
 
-	ret = get_vbat_now_uV(cm, &batt_uV);
+	ret = get_vbat_avg_uV(cm, &vbat_avg);
 	if (ret) {
 		dev_err(cm->dev, "failed to get battery voltage.\n");
 		return;
 	}
+
 	ret = get_batt_ocv(cm, &ocv);
 	if (ret) {
 		dev_err(cm->dev, "get ocv error\n");
@@ -5444,7 +5445,7 @@ static void cm_track_capacity_monitor(struct charger_manager *cm)
 				return;
 			}
 		} else {
-			if (abs(cur_now) > CM_TRACK_CAPACITY_START_CURRENT ||
+			if (abs(ibat_avg) > CM_TRACK_CAPACITY_START_CURRENT ||
 			    ocv > CM_TRACK_CAPACITY_START_VOLTAGE) {
 				dev_info(cm->dev, "not satisfy power on start condition.\n");
 				return;
@@ -5505,8 +5506,20 @@ static void cm_track_capacity_monitor(struct charger_manager *cm)
 		 * stop charging condition as the the capacity
 		 * tracking end condition.
 		 */
-		if (batt_uV > cm->track.end_vol &&
-		    cur_now < cm->track.end_cur) {
+		if (vbat_avg > cm->track.end_vol &&
+		    ibat_avg < cm->track.end_cur) {
+			if (!is_ext_pwr_online(cm)) {
+				dev_err(cm->dev, "pwr not online\n");
+				return;
+			}
+
+			ret = get_usb_charger_type(cm, &chg_type);
+			if (ret || (chg_type == POWER_SUPPLY_CHARGER_TYPE_UNKNOWN)
+			    || (chg_type == POWER_SUPPLY_USB_CHARGER_TYPE_SDP)) {
+				dev_err(cm->dev, "chg_type not support, ret = %d\n", ret);
+				return;
+			}
+
 			ret = get_batt_energy_now(cm, &clbcnt);
 			if (ret) {
 				dev_err(cm->dev, "failed to get energy now.\n");
@@ -5542,7 +5555,7 @@ static void cm_track_capacity_monitor(struct charger_manager *cm)
 			capacity =
 				(total_cap * (u32)cm->track.start_cap) / 1000 + (u32)capacity;
 
-			if (abs(capacity - total_cap) < total_cap / 2) {
+			if (abs(capacity - total_cap) < total_cap / 5) {
 				set_batt_total_cap(cm, capacity);
 				cm->track.state = CAP_TRACK_DONE;
 				queue_delayed_work(system_power_efficient_wq,
