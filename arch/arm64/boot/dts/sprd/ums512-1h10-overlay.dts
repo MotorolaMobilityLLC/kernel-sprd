@@ -704,6 +704,16 @@
 		gpios = <&ap_gpio 145 GPIO_ACTIVE_HIGH
 			&ap_gpio 144 GPIO_ACTIVE_HIGH>;
 	};
+
+	sx933x@28 { /* SAR sensor */
+		compatible = "Semtech,sx933x";
+		reg = <0x28>;
+		interrupt-parent = <&ap_gpio>;
+		interrupts = <112 0x02>;
+		interrupt-names = "sx933x_irq";
+		Semtech,nirq-gpio= <&ap_gpio 112 0>;
+		status = "ok";
+	};
 };
 
 &i2c4 {
@@ -718,9 +728,9 @@
 		als_gain = <64>;
 		int_config = <0>;
 		als_can_wake = <1>;
-		irq_gpios = <112>;
-		interrupt-parent = <&ap_gpio>;
-		interrupts = <112 IRQ_TYPE_LEVEL_LOW>;
+		//irq_gpios = <112>;
+		//interrupt-parent = <&ap_gpio>;
+		//interrupts = <112 IRQ_TYPE_LEVEL_LOW>;
 	};
 
 	stm_vl53l0: vl53l0@52 {
