@@ -691,6 +691,10 @@
 	status = "okay";
 };
 
+&vsp_pd {
+	status = "okay";
+};
+
 &jpg {
 
 	status = "okay";
