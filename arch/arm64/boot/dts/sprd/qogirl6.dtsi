@@ -776,8 +776,8 @@
 					"MMU",
 					"GPU";
 
-				//nvmem-cells = <&gpu_bin>;
-				//nvmem-cell-names = "gpu_bin";
+				nvmem-cells = <&gpu_bin>;
+				nvmem-cell-names = "gpu_bin";
 
 				operating-points = <
 					/* kHz    uV */
