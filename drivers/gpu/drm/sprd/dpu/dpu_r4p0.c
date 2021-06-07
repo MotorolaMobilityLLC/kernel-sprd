@@ -18,13 +18,10 @@
 #include <linux/workqueue.h>
 #include "sprd_bl.h"
 #include "sprd_dpu.h"
-#include "sprd_dsi.h"
 #include "sprd_dvfs_dpu.h"
 #include "dpu_r4p0_corner_param.h"
 #include "dpu_enhance_param.h"
 #include "disp_trusty.h"
-#include "../dsi/sprd_dsi_api.h"
-#include "../dsi/sprd_dsi_hal.h"
 
 #define DISPC_INT_FBC_PLD_ERR_MASK	BIT(8)
 #define DISPC_INT_FBC_HDR_ERR_MASK	BIT(9)
@@ -354,6 +351,7 @@ static struct device_node *g_np;
 static int secure_debug;
 static int time = 5000;
 static struct disp_message tos_msg;
+static int vfp;
 module_param(time, int, 0644);
 module_param(secure_debug, int, 0644);
 module_param(wb_xfbc_en, int, 0644);
@@ -1255,14 +1253,106 @@ static void dpu_layer(struct dpu_context *ctx,
 				hwlayer->src_w, hwlayer->src_h);
 }
 
-static void dpu_scaling(struct dpu_context *ctx,
-			struct sprd_dpu_layer layers[], u8 count)
+static void dpu_framerate(struct dpu_context *ctx, u8 *count)
 {
-	int i;
+	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
+	struct sprd_dpu *dpu = (struct sprd_dpu *)container_of(ctx,
+			       struct sprd_dpu, ctx);
+
+	if (mode_changed) {
+		mutex_lock(&ctx->vrr_lock);
+		dpu_stop(ctx);
+		pr_info("change frame rate, vfp = %d\n", vfp);
+		ctx->vm.vfront_porch = vfp;
+		reg->dpi_v_timing = (ctx->vm.vsync_len << 0) |
+				    (ctx->vm.vback_porch << 8) |
+				    (ctx->vm.vfront_porch << 20);
+		dpu->dsi->ctx.vm.vfront_porch = vfp;
+		dsi_hal_dpi_vfp(dpu->dsi, vfp);
+		dpu_run(ctx);
+		mode_changed = false;
+		mutex_unlock(&ctx->vrr_lock);
+	}
+}
+
+static void dpu_singal_scaling(struct dpu_context *ctx,
+			       struct sprd_dpu_layer layers[], u8 count)
+{
 	u16 src_w;
 	u16 src_h;
 	struct sprd_dpu_layer *top_layer;
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
+	int secure_en = 0;
+	int i;
+
+	for (i = 0; i < count; i++) {
+		if (secure_debug || reg->dpu_secure) {
+			secure_en = 1;
+			break;
+		}
+
+		if (layers[i].secure_en) {
+			secure_en = 1;
+			break;
+		}
+	}
+
+	if (!secure_en)
+		return;
+
+	if (count == 1) {
+		top_layer = &layers[count - 1];
+		if (top_layer->rotation & (DRM_MODE_ROTATE_90 |
+		    DRM_MODE_ROTATE_270)) {
+			src_w = top_layer->src_h;
+			src_h = top_layer->src_w;
+		} else {
+			src_w = top_layer->src_w;
+			src_h = top_layer->src_h;
+		}
+		if (src_w == top_layer->dst_w
+		&& src_h == top_layer->dst_h) {
+			reg->blend_size = (scale_copy.in_h << 16) |
+					  scale_copy.in_w;
+			if (!need_scale)
+				reg->dpu_enhance_cfg &= ~BIT(0);
+			else
+				reg->dpu_enhance_cfg |= BIT(0);
+		} else {
+			/*
+			 * When the layer src size is not euqal to the
+			 * dst size, screened by dpu hal,the single
+			 * layer need to scaling-up. Regardless of
+			 * whether the SR function is turned on, dpu
+			 * blend size should be set to the layer src
+			 * size.
+			 */
+			reg->blend_size = (src_h << 16) | src_w;
+			/*
+			 * When the layer src size is equal to panel
+			 * size, close dpu scaling-up function.
+			 */
+			if (src_h == ctx->vm.vactive &&
+			    src_w == ctx->vm.hactive)
+				reg->dpu_enhance_cfg &= ~BIT(0);
+			else
+				reg->dpu_enhance_cfg |= BIT(0);
+		}
+	} else {
+		reg->blend_size = (scale_copy.in_h << 16) |
+				  scale_copy.in_w;
+		if (!need_scale)
+			reg->dpu_enhance_cfg &= ~BIT(0);
+		else
+			reg->dpu_enhance_cfg |= BIT(0);
+	}
+}
+
+static void dpu_scaling(struct dpu_context *ctx,
+			struct sprd_dpu_layer layers[], u8 count)
+{
+	int i;
+	struct sprd_dpu_layer *top_layer;
 
 	if (mode_changed) {
 		top_layer = &layers[count - 1];
@@ -1280,53 +1370,6 @@ static void dpu_scaling(struct dpu_context *ctx,
 			pr_info("do scaling enhace: 0x%x, top layer(%dx%d)\n",
 				enhance_en, top_layer->dst_w,
 				top_layer->dst_h);
-		}
-	} else {
-		if (count == 1) {
-			top_layer = &layers[count - 1];
-			if (top_layer->rotation & (DRM_MODE_ROTATE_90 |
-							DRM_MODE_ROTATE_270)) {
-				src_w = top_layer->src_h;
-				src_h = top_layer->src_w;
-			} else {
-				src_w = top_layer->src_w;
-				src_h = top_layer->src_h;
-			}
-			if (src_w == top_layer->dst_w
-			&& src_h == top_layer->dst_h) {
-				reg->blend_size = (scale_copy.in_h << 16) |
-						scale_copy.in_w;
-				if (!need_scale)
-					reg->dpu_enhance_cfg &= ~BIT(0);
-				else
-					reg->dpu_enhance_cfg |= BIT(0);
-			} else {
-				/*
-				 * When the layer src size is not euqal to the
-				 * dst size, screened by dpu hal,the single
-				 * layer need to scaling-up. Regardless of
-				 * whether the SR function is turned on, dpu
-				 * blend size should be set to the layer src
-				 * size.
-				 */
-				reg->blend_size = (src_h << 16) | src_w;
-				/*
-				 * When the layer src size is equal to panel
-				 * size, close dpu scaling-up function.
-				 */
-				if (src_h == ctx->vm.vactive &&
-						src_w == ctx->vm.hactive)
-					reg->dpu_enhance_cfg &= ~BIT(0);
-				else
-					reg->dpu_enhance_cfg |= BIT(0);
-			}
-		} else {
-			reg->blend_size = (scale_copy.in_h << 16) |
-					  scale_copy.in_w;
-			if (!need_scale)
-				reg->dpu_enhance_cfg &= ~BIT(0);
-			else
-				reg->dpu_enhance_cfg |= BIT(0);
 		}
 	}
 }
@@ -1355,8 +1398,15 @@ static void dpu_flip(struct dpu_context *ctx,
 	/* disable all the layers */
 	dpu_clean_all(ctx);
 
-	/* to check if dpu need scaling the frame for SR */
-	dpu_scaling(ctx, layers, count);
+	/* to check if dpu need signal scaling */
+	dpu_singal_scaling(ctx, layers, count);
+
+	if (dynamic_framerate_mode)
+		/* to check if dpu need change the frame rate */
+		dpu_framerate(ctx, &count);
+	else
+		/* to check if dpu need scaling the frame for SR */
+		dpu_scaling(ctx, layers, count);
 
 	/* start configure dpu layers */
 	for (i = 0; i < count; i++)
@@ -2279,40 +2329,25 @@ static int dpu_cabc_trigger(struct dpu_context *ctx)
 static int dpu_modeset(struct dpu_context *ctx,
 		struct drm_mode_modeinfo *mode)
 {
-	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
+	scale_copy.in_w = mode->hdisplay;
+	scale_copy.in_h = mode->vdisplay;
 
-	if (dynamic_frame_mode) {
-		dpu_stop(ctx);
-
-		if (mode->vtotal == 1674) {
-			pr_info("high frame rate mode\n");
-			ctx->vm.vfront_porch = 48;
-			reg->dpi_v_timing = (ctx->vm.vsync_len << 0) |
-					    (ctx->vm.vback_porch << 8) |
-					    (ctx->vm.vfront_porch << 20);
-			dsi_hal_dpi_vfp(dsi_v2, 48);
-		} else {
-			pr_info("low frame rate mode\n");
-			ctx->vm.vfront_porch = 883;
-			reg->dpi_v_timing = (ctx->vm.vsync_len << 0) |
-					    (ctx->vm.vback_porch << 8) |
-					    (ctx->vm.vfront_porch << 20);
-			dsi_hal_dpi_vfp(dsi_v2, 883);
+	if (dynamic_framerate_mode) {
+		if (ctx->vrefresh == mode->vrefresh) {
+			pr_info("modeset skip same fps: %d \n", mode->vrefresh);
+			return 0;
 		}
-
-		dpu_run(ctx);
+		vfp = mode->vsync_start - mode->vdisplay;
+		ctx->vrefresh = mode->vrefresh;
 	} else {
-		scale_copy.in_w = mode->hdisplay;
-		scale_copy.in_h = mode->vdisplay;
-
 		if ((mode->hdisplay != ctx->vm.hactive) ||
-		    (mode->vdisplay != ctx->vm.vactive))
+				(mode->vdisplay != ctx->vm.vactive))
 			need_scale = true;
 		else
 			need_scale = false;
-
-		mode_changed = true;
 	}
+	mode_changed = true;
+
 	pr_info("begin switch to %u x %u\n", mode->hdisplay, mode->vdisplay);
 
 	return 0;
