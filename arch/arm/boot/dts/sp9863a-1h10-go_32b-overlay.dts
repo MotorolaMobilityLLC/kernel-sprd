@@ -194,6 +194,15 @@
 	bootargs_ext = "androidboot.hardware=s9863a1h10_go_32b";
 };
 
+&reserved_memory {
+	#address-cells = <1>;
+	#size-cells = <1>;
+
+	fd_reserved: faceid-mem@ffa80000{
+		reg = <0xffa80000 0x00500000>;
+	};
+};
+
 &panel {
 	sprd,backlight = <&pwm_backlight>;
 };
