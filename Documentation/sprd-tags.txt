@@ -108,6 +108,7 @@ iommu:sprd:
 irqchip:
 
 kernel:sysctl:
+kernel:gcov:
 
 leds:sc27xx:
 leds:trigger:
