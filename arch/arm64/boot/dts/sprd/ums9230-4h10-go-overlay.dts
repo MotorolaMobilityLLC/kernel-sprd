@@ -8,6 +8,7 @@
 #include <dt-bindings/usb/pd.h>
 #include "lcd/lcd_nt36525b_dj_mipi_hd.dtsi"
 #include "lcd/lcd_hx83102d_auo_mipi_hd.dtsi"
+#include "lcd/lcd_icnl9911c_dj_mipi_hd.dtsi"
 #include "lcd/lcd_dummy_mipi.dtsi"
 
 / {
@@ -108,6 +109,14 @@
 					wakeup-source;
 				};
 			};
+
+                        usb_cable: usb_cable {
+                                compatible = "sprd,usb_cable_eint";
+                                status = "okay";
+                                usbcable-gpio = <&ap_gpio 121 0>;
+                                interrupt-parent = <&ap_gpio>;
+                                debounce = <256000>;
+                        };
 
 			bat: battery {
 				compatible = "simple-battery";
@@ -401,8 +410,8 @@
 };
 
 &sdio1 {
-	sprd,sdr104-dly = <0x7f 0x7f 0x7f 0x7f>;
-	sprd,sdr50-dly = <0x7f 0x7f 0x8f 0x8f>;
+	sprd,sdr104-dly = <0x7f 0x62 0x61 0x61>;
+	sprd,sdr50-dly = <0x7f 0xb6 0xb4 0xb4>;
 	sd-uhs-sdr104;
 	sd-uhs-sdr50;
 	bus-width = <4>;
@@ -665,9 +674,11 @@
 	spi@0 {
 		status = "okay";
 
-		compatible = "novatek,NVT-ts-spi", "himax,hxcommon";
+		compatible = "novatek,NVT-ts-spi", "himax,hxcommon", "chipone-tddi";
 		reg = <0x0>;
 		spi-max-frequency = <9600000>;
+		interrupt-parent = <&ap_gpio>;
+		interrupts = <144 0x2008>;
 
 		novatek,reset-gpio = <&ap_gpio 145 GPIO_ACTIVE_HIGH>;
 		novatek,irq-gpio = <&ap_gpio 144 GPIO_ACTIVE_HIGH>;
@@ -681,6 +692,28 @@
 		himax,rst-gpio = <&ap_gpio 145 GPIO_ACTIVE_HIGH>;
 		report_type = <1>;
 		/*himax touch end*/
+
+		/*chipone touch start*/
+		chipone,irq-gpio = <&ap_gpio 144 GPIO_ACTIVE_HIGH>;
+		chipone,rst-gpio = <&ap_gpio 145 GPIO_ACTIVE_HIGH>;
+		chipone,x-res = <720>;
+		chipone,y-res = <1600>;
+
+		/* Charger detect */
+		chipone,touch-charger-detect-enable;
+		chipone,touch-charger-detect-type = "notify"; /* notify, poll */
+		chipone,touch-charger-detect-psy-name = "charger";
+		chipone,touch-charger-detect-psp = "POWER_SUPPLY_PROP_ONLINE";
+		chipone,touch-charger-detect-psp-poll-interval = <1000>;
+
+		/* Earjack detect */
+		chipone,touch-earjack-detect-enable;
+		/* MTK:  /sys/bus/platform/drivers/Accdet_Driver/state,
+		Sprd: /sys/kernel/headset/state
+		QCOM: None, and disable it */
+		chipone,touch-earjack-state-filepath = "/sys/bus/headset/state";
+		chipone,touch-earjack-poll-interval = <1000>;
+		/*chipone touch end*/
 	};
 };
 

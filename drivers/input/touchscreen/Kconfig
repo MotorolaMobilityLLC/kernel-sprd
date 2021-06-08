@@ -1270,4 +1270,17 @@ config TOUCHSCREEN_HIMAX_CHIPSET
 
 source drivers/input/touchscreen/hxchipset/Kconfig
 
+config TOUCHSCREEN_CHIPONE
+	tristate "Chipone TDDI touchscreen for QualComm package"
+	depends on SPI
+	default n
+	help
+	  Say y here if you have chipone TDDI touch panel.
+
+	  If unsure, say N.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called chipone-tddi.
+
+
 endif
