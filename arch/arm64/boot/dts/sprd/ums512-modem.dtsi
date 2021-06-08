@@ -102,7 +102,7 @@
 			/* channel number */
 			reg = <4>;
 			label = "spipe_lte";
-			sprd,ringnr = <15>;
+			sprd,ringnr = <20>;
 			sprd,size-rxbuf = <0x1000>;	/* 4*1024 */
 			sprd,size-txbuf = <0x1000>;	/* 4*1024 */
 		};
