@@ -376,32 +376,23 @@
 				reg = <0x21900000 0xc000>;
 				interrupts = <GIC_SPI 43 IRQ_TYPE_LEVEL_HIGH>;
 
-				syscons = <&ap_ahb_regs REG_AP_AHB_AHB_RST
-					MASK_AP_AHB_VSP_SOFT_RST>,
-					<&pmu_apb_regs
-					REG_PMU_APB_PD_MM_TOP_CFG
-					MASK_PMU_APB_PD_MM_TOP_FORCE_SHUTDOWN>,
-					<&pmu_apb_regs
-					REG_PMU_APB_PD_MM_TOP_CFG
-					MASK_PMU_APB_PD_MM_TOP_AUTO_SHUTDOWN_EN>,
-					<&aon_apb_regs
+				reset-syscon = <&ap_ahb_regs REG_AP_AHB_AHB_RST
+					MASK_AP_AHB_VSP_SOFT_RST>;
+				vsp-domain-eb-syscon = <&aon_apb_regs
 					REG_AON_APB_APB_EB1
 					MASK_AON_APB_MM_VSP_EB>;
-				syscon-names = "reset",
-					"pmu_vsp_force_shutdown",
-					"pmu_vsp_auto_shutdown",
-					"vsp_domain_eb";
 
 				iommus = <&iommu_vsp>;
 				status = "disabled";
 			};
 
 			iommu_vsp: iommu@21901140 {
-				compatible = "unisoc,iommuex-vsp";
-				reg = <0x21901140 0x60>;
-				sprd,iova-base = <0x10000000>;
-				sprd,iova-size = <0x10000000>;
-				reg_name = "mmu_reg";
+				compatible = "unisoc,iommuexle-vsp";
+				reg = <0x21900000 0x1140>,
+				      <0x21901140 0x60>;
+				iova-base = <0x10000000>;
+				iova-size = <0x10000000>;
+				reg_name = "mmu_interrupt_reg","mmu_reg";
 				status = "disabled";
 				#iommu-cells = <0>;
 			};
@@ -1040,24 +1031,24 @@
 				compatible = "sprd,sharkle-jpg";
 				reg = <0x60b00000 0x8000>;
 				interrupts = <GIC_SPI 42 IRQ_TYPE_LEVEL_HIGH>;
-				syscons = <&mm_ahb_regs  REG_MM_AHB_AHB_RST
-					MASK_MM_AHB_JPG_SOFT_RST>,
-					<&aon_apb_regs
+				reset-syscon = <&mm_ahb_regs  REG_MM_AHB_AHB_RST
+					MASK_MM_AHB_JPG_SOFT_RST>;
+				aon-apb-eb-syscon = <&aon_apb_regs
 					REG_AON_APB_APB_EB0
 					MASK_AON_APB_MM_EB>;
-				syscon-names = "reset",
-					"aon_apb_eb";
 
 				iommus = <&iommu_jpg>;
+				power-domains = <&cam_domain>;
 				status = "disable";
 			};
 
 			iommu_jpg: iommu@60b00100 {
-				compatible = "unisoc,iommuex-jpg";
-				reg = <0x60b00100 0x400>;
-				sprd,iova-base = <0x70000000>;
-				sprd,iova-size = <0x10000000>;
-				reg_name = "mmu_reg";
+				compatible = "unisoc,iommuexle-jpg";
+				reg = <0x60b00000 0x100>,
+				      <0x60b00100 0x400>;
+				iova-base = <0x70000000>;
+				iova-size = <0x10000000>;
+				reg_name = "mmu_interrupt_reg","mmu_reg";
 				status = "disabled";
 				#iommu-cells = <0>;
 			};
