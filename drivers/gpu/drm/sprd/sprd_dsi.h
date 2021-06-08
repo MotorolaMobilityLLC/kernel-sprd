@@ -209,6 +209,8 @@ struct sprd_dsi {
 extern struct list_head dsi_core_head;
 extern struct list_head dsi_glb_head;
 
+void cali_dsi_glb_disable(struct dsi_context *ctx);
+
 #define dsi_core_ops_register(entry) \
 	disp_ops_register(entry, &dsi_core_head)
 #define dsi_glb_ops_register(entry) \
