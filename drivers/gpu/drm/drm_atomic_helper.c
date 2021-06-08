@@ -665,10 +665,16 @@ drm_atomic_helper_check_modeset(struct drm_device *dev,
 		ret = drm_atomic_add_affected_connectors(state, crtc);
 		if (ret != 0)
 			return ret;
-
-		ret = drm_atomic_add_affected_planes(state, crtc);
-		if (ret != 0)
-			return ret;
+		/*
+		 * FIXME:
+		 * Rmfb calls atomic_commit to disable plane, Deleted by SPRD for HWC performance.
+		 * There is no need to add all old planes for sprd drm according to plane mask.
+		 * Because the dpu driver will display extra planes which reduce display abnormal.
+		 *
+		 *ret = drm_atomic_add_affected_planes(state, crtc);
+		 *if (ret != 0)
+		 *	return ret;
+		 */
 	}
 
 	/*
