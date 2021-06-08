@@ -29,6 +29,27 @@
 #define SPRD_MIPI_DSI_FMT_DSC 0xff
 static DEFINE_MUTEX(panel_lock);
 
+typedef enum tagLcd
+{
+    NotLCD,
+    NT36525b_dj_mipi_hd,        // 11 digit
+    ICNL9911c_dj_mipi_hd,       // 11 digit
+	HX83102d_youda_mipi_hd      // high 8 digit
+} LCD;
+
+static LCD check_lcd_by_name(const char* lcd_name)
+{
+	const int name_len = lcd_name == NULL ? 0 : strlen(lcd_name);
+	if (name_len <= 0) return NotLCD;
+    if (strncmp(lcd_name, "lcd_nt36525b_dj_mipi_hd", name_len) == 0)
+		return NT36525b_dj_mipi_hd;
+	if (strncmp(lcd_name, "lcd_icnl9911c_dj_mipi_hd", name_len) == 0)
+		return ICNL9911c_dj_mipi_hd;
+    if (strncmp(lcd_name, "lcd_hx83102d_youda_mipi_hd", name_len) == 0)
+		return HX83102d_youda_mipi_hd;
+    return NotLCD;
+}
+
 const char *lcd_name;
 static int __init lcd_name_get(char *str)
 {
@@ -622,6 +643,29 @@ static int of_parse_oled_cmds(struct sprd_oled *oled,
 	return 0;
 }
 
+static void set_lcd_oled_level(struct sprd_oled *oled, int level)
+{
+	LCD lcd = check_lcd_by_name(lcd_name);
+	switch (lcd)
+	{
+	case NT36525b_dj_mipi_hd:
+		oled->cmds[0]->payload[1] = (level >> 5) & 0x0F;
+		oled->cmds[0]->payload[2] = (level & 0x07) | ((level << 3) & 0xF8);
+		break;
+	case ICNL9911c_dj_mipi_hd:
+		oled->cmds[0]->payload[1] = level & 0xFF;
+		oled->cmds[0]->payload[2] = level & 0x0E;
+		break;
+	case HX83102d_youda_mipi_hd:
+		oled->cmds[0]->payload[1] = level;
+		oled->cmds[0]->payload[2] = level & 0x00;
+		break;
+	default:
+	    DRM_INFO("Unknown lcd: %s", lcd_name);
+	    break;
+	}
+}
+
 static int sprd_oled_set_brightness(struct backlight_device *bdev)
 {
 	int brightness, level;
@@ -640,11 +684,11 @@ static int sprd_oled_set_brightness(struct backlight_device *bdev)
 
 	DRM_INFO("%s Source level: %d\n", __func__, level);
 
-	if(level < 256){
+	if (level < 256){
 		level = ((level * 78) + 20)/ 100;
 	}
 
-	if(level == 256)
+	if (level == 256)
 		level = 255;
 
 	DRM_INFO("%s Target level: %d\n", __func__, level);
@@ -656,21 +700,9 @@ static int sprd_oled_set_brightness(struct backlight_device *bdev)
 	//printk(KERN_ERR "ontim->%s(%d) cmds_total:%d, wc_l:%d\n", __func__, __LINE__, oled->cmds_total, oled->cmds[0]->wc_l);
 	if (oled->cmds_total == 1) {
 		if (oled->cmds[0]->wc_l == 3) {
-			if(strncmp(lcd_name, "lcd_nt36525b_dj_mipi_hd", strlen(lcd_name)) == 0)
-			{
-				oled->cmds[0]->payload[1] = (level >> 5) & 0x0F;
-				oled->cmds[0]->payload[2] = (level & 0x07) | ((level << 3) & 0xF8);
-				//printk(KERN_ERR "yyx payload[1]:0x%02X, payload[2]:0x%02X\n", oled->cmds[0]->payload[1], oled->cmds[0]->payload[2]);
-			}
-			else if(strncmp(lcd_name, "lcd_hx83102d_youda_mipi_hd", strlen(lcd_name)) == 0)
-			{
-				oled->cmds[0]->payload[1] = level;
-				oled->cmds[0]->payload[2] = level & 0x00;
-				//printk(KERN_ERR "yyx himax payload[1]:0x%02X, payload[2]:0x%02X\n", oled->cmds[0]->payload[1], oled->cmds[0]->payload[2]);
-			}
+			set_lcd_oled_level(oled, level);
 		} else
 			oled->cmds[0]->payload[1] = level;
-
 		sprd_panel_send_cmds(panel->slave,
 			     oled->cmds[0],
 			     oled->cmd_len);
