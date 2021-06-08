@@ -2316,7 +2316,7 @@
 	};
 
 	cache_efuse: efuse@65014c00 {
-		compatible = "sprd,sharkl5-cache-efuse", "sprd,qogirl6-cache-efuse";
+		compatible = "sprd,ums312-cache-efuse", "sprd,qogirl6-cache-efuse";
 		#address-cells = <1>;
 		#size-cells = <1>;
 		reg = <0 0x65014c00 0 0x3ff>;
