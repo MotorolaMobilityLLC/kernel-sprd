@@ -892,7 +892,7 @@
 	/* rfctl6, rfctl7, keyin0 */
 	"gpio_25", "gpio_26", "gpio_124",
 	/* bt_rfctl2 */
-	"gpio_175";
+	"gpio_175", "gpio_121";
 	pinctrl-0 = <&gpio_8>;
 	pinctrl-1 = <&gpio_22>;
 	pinctrl-2 = <&gpio_24>;
@@ -900,6 +900,7 @@
 	pinctrl-4 = <&gpio_26>;
 	pinctrl-5 = <&gpio_124>;
 	pinctrl-6 = <&gpio_175>;
+	pinctrl-7 = <&gpio_121>;
 
 	gpio_8: rfctl16 {
 		pins = "QOGIRL6_RFCTL16";
@@ -933,6 +934,11 @@
 
 	gpio_175: bt_rfctl2 {
 		pins = "QOGIRL6_BT_RFCTL2";
+		function = "func4";
+	};
+
+	gpio_121: keyout0 {
+		pins = "QOGIRL6_KEYOUT0";
 		function = "func4";
 	};
 };
