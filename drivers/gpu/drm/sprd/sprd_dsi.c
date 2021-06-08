@@ -24,6 +24,7 @@
 #include "disp_lib.h"
 #include "sprd_dpu.h"
 #include "sprd_dsi.h"
+#include "sprd_panel.h"
 #include "dsi/sprd_dsi_api.h"
 #include "sysfs/sysfs_display.h"
 
@@ -37,8 +38,6 @@
 LIST_HEAD(dsi_core_head);
 LIST_HEAD(dsi_glb_head);
 static DEFINE_MUTEX(dsi_lock);
-
-struct sprd_dsi *dsi_v2;
 
 static int sprd_dsi_resume(struct sprd_dsi *dsi)
 {
@@ -87,6 +86,7 @@ static void sprd_dsi_encoder_enable(struct drm_encoder *encoder)
 {
 	struct sprd_dsi *dsi = encoder_to_dsi(encoder);
 	struct sprd_dpu *dpu = crtc_to_dpu(encoder->crtc);
+	struct sprd_panel *panel = NULL;
 	static bool is_enabled = true;
 
 	DRM_INFO("%s()\n", __func__);
@@ -113,6 +113,12 @@ static void sprd_dsi_encoder_enable(struct drm_encoder *encoder)
 	if (is_enabled) {
 		is_enabled = false;
 		dsi->ctx.is_inited = true;
+		if (dsi->panel)
+			panel = container_of(dsi->panel, struct sprd_panel, base);
+
+		if (panel && panel->info.esd_check_en && panel->esd_work_backup)
+			schedule_delayed_work(&panel->esd_work,
+					msecs_to_jiffies(panel->info.esd_check_period));
 		mutex_unlock(&dsi_lock);
 		return;
 	}
@@ -787,7 +793,6 @@ static int sprd_dsi_probe(struct platform_device *pdev)
 	if (ret)
 		return ret;
 
-	dsi_v2 = dsi;
 	pm_runtime_set_active(&pdev->dev);
 	pm_runtime_get_noresume(&pdev->dev);
 	pm_runtime_enable(&pdev->dev);

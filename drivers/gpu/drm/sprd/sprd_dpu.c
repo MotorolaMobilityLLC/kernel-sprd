@@ -60,7 +60,7 @@ LIST_HEAD(dpu_clk_head);
 LIST_HEAD(dpu_glb_head);
 
 bool calibration_mode;
-bool dynamic_frame_mode;
+bool dynamic_framerate_mode;
 static unsigned long frame_count;
 module_param(frame_count, ulong, 0444);
 
@@ -1201,6 +1201,7 @@ static int sprd_dpu_context_init(struct sprd_dpu *dpu,
 	of_get_logo_memory_info(dpu, np);
 
 	sema_init(&ctx->refresh_lock, 1);
+	mutex_init(&ctx->vrr_lock);
 
 	return 0;
 }
