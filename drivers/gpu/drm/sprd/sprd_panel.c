@@ -147,7 +147,6 @@ static int sprd_panel_disable(struct drm_panel *p)
 
 	DRM_INFO("%s()\n", __func__);
 
-	mutex_lock(&panel_lock);
 	/*
 	 * FIXME:
 	 * The cancel work should be executed before DPU stop,
@@ -160,6 +159,8 @@ static int sprd_panel_disable(struct drm_panel *p)
 		cancel_delayed_work_sync(&panel->esd_work);
 		panel->esd_work_pending = false;
 	}
+
+	mutex_lock(&panel_lock);
 
 	if (panel->backlight) {
 		panel->backlight->props.power = FB_BLANK_POWERDOWN;
@@ -198,6 +199,7 @@ static int sprd_panel_enable(struct drm_panel *p)
 		schedule_delayed_work(&panel->esd_work,
 				      msecs_to_jiffies(1000));
 		panel->esd_work_pending = true;
+		panel->esd_work_backup = false;
 	}
 
 	panel->is_enabled = true;
@@ -286,12 +288,25 @@ static int sprd_panel_esd_check(struct sprd_panel *panel)
 {
 	struct panel_info *info = &panel->info;
 	u8 read_val = 0;
+	struct sprd_dpu *dpu;
 
+	mutex_lock(&panel_lock);
+	if (!panel->is_enabled) {
+		DRM_INFO("panel is not enabled, skip esd check\n");
+		mutex_unlock(&panel_lock);
+		return 0;
+	}
+
+	dpu = container_of(panel->base.connector->encoder->crtc,
+		struct sprd_dpu, crtc);
+
+	mutex_lock(&dpu->ctx.vrr_lock);
 	/* FIXME: we should enable HS cmd tx here */
 	mipi_dsi_set_maximum_return_packet_size(panel->slave, 1);
 	mipi_dsi_dcs_read(panel->slave, info->esd_check_reg,
 			  &read_val, 1);
 
+	mutex_unlock(&dpu->ctx.vrr_lock);
 	/*
 	 * TODO:
 	 * Should we support multi-registers check in the future?
@@ -299,8 +314,11 @@ static int sprd_panel_esd_check(struct sprd_panel *panel)
 	if (read_val != info->esd_check_val) {
 		DRM_ERROR("esd check failed, read value = 0x%02x\n",
 			  read_val);
+		mutex_unlock(&panel_lock);
 		return -EINVAL;
 	}
+
+	mutex_unlock(&panel_lock);
 
 	return 0;
 }
@@ -389,12 +407,17 @@ static void sprd_panel_esd_work_func(struct work_struct *work)
 		if (!encoder->crtc || (encoder->crtc->state &&
 		    !encoder->crtc->state->active)) {
 			DRM_INFO("skip esd recovery during panel suspend\n");
+			panel->esd_work_backup = true;
 			return;
 		}
 
 		DRM_INFO("====== esd recovery start ========\n");
 		funcs->disable(encoder);
 		funcs->enable(encoder);
+
+		if (!panel->esd_work_pending && panel->is_enabled)
+			schedule_delayed_work(&panel->esd_work,
+					msecs_to_jiffies(info->esd_check_period));
 		DRM_INFO("======= esd recovery end =========\n");
 	} else
 		schedule_delayed_work(&panel->esd_work,
@@ -516,7 +539,7 @@ static int of_parse_buildin_modes(struct panel_info *info,
 
 	if (info->num_buildin_modes == 2 &&
 	   (info->buildin_modes[0].htotal == info->buildin_modes[1].htotal))
-		dynamic_frame_mode = true;
+		dynamic_framerate_mode = true;
 
 	DRM_INFO("info->num_buildin_modes = %d\n", num_timings);
 	goto done;
@@ -577,17 +600,17 @@ static int sprd_oled_set_brightness(struct backlight_device *bdev)
 		DRM_WARN("oled panel has been powered off\n");
 		return -ENXIO;
 	}
+
 	brightness = bdev->props.brightness;
 	level = brightness * oled->max_level / 255;
 
-	DRM_INFO("level: moto 90hz %d\n", level);
+	DRM_INFO("%s level: %d\n", __func__, level);
 
 	sprd_panel_send_cmds(panel->slave,
 			     panel->info.cmds[CMD_OLED_REG_LOCK],
 			     panel->info.cmds_len[CMD_OLED_REG_LOCK]);
 
 	if (oled->cmds_total == 1) {
-	DRM_INFO("level: moto 90hz  total = 1 %d\n", level);
 		oled->cmds[0]->payload[1] = level;
 		sprd_panel_send_cmds(panel->slave,
 			     oled->cmds[0],
@@ -632,9 +655,6 @@ static int sprd_oled_backlight_init(struct sprd_panel *panel)
 	oled->bdev = devm_backlight_device_register(&panel->dev,
 			"sprd_backlight", &panel->dev, oled,
 			&sprd_oled_backlight_ops, NULL);
-	//DRM_ERROR("oled->bdev=%x,oled=%x\n",oled->bdev,oled);
-
-
 	if (IS_ERR(oled->bdev)) {
 		DRM_ERROR("failed to register oled backlight ops\n");
 		return PTR_ERR(oled->bdev);
@@ -668,10 +688,8 @@ static int sprd_oled_backlight_init(struct sprd_panel *panel)
 		oled->bdev->props.brightness = 25;
 
 	rc = of_property_read_u32(oled_node, "sprd,max-level", &temp);
-	if (!rc){
+	if (!rc)
 		oled->max_level = temp;
-		DRM_INFO("oled->max_level=%d\n",temp);
-		}
 	else
 		oled->max_level = 255;
 
