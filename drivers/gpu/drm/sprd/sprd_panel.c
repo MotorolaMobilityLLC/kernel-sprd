@@ -290,6 +290,12 @@ static int sprd_panel_esd_check(struct sprd_panel *panel)
 	u8 read_val = 0;
 	struct sprd_dpu *dpu;
 
+	if (!panel->base.connector ||
+	    !panel->base.connector->encoder ||
+	    !panel->base.connector->encoder->crtc) {
+		return 0;
+	}
+
 	mutex_lock(&panel_lock);
 	if (!panel->is_enabled) {
 		DRM_INFO("panel is not enabled, skip esd check\n");
