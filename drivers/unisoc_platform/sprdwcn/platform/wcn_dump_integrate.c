@@ -16,6 +16,7 @@
 #include "wcn_log.h"
 #include "wcn_misc.h"
 #include "mdbg_type.h"
+#include "loopcheck.h"
 #include "../include/wcn_dbg.h"
 
 /* SUB_NAME len not more than 15 bytes */
@@ -41,6 +42,7 @@
 
 /* use for umw2631_integrate only */
 #define WCN_AON_ADDR_OFFSET 0x11000000
+#define WCN_DUMP_ADDR_OFFSET 0x00000004
 
 /* magic number, not change it */
 #define WCN_DUMP_VERSION_NAME "WCN_DUMP_HEAD__"
@@ -50,10 +52,11 @@
  */
 struct wcn_dump_mem_reg {
 	/* some CP regs can't dump */
-	bool do_dump;
 	u32 addr;
 	/* 4 btyes align */
 	u32 len;
+	u32 (*prerequisite)(void);
+	const char *dump_name;
 };
 
 struct wcn_dump_section_info {
@@ -81,90 +84,271 @@ struct wcn_dump_head_info {
 
 static struct wcn_dump_mem_reg s_wcn_dump_regs[] = {
 	/* share mem */
-	{1, 0, 0x300000},
+	{0, 0x300000, NULL, "share mem"},
 	/* iram mem */
-	{1, 0x10000000, 0x8000}, /* wcn iram */
-	{1, 0x18004000, 0x4000}, /* gnss iram */
+	{0x10000000, 0x8000, NULL, "wcn iram"},
+	{0x18004000, 0x4000, NULL, "gnss iram"},
 	/* ap regs */
-	{1, 0x402B00CC, 4}, /* PMU_SLEEP_CTRL */
-	{1, 0x402B00D4, 4}, /* PMU_SLEEP_STATUS */
-	{1, 0x402B0100, 4}, /* PMU_PD_WCN_SYS_CFG */
-	{1, 0x402B0104, 4}, /* PMU_PD_WIFI_WRAP_CFG */
-	{1, 0x402B0244, 4}, /* PMU_WCN_SYS_DSLP_ENA */
-	{1, 0x402B0248, 4}, /* PMU_WIFI_WRAP_DSLP_ENA */
-	{1, 0x402E057C, 4}, /* AON_APB_WCN_SYS_CFG2 */
+	{0x402B00CC, 4, NULL, "PMU_SLEEP_CTRL"},
+	{0x402B00D4, 4, NULL, "PMU_SLEEP_STATUS"},
+	{0x402B0100, 4, NULL, "PMU_PD_WCN_SYS_CFG"},
+	{0x402B0104, 4, NULL, "PMU_PD_WIFI_WRAP_CFG"},
+	{0x402B0244, 4, NULL, "PMU_WCN_SYS_DSLP_ENA"},
+	{0x402B0248, 4, NULL, "PMU_WIFI_WRAP_DSLP_ENA"},
+	{0x402E057C, 4, NULL, "AON_APB_WCN_SYS_CFG2"},
 	/* cp regs */
-	{0, 0x40060000, 0x300}, /* BTWF_CTRL */
-	{0, 0x60300000, 0x400}, /* BTWF_AHB_CTRL */
-	{0, 0x40010000, 0x38},  /* BTWF_INTC */
-	{0, 0x40020000, 0x10},  /* BTWF_SYSTEM_TIMER */
-	{0, 0x40030000, 0x20},  /* BTWF_TIMER0 */
-	{0, 0x40030020, 0x20},  /* BTWF_TIMER1 */
-	{0, 0x40030040, 0x20},  /* BTWF_TIMER2 */
-	{0, 0x40040000, 0x24},  /* BTWF_WATCHDOG */
-	{0, 0xd0010000, 0xb4},  /* COM_AHB_CTRL */
-	{0, 0xd0020800, 0xc},   /* MANU_CLK_CTRL */
-	{0, 0x70000000, 0x10000},  /* WIFI */
-	{0, 0x400b0000, 0x850},    /* FM */
-	{0, 0x60700000, 0x400},    /* BT_CMD */
-	{0, 0x60740000, 0xa400}    /* BT */
+	{0x40060000, 0x300, NULL, "BTWF_CTRL"},
+	{0x60300000, 0x400, NULL, "BTWF_AHB_CTRL"},
+	{0x40010000, 0x38, NULL, "BTWF_INTC"},
+	{0x40020000, 0x10, NULL, "BTWF_SYSTEM_TIMER"},
+	{0x40030000, 0x20, NULL, "BTWF_TIMER0"},
+	{0x40030020, 0x20, NULL, "BTWF_TIMER1"},
+	{0x40030040, 0x20, NULL, "BTWF_TIMER2"},
+	{0x40040000, 0x24, NULL, "BTWF_WATCHDOG"},
+	{0xd0010000, 0xb4, NULL, "COM_AHB_CTRL"},
+	{0xd0020800, 0xc, NULL, "MANU_CLK_CTRL"},
+	{0x70000000, 0x10000, NULL, "WIFI"},
+	{0x400b0000, 0x850, NULL, "FM"},
+	{0x60700000, 0x400, NULL, "BT_CMD"},
+	{0x60740000, 0xa400, NULL, "BT"}
 };
 
 static struct wcn_dump_mem_reg s_wcn_dump_regs_l6[] = {
 	/* share mem */
-	{1, 0, 0x800000},
+	{0,
+	 0x800000,
+	 NULL,
+	 "share mem",
+	},
+
 	/* iram mem */
-	{1, 0x40500000, 0x4000}, /* wcn iram 16k */
-	{1, 0x40a54000, 0x8000}, /* gnss iram 32k */
+	{0x40500000,
+	 0x4000,
+	 mdbg_check_wifi_ip_status,
+	 "wcn iram 16k",
+	},
+
+	{0x40a50000,
+	 0x8000,
+	 mdbg_check_gnss_poweron,
+	 "gnss iram 32k",
+	},
+
 	/* ap regs */
-	// {1, 0x402B00CC, 4}, /* PMU_SLEEP_CTRL  */
-	{1, 0x640203a8, 4}, /* PMU_PD_WCN_SYS_CFG */
-	{1, 0x640203ac, 4}, /* PMU_PD_WIFI_WRAP_CFG */
-	{1, 0x6402078c, 4}, /* PMU_WCN_SYS_DSLP_ENA */
-	//{1, 0x402B0248, 4}, /* PMU_WIFI_WRAP_DSLP_ENA */
-	{1, 0x64020818, 4}, /* PMU_FORCE_DEEP_SLEEP_CFG0 */
-	{1, 0x64020860, 4}, /* PMU_SLEEP_STATUS */
-	//{1, 0x64000000, 4}, /* AON_APB_WCN_SYS_CFG2  */
+	{0x640203a8,
+	 4,
+	 NULL,
+	 "PMU_PD_WCN_SYS_CFG",
+	},
+
+	{0x640203ac,
+	 4,
+	 NULL,
+	 "PMU_PD_WIFI_WRAP_CFG",
+	},
+
+	{0x6402078c,
+	 4,
+	 NULL,
+	 "PMU_WCN_SYS_DSLP_ENA",
+	},
+
+	{0x64020818,
+	 4,
+	 NULL,
+	 "PMU_FORCE_DEEP_SLEEP_CFG0",
+	},
+
+	{0x64020860,
+	 4,
+	 NULL,
+	 "PMU_SLEEP_STATUS",
+	},
+
+	{0x64000000,
+	 4,
+	 NULL,
+	 "AON_APB_WCN_SYS_CFG2",
+	},
+
 	/* cp regs */
-	/* top */
-	{1, 0x40880000, 0x13c}, /* AON_AHB */
-	{1, 0x4080c000, 0x448}, /* AON_APB */
-	{1, 0x40130000, 0x424}, /* BTWF_AHB */
-	{1, 0x40088000, 0x2bc}, /* BTWF_APB */
-	{1, 0x40800000, 0x400}, /* AON_CLK */
-	//{1, 0x40844000, 0x48}, /* PRE_DIV_CLK */
-	//{0, 0x40060000, 0x300}, /* BTWF_CTRL */
-	//{0, 0x60300000, 0x400}, /* BTWF_AHB_CTRL */
-	{0, 0x40000000, 0x8000},  /* BTWF_INTC */
-	//{0, 0x40010000, 0x8000},  /* BTWF_WATCHDOG */
-	{0, 0x40018000, 0x8000},  /* BTWF_SYSTEM_TIMER */
-	{0, 0x40020000, 0x8000},  /* BTWF_TIMER0 */
-	//{0, 0x40028000, 0x8000},  /* EIC0 */
-	{0, 0x40050000, 0x8000},  /* BTWF_TIMER1 */
-#ifdef DUMP_WIFI
+	/* top cp AON regs */
+	{0x40880000,
+	 0x138,
+	 mdbg_check_wcn_sys_exit_sleep,
+	 "AON_AHB",
+	},
+
+	{0x4080c000,
+	 0x444,
+	 mdbg_check_wcn_sys_exit_sleep,
+	 "AON_APB",
+	},
+
+	{0x40800000,
+	 0x400,
+	 mdbg_check_wcn_sys_exit_sleep,
+	 "AON_CLK",
+	},
+
+	/* BTWF sys regs */
+	{0x40130000,
+	 0x420,
+	 mdbg_check_btwf_sys_exit_sleep,
+	 "BTWF_AHB",
+	},
+
+	{0x40088000,
+	 0x2a8,
+	 mdbg_check_btwf_sys_exit_sleep,
+	 "BTWF_APB",
+	},
+
+	{0x40000000,
+	 0x8000,
+	 mdbg_check_btwf_sys_exit_sleep,
+	 "BTWF_INTC",
+	},
+	{0x40018000,
+	 0x8000,
+	 mdbg_check_btwf_sys_exit_sleep,
+	 "BTWF_SYSTEM_TIMER",
+	},
+
+	{0x40020000,
+	 0x8000,
+	 mdbg_check_btwf_sys_exit_sleep,
+	 "BTWF_TIMER0",
+	},
+
+	{0x40050000,
+	 0x8000,
+	 mdbg_check_btwf_sys_exit_sleep,
+	 "BTWF_TIMER1",
+	},
+
 	/* wifi */
-	{0, 0x40804000, 0xd4},  /* WIFI_CLK_SWITCH_CONTROL */
-	{0, 0x400a0000, 0x58},   /* WIFI_GLB */
-	{0, 0x400b7000, 0x778},  /* WIFI_DFE */
-	{0, 0x400b2000, 0xa90},  /* WIFI_PHY_RX11A */
-	{0, 0x400b3000, 0xd8},  /* WIFI_PHY_11B */
-	{0, 0x400b0000, 0x80c},  /* WIFI_PHY_TOP */
-	{0, 0x400b1000, 0x158},  /* WIFI_PHY_TX_11A */
-	{0, 0x400b4000, 0xa74},  /* WIFI_PHY_RFIF */
-	{0, 0x400f0000, 0x608},  /* WIFI_MAC_AON */
-	{0, 0x400f6000, 0xa8},  /* WIFI_MAC_CE */
-	{0, 0x400fe000, 0x84},  /* WIFI_MAC_DC_PD */
-	{0, 0x400fc000, 0x914},  /* WIFI_MAC_MH_PD */
-	{0, 0x400f8000, 0x2d58},  /* WIFI_MAC_PA_PD */
-	{0, 0x400f1000, 0x3720},  /* WIFI_MAC_RTN */
-	{0, 0x400d3000, 0x4c},  /* WIFI_SPI_MASTER_RF */
+	{0x400f0000,
+	 0x608,
+	 mdbg_check_wifi_ip_status,
+	 "WIFI_MAC_AON",
+	},
+
+	{0x40300000,
+	 0x18000,
+	 mdbg_check_wifi_ip_status,
+	 "WIFI_REG_MEM",
+	},
+
+	{0x40804000,
+	 0xd0,
+	 mdbg_check_wifi_ip_status,
+	 "WIFI_CLK_SWITCH_CONTROL",
+	},
+
+	{0x400a0000,
+	 0x54,
+	 mdbg_check_wifi_ip_status,
+	 "WIFI_GLB",
+	},
+
+	{0x400b7000,
+	 0x774,
+	 mdbg_check_wifi_ip_status,
+	 "WIFI_DFE",
+	},
+
+	{0x400b2000,
+	 0xa8c,
+	 mdbg_check_wifi_ip_status,
+	 "WIFI_PHY_RX11A",
+	},
+
+	{0x400b3000,
+	 0xd4,
+	 mdbg_check_wifi_ip_status,
+	 "WIFI_PHY_11B",
+	},
+
+	{0x400b0000,
+	 0x808,
+	 mdbg_check_wifi_ip_status,
+	 "WIFI_PHY_TOP",
+	},
+
+	{0x400b1000,
+	 0x154,
+	 mdbg_check_wifi_ip_status,
+	 "WIFI_PHY_TX_11A",
+	},
+
+	{0x400b4000,
+	 0xa70,
+	 mdbg_check_wifi_ip_status,
+	 "WIFI_PHY_RFIF",
+	},
+
+	{0x400f6000,
+	 0xa4,
+	 mdbg_check_wifi_ip_status,
+	 "WIFI_MAC_CE",
+	},
+
+	{0x400fe000,
+	 0x80,
+	 mdbg_check_wifi_ip_status,
+	 "WIFI_MAC_DC_PD",
+	},
+
+	{0x400fc000,
+	 0x910,
+	 mdbg_check_wifi_ip_status,
+	 "WIFI_MAC_MH_PD",
+	},
+
+	{0x400f8000,
+	 0x2d54,
+	 mdbg_check_wifi_ip_status,
+	 "WIFI_MAC_PA_PD",
+	},
+
+	{0x400f1004,
+	 0x3718,
+	 mdbg_check_wifi_ip_status,
+	 "WIFI_MAC_RTN",
+	},
+
+	{0x400d3000,
+	 0x48,
+	 mdbg_check_wifi_ip_status,
+	 "WIFI_SPI_MASTER_RF",
+	},
 
 	/* bt/fm */
-	{0, 0x40240000, 0x310},    /* BT_ACC_CONTROL */
-	{0, 0x40243000, 0x7d0},    /* BT_AON_CONTROL */
-	{0, 0x40244000, 0xf4},    /* BT_TIM_EXT */
-	{0, 0x4024f000, 0xcfc},    /* BT_MODEM_CONTROL */
-#endif
+	{0x40240000,
+	 0x310,
+	 mdbg_check_bt_poweron,
+	 "BT_ACC_CONTROL",
+	},
+
+	{0x40243000,
+	 0x7d0,
+	 mdbg_check_bt_poweron,
+	 "BT_AON_CONTROL",
+	},
+
+	{0x40244000,
+	 0xf4,
+	 mdbg_check_bt_poweron,
+	 "BT_TIM_EXT",
+	},
+
+	{0x40246000,
+	 0x8fff,
+	 mdbg_check_bt_poweron,
+	 "BT_BASE",
+	},
+
 	/* dump reg of merlion if merlion accessible:to be added */
 };
 
@@ -285,6 +469,7 @@ static int mdbg_dump_cp_register_data(u32 addr, u32 len)
 		for (i = 0; i < len / 4; i++) {
 			ptr = buf + i * 4;
 			wcn_read_data_from_phy_addr(phy_addr, ptr, 4);
+			phy_addr = phy_addr + WCN_DUMP_ADDR_OFFSET;
 		}
 	} else {
 		/* aon funcdma tlb way */
@@ -315,6 +500,19 @@ static int mdbg_dump_cp_register_data(u32 addr, u32 len)
 	return count;
 }
 
+static void mdbg_dump_iram(struct wcn_dump_mem_reg *mem)
+{
+	u32 i;
+	int count;
+
+	for (i = WCN_DUMP_CP2_IRAM_START; i <= WCN_DUMP_CP2_IRAM_END; i++) {
+		WCN_INFO("dump iram reg: %s!\n", mem[i].dump_name);
+		if ((mem[i].prerequisite == NULL) || mem[i].prerequisite()) {
+			count = mdbg_dump_cp_register_data(mem[i].addr, mem[i].len);
+			WCN_INFO("dump iram section[%d] %d ok!\n", i, count);
+		}
+	}
+}
 static void mdbg_dump_ap_register(struct wcn_dump_mem_reg *mem)
 {
 	u32 i;
@@ -325,8 +523,11 @@ static void mdbg_dump_ap_register(struct wcn_dump_mem_reg *mem)
 	else
 		wcn_dump_ap_regs_end = WCN_DUMP_AP_REGS_END;
 	for (i = WCN_DUMP_AP_REGS_START; i <= wcn_dump_ap_regs_end; i++) {
-		mdbg_dump_ap_register_data(mem[i].addr, mem[i].len);
-		WCN_INFO("dump ap reg section[%d] ok!\n", i);
+		WCN_INFO("dump ap reg: %s!\n", mem[i].dump_name);
+		if ((mem[i].prerequisite == NULL) || mem[i].prerequisite()) {
+			mdbg_dump_ap_register_data(mem[i].addr, mem[i].len);
+			WCN_INFO("dump ap reg section[%d] ok!\n", i);
+		}
 	}
 }
 
@@ -343,19 +544,11 @@ static void mdbg_dump_cp_register(struct wcn_dump_mem_reg *mem)
 		wcn_dump_cp2_regs_start = WCN_DUMP_CP2_REGS_START;
 	get_wcn_dump_mem_area(&array_size);
 	for (i = wcn_dump_cp2_regs_start; i <= array_size - 1; i++) {
-		count = mdbg_dump_cp_register_data(mem[i].addr, mem[i].len);
-		WCN_INFO("dump cp reg section[%d] %d ok!\n", i, count);
-	}
-}
-
-static void mdbg_dump_iram(struct wcn_dump_mem_reg *mem)
-{
-	u32 i;
-	int count;
-
-	for (i = WCN_DUMP_CP2_IRAM_START; i <= WCN_DUMP_CP2_IRAM_END; i++) {
-		count = mdbg_dump_cp_register_data(mem[i].addr, mem[i].len);
-		WCN_INFO("dump iram section[%d] %d ok!\n", i, count);
+		WCN_INFO("dump cp reg: %s!\n", mem[i].dump_name);
+		if ((mem[i].prerequisite == NULL) || mem[i].prerequisite()) {
+			count = mdbg_dump_cp_register_data(mem[i].addr, mem[i].len);
+			WCN_INFO("dump cp reg section[%d] %d ok!\n", i, count);
+		}
 	}
 }
 
@@ -395,7 +588,7 @@ static int mdbg_dump_share_memory(struct wcn_dump_mem_reg *mem)
 		wake_up_log_wait();
 		if (time_after(jiffies, timeout)) {
 			WCN_ERR("Dump share mem timeout:count:%u\n", count);
-			break;
+			return -1;
 		}
 	}
 	wcn_mem_ram_unmap(virt_addr, cnt);
@@ -409,13 +602,92 @@ void mdbg_dump_gnss_register(gnss_dump_callback callback_func, void *para)
 	gnss_dump_handle = (gnss_dump_callback)callback_func;
 	WCN_INFO("gnss_dump register success!\n");
 }
-EXPORT_SYMBOL_GPL(mdbg_dump_gnss_register);
 
 void mdbg_dump_gnss_unregister(void)
 {
 	gnss_dump_handle = NULL;
 }
 EXPORT_SYMBOL_GPL(mdbg_dump_gnss_unregister);
+
+u32 mdbg_check_wcn_sys_exit_sleep(void)
+{
+	u32 need_dump_status = 0;
+	u32 wcn_sys_domain_power = ((0x6<<28));
+	struct wcn_device *wcn_dev;
+
+	wcn_dev = s_wcn_device.btwf_device;
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_PMU_APB],
+				 0x0860, &need_dump_status);
+	WCN_INFO("REG 0x64020860:val=0x%x!\n", need_dump_status);
+
+	return (need_dump_status & wcn_sys_domain_power);
+
+}
+
+u32 mdbg_check_btwf_sys_exit_sleep(void)
+{
+	u32 need_dump_status = 0;
+	u32 btwf_sys_domain_power = ((0x6<<7));
+	struct wcn_device *wcn_dev;
+
+	wcn_dev = s_wcn_device.btwf_device;
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_AON_APB],
+			 0x0364, &need_dump_status);
+	WCN_INFO("REG 0x64000364:val=0x%x!\n", need_dump_status);
+
+	return (need_dump_status & btwf_sys_domain_power);
+}
+
+u32 mdbg_check_wifi_ip_status(void)
+{
+	u32 need_dump_status = 0;
+	u32 btwf_wrap_mac_mask = (0x2);
+	u32 btwf_wrap_phy_mask = (0x4);
+	u32 btwf_arm_domain_power = (0x1);
+	u32 btwf_arm_wrap_mask = (0x8);
+	struct wcn_device *wcn_dev;
+
+	wcn_dev = s_wcn_device.btwf_device;
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_APB],
+					0x03b0, &need_dump_status);
+	WCN_INFO("%s:0x03b0=0x%x\n", __func__, need_dump_status);
+
+	return ((need_dump_status & btwf_wrap_mac_mask) &&
+			(need_dump_status & btwf_wrap_phy_mask) &&
+			(need_dump_status & btwf_arm_wrap_mask) &&
+			(need_dump_status & btwf_arm_domain_power));
+}
+
+u32 mdbg_check_bt_poweron(void)
+{
+	u32 need_dump_status = 0;
+	u32 btwf_bt_domain_power = (0x1<<4);
+	struct wcn_device *wcn_dev;
+
+	wcn_dev = s_wcn_device.btwf_device;
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_APB],
+					0x03b0, &need_dump_status);
+	WCN_INFO("%s:0x03b0=0x%x\n", __func__, need_dump_status);
+
+	return (need_dump_status & btwf_bt_domain_power);
+}
+
+u32 mdbg_check_gnss_poweron(void)
+{
+	u32 need_dump_status = 0;
+	u32 gnss_ss_poweron_mask = (0x4<<4);
+	u32 gnss_poweron_mask = (0x2<<4);
+	struct wcn_device *wcn_dev;
+
+	wcn_dev = s_wcn_device.gnss_device;
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_APB],
+					0x03b0, &need_dump_status);
+	WCN_INFO("%s:0x03b0=0x%x\n", __func__, need_dump_status);
+
+	return ((need_dump_status & gnss_poweron_mask) &&
+			(need_dump_status & gnss_ss_poweron_mask));
+
+}
 
 static int btwf_dump_mem(void)
 {
@@ -437,20 +709,45 @@ static int btwf_dump_mem(void)
 	sleep_addr = wcn_get_btwf_sleep_addr();
 	wcn_read_data_from_phy_addr(sleep_addr, &cp2_status, sizeof(u32));
 	mdev_ring = mdbg_dev->ring_dev->ring;
+
+	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
+		if (btwf_sys_force_exit_deep_sleep(s_wcn_device.btwf_device)) {
+			WCN_INFO("Dump need prerequisite!\n");
+			return 0;
+		}
+	}
+
 	mdbg_hold_cpu();
 	msleep(100);
 	mdbg_ring_reset(mdev_ring);
 	mdbg_atcmd_clean();
 	if (wcn_fill_dump_head_info(p_wcn_dump_regs, dump_array_size))
 		return -1;
-	mdbg_dump_share_memory(p_wcn_dump_regs);
-	mdbg_dump_iram(p_wcn_dump_regs);
-	mdbg_dump_ap_register(p_wcn_dump_regs);
-	if (cp2_status == WCN_CP2_STATUS_DUMP_REG) {
-		mdbg_dump_cp_register(p_wcn_dump_regs);
-		WCN_INFO("dump register ok!\n");
+	if (mdbg_dump_share_memory(p_wcn_dump_regs)) {
+		WCN_INFO("Dump ringbuf is full!\n");
+		return 0;
 	}
 
+	/* The precondition provided by the current access register is
+	 incorrect and cannot cover the full scene dump access.
+	 So return.
+	 */
+	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
+		WCN_INFO("dump register ok!\n");
+		mdbg_dump_str(WCN_DUMP_END_STRING,
+					  strlen(WCN_DUMP_END_STRING));
+		return 0;
+	}
+
+	mdbg_dump_iram(p_wcn_dump_regs);
+	mdbg_dump_ap_register(p_wcn_dump_regs);
+
+	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6)
+		mdbg_dump_cp_register(p_wcn_dump_regs);
+	else if (cp2_status == WCN_CP2_STATUS_DUMP_REG)
+		mdbg_dump_cp_register(p_wcn_dump_regs);
+
+	WCN_INFO("dump register ok!\n");
 	mdbg_dump_str(WCN_DUMP_END_STRING, strlen(WCN_DUMP_END_STRING));
 
 	return 0;

@@ -44,6 +44,7 @@ wcn_bsp-y += platform/wcn_dump.o
 wcn_bsp-y += platform/wcn_swd_dap.o
 wcn_bsp-y += platform/mem_pd_mgr.o
 wcn_bsp-y += platform/wcn_debugfs.o
+wcn_bsp-y += platform/wcn_ca_trusty.o
 wcn_bsp-y += sleep/sdio_int.o
 wcn_bsp-y += sleep/slp_mgr.o
 wcn_bsp-y += sleep/slp_sdio.o

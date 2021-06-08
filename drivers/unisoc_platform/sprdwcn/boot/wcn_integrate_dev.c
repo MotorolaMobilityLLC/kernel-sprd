@@ -63,6 +63,7 @@ s_wifi_efuse_id[WCN_PLATFORM_TYPE][WIFI_EFUSE_BLOCK_COUNT] = {
 	{20, 24, 28},	/* sharkle */
 	{8, 12, 16},	/* pike2 */
 	{20, 24, 28},	/* sharkl3 */
+	{81, 81, 81},	/* qogirl6 */
 };
 
 static const u32
@@ -70,6 +71,7 @@ s_gnss_efuse_id[WCN_PLATFORM_TYPE][GNSS_EFUSE_BLOCK_COUNT] = {
 	{16, 24, 28},	/* sharkle */
 	{32, 12, 16},	/* pike2 */
 	{32, 24, 28},	/* sharkl3 */
+	{81, 81, 81},	/* qogirl6 */
 };
 
 static void wcn_global_source_init(void)
@@ -417,6 +419,7 @@ void wcn_marlin_write_efuse(void)
 /* used for provide efuse data to gnss */
 void gnss_write_efuse_data(void)
 {
+	struct wcn_device *wcn_dev = s_wcn_device.gnss_device;
 	phys_addr_t phy_addr, phy_addr1;
 	u32 efuse_enable_value = GNSS_EFUSE_ENABLE_VALUE;
 	u32 iloop = 0;
@@ -433,13 +436,18 @@ void gnss_write_efuse_data(void)
 			 tmp_value[iloop]);
 	}
 	/* copy efuse data to target ddr address */
-	phy_addr = s_wcn_device.gnss_device->base_addr +
-		   GNSS_EFUSE_DATA_OFFSET;
+	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6)
+		phy_addr = wcn_dev->base_addr +
+				wcn_get_apcp_sync_addr(wcn_dev) +
+				s_wcngnss_sync_addr.gnss_efuse_value;
+	else
+		phy_addr = wcn_dev->base_addr +
+			   GNSS_EFUSE_DATA_OFFSET;
 	wcn_write_data_to_phy_addr(phy_addr, &tmp_value,
 				   sizeof(tmp_value[0]) *
 				   GNSS_EFUSE_BLOCK_COUNT);
 	/*write efuse function enable value*/
-	phy_addr1 = s_wcn_device.gnss_device->base_addr +
+	phy_addr1 = wcn_dev->base_addr +
 		    GNSS_EFUSE_ENABLE_ADDR;
 	wcn_write_data_to_phy_addr(phy_addr1, &efuse_enable_value, 4);
 
@@ -506,6 +514,8 @@ static int wcn_parse_dt(struct platform_device *pdev,
 	ret = of_property_read_string(np,
 				      "sprd,name",
 				      (const char **)&wcn_dev->name);
+	if (ret)
+		WCN_ERR("sprd,name, ret %d\n", ret);
 
 	/* get apb reg handle */
 	wcn_dev->rmap[REGMAP_AON_APB] =
@@ -985,6 +995,8 @@ static int wcn_parse_dt(struct platform_device *pdev,
 		ret = of_property_read_u32_index(np,
 					 "sprd,apcp-sync-addr",
 					 0, (u32 *)&wcn_dev->apcp_sync_addr);
+		if (ret)
+			WCN_ERR("sprd,apcp-sync-addr, ret %d\n", ret);
 		WCN_INFO("wcn_dev->apcp-sync-addr:0x%08llx\n",
 				    wcn_dev->apcp_sync_addr);
 		/* qogirl6 get apcp sync addr from  */
@@ -1179,9 +1191,14 @@ static void wcn_subdts_init(void)
 static void wcn_probe_power_wq(struct work_struct *work)
 {
 	WCN_INFO("%s start itself\n", __func__);
-
-	if (start_marlin(MARLIN_MDBG))
+	if (start_marlin(MARLIN_MDBG)) {
 		WCN_ERR("%s power on failed\n", __func__);
+		return;
+	}
+
+	/* BTWF SYS calibration time consumption is about 250 ms */
+	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6)
+		msleep(WCCN_BTWF_CALIBRATION_TIME);
 
 	if (stop_marlin(MARLIN_MDBG))
 		WCN_ERR("%s power down failed\n", __func__);
@@ -1312,7 +1329,6 @@ int wcn_remove(struct platform_device *pdev)
 
 	wcn_platform_fs_exit(wcn_dev);
 	kfree(wcn_dev);
-	wcn_dev = NULL;
 
 	return 0;
 }
@@ -1320,6 +1336,24 @@ int wcn_remove(struct platform_device *pdev)
 void wcn_shutdown(struct platform_device *pdev)
 {
 	struct wcn_device *wcn_dev = platform_get_drvdata(pdev);
+	int ret = 0;
+
+	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
+		u32 open_status;
+		u32 subsys_bit = 0;
+
+		if (wcn_dev && wcn_dev->wcn_open_status) {
+			WCN_INFO("%s:dev name %s\n", __func__, wcn_dev->name);
+			open_status = wcn_dev->wcn_open_status;
+			for (subsys_bit = 0; subsys_bit < 32; subsys_bit++) {
+				if (open_status & (0x1<<subsys_bit))
+					ret = stop_marlin(0x1<<subsys_bit);
+				if (ret)
+					WCN_ERR("stop_marlin ret: %d\n", ret);
+			}
+		}
+		return;
+	}
 
 	if (wcn_dev && wcn_dev->wcn_open_status) {
 		/* CPU hold on */

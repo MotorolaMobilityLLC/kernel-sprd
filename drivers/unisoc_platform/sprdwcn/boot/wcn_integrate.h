@@ -91,39 +91,60 @@ struct wcn_gnss_special_share_mem {
 	phys_addr_t sync_base_addr;
 	phys_addr_t init_status_phy_addr;
 	phys_addr_t gnss_ddr_offset;
+	phys_addr_t gnss_efuse_value;
 	phys_addr_t cali_status;
 	phys_addr_t gnss_test;
 };
 
 struct wcn_dfs_sync_info {
-	/* btwf */
-	u32 btwf_record_gnss_current_clk:4;
-	u32 btwf_pwr_state:1;
-	u32 btwf_dfs_init:1;
-	u32 btwf_dfs_active:1;
-	u32 btwf_spinlock:1;
-	u32 reserved_btwf:8;
-	/* gnss */
-	u32 gnss_clk_req_ack:5;
-	u32 gnss_pwr_state:1;
-	u32 gnss_dfs_active:1;
-	u32 gnss_spinlock:1;
-	u32 reserved_gnss:8;
+	union {
+		struct {
+			/* btwf */
+			u32 btwf_record_gnss_current_clk:4;
+			u32 btwf_pwr_state:1;
+			u32 btwf_dfs_init:1;
+			u32 btwf_dfs_active:1;
+			u32 btwf_spinlock:1;
+			u32 reserved_btwf:24;
+		};
+		u32	btwf_dfs_info;
+	};
+	union {
+		struct {
+			/* gnss */
+			u32 gnss_clk_req_ack:5;
+			u32 gnss_pwr_state:1;
+			u32 gnss_dfs_active:1;
+			u32 gnss_spinlock:1;
+			u32 reserved_gnss:24;
+		};
+		u32	gnss_dfs_info;
+	};
 };
 
 #define WCN_GNSS_DDR_OFFSET (0x600000)
 #define WCN_SYS_DFS_SYNC_ADDR_OFFSET (0x007ffb00)
-#define WCN_SYS_RFI_SYNC_ADDR_OFFSET (0x007ffb04)
+#define WCN_SYS_RFI_SYNC_ADDR_OFFSET (0x007ffb10)
 
 #define QOGIRL6_WCN_SPECIAL_SHARME_MEM_ADDR	(0x007fdc00)
 struct qogirl6_wcn_special_share_mem {
+	/* 0x007fdc00 */
 	struct marlin_special_share_mem marlin;
+	/* 0x007fdc08 */
 	u32 gnss_flag_addr;
+	/* 0x007fdc0c */
 	u32 include_gnss;
+	/* 0x007fdc10 */
 	u32 cp2_sleep_status;
+	/* 0x007fdc14 */
 	u32 sleep_flag_addr;
+	/* 0x007fdc18 */
 	u32 efuse_temper_magic;
+	/* 0x007fdc1c */
 	u32 efuse_temper_val;
+	/* 0x007fdc20 */
+	/* use for wifi */
+	u32 efuse[WIFI_EFUSE_BLOCK_COUNT];
 	struct wifi_special_share_mem wifi;
 };
 
@@ -147,6 +168,7 @@ struct wcn_special_share_mem {
 	u32 efuse_temper_val;
 	/* 0x17cf74 */
 	struct gnss_special_share_mem gnss;
+	u32 efuse[WIFI_EFUSE_BLOCK_COUNT];
 };
 
 extern struct platform_chip_id g_platform_chip_id;
@@ -159,6 +181,7 @@ void wcn_dfs_poweroff_state_clear(struct wcn_device *wcn_dev);
 void wcn_dfs_poweroff_shutdown_clear(struct wcn_device *wcn_dev);
 void wcn_dfs_poweron_status_clear(struct wcn_device *wcn_dev);
 void wcn_dfs_status_clear(void);
+void wcn_rfi_status_clear(void);
 u32 wcn_platform_chip_id(void);
 u32 wcn_platform_chip_type(void);
 u32 wcn_get_cp2_comm_rx_count(void);
@@ -190,9 +213,17 @@ void wcn_set_loopcheck_state(bool status);
 void wcn_set_apcp_sync_addr(struct wcn_device *wcn_dev);
 int wcn_send_force_sleep_cmd(struct wcn_device *wcn_dev);
 u32 wcn_get_sleep_status(struct wcn_device *wcn_dev, int force_sleep);
+u32 wcn_subsys_shutdown_status(struct wcn_device *wcn_dev);
+u32 wcn_shutdown_status(struct wcn_device *wcn_dev);
+u32 wcn_deep_sleep_status(struct wcn_device *wcn_dev);
+int btwf_force_deepsleep(void);
+int gnss_force_deepsleep(void);
+u32 wcn_subsys_active_num(void);
+void wcn_set_auto_shutdown(struct wcn_device *wcn_dev);
 void wcn_power_domain_set(struct wcn_device *wcn_dev, u32 set_type);
 void wcn_xtl_auto_sel(bool enable);
 int wcn_power_enable_sys_domain(bool enable);
+int wcn_power_enable_merlion_domain(bool enable);
 void wcn_sys_soft_reset(void);
 void wcn_sys_ctrl_26m(bool enable);
 void wcn_clock_ctrl(bool enable);
@@ -208,6 +239,7 @@ bool wcn_power_status_check(struct wcn_device *wcn_dev);
 u32 wcn_parse_platform_chip_id(struct wcn_device *wcn_dev);
 void mdbg_hold_cpu(void);
 enum wcn_aon_chip_id wcn_get_aon_chip_id(void);
+const char *wcn_get_chip_name(void);
 void wcn_merlion_power_control(bool enable);
 
 enum wcn_clock_mode integ_wcn_get_xtal_26m_clk_mode(void);

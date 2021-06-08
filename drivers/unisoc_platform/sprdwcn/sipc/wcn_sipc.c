@@ -346,10 +346,10 @@ void wcn_sipc_pop_list_flush(struct sipc_chn_info *sipc_chn)
 		WCN_DEBUG("index:%d  pop_queue->mbuf_num:%d",
 			  sipc_chn->index, pop_queue->mbuf_num);
 		pop_queue->mbuf_tail->next = NULL;
-
-		sipc_chn->ops->pop_link(sipc_chn->index,
-			pop_queue->mbuf_head, pop_queue->mbuf_tail,
-			pop_queue->mbuf_num);
+		if (sipc_chn->ops->pop_link != NULL)
+			sipc_chn->ops->pop_link(sipc_chn->index,
+				pop_queue->mbuf_head, pop_queue->mbuf_tail,
+				pop_queue->mbuf_num);
 		wcn_sipc_record_mbuf_giveback_to_user(sipc_chn->index,
 			pop_queue->mbuf_num);
 		pop_queue->mbuf_head = pop_queue->mbuf_tail = NULL;
@@ -421,7 +421,7 @@ static int wcn_sipc_sbuf_send(struct sipc_chn_info *sipc_chn,
 	if (sipc_chn->need_reserve)
 		xmit_buf += PUB_HEAD_RSV;
 	ret = sbuf_write(sipc_chn->dst, sipc_chn->chn,
-			sipc_chn->sbuf.bufid, xmit_buf, len, -1);
+			sipc_chn->sbuf.bufid, xmit_buf, len, 3000);
 	WCN_DEBUG("sbuf index %d  chn[%d] write cnt=%d\n",
 		 sipc_chn->index, sipc_chn->chn, ret);
 
@@ -521,14 +521,14 @@ static void wcn_sipc_sbuf_notifer(int event, void *data)
 			WCN_DEBUG("sbuf index %d chn[%d] read cnt=%d\n",
 				  sipc_chn->index, sipc_chn->chn, cnt);
 			if (cnt < 0) {
-				WCN_ERR("sbuf read cnt[%d] invalid\n", cnt);
+				WCN_DEBUG("sbuf read cnt[%d] invalid\n", cnt);
 				kfree(recv_buf);
 				return;
 			}
 			wcn_sipc_record_mbuf_recv_from_bus(sipc_chn->index, 1);
 			ret = wcn_sipc_recv(sipc_chn, recv_buf, cnt);
 			if (ret < 0) {
-				WCN_ERR("sbuf recv fail[%d]\n", ret);
+				WCN_DEBUG("sbuf recv fail[%d]\n", ret);
 				kfree(recv_buf);
 				return;
 			}
@@ -925,6 +925,19 @@ static void wcn_sipc_resource_init(void)
 		spin_lock_init(&g_sipc_chn[index].chn_static.lock);
 	}
 }
+static void wcn_sipc_resource_deinit(void)
+{
+	int index;
+
+	for (index = 0; index < SIPC_CHN_NUM; index++) {
+		if (g_sipc_chn[index].dst != SIPC_WCN_DST)
+			continue;
+		mutex_destroy(&g_sipc_chn[index].pushq_lock);
+		mutex_destroy(&g_sipc_chn[index].popq_lock);
+		spin_unlock(&g_sipc_chn[index].chn_static.lock);
+	}
+	mutex_destroy(&g_sipc_info.status_lock);
+}
 
 static void wcn_sipc_module_init(void)
 {
@@ -934,7 +947,7 @@ static void wcn_sipc_module_init(void)
 
 static void wcn_sipc_module_deinit(void)
 {
-	mutex_destroy(&g_sipc_info.status_lock);
+	wcn_sipc_resource_deinit();
 	WCN_INFO("sipc module deinit success\n");
 }
 

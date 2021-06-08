@@ -38,7 +38,6 @@
 #include "mdbg_type.h"
 #include "../include/wcn_dbg.h"
 
-unsigned char flag_reset;
 u32 wcn_print_level = WCN_DEBUG_OFF;
 
 static u32 g_dumpmem_switch =  1;
@@ -75,7 +74,12 @@ void wcn_assert_interface(enum wcn_source_type type, char *str)
 	static int dump_cnt;
 	struct wcn_match_data *g_match_config = get_wcn_match_config();
 
+	WCN_ERR("wcn_source_type:%d\n", type);
 	WCN_ERR("fw assert:%s\n", str);
+	if (g_dumpmem_switch == 0) {
+		WCN_ERR("dump disable!\n");
+		return;
+	}
 	if (!mutex_trylock(&mdbg_proc->mutex)) {
 		WCN_ERR("fw assert hanppend already\n");
 		return;
@@ -90,7 +94,7 @@ void wcn_assert_interface(enum wcn_source_type type, char *str)
 		mdbg_proc->assert_notify_flag = 1;
 	}
 
-	if (wcn_sysfs_get_reset_prop()) {
+	if (wcn_sysfs_get_reset_prop()) {/* user version */
 		WCN_INFO("%s reset begin\n", __func__);
 		stop_loopcheck();
 		wcnlog_clear_log();
@@ -99,9 +103,6 @@ void wcn_assert_interface(enum wcn_source_type type, char *str)
 		WCN_INFO("%s reset end\n", __func__);
 		goto out;
 	}
-
-	if (type == WCN_SOURCE_GNSS)
-		goto out;
 
 	if (dump_cnt) {
 		WCN_ERR("dump_cnt: %d, not dump again!\n", dump_cnt);
@@ -769,16 +770,18 @@ static ssize_t mdbg_proc_write(struct file *filp,
 				g_dumpmem_switch);
 		return count;
 	}
-	if (strncmp(mdbg_proc->write_buf, "debugloopcheckon",
-		strlen("debugloopcheckon")) == 0) {
+	if (strncmp(mdbg_proc->write_buf, "loopcheckoff",
+		strlen("loopcheckoff")) == 0) {
+		stop_loopcheck();
 		g_loopcheck_switch = 1;
 		WCN_INFO("loopcheck debug:switch(%d)\n",
 				g_loopcheck_switch);
 		return count;
 	}
-	if (strncmp(mdbg_proc->write_buf, "debugloopcheckoff",
-		strlen("debugloopcheckoff")) == 0) {
+	if (strncmp(mdbg_proc->write_buf, "loopcheckon",
+		strlen("loopcheckon")) == 0) {
 		g_loopcheck_switch = 0;
+		start_loopcheck();
 		WCN_INFO("loopcheck debug:switch(%d)\n",
 				g_loopcheck_switch);
 		return count;
@@ -840,7 +843,8 @@ static ssize_t mdbg_proc_write(struct file *filp,
 			marlin_set_download_status(0);
 			sprdwcn_bus_set_carddump_status(false);
 			marlin_chip_en(false, true);
-			marlin_reset_func(marlin_callback_para);
+			if (marlin_reset_func != NULL)
+				marlin_reset_func(marlin_callback_para);
 			return count;
 		}
 		if (strncmp(mdbg_proc->write_buf, "rebootwcn", 9) == 0) {
@@ -851,7 +855,8 @@ static ssize_t mdbg_proc_write(struct file *filp,
 			marlin_set_download_status(0);
 			sprdwcn_bus_set_carddump_status(false);
 			marlin_chip_en(false, true);
-			marlin_reset_func(marlin_callback_para);
+			if (marlin_reset_func != NULL)
+				marlin_reset_func(marlin_callback_para);
 			return count;
 		}
 		if (strncmp(mdbg_proc->write_buf, "at+getchipversion", 17) == 0) {
