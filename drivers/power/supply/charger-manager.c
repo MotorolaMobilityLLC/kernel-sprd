@@ -122,18 +122,6 @@ static const char * const cm_cp_state_names[] = {
 	[CM_CP_STATE_EXIT] = "Charge pump state: EXIT",
 };
 
-enum {
-	CMD_USB_PRESENT,
-	CMD_BATTERY_PRESENT,
-	CMD_VBUS_PRESENT,
-};
-
-enum {
-	CMD_BATT_TEMP,
-	CMD_BUS_TEMP,
-	CMD_DIE_TEMP,
-};
-
 static char *charger_manager_supplied_to[] = {
 	"audio-ldo",
 };
@@ -2219,7 +2207,7 @@ static void cm_init_cp(struct charger_manager *cm)
 			continue;
 		}
 
-		val.intval = CMD_USB_PRESENT;
+		val.intval = CM_USB_PRESENT_CMD;
 		ret = power_supply_set_property(cp_psy,
 						POWER_SUPPLY_PROP_PRESENT,
 						&val);
@@ -2387,29 +2375,24 @@ static void cm_check_cp_fault_status(struct charger_manager *cm)
 		return;
 	}
 
-	ret = power_supply_get_property(psy, POWER_SUPPLY_PROP_FAULT_STATUS, &val);
+	val.intval = CM_FAULT_HEALTH_CMD;
+	ret = power_supply_get_property(psy, POWER_SUPPLY_PROP_HEALTH, &val);
 	if (!ret) {
-		cp->flt.bat_ovp_fault = !!(val.intval & CM_CHARGER_BAT_OVP_FAULT);
-		cp->flt.bat_ocp_fault = !!(val.intval & CM_CHARGER_BAT_OCP_FAULT);
-		cp->flt.bus_ovp_fault = !!(val.intval & CM_CHARGER_BUS_OVP_FAULT);
-		cp->flt.bus_ocp_fault = !!(val.intval & CM_CHARGER_BUS_OCP_FAULT);
-		cp->flt.bat_therm_fault = !!(val.intval & CM_CHARGER_BAT_THERM_FAULT);
-		cp->flt.bus_therm_fault = !!(val.intval & CM_CHARGER_BUS_THERM_FAULT);
-		cp->flt.die_therm_fault = !!(val.intval & CM_CHARGER_DIE_THERM_FAULT);
-	}
-
-	val.intval = 0;
-	ret = power_supply_get_property(psy, POWER_SUPPLY_PROP_ALARM_STATUS, &val);
-	power_supply_put(psy);
-	if (!ret) {
-		cp->alm.bat_ovp_alarm = !!(val.intval & CM_CHARGER_BAT_OVP_ALARM);
-		cp->alm.bat_ocp_alarm = !!(val.intval & CM_CHARGER_BAT_OCP_ALARM);
-		cp->alm.bus_ovp_alarm = !!(val.intval & CM_CHARGER_BUS_OVP_ALARM);
-		cp->alm.bus_ocp_alarm = !!(val.intval & CM_CHARGER_BUS_OCP_ALARM);
-		cp->alm.bat_therm_alarm = !!(val.intval & CM_CHARGER_BAT_THERM_ALARM);
-		cp->alm.bus_therm_alarm = !!(val.intval & CM_CHARGER_BUS_THERM_ALARM);
-		cp->alm.die_therm_alarm = !!(val.intval & CM_CHARGER_DIE_THERM_ALARM);
-		cp->alm.bat_ucp_alarm = !!(val.intval & CM_CHARGER_BAT_UCP_ALARM);
+		cp->flt.bat_ovp_fault = !!(val.intval & CM_CHARGER_BAT_OVP_FAULT_MASK);
+		cp->flt.bat_ocp_fault = !!(val.intval & CM_CHARGER_BAT_OCP_FAULT_MASK);
+		cp->flt.bus_ovp_fault = !!(val.intval & CM_CHARGER_BUS_OVP_FAULT_MASK);
+		cp->flt.bus_ocp_fault = !!(val.intval & CM_CHARGER_BUS_OCP_FAULT_MASK);
+		cp->flt.bat_therm_fault = !!(val.intval & CM_CHARGER_BAT_THERM_FAULT_MASK);
+		cp->flt.bus_therm_fault = !!(val.intval & CM_CHARGER_BUS_THERM_FAULT_MASK);
+		cp->flt.die_therm_fault = !!(val.intval & CM_CHARGER_DIE_THERM_FAULT_MASK);
+		cp->alm.bat_ovp_alarm = !!(val.intval & CM_CHARGER_BAT_OVP_ALARM_MASK);
+		cp->alm.bat_ocp_alarm = !!(val.intval & CM_CHARGER_BAT_OCP_ALARM_MASK);
+		cp->alm.bus_ovp_alarm = !!(val.intval & CM_CHARGER_BUS_OVP_ALARM_MASK);
+		cp->alm.bus_ocp_alarm = !!(val.intval & CM_CHARGER_BUS_OCP_ALARM_MASK);
+		cp->alm.bat_therm_alarm = !!(val.intval & CM_CHARGER_BAT_THERM_ALARM_MASK);
+		cp->alm.bus_therm_alarm = !!(val.intval & CM_CHARGER_BUS_THERM_ALARM_MASK);
+		cp->alm.die_therm_alarm = !!(val.intval & CM_CHARGER_DIE_THERM_ALARM_MASK);
+		cp->alm.bat_ucp_alarm = !!(val.intval & CM_CHARGER_BAT_UCP_ALARM_MASK);
 	}
 }
 
@@ -2537,15 +2520,16 @@ static void cm_cp_check_vbus_status(struct charger_manager *cm)
 		return;
 	}
 
-	ret = power_supply_get_property(cp_psy, POWER_SUPPLY_PROP_VBUS_ERROR_STATUS, &val);
+	val.intval = CM_BUS_ERR_HEALTH_CMD;
+	ret = power_supply_get_property(cp_psy, POWER_SUPPLY_PROP_HEALTH, &val);
 	power_supply_put(cp_psy);
 	if (ret) {
 		dev_err(cm->dev, "failed to get vbus status, ret = %d\n", ret);
 		return;
 	}
 
-	fault->vbus_error_lo = !!((val.intval >> 5) & 0x01);
-	fault->vbus_error_hi = !!((val.intval >> 4) & 0x01);
+	fault->vbus_error_lo = !!(val.intval & CM_CHARGER_BUS_ERR_LO_MASK);
+	fault->vbus_error_hi = !!(val.intval & CM_CHARGER_BUS_ERR_HI_MASK);
 }
 
 static void cm_check_target_ibus(struct charger_manager *cm)
