@@ -790,6 +790,7 @@ static void sprd_send_cmd(struct sprd_sdhc_host *host, struct mmc_command *cmd)
 	  && mmc_card_cmdq(host->mmc->card)
 	  && (cmd->opcode == MMC_SEND_STATUS
 	  || cmd->opcode == MMC_CMDQ_TASK_MGMT
+	  || cmd->opcode == MMC_STOP_TRANSMISSION
 	  || cmd->opcode == MMC_QUE_TASK_PARAMS
 	  || cmd->opcode == MMC_QUE_TASK_ADDR
 	  || cmd->opcode == MMC_EXECUTE_READ_TASK
@@ -939,8 +940,15 @@ static int irq_err_handle(struct sprd_sdhc_host *host, u32 intmask)
 	sprd_sdhc_reset(host, SPRD_SDHC_BIT_RST_CMD|SPRD_SDHC_BIT_RST_DAT);
 
 	/* if current error happened in data token, we send cmd12 to stop it */
+#ifndef CONFIG_EMMC_SOFTWARE_CQ_SUPPORT
 	if ((host->mrq->cmd == host->cmd) && (host->mrq->stop)) {
 		sprd_send_cmd(host, host->mrq->stop);
+#else
+	if ((host->mrq->cmd == host->cmd) && (host->mrq->stop)
+			&& !(host->mmc->card
+			&& mmc_card_cmdq(host->mmc->card))) {
+		sprd_send_cmd(host, host->mrq->stop);
+#endif
 	} else {
 		/* request finish with error, so reset and stop it */
 #ifdef CONFIG_EMMC_SOFTWARE_CQ_SUPPORT
