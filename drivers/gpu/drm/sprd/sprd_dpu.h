@@ -139,14 +139,6 @@ struct dpu_context {
 	bool te_check_en;
 	bool evt_te;
 
-	/* other specific parameters */
-	bool panel_ready;
-
-	unsigned long logo_addr;
-	unsigned long logo_size;
-
-	u32 prev_y2r_coef;
-
 	/* corner config parameters */
 	u32 corner_size;
 	int sprd_corner_radius;
@@ -155,12 +147,18 @@ struct dpu_context {
 	unsigned int *layer_top;
 	unsigned int *layer_bottom;
 
-	int dpi_clk_div;
-
 	/* widevine config parameters */
 	int secure_debug;
 	int time;
 	struct disp_message tos_msg;
+
+	/* other specific parameters */
+	bool panel_ready;
+	unsigned long logo_addr;
+	unsigned long logo_size;
+	u32 prev_y2r_coef;
+	int dpi_clk_div;
+	u64 frame_count;
 };
 
 struct sprd_dpu_ops {

@@ -617,6 +617,19 @@ static ssize_t irq_unregister_store(struct device *dev,
 
 static DEVICE_ATTR_WO(irq_unregister);
 
+/* frame count show */
+static ssize_t frame_count_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	int ret;
+	struct sprd_dpu *dpu = dev_get_drvdata(dev);
+
+	ret = snprintf(buf, PAGE_SIZE, "%d\n", dpu->ctx.frame_count);
+
+	return ret;
+}
+static DEVICE_ATTR_RO(frame_count);
+
 static struct attribute *dpu_attrs[] = {
 	&dev_attr_run.attr,
 	&dev_attr_refresh.attr,
@@ -628,6 +641,7 @@ static struct attribute *dpu_attrs[] = {
 	&dev_attr_dpu_version.attr,
 	&dev_attr_irq_register.attr,
 	&dev_attr_irq_unregister.attr,
+	&dev_attr_frame_count.attr,
 	NULL,
 };
 static const struct attribute_group dpu_group = {
