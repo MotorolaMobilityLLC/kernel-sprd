@@ -1747,6 +1747,7 @@ static int sprd_platform_compr_trigger(
 				srtd->drain_info.padding_cnt,
 				srtd->app_pointer,
 				srtd->received_stage0);
+		fallthrough;
 	case SND_COMPR_TRIGGER_DRAIN:
 		sp_asoc_pr_info("%s: SNDRV_COMPRESS_DRAIN, cmd=%d, total=%d\n",
 			__func__, cmd, srtd->received_total);

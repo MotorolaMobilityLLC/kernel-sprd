@@ -40,6 +40,7 @@
 
 #define BTHAL_STATE_RUNNING		0
 #define BTHAL_STATE_IDLE		1
+#define unalign_memcpy  memcpy
 
 enum {
 	SPRD_PIPE_VOICE,
