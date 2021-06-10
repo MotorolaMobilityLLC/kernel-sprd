@@ -113,6 +113,7 @@
 #define HX_CODE_OVERLAY
 /*Independent threads run the notification chain notification function resume*/
 /*#define HX_CONTAINER_SPEED_UP*/
+#define HX_CONTAINER_SPEED_UP
 #else
 #define HX_TP_PROC_GUEST_INFO
 #endif
@@ -425,6 +426,7 @@ struct himax_report_data {
 struct himax_ts_data {
 	bool initialized;
 	bool suspended;
+	bool hx_esd_flag;
 	int notouch_frame;
 	int ic_notouch_frame;
 	atomic_t suspend_mode;
