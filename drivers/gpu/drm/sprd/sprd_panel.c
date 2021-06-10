@@ -433,6 +433,7 @@ struct device *dev;
 extern int32_t nvt_ts_suspend(struct device *dev);
 extern int32_t nvt_ts_resume(struct device *dev);
 
+extern void himax_esd_resume_func(void);
 static void sprd_panel_esd_work_func(struct work_struct *work)
 {
 	struct sprd_panel *panel = container_of(work, struct sprd_panel,
@@ -477,6 +478,8 @@ static void sprd_panel_esd_work_func(struct work_struct *work)
 
 		if(strncmp(lcd_name, "lcd_nt36525b_dj_mipi_hd", strlen(lcd_name)) == 0){
 			nvt_ts_resume(dev);
+		}else if(strncmp(lcd_name, "lcd_hx83102d_youda_mipi_hd",strlen(lcd_name)) == 0){
+			himax_esd_resume_func();
 		}
 
 		sprd_oled_set_brightness(g_bdev);
