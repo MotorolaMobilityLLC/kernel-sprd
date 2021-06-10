@@ -19,6 +19,7 @@
 
 #include "disp_lib.h"
 #include "sprd_dphy.h"
+#include "sprd_dsi.h"
 #include "sysfs_display.h"
 
 static int hop_freq;
@@ -317,8 +318,13 @@ static ssize_t suspend_store(struct device *dev,
 				const char *buf, size_t count)
 {
 	struct sprd_dphy *dphy = dev_get_drvdata(dev);
+	struct device *dsi_dev = sprd_disp_pipe_get_input(dphy->dev.parent);
+	struct sprd_dsi *dsi = dev_get_drvdata(dsi_dev);
 
-	sprd_dphy_suspend(dphy);
+	if ((dsi->ctx.is_inited) && (dphy->ctx.is_enabled)) {
+		sprd_dphy_suspend(dphy);
+		dphy->ctx.is_enabled = false;
+	}
 
 	return count;
 }
@@ -329,8 +335,13 @@ static ssize_t resume_store(struct device *dev,
 				const char *buf, size_t count)
 {
 	struct sprd_dphy *dphy = dev_get_drvdata(dev);
+	struct device *dsi_dev = sprd_disp_pipe_get_input(dphy->dev.parent);
+	struct sprd_dsi *dsi = dev_get_drvdata(dsi_dev);
 
-	sprd_dphy_resume(dphy);
+	if ((dsi->ctx.is_inited) && (!dphy->ctx.is_enabled)) {
+		sprd_dphy_resume(dphy);
+		dphy->ctx.is_enabled = true;
+	}
 
 	return count;
 }
