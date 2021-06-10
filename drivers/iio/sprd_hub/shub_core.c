@@ -1690,10 +1690,14 @@ static int set_als_calib_cmd(struct shub_data *sensor, u8 cmd, u8 id)
 		}
 		/*sleep for light senor collect data every 100ms*/
 		msleep(100);
-		pr_debug("shub_sipc_read: ptr[0] = %d\n", ptr[0]);
+
+		if (i < ALS_CALI_SKIP_COUNT)
+                        continue;
+
+		pr_info("shub_sipc_read: ptr[0] = %d\n", ptr[0]);
 		light_sum += ptr[0];
 	}
-	average_als = light_sum / LIGHT_CALI_DATA_COUNT;
+	average_als = light_sum / (LIGHT_CALI_DATA_COUNT - ALS_CALI_SKIP_COUNT);
 	pr_info("light sensor cali light_sum:%d, average_als = %d\n",
 		light_sum, average_als);
 
@@ -1729,7 +1733,7 @@ static int set_als_calib_cmd(struct shub_data *sensor, u8 cmd, u8 id)
 
 	als_cali_data = als_cali_coef;
 
-	pr_debug("Light Sensor Calibrator status = %d, als_cali_data = %d\n", status, als_cali_data);
+	pr_info("Light Sensor Calibrator status = %d, als_cali_data = %d\n", status, als_cali_data);
 
 	return status;
 }
