@@ -840,19 +840,16 @@
 			ranges;
 
 			cam_domain: cam-domain {
-				compatible = "sprd,cam-domain";
-				syscons = <&pmu_apb_regs REG_PMU_APB_PD_MM_TOP_CFG MASK_PMU_APB_PD_MM_TOP_AUTO_SHUTDOWN_EN>,
-					<&pmu_apb_regs REG_PMU_APB_PD_MM_TOP_CFG MASK_PMU_APB_PD_MM_TOP_FORCE_SHUTDOWN>,
-					<&pmu_apb_regs REG_PMU_APB_PWR_STATUS3_DBG MASK_PMU_APB_PD_MM_TOP_STATE>,
-					<&aon_apb_regs REG_AON_APB_APB_EB2 MASK_AON_APB_ANLG_APB_EB>,
-					<&mm_ahb_regs REG_MM_AHB_QOS_THREHOLD_MM
+				compatible = "sprd,sharkle-camsys-domain";
+				shutdown_en = <&pmu_apb_regs REG_PMU_APB_PD_MM_TOP_CFG MASK_PMU_APB_PD_MM_TOP_AUTO_SHUTDOWN_EN>;
+				force_shutdown = <&pmu_apb_regs REG_PMU_APB_PD_MM_TOP_CFG MASK_PMU_APB_PD_MM_TOP_FORCE_SHUTDOWN>;
+				pd_mm_state = <&pmu_apb_regs REG_PMU_APB_PWR_STATUS3_DBG MASK_PMU_APB_PD_MM_TOP_STATE>;
+				anlg_apb_eb = <&aon_apb_regs REG_AON_APB_APB_EB2 MASK_AON_APB_ANLG_APB_EB>;
+				qos_threshold_mm = <&mm_ahb_regs REG_MM_AHB_QOS_THREHOLD_MM
 					(MASK_MM_AHB_AR_QOS_THREHOLD_MM |
 					MASK_MM_AHB_AW_QOS_THREHOLD_MM)>;
-				syscon-names = "shutdown_en",
-					"force_shutdown",
-					"pd_mm_state",
-					"anlg_apb_eb",
-					"qos_threshold_mm";
+				#power-domain-cells = <0>;
+				status = "disabled";
 			};
 
 			dcam: dcam@60800000 {
@@ -869,16 +866,17 @@
 				sprd,isp = <&isp>;
 				sprd,dcam-count = <2>;
 				iommus = <&iommu_dcam>;
+				power-domains = <&cam_domain>;
 				status = "disabled";
 			};
 
 			iommu_dcam: iommu@60802100 {
-				compatible = "unisoc,iommuex-dcam";
-				reg = <0x60802100 0x60>;
-				sprd,frc-reg = <0x60802010>;
-				sprd,iova-base = <0x40000000>;
-				sprd,iova-size = <0x10000000>;
-				reg_name = "mmu_reg";
+				compatible = "unisoc,iommuexle-dcam";
+				reg = <0x60800000 0x2100>,
+				      <0x60802100 0x60>;
+				iova-base = <0x40000000>;
+				iova-size = <0x10000000>;
+				reg_name = "mmu_interrupt_reg","mmu_reg";
 				status = "disabled";
 				#iommu-cells = <0>;
 			};
@@ -888,25 +886,24 @@
 				reg = <0x60a00000 0x100000>;
 				interrupts = <GIC_SPI 44 IRQ_TYPE_LEVEL_HIGH>,
 					<GIC_SPI 125 IRQ_TYPE_LEVEL_HIGH>;
-				syscons = <&mm_ahb_regs REG_MM_AHB_AHB_RST MASK_MM_AHB_ISP_FMCU_SOFT_RST>,
-					<&mm_ahb_regs REG_MM_AHB_AHB_RST
+				fmcu_rst = <&mm_ahb_regs REG_MM_AHB_AHB_RST MASK_MM_AHB_ISP_FMCU_SOFT_RST>;
+				hw_rst = <&mm_ahb_regs REG_MM_AHB_AHB_RST
 					(MASK_MM_AHB_ISP_LOG_SOFT_RST |
 					MASK_MM_AHB_ISP_CFG_SOFT_RST |
 					MASK_MM_AHB_ISP_FMCU_SOFT_RST)>;
-				syscon-names = "fmcu_rst",
-					"hw_rst";
 				sprd,isp-count = <1>;
 				iommus = <&iommu_isp>;
 				status = "disabled";
 			};
 
 			iommu_isp: iommu@60a00800 {
-				compatible = "unisoc,iommuex-isp";
+				compatible = "unisoc,iommuexle-isp";
 				/* sharkle isp need pagetable size */
-				reg = <0x60a00800 0x400>;
-				sprd,iova-base = <0x50000000>;
-				sprd,iova-size = <0x10000000>;
-				reg_name = "mmu_reg";
+				reg = <0x60a00000 0x800>,
+				      <0x60a00800 0x400>;
+				iova-base = <0x50000000>;
+				iova-size = <0x10000000>;
+				reg_name = "mmu_interrupt_reg","mmu_reg";
 				status = "disabled";
 				#iommu-cells = <0>;
 			};
@@ -915,18 +912,18 @@
 				compatible = "sprd,cpp";
 				reg = <0x61000000 0x1000>;
 				interrupts = <GIC_SPI 27 IRQ_TYPE_LEVEL_HIGH>;
-				syscons = <&mm_ahb_regs REG_MM_AHB_AHB_RST MASK_MM_AHB_CPP_SOFT_RST_MASK>;
-				syscon-names = "cpp_rst";
+				cpp_rst = <&mm_ahb_regs REG_MM_AHB_AHB_RST MASK_MM_AHB_CPP_SOFT_RST_MASK>;
 				iommus = <&iommu_cpp>;
 				status = "disabled";
 			};
 
 			iommu_cpp: iommu@61000200 {
-				compatible = "unisoc,iommuex-cpp";
-				reg = <0x61000200 0x60>;
-				sprd,iova-base = <0x60000000>;
-				sprd,iova-size = <0x8000000>;
-				reg_name = "mmu_reg";
+				compatible = "unisoc,iommuexle-cpp";
+				reg = <0x61000000 0x200>,
+				      <0x61000200 0x60>;
+				iova-base = <0x60000000>;
+				iova-size = <0x8000000>;
+				reg_name = "mmu_interrupt_reg","mmu_reg";
 				status = "disabled";
 				#iommu-cells = <0>;
 			};
