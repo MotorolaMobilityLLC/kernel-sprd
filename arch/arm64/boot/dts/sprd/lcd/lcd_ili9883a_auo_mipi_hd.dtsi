@@ -1,0 +1,97 @@
+/ {
+	fragment {
+		target-path = "/";
+		__overlay__ {
+			lcds {
+			
+			lcd_ili9883a_youda_mipi_hd: lcd_ili9883a_youda_mipi_hd {
+				sprd,dsi-work-mode = <1>; /* video burst mode*/
+				sprd,dsi-lane-number = <4>;
+				sprd,dsi-color-format = "rgb888";
+
+				sprd,phy-bit-clock = <922000>;	/* kbps */
+				sprd,phy-escape-clock = <20000>;/* kHz */
+				sprd,width-mm = <68>;
+				sprd,height-mm = <121>;
+				
+
+				sprd,esd-check-enable = <0>;
+				sprd,esd-check-mode = <0>;
+				sprd,esd-check-period = <2000>;
+				sprd,esd-check-regs = <0xA>;
+				sprd,esd-return-code = <0x9c>;
+
+				sprd,dpi-clk-div = <6>;
+				sprd,video-lp-cmd-enable = <1>;
+				sprd,hporch-lp-disable = <1>;
+				sprd,reset-on-sequence = <1 5>, <0 5>, <1 20>;
+				sprd,reset-off-sequence = <1 5>;
+
+				sprd,initial-command = [
+				//39 00 00 04 FF 98 83 02
+				//39 05 00 02 2f 01
+
+				39 00 00 04 FF 98 83 00
+				39 00 00 02 35 00
+                	        39 00 00 03 51 0f ff
+				39 00 00 02 53 24
+                                23 00 00 02 55 00
+				23 80 00 02 11 00
+        	                23 20 00 02 29 00
+				];
+
+				sprd,sleep-in-command = [
+					13 14 00 01 28
+					13 78 00 01 10
+				];
+
+				sprd,sleep-out-command = [
+					13 78 00 01 11
+					13 14 00 01 29
+				];
+
+					oled-backlight {
+						default-brightness-level = <33>;
+						sprd,max-level = <255>;
+
+						brightness-levels = [
+							23 00 00 03 51 0F FF
+							];
+						};
+
+					display-timings {
+						native-mode = <&ili9883_timing0>;
+
+						
+						ili9883_timing0: timing0 {
+									clock-frequency = <153600000>;
+									hactive = <720>;
+					                                vactive = <1600>;
+                               						hback-porch = <48>;
+                               						hfront-porch = <40>;
+                               						vback-porch = <50>;
+                               						vfront-porch = <380>;
+                               						hsync-len = <20>;
+                               						vsync-len = <20>;
+								
+
+						};
+						ili9883_timing1: timing1 {
+									clock-frequency = <153600000>;
+									hactive = <720>;
+									vactive = <1600>;
+									hback-porch = <48>;
+									hfront-porch = <40>;
+									vback-porch = <50>;
+									vfront-porch = <1421>;
+									hsync-len = <20>;
+									vsync-len = <20>;
+
+
+						};
+					};
+				};
+			};
+		};
+	};
+};
