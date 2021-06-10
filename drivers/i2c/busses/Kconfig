@@ -1069,6 +1069,17 @@ config I2C_SPRD_HW
 	  This driver can also be built as a module. If so, the module will be
 	  called i2c-sprd-hw.
 
+config I2C_SPRD_HW_V2
+	tristate "SPRD I2C Driver (New I2C IP r10p0 support hw channel mode)"
+	default n
+	help
+	  If you say yes to this option, support will be included for the
+	  Spreadtrum I2C controller. This driver only support I2C IP version
+	  after R10P0.
+
+	  This driver can also be built as a module. If so, the module will be
+	  called i2c-sprd-hw-v2.
+
 config I2C_TEGRA_BPMP
 	tristate "NVIDIA Tegra BPMP I2C controller"
 	depends on TEGRA_BPMP
