@@ -27,7 +27,6 @@ void f2fs_stop_checkpoint(struct f2fs_sb_info *sbi, bool end_io)
 {
 	f2fs_build_fault_attr(sbi, 0, 0);
 	set_ckpt_flags(sbi, CP_ERROR_FLAG);
-	f2fs_bug_on(sbi, 1);
 	if (!end_io)
 		f2fs_flush_merged_writes(sbi);
 }
