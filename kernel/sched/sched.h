@@ -2361,6 +2361,8 @@ static inline void cpufreq_update_util(struct rq *rq, unsigned int flags) {}
 
 #ifdef CONFIG_UCLAMP_TASK
 unsigned long uclamp_eff_value(struct task_struct *p, enum uclamp_id clamp_id);
+unsigned long uclamp_transform_boost(unsigned long util, unsigned long uclamp_min,
+				     unsigned long uclamp_max);
 
 /**
  * uclamp_util_with - clamp @util with @rq and @p effective uclamp values.
@@ -2385,6 +2387,7 @@ unsigned long uclamp_rq_util_with(struct rq *rq, unsigned long util,
 {
 	unsigned long min_util;
 	unsigned long max_util;
+	unsigned long clamp_util;
 
 	if (!static_branch_likely(&sched_uclamp_used))
 		return util;
@@ -2405,7 +2408,12 @@ unsigned long uclamp_rq_util_with(struct rq *rq, unsigned long util,
 	if (unlikely(min_util >= max_util))
 		return min_util;
 
-	return clamp(util, min_util, max_util);
+	if (sysctl_sched_uclamp_min_to_boost)
+		clamp_util = uclamp_transform_boost(util, min_util, max_util);
+	else
+		clamp_util = clamp(util, min_util, max_util);
+
+	return clamp_util;
 }
 
 static inline bool uclamp_boosted(struct task_struct *p)
