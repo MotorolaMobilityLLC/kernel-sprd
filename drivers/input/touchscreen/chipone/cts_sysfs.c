@@ -1451,7 +1451,7 @@ static DEVICE_ATTR(noise_test, S_IWUSR | S_IRUGO,
 static ssize_t factory_test_show(struct device *dev,
         struct device_attribute *attr, char *buf)
 {
-#define TOUCH_DATA_DIRECTORY_PREFIX     "/sdcard/chipone-tddi/test/"
+#define TOUCH_DATA_DIRECTORY_PREFIX     "/data/chipone-tddi/test/"
 #define RAWDATA_TEST_DATA_FILENAME      "rawdata-test-data.txt"
 #define NOISE_TEST_DATA_FILENAME        "noise-test-data.txt"
 #define OPEN_TEST_DATA_FILENAME         "open-test-data.txt"
@@ -1478,7 +1478,6 @@ static ssize_t factory_test_show(struct device *dev,
                  CTS_TEST_FLAG_VALIDATE_MIN |
                  CTS_TEST_FLAG_VALIDATE_MAX |
                  CTS_TEST_FLAG_STOP_TEST_IF_VALIDATE_FAILED |
-                 CTS_TEST_FLAG_DUMP_TEST_DATA_TO_CONSOLE |
                  CTS_TEST_FLAG_DUMP_TEST_DATA_TO_FILE,
         .test_data_filepath = NULL,
         .num_invalid_node = 0,
@@ -1495,7 +1494,6 @@ static ssize_t factory_test_show(struct device *dev,
         .flags = CTS_TEST_FLAG_VALIDATE_DATA |
                  CTS_TEST_FLAG_VALIDATE_MAX |
                  CTS_TEST_FLAG_STOP_TEST_IF_VALIDATE_FAILED |
-                 CTS_TEST_FLAG_DUMP_TEST_DATA_TO_CONSOLE |
                  CTS_TEST_FLAG_DUMP_TEST_DATA_TO_FILE,
         .test_data_filepath = NULL,
         .num_invalid_node = 0,
