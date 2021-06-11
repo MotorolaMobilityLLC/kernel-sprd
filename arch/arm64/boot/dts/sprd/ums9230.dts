@@ -73,6 +73,10 @@
 	status = "okay";
 };
 
+&vsp_pd {
+	status = "okay";
+};
+
 &iommu_vsp {
 	status = "okay";
 };
