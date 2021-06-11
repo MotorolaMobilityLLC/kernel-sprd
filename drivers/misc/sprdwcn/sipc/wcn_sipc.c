@@ -457,6 +457,25 @@ static void wcn_sipc_sbuf_push_list_dequeue(struct sipc_chn_info *sipc_chn)
 	wcn_sipc_pop_list_flush(sipc_chn);
 }
 
+int wcn_check_sbuf_status(u8 dst, u8 channel)
+{
+	unsigned long timeout;
+
+	timeout = jiffies + msecs_to_jiffies(1000);
+	while (1) {
+		if (!sbuf_status(dst, channel)) {
+			break;
+		} else if (time_after(jiffies, timeout)) {
+			WCN_INFO("channel %d-%d is not ready!\n",
+				 dst, channel);
+			return -E_INVALIDPARA;
+		}
+		msleep(20);
+	}
+
+	return 0;
+}
+
 static int wcn_sipc_sbuf_push(u8 index,
 			struct mbuf_t *head, struct mbuf_t *tail, int num)
 {
@@ -465,6 +484,8 @@ static int wcn_sipc_sbuf_push(u8 index,
 	if (SIPC_INVALID_CHN(index))
 		return -E_INVALIDPARA;
 	sipc_chn = SIPC_CHN(index);
+	if (wcn_check_sbuf_status(sipc_chn->dst, sipc_chn->chn))
+		return -E_INVALIDPARA;
 
 	wcn_sipc_record_mbuf_recv_from_user(index, num);
 	wcn_sipc_push_list_enqueue(sipc_chn, head, tail, num);
