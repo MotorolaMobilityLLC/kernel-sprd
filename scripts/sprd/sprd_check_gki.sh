@@ -48,7 +48,9 @@ check compile ----------------------------------------- PASS
 ++++++++++++++++++++++check gki end+++++++++++++++++++++
 !
 
-echo "+++++++++++++++++++++check gki start++++++++++++++++++++"
+starttime=`date +'%Y-%m-%d %H:%M:%S'`
+start_seconds=$(date --date="$starttime" +%s);
+echo "+++++++++++++++++++++check gki start on ${starttime}++++++++++++++++++++"
 
 export MAIN_SCRIPT_DIR=$(readlink -f $(dirname $0)/../..)
 
@@ -318,5 +320,8 @@ if [[ ${PATCH_TITLE} == "abigail git repository" ]]; then
   rm -rf ${KERNEL_CODE_DIR}/${KERNEL_DIR}/.git
 fi
 
-echo -e  "++++++++++++++++++++++check gki end+++++++++++++++++++++"
+endtime=`date +'%Y-%m-%d %H:%M:%S'`
+end_seconds=$(date --date="$endtime" +%s);
+
+echo -e  "++++++++++++++++++++++check gki end on $endtime and takes "$((end_seconds-start_seconds))" seconds+++++++++++++++++++++"
 exit $RET_VAL
