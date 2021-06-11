@@ -624,7 +624,7 @@ static ssize_t frame_count_show(struct device *dev,
 	int ret;
 	struct sprd_dpu *dpu = dev_get_drvdata(dev);
 
-	ret = snprintf(buf, PAGE_SIZE, "%d\n", dpu->ctx.frame_count);
+	ret = snprintf(buf, PAGE_SIZE, "%lld\n", dpu->ctx.frame_count);
 
 	return ret;
 }
