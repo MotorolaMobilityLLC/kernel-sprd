@@ -2017,8 +2017,9 @@ static inline int inc_valid_block_count(struct f2fs_sb_info *sbi,
 				 struct inode *inode, blkcnt_t *count)
 {
 	blkcnt_t diff = 0, release = 0;
-	block_t avail_user_block_count;
+	block_t avail_user_block_count, root_reserved_blocks;
 	int ret;
+	bool checked = false;
 
 	ret = dquot_reserve_block(inode, *count);
 	if (ret)
@@ -2041,24 +2042,35 @@ static inline int inc_valid_block_count(struct f2fs_sb_info *sbi,
 	avail_user_block_count = sbi->user_block_count -
 					sbi->current_reserved_blocks;
 
-	if (!__allow_reserved_blocks(sbi, inode, true))
-		avail_user_block_count -= F2FS_OPTION(sbi).root_reserved_blocks;
+	root_reserved_blocks = F2FS_OPTION(sbi).root_reserved_blocks;
+	avail_user_block_count -= root_reserved_blocks;
 	if (unlikely(is_sbi_flag_set(sbi, SBI_CP_DISABLED))) {
+		if (__allow_reserved_blocks(sbi, inode, true)) {
+			avail_user_block_count += root_reserved_blocks;
+			checked = true;
+		}
 		if (avail_user_block_count > sbi->unusable_block_count)
 			avail_user_block_count -= sbi->unusable_block_count;
 		else
 			avail_user_block_count = 0;
 	}
 	if (unlikely(sbi->total_valid_block_count > avail_user_block_count)) {
-		diff = sbi->total_valid_block_count - avail_user_block_count;
-		if (diff > *count)
-			diff = *count;
-		*count -= diff;
-		release = diff;
-		sbi->total_valid_block_count -= diff;
-		if (!*count) {
-			spin_unlock(&sbi->stat_lock);
-			goto enospc;
+		if (checked == false &&
+				__allow_reserved_blocks(sbi, inode, true))
+			avail_user_block_count += root_reserved_blocks;
+
+		if (sbi->total_valid_block_count > avail_user_block_count) {
+			diff = sbi->total_valid_block_count -
+					avail_user_block_count;
+			if (diff > *count)
+				diff = *count;
+			*count -= diff;
+			release = diff;
+			sbi->total_valid_block_count -= diff;
+			if (!*count) {
+				spin_unlock(&sbi->stat_lock);
+				goto enospc;
+			}
 		}
 	}
 	spin_unlock(&sbi->stat_lock);
@@ -2260,7 +2272,7 @@ static inline block_t __start_sum_addr(struct f2fs_sb_info *sbi)
 static inline int inc_valid_node_count(struct f2fs_sb_info *sbi,
 					struct inode *inode, bool is_inode)
 {
-	block_t	valid_block_count;
+	block_t	valid_block_count, root_reserved_blocks;
 	unsigned int valid_node_count, user_block_count;
 	int err;
 
@@ -2286,15 +2298,20 @@ static inline int inc_valid_node_count(struct f2fs_sb_info *sbi,
 	valid_block_count = sbi->total_valid_block_count +
 					sbi->current_reserved_blocks + 1;
 
-	if (!__allow_reserved_blocks(sbi, inode, false))
-		valid_block_count += F2FS_OPTION(sbi).root_reserved_blocks;
+	root_reserved_blocks = F2FS_OPTION(sbi).root_reserved_blocks;
+	valid_block_count += root_reserved_blocks;
 	user_block_count = sbi->user_block_count;
 	if (unlikely(is_sbi_flag_set(sbi, SBI_CP_DISABLED)))
 		user_block_count -= sbi->unusable_block_count;
 
 	if (unlikely(valid_block_count > user_block_count)) {
-		spin_unlock(&sbi->stat_lock);
-		goto enospc;
+		if (__allow_reserved_blocks(sbi, inode, false))
+			valid_block_count -= root_reserved_blocks;
+
+		if (unlikely(valid_block_count > user_block_count)) {
+			spin_unlock(&sbi->stat_lock);
+			goto enospc;
+		}
 	}
 
 	valid_node_count = sbi->total_valid_node_count + 1;
