@@ -117,7 +117,7 @@
 		};
 
 		pmic_adc: adc@400 {
-			compatible = "sprd,sc2731-adc", "sprd,sc2721-adc";
+			compatible = "sprd,sc27xx-adc", "sprd,sc2721-adc";
 			reg = <0x400>;
 			interrupt-parent = <&sc2721_pmic>;
 			interrupts = <0>;
