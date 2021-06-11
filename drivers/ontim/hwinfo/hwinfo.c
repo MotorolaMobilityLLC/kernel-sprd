@@ -685,8 +685,10 @@ static ssize_t get_typec_vendor(void)
 
 	return 0;
 }
-
-#define TYPEC_CC_STATUS_FILE "/sys/class/power_supply/usb/typec_cc_orientation"
+//qcom
+//#define TYPEC_CC_STATUS_FILE "/sys/class/power_supply/usb/typec_cc_orientation"
+//sprd
+#define TYPEC_CC_STATUS_FILE "/sys/class/typec/port0/typec_cc_polarity_role"
 static ssize_t get_typec_cc_status(void)
 {
 	char buf[BUF_SIZE] = {0};
@@ -697,7 +699,9 @@ static ssize_t get_typec_cc_status(void)
 		printk(KERN_CRIT "get_typec_cc status failed.");
 		return -1;
 	}
-	buf[1] = '\0';
+	//buf[1] = '\0';
+	if (buf[strlen(buf) - 1] == '\n')
+		buf[strlen(buf) - 1] = '\0';
 	printk(KERN_INFO "Typec cc status: %s\n", buf);
 
 	memcpy(hwinfo[TYPEC_CC_STATUS].hwinfo_buf, buf, BUF_SIZE);
