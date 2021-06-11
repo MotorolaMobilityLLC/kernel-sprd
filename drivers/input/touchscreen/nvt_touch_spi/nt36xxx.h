@@ -40,6 +40,8 @@
 #endif
 
 #define NVT_DEBUG 1
+#define NVT_DEBUG_MP_PRINT_ARRAY 0
+#define NVT_DEBUG_MP_ONLY_PRINT_RESULT 0
 
 //---GPIO number---
 #define NVTTOUCH_RST_PIN 980

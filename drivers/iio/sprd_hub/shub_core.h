@@ -34,7 +34,7 @@
 #define LIGHT_SENSOR_MIN_VALUE  10
 /* light sensor calibrate max value is 520lux */
 #define LIGHT_SENSOR_MAX_VALUE  10000
-#define LIGHT_CALI_DATA_COUNT   5
+#define LIGHT_CALI_DATA_COUNT   10
 /* light sensor calibrate value is 400lux; Due to kernel seldom use
  * float data, so calibrate value multiply 10000
  */
