@@ -16,7 +16,7 @@
 #include <linux/usb/cdc.h>
 #include <linux/netdevice.h>
 
-#define QMULT_DEFAULT 5
+#define QMULT_DEFAULT 20
 
 /*
  * dev_addr: initial value
@@ -69,6 +69,10 @@ struct gether {
 	bool				is_fixed;
 	u32				fixed_out_len;
 	u32				fixed_in_len;
+	u32				ul_max_pkts_per_xfer;
+	u32				dl_max_pkts_per_xfer;
+	u32				dl_max_xfer_size;
+	bool				multi_pkt_xfer;
 	bool				supports_multi_frame;
 	struct sk_buff			*(*wrap)(struct gether *port,
 						struct sk_buff *skb);
@@ -79,6 +83,7 @@ struct gether {
 	/* called on network open/close */
 	void				(*open)(struct gether *);
 	void				(*close)(struct gether *);
+	struct rndis_packet_msg_type	*header;
 };
 
 #define	DEFAULT_FILTER	(USB_CDC_PACKET_TYPE_BROADCAST \
@@ -87,7 +92,7 @@ struct gether {
 			|USB_CDC_PACKET_TYPE_DIRECTED)
 
 /* variant of gether_setup that allows customizing network device name */
-struct eth_dev *gether_setup_name(struct usb_gadget *g,
+struct eth_dev *sprd_gether_setup_name(struct usb_gadget *g,
 		const char *dev_addr, const char *host_addr,
 		u8 ethaddr[ETH_ALEN], unsigned qmult, const char *netname);
 
@@ -108,14 +113,14 @@ static inline struct eth_dev *gether_setup(struct usb_gadget *g,
 		const char *dev_addr, const char *host_addr,
 		u8 ethaddr[ETH_ALEN], unsigned qmult)
 {
-	return gether_setup_name(g, dev_addr, host_addr, ethaddr, qmult, "usb");
+	return sprd_gether_setup_name(g, dev_addr, host_addr, ethaddr, qmult, "usb");
 }
 
 /*
  * variant of gether_setup_default that allows customizing
  * network device name
  */
-struct net_device *gether_setup_name_default(const char *netname);
+struct net_device *sprd_gether_setup_name_default(const char *netname);
 
 /*
  * gether_register_netdev - register the net device
@@ -124,7 +129,7 @@ struct net_device *gether_setup_name_default(const char *netname);
  * Registers the net device associated with this ethernet-over-usb link
  *
  */
-int gether_register_netdev(struct net_device *net);
+int sprd_gether_register_netdev(struct net_device *net);
 
 /* gether_setup_default - initialize one ethernet-over-usb link
  * Context: may sleep
@@ -137,7 +142,7 @@ int gether_register_netdev(struct net_device *net);
  */
 static inline struct net_device *gether_setup_default(void)
 {
-	return gether_setup_name_default("usb");
+	return sprd_gether_setup_name_default("usb");
 }
 
 /**
@@ -147,7 +152,7 @@ static inline struct net_device *gether_setup_default(void)
  *
  * This associates one ethernet-over-usb link with a gadget.
  */
-void gether_set_gadget(struct net_device *net, struct usb_gadget *g);
+void sprd_gether_set_gadget(struct net_device *net, struct usb_gadget *g);
 
 /**
  * gether_set_dev_addr - initialize an ethernet-over-usb link with eth address
@@ -158,7 +163,7 @@ void gether_set_gadget(struct net_device *net, struct usb_gadget *g);
  * if dev_addr is correct.
  * Returns negative errno if the new address is incorrect.
  */
-int gether_set_dev_addr(struct net_device *net, const char *dev_addr);
+int sprd_gether_set_dev_addr(struct net_device *net, const char *dev_addr);
 
 /**
  * gether_get_dev_addr - get an ethernet-over-usb link eth address
@@ -169,7 +174,7 @@ int gether_set_dev_addr(struct net_device *net, const char *dev_addr);
  * This gets the device-side Ethernet address of this ethernet-over-usb link.
  * Returns zero on success, else negative errno.
  */
-int gether_get_dev_addr(struct net_device *net, char *dev_addr, int len);
+int sprd_gether_get_dev_addr(struct net_device *net, char *dev_addr, int len);
 
 /**
  * gether_set_host_addr - initialize an ethernet-over-usb link with host address
@@ -180,7 +185,7 @@ int gether_get_dev_addr(struct net_device *net, char *dev_addr, int len);
  * if host_addr is correct.
  * Returns negative errno if the new address is incorrect.
  */
-int gether_set_host_addr(struct net_device *net, const char *host_addr);
+int sprd_gether_set_host_addr(struct net_device *net, const char *host_addr);
 
 /**
  * gether_get_host_addr - get an ethernet-over-usb link host address
@@ -191,7 +196,7 @@ int gether_set_host_addr(struct net_device *net, const char *host_addr);
  * This gets the host-side Ethernet address of this ethernet-over-usb link.
  * Returns zero on success, else negative errno.
  */
-int gether_get_host_addr(struct net_device *net, char *host_addr, int len);
+int sprd_gether_get_host_addr(struct net_device *net, char *host_addr, int len);
 
 /**
  * gether_get_host_addr_cdc - get an ethernet-over-usb link host address
@@ -203,7 +208,7 @@ int gether_get_host_addr(struct net_device *net, char *host_addr, int len);
  * ethernet-over-usb link.
  * Returns zero on success, else negative errno.
  */
-int gether_get_host_addr_cdc(struct net_device *net, char *host_addr, int len);
+int sprd_gether_get_host_addr_cdc(struct net_device *net, char *host_addr, int len);
 
 /**
  * gether_get_host_addr_u8 - get an ethernet-over-usb link host address
@@ -213,7 +218,7 @@ int gether_get_host_addr_cdc(struct net_device *net, char *host_addr, int len);
  * This gets the binary formatted host-side Ethernet address of this
  * ethernet-over-usb link.
  */
-void gether_get_host_addr_u8(struct net_device *net, u8 host_mac[ETH_ALEN]);
+void sprd_gether_get_host_addr_u8(struct net_device *net, u8 host_mac[ETH_ALEN]);
 
 /**
  * gether_set_qmult - initialize an ethernet-over-usb link with a multiplier
@@ -223,7 +228,7 @@ void gether_get_host_addr_u8(struct net_device *net, u8 host_mac[ETH_ALEN]);
  * This sets the queue length multiplier of this ethernet-over-usb link.
  * For higher speeds use longer queues.
  */
-void gether_set_qmult(struct net_device *net, unsigned qmult);
+void sprd_gether_set_qmult(struct net_device *net, unsigned qmult);
 
 /**
  * gether_get_qmult - get an ethernet-over-usb link multiplier
@@ -231,7 +236,7 @@ void gether_set_qmult(struct net_device *net, unsigned qmult);
  *
  * This gets the queue length multiplier of this ethernet-over-usb link.
  */
-unsigned gether_get_qmult(struct net_device *net);
+unsigned sprd_gether_get_qmult(struct net_device *net);
 
 /**
  * gether_get_ifname - get an ethernet-over-usb link interface name
@@ -242,14 +247,16 @@ unsigned gether_get_qmult(struct net_device *net);
  * This gets the interface name of this ethernet-over-usb link.
  * Returns zero on success, else negative errno.
  */
-int gether_get_ifname(struct net_device *net, char *name, int len);
+int sprd_gether_get_ifname(struct net_device *net, char *name, int len);
 
-void gether_cleanup(struct eth_dev *dev);
+void sprd_gether_cleanup(struct eth_dev *dev);
 
 /* connect/disconnect is handled by individual functions */
-struct net_device *gether_connect(struct gether *);
-void gether_disconnect(struct gether *);
-
+struct net_device *sprd_gether_connect(struct gether *);
+void sprd_gether_disconnect(struct gether *);
+void gether_update_dl_max_pkts_per_xfer(struct gether *link, u32 n);
+void gether_update_dl_max_xfer_size(struct gether *link, u32 s);
+void gether_enable_sg(struct gether *link, bool);
 /* Some controllers can't support CDC Ethernet (ECM) ... */
 static inline bool can_support_ecm(struct usb_gadget *gadget)
 {

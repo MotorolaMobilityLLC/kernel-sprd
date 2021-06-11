@@ -39,6 +39,8 @@
 
 #include "sprd_rndis.h"
 
+static int rndis_ul_max_pkt_per_xfer_rcvd;
+static int rndis_ul_max_xfer_size_rcvd;
 
 /* The driver for your USB chip needs to support ep0 OUT to work with
  * RNDIS, plus all three CDC Ethernet endpoints (interrupt not optional).
@@ -576,12 +578,12 @@ static int rndis_init_response(struct rndis_params *params,
 	resp->MinorVersion = cpu_to_le32(RNDIS_MINOR_VERSION);
 	resp->DeviceFlags = cpu_to_le32(RNDIS_DF_CONNECTIONLESS);
 	resp->Medium = cpu_to_le32(RNDIS_MEDIUM_802_3);
-	resp->MaxPacketsPerTransfer = cpu_to_le32(1);
-	resp->MaxTransferSize = cpu_to_le32(
-		  params->dev->mtu
+	resp->MaxPacketsPerTransfer = cpu_to_le32(params->max_pkt_per_xfer);
+	resp->MaxTransferSize = cpu_to_le32(params->max_pkt_per_xfer *
+		(params->dev->mtu
 		+ sizeof(struct ethhdr)
 		+ sizeof(struct rndis_packet_msg_type)
-		+ 22);
+		+ 22));
 	resp->PacketAlignmentFactor = cpu_to_le32(0);
 	resp->AFListOffset = cpu_to_le32(0);
 	resp->AFListSize = cpu_to_le32(0);
@@ -681,8 +683,8 @@ static int rndis_reset_response(struct rndis_params *params,
 	u32 length;
 
 	/* drain the response queue */
-	while ((xbuf = rndis_get_next_response(params, &length)))
-		rndis_free_response(params, xbuf);
+	while ((xbuf = sprd_rndis_get_next_response(params, &length)))
+		sprd_rndis_free_response(params, xbuf);
 
 	r = rndis_add_response(params, sizeof(rndis_reset_cmplt_type));
 	if (!r)
@@ -748,21 +750,21 @@ static int rndis_indicate_status_msg(struct rndis_params *params, u32 status)
 	return 0;
 }
 
-int rndis_signal_connect(struct rndis_params *params)
+int sprd_rndis_signal_connect(struct rndis_params *params)
 {
 	params->media_state = RNDIS_MEDIA_STATE_CONNECTED;
 	return rndis_indicate_status_msg(params, RNDIS_STATUS_MEDIA_CONNECT);
 }
-EXPORT_SYMBOL_GPL(rndis_signal_connect);
+EXPORT_SYMBOL_GPL(sprd_rndis_signal_connect);
 
-int rndis_signal_disconnect(struct rndis_params *params)
+int sprd_rndis_signal_disconnect(struct rndis_params *params)
 {
 	params->media_state = RNDIS_MEDIA_STATE_DISCONNECTED;
 	return rndis_indicate_status_msg(params, RNDIS_STATUS_MEDIA_DISCONNECT);
 }
-EXPORT_SYMBOL_GPL(rndis_signal_disconnect);
+EXPORT_SYMBOL_GPL(sprd_rndis_signal_disconnect);
 
-void rndis_uninit(struct rndis_params *params)
+void sprd_rndis_uninit(struct rndis_params *params)
 {
 	u8 *buf;
 	u32 length;
@@ -772,21 +774,21 @@ void rndis_uninit(struct rndis_params *params)
 	params->state = RNDIS_UNINITIALIZED;
 
 	/* drain the response queue */
-	while ((buf = rndis_get_next_response(params, &length)))
-		rndis_free_response(params, buf);
+	while ((buf = sprd_rndis_get_next_response(params, &length)))
+		sprd_rndis_free_response(params, buf);
 }
-EXPORT_SYMBOL_GPL(rndis_uninit);
+EXPORT_SYMBOL_GPL(sprd_rndis_uninit);
 
-void rndis_set_host_mac(struct rndis_params *params, const u8 *addr)
+void sprd_rndis_set_host_mac(struct rndis_params *params, const u8 *addr)
 {
 	params->host_mac = addr;
 }
-EXPORT_SYMBOL_GPL(rndis_set_host_mac);
+EXPORT_SYMBOL_GPL(sprd_rndis_set_host_mac);
 
 /*
  * Message Parser
  */
-int rndis_msg_parser(struct rndis_params *params, u8 *buf)
+int sprd_rndis_msg_parser(struct rndis_params *params, u8 *buf)
 {
 	u32 MsgType, MsgLength;
 	__le32 *tmp;
@@ -863,7 +865,7 @@ int rndis_msg_parser(struct rndis_params *params, u8 *buf)
 
 	return -ENOTSUPP;
 }
-EXPORT_SYMBOL_GPL(rndis_msg_parser);
+EXPORT_SYMBOL_GPL(sprd_rndis_msg_parser);
 
 static inline int rndis_get_nr(void)
 {
@@ -875,7 +877,7 @@ static inline void rndis_put_nr(int nr)
 	ida_simple_remove(&rndis_ida, nr);
 }
 
-struct rndis_params *rndis_register(void (*resp_avail)(void *v), void *v)
+struct rndis_params *sprd_rndis_register(void (*resp_avail)(void *v), void *v)
 {
 	struct rndis_params *params;
 	int i;
@@ -925,9 +927,9 @@ struct rndis_params *rndis_register(void (*resp_avail)(void *v), void *v)
 
 	return params;
 }
-EXPORT_SYMBOL_GPL(rndis_register);
+EXPORT_SYMBOL_GPL(sprd_rndis_register);
 
-void rndis_deregister(struct rndis_params *params)
+void sprd_rndis_deregister(struct rndis_params *params)
 {
 	int i;
 
@@ -950,8 +952,8 @@ void rndis_deregister(struct rndis_params *params)
 	kfree(params);
 	rndis_put_nr(i);
 }
-EXPORT_SYMBOL_GPL(rndis_deregister);
-int rndis_set_param_dev(struct rndis_params *params, struct net_device *dev,
+EXPORT_SYMBOL_GPL(sprd_rndis_deregister);
+int sprd_rndis_set_param_dev(struct rndis_params *params, struct net_device *dev,
 			u16 *cdc_filter)
 {
 	pr_debug("%s:\n", __func__);
@@ -963,11 +965,13 @@ int rndis_set_param_dev(struct rndis_params *params, struct net_device *dev,
 	params->dev = dev;
 	params->filter = cdc_filter;
 
+	rndis_ul_max_xfer_size_rcvd = 0;
+	rndis_ul_max_pkt_per_xfer_rcvd = 0;
 	return 0;
 }
-EXPORT_SYMBOL_GPL(rndis_set_param_dev);
+EXPORT_SYMBOL_GPL(sprd_rndis_set_param_dev);
 
-int rndis_set_param_vendor(struct rndis_params *params, u32 vendorID,
+int sprd_rndis_set_param_vendor(struct rndis_params *params, u32 vendorID,
 			   const char *vendorDescr)
 {
 	pr_debug("%s:\n", __func__);
@@ -981,9 +985,9 @@ int rndis_set_param_vendor(struct rndis_params *params, u32 vendorID,
 
 	return 0;
 }
-EXPORT_SYMBOL_GPL(rndis_set_param_vendor);
+EXPORT_SYMBOL_GPL(sprd_rndis_set_param_vendor);
 
-int rndis_set_param_medium(struct rndis_params *params, u32 medium, u32 speed)
+int sprd_rndis_set_param_medium(struct rndis_params *params, u32 medium, u32 speed)
 {
 	pr_debug("%s: %u %u\n", __func__, medium, speed);
 	if (!params)
@@ -994,44 +998,62 @@ int rndis_set_param_medium(struct rndis_params *params, u32 medium, u32 speed)
 
 	return 0;
 }
-EXPORT_SYMBOL_GPL(rndis_set_param_medium);
+EXPORT_SYMBOL_GPL(sprd_rndis_set_param_medium);
 
-void rndis_add_hdr(struct sk_buff *skb)
+void sprd_rndis_set_max_pkt_xfer(struct rndis_params *params, u8 max_pkt_per_xfer)
+{
+	pr_debug("%s:\n", __func__);
+
+	params->max_pkt_per_xfer = max_pkt_per_xfer;
+}
+EXPORT_SYMBOL_GPL(sprd_rndis_set_max_pkt_xfer);
+
+void sprd_rndis_add_hdr(struct sk_buff *skb)
 {
 	struct rndis_packet_msg_type *header;
+	int pad_len;
 
 	if (!skb)
 		return;
-	header = skb_push(skb, sizeof(*header));
-	memset(header, 0, sizeof *header);
+	pad_len = skb->len % 4;
+	if (pad_len)
+		pad_len = 4 - pad_len;
+
+	header = (void *)skb_push(skb, sizeof(*header) + pad_len);
+	memset(header, 0, sizeof(*header) + pad_len);
+
 	header->MessageType = cpu_to_le32(RNDIS_MSG_PACKET);
 	header->MessageLength = cpu_to_le32(skb->len);
-	header->DataOffset = cpu_to_le32(36);
-	header->DataLength = cpu_to_le32(skb->len - sizeof(*header));
+	header->DataOffset = cpu_to_le32(36 + pad_len);
+	header->DataLength = cpu_to_le32(skb->len - sizeof(*header) - pad_len);
 }
-EXPORT_SYMBOL_GPL(rndis_add_hdr);
+EXPORT_SYMBOL_GPL(sprd_rndis_add_hdr);
 
-void rndis_free_response(struct rndis_params *params, u8 *buf)
+void sprd_rndis_free_response(struct rndis_params *params, u8 *buf)
 {
-	rndis_resp_t *r, *n;
+	rndis_resp_t *r;
+	struct list_head *act, *tmp;
 
-	list_for_each_entry_safe(r, n, &params->resp_queue, list) {
-		if (r->buf == buf) {
+	list_for_each_safe(act, tmp, &(params->resp_queue)) {
+		r = list_entry(act, rndis_resp_t, list);
+		if (r && r->buf == buf) {
 			list_del(&r->list);
 			kfree(r);
 		}
 	}
 }
-EXPORT_SYMBOL_GPL(rndis_free_response);
+EXPORT_SYMBOL_GPL(sprd_rndis_free_response);
 
-u8 *rndis_get_next_response(struct rndis_params *params, u32 *length)
+u8 *sprd_rndis_get_next_response(struct rndis_params *params, u32 *length)
 {
-	rndis_resp_t *r, *n;
+	rndis_resp_t *r;
+	struct list_head *act, *tmp;
 
 	if (!length)
 		return NULL;
 
-	list_for_each_entry_safe(r, n, &params->resp_queue, list) {
+	list_for_each_safe(act, tmp, &(params->resp_queue)) {
+		r = list_entry(act, rndis_resp_t, list);
 		if (!r->send) {
 			r->send = 1;
 			*length = r->length;
@@ -1041,7 +1063,7 @@ u8 *rndis_get_next_response(struct rndis_params *params, u32 *length)
 
 	return NULL;
 }
-EXPORT_SYMBOL_GPL(rndis_get_next_response);
+EXPORT_SYMBOL_GPL(sprd_rndis_get_next_response);
 
 static rndis_resp_t *rndis_add_response(struct rndis_params *params, u32 length)
 {
@@ -1060,32 +1082,82 @@ static rndis_resp_t *rndis_add_response(struct rndis_params *params, u32 length)
 	return r;
 }
 
-int rndis_rm_hdr(struct gether *port,
+int sprd_rndis_rm_hdr(struct gether *port,
 			struct sk_buff *skb,
 			struct sk_buff_head *list)
 {
-	/* tmp points to a struct rndis_packet_msg_type */
-	__le32 *tmp = (void *)skb->data;
+	int num_pkts = 1;
 
-	/* MessageType, MessageLength */
-	if (cpu_to_le32(RNDIS_MSG_PACKET)
-			!= get_unaligned(tmp++)) {
-		dev_kfree_skb_any(skb);
-		return -EINVAL;
-	}
-	tmp++;
+	if (skb->len > rndis_ul_max_xfer_size_rcvd)
+		rndis_ul_max_xfer_size_rcvd = skb->len;
 
-	/* DataOffset, DataLength */
-	if (!skb_pull(skb, get_unaligned_le32(tmp++) + 8)) {
-		dev_kfree_skb_any(skb);
-		return -EOVERFLOW;
+	while (skb->len) {
+		struct rndis_packet_msg_type *hdr;
+		struct sk_buff          *skb2;
+		u32             msg_len, data_offset, data_len;
+
+		/* some rndis hosts send extra byte to avoid zlp, ignore it */
+		if (skb->len == 1) {
+			dev_kfree_skb_any(skb);
+			return 0;
+		}
+
+		if (skb->len < sizeof(*hdr)) {
+			pr_err("invalid rndis pkt: skblen:%u hdr_len:%zu",
+			       skb->len, sizeof(*hdr));
+			dev_kfree_skb_any(skb);
+			return -EINVAL;
+		}
+
+		hdr = (void *)skb->data;
+		msg_len = le32_to_cpu(hdr->MessageLength);
+		data_offset = le32_to_cpu(hdr->DataOffset);
+		data_len = le32_to_cpu(hdr->DataLength);
+
+		if (skb->len < msg_len ||
+		    ((data_offset + data_len + 8) > msg_len)) {
+			pr_err("invalid rndis message: %d/%d/%d/%d, len:%d\n",
+			       le32_to_cpu(hdr->MessageType),
+			       msg_len, data_offset, data_len, skb->len);
+			dev_kfree_skb_any(skb);
+			return -EOVERFLOW;
+		}
+		if (le32_to_cpu(hdr->MessageType) != RNDIS_MSG_PACKET) {
+			pr_err("invalid rndis message: %d/%d/%d/%d, len:%d\n",
+			       le32_to_cpu(hdr->MessageType), msg_len,
+			       data_offset, data_len, skb->len);
+			dev_kfree_skb_any(skb);
+			return -EINVAL;
+		}
+
+		skb_pull(skb, data_offset + 8);
+
+		if (msg_len == skb->len) {
+			skb_trim(skb, data_len);
+			break;
+		}
+
+		skb2 = skb_clone(skb, GFP_ATOMIC);
+		if (!skb2) {
+			pr_err("%s:skb clone failed\n", __func__);
+			dev_kfree_skb_any(skb);
+			return -ENOMEM;
+		}
+
+		skb_pull(skb, msg_len - (data_offset + 8));
+		skb_trim(skb2, data_len);
+		skb_queue_tail(list, skb2);
+
+		num_pkts++;
 	}
-	skb_trim(skb, get_unaligned_le32(tmp++));
+
+	if (num_pkts > rndis_ul_max_pkt_per_xfer_rcvd)
+		rndis_ul_max_pkt_per_xfer_rcvd = num_pkts;
 
 	skb_queue_tail(list, skb);
 	return 0;
 }
-EXPORT_SYMBOL_GPL(rndis_rm_hdr);
+EXPORT_SYMBOL_GPL(sprd_rndis_rm_hdr);
 
 #ifdef CONFIG_USB_GADGET_DEBUG_FILES
 
