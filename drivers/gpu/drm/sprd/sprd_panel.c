@@ -606,6 +606,22 @@ static int sprd_oled_set_brightness(struct backlight_device *bdev)
 
 	DRM_INFO("%s level: %d\n", __func__, level);
 
+	if(strncmp(lcd_name, "lcd_ili9883a_youda_mipi_hd",strlen(lcd_name)) == 0){
+		if (level < 256)
+			level = ((level * 84) + 16)/ 100;
+		pr_err("wzx%s level: %d\n",lcd_name, level);
+	}
+	else{
+		if (level < 256){
+			//g_last_level = level;
+			level = ((level * 96)+ 4)/ 100;
+		}
+	}
+
+	if (level == 256)
+		level = 255;
+
+	DRM_INFO("%s Target level: %d\n", __func__, level);
 	sprd_panel_send_cmds(panel->slave,
 			     panel->info.cmds[CMD_OLED_REG_LOCK],
 			     panel->info.cmds_len[CMD_OLED_REG_LOCK]);
