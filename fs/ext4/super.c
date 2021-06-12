@@ -5629,7 +5629,7 @@ static int ext4_statfs(struct dentry *dentry, struct kstatfs *buf)
 	buf->f_bfree = EXT4_C2B(sbi, max_t(s64, bfree, 0));
 #ifdef CONFIG_EXT4_RESERVE_SPACE_FILTER
 	/*reserved space is visible if have permission */
-	if (check_have_permission(0)) {
+	if (ext4_r_blocks_count(es) != 0 && check_have_permission(0)) {
 		buf->f_bavail = buf->f_bfree - resv_blocks;
 		if (buf->f_bfree < resv_blocks)
 			buf->f_bavail = 0;
