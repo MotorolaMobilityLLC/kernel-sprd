@@ -14,6 +14,8 @@
 #include <linux/power/charger-manager.h>
 #include <linux/regmap.h>
 #include <linux/slab.h>
+#include <linux/pm_wakeup.h>
+#include <linux/usb/phy.h>
 
 /* PMIC global control registers definition */
 #define SC27XX_MODULE_EN0		0xc08
@@ -108,8 +110,40 @@
 #define SC27XX_FGU_DEBUG_DIS_CMD	0x5a5a5a5a
 #define SC27XX_FGU_FCC_PERCENT		1000
 
+#define SC27XX_FGU_TRACK_CAP_SHUTDOWN_START_VOLTAGE	3500
+#define SC27XX_FGU_TRACK_CAP_START_VOLTAGE		3650
+#define SC27XX_FGU_TRACK_CAP_START_CURRENT		50
+#define SC27XX_FGU_TRACK_CAP_KEY0			0x20160726
+#define SC27XX_FGU_TRACK_CAP_KEY1			0x15211517
+#define SC27XX_FGU_TRACK_HIGH_TEMP_THRESHOLD		450
+#define SC27XX_FGU_TRACK_LOW_TEMP_THRESHOLD		150
+#define SC27XX_FGU_TRACK_TIMEOUT_THRESHOLD		108000
+#define SC27XX_FGU_TRACK_START_CAP_THRESHOLD		200
+#define SC27XX_FGU_TRACK_WAKE_UP_MS			25000
+#define SC27XX_FGU_TRACK_FILE_PATH "/mnt/vendor/battery/calibration_data/.battery_file"
+
 #define interpolate(x, x1, y1, x2, y2) \
 	((y1) + ((((y2) - (y1)) * ((x) - (x1))) / ((x2) - (x1))))
+
+enum sc27xx_fgu_track_state {
+	CAP_TRACK_INIT,
+	CAP_TRACK_IDLE,
+	CAP_TRACK_UPDATING,
+	CAP_TRACK_DONE,
+	CAP_TRACK_ERR,
+};
+
+struct sc27xx_fgu_track_capacity {
+	enum sc27xx_fgu_track_state state;
+	int start_clbcnt;
+	int start_cap;
+	int end_vol;
+	int end_cur;
+	s64 start_time;
+	bool cap_tracking;
+	struct delayed_work track_capacity_work;
+	struct delayed_work fgu_update_work;
+};
 
 struct sc27xx_fgu_debug_info {
 	bool temp_debug_en;
@@ -199,10 +233,15 @@ struct sc27xx_fgu_data {
 	int last_clbcnt;
 	int cur_clbcnt;
 	int bat_temp;
+	bool online;
+	u32 chg_type;
+	struct sc27xx_fgu_track_capacity track;
 	struct power_supply_battery_ocv_table *cap_table;
 	struct power_supply_vol_temp_table *temp_table;
 	struct power_supply_capacity_temp_table *cap_temp_table;
 	struct power_supply_resistance_temp_table *resistance_table;
+	struct usb_phy *usb_phy;
+	struct notifier_block usb_notify;
 	const struct sc27xx_fgu_variant_data *pdata;
 	struct sc27xx_fgu_debug_info debug_info;
 };
@@ -1818,6 +1857,390 @@ static int (*sc27xx_fgu_bat_fun[4])(struct sc27xx_fgu_data *data) = {
 	sc27xx_fgu_get_battery_parameter_by_gpio
 };
 
+static void sc27xx_fgu_track_capacity_work(struct work_struct *work)
+{
+	struct sc27xx_fgu_data *data = container_of(work,
+						  struct sc27xx_fgu_data,
+						  track.track_capacity_work.work);
+	u32 total_cap, capacity, check_capacity, file_buf[2];
+	struct file *filep;
+	loff_t pos = 0;
+	static int retry_cnt = 5;
+	int ret;
+
+	filep = filp_open(SC27XX_FGU_TRACK_FILE_PATH,
+			  O_RDWR | O_CREAT,
+			  0644);
+	if (IS_ERR(filep)) {
+		dev_warn(data->dev, "failed to open track file.\n");
+		if (data->track.state == CAP_TRACK_INIT && retry_cnt > 0) {
+			dev_err(data->dev, "track file not ready.\n");
+			retry_cnt--;
+			queue_delayed_work(system_power_efficient_wq,
+					   &data->track.track_capacity_work,
+					   5 * HZ);
+		} else {
+			data->track.state = CAP_TRACK_ERR;
+		}
+		return;
+	}
+
+	total_cap = data->total_cap;
+
+	switch (data->track.state) {
+	case CAP_TRACK_INIT:
+		/*
+		 * When the capacity tracking function starts to work,
+		 * need to read the last saved capacity value from the
+		 * file system, for security reasons we need to decrypt,
+		 * in contrast, when writing data to the file system,
+		 * we need to encrypt it.
+		 */
+		data->track.state = CAP_TRACK_IDLE;
+		if (kernel_read(filep, (char *)&file_buf, sizeof(file_buf), &pos) < 0) {
+			dev_err(data->dev, "track file is empty or read error\n");
+			goto out;
+		}
+
+		capacity = file_buf[0] ^ SC27XX_FGU_TRACK_CAP_KEY0;
+		check_capacity = file_buf[1] ^ SC27XX_FGU_TRACK_CAP_KEY1;
+		if (capacity != check_capacity) {
+			dev_err(data->dev, "track file data error.\n");
+			goto out;
+		}
+
+		if (abs(total_cap - capacity) < total_cap / 5)
+			data->total_cap = capacity;
+		break;
+
+	case CAP_TRACK_DONE:
+		data->track.state = CAP_TRACK_IDLE;
+		file_buf[0] = total_cap ^ SC27XX_FGU_TRACK_CAP_KEY0;
+		file_buf[1] = total_cap ^ SC27XX_FGU_TRACK_CAP_KEY1;
+		ret = kernel_write(filep, &file_buf, sizeof(file_buf), &pos);
+		if (ret < 0) {
+			dev_err(data->dev, "write file_buf data error\n");
+			goto out;
+		}
+		break;
+
+	default:
+		data->track.state = CAP_TRACK_IDLE;
+		break;
+	}
+
+out:
+	if (!IS_ERR(filep))
+		filp_close(filep, NULL);
+
+}
+
+static int sc27xx_fgu_get_batt_energy_now(struct sc27xx_fgu_data *data, int *clbcnt)
+{
+	int value = 0, ret;
+
+	ret = sc27xx_fgu_get_clbcnt(data, &value);
+	if (ret) {
+		dev_err(data->dev, "failed to get clbcnt\n");
+		return ret;
+	}
+
+	value = DIV_ROUND_CLOSEST(value * 10, 36 * SC27XX_FGU_SAMPLE_HZ);
+	*clbcnt = sc27xx_fgu_adc_to_current(data, value);
+
+	return 0;
+}
+
+static void sc27xx_fgu_track_capacity_monitor(struct sc27xx_fgu_data *data)
+{
+	int ibat_avg, ret;
+	int capacity, clbcnt, ocv, boot_volt, vbat_avg;
+	u32 total_cap;
+
+	if (!data->track.cap_tracking)
+		return;
+
+	if (!data->bat_present) {
+		dev_err(data->dev, "battery is not present, cancel monitor.\n");
+		return;
+	}
+
+	if (data->bat_temp > SC27XX_FGU_TRACK_HIGH_TEMP_THRESHOLD ||
+	    data->bat_temp < SC27XX_FGU_TRACK_LOW_TEMP_THRESHOLD) {
+		dev_err(data->dev, "exceed temperature range, cancel monitor.\n");
+		return;
+	}
+
+	ret = sc27xx_fgu_get_current_avg(data, &ibat_avg);
+	if (ret) {
+		dev_err(data->dev, "failed to get relax current.\n");
+		return;
+	}
+
+	ret = sc27xx_fgu_get_vbat_avg(data, &vbat_avg);
+	if (ret) {
+		dev_err(data->dev, "failed to get battery voltage.\n");
+		return;
+	}
+
+	ret = sc27xx_fgu_get_vbat_ocv(data, &ocv);
+	if (ret) {
+		dev_err(data->dev, "get ocv error\n");
+		return;
+	}
+
+	ocv = ocv / 1000;
+
+	boot_volt = data->boot_vol;
+	/*
+	 * If the capacity tracking monitor in idle state, we will
+	 * record the start battery coulomb. when the capacity
+	 * tracking monitor meet end condition, also will record
+	 * the end battery coulomb, we can calculate the actual
+	 * battery capacity by delta coulomb.
+	 * if the following formula , we will replace the standard
+	 * capacity with the calculated actual capacity.
+	 * formula:
+	 * abs(current_capacity -capacity) < capacity / 5
+	 */
+	switch (data->track.state) {
+	case CAP_TRACK_ERR:
+		dev_err(data->dev, "track status error, cancel monitor.\n");
+		return;
+
+	case CAP_TRACK_IDLE:
+		/*
+		 * The capacity tracking monitor start condition is
+		 * divided into two types:
+		 * 1.poweroff charging mode:
+		 * the boot voltage is less than 3500000uv, because
+		 * we set the ocv minimum value is 3400000uv, so the
+		 * the tracking start voltage value we set needs to
+		 * be infinitely close to the shutdown value.
+		 * 2.power on normal mode:
+		 * the current less than 30000ua and the voltage
+		 * less than 3650000uv. When meet the above conditions,
+		 * the battery is almost empty, which is the result of
+		 * multiple test data, so this point suitable as a
+		 * starting condition.
+		 */
+		if (is_charger_mode) {
+			if (boot_volt > SC27XX_FGU_TRACK_CAP_SHUTDOWN_START_VOLTAGE ||
+			    ocv > SC27XX_FGU_TRACK_CAP_START_VOLTAGE) {
+				dev_info(data->dev, "not satisfy shutdown start condition.\n");
+				return;
+			}
+		} else {
+			if (abs(ibat_avg) > SC27XX_FGU_TRACK_CAP_START_CURRENT ||
+			    ocv > SC27XX_FGU_TRACK_CAP_START_VOLTAGE) {
+				dev_info(data->dev, "not satisfy power on start condition.\n");
+				return;
+			}
+		}
+
+		dev_info(data->dev, "start ibat_avg = %d, vbat_avg = %d,"
+			 "ocv = %d, boot_volt = %d\n", ibat_avg,
+			 vbat_avg, ocv, boot_volt);
+		/*
+		 * Parse the capacity table to look up the correct capacity percent
+		 * according to current battery's corresponding OCV values.
+		 */
+		if (is_charger_mode)
+			data->track.start_cap = power_supply_ocv2cap_simple(data->cap_table,
+									    data->table_len,
+									    boot_volt);
+		else
+			data->track.start_cap = power_supply_ocv2cap_simple(data->cap_table,
+									    data->table_len,
+									    ocv);
+		data->track.start_cap *= 10;
+		dev_info(data->dev, "is_charger_mode = %d, start_cap = %d\n",
+			 is_charger_mode, data->track.start_cap);
+		/*
+		 * When the capacity tracking start condition is met,
+		 * the battery is almost empty,so we set a starting
+		 * threshold, if it is greater than it will not enable
+		 * the capacity tracking function, now we set the capacity
+		 * tracking monitor initial percentage threshold to 20%.
+		 */
+		if (data->track.start_cap > SC27XX_FGU_TRACK_START_CAP_THRESHOLD) {
+			dev_info(data->dev,
+				 "does not satisfy the track start condition, start_cap = %d\n",
+				 data->track.start_cap);
+			data->track.start_cap = 0;
+			return;
+		}
+
+		ret = sc27xx_fgu_get_batt_energy_now(data, &clbcnt);
+		if (ret) {
+			dev_err(data->dev, "failed to get energy now.\n");
+			return;
+		}
+
+		data->track.start_time = ktime_divns(ktime_get_boottime(), NSEC_PER_SEC);
+		data->track.start_clbcnt = clbcnt;
+		data->track.state = CAP_TRACK_UPDATING;
+		dev_info(data->dev, "start_time = %d, clbcnt = %d\n",
+			 data->track.start_time, clbcnt);
+		break;
+
+	case CAP_TRACK_UPDATING:
+		if ((ktime_divns(ktime_get_boottime(), NSEC_PER_SEC) -
+		     data->track.start_time) > SC27XX_FGU_TRACK_TIMEOUT_THRESHOLD) {
+			data->track.state = CAP_TRACK_IDLE;
+			dev_err(data->dev, "track capacity time out.\n");
+			return;
+		}
+
+		/*
+		 * When the capacity tracking end condition is met,
+		 * the battery voltage is almost full, so we use full
+		 * stop charging condition as the the capacity
+		 * tracking end condition.
+		 */
+		if (vbat_avg > data->track.end_vol &&
+		    ibat_avg < data->track.end_cur) {
+			if (!data->online) {
+				dev_err(data->dev, "pwr not online\n");
+				return;
+			}
+
+
+			if ((data->chg_type == POWER_SUPPLY_CHARGER_TYPE_UNKNOWN)
+			    || (data->chg_type == POWER_SUPPLY_USB_CHARGER_TYPE_SDP)) {
+				dev_err(data->dev, "chg_type not support, ret = %d\n", ret);
+				return;
+			}
+
+			ret = sc27xx_fgu_get_batt_energy_now(data, &clbcnt);
+			if (ret) {
+				dev_err(data->dev, "failed to get energy now.\n");
+				return;
+			}
+
+			total_cap = data->total_cap;
+			dev_info(data->dev, "end ibat_avg = %d, vbat_avg = %d,"
+				 "ocv = %d, boot_volt = %d\n", ibat_avg,
+				 vbat_avg, ocv, boot_volt);
+			/*
+			 * Due to the capacity tracking function started, the
+			 * coulomb amount corresponding to the initial
+			 * percentage was not counted, so we need to
+			 * compensate initial coulomb with following
+			 * formula, we assume that coulomb and capacity
+			 * are directly proportional.
+			 *
+			 * For example:
+			 * if capacity tracking function started,  the battery
+			 * percentage is 3%, we will count the capacity from
+			 * 3% to 100%, it will discard capacity from 0% to 3%
+			 * so we use "total_cap * (start_cap / 100)" to
+			 * compensate.
+			 *
+			 * formula:
+			 * capacity = total_cap * (start_cap / 100) + capacity
+			 */
+			capacity = (clbcnt - data->track.start_clbcnt) / 1000;
+			dev_info(data->dev, "clbcnt = %d, start_clbcnt = %d,"
+				 "capacity_temp = %d\n", clbcnt,
+				 data->track.start_clbcnt, capacity);
+			capacity = (total_cap * (u32)data->track.start_cap) / 1000 + (u32)capacity;
+			dev_info(data->dev, "total_cap = %d, start_cap = %d, capacity = %d\n",
+				 total_cap, data->track.start_cap, capacity);
+
+			if (abs(capacity - total_cap) < total_cap / 5) {
+				data->total_cap = capacity;
+				data->track.state = CAP_TRACK_DONE;
+				queue_delayed_work(system_power_efficient_wq,
+						   &data->track.track_capacity_work,
+						   0);
+				dev_info(data->dev,
+					 "track capacity is done capacity = %d, diff_cap = %d\n",
+					 capacity, (capacity - (int)total_cap));
+			} else {
+				data->track.state = CAP_TRACK_IDLE;
+				dev_info(data->dev,
+					 "less than half standard capacity.\n");
+			}
+		}
+		break;
+
+	default:
+		break;
+	}
+}
+
+static void sc27xx_fgu_monitor(struct work_struct *work)
+{
+
+	struct sc27xx_fgu_data *data = container_of(work,
+						  struct sc27xx_fgu_data,
+						  track.fgu_update_work.work);
+
+	sc27xx_fgu_track_capacity_monitor(data);
+	dev_info(data->dev, "track_sts: %d", data->track.state);
+	queue_delayed_work(system_power_efficient_wq, &data->track.fgu_update_work, 15 * HZ);
+}
+
+static void sc27xx_fgu_track_capacity_init(struct sc27xx_fgu_data *data)
+{
+	INIT_DELAYED_WORK(&data->track.track_capacity_work,
+			  sc27xx_fgu_track_capacity_work);
+	INIT_DELAYED_WORK(&data->track.fgu_update_work, sc27xx_fgu_monitor);
+
+	if (!data->track.end_vol || !data->track.end_cur)
+		return;
+
+	data->track.state = CAP_TRACK_INIT;
+
+	pm_wakeup_event(data->dev, SC27XX_FGU_TRACK_WAKE_UP_MS);
+
+	queue_delayed_work(system_power_efficient_wq,
+			   &data->track.track_capacity_work,
+			   5 * HZ);
+	queue_delayed_work(system_power_efficient_wq, &data->track.fgu_update_work, 15 * HZ);
+	dev_info(data->dev, "end_vol = %d, end_cur = %d\n", data->track.end_vol,
+		 data->track.end_cur);
+}
+
+static int sc27xx_fgu_usb_change(struct notifier_block *nb,
+				       unsigned long limit, void *info)
+{
+	u32 type;
+	struct sc27xx_fgu_data *data =
+		container_of(nb, struct sc27xx_fgu_data, usb_notify);
+
+	pm_stay_awake(data->dev);
+
+	if (limit)
+		data->online = true;
+	else
+		data->online = false;
+
+	type = data->usb_phy->chg_type;
+
+	switch (type) {
+	case SDP_TYPE:
+		data->chg_type = POWER_SUPPLY_USB_TYPE_SDP;
+		break;
+
+	case DCP_TYPE:
+		data->chg_type = POWER_SUPPLY_USB_TYPE_DCP;
+		break;
+
+	case CDP_TYPE:
+		data->chg_type = POWER_SUPPLY_USB_TYPE_CDP;
+		break;
+
+	default:
+		data->chg_type = POWER_SUPPLY_USB_TYPE_UNKNOWN;
+	}
+
+	pm_relax(data->dev);
+
+	return NOTIFY_OK;
+}
+
 static int sc27xx_fgu_hw_init(struct sc27xx_fgu_data *data,
 			      const struct sc27xx_fgu_variant_data *pdata)
 {
@@ -2096,6 +2519,21 @@ static int sc27xx_fgu_probe(struct platform_device *pdev)
 	if (ret)
 		dev_warn(&pdev->dev, "no fgu compensated resistance support\n");
 
+	ret = device_property_read_u32(&pdev->dev,
+				       "fullbatt-track-end-cur",
+				       &data->track.end_cur);
+	if (ret)
+		dev_warn(&pdev->dev, "no fgu track.end_cur support\n");
+
+	ret = device_property_read_u32(&pdev->dev,
+				       "fullbatt-track-end-vol",
+				       &data->track.end_vol);
+	if (ret)
+		dev_warn(&pdev->dev, "no fgu track.end_vol support\n");
+
+	data->track.cap_tracking =
+		device_property_read_bool(&pdev->dev, "fgu-capacity-track");
+
 	data->bat_para_adapt_support =
 		device_property_read_bool(&pdev->dev, "sprd-battery-parameter-adapt-support");
 
@@ -2128,6 +2566,14 @@ static int sc27xx_fgu_probe(struct platform_device *pdev)
 	data->dev = &pdev->dev;
 	platform_set_drvdata(pdev, data);
 
+	if (data->track.cap_tracking) {
+		data->usb_phy = devm_usb_get_phy_by_phandle(data->dev, "phys", 0);
+		if (IS_ERR(data->usb_phy)) {
+			dev_err(data->dev, "failed to find USB phy\n");
+			return PTR_ERR(data->usb_phy);
+		}
+	}
+
 	fgu_cfg.drv_data = data;
 	fgu_cfg.of_node = np;
 	data->battery = devm_power_supply_register(&pdev->dev, &sc27xx_fgu_desc, &fgu_cfg);
@@ -2140,6 +2586,17 @@ static int sc27xx_fgu_probe(struct platform_device *pdev)
 	if (ret) {
 		dev_err(&pdev->dev, "failed to initialize fgu hardware\n");
 		return ret;
+	}
+	if (data->track.cap_tracking && data->track.end_vol
+	    && data->track.end_cur) {
+		sc27xx_fgu_track_capacity_init(data);
+		device_init_wakeup(data->dev, true);
+		data->usb_notify.notifier_call = sc27xx_fgu_usb_change;
+		ret = usb_register_notifier(data->usb_phy, &data->usb_notify);
+		if (ret) {
+			dev_err(data->dev, "failed to register notifier:%d\n", ret);
+			return ret;
+		}
 	}
 
 	ret = devm_add_action(&pdev->dev, sc27xx_fgu_disable, data);
@@ -2197,6 +2654,9 @@ static int sc27xx_fgu_resume(struct device *dev)
 		return ret;
 	}
 
+	if (data->track.cap_tracking)
+		sc27xx_fgu_monitor(&data->track.fgu_update_work.work);
+
 	return 0;
 }
 
@@ -2244,6 +2704,11 @@ static int sc27xx_fgu_suspend(struct device *dev)
 				"failed to enable coulomb threshold int\n");
 			goto disable_int;
 		}
+	}
+
+	if (data->track.cap_tracking) {
+		cancel_delayed_work_sync(&data->track.track_capacity_work);
+		cancel_delayed_work_sync(&data->track.fgu_update_work);
 	}
 
 	return 0;
