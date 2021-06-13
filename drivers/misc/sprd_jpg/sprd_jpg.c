@@ -318,6 +318,11 @@ static long jpg_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		break;
 
 	case JPG_ENABLE:
+		if ((jpg_fp->is_jpg_acquired == 0) || (jpg_fp->is_clock_enabled == 1)) {
+			pr_err("can not ENABLE! (acquired:%d, clk_enabled:%d)\n",
+				jpg_fp->is_jpg_acquired, jpg_fp->is_clock_enabled);
+			return -EINVAL;
+		}
 		pr_debug("jpg ioctl JPG_ENABLE\n");
 		sprd_jpg_domain_eb();
 		ret = jpg_clk_enable(jpg_hw_dev);
@@ -341,7 +346,11 @@ static long jpg_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			pr_err("jpg error timeout\n");
 			return ret;
 		}
-
+		if ((jpg_fp->is_jpg_acquired == 1) || (jpg_fp->is_clock_enabled == 1)) {
+			pr_err("can not ACQUIRE! (acquired:%d, clk_enabled:%d)\n",
+				jpg_fp->is_jpg_acquired, jpg_fp->is_clock_enabled);
+			return -EINVAL;
+		}
 		jpg_fp->is_jpg_acquired = 1;
 		jpg_hw_dev->jpg_fp = jpg_fp;
 		pr_debug("jpg ioctl JPG_ACQUAIRE end\n");
@@ -355,6 +364,11 @@ static long jpg_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		break;
 
 	case JPG_START:
+		if ((jpg_fp->is_jpg_acquired == 0) || (jpg_fp->is_clock_enabled == 0)) {
+			pr_err("can not START! (acquired:%d, clk_enabled:%d)\n",
+				jpg_fp->is_jpg_acquired, jpg_fp->is_clock_enabled);
+			return -EINVAL;
+		}
 		pr_debug("jpg ioctl JPG_START\n");
 		ret =
 		    wait_event_interruptible_timeout
@@ -388,6 +402,11 @@ static long jpg_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		break;
 
 	case JPG_RESET:
+		if ((jpg_fp->is_jpg_acquired == 0) || (jpg_fp->is_clock_enabled == 0)) {
+			pr_err("can not RESET! (acquired:%d, clk_enabled:%d)\n",
+				jpg_fp->is_jpg_acquired, jpg_fp->is_clock_enabled);
+			return -EINVAL;
+		}
 		pr_debug("jpg ioctl JPG_RESET\n");
 		regmap_update_bits(regs[RESET].gpr, regs[RESET].reg,
 				   regs[RESET].mask, regs[RESET].mask);
@@ -413,7 +432,11 @@ static long jpg_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		break;
 
 	case JPG_GET_IOVA:
-
+		if ((jpg_fp->is_jpg_acquired == 0) || (jpg_fp->is_clock_enabled == 0)) {
+			pr_err("can not GET_IOVA! (acquired:%d, clk_enabled:%d)\n",
+				jpg_fp->is_jpg_acquired, jpg_fp->is_clock_enabled);
+			return -EINVAL;
+		}
 		ret =
 		    copy_from_user((void *)&mapdata,
 				   (const void __user *)arg,
@@ -428,7 +451,11 @@ static long jpg_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		break;
 
 	case JPG_FREE_IOVA:
-
+		if ((jpg_fp->is_jpg_acquired == 0) || (jpg_fp->is_clock_enabled == 0)) {
+			pr_err("can not FREE_IOVA! (acquired:%d, clk_enabled:%d)\n",
+				jpg_fp->is_jpg_acquired, jpg_fp->is_clock_enabled);
+			return -EINVAL;
+		}
 		ret =
 		    copy_from_user((void *)&ummapdata,
 				   (const void __user *)arg,
