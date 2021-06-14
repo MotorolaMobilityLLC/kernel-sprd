@@ -390,6 +390,15 @@ config ARM_SPRD_DUMMY_CPUFREQ
 
 endchoice
 
+config ARM_SPRD_CPUFREQ_PUBLIC
+	tristate "SPRD CPUfreq Driver Public Data"
+	default n
+	help
+	 This includes all SPRD cpufreq driver public data, including but
+	 not limted to the EXPORT SYMBOL with the same name.
+
+	 If in doubt, say N.
+
 config ARM_SPRD_HW_CPUFREQ_SHARKL3
 	tristate "SPRD SHARKL3 HW DVFS Driver"
 	depends on ARM_SPRD_HW_CPUFREQ

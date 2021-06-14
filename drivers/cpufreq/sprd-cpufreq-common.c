@@ -474,7 +474,7 @@ free_np:
 }
 
 /**
- * sprd_cpufreq_update_opp() - returns the max freq of a cpu
+ * sprd_cpufreq_update_opp_common() - returns the max freq of a cpu
  * and update dvfs table by temp_now
  * @cpu: which cpu you want to update dvfs table
  * @temp_now: current temperature on this cpu, mini-degree.
@@ -537,7 +537,6 @@ unsigned int sprd_cpufreq_update_opp_common(int cpu, int temp_now)
 
 	return max_freq;
 }
-//EXPORT_SYMBOL_GPL(sprd_cpufreq_update_opp);
 
 static int sprd_cpufreq_cpuhp_online(unsigned int cpu)
 {

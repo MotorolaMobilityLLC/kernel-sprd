@@ -119,7 +119,7 @@ static int debugfs_cpu_temp_set(void *data, u64 val)
 
 	temp_now = temp_now * 1000;
 
-	ret = sprd_cpufreq_update_opp(info->cpu_id, temp_now);
+	ret = sprd_cpufreq_update_opp_normal(info->cpu_id, temp_now);
 	if (!ret)
 		dev_err(info->pdev, "failed to update opp according to temp\n");
 

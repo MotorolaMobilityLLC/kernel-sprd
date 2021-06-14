@@ -58,6 +58,8 @@ struct sprd_cpufreq_info {
 	unsigned int clu_id, cpu_id;
 	struct sprd_cpu_cluster_info *pcluster;
 	unsigned int policy_trans;
+	/*CUFREQ points to update opp by temp*/
+	unsigned int (*update_opp)(int cpu, int temp_now);
 };
 
 static inline int cpubin2str(int bin, char **name)
@@ -84,7 +86,7 @@ static inline int cpubin2str(int bin, char **name)
 	return 0;
 }
 
-unsigned int sprd_cpufreq_update_opp(int cpu, int temp_now);
+unsigned int sprd_cpufreq_update_opp_normal(int cpu, int temp_now);
 
 #if defined(CONFIG_DEBUG_FS)
 int sprd_cpufreq_debugfs_add(struct sprd_cpufreq_info *info);

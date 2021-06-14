@@ -107,7 +107,8 @@ struct sprd_cpufreq_driver_data {
 	/*cpufreq points to hotplug notify*/
 	int (*cpufreq_online)(unsigned int cpu);
 	int (*cpufreq_offline)(unsigned int cpu);
-
+	/*CUFREQ points to update opp by temp*/
+	unsigned int (*update_opp)(int cpu, int temp_now);
 	/* judge soc version */
 	bool version_judge;
 
@@ -145,5 +146,7 @@ int dev_pm_opp_of_add_table_binning(int cluster,
 				struct sprd_cpufreq_driver_data *cpufreq_data);
 
 int sprd_cpufreq_cpuhp_setup(void);
+
+unsigned int sprd_cpufreq_update_opp_common(int cpu, int temp_now);
 
 #endif

@@ -1195,6 +1195,8 @@ static int sprd_cpufreq_init(struct cpufreq_policy *policy)
 
 	policy->freq_table = freq_table;
 
+	c->update_opp = sprd_cpufreq_update_opp_common;
+
 	pr_debug("going to prepare clock\n");
 	if (!c->clk_en) {
 		ret = clk_prepare_enable(cpu_clk);

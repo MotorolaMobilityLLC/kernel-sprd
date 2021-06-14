@@ -347,7 +347,7 @@ static int sprd_opp_select(struct sprd_cpufreq_info *info, int temp_now)
 	return ret;
 }
 
-unsigned int sprd_cpufreq_update_opp(int cpu, int temp_now)
+unsigned int sprd_cpufreq_update_opp_normal(int cpu, int temp_now)
 {
 	struct sprd_cpufreq_info *info;
 	struct sprd_cpu_cluster_info *clu;
@@ -418,7 +418,6 @@ out:
 
 	return ret;
 }
-EXPORT_SYMBOL_GPL(sprd_cpufreq_update_opp);
 
 static int sprd_cpu_soc_version_parse(struct sprd_cpufreq_info *info)
 {
@@ -978,6 +977,8 @@ static int sprd_cpufreq_info_init(struct sprd_cpufreq_info *info, int cpu)
 		nvmem_cell_put(cell);
 		ret = 0;
 	}
+
+	info->update_opp = sprd_cpufreq_update_opp_normal;
 
 dev_np_put:
 	of_node_put(dev_np);

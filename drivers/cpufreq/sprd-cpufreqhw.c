@@ -366,6 +366,8 @@ static int sprd_hardware_cpufreq_init(struct cpufreq_policy *policy)
 	/* Verify the frequency table */
 	policy->freq_table = freq_table;
 
+	data->update_opp = sprd_cpufreq_update_opp_common;
+
 #ifdef CONFIG_SMP
 	/* CPUs in the same cluster share a clock and power domain */
 	of_property_read_u32(cpufreq_of_node, "cpufreq-cluster-cpumask",

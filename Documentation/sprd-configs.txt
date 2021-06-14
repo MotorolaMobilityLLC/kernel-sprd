@@ -1473,6 +1473,15 @@ CONFIG_ARM_SCPI_PROTOCOL
 	[must]
 	[missing plat description] none
 	[function]
+CONFIG_ARM_SPRD_CPUFREQ_PUBLIC
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field] make
+	[subsys] cpufreq
+	[must] user
+	[missing plat description] none
+	[function] This include all SPRD cpufreq driver public data.
 CONFIG_ARM_SPRD_CPUIDLE
 	[arch] arm
 	[plat] pike2

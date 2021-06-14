@@ -135,6 +135,8 @@ sprd-hwdvfs-ums9230-arch-objs := sprd-hwdvfs-normal.o sprd-hwdvfs-ums9230.o
 
 obj-$(CONFIG_ARM_SPRD_HW_CPUFREQ_NORMAL) += sprd-hwdvfs-policy.o
 sprd-hwdvfs-policy-objs := sprd-hwdvfs-cpufreq.o
+
+obj-$(CONFIG_ARM_SPRD_CPUFREQ_PUBLIC) += sprd-cpufreq-public.o
 ifneq ($(CONFIG_DEBUG_FS),)
 sprd-hwdvfs-policy-objs += sprd-hwdvfs-debugfs.o
 endif
