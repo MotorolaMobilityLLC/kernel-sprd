@@ -15,8 +15,10 @@ endif
 
 ifeq ($(BSP_BUILD_FAMILY),sharkl5Pro)
 dtbo-$(CONFIG_ARCH_SPRD) += ums512-1h10-overlay.dtbo
+dtbo-$(CONFIG_ARCH_SPRD) += ums512-1h10-go-overlay.dtbo
 
 ums512-1h10-overlay.dtbo-base := ums512.dtb
+ums512-1h10-go-overlay.dtbo-base := ums512.dtb
 endif
 
 ifeq ($(BSP_BUILD_FAMILY),sharkl5)
@@ -57,6 +59,7 @@ dtbo-$(CONFIG_ARCH_SPRD) += \
 	sp9863a-1h10-overlay.dtbo \
 	sp9863a-1h10_go-overlay.dtbo \
 	ums512-1h10-overlay.dtbo \
+	ums512-1h10-go-overlay.dtbo \
 	ums312-2h10-overlay.dtbo \
 	ums9230-haps-backdoor-overlay.dtbo \
 	ums9230-haps-flash-overlay.dtbo \
