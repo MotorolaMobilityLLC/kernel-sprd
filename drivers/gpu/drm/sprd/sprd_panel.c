@@ -428,6 +428,7 @@ static int sprd_panel_te_check(struct sprd_panel *panel)
 }
 
 static int sprd_oled_set_brightness(struct backlight_device *bdev);
+unsigned int g_last_level = 25;
 struct backlight_device *g_bdev;
 struct device *dev;
 extern int32_t nvt_ts_suspend(struct device *dev);
@@ -646,6 +647,22 @@ static int of_parse_oled_cmds(struct sprd_oled *oled,
 	return 0;
 }
 
+#ifdef CONFIG_HBM_SUPPORT
+extern bool g_hbm_enable;
+int hbm_set_backlight_level(unsigned int level)
+{
+	if (g_bdev != NULL) {
+		g_bdev->props.brightness = level;
+		sprd_oled_set_brightness(g_bdev);
+		return 0;
+	} else {
+		DRM_INFO("firefly, g_bdev is null, please register sprd backlight\n");
+		return -1;
+	}
+
+}
+#endif
+
 static void set_lcd_oled_level(struct sprd_oled *oled, int level)
 {
 	LCD lcd = check_lcd_by_name(lcd_name);
@@ -675,6 +692,12 @@ static int sprd_oled_set_brightness(struct backlight_device *bdev)
 	struct sprd_oled *oled = bl_get_data(bdev);
 	struct sprd_panel *panel = oled->panel;
 
+    if (g_hbm_enable){
+		DRM_INFO("firefly ,Now hbm enable, want to set level = %d\n", bdev->props.brightness);
+		DRM_INFO("firefly ,Do not allow to set other level backlight\n");
+		bdev->props.brightness = 256;
+	}
+
 	mutex_lock(&panel_lock);
 	if (!panel->is_enabled) {
 		mutex_unlock(&panel_lock);
@@ -688,6 +711,7 @@ static int sprd_oled_set_brightness(struct backlight_device *bdev)
 	DRM_INFO("%s Source level: %d\n", __func__, level);
 
 	if (level < 256){
+        g_last_level = level;
 		level = ((level * 78) + 20)/ 100;
 	}
 
@@ -793,7 +817,9 @@ static int sprd_oled_backlight_init(struct sprd_panel *panel)
 			panel->info.cmds[CMD_OLED_BRIGHTNESS],
 			panel->info.cmds_len[CMD_OLED_BRIGHTNESS]);
 
-	g_bdev = oled->bdev;
+#ifdef CONFIG_HBM_SUPPORT
+        g_bdev = oled->bdev;
+#endif
 
 	DRM_INFO("%s() ok\n", __func__);
 
