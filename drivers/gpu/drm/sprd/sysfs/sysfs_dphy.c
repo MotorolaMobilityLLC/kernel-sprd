@@ -318,8 +318,7 @@ static ssize_t suspend_store(struct device *dev,
 				const char *buf, size_t count)
 {
 	struct sprd_dphy *dphy = dev_get_drvdata(dev);
-	struct device *dsi_dev = sprd_disp_pipe_get_input(dphy->dev.parent);
-	struct sprd_dsi *dsi = dev_get_drvdata(dsi_dev);
+	struct sprd_dsi *dsi = dev_get_drvdata(dphy->dsi_dev);
 
 	if ((dsi->ctx.is_inited) && (dphy->ctx.is_enabled)) {
 		sprd_dphy_suspend(dphy);
@@ -335,8 +334,7 @@ static ssize_t resume_store(struct device *dev,
 				const char *buf, size_t count)
 {
 	struct sprd_dphy *dphy = dev_get_drvdata(dev);
-	struct device *dsi_dev = sprd_disp_pipe_get_input(dphy->dev.parent);
-	struct sprd_dsi *dsi = dev_get_drvdata(dsi_dev);
+	struct sprd_dsi *dsi = dev_get_drvdata(dphy->dsi_dev);
 
 	if ((dsi->ctx.is_inited) && (!dphy->ctx.is_enabled)) {
 		sprd_dphy_resume(dphy);
