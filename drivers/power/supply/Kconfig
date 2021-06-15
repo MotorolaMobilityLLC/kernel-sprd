@@ -667,6 +667,14 @@ config CHARGER_CROS_USBPD
 	  what is connected to USB PD ports from the EC and converts
 	  that into power_supply properties.
 
+config CHARGER_SC2703
+	tristate "Spreadtrum Communications SC2703 Charger support"
+	depends on MFD_SC2703 || COMPILE_TEST
+	help
+	  Say Y here to enable support for charger unit of the SC2703 Charger.
+	  This driver can also be built as a module. If so, the module will be
+	  called sc2703-charger.
+
 config CHARGER_SC2731
 	tristate "Spreadtrum SC2731 charger driver"
 	depends on MFD_SC27XX_PMIC || COMPILE_TEST
@@ -679,6 +687,18 @@ config CHARGER_FAN54015
 	depends on I2C || COMPILE_TEST
 	help
 	  Say Y to include support for Fairchild FAN54015 Battery Charger.
+
+config CHARGER_BQ2560X
+	tristate "TI BQ2560X Charger"
+	depends on I2C || COMPILE_TEST
+	help
+	  Say Y to include support for TI BQ2560X Battery Charger.
+
+config CHARGER_BQ2597X
+	tristate "TI BQ2597X Charger"
+	depends on I2C || COMPILE_TEST
+	help
+	  Say Y to include support for TI BQ2597X Charger.
 
 config CHARGER_SC2720
 	tristate "Spreadtrum SC2720 charger driver"
@@ -701,6 +721,13 @@ config FUEL_GAUGE_SC27XX
 	help
 	 Say Y here to enable support for fuel gauge with SC27XX
 	 PMIC chips.
+
+config FAST_CHARGER_SC2730
+	tristate "Spreadtrum SC2730 fast charger driver"
+	depends on MFD_SC27XX_PMIC || MFD_UMP96XX_PMIC || COMPILE_TEST
+	help
+	  Say Y here to enable support for fast charging with SC2730
+	  PMIC chips.
 
 config CHARGER_UCS1002
 	tristate "Microchip UCS1002 USB Port Power Controller"

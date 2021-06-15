@@ -95,3 +95,6 @@ obj-$(CONFIG_CHARGER_FAN54015)	+= fan54015-charger.o
 obj-$(CONFIG_CHARGER_UCS1002)	+= ucs1002_power.o
 obj-$(CONFIG_CHARGER_BD70528)	+= bd70528-charger.o
 obj-$(CONFIG_CHARGER_WILCO)	+= wilco-charger.o
+obj-$(CONFIG_CHARGER_BQ2560X)	+= bq2560x-charger.o
+obj-$(CONFIG_CHARGER_BQ2597X)	+= bq2597x-charger.o
+obj-$(CONFIG_FAST_CHARGER_SC2730) += sc2730_fast_charger.o
