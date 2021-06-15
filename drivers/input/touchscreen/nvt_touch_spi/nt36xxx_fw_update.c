@@ -968,6 +968,7 @@ extern const char *lcd_name;
 int32_t nvt_update_firmware(char *firmware_name)
 {
 	int32_t ret = 0;
+	static int8_t count = 0;
 
 	// request bin file in "/etc/firmware"
 	ret = update_firmware_request(firmware_name);
@@ -1004,15 +1005,18 @@ int32_t nvt_update_firmware(char *firmware_name)
 
 #ifdef ONTIM_DEV_NVT_INFO
 	printk(KERN_ERR "%s(%d) get_info, lcd_name:%s\n", __func__, __LINE__, lcd_name);
-	if(CHECK_THIS_DEV_DEBUG_AREADY_EXIT()==0)
-	{
-		return -1;
-	}
-	REGISTER_AND_INIT_ONTIM_DEBUG_FOR_THIS_DEV();
-	if (strstr(lcd_name, "nt36525b") != NULL) {
-		snprintf(lcdname, sizeof(lcdname), "nvt-nt36525b");
-		snprintf(vendor_name, sizeof(vendor_name), "nvt-nt36525b");
-		snprintf(version, sizeof(version),"FW:%02x,VID:0xA2", ts->fw_ver);
+	if(count == 0){
+		if(CHECK_THIS_DEV_DEBUG_AREADY_EXIT()==0)
+		{
+			return -1;
+		}
+		REGISTER_AND_INIT_ONTIM_DEBUG_FOR_THIS_DEV();
+		if (strstr(lcd_name, "nt36525b") != NULL) {
+			snprintf(lcdname, sizeof(lcdname), "nvt-nt36525b");
+			snprintf(vendor_name, sizeof(vendor_name), "nvt-nt36525b");
+			snprintf(version, sizeof(version),"FW:%02x,VID:0xA1", ts->fw_ver);
+		}
+		count++;
 	}
 #endif
 
