@@ -25,6 +25,7 @@
 #include <linux/slab.h>
 
 #include "sprd_dphy.h"
+#include "sprd_dsi.h"
 #include "sysfs/sysfs_display.h"
 
 LIST_HEAD(dphy_pll_head);
@@ -49,6 +50,12 @@ static int regmap_tst_io_read(void *context, u32 reg, u32 *val)
 {
 	struct sprd_dphy *dphy = context;
 	int ret;
+	struct sprd_dsi *dsi = dev_get_drvdata(dphy->dsi_dev);
+
+	if (!dsi->ctx.is_inited) {
+		pr_err("dphy is suspended, stop access\n");
+		return -EINVAL;
+	}
 
 	if (reg > 0xff)
 		return -EINVAL;
@@ -71,12 +78,14 @@ static struct regmap_bus regmap_tst_io = {
 static const struct regmap_config byte_config = {
 	.reg_bits = 8,
 	.val_bits = 8,
+	.max_register = 250,
 };
 
 static const struct regmap_config word_config = {
 	.reg_bits = 32,
 	.val_bits = 32,
 	.reg_stride = 4,
+	.max_register = 250,
 };
 
 static int sprd_dphy_regmap_init(struct sprd_dphy *dphy)
@@ -189,6 +198,16 @@ int sprd_dphy_suspend(struct sprd_dphy *dphy)
 	return ret;
 }
 
+static const struct of_device_id dt_ids[] = {
+	{ .compatible = "sprd,dsi-phy", },
+	{},
+};
+
+static struct device_driver dev_driver = {
+	.name  = "sprd-dphy-drv",
+	.of_match_table = of_match_ptr(dt_ids),
+};
+
 static int sprd_dphy_device_create(struct sprd_dphy *dphy,
 				   struct device *parent)
 {
@@ -197,6 +216,7 @@ static int sprd_dphy_device_create(struct sprd_dphy *dphy,
 	dphy->dev.class = display_class;
 	dphy->dev.parent = parent;
 	dphy->dev.of_node = parent->of_node;
+	dphy->dev.driver = &dev_driver;
 	dev_set_name(&dphy->dev, "dphy%d", dphy->ctx.id);
 	dev_set_drvdata(&dphy->dev, dphy);
 
@@ -294,6 +314,7 @@ static int sprd_dphy_probe(struct platform_device *pdev)
 	if (!dsi_dev)
 		return -ENODEV;
 
+	dphy->dsi_dev = dsi_dev;
 	if (!of_property_read_string(dsi_dev->of_node, "sprd,ip", &str))
 		dphy->ppi = dphy_ppi_ops_attach(str);
 	else
@@ -328,11 +349,6 @@ static int sprd_dphy_probe(struct platform_device *pdev)
 
 	return 0;
 }
-
-static const struct of_device_id dt_ids[] = {
-	{ .compatible = "sprd,dsi-phy", },
-	{},
-};
 
 static struct platform_driver sprd_dphy_driver = {
 	.probe	= sprd_dphy_probe,

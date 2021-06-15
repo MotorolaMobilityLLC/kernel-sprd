@@ -71,6 +71,7 @@ struct dphy_glb_ops {
 
 struct sprd_dphy {
 	struct device dev;
+	struct device *dsi_dev;
 	struct dphy_context ctx;
 	struct dphy_ppi_ops *ppi;
 	struct dphy_pll_ops *pll;
