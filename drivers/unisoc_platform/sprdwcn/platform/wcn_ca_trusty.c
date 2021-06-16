@@ -124,7 +124,7 @@ static bool wcn_ca_tipc_connect(struct wcn_ca_tipc_ctx *tipc, const char *port)
 		(tipc->state == TIPC_CHANNEL_CONNECTED),
 		msecs_to_jiffies(2000));
 	if (timeout <= 0) {
-		WCN_ERR("fail to %s, waiting exit %d!\n", __func__, timeout);
+		WCN_ERR("fail to %s, waiting exit %ld!\n", __func__, timeout);
 		ret = false;
 		return ret;
 	}
@@ -177,7 +177,7 @@ static ssize_t wcn_ca_tipc_read(struct wcn_ca_tipc_ctx *tipc,
 		!list_empty(&tipc->rx_msg_queue),
 		msecs_to_jiffies(2000));
 	if (timeout <= 0) {
-		WCN_ERR("fail to %s, waiting exit %d!\n", __func__, timeout);
+		WCN_ERR("fail to %s, waiting exit %ld!\n", __func__, timeout);
 		return -ETIMEDOUT;
 	}
 
@@ -278,7 +278,7 @@ static int do_wcn_firmware_sec_verify(struct firmware_verify_ctrl *verify_ctrl)
 	kbc_image_sptr->img_len = verify_ctrl->bin_length;
 	kbc_image_sptr->map_len = verify_ctrl->bin_length;
 
-	WCN_INFO("wcn_ca verify request cmd = %d, payload = %d, len = %d\n",
+	WCN_INFO("wcn_ca verify request cmd = %d, payload = %d, len = %ld\n",
 		verify_request->cmd, verify_request->payload[0], len);
 	rc = wcn_ca_tipc_write(verify_ctrl->ca_tipc_ctx,
 			verify_request, len);

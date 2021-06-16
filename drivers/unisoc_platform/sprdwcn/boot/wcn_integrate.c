@@ -668,7 +668,7 @@ int btwf_force_deepsleep(void)
 		return 0;
 	}
 
-	WCN_ERR("%s:wcn_dev=0x%x\n", __func__, wcn_dev);
+	WCN_ERR("%s:wcn_dev=0x%p\n", __func__, wcn_dev);
 	return -EINVAL;
 }
 /* NOTES:This is for QogirL6 chip.
@@ -695,7 +695,7 @@ int gnss_force_deepsleep(void)
 		return 0;
 	}
 
-	WCN_ERR("%s:wcn_dev=0x%x\n", __func__, wcn_dev);
+	WCN_ERR("%s:wcn_dev=0x%p\n", __func__, wcn_dev);
 	return -EINVAL;
 }
 

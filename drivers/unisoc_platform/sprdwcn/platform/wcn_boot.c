@@ -1179,7 +1179,7 @@ static int marlin_parse_dt(struct platform_device *pdev)
 	} else {
 		marlin_dev->base_addr_btwf = res.start;
 		marlin_dev->maxsz_btwf = resource_size(&res);
-		pr_info("cp base = 0x%x, size = 0x%x\n",
+		pr_info("cp base = 0x%llx, size = 0x%x\n",
 			 (u64)marlin_dev->base_addr_btwf,
 			 marlin_dev->maxsz_btwf);
 	}
@@ -1190,7 +1190,7 @@ static int marlin_parse_dt(struct platform_device *pdev)
 	} else {
 		marlin_dev->base_addr_gnss = res.start;
 		marlin_dev->maxsz_gnss = resource_size(&res);
-		pr_info("cp base = 0x%x, size = 0x%x\n",
+		pr_info("cp base = 0x%llx, size = 0x%x\n",
 			 (u64)marlin_dev->base_addr_gnss,
 			 marlin_dev->maxsz_gnss);
 	}
