@@ -4514,6 +4514,70 @@ int tcpm_update_sink_capabilities(struct tcpm_port *port, const u32 *pdo,
 }
 EXPORT_SYMBOL_GPL(tcpm_update_sink_capabilities);
 
+void tcpm_get_source_capabilities(struct tcpm_port *port,
+				  struct adapter_power_cap *pd_source_cap)
+{
+	int i;
+
+	if (!port) {
+		pd_source_cap->nr_source_caps = 0;
+		pr_warn("port Null!!!\n");
+		return;
+	}
+
+	/* Clears SRC_CAP in the disconnected state */
+	if (tcpm_port_is_disconnected(port) &&
+	    (port->state == SRC_UNATTACHED || port->state == SNK_UNATTACHED ||
+	     port->state == DRP_TOGGLING)) {
+		for (i = 0; i < pd_source_cap->nr_source_caps; i++) {
+			pd_source_cap->max_mv[i] = 0;
+			pd_source_cap->min_mv[i] = 0;
+			pd_source_cap->ma[i] = 0;
+			pd_source_cap->pwr_mw_limit[i] = 0;
+		}
+		pd_source_cap->nr_source_caps = 0;
+		return;
+	}
+
+	pd_source_cap->nr_source_caps = port->nr_source_caps;
+	for (i = 0; i < port->nr_source_caps; i++) {
+		u32 pdo = port->source_caps[i];
+		enum pd_pdo_type type = pdo_type(pdo);
+
+		pd_source_cap->type[i] = type;
+		switch (type) {
+		case PDO_TYPE_FIXED:
+			pd_source_cap->max_mv[i] = pdo_fixed_voltage(pdo);
+			pd_source_cap->min_mv[i] = pd_source_cap->max_mv[i];
+			pd_source_cap->ma[i] = pdo_max_current(pdo);
+			break;
+		case PDO_TYPE_VAR:
+			pd_source_cap->max_mv[i] = pdo_max_voltage(pdo);
+			pd_source_cap->min_mv[i] = pdo_min_voltage(pdo);
+			pd_source_cap->ma[i] = pdo_max_current(pdo);
+			break;
+		case PDO_TYPE_BATT:
+			pd_source_cap->max_mv[i] = pdo_max_voltage(pdo);
+			pd_source_cap->min_mv[i] = pdo_min_voltage(pdo);
+			pd_source_cap->pwr_mw_limit[i] = pdo_max_power(pdo);
+			break;
+		case PDO_TYPE_APDO:
+			if (pdo_apdo_type(pdo) == APDO_TYPE_PPS) {
+				pd_source_cap->max_mv[i] = pdo_pps_apdo_max_voltage(pdo);
+				pd_source_cap->min_mv[i] = pdo_pps_apdo_min_voltage(pdo);
+				pd_source_cap->ma[i] = pdo_pps_apdo_max_current(pdo);
+			} else {
+				pd_source_cap->nr_source_caps = pd_source_cap->nr_source_caps - 1;
+			}
+			break;
+		default:
+			pd_source_cap->nr_source_caps = pd_source_cap->nr_source_caps - 1;
+			break;
+		}
+	}
+}
+EXPORT_SYMBOL_GPL(tcpm_get_source_capabilities);
+
 /* Power Supply access to expose source power information */
 enum tcpm_psy_online_states {
 	TCPM_PSY_OFFLINE = 0,

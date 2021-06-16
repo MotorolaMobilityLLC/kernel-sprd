@@ -154,6 +154,15 @@ struct tcpc_dev {
 			   const struct pd_message *msg);
 };
 
+struct adapter_power_cap {
+	uint8_t type[PDO_MAX_OBJECTS];
+	int max_mv[PDO_MAX_OBJECTS];
+	int min_mv[PDO_MAX_OBJECTS];
+	int ma[PDO_MAX_OBJECTS];
+	int pwr_mw_limit[PDO_MAX_OBJECTS];
+	uint8_t nr_source_caps;
+};
+
 struct tcpm_port;
 
 struct tcpm_port *tcpm_register_port(struct device *dev, struct tcpc_dev *tcpc);
@@ -164,6 +173,9 @@ int tcpm_update_source_capabilities(struct tcpm_port *port, const u32 *pdo,
 int tcpm_update_sink_capabilities(struct tcpm_port *port, const u32 *pdo,
 				  unsigned int nr_pdo,
 				  unsigned int operating_snk_mw);
+
+void tcpm_get_source_capabilities(struct tcpm_port *port,
+				  struct adapter_power_cap *pd_source_cap);
 
 void tcpm_vbus_change(struct tcpm_port *port);
 void tcpm_cc_change(struct tcpm_port *port);
