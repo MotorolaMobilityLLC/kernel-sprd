@@ -114,10 +114,10 @@ static int sprd_mbox_debug_show(struct seq_file *m, void *private)
 	seq_printf(m, "OOB_IRQ : %d\n", priv->oob_irq);
 	seq_printf(m, "OOB_ID : %ld\n", priv->oob_id);
 	seq_printf(m, "VERSION : 0x%x\n", priv->version);
+	seq_printf(m, "mbox_rx_fifo_cnt : %d\n", mbox_rx_fifo_cnt);
+	seq_printf(m, "started_chan_msk : 0x%04x\n", g_started_chan_msk);
 
 	for (i = 0; i < SPRD_MBOX_CHAN_MAX; i++) {
-		if (!(g_started_chan_msk & (1 << i)))
-			continue;
 
 		sprd_mbox_debug_putline(m, '*', 110);
 		seq_printf(m, "[INBOX %d]\n"
@@ -332,7 +332,7 @@ static int mbox_pm_event(struct notifier_block *notifier,
 	void __iomem *base = g_mbox_nowakeup_base;
 
 	if (!base)
-		return NOTIFY_BAD;
+		return NOTIFY_DONE;
 
 	switch (pm_event) {
 	case PM_SUSPEND_PREPARE:
