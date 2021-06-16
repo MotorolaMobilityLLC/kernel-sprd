@@ -52,6 +52,7 @@ static void imsbr_cp_reset(struct imsbr_msghdr *msg, unsigned long unused);
 static void imsbr_echo_ping(struct imsbr_msghdr *msg, unsigned long unused);
 static void imsbr_echo_pong(struct imsbr_msghdr *msg, unsigned long unused);
 static void imsbr_cp_sync_esp(struct imsbr_msghdr *msg, unsigned long unused);
+static void imsbr_handover_state(struct imsbr_msghdr *msg, unsigned long unused);
 
 static struct imsbr_msglist {
 	const char *name;
@@ -95,6 +96,11 @@ static struct imsbr_msglist {
 		.name = "cp-sync-esp",
 		.doit = imsbr_cp_sync_esp,
 		.req_len = sizeof('\0'), /* size not fixed */
+	},
+	{
+		.name = "handover-state",
+		.doit = imsbr_handover_state,
+		.req_len = sizeof('\0'),
 	},
 };
 
@@ -429,6 +435,29 @@ static void imsbr_cp_sync_esp(struct imsbr_msghdr *msg, unsigned long unused)
 
 	/* TODO GKI scan, we may need to abort this way */
 	//imsbr_esp_update_esphs((char *)esphs);
+}
+
+static void imsbr_handover_state(struct imsbr_msghdr *msg, unsigned long unused)
+{
+	struct handover_state *state;
+	int new_ho = 0;
+	u32 simcard;
+
+	state = (struct handover_state *)msg->imsbr_payload;
+
+	if (state->ho_type == IMSBR_HO_LTE2WIFI) {
+		new_ho = IMSBR_HO_LTE2WIFI;
+	} else if (state->ho_type == IMSBR_HO_WIFI2LTE) {
+		new_ho = IMSBR_HO_WIFI2LTE;
+	} else if (state->ho_type == IMSBR_HO_FINISH) {
+		new_ho = IMSBR_HO_FINISH;
+	} else {
+		pr_info("state from cp: %d", state->ho_type);
+	}
+	simcard = state->sim_card;
+
+	pr_info("state from cp: %d sim%d", new_ho, simcard);
+	atomic_set(&imsbr_simcards[simcard].ho_state, new_ho);
 }
 
 static void imsbr_cptuple_reset(struct imsbr_msghdr *msg, unsigned long unused)

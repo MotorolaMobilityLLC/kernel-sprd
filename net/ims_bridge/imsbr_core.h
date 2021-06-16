@@ -63,6 +63,11 @@ enum imsbr_flow_types {
 	IMSBR_FLOW_APTUPLE,
 };
 
+struct handover_state{
+	int ho_type;
+	u8	sim_card;
+};
+
 #define IMSBR_FLOW_HSIZE		512
 
 struct imsbr_flow {

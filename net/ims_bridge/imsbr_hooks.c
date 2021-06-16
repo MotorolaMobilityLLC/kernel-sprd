@@ -144,6 +144,46 @@ imsbr_modify_esp_seq(unsigned int spi, unsigned int seq)
 	}
 }
 
+/*for cp vowifi */
+#define IP_V_FLAG 0x40
+#define IP_V6_FLAG 0x60
+#define TYPE_UDP 0x11
+
+static bool imsbr_packet_is_ike_auth(unsigned char *ptr, unsigned int len)
+{
+	unsigned int ub_begin, ub_end, i;
+	unsigned char pkt_type;
+
+	/*IKE authentication packeet has 00 00 00 00 next to UDP header*/
+	if ((ptr[0] & IP_V_FLAG) == 0x40) {
+		ub_begin = 28;
+		ub_end = 32;
+		pkt_type = ptr[9];
+		if (ptr[46] == 0x22  && ptr[44] == 0x21) {
+			pr_info("this is ike packet DO SA INIT!");
+			return true;
+		}
+	} else if ((ptr[0] & IP_V6_FLAG) == 0x60) {
+		ub_begin = 48;
+		ub_end = 52;
+		pkt_type = ptr[6];
+	} else {
+		pr_info("this is not ike packet!");
+		return false;
+	}
+
+	if (pkt_type == TYPE_UDP) {
+		for (i = ub_begin; i < ub_end; i++) {
+			if (ptr[i] != 0x00)
+				return false;
+		}
+		pr_info("this is ike packet !!!\n");
+		return true;
+	}
+	pr_info("This is not ike packet and return false\n");
+	return false;
+}
+
 static unsigned int nf_imsbr_input(void *priv,
 				   struct sk_buff *skb,
 				   const struct nf_hook_state *state)
@@ -180,6 +220,17 @@ static unsigned int nf_imsbr_input(void *priv,
 	flow = imsbr_flow_match(&nft);
 	if (!flow)
 		return NF_ACCEPT;
+
+	/*for cp vowifi */
+	if (flow->socket_type == IMSBR_SOCKET_CP &&
+	    flow->media_type == IMSBR_MEDIA_IKE) {
+		if (imsbr_packet_is_ike_auth(skb->data, skb->len)) {
+			imsbr_packet_relay2cp(skb);
+			pr_info("this is ike pkt, go to cp socket !");
+			return NF_STOLEN;
+		}
+		return NF_ACCEPT;//now is esp packet
+	}
 
 	/* c2k: downlink ike pkt always go to ap socket */
 	if (flow->media_type == IMSBR_MEDIA_IKE) {

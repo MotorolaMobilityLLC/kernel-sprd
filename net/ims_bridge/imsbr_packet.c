@@ -189,7 +189,7 @@ static void imsbr_packet_output_v6(struct sk_buff *skb, struct ipv6hdr *ip6)
 
 	imsbr_flowi6_init(&fl6, ip6);
 	security_skb_classify_flow(skb, flowi6_to_flowi(&fl6));
-
+	fl6.flowi6_mark = skb->mark;
 	dst = ip6_route_output(&init_net, NULL, &fl6);
 	if (unlikely(dst->error)) {
 		IMSBR_STAT_INC(imsbr_stats->ip6_route_fail);
@@ -228,10 +228,16 @@ static void imsbr_packet_output(struct sk_buff *skb)
 	 */
 	skb->ignore_df = 1;
 
-	if (ip->version == 4)
+	if (ip->version == 4) {
 		imsbr_packet_output_v4(skb, ip);
-	else
+	} else {
+		/* Ipv6 route rule 11000 can not prevent apps to hit this rule,
+		 * so add mark 0x80000000 for the rule to avoid apps hitting.
+		 * For vowifi pkts,they need add mark for all.
+		 */
+		skb->mark |= 0x80000000;
 		imsbr_packet_output_v6(skb, ipv6_hdr(skb));
+	}
 }
 
 static void imsbr_packet_input(struct sk_buff *skb)
@@ -510,6 +516,7 @@ void imsbr_process_packet(struct imsbr_sipc *sipc, struct sblock *blk,
 	int socket_type;
 	char *pktdata;
 	int pktlen;
+	int media_type;
 
 	IMSBR_STAT_INC(imsbr_stats->pkts_fromcp);
 
@@ -548,14 +555,24 @@ void imsbr_process_packet(struct imsbr_sipc *sipc, struct sblock *blk,
 
 	rcu_read_lock();
 	flow = imsbr_flow_match(&nft_tuple);
-	if (flow)
+	if (flow) {
 		socket_type = flow->socket_type;
+		media_type = flow->media_type;
+	}
 	rcu_read_unlock();
 
 end:
 	if (socket_type == IMSBR_SOCKET_CP) {
 		if (__ratelimit(&rlimit_fromcp_pkt))
 			imsbr_packet_info("process packet from cp out", skb);
+		if (media_type == IMSBR_MEDIA_SIP) {
+			skb->mark |= IMSBR_SKB_MARK_SIP;
+		} else if (media_type == IMSBR_MEDIA_IKE) {
+			skb->mark |= IMSBR_SKB_MARK_IKE;
+		} else if (media_type == IMSBR_MEDIA_RTP_AUDIO ||
+			   media_type == IMSBR_MEDIA_RTCP_AUDIO) {
+			skb->mark |= IMSBR_SKB_MARK_VOICE;
+		}
 
 		imsbr_packet_output(skb);
 	} else {
