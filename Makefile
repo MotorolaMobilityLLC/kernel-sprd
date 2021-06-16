@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-2.0
 VERSION = 5
 PATCHLEVEL = 4
-SUBLEVEL = 120
+SUBLEVEL = 124
 EXTRAVERSION =
 NAME = Kleptomaniac Octopus
 
@@ -420,7 +420,6 @@ OBJDUMP		= llvm-objdump
 READELF		= llvm-readelf
 OBJSIZE		= llvm-size
 STRIP		= llvm-strip
-KBUILD_HOSTLDFLAGS	+= -fuse-ld=lld --rtlib=compiler-rt
 else
 CC		= $(CROSS_COMPILE)gcc
 LD		= $(CROSS_COMPILE)ld

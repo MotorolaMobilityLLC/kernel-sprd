@@ -90,6 +90,13 @@ static char *area_src, *area_src_alias, *area_dst, *area_dst_alias;
 static char *zeropage;
 pthread_attr_t attr;
 
+/* Userfaultfd test statistics */
+struct uffd_stats {
+	int cpu;
+	unsigned long missing_faults;
+	unsigned long minor_faults;
+};
+
 /* pthread_mutex_t starts at page offset 0 */
 #define area_mutex(___area, ___nr)					\
 	((pthread_mutex_t *) ((___area) + (___nr)*page_size))
@@ -129,44 +136,80 @@ static void usage(void)
 	exit(1);
 }
 
-static int anon_release_pages(char *rel_area)
-{
-	int ret = 0;
+#define _err(fmt, ...)						\
+	do {							\
+		int ret = errno;				\
+		fprintf(stderr, "ERROR: " fmt, ##__VA_ARGS__);	\
+		fprintf(stderr, " (errno=%d, line=%d)\n",	\
+			ret, __LINE__);				\
+	} while (0)
 
-	if (madvise(rel_area, nr_pages * page_size, MADV_DONTNEED)) {
-		perror("madvise");
-		ret = 1;
+#define err(fmt, ...)				\
+	do {					\
+		_err(fmt, ##__VA_ARGS__);	\
+		exit(1);			\
+	} while (0)
+
+static void uffd_stats_reset(struct uffd_stats *uffd_stats,
+			     unsigned long n_cpus)
+{
+	int i;
+
+	for (i = 0; i < n_cpus; i++) {
+		uffd_stats[i].cpu = i;
+		uffd_stats[i].missing_faults = 0;
+		uffd_stats[i].minor_faults = 0;
+	}
+}
+
+static void uffd_stats_report(struct uffd_stats *stats, int n_cpus)
+{
+	int i;
+	unsigned long long miss_total = 0, minor_total = 0;
+
+	for (i = 0; i < n_cpus; i++) {
+		miss_total += stats[i].missing_faults;
+		minor_total += stats[i].minor_faults;
 	}
 
-	return ret;
+	printf("userfaults: ");
+	if (miss_total) {
+		printf("%llu missing (", miss_total);
+		for (i = 0; i < n_cpus; i++)
+			printf("%lu+", stats[i].missing_faults);
+		printf("\b) ");
+	}
+	if (minor_total) {
+		printf("%llu minor (", minor_total);
+		for (i = 0; i < n_cpus; i++)
+			printf("%lu+", stats[i].minor_faults);
+		printf("\b)");
+	}
+	printf("\n");
+}
+
+static void anon_release_pages(char *rel_area)
+{
+	if (madvise(rel_area, nr_pages * page_size, MADV_DONTNEED))
+		err("madvise(MADV_DONTNEED) failed");
 }
 
 static void anon_allocate_area(void **alloc_area)
 {
-	if (posix_memalign(alloc_area, page_size, nr_pages * page_size)) {
-		fprintf(stderr, "out of memory\n");
-		*alloc_area = NULL;
-	}
+	if (posix_memalign(alloc_area, page_size, nr_pages * page_size))
+		err("posix_memalign() failed");
 }
 
 static void noop_alias_mapping(__u64 *start, size_t len, unsigned long offset)
 {
 }
 
-/* HugeTLB memory */
-static int hugetlb_release_pages(char *rel_area)
+static void hugetlb_release_pages(char *rel_area)
 {
-	int ret = 0;
-
 	if (fallocate(huge_fd, FALLOC_FL_PUNCH_HOLE | FALLOC_FL_KEEP_SIZE,
-				rel_area == huge_fd_off0 ? 0 :
-				nr_pages * page_size,
-				nr_pages * page_size)) {
-		perror("fallocate");
-		ret = 1;
-	}
-
-	return ret;
+		      rel_area == huge_fd_off0 ? 0 : nr_pages * page_size,
+		      nr_pages * page_size))
+		err("fallocate() failed");
 }
 
 
@@ -179,22 +222,16 @@ static void hugetlb_allocate_area(void **alloc_area)
 			   MAP_HUGETLB,
 			   huge_fd, *alloc_area == area_src ? 0 :
 			   nr_pages * page_size);
-	if (*alloc_area == MAP_FAILED) {
-		fprintf(stderr, "mmap of hugetlbfs file failed\n");
-		*alloc_area = NULL;
-	}
+	if (*alloc_area == MAP_FAILED)
+		err("mmap of hugetlbfs file failed");
 
 	if (map_shared) {
 		area_alias = mmap(NULL, nr_pages * page_size, PROT_READ | PROT_WRITE,
 				  MAP_SHARED | MAP_HUGETLB,
 				  huge_fd, *alloc_area == area_src ? 0 :
 				  nr_pages * page_size);
-		if (area_alias == MAP_FAILED) {
-			if (munmap(*alloc_area, nr_pages * page_size) < 0)
-				perror("hugetlb munmap"), exit(1);
-			*alloc_area = NULL;
-			return;
-		}
+		if (area_alias == MAP_FAILED)
+			err("mmap of hugetlb file alias failed");
 	}
 	if (*alloc_area == area_src) {
 		huge_fd_off0 = *alloc_area;
@@ -219,17 +256,10 @@ static void hugetlb_alias_mapping(__u64 *start, size_t len, unsigned long offset
 	*start = (unsigned long) area_dst_alias + offset;
 }
 
-/* Shared memory */
-static int shmem_release_pages(char *rel_area)
+static void shmem_release_pages(char *rel_area)
 {
-	int ret = 0;
-
-	if (madvise(rel_area, nr_pages * page_size, MADV_REMOVE)) {
-		perror("madvise");
-		ret = 1;
-	}
-
-	return ret;
+	if (madvise(rel_area, nr_pages * page_size, MADV_REMOVE))
+		err("madvise(MADV_REMOVE) failed");
 }
 
 static void shmem_allocate_area(void **alloc_area)
@@ -240,32 +270,18 @@ static void shmem_allocate_area(void **alloc_area)
 
 	*alloc_area = mmap(NULL, nr_pages * page_size, PROT_READ | PROT_WRITE,
 			   MAP_SHARED, shm_fd, offset);
-	if (*alloc_area == MAP_FAILED) {
-		perror("mmap of memfd failed");
-		goto fail;
-	}
+	if (*alloc_area == MAP_FAILED)
+		err("mmap of memfd failed");
 
 	area_alias = mmap(NULL, nr_pages * page_size, PROT_READ | PROT_WRITE,
 			  MAP_SHARED, shm_fd, offset);
-	if (area_alias == MAP_FAILED) {
-		perror("mmap of memfd alias failed");
-		goto fail_munmap;
-	}
+	if (area_alias == MAP_FAILED)
+		err("mmap of memfd alias failed");
 
 	if (is_src)
 		area_src_alias = area_alias;
 	else
 		area_dst_alias = area_alias;
-
-	return;
-
-fail_munmap:
-	if (munmap(*alloc_area, nr_pages * page_size) < 0) {
-		perror("munmap of memfd failed\n");
-		exit(1);
-	}
-fail:
-	*alloc_area = NULL;
 }
 
 static void shmem_alias_mapping(__u64 *start, size_t len, unsigned long offset)
@@ -276,7 +292,7 @@ static void shmem_alias_mapping(__u64 *start, size_t len, unsigned long offset)
 struct uffd_test_ops {
 	unsigned long expected_ioctls;
 	void (*allocate_area)(void **alloc_area);
-	int (*release_pages)(char *rel_area);
+	void (*release_pages)(char *rel_area);
 	void (*alias_mapping)(__u64 *start, size_t len, unsigned long offset);
 };
 
@@ -307,60 +323,83 @@ static struct uffd_test_ops hugetlb_uffd_test_ops = {
 
 static struct uffd_test_ops *uffd_test_ops;
 
-static int userfaultfd_open(uint64_t *features)
+static void userfaultfd_open(uint64_t *features)
 {
 	struct uffdio_api uffdio_api;
 
 	uffd = syscall(__NR_userfaultfd, O_CLOEXEC | O_NONBLOCK | UFFD_USER_MODE_ONLY);
-	if (uffd < 0) {
-		fprintf(stderr,
-			"userfaultfd syscall not available in this kernel\n");
-		return 1;
-	}
+	if (uffd < 0)
+		err("userfaultfd syscall not available in this kernel");
 	uffd_flags = fcntl(uffd, F_GETFD, NULL);
 
 	uffdio_api.api = UFFD_API;
 	uffdio_api.features = *features;
-	if (ioctl(uffd, UFFDIO_API, &uffdio_api)) {
-		fprintf(stderr, "UFFDIO_API failed.\nPlease make sure to "
-			"run with either root or ptrace capability.\n");
-		return 1;
-	}
-	if (uffdio_api.api != UFFD_API) {
-		fprintf(stderr, "UFFDIO_API error: %" PRIu64 "\n",
-			(uint64_t)uffdio_api.api);
-		return 1;
-	}
+	if (ioctl(uffd, UFFDIO_API, &uffdio_api))
+		err("UFFDIO_API failed.\nPlease make sure to "
+		    "run with either root or ptrace capability.");
+	if (uffdio_api.api != UFFD_API)
+		err("UFFDIO_API error: %" PRIu64, (uint64_t)uffdio_api.api);
 
 	*features = uffdio_api.features;
-	return 0;
 }
 
-static int uffd_test_ctx_init_ext(uint64_t *features)
+static inline void munmap_area(void **area)
+{
+	if (*area)
+		if (munmap(*area, nr_pages * page_size))
+			err("munmap");
+
+	*area = NULL;
+}
+
+static void uffd_test_ctx_clear(void)
+{
+	size_t i;
+
+	if (pipefd) {
+		for (i = 0; i < nr_cpus * 2; ++i) {
+			if (close(pipefd[i]))
+				err("close pipefd");
+		}
+		free(pipefd);
+		pipefd = NULL;
+	}
+
+	if (count_verify) {
+		free(count_verify);
+		count_verify = NULL;
+	}
+
+	if (uffd != -1) {
+		if (close(uffd))
+			err("close uffd");
+		uffd = -1;
+	}
+
+	huge_fd_off0 = NULL;
+	munmap_area((void **)&area_src);
+	munmap_area((void **)&area_src_alias);
+	munmap_area((void **)&area_dst);
+	munmap_area((void **)&area_dst_alias);
+}
+
+static void uffd_test_ctx_init_ext(uint64_t *features)
 {
 	unsigned long nr, cpu;
 
+	uffd_test_ctx_clear();
+
 	uffd_test_ops->allocate_area((void **)&area_src);
-	if (!area_src)
-		return 1;
 	uffd_test_ops->allocate_area((void **)&area_dst);
-	if (!area_dst)
-		return 1;
 
-	if (uffd_test_ops->release_pages(area_src))
-		return 1;
+	uffd_test_ops->release_pages(area_src);
+	uffd_test_ops->release_pages(area_dst);
 
-	if (uffd_test_ops->release_pages(area_dst))
-		return 1;
-
-	if (userfaultfd_open(features))
-		return 1;
+	userfaultfd_open(features);
 
 	count_verify = malloc(nr_pages * sizeof(unsigned long long));
-	if (!count_verify) {
-		perror("count_verify");
-		return 1;
-	}
+	if (!count_verify)
+		err("count_verify");
 
 	for (nr = 0; nr < nr_pages; nr++) {
 		*area_mutex(area_src, nr) =
@@ -377,74 +416,16 @@ static int uffd_test_ctx_init_ext(uint64_t *features)
 	}
 
 	pipefd = malloc(sizeof(int) * nr_cpus * 2);
-	if (!pipefd) {
-		perror("pipefd");
-		return 1;
-	}
-	for (cpu = 0; cpu < nr_cpus; cpu++) {
-		if (pipe2(&pipefd[cpu * 2], O_CLOEXEC | O_NONBLOCK)) {
-			perror("pipe");
-			return 1;
-		}
-	}
-
-	return 0;
+	if (!pipefd)
+		err("pipefd");
+	for (cpu = 0; cpu < nr_cpus; cpu++)
+		if (pipe2(&pipefd[cpu * 2], O_CLOEXEC | O_NONBLOCK))
+			err("pipe");
 }
 
-static inline int uffd_test_ctx_init(uint64_t features)
+static inline void uffd_test_ctx_init(uint64_t features)
 {
-	return uffd_test_ctx_init_ext(&features);
-}
-
-static inline int munmap_area(void **area)
-{
-	if (*area) {
-		if (munmap(*area, nr_pages * page_size)) {
-			perror("munmap");
-			return 1;
-		}
-	}
-
-	*area = NULL;
-	return 0;
-}
-
-static int uffd_test_ctx_clear(void)
-{
-	int ret = 0;
-	size_t i;
-
-	if (pipefd) {
-		for (i = 0; i < nr_cpus * 2; ++i) {
-			if (close(pipefd[i])) {
-				perror("close pipefd");
-				ret = 1;
-			}
-		}
-		free(pipefd);
-		pipefd = NULL;
-	}
-
-	if (count_verify) {
-		free(count_verify);
-		count_verify = NULL;
-	}
-
-	if (uffd != -1) {
-		if (close(uffd)) {
-			perror("close uffd");
-			ret = 1;
-		}
-		uffd = -1;
-	}
-
-	huge_fd_off0 = NULL;
-	ret |= munmap_area((void **)&area_src);
-	ret |= munmap_area((void **)&area_src_alias);
-	ret |= munmap_area((void **)&area_dst);
-	ret |= munmap_area((void **)&area_dst_alias);
-
-	return ret;
+	uffd_test_ctx_init_ext(&features);
 }
 
 static int my_bcmp(char *str1, char *str2, size_t n)
@@ -459,17 +440,26 @@ static int my_bcmp(char *str1, char *str2, size_t n)
 static void continue_range(int ufd, __u64 start, __u64 len)
 {
 	struct uffdio_continue req;
+	int ret;
 
 	req.range.start = start;
 	req.range.len = len;
 	req.mode = 0;
 
-	if (ioctl(ufd, UFFDIO_CONTINUE, &req)) {
-		fprintf(stderr,
-			"UFFDIO_CONTINUE failed for address 0x%" PRIx64 "\n",
-			(uint64_t)start);
-		exit(1);
-	}
+	if (ioctl(ufd, UFFDIO_CONTINUE, &req))
+		err("UFFDIO_CONTINUE failed for address 0x%" PRIx64,
+		    (uint64_t)start);
+
+	/*
+	 * Error handling within the kernel for continue is subtly different
+	 * from copy or zeropage, so it may be a source of bugs. Trigger an
+	 * error (-EEXIST) on purpose, to verify doing so doesn't cause a BUG.
+	 */
+	req.mapped = 0;
+	ret = ioctl(ufd, UFFDIO_CONTINUE, &req);
+	if (ret >= 0 || req.mapped != -EEXIST)
+		err("failed to exercise UFFDIO_CONTINUE error handling, ret=%d, mapped=%" PRId64,
+		    ret, (int64_t) req.mapped);
 }
 
 static void *locking_thread(void *arg)
@@ -489,7 +479,7 @@ static void *locking_thread(void *arg)
 		bzero(&rand, sizeof(rand));
 		bzero(&randstate, sizeof(randstate));
 		if (initstate_r(seed, randstate, sizeof(randstate), &rand))
-			fprintf(stderr, "srandom_r error\n"), exit(1);
+			err("initstate_r failed");
 	} else {
 		page_nr = -bounces;
 		if (!(bounces & BOUNCE_RACINGFAULTS))
@@ -499,11 +489,11 @@ static void *locking_thread(void *arg)
 	while (!finished) {
 		if (bounces & BOUNCE_RANDOM) {
 			if (random_r(&rand, &rand_nr))
-				fprintf(stderr, "random_r 1 error\n"), exit(1);
+				err("random_r failed");
 			page_nr = rand_nr;
 			if (sizeof(page_nr) > sizeof(rand_nr)) {
 				if (random_r(&rand, &rand_nr))
-					fprintf(stderr, "random_r 2 error\n"), exit(1);
+					err("random_r failed");
 				page_nr |= (((unsigned long) rand_nr) << 16) <<
 					   16;
 			}
@@ -512,12 +502,9 @@ static void *locking_thread(void *arg)
 		page_nr %= nr_pages;
 		pthread_mutex_lock(area_mutex(area_dst, page_nr));
 		count = *area_count(area_dst, page_nr);
-		if (count != count_verify[page_nr]) {
-			fprintf(stderr,
-				"page_nr %lu memory corruption %Lu %Lu\n",
-				page_nr, count,
-				count_verify[page_nr]), exit(1);
-		}
+		if (count != count_verify[page_nr])
+			err("page_nr %lu memory corruption %llu %llu",
+			    page_nr, count, count_verify[page_nr]);
 		count++;
 		*area_count(area_dst, page_nr) = count_verify[page_nr] = count;
 		pthread_mutex_unlock(area_mutex(area_dst, page_nr));
@@ -535,11 +522,11 @@ static void retry_copy_page(int ufd, struct uffdio_copy *uffdio_copy,
 	if (ioctl(ufd, UFFDIO_COPY, uffdio_copy)) {
 		/* real retval in ufdio_copy.copy */
 		if (uffdio_copy->copy != -EEXIST)
-			fprintf(stderr, "UFFDIO_COPY retry error %Ld\n",
-				uffdio_copy->copy), exit(1);
+			err("UFFDIO_COPY retry error: %"PRId64,
+			    (int64_t)uffdio_copy->copy);
 	} else {
-		fprintf(stderr,	"UFFDIO_COPY retry unexpected %Ld\n",
-			uffdio_copy->copy), exit(1);
+		err("UFFDIO_COPY retry unexpected: %"PRId64,
+		    (int64_t)uffdio_copy->copy);
 	}
 }
 
@@ -548,8 +535,7 @@ static int __copy_page(int ufd, unsigned long offset, bool retry)
 	struct uffdio_copy uffdio_copy;
 
 	if (offset >= nr_pages * page_size)
-		fprintf(stderr, "unexpected offset %lu\n",
-			offset), exit(1);
+		err("unexpected offset %lu\n", offset);
 	uffdio_copy.dst = (unsigned long) area_dst + offset;
 	uffdio_copy.src = (unsigned long) area_src + offset;
 	uffdio_copy.len = page_size;
@@ -558,11 +544,10 @@ static int __copy_page(int ufd, unsigned long offset, bool retry)
 	if (ioctl(ufd, UFFDIO_COPY, &uffdio_copy)) {
 		/* real retval in ufdio_copy.copy */
 		if (uffdio_copy.copy != -EEXIST)
-			fprintf(stderr, "UFFDIO_COPY error %Ld\n",
-				uffdio_copy.copy), exit(1);
+			err("UFFDIO_COPY error: %"PRId64,
+			    (int64_t)uffdio_copy.copy);
 	} else if (uffdio_copy.copy != page_size) {
-		fprintf(stderr, "UFFDIO_COPY unexpected copy %Ld\n",
-			uffdio_copy.copy), exit(1);
+		err("UFFDIO_COPY error: %"PRId64, (int64_t)uffdio_copy.copy);
 	} else {
 		if (test_uffdio_copy_eexist && retry) {
 			test_uffdio_copy_eexist = false;
@@ -591,24 +576,22 @@ static int uffd_read_msg(int ufd, struct uffd_msg *msg)
 		if (ret < 0) {
 			if (errno == EAGAIN)
 				return 1;
-			else
-				perror("blocking read error"), exit(1);
+			err("blocking read error");
 		} else {
-			fprintf(stderr, "short read\n"), exit(1);
+			err("short read");
 		}
 	}
 
 	return 0;
 }
 
-/* Return 1 if page fault handled by us; otherwise 0 */
-static int uffd_handle_page_fault(struct uffd_msg *msg)
+static void uffd_handle_page_fault(struct uffd_msg *msg,
+				   struct uffd_stats *stats)
 {
 	unsigned long offset;
 
 	if (msg->event != UFFD_EVENT_PAGEFAULT)
-		fprintf(stderr, "unexpected msg event %u\n",
-			msg->event), exit(1);
+		err("unexpected msg event %u", msg->event);
 
 	if (msg->arg.pagefault.flags & UFFD_PAGEFAULT_FLAG_MINOR) {
 		uint8_t *area;
@@ -632,30 +615,29 @@ static int uffd_handle_page_fault(struct uffd_msg *msg)
 		for (b = 0; b < page_size; ++b)
 			area[b] = ~area[b];
 		continue_range(uffd, msg->arg.pagefault.address, page_size);
-		return 1;
+		stats->minor_faults++;
 	} else {
 		/* Missing page faults */
-		if (msg->arg.pagefault.flags & UFFD_PAGEFAULT_FLAG_WRITE) {
-			fprintf(stderr, "unexpected write fault\n");
-			exit(1);
-		}
+		if (msg->arg.pagefault.flags & UFFD_PAGEFAULT_FLAG_WRITE)
+			err("unexpected write fault");
 
 		offset = (char *)(unsigned long)msg->arg.pagefault.address - area_dst;
 		offset &= ~(page_size-1);
 
-		return copy_page(uffd, offset);
+		if (copy_page(uffd, offset))
+			stats->missing_faults++;
 	}
 }
 
 static void *uffd_poll_thread(void *arg)
 {
-	unsigned long cpu = (unsigned long) arg;
+	struct uffd_stats *stats = (struct uffd_stats *)arg;
+	unsigned long cpu = stats->cpu;
 	struct pollfd pollfd[2];
 	struct uffd_msg msg;
 	struct uffdio_register uffd_reg;
 	int ret;
 	char tmp_chr;
-	unsigned long userfaults = 0;
 
 	pollfd[0].fd = uffd;
 	pollfd[0].events = POLLIN;
@@ -664,28 +646,23 @@ static void *uffd_poll_thread(void *arg)
 
 	for (;;) {
 		ret = poll(pollfd, 2, -1);
-		if (!ret)
-			fprintf(stderr, "poll error %d\n", ret), exit(1);
-		if (ret < 0)
-			perror("poll"), exit(1);
+		if (ret <= 0)
+			err("poll error: %d", ret);
 		if (pollfd[1].revents & POLLIN) {
 			if (read(pollfd[1].fd, &tmp_chr, 1) != 1)
-				fprintf(stderr, "read pipefd error\n"),
-					exit(1);
+				err("read pipefd error");
 			break;
 		}
 		if (!(pollfd[0].revents & POLLIN))
-			fprintf(stderr, "pollfd[0].revents %d\n",
-				pollfd[0].revents), exit(1);
+			err("pollfd[0].revents %d", pollfd[0].revents);
 		if (uffd_read_msg(uffd, &msg))
 			continue;
 		switch (msg.event) {
 		default:
-			fprintf(stderr, "unexpected msg event %u\n",
-				msg.event), exit(1);
+			err("unexpected msg event %u\n", msg.event);
 			break;
 		case UFFD_EVENT_PAGEFAULT:
-			userfaults += uffd_handle_page_fault(&msg);
+			uffd_handle_page_fault(&msg, stats);
 			break;
 		case UFFD_EVENT_FORK:
 			close(uffd);
@@ -697,25 +674,23 @@ static void *uffd_poll_thread(void *arg)
 			uffd_reg.range.len = msg.arg.remove.end -
 				msg.arg.remove.start;
 			if (ioctl(uffd, UFFDIO_UNREGISTER, &uffd_reg.range))
-				fprintf(stderr, "remove failure\n"), exit(1);
+				err("remove failure");
 			break;
 		case UFFD_EVENT_REMAP:
 			area_dst = (char *)(unsigned long)msg.arg.remap.to;
 			break;
 		}
 	}
-	return (void *)userfaults;
+
+	return NULL;
 }
 
 pthread_mutex_t uffd_read_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 static void *uffd_read_thread(void *arg)
 {
-	unsigned long *this_cpu_userfaults;
+	struct uffd_stats *stats = (struct uffd_stats *)arg;
 	struct uffd_msg msg;
-
-	this_cpu_userfaults = (unsigned long *) arg;
-	*this_cpu_userfaults = 0;
 
 	pthread_mutex_unlock(&uffd_read_mutex);
 	/* from here cancellation is ok */
@@ -723,9 +698,10 @@ static void *uffd_read_thread(void *arg)
 	for (;;) {
 		if (uffd_read_msg(uffd, &msg))
 			continue;
-		(*this_cpu_userfaults) += uffd_handle_page_fault(&msg);
+		uffd_handle_page_fault(&msg, stats);
 	}
-	return (void *)NULL;
+
+	return NULL;
 }
 
 static void *background_thread(void *arg)
@@ -741,13 +717,12 @@ static void *background_thread(void *arg)
 	return NULL;
 }
 
-static int stress(unsigned long *userfaults)
+static int stress(struct uffd_stats *uffd_stats)
 {
 	unsigned long cpu;
 	pthread_t locking_threads[nr_cpus];
 	pthread_t uffd_threads[nr_cpus];
 	pthread_t background_threads[nr_cpus];
-	void **_userfaults = (void **) userfaults;
 
 	finished = 0;
 	for (cpu = 0; cpu < nr_cpus; cpu++) {
@@ -756,12 +731,13 @@ static int stress(unsigned long *userfaults)
 			return 1;
 		if (bounces & BOUNCE_POLL) {
 			if (pthread_create(&uffd_threads[cpu], &attr,
-					   uffd_poll_thread, (void *)cpu))
+					   uffd_poll_thread,
+					   (void *)&uffd_stats[cpu]))
 				return 1;
 		} else {
 			if (pthread_create(&uffd_threads[cpu], &attr,
 					   uffd_read_thread,
-					   &_userfaults[cpu]))
+					   (void *)&uffd_stats[cpu]))
 				return 1;
 			pthread_mutex_lock(&uffd_read_mutex);
 		}
@@ -782,9 +758,7 @@ static int stress(unsigned long *userfaults)
 	 * UFFDIO_COPY without writing zero pages into area_dst
 	 * because the background threads already completed).
 	 */
-	if (uffd_test_ops->release_pages(area_src))
-		return 1;
-
+	uffd_test_ops->release_pages(area_src);
 
 	finished = 1;
 	for (cpu = 0; cpu < nr_cpus; cpu++)
@@ -794,11 +768,10 @@ static int stress(unsigned long *userfaults)
 	for (cpu = 0; cpu < nr_cpus; cpu++) {
 		char c;
 		if (bounces & BOUNCE_POLL) {
-			if (write(pipefd[cpu*2+1], &c, 1) != 1) {
-				fprintf(stderr, "pipefd write error\n");
-				return 1;
-			}
-			if (pthread_join(uffd_threads[cpu], &_userfaults[cpu]))
+			if (write(pipefd[cpu*2+1], &c, 1) != 1)
+				err("pipefd write error");
+			if (pthread_join(uffd_threads[cpu],
+					 (void *)&uffd_stats[cpu]))
 				return 1;
 		} else {
 			if (pthread_cancel(uffd_threads[cpu]))
@@ -862,20 +835,16 @@ static int faulting_process(int signal_test)
 		memset(&act, 0, sizeof(act));
 		act.sa_sigaction = sighndl;
 		act.sa_flags = SA_SIGINFO;
-		if (sigaction(SIGBUS, &act, 0)) {
-			perror("sigaction");
-			return 1;
-		}
+		if (sigaction(SIGBUS, &act, 0))
+			err("sigaction");
 		lastnr = (unsigned long)-1;
 	}
 
 	for (nr = 0; nr < split_nr_pages; nr++) {
 		if (signal_test) {
 			if (sigsetjmp(*sigbuf, 1) != 0) {
-				if (nr == lastnr) {
-					fprintf(stderr, "Signal repeated\n");
-					return 1;
-				}
+				if (nr == lastnr)
+					err("Signal repeated");
 
 				lastnr = nr;
 				if (signal_test == 1) {
@@ -889,12 +858,9 @@ static int faulting_process(int signal_test)
 		}
 
 		count = *area_count(area_dst, nr);
-		if (count != count_verify[nr]) {
-			fprintf(stderr,
-				"nr %lu memory corruption %Lu %Lu\n",
-				nr, count,
-				count_verify[nr]), exit(1);
-		}
+		if (count != count_verify[nr])
+			err("nr %lu memory corruption %llu %llu\n",
+			    nr, count, count_verify[nr]);
 	}
 
 	if (signal_test)
@@ -905,30 +871,24 @@ static int faulting_process(int signal_test)
 
 	area_dst = mremap(area_dst, nr_pages * page_size,  nr_pages * page_size,
 			  MREMAP_MAYMOVE | MREMAP_FIXED, area_src);
-	if (area_dst == MAP_FAILED) {
-		perror("mremap");
-		exit(1);
-	}
+	if (area_dst == MAP_FAILED)
+		err("mremap");
 	/* Reset area_src since we just clobbered it */
 	area_src = NULL;
 
 	for (; nr < nr_pages; nr++) {
 		count = *area_count(area_dst, nr);
 		if (count != count_verify[nr]) {
-			fprintf(stderr,
-				"nr %lu memory corruption %Lu %Lu\n",
-				nr, count,
-				count_verify[nr]), exit(1);
+			err("nr %lu memory corruption %llu %llu\n",
+			    nr, count, count_verify[nr]);
 		}
 	}
 
-	if (uffd_test_ops->release_pages(area_dst))
-		return 1;
+	uffd_test_ops->release_pages(area_dst);
 
-	for (nr = 0; nr < nr_pages; nr++) {
+	for (nr = 0; nr < nr_pages; nr++)
 		if (my_bcmp(area_dst + nr * page_size, zeropage, page_size))
-			fprintf(stderr, "nr %lu is not zero\n", nr), exit(1);
-	}
+			err("nr %lu is not zero", nr);
 
 	return 0;
 }
@@ -942,11 +902,11 @@ static void retry_uffdio_zeropage(int ufd,
 				     offset);
 	if (ioctl(ufd, UFFDIO_ZEROPAGE, uffdio_zeropage)) {
 		if (uffdio_zeropage->zeropage != -EEXIST)
-			fprintf(stderr, "UFFDIO_ZEROPAGE retry error %Ld\n",
-				uffdio_zeropage->zeropage), exit(1);
+			err("UFFDIO_ZEROPAGE error: %"PRId64,
+			    (int64_t)uffdio_zeropage->zeropage);
 	} else {
-		fprintf(stderr, "UFFDIO_ZEROPAGE retry unexpected %Ld\n",
-			uffdio_zeropage->zeropage), exit(1);
+		err("UFFDIO_ZEROPAGE error: %"PRId64,
+		    (int64_t)uffdio_zeropage->zeropage);
 	}
 }
 
@@ -955,35 +915,26 @@ static int __uffdio_zeropage(int ufd, unsigned long offset, bool retry)
 	struct uffdio_zeropage uffdio_zeropage;
 	int ret;
 	unsigned long has_zeropage;
+	__s64 res;
 
 	has_zeropage = uffd_test_ops->expected_ioctls & (1 << _UFFDIO_ZEROPAGE);
 
 	if (offset >= nr_pages * page_size)
-		fprintf(stderr, "unexpected offset %lu\n",
-			offset), exit(1);
+		err("unexpected offset %lu", offset);
 	uffdio_zeropage.range.start = (unsigned long) area_dst + offset;
 	uffdio_zeropage.range.len = page_size;
 	uffdio_zeropage.mode = 0;
 	ret = ioctl(ufd, UFFDIO_ZEROPAGE, &uffdio_zeropage);
+	res = uffdio_zeropage.zeropage;
 	if (ret) {
 		/* real retval in ufdio_zeropage.zeropage */
-		if (has_zeropage) {
-			if (uffdio_zeropage.zeropage == -EEXIST)
-				fprintf(stderr, "UFFDIO_ZEROPAGE -EEXIST\n"),
-					exit(1);
-			else
-				fprintf(stderr, "UFFDIO_ZEROPAGE error %Ld\n",
-					uffdio_zeropage.zeropage), exit(1);
-		} else {
-			if (uffdio_zeropage.zeropage != -EINVAL)
-				fprintf(stderr,
-					"UFFDIO_ZEROPAGE not -EINVAL %Ld\n",
-					uffdio_zeropage.zeropage), exit(1);
-		}
+		if (has_zeropage)
+			err("UFFDIO_ZEROPAGE error: %"PRId64, (int64_t)res);
+		else if (res != -EINVAL)
+			err("UFFDIO_ZEROPAGE not -EINVAL");
 	} else if (has_zeropage) {
-		if (uffdio_zeropage.zeropage != page_size) {
-			fprintf(stderr, "UFFDIO_ZEROPAGE unexpected %Ld\n",
-				uffdio_zeropage.zeropage), exit(1);
+		if (res != page_size) {
+			err("UFFDIO_ZEROPAGE unexpected size");
 		} else {
 			if (test_uffdio_zeropage_eexist && retry) {
 				test_uffdio_zeropage_eexist = false;
@@ -992,11 +943,8 @@ static int __uffdio_zeropage(int ufd, unsigned long offset, bool retry)
 			}
 			return 1;
 		}
-	} else {
-		fprintf(stderr,
-			"UFFDIO_ZEROPAGE succeeded %Ld\n",
-			uffdio_zeropage.zeropage), exit(1);
-	}
+	} else
+		err("UFFDIO_ZEROPAGE succeeded");
 
 	return 0;
 }
@@ -1015,26 +963,21 @@ static int userfaultfd_zeropage_test(void)
 	printf("testing UFFDIO_ZEROPAGE: ");
 	fflush(stdout);
 
-	if (uffd_test_ctx_clear() || uffd_test_ctx_init(0))
-		return 1;
+	uffd_test_ctx_init(0);
 
 	uffdio_register.range.start = (unsigned long) area_dst;
 	uffdio_register.range.len = nr_pages * page_size;
 	uffdio_register.mode = UFFDIO_REGISTER_MODE_MISSING;
 	if (ioctl(uffd, UFFDIO_REGISTER, &uffdio_register))
-		fprintf(stderr, "register failure\n"), exit(1);
+		err("register failure");
 
 	expected_ioctls = uffd_test_ops->expected_ioctls;
-	if ((uffdio_register.ioctls & expected_ioctls) !=
-	    expected_ioctls)
-		fprintf(stderr,
-			"unexpected missing ioctl for anon memory\n"),
-			exit(1);
+	if ((uffdio_register.ioctls & expected_ioctls) != expected_ioctls)
+		err("unexpected missing ioctl for anon memory");
 
-	if (uffdio_zeropage(uffd, 0)) {
+	if (uffdio_zeropage(uffd, 0))
 		if (my_bcmp(area_dst, zeropage, page_size))
-			fprintf(stderr, "zeropage is not zero\n"), exit(1);
-	}
+			err("zeropage is not zero");
 
 	printf("done.\n");
 	return 0;
@@ -1044,19 +987,18 @@ static int userfaultfd_events_test(void)
 {
 	struct uffdio_register uffdio_register;
 	unsigned long expected_ioctls;
-	unsigned long userfaults;
 	pthread_t uffd_mon;
 	int err, features;
 	pid_t pid;
 	char c;
+	struct uffd_stats stats = { 0 };
 
 	printf("testing events (fork, remap, remove): ");
 	fflush(stdout);
 
 	features = UFFD_FEATURE_EVENT_FORK | UFFD_FEATURE_EVENT_REMAP |
 		UFFD_FEATURE_EVENT_REMOVE;
-	if (uffd_test_ctx_clear() || uffd_test_ctx_init(features))
-		return 1;
+	uffd_test_ctx_init(features);
 
 	fcntl(uffd, F_SETFL, uffd_flags | O_NONBLOCK);
 
@@ -1064,37 +1006,33 @@ static int userfaultfd_events_test(void)
 	uffdio_register.range.len = nr_pages * page_size;
 	uffdio_register.mode = UFFDIO_REGISTER_MODE_MISSING;
 	if (ioctl(uffd, UFFDIO_REGISTER, &uffdio_register))
-		fprintf(stderr, "register failure\n"), exit(1);
+		err("register failure");
 
 	expected_ioctls = uffd_test_ops->expected_ioctls;
-	if ((uffdio_register.ioctls & expected_ioctls) !=
-	    expected_ioctls)
-		fprintf(stderr,
-			"unexpected missing ioctl for anon memory\n"),
-			exit(1);
+	if ((uffdio_register.ioctls & expected_ioctls) != expected_ioctls)
+		err("unexpected missing ioctl for anon memory");
 
-	if (pthread_create(&uffd_mon, &attr, uffd_poll_thread, NULL))
-		perror("uffd_poll_thread create"), exit(1);
+	if (pthread_create(&uffd_mon, &attr, uffd_poll_thread, &stats))
+		err("uffd_poll_thread create");
 
 	pid = fork();
 	if (pid < 0)
-		perror("fork"), exit(1);
+		err("fork");
 
 	if (!pid)
 		exit(faulting_process(0));
 
 	waitpid(pid, &err, 0);
 	if (err)
-		fprintf(stderr, "faulting process failed\n"), exit(1);
-
+		err("faulting process failed");
 	if (write(pipefd[1], &c, sizeof(c)) != sizeof(c))
-		perror("pipe write"), exit(1);
-	if (pthread_join(uffd_mon, (void **)&userfaults))
+		err("pipe write");
+	if (pthread_join(uffd_mon, NULL))
 		return 1;
 
-	printf("userfaults: %ld\n", userfaults);
+	uffd_stats_report(&stats, 1);
 
-	return userfaults != nr_pages;
+	return stats.missing_faults != nr_pages;
 }
 
 static int userfaultfd_sig_test(void)
@@ -1106,13 +1044,13 @@ static int userfaultfd_sig_test(void)
 	int err, features;
 	pid_t pid;
 	char c;
+	struct uffd_stats stats = { 0 };
 
 	printf("testing signal delivery: ");
 	fflush(stdout);
 
 	features = UFFD_FEATURE_EVENT_FORK|UFFD_FEATURE_SIGBUS;
-	if (uffd_test_ctx_clear() || uffd_test_ctx_init(features))
-		return 1;
+	uffd_test_ctx_init(features);
 
 	fcntl(uffd, F_SETFL, uffd_flags | O_NONBLOCK);
 
@@ -1120,44 +1058,39 @@ static int userfaultfd_sig_test(void)
 	uffdio_register.range.len = nr_pages * page_size;
 	uffdio_register.mode = UFFDIO_REGISTER_MODE_MISSING;
 	if (ioctl(uffd, UFFDIO_REGISTER, &uffdio_register))
-		fprintf(stderr, "register failure\n"), exit(1);
+		err("register failure");
 
 	expected_ioctls = uffd_test_ops->expected_ioctls;
-	if ((uffdio_register.ioctls & expected_ioctls) !=
-	    expected_ioctls)
-		fprintf(stderr,
-			"unexpected missing ioctl for anon memory\n"),
-			exit(1);
+	if ((uffdio_register.ioctls & expected_ioctls) != expected_ioctls)
+		err("unexpected missing ioctl for anon memory");
 
 	if (faulting_process(1))
-		fprintf(stderr, "faulting process failed\n"), exit(1);
+		err("faulting process failed");
 
-	if (uffd_test_ops->release_pages(area_dst))
-		return 1;
+	uffd_test_ops->release_pages(area_dst);
 
-	if (pthread_create(&uffd_mon, &attr, uffd_poll_thread, NULL))
-		perror("uffd_poll_thread create"), exit(1);
+	if (pthread_create(&uffd_mon, &attr, uffd_poll_thread, &stats))
+		err("uffd_poll_thread create");
 
 	pid = fork();
 	if (pid < 0)
-		perror("fork"), exit(1);
+		err("fork");
 
 	if (!pid)
 		exit(faulting_process(2));
 
 	waitpid(pid, &err, 0);
 	if (err)
-		fprintf(stderr, "faulting process failed\n"), exit(1);
-
+		err("faulting process failed");
 	if (write(pipefd[1], &c, sizeof(c)) != sizeof(c))
-		perror("pipe write"), exit(1);
+		err("pipe write");
 	if (pthread_join(uffd_mon, (void **)&userfaults))
 		return 1;
 
 	printf("done.\n");
 	if (userfaults)
-		fprintf(stderr, "Signal test failed, userfaults: %ld\n",
-			userfaults);
+		err("Signal test failed, userfaults: %ld", userfaults);
+
 	return userfaults != 0;
 }
 
@@ -1165,12 +1098,12 @@ static int userfaultfd_minor_test(void)
 {
 	struct uffdio_register uffdio_register;
 	unsigned long expected_ioctls;
-	unsigned long userfaults;
 	unsigned long p;
 	pthread_t uffd_mon;
 	uint8_t expected_byte;
 	void *expected_page;
 	char c;
+	struct uffd_stats stats = { 0 };
 	uint64_t req_features, features_out;
 
 	if (!test_uffdio_minor)
@@ -1187,8 +1120,7 @@ static int userfaultfd_minor_test(void)
 		return 1;
 
 	features_out = req_features;
-	if (uffd_test_ctx_clear() || uffd_test_ctx_init_ext(&features_out))
-		return 1;
+	uffd_test_ctx_init_ext(&features_out);
 	/* If kernel reports required features aren't supported, skip test. */
 	if ((features_out & req_features) != req_features) {
 		printf("skipping test due to lack of feature support\n");
@@ -1199,17 +1131,13 @@ static int userfaultfd_minor_test(void)
 	uffdio_register.range.start = (unsigned long)area_dst_alias;
 	uffdio_register.range.len = nr_pages * page_size;
 	uffdio_register.mode = UFFDIO_REGISTER_MODE_MINOR;
-	if (ioctl(uffd, UFFDIO_REGISTER, &uffdio_register)) {
-		perror("register failure");
-		exit(1);
-	}
+	if (ioctl(uffd, UFFDIO_REGISTER, &uffdio_register))
+		err("register failure");
 
 	expected_ioctls = uffd_test_ops->expected_ioctls;
 	expected_ioctls |= 1 << _UFFDIO_CONTINUE;
-	if ((uffdio_register.ioctls & expected_ioctls) != expected_ioctls) {
-		fprintf(stderr, "unexpected missing ioctl(s)\n");
-		exit(1);
-	}
+	if ((uffdio_register.ioctls & expected_ioctls) != expected_ioctls)
+		err("unexpected missing ioctl(s)");
 
 	/*
 	 * After registering with UFFD, populate the non-UFFD-registered side of
@@ -1220,10 +1148,8 @@ static int userfaultfd_minor_test(void)
 		       page_size);
 	}
 
-	if (pthread_create(&uffd_mon, &attr, uffd_poll_thread, NULL)) {
-		perror("uffd_poll_thread create");
-		exit(1);
-	}
+	if (pthread_create(&uffd_mon, &attr, uffd_poll_thread, &stats))
+		err("uffd_poll_thread create");
 
 	/*
 	 * Read each of the pages back using the UFFD-registered mapping. We
@@ -1232,31 +1158,25 @@ static int userfaultfd_minor_test(void)
 	 * page's contents, and then issuing a CONTINUE ioctl.
 	 */
 
-	if (posix_memalign(&expected_page, page_size, page_size)) {
-		fprintf(stderr, "out of memory\n");
-		return 1;
-	}
+	if (posix_memalign(&expected_page, page_size, page_size))
+		err("out of memory");
 
 	for (p = 0; p < nr_pages; ++p) {
 		expected_byte = ~((uint8_t)(p % ((uint8_t)-1)));
 		memset(expected_page, expected_byte, page_size);
 		if (my_bcmp(expected_page, area_dst_alias + (p * page_size),
-			    page_size)) {
-			fprintf(stderr,
-				"unexpected page contents after minor fault\n");
-			exit(1);
-		}
+			    page_size))
+			err("unexpected page contents after minor fault");
 	}
 
-	if (write(pipefd[1], &c, sizeof(c)) != sizeof(c)) {
-		perror("pipe write");
-		exit(1);
-	}
-	if (pthread_join(uffd_mon, (void **)&userfaults))
+	if (write(pipefd[1], &c, sizeof(c)) != sizeof(c))
+		err("pipe write");
+	if (pthread_join(uffd_mon, NULL))
 		return 1;
-	printf("userfaults: %ld\n", userfaults);
 
-	return userfaults != nr_pages;
+	uffd_stats_report(&stats, 1);
+
+	return stats.missing_faults != 0 || stats.minor_faults != nr_pages;
 }
 
 static int userfaultfd_stress(void)
@@ -1265,16 +1185,12 @@ static int userfaultfd_stress(void)
 	char *tmp_area;
 	unsigned long nr;
 	struct uffdio_register uffdio_register;
-	int err;
-	unsigned long userfaults[nr_cpus];
+	struct uffd_stats uffd_stats[nr_cpus];
 
-	if (uffd_test_ctx_init(0))
-		return 1;
+	uffd_test_ctx_init(0);
 
-	if (posix_memalign(&area, page_size, page_size)) {
-		fprintf(stderr, "out of memory\n");
-		return 1;
-	}
+	if (posix_memalign(&area, page_size, page_size))
+		err("out of memory");
 	zeropage = area;
 	bzero(zeropage, page_size);
 
@@ -1283,7 +1199,6 @@ static int userfaultfd_stress(void)
 	pthread_attr_init(&attr);
 	pthread_attr_setstacksize(&attr, 16*1024*1024);
 
-	err = 0;
 	while (bounces--) {
 		unsigned long expected_ioctls;
 
@@ -1308,25 +1223,18 @@ static int userfaultfd_stress(void)
 		uffdio_register.range.start = (unsigned long) area_dst;
 		uffdio_register.range.len = nr_pages * page_size;
 		uffdio_register.mode = UFFDIO_REGISTER_MODE_MISSING;
-		if (ioctl(uffd, UFFDIO_REGISTER, &uffdio_register)) {
-			fprintf(stderr, "register failure\n");
-			return 1;
-		}
+		if (ioctl(uffd, UFFDIO_REGISTER, &uffdio_register))
+			err("register failure");
 		expected_ioctls = uffd_test_ops->expected_ioctls;
 		if ((uffdio_register.ioctls & expected_ioctls) !=
-		    expected_ioctls) {
-			fprintf(stderr,
-				"unexpected missing ioctl for anon memory\n");
-			return 1;
-		}
+		    expected_ioctls)
+			err("unexpected missing ioctl for anon memory");
 
 		if (area_dst_alias) {
 			uffdio_register.range.start = (unsigned long)
 				area_dst_alias;
-			if (ioctl(uffd, UFFDIO_REGISTER, &uffdio_register)) {
-				fprintf(stderr, "register failure alias\n");
-				return 1;
-			}
+			if (ioctl(uffd, UFFDIO_REGISTER, &uffdio_register))
+				err("register failure alias");
 		}
 
 		/*
@@ -1353,41 +1261,31 @@ static int userfaultfd_stress(void)
 		 * MADV_DONTNEED only after the UFFDIO_REGISTER, so it's
 		 * required to MADV_DONTNEED here.
 		 */
-		if (uffd_test_ops->release_pages(area_dst))
-			return 1;
+		uffd_test_ops->release_pages(area_dst);
+
+		uffd_stats_reset(uffd_stats, nr_cpus);
 
 		/* bounce pass */
-		if (stress(userfaults))
+		if (stress(uffd_stats))
 			return 1;
 
 		/* unregister */
-		if (ioctl(uffd, UFFDIO_UNREGISTER, &uffdio_register.range)) {
-			fprintf(stderr, "unregister failure\n");
-			return 1;
-		}
+		if (ioctl(uffd, UFFDIO_UNREGISTER, &uffdio_register.range))
+			err("unregister failure");
 		if (area_dst_alias) {
 			uffdio_register.range.start = (unsigned long) area_dst;
 			if (ioctl(uffd, UFFDIO_UNREGISTER,
-				  &uffdio_register.range)) {
-				fprintf(stderr, "unregister failure alias\n");
-				return 1;
-			}
+				  &uffdio_register.range))
+				err("unregister failure alias");
 		}
 
 		/* verification */
-		if (bounces & BOUNCE_VERIFY) {
-			for (nr = 0; nr < nr_pages; nr++) {
-				if (*area_count(area_dst, nr) != count_verify[nr]) {
-					fprintf(stderr,
-						"error area_count %Lu %Lu %lu\n",
-						*area_count(area_src, nr),
-						count_verify[nr],
-						nr);
-					err = 1;
-					bounces = 0;
-				}
-			}
-		}
+		if (bounces & BOUNCE_VERIFY)
+			for (nr = 0; nr < nr_pages; nr++)
+				if (*area_count(area_dst, nr) != count_verify[nr])
+					err("error area_count %llu %llu %lu\n",
+					    *area_count(area_src, nr),
+					    count_verify[nr], nr);
 
 		/* prepare next bounce */
 		tmp_area = area_src;
@@ -1398,14 +1296,8 @@ static int userfaultfd_stress(void)
 		area_src_alias = area_dst_alias;
 		area_dst_alias = tmp_area;
 
-		printf("userfaults:");
-		for (cpu = 0; cpu < nr_cpus; cpu++)
-			printf(" %lu", userfaults[cpu]);
-		printf("\n");
+		uffd_stats_report(uffd_stats, nr_cpus);
 	}
-
-	if (err)
-		return err;
 
 	return userfaultfd_zeropage_test() || userfaultfd_sig_test()
 		|| userfaultfd_events_test() || userfaultfd_minor_test();
@@ -1455,7 +1347,7 @@ static void set_test_type(const char *type)
 		uffd_test_ops = &shmem_uffd_test_ops;
 		test_uffdio_minor = true;
 	} else {
-		fprintf(stderr, "Unknown test type: %s\n", type), exit(1);
+		err("Unknown test type: %s", type);
 	}
 
 	if (test_type == TEST_HUGETLB)
@@ -1464,11 +1356,10 @@ static void set_test_type(const char *type)
 		page_size = sysconf(_SC_PAGE_SIZE);
 
 	if (!page_size)
-		fprintf(stderr, "Unable to determine page size\n"),
-				exit(2);
+		err("Unable to determine page size");
 	if ((unsigned long) area_count(NULL, 0) + sizeof(unsigned long long) * 2
 	    > page_size)
-		fprintf(stderr, "Impossible to run this test\n"), exit(2);
+		err("Impossible to run this test");
 }
 
 static void sigalrm(int sig)
@@ -1486,7 +1377,7 @@ int main(int argc, char **argv)
 		usage();
 
 	if (signal(SIGALRM, sigalrm) == SIG_ERR)
-		fprintf(stderr, "failed to arm SIGALRM"), exit(1);
+		err("failed to arm SIGALRM");
 	alarm(ALARM_INTERVAL_SECS);
 
 	set_test_type(argv[1]);
@@ -1495,13 +1386,13 @@ int main(int argc, char **argv)
 	nr_pages_per_cpu = atol(argv[2]) * 1024*1024 / page_size /
 		nr_cpus;
 	if (!nr_pages_per_cpu) {
-		fprintf(stderr, "invalid MiB\n");
+		_err("invalid MiB");
 		usage();
 	}
 
 	bounces = atoi(argv[3]);
 	if (bounces <= 0) {
-		fprintf(stderr, "invalid bounces\n");
+		_err("invalid bounces");
 		usage();
 	}
 	nr_pages = nr_pages_per_cpu * nr_cpus;
@@ -1510,32 +1401,20 @@ int main(int argc, char **argv)
 		if (argc < 5)
 			usage();
 		huge_fd = open(argv[4], O_CREAT | O_RDWR, 0755);
-		if (huge_fd < 0) {
-			fprintf(stderr, "Open of %s failed", argv[4]);
-			perror("open");
-			exit(1);
-		}
-		if (ftruncate(huge_fd, 0)) {
-			fprintf(stderr, "ftruncate %s to size 0 failed", argv[4]);
-			perror("ftruncate");
-			exit(1);
-		}
+		if (huge_fd < 0)
+			err("Open of %s failed", argv[4]);
+		if (ftruncate(huge_fd, 0))
+			err("ftruncate %s to size 0 failed", argv[4]);
 	} else if (test_type == TEST_SHMEM) {
 		shm_fd = memfd_create(argv[0], 0);
-		if (shm_fd < 0) {
-			perror("memfd_create");
-			exit(1);
-		}
-		if (ftruncate(shm_fd, nr_pages * page_size * 2)) {
-			perror("ftruncate");
-			exit(1);
-		}
+		if (shm_fd < 0)
+			err("memfd_create");
+		if (ftruncate(shm_fd, nr_pages * page_size * 2))
+			err("ftruncate");
 		if (fallocate(shm_fd,
 			      FALLOC_FL_PUNCH_HOLE | FALLOC_FL_KEEP_SIZE, 0,
-			      nr_pages * page_size * 2)) {
-			perror("fallocate");
-			exit(1);
-		}
+			      nr_pages * page_size * 2))
+			err("fallocate");
 	}
 	printf("nr_pages: %lu, nr_pages_per_cpu: %lu\n",
 	       nr_pages, nr_pages_per_cpu);
