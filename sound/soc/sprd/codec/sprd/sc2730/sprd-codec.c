@@ -195,6 +195,7 @@ static void sprd_codec_sdm_init(struct snd_soc_codec *codec);
 static int sprd_codec_get_ctrl(struct snd_soc_codec *codec, char *name);
 static void sprd_codec_psg_state_init(struct snd_soc_codec *codec);
 static void sprd_codec_psg_state_exit(struct snd_soc_codec *codec);
+static unsigned int sprd_codec_read(struct snd_soc_codec *codec, unsigned int reg);
 
 static unsigned long sprd_codec_dp_base;
 
@@ -799,6 +800,8 @@ static void update_switch(struct snd_soc_codec *codec, u32 path, u32 on)
 	if (on)
 		val = sprd_codec->dac_switch & path;
 	snd_soc_update_bits(codec, SOC_REG(ANA_CDC9), path, val);
+	sp_asoc_pr_info("%s path 0x%x, on %d, dac_switch 0x%x, val 0x%x, ANA_CDC9 0x%x\n", __func__,
+		path, on, sprd_codec->dac_switch, val, sprd_codec_read(codec, SOC_REG(ANA_CDC9)));
 }
 
 static inline void sprd_codec_vcm_v_sel(struct snd_soc_codec *codec, int v_sel)
