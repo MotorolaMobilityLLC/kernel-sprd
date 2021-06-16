@@ -1762,7 +1762,7 @@
 			};
 
 			watchdog@644e0000 {
-				compatible = "sprd,wdt-r2p0-fiq-qogirl6";
+				compatible = "sprd,wdt-r2p0-fiq";
 				reg = <0 0x644e0000 0 0x10000>;
 				interrupts = <GIC_SPI 79 IRQ_TYPE_LEVEL_HIGH>;
 				timeout-sec = <12>;
