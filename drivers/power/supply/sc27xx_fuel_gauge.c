@@ -135,6 +135,7 @@ enum sc27xx_fgu_track_state {
 
 struct sc27xx_fgu_track_capacity {
 	enum sc27xx_fgu_track_state state;
+	bool clear_cap_flag;
 	int start_clbcnt;
 	int start_cap;
 	int end_vol;
@@ -234,6 +235,7 @@ struct sc27xx_fgu_data {
 	int cur_clbcnt;
 	int bat_temp;
 	bool online;
+	bool is_first_poweron;
 	u32 chg_type;
 	struct sc27xx_fgu_track_capacity track;
 	struct power_supply_battery_ocv_table *cap_table;
@@ -688,6 +690,7 @@ static int sc27xx_fgu_get_boot_capacity(struct sc27xx_fgu_data *data, int *cap)
 		return ret;
 	}
 
+	data->is_first_poweron = true;
 	dev_info(data->dev, "First_poweron: ocv = %d, cap = %d\n", ocv, *cap);
 	return sc27xx_fgu_save_boot_mode(data, SC27XX_FGU_NORMAIL_POWERTON);
 }
@@ -1897,6 +1900,21 @@ static void sc27xx_fgu_track_capacity_work(struct work_struct *work)
 		 * we need to encrypt it.
 		 */
 		data->track.state = CAP_TRACK_IDLE;
+
+		if (data->is_first_poweron && !data->track.clear_cap_flag) {
+			file_buf[0] = 0 ^ SC27XX_FGU_TRACK_CAP_KEY0;
+			file_buf[1] = 0 ^ SC27XX_FGU_TRACK_CAP_KEY1;
+			ret = kernel_write(filep, &file_buf, sizeof(file_buf), &pos);
+			if (ret < 0) {
+				dev_err(data->dev, "write file_buf data error\n");
+				goto out;
+			}
+			data->track.clear_cap_flag = true;
+			break;
+		}
+
+		dev_info(data->dev, "clear_cap_flag = %d\n", data->track.clear_cap_flag);
+
 		if (kernel_read(filep, (char *)&file_buf, sizeof(file_buf), &pos) < 0) {
 			dev_err(data->dev, "track file is empty or read error\n");
 			goto out;
