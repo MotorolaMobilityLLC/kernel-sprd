@@ -884,7 +884,6 @@ static enum power_supply_usb_type sc2730_fchg_usb_types[] = {
 static enum power_supply_property sc2730_fchg_usb_props[] = {
 	POWER_SUPPLY_PROP_VOLTAGE_MAX,
 	POWER_SUPPLY_PROP_USB_TYPE,
-	POWER_SUPPLY_PROP_ONLINE,
 };
 
 static const struct power_supply_desc sc2730_fchg_desc = {

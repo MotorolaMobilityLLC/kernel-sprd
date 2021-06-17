@@ -121,25 +121,61 @@ enum cm_fast_charge_command {
 	CM_PPS_CHARGE_DISABLE_CMD,
 };
 
-enum cm_charger_fault_status {
-	CM_CHARGER_BAT_OVP_FAULT = BIT(0),
-	CM_CHARGER_BAT_OCP_FAULT = BIT(1),
-	CM_CHARGER_BUS_OVP_FAULT = BIT(2),
-	CM_CHARGER_BUS_OCP_FAULT = BIT(3),
-	CM_CHARGER_BAT_THERM_FAULT = BIT(4),
-	CM_CHARGER_BUS_THERM_FAULT = BIT(5),
-	CM_CHARGER_DIE_THERM_FAULT = BIT(6),
+enum present_command {
+	CM_USB_PRESENT_CMD,
+	CM_BATTERY_PRESENT_CMD,
+	CM_VBUS_PRESENT_CMD,
 };
 
-enum cm_charger_alarm_status {
-	CM_CHARGER_BAT_OVP_ALARM = BIT(0),
-	CM_CHARGER_BAT_OCP_ALARM = BIT(1),
-	CM_CHARGER_BUS_OVP_ALARM = BIT(2),
-	CM_CHARGER_BUS_OCP_ALARM = BIT(3),
-	CM_CHARGER_BAT_THERM_ALARM = BIT(4),
-	CM_CHARGER_BUS_THERM_ALARM = BIT(5),
-	CM_CHARGER_DIE_THERM_ALARM = BIT(6),
-	CM_CHARGER_BAT_UCP_ALARM = BIT(7),
+enum temperature_command {
+	CMD_BATT_TEMP_CMD,
+	CM_BUS_TEMP_CMD,
+	CM_DIE_TEMP_CMD,
+};
+
+enum health_command {
+	CM_FAULT_HEALTH_CMD,
+	CM_ALARM_HEALTH_CMD,
+	CM_BUS_ERR_HEALTH_CMD,
+};
+enum cm_charger_fault_status_mask {
+	CM_CHARGER_BAT_OVP_FAULT_MASK = BIT(0),
+	CM_CHARGER_BAT_OCP_FAULT_MASK = BIT(1),
+	CM_CHARGER_BUS_OVP_FAULT_MASK = BIT(2),
+	CM_CHARGER_BUS_OCP_FAULT_MASK = BIT(3),
+	CM_CHARGER_BAT_THERM_FAULT_MASK = BIT(4),
+	CM_CHARGER_BUS_THERM_FAULT_MASK = BIT(5),
+	CM_CHARGER_DIE_THERM_FAULT_MASK = BIT(6),
+	CM_CHARGER_BAT_OVP_ALARM_MASK = BIT(8),
+	CM_CHARGER_BAT_OCP_ALARM_MASK = BIT(9),
+	CM_CHARGER_BUS_OVP_ALARM_MASK = BIT(10),
+	CM_CHARGER_BUS_OCP_ALARM_MASK = BIT(11),
+	CM_CHARGER_BAT_THERM_ALARM_MASK = BIT(12),
+	CM_CHARGER_BUS_THERM_ALARM_MASK = BIT(13),
+	CM_CHARGER_DIE_THERM_ALARM_MASK = BIT(14),
+	CM_CHARGER_BAT_UCP_ALARM_MASK = BIT(15),
+	CM_CHARGER_BUS_ERR_LO_MASK = BIT(24),
+	CM_CHARGER_BUS_ERR_HI_MASK = BIT(25),
+};
+
+enum cm_charger_fault_status_shift {
+	CM_CHARGER_BAT_OVP_FAULT_SHIFT = 0,
+	CM_CHARGER_BAT_OCP_FAULT_SHIFT = 1,
+	CM_CHARGER_BUS_OVP_FAULT_SHIFT = 2,
+	CM_CHARGER_BUS_OCP_FAULT_SHIFT = 3,
+	CM_CHARGER_BAT_THERM_FAULT_SHIFT = 4,
+	CM_CHARGER_BUS_THERM_FAULT_SHIFT = 5,
+	CM_CHARGER_DIE_THERM_FAULT_SHIFT = 6,
+	CM_CHARGER_BAT_OVP_ALARM_SHIFT = 8,
+	CM_CHARGER_BAT_OCP_ALARM_SHIFT = 9,
+	CM_CHARGER_BUS_OVP_ALARM_SHIFT = 10,
+	CM_CHARGER_BUS_OCP_ALARM_SHIFT = 11,
+	CM_CHARGER_BAT_THERM_ALARM_SHIFT = 12,
+	CM_CHARGER_BUS_THERM_ALARM_SHIFT = 13,
+	CM_CHARGER_DIE_THERM_ALARM_SHIFT = 14,
+	CM_CHARGER_BAT_UCP_ALARM_SHIFT = 15,
+	CM_CHARGER_BUS_ERR_LO_SHIFT = 24,
+	CM_CHARGER_BUS_ERR_HI_SHIFT = 25,
 };
 
 #define CM_IBAT_BUFF_CNT 7
@@ -272,7 +308,6 @@ struct cm_track_capacity {
 	s64 start_time;
 	bool cap_tracking;
 	struct delayed_work track_capacity_work;
-	bool open_file_done;
 };
 
 /*
@@ -702,6 +737,7 @@ struct charger_desc {
  * @charging_start_time: saved start time of enabling charging
  * @charging_end_time: saved end time of disabling charging
  * @charging_status: saved charging status, 0 means charging normal
+ * @battery_status: Current battery status
  * @charge_ws: wakeup source to prevent ap enter sleep mode in charge
  *	pump mode
  */
@@ -731,6 +767,7 @@ struct charger_manager {
 	u64 charging_end_time;
 	u32 charging_status;
 	bool is_full;
+	int battery_status;
 	struct cm_track_capacity track;
 
 	struct wakeup_source charge_ws;

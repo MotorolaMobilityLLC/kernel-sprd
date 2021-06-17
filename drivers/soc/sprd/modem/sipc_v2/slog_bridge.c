@@ -154,13 +154,8 @@ static void slog_block_release(struct slog_bridge *sb, void *addr,
 	list_for_each_entry(blk, &sb->send_list, list) {
 		if (blk->vaddr == addr) {
 			blk->send_len += len;
-			if (blk->length > blk->send_len) {
-				pr_err("release err: len =%d", len);
+			if (blk->length > blk->send_len)
 				break;
-			}
-
-			dev_dbg(sb->dev, "release: addr=0x%lx, length=%d",
-				(unsigned long int) addr, blk->length);
 
 			/* release this block */
 			sb->send_cnt--;
@@ -201,8 +196,6 @@ static struct block_node *slog_block_request(struct slog_bridge *sb,
 	blk->channel = channel;
 	sb->send_cnt++;
 	sb->total_size += blk_rx->length;
-	dev_dbg(sb->dev, "request: addr=0x%lx, length=%d",
-		(unsigned long int)vaddr, blk_rx->length);
 
 	/* remove from pool list */
 	list_del(&blk->list);

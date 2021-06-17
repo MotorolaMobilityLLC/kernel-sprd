@@ -605,6 +605,7 @@ static int sc27xx_pd_set_rx(struct tcpc_dev *tcpc, bool on)
 {
 	struct sc27xx_pd *pd = tcpc_to_sc27xx_pd(tcpc);
 	u32 mask = SC27XX_PD_CTL_EN, mask1 = SC27XX_PD_PKG_RV_EN;
+	u32 mask2 = SC27XX_PD_RX_AUTO_GOOD_CRC;
 	int ret;
 
 	mutex_lock(&pd->lock);
@@ -613,23 +614,33 @@ static int sc27xx_pd_set_rx(struct tcpc_dev *tcpc, bool on)
 		goto done;
 
 	if (on) {
-		ret = regmap_update_bits(pd->regmap, pd->base + SC27XX_PD_CFG0,
-					 mask, mask);
-		if (ret < 0)
-			goto done;
-
 		ret = regmap_update_bits(pd->regmap, pd->base + SC27XX_INT_EN,
 					 mask1, mask1);
 		if (ret < 0)
 			goto done;
+
+		ret = regmap_update_bits(pd->regmap, pd->base + SC27XX_PD_CFG1,
+					 mask2, mask2);
+		if (ret < 0)
+			goto done;
+
+		ret = regmap_update_bits(pd->regmap, pd->base + SC27XX_PD_CFG0,
+					 mask, mask);
+		if (ret < 0)
+			goto done;
 	} else {
+		ret = regmap_update_bits(pd->regmap, pd->base + SC27XX_PD_CFG0,
+					 mask, ~mask);
+		if (ret < 0)
+			goto done;
+
 		ret = regmap_update_bits(pd->regmap, pd->base + SC27XX_INT_EN,
 					 mask1, ~mask1);
 		if (ret < 0)
 			goto done;
 
-		ret = regmap_update_bits(pd->regmap, pd->base + SC27XX_PD_CFG0,
-					 mask, ~mask);
+		ret = regmap_update_bits(pd->regmap, pd->base + SC27XX_PD_CFG1,
+					 mask2, ~mask2);
 		if (ret < 0)
 			goto done;
 	}
@@ -1008,6 +1019,7 @@ static int sc27xx_pd_delta_cal(struct sc27xx_pd *pd)
 static int sc27xx_pd_module_init(struct sc27xx_pd *pd)
 {
 	int ret;
+	u32 mask2 = SC27XX_PD_RX_AUTO_GOOD_CRC;
 
 	ret = sc27xx_pd_delta_cal(pd);
 	if (ret < 0)
@@ -1036,6 +1048,11 @@ static int sc27xx_pd_module_init(struct sc27xx_pd *pd)
 
 	ret = regmap_write(pd->regmap, pd->base + SC27XX_INT_CLR,
 			   SC27XX_INT_CLR_MASK);
+	if (ret < 0)
+		return ret;
+
+	ret = regmap_update_bits(pd->regmap, pd->base + SC27XX_PD_CFG1,
+				 mask2, ~mask2);
 	if (ret < 0)
 		return ret;
 
