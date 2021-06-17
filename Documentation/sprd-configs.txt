@@ -16454,6 +16454,15 @@ CONFIG_SPRD_BUSMONITOR
 	[must] debug
 	[missing plat description] none
 	[function] Enable busmonitor core function
+CONFIG_SPRD_CACHE_EFUSE
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
 CONFIG_SPRD_CAMSYS_PW_DOMAIN
 	[arch] all
 	[plat] all
