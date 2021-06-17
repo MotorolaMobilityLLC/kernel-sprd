@@ -91,6 +91,7 @@
 		nvmem-cells = <&dvfs_bin_cpu0>, <&dvfs_bin_low_volt_cpu0>;
 		nvmem-cell-names = "dvfs_bin", "dvfs_bin_low_volt";
 		sprd,cpufreq-temp-threshold = <65>;
+		cpufreq-cluster-cpumask = <0xf>;
 		sprd,ss-waferid-names =
 			"T8F619_1","T8F619_2",
 			"T8F619_3","T8F619_4",
