@@ -209,6 +209,7 @@ static u32 sprd_iommuvau_cll_enable(sprd_iommu_hdl iommu_hdl)
 	}
 		/*config update arqos,access ddr priority,default 7*/
 	mmu_vau_pt_update_arqos(iommu_priv->mmu_reg_addr, 7);
+	mmu_vau_int_enable(iommu_priv->mmu_reg_addr, iommu_id);
 
 	mmu_vau_vaorbypass_clkgate_enable_combined(iommu_priv->mmu_reg_addr,
 		iommu_id);

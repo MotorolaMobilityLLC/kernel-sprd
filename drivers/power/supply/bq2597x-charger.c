@@ -42,18 +42,6 @@ enum {
 	ADC_MAX_NUM,
 };
 
-enum {
-	CMD_USB_PRESENT,
-	CMD_BATTERY_PRESENT,
-	CMD_VBUS_PRESENT,
-};
-
-enum {
-	CMD_BATT_TEMP,
-	CMD_BUS_TEMP,
-	CMD_DIE_TEMP,
-};
-
 #define BQ25970_ROLE_STDALONE   0
 #define BQ25970_ROLE_SLAVE	1
 #define BQ25970_ROLE_MASTER	2
@@ -87,41 +75,6 @@ static int bq2597x_mode_data[] = {
 #define TS_BAT_FAULT		BIT(2)
 #define	TS_BUS_FAULT		BIT(1)
 #define	TS_DIE_FAULT		BIT(0)
-
-/* below used for comm with other module */
-#define	BAT_OVP_FAULT_SHIFT			0
-#define	BAT_OCP_FAULT_SHIFT			1
-#define	BUS_OVP_FAULT_SHIFT			2
-#define	BUS_OCP_FAULT_SHIFT			3
-#define	BAT_THERM_FAULT_SHIFT			4
-#define	BUS_THERM_FAULT_SHIFT			5
-#define	DIE_THERM_FAULT_SHIFT			6
-
-#define	BAT_OVP_FAULT_MASK		(1 << BAT_OVP_FAULT_SHIFT)
-#define	BAT_OCP_FAULT_MASK		(1 << BAT_OCP_FAULT_SHIFT)
-#define	BUS_OVP_FAULT_MASK		(1 << BUS_OVP_FAULT_SHIFT)
-#define	BUS_OCP_FAULT_MASK		(1 << BUS_OCP_FAULT_SHIFT)
-#define	BAT_THERM_FAULT_MASK		(1 << BAT_THERM_FAULT_SHIFT)
-#define	BUS_THERM_FAULT_MASK		(1 << BUS_THERM_FAULT_SHIFT)
-#define	DIE_THERM_FAULT_MASK		(1 << DIE_THERM_FAULT_SHIFT)
-
-#define	BAT_OVP_ALARM_SHIFT			0
-#define	BAT_OCP_ALARM_SHIFT			1
-#define	BUS_OVP_ALARM_SHIFT			2
-#define	BUS_OCP_ALARM_SHIFT			3
-#define	BAT_THERM_ALARM_SHIFT			4
-#define	BUS_THERM_ALARM_SHIFT			5
-#define	DIE_THERM_ALARM_SHIFT			6
-#define BAT_UCP_ALARM_SHIFT			7
-
-#define	BAT_OVP_ALARM_MASK		(1 << BAT_OVP_ALARM_SHIFT)
-#define	BAT_OCP_ALARM_MASK		(1 << BAT_OCP_ALARM_SHIFT)
-#define	BUS_OVP_ALARM_MASK		(1 << BUS_OVP_ALARM_SHIFT)
-#define	BUS_OCP_ALARM_MASK		(1 << BUS_OCP_ALARM_SHIFT)
-#define	BAT_THERM_ALARM_MASK		(1 << BAT_THERM_ALARM_SHIFT)
-#define	BUS_THERM_ALARM_MASK		(1 << BUS_THERM_ALARM_SHIFT)
-#define	DIE_THERM_ALARM_MASK		(1 << DIE_THERM_ALARM_SHIFT)
-#define	BAT_UCP_ALARM_MASK		(1 << BAT_UCP_ALARM_SHIFT)
 
 #define VBAT_REG_STATUS_SHIFT			0
 #define IBAT_REG_STATUS_SHIFT			1
@@ -241,6 +194,9 @@ struct bq2597x_charger_info {
 	bool bat_therm_fault;
 	bool bus_therm_fault;
 	bool die_therm_fault;
+
+	bool bus_err_lo;
+	bool bus_err_hi;
 
 	bool therm_shutdown_flag;
 	bool therm_shutdown_stat;
@@ -1062,29 +1018,19 @@ static int bq2597x_set_vbat_reg_th(struct bq2597x_charger_info *bq, int th_mv)
 	return bq2597x_update_bits(bq, BQ2597X_REG_2C, BQ2597X_VBAT_REG_MASK, val);
 }
 
-static int bq2597x_check_reg_status(struct bq2597x_charger_info *bq)
-{
-	int ret;
-	u8 val;
-
-	ret = bq2597x_read_byte(bq, BQ2597X_REG_2C, &val);
-	if (!ret) {
-		bq->vbat_reg = !!(val & BQ2597X_VBAT_REG_ACTIVE_STAT_MASK);
-		bq->ibat_reg = !!(val & BQ2597X_IBAT_REG_ACTIVE_STAT_MASK);
-	}
-
-	return ret;
-}
-
-static int bq2597x_check_vbus_error_status(struct bq2597x_charger_info *bq, int *status)
+static int bq2597x_check_vbus_error_status(struct bq2597x_charger_info *bq)
 {
 	int ret;
 	u8 data;
 
+	bq->bus_err_lo = false;
+	bq->bus_err_hi = false;
+
 	ret = bq2597x_read_byte(bq, BQ2597X_REG_0A, &data);
 	if (ret == 0) {
 		dev_err(bq->dev, "vbus error >>>>%02x\n", data);
-		*status = data;
+		bq->bus_err_lo = !!(data & BQ2597X_VBUS_ERRORLO_STAT_MASK);
+		bq->bus_err_hi = !!(data & BQ2597X_VBUS_ERRORHI_STAT_MASK);
 	}
 
 	return ret;
@@ -1574,12 +1520,9 @@ static enum power_supply_property bq2597x_charger_props[] = {
 	POWER_SUPPLY_PROP_INPUT_CURRENT_NOW,
 	POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE,
 	POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE_MAX,
-	POWER_SUPPLY_PROP_ALARM_STATUS,
-	POWER_SUPPLY_PROP_FAULT_STATUS,
-	POWER_SUPPLY_PROP_REG_STATUS,
+	POWER_SUPPLY_PROP_HEALTH,
 	POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT,
 	POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT,
-	POWER_SUPPLY_PROP_VBUS_ERROR_STATUS,
 };
 
 static void bq2597x_check_alarm_status(struct bq2597x_charger_info *bq);
@@ -1591,14 +1534,14 @@ static int bq2597x_get_present_status(struct bq2597x_charger_info *bq, int *intv
 	u8 reg_val;
 	bool result = false;
 
-	if (*intval == CMD_USB_PRESENT) {
+	if (*intval == CM_USB_PRESENT_CMD) {
 		result = bq->usb_present;
-	} else if (*intval == CMD_BATTERY_PRESENT) {
+	} else if (*intval == CM_BATTERY_PRESENT_CMD) {
 		ret = bq2597x_read_byte(bq, BQ2597X_REG_0D, &reg_val);
 		if (!ret)
 			bq->batt_present = !!(reg_val & VBAT_INSERT);
 		result = bq->batt_present;
-	} else if (*intval == CMD_VBUS_PRESENT) {
+	} else if (*intval == CM_VBUS_PRESENT_CMD) {
 		ret = bq2597x_read_byte(bq, BQ2597X_REG_0D, &reg_val);
 		if (!ret)
 			bq->vbus_present  = !!(reg_val & VBUS_INSERT);
@@ -1617,15 +1560,15 @@ static int bq2597x_get_temperature(struct bq2597x_charger_info *bq, int *intval)
 	int ret = 0;
 	int result = 0;
 
-	if (*intval == CMD_BUS_TEMP) {
+	if (*intval == CM_BUS_TEMP_CMD) {
 		ret = bq2597x_get_adc_data(bq, ADC_TBAT, &result);
 		if (!ret)
 			bq->bat_temp = result;
-	} else if (*intval == CMD_BUS_TEMP) {
+	} else if (*intval == CM_BUS_TEMP_CMD) {
 		ret = bq2597x_get_adc_data(bq, ADC_TBUS, &result);
 		if (!ret)
 			bq->bus_temp = result;
-	} else if (*intval == CMD_DIE_TEMP) {
+	} else if (*intval == CM_DIE_TEMP_CMD) {
 		ret = bq2597x_get_adc_data(bq, ADC_TDIE, &result);
 		if (!ret)
 			bq->die_temp = result;
@@ -1693,36 +1636,32 @@ static int bq2597x_charger_get_property(struct power_supply *psy,
 
 		val->intval = bq->vbus_volt * 1000;
 		break;
-	case POWER_SUPPLY_PROP_ALARM_STATUS:
+	case POWER_SUPPLY_PROP_HEALTH:
+		if (val->intval == CM_BUS_ERR_HEALTH_CMD) {
+			bq2597x_check_vbus_error_status(bq);
+			val->intval = (bq->bus_err_lo  << CM_CHARGER_BUS_ERR_LO_SHIFT);
+			val->intval |= (bq->bus_err_hi  << CM_CHARGER_BUS_ERR_HI_SHIFT);
+			break;
+		}
+
+		bq2597x_check_fault_status(bq);
+		val->intval = ((bq->bat_ovp_fault << CM_CHARGER_BAT_OVP_FAULT_SHIFT)
+			| (bq->bat_ocp_fault << CM_CHARGER_BAT_OCP_FAULT_SHIFT)
+			| (bq->bus_ovp_fault << CM_CHARGER_BUS_OVP_FAULT_SHIFT)
+			| (bq->bus_ocp_fault << CM_CHARGER_BUS_OCP_FAULT_SHIFT)
+			| (bq->bat_therm_fault << CM_CHARGER_BAT_THERM_FAULT_SHIFT)
+			| (bq->bus_therm_fault << CM_CHARGER_BUS_THERM_FAULT_SHIFT)
+			| (bq->die_therm_fault << CM_CHARGER_DIE_THERM_FAULT_SHIFT));
 
 		bq2597x_check_alarm_status(bq);
-
-		val->intval = ((bq->bat_ovp_alarm << BAT_OVP_ALARM_SHIFT)
-			| (bq->bat_ocp_alarm << BAT_OCP_ALARM_SHIFT)
-			| (bq->bat_ucp_alarm << BAT_UCP_ALARM_SHIFT)
-			| (bq->bus_ovp_alarm << BUS_OVP_ALARM_SHIFT)
-			| (bq->bus_ocp_alarm << BUS_OCP_ALARM_SHIFT)
-			| (bq->bat_therm_alarm << BAT_THERM_ALARM_SHIFT)
-			| (bq->bus_therm_alarm << BUS_THERM_ALARM_SHIFT)
-			| (bq->die_therm_alarm << DIE_THERM_ALARM_SHIFT));
-		break;
-
-	case POWER_SUPPLY_PROP_FAULT_STATUS:
-		bq2597x_check_fault_status(bq);
-
-		val->intval = ((bq->bat_ovp_fault << BAT_OVP_FAULT_SHIFT)
-			| (bq->bat_ocp_fault << BAT_OCP_FAULT_SHIFT)
-			| (bq->bus_ovp_fault << BUS_OVP_FAULT_SHIFT)
-			| (bq->bus_ocp_fault << BUS_OCP_FAULT_SHIFT)
-			| (bq->bat_therm_fault << BAT_THERM_FAULT_SHIFT)
-			| (bq->bus_therm_fault << BUS_THERM_FAULT_SHIFT)
-			| (bq->die_therm_fault << DIE_THERM_FAULT_SHIFT));
-		break;
-
-	case POWER_SUPPLY_PROP_REG_STATUS:
-		bq2597x_check_reg_status(bq);
-		val->intval = (bq->vbat_reg << VBAT_REG_STATUS_SHIFT) |
-				(bq->ibat_reg << IBAT_REG_STATUS_SHIFT);
+		val->intval |= ((bq->bat_ovp_alarm << CM_CHARGER_BAT_OVP_ALARM_SHIFT)
+			| (bq->bat_ocp_alarm << CM_CHARGER_BAT_OCP_ALARM_SHIFT)
+			| (bq->bat_ucp_alarm << CM_CHARGER_BAT_UCP_ALARM_SHIFT)
+			| (bq->bus_ovp_alarm << CM_CHARGER_BUS_OVP_ALARM_SHIFT)
+			| (bq->bus_ocp_alarm << CM_CHARGER_BUS_OCP_ALARM_SHIFT)
+			| (bq->bat_therm_alarm << CM_CHARGER_BAT_THERM_ALARM_SHIFT)
+			| (bq->bus_therm_alarm << CM_CHARGER_BUS_THERM_ALARM_SHIFT)
+			| (bq->die_therm_alarm << CM_CHARGER_DIE_THERM_ALARM_SHIFT));
 		break;
 	case POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT:
 		bq2597x_check_charge_enabled(bq, &bq->charge_enabled);
@@ -1748,10 +1687,6 @@ static int bq2597x_charger_get_property(struct power_supply *psy,
 			val->intval = 0;
 		else
 			val->intval = bq->cfg->bat_ocp_alm_th * 1000;
-		break;
-	case POWER_SUPPLY_PROP_VBUS_ERROR_STATUS:
-		bq2597x_check_vbus_error_status(bq, &result);
-		val->intval = result;
 		break;
 	default:
 		return -EINVAL;
@@ -1787,7 +1722,7 @@ static int bq2597x_charger_set_property(struct power_supply *psy,
 		break;
 
 	case POWER_SUPPLY_PROP_PRESENT:
-		if (val->intval == CMD_USB_PRESENT)
+		if (val->intval == CM_USB_PRESENT_CMD)
 			bq2597x_set_present(bq, true);
 		break;
 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE_MAX:

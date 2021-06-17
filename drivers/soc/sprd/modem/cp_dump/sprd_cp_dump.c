@@ -26,6 +26,7 @@
 #include <linux/regmap.h>
 #include <linux/debugfs.h>
 #include <linux/gpio/consumer.h>
+#include <linux/soc/sprd/sprd_sysdump.h>
 
 #include "sprd_cp_dump.h"
 
@@ -303,11 +304,21 @@ static long cp_dump_ioctl(struct file *filp, unsigned int cmd, unsigned long arg
 
 	case CP_DUMP_SET_DUMP_INFO_CMD:
 		ret = cp_dump_set_something(cp_dump, &tmp, cmd, arg);
+		if (ret)
+			break;
 		cp_dump->dump_info->region_cnt = tmp.region_cnt;
 		for (i = 0; i < tmp.region_cnt; i++) {
 			cp_dump->dump_info->regions[i].address = (u64)tmp.regions[i].address;
 			cp_dump->dump_info->regions[i].size = (u32)tmp.regions[i].size;
 			strcpy(cp_dump->dump_info->regions[i].name, tmp.regions[i].name);
+			cp_dump->dump_info->regions[i].mini_dump_flag = tmp.regions[i].mini_dump_flag;
+			if (tmp.regions[i].mini_dump_flag) {
+				ret = minidump_save_extend_information(tmp.regions[i].name,
+						tmp.regions[i].address,
+						tmp.regions[i].address + tmp.regions[i].size);
+			}
+			if (ret)
+				dev_err(cp_dump->p_dev, "miniump err\n");
 		}
 		break;
 	default:
@@ -364,7 +375,7 @@ static int cp_dump_parse_dt(struct cp_dump_device *cp_dump, struct device_node *
 				pm_reg_ctl->reg_offset, pm_reg_ctl->reg_mask);
 	}
 
-	return ret;
+	return 0;
 }
 
 static const struct file_operations cp_dump_fops = {

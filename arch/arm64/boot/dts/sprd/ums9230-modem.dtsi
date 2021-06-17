@@ -80,6 +80,11 @@
 		};
 	};
 
+	cp_dump {
+		compatible = "sprd,cp_dump";
+		sprd,sys-bus-ctrl-sp = <&aon_apb_regs 0x0124 0x1>;
+	};
+
 	sprd-sipc {
 		compatible = "sprd,sipc";
 		sipc0: sipc@87800000 {

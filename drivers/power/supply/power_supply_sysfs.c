@@ -308,10 +308,6 @@ static struct device_attribute power_supply_attrs[] = {
 	POWER_SUPPLY_ATTR(model_name),
 	POWER_SUPPLY_ATTR(manufacturer),
 	POWER_SUPPLY_ATTR(serial_number),
-	POWER_SUPPLY_ATTR(alarm_status),
-	POWER_SUPPLY_ATTR(fault_status),
-	POWER_SUPPLY_ATTR(reg_status),
-	POWER_SUPPLY_ATTR(vbus_error_status),
 };
 
 static struct attribute *

@@ -13882,8 +13882,8 @@ CONFIG_SPRD_CPU_USAGE
 	[function] This function is used to record cpu usage for each cpu.
 CONFIG_SPRD_CP_DUMP
 	[arch] arm64
-	[plat] qogirn6pro
-	[missing plat] qogirl6,sharkl3,sharkl5,sharkl5Pro
+	[plat] qogirl6,qogirn6pro
+	[missing plat] sharkl3,sharkl5,sharkl5Pro
 	[field] make
 	[subsys] soc
 	[must] user

@@ -1017,7 +1017,7 @@ ssize_t vser_pass_user_write(char *buf, size_t count)
 {
 	struct vser_dev *dev = _vser_dev;
 	struct usb_composite_dev *cdev;
-	struct usb_request *req;
+	struct usb_request *req = 0;
 	int r = count, xfer, ret;
 
 	if (!dev || !dev->online) {

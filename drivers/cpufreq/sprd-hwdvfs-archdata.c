@@ -593,17 +593,17 @@ static struct mpll_index_tbl ums9230_mpll_index_tbl[MAX_MPLL] = {
 		.entry = {
 			{
 				.output = {
-					GENREGVALSET(0xa8, 0, 0x7, 3),
-					GENREGVALSET(0xa8, 3, 0x1, 1),
-					GENREGVALSET(0xa8, 4, 0x7ff, 0x44),
+					GENREGVALSET(0xa8, 0, 0x7, 0),
+					GENREGVALSET(0xa8, 3, 0x1, 0),
+					GENREGVALSET(0xa8, 4, 0x7ff, 0x22),
 				},
 			},
 
 			{
 				.output = {
-					GENREGVALSET(0xac, 0, 0x7, 5),
-					GENREGVALSET(0xac, 3, 0x1, 1),
-					GENREGVALSET(0xac, 4, 0x7ff, 0x50),
+					GENREGVALSET(0xac, 0, 0x7, 0),
+					GENREGVALSET(0xac, 3, 0x1, 0),
+					GENREGVALSET(0xac, 4, 0x7ff, 0x28),
 				},
 			},
 
@@ -661,9 +661,9 @@ static struct mpll_index_tbl ums9230_mpll_index_tbl[MAX_MPLL] = {
 		.entry = {
 			{
 				.output = {
-					GENREGVALSET(0x78, 0, 0x7, 5),
-					GENREGVALSET(0x78, 3, 0x1, 1),
-					GENREGVALSET(0x78, 4, 0x7ff, 0x50),
+					GENREGVALSET(0x78, 0, 0x7, 0),
+					GENREGVALSET(0x78, 3, 0x1, 0),
+					GENREGVALSET(0x78, 4, 0x7ff, 0x28),
 				},
 			},
 
