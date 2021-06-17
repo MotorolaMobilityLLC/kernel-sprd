@@ -250,7 +250,7 @@ void sc2355_scan_timeout(struct timer_list *t)
 	struct sprd_api_version_t *api = (&priv->sync_api)->api_array;
 	u8 fw_ver = 0;
 
-	netdev_info(priv->scan_vif->ndev, "%s\n", __func__);
+	pr_info("%s\n", __func__);
 
 	spin_lock_bh(&priv->scan_lock);
 	if (priv->scan_request) {
@@ -262,7 +262,7 @@ void sc2355_scan_timeout(struct timer_list *t)
 			drv_ver = (api + CMD_SCAN)->drv_version;
 			fw_ver = min(fw_ver, drv_ver);
 		}
-		if (fw_ver == 1)
+		if (fw_ver == 1 && priv->scan_vif)
 			clean_survey_info_list(priv->scan_vif);
 		cfg80211_scan_done(priv->scan_request, &info);
 		priv->scan_vif = NULL;

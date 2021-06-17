@@ -14,6 +14,7 @@
 #include "delay_work.h"
 #include "hif.h"
 #include "iface.h"
+#include "report.h"
 #include "tdls.h"
 
 static char type_name[16][32] = {
@@ -1123,6 +1124,7 @@ void sprd_cfg80211_stop_p2p_device(struct wiphy *wiphy,
 
 	netdev_info(vif->ndev, "%s\n", __func__);
 
+	sprd_report_scan_done(vif, true);
 	sprd_uninit_fw(vif);
 
 	wiphy_info(wiphy, "Power off WCN (%d time)\n",

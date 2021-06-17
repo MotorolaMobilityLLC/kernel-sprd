@@ -129,7 +129,7 @@ void sc2332_scan_timeout(struct timer_list *t)
 	struct sprd_priv *priv = from_timer(priv, t, scan_timer);
 	struct cfg80211_scan_info info;
 
-	netdev_info(priv->scan_vif->ndev, "%s\n", __func__);
+	pr_info("%s\n", __func__);
 
 	spin_lock_bh(&priv->scan_lock);
 	if (priv->scan_request) {
