@@ -81,7 +81,7 @@
 			};
 
 			i2c0: i2c@0x200d0000 {
-				compatible = "sprd,qogirl6-i2c";
+				compatible = "sprd,qogirl6-i2c", "sprd,sc9860-i2c";
 				reg = <0 0x200d0000 0 0x100>;
 				interrupts = <GIC_SPI 11 IRQ_TYPE_LEVEL_HIGH>;
 				clock-frequency = <400000>;
@@ -94,7 +94,7 @@
 			};
 
 			i2c1: i2c@0x200e0000 {
-				compatible = "sprd,qogirl6-i2c";
+				compatible = "sprd,qogirl6-i2c", "sprd,sc9860-i2c";
 				reg = <0 0x200e0000 0 0x100>;
 				interrupts = <GIC_SPI 12 IRQ_TYPE_LEVEL_HIGH>;
 				clock-frequency = <400000>;
@@ -107,7 +107,7 @@
 			};
 
 			i2c2: i2c@0x200f0000 {
-				compatible = "sprd,qogirl6-i2c";
+				compatible = "sprd,qogirl6-i2c", "sprd,sc9860-i2c";
 				reg = <0 0x200f0000 0 0x100>;
 				interrupts = <GIC_SPI 13 IRQ_TYPE_LEVEL_HIGH>;
 				clock-frequency = <400000>;
@@ -120,7 +120,7 @@
 			};
 
 			i2c3: i2c@0x20100000 {
-				compatible = "sprd,qogirl6-i2c";
+				compatible = "sprd,qogirl6-i2c", "sprd,sc9860-i2c";
 				reg = <0 0x20100000 0 0x100>;
 				interrupts = <GIC_SPI 14 IRQ_TYPE_LEVEL_HIGH>;
 				clock-frequency = <400000>;
@@ -133,7 +133,7 @@
 			};
 
 			i2c4: i2c@0x20110000 {
-				compatible = "sprd,qogirl6-i2c";
+				compatible = "sprd,qogirl6-i2c", "sprd,sc9860-i2c";
 				reg = <0 0x20110000 0 0x100>;
 				interrupts = <GIC_SPI 15 IRQ_TYPE_LEVEL_HIGH>;
 				clock-frequency = <400000>;
@@ -158,7 +158,7 @@
 			};
 
 			i2c5: i2c@0x20210000 {
-				compatible = "sprd,qogirl6-i2c";
+				compatible = "sprd,qogirl6-i2c", "sprd,sc9860-i2c";
 				reg = <0 0x20210000 0 0x100>;
 				interrupts = <GIC_SPI 35 IRQ_TYPE_LEVEL_HIGH>;
 				clock-frequency = <400000>;
@@ -171,7 +171,7 @@
 			};
 
 			i2c6: i2c@0x20220000 {
-				compatible = "sprd,qogirl6-i2c";
+				compatible = "sprd,qogirl6-i2c", "sprd,sc9860-i2c";
 				reg = <0 0x20220000 0 0x100>;
 				interrupts = <GIC_SPI 36 IRQ_TYPE_LEVEL_HIGH>;
 				clock-frequency = <400000>;
