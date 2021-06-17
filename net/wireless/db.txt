@@ -18,7 +18,7 @@ country 00:
 
 
 country AD:
-	(2402 - 2482 @ 40), (20)
+	(2402 - 2472 @ 40), (20)
 	(5170 - 5250 @ 80), (20)
 	(5250 - 5330 @ 80), (20), DFS
 	(5490 - 5710 @ 80), (27), DFS
@@ -64,7 +64,7 @@ country AN: DFS-ETSI
 	(5490 - 5710 @ 160), (27), DFS
 
 country AR: DFS-FCC
-	(2402 - 2482 @ 40), (20)
+	(2402 - 2472 @ 40), (20)
 	(5170 - 5250 @ 80), (17), AUTO-BW
 	(5250 - 5330 @ 80), (24), DFS, AUTO-BW
 	(5490 - 5730 @ 160), (24), DFS
@@ -92,7 +92,7 @@ country AT: DFS-ETSI
 # In order to allow 80MHz operation between 5650-5730MHz the upper boundary
 # of this more restrictive band has been shifted up by 5MHz from 5725MHz.
 country AU: DFS-ETSI
-	(2400 - 2483.5 @ 40), (36)
+	(2400 - 2472 @ 40), (36)
 	(5150 - 5250 @ 80), (23), NO-OUTDOOR, AUTO-BW
 	(5250 - 5350 @ 80), (20), NO-OUTDOOR, AUTO-BW, DFS
 	(5470 - 5600 @ 80), (27), DFS
@@ -120,7 +120,7 @@ country BA: DFS-ETSI
 	(57000 - 66000 @ 2160), (40)
 
 country BB: DFS-FCC
-	(2402 - 2482 @ 40), (20)
+	(2402 - 2472 @ 40), (20)
 	(5170 - 5250 @ 80), (23), AUTO-BW
 	(5250 - 5330 @ 80), (23), DFS, AUTO-BW
 	(5735 - 5835 @ 80), (30)
@@ -212,7 +212,7 @@ country BR: DFS-FCC
 	(5735 - 5835 @ 80), (30)
 
 country BS: DFS-FCC
-	(2402 - 2482 @ 40), (20)
+	(2402 - 2472 @ 40), (20)
 	(5170 - 5250 @ 80), (24), AUTO-BW
 	(5250 - 5330 @ 80), (24), DFS, AUTO-BW
 	(5490 - 5730 @ 160), (24), DFS
@@ -288,7 +288,7 @@ country CN: DFS-FCC
 	(63720 - 65880 @ 2160), (28)
 
 country CO: DFS-FCC
-	(2402 - 2482 @ 40), (20)
+	(2402 - 2472 @ 40), (20)
 	(5170 - 5250 @ 80), (17), AUTO-BW
 	(5250 - 5330 @ 80), (24), DFS, AUTO-BW
 	(5490 - 5730 @ 160), (24), DFS
@@ -579,7 +579,7 @@ country HU: DFS-ETSI
 
 country ID: DFS-JP
 	# ref: http://www.postel.go.id/content/ID/regulasi/standardisasi/kepdir/bwa%205,8%20ghz.pdf
-	(2402 - 2482 @ 20), (20)
+	(2402 - 2472 @ 20), (20)
 	(5735 - 5815 @ 20), (23)
 
 country IE: DFS-ETSI
@@ -621,7 +621,7 @@ country IT: DFS-ETSI
 	(57000 - 66000 @ 2160), (40)
 
 country JM: DFS-FCC
-	(2402 - 2482 @ 40), (20)
+	(2402 - 2472 @ 40), (20)
 	(5170 - 5250 @ 80), (17), AUTO-BW
 	(5250 - 5330 @ 80), (24), DFS, AUTO-BW
 	(5490 - 5730 @ 160), (24), DFS
@@ -633,7 +633,7 @@ country JO: DFS-JP
 	(5735 - 5835 @ 80), (23)
 
 country JP: DFS-JP
-	(2402 - 2482 @ 40), (20)
+	(2402 - 2472 @ 40), (20)
 	(2474 - 2494 @ 20), (20), NO-OFDM
 	(4910 - 4990 @ 40), (23)
 	(5030 - 5090 @ 40), (23)
@@ -813,14 +813,14 @@ country MK: DFS-ETSI
 	(57000 - 66000 @ 2160), (40)
 
 country MN: DFS-FCC
-	(2402 - 2482 @ 40), (20)
+	(2402 - 2472 @ 40), (20)
 	(5170 - 5250 @ 80), (24), AUTO-BW
 	(5250 - 5330 @ 80), (24), DFS, AUTO-BW
 	(5490 - 5730 @ 160), (24), DFS
 	(5735 - 5835 @ 80), (30)
 
 country MO: DFS-FCC
-	(2402 - 2482 @ 40), (23)
+	(2402 - 2472 @ 40), (23)
 	(5170 - 5250 @ 80), (23), AUTO-BW
 	(5250 - 5330 @ 80), (23), DFS, AUTO-BW
 	(5490 - 5730 @ 160), (30), DFS
@@ -848,7 +848,7 @@ country MR: DFS-ETSI
 	(5490 - 5710 @ 160), (27), DFS
 
 country MT: DFS-ETSI
-	(2402 - 2482 @ 40), (20)
+	(2402 - 2472 @ 40), (20)
 	(5170 - 5250 @ 80), (20), AUTO-BW
 	(5250 - 5330 @ 80), (20), DFS, AUTO-BW
 	(5490 - 5710 @ 160), (27), DFS
@@ -877,7 +877,7 @@ country MW: DFS-ETSI
 	(5490 - 5710 @ 160), (27), DFS
 
 country MX: DFS-FCC
-	(2402 - 2482 @ 40), (20)
+	(2402 - 2472 @ 40), (20)
 	(5170 - 5250 @ 80), (17), AUTO-BW
 	(5250 - 5330 @ 80), (24), DFS, AUTO-BW
 	(5490 - 5730 @ 160), (24), DFS
@@ -939,14 +939,14 @@ country NP: DFS-JP
 	(5735 - 5835 @ 80), (20)
 
 country NZ: DFS-ETSI
-	(2402 - 2482 @ 40), (30)
+	(2402 - 2472 @ 40), (30)
 	(5170 - 5250 @ 80), (17), AUTO-BW
 	(5250 - 5330 @ 80), (24), DFS, AUTO-BW
 	(5490 - 5730 @ 160), (24), DFS
 	(5735 - 5835 @ 80), (30)
 
 country OM: DFS-ETSI
-	(2402 - 2482 @ 40), (20)
+	(2402 - 2472 @ 40), (20)
 	(5170 - 5250 @ 80), (20), AUTO-BW
 	(5250 - 5330 @ 80), (20), DFS, AUTO-BW
 	(5490 - 5710 @ 160), (27), DFS
@@ -978,7 +978,7 @@ country PG: DFS-FCC
 	(5735 - 5835 @ 80), (30)
 
 country PH: DFS-FCC
-	(2402 - 2482 @ 40), (20)
+	(2402 - 2472 @ 40), (20)
 	(5170 - 5250 @ 80), (17), AUTO-BW
 	(5250 - 5330 @ 80), (24), DFS, AUTO-BW
 	(5490 - 5730 @ 160), (24), DFS
@@ -1025,7 +1025,7 @@ country PW: DFS-FCC
 	(5735 - 5835 @ 80), (30)
 
 country PY: DFS-FCC
-	(2402 - 2482 @ 40), (20)
+	(2402 - 2472 @ 40), (20)
 	(5170 - 5250 @ 80), (24), AUTO-BW
 	(5250 - 5330 @ 80), (24), DFS, AUTO-BW
 	(5490 - 5730 @ 160), (24), DFS
@@ -1069,7 +1069,7 @@ country RU: DFS-ETSI
 	(57000 - 66000 @ 2160), (40)
 
 country RW: DFS-FCC
-	(2402 - 2482 @ 40), (20)
+	(2402 - 2472 @ 40), (20)
 	(5170 - 5250 @ 80), (17), AUTO-BW
 	(5250 - 5330 @ 80), (24), DFS, AUTO-BW
 	(5490 - 5730 @ 160), (24), DFS
@@ -1201,7 +1201,7 @@ country TT: DFS-FCC
 #   http://www.ncc.gov.tw/english/show_file.aspx?table_name=news&file_sn=681
 country TW: DFS-FCC
 	# 2.4g band, LP0002 section 3.10.1
-	(2400 - 2483.5 @ 40), (30)
+	(2400 - 2472 @ 40), (30)
 	# 5g U-NII band, LP0002 section 4.7
 	# 5.15 ~ 5.25 GHz: 30 dBm for master mode, 23 dBm for clients
 	(5150 - 5250 @ 80), (23), AUTO-BW
@@ -1212,7 +1212,7 @@ country TW: DFS-FCC
 	(57000 - 66000 @ 2160), (40)
 
 country TZ:
-	(2402 - 2482 @ 40), (20)
+	(2402 - 2472 @ 40), (20)
 	(5735 - 5835 @ 80), (30)
 
 # Source:
@@ -1259,7 +1259,7 @@ country UY: DFS-FCC
 # Source:
 # http://cemc.uz/article/1976/
 country UZ: DFS-ETSI
-	(2402 - 2482 @ 40), (20)
+	(2402 - 2472 @ 40), (20)
 	(5170 - 5250 @ 80), (20), AUTO-BW
 	(5250 - 5330 @ 80), (20), DFS, AUTO-BW
 
