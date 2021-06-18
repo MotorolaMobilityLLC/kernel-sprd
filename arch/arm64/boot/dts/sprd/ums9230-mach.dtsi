@@ -61,10 +61,6 @@
 			reg = <0x0 0x88000000 0x0 0x00300000>;
 		};
 
-		audio_reserved: audio-mem@88d00000 {
-			reg = <0x0 0x88d00000 0x0 0x00300000>;
-		};
-
 		audiodsp_reserved: audiodsp-mem@89000000 {
 			reg = <0x0 0x89000000 0x0 0x00600000>;
 		};
@@ -77,6 +73,10 @@
 		iq_reserved: iq-mem@90000000{
 			compatible = "sprd,iq-mem";
 			reg = <0x0 0x90000000 0x0 0x4000000>;
+		};
+
+		audio_reserved: audio-mem@94100000 {
+			reg = <0x0 0x94100000 0x0 0x00300000>;
 		};
 
 		uboot_reserved: sysdump-uboot@9f000000 {
