@@ -785,6 +785,7 @@
 	avee-gpio = <&ap_gpio 133 GPIO_ACTIVE_HIGH>;
 	reset-gpio = <&ap_gpio 50 GPIO_ACTIVE_HIGH>;
 };
+
 /*
 &dpu {
 	sprd,backlight = <&pwm_backlight>;
