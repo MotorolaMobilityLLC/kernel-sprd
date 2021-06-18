@@ -41,8 +41,8 @@
 			reg = <0x0 0x87800000 0x0 0x00800000>;
 		};
 
-		sp_ddr_reserved: sp_ddr-mem@88900000 {
-			reg = <0x0 0x88900000 0x0 0x00300000>;
+		sp_ddr_reserved: sp_ddr-mem@88000000 {
+			reg = <0x0 0x88000000 0x0 0x00300000>;
 		};
 
 		audio_reserved: audio-mem@88c00000 {
