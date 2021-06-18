@@ -434,12 +434,12 @@
 			reg = <0x0 0x83ef0000 0x0 0x00010000>; /* 64K */
 		};
 
-		smem_reserved: sipc-mem@87800000{
-			reg = <0x0 0x87800000 0x0 0x00800000>;
+		audio_reserved: audio-mem@87500000{
+			reg = <0x0 0x87500000 0x0 0x00300000>;
 		};
 
-		audio_reserved: audio-mem@88c00000{
-			reg = <0x0 0x88c00000 0x0 0x00300000>;
+		smem_reserved: sipc-mem@87800000{
+			reg = <0x0 0x87800000 0x0 0x00800000>;
 		};
 
 		audiodsp_reserved: audiodsp-mem@89000000 {
