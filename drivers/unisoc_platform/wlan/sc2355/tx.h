@@ -169,7 +169,7 @@ struct tx_msdu_dscr {
 	} buffer_info;
 	unsigned char sta_lut_index;
 	unsigned char color_bit:2;
-	unsigned char seq_num;
+	unsigned char seq_num:8;
 	unsigned char rsvd:6;
 	unsigned short tcp_udp_header_offset;
 } __packed;
