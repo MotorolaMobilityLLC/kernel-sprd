@@ -1281,7 +1281,7 @@
 
 			ap_efuse: efuse@32240000 {
 				status = "disabled";
-				compatible = "sprd,sharkl5-efuse";
+				compatible = "sprd,ums312-efuse";
 				reg = <0 0x32240000 0 0x10000>;
 				clock-names = "enable";
 				hwlocks = <&hwlock 8>;
@@ -2528,7 +2528,7 @@
 	};
 
 	cache_efuse: efuse@15c00 {
-		compatible = "sprd,sharkl5-cache-efuse";
+		compatible = "sprd,ums312-cache-efuse";
 		reg = <0 0x15c00 0 0x3ff>;
 		#address-cells = <1>;
 		#size-cells = <1>;
@@ -2544,23 +2544,19 @@
 		};
 
 		thm0_sen0: thm0-sen0@39{
-			reg = <0x39 0x4>;
-			bits = <0 8>;
+			reg = <0x39 0x1>;
 		};
 
 		thm0_sen1: thm0-sen1@41{
-			reg = <0x41 0x4>;
-			bits = <0 8>;
+			reg = <0x41 0x1>;
 		};
 
 		thm0_sen2: thm0-sen2@40{
-			reg = <0x40 0x4>;
-			bits = <0 8>;
+			reg = <0x40 0x1>;
 		};
 
 		thm0_sen3: thm0-sen3@43{
-			reg = <0x43 0x4>;
-			bits = <0 8>;
+			reg = <0x43 0x1>;
 		};
 
 		thm1_sign: thm1-sign@3c{
@@ -2574,13 +2570,11 @@
 		};
 
 		thm1_sen0: thm1-sen0@3d{
-			reg = <0x3d 0x4>;
-			bits = <0 8>;
+			reg = <0x3d 0x1>;
 		};
 
 		thm1_sen1: thm1-sen1@42{
-			reg = <0x42 0x4>;
-			bits = <0 8>;
+			reg = <0x42 0x1>;
 		};
 
 		thm2_sign: thm2-sign@3e{
@@ -2594,8 +2588,7 @@
 		};
 
 		thm2_sen0: thm2-sen0@3f{
-			reg = <0x3f 0x4>;
-			bits = <0 8>;
+			reg = <0x3f 0x1>;
 		};
 
 		dvfs_bin_dsu: dvfs-bin-dsu@13{
