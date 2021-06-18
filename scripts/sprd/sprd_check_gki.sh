@@ -67,49 +67,12 @@ RET_VAL=0
 RET_COUNT=0
 check_idh_flag=1
 
-if [ $# -ge 2  ]; then
-  for arg in $*
-  do
-    if [ $ABIGIAL_PATH_FLAG == 1 ]; then
-      SCRIPTS_DIR=$arg
-      echo "= arg SCRIPTS_DIR:$SCRIPTS_DIR"
-      break
-    fi
-    if [ $arg == "--cktoolpath" -o $arg == "-p" -o $arg == "-P" ]; then
-      ABIGIAL_PATH_FLAG=1
-    fi
-  done
-  if [ ! $SCRIPTS_DIR ]; then
-    SCRIPTS_DIR=$2
-    echo "= default SCRIPTS_DIR:$SCRIPTS_DIR"
-  fi
-else
-  RET_VAL=1
-  echo "ERROR: Please provide the absolute path of the abigail tool"
-  echo "eg: ./scripts/sprd/sprd_check_gki.sh -p <absolute path of the abigail tool>"
-  exit 1
-fi
-
-# Determine if there is a git repository
-cd $KERNEL_CODE_DIR/$KERNEL_DIR
-GITTOOL=`find -type d -name ".git"`
-GITCHECK=`git log -1`
-if [ ! -n "${GITTOOL}" ] || [ ! -n "${GITCHECK}" ]; then
-  check_idh_flag=0
-  rm -rf .git
-  echo "create abigail git repository"
-  git init
-  git add -A
-  git commit -m "abigail git repository"
-fi
-cd -
-
 function do_gki_ckeck() {
-  cd ${SCRIPTS_DIR}
+  cd ${abipath}
 
   echo "========================================================"
-  echo "Run check gki script at: ${SCRIPTS_DIR}/build/check_gki.sh"
-  bash ${SCRIPTS_DIR}/build/check_gki.sh ${KERNEL_CODE_DIR} ${KERNEL_DIR}
+  echo "Run check gki script at: ${abipath}/build/check_gki.sh"
+  bash ${abipath}/build/check_gki.sh ${KERNEL_CODE_DIR} ${KERNEL_DIR} "${state}" "${jobs}"
 
   if [ $? -ne 0 ]; then
     let RET_VAL+=2
@@ -236,6 +199,78 @@ function do_gki_ckeck() {
     COMPILE_CHECK_PASS_FLAG=1
   fi
 }
+
+show_usage()
+{
+	cat <<-EOF
+
+usage: sprd_check_gki [ <option> ]
+
+Options:
+  -j, --jobs=N           allow to run N jobs simultaneously (default is 24);
+  -p, --cktoolpath=PATH  path to the tools directory where the abigail will
+                         be built (This must be provided);
+  -l  --lto=STAT         set LTO=[full|thin|none](default is full);
+  -h, --help             show this text and exit.
+EOF
+}
+
+fail_usage()
+{
+	[ -z "$1" ] || echo "$1"
+	show_usage
+	exit 1
+}
+
+TEMP=`getopt --options j:,p:,l:,h --longoptions jobs:,cktoolpath:,lto:,help -- "$@"` || fail_usage ""
+eval set -- "$TEMP"
+
+jobs=
+abipath=
+state="full"
+while true; do
+	case "$1" in
+	-j|--jobs)
+	jobs="$2"
+	shift
+	;;
+	-p|--cktoolpath)
+	abipath="$2"
+	shift
+	;;
+	-l|--lto)
+	state="$2"
+	shift
+	;;
+	-h|--help)
+	show_usage
+	exit 0
+	;;
+	--)
+	shift
+	break
+	;;
+	*) fail_usage "Unrecognized option: $1"
+	;;
+	esac
+	shift
+done
+
+[ -n "$abipath" ] || fail_usage "ERROR: Please provide the absolute path of the abigail tool"
+
+# Determine if there is a git repository
+cd $KERNEL_CODE_DIR/$KERNEL_DIR
+GITTOOL=`find -type d -name ".git"`
+GITCHECK=`git log -1`
+if [ ! -n "${GITTOOL}" ] || [ ! -n "${GITCHECK}" ]; then
+  check_idh_flag=0
+  rm -rf .git
+  echo "create abigail git repository"
+  git init
+  git add -A
+  git commit -m "abigail git repository"
+fi
+cd -
 
 # save local gki diff config
 cd ${KERNEL_CODE_DIR}/${KERNEL_DIR}
