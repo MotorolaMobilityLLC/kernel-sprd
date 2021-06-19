@@ -357,7 +357,7 @@ extern spinlock_t mgr_lock;
 extern struct sfp_fwd_hash_tbl fwd_tbl;
 
 extern int test_count;
-
+extern int test_result;
 /* Copy 6 bytes. Warning - doesn't perform any checks on memory, just copies */
 static inline void mac_addr_copy(u8 *dst, const u8 *src)
 {
@@ -529,6 +529,7 @@ void sfp_ipa_fwd_clear(void);
 void sfp_ipa_swap_tbl(void);
 void sfp_clear_all_ipa_tbl(void);
 int sfp_tbl_id(void);
+void sfp_clear_fwd_table(int ifindex);
 bool is_banned_ipa_netdev(struct net_device *dev);
 
 int sfp_mgr_fwd_entry_delete(const struct nf_conntrack_tuple *tuple);
