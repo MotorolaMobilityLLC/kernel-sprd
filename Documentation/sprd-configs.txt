@@ -16455,9 +16455,9 @@ CONFIG_SPRD_BUSMONITOR
 	[missing plat description] none
 	[function] Enable busmonitor core function
 CONFIG_SPRD_CACHE_EFUSE
-	[arch] all
-	[plat] all
-	[missing plat] none
+	[arch] arm64
+	[plat] sharkl5Pro
+	[missing plat] sharkl3
 	[field]
 	[subsys]
 	[must]
@@ -17047,6 +17047,15 @@ CONFIG_SPRD_TOP_DVFS_DEVFREQ
 				   frequency ofsome devices which include gpu,modem and so
 				   on.sharkl3 don't have the function.
 	[function] Enable device dvfs function.
+CONFIG_SPRD_UID
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
 CONFIG_SPRD_UMS512_CLK
 	[arch] arm64
 	[plat] sharkl5Pro
