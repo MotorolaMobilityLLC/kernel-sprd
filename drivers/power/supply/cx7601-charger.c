@@ -156,7 +156,7 @@ static void cx7601_dump_regs(struct cx7601_charger_info *info)
 {
 
 	int addr;
-	u8 val[0x0c];
+	u8 val[0x0e];
 	int ret;
 
 	for (addr = 0x0; addr <= 0x0D; addr++) {
@@ -396,22 +396,6 @@ static int cx7601_set_boost_voltage(struct cx7601_charger_info *info, int volt)
 static int cx7601_set_chargevolt(struct cx7601_charger_info *info, int volt)
 {
 	u8 val;
-	cx7601_read(info, &val, CX7601_REG_05);
-	if(val&REG05_WDT_MASK)
-	{
-		cx7601_disable_watchdog_timer(info);
-		cx7601_set_boost_voltage(info, BOOSTV_5150);
-		pr_err("[cx7601 watchdog] cx7601 watchdog timer was resume, now has been disabled.\n");
-	}
-	cx7601_read(info, &val, CX7601_REG_00);
-	val=(val&REG00_VINDPM_MASK)>>REG00_VINDPM_SHIFT;
-	if(val>10)
-	{
-		val=10;
-		cx7601_update_bits(info, CX7601_REG_00, REG00_VINDPM_MASK,
-				val << REG00_VINDPM_SHIFT);
-		pr_err("[cx7601 VINDPM] cx7601 VINDPM>4.76V, now has been limited to 4.76V.\n");
-	}
 
 	if (volt < REG04_VREG_BASE)
 		volt = REG04_VREG_BASE;
@@ -429,14 +413,6 @@ static int cx7601_set_input_volt_limit(struct cx7601_charger_info *info, int vol
 {
 	u8 val;
 
-	cx7601_read(info, &val, CX7601_REG_05);
-	if(val&REG05_WDT_MASK)
-	{
-		cx7601_disable_watchdog_timer(info);
-		cx7601_set_boost_voltage(info, BOOSTV_5150);
-		pr_err("[cx7601 watchdog] cx7601 watchdog timer was resume, now has been disabled.\n");
-	}
-	
 	if (volt < REG00_VINDPM_BASE)
 		volt = REG00_VINDPM_BASE;
 
@@ -453,22 +429,6 @@ static int cx7601_set_input_current_limit(struct cx7601_charger_info *info, int 
 {
 	u8 val;
  
-    cx7601_read(info, &val, CX7601_REG_05);
-	if(val&REG05_WDT_MASK)
-	{
-		cx7601_disable_watchdog_timer(info);
-		cx7601_set_boost_voltage(info, BOOSTV_5150);
-		pr_err("[cx7601 watchdog] cx7601 watchdog timer was resume, now has been disabled.\n");
-	}
-	cx7601_read(info, &val, CX7601_REG_00);
-	val=(val&REG00_VINDPM_MASK)>>REG00_VINDPM_SHIFT;
-	if(val>10)
-	{
-		val=10;
-		cx7601_update_bits(info, CX7601_REG_00, REG00_VINDPM_MASK,
-				val << REG00_VINDPM_SHIFT);
-		pr_err("[cx7601 VINDPM] cx7601 VINDPM>4.76V, now has been limited to 4.76V.\n");
-	}
 	
 	if (curr <= 100)
 		val = 0;
@@ -495,23 +455,6 @@ static int cx7601_set_chargecurrent(struct cx7601_charger_info *info, int curr)
 {
 	u8 ichg;
 
-	u8 val;
-	cx7601_read(info, &val, CX7601_REG_05);
-	if(val&REG05_WDT_MASK)
-	{
-		cx7601_disable_watchdog_timer(info);
-		cx7601_set_boost_voltage(info, BOOSTV_5150);
-		pr_err("[cx7601 watchdog] cx7601 watchdog timer resumed, now has been disabled.\n");
-	}
-	cx7601_read(info, &val, CX7601_REG_00);
-	val=(val&REG00_VINDPM_MASK)>>REG00_VINDPM_SHIFT;
-	if(val>10)
-	{
-		val=10;
-		cx7601_update_bits(info, CX7601_REG_00, REG00_VINDPM_MASK,
-				val << REG00_VINDPM_SHIFT);
-		pr_err("[cx7601 VINDPM] cx7601 VINDPM>4.76V, now has been limited to 4.76V.\n");
-	}
 	
 	if (curr < REG02_ICHG_BASE){
 		curr = REG02_ICHG_BASE;
@@ -697,22 +640,6 @@ static int
 cx7601_charger_set_termina_vol(struct cx7601_charger_info *info, u32 vol)
 {
 	u8 val;
-	cx7601_read(info, &val, CX7601_REG_05);
-	if(val&REG05_WDT_MASK)
-	{
-		cx7601_disable_watchdog_timer(info);
-		cx7601_set_boost_voltage(info, BOOSTV_5150);
-		pr_err("[cx7601 watchdog] cx7601 watchdog timer was resume, now has been disabled.\n");
-	}
-	cx7601_read(info, &val, CX7601_REG_00);
-	val=(val&REG00_VINDPM_MASK)>>REG00_VINDPM_SHIFT;
-	if(val>10)
-	{
-		val=10;
-		cx7601_update_bits(info, CX7601_REG_00, REG00_VINDPM_MASK,
-				val << REG00_VINDPM_SHIFT);
-		pr_err("[cx7601 VINDPM] cx7601 VINDPM>4.76V, now has been limited to 4.76V.\n");
-	}
 
 	if (vol < REG04_VREG_BASE)
 		vol = REG04_VREG_BASE;
@@ -744,22 +671,6 @@ static int cx7601_charging(struct cx7601_charger_info *info, bool enable)
 	int ret = 0;
 	u8 val;
 
-	cx7601_read(info, &val, CX7601_REG_05);
-	if(val&REG05_WDT_MASK)
-	{
-		cx7601_disable_watchdog_timer(info);
-		cx7601_set_boost_voltage(info, BOOSTV_5150);
-		pr_err("[cx7601 watchdog] cx7601 watchdog timer was resume, now has been disabled.\n");
-	}
-	cx7601_read(info, &val, CX7601_REG_00);
-	val=(val&REG00_VINDPM_MASK)>>REG00_VINDPM_SHIFT;
-	if(val>10)
-	{
-		val=10;
-		cx7601_update_bits(info, CX7601_REG_00, REG00_VINDPM_MASK,
-				val << REG00_VINDPM_SHIFT);
-		pr_err("[cx7601 VINDPM] cx7601 VINDPM>4.76V, now has been limited to 4.76V.\n");
-	}
 	
 	if (enable)
   	{
