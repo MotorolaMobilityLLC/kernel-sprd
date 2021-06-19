@@ -710,9 +710,12 @@ static int sprd_oled_set_brightness(struct backlight_device *bdev)
 
 	DRM_INFO("%s Source level: %d\n", __func__, level);
 
-	if (level < 256){
-        g_last_level = level;
-		level = ((level * 78) + 20)/ 100;
+	if(check_lcd_by_name(lcd_name) == NT36525b_dj_mipi_hd)
+	{
+		if (level < 256){
+			g_last_level = level;
+			level = ((level * 83) + 30)/ 100;
+		}
 	}
 
 	if (level == 256)
