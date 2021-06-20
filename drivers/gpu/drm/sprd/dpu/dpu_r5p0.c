@@ -1778,29 +1778,16 @@ static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
 		reg->slp_cfg5 = (slp->hist9_index[4] << 24) |
 			(slp->hist9_index[5] << 16) | (slp->hist9_index[6] << 8) |
 			(slp->hist9_index[7] << 0);
-		if (cabc_state == CABC_WORKING) {
-			reg->slp_cfg6 = (slp->hist9_index[8] << 24) |
-				(cabc_para.p0 << 16) | (cabc_para.p1 << 8) |
-				(cabc_glb_x2 << 0);
-			reg->slp_cfg7 = ((cabc_para.gain0 & 0x1ff) << 23) |
-				((cabc_para.gain1 & 0x1ff) << 14) |
-				((cabc_para.gain2 & 0x1ff) << 5);
-			reg->slp_cfg9 = ((slp->fast_ambient_th & 0x7f) << 25) |
-				(slp->scene_change_percent_th << 17) |
-				((cabc_para.slp_local_weight & 0xf) << 13) |
-				((slp->fst_pth & 0x7f) << 6);
-		} else {
-			reg->slp_cfg6 = (slp->hist9_index[8] << 24) |
-				(slp->glb_x[0] << 16) | (slp->glb_x[1] << 8) |
-				(slp->glb_x[2] << 0);
-			reg->slp_cfg7 = ((slp->glb_s[0] & 0x1ff) << 23) |
-				((slp->glb_s[1] & 0x1ff) << 14) |
-				((slp->glb_s[2] & 0x1ff) << 5);
-			reg->slp_cfg9 = ((slp->fast_ambient_th & 0x7f) << 25) |
-				(slp->scene_change_percent_th << 17) |
-				((slp->local_weight & 0xf) << 13) |
-				((slp->fst_pth & 0x7f) << 6);
-		}
+		reg->slp_cfg6 = (slp->hist9_index[8] << 24) |
+			(slp->glb_x[0] << 16) | (slp->glb_x[1] << 8) |
+			(slp->glb_x[2] << 0);
+		reg->slp_cfg7 = ((slp->glb_s[0] & 0x1ff) << 23) |
+			((slp->glb_s[1] & 0x1ff) << 14) |
+			((slp->glb_s[2] & 0x1ff) << 5);
+		reg->slp_cfg9 = ((slp->fast_ambient_th & 0x7f) << 25) |
+			(slp->scene_change_percent_th << 17) |
+			((slp->local_weight & 0xf) << 13) |
+			((slp->fst_pth & 0x7f) << 6);
 		reg->slp_cfg10 = (slp->cabc_endv << 8) | (slp->cabc_startv << 0);
 		reg->dpu_enhance_cfg |= BIT(4);
 		pr_info("enhance slp set\n");
@@ -2328,37 +2315,40 @@ static int dpu_cabc_trigger(struct dpu_context *ctx)
 		}
 		frame_no++;
 	} else {
-		reg->slp_cfg0 = (cabc_brightness_step << 0)|
-			((cabc_para.slp_brightness & 0x7f) << 16);
-		reg->slp_cfg1 = ((cabc_fst_max_bright_th & 0x7f) << 21) |
-			((cabc_fst_max_bright_th_step0 & 0x7f) << 14) |
-			((cabc_fst_max_bright_th_step1 & 0x7f) << 7) |
-			((cabc_fst_max_bright_th_step2 & 0x7f) << 0);
-		reg->slp_cfg2 = ((cabc_fst_max_bright_th_step3 & 0x7f) << 25) |
-			((cabv_fst_max_bright_th_step4 & 0x7f) << 18) |
-			((cabc_hist_exb_no & 0x3) << 16) |
-			((cabc_hist_exb_percent & 0x7f) << 9);
-		reg->slp_cfg3 = ((cabc_mask_height & 0xfff) << 19) |
-			((cabc_fst_pth_index0 & 0xf) << 15) |
-			((cabc_fst_pth_index1 & 0xf) << 11) |
-			((cabc_fst_pth_index2 & 0xf) << 7) |
-			((cabc_fst_pth_index3 & 0xf) << 3);
-		reg->slp_cfg4 = (cabc_hist9_index0 << 24) |
-			(cabc_hist9_index1 << 16) | (cabc_hist9_index2 << 8) |
-			(cabc_hist9_index3 << 0);
-		reg->slp_cfg5 = (cabc_hist9_index4 << 24) |
-			(cabc_hist9_index5 << 16) | (cabc_hist9_index6 << 8) |
-			(cabc_hist9_index7 << 0);
-		reg->slp_cfg6 = (cabc_hist9_index8 << 24) |
-			(cabc_para.p0 << 16) | (cabc_para.p1 << 8) |
-			(cabc_glb_x2 << 0);
-		reg->slp_cfg7 = ((cabc_para.gain0 & 0x1ff) << 23) |
-			((cabc_para.gain1 & 0x1ff) << 14) |
-			((cabc_para.gain2 & 0x1ff) << 5);
-		reg->slp_cfg9 = ((cabc_fast_ambient_th & 0x7f) << 25) |
-			(cabc_scene_change_percent_th << 17) |
-			((cabc_para.slp_local_weight & 0xf) << 13) |
-			((cabc_fst_pth & 0x7f) << 6);
+		if (cabc_para.slp_brightness <= cabc_brightness) {
+			reg->slp_cfg0 = (cabc_brightness_step << 0)|
+				((cabc_para.slp_brightness & 0x7f) << 16);
+			reg->slp_cfg1 = ((cabc_fst_max_bright_th & 0x7f) << 21) |
+				((cabc_fst_max_bright_th_step0 & 0x7f) << 14) |
+				((cabc_fst_max_bright_th_step1 & 0x7f) << 7) |
+				((cabc_fst_max_bright_th_step2 & 0x7f) << 0);
+			reg->slp_cfg2 = ((cabc_fst_max_bright_th_step3 & 0x7f) << 25) |
+				((cabv_fst_max_bright_th_step4 & 0x7f) << 18) |
+				((cabc_hist_exb_no & 0x3) << 16) |
+				((cabc_hist_exb_percent & 0x7f) << 9);
+			reg->slp_cfg3 = ((cabc_mask_height & 0xfff) << 19) |
+				((cabc_fst_pth_index0 & 0xf) << 15) |
+				((cabc_fst_pth_index1 & 0xf) << 11) |
+				((cabc_fst_pth_index2 & 0xf) << 7) |
+				((cabc_fst_pth_index3 & 0xf) << 3);
+			reg->slp_cfg4 = (cabc_hist9_index0 << 24) |
+				(cabc_hist9_index1 << 16) | (cabc_hist9_index2 << 8) |
+				(cabc_hist9_index3 << 0);
+			reg->slp_cfg5 = (cabc_hist9_index4 << 24) |
+				(cabc_hist9_index5 << 16) | (cabc_hist9_index6 << 8) |
+				(cabc_hist9_index7 << 0);
+			reg->slp_cfg6 = (cabc_hist9_index8 << 24) |
+				(cabc_para.p0 << 16) | (cabc_para.p1 << 8) |
+				(cabc_glb_x2 << 0);
+			reg->slp_cfg7 = ((cabc_para.gain0 & 0x1ff) << 23) |
+				((cabc_para.gain1 & 0x1ff) << 14) |
+				((cabc_para.gain2 & 0x1ff) << 5);
+			reg->slp_cfg9 = ((cabc_fast_ambient_th & 0x7f) << 25) |
+				(cabc_scene_change_percent_th << 17) |
+				((cabc_para.slp_local_weight & 0xf) << 13) |
+				((cabc_fst_pth & 0x7f) << 6);
+		}
+
 		if (bl_dev)
 			cabc_bl_set = true;
 
