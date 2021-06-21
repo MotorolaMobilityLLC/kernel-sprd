@@ -538,8 +538,7 @@
 				reg = <0x400a0000 0x8000>,
 				      <0x400a8000 0x8000>;
 				reg-names = "inbox", "outbox";
-				clocks = <&aonapb_gate CLK_MBOX_EB>;
-				clock-names = "enable";
+				sprd,mailbox_clk = <&aon_apb_regs 0x4 0x200000>;
 				interrupts = <GIC_SPI 68 IRQ_TYPE_LEVEL_HIGH>,
 					     <GIC_SPI 69 IRQ_TYPE_LEVEL_HIGH>;
 				interrupt-names = "inbox", "outbox";
