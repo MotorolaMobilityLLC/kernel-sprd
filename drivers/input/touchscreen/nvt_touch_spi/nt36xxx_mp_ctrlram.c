@@ -38,11 +38,18 @@
 #define FW_CC_CSV_FILE "/data/local/tmp/FWCCTest.csv"
 #define NOISE_TEST_CSV_FILE "/data/local/tmp/NoiseTest.csv"
 
+#if !NVT_DEBUG_MP_ONLY_PRINT_RESULT
 #define nvt_mp_seq_printf(m, fmt, args...) do {	\
 	seq_printf(m, fmt, ##args);	\
 	if (!nvt_mp_test_result_printed)	\
 		printk(fmt, ##args);	\
 } while (0)
+#else
+#define nvt_mp_seq_printf(m, fmt, args...) do {	\
+	if (!nvt_mp_test_result_printed)	\
+		printk(KERN_CONT fmt, ##args);	\
+} while (0)
+#endif
 
 static uint8_t *RecordResult_Short = NULL;
 static uint8_t *RecordResult_Open = NULL;
@@ -1015,20 +1022,16 @@ return:
 *******************************************************/
 void print_selftest_result(struct seq_file *m, int32_t TestResult, uint8_t RecordResult[], int32_t rawdata[], uint8_t x_len, uint8_t y_len)
 {
-#if NVT_DEBUG_MP_PRINT_ARRAY
 	int32_t i = 0;
 	int32_t j = 0;
 	int32_t iArrayIndex = 0;
-#endif
 #if TOUCH_KEY_NUM > 0
 	int32_t k = 0;
 #endif /* #if TOUCH_KEY_NUM > 0 */
 
 	switch (TestResult) {
 		case 0:
-#if NVT_DEBUG_MP_ONLY_PRINT_RESULT
 			nvt_mp_seq_printf(m, " PASS!\n");
-#endif
 			break;
 
 		case 1:
@@ -1036,47 +1039,37 @@ void print_selftest_result(struct seq_file *m, int32_t TestResult, uint8_t Recor
 			break;
 
 		case -1:
-#if NVT_DEBUG_MP_PRINT_ARRAY
 			nvt_mp_seq_printf(m, " FAIL!\n");
 			nvt_mp_seq_printf(m, "RecordResult:\n");
 			for (i = 0; i < y_len; i++) {
 				for (j = 0; j < x_len; j++) {
 					iArrayIndex = i * x_len + j;
-					seq_printf(m, "0x%02X, ", RecordResult[iArrayIndex]);
+					nvt_mp_seq_printf(m, "0x%02X, ", RecordResult[iArrayIndex]);
 				}
-				if (!nvt_mp_test_result_printed)
-					nvt_print_result_log_in_one_line(RecordResult + i * x_len, x_len);
 				nvt_mp_seq_printf(m, "\n");
 			}
 #if TOUCH_KEY_NUM > 0
 			for (k = 0; k < Key_Channel; k++) {
 				iArrayIndex = y_len * x_len + k;
-				seq_printf(m, "0x%02X, ", RecordResult[iArrayIndex]);
+				nvt_mp_seq_printf(m, "0x%02X, ", RecordResult[iArrayIndex]);
 			}
-			if (!nvt_mp_test_result_printed)
-				nvt_print_result_log_in_one_line(RecordResult + y_len * x_len, Key_Channel);
 			nvt_mp_seq_printf(m, "\n");
 #endif /* #if TOUCH_KEY_NUM > 0 */
 			nvt_mp_seq_printf(m, "ReadData:\n");
 			for (i = 0; i < y_len; i++) {
 				for (j = 0; j < x_len; j++) {
 					iArrayIndex = i * x_len + j;
-					seq_printf(m, "%5d, ", rawdata[iArrayIndex]);
+					nvt_mp_seq_printf(m, "%5d, ", rawdata[iArrayIndex]);
 				}
-				if (!nvt_mp_test_result_printed)
-					nvt_print_data_log_in_one_line(rawdata + i * x_len, x_len);
 				nvt_mp_seq_printf(m, "\n");
 			}
 #if TOUCH_KEY_NUM > 0
 			for (k = 0; k < Key_Channel; k++) {
 				iArrayIndex = y_len * x_len + k;
-				seq_printf(m, "%5d, ", rawdata[iArrayIndex]);
+				nvt_mp_seq_printf(m, "%5d, ", rawdata[iArrayIndex]);
 			}
-			if (!nvt_mp_test_result_printed)
-				nvt_print_data_log_in_one_line(rawdata + y_len * x_len, Key_Channel);
 			nvt_mp_seq_printf(m, "\n");
 #endif /* #if TOUCH_KEY_NUM > 0 */
-#endif
 			break;
 	}
 	nvt_mp_seq_printf(m, "\n");
@@ -1094,15 +1087,6 @@ static int32_t c_show_selftest(struct seq_file *m, void *v)
 {
 	NVT_LOG("++\n");
 
-	/* check all test result (0:PASS, -1:FAIL, 1:ERROR) */
-	if ((!TestResult_Short) && (!TestResult_Open) &&
-			(!TestResult_FW_Rawdata) && (!TestResult_Noise)) {
-		nvt_mp_seq_printf(m, "PASS\n");
-		nvt_mp_test_result_printed = 1;
-	}
-	else
-		nvt_mp_seq_printf(m, "FAIL\n");
-#if NVT_DEBUG_MP_ONLY_PRINT_RESULT
 	nvt_mp_seq_printf(m, "FW Version: %d\n\n", fw_ver);
 
 	nvt_mp_seq_printf(m, "Short Test");
@@ -1141,6 +1125,17 @@ static int32_t c_show_selftest(struct seq_file *m, void *v)
 			print_selftest_result(m, TestResult_FW_DiffMin, RecordResult_FW_DiffMin, RawData_Diff_Min, X_Channel, Y_Channel);
 		}
 	}
+
+	nvt_mp_test_result_printed = 1;
+
+#if NVT_DEBUG_MP_ONLY_PRINT_RESULT
+	/* check all test result (0:PASS, -1:FAIL, 1:ERROR) */
+	if ((!TestResult_Short) && (!TestResult_Open) &&
+			(!TestResult_FW_Rawdata) && (!TestResult_Noise)) {
+		seq_printf(m, "PASS\n");
+	}
+	else
+		seq_printf(m, "FAIL\n");
 #endif
 
 	NVT_LOG("--\n");
