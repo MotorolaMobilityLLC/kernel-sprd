@@ -421,7 +421,8 @@ int vsock_assign_transport(struct vsock_sock *vsk, struct vsock_sock *psk)
 	case SOCK_STREAM:
 		if (remote_cid <= VMADDR_CID_HOST ||
 		    (transport_g2h &&
-		     remote_cid == transport_g2h->get_local_cid()))
+		     remote_cid == transport_g2h->get_local_cid()) ||
+		    !transport_h2g)
 			new_transport = transport_g2h;
 		else
 			new_transport = transport_h2g;
@@ -1016,7 +1017,7 @@ static __poll_t vsock_poll(struct file *file, struct socket *sock,
 		}
 
 		/* Connected sockets that can produce data can be written. */
-		if (sk->sk_state == TCP_ESTABLISHED) {
+		if (transport && sk->sk_state == TCP_ESTABLISHED) {
 			if (!(sk->sk_shutdown & SEND_SHUTDOWN)) {
 				bool space_avail_now = false;
 				int ret = transport->notify_poll_out(
@@ -1199,7 +1200,7 @@ static int vsock_transport_cancel_pkt(struct vsock_sock *vsk)
 {
 	const struct vsock_transport *transport = vsk->transport;
 
-	if (!transport->cancel_pkt)
+	if (!transport || !transport->cancel_pkt)
 		return -EOPNOTSUPP;
 
 	return transport->cancel_pkt(vsk);

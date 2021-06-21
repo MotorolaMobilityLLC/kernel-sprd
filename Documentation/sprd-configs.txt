@@ -13494,6 +13494,15 @@ CONFIG_PCIE_PME
 	[must]
 	[missing plat description] none
 	[function]
+CONFIG_PCI_ATS
+	[arch] arm64
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
 CONFIG_PCI_DOMAINS
 	[arch] arm64
 	[plat] sharkl3,sharkl5Pro
@@ -13540,6 +13549,15 @@ CONFIG_PCI_HOST_COMMON
 	[missing plat description] none
 	[function]
 CONFIG_PCI_HOST_GENERIC
+	[arch] arm64
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
+CONFIG_PCI_IOV
 	[arch] arm64
 	[plat] sharkl3,sharkl5Pro
 	[missing plat] none
@@ -16219,8 +16237,8 @@ CONFIG_SND_USB_AUDIO_USE_MEDIA_CONTROLLER
 	[missing plat description] none
 	[function]
 CONFIG_SND_VERBOSE_PROCFS
-	[arch] arm
-	[plat] pike2
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field] make,code
 	[subsys] sound
@@ -18123,15 +18141,6 @@ CONFIG_UBSAN
 	[missing plat description] none
 	[function]
 CONFIG_UBSAN_BOUNDS
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
-	[missing plat] none
-	[field]
-	[subsys]
-	[must]
-	[missing plat description] none
-	[function]
-CONFIG_UBSAN_NO_ALIGNMENT
 	[arch] arm64
 	[plat] sharkl3,sharkl5Pro
 	[missing plat] none

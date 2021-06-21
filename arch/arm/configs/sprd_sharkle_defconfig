@@ -1,6 +1,6 @@
 #
 # Automatically generated file; DO NOT EDIT.
-# Linux/arm 5.4.124 Kernel Configuration
+# Linux/arm 5.4.125 Kernel Configuration
 #
 CONFIG_CC_VERSION_TEXT="Android (7284624, based on r416183b) clang version 12.0.5 (https://android.googlesource.com/toolchain/llvm-project c935d99d7cf2016289302412d708641d52d2f7ee)"
 CONFIG_GCC_VERSION=0
@@ -4907,6 +4907,7 @@ CONFIG_PSTORE_CONSOLE=y
 CONFIG_PSTORE_PMSG=y
 # CONFIG_PSTORE_FTRACE is not set
 CONFIG_PSTORE_RAM=y
+# CONFIG_PSTORE_BLK is not set
 # CONFIG_SYSV_FS is not set
 # CONFIG_UFS_FS is not set
 # CONFIG_EROFS_FS is not set
