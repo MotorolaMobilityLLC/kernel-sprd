@@ -121,6 +121,7 @@ mfd:sprd:
 misc:audio:
 misc:sprd_camera:
 misc:sprd_gnss:
+misc:sprd_uid:
 misc:sprdwcn:
 mm:
 mmc:core:
