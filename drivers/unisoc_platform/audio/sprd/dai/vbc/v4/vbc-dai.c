@@ -6252,9 +6252,8 @@ void fill_hifi_dsp_hw_data(int scene_id, int stream, int chan_cnt, int rate, int
 	hifi_data->hw_params_info.format = fmt;
 	hifi_data->hw_params_info.rate = rate_to_src_mode(rate);
 	pr_info("%s id %d, stream %d, channel %d, fmt %d, rate_src_mode %d",
-			hifi_data->stream_info.id, hifi_data->stream_info.stream,
+			__func__, hifi_data->stream_info.id, hifi_data->stream_info.stream,
 			hifi_data->hw_params_info.channels,
-			hifi_data->hw_params_info.format,
 			hifi_data->hw_params_info.format,
 			hifi_data->hw_params_info.rate);
 }
