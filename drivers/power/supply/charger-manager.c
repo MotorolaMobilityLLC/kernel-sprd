@@ -1836,7 +1836,7 @@ static int cm_fast_charge_enable_check(struct charger_manager *cm)
 	 * if it don't define cm-fast-chargers in dts,
 	 * we think that it don't plan to use fast charge.
 	 */
-	if (!desc->psy_fast_charger_stat[0])
+	if (!desc->psy_fast_charger_stat || !desc->psy_fast_charger_stat[0])
 		return 0;
 
 	if (!desc->is_fast_charge || desc->enable_fast_charge)
@@ -6728,18 +6728,44 @@ void cm_notify_event(struct power_supply *psy, enum cm_event_types type,
 
 	mutex_lock(&cm_list_mtx);
 	list_for_each_entry(cm, &cm_list, entry) {
-		if (match_string(cm->desc->psy_charger_stat, -1,
-				 psy->desc->name) >= 0 ||
-		    match_string(cm->desc->psy_fast_charger_stat,
-				 -1, psy->desc->name) >= 0 ||
-		    match_string(cm->desc->psy_cp_stat,
-				 -1, psy->desc->name) >= 0 ||
-		    match_string(cm->desc->psy_wl_charger_stat,
-				 -1, psy->desc->name) >= 0 ||
-		    match_string(&cm->desc->psy_fuel_gauge,
-				 -1, psy->desc->name) >= 0) {
-			found_power_supply = true;
-			break;
+		if (cm->desc->psy_charger_stat) {
+			if (match_string(cm->desc->psy_charger_stat, -1,
+					 psy->desc->name) >= 0) {
+				found_power_supply = true;
+				break;
+			}
+		}
+
+		if (cm->desc->psy_fast_charger_stat) {
+			if (match_string(cm->desc->psy_fast_charger_stat, -1,
+					 psy->desc->name) >= 0) {
+				found_power_supply = true;
+				break;
+			}
+		}
+
+		if (cm->desc->psy_fuel_gauge) {
+			if (match_string(&cm->desc->psy_fuel_gauge, -1,
+					 psy->desc->name) >= 0) {
+				found_power_supply = true;
+				break;
+			}
+		}
+
+		if (cm->desc->psy_cp_stat) {
+			if (match_string(cm->desc->psy_cp_stat, -1,
+					 psy->desc->name) >= 0) {
+				found_power_supply = true;
+				break;
+			}
+		}
+
+		if (cm->desc->psy_wl_charger_stat) {
+			if (match_string(cm->desc->psy_wl_charger_stat, -1,
+					 psy->desc->name) >= 0) {
+				found_power_supply = true;
+				break;
+			}
 		}
 	}
 	mutex_unlock(&cm_list_mtx);
