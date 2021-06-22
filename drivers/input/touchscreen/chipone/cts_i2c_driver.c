@@ -4,6 +4,7 @@
 #include "cts_platform.h"
 #include "cts_core.h"
 #include "cts_sysfs.h"
+#include "cts_i2c_driver.h"
 #include "cts_charger_detect.h"
 #include "cts_earjack_detect.h"
 #include "cts_strerror.h"
@@ -27,7 +28,7 @@ bool cts_show_debug_log = false;
 module_param_named(debug_log, cts_show_debug_log, bool, 0660);
 MODULE_PARM_DESC(debug_log, "Show debug log control");
 
-static int cts_suspend(struct chipone_ts_data *cts_data)
+int cts_suspend(struct chipone_ts_data *cts_data)
 {
     int ret;
 
@@ -72,7 +73,7 @@ static int cts_suspend(struct chipone_ts_data *cts_data)
     return 0;
 }
 
-static int cts_resume(struct chipone_ts_data *cts_data)
+int cts_resume(struct chipone_ts_data *cts_data)
 {
     int ret;
 
@@ -334,6 +335,13 @@ static int cts_driver_probe(struct spi_device *client)
         cts_warn("Add sysfs entry for device failed %d", ret);
     }
 
+#ifdef CONFIG_ARCH_SPRD
+    ret = cts_sysfs_add_suspend_device(&client->dev);
+    if (ret < 0) {
+        cts_warn("Add sysfs entry for sprd suspend device failed %d", ret);
+    }
+#endif
+
 #ifdef CONFIG_CTS_PM_FB_NOTIFIER
     ret = cts_init_pm_fb_notifier(cts_data);
     if (ret) {
@@ -369,8 +377,8 @@ static int cts_driver_probe(struct spi_device *client)
     // snprintf(lcdname, sizeof(lcdname),"%s","easyquick-icnl9911c-608");
     // snprintf(vendor_name, sizeof(vendor_name),"%s","easyquick-icnl9911c-608");
     if (LCM_INFO_EASYQUICK_608 == g_lcm_info_flag) {
-        snprintf(lcdname, sizeof(lcdname),"%s ", "easyquick-icnl9911c-608" );
-        snprintf(vendor_name, sizeof(vendor_name),"%s ", "easyquick-icnl9911c-608" );
+        snprintf(lcdname, sizeof(lcdname),"%s ", "easyquick-icn19911c-608" );
+        snprintf(vendor_name, sizeof(vendor_name),"%s ", "easyquick-icn19911c-608" );
     } else if (LCM_INFO_HLT_GLASS == g_lcm_info_flag) {
         snprintf(lcdname, sizeof(lcdname),"%s ", "dj-icnl9911c" );
         snprintf(vendor_name, sizeof(vendor_name),"%s ", "dj-icnl9911c" );
@@ -391,6 +399,9 @@ err_register_fb:
 err_deinit_sysfs:
 #endif /* CONFIG_CTS_PM_FB_NOTIFIER */
     cts_sysfs_remove_device(&client->dev);
+#ifdef CONFIG_ARCH_SPRD
+    cts_sysfs_remove_suspend_device(&client->dev);
+#endif
 #ifdef CONFIG_CTS_LEGACY_TOOL
     cts_tool_deinit(cts_data);
 #endif /* CONFIG_CTS_LEGACY_TOOL */

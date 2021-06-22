@@ -6,6 +6,7 @@
 #include "cts_test.h"
 #include "cts_sfctrl.h"
 #include "cts_spi_flash.h"
+#include "cts_i2c_driver.h"
 #include "cts_firmware.h"
 #include "cts_strerror.h"
 
@@ -30,7 +31,7 @@ char *argv[MAX_ARG_NUM];
 
 static int jitter_test_frame = 10;
 static s16 *manualdiff_base = NULL;
-u16 cts_spi_speed = 1000;
+u16 cts_spi_speed = 9600;
 
 int parse_arg(const char *buf, size_t count)
 {
@@ -2689,6 +2690,75 @@ static ssize_t gesture_en_store(struct device *dev,
     return count;
 }
 static DEVICE_ATTR(gesture_en, S_IRUSR|S_IWUSR, gesture_en_show, gesture_en_store);
+#endif
+
+#ifdef CONFIG_ARCH_SPRD
+static ssize_t ts_suspend_show(struct device *dev,
+        struct device_attribute *attr, char *buf)
+{
+	struct chipone_ts_data *cts_data = dev_get_drvdata(dev);
+	struct cts_device *cts_dev = &cts_data->cts_dev;
+
+        return sprintf(buf, "tp suspend:%s\n",
+                cts_dev->rtdata.suspended ? "true" : "false");
+}
+
+static ssize_t ts_suspend_store(struct device *dev,
+        struct device_attribute *attr, const char *buf, size_t count)
+{
+	struct chipone_ts_data *cts_data = dev_get_drvdata(dev);
+	struct cts_device *cts_dev = &cts_data->cts_dev;
+
+	if ((buf[0] == '1') && !cts_dev->rtdata.suspended)
+		cts_suspend(cts_data); 
+	else if ((buf[0] == '0') && cts_dev->rtdata.suspended)
+		cts_resume(cts_data);
+
+	return count;
+}
+
+static DEVICE_ATTR(ts_suspend, S_IRUSR|S_IWUSR, ts_suspend_show, ts_suspend_store);
+
+static struct attribute *cts_dev_suspend_misc_atts[] = {
+	&dev_attr_ts_suspend.attr,
+	NULL
+};
+
+static const struct attribute_group cts_dev_suspend_misc_attr_group = {
+	.attrs = cts_dev_suspend_misc_atts,
+};
+
+int cts_sysfs_add_suspend_device(struct device *dev)
+{
+	int ret = 0;
+	
+	cts_info("Add sprd suspend device attr group");
+	
+	ret = sysfs_create_group(&dev->kobj, &cts_dev_suspend_misc_attr_group);
+	if (ret) {
+		sysfs_remove_group(&dev->kobj, &cts_dev_suspend_misc_attr_group);
+	}
+	
+	if (ret) {
+	    cts_err("Add sprd suspend device attr failed %d", ret);
+	    return ret;
+	}
+	
+	ret = sysfs_create_link(NULL, &dev->kobj, "touchscreen");
+	if (ret) {
+	    cts_err("Create sprd suspend sysfs link error:%d", ret);
+	}
+	return 0;
+}
+
+void cts_sysfs_remove_suspend_device(struct device *dev)
+{
+	cts_info("Remove SPrd suspend device attr group");
+	
+	sysfs_remove_link(NULL, "touchscreen");
+	sysfs_remove_group(&dev->kobj, &cts_dev_suspend_misc_attr_group);
+}
+
 #endif
 
 static struct attribute *cts_dev_misc_atts[] = {
