@@ -1264,7 +1264,7 @@ static int musb_gadget_queue(struct usb_ep *ep, struct usb_request *req,
 	if (request->ep != musb_ep)
 		return -EINVAL;
 
-	status = pm_runtime_get(musb->controller);
+	status = pm_runtime_get_sync(musb->controller);
 	if ((status != -EINPROGRESS) && status < 0) {
 		dev_err(musb->controller,
 			"pm runtime get failed in %s\n",
