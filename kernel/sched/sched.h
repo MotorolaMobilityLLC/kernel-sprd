@@ -726,6 +726,20 @@ static inline bool sched_asym_prefer(int a, int b)
 	return arch_asym_cpu_priority(a) > arch_asym_cpu_priority(b);
 }
 
+struct pd_cache {
+	unsigned long util;
+	unsigned long util_est;
+	unsigned long util_cfs;
+	unsigned long util_irq;
+	unsigned long util_rt;
+	unsigned long util_dl;
+	unsigned long bw_dl;
+	unsigned long freq_util;
+	unsigned long nrg_util;
+};
+
+DECLARE_PER_CPU(struct pd_cache __rcu *, pdc);
+
 struct perf_domain {
 	struct em_perf_domain *em_pd;
 	struct perf_domain *next;

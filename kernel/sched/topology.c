@@ -206,6 +206,8 @@ DEFINE_STATIC_KEY_FALSE(sched_energy_present);
 unsigned int sysctl_sched_energy_aware = 1;
 static DEFINE_MUTEX(sched_energy_mutex);
 static bool sched_energy_update;
+static bool pd_cache_init;
+DEFINE_PER_CPU(struct pd_cache __rcu *, pdc);
 
 #ifdef CONFIG_PROC_SYSCTL
 int sched_energy_aware_handler(struct ctl_table *table, int write,
@@ -313,6 +315,38 @@ static void sched_energy_set(bool has_eas)
 	}
 }
 
+/* Free the buffers allocated for the pd_cache. */
+static void free_pd_cache(void)
+{
+	int cpu;
+	struct pd_cache *pd_cache;
+
+	for (cpu = 0; cpu < nr_cpu_ids; cpu++) {
+		pd_cache = rcu_access_pointer(per_cpu(pdc, cpu));
+		rcu_assign_pointer(per_cpu(pdc, cpu), NULL);
+		kfree(pd_cache);
+	}
+}
+
+/* Allocate the pd_cache buffers. */
+static struct pd_cache *allocate_pd_cache(void)
+{
+	struct pd_cache *pd_cache;
+	int cpu;
+
+	for_each_possible_cpu(cpu) {
+		pd_cache = kmalloc_array(nr_cpu_ids, sizeof(*pd_cache),
+						GFP_KERNEL);
+		if (!pd_cache) {
+			free_pd_cache();
+			return NULL;
+		}
+		rcu_assign_pointer(per_cpu(pdc, cpu), pd_cache);
+	}
+
+	return pd_cache;
+}
+
 /*
  * EAS can be used on a root domain if it meets all the following conditions:
  *    1. an Energy Model (EM) is available;
@@ -340,6 +374,7 @@ static void sched_energy_set(bool has_eas)
 static bool build_perf_domains(const struct cpumask *cpu_map)
 {
 	int i, nr_pd = 0, nr_cs = 0, nr_cpus = cpumask_weight(cpu_map);
+	struct pd_cache *pd_cache;
 	struct perf_domain *pd = NULL, *tmp;
 	int cpu = cpumask_first(cpu_map);
 	struct root_domain *rd = cpu_rq(cpu)->rd;
@@ -405,6 +440,13 @@ static bool build_perf_domains(const struct cpumask *cpu_map)
 	rcu_assign_pointer(rd->pd, pd);
 	if (tmp)
 		call_rcu(&tmp->rcu, destroy_perf_domain_rcu);
+
+	if (!pd_cache_init) {
+		pd_cache = allocate_pd_cache();
+		if (!pd_cache)
+			goto free;
+		pd_cache_init = true;
+	}
 
 	return !!pd;
 

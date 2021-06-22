@@ -6429,6 +6429,72 @@ static unsigned long cpu_util_next(int cpu, struct task_struct *p, int dst_cpu)
 }
 
 /*
+ * Calc what cpu_util(@cpu) would return if without @p.
+ */
+static unsigned long cpu_util_base(int cpu, struct task_struct *p,
+				   struct pd_cache *pd_cache)
+{
+	struct cfs_rq *cfs_rq = &cpu_rq(cpu)->cfs;
+	unsigned long util_est, util = READ_ONCE(cfs_rq->avg.util_avg);
+
+	/*
+	 * If @p migrates from @cpu to another, remove its contribution. Or,
+	 * In the other cases, @cpu is not impacted by the migration, so the
+	 * util_avg should already be correct.
+	 */
+	if (task_cpu(p) == cpu)
+		lsub_positive(&util, task_util(p));
+
+	pd_cache->util = min(util, capacity_orig_of(cpu));
+
+	if (sched_feat(UTIL_EST)) {
+		util_est = READ_ONCE(cfs_rq->avg.util_est.enqueued);
+
+		/* when check_for_migration, p is on rq rather than sleep */
+		if (unlikely((task_on_rq_queued(p) || current == p) &&
+			      task_cpu(p) == cpu))
+			lsub_positive(&util_est, _task_util_est(p));
+
+		pd_cache->util_est = util_est;
+
+		util = max(util, util_est);
+	}
+
+	return min(util, capacity_orig_of(cpu));
+}
+
+static unsigned long
+effective_cpu_util(int cpu, unsigned long util_cfs, unsigned long max,
+		   struct task_struct *p, struct pd_cache *pd_cache,
+		   enum schedutil_type type)
+{
+	unsigned long util;
+	struct rq *rq = cpu_rq(cpu);
+
+	if (unlikely(pd_cache->util_irq >= max))
+		return max;
+
+	util = util_cfs + pd_cache->util_rt;
+	if (type == FREQUENCY_UTIL)
+		util = uclamp_rq_util_with(rq, util, p);
+
+	if (util + pd_cache->util_dl >= max)
+		return max;
+
+	if (type == ENERGY_UTIL)
+		util = util + pd_cache->util_dl;
+
+	util = scale_irq_capacity(util, pd_cache->util_irq, max);
+	util += pd_cache->util_irq;
+
+	if (type == FREQUENCY_UTIL)
+		util += pd_cache->bw_dl;
+
+	return min(util, max);
+
+}
+
+/*
  * compute_energy(): Estimates the energy that @pd would consume if @p was
  * migrated to @dst_cpu. compute_energy() predicts what will be the utilization
  * landscape of @pd's CPUs after the task migration, and uses the Energy Model
@@ -6436,7 +6502,8 @@ static unsigned long cpu_util_next(int cpu, struct task_struct *p, int dst_cpu)
  * task.
  */
 static long
-compute_energy(struct task_struct *p, int dst_cpu, struct perf_domain *pd)
+compute_energy(struct task_struct *p, int dst_cpu, struct perf_domain *pd,
+	       struct pd_cache *pd_cache)
 {
 	struct cpumask *pd_mask = perf_domain_span(pd);
 	unsigned long cpu_cap = arch_scale_cpu_capacity(cpumask_first(pd_mask));
@@ -6454,9 +6521,7 @@ compute_energy(struct task_struct *p, int dst_cpu, struct perf_domain *pd)
 	 * its pd list and will not be accounted by compute_energy().
 	 */
 	for_each_cpu_and(cpu, pd_mask, cpu_online_mask) {
-		unsigned long util_freq = cpu_util_next(cpu, p, dst_cpu);
-		unsigned long cpu_util, util_running = util_freq;
-		struct task_struct *tsk = NULL;
+		unsigned long freq_util, nrg_util;
 
 		/*
 		 * When @p is placed on @cpu:
@@ -6468,36 +6533,87 @@ compute_energy(struct task_struct *p, int dst_cpu, struct perf_domain *pd)
 		 *			       cpu_util_est + _task_util_est)
 		 */
 		if (cpu == dst_cpu) {
-			tsk = p;
-			util_running =
-				cpu_util_next(cpu, p, -1) + task_util_est(p);
+			unsigned long util_freq, util_running;
+
+			util_freq = max(pd_cache[cpu].util + task_util(p),
+					pd_cache[cpu].util_est + _task_util_est(p));
+			util_freq = min(util_freq, capacity_orig_of(cpu));
+
+			util_running = pd_cache[cpu].util_cfs + task_util_est(p);
+
+			/*
+			 * Busy time computation: utilization clamping is not
+			 * required since the ratio (sum_util / cpu_capacity)
+			 * is already enough to scale the EM reported power
+			 * consumption at the (eventually clamped) cpu_capacity.
+			 */
+			nrg_util = effective_cpu_util(cpu, util_running, cpu_cap,
+						       NULL, &pd_cache[cpu], ENERGY_UTIL);
+
+			/*
+			 * Performance domain frequency: utilization clamping
+			 * must be considered since it affects the selection
+			 * of the performance domain frequency.
+			 * NOTE: in case RT tasks are running, by default the
+			 * FREQUENCY_UTIL's utilization can be max OPP.
+			 */
+			freq_util = effective_cpu_util(cpu, util_freq, cpu_cap,
+						       p, &pd_cache[cpu], FREQUENCY_UTIL);
+		} else {
+			nrg_util = pd_cache[cpu].nrg_util;
+			freq_util = pd_cache[cpu].freq_util;
 		}
 
-		/*
-		 * Busy time computation: utilization clamping is not
-		 * required since the ratio (sum_util / cpu_capacity)
-		 * is already enough to scale the EM reported power
-		 * consumption at the (eventually clamped) cpu_capacity.
-		 */
-		sum_util += schedutil_cpu_util(cpu, util_running, cpu_cap,
-					       ENERGY_UTIL, NULL);
-
-		/*
-		 * Performance domain frequency: utilization clamping
-		 * must be considered since it affects the selection
-		 * of the performance domain frequency.
-		 * NOTE: in case RT tasks are running, by default the
-		 * FREQUENCY_UTIL's utilization can be max OPP.
-		 */
-		cpu_util = schedutil_cpu_util(cpu, util_freq, cpu_cap,
-					      FREQUENCY_UTIL, tsk);
-		max_util = max(max_util, cpu_util);
+		sum_util += nrg_util;
+		max_util = max(max_util, freq_util);
 	}
 
 	trace_android_vh_em_pd_energy(pd->em_pd, max_util, sum_util, &energy);
 	if (!energy)
 		energy = em_pd_energy(pd->em_pd, max_util, sum_util);
 
+	return energy;
+}
+
+/*
+ * populate_pd_cache(): To avoid re-computing the frequency/energy utilization
+ * of a cpu when @p is not placed on a cpu, this function computes and caches
+ * them.
+ */
+static unsigned long
+populate_pd_cache(struct task_struct *p, struct perf_domain *pd,
+			struct pd_cache *pd_cache)
+{
+	struct cpumask *pd_mask = perf_domain_span(pd);
+	unsigned long max_util = 0, sum_util = 0;
+	unsigned long cpu_cap;
+	unsigned long energy = 0;
+	int cpu;
+
+	cpu_cap = arch_scale_cpu_capacity(cpumask_first(pd_mask));
+
+	for_each_cpu_and(cpu, pd_mask, cpu_online_mask) {
+		unsigned long util_cfs = cpu_util_base(cpu, p, &pd_cache[cpu]);
+		struct rq *rq = cpu_rq(cpu);
+
+		pd_cache[cpu].util_cfs = util_cfs;
+		pd_cache[cpu].util_irq = cpu_util_irq(rq);
+		pd_cache[cpu].util_rt = cpu_util_rt(rq);
+		pd_cache[cpu].util_dl = cpu_util_dl(rq);
+		pd_cache[cpu].bw_dl = cpu_bw_dl(rq);
+
+		pd_cache[cpu].nrg_util = effective_cpu_util(cpu, util_cfs, cpu_cap,
+							    NULL, &pd_cache[cpu], ENERGY_UTIL);
+		pd_cache[cpu].freq_util = effective_cpu_util(cpu, util_cfs, cpu_cap,
+							    NULL, &pd_cache[cpu], FREQUENCY_UTIL);
+
+		sum_util += pd_cache[cpu].nrg_util;
+		max_util = max(max_util, pd_cache[cpu].freq_util);
+	}
+
+	trace_android_vh_em_pd_energy(pd->em_pd, max_util, sum_util, &energy);
+	if (!energy)
+		energy = em_pd_energy(pd->em_pd, max_util, sum_util);
 	return energy;
 }
 
@@ -6551,9 +6667,10 @@ static int find_energy_efficient_cpu(struct task_struct *p, int prev_cpu, int sy
 	unsigned int min_exit_lat = UINT_MAX;
 	int cpu, best_energy_cpu = prev_cpu;
 	struct cpuidle_state *idle;
+	struct pd_cache *pd_cache;
 	struct sched_domain *sd;
 	struct perf_domain *pd;
-	unsigned long uclamp_util = uclamp_task_util(p);
+	unsigned long uclamp_util;
 #ifdef CONFIG_SPRD_CORE_CTL
 	int isolated_candidate = -1;
 #endif
@@ -6580,16 +6697,21 @@ static int find_energy_efficient_cpu(struct task_struct *p, int prev_cpu, int sy
 	if (!sd)
 		goto fail;
 
+	/* Get the pd_cache entry reserved for this cpu. */
+	pd_cache = rcu_dereference(*this_cpu_ptr(&pdc));
+	if (!pd_cache)
+		goto fail;
+
 	sync_entity_load_avg(&p->se);
 	if (!task_util_est(p))
 		goto unlock;
 
+	uclamp_util = uclamp_task_util(p);
 	latency_sensitive = uclamp_latency_sensitive(p);
 	boosted = uclamp_boosted(p);
 	target_cap = boosted ? 0 : ULONG_MAX;
 
-	trace_sched_task_comm_info(p, latency_sensitive,
-					boosted, uclamp_util);
+	trace_sched_task_comm_info(p, latency_sensitive, boosted, uclamp_util);
 
 	for (; pd; pd = pd->next) {
 		unsigned long cur_delta, spare_cap, max_spare_cap = 0;
@@ -6597,7 +6719,7 @@ static int find_energy_efficient_cpu(struct task_struct *p, int prev_cpu, int sy
 		int max_spare_cap_cpu = -1;
 
 		/* Compute the 'base' energy of the pd, without @p */
-		base_energy_pd = compute_energy(p, -1, pd);
+		base_energy_pd = populate_pd_cache(p, pd, pd_cache);
 		base_energy += base_energy_pd;
 
 		for_each_cpu_and(cpu, perf_domain_span(pd), sched_domain_span(sd)) {
@@ -6629,7 +6751,7 @@ static int find_energy_efficient_cpu(struct task_struct *p, int prev_cpu, int sy
 
 			/* Always use prev_cpu as a candidate. */
 			if (!latency_sensitive && cpu == prev_cpu) {
-				prev_delta = compute_energy(p, prev_cpu, pd);
+				prev_delta = compute_energy(p, prev_cpu, pd, pd_cache);
 				prev_delta -= base_energy_pd;
 				best_delta = min(best_delta, prev_delta);
 			}
@@ -6670,7 +6792,7 @@ static int find_energy_efficient_cpu(struct task_struct *p, int prev_cpu, int sy
 		/* Evaluate the energy impact of using this CPU. */
 		if (!latency_sensitive && max_spare_cap_cpu >= 0 &&
 						max_spare_cap_cpu != prev_cpu) {
-			cur_delta = compute_energy(p, max_spare_cap_cpu, pd);
+			cur_delta = compute_energy(p, max_spare_cap_cpu, pd, pd_cache);
 			cur_delta -= base_energy_pd;
 			if (cur_delta < best_delta) {
 				best_delta = cur_delta;
