@@ -8,6 +8,7 @@
 #include <linux/io.h>
 #include <linux/math64.h>
 #include <linux/module.h>
+#include <linux/of_device.h>
 #include <linux/platform_device.h>
 #include <linux/pwm.h>
 
@@ -22,7 +23,6 @@
 #define SPRD_PWM_ENABLE_BIT	BIT(0)
 
 #define SPRD_PWM_CHN_NUM	4
-#define SPRD_PWM_REGS_SHIFT	5
 #define SPRD_PWM_CHN_CLKS_NUM	2
 #define SPRD_PWM_CHN_OUTPUT_CLK	1
 
@@ -31,12 +31,25 @@ struct sprd_pwm_chn {
 	u32 clk_rate;
 };
 
+struct sprd_pwd_data {
+	int reg_shift;
+};
+
 struct sprd_pwm_chip {
 	void __iomem *base;
 	struct device *dev;
 	struct pwm_chip chip;
 	int num_pwms;
+	const struct sprd_pwd_data *pdata;
 	struct sprd_pwm_chn chn[SPRD_PWM_CHN_NUM];
+};
+
+static const struct sprd_pwd_data sharkl5_data = {
+		.reg_shift = 5,
+};
+
+static const struct sprd_pwd_data qogirn6pro_data = {
+		.reg_shift = 14,
 };
 
 /*
@@ -52,7 +65,7 @@ static const char * const sprd_pwm_clks[] = {
 
 static u32 sprd_pwm_read(struct sprd_pwm_chip *spc, u32 hwid, u32 reg)
 {
-	u32 offset = reg + (hwid << SPRD_PWM_REGS_SHIFT);
+	u32 offset = reg + (hwid << spc->pdata->reg_shift);
 
 	return readl_relaxed(spc->base + offset);
 }
@@ -60,7 +73,7 @@ static u32 sprd_pwm_read(struct sprd_pwm_chip *spc, u32 hwid, u32 reg)
 static void sprd_pwm_write(struct sprd_pwm_chip *spc, u32 hwid,
 			   u32 reg, u32 val)
 {
-	u32 offset = reg + (hwid << SPRD_PWM_REGS_SHIFT);
+	u32 offset = reg + (hwid << spc->pdata->reg_shift);
 
 	writel_relaxed(val, spc->base + offset);
 }
@@ -258,6 +271,7 @@ static int sprd_pwm_clk_init(struct sprd_pwm_chip *spc)
 static int sprd_pwm_probe(struct platform_device *pdev)
 {
 	struct sprd_pwm_chip *spc;
+	const void *priv_data;
 	int ret;
 
 	spc = devm_kzalloc(&pdev->dev, sizeof(*spc), GFP_KERNEL);
@@ -267,6 +281,13 @@ static int sprd_pwm_probe(struct platform_device *pdev)
 	spc->base = devm_platform_ioremap_resource(pdev, 0);
 	if (IS_ERR(spc->base))
 		return PTR_ERR(spc->base);
+
+	priv_data = of_device_get_match_data(&pdev->dev);
+	if (!priv_data) {
+		dev_err(&pdev->dev, "get regs shift failed!\n");
+		return -EINVAL;
+	}
+	spc->pdata = priv_data;
 
 	spc->dev = &pdev->dev;
 	platform_set_drvdata(pdev, spc);
@@ -295,7 +316,8 @@ static int sprd_pwm_remove(struct platform_device *pdev)
 }
 
 static const struct of_device_id sprd_pwm_of_match[] = {
-	{ .compatible = "sprd,sharkl5pro-pwm", },
+	{ .compatible = "sprd,sharkl5pro-pwm", .data = (void *)&sharkl5_data},
+	{ .compatible = "sprd,qogirn6pro-pwm", .data = (void *)&qogirn6pro_data},
 	{ },
 };
 MODULE_DEVICE_TABLE(of, sprd_pwm_of_match);
