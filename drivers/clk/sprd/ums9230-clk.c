@@ -734,6 +734,9 @@ static const struct clk_parent_data dispc0_dpi_parents[] = {
 	{ .hw = &twpll_128m.hw  },
 	{ .hw = &twpll_153m6.hw  },
 	{ .hw = &twpll_192m.hw  },
+	{ .fw_name = "dphy-250m" },
+	{ .hw = &twpll_307m2.hw  },
+	{ .fw_name = "dphy-333m3" },
 };
 static SPRD_COMP_CLK_DATA(dispc0_dpi_clk, "dispc0-dpi-clk", dispc0_dpi_parents,
 			  0xb4, 0, 3, 8, 4, 0);
