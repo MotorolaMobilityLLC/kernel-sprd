@@ -49,46 +49,51 @@ int gf_parse_dts(struct gf_dev *gf_dev)
 	}
 
 	rc = devm_gpio_request(dev, gf_dev->reset_gpio, "goodix_reset");
-	//pr_info("value of rc for request gf_dev->reset_gpio is %d!\n", rc);
+	pr_info("value of rc for request gf_dev->reset_gpio is %d!\n", rc);
 	if (rc) {
-		pr_err("failed to request reset gpio, rc = %d\n", rc);
-		goto err_reset;
+	    pr_err("failed to request reset gpio, rc = %d\n", rc);
+            gpio_free(gf_dev->reset_gpio);
+            rc = devm_gpio_request(dev, gf_dev->reset_gpio, "goodix_reset");
+            pr_err("value of rc for request gf_dev->reset_gpio is %d!\n", rc);
 	}
+
 	gpio_direction_output(gf_dev->reset_gpio, 1);
 
-	gf_dev->irq_gpio = of_get_named_gpio(node, "fpsensor,eint-gpio", 0);
-	pr_debug("value of gf_dev->irq_gpio is %d!\n", gf_dev->irq_gpio);
-	if (gf_dev->irq_gpio < 0) {
-		pr_err("falied to get irq gpio!\n");
-		return gf_dev->irq_gpio;
+	rc = of_get_named_gpio(node, "fpsensor,eint-gpio", 0);
+	if (rc < 0) {
+		pr_err("failed to get fpsensor,eint-gpio\n");
+                return rc;
 	}
+	gf_dev->irq_gpio = rc;
+	pr_err("value of gf_dev->irq_gpio is %d!\n", gf_dev->irq_gpio);
 
 	rc = devm_gpio_request(dev, gf_dev->irq_gpio, "goodix_irq");
-	//pr_info("value of rc for request gf_dev->irq_gpio is %d!\n", rc);
+	pr_info("value of rc for request gf_dev->irq_gpio is %d!\n", rc);
 	if (rc) {
 		pr_err("failed to request irq gpio, rc = %d\n", rc);
-		goto err_irq;
+                gpio_free(gf_dev->irq_gpio);
+                rc = devm_gpio_request(dev, gf_dev->irq_gpio, "goodix_irq");
+                pr_err("value of rc for request gf_dev->irq_gpio is %d!\n", rc);
 	}
+
 	gpio_direction_input(gf_dev->irq_gpio);
 
 	return rc;
-err_irq:
-	devm_gpio_free(dev, gf_dev->irq_gpio);
-err_reset:
-	devm_gpio_free(dev, gf_dev->reset_gpio);
-	return rc;
+
 }
 
 void gf_cleanup(struct gf_dev *gf_dev)
 {
+	struct device *dev = &gf_dev->spi->dev;
+
 	pr_info("[info] %s\n", __func__);
 
 	if (gpio_is_valid(gf_dev->irq_gpio)) {
-		gpio_free(gf_dev->irq_gpio);
+		devm_gpio_free(dev, gf_dev->irq_gpio);
 		pr_info("remove irq_gpio success\n");
 	}
 	if (gpio_is_valid(gf_dev->reset_gpio)) {
-		gpio_free(gf_dev->reset_gpio);
+		devm_gpio_free(dev, gf_dev->reset_gpio);
 		pr_info("remove reset_gpio success\n");
 	}
 }
