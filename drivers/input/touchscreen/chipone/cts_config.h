@@ -18,7 +18,7 @@
 #define CFG_CTS_HAS_RESET_PIN
 #endif
 
-#define CFG_CTS_SPI_SPEED_KHZ               4000
+#define CFG_CTS_SPI_SPEED_KHZ               9600
 
 #endif
 
@@ -37,7 +37,7 @@
  *   Currently, one finger UP event missing in multi-touch, it will
  *   report UP to system when all fingers are lifted.
  */
-#define CFG_CTS_MAKEUP_EVENT_UP
+//#define CFG_CTS_MAKEUP_EVENT_UP
 
 //#define CFG_CTS_FW_LOG_REDIRECT
 
