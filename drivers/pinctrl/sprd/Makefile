@@ -7,3 +7,4 @@ obj-$(CONFIG_PINCTRL_SPRD_PIKE2)	+= pinctrl-sprd-pike2.o
 obj-$(CONFIG_PINCTRL_SPRD_SHARKLE)	+= pinctrl-sprd-sharkle.o
 obj-$(CONFIG_PINCTRL_SPRD_SHARKL5)	+= pinctrl-sprd-sharkl5.o
 obj-$(CONFIG_PINCTRL_SPRD_QOGIRL6)	+= pinctrl-sprd-qogirl6.o
+obj-$(CONFIG_PINCTRL_SPRD_QOGIRL6PRO)	+= pinctrl-sprd-qogirn6pro.o
