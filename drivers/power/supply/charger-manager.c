@@ -3789,6 +3789,8 @@ static bool cm_manager_adjust_current(struct charger_manager *cm,
 	if (jeita_status > desc->jeita_tab_size)
 		jeita_status = desc->jeita_tab_size;
 
+#ifdef DUAL_85_VERSION	
+#else
 	if (jeita_status == 0 || jeita_status == desc->jeita_tab_size) {
 		dev_warn(cm->dev,
 			 "stop charging due to battery overheat or cold\n");
@@ -3803,7 +3805,7 @@ static bool cm_manager_adjust_current(struct charger_manager *cm,
 		}
 		return false;
 	}
-
+#endif
 	term_volt = desc->jeita_tab[jeita_status].term_volt;
 	target_cur = desc->jeita_tab[jeita_status].current_ua;
 
