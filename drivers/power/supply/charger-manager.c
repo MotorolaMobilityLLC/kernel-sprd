@@ -4681,7 +4681,7 @@ static void cm_batt_works(struct work_struct *work)
 		if (fuel_cap >= cm->desc->cap) {
 			last_fuel_cap = fuel_cap;
 			fuel_cap = cm->desc->cap;
-		} else if (cm->desc->cap >= CM_HCAP_THRESHOLD) {
+		} /*else if (cm->desc->cap >= CM_HCAP_THRESHOLD) {
 			if (last_fuel_cap - fuel_cap >= CM_HCAP_DECREASE_STEP) {
 				if (cm->desc->cap - fuel_cap >= CM_CAP_ONE_PERCENT)
 					fuel_cap = cm->desc->cap - CM_CAP_ONE_PERCENT;
@@ -4692,7 +4692,7 @@ static void cm_batt_works(struct work_struct *work)
 			} else {
 				fuel_cap = cm->desc->cap;
 			}
-		} else {
+		} */else {
 			if (period_time < cm->desc->cap_one_time &&
 			    (cm->desc->cap - fuel_cap) >= 5)
 				fuel_cap = cm->desc->cap - 5;
