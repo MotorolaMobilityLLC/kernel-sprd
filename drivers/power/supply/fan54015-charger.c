@@ -1162,6 +1162,31 @@ err_regmap_exit:
 	return ret;
 }
 
+static void fan54015_charger_shutdown(struct i2c_client *client)
+{
+	struct fan54015_charger_info *info = i2c_get_clientdata(client);
+	int ret = 0;
+
+	cancel_delayed_work_sync(&info->wdt_work);
+	if (info->otg_enable) {
+		info->otg_enable = false;
+		cancel_delayed_work_sync(&info->otg_work);
+		ret = fan54015_update_bits(info, FAN54015_REG_1,
+					   FAN54015_REG_HZ_MODE_MASK |
+					   FAN54015_REG_OPA_MODE_MASK,
+					   0);
+		if (ret)
+			dev_err(info->dev, "disable fan54015 otg failed ret = %d\n", ret);
+
+		/* Enable charger detection function to identify the charger type */
+		ret = regmap_update_bits(info->pmic, info->charger_detect,
+					 BIT_DP_DM_BC_ENB, 0);
+		if (ret)
+			dev_err(info->dev,
+				"enable charger detection function failed ret = %d\n", ret);
+	}
+}
+
 static int fan54015_charger_remove(struct i2c_client *client)
 {
 	struct fan54015_charger_info *info = i2c_get_clientdata(client);
@@ -1257,6 +1282,7 @@ static struct i2c_driver fan54015_charger_driver = {
 		.pm = &fan54015_charger_pm_ops,
 	},
 	.probe = fan54015_charger_probe,
+	.shutdown = fan54015_charger_shutdown,
 	.remove = fan54015_charger_remove,
 	.id_table = fan54015_i2c_id,
 };

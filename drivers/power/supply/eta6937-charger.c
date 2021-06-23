@@ -1223,6 +1223,32 @@ static int eta6937_charger_probe(struct i2c_client *client,
 	return 0;
 }
 
+static void eta6937_charger_shutdown(struct i2c_client *client)
+{
+	struct eta6937_charger_info *info = i2c_get_clientdata(client);
+	int ret = 0;
+
+	cancel_delayed_work_sync(&info->wdt_work);
+	if (info->otg_enable) {
+		info->otg_enable = false;
+		info->need_reinit = true;
+		cancel_delayed_work_sync(&info->otg_work);
+		ret = eta6937_update_bits(info, ETA6937_REG_1,
+					  ETA6937_REG_HZ_MODE_MASK |
+					  ETA6937_REG_OPA_MODE_MASK,
+					  0);
+		if (ret)
+			dev_err(info->dev, "disable eta6937 otg failed ret = %d\n", ret);
+
+		/* Enable charger detection function to identify the charger type */
+		ret = regmap_update_bits(info->pmic, info->charger_detect,
+					 BIT_DP_DM_BC_ENB, 0);
+		if (ret)
+			dev_err(info->dev,
+				"enable charger detection function failed ret = %d\n", ret);
+	}
+}
+
 static int eta6937_charger_remove(struct i2c_client *client)
 {
 	struct eta6937_charger_info *info = i2c_get_clientdata(client);
@@ -1307,6 +1333,7 @@ static struct i2c_driver eta6937_charger_driver = {
 		.pm = &eta6937_charger_pm_ops,
 	},
 	.probe = eta6937_charger_probe,
+	.shutdown = eta6937_charger_shutdown,
 	.remove = eta6937_charger_remove,
 	.id_table = eta6937_i2c_id,
 };
