@@ -506,7 +506,6 @@ EXPORT_SYMBOL(agdsp_access_enable);
 
 int agdsp_access_disable(void)
 {
-#if 0
 	int ret = 0;
 	struct agdsp_access *dsp_ac = g_agdsp_access;
 
@@ -538,7 +537,7 @@ int agdsp_access_disable(void)
 	pr_dbg("%s,dsp_ac->state->ap_enable_cnt=%d,dsp_ac->state->cp_enable_cnt=%d.\n",
 		__func__, dsp_ac->state->ap_enable_cnt,
 		dsp_ac->state->cp_enable_cnt);
-#endif
+
 	return 0;
 }
 EXPORT_SYMBOL(agdsp_access_disable);
