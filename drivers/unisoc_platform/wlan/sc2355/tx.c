@@ -41,7 +41,7 @@ static inline void tx_enqueue_data_msg(struct sprd_msg *msg)
 	spin_unlock_bh(&msg->data_list->p_lock);
 }
 
-static inline void tx_dequeue_data_msg(struct sprd_msg *msg, int ac_index)
+static inline void tx_dequeue_data_msg(struct sprd_hif *hif, struct sprd_msg *msg, int ac_index)
 {
 	spinlock_t *lock;	/*to lock qos list */
 
@@ -50,7 +50,7 @@ static inline void tx_dequeue_data_msg(struct sprd_msg *msg, int ac_index)
 	else
 		lock = &msg->xmit_msg_list->send_lock;
 	spin_lock_bh(lock);
-	dev_kfree_skb(msg->skb);
+	hif->ops->free_msg_content(msg);
 	list_del(&msg->list);
 	sprd_free_msg(msg, msg->msglist);
 	spin_unlock_bh(lock);
@@ -77,10 +77,15 @@ static void tx_flush_data_txlist(struct tx_mgmt *tx_mgmt)
 		if (priv->hif.hw_type == SPRD_HW_SC2355_PCIE &&
 		    sprdwcn_bus_get_status() == WCN_BUS_DOWN) {
 			struct sprd_msg *pos_buf, *temp_buf;
+			unsigned long lockflag_txfree = 0;
 
+			spin_lock_irqsave(&tx_mgmt->xmit_msg_list.free_lock,
+					  lockflag_txfree);
 			list_for_each_entry_safe(pos_buf, temp_buf,
 						 data_list, list)
-				sc2355_dequeue_tofreelist_buf(pos_buf);
+				sc2355_dequeue_tofreelist_buf(tx_mgmt->hif, pos_buf);
+			spin_unlock_irqrestore(&tx_mgmt->xmit_msg_list.free_lock,
+					       lockflag_txfree);
 			goto out;
 		}
 		usleep_range(2500, 3000);
@@ -189,261 +194,6 @@ static int tx_cmd(struct sprd_hif *hif, struct sprd_msg_list *list)
 	return 0;
 }
 
-static int tx_fc_find_color_per_mode(struct tx_mgmt *tx_mgmt,
-				     enum sprd_mode mode, u8 *index)
-{
-	u8 i = 0, found = 0;
-	enum sprd_mode tmp_mode;
-	struct sprd_priv *priv = tx_mgmt->hif->priv;
-	struct sprd_vif *vif;
-
-	for (i = 0; i < MAX_COLOR_BIT; i++) {
-		if (tx_mgmt->flow_ctrl[i].mode == mode) {
-			found = 1;
-			pr_debug("%s, %d, mode:%d found, index:%d\n",
-				 __func__, __LINE__, mode, i);
-			break;
-		}
-	}
-	if (found == 0) {
-		/*a new mode. sould assign new color to this mode */
-		for (i = 0; i < MAX_COLOR_BIT; i++) {
-			tmp_mode = tx_mgmt->flow_ctrl[i].mode;
-			vif = sprd_mode_to_vif(priv, tmp_mode);
-			if (vif && !(vif->state & VIF_STATE_OPEN))
-				tx_mgmt->flow_ctrl[i].mode = SPRD_MODE_NONE;
-		}
-		for (i = 0; i < MAX_COLOR_BIT; i++) {
-			if (tx_mgmt->flow_ctrl[i].mode == SPRD_MODE_NONE) {
-				found = 1;
-				tx_mgmt->flow_ctrl[i].mode = mode;
-				tx_mgmt->flow_ctrl[i].color_bit = i;
-				pr_info
-				    ("%s, %d, new mode:%d, assign color:%d\n",
-				     __func__, __LINE__, mode, i);
-				break;
-			}
-		}
-	}
-	if (found == 1)
-		*index = i;
-	return found;
-}
-
-static int tx_fc_get_shared_num(struct tx_mgmt *tx_mgmt, u8 num)
-{
-	u8 i;
-	int shared_flow_num = 0;
-	unsigned int color_flow;
-
-	for (i = 0; i < MAX_COLOR_BIT; i++) {
-		color_flow = atomic_read(&tx_mgmt->flow_ctrl[i].flow);
-		if (tx_mgmt->flow_ctrl[i].mode == SPRD_MODE_NONE &&
-		    color_flow != 0) {
-			if ((num - shared_flow_num) <= color_flow) {
-				tx_mgmt->color_num[i] = num - shared_flow_num;
-				shared_flow_num += num - shared_flow_num;
-				break;
-			}
-
-			/*need one more shared color */
-			tx_mgmt->color_num[i] = color_flow;
-			shared_flow_num += color_flow;
-		}
-	}
-	return shared_flow_num;
-}
-
-static int tx_fc_get_send_num(struct tx_mgmt *tx_mgmt,
-			      enum sprd_mode mode, int data_num)
-{
-	int excusive_flow_num = 0, shared_flow_num = 0;
-	int send_num = 0;
-	u8 i = 0;
-	struct sprd_priv *priv = tx_mgmt->hif->priv;
-
-	if (data_num <= 0 || mode == SPRD_MODE_NONE)
-		return 0;
-	/*send all data in buff with PCIe interface */
-	if (priv->hif.hw_type == SPRD_HW_SC2355_PCIE) {
-		int free_num = 0;
-		static unsigned long caller_jiffies;
-
-		free_num = atomic_read(&tx_mgmt->xmit_msg_list.free_num);
-		if (printk_timed_ratelimit(&caller_jiffies, 1000)) {
-			pr_info("%s, free_num=%d, data_num=%d\n", __func__,
-				free_num, data_num);
-			if (list_empty(&tx_mgmt->xmit_msg_list.to_free_list))
-				pr_info("%s: to free list empty\n", __func__);
-		}
-
-		if ((free_num + data_num) >= MAX_FW_TX_DSCR)
-			return (MAX_FW_TX_DSCR - free_num);
-		else
-			return data_num;
-	}
-
-	if (data_num > 64)
-		data_num = 64;
-	if (priv->credit_capa == TX_NO_CREDIT)
-		return data_num;
-
-	memset(tx_mgmt->color_num, 0x00, MAX_COLOR_BIT);
-
-	if (tx_fc_find_color_per_mode(tx_mgmt, mode, &i) == 1) {
-		excusive_flow_num = atomic_read(&tx_mgmt->flow_ctrl[i].flow);
-		if (excusive_flow_num >= data_num) {
-			/* excusive flow is enough, do not need shared flow */
-			send_num = tx_mgmt->color_num[i] = data_num;
-		} else {
-			/* excusive flow not enough, need shared flow
-			 * total give num =  excusive + shared
-			 * (may be more than one color)
-			 */
-			u8 num_need = data_num - excusive_flow_num;
-
-			shared_flow_num =
-			    tx_fc_get_shared_num(tx_mgmt, num_need);
-			tx_mgmt->color_num[i] = excusive_flow_num;
-			send_num = excusive_flow_num + shared_flow_num;
-		}
-
-		if (send_num <= 0) {
-			pr_err
-			    ("%s, %d, mode:%d, e_num:%d, s_num:%d, d_num:%d\n",
-			     __func__, __LINE__, (u8)mode, excusive_flow_num,
-			     shared_flow_num, data_num);
-			return -ENOMEM;
-		}
-		pr_info("%s,mode:%d,e_n:%d,s_n:%d,d_n:%d,{%d,%d,%d,%d}\n",
-			__func__, mode, excusive_flow_num,
-			shared_flow_num, data_num,
-			tx_mgmt->color_num[0], tx_mgmt->color_num[1],
-			tx_mgmt->color_num[2], tx_mgmt->color_num[3]);
-	} else {
-		pr_err("%s, %d, wrong mode:%d?\n",
-		       __func__, __LINE__, (u8)mode);
-		for (i = 0; i < MAX_COLOR_BIT; i++)
-			pr_err("color[%d] assigned mode%d\n",
-			       i, (u8)tx_mgmt->flow_ctrl[i].mode);
-		return -ENOMEM;
-	}
-
-	return send_num;
-}
-
-/*to see there is shared flow or not*/
-static int tx_fc_test_shared_num(struct tx_mgmt *tx_mgmt)
-{
-	u8 i;
-	int shared_flow_num = 0;
-	unsigned int color_flow;
-
-	for (i = 0; i < MAX_COLOR_BIT; i++) {
-		color_flow = atomic_read(&tx_mgmt->flow_ctrl[i].flow);
-		if (tx_mgmt->flow_ctrl[i].mode == SPRD_MODE_NONE &&
-		    color_flow != 0) {
-			shared_flow_num += color_flow;
-		}
-	}
-	return shared_flow_num;
-}
-
-/*to check flow number, no flow number, no send*/
-static int tx_fc_test_send_num(struct tx_mgmt *tx_mgmt,
-			       enum sprd_mode mode, int data_num)
-{
-	int excusive_flow_num = 0, shared_flow_num = 0;
-	int send_num = 0;
-	u8 i = 0;
-	struct sprd_priv *priv = tx_mgmt->hif->priv;
-
-	if (data_num <= 0 || mode == SPRD_MODE_NONE)
-		return 0;
-	if (priv->hif.hw_type == SPRD_HW_SC2355_PCIE) {
-		int free_num = 0;
-		static unsigned long caller_jiffies;
-
-		free_num = atomic_read(&tx_mgmt->xmit_msg_list.free_num);
-		if (printk_timed_ratelimit(&caller_jiffies, 1000)) {
-			pr_info("%s, free_num=%d, data_num=%d\n", __func__,
-				free_num, data_num);
-			if (list_empty(&tx_mgmt->xmit_msg_list.to_free_list))
-				pr_info("%s: to free list empty\n", __func__);
-		}
-
-		if ((free_num + data_num) >= get_max_fw_tx_dscr()) {
-			pr_err("%s, free_num=%d, data_num=%d\n", __func__,
-			       free_num, data_num);
-			return (get_max_fw_tx_dscr() - free_num);
-		} else {
-			return data_num;
-		}
-	}
-
-	if (data_num > 64)
-		data_num = 64;
-	if (priv->credit_capa == TX_NO_CREDIT)
-		return data_num;
-
-	if (tx_fc_find_color_per_mode(tx_mgmt, mode, &i) == 1) {
-		excusive_flow_num = atomic_read(&tx_mgmt->flow_ctrl[i].flow);
-		shared_flow_num = tx_fc_test_shared_num(tx_mgmt);
-		send_num = excusive_flow_num + shared_flow_num;
-
-		if (send_num <= 0) {
-			pr_debug
-			    ("%s, %d, err, mode:%d, e_num:%d, s_num:%d, d_num=%d\n",
-			     __func__, __LINE__, (u8)mode, excusive_flow_num,
-			     shared_flow_num, data_num);
-			return -ENOMEM;
-		}
-		pr_debug("%s, %d, e_num=%d, s_num=%d, d_num=%d\n",
-			 __func__, __LINE__, excusive_flow_num,
-			 shared_flow_num, data_num);
-	} else {
-		pr_err("%s, %d, wrong mode:%d?\n",
-		       __func__, __LINE__, (u8)mode);
-		for (i = 0; i < MAX_COLOR_BIT; i++)
-			printk_ratelimited("color[%d] assigned mode%d\n",
-					   i, (u8)tx_mgmt->flow_ctrl[i].mode);
-		return -ENOMEM;
-	}
-
-	return min(send_num, data_num);
-}
-
-static void tx_handle_return(struct tx_mgmt *tx_mgmt,
-			     struct sprd_msg_list *list, int send_num, int ret)
-{
-	u8 i;
-	struct sprd_priv *priv = tx_mgmt->hif->priv;
-
-	if (ret) {
-		printk_ratelimited("%s hif_tx_list err:%d\n", __func__, ret);
-		memset(tx_mgmt->color_num, 0x00, MAX_COLOR_BIT);
-		usleep_range(20, 30);
-		return;
-	}
-
-	tx_mgmt->ring_ap += send_num;
-	atomic_sub(send_num, &list->ref);
-	sc2355_wake_net_ifneed(tx_mgmt->hif, list, tx_mgmt->mode);
-
-	if (priv->credit_capa == TX_NO_CREDIT)
-		return;
-
-	for (i = 0; i < MAX_COLOR_BIT; i++) {
-		if (tx_mgmt->color_num[i] == 0)
-			continue;
-		atomic_sub(tx_mgmt->color_num[i], &tx_mgmt->flow_ctrl[i].flow);
-		pr_debug("%s, _fc_, color bit:%d, flow num-%d=%d, seq_num=%d\n",
-			 __func__, i, tx_mgmt->color_num[i],
-			 atomic_read(&tx_mgmt->flow_ctrl[i].flow),
-			 tx_mgmt->seq_num);
-	}
-}
-
 static int tx_handle_timeout(struct tx_mgmt *tx_mgmt,
 			     struct sprd_msg_list *msg_list,
 			     struct sprd_qos_peer_list *p_list, int ac_index)
@@ -498,7 +248,7 @@ static int tx_handle_timeout(struct tx_mgmt *tx_mgmt,
 				cnt = tx_mgmt->drop_data2_cnt++;
 			}
 			pr_err("tx drop %s, dropcnt:%u\n", pinfo, cnt);
-			tx_dequeue_data_msg(pos_buf, ac_index);
+			tx_dequeue_data_msg(tx_mgmt->hif, pos_buf, ac_index);
 			atomic_dec(&tx_mgmt->tx_list[mode]->mode_list_num);
 #if defined(MORE_DEBUG)
 			tx_mgmt->hif->stats.tx_dropped++;
@@ -529,7 +279,7 @@ static int tx_handle_to_send_list(struct sprd_hif *hif, enum sprd_mode mode)
 		spin_lock_bh(t_lock);
 		tosendnum = sc2355_qos_get_list_num(to_send_list);
 		spin_unlock_bh(t_lock);
-		credit = tx_fc_get_send_num(tx_mgmt, mode, tosendnum);
+		credit = sc2355_fc_get_send_num(hif, mode, tosendnum);
 		if (credit < tosendnum)
 			pr_err("%s, %d,error! credit:%d,tosendnum:%d\n",
 			       __func__, __LINE__, credit, tosendnum);
@@ -541,7 +291,7 @@ static int tx_handle_to_send_list(struct sprd_hif *hif, enum sprd_mode mode)
 					 to_send_list,
 					 &tx_list_head,
 					 credit, SPRD_AC_MAX, coex_bt_on);
-		tx_handle_return(tx_mgmt, list, credit, ret);
+		sc2355_handle_tx_return(hif, list, credit, ret);
 		if (ret) {
 			pr_err("%s, %d: tx return err!\n", __func__, __LINE__);
 			tx_mgmt->xmit_msg_list.failcount++;
@@ -594,7 +344,7 @@ static int tx_eachmode_data(struct sprd_hif *hif, enum sprd_mode mode)
 				 (i == SPRD_AC_BK) ? "BK" : "",
 				 q_list_num[i], total);
 	}
-	send_num = tx_fc_test_send_num(tx_mgmt, mode, total);
+	send_num = sc2355_fc_test_send_num(hif, mode, total);
 	if (total != 0 && send_num <= 0) {
 		pr_err("%s, %d: _fc_ no credit!\n", __func__, __LINE__);
 		return -ENOMEM;
@@ -867,6 +617,8 @@ RETRY:
 		printk_ratelimited("sc2355, %s, not RESUMED\n", __func__);
 		return;
 	}
+	if (hif->pushfail_count > 100)
+		usleep_range(5990, 6010);
 
 	if (!list_empty(&tx_mgmt->xmit_msg_list.to_send_list)) {
 		if (tx_handle_to_send_list(hif, tx_mgmt->xmit_msg_list.mode)) {
@@ -874,6 +626,8 @@ RETRY:
 			return;
 		}
 	}
+	if (hif->pushfail_count > 100)
+		sc2355_flush_tosendlist(tx_mgmt);
 
 	for (mode = SPRD_MODE_NONE; mode < SPRD_MODE_MAX; mode++) {
 		int num = atomic_read(&tx_mgmt->tx_list[mode]->mode_list_num);
@@ -893,7 +647,7 @@ RETRY:
 		}
 		sprd_put_vif(vif);
 
-		send_num = tx_fc_test_send_num(tx_mgmt, mode, num);
+		send_num = sc2355_fc_test_send_num(hif, mode, num);
 		if (send_num > 0)
 			tx_eachmode_data(hif, mode);
 		else
@@ -903,6 +657,7 @@ RETRY:
 	if (priv->is_screen_off == 1 &&
 	    priv->hif.hw_type == SPRD_HW_SC2355_PCIE) {
 		usleep_range(590, 610);
+		goto RETRY;
 	}
 	if (need_polling) {
 		/* retry to wait credit */
@@ -1051,7 +806,7 @@ static int tx_mc_pkt(struct sk_buff *skb, struct net_device *ndev)
 		     __func__, hif->skb_da[0], hif->skb_da[1], hif->skb_da[2],
 		     hif->skb_da[3], hif->skb_da[4], hif->skb_da[5]);
 		tx_mc_pkt_checksum(skb, ndev);
-		sc2355_xmit_data2cmd_wq(skb, ndev);
+		sprd_xmit_data2cmd_wq(skb, ndev);
 		return NETDEV_TX_OK;
 	}
 	return 1;
@@ -1062,7 +817,6 @@ static int tx_filter_ip_pkt(struct sk_buff *skb, struct net_device *ndev)
 	bool is_data2cmd;
 	bool is_ipv4_dhcp, is_ipv6_dhcp;
 	bool is_vowifi2cmd;
-	bool is_ipv4_dns = false, is_ipv6_dns = false;
 	unsigned char *dhcpdata = NULL;
 	struct udphdr *udphdr;
 	struct iphdr *iphdr;
@@ -1103,16 +857,6 @@ static int tx_filter_ip_pkt(struct sk_buff *skb, struct net_device *ndev)
 	    ((ethhdr->h_proto == htons(ETH_P_IPV6)) &&
 	     ((udphdr->source == htons(DHCP_SERVER_PORT_IPV6)) ||
 	      (udphdr->source == htons(DHCP_CLIENT_PORT_IPV6))));
-
-	is_ipv4_dns =
-	    ((ethhdr->h_proto == htons(ETH_P_IP)) &&
-	     ((udphdr->source == htons(DNS_SERVER_PORT)) ||
-	      (udphdr->dest == htons(DNS_SERVER_PORT))));
-	is_ipv6_dns =
-	    ((ethhdr->h_proto == htons(ETH_P_IPV6)) &&
-	     ((udphdr->source == htons(DNS_SERVER_PORT)) ||
-	      (udphdr->dest == htons(DNS_SERVER_PORT))));
-
 	if (sc2355_is_vowifi_pkt(skb, &is_vowifi2cmd)) {
 		if (!is_vowifi2cmd) {
 			struct sprd_peer_entry *peer_entry = NULL;
@@ -1130,8 +874,7 @@ static int tx_filter_ip_pkt(struct sk_buff *skb, struct net_device *ndev)
 		is_vowifi2cmd = false;
 	}
 
-	is_data2cmd = (is_ipv4_dhcp || is_ipv6_dhcp || is_vowifi2cmd ||
-		       is_ipv4_dns || is_ipv6_dns);
+	is_data2cmd = (is_ipv4_dhcp || is_ipv6_dhcp || is_vowifi2cmd);
 
 	if (is_ipv4_dhcp) {
 		hif->skb_da = skb->data;
@@ -1164,11 +907,6 @@ static int tx_filter_ip_pkt(struct sk_buff *skb, struct net_device *ndev)
 		if (is_vowifi2cmd && ethhdr->h_proto == htons(ETH_P_IP))
 			pr_info("vowifi, proto=0x%x, tos=0x%x, dest=0x%x\n",
 				ethhdr->h_proto, iphdr->tos, udphdr->dest);
-
-		if (is_ipv4_dns || is_ipv6_dns)
-			pr_info("dns,check:%x,skb->ip_summed:%d\n",
-				udphdr->check, skb->ip_summed);
-
 		if (skb->ip_summed == CHECKSUM_PARTIAL) {
 			checksum =
 			    (__force __sum16)tx_do_csum(skb->data +
@@ -1182,7 +920,7 @@ static int tx_filter_ip_pkt(struct sk_buff *skb, struct net_device *ndev)
 			skb->ip_summed = CHECKSUM_NONE;
 		}
 
-		sc2355_xmit_data2cmd_wq(skb, ndev);
+		sprd_xmit_data2cmd_wq(skb, ndev);
 		return NETDEV_TX_OK;
 	}
 
@@ -1197,13 +935,13 @@ void sc2355_free_cmd_buf(struct sprd_msg *msg, struct sprd_msg_list *list)
 	sprd_free_msg(msg, list);
 }
 
-void sc2355_dequeue_tofreelist_buf(struct sprd_msg *msg)
+void sc2355_dequeue_tofreelist_buf(struct sprd_hif *hif, struct sprd_msg *msg)
 {
 	spinlock_t *lock;	/*to lock qos list */
 
 	lock = &msg->xmit_msg_list->free_lock;
 	spin_lock_bh(lock);
-	dev_kfree_skb(msg->skb);
+	hif->ops->free_msg_content(msg);
 	list_del(&msg->list);
 	sprd_free_msg(msg, msg->msglist);
 	spin_unlock_bh(lock);
@@ -1289,7 +1027,7 @@ void sc2355_flush_tosendlist(struct tx_mgmt *tx_mgmt)
 	if (!list_empty(&tx_mgmt->xmit_msg_list.to_send_list)) {
 		data_list = &tx_mgmt->xmit_msg_list.to_send_list;
 		list_for_each_entry_safe(pos_buf, temp_buf, data_list, list) {
-			tx_dequeue_data_msg(pos_buf, SPRD_AC_MAX);
+			tx_dequeue_data_msg(tx_mgmt->hif, pos_buf, SPRD_AC_MAX);
 		}
 	}
 }
@@ -1973,6 +1711,7 @@ int sprd_tx_filter_packet(struct sk_buff *skb, struct net_device *ndev)
 	struct sprd_vif *vif;
 	struct sprd_hif *hif;
 	struct ethhdr *ethhdr = (struct ethhdr *)skb->data;
+	unsigned char lut_index;
 
 	vif = netdev_priv(ndev);
 	hif = &vif->priv->hif;
@@ -1986,7 +1725,7 @@ int sprd_tx_filter_packet(struct sk_buff *skb, struct net_device *ndev)
 
 	if (ethhdr->h_proto == htons(ETH_P_ARP)) {
 		pr_info("incoming ARP packet\n");
-		sc2355_xmit_data2cmd_wq(skb, ndev);
+		sprd_xmit_data2cmd_wq(skb, ndev);
 		return NETDEV_TX_OK;
 	}
 	if (ethhdr->h_proto == htons(ETH_P_TDLS))
@@ -1994,6 +1733,16 @@ int sprd_tx_filter_packet(struct sk_buff *skb, struct net_device *ndev)
 	if (ethhdr->h_proto == htons(ETH_P_PREAUTH))
 		pr_info("incoming PREAUTH packet\n");
 
+	hif->skb_da = skb->data;
+	if (ethhdr->h_proto == htons(ETH_P_IPV6)) {
+		lut_index = sc2355_find_lut_index(hif, vif);
+		if ((vif->mode == SPRD_MODE_AP || vif->mode == SPRD_MODE_P2P_GO) &&
+			(lut_index != 4) && hif->peer_entry[lut_index].ip_acquired == 0) {
+			pr_info("ipv6 ethhdr->h_proto=%x\n", ethhdr->h_proto);
+			dev_kfree_skb(skb);
+			return 0;
+		}
+	}
 	if (ethhdr->h_proto == htons(ETH_P_IPV6) && !tx_mc_pkt(skb, ndev))
 		return NETDEV_TX_OK;
 
@@ -2003,6 +1752,25 @@ int sprd_tx_filter_packet(struct sk_buff *skb, struct net_device *ndev)
 	return 1;
 }
 
+int sprd_tx_special_data(struct sk_buff *skb, struct net_device *ndev)
+{
+	int ret = -1;
+
+	if (skb->protocol == cpu_to_be16(ETH_P_PAE) ||
+		skb->protocol == cpu_to_be16(WAPI_TYPE)) {
+		pr_err("send %s frame by CMD_TX_DATA\n",
+		skb->protocol == cpu_to_be16(ETH_P_PAE) ? "802.1X" : "WAI");
+		if (sprd_xmit_data2cmd_wq(skb, ndev) == -EAGAIN)
+			return NETDEV_TX_BUSY;
+		return NETDEV_TX_OK;
+	} else {
+		ret = sprd_tx_filter_packet(skb, ndev);
+		if (!ret)
+			return NETDEV_TX_OK;
+	}
+
+	return ret;
+}
 /* if err, the caller judge the skb if need free,
  * here just free the msg buf to the freelist
  */

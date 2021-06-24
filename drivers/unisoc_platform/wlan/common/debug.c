@@ -73,6 +73,24 @@ void adjust_tcp_ack(char *buf, unsigned char offset)
 }
 EXPORT_SYMBOL(adjust_tcp_ack);
 
+void adjust_max_fw_tx_dscr(char *buf, unsigned char offset)
+{
+	unsigned int value = 0;
+	unsigned int i = 0;
+	unsigned int len = strlen(buf) - strlen("max_fw_tx_dscr=");
+
+	for (i = 0; i < len; value *= 10, i++) {
+		if (buf[offset + i] >= '0' && buf[offset + i] <= '9') {
+			value += (buf[offset + i] - '0');
+		} else {
+			value /= 10;
+			break;
+		}
+	}
+	max_fw_tx_dscr = value;
+	pr_err("%s, change max_fw_tx_dscr to %d\n", __func__, value);
+}
+EXPORT_SYMBOL(adjust_max_fw_tx_dscr);
 #ifdef CONFIG_SPRD_WLAN_DEBUGFS
 
 static struct sprd_debug *sprd_dbg;
@@ -344,24 +362,6 @@ static void debug_adjust_tcpack_time_in_ms(char *buf, unsigned char offset)
 #undef MAX_LEN
 }
 
-static void debug_adjust_max_fw_tx_dscr(char *buf, unsigned char offset)
-{
-	unsigned int value = 0;
-	unsigned int i = 0;
-	unsigned int len = strlen(buf) - strlen("max_fw_tx_dscr=");
-
-	for (i = 0; i < len; value *= 10, i++) {
-		if (buf[offset + i] >= '0' && buf[offset + i] <= '9') {
-			value += (buf[offset + i] - '0');
-		} else {
-			value /= 10;
-			break;
-		}
-	}
-	max_fw_tx_dscr = value;
-	pr_err("%s, change max_fw_tx_dscr to %d\n", __func__, value);
-}
-
 static struct debug_info_s dbg_info[] = {
 	{adjust_tcp_ack, "tcpack_delay_en="},
 	{debug_adjust_tcpack_delay, "tcpack_delay_cnt="},
@@ -373,7 +373,7 @@ static struct debug_info_s dbg_info[] = {
 	{debug_adjust_ts_cnt, "debug_info="},
 	{debug_adjust_tdls_threshold, "tdls_threshold="},
 	{debug_adjust_tsq_shift, "tsq_shift="},
-	{debug_adjust_max_fw_tx_dscr, "max_fw_tx_dscr="},
+	{adjust_max_fw_tx_dscr, "max_fw_tx_dscr="},
 };
 
 static ssize_t intf_read(struct file *file, char __user *user_buf,

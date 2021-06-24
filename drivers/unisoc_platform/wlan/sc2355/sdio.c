@@ -381,6 +381,88 @@ static void sdio_tx_ba_mgmt(struct sprd_priv *priv, struct sprd_vif *vif,
 out:
 	kfree(rbuf);
 }
+static int fc_find_color_per_mode(struct tx_mgmt *tx_mgmt,
+				  enum sprd_mode mode, u8 *index)
+{
+	u8 i = 0, found = 0;
+	enum sprd_mode tmp_mode;
+	struct sprd_priv *priv = tx_mgmt->hif->priv;
+	struct sprd_vif *vif;
+
+	for (i = 0; i < MAX_COLOR_BIT; i++) {
+		if (tx_mgmt->flow_ctrl[i].mode == mode) {
+			found = 1;
+			pr_debug("%s, %d, mode:%d found, index:%d\n",
+				 __func__, __LINE__, mode, i);
+			break;
+		}
+	}
+	if (found == 0) {
+		/*a new mode. sould assign new color to this mode*/
+		for (i = 0; i < MAX_COLOR_BIT; i++) {
+			tmp_mode = tx_mgmt->flow_ctrl[i].mode;
+			vif = sprd_mode_to_vif(priv, tmp_mode);
+			if (vif && !(vif->state & VIF_STATE_OPEN))
+				tx_mgmt->flow_ctrl[i].mode = SPRD_MODE_NONE;
+		}
+		for (i = 0; i < MAX_COLOR_BIT; i++) {
+			if (tx_mgmt->flow_ctrl[i].mode == SPRD_MODE_NONE) {
+				found = 1;
+				tx_mgmt->flow_ctrl[i].mode = mode;
+				tx_mgmt->flow_ctrl[i].color_bit = i;
+				pr_info
+				    ("%s, %d, new mode:%d, assign color:%d\n",
+				     __func__, __LINE__, mode, i);
+				break;
+			}
+		}
+	}
+	if (found == 1)
+		*index = i;
+	return found;
+}
+
+static int fc_get_shared_num(struct tx_mgmt *tx_mgmt, u8 num)
+{
+	u8 i;
+	int shared_flow_num = 0;
+	unsigned int color_flow;
+
+	for (i = 0; i < MAX_COLOR_BIT; i++) {
+		color_flow = atomic_read(&tx_mgmt->flow_ctrl[i].flow);
+		if (tx_mgmt->flow_ctrl[i].mode == SPRD_MODE_NONE &&
+		    color_flow != 0) {
+			if ((num - shared_flow_num) <= color_flow) {
+				/*one shared color is enough?*/
+				tx_mgmt->color_num[i] = num - shared_flow_num;
+				shared_flow_num += num - shared_flow_num;
+				break;
+			}
+
+			/*need one more shared color*/
+			tx_mgmt->color_num[i] = color_flow;
+			shared_flow_num += color_flow;
+		}
+	}
+	return shared_flow_num;
+}
+
+/*to see there is shared flow or not*/
+static int fc_test_shared_num(struct tx_mgmt *tx_mgmt)
+{
+	u8 i;
+	int shared_flow_num = 0;
+	unsigned int color_flow;
+
+	for (i = 0; i < MAX_COLOR_BIT; i++) {
+		color_flow = atomic_read(&tx_mgmt->flow_ctrl[i].flow);
+		if (tx_mgmt->flow_ctrl[i].mode == SPRD_MODE_NONE &&
+		    color_flow != 0) {
+			shared_flow_num += color_flow;
+		}
+	}
+	return shared_flow_num;
+}
 
 struct sprd_hif *sc2355_get_hif(void)
 {
@@ -1108,43 +1190,6 @@ void sc2355_tx_delba(struct sprd_hif *hif,
 	sprd_put_vif(vif);
 }
 
-void sc2355_count_rx_tp(struct sprd_hif *hif, int len)
-{
-	unsigned long long timeus = 0;
-	struct rx_mgmt *rx_mgmt = (struct rx_mgmt *)hif->rx_mgmt;
-	struct sprd_msg *drop_msg;
-
-	rx_mgmt->rx_total_len += len;
-	if (rx_mgmt->rx_total_len == len) {
-		rx_mgmt->rxtimebegin = ktime_get();
-		return;
-	}
-
-	rx_mgmt->rxtimeend = ktime_get();
-	timeus =
-	    div_u64(rx_mgmt->rxtimeend - rx_mgmt->rxtimebegin, NSEC_PER_USEC);
-	if (div_u64((rx_mgmt->rx_total_len * 8), timeus) >=
-	    hif->priv->debug.tcpack_delay_th_in_mb &&
-	    timeus > hif->priv->debug.tcpack_time_in_ms * USEC_PER_MSEC) {
-		rx_mgmt->rx_total_len = 0;
-		adjust_tcp_ack("tcpack_delay_en=1", strlen("tcpack_delay_en="));
-		drop_msg = tcp_ack_delay(&hif->priv->ack_m);
-
-		if (drop_msg)
-			sprd_chip_drop_tcp_msg(&hif->priv->chip, drop_msg);
-	} else if (div_u64((rx_mgmt->rx_total_len * 8), timeus) <
-		   hif->priv->debug.tcpack_delay_th_in_mb &&
-		   timeus >
-		   hif->priv->debug.tcpack_time_in_ms * USEC_PER_MSEC) {
-		rx_mgmt->rx_total_len = 0;
-		adjust_tcp_ack("tcpack_delay_en=1", strlen("tcpack_delay_en="));
-		drop_msg = tcp_ack_delay(&hif->priv->ack_m);
-
-		if (drop_msg)
-			sprd_chip_drop_tcp_msg(&hif->priv->chip, drop_msg);
-	}
-}
-
 int sc2355_dis_flush_txlist(struct sprd_hif *hif, u8 lut_index)
 {
 	struct tx_mgmt *tx_mgmt;
@@ -1179,6 +1224,287 @@ unsigned short sc2355_get_data_csum(void *entry, void *data)
 	}
 
 	return csum;
+}
+
+void sc2355_handle_tx_return(struct sprd_hif *hif,
+			     struct sprd_msg_list *list, int send_num, int ret)
+{
+	u8 i;
+	struct tx_mgmt *tx_mgmt = hif->tx_mgmt;
+	struct sprd_priv *priv = hif->priv;
+
+	if (ret) {
+		printk_ratelimited("%s hif_tx_list err:%d\n", __func__, ret);
+		memset(tx_mgmt->color_num, 0x00, MAX_COLOR_BIT);
+		usleep_range(20, 30);
+		return;
+	}
+
+	tx_mgmt->ring_ap += send_num;
+	atomic_sub(send_num, &list->ref);
+	sc2355_wake_net_ifneed(tx_mgmt->hif, list, tx_mgmt->mode);
+
+	if (priv->credit_capa == TX_NO_CREDIT)
+		return;
+
+	for (i = 0; i < MAX_COLOR_BIT; i++) {
+		if (tx_mgmt->color_num[i] == 0)
+			continue;
+		atomic_sub(tx_mgmt->color_num[i], &tx_mgmt->flow_ctrl[i].flow);
+		pr_debug("%s, _fc_, color bit:%d, flow num-%d=%d, seq_num=%d\n",
+			 __func__, i, tx_mgmt->color_num[i],
+			 atomic_read(&tx_mgmt->flow_ctrl[i].flow),
+			 tx_mgmt->seq_num);
+	}
+}
+
+void sc2355_rx_work_queue(struct work_struct *work)
+{
+	struct sprd_msg *msg;
+	struct sprd_priv *priv;
+	struct rx_mgmt *rx_mgmt;
+	struct sprd_hif *hif;
+	void *pos = NULL, *data = NULL, *tran_data = NULL;
+	int len = 0, num = 0;
+	struct sprd_vif *vif;
+	struct sprd_cmd_hdr *hdr;
+
+	rx_mgmt = container_of(work, struct rx_mgmt, rx_work);
+	hif = rx_mgmt->hif;
+	priv = hif->priv;
+
+	if (!hif->exit && !sprd_peek_msg(&rx_mgmt->rx_list))
+		sc2355_rx_process(rx_mgmt, NULL);
+
+	while ((msg = sprd_peek_msg(&rx_mgmt->rx_list))) {
+		if (hif->exit)
+			goto next;
+
+		pos = msg->tran_data;
+		for (num = msg->len; num > 0; num--) {
+			pos = sc2355_get_rx_data(hif, pos, &data, &tran_data,
+						 &len, hif->hif_offset);
+
+			pr_debug("%s: rx type:%d, num = %d\n",
+				 __func__, SPRD_HEAD_GET_TYPE(data), num);
+
+			/* len in mbuf_t just means buffer len in ADMA,
+			 * so need to get data len in sc2355_sdiohal_puh
+			 */
+			if (sprd_get_debug_level() >= L_DBG) {
+				int print_len = 100;
+
+				sc2355_hex_dump("rx data 100B",
+						(unsigned char *)data,
+						print_len);
+			}
+
+			/* to check is the rsp_cnt from CP2
+			 * eqaul to rsp_cnt count on driver side.
+			 * if not equal, must be lost on SDIOHAL/PCIE.
+			 * assert to warn CP2
+			 */
+			hdr = (struct sprd_cmd_hdr *)data;
+			vif = sc2355_ctxid_to_vif(priv, hdr->common.mode);
+			if ((SPRD_HEAD_GET_TYPE(data) == SPRD_TYPE_CMD ||
+			     SPRD_HEAD_GET_TYPE(data) == SPRD_TYPE_EVENT)) {
+				if (rx_mgmt->rsp_event_cnt != hdr->rsp_cnt) {
+					pr_info
+					    ("%s, %d, rsp_event_cnt=%d, hdr->cnt=%d\n",
+					     __func__, __LINE__,
+					     rx_mgmt->rsp_event_cnt,
+					     hdr->rsp_cnt);
+
+					if (hdr->rsp_cnt == 0) {
+						rx_mgmt->rsp_event_cnt = 0;
+						pr_info
+						    ("%s reset rsp_event_cnt",
+						     __func__);
+					}
+					/* hdr->rsp_cnt=0 means it's a
+					 * old version CP2,
+					 * so do not assert.
+					 * vif=NULL means driver not init ok,
+					 * send cmd may cause crash
+					 */
+					if (vif && hdr->rsp_cnt != 0)
+						sc2355_assert_cmd(priv, vif,
+								    hdr->cmd_id,
+								 RSP_CNT_ERROR);
+				}
+
+				rx_mgmt->rsp_event_cnt++;
+			}
+			sprd_put_vif(vif);
+
+			switch (SPRD_HEAD_GET_TYPE(data)) {
+			case SPRD_TYPE_DATA:
+				if (msg->len > SPRD_MAX_DATA_RXLEN)
+					pr_err("err rx data too long:%d > %d\n",
+					       len, SPRD_MAX_DATA_RXLEN);
+				rx_data_process(priv, data);
+				break;
+			case SPRD_TYPE_CMD:
+				if (msg->len > SPRD_MAX_CMD_RXLEN)
+					pr_err("err rx cmd too long:%d > %d\n",
+					       len, SPRD_MAX_CMD_RXLEN);
+				sc2355_rx_rsp_process(priv, data);
+				break;
+
+			case SPRD_TYPE_EVENT:
+				if (msg->len > SPRD_MAX_CMD_RXLEN)
+					pr_err
+					    ("err rx event too long:%d > %d\n",
+					     len, SPRD_MAX_CMD_RXLEN);
+				sc2355_rx_evt_process(priv, data);
+				break;
+			case SPRD_TYPE_DATA_SPECIAL:
+				sprd_debug_ts_leave(RX_SDIO_PORT);
+				sprd_debug_ts_enter(RX_SDIO_PORT);
+
+				if (msg->len > SPRD_MAX_DATA_RXLEN)
+					pr_err
+					    ("err data trans too long:%d > %d\n",
+					     len, SPRD_MAX_CMD_RXLEN);
+				sc2355_mm_mh_data_process(&rx_mgmt->mm_entry, tran_data, len,
+						   msg->buffer_type);
+				tran_data = NULL;
+				data = NULL;
+				break;
+			case SPRD_TYPE_DATA_PCIE_ADDR:
+				if (msg->len > SPRD_MAX_CMD_RXLEN)
+					pr_err
+					    ("err rx mh data too long:%d > %d\n",
+					     len, SPRD_MAX_DATA_RXLEN);
+				sc2355_rx_mh_addr_process(rx_mgmt, tran_data, len,
+						   msg->buffer_type);
+				tran_data = NULL;
+				data = NULL;
+				break;
+			default:
+				pr_err("rx unknown type:%d\n",
+				       SPRD_HEAD_GET_TYPE(data));
+				break;
+			}
+
+			/* Marlin3 should release buffer by ourself */
+			if (tran_data)
+				sc2355_free_data(tran_data, msg->buffer_type);
+
+			if (!pos) {
+				pr_debug("%s no mbuf\n", __func__);
+				break;
+			}
+		}
+next:
+		/* TODO: Should we free mbuf one by one? */
+		sc2355_free_rx_data(hif, msg->fifo_id, msg->tran_data,
+				    msg->data, msg->len);
+		sprd_dequeue_msg(msg, &rx_mgmt->rx_list);
+	}
+}
+int sc2355_fc_get_send_num(struct sprd_hif *hif,
+			   enum sprd_mode mode, int data_num)
+{
+	int excusive_flow_num = 0, shared_flow_num = 0;
+	int send_num = 0;
+	u8 i = 0;
+	struct tx_mgmt *tx_mgmt = hif->tx_mgmt;
+	struct sprd_priv *priv = hif->priv;
+
+	if (data_num <= 0 || mode == SPRD_MODE_NONE)
+		return 0;
+
+	if (data_num > 64)
+		data_num = 64;
+	if (priv->credit_capa == TX_NO_CREDIT)
+		return data_num;
+
+	memset(tx_mgmt->color_num, 0x00, MAX_COLOR_BIT);
+
+	if (fc_find_color_per_mode(tx_mgmt, mode, &i) == 1) {
+		excusive_flow_num = atomic_read(&tx_mgmt->flow_ctrl[i].flow);
+		if (excusive_flow_num >= data_num) {
+			/*excusive flow is enough, do not need shared flow*/
+			send_num = tx_mgmt->color_num[i] = data_num;
+		} else {
+			/*excusive flow not enough, need shared flow
+			 *total give num =  excusive + shared
+			 *(may be more than one color)
+			 */
+			u8 num_need = data_num - excusive_flow_num;
+
+			shared_flow_num = fc_get_shared_num(tx_mgmt, num_need);
+			tx_mgmt->color_num[i] = excusive_flow_num;
+			send_num = excusive_flow_num + shared_flow_num;
+		}
+
+		if (send_num <= 0) {
+			pr_err
+			    ("%s, %d, mode:%d, e_num:%d, s_num:%d, d_num:%d\n",
+			     __func__, __LINE__, (u8)mode, excusive_flow_num,
+			     shared_flow_num, data_num);
+			return -ENOMEM;
+		}
+		pr_info("%s,mode:%d,e_n:%d,s_n:%d,d_n:%d,{%d,%d,%d,%d}\n",
+			__func__, mode, excusive_flow_num,
+			shared_flow_num, data_num,
+			tx_mgmt->color_num[0], tx_mgmt->color_num[1],
+			tx_mgmt->color_num[2], tx_mgmt->color_num[3]);
+	} else {
+		pr_err("%s, %d, wrong mode:%d?\n",
+		       __func__, __LINE__, (u8)mode);
+		for (i = 0; i < MAX_COLOR_BIT; i++)
+			pr_err("color[%d] assigned mode%d\n",
+			       i, (u8)tx_mgmt->flow_ctrl[i].mode);
+		return -ENOMEM;
+	}
+
+	return send_num;
+}
+
+int sc2355_fc_test_send_num(struct sprd_hif *hif,
+			    enum sprd_mode mode, int data_num)
+{
+	int excusive_flow_num = 0, shared_flow_num = 0;
+	int send_num = 0;
+	u8 i = 0;
+	struct tx_mgmt *tx_mgmt = hif->tx_mgmt;
+	struct sprd_priv *priv = hif->priv;
+
+	if (data_num <= 0 || mode == SPRD_MODE_NONE)
+		return 0;
+
+	if (data_num > 64)
+		data_num = 64;
+	if (priv->credit_capa == TX_NO_CREDIT)
+		return data_num;
+
+	if (fc_find_color_per_mode(tx_mgmt, mode, &i) == 1) {
+		excusive_flow_num = atomic_read(&tx_mgmt->flow_ctrl[i].flow);
+		shared_flow_num = fc_test_shared_num(tx_mgmt);
+		send_num = excusive_flow_num + shared_flow_num;
+
+		if (send_num <= 0) {
+			pr_debug
+			    ("%s, %d, err, mode:%d, e_num:%d, s_num:%d, d_num=%d\n",
+			     __func__, __LINE__, (u8)mode, excusive_flow_num,
+			     shared_flow_num, data_num);
+			return -ENOMEM;
+		}
+		pr_debug("%s, %d, e_num=%d, s_num=%d, d_num=%d\n",
+			 __func__, __LINE__, excusive_flow_num,
+			 shared_flow_num, data_num);
+	} else {
+		pr_err("%s, %d, wrong mode:%d?\n",
+		       __func__, __LINE__, (u8)mode);
+		for (i = 0; i < MAX_COLOR_BIT; i++)
+			printk_ratelimited("color[%d] assigned mode%d\n",
+					   i, (u8)tx_mgmt->flow_ctrl[i].mode);
+		return -ENOMEM;
+	}
+
+	return min(send_num, data_num);
 }
 
 int sc2355_sdio_init(struct sprd_hif *hif)

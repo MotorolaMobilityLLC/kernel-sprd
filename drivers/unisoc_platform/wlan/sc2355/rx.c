@@ -11,6 +11,7 @@
 #include "common/debug.h"
 #include "common/delay_work.h"
 #include "common/msg.h"
+#include "common/chip_ops.h"
 #include "rx.h"
 #include "txrx.h"
 
@@ -186,21 +187,67 @@ err:
 #endif
 }
 
-static unsigned short rx_data_process(struct sprd_priv *priv,
-				      unsigned char *msg)
-{
-	return 0;
-}
-
 static inline void
 rx_mh_data_process(struct rx_mgmt *rx_mgmt, void *data,
 		   int len, int buffer_type)
 {
 	sc2355_mm_mh_data_process(&rx_mgmt->mm_entry, data, len, buffer_type);
 }
+void sc2355_tx_free_data_num(struct sprd_hif *hif, unsigned char *data)
+{
+	struct tx_mgmt *tx_mgmt;
+	unsigned short data_num;
+	struct txc_addr_buff *txc_addr;
 
-static void
-rx_mh_addr_process(struct rx_mgmt *rx_mgmt, void *data,
+	tx_mgmt = (struct tx_mgmt *)hif->tx_mgmt;
+	txc_addr = (struct txc_addr_buff *)data;
+
+	data_num = txc_addr->number;
+	atomic_sub(data_num, &tx_mgmt->xmit_msg_list.free_num);
+
+	if (!work_pending(&tx_mgmt->tx_work))
+		queue_work(tx_mgmt->tx_queue, &tx_mgmt->tx_work);
+}
+
+void sc2355_count_rx_tp(struct sprd_hif *hif, int len)
+{
+	unsigned long long timeus = 0;
+	struct rx_mgmt *rx_mgmt = (struct rx_mgmt *)hif->rx_mgmt;
+	struct sprd_msg *drop_msg;
+
+	rx_mgmt->rx_total_len += len;
+	if (rx_mgmt->rx_total_len == len) {
+		rx_mgmt->rxtimebegin = ktime_get();
+		return;
+	}
+
+	rx_mgmt->rxtimeend = ktime_get();
+	timeus =
+	    div_u64(rx_mgmt->rxtimeend - rx_mgmt->rxtimebegin, NSEC_PER_USEC);
+	if (div_u64((rx_mgmt->rx_total_len * 8), timeus) >=
+	    hif->priv->debug.tcpack_delay_th_in_mb &&
+	    timeus > hif->priv->debug.tcpack_time_in_ms * USEC_PER_MSEC) {
+		rx_mgmt->rx_total_len = 0;
+		adjust_tcp_ack("tcpack_delay_en=1", strlen("tcpack_delay_en="));
+		drop_msg = tcp_ack_delay(&hif->priv->ack_m);
+
+		if (drop_msg)
+			sprd_chip_drop_tcp_msg(&hif->priv->chip, drop_msg);
+	} else if (div_u64((rx_mgmt->rx_total_len * 8), timeus) <
+		   hif->priv->debug.tcpack_delay_th_in_mb &&
+		   timeus >
+		   hif->priv->debug.tcpack_time_in_ms * USEC_PER_MSEC) {
+		rx_mgmt->rx_total_len = 0;
+		adjust_tcp_ack("tcpack_delay_en=1", strlen("tcpack_delay_en="));
+		drop_msg = tcp_ack_delay(&hif->priv->ack_m);
+
+		if (drop_msg)
+			sprd_chip_drop_tcp_msg(&hif->priv->chip, drop_msg);
+	}
+}
+
+void
+sc2355_rx_mh_addr_process(struct rx_mgmt *rx_mgmt, void *data,
 		   int len, int buffer_type)
 {
 	struct sprd_hif *hif = rx_mgmt->hif;
@@ -225,7 +272,7 @@ rx_mh_addr_process(struct rx_mgmt *rx_mgmt, void *data,
 
 		time = jiffies;
 
-		sc2355_tx_free_pcie_data_num(hif, (unsigned char *)data);
+		sc2355_tx_free_data_num(hif, (unsigned char *)data);
 		misc_work = sprd_alloc_work(sizeof(void *));
 
 		if (misc_work) {
@@ -258,149 +305,7 @@ static void rx_net_work_queue(struct work_struct *work)
 	}
 }
 
-static void rx_work_queue(struct work_struct *work)
-{
-	struct sprd_msg *msg;
-	struct sprd_priv *priv;
-	struct rx_mgmt *rx_mgmt;
-	struct sprd_hif *hif;
-	void *pos = NULL, *data = NULL, *tran_data = NULL;
-	int len = 0, num = 0;
-	int print_len = 100;
-	struct sprd_vif *vif;
-	struct sprd_cmd_hdr *hdr;
 
-	rx_mgmt = container_of(work, struct rx_mgmt, rx_work);
-	hif = rx_mgmt->hif;
-	priv = hif->priv;
-
-	if (!hif->exit && !sprd_peek_msg(&rx_mgmt->rx_list))
-		sc2355_rx_process(rx_mgmt, NULL);
-
-	while ((msg = sprd_peek_msg(&rx_mgmt->rx_list))) {
-		if (hif->exit)
-			goto next;
-
-		pos = msg->tran_data;
-		for (num = msg->len; num > 0; num--) {
-			pos = sc2355_get_rx_data(hif, pos, &data, &tran_data,
-						 &len, hif->hif_offset);
-
-			pr_debug("%s: rx type:%d, num = %d\n",
-				 __func__, SPRD_HEAD_GET_TYPE(data), num);
-
-			/* len in mbuf_t just means buffer len in ADMA,
-			 * so need to get data len in sc2355_sdiohal_puh
-			 */
-			if (sprd_get_debug_level() >= L_DBG) {
-				sc2355_hex_dump("rx data 100B",
-						(unsigned char *)data,
-						print_len);
-			}
-
-			/* to check is the rsp_cnt from CP2
-			 * eqaul to rsp_cnt count on driver side.
-			 * if not equal, must be lost on SDIOHAL/PCIE.
-			 * assert to warn CP2
-			 */
-			hdr = (struct sprd_cmd_hdr *)data;
-			vif = sc2355_ctxid_to_vif(priv, hdr->common.mode);
-			if ((SPRD_HEAD_GET_TYPE(data) == SPRD_TYPE_CMD ||
-			     SPRD_HEAD_GET_TYPE(data) == SPRD_TYPE_EVENT)) {
-				if (rx_mgmt->rsp_event_cnt != hdr->rsp_cnt) {
-					pr_info
-					    ("%s, %d, rsp_event_cnt=%d, hdr->cnt=%d\n",
-					     __func__, __LINE__,
-					     rx_mgmt->rsp_event_cnt,
-					     hdr->rsp_cnt);
-
-					if (hdr->rsp_cnt == 0) {
-						rx_mgmt->rsp_event_cnt = 0;
-						pr_info
-						    ("%s reset rsp_event_cnt",
-						     __func__);
-					}
-					/* hdr->rsp_cnt=0 means it's a
-					 * old version CP2,
-					 * so do not assert.
-					 * vif=NULL means driver not init ok,
-					 * send cmd may cause crash
-					 */
-					if (vif && hdr->rsp_cnt != 0)
-						sc2355_assert_cmd(priv, vif,
-								  hdr->cmd_id,
-								  RSP_CNT_ERROR);
-				}
-
-				rx_mgmt->rsp_event_cnt++;
-			}
-			sprd_put_vif(vif);
-
-			switch (SPRD_HEAD_GET_TYPE(data)) {
-			case SPRD_TYPE_DATA:
-				if (msg->len > SPRD_MAX_DATA_RXLEN)
-					pr_err("err rx data too long:%d > %d\n",
-					       len, SPRD_MAX_DATA_RXLEN);
-				rx_data_process(priv, data);
-				break;
-			case SPRD_TYPE_CMD:
-				if (msg->len > SPRD_MAX_CMD_RXLEN)
-					pr_err("err rx cmd too long:%d > %d\n",
-					       len, SPRD_MAX_CMD_RXLEN);
-				sc2355_rx_rsp_process(priv, data);
-				break;
-
-			case SPRD_TYPE_EVENT:
-				if (msg->len > SPRD_MAX_CMD_RXLEN)
-					pr_err
-					    ("err rx event too long:%d > %d\n",
-					     len, SPRD_MAX_CMD_RXLEN);
-				sc2355_rx_evt_process(priv, data);
-				break;
-			case SPRD_TYPE_DATA_SPECIAL:
-				sprd_debug_ts_leave(RX_SDIO_PORT);
-				sprd_debug_ts_enter(RX_SDIO_PORT);
-
-				if (msg->len > SPRD_MAX_DATA_RXLEN)
-					pr_err
-					    ("err data trans too long:%d > %d\n",
-					     len, SPRD_MAX_CMD_RXLEN);
-				rx_mh_data_process(rx_mgmt, tran_data, len,
-						   msg->buffer_type);
-				tran_data = NULL;
-				data = NULL;
-				break;
-			case SPRD_TYPE_DATA_PCIE_ADDR:
-				if (msg->len > SPRD_MAX_CMD_RXLEN)
-					pr_err
-					    ("err rx mh data too long:%d > %d\n",
-					     len, SPRD_MAX_DATA_RXLEN);
-				rx_mh_addr_process(rx_mgmt, tran_data, len,
-						   msg->buffer_type);
-				tran_data = NULL;
-				data = NULL;
-				break;
-			default:
-				pr_err("rx unknown type:%d\n",
-				       SPRD_HEAD_GET_TYPE(data));
-				break;
-			}
-
-			/* Marlin3 should release buffer by ourself */
-			if (tran_data)
-				sc2355_free_data(tran_data, msg->buffer_type);
-
-			if (!pos) {
-				pr_debug("%s no mbuf\n", __func__);
-				break;
-			}
-		}
-next:
-		sc2355_free_rx_data(hif, msg->fifo_id, msg->tran_data,
-				    msg->data, msg->len);
-		sprd_dequeue_msg(msg, &rx_mgmt->rx_list);
-	}
-}
 
 inline int sc2355_fill_skb_csum(struct sk_buff *skb, unsigned short csum)
 {
@@ -432,8 +337,17 @@ void sc2355_rx_send_cmd(struct sprd_hif *hif, void *data, int len,
 void sc2355_queue_rx_buff_work(struct sprd_priv *priv, unsigned char id)
 {
 	struct sprd_work *misc_work;
+	struct sprd_vif *tmp_vif;
 
 	misc_work = sprd_alloc_work(0);
+	spin_lock_bh(&priv->list_lock);
+	list_for_each_entry(tmp_vif, &priv->vif_list, vif_node) {
+		if (tmp_vif->state & VIF_STATE_OPEN) {
+			misc_work->vif = tmp_vif;
+			break;
+		}
+	}
+	spin_unlock_bh(&priv->list_lock);
 	switch (id) {
 	case SPRD_PCIE_RX_ALLOC_BUF:
 	case SPRD_PCIE_RX_FLUSH_BUF:
@@ -460,16 +374,16 @@ void sc2355_rx_process(struct rx_mgmt *rx_mgmt, struct sk_buff *pskb)
 		queue_work(rx_mgmt->rx_net_workq, &rx_mgmt->rx_net_work);
 }
 
-int sc2355_mm_fill_buffer(void *hif)
+int sc2355_mm_fill_buffer(struct sprd_hif *hif)
 {
 	struct rx_mgmt *rx_mgmt =
-	    (struct rx_mgmt *)((struct sprd_hif *)hif)->rx_mgmt;
+	    (struct rx_mgmt *)hif->rx_mgmt;
 	struct mem_mgmt *mm_entry = &rx_mgmt->mm_entry;
 	unsigned int num = 0, alloc_num = atomic_xchg(&mm_entry->alloc_num, 0);
 
 	num = sc2355_mm_buffer_alloc(&rx_mgmt->mm_entry, alloc_num);
-	sc2355_tx_addr_trans_pcie(hif, NULL, 0, true);
-
+	if (hif->ops->tx_addr_trans)
+		hif->ops->tx_addr_trans(hif, NULL, 0, true);
 	if (num)
 		num = atomic_add_return(num, &mm_entry->alloc_num);
 
@@ -534,7 +448,7 @@ int sc2355_rx_init(struct sprd_hif *hif)
 	}
 
 	/*init rx_queue*/
-	INIT_WORK(&rx_mgmt->rx_work, rx_work_queue);
+	INIT_WORK(&rx_mgmt->rx_work, sc2355_rx_work_queue);
 
 	rx_mgmt->rx_net_workq = alloc_ordered_workqueue("SPRD_RX_NET_QUEUE",
 							WQ_HIGHPRI |

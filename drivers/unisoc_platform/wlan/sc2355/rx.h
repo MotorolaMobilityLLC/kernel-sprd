@@ -12,6 +12,8 @@
 #include "reorder.h"
 #if defined(CONFIG_SC2355_SDIO_WLAN) || defined(CONFIG_SC2355_SDIO_WLAN_MODULE)
 #include "sdio.h"
+#elif defined(CONFIG_SC2355_PCIE_WLAN) || defined(CONFIG_SC2355_PCIE_WLAN_MODULE)
+#include "pcie.h"
 #endif
 
 #define SPRD_MAC_INDEX_MAX	4
@@ -220,15 +222,25 @@ static inline bool seqno_geq(unsigned short seq1, unsigned short seq2)
 	return seqno_leq(seq2, seq1);
 }
 
+static inline unsigned short rx_data_process(struct sprd_priv *priv,
+				      unsigned char *msg)
+{
+	return 0;
+}
+
 int sc2355_fill_skb_csum(struct sk_buff *skb, unsigned short csum);
 void sc2355_rx_process(struct rx_mgmt *rx_mgmt, struct sk_buff *pskb);
 void sc2355_rx_send_cmd(struct sprd_hif *hif, void *data, int len,
 			unsigned char id, unsigned char ctx_id);
 void sc2355_queue_rx_buff_work(struct sprd_priv *priv, unsigned char id);
-int sc2355_mm_fill_buffer(void *intf);
+int sc2355_mm_fill_buffer(struct sprd_hif *intf);
 void sc2355_mm_fill_all_buffer(void *intf);
 void sc2355_rx_flush_buffer(void *intf);
 void sc2355_rx_up(struct rx_mgmt *rx_mgmt);
 int sc2355_rx_init(struct sprd_hif *hif);
 int sc2355_rx_deinit(struct sprd_hif *hif);
+void sc2355_rx_mh_addr_process(struct rx_mgmt *rx_mgmt, void *data,
+		   int len, int buffer_type);
+void sc2355_count_rx_tp(struct sprd_hif *hif, int len);
+
 #endif

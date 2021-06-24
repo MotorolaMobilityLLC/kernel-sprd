@@ -14,8 +14,11 @@
 #include "common/qos.h"
 #if defined(CONFIG_SC2355_SDIO_WLAN) || defined(CONFIG_SC2355_SDIO_WLAN_MODULE)
 #include "sdio.h"
+#elif defined(CONFIG_SC2355_PCIE_WLAN) || defined(CONFIG_SC2355_PCIE_WLAN_MODULE)
+#include "pcie.h"
 #endif
 
+#define WAPI_TYPE                 0x88B4
 /* descriptor len + sdio/sdio.header len + offset */
 #define SKB_DATA_OFFSET			15
 #define SPRD_SDIO_MASK_LIST_CMD		0x1
@@ -103,6 +106,8 @@ struct tx_mgmt {
 	atomic_t flow0;
 	atomic_t flow1;
 	atomic_t flow2;
+	unsigned long tx_num;
+	unsigned long txc_num;
 
 	struct work_struct tx_work;
 	struct workqueue_struct *tx_queue;
@@ -278,8 +283,9 @@ void sc2355_flush_tx_qoslist(struct tx_mgmt *tx_mgmt, int mode, int ac_index,
 void sc2355_flush_mode_txlist(struct tx_mgmt *tx_mgmt, enum sprd_mode mode);
 void sc2355_flush_tosendlist(struct tx_mgmt *tx_mgmt);
 bool sc2355_is_vowifi_pkt(struct sk_buff *skb, bool *b_cmd_path);
-void sc2355_dequeue_tofreelist_buf(struct sprd_msg *msg);
+void sc2355_dequeue_tofreelist_buf(struct sprd_hif *hif, struct sprd_msg *msg);
 void sc2355_tx_flush(struct sprd_hif *hif, struct sprd_vif *vif);
+int sprd_tx_special_data(struct sk_buff *skb, struct net_device *ndev);
 int sc2355_send_data_offset(void);
 int sc2355_send_data(struct sprd_vif *vif, struct sprd_msg *msg,
 		     struct sk_buff *skb, u8 type, u8 offset, bool flag);

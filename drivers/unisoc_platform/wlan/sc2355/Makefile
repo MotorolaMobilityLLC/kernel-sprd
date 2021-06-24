@@ -23,3 +23,13 @@ sc2355_sdio_wlan-objs += \
 sc2355_sdio_wlan-$(CONFIG_SPRD_WLAN_VENDOR_SPECIFIC)	+= vendor.o
 sc2355_sdio_wlan-$(CONFIG_SC2355_WLAN_NAN)		+= nan.o
 sc2355_sdio_wlan-$(CONFIG_SC2355_WLAN_RTT)		+= rtt.o
+
+obj-$(CONFIG_SC2355_PCIE_WLAN)	+= sc2355_pcie_wlan.o
+sc2355_pcie_wlan-objs += \
+		$(SC2355_WLAN) \
+		pcie.o  \
+		pcie_buf.o
+
+sc2355_pcie_wlan-$(CONFIG_SPRD_WLAN_VENDOR_SPECIFIC)	+= vendor.o
+sc2355_pcie_wlan-$(CONFIG_SC2355_WLAN_NAN)		+= nan.o
+sc2355_pcie_wlan-$(CONFIG_SC2355_WLAN_RTT)		+= rtt.o
