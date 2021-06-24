@@ -411,7 +411,7 @@
 			ranges = <0 0 0x20000000 0x22d0040>;
 
 			ap_dma: dma-controller@20000 {
-				compatible = "sprd,qogirn6pro-dma";
+				compatible = "sprd,qogirn6pro-dma", "sprd,sc9860-dma";
 				reg = <0x20000 0x4000>;
 				interrupts = <GIC_SPI 219 IRQ_TYPE_LEVEL_HIGH>;
 				#dma-cells = <1>;
@@ -2637,7 +2637,7 @@
 			};
 
 			agcp_dma: dma-controller@56650000 {
-				compatible = "sprd,qogirn6pro-dma";
+				compatible = "sprd,qogirn6pro-dma", "sprd,sc9860-dma";
 				reg = <0 0x56650000 0 0x4000>;
 				interrupts = <GIC_SPI 55 IRQ_TYPE_LEVEL_HIGH>;
 				#dma-cells = <1>;
