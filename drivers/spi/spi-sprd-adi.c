@@ -104,11 +104,10 @@
 #define SC2720_MODULE_EN		0xc08
 #define SC2720_CLK_EN			0xc10
 #define SC2720_WDG_BASE			0x40
-
-#define UMPS520_RST_STATUS		0x1bac
-#define UMPS520_MODULE_EN		0x1808
-#define UMPS520_CLK_EN			0x1810
-#define UMPS520_WDT_BASE		0x40
+#define UMP9620_RST_STATUS		0x23ac
+#define UMP9620_MODULE_EN		0x2008
+#define UMP9620_CLK_EN			0x2010
+#define UMP9620_WDT_BASE		0x40
 
 /* Definition of PMIC reset status register */
 #define HWRST_STATUS_SECURITY		0x02
@@ -672,13 +671,13 @@ static struct sprd_adi_variant_data sharkl5pro_data = {
 	.wdg_clk = SC2730_CLK_EN,
 };
 
-static struct sprd_adi_variant_data qogirl6_data = {
+static struct sprd_adi_variant_data qogirn6pro_data = {
 	.write_wait = sprd_adi_write_wait,
 	.channel_offset = ADI_15BIT_CHANNEL_OFFSET,
-	.wdg_base = UMPS520_RST_STATUS,
-	.rst_sts = UMPS520_RST_STATUS,
-	.wdg_en = UMPS520_MODULE_EN,
-	.wdg_clk = UMPS520_CLK_EN,
+	.wdg_base = UMP9620_WDT_BASE,
+	.rst_sts = UMP9620_RST_STATUS,
+	.wdg_en = UMP9620_MODULE_EN,
+	.wdg_clk = UMP9620_CLK_EN,
 };
 
 static const struct of_device_id sprd_adi_of_match[] = {
@@ -699,8 +698,8 @@ static const struct of_device_id sprd_adi_of_match[] = {
 		.data = &sharkl5pro_data,
 	},
 	{
-		.compatible = "sprd,qogirl6-adi-r5p1",
-		.data = &qogirl6_data,
+		.compatible = "sprd,qogirn6pro-adi",
+		.data = &qogirn6pro_data,
 	},
 	{ },
 };
