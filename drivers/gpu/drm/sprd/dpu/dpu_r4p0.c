@@ -1034,10 +1034,13 @@ static void dpu_layer(struct dpu_context *ctx,
 	tmp.alpha = hwlayer->alpha;
 
 	if (hwlayer->pallete_en) {
+		tmp.size = (hwlayer->dst_w & 0xffff) | ((hwlayer->dst_h) << 16);
 		tmp.pallete = hwlayer->pallete_color;
 
 		/* pallete layer enable */
-		tmp.ctrl = 0x2005;
+		tmp.ctrl = BIT_DPU_LAY_EN |
+			BIT_DPU_LAY_LAYER_ALPHA |
+			BIT_DPU_LAY_PALLETE_EN;
 
 		pr_debug("pallete:0x%x\n", tmp.pallete);
 	} else {
@@ -1092,6 +1095,26 @@ static void dpu_layer(struct dpu_context *ctx,
 	for (i = 0; i < hwlayer->planes; i++)
 		DPU_REG_WR(ctx->base + DPU_LAY_PLANE_ADDR(REG_LAY_BASE_ADDR,
 					hwlayer->index, i), tmp.addr[i]);
+
+	if (hwlayer->pallete_en) {
+		tmp.size = (hwlayer->dst_w & 0xffff) | ((hwlayer->dst_h) << 16);
+		DPU_REG_WR(ctx->base + DPU_LAY_REG(REG_LAY_POS,
+				hwlayer->index), tmp.pos);
+		DPU_REG_WR(ctx->base + DPU_LAY_REG(REG_LAY_SIZE,
+				hwlayer->index), tmp.size);
+		DPU_REG_WR(ctx->base + DPU_LAY_REG(REG_LAY_ALPHA,
+				hwlayer->index), tmp.alpha);
+		DPU_REG_WR(ctx->base + DPU_LAY_REG(REG_LAY_PALLETE,
+				hwlayer->index), tmp.pallete);
+
+		DPU_REG_WR(ctx->base + DPU_LAY_REG(REG_LAY_CTRL,
+				hwlayer->index), tmp.ctrl);
+
+		pr_debug("dst_x = %d, dst_y = %d, dst_w = %d, dst_h = %d, pallete:%d\n",
+			hwlayer->dst_x, hwlayer->dst_y,
+			hwlayer->dst_w, hwlayer->dst_h, hwlayer->pallete_color);
+		return;
+	}
 
 	DPU_REG_WR(ctx->base + DPU_LAY_REG(REG_LAY_POS,
 			hwlayer->index), tmp.pos);
