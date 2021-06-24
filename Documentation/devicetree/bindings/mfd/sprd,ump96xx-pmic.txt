@@ -1,0 +1,39 @@
+UNISOC UMP96xx Power Management Integrated Circuit (PMIC)
+
+The UNISOC UMP96xx series PMICs contain UMP9620, UMP9621 and UMP9622.
+The Spreadtrum PMIC belonging to SC27xx series integrates all mobile
+handset power management, audio codec, battery management and user
+interface support function in a single chip. It has 6 major functional
+blocks:
+- DCDCs to support CPU, memory.
+- LDOs to support both internal and external requirement.
+- Battery management system, such as charger, fuel gauge.
+- Audio codec.
+- User interface function, such as indicator, flash LED and so on.
+- IC level interface, such as power on/off control, RTC and typec and so on.
+
+Required properties:
+- compatible: Should be one of the following:
+	"sprd,ump9620"
+	"sprd,ump9621"
+	"sprd,ump9622"
+
+- reg: The address of the device chip select.
+- spi-max-frequency: Typically set to 26000000.
+- interrupts: The interrupt line the device is connected to.
+- interrupt-controller: Marks the device node as an interrupt controller.
+- #interrupt-cells: The number of cells to describe an PMIC IRQ, must be 2.
+- #address-cells: Child device offset number of cells, must be 1.
+- #size-cells: Child device size number of cells, must be 0.
+
+Example:
+pmic@0 {
+	compatible = "sprd,ump9620";
+	reg = <0>;
+	spi-max-frequency = <26000000>;
+	interrupts = <GIC_SPI 31 IRQ_TYPE_LEVEL_HIGH>;
+	interrupt-controller;
+	#interrupt-cells = <2>;
+	#address-cells = <1>;
+	#size-cells = <0>;
+};
