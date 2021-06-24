@@ -3789,6 +3789,8 @@ static bool cm_manager_adjust_current(struct charger_manager *cm,
 	if (jeita_status > desc->jeita_tab_size)
 		jeita_status = desc->jeita_tab_size;
 
+#ifdef DUAL_85_VERSION	
+#else
 	if (jeita_status == 0 || jeita_status == desc->jeita_tab_size) {
 		dev_warn(cm->dev,
 			 "stop charging due to battery overheat or cold\n");
@@ -3803,7 +3805,7 @@ static bool cm_manager_adjust_current(struct charger_manager *cm,
 		}
 		return false;
 	}
-
+#endif
 	term_volt = desc->jeita_tab[jeita_status].term_volt;
 	target_cur = desc->jeita_tab[jeita_status].current_ua;
 
@@ -6418,7 +6420,7 @@ static void cm_batt_works(struct work_struct *work)
 		if (fuel_cap >= cm->desc->cap) {
 			last_fuel_cap = fuel_cap;
 			fuel_cap = cm->desc->cap;
-		} else if (cm->desc->cap >= CM_HCAP_THRESHOLD) {
+		} /*else if (cm->desc->cap >= CM_HCAP_THRESHOLD) {
 			if (last_fuel_cap - fuel_cap >= CM_HCAP_DECREASE_STEP) {
 				if (cm->desc->cap - fuel_cap >= CM_CAP_ONE_PERCENT)
 					fuel_cap = cm->desc->cap - CM_CAP_ONE_PERCENT;
@@ -6429,7 +6431,7 @@ static void cm_batt_works(struct work_struct *work)
 			} else {
 				fuel_cap = cm->desc->cap;
 			}
-		} else {
+		} */else {
 			if (period_time < cm->desc->cap_one_time) {
 				if ((cm->desc->cap - fuel_cap) >= 5)
 					fuel_cap = cm->desc->cap - 5;
