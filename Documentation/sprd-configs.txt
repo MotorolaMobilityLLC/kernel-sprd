@@ -10837,6 +10837,15 @@ CONFIG_MFD_SC27XX_PMIC
 	[must] user
 	[missing plat description] none
 	[function] Spreadtrum SC27xx PMICs.
+CONFIG_MFD_UMP96XX_PMIC
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field] menu,make,code
+	[subsys] mfd
+	[must] user
+	[missing plat description] none
+	[function] UNISOC UMP96xx PMICs.
 CONFIG_MFD_SYSCON
 	[arch] all
 	[plat] all
