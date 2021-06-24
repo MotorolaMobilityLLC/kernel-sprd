@@ -56,7 +56,7 @@
 			cpu-idle-states = <&LIT_CORE_PD>;
 			capacity-dmips-mhz = <544>;
 			dynamic-power-coefficient = <102>;
-			cpufreq-data-v1 = <&cpufreq_clus0>;
+			cpufreq-data-v1 = <&cpufreq_cluster0_opp>;
 		};
 		CPU1: cpu@100 {
 			device_type = "cpu";
@@ -66,7 +66,7 @@
 			cpu-idle-states = <&LIT_CORE_PD>;
 			capacity-dmips-mhz = <544>;
 			dynamic-power-coefficient = <102>;
-			cpufreq-data-v1 = <&cpufreq_clus0>;
+			cpufreq-data-v1 = <&cpufreq_cluster0_opp>;
 		};
 		CPU2: cpu@200 {
 			device_type = "cpu";
@@ -76,7 +76,7 @@
 			cpu-idle-states = <&LIT_CORE_PD>;
 			capacity-dmips-mhz = <544>;
 			dynamic-power-coefficient = <102>;
-			cpufreq-data-v1 = <&cpufreq_clus0>;
+			cpufreq-data-v1 = <&cpufreq_cluster0_opp>;
 		};
 		CPU3: cpu@300 {
 			device_type = "cpu";
@@ -86,7 +86,7 @@
 			cpu-idle-states = <&LIT_CORE_PD>;
 			capacity-dmips-mhz = <544>;
 			dynamic-power-coefficient = <102>;
-			cpufreq-data-v1 = <&cpufreq_clus0>;
+			cpufreq-data-v1 = <&cpufreq_cluster0_opp>;
 		};
 		CPU4: cpu@400 {
 			device_type = "cpu";
@@ -96,7 +96,7 @@
 			cpu-idle-states = <&LIT_CORE_PD>;
 			capacity-dmips-mhz = <544>;
 			dynamic-power-coefficient = <102>;
-			cpufreq-data-v1 = <&cpufreq_clus0>;
+			cpufreq-data-v1 = <&cpufreq_cluster0_opp>;
 		};
 		CPU5: cpu@500 {
 			device_type = "cpu";
@@ -106,7 +106,7 @@
 			cpu-idle-states = <&LIT_CORE_PD>;
 			capacity-dmips-mhz = <544>;
 			dynamic-power-coefficient = <102>;
-			cpufreq-data-v1 = <&cpufreq_clus0>;
+			cpufreq-data-v1 = <&cpufreq_cluster0_opp>;
 		};
 		CPU6: cpu@600 {
 			device_type = "cpu";
@@ -116,7 +116,7 @@
 			cpu-idle-states = <&BIG_CORE_PD>;
 			capacity-dmips-mhz = <1024>;
 			dynamic-power-coefficient = <501>;
-			cpufreq-data-v1 = <&cpufreq_clus1>;
+			cpufreq-data-v1 = <&cpufreq_cluster1_opp>;
 		};
 		CPU7: cpu@700 {
 			device_type = "cpu";
@@ -126,7 +126,7 @@
 			cpu-idle-states = <&BIG_CORE_PD>;
 			capacity-dmips-mhz = <1024>;
 			dynamic-power-coefficient = <501>;
-			cpufreq-data-v1 = <&cpufreq_clus1>;
+			cpufreq-data-v1 = <&cpufreq_cluster1_opp>;
 		};
 	};
 
@@ -682,120 +682,48 @@
 		};
 	};
 
-	cpufreq_clus0: cpufreq-clus0 {
-		cpufreq-cluster-id = <0>;
-		cpufreq-sub-clusters =  <&cpufreq_scu>,
-					<&cpufreq_periph>,
-					<&cpufreq_gic>;
-		clock-latency = <50000>;
-		voltage-tolerance = <6413>;
-		sprd,multi-version;
+	cpufreq_cluster0_opp: opp-table0 {
+		sprd,hw-dvfs-device = <&cpudvfs_dev>;
 		nvmem-cells = <&dvfs_bin_cpu0>;
 		nvmem-cell-names = "dvfs_bin";
-
+		temp-threshold = <65>;
+		sprd,multi-version;
+		cpufreq-cluster-cpumask = <0x3f>;
+		transition_delay_us = <500>;
 		operating-points = <
 			/* kHZ   uV */
-			1820000 1050000
-			1716000 1012500
-			1612000 975000
-			1536000 946875
-			1378000 887500
-			1228800 831250
-			1040000 762500
-			884000  700000
-			768000  700000
 			614400  700000
+			768000  700000
+			884000  700000
+			1040000 762500
+			1228800 831250
+			1378000 887500
+			1536000 946875
+			1612000 975000
+			1716000 1012500
+			1820000 1050000
 		>;
 	};
 
-	cpufreq_clus1: cpufreq-clus1 {
-		cpufreq-cluster-id = <1>;
-		cpufreq-sub-clusters =  <&cpufreq_scu>,
-					<&cpufreq_periph>,
-					<&cpufreq_gic>;
-		clock-latency = <50000>;
-		voltage-tolerance = <6413>;
-		sprd,multi-version;
+	cpufreq_cluster1_opp: opp-table1 {
+		sprd,hw-dvfs-device = <&cpudvfs_dev>;
 		nvmem-cells = <&dvfs_bin_cpu1>;
 		nvmem-cell-names = "dvfs_bin";
-
+		temp-threshold = <65>;
+		sprd,multi-version;
+		cpufreq-cluster-cpumask = <0xc0>;
+		transition_delay_us = <500>;
 		operating-points = <
 			/* kHZ   uV */
-			2002000 1050000
-			1898000 1020000
-			1820000 1000000
-			1690000 960000
-			1536000 910000
-			1404000 870000
-			1228800 810000
-			1040000 750000
 			768000  750000
-		>;
-	};
-
-	cpufreq_scu: cpufreq-scu {
-		cpufreq-cluster-id = <2>;
-		clock-latency = <50000>;
-		voltage-tolerance = <0>;
-		sprd,multi-version;
-		nvmem-cells = <&dvfs_bin_dsu>;
-		nvmem-cell-names = "dvfs_bin";
-
-		operating-points = <
-			/* kHz   uV */
-			1352000 1050000
-			1326000 1012500
-			1274000 975000
-			1228800 946875
-			1092000 887500
-			962000  831250
-			768000  762500
-			702000  700000
-			614400  700000
-			546000  700000
-		>;
-	};
-
-	cpufreq_periph: cpufreq-periph {
-		cpufreq-cluster-id = <3>;
-		clock-latency = <50000>;
-		voltage-tolerance = <0>;
-		sprd,multi-version;
-		operating-points = <
-			/* kHZ  uV */
-			768000  1012500
-			512000  831250
-			384000  831250
-			256000  831250
-			153600  700000
-		>;
-	};
-
-	cpufreq_gic: cpufreq-gic {
-		cpufreq-cluster-id = <4>;
-		clock-latency = <50000>;
-		voltage-tolerance = <0>;
-		sprd,multi-version;
-		operating-points = <
-			/* kHZ  uV */
-			512000  831250
-			384000  831250
-			256000  831250
-			192000  831250
-			153600  700000
-		>;
-	};
-
-	cpufreq_atb: cpufreq-atb {
-		cpufreq-cluster-id = <5>;
-		sprd,multi-version;
-		operating-points = <
-			/* kHZ  uV */
-			768000  1012500
-			512000  831250
-			384000  831250
-			256000  700000
-			153600  700000
+			1040000 750000
+			1228800 810000
+			1404000 870000
+			1536000 910000
+			1690000 960000
+			1820000 1000000
+			1898000 1020000
+			2002000 1050000
 		>;
 	};
 
