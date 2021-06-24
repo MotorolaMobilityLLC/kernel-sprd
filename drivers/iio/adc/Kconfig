@@ -748,7 +748,7 @@ config ROCKCHIP_SARADC
 
 config SC27XX_ADC
 	tristate "Spreadtrum SC27xx series PMICs ADC"
-	depends on MFD_SC27XX_PMIC || COMPILE_TEST
+	depends on MFD_SC27XX_PMIC || MFD_UMP96XX_PMIC || COMPILE_TEST
 	help
 	  Say yes here to build support for the integrated ADC inside the
 	  Spreadtrum SC27xx series PMICs.

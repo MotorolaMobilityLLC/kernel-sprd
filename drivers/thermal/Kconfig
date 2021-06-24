@@ -463,7 +463,7 @@ config SPRD_SOC_THERMAL
 
 config SC27XX_TSENSOR_THERMAL
 	tristate "Spreadtrum SC27xx Tsensor Thermal Support"
-	depends on MFD_SC27XX_PMIC || COMPILE_TEST
+	depends on MFD_SC27XX_PMIC || MFD_UMP96XX_PMIC || COMPILE_TEST
 	help
 	  This is a simple driver to get sc27xx chip osc temperature
 	  and external cystal temperature.
