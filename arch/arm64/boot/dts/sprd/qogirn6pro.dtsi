@@ -374,7 +374,8 @@
 			};
 
 			spi0: spi@60000{
-				compatible = "sprd,ums9620-spi";
+				compatible = "sprd,ums9620-spi",
+					      "sprd,sc9860-spi";
 				reg = <0x60000 0x1000>;
 				interrupts = <GIC_SPI 199 IRQ_TYPE_LEVEL_HIGH>;
 				#address-cells = <1>;
@@ -383,7 +384,8 @@
 			};
 
 			spi1: spi@70000{
-				compatible = "sprd,ums9620-spi";
+				compatible = "sprd,ums9620-spi",
+					     "sprd,sc9860-spi";
 				reg = <0x70000 0x1000>;
 				interrupts = <GIC_SPI 198 IRQ_TYPE_LEVEL_HIGH>;
 				#address-cells = <1>;
@@ -392,7 +394,8 @@
 			};
 
 			spi2: spi@80000{
-				compatible = "sprd,ums9620-spi";
+				compatible = "sprd,ums9620-spi",
+					     "sprd,sc9860-spi";
 				reg = <0x80000 0x1000>;
 				interrupts = <GIC_SPI 197 IRQ_TYPE_LEVEL_HIGH>;
 				#address-cells = <1>;
