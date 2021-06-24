@@ -5,6 +5,7 @@ obj-$(CONFIG_UNISOC_SIPC_VIRT_BUS)		+= sipc_virt_bus/
 obj-$(CONFIG_UNISOC_MAILBOX)			+= mailbox/
 obj-$(CONFIG_UNISOC_WCN_BSP)			+= sprdwcn/
 obj-$(CONFIG_UNISOC_GNSS)                       += sprd_gnss/
+obj-$(CONFIG_UNISOC_MAPUSER)                    += sprd_map/
 obj-$(CONFIG_SND_SOC)				+= audio/
 obj-$(CONFIG_WLAN_VENDOR_SPREADTRUM)		+= wlan/
 obj-y						+= sprd_apdu/

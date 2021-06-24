@@ -18455,6 +18455,15 @@ CONFIG_UNISOC_MAILBOX_R1
 	[must]
 	[missing plat description] none
 	[function]
+CONFIG_UNISOC_MAPUSER
+	[arch] arm64
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
 CONFIG_UNISOC_MODEM_LOADER
 	[arch] all
 	[plat] all

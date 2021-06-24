@@ -5282,6 +5282,8 @@ CONFIG_UNISOC_MAILBOX_R2=y
 # CONFIG_UNISOC_GNSS_DBG is not set
 # end of Unisoc GNSS Device Drivers
 
+# CONFIG_UNISOC_MAPUSER is not set
+
 #
 # UNISOC audio devices
 #
