@@ -17093,31 +17093,31 @@ CONFIG_SPRD_UMS512_CLK
 	[missing plat description]
 	[function]
 CONFIG_SPRD_USB_CONFIGFS_RNDIS
-	[arch] arm64
-	[plat] sharkl3
-	[missing plat] sharkl5Pro
+	[arch] all
+	[plat] all
+	[missing plat] none
 	[field]
 	[subsys]
 	[must]
-	[missing plat description]
+	[missing plat description] none
 	[function]
 CONFIG_SPRD_USB_F_RNDIS
-	[arch] arm64
-	[plat] sharkl3
-	[missing plat] sharkl5Pro
+	[arch] all
+	[plat] all
+	[missing plat] none
 	[field]
 	[subsys]
 	[must]
-	[missing plat description]
+	[missing plat description] none
 	[function]
 CONFIG_SPRD_USB_U_ETHER
-	[arch] arm64
-	[plat] sharkl3
-	[missing plat] sharkl5Pro
+	[arch] all
+	[plat] all
+	[missing plat] none
 	[field]
 	[subsys]
 	[must]
-	[missing plat description]
+	[missing plat description] none
 	[function]
 CONFIG_SPRD_VSP
 	[arch] all
@@ -18584,15 +18584,6 @@ CONFIG_USB_CONFIGFS
 	[must] user
 	[missing plat description] none
 	[function] A Linux USB "gadget" can be set up through configfs.
-CONFIG_USB_CONFIGFS_ACM
-	[arch] arm64
-	[plat] sharkl5Pro
-	[missing plat] sharkl3
-	[field]
-	[subsys]
-	[must]
-	[missing plat description] none
-	[function]
 CONFIG_USB_CONFIGFS_F_ACC
 	[arch] all
 	[plat] all
@@ -18656,24 +18647,6 @@ CONFIG_USB_CONFIGFS_MASS_STORAGE
 	[must] user
 	[missing plat description] none
 	[function] This macro is to support USB Mass storage.
-CONFIG_USB_CONFIGFS_NCM
-	[arch] arm64
-	[plat] sharkl5Pro
-	[missing plat] sharkl3
-	[field]
-	[subsys]
-	[must]
-	[missing plat description] none
-	[function]
-CONFIG_USB_CONFIGFS_RNDIS
-	[arch] all
-	[plat] pike2,sharkl5Pro
-	[missing plat] sharkl3
-	[field] code
-	[subsys] usb
-	[must] user
-	[missing plat description] none
-	[function] This macro is to support RNDIS
 CONFIG_USB_CONFIGFS_SERIAL
 	[arch] all
 	[plat] all
@@ -18791,15 +18764,6 @@ CONFIG_USB_F_ACC
 	[must] user
 	[missing plat description] none
 	[function] USB gadget Accessory support
-CONFIG_USB_F_ACM
-	[arch] arm64
-	[plat] sharkl5Pro
-	[missing plat] sharkl3
-	[field]
-	[subsys]
-	[must]
-	[missing plat description] none
-	[function]
 CONFIG_USB_F_AUDIO_SRC
 	[arch] all
 	[plat] all
@@ -18845,24 +18809,6 @@ CONFIG_USB_F_MIDI
 	[must] user
 	[missing plat description] none
 	[function] The MIDI Function acts as a USB Audio device.
-CONFIG_USB_F_NCM
-	[arch] arm64
-	[plat] sharkl5Pro
-	[missing plat] sharkl3
-	[field]
-	[subsys]
-	[must]
-	[missing plat description] none
-	[function]
-CONFIG_USB_F_RNDIS
-	[arch] all
-	[plat] pike2,sharkl5Pro
-	[missing plat] sharkl3
-	[field] code
-	[subsys] usb
-	[must] user
-	[missing plat description] none
-	[function] RNDIS function
 CONFIG_USB_F_SERIAL
 	[arch] all
 	[plat] all
@@ -19187,15 +19133,6 @@ CONFIG_USB_USBNET
 	[must] user
 	[missing plat description] none
 	[function] This option adds usbnet function.
-CONFIG_USB_U_ETHER
-	[arch] all
-	[plat] pike2,sharkl5Pro
-	[missing plat] sharkl3
-	[field] code
-	[subsys] usb
-	[must] user
-	[missing plat description] none
-	[function] RNDIS function
 CONFIG_USB_U_SERIAL
 	[arch] all
 	[plat] all
