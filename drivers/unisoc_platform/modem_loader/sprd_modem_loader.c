@@ -902,6 +902,15 @@ static long modem_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	return ret;
 }
 
+#ifdef CONFIG_COMPAT
+static long modem_compat_ioctl(struct file *filp, unsigned int cmd,
+				unsigned long arg)
+{
+	return modem_ioctl(filp, cmd, (unsigned long)compat_ptr(arg));
+}
+#endif
+
+
 static int modem_get_device_name(struct modem_device *modem,
 			       struct device_node *np)
 {
@@ -1145,6 +1154,9 @@ static const struct file_operations modem_fops = {
 	.read = modem_read,
 	.write = modem_write,
 	.unlocked_ioctl = modem_ioctl,
+#ifdef CONFIG_COMPAT
+	.compat_ioctl = modem_compat_ioctl,
+#endif
 	.owner = THIS_MODULE
 };
 
