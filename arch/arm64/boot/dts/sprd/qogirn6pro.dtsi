@@ -4,7 +4,7 @@
  *
  * Copyright (C) 2020, Unisoc Inc.
  */
-
+ 
 #include <dt-bindings/clock/sprd,ums9620-clk.h>
 #include <dt-bindings/soc/sprd,qogirn6pro-regs.h>
 #include <dt-bindings/soc/sprd,qogirn6pro-mask.h>
@@ -332,9 +332,7 @@
 					     "sprd,sc9836-uart";
 				reg = <0 0x100>;
 				interrupts = <GIC_SPI 196 IRQ_TYPE_LEVEL_HIGH>;
-				clock-names = "enable", "uart", "source";
-				clocks = <&apapb_gate CLK_UART0_EB>,
-					<&ap_clk CLK_AP_UART0>, <&ext_26m>;
+				clocks = <&ext_26m>;
 				status = "disabled";
 			};
 
@@ -343,11 +341,7 @@
 					     "sprd,sc9836-uart";
 				reg = <0x10000 0x100>;
 				interrupts = <GIC_SPI 195 IRQ_TYPE_LEVEL_HIGH>;
-				clock-names = "enable", "uart", "source";
-				clocks = <&apapb_gate CLK_UART1_EB>,
-					<&ap_clk CLK_AP_UART1>, <&ext_26m>;
-				dma-names = "rx", "tx";
-				dmas = <&ap_dma 15 &ap_dma 16>;
+				clocks = <&ext_26m>;
 				status = "disabled";
 			};
 
@@ -356,9 +350,7 @@
 					     "sprd,sc9836-uart";
 				reg = <0x20000 0x100>;
 				interrupts = <GIC_SPI 167 IRQ_TYPE_LEVEL_HIGH>;
-				clock-names = "enable", "uart", "source";
-				clocks = <&apapb_gate CLK_UART2_EB>,
-					<&ap_clk CLK_AP_UART2>, <&ext_26m>;
+				clocks = <&ext_26m>;
 				status = "disabled";
 			};
 
@@ -367,9 +359,7 @@
 					     "sprd,sc9836-uart";
 				reg = <0x30000 0x100>;
 				interrupts = <GIC_SPI 166 IRQ_TYPE_LEVEL_HIGH>;
-				clock-names = "enable", "uart", "source";
-				clocks = <&apapb_gate CLK_UART3_EB>,
-					<&ap_clk CLK_AP_UART3>, <&ext_26m>;
+				clocks = <&ext_26m>;
 				status = "disabled";
 			};
 
