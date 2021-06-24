@@ -786,7 +786,7 @@
 			compatible = "android,firmware";
 			vbmeta {
 				compatible = "android,vbmeta";
-				parts = "vbmeta,socko,odmko,boot,dtbo,nr_modem,nr_phy,l_agdsp,pm_sys";
+				parts = "vbmeta,boot,dtbo,nr_modem,nr_phy,l_agdsp,pm_sys";
 			};
 		};
 	};

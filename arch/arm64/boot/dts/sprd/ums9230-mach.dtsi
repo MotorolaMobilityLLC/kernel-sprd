@@ -220,7 +220,7 @@
 			compatible = "android,firmware";
 			vbmeta {
 				compatible = "android,vbmeta";
-				parts = "vbmeta,socko,odmko,boot,dtbo,l_modem,pm_sys,l_ldsp,l_gdsp,l_agdsp";
+				parts = "vbmeta,boot,dtbo,l_modem,pm_sys,l_ldsp,l_gdsp,l_agdsp";
 			};
 		};
 	};
