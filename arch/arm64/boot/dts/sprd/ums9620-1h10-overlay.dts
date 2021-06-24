@@ -948,3 +948,7 @@
 			"camhigh", "camveryhigh", "faceid";
 	  sprd-freq = <1244 768 384 384 533 1244 1244>;
 };
+
+&vddemmccore {
+	regulator-always-on;
+};
