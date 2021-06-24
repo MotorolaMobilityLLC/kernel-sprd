@@ -784,4 +784,11 @@ config SPECULATIVE_PAGE_FAULT_DEBUG
 	  Turn on debug messages in SPF. Say n to the user version, otherwise
 	  gki will fail.
 
+config WRITEBACK_SWAPCACHE
+	bool "writeback swapcache"
+	depends on SWAP
+	default n
+	help
+	  Write back swap cache to free up more.
+	  If unsure, say N to normal mode.
 endmenu
