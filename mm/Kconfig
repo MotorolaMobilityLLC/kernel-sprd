@@ -804,4 +804,11 @@ config SPRD_MEM_GCOV
         depends on GCOV_PROFILE_MODULES
         help
           Say Y here to enable gcov in memory codes
+
+config LRU_BALANCE_BASE_THRASHING
+	bool "LRU thrashing reclaim"
+	default n
+	help
+	  balance LRU lists based on relative thrashing.
+
 endmenu
