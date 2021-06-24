@@ -137,16 +137,13 @@ static enum drm_mode_status sprd_dpu_mode_valid(struct sprd_crtc *crtc,
 
 	DRM_INFO("%s() mode: "DRM_MODE_FMT"\n", __func__, DRM_MODE_ARG(mode));
 
-	if (mode->type & DRM_MODE_TYPE_DEFAULT)
+	if (mode->type == DRM_MODE_TYPE_DRIVER)
 		dpu->mode = (struct drm_display_mode *)mode;
 
 	if (mode->type & DRM_MODE_TYPE_PREFERRED) {
 		dpu->mode = (struct drm_display_mode *)mode;
 		drm_display_mode_to_videomode(dpu->mode, &dpu->ctx.vm);
 	}
-
-	if (mode->type & DRM_MODE_TYPE_USERDEF)
-		dpu->mode = (struct drm_display_mode *)mode;
 
 	return MODE_OK;
 }

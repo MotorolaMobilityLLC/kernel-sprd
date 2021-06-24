@@ -231,7 +231,7 @@ static int sprd_panel_get_modes(struct drm_panel *p)
 
 		mode = drm_mode_create(p->drm);
 
-		mode->type = DRM_MODE_TYPE_USERDEF;
+		mode->type = DRM_MODE_TYPE_DRIVER | DRM_MODE_TYPE_USERDEF;
 		mode->vrefresh = 60;
 		drm_display_mode_from_videomode(&vm, mode);
 		drm_mode_probed_add(p->connector, mode);
