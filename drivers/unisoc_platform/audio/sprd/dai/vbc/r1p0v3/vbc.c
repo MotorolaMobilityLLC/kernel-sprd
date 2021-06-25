@@ -4156,6 +4156,343 @@ static const char *const eq_fw_name[] = {
 	"vbc_eq", "vbc_eq_1", "vbc_eq_2", "vbc_eq_3"
 };
 
+
+#if 1
+#include <linux/cdev.h>
+#define AUDIO_TURNING_PATH_BASE "vbc_turning"
+#define AUD_TURNING_PRO_CNTS (1)
+#define AUD_TURNING_MINOR_START (0)
+
+static int vbc_turning_loading(const u8 *turning_data, size_t turning_size, struct snd_soc_component *codec)
+{
+    int ret;
+    const u8 *fw_data = NULL;
+    int i;
+    int vbc_eq_idx;
+    int offset = 0;
+    size_t len = 0;
+    int old_num_profile;
+    int old_num_da[VBC_EQ_MAX];
+    int offset_len[VBC_EQ_MAX + 1];
+    int sum_count = 0;
+    struct vbc_codec_priv *vbc_codec = snd_soc_component_get_drvdata(codec);
+    struct vbc_equ *p_eq_setting = &vbc_codec->vbc_eq_setting;
+    int eq_now_idx = 0;
+    size_t eq_req_len;
+
+    mutex_lock(&vbc_codec->load_mutex);
+    p_eq_setting->is_loading = 1;
+    p_eq_setting->is_loaded = 0;
+    /* get wake lock avoid suspend */
+    __pm_stay_awake(vbc_codec->wake_lock);
+    fw_data = turning_data;
+    __pm_relax(vbc_codec->wake_lock);
+    old_num_profile = p_eq_setting->hdr.num_profile;
+    if (fw_data == NULL) {
+		pr_err("%s ERR:firmware data error!\n", __func__);
+		ret = -EINVAL;
+		goto eq_out;
+    }
+    for (vbc_eq_idx = 0; vbc_eq_idx < VBC_EQ_MAX; vbc_eq_idx++)
+		old_num_da[vbc_eq_idx] = p_eq_setting->hdr.num_da[vbc_eq_idx];
+    if (turning_size < sizeof(struct vbc_fw_header)) {
+		pr_err("%s ERR: fw size(%ld) invalid\n", __func__, turning_size);
+		ret = -EINVAL;
+		goto eq_out;
+    }
+    memcpy(&p_eq_setting->hdr, fw_data, sizeof(p_eq_setting->hdr));
+
+    if (strncmp
+			(p_eq_setting->hdr.magic, VBC_EQ_FIRMWARE_MAGIC_ID,
+			VBC_EQ_FIRMWARE_MAGIC_LEN)) {
+		pr_err("%s ERR:Firmware magic error!\n", __func__);
+		ret = -EINVAL;
+		goto eq_out;
+    }
+
+    if (p_eq_setting->hdr.profile_version != VBC_EQ_PROFILE_VERSION) {
+		pr_err("%s ERR:Firmware support version is 0x%x!\n",
+			__func__, VBC_EQ_PROFILE_VERSION);
+		ret = -EINVAL;
+		goto eq_out;
+    }
+
+    if (p_eq_setting->hdr.num_profile > VBC_EQ_PROFILE_CNT_MAX) {
+		pr_err("%s ERR:Firmware profile to large at %d, max count is %d!\n",
+			__func__, p_eq_setting->hdr.num_profile, VBC_EQ_PROFILE_CNT_MAX);
+		ret = -EINVAL;
+		goto eq_out;
+    }
+
+    for (vbc_eq_idx = 0; vbc_eq_idx < VBC_EQ_MAX; vbc_eq_idx++)
+		sum_count += p_eq_setting->hdr.num_da[vbc_eq_idx];
+
+    if (p_eq_setting->hdr.num_profile != sum_count) {
+		pr_err("%s ERR:Firmware profile total number is  wrong!\n", __func__);
+		ret = -EINVAL;
+		goto eq_out;
+    }
+
+    offset_len[VBC_DA_EQ] = sizeof(struct vbc_fw_header);
+    offset_len[VBC_AD01_EQ] = sizeof(struct vbc_da_eq_profile);
+    offset_len[VBC_AD23_EQ] = sizeof(struct vbc_ad_eq_profile);
+    offset_len[VBC_AD23_EQ + 1] = sizeof(struct vbc_ad_eq_profile);
+
+    for (vbc_eq_idx = 0; vbc_eq_idx < VBC_EQ_MAX; vbc_eq_idx++) {
+		if (old_num_da[vbc_eq_idx] !=
+			p_eq_setting->hdr.num_da[vbc_eq_idx]) {
+			eq_now_idx =
+				p_eq_setting->now_profile[vbc_eq_idx];
+			if (eq_now_idx >=
+				p_eq_setting->hdr.num_da[vbc_eq_idx]) {
+				p_eq_setting->now_profile[vbc_eq_idx] = -1;
+			}
+			vbc_safe_kfree(&p_eq_setting->data[vbc_eq_idx]);
+		}
+
+		if (vbc_eq_idx) {
+			offset +=
+				offset_len[vbc_eq_idx] *
+				p_eq_setting->hdr.num_da[vbc_eq_idx - 1];
+		} else {
+			offset += offset_len[vbc_eq_idx];
+		}
+
+		if (p_eq_setting->hdr.num_da[vbc_eq_idx] == 0)
+			continue;
+
+		len = p_eq_setting->hdr.num_da[vbc_eq_idx] *
+			offset_len[vbc_eq_idx + 1];
+		if (p_eq_setting->data[vbc_eq_idx] == NULL) {
+			p_eq_setting->data[vbc_eq_idx] = kzalloc(len, GFP_KERNEL);
+			if (p_eq_setting->data[vbc_eq_idx] == NULL) {
+				ret = -ENOMEM;
+				for (--vbc_eq_idx; vbc_eq_idx >= 0; vbc_eq_idx--) {
+					vbc_safe_kfree(&p_eq_setting->data[vbc_eq_idx]);
+				}
+				goto eq_out;
+			}
+		}
+		eq_req_len = offset + len;
+		if (eq_req_len > turning_size) {
+			pr_err("%s ERR:fw size=%#zx invalid, vbc_eq_idx=%d, offset=%#x, len =%#lx\n",
+				__func__, turning_size, vbc_eq_idx, offset, len);
+			ret = -EINVAL;
+			for (; vbc_eq_idx >= 0; vbc_eq_idx--)
+				vbc_safe_kfree(&p_eq_setting->data[vbc_eq_idx]);
+			goto eq_out;
+		}
+		memcpy(p_eq_setting->data[vbc_eq_idx], fw_data + offset, len);
+
+		for (i = 0; i < p_eq_setting->hdr.num_da[vbc_eq_idx]; i++) {
+			const char *magic =
+				(char *)(p_eq_setting->data[vbc_eq_idx]) +
+				(i * offset_len[vbc_eq_idx + 1]);
+			if (strncmp(magic, VBC_EQ_FIRMWARE_MAGIC_ID,
+				VBC_EQ_FIRMWARE_MAGIC_LEN)) {
+				pr_err("%s ERR:%s Firmware profile[%d] magic error!magic: %s\n",
+					__func__, vbc_get_eq_name(vbc_eq_idx), i, magic);
+				ret = -EINVAL;
+				for (; vbc_eq_idx >= 0; vbc_eq_idx--) {
+					vbc_safe_kfree(&p_eq_setting->data[vbc_eq_idx]);
+				}
+				goto eq_out;
+			}
+		}
+	}
+
+    ret = 0;
+    p_eq_setting->is_loaded = 1;
+    goto eq_out;
+
+eq_out:
+    p_eq_setting->is_loading = 0;
+    mutex_unlock(&vbc_codec->load_mutex);
+    pr_info("%s loaded\n", __func__);
+    if (ret >= 0) {
+		struct vbc_da_eq_profile *profile =
+			&(((struct vbc_da_eq_profile *)(p_eq_setting->data[VBC_DA_EQ]))[0]);
+		u32 *data = profile->effect_paras;
+
+		if (data[vbc_da_eq_reg_offset(REG_VBC_VBC_DAC_HP_CTRL)] & BIT_RF_DAC_ALC_DP_T_MODE)
+			vbc_codec->alc_dp_t_mode = 1;
+		else
+			vbc_codec->alc_dp_t_mode = 0;
+		sp_asoc_pr_dbg("REG_VBC_VBC_DAC_HP_CTRL:%x----alc_dp_t_mode:%d",
+			data[vbc_da_eq_reg_offset(REG_VBC_VBC_DAC_HP_CTRL)],
+			vbc_codec->alc_dp_t_mode);
+		for (i = VBC_DA_EQ; i < VBC_EQ_MAX; i++) {
+			if (p_eq_setting->is_active[i] && p_eq_setting->data[i]) {
+				pr_info("load apply eq_idx=%d\n", i);
+				vbc_eq_try_apply(codec, i);
+			}
+		}
+	}
+	pr_info("%s return %i\n", __func__, ret);
+
+    return ret;
+}
+
+static int vbc_turning_ndp_open(struct inode *inode, struct file *file)
+{
+    pr_info("%s: opened\n", __func__);
+    return 0;
+}
+
+static ssize_t vbc_turning_ndp_write(struct file *file, const char __user *data_p, size_t data_size, loff_t *ppos)
+{
+	void *buf_p = NULL;
+	int ret = 0;
+
+	if (NULL == data_p) {
+		pr_err("%s, Error: data_p is NULL\n", __func__);
+		return -EINVAL;
+	}
+
+	if (0 == data_size) {
+		pr_err("%s, Error: size is 0\n", __func__);
+		return -EINVAL;
+	}
+
+	if (NULL == g_vbc_codec) {
+		pr_err("%s: Error: not find codec.\n", __func__);
+		return -ENODEV;
+	}
+
+	pr_info("%s, turning data_p = %p, size =%ld\n", __func__, data_p, data_size);
+	buf_p = vmalloc(data_size);
+	if (NULL == buf_p) {
+		pr_err("%s, Error: vmalloc eq data buffer failed, size is %ld\n", __func__, data_size);
+		return -ENOMEM;
+	}
+
+	if (copy_from_user(buf_p, data_p, data_size)) {
+		pr_err("%s: Error: arg protection error\n", __func__);
+		vfree(buf_p);
+		return -EACCES;
+	}
+
+	ret = vbc_turning_loading((const u8 *)buf_p, data_size, g_vbc_codec->codec);
+	if (ret < 0) {
+		vfree(buf_p);
+		pr_err("%s: Error: load eq from turning failed, ret=%d.\n", __func__, ret);
+		return ret;
+	}
+
+	vfree(buf_p);
+	pr_info("%s: load eq from turning success.\n", __func__);
+	return data_size;
+}
+
+
+static int vbc_turning_ndp_release(struct inode *inode, struct file *file)
+{
+    pr_info("%s: Enter\n", __func__);
+
+    return 0;
+}
+
+static const struct file_operations audio_turning_fops[AUD_TURNING_PRO_CNTS] = {
+    {
+    .owner          = THIS_MODULE,
+    .open           = vbc_turning_ndp_open,
+    .write          = vbc_turning_ndp_write,
+    .release        = vbc_turning_ndp_release,
+    }
+};
+
+struct aud_turning_info {
+    u8    ready;
+    dev_t devid;
+    struct cdev turing_cdev;
+    struct class *turing_class;
+    struct device *turing_device;
+};
+
+struct aud_turning_info aud_turning[AUD_TURNING_PRO_CNTS] = {0};
+
+static void vbc_turning_ndp_exit(void)
+{
+	u8 index = 0;
+
+	pr_info("%s: Enter.\n", __func__);
+	for (index = 0; index < AUD_TURNING_PRO_CNTS; index++) {
+		if (aud_turning[index].ready) {
+			if (NULL != aud_turning[index].turing_class) {
+				device_destroy(aud_turning[index].turing_class, aud_turning[index].devid);
+				class_destroy(aud_turning[index].turing_class);
+			}
+			cdev_del(&aud_turning[index].turing_cdev);
+			unregister_chrdev_region(aud_turning[index].devid, 1);
+			aud_turning[index].turing_device = NULL;
+			aud_turning[index].turing_class = NULL;
+			aud_turning[index].ready = 0;
+		}
+	}
+}
+
+static int vbc_turning_ndp_init(void)
+{
+	int result = 0;
+	dev_t devid = 0;
+	unsigned int major = 0;
+	unsigned int minor = 0;
+	u8 index = 0;
+	result = alloc_chrdev_region(&devid, AUD_TURNING_MINOR_START, AUD_TURNING_PRO_CNTS, AUDIO_TURNING_PATH_BASE);
+	if (result < 0) {
+		pr_err("%s,alloc_chrdev_region failed! result: %d\n", __func__, result);
+		goto INIT_FAILED;
+	}
+	major = MAJOR(devid);
+	minor = MINOR(devid);
+	pr_info("%s,alloc dev id 0x%x, major =%d, minor = %d!\n", __func__, devid, major, minor);
+
+	for (index = 0; index < AUD_TURNING_PRO_CNTS; index++) {
+		aud_turning[index].devid = MKDEV(major, minor+index);
+		pr_info("%s,alloc dev id %d for NO.%d!\n", __func__, aud_turning[index].devid, index);
+		cdev_init(&aud_turning[index].turing_cdev, &audio_turning_fops[index]);
+		aud_turning[index].turing_cdev.owner = THIS_MODULE;
+
+		result = cdev_add(&aud_turning[index].turing_cdev, aud_turning[index].devid, 1);
+		if (result < 0) {
+			pr_err("%s,cdev_add failed! result: %d\n", __func__, result);
+			cdev_del(&aud_turning[index].turing_cdev);
+			unregister_chrdev_region(aud_turning[index].devid, 1);
+			goto INIT_FAILED;
+		}
+
+		aud_turning[index].turing_class = class_create(THIS_MODULE, AUDIO_TURNING_PATH_BASE);
+		if (IS_ERR(aud_turning[index].turing_class)) {
+			pr_err("%s, class_create failed!\n", __func__);
+			cdev_del(&aud_turning[index].turing_cdev);
+			unregister_chrdev_region(aud_turning[index].devid, 1);
+			goto INIT_FAILED;
+		}
+
+		aud_turning[index].turing_device = device_create(aud_turning[index].turing_class, NULL,
+											aud_turning[index].devid, NULL, AUDIO_TURNING_PATH_BASE);
+		if (IS_ERR(aud_turning[index].turing_device)) {
+			pr_err("%s,device_create failed!\n", __func__);
+			class_destroy(aud_turning[index].turing_class);
+			aud_turning[index].turing_class = NULL;
+			cdev_del(&aud_turning[index].turing_cdev);
+			unregister_chrdev_region(aud_turning[index].devid, 1);
+			goto INIT_FAILED;
+		}
+
+		aud_turning[index].ready = 1;
+	}
+
+	pr_info("%s: success.\n", __func__);
+
+	return 0;
+
+INIT_FAILED:
+	vbc_turning_ndp_exit();
+	return result;
+}
+#endif
+
 #if 0
 static int audio_load_firmware_data(struct firmware *fw, char *firmware_path)
 {
@@ -7164,6 +7501,7 @@ static int vbc_drv_probe(struct platform_device *pdev)
 	mutex_init(&vbc_codec->fm_mutex);
 	spin_lock_init(&vbc_codec->ad01_spinlock);
 
+	vbc_turning_ndp_init();
 	return ret;
 probe_err:
 	pr_info("return %i\n", ret);
@@ -7173,6 +7511,8 @@ probe_err:
 
 static int vbc_drv_remove(struct platform_device *pdev)
 {
+	vbc_turning_ndp_exit();
+
 	snd_soc_unregister_component(&pdev->dev);
 	sprd_vbc_codec_remove(pdev);
 
