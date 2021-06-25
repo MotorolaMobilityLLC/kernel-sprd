@@ -4025,8 +4025,8 @@ static int cm_get_target_status(struct charger_manager *cm)
 		return POWER_SUPPLY_STATUS_NOT_CHARGING;
 	}
 
-	if (is_full_charged(cm))
-		return POWER_SUPPLY_STATUS_FULL;
+//	if (is_full_charged(cm))
+//		return POWER_SUPPLY_STATUS_FULL;
 	/* Charging is allowed. */
 	return POWER_SUPPLY_STATUS_CHARGING;
 }
@@ -4062,25 +4062,17 @@ static bool _cm_monitor(struct charger_manager *cm)
 	cm->battery_status = cm_get_target_status(cm);
 
 	if (cm->battery_status == POWER_SUPPLY_STATUS_CHARGING) {
-      if (is_full_charged(cm) && cm->charger_enabled) {
-		if( !cm->is_full ){			
-		  dev_info(cm->dev, "EVENT_HANDLE: Battery Fully Charged\n");
-			cm->is_full  = true;
-		  }
-		//	try_charger_enable(cm, false);
-		//	fullbatt_vchk(&cm->fullbatt_vchk_work.work);
-		   if (!cm->charger_enabled)
-				cm->battery_status = POWER_SUPPLY_STATUS_FULL;
-		} else {
-		cm->is_full  = false;
+		if (is_full_charged(cm) ) {
+			dev_info(cm->dev, "EVENT_HANDLE: Battery Fully Charged\n");
+			cm->battery_status = POWER_SUPPLY_STATUS_FULL;
+		}
 		cm->emergency_stop = 0;
 		cm->charging_status = 0;
 		try_charger_enable(cm, true);
 		if (cm_is_need_start_cp(cm)) {
 			dev_info(cm->dev, "%s, reach pps threshold\n", __func__);
 			cm_start_cp_state_machine(cm, true);
-			}
-		}
+		}             
 	} else {
 		try_charger_enable(cm, false);
 	}
