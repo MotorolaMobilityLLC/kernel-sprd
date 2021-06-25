@@ -4,7 +4,7 @@
  *
  * Copyright (C) 2020, Unisoc Inc.
  */
- 
+
 #include <dt-bindings/clock/sprd,ums9620-clk.h>
 #include <dt-bindings/soc/sprd,qogirn6pro-regs.h>
 #include <dt-bindings/soc/sprd,qogirn6pro-mask.h>
@@ -2033,14 +2033,18 @@
 				reg = <0x30000 0x10000>;
 				clock-names = "pwm0", "enable0",
 					      "pwm1", "enable1",
-					      "pwm2", "enable2";
-				clocks = <&aon_clk CLK_PWM0>, <&aonapb_gate CLK_PWM0_EB>,
-					 <&aon_clk CLK_PWM1>, <&aonapb_gate CLK_PWM1_EB>,
-					 <&aon_clk CLK_PWM2>, <&aonapb_gate CLK_PWM2_EB>;
-				assigned-clocks = <&aon_clk CLK_PWM0>,
-						  <&aon_clk CLK_PWM1>,
-						  <&aon_clk CLK_PWM2>;
+					      "pwm2", "enable2",
+					      "pwm3", "enable3";
+				clocks = <&aonapb_clk CLK_PWM0>, <&aonapb_gate CLK_PWM0_EB>,
+					 <&aonapb_clk CLK_PWM1>, <&aonapb_gate CLK_PWM1_EB>,
+					 <&aonapb_clk CLK_PWM2>, <&aonapb_gate CLK_PWM2_EB>,
+					 <&aonapb_clk CLK_PWM3>, <&aonapb_gate CLK_PWM3_EB>;
+				assigned-clocks = <&aonapb_clk CLK_PWM0>,
+						  <&aonapb_clk CLK_PWM1>,
+						  <&aonapb_clk CLK_PWM2>,
+						  <&aonapb_clk CLK_PWM3>;
 				assigned-clock-parents = <&ext_26m>,
+							 <&ext_26m>,
 							 <&ext_26m>,
 							 <&ext_26m>;
 				#pwm-cells = <2>;
