@@ -291,10 +291,9 @@ static ssize_t clk_enable_set(struct device *device,
 static DEVICE_ATTR(clk_enable, S_IWUSR, NULL, clk_enable_set);
 
 
-static ssize_t sensor_init(struct device *device,
-        struct device_attribute *attr, const char *buf, size_t count)
+static ssize_t sensor_init(struct fpc_data *fpc)
 {
-    struct fpc_data *fpc = dev_get_drvdata(device);
+
     int ret = -1;
     int irqf = 0;
 
@@ -328,7 +327,16 @@ static ssize_t sensor_init(struct device *device,
             dev_name(fpc->dev), fpc);
     if (ret) {
         fpsensor_log( ERROR_LOG, "could not request irq %d\n", fpc->irq_num);
-        goto init_exit;
+        disable_irq_wake(fpc->irq_num);
+        free_irq(fpc->irq_num, fpc);
+        wakeup_source_trash(&fpc->ttw_wl);
+        ret = devm_request_threaded_irq( fpc->dev, fpc->irq_num,
+                NULL, fpc_irq_handler, irqf,
+                dev_name(fpc->dev), fpc);
+        fpsensor_log( ERROR_LOG, "the value of request irq is %d\n", ret);
+        if (ret) {
+            goto init_exit;
+        }
     }
     fpsensor_log(INFO_LOG, "requested irq, irq_gpio=%d, irq_num=%d\n", fpc->irq_gpio, fpc->irq_num);
 
@@ -344,38 +352,51 @@ static ssize_t sensor_init(struct device *device,
 
     fpsensor_log( INFO_LOG, "exit\n");
 init_exit:
-    return ret ? ret : count;
+    return ret;
 }
 
-static ssize_t sensor_release(struct device *device,
-        struct device_attribute *attribute,
-        char* buffer)
+static ssize_t sensor_release(struct fpc_data *fpc)
 {
-    struct fpc_data *fpc = dev_get_drvdata(device);
     struct device *dev = &fpc->pdev->dev;
-    fpsensor_log(INFO_LOG, "entry\n");
-    if( fpc->irq_num) {
+    fpsensor_log(ERROR_LOG, "entry\n");
+
+    if(fpc->irq_num) {
         disable_irq_wake(fpc->irq_num);
         free_irq(fpc->irq_num, fpc);
+        wakeup_source_trash(&fpc->ttw_wl);
         fpc->irq_num = 0;
     }
     fpsensor_log(INFO_LOG, "exit\n");
 
-	if(fpc->rst_gpio)
-	{
-		devm_gpio_free(dev, fpc->rst_gpio);
-		fpc->rst_gpio = 0;
+	if (gpio_is_valid(fpc->rst_gpio)) {
+			devm_gpio_free(dev, fpc->rst_gpio);
+			fpsensor_log(ERROR_LOG, "remove rst_gpio success.\n");
 	}
 
-	if(fpc->irq_gpio)
-	{
-		devm_gpio_free(dev, fpc->irq_gpio);
-		fpc->irq_gpio = 0;
+	if (gpio_is_valid(fpc->irq_gpio)) {
+			devm_gpio_free(dev, fpc->irq_gpio);
+			fpsensor_log(ERROR_LOG, "remove irq_gpio success.\n");
 	}
+
     return 1;
 }
 
-static DEVICE_ATTR(sensor, S_IRUSR | S_IWUSR, sensor_release, sensor_init);
+static ssize_t sensor_set(struct device *dev,
+       struct device_attribute *attr, const char *buf, size_t count)
+{
+       int rc;
+       struct fpc_data *fpc = dev_get_drvdata(dev);
+
+       if (!memcmp(buf, "init", strlen("init")))
+               rc = sensor_init(fpc);
+       else if (!memcmp(buf, "release", strlen("release")))
+               rc = sensor_release(fpc);
+       else
+               return -EINVAL;
+
+       return rc ? rc : count;
+}
+static DEVICE_ATTR(sensor, S_IWUSR, NULL, sensor_set);
 
 static ssize_t hwinfo_set(struct device *device,
         struct device_attribute *attr, const char *buf, size_t count)
@@ -518,53 +539,60 @@ static int fpc_dts_pin_init( struct fpc_data * fpc)
     struct device_node *node = NULL;
     //struct platform_device *pdev = NULL;
     struct device *dev = &fpc->pdev->dev;
-	int ret = 0;
+    int ret = 0;
 
     node = of_find_compatible_node(NULL, NULL, "sprd,fingerprint-fpc1520");
     if (node) {
 
-	    ret = of_get_named_gpio(node, "fpsensor,reset-gpio", 0); 
-        if (ret < 0) {
+	fpc->rst_gpio = of_get_named_gpio(node, "fpsensor,reset-gpio", 0);
+        if (fpc->rst_gpio < 0) {
             fpsensor_log(ERROR_LOG,"failed to get fpsensor,reset-gpio \n");
-            return ret;
-        } 
-		fpc->rst_gpio = ret;
-		ret = devm_gpio_request(dev, fpc->rst_gpio, "fpsensor,reset-gpio");
-		if (ret) {
-			fpsensor_log(ERROR_LOG,"failed to request gpio %d\n", fpc->rst_gpio);
-            goto dts_init_exit;
-		}
+            return fpc->rst_gpio;
+        }
+	ret = devm_gpio_request(dev, fpc->rst_gpio, "fpsensor,reset-gpio");
+	if (ret) {
+	    fpsensor_log(ERROR_LOG,"failed to request reset_gpio %d\n", fpc->rst_gpio);
+            // goto dts_init_exit;
+            gpio_free(fpc->rst_gpio);
+            ret = devm_gpio_request(dev, fpc->rst_gpio, "fpsensor,reset-gpio");
+            fpsensor_log(ERROR_LOG,"the value of request fpc->rst_gpio is %d\n", ret);
+	}
 
-	    ret = of_get_named_gpio(node, "fpsensor,eint-gpio", 0); 
-        if (ret < 0) {
+	fpc->irq_gpio = of_get_named_gpio(node, "fpsensor,eint-gpio", 0);
+        if (fpc->irq_gpio < 0) {
             fpsensor_log(ERROR_LOG,"failed to get fpsensor,eint-gpio");
-            goto dts_init_reset;
-        } 
-		fpc->irq_gpio = ret;
-		ret = devm_gpio_request(dev, fpc->irq_gpio, "fpsensor,eint-gpio \n");
-		if (ret) {
-			fpsensor_log(ERROR_LOG,"failed to request gpio %d\n", fpc->irq_gpio);
-            goto dts_init_reset;
-		}
+           // goto dts_init_exit;
+            return fpc->irq_gpio;
+        }
+        ret = devm_gpio_request(dev, fpc->irq_gpio, "fpsensor,eint-gpio");
+        if (ret) {
+            fpsensor_log(ERROR_LOG,"failed to request eint_gpio\n");
+            gpio_free(fpc->irq_gpio);
+            ret = devm_gpio_request(dev, fpc->irq_gpio, "fpsensor,eint-gpio");
+            fpsensor_log(ERROR_LOG,"the value of request fpc->irq_gpio is %d\n", ret);
+        }
 
         fpsensor_log(DEBUG_LOG,"fpc->irq_gpio =%d, fpc->rst_gpio = %d\n", fpc->irq_gpio, fpc->rst_gpio);
         gpio_direction_output(fpc->rst_gpio, 1);
         gpio_direction_output(fpc->irq_gpio, 0);
-		return ret;
+        return ret;
     } else {
         fpsensor_log(ERROR_LOG,"Cannot find node!\n");
         ret = -ENODEV;
 		return ret;
+    }
+
+/*dts_init_exit:
+	if (gpio_is_valid(fpc->rst_gpio)) {
+			devm_gpio_free(dev, fpc->rst_gpio);
+			fpsensor_log(ERROR_LOG, "remove rst_gpio success.\n");
+	}
+    if (gpio_is_valid(fpc->irq_gpio)) {
+			devm_gpio_free(dev, fpc->irq_gpio);
+			fpsensor_log(ERROR_LOG, "remove irq_gpio success.\n");
 	}
 
-dts_init_reset:
-    if(fpc->rst_gpio != 0)
-	{
-	    devm_gpio_free(dev, fpc->rst_gpio);
-		fpc->rst_gpio = 0;
-	}
-dts_init_exit:
-    return ret;
+    return ret;*/
 }
 #if 0
 int fpc_init_test( struct device *device)
