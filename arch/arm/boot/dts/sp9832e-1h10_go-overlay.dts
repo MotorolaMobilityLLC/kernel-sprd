@@ -422,9 +422,8 @@
 };
 
 &usb {
-	extcon = <&extcon_gpio>;
-	/*vbus-supply = <&vddvbus>;*/
-	status = "okay";
+	extcon = <&extcon_gpio>, <&pmic_typec>;
+	vbus-supply = <&vddvbus>;
 };
 
 &pmic_fgu {
