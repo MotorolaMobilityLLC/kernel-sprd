@@ -857,6 +857,12 @@
 	first-calib-capacity = <50>;
 };
 
+&ddr_dfs {
+	  sprd-scene = "boost", "lcdon", "lcdoff", "camlow",
+			"camhigh", "camveryhigh", "faceid";
+	  sprd-freq = <1333 768 256 1333 1333 0xbacd 1333>;
+};
+
 &panel {
 	avdd-gpio = <&ap_gpio 135 GPIO_ACTIVE_HIGH>;
 	avee-gpio = <&ap_gpio 136 GPIO_ACTIVE_HIGH>;
