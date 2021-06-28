@@ -110,7 +110,6 @@
 #define SC27XX_FGU_DEBUG_DIS_CMD	0x5a5a5a5a
 #define SC27XX_FGU_FCC_PERCENT		1000
 
-#define SC27XX_FGU_TRACK_CAP_SHUTDOWN_START_VOLTAGE	3500
 #define SC27XX_FGU_TRACK_CAP_START_VOLTAGE		3650
 #define SC27XX_FGU_TRACK_CAP_START_CURRENT		50
 #define SC27XX_FGU_TRACK_CAP_KEY0			0x20160726
@@ -1972,7 +1971,7 @@ static int sc27xx_fgu_get_batt_energy_now(struct sc27xx_fgu_data *data, int *clb
 static void sc27xx_fgu_track_capacity_monitor(struct sc27xx_fgu_data *data)
 {
 	int ibat_avg, ret;
-	int capacity, clbcnt, ocv, boot_volt, vbat_avg;
+	int capacity, clbcnt, ocv, vbat_avg;
 	u32 total_cap;
 
 	if (!data->track.cap_tracking)
@@ -2009,7 +2008,6 @@ static void sc27xx_fgu_track_capacity_monitor(struct sc27xx_fgu_data *data)
 
 	ocv = ocv / 1000;
 
-	boot_volt = data->boot_vol;
 	/*
 	 * If the capacity tracking monitor in idle state, we will
 	 * record the start battery coulomb. when the capacity
@@ -2042,35 +2040,22 @@ static void sc27xx_fgu_track_capacity_monitor(struct sc27xx_fgu_data *data)
 		 * multiple test data, so this point suitable as a
 		 * starting condition.
 		 */
-		if (is_charger_mode) {
-			if (boot_volt > SC27XX_FGU_TRACK_CAP_SHUTDOWN_START_VOLTAGE ||
-			    ocv > SC27XX_FGU_TRACK_CAP_START_VOLTAGE) {
-				dev_info(data->dev, "not satisfy shutdown start condition.\n");
-				return;
-			}
-		} else {
-			if (abs(ibat_avg) > SC27XX_FGU_TRACK_CAP_START_CURRENT ||
-			    ocv > SC27XX_FGU_TRACK_CAP_START_VOLTAGE) {
-				dev_info(data->dev, "not satisfy power on start condition.\n");
-				return;
-			}
+
+		if (abs(ibat_avg) > SC27XX_FGU_TRACK_CAP_START_CURRENT ||
+		    ocv > SC27XX_FGU_TRACK_CAP_START_VOLTAGE) {
+			dev_info(data->dev, "not satisfy power on start condition.\n");
+			return;
 		}
 
 		dev_info(data->dev, "start ibat_avg = %d, vbat_avg = %d,"
-			 "ocv = %d, boot_volt = %d\n", ibat_avg,
-			 vbat_avg, ocv, boot_volt);
+			 "ocv = %d\n", ibat_avg, vbat_avg, ocv);
 		/*
 		 * Parse the capacity table to look up the correct capacity percent
 		 * according to current battery's corresponding OCV values.
 		 */
-		if (is_charger_mode)
-			data->track.start_cap = power_supply_ocv2cap_simple(data->cap_table,
-									    data->table_len,
-									    boot_volt);
-		else
-			data->track.start_cap = power_supply_ocv2cap_simple(data->cap_table,
-									    data->table_len,
-									    ocv);
+		data->track.start_cap = power_supply_ocv2cap_simple(data->cap_table,
+								    data->table_len,
+								    ocv * 1000);
 		data->track.start_cap *= 10;
 		dev_info(data->dev, "is_charger_mode = %d, start_cap = %d\n",
 			 is_charger_mode, data->track.start_cap);
@@ -2098,7 +2083,7 @@ static void sc27xx_fgu_track_capacity_monitor(struct sc27xx_fgu_data *data)
 		data->track.start_time = ktime_divns(ktime_get_boottime(), NSEC_PER_SEC);
 		data->track.start_clbcnt = clbcnt;
 		data->track.state = CAP_TRACK_UPDATING;
-		dev_info(data->dev, "start_time = %d, clbcnt = %d\n",
+		dev_info(data->dev, "start_time = %lld, clbcnt = %d\n",
 			 data->track.start_time, clbcnt);
 		break;
 
@@ -2138,8 +2123,7 @@ static void sc27xx_fgu_track_capacity_monitor(struct sc27xx_fgu_data *data)
 
 			total_cap = data->total_cap;
 			dev_info(data->dev, "end ibat_avg = %d, vbat_avg = %d,"
-				 "ocv = %d, boot_volt = %d\n", ibat_avg,
-				 vbat_avg, ocv, boot_volt);
+				 "ocv = %d\n", ibat_avg, vbat_avg, ocv);
 			/*
 			 * Due to the capacity tracking function started, the
 			 * coulomb amount corresponding to the initial
