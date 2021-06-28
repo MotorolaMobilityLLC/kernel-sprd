@@ -17,6 +17,7 @@ obj-$(CONFIG_SND_SOC_UNISOC_CODEC_SC2730)		+= codec/sprd/sc2730/
 obj-$(CONFIG_SND_SOC_UNISOC_PA_UCP1301)		+= codec/sprd/ucp1301/
 obj-$(CONFIG_SND_SOC_UNISOC_CODEC_SC2721)		+= codec/sprd/sc2721/
 obj-$(CONFIG_SND_SOC_UNISOC_PDM_R2P0)		+= codec/sprd/pdm_r2p0/
+obj-$(CONFIG_SND_SOC_UNISOC_CODEC_UMP9620)		+= codec/sprd/ump9620/
 
 # Machines
 snd-soc-sprd-card-objs		:= sprd-asoc-common.o sprd-asoc-card-utils.o \
@@ -26,6 +27,7 @@ snd-soc-sprd-card-objs		:= sprd-asoc-common.o sprd-asoc-card-utils.o \
 obj-$(CONFIG_SND_SOC_UNISOC_VBC_V4_SC2730)	+= snd-soc-sprd-card.o
 obj-$(CONFIG_SND_SOC_UNISOC_R1P0V3_SC2721)	+= snd-soc-sprd-card.o
 obj-$(CONFIG_SND_SOC_UNISOC_VBC_V4_SC2730_MCDT_R2P0)	+= snd-soc-sprd-card.o
+obj-$(CONFIG_SND_SOC_UNISOC_VBC_V4_UMP9620_MCDT_R2P0)	+= snd-soc-sprd-card.o
 
 snd-soc-sprd-i2s-card-objs		:= i2s-r0p0-dummy-codec.o
 obj-$(CONFIG_SND_SOC_UNISOC_I2S_DUMMY)		+= snd-soc-sprd-i2s-card.o

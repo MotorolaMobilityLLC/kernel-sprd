@@ -77,4 +77,24 @@ config UNISOC_AUDIO_CPBOOT
 	  Audio cp boot driver is used for reboot audio cp in kernel.
 	  It support interface for userspace to stop audio cp, download dsp bin and
 	  start audio cp.
+
+config UNISOC_AUDIO_VOICE_TRIGGER
+	tristate "Sprd audio voice trigger"
+	default n
+	help
+		This module is used to create a file node for voice trigger,
+		it will be used by audio HAL.
+		Say Y if you support voice trigger.
+
+config SND_SOC_XS200X
+	tristate "XS200X Voice Trigger"
+	default n
+	help
+		XS200X Voice Trigger driver
+
+config SND_SOC_AK4377_HIFI
+	tristate "AK4377_HIFI"
+	default n
+	help
+		AK4377_HIFI
 endmenu

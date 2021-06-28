@@ -16,6 +16,8 @@
 
 #if (defined(CONFIG_SND_SOC_UNISOC_CODEC_SC2730) || defined(CONFIG_SND_SOC_UNISOC_CODEC_SC2730_MODULE))
 #include "./sc2730/sprd-headset-2730.h"
+#elif (defined(CONFIG_SND_SOC_UNISOC_CODEC_UMP9620) || defined(CONFIG_SND_SOC_UNISOC_CODEC_UMP9620_MODULE))
+#include "./ump9620/sprd-headset-ump9620.h"
 #elif (defined(CONFIG_SND_SOC_UNISOC_CODEC_SC2721) || defined(CONFIG_SND_SOC_UNISOC_CODEC_SC2721_MODULE))
 #include "./sc2721/sprd-headset-2721.h"
 #endif

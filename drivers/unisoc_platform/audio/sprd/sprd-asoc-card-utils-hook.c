@@ -18,6 +18,7 @@
 #include <linux/of_gpio.h>
 #include <linux/platform_device.h>
 #include <linux/spinlock.h>
+#include <linux/kallsyms.h>
 
 #include "sprd-asoc-card-utils.h"
 #include "sprd-asoc-common.h"
@@ -54,6 +55,7 @@ static struct sprd_asoc_hook_spk_priv hook_spk_priv;
 #define EN_LEVEL 1
 
 static int select_mode;
+static u32 extral_iic_pa_en;
 
 static ssize_t select_mode_show(struct kobject *kobj,
 				struct kobj_attribute *attr, char *buff)
@@ -129,6 +131,23 @@ static int hook_general_spk(int id, int on)
 {
 	int gpio, mode;
 
+	sp_asoc_pr_info("%s enter\n", __func__);
+
+#if 0
+	if (extral_iic_pa_en > 0) {
+		static int (*extral_i2c_pa_function)(int);
+
+		extral_i2c_pa_function = (void *)kallsyms_lookup_name("aw87xxx_i2c_pa");
+		if (!extral_i2c_pa_function) {
+			sp_asoc_pr_info("%s extral_i2c_pa is not prepare\n", __func__);
+		} else {
+			sp_asoc_pr_info("%s extral_i2c_pa, on %d\n", __func__, on);
+			extral_i2c_pa_function(on);
+		}
+		return HOOK_OK;
+	}
+#endif
+
 	gpio = hook_spk_priv.gpio[id];
 	if (gpio < 0) {
 		pr_err("%s gpio is invalid!\n", __func__);
@@ -173,11 +192,21 @@ static int sprd_asoc_card_parse_hook(struct device *dev,
 	struct device_node *np = dev->of_node;
 	const char *prop_pa_info = "sprd,spk-ext-pa-info";
 	const char *prop_pa_gpio = "sprd,spk-ext-pa-gpio";
+	const char *extral_iic_pa_info = "extral-iic-pa";
 	int spk_cnt, elem_cnt, i;
 	int ret = 0;
 	unsigned long gpio_flag;
 	unsigned int ext_ctrl_type, share_gpio, hook_sel, priv_data;
 	u32 *buf;
+	u32 extral_iic_pa = 0;
+
+	ret = of_property_read_u32(np, extral_iic_pa_info, &extral_iic_pa);
+	if (!ret) {
+		sp_asoc_pr_info("%s hook aw87xx iic pa!\n", __func__);
+		extral_iic_pa_en = extral_iic_pa;
+		ext_hook->ext_ctrl[BOARD_FUNC_SPK] = ext_hook_arr[BOARD_FUNC_SPK].hook;
+		return 0;
+	}
 
 	elem_cnt = of_property_count_u32_elems(np, prop_pa_info);
 	if (elem_cnt <= 0) {

@@ -49,6 +49,7 @@
 #define AUDIO_2723_VER_E	0x090
 #define AUDIO_2723_VER_T	0x0c0
 #define AUDIO_2723_VER_M	0x0c1
+#define AUDIO_9620_VER_AA   0xa000
 
 #define CODEC_HW_INFO \
 	"2713", "2723", "2723E", "2723T", "2731S", \

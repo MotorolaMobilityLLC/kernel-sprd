@@ -53,6 +53,27 @@ config SND_SOC_UNISOC_VBC_V4_SC2730_MCDT_R2P0
 	  This vbc is in audio cp, so we should select communication config
 	  and data transmit config.
 
+config SND_SOC_UNISOC_VBC_V4_UMP9620_MCDT_R2P0
+	tristate "ASoC Spreadtrum sound card with vbc v4 and codec ump9620 and mcdt r2p0"
+	select UNISOC_AUDIO_AGDSP_ACCESS
+	select UNISOC_AUDIO_MEMORY_MANAGER
+	select UNISOC_AUDIO_SIPC
+	select UNISOC_AUDIO_MCDT_R2P0
+	select UNISOC_AUDIO_DSP_DUMP
+	select UNISOC_AUDIO_CPBOOT
+	select UNISOC_HW_DEVICE_DVFS_AGCP
+	select SND_SOC_UNISOC_VBC_V4
+	select SND_SOC_UNISOC_CODEC_UMP9620
+	select SND_SOC_UNISOC_CODEC_DUMMY
+	select SND_SOC_UNISOC_AUDIO_DMAENGINE
+	select SND_SOC_COMPRESS
+	help
+	  Say Y or M here if you want to add support for ASoC audio on
+	  Spreadtrum boards using the VBC v4 and the ump9620 codec.
+	  ASOC machine with cpu dai vbc v4 and codec dai ump9620.
+	  This vbc is in audio cp, so we should select communication config
+	  and data transmit config.
+
 config SND_SOC_UNISOC_I2S_DUMMY
 	tristate "ASoC Spreadtrum sound card with AP I2S and a dummy codec"
 	select SND_SOC_UNISOC_I2S

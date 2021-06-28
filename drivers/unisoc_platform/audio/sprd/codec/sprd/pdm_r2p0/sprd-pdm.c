@@ -699,6 +699,11 @@ static ssize_t pdm_get_read_regs(struct device *dev,
 	u32 reg;
 	ssize_t len = 0;
 
+	if (!sprd_pdm->module_en) {
+		len = sprintf(buf, "Error! Please add module_en to true!\n");
+		return len;
+	}
+
 	for (reg = ADC0_CTRL; reg < PDM_REG_MAX; reg += 0x10) {
 		len += sprintf(buf + len, "0x%04x | 0x%04x 0x%04x 0x%04x 0x%04x\n",
 			(unsigned int)(reg + sprd_pdm->base_addr)
@@ -718,6 +723,11 @@ static ssize_t pdm_set_read_regs(struct device *dev,
 {
 	struct sprd_pdm_priv *sprd_pdm = dev_get_drvdata(dev);
 	u32 databuf[2];
+
+	if (!sprd_pdm->module_en) {
+		pr_err("%s Error! Please add module_en to true!\n", __func__);
+		return len;
+	}
 
 	if (sscanf(buf, "%x %x", &databuf[0], &databuf[1]) != 2) {
 		pr_err("%s set reg, parse data fail\n", __func__);
