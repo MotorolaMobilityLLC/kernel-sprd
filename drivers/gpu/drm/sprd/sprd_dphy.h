@@ -96,5 +96,5 @@ extern const struct dphy_pll_ops sharkl5_dphy_pll_ops;
 extern const struct dphy_glb_ops sharkl5_dphy_glb_ops;
 extern const struct dphy_glb_ops sharkl5pro_dphy_glb_ops;
 extern const struct dphy_glb_ops qogirl6_dphy_glb_ops;
-
+extern const struct dphy_glb_ops qogirn6pro_dphy_glb_ops;
 #endif /* _SPRD_DPHY_H_ */

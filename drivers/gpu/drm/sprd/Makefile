@@ -23,7 +23,8 @@ sprd-drm-$(CONFIG_DRM_SPRD_DPU0) += \
 	dpu/dpu_lite_r2p0.o \
 	dpu/dpu_r2p0.o \
 	dpu/dpu_r4p0.o \
-	dpu/dpu_r5p0.o
+	dpu/dpu_r5p0.o \
+	dpu/dpu_r6p0.o
 
 sprd-drm-$(CONFIG_DRM_SPRD_DSI) += \
 	sprd_dsi.o \
@@ -54,7 +55,10 @@ sprd-drm-y += \
 	sharkl5pro/global_dphy.o \
 	qogirl6/global_dpu.o \
 	qogirl6/global_dsi.o \
-	qogirl6/global_dphy.o
+	qogirl6/global_dphy.o \
+	qogirn6pro/global_dpu.o \
+	qogirn6pro/global_dsi.o \
+	qogirn6pro/global_dphy.o
 
 sprd-drm-y += \
 	sysfs/sysfs_class.o \

@@ -203,4 +203,9 @@ extern const struct dpu_core_ops dpu_r5p0_core_ops;
 extern const struct dpu_clk_ops qogirl6_dpu_clk_ops;
 extern const struct dpu_glb_ops qogirl6_dpu_glb_ops;
 
+extern const struct dpu_core_ops dpu_r6p0_core_ops;
+extern const struct dpu_clk_ops qogirn6pro_dpu_clk_ops;
+extern const struct dpu_glb_ops qogirn6pro_dpu_glb_ops;
+
+
 #endif /* _SPRD_DPU_H_ */

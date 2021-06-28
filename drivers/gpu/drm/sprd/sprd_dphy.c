@@ -217,6 +217,12 @@ static const struct sprd_dphy_ops qogirl6_dphy = {
 	.glb = &qogirl6_dphy_glb_ops,
 };
 
+static const struct sprd_dphy_ops qogirn6pro_dphy = {
+	.ppi = &dsi_ctrl_ppi_ops,
+	.pll = &sharkl5_dphy_pll_ops,
+	.glb = &qogirn6pro_dphy_glb_ops,
+};
+
 static const struct of_device_id dphy_match_table[] = {
 	{ .compatible = "sprd,sharkle-dsi-phy",
 	  .data = &sharkle_dphy },
@@ -230,6 +236,8 @@ static const struct of_device_id dphy_match_table[] = {
 	  .data = &sharkl5pro_dphy },
 	{ .compatible = "sprd,qogirl6-dsi-phy",
 	  .data = &qogirl6_dphy },
+	{ .compatible = "sprd,qogirn6pro-dsi-phy",
+	  .data = &qogirn6pro_dphy },
 	{ /* sentinel */ },
 };
 

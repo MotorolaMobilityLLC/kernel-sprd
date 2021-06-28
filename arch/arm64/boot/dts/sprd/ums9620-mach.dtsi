@@ -820,7 +820,7 @@
 	display-subsystem {
 		compatible = "sprd,display-subsystem";
 		ports = <&dpu_port>, <&dpu1_port>;
-		gsp = <&gsp>;
+		/*gsp = <&gsp>;*/
 	};
 };
 

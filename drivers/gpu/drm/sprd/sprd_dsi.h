@@ -90,6 +90,8 @@ struct dsi_context {
 	bool te_ack_en;
 	/* enable non coninuous clock for energy saving */
 	bool nc_clk_en;
+	/* dpi clk need switch to 384m fot div6/div8 feature */
+	bool clk_dpi_384m;
 };
 
 struct dsi_core_ops {
@@ -205,5 +207,5 @@ extern const struct dsi_glb_ops sharkl3_dsi_glb_ops;
 extern const struct dsi_glb_ops sharkl5_dsi_glb_ops;
 extern const struct dsi_glb_ops sharkl5pro_dsi_glb_ops;
 extern const struct dsi_glb_ops qogirl6_dsi_glb_ops;
-
+extern const struct dsi_glb_ops qogirn6pro_dsi_glb_ops;
 #endif /* _SPRD_DSI_H_ */

@@ -563,6 +563,12 @@ static const struct sprd_dpu_ops qogirl6_dpu = {
 	.glb = &qogirl6_dpu_glb_ops,
 };
 
+static const struct sprd_dpu_ops qogirn6pro_dpu = {
+	.core = &dpu_r6p0_core_ops ,
+	.clk = &qogirn6pro_dpu_clk_ops,
+	.glb = &qogirn6pro_dpu_glb_ops,
+};
+
 static const struct of_device_id dpu_match_table[] = {
 	{ .compatible = "sprd,sharkle-dpu",
 	  .data = &sharkle_dpu },
@@ -576,6 +582,8 @@ static const struct of_device_id dpu_match_table[] = {
 	  .data = &sharkl5pro_dpu },
 	{ .compatible = "sprd,qogirl6-dpu",
 	  .data = &qogirl6_dpu },
+	{ .compatible = "sprd,qogirn6pro-dpu",
+	  .data = &qogirn6pro_dpu },  
 	{ /* sentinel */ },
 };
 

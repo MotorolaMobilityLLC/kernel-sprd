@@ -665,22 +665,17 @@
 			ranges;
 
 			dpu: dpu@31000000 {
-				compatible = "sprd,display-processor";
+				compatible = "sprd,qogirn6pro-dpu";
 				reg = <0x0 0x31000000 0x0 0x3000>,
 				       <0x0 0x30120000 0x0 0x100>;
-				syscons = <&dpu_vsp_apb_regs REG_DPU_VSP_APB_RST
-				MASK_DPU_VSP_APB_DISPC_SOFT_RST>,
-				<&dpu_vsp_apb_regs REG_DPU_VSP_APB_RST
-				MASK_DPU_VSP_APB_DISPC_VAU_SOFT_RST>;
-				syscon-names = "reset", "vau_reset";
+				reset-syscon = <&dpu_vsp_apb_regs REG_DPU_VSP_APB_RST
+								MASK_DPU_VSP_APB_DISPC_SOFT_RST>;
+
 
 				interrupts = <GIC_SPI 152 IRQ_TYPE_LEVEL_HIGH>;
 				status = "disabled";
 				iommus = <&iommu_dispc>;
 
-				dma-coherent;
-				sprd,ip = "dpu-r6p0";
-				sprd,soc = "qogirn6pro";
 
 				#power-domain-cells = <0>;
 				power-domains = <&vpu_pd_top>;
@@ -721,18 +716,16 @@
 			};
 
 			dsi1: dsi1@31400000 {
-				compatible = "sprd,dsi-host";
+				compatible = "sprd,qogirn6pro-dsi-host";
 				reg = <0x0 0x31400000 0x0 0x1000>;
-				syscons = <&dpu_vsp_apb_regs REG_DPU_VSP_APB_RST
+				reset-syscon = <&dpu_vsp_apb_regs REG_DPU_VSP_APB_RST
 				MASK_DPU_VSP_APB_DSI1_SOFT_RST>;
-				syscon-names = "reset";
+
 				interrupts = <GIC_SPI 155 IRQ_TYPE_LEVEL_HIGH>,
 				<GIC_SPI 154 IRQ_TYPE_LEVEL_HIGH>;
 
 				status = "disabled";
 				dev-id = <1>;
-				sprd,ip = "sprd,dsi-ctrl", "r3p1";
-				sprd,soc = "qogirn6pro_s";
 
 				#power-domain-cells = <0>;
 				power-domains = <&vpu_pd_top>;
@@ -752,18 +745,15 @@
 			};
 
 			dsi: dsi@31300000 {
-				compatible = "sprd,dsi-host";
+				compatible = "sprd,qogirn6pro-dsi-host";
 				reg = <0x0 0x31300000 0x0 0x1000>;
-				syscons = <&dpu_vsp_apb_regs REG_DPU_VSP_APB_RST
+				reset-syscon = <&dpu_vsp_apb_regs REG_DPU_VSP_APB_RST
 				MASK_DPU_VSP_APB_DSI0_SOFT_RST>;
-				syscon-names = "reset";
+
 				interrupts = <GIC_SPI 158 IRQ_TYPE_LEVEL_HIGH>,
 				<GIC_SPI 157 IRQ_TYPE_LEVEL_HIGH>;
 
 				status = "disabled";
-
-				sprd,ip = "sprd,dsi-ctrl", "r3p1";
-				sprd,soc = "qogirn6pro";
 
 				#power-domain-cells = <0>;
 				power-domains = <&vpu_pd_top>;
@@ -789,24 +779,20 @@
 			};
 
 			dphy1: dphy1 {
-				compatible = "sprd,dsi-phy";
+				compatible = "sprd,qogirn6pro-dsi-phy";
 				#address-cells = <1>;
 				#size-cells = <0>;
 				reg = <0x0 0x31400000 0x0 0x1000>;
-				syscons = <&dpu_vsp_apb_regs
+				enable-syscon = <&dpu_vsp_apb_regs
 				REG_DPU_VSP_APB_MISC_CKG_EB
 				(MASK_DPU_VSP_APB_DPHY1_REF_CKG_EN |
-				MASK_DPU_VSP_APB_DPHY1_CFG_CKG_EN)>,
-				<&pmu_apb_regs
+				MASK_DPU_VSP_APB_DPHY1_CFG_CKG_EN)>;
+				power-syscon = <&pmu_apb_regs
 				REG_PMU_APB_RF_ANALOG_PHY_PD_CFG
 				MASK_PMU_APB_RF_DSI1_PD_REG>;
-				syscon-names = "enable", "power";
 				status = "disabled";
 				dev-id = <1>;
-				sprd,ip = "sprd,megacores-sharkl5";
-				sprd,soc = "qogirn6pro_s";
 				sprd,mipi-drive-capability = <7>;
-				/* input port*/
 				port@1 {
 					reg = <1>;
 					dphy1_in: endpoint {
@@ -816,37 +802,23 @@
 			};
 
 			dphy: dphy {
-				compatible = "sprd,dsi-phy";
+				compatible = "sprd,qogirn6pro-dsi-phy";
 				#address-cells = <1>;
 				#size-cells = <0>;
 				reg = <0x0 0x31300000 0x0 0x1000>;
-				syscons = <&dpu_vsp_apb_regs
-				REG_DPU_VSP_APB_MISC_CKG_EB
-				(MASK_DPU_VSP_APB_DPHY0_REF_CKG_EN |
-				MASK_DPU_VSP_APB_DPHY0_CFG_CKG_EN)>,
-				<&pmu_apb_regs
-				REG_PMU_APB_RF_ANALOG_PHY_PD_CFG
-				MASK_PMU_APB_RF_DSI0_PD_REG>,
-				<&aon_apb_regs
-				REG_AON_APB_MIPI_DSI8_CTRL
-				(MASK_AON_APB_MIPI_DSI_8LANE_DSI_AOD_EN_M |
-				MASK_AON_APB_MIPI_DSI_8LANE_DSI_AOD_MOD_M)>,
-				<&aon_apb_regs
-				REG_AON_APB_MIPI_DSI8_CTRL
-				MASK_AON_APB_MIPI_DSI_8LANE_DSI_AOD_PD_M>;
-				syscon-names = "enable", "power", "aod_mode", "aod_pd";
+				enable-syscon = <&dpu_vsp_apb_regs REG_DPU_VSP_APB_MISC_CKG_EB
+								(MASK_DPU_VSP_APB_DPHY0_REF_CKG_EN |
+								MASK_DPU_VSP_APB_DPHY0_CFG_CKG_EN)>;
+				power-syscon = <&pmu_apb_regs REG_PMU_APB_RF_ANALOG_PHY_PD_CFG
+							MASK_PMU_APB_RF_DSI0_PD_REG>;
 				status = "disabled";
-				sprd,ip = "sprd,megacores-sharkl5";
-				sprd,soc = "qogirn6pro";
 				sprd,mipi-drive-capability = <7>;
-				/* output port */
 				port@0 {
 					reg = <0>;
 					dphy_out: endpoint {
 					remote-endpoint = <&panel_in>;
 					};
 				};
-				/* input port*/
 				port@1 {
 					reg = <1>;
 					dphy_in: endpoint {
