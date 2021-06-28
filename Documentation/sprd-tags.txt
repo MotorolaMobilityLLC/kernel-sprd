@@ -119,6 +119,7 @@ media:platform:sprd-jpg:
 media:platform:sprd-vsp:
 mfd:sprd:
 misc:audio:
+misc:sprd_apdu:
 misc:sprd_camera:
 misc:sprd_gnss:
 misc:sprd_uid:
