@@ -3321,55 +3321,55 @@ static struct sprd_clk_desc ums9620_dpu_vsp_clk_desc = {
  * kernel gates these clock.
  */
 static SPRD_SC_GATE_CLK_HW(audcp_iis0_eb, "audcp-iis0-eb", &access_aud_en.common.hw,
-			0x0, 0x1000, BIT(0), CLK_IGNORE_UNUSED, 0);
+			0x0, 0x1000, BIT(0), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(audcp_iis1_eb, "audcp-iis1-eb", &access_aud_en.common.hw,
-			0x0, 0x1000, BIT(1), CLK_IGNORE_UNUSED, 0);
+			0x0, 0x1000, BIT(1), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(audcp_iis2_eb, "audcp-iis2-eb", &access_aud_en.common.hw,
-			0x0, 0x1000, BIT(2), CLK_IGNORE_UNUSED, 0);
+			0x0, 0x1000, BIT(2), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(audcp_uart_eb, "audcp-uart-eb", &access_aud_en.common.hw,
-			0x0, 0x1000, BIT(4), CLK_IGNORE_UNUSED, 0);
+			0x0, 0x1000, BIT(4), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(audcp_dma_cp_eb, "audcp-dma-cp-eb", &access_aud_en.common.hw,
-			0x0, 0x1000, BIT(5), CLK_IGNORE_UNUSED, 0);
+			0x0, 0x1000, BIT(5), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(audcp_dma_ap_eb, "audcp-dma-ap-eb", &access_aud_en.common.hw,
-			0x0, 0x1000, BIT(6), CLK_IGNORE_UNUSED, 0);
+			0x0, 0x1000, BIT(6), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(audcp_src48k_eb, "audcp-src48k-eb", &access_aud_en.common.hw,
-			0x0, 0x1000, BIT(10), CLK_IGNORE_UNUSED, 0);
+			0x0, 0x1000, BIT(10), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(audcp_mcdt_eb, "audcp-mcdt-eb", &access_aud_en.common.hw,
-			0x0, 0x1000, BIT(12), CLK_IGNORE_UNUSED, 0);
+			0x0, 0x1000, BIT(12), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(audcp_vbc_eb, "audcp-vbc-eb", &access_aud_en.common.hw,
-			0x0, 0x1000, BIT(15), CLK_IGNORE_UNUSED, 0);
+			0x0, 0x1000, BIT(15), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(audcp_splk_eb, "audcp-splk-eb", &access_aud_en.common.hw,
-			0x0, 0x1000, BIT(17), CLK_IGNORE_UNUSED, 0);
+			0x0, 0x1000, BIT(17), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(audcp_icu_eb, "audcp-icu-eb", &access_aud_en.common.hw,
-			0x0, 0x1000, BIT(18), CLK_IGNORE_UNUSED, 0);
+			0x0, 0x1000, BIT(18), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(dma_ap_ashb_eb, "dma-ap-ashb-eb", &access_aud_en.common.hw,
-			0x0, 0x1000, BIT(19), CLK_IGNORE_UNUSED, 0);
+			0x0, 0x1000, BIT(19), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(dma_cp_ashb_eb, "dma-cp-ashb-eb", &access_aud_en.common.hw,
-			0x0, 0x1000, BIT(20), CLK_IGNORE_UNUSED, 0);
+			0x0, 0x1000, BIT(20), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(audcp_aud_eb, "audcp-aud-eb", &access_aud_en.common.hw,
-			0x0, 0x1000, BIT(21), CLK_IGNORE_UNUSED, 0);
+			0x0, 0x1000, BIT(21), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(audif_ckg_auto_en, "audif-ckg-auto-en", &access_aud_en.common.hw,
-			0x0, 0x1000, BIT(22), CLK_IGNORE_UNUSED, 0);
+			0x0, 0x1000, BIT(22), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(audcp_vbc_24m_eb, "audcp-vbc-24m-eb", &access_aud_en.common.hw,
-			0x0, 0x1000, BIT(23), CLK_IGNORE_UNUSED, 0);
+			0x0, 0x1000, BIT(23), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(audcp_tmr_26m_eb, "audcp-tmr-26m-eb", &access_aud_en.common.hw,
-			0x0, 0x1000, BIT(24), CLK_IGNORE_UNUSED, 0);
+			0x0, 0x1000, BIT(24), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(audcp_dvfs_ashb_eb, "audcp-dvfs-ashb-eb",
 			&access_aud_en.common.hw, 0x0, 0x1000, BIT(25),
-			CLK_IGNORE_UNUSED, 0);
+			CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(audcp_matrix_cfg_en, "audcp-matrix-cfg-en",
 			&access_aud_en.common.hw, 0x0, 0x1000, BIT(26),
-			CLK_IGNORE_UNUSED, 0);
+			CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(audcp_tdm_hf_eb, "audcp-tdm-hf-eb", &access_aud_en.common.hw,
-			0x0, 0x1000, BIT(27), CLK_IGNORE_UNUSED, 0);
+			0x0, 0x1000, BIT(27), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(audcp_tdm_eb, "audcp-tdm-eb", &access_aud_en.common.hw,
-			0x0, 0x1000, BIT(28), CLK_IGNORE_UNUSED, 0);
+			0x0, 0x1000, BIT(28), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(audcp_vbc_ap_eb, "audcp-vbc-ap-eb", &access_aud_en.common.hw,
-			0x4, 0x1000, BIT(17), CLK_IGNORE_UNUSED, 0);
+			0x4, 0x1000, BIT(17), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(audcp_mcdt_ap_eb, "audcp-mcdt-ap-eb", &access_aud_en.common.hw,
-			0x4, 0x1000, BIT(18), CLK_IGNORE_UNUSED, 0);
+			0x4, 0x1000, BIT(18), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(audcp_aud_ap_eb, "audcp-aud-ap-eb", &access_aud_en.common.hw,
-			0x4, 0x1000, BIT(19), CLK_IGNORE_UNUSED, 0);
+			0x4, 0x1000, BIT(19), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 
 static struct sprd_clk_common *ums9620_audcpglb_gate[] = {
 	/* address base is 0x56200000 */
@@ -3441,17 +3441,17 @@ static const struct sprd_clk_desc ums9620_audcpglb_gate_desc = {
  * kernel gates these clock.
  */
 static SPRD_SC_GATE_CLK_HW(audcp_vad_eb, "audcp-vad-eb", &access_aud_en.common.hw,
-			0x0, 0x1000, BIT(0), CLK_IGNORE_UNUSED, 0);
+			0x0, 0x1000, BIT(0), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(audcp_pdm_eb, "audcp-pdm-eb", &access_aud_en.common.hw,
-			0x0, 0x1000, BIT(1), CLK_IGNORE_UNUSED, 0);
+			0x0, 0x1000, BIT(1), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(audcp_audif_eb, "audcp-audif-eb", &access_aud_en.common.hw,
-			0x0, 0x1000, BIT(3), CLK_IGNORE_UNUSED, 0);
+			0x0, 0x1000, BIT(3), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(audcp_pdm_iis_eb, "audcp-pdm-iis-eb", &access_aud_en.common.hw,
-			0x0, 0x1000, BIT(4), CLK_IGNORE_UNUSED, 0);
+			0x0, 0x1000, BIT(4), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(audcp_vad_apb_eb, "audcp-vad-apb-eb", &access_aud_en.common.hw,
-			0x4, 0x1000, BIT(0), CLK_IGNORE_UNUSED, 0);
+			0x4, 0x1000, BIT(0), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(audcp_pdm_ap_eb, "audcp-pdm-ap-eb", &access_aud_en.common.hw,
-			0x4, 0x1000, BIT(1), CLK_IGNORE_UNUSED, 0);
+			0x4, 0x1000, BIT(1), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 
 static struct sprd_clk_common *ums9620_audcpapb_gate[] = {
 	/* address base is 0x56390000 */
