@@ -34,6 +34,7 @@
 
 const struct dvfs_private_data ums312_dvfs_private_data __weak;
 const struct dvfs_private_data ums512_dvfs_private_data __weak;
+const struct dvfs_private_data ums9230_dvfs_private_data __weak;
 
 static const struct of_device_id sprd_cpudvfs_of_match[] = {
 	{
@@ -43,6 +44,10 @@ static const struct of_device_id sprd_cpudvfs_of_match[] = {
 	{
 		.compatible = "sprd,sharkl5pro-cpudvfs",
 		.data = &ums512_dvfs_private_data,
+	},
+	{
+		.compatible = "sprd,qogirl6-cpudvfs",
+		.data = &ums9230_dvfs_private_data,
 	},
 	{
 		/* Sentinel */
@@ -1152,7 +1157,7 @@ init_map:
 	 * Use the default dts_tbl_name, if opp name is "operating-points",
 	 * otherwise change the dts_tbl_name.
 	 */
-	dev_dbg(pdev->dev, "update dvfs index map table for host cluster%d host-tbl-name: %s\n",
+	dev_info(pdev->dev, "update dvfs index map table for host cluster%d host-tbl-name: %s\n",
 		clu_id, clu->dts_tbl_name);
 
 	ret = dvfs_map_tbl_init(pdev, clu);

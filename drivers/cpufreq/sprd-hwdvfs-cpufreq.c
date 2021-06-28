@@ -462,7 +462,7 @@ static int sprd_cpu_soc_version_parse(struct sprd_cpufreq_info *info)
 	    strcmp(value, "T616")) {
 		dev_err(info->pdev, "the cpu version defined is error(%s)\n",
 			clu->cpu_diff_ver);
-		return -EINVAL;
+		return 0;
 	}
 
 	strcpy(clu->cpu_diff_ver, value);

@@ -407,3 +407,12 @@ config ARM_SPRD_HW_CPUFREQ_ARCH_UMS512
 	 This includes SPRD UMS512 HW DVFS Architecture-dependent Driver
 
 	 If in doubt, say N.
+
+config ARM_SPRD_HW_CPUFREQ_ARCH_UMS9230
+	tristate "SPRD UMS9230 HW DVFS Driver"
+	depends on ARM_SPRD_HW_CPUFREQ_NORMAL
+	default n
+	help
+	 This includes SPRD UMS9230 HW DVFS Architecture-dependent Driver
+
+	 If in doubt, say N.
