@@ -60,6 +60,23 @@ static int __init lcd_name_get(char *str)
 }
 __setup("lcd_name=", lcd_name_get);
 
+const char *cit_tp;
+int cit_buffer;
+static int __init cit_tp_get(char *str)
+{
+    int ret;
+    if (str != NULL)
+        cit_tp = str;
+    ret = kstrtouint(cit_tp, 16, &cit_buffer);
+    if(ret < 0)
+        DRM_ERROR("cit_tp kstrtouint fail\n");
+
+    printk(KERN_ERR "cit_tp from uboot: %s, cit_buffer: 0x%02X\n", cit_tp, cit_buffer);
+
+    return ret;
+}
+__setup("cit_tp=", cit_tp_get);
+
 static inline struct sprd_panel *to_sprd_panel(struct drm_panel *panel)
 {
 	return container_of(panel, struct sprd_panel, base);
@@ -674,7 +691,7 @@ static void set_lcd_oled_level(struct sprd_oled *oled, int level)
 		break;
 	case ICNL9911c_dj_mipi_hd:
 		oled->cmds[0]->payload[1] = level & 0xFF;
-		oled->cmds[0]->payload[2] = level & 0x0E;
+		oled->cmds[0]->payload[2] = 0x0E;
 		break;
 	case HX83102d_youda_mipi_hd:
 		oled->cmds[0]->payload[1] = level;
@@ -844,7 +861,8 @@ int sprd_panel_parse_lcddtb(struct device_node *lcd_node,
 	struct panel_info *info = &panel->info;
 	int bytes, rc;
 	const void *p;
-	const char *str;
+	char *buffer;
+    const char *str;
 
 	if (!lcd_node) {
 		DRM_ERROR("Lcd node from dtb is Null\n");
@@ -956,9 +974,20 @@ int sprd_panel_parse_lcddtb(struct device_node *lcd_node,
 		DRM_ERROR("parse lcd reset sequence failed\n");
 
 	p = of_get_property(lcd_node, "sprd,initial-command", &bytes);
-	if (p) {
-		info->cmds[CMD_CODE_INIT] = p;
-		info->cmds_len[CMD_CODE_INIT] = bytes;
+	if (p){
+        printk(KERN_ERR "%s(%d) bytes:%d\n", __func__, __LINE__, bytes);
+            if (strncmp(lcd_name, "lcd_icnl9911c_dj_mipi_hd", strlen(lcd_name)) == 0){
+                buffer = (char *)kzalloc(bytes, GFP_KERNEL);
+                if(!buffer)
+                    buffer =(char *)p;
+                else
+                    memcpy(buffer, (char *)p, bytes);
+                printk(KERN_ERR "lcd_name is %s\n", lcd_name);
+                buffer[66] = cit_buffer;
+                info->cmds[CMD_CODE_INIT] = (const void *)buffer;
+            }else
+                info->cmds[CMD_CODE_INIT] = p;
+        info->cmds_len[CMD_CODE_INIT] = bytes;
 	} else
 		DRM_ERROR("can't find sprd,initial-command property\n");
 
