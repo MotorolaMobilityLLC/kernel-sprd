@@ -1507,7 +1507,6 @@ static ssize_t factory_test_show(struct device *dev,
         .flags = CTS_TEST_FLAG_VALIDATE_DATA |
                  CTS_TEST_FLAG_VALIDATE_MIN |
                  CTS_TEST_FLAG_STOP_TEST_IF_VALIDATE_FAILED |
-                 CTS_TEST_FLAG_DUMP_TEST_DATA_TO_CONSOLE |
                  CTS_TEST_FLAG_DUMP_TEST_DATA_TO_FILE,
         .test_data_filepath = NULL,
         .num_invalid_node = 0,
@@ -1518,7 +1517,6 @@ static ssize_t factory_test_show(struct device *dev,
         .flags = CTS_TEST_FLAG_VALIDATE_DATA |
                  CTS_TEST_FLAG_VALIDATE_MIN |
                  CTS_TEST_FLAG_STOP_TEST_IF_VALIDATE_FAILED |
-                 CTS_TEST_FLAG_DUMP_TEST_DATA_TO_CONSOLE |
                  CTS_TEST_FLAG_DUMP_TEST_DATA_TO_FILE,
         .test_data_filepath = NULL,
         .num_invalid_node = 0,
@@ -1530,7 +1528,6 @@ static ssize_t factory_test_show(struct device *dev,
                  CTS_TEST_FLAG_VALIDATE_MIN |
                  CTS_TEST_FLAG_VALIDATE_MAX |
                  CTS_TEST_FLAG_STOP_TEST_IF_VALIDATE_FAILED |
-                 CTS_TEST_FLAG_DUMP_TEST_DATA_TO_CONSOLE |
                  CTS_TEST_FLAG_DUMP_TEST_DATA_TO_FILE,
         .test_data_filepath = NULL,
         .num_invalid_node = 0,

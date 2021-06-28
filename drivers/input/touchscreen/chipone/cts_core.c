@@ -2859,11 +2859,11 @@ bool cts_is_charger_exist(struct cts_device *cts_dev)
 
 int cts_set_dev_charger_attached(struct cts_device *cts_dev, bool attached)
 {
-    int ret;
+    int ret = 0;
 
     cts_info("Set dev charger %s", attached ? "ATTACHED" : "DETATCHED");
-    ret = cts_send_command(cts_dev,
-        attached ? CTS_CMD_CHARGER_ATTACHED : CTS_CMD_CHARGER_DETACHED);
+//    ret = cts_send_command(cts_dev,
+//        attached ? CTS_CMD_CHARGER_ATTACHED : CTS_CMD_CHARGER_DETACHED);
     if (ret) {
         if (ret) {
             cts_err("Send CMD_CHARGER_%s failed %d",
