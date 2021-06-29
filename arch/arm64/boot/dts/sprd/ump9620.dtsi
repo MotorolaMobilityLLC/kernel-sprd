@@ -182,11 +182,14 @@
 		};
 
 		sprd_audio_codec_ana: audio-codec@1000 {
-			compatible = "sprd,ump9620-audio-codec",
+			compatible = "unisoc,ump9620-audio-codec",
 				"sprd,sc27xx-audio-codec";
 			#sound-dai-cells = <1>;
 			reg = <0x1000>;
 			sprd,syscon-pmu-apb = <&pmu_apb_regs>;
+			sprd,syscon-aon-apb = <&aon_apb_regs>;
+			clk26m_sinout_pmic_en = <&aon_apb_regs REG_AON_APB_MIPI_CSI_POWER_CTRL
+				MASK_AON_APB_R2G_ANALOG_BB_TOP_SINDRV_ENA_CAL>;
 			nvmem-cells = <&neg_cp_efuse>,
 				<&fgu_calib>;
 			nvmem-cell-names = "neg_cp_efuse",

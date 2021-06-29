@@ -909,9 +909,7 @@
 		"Ext Spk", "PDM_DMIC2",
 		"DMIC Pin", "DMic Jack",
 		"DMIC1 Pin", "DMic1 Jack",
-		"Ext Ear", "EAR Pin",
-		"UCP1301 RCV ON", "EAR Pin",
-		"Ext Ear", "UCP1301 RCV";
+		"Ext Ear", "EAR Pin";
 
 	/* 35: ucp1301 normal ap01 */
 	sprd-audio-card,dai-link@53 {

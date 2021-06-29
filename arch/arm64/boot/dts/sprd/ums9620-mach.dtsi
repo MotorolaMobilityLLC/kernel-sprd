@@ -801,6 +801,10 @@
 		};
 	};
 
+	audcp_iram_reserved: audcp-iram@a400 {
+		reg = <0x0 0xa400 0x0 0x1000>;
+	};
+
 	audio-mem-mgr {
 		memory-region = <&audio_reserved &audiodsp_reserved>;
 	};

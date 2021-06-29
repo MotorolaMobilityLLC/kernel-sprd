@@ -2463,7 +2463,7 @@
 			ranges;
 
 			vbc_v4: vbc@56510000 {
-				compatible = "sprd,qogirn6pro-vbc";
+				compatible = "unisoc,qogirn6pro-vbc";
 				#sound-dai-cells = <1>;
 				reg = <0 0x56510000 0 0x400>;
 				sprd,syscon-agcp-ahb = <&audcp_ahb_regs>;
@@ -2488,7 +2488,7 @@
 			};
 
 			pdm_dmic: pdm-dmic@56370000 {
-				compatible = "sprd,pdm-ums9620";
+				compatible = "unisoc,pdm-ums9620";
 				status = "disabled";
 				reg = <0 0x56370000 0 0x2000>,/* 56370000 56371fff */
 				      <0 0x56394000 0 0x400>;/* 400 43ff */
@@ -2499,7 +2499,7 @@
 			};
 
 			mcdt@56500000{
-				compatible = "sprd,mcdt-r2p0";
+				compatible = "unisoc,mcdt-r2p0";
 				reg = <0 0x56500000 0 0x1000>; /* 56500000 56500FFF*/
 				sprd,ap-addr-offset = <0x0>;
 				sprd,syscon-agcp-ahb = <&audcp_ahb_regs>;
@@ -2517,34 +2517,25 @@
 			};
 
 			sprd_audio_codec_dig: audio-codec@56360000 {
-				compatible = "sprd,audio-codec-dig-agcp";
+				compatible = "unisoc,audio-codec-dig-agcp";
 				reg = <0 0x56360000 0 0x800>;	/*56360000 563607FF*/
 				sprd,syscon-agcp-ahb = <&audcp_ahb_regs>;
 			};
 
 			agdsp-access {
-				compatible = "sprd,agdsp-access";
+				compatible = "unisoc,agdsp-access";
 				sprd,syscon-agcp-ahb = <&aon_apb_regs>;
 				sprd,syscon-pmu-apb = <&pmu_apb_regs>;
-				syscons = <&pmu_apb_regs REG_PMU_APB_DEEP_SLEEP_MON_0
-							MASK_PMU_APB_AUDIO_DEEP_SLEEP>,
-							<&pmu_apb_regs REG_PMU_APB_SLEEP_STATUS_0
-							MASK_PMU_APB_AUDIO_SLP_STATUS>,
-							<&pmu_apb_regs REG_PMU_APB_PWR_STATUS_DBG_21
-							MASK_PMU_APB_PD_AUDIO_STATE>,
-							<&pmu_apb_regs REG_PMU_APB_PWR_STATUS_DBG_21
-							MASK_PMU_APB_PD_AUD_CEVA_STATE>,
-							<&aon_apb_regs REG_AON_APB_AUDCP_CTRL
+				audcp_pmu_sleep_ctrl = <&pmu_apb_regs REG_PMU_APB_DEEP_SLEEP_MON_0
+							MASK_PMU_APB_AUDIO_DEEP_SLEEP>;
+				audcp_pmu_slp_status = <&pmu_apb_regs REG_PMU_APB_SLEEP_STATUS_0
+							MASK_PMU_APB_AUDIO_SLP_STATUS>;
+				audcp_pmu_pwr_status4 = <&pmu_apb_regs REG_PMU_APB_PWR_STATUS_DBG_21
+							MASK_PMU_APB_PD_AUDIO_STATE>;
+				audcp_pmu_pwr_status3 = <&pmu_apb_regs REG_PMU_APB_PWR_STATUS_DBG_21
+							MASK_PMU_APB_PD_AUD_CEVA_STATE>;
+				ap_access_ena = <&aon_apb_regs REG_AON_APB_AUDCP_CTRL
 							MASK_AON_APB_AP_2_AUD_ACCESS_EN>;
-				syscon-names = "audcp_pmu_sleep_ctrl",
-								"audcp_pmu_slp_status",
-								"audcp_pmu_pwr_status4",
-								"audcp_pmu_pwr_status3",
-								"ap_access_ena";
-				sprd,dst = <5>;
-				sprd,channel = <130>;
-				sprd,sipc-name = "sipc0";
-				sprd,mailbox-core = <5>;
 				sprd,ddr-addr-offset = <0x0>;
 				sprd,auto_agcp_access = <0>;
 			};
@@ -2752,19 +2743,19 @@
 	};
 
 	sprd_pcm: sprd-pcm-audio {
-		compatible = "sprd,qogirn6pro-pcm-platform";
+		compatible = "unisoc,qogirn6pro-pcm-platform";
 		#sound-dai-cells = <0>;
 		/* agcp dma_ap */
 		dmas = <&agcp_dma 1 &agcp_dma 2
 			&agcp_dma 3 &agcp_dma 4
-			&agcp_dma 5 &agcp_dma 6
-			&agcp_dma 7 &agcp_dma 8
-			&agcp_dma 9 &agcp_dma 10
-			&agcp_dma 11 &agcp_dma 12
-			&agcp_dma 13 &agcp_dma 14
+			&agcp_dma 17 &agcp_dma 18
 			&agcp_dma 15 &agcp_dma 16
-			&agcp_dma 9 &agcp_dma 9
-			&agcp_dma 11 &agcp_dma 14>;
+			&agcp_dma 14 &agcp_dma 8
+			&agcp_dma 12 &agcp_dma 9
+			&agcp_dma 13 &agcp_dma 8
+			&agcp_dma 11 &agcp_dma 6
+			&agcp_dma 14 &agcp_dma 14
+			&agcp_dma 12 &agcp_dma 6>;
 
 		dma-names =
 			"normal_p_l", "normal_p_r",
@@ -2782,29 +2773,30 @@
 	};
 
 	sprd_compr: sprd-compr-audio {
-		compatible = "sprd,qogirn6pro-compress-platform";
+		compatible = "unisoc,qogirn6pro-compress-platform";
 		#sound-dai-cells = <0>;
-		dmas = <&agcp_dma 17 &agcp_dma 18>;
+		dmas = <&agcp_dma 5 &agcp_dma 0>;
 		dma-names = "compr_dma_stage0", "compr_dma_stage1";
 	};
 
 	sprd_fe_dai: sprd-fe-dai {
-		compatible = "sprd,fe-dai";
+		compatible = "unisoc,fe-dai";
 		#sound-dai-cells = <1>;
 	};
 
 	sprd_route_pcm: sprd-routing-pcm {
-		compatible = "sprd,pcm-routing";
+		compatible = "unisoc,pcm-routing";
 		#sound-dai-cells = <0>;
 	};
 
-	audio-sipc{
-		compatible = "sprd,audio_sipc";
-		sprd,mailbox-core = <5>;  /* AGDSP id */
+	audio-sipc {
+		compatible = "unisoc,audio_sipc";
+		/* <&mailbox  channel_id  is_no_wakeup(default 0)> */
+		mboxes = <&mailbox 5 0>;
 	};
 
 	audio-mem-mgr {
-		compatible = "sprd,audio-mem-sharkl5", "sprd,audio-mem-sharkl5pro";
+		compatible = "unisoc,audio-mem-sharkl5", "unisoc,audio-mem-sharkl5pro";
 		/*
 		 * base is 0xaf700000 for ums9520
 		 * 1. reserved ddr layout total 3M:
@@ -2854,11 +2846,11 @@
 		/* 0x200(0.5K) */
 		sprd,normal-captue-linklilst-node2 =<0x56807e00 0x200>;
 		/* audcp aon iram */
-		sprd,audcp-aon-iram = <0xa400 0x1000>;
+		sprd,audcp-aon-iram = <&audcp_iram_reserved>;
 	};
 
 	audio-dsp-dump@0 {/* audio dsp log */
-		compatible = "sprd,audio-dsp-log";
+		compatible = "unisoc,audio_dsp_log";
 		sprd-usemem-type =<0x5>;
 		sprd-dst = /bits/ 8 <1>; /* AGDSP */
 		sprd-channel =/bits/ 8 <4>;
@@ -2867,7 +2859,7 @@
 	};
 
 	audio-dsp-dump@1 {/* audio dsp pcm */
-		compatible = "sprd,audio-dsp-pcm";
+		compatible = "unisoc,audio_dsp_pcm";
 		sprd-usemem-type =<0x5>;
 		sprd-dst = /bits/ 8 <1>; /* AGDSP */
 		sprd-channel =/bits/ 8 <3>;
@@ -2876,7 +2868,7 @@
 	};
 
 	audio-dsp-dump@2 {/* audio dsp log */
-		compatible = "sprd,audio-dsp-mem";
+		compatible = "unisoc,audio_dsp_mem";
 		sprd-usemem-type =<0x9>;
 		sprd-usemem-bytes =<0x80000>;
 		sprd-dst = /bits/ 8 <1>; /* AGDSP */
@@ -2888,67 +2880,64 @@
 	};
 
 	audio_pipe_voice {
-		compatible = "sprd,audio_pipe_voice";
+		compatible = "unisoc,audio_pipe_voice";
 		sprd,writesync = <0>;
 		sprd,maxuserwritebufsize = <0>;
 		sprd,channel = <2>;
 	};
 
 	audio_pipe_effect {
-		compatible = "sprd,audio_pipe_effect";
+		compatible = "unisoc,audio_pipe_effect";
 		sprd,writesync = <1>;
 		sprd,maxuserwritebufsize = <1024>;
 		sprd,channel = <8>;
 	};
 
 	audio_pipe_voiceproc {
-		compatible = "sprd,audio_pipe_recordproc";
+		compatible = "unisoc,audio_pipe_recordproc";
 		sprd,writesync = <1>;
 		sprd,maxuserwritebufsize = <1024>;
 		sprd,channel = <9>;
 	};
 
 	audio_pipe_bthal {
-		compatible = "sprd,audio_pipe_bthal";
+		compatible = "unisoc,audio_pipe_bthal";
 		sprd,writesync = <0>;
 		sprd,maxuserwritebufsize = <0>;
 		sprd,channel = <11>;
 	};
 
 	audiocp_dvfs {
-		compatible = "sprd,qogirn6pro-audcp-dvfs";
+		compatible = "unisoc,qogirn6pro-audcp-dvfs";
 		sprd,channel = <10>;
 	};
 
 	audiocp_boot {
-		compatible = "sprd,audcp-boot";
-		syscons = <&pmu_apb_regs REG_PMU_APB_SLEEP_STATUS_0  MASK_AON_APB_MSPI_EB>,
-				<&pmu_apb_regs REG_PMU_APB_SLEEP_STATUS_0  MASK_AON_APB_MSPI_EB>,
-				<&pmu_apb_regs REG_PMU_APB_SLEEP_STATUS_0  MASK_AON_APB_MSPI_EB>,
-				<&pmu_apb_regs REG_PMU_APB_SLEEP_STATUS_0  MASK_AON_APB_MSPI_EB>,
-				<&pmu_apb_regs REG_PMU_APB_SLEEP_STATUS_0  MASK_AON_APB_MSPI_EB>,
-				<&pmu_apb_regs REG_PMU_APB_SLEEP_STATUS_0  MASK_AON_APB_MSPI_EB>,
-				<&pmu_apb_regs REG_PMU_APB_SLEEP_STATUS_0  MASK_AON_APB_MSPI_EB>,
-				<&pmu_apb_regs REG_PMU_APB_SLEEP_STATUS_0  MASK_AON_APB_MSPI_EB>,
-				<&pmu_apb_regs REG_PMU_APB_SLEEP_STATUS_0  MASK_AON_APB_MSPI_EB>,
-				<&pmu_apb_regs REG_PMU_APB_SLEEP_STATUS_0  MASK_AON_APB_MSPI_EB>,
-				<&pmu_apb_regs REG_PMU_APB_SLEEP_STATUS_0  MASK_AON_APB_MSPI_EB>,
-				<&pmu_apb_regs REG_PMU_APB_SLEEP_STATUS_0  MASK_AON_APB_MSPI_EB>;
-		syscon-names = "sysshutdown", "coreshutdown", "deepsleep", "corereset",
-			"sysreset", "reset_sel", "sysstatus", "corestatus", "sleepstatus",
-			"bootprotect", "bootvector", "bootaddress_sel";
+		compatible = "unisoc,audcp-boot";
+		sysshutdown = <&pmu_apb_regs REG_PMU_APB_SLEEP_STATUS_0  MASK_AON_APB_MSPI_EB>;
+		coreshutdown = <&pmu_apb_regs REG_PMU_APB_SLEEP_STATUS_0  MASK_AON_APB_MSPI_EB>;
+		deepsleep = <&pmu_apb_regs REG_PMU_APB_SLEEP_STATUS_0  MASK_AON_APB_MSPI_EB>;
+		corereset = <&pmu_apb_regs REG_PMU_APB_SLEEP_STATUS_0  MASK_AON_APB_MSPI_EB>;
+		sysreset = <&pmu_apb_regs REG_PMU_APB_SLEEP_STATUS_0  MASK_AON_APB_MSPI_EB>;
+		reset_sel = <&pmu_apb_regs REG_PMU_APB_SLEEP_STATUS_0  MASK_AON_APB_MSPI_EB>;
+		sysstatus = <&pmu_apb_regs REG_PMU_APB_SLEEP_STATUS_0  MASK_AON_APB_MSPI_EB>;
+		corestatus = <&pmu_apb_regs REG_PMU_APB_SLEEP_STATUS_0  MASK_AON_APB_MSPI_EB>;
+		sleepstatus = <&pmu_apb_regs REG_PMU_APB_SLEEP_STATUS_0  MASK_AON_APB_MSPI_EB>;
+		bootprotect = <&pmu_apb_regs REG_PMU_APB_SLEEP_STATUS_0  MASK_AON_APB_MSPI_EB>;
+		bootvector = <&pmu_apb_regs REG_PMU_APB_SLEEP_STATUS_0  MASK_AON_APB_MSPI_EB>;
+		bootaddress_sel = <&pmu_apb_regs REG_PMU_APB_SLEEP_STATUS_0  MASK_AON_APB_MSPI_EB>;
 	};
 
 	apipe-pcm {
-		compatible = "sprd,apipe";
+		compatible = "unisoc,apipe";
 	};
 
 	apipe-cmd-in {
-		compatible = "sprd,apipe";
+		compatible = "unisoc,apipe";
 	};
 
 	apipe-cmd-out {
-		compatible = "sprd,apipe";
+		compatible = "unisoc,apipe";
 	};
 
 	ext_26m: ext-26m {
