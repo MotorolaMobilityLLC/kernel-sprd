@@ -440,6 +440,7 @@
   kstrtouint
   kstrtoull
   kthread_create_on_node
+  kthread_flush_worker
   kthread_should_stop
   kthread_stop
   ktime_get
@@ -754,6 +755,7 @@
   snd_soc_unregister_component
   snprintf
   __spi_alloc_controller
+  spi_setup
   sprintf
   sscanf
   __stack_chk_fail
