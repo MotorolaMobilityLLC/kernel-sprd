@@ -14,7 +14,8 @@
 #include <linux/of_platform.h>
 #include <linux/platform_device.h>
 #include <linux/slab.h>
-#include <linux/sprd_ion.h>
+#include <../ion_private.h>
+#include <uapi/linux/sprd_ion.h>
 #include <linux/uaccess.h>
 #include "linux/ion.h"
 
@@ -124,14 +125,81 @@ int sprd_ion_unmap_kernel(struct dma_buf *dmabuf, unsigned long offset)
 }
 EXPORT_SYMBOL(sprd_ion_unmap_kernel);
 
-int ion_debug_heap_show_printk(struct ion_heap *heap, void *data)
+static long sprd_ion_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
+	int ret = 0;
+	struct ion_phy_data data;
+
+	if (_IOC_SIZE(cmd) > sizeof(data))
+		return -EINVAL;
+
+	/*
+	 * The copy_from_user is unconditional here for both read and write
+	 * to do the validate. If there is no write for the ioctl, the
+	 * buffer is cleared
+	 */
+	if (copy_from_user(&data, (void __user *)arg, _IOC_SIZE(cmd)))
+		return -EFAULT;
+
+	if (!(_IOC_DIR(cmd) & _IOC_WRITE))
+		memset(&data, 0, sizeof(data));
+
+	switch (cmd) {
+	case ION_IOC_PHY:
+	{
+		int fd = data.fd;
+
+		ret = sprd_ion_get_phys_addr(fd, NULL, (unsigned long *)&data.addr,
+			      (size_t *)&data.len);
+		break;
+	}
+	default:
+		return -ENOTTY;
+	}
+
+	if (_IOC_DIR(cmd) & _IOC_READ) {
+		if (copy_to_user((void __user *)arg, &data, _IOC_SIZE(cmd)))
+			return -EFAULT;
+	}
+	return ret;
+}
+static const struct file_operations sprd_ion_fops = {
+	.owner          = THIS_MODULE,
+	.unlocked_ioctl = sprd_ion_ioctl,
+	.compat_ioctl = sprd_ion_ioctl,
+};
+
+static int sprd_ion_device_create(void)
+{
+	struct ion_device *sprd_ion_dev;
+	int ret;
+
+	sprd_ion_dev = kzalloc(sizeof(*sprd_ion_dev), GFP_KERNEL);
+	if (!sprd_ion_dev)
+		return -ENOMEM;
+
+	sprd_ion_dev->dev.minor = MISC_DYNAMIC_MINOR;
+	sprd_ion_dev->dev.name = "sprd_ion";
+	sprd_ion_dev->dev.fops = &sprd_ion_fops;
+	sprd_ion_dev->dev.parent = NULL;
+	ret = misc_register(&sprd_ion_dev->dev);
+	if (ret) {
+		pr_err("ion: failed to register misc device.\n");
+		goto err_reg;
+	}
+
+	init_rwsem(&sprd_ion_dev->lock);
+	plist_head_init(&sprd_ion_dev->heaps);
 	return 0;
+
+err_reg:
+	kfree(sprd_ion_dev);
+	return ret;
 }
 
 static int sprd_ion_probe(struct platform_device *pdev)
 {
-	return 0;
+	return sprd_ion_device_create();
 }
 
 static int sprd_ion_remove(struct platform_device *pdev)

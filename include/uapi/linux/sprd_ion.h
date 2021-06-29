@@ -5,6 +5,8 @@
 
 #ifndef _UAPI_SPRD_ION_H
 #define _UAPI_SPRD_ION_H
+#include <linux/ion.h>
+#include <linux/sprd_ion.h>
 
 enum sprd_ion_heap_ids {
 	ION_HEAP_ID_SYSTEM = 0,
@@ -25,4 +27,6 @@ enum sprd_ion_heap_ids {
 #define ION_FLAG_SECURE  (1<<31)
 #define ION_FLAG_NO_CLEAR (1 << 16)
 
+#define ION_IOC_PHY           _IOWR(ION_IOC_MAGIC, 11, \
+					struct ion_phy_data)
 #endif /* _UAPI_SPRD_ION_H */
