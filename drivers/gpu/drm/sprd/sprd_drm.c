@@ -145,13 +145,12 @@ static void sprd_drm_mode_config_init(struct drm_device *drm)
 }
 
 static const struct drm_ioctl_desc sprd_ioctls[] = {
-/*	DRM_IOCTL_DEF_DRV(SPRD_GSP_GET_CAPABILITY,
+	DRM_IOCTL_DEF_DRV(SPRD_GSP_GET_CAPABILITY,
 			sprd_gsp_get_capability_ioctl, 0),
 	DRM_IOCTL_DEF_DRV(SPRD_GSP_TRIGGER,
 			sprd_gsp_trigger_ioctl, 0),
-		*/
-};
 
+};
 
 static const struct file_operations sprd_drm_fops = {
 	.owner		= THIS_MODULE,
@@ -362,7 +361,6 @@ static int sprd_drm_component_probe(struct device *dev,
 		}
 		of_node_put(port);
 	}
-/*
 	if (IS_ENABLED(CONFIG_DRM_SPRD_GSP)) {
 		for (i = 0; ; i++) {
 			port = of_parse_phandle(dev->of_node, "gsp", i);
@@ -378,7 +376,6 @@ static int sprd_drm_component_probe(struct device *dev,
 			of_node_put(port);
 		}
 	}
-*/
 	return component_master_add_with_match(dev, m_ops, match);
 }
 
