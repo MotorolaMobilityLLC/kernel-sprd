@@ -43,6 +43,16 @@
 		freq-num = <8>;
 	};
 
+	ion: ion {
+		compatible = "sprd,ion";
+		#address-cells = <1>;
+		#size-cells = <0>;
+	};
+
+	sprd-map-user {
+		compatible = "unisoc,map-user";
+	};
+
 	sprd-sensorhub {
 		compatible = "sprd,sharkl3-sensorhub", "sprd,sensor-hub";
 	};

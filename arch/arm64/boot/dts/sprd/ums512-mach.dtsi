@@ -23,6 +23,16 @@
 		gsp = <&gsp>;
 	};
 
+	ion: ion {
+		compatible = "sprd,ion";
+		#address-cells = <1>;
+		#size-cells = <0>;
+	};
+
+	sprd-map-user {
+		compatible = "unisoc,map-user";
+	};
+
 	reserved_memory: reserved-memory {
 		#address-cells = <2>;
 		#size-cells = <2>;

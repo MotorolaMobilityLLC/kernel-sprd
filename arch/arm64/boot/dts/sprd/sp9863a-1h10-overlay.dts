@@ -210,8 +210,10 @@
 	#address-cells = <2>;
 	#size-cells = <2>;
 
-	fd_reserved: faceid-mem@ff580000{
-		reg = <0x0 0xff580000 0x0 0x00a00000>;
+	fd_reserved: faceid-mem@f0000000{
+		compatible = "shared-dma-pool";
+		reg = <0x0 0xf0000000 0x0 0x00800000>;
+		reusable;
 	};
 };
 

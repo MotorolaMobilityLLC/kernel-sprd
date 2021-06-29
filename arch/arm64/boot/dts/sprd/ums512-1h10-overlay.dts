@@ -434,12 +434,14 @@
 		reg = <0x0 0x9e000000 0x0 0x009e4000>;
 	};
 
-	widevine_reserved: widevine@f0080000 {
-		reg = <0x0 0xf0080000 0x0 0x0c800000>;
+	widevine_reserved: widevine@f0000000 {
+		reg = <0x0 0xf0000000 0x0 0x0c800000>;
 	};
 
-	fd_reserved: faceid-mem@fc880000 {
-		reg = <0x0 0xfc880000 0x0 0x00f00000>;
+	fd_reserved: faceid-mem@fc800000 {
+		compatible = "shared-dma-pool";
+		reg = <0x0 0xfc800000 0x0 0x00800000>;
+		reusable;
 	};
 
 	vdsp_reserved: vdsp-mem@fd780000 {
