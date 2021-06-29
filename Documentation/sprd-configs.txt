@@ -9223,6 +9223,15 @@ CONFIG_ION
 	[must] home
 	[missing plat description] none
 	[function] An memory allocator for android.
+CONFIG_ION_CMA_HEAP
+	[arch] arm64
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
 CONFIG_ION_SPRD
 	[arch] all
 	[plat] all
