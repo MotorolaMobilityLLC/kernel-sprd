@@ -1326,6 +1326,39 @@ int sbuf_register_notifier(u8 dst, u8 channel, u32 bufid,
 }
 EXPORT_SYMBOL_GPL(sbuf_register_notifier);
 
+struct sbuf_mgr *sbuf_register_notifier_ex(u8 dst, u8 channel, u32 mark,
+					   void (*handler)(int event, u32 bufid,
+							   void *data),
+					   void *data)
+{
+	struct sbuf_mgr *sbuf;
+	u8 ch_index;
+	u32 i;
+
+	ch_index = sipc_channel2index(channel);
+	if (ch_index == INVALID_CHANEL_INDEX) {
+		pr_err("%s:channel %d invalid!\n", __func__, channel);
+		return NULL;
+	}
+	sbuf = sbufs[dst][ch_index];
+	if (!sbuf)
+		return NULL;
+
+	sbuf->ch_mark = mark;
+	sbuf->handler = handler;
+	sbuf->data = data;
+
+	if (sbuf->state == SBUF_STATE_READY) {
+		for (i = 0; i < sbuf->ringnr; i++) {
+			if (sbuf->ch_mark & BIT(i))
+				handler(SBUF_NOTIFY_READY, i, data);
+		}
+	}
+
+	return sbuf;
+}
+EXPORT_SYMBOL_GPL(sbuf_register_notifier_ex);
+
 void sbuf_get_status(u8 dst, char *status_info, int size)
 {
 	struct sbuf_mgr *sbuf = NULL;

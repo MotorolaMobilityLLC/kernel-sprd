@@ -72,8 +72,19 @@
 #define CMDLINE_SIZE 0x1000
 
 #if IS_ENABLED(CONFIG_USB_F_VSERIAL)
-extern ssize_t vser_iq_write(char *buf, size_t count);
-extern void kernel_vser_register_callback(void *function);
+extern void kernel_vser_register_callback(void *function, void *p);
+extern ssize_t vser_pass_user_write(char *buf, size_t count);
+extern void kernel_vser_set_pass_mode(bool pass);
+#endif
+
+#if IS_ENABLED(CONFIG_USB_F_VSERIAL_BYPASS_USER)
+#define _kernel_vser_register_callback(para1, para2) kernel_vser_register_callback(para1, para2)
+#define _vser_pass_user_write(para1, para2) vser_pass_user_write(para1, para2)
+#define _kernel_vser_set_pass_mode(para) kernel_vser_set_pass_mode(para)
+#else
+#define _vser_pass_user_write(para1, para2) para2
+#define _kernel_vser_register_callback(para1, para2)
+#define _kernel_vser_set_pass_mode(para)
 #endif
 
 enum {

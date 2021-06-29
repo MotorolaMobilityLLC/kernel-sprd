@@ -32,6 +32,36 @@ config SPRD_SIPC_SPOOL
 
 	  Say M here if you want to build a module.
 
+config SPRD_SIPC_SLOG_BRIDGE
+	tristate "SPRD slog bridge driver based on SIPC"
+	default n
+	depends on SPRD_SIPC
+	help
+	  This driver is a slog bridge driver base on SIPC, which create
+	  slog bridge .
+
+	  Say M here if you want to build a module.
+
+config SPRD_SIPC_SBUF_BRIDGE
+	tristate "SPRD sbuf bridge driver based on SIPC"
+	default n
+	depends on SPRD_SIPC
+	help
+	  This driver is a slog bridge driver base on SIPC, which create
+	  sbuf bridge .
+
+	  Say M here if you want to build a module.
+
+config SPRD_SIPC_SBLOCK_BRIDGE
+	tristate "SPRD sblock bridge driver based on SIPC"
+	default n
+	depends on SPRD_SIPC
+	help
+	  This driver is a sblock bridge driver base on SIPC, which create
+	  sblock bridge .
+
+	  Say M here if you want to build a module.
+
 config SPRD_SIPC_ZERO_COPY_SIPX
 	tristate "SPRD SIPX driver"
 	default n

@@ -170,4 +170,11 @@ static inline u32 sblock_get_ringpos(u32 x, u32 y)
 {
 	return is_power_of_2(y) ? (x & (y - 1)) : (x % y);
 }
+
+bool sblock_has_data(struct sblock_mgr *sblock, bool tx);
+
+struct sblock_mgr *sblock_register_notifier_ex(u8 dst, u8 channel,
+					       void (*handler)(int event,
+							       void *data),
+					       void *data);
 #endif

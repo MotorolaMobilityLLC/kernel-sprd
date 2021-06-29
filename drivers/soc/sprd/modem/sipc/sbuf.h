@@ -119,8 +119,17 @@ struct sbuf_mgr {
 	u32	smem_addr_debug;
 	u32	dst_smem_addr;
 	u32	ringnr;
+	u32	ch_mark;
+
+	void	(*handler)(int event, u32 bufid, void *data);
+	void	*data;
 
 	struct sbuf_ring	*rings;
 	struct task_struct	*thread;
 };
+
+struct sbuf_mgr *sbuf_register_notifier_ex(u8 dst, u8 channel, u32 mark,
+					   void (*handler)(int event, u32 bufid,
+							   void *data),
+					   void *data);
 #endif

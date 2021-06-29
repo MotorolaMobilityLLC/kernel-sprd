@@ -17123,6 +17123,24 @@ CONFIG_SPRD_SIPC
 	[must] user
 	[missing plat description] none
 	[function] This function is used to enable sipc function between modem and AP.
+CONFIG_SPRD_SIPC_SBLOCK_BRIDGE
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
+CONFIG_SPRD_SIPC_SBUF_BRIDGE
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
 CONFIG_SPRD_SIPC_SETH
 	[arch] all
 	[plat] all
@@ -17132,6 +17150,15 @@ CONFIG_SPRD_SIPC_SETH
 	[must] user
 	[missing plat description] none
 	[function] This driver supports the Spreadtrum Ethernet based on share memory.
+CONFIG_SPRD_SIPC_SLOG_BRIDGE
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
 CONFIG_SPRD_SIPC_SPIPE
 	[arch] all
 	[plat] all
