@@ -691,7 +691,7 @@ static void set_lcd_oled_level(struct sprd_oled *oled, int level)
 		break;
 	case ICNL9911c_dj_mipi_hd:
 		oled->cmds[0]->payload[1] = level & 0xFF;
-		oled->cmds[0]->payload[2] = 0x0E;
+		oled->cmds[0]->payload[2] = 0x00;
 		break;
 	case HX83102d_youda_mipi_hd:
 		oled->cmds[0]->payload[1] = level;
@@ -741,6 +741,13 @@ static int sprd_oled_set_brightness(struct backlight_device *bdev)
 			level = ((level * 88) + 40)/ 100;
 		}
 	}
+    else if (check_lcd_by_name(lcd_name) == ICNL9911c_dj_mipi_hd)
+    {
+        if (level < 256){
+            g_last_level = level;
+            level = ((level*90) + 250)/ 100;
+        }
+    }
 
 	if (level == 256)
 		level = 255;
