@@ -128,6 +128,7 @@
   debugfs_create_dir
   debugfs_create_file
   debugfs_create_u32
+  debugfs_create_x32
   debugfs_initialized
   debugfs_remove
   debugfs_remove_recursive
@@ -312,6 +313,7 @@
   i2c_del_driver
   i2c_register_driver
   i2c_smbus_read_byte_data
+  i2c_smbus_read_word_data
   i2c_smbus_write_byte_data
   i2c_transfer_buffer_flags
   ida_alloc_range
@@ -610,6 +612,8 @@
   power_supply_get_property
   power_supply_powers
   power_supply_put
+  power_supply_reg_notifier
+  power_supply_unreg_notifier
   ppp_input
   ppp_register_compressor
   ppp_unregister_compressor
@@ -662,6 +666,7 @@
   register_filesystem
   register_pernet_subsys
   register_pm_notifier
+  regmap_exit
   regmap_read
   regmap_update_bits_base
   regmap_write
@@ -2086,6 +2091,13 @@
 # required by tcpm.ko
   fwnode_property_read_u32_array
   mod_delayed_work_on
+  tcpm_cc_change
+  tcpm_pd_hard_reset
+  tcpm_pd_receive
+  tcpm_pd_transmit_complete
+  tcpm_register_port
+  tcpm_unregister_port
+  tcpm_vbus_change
   usb_debug_root
 
 # required by trusty.ko
