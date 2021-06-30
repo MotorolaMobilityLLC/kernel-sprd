@@ -805,6 +805,12 @@ config GCOV_PROFILE_FTRACE
 	  Note that on a kernel compiled with this config, ftrace will
 	  run significantly slower.
 
+config SPRD_FTRACE_GCOV
+	bool "open gcov for ftrace"
+	depends on GCOV_PROFILE_MODULES
+	help
+	  Say Y here to enable gcov for ftrace
+
 endif # FTRACE
 
 endif # TRACING_SUPPORT
