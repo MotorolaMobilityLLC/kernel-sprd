@@ -262,7 +262,7 @@ static void save_native_maps(struct task_struct *current_task)
 			vma = vma->vm_next;
 			mapcount++;
 		}
-		if (!(current_task->mm))
+		if (current_task->mm)
 			mmdrop(current_task->mm);
 	}
 }
@@ -676,7 +676,7 @@ static long monitor_hang_ioctl(struct file *file, unsigned int cmd,  unsigned lo
 	static int surfaceflinger_status;
 	int sys_server_timeout;
 
-	switch (cmd) {
+	switch (GET_REAL_CMD(cmd)) {
 	case SS_WDT_CTRL_SET_PARA:
 			if (copy_from_user(&sys_server_timeout, (void __user *)arg, sizeof(int))) {
 				ret = -1;
@@ -686,6 +686,11 @@ static long monitor_hang_ioctl(struct file *file, unsigned int cmd,  unsigned lo
 			pr_emerg("systemserver cmd , get para: ( %d)\n", sys_server_timeout);
 			native_hang_monitor_para_set(sys_server_timeout);
 			break;
+	case (SS_WDT_CTRL_SET_NEW_PARA):
+		sys_server_timeout = GET_TIMEOUT_VALUE(cmd);
+		pr_emerg("systemserver cmd2 , get para: ( %d)\n", sys_server_timeout);
+		native_hang_monitor_para_set(sys_server_timeout);
+		break;
 	case SF_WDT_CTRL_SET_PARA:
 			surfaceflinger_status = (int)arg;
 			pr_debug("set surfaceflinger[status]: 0x%x\n", surfaceflinger_status);

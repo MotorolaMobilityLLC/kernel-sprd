@@ -19,6 +19,13 @@
 #define SF_WDT_CTRL_SET_PARA	11 /*    surfacefilinger watchdog control cmd  */
 #define SF_WDT_CTRL_GET_PARA	12 /*    surfacefilinger watchdog control cmd  */
 
+#define CMD_TYPE_FLAG	(0x3f) /* bit(0) to bit(6) indicate cmd type */
+#define CMD_NEW_TYPE	(0x30) /* bit(4) and bit(5) are 1 indicate that the cmd is new type */
+#define CMD_NEW_VALUE	(0xffc0) /* bit(6) to bit(15) indicate that the value in new way */
+#define GET_REAL_CMD(x)	(x & CMD_TYPE_FLAG)
+#define SS_WDT_CTRL_SET_NEW_PARA	(SS_WDT_CTRL_SET_PARA + CMD_NEW_TYPE)
+#define GET_TIMEOUT_VALUE(x)	((x & CMD_NEW_VALUE) >> 6)
+
 #define HANG_INFO_MAX (1 * 1024 * 1024)
 #define MAX_STRING_SIZE 256
 #define WAIT_BOOT_COMPLETE 120	/*wait boot 120 s */
