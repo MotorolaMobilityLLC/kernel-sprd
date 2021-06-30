@@ -791,4 +791,10 @@ config WRITEBACK_SWAPCACHE
 	help
 	  Write back swap cache to free up more.
 	  If unsure, say N to normal mode.
+
+config SPRD_MEM_GCOV
+        bool "open gcov for memory"
+        depends on GCOV_PROFILE_MODULES
+        help
+          Say Y here to enable gcov in memory codes
 endmenu
