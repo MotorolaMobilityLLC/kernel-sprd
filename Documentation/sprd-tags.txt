@@ -97,7 +97,7 @@ hwtracing:stm:
 
 i2c:sprd:
 iio:adc:
-iio:sprd:
+iio:sprd_hub:
 include:*
 include:dt-bindings:
 input:keyboard:
