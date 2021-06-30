@@ -1302,8 +1302,10 @@ static void cm_update_charge_info(struct charger_manager *cm, int cmd)
 		desc->charge_limit_cur = desc->cur.dcp_cur;
 		desc->input_limit_cur = desc->cur.dcp_limit;
 		thm_info->adapter_default_charge_vol = 5;
-		if (desc->jeita_tab_size)
+		if (desc->jeita_size[CM_JEITA_DCP]) {
 			desc->jeita_tab = desc->jeita_tab_array[CM_JEITA_DCP];
+			desc->jeita_tab_size = desc->jeita_size[CM_JEITA_DCP];
+		}
 		if (desc->normal_charge_voltage_max)
 			desc->charge_voltage_max = desc->normal_charge_voltage_max;
 		if (desc->normal_charge_voltage_drop)
@@ -1313,8 +1315,10 @@ static void cm_update_charge_info(struct charger_manager *cm, int cmd)
 		desc->charge_limit_cur = desc->cur.sdp_cur;
 		desc->input_limit_cur = desc->cur.sdp_limit;
 		thm_info->adapter_default_charge_vol = 5;
-		if (desc->jeita_tab_size)
+		if (desc->jeita_size[CM_JEITA_SDP]) {
 			desc->jeita_tab = desc->jeita_tab_array[CM_JEITA_SDP];
+			desc->jeita_tab_size = desc->jeita_size[CM_JEITA_SDP];
+		}
 		if (desc->normal_charge_voltage_max)
 			desc->charge_voltage_max = desc->normal_charge_voltage_max;
 		if (desc->normal_charge_voltage_drop)
@@ -1324,8 +1328,10 @@ static void cm_update_charge_info(struct charger_manager *cm, int cmd)
 		desc->charge_limit_cur = desc->cur.cdp_cur;
 		desc->input_limit_cur = desc->cur.cdp_limit;
 		thm_info->adapter_default_charge_vol = 5;
-		if (desc->jeita_tab_size)
+		if (desc->jeita_size[CM_JEITA_CDP]) {
 			desc->jeita_tab = desc->jeita_tab_array[CM_JEITA_CDP];
+			desc->jeita_tab_size = desc->jeita_size[CM_JEITA_CDP];
+		}
 		if (desc->normal_charge_voltage_max)
 			desc->charge_voltage_max = desc->normal_charge_voltage_max;
 		if (desc->normal_charge_voltage_drop)
@@ -1337,8 +1343,10 @@ static void cm_update_charge_info(struct charger_manager *cm, int cmd)
 			desc->charge_limit_cur = desc->cur.fchg_cur;
 			desc->input_limit_cur = desc->cur.fchg_limit;
 			thm_info->adapter_default_charge_vol = 9;
-			if (desc->jeita_tab_size)
+			if (desc->jeita_size[CM_JEITA_FCHG]) {
 				desc->jeita_tab = desc->jeita_tab_array[CM_JEITA_FCHG];
+				desc->jeita_tab_size = desc->jeita_size[CM_JEITA_FCHG];
+			}
 			if (desc->fast_charge_voltage_max)
 				desc->charge_voltage_max = desc->fast_charge_voltage_max;
 			if (desc->fast_charge_voltage_drop)
@@ -1348,8 +1356,10 @@ static void cm_update_charge_info(struct charger_manager *cm, int cmd)
 		desc->charge_limit_cur = desc->cur.dcp_cur;
 		desc->input_limit_cur = desc->cur.dcp_limit;
 		thm_info->adapter_default_charge_vol = 5;
-		if (desc->jeita_tab_size)
+		if (desc->jeita_size[CM_JEITA_DCP]) {
 			desc->jeita_tab = desc->jeita_tab_array[CM_JEITA_DCP];
+			desc->jeita_tab_size = desc->jeita_size[CM_JEITA_DCP];
+		}
 		if (desc->normal_charge_voltage_max)
 			desc->charge_voltage_max = desc->normal_charge_voltage_max;
 		if (desc->normal_charge_voltage_drop)
@@ -1361,8 +1371,10 @@ static void cm_update_charge_info(struct charger_manager *cm, int cmd)
 			desc->charge_limit_cur = desc->cur.flash_cur;
 			desc->input_limit_cur = desc->cur.flash_limit;
 			thm_info->adapter_default_charge_vol = 11;
-			if (desc->jeita_tab_size)
+			if (desc->jeita_size[CM_JEITA_FLASH]) {
 				desc->jeita_tab = desc->jeita_tab_array[CM_JEITA_FLASH];
+				desc->jeita_tab_size = desc->jeita_size[CM_JEITA_FLASH];
+			}
 			if (desc->flash_charge_voltage_max)
 				desc->charge_voltage_max = desc->flash_charge_voltage_max;
 			if (desc->flash_charge_voltage_drop)
@@ -1372,8 +1384,10 @@ static void cm_update_charge_info(struct charger_manager *cm, int cmd)
 		desc->charge_limit_cur = desc->cur.dcp_cur;
 		desc->input_limit_cur = desc->cur.dcp_limit;
 		thm_info->adapter_default_charge_vol = 5;
-		if (desc->jeita_tab_size)
+		if (desc->jeita_size[CM_JEITA_DCP]) {
 			desc->jeita_tab = desc->jeita_tab_array[CM_JEITA_DCP];
+			desc->jeita_tab_size = desc->jeita_size[CM_JEITA_DCP];
+		}
 		if (desc->normal_charge_voltage_max)
 			desc->charge_voltage_max = desc->normal_charge_voltage_max;
 		if (desc->normal_charge_voltage_drop)
@@ -1383,8 +1397,10 @@ static void cm_update_charge_info(struct charger_manager *cm, int cmd)
 		desc->charge_limit_cur = desc->cur.wl_bpp_cur;
 		desc->input_limit_cur = desc->cur.wl_bpp_limit;
 		thm_info->adapter_default_charge_vol = 5;
-		if (desc->jeita_tab_size)
+		if (desc->jeita_size[CM_JEITA_WL_BPP]) {
 			desc->jeita_tab = desc->jeita_tab_array[CM_JEITA_WL_BPP];
+			desc->jeita_tab_size = desc->jeita_size[CM_JEITA_WL_BPP];
+		}
 		if (desc->wireless_normal_charge_voltage_max)
 			desc->charge_voltage_max = desc->wireless_normal_charge_voltage_max;
 		if (desc->wireless_normal_charge_voltage_drop)
@@ -1394,8 +1410,10 @@ static void cm_update_charge_info(struct charger_manager *cm, int cmd)
 		desc->charge_limit_cur = desc->cur.wl_epp_cur;
 		desc->input_limit_cur = desc->cur.wl_epp_limit;
 		thm_info->adapter_default_charge_vol = 11;
-		if (desc->jeita_tab_size)
+		if (desc->jeita_size[CM_JEITA_WL_EPP]) {
 			desc->jeita_tab = desc->jeita_tab_array[CM_JEITA_WL_EPP];
+			desc->jeita_tab_size = desc->jeita_size[CM_JEITA_WL_EPP];
+		}
 		if (desc->wireless_fast_charge_voltage_max)
 			desc->charge_voltage_max = desc->wireless_fast_charge_voltage_max;
 		if (desc->wireless_fast_charge_voltage_drop)
@@ -1405,8 +1423,10 @@ static void cm_update_charge_info(struct charger_manager *cm, int cmd)
 		desc->charge_limit_cur = desc->cur.unknown_cur;
 		desc->input_limit_cur = desc->cur.unknown_limit;
 		thm_info->adapter_default_charge_vol = 5;
-		if (desc->jeita_tab_size)
+		if (desc->jeita_size[CM_JEITA_UNKNOWN]) {
 			desc->jeita_tab = desc->jeita_tab_array[CM_JEITA_UNKNOWN];
+			desc->jeita_tab_size = desc->jeita_size[CM_JEITA_UNKNOWN];
+		}
 		if (desc->normal_charge_voltage_max)
 			desc->charge_voltage_max = desc->normal_charge_voltage_max;
 		if (desc->normal_charge_voltage_drop)
@@ -1420,11 +1440,13 @@ static void cm_update_charge_info(struct charger_manager *cm, int cmd)
 
 	dev_info(cm->dev, "%s, chgr type = %d, fchg_en = %d, cp_running = %d, cp_recovery = %d"
 		 " max chg_lmt_cur = %duA, max inpt_lmt_cur = %duA, max chg_volt = %duV,"
-		 " chg_volt_drop = %d, adapter_chg_volt = %dmV, thm_cur = %d, chg_info_cmd = 0x%x\n",
+		 " chg_volt_drop = %d, adapter_chg_volt = %dmV, thm_cur = %d, chg_info_cmd = 0x%x,"
+		 " jeita_size = %d\n",
 		 __func__, desc->charger_type, desc->enable_fast_charge, desc->cp.cp_running,
 		 desc->cp.recovery, desc->charge_limit_cur, desc->input_limit_cur,
 		 desc->charge_voltage_max, desc->charge_voltage_drop,
-		 thm_info->adapter_default_charge_vol * 1000, thm_info->thm_adjust_cur, cmd);
+		 thm_info->adapter_default_charge_vol * 1000, thm_info->thm_adjust_cur, cmd,
+		 desc->jeita_tab_size);
 
 	if (!cm->cm_charge_vote || !cm->cm_charge_vote->vote) {
 		dev_err(cm->dev, "%s: cm_charge_vote is null\n", __func__);
@@ -3535,7 +3557,7 @@ static int cm_manager_get_jeita_status(struct charger_manager *cm, int cur_temp)
 	} else if (temp_status == 0) {
 		jeita_status = 0;
 	/* temperature goes down */
-	} else if (last_temp > cur_temp) {
+	} else if (last_temp >= cur_temp) {
 		if (desc->jeita_tab[temp_status].temp > desc->jeita_tab[temp_status].recovery_temp)
 			jeita_status = recovery_temp_status;
 		else if (desc->jeita_tab[temp_status].temp < desc->jeita_tab[temp_status].recovery_temp)
@@ -5212,32 +5234,34 @@ static int cm_init_thermal_data(struct charger_manager *cm, struct power_supply 
 
 static int cm_parse_jeita_table(struct charger_desc *desc,
 				struct device *dev,
-				const char *np_name,
-				struct charger_jeita_table **cur_table)
+				int jeita_num)
 {
 	struct device_node *np = dev->of_node;
 	struct charger_jeita_table *table;
 	const __be32 *list;
+	const char *np_name = jeita_type_names[jeita_num];
+	struct charger_jeita_table **cur_table = &desc->jeita_tab_array[jeita_num];
 	int i, size;
 
 	list = of_get_property(np, np_name, &size);
 	if (!list || !size)
 		return 0;
 
-	desc->jeita_tab_size = size / (sizeof(struct charger_jeita_table) /
+	desc->jeita_size[jeita_num] = size / (sizeof(struct charger_jeita_table) /
 				       sizeof(int) * sizeof(__be32));
 
 	table = devm_kzalloc(dev, sizeof(struct charger_jeita_table) *
-				(desc->jeita_tab_size + 1), GFP_KERNEL);
+				(desc->jeita_size[jeita_num] + 1), GFP_KERNEL);
 	if (!table)
 		return -ENOMEM;
 
-	for (i = 0; i < desc->jeita_tab_size; i++) {
+	for (i = 0; i < desc->jeita_size[jeita_num]; i++) {
 		table[i].temp = be32_to_cpu(*list++) - 1000;
 		table[i].recovery_temp = be32_to_cpu(*list++) - 1000;
 		table[i].current_ua = be32_to_cpu(*list++);
 		table[i].term_volt = be32_to_cpu(*list++);
 	}
+
 	*cur_table = table;
 
 	return 0;
@@ -5248,16 +5272,13 @@ static int cm_init_jeita_table(struct charger_desc *desc, struct device *dev)
 	int ret, i;
 
 	for (i = CM_JEITA_DCP; i < CM_JEITA_MAX; i++) {
-		ret = cm_parse_jeita_table(desc,
-					   dev,
-					   jeita_type_names[i],
-					   &desc->jeita_tab_array[i]);
+		ret = cm_parse_jeita_table(desc, dev, i);
 		if (ret)
 			return ret;
 	}
 
 	desc->jeita_tab = desc->jeita_tab_array[CM_JEITA_UNKNOWN];
-
+	desc->jeita_tab_size = desc->jeita_size[CM_JEITA_UNKNOWN];
 	return 0;
 }
 

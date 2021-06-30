@@ -700,6 +700,7 @@ struct charger_desc {
 	int thm_adjust_cur;
 
 	struct charger_jeita_table *jeita_tab;
+	u32 jeita_size[CM_JEITA_MAX];
 	u32 jeita_tab_size;
 	struct charger_jeita_table *jeita_tab_array[CM_JEITA_MAX];
 
