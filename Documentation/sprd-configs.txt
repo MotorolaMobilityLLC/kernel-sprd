@@ -12498,8 +12498,8 @@ CONFIG_SC27XX_EFUSE
 	[function] get sc27xx series efuse value
 CONFIG_SC27XX_PD
 	[arch] arm64
-	[plat] qogirl6,qogirn6pro
-	[missing plat] sharkl3,sharkl5,sharkl5Pro
+	[plat] qogirl6,qogirn6pro,sharkl5Pro
+	[missing plat] sharkl3,sharkl5
 	[field] code
 	[subsys] usb
 	[must] user
@@ -15732,8 +15732,8 @@ CONFIG_TYPEC_DP_ALTMODE
 	[function] Enable displayport altmode function
 CONFIG_TYPEC_TCPCI
 	[arch] arm64
-	[plat] qogirl6,qogirn6pro
-	[missing plat] sharkl3,sharkl5,sharkl5Pro
+	[plat] qogirl6,qogirn6pro,sharkl5Pro
+	[missing plat] sharkl3,sharkl5
 	[field] make,code
 	[subsys] usb
 	[must] user
@@ -15741,8 +15741,8 @@ CONFIG_TYPEC_TCPCI
 	[function] Enable typec function.
 CONFIG_TYPEC_TCPM
 	[arch] arm64
-	[plat] qogirl6,qogirn6pro
-	[missing plat] sharkl3,sharkl5,sharkl5Pro
+	[plat] qogirl6,qogirn6pro,sharkl5Pro
+	[missing plat] sharkl3,sharkl5
 	[field] make,code
 	[subsys] usb
 	[must] user
@@ -16431,8 +16431,8 @@ CONFIG_USB_PHY
 	[function] This macro is to support USB Physical Layer drivers.
 CONFIG_USB_ROLE_SWITCH
 	[arch] arm64
-	[plat] qogirl6,qogirn6pro
-	[missing plat] sharkl3,sharkl5,sharkl5Pro
+	[plat] qogirl6,qogirn6pro,sharkl5Pro
+	[missing plat] sharkl3,sharkl5
 	[field] make,code
 	[subsys] usb
 	[must] user
