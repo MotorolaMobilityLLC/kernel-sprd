@@ -150,8 +150,10 @@ static int __init sprd_systimer_init(void)
 		}
 	}
 
-	if (!sprd_systimer_addr_base && !sprd_sysfrt_addr_base)
-		return -ENOMEM;
+	if (!sprd_systimer_addr_base && !sprd_sysfrt_addr_base) {
+		pr_info("sprd_systimer: no systimer or sysfrt dts node.\n");
+		return 0;
+	}
 
 	/* init the base value */
 	cnter_to_boottime.last_boottime = ktime_get_boot_fast_ns();
