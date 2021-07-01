@@ -80,6 +80,7 @@
 #define ANA_RST_STATUS_OFFSET_2721 (0xed8)  /* pmic 2721 rst status register offset */
 static unsigned int pmic_reg;
 
+extern void get_sprd_aee_buffer(unsigned long *vaddr, unsigned long *size);
 #ifdef CONFIG_SPRD_MINI_SYSDUMP /*	minidump code start	*/
 #define REG_SP_INDEX	31
 #define REG_PC_INDEX	32
@@ -469,8 +470,27 @@ static int sysdump_panic_event(struct notifier_block *self,
 {
 	struct pt_regs *pregs = NULL;
 	static int enter_id;
+	unsigned long *mmc_info = NULL;
+	unsigned long size;
+	char *substr;
+	char *str;
+	char tmp[1024];
 
 	pr_emerg("(%s) ------ in (%d)\n", __func__, enter_id);
+	get_sprd_aee_buffer((unsigned long *)&mmc_info, &size);
+	pr_emerg("size = %d", size);
+	str = (char *)mmc_info;
+	do {
+		substr = strchr(str, '\n');
+		if (substr == NULL)
+			break;
+		memset(tmp, 0, 1024);
+		strncpy(tmp, str, substr-str);
+		size -= (substr-str);
+		pr_emerg("%s", tmp);
+		str = substr + 1;
+	} while (size >= 0);
+
 	bust_spinlocks(1);
 	if (sprd_sysdump_init == 0) {
 		unsigned long sprd_sysdump_info_paddr;

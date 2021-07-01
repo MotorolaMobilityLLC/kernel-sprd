@@ -92,6 +92,7 @@ obj-$(CONFIG_MMC_SDHCI_MICROCHIP_PIC32)	+= sdhci-pic32.o
 obj-$(CONFIG_MMC_SDHCI_BRCMSTB)		+= sdhci-brcmstb.o
 obj-$(CONFIG_MMC_SPRD_SDHCR11)		+= sprd-sdhcr11.o
 obj-$(CONFIG_MMC_SPRD_SDHCR10)		+= sprd-sdhcr10.o
+obj-$(CONFIG_MMC_SPRD_SDHCR11)		+= sprd-dbg.o
 
 ifeq ($(CONFIG_CB710_DEBUG),y)
 	CFLAGS-cb710-mmc	+= -DDEBUG
