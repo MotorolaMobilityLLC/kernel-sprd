@@ -1408,12 +1408,21 @@ static void cm_update_charge_info(struct charger_manager *cm, int cmd)
 					 SPRD_VOTE_TYPE_IBUS,
 					 SPRD_VOTE_TYPE_IBUS_ID_CHARGER_TYPE,
 					 SPRD_VOTE_CMD_MIN, desc->input_limit_cur, cm);
-	if (cmd & CM_CHARGE_INFO_THERMAL_LIMIT && thm_info->thm_adjust_cur > 0)
-		cm->cm_charge_vote->vote(cm->cm_charge_vote, true,
-					 SPRD_VOTE_TYPE_IBUS,
-					 SPRD_VOTE_TYPE_IBUS_ID_CHARGE_CONTROL_LIMIT,
+	if (cmd & CM_CHARGE_INFO_THERMAL_LIMIT && thm_info->thm_adjust_cur > 0) {
+		/* The ChargerIC with linear charging cannot set Ibus, only Ibat. */
+		if (cm->desc->thm_info.need_calib_charge_lmt)
+			cm->cm_charge_vote->vote(cm->cm_charge_vote, true,
+					 SPRD_VOTE_TYPE_IBAT,
+					 SPRD_VOTE_TYPE_IBAT_ID_CHARGE_CONTROL_LIMIT,
 					 SPRD_VOTE_CMD_MIN,
 					 cm->desc->thm_info.thm_adjust_cur, cm);
+		else
+			cm->cm_charge_vote->vote(cm->cm_charge_vote, true,
+						 SPRD_VOTE_TYPE_IBUS,
+						 SPRD_VOTE_TYPE_IBUS_ID_CHARGE_CONTROL_LIMIT,
+						 SPRD_VOTE_CMD_MIN,
+						 cm->desc->thm_info.thm_adjust_cur, cm);
+	}
 	if (cmd & CM_CHARGE_INFO_JEITA_LIMIT)
 		cm_update_current_jeita_status(cm);
 }
@@ -3448,13 +3457,6 @@ static bool cm_manager_adjust_current(struct charger_manager *cm,
 		goto exit;
 	}
 
-	if (cm->desc->thm_info.need_calib_charge_lmt &&
-	    cm->desc->thm_info.thm_adjust_cur >= 0 &&
-	    cm->desc->thm_info.thm_adjust_cur < target_cur) {
-		target_cur = cm->desc->thm_info.thm_adjust_cur;
-		dev_info(cm->dev, "thermel current is less than jeita current\n");
-	}
-
 	dev_info(cm->dev, "target terminate voltage = %d, target current = %d\n",
 		 term_volt, target_cur);
 
@@ -4361,6 +4363,16 @@ charger_set_property(struct power_supply *psy,
 		break;
 
 	case POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT:
+		/* The ChargerIC with linear charging cannot set Ibus, only Ibat. */
+		if (cm->desc->thm_info.need_calib_charge_lmt) {
+			cm->cm_charge_vote->vote(cm->cm_charge_vote, true,
+					 SPRD_VOTE_TYPE_IBAT,
+					 SPRD_VOTE_TYPE_IBAT_ID_INPUT_CURRENT_LIMIT,
+					 SPRD_VOTE_CMD_MIN,
+					 val->intval, cm);
+			break;
+		}
+
 		cm->cm_charge_vote->vote(cm->cm_charge_vote, true,
 					 SPRD_VOTE_TYPE_IBUS,
 					 SPRD_VOTE_TYPE_IBUS_ID_INPUT_CURRENT_LIMIT,

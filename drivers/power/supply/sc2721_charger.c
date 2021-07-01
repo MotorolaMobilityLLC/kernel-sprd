@@ -617,11 +617,6 @@ sc2721_charger_usb_set_property(struct power_supply *psy,
 
 	mutex_lock(&info->lock);
 
-	if (!info->charging && psp != POWER_SUPPLY_PROP_STATUS) {
-		mutex_unlock(&info->lock);
-		return 0;
-	}
-
 	switch (psp) {
 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT:
 		ret = sc2721_charger_set_current(info, val->intval);
