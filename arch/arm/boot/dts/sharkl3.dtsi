@@ -600,6 +600,28 @@
 				#pwm-cells = <2>;
 			};
 
+			gpu_thm: gpu-thm@402f0000 {
+				compatible = "sprd,sharkl3-thermal";
+				reg = <0x402f0000 0x10000>;
+				clock-names = "enable";
+				clocks = <&aonapb_gate CLK_THM_EB>;
+				#thermal-sensor-cells = <1>;
+				sprd,algor_ver = <2>;
+				nvmem-cells = <&gthm_delta>;
+				nvmem-cell-names = "thm_delta_cal";
+			};
+
+			cpu_thm: cpu-thm@40390000 {
+				compatible = "sprd,sharkl3-thermal";
+				reg = <0x40390000 0x10000>;
+				clock-names = "enable";
+				clocks = <&aonapb_gate CLK_THM_EB>;
+				#thermal-sensor-cells = <1>;
+				sprd,algor_ver = <1>;
+				nvmem-cells = <&cthm_sign>, <&cthm_ratio>, <&cthm_delta>;
+				nvmem-cell-names = "thm_sign_cal", "thm_ratio_cal", "thm_delta_cal";
+			};
+
 			pin_controller: pinctrl@402a0000 {
 				compatible = "sprd,sharkl3-pinctrl";
 				reg = <0x402a0000 0x10000>;
