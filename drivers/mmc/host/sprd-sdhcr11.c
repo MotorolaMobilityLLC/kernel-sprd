@@ -24,6 +24,7 @@
 #include <linux/slab.h>
 #include "../core/card.h"
 #include "sprd-sdhcr11.h"
+#include "sprd-dbg.h"
 #include <linux/sched/clock.h>
 
 #define DRIVER_NAME "sprd-sdhcr11"
@@ -123,7 +124,7 @@ static void dump_adma_info(struct sprd_sdhc_host *host)
 	dev_info(dev, "Current ADMA  desc_ptr: 0x%llx\n", desc_ptr);
 }
 
-static void dump_sdio_reg(struct sprd_sdhc_host *host)
+void dump_sdio_reg(struct sprd_sdhc_host *host)
 {
 	if (!host->mmc->card && strcmp(host->device_name, "sdio_wifi"))
 		return;
@@ -132,7 +133,9 @@ static void dump_sdio_reg(struct sprd_sdhc_host *host)
 		       16, 4, host->ioaddr, 64, 0);
 
 	print_hex_dump(KERN_ERR, "sprd-sdhcr11 + 0x200: ", DUMP_PREFIX_OFFSET,
-		       16, 4, host->ioaddr + 0x200, 32, 0);
+		       16, 4, host->ioaddr + 0x200, 48, 0);
+	print_hex_dump(KERN_ERR, "sprd-sdhcr11 + 0x240: ", DUMP_PREFIX_OFFSET,
+		       16, 4, host->ioaddr + 0x240, 48, 0);
 }
 
 static int sprd_get_delay_value(struct platform_device *pdev)
@@ -681,6 +684,7 @@ static void sprd_send_cmd(struct sprd_sdhc_host *host, struct mmc_command *cmd)
 #endif
 
 
+	dbg_add_host_log(host->mmc, 0, cmd->opcode, cmd->arg);
 	dev_dbg(dev, "CMD%d, arg 0x%x, flag 0x%x\n",
 		cmd->opcode, cmd->arg, cmd->flags);
 	if (cmd->data)
@@ -975,6 +979,7 @@ static int irq_normal_handle(struct sprd_sdhc_host *host, u32 intmask,
 	if (SPRD_SDHC_BIT_INT_CMD_END & intmask) {
 		cmd->error = 0;
 		sprd_get_rsp(host);
+		dbg_add_host_log(host->mmc, 1, cmd->opcode, cmd->resp[0]);
 	}
 
 	if (SPRD_SDHC_BIT_INT_TRAN_END & intmask) {
@@ -1115,15 +1120,9 @@ static void sprd_sdhc_finish_tasklet(unsigned long param)
 	struct mmc_request *mrq;
 
 	del_timer(&host->timer);
-#ifdef CONFIG_EMMC_SOFTWARE_CQ_SUPPORT
-	if (!host->need_polling)
-#endif
-		spin_lock_irqsave(&host->lock, flags);
+	spin_lock_irqsave(&host->lock, flags);
 	if (!host->mrq) {
-#ifdef CONFIG_EMMC_SOFTWARE_CQ_SUPPORT
-		if (!host->need_polling)
-#endif
-			spin_unlock_irqrestore(&host->lock, flags);
+		spin_unlock_irqrestore(&host->lock, flags);
 		return;
 	}
 	mrq = host->mrq;
@@ -1131,10 +1130,7 @@ static void sprd_sdhc_finish_tasklet(unsigned long param)
 	host->mrq = NULL;
 	host->cmd = NULL;
 	mmiowb();
-#ifdef CONFIG_EMMC_SOFTWARE_CQ_SUPPORT
-	if (!host->need_polling)
-#endif
-		spin_unlock_irqrestore(&host->lock, flags);
+	spin_unlock_irqrestore(&host->lock, flags);
 
 	mmc_request_done(host->mmc, mrq);
 	sprd_sdhc_runtime_pm_put(host);
@@ -2480,6 +2476,11 @@ static int sprd_sdhc_probe(struct platform_device *pdev)
 	}
 	dev_info(dev, "%s[%s] host controller, irq %d\n",
 		 host->device_name, mmc_hostname(mmc), host->irq);
+
+#ifdef CONFIG_SPRD_MMC_DEBUG
+	if (strcmp(host->device_name, "sdio_emmc") == 0)
+		host_emmc = host;
+#endif
 
 	return 0;
 
