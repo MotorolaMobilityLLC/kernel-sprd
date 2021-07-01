@@ -34,7 +34,7 @@
 #define SC27XX_DBG1			0x60
 
 /* SC27XX_DBG1 */
-#define SC27XX_CC_MASK            GENMASK(7, 0)
+#define SC27XX_CC_MASK_DBG1            GENMASK(7, 0)
 #define SC27XX_CC_1_DETECT        BIT(0)
 #define SC27XX_CC_2_DETECT        BIT(4)
 
@@ -247,7 +247,7 @@ static int sc27xx_typec_connect(struct sc27xx_typec *sc, u32 status)
 		dev_err(sc->dev, "failed to read DBG1 register.\n");
 		return ret;
 	}
-	val &= SC27XX_CC_MASK;
+	val &= SC27XX_CC_MASK_DBG1;
 
 	switch (val) {
 		case SC27XX_CC_1_DETECT:
