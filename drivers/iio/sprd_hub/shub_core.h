@@ -245,9 +245,10 @@ enum show_order {
 	ORDER_LIGHT = SENSOR_LIGHT,
 	ORDER_PRS = SENSOR_PRESSURE,
 	ORDER_PROX = SENSOR_PROXIMITY,
+	ORDER_COLOR_TEMP = SENSOR_COLOR_TEMP,
 };
 
-#define _HW_SENSOR_TOTAL 6
+#define _HW_SENSOR_TOTAL 7
 #define VENDOR_ID_OFFSET 256
 struct hw_sensor_id_tag {
 	u8 id_status;
