@@ -215,7 +215,7 @@
 					cm-regulator-name = "vddgen0";
 					cable@0 {
 						cm-cable-name = "USB";
-						extcon = <&pmic_typec>;
+						extcon = <&extcon_gpio>;
 					};
 				};
 			};
@@ -428,10 +428,9 @@
 
 &pmic_fgu {
 	monitored-battery = <&bat>;
-	sprd,calib-resistance-real = <20000>;
-	sprd,calib-resistance-spec = <20000>;
-	first-calib-voltage = <3600000>;
-	first-calib-capacity = <50>;
+	sprd,calib-resistance-micro-ohms = <10000>;
+	first-calib-voltage = <3630000>;
+	first-calib-capacity = <40>;
 };
 
 &panel {
