@@ -16572,8 +16572,8 @@ CONFIG_SPRD_DEBUG
 	[missing plat description] none
 	[function] Enable/disable sprd debug function.
 CONFIG_SPRD_DEDICATE_THERMAL
-	[arch] arm64
-	[plat] sharkl3
+	[arch] all
+	[plat] pike2,sharkl3
 	[missing plat] sharkl5Pro
 	[field] make
 	[subsys] thermal
