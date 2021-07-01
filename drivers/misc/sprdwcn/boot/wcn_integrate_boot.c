@@ -51,6 +51,39 @@ void wcn_device_poweroff(void)
 	WCN_INFO("all subsys power off finish!\n");
 }
 
+static void wcn_assert_to_reset_mdbg(void)
+{
+	wcn_chip_power_off();
+}
+
+static int wcn_sys_chip_reset(struct notifier_block *this, unsigned long ev, void *ptr)
+{
+	WCN_INFO("%s: reset callback coming\n", __func__);
+	wcn_assert_to_reset_mdbg();
+
+	return NOTIFY_DONE;
+}
+
+static struct notifier_block wcn_reset_block = {
+	.notifier_call = wcn_sys_chip_reset,
+};
+
+int wcn_reset_mdbg_notifier_init(void)
+{
+	atomic_notifier_chain_register(&wcn_reset_notifier_list,
+				       &wcn_reset_block);
+
+	return 0;
+}
+
+int wcn_reset_mdbg_notifier_deinit(void)
+{
+	atomic_notifier_chain_unregister(&wcn_reset_notifier_list,
+				       &wcn_reset_block);
+
+	return 0;
+}
+
 void wcn_chip_power_off(void)
 {
 	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {

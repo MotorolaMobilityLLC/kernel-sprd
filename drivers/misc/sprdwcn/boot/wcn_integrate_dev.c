@@ -44,6 +44,7 @@
 #include "wcn_log.h"
 #include "wcn_misc.h"
 #include "wcn_procfs.h"
+#include "wcn_integrate_boot.h"
 #include "../include/wcn_dbg.h"
 #include "wcn_txrx.h"
 
@@ -1143,8 +1144,10 @@ static void wcn_probe_power_wq(struct work_struct *work)
 	}
 
 	/* BTWF SYS calibration time consumption is about 250 ms */
-	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6)
+	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
+		wcn_reset_mdbg_notifier_init();
 		msleep(WCCN_BTWF_CALIBRATION_TIME);
+	}
 
 	if (stop_marlin(MARLIN_MDBG))
 		WCN_ERR("%s power down failed\n", __func__);
