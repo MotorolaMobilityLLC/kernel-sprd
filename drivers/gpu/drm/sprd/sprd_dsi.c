@@ -688,7 +688,7 @@ static const struct of_device_id dsi_match_table[] = {
 	{ .compatible = "sprd,qogirl6-dsi-host",
 	  .data = &qogirl6_dsi },
 	{ .compatible = "sprd,qogirn6pro-dsi-host",
-	  .data = &qogirl6_dsi },
+	  .data = &qogirn6pro_dsi },
 	{ /* sentinel */ },
 };
 

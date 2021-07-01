@@ -1,14 +1,6 @@
+// SPDX-License-Identifier: GPL-2.0
 /*
- * Copyright (C) 2021 UNISOC Technologies Co.,Ltd.
- *
- * This software is licensed under the terms of the GNU General Public
- * License version 2, as published by the Free Software Foundation, and
- * may be copied, distributed, and modified under those terms.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * Copyright (C) 2020 Unisoc Inc.
  */
 
 #include <linux/backlight.h>
@@ -169,13 +161,6 @@ struct dpu_dsc_cfg {
 	int  dsc_mode;
 };
 
-
-static DECLARE_WAIT_QUEUE_HEAD(wait_queue);
-static bool evt_update;
-static bool evt_all_update;
-static bool evt_stop;
-static int max_vsync_count;
-
 static void dpu_clean_all(struct dpu_context *ctx);
 static void dpu_layer(struct dpu_context *ctx,
 		    struct sprd_layer_state *hwlayer);
@@ -183,7 +168,7 @@ static void dpu_layer(struct dpu_context *ctx,
 
 static void dpu_version(struct dpu_context *ctx)
 {
-		ctx->version = "dpu-r6p0";
+	ctx->version = "dpu-r6p0";
 }
 
 static int dpu_parse_dt(struct dpu_context *ctx,
@@ -216,7 +201,7 @@ static int dpu_parse_dt(struct dpu_context *ctx,
 	if (ret)
 		pr_warn("read awqos-high failed, use default\n");
 
-	return ret;
+	return 0;
 }
 
 static u32 dpu_isr(struct dpu_context *ctx)
@@ -224,7 +209,7 @@ static u32 dpu_isr(struct dpu_context *ctx)
 	u32 reg_val, int_mask = 0;
 
 	reg_val = DPU_REG_RD(ctx->base + REG_DPU_INT_STS);
-	
+
 	/* disable err interrupt */
 	if (reg_val & BIT_DPU_INT_ERR)
 		int_mask |= BIT_DPU_INT_ERR;
@@ -232,9 +217,9 @@ static u32 dpu_isr(struct dpu_context *ctx)
 	/* dpu vsync isr */
 	if (reg_val & BIT_DPU_INT_VSYNC_EN) {
 		/* write back feature */
-		if ((ctx->vsync_count == max_vsync_count) && ctx->wb_en)
+		if ((ctx->vsync_count == ctx->max_vsync_count) && ctx->wb_en)
 			schedule_work(&ctx->wb_work);
-		
+
 		ctx->vsync_count++;
 	}
 
@@ -245,8 +230,8 @@ static u32 dpu_isr(struct dpu_context *ctx)
 	}
 
 	if (reg_val & BIT_DPU_INT_DPU_ALL_UPDATE_DONE) {
-		evt_all_update = true;
-		wake_up_interruptible_all(&wait_queue);
+		ctx->evt_all_update = true;
+		wake_up_interruptible_all(&ctx->wait_queue);
 	}
 
 	/* dpu stop done isr */
@@ -296,7 +281,7 @@ static u32 dpu_isr(struct dpu_context *ctx)
 
 	DPU_REG_WR(ctx->base + REG_DPU_INT_CLR, reg_val);
 	DPU_REG_CLR(ctx->base + REG_DPU_INT_EN, int_mask);
-	
+
 	return reg_val;
 }
 
@@ -308,7 +293,7 @@ static int dpu_wait_stop_done(struct dpu_context *ctx)
 		return 0;
 
 	/* wait for stop done interrupt */
-	rc = wait_event_interruptible_timeout(wait_queue, evt_stop,
+	rc = wait_event_interruptible_timeout(ctx->wait_queue, ctx->evt_stop,
 					       msecs_to_jiffies(500));
 	ctx->evt_stop = false;
 
@@ -331,7 +316,7 @@ static int dpu_wait_update_done(struct dpu_context *ctx)
 	ctx->evt_update = false;
 
 	/* wait for reg update done interrupt */
-	rc = wait_event_interruptible_timeout(wait_queue, evt_update,
+	rc = wait_event_interruptible_timeout(ctx->wait_queue, ctx->evt_update,
 					       msecs_to_jiffies(500));
 
 	if (!rc) {
@@ -380,7 +365,7 @@ static void dpu_wb_trigger(struct dpu_context *ctx, u8 count, bool debug)
 {
   		int mode_width  = DPU_REG_RD(ctx->base + REG_BLEND_SIZE) & 0xFFFF;
   		int mode_height = DPU_REG_RD(ctx->base + REG_BLEND_SIZE) >> 16;
-  
+
   		ctx->wb_layer.dst_w = mode_width;
   		ctx->wb_layer.dst_h = mode_height;
   		ctx->wb_layer.xfbc = ctx->wb_xfbc_en;
@@ -388,19 +373,19 @@ static void dpu_wb_trigger(struct dpu_context *ctx, u8 count, bool debug)
   		ctx->wb_layer.fbc_hsize_r = XFBC8888_HEADER_SIZE(mode_width,
   							mode_height) / 128;
  		DPU_REG_WR(ctx->base + REG_WB_PITCH, ALIGN((mode_width), 16));
- 
+
  		ctx->wb_layer.xfbc = ctx->wb_xfbc_en;
 
 	if (ctx->wb_xfbc_en && !debug) {
 		DPU_REG_WR(ctx->base + REG_WB_CFG, (2 << 1) | BIT(0));
 		DPU_REG_WR(ctx->base + REG_WB_BASE_ADDR, ctx->wb_layer.addr[0] +
 				ctx->wb_layer.fbc_hsize_r);
-		} 
+		}
 	else {
 		DPU_REG_WR(ctx->base + REG_WB_CFG, 0);
 		DPU_REG_WR(ctx->base + REG_WB_BASE_ADDR, ctx->wb_layer.addr[0]);
 		}
-	
+
 		DPU_REG_WR(ctx->base + REG_WB_PITCH, ctx->vm.hactive);
 
   		if (debug)
@@ -408,12 +393,12 @@ static void dpu_wb_trigger(struct dpu_context *ctx, u8 count, bool debug)
   			DPU_REG_WR(ctx->base + REG_WB_CTRL, BIT(1));
   		else
   			DPU_REG_SET(ctx->base + REG_WB_CTRL, BIT(0));
-		
+
 		/* update trigger */
 		DPU_REG_SET(ctx->base + REG_DPU_CTRL, BIT(2));
 		dpu_wait_update_done(ctx);
 
-		pr_debug("write back trigger\n");	
+		pr_debug("write back trigger\n");
 }
 
 static void dpu_wb_flip(struct dpu_context *ctx)
@@ -473,19 +458,19 @@ static int dpu_write_back_config(struct dpu_context *ctx)
   		ctx->max_vsync_count = 0;
   		return -ENOMEM;
  	}
-  
+
   		ctx->wb_xfbc_en = 1;
   		ctx->wb_layer.index = 7;
   		ctx->wb_layer.planes = 1;
   		ctx->wb_layer.alpha = 0xff;
   		ctx->wb_layer.format = DRM_FORMAT_ABGR8888;
   		ctx->wb_layer.addr[0] = ctx->wb_addr_p;
-  
+
   		ctx->max_vsync_count = 4;
   		need_config = 0;
-  
+
   	INIT_WORK(&ctx->wb_work, dpu_wb_work_func);
-  
+
   	return 0;
 }
 
@@ -510,7 +495,7 @@ static int dpu_init(struct dpu_context *ctx)
  	DPU_REG_WR(ctx->base + REG_DPU_CFG1, reg_val);;
 	if (ctx->stopped)
 		dpu_clean_all(ctx);
-	
+
 	DPU_REG_WR(ctx->base + REG_DPU_INT_CLR, 0xffff);
 
 	dpu_write_back_config(ctx);
@@ -705,7 +690,7 @@ static void dpu_bgcolor(struct dpu_context *ctx, u32 color)
 static void dpu_layer(struct dpu_context *ctx,
 		    struct sprd_layer_state *hwlayer)
 {
-	const struct drm_format_info *info = NULL;
+	const struct drm_format_info *info;
 	u32 size, offset, ctrl, reg_val, pitch;
 	int i;
 
@@ -732,7 +717,7 @@ static void dpu_layer(struct dpu_context *ctx,
 			hwlayer->dst_w, hwlayer->dst_h, hwlayer->pallete_color);
 		return;
 	}
-	
+
 	if (hwlayer->src_w && hwlayer->src_h)
 		size = (hwlayer->src_w & 0xffff) | ((hwlayer->src_h) << 16);
 	else
@@ -755,7 +740,7 @@ static void dpu_layer(struct dpu_context *ctx,
 	DPU_REG_WR(ctx->base + DPU_LAY_REG(REG_LAY_ALPHA,
 			hwlayer->index), hwlayer->alpha);
 
-
+	info = drm_format_info(hwlayer->format);
 	if (hwlayer->planes == 3) {
 		pitch = (hwlayer->pitch[0] / info->cpp[0]) |
 				(hwlayer->pitch[0] / info->cpp[0] << 15);
@@ -814,11 +799,11 @@ static void dpu_flip(struct dpu_context *ctx,
   		DPU_REG_SET(ctx->base + REG_DPU_CTRL, BIT_DPU_REG_UPDATE);
   		dpu_wait_update_done(ctx);
   		}
-  
+
   		DPU_REG_SET(ctx->base + REG_DPU_INT_EN, BIT_DPU_INT_ERR);
   	} else if (ctx->if_type == SPRD_DPU_IF_EDPI) {
   		DPU_REG_SET(ctx->base + REG_DPU_CTRL, BIT_DPU_RUN);
-  
+
   		ctx->stopped = false;
   	}
 

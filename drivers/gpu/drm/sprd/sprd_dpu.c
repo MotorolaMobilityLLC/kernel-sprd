@@ -583,7 +583,7 @@ static const struct of_device_id dpu_match_table[] = {
 	{ .compatible = "sprd,qogirl6-dpu",
 	  .data = &qogirl6_dpu },
 	{ .compatible = "sprd,qogirn6pro-dpu",
-	  .data = &qogirn6pro_dpu },  
+	  .data = &qogirn6pro_dpu },
 	{ /* sentinel */ },
 };
 

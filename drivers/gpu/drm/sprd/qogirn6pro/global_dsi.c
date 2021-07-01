@@ -1,15 +1,8 @@
+// SPDX-License-Identifier: GPL-2.0
 /*
- * Copyright (C) 2018 Spreadtrum Communications Inc.
- *
- * This software is licensed under the terms of the GNU General Public
- * License version 2, as published by the Free Software Foundation, and
- * may be copied, distributed, and modified under those terms.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * Copyright (C) 2020 Unisoc Inc.
  */
+
 #include <linux/clk.h>
 #include <linux/delay.h>
 #include <linux/module.h>
@@ -103,8 +96,8 @@ static int dsi_s_glb_parse_dt(struct dsi_context *ctx,
 	} else {
 		s_ctx_reset.ctrl_reg = syscon_args[0];
 		s_ctx_reset.ctrl_mask = syscon_args[1];
-	} 
-	
+	}
+
 	return 0;
 }
 

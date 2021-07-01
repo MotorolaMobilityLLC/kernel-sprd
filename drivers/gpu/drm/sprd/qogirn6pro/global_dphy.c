@@ -1,15 +1,8 @@
+// SPDX-License-Identifier: GPL-2.0
 /*
- * Copyright (C) 2018 Spreadtrum Communications Inc.
- *
- * This software is licensed under the terms of the GNU General Public
- * License version 2, as published by the Free Software Foundation, and
- * may be copied, distributed, and modified under those terms.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * Copyright (C) 2020 Unisoc Inc.
  */
+
 #include <linux/delay.h>
 #include <linux/module.h>
 #include <linux/list.h>
@@ -23,14 +16,14 @@ static struct dphy_glb_context {
 	unsigned int ctrl_reg;
 	unsigned int ctrl_mask;
 	struct regmap *regmap;
-} ctx_enable, ctx_power, s_ctx_enable, s_ctx_power, ctx_aod_mode, ctx_aod_pd;
+} ctx_enable, ctx_power, s_ctx_enable, s_ctx_power;
 
 static int dphy_glb_parse_dt(struct dphy_context *ctx,
 				struct device_node *np)
 {
 	unsigned int syscon_args[2];
 
-	ctx_enable.regmap = syscon_regmap_lookup_by_phandle_args(np, 
+	ctx_enable.regmap = syscon_regmap_lookup_by_phandle_args(np,
 	"enable-syscon", 2, syscon_args);
 	if (IS_ERR(ctx_enable.regmap)) {
 		pr_warn("failed to map dphy glb reg: enable\n");
@@ -38,32 +31,14 @@ static int dphy_glb_parse_dt(struct dphy_context *ctx,
 		ctx_enable.ctrl_reg = syscon_args[0];
 		ctx_enable.ctrl_mask = syscon_args[1];
 	}
-	ctx_power.regmap = syscon_regmap_lookup_by_phandle_args(np, 
+	ctx_power.regmap = syscon_regmap_lookup_by_phandle_args(np,
 	"power-syscon", 2, syscon_args);
 	if (IS_ERR(ctx_power.regmap)) {
 		pr_warn("failed to map dphy glb reg: power\n");
 	} else {
 		ctx_power.ctrl_reg = syscon_args[0];
 		ctx_power.ctrl_mask = syscon_args[1];
-	} 
-
-	ctx_aod_mode.regmap = syscon_regmap_lookup_by_phandle_args(np, 
-	"aod_mode-syscon", 2, syscon_args);
-	if (IS_ERR(ctx_aod_mode.regmap)) {
-		pr_warn("failed to map dphy glb reg: aod_mode\n");
-	} else {
-		ctx_aod_mode.ctrl_reg = syscon_args[0];
-		ctx_aod_mode.ctrl_mask = syscon_args[1];
 	}
-
-	ctx_aod_pd.regmap = syscon_regmap_lookup_by_phandle_args(np, 
-	"aod_pd-syscon", 2, syscon_args);
-	if (IS_ERR(ctx_aod_pd.regmap)) {
-		pr_warn("failed to map dphy glb reg: aod_mode\n");
-	} else {
-		ctx_aod_pd.ctrl_reg = syscon_args[0];
-		ctx_aod_pd.ctrl_mask = syscon_args[1];
-	} 
 	return 0;
 }
 
@@ -72,23 +47,23 @@ static int dphy_s_glb_parse_dt(struct dphy_context *ctx,
 {
 	unsigned int syscon_args[2];
 
-	s_ctx_enable.regmap = syscon_regmap_lookup_by_phandle_args(np, 
+	s_ctx_enable.regmap = syscon_regmap_lookup_by_phandle_args(np,
 	"enable-syscon", 2, syscon_args);
 	if (IS_ERR(s_ctx_enable.regmap)) {
 		pr_warn("failed to map dphy glb reg: enable\n");
 	} else {
 		s_ctx_enable.ctrl_reg = syscon_args[0];
 		s_ctx_enable.ctrl_mask = syscon_args[1];
-	} 
+	}
 
-	s_ctx_power.regmap = syscon_regmap_lookup_by_phandle_args(np, 
+	s_ctx_power.regmap = syscon_regmap_lookup_by_phandle_args(np,
 	"power-syscon", 2,syscon_args);
 	if (IS_ERR(s_ctx_power.regmap)) {
 		pr_warn("failed to map dphy glb reg: power\n");
 	} else {
 		s_ctx_power.ctrl_reg = syscon_args[0];
 		s_ctx_power.ctrl_mask = syscon_args[1];
-	} 
+	}
 
 	return 0;
 }
