@@ -53,6 +53,7 @@ enum zram_pageflags {
 	ZRAM_HUGE,	/* Incompressible page */
 	ZRAM_IDLE,	/* not accessed page since last idle marking */
 
+	ZRAM_IDLE_FAST,	/* not accessed page since last idle_fast marking */
 	__NR_ZRAM_PAGEFLAGS,
 };
 
