@@ -912,27 +912,28 @@
 				sprd,gpu-apb-syscon = <&gpu_apb_regs>;
 				sprd,gpu-dvfs-apb-syscon = <&gpu_dvfs_apb_regs>;
 
-				syscons = <&top_dvfs_apb_regs
+				top_dvfs_cfg = <&top_dvfs_apb_regs
 					REG_TOP_DVFS_APB_SUBSYS_SW_DVFS_EN_CFG
-					MASK_TOP_DVFS_APB_GPU_SW_DVFS_EN>,
-					<&top_dvfs_apb_regs
+					MASK_TOP_DVFS_APB_GPU_SW_DVFS_EN>;
+				gpu_sw_dvfs_ctrl=<&top_dvfs_apb_regs
 					REG_TOP_DVFS_APB_DCDC_GPU_SW_DVFS_CTRL
-					MASK_TOP_DVFS_APB_DCDC_GPU_SW_TUNE_EN>,
-					<&pmu_apb_regs
+					MASK_TOP_DVFS_APB_DCDC_GPU_SW_TUNE_EN>;
+				top_force_shutdown=<&pmu_apb_regs
 					REG_PMU_APB_PD_GPU_CFG_0
-					MASK_PMU_APB_PD_GPU_FORCE_SHUTDOWN>,
-					<&pmu_apb_regs
+					MASK_PMU_APB_PD_GPU_FORCE_SHUTDOWN>;
+				gpll_cfg_frc_off=<&pmu_apb_regs
 					REG_PMU_APB_GPLL_REL_CFG
-					MASK_PMU_APB_GPLL_FRC_OFF>,
-					<&pmu_apb_regs
+					MASK_PMU_APB_GPLL_FRC_OFF>;
+				gpu_soft_rst=<&pmu_apb_regs
 					REG_PMU_APB_SYS_SOFT_RST_0
 					MASK_PMU_APB_GPU_SOFT_RST>;
-
+				/*
 				syscon-names = "top_dvfs_cfg",
 					"gpu_sw_dvfs_ctrl",
 					"top_force_shutdown",
 					"gpll_cfg_frc_off",
 					"gpu_soft_rst";
+				*/
 
 				interrupts = <GIC_SPI 146 IRQ_TYPE_LEVEL_HIGH>,
 					<GIC_SPI 146 IRQ_TYPE_LEVEL_HIGH>,
