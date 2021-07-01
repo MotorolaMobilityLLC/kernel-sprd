@@ -2251,7 +2251,8 @@ static int dpu_cabc_trigger(struct dpu_context *ctx)
 	struct device_node *backlight_node;
 
 	if (cabc_state) {
-		if ((cabc_state == CABC_STOPPING) && bl_dev) {
+		if ((cabc_state == CABC_STOPPING) && bl_dev &&
+				cabc_para.slp_brightness <= cabc_brightness) {
 			memset(&cabc_para, 0, sizeof(cabc_para));
 			reg->slp_cfg0 = (cabc_brightness_step << 0)|
 				((cabc_para.slp_brightness & 0x7f) << 16);
