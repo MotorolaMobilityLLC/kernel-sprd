@@ -1890,6 +1890,14 @@
 				#address-cells = <1>;
 				#size-cells = <1>;
 
+				uid_start: uid-start@ec{
+					reg = <0xc4 0x4>;
+				};
+
+				uid_end: uid-end@e8{
+					reg = <0xc8 0x4>;
+				};
+
 				thm0_ratio: thm0-ratio@94 {
 					reg = <0x94 0x1>;
 					bits = <0 8>;

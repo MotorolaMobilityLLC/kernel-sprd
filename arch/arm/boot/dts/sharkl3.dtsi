@@ -545,6 +545,14 @@
 				hwlocks = <&hwlock 8>;
 				clocks = <&aonapb_gate CLK_EFUSE_EB>;
 
+				uid_start: uid-start@ec{
+					reg = <0xec 0x4>;
+				};
+
+				uid_end: uid-end@e8{
+					reg = <0xe8 0x4>;
+				};
+
 				wcn_alpha: wcn-alpha@14 {
 					reg = <0x14 0x4>;
 				};
