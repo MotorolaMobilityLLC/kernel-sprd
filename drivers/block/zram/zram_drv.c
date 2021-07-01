@@ -290,9 +290,15 @@ static ssize_t idle_store(struct device *dev,
 	struct zram *zram = dev_to_zram(dev);
 	unsigned long nr_pages = zram->disksize >> PAGE_SHIFT;
 	int index;
+	enum zram_pageflags idle_flag;
 
-	if (!sysfs_streq(buf, "all"))
+	if (sysfs_streq(buf, "all"))
+		idle_flag = ZRAM_IDLE;
+	else if (sysfs_streq(buf, "fast"))
+		idle_flag = ZRAM_IDLE_FAST;
+	else
 		return -EINVAL;
+
 
 	down_read(&zram->init_lock);
 	if (!init_done(zram)) {
@@ -307,8 +313,10 @@ static ssize_t idle_store(struct device *dev,
 		 */
 		zram_slot_lock(zram, index);
 		if (zram_allocated(zram, index) &&
-				!zram_test_flag(zram, index, ZRAM_UNDER_WB))
-			zram_set_flag(zram, index, ZRAM_IDLE);
+				!zram_test_flag(zram, index, ZRAM_UNDER_WB) &&
+				!zram_test_flag(zram, index, idle_flag)) {
+			zram_set_flag(zram, index, idle_flag);
+		}
 		zram_slot_unlock(zram, index);
 	}
 
@@ -619,6 +627,7 @@ static int read_from_bdev_async(struct zram *zram, struct bio_vec *bvec,
 #define PAGE_WRITEBACK 0
 #define HUGE_WRITEBACK 1
 #define IDLE_WRITEBACK 2
+#define IDLE_FAST_WRITEBACK 3
 
 
 static ssize_t writeback_store(struct device *dev,
@@ -636,6 +645,8 @@ static ssize_t writeback_store(struct device *dev,
 
 	if (sysfs_streq(buf, "idle"))
 		mode = IDLE_WRITEBACK;
+	else if (sysfs_streq(buf, "idle_fast"))
+		mode = IDLE_FAST_WRITEBACK;
 	else if (sysfs_streq(buf, "huge"))
 		mode = HUGE_WRITEBACK;
 	else {
@@ -700,10 +711,13 @@ static ssize_t writeback_store(struct device *dev,
 			goto next;
 
 		if (mode == IDLE_WRITEBACK &&
-			  !zram_test_flag(zram, index, ZRAM_IDLE))
+			!zram_test_flag(zram, index, ZRAM_IDLE))
+			goto next;
+		if (mode == IDLE_FAST_WRITEBACK &&
+			!zram_test_flag(zram, index, ZRAM_IDLE_FAST))
 			goto next;
 		if (mode == HUGE_WRITEBACK &&
-			  !zram_test_flag(zram, index, ZRAM_HUGE))
+			!zram_test_flag(zram, index, ZRAM_HUGE))
 			goto next;
 		/*
 		 * Clearing ZRAM_UNDER_WB is duty of caller.
@@ -873,7 +887,12 @@ static void zram_debugfs_destroy(void)
 
 static void zram_accessed(struct zram *zram, u32 index)
 {
-	zram_clear_flag(zram, index, ZRAM_IDLE);
+	if (zram_test_flag(zram, index, ZRAM_IDLE))
+		zram_clear_flag(zram, index, ZRAM_IDLE);
+
+	if (zram_test_flag(zram, index, ZRAM_IDLE_FAST))
+		zram_clear_flag(zram, index, ZRAM_IDLE_FAST);
+
 	zram->table[index].ac_time = ktime_get_boottime();
 }
 
@@ -906,13 +925,15 @@ static ssize_t read_block_state(struct file *file, char __user *buf,
 
 		ts = ktime_to_timespec64(zram->table[index].ac_time);
 		copied = snprintf(kbuf + written, count,
-			"%12zd %12lld.%06lu %c%c%c%c\n",
+			"%12zd %12lld.%06lu %c%c%c%c%c\n",
 			index, (s64)ts.tv_sec,
 			ts.tv_nsec / NSEC_PER_USEC,
 			zram_test_flag(zram, index, ZRAM_SAME) ? 's' : '.',
 			zram_test_flag(zram, index, ZRAM_WB) ? 'w' : '.',
 			zram_test_flag(zram, index, ZRAM_HUGE) ? 'h' : '.',
-			zram_test_flag(zram, index, ZRAM_IDLE) ? 'i' : '.');
+			zram_test_flag(zram, index, ZRAM_IDLE) ? 'i' : '.',
+			zram_test_flag(zram, index, ZRAM_IDLE_FAST) ?
+					'f' : '.');
 
 		if (count < copied) {
 			zram_slot_unlock(zram, index);
@@ -959,7 +980,13 @@ static void zram_debugfs_create(void) {};
 static void zram_debugfs_destroy(void) {};
 static void zram_accessed(struct zram *zram, u32 index)
 {
-	zram_clear_flag(zram, index, ZRAM_IDLE);
+	if (zram_test_flag(zram, index, ZRAM_IDLE)) {
+		zram_clear_flag(zram, index, ZRAM_IDLE);
+	}
+
+	if (zram_test_flag(zram, index, ZRAM_IDLE_FAST)) {
+		zram_clear_flag(zram, index, ZRAM_IDLE_FAST);
+	}
 };
 static void zram_debugfs_register(struct zram *zram) {};
 static void zram_debugfs_unregister(struct zram *zram) {};
