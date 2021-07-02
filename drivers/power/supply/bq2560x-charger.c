@@ -13,6 +13,7 @@
 #include <linux/of.h>
 #include <linux/of_platform.h>
 #include <linux/platform_device.h>
+#include <linux/pm_wakeup.h>
 #include <linux/power_supply.h>
 #include <linux/power/charger-manager.h>
 #include <linux/regmap.h>
@@ -382,6 +383,9 @@ static int bq2560x_charger_start_charge(struct bq2560x_charger_info *info)
 	if (ret)
 		dev_err(info->dev, "failed to set limit current\n");
 
+	dev_info(info->dev, "aquire charger wakelock\n");
+	pm_stay_awake(info->dev);
+
 	return ret;
 }
 
@@ -389,6 +393,9 @@ static void bq2560x_charger_stop_charge(struct bq2560x_charger_info *info)
 {
 	int ret;
 	bool present = bq2560x_charger_is_bat_present(info);
+
+	dev_info(info->dev, "aquire charger wakelock\n");
+	pm_relax(info->dev);
 
 	if (info->role == BQ2560X_ROLE_MASTER_DEFAULT) {
 		if (!present || info->need_disable_Q1) {
@@ -1121,6 +1128,7 @@ static int bq2560x_charger_probe(struct i2c_client *client,
 	info->dev = dev;
 	mutex_init(&info->lock);
 	INIT_WORK(&info->work, bq2560x_charger_work);
+	device_init_wakeup(info->dev, true);
 
 	ret = device_property_read_bool(dev, "role-slave");
 	if (ret)
