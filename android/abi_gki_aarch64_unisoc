@@ -2651,3 +2651,10 @@
   usb_assign_descriptors
   usb_free_all_descriptors
   usb_gstrings_attach
+
+# required by sprd_apdu_r3p0.ko
+  __netlink_kernel_create
+  __nlmsg_put
+  netlink_kernel_release
+  of_get_address
+  of_get_compatible_child
