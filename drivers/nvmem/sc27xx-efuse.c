@@ -14,8 +14,8 @@
 #define SC2730_MODULE_EN		0x1808
 #define UMP9620_MODULE_EN		0x2008
 #define UMP9620_EFUSE_RTC		0x2010
-#define UMP9621_MODULE_EN		0xa008
-#define UMP9621_EFUSE_RTC		0xa010
+#define UMP9621_MODULE_EN		0x2008
+#define UMP9621_EFUSE_RTC		0x2010
 #define UMP96XX_CLK_GATE		BIT(3)
 #define SC27XX_EFUSE_EN			BIT(6)
 
@@ -346,6 +346,11 @@ static int sc27xx_efuse_probe(struct platform_device *pdev)
 					"sprd,ump9620-efuse")) ||
 		(of_device_is_compatible(efuse->dev->of_node,
 					"sprd,ump9621-efuse"))) {
+		econfig.id = of_alias_get_id(np, "pmic_efuse");
+		if (econfig.id < 0) {
+			dev_err(&pdev->dev, "failed to get pmic_efuse device id, econfig.id:%d\n", econfig.id);
+			return -EINVAL;
+		}
 		econfig.reg_read = ump962x_efuse_read;
 	} else {
 		econfig.reg_read = sc27xx_efuse_read;
