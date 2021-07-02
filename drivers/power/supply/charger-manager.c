@@ -4074,6 +4074,9 @@ static int charger_get_property(struct power_supply *psy,
 	int ret = 0;
 	int i;
 
+	if (!cm)
+		return -ENOMEM;
+
 	switch (psp) {
 	case POWER_SUPPLY_PROP_STATUS:
 		if (is_charging(cm)) {
@@ -4352,6 +4355,9 @@ charger_set_property(struct power_supply *psy,
 
 	if (!is_ext_pwr_online(cm))
 		return -ENODEV;
+
+	if (!cm)
+		return -ENOMEM;
 
 	switch (psp) {
 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT:
