@@ -136,6 +136,12 @@
 		dptx_hdcp_reserved: dptx_hdcp@fd548000 {
 			reg = <0x0 0xfd548000 0x0 0x00060000>;
 		};
+
+		drm_reserved: framebuffer {
+			compatible = "shared-dma-pool";
+			size = <0x0 0x02c00000>;
+			reusable;
+		};
 	};
 
 	rebootescrow@0 {
@@ -819,7 +825,7 @@
 
 	display-subsystem {
 		compatible = "sprd,display-subsystem";
-		ports = <&dpu_port>, <&dpu1_port>;
+		ports = <&dpu_port>;
 		/*gsp = <&gsp>;*/
 	};
 };
@@ -852,9 +858,6 @@
 	};
 };
 
-&dpu1 {
-	status = "okay";
-};
 
 &iommu_dispc1 {
 	status = "okay";

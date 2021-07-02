@@ -669,17 +669,12 @@
 				reg = <0x0 0x31000000 0x0 0x3000>,
 				       <0x0 0x30120000 0x0 0x100>;
 				reset-syscon = <&dpu_vsp_apb_regs REG_DPU_VSP_APB_RST
-								MASK_DPU_VSP_APB_DISPC_SOFT_RST>;
+					MASK_DPU_VSP_APB_DISPC_SOFT_RST>;
 
 
 				interrupts = <GIC_SPI 152 IRQ_TYPE_LEVEL_HIGH>;
 				status = "disabled";
 				iommus = <&iommu_dispc>;
-
-
-				#power-domain-cells = <0>;
-				power-domains = <&vpu_pd_top>;
-
 				dpu_port: port {
 					dpu_out: endpoint {
 						remote-endpoint = <&dsi_in>;
@@ -716,48 +711,16 @@
 				#iommu-cells = <0>;
 			};
 
-			dsi1: dsi1@31400000 {
-				compatible = "sprd,qogirn6pro-dsi-host";
-				reg = <0x0 0x31400000 0x0 0x1000>;
-				reset-syscon = <&dpu_vsp_apb_regs REG_DPU_VSP_APB_RST
-				MASK_DPU_VSP_APB_DSI1_SOFT_RST>;
-
-				interrupts = <GIC_SPI 155 IRQ_TYPE_LEVEL_HIGH>,
-				<GIC_SPI 154 IRQ_TYPE_LEVEL_HIGH>;
-
-				status = "disabled";
-				dev-id = <1>;
-
-				#power-domain-cells = <0>;
-				power-domains = <&vpu_pd_top>;
-
-				ports {
-					#address-cells = <1>;
-					#size-cells = <0>;
-
-					port@0 {
-						reg = <0>;
-						dsi1_out: endpoint {
-							remote-endpoint = <&dphy1_in>;
-						};
-					};
-
-				};
-			};
-
 			dsi: dsi@31300000 {
 				compatible = "sprd,qogirn6pro-dsi-host";
 				reg = <0x0 0x31300000 0x0 0x1000>;
 				reset-syscon = <&dpu_vsp_apb_regs REG_DPU_VSP_APB_RST
-				MASK_DPU_VSP_APB_DSI0_SOFT_RST>;
+					MASK_DPU_VSP_APB_DSI0_SOFT_RST>;
 
 				interrupts = <GIC_SPI 158 IRQ_TYPE_LEVEL_HIGH>,
 				<GIC_SPI 157 IRQ_TYPE_LEVEL_HIGH>;
 
 				status = "disabled";
-
-				#power-domain-cells = <0>;
-				power-domains = <&vpu_pd_top>;
 
 				ports {
 					#address-cells = <1>;
@@ -779,51 +742,32 @@
 				};
 			};
 
-			dphy1: dphy1 {
-				compatible = "sprd,qogirn6pro-dsi-phy";
-				#address-cells = <1>;
-				#size-cells = <0>;
-				reg = <0x0 0x31400000 0x0 0x1000>;
-				enable-syscon = <&dpu_vsp_apb_regs
-				REG_DPU_VSP_APB_MISC_CKG_EB
-				(MASK_DPU_VSP_APB_DPHY1_REF_CKG_EN |
-				MASK_DPU_VSP_APB_DPHY1_CFG_CKG_EN)>;
-				power-syscon = <&pmu_apb_regs
-				REG_PMU_APB_RF_ANALOG_PHY_PD_CFG
-				MASK_PMU_APB_RF_DSI1_PD_REG>;
-				status = "disabled";
-				dev-id = <1>;
-				sprd,mipi-drive-capability = <7>;
-				port@1 {
-					reg = <1>;
-					dphy1_in: endpoint {
-						remote-endpoint = <&dsi1_out>;
-					};
-				};
-			};
-
 			dphy: dphy {
 				compatible = "sprd,qogirn6pro-dsi-phy";
 				#address-cells = <1>;
 				#size-cells = <0>;
 				reg = <0x0 0x31300000 0x0 0x1000>;
 				enable-syscon = <&dpu_vsp_apb_regs REG_DPU_VSP_APB_MISC_CKG_EB
-								(MASK_DPU_VSP_APB_DPHY0_REF_CKG_EN |
-								MASK_DPU_VSP_APB_DPHY0_CFG_CKG_EN)>;
+					(MASK_DPU_VSP_APB_DPHY0_REF_CKG_EN |
+					MASK_DPU_VSP_APB_DPHY0_CFG_CKG_EN)>;
 				power-syscon = <&pmu_apb_regs REG_PMU_APB_RF_ANALOG_PHY_PD_CFG
-							MASK_PMU_APB_RF_DSI0_PD_REG>;
+					MASK_PMU_APB_RF_DSI0_PD_REG>;
 				status = "disabled";
 				sprd,mipi-drive-capability = <7>;
-				port@0 {
-					reg = <0>;
-					dphy_out: endpoint {
-					remote-endpoint = <&panel_in>;
+				ports {
+					#address-cells = <1>;
+					#size-cells = <0>;
+					port@0 {
+						reg = <0>;
+						dphy_out: endpoint {
+							remote-endpoint = <&panel_in>;
+						};
 					};
-				};
-				port@1 {
-					reg = <1>;
-					dphy_in: endpoint {
-						remote-endpoint = <&dsi_out>;
+					port@1 {
+						reg = <1>;
+						dphy_in: endpoint {
+							remote-endpoint = <&dsi_out>;
+						};
 					};
 				};
 			};
@@ -1699,54 +1643,6 @@
 				power-domains = <&pd_ipa_sys>;
 			};
 
-			dpu1: dpu1@31880000 {
-				compatible = "sprd,display-processor1";
-				reg = <0x0 0x31880000 0x0 0x3000>;
-				syscons = <&ipa_dispc_glb_apb_regs REG_DISPC1_GLB_APB_APB_RST
-					  MASK_DISPC1_GLB_APB_DPU1_SOFT_RST>,
-					  <&pmu_apb_regs REG_PMU_APB_PD_DPU_DP_CFG_0
-					   MASK_PMU_APB_PD_DPU_DP_FORCE_SHUTDOWN>;
-				syscon-names = "reset", "force-shutdown";
-				interrupts = <GIC_SPI 120 IRQ_TYPE_LEVEL_HIGH>;
-				status = "disable";
-				iommus = <&iommu_dispc1>;
-
-				sprd,dev-id = <1>;
-				dma-coherent;
-
-				sprd,ip = "dpu-lite-r3p0";
-				sprd,soc = "qogirn6pro1";
-				sprd,initial-stop-state;
-
-				power-domains = <&pd_ipa_sys>;
-				clock-names = "clk_src_128m",
-						"clk_src_192m",
-						"clk_src_256m",
-						"clk_pixelpll",
-						"clk_src_307m2",
-						"clk_src_384m",
-						"clk_src_512m",
-						"clk_dpu_core",
-						"clk_dpu_dpi",
-						"clk_ipa_apb_dispc1_eb";
-				clocks = <&g5l_pll CLK_TGPLL_128M>,
-					  <&g5l_pll CLK_TGPLL_192M>,
-					  <&g5l_pll CLK_TGPLL_256M>,
-					  <&g5r_pll CLK_PIXELPLL>,
-					  <&g5l_pll CLK_TGPLL_307M2>,
-					  <&g5l_pll CLK_TGPLL_384M>,
-					  <&g5l_pll CLK_TGPLL_512M>,
-					  <&ipa_clk CLK_IPA_DPU>,
-					  <&ipa_clk CLK_IPA_DPI>,
-					  <&ipadispc_gate CLK_IPA_DPU1_EB>;
-
-				dpu1_port: port {
-					dpu1_out: endpoint {
-						remote-endpoint = <&dptx_in>;
-					};
-				};
-			};
-
 			iommu_dispc1: iommu@31880000 {
 				compatible = "sprd,iommuvau-dispc1";
 				reg = <0x0 0x31880800 0x0 0x80>;
@@ -1781,13 +1677,6 @@
 				ports {
 					#address-cells = <1>;
 					#size-cells = <0>;
-
-					port@1 {
-						reg = <1>;
-						dptx_in: endpoint {
-						remote-endpoint = <&dpu1_out>;
-						};
-					};
 				};
 			};
 
