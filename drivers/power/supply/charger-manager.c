@@ -4214,6 +4214,9 @@ static int charger_get_property(struct power_supply *psy,
 	int ret = 0;
 	int i;
 
+	if (!cm)
+		return -ENOMEM;
+
 	switch (psp) {
 	case POWER_SUPPLY_PROP_STATUS:
 		if (is_charging(cm)) {
@@ -4490,6 +4493,11 @@ charger_set_property(struct power_supply *psy,
 {
 	struct charger_manager *cm = power_supply_get_drvdata(psy);
 	int ret = 0;
+
+	if (!cm) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -EINVAL;
+	}
 
 	if (!is_ext_pwr_online(cm))
 		return -ENODEV;
