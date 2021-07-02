@@ -560,7 +560,7 @@
 	sprd,sdio-adma;
 	no-sdio;
 	no-mmc;
-	status = "disable";
+	status = "okay";
 };
 
 &sdio1 {
@@ -573,7 +573,7 @@
 	sprd,sdio-adma;
 	no-sd;
 	no-mmc;
-	status = "disable";
+	status = "okay";
 };
 
 &sdio3 {
