@@ -1244,12 +1244,13 @@ static int bq2560x_charger_probe(struct i2c_client *client,
 	info->dev = dev;
 
 	bq2560x_read(info,BQ2560X_REG_B, &val);
-	if( val == 0x48)
-	       strncpy(charge_ic_vendor_name,"SY6974",20);
+	dev_err(dev, "%s;%x;\n",__func__,val);
+	if( (val & 0x7c) == 0x48)
+		strncpy(charge_ic_vendor_name,"SY6974",20);
 	else if ( val == 0x11 )
-       	strncpy(charge_ic_vendor_name,"BQ25601",20);
-	else if ( val == 0x14  )
-       	strncpy(charge_ic_vendor_name,"SGM41511",20);
+		strncpy(charge_ic_vendor_name,"BQ25601",20);
+	else if ( (val & 0x7c) == 0x14  )
+		strncpy(charge_ic_vendor_name,"SGM41511",20);
 	else
 		return -ENODEV;
 
