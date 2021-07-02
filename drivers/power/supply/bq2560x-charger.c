@@ -748,6 +748,11 @@ static irqreturn_t bq2560x_int_handler(int irq, void *dev_id)
 {
 	struct bq2560x_charger_info *info = dev_id;
 
+	if (!info) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return IRQ_HANDLED;
+	}
+
 	dev_info(info->dev, "interrupt occurs\n");
 	bq2560x_dump_register(info);
 
@@ -882,6 +887,11 @@ static void bq2560x_charger_work(struct work_struct *data)
 		container_of(data, struct bq2560x_charger_info, work);
 	bool present = bq2560x_charger_is_bat_present(info);
 
+	if (!info) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return;
+	}
+
 	if (info->limit)
 		schedule_delayed_work(&info->wdt_work, 0);
 	else
@@ -899,6 +909,11 @@ static void bq2560x_current_work(struct work_struct *data)
 		container_of(dwork, struct bq2560x_charger_info, cur_work);
 	int ret = 0;
 	bool need_return = false;
+
+	if (!info) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return;
+	}
 
 	if (info->current_charge_limit_cur > info->new_charge_limit_cur) {
 		ret = bq2560x_charger_set_current(info, info->new_charge_limit_cur);
@@ -1160,6 +1175,11 @@ static int bq2560x_charger_usb_get_property(struct power_supply *psy,
 	u32 cur = 0, online, health, enabled = 0;
 	enum usb_charger_type type;
 	int ret = 0;
+
+	if (!info) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -EINVAL;
+	}
 
 	mutex_lock(&info->lock);
 
@@ -1766,7 +1786,14 @@ out:
 static int bq2560x_charger_enable_otg(struct regulator_dev *dev)
 {
 	struct bq2560x_charger_info *info = rdev_get_drvdata(dev);
-	int ret;
+	int ret = 0;
+
+	if (!info) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -EINVAL;
+	}
+
+	mutex_lock(&info->lock);
 
 	/*
 	 * Disable charger detection function in case
@@ -1776,7 +1803,7 @@ static int bq2560x_charger_enable_otg(struct regulator_dev *dev)
 				 BIT_DP_DM_BC_ENB, BIT_DP_DM_BC_ENB);
 	if (ret) {
 		dev_err(info->dev, "failed to disable bc1.2 detect function.\n");
-		return ret;
+		goto out;
 	}
 
 	ret = bq2560x_update_bits(info, BQ2560X_REG_1,
@@ -1786,7 +1813,7 @@ static int bq2560x_charger_enable_otg(struct regulator_dev *dev)
 		dev_err(info->dev, "enable bq2560x otg failed\n");
 		regmap_update_bits(info->pmic, info->charger_detect,
 				   BIT_DP_DM_BC_ENB, 0);
-		return ret;
+		goto out;
 	}
 
 	info->otg_enable = true;
@@ -1794,14 +1821,22 @@ static int bq2560x_charger_enable_otg(struct regulator_dev *dev)
 			      msecs_to_jiffies(BQ2560X_FEED_WATCHDOG_VALID_MS));
 	schedule_delayed_work(&info->otg_work,
 			      msecs_to_jiffies(BQ2560X_OTG_VALID_MS));
-
-	return 0;
+out:
+	mutex_unlock(&info->lock);
+	return ret;
 }
 
 static int bq2560x_charger_disable_otg(struct regulator_dev *dev)
 {
 	struct bq2560x_charger_info *info = rdev_get_drvdata(dev);
-	int ret;
+	int ret = 0;
+
+	if (!info) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -EINVAL;
+	}
+
+	mutex_lock(&info->lock);
 
 	info->otg_enable = false;
 	cancel_delayed_work_sync(&info->wdt_work);
@@ -1811,12 +1846,19 @@ static int bq2560x_charger_disable_otg(struct regulator_dev *dev)
 				  0);
 	if (ret) {
 		dev_err(info->dev, "disable bq2560x otg failed\n");
-		return ret;
+		goto out;
 	}
 
 	/* Enable charger detection function to identify the charger type */
-	return regmap_update_bits(info->pmic, info->charger_detect,
-				  BIT_DP_DM_BC_ENB, 0);
+	ret = regmap_update_bits(info->pmic, info->charger_detect, BIT_DP_DM_BC_ENB, 0);
+	if (ret)
+		dev_err(info->dev, "enable BC1.2 failed\n");
+
+out:
+	mutex_unlock(&info->lock);
+	return ret;
+
+
 }
 
 static int bq2560x_charger_vbus_is_enabled(struct regulator_dev *dev)
@@ -1825,14 +1867,23 @@ static int bq2560x_charger_vbus_is_enabled(struct regulator_dev *dev)
 	int ret;
 	u8 val;
 
+	if (!info) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -EINVAL;
+	}
+
+	mutex_lock(&info->lock);
+
 	ret = bq2560x_read(info, BQ2560X_REG_1, &val);
 	if (ret) {
 		dev_err(info->dev, "failed to get bq2560x otg status\n");
+		mutex_unlock(&info->lock);
 		return ret;
 	}
 
 	val &= BQ2560X_REG_OTG_MASK;
 
+	mutex_unlock(&info->lock);
 	return val;
 }
 
@@ -1891,6 +1942,11 @@ static int bq2560x_charger_probe(struct i2c_client *client,
 	int ret;
 	bool bat_present;
 
+	if (!adapter) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -EINVAL;
+	}
+
 	if (!i2c_check_functionality(adapter, I2C_FUNC_SMBUS_BYTE_DATA)) {
 		dev_err(dev, "No support for SMBUS_BYTE_DATA\n");
 		return -ENODEV;
@@ -1903,32 +1959,13 @@ static int bq2560x_charger_probe(struct i2c_client *client,
 	info->client = client;
 	info->dev = dev;
 
-	alarm_init(&info->otg_timer, ALARM_BOOTTIME, NULL);
-
-	INIT_WORK(&info->work, bq2560x_charger_work);
-	INIT_DELAYED_WORK(&info->cur_work, bq2560x_current_work);
-
 	i2c_set_clientdata(client, info);
 	power_path_control(info);
-	ret = device_property_read_bool(dev, "role-slave");
-	if (ret)
-		info->role = BQ2560X_ROLE_SLAVE;
-	else
-		info->role = BQ2560X_ROLE_MASTER_DEFAULT;
-
-	if (info->role == BQ2560X_ROLE_SLAVE) {
-		info->gpiod = devm_gpiod_get(dev, "enable", GPIOD_OUT_HIGH);
-		if (IS_ERR(info->gpiod)) {
-			dev_err(dev, "failed to get enable gpio\n");
-			return PTR_ERR(info->gpiod);
-		}
-	}
 
 	info->usb_phy = devm_usb_get_phy_by_phandle(dev, "phys", 0);
-
 	if (IS_ERR(info->usb_phy)) {
 		dev_err(dev, "failed to find USB phy\n");
-		return PTR_ERR(info->usb_phy);
+		return -EPROBE_DEFER;
 	}
 
 	ret = bq2560x_charger_register_pd_extcon(info->dev, info);
@@ -1949,14 +1986,17 @@ static int bq2560x_charger_probe(struct i2c_client *client,
 		return -EPROBE_DEFER;
 	}
 
-	/*
-	 * only master to support otg
-	 */
-	if (info->role == BQ2560X_ROLE_MASTER_DEFAULT) {
-		ret = bq2560x_charger_register_vbus_regulator(info);
-		if (ret) {
-			dev_err(dev, "failed to register vbus regulator.\n");
-			return ret;
+	ret = device_property_read_bool(dev, "role-slave");
+	if (ret)
+		info->role = BQ2560X_ROLE_SLAVE;
+	else
+		info->role = BQ2560X_ROLE_MASTER_DEFAULT;
+
+	if (info->role == BQ2560X_ROLE_SLAVE) {
+		info->gpiod = devm_gpiod_get(dev, "enable", GPIOD_OUT_HIGH);
+		if (IS_ERR(info->gpiod)) {
+			dev_err(dev, "failed to get enable gpio\n");
+			return PTR_ERR(info->gpiod);
 		}
 	}
 
@@ -2001,7 +2041,11 @@ static int bq2560x_charger_probe(struct i2c_client *client,
 		dev_err(dev, "unable to get pmic regmap device\n");
 		return -ENODEV;
 	}
+
+	bat_present = bq2560x_charger_is_bat_present(info);
+
 	mutex_init(&info->lock);
+	mutex_lock(&info->lock);
 
 	charger_cfg.drv_data = info;
 	charger_cfg.of_node = dev->of_node;
@@ -2019,6 +2063,47 @@ static int bq2560x_charger_probe(struct i2c_client *client,
 		dev_err(dev, "failed to register power supply\n");
 		ret = PTR_ERR(info->psy_usb);
 		goto err_regmap_exit;
+	}
+
+	ret = bq2560x_charger_hw_init(info);
+	if (ret) {
+		dev_err(dev, "failed to bq2560x_charger_hw_init\n");
+		goto err_psy_usb;
+	}
+
+	bq2560x_charger_stop_charge(info, bat_present);
+
+	device_init_wakeup(info->dev, true);
+
+	alarm_init(&info->otg_timer, ALARM_BOOTTIME, NULL);
+	INIT_DELAYED_WORK(&info->otg_work, bq2560x_charger_otg_work);
+	INIT_DELAYED_WORK(&info->wdt_work, bq2560x_charger_feed_watchdog_work);
+
+	/*
+	 * only master to support otg
+	 */
+	if (info->role == BQ2560X_ROLE_MASTER_DEFAULT) {
+		ret = bq2560x_charger_register_vbus_regulator(info);
+		if (ret) {
+			dev_err(dev, "failed to register vbus regulator.\n");
+			goto err_psy_usb;
+		}
+	}
+
+	INIT_WORK(&info->work, bq2560x_charger_work);
+	INIT_DELAYED_WORK(&info->cur_work, bq2560x_current_work);
+
+	info->usb_notify.notifier_call = bq2560x_charger_usb_change;
+	ret = usb_register_notifier(info->usb_phy, &info->usb_notify);
+	if (ret) {
+		dev_err(dev, "failed to register notifier:%d\n", ret);
+		goto err_psy_usb;
+	}
+
+	ret = bq2560x_register_sysfs(info);
+	if (ret) {
+		dev_err(info->dev, "register sysfs fail, ret = %d\n", ret);
+		goto error_sysfs;
 	}
 
 	info->irq_gpio = of_get_named_gpio(info->dev->of_node, "irq-gpio", 0);
@@ -2048,34 +2133,9 @@ static int bq2560x_charger_probe(struct i2c_client *client,
 		dev_err(dev, "failed to get irq gpio\n");
 	}
 
-	ret = bq2560x_charger_hw_init(info);
-	if (ret) {
-		dev_err(dev, "failed to bq2560x_charger_hw_init\n");
-		goto err_psy_usb;
-	}
-
-	bat_present = bq2560x_charger_is_bat_present(info);
-	bq2560x_charger_stop_charge(info, bat_present);
-
-	device_init_wakeup(info->dev, true);
-	info->usb_notify.notifier_call = bq2560x_charger_usb_change;
-	ret = usb_register_notifier(info->usb_phy, &info->usb_notify);
-	if (ret) {
-		dev_err(dev, "failed to register notifier:%d\n", ret);
-		goto err_psy_usb;
-	}
-
-	ret = bq2560x_register_sysfs(info);
-	if (ret) {
-		dev_err(info->dev, "register sysfs fail, ret = %d\n", ret);
-		goto error_sysfs;
-	}
-
+	mutex_unlock(&info->lock);
 	bq2560x_charger_detect_status(info);
 	bq2560x_charger_detect_pd_extcon_status(info);
-	INIT_DELAYED_WORK(&info->otg_work, bq2560x_charger_otg_work);
-	INIT_DELAYED_WORK(&info->wdt_work,
-			  bq2560x_charger_feed_watchdog_work);
 
 	return 0;
 
@@ -2083,10 +2143,10 @@ error_sysfs:
 	sysfs_remove_group(&info->psy_usb->dev.kobj, &info->sysfs->attr_g);
 	usb_unregister_notifier(info->usb_phy, &info->usb_notify);
 err_psy_usb:
-	power_supply_unregister(info->psy_usb);
 	if (info->irq_gpio)
 		gpio_free(info->irq_gpio);
 err_regmap_exit:
+	mutex_unlock(&info->lock);
 	mutex_destroy(&info->lock);
 	return ret;
 }
@@ -2133,6 +2193,11 @@ static int bq2560x_charger_suspend(struct device *dev)
 	ktime_t now, add;
 	unsigned int wakeup_ms = BQ2560X_OTG_ALARM_TIMER_MS;
 
+	if (!info) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -EINVAL;
+	}
+
 	if (info->otg_enable || info->limit)
 		bq2560x_charger_feed_watchdog(info);
 
@@ -2153,6 +2218,11 @@ static int bq2560x_charger_suspend(struct device *dev)
 static int bq2560x_charger_resume(struct device *dev)
 {
 	struct bq2560x_charger_info *info = dev_get_drvdata(dev);
+
+	if (!info) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -EINVAL;
+	}
 
 	if (info->otg_enable || info->limit)
 		bq2560x_charger_feed_watchdog(info);
