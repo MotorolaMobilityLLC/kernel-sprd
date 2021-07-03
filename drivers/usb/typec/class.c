@@ -957,6 +957,8 @@ static const char * const typec_cc_polarity_roles[] = {
     [TYPEC_POLARITY_CC2]    = "cc_2",
 };
 
+int g_typec_cc_polarity = 0;
+
 static ssize_t
 preferred_role_store(struct device *dev, struct device_attribute *attr,
 		     const char *buf, size_t size)
@@ -1357,6 +1359,7 @@ EXPORT_SYMBOL_GPL(typec_set_data_role);
 void typec_set_cc_polarity_role(struct typec_port *port,
                 enum typec_cc_polarity polarity)
 {
+    g_typec_cc_polarity = (int)polarity;
     if (port->cc_polarity == polarity)
         return;
 
