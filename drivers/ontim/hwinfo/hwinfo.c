@@ -688,12 +688,26 @@ static ssize_t get_typec_vendor(void)
 //qcom
 //#define TYPEC_CC_STATUS_FILE "/sys/class/power_supply/usb/typec_cc_orientation"
 //sprd
+#ifdef CONFIG_USB_SC27XX_TYPEC
+extern int g_typec_cc_polarity;
+#else
 #define TYPEC_CC_STATUS_FILE "/sys/class/typec/port0/typec_cc_polarity_role"
+#endif
 static ssize_t get_typec_cc_status(void)
 {
 	char buf[BUF_SIZE] = {0};
-	int ret = 0;
 
+#ifdef CONFIG_USB_SC27XX_TYPEC
+        switch(g_typec_cc_polarity){
+        case 0:strcpy(buf,"cc_1");
+               break;
+        case 1:strcpy(buf,"cc_2");
+               break;
+        default:strcpy(buf,"unknow");
+             break;
+        }
+#else
+        int ret = 0;
 	ret = hwinfo_read_file(TYPEC_CC_STATUS_FILE, buf, BUF_SIZE);
 	if (ret != 0) {
 		printk(KERN_CRIT "get_typec_cc status failed.");
@@ -702,6 +716,7 @@ static ssize_t get_typec_cc_status(void)
 	//buf[1] = '\0';
 	if (buf[strlen(buf) - 1] == '\n')
 		buf[strlen(buf) - 1] = '\0';
+#endif
 	printk(KERN_INFO "Typec cc status: %s\n", buf);
 
 	memcpy(hwinfo[TYPEC_CC_STATUS].hwinfo_buf, buf, BUF_SIZE);
