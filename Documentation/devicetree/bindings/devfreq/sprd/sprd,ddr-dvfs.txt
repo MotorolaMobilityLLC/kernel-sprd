@@ -5,6 +5,7 @@ This dirver give functions for ddr frequency control to userspace.
 Required properties:
 - compatible:
   -"sprd,sharkl5pro-ddr-dvfs" for ums512
+  -"sprd,sharkl3-ddr-dvfs" for sp9863a
 
 - freq-num: Specifies the max frequency points supported by soc.
 
