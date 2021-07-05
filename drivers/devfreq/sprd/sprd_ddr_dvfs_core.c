@@ -545,45 +545,62 @@ static int dvfs_smsg_thread(void *value)
 
 	while (smsg_ch_open(SIPC_ID_PM_SYS, SMSG_CH_PM_CTRL, -1))
 		msleep(500);
-
 	while (dvfs_enable())
 		msleep(500);
 
 	for (i = 0; i < data->freq_num; i++) {
 		err = get_freq_table(&data->freq_table[i], i);
-		if (err < 0)
+		if (err < 0) {
+			dev_err(dev, "failed to get frequence index: %d\n", i);
 			return 0;
+		}
 		if (data->paras[i].overflow != 0) {
 			err = set_overflow(data->paras[i].overflow, i);
-			if (err < 0)
+			if (err < 0) {
+				dev_err(dev, "failed to set overflow %d\n",
+					data->paras[i].overflow);
 				return 0;
+			}
 		} else {
 			err = get_overflow(&data->paras[i].overflow, i);
-			if (err < 0)
+			if (err < 0) {
+				dev_err(dev, "failed to get overflow index: %d\n", i);
 				return 0;
+			}
 		}
 		if (data->paras[i].underflow != 0) {
 			err = set_underflow(data->paras[i].underflow, i);
-			if (err < 0)
+			if (err < 0) {
+				dev_err(dev, "failed to set underflow %d\n",
+					data->paras[i].underflow);
 				return 0;
+			}
 		} else {
 			err = get_underflow(&data->paras[i].underflow, i);
-			if (err < 0)
+			if (err < 0) {
+				dev_err(dev, "get_underflow err\n");
 				return 0;
+			}
 		}
 		/*fix me : now we do not have interface for vol*/
 		if (data->paras[i].vol == 0)
 			data->paras[i].vol = 750;
-		err = dev_pm_opp_add(dev, data->freq_table[i], data->paras[i].vol);
-		if (err < 0)
-			return 0;
+		if (data->freq_table[i] != 0) {
+			err = dev_pm_opp_add(dev, data->freq_table[i], data->paras[i].vol);
+			if (err < 0) {
+				dev_err(dev, "failed to add opp: %uMHZ-%uuv\n",
+					data->freq_table[i], data->paras[i].vol);
+				return 0;
+			}
+		}
 	}
-	err = dev_pm_opp_disable(dev, 0);
-	if (err < 0)
-		return 0;
+
+
 	err = get_cur_freq((unsigned int *)(&data->profile->initial_freq));
-	if (err < 0)
+	if (err < 0) {
+		dev_err(dev, "failed to get initial freq\n");
 		return 0;
+	}
 
 	sprd_dvfs_add_governor();
 
@@ -594,18 +611,20 @@ static int dvfs_smsg_thread(void *value)
 	}
 
 	data->devfreq = devfreq_add_device(dev, data->profile, temp_name, NULL);
-	if (IS_ERR(g_dvfs_data->devfreq)) {
+	if (IS_ERR(data->devfreq)) {
 		dev_warn(dev, "add freq devices fail\n");
-		err = PTR_ERR(g_dvfs_data->devfreq);
+		err = PTR_ERR(data->devfreq);
 		return 0;
 	}
 	data->devfreq->min_freq = data->devfreq->scaling_min_freq;
 	data->devfreq->max_freq = data->devfreq->scaling_max_freq;
 
 	err = dvfs_auto_enable();
-	if (err < 0)
+	if (err < 0) {
+		dev_err(dev, "dvfs auto enable failed\n");
 		return 0;
-	wait_for_completion(&g_dvfs_data->reg_callback_done);
+	}
+	wait_for_completion(&data->reg_callback_done);
 	data->init_done = 1;
 	return 0;
 }
@@ -654,7 +673,6 @@ int dvfs_core_init(struct platform_device *pdev)
 	}
 
 	set_profile(g_dvfs_data->profile);
-
 	g_dvfs_data->dvfs_smsg_ch_open = kthread_run(dvfs_smsg_thread,
 		g_dvfs_data, "dvfs-init");
 	if (IS_ERR(g_dvfs_data->dvfs_smsg_ch_open)) {
@@ -667,6 +685,8 @@ int dvfs_core_init(struct platform_device *pdev)
 
 err_device:
 	devfreq_remove_device(g_dvfs_data->devfreq);
+	g_dvfs_data = NULL;
+	devm_kfree(dev, p);
 err:
 	return err;
 }

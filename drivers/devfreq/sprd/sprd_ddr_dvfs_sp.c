@@ -31,6 +31,16 @@ static struct vote_data sharkl5pro_vote_data[] = {
 {NULL, 0, 0}
 };
 
+static struct vote_data sharkl3_vote_data[] = {
+{"boost", 933, 0},
+{"lcdon", 400, 0},
+{"lcdoff", 233, 0},
+{"camlow", 400, 0},
+{"camhigh", 622, 0},
+{"camveryhigh", 933, 0},
+{NULL, 0, 0}
+};
+
 static struct vote_data *g_vote_data;
 spinlock_t lock;
 
@@ -193,6 +203,7 @@ static int dvfs_remove(struct platform_device *pdev)
 
 static const struct of_device_id dvfs_match[] = {
 	{ .compatible = "sprd,sharkl5pro-ddr-dvfs", .data = &sharkl5pro_vote_data },
+	{ .compatible = "sprd,sharkl3-ddr-dvfs", .data = &sharkl3_vote_data },
 	{},
 };
 MODULE_DEVICE_TABLE(of, dvfs_match);
