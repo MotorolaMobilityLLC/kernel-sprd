@@ -102,6 +102,11 @@
 		reg = <0x0 0x83ef0000 0x0 0x00010000>;
 	};
 
+	ddr_dfs: scene-frequency {
+		compatible = "sprd,sharkl3-ddr-dvfs";
+		freq-num = <8>;
+	};
+
 	sprd-sensorhub {
 		compatible = "sprd,sharkl3-sensorhub", "sprd,sensor-hub";
 	};
