@@ -213,8 +213,8 @@
 					 <&ext_32k>,
 					 <&aonapb_gate CLK_AUX0_EB>;
 
-				reg = <0 0xf4100000 0 0x00200000>,
-					<0 0xf4300000 0 0x00100000>;
+				reg = <0 0xfd408000 0 0x00200000>,
+					<0 0xfd608000 0 0x00100000>;
 				reg-names = "btwf_mem", "gnss_mem";
 
 				sdhci-name = <&sdio1>;
@@ -266,27 +266,17 @@
 		reg = <0x0 0x9e000000 0x0 0x009e4000>;
 	};
 
-	fd_reserved: faceid-mem@efaae000 {
-		reg = <0x0 0xefaae000 0x0 0x00f00000>;
-	};
-/*
-	vdsp_reserved: vdsp-mem@f09ae000 {
-		reg = <0x0 0xf09ae000 0x0 0x03700000>;
-	};
-*/
-	wcn_reserved: wcn-mem@f4100000 {
-		reg = <0x0 0xf4100000 0x0 0x00200000>;
+	fd_reserved: faceid-mem@fc508000 {
+		reg = <0x0 0xfc508000 0x0 0x00f00000>;
 	};
 
-	gnss_reserved: gnss-mem@f4300000 {
-		reg = <0x0 0xf4300000 0x0 0x00100000>;
+	wcn_reserved: wcn-mem@fd408000 {
+		reg = <0x0 0xfd408000 0x0 0x00200000>;
 	};
 
-/*
-	gpu_reserved: gpu-mem@fb8ae000 {
-		reg = <0x0 0xfb8ae000 0x0 0x01e5a000>;
+	gnss_reserved: gnss-mem@fd608000 {
+		reg = <0x0 0xfd608000 0x0 0x00100000>;
 	};
-*/
 
 	fb_reserved: framebuffer-mem@fd708000 {
 		reg = <0x0 0xfd708000 0x0 0x01e5a000>;
@@ -394,14 +384,6 @@
 		type = <2>;
 		memory-region = <&fd_reserved>;
 	};
-/*
-	heap@5 {
-		reg = <5>;
-		label = "carveout_vdsp";
-		type = <2>;
-		memory-region = <&vdsp_reserved>;
-	};
-*/
 };
 
 &i2c0 {
