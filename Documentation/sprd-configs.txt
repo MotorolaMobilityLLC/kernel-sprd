@@ -2428,6 +2428,60 @@ CONFIG_BUILD_SALT
 	[must]
 	[missing plat description] none
 	[function]
+CONFIG_CAN
+	[arch] arm64
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
+CONFIG_CAN_BCM
+	[arch] arm64
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
+CONFIG_CAN_CALC_BITTIMING
+	[arch] arm64
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
+CONFIG_CAN_DEV
+	[arch] arm64
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
+CONFIG_CAN_GW
+	[arch] arm64
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
+CONFIG_CAN_RAW
+	[arch] arm64
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
 CONFIG_CAVIUM_ERRATUM_22375
 	[arch] arm64
 	[plat] sharkl3,sharkl5Pro
@@ -10321,6 +10375,15 @@ CONFIG_LIRC
 CONFIG_LLC
 	[arch] arm64
 	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
+CONFIG_LLD_VERSION
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
