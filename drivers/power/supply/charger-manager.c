@@ -568,6 +568,9 @@ static int get_cp_ibus_uA(struct charger_manager *cm, int *cur)
 	struct power_supply *cp_psy;
 	int i, ret = -ENODEV;
 
+	if (!cm->desc->psy_cp_stat)
+		return 0;
+
 	for (i = 0; cm->desc->psy_cp_stat[i]; i++) {
 		cp_psy = power_supply_get_by_name(cm->desc->psy_cp_stat[i]);
 		if (!cp_psy) {
@@ -583,6 +586,33 @@ static int get_cp_ibus_uA(struct charger_manager *cm, int *cur)
 		if (ret == 0)
 			*cur += val.intval;
 	}
+
+	return ret;
+}
+
+static int get_cp_ibat_uA_by_id(struct charger_manager *cm, int *cur, int id)
+{
+	union power_supply_propval val;
+	struct power_supply *cp_psy;
+	int ret = -ENODEV;
+
+	*cur = 0;
+
+	if (!cm->desc->psy_cp_stat || !cm->desc->psy_cp_stat[id])
+		return 0;
+
+	cp_psy = power_supply_get_by_name(cm->desc->psy_cp_stat[id]);
+	if (!cp_psy) {
+		dev_err(cm->dev, "Cannot find charge pump power supply \"%s\"\n",
+			cm->desc->psy_cp_stat[id]);
+		return ret;
+	}
+
+	ret = power_supply_get_property(cp_psy,
+					POWER_SUPPLY_PROP_CURRENT_NOW, &val);
+	power_supply_put(cp_psy);
+	if (ret == 0)
+		*cur = val.intval;
 
 	return ret;
 }
@@ -1238,6 +1268,9 @@ static bool cm_primary_charger_enable(struct charger_manager *cm, bool enable)
 	union power_supply_propval val;
 	struct power_supply *psy;
 	int ret;
+
+	if (!cm->desc->psy_cp_stat)
+		return false;
 
 	psy = power_supply_get_by_name(cm->desc->psy_charger_stat[0]);
 	if (!psy) {
@@ -4951,6 +4984,100 @@ static ssize_t jeita_control_store(struct device *dev,
 	return count;
 }
 
+static ssize_t charge_pump_present_show(struct device *dev,
+				  struct device_attribute *attr, char *buf)
+{
+	struct charger_regulator *charger =
+		container_of(attr, struct charger_regulator,
+			     attr_charge_pump_present);
+	struct charger_manager *cm = charger->cm;
+	bool status = false;
+
+	if (cm_check_cp_charger_enabled(cm))
+		status = true;
+
+	return sprintf(buf, "%d\n", status);
+}
+
+static ssize_t charge_pump_present_store(struct device *dev,
+				   struct device_attribute *attr,
+				   const char *buf, size_t count)
+{
+	int ret;
+	struct charger_regulator *charger =
+		container_of(attr, struct charger_regulator,
+			     attr_charge_pump_present);
+	struct charger_manager *cm = charger->cm;
+	bool enabled;
+
+	ret =  kstrtobool(buf, &enabled);
+	if (ret)
+		return ret;
+
+	if (enabled) {
+		cm_init_cp(cm);
+		cm_primary_charger_enable(cm, false);
+		if (cm_check_primary_charger_enabled(cm)) {
+			dev_err(cm->dev, "Fail to disable primary charger\n");
+			return -EINVAL;
+		}
+
+		cm_cp_master_charger_enable(cm, true);
+		if (!cm_check_cp_charger_enabled(cm))
+			dev_err(cm->dev, "Fail to enable charge pump\n");
+	} else {
+		if (!cm_cp_master_charger_enable(cm, false))
+			dev_err(cm->dev, "Fail to disable master charge pump\n");
+	}
+
+	return count;
+}
+
+static ssize_t charge_pump_current_show(struct device *dev,
+				  struct device_attribute *attr, char *buf)
+{
+	struct charger_regulator *charger =
+		container_of(attr, struct charger_regulator,
+			     attr_charge_pump_current);
+	struct charger_manager *cm = charger->cm;
+	int cur, ret;
+
+	if (charger->cp_id < 0) {
+		dev_err(cm->dev, "charge pump id is error!!!!!!\n");
+		cur = 0;
+		return sprintf(buf, "%d\n", cur);
+	}
+
+	ret = get_cp_ibat_uA_by_id(cm, &cur, charger->cp_id);
+	if (ret)
+		cur = 0;
+
+	return sprintf(buf, "%d\n", cur);
+}
+
+static ssize_t charge_pump_current_id_store(struct device *dev,
+				   struct device_attribute *attr,
+				   const char *buf, size_t count)
+{
+	int ret;
+	struct charger_regulator *charger =
+		container_of(attr, struct charger_regulator,
+			     attr_charge_pump_current);
+	struct charger_manager *cm = charger->cm;
+	int cp_id;
+
+	ret =  kstrtoint(buf, 10, &cp_id);
+	if (ret)
+		return ret;
+
+	if (cp_id < 0) {
+		dev_err(cm->dev, "charge pump id is error!!!!!!\n");
+		cp_id = 0;
+	}
+	charger->cp_id = cp_id;
+
+	return count;
+}
 static ssize_t charger_stop_show(struct device *dev,
 				struct device_attribute *attr, char *buf)
 {
@@ -5065,6 +5192,18 @@ static ssize_t charger_externally_control_store(struct device *dev,
 	return count;
 }
 
+static ssize_t cp_num_show(struct device *dev,
+		       struct device_attribute *attr, char *buf)
+{
+	struct charger_regulator *charger
+		= container_of(attr, struct charger_regulator, attr_cp_num);
+	struct charger_manager *cm = charger->cm;
+	int cp_num = 0;
+
+	cp_num = cm->desc->cp_nums;
+	return sprintf(buf, "%d\n", cp_num);
+}
+
 /**
  * charger_manager_register_sysfs - Register sysfs entry for each charger
  * @cm: the Charger Manager representing the battery.
@@ -5105,7 +5244,11 @@ static int charger_manager_register_sysfs(struct charger_manager *cm)
 		charger->attrs[2] = &charger->attr_externally_control.attr;
 		charger->attrs[3] = &charger->attr_stop_charge.attr;
 		charger->attrs[4] = &charger->attr_jeita_control.attr;
-		charger->attrs[5] = NULL;
+		charger->attrs[5] = &charger->attr_cp_num.attr;
+		charger->attrs[6] = &charger->attr_charge_pump_present.attr;
+		charger->attrs[7] = &charger->attr_charge_pump_current.attr;
+		charger->attrs[8] = NULL;
+
 		charger->attr_g.name = str;
 		charger->attr_g.attrs = charger->attrs;
 
@@ -5130,6 +5273,23 @@ static int charger_manager_register_sysfs(struct charger_manager *cm)
 		charger->attr_jeita_control.attr.mode = 0644;
 		charger->attr_jeita_control.show = jeita_control_show;
 		charger->attr_jeita_control.store = jeita_control_store;
+
+		sysfs_attr_init(&charger->attr_cp_num.attr);
+		charger->attr_cp_num.attr.name = "cp_num";
+		charger->attr_cp_num.attr.mode = 0444;
+		charger->attr_cp_num.show = cp_num_show;
+
+		sysfs_attr_init(&charger->attr_charge_pump_present.attr);
+		charger->attr_charge_pump_present.attr.name = "charge_pump_present";
+		charger->attr_charge_pump_present.attr.mode = 0644;
+		charger->attr_charge_pump_present.show = charge_pump_present_show;
+		charger->attr_charge_pump_present.store = charge_pump_present_store;
+
+		sysfs_attr_init(&charger->attr_charge_pump_current.attr);
+		charger->attr_charge_pump_current.attr.name = "charge_pump_current";
+		charger->attr_charge_pump_current.attr.mode = 0644;
+		charger->attr_charge_pump_current.show = charge_pump_current_show;
+		charger->attr_charge_pump_current.store = charge_pump_current_id_store;
 
 		sysfs_attr_init(&charger->attr_externally_control.attr);
 		charger->attr_externally_control.attr.name
@@ -5633,6 +5793,7 @@ static struct charger_desc *of_cm_parse_desc(struct device *dev)
 	of_property_read_u32(np, "cm-num-charge-pumps", &num_chgs);
 	if (num_chgs) {
 		/* Allocate empty bin at the tail of array */
+		desc->cp_nums = num_chgs;
 		desc->psy_cp_stat = devm_kzalloc(dev, sizeof(char *)
 						* (num_chgs + 1), GFP_KERNEL);
 		if (desc->psy_cp_stat) {
