@@ -413,10 +413,10 @@ static int eta6937_charger_hw_init(struct eta6937_charger_info *info)
 		 */
 		info->cur.sdp_limit = 500000;
 		info->cur.sdp_cur = 500000;
-		info->cur.dcp_limit = 500000;
-		info->cur.dcp_cur = 500000;
-		info->cur.cdp_limit = 500000;
-		info->cur.cdp_cur = 1500000;
+		info->cur.dcp_limit = 1500000;
+		info->cur.dcp_cur = 1500000;
+		info->cur.cdp_limit = 1000000;
+		info->cur.cdp_cur = 1000000;
 		info->cur.unknown_limit = 500000;
 		info->cur.unknown_cur = 500000;
 	}

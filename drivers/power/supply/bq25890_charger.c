@@ -781,11 +781,11 @@ static int bq25890_charger_hw_init(struct bq25890_charger_info *info)
 		 */
 		info->cur.sdp_limit = 500000;
 		info->cur.sdp_cur = 500000;
-		info->cur.dcp_limit = 5000000;
-		info->cur.dcp_cur = 500000;
-		info->cur.cdp_limit = 5000000;
-		info->cur.cdp_cur = 1500000;
-		info->cur.unknown_limit = 5000000;
+		info->cur.dcp_limit = 1500000;
+		info->cur.dcp_cur = 1500000;
+		info->cur.cdp_limit = 1000000;
+		info->cur.cdp_cur = 1000000;
+		info->cur.unknown_limit = 500000;
 		info->cur.unknown_cur = 500000;
 	}
 
@@ -1981,6 +1981,30 @@ err_mutex_lock:
 	return ret;
 }
 
+static void bq25890_charger_shutdown(struct i2c_client *client)
+{
+	struct bq25890_charger_info *info = i2c_get_clientdata(client);
+	int ret = 0;
+
+	cancel_delayed_work_sync(&info->wdt_work);
+	if (info->otg_enable) {
+		info->otg_enable = false;
+		cancel_delayed_work_sync(&info->otg_work);
+		ret = bq25890_update_bits(info, BQ25890_REG_03,
+					  REG03_OTG_CONFIG_MASK,
+					  0);
+		if (ret)
+			dev_err(info->dev, "disable bq25890 otg failed ret = %d\n", ret);
+
+		/* Enable charger detection function to identify the charger type */
+		ret = regmap_update_bits(info->pmic, info->charger_detect,
+					 BIT_DP_DM_BC_ENB, 0);
+		if (ret)
+			dev_err(info->dev,
+				"enable charger detection function failed ret = %d\n", ret);
+	}
+}
+
 static int bq25890_charger_remove(struct i2c_client *client)
 {
 	struct bq25890_charger_info *info = i2c_get_clientdata(client);
@@ -2059,6 +2083,7 @@ static struct i2c_driver bq25890_charger_driver = {
 		.pm = &bq25890_charger_pm_ops,
 	},
 	.probe = bq25890_charger_probe,
+	.shutdown = bq25890_charger_shutdown,
 	.remove = bq25890_charger_remove,
 	.id_table = bq25890_i2c_id,
 };

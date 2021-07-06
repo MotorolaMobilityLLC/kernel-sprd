@@ -305,11 +305,11 @@ static int fan54015_charger_hw_init(struct fan54015_charger_info *info)
 		 */
 		info->cur.sdp_limit = 500000;
 		info->cur.sdp_cur = 500000;
-		info->cur.dcp_limit = 5000000;
-		info->cur.dcp_cur = 500000;
-		info->cur.cdp_limit = 5000000;
-		info->cur.cdp_cur = 1500000;
-		info->cur.unknown_limit = 5000000;
+		info->cur.dcp_limit = 1500000;
+		info->cur.dcp_cur = 1500000;
+		info->cur.cdp_limit = 1000000;
+		info->cur.cdp_cur = 1000000;
+		info->cur.unknown_limit = 500000;
 		info->cur.unknown_cur = 500000;
 	}
 
@@ -635,6 +635,10 @@ static void fan54015_charger_work(struct work_struct *data)
 		container_of(data, struct fan54015_charger_info, work);
 	bool present = fan54015_charger_is_bat_present(info);
 
+	if (!info) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return;
+	}
 	if (info->limit)
 		schedule_delayed_work(&info->wdt_work, 0);
 	else
@@ -650,6 +654,11 @@ static int fan54015_charger_usb_change(struct notifier_block *nb,
 {
 	struct fan54015_charger_info *info =
 		container_of(nb, struct fan54015_charger_info, usb_notify);
+
+	if (!info) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return NOTIFY_OK;
+	}
 
 	info->limit = limit;
 
@@ -923,12 +932,14 @@ static void fan54015_charger_otg_work(struct work_struct *work)
 static int fan54015_charger_enable_otg(struct regulator_dev *dev)
 {
 	struct fan54015_charger_info *info = rdev_get_drvdata(dev);
-	int ret;
+	int ret = 0;
 
 	if (!info) {
 		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
 		return -EINVAL;
 	}
+
+	mutex_lock(&info->lock);
 
 	/*
 	 * Disable charger detection function in case
@@ -938,7 +949,7 @@ static int fan54015_charger_enable_otg(struct regulator_dev *dev)
 				 BIT_DP_DM_BC_ENB, BIT_DP_DM_BC_ENB);
 	if (ret) {
 		dev_err(info->dev, "failed to disable bc1.2 detect function.\n");
-		return ret;
+		goto out;
 	}
 
 	ret = fan54015_update_bits(info, FAN54015_REG_1,
@@ -949,7 +960,7 @@ static int fan54015_charger_enable_otg(struct regulator_dev *dev)
 		dev_err(info->dev, "enable fan54015 otg failed\n");
 		regmap_update_bits(info->pmic, info->charger_detect,
 				   BIT_DP_DM_BC_ENB, 0);
-		return ret;
+		goto out;
 	}
 
 	info->otg_enable = true;
@@ -958,18 +969,23 @@ static int fan54015_charger_enable_otg(struct regulator_dev *dev)
 	schedule_delayed_work(&info->otg_work,
 			      msecs_to_jiffies(FAN54015_OTG_VALID_MS));
 
-	return 0;
+out:
+	mutex_unlock(&info->lock);
+	return ret;
+
 }
 
 static int fan54015_charger_disable_otg(struct regulator_dev *dev)
 {
 	struct fan54015_charger_info *info = rdev_get_drvdata(dev);
-	int ret;
+	int ret = 0;
 
 	if (!info) {
 		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
 		return -EINVAL;
 	}
+
+	mutex_lock(&info->lock);
 
 	info->otg_enable = false;
 	cancel_delayed_work_sync(&info->wdt_work);
@@ -980,12 +996,18 @@ static int fan54015_charger_disable_otg(struct regulator_dev *dev)
 				   0);
 	if (ret) {
 		dev_err(info->dev, "disable fan54015 otg failed\n");
-		return ret;
+		goto out;
 	}
 
 	/* Enable charger detection function to identify the charger type */
-	return regmap_update_bits(info->pmic, info->charger_detect,
-				  BIT_DP_DM_BC_ENB, 0);
+	ret = regmap_update_bits(info->pmic, info->charger_detect,
+				 BIT_DP_DM_BC_ENB, 0);
+	if (ret)
+		dev_err(info->dev, "enable BC1.2 failed\n");
+
+out:
+	mutex_unlock(&info->lock);
+	return ret;
 }
 
 static int fan54015_charger_vbus_is_enabled(struct regulator_dev *dev)
@@ -999,13 +1021,19 @@ static int fan54015_charger_vbus_is_enabled(struct regulator_dev *dev)
 		return -EINVAL;
 	}
 
+	mutex_lock(&info->lock);
+
 	ret = fan54015_read(info, FAN54015_REG_1, &val);
 	if (ret) {
 		dev_err(info->dev, "failed to get fan54015 otg status\n");
+		mutex_unlock(&info->lock);
 		return ret;
 	}
 
-	return val & FAN54015_REG_OPA_MODE_MASK;
+	val &= FAN54015_REG_OPA_MODE_MASK;
+
+	mutex_unlock(&info->lock);
+	return val;
 }
 
 static const struct regulator_ops fan54015_charger_vbus_ops = {
@@ -1062,6 +1090,11 @@ static int fan54015_charger_probe(struct i2c_client *client,
 	struct platform_device *regmap_pdev;
 	int ret;
 
+	if (!adapter) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -EINVAL;
+	}
+
 	if (!i2c_check_functionality(adapter, I2C_FUNC_SMBUS_BYTE_DATA)) {
 		dev_err(dev, "No support for SMBUS_BYTE_DATA\n");
 		return -ENODEV;
@@ -1074,35 +1107,35 @@ static int fan54015_charger_probe(struct i2c_client *client,
 	info->client = client;
 	info->dev = dev;
 
-	alarm_init(&info->wdg_timer, ALARM_BOOTTIME, NULL);
-
-	mutex_init(&info->lock);
-	INIT_WORK(&info->work, fan54015_charger_work);
-
 	i2c_set_clientdata(client, info);
 
 	info->usb_phy = devm_usb_get_phy_by_phandle(dev, "phys", 0);
 	if (IS_ERR(info->usb_phy)) {
 		dev_err(dev, "failed to find USB phy\n");
-		return PTR_ERR(info->usb_phy);
+		return -EPROBE_DEFER;
 	}
 
 	info->edev = extcon_get_edev_by_phandle(info->dev, 0);
 	if (IS_ERR(info->edev)) {
 		dev_err(dev, "failed to find vbus extcon device.\n");
-		return PTR_ERR(info->edev);
-	}
-
-	ret = fan54015_charger_register_vbus_regulator(info);
-	if (ret) {
-		dev_err(dev, "failed to register vbus regulator.\n");
-		return ret;
+		return -EPROBE_DEFER;
 	}
 
 	regmap_np = of_find_compatible_node(NULL, NULL, "sprd,sc27xx-syscon");
 	if (!regmap_np) {
 		dev_err(dev, "unable to get syscon node\n");
 		return -ENODEV;
+	}
+
+	if (of_device_is_compatible(regmap_np->parent, "sprd,sc2730"))
+		info->charger_pd_mask = FAN54015_DISABLE_PIN_MASK_2730;
+	else if (of_device_is_compatible(regmap_np->parent, "sprd,sc2721"))
+		info->charger_pd_mask = FAN54015_DISABLE_PIN_MASK_2721;
+	else if (of_device_is_compatible(regmap_np->parent, "sprd,sc2720"))
+		info->charger_pd_mask = FAN54015_DISABLE_PIN_MASK_2720;
+	else {
+		dev_err(dev, "failed to get charger_pd mask\n");
+		return -EINVAL;
 	}
 
 	ret = of_property_read_u32_index(regmap_np, "reg", 1,
@@ -1119,17 +1152,6 @@ static int fan54015_charger_probe(struct i2c_client *client,
 		return ret;
 	}
 
-	if (of_device_is_compatible(regmap_np->parent, "sprd,sc2730"))
-		info->charger_pd_mask = FAN54015_DISABLE_PIN_MASK_2730;
-	else if (of_device_is_compatible(regmap_np->parent, "sprd,sc2721"))
-		info->charger_pd_mask = FAN54015_DISABLE_PIN_MASK_2721;
-	else if (of_device_is_compatible(regmap_np->parent, "sprd,sc2720"))
-		info->charger_pd_mask = FAN54015_DISABLE_PIN_MASK_2720;
-	else {
-		dev_err(dev, "failed to get charger_pd mask\n");
-		return -EINVAL;
-	}
-
 	regmap_pdev = of_find_device_by_node(regmap_np);
 	if (!regmap_pdev) {
 		of_node_put(regmap_np);
@@ -1140,16 +1162,14 @@ static int fan54015_charger_probe(struct i2c_client *client,
 	of_node_put(regmap_np);
 	info->pmic = dev_get_regmap(regmap_pdev->dev.parent, NULL);
 	if (!info->pmic) {
+		put_device(&regmap_pdev->dev);
 		dev_err(dev, "unable to get pmic regmap device\n");
 		return -ENODEV;
 	}
 
-	info->usb_notify.notifier_call = fan54015_charger_usb_change;
-	ret = usb_register_notifier(info->usb_phy, &info->usb_notify);
-	if (ret) {
-		dev_err(dev, "failed to register notifier:%d\n", ret);
-		return ret;
-	}
+	put_device(&regmap_pdev->dev);
+	mutex_init(&info->lock);
+	mutex_lock(&info->lock);
 
 	charger_cfg.drv_data = info;
 	charger_cfg.of_node = dev->of_node;
@@ -1158,25 +1178,73 @@ static int fan54015_charger_probe(struct i2c_client *client,
 						   &charger_cfg);
 	if (IS_ERR(info->psy_usb)) {
 		dev_err(dev, "failed to register power supply\n");
-		usb_unregister_notifier(info->usb_phy, &info->usb_notify);
-		return PTR_ERR(info->psy_usb);
+		ret = PTR_ERR(info->psy_usb);
+		goto err_regmap_exit;
 	}
 
 	ret = fan54015_charger_hw_init(info);
 	if (ret) {
-		usb_unregister_notifier(info->usb_phy, &info->usb_notify);
-		return ret;
+		dev_err(dev, "failed to fan54015_charger_hw_init\n");
+		goto err_regmap_exit;
 	}
 
-	device_init_wakeup(info->dev, true);
 	fan54015_charger_stop_charge(info);
 
-	fan54015_charger_detect_status(info);
+	device_init_wakeup(info->dev, true);
+
 	INIT_DELAYED_WORK(&info->otg_work, fan54015_charger_otg_work);
-	INIT_DELAYED_WORK(&info->wdt_work,
-			  fan54015_charger_feed_watchdog_work);
+	INIT_DELAYED_WORK(&info->wdt_work, fan54015_charger_feed_watchdog_work);
+
+	ret = fan54015_charger_register_vbus_regulator(info);
+	if (ret) {
+		dev_err(dev, "failed to register vbus regulator.\n");
+		goto err_regmap_exit;
+	}
+
+	INIT_WORK(&info->work, fan54015_charger_work);
+
+	info->usb_notify.notifier_call = fan54015_charger_usb_change;
+	ret = usb_register_notifier(info->usb_phy, &info->usb_notify);
+	if (ret) {
+		dev_err(dev, "failed to register notifier:%d\n", ret);
+		goto err_regmap_exit;
+	}
+
+	mutex_unlock(&info->lock);
+	fan54015_charger_detect_status(info);
 
 	return 0;
+
+err_regmap_exit:
+	regmap_exit(info->pmic);
+	mutex_unlock(&info->lock);
+	mutex_destroy(&info->lock);
+	return ret;
+}
+
+static void fan54015_charger_shutdown(struct i2c_client *client)
+{
+	struct fan54015_charger_info *info = i2c_get_clientdata(client);
+	int ret = 0;
+
+	cancel_delayed_work_sync(&info->wdt_work);
+	if (info->otg_enable) {
+		info->otg_enable = false;
+		cancel_delayed_work_sync(&info->otg_work);
+		ret = fan54015_update_bits(info, FAN54015_REG_1,
+					   FAN54015_REG_HZ_MODE_MASK |
+					   FAN54015_REG_OPA_MODE_MASK,
+					   0);
+		if (ret)
+			dev_err(info->dev, "disable fan54015 otg failed ret = %d\n", ret);
+
+		/* Enable charger detection function to identify the charger type */
+		ret = regmap_update_bits(info->pmic, info->charger_detect,
+					 BIT_DP_DM_BC_ENB, 0);
+		if (ret)
+			dev_err(info->dev,
+				"enable charger detection function failed ret = %d\n", ret);
+	}
 }
 
 static int fan54015_charger_remove(struct i2c_client *client)
@@ -1196,6 +1264,11 @@ static int fan54015_charger_suspend(struct device *dev)
 	struct fan54015_charger_info *info = dev_get_drvdata(dev);
 	ktime_t now, add;
 	unsigned int wakeup_ms = FAN54015_WDG_TIMER_MS;
+
+	if (!info) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -EINVAL;
+	}
 
 	if (info->otg_enable || info->limit)
 		/* feed watchdog first before suspend */
@@ -1217,6 +1290,11 @@ static int fan54015_charger_suspend(struct device *dev)
 static int fan54015_charger_resume(struct device *dev)
 {
 	struct fan54015_charger_info *info = dev_get_drvdata(dev);
+
+	if (!info) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -EINVAL;
+	}
 
 	if (info->otg_enable || info->limit)
 		/* feed watchdog first after resume */
@@ -1257,6 +1335,7 @@ static struct i2c_driver fan54015_charger_driver = {
 		.pm = &fan54015_charger_pm_ops,
 	},
 	.probe = fan54015_charger_probe,
+	.shutdown = fan54015_charger_shutdown,
 	.remove = fan54015_charger_remove,
 	.id_table = fan54015_i2c_id,
 };

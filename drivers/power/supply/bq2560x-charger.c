@@ -432,11 +432,11 @@ static int bq2560x_charger_hw_init(struct bq2560x_charger_info *info)
 		 */
 		info->cur.sdp_limit = 500000;
 		info->cur.sdp_cur = 500000;
-		info->cur.dcp_limit = 5000000;
-		info->cur.dcp_cur = 500000;
-		info->cur.cdp_limit = 5000000;
-		info->cur.cdp_cur = 1500000;
-		info->cur.unknown_limit = 5000000;
+		info->cur.dcp_limit = 1500000;
+		info->cur.dcp_cur = 1500000;
+		info->cur.cdp_limit = 1000000;
+		info->cur.cdp_cur = 1000000;
+		info->cur.unknown_limit = 500000;
 		info->cur.unknown_cur = 500000;
 	}
 
@@ -1923,6 +1923,30 @@ err_regmap_exit:
 	return ret;
 }
 
+static void bq2560x_charger_shutdown(struct i2c_client *client)
+{
+	struct bq2560x_charger_info *info = i2c_get_clientdata(client);
+	int ret = 0;
+
+	cancel_delayed_work_sync(&info->wdt_work);
+	if (info->otg_enable) {
+		info->otg_enable = false;
+		cancel_delayed_work_sync(&info->otg_work);
+		ret = bq2560x_update_bits(info, BQ2560X_REG_1,
+					  BQ2560X_REG_OTG_MASK,
+					  0);
+		if (ret)
+			dev_err(info->dev, "disable bq2560x otg failed ret = %d\n", ret);
+
+		/* Enable charger detection function to identify the charger type */
+		ret = regmap_update_bits(info->pmic, info->charger_detect,
+					 BIT_DP_DM_BC_ENB, 0);
+		if (ret)
+			dev_err(info->dev,
+				"enable charger detection function failed ret = %d\n", ret);
+	}
+}
+
 static int bq2560x_charger_remove(struct i2c_client *client)
 {
 	struct bq2560x_charger_info *info = i2c_get_clientdata(client);
@@ -2003,6 +2027,7 @@ static struct i2c_driver bq2560x_charger_driver = {
 		.pm = &bq2560x_charger_pm_ops,
 	},
 	.probe = bq2560x_charger_probe,
+	.shutdown = bq2560x_charger_shutdown,
 	.remove = bq2560x_charger_remove,
 	.id_table = bq2560x_i2c_id,
 };
