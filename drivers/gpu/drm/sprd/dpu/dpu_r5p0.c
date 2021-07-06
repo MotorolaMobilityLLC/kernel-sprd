@@ -15,6 +15,7 @@
 
 #include "dpu_enhance_param.h"
 #include "dpu_r5p0_corner_param.h"
+#include "disp_trusty.h"
 #include "sprd_crtc.h"
 #include "sprd_plane.h"
 #include "sprd_dpu.h"
@@ -54,6 +55,7 @@
 #define REG_DPU_CFG0	0x08
 #define REG_DPU_CFG1	0x0C
 #define REG_DPU_CFG2	0x10
+#define REG_DPU_SECURE	0x14
 #define REG_PANEL_SIZE	0x20
 #define REG_BLEND_SIZE	0x24
 #define REG_BG_COLOR	0x2C
@@ -178,6 +180,9 @@
 /* Corner config bits */
 #define BIT_TOP_CORNER_EN		BIT(0)
 #define BIT_BOT_CORNER_EN		BIT(16)
+
+/* enhance config bits */
+#define BIT_DPU_ENHANCE_EN		BIT(0)
 
 #define CABC_MODE_UI			(1 << 2)
 #define CABC_MODE_GAME			(1 << 3)
@@ -1014,28 +1019,96 @@ static void dpu_layer(struct dpu_context *ctx,
 		struct sprd_layer_state *hwlayer)
 {
 	const struct drm_format_info *info;
-	u32 size, offset, ctrl, reg_val, pitch;
+	u32 wd, secure_val;
+	struct layer_reg tmp = {};
 	int i;
 
-	offset = (hwlayer->dst_x & 0xffff) | ((hwlayer->dst_y) << 16);
+	tmp.pos = (hwlayer->dst_x & 0xffff) | ((hwlayer->dst_y) << 16);
+	secure_val = DPU_REG_RD(ctx->base + REG_DPU_SECURE);
+
+	if (hwlayer->src_w && hwlayer->src_h)
+		tmp.size = (hwlayer->src_w & 0xffff) | ((hwlayer->src_h) << 16);
+	else
+		tmp.size = (hwlayer->dst_w & 0xffff) | ((hwlayer->dst_h) << 16);
+
+	tmp.alpha = hwlayer->alpha;
 
 	if (hwlayer->pallete_en) {
-		size = (hwlayer->dst_w & 0xffff) | ((hwlayer->dst_h) << 16);
-		DPU_REG_WR(ctx->base + DPU_LAY_REG(REG_LAY_POS,
-				hwlayer->index), offset);
-		DPU_REG_WR(ctx->base + DPU_LAY_REG(REG_LAY_SIZE,
-				hwlayer->index), size);
-		DPU_REG_WR(ctx->base + DPU_LAY_REG(REG_LAY_ALPHA,
-				hwlayer->index), hwlayer->alpha);
-		DPU_REG_WR(ctx->base + DPU_LAY_REG(REG_LAY_PALLETE,
-				hwlayer->index), hwlayer->pallete_color);
+		tmp.size = (hwlayer->dst_w & 0xffff) | ((hwlayer->dst_h) << 16);
+		tmp.pallete = hwlayer->pallete_color;
 
 		/* pallete layer enable */
-		reg_val = BIT_DPU_LAY_EN |
-			  BIT_DPU_LAY_LAYER_ALPHA |
-			  BIT_DPU_LAY_PALLETE_EN;
+		tmp.ctrl = BIT_DPU_LAY_EN |
+			BIT_DPU_LAY_LAYER_ALPHA |
+			BIT_DPU_LAY_PALLETE_EN;
+
+		pr_debug("pallete:0x%x\n", tmp.pallete);
+	} else {
+		for (i = 0; i < hwlayer->planes; i++) {
+			if (hwlayer->addr[i] % 16)
+				pr_err("layer addr[%d] is not 16 bytes align, it's 0x%08x\n",
+					i, hwlayer->addr[i]);
+			tmp.addr[i] = hwlayer->addr[i];
+		}
+
+		tmp.crop_start = (hwlayer->src_y << 16) | hwlayer->src_x;
+
+		info = drm_format_info(hwlayer->format);
+		wd = info->cpp[0];
+		if (wd == 0) {
+			pr_err("layer[%d] bytes per pixel is invalid\n",
+				hwlayer->index);
+			return;
+		}
+
+		if (hwlayer->planes == 3)
+			/* UV pitch is 1/2 of Y pitch*/
+			tmp.pitch = (hwlayer->pitch[0] / wd) |
+					(hwlayer->pitch[0] / wd << 15);
+		else
+			tmp.pitch = hwlayer->pitch[0] / wd;
+
+		tmp.ctrl = dpu_img_ctrl(hwlayer->format, hwlayer->blending,
+			hwlayer->xfbc, hwlayer->y2r_coef, hwlayer->rotation);
+	}
+
+	if (hwlayer->secure_en || ctx->secure_debug) {
+		if (!secure_val) {
+			disp_ca_connect();
+			udelay(ctx->time);
+		}
+		ctx->tos_msg.cmd = TA_FIREWALL_SET;
+		disp_ca_write(&ctx->tos_msg, sizeof(ctx->tos_msg));
+		disp_ca_wait_response();
+
+		ctx->tos_msg.cmd = TA_REG_SET;
+		ctx->tos_msg.layer = tmp;
+		disp_ca_write(&ctx->tos_msg, sizeof(ctx->tos_msg));
+		disp_ca_wait_response();
+		return;
+	} else if (secure_val) {
+		ctx->tos_msg.cmd = TA_REG_CLR;
+		disp_ca_write(&ctx->tos_msg, sizeof(ctx->tos_msg));
+		disp_ca_wait_response();
+	}
+
+	for (i = 0; i < hwlayer->planes; i++)
+		DPU_REG_WR(ctx->base + DPU_LAY_PLANE_ADDR(REG_LAY_BASE_ADDR,
+					hwlayer->index, i), tmp.addr[i]);
+
+	if (hwlayer->pallete_en) {
+		tmp.size = (hwlayer->dst_w & 0xffff) | ((hwlayer->dst_h) << 16);
+		DPU_REG_WR(ctx->base + DPU_LAY_REG(REG_LAY_POS,
+				hwlayer->index), tmp.pos);
+		DPU_REG_WR(ctx->base + DPU_LAY_REG(REG_LAY_SIZE,
+				hwlayer->index), tmp.size);
+		DPU_REG_WR(ctx->base + DPU_LAY_REG(REG_LAY_ALPHA,
+				hwlayer->index), tmp.alpha);
+		DPU_REG_WR(ctx->base + DPU_LAY_REG(REG_LAY_PALLETE,
+				hwlayer->index), tmp.pallete);
+
 		DPU_REG_WR(ctx->base + DPU_LAY_REG(REG_LAY_CTRL,
-				hwlayer->index), reg_val);
+				hwlayer->index), tmp.ctrl);
 
 		pr_debug("dst_x = %d, dst_y = %d, dst_w = %d, dst_h = %d, pallete:%d\n",
 			hwlayer->dst_x, hwlayer->dst_y,
@@ -1043,46 +1116,20 @@ static void dpu_layer(struct dpu_context *ctx,
 		return;
 	}
 
-	if (hwlayer->src_w && hwlayer->src_h)
-		size = (hwlayer->src_w & 0xffff) | ((hwlayer->src_h) << 16);
-	else
-		size = (hwlayer->dst_w & 0xffff) | ((hwlayer->dst_h) << 16);
-
-	for (i = 0; i < hwlayer->planes; i++) {
-		if (hwlayer->addr[i] % 16)
-			pr_err("layer addr[%d] is not 16 bytes align, it's 0x%08x\n",
-				i, hwlayer->addr[i]);
-		DPU_REG_WR(ctx->base + DPU_LAY_PLANE_ADDR(REG_LAY_BASE_ADDR,
-				hwlayer->index, i), hwlayer->addr[i]);
-	}
-
 	DPU_REG_WR(ctx->base + DPU_LAY_REG(REG_LAY_POS,
-			hwlayer->index), offset);
+			hwlayer->index), tmp.pos);
 	DPU_REG_WR(ctx->base + DPU_LAY_REG(REG_LAY_SIZE,
-			hwlayer->index), size);
+			hwlayer->index), tmp.size);
 	DPU_REG_WR(ctx->base + DPU_LAY_REG(REG_LAY_CROP_START,
-			hwlayer->index), hwlayer->src_y << 16 | hwlayer->src_x);
+			hwlayer->index), tmp.crop_start);
 	DPU_REG_WR(ctx->base + DPU_LAY_REG(REG_LAY_ALPHA,
-			hwlayer->index), hwlayer->alpha);
-
-	info = drm_format_info(hwlayer->format);
-	if (hwlayer->planes == 3) {
-		/* UV pitch is 1/2 of Y pitch*/
-		pitch = (hwlayer->pitch[0] / info->cpp[0]) |
-				(hwlayer->pitch[0] / info->cpp[0] << 15);
-		DPU_REG_WR(ctx->base + DPU_LAY_REG(REG_LAY_PITCH,
-				hwlayer->index), pitch);
-	} else {
-		pitch = hwlayer->pitch[0] / info->cpp[0];
-		DPU_REG_WR(ctx->base + DPU_LAY_REG(REG_LAY_PITCH,
-				hwlayer->index), pitch);
-	}
-
-	ctrl = dpu_img_ctrl(hwlayer->format, hwlayer->blending,
-		hwlayer->xfbc, hwlayer->y2r_coef, hwlayer->rotation);
-
+			hwlayer->index), tmp.alpha);
+	DPU_REG_WR(ctx->base + DPU_LAY_REG(REG_LAY_PITCH,
+			hwlayer->index), tmp.pitch);
 	DPU_REG_WR(ctx->base + DPU_LAY_REG(REG_LAY_CTRL,
-			hwlayer->index), ctrl);
+			hwlayer->index), tmp.ctrl);
+	DPU_REG_WR(ctx->base + DPU_LAY_REG(REG_LAY_PALLETE,
+				hwlayer->index), tmp.pallete);
 
 	pr_debug("dst_x = %d, dst_y = %d, dst_w = %d, dst_h = %d\n",
 				hwlayer->dst_x, hwlayer->dst_y,
@@ -1096,6 +1143,8 @@ static void dpu_scaling(struct dpu_context *ctx,
 			struct sprd_plane planes[], u8 count)
 {
 	int i;
+	u16 src_w;
+	u16 src_h;
 	struct sprd_layer_state *layer_state;
 	struct sprd_plane_state *plane_state;
 	struct dpu_enhance *enhance = ctx->enhance;
@@ -1124,13 +1173,63 @@ static void dpu_scaling(struct dpu_context *ctx,
 				enhance->enhance_en, layer_state->dst_w,
 				layer_state->dst_h);
 		}
+	} else {
+		if (count == 1) {
+			plane_state = to_sprd_plane_state(planes[count - 1].base.state);
+			layer_state = &plane_state->layer;
+			if (layer_state->rotation & (DRM_MODE_ROTATE_90 |
+							DRM_MODE_ROTATE_270)) {
+				src_w = layer_state->src_h;
+				src_h = layer_state->src_w;
+			} else {
+				src_w = layer_state->src_w;
+				src_h = layer_state->src_h;
+			}
+			if (src_w == layer_state->dst_w
+			&& src_h == layer_state->dst_h) {
+				DPU_REG_WR(ctx->base + REG_BLEND_SIZE,
+					(enhance->scale_copy.in_h << 16) | enhance->scale_copy.in_w);
+				if (!enhance->need_scale)
+					DPU_REG_CLR(ctx->base + REG_DPU_ENHANCE_CFG, BIT_DPU_ENHANCE_EN);
+				else
+					DPU_REG_SET(ctx->base + REG_DPU_ENHANCE_CFG, BIT_DPU_ENHANCE_EN);
+			} else {
+				/*
+				 * When the layer src size is not euqal to the
+				 * dst size, screened by dpu hal,the single
+				 * layer need to scaling-up. Regardless of
+				 * whether the SR function is turned on, dpu
+				 * blend size should be set to the layer src
+				 * size.
+				 */
+				DPU_REG_WR(ctx->base + REG_BLEND_SIZE, (src_h << 16) | src_w);
+				/*
+				 * When the layer src size is equal to panel
+				 * size, close dpu scaling-up function.
+				 */
+				if (src_h == ctx->vm.vactive &&
+						src_w == ctx->vm.hactive)
+					DPU_REG_CLR(ctx->base + REG_DPU_ENHANCE_CFG, BIT_DPU_ENHANCE_EN);
+				else
+					DPU_REG_SET(ctx->base + REG_DPU_ENHANCE_CFG, BIT_DPU_ENHANCE_EN);
+			}
+		} else {
+			DPU_REG_WR(ctx->base + REG_BLEND_SIZE, (enhance->scale_copy.in_h << 16) |
+					  enhance->scale_copy.in_w);
+			if (!enhance->need_scale)
+				DPU_REG_CLR(ctx->base + REG_DPU_ENHANCE_CFG, BIT_DPU_ENHANCE_EN);
+			else
+				DPU_REG_SET(ctx->base + REG_DPU_ENHANCE_CFG, BIT_DPU_ENHANCE_EN);
+		}
 	}
 }
 
 static void dpu_flip(struct dpu_context *ctx, struct sprd_plane planes[], u8 count)
 {
 	int i;
-	u32 reg_val;
+	u32 reg_val, secure_val;
+	struct sprd_plane_state *state;
+	struct sprd_layer_state *layer;
 	struct dpu_enhance *enhance = ctx->enhance;
 
 	ctx->vsync_count = 0;
@@ -1172,7 +1271,16 @@ static void dpu_flip(struct dpu_context *ctx, struct sprd_plane planes[], u8 cou
 	if (ctx->if_type == SPRD_DPU_IF_DPI) {
 		if (!ctx->stopped) {
 			DPU_REG_SET(ctx->base + REG_DPU_CTRL, BIT_DPU_REG_UPDATE);
-			dpu_wait_update_done(ctx);
+			secure_val = DPU_REG_RD(ctx->base + REG_DPU_SECURE);
+			state = to_sprd_plane_state(planes[0].base.state);
+			layer = &state->layer;
+			if ((!layer->secure_en) && secure_val) {
+				dpu_wait_update_done(ctx);
+				ctx->tos_msg.cmd = TA_FIREWALL_CLR;
+				disp_ca_write(&ctx->tos_msg, sizeof(ctx->tos_msg));
+				disp_ca_wait_response();
+			} else
+				dpu_wait_update_done(ctx);
 		}
 
 		DPU_REG_SET(ctx->base + REG_DPU_INT_EN, BIT_DPU_INT_ERR);
