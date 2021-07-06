@@ -5,7 +5,7 @@
 config SPRD_IMS_BRIDGE
 	tristate "Spreadtrum ims stack bridge support"
 	depends on INET && NETFILTER && SPRD_SIPC
-	default m
+	default y
 	help
 	  This option adds ims stack bridge support to the kernel. We will
 	  *route* the packets to the proper interface and ims stack, and
@@ -25,9 +25,15 @@ config SPRD_IMS_BRIDGE_TEST
 config SPRD_IMS_BRIDGE_TRANSIT
 	tristate "Spreadtrum ims stack bridge config for orca board"
 	depends on INET && NETFILTER && SPRD_SIPC
-	default m
+	default y
 	help
 	  This option add only on orca board, so the imsbr on orca on play
 	  a role as a data-transfer.
 	  If unsure, say N.
+
+config SPRD_IMS_BRIDGE_GCOV
+    bool "open gcov for ims stack bridge"
+    depends on GCOV_PROFILE_MODULES
+    help
+      Say Y here to enable gcov for ims stack bridge
 
