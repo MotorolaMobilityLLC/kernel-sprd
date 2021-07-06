@@ -379,6 +379,17 @@ static void imsbr_frag_send(struct sk_buff *skb)
 	IMSBR_STAT_INC(imsbr_stats->frag_ok);
 }
 
+#ifdef CONFIG_SPRD_IMS_BRIDGE_TEST
+
+void call_packet_function(struct call_p_function *cpf)
+{
+	cpf->pkt2skb = imsbr_pkt2skb;
+	cpf->dumpcap = imsbr_dumpcap;
+	cpf->frag_send = imsbr_frag_send;
+}
+
+#endif
+
 void imsbr_packet_relay2cp(struct sk_buff *skb)
 {
 	struct sblock blk;

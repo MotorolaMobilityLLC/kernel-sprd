@@ -493,6 +493,21 @@ static void imsbr_echo_pong(struct imsbr_msghdr *msg, unsigned long unused)
 	pr_info("pong from cp: %s\n", msg->imsbr_payload);
 }
 
+#ifdef CONFIG_SPRD_IMS_BRIDGE_TEST
+
+void call_core_function(struct call_c_function *ccf)
+{
+	ccf->cptuple_update = imsbr_cptuple_update;
+	ccf->cp_sync_esp = imsbr_cp_sync_esp;
+	ccf->handover_state = imsbr_handover_state;
+	ccf->cptuple_reset = imsbr_cptuple_reset;
+	ccf->cp_reset = imsbr_cp_reset;
+	ccf->echo_ping = imsbr_echo_ping;
+	ccf->echo_pong = imsbr_echo_pong;
+}
+
+#endif
+
 static bool imsbr_msg_invalid(struct imsbr_msghdr *msghdr, int msglen)
 {
 	if (msghdr->imsbr_version != IMSBR_MSG_VERSION) {

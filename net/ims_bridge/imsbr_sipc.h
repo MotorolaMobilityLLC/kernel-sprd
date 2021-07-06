@@ -31,6 +31,19 @@ struct imsbr_sipc {
 extern struct imsbr_sipc imsbr_data;
 extern struct imsbr_sipc imsbr_ctrl;
 
+#ifdef CONFIG_SPRD_IMS_BRIDGE_TEST
+
+struct call_internal_function {
+	void (*sipc_handler) (int event, void *data);
+	int (*sipc_kthread) (void *arg);
+	int (*sipc_create) (struct imsbr_sipc *sipc);
+	void (*sipc_destroy) (struct imsbr_sipc *sipc);
+};
+
+void call_imsbr_sipc_function(struct call_internal_function *cif);
+
+#endif
+
 int imsbr_notify_ltevideo_apsk(void);
 int imsbr_build_cmd(const char *cmd, struct sblock *blk,
 		    void *payload, int paylen);

@@ -318,6 +318,18 @@ static void imsbr_sipc_destroy(struct imsbr_sipc *sipc)
 	sblock_destroy(sipc->dst, sipc->channel);
 }
 
+#ifdef CONFIG_SPRD_IMS_BRIDGE_TEST
+
+void call_imsbr_sipc_function(struct call_internal_function *cif)
+{
+	cif->sipc_handler = imsbr_handler;
+	cif->sipc_kthread = imsbr_kthread;
+	cif->sipc_create = imsbr_sipc_query_to_register;
+	cif->sipc_destroy = imsbr_sipc_destroy;
+}
+
+#endif
+
 static void imsbr_sipc_init_work(struct work_struct *wk)
 {
 	struct imsbr_sipc *sipc = container_of(wk, struct imsbr_sipc,

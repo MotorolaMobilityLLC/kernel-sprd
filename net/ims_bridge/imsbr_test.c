@@ -27,11 +27,14 @@
 #include <net/udp.h>
 #include <net/ip6_checksum.h>
 #include <uapi/linux/ims_bridge/ims_bridge.h>
+#include <net/genetlink.h>
 
 #include "imsbr_core.h"
 #include "imsbr_packet.h"
 #include "imsbr_sipc.h"
 #include "imsbr_test.h"
+#include "imsbr_netlink.h"
+#include "imsbr_transit.h"
 
 #ifdef CONFIG_SPRD_IMS_BRIDGE_TEST
 
@@ -68,6 +71,24 @@ static void imsbr_test_aptuple(unsigned long unused);
 static void imsbr_test_sipc(unsigned long unused);
 static void imsbr_test_pressure(unsigned long unused);
 
+static void imsbr_test_receive(unsigned long unused);
+static void imsbr_test_tuple_validate(unsigned long unused);
+static void imsbr_test_sipc_create(unsigned long unused);
+
+static void imsbr_test_tuple2nftuple(unsigned long unused);
+static void imsbr_test_tuple_dump(unsigned long unused);
+
+static void imsbr_test_cptuple_reset(unsigned long unused);
+static void imsbr_test_cp_reset(unsigned long unused);
+static void imsbr_test_echo_ping(unsigned long unused);
+static void imsbr_test_echo_pong(unsigned long unused);
+
+static void imsbr_test_pkt2skb(unsigned long unused);
+
+static void imsbr_test_sblock_send(unsigned long unused);
+static void imsbr_test_sblock_release(unsigned long unused);
+static void imsbr_test_sblock_put(unsigned long unused);
+
 static struct {
 	const char *name;
 	void (*doit)(unsigned long arg);
@@ -86,6 +107,28 @@ static struct {
 	{ "test-aptuple",	imsbr_test_aptuple,	0 },
 	{ "test-sipc",		imsbr_test_sipc,	0 },
 	{ "test-pressure",	imsbr_test_pressure,	0 },
+	{ "test-addaptuple", imsbr_test_receive, 0},
+	{ "test-tuple-validate", imsbr_test_tuple_validate, 0},
+	{ "test-sipc-create", imsbr_test_sipc_create},
+	{ "test-tuple2nftuple", imsbr_test_tuple2nftuple, 0},
+	{ "test-tuple-dump", imsbr_test_tuple_dump, 0},
+	{ "test-cptuple-reset", imsbr_test_cptuple_reset, 0},
+	{ "test-cp-reset", imsbr_test_cp_reset, 0},
+	{ "test-cp-echo-ping", imsbr_test_echo_ping, 0},
+	{ "test-cp-echo-pong", imsbr_test_echo_pong, 0},
+	{ "test-pkt2skb", imsbr_test_pkt2skb, 0},
+	{ "test-sblock-send", imsbr_test_sblock_send, 0},
+	{ "test-sblock-release", imsbr_test_sblock_release, 0},
+	{ "test-sblock-put", imsbr_test_sblock_put, 0},
+};
+
+static int test_event[] = {
+	SBLOCK_NOTIFY_GET,
+	SBLOCK_NOTIFY_RECV,
+	SBLOCK_NOTIFY_STATUS,
+	SBLOCK_NOTIFY_OPEN,
+	SBLOCK_NOTIFY_CLOSE,
+	SBLOCK_NOTIFY_OPEN_FAILED
 };
 
 static int testsuite_print(struct seq_file *s, void *p)
@@ -166,6 +209,11 @@ static void imsbr_test_packet(struct nf_conntrack_tuple *nft,
 	struct sblock blk;
 	u16 flow_type;
 
+	struct imsbr_msghdr *msghdr;
+	char msgbuff[IMSBR_CTRL_BLKSZ];
+
+	msghdr = (struct imsbr_msghdr *)msgbuff;
+
 	if (is_input) {
 		/* Volte AP video engine solution. */
 		flow_type = IMSBR_FLOW_CPTUPLE;
@@ -187,9 +235,17 @@ static void imsbr_test_packet(struct nf_conntrack_tuple *nft,
 	blk.length = l3len;
 	imsbr_process_packet(&imsbr_ctrl, &blk, false);
 
+	blk.addr = msghdr;
+	imsbr_process_msg(&imsbr_ctrl, &blk, false);
+	imsbr_transit_process(&imsbr_ctrl, &blk, false);
+
 	blk.addr = l4pkt;
 	blk.length = l4len;
 	imsbr_process_packet(&imsbr_ctrl, &blk, false);
+
+	blk.addr = msghdr;
+	imsbr_process_msg(&imsbr_ctrl, &blk, false);
+	imsbr_transit_process(&imsbr_ctrl, &blk, false);
 
 	imsbr_flow_del(nft, flow_type, &tuple);
 }
@@ -392,6 +448,7 @@ static void imsbr_test_aptuple(unsigned long unused)
 static void imsbr_test_sblock(struct imsbr_sipc *sipc, int size)
 {
 	struct sblock *blk;
+	struct call_t_function ctf = { };
 	int cnt, i;
 
 	g_test_result = IMSBR_TEST_INPROGRESS;
@@ -410,6 +467,9 @@ static void imsbr_test_sblock(struct imsbr_sipc *sipc, int size)
 
 	}
 
+	call_transit_function(&ctf);
+	ctf.sblock_get(&imsbr_ctrl, &blk[cnt-1], size);
+
 	pr_debug("%s alloc %d sblocks\n", sipc->desc, cnt);
 
 	for (i = 0; i < cnt; i++)
@@ -419,11 +479,32 @@ static void imsbr_test_sblock(struct imsbr_sipc *sipc, int size)
 	g_test_result = IMSBR_TEST_PASS;
 }
 
+static void imsbr_test_sblock_handler(int event, void *data)
+{
+	struct call_internal_function cif = { };
+	struct call_t_function ctf = { };
+
+	g_test_result = IMSBR_TEST_INPROGRESS;
+	call_imsbr_sipc_function(&cif);
+	cif.sipc_handler(event, data);
+
+	call_transit_function(&ctf);
+	ctf.sipc_handler(event, data);
+
+	g_test_result = IMSBR_TEST_PASS;
+}
+
 static void imsbr_test_sipc(unsigned long unused)
 {
+	int i;
 	g_test_result = IMSBR_TEST_INPROGRESS;
 	imsbr_test_sblock(&imsbr_ctrl, IMSBR_MSG_MAXLEN);
 	imsbr_test_sblock(&imsbr_data, IMSBR_PACKET_MAXSZ);
+
+	for (i = 0; i < 6; i++) {
+		imsbr_test_sblock_handler(test_event[i], &imsbr_data);
+		imsbr_test_sblock_handler(test_event[i], &imsbr_ctrl);
+	}
 	g_test_result = IMSBR_TEST_PASS;
 }
 
@@ -457,6 +538,250 @@ static void imsbr_test_pressure(unsigned long unused)
 	g_test_result = IMSBR_TEST_INPROGRESS;
 	for (i = 0; i < nthread; i++)
 		kthread_run(imsbr_test_kthread, NULL, "imsbr-test%d", i);
+	g_test_result = IMSBR_TEST_PASS;
+}
+
+static void imsbr_test_sblock_receive(struct imsbr_sipc *sipc)
+{
+	struct sblock *blk;
+	struct call_t_function ctf = { };
+	int cnt, i;
+
+	g_test_result = IMSBR_TEST_INPROGRESS;
+
+	blk = kmalloc_array(sipc->blknum, sizeof(struct sblock), GFP_KERNEL);
+	if (!blk) {
+		g_test_result = IMSBR_TEST_FAIL;
+		return;
+	}
+	for (cnt = 0; cnt < sipc->blknum; cnt++) {
+		if (imsbr_sblock_receive(sipc, &blk[cnt])) {
+			g_test_result = IMSBR_TEST_FAIL;
+			break;
+		}
+	}
+
+	call_transit_function(&ctf);
+	ctf.sblock_receive(sipc, &blk[cnt - 1]);
+
+	pr_debug("%s alloc %d sblocks\n", sipc->desc, cnt);
+
+	for (i = 0; i < cnt; i++) {
+		imsbr_sblock_release(sipc, &blk[i]);
+	}
+
+	kfree(blk);
+
+	g_test_result = IMSBR_TEST_PASS;
+}
+
+static void imsbr_test_receive(unsigned long unused)
+{
+	g_test_result = IMSBR_TEST_INPROGRESS;
+	imsbr_test_sblock_receive(&imsbr_ctrl);
+	imsbr_test_sblock_receive(&imsbr_data);
+	g_test_result = IMSBR_TEST_PASS;
+}
+
+static void imsbr_test_tuple_validate(unsigned long unused)
+{
+	char *msg = "aptuple-add";
+	struct imsbr_tuple tuple = { };
+
+	g_test_result = IMSBR_TEST_INPROGRESS;
+
+	tuple.media_type = IMSBR_MEDIA_SIP;
+	tuple.link_type = IMSBR_LINK_CP;
+	tuple.socket_type = IMSBR_SOCKET_CP;
+
+	if (!imsbr_tuple_validate(msg, &tuple)) {
+		g_test_result = IMSBR_TEST_FAIL;
+	}
+	g_test_result = IMSBR_TEST_PASS;
+}
+
+static void imsbr_test_sipc_create(unsigned long unused)
+{
+	struct call_internal_function cif = { };
+
+	call_imsbr_sipc_function(&cif);
+
+	g_test_result = IMSBR_TEST_INPROGRESS;
+	if (cif.sipc_create(&imsbr_data)) {
+		g_test_result = IMSBR_TEST_FAIL;
+	}
+
+	if (cif.sipc_create(&imsbr_ctrl)) {
+		g_test_result = IMSBR_TEST_FAIL;
+	}
+	g_test_result = IMSBR_TEST_PASS;
+}
+
+static void imsbr_test_tuple2nftuple(unsigned long unused)
+{
+	struct imsbr_tuple tuple = { };
+	struct nf_conntrack_tuple nft;
+
+	g_test_result = IMSBR_TEST_INPROGRESS;
+	tuple.l3proto = IPPROTO_IP;
+	tuple.l4proto = IPPROTO_UDP;
+	tuple.local_addr.ip = 0;
+	tuple.peer_addr.ip = 0;
+	tuple.peer_port = 1;
+	tuple.local_port = 1;
+
+	imsbr_tuple2nftuple(&tuple, &nft, true);
+	imsbr_tuple2nftuple(&tuple, &nft, false);
+
+	g_test_result = IMSBR_TEST_PASS;
+}
+
+static void imsbr_test_tuple_dump(unsigned long unused)
+{
+	struct imsbr_tuple tuple = { };
+	char *prefix = "imsbr";
+
+	g_test_result = IMSBR_TEST_INPROGRESS;
+	tuple.l3proto = IPPROTO_IP;
+	tuple.l4proto = IPPROTO_UDP;
+	tuple.local_addr.ip = 0;
+	tuple.peer_addr.ip = 0;
+	tuple.peer_port = 1;
+	tuple.local_port = 1;
+	tuple.sim_card = 1;
+	tuple.media_type = IMSBR_MEDIA_SIP;
+	tuple.link_type = IMSBR_LINK_CP;
+	tuple.socket_type = IMSBR_SOCKET_CP;
+
+	imsbr_tuple_dump(prefix, &tuple);
+
+	tuple.l3proto = IPPROTO_TCP;
+	imsbr_tuple_dump(prefix, &tuple);
+
+	g_test_result = IMSBR_TEST_PASS;
+}
+
+static void imsbr_test_cptuple_reset(unsigned long unused)
+{
+	struct imsbr_msghdr msg = {};
+	struct call_c_function ccf = { };
+
+	g_test_result = IMSBR_TEST_INPROGRESS;
+	call_core_function(&ccf);
+
+	msg.imsbr_payload[0] = 1;
+
+	ccf.cptuple_reset(&msg, 0);
+
+	g_test_result = IMSBR_TEST_PASS;
+}
+
+static void imsbr_test_cp_reset(unsigned long unused)
+{
+	struct imsbr_msghdr msg = {};
+	struct call_c_function ccf = { };
+
+	g_test_result = IMSBR_TEST_INPROGRESS;
+	call_core_function(&ccf);
+
+	ccf.cp_reset(&msg, 0);
+	g_test_result = IMSBR_TEST_PASS;
+}
+
+static void imsbr_test_echo_ping(unsigned long unused)
+{
+	struct call_c_function ccf = { };
+	struct imsbr_msghdr *msg = (struct imsbr_msghdr *)kmalloc(sizeof(struct imsbr_msghdr) + 20*sizeof(char), GFP_KERNEL);
+
+	g_test_result = IMSBR_TEST_INPROGRESS;
+
+	call_core_function(&ccf);
+	strcpy(msg->imsbr_payload, "hello imsbr");
+
+	ccf.echo_ping(msg, 0);
+
+	kfree(msg);
+
+	g_test_result = IMSBR_TEST_PASS;
+}
+
+static void imsbr_test_echo_pong(unsigned long unused)
+{
+	struct call_c_function ccf = { };
+	struct imsbr_msghdr *msg = (struct imsbr_msghdr *)kmalloc(sizeof(struct imsbr_msghdr) + 20*sizeof(char), GFP_KERNEL);
+
+	g_test_result = IMSBR_TEST_INPROGRESS;
+
+	call_core_function(&ccf);
+	strcpy(msg->imsbr_payload, "hello imsbr");
+
+	ccf.echo_pong(msg, 0);
+
+	kfree(msg);
+
+	g_test_result = IMSBR_TEST_PASS;
+}
+
+static void imsbr_test_pkt2skb(unsigned long unused)
+{
+	char *pktstr = "hello imsbr";
+	int pktlen;
+	struct call_p_function cpf = { };
+
+	g_test_result = IMSBR_TEST_INPROGRESS;
+	pktlen = strlen(pktstr) + 1;
+	call_packet_function(&cpf);
+	cpf.pkt2skb(pktstr, pktlen);
+
+	g_test_result = IMSBR_TEST_PASS;
+}
+
+static void imsbr_test_sblock_send(unsigned long unused)
+{
+	char *hellostr = "hello ims bridge!";
+	struct sblock blk;
+	struct call_t_function ctf = {};
+	int hellolen;
+
+	g_test_result = IMSBR_TEST_INPROGRESS;
+	hellolen = strlen(hellostr) + 1;
+	imsbr_sblock_send(&imsbr_ctrl, &blk, hellolen);
+
+	call_transit_function(&ctf);
+	ctf.sblock_send(&imsbr_ctrl, &blk, hellolen);
+
+	g_test_result = IMSBR_TEST_PASS;
+}
+
+static void imsbr_test_sblock_release(unsigned long unused)
+{
+	struct sblock blk = { };
+	struct call_t_function ctf = { };
+
+	g_test_result = IMSBR_TEST_INPROGRESS;
+
+	imsbr_sblock_release(&imsbr_data, &blk);
+	imsbr_sblock_release(&imsbr_ctrl, &blk);
+
+	call_transit_function(&ctf);
+	ctf.sblock_release(&imsbr_data, &blk);
+	ctf.sblock_release(&imsbr_ctrl, &blk);
+
+	g_test_result = IMSBR_TEST_PASS;
+}
+
+static void imsbr_test_sblock_put(unsigned long unused)
+{
+	struct sblock blk = { };
+	struct call_t_function ctf = { };
+
+	g_test_result = IMSBR_TEST_INPROGRESS;
+
+	imsbr_sblock_put(&imsbr_data, &blk);
+	imsbr_sblock_put(&imsbr_ctrl, &blk);
+
+	call_transit_function(&ctf);
+	ctf.sblock_put(&imsbr_ctrl, &blk);
 	g_test_result = IMSBR_TEST_PASS;
 }
 
@@ -554,6 +879,48 @@ static ssize_t imsbr_ltp_write(struct file *file,
 			break;
 		case IMSBR_LTP_CASE_PRESSURE:
 			imsbr_test_pressure(0);
+			break;
+		case IMSBR_LTP_CASE_RECEIVE:
+			imsbr_test_receive(0);
+			break;
+		case IMSBR_LTP_CASE_TUPLE_VALIDATE:
+			imsbr_test_tuple_validate(0);
+			break;
+		case IMSBR_LTP_CASE_SIPC_CREATE:
+			imsbr_test_sipc_create(0);
+			break;
+		case IMSBR_LTP_CASE_TUPLE2NFTUPLE:
+			imsbr_test_tuple2nftuple(0);
+			break;
+		case IMSBR_LTP_CASE_TUPLE_DUMP:
+			imsbr_test_tuple_dump(0);
+			break;
+		//case IMSBR_LTP_CASE_CP_SYNC_ESP:
+		//	imsbr_test_cp_sync_esp(0);
+		//	break;
+		case IMSBR_LTP_CASE_CPTUPLE_RESET:
+			imsbr_test_cptuple_reset(0);
+			break;
+		case IMSBR_LTP_CASE_CP_RESET:
+			imsbr_test_cp_reset(0);
+			break;
+		case IMSBR_LTP_CASE_ECHO_PING:
+			imsbr_test_echo_ping(0);
+			break;
+		case IMSBR_LTP_CASE_ECHO_PONG:
+			imsbr_test_echo_pong(0);
+			break;
+		case IMSBR_LTP_CASE_PKT2SKB:
+			imsbr_test_pkt2skb(0);
+			break;
+		case IMSBR_LTP_CASE_SBLOCK_SEND:
+			imsbr_test_sblock_send(0);
+			break;
+		case IMSBR_LTP_CASE_SBLOCK_RELEASE:
+			imsbr_test_sblock_release(0);
+			break;
+		case IMSBR_LTP_CASE_SBLOCK_PUT:
+			imsbr_test_sblock_put(0);
 			break;
 		default:
 			break;
