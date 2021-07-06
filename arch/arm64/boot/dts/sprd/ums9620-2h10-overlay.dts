@@ -91,7 +91,7 @@
 				compatible = "simple-battery";
 				charge-full-design-microamp-hours = <2950000>;
 				charge-term-current-microamp = <60000>;
-				constant_charge_voltage_max_microvolt = <4340000>;
+				constant-charge-voltage-max-microvolt = <4340000>;
 				factory-internal-resistance-micro-ohms = <252000>;
 				voltage-min-design-microvolt = <3450000>;
 				charge-pumps-threshold-microvolt = <4100000>;
@@ -546,8 +546,8 @@
 
 &pmic_fgu {
 	monitored-battery = <&bat>;
-	sprd,calib-resistance-real = <4850>;
-	sprd,calib-resistance-spec = <20000>;
+	sprd,calib-resistance-micro-ohms = <4850>;
+	sprd,comp-resistance-mohm= <20>;
 	first-calib-voltage = <3580000>;
 	first-calib-capacity = <50>;
 };
