@@ -677,6 +677,7 @@ static void musb_sprd_detect_cable(struct sprd_glue *glue)
 	unsigned long flags;
 	struct extcon_dev *id_ext = glue->id_edev ? glue->id_edev : glue->edev;
 
+    printk("%s entered!\n", __func__);
 	spin_lock_irqsave(&glue->lock, flags);
 	if (extcon_get_state(id_ext, EXTCON_USB_HOST) == true) {
 		if (glue->vbus_active == 1) {
@@ -688,6 +689,7 @@ static void musb_sprd_detect_cable(struct sprd_glue *glue)
 
 		glue->vbus_active = 1;
 		glue->wq_mode = USB_DR_MODE_HOST;
+       printk("%s host!\n", __func__);
 		queue_work(system_unbound_wq, &glue->work);
 	} else if (extcon_get_state(glue->edev, EXTCON_USB) == true) {
 		if (glue->vbus_active == 1) {
@@ -699,6 +701,7 @@ static void musb_sprd_detect_cable(struct sprd_glue *glue)
 
 		glue->vbus_active = 1;
 		glue->wq_mode = USB_DR_MODE_PERIPHERAL;
+       printk("%s device!\n", __func__);
 		queue_work(system_unbound_wq, &glue->work);
 	}
 	spin_unlock_irqrestore(&glue->lock, flags);
@@ -745,7 +748,7 @@ musb_sprd_retry_charger_detect(struct sprd_glue *glue)
 	unsigned long flags;
 	u8 pwr;
 
-	dev_dbg(glue->dev, "%s enter\n", __func__);
+      dev_info(glue->dev, "%s enter\n", __func__);
 	spin_lock_irqsave(&glue->lock, flags);
 	glue->retry_charger_detect = true;
 	spin_unlock_irqrestore(&glue->lock, flags);
@@ -780,7 +783,7 @@ static bool musb_sprd_is_connect_host(struct sprd_glue *glue)
 	struct usb_phy *usb_phy = glue->xceiv;
 	enum usb_charger_type type = usb_phy->charger_detect(usb_phy);
 
-	dev_dbg(glue->dev, "%s type = %d\n", __func__, (int)type);
+   dev_info(glue->dev, "%s type = %d\n", __func__, (int)type);
 	if ((type == UNKNOWN_TYPE) && usb_phy->retry_charger_detect) {
 		if (extcon_get_state(glue->edev, EXTCON_USB))
 			type = musb_sprd_retry_charger_detect(glue);
@@ -844,6 +847,7 @@ static void sprd_musb_work(struct work_struct *work)
 	int ret;
 	int cnt = 100;
 
+    printk("%s entered!\n", __func__);
 	spin_lock_irqsave(&glue->lock, flags);
 	current_mode = glue->wq_mode;
 	current_state = glue->vbus_active;
