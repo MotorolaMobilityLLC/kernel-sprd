@@ -855,7 +855,7 @@ int sc2332_power_save(struct sprd_priv *priv, struct sprd_vif *vif,
 }
 
 int sc2332_add_key(struct sprd_priv *priv, struct sprd_vif *vif,
-		   const u8 *key_data, u8 key_len, u8 pairwise, u8 key_index,
+		   const u8 *key_data, u8 key_len, bool pairwise, u8 key_index,
 		   const u8 *key_seq, u8 cypher_type, const u8 *mac_addr)
 {
 	struct sprd_msg *msg;
@@ -872,7 +872,7 @@ int sc2332_add_key(struct sprd_priv *priv, struct sprd_vif *vif,
 	p = (struct cmd_add_key *)(++sub_cmd);
 
 	p->key_index = key_index;
-	p->pairwise = pairwise;
+	p->pairwise = (u8)pairwise;
 	p->cypher_type = cypher_type;
 	p->key_len = key_len;
 	if (key_seq)
@@ -885,7 +885,7 @@ int sc2332_add_key(struct sprd_priv *priv, struct sprd_vif *vif,
 	return send_cmd_recv_rsp(priv, msg, NULL, NULL);
 }
 
-int sc2332_del_key(struct sprd_priv *priv, struct sprd_vif *vif, u16 key_index,
+int sc2332_del_key(struct sprd_priv *priv, struct sprd_vif *vif, u8 key_index,
 		   bool pairwise, const u8 *mac_addr)
 {
 	struct sprd_msg *msg;
@@ -901,7 +901,7 @@ int sc2332_del_key(struct sprd_priv *priv, struct sprd_vif *vif, u16 key_index,
 	p = (struct cmd_del_key *)(++sub_cmd);
 
 	p->key_index = key_index;
-	p->pairwise = pairwise;
+	p->pairwise = (u8)pairwise;
 	if (mac_addr)
 		ether_addr_copy(p->mac, mac_addr);
 

@@ -933,9 +933,9 @@ int sc2355_close_fw(struct sprd_priv *priv, struct sprd_vif *vif);
 int sc2355_power_save(struct sprd_priv *priv, struct sprd_vif *vif,
 		      u8 sub_type, u8 status);
 int sc2355_add_key(struct sprd_priv *priv, struct sprd_vif *vif,
-		   const u8 *key_data, u8 key_len, u8 pairwise, u8 key_index,
+		   const u8 *key_data, u8 key_len, bool pairwise, u8 key_index,
 		   const u8 *key_seq, u8 cypher_type, const u8 *mac_addr);
-int sc2355_del_key(struct sprd_priv *priv, struct sprd_vif *vif, u16 key_index,
+int sc2355_del_key(struct sprd_priv *priv, struct sprd_vif *vif, u8 key_index,
 		   bool pairwise, const u8 *mac_addr);
 int sc2355_set_def_key(struct sprd_priv *priv, struct sprd_vif *vif,
 		       u8 key_index);

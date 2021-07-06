@@ -215,21 +215,23 @@ static int cfg80211_add_cipher_key(struct sprd_vif *vif, bool pairwise,
 				   u8 key_index, u32 cipher, const u8 *key_seq,
 				   const u8 *mac_addr)
 {
-	u8 *cipher_ptr = pairwise ? &vif->prwise_crypto : &vif->grp_crypto;
+	u8 cipher_ptr;
 	int ret = 0;
 
 	netdev_info(vif->ndev, "%s %s key_index %d\n", __func__,
 		    pairwise ? "pairwise" : "group", key_index);
 
 	if (vif->key_len[pairwise][0] || vif->key_len[pairwise][1] ||
-	    vif->key_len[pairwise][2] || vif->key_len[pairwise][3]) {
-		*cipher_ptr = vif->prwise_crypto = sprd_parse_cipher(cipher);
+	    vif->key_len[pairwise][2] || vif->key_len[pairwise][3]
+	    || vif->key_len[pairwise][4]) {
+		vif->prwise_crypto = sprd_parse_cipher(cipher);
+		cipher_ptr = vif->prwise_crypto;
 
 		ret = sprd_add_key(vif->priv, vif,
 				   vif->key[pairwise][key_index],
 				   vif->key_len[pairwise][key_index],
-				   (u8)pairwise, key_index, key_seq,
-				   *cipher_ptr, mac_addr);
+				   pairwise, key_index, key_seq,
+				   cipher_ptr, mac_addr);
 	}
 
 	return ret;
@@ -343,8 +345,8 @@ int sprd_cfg80211_add_key(struct wiphy *wiphy, struct net_device *ndev,
 					     params->key, params->key_len);
 	else
 		return cfg80211_add_cipher_key(vif, pairwise, key_index,
-					   params->cipher, params->seq,
-					   mac_addr);
+					       params->cipher, params->seq,
+					       mac_addr);
 }
 
 int sprd_cfg80211_del_key(struct wiphy *wiphy, struct net_device *ndev,

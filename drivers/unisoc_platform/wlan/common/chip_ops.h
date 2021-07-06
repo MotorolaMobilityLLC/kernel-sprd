@@ -39,11 +39,11 @@ struct sprd_chip_ops {
 	int (*power_save)(struct sprd_priv *priv, struct sprd_vif *vif,
 			  u8 sub_type, u8 status);
 	int (*add_key)(struct sprd_priv *priv, struct sprd_vif *vif,
-		       const u8 *key_data, u8 key_len, u8 pairwise,
+		       const u8 *key_data, u8 key_len, bool pairwise,
 		       u8 key_index, const u8 *key_seq, u8 cypher_type,
 		       const u8 *mac_addr);
 	int (*del_key)(struct sprd_priv *priv,
-		       struct sprd_vif *vif, u16 key_index,
+		       struct sprd_vif *vif, u8 key_index,
 		       bool pairwise, const u8 *mac_addr);
 	int (*set_def_key)(struct sprd_priv *priv,
 			   struct sprd_vif *vif, u8 key_index);
@@ -289,7 +289,7 @@ static inline int sprd_power_save(struct sprd_priv *priv, struct sprd_vif *vif,
 }
 
 static inline int sprd_add_key(struct sprd_priv *priv, struct sprd_vif *vif,
-			       const u8 *key_data, u8 key_len, u8 pairwise,
+			       const u8 *key_data, u8 key_len, bool pairwise,
 			       u8 key_index, const u8 *key_seq, u8 cypher_type,
 			       const u8 *mac_addr)
 {
@@ -302,7 +302,7 @@ static inline int sprd_add_key(struct sprd_priv *priv, struct sprd_vif *vif,
 }
 
 static inline int sprd_del_key(struct sprd_priv *priv,
-			       struct sprd_vif *vif, u16 key_index,
+			       struct sprd_vif *vif, u8 key_index,
 			       bool pairwise, const u8 *mac_addr)
 {
 	if (priv->chip.ops->del_key)
