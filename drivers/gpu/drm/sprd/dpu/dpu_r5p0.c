@@ -1644,10 +1644,8 @@ static void dpu_enhance_backup(u32 id, void *param)
 		break;
 	case ENHANCE_CFG_ID_SLP:
 		memcpy(&slp_copy, param, sizeof(slp_copy));
-		if (!cabc_state) {
-			slp_copy.cabc_startv = 0;
-			slp_copy.cabc_endv = 255;
-		}
+		slp_copy.cabc_startv = 0;
+		slp_copy.cabc_endv = 255;
 		enhance_en |= BIT(4);
 		pr_info("enhance slp backup\n");
 		break;
@@ -1752,10 +1750,8 @@ static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
 		break;
 	case ENHANCE_CFG_ID_SLP:
 		memcpy(&slp_copy, param, sizeof(slp_copy));
-		if (!cabc_state) {
-			slp_copy.cabc_startv = 0;
-			slp_copy.cabc_endv = 255;
-		}
+		slp_copy.cabc_startv = 0;
+		slp_copy.cabc_endv = 255;
 		slp = &slp_copy;
 		reg->slp_cfg0 = (slp->brightness_step << 0)|
 			((slp->brightness & 0x7f) << 16);
