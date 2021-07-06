@@ -1615,6 +1615,34 @@ int trigger_get_ref(int scene_id, int stream)
 	return ref;
 }
 
+static void check_vbc_ref(int scene_id, int stream)
+{
+	int startup_ref, hw_param_ref, trigger_ref;
+	struct scene_data_s *scene_data = get_scene_data();
+
+	startup_lock_mtx(scene_id, stream);
+	hw_param_lock_mtx(scene_id, stream);
+	trigger_lock_spin(scene_id, stream);
+	scene_data = get_scene_data();
+
+	startup_ref = scene_data->ref_startup[scene_id][stream];
+	hw_param_ref = scene_data->ref_hw_param[scene_id][stream];
+	trigger_ref = scene_data->ref_trigger[scene_id][stream];
+
+	if (startup_ref != hw_param_ref ||
+		hw_param_ref != trigger_ref ||
+		startup_ref != trigger_ref) {
+		pr_err("%s ref check failed, reset refs, startup_ref %d, hw_param_ref %d, trigger_ref %d\n",
+			__func__, startup_ref, hw_param_ref, trigger_ref);
+		scene_data->ref_startup[scene_id][stream] = 0;
+		scene_data->ref_hw_param[scene_id][stream] = 0;
+		scene_data->ref_trigger[scene_id][stream] = 0;
+	}
+	trigger_unlock_spin(scene_id, stream);
+	hw_param_unlock_mtx(scene_id, stream);
+	startup_unlock_mtx(scene_id, stream);
+}
+
 static void init_pcm_ops_lock(void)
 {
 	int i = 0;
@@ -1833,6 +1861,8 @@ static void scene_normal_shutdown(struct snd_pcm_substream *substream,
 		normal_vbc_protect_mutex_unlock(stream);
 	}
 	startup_unlock_mtx(scene_id, stream);
+
+	check_vbc_ref(scene_id, stream);
 }
 
 static int scene_normal_hw_params(struct snd_pcm_substream *substream,
