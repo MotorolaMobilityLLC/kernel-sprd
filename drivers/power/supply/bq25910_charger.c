@@ -405,7 +405,7 @@ static int bq25910_charger_start_charge(struct bq25910_charger_info *info)
 				 BQ25910_CHG_EN_MASK,
 				 BQ25910_CHG_EN_MASK);
 	if (ret) {
-		dev_err(info->dev, "enable bq2560x charge en failed\n");
+		dev_err(info->dev, "enable bq25910 charge en failed\n");
 		return ret;
 	}
 
@@ -425,7 +425,7 @@ static void bq25910_charger_stop_charge(struct bq25910_charger_info *info)
 
 	ret = regmap_update_bits(info->regmap, BQ25910_REG_6, BQ25910_CHG_EN_MASK, 0);
 	if (ret)
-		dev_err(info->dev, "disable bq2560x charge en failed\n");
+		dev_err(info->dev, "disable bq25910 charge en failed\n");
 
 	ret = regmap_update_bits(info->regmap, BQ25910_REG_5,
 				 BQ25910_WDG_TMR_MASK,
@@ -908,7 +908,7 @@ static int bq25910_charger_usb_get_property(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_CHARGE_ENABLED:
 		ret = regmap_read(info->regmap, BQ25910_REG_7, &enabled);
 		if (ret) {
-			dev_err(info->dev, "get bq2560x charge status failed\n");
+			dev_err(info->dev, "get bq25910 charge status failed\n");
 			goto out;
 		}
 
@@ -1150,7 +1150,7 @@ static const struct of_device_id bq25910_charger_of_match[] = {
 	{ }
 };
 
-MODULE_DEVICE_TABLE(of, bq2560x_charger_of_match);
+MODULE_DEVICE_TABLE(of, bq25910_charger_of_match);
 
 static struct i2c_driver bq25910_charger_driver = {
 	.driver = {

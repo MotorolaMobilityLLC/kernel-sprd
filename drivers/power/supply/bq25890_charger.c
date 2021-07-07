@@ -1983,7 +1983,7 @@ static const struct of_device_id bq25890_charger_of_match[] = {
 	{ }
 };
 
-MODULE_DEVICE_TABLE(of, bq2560x_charger_of_match);
+MODULE_DEVICE_TABLE(of, bq25890_charger_of_match);
 
 static struct i2c_driver bq25890_charger_driver = {
 	.driver = {
