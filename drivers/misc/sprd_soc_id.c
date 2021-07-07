@@ -59,6 +59,7 @@ int sprd_get_soc_id(sprd_soc_id_type_t soc_id_type, u32 *id, int id_len)
 			pr_err("Failed to read soc id\n");
 			return -EINVAL;
 		}
+		break;
 	default:
 		return -EINVAL;
 	}
