@@ -516,21 +516,18 @@ static enum usb_charger_type sprd_hsphy_retry_charger_detect(struct usb_phy *x)
 	int dm_voltage, dp_voltage;
 	int cnt = 20;
 
-    printk("%s entered!\n", __func__);
 	if (!phy->dm || !phy->dp) {
 		dev_err(x->dev, " phy->dp:%p, phy->dm:%p\n",
 			phy->dp, phy->dm);
 		return UNKNOWN_TYPE;
 	}
 
-    printk("%s entered 111111!\n", __func__);
 	regmap_update_bits(phy->pmic,
 		SC2730_ADC_OFFSET | SC2730_CHARGE_DET_FGU_CTRL,
 		BIT_DP_DM_AUX_EN | BIT_DP_DM_BC_ENB,
 		BIT_DP_DM_AUX_EN);
 
 	msleep(300);
-    printk("%s entered 222222!\n", __func__);
 	iio_read_channel_processed(phy->dp, &dp_voltage);
 	dp_voltage = sc2730_voltage_cali(dp_voltage);
 	if (dp_voltage > VOLT_LO_LIMIT) {
@@ -552,7 +549,6 @@ static enum usb_charger_type sprd_hsphy_retry_charger_detect(struct usb_phy *x)
 		} while ((x->chg_state == USB_CHARGER_PRESENT) && cnt > 0);
 	}
 
-    printk("%s entered 333333!\n", __func__);
 	regmap_update_bits(phy->pmic,
 		SC2730_ADC_OFFSET | SC2730_CHARGE_DET_FGU_CTRL,
 		BIT_DP_DM_AUX_EN | BIT_DP_DM_BC_ENB, 0);
@@ -562,7 +558,6 @@ static enum usb_charger_type sprd_hsphy_retry_charger_detect(struct usb_phy *x)
 		x->chg_type = type;
 		schedule_work(&x->chg_work);
 	}
-    printk("%s entered 555555!\n", __func__);
 	return type;
 }
 
