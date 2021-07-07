@@ -7,3 +7,4 @@ obj-$(CONFIG_UNISOC_WCN_BSP)			+= sprdwcn/
 obj-$(CONFIG_UNISOC_GNSS)                       += sprd_gnss/
 obj-$(CONFIG_SND_SOC)				+= audio/
 obj-$(CONFIG_WLAN_VENDOR_SPREADTRUM)		+= wlan/
+obj-y						+= sprd_apdu/
