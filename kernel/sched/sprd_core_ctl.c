@@ -59,6 +59,12 @@ struct cluster_data {
 	struct list_head lru;
 	struct list_head cluster_node;
 	struct kobject kobj;
+
+	struct core_constraints constraints;
+	struct core_qos_request *min_core_req;
+	struct core_qos_request *max_core_req;
+	struct notifier_block nb_min;
+	struct notifier_block nb_max;
 };
 
 struct cpu_data {
@@ -180,13 +186,10 @@ int ctrl_max_min_core_api(unsigned int cpu_num, int type,
 				return 0;
 			}
 		} else if (type == SETMAX) {
-			if (temp->active_cpus > cpu_num) {
-				temp->need_cpus -=
-					(temp->active_cpus - cpu_num);
-				spin_unlock_irqrestore(&state_lock, flags);
-				wake_up_core_ctl_thread(temp);
-				return 0;
-			}
+			temp->need_cpus = cpu_num;
+			spin_unlock_irqrestore(&state_lock, flags);
+			wake_up_core_ctl_thread(temp);
+			return 0;
 		}
 		/*if have error, reset it.*/
 		temp->settype = -1;
@@ -218,7 +221,6 @@ static ssize_t store_min_cpus(struct cluster_data *state,
 			      const char *buf, size_t count)
 {
 	unsigned int val;
-	unsigned long flags;
 
 	if (!state->enable)
 		return count;
@@ -229,11 +231,7 @@ static ssize_t store_min_cpus(struct cluster_data *state,
 	if (state->id == 0 && val == 0)
 		return -EINVAL;
 
-	spin_lock_irqsave(&state_lock, flags);
-	state->min_cpus = min(val, state->max_cpus);
-	spin_unlock_irqrestore(&state_lock, flags);
-
-	ctrl_max_min_core_api(state->min_cpus, SETMIN, state->id);
+	core_qos_update_request(state->min_core_req, val);
 	return count;
 }
 
@@ -246,7 +244,6 @@ static ssize_t store_max_cpus(struct cluster_data *state,
 			      const char *buf, size_t count)
 {
 	unsigned int val;
-	unsigned long flags;
 
 	if (!state->enable)
 		return count;
@@ -257,13 +254,7 @@ static ssize_t store_max_cpus(struct cluster_data *state,
 	if (val == 0 && state->id == 0)
 		return -EINVAL;
 
-	spin_lock_irqsave(&state_lock, flags);
-	val = min(val, state->num_cpus);
-	state->max_cpus = val;
-	state->min_cpus = min(state->min_cpus, state->max_cpus);
-	spin_unlock_irqrestore(&state_lock, flags);
-
-	ctrl_max_min_core_api(state->max_cpus, SETMAX, state->id);
+	core_qos_update_request(state->max_core_req, val);
 	return count;
 }
 
@@ -879,6 +870,37 @@ static struct cluster_data *find_cluster_by_first_cpu(unsigned int first_cpu)
 	return NULL;
 }
 
+static int core_ctrl_notifier_min(struct notifier_block *nb, unsigned long val,
+							void *data)
+{
+	struct cluster_data *state = container_of(nb, struct cluster_data, nb_min);
+	unsigned int req = core_qos_read_value(&state->constraints, CORE_QOS_MIN);
+	unsigned long flags;
+
+	spin_lock_irqsave(&state_lock, flags);
+	state->min_cpus = min(req, state->max_cpus);
+	spin_unlock_irqrestore(&state_lock, flags);
+	ctrl_max_min_core_api(state->min_cpus, SETMIN, state->id);
+
+	return 0;
+}
+
+static int core_ctrl_notifier_max(struct notifier_block *nb, unsigned long val,
+							void *data)
+{
+	struct cluster_data *state = container_of(nb, struct cluster_data, nb_max);
+	unsigned int req = core_qos_read_value(&state->constraints, CORE_QOS_MAX);
+	unsigned long flags;
+
+	spin_lock_irqsave(&state_lock, flags);
+	state->max_cpus = min(req, state->num_cpus);
+	state->min_cpus = min(state->min_cpus, state->max_cpus);
+	spin_unlock_irqrestore(&state_lock, flags);
+	ctrl_max_min_core_api(state->max_cpus, SETMAX, state->id);
+
+	return 0;
+}
+
 static int cluster_init(const struct cpumask *mask)
 {
 	struct device *dev;
@@ -949,6 +971,41 @@ static int cluster_init(const struct cpumask *mask)
 	cluster->core_ctl_thread = thread;
 
 	wake_up_process(thread);
+
+/*
+ * init for PM_QoS for core control
+ */
+	core_constraints_init(&cluster->constraints);
+	cluster->nb_min.notifier_call = core_ctrl_notifier_min;
+	cluster->nb_max.notifier_call = core_ctrl_notifier_max;
+	ret = core_qos_add_notifier(&cluster->constraints, CORE_QOS_MIN,
+								&cluster->nb_min);
+	if (ret < 0)
+		return ret;
+	ret = core_qos_add_notifier(&cluster->constraints, CORE_QOS_MAX,
+								&cluster->nb_max);
+	if (ret < 0)
+		return ret;
+	cluster->min_core_req = kzalloc(2 * sizeof(*cluster->min_core_req), GFP_KERNEL);
+	if (!cluster->min_core_req)
+		return -ENOMEM;
+
+	ret = core_qos_add_request(&cluster->constraints,
+								cluster->min_core_req, CORE_QOS_MIN,
+								cluster->min_cpus);
+	if (ret < 0) {
+		kfree(cluster->min_core_req);
+		cluster->min_core_req = NULL;
+		return ret;
+	}
+	cluster->max_core_req = cluster->min_core_req + 1;
+	ret = core_qos_add_request(&cluster->constraints,
+								cluster->max_core_req, CORE_QOS_MAX,
+								cluster->max_cpus);
+	if (ret < 0) {
+		cluster->max_core_req = NULL;
+		return ret;
+	}
 
 	cluster->inited = true;
 

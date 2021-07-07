@@ -898,3 +898,251 @@ int freq_qos_remove_notifier(struct freq_constraints *qos,
 	return ret;
 }
 EXPORT_SYMBOL_GPL(freq_qos_remove_notifier);
+
+/* Definitions related to the isolation QoS below. */
+
+/**
+ * core_constraints_init - Initialize isolation QoS constraints.
+ * @qos: Frequency QoS constraints to initialize.
+ */
+void core_constraints_init(struct core_constraints *qos)
+{
+	struct pm_qos_constraints *c;
+
+	c = &qos->min_core;
+	plist_head_init(&c->list);
+	c->target_value = CORE_QOS_MIN_DEFAULT_VALUE;
+	c->default_value = CORE_QOS_MIN_DEFAULT_VALUE;
+	c->no_constraint_value = CORE_QOS_MIN_DEFAULT_VALUE;
+	c->type = PM_QOS_MAX;
+	c->notifiers = &qos->min_core_notifiers;
+	BLOCKING_INIT_NOTIFIER_HEAD(c->notifiers);
+
+	c = &qos->max_core;
+	plist_head_init(&c->list);
+	c->target_value = CORE_QOS_MAX_DEFAULT_VALUE;
+	c->default_value = CORE_QOS_MAX_DEFAULT_VALUE;
+	c->no_constraint_value = CORE_QOS_MAX_DEFAULT_VALUE;
+	c->type = PM_QOS_MIN;
+	c->notifiers = &qos->max_core_notifiers;
+	BLOCKING_INIT_NOTIFIER_HEAD(c->notifiers);
+}
+
+/**
+ * core_qos_read_value - Get isolation QoS constraint for a given list.
+ * @qos: Constraints to evaluate.
+ * @type: QoS request type.
+ */
+s32 core_qos_read_value(struct core_constraints *qos,
+			enum core_qos_req_type type)
+{
+	s32 ret;
+
+	switch (type) {
+	case CORE_QOS_MIN:
+		ret = IS_ERR_OR_NULL(qos) ?
+			CORE_QOS_MIN_DEFAULT_VALUE :
+			pm_qos_read_value(&qos->min_core);
+		break;
+	case CORE_QOS_MAX:
+		ret = IS_ERR_OR_NULL(qos) ?
+			CORE_QOS_MAX_DEFAULT_VALUE :
+			pm_qos_read_value(&qos->max_core);
+		break;
+	default:
+		WARN_ON(1);
+		ret = 0;
+	}
+
+	return ret;
+}
+
+/**
+ * core_qos_apply - Add/modify/remove isolation QoS request.
+ * @req: Constraint request to apply.
+ * @action: Action to perform (add/update/remove).
+ * @value: Value to assign to the QoS request.
+ *
+ * This is only meant to be called from inside pm_qos, not drivers.
+ */
+int core_qos_apply(struct core_qos_request *req,
+			  enum pm_qos_req_action action, s32 value)
+{
+	int ret;
+
+	switch (req->type) {
+	case CORE_QOS_MIN:
+		ret = pm_qos_update_target(&req->qos->min_core, &req->pnode,
+					   action, value);
+		break;
+	case CORE_QOS_MAX:
+		ret = pm_qos_update_target(&req->qos->max_core, &req->pnode,
+					   action, value);
+		break;
+	default:
+		ret = -EINVAL;
+	}
+
+	return ret;
+}
+
+/**
+ * core_qos_add_request - Insert new isolation QoS request into a given list.
+ * @qos: Constraints to update.
+ * @req: Preallocated request object.
+ * @type: Request type.
+ * @value: Request value.
+ *
+ * Insert a new entry into the @qos list of requests, recompute the effective
+ * QoS constraint value for that list and initialize the @req object.  The
+ * caller needs to save that object for later use in updates and removal.
+ *
+ * Return 1 if the effective constraint value has changed, 0 if the effective
+ * constraint value has not changed, or a negative error code on failures.
+ */
+int core_qos_add_request(struct core_constraints *qos,
+			 struct core_qos_request *req,
+			 enum core_qos_req_type type, s32 value)
+{
+	int ret;
+
+	if (IS_ERR_OR_NULL(qos) || !req)
+		return -EINVAL;
+
+	if (WARN(core_qos_request_active(req),
+		 "%s() called for active request\n", __func__))
+		return -EINVAL;
+
+	req->qos = qos;
+	req->type = type;
+	ret = core_qos_apply(req, PM_QOS_ADD_REQ, value);
+	if (ret < 0) {
+		req->qos = NULL;
+		req->type = 0;
+	}
+
+	return ret;
+}
+EXPORT_SYMBOL_GPL(core_qos_add_request);
+
+/**
+ * core_qos_update_request - Modify existing isolation QoS request.
+ * @req: Request to modify.
+ * @new_value: New request value.
+ *
+ * Update an existing isolation QoS request along with the effective constraint
+ * value for the list of requests it belongs to.
+ *
+ * Return 1 if the effective constraint value has changed, 0 if the effective
+ * constraint value has not changed, or a negative error code on failures.
+ */
+int core_qos_update_request(struct core_qos_request *req, s32 new_value)
+{
+	if (!req)
+		return -EINVAL;
+
+	if (WARN(!core_qos_request_active(req),
+		 "%s() called for unknown object\n", __func__))
+		return -EINVAL;
+
+	if (req->pnode.prio == new_value)
+		return 0;
+
+	return core_qos_apply(req, PM_QOS_UPDATE_REQ, new_value);
+}
+EXPORT_SYMBOL_GPL(core_qos_update_request);
+
+/**
+ * core_qos_remove_request - Remove isolation QoS request from its list.
+ * @req: Request to remove.
+ *
+ * Remove the given isolation QoS request from the list of constraints it
+ * belongs to and recompute the effective constraint value for that list.
+ *
+ * Return 1 if the effective constraint value has changed, 0 if the effective
+ * constraint value has not changed, or a negative error code on failures.
+ */
+int core_qos_remove_request(struct core_qos_request *req)
+{
+	int ret;
+
+	if (!req)
+		return -EINVAL;
+
+	if (WARN(!core_qos_request_active(req),
+		 "%s() called for unknown object\n", __func__))
+		return -EINVAL;
+
+	ret = core_qos_apply(req, PM_QOS_REMOVE_REQ, PM_QOS_DEFAULT_VALUE);
+	req->qos = NULL;
+	req->type = 0;
+
+	return ret;
+}
+EXPORT_SYMBOL_GPL(core_qos_remove_request);
+
+/**
+ * core_qos_add_notifier - Add isolation QoS change notifier.
+ * @qos: List of requests to add the notifier to.
+ * @type: Request type.
+ * @notifier: Notifier block to add.
+ */
+int core_qos_add_notifier(struct core_constraints *qos,
+			  enum core_qos_req_type type,
+			  struct notifier_block *notifier)
+{
+	int ret;
+
+	if (IS_ERR_OR_NULL(qos) || !notifier)
+		return -EINVAL;
+
+	switch (type) {
+	case CORE_QOS_MIN:
+		ret = blocking_notifier_chain_register(qos->min_core.notifiers,
+						       notifier);
+		break;
+	case CORE_QOS_MAX:
+		ret = blocking_notifier_chain_register(qos->max_core.notifiers,
+						       notifier);
+		break;
+	default:
+		WARN_ON(1);
+		ret = -EINVAL;
+	}
+
+	return ret;
+}
+EXPORT_SYMBOL_GPL(core_qos_add_notifier);
+
+/**
+ * core_qos_remove_notifier - Remove isolation QoS change notifier.
+ * @qos: List of requests to remove the notifier from.
+ * @type: Request type.
+ * @notifier: Notifier block to remove.
+ */
+int core_qos_remove_notifier(struct core_constraints *qos,
+			     enum core_qos_req_type type,
+			     struct notifier_block *notifier)
+{
+	int ret;
+
+	if (IS_ERR_OR_NULL(qos) || !notifier)
+		return -EINVAL;
+
+	switch (type) {
+	case CORE_QOS_MIN:
+		ret = blocking_notifier_chain_unregister(qos->min_core.notifiers,
+							 notifier);
+		break;
+	case CORE_QOS_MAX:
+		ret = blocking_notifier_chain_unregister(qos->max_core.notifiers,
+							 notifier);
+		break;
+	default:
+		WARN_ON(1);
+		ret = -EINVAL;
+	}
+
+	return ret;
+}
+EXPORT_SYMBOL_GPL(core_qos_remove_notifier);

@@ -36,6 +36,8 @@ enum pm_qos_flags_status {
 #define PM_QOS_LATENCY_TOLERANCE_DEFAULT_VALUE	0
 #define PM_QOS_MIN_FREQUENCY_DEFAULT_VALUE	0
 #define PM_QOS_MAX_FREQUENCY_DEFAULT_VALUE	FREQ_QOS_MAX_DEFAULT_VALUE
+#define PM_QOS_MIN_CORE_DEFAULT_VALUE	0
+#define PM_QOS_MAX_CORE_DEFAULT_VALUE	CORE_QOS_MAX_DEFAULT_VALUE
 #define PM_QOS_LATENCY_TOLERANCE_NO_CONSTRAINT	(-1)
 
 #define PM_QOS_FLAG_NO_POWER_OFF	(1 << 0)
@@ -99,6 +101,26 @@ struct freq_qos_request {
 	struct freq_constraints *qos;
 };
 
+#define CORE_QOS_MIN_DEFAULT_VALUE	0
+#define CORE_QOS_MAX_DEFAULT_VALUE	S32_MAX
+
+enum core_qos_req_type {
+	CORE_QOS_MIN = 1,
+	CORE_QOS_MAX,
+};
+
+struct core_constraints {
+	struct pm_qos_constraints min_core;
+	struct blocking_notifier_head min_core_notifiers;
+	struct pm_qos_constraints max_core;
+	struct blocking_notifier_head max_core_notifiers;
+};
+
+struct core_qos_request {
+	enum core_qos_req_type type;
+	struct plist_node pnode;
+	struct core_constraints *qos;
+};
 
 enum dev_pm_qos_req_type {
 	DEV_PM_QOS_RESUME_LATENCY = 1,
@@ -313,4 +335,28 @@ int freq_qos_remove_notifier(struct freq_constraints *qos,
 			     enum freq_qos_req_type type,
 			     struct notifier_block *notifier);
 
+static inline int core_qos_request_active(struct core_qos_request *req)
+{
+	return !IS_ERR_OR_NULL(req->qos);
+}
+
+void core_constraints_init(struct core_constraints *qos);
+
+s32 core_qos_read_value(struct core_constraints *qos,
+			enum core_qos_req_type type);
+
+int core_qos_add_request(struct core_constraints *qos,
+			 struct core_qos_request *req,
+			 enum core_qos_req_type type, s32 value);
+int core_qos_update_request(struct core_qos_request *req, s32 new_value);
+int core_qos_remove_request(struct core_qos_request *req);
+int core_qos_apply(struct core_qos_request *req,
+		   enum pm_qos_req_action action, s32 value);
+
+int core_qos_add_notifier(struct core_constraints *qos,
+			  enum core_qos_req_type type,
+			  struct notifier_block *notifier);
+int core_qos_remove_notifier(struct core_constraints *qos,
+			     enum core_qos_req_type type,
+			     struct notifier_block *notifier);
 #endif
