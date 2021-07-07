@@ -13,9 +13,12 @@
 
 #define GSP_QOGIRL6 "qogirl6"
 
+#define QOGIRL6_AP_AHB_DISP_EB_NAME	  ("clk_ap_ahb_disp_eb")
+
 struct gsp_interface_qogirl6 {
 	void __iomem *gsp_qos_base;
 	struct gsp_interface common;
+	struct clk *clk_ap_ahb_disp_eb;
 	struct regmap *module_en_regmap;
 	struct regmap *reset_regmap;
 };
