@@ -214,6 +214,7 @@ struct sprd_priv {
 #endif
 	/* default MAC addr */
 	unsigned char default_mac[ETH_ALEN];
+	unsigned char default_mac_sta_second[ETH_ALEN];
 
 	/* delayed work */
 	spinlock_t work_lock;
@@ -245,6 +246,7 @@ struct sprd_priv {
 	struct sprd_debug debug;
 
 	u8 mac_addr[ETH_ALEN];
+	u8 mac_addr_sta_second[ETH_ALEN];
 	u32 wiphy_sec2_flag;
 	struct wiphy_sec2_t wiphy_sec2;
 	struct sync_api_verion_t sync_api;

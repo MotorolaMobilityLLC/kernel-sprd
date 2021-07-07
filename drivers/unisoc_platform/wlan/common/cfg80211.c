@@ -183,13 +183,16 @@ static void cfg80211_deinit_work(struct sprd_priv *priv)
 	destroy_workqueue(priv->common_workq);
 }
 
-static enum sprd_mode cfg80211_type_to_mode(enum nl80211_iftype type)
+static enum sprd_mode cfg80211_type_to_mode(enum nl80211_iftype type, char *name)
 {
 	enum sprd_mode mode;
 
 	switch (type) {
 	case NL80211_IFTYPE_STATION:
-		mode = SPRD_MODE_STATION;
+		if (strncmp(name, "wlan1", 5) == 0)
+			mode = SPRD_MODE_STATION_SECOND;
+		else
+			mode = SPRD_MODE_STATION;
 		break;
 	case NL80211_IFTYPE_AP:
 		mode = SPRD_MODE_AP;
@@ -691,7 +694,8 @@ int sprd_cfg80211_connect(struct wiphy *wiphy, struct net_device *ndev,
 		goto err;
 	}
 
-	if (vif->mode == SPRD_MODE_STATION) {
+	if (vif->mode == SPRD_MODE_STATION ||
+		vif->mode == SPRD_MODE_STATION_SECOND) {
 		if (vif->has_rand_mac) {
 			netdev_info(ndev, "Set random mac : %pM\n",
 				    vif->random_mac);
@@ -1235,8 +1239,8 @@ int sprd_init_fw(struct sprd_vif *vif)
 	enum sprd_mode mode;
 	u8 *mac;
 
-	netdev_info(vif->ndev, "%s type %d, mode %d\n", __func__, type,
-		    vif->mode);
+	netdev_info(vif->ndev, "%s type %d, mode %d, name %s\n", __func__, type,
+		    vif->mode, vif->name);
 
 	if (vif->mode != SPRD_MODE_NONE) {
 		netdev_err(vif->ndev, "%s already in use: mode %d\n",
@@ -1244,7 +1248,7 @@ int sprd_init_fw(struct sprd_vif *vif)
 		return -EBUSY;
 	}
 
-	mode = cfg80211_type_to_mode(type);
+	mode = cfg80211_type_to_mode(type, vif->name);
 	if (mode <= SPRD_MODE_NONE || mode >= SPRD_MODE_MAX) {
 		netdev_err(vif->ndev, "%s unsupported interface type: %d\n",
 			   __func__, type);

@@ -639,6 +639,7 @@ RETRY:
 			continue;
 		if (num > 0 && (!(vif->state & VIF_STATE_OPEN) ||
 				((mode == SPRD_MODE_STATION ||
+				  mode == SPRD_MODE_STATION_SECOND ||
 				  mode == SPRD_MODE_P2P_CLIENT) &&
 				 vif->sm_state != SPRD_CONNECTED))) {
 			sc2355_flush_mode_txlist(tx_mgmt, mode);

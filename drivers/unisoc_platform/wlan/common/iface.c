@@ -63,13 +63,16 @@ static struct sprd_priv *iface_get_priv(void)
 	return sprd_prv;
 }
 
-enum sprd_mode sprd_type_to_mode(enum nl80211_iftype type)
+enum sprd_mode sprd_type_to_mode(enum nl80211_iftype type, char *name)
 {
 	enum sprd_mode mode;
 
 	switch (type) {
 	case NL80211_IFTYPE_STATION:
-		mode = SPRD_MODE_STATION;
+		if (strncmp(name, "wlan1", 5) == 0)
+			mode = SPRD_MODE_STATION_SECOND;
+		else
+			mode = SPRD_MODE_STATION;
 		break;
 	case NL80211_IFTYPE_AP:
 		mode = SPRD_MODE_AP;
@@ -279,12 +282,16 @@ static void iface_set_mac_addr(struct sprd_vif *vif, u8 *pending_addr,
 
 	if (!addr) {
 		return;
-	} else if (priv && is_valid_ether_addr(priv->default_mac)) {
+	} else if (priv && (strncmp(vif->name, "wlan0", 5) == 0) &&
+				is_valid_ether_addr(priv->default_mac)) {
 		ether_addr_copy(addr, priv->default_mac);
+	} else if (priv && (strncmp(vif->name, "wlan1", 5) == 0) &&
+				is_valid_ether_addr(priv->default_mac_sta_second)) {
+		ether_addr_copy(addr, priv->default_mac_sta_second);
 	} else {
 		random_ether_addr(addr);
 		netdev_warn(vif->ndev, "%s Warning: use random MAC address\n",
-			    __func__);
+				__func__);
 		/* initialize MAC addr with specific OUI */
 		addr[0] = 0x40;
 		addr[1] = 0x45;
@@ -298,7 +305,10 @@ static void iface_set_mac_addr(struct sprd_vif *vif, u8 *pending_addr,
 	switch (type) {
 	case NL80211_IFTYPE_STATION:
 	case NL80211_IFTYPE_AP:
-		ether_addr_copy(priv->default_mac, addr);
+		if (strncmp(vif->name, "wlan1", 5) == 0)
+			ether_addr_copy(priv->default_mac_sta_second, addr);
+		else
+			ether_addr_copy(priv->default_mac, addr);
 		break;
 	case NL80211_IFTYPE_P2P_CLIENT:
 		fallthrough;
@@ -490,9 +500,9 @@ static netdev_tx_t iface_start_xmit(struct sk_buff *skb, struct net_device *ndev
 		return ret;
 
 	/* do not send packet before connected */
-	if ((vif->mode == SPRD_MODE_STATION &&
+	if (((vif->mode == SPRD_MODE_STATION || vif->mode == SPRD_MODE_STATION_SECOND) &&
 	     vif->sm_state != SPRD_CONNECTED) ||
-	    (vif->mode != SPRD_MODE_STATION &&
+	    ((vif->mode != SPRD_MODE_STATION && vif->mode != SPRD_MODE_STATION_SECOND) &&
 	     !(vif->state & VIF_STATE_OPEN))) {
 		printk_ratelimited("%s, %d, error! should not send this data\n",
 				   __func__, __LINE__);
