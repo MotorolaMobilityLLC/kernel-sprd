@@ -59,4 +59,5 @@ obj-$(CONFIG_SPRD_DEDICATE_THERMAL)	+= sprd_dedicate_thm.o
 obj-$(CONFIG_SPRD_SOC_THERMAL)	+= sprd_soc_thm.o
 obj-$(CONFIG_SPRD_CPU_COOLING)	+= sprd_cpu_cooling.o
 obj-$(CONFIG_SC27XX_TSENSOR_THERMAL)	+= sc27xx_tsensor_thermal.o
+obj-$(CONFIG_SPRD_UMP96XX_TSENSOR)	+= sprd_ump96xx_tsensor.o
 obj-$(CONFIG_SPRD_GPU_COOLING_DEVICE)	+= sprd_gpu_cooling.o
