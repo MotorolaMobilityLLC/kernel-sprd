@@ -274,6 +274,7 @@
 		vddcammot-supply = <&vddcammot>;
 		sprd,phyid = <1>;
 		csi = <&csi0>;
+		power-domains = <&cam_domain>;
 		reset-gpios = <&ap_gpio 44 0>;
 		power-down-gpios = <&ap_gpio 46 0>;
 	};
