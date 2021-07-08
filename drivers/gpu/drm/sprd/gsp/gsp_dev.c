@@ -131,7 +131,7 @@ static struct of_device_id gsp_dt_ids[] = {
 };
 MODULE_DEVICE_TABLE(of, gsp_dt_ids);
 
-static bool cali_mode;
+bool cali_mode;
 
 static int boot_mode_check(char *str)
 {
@@ -1159,7 +1159,7 @@ static int __init gsp_drv_init(void)
 
 	if (cali_mode) {
 		GSP_WARN("Calibration Mode! Don't register sprd gsp driver");
-		return 0;
+		//return 0;
 	}
 
 	GSP_INFO("gsp device init begin\n");
