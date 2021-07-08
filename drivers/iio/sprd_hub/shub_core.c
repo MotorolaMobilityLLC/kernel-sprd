@@ -1191,9 +1191,10 @@ static ssize_t batch_store(struct device *dev, struct device_attribute *attr,
 		   &batch_cmd.report_rate,
 		   &batch_cmd.batch_timeout) != 4)
 		return -EINVAL;
-	dev_info(&sensor->sensor_pdev->dev, "handle = %d, rate = %d, enabled = %d\n",
+	dev_info(&sensor->sensor_pdev->dev,
+		 "handle = %d, rate = %d, batch_latency = %d\n",
 		 batch_cmd.handle,
-		 batch_cmd.report_rate, flag);
+		 batch_cmd.report_rate, batch_cmd.batch_timeout);
 
 	if (shub_send_command(sensor, batch_cmd.handle,
 			      SHUB_SET_BATCH_SUBTYPE,
@@ -1977,8 +1978,8 @@ static ssize_t cm4_spi_set_show(struct device *dev,
 		 "\tset_op: 3\n"
 		 "\tfreq: spi frequency, for example 9: 9MHz, a: 10MHz, b: 11MHz\n"
 		 "\tcs: spi chip_select num, default 0\n"
-		 "\tmode: configure spi CPOL, CPHA, invalid value: 0, 1, 2, or 3\n"
-		 "\tbit_per_word: invalid value: 8, 16 or 32\n\n"
+		 "\tmode: configure spi CPOL, CPHA, valid value: 0, 1, 2, or 3\n"
+		 "\tbit_per_word: valid value: 8, 16 or 32\n\n"
 		 "\tstatus: show execution result. 1:success 0:fail\n\n"
 		 "%s\n", m);
 }
@@ -2011,7 +2012,7 @@ static ssize_t cm4_spi_sync_show(struct device *dev,
 		 "\tvalue1: the first value to be written\n"
 		 "\tvalue2: the second value to be written\n"
 		 "\tlen: num of regs to be read or written\n\n"
-		 "\execution result:\n"
+		 "execution result:\n"
 		 "%s%s\n", l, m);
 }
 static DEVICE_ATTR_RO(cm4_spi_sync);
