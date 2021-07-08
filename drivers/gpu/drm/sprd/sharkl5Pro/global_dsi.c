@@ -66,8 +66,14 @@ static void dsi_glb_enable(struct dsi_context *ctx)
 		pr_err("enable clk_ap_ahb_dsi_eb failed!\n");
 }
 
-static void dsi_glb_disable(struct dsi_context *ctx)
+void dsi_glb_disable(struct dsi_context *ctx)
 {
+	clk_disable_unprepare(clk_ap_ahb_dsi_eb);
+}
+
+void cali_dsi_glb_disable(struct dsi_context *ctx)
+{
+	//clk_prepare_enable(clk_ap_ahb_dsi_eb);
 	clk_disable_unprepare(clk_ap_ahb_dsi_eb);
 }
 
