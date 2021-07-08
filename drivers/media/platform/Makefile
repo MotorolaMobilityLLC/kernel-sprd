@@ -106,3 +106,4 @@ obj-y					+= sprd-vsp/
 
 obj-y					+= sprd-jpg/
 
+obj-y					+= sprd-vpu/
