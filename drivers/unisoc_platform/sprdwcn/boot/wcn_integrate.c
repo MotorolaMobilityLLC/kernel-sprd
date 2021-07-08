@@ -321,7 +321,7 @@ u32 wcn_get_cp2_comm_rx_count(void)
 	}
 	wcn_read_data_from_phy_addr(phy_addr,
 				    &rx_count, sizeof(u32));
-	WCN_INFO("cp2 comm rx count :%d\n", rx_count);
+	//WCN_INFO("cp2 comm rx count :%d\n", rx_count);
 
 	return rx_count;
 }

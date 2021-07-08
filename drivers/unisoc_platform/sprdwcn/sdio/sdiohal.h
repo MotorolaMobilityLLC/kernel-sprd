@@ -399,4 +399,7 @@ void sdiohal_register_scan_notify(void *func);
 int sdiohal_scan_card(void *wcn_dev);
 void sdiohal_remove_card(void *wcn_dev);
 
+extern unsigned long long tm_enter_tx_thread;
+extern unsigned long long tm_exit_tx_thread;
+
 #endif

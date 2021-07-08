@@ -3,6 +3,7 @@
 
 #include <linux/mutex.h>
 #include <linux/types.h>
+#include <asm-generic/div64.h>
 
 /* Hours offset for GM and China-BeiJing */
 #define WCN_BTWF_TIME_OFFSET (8)
@@ -16,7 +17,9 @@
  * 32bit ms is more than 42days, it's engough
  * for loopcheck debug.
  */
-#define MARLIN_64B_NS_TO_32B_MS(ns) ((unsigned int)(ns / 1000000))
+#define NS_TO_MS                    1000000
+#define MARLIN_64B_NS_TO_32B_MS(ns) do_div(ns, NS_TO_MS)
+//#define MARLIN_64B_NS_TO_32B_MS(ns) ((unsigned int)(ns / 1000000))
 
 enum atcmd_owner {
 	/* default AT CMD reply to WCND */
@@ -68,7 +71,7 @@ long int wcn_ap_notify_btwf_time(void);
  * should call this function also.
  */
 void marlin_bootup_time_update(void);
-unsigned long int marlin_bootup_time_get(void);
+unsigned long long marlin_bootup_time_get(void);
 char *wcn_get_kernel_time(void);
 
 int wcn_write_zero_to_phy_addr(phys_addr_t phy_addr, u32 size);

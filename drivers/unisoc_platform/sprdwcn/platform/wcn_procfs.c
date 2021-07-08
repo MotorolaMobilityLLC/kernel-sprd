@@ -888,13 +888,14 @@ static ssize_t mdbg_proc_write(struct file *filp,
 		/* loopcheck add kernel time ms/1000 */
 		if (strncmp(mdbg_proc->write_buf, "at+loopcheck", 12) == 0) {
 			/* struct timespec now; */
-			unsigned long ns = local_clock();
-			unsigned long time = marlin_bootup_time_get();
-			unsigned int ap_t = MARLIN_64B_NS_TO_32B_MS(ns);
-			unsigned int marlin_boot_t = MARLIN_64B_NS_TO_32B_MS(time);
+			unsigned long long loopcheck_tx_ns = local_clock();
+			unsigned long long marlin_boot_t = marlin_bootup_time_get();
 
-			sprintf(mdbg_proc->write_buf, "at+loopcheck=%u,%u\r",
-				ap_t, marlin_boot_t);
+			MARLIN_64B_NS_TO_32B_MS(loopcheck_tx_ns);
+			MARLIN_64B_NS_TO_32B_MS(marlin_boot_t);
+
+			sprintf(mdbg_proc->write_buf, "at+loopcheck=%llu,%llu\r",
+				loopcheck_tx_ns, marlin_boot_t);
 			/* Be care the count value changed here before send to CP2 */
 			count = strlen(mdbg_proc->write_buf);
 			WCN_INFO("%s, count = %d", mdbg_proc->write_buf, (int)count);

@@ -24,6 +24,9 @@
 
 static void (*scan_card_notify)(void);
 static struct sdiohal_data_t *sdiohal_data;
+unsigned long long tm_enter_tx_thread;
+unsigned long long tm_exit_tx_thread;
+
 
 struct sdiohal_data_t *sdiohal_get_data(void)
 {
@@ -323,6 +326,8 @@ int sdiohal_adma_pt_write(struct sdiohal_list_t *data_list)
 
 	if (unlikely(p_data->card_dump_flag == true)) {
 		pr_err("%s line %d dump happened\n", __func__, __LINE__);
+		pr_err("tx_thread_enter_time=%llu,tx_thread_exit_time=%llu\n",
+		       tm_enter_tx_thread, tm_exit_tx_thread);
 		return -1;
 	}
 

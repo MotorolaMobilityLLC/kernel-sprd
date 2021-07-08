@@ -29,7 +29,7 @@
 
 static struct atcmd_fifo s_atcmd_owner;
 static struct wcn_tm tm;
-static unsigned long int s_marlin_bootup_time;
+static unsigned long long s_marlin_bootup_time;
 
 void mdbg_atcmd_owner_init(void)
 {
@@ -189,11 +189,11 @@ long int wcn_ap_notify_btwf_time(void)
 void marlin_bootup_time_update(void)
 {
 	s_marlin_bootup_time = local_clock();
-	WCN_INFO("s_marlin_bootup_time=%ld",
+	WCN_INFO("s_marlin_bootup_time=%llu",
 		 s_marlin_bootup_time);
 }
 
-unsigned long int marlin_bootup_time_get(void)
+unsigned long long marlin_bootup_time_get(void)
 {
 	return s_marlin_bootup_time;
 }

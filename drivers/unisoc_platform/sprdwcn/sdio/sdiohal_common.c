@@ -1167,6 +1167,7 @@ int sdiohal_list_direct_write(int channel, struct mbuf_t *head,
 {
 	struct sdiohal_data_t *p_data = sdiohal_get_data();
 	struct sdiohal_list_t data_list;
+	int ret = 0;
 
 	sdiohal_lock_tx_ws();
 	sdiohal_resume_check();
@@ -1179,14 +1180,14 @@ int sdiohal_list_direct_write(int channel, struct mbuf_t *head,
 	data_list.mbuf_tail->next = NULL;
 
 	if (p_data->adma_tx_enable)
-		sdiohal_adma_pt_write(&data_list);
+		ret = sdiohal_adma_pt_write(&data_list);
 	else
-		sdiohal_tx_data_list_send(&data_list);
+		ret = sdiohal_tx_data_list_send(&data_list);
 
 	sdiohal_cp_tx_sleep(PACKER_DT_TX);
 	sdiohal_unlock_tx_ws();
 
-	return 0;
+	return ret;
 }
 
 static int sdiohal_list_init(void)

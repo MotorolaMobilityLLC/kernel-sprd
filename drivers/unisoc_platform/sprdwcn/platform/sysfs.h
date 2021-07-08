@@ -20,5 +20,8 @@ void wcn_firmware_init_wq(struct work_struct *work);
 void wcn_firmware_init(void);
 int init_wcn_sysfs(void);
 void exit_wcn_sysfs(void);
+void wcn_send_atcmd_lock(void);
+void wcn_send_atcmd_unlock(void);
+
 #endif
 

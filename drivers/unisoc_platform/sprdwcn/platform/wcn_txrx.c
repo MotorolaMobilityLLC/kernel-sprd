@@ -327,6 +327,7 @@ int mdbg_tx_cb(int channel, struct mbuf_t *head,
 		}
 	}
 
+	WCN_INFO("%s, chn:%d\n", __func__, channel);
 	/* PCIe buf is witebuf[], not kmalloc, no need to free */
 	sprdwcn_bus_list_free(channel, head, tail, num);
 

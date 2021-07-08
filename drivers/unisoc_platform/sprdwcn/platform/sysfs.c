@@ -34,6 +34,16 @@ struct wcn_sysfs_info {
 
 static struct wcn_sysfs_info sysfs_info;
 
+void wcn_send_atcmd_lock(void)
+{
+	mutex_lock(&sysfs_info.mutex);
+}
+
+void wcn_send_atcmd_unlock(void)
+{
+	mutex_unlock(&sysfs_info.mutex);
+}
+
 int notify_at_cmd_finish(void *buf, unsigned char len)
 {
 	sysfs_info.p = buf;
@@ -61,6 +71,11 @@ static int wcn_send_atcmd(void *cmd, unsigned char cmd_len,
 	/* common buf for kmalloc */
 	unsigned char *com_buf = NULL;
 
+	if (unlikely(!marlin_get_module_status())) {
+		WCN_ERR("WCN module have not open\n");
+		return -EIO;
+	}
+
 	if (g_match_config && g_match_config->unisoc_wcn_pcie) {
 		pcie_dev = get_wcn_device_info();
 		if (!pcie_dev) {
@@ -79,11 +94,11 @@ static int wcn_send_atcmd(void *cmd, unsigned char cmd_len,
 		pub_head_rsv = PUB_HEAD_RSV;
 	}
 
-	mutex_lock(&sysfs_info.mutex);
+	wcn_send_atcmd_lock();
 	ret = sprdwcn_bus_list_alloc(0, &head, &tail, &num);
 	if (ret || !head || !tail) {
 		WCN_ERR("%s:%d mbuf_link_alloc fail\n", __func__, __LINE__);
-		mutex_unlock(&sysfs_info.mutex);
+		wcn_send_atcmd_unlock();
 		return -1;
 	}
 
@@ -91,7 +106,7 @@ static int wcn_send_atcmd(void *cmd, unsigned char cmd_len,
 		if (at_buf_flag == 0) {
 			ret = dmalloc(pcie_dev, &dma_buf, 128);
 			if (ret != 0) {
-				mutex_unlock(&sysfs_info.mutex);
+				wcn_send_atcmd_unlock();
 				return -1;
 			}
 			at_buf_flag = 1;
@@ -105,7 +120,7 @@ static int wcn_send_atcmd(void *cmd, unsigned char cmd_len,
 	} else {
 		com_buf = kzalloc(128 + pub_head_rsv + 1, GFP_KERNEL);
 		if (!com_buf) {
-			mutex_unlock(&sysfs_info.mutex);
+			wcn_send_atcmd_unlock();
 			return -ENOMEM;
 		}
 		memcpy(com_buf + pub_head_rsv, cmd, cmd_len);
@@ -123,7 +138,7 @@ static int wcn_send_atcmd(void *cmd, unsigned char cmd_len,
 	if (g_match_config && g_match_config->unisoc_wcn_sdio) {
 		if (!WCN_CARD_EXIST(&p_data->xmit_cnt)) {
 			WCN_INFO("%s:already power off\n", __func__);
-			mutex_unlock(&sysfs_info.mutex);
+			wcn_send_atcmd_unlock();
 			return 0;
 		}
 	}
@@ -131,11 +146,11 @@ static int wcn_send_atcmd(void *cmd, unsigned char cmd_len,
 	if (!timeleft) {
 		WCN_ERR("%s,Timeout(%d sec),didn't get at cmd(%s) response\n",
 			__func__, jiffies_to_msecs(3 * HZ) / 1000, (char *)cmd);
-		mutex_unlock(&sysfs_info.mutex);
+		wcn_send_atcmd_unlock();
 		return -ETIMEDOUT;
 	}
 	if (!response) {
-		mutex_unlock(&sysfs_info.mutex);
+		wcn_send_atcmd_unlock();
 		return 0;
 	}
 
@@ -143,7 +158,7 @@ static int wcn_send_atcmd(void *cmd, unsigned char cmd_len,
 	scnprintf(response, (size_t)sysfs_info.len, "%s",
 		  (char *)sysfs_info.p);
 	WCN_DBG("len=%zu, buf=%s\n", *response_len, (char *)(response));
-	mutex_unlock(&sysfs_info.mutex);
+	wcn_send_atcmd_unlock();
 
 	return 0;
 }
