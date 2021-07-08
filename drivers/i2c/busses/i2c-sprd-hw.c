@@ -622,6 +622,7 @@ static const struct dev_pm_ops sprd_i2c_hw_pm_ops = {
 
 static const struct of_device_id sprd_i2c_hw_of_match[] = {
 	{ .compatible = "sprd,sharkl3-hw-i2c", },
+	{ .compatible = "sprd,sc9860-hw-i2c", },
 	{},
 };
 
