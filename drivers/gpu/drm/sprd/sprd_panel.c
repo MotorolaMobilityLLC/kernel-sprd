@@ -635,18 +635,18 @@ static int sprd_oled_set_brightness(struct backlight_device *bdev)
 	level = brightness * oled->max_level / 255;
 
 	DRM_INFO("%s level: %d\n", __func__, level);
-
-	if(strncmp(lcd_name, "lcd_ili9883a_youda_mipi_hd",strlen(lcd_name)) == 0){
+    //pr_err("wzx%s level: %d\n",lcd_name, level);
+	if(strncmp(lcd_name, "lcd_nt36525c_boe_mipi_fhd",strlen(lcd_name)) == 0){
 		if (level < 256){
-			level = ((level * 84) + 16)/ 100;
+			level = ((level * 84) + 6)/ 100;
             g_last_level = level;
         }
-        pr_err("wzx%s level: %d\n",lcd_name, level);
+      // pr_err("wzx11111%s level: %d\n",lcd_name, level);
 	}
 	else{
         if (level < 256){
             g_last_level = level;
-			level = ((level * 96)+ 4)/ 100;
+			level = ((level * 93)+ 4)/ 100;
 		}
 	}
 	if (level ==256)
