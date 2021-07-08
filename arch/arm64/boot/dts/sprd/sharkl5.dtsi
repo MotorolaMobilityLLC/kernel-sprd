@@ -1128,7 +1128,7 @@
 			};
 
 			i2c5: i2c@32060000 {
-				compatible = "sprd,sharkl5-hw-i2c";
+				compatible = "sprd,sharkl5-hw-i2c", "sprd,sc9860-hw-i2c";
 				reg = <0 0x32060000 0 0x1000>;
 				interrupts = <GIC_SPI 68 IRQ_TYPE_LEVEL_HIGH>;
 				clock-frequency = <400000>;
