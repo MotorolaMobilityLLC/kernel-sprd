@@ -709,7 +709,7 @@ static void dpu_wb_work_func(struct work_struct *data)
 
 static int dpu_write_back_config(struct dpu_context *ctx)
 {
-	static int need_config = 1;
+	static int need_config;
 	size_t wb_buf_size;
 	struct sprd_dpu *dpu =
 		(struct sprd_dpu *)container_of(ctx, struct sprd_dpu, ctx);
