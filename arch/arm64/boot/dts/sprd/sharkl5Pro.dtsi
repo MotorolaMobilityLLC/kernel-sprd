@@ -2068,7 +2068,7 @@
 	};
 
 	cache_efuse: efuse@15c00 {
-		compatible = "sprd,ums312-efuse", "sprd,ums512-efuse";
+		compatible = "sprd,ums312-cache-efuse", "sprd,ums512-cache-efuse";
 		#address-cells = <1>;
 		#size-cells = <1>;
 		reg = <0 0x15c00 0 0x3ff>;
