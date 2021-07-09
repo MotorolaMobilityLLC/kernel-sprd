@@ -141,6 +141,11 @@
 				reg = <0x70000000 0x100>;
 				interrupts = <GIC_SPI 2 IRQ_TYPE_LEVEL_HIGH>;
 				clock-names = "enable", "uart", "source";
+				source-base = <0x21500050>;
+				clock-frequency = <0>;
+				uart-eb-syscon = <&ap_apb_regs
+						REG_AP_APB_APB_EB
+						MASK_AP_APB_UART0_EB>;
 				clocks = <&ext_26m>;
 			};
 
@@ -150,6 +155,11 @@
 				reg = <0x70100000 0x100>;
 				interrupts = <GIC_SPI 3 IRQ_TYPE_LEVEL_HIGH>;
 				clock-names = "enable", "uart", "source";
+				source-base = <0x21500054>;
+				clock-frequency = <0>;
+				uart-eb-syscon = <&ap_apb_regs
+						REG_AP_APB_APB_EB
+						MASK_AP_APB_UART1_EB>;
 				clocks = <&ext_26m>;
 			};
 
