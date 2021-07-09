@@ -565,6 +565,12 @@ config CHARGER_BQ2415X
 	  You'll need this driver to charge batteries on e.g. Nokia
 	  RX-51/N900.
 
+config CHARGER_AW32257
+	tristate "AWINIC AW32257 battery charger driver"
+	depends on I2C
+	help
+	  Say Y to enable support for the AWINIC AW32257 battery charger PMICs.
+
 config CHARGER_BQ24190
 	tristate "TI BQ24190 battery charger driver"
 	depends on I2C
@@ -756,5 +762,23 @@ config CHARGER_WILCO
 	  by the Embedded Controller on the Chromebook named Wilco. Further
 	  information can be found in
 	  Documentation/ABI/testing/sysfs-class-power-wilco
+
+config WIRELESS_CHARGER_NU1619
+	tristate "NU1619 Wireless Charger"
+	depends on I2C || COMPILE_TEST
+	help
+	  Say Y to include support for NoVolta NU619 Wireless charger.
+
+config WIRELESS_CHARGER_SY65153
+	tristate "SY65153 Wireless Charger"
+	depends on I2C || COMPILE_TEST
+	help
+	  Say Y to include support for Silergy sy65153 Wireless charger.
+
+config WIRELESS_CHARGE_PUMPS_CONVERTER_HL1506
+	tristate "Halo wireless charge pump converter hl1506"
+	depends on I2C || COMPILE_TEST
+	help
+	  Say Y to include support for Halo hl1506 wireless charge pump converter.
 
 endif # POWER_SUPPLY

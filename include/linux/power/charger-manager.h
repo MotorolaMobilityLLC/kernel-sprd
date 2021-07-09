@@ -57,9 +57,10 @@ enum cm_event_types {
 	CM_EVENT_BATT_COLD,
 	CM_EVENT_EXT_PWR_IN_OUT,
 	CM_EVENT_CHG_START_STOP,
-	CM_EVENT_OTHERS,
+	CM_EVENT_WL_CHG_START_STOP,
 	CM_EVENT_FAST_CHARGE,
 	CM_EVENT_INT,
+	CM_EVENT_OTHERS,
 };
 
 enum cm_jeita_types {
@@ -486,6 +487,22 @@ struct cm_charge_current {
 };
 
 /**
+ * struct cm_charge_pump_status
+ * @adapter_default_charge_vol: record default charge voltage for
+ *   different charger type
+ * @thm_pwr(in mw): record thermal power to limit charge current.
+ * @thm_adjust_cur: record thermal current to limit charge current, which
+ *   is converted from adapter_default_charge_vol and thm_adjust_cur
+ * @need_calib_charge_lmt: if need to calib charge limit current by thermal.
+ */
+struct cm_thermal_info {
+	u32 adapter_default_charge_vol;
+	u32 thm_pwr;
+	int thm_adjust_cur;
+	bool need_calib_charge_lmt;
+};
+
+/**
  * struct charger_desc
  * @psy_name: the name of power-supply-class for charger manager
  * @polling_mode:
@@ -509,7 +526,10 @@ struct cm_charge_current {
  * @battery_present:
  *	Specify where information for existence of battery can be obtained
  * @psy_charger_stat: the names of power-supply for chargers
- * @psy_cp_stat: the names of charge pumps
+ * @psy_fast_charger_stat: the names of power-supply for fast chargers
+ * @psy_cp_stat: the names of power-supply for charge pumps
+ * @psy_wl_charger_stat: the names of power-supply for wireless chargers
+ * @psy_cp_converter_stat: the names of power-supply for charge pump converters
  * @num_charger_regulator: the number of entries in charger_regulators
  * @charger_regulators: array of charger regulators
  * @psy_fuel_gauge: the name of power-supply for fuel gauge
@@ -598,6 +618,10 @@ struct cm_charge_current {
  * @fast_charger_type: record the charge type
  * @cp: record the charge pump status
  * @ir_comp: record the current and resistor compensation status
+ * @wl_charge_en: if it is wireless charge enabled or not
+ * @usb_charge_en: if it is usb charge enabled or not
+ * @adapter_default_charge_vol(v): adapter charge voltage for thermal to calculate
+ *     input limit current
  */
 struct charger_desc {
 	const char *psy_name;
@@ -618,6 +642,8 @@ struct charger_desc {
 	const char **psy_charger_stat;
 	const char **psy_fast_charger_stat;
 	const char **psy_cp_stat;
+	const char **psy_wl_charger_stat;
+	const char **psy_cp_converter_stat;
 
 	int num_charger_regulators;
 	struct charger_regulator *charger_regulators;
@@ -671,6 +697,9 @@ struct charger_desc {
 
 	u32 wdt_interval;
 
+	int charge_limit_cur;
+	int input_limit_cur;
+
 	int thm_adjust_cur;
 
 	struct charger_jeita_table *jeita_tab;
@@ -701,6 +730,13 @@ struct charger_desc {
 	struct cm_ir_compensation ir_comp;
 
 	struct cm_charge_current cur;
+
+	bool wl_charge_en;
+	bool usb_charge_en;
+
+	struct cm_thermal_info thm_info;
+
+	struct mutex charger_type_mtx;
 };
 
 #define PSY_NAME_MAX	30
