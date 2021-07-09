@@ -19,7 +19,7 @@
 		compatible = "sprd,display-subsystem";
 		memory-region = <&drm_reserved>;
 		ports = <&dpu_port>;
-		/*gsp = <&gsp>;*/
+		gsp = <&gsp>;
 	};
 
 	audcp_iram_reserved: audcp-iram@65009400 {
