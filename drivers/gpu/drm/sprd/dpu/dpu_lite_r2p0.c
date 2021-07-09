@@ -307,7 +307,7 @@ static void dpu_layer(struct dpu_context *ctx,
 
 static void dpu_version(struct dpu_context *ctx)
 {
-	ctx->version = "dpu-r4p0";
+	ctx->version = "dpu-lite-r2p0";
 }
 
 static bool dpu_check_raw_int(struct dpu_context *ctx, u32 mask)
