@@ -31,6 +31,21 @@ static struct workqueue_struct *bat_wq;
 static struct delayed_work esd_work;
 static struct delayed_work bat_work;
 
+/* yangyuxiang <add LCD and CTP hardware infomation node> start*/
+#include <ontim/ontim_dev_dgb.h>
+
+static char version[30]="20";
+static char vendor_name[30]="youda-ili9882q";
+static char lcdname[30]="youda-ili9882q";
+
+DEV_ATTR_DECLARE(touch_screen)
+DEV_ATTR_DEFINE("version",version)
+DEV_ATTR_DEFINE("vendor",vendor_name)
+DEV_ATTR_DEFINE("lcdvendor",lcdname)
+DEV_ATTR_DECLARE_END;
+
+ONTIM_DEBUG_DECLARE_AND_INIT(touch_screen,touch_screen,8);
+
 #if CHARGER_NOTIFIER_CALLBACK
 #if KERNEL_VERSION(4, 1, 0) <= LINUX_VERSION_CODE
 /* add_for_charger_start */
@@ -630,10 +645,20 @@ int ili_sleep_handler(int mode)
 	return ret;
 }
 
+extern const char *lcd_name;
+/*static int __init lcd_name_get(char *str)
+{
+        if (str != NULL)
+                lcd_name = str;
+        printk("yux lcd name from uboot: %s\n", lcd_name);
+        return 0;
+}
+__setup("lcd_name=", lcd_name_get);
+*/
 int ili_fw_upgrade_handler(void *data)
 {
 	int ret = 0;
-
+	u8 fw_ver = 0;
 	atomic_set(&ilits->fw_stat, START);
 
 	ilits->fw_update_stat = FW_STAT_INIT;
@@ -665,7 +690,15 @@ int ili_fw_upgrade_handler(void *data)
 		ili_wq_ctrl(WQ_ESD, ENABLE);
 		ili_wq_ctrl(WQ_BAT, ENABLE);
 	}
-
+	if(strncmp(lcd_name, "lcd_ili9882q_youda_mipi_hd", strlen(lcd_name)) == 0){
+/* yangyuxiang <add LCD and CTP hardware infomation node> start*/
+	ILI_INFO("ilits->chip->fw_ver  = 0x%02x \n",(ilits->chip->fw_ver >> 8) & 0xff);
+        snprintf(lcdname, sizeof(lcdname), "youda-ili9882q");
+	fw_ver = (ilits->chip->fw_ver >> 8) & 0xFF;
+    	ILI_INFO("fw_ver = %d\n",fw_ver);
+        snprintf(version, sizeof(version),"fw:0x20 VID:0xA3");
+/* yangyuxiang <add LCD and CTP hardware infomation node> end*/
+	}
 	atomic_set(&ilits->fw_stat, END);
 	return ret;
 }
@@ -1164,6 +1197,10 @@ int ili_tddi_init(void)
 #endif
 
 	ILI_INFO("driver version = %s\n", DRIVER_VERSION);
+	if(CHECK_THIS_DEV_DEBUG_AREADY_EXIT()==0)
+	{
+		return -EIO;
+	}
 
 	mutex_init(&ilits->touch_mutex);
 	mutex_init(&ilits->debug_mutex);
@@ -1260,6 +1297,7 @@ int ili_tddi_init(void)
 
 	ili_ic_edge_palm_para_init();
 
+	REGISTER_AND_INIT_ONTIM_DEBUG_FOR_THIS_DEV();
 	return 0;
 }
 
