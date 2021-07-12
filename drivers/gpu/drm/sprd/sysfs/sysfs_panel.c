@@ -365,8 +365,10 @@ static ssize_t suspend_store(struct device *dev,
 				const char *buf, size_t count)
 {
 	struct sprd_panel *panel = dev_get_drvdata(dev);
-		drm_panel_disable(&panel->base);
-		drm_panel_unprepare(&panel->base);
+
+	drm_panel_disable(&panel->base);
+	drm_panel_unprepare(&panel->base);
+
 	return count;
 }
 static DEVICE_ATTR_WO(suspend);
@@ -376,8 +378,10 @@ static ssize_t resume_store(struct device *dev,
 				const char *buf, size_t count)
 {
 	struct sprd_panel *panel = dev_get_drvdata(dev);
-		drm_panel_prepare(&panel->base);
-		drm_panel_enable(&panel->base);
+
+	drm_panel_prepare(&panel->base);
+	drm_panel_enable(&panel->base);
+
 	return count;
 }
 static DEVICE_ATTR_WO(resume);
