@@ -5355,8 +5355,7 @@ static struct charger_desc *of_cm_parse_desc(struct device *dev)
 	struct device_node *np = dev->of_node;
 	u32 poll_mode = CM_POLL_DISABLE;
 	u32 battery_stat = CM_NO_BATTERY;
-	u32 num_chgs = 0;
-	int ret, i = 0;
+	int ret, i = 0, num_chgs = 0;
 
 	desc = devm_kzalloc(dev, sizeof(*desc), GFP_KERNEL);
 	if (!desc)
@@ -5389,8 +5388,8 @@ static struct charger_desc *of_cm_parse_desc(struct device *dev)
 	desc->battery_present = battery_stat;
 
 	/* chargers */
-	of_property_read_u32(np, "cm-num-chargers", &num_chgs);
-	if (num_chgs) {
+	num_chgs = of_property_count_strings(np, "cm-chargers");
+	if (num_chgs > 0) {
 		/* Allocate empty bin at the tail of array */
 		desc->psy_charger_stat = devm_kzalloc(dev, sizeof(char *)
 						* (num_chgs + 1), GFP_KERNEL);
@@ -5404,8 +5403,8 @@ static struct charger_desc *of_cm_parse_desc(struct device *dev)
 	}
 
 	/* fast chargers */
-	of_property_read_u32(np, "cm-num-fast-chargers", &num_chgs);
-	if (num_chgs) {
+	num_chgs = of_property_count_strings(np, "cm-fast-chargers");
+	if (num_chgs > 0) {
 		/* Allocate empty bin at the tail of array */
 		desc->psy_fast_charger_stat = devm_kzalloc(dev, sizeof(char *)
 						* (num_chgs + 1), GFP_KERNEL);
@@ -5419,8 +5418,8 @@ static struct charger_desc *of_cm_parse_desc(struct device *dev)
 	}
 
 	/* charge pumps */
-	of_property_read_u32(np, "cm-num-charge-pumps", &num_chgs);
-	if (num_chgs) {
+	num_chgs = of_property_count_strings(np, "cm-charge-pumps");
+	if (num_chgs > 0) {
 		/* Allocate empty bin at the tail of array */
 		desc->cp_nums = num_chgs;
 		desc->psy_cp_stat = devm_kzalloc(dev, sizeof(char *)
@@ -5435,8 +5434,8 @@ static struct charger_desc *of_cm_parse_desc(struct device *dev)
 	}
 
 	/* wireless chargers */
-	of_property_read_u32(np, "cm-num-wireless-chargers", &num_chgs);
-	if (num_chgs) {
+	num_chgs = of_property_count_strings(np, "cm-wireless-chargers");
+	if (num_chgs > 0) {
 		/* Allocate empty bin at the tail of array */
 		desc->psy_wl_charger_stat = devm_kzalloc(dev,
 							 sizeof(char *) * (num_chgs + 1),
@@ -5451,8 +5450,8 @@ static struct charger_desc *of_cm_parse_desc(struct device *dev)
 	}
 
 	/* wireless charge pump converters */
-	of_property_read_u32(np, "cm-num-wireless-charge-pump-converters", &num_chgs);
-	if (num_chgs) {
+	num_chgs = of_property_count_strings(np, "cm-wireless-charge-pump-converters");
+	if (num_chgs > 0) {
 		/* Allocate empty bin at the tail of array */
 		desc->psy_cp_converter_stat = devm_kzalloc(dev,
 							   sizeof(char *) * (num_chgs + 1),
@@ -6212,7 +6211,7 @@ static int charger_manager_probe(struct platform_device *pdev)
 	mutex_unlock(&cm_list_mtx);
 
 	/*
-	 * Charger-manager is capable of waking up the systme from sleep
+	 * Charger-manager is capable of waking up the system from sleep
 	 * when event is happened through cm_notify_event()
 	 */
 	device_init_wakeup(&pdev->dev, true);
