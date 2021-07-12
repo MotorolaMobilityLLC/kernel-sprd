@@ -29292,6 +29292,7 @@
 #define DIG0_DIG_FIFO_STATUS__DIG_FIFO_OVERWRITE_LEVEL_MASK                                                   0x000000FCL
 #define DIG0_DIG_FIFO_STATUS__DIG_FIFO_ERROR_ACK_MASK                                                         0x00000100L
 #define DIG0_DIG_FIFO_STATUS__DIG_FIFO_CAL_AVERAGE_LEVEL_MASK                                                 0x0000FC00L
+#define DIG0_DIG_FIFO_STATUS__DIG_FIFO_MAXIMUM_LEVEL_MASK                                                     0x001F0000L
 #define DIG0_DIG_FIFO_STATUS__DIG_FIFO_MINIMUM_LEVEL_MASK                                                     0x03C00000L
 #define DIG0_DIG_FIFO_STATUS__DIG_FIFO_READ_CLOCK_SRC_MASK                                                    0x04000000L
 #define DIG0_DIG_FIFO_STATUS__DIG_FIFO_CALIBRATED_MASK                                                        0x20000000L
@@ -34431,6 +34432,7 @@
 #define DIG3_DIG_FIFO_STATUS__DIG_FIFO_OVERWRITE_LEVEL__SHIFT                                                 0x2
 #define DIG3_DIG_FIFO_STATUS__DIG_FIFO_ERROR_ACK__SHIFT                                                       0x8
 #define DIG3_DIG_FIFO_STATUS__DIG_FIFO_CAL_AVERAGE_LEVEL__SHIFT                                               0xa
+#define DIG0_DIG_FIFO_STATUS__DIG_FIFO_MAXIMUM_LEVEL__SHIFT                                                   0x10
 #define DIG3_DIG_FIFO_STATUS__DIG_FIFO_MINIMUM_LEVEL__SHIFT                                                   0x16
 #define DIG3_DIG_FIFO_STATUS__DIG_FIFO_READ_CLOCK_SRC__SHIFT                                                  0x1a
 #define DIG3_DIG_FIFO_STATUS__DIG_FIFO_CALIBRATED__SHIFT                                                      0x1d
