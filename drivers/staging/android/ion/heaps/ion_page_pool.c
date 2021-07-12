@@ -178,5 +178,5 @@ EXPORT_SYMBOL_GPL(ion_page_pool_destroy);
 
 long get_ion_pool_total_pages(void)
 {
-	return ion_pool_total_pages;
+	return (ion_pool_total_pages > 0) ? ion_pool_total_pages : 0;
 }
