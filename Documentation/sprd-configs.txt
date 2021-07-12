@@ -16735,12 +16735,12 @@ CONFIG_SPRD_CPU_COOLING
 	[function] sprd core control thermal policy
 CONFIG_SPRD_CP_DUMP
 	[arch] arm64
-	[plat] sharkl3
-	[missing plat] sharkl5Pro
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
 	[field] make
 	[subsys] soc
 	[must] user
-	[missing plat description] Not used
+	[missing plat description] none
 	[function] dump cp memory
 CONFIG_SPRD_DEBUG
 	[arch] all
