@@ -2329,8 +2329,16 @@ static void musb_offload_config(struct usb_hcd *hcd, int ep_num, int mono,
 		bchannel = (u8)(ep_num & 0xf);
 	}
 	musb->is_offload = true;
-	musb->offload_used = offload_used;
-	dev_dbg(musb->controller,
+	spin_lock_irqsave(&musb->lock, flags);
+	if (offload_used)
+		musb->offload_used++;
+	else if (musb->offload_used == 0)
+		dev_warn(musb->controller, "warning musb->offload_used 0!\n");
+	else
+		musb->offload_used--;
+	spin_unlock_irqrestore(&musb->lock, flags);
+
+	dev_info(musb->controller,
 		"ep:0x%x dir:%d mono:%d pcm:%d width:%d rate:%d offload:%d\n",
 		ep_num,	dir, mono, is_pcm_24, width, rate, offload_used);
 

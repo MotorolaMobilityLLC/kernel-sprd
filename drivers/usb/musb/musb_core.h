@@ -425,7 +425,7 @@ struct musb {
 	struct usb_hcd		*hcd;			/* the usb hcd */
 	unsigned		fixup_ep0fifo:1;
 	bool			is_offload;     /* i2s mode for usb audio */
-	bool			offload_used;
+	u8			offload_used;
 	int			shutdowning;
 
 	const struct musb_hdrc_config *config;
