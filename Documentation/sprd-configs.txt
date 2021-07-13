@@ -10801,8 +10801,8 @@ CONFIG_MEMCG_KMEM
 	[missing plat description] none
 	[function]
 CONFIG_MEMCG_SWAP
-	[arch] arm
-	[plat] pike2
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field] make,code
 	[subsys] mm
@@ -10811,8 +10811,8 @@ CONFIG_MEMCG_SWAP
 	[function] Add swap management feature to memory resource controller. When you
 	   enable this, you can limit mem+swap usage per cgroup.
 CONFIG_MEMCG_SWAP_ENABLED
-	[arch] arm
-	[plat] pike2
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field] code
 	[subsys] mm

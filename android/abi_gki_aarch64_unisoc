@@ -86,6 +86,10 @@
   clocks_calc_mult_shift
   clockevents_config_and_register
   __clocksource_register_scale
+  cma_alloc
+  cma_for_each_area
+  cma_get_name
+  cma_release
   compat_alloc_user_space
   complete
   complete_all
@@ -127,6 +131,7 @@
   debugfs_create_bool
   debugfs_create_dir
   debugfs_create_file
+  debugfs_create_regset32
   debugfs_create_u32
   debugfs_create_x32
   debugfs_initialized
@@ -383,6 +388,8 @@
   iommu_put_dma_cookie
   iommu_set_fault_handler
   iommu_unmap
+  ion_buffer_prep_noncached
+  ion_device_remove_heap
   __ioremap
   iounmap
   iput
@@ -1267,11 +1274,14 @@
   devm_ioremap
   dw_pcie_host_init
   dw_pcie_msi_init
+  dw_pcie_read_dbi
   dw_pcie_setup_rc
   dw_pcie_wait_for_link
+  dw_pcie_write_dbi
   fwnode_handle_put
   gpiod_get_value
   of_fwnode_ops
+  msi_desc_to_pci_sysdata
   pci_assign_unassigned_bus_resources
   pci_bus_add_devices
   pci_check_and_mask_intx
@@ -2659,3 +2669,23 @@
   netlink_kernel_release
   of_get_address
   of_get_compatible_child
+
+# required by sprd_tcpm.ko
+  typec_altmode_attention
+  typec_altmode_notify
+  typec_altmode_update_active
+  typec_altmode_vdm
+  typec_find_port_data_role
+  typec_find_port_power_role
+  typec_find_power_role
+  typec_get_drvdata
+  typec_match_altmode
+  typec_partner_set_identity
+  typec_partner_register_altmode
+  typec_port_register_altmode
+  typec_set_mode
+  typec_set_orientation
+  typec_unregister_altmode
+  usb_role_switch_get
+  usb_role_switch_put
+  usb_role_switch_set_role
