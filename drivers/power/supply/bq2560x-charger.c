@@ -933,6 +933,8 @@ static int bq2560x_charger_usb_set_property(struct power_supply *psy,
 	struct bq2560x_charger_info *info = power_supply_get_drvdata(psy);
 	int ret;
 
+	u32 online;
+
 	mutex_lock(&info->lock);
 
 	switch (psp) {
@@ -954,9 +956,12 @@ static int bq2560x_charger_usb_set_property(struct power_supply *psy,
 		break;
 
 	case POWER_SUPPLY_PROP_FEED_WATCHDOG:
-		ret = bq2560x_charger_feed_watchdog(info, val->intval);
-		if (ret < 0)
-			dev_err(info->dev, "feed charger watchdog failed\n");
+            ret = bq2560x_charger_get_online(info, &online);
+            if(online){
+			ret = bq2560x_charger_feed_watchdog(info, val->intval);
+			if (ret < 0)
+				dev_err(info->dev, "feed charger watchdog failed\n");
+            	}
 		break;
 
 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE_MAX:
