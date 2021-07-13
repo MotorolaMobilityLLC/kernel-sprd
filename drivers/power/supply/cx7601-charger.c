@@ -555,7 +555,7 @@ static int cx7601_init_device(struct cx7601_charger_info *info)
 
 	cx7601_trim(info);
 	cx7601_disable_watchdog_timer(info);
-	cx7601_charger_set_vindpm(info,4500);
+	cx7601_charger_set_vindpm(info,4520);
     cx7601_disable_safety_timer(info);     //modified
     cx7601_enable_term(info,true);
 	
