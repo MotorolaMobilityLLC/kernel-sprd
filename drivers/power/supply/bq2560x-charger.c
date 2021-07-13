@@ -642,7 +642,7 @@ static int bq2560x_charger_feed_watchdog(struct bq2560x_charger_info *info,
 	int ret;
 
 	ret = bq2560x_update_bits(info, BQ2560X_REG_1,
-				  BQ2560X_REG_RESET_MASK,
+				  BQ2560X_REG_RESET_MASK | BQ2560X_REG_OTG_MASK,
 				  BQ2560X_REG_RESET_MASK);
 	if (ret)
 		dev_err(info->dev, "reset bq2560x failed\n");
@@ -1073,8 +1073,8 @@ bq2560x_charger_feed_watchdog_work(struct work_struct *work)
 	int ret;
 
 	ret = bq2560x_update_bits(info, BQ2560X_REG_1,
-				  BQ2560X_REG_WATCHDOG_MASK,
-				  BQ2560X_REG_WATCHDOG_MASK);
+				  BQ2560X_REG_WATCHDOG_MASK | BQ2560X_REG_OTG_MASK,
+				  BQ2560X_REG_WATCHDOG_MASK | BQ2560X_REG_OTG_MASK);
 	if (ret) {
 		dev_err(info->dev, "reset bq2560x failed\n");
 		return;
