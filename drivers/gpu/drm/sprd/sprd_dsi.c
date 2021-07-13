@@ -195,6 +195,10 @@ static void sprd_dsi_encoder_enable(struct drm_encoder *encoder)
 	sprd_dsi_set_work_mode(dsi, dsi->ctx.work_mode);
 	sprd_dsi_state_reset(dsi);
 
+	if ((dsi->ctx.work_mode == DSI_MODE_VIDEO)
+			&& dsi->ctx.video_lp_cmd_en)
+		sprd_dsi_lp_cmd_enable(dsi, true);
+
 	sprd_sharkl3_workaround(dsi);
 
 	if (dsi->ctx.nc_clk_en)
@@ -463,6 +467,18 @@ static int sprd_dsi_host_attach(struct mipi_dsi_host *host,
 		dsi->phy->ctx.aod_mode = val;
 	else
 		dsi->phy->ctx.aod_mode = 0;
+
+	ret = of_property_read_u32(lcd_node, "sprd,video-lp-cmd-enable", &val);
+	if (!ret)
+		ctx->video_lp_cmd_en = val;
+	else
+		ctx->video_lp_cmd_en = 0;
+
+	ret = of_property_read_u32(lcd_node, "sprd,hporch-lp-disable", &val);
+	if (!ret)
+		ctx->hporch_lp_disable = val;
+	else
+		ctx->hporch_lp_disable = 0;
 
 	if (dsi->dsi_slave) {
 		ctx_slave = &dsi->dsi_slave->ctx;

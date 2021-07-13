@@ -104,6 +104,11 @@ struct dsi_context {
 	int last_dpms;
 	/* dpi clk need switch to 384m fot div6/div8 feature */
 	bool clk_dpi_384m;
+
+	/* video work mode cmd transmit in low power */
+	bool video_lp_cmd_en;
+	/* disable return to low power mode inside horizontal porch periods */
+	bool hporch_lp_disable;
 };
 
 struct dsi_core_ops {
@@ -165,6 +170,7 @@ struct dsi_core_ops {
 	void (*clklane_hs2lp_config)(struct dsi_context *ctx, u16 byte_cycle);
 	void (*clklane_lp2hs_config)(struct dsi_context *ctx, u16 byte_cycle);
 	void (*max_read_time)(struct dsi_context *ctx, u16 byte_cycle);
+	void (*vblk_cmd_trans_limit)(struct dsi_context *ctx, u16 size);
 	void (*nc_clk_en)(struct dsi_context *ctx, int enable);
 	void (*tx_escape_division)(struct dsi_context *ctx, u8 div);
 	void (*timeout_clock_division)(struct dsi_context *ctx,	u8 div);
