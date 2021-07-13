@@ -433,8 +433,7 @@
 		reg = <0x6b>;
 		phys = <&hsphy>;
 		monitored-battery = <&bat>;
-		extcon = <&extcon_gpio>, <&pmic_pd>;
-		pd-extcon-enable;
+		extcon = <&extcon_gpio>;
 		irq-gpio = <&ap_gpio 115 GPIO_ACTIVE_LOW>;
 		vddvbus:otg-vbus {
 			regulator-name = "vddvbus";
