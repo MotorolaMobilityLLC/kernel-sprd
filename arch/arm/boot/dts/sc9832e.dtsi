@@ -610,7 +610,7 @@
 		<&pll CLK_TWPLL_307M2>,
 		<&pll CLK_TWPLL_384M>,
 		<&pll CLK_ISPPLL_468M>,
-		<&pll CLK_TWPLL_384M>;
+		<&pll CLK_ISPPLL_468M>;
 };
 
 &cpp {
