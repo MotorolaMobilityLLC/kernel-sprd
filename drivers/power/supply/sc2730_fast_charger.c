@@ -123,6 +123,7 @@ struct sc2730_fchg_info {
 	bool sfcp_enable;
 	bool pps_enable;
 	bool pps_active;
+	bool support_pd_pps;
 	const struct sc27xx_fast_chg_data *pdata;
 };
 
@@ -675,7 +676,8 @@ static void sc2730_fchg_pd_change_work(struct work_struct *data)
 	}
 
 	pd_type = val.intval;
-	if (pd_type == POWER_SUPPLY_USB_TYPE_PD) {
+	if (pd_type == POWER_SUPPLY_USB_TYPE_PD ||
+	    (!info->support_pd_pps && pd_type == POWER_SUPPLY_USB_TYPE_PD_PPS)) {
 		info->pd_enable = true;
 		info->state = POWER_SUPPLY_USB_TYPE_PD;
 		mutex_unlock(&info->lock);
@@ -791,7 +793,7 @@ static int sc2730_fchg_usb_set_property(struct power_supply *psy,
 	mutex_lock(&info->lock);
 
 	switch (psp) {
-	case POWER_SUPPLY_PROP_VOLTAGE_MAX:
+	case POWER_SUPPLY_PROP_ONLINE:
 		if (val->intval == CM_PPS_CHARGE_DISABLE_CMD) {
 			if (sc2730_fchg_enable_pps(info, false)) {
 				ret = -EINVAL;
@@ -806,6 +808,8 @@ static int sc2730_fchg_usb_set_property(struct power_supply *psy,
 			break;
 		}
 
+		break;
+	case POWER_SUPPLY_PROP_VOLTAGE_MAX:
 		if (info->pd_enable) {
 			if (sc2730_fchg_enable_pps(info, false))
 				dev_err(info->dev, "failed to disable pps\n");
@@ -840,8 +844,9 @@ static int sc2730_fchg_property_is_writeable(struct power_supply *psy,
 	int ret;
 
 	switch (psp) {
-	case  POWER_SUPPLY_PROP_VOLTAGE_MAX:
-	case  POWER_SUPPLY_PROP_CURRENT_MAX:
+	case POWER_SUPPLY_PROP_ONLINE:
+	case POWER_SUPPLY_PROP_VOLTAGE_MAX:
+	case POWER_SUPPLY_PROP_CURRENT_MAX:
 		ret = 1;
 		break;
 	default:
@@ -855,6 +860,7 @@ static enum power_supply_property sc2730_fchg_usb_props[] = {
 	POWER_SUPPLY_PROP_USB_TYPE,
 	POWER_SUPPLY_PROP_CURRENT_MAX,
 	POWER_SUPPLY_PROP_VOLTAGE_MAX,
+	POWER_SUPPLY_PROP_ONLINE,
 };
 
 static const struct power_supply_desc sc2730_fchg_desc = {
@@ -951,6 +957,9 @@ static int sc2730_fchg_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "failed to get fast charger voltage.\n");
 		return ret;
 	}
+
+	info->support_pd_pps = device_property_read_bool(&pdev->dev,
+							 "sprd,support-pd-pps");
 
 	info->pps_active = false;
 	platform_set_drvdata(pdev, info);
