@@ -177,7 +177,7 @@ static const struct clk_bit_field f_isppll[PLL_FACT_MAX] = {
 static SPRD_PLL_HW(isppll, "isppll", &isppll_gate.common.hw, 0x3c,
 		   2, itable, f_isppll, 240,
 		   1000, 1000, 0, 0);
-static CLK_FIXED_FACTOR_FW_NAME(isppll_468m, "isppll-468m", "isppll",
+static CLK_FIXED_FACTOR_HW(isppll_468m, "isppll-468m", &isppll.common.hw,
 				2, 1, 0);
 
 static struct sprd_clk_common *sc9832e_pll_clks[] = {
