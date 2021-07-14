@@ -80,7 +80,9 @@
 #define CM_CP_PRIMARY_CHARGER_DIS_TIMEOUT	20
 #define CM_CP_CP_CHARGER_EN_TIMEOUT		20
 
-#define CM_IR_COMPENSATION_TIME		3
+#define CM_IR_COMPENSATION_TIME			3
+
+#define CM_CP_WORK_TIME_MS			500
 
 #define CM_TRACK_FILE_PATH "/mnt/vendor/battery/calibration_data/.battery_file"
 
@@ -3085,7 +3087,7 @@ static void cm_cp_work(struct work_struct *work)
 		cm_check_cp_fault_status(cm);
 
 	if (cm->desc->cp.cp_running && !cm_cp_state_machine(cm))
-		schedule_delayed_work(&cm->cp_work, 1 * HZ);
+		schedule_delayed_work(&cm->cp_work, msecs_to_jiffies(CM_CP_WORK_TIME_MS));
 }
 
 static void cm_check_cp_start_condition(struct charger_manager *cm, bool enable)
@@ -6152,39 +6154,35 @@ static void cm_batt_works(struct work_struct *work)
 	ret = get_batt_uV(cm, &batt_uV);
 	if (ret) {
 		dev_err(cm->dev, "get_batt_uV error.\n");
-		return;
+		goto schedule_cap_update_work;
 	}
 
 	ret = get_batt_ocv(cm, &batt_ocV);
 	if (ret) {
 		dev_err(cm->dev, "get_batt_ocV error.\n");
-		return;
+		goto schedule_cap_update_work;
 	}
 
 	ret = get_batt_uA(cm, &bat_uA);
 	if (ret) {
 		dev_err(cm->dev, "get bat_uA error.\n");
-		return;
+		goto schedule_cap_update_work;
 	}
 
 	ret = get_batt_cap(cm, &fuel_cap);
 	if (ret) {
 		dev_err(cm->dev, "get fuel_cap error.\n");
-		return;
+		goto schedule_cap_update_work;
 	}
 	fuel_cap = cm_capacity_remap(cm, fuel_cap);
 
 	ret = get_charger_current(cm, &chg_cur);
-	if (ret) {
-		dev_err(cm->dev, "get chg_cur error.\n");
-		return;
-	}
+	if (ret)
+		dev_warn(cm->dev, "get chg_cur error.\n");
 
 	ret = get_charger_limit_current(cm, &chg_limit_cur);
-	if (ret) {
-		dev_err(cm->dev, "get chg_limit_cur error.\n");
-		return;
-	}
+	if (ret)
+		dev_warn(cm->dev, "get chg_limit_cur error.\n");
 
 	if (cm->desc->cp.cp_running)
 		ret = get_cp_ibus_uA(cm, &input_cur);
@@ -6200,7 +6198,7 @@ static void cm_batt_works(struct work_struct *work)
 	ret = cm_get_battery_temperature_by_psy(cm, &cur_temp);
 	if (ret) {
 		dev_err(cm->dev, "failed to get battery temperature\n");
-		return;
+		goto schedule_cap_update_work;
 	}
 
 	cm->desc->temperature = cur_temp;
@@ -6395,9 +6393,11 @@ static void cm_batt_works(struct work_struct *work)
 		}
 
 		cm->desc->cap = fuel_cap;
-		set_batt_cap(cm, cm_capacity_unmap(cm, cm->desc->cap));
+		if (cm->desc->uvlo_trigger_cnt < CM_UVLO_CALIBRATION_CNT_THRESHOLD)
+			set_batt_cap(cm, cm_capacity_unmap(cm, cm->desc->cap));
 	}
 
+schedule_cap_update_work:
 	queue_delayed_work(system_power_efficient_wq,
 			   &cm->cap_update_work,
 			   CM_CAP_CYCLE_TRACK_TIME * HZ);
@@ -6755,9 +6755,10 @@ static void charger_manager_shutdown(struct platform_device *pdev)
 {
 	struct charger_manager *cm = platform_get_drvdata(pdev);
 
-	set_batt_cap(cm, cm_capacity_unmap(cm, cm->desc->cap));
-	cancel_delayed_work_sync(&cm_monitor_work);
+	if (cm->desc->uvlo_trigger_cnt < CM_UVLO_CALIBRATION_CNT_THRESHOLD)
+		set_batt_cap(cm, cm_capacity_unmap(cm, cm->desc->cap));
 
+	cancel_delayed_work_sync(&cm_monitor_work);
 	cancel_delayed_work_sync(&cm->fullbatt_vchk_work);
 	cancel_delayed_work_sync(&cm->cap_update_work);
 	if (cm->track.cap_tracking)
