@@ -6243,7 +6243,9 @@ static int charger_manager_probe(struct platform_device *pdev)
 	}
 
 	cm->cm_charge_vote = sprd_charge_vote_register("cm_charge_vote",
-						       cm_sprd_vote_callback, cm);
+						       cm_sprd_vote_callback,
+						       cm,
+						       &cm->charger_psy->dev);
 	if (IS_ERR(cm->cm_charge_vote)) {
 		dev_err(&pdev->dev, "Failed to register charge vote, ret = %d\n", ret);
 		goto err_reg_extcon;

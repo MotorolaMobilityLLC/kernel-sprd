@@ -11,6 +11,8 @@
 #define _SPRD_VOTE_H
 
 #include <linux/mutex.h>
+#include <linux/sysfs.h>
+#include <linux/device.h>
 
 enum SPRD_VOTE_TYPE {
 	SPRD_VOTE_TYPE_UNKNOWN,
@@ -66,10 +68,28 @@ static const char * const vote_cmd_names[] = {
 	[SPRD_VOTE_CMD_ALL] = "VOTE_CMD_ALL",
 };
 
+struct sprd_vote_sysfs {
+	char *name;
+	struct attribute_group attr_g;
+	struct device_attribute attr_vote_gov;
+	struct device_attribute attr_vote_info;
+	struct device_attribute attr_vote_disabled;
+	struct device_attribute attr_vote_fixed;
+	struct device_attribute attr_voted_value;
+	struct device_attribute attr_voted_type;
+	struct attribute *attrs[7];
+};
+
 typedef struct sprd_vote_client {
 	int value;
 	int enable;
 } sprd_vote_client;
+
+typedef struct sprd_vote_last_vote {
+	unsigned int vote_type;
+	unsigned int vote_cmd;
+	int value;
+} sprd_vote_last_vote;
 
 struct sprd_vote {
 	const char *name;
@@ -77,17 +97,23 @@ struct sprd_vote {
 	sprd_vote_client ibat_client[SPRD_VOTE_TYPE_IBAT_ID_MAX];
 	sprd_vote_client ibus_client[SPRD_VOTE_TYPE_IBUS_ID_MAX];
 	sprd_vote_client cccv_client[SPRD_VOTE_TYPE_CCCV_ID_MAX];
+	sprd_vote_last_vote last_vote_fixied[SPRD_VOTE_TYPE_MAX];
+	sprd_vote_last_vote last_vote_dynamic[SPRD_VOTE_TYPE_MAX];
 	int (*vote)(struct sprd_vote *vote_gov, bool enable, int vote_type,
 		    int vote_type_id, int vote_cmd, int value, void *data);
 	void (*cb)(struct sprd_vote *vote_gov, int vote_type, int value, void *date);
 	void (*destroy)(struct sprd_vote *vote_gov);
 	void *data;
+	struct sprd_vote_sysfs *sysfs;
+	unsigned int current_vote_type;
 };
 
 struct sprd_vote *sprd_charge_vote_register(char *name,
 					    void (*cb)(struct sprd_vote *vote_gov,
-						       int vote_type, int value,
+						       int vote_type,
+						       int value,
 						       void *data),
-					    void *data);
+					    void *data,
+					    struct device *dev);
  #endif /* _SPRD_VOTE_H */
 
