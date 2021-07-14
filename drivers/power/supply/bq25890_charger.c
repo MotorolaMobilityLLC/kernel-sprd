@@ -1284,7 +1284,7 @@ static ssize_t bq25890_reg_table_show(struct device *dev,
 			     attr_bq25890_lookup_reg);
 	struct bq25890_charger_info *info = bq25890_sysfs->info;
 	int i, len, idx = 0;
-	char reg_tab_buf[2048];
+	char reg_tab_buf[2000];
 
 	if (!info)
 		return sprintf(buf, "%s bq25890_sysfs->info is null\n", __func__);

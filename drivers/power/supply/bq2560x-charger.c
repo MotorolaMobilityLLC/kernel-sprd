@@ -1395,7 +1395,7 @@ static ssize_t bq2560x_register_table_show(struct device *dev,
 			     attr_bq2560x_lookup_reg);
 	struct bq2560x_charger_info *info = bq2560x_sysfs->info;
 	int i, len, idx = 0;
-	char reg_tab_buf[2048];
+	char reg_tab_buf[1024];
 
 	if (!info)
 		return snprintf(buf, PAGE_SIZE, "%s bq2560x_sysfs->info is null\n", __func__);

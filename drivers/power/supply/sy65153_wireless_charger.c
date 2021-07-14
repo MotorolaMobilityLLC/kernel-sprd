@@ -894,7 +894,7 @@ static ssize_t sy65153_register_table_show(struct device *dev,
 		attr_sy65153_lookup_reg);
 	struct sy65153_wl_charger_info *info = sy65153_sysfs->info;
 	int i, len, idx = 0;
-	char reg_tab_buf[2048];
+	char reg_tab_buf[2000];
 
 	if (!info)
 		return snprintf(buf, PAGE_SIZE, "%s sy65153_sysfs->info is null\n", __func__);
