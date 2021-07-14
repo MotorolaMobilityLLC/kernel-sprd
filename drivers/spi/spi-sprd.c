@@ -1309,12 +1309,12 @@ static int __maybe_unused sprd_spi_suspend(struct device *dev)
 	struct spi_controller *sctlr = dev_get_drvdata(dev);
 	int ret;
 
-	if (pm_runtime_status_suspended(dev))
-		return 0;
-
 	ret = spi_master_suspend(sctlr);
 	if (ret)
 		return ret;
+
+	if (pm_runtime_status_suspended(dev))
+		return 0;
 
 	return sprd_spi_runtime_suspend(dev);
 }
@@ -1325,13 +1325,12 @@ static int __maybe_unused sprd_spi_resume(struct device *dev)
 	struct sprd_spi *ss = spi_controller_get_devdata(sctlr);
 	int ret;
 
-	if (pm_runtime_status_suspended(dev))
-		return 0;
-
-	ret = sprd_spi_runtime_resume(dev);
-	if (ret) {
-		dev_err(ss->dev, "enable spi failed\n");
-		return ret;
+	if (!pm_runtime_status_suspended(dev)) {
+		ret = sprd_spi_runtime_resume(dev);
+		if (ret) {
+			dev_err(ss->dev, "enable spi failed\n");
+			return ret;
+		}
 	}
 
 	ret = spi_master_resume(sctlr);
