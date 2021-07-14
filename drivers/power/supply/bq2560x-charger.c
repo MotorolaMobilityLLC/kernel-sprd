@@ -115,6 +115,7 @@ struct bq2560x_charger_info {
 	u32 last_limit_current;
 	u32 role;
 	bool need_disable_Q1;
+	u32 actual_limit_current;		//for limit error by pony date20210714
 };
 
 static int
@@ -594,6 +595,9 @@ bq2560x_charger_set_limit_current(struct bq2560x_charger_info *info,
 	if (ret)
 		dev_err(info->dev, "set bq2560x limit cur failed\n");
 
+	info->actual_limit_current = reg_val * BQ2560X_REG_IINLIM_BASE * 1000;		//for limit error by pony date20210714
+	info->actual_limit_current += BQ2560X_REG_IINLIM_OFFSET * 1000;			//for limit error by pony date20210714
+
 	return ret;
 }
 
@@ -640,14 +644,34 @@ static int bq2560x_charger_feed_watchdog(struct bq2560x_charger_info *info,
 					 u32 val)
 {
 	int ret;
+	u32 limit_cur = 0;
 
 	ret = bq2560x_update_bits(info, BQ2560X_REG_1,
-				  BQ2560X_REG_RESET_MASK | BQ2560X_REG_OTG_MASK,
+				  BQ2560X_REG_RESET_MASK | BQ2560X_REG_OTG_MASK,	//for 01reg read alnormal date20210713
 				  BQ2560X_REG_RESET_MASK);
-	if (ret)
+	if (ret) {
 		dev_err(info->dev, "reset bq2560x failed\n");
+		return ret;
+	}
 
-	return ret;
+	//for limit error by pony date20210714 start
+	ret = bq2560x_charger_get_limit_current(info, &limit_cur);
+	if (ret) {
+		dev_err(info->dev, "get limit cur failed\n");
+		return ret;
+	}
+
+	if (info->actual_limit_current == limit_cur)
+		return 0;
+
+	ret = bq2560x_charger_set_limit_current(info, info->actual_limit_current);
+	if (ret) {
+		dev_err(info->dev, "set limit cur failed\n");
+		return ret;
+	}
+
+	return 0;
+	//for limit error by pony date20210714 end
 }
 
 static int bq2560x_charger_set_fchg_current(struct bq2560x_charger_info *info,
@@ -933,7 +957,7 @@ static int bq2560x_charger_usb_set_property(struct power_supply *psy,
 	struct bq2560x_charger_info *info = power_supply_get_drvdata(psy);
 	int ret;
 
-	u32 online;
+	u32 online;		//for 01reg read alnormal date20210713 
 
 	mutex_lock(&info->lock);
 
@@ -957,11 +981,13 @@ static int bq2560x_charger_usb_set_property(struct power_supply *psy,
 
 	case POWER_SUPPLY_PROP_FEED_WATCHDOG:
             ret = bq2560x_charger_get_online(info, &online);
+		//for 01reg read alnormal date20210713 start
             if(online){
 			ret = bq2560x_charger_feed_watchdog(info, val->intval);
 			if (ret < 0)
 				dev_err(info->dev, "feed charger watchdog failed\n");
             	}
+		//for 01reg read alnormal date20210713 end
 		break;
 
 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE_MAX:
@@ -1078,8 +1104,8 @@ bq2560x_charger_feed_watchdog_work(struct work_struct *work)
 	int ret;
 
 	ret = bq2560x_update_bits(info, BQ2560X_REG_1,
-				  BQ2560X_REG_WATCHDOG_MASK | BQ2560X_REG_OTG_MASK,
-				  BQ2560X_REG_WATCHDOG_MASK | BQ2560X_REG_OTG_MASK);
+				  BQ2560X_REG_WATCHDOG_MASK | BQ2560X_REG_OTG_MASK,			//for 01reg read alnormal date20210713
+				  BQ2560X_REG_WATCHDOG_MASK | BQ2560X_REG_OTG_MASK);			//for 01reg read alnormal date20210713
 	if (ret) {
 		dev_err(info->dev, "reset bq2560x failed\n");
 		return;
