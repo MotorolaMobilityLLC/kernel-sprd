@@ -212,7 +212,7 @@ struct sae_entry {
 	char identifier[32];
 	u8 passwd_len;
 	char password[32];
-	u32 vlan_id;
+	s32 vlan_id;
 } __packed;
 
 struct softap_sae_setting {

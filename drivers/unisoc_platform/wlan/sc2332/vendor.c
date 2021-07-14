@@ -636,7 +636,7 @@ static int vendor_parse_sae_entry(struct net_device *ndev,
 			nla_memcpy(entry->peer_addr, pos, ETH_ALEN);
 			break;
 		case VENDOR_SAE_VLAN_ID:
-			entry->vlan_id = nla_get_u32(pos);
+			entry->vlan_id = (s32)nla_get_u32(pos);
 			break;
 		default:
 			break;
@@ -1826,7 +1826,7 @@ static int vendor_softap_set_sae_para(struct sprd_vif *vif,
 			tlv->type = VENDOR_SAE_VLAN_ID - 1;
 			tlv->len = sizeof(tmp->vlan_id);
 			d = (u32 *)tlv->data;
-			*d = tmp->vlan_id;
+			*d = (u32)tmp->vlan_id;
 			pos += (header_len + sizeof(tmp->vlan_id));
 			data_len += (header_len + sizeof(tmp->vlan_id));
 		}
@@ -1906,7 +1906,7 @@ static int vendor_set_sae_password(struct wiphy *wiphy,
 				   struct wireless_dev *wdev,
 				   const void *data, int len)
 {
-	int group_index = 0, sea_entry_index = 0, passphrase_len, rem_len, type;
+	int group_index = 0, sae_entry_index = 0, rem_len, type;
 	struct nlattr *pos;
 	struct softap_sae_setting sae_para;
 	struct sprd_vif *vif = netdev_priv(wdev->netdev);
@@ -1925,13 +1925,15 @@ static int vendor_set_sae_password(struct wiphy *wiphy,
 		netdev_info(vif->ndev, "type is : %d\n", type);
 		switch (type) {
 		case VENDOR_SAE_ENTRY:
-			sae_para.entry[sea_entry_index].vlan_id =
+			sae_para.entry[sae_entry_index].vlan_id =
 			    SPRD_SAE_NOT_SET;
-			sae_para.entry[sea_entry_index].used = 1;
+			sae_para.entry[sae_entry_index].used = 1;
 			vendor_parse_sae_entry(vif->ndev,
-					       &sae_para.entry[sea_entry_index],
+					       &sae_para.entry[sae_entry_index],
 					       nla_data(pos), nla_len(pos));
-			sea_entry_index++;
+			sae_entry_index++;
+			if (sae_entry_index >= SPRD_SAE_MAX_NUM)
+				return -EINVAL;
 			break;
 		case VENDOR_SAE_GROUP_ID:
 			if (sae_para.group_count >= 31)
@@ -1945,11 +1947,11 @@ static int vendor_set_sae_password(struct wiphy *wiphy,
 			break;
 
 		case VENDOR_SAE_PWD:
-			passphrase_len = nla_len(pos);
+			sae_para.passphrase_len = nla_len(pos);
 			nla_strlcpy(sae_para.passphrase, pos,
-				    passphrase_len + 1);
+				    sae_para.passphrase_len + 1);
 			netdev_info(vif->ndev, "pwd is :%s, len :%d\n",
-				    sae_para.passphrase, passphrase_len);
+				    sae_para.passphrase, sae_para.passphrase_len);
 			break;
 		default:
 			break;
