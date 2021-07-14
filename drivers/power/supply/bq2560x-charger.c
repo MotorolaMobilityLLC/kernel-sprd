@@ -645,10 +645,15 @@ static int bq2560x_charger_feed_watchdog(struct bq2560x_charger_info *info,
 {
 	int ret;
 	u32 limit_cur = 0;
-
+/*
 	ret = bq2560x_update_bits(info, BQ2560X_REG_1,
 				  BQ2560X_REG_RESET_MASK | BQ2560X_REG_OTG_MASK,	//for 01reg read alnormal date20210713
 				  BQ2560X_REG_RESET_MASK);
+*/
+//	bq2560x_dump_register(info);		//for dump register and optimize driver by pony date20201124
+
+	ret = bq2560x_write(info, BQ2560X_REG_1, 0x5a);	//for 01reg read alnormal date20210713
+
 	if (ret) {
 		dev_err(info->dev, "reset bq2560x failed\n");
 		return ret;
@@ -785,6 +790,9 @@ static void bq2560x_charger_work(struct work_struct *data)
 	bool present = bq2560x_charger_is_bat_present(info);
 
 	mutex_lock(&info->lock);
+
+	dev_info(info->dev, "before battery present = %d, charger type = %d , input_cur = %d, bat_cur = %d, linit=%d,charging=%d\n",
+		 present, info->usb_phy->chg_type,limit_cur,cur,info->limit,info->charging);
 
 	if (info->limit > 0 && !info->charging && present) {
 		/* set current limitation and start to charge */
@@ -982,6 +990,7 @@ static int bq2560x_charger_usb_set_property(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_FEED_WATCHDOG:
             ret = bq2560x_charger_get_online(info, &online);
 		//for 01reg read alnormal date20210713 start
+//		dev_err(info->dev, "online = %d\n",online);
             if(online){
 			ret = bq2560x_charger_feed_watchdog(info, val->intval);
 			if (ret < 0)
@@ -1102,10 +1111,13 @@ bq2560x_charger_feed_watchdog_work(struct work_struct *work)
 							 struct bq2560x_charger_info,
 							 wdt_work);
 	int ret;
-
+/*
 	ret = bq2560x_update_bits(info, BQ2560X_REG_1,
 				  BQ2560X_REG_WATCHDOG_MASK | BQ2560X_REG_OTG_MASK,			//for 01reg read alnormal date20210713
 				  BQ2560X_REG_WATCHDOG_MASK | BQ2560X_REG_OTG_MASK);			//for 01reg read alnormal date20210713
+*/
+	ret = bq2560x_write(info, BQ2560X_REG_1, 0x7a);	//for 01reg read alnormal date20210713
+
 	if (ret) {
 		dev_err(info->dev, "reset bq2560x failed\n");
 		return;
@@ -1126,9 +1138,11 @@ static void bq2560x_charger_otg_work(struct work_struct *work)
 		goto out;
 
 	do {
-		ret = bq2560x_update_bits(info, BQ2560X_REG_1,
+/*		ret = bq2560x_update_bits(info, BQ2560X_REG_1,
 					  BQ2560X_REG_OTG_MASK,
 					  BQ2560X_REG_OTG_MASK);
+*/
+		ret = bq2560x_write(info, BQ2560X_REG_1, 0x7a);	//for 01reg read alnormal date20210713
 		if (ret)
 			dev_err(info->dev, "restart bq2560x charger otg failed\n");
 
@@ -1159,10 +1173,12 @@ static int bq2560x_charger_enable_otg(struct regulator_dev *dev)
 		dev_err(info->dev, "failed to disable bc1.2 detect function.\n");
 		return ret;
 	}
-
+/*
 	ret = bq2560x_update_bits(info, BQ2560X_REG_1,
 				  BQ2560X_REG_OTG_MASK,
 				  BQ2560X_REG_OTG_MASK);
+*/
+	ret = bq2560x_write(info, BQ2560X_REG_1, 0x3a);	//for 01reg read alnormal date20210713
 	if (ret) {
 		dev_err(info->dev, "enable bq2560x otg failed\n");
 		regmap_update_bits(info->pmic, info->charger_detect,
@@ -1185,9 +1201,11 @@ static int bq2560x_charger_disable_otg(struct regulator_dev *dev)
 
 	cancel_delayed_work_sync(&info->wdt_work);
 	cancel_delayed_work_sync(&info->otg_work);
-	ret = bq2560x_update_bits(info, BQ2560X_REG_1,
+/*	ret = bq2560x_update_bits(info, BQ2560X_REG_1,
 				  BQ2560X_REG_OTG_MASK,
 				  0);
+*/
+	ret = bq2560x_write(info, BQ2560X_REG_1, 0x5a);	//for 01reg read alnormal date20210713
 	if (ret) {
 		dev_err(info->dev, "disable bq2560x otg failed\n");
 		return ret;
