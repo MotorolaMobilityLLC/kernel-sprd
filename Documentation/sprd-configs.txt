@@ -17144,6 +17144,15 @@ CONFIG_SPRD_THERMAL
 	[missing plat description] Only enable on roc1,sharkl5,sharkl5Pro,sharkl5_32,
 				   because project thermal ip.
 	[function] This function is used to config thermal moudle.
+CONFIG_SPRD_THERMAL_CDEV_REGISTER_ONCE
+	[arch] arm64
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
+	[field] make
+	[subsys] thermal
+	[must] user
+	[missing plat description] none
+	[function] To prevent cpufreq cdev from registering and unregitering.
 CONFIG_SPRD_THERMAL_DEBUG
 	[arch] all
 	[plat] all

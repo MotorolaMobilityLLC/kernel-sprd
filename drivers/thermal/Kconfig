@@ -483,4 +483,12 @@ config SPRD_THERMAL_DEBUG
 	  Say Y here to support enable/disable thermal switch control
 	  and output critical temperature for all thermal zone before
 	  shutting down
+
+config SPRD_THERMAL_CDEV_REGISTER_ONCE
+        bool "sprd cpufreq cooling device register only once"
+        depends on ARCH_SPRD || THERMAL_OF
+        depends on THERMAL_GOV_POWER_ALLOCATOR
+	default y
+        help
+          Enable the cpufreq cooling device registered only once.
 endif
