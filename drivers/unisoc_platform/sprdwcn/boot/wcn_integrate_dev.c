@@ -481,7 +481,6 @@ static void wcn_parse_dt_regmap_judge(struct wcn_device *wcn_dev)
 		wcn_dev->need_regmap[REGMAP_WCN_AON_AHB] = TRUE;
 		wcn_dev->need_regmap[REGMAP_WCN_AON_APB] = TRUE;
 		wcn_dev->need_regmap[REGMAP_ANLG_WRAP_WCN] = FALSE;
-		wcn_dev->need_sync_efuse = FALSE;
 		wcn_dev->need_set_sync_addr = TRUE;
 		wcn_dev->need_gpio = TRUE;
 		wcn_dev->need_dcxo1v8 = TRUE;

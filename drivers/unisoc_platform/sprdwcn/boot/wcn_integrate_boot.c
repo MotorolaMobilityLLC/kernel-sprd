@@ -1795,9 +1795,17 @@ int btwf_sys_poweron(struct wcn_device *wcn_dev)
 	 */
 	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_AHB],
 				 0x004c, &reg_val);
+
 	WCN_INFO("REG 0x4088004c:val=0x%x!\n", reg_val);
-	wcn_regmap_raw_write_bit(wcn_dev->rmap[REGMAP_WCN_AON_AHB],
+
+	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
+		wcn_regmap_raw_write_bit(wcn_dev->rmap[REGMAP_WCN_AON_AHB],
+			0x004c, QOGIRL6_WCN_SPECIAL_SHARME_MEM_ADDR);
+	} else {
+		wcn_regmap_raw_write_bit(wcn_dev->rmap[REGMAP_WCN_AON_AHB],
 			0x004c, WCN_SPECIAL_SHARME_MEM_ADDR);
+	}
+
 	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_AHB],
 				 0x004c, &reg_val);
 	WCN_INFO("Set REG 0x4088004c:val=0x%x(Sync address)!\n",
