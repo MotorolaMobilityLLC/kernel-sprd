@@ -19035,8 +19035,8 @@ CONFIG_USB_NET_AQC111
 	[missing plat description] none
 	[function]
 CONFIG_USB_NET_AX88179_178A
-	[arch] arm
-	[plat] pike2
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field] make
 	[subsys] usb
@@ -19044,8 +19044,8 @@ CONFIG_USB_NET_AX88179_178A
 	[missing plat description] none
 	[function] This macro is to support AX88179 usb-network device
 CONFIG_USB_NET_AX8817X
-	[arch] arm
-	[plat] pike2
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field] make
 	[subsys] usb
