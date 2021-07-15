@@ -371,21 +371,16 @@
 			ranges;
 
 			mm_domain: mm_domain {
-				compatible = "sprd,mm-domain";
-
-				syscon-names = "force_shutdown",
-						"shutdown_en",
-						"power_state";
-				syscons = <&pmu_apb_regs
+				compatible = "sprd,qogirl6-camsys-domain";
+				force-shutdown = <&pmu_apb_regs
 					REG_PMU_APB_PD_MM_CFG_0
-					MASK_PMU_APB_PD_MM_FORCE_SHUTDOWN>,
-					<&pmu_apb_regs
+					MASK_PMU_APB_PD_MM_FORCE_SHUTDOWN>;
+				shutdown-en = <&pmu_apb_regs
 					REG_PMU_APB_PD_MM_CFG_0
-					MASK_PMU_APB_PD_MM_AUTO_SHUTDOWN_EN>,
-					<&pmu_apb_regs
+					MASK_PMU_APB_PD_MM_AUTO_SHUTDOWN_EN>;
+				power-state = <&pmu_apb_regs
 					REG_PMU_APB_PWR_STATUS_DBG_6
 					MASK_PMU_APB_PD_MM_STATE>;
-
 				clock-names = "clk_mm_eb",
 					"clk_mm_ahb_eb",
 					"clk_mm_ahb",
@@ -401,6 +396,8 @@
 					<&pll1 CLK_TWPLL_512M>,
 					<&pll1 CLK_ISPPLL_468M>;
 				mm_qos_threshold = <&mm_qos_threshold>;
+				#power-domain-cells = <0>;
+				status = "okay";
 			};
 
 			vsp: video-codec@32000000 {
@@ -416,6 +413,7 @@
 					MASK_AON_APB_AP_SYST_EB>;
 
 				iommus = <&iommu_vsp>;
+				power-domains = <&vsp_pd>;
 				status = "disabled";
 			};
 
@@ -441,8 +439,9 @@
 					REG_AON_APB_APB_EB0
 					MASK_AON_APB_MM_EB>;
 
-					iommus = <&iommu_jpg>;
+				iommus = <&iommu_jpg>;
 					/*jpg_qos = <&jpg_qos>;*/
+				power-domains = <&mm_domain>;
 				status = "disabled";
 			};
 
@@ -593,23 +592,19 @@
 					<&pll1 CLK_ISPPLL_468M>,
 					<&pll1 CLK_TWPLL_512M>,
 					<&pll1 CLK_TWPLL_512M>;
-				syscons = <&mm_ahb_regs
+				reset = <&mm_ahb_regs
 					REG_MM_AHB_AHB_RST
-					MASK_MM_AHB_ISP_SOFT_RST>,
-					<&mm_ahb_regs
+					MASK_MM_AHB_ISP_SOFT_RST>;
+				isp_ahb_reset = <&mm_ahb_regs
 					REG_MM_AHB_AHB_RST
-					MASK_MM_AHB_ISP_AHB_SOFT_RST>,
-					<&mm_ahb_regs
+					MASK_MM_AHB_ISP_AHB_SOFT_RST>;
+				isp_vau_reset = <&mm_ahb_regs
 					REG_MM_AHB_AHB_RST
-					MASK_MM_AHB_ISP_VAU_SOFT_RST>,
-					<&mm_ahb_regs
+					MASK_MM_AHB_ISP_VAU_SOFT_RST>;
+				isp_enable = <&mm_ahb_regs
 					REG_MM_AHB_AHB_EB
 					MASK_MM_AHB_ISP_EB>;
 				sprd,cam-ahb-syscon = <&mm_ahb_regs>;
-				syscon-names = "reset",
-					"isp_ahb_reset",
-					"isp_vau_reset",
-					"isp_enable";
 				sprd,isp-count = <1>;
 				iommus = <&iommu_isp>;
 				isp_qos = <&isp_qos>;
@@ -657,18 +652,19 @@
 					<&pll1 CLK_TWPLL_384M>,
 					<&pll1 CLK_ISPPLL_468M>,
 					<&pll1 CLK_ISPPLL_468M>;
-				syscons = <&mm_ahb_regs REG_MM_AHB_AHB_RST
-					MASK_MM_AHB_DCAM_ALL_SOFT_RST>,
-					<&mm_ahb_regs REG_MM_AHB_AHB_RST
-					MASK_MM_AHB_DCAM0_SOFT_RST>,
-					<&mm_ahb_regs REG_MM_AHB_AHB_RST
-					MASK_MM_AHB_DCAM1_SOFT_RST>,
-					<&mm_ahb_regs REG_MM_AHB_AHB_RST
+				dcam_all_reset = <&mm_ahb_regs
+					REG_MM_AHB_AHB_RST
+					MASK_MM_AHB_DCAM_ALL_SOFT_RST>;
+				dcam0_reset = <&mm_ahb_regs
+					REG_MM_AHB_AHB_RST
+					MASK_MM_AHB_DCAM0_SOFT_RST>;
+				dcam1_reset = <&mm_ahb_regs
+					REG_MM_AHB_AHB_RST
+					MASK_MM_AHB_DCAM1_SOFT_RST>;
+				dcam2_reset = <&mm_ahb_regs
+					REG_MM_AHB_AHB_RST
 					MASK_MM_AHB_DCAM2_SOFT_RST>;
-				syscon-names = "dcam_all_reset",
-						"dcam0_reset",
-						"dcam1_reset",
-						"dcam2_reset";
+
 				sprd,cam-ahb-syscon = <&mm_ahb_regs>;
 				sprd,isp = <&isp>;
 				sprd,dcam-count = <3>;
@@ -676,6 +672,7 @@
 				sprd,project-id = <5>;
 				iommus = <&iommu_dcam>;
 				dcam_qos = <&dcam_qos>;
+				power-domains = <&mm_domain>;
 				status = "okay";
 			};
 			iommu_dcam: iommu@3e000000 {
@@ -701,20 +698,24 @@
 					<&mm_gate CLK_MM_ISP_EB>,
 					<&mm_clk CLK_FD>,
 					<&pll1 CLK_TWPLL_384M>;
-				syscons = <&mm_ahb_regs REG_MM_AHB_AHB_EB
-					MASK_MM_AHB_FD_EB>,
-					<&mm_ahb_regs REG_MM_AHB_AHB_RST
-					MASK_MM_AHB_FD_SOFT_RST>,
-					<&mm_ahb_regs REG_MM_AHB_AHB_RST
-					MASK_MM_AHB_FD_SOFT_RST_MASK>,
-					<&mm_ahb_regs REG_MM_AHB_MM_LPC_CTRL_FD
-					MASK_MM_AHB_LP_EB_FD>,
-					<&mm_ahb_regs REG_MM_AHB_AHB_EB
+				fd_eb = <&mm_ahb_regs
+					REG_MM_AHB_AHB_EB
+					MASK_MM_AHB_FD_EB>;
+				fd_rst = <&mm_ahb_regs
+					REG_MM_AHB_AHB_RST
+					MASK_MM_AHB_FD_SOFT_RST>;
+				fd_save_rst = <&mm_ahb_regs
+					REG_MM_AHB_AHB_RST
+					MASK_MM_AHB_FD_SOFT_RST_MASK>;
+				fd_lpc = <&mm_ahb_regs
+					REG_MM_AHB_MM_LPC_CTRL_FD
+					MASK_MM_AHB_LP_EB_FD>;
+				fd_dvfs_eb = <&mm_ahb_regs
+					REG_MM_AHB_AHB_EB
 					MASK_MM_AHB_DVFS_EB>;
-				syscon-names = "fd_eb", "fd_rst", "fd_save_rst",
-					"fd_lpc", "fd_dvfs_eb";
 				iommus = <&iommu_fd>;
 				fd_qos = <&fd_qos>;
+				power-domains = <&mm_domain>;
 				status = "okay";
 			};
 			iommu_fd: iommu@3C000000 {
@@ -742,6 +743,7 @@
 				sprd,cam-ahb-syscon = <&mm_ahb_regs>;
 				iommus = <&iommu_cpp>;
 				cpp_qos = <&cpp_qos>;
+				power-domains = <&mm_domain>;
 				status = "okay";
 			};
 
