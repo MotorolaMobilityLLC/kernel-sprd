@@ -116,7 +116,7 @@ static void gf_enable_irq(struct gf_dev *gf_dev)
 	}
 }
 
-static void gf_disable_irq(struct gf_dev *gf_dev)
+/*static void gf_disable_irq(struct gf_dev *gf_dev)
 {
 	if (gf_dev->irq_enabled) {
 		gf_dev->irq_enabled = 0;
@@ -124,7 +124,7 @@ static void gf_disable_irq(struct gf_dev *gf_dev)
 	} else {
 		pr_warn("IRQ has been disabled.\n");
 	}
-}
+}*/
 
 #ifdef AP_CONTROL_CLK
 static long spi_clk_max_rate(struct clk *clk, unsigned long rate)
@@ -479,7 +479,7 @@ static long gf_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		break;
 
 	case GF_IOC_REMOVE:
-		pr_info("%s GF_IOC_REMOVE\n", __func__);
+		pr_debug("%s GF_IOC_REMOVE\n", __func__);
                 irq_cleanup(gf_dev);
                 gf_cleanup(gf_dev);
 		break;
@@ -623,7 +623,7 @@ static int gf_fasync(int fd, struct file *filp, int mode)
 }
 #endif
 
-static int gf_release(struct inode *inode, struct file *filp)
+/*static int gf_release(struct inode *inode, struct file *filp)
 {
 	struct gf_dev *gf_dev;
 	int status = 0;
@@ -633,7 +633,6 @@ static int gf_release(struct inode *inode, struct file *filp)
 	gf_dev = filp->private_data;
 	filp->private_data = NULL;
 
-	/*last close?? */
 	gf_dev->users--;
 	if (!gf_dev->users) {
 
@@ -644,12 +643,12 @@ static int gf_release(struct inode *inode, struct file *filp)
                 if (gf_dev->irq)
                 free_irq(gf_dev->irq, gf_dev);
                 gf_dev->irq = 0;
-		/*power off the sensor*/
 		gf_power_off(gf_dev);
 	}
 	mutex_unlock(&device_list_lock);
 	return status;
 }
+*/
 
 static const struct file_operations gf_fops = {
 	.owner = THIS_MODULE,
@@ -662,7 +661,7 @@ static const struct file_operations gf_fops = {
 	.compat_ioctl = gf_compat_ioctl,
 #endif /*CONFIG_COMPAT*/
 	.open = gf_open,
-	.release = gf_release,
+	//.release = gf_release,
 #ifdef GF_FASYNC
 	.fasync = gf_fasync,
 #endif
