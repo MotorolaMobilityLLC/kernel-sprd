@@ -358,7 +358,7 @@ init_exit:
 static ssize_t sensor_release(struct fpc_data *fpc)
 {
     struct device *dev = &fpc->pdev->dev;
-    fpsensor_log(ERROR_LOG, "entry\n");
+    fpsensor_log(INFO_LOG, "sensor_release entry\n");
 
     if(fpc->irq_num) {
         disable_irq_wake(fpc->irq_num);
@@ -366,17 +366,17 @@ static ssize_t sensor_release(struct fpc_data *fpc)
         wakeup_source_trash(&fpc->ttw_wl);
         fpc->irq_num = 0;
     }
-    fpsensor_log(INFO_LOG, "exit\n");
 
-	if (gpio_is_valid(fpc->rst_gpio)) {
-			devm_gpio_free(dev, fpc->rst_gpio);
-			fpsensor_log(ERROR_LOG, "remove rst_gpio success.\n");
-	}
+    if (gpio_is_valid(fpc->rst_gpio)) {
+        devm_gpio_free(dev, fpc->rst_gpio);
+        fpsensor_log(ERROR_LOG, "remove rst_gpio success.\n");
+    }
 
-	if (gpio_is_valid(fpc->irq_gpio)) {
-			devm_gpio_free(dev, fpc->irq_gpio);
-			fpsensor_log(ERROR_LOG, "remove irq_gpio success.\n");
-	}
+    if (gpio_is_valid(fpc->irq_gpio)) {
+        devm_gpio_free(dev, fpc->irq_gpio);
+        fpsensor_log(ERROR_LOG, "remove irq_gpio success.\n");
+    }
+    fpsensor_log(INFO_LOG, "sensor_release exit\n");
 
     return 1;
 }
