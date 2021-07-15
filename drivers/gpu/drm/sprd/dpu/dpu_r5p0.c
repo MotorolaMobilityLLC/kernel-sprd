@@ -588,15 +588,19 @@ static void dpu_run(struct dpu_context *ctx)
 
 static void dpu_cabc_work_func(struct work_struct *data)
 {
-	struct dpu_context *ctx =
-		container_of(data, struct dpu_context, cabc_work);
+	struct dpu_context *ctx;
+	if (data) {
+		ctx = container_of(data, struct dpu_context, cabc_work);
 
-	down(&ctx->lock);
-	dpu_cabc_trigger(ctx);
-	DPU_REG_SET(ctx->base + REG_DPU_CTRL, BIT(2));
-	dpu_wait_update_done(ctx);
+		down(&ctx->lock);
+		dpu_cabc_trigger(ctx);
+		DPU_REG_SET(ctx->base + REG_DPU_CTRL, BIT(2));
+		dpu_wait_update_done(ctx);
 
-	up(&ctx->lock);
+		up(&ctx->lock);
+	} else {
+		DRM_ERROR("null param data, skip work func\n");
+	}
 }
 
 static void dpu_cabc_bl_update_func(struct work_struct *data)
