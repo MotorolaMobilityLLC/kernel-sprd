@@ -535,7 +535,7 @@ static int cx7601_trim(struct cx7601_charger_info *info)
 	ret = cx7601_write(info, 0x40, 0x50);
 	ret = cx7601_write(info, 0x40, 0x57);
 	ret = cx7601_write(info, 0x40, 0x44);
-	ret = cx7601_write(info, 0x83, 0x2C);
+	ret = cx7601_write(info, 0x83, 0x2D);
 	ret = cx7601_read(info, &data, 0x83);
 	if (data != 0x2C) {
 		pr_err("Failed to trim cx7601: reg=%02X, data=%02X\n", 0x83, data);
