@@ -117,6 +117,9 @@ static const struct of_device_id sprd_campw_match_table[] = {
 	{ .compatible = "sprd,sharkle-camsys-domain",
 	   .data = (void *)(&camsys_power_ops_le)},
 
+	{ .compatible = "sprd,qogirl6-camsys-domain",
+	   .data = (void *)(&camsys_power_ops_qogirl6)},
+
 	{},
 };
 
