@@ -13,56 +13,56 @@
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 
 #include <linux/io.h>
-#include <linux/module.h>
 #include <linux/firmware.h>
 #include <linux/irq.h>
 #include <linux/interrupt.h>
-#include <linux/rtc.h>
-#include <linux/reboot.h>
-#include <linux/slab.h>
-#include <linux/workqueue.h>
+#include <linux/module.h>
+#include <linux/of.h>
 #include <linux/platform_device.h>
+#include <linux/pm_wakeup.h>
 #include <linux/power_supply.h>
 #include <linux/power/charger-manager.h>
+#include <linux/reboot.h>
 #include <linux/regulator/consumer.h>
+#include <linux/rtc.h>
+#include <linux/slab.h>
 #include <linux/sysfs.h>
-#include <linux/of.h>
 #include <linux/thermal.h>
-#include <linux/pm_wakeup.h>
+#include <linux/workqueue.h>
 
 /*
  * Default temperature threshold for charging.
  * Every temperature units are in tenth of centigrade.
  */
-#define CM_DEFAULT_RECHARGE_TEMP_DIFF	50
-#define CM_DEFAULT_CHARGE_TEMP_MAX	500
-#define CM_CAP_CYCLE_TRACK_TIME		15
-#define CM_UVLO_OFFSET			50000
-#define CM_FORCE_SET_FUEL_CAP_FULL	1000
-#define CM_LOW_TEMP_REGION		100
+#define CM_DEFAULT_RECHARGE_TEMP_DIFF		50
+#define CM_DEFAULT_CHARGE_TEMP_MAX		500
+#define CM_CAP_CYCLE_TRACK_TIME			15
+#define CM_UVLO_OFFSET				50000
+#define CM_FORCE_SET_FUEL_CAP_FULL		1000
+#define CM_LOW_TEMP_REGION			100
 #define CM_UVLO_CALIBRATION_VOLTAGE_THRESHOLD	3250000
 #define CM_UVLO_CALIBRATION_CNT_THRESHOLD	5
-#define CM_LOW_TEMP_SHUTDOWN_VALTAGE	3200000
+#define CM_LOW_TEMP_SHUTDOWN_VALTAGE		3200000
 #define CM_TRACK_CAPACITY_SHUTDOWN_START_VOLTAGE	3500000
-#define CM_TRACK_CAPACITY_START_VOLTAGE	3650000
-#define CM_TRACK_CAPACITY_START_CURRENT	30000
-#define CM_TRACK_CAPACITY_KEY0		0x20160726
-#define CM_TRACK_CAPACITY_KEY1		0x15211517
+#define CM_TRACK_CAPACITY_START_VOLTAGE		3650000
+#define CM_TRACK_CAPACITY_START_CURRENT		30000
+#define CM_TRACK_CAPACITY_KEY0			0x20160726
+#define CM_TRACK_CAPACITY_KEY1			0x15211517
 #define CM_TRACK_CAPACITY_VOLTAGE_OFFSET	5000
 #define CM_TRACK_CAPACITY_CURRENT_OFFSET	5000
-#define CM_TRACK_HIGH_TEMP_THRESHOLD	450
-#define CM_TRACK_LOW_TEMP_THRESHOLD	150
-#define CM_TRACK_TIMEOUT_THRESHOLD	108000
-#define CM_TRACK_START_CAP_THRESHOLD	200
-#define CM_CAP_ONE_PERCENT		10
-#define CM_HCAP_DECREASE_STEP		8
-#define CM_HCAP_THRESHOLD		955
-#define CM_CAP_FULL_PERCENT		1000
-#define CM_MAGIC_NUM		0x5A5AA5A5
-#define CM_CAPACITY_LEVEL_CRITICAL	0
-#define CM_CAPACITY_LEVEL_LOW		15
-#define CM_CAPACITY_LEVEL_NORMAL	85
-#define CM_CAPACITY_LEVEL_FULL		100
+#define CM_TRACK_HIGH_TEMP_THRESHOLD		450
+#define CM_TRACK_LOW_TEMP_THRESHOLD		150
+#define CM_TRACK_TIMEOUT_THRESHOLD		108000
+#define CM_TRACK_START_CAP_THRESHOLD		200
+#define CM_CAP_ONE_PERCENT			10
+#define CM_HCAP_DECREASE_STEP			8
+#define CM_HCAP_THRESHOLD			995
+#define CM_CAP_FULL_PERCENT			1000
+#define CM_MAGIC_NUM				0x5A5AA5A5
+#define CM_CAPACITY_LEVEL_CRITICAL		0
+#define CM_CAPACITY_LEVEL_LOW			15
+#define CM_CAPACITY_LEVEL_NORMAL		85
+#define CM_CAPACITY_LEVEL_FULL			100
 #define CM_FAST_CHARGE_ENABLE_BATTERY_VOLTAGE	3400000
 #define CM_FAST_CHARGE_ENABLE_CURRENT		1200000
 #define CM_FAST_CHARGE_DISABLE_BATTERY_VOLTAGE	3400000
@@ -73,12 +73,25 @@
 #define CM_FAST_CHARGE_ENABLE_COUNT		2
 #define CM_FAST_CHARGE_DISABLE_COUNT		2
 
-#define CM_CP_START_VOLTAGE_LTHRESHOLD	3520000
-#define CM_CP_START_VOLTAGE_HTHRESHOLD	4200000
-#define CM_CP_VSTEP			20000
-#define CM_CP_ISTEP			50000
+#define CM_CP_START_VOLTAGE_LTHRESHOLD		3520000
+#define CM_CP_START_VOLTAGE_HTHRESHOLD		4200000
+#define CM_CP_VSTEP				20000
+#define CM_CP_ISTEP				50000
 #define CM_CP_PRIMARY_CHARGER_DIS_TIMEOUT	20
-#define CM_CP_CP_CHARGER_EN_TIMEOUT		20
+#define CM_CP_IBAT_UCP_THRESHOLD		3
+#define CM_CP_ADJUST_VOLTAGE_THRESHOLD		(6 * 1000 / CM_CP_WORK_TIME_MS)
+#define CM_CP_VBAT_STEP1			300000
+#define CM_CP_VBAT_STEP2			150000
+#define CM_CP_VBAT_STEP3			50000
+#define CM_CP_IBAT_STEP1			2000000
+#define CM_CP_IBAT_STEP2			1000000
+#define CM_CP_IBAT_STEP3			100000
+#define CM_CP_VBUS_STEP1			2000000
+#define CM_CP_VBUS_STEP2			1000000
+#define CM_CP_VBUS_STEP3			50000
+#define CM_CP_IBUS_STEP1			1000000
+#define CM_CP_IBUS_STEP2			500000
+#define CM_CP_IBUS_STEP3			100000
 
 #define CM_IR_COMPENSATION_TIME			3
 
@@ -176,8 +189,7 @@ static int cm_set_input_limit_current(struct charger_manager *cm);
 static int cm_set_charge_limit_current(struct charger_manager *cm);
 static bool cm_charger_is_support_fchg(struct charger_manager *cm);
 
-static void cm_cap_remap_init_boundary(struct charger_desc *desc, int index,
-				       struct device *dev)
+static void cm_cap_remap_init_boundary(struct charger_desc *desc, int index, struct device *dev)
 {
 
 	if (index == 0) {
@@ -286,8 +298,7 @@ static int cm_capacity_unmap(struct charger_manager *cm, int cap)
 	return fuel_cap;
 }
 
-static int cm_init_cap_remap_table(struct charger_desc *desc,
-				   struct device *dev)
+static int cm_init_cap_remap_table(struct charger_desc *desc, struct device *dev)
 {
 
 	struct device_node *np = dev->of_node;
@@ -587,14 +598,14 @@ static int get_cp_ibus_uA(struct charger_manager *cm, int *cur)
 }
 
  /**
-  * get_batt_uA - Get the current level of the battery
+  * get_ibat_avg_uA - Get the current level of the battery
   * @cm: the Charger Manager representing the battery.
   * @uA: the current level returned.
   *
   * Returns 0 if there is no error.
   * Returns a negative value on error.
   */
-static int get_batt_uA(struct charger_manager *cm, int *uA)
+static int get_ibat_avg_uA(struct charger_manager *cm, int *uA)
 {
 	union power_supply_propval val;
 	struct power_supply *fuel_gauge;
@@ -614,14 +625,14 @@ static int get_batt_uA(struct charger_manager *cm, int *uA)
 }
 
  /**
-  * get_batt_cur_now - Get the current level of the battery
+  * get_ibat_now_uA - Get the current level of the battery
   * @cm: the Charger Manager representing the battery.
   * @uA: the current level returned.
   *
   * Returns 0 if there is no error.
   * Returns a negative value on error.
   */
-static int get_batt_cur_now(struct charger_manager *cm, int *uA)
+static int get_ibat_now_uA(struct charger_manager *cm, int *uA)
 {
 	union power_supply_propval val;
 	struct power_supply *fuel_gauge;
@@ -643,14 +654,14 @@ static int get_batt_cur_now(struct charger_manager *cm, int *uA)
 
 /**
  *
- * get_batt_uV - Get the voltage level of the battery
+ * get_vbat_avg_uV - Get the voltage level of the battery
  * @cm: the Charger Manager representing the battery.
  * @uV: the voltage level returned.
  *
  * Returns 0 if there is no error.
  * Returns a negative value on error.
  */
-static int get_batt_uV(struct charger_manager *cm, int *uV)
+static int get_vbat_avg_uV(struct charger_manager *cm, int *uV)
 {
 	union power_supply_propval val;
 	struct power_supply *fuel_gauge;
@@ -706,7 +717,7 @@ static int get_batt_ocv(struct charger_manager *cm, int *ocv)
  * Returns 0 if there is no error.
  * Returns a negative value on error.
  */
-static int get_batt_vol_now(struct charger_manager *cm, int *ocv)
+static int get_vbat_now_uV(struct charger_manager *cm, int *ocv)
 {
 	union power_supply_propval val;
 	struct power_supply *fuel_gauge;
@@ -1278,11 +1289,11 @@ static bool is_full_charged(struct charger_manager *cm)
 
 	/* Full, if it's over the fullbatt voltage */
 	if (desc->fullbatt_uV > 0 && desc->fullbatt_uA > 0) {
-		ret = get_batt_uV(cm, &uV);
+		ret = get_vbat_now_uV(cm, &uV);
 		if (ret)
 			goto out;
 
-		ret = get_batt_uA(cm, &uA);
+		ret = get_ibat_now_uA(cm, &uA);
 		if (ret)
 			goto out;
 
@@ -1865,13 +1876,13 @@ static int cm_fast_charge_enable_check(struct charger_manager *cm)
 	if (!desc->is_fast_charge || desc->enable_fast_charge)
 		return 0;
 
-	ret = get_batt_uV(cm, &batt_uV);
+	ret = get_vbat_now_uV(cm, &batt_uV);
 	if (ret) {
 		dev_err(cm->dev, "failed to get batt uV\n");
 		return ret;
 	}
 
-	ret = get_batt_uA(cm, &batt_uA);
+	ret = get_ibat_now_uA(cm, &batt_uA);
 	if (ret) {
 		dev_err(cm->dev, "failed to get batt uA\n");
 		return ret;
@@ -2006,13 +2017,13 @@ static int cm_fast_charge_disable_check(struct charger_manager *cm)
 	if (!cm->desc->enable_fast_charge)
 		return 0;
 
-	ret = get_batt_uV(cm, &batt_uV);
+	ret = get_vbat_now_uV(cm, &batt_uV);
 	if (ret) {
 		dev_err(cm->dev, "failed to get batt uV\n");
 		return ret;
 	}
 
-	ret = get_batt_uA(cm, &batt_uA);
+	ret = get_ibat_now_uA(cm, &batt_uA);
 	if (ret) {
 		dev_err(cm->dev, "failed to get batt uA\n");
 		return ret;
@@ -2133,7 +2144,7 @@ static int cm_get_ibat_avg(struct charger_manager *cm, int *ibat)
 	int ret, batt_uA, min, max, i, sum = 0;
 	struct cm_ir_compensation *ir_sts = &cm->desc->ir_comp;
 
-	ret = get_batt_uA(cm, &batt_uA);
+	ret = get_ibat_now_uA(cm, &batt_uA);
 	if (ret) {
 		dev_err(cm->dev, "get bat_uA error.\n");
 		return ret;
@@ -2355,7 +2366,7 @@ static void cm_ir_compensation_works(struct work_struct *work)
 static void cm_cp_state_change(struct charger_manager *cm, int state)
 {
 	cm->desc->cp.cp_state = state;
-	dev_info(cm->dev, "%s, current cp_state = %d\n", __func__, state);
+	dev_dbg(cm->dev, "%s, current cp_state = %d\n", __func__, state);
 }
 
 static  bool cm_cp_master_charger_enable(struct charger_manager *cm, bool enable)
@@ -2445,7 +2456,7 @@ static int cm_fast_enable_pps(struct charger_manager *cm, bool enable)
 	union power_supply_propval val;
 	int ret;
 
-	dev_info(cm->dev, "%s, pps %s\n", __func__, enable ? "enable" : "disable");
+	dev_dbg(cm->dev, "%s, pps %s\n", __func__, enable ? "enable" : "disable");
 	psy = power_supply_get_by_name(desc->psy_fast_charger_stat[0]);
 	if (!psy) {
 		dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
@@ -2490,7 +2501,7 @@ static bool cm_check_primary_charger_enabled(struct charger_manager *cm)
 			enabled = true;
 	}
 
-	dev_info(cm->dev, "%s: %s\n", __func__, enabled ? "enabled" : "disabled");
+	dev_dbg(cm->dev, "%s: %s\n", __func__, enabled ? "enabled" : "disabled");
 	return enabled;
 }
 
@@ -2516,7 +2527,7 @@ static bool cm_check_cp_charger_enabled(struct charger_manager *cm)
 	if (!ret)
 		enabled = !!val.intval;
 
-	dev_info(cm->dev, "%s: %s\n", __func__, enabled ? "enabled" : "disabled");
+	dev_dbg(cm->dev, "%s: %s\n", __func__, enabled ? "enabled" : "disabled");
 
 	return enabled;
 }
@@ -2625,7 +2636,7 @@ static void cm_update_cp_charger_status(struct charger_manager *cm)
 			dev_err(cm->dev, "get ibus current error.\n");
 		}
 
-		if (get_batt_uV(cm, &cp->vbatt_uV)) {
+		if (get_vbat_now_uV(cm, &cp->vbatt_uV)) {
 			cp->vbatt_uV = 0;
 			dev_err(cm->dev, "get vbatt error.\n");
 		}
@@ -2636,20 +2647,20 @@ static void cm_update_cp_charger_status(struct charger_manager *cm)
 		}
 
 
-		if (get_batt_uA(cm, &cp->ibatt_uA)) {
+		if (get_ibat_now_uA(cm, &cp->ibatt_uA)) {
 			cp->ibatt_uA = 0;
 			dev_err(cm->dev, "get vbatt error.\n");
 		}
 	}
 
-	dev_info(cm->dev, " %s,  %s, batt_uV = %duV, vbus_uV = %duV, batt_uA = %duA, ibus_uA = %duA\n",
+	dev_dbg(cm->dev, " %s,  %s, batt_uV = %duV, vbus_uV = %duV, batt_uA = %duA, ibus_uA = %duA\n",
 	       __func__, (cp->cp_running ? "charge pump" : "Primary charger"),
 	       cp->vbatt_uV, cp->vbus_uV, cp->ibatt_uA, cp->ibus_uA);
 }
 
 static bool cm_is_reach_cp_threshold(struct charger_manager *cm)
 {
-	int batt_ocv, batt_uA, cp_ocv_threshold;
+	int batt_ocv, batt_uA, cp_ocv_threshold, thm_cur;
 	int cur_jeita_status = STATUS_T1_TO_T2;
 
 	if (cm->desc->jeita_tab_size) {
@@ -2663,8 +2674,8 @@ static bool cm_is_reach_cp_threshold(struct charger_manager *cm)
 		return false;
 	}
 
-	if (get_batt_uA(cm, &batt_uA)) {
-		dev_err(cm->dev, "get_batt_uA error.\n");
+	if (get_ibat_now_uA(cm, &batt_uA)) {
+		dev_err(cm->dev, "get_ibat_now_uA error.\n");
 		return false;
 	}
 
@@ -2672,7 +2683,13 @@ static bool cm_is_reach_cp_threshold(struct charger_manager *cm)
 	if (cm->desc->cp.cp_ocv_threshold)
 		cp_ocv_threshold = cm->desc->cp.cp_ocv_threshold;
 
-	if (cur_jeita_status == STATUS_T1_TO_T2 &&
+	thm_cur = CM_FAST_CHARGE_ENABLE_CURRENT / 2;
+	if (cm->desc->thm_info.thm_adjust_cur > 0)
+		thm_cur = cm->desc->thm_info.thm_adjust_cur;
+
+	if (thm_cur < CM_FAST_CHARGE_ENABLE_CURRENT / 2)
+		return false;
+	else if (cur_jeita_status == STATUS_T1_TO_T2 &&
 	    batt_ocv > 0 && batt_ocv >= CM_CP_START_VOLTAGE_LTHRESHOLD &&
 	    batt_ocv < cp_ocv_threshold)
 		return true;
@@ -2735,7 +2752,7 @@ static void cm_check_target_ibus(struct charger_manager *cm)
 
 	cp->cp_target_ibus = target_ibus;
 
-	dev_info(cm->dev, "%s, adp_max_ibus = %d, cp_max_ibus = %d, thm_cur = %d, target_ibus = %d\n",
+	dev_dbg(cm->dev, "%s, adp_max_ibus = %d, cp_max_ibus = %d, thm_cur = %d, target_ibus = %d\n",
 	       __func__, cp->adapter_max_ibus, cp->cp_max_ibus,
 	       cm->desc->thm_info.thm_adjust_cur, cp->cp_target_ibus);
 }
@@ -2747,8 +2764,84 @@ static void cm_check_target_vbus(struct charger_manager *cm)
 	if (cp->adapter_max_vbus > 0)
 		cp->cp_target_vbus = min(cp->cp_target_vbus, cp->adapter_max_vbus);
 
-	dev_info(cm->dev, "%s, adp_max_vbus = %d, target_vbus = %d\n",
+	dev_dbg(cm->dev, "%s, adp_max_vbus = %d, target_vbus = %d\n",
 	       __func__, cp->adapter_max_vbus, cp->cp_target_vbus);
+}
+
+static int cm_cp_vbat_step_algo(struct charger_manager *cm)
+{
+	struct cm_charge_pump_status *cp = &cm->desc->cp;
+	int vbat_step = 0, delta_vbatt_uV;
+
+	delta_vbatt_uV = cp->cp_target_vbat - cp->vbatt_uV;
+
+	if (cp->vbatt_uV > 0 && delta_vbatt_uV > CM_CP_VBAT_STEP1)
+		vbat_step = CM_CP_VSTEP * 3;
+	else if (cp->vbatt_uV > 0 && delta_vbatt_uV > CM_CP_VBAT_STEP2)
+		vbat_step = CM_CP_VSTEP * 2;
+	else if (cp->vbatt_uV > 0 && delta_vbatt_uV > CM_CP_VBAT_STEP3)
+		vbat_step = CM_CP_VSTEP;
+	else if (cp->vbatt_uV > 0 && delta_vbatt_uV < 0)
+		vbat_step = -CM_CP_VSTEP * 2;
+
+	return vbat_step;
+}
+
+static int cm_cp_ibat_step_algo(struct charger_manager *cm)
+{
+	struct cm_charge_pump_status *cp = &cm->desc->cp;
+	int ibat_step = 0, delta_ibatt_uA;
+
+	delta_ibatt_uA = cp->cp_target_ibat - cp->ibatt_uA;
+
+	if (cp->ibatt_uA > 0 && delta_ibatt_uA > CM_CP_IBAT_STEP1)
+		ibat_step = CM_CP_VSTEP * 3;
+	else if (cp->ibatt_uA > 0 && delta_ibatt_uA > CM_CP_IBAT_STEP2)
+		ibat_step = CM_CP_VSTEP * 2;
+	else if (cp->ibatt_uA > 0 && delta_ibatt_uA > CM_CP_IBAT_STEP3)
+		ibat_step = CM_CP_VSTEP;
+	else if (cp->ibatt_uA > 0 && delta_ibatt_uA < 0)
+		ibat_step = -CM_CP_VSTEP * 2;
+
+	return ibat_step;
+}
+
+static int cm_cp_vbus_step_algo(struct charger_manager *cm)
+{
+	struct cm_charge_pump_status *cp = &cm->desc->cp;
+	int vbus_step = 0, delta_vbus_uV;
+
+	delta_vbus_uV = cp->adapter_max_vbus - cp->vbus_uV;
+
+	if (cp->vbus_uV > 0 && delta_vbus_uV > CM_CP_VBUS_STEP1)
+		vbus_step = CM_CP_VSTEP * 3;
+	else if (cp->vbus_uV > 0 && delta_vbus_uV > CM_CP_VBUS_STEP2)
+		vbus_step = CM_CP_VSTEP * 2;
+	else if (cp->vbus_uV > 0 && delta_vbus_uV > CM_CP_VBUS_STEP3)
+		vbus_step = CM_CP_VSTEP;
+	else if (cp->vbus_uV > 0 && delta_vbus_uV < 0)
+		vbus_step = -CM_CP_VSTEP * 2;
+
+	return vbus_step;
+}
+
+static int cm_cp_ibus_step_algo(struct charger_manager *cm)
+{
+	struct cm_charge_pump_status *cp = &cm->desc->cp;
+	int ibus_step = 0, delta_ibus_uA;
+
+	delta_ibus_uA = cp->cp_target_ibus - cp->ibus_uA;
+
+	if (cp->ibus_uA > 0 && delta_ibus_uA > CM_CP_IBUS_STEP1)
+		ibus_step = CM_CP_VSTEP * 3;
+	else if (cp->ibus_uA > 0 && delta_ibus_uA > CM_CP_IBUS_STEP2)
+		ibus_step = CM_CP_VSTEP * 2;
+	else if (cp->ibus_uA > 0 && delta_ibus_uA > CM_CP_IBUS_STEP3)
+		ibus_step = CM_CP_VSTEP;
+	else if (cp->ibus_uA > 0 && delta_ibus_uA < 0)
+		ibus_step = -CM_CP_VSTEP * 2;
+
+	return ibus_step;
 }
 
 static bool cm_cp_tune_algo(struct charger_manager *cm)
@@ -2775,44 +2868,24 @@ static bool cm_cp_tune_algo(struct charger_manager *cm)
 	}
 
 	/* check battery voltage*/
-	if (cp->vbatt_uV > 0 &&
-	    cp->vbatt_uV < cp->cp_target_vbat - 50000)
-		vbat_step = CM_CP_VSTEP;
-	else if (cp->vbatt_uV > 0 &&
-		 cp->vbatt_uV > cp->cp_target_vbat)
-		vbat_step = -CM_CP_VSTEP * 2;
+	vbat_step = cm_cp_vbat_step_algo(cm);
 
 	/* check battery current*/
-	if (cp->ibatt_uA > 0 &&
-	    cp->ibatt_uA < cp->cp_target_ibat - 100000)
-		ibat_step = CM_CP_VSTEP;
-	else if (cp->ibatt_uA > 0 &&
-		 cp->ibatt_uA > cp->cp_target_ibat)
-		ibat_step = -CM_CP_VSTEP * 2;
+	ibat_step = cm_cp_ibat_step_algo(cm);
 
 	/* check bus voltage*/
-	if (cp->vbus_uV > 0 && cp->adapter_max_vbus > 0 &&
-	    cp->vbus_uV < cp->adapter_max_vbus - 50000)
-		vbus_step = CM_CP_VSTEP;
-	else if (cp->vbus_uV > 0 && cp->adapter_max_vbus > 0 &&
-		 cp->vbus_uV > cp->adapter_max_vbus)
-		vbus_step = -CM_CP_VSTEP * 2;
+	vbus_step = cm_cp_vbus_step_algo(cm);
 
 	/* check bus current*/
 	cm_check_target_ibus(cm);
-	if (cp->ibus_uA > 0 &&
-	    cp->ibus_uA < cp->cp_target_ibus - 100000)
-		ibus_step = CM_CP_VSTEP;
-	else if (cp->ibus_uA > 0 &&
-		 cp->ibus_uA > cp->cp_target_ibus)
-		ibus_step = -CM_CP_VSTEP * 2;
+	ibus_step = cm_cp_ibus_step_algo(cm);
 
 	/* check alarm status*/
 	if (cp->alm.bat_ovp_alarm || cp->alm.bat_ocp_alarm ||
 	    cp->alm.bus_ovp_alarm || cp->alm.bus_ocp_alarm ||
 	    cp->alm.bat_therm_alarm || cp->alm.bus_therm_alarm ||
 	    cp->alm.die_therm_alarm) {
-		dev_info(cm->dev, "%s, bat_ovp_alarm = %d, bat_ocp_alarm = %d, bus_ovp_alarm = %d, "
+		dev_warn(cm->dev, "%s, bat_ovp_alarm = %d, bat_ocp_alarm = %d, bus_ovp_alarm = %d, "
 			 "bus_ocp_alarm = %d, bat_therm_alarm = %d, bus_therm_alarm = %d, "
 			 "die_therm_alarm = %d\n", __func__, cp->alm.bat_ovp_alarm,
 			 cp->alm.bat_ocp_alarm, cp->alm.bus_ovp_alarm,
@@ -2820,7 +2893,7 @@ static bool cm_cp_tune_algo(struct charger_manager *cm)
 			 cp->alm.bus_therm_alarm, cp->alm.die_therm_alarm);
 		alarm_step = -CM_CP_VSTEP * 2;
 	} else {
-		alarm_step = CM_CP_VSTEP;
+		alarm_step = CM_CP_VSTEP * 3;
 	}
 
 	cp->cp_target_vbus += min(min(min(min(vbat_step, ibat_step),
@@ -2841,8 +2914,42 @@ static bool cm_cp_tune_algo(struct charger_manager *cm)
 	return is_taper_done;
 }
 
+static bool cm_cp_check_ibat_ucp_status(struct charger_manager *cm)
+{
+	struct cm_charge_pump_status *cp = &cm->desc->cp;
+	bool status = false;
+
+	if (cp->alm.bat_ucp_alarm) {
+		dev_warn(cm->dev, "%s, bat_ucp_alarm = %d\n", __func__, cp->alm.bat_ucp_alarm);
+		cp->cp_ibat_ucp_cnt++;
+	}
+
+	if (!cp->cp_ibat_ucp_cnt)
+		return status;
+
+	if (cp->vbatt_uV >= cp->cp_target_vbat - 50000) {
+		cp->cp_ibat_ucp_cnt = 0;
+		return status;
+	}
+
+	if (cp->ibatt_uA < cp->cp_taper_current)
+		cp->cp_ibat_ucp_cnt++;
+	else
+		cp->cp_ibat_ucp_cnt = 0;
+
+	if (cp->cp_ibat_ucp_cnt > CM_CP_IBAT_UCP_THRESHOLD)
+		status = true;
+
+	return status;
+}
+
 static void cm_cp_state_recovery(struct charger_manager *cm)
 {
+	struct cm_charge_pump_status *cp = &cm->desc->cp;
+
+	dev_info(cm->dev, "cm_cp_state_machine: state %d, %s\n",
+	       cp->cp_state, cm_cp_state_names[cp->cp_state]);
+
 	cm->desc->cp.recovery = false;
 	if (is_ext_pwr_online(cm) && cm_is_reach_cp_threshold(cm))
 		cm_cp_state_change(cm, CM_CP_STATE_ENTRY);
@@ -2854,6 +2961,9 @@ static void cm_cp_state_entry(struct charger_manager *cm)
 {
 	struct cm_charge_pump_status *cp = &cm->desc->cp;
 	static int primary_charger_dis_retry;
+
+	dev_info(cm->dev, "cm_cp_state_machine: state %d, %s\n",
+	       cp->cp_state, cm_cp_state_names[cp->cp_state]);
 
 	cm->desc->cm_check_fault = false;
 	cm_fast_enable_pps(cm, false);
@@ -2892,11 +3002,12 @@ static void cm_cp_state_entry(struct charger_manager *cm)
 	cm->desc->enable_fast_charge = true;
 	cm->desc->cp.tune_vbus_retry = 0;
 	primary_charger_dis_retry = 0;
+	cp->cp_ibat_ucp_cnt = 0;
 
 	cp->cp_target_ibus = cp->cp_max_ibus;
 	cp->cp_target_vbus = cp->vbatt_uV * 205 / 100 + 2 * CM_CP_VSTEP;
 
-	dev_info(cm->dev, "%s, target_ibat = %d, cp_target_vbus = %d\n",
+	dev_dbg(cm->dev, "%s, target_ibat = %d, cp_target_vbus = %d\n",
 		 __func__, cp->cp_target_ibat, cp->cp_target_vbus);
 
 	cm_check_target_vbus(cm);
@@ -2911,6 +3022,9 @@ static void cm_cp_state_entry(struct charger_manager *cm)
 static void cm_cp_state_check_vbus(struct charger_manager *cm)
 {
 	struct cm_charge_pump_status *cp = &cm->desc->cp;
+
+	dev_info(cm->dev, "cm_cp_state_machine: state %d, %s\n",
+		 cp->cp_state, cm_cp_state_names[cp->cp_state]);
 
 	if (cp->flt.vbus_error_lo && cp->vbus_uV < cp->vbatt_uV * 219 / 100) {
 		cp->tune_vbus_retry++;
@@ -2960,13 +3074,13 @@ static void cm_cp_state_tune(struct charger_manager *cm)
 
 	if (cp->flt.bat_therm_fault || cp->flt.die_therm_fault ||
 	    cp->flt.bus_therm_fault) {
-		dev_info(cm->dev, "bat_therm_fault = %d, die_therm_fault = %d, exit cp\n",
+		dev_err(cm->dev, "bat_therm_fault = %d, die_therm_fault = %d, exit cp\n",
 			 cp->flt.bat_therm_fault, cp->flt.die_therm_fault);
 		cm_cp_state_change(cm, CM_CP_STATE_EXIT);
 
 	} else if (cp->flt.bat_ocp_fault || cp->flt.bat_ovp_fault ||
 		cp->flt.bus_ocp_fault || cp->flt.bus_ovp_fault) {
-		dev_info(cm->dev, "bat_ocp_fault = %d, bat_ovp_fault = %d, "
+		dev_err(cm->dev, "bat_ocp_fault = %d, bat_ovp_fault = %d, "
 			 "bus_ocp_fault = %d, bus_ovp_fault = %d, exit cp\n",
 			 cp->flt.bat_ocp_fault, cp->flt.bat_ovp_fault,
 			 cp->flt.bus_ocp_fault, cp->flt.bus_ovp_fault);
@@ -2974,13 +3088,16 @@ static void cm_cp_state_tune(struct charger_manager *cm)
 
 	} else if (!cm_check_cp_charger_enabled(cm) &&
 		   (cp->flt.vbus_error_hi || cp->flt.vbus_error_lo)) {
-		dev_info(cm->dev, " %s some error happen, need recovery\n", __func__);
+		dev_err(cm->dev, " %s some error happen, need recovery\n", __func__);
 		cp->recovery = true;
 		cm_cp_state_change(cm, CM_CP_STATE_EXIT);
 
 	} else if (!cm_check_cp_charger_enabled(cm)) {
-		dev_info(cm->dev, "%s cp charger is disabled, exit cp\n", __func__);
+		dev_err(cm->dev, "%s cp charger is disabled, exit cp\n", __func__);
 		cp->recovery = true;
+		cm_cp_state_change(cm, CM_CP_STATE_EXIT);
+	} else if (cm_cp_check_ibat_ucp_status(cm)) {
+		dev_err(cm->dev, "cp_ibat_ucp_cnt =%d, exit cp!\n", cp->cp_ibat_ucp_cnt);
 		cm_cp_state_change(cm, CM_CP_STATE_EXIT);
 	} else {
 		dev_info(cm->dev, "cp is ok, fine tune\n");
@@ -2993,7 +3110,7 @@ static void cm_cp_state_tune(struct charger_manager *cm)
 				cm_adjust_fast_charge_voltage(cm, cp->cp_target_vbus);
 				cp->cp_last_target_vbus = cp->cp_target_vbus;
 				cp->cp_adjust_cnt = 0;
-			} else if (cp->cp_adjust_cnt++ > 6) {
+			} else if (cp->cp_adjust_cnt++ > CM_CP_ADJUST_VOLTAGE_THRESHOLD) {
 				cm_adjust_fast_charge_voltage(cm, cp->cp_target_vbus);
 				cp->cp_adjust_cnt = 0;
 			}
@@ -3007,6 +3124,9 @@ static void cm_cp_state_tune(struct charger_manager *cm)
 static void cm_cp_state_exit(struct charger_manager *cm)
 {
 	struct cm_charge_pump_status *cp = &cm->desc->cp;
+
+	dev_info(cm->dev, "cm_cp_state_machine: state %d, %s\n",
+		 cp->cp_state, cm_cp_state_names[cp->cp_state]);
 
 	if (!cm_cp_master_charger_enable(cm, false))
 		return;
@@ -3037,6 +3157,7 @@ static void cm_cp_state_exit(struct charger_manager *cm)
 	cm->desc->cm_check_fault = false;
 	cm->desc->enable_fast_charge = false;
 	cp->cp_fault_event = false;
+	cp->cp_ibat_ucp_cnt = 0;
 
 	cm_ir_compensation_exit(cm);
 }
@@ -3045,7 +3166,7 @@ static int cm_cp_state_machine(struct charger_manager *cm)
 {
 	struct cm_charge_pump_status *cp = &cm->desc->cp;
 
-	dev_info(cm->dev, "%s, state %d, %s\n", __func__,
+	dev_dbg(cm->dev, "%s, state %d, %s\n", __func__,
 	       cp->cp_state, cm_cp_state_names[cp->cp_state]);
 
 	switch (cp->cp_state) {
@@ -3094,7 +3215,7 @@ static void cm_check_cp_start_condition(struct charger_manager *cm, bool enable)
 {
 	struct cm_charge_pump_status *cp = &cm->desc->cp;
 
-	dev_info(cm->dev, "%s enable = %d start\n", __func__, enable);
+	dev_dbg(cm->dev, "%s enable = %d start\n", __func__, enable);
 
 	if (!cm->desc->psy_cp_stat)
 		return;
@@ -4472,21 +4593,16 @@ static int charger_get_property(struct power_supply *psy,
 			val->intval = 0;
 		break;
 	case POWER_SUPPLY_PROP_VOLTAGE_AVG:
-		ret = get_batt_uV(cm, &val->intval);
-		break;
-	case POWER_SUPPLY_PROP_CURRENT_AVG:
-		fuel_gauge = power_supply_get_by_name(cm->desc->psy_fuel_gauge);
-		if (!fuel_gauge) {
-			ret = -ENODEV;
-			break;
-		}
-		ret = power_supply_get_property(fuel_gauge, POWER_SUPPLY_PROP_CURRENT_AVG, val);
+		ret = get_vbat_avg_uV(cm, &val->intval);
 		break;
 	case POWER_SUPPLY_PROP_VOLTAGE_NOW:
-		ret = get_batt_vol_now(cm, &val->intval);
+		ret = get_vbat_now_uV(cm, &val->intval);
+		break;
+	case POWER_SUPPLY_PROP_CURRENT_AVG:
+		ret = get_ibat_avg_uA(cm, &val->intval);
 		break;
 	case POWER_SUPPLY_PROP_CURRENT_NOW:
-		ret = get_batt_cur_now(cm, &val->intval);
+		ret = get_ibat_now_uA(cm, &val->intval);
 		break;
 	case POWER_SUPPLY_PROP_TECHNOLOGY:
 		val->intval = POWER_SUPPLY_TECHNOLOGY_UNKNOWN;
@@ -5547,13 +5663,13 @@ static void cm_track_capacity_monitor(struct charger_manager *cm)
 		return;
 	}
 
-	ret = get_batt_cur_now(cm, &cur_now);
+	ret = get_ibat_now_uA(cm, &cur_now);
 	if (ret) {
 		dev_err(cm->dev, "failed to get relax current.\n");
 		return;
 	}
 
-	ret = get_batt_uV(cm, &batt_uV);
+	ret = get_vbat_now_uV(cm, &batt_uV);
 	if (ret) {
 		dev_err(cm->dev, "failed to get battery voltage.\n");
 		return;
@@ -6118,9 +6234,9 @@ static void cm_uvlo_check_work(struct work_struct *work)
 				struct charger_manager, uvlo_work);
 	int batt_uV, ret;
 
-	ret = get_batt_uV(cm, &batt_uV);
+	ret = get_vbat_now_uV(cm, &batt_uV);
 	if (ret) {
-		dev_err(cm->dev, "get_batt_uV error.\n");
+		dev_err(cm->dev, "get_vbat_now_uV error.\n");
 		return;
 	}
 
@@ -6148,14 +6264,18 @@ static void cm_batt_works(struct work_struct *work)
 	int batt_uV, batt_ocV, bat_uA, fuel_cap, chg_sts, ret;
 	int period_time, flush_time, cur_temp, board_temp = 0;
 	int chg_cur = 0, chg_limit_cur = 0, input_cur = 0;
-	int chg_vol = 0;
+	int chg_vol = 0, vbat_avg = 0, ibat_avg = 0;
 	static int last_fuel_cap = CM_MAGIC_NUM;
 
-	ret = get_batt_uV(cm, &batt_uV);
+	ret = get_vbat_now_uV(cm, &batt_uV);
 	if (ret) {
-		dev_err(cm->dev, "get_batt_uV error.\n");
+		dev_err(cm->dev, "get_vbat_now_uV error.\n");
 		goto schedule_cap_update_work;
 	}
+
+	ret = get_vbat_avg_uV(cm, &vbat_avg);
+	if (ret)
+		dev_err(cm->dev, "get_vbat_avg_uV error.\n");
 
 	ret = get_batt_ocv(cm, &batt_ocV);
 	if (ret) {
@@ -6163,11 +6283,15 @@ static void cm_batt_works(struct work_struct *work)
 		goto schedule_cap_update_work;
 	}
 
-	ret = get_batt_uA(cm, &bat_uA);
+	ret = get_ibat_now_uA(cm, &bat_uA);
 	if (ret) {
 		dev_err(cm->dev, "get bat_uA error.\n");
 		goto schedule_cap_update_work;
 	}
+
+	ret = get_ibat_avg_uA(cm, &ibat_avg);
+	if (ret)
+		dev_err(cm->dev, "get ibat_avg_uA error.\n");
 
 	ret = get_batt_cap(cm, &fuel_cap);
 	if (ret) {
@@ -6261,14 +6385,16 @@ static void cm_batt_works(struct work_struct *work)
 	else
 		cm->desc->charger_status = chg_sts;
 
-	dev_info(cm->dev, "vbatt = %d, OCV = %d, ibat = %d, ibus = %d, vbus = %d, "
-		 "msoc = %d, chg_sts = %d, frce_full = %d, chg_lmt_cur = %d, "
-		 "inpt_lmt_cur = %d, chgr_type = %d, Tboard = %d, Tbatt = %d, "
-		 "track_sts = %d, thm_cur = %d, thm_pwr = %dmW, is_fst_chg = %d, fst_chg_en = %d\n",
-		 batt_uV, batt_ocV, bat_uA, input_cur,  chg_vol, fuel_cap, cm->desc->charger_status,
-		 cm->desc->force_set_full, chg_cur, chg_limit_cur, cm->desc->charger_type,
-		 board_temp, cur_temp, cm->track.state, cm->desc->thm_info.thm_adjust_cur,
-		 cm->desc->thm_info.thm_pwr, cm->desc->is_fast_charge, cm->desc->enable_fast_charge);
+	dev_info(cm->dev, "vbat = %d, vbat_avg = %d, OCV = %d, ibat = %d, ibat_avg = %d,"
+		 " ibus = %d, vbus = %d, msoc = %d, chg_sts = %d, frce_full = %d, chg_lmt_cur = %d,"
+		 " inpt_lmt_cur = %d, chgr_type = %d, Tboard = %d, Tbatt = %d, track_sts = %d,"
+		 " thm_cur = %d, thm_pwr = %dmW, is_fchg = %d, fchg_en = %d, tflush = %d,"
+		 " tperiod = %d\n",
+		 batt_uV, vbat_avg, batt_ocV, bat_uA, ibat_avg, input_cur, chg_vol, fuel_cap,
+		 cm->desc->charger_status, cm->desc->force_set_full, chg_cur, chg_limit_cur,
+		 cm->desc->charger_type, board_temp, cur_temp, cm->track.state,
+		 cm->desc->thm_info.thm_adjust_cur, cm->desc->thm_info.thm_pwr,
+		 cm->desc->is_fast_charge, cm->desc->enable_fast_charge, flush_time, period_time);
 
 	switch (cm->desc->charger_status) {
 	case POWER_SUPPLY_STATUS_CHARGING:
@@ -6277,31 +6403,46 @@ static void cm_batt_works(struct work_struct *work)
 			if (bat_uA >= 0) {
 				fuel_cap = cm->desc->cap;
 			} else {
-				/*
-				 * The percentage of electricity is not
-				 * allowed to change by 1% in cm->desc->cap_one_time.
-				 */
-				if (period_time < cm->desc->cap_one_time &&
-					(cm->desc->cap - fuel_cap) >= 5)
-					fuel_cap = cm->desc->cap - 5;
+				if (period_time < cm->desc->cap_one_time) {
+					/*
+					 * The percentage of electricity is not
+					 * allowed to change by 1% in cm->desc->cap_one_time.
+					 */
+					if ((cm->desc->cap - fuel_cap) >= 5)
+						fuel_cap = cm->desc->cap - 5;
+					if (flush_time < cm->desc->cap_one_time &&
+					    DIV_ROUND_CLOSEST(fuel_cap, 10) !=
+					    DIV_ROUND_CLOSEST(cm->desc->cap, 10))
+						fuel_cap = cm->desc->cap;
+				} else {
+					/*
+					 * If wake up from long sleep mode,
+					 * will make a percentage compensation based on time.
+					 */
+					if ((cm->desc->cap - fuel_cap) >=
+					    (period_time / cm->desc->cap_one_time) * 10)
+						fuel_cap = cm->desc->cap -
+							(period_time / cm->desc->cap_one_time) * 10;
+				}
+			}
+		} else if (fuel_cap > cm->desc->cap) {
+			if (period_time < cm->desc->cap_one_time) {
+				if ((fuel_cap - cm->desc->cap) >= 5)
+					fuel_cap = cm->desc->cap + 5;
+				if (flush_time < cm->desc->cap_one_time &&
+				    DIV_ROUND_CLOSEST(fuel_cap, 10) !=
+				    DIV_ROUND_CLOSEST(cm->desc->cap, 10))
+					fuel_cap = cm->desc->cap;
+			} else {
 				/*
 				 * If wake up from long sleep mode,
 				 * will make a percentage compensation based on time.
 				 */
-				if ((cm->desc->cap - fuel_cap) >=
-				    (flush_time / cm->desc->cap_one_time) * 10)
-					fuel_cap = cm->desc->cap -
-						(flush_time / cm->desc->cap_one_time) * 10;
+				if ((fuel_cap - cm->desc->cap) >=
+				    (period_time / cm->desc->cap_one_time) * 10)
+					fuel_cap = cm->desc->cap +
+						(period_time / cm->desc->cap_one_time) * 10;
 			}
-		} else if (fuel_cap > cm->desc->cap) {
-			if (period_time < cm->desc->cap_one_time &&
-					(fuel_cap - cm->desc->cap) >= 5)
-				fuel_cap = cm->desc->cap + 5;
-
-			if ((fuel_cap - cm->desc->cap) >=
-			    (flush_time / cm->desc->cap_one_time) * 10)
-				fuel_cap = cm->desc->cap +
-					(flush_time / cm->desc->cap_one_time) * 10;
 		}
 
 		if (cm->desc->cap >= 985 && cm->desc->cap <= 994 &&
@@ -6342,19 +6483,23 @@ static void cm_batt_works(struct work_struct *work)
 				fuel_cap = cm->desc->cap;
 			}
 		} else {
-			if (period_time < cm->desc->cap_one_time &&
-			    (cm->desc->cap - fuel_cap) >= 5)
-				fuel_cap = cm->desc->cap - 5;
-			/*
-			 * If wake up from long sleep mode,
-			 * will make a percentage compensation based on time.
-			 */
-			if ((cm->desc->cap - fuel_cap) >=
-			    (flush_time / cm->desc->cap_one_time) * 10)
-				fuel_cap = cm->desc->cap -
-					(flush_time / cm->desc->cap_one_time) * 10;
-			else if (cm->desc->cap - fuel_cap > CM_CAP_ONE_PERCENT)
-				fuel_cap = cm->desc->cap - CM_CAP_ONE_PERCENT;
+			if (period_time < cm->desc->cap_one_time) {
+				if ((cm->desc->cap - fuel_cap) >= 5)
+					fuel_cap = cm->desc->cap - 5;
+				if (flush_time < cm->desc->cap_one_time &&
+				    DIV_ROUND_CLOSEST(fuel_cap, 10) !=
+				    DIV_ROUND_CLOSEST(cm->desc->cap, 10))
+					fuel_cap = cm->desc->cap;
+			} else {
+				/*
+				 * If wake up from long sleep mode,
+				 * will make a percentage compensation based on time.
+				 */
+				if ((cm->desc->cap - fuel_cap) >=
+				    (period_time / cm->desc->cap_one_time) * 10)
+					fuel_cap = cm->desc->cap -
+						(period_time / cm->desc->cap_one_time) * 10;
+			}
 		}
 		break;
 
