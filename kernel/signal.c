@@ -1162,12 +1162,6 @@ static int send_signal(int sig, struct siginfo *info, struct task_struct *t,
 			   !task_pid_nr_ns(current, task_active_pid_ns(t));
 #endif
 
-        if (sig == 35) {
-            pr_info("SPRD process recieve signal 35,the process is %s.\n",t->comm);
-            pr_info("SPRD process recieve signal 35,the pid is %d.\n ",t->tgid);
-            dump_stack();
-        }
-
 	return __send_signal(sig, info, t, group, from_ancestor_ns);
 }
 
