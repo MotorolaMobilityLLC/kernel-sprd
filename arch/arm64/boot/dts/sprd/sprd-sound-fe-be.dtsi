@@ -29,7 +29,7 @@
 		};
 		sprd,headset-button@1 {
 			/* volume up */
-			adc-min = <711>;
+			adc-min = <650>;
 			adc-max = <953>;
 			code = <115>;
 		};
