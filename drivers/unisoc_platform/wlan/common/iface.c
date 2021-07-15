@@ -912,7 +912,6 @@ static int iface_set_mac(struct net_device *dev, void *addr)
 {
 	struct sprd_vif *vif = netdev_priv(dev);
 	struct sockaddr *sa = (struct sockaddr *)addr;
-	int ret;
 
 	if (!dev) {
 		netdev_err(dev, "Invalid net device\n");
@@ -959,14 +958,6 @@ static int iface_set_mac(struct net_device *dev, void *addr)
 			memcpy(dev->dev_addr, sa->sa_data, ETH_ALEN);
 			vif->has_rand_mac = true;
 			memcpy(vif->random_mac, sa->sa_data, ETH_ALEN);
-			ret = sprd_set_random_mac(vif->priv, vif,
-						  SPRD_CONNECT_RANDOM_ADDR,
-						  sa->sa_data);
-			if (ret) {
-				netdev_err(dev, "%s set p2p mac error\n",
-					   __func__);
-				return -EFAULT;
-			}
 		} else {
 			netdev_info(dev, "%s clear mac for go/gc mode\n",
 				    __func__);
