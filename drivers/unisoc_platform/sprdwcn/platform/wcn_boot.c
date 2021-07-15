@@ -412,9 +412,7 @@ static struct imageinfo *marlin_judge_images(char *buffer)
 
 static char *btwf_load_firmware_data(loff_t off, unsigned long int imag_size)
 {
-//K54_TAG begin
-	return NULL;
-#if 0
+#ifdef FIRMWARE_PARTITION_DEBUG_EN
 	int read_len, size, i, opn_num_max = 15;
 	char *buffer = NULL;
 	char *data = NULL;
@@ -472,8 +470,9 @@ static char *btwf_load_firmware_data(loff_t off, unsigned long int imag_size)
 	}
 
 	return data;
+#else
+	return NULL;
 #endif
-//K54_TAG end
 }
 
 static int marlin_download_from_partition(void)
@@ -616,9 +615,7 @@ void wcn_gnss_ops_unregister(void)
 
 static char *gnss_load_firmware_data(unsigned long int imag_size)
 {
-//K54_TAG begin
-	return NULL;
-#if 0
+#ifdef FIRMWARE_PARTITION_DEBUG_EN
 	int read_len, size, i, opn_num_max = 15;
 	char *buffer = NULL;
 	char *data = NULL;
@@ -675,8 +672,9 @@ static char *gnss_load_firmware_data(unsigned long int imag_size)
 		return NULL;
 
 	return data;
+#else
+	return NULL;
 #endif
-//K54_TAG end
 }
 
 static int gnss_download_from_partition(void)
@@ -801,7 +799,12 @@ static int gnss_download_firmware(void)
 
 	pr_info("%s start from /system/etc/firmware/\n", __func__);
 	buf = marlin_dev->write_buffer;
+
+#ifdef FIRMWARE_PARTITION_DEBUG_EN
+	err = request_firmware_direct(&firmware, "gnssmodem.bin", NULL);
+#else
 	err = request_firmware(&firmware, "gnssmodem.bin", NULL);
+#endif
 	if (err < 0) {
 		pr_err("%s no find gnssmodem.bin err:%d(ignore)\n",
 			__func__, err);
@@ -880,7 +883,12 @@ static int btwifi_download_firmware(void)
 
 	pr_info("marlin %s from /system/etc/firmware/ start!\n", __func__);
 	buf = marlin_dev->write_buffer;
+
+#ifdef FIRMWARE_PARTITION_DEBUG_EN
+	err = request_firmware_direct(&firmware, "wcnmodem.bin", NULL);
+#else
 	err = request_firmware(&firmware, "wcnmodem.bin", NULL);
+#endif
 	if (err < 0) {
 		pr_err("no find wcnmodem.bin errno:(%d)(ignore!!)\n", err);
 		marlin_dev->is_btwf_in_sysfs = true;

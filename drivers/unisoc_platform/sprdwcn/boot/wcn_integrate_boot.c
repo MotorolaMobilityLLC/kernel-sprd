@@ -23,6 +23,10 @@
 static struct mutex marlin_lock;
 static struct wifi_calibration wifi_data;
 
+#ifdef FIRMWARE_PARTITION_DEBUG_EN
+static char gnss_firmware_parent_path[FIRMWARE_FILEPATHNAME_LENGTH_MAX];
+#endif
+
 static char firmware_file_name[FIRMWARE_FILEPATHNAME_LENGTH_MAX];
 static char firmware_file_path[FIRMWARE_FILEPATHNAME_LENGTH_MAX];
 
@@ -168,8 +172,41 @@ static void gnss_write_version_data(void)
 				   GNSS_REC_AON_CHIPID_SIZE);
 }
 
-//K54_TAG Begin
-#if 0
+#ifdef FIRMWARE_PARTITION_DEBUG_EN
+static int wcn_get_firmware_path(char *firmwarename, char *firmware_path)
+{
+	if (!firmwarename || !firmware_path)
+		return -EINVAL;
+
+	memset(firmware_path, 0, FIRMWARE_FILEPATHNAME_LENGTH_MAX);
+	if (strcmp(firmwarename, WCN_MARLIN_DEV_NAME) == 0) {
+		if (parse_firmware_path(firmware_path))
+			return -EINVAL;
+	} else if (strcmp(firmwarename, WCN_GNSS_DEV_NAME) == 0) {
+		int folder_path_length = 0;
+		/*
+		 * GNSS firmware path is the same as BTWF
+		 * But the function parse_firmware_path return path
+		 * includes filename of wcnmodem
+		 */
+		if (parse_firmware_path(firmware_path))
+			return -EINVAL;
+		folder_path_length = strlen(firmware_path)
+				     - strlen(WCN_BTWF_FILENAME);
+		*(firmware_path + folder_path_length) = 0;
+		strncpy(gnss_firmware_parent_path, firmware_path,
+			sizeof(gnss_firmware_parent_path));
+
+	} else {
+		return -EINVAL;
+	}
+
+	WCN_INFO("wcn_dev->firmware_path:%s\n",
+		 firmware_path);
+
+	return 0;
+}
+
 static int wcn_load_firmware_img(struct wcn_device *wcn_dev,
 				 const char *path, unsigned int len)
 {
@@ -241,15 +278,6 @@ read_retry:
 		WCN_INFO("download image may erro!!\n");
 
 	wcn_image_buffer = data;
-	if (wcn_dev_is_gnss(wcn_dev) && gnss_ops && gnss_ops->file_judge) {
-		ret = gnss_ops->file_judge(wcn_image_buffer,
-					   s_wcn_device.gnss_type);
-		if (ret == 1) {
-			vfree(wcn_image_buffer);
-			WCN_INFO("change gnss file path\n");
-			return 1;
-		}
-	}
 
 #if WCN_INTEGRATE_PLATFORM_DEBUG
 	if (s_wcn_debug_case == WCN_START_MARLIN_DDR_FIRMWARE_DEBUG)
@@ -342,14 +370,12 @@ static int wcn_load_firmware_data(struct wcn_device *wcn_dev)
 		strncat(wcn_dev->firmware_path, wcn_dev->firmware_path_ext,
 			FIRMWARE_FILEPATHNAME_LENGTH_MAX - 1);
 		WCN_INFO("gnss path=%s\n", wcn_dev->firmware_path);
-//		gnss_file_path_set(wcn_dev->firmware_path);
 	}
 
 	return wcn_load_firmware_img(wcn_dev, wcn_dev->firmware_path,
 				     wcn_dev->file_length);
 }
 #endif
-//K54_TAG End
 
 /*
  * This function is used to use the firmware subsystem
@@ -360,6 +386,9 @@ static int wcn_load_firmware_data(struct wcn_device *wcn_dev)
 static int wcn_download_image(struct wcn_device *wcn_dev)
 {
 	const struct firmware *firmware;
+#ifdef FIRMWARE_PARTITION_DEBUG_EN
+	int load_fimrware_ret;
+#endif
 	bool is_marlin;
 	int err;
 	u32 sec_img_magic, wcn_or_gnss = 0;
@@ -392,9 +421,15 @@ static int wcn_download_image(struct wcn_device *wcn_dev)
 		 firmware_file_name);
 	err = request_firmware(&firmware, firmware_file_name, NULL);
 	if (err < 0) {
-		WCN_ERR("no find image [%s] errno:(%d)(ignore!!)\n",
+		WCN_ERR("no find image [%s] errno:(%d).\n",
 			firmware_file_name, err);
-		return -EINVAL;
+#ifdef FIRMWARE_PARTITION_DEBUG_EN
+		load_fimrware_ret = wcn_load_firmware_data(wcn_dev);
+		if (load_fimrware_ret != 0) {
+			WCN_ERR("wcn_load_firmware_data ERR!\n");
+			return -EINVAL;
+		}
+#endif
 	} else {
 		WCN_INFO("image size = %d\n", (int)firmware->size);
 		if (wcn_write_data_to_phy_addr(wcn_dev->base_addr,
@@ -460,8 +495,7 @@ static int wcn_download_image(struct wcn_device *wcn_dev)
 	return 0;
 }
 
-//K54_TAG start
-#if 0
+#ifdef FIRMWARE_PARTITION_DEBUG_EN
 static void fstab_ab(struct wcn_device *wcn_dev)
 {
 	if (wcn_dev->fstab == 'a')
@@ -569,12 +603,10 @@ int wcn_download_image_emmc(struct wcn_device *wcn_dev)
 
 }
 #endif
-//K54_TAG end
 
 static int wcn_download_image_new(struct wcn_device *wcn_dev)
 {
-//K54_TAG start
-#if 0
+#ifdef FIRMWARE_PARTITION_DEBUG_EN
 	int ret = 0;
 	int count = 0;
 
@@ -589,6 +621,7 @@ static int wcn_download_image_new(struct wcn_device *wcn_dev)
 		default:
 			return -EINVAL;
 		}
+		ssleep(1);
 		count++;
 		if (count > 32)
 			return -EINVAL;
@@ -597,7 +630,6 @@ static int wcn_download_image_new(struct wcn_device *wcn_dev)
 			return ret;
 	}
 #endif
-//K54_TAG end
 
 	/* old function */
 	return wcn_download_image(wcn_dev);
