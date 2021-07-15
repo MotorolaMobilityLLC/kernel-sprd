@@ -160,13 +160,21 @@
 		wcn_bt {
 			compatible = "sprd,wcn_internal_chip";
 			sprd,name = "ttyBT";
+			sprd,dst = <3>;
+			sprd,channel = <4>;
+			sprd,tx_bufid = <11>;
+			sprd,rx_bufid = <10>;
 		};
 
 		wcn_fm {
 			compatible = "sprd,wcn_fm_internal_chip";
 			sprd,name = "fm";
+			sprd,dst = <3>;
+			sprd,tx_channel = <4>;
+			sprd,rx_channel = <4>;
+			sprd,tx_bufid = <14>;
+			sprd,rx_bufid = <13>;
 		};
-
 	};
 };
 
