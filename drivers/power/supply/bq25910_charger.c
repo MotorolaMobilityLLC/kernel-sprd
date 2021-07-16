@@ -183,6 +183,19 @@ struct bq25910_charger_sysfs {
 	struct bq25910_charger_info *info;
 };
 
+struct bq25910_charge_current {
+	int sdp_limit;
+	int sdp_cur;
+	int dcp_limit;
+	int dcp_cur;
+	int cdp_limit;
+	int cdp_cur;
+	int unknown_limit;
+	int unknown_cur;
+	int fchg_limit;
+	int fchg_cur;
+};
+
 struct bq25910_charger_info {
 	bool charging;
 	int reg_id;
@@ -196,7 +209,7 @@ struct bq25910_charger_info {
 	struct usb_phy *usb_phy;
 	struct notifier_block usb_notify;
 	struct power_supply *psy_usb;
-	struct power_supply_charge_current cur;
+	struct bq25910_charge_current cur;
 	struct mutex lock;
 	struct delayed_work wdt_work;
 	struct bq25910_charger_sysfs *sysfs;
@@ -308,12 +321,75 @@ static int bq25910_charger_set_limit_current(struct bq25910_charger_info *info,
 	return ret;
 }
 
+static int bq25910_charger_get_battery_cur(struct power_supply *psy,
+					   struct bq25910_charge_current *cur)
+{
+	struct device_node *battery_np;
+	const char *value;
+	int err;
+
+	cur->sdp_cur = -EINVAL;
+	cur->sdp_limit = -EINVAL;
+	cur->dcp_cur = -EINVAL;
+	cur->dcp_limit = -EINVAL;
+	cur->cdp_cur = -EINVAL;
+	cur->cdp_limit = -EINVAL;
+	cur->unknown_cur = -EINVAL;
+	cur->unknown_limit = -EINVAL;
+	cur->fchg_cur = -EINVAL;
+	cur->fchg_limit = -EINVAL;
+
+	if (!psy->of_node) {
+		dev_warn(&psy->dev, "%s currently only supports devicetree\n",
+			 __func__);
+		return -ENXIO;
+	}
+
+	battery_np = of_parse_phandle(psy->of_node, "monitored-battery", 0);
+	if (!battery_np)
+		return -ENODEV;
+
+	err = of_property_read_string(battery_np, "compatible", &value);
+	if (err)
+		goto out_put_node;
+
+	if (strcmp("simple-battery", value)) {
+		err = -ENODEV;
+		goto out_put_node;
+	}
+
+	of_property_read_u32_index(battery_np, "charge-sdp-current-microamp", 0,
+				   &cur->sdp_cur);
+	of_property_read_u32_index(battery_np, "charge-sdp-current-microamp", 1,
+				   &cur->sdp_limit);
+	of_property_read_u32_index(battery_np, "charge-dcp-current-microamp", 0,
+				   &cur->dcp_cur);
+	of_property_read_u32_index(battery_np, "charge-dcp-current-microamp", 1,
+				   &cur->dcp_limit);
+	of_property_read_u32_index(battery_np, "charge-cdp-current-microamp", 0,
+				   &cur->cdp_cur);
+	of_property_read_u32_index(battery_np, "charge-cdp-current-microamp", 1,
+				   &cur->cdp_limit);
+	of_property_read_u32_index(battery_np, "charge-unknown-current-microamp", 0,
+				   &cur->unknown_cur);
+	of_property_read_u32_index(battery_np, "charge-unknown-current-microamp", 1,
+				   &cur->unknown_limit);
+	of_property_read_u32_index(battery_np, "charge-fchg-current-microamp", 0,
+				   &cur->unknown_cur);
+	of_property_read_u32_index(battery_np, "charge-fchg-current-microamp", 1,
+				   &cur->unknown_limit);
+
+out_put_node:
+	of_node_put(battery_np);
+	return err;
+}
+
 static int bq25910_charger_hw_init(struct bq25910_charger_info *info)
 {
 	struct power_supply_battery_info bat_info;
 	int ret;
 
-	ret = power_supply_get_battery_info(info->psy_usb, &bat_info, 0);
+	ret = bq25910_charger_get_battery_cur(info->psy_usb, &info->cur);
 	if (ret) {
 		dev_warn(info->dev, "no battery information is supplied\n");
 
@@ -330,61 +406,56 @@ static int bq25910_charger_hw_init(struct bq25910_charger_info *info)
 		info->cur.cdp_cur = 1000000;
 		info->cur.unknown_limit = 500000;
 		info->cur.unknown_cur = 500000;
-	} else {
-		info->cur.sdp_limit = bat_info.cur.sdp_limit;
-		info->cur.sdp_cur = bat_info.cur.sdp_cur;
-		info->cur.dcp_limit = bat_info.cur.dcp_limit;
-		info->cur.dcp_cur = bat_info.cur.dcp_cur;
-		info->cur.cdp_limit = bat_info.cur.cdp_limit;
-		info->cur.cdp_cur = bat_info.cur.cdp_cur;
-		info->cur.unknown_limit = bat_info.cur.unknown_limit;
-		info->cur.unknown_cur = bat_info.cur.unknown_cur;
-		info->cur.fchg_limit = bat_info.cur.fchg_limit;
-		info->cur.fchg_cur = bat_info.cur.fchg_cur;
+	}
 
+	ret = power_supply_get_battery_info(info->psy_usb, &bat_info);
+	if (ret) {
+		dev_warn(info->dev, "no battery information is supplied\n");
+		info->vol_max_mv = 4440;
+	} else {
 		info->vol_max_mv = bat_info.constant_charge_voltage_max_uv / 1000;
 		power_supply_put_battery_info(info->psy_usb, &bat_info);
-
-		ret = regmap_update_bits(info->regmap, BQ25910_REG_D,
-					 BQ25910_RESET_MASK,
-					 BQ25910_RESET_MASK);
-		if (ret) {
-			dev_err(info->dev, "reset bq25910 failed\n");
-			return ret;
-		}
-
-		ret = regmap_update_bits(info->regmap, BQ25910_REG_6,
-					 BQ25910_BATLOWV_MASK,
-					 BQ25910_BATLOWV_32);
-		if (ret) {
-			dev_err(info->dev, "set bq25910 batlowv failed\n");
-			return ret;
-		}
-
-		ret = regmap_update_bits(info->regmap, BQ25910_REG_5,
-					 BQ25910_EN_TERM_MASK,
-					 BQ25910_EN_TERM_MASK);
-		if (ret) {
-			dev_err(info->dev, "set bq25910 batlowv failed\n");
-			return ret;
-		}
-
-		ret = bq25910_charger_set_vindpm(info, info->vol_max_mv);
-		if (ret) {
-			dev_err(info->dev, "set bq25910 vindpm vol failed\n");
-			return ret;
-		}
-
-		ret = bq25910_charger_set_termina_vol(info, info->vol_max_mv);
-		if (ret) {
-			dev_err(info->dev, "set bq25910 terminal vol failed\n");
-			return ret;
-		}
-
-		ret = bq25910_charger_set_limit_current(info, info->cur.unknown_cur);
-		if (ret)
-			dev_err(info->dev, "set bq25910 limit current failed\n");
 	}
+
+	ret = regmap_update_bits(info->regmap, BQ25910_REG_D,
+				 BQ25910_RESET_MASK,
+				 BQ25910_RESET_MASK);
+	if (ret) {
+		dev_err(info->dev, "reset bq25910 failed\n");
+		return ret;
+	}
+
+	ret = regmap_update_bits(info->regmap, BQ25910_REG_6,
+				 BQ25910_BATLOWV_MASK,
+				 BQ25910_BATLOWV_32);
+	if (ret) {
+		dev_err(info->dev, "set bq25910 batlowv failed\n");
+		return ret;
+	}
+
+	ret = regmap_update_bits(info->regmap, BQ25910_REG_5,
+				 BQ25910_EN_TERM_MASK,
+				 BQ25910_EN_TERM_MASK);
+	if (ret) {
+		dev_err(info->dev, "set bq25910 batlowv failed\n");
+		return ret;
+	}
+
+	ret = bq25910_charger_set_vindpm(info, info->vol_max_mv);
+	if (ret) {
+		dev_err(info->dev, "set bq25910 vindpm vol failed\n");
+		return ret;
+	}
+
+	ret = bq25910_charger_set_termina_vol(info, info->vol_max_mv);
+	if (ret) {
+		dev_err(info->dev, "set bq25910 terminal vol failed\n");
+		return ret;
+	}
+
+	ret = bq25910_charger_set_limit_current(info, info->cur.unknown_cur);
+	if (ret)
+		dev_err(info->dev, "set bq25910 limit current failed\n");
 
 	return ret;
 }
@@ -504,8 +575,7 @@ static inline int bq25910_charger_get_online(struct bq25910_charger_info *info, 
 	return 0;
 }
 
-static int bq25910_charger_feed_watchdog(struct bq25910_charger_info *info,
-					 u32 val)
+static int bq25910_charger_feed_watchdog(struct bq25910_charger_info *info)
 {
 	int ret;
 	u32 limit_cur = 0;
@@ -534,6 +604,25 @@ static int bq25910_charger_feed_watchdog(struct bq25910_charger_info *info,
 	}
 
 	return 0;
+}
+
+static void bq25910_charger_feed_watchdog_work(struct work_struct *work)
+{
+	struct delayed_work *dwork = to_delayed_work(work);
+	struct bq25910_charger_info *info = container_of(dwork,
+							 struct bq25910_charger_info,
+							 wdt_work);
+	int ret;
+
+	ret = regmap_update_bits(info->regmap, BQ25910_REG_5,
+				 BQ25910_WDG_RESET_MASK,
+				 BQ25910_WDG_RESET_MASK);
+	if (ret) {
+		dev_err(info->dev, "reset bq25910 failed\n");
+		return;
+	}
+
+	schedule_delayed_work(&info->wdt_work, HZ * 15);
 }
 
 static int bq25910_charger_set_fchg_current(struct bq25910_charger_info *info,
@@ -905,7 +994,7 @@ static int bq25910_charger_usb_get_property(struct power_supply *psy,
 
 		break;
 
-	case POWER_SUPPLY_PROP_CHARGE_ENABLED:
+	case POWER_SUPPLY_PROP_CALIBRATE:
 		ret = regmap_read(info->regmap, BQ25910_REG_7, &enabled);
 		if (ret) {
 			dev_err(info->dev, "get bq25910 charge status failed\n");
@@ -954,12 +1043,11 @@ static int bq25910_charger_usb_set_property(struct power_supply *psy,
 		ret = bq25910_charger_set_status(info, val->intval);
 		if (ret < 0)
 			dev_err(info->dev, "set charge status failed\n");
-		break;
 
-	case POWER_SUPPLY_PROP_FEED_WATCHDOG:
-		ret = bq25910_charger_feed_watchdog(info, val->intval);
-		if (ret < 0)
-			dev_err(info->dev, "feed charger watchdog failed\n");
+		if (info->limit)
+			schedule_delayed_work(&info->wdt_work, 0);
+		else
+			cancel_delayed_work(&info->wdt_work);
 		break;
 
 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE_MAX:
@@ -968,7 +1056,7 @@ static int bq25910_charger_usb_set_property(struct power_supply *psy,
 			dev_err(info->dev, "failed to set terminate voltage\n");
 		break;
 
-	case POWER_SUPPLY_PROP_CHARGE_ENABLED:
+	case POWER_SUPPLY_PROP_CALIBRATE:
 		if (val->intval == true) {
 			ret = bq25910_charger_start_charge(info);
 			if (ret)
@@ -994,7 +1082,7 @@ static int bq25910_charger_property_is_writeable(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT:
 	case POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT:
 	case POWER_SUPPLY_PROP_STATUS:
-	case POWER_SUPPLY_PROP_CHARGE_ENABLED:
+	case POWER_SUPPLY_PROP_CALIBRATE:
 		ret = 1;
 		break;
 
@@ -1023,7 +1111,7 @@ static enum power_supply_property bq25910_usb_props[] = {
 	POWER_SUPPLY_PROP_ONLINE,
 	POWER_SUPPLY_PROP_HEALTH,
 	POWER_SUPPLY_PROP_USB_TYPE,
-	POWER_SUPPLY_PROP_CHARGE_ENABLED,
+	POWER_SUPPLY_PROP_CALIBRATE,
 };
 
 static const struct power_supply_desc bq25910_charger_desc = {
@@ -1118,6 +1206,8 @@ static int bq25910_charger_probe(struct i2c_client *client,
 
 	bq25910_charger_detect_status(info);
 
+	INIT_DELAYED_WORK(&info->wdt_work,
+			  bq25910_charger_feed_watchdog_work);
 	return 0;
 
 err_sysfs:
@@ -1135,10 +1225,38 @@ static int bq25910_charger_remove(struct i2c_client *client)
 {
 	struct bq25910_charger_info *info = i2c_get_clientdata(client);
 
+	cancel_delayed_work_sync(&info->wdt_work);
 	usb_unregister_notifier(info->usb_phy, &info->usb_notify);
 
 	return 0;
 }
+
+#ifdef CONFIG_PM_SLEEP
+static int bq25910_charger_suspend(struct device *dev)
+{
+	struct bq25910_charger_info *info = dev_get_drvdata(dev);
+
+	if (info->limit)
+		bq25910_charger_feed_watchdog(info);
+
+	return 0;
+}
+
+static int bq25910_charger_resume(struct device *dev)
+{
+	struct bq25910_charger_info *info = dev_get_drvdata(dev);
+
+	if (info->limit)
+		bq25910_charger_feed_watchdog(info);
+
+	return 0;
+}
+#endif
+
+static const struct dev_pm_ops bq25910_charger_pm_ops = {
+	SET_SYSTEM_SLEEP_PM_OPS(bq25910_charger_suspend,
+				bq25910_charger_resume)
+};
 
 static const struct i2c_device_id bq25910_i2c_id[] = {
 	{"bq25910_chg", 0},
@@ -1156,6 +1274,7 @@ static struct i2c_driver bq25910_charger_driver = {
 	.driver = {
 		.name = "bq25910_chg",
 		.of_match_table = bq25910_charger_of_match,
+		.pm = &bq25910_charger_pm_ops,
 	},
 	.probe = bq25910_charger_probe,
 	.remove = bq25910_charger_remove,
