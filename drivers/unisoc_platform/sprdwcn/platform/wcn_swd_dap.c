@@ -33,7 +33,8 @@
 static void swd_ext_sel_pcie(bool enable)
 {
 	struct edma_info *edma = edma_info();
-	unsigned int ahb_ctl, ret, *reg;
+	unsigned int ahb_ctl, *reg;
+	int ret;
 
 	ahb_ctl = CM33_AHB_CTRL3_VALUE;
 	ret = sprdwcn_bus_reg_write(CM33_AHB_CTRL3_ADDR, &ahb_ctl, 4);
