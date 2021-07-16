@@ -578,12 +578,12 @@ static struct volt_grades_table ums9230_volt_grades_tbl[] = {
 };
 
 static struct reg_info ums9230_freq_misc_cfg_array[] = {
-	/* Set default work index 2 for lit core */
-	GENREGVALSET(0x214, 0, 0xf, 2),
-	/* Set default work index 3 for big core */
-	GENREGVALSET(0x224, 0, 0xf, 3),
-	/* Set default work index 4 to twpll for scu */
-	GENREGVALSET(0x22c, 0, 0xf, 4),
+	/* Set default work index 7 for lit core */
+	GENREGVALSET(0x214, 0, 0xf, 7),
+	/* Set default work index 5 for big core */
+	GENREGVALSET(0x224, 0, 0xf, 5),
+	/* Set default work index 7 to twpll for scu */
+	GENREGVALSET(0x22c, 0, 0xf, 7),
 	/* The end of misc configurations */
 	GENREGVALSET(0, 0, 0, 0),
 };
