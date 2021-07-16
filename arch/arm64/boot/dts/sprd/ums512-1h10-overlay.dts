@@ -778,6 +778,17 @@
 		};
 	};
 
+	cx7601_chg: charger@6a {
+		compatible = "sun,cx7601_chg";
+		reg = <0x6a>;
+		phys = <&hsphy>;
+		monitored-battery = <&bat>;
+		extcon = <&extcon_gpio>;
+		vddvbus1:otg-vbus {
+			regulator-name = "vddvbus";
+		};
+	};
+
 	fan53555_dcdc: regulator@60 {
 		compatible = "fcs,fan53555";
 		reg = <0x60>;
@@ -825,6 +836,7 @@
 &usb {
 	extcon = <&extcon_gpio>, <&pmic_typec>;
 	vbus-supply = <&vddvbus>;
+        vbus1-supply = <&vddvbus1>;
 };
 
 &vddldo0 {
