@@ -17,7 +17,13 @@
 #include "disp_lib.h"
 #include "sprd_dpu.h"
 #include "sprd_dsi_panel.h"
+#include "sprd_dsi.h"
 #include "sysfs_display.h"
+
+static inline struct sprd_panel *to_sprd_panel(struct drm_panel *panel)
+{
+	return container_of(panel, struct sprd_panel, base);
+}
 
 struct dpu_sysfs {
 	u32 bg_color;
@@ -64,6 +70,7 @@ static ssize_t refresh_store(struct device *dev,
 			const char *buf, size_t count)
 {
 	struct sprd_dpu *dpu = dev_get_drvdata(dev);
+	struct sprd_panel *panel = to_sprd_panel(dpu->dsi->panel);
 	struct sprd_crtc *crtc = dpu->crtc;
 	struct dpu_context *ctx = &dpu->ctx;
 
@@ -71,8 +78,8 @@ static ssize_t refresh_store(struct device *dev,
 
 	pr_info("[drm] %s()\n", __func__);
 
-	if (!ctx->enabled) {
-		pr_err("dpu is powered off\n");
+	if ((!ctx->enabled) || (!panel->enabled)) {
+		pr_err("dpu or panel is powered off\n");
 		up(&ctx->lock);
 		return -1;
 	}
@@ -102,6 +109,7 @@ static ssize_t bg_color_store(struct device *dev,
 			const char *buf, size_t count)
 {
 	struct sprd_dpu *dpu = dev_get_drvdata(dev);
+	struct sprd_panel *panel = to_sprd_panel(dpu->dsi->panel);
 	struct dpu_context *ctx = &dpu->ctx;
 	int ret;
 
@@ -118,8 +126,8 @@ static ssize_t bg_color_store(struct device *dev,
 
 	down(&ctx->lock);
 
-	if (!ctx->enabled) {
-		pr_err("dpu is not initialized\n");
+	if ((!ctx->enabled) || (!panel->enabled)) {
+		pr_err("dpu or panel is not initialized\n");
 		up(&ctx->lock);
 		return -EINVAL;
 	}

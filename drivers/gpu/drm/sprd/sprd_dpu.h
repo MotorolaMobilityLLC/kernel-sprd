@@ -20,6 +20,7 @@
 #include "sprd_plane.h"
 #include "disp_lib.h"
 #include "disp_trusty.h"
+#include "sprd_dsi.h"
 
 enum {
 	SPRD_DPU_IF_DBI = 0,
@@ -176,6 +177,7 @@ struct sprd_dpu {
 	const struct dpu_clk_ops *clk;
 	const struct dpu_glb_ops *glb;
 	struct drm_display_mode *mode;
+	struct sprd_dsi *dsi;
 };
 
 void sprd_dpu_run(struct sprd_dpu *dpu);
