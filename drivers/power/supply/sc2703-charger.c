@@ -8,6 +8,7 @@
 #include <linux/of.h>
 #include <linux/of_platform.h>
 #include <linux/platform_device.h>
+#include <linux/pm_wakeup.h>
 #include <linux/power_supply.h>
 #include <linux/power/charger-manager.h>
 #include <linux/regmap.h>
@@ -42,6 +43,9 @@
 #define SC2703_OTG_NORMAL_VALID_MS	1500
 #define SC2703_CHARGER_VOLTAGE_MAX	6500000
 #define SC2703_FAST_CHARGER_VOLTAGE_MAX	11000000
+
+#define SC2703_INPUT_CUR_MASK			GENMASK(7, 0)
+#define SC2703_WAKE_UP_MS				2000
 
 struct sc2703_charger_info {
 	struct device *dev;
@@ -905,6 +909,7 @@ static int sc2703_charger_usb_change(struct notifier_block *nb,
 
 	info->limit = limit;
 
+	pm_wakeup_event(info->dev, SC2703_WAKE_UP_MS);
 	schedule_work(&info->work);
 	return NOTIFY_OK;
 }
@@ -1517,13 +1522,6 @@ static int sc2703_charger_probe(struct platform_device *pdev)
 	info->long_key_detect =
 		device_property_read_bool(&pdev->dev, "sprd,long-key-detection");
 
-	info->usb_notify.notifier_call = sc2703_charger_usb_change;
-	ret = usb_register_notifier(info->usb_phy, &info->usb_notify);
-	if (ret) {
-		dev_err(&pdev->dev, "failed to register notifier:%d\n", ret);
-		return ret;
-	}
-
 	charger_cfg.drv_data = info;
 	charger_cfg.of_node = np;
 	info->psy_usb = devm_power_supply_register(&pdev->dev,
@@ -1531,13 +1529,22 @@ static int sc2703_charger_probe(struct platform_device *pdev)
 						   &charger_cfg);
 	if (IS_ERR(info->psy_usb)) {
 		dev_err(&pdev->dev, "failed to register power supply\n");
-		usb_unregister_notifier(info->usb_phy, &info->usb_notify);
 		return PTR_ERR(info->psy_usb);
 	}
 
 	ret = sc2703_charger_hw_init(info);
 	if (ret)
 		return ret;
+
+	sc2703_charger_stop_charge(info, sc2703_charger_is_bat_present(info));
+
+	device_init_wakeup(info->dev, true);
+	info->usb_notify.notifier_call = sc2703_charger_usb_change;
+	ret = usb_register_notifier(info->usb_phy, &info->usb_notify);
+	if (ret) {
+		dev_err(&pdev->dev, "failed to register notifier:%d\n", ret);
+		return ret;
+	}
 
 	sc2703_charger_detect_status(info);
 	INIT_DELAYED_WORK(&info->otg_work, sc2703_charger_otg_work);

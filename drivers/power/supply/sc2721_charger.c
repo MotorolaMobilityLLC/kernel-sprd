@@ -4,6 +4,7 @@
 #include <linux/module.h>
 #include <linux/nvmem-consumer.h>
 #include <linux/platform_device.h>
+#include <linux/pm_wakeup.h>
 #include <linux/power_supply.h>
 #include <linux/power/charger-manager.h>
 #include <linux/usb/phy.h>
@@ -50,6 +51,8 @@
 #define SC2721_CHG_CC_I_MASK_SHIT		10
 
 #define SC2721_CHG_CCCV_MASK			GENMASK(5, 0)
+
+#define SC2721_WAKE_UP_MS				2000
 
 struct sc2721_charge_current {
 	int sdp_cur;
@@ -497,6 +500,7 @@ static int sc2721_charger_usb_change(struct notifier_block *nb,
 
 	info->limit = limit;
 
+	pm_wakeup_event(info->dev, SC2721_WAKE_UP_MS);
 	schedule_work(&info->work);
 	return NOTIFY_OK;
 }
@@ -750,13 +754,6 @@ static int sc2721_charger_probe(struct platform_device *pdev)
 		return -ENODEV;
 	}
 
-	info->usb_notify.notifier_call = sc2721_charger_usb_change;
-	ret = usb_register_notifier(info->usb_phy, &info->usb_notify);
-	if (ret) {
-		dev_err(&pdev->dev, "failed to register notifier:%d\n", ret);
-		return ret;
-	}
-
 	charger_cfg.drv_data = info;
 	charger_cfg.of_node = np;
 	info->psy_usb = devm_power_supply_register(&pdev->dev,
@@ -764,15 +761,23 @@ static int sc2721_charger_probe(struct platform_device *pdev)
 						   &charger_cfg);
 	if (IS_ERR(info->psy_usb)) {
 		dev_err(&pdev->dev, "failed to register power supply\n");
-		usb_unregister_notifier(info->usb_phy, &info->usb_notify);
 		return PTR_ERR(info->psy_usb);
 	}
 
 	ret = sc2721_charger_hw_init(info);
+	if (ret)
+		return ret;
+
+	sc2721_charger_stop_charge(info);
+
+	device_init_wakeup(info->dev, true);
+	info->usb_notify.notifier_call = sc2721_charger_usb_change;
+	ret = usb_register_notifier(info->usb_phy, &info->usb_notify);
 	if (ret) {
-		usb_unregister_notifier(info->usb_phy, &info->usb_notify);
+		dev_err(&pdev->dev, "failed to register notifier:%d\n", ret);
 		return ret;
 	}
+
 	sc2721_charger_detect_status(info);
 	return 0;
 }
