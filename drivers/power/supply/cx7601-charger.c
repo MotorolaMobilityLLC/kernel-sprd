@@ -258,7 +258,7 @@ static int cx7601_set_term_current(struct cx7601_charger_info *info, int curr)
 	if (curr < REG03_ITERM_BASE)
 		curr = REG03_ITERM_BASE;
 
-	iterm = (curr - REG03_ITERM_BASE) / REG03_ITERM_LSB +1;
+	iterm = (curr - REG03_ITERM_BASE) / REG03_ITERM_LSB;
 
 	return cx7601_update_bits(info, CX7601_REG_03, REG03_ITERM_MASK,
 				iterm << REG03_ITERM_SHIFT);
