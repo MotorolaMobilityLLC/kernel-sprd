@@ -928,11 +928,19 @@ static void sprd_musb_work(struct work_struct *work)
 					if (IS_ERR(glue->vbus)) {
 						dev_err(glue->dev,
 							"unable to get vbus1 supply\n");
-					glue->vbus = NULL;
-					goto end;
-				}
+						glue->vbus = devm_regulator_get(glue->dev, "vbus2");	
+						if (IS_ERR(glue->vbus)) {
+						dev_err(glue->dev,
+							"unable to get vbus2 supply\n");
+
+						glue->vbus = NULL;
+						goto end;
+						}
+				       }
+				}	
+
+
 	
-				}
 			}
 			ret = regulator_enable(glue->vbus);
 			if (ret) {
@@ -1265,8 +1273,13 @@ static int musb_sprd_probe(struct platform_device *pdev)
 			glue->vbus = devm_regulator_get(dev, "vbus1");
 			if (IS_ERR(glue->vbus)) {
 				ret = PTR_ERR(glue->vbus);
-				dev_warn(dev, "unable to get vbus1 supply %d\n", ret);																																																																																																																																										glue->vbus = devm_regulator_get(dev, "vbus");
-				glue->vbus = NULL;
+				dev_warn(dev, "unable to get vbus1 supply %d\n", ret);
+				glue->vbus = devm_regulator_get(dev, "vbus2");
+				if (IS_ERR(glue->vbus)) {
+					glue->vbus = NULL;
+					ret = PTR_ERR(glue->vbus);
+					dev_warn(dev, "unable to get vbus1 supply %d\n", ret);
+				}
 			}
 			
 		}
