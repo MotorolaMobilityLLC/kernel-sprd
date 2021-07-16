@@ -559,6 +559,19 @@
 		};
 	};
 
+	sgm41511_chg: charger@6c {
+		compatible = "sgm,sgm41511_chg";
+		reg = <0x6c>;
+		phys = <&hsphy>;
+		monitored-battery = <&bat>;
+		extcon = <&extcon_gpio>, <&pmic_pd>;
+		pd-extcon-enable;
+		irq-gpio = <&ap_gpio 115 GPIO_ACTIVE_LOW>;
+		vddvbus1:otg-vbus {
+			regulator-name = "vddvbus";
+		};
+	};
+
 	cx7601_chg: charger@6a {
 		compatible = "sun,cx7601_chg";
 		reg = <0x6a>;
@@ -567,7 +580,7 @@
 		extcon = <&extcon_gpio>, <&pmic_pd>;
 		pd-extcon-enable;
 		irq-gpio = <&ap_gpio 115 GPIO_ACTIVE_LOW>;
-		vddvbus1:otg-vbus {
+		vddvbus2:otg-vbus {
 			regulator-name = "vddvbus";
 		};
 	};
@@ -796,6 +809,7 @@
 	extcon = <&extcon_gpio>, <&pmic_typec>;
 	vbus-supply = <&vddvbus>;
 	vbus1-supply = <&vddvbus1>;
+	vbus2-supply = <&vddvbus2>;
 	status = "okay";
 };
 

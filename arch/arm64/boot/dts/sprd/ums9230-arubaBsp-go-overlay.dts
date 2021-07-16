@@ -172,7 +172,7 @@
 				cm-fullbatt-voltage = <4390000>;
 				cm-fullbatt-current = <180000>;
 				cm-fullbatt-capacity = <100>;
-				cm-fullbatt-soc =<950>;
+				cm-fullbatt-soc =<930>;
 				/*Charge pump target charge current*/
 				cm-cp-taper-current = <1000000>;
 
@@ -551,6 +551,19 @@
 		};
 	};
 
+	sgm41511_chg: charger@6c {
+		compatible = "sgm,sgm41511_chg";
+		reg = <0x6c>;
+		phys = <&hsphy>;
+		monitored-battery = <&bat>;
+		extcon = <&extcon_gpio>, <&pmic_pd>;
+		pd-extcon-enable;
+		irq-gpio = <&ap_gpio 115 GPIO_ACTIVE_LOW>;
+		vddvbus1:otg-vbus {
+			regulator-name = "vddvbus";
+		};
+	};
+
 	cx7601_chg: charger@6a {
 		compatible = "sun,cx7601_chg";
 		reg = <0x6a>;
@@ -559,7 +572,7 @@
 		extcon = <&extcon_gpio>, <&pmic_pd>;
 		pd-extcon-enable;
 		irq-gpio = <&ap_gpio 115 GPIO_ACTIVE_LOW>;
-		vddvbus1:otg-vbus {
+		vddvbus2:otg-vbus {
 			regulator-name = "vddvbus";
 		};
 	};
@@ -788,6 +801,7 @@
 	extcon = <&extcon_gpio>, <&pmic_typec>;
 	vbus-supply = <&vddvbus>;
 	vbus1-supply = <&vddvbus1>;
+	vbus2-supply = <&vddvbus2>;
 	status = "okay";
 };
 

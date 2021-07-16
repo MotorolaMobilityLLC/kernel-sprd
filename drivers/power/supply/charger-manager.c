@@ -1378,6 +1378,8 @@ static bool check_charge_done(struct charger_manager *cm)
 	/* If there is no battery, it cannot be charged */
 	if (!is_batt_present(cm))
 		return false;
+	if(!cm->charger_enabled)
+		return false;
 
 	/* If at least one of the charger is charging, return yes */
 	for (i = 0; cm->desc->psy_charger_stat[i]; i++) {
@@ -1426,6 +1428,20 @@ static bool check_charge_done(struct charger_manager *cm)
 			done = true;
 			break;
 		}
+		else if(val.intval == 2)
+		{
+			int ocv,uA,term;
+			get_batt_ocv(cm, &ocv);
+		       get_ibat_now_uA(cm, &uA);
+			get_charger_term_voltage(cm,&term);
+			if(ocv> (term-100000) && uA <180000)
+			{
+				done = true;
+				break;
+			}							
+
+		}
+			
 
 	}
 
