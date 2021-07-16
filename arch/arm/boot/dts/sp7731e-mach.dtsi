@@ -93,10 +93,11 @@
 			reg = <0x9e000000 0x384000>;
 		};
 
-		drm_reserved: framebuffer {
+		cma_reserved: cma_share@b88000000 {
 			compatible = "shared-dma-pool";
-			size = <0xc00000>;
+			reg = <0xb8800000 0x04000000>;
 			reusable;
+			linux,cma-default;
 		};
 	};
 
@@ -221,7 +222,6 @@
 
 	display-subsystem {
 		compatible = "sprd,display-subsystem";
-		memory-region = <&drm_reserved>;
 		ports = <&dpu_port>;
 		gsp = <&gsp>;
 	};

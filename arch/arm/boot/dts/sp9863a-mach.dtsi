@@ -24,16 +24,16 @@
 		#size-cells = <1>;
 		ranges;
 
-		drm_reserved: framebuffer {
+		cma_reserved: cma_share@b88000000 {
 			compatible = "shared-dma-pool";
-			size = <0x01800000>;
+			reg = <0xb8800000 0x04000000>;
 			reusable;
+			linux,cma-default;
 		};
 	};
 
 	display-subsystem {
 		compatible = "sprd,display-subsystem";
-		memory-region = <&drm_reserved>;
 		ports = <&dpu_port>;
 		gsp = <&gsp>;
 	};

@@ -16,7 +16,6 @@
 
 	display-subsystem {
 		compatible = "sprd,display-subsystem";
-		memory-region = <&drm_reserved>;
 		ports = <&dpu_port>;
 		gsp = <&gsp>;
 	};
@@ -86,18 +85,19 @@
 			reg = <0x0 0xb0020000 0x0 0x01fe0000>;
 		};
 
+		cma_reserved: cma_share@f08000000 {
+			compatible = "shared-dma-pool";
+			reg = <0x0 0xf0800000 0x0 0x04000000>;
+			reusable;
+			linux,cma-default;
+		};
+
 		pstore_reserved: ramoops@fff80000 {
 			compatible = "ramoops";
 			reg = <0x0 0xfff80000 0x0 0x00040000>;
 			record-size = <0x8000>;
 			console-size = <0x8000>;
 			pmsg-size = <0x8000>;
-		};
-
-		drm_reserved: framebuffer {
-			compatible = "shared-dma-pool";
-			size = <0x0 0x01400000>;
-			reusable;
 		};
 	};
 
