@@ -300,12 +300,14 @@ static int cx7601_disable_watchdog_timer(struct cx7601_charger_info *info)
 
 	return cx7601_update_bits(info, CX7601_REG_05, REG05_WDT_MASK, val);
 }
+#if 0
 static int cx7601_reset_watchdog_timer(struct cx7601_charger_info *info)
 {
 	u8 val = REG01_WDT_RESET << REG01_WDT_RESET_SHIFT;
 
 	return cx7601_update_bits(info, CX7601_REG_01, REG01_WDT_RESET_MASK, val);
 }
+#endif 
 #ifdef TEST_CX7601
 static int cx7601_reset_chip(struct cx7601_charger_info *info)
 {
@@ -837,7 +839,7 @@ static int cx7601_charger_feed_watchdog(struct cx7601_charger_info *info,
 					 u32 val)
 {
 
-	cx7601_reset_watchdog_timer(info);
+//	cx7601_reset_watchdog_timer(info);
 
 	cx7601_dump_regs(info);
 
@@ -1218,7 +1220,7 @@ cx7601_charger_feed_watchdog_work(struct work_struct *work)
 							 struct cx7601_charger_info,
 							 wdt_work);
 
-	cx7601_reset_watchdog_timer(info);
+//	cx7601_reset_watchdog_timer(info);
 
 	cx7601_dump_regs(info);
 
