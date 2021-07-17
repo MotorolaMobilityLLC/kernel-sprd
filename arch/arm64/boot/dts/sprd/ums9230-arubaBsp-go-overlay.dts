@@ -172,7 +172,7 @@
 				cm-fullbatt-voltage = <4390000>;
 				cm-fullbatt-current = <180000>;
 				cm-fullbatt-capacity = <100>;
-				cm-fullbatt-soc =<930>;
+				cm-fullbatt-soc =<940>;
 				/*Charge pump target charge current*/
 				cm-cp-taper-current = <1000000>;
 
