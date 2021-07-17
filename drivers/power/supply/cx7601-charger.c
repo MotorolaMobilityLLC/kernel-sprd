@@ -300,13 +300,14 @@ static int cx7601_disable_watchdog_timer(struct cx7601_charger_info *info)
 
 	return cx7601_update_bits(info, CX7601_REG_05, REG05_WDT_MASK, val);
 }
+#ifdef TEST_CX7601
 static int cx7601_reset_watchdog_timer(struct cx7601_charger_info *info)
 {
 	u8 val = REG01_WDT_RESET << REG01_WDT_RESET_SHIFT;
 
 	return cx7601_update_bits(info, CX7601_REG_01, REG01_WDT_RESET_MASK, val);
 }
-#ifdef TEST_CX7601
+
 static int cx7601_reset_chip(struct cx7601_charger_info *info)
 {
 	int ret;
