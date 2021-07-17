@@ -906,6 +906,8 @@ static int audio_sipc_probe(struct platform_device *pdev)
 
 	pr_info("%s in\n", __func__);
 
+	aud_ipc_init(target_id);
+
 	aud_ipc->cl.dev          = &pdev->dev;
 	aud_ipc->cl.rx_callback  = audio_sipc_rx_callback;
 	aud_ipc->cl.tx_done      = NULL;
@@ -923,7 +925,6 @@ static int audio_sipc_probe(struct platform_device *pdev)
 
 	aud_smsg_set_mboxchan(aud_ipc->chan);
 	agdsp_set_mboxchan(aud_ipc->chan);
-	aud_ipc_init(target_id);
 
 	return 0;
 }
