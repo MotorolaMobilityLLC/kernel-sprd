@@ -837,7 +837,7 @@ static int cx7601_charger_feed_watchdog(struct cx7601_charger_info *info,
 					 u32 val)
 {
 
-	cx7601_reset_watchdog_timer(info);
+//	cx7601_reset_watchdog_timer(info);
 
 	cx7601_dump_regs(info);
 
@@ -1218,7 +1218,7 @@ cx7601_charger_feed_watchdog_work(struct work_struct *work)
 							 struct cx7601_charger_info,
 							 wdt_work);
 
-	cx7601_reset_watchdog_timer(info);
+//	cx7601_reset_watchdog_timer(info);
 
 	cx7601_dump_regs(info);
 
