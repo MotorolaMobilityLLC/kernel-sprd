@@ -220,6 +220,7 @@ static int sc27xx_typec_connect(struct sc27xx_typec *sc, u32 status)
 		dev_err(sc->dev, "failed to read DBG1 register.\n");
 		return ret;
 	}
+	dev_err(sc->dev, "regmap_read[val]:[%x]\n", val);
 	val &= SC27XX_CC_MASK;
 
 	switch (val) {
