@@ -30,7 +30,6 @@ static ssize_t scaling_force_ddr_freq_store(struct device *dev,
 	struct device_attribute *attr,
 	const char *buf, size_t count)
 {
-	unsigned int force_freq;
 	int err;
 	struct devfreq *devfreq = to_devfreq(dev);
 
@@ -39,7 +38,9 @@ static ssize_t scaling_force_ddr_freq_store(struct device *dev,
 		dev_err(dev, "force freq para err: %d", err);
 		return count;
 	}
+	mutex_lock(&devfreq->lock);
 	err = update_devfreq(devfreq);
+	mutex_unlock(&devfreq->lock);
 	if (err)
 		dev_err(dev, "force freq fail: %d", err);
 	return count;
@@ -546,9 +547,15 @@ static int gov_vote_start(struct devfreq *devfreq)
 	int err = 0;
 
 	err = sysfs_create_group(&devfreq->dev.kobj, &gov_vote_attrs);
-	if (err)
+	if (err) {
 		dev_err(&devfreq->dev, "dvfs sysfs create fail: %d", err);
-	devfreq_update_stats(devfreq);
+		return err;
+	}
+	err = devfreq_update_stats(devfreq);
+	if (err) {
+		dev_err(&devfreq->dev, "dvfs update states fail: %d", err);
+		return err;
+	}
 	gov_devfreq = devfreq;
 
 	scene_dfs_request("lcdon");
