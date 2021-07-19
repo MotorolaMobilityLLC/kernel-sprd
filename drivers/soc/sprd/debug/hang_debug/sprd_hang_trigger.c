@@ -94,7 +94,7 @@ static ssize_t ipi_trigger_write(struct file *file,
 	if (ret)
 		return -EINVAL;
 
-	if (input < 0 || input > 1)
+	if (input > 1)
 		return -EINVAL;
 
 	state = input;
