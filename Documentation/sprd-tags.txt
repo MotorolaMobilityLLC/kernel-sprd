@@ -133,6 +133,9 @@ mm:vmscan:
 
 net:
 net:ims_bridge:
+net:sprd:sipa_v3:
+net:sprd:sipa_sys:
+net:sprd:sipa_delegate:
 nvmem:sc27xx:
 nvmem:sprd:
 
