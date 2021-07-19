@@ -62,9 +62,9 @@ def check_gki_choice_config(config, status):
 # Only check the user version
 # d_gki_diff_config={config_name:y/m/n}
 def create_gki_diff_config_dict():
-	ret = os.system("make CC=clang CLANG_TRIPLE=aarch64-linux-gnu- ARCH=arm64 CROSS_COMPILE=" + gcc_path + " gki_defconfig O=" + tmp_path_def)
+	ret = os.system("make LLVM=1 LLVM_IAS=1 CLANG_TRIPLE=aarch64-linux-gnu- ARCH=arm64 CROSS_COMPILE=" + gcc_path + " gki_defconfig O=" + tmp_path_def)
 	ret += os.system("bash scripts/sprd/sprd_create_user_config.sh " + tmp_path_def + "/.config " + gki_diff_path)
-	ret += os.system("make CC=clang CLANG_TRIPLE=aarch64-linux-gnu- ARCH=arm64 CROSS_COMPILE=" + gcc_path + " olddefconfig O=" + tmp_path_def)
+	ret += os.system("make LLVM=1 LLVM_IAS=1 CLANG_TRIPLE=aarch64-linux-gnu- ARCH=arm64 CROSS_COMPILE=" + gcc_path + " olddefconfig O=" + tmp_path_def)
 	if (ret):
 		exit(1)
 
@@ -84,7 +84,7 @@ def create_gki_diff_config_dict():
 	f.close()
 
 def create_gki_defconfig_dict():
-	if (os.system("make CC=clang CLANG_TRIPLE=aarch64-linux-gnu- ARCH=arm64 CROSS_COMPILE=" + gcc_path + " gki_defconfig O=" + tmp_path_def)):
+	if (os.system("make LLVM=1 LLVM_IAS=1 CLANG_TRIPLE=aarch64-linux-gnu- ARCH=arm64 CROSS_COMPILE=" + gcc_path + " gki_defconfig O=" + tmp_path_def)):
 		exit(1)
 
 	f = open(tmp_path_def+"/.config",'r')
@@ -122,14 +122,14 @@ def create_defconfig_dict(android_version):
 		d_defconfig[soc] = {}
 
 		print("Compile first time for " + defconfig)
-		ret=os.system("make CC=clang CLANG_TRIPLE=aarch64-linux-gnu- ARCH=arm64 CROSS_COMPILE=" + gcc_path + " O=" + tmp_path_def + " " + defconfig)
+		ret=os.system("make LLVM=1 LLVM_IAS=1 CLANG_TRIPLE=aarch64-linux-gnu- ARCH=arm64 CROSS_COMPILE=" + gcc_path + " O=" + tmp_path_def + " " + defconfig)
 
 		(status, diffconfig)=commands.getstatusoutput("find " + android_version + "/" + soc + "/" + arch + " -name *user_diff_config")
 		if (status == 0 and diffconfig != ""):
 			print("Add user diffconfig for " + soc)
 			ret += os.system("bash scripts/sprd/sprd_create_user_config.sh " + tmp_path_def + "/.config " + diffconfig)
 			print("Re-compile .config for " + defconfig)
-			ret += os.system("make CC=clang CLANG_TRIPLE=aarch64-linux-gnu- ARCH=arm64 CROSS_COMPILE=" + gcc_path + " O=" + tmp_path_def + " olddefconfig")
+			ret += os.system("make LLVM=1 LLVM_IAS=1 CLANG_TRIPLE=aarch64-linux-gnu- ARCH=arm64 CROSS_COMPILE=" + gcc_path + " O=" + tmp_path_def + " olddefconfig")
 		else:
 			print("WARNING:"+soc+": Cannot patch the user_diff_config to .config")
 
