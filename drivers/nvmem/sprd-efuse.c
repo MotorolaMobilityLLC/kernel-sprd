@@ -108,7 +108,7 @@ static const struct sprd_efuse_variant_data pike2_data = {
 static const struct sprd_efuse_variant_data qogirl6_data = {
 	.blk_nums = 24,
 	.blk_offset = 72,
-	.blk_double = 0,
+	.blk_double = false,
 };
 
 /*
@@ -348,13 +348,13 @@ static int sprd_efuse_read(void *context, u32 offset, void *val, size_t bytes)
 	    of_device_is_compatible(efuse->dev->of_node, "sprd,ums312-efuse") ||
 	    of_device_is_compatible(efuse->dev->of_node, "sprd,orca-efuse")) {
 		if (index == 95 || index == 94)
-			blk_double = 0;
+			blk_double = false;
 	}
 
 	if (of_device_is_compatible(efuse->dev->of_node, "sprd,ums312-efuse") ||
 	    of_device_is_compatible(efuse->dev->of_node, "sprd,qogirl6-efuse"))
 		if (index == 36 || index == 37 || index == 45 || index == 46)
-			blk_double = 1;
+			blk_double = true;
 
 	ret = sprd_efuse_raw_read(efuse, index, &data, blk_double);
 	if (!ret) {
@@ -373,7 +373,8 @@ static int sprd_efuse_write(void *context, u32 offset, void *val, size_t bytes)
 {
 	struct sprd_efuse *efuse = context;
 	bool blk_double = efuse->data->blk_double;
-	bool lock;
+	u32 index = offset / SPRD_EFUSE_BLOCK_WIDTH;
+	bool lock = false;
 	int ret;
 
 	ret = sprd_efuse_lock(efuse);
@@ -383,6 +384,11 @@ static int sprd_efuse_write(void *context, u32 offset, void *val, size_t bytes)
 	ret = clk_prepare_enable(efuse->clk);
 	if (ret)
 		goto unlock;
+	/*
+	 * efuse has two parts secure efuse block and public efuse block.
+	 * public eFuse starts is different according to projects.
+	 */
+	index += efuse->data->blk_offset;
 
 	/*
 	 * If the writing bytes are equal with the block width, which means the
@@ -392,12 +398,18 @@ static int sprd_efuse_write(void *context, u32 offset, void *val, size_t bytes)
 	 * If the block was programmed partially, we should allow this block to
 	 * be programmed again.
 	 */
+	/*
 	if (bytes < SPRD_EFUSE_BLOCK_WIDTH)
 		lock = false;
 	else
 		lock = true;
+	*/
+	if (of_device_is_compatible(efuse->dev->of_node, "sprd,sharkl5-efuse") ||
+		of_device_is_compatible(efuse->dev->of_node, "sprd,qogirl6-efuse"))
+		if (index == 36 || index == 37 || index == 45 || index == 46)
+			blk_double = true;
 
-	ret = sprd_efuse_raw_prog(efuse, offset, blk_double, lock, val);
+	ret = sprd_efuse_raw_prog(efuse, index, blk_double, lock, val);
 
 	clk_disable_unprepare(efuse->clk);
 
