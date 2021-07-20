@@ -47,7 +47,7 @@
 	display-subsystem {
 		compatible = "sprd,display-subsystem";
 		ports = <&dpu_port>;
-		/*gsp = <&gsp>;*/
+		gsp = <&gsp>;
 	};
 
 	dpu_dvfs: dpu-dvfs {
