@@ -423,7 +423,7 @@
 				reset-syscon = <&ap_ahb_regs REG_AP_AHB_AHB_RST
 					(MASK_AP_AHB_VSP_SOFT_RST |
 					MASK_AP_AHB_VSP_GLOBAL_SOFT_RST)>;
-				aon-apb-eb-syscon = <&aon_apb_regs
+				vsp-domain-eb-syscon = <&aon_apb_regs
 					REG_AON_APB_APB_EB1
 					MASK_AON_APB_AP_SYST_EB>;
 
@@ -455,7 +455,7 @@
 					MASK_AON_APB_MM_EB>;
 
 				iommus = <&iommu_jpg>;
-					/*jpg_qos = <&jpg_qos>;*/
+				/*jpg_qos = <&jpg_qos>;*/
 				power-domains = <&mm_domain>;
 				status = "disabled";
 			};
