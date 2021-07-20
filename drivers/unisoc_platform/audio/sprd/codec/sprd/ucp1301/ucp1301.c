@@ -1112,7 +1112,7 @@ static ssize_t ucp1301_get_clsd_trim(struct device *dev,
 				     struct device_attribute *attr, char *buf)
 {
 	struct ucp1301_t *ucp1301 = dev_get_drvdata(dev);
-	u32 clsd_trim;
+	u32 clsd_trim = 0;
 	int ret;
 
 	ret = ucp1301_read_clsd_trim(ucp1301, &clsd_trim);

@@ -361,7 +361,7 @@ static int master_fraction_clock(struct i2s_priv *i2s, uint div_mode)
 	unsigned long reg_clkml = I2S_REG(i2s, IIS_CLKML);
 	unsigned long reg_clkd = I2S_REG(i2s, IIS_CLKD);
 
-	int clk_m = 0, clk_n = 0, clkd;
+	int clk_m = 0, clk_n = 0, clkd = 0;
 	int val_clkmh;
 	int val_clkml;
 	int val_clknh;
@@ -1432,6 +1432,10 @@ static int i2s_drv_probe(struct platform_device *pdev)
 			       i2s->config.hw_port, i2s->config.fs);
 
 		res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+		if (!res) {
+			pr_err("%s platform get resource error!\n", __func__);
+			return -EINVAL;
+		}
 		i2s->membase = (void __iomem *)res->start;
 		res = platform_get_resource(pdev, IORESOURCE_MEM, 1);
 		i2s->memphys = (unsigned int *)res->start;

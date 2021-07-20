@@ -354,6 +354,7 @@ int aud_smsg_send(u8 dst, struct aud_smsg *msg)
 	uintptr_t txpos;
 	int rval = 0;
 	unsigned long flags;
+	int ret;
 
 	ipc = aud_smsg_ipcs[dst];
 	pr_info("%s: dst=%d, channel=%d\n", __func__, dst, msg->channel);
@@ -409,7 +410,10 @@ int aud_smsg_send(u8 dst, struct aud_smsg *msg)
 	parameter0 = msg->parameter0;
 	msg_val =  (command << 48) | (channel << 32) | (parameter0);
 	//mbox_raw_sent(ipc->target_id, msg_val);
-	mbox_send_message(aud_smsg_mboxchan, (void *)&msg_val);
+	ret = mbox_send_message(aud_smsg_mboxchan, (void *)&msg_val);
+	if (ret < 0) {
+		pr_err("%s, mbox send message error!\n", __func__);
+	}
 	mbox_chan_txdone(aud_smsg_mboxchan, 0);
 
 send_failed:

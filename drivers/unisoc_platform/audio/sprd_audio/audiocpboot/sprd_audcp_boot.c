@@ -352,7 +352,7 @@ static int sprd_audcp_boot_probe(struct platform_device *pdev)
 {
 	struct device_node *np = pdev->dev.of_node;
 	int ret, cr_num = 0;
-	u32 syscon_args[2], size;
+	u32 syscon_args[2] = {0}, size;
 	struct audcp_boot_data *data;
 	unsigned long addr_phy, addr_vir;
 

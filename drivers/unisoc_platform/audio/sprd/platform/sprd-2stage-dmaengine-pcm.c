@@ -292,9 +292,13 @@ static inline u32 sprd_pcm_dma_get_addr(struct dma_chan *dma_chn,
 					struct snd_pcm_substream *substream)
 {
 	struct dma_tx_state dma_state;
+	enum dma_status ret;
 
-	dmaengine_tx_status(dma_chn, cookie, &dma_state);
+	ret = dmaengine_tx_status(dma_chn, cookie, &dma_state);
 
+	if (ret == DMA_ERROR) {
+		pr_err("%s DMA ERROR\n", __func__);
+	}
 	return dma_state.residue;
 }
 
@@ -386,6 +390,10 @@ static bool is_use_resddr(struct snd_pcm_substream *substream)
 		snd_soc_rtdcom_lookup(srtd, SPRD_DMAENGINE_PCM_DRV_NAME);
 	struct platform_pcm_priv *priv_data;
 
+	if (!platform) {
+		pr_err("%s platform failed\n", __func__);
+		return 0;
+	}
 	priv_data = snd_soc_component_get_drvdata(platform);
 	if (!priv_data) {
 		pr_err("%s priv_data is null\n", __func__);
@@ -445,6 +453,10 @@ static int alloc_linklist_cfg_resddr(struct snd_pcm_substream *substream)
 	u32 offset;
 	int ddr_enum;
 
+	if (!platform) {
+		pr_err("%s platform failed\n", __func__);
+		return -EINVAL;
+	}
 	priv_data = snd_soc_component_get_drvdata(platform);
 	if (!priv_data) {
 		pr_err("%s priv_data is null\n", __func__);
@@ -533,6 +545,10 @@ pcm_free_dma_linklist_cfg_ddr(struct snd_pcm_substream *substream)
 	int chan_cnt = 0;
 	int i = 0;
 
+	if (!platform) {
+		pr_err("%s platform failed\n", __func__);
+		return -EINVAL;
+	}
 	priv_data = snd_soc_component_get_drvdata(platform);
 	if (!priv_data) {
 		pr_err("%s priv_data is null\n", __func__);
@@ -579,6 +595,11 @@ static int pcm_set_dma_linklist_cfg_iram_s1(struct snd_pcm_substream
 	int i = 0;
 
 	chan_cnt = sprd_rtd->hw_chan;
+
+	if (!platform) {
+		pr_err("%s platform failed\n", __func__);
+		return -1;
+	}
 	priv_data = snd_soc_component_get_drvdata(platform);
 	if (!priv_data) {
 		pr_warn("priv_data failed\n");
@@ -628,6 +649,10 @@ static int alloc_linklist_cfg_resddr_s2_2(struct snd_pcm_substream *substream)
 	u32 offset;
 	int ddr_enum;
 
+	if (!platform) {
+		pr_err("%s platform failed\n", __func__);
+		return -EINVAL;
+	}
 	priv_data = snd_soc_component_get_drvdata(platform);
 	if (!priv_data) {
 		pr_err("%s priv_data is null\n", __func__);
@@ -696,6 +721,10 @@ static void pcm_free_dma_linklist_cfg_ddr_s2_2(struct snd_pcm_substream
 		snd_soc_rtdcom_lookup(srtd, SPRD_DMAENGINE_PCM_DRV_NAME);
 	struct platform_pcm_priv *priv_data;
 
+	if (!platform) {
+		pr_err("%s platform failed\n", __func__);
+		return;
+	}
 	priv_data = snd_soc_component_get_drvdata(platform);
 	if (!priv_data) {
 		pr_err("%s priv_data is null\n", __func__);
@@ -837,7 +866,10 @@ static bool is_use_2stage_dma(struct snd_soc_pcm_runtime *srtd, int stream)
 
 	if (!substream)
 		return false;
-
+	if (!platform) {
+		pr_err("%s platform failed\n", __func__);
+		return false;
+	}
 	priv_data = snd_soc_component_get_drvdata(platform);
 	if (!priv_data) {
 		pr_warn("priv_data failed\n");
@@ -872,6 +904,10 @@ static s32 dmabuffer_reserved_ddr_alloc(struct snd_pcm_substream *substream)
 	u32 offset;
 	int ddr_enum;
 
+	if (!platform) {
+		pr_err("%s platform failed\n", __func__);
+		return -EINVAL;
+	}
 	priv_data = snd_soc_component_get_drvdata(platform);
 	if (!priv_data) {
 		pr_err("%s priv_data is null\n", __func__);
@@ -958,6 +994,10 @@ static int dmabuffer_ddr_free(struct snd_pcm_substream *substream,
 		snd_soc_rtdcom_lookup(srtd, SPRD_DMAENGINE_PCM_DRV_NAME);
 	struct platform_pcm_priv *priv_data;
 
+	if (!platform) {
+		pr_err("%s platform failed\n", __func__);
+		return 0;
+	}
 	priv_data = snd_soc_component_get_drvdata(platform);
 	if (!priv_data) {
 		pr_err("%s priv_data is null\n", __func__);
@@ -996,8 +1036,15 @@ static s32 pcm_preallocate_dma_buffer(struct snd_soc_pcm_runtime *srtd,
 	struct snd_soc_component *platform =
 		snd_soc_rtdcom_lookup(srtd, SPRD_DMAENGINE_PCM_DRV_NAME);
 
+	if (!platform) {
+		pr_err("%s platform failed\n", __func__);
+		return -1;
+	}
 	priv_data = snd_soc_component_get_drvdata(platform);
-
+	if (!priv_data) {
+		pr_err("%s priv_data is null\n", __func__);
+		return -1;
+	}
 	if (cpu_dai->id != I2S_MAGIC_ID &&
 	    cpu_dai->id != VBC_DAI_NORMAL &&
 		    cpu_dai->id != VBC_DAI_AD23 &&
@@ -1090,8 +1137,16 @@ static void hw_params_config(struct snd_pcm_substream *substream,
 	struct snd_dma_buffer *dma_buffer = NULL;
 
 	dma_buffer = &substream->dma_buffer;
-	priv_data = snd_soc_component_get_drvdata(platform);
 
+	if (!platform) {
+		pr_err("%s platform failed\n", __func__);
+		return;
+	}
+	priv_data = snd_soc_component_get_drvdata(platform);
+	if (!priv_data) {
+		pr_err("%s priv_data is null\n", __func__);
+		return;
+	}
 	/* default config */
 	hw->periods_min = 1;
 	if (sprd_is_i2s(srtd->cpu_dai)) {
@@ -1308,6 +1363,10 @@ static void reset_dma_level1_int_count(struct snd_pcm_substream *substream,
 		snd_soc_rtdcom_lookup(srtd, SPRD_DMAENGINE_PCM_DRV_NAME);
 	struct platform_pcm_priv *priv_data = NULL;
 
+	if (!platform) {
+		pr_err("%s platform failed\n", __func__);
+		return;
+	}
 	priv_data = snd_soc_component_get_drvdata(platform);
 	if (!priv_data) {
 		pr_err("%s %d failed\n", __func__, __LINE__);
@@ -1350,6 +1409,10 @@ static void sprd_pcm_dma_buf_done_level1(void *data)
 	u32 count_max = 0;
 	struct platform_pcm_priv *priv_data = NULL;
 
+	if (!platform) {
+		pr_err("%s platform failed\n", __func__);
+		return;
+	}
 	priv_data = snd_soc_component_get_drvdata(platform);
 	if (!priv_data) {
 		pr_err("%s %d failed\n", __func__, __LINE__);
@@ -1778,7 +1841,10 @@ static int pcm_set_dma_linklist_data_s2_1(struct snd_pcm_substream *substream,
 		pr_err("%s not supported\n", __func__);
 		return -1;
 	}
-
+	if (!platform) {
+		pr_err("%s platform failed\n", __func__);
+		return -1;
+	}
 	priv_data = snd_soc_component_get_drvdata(platform);
 	if (!priv_data) {
 		pr_warn("priv_data failed\n");
@@ -1831,6 +1897,10 @@ static u32 sprd_pcm_get_sync_ap(struct snd_pcm_substream *substream)
 	u32 sync_ap;
 	void __iomem *virt_addr;
 
+	if (!platform) {
+		pr_err("%s platform failed\n", __func__);
+		return 0;
+	}
 	priv_data = snd_soc_component_get_drvdata(platform);
 	if (!priv_data) {
 		pr_err("%s %d failed\n", __func__, __LINE__);
@@ -1855,6 +1925,10 @@ static void sprd_pcm_set_sync_ap(struct snd_pcm_substream *substream,
 	u32 phy_addr;
 	void __iomem *virt_addr;
 
+	if (!platform) {
+		pr_err("%s platform failed\n", __func__);
+		return;
+	}
 	priv_data = snd_soc_component_get_drvdata(platform);
 	if (!priv_data) {
 		pr_err("%s %d failed\n", __func__, __LINE__);
@@ -1876,7 +1950,10 @@ static u32 sprd_pcm_get_sync_cm4(struct snd_pcm_substream *substream)
 	u32 phy_addr;
 	u32 sync_cm4;
 	void __iomem *virt_addr;
-
+	if (!platform) {
+		pr_err("%s platform failed\n", __func__);
+		return 0;
+	}
 	priv_data = snd_soc_component_get_drvdata(platform);
 	if (!priv_data) {
 		pr_err("%s %d failed\n", __func__, __LINE__);
@@ -1958,6 +2035,10 @@ static int sprd_pcm_hw_params_2stage(struct snd_pcm_substream *substream,
 	unsigned long start_addr_p = 0;
 	int direction = 0;
 
+	if (!platform) {
+		pr_err("%s platform failed\n", __func__);
+		return -1;
+	}
 	priv_data = snd_soc_component_get_drvdata(platform);
 	if (!priv_data) {
 		pr_err("%s %d failed\n", __func__, __LINE__);
@@ -2413,6 +2494,10 @@ static int sprd_pcm_hw_params1(struct snd_pcm_substream *substream,
 	struct dma_chan *temp_dma_chan;
 	struct platform_pcm_priv *priv_data;
 
+	if (!platform) {
+		pr_err("%s platform failed\n", __func__);
+		return -EINVAL;
+	}
 	priv_data = snd_soc_component_get_drvdata(platform);
 	if (!priv_data) {
 		pr_err("%s priv_data is null\n", __func__);
@@ -2660,7 +2745,10 @@ static int sprd_pcm_hw_free(struct snd_pcm_substream *substream)
 	pr_info("%s\n", __func__);
 	if (!dma)
 		return 0;
-
+	if (!platform) {
+		pr_err("%s platform failed\n", __func__);
+		return -1;
+	}
 	priv_data = snd_soc_component_get_drvdata(platform);
 	if (!priv_data) {
 		pr_err("%s %d failed\n", __func__, __LINE__);
@@ -2794,6 +2882,10 @@ static int sprd_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
 	if (!dma) {
 		sp_asoc_pr_info("no trigger");
 		return 0;
+	}
+	if (!platform) {
+		pr_err("%s platform failed\n", __func__);
+		return -1;
 	}
 	priv_data = snd_soc_component_get_drvdata(platform);
 	if (!priv_data) {
@@ -2933,6 +3025,10 @@ static inline u32 get_dma_level1_int_count(struct snd_pcm_substream
 		snd_soc_rtdcom_lookup(srtd, SPRD_DMAENGINE_PCM_DRV_NAME);
 	struct platform_pcm_priv *priv_data = NULL;
 
+	if (!platform) {
+		pr_err("%s platform failed\n", __func__);
+		return -1;
+	}
 	priv_data = snd_soc_component_get_drvdata(platform);
 	if (!priv_data) {
 		pr_err("%s %d failed\n", __func__, __LINE__);
@@ -2957,6 +3053,10 @@ static snd_pcm_uframes_t sprd_pcm_pointer_2stage(struct snd_pcm_substream
 	u32 cm4_dma_level1_buf_done_count = 0;
 	struct platform_pcm_priv *priv_data = NULL;
 
+	if (!platform) {
+		pr_err("%s platform failed\n", __func__);
+		return 0;
+	}
 	priv_data = snd_soc_component_get_drvdata(platform);
 	if (!priv_data) {
 		pr_warn("%s platform priv_data set failed\n", __func__);
@@ -3266,6 +3366,10 @@ static void sprd_pcm_platform_proc_write(struct snd_info_entry *entry,
 	struct snd_soc_component *platform = entry->private_data;
 	struct platform_pcm_priv *priv_data = NULL;
 
+	if (!platform) {
+		pr_err("%s platform failed\n", __func__);
+		return;
+	}
 	priv_data = snd_soc_component_get_drvdata(platform);
 	if (!priv_data) {
 		pr_warn("%s %s set failed\n", __func__, name);
@@ -3296,7 +3400,10 @@ static void sprd_pcm_platform_proc_read(struct snd_info_entry *entry,
 	struct snd_soc_component *platform = entry->private_data;
 	struct platform_pcm_priv *priv_data = NULL;
 	int i = 0;
-
+	if (!platform) {
+		pr_err("%s platform failed\n", __func__);
+		return;
+	}
 	priv_data = snd_soc_component_get_drvdata(platform);
 	if (!priv_data) {
 		pr_warn("%s  priv_data null\n", __func__);
@@ -3479,7 +3586,6 @@ static void aud_clear_iram_addr(struct snd_soc_component *platform)
 		pr_err("%s %d failed\n", __func__, __LINE__);
 		return;
 	}
-
 	audio_mem_free(IRAM_BASE, priv_data->iram_phy_addr,
 		       priv_data->iram_size);
 	if (priv_data->iram_size > 0) {
@@ -3731,7 +3837,6 @@ static void sprd_snd_platform_remove(struct snd_soc_component *platform)
 			__func__, __LINE__);
 		return;
 	}
-
 	if (priv_data->platform_type == PLATFORM_SHARKL2) {
 		aud_clear_iram_addr(platform);
 
@@ -3762,6 +3867,10 @@ static int pcm_total_get(struct snd_kcontrol *kcontrol,
 		return 0;
 	}
 	priv_data = snd_soc_component_get_drvdata(platform);
+	if (!priv_data) {
+		pr_warn("%s  priv_data null\n", __func__);
+		return 0;
+	}
 	if (id == PLY_NORMAL)
 		total_frams = get_dma_used_total_cnt(priv_data, PLY_NORMAL);
 	else if (id == PLY_DEEPBUF)

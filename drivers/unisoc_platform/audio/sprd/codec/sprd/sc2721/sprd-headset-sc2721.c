@@ -866,11 +866,16 @@ static int headset_adc_cond(struct sprd_headset *hdst, int gpio_num,
 	bool cond;
 	int gpio_status = 0;
 	int button_alert = 0;
+	int ret;
 
 	if (hdst->type_status == HEADSET_TYPEC_IN) {
 		cond = !hdst->typec_attached;
 		if (gpio_num == pdata->gpios[HDST_GPIO_BUTTON]) {
-			headset_reg_read(ANA_STS0, &button_alert);
+			ret = headset_reg_read(ANA_STS0, &button_alert);
+			if (ret) {
+				pr_err("%s: read reg#%#x failed!\n", __func__, ANA_STS0);
+				return ret;
+			}
 			gpio_status = (gpio_get_value(gpio_num) != gpio_value);
 			cond = cond || gpio_status;
 		}
@@ -1036,6 +1041,11 @@ static int headset_irq_set_irq_type(unsigned int irq, unsigned int type)
 
 	ret = irq_set_irq_type(irq, type);
 	irq_desc = irq_to_desc(irq);
+
+	if (!irq_desc) {
+		pr_err("%s: sprd_hdset irq_desc is NULL!\n", __func__);
+		return -1;
+	}
 	irq_flags = irq_desc->action->flags;
 
 	if (irq == hdst->irq_button) {
@@ -1071,8 +1081,7 @@ static int headset_button_valid(void)
 		return -1;
 	}
 
-	if (pdata->gpios[HDST_GPIO_TYPEC_LR] >= 0 &&
-			hdst->type_status == HEADSET_TYPEC_IN)
+	if (hdst->type_status == HEADSET_TYPEC_IN)
 		return hdst->typec_attached;
 
 	gpio_detect_value_current =
@@ -1212,18 +1221,17 @@ static int headset_get_adc_value(struct iio_channel *chan)
 static enum sprd_headset_type headset_typec_type_detect(int gpio_det_val_last)
 {
 	struct sprd_headset *hdst = sprd_hdst;
-	struct iio_channel *chan = hdst->adc_chan;
+	struct iio_channel *chan = (hdst ? hdst->adc_chan : NULL);
 	struct sprd_headset_platform_data *pdata = (hdst ? &hdst->pdata : NULL);
-	int gpio_switch = pdata->gpios[HDST_GPIO_SW];
 	int adc_mic[2];
 	int invalid_count = 0;
 
-	ENTER;
-
-	if (gpio_switch < 0) {
-		pr_err("Switch gpio must be given for type-c analog headset!\n");
-		return -EINVAL;
+	if (!hdst) {
+		pr_err("%s: sprd_hdset is NULL!\n", __func__);
+		return HEADSET_TYPE_ERR;
 	}
+
+	ENTER;
 
 	headset_scale_set(0);
 	/*
@@ -1237,7 +1245,7 @@ static enum sprd_headset_type headset_typec_type_detect(int gpio_det_val_last)
 	headset_typec_button_irq_threshold(0xc);
 	do {
 		/* Get adc value of headmic in. */
-		gpio_set_value_cansleep(gpio_switch, 0);
+		gpio_set_value_cansleep(pdata->gpios[HDST_GPIO_SW], 0);
 		/*
 		 * for typec use adc big scale, because there's no efuse for
 		 * headmic_det big scale we do not do
@@ -1270,7 +1278,7 @@ static enum sprd_headset_type headset_typec_type_detect(int gpio_det_val_last)
 		 * Reverse SUB1/SUB2(MIC/GND), and compare the two adc
 		 * values to decide the correct plug direction.
 		 */
-		gpio_set_value_cansleep(gpio_switch, 1);
+		gpio_set_value_cansleep(pdata->gpios[HDST_GPIO_SW], 1);
 		adc_mic[1] = headset_read_adc_repeatable(
 						chan, gpio_det_val_last);
 
@@ -1280,6 +1288,7 @@ static enum sprd_headset_type headset_typec_type_detect(int gpio_det_val_last)
 			pr_err("get adc_mic[1] = %d error\n", adc_mic[1]);
 			return -EINVAL;
 		}
+		invalid_count++;
 	} while (adc_mic[1] > INVALID_VOL && invalid_count < INVALID_TRY_COUNT);
 
 	if (invalid_count == 10) {
@@ -1306,7 +1315,7 @@ static enum sprd_headset_type headset_typec_type_detect(int gpio_det_val_last)
 
 	if (adc_mic[0] > adc_mic[1]) {
 		pr_info("gpio_switch is SUB1/SUB2(MIC/GND)\n");
-		gpio_set_value_cansleep(gpio_switch, 0);
+		gpio_set_value_cansleep(pdata->gpios[HDST_GPIO_SW], 0);
 	}
 	pr_info("TYPEC_4POLE_NORMAL\n");
 
@@ -1496,8 +1505,8 @@ static void headset_button_work_func(struct work_struct *work)
 		pr_err("%s: sprd_hdset is NULL!\n", __func__);
 		return;
 	}
-	chan = hdst->adc_chan;
 
+	chan = hdst->adc_chan;
 	down(&hdst->sem);
 	headset_set_adc_to_headmic(1);
 	ENTER;
@@ -1659,8 +1668,6 @@ static void headset_detect_all_work_func(struct work_struct *work)
 	struct sprd_headset_platform_data *pdata = (hdst ? &hdst->pdata : NULL);
 	struct sprd_headset_power *power = (hdst ? &hdst->power : NULL);
 	enum sprd_headset_type headset_type;
-	int gpio_switch = pdata->gpios[HDST_GPIO_SW];
-	int gpio_lr = pdata->gpios[HDST_GPIO_TYPEC_LR];
 	int plug_state_current = 0;
 	int gpio_detect_value_current = 0;
 	int gpio_detect_value = 0;
@@ -1696,7 +1703,7 @@ static void headset_detect_all_work_func(struct work_struct *work)
 	}
 
 	if (hdst->plug_stat_last == 0) {
-		if (gpio_lr >= 0 && hdst->type_status == HEADSET_TYPEC_IN) {
+		if (hdst->type_status == HEADSET_TYPEC_IN) {
 			if (hdst->typec_attached)
 				plug_state_current = 1;
 			else {
@@ -1853,7 +1860,7 @@ static void headset_detect_all_work_func(struct work_struct *work)
 
 		/* pull gpio switch to 0 force. */
 		if (hdst->type_status == HEADSET_TYPEC_OUT) {
-			gpio_set_value_cansleep(gpio_switch, 0);
+			gpio_set_value_cansleep(pdata->gpios[HDST_GPIO_SW], 0);
 			hdst->type_status = HEADSET_TYPEC_NOT;
 		}
 		if (hdst->headphone)
@@ -2296,7 +2303,7 @@ static int headset_typec_notifier(struct notifier_block *nb,
 	struct sprd_headset *hdst = container_of(nb, struct sprd_headset, typec_plug_nb);
 	struct sprd_headset_platform_data *pdata = &hdst->pdata;
 	int gpio_lr = pdata->gpios[HDST_GPIO_TYPEC_LR];
-	unsigned int val;
+	unsigned int val = 0;
 	bool attached = false;
 	int level = 0;
 	int ret;
@@ -2305,10 +2312,6 @@ static int headset_typec_notifier(struct notifier_block *nb,
 	       __func__, pdata->typec_lr_gpio_level, gpio_lr,
 	       gpio_get_value(gpio_lr), hdst->hdst_status, hdst->type_status);
 
-	if (gpio_lr < 0) {
-		pr_warn("Analog typec headset is not supported!\n");
-		return NOTIFY_DONE;
-	}
 
 	if (hdst->hdst_status & SND_JACK_HEADSET && hdst->type_status == HEADSET_TYPEC_NOT) {
 		pr_warn("%s 3.5mm headphone is pluged, hdst_status 0x%x\n", __func__, hdst->hdst_status);
@@ -2348,7 +2351,11 @@ static int headset_typec_notifier(struct notifier_block *nb,
 	queue_delayed_work(hdst->det_all_work_q,
 		&hdst->det_all_work, msecs_to_jiffies(5));
 
-	headset_reg_read(ANA_STS0, &val);
+	ret = headset_reg_read(ANA_STS0, &val);
+	if (ret) {
+		pr_err("%s: read reg#%#x failed!\n", __func__, ANA_STS0);
+		return ret;
+	}
 	pr_info("%s out, ANA_STS0 = 0x%08X OUT, ret %d, type_status %d\n", __func__, val, ret, hdst->type_status);
 
 	return NOTIFY_OK;
@@ -2712,7 +2719,7 @@ static int sprd_headset_parse_dt(struct sprd_headset *hdst)
 	struct sprd_headset_platform_data *pdata;
 	struct device_node *np, *buttons_np = NULL;
 	struct headset_buttons *buttons_data;
-	struct device *dev = &hdst->pdev->dev;
+	struct device *dev;
 	u32 val = 0;
 	int index;
 	int i = 0;
@@ -2721,7 +2728,7 @@ static int sprd_headset_parse_dt(struct sprd_headset *hdst)
 		pr_err("%s sprd_hdst is NULL!\n", __func__);
 		return -EINVAL;
 	}
-
+	dev = &hdst->pdev->dev;
 	np = hdst->pdev->dev.of_node;
 	if (!np) {
 		pr_err("%s No device node for headset!\n", __func__);
@@ -3208,7 +3215,7 @@ static int headset_adc_cal_from_efuse(struct platform_device *pdev)
 	u8 delta[4] = {0};
 	u32 block0_bit7 = 128;
 	u32 test[2] = {0};
-	u32 data;
+	u32 data = 0;
 	int ret;
 	unsigned int adie_chip_id;
 

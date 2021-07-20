@@ -175,7 +175,7 @@ static int agdsp_access_initialize(struct platform_device *pdev,
 	u32 mbx_core, u32 dst, u32 channel, const u32 offset)
 {
 	struct agdsp_access *dsp_ac;
-	unsigned int args[2];
+	unsigned int args[2] = {0};
 	struct regmap *regmap;
 	int ret = -EINVAL;
 
@@ -449,7 +449,10 @@ int agdsp_access_enable(void)
 		 * 100 is an invalid command
 		 */
 		msg_val = 100;
-		mbox_send_message(g_agdsp_mboxchan, (void *)&msg_val);
+		ret = mbox_send_message(g_agdsp_mboxchan, (void *)&msg_val);
+		if (ret < 0) {
+			pr_err("%s, mbox send message error!\n", __func__);
+		}
 		mbox_chan_txdone(g_agdsp_mboxchan, 0);
 		if (ret < 0) {
 			pr_err("agdsp mbox_send_message error:%d\n", ret);
@@ -604,7 +607,10 @@ int restore_access(void)
 		 * 100 is an invalid command
 		 */
 		msg_val = 100;
-		mbox_send_message(g_agdsp_mboxchan, (void *)&msg_val);
+		ret = mbox_send_message(g_agdsp_mboxchan, (void *)&msg_val);
+		if (ret < 0) {
+			pr_err("%s, mbox send message error!\n", __func__);
+		}
 		mbox_chan_txdone(g_agdsp_mboxchan, 0);
 		udelay(20);
 		do {
