@@ -460,6 +460,8 @@ static int cx7601_set_chargecurrent(struct cx7601_charger_info *info, int curr)
 	if (curr < REG02_ICHG_BASE){
 		curr = REG02_ICHG_BASE;
 	}
+	else if(curr > 2200)
+		curr = 2200;
 
 	ichg = (curr - REG02_ICHG_BASE)/REG02_ICHG_LSB;
 	return cx7601_update_bits(info, CX7601_REG_02, REG02_ICHG_MASK,
@@ -568,7 +570,7 @@ static int cx7601_init_device(struct cx7601_charger_info *info)
 	if (ret)
 		pr_err("Failed to set prechg current, ret = %d\n",ret);
 
-	ret = cx7601_set_term_current(info, 128);//info->platform_data->iterm);
+	ret = cx7601_set_term_current(info, 256);//info->platform_data->iterm);
 	if (ret)
 		pr_err("Failed to set termination current, ret = %d\n",ret);
 
