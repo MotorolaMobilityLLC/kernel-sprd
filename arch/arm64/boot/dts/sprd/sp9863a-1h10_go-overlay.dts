@@ -215,6 +215,10 @@
 	};
 };
 
+&dpu {
+	sprd,logo-memory = <&logo_reserved>;
+};
+
 &panel {
 	sprd,backlight = <&pwm_backlight>;
 };
