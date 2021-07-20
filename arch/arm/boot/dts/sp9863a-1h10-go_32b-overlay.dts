@@ -222,6 +222,10 @@
 	};
 };
 
+&dpu {
+	sprd,logo-memory = <&logo_reserved>;
+};
+
 &panel {
 	sprd,backlight = <&pwm_backlight>;
 	sprd,surface-width = <720>;
