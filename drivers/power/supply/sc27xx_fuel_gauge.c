@@ -276,8 +276,7 @@ static bool sc27xx_fgu_is_first_poweron(struct sc27xx_fgu_data *data)
 {
 	int ret, status, cap, mode;
 
-	ret = regmap_read(data->regmap,
-			  data->base + SC27XX_FGU_USER_AREA_STATUS, &status);
+	ret = regmap_read(data->regmap, data->base + SC27XX_FGU_USER_AREA_STATUS, &status);
 	if (ret)
 		return false;
 
@@ -478,8 +477,7 @@ static int sc27xx_fgu_get_boot_voltage(struct sc27xx_fgu_data *data, int *pocv)
 	 * After system booting on, the SC27XX_FGU_CLBCNT_QMAXL register saved
 	 * the first sampled open circuit current.
 	 */
-	ret = regmap_read(data->regmap, data->base + SC27XX_FGU_CLBCNT_QMAXL,
-			  &cur);
+	ret = regmap_read(data->regmap, data->base + SC27XX_FGU_CLBCNT_QMAXL, &cur);
 	if (ret) {
 		dev_err(data->dev, "Failed to read CLBCNT_QMAXL, ret = %d\n",
 			ret);
@@ -563,8 +561,7 @@ static int sc27xx_fgu_get_boot_capacity(struct sc27xx_fgu_data *data, int *cap)
 	 * Parse the capacity table to look up the correct capacity percent
 	 * according to current battery's corresponding OCV values.
 	 */
-	*cap = power_supply_ocv2cap_simple(data->cap_table, data->table_len,
-					   ocv);
+	*cap = power_supply_ocv2cap_simple(data->cap_table, data->table_len, ocv);
 
 	*cap *= 10;
 	data->boot_cap = *cap;
@@ -604,13 +601,11 @@ static int sc27xx_fgu_get_clbcnt(struct sc27xx_fgu_data *data, int *clb_cnt)
 {
 	int ccl, cch, ret;
 
-	ret = regmap_read(data->regmap, data->base + SC27XX_FGU_CLBCNT_VALL,
-			  &ccl);
+	ret = regmap_read(data->regmap, data->base + SC27XX_FGU_CLBCNT_VALL, &ccl);
 	if (ret)
 		return ret;
 
-	ret = regmap_read(data->regmap, data->base + SC27XX_FGU_CLBCNT_VALH,
-			  &cch);
+	ret = regmap_read(data->regmap, data->base + SC27XX_FGU_CLBCNT_VALH, &cch);
 	if (ret)
 		return ret;
 
@@ -953,8 +948,7 @@ static int sc27xx_fgu_get_status(struct sc27xx_fgu_data *data, int *status)
 		if (!psy)
 			continue;
 
-		ret = power_supply_get_property(psy, POWER_SUPPLY_PROP_STATUS,
-						&val);
+		ret = power_supply_get_property(psy, POWER_SUPPLY_PROP_STATUS, &val);
 		power_supply_put(psy);
 		if (ret)
 			return ret;
@@ -1079,8 +1073,7 @@ static int sc27xx_fgu_get_property(struct power_supply *psy,
 		if (ret)
 			goto error;
 
-		value = DIV_ROUND_CLOSEST(value * 10,
-					  36 * SC27XX_FGU_SAMPLE_HZ);
+		value = DIV_ROUND_CLOSEST(value * 10, 36 * SC27XX_FGU_SAMPLE_HZ);
 		val->intval = sc27xx_fgu_adc_to_current(data, (s64)value);
 
 		break;
@@ -1104,7 +1097,7 @@ static int sc27xx_fgu_set_property(struct power_supply *psy,
 				   const union power_supply_propval *val)
 {
 	struct sc27xx_fgu_data *data = power_supply_get_drvdata(psy);
-	int ret;
+	int ret = 0;
 
 	mutex_lock(&data->lock);
 
@@ -1123,12 +1116,10 @@ static int sc27xx_fgu_set_property(struct power_supply *psy,
 
 	case POWER_SUPPLY_PROP_CALIBRATE:
 		sc27xx_fgu_adjust_cap(data, val->intval);
-		ret = 0;
 		break;
 
 	case POWER_SUPPLY_PROP_ENERGY_FULL_DESIGN:
 		data->total_cap = val->intval / 1000;
-		ret = 0;
 		break;
 
 	default:
