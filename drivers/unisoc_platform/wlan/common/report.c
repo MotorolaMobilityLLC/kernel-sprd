@@ -220,6 +220,7 @@ done:
 					WLAN_STATUS_SUCCESS, GFP_KERNEL);
 	else if (vif->sm_state == SPRD_CONNECTED &&
 		 status_code == SPRD_ROAM_SUCCESS) {
+		memset(&roam_info, 0, sizeof(roam_info));
 		roam_info.bss = bss;
 		roam_info.req_ie = conn_info->req_ie;
 		roam_info.req_ie_len = conn_info->req_ie_len;

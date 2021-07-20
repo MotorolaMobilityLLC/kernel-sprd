@@ -309,7 +309,8 @@ int sc2355_scan(struct wiphy *wiphy, struct cfg80211_scan_request *request)
 			wiphy_err(wiphy, "random mac feature disabled\n");
 			random_mac_flag = SPRD_DISABLE_SCAN_RANDOM_ADDR;
 		}
-		sprd_set_random_mac(vif->priv, vif, random_mac_flag, rand_addr);
+		if (sprd_set_random_mac(vif->priv, vif, random_mac_flag, rand_addr))
+			wiphy_err(wiphy, "Failed to set random mac to STA!\n");
 	}
 
 	/* set WPS ie */

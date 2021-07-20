@@ -86,7 +86,7 @@
 struct sprd_cmd;
 
 struct sprd_ver {
-	char kernel_ver[8];
+	char kernel_ver[__NEW_UTS_LEN + 1];
 	char drv_ver[8];
 	char update[8];
 	char reserve[8];

@@ -283,7 +283,8 @@ static inline void sprd_hif_power_off(struct sprd_hif *hif)
 	sprd_clean_work(hif->priv);
 	sprd_hif_post_deinit(hif);
 
-	stop_marlin(MARLIN_WIFI);
+	if (stop_marlin(MARLIN_WIFI))
+		pr_err("stop_marlin failed!!\n");
 }
 
 static inline int sprd_hif_init(struct sprd_hif *hif)

@@ -2174,7 +2174,8 @@ static int vendor_get_wake_state(struct wiphy *wiphy,
 		pr_err("nla put failure\n");
 		goto nla_put_failure;
 	}
-	cfg80211_vendor_cmd_reply(skb);
+	if (cfg80211_vendor_cmd_reply(skb))
+		pr_err("cfg80211_vendor_cmd_reply failed\n");
 
 	return VENDOR_WIFI_SUCCESS;
 
@@ -2229,7 +2230,7 @@ static int vendor_get_driver_info(struct wiphy *wiphy,
 	u8 attr;
 	struct sprd_priv *priv = wiphy_priv(wiphy);
 	struct nlattr *tb_vendor[ATTR_WIFI_INFO_GET_MAX + 1];
-	char version[32];
+	char version[89];
 
 	pr_info("%s enter\n", __func__);
 	if (nla_parse(tb_vendor, ATTR_WIFI_INFO_GET_MAX, data,
@@ -3821,8 +3822,10 @@ static int vendor_cache_significant_change_result(struct sprd_vif *vif,
 		pos++;
 		frame = (struct significant_change_info *)pos;
 
-		memcpy((void *)(&p->results[p->num_results]),
-		       (void *)pos, sizeof(struct significant_change_info));
+		if (p->num_results < MAX_SIGNIFICANT_CHANGE_APS)
+			memcpy((void *)(&p->results[p->num_results]),
+			       (void *)pos,
+			       sizeof(struct significant_change_info));
 		p->num_results++;
 
 		avail_len -= sizeof(struct significant_change_info) + 1;

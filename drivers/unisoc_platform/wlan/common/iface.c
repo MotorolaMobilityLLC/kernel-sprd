@@ -841,6 +841,14 @@ static int iface_set_p2p_mac(struct net_device *ndev, struct ifreq *ifr)
 		return -EINVAL;
 	if (copy_from_user(&priv_cmd, ifr->ifr_data, sizeof(priv_cmd)))
 		return -EFAULT;
+
+	/* add length check to avoid invalid NULL ptr */
+	if (!priv_cmd.total_len) {
+		netdev_err(ndev, "%s: priv cmd total len is invalid\n",
+			   __func__);
+		return -EINVAL;
+	}
+
 	command = kmalloc(priv_cmd.total_len, GFP_KERNEL);
 	if (!command)
 		return -ENOMEM;

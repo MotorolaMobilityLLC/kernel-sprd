@@ -114,10 +114,12 @@ static void cfg80211_do_work(struct work_struct *work)
 		spin_lock_bh(&priv->work_lock);
 		sprd_work = list_first_entry(&priv->work_list,
 					     struct sprd_work, list);
+		if (!sprd_work) {
+			spin_unlock_bh(&priv->work_lock);
+			return;
+		}
 		list_del(&sprd_work->list);
 		spin_unlock_bh(&priv->work_lock);
-		if (!sprd_work)
-			return;
 
 		vif = sprd_work->vif;
 		netdev_dbg(vif->ndev, "process delayed work: %d\n",
@@ -869,7 +871,7 @@ int sprd_cfg80211_connect(struct wiphy *wiphy, struct net_device *ndev,
 				goto err;
 			}
 
-			sprd_set_def_key(vif->priv, vif, sme->key_idx);
+			ret = sprd_set_def_key(vif->priv, vif, sme->key_idx);
 			if (ret)
 				goto err;
 		}

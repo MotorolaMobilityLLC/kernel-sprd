@@ -34,7 +34,8 @@ static void tcp_ack_timeout(struct timer_list *t)
 		ack_info->drop_cnt = 0;
 		ack_info->in_send_msg = msg;
 		write_sequnlock_bh(&ack_info->seqlock);
-		sprd_chip_tx(&ack_m->priv->chip, msg);
+		if (sprd_chip_tx(&ack_m->priv->chip, msg))
+			pr_err("%s TX data error\n", __func__);
 		return;
 	}
 	write_sequnlock_bh(&ack_info->seqlock);

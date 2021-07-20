@@ -29,7 +29,8 @@ static void tcp_ack_timeout(struct timer_list *t_list)
 		ack_info->msg = NULL;
 		ack_info->drop_cnt = 0;
 		spin_unlock_bh(&ack_info->lock);
-		sprd_chip_tx(&ack_manage.priv->chip, msg);
+		if (sprd_chip_tx(&ack_manage.priv->chip, msg))
+			pr_err("%s TX data error\n", __func__);
 		return;
 	}
 	spin_unlock_bh(&ack_info->lock);
