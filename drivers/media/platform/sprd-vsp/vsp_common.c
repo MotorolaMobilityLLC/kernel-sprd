@@ -212,8 +212,8 @@ int vsp_get_iova(struct vsp_dev_t *vsp_hw_dev,
 		 struct vsp_iommu_map_data *mapdata, void __user *arg)
 {
 	int ret = 0;
-	struct sprd_iommu_map_data iommu_map_data;
-	struct sprd_iommu_unmap_data iommu_ummap_data;
+	struct sprd_iommu_map_data iommu_map_data = {0};
+	struct sprd_iommu_unmap_data iommu_ummap_data = {0};
 	struct dma_buf *dmabuf;
 	struct dma_buf_attachment *attachment;
 	struct sg_table *table;
