@@ -319,10 +319,10 @@
 				clock-names = "vdsp_clk_set","vdsp_clk_512";
 				clocks = <&ap_clk CLK_VDSP>,
 					     <&pll2  CLK_TWPLL_512M>;
-				iommus = <&iommu_vdsp_msti>,
-					     <&iommu_vdsp_mstd>,
-					     <&iommu_vdsp_idma>,
-					     <&iommu_vdsp_vdma>;
+				iommu_names = "unisoc,iommuvau-epp-l5p",
+							"unisoc,iommuvau-edp-l5p",
+							"unisoc,iommuvau-idma-l5p",
+							"unisoc,iommuvau-vdma-l5p";
 				queue-priority = <7 8 9>;
 				/* offset, bit#, IRQ# */
 				device-irq = <0 4 1>;
@@ -937,7 +937,7 @@
 			};
 
 			iommu_vdsp_msti: iommu@20600000 {
-				compatible = "unisoc,iommuvaul5p-epp";
+				compatible = "unisoc,iommuvau-epp-l5p";
 				reg = <0 0x20600000 0 0x400>,
 				      <0 0x20600000 0 0x400>;
 				reg_name = "mmu_interrupt_reg","mmu_reg";
@@ -948,7 +948,7 @@
 			};
 
 			iommu_vdsp_mstd: iommu@20700000 {
-				compatible = "unisoc,iommuvaul5p-edp";
+				compatible = "unisoc,iommuvau-edp-l5p";
 				reg = <0 0x20700000 0 0x400>,
 				      <0 0x20700000 0 0x400>;
 				reg_name = "mmu_interrupt_reg","mmu_reg";
@@ -959,7 +959,7 @@
 			};
 
 			iommu_vdsp_idma: iommu@20800000 {
-				compatible = "unisoc,iommuvaul5p-idma";
+				compatible = "unisoc,iommuvau-idma-l5p";
 				reg = <0 0x20800000 0 0x400>,
 				      <0 0x20800000 0 0x400>;
 				reg_name = "mmu_interrupt_reg","mmu_reg";
@@ -970,7 +970,7 @@
 			};
 
 			iommu_vdsp_vdma: iommu@20a00000 {
-				compatible = "unisoc,iommuvaul5p-vdma";
+				compatible = "unisoc,iommuvau-vdma-l5p";
 				reg = <0 0x20a00000 0 0x400>,
 				      <0 0x20a00000 0 0x400>;
 				reg_name = "mmu_interrupt_reg","mmu_reg";
