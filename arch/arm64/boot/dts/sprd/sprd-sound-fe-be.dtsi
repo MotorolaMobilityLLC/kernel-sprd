@@ -482,7 +482,7 @@
 				sound-dai = <&vbc_v4 2>;
 			};
 			codec {
-				sound-dai = <&sprd_audio_codec_ana 2>;
+				sound-dai = <&sprd_audio_codec_ana 0>;
 			};
 		};
 
@@ -501,7 +501,7 @@
 				sound-dai = <&vbc_v4 3>;
 			};
 			codec {
-				sound-dai = <&sprd_audio_codec_ana 3>;
+				sound-dai = <&sprd_audio_codec_ana 0>;
 			};
 		};
 
@@ -521,7 +521,7 @@
 				sound-dai = <&vbc_v4 4>;
 			};
 			codec {
-				sound-dai = <&sprd_audio_codec_ana 4>;
+				sound-dai = <&sprd_audio_codec_ana 0>;
 			};
 		};
 
@@ -541,7 +541,7 @@
 				sound-dai = <&vbc_v4 5>;
 			};
 			codec {
-				sound-dai = <&sprd_audio_codec_ana 5>;
+				sound-dai = <&sprd_audio_codec_ana 0>;
 			};
 		};
 
@@ -561,7 +561,7 @@
 				sound-dai = <&vbc_v4 6>;
 			};
 			codec {
-				sound-dai = <&sprd_audio_codec_ana 6>;
+				sound-dai = <&sprd_audio_codec_ana 0>;
 			};
 		};
 
@@ -580,7 +580,7 @@
 				sound-dai = <&vbc_v4 7>;
 			};
 			codec {
-				sound-dai = <&sprd_audio_codec_ana 7>;
+				sound-dai = <&sprd_audio_codec_ana 0>;
 			};
 		};
 
@@ -600,7 +600,7 @@
 				sound-dai = <&vbc_v4 8>;
 			};
 			codec {
-				sound-dai = <&sprd_audio_codec_ana 8>;
+				sound-dai = <&sprd_audio_codec_ana 0>;
 			};
 		};
 		/* 9: be fm dsp codec */
@@ -618,7 +618,7 @@
 				sound-dai = <&vbc_v4 9>;
 			};
 			codec {
-				sound-dai = <&sprd_audio_codec_ana 9>;
+				sound-dai = <&sprd_audio_codec_ana 0>;
 			};
 		};
 		/* 10: be normal_ap01 usb */
@@ -1069,7 +1069,7 @@
 				sound-dai = <&vbc_v4 31>;
 			};
 			codec {
-				sound-dai = <&sprd_audio_codec_ana 14>;
+				sound-dai = <&sprd_audio_codec_ana 0>;
 			};
 		};
 
