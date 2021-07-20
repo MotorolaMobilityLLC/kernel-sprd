@@ -16,6 +16,9 @@
 #include <linux/mm.h>
 #include <linux/notifier.h>
 #include <linux/swap.h>
+#ifdef CONFIG_ION
+#include <linux/ion.h>
+#endif
 
 static BLOCKING_NOTIFIER_HEAD(e_show_mem_notify_list);
 
@@ -54,6 +57,14 @@ void enhanced_show_mem(enum e_show_mem_type type)
 		(si.totalram) << (PAGE_SHIFT - 10),
 		(si.bufferram) << (PAGE_SHIFT - 10),
 		total_swapcache_pages() << (PAGE_SHIFT - 10));
+
+#ifdef CONFIG_ION
+	pr_info("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
+	pr_info("Enhanced Mem-info :ION\n");
+	pr_info("Total allocated from Buddy: %8lu kB\n",
+			get_ion_heap_total_pages() << (PAGE_SHIFT - 10));
+	pr_info("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
+#endif
 
 	blocking_notifier_call_chain(&e_show_mem_notify_list,
 				(unsigned long)type, &used);
