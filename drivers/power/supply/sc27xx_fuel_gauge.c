@@ -111,6 +111,25 @@
 #define interpolate(x, x1, y1, x2, y2) \
 	((y1) + ((((y2) - (y1)) * ((x) - (x1))) / ((x2) - (x1))))
 
+struct sc27xx_fgu_debug_info {
+	bool temp_debug_en;
+	bool vbat_now_debug_en;
+	bool ocv_debug_en;
+	bool cur_now_debug_en;
+	bool batt_present_debug_en;
+	bool chg_vol_debug_en;
+	bool batt_health_debug_en;
+
+	int debug_temp;
+	int debug_vbat_now;
+	int debug_ocv;
+	int debug_cur_now;
+	bool debug_batt_present;
+	int debug_chg_vol;
+	int debug_batt_health;
+
+};
+
 /*
  * struct sc27xx_fgu_data: describe the FGU device
  * @regmap: regmap for register access
@@ -173,8 +192,6 @@ struct sc27xx_fgu_data {
 	int ocv;
 	int batt_uV;
 	bool bat_para_adapt_support;
-	bool temp_debug_en;
-	int debug_temp;
 	unsigned int bat_para_adapt_mode;
 	int temp_buff[SC27XX_FGU_TEMP_BUFF_CNT];
 	int cur_now_buff[SC27XX_FGU_CURRENT_BUFF_CNT];
@@ -187,6 +204,7 @@ struct sc27xx_fgu_data {
 	struct power_supply_capacity_temp_table *cap_temp_table;
 	struct power_supply_resistance_temp_table *resistance_table;
 	const struct sc27xx_fgu_variant_data *pdata;
+	struct sc27xx_fgu_debug_info debug_info;
 };
 
 struct sc27xx_fgu_variant_data {
@@ -1062,6 +1080,11 @@ static int sc27xx_fgu_get_property(struct power_supply *psy,
 		break;
 
 	case POWER_SUPPLY_PROP_HEALTH:
+		if (data->debug_info.batt_health_debug_en) {
+			val->intval = data->debug_info.debug_batt_health;
+			break;
+		}
+
 		ret = sc27xx_fgu_get_health(data, &value);
 		if (ret)
 			goto error;
@@ -1071,6 +1094,10 @@ static int sc27xx_fgu_get_property(struct power_supply *psy,
 
 	case POWER_SUPPLY_PROP_PRESENT:
 		val->intval = data->bat_present;
+
+		if (data->debug_info.batt_present_debug_en)
+			val->intval = data->debug_info.debug_batt_present;
+
 		break;
 
 	case POWER_SUPPLY_PROP_TEMP:
@@ -1078,15 +1105,15 @@ static int sc27xx_fgu_get_property(struct power_supply *psy,
 			val->intval = 200;
 		} else {
 			ret = sc27xx_fgu_get_temp(data, &value);
-			if (ret < 0 && !data->temp_debug_en)
+			if (ret < 0 && !data->debug_info.temp_debug_en)
 				goto error;
 
 			ret = 0;
 			val->intval = value;
 		}
 
-		if (data->temp_debug_en)
-			val->intval = data->debug_temp;
+		if (data->debug_info.temp_debug_en)
+			val->intval = data->debug_info.debug_temp;
 
 		break;
 
@@ -1115,6 +1142,11 @@ static int sc27xx_fgu_get_property(struct power_supply *psy,
 		break;
 
 	case POWER_SUPPLY_PROP_VOLTAGE_NOW:
+		if (data->debug_info.vbat_now_debug_en) {
+			val->intval = data->debug_info.debug_vbat_now;
+			break;
+		}
+
 		ret = sc27xx_fgu_get_vbat_now(data, &value);
 		if (ret)
 			goto error;
@@ -1123,6 +1155,10 @@ static int sc27xx_fgu_get_property(struct power_supply *psy,
 		break;
 
 	case POWER_SUPPLY_PROP_VOLTAGE_OCV:
+		if (data->debug_info.ocv_debug_en) {
+			val->intval = data->debug_info.debug_ocv;
+			break;
+		}
 		ret = sc27xx_fgu_get_vbat_ocv(data, &value);
 		if (ret)
 			goto error;
@@ -1131,6 +1167,11 @@ static int sc27xx_fgu_get_property(struct power_supply *psy,
 		break;
 
 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE:
+		if (data->debug_info.chg_vol_debug_en) {
+			val->intval = data->debug_info.debug_chg_vol;
+			break;
+		}
+
 		ret = sc27xx_fgu_get_charge_vol(data, &value);
 		if (ret)
 			goto error;
@@ -1147,6 +1188,11 @@ static int sc27xx_fgu_get_property(struct power_supply *psy,
 		break;
 
 	case POWER_SUPPLY_PROP_CURRENT_NOW:
+		if (data->debug_info.cur_now_debug_en) {
+			val->intval = data->debug_info.debug_cur_now;
+			break;
+		}
+
 		ret = sc27xx_fgu_get_current_now(data, &value);
 		if (ret)
 			goto error;
@@ -1211,24 +1257,148 @@ static int sc27xx_fgu_set_property(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_ENERGY_FULL_DESIGN:
 		data->total_cap = val->intval / 1000;
 		break;
+
 	case POWER_SUPPLY_PROP_TEMP:
 		if (val->intval == SC27XX_FGU_DEBUG_EN_CMD) {
 			dev_info(data->dev, "Change battery temperature to debug mode\n");
-			data->temp_debug_en = true;
-			data->debug_temp = 200;
+			data->debug_info.temp_debug_en = true;
+			data->debug_info.debug_temp = 200;
 			break;
 		} else if (val->intval == SC27XX_FGU_DEBUG_DIS_CMD) {
 			dev_info(data->dev, "Recovery battery temperature to normal mode\n");
-			data->temp_debug_en = false;
+			data->debug_info.temp_debug_en = false;
 			break;
-		} else if (!data->temp_debug_en) {
+		} else if (!data->debug_info.temp_debug_en) {
 			dev_info(data->dev, "Battery temperature not in debug mode\n");
 			break;
 		}
 
-		data->debug_temp = val->intval;
+		data->debug_info.debug_temp = val->intval;
 		dev_info(data->dev, "Battery debug temperature = %d\n", val->intval);
 		break;
+
+	case POWER_SUPPLY_PROP_PRESENT:
+		if (val->intval == SC27XX_FGU_DEBUG_EN_CMD) {
+			dev_info(data->dev, "Change battery present to debug mode\n");
+			data->debug_info.debug_batt_present = true;
+			data->debug_info.batt_present_debug_en = true;
+			break;
+		} else if (val->intval == SC27XX_FGU_DEBUG_DIS_CMD) {
+			dev_info(data->dev, "Recovery battery present to normal mode\n");
+			data->debug_info.batt_present_debug_en = false;
+			break;
+		} else if (!data->debug_info.batt_present_debug_en) {
+			dev_info(data->dev, "Battery present not in debug mode\n");
+			break;
+		}
+
+		data->debug_info.debug_batt_present = !!val->intval;
+		mutex_unlock(&data->lock);
+		cm_notify_event(data->battery, data->debug_info.debug_batt_present ?
+				CM_EVENT_BATT_IN : CM_EVENT_BATT_OUT, NULL);
+		dev_info(data->dev, "Battery debug present = %d\n", !!val->intval);
+		return ret;
+		break;
+
+	case POWER_SUPPLY_PROP_VOLTAGE_NOW:
+		if (val->intval == SC27XX_FGU_DEBUG_EN_CMD) {
+			dev_info(data->dev, "Change voltage_now to debug mode\n");
+			data->debug_info.debug_vbat_now = 4000000;
+			data->debug_info.vbat_now_debug_en = true;
+			break;
+		} else if (val->intval == SC27XX_FGU_DEBUG_DIS_CMD) {
+			dev_info(data->dev, "Recovery voltage_now to normal mode\n");
+			data->debug_info.vbat_now_debug_en = false;
+			data->debug_info.debug_vbat_now = 0;
+			break;
+		} else if (!data->debug_info.vbat_now_debug_en) {
+			dev_info(data->dev, "Voltage_now not in debug mode\n");
+			break;
+		}
+
+		data->debug_info.debug_vbat_now = val->intval;
+		dev_info(data->dev, "Battery debug voltage_now = %d\n", val->intval);
+		break;
+
+	case POWER_SUPPLY_PROP_CURRENT_NOW:
+		if (val->intval == SC27XX_FGU_DEBUG_EN_CMD) {
+			dev_info(data->dev, "Change current_now to debug mode\n");
+			data->debug_info.debug_cur_now = 1000000;
+			data->debug_info.cur_now_debug_en = true;
+			break;
+		} else if (val->intval == SC27XX_FGU_DEBUG_DIS_CMD) {
+			dev_info(data->dev, "Recovery current_now to normal mode\n");
+			data->debug_info.cur_now_debug_en = false;
+			data->debug_info.debug_cur_now = 0;
+			break;
+		} else if (!data->debug_info.cur_now_debug_en) {
+			dev_info(data->dev, "Current_now not in debug mode\n");
+			break;
+		}
+
+		data->debug_info.debug_cur_now = val->intval;
+		dev_info(data->dev, "Battery debug current_now = %d\n", val->intval);
+		break;
+
+	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE:
+		if (val->intval == SC27XX_FGU_DEBUG_EN_CMD) {
+			dev_info(data->dev, "Change charge voltage to debug mode\n");
+			data->debug_info.debug_chg_vol = 5000000;
+			data->debug_info.chg_vol_debug_en = true;
+			break;
+		} else if (val->intval == SC27XX_FGU_DEBUG_DIS_CMD) {
+			dev_info(data->dev, "Recovery charge voltage to normal mode\n");
+			data->debug_info.chg_vol_debug_en = false;
+			data->debug_info.debug_chg_vol = 0;
+			break;
+		} else if (!data->debug_info.chg_vol_debug_en) {
+			dev_info(data->dev, "Charge voltage not in debug mode\n");
+			break;
+		}
+
+		data->debug_info.debug_chg_vol = val->intval;
+		dev_info(data->dev, "Battery debug charge voltage = %d\n", val->intval);
+		break;
+
+	case POWER_SUPPLY_PROP_VOLTAGE_OCV:
+		if (val->intval == SC27XX_FGU_DEBUG_EN_CMD) {
+			dev_info(data->dev, "Change OCV voltage to debug mode\n");
+			data->debug_info.debug_ocv = 4000000;
+			data->debug_info.ocv_debug_en = true;
+			break;
+		} else if (val->intval == SC27XX_FGU_DEBUG_DIS_CMD) {
+			dev_info(data->dev, "Recovery OCV voltage to normal mode\n");
+			data->debug_info.ocv_debug_en = false;
+			data->debug_info.debug_ocv = 0;
+			break;
+		} else if (!data->debug_info.ocv_debug_en) {
+			dev_info(data->dev, "OCV voltage not in debug mode\n");
+			break;
+		}
+
+		data->debug_info.debug_ocv = val->intval;
+		dev_info(data->dev, "Battery debug OCV voltage = %d\n", val->intval);
+		break;
+	case POWER_SUPPLY_PROP_HEALTH:
+		if (val->intval == SC27XX_FGU_DEBUG_EN_CMD) {
+			dev_info(data->dev, "Change Battery Health to debug mode\n");
+			data->debug_info.batt_health_debug_en = true;
+			data->debug_info.debug_batt_health = 1;
+			break;
+		} else if (val->intval == SC27XX_FGU_DEBUG_DIS_CMD) {
+			dev_info(data->dev, "Recovery  Battery Health to normal mode\n");
+			data->debug_info.batt_health_debug_en = false;
+			data->debug_info.debug_batt_health = 1;
+			break;
+		} else if (!data->debug_info.batt_health_debug_en) {
+			dev_info(data->dev, "OCV  Battery Health not in debug mode\n");
+			break;
+		}
+
+		data->debug_info.debug_batt_health = val->intval;
+		dev_info(data->dev, "Battery debug  Battery Health = %d\n", val->intval);
+		break;
+
 	default:
 		ret = -EINVAL;
 	}
@@ -1253,6 +1423,12 @@ static int sc27xx_fgu_property_is_writeable(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_CAPACITY:
 	case POWER_SUPPLY_PROP_CALIBRATE:
 	case POWER_SUPPLY_PROP_ENERGY_FULL_DESIGN:
+	case POWER_SUPPLY_PROP_PRESENT:
+	case POWER_SUPPLY_PROP_VOLTAGE_NOW:
+	case POWER_SUPPLY_PROP_CURRENT_NOW:
+	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE:
+	case POWER_SUPPLY_PROP_VOLTAGE_OCV:
+	case POWER_SUPPLY_PROP_HEALTH:
 		return 1;
 
 	default:

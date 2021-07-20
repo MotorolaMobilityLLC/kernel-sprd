@@ -1269,7 +1269,7 @@ static bool cm_primary_charger_enable(struct charger_manager *cm, bool enable)
 	struct power_supply *psy;
 	int ret;
 
-	if (!cm->desc->psy_cp_stat)
+	if (!cm->desc->psy_charger_stat || !cm->desc->psy_charger_stat[0])
 		return false;
 
 	psy = power_supply_get_by_name(cm->desc->psy_charger_stat[0]);
