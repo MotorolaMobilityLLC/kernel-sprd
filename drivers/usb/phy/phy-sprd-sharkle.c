@@ -51,6 +51,8 @@ struct sprd_hsphy {
 	bool			is_host;
 };
 
+#define FULLSPEED_USB33_TUNE		2700000
+
 static enum usb_charger_type sc27xx_charger_detect(struct regmap *regmap)
 {
 	enum usb_charger_type type;
@@ -346,6 +348,28 @@ static enum usb_charger_type sprd_hsphy_charger_detect(struct usb_phy *x)
 	return sc27xx_charger_detect(phy->pmic);
 }
 
+int sprd_hsphy_cali_mode(void)
+{
+	struct device_node *cmdline_node;
+	const char *cmdline, *mode;
+	int ret;
+
+	cmdline_node = of_find_node_by_path("/chosen");
+	ret = of_property_read_string(cmdline_node, "bootargs", &cmdline);
+
+	if (ret) {
+		pr_err("Can't not parse bootargs\n");
+		return 0;
+	}
+
+	mode = strstr(cmdline, "androidboot.mode=cali");
+
+	if (mode)
+		return 1;
+	else
+		return 0;
+}
+
 static int sprd_hsphy_probe(struct platform_device *pdev)
 {
 	struct device_node *regmap_np;
@@ -354,7 +378,7 @@ static int sprd_hsphy_probe(struct platform_device *pdev)
 	struct device *dev = &pdev->dev;
 	struct regmap *hsphy_glb;
 	struct resource *res;
-	int ret;
+	int ret = 0, calimode = 0;
 	struct usb_otg *otg;
 
 	phy = devm_kzalloc(dev, sizeof(*phy), GFP_KERNEL);
@@ -395,6 +419,12 @@ static int sprd_hsphy_probe(struct platform_device *pdev)
 	if (ret < 0) {
 		dev_err(dev, "unable to read ssphy vdd voltage\n");
 		return ret;
+	}
+
+	calimode = sprd_hsphy_cali_mode();
+	if (calimode) {
+		phy->vdd_vol = FULLSPEED_USB33_TUNE;
+		dev_info(dev, "calimode vdd_vol:%d\n", phy->vdd_vol);
 	}
 
 	phy->vdd = devm_regulator_get(dev, "vdd");
