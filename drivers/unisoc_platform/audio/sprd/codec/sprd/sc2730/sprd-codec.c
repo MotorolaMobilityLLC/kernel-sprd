@@ -1645,25 +1645,15 @@ static int audio_dcl_event(struct snd_soc_dapm_widget *w,
 }
 
 static int chan_event(struct snd_soc_dapm_widget *w,
-		      struct snd_kcontrol *kcontrol, int event)
-{
-	int chan_id = FUN_REG(w->reg);
-	int on = !!SND_SOC_DAPM_EVENT_ON(event);
-
-	sp_asoc_pr_info("%s %s\n", sprd_codec_chan_get_name(chan_id),
-			STR_ON_OFF(on));
-
-	return 0;
-}
-
-static int dfm_out_event(struct snd_soc_dapm_widget *w,
 			 struct snd_kcontrol *kcontrol, int event)
 {
+	int chan_id = FUN_REG(w->reg);
 	int on = !!SND_SOC_DAPM_EVENT_ON(event);
 	struct snd_soc_component *codec = snd_soc_dapm_to_component(w->dapm);
 	struct sprd_codec_priv *sprd_codec = snd_soc_component_get_drvdata(codec);
 
-	sp_asoc_pr_info("DFM-OUT %s\n", STR_ON_OFF(on));
+	sp_asoc_pr_info("%s %s\n", sprd_codec_chan_get_name(chan_id),
+			STR_ON_OFF(on));
 	sprd_codec_sample_rate_setting(sprd_codec);
 
 	return 0;
@@ -2489,87 +2479,11 @@ static const struct snd_soc_dapm_widget sprd_codec_dapm_widgets[] = {
 		FUN_REG(SPRD_CODEC_CAPTRUE),
 		0, 0, chan_event,
 		SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
-	SND_SOC_DAPM_ADC_E("ADC AP23", "Normal-Capture-AP23",
-		FUN_REG(SPRD_CODEC_CAPTRUE),
-		0, 0, chan_event,
-		SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
-	SND_SOC_DAPM_ADC_E("ADC DSP_C", "Capture-DSP",
-		FUN_REG(SPRD_CODEC_CAPTRUE),
-		0, 0, chan_event,
-		SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
-	SND_SOC_DAPM_ADC_E("ADC DSP_C_btsco_test", "Capture-DSP-BTSCO-test",
-		FUN_REG(SPRD_CODEC_CAPTRUE),
-		0, 0, chan_event,
-		SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
-	SND_SOC_DAPM_ADC_E("ADC DSP_C_fm_test", "Capture-DSP-FM-test",
-		FUN_REG(SPRD_CODEC_CAPTRUE),
-		0, 0, chan_event,
-		SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
-	SND_SOC_DAPM_ADC_E("ADC Voip", "Voip-Capture",
-		FUN_REG(SPRD_CODEC_CAPTRUE),
-		0, 0,
-		chan_event,
-		SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
-	SND_SOC_DAPM_ADC_E("ADC CODEC_TEST", "CODEC_TEST-Capture",
-		FUN_REG(SPRD_CODEC_CAPTRUE),
-		0, 0,
-		chan_event,
-		SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
-	SND_SOC_DAPM_ADC_E("ADC LOOP", "LOOP-Capture",
-		FUN_REG(SPRD_CODEC_CAPTRUE),
-		0, 0,
-		chan_event,
-		SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
-	SND_SOC_DAPM_ADC_E("ADC Voice", "Voice-Capture",
-		FUN_REG(SPRD_CODEC_CAPTRUE),
-		0, 0,
-		chan_event,
-		SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
-	SND_SOC_DAPM_ADC_E("Capture RECOGNISE", "Capture-DSP-RECOGNISE",
-		FUN_REG(SPRD_CODEC_CAPTRUE),
-		0, 0,
-		chan_event,
-		SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
 /* DA route */
-	SND_SOC_DAPM_DAC_E("DAC", "Normal-Playback-AP01",
+	SND_SOC_DAPM_DAC_E("DAC", "Normal-Playback",
 		FUN_REG(SPRD_CODEC_PLAYBACK), 0,
 		0,
 		chan_event,
-		SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
-	SND_SOC_DAPM_DAC_E("DAC AP23", "Normal-Playback-AP23",
-		FUN_REG(SPRD_CODEC_PLAYBACK), 0,
-		0,
-		chan_event,
-		SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
-	SND_SOC_DAPM_DAC_E("DAC Voice", "Voice-Playback",
-		FUN_REG(SPRD_CODEC_PLAYBACK), 0, 0, chan_event,
-		SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
-	SND_SOC_DAPM_DAC_E("DAC Offload", "Offload-Playback",
-		FUN_REG(SPRD_CODEC_PLAYBACK), 0, 0, chan_event,
-		SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
-	SND_SOC_DAPM_DAC_E("DAC Fast", "Fast-Playback",
-		FUN_REG(SPRD_CODEC_PLAYBACK), 0, 0, chan_event,
-		SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
-	SND_SOC_DAPM_DAC_E("DAC Voip", "Voip-Playback",
-		FUN_REG(SPRD_CODEC_PLAYBACK), 0, 0, chan_event,
-		SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
-	SND_SOC_DAPM_DAC_E("DAC CODEC_TEST", "CODEC_TEST-Playback",
-		FUN_REG(SPRD_CODEC_PLAYBACK), 0,
-		0,
-		chan_event,
-		SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
-	SND_SOC_DAPM_DAC_E("DAC LOOP", "LOOP-Playback",
-		FUN_REG(SPRD_CODEC_PLAYBACK), 0,
-		0,
-		chan_event,
-		SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
-	SND_SOC_DAPM_DAC_E("DAC Fm", "Fm-Playback",
-		SND_SOC_NOPM, 0, 0,
-		dfm_out_event,
-		SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
-	SND_SOC_DAPM_DAC_E("DAC Fm_DSP", "Fm-DSP-Playback",
-		SND_SOC_NOPM, 0, 0,
-		dfm_out_event,
 		SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
 	SND_SOC_DAPM_PGA_S("Digital DACL Switch", -4, SOC_REG(AUD_TOP_CTL),
 		DAC_EN_L, 0, 0, 0),
@@ -2760,37 +2674,9 @@ static const struct snd_soc_dapm_route sprd_codec_intercon[] = {
 #if 1
 /* DA route */
 	{"DAC", NULL, "CLK_DAC"},
-	{"DAC Voice", NULL, "CLK_DAC"},
-	{"DAC Offload", NULL, "CLK_DAC"},
-	{"DAC Fast", NULL, "CLK_DAC"},
-	{"DAC Voip", NULL, "CLK_DAC"},
-	{"DAC Fm", NULL, "CLK_DAC"},
-	{"DAC Fm_DSP", NULL, "CLK_DAC"},
-	{"DAC AP23", NULL, "CLK_DAC"},
-	{"DAC CODEC_TEST", NULL, "CLK_DAC"},
-	{"DAC LOOP", NULL, "CLK_DAC"},
 
 	{"Digital DACL Switch", NULL, "DAC"},
 	{"Digital DACR Switch", NULL, "DAC"},
-	{"Digital DACL Switch", NULL, "DAC Fm"},
-	{"Digital DACR Switch", NULL, "DAC Fm"},
-	{"Digital DACL Switch", NULL, "DAC Fm_DSP"},
-	{"Digital DACR Switch", NULL, "DAC Fm_DSP"},
-	{"Digital DACL Switch", NULL, "DAC AP23"},
-	{"Digital DACR Switch", NULL, "DAC AP23"},
-	{"Digital DACL Switch", NULL, "DAC Voice"},
-	{"Digital DACR Switch", NULL, "DAC Voice"},
-	{"Digital DACL Switch", NULL, "DAC Offload"},
-	{"Digital DACR Switch", NULL, "DAC Offload"},
-	{"Digital DACL Switch", NULL, "DAC Fast"},
-	{"Digital DACR Switch", NULL, "DAC Fast"},
-	{"Digital DACL Switch", NULL, "DAC Voip"},
-	{"Digital DACR Switch", NULL, "DAC Voip"},
-	{"Digital DACL Switch", NULL, "DAC CODEC_TEST"},
-	{"Digital DACR Switch", NULL, "DAC CODEC_TEST"},
-	{"Digital DACL Switch", NULL, "DAC LOOP"},
-	{"Digital DACR Switch", NULL, "DAC LOOP"},
-
 
 	{"ADie Digital DACL Switch", NULL, "Digital DACL Switch"},
 	{"ADie Digital DACR Switch", NULL, "Digital DACR Switch"},
@@ -2871,64 +2757,19 @@ static const struct snd_soc_dapm_route sprd_codec_intercon[] = {
 	{"AUD ADC1R", "Switch", "Digital ADC1R Switch"},
 
 	/* AUD ADC0 */
-	{"ADC DSP_C", NULL, "AUD ADC0L"},
-	{"ADC DSP_C", NULL, "AUD ADC0R"},
-	{"ADC DSP_C_btsco_test", NULL, "AUD ADC0L"},
-	{"ADC DSP_C_btsco_test", NULL, "AUD ADC0R"},
-	{"ADC DSP_C_fm_test", NULL, "AUD ADC0L"},
-	{"ADC DSP_C_fm_test", NULL, "AUD ADC0R"},
-	{"ADC Voice", NULL, "AUD ADC0L"},
-	{"ADC Voice", NULL, "AUD ADC0R"},
-	{"Capture RECOGNISE", NULL, "AUD ADC0L"},
-	{"Capture RECOGNISE", NULL, "AUD ADC0R"},
-	{"ADC Voip", NULL, "AUD ADC0L"},
-	{"ADC Voip", NULL, "AUD ADC0R"},
-	{"ADC CODEC_TEST", NULL, "AUD ADC0L"},
-	{"ADC CODEC_TEST", NULL, "AUD ADC0R"},
-	{"ADC LOOP", NULL, "AUD ADC0L"},
-	{"ADC LOOP", NULL, "AUD ADC0R"},
 	{"ADC", NULL, "AUD ADC0L"},
 	{"ADC", NULL, "AUD ADC0R"},
-	{"ADC AP23", NULL, "AUD ADC0L"},
-	{"ADC AP23", NULL, "AUD ADC0R"},
 	{"ADC1", NULL, "AUD ADC0L"},
 	{"ADC1", NULL, "AUD ADC0R"},
 
 	/* AUD ADC1 */
-	{"ADC DSP_C", NULL, "AUD ADC1L"},
-	{"ADC DSP_C", NULL, "AUD ADC1R"},
-	{"ADC DSP_C_btsco_test", NULL, "AUD ADC1L"},
-	{"ADC DSP_C_btsco_test", NULL, "AUD ADC1R"},
-	{"ADC DSP_C_fm_test", NULL, "AUD ADC1L"},
-	{"ADC DSP_C_fm_test", NULL, "AUD ADC1R"},
-	{"ADC Voice", NULL, "AUD ADC1L"},
-	{"ADC Voice", NULL, "AUD ADC1R"},
-	{"Capture RECOGNISE", NULL, "AUD ADC1L"},
-	{"Capture RECOGNISE", NULL, "AUD ADC1R"},
-	{"ADC Voip", NULL, "AUD ADC1L"},
-	{"ADC Voip", NULL, "AUD ADC1R"},
-	{"ADC CODEC_TEST", NULL, "AUD ADC1L"},
-	{"ADC CODEC_TEST", NULL, "AUD ADC1R"},
-	{"ADC LOOP", NULL, "AUD ADC1L"},
-	{"ADC LOOP", NULL, "AUD ADC1R"},
 	{"ADC", NULL, "AUD ADC1L"},
 	{"ADC", NULL, "AUD ADC1R"},
-	{"ADC AP23", NULL, "AUD ADC1L"},
-	{"ADC AP23", NULL, "AUD ADC1R"},
 	{"ADC1", NULL, "AUD ADC1L"},
 	{"ADC1", NULL, "AUD ADC1R"},
 
 	{"ADC", NULL, "CLK_ADC"},
 	{"ADC1", NULL, "CLK_ADC"},
-	{"ADC AP23", NULL, "CLK_ADC"},
-	{"ADC DSP_C", NULL, "CLK_ADC"},
-	{"ADC DSP_C_btsco_test", NULL, "CLK_ADC"},
-	{"ADC DSP_C_fm_test", NULL, "CLK_ADC"},
-	{"ADC Voice", NULL, "CLK_ADC"},
-	{"Capture RECOGNISE", NULL, "CLK_ADC"},
-	{"ADC Voip", NULL, "CLK_ADC"},
-	{"ADC CODEC_TEST", NULL, "CLK_ADC"},
-	{"ADC LOOP", NULL, "CLK_ADC"},
 
 /* MIC */
 	{"MICBIAS1", NULL, "BG"},
@@ -2949,8 +2790,8 @@ static const struct snd_soc_dapm_route sprd_codec_intercon[] = {
 	{"IVSense Virt", "Switch", "ADC"},
 	{"IVSense Virt", "Switch", "ADC1"},
 	{"IVSense Virt", NULL, "IVSense SRC"},
-	{"DAC Fast", NULL, "IVSense Virt"},
-	{"DAC Offload", NULL, "IVSense Virt"},
+	//{"DAC Fast", NULL, "IVSense Virt"},
+	//{"DAC Offload", NULL, "IVSense Virt"},
 
 /* ADie loop */
 	{"ADC-DAC Adie Loop", "switch", "ADC"},
@@ -3706,11 +3547,11 @@ static inline void sprd_codec_proc_init(struct sprd_codec_priv *sprd_codec)
 
 /* PCM Playing and Recording default in full duplex mode */
 static struct snd_soc_dai_driver sprd_codec_dai[] = {
-/* 0: NORMAL_AP01 */
+	/* 0: DAC + ADC0 */
 	{
 		.name = "sprd-codec-normal-ap01",
 		.playback = {
-			.stream_name = "Normal-Playback-AP01",
+			.stream_name = "Normal-Playback",
 			.channels_min = 1,
 			.channels_max = 2,
 			.rates = SPRD_CODEC_PCM_RATES,
@@ -3725,11 +3566,11 @@ static struct snd_soc_dai_driver sprd_codec_dai[] = {
 		},
 		.ops = &sprd_codec_dai_ops,
 	},
-	/* 1: NORMAL_AP23 */
+	/* 1: DAC + ADC1 */
 	{
 		.name = "sprd-codec-normal-ap23",
 		.playback = {
-			.stream_name = "Normal-Playback-AP23",
+			.stream_name = "Normal-Playback",
 			.channels_min = 1,
 			.channels_max = 2,
 			.rates = SPRD_CODEC_PCM_RATES,
@@ -3737,205 +3578,6 @@ static struct snd_soc_dai_driver sprd_codec_dai[] = {
 		},
 		.capture = {
 			.stream_name = "Normal-Capture-AP23",
-			.channels_min = 1,
-			.channels_max = 2,
-			.rates = SPRD_CODEC_PCM_AD_RATES,
-			.formats = SPRD_CODEC_PCM_FATMATS,
-		},
-		.ops = &sprd_codec_dai_ops,
-	},
-	/* 2: CAPTURE_DSP */
-	{
-		.name = "sprd-codec-capture-dsp",
-		.capture = {
-			.stream_name = "Capture-DSP",
-			.channels_min = 1,
-			.channels_max = 2,
-			.rates = SPRD_CODEC_PCM_AD_RATES,
-			.formats = SPRD_CODEC_PCM_FATMATS,
-		},
-		.ops = &sprd_codec_dai_ops,
-	},
-	/* 3: FAST_P */
-	{
-		.name = "sprd-codec-fast-playback",
-		.playback = {
-			.stream_name = "Fast-Playback",
-			.channels_min = 1,
-			.channels_max = 2,
-			.rates = SPRD_CODEC_PCM_RATES,
-			.formats = SPRD_CODEC_PCM_FATMATS,
-		},
-		.ops = &sprd_codec_dai_ops,
-	},
-	/* 4: OFFLOAD */
-	{
-		.name = "sprd-codec-offload-playback",
-		.playback = {
-			.stream_name = "Offload-Playback",
-			.channels_min = 1,
-			.channels_max = 2,
-			.rates = SPRD_CODEC_PCM_RATES,
-			.formats = SPRD_CODEC_PCM_FATMATS,
-		},
-		.ops = &sprd_codec_dai_ops,
-	},
-	/* 5: VOICE */
-	{
-		.name = "sprd-codec-voice",
-		.playback = {
-			.stream_name = "Voice-Playback",
-			.channels_min = 1,
-			.channels_max = 2,
-			.rates = SPRD_CODEC_PCM_RATES,
-			.formats = SPRD_CODEC_PCM_FATMATS,
-		},
-		.capture = {
-			.stream_name = "Voice-Capture",
-			.channels_min = 1,
-			.channels_max = 2,
-			.rates = SPRD_CODEC_PCM_AD_RATES,
-			.formats = SPRD_CODEC_PCM_FATMATS,
-		},
-		.ops = &sprd_codec_dai_ops,
-	},
-	/* 6: VOIP */
-	{
-		.name = "sprd-codec-voip",
-		.playback = {
-			.stream_name = "Voip-Playback",
-			.channels_min = 1,
-			.channels_max = 2,
-			.rates = SPRD_CODEC_PCM_RATES,
-			.formats = SPRD_CODEC_PCM_FATMATS,
-		},
-		.capture = {
-			.stream_name = "Voip-Capture",
-			.channels_min = 1,
-			.channels_max = 2,
-			.rates = SPRD_CODEC_PCM_AD_RATES,
-			.formats = SPRD_CODEC_PCM_FATMATS,
-		},
-		.ops = &sprd_codec_dai_ops,
-	},
-	/* 7: FM */
-	{
-		.name = "sprd-codec-fm",
-		.playback = {
-			.stream_name = "Fm-Playback",
-			.channels_min = 1,
-			.channels_max = 2,
-			.rates = SPRD_CODEC_PCM_RATES,
-			.formats = SPRD_CODEC_PCM_FATMATS,
-		},
-		.ops = &sprd_codec_dai_ops,
-	},
-	/* 8 loopback(dsp voice) */
-	{
-		.name = "sprd-codec-loop",
-		.playback = {
-			.stream_name = "LOOP-Playback",
-			.channels_min = 1,
-			.channels_max = 2,
-			.rates = SPRD_CODEC_PCM_RATES,
-			.formats = SPRD_CODEC_PCM_FATMATS,
-		},
-		.capture = {
-			.stream_name = "LOOP-Capture",
-			.channels_min = 1,
-			.channels_max = 2,
-			.rates = SPRD_CODEC_PCM_AD_RATES,
-			.formats = SPRD_CODEC_PCM_FATMATS,
-		},
-		.ops = &sprd_codec_dai_ops,
-	},
-	/* 9: FM dsp*/
-	{
-		.name = "sprd-codec-fm-dsp",
-		.playback = {
-			.stream_name = "Fm-DSP-Playback",
-			.channels_min = 1,
-			.channels_max = 2,
-			.rates = SPRD_CODEC_PCM_RATES,
-			.formats = SPRD_CODEC_PCM_FATMATS,
-		},
-		.ops = &sprd_codec_dai_ops,
-	},
-	/* 10 */
-	{
-		.id = SPRD_CODEC_IIS0_ID,
-		.name = "sprd-codec-ad1",
-		.capture = {
-			.stream_name = "Ext-Capture",
-			.channels_min = 1,
-			.channels_max = 2,
-			.rates = SPRD_CODEC_PCM_AD_RATES,
-			.formats = SPRD_CODEC_PCM_FATMATS,
-		},
-		.ops = &sprd_codec_dai_ops,
-	},
-	/* 11 */
-	{
-		.id = SPRD_CODEC_IIS0_ID,
-		.name = "sprd-codec-ad1-voice",
-		.capture = {
-			.stream_name = "Ext-Voice-Capture",
-			.channels_min = 1,
-			.channels_max = 2,
-			.rates = SPRD_CODEC_PCM_AD_RATES,
-			.formats = SPRD_CODEC_PCM_FATMATS,
-		},
-		.ops = &sprd_codec_dai_ops,
-	},
-	/* 12: CAPTURE_DSP_fm test haps, remove it if not haps */
-	{
-		.name = "test_fm_codec_replace",
-		.capture = {
-			.stream_name = "Capture-DSP-FM-test",
-			.channels_min = 1,
-			.channels_max = 2,
-			.rates = SPRD_CODEC_PCM_AD_RATES,
-			.formats = SPRD_CODEC_PCM_FATMATS,
-		},
-		.ops = &sprd_codec_dai_ops,
-	},
-	/* 13: CAPTURE_DSP_btsco test haps, remove it if not haps */
-	{
-		.name = "test_btsco_codec_replace",
-		.capture = {
-			.stream_name = "Capture-DSP-BTSCO-test",
-			.channels_min = 1,
-			.channels_max = 2,
-			.rates = SPRD_CODEC_PCM_AD_RATES,
-			.formats = SPRD_CODEC_PCM_FATMATS,
-		},
-		.ops = &sprd_codec_dai_ops,
-	},
-	/* 14: codec test */
-	{
-		.name = "sprd-codec-test",
-		.playback = {
-			.stream_name = "CODEC_TEST-Playback",
-			.channels_min = 1,
-			.channels_max = 2,
-			.rates = SPRD_CODEC_PCM_RATES,
-			.formats = SPRD_CODEC_PCM_FATMATS,
-		},
-		.capture = {
-			.stream_name = "CODEC_TEST-Capture",
-			.channels_min = 1,
-			.channels_max = 2,
-			.rates = SPRD_CODEC_PCM_AD_RATES,
-			.formats = SPRD_CODEC_PCM_FATMATS,
-		},
-		.ops = &sprd_codec_dai_ops,
-	},
-
-	/* 15: CAPTURE_DSP_RECOGNISE */
-	{
-		.name = "sprd-codec-capture-dsp-recognise",
-		.capture = {
-			.stream_name = "Capture-DSP-RECOGNISE",
 			.channels_min = 1,
 			.channels_max = 2,
 			.rates = SPRD_CODEC_PCM_AD_RATES,
@@ -4006,12 +3648,6 @@ static int sprd_codec_soc_probe(struct snd_soc_component *codec)
 	sprd_codec->codec = codec;
 
 	sprd_codec_proc_init(sprd_codec);
-
-	snd_soc_dapm_ignore_suspend(dapm, "Offload-Playback");
-	snd_soc_dapm_ignore_suspend(dapm, "Fm-Playback");
-	snd_soc_dapm_ignore_suspend(dapm, "Voice-Playback");
-	snd_soc_dapm_ignore_suspend(dapm, "Voice-Capture");
-	snd_soc_dapm_ignore_suspend(dapm, "Capture-DSP-RECOGNISE");
 
 	/*
 	 * Even without headset driver, codec could work well.

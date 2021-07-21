@@ -7200,63 +7200,68 @@ static struct snd_soc_dai_ops dfm_dai_ops = {
 };
 
 static struct snd_soc_dai_driver vbc_dai[] = {
-	{			/* 0 */
-	 .name = "vbc-r1p0v3",
-	 .id = VBC_DAI_NORMAL,
-	 .playback = {
-		      .channels_min = 1,
-		      .channels_max = 2,
-		      .rates = SNDRV_PCM_RATE_CONTINUOUS,
-		      .rate_max = 96000,
-		      .formats = SNDRV_PCM_FMTBIT_S16_LE,
-		      },
-	 /* AD01 */
-	 .capture = {
-		     .channels_min = 1,
-		     .channels_max = 2,
-		     .rates = SNDRV_PCM_RATE_CONTINUOUS,
-		     .rate_max = 96000,
-		     .formats = SNDRV_PCM_FMTBIT_S16_LE,
-		     },
-	 .ops = &vbc_dai_ops,
-	 },
-	{			/* 1 */
-	 .name = "vbc-r1p0v3-ad23",
-	 .id = VBC_DAI_AD23,
-	 /* AD23 */
-	 .capture = {
-		     .channels_min = 1,
-		     .channels_max = 2,
-		     .rates = SNDRV_PCM_RATE_CONTINUOUS,
-		     .rate_max = 96000,
-		     .formats = SNDRV_PCM_FMTBIT_S16_LE,
-		     },
-	 .ops = &vbc_dai_ops,
-	 },
-	{			/* 2 */
-	 .name = "vbc-dfm",
-	 .id = DFM_MAGIC_ID,
-	 .playback = {
-		      .channels_min = 1,
-		      .channels_max = 2,
-		      .rates = SNDRV_PCM_RATE_CONTINUOUS,
-		      .rate_max = 48000,
-		      .formats = SNDRV_PCM_FMTBIT_S16_LE,
-		      },
-	 .ops = &dfm_dai_ops,
-	 },
-	{			/* 3 */
-	 .name = "vbc-deep-buf",
-	 .id = VBC_DAI_DEEP_BUF,
-	 .playback = {
-		      .channels_min = 1,
-		      .channels_max = 2,
-		      .rates = SNDRV_PCM_RATE_CONTINUOUS,
-		      .rate_max = 96000,
-		      .formats = SNDRV_PCM_FMTBIT_S16_LE,
-		      },
-	 .ops = &vbc_dai_ops,
-	 },
+	{ /* 0 */
+		.name = "vbc-r1p0v3",
+		.id = VBC_DAI_NORMAL,
+		.playback = {
+			.stream_name = "NORMAL_DA_CODEC_P",
+		    .channels_min = 1,
+			.channels_max = 2,
+		    .rates = SNDRV_PCM_RATE_CONTINUOUS,
+		    .rate_max = 96000,
+		    .formats = SNDRV_PCM_FMTBIT_S16_LE,
+		},
+		/* AD01 */
+		.capture = {
+			.stream_name = "NORMAL_AD01_CODEC_C",
+		    .channels_min = 1,
+		    .channels_max = 2,
+		    .rates = SNDRV_PCM_RATE_CONTINUOUS,
+		    .rate_max = 96000,
+		    .formats = SNDRV_PCM_FMTBIT_S16_LE,
+		},
+		.ops = &vbc_dai_ops,
+	},
+	{ /* 1 */
+		.name = "vbc-r1p0v3-ad23",
+		.id = VBC_DAI_AD23,
+		/* AD23 */
+		.capture = {
+			.stream_name = "NORMAL_AD23_CODEC_C",
+		    .channels_min = 1,
+		    .channels_max = 2,
+		    .rates = SNDRV_PCM_RATE_CONTINUOUS,
+		    .rate_max = 96000,
+		    .formats = SNDRV_PCM_FMTBIT_S16_LE,
+		},
+		.ops = &vbc_dai_ops,
+	},
+	{ /* 2 */
+		.name = "vbc-dfm",
+		.id = DFM_MAGIC_ID,
+		.playback = {
+			.stream_name = "DFM_CODEC_P",
+		    .channels_min = 1,
+		    .channels_max = 2,
+		    .rates = SNDRV_PCM_RATE_CONTINUOUS,
+		    .rate_max = 48000,
+		    .formats = SNDRV_PCM_FMTBIT_S16_LE,
+		},
+		.ops = &dfm_dai_ops,
+	},
+	{ /* 3 */
+		.name = "vbc-deep-buf",
+		.id = VBC_DAI_DEEP_BUF,
+		.playback = {
+			.stream_name = "DEEPBUF_CODEC_P",
+		    .channels_min = 1,
+		    .channels_max = 2,
+		    .rates = SNDRV_PCM_RATE_CONTINUOUS,
+		    .rate_max = 96000,
+		    .formats = SNDRV_PCM_FMTBIT_S16_LE,
+		},
+		.ops = &vbc_dai_ops,
+	},
 };
 
 static int vbc_set_phys_addr(int vbc_switch)

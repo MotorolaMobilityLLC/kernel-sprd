@@ -1736,21 +1736,11 @@ static int chan_event(struct snd_soc_dapm_widget *w,
 {
 	int chan_id = FUN_REG(w->reg);
 	int on = !!SND_SOC_DAPM_EVENT_ON(event);
-
-	sp_asoc_pr_info("%s %s\n", sprd_codec_chan_get_name(chan_id),
-			STR_ON_OFF(on));
-
-	return 0;
-}
-
-static int dfm_out_event(struct snd_soc_dapm_widget *w,
-			 struct snd_kcontrol *kcontrol, int event)
-{
-	int on = !!SND_SOC_DAPM_EVENT_ON(event);
 	struct snd_soc_component *codec = snd_soc_dapm_to_component(w->dapm);
 	struct sprd_codec_priv *sprd_codec = snd_soc_component_get_drvdata(codec);
 
-	sp_asoc_pr_info("DFM-OUT %s\n", STR_ON_OFF(on));
+	sp_asoc_pr_info("%s %s\n", sprd_codec_chan_get_name(chan_id),
+			STR_ON_OFF(on));
 	sprd_codec_sample_rate_setting(sprd_codec);
 
 	return 0;
@@ -2968,30 +2958,6 @@ static const struct snd_soc_dapm_widget sprd_codec_dapm_widgets[] = {
 			   0,
 			   chan_event,
 			   SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
-	SND_SOC_DAPM_DAC_E("DAC Voice", "Voice-Playback",
-			   FUN_REG(SPRD_CODEC_PLAYBACK), 0,
-			   0,
-			   chan_event,
-			   SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
-	SND_SOC_DAPM_DAC_E("DAC Offload", "Offload-Playback",
-			   FUN_REG(SPRD_CODEC_PLAYBACK), 0,
-			   0,
-			   chan_event,
-			   SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
-	SND_SOC_DAPM_DAC_E("DAC Fast", "Fast-Playback",
-			   FUN_REG(SPRD_CODEC_PLAYBACK), 0,
-			   0,
-			   chan_event,
-			   SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
-	SND_SOC_DAPM_DAC_E("DAC Voip", "Voip-Playback",
-			   FUN_REG(SPRD_CODEC_PLAYBACK), 0,
-			   0,
-			   chan_event,
-			   SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
-	SND_SOC_DAPM_DAC_E("DAC Fm", "Fm-Playback",
-			   SND_SOC_NOPM, 0, 0,
-		dfm_out_event,
-		SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
 	SND_SOC_DAPM_PGA_S("HPL Drv Path Switch", SPRD_CODEC_MIXER_ORDER,
 			   0, HPL_EN, 0,
 		hp_drv_path_switch_event,
@@ -3132,16 +3098,6 @@ static const struct snd_soc_dapm_widget sprd_codec_dapm_widgets[] = {
 			   FUN_REG(SPRD_CODEC_CAPTRUE),
 		0, 0, chan_event,
 		SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
-	SND_SOC_DAPM_ADC_E("ADC Voip", "Voip-Capture",
-			   FUN_REG(SPRD_CODEC_CAPTRUE),
-			   0, 0,
-			   chan_event,
-			   SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
-	SND_SOC_DAPM_ADC_E("ADC Voice", "Voice-Capture",
-			   FUN_REG(SPRD_CODEC_CAPTRUE),
-			   0, 0,
-			   chan_event,
-			   SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
 
 	SND_SOC_DAPM_MICBIAS_E("Mic Bias", FUN_REG(SPRD_CODEC_MIC_BIAS),
 			       0, 0, mic_bias_event,
@@ -3153,10 +3109,7 @@ static const struct snd_soc_dapm_widget sprd_codec_dapm_widgets[] = {
 			   ADC1_EN_L, 0, NULL, 0),
 	SND_SOC_DAPM_PGA_S("Digital ADC1R Switch", 5, SOC_REG(AUD_TOP_CTL),
 			   ADC1_EN_R, 0, NULL, 0),
-	SND_SOC_DAPM_ADC_E("ADC1", "Ext-Voice-Capture",
-			   FUN_REG(SPRD_CODEC_CAPTRUE1), 0, 0, chan_event,
-		SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
-	SND_SOC_DAPM_ADC_E("ADC1 Ext", "Ext-Capture",
+	SND_SOC_DAPM_ADC_E("ADC1", "Ext-Capture",
 			   FUN_REG(SPRD_CODEC_CAPTRUE1), 0, 0, chan_event,
 		SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
 	/* add DMIC */
@@ -3251,11 +3204,6 @@ static const struct snd_soc_dapm_route sprd_codec_intercon[] = {
 	{"DA Clk", NULL, "Analog Power"},
 	{"DA Clk", NULL, "Digital Power"},
 	{"DAC", NULL, "DA Clk"},
-	{"DAC Voice", NULL, "DA Clk"},
-	{"DAC Offload", NULL, "DA Clk"},
-	{"DAC Fast", NULL, "DA Clk"},
-	{"DAC Fm", NULL, "DA Clk"},
-	{"DAC Voip", NULL, "DA Clk"},
 
 	{"AD IBIAS", NULL, "Analog Power"},
 	{"AD IBUF", NULL, "Analog Power"},
@@ -3263,11 +3211,7 @@ static const struct snd_soc_dapm_route sprd_codec_intercon[] = {
 	{"AD Clk", NULL, "AD IBIAS"},
 	{"AD Clk", NULL, "AD IBUF"},
 	{"ADC", NULL, "AD Clk"},
-	{"ADC Voice", NULL, "AD Clk"},
-	{"ADC Voip", NULL, "AD Clk"},
-
 	{"ADC1", NULL, "AD Clk"},
-	{"ADC1 Ext", NULL, "AD Clk"},
 
 	{"ADCL PGA", NULL, "AD IBUF"},
 	{"ADCR PGA", NULL, "AD IBUF"},
@@ -3279,18 +3223,8 @@ static const struct snd_soc_dapm_route sprd_codec_intercon[] = {
 	{"EAR Switch", NULL, "DRV Clk"},
 
 	/* Playback */
-	{"Digital DACL Switch", NULL, "DAC Fm"},
-	{"Digital DACR Switch", NULL, "DAC Fm"},
 	{"Digital DACL Switch", NULL, "DAC"},
 	{"Digital DACR Switch", NULL, "DAC"},
-	{"Digital DACL Switch", NULL, "DAC Voice"},
-	{"Digital DACR Switch", NULL, "DAC Voice"},
-	{"Digital DACL Switch", NULL, "DAC Offload"},
-	{"Digital DACR Switch", NULL, "DAC Offload"},
-	{"Digital DACL Switch", NULL, "DAC Fast"},
-	{"Digital DACR Switch", NULL, "DAC Fast"},
-	{"Digital DACL Switch", NULL, "DAC Voip"},
-	{"Digital DACR Switch", NULL, "DAC Voip"},
 	{"ADie Digital DACL Switch", NULL, "Digital DACL Switch"},
 	{"ADie Digital DACR Switch", NULL, "Digital DACR Switch"},
 	{"Virt Output", "Switch", "Digital DACL Switch"},
@@ -3383,17 +3317,11 @@ static const struct snd_soc_dapm_route sprd_codec_intercon[] = {
 	{"Digital ADCR Switch", NULL, "ADie Digital ADCR Switch"},
 	{"ADC", NULL, "Digital ADCL Switch"},
 	{"ADC", NULL, "Digital ADCR Switch"},
-	{"ADC Voice", NULL, "Digital ADCL Switch"},
-	{"ADC Voice", NULL, "Digital ADCR Switch"},
-	{"ADC Voip", NULL, "Digital ADCL Switch"},
-	{"ADC Voip", NULL, "Digital ADCR Switch"},
 
 	{"Digital ADC1L Switch", NULL, "ADie Digital ADCL Switch"},
 	{"Digital ADC1R Switch", NULL, "ADie Digital ADCR Switch"},
 	{"ADC1", NULL, "Digital ADC1L Switch"},
 	{"ADC1", NULL, "Digital ADC1R Switch"},
-	{"ADC1 Ext", NULL, "Digital ADC1L Switch"},
-	{"ADC1 Ext", NULL, "Digital ADC1R Switch"},
 
 	{"Mic Bias", NULL, "MIC Pin"},
 	{"Mic Bias", NULL, "MIC2 Pin"},
@@ -4495,118 +4423,35 @@ static inline void sprd_codec_proc_init(struct sprd_codec_priv *sprd_codec)
 
 /* PCM Playing and Recording default in full duplex mode */
 static struct snd_soc_dai_driver sprd_codec_dai[] = {
-	{/* 0 */
-	 .name = "sprd-codec-normal",
-	 .playback = {
-		      .stream_name = "Normal-Playback",
-		      .channels_min = 1,
-		      .channels_max = 2,
-		      .rates = SPRD_CODEC_PCM_RATES,
-		      .formats = SPRD_CODEC_PCM_FATMATS,
-		      },
-	 .capture = {
-		     .stream_name = "Normal-Capture",
-		     .channels_min = 1,
-		     .channels_max = 2,
-		     .rates = SPRD_CODEC_PCM_AD_RATES,
-		     .formats = SPRD_CODEC_PCM_FATMATS,
-		     },
-	 .ops = &sprd_codec_dai_ops,
+	{ /* 0 */
+		.name = "sprd-codec-normal",
+		.playback = {
+				.stream_name = "Normal-Playback",
+				.channels_min = 1,
+				.channels_max = 2,
+				.rates = SPRD_CODEC_PCM_RATES,
+				.formats = SPRD_CODEC_PCM_FATMATS,
+		},
+		.capture = {
+				.stream_name = "Normal-Capture",
+				.channels_min = 1,
+				.channels_max = 2,
+				.rates = SPRD_CODEC_PCM_AD_RATES,
+				.formats = SPRD_CODEC_PCM_FATMATS,
+		},
+		.ops = &sprd_codec_dai_ops,
 	 },
-	{/* 1 */
-	 .name = "sprd-codec-voice",
-	 .playback = {
-		      .stream_name = "Voice-Playback",
-		      .channels_min = 1,
-		      .channels_max = 2,
-		      .rates = SPRD_CODEC_PCM_RATES,
-		      .formats = SPRD_CODEC_PCM_FATMATS,
-		      },
-	 .capture = {
-		     .stream_name = "Voice-Capture",
-		     .channels_min = 1,
-		     .channels_max = 2,
-		     .rates = SPRD_CODEC_PCM_AD_RATES,
-		     .formats = SPRD_CODEC_PCM_FATMATS,
-		     },
-	 .ops = &sprd_codec_dai_ops,
-	 },
-	{/* 2 */
-	 .name = "sprd-codec-voip",
-	 .playback = {
-		      .stream_name = "Voip-Playback",
-		      .channels_min = 1,
-		      .channels_max = 2,
-		      .rates = SPRD_CODEC_PCM_RATES,
-		      .formats = SPRD_CODEC_PCM_FATMATS,
-		      },
-	 .capture = {
-		     .stream_name = "Voip-Capture",
-		     .channels_min = 1,
-		     .channels_max = 2,
-		     .rates = SPRD_CODEC_PCM_AD_RATES,
-		     .formats = SPRD_CODEC_PCM_FATMATS,
-		     },
-	 .ops = &sprd_codec_dai_ops,
-	 },
-	/* 3 */
-	{
-	 .id = SPRD_CODEC_IIS1_ID,
-	 .name = "sprd-codec-ad1",
-	 .capture = {
-		     .stream_name = "Ext-Capture",
-		     .channels_min = 1,
-		     .channels_max = 2,
-		     .rates = SPRD_CODEC_PCM_AD_RATES,
-		     .formats = SPRD_CODEC_PCM_FATMATS,
-		     },
-	 .ops = &sprd_codec_dai_ops,
-	 },
-	/* 4 */
-	{
-	 .id = SPRD_CODEC_IIS1_ID,
-	 .name = "sprd-codec-ad1-voice",
-	 .capture = {
-		     .stream_name = "Ext-Vioce-Capture",
-		     .channels_min = 1,
-		     .channels_max = 2,
-		     .rates = SPRD_CODEC_PCM_AD_RATES,
-		     .formats = SPRD_CODEC_PCM_FATMATS,
-		     },
-	 .ops = &sprd_codec_dai_ops,
-	 },
-	{/* 5 */
-	 .name = "sprd-codec-fm",
-	 .playback = {
-		      .stream_name = "Fm-Playback",
-		      .channels_min = 1,
-		      .channels_max = 2,
-		      .rates = SPRD_CODEC_PCM_RATES,
-		      .formats = SPRD_CODEC_PCM_FATMATS,
-		      },
-	 .ops = &sprd_codec_dai_ops,
-	 },
-	{/* 6 */
-	 .name = "sprd-codec-offload-playback",
-	 .playback = {
-		      .stream_name = "Offload-Playback",
-		      .channels_min = 1,
-		      .channels_max = 2,
-		      .rates = SPRD_CODEC_PCM_RATES,
-		      .formats = SPRD_CODEC_PCM_FATMATS,
-		      },
-	 .ops = &sprd_codec_dai_ops,
-	 },
-	{/* 7 */
-	 .name = "sprd-codec-fast-playback",
-	 .playback = {
-		      .stream_name = "Fast-Playback",
-		      .channels_min = 1,
-		      .channels_max = 2,
-		      .rates = SPRD_CODEC_PCM_RATES,
-		      .formats = SPRD_CODEC_PCM_FATMATS,
-		      },
-	 .ops = &sprd_codec_dai_ops,
+	{ /* 1 */
+		.id = SPRD_CODEC_IIS1_ID,
+		.name = "sprd-codec-ad1",
+		.capture = {
+				.stream_name = "Ext-Capture",
+				.channels_min = 1,
+				.channels_max = 2,
+				.rates = SPRD_CODEC_PCM_AD_RATES,
+				.formats = SPRD_CODEC_PCM_FATMATS,
+		},
+		.ops = &sprd_codec_dai_ops,
 	 },
 };
 
@@ -4722,10 +4567,6 @@ static int sprd_codec_soc_probe(struct snd_soc_component *codec)
 
 	sprd_codec_audio_ldo(sprd_codec);
 
-	snd_soc_dapm_ignore_suspend(dapm, "Offload-Playback");
-	snd_soc_dapm_ignore_suspend(dapm, "Fm-Playback");
-	snd_soc_dapm_ignore_suspend(dapm, "Voice-Playback");
-	snd_soc_dapm_ignore_suspend(dapm, "Voice-Capture");
 	snd_soc_dapm_ignore_suspend(dapm, "Virt Output Pin");
 
 	/*

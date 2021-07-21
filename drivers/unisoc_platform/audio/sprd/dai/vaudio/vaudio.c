@@ -96,31 +96,36 @@ static struct snd_soc_dai_ops sprd_vaudio_dai_ops = {
 
 struct snd_soc_dai_driver sprd_vaudio_dai[] = {
 	{
-	 .id = VAUDIO_MAGIC_ID,
-	 .name = "vaudio",
-	 .playback = {
-		      .channels_min = 1,
-		      .channels_max = 2,
-		      .rates = SNDRV_PCM_RATE_CONTINUOUS,
-		      .formats = SNDRV_PCM_FMTBIT_S16_LE,},
-	 .capture = {
-		     .channels_min = 1,
-		     .channels_max = 2,
-		     .rates = SNDRV_PCM_RATE_CONTINUOUS,
-		     .formats = SNDRV_PCM_FMTBIT_S16_LE,},
-	 .ops = &sprd_vaudio_dai_ops,
-	 },
+		.id = VAUDIO_MAGIC_ID,
+		.name = "vaudio",
+		.playback = {
+			.stream_name = "VAUDIO_DA_CODEC_P",
+			.channels_min = 1,
+			.channels_max = 2,
+			.rates = SNDRV_PCM_RATE_CONTINUOUS,
+			.formats = SNDRV_PCM_FMTBIT_S16_LE,
+		},
+		.capture = {
+			.stream_name = "VAUDIO_AD01_CODEC_C",
+			.channels_min = 1,
+			.channels_max = 2,
+			.rates = SNDRV_PCM_RATE_CONTINUOUS,
+			.formats = SNDRV_PCM_FMTBIT_S16_LE,
+		},
+		.ops = &sprd_vaudio_dai_ops,
+	},
 	{
-	 .id = VAUDIO_MAGIC_ID + 1,
-	 .name = "vaudio-ad23",
-	 .capture = {
-		     .channels_min = 1,
-		     .channels_max = 2,	/*ad23 */
-		     .rates = SNDRV_PCM_RATE_CONTINUOUS,
-		     .formats = SNDRV_PCM_FMTBIT_S16_LE,
-		     },
-	 .ops = &sprd_vaudio_dai_ops,
-	 },
+		.id = VAUDIO_MAGIC_ID + 1,
+		.name = "vaudio-ad23",
+		.capture = {
+			.stream_name = "VAUDIO_AD23_CODEC_C",
+			.channels_min = 1,
+			.channels_max = 2,	/*ad23 */
+			.rates = SNDRV_PCM_RATE_CONTINUOUS,
+			.formats = SNDRV_PCM_FMTBIT_S16_LE,
+		},
+		.ops = &sprd_vaudio_dai_ops,
+	},
 	{
 		.name = "vaudio-dummy",
 		.playback = {
@@ -135,7 +140,7 @@ struct snd_soc_dai_driver sprd_vaudio_dai[] = {
 			.rates = SNDRV_PCM_RATE_CONTINUOUS,
 			.formats = SNDRV_PCM_FMTBIT_S16_LE,
 		},
-	 },
+	},
 };
 
 static const struct snd_soc_component_driver sprd_vaudio_component = {
