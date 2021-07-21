@@ -513,12 +513,14 @@ cpu_cooling_register(struct device_node *np,
 		return ERR_PTR(-ENOMEM);
 
 	num_cpus = cpumask_weight(cpus_mask);
-	if (!num_cpus)
-		return ERR_PTR(-EINVAL);
+	if (!num_cpus) {
+		cdev = ERR_PTR(-ENOMEM);
+		goto cpu_cdev;
+	}
 
 	cpu_cdev->max_level = num_cpus;
 	cpumask_copy(&cpu_cdev->allowed_cpus, cpus_mask);
-	cpu_cdev->table = kmalloc_array(num_cpus,
+	cpu_cdev->table = kmalloc_array(num_cpus+1,
 					sizeof(*cpu_cdev->table),
 					GFP_KERNEL);
 	if (!cpu_cdev->table) {
@@ -750,7 +752,7 @@ static ssize_t sprd_cpu_store_min_core_num(struct device *dev,
 
 static int get_all_core_temp(int cluster_id, int cpu)
 {
-	int i, ret;
+	int i, ret = 0;
 	struct thermal_zone_device *tz = NULL;
 	struct cluster_power_coefficients *cpc;
 
@@ -1349,7 +1351,6 @@ static int create_cpu_cooling_device(void)
 			sprd_cpu_creat_attr(&cool_dev->device);
 		else {
 			pr_err("No cpu cooling devices!\n");
-			continue;
 		}
 	}
 
@@ -1382,7 +1383,6 @@ static int destroy_cpu_cooling_device(void)
 			ret = cpu_cooling_unregister(cdev);
 			if (ret < 0) {
 				pr_err("fail to unregister cpu cooling\n");
-				continue;
 			}
 		}
 	}

@@ -474,11 +474,11 @@ static void thermal_zone_device_reset(struct thermal_zone_device *tz)
 #ifdef CONFIG_SPRD_THERMAL_DEBUG
 static int  thermal_temp_debug(struct thermal_zone_device *tz)
 {
-	int crit_temp, warn_temp;
+	int crit_temp = 0, warn_temp;
 	int ret = -EPERM;
 	int count;
 	enum thermal_trip_type type;
-	int tz_temp;
+	int tz_temp = 0;
 	struct thermal_zone_device *pos;
 
 	for (count = 0; count < tz->trips; count++) {
