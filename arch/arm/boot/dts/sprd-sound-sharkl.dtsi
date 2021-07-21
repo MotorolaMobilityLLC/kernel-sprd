@@ -115,7 +115,7 @@
 			};
 			codec {
 				/* sprd-codec-voice */
-				sound-dai = <&sprd_audio_codec_ana 1>;
+				sound-dai = <&sprd_audio_codec_ana 0>;
 			};
 		};
 		sprd-audio-card,dai-link@2 {
@@ -128,7 +128,7 @@
 			};
 			codec {
 				/* sprd-codec-ad1 */
-				sound-dai = <&sprd_audio_codec_ana 3>;
+				sound-dai = <&sprd_audio_codec_ana 1>;
 			};
 		};
 		sprd-audio-card,dai-link@3 {
@@ -141,7 +141,7 @@
 			};
 			codec {
 				/* sprd-codec-ad1-voice */
-				sound-dai = <&sprd_audio_codec_ana 4>;
+				sound-dai = <&sprd_audio_codec_ana 1>;
 			};
 		};
 		sprd-audio-card,dai-link@4 {
@@ -155,7 +155,7 @@
 			};
 			codec {
 				/* sprd-codec-fm */
-				sound-dai = <&sprd_audio_codec_ana 5>;
+				sound-dai = <&sprd_audio_codec_ana 0>;
 			};
 		};
 		sprd-audio-card,dai-link@5 {
@@ -168,7 +168,7 @@
 			};
 			codec {
 				/* sprd-codec-offload-playback */
-				sound-dai = <&sprd_audio_codec_ana 6>;
+				sound-dai = <&sprd_audio_codec_ana 0>;
 			};
 		};
 	};
