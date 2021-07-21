@@ -422,6 +422,7 @@ int usb_submit_urb(struct urb *urb, gfp_t mem_flags)
 	 */
 	if (xfertype == USB_ENDPOINT_XFER_ISOC) {
 		int	n, len;
+		struct usb_iso_packet_descriptor *iso_desc = &(urb->iso_frame_desc[0]);
 
 		/* SuperSpeed isoc endpoints have up to 16 bursts of up to
 		 * 3 packets each
@@ -448,11 +449,11 @@ int usb_submit_urb(struct urb *urb, gfp_t mem_flags)
 		if (urb->number_of_packets <= 0)
 			return -EINVAL;
 		for (n = 0; n < urb->number_of_packets; n++) {
-			len = urb->iso_frame_desc[n].length;
+			len = iso_desc[n].length;
 			if (len < 0 || len > max)
 				return -EMSGSIZE;
-			urb->iso_frame_desc[n].status = -EXDEV;
-			urb->iso_frame_desc[n].actual_length = 0;
+			iso_desc[n].status = -EXDEV;
+			iso_desc[n].actual_length = 0;
 		}
 	} else if (urb->num_sgs && !urb->dev->bus->no_sg_constraint &&
 			dev->speed != USB_SPEED_WIRELESS) {
