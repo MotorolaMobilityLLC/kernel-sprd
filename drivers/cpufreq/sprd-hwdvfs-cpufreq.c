@@ -243,7 +243,7 @@ static int sprd_dev_pm_opp_table_update(struct sprd_cpufreq_info *info)
 		dev_dbg(info->pdev, "add opp: %luHZ-%luUV\n", freq, volt);
 	}
 
-	rate = clu->temp_max_freq * 1000 + 1;
+	rate = (unsigned long)(clu->temp_max_freq * 1000 + 1);
 	while (!IS_ERR(opp = dev_pm_opp_find_freq_ceil(info->cpu_dev, &rate))) {
 		dev_pm_opp_put(opp);
 		dev_pm_opp_remove(info->cpu_dev, rate);

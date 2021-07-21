@@ -81,7 +81,7 @@ static int sprd_cpufreq_bin_read(struct device_node *np,
 {
 	struct nvmem_cell *cell;
 	void *buf;
-	size_t len;
+	size_t len = 0;
 
 	cell = of_nvmem_cell_get(np, cell_id);
 	if (IS_ERR(cell))
@@ -541,15 +541,25 @@ unsigned int sprd_cpufreq_update_opp_common(int cpu, int temp_now)
 
 static int sprd_cpufreq_cpuhp_online(unsigned int cpu)
 {
-	unsigned int olcpu = 0;
+	unsigned int olcpu, cluster_id;
 	struct sprd_cpufreq_driver_data *c;
 
-	if (!is_big_cluster(cpu))
+	if (cpu >= nr_cpu_ids || !cpu_possible(cpu)) {
+		pr_err("Invalid CPU%d\n", cpu);
+		return NOTIFY_DONE;
+	}
+
+	cluster_id = topology_physical_package_id(cpu);
+	if (!cluster_id)
 		return NOTIFY_DONE;
 
-	for_each_online_cpu(olcpu)
-		if (is_big_cluster(olcpu))
+	for_each_online_cpu(olcpu) {
+		if (!cpu_possible(olcpu))
 			return NOTIFY_DONE;
+		cluster_id = topology_physical_package_id(olcpu);
+		if (cluster_id)
+			return NOTIFY_DONE;
+	}
 
 	c = sprd_cpufreq_data(cpu);
 	if (c && c->cpufreq_online)
@@ -561,15 +571,25 @@ static int sprd_cpufreq_cpuhp_online(unsigned int cpu)
 
 static int sprd_cpufreq_cpuhp_offline(unsigned int cpu)
 {
-	unsigned int olcpu = 0;
+	unsigned int olcpu, cluster_id;
 	struct sprd_cpufreq_driver_data *c;
 
-	if (!is_big_cluster(cpu))
+	if (cpu >= nr_cpu_ids || !cpu_possible(cpu)) {
+		pr_err("Invalid CPU%d\n", cpu);
+		return NOTIFY_DONE;
+	}
+
+	cluster_id = topology_physical_package_id(cpu);
+	if (!cluster_id)
 		return NOTIFY_DONE;
 
-	for_each_online_cpu(olcpu)
-		if (is_big_cluster(olcpu))
+	for_each_online_cpu(olcpu) {
+		if (!cpu_possible(olcpu))
 			return NOTIFY_DONE;
+		cluster_id = topology_physical_package_id(olcpu);
+		if (cluster_id)
+			return NOTIFY_DONE;
+	}
 
 	c = sprd_cpufreq_data(cpu);
 	if (c && c->cpufreq_offline)
