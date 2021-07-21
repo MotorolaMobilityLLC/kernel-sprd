@@ -20,10 +20,18 @@ enum vendor_enable_gscan_status {
 	VENDOR_GSCAN_START = 1,
 };
 
+struct sc2332_wmm_ac_stat {
+	u8 ac_num;
+	u32 tx_mpdu;
+	u32 rx_mpdu;
+	u32 mpdu_lost;
+	u32 retries;
+} __packed;
+
 struct llstat_data {
 	u32 beacon_rx;
 	u8 rssi_mgmt;
-	struct wmm_ac_stat ac[WIFI_AC_MAX];
+	struct sc2332_wmm_ac_stat ac[WIFI_AC_MAX];
 	u32 on_time;
 	u32 tx_time;
 	u32 rx_time;
