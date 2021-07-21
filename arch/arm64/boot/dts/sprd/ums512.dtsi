@@ -879,6 +879,98 @@
 			};
 		};
 
+		mm {
+			compatible = "simple-bus";
+			#address-cells = <2>;
+			#size-cells = <2>;
+			ranges;
+
+			dpu: dpu@20300000 {
+				compatible = "sprd,sharkl3-dpu";
+				reg = <0x0 0x20300000 0x0 0x1000>;
+				interrupts = <GIC_SPI 27 IRQ_TYPE_LEVEL_HIGH>;
+
+				//reset-syscon = <&aon_apb_regs REG_AON_APB_APB_RST1
+				//		MASK_AON_APB_DISP_SOFT_RST>;
+				iommus = <&iommu_dispc>;
+				dpu_port: port {
+					dpu_out: endpoint {
+						remote-endpoint = <&dsi_in>;
+					};
+				};
+			};
+
+			iommu_dispc: iommu@20300000 {
+				compatible = "sprd,iommu-v1";
+				reg = <0x0 0x20300800 0x0 0x80>;
+				#iommu-cells = <0>;
+			};
+
+			dsi: dsi@20400000 {
+				compatible = "sprd,sharkl3-dsi-host";
+				reg = <0x0 0x20400000 0x0 0x1000>;
+				interrupts = <GIC_SPI 30 IRQ_TYPE_LEVEL_HIGH>,
+					<GIC_SPI 31 IRQ_TYPE_LEVEL_HIGH>;
+				status = "disabled";
+
+				//reset-syscon = <&aon_apb_regs REG_AON_APB_JVL_DUMMY 0x04>;
+
+				ports {
+					#address-cells = <1>;
+					#size-cells = <0>;
+
+					port@0 {
+						reg = <0>;
+						dsi_out: endpoint {
+							remote-endpoint = <&dphy_in>;
+						};
+					};
+
+					port@1 {
+						reg = <1>;
+						dsi_in: endpoint {
+							remote-endpoint = <&dpu_out>;
+						};
+					};
+				};
+			};
+
+			dphy: dphy {
+				compatible = "sprd,sharkl3-dsi-phy";
+				reg = <0x0 0x20400000 0x0 0x1000>;
+				status = "disabled";
+
+				//enable-syscon = <&aon_apb_regs REG_AON_APB_APB_EB2
+				//		(MASK_AON_APB_DPHY_REF_EB |
+				//		MASK_AON_APB_DPHY_CFG_EB)>;
+				//power-small-syscon = <&aon_apb_regs REG_AON_APB_PWR_CTRL
+				//		MASK_AON_APB_MIPI_DSI_PS_PD_S>;
+				//power-large-syscon = <&aon_apb_regs REG_AON_APB_PWR_CTRL
+				//		MASK_AON_APB_MIPI_DSI_PS_PD_L>;
+				//power-iso-syscon = <&aon_apb_regs REG_AON_APB_PWR_CTRL
+				//		MASK_AON_APB_MIPI_DSI_ISO_SW_EN>;
+
+				ports {
+					#address-cells = <1>;
+					#size-cells = <0>;
+
+					port@0 {
+						reg = <0>;
+						dphy_out: endpoint {
+							remote-endpoint = <&panel_in>;
+						};
+					};
+
+					port@1 {
+						reg = <1>;
+						dphy_in: endpoint {
+							remote-endpoint = <&dsi_out>;
+						};
+					};
+				};
+			};
+		};
+
 		aon {
 			compatible = "simple-bus";
 			#address-cells = <2>;
@@ -918,6 +1010,11 @@
 					<35 0x19b8>, <39 0x19ac>;
 			};
 		};
+	};
+
+	display-subsystem {
+		compatible = "sprd,display-subsystem";
+		ports = <&dpu_port>;
 	};
 
 	ext_26m: ext-26m {

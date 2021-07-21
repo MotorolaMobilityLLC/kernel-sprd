@@ -10,6 +10,7 @@
 #include <dt-bindings/gpio/gpio.h>
 #include "ums512.dtsi"
 #include "sc2730.dtsi"
+#include "lcd/lcd_td4310_truly_mipi_fhd.dtsi"
 
 / {
 	model = "Spreadtrum UMS512-1H10 Board";
@@ -30,7 +31,21 @@
 
 	chosen {
 		stdout-path = "serial1:115200n8";
-		bootargs = "earlycon";
+		bootargs = "earlycon loglevel=11";
+	};
+
+	reserved-memory {
+		#address-cells = <2>;
+		#size-cells = <2>;
+		ranges;
+
+		/* global autoconfigured region for contiguous allocations */
+		linux,cma {
+			compatible = "shared-dma-pool";
+			reusable;
+			size = <0x0 0x4000000>;
+			linux,cma-default;
+		};
 	};
 };
 
@@ -64,5 +79,38 @@
 	no-sdio;
 	no-sd;
 	cap-mmc-hw-reset;
+	status = "okay";
+};
+
+&dpu {
+	status = "okay";
+};
+
+&dsi {
+	status = "okay";
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	panel: panel {
+		compatible = "sprd,generic-mipi-panel";
+		#address-cells = <1>;
+		#size-cells = <0>;
+		reg = <0>;
+
+		sprd,force-attached = "lcd_td4310_truly_mipi_fhd";
+
+		//avdd-gpio = <&ap_gpio 4 GPIO_ACTIVE_HIGH>;
+		//avee-gpio = <&ap_gpio 5 GPIO_ACTIVE_HIGH>;
+		//reset-gpio = <&ap_gpio 50 GPIO_ACTIVE_HIGH>;
+		port@1 {
+			reg = <1>;
+			panel_in: endpoint {
+				remote-endpoint = <&dphy_out>;
+			};
+		};
+	};
+};
+
+&dphy {
 	status = "okay";
 };
