@@ -1623,6 +1623,7 @@ static void retire_capture_urb(struct snd_usb_substream *subs,
 	unsigned long flags;
 	unsigned char *cp;
 	int current_frame_number;
+	struct usb_iso_packet_descriptor *iso_desc = &(urb->iso_frame_desc[0]);
 
 	/* read frame number here, update pointer in critical section */
 	current_frame_number = usb_get_current_frame_number(subs->dev);
@@ -1630,13 +1631,13 @@ static void retire_capture_urb(struct snd_usb_substream *subs,
 	stride = runtime->frame_bits >> 3;
 
 	for (i = 0; i < urb->number_of_packets; i++) {
-		cp = (unsigned char *)urb->transfer_buffer + urb->iso_frame_desc[i].offset + subs->pkt_offset_adj;
-		if (urb->iso_frame_desc[i].status && printk_ratelimit()) {
+		cp = (unsigned char *)urb->transfer_buffer + iso_desc[i].offset + subs->pkt_offset_adj;
+		if (iso_desc[i].status && printk_ratelimit()) {
 			dev_dbg(&subs->dev->dev, "frame %d active: %d\n",
-				i, urb->iso_frame_desc[i].status);
+				i, iso_desc[i].status);
 			// continue;
 		}
-		bytes = urb->iso_frame_desc[i].actual_length;
+		bytes = iso_desc[i].actual_length;
 		if (subs->stream_offset_adj > 0) {
 			unsigned int adj = min(subs->stream_offset_adj, bytes);
 			cp += adj;
@@ -1775,16 +1776,17 @@ static unsigned int copy_to_urb_quirk(struct snd_usb_substream *subs,
 {
 	__le32 packet_length;
 	int i;
+	struct usb_iso_packet_descriptor *iso_desc = &(urb->iso_frame_desc[0]);
 
 	/* Put __le32 length descriptor at start of each packet. */
 	for (i = 0; i < urb->number_of_packets; i++) {
-		unsigned int length = urb->iso_frame_desc[i].length;
-		unsigned int offset = urb->iso_frame_desc[i].offset;
+		unsigned int length = iso_desc[i].length;
+		unsigned int offset = iso_desc[i].offset;
 
 		packet_length = cpu_to_le32(length);
 		offset += i * sizeof(packet_length);
-		urb->iso_frame_desc[i].offset = offset;
-		urb->iso_frame_desc[i].length += sizeof(packet_length);
+		iso_desc[i].offset = offset;
+		iso_desc[i].length += sizeof(packet_length);
 		memcpy(urb->transfer_buffer + offset,
 		       &packet_length, sizeof(packet_length));
 		copy_to_urb(subs, urb, offset + sizeof(packet_length),
@@ -1804,6 +1806,7 @@ static void prepare_playback_urb(struct snd_usb_substream *subs,
 	unsigned int counts, frames, bytes;
 	int i, stride, period_elapsed = 0;
 	unsigned long flags;
+	struct usb_iso_packet_descriptor *iso_desc = &(urb->iso_frame_desc[0]);
 
 	stride = runtime->frame_bits >> 3;
 
@@ -1818,8 +1821,8 @@ static void prepare_playback_urb(struct snd_usb_substream *subs,
 			counts = snd_usb_endpoint_next_packet_size(ep);
 
 		/* set up descriptor */
-		urb->iso_frame_desc[i].offset = frames * ep->stride;
-		urb->iso_frame_desc[i].length = counts * ep->stride;
+		iso_desc[i].offset = frames * ep->stride;
+		iso_desc[i].length = counts * ep->stride;
 		frames += counts;
 		urb->number_of_packets++;
 		subs->transfer_done += counts;
@@ -1833,16 +1836,16 @@ static void prepare_playback_urb(struct snd_usb_substream *subs,
 					 * supported yet */
 					frames -= subs->transfer_done;
 					counts -= subs->transfer_done;
-					urb->iso_frame_desc[i].length =
+					iso_desc[i].length =
 						counts * ep->stride;
 					subs->transfer_done = 0;
 				}
 				i++;
 				if (i < ctx->packets) {
 					/* add a transfer delimiter */
-					urb->iso_frame_desc[i].offset =
+					iso_desc[i].offset =
 						frames * ep->stride;
-					urb->iso_frame_desc[i].length = 0;
+					iso_desc[i].length = 0;
 					urb->number_of_packets++;
 				}
 				break;
