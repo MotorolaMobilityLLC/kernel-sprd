@@ -131,6 +131,9 @@ of_coresight_get_device_by_node(struct device_node *endpoint)
 
 	rdev_fwnode = of_fwnode_handle(endpoint);
 	/* If the remote device is not available, defer probing */
+	if (IS_ERR_OR_NULL(rdev_fwnode))
+		return NULL;
+
 	rdev = coresight_find_device_by_fwnode(rdev_fwnode);
 
 	return rdev;
