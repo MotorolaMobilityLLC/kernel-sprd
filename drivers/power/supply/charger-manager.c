@@ -6263,7 +6263,7 @@ static void cm_batt_works(struct work_struct *work)
 	ret = get_charger_term_voltage(cm, &term_vol);
 	if (ret) {
 		dev_err(cm->dev, "get_charger_term_voltage error.\n");
-		return;
+		goto schedule_cap_update_work;
 	}
 
 
