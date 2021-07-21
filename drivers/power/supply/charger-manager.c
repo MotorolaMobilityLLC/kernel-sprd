@@ -4492,19 +4492,19 @@ static void cm_batt_works(struct work_struct *work)
 	ret = get_batt_uV(cm, &batt_uV);
 	if (ret) {
 		dev_err(cm->dev, "get_batt_uV error.\n");
-		return;
+		goto schedule_cap_update_work;
 	}
 
 	ret = get_batt_ocv(cm, &batt_ocV);
 	if (ret) {
 		dev_err(cm->dev, "get_batt_ocV error.\n");
-		return;
+		goto schedule_cap_update_work;
 	}
 
 	ret = get_batt_uA(cm, &bat_uA);
 	if (ret) {
 		dev_err(cm->dev, "get bat_uA error.\n");
-		return;
+		goto schedule_cap_update_work;
 	}
 
 	ret = get_charger_voltage(cm, &charger_input_vol);
@@ -4514,26 +4514,26 @@ static void cm_batt_works(struct work_struct *work)
 	ret = get_batt_cap(cm, &fuel_cap);
 	if (ret) {
 		dev_err(cm->dev, "get fuel_cap error.\n");
-		return;
+		goto schedule_cap_update_work;
 	}
 	//fuel_cap = cm_capacity_remap(cm, fuel_cap);
 
 	ret = get_charger_current(cm, &chg_cur);
 	if (ret) {
 		dev_err(cm->dev, "get chg_cur error.\n");
-		return;
+		goto schedule_cap_update_work;
 	}
 
 	ret = get_charger_limit_current(cm, &chg_limit_cur);
 	if (ret) {
 		dev_err(cm->dev, "get chg_limit_cur error.\n");
-		return;
-	}
+	        goto schedule_cap_update_work;
+        }
 
 	ret = cm_get_battery_temperature_by_psy(cm, &cur_temp);
 	if (ret) {
 		dev_err(cm->dev, "failed to get battery temperature\n");
-		return;
+		goto schedule_cap_update_work;
 	}
 
 	cm->desc->temperature = cur_temp;
@@ -4550,7 +4550,7 @@ static void cm_batt_works(struct work_struct *work)
 	ret = get_charger_term_voltage(cm, &term_vol);
 	if (ret) {
 		dev_err(cm->dev, "get_charger_term_voltage error.\n");
-		return;
+		goto schedule_cap_update_work;
 	}
 
 	if (cur_temp <= CM_LOW_TEMP_REGION &&
@@ -4820,11 +4820,13 @@ static void cm_batt_works(struct work_struct *work)
 		set_batt_cap(cm, cm->desc->cap);
 	}
 
+        cm_track_capacity_monitor(cm);
+
+schedule_cap_update_work:
 	queue_delayed_work(system_power_efficient_wq,
 			   &cm->cap_update_work,
 			   CM_CAP_CYCLE_TRACK_TIME * HZ);
 
-	cm_track_capacity_monitor(cm);
 }
 
 static int charger_manager_probe(struct platform_device *pdev)
