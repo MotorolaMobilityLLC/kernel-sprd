@@ -688,6 +688,7 @@
   regulator_map_voltage_linear
   regulator_set_voltage_sel_regmap
   release_firmware
+  __regmap_init_i2c
   remap_pfn_range
   remove_proc_entry
   remove_wait_queue
@@ -987,6 +988,7 @@
 # required by charger-manager.ko
   alarm_cancel
   alarm_expires_remaining
+  alarm_forward
   alarm_init
   alarm_start
   alarmtimer_get_rtcdev
@@ -1143,6 +1145,7 @@
   dma_direct_unmap_sg
   idr_get_next
   sg_alloc_table
+  sg_alloc_table_from_pages
   sg_free_table
   vsprintf
 
