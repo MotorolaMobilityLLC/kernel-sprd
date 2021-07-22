@@ -3450,7 +3450,7 @@ void print_vmalloc_info(enum e_show_mem_type type)
 
 		v = va->vm;
 		if (v->nr_pages) {
-			total_pages = v->nr_pages;
+			total_pages += v->nr_pages;
 			if (E_SHOW_MEM_BASIC == type) {
 				/* 1M Bytes */
 				if ((v->nr_pages << (PAGE_SHIFT - 10)) < 1024)
