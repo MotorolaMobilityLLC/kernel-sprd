@@ -366,7 +366,7 @@
                                         gpio,boardid0 = <&ap_gpio 116 0>;
                                         gpio,boardid1 = <&ap_gpio 115 0>;
                                         gpio,boardid2 = <&ap_gpio 46 0>;
-                                        gpio,boardid3 = <&ap_gpio 47 0>;
+                                        //gpio,boardid3 = <&ap_gpio 47 0>;    ////this pin no func ,the point from lixiaohui@20210721
                         };
 		};
 	};

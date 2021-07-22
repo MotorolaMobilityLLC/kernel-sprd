@@ -24,7 +24,7 @@ static const char * const boardid_gpios[] = {
 	"gpio,boardid0",
 	"gpio,boardid1",
 	"gpio,boardid2",
-	"gpio,boardid3",
+//	"gpio,boardid3", //this pin no func ,the point from lixiaohui@20210721
 //	"gpio,boardid4",
 };
 /* BEGIN Ontim, yangruining, 20210403, 10015326, St-result:PASS, Add project version drive device note. */
