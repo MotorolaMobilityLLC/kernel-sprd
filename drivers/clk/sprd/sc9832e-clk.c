@@ -1553,7 +1553,7 @@ static const struct sprd_clk_desc sc9832e_apahb_gate_desc = {
 
 /* 0x50820000 sp ahb gate clocks */
 static SPRD_SC_GATE_CLK_FW_NAME(cm4_uart_eb, "cm4-uart-eb", "ext-26m", 0x0,
-				0x1000, BIT(5), CLK_IGNORE_UNUSED, 0);
+				0x1000, BIT(5), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 
 static struct sprd_clk_common *sc9832e_spahb_gate[] = {
 	/* address base is 0x50820000 */
