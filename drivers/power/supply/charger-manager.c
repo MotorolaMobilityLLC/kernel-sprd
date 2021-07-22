@@ -2178,10 +2178,10 @@ static bool cm_manager_adjust_current(struct charger_manager *cm,
 		dev_info(cm->dev, "thermel current %d is less than jeita current %d;\n",cm->desc->thm_adjust_cur,target_cur);
 	}
 
-	/* add for limit soc 70% */
+	/* add for limit soc 65% */
 	if (ontim_runin_onoff_control == 1)
 	{
-		term_volt = 4050000;
+		term_volt = 3984000;
 		dev_info(cm->dev,"smt set term_volt:%d\n",term_volt);
 	}
 
@@ -4749,10 +4749,10 @@ static void cm_batt_works(struct work_struct *work)
 		low_bat =0;
 	}
 
-	if( (term_vol ==4040000 || term_vol ==4048000) && fuel_cap > 750)
+	if((term_vol == 3984000) && fuel_cap > 650)
 	{
-		fuel_cap =750;
-		dev_info(cm->dev, "%s;force soc=750;\n",__func__);
+		fuel_cap =650;
+		dev_info(cm->dev, "%s;force soc=650;\n",__func__);
 	}
 
 	if(is_cal_cap ==0 && bat_uA/1000 >0 && bat_uA/1000 <10)
@@ -4781,7 +4781,7 @@ static void cm_batt_works(struct work_struct *work)
 	else
 		cal_count = 0;
 		
-	if( (!charge_done)  && term_vol >4000000 && batt_ocV >(term_vol - 100000) &&  check_charge_done(cm)  )
+	if( (!charge_done)  && term_vol >3930000 && batt_ocV >(term_vol - 100000) &&  check_charge_done(cm)  )
 	{		
 		charge_done = true;
 		is_cal_cap = 1;
