@@ -1289,8 +1289,6 @@ static inline void boot_delay_msec(int level)
 }
 #endif
 
-static bool printk_time = IS_ENABLED(CONFIG_PRINTK_TIME);
-
 /**
  * enum timestamp_sources - Timestamp sources for printk() messages.
  * @PRINTK_TIME_DISABLED: No time stamp.
@@ -1314,6 +1312,8 @@ static const char * const timestamp_sources_str[5] = {
 	"monotonic",
 	"realtime",
 };
+
+static int printk_time = CONFIG_PRINTK_TIME_TYPE;
 
 static int printk_set_ts_source(enum timestamp_sources ts_source)
 {
