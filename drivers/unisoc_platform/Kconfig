@@ -12,3 +12,4 @@ source "drivers/unisoc_platform/audio/Kconfig"
 source "drivers/unisoc_platform/wlan/Kconfig"
 source "drivers/unisoc_platform/sprd_apdu/Kconfig"
 source "drivers/unisoc_platform/cp_dump/Kconfig"
+
