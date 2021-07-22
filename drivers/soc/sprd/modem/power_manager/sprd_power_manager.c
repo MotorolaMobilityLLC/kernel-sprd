@@ -678,10 +678,10 @@ static void sprd_pms_relax_wakelock_timer(struct timer_list *timer)
 		pms->expires = 0;
 		relax = true;
 	}
-	spin_unlock_irqrestore(&pms->expires_lock, flags);
-
 	if (relax)
 		sprd_pms_relax(pms);
+
+	spin_unlock_irqrestore(&pms->expires_lock, flags);
 }
 
 /**
