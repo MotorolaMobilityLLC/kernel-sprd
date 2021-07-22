@@ -16798,6 +16798,15 @@ CONFIG_SPRD_HANG_WDH
 	[must]
 	[missing plat description] none
 	[function]
+CONFIG_SPRD_HW_DEVICE_DVFS_CP
+	[arch] arm64
+	[plat] sharkl5Pro
+	[missing plat] sharkl3
+	[field]
+	[subsys]
+	[must]
+	[missing plat description]
+	[function]
 CONFIG_SPRD_IMS_BRIDGE
 	[arch] all
 	[plat] all

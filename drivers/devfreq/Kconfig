@@ -41,6 +41,13 @@ config DEVFREQ_GOV_SIMPLE_ONDEMAND
 	  values that imply the usage rate. A device may provide tuned
 	  values to the governor with data field at devfreq_add_device().
 
+config SPRD_HW_DEVICE_DVFS_CP
+	tristate "Unisoc CP dvfs driver"
+#	depends on SPRD_SIPC
+	help
+	  This driver supports dvfs interfaces for MODEM subsystem.
+	  It set MODEM DVFS controller register to adjust frequency and voltage.
+
 config DEVFREQ_GOV_PERFORMANCE
 	tristate "Performance"
 	help
