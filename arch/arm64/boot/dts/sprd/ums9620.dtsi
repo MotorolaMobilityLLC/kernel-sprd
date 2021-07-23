@@ -54,8 +54,8 @@
 			reg = <0x0 0x0>;
 			enable-method = "psci";
 			cpu-idle-states = <&LIT_CORE_PD &CLUSTER_PD>;
-			sched-energy-costs = <&CPU_COST_0 &CLUSTER_COST_0>;
 			capacity-dmips-mhz = <417>;
+			dynamic-power-coefficient = <155>;
 			cpufreq-data-v1 = <&cpufreq_cluster0>;
 		};
 		CPU1: cpu@100 {
@@ -64,8 +64,8 @@
 			reg = <0x0 0x100>;
 			enable-method = "psci";
 			cpu-idle-states = <&LIT_CORE_PD &CLUSTER_PD>;
-			sched-energy-costs = <&CPU_COST_0 &CLUSTER_COST_0>;
 			capacity-dmips-mhz = <417>;
+			dynamic-power-coefficient = <155>;
 			cpufreq-data-v1 = <&cpufreq_cluster0>;
 		};
 		CPU2: cpu@200 {
@@ -74,8 +74,8 @@
 			reg = <0x0 0x200>;
 			enable-method = "psci";
 			cpu-idle-states = <&LIT_CORE_PD &CLUSTER_PD>;
-			sched-energy-costs = <&CPU_COST_0 &CLUSTER_COST_0>;
 			capacity-dmips-mhz = <417>;
+			dynamic-power-coefficient = <155>;
 			cpufreq-data-v1 = <&cpufreq_cluster0>;
 		};
 		CPU3: cpu@300 {
@@ -84,8 +84,8 @@
 			reg = <0x0 0x300>;
 			enable-method = "psci";
 			cpu-idle-states = <&LIT_CORE_PD &CLUSTER_PD>;
-			sched-energy-costs = <&CPU_COST_0 &CLUSTER_COST_0>;
 			capacity-dmips-mhz = <417>;
+			dynamic-power-coefficient = <155>;
 			cpufreq-data-v1 = <&cpufreq_cluster0>;
 		};
 		CPU4: cpu@400 {
@@ -94,8 +94,8 @@
 			reg = <0x0 0x400>;
 			enable-method = "psci";
 			cpu-idle-states = <&MID_CORE_PD &CLUSTER_PD>;
-			sched-energy-costs = <&CPU_COST_1 &CLUSTER_COST_1>;
 			capacity-dmips-mhz = <1022>;
+			dynamic-power-coefficient = <721>;
 			cpufreq-data-v1 = <&cpufreq_cluster1>;
 		};
 		CPU5: cpu@500 {
@@ -104,8 +104,8 @@
 			reg = <0x0 0x500>;
 			enable-method = "psci";
 			cpu-idle-states = <&MID_CORE_PD &CLUSTER_PD>;
-			sched-energy-costs = <&CPU_COST_1 &CLUSTER_COST_1>;
 			capacity-dmips-mhz = <1022>;
+			dynamic-power-coefficient = <721>;
 			cpufreq-data-v1 = <&cpufreq_cluster1>;
 		};
 		CPU6: cpu@600 {
@@ -114,8 +114,8 @@
 			reg = <0x0 0x600>;
 			enable-method = "psci";
 			cpu-idle-states = <&MID_CORE_PD &CLUSTER_PD>;
-			sched-energy-costs = <&CPU_COST_1 &CLUSTER_COST_1>;
 			capacity-dmips-mhz = <1022>;
+			dynamic-power-coefficient = <721>;
 			cpufreq-data-v1 = <&cpufreq_cluster1>;
 		};
 		CPU7: cpu@700 {
@@ -124,128 +124,9 @@
 			reg = <0x0 0x700>;
 			enable-method = "psci";
 			cpu-idle-states = <&BIG_CORE_PD &CLUSTER_PD>;
-			sched-energy-costs = <&CPU_COST_2 &CLUSTER_COST_2>;
 			capacity-dmips-mhz = <1024>;
+			dynamic-power-coefficient = <896>;
 			cpufreq-data-v1 = <&cpufreq_cluster2>;
-		};
-	};
-
-	energy-costs {
-		CPU_COST_0: core-cost0 {
-			busy-cost-data = <
-				95	20	/* 614.4MHz */
-				96	21	/* 624MHz */
-				118	28	/* 768MHz */
-				170	44	/* 1105MHz */
-				189	56	/* 1229MHz */
-				202	59	/* 1313MHz */
-				260	84	/* 1690MHz */
-				264	97	/* 1716MHz */
-				308	125	/* 2002MHz */
-				326	148	/* 2119MHz */
-				336	169	/* 2184MHz */
-			>;
-			idle-cost-data = <
-				10		/* ACTIVE-IDLE */
-				10		/* WFI */
-				0		/* CORE_PD */
-			>;
-		};
-		CPU_COST_1: core-cost1 {
-			busy-cost-data = <
-				245	104	/* 650MHz */
-				290	140	/* 768MHz */
-				437	223	/* 1157MHz */
-				464	270	/* 1229MHz */
-				501	287	/* 1326MHz */
-				580	371	/* 1536MHz */
-				643	405	/* 1703MHz */
-				663	471	/* 1755MHz */
-				776	610	/* 2054MHz */
-				820	719	/* 2171MHz */
-				869	847	/* 2301MHz */
-			>;
-			idle-cost-data = <
-				61		/* ACTIVE-IDLE */
-				61		/* WFI */
-				0		/* CORE_PD */
-			>;
-		};
-		CPU_COST_2: core-cost2 {
-			busy-cost-data = <
-				465	399	/* 1229MHz */
-				582	476	/* 1536MHz */
-				640	515	/* 1690MHz */
-				699	554	/* 1846MHz */
-				758	593	/* 2002MHz */
-				798	703	/* 2106MHz */
-				852	840	/* 2249MHz */
-				926	1132	/* 2444MHz */
-				1024	1377	/* 2704MHz */
-			>;
-			idle-cost-data = <
-				107		/* ACTIVE-IDLE */
-				107		/* WFI */
-				0		/* CORE_PD */
-			>;
-		};
-		CLUSTER_COST_0: cluster-cost0 {
-			busy-cost-data = <
-				95	1	/* 614.4MHz */
-				96	2	/* 624MHz */
-				118	3	/* 768MHz */
-				170	4	/* 1105MHz */
-				189	5	/* 1229MHz */
-				202	6	/* 1313MHz */
-				260	7	/* 1690MHz */
-				264	8	/* 1716MHz */
-				308	9	/* 2002MHz */
-				326	10	/* 2119MHz */
-				336	11	/* 2184MHz */
-			>;
-			idle-cost-data = <
-				0		/* ACTIVE-IDLE */
-				0		/* WFI */
-				0		/* CORE_PD */
-			>;
-		};
-		CLUSTER_COST_1: cluster-cost1 {
-			busy-cost-data = <
-				245	1	/* 650MHz */
-				290	2	/* 768MHz */
-				437	3	/* 1157MHz */
-				464	4	/* 1229MHz */
-				501	5	/* 1326MHz */
-				580	6	/* 1536MHz */
-				643	7	/* 1703MHz */
-				663	8	/* 1755MHz */
-				776	9	/* 2054MHz */
-				820	10	/* 2171MHz */
-				869	11	/* 2301MHz */
-			>;
-			idle-cost-data = <
-				0		/* ACTIVE-IDLE */
-				0		/* WFI */
-				0		/* CORE_PD */
-			>;
-		};
-		CLUSTER_COST_2: cluster-cost2 {
-			busy-cost-data = <
-				465	5	/* 1229MHz */
-				582	10	/* 1536MHz */
-				640	20	/* 1690MHz */
-				699	30	/* 1846MHz */
-				758	35	/* 2002MHz */
-				798	83	/* 2106MHz */
-				852	132	/* 2249MHz */
-				926	192	/* 2444MHz */
-				1024	277	/* 2704MHz */
-			>;
-			idle-cost-data = <
-				39		/* ACTIVE-IDLE */
-				39
-				39
-			>;
 		};
 	};
 
