@@ -3020,6 +3020,7 @@ int start_integrate_wcn_truely(u32 subsys)
 	bool is_marlin;
 	struct wcn_device *wcn_dev;
 	u32 subsys_bit = 1 << subsys;
+	int ret_wait_completion = 0;
 
 	WCN_INFO("start subsys:%d\n", subsys);
 	wcn_dev = wcn_get_dev_by_type(subsys_bit);
@@ -3062,9 +3063,15 @@ int start_integrate_wcn_truely(u32 subsys)
 	init_completion(&wcn_dev->download_done);
 	schedule_delayed_work(&wcn_dev->power_wq, 0);
 
-	if (wait_for_completion_timeout(&wcn_dev->download_done,
-					msecs_to_jiffies
-					(MARLIN_WAIT_CP_INIT_MAX_TIME)) <= 0) {
+	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
+		ret_wait_completion = wait_for_completion_timeout(&wcn_dev->download_done,
+					msecs_to_jiffies (300000));
+	} else {
+		ret_wait_completion = wait_for_completion_timeout(&wcn_dev->download_done,
+					msecs_to_jiffies (MARLIN_WAIT_CP_INIT_MAX_TIME));
+	}
+
+	if (ret_wait_completion <= 0) {
 		/* marlin download fail dump memory */
 		if (is_marlin)
 			goto err_boot_marlin;
