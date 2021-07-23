@@ -2964,6 +2964,15 @@ CONFIG_CMA_SIZE_SEL_MBYTES
 	[must] console
 	[missing plat description] none
 	[function] enbale CMA
+CONFIG_SPRD_CMA_DEBUG
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field]mm
+	[subsys]mm
+	[must]console
+	[missing plat description] none
+	[function] sprd cma debug
 CONFIG_CMDLINE
 	[arch] all
 	[plat] all

@@ -37,4 +37,10 @@ extern struct page *cma_alloc(struct cma *cma, size_t count, unsigned int align,
 extern bool cma_release(struct cma *cma, const struct page *pages, unsigned int count);
 
 extern int cma_for_each_area(int (*it)(struct cma *cma, void *data), void *data);
+
+#ifdef CONFIG_SPRD_CMA_DEBUG
+extern int sysctl_sprd_cma_debug;
+extern int sysctl_sprd_cma_debug_handler(struct ctl_table *table, int write,
+			void __user *buffer, size_t *length, loff_t *ppos);
+#endif
 #endif

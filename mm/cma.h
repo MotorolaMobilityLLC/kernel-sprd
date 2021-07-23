@@ -5,6 +5,9 @@
 struct cma {
 	unsigned long   base_pfn;
 	unsigned long   count;
+#ifdef CONFIG_SPRD_CMA_DEBUG
+	unsigned long   free_count;
+#endif
 	unsigned long   *bitmap;
 	unsigned int order_per_bit; /* Order of pages represented by one bit */
 	struct mutex    lock;
@@ -14,6 +17,27 @@ struct cma {
 #endif
 	const char *name;
 };
+
+#ifdef CONFIG_SPRD_CMA_DEBUG
+struct sprd_cma_debug_info {
+	unsigned long caller_addr;
+	int alloc_pages;
+	unsigned int alloc_cnt;
+	unsigned long cost_us;
+};
+
+#define MAX_SPRD_CMA_DEBUG_NUM 512
+
+struct sprd_cma_debug {
+	struct sprd_cma_debug_info sprd_cma_info[MAX_SPRD_CMA_DEBUG_NUM];
+	struct mutex lock;
+	unsigned int sum_cnt;
+};
+
+int sysctl_sprd_cma_debug;
+int sysctl_sprd_cma_debug_handler(struct ctl_table *table, int write,
+			void __user *buffer, size_t *length, loff_t *ppos);
+#endif
 
 extern struct cma cma_areas[MAX_CMA_AREAS];
 extern unsigned cma_area_count;
