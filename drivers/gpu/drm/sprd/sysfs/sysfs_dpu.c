@@ -171,9 +171,7 @@ static ssize_t cabc_mode_write(struct file *fp, struct kobject *kobj,
 	if (off != 0 || count != attr->size)
 		return -EINVAL;
 
-	down(&ctx->lock);
 	dpu->core->enhance_set(ctx, ENHANCE_CFG_ID_CABC_MODE, buf);
-	up(&ctx->lock);
 
 	return count;
 }
@@ -196,14 +194,14 @@ static ssize_t cabc_hist_read(struct file *fp, struct kobject *kobj,
 	if (off + count > attr->size)
 		count = attr->size - off;
 
-	down(&ctx->lock);
+	down(&ctx->cabc_lock);
 	if (!ctx->enabled) {
 		pr_err("dpu is not initialized\n");
-		up(&ctx->lock);
+		up(&ctx->cabc_lock);
 		return -EINVAL;
 	}
 	dpu->core->enhance_get(ctx, ENHANCE_CFG_ID_CABC_HIST, buf);
-	up(&ctx->lock);
+	up(&ctx->cabc_lock);
 
 	return count;
 }
@@ -226,14 +224,11 @@ static ssize_t cabc_cur_bl_read(struct file *fp, struct kobject *kobj,
 	if (off + count > attr->size)
 		count = attr->size - off;
 
-	down(&ctx->lock);
 	if (!ctx->enabled) {
 		pr_err("dpu is not initialized\n");
-		up(&ctx->lock);
 		return -EINVAL;
 	}
 	dpu->core->enhance_get(ctx, ENHANCE_CFG_ID_CABC_CUR_BL, buf);
-	up(&ctx->lock);
 
 	return count;
 
@@ -289,21 +284,18 @@ static ssize_t frame_no_read(struct file *fp, struct kobject *kobj,
 	if (off + count > attr->size)
 		count = attr->size - off;
 
-	down(&ctx->lock);
 	if (!ctx->enabled) {
 		pr_err("dpu is not initialized\n");
-		up(&ctx->lock);
 		return -EINVAL;
 	}
 	dpu->core->enhance_get(ctx, ENHANCE_CFG_ID_FRAME_NO, buf);
-	up(&ctx->lock);
 
 	return count;
 }
 
 static BIN_ATTR_RO(frame_no, 4);
 
-static ssize_t cabc_gain_write(struct file *fp, struct kobject *kobj,
+static ssize_t cabc_param_write(struct file *fp, struct kobject *kobj,
 			struct bin_attribute *attr, char *buf,
 			loff_t off, size_t count)
 {
@@ -320,40 +312,12 @@ static ssize_t cabc_gain_write(struct file *fp, struct kobject *kobj,
 	if (off + count > attr->size)
 		count = attr->size - off;
 
-	down(&ctx->lock);
-	dpu->core->enhance_set(ctx, ENHANCE_CFG_ID_CABC_GAIN, buf);
-	up(&ctx->lock);
+	dpu->core->enhance_set(ctx, ENHANCE_CFG_ID_CABC_PARAM, buf);
 
 	return count;
 }
 
-static BIN_ATTR_WO(cabc_gain, 4);
-
-static ssize_t cabc_bl_fix_write(struct file *fp, struct kobject *kobj,
-			struct bin_attribute *attr, char *buf,
-			loff_t off, size_t count)
-{
-	struct device *dev = container_of(kobj, struct device, kobj);
-	struct sprd_dpu *dpu = dev_get_drvdata(dev);
-	struct dpu_context *ctx = &dpu->ctx;
-
-	if (!dpu->core->enhance_set)
-		return -EIO;
-
-	if (off >= attr->size)
-		return 0;
-
-	if (off + count > attr->size)
-		count = attr->size - off;
-
-	down(&ctx->lock);
-	dpu->core->enhance_set(ctx, ENHANCE_CFG_ID_CABC_BL_FIX, buf);
-	up(&ctx->lock);
-
-	return count;
-}
-
-static BIN_ATTR_WO(cabc_bl_fix, 4);
+static BIN_ATTR_WO(cabc_param, 144);
 
 static ssize_t cabc_run_write(struct file *fp, struct kobject *kobj,
 			struct bin_attribute *attr, char *buf,
@@ -372,9 +336,7 @@ static ssize_t cabc_run_write(struct file *fp, struct kobject *kobj,
 	if (off + count > attr->size)
 		count = attr->size - off;
 
-	down(&ctx->lock);
 	dpu->core->enhance_set(ctx, ENHANCE_CFG_ID_CABC_RUN, buf);
-	up(&ctx->lock);
 
 	return count;
 }
@@ -398,9 +360,9 @@ static ssize_t cabc_state_read(struct file *fp, struct kobject *kobj,
 	if (off + count > attr->size)
 		count = attr->size - off;
 
-	down(&ctx->lock);
+	down(&ctx->cabc_lock);
 	dpu->core->enhance_get(ctx, ENHANCE_CFG_ID_CABC_STATE, buf);
-	up(&ctx->lock);
+	up(&ctx->cabc_lock);
 
 	return count;
 }
@@ -421,9 +383,9 @@ static ssize_t cabc_state_write(struct file *fp, struct kobject *kobj,
 	if (off + count > attr->size)
 		count = attr->size - off;
 
-	down(&ctx->lock);
+	down(&ctx->cabc_lock);
 	dpu->core->enhance_set(ctx, ENHANCE_CFG_ID_CABC_STATE, buf);
-	up(&ctx->lock);
+	up(&ctx->cabc_lock);
 
 	return count;
 }
@@ -1214,8 +1176,7 @@ static struct bin_attribute *pq_bin_attrs[] = {
 	&bin_attr_epf,
 	&bin_attr_cabc_mode,
 	&bin_attr_cabc_hist,
-	&bin_attr_cabc_gain,
-	&bin_attr_cabc_bl_fix,
+	&bin_attr_cabc_param,
 	&bin_attr_vsync_count,
 	&bin_attr_frame_no,
 	&bin_attr_cabc_run,

@@ -323,9 +323,10 @@ static void sprd_dpu_disable(struct sprd_dpu *dpu)
 	struct dpu_context *ctx = &dpu->ctx;
 
 	down(&ctx->lock);
-
+	down(&ctx->cabc_lock);
 	if (!ctx->enabled) {
 		up(&ctx->lock);
+		up(&ctx->cabc_lock);
 		return;
 	}
 
@@ -339,7 +340,7 @@ static void sprd_dpu_disable(struct sprd_dpu *dpu)
 		dpu->glb->power(ctx, false);
 
 	ctx->enabled = false;
-
+	up(&ctx->cabc_lock);
 	up(&ctx->lock);
 }
 
@@ -540,6 +541,7 @@ static int sprd_dpu_context_init(struct sprd_dpu *dpu,
 	of_get_logo_memory_info(dpu, np);
 
 	sema_init(&ctx->lock, 1);
+	sema_init(&ctx->cabc_lock, 1);
 	init_waitqueue_head(&ctx->wait_queue);
 
 	ctx->panel_ready = true;

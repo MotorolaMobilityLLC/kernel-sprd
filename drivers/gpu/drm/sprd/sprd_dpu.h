@@ -45,9 +45,8 @@ enum {
 	ENHANCE_CFG_ID_VSYNC_COUNT,
 	ENHANCE_CFG_ID_FRAME_NO,
 	ENHANCE_CFG_ID_CABC_NO,
-	ENHANCE_CFG_ID_CABC_GAIN,
-	ENHANCE_CFG_ID_CABC_BL_FIX,
 	ENHANCE_CFG_ID_CABC_CUR_BL,
+	ENHANCE_CFG_ID_CABC_PARAM,
 	ENHANCE_CFG_ID_CABC_RUN,
 	ENHANCE_CFG_ID_CABC_STATE,
 	ENHANCE_CFG_ID_SLP_LUT,
@@ -123,6 +122,7 @@ struct dpu_context {
 	/* pq enhance parameters */
 	void *enhance;
 	int corner_radius;
+	struct semaphore cabc_lock;
 	struct work_struct cabc_work;
 	struct work_struct cabc_bl_update;
 
