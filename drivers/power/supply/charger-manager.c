@@ -4541,11 +4541,11 @@ static int charger_get_property(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_TEMP_AMBIENT:
 		return cm_get_battery_temperature(cm, &val->intval);
 	case POWER_SUPPLY_PROP_CAPACITY:
-		if (!is_batt_present(cm)) {
-			/* There is no battery. Assume 100% */
-			val->intval = 100;
-			break;
-		}
+//		if (!is_batt_present(cm)) {
+//			/* There is no battery. Assume 100% */
+//			val->intval = 100;
+//			break;
+//		}
 		val->intval = DIV_ROUND_CLOSEST(cm->desc->cap, 10);
 		if (val->intval > 100)
 			val->intval = 100;
