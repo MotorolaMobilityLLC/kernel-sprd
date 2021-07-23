@@ -444,15 +444,15 @@ void start_critical_timings(void)
 {
 	if (preempt_trace() || irq_trace())
 		start_critical_timing(CALLER_ADDR0, CALLER_ADDR1);
-	continue_eirqsoff_timing();
-	continue_epreempt_timing();
+	start_eirqsoff_timing(CALLER_ADDR0, CALLER_ADDR1);
+	start_epreempt_timing(CALLER_ADDR0, CALLER_ADDR1);
 }
 EXPORT_SYMBOL_GPL(start_critical_timings);
 
 void stop_critical_timings(void)
 {
-	pause_eirqsoff_timing();
-	pause_epreempt_timing();
+	stop_eirqsoff_timing(CALLER_ADDR0, CALLER_ADDR1);
+	stop_epreempt_timing(CALLER_ADDR0, CALLER_ADDR1);
 	if (preempt_trace() || irq_trace())
 		stop_critical_timing(CALLER_ADDR0, CALLER_ADDR1);
 }
