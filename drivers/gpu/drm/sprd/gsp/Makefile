@@ -12,8 +12,9 @@ sprd-gsp-y += gsp_r6p0/gsp_r6p0_core.o \
 	gsp_r9p0/gsp_r9p0_coef_cal.o
 
 sprd-gsp-y += gsp_interface/gsp_interface_sharkl3.o \
+	gsp_interface/gsp_interface_sharkle.o \
 	gsp_interface/gsp_interface_pike2.o \
-        gsp_interface/gsp_interface_sharkl5.o \
+    gsp_interface/gsp_interface_sharkl5.o \
 	gsp_interface/gsp_interface_sharkl5pro.o \
 	gsp_interface/gsp_interface_qogirl6.o \
 	gsp_interface/gsp_interface_qogirn6pro.o
