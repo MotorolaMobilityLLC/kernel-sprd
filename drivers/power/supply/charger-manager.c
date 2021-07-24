@@ -4720,7 +4720,7 @@ static void cm_batt_works(struct work_struct *work)
 				fuel_cap = CM_CAP_FULL_PERCENT;
 
 			if (fuel_cap > cm->desc->cap)
-				fuel_cap = cm->desc->cap + 1;
+				fuel_cap = cm->desc->cap + 4;
 		}
 
 		break;
