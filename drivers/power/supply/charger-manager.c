@@ -465,14 +465,14 @@ static bool is_ext_pwr_online(struct charger_manager *cm)
 }
 
 /**
- * get_cp_ibatt_uA - Get the charge current of the battery from charge pump
+ * get_cp_ibat_uA - Get the charge current of the battery from charge pump
  * @cm: the Charger Manager representing the battery.
  * @uA: the current returned.
  *
  * Returns 0 if there is no error.
  * Returns a negative value on error.
  */
-static int get_cp_ibatt_uA(struct charger_manager *cm, int *uA)
+static int get_cp_ibat_uA(struct charger_manager *cm, int *uA)
 {
 	union power_supply_propval val;
 	struct power_supply *cp_psy;
@@ -497,14 +497,14 @@ static int get_cp_ibatt_uA(struct charger_manager *cm, int *uA)
 }
 
 /**
- * get_cp_vbatt_uV - Get the voltage level of the battery from charge pump
+ * get_cp_vbat_uV - Get the voltage level of the battery from charge pump
  * @cm: the Charger Manager representing the battery.
  * @uV: the voltage level returned.
  *
  * Returns 0 if there is no error.
  * Returns a negative value on error.
  */
-static int get_cp_vbatt_uV(struct charger_manager *cm, int *uV)
+static int get_cp_vbat_uV(struct charger_manager *cm, int *uV)
 {
 	union power_supply_propval val;
 	struct power_supply *cp_psy;
@@ -2605,9 +2605,9 @@ static void cm_update_cp_charger_status(struct charger_manager *cm)
 	struct cm_charge_pump_status *cp = &cm->desc->cp;
 
 	cp->ibus_uA = 0;
-	cp->vbatt_uV = 0;
+	cp->vbat_uV = 0;
 	cp->vbus_uV = 0;
-	cp->ibatt_uA = 0;
+	cp->ibat_uA = 0;
 
 	if (cp->cp_running) {
 		if (get_cp_ibus_uA(cm, &cp->ibus_uA)) {
@@ -2615,18 +2615,18 @@ static void cm_update_cp_charger_status(struct charger_manager *cm)
 			dev_err(cm->dev, "get ibus current error.\n");
 		}
 
-		if (get_cp_vbatt_uV(cm, &cp->vbatt_uV)) {
-			cp->vbatt_uV = 0;
+		if (get_cp_vbat_uV(cm, &cp->vbat_uV)) {
+			cp->vbat_uV = 0;
 			dev_err(cm->dev, "get vbatt error.\n");
 		}
 
 		if (get_cp_vbus_uV(cm, &cp->vbus_uV)) {
-			cp->vbatt_uV = 0;
+			cp->vbat_uV = 0;
 			dev_err(cm->dev, "get vbus error.\n");
 		}
 
-		if (get_cp_ibatt_uA(cm, &cp->ibatt_uA)) {
-			cp->ibatt_uA = 0;
+		if (get_cp_ibat_uA(cm, &cp->ibat_uA)) {
+			cp->ibat_uA = 0;
 			dev_err(cm->dev, "get vbatt error.\n");
 		}
 
@@ -2636,26 +2636,26 @@ static void cm_update_cp_charger_status(struct charger_manager *cm)
 			dev_err(cm->dev, "get ibus current error.\n");
 		}
 
-		if (get_vbat_now_uV(cm, &cp->vbatt_uV)) {
-			cp->vbatt_uV = 0;
+		if (get_vbat_now_uV(cm, &cp->vbat_uV)) {
+			cp->vbat_uV = 0;
 			dev_err(cm->dev, "get vbatt error.\n");
 		}
 
 		if (get_charger_voltage(cm, &cp->vbus_uV)) {
-			cp->vbatt_uV = 0;
+			cp->vbat_uV = 0;
 			dev_err(cm->dev, "get vbus error.\n");
 		}
 
 
-		if (get_ibat_now_uA(cm, &cp->ibatt_uA)) {
-			cp->ibatt_uA = 0;
+		if (get_ibat_now_uA(cm, &cp->ibat_uA)) {
+			cp->ibat_uA = 0;
 			dev_err(cm->dev, "get vbatt error.\n");
 		}
 	}
 
 	dev_dbg(cm->dev, " %s,  %s, batt_uV = %duV, vbus_uV = %duV, batt_uA = %duA, ibus_uA = %duA\n",
 	       __func__, (cp->cp_running ? "charge pump" : "Primary charger"),
-	       cp->vbatt_uV, cp->vbus_uV, cp->ibatt_uA, cp->ibus_uA);
+	       cp->vbat_uV, cp->vbus_uV, cp->ibat_uA, cp->ibus_uA);
 }
 
 static bool cm_is_reach_cp_threshold(struct charger_manager *cm)
@@ -2771,17 +2771,17 @@ static void cm_check_target_vbus(struct charger_manager *cm)
 static int cm_cp_vbat_step_algo(struct charger_manager *cm)
 {
 	struct cm_charge_pump_status *cp = &cm->desc->cp;
-	int vbat_step = 0, delta_vbatt_uV;
+	int vbat_step = 0, delta_vbat_uV;
 
-	delta_vbatt_uV = cp->cp_target_vbat - cp->vbatt_uV;
+	delta_vbat_uV = cp->cp_target_vbat - cp->vbat_uV;
 
-	if (cp->vbatt_uV > 0 && delta_vbatt_uV > CM_CP_VBAT_STEP1)
+	if (cp->vbat_uV > 0 && delta_vbat_uV > CM_CP_VBAT_STEP1)
 		vbat_step = CM_CP_VSTEP * 3;
-	else if (cp->vbatt_uV > 0 && delta_vbatt_uV > CM_CP_VBAT_STEP2)
+	else if (cp->vbat_uV > 0 && delta_vbat_uV > CM_CP_VBAT_STEP2)
 		vbat_step = CM_CP_VSTEP * 2;
-	else if (cp->vbatt_uV > 0 && delta_vbatt_uV > CM_CP_VBAT_STEP3)
+	else if (cp->vbat_uV > 0 && delta_vbat_uV > CM_CP_VBAT_STEP3)
 		vbat_step = CM_CP_VSTEP;
-	else if (cp->vbatt_uV > 0 && delta_vbatt_uV < 0)
+	else if (cp->vbat_uV > 0 && delta_vbat_uV < 0)
 		vbat_step = -CM_CP_VSTEP * 2;
 
 	return vbat_step;
@@ -2790,17 +2790,17 @@ static int cm_cp_vbat_step_algo(struct charger_manager *cm)
 static int cm_cp_ibat_step_algo(struct charger_manager *cm)
 {
 	struct cm_charge_pump_status *cp = &cm->desc->cp;
-	int ibat_step = 0, delta_ibatt_uA;
+	int ibat_step = 0, delta_ibat_uA;
 
-	delta_ibatt_uA = cp->cp_target_ibat - cp->ibatt_uA;
+	delta_ibat_uA = cp->cp_target_ibat - cp->ibat_uA;
 
-	if (cp->ibatt_uA > 0 && delta_ibatt_uA > CM_CP_IBAT_STEP1)
+	if (cp->ibat_uA > 0 && delta_ibat_uA > CM_CP_IBAT_STEP1)
 		ibat_step = CM_CP_VSTEP * 3;
-	else if (cp->ibatt_uA > 0 && delta_ibatt_uA > CM_CP_IBAT_STEP2)
+	else if (cp->ibat_uA > 0 && delta_ibat_uA > CM_CP_IBAT_STEP2)
 		ibat_step = CM_CP_VSTEP * 2;
-	else if (cp->ibatt_uA > 0 && delta_ibatt_uA > CM_CP_IBAT_STEP3)
+	else if (cp->ibat_uA > 0 && delta_ibat_uA > CM_CP_IBAT_STEP3)
 		ibat_step = CM_CP_VSTEP;
-	else if (cp->ibatt_uA > 0 && delta_ibatt_uA < 0)
+	else if (cp->ibat_uA > 0 && delta_ibat_uA < 0)
 		ibat_step = -CM_CP_VSTEP * 2;
 
 	return ibat_step;
@@ -2856,8 +2856,8 @@ static bool cm_cp_tune_algo(struct charger_manager *cm)
 	bool is_taper_done = false;
 
 	/* check taper done*/
-	if (cp->vbatt_uV >= cp->cp_target_vbat - 50000) {
-		if (cp->ibatt_uA < cp->cp_taper_current) {
+	if (cp->vbat_uV >= cp->cp_target_vbat - 50000) {
+		if (cp->ibat_uA < cp->cp_taper_current) {
 			if (cp->cp_taper_trigger_cnt++ > 5) {
 				is_taper_done = true;
 				return is_taper_done;
@@ -2905,7 +2905,7 @@ static bool cm_cp_tune_algo(struct charger_manager *cm)
 		 "cp_target_ibus = %duA, cp_taper_current = %duA, taper_cnt = %d, "
 		 "vbat_step = %d, ibat_step = %d, vbus_step = %d, ibus_step = %d, alarm_step = %d, "
 		 "adapter_max_vbus = %duV, adapter_max_ibus = %duA\n",
-		 __func__, cp->vbatt_uV, cp->ibatt_uA, cp->vbus_uV, cp->ibus_uA,
+		 __func__, cp->vbat_uV, cp->ibat_uA, cp->vbus_uV, cp->ibus_uA,
 		 cp->cp_target_vbat, cp->cp_target_ibat, cp->cp_target_vbus,
 		 cp->cp_target_ibus, cp->cp_taper_current, cp->cp_taper_trigger_cnt,
 		 vbat_step, ibat_step, vbus_step, ibus_step, alarm_step,
@@ -2927,12 +2927,12 @@ static bool cm_cp_check_ibat_ucp_status(struct charger_manager *cm)
 	if (!cp->cp_ibat_ucp_cnt)
 		return status;
 
-	if (cp->vbatt_uV >= cp->cp_target_vbat - 50000) {
+	if (cp->vbat_uV >= cp->cp_target_vbat - 50000) {
 		cp->cp_ibat_ucp_cnt = 0;
 		return status;
 	}
 
-	if (cp->ibatt_uA < cp->cp_taper_current)
+	if (cp->ibat_uA < cp->cp_taper_current)
 		cp->cp_ibat_ucp_cnt++;
 	else
 		cp->cp_ibat_ucp_cnt = 0;
@@ -3005,7 +3005,7 @@ static void cm_cp_state_entry(struct charger_manager *cm)
 	cp->cp_ibat_ucp_cnt = 0;
 
 	cp->cp_target_ibus = cp->cp_max_ibus;
-	cp->cp_target_vbus = cp->vbatt_uV * 205 / 100 + 2 * CM_CP_VSTEP;
+	cp->cp_target_vbus = cp->vbat_uV * 205 / 100 + 2 * CM_CP_VSTEP;
 
 	dev_dbg(cm->dev, "%s, target_ibat = %d, cp_target_vbus = %d\n",
 		 __func__, cp->cp_target_ibat, cp->cp_target_vbus);
@@ -3026,7 +3026,7 @@ static void cm_cp_state_check_vbus(struct charger_manager *cm)
 	dev_info(cm->dev, "cm_cp_state_machine: state %d, %s\n",
 		 cp->cp_state, cm_cp_state_names[cp->cp_state]);
 
-	if (cp->flt.vbus_error_lo && cp->vbus_uV < cp->vbatt_uV * 219 / 100) {
+	if (cp->flt.vbus_error_lo && cp->vbus_uV < cp->vbat_uV * 219 / 100) {
 		cp->tune_vbus_retry++;
 		cp->cp_target_vbus += CM_CP_VSTEP;
 		cm_check_target_vbus(cm);
@@ -3034,7 +3034,7 @@ static void cm_cp_state_check_vbus(struct charger_manager *cm)
 		if (cm_adjust_fast_charge_voltage(cm, cp->cp_target_vbus))
 			cp->cp_target_vbus -= CM_CP_VSTEP;
 
-	} else if (cp->flt.vbus_error_hi && cp->vbus_uV > cp->vbatt_uV * 205 / 100) {
+	} else if (cp->flt.vbus_error_hi && cp->vbus_uV > cp->vbat_uV * 205 / 100) {
 		cp->tune_vbus_retry++;
 		cp->cp_target_vbus -= CM_CP_VSTEP;
 		if (cm_adjust_fast_charge_voltage(cm, cp->cp_target_vbus))
@@ -6263,7 +6263,7 @@ static void cm_batt_works(struct work_struct *work)
 	struct charger_manager *cm = container_of(dwork,
 				struct charger_manager, cap_update_work);
 	struct timespec64 cur_time;
-	int batt_uV, batt_ocV, bat_uA, fuel_cap, chg_sts, ret;
+	int batt_uV, batt_ocV, batt_uA, fuel_cap, chg_sts, ret;
 	int period_time, flush_time, cur_temp, board_temp = 0;
 	int chg_cur = 0, chg_limit_cur = 0, input_cur = 0;
 	int chg_vol = 0, vbat_avg = 0, ibat_avg = 0;
@@ -6285,9 +6285,9 @@ static void cm_batt_works(struct work_struct *work)
 		goto schedule_cap_update_work;
 	}
 
-	ret = get_ibat_now_uA(cm, &bat_uA);
+	ret = get_ibat_now_uA(cm, &batt_uA);
 	if (ret) {
-		dev_err(cm->dev, "get bat_uA error.\n");
+		dev_err(cm->dev, "get batt_uA error.\n");
 		goto schedule_cap_update_work;
 	}
 
@@ -6387,12 +6387,11 @@ static void cm_batt_works(struct work_struct *work)
 	else
 		cm->desc->charger_status = chg_sts;
 
-	dev_info(cm->dev, "vbat = %d, vbat_avg = %d, OCV = %d, ibat = %d, ibat_avg = %d,"
-		 " ibus = %d, vbus = %d, msoc = %d, chg_sts = %d, frce_full = %d, chg_lmt_cur = %d,"
-		 " inpt_lmt_cur = %d, chgr_type = %d, Tboard = %d, Tbatt = %d, track_sts = %d,"
-		 " thm_cur = %d, thm_pwr = %dmW, is_fchg = %d, fchg_en = %d, tflush = %d,"
-		 " tperiod = %d\n",
-		 batt_uV, vbat_avg, batt_ocV, bat_uA, ibat_avg, input_cur, chg_vol, fuel_cap,
+	dev_info(cm->dev, "vbat: %d, vbat_avg: %d, OCV: %d, ibat: %d, ibat_avg: %d, ibus: %d,"
+		 " vbus: %d, msoc: %d, chg_sts: %d, frce_full: %d, chg_lmt_cur: %d,"
+		 " inpt_lmt_cur: %d, chgr_type: %d, Tboard: %d, Tbatt: %d, track_sts: %d,"
+		 " thm_cur: %d, thm_pwr: %d, is_fchg: %d, fchg_en: %d, tflush: %d, tperiod: %d\n",
+		 batt_uV, vbat_avg, batt_ocV, batt_uA, ibat_avg, input_cur, chg_vol, fuel_cap,
 		 cm->desc->charger_status, cm->desc->force_set_full, chg_cur, chg_limit_cur,
 		 cm->desc->charger_type, board_temp, cur_temp, cm->track.state,
 		 cm->desc->thm_info.thm_adjust_cur, cm->desc->thm_info.thm_pwr,
@@ -6402,7 +6401,7 @@ static void cm_batt_works(struct work_struct *work)
 	case POWER_SUPPLY_STATUS_CHARGING:
 		last_fuel_cap = fuel_cap;
 		if (fuel_cap < cm->desc->cap) {
-			if (bat_uA >= 0) {
+			if (batt_uA >= 0) {
 				fuel_cap = cm->desc->cap;
 			} else {
 				if (period_time < cm->desc->cap_one_time) {
@@ -6459,7 +6458,7 @@ static void cm_batt_works(struct work_struct *work)
 		if (cm->desc->cap >= 995 &&
 		    cm->desc->trickle_time >= cm->desc->trickle_time_out &&
 		    cm->desc->trickle_time_out > 0 &&
-		    bat_uA > 0)
+		    batt_uA > 0)
 			cm->desc->force_set_full = true;
 
 		break;
@@ -6509,7 +6508,7 @@ static void cm_batt_works(struct work_struct *work)
 		last_fuel_cap = fuel_cap;
 		cm->desc->update_capacity_time = cur_time.tv_sec;
 		if ((batt_ocV < (cm->desc->fullbatt_uV - cm->desc->fullbatt_vchkdrop_uV - 50000))
-		    && (bat_uA < 0))
+		    && (batt_uA < 0))
 			cm->desc->force_set_full = false;
 		if (is_ext_pwr_online(cm)) {
 			if (fuel_cap != CM_CAP_FULL_PERCENT)
@@ -6529,8 +6528,7 @@ static void cm_batt_works(struct work_struct *work)
 		schedule_delayed_work(&cm->uvlo_work, msecs_to_jiffies(100));
 	}
 
-	dev_info(cm->dev, "battery cap = %d, charger manager cap = %d\n",
-		 fuel_cap, cm->desc->cap);
+	dev_info(cm->dev, "new_uisoc = %d, old_uisoc = %d\n", fuel_cap, cm->desc->cap);
 
 	if (fuel_cap != cm->desc->cap) {
 		if (DIV_ROUND_CLOSEST(fuel_cap, 10) != DIV_ROUND_CLOSEST(cm->desc->cap, 10)) {

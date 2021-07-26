@@ -427,8 +427,8 @@ struct cm_alarm_status {
  * @cp_max_ibus: record the upper limit of  bus current
  * @adapter_max_ibus: record the max current of bus
  * @adapter_max_vbus: record the max voltage of bus
- * @vbatt_uV: record the current battery voltage
- * @ibatt_uA: record the current battery current
+ * @vbat_uV: record the current battery voltage
+ * @ibat_uA: record the current battery current
  * @ibus_uA: record the current bus current
  * @ibus_uV: record the current bus voltage
  * @tune_vbus_retry: record the retry time from vbus low to vbus high
@@ -454,8 +454,8 @@ struct cm_charge_pump_status {
 	int cp_max_ibus;
 	int adapter_max_ibus;
 	int adapter_max_vbus;
-	int vbatt_uV;
-	int ibatt_uA;
+	int vbat_uV;
+	int ibat_uA;
 	int ibus_uA;
 	int vbus_uV;
 	int tune_vbus_retry;
