@@ -177,17 +177,17 @@
 			reg = <0x89600000 0x040c0000>;
 		};
 
-		/* The value of sml&tos will be fixed up in uboot */
-		sml_reserved: sml-mem@94000000 {
-			reg = <0x94000000 0x00020000>;
-		};
-
-		tos_reserved: tos-mem@94020000 {
-			reg = <0x94020000 0x01fe0000>;
-		};
-
 		logo_reserved: logobuffer@9e000000 {
 			reg = <0x9e000000 0x384000>;
+		};
+
+		/* The value of sml&tos will be fixed up in uboot */
+		sml_reserved: sml-mem@b0000000 {
+			reg = <0xb0000000 0x00020000>;
+		};
+
+		tos_reserved: tos-mem@b0020000 {
+			reg = <0xb0020000 0x01fe0000>;
 		};
 
 		cma_reserved: cma_share@b88000000 {
