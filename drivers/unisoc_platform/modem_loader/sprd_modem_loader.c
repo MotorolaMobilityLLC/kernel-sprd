@@ -53,13 +53,14 @@
 #define MODEM_STOP_CMD _IO(MODEM_MAGIC, 0xc)
 #define MODEM_START_CMD _IO(MODEM_MAGIC, 0xd)
 #define MODEM_ASSERT_CMD _IO(MODEM_MAGIC, 0xe)
+#define MODEM_UNCONDITIONAL_STOP_CMD _IO(MODEM_MAGIC, 0x12)
 
 #ifdef CONFIG_SPRD_EXT_MODEM_POWER_CTRL
 #define MODEM_REBOOT_EXT_MODEM_CMD _IO(MODEM_MAGIC, 0xf)
 #define MODEM_POWERON_EXT_MODEM_CMD _IO(MODEM_MAGIC, 0x10)
 #define MODEM_POWEROFF_EXT_MODEM_CMD _IO(MODEM_MAGIC, 0x11)
 #endif
-#define MODEM_ENTER_SLEEP_CMD _IO(MODEM_MAGIC, 0x12)
+#define MODEM_ENTER_SLEEP_CMD _IO(MODEM_MAGIC, 0x13)
 
 #define	MODEM_READ_ALL_MEM 0xff
 #define	MODEM_READ_MODEM_MEM 0xfe
@@ -247,7 +248,7 @@ static void *modem_map_memory(struct modem_device *modem, phys_addr_t start,
 }
 
 static int list_each_dump_info(struct modem_dump_info *base,
-			       struct modem_dump_info **info)
+			       struct modem_dump_info **info, int *mini_number)
 {
 	struct modem_dump_info *next;
 	int ret = 1;
@@ -266,6 +267,7 @@ static int list_each_dump_info(struct modem_dump_info *base,
 	} else {
 		*info = NULL;
 		ret = 0;
+		*mini_number = 0;
 	}
 
 	return ret;
@@ -306,7 +308,7 @@ static ssize_t sprd_modem_seg_dump(u32 base, u32 maxsz, char __user *buf,
 		if (count < MODEM_VMALLOC_SIZE_LIMIT)
 			copy_size = count;
 
-		if (unalign_copy_to_user(buf, vmem, copy_size)) {
+		if (_unalign_copy_to_user(buf, vmem, copy_size)) {
 			pr_err("copy data to user error !\n");
 			memunmap(vmem);
 			return -EFAULT;
@@ -326,19 +328,30 @@ static ssize_t modem_read_mini_dump(struct file *filp,
 			  char __user *buf, size_t count, loff_t *ppos)
 
 {
-	static struct modem_dump_info *s_cur_info;
+	struct modem_dump_info *s_cur_info;
+	static int mini_number;
 	struct modem_device *modem = filp->private_data;
 	u8 head[sizeof(struct modem_dump_info) + 32];
 	int len, total = 0, offset = 0;
+	int struct_size = sizeof(struct modem_dump_info);
 	ssize_t written = 0, map_size;
 	void *vmem;
 
-	dev_dbg(modem->p_dev, "read, %s mini_dump!\n", modem->modem_name);
+	dev_info(modem->p_dev, "read, %s mini_dump!\n", modem->modem_name);
 
-	if (!s_cur_info && *ppos)
+	if (!mini_number && *ppos)
 		return 0;
 
-	vmem = modem_map_memory(modem, modem->mini_base, modem->mini_size, &map_size);
+	if (mini_number) {
+		vmem = modem_map_memory(modem, modem->mini_base +
+					struct_size * mini_number,
+					struct_size, &map_size);
+		s_cur_info = (struct modem_dump_info *)vmem;
+	} else {
+		vmem = modem_map_memory(modem, modem->mini_base,
+				       modem->mini_size, &map_size);
+	}
+
 	if (!vmem) {
 		dev_err(modem->p_dev,
 			"read, Unable to map  base: 0x%llx\n", modem->mini_base);
@@ -346,7 +359,7 @@ static ssize_t modem_read_mini_dump(struct file *filp,
 	}
 
 	if (!s_cur_info)
-		list_each_dump_info(vmem, &s_cur_info);
+		list_each_dump_info(vmem, &s_cur_info, &mini_number);
 
 	while (s_cur_info) {
 		if (!count)
@@ -366,7 +379,7 @@ static ssize_t modem_read_mini_dump(struct file *filp,
 			else
 				written = count;
 
-			if (unalign_copy_to_user(buf + total,
+			if (_unalign_copy_to_user(buf + total,
 					head + *ppos, written)) {
 				dev_err(modem->p_dev, "copy mini-dump data to user error !\n");
 				memunmap(vmem);
@@ -388,8 +401,11 @@ static ssize_t modem_read_mini_dump(struct file *filp,
 				count -= written;
 				*ppos += written;
 			} else if (written == 0) {
-				if (list_each_dump_info(vmem, &s_cur_info))
+				if (list_each_dump_info(vmem, &s_cur_info,
+							&mini_number)) {
 					*ppos = 0;
+					mini_number++;
+				}
 			} else {
 				memunmap(vmem);
 				return written;
@@ -417,7 +433,7 @@ static ssize_t modem_read(struct file *filp,
 	phys_addr_t addr;
 	int ret;
 
-	dev_dbg(modem->p_dev, "read, %s!\n", modem->modem_name);
+	dev_info(modem->p_dev, "read, %s!\n", modem->modem_name);
 
 	/* only get read lock task can be read */
 	if (strcmp(current->comm, modem->rd_lock_name) != 0) {
@@ -437,7 +453,7 @@ static ssize_t modem_read(struct file *filp,
 
 	modem_get_base_range(modem, &base, &size, 1);
 	offset = *ppos;
-	dev_dbg(modem->p_dev, "read, offset = 0x%lx, count = 0x%lx!\n",
+	dev_info(modem->p_dev, "read, offset = 0x%lx, count = 0x%lx!\n",
 		offset, count);
 
 	if (size <= offset)
@@ -460,7 +476,7 @@ static ssize_t modem_read(struct file *filp,
 		}
 
 		copy_size = min_t(size_t, r, map_size);
-		if (unalign_copy_to_user(buf, vmem, copy_size)) {
+		if (_unalign_copy_to_user(buf, vmem, copy_size)) {
 			dev_err(modem->p_dev,
 				"read, copy data from user err!\n");
 			memunmap(vmem);
@@ -522,7 +538,7 @@ static ssize_t modem_write(struct file *filp,
 			return -ENOMEM;
 		}
 		copy_size = min_t(size_t, r, map_size);
-		if (unalign_copy_from_user(vmem, buf, copy_size)) {
+		if (_unalign_copy_from_user(vmem, buf, copy_size)) {
 			dev_err(modem->p_dev,
 				"write, copy data from user err!\n");
 			memunmap(vmem);
@@ -716,11 +732,11 @@ static void soc_modem_stop(struct modem_device *modem)
 	dev_info(modem->p_dev, "stop over\n");
 }
 
-static int modem_run(struct modem_device *modem, u8 b_run)
+static int modem_run(struct modem_device *modem, u8 b_run, u8 b_restrict)
 {
 	dev_info(modem->p_dev, "%s modem run = %d!\n", current->comm, b_run);
 
-	if (modem->run_state == b_run)
+	if (b_restrict && modem->run_state == b_run)
 		return -EINVAL;
 
 	modem->run_state = b_run;
@@ -869,11 +885,11 @@ static long modem_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		break;
 
 	case MODEM_STOP_CMD:
-		ret = modem_run(modem, 0);
+		ret = modem_run(modem, 0, 1);
 		break;
 
 	case MODEM_START_CMD:
-		ret = modem_run(modem, 1);
+		ret = modem_run(modem, 1, 1);
 		break;
 
 	case MODEM_ASSERT_CMD:
@@ -891,8 +907,11 @@ static long modem_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 
 	case MODEM_POWEROFF_EXT_MODEM_CMD:
 		ret = modem_poweroff_ext_modem(modem);
-			break;
+		break;
 #endif
+	case MODEM_UNCONDITIONAL_STOP_CMD:
+		ret = modem_run(modem, 0, 0);
+		break;
 
 	default:
 		ret = -EINVAL;

@@ -1063,6 +1063,49 @@ static inline void unalign_memcpy(void *to, const void *from, size_t n)
 		}
 	}
 }
+
+static inline unsigned long _unalign_copy_to_user(void __user *to,
+						    const void *from,
+						    unsigned long n)
+{
+	if (((unsigned long)from & 7) && (n < 16)) {
+		while (n) {
+			if (_copy_to_user(to++, from++, 1))
+				break;
+			n--;
+		}
+		return n;
+	}
+
+	return _copy_to_user(to, from, n);
+}
+
+static inline unsigned long _unalign_copy_from_user(void *to,
+						    const void __user *from,
+						    unsigned long n)
+{
+	unsigned c1, c2, c3;
+
+	c1 = !((unsigned long)to & 0x7) && !(n < 16);
+	if (c1)
+		return _copy_from_user(to, from, n);
+
+	c2 = !((unsigned long)to & 0x7) && !((unsigned long)from & 0x7);
+	if (c2)
+		return _copy_from_user(to, from, n);
+
+	c3 = !(((unsigned long)to ^ (unsigned long)from) & 0x7) && (n > 15);
+	if (c3)
+		return _copy_from_user(to, from, n);
+
+	while (n) {
+		if (_copy_from_user(to++, from++, 1))
+			break;
+		n--;
+	}
+
+	return n;
+}
 #else
 static inline unsigned long unalign_copy_to_user(void __user *to,
 		const void *from,
@@ -1079,6 +1122,20 @@ static inline unsigned long unalign_copy_from_user(void *to,
 static inline void *unalign_memcpy(void *to, const void *from, size_t n)
 {
 	return memcpy(to, from, n);
+}
+
+static inline unsigned long _unalign_copy_to_user(void __user *to,
+						    const void *from,
+						    unsigned long n)
+{
+	return _copy_to_user(to, from, n);
+}
+
+static inline unsigned long _unalign_copy_from_user(void *to,
+						    const void __user *from,
+						    unsigned long n)
+{
+	return _copy_from_user(to, from, n);
 }
 #endif
 
