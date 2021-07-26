@@ -137,6 +137,7 @@ struct sc2730_fchg_info {
 	bool pps_enable;
 	bool pps_active;
 	bool support_pd_pps;
+	bool support_sfcp;
 	const struct sc27xx_fast_chg_data *pdata;
 };
 
@@ -909,7 +910,7 @@ static void sc2730_fchg_work(struct work_struct *data)
 		sc2730_fchg_disable(info);
 	} else if (!info->detected) {
 		info->detected = true;
-		if (info->pd_enable || info->pps_enable) {
+		if (info->pd_enable || info->pps_enable || !info->support_sfcp) {
 			sc2730_fchg_disable(info);
 		} else if (sc2730_fchg_get_detect_status(info) ==
 		    POWER_SUPPLY_USB_TYPE_PD) {
@@ -980,6 +981,9 @@ static int sc2730_fchg_probe(struct platform_device *pdev)
 
 	info->support_pd_pps = device_property_read_bool(&pdev->dev,
 							 "sprd,support-pd-pps");
+
+	info->support_sfcp = device_property_read_bool(&pdev->dev,
+						       "sprd,support-sfcp");
 
 	info->pps_active = false;
 	platform_set_drvdata(pdev, info);
