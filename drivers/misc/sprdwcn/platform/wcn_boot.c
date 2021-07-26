@@ -2009,7 +2009,7 @@ static void set_wifipa_status(enum wcn_sub_sys subsys, int val)
  * ->(>=100uS) ADVV12
  * ->(>=10uS)  AVDD33
  */
-static void wcn_power_on(void)
+static int chip_power_on(enum wcn_sub_sys subsys)
 {
 	wcn_avdd12_parent_bound_chip(false);
 	marlin_avdd18_dcxo_enable(true);
@@ -2023,40 +2023,8 @@ static void wcn_power_on(void)
 	usleep_range(50, 60);
 	wifipa_enable(1);
 	wcn_wifipa_bound_xtl(true);
-}
-
-static void wcn_power_off(void)
-{
-	wcn_avdd12_bound_xtl(false);
-	wcn_wifipa_bound_xtl(false);
-	wcn_avdd12_parent_bound_chip(true);
-	wifipa_enable(0);
-	marlin_avdd18_dcxo_enable(false);
-	marlin_clk_enable(false);
-	marlin_analog_power_enable(false);
-	marlin_chip_en(false, false);
-	marlin_digital_power_enable(false);
-	chip_reset_release(0);
-}
-
-static int chip_power_on(enum wcn_sub_sys subsys)
-{
-	int retry_cnt = 0;
-
-	wcn_power_on();
-	while (bus_scan_card() < 0) {
-		if (retry_cnt >= 1) {
-			pr_err("wcn bus rescan card fail!\n");
-			return -1;
-		}
-		pr_info("wcn bus rescan power_on_off begin\n");
-		wcn_power_off();
-		msleep(20);
-		wcn_power_on();
-		msleep(20);
-		retry_cnt++;
-		pr_info("wcn bus rescan power_on_off end\n");
-	}
+	if (bus_scan_card() < 0)
+		return -1;
 	loopcheck_ready_set();
 #ifndef CONFIG_WCN_PCIE
 	mem_pd_poweroff_deinit();
@@ -2073,7 +2041,16 @@ static int chip_power_off(enum wcn_sub_sys subsys)
 	sprdwcn_bus_remove_card(marlin_dev);
 #endif
 	marlin_dev->power_state = 0;
-	wcn_power_off();
+	wcn_avdd12_bound_xtl(false);
+	wcn_wifipa_bound_xtl(false);
+	wcn_avdd12_parent_bound_chip(true);
+	wifipa_enable(0);
+	marlin_avdd18_dcxo_enable(false);
+	marlin_clk_enable(false);
+	marlin_analog_power_enable(false);
+	marlin_chip_en(false, false);
+	marlin_digital_power_enable(false);
+	chip_reset_release(0);
 	marlin_dev->wifi_need_download_ini_flag = 0;
 #ifndef CONFIG_WCN_PCIE
 	mem_pd_poweroff_deinit();
