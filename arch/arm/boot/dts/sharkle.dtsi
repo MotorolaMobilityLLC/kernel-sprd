@@ -314,6 +314,32 @@
 				#iommu-cells = <0>;
 			};
 
+			gsp_core0: gsp@20a00000 {
+				compatible = "sprd,gsp-core";
+				reg = <0x20a00000 0x1000>;
+				core-id = <0>;
+				kcfg-num = <16>;
+				interrupts = <GIC_SPI 51 IRQ_TYPE_LEVEL_HIGH>;
+				iommus = <&iommu_gsp>;
+				clock-names = "clk_gsp",
+					"clk_gsp_parent",
+					"clk_gsp_eb";
+				clocks = <&ap_clk CLK_GSP>,
+					<&pll CLK_TWPLL_384M>,
+					<&apahb_gate CLK_GSP_EB>;
+			};
+
+			iommu_gsp: iommu@20a00000 {
+				compatible = "unisoc,iommuexle-gsp";
+				reg = <0x20a00000 0x804>,
+					<0x20a00804 0x80>;
+				iova-base = <0x20000000>;
+				iova-size = <0x10000000>;
+				reg_name = "mmu_interrupt_reg","mmu_reg";
+				status = "okay";
+				#iommu-cells = <0>;
+			};
+
 			dsi: dsi@21800000 {
 				compatible = "sprd,sharkle-dsi-host";
 				reg = <0x21800000 0x1000>;
