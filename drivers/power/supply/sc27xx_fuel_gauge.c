@@ -1092,6 +1092,8 @@ static int sc27xx_fgu_get_status(struct sc27xx_fgu_data *data, int *status)
 			return ret;
 
 		*status = val.intval;
+		if (*status == POWER_SUPPLY_STATUS_CHARGING)
+			break;
 	}
 
 	return ret;
