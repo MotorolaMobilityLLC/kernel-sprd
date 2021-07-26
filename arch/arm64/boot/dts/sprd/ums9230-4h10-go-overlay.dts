@@ -186,7 +186,7 @@
 
 				cm-num-chargers = <1>;
 				cm-num-charge-pumps = <0>;
-				cm-num-fast-chargers = <1>;
+				cm-num-fast-chargers = <0>;
 				cm-num-wireless-chargers = <0>;
 				cm-num-wireless-charge-pump-converters = <0>;
 				cm-chargers = "charger";
