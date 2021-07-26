@@ -235,8 +235,8 @@
 	#address-cells = <1>;
 	#size-cells = <1>;
 
-	fd_reserved: fd-mem@bfa80000 {
-		reg = <0xbfa80000 0x00500000>;
+	fd_reserved: fd-mem@bfa70000 {
+		reg = <0xbfa70000 0x00500000>;
 	};
 };
 

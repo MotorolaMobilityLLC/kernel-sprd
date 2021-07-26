@@ -150,10 +150,6 @@
 			reg = <0x80001000 0x00001000>;
 		};
 
-		warm_boot_reserved: warm-boot@0x83ef0000 {
-			reg = <0x83ef0000 0x10000>; /* 64K */
-		};
-
 		/* must be 32M aligned */
 		wcn_reserved: wcn-mem@84000000 {
 			reg = <0x84000000 0x00300000>;
@@ -198,6 +194,10 @@
 			reg = <0xb8800000 0x04000000>;
 			reusable;
 			linux,cma-default;
+		};
+
+		warm_boot_reserved: warm-boot@0xbff70000 {
+			reg = <0xbff70000 0x10000>; /* 64K */
 		};
 
 		pstore_reserved: ramoops@bff80000 {
