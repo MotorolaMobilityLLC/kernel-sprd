@@ -934,6 +934,11 @@ static int sc2703_charger_usb_get_property(struct power_supply *psy,
 	u32 cur, online, health, enabled = 0;
 	enum usb_charger_type type;
 
+	if (!info) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -EINVAL;
+	}
+
 	mutex_lock(&info->lock);
 
 	switch (psp) {
@@ -1046,8 +1051,15 @@ sc2703_charger_usb_set_property(struct power_supply *psy,
 				const union power_supply_propval *val)
 {
 	struct sc2703_charger_info *info = power_supply_get_drvdata(psy);
-	bool present = sc2703_charger_is_bat_present(info);
+	bool present = false;
 	int ret = 0;
+
+	if (!info) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -EINVAL;
+	}
+
+	present = sc2703_charger_is_bat_present(info);
 
 	mutex_lock(&info->lock);
 
@@ -1183,6 +1195,11 @@ static int sc2703_charger_vbus_is_enabled(struct regulator_dev *dev)
 {
 	struct sc2703_charger_info *info = rdev_get_drvdata(dev);
 
+	if (!info) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -EINVAL;
+	}
+
 	return info->otg_enable;
 }
 
@@ -1288,6 +1305,11 @@ static int sc2703_charger_disable_otg(struct regulator_dev *dev)
 {
 	struct sc2703_charger_info *info = rdev_get_drvdata(dev);
 	int ret;
+
+	if (!info) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -EINVAL;
+	}
 
 	info->otg_enable = false;
 	cancel_delayed_work_sync(&info->otg_work);

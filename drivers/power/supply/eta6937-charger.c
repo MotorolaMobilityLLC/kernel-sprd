@@ -735,6 +735,11 @@ static int eta6937_charger_usb_get_property(struct power_supply *psy,
 	enum usb_charger_type type;
 	int ret = 0;
 
+	if (!info) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -EINVAL;
+	}
+
 	mutex_lock(&info->lock);
 
 	switch (psp) {
@@ -827,6 +832,11 @@ static int eta6937_charger_usb_set_property(struct power_supply *psy,
 {
 	struct eta6937_charger_info *info = power_supply_get_drvdata(psy);
 	int ret;
+
+	if (!info) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -EINVAL;
+	}
 
 	mutex_lock(&info->lock);
 
@@ -979,6 +989,11 @@ static int eta6937_charger_enable_otg(struct regulator_dev *dev)
 	struct eta6937_charger_info *info = rdev_get_drvdata(dev);
 	int ret;
 
+	if (!info) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -EINVAL;
+	}
+
 	/*
 	 * Disable charger detection function in case
 	 * affecting the OTG timing sequence.
@@ -1015,6 +1030,11 @@ static int eta6937_charger_disable_otg(struct regulator_dev *dev)
 	struct eta6937_charger_info *info = rdev_get_drvdata(dev);
 	int ret;
 
+	if (!info) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -EINVAL;
+	}
+
 	info->otg_enable = false;
 	info->need_reinit = true;
 	cancel_delayed_work_sync(&info->wdt_work);
@@ -1038,6 +1058,11 @@ static int eta6937_charger_vbus_is_enabled(struct regulator_dev *dev)
 	struct eta6937_charger_info *info = rdev_get_drvdata(dev);
 	int ret;
 	u8 val;
+
+	if (!info) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -EINVAL;
+	}
 
 	ret = eta6937_read(info, ETA6937_REG_1, &val);
 	if (ret) {
