@@ -131,14 +131,6 @@ static const char * const cm_cp_state_names[] = {
 	[CM_CP_STATE_EXIT] = "Charge pump state: EXIT",
 };
 
-enum cm_manager_jeita_status {
-	STATUS_BELOW_T0 = 0,
-	STATUS_T0_TO_T1,
-	STATUS_T1_TO_T2,
-	STATUS_T2_TO_T3,
-	STATUS_ABOVE_T3,
-};
-
 static char *charger_manager_supplied_to[] = {
 	"audio-ldo",
 };
@@ -1652,7 +1644,7 @@ static void cm_update_current_jeita_status(struct charger_manager *cm)
 	if (cm->desc->jeita_tab_size && !cm->charging_status) {
 		cur_jeita_status = cm_manager_get_jeita_status(cm, cm->desc->temperature);
 		if (cm->desc->jeita_disabled)
-			cur_jeita_status = STATUS_T1_TO_T2;
+			cur_jeita_status = cm->desc->force_jeita_status;
 		cm_manager_adjust_current(cm, cur_jeita_status);
 	} else if (!cm->desc->jeita_tab_size) {
 		cm_update_charge_current_info(cm);
@@ -2661,12 +2653,12 @@ static void cm_update_cp_charger_status(struct charger_manager *cm)
 static bool cm_is_reach_cp_threshold(struct charger_manager *cm)
 {
 	int batt_ocv, batt_uA, cp_ocv_threshold, thm_cur;
-	int cur_jeita_status = STATUS_T1_TO_T2;
+	int cur_jeita_status = cm->desc->force_jeita_status;
 
 	if (cm->desc->jeita_tab_size) {
 		cur_jeita_status = cm_manager_get_jeita_status(cm, cm->desc->temperature);
 		if (cm->desc->jeita_disabled)
-			cur_jeita_status = STATUS_T1_TO_T2;
+			cur_jeita_status = cm->desc->force_jeita_status;
 	}
 
 	if (get_batt_ocv(cm, &batt_ocv)) {
@@ -2689,11 +2681,11 @@ static bool cm_is_reach_cp_threshold(struct charger_manager *cm)
 
 	if (thm_cur < CM_FAST_CHARGE_ENABLE_CURRENT / 2)
 		return false;
-	else if (cur_jeita_status == STATUS_T1_TO_T2 &&
+	else if (cur_jeita_status == cm->desc->force_jeita_status &&
 	    batt_ocv > 0 && batt_ocv >= CM_CP_START_VOLTAGE_LTHRESHOLD &&
 	    batt_ocv < cp_ocv_threshold)
 		return true;
-	else if (cur_jeita_status != STATUS_T1_TO_T2 &&
+	else if (cur_jeita_status != cm->desc->force_jeita_status &&
 		 batt_ocv > 0 && batt_ocv >= CM_CP_START_VOLTAGE_LTHRESHOLD &&
 		 batt_ocv < cp_ocv_threshold &&
 		 batt_uA > 0 && batt_uA >= CM_FAST_CHARGE_ENABLE_CURRENT)
@@ -3913,8 +3905,8 @@ exit:
 static int cm_manager_get_jeita_status(struct charger_manager *cm, int cur_temp)
 {
 	struct charger_desc *desc = cm->desc;
-	static int jeita_status;
-	int i;
+	static int jeita_status, last_temp;
+	int i, temp_status, recovery_temp_status;
 
 	for (i = desc->jeita_tab_size - 1; i >= 0; i--) {
 		if ((cur_temp >= desc->jeita_tab[i].temp && i > 0) ||
@@ -3923,35 +3915,46 @@ static int cm_manager_get_jeita_status(struct charger_manager *cm, int cur_temp)
 		}
 	}
 
-	switch (i) {
-	case 3:
-		jeita_status = STATUS_ABOVE_T3;
-		break;
+	temp_status = i + 1;
 
-	case 2:
-		if (jeita_status != STATUS_ABOVE_T3 ||
-		    cur_temp <= desc->jeita_tab[3].recovery_temp)
-			jeita_status = STATUS_T2_TO_T3;
-		break;
-
-	case 1:
-		if ((jeita_status != STATUS_T2_TO_T3 ||
-		     cur_temp <= desc->jeita_tab[2].recovery_temp) &&
-		    (jeita_status != STATUS_T0_TO_T1 ||
-		     cur_temp >= desc->jeita_tab[1].recovery_temp))
-			jeita_status = STATUS_T1_TO_T2;
-		break;
-
-	case 0:
-		if (jeita_status != STATUS_BELOW_T0 ||
-		    cur_temp >= desc->jeita_tab[0].recovery_temp)
-			jeita_status = STATUS_T0_TO_T1;
-		break;
-
-	default:
-		jeita_status = STATUS_BELOW_T0;
-		break;
+	for (i = desc->jeita_tab_size - 1; i >= 0; i--) {
+		if ((cur_temp >= desc->jeita_tab[i].recovery_temp && i > 0) ||
+		    (cur_temp > desc->jeita_tab[i].recovery_temp && i == 0)) {
+			break;
+		}
 	}
+
+	recovery_temp_status = i + 1;
+
+	if (temp_status == desc->jeita_tab_size) {
+		jeita_status = desc->jeita_tab_size;
+	} else if (temp_status == 0) {
+		jeita_status = 0;
+	/* temperature goes down */
+	} else if (last_temp > cur_temp) {
+		if (desc->jeita_tab[temp_status].temp > desc->jeita_tab[temp_status].recovery_temp)
+			jeita_status = recovery_temp_status;
+		else if (desc->jeita_tab[temp_status].temp < desc->jeita_tab[temp_status].recovery_temp)
+			jeita_status = temp_status;
+	/* temperature goes up */
+	} else if (last_temp < cur_temp) {
+		if (recovery_temp_status == desc->jeita_tab_size)
+			jeita_status = temp_status;
+		else if (desc->jeita_tab[recovery_temp_status].temp < desc->jeita_tab[recovery_temp_status].recovery_temp)
+			jeita_status = recovery_temp_status;
+		else if (desc->jeita_tab[recovery_temp_status].temp > desc->jeita_tab[recovery_temp_status].recovery_temp)
+			jeita_status = temp_status;
+	}
+
+	last_temp = cur_temp;
+	if (jeita_status > desc->jeita_tab_size)
+		jeita_status = desc->jeita_tab_size;
+	else if (jeita_status < 0)
+		jeita_status = 0;
+
+	dev_info(cm->dev, "%s: jeita status:(%d)-%d-%d, temperature:%d, jeita_size:%d\n",
+		 __func__, jeita_status, temp_status, recovery_temp_status,
+		 cur_temp, desc->jeita_tab_size);
 
 	return jeita_status;
 }
@@ -3974,9 +3977,9 @@ static int cm_manager_jeita_current_monitor(struct charger_manager *cm)
 	}
 
 	if (desc->jeita_disabled) {
-		if (last_jeita_status != STATUS_T1_TO_T2) {
-			dev_info(cm->dev, "Disable jeita and force jeita state to STATUS_T1_TO_T2\n");
-			last_jeita_status = STATUS_T1_TO_T2;
+		if (last_jeita_status != cm->desc->force_jeita_status) {
+			dev_info(cm->dev, "Disable jeita and force jeita state to force_jeita_status\n");
+			last_jeita_status = cm->desc->force_jeita_status;
 			desc->thm_info.thm_adjust_cur = -EINVAL;
 			cm_manager_adjust_current(cm, last_jeita_status);
 		}
@@ -5530,7 +5533,9 @@ static int cm_parse_jeita_table(struct charger_desc *desc,
 	if (!list || !size)
 		return 0;
 
-	desc->jeita_tab_size = size / (4 * sizeof(__be32));
+	desc->jeita_tab_size = size / (sizeof(struct charger_jeita_table) /
+				       sizeof(int) * sizeof(__be32));
+
 	table = devm_kzalloc(dev, sizeof(struct charger_jeita_table) *
 				(desc->jeita_tab_size + 1), GFP_KERNEL);
 	if (!table)
@@ -6097,11 +6102,16 @@ static struct charger_desc *of_cm_parse_desc(struct device *dev)
 			     &desc->ir_comp.us_upper_limit);
 	of_property_read_u32(np, "cm-ir-cv-offset-microvolt",
 			     &desc->ir_comp.cp_upper_limit_offset);
+	of_property_read_u32(np, "cm-force-jeita-status",
+			     &desc->force_jeita_status);
 
 	/* Initialize the jeita temperature table. */
 	ret = cm_init_jeita_table(desc, dev);
 	if (ret)
 		return ERR_PTR(ret);
+
+	if (!desc->force_jeita_status)
+		desc->force_jeita_status = (desc->jeita_tab_size + 1) / 2;
 
 	ret = cm_init_cap_remap_table(desc, dev);
 	if (ret)

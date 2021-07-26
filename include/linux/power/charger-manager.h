@@ -597,6 +597,7 @@ struct cm_thermal_info {
  * @jeita_tab_array: Specify the jeita temperature table array, which is used to
  *	save the point of adjust the charging current according to the battery temperature.
  * @jeita_disabled: disable jeita function when needs
+ * @force_jeita_status: force jeita to this status when disable jeita
  * @temperature: the battery temperature
  * @internal_resist: the battery internal resistance in mOhm
  * @cap_table_len: the length of ocv-capacity table
@@ -709,6 +710,7 @@ struct charger_desc {
 	struct charger_jeita_table *jeita_tab_array[CM_JEITA_MAX];
 
 	bool jeita_disabled;
+	int force_jeita_status;
 
 	int temperature;
 
