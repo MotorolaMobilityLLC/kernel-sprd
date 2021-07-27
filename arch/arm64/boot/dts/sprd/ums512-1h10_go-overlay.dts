@@ -9,6 +9,8 @@
 #include <dt-bindings/mfd/sprd,sc2730-mask.h>
 #include "lcd/lcd_td4310_truly_mipi_fhd.dtsi"
 #include "lcd/lcd_ssd2092_truly_mipi_fhd.dtsi"
+#include "lcd/lcd_ili9883a_auo_mipi_hd.dtsi"
+#include "lcd/lcd_nt36525c_boe_mipi_fhd.dtsi"
 #include "lcd/lcd_dummy_mipi.dtsi"
 
 / {
@@ -24,10 +26,20 @@
 				compatible = "sprd,sc2355-wifi";
 			};
 
-			fingerprint@0 {
+		/*	fingerprint@0 {
 				compatible = "microarray,afs121";
 				fpint-gpios = <&eic_async 13 0>;
 			};
+        */
+            fingerprint_fpc {
+                compatible = "sprd,fingerprint-fpc1520";
+                fpsensor,eint-gpio   = <&eic_async 13 0 >;
+                fpsensor,reset-gpio  = <&ap_gpio 131 0 >;
+            };
+
+            fingerprint_goodix {
+                compatible = "goodix,fingerprint";
+            };
 
 			gpio-keys {
 				compatible = "gpio-keys";
@@ -36,6 +48,14 @@
 					label = "Volume Down Key";
 					linux,code = <KEY_VOLUMEDOWN>;
 					gpios = <&ap_gpio 124 GPIO_ACTIVE_LOW>;
+					debounce-interval = <2>;
+					wakeup-source;
+				};
+
+				key-google {
+					label = "Google Key";
+					linux,code = <KEY_GOOGLE>;
+					gpios = <&ap_gpio 125 GPIO_ACTIVE_LOW>;
 					debounce-interval = <2>;
 					wakeup-source;
 				};
@@ -57,7 +77,7 @@
 				};
 			};
 
-			pwm_backlight: backlight {
+		/*	pwm_backlight: backlight {
 				compatible = "sprd,sharkl5pro-backlight";
 				pwms = <&pwms 2 40000>;
 				pwm-names = "backlight";
@@ -93,34 +113,77 @@
 					826 832 838 844 850 856 862 868 874 880
 				>;
 			};
-
+*/
 			bat: battery {
 				compatible = "simple-battery";
-				charge-full-design-microamp-hours = <3690000>;
-				charge-term-current-microamp = <120000>;
+				charge-full-design-microamp-hours-0 = <4900000>;
+				charge-term-current-microamp = <180000>;
 				constant_charge_voltage_max_microvolt = <4400000>;
-				factory-internal-resistance-micro-ohms = <130000>;
+				factory-internal-resistance-micro-ohms-0 = <125000>;
 				voltage-min-design-microvolt = <3450000>;
-				ocv-capacity-celsius = <20>;
-				ocv-capacity-table-0 = <4380000 100>, <4317000 95>, <4258000 90>,
-							<4200000 85>, <4145000 80>, <4092000 75>,
-							<4047000 70>, <3990000 65>, <3955000 60>,
-							<3900000 55>, <3861000 50>, <3834000 45>,
-							<3813000 40>, <3796000 35>, <3783000 30>,
-							<3770000 25>, <3752000 20>, <3730000 15>,
-							<3698000 10>, <3687000 5>, <3400000 0>;
-				voltage-temp-table = <1095000 800>, <986000 850>, <878000 900>,
+				ocv-capacity-celsius = <25>;
+				ocv-capacity-table-0 = <4398000 100>, <4332000 95>, <4271000 90>,
+					<4211000 85>, <4153000 80>, <4098000 75>,
+					<4059000 70>, <4007000 65>, <3966000 60>,
+					<3909000 55>, <3871000 50>, <3845000 45>,
+					<3824000 40>, <3808000 35>, <3794000 30>,
+					<3775000 25>, <3756000 20>, <3738000 15>,
+					<3706000 10>, <3696000 5>, <3400000 0>;
+				voltage-temp-table = <1307000 700>, <1203000 750>,<1095000 800>, <986000 850>, <878000 900>,
 							  <775000 950>, <678000 1000>, <590000 1050>,
 							  <510000 1100>, <440000 1150>, <378000 1200>,
 							  <324000 1250>, <278000 1300>, <238000 1350>,
 							  <204000 1400>, <175000 1450>, <150000 1500>,
-							  <129000 1550>, <111000 1600>, <96000 1650>;
-				capacity-temp-table = <45 100>, <25 100>, <10 98>, <0 93>, <(-10) 85>, <(-20) 64>;
-				resistance-temp-table = <45 77>, <25 100>, <10 546>, <0 769>, <(-10) 892>, <(-20) 923>;
-				charge-sdp-current-microamp = <500000 500000>;
-				charge-dcp-current-microamp = <1150000 3000000>;
-				charge-cdp-current-microamp = <1150000 1150000>;
-				charge-unknown-current-microamp = <500000 500000>;
+							  <129000 1550>, <111000 1600>, <96000 1650>, <83000 1700>,<63000 1800>;
+				capacity-temp-table-0 = <50 100>, <25 100>, <0 98>, <(-10) 82>;
+				resistance-temp-table-0 = <50 88>, <25 100>, <0 226>, <(-10) 561>;
+				charge-sdp-current-microamp = <600000 500000>;
+				charge-dcp-current-microamp = <2400000 2100000>;
+				charge-cdp-current-microamp = <600000 500000>;
+				charge-unknown-current-microamp = <600000 500000>;
+
+				battery_name-0 ="JK50-ATL-SB18C77591-5000mAh";
+				battery_name-1 ="JK50-Sunwoda-SB18C85291-5000mAh";
+				battery_name-2 ="JK50-SCUD-SB18C77226-5000mAh";
+				battery_name-3 ="JK50-Sunwoda-SB18C98449-5000mAh";
+
+				charge-full-design-microamp-hours-1 = <5000000>;
+				factory-internal-resistance-micro-ohms-1 = <122000>;
+				ocv-capacity-table-1 = <4391000 100>, <4327000 95>, <4267000 90>,
+							<4207000 85>, <4150000 80>, <4095000 75>,
+							<4048000 70>, <3991000 65>, <3954000 60>,
+							<3898000 55>, <3858000 50>, <3832000 45>,
+							<3812000 40>, <3795000 35>, <3782000 30>,
+							<3765000 25>, <3746000 20>, <3721000 15>,
+							<3692000 10>, <3680000 5>, <3400000 0>;
+				capacity-temp-table-1 = <50 100>, <25 100>, <0 98>, <(-10) 83>;
+				resistance-temp-table-1 = <50 90>, <25 100>, <0 230>, <(-10) 518>;
+
+
+				charge-full-design-microamp-hours-2 = <4950000>;
+				factory-internal-resistance-micro-ohms-2 = <127000>;
+				ocv-capacity-table-2 = <4382000 100>, <4320000 95>, <4261000 90>,
+							<4205000 85>, <4144000 80>, <4091000 75>,
+							<4048000 70>, <3986000 65>, <3956000 60>,
+							<3898000 55>, <3859000 50>, <3834000 45>,
+							<3814000 40>, <3796000 35>, <3783000 30>,
+							<3766000 25>, <3749000 20>, <3725000 15>,
+							<3694000 10>, <3685000 5>, <3400000 0>;
+				capacity-temp-table-2 = <50 97>, <25 100>, <0 96>, <(-10) 91>;
+				resistance-temp-table-2 = <50 86>, <25 100>, <0 317>, <(-10) 520>;
+
+
+				charge-full-design-microamp-hours-3 = <5000000>;
+				factory-internal-resistance-micro-ohms-3 = <122000>;
+				ocv-capacity-table-3 = <4391000 100>, <4327000 95>, <4267000 90>,
+							<4207000 85>, <4150000 80>, <4095000 75>,
+							<4048000 70>, <3991000 65>, <3954000 60>,
+							<3898000 55>, <3858000 50>, <3832000 45>,
+							<3812000 40>, <3795000 35>, <3782000 30>,
+							<3765000 25>, <3746000 20>, <3721000 15>,
+							<3692000 10>, <3680000 5>, <3400000 0>;
+				capacity-temp-table-3 = <50 100>, <25 100>, <0 98>, <(-10) 83>;
+				resistance-temp-table-3 = <50 90>, <25 100>, <0 230>, <(-10) 518>;				
 			};
 
 			charger-manager {
@@ -132,19 +195,20 @@
 
 				cm-fullbatt-vchkdrop-ms = <30000>;
 				cm-fullbatt-vchkdrop-volt = <60000>;
-				cm-fullbatt-voltage = <4350000>;
-				cm-fullbatt-current = <120000>;
+				cm-fullbatt-voltage = <4390000>;
+				cm-fullbatt-current = <180000>;
 				cm-fullbatt-capacity = <100>;
+				cm-fullbatt-soc =<940>;
 
 				cm-num-chargers = <1>;
-				cm-chargers = "fan54015_charger";
+				cm-chargers = "charger";
 				cm-fuel-gauge = "sc27xx-fgu";
 
 				/* in deci centigrade */
-				cm-battery-cold = <200>;
+				cm-battery-cold = <000>;
 				cm-battery-cold-in-minus;
-				cm-battery-hot = <800>;
-				cm-battery-temp-diff = <100>;
+				cm-battery-hot = <550>;
+				cm-battery-temp-diff = <20>;
 
 				/* Allow charging for 6hr */
 				cm-charging-max = <21600000>;
@@ -155,7 +219,7 @@
 				cm-wdt-interval = <60>;
 
 				/* drop voltage in microVolts to allow shutdown */
-				cm-shutdown-voltage = <3100000>;
+				cm-shutdown-voltage = <3400000>;
 
 				/* when 99% of the time is exceeded, it will be forced to 100% */
 				cm-tickle-time-out = <1500>;
@@ -167,14 +231,14 @@
 				cm-charge-voltage-max = <6500000>;
 				/* drop voltage in microVolts to restart charging */
 				cm-charge-voltage-drop = <700000>;
-				cm-dcp-jeita-temp-table = <1000 1030 0 4400000>, <1150 1180 700000 4400000>,
-					<1450 1420 1150000 4400000>, <1600 1570 700000 4100000>;
-				cm-sdp-jeita-temp-table = <1000 1030 0 4400000>, <1150 1180 500000 4400000>,
-					<1450 1420 500000 4400000>, <1600 1570 500000 4100000>;
-				cm-cdp-jeita-temp-table = <1000 1030 0 4400000>, <1150 1180 700000 4400000>,
-					<1450 1420 1150000 4400000>, <1600 1570 700000 4100000>;
-				cm-unknown-jeita-temp-table = <1000 1030 0 4400000>, <1150 1180 500000 4400000>,
-					<1450 1420 500000 4400000>, <1600 1570 500000 4100000>;
+				cm-dcp-jeita-temp-table = <1000 1020 0 4200000>, <1150 1180 1050000 4400000>,
+					<1450 1420 2400000 4400000>, <1550 1520 2400000 4200000>;
+				cm-sdp-jeita-temp-table = <1000 1020 0 4200000>, <1150 1180 600000 4400000>,
+					<1450 1420 600000 4400000>, <1550 1520 600000 4200000>;
+				cm-cdp-jeita-temp-table = <1000 1020 0 4200000>, <1150 1180 600000 4400000>,
+					<1450 1420 600000 4400000>, <1550 1520 600000 4200000>;
+				cm-unknown-jeita-temp-table = <1000 1020 0 4200000>, <1150 1180 600000 4400000>,
+					<1450 1420 600000 4400000>, <1550 1520 600000 4200000>;
 
 				monitored-battery = <&bat>;
 				cm-capacity-track;
@@ -201,9 +265,9 @@
 				m2-to-ap-coexist-gpios = <&ap_gpio 119 GPIO_ACTIVE_LOW>;
 				m2-wakeup-ap-gpios = <&ap_gpio 32 GPIO_ACTIVE_LOW>;
 				permit-ap-send-gpios = <&ap_gpio 121 GPIO_ACTIVE_LOW>;
-				reset-gpios = <&ap_gpio 97 GPIO_ACTIVE_LOW>;
+				reset-gpios = <&ap_gpio 85 GPIO_ACTIVE_LOW>;
 				enable-gpios = <&ap_gpio 143 GPIO_ACTIVE_LOW>;
-				m2-to-ap-irq-gpios = <&ap_gpio 96 GPIO_ACTIVE_LOW>;
+				m2-to-ap-irq-gpios = <&ap_gpio 84 GPIO_ACTIVE_LOW>;
 				avdd12-supply = <&vddwcn>;
 				avdd33-supply = <&vddwifipa>;
 				dcxo18-supply = <&vddsim2>;
@@ -252,6 +316,58 @@
 								114889 57
 								124872 43 >;
 			};
+
+			pa_thermistor:pa-sensor {
+				compatible = "generic-adc-thermal";
+				#thermal-sensor-cells = <0>;
+				io-channels = <&pmic_adc 2>;
+				io-channel-names = "sensor-channel";
+				temperature-lookup-table = <    (-39742) 1131
+								(-29777) 1110
+								(-19480) 1074
+								(-4679) 983
+								10110 838
+								24805 654
+								44922 413
+								54903 316
+								64895 238
+								74884 178
+								84883 133
+								94883 100
+								104880 75
+								114889 57
+								124872 43 >;
+			};
+
+			chg_thermistor:chg-sensor {
+				compatible = "generic-adc-thermal";
+				#thermal-sensor-cells = <0>;
+				io-channels = <&pmic_adc 4>;
+				io-channel-names = "sensor-channel";
+				temperature-lookup-table = <    (-39742) 1131
+								(-29777) 1110
+								(-19480) 1074
+								(-4679) 983
+								10110 838
+								24805 654
+								44922 413
+								54903 316
+								64895 238
+								74884 178
+								84883 133
+								94883 100
+								104880 75
+								114889 57
+								124872 43 >;
+			};
+
+                        gpio_boardid:gpio_boardid {
+                                        compatible = "gpio,boardid";
+                                        gpio,boardid0 = <&ap_gpio 116 0>;
+                                        gpio,boardid1 = <&ap_gpio 115 0>;
+                                        gpio,boardid2 = <&ap_gpio 46 0>;
+                                        //gpio,boardid3 = <&ap_gpio 47 0>;    ////this pin no func ,the point from lixiaohui@20210721
+                        };
 		};
 	};
 };
@@ -375,6 +491,16 @@
 		polling-delay = <0>;
 		thermal-sensors = <&tboard_thermistor>;
 	};
+	pa_thmzone: pa-thmzone {
+		polling-delay-passive = <0>;
+		polling-delay = <0>;
+		thermal-sensors = <&pa_thermistor>;
+	};
+	chg_thmzone: chg-thmzone {
+		polling-delay-passive = <0>;
+		polling-delay = <0>;
+		thermal-sensors = <&chg_thermistor>;
+	};
 };
 
 &ion {
@@ -401,10 +527,11 @@
 				<&pll2 CLK_TWPLL_48M>,<&ext_26m>;
 		vddio-supply = <&vddcamio>;
 		vddcama-supply = <&vddcama0>;
+		avdd-gpios = <&ap_gpio 33 0>;
 		vddcamd-supply = <&vddcamd0>;
 		vddcammot-supply = <&vddcammot>;
-		reset-gpios = <&ap_gpio 44 0>;
-		power-down-gpios = <&ap_gpio 46 0>;
+		reset-gpios = <&ap_gpio 45 0>;
+		//power-down-gpios = <&ap_gpio 46 0>;
 		sprd,phyid = <0>;
 		csi = <&csi0>;
 	};
@@ -419,13 +546,13 @@
 				<&pll2 CLK_TWPLL_96M>,<&pll2 CLK_TWPLL_76M8>,
 				<&pll2 CLK_TWPLL_48M>,<&ext_26m>;
 		vddio-supply = <&vddcamio>;
-		vddcama-supply = <&vddcama0>;
-		vddcamd-supply = <&vddcamd0>;
-		vddcammot-supply = <&vddcammot>;
-		reset-gpios = <&ap_gpio 41 0>;
-		power-down-gpios = <&ap_gpio 40 0>;
-		mipi-switch-en-gpios = <&ap_gpio 55 0>;
-		mipi-switch-mode-gpios = <&ap_gpio 8 0>;
+		vddcama-supply = <&vddcama1>;
+		vddcamd-supply = <&vddcamd1>;
+		//vddcammot-supply = <&vddcammot>;
+		reset-gpios = <&ap_gpio 44 0>;
+		//power-down-gpios = <&ap_gpio 40 0>;
+		//mipi-switch-en-gpios = <&ap_gpio 55 0>;
+		//mipi-switch-mode-gpios = <&ap_gpio 8 0>;
 		sprd,phyid = <1>;
 		csi = <&csi0>;
 	};
@@ -446,15 +573,15 @@
 				<&pll2 CLK_TWPLL_48M>,<&ext_26m>;
 		vddio-supply = <&vddcamio>;
 		vddcama-supply = <&vddcama1>;
-		vddcamd-supply = <&vddcamd1>;
-		vddcammot-supply = <&vddcammot>;
-		avdd-gpios = <&ap_gpio 33 0>;
-		mot-gpios = <&ap_gpio 88 0>;
-		reset-gpios = <&ap_gpio 45 0>;
-		power-down-gpios = <&ap_gpio 47 0>;
-		mipi-switch-en-gpios = <&ap_gpio 55 0>;
+		//vddcamd-supply = <&vddcamd1>;
+		//vddcammot-supply = <&vddcammot>;
+		//avdd-gpios = <&ap_gpio 33 0>;
+		//mot-gpios = <&ap_gpio 88 0>;
+		reset-gpios = <&ap_gpio 40 0>;
+		//power-down-gpios = <&ap_gpio 47 0>;
+		mipi-switch-en-gpios = <&ap_gpio 135 0>;
 		mipi-switch-mode-gpios = <&ap_gpio 8 0>;
-		sprd,phyid = <1>;
+		sprd,phyid = <2>;
 		csi = <&csi1>;
 	};
 
@@ -469,33 +596,15 @@
 			<&pll2 CLK_TWPLL_48M>,<&ext_26m>;
 		vddio-supply = <&vddcamio>;
 		vddcama-supply = <&vddcama1>;
-		vddcamd-supply = <&vddcamd1>;
-		vddcammot-supply = <&vddcammot>;
-		mot-gpios = <&ap_gpio 88 0>;
+		//vddcamd-supply = <&vddcamd1>;
+		//vddcammot-supply = <&vddcammot>;
+		//mot-gpios = <&ap_gpio 88 0>;
 		reset-gpios = <&ap_gpio 41 0>;
-		power-down-gpios = <&ap_gpio 40 0>;
+		//power-down-gpios = <&ap_gpio 40 0>;
+		mipi-switch-en-gpios = <&ap_gpio 135 0>;
+		mipi-switch-mode-gpios = <&ap_gpio 8 0>;
 		sprd,phyid = <2>;
-		csi = <&csi2>;
-	};
-
-	sensor_main3: sensor-main3@6c {
-		compatible = "sprd,sensor-main3";
-		reg = <0x6c>;
-		clock-names = "clk_src","sensor_eb",
-			"clk_96m","clk_76m8",
-			"clk_48m","clk_26m";
-		clocks = <&mm_clk CLK_SENSOR1>,<&mm_gate CLK_MM_SENSOR1_EB>,
-				<&pll2 CLK_TWPLL_96M>,<&pll2 CLK_TWPLL_76M8>,
-				<&pll2 CLK_TWPLL_48M>,<&ext_26m>;
-		vddio-supply = <&vddcamio>;
-		vddcama-supply = <&vddcama1>;
-		vddcamd-supply = <&vddcamd1>;
-		vddcammot-supply = <&vddcammot>;
-		mot-gpios = <&ap_gpio 88 0>;
-		reset-gpios = <&ap_gpio 41 0>;
-		power-down-gpios = <&ap_gpio 40 0>;
-		sprd,phyid = <2>;
-		csi = <&csi2>;
+		csi = <&csi1>;
 	};
 };
 
@@ -518,6 +627,34 @@
 	};
 };
 
+&spi2{
+    status = "okay";
+    spi@0 {
+        compatible = "sprd,tddi-ilitek", "sprd,tddi-novatek";
+        reg = <0x0>;
+
+        status = "okay";
+
+        spi-max-frequency = <9600000>;
+
+        /*ilitek, 2-ILI9883A-THOM*/
+        ilitek,reset-gpio    = <&ap_gpio 145 GPIO_ACTIVE_HIGH>;
+        ilitek,irq-gpio      = <&ap_gpio 144 GPIO_ACTIVE_HIGH>;
+        //ilitech,display-coords =  <0 0 720 1600>;
+
+        /*novatek, 1-NT36525C-BOE*/
+        novatek,reset-gpio  = <&ap_gpio 145 GPIO_ACTIVE_HIGH>;
+        novatek,irq-gpio    = <&ap_gpio 144 GPIO_ACTIVE_HIGH>;
+        /* 525 */
+        //novatek,swrst-n8-addr = <0x01F01A>;
+        /* 672A, 525B, 675, 526, 672C */
+        novatek,swrst-n8-addr       = <0x03F0FE>;
+        novatek,spi-rd-fast-addr    = <0x03F310>;
+        /* MP */
+        //novatek,mp-support-dt;
+    };
+};
+
 &i2c3 {
 	status = "okay";
 
@@ -534,21 +671,20 @@
 		gpios = <&ap_gpio 145 GPIO_ACTIVE_HIGH
 			&ap_gpio 144 GPIO_ACTIVE_HIGH>;
 	};
+
+	sx933x@28 { /* SAR sensor */
+		compatible = "Semtech,sx933x";
+		reg = <0x28>;
+		interrupt-parent = <&ap_gpio>;
+		interrupts = <112 0x02>;
+		interrupt-names = "sx933x_irq";
+		Semtech,nirq-gpio= <&ap_gpio 112 0>;
+		status = "ok";
+	};
 };
 
 &i2c4 {
 	status = "okay";
-
-	fan54015_chg: charger@6a {
-		compatible = "fairchild,fan54015_chg";
-		reg = <0x6a>;
-		phys = <&hsphy>;
-		monitored-battery = <&bat>;
-		extcon = <&extcon_gpio>;
-		vddvbus:otg-vbus {
-			regulator-name = "vddvbus";
-		};
-	};
 
 	ams_tcs3430: tcs3430@39 {
 		compatible = "ams,tcs3430";
@@ -559,9 +695,9 @@
 		als_gain = <64>;
 		int_config = <0>;
 		als_can_wake = <1>;
-		irq_gpios = <112>;
-		interrupt-parent = <&ap_gpio>;
-		interrupts = <112 IRQ_TYPE_LEVEL_LOW>;
+		//irq_gpios = <112>;
+		//interrupt-parent = <&ap_gpio>;
+		//interrupts = <112 IRQ_TYPE_LEVEL_LOW>;
 	};
 
 	stm_vl53l0: vl53l0@52 {
@@ -574,9 +710,9 @@
 	};
 
 	flash_ic: flash-ic@63 {
-		compatible = "sprd,flash-ocp8137";
+		compatible = "sprd,flash-aw3643";
 		reg = <0x63>;
-		sprd,flash-ic = <8137>;
+		sprd,flash-ic = <3643>;
 		sprd,torch = <1>;
 		sprd,preflash = <1>;
 		sprd,highlight = <1>;
@@ -584,17 +720,39 @@
 		sprd,preflash-level = <128>;
 		sprd,highlight-level = <128>;
 		sprd,lvfm-enable = <1>;
-		flash-chip-en-gpios = <&ap_gpio 136 0>;
 		flash-torch-en-gpios = <&ap_gpio 139 0>;
-		flash-en-gpios = <&ap_gpio 137 0>;
-		flash-sync-gpios = <&ap_gpio 138 0>;
+		flash-chip-en-gpios = <&ap_gpio 137 0>;
+		//flash-en-gpios = <&ap_gpio 139 0>;
+		//flash-sync-gpios = <&ap_gpio 121 0>;
+		status = "okay";
 	};
-
 };
 
 &aon_i2c0 {
 	status = "okay";
 	clock-frequency = <1000000>;
+
+	bq2560x_chg: charger@6b {
+		compatible = "ti,bq2560x_chg";
+		reg = <0x6b>;
+		phys = <&hsphy>;
+		monitored-battery = <&bat>;
+		extcon = <&extcon_gpio>;
+		vddvbus:otg-vbus {
+			regulator-name = "vddvbus";
+		};
+	};
+
+        cx7601_chg: charger@6a {
+		compatible = "sun,cx7601_chg";
+		reg = <0x6a>;
+		phys = <&hsphy>;
+		monitored-battery = <&bat>;
+		extcon = <&extcon_gpio>;
+		vddvbus1:otg-vbus {
+			regulator-name = "vddvbus";
+		};
+	};
 
 	fan53555_dcdc: regulator@60 {
 		compatible = "fcs,fan53555";
@@ -616,15 +774,17 @@
 };
 
 &panel {
-	sprd,backlight = <&pwm_backlight>;
+//	sprd,backlight = <&pwm_backlight>;
 	avdd-gpio = <&ap_gpio 132 GPIO_ACTIVE_HIGH>;
 	avee-gpio = <&ap_gpio 133 GPIO_ACTIVE_HIGH>;
 	reset-gpio = <&ap_gpio 50 GPIO_ACTIVE_HIGH>;
 };
 
+/*
 &dpu {
 	sprd,backlight = <&pwm_backlight>;
 };
+*/
 
 &ddr_dfs {
 	sprd-scene = "boost", "lcdon", "lcdoff", "camlow",
@@ -634,7 +794,7 @@
 
 &pmic_fgu {
 	monitored-battery = <&bat>;
-	sprd,calib-resistance-real = <10000>;
+	sprd,calib-resistance-real = <5000>;
 	sprd,calib-resistance-spec = <20000>;
 	first-calib-voltage = <3630000>;
 	first-calib-capacity = <50>;
@@ -643,6 +803,7 @@
 &usb {
 	extcon = <&extcon_gpio>, <&pmic_typec>;
 	vbus-supply = <&vddvbus>;
+        vbus1-supply = <&vddvbus1>;
 };
 
 &vddldo0 {
@@ -650,8 +811,8 @@
 };
 
 &adi_bus {
-	sprd,hw-channels = <2 0x18cc>, <3 0x18cc>, <13 0x1854>, <15 0x1874>,
-			 <17 0x1844>,<19 0x1844>, <21 0x1864>, <30 0x1820>,
+	sprd,hw-channels = <2 0x18cc>, <3 0x18cc>, <13 0x1874>, <15 0x1874>,
+			 <17 0x1844>,<19 0x1854>, <21 0x1864>, <30 0x1820>,
 			 <35 0x19b8>, <39 0x19ac>;
 };
 
@@ -686,26 +847,24 @@
 };
 
 &dvfs_dcdc_cpu1_supply {
-	chnl-i2c-used;
-	third-pmic-used;
-	pmic-type-num = <2>;
-	slew-rate = <4000>; /* 4000uV/us */
-	supply-type-sel = <0x120 0 1>;
-	top-dvfs-i2c-state = <0x9c 4 0xf>;
+	pmic-type-num = <0>;
+	slew-rate = <9375>; /* 4000uV/us */
+	supply-type-sel = <0x120 0 0>;
+	top-dvfs-adi-state = <0x9c 0 0xf>;
 	voltage-grade-num = <6>;
-	voltage-grade = <0 0x0f 0x12c 0 0x7f>,
-		<1 0x14 0x12c 7 0x7f>,
-		<2 0x19 0x12c 14 0x7f>,
-		<3 0x1e 0x12c 21 0x7f>,
-		<4 0x23 0x130 0 0x7f>,
-		<5 0x28 0x130 7 0x7f>;
+	voltage-grade = <0 0xf0 0x100 0 0x1ff>,
+		<1 0x100 0x100 9 0x1ff>,
+		<2 0x110 0x100 18 0x1ff>,
+		<3 0x120 0x104 0 0x1ff>,
+		<4 0x130 0x104 9 0x1ff>,
+		<5 0x140 0x104 18 0x1ff>;
 	voltage-up-delay = <50 0x84 0 0xffff 0x1600>,
-		<100 0x84 16 0xffff 0x1a00>,
+		<100 0x84 16 0xffff 0xa00>,
 		<150 0x80 0 0xffff 0x1f00>,
-		<200 0x80 16 0xffff 0x2400>,
-		<250 0x7c 0 0xffff 0x2900>,
-		<300 0x7c 16 0xffff 0x2e00>,
-		<350 0x118 0 0xffff 0x3300>;
+		<200 0x80 16 0xffff 0x1400>,
+		<250 0x7c 0 0xffff 0x1900>,
+		<300 0x7c 16 0xffff 0x1e00>,
+		<350 0x118 0 0xffff 0x2300>;
 	voltage-down-delay = <50 0x90 0 0xffff 0x600>,
 		<100 0x90 16 0xffff 0xa00>,
 		<150 0x8c 0 0xffff 0xf00>,
@@ -713,8 +872,8 @@
 		<250 0x88 0 0xffff 0x1900>,
 		<300 0x88 16 0xffff 0x1e00>,
 		<350 0x11c 0 0xffff 0x2300>;
-	tuning-latency-us = <0>;
-	chnl-in-i2c = <1>;
+	tuning-latency-us = <200>;
+	chnl-in-i2c = <0>;
 };
 
 &ion {

@@ -1,0 +1,102 @@
+/*
+ * NT35696 Truly LCD config dtsi file for spreadtrum
+ *
+ * Copyright (C) 2019, Spreadtrum Communications Inc.
+ *
+ * SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+ */
+
+/ {
+	fragment {
+		target-path = "/";
+		__overlay__ {
+			lcds {
+			lcd_nt36525c_boe_mipi_fhd: lcd_nt36525c_boe_mipi_fhd {
+
+				sprd,dsi-work-mode = <1>; /* video burst mode*/
+				sprd,dsi-lane-number = <4>;
+				sprd,dsi-color-format = "rgb888";
+
+				sprd,phy-bit-clock = <844000>;	/* kbps */
+				sprd,phy-escape-clock = <20000>;/* kHz */
+				sprd,width-mm = <68>;
+				sprd,height-mm = <121>;
+
+				sprd,esd-check-enable = <0>;
+				sprd,esd-check-mode = <0>;
+				sprd,esd-check-period = <2000>;
+				sprd,esd-check-regs = <0xA>;
+				sprd,esd-return-code = <0x9c>;
+
+				sprd,dpi-clk-div = <6>;
+				sprd,video-lp-cmd-enable = <1>;
+				sprd,hporch-lp-disable = <1>;
+				sprd,reset-on-sequence = <1 5>, <0 5>,<1 5>, <0 5>, <1 20>;
+				sprd,reset-off-sequence = <1 5>;
+
+					sprd,initial-command = [
+                        23 00 00 02 ff 23
+                        23 00 00 02 FB 01
+                        23 00 00 02 00 00
+                        23 00 00 02 07 60
+                        23 00 00 02 08 01
+                        23 00 00 02 09 ff
+
+                        23 00 00 02 ff 10
+						23 00 00 02 FB 01
+						23 00 00 02 35 00
+						39 00 00 03 51 0f ff
+						23 00 00 02 53 2c
+						23 00 00 02 55 01
+						23 80 00 02 11 00
+						23 20 00 02 29 00
+						];
+					sprd,sleep-in-command =  [
+						13 14 00 01 28
+						13 78 00 01 10
+						];
+					sprd,sleep-out-command = [
+						13 78 00 01 11
+						13 14 00 01 29
+						];
+
+					oled-backlight {
+						default-brightness-level = <33>;
+						sprd,max-level = <255>;
+
+						brightness-levels = [
+							23 00 00 02 51 FF
+							];
+						};
+
+					display-timings {
+						native-mode = <&nt36525c_boe_timing0>;
+
+						nt36525c_boe_timing0: timing0 {
+							clock-frequency = <140666000>;
+							hactive = <720>;
+							vactive = <1600>;
+							hback-porch = <40>;
+							hfront-porch = <40>;
+							vback-porch = <326>;
+							vfront-porch = <10>;
+							hsync-len = <4>;
+							vsync-len = <2>;
+						};
+						nt36525c_boe_timing1: timing1 {
+							clock-frequency = <140666000>;
+							hactive = <720>;
+							vactive = <1600>;
+							hback-porch = <40>;
+							hfront-porch = <40>;
+							vback-porch = <326>;
+							vfront-porch = <986>;
+							hsync-len = <4>;
+							vsync-len = <2>;
+						};
+					};
+				};
+			};
+		};
+	};
+};

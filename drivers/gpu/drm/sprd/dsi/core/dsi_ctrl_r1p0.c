@@ -62,7 +62,7 @@ static void dsi_video_mode(struct dsi_context *ctx)
 {
 	struct dsi_reg *reg = (struct dsi_reg *)ctx->base;
 
-	write32(0x2, &reg->DSI_MODE_CFG);
+	write32(0x0, &reg->DSI_MODE_CFG);
 }
 /**
  * Enable command mode (Generic interface)

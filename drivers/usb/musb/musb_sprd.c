@@ -783,9 +783,14 @@ static void sprd_musb_work(struct work_struct *work)
 				if (IS_ERR(glue->vbus)) {
 					dev_err(glue->dev,
 						"unable to get vbus supply\n");
+                                        glue->vbus = devm_regulator_get(glue->dev, "vbus1");
+                                        if (IS_ERR(glue->vbus)) {
+                                            dev_err(glue->dev,
+                                                    "unable to get vbus1 supply\n");
 					glue->vbus = NULL;
 					goto end;
-				}
+				    }
+                                }              
 			}
 			ret = regulator_enable(glue->vbus);
 			if (ret) {
