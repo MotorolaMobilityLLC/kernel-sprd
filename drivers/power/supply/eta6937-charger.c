@@ -813,6 +813,11 @@ static int eta6937_charger_usb_get_property(struct power_supply *psy,
 	enum usb_charger_type type;
 	int ret = 0;
 
+	if (!info) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -EINVAL;
+	}
+
 	mutex_lock(&info->lock);
 
 	switch (psp) {
@@ -905,6 +910,11 @@ static int eta6937_charger_usb_set_property(struct power_supply *psy,
 {
 	struct eta6937_charger_info *info = power_supply_get_drvdata(psy);
 	int ret;
+
+	if (!info) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -EINVAL;
+	}
 
 	mutex_lock(&info->lock);
 
@@ -1013,9 +1023,14 @@ eta6937_charger_feed_watchdog_work(struct work_struct *work)
 {
 	struct delayed_work *dwork = to_delayed_work(work);
 	struct eta6937_charger_info *info = container_of(dwork,
-							  struct eta6937_charger_info,
-							  wdt_work);
+							 struct eta6937_charger_info,
+							 wdt_work);
 	int ret;
+
+	if (!info) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return;
+	}
 
 	ret = eta6937_update_bits(info, ETA6937_REG_0, ETA6937_REG_TMR_RST_OTG_STAT_MASK,
 				  ETA6937_REG_TMR_RST_OTG_STAT_MASK);
@@ -1050,6 +1065,11 @@ static int eta6937_charger_enable_otg(struct regulator_dev *dev)
 {
 	struct eta6937_charger_info *info = rdev_get_drvdata(dev);
 	int ret;
+
+	if (!info) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -EINVAL;
+	}
 
 	/*
 	 * Disable charger detection function in case
@@ -1087,6 +1107,11 @@ static int eta6937_charger_disable_otg(struct regulator_dev *dev)
 	struct eta6937_charger_info *info = rdev_get_drvdata(dev);
 	int ret;
 
+	if (!info) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -EINVAL;
+	}
+
 	info->otg_enable = false;
 	info->need_reinit = true;
 	cancel_delayed_work_sync(&info->wdt_work);
@@ -1110,6 +1135,11 @@ static int eta6937_charger_vbus_is_enabled(struct regulator_dev *dev)
 	struct eta6937_charger_info *info = rdev_get_drvdata(dev);
 	int ret;
 	u8 val;
+
+	if (!info) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -EINVAL;
+	}
 
 	ret = eta6937_read(info, ETA6937_REG_1, &val);
 	if (ret) {
@@ -1359,6 +1389,11 @@ static int eta6937_charger_suspend(struct device *dev)
 static int eta6937_charger_resume(struct device *dev)
 {
 	struct eta6937_charger_info *info = dev_get_drvdata(dev);
+
+	if (!info) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -EINVAL;
+	}
 
 	if (info->otg_enable || info->limit)
 		/* feed watchdog first before suspend */

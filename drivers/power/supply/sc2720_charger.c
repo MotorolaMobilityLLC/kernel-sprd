@@ -99,8 +99,7 @@ static bool sc2720_charger_is_bat_present(struct sc2720_charger_info *info)
 	return present;
 }
 
-static int sc2720_set_termination_voltage(struct sc2720_charger_info *info,
-					  u32 vol)
+static int sc2720_set_termination_voltage(struct sc2720_charger_info *info, u32 vol)
 {
 	struct nvmem_cell *cell;
 	u32 big_level, small_level, cv;
@@ -368,8 +367,7 @@ static int sc2720_charger_set_current(struct sc2720_charger_info *info, u32 cur)
 	return ret;
 }
 
-static int sc2720_charger_get_current(struct sc2720_charger_info *info,
-				      u32 *cur)
+static int sc2720_charger_get_current(struct sc2720_charger_info *info, u32 *cur)
 {
 	int ret;
 	u32 val;
@@ -426,8 +424,7 @@ static int sc2720_charger_get_status(struct sc2720_charger_info *info)
 		return POWER_SUPPLY_STATUS_NOT_CHARGING;
 }
 
-static int sc2720_charger_set_status(struct sc2720_charger_info *info,
-				       int val)
+static int sc2720_charger_set_status(struct sc2720_charger_info *info, int val)
 {
 	int ret = 0;
 
@@ -451,6 +448,11 @@ static void sc2720_charger_work(struct work_struct *data)
 		container_of(data, struct sc2720_charger_info, work);
 	int cur, ret;
 	bool present = sc2720_charger_is_bat_present(info);
+
+	if (!info) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return;
+	}
 
 	mutex_lock(&info->lock);
 
@@ -493,6 +495,11 @@ static int sc2720_charger_usb_change(struct notifier_block *nb,
 	struct sc2720_charger_info *info =
 		container_of(nb, struct sc2720_charger_info, usb_notify);
 
+	if (!info) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -EINVAL;
+	}
+
 	info->limit = limit;
 
 	pm_wakeup_event(info->dev, SC2720_WAKE_UP_MS);
@@ -508,6 +515,11 @@ static int sc2720_charger_usb_get_property(struct power_supply *psy,
 	u32 cur, online, health;
 	enum usb_charger_type type;
 	int ret = 0;
+
+	if (!info) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -EINVAL;
+	}
 
 	mutex_lock(&info->lock);
 
@@ -609,6 +621,11 @@ sc2720_charger_usb_set_property(struct power_supply *psy,
 {
 	struct sc2720_charger_info *info = power_supply_get_drvdata(psy);
 	int ret;
+
+	if (!info) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -EINVAL;
+	}
 
 	mutex_lock(&info->lock);
 
@@ -782,6 +799,10 @@ static int sc2720_charger_remove(struct platform_device *pdev)
 {
 	struct sc2720_charger_info *info = platform_get_drvdata(pdev);
 
+	if (!info) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -EINVAL;
+	}
 	usb_unregister_notifier(info->usb_phy, &info->usb_notify);
 
 	return 0;

@@ -703,6 +703,11 @@ static int fan54015_charger_usb_get_property(struct power_supply *psy,
 	enum usb_charger_type type;
 	int ret = 0;
 
+	if (!info) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -EINVAL;
+	}
+
 	mutex_lock(&info->lock);
 
 	switch (psp) {
@@ -795,6 +800,11 @@ static int fan54015_charger_usb_set_property(struct power_supply *psy,
 {
 	struct fan54015_charger_info *info = power_supply_get_drvdata(psy);
 	int ret;
+
+	if (!info) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -EINVAL;
+	}
 
 	mutex_lock(&info->lock);
 
@@ -898,14 +908,18 @@ static void fan54015_charger_detect_status(struct fan54015_charger_info *info)
 	schedule_work(&info->work);
 }
 
-static void
-fan54015_charger_feed_watchdog_work(struct work_struct *work)
+static void fan54015_charger_feed_watchdog_work(struct work_struct *work)
 {
 	struct delayed_work *dwork = to_delayed_work(work);
 	struct fan54015_charger_info *info = container_of(dwork,
 							  struct fan54015_charger_info,
 							  wdt_work);
 	int ret;
+
+	if (!info) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return;
+	}
 
 	ret = fan54015_update_bits(info, FAN54015_REG_0,
 				   FAN54015_REG_RESET_MASK,
@@ -921,9 +935,14 @@ fan54015_charger_feed_watchdog_work(struct work_struct *work)
 static void fan54015_charger_otg_work(struct work_struct *work)
 {
 	struct delayed_work *dwork = to_delayed_work(work);
-	struct fan54015_charger_info *info = container_of(dwork,
-			struct fan54015_charger_info, otg_work);
+	struct fan54015_charger_info *info =
+		container_of(dwork, struct fan54015_charger_info, otg_work);
 	int ret;
+
+	if (!info) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return;
+	}
 
 	if (!extcon_get_state(info->edev, EXTCON_USB)) {
 		ret = fan54015_update_bits(info, FAN54015_REG_1,
@@ -941,6 +960,11 @@ static int fan54015_charger_enable_otg(struct regulator_dev *dev)
 {
 	struct fan54015_charger_info *info = rdev_get_drvdata(dev);
 	int ret;
+
+	if (!info) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -EINVAL;
+	}
 
 	/*
 	 * Disable charger detection function in case
@@ -978,6 +1002,11 @@ static int fan54015_charger_disable_otg(struct regulator_dev *dev)
 	struct fan54015_charger_info *info = rdev_get_drvdata(dev);
 	int ret;
 
+	if (!info) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -EINVAL;
+	}
+
 	info->otg_enable = false;
 	cancel_delayed_work_sync(&info->wdt_work);
 	cancel_delayed_work_sync(&info->otg_work);
@@ -1000,6 +1029,11 @@ static int fan54015_charger_vbus_is_enabled(struct regulator_dev *dev)
 	struct fan54015_charger_info *info = rdev_get_drvdata(dev);
 	int ret;
 	u8 val;
+
+	if (!info) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -EINVAL;
+	}
 
 	ret = fan54015_read(info, FAN54015_REG_1, &val);
 	if (ret) {
