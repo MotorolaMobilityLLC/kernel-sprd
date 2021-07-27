@@ -91,6 +91,10 @@ static int shub_download_all_calibration_data(struct shub_data *sensor);
 static void shub_save_calibration_data(struct work_struct *work);
 static void shub_synctimestamp(struct shub_data *sensor);
 
+static int shub_send_command(struct shub_data *sensor, int sensor_ID,
+                             enum shub_subtype_id opcode,
+                             const char *data, int len);
+
 #define MAX_COMPATIBLE_SENSORS 6
 static unsigned int sensor_fusion_mode;
 static char *acc_firms[MAX_COMPATIBLE_SENSORS];
@@ -117,6 +121,11 @@ static struct sensor_cali_info mag_cali_info;
 static struct sensor_cali_info light_cali_info;
 static struct sensor_cali_info prox_cali_info;
 static struct sensor_cali_info pressure_cali_info;
+
+static int als_cali_data = 0;
+static unsigned int als_cali_target_lux = 0;
+
+#define ALS_CALI_SKIP_COUNT 3
 
 static void get_sensor_info(char **sensor_name, int sensor_type, int success_num)
 {
@@ -1011,6 +1020,7 @@ static ssize_t logctl_store(struct device *dev,
 }
 static DEVICE_ATTR_RW(logctl);
 
+#if 0
 static int check_proximity_cali_data(void *cali_data)
 {
 	struct prox_cali_data prox_cali;
@@ -1043,6 +1053,7 @@ static int check_proximity_cali_data(void *cali_data)
 
 	return 0;
 }
+#endif
 
 static int check_acc_cali_data(void *cali_data)
 {
@@ -1114,7 +1125,7 @@ static void shub_save_calibration_data(struct work_struct *work)
 		err = check_gyro_cali_data(sensor->calibrated_data);
 		break;
 	case SENSOR_PROXIMITY:
-		err = check_proximity_cali_data(sensor->calibrated_data);
+		//err = check_proximity_cali_data(sensor->calibrated_data);
 		break;
 	default:
 		break;
@@ -1461,6 +1472,7 @@ static int set_als_calib_cmd(struct shub_data *sensor, u8 cmd, u8 id)
 	u16 *ptr = (u16 *)data;
 	char als_data[30];
 	int light_sum = 0;
+	int target_lux;
 
 	for (i = 0; i < LIGHT_CALI_DATA_COUNT; i++) {
 		err = shub_sipc_read(sensor,
@@ -1471,10 +1483,14 @@ static int set_als_calib_cmd(struct shub_data *sensor, u8 cmd, u8 id)
 		}
 		/*sleep for light senor collect data every 100ms*/
 		msleep(100);
-		pr_debug("shub_sipc_read: ptr[0] = %d\n", ptr[0]);
+
+		if (i < ALS_CALI_SKIP_COUNT)
+			continue;
+
+		pr_info("shub_sipc_read: ptr[0] = %d\n", ptr[0]);
 		light_sum += ptr[0];
 	}
-	average_als = light_sum / LIGHT_CALI_DATA_COUNT;
+	average_als = light_sum / (LIGHT_CALI_DATA_COUNT - ALS_CALI_SKIP_COUNT);
 	pr_info("light sensor cali light_sum:%d, average_als = %d\n",
 		light_sum, average_als);
 
@@ -1483,7 +1499,13 @@ static int set_als_calib_cmd(struct shub_data *sensor, u8 cmd, u8 id)
 		als_cali_coef = CALIB_STATUS_FAIL;
 		status = CALIB_STATUS_FAIL;
 	} else {
-		als_cali_coef = LIGHT_SENSOR_CALI_VALUE / average_als;
+		if (als_cali_target_lux == 0) {
+			target_lux = LIGHT_SENSOR_CALI_VALUE;
+		} else {
+			target_lux = als_cali_target_lux * 10000;
+		}
+
+		als_cali_coef = target_lux / average_als;
 		status = CALIB_STATUS_PASS;
 	}
 	memcpy(als_data, &als_cali_coef, sizeof(als_cali_coef));
@@ -1501,7 +1523,10 @@ static int set_als_calib_cmd(struct shub_data *sensor, u8 cmd, u8 id)
 		pr_err("Write Light Sensor CalibratorData Fail\n");
 		return err;
 	}
-	pr_debug("Light Sensor Calibrator status = %d\n", status);
+
+	als_cali_data = als_cali_coef;
+
+	pr_info("Light Sensor Calibrator status = %d, als_cali_data = %d\n", status, als_cali_data);
 
 	return status;
 }
@@ -1746,6 +1771,34 @@ static ssize_t als_mode_store(struct device *dev,
 	return count;
 }
 static DEVICE_ATTR_WO(als_mode);
+
+static ssize_t custom_para_store(struct device *dev,
+        struct device_attribute *attr,
+        const char *buf, size_t count)
+{
+	u32 sensor_type, sensor_para[3];
+	struct shub_data *sensor = dev_get_drvdata(dev);
+
+	if (sensor->mcu_mode <= SHUB_OPDOWNLOAD) {
+		dev_info(&sensor->sensor_pdev->dev, "custom_para_store: mcu_mode == %d!\n",  sensor->mcu_mode);
+		return -EAGAIN;
+	}
+
+	if (sscanf(buf, "%u %u %u %u\n",
+			&sensor_type, &sensor_para[0],
+			&sensor_para[1],
+			&sensor_para[2]) != 4)
+		return -EINVAL;
+
+	dev_info(&sensor->sensor_pdev->dev,
+			"custom_para_store: sensor_type=%u, sensor_para[0]=%u, sensor_para[1]=%u, sensor_para[2]=%u!\n",
+			sensor_type, sensor_para[0], sensor_para[1], sensor_para[2]);
+
+	shub_send_command(sensor, sensor_type, SHUB_SET_CUSTOM_PARA, (char *)sensor_para, sizeof(sensor_para));
+
+	return count;
+}
+static DEVICE_ATTR_WO(custom_para);
 
 static void get_dynamic_data(struct shub_data *sensor)
 {
@@ -2121,6 +2174,78 @@ static ssize_t cm4_operate_store(struct device *dev,
 
 static DEVICE_ATTR_RW(cm4_operate);
 
+static ssize_t acc_info_show(struct device *dev,
+                        struct device_attribute *attr, char *buf)
+{
+	if (hw_sensor_id[0].id_status != _IDSTA_OK)
+		return -EINVAL;
+
+	return sprintf(buf, "%s", hw_sensor_id[0].pname);
+}
+static DEVICE_ATTR_RO(acc_info);
+
+static ssize_t mag_info_show(struct device *dev,
+                        struct device_attribute *attr, char *buf)
+{
+	if (hw_sensor_id[1].id_status != _IDSTA_OK)
+		return -EINVAL;
+
+	return sprintf(buf, "%s", hw_sensor_id[1].pname);
+}
+static DEVICE_ATTR_RO(mag_info);
+
+static ssize_t prox_info_show(struct device *dev,
+                        struct device_attribute *attr, char *buf)
+{
+	if (hw_sensor_id[3].id_status != _IDSTA_OK)
+		return -EINVAL;
+
+	return sprintf(buf, "%s", hw_sensor_id[3].pname);
+}
+static DEVICE_ATTR_RO(prox_info);
+
+static ssize_t light_info_show(struct device *dev,
+                        struct device_attribute *attr, char *buf)
+{
+	if (hw_sensor_id[4].id_status != _IDSTA_OK)
+		return -EINVAL;
+
+	return sprintf(buf, "%s", hw_sensor_id[4].pname);
+}
+static DEVICE_ATTR_RO(light_info);
+
+static ssize_t als_target_lux_show(struct device *dev,
+                struct device_attribute *attr, char *buf)
+{
+	return snprintf(buf, PAGE_SIZE, "%d\n", als_cali_target_lux);
+}
+
+static ssize_t als_target_lux_store(struct device *dev,
+                 struct device_attribute *attr,
+                 const char *buf, size_t count)
+{
+	int ret = 0;
+	unsigned int lux = 0;
+
+	ret = sscanf(buf, "%d", &lux);
+	if (ret != 1) {
+		pr_err("invalid content: '%s', length = %zu\n", buf, count);
+		return count;
+	}
+
+	als_cali_target_lux = lux;
+
+	return count;
+}
+static DEVICE_ATTR_RW(als_target_lux);
+
+static ssize_t als_cali_para_show(struct device *dev,
+                struct device_attribute *attr, char *buf)
+{
+	return snprintf(buf, PAGE_SIZE, "%d\n", als_cali_data);
+}
+static DEVICE_ATTR_RO(als_cali_para);
+
 static struct attribute *sensorhub_attrs[] = {
 	&dev_attr_debug_data.attr,
 	&dev_attr_reader_enable.attr,
@@ -2135,6 +2260,7 @@ static struct attribute *sensorhub_attrs[] = {
 	&dev_attr_light_sensor_calibrator.attr,
 	&dev_attr_version.attr,
 	&dev_attr_als_mode.attr,
+	&dev_attr_custom_para.attr,
 	&dev_attr_data_to_dynamic.attr,
 	&dev_attr_raw_data_acc.attr,
 	&dev_attr_raw_data_mag.attr,
@@ -2147,6 +2273,12 @@ static struct attribute *sensorhub_attrs[] = {
 	&dev_attr_mag_cali_flag.attr,
 	&dev_attr_shub_debug.attr,
 	&dev_attr_cm4_operate.attr,
+	&dev_attr_acc_info.attr,
+	&dev_attr_mag_info.attr,
+	&dev_attr_prox_info.attr,
+	&dev_attr_light_info.attr,
+	&dev_attr_als_target_lux.attr,
+	&dev_attr_als_cali_para.attr,
 	NULL,
 };
 ATTRIBUTE_GROUPS(sensorhub);

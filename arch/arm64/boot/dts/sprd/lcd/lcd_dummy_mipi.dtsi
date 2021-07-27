@@ -9,6 +9,13 @@
 					sprd,dsi-lane-number = <4>;
 					sprd,dsi-color-format = "rgb888";
 
+					sprd,phy-bit-clock = <922000>;	/* kbps */
+					sprd,phy-escape-clock = <20000>;/* kHz */
+					sprd,width-mm = <68>;
+					sprd,height-mm = <121>;
+					sprd,dpi-clk-div = <6>;
+					sprd,video-lp-cmd-enable = <1>;
+					sprd,hporch-lp-disable = <1>;
 					sprd,initial-command = [
 						13 78 00 01 11
 						13 64 00 01 29
@@ -26,15 +33,26 @@
 						native-mode = <&dummy_timing0>;
 
 						dummy_timing0: timing0 {
-							clock-frequency = <76800000>;
+							clock-frequency = <153600000>;
 							hactive = <720>;
-							vactive = <1280>;
-							hback-porch = <60>;
-							hfront-porch = <80>;
-							vback-porch = <12>;
-							vfront-porch = <38>;
-							hsync-len = <60>;
-							vsync-len = <4>;
+							vactive = <1600>;
+							hback-porch = <48>;
+							hfront-porch = <40>;
+							vback-porch = <50>;
+							vfront-porch = <380>;
+							hsync-len = <20>;
+							vsync-len = <20>;
+						};
+						dummy_timing1: timing1 {
+							clock-frequency = <153600000>;
+							hactive = <720>;
+							vactive = <1600>;
+							hback-porch = <48>;
+							hfront-porch = <40>;
+							vback-porch = <50>;
+							vfront-porch = <1421>;
+							hsync-len = <20>;
+							vsync-len = <20>;
 						};
 					};
 				};

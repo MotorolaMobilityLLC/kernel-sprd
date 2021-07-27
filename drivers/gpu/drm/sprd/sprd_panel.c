@@ -594,11 +594,35 @@ static int of_parse_oled_cmds(struct sprd_oled *oled,
 	return 0;
 }
 
+static int sprd_oled_set_brightness(struct backlight_device *bdev);
+unsigned int g_last_level = 25;
+struct backlight_device *g_bdev;
+#ifdef CONFIG_HBM_SUPPORT
+extern bool g_hbm_enable;
+int hbm_set_backlight_level(unsigned int level)
+{
+	if (g_bdev != NULL) {
+		g_bdev->props.brightness = level;
+		sprd_oled_set_brightness(g_bdev);
+		return 0;
+	} else {
+		DRM_INFO("firefly, g_bdev is null, please register sprd backlight\n");
+		return -1;
+	}
+
+}
+#endif
+
 static int sprd_oled_set_brightness(struct backlight_device *bdev)
 {
 	int level, brightness;
 	struct sprd_oled *oled = bl_get_data(bdev);
 	struct sprd_panel *panel = oled->panel;
+	if (g_hbm_enable){
+		DRM_INFO("firefly ,Now hbm enable, want to set level = %d\n", bdev->props.brightness);
+		DRM_INFO("firefly ,Do not allow to set other level backlight\n");
+		bdev->props.brightness = 256;
+	}
 
 	mutex_lock(&panel_lock);
 	if (!panel->is_enabled) {
@@ -611,7 +635,24 @@ static int sprd_oled_set_brightness(struct backlight_device *bdev)
 	level = brightness * oled->max_level / 255;
 
 	DRM_INFO("%s level: %d\n", __func__, level);
+    //pr_err("wzx%s level: %d\n",lcd_name, level);
+	if(strncmp(lcd_name, "lcd_nt36525c_boe_mipi_fhd",strlen(lcd_name)) == 0){
+		if (level < 256){
+			level = ((level * 84) + 6)/ 100;
+            g_last_level = level;
+        }
+      // pr_err("wzx11111%s level: %d\n",lcd_name, level);
+	}
+	else{
+        if (level < 256){
+            g_last_level = level;
+			level = ((level * 93)+ 4)/ 100;
+		}
+	}
+	if (level ==256)
+		level = 255;
 
+	DRM_INFO("%s Target level: %d\n", __func__, level);
 	sprd_panel_send_cmds(panel->slave,
 			     panel->info.cmds[CMD_OLED_REG_LOCK],
 			     panel->info.cmds_len[CMD_OLED_REG_LOCK]);
@@ -665,8 +706,10 @@ static int sprd_oled_backlight_init(struct sprd_panel *panel)
 		DRM_ERROR("failed to register oled backlight ops\n");
 		return PTR_ERR(oled->bdev);
 	}
-
-	p = of_get_property(oled_node, "brightness-levels", &bytes);
+    #ifdef CONFIG_HBM_SUPPORT
+        g_bdev = oled->bdev;
+    #endif
+    p = of_get_property(oled_node, "brightness-levels", &bytes);
 	if (p) {
 		info->cmds[CMD_OLED_BRIGHTNESS] = p;
 		info->cmds_len[CMD_OLED_BRIGHTNESS] = bytes;
