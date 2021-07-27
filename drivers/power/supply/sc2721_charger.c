@@ -765,9 +765,10 @@ static int sc2721_charger_probe(struct platform_device *pdev)
 	}
 
 	ret = sc2721_charger_hw_init(info);
-	if (ret)
+	if (ret) {
+		dev_err(&pdev->dev, "failed to sc2721_charger_hw_init\n");
 		return ret;
-
+	}
 	sc2721_charger_stop_charge(info);
 
 	device_init_wakeup(info->dev, true);

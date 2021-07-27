@@ -1168,6 +1168,9 @@ static int fan54015_charger_probe(struct i2c_client *client,
 		usb_unregister_notifier(info->usb_phy, &info->usb_notify);
 		return ret;
 	}
+
+	fan54015_charger_stop_charge(info);
+
 	fan54015_charger_detect_status(info);
 	INIT_DELAYED_WORK(&info->otg_work, fan54015_charger_otg_work);
 	INIT_DELAYED_WORK(&info->wdt_work,
