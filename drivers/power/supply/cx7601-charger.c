@@ -533,19 +533,19 @@ static int cx7601_disable_safety_timer(struct cx7601_charger_info *info)
 static int cx7601_trim(struct cx7601_charger_info *info)
 {
 	int ret;
-	u8 data;
+//	u8 data;
 	
-	ret = cx7601_write(info, 0x40, 0x50);
-	ret = cx7601_write(info, 0x40, 0x57);
-	ret = cx7601_write(info, 0x40, 0x44);
-	ret = cx7601_write(info, 0x83, 0x2D);
-	ret = cx7601_read(info, &data, 0x83);
-	if (data != 0x2C) {
-		pr_err("Failed to trim cx7601: reg=%02X, data=%02X\n", 0x83, data);
-	}
-	else {
-		pr_err("Trim cx7601 OK\n");
-	}
+//	ret = cx7601_write(info, 0x40, 0x50);
+//	ret = cx7601_write(info, 0x40, 0x57);
+//	ret = cx7601_write(info, 0x40, 0x44);
+//	ret = cx7601_write(info, 0x83, 0x2D);
+//	ret = cx7601_read(info, &data, 0x83);
+//	if (data != 0x2C) {
+//		pr_err("Failed to trim cx7601: reg=%02X, data=%02X\n", 0x83, data);
+//	}
+//	else {
+//		pr_err("Trim cx7601 OK\n");
+//	}
 	ret = cx7601_update_bits(info,0x84,0x03, 0x02);
 	ret = cx7601_write(info, 0x40, 0x00);
 	ret = cx7601_update_bits(info, CX7601_REG_0C, 0x20, 0x20); //BAT_LOADEN=1
@@ -1401,7 +1401,16 @@ static int cx7601_charger_probe(struct i2c_client *client,
 	info->client->addr = 0x6b;
 	info->dev = dev;
 
+	cx7601_write(info, 0x40, 0x50);
+	cx7601_write(info, 0x40, 0x57);
+	cx7601_write(info, 0x40, 0x44);
+	cx7601_write(info, 0x83, 0x2D);
+	cx7601_read(info, &val, 0x83);
+	dev_err(dev, "%s;enter;0x83=%x;\n",__func__,val);
+
+
 	cx7601_read(info, &val, CX7601_REG_0A);
+	dev_err(dev, "%s;%x;\n",__func__,val);
 	if( ((val & 0xe0) >>5) == 0x02  &&   (val & 0x07) == 0x00 )
 	       strncpy(charge_ic_vendor_name,"CX7601",20);
 	else
