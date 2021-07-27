@@ -66,7 +66,7 @@
 				#address-cells = <2>;
 				#size-cells = <2>;
 				sprd-wlan {
-					compatible = "sprd,sc2355-wifi";
+					compatible = "sprd,sc2355-sipc-wifi";
 					/*sipc region <maped-addr size>*/
 					reg = <0x0 0x87380000 0x0 0x00280000>;
 				};
