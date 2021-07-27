@@ -13,9 +13,17 @@
 #ifndef _CHARGER_MANAGER_H
 #define _CHARGER_MANAGER_H
 
-#include <linux/power_supply.h>
-#include <linux/extcon.h>
 #include <linux/alarmtimer.h>
+#include <linux/extcon.h>
+#include <linux/power_supply.h>
+#include <linux/power/sprd_vote.h>
+
+enum cm_charge_info_cmd {
+	CM_CHARGE_INFO_CHARGE_LIMIT = BIT(0),
+	CM_CHARGE_INFO_INPUT_LIMIT = BIT(1),
+	CM_CHARGE_INFO_THERMAL_LIMIT = BIT(2),
+	CM_CHARGE_INFO_JEITA_LIMIT = BIT(3),
+};
 
 enum power_supply_charger_type {
 	POWER_SUPPLY_CHARGER_TYPE_UNKNOWN = 0,
@@ -802,6 +810,7 @@ struct charger_manager {
 	struct cm_track_capacity track;
 
 	struct wakeup_source *charge_ws;
+	struct sprd_vote *cm_charge_vote;
 };
 
 #if IS_ENABLED(CONFIG_CHARGER_MANAGER)

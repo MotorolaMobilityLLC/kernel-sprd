@@ -178,8 +178,6 @@ static void cm_notify_type_handle(struct charger_manager *cm, enum cm_event_type
 static bool cm_manager_adjust_current(struct charger_manager *cm, int jeita_status);
 static void cm_update_charger_type_status(struct charger_manager *cm);
 static int cm_manager_get_jeita_status(struct charger_manager *cm, int cur_temp);
-static int cm_set_input_limit_current(struct charger_manager *cm);
-static int cm_set_charge_limit_current(struct charger_manager *cm);
 static bool cm_charger_is_support_fchg(struct charger_manager *cm);
 
 static void cm_cap_remap_init_boundary(struct charger_desc *desc, int index, struct device *dev)
@@ -1361,297 +1359,252 @@ static bool is_polling_required(struct charger_manager *cm)
 	return false;
 }
 
-static void cm_update_charge_voltage_protection(struct charger_manager *cm,
-						enum power_supply_charge_type type)
-{
-	switch (type) {
-	case USB_CHARGE_TYPE_NORMAL:
-		if (cm->desc->normal_charge_voltage_max)
-			cm->desc->charge_voltage_max =
-				cm->desc->normal_charge_voltage_max;
-		if (cm->desc->normal_charge_voltage_drop)
-			cm->desc->charge_voltage_drop =
-				cm->desc->normal_charge_voltage_drop;
-		break;
-	case USB_CHARGE_TYPE_FAST:
-		if (cm->desc->fast_charge_voltage_max)
-			cm->desc->charge_voltage_max =
-				cm->desc->fast_charge_voltage_max;
-		if (cm->desc->fast_charge_voltage_drop)
-			cm->desc->charge_voltage_drop =
-				cm->desc->fast_charge_voltage_drop;
-		break;
-	case USB_CHARGE_TYPE_FLASH:
-		if (cm->desc->flash_charge_voltage_max)
-			cm->desc->charge_voltage_max =
-				cm->desc->flash_charge_voltage_max;
-		if (cm->desc->flash_charge_voltage_drop)
-			cm->desc->charge_voltage_drop =
-				cm->desc->flash_charge_voltage_drop;
-		break;
-	case USB_CHARGE_TYPE_TURBE:
-		break;
-	case USB_CHARGE_TYPE_SUPER:
-		break;
-	case WIRELESS_CHARGE_TYPE_NORMAL:
-		if (cm->desc->wireless_normal_charge_voltage_max)
-			cm->desc->charge_voltage_max =
-				cm->desc->wireless_normal_charge_voltage_max;
-		if (cm->desc->wireless_normal_charge_voltage_drop)
-			cm->desc->charge_voltage_drop =
-				cm->desc->wireless_normal_charge_voltage_drop;
-		break;
-	case WIRELESS_CHARGE_TYPE_FAST:
-		if (cm->desc->wireless_fast_charge_voltage_max)
-			cm->desc->charge_voltage_max =
-				cm->desc->wireless_fast_charge_voltage_max;
-		if (cm->desc->wireless_fast_charge_voltage_drop)
-			cm->desc->charge_voltage_drop =
-				cm->desc->wireless_fast_charge_voltage_drop;
-		break;
-	case WIRELESS_CHARGE_TYPE_FLASH:
-		break;
-	default:
-		if (cm->desc->normal_charge_voltage_max)
-			cm->desc->charge_voltage_max =
-				cm->desc->normal_charge_voltage_max;
-		if (cm->desc->normal_charge_voltage_drop)
-			cm->desc->charge_voltage_drop =
-				cm->desc->normal_charge_voltage_drop;
-		dev_info(cm->dev, "unknown quick charge type\n");
-		break;
-	}
-
-	dev_info(cm->dev, "%s, charge type = %d, charge_voltage_max = %duV, "
-		 "charge_voltage_drop = %duV\n", __func__, type,
-		 cm->desc->charge_voltage_max, cm->desc->charge_voltage_drop);
-}
-
-static void cm_update_charge_voltage_protection_by_charger_type(struct charger_manager *cm)
-{
-	switch (cm->desc->charger_type) {
-	case POWER_SUPPLY_USB_CHARGER_TYPE_DCP:
-	case POWER_SUPPLY_USB_CHARGER_TYPE_SDP:
-	case POWER_SUPPLY_USB_CHARGER_TYPE_CDP:
-		cm_update_charge_voltage_protection(cm, USB_CHARGE_TYPE_NORMAL);
-		break;
-	case POWER_SUPPLY_USB_CHARGER_TYPE_PD:
-	case POWER_SUPPLY_USB_CHARGER_TYPE_SFCP_1P0:
-		if (!cm->desc->enable_fast_charge) {
-			cm_update_charge_voltage_protection(cm, USB_CHARGE_TYPE_NORMAL);
-			break;
-		}
-		cm_update_charge_voltage_protection(cm, USB_CHARGE_TYPE_FAST);
-		break;
-	case POWER_SUPPLY_USB_CHARGER_TYPE_PD_PPS:
-	case POWER_SUPPLY_USB_CHARGER_TYPE_SFCP_2P0:
-		if (!cm->desc->cp.cp_running) {
-			cm_update_charge_voltage_protection(cm, USB_CHARGE_TYPE_NORMAL);
-			break;
-		}
-		cm_update_charge_voltage_protection(cm, USB_CHARGE_TYPE_FLASH);
-		break;
-	case POWER_SUPPLY_WIRELESS_CHARGER_TYPE_BPP:
-		cm_update_charge_voltage_protection(cm, WIRELESS_CHARGE_TYPE_NORMAL);
-		break;
-	case POWER_SUPPLY_WIRELESS_CHARGER_TYPE_EPP:
-		cm_update_charge_voltage_protection(cm, WIRELESS_CHARGE_TYPE_FAST);
-		break;
-	default:
-		cm_update_charge_voltage_protection(cm, USB_CHARGE_TYPE_NORMAL);
-		break;
-	}
-}
-
-static void cm_update_jeita_table(struct charger_manager *cm)
-{
-
-	dev_info(cm->dev, "%s, charger type = %d, enable_fast_charge = %d, cp_running = %d\n",
-		 __func__, cm->desc->charger_type, cm->desc->enable_fast_charge,
-		 cm->desc->cp.cp_running);
-
-	switch (cm->desc->charger_type) {
-	case POWER_SUPPLY_USB_CHARGER_TYPE_DCP:
-		cm->desc->jeita_tab =
-			cm->desc->jeita_tab_array[CM_JEITA_DCP];
-		break;
-	case POWER_SUPPLY_USB_CHARGER_TYPE_SDP:
-		cm->desc->jeita_tab =
-			cm->desc->jeita_tab_array[CM_JEITA_SDP];
-		break;
-	case POWER_SUPPLY_USB_CHARGER_TYPE_CDP:
-		cm->desc->jeita_tab =
-			cm->desc->jeita_tab_array[CM_JEITA_CDP];
-		break;
-	case POWER_SUPPLY_USB_CHARGER_TYPE_PD:
-	case POWER_SUPPLY_USB_CHARGER_TYPE_SFCP_1P0:
-		if (!cm->desc->enable_fast_charge) {
-			cm->desc->jeita_tab =
-				cm->desc->jeita_tab_array[CM_JEITA_DCP];
-			break;
-		}
-		cm->desc->jeita_tab =
-			cm->desc->jeita_tab_array[CM_JEITA_FCHG];
-		break;
-	case POWER_SUPPLY_USB_CHARGER_TYPE_PD_PPS:
-	case POWER_SUPPLY_USB_CHARGER_TYPE_SFCP_2P0:
-		if (!cm->desc->cp.cp_running) {
-			cm->desc->jeita_tab =
-				cm->desc->jeita_tab_array[CM_JEITA_DCP];
-			break;
-		}
-		cm->desc->jeita_tab =
-			cm->desc->jeita_tab_array[CM_JEITA_FLASH];
-		break;
-	case POWER_SUPPLY_WIRELESS_CHARGER_TYPE_BPP:
-		cm->desc->jeita_tab =
-			cm->desc->jeita_tab_array[CM_JEITA_WL_BPP];
-		break;
-	case POWER_SUPPLY_WIRELESS_CHARGER_TYPE_EPP:
-		cm->desc->jeita_tab =
-			cm->desc->jeita_tab_array[CM_JEITA_WL_EPP];
-		break;
-	default:
-		cm->desc->jeita_tab =
-			cm->desc->jeita_tab_array[CM_JEITA_UNKNOWN];
-		break;
-	}
-}
-
-static void cm_update_charge_current_info(struct charger_manager *cm)
-{
-	switch (cm->desc->charger_type) {
-	case POWER_SUPPLY_USB_CHARGER_TYPE_DCP:
-		cm->desc->charge_limit_cur = cm->desc->cur.dcp_cur;
-		cm->desc->input_limit_cur = cm->desc->cur.dcp_limit;
-		break;
-	case POWER_SUPPLY_USB_CHARGER_TYPE_SDP:
-		cm->desc->charge_limit_cur = cm->desc->cur.sdp_cur;
-		cm->desc->input_limit_cur = cm->desc->cur.sdp_limit;
-		break;
-	case POWER_SUPPLY_USB_CHARGER_TYPE_CDP:
-		cm->desc->charge_limit_cur = cm->desc->cur.cdp_cur;
-		cm->desc->input_limit_cur = cm->desc->cur.cdp_limit;
-		break;
-	case POWER_SUPPLY_USB_CHARGER_TYPE_PD:
-	case POWER_SUPPLY_USB_CHARGER_TYPE_SFCP_1P0:
-		if (!cm->desc->enable_fast_charge) {
-			cm->desc->charge_limit_cur = cm->desc->cur.dcp_cur;
-			cm->desc->input_limit_cur = cm->desc->cur.dcp_limit;
-			break;
-		}
-		cm->desc->charge_limit_cur = cm->desc->cur.fchg_cur;
-		cm->desc->input_limit_cur = cm->desc->cur.fchg_limit;
-		break;
-	case POWER_SUPPLY_USB_CHARGER_TYPE_PD_PPS:
-	case POWER_SUPPLY_USB_CHARGER_TYPE_SFCP_2P0:
-		if (!cm->desc->cp.cp_running) {
-			cm->desc->charge_limit_cur = cm->desc->cur.dcp_cur;
-			cm->desc->input_limit_cur = cm->desc->cur.dcp_limit;
-			break;
-		}
-		cm->desc->charge_limit_cur = cm->desc->cur.flash_cur;
-		cm->desc->input_limit_cur = cm->desc->cur.flash_limit;
-		break;
-	case POWER_SUPPLY_WIRELESS_CHARGER_TYPE_BPP:
-		cm->desc->charge_limit_cur = cm->desc->cur.wl_bpp_cur;
-		cm->desc->input_limit_cur = cm->desc->cur.wl_bpp_limit;
-		break;
-	case POWER_SUPPLY_WIRELESS_CHARGER_TYPE_EPP:
-		cm->desc->charge_limit_cur = cm->desc->cur.wl_epp_cur;
-		cm->desc->input_limit_cur = cm->desc->cur.wl_epp_limit;
-		break;
-	default:
-		cm->desc->charge_limit_cur = cm->desc->cur.unknown_cur;
-		cm->desc->input_limit_cur = cm->desc->cur.unknown_limit;
-		break;
-	}
-
-	dev_info(cm->dev, "%s, charger type = %d, enable_fast_charge = %d, cp_running = %d, "
-		 "max charge_limit_cur = %duA, max input_limit_cur = %duA\n",
-		 __func__, cm->desc->charger_type, cm->desc->enable_fast_charge,
-		 cm->desc->cp.cp_running, cm->desc->charge_limit_cur, cm->desc->input_limit_cur);
-}
-
-static void cm_get_adapter_default_charge_voltage(struct charger_manager *cm)
-{
-	struct cm_thermal_info *thm_info = &cm->desc->thm_info;
-
-	switch (cm->desc->charger_type) {
-	case POWER_SUPPLY_USB_CHARGER_TYPE_DCP:
-	case POWER_SUPPLY_USB_CHARGER_TYPE_SDP:
-	case POWER_SUPPLY_USB_CHARGER_TYPE_CDP:
-		thm_info->adapter_default_charge_vol = 5;
-		break;
-	case POWER_SUPPLY_USB_CHARGER_TYPE_PD:
-	case POWER_SUPPLY_USB_CHARGER_TYPE_SFCP_1P0:
-		if (!cm->desc->enable_fast_charge) {
-			thm_info->adapter_default_charge_vol = 5;
-			break;
-		}
-		thm_info->adapter_default_charge_vol = 9;
-		break;
-	case POWER_SUPPLY_USB_CHARGER_TYPE_PD_PPS:
-	case POWER_SUPPLY_USB_CHARGER_TYPE_SFCP_2P0:
-		if (!cm->desc->cp.cp_running) {
-			thm_info->adapter_default_charge_vol = 5;
-			break;
-		}
-		thm_info->adapter_default_charge_vol = 11;
-		break;
-	case POWER_SUPPLY_WIRELESS_CHARGER_TYPE_BPP:
-		thm_info->adapter_default_charge_vol = 5;
-		break;
-	case POWER_SUPPLY_WIRELESS_CHARGER_TYPE_EPP:
-		thm_info->adapter_default_charge_vol = 11;
-		break;
-	default:
-		thm_info->adapter_default_charge_vol = 5;
-		break;
-	}
-
-	dev_info(cm->dev, "%s, charger type = %d, enable_fast_charge = %d, cp_running = %d, "
-		 "adapter_default_charge_vol = %dmV\n", __func__, cm->desc->charger_type,
-		 cm->desc->enable_fast_charge, cm->desc->cp.cp_running,
-		 thm_info->adapter_default_charge_vol * 1000);
-}
-
-static void cm_update_input_limit_current(struct charger_manager *cm)
-{
-	struct cm_thermal_info *thm_info = &cm->desc->thm_info;
-	int ret;
-
-	if (thm_info->thm_pwr) {
-		cm_get_adapter_default_charge_voltage(cm);
-		thm_info->thm_adjust_cur = (int)(thm_info->thm_pwr /
-			thm_info->adapter_default_charge_vol) * 1000;
-	}
-
-	dev_info(cm->dev, "charger type = %d, adapter_default_charge_vol = %dmV, "
-		 "thm_pwr = %dmW, thm_adjust_cur = %duA\n", cm->desc->charger_type,
-		 thm_info->adapter_default_charge_vol * 1000, thm_info->thm_pwr,
-		 thm_info->thm_adjust_cur);
-
-	ret = cm_set_input_limit_current(cm);
-	if (ret)
-		dev_warn(cm->dev, "Fail to set input limit current, ret = %d\n", ret);
-}
-
 static void cm_update_current_jeita_status(struct charger_manager *cm)
 {
 	int cur_jeita_status;
-	int ret;
 
+	/**
+	 * Note that it need to vote for ibat before the caller of this function
+	 * if does not define jeita table
+	 */
 	if (cm->desc->jeita_tab_size && !cm->charging_status) {
 		cur_jeita_status = cm_manager_get_jeita_status(cm, cm->desc->temperature);
 		if (cm->desc->jeita_disabled)
 			cur_jeita_status = cm->desc->force_jeita_status;
 		cm_manager_adjust_current(cm, cur_jeita_status);
-	} else if (!cm->desc->jeita_tab_size) {
-		cm_update_charge_current_info(cm);
-		ret = cm_set_charge_limit_current(cm);
-		if (ret)
-			dev_err(cm->dev, "Fail to set charge limit current, ret = %d\n", ret);
+	}
+}
+
+static void cm_update_charge_info(struct charger_manager *cm, int cmd)
+{
+	struct charger_desc *desc = cm->desc;
+	struct cm_thermal_info *thm_info = &cm->desc->thm_info;
+
+	switch (desc->charger_type) {
+	case POWER_SUPPLY_USB_CHARGER_TYPE_DCP:
+		desc->charge_limit_cur = desc->cur.dcp_cur;
+		desc->input_limit_cur = desc->cur.dcp_limit;
+		thm_info->adapter_default_charge_vol = 5;
+		if (desc->jeita_tab_size)
+			desc->jeita_tab = desc->jeita_tab_array[CM_JEITA_DCP];
+		if (desc->normal_charge_voltage_max)
+			desc->charge_voltage_max = desc->normal_charge_voltage_max;
+		if (desc->normal_charge_voltage_drop)
+			desc->charge_voltage_drop = desc->normal_charge_voltage_drop;
+		break;
+	case POWER_SUPPLY_USB_CHARGER_TYPE_SDP:
+		desc->charge_limit_cur = desc->cur.sdp_cur;
+		desc->input_limit_cur = desc->cur.sdp_limit;
+		thm_info->adapter_default_charge_vol = 5;
+		if (desc->jeita_tab_size)
+			desc->jeita_tab = desc->jeita_tab_array[CM_JEITA_SDP];
+		if (desc->normal_charge_voltage_max)
+			desc->charge_voltage_max = desc->normal_charge_voltage_max;
+		if (desc->normal_charge_voltage_drop)
+			desc->charge_voltage_drop = desc->normal_charge_voltage_drop;
+		break;
+	case POWER_SUPPLY_USB_CHARGER_TYPE_CDP:
+		desc->charge_limit_cur = desc->cur.cdp_cur;
+		desc->input_limit_cur = desc->cur.cdp_limit;
+		thm_info->adapter_default_charge_vol = 5;
+		if (desc->jeita_tab_size)
+			desc->jeita_tab = desc->jeita_tab_array[CM_JEITA_CDP];
+		if (desc->normal_charge_voltage_max)
+			desc->charge_voltage_max = desc->normal_charge_voltage_max;
+		if (desc->normal_charge_voltage_drop)
+			desc->charge_voltage_drop = desc->normal_charge_voltage_drop;
+		break;
+	case POWER_SUPPLY_USB_CHARGER_TYPE_PD:
+	case POWER_SUPPLY_USB_CHARGER_TYPE_SFCP_1P0:
+		if (desc->enable_fast_charge) {
+			desc->charge_limit_cur = desc->cur.fchg_cur;
+			desc->input_limit_cur = desc->cur.fchg_limit;
+			thm_info->adapter_default_charge_vol = 9;
+			if (desc->jeita_tab_size)
+				desc->jeita_tab = desc->jeita_tab_array[CM_JEITA_FCHG];
+			if (desc->fast_charge_voltage_max)
+				desc->charge_voltage_max = desc->fast_charge_voltage_max;
+			if (desc->fast_charge_voltage_drop)
+				desc->charge_voltage_drop = desc->fast_charge_voltage_drop;
+			break;
+		}
+		desc->charge_limit_cur = desc->cur.dcp_cur;
+		desc->input_limit_cur = desc->cur.dcp_limit;
+		thm_info->adapter_default_charge_vol = 5;
+		if (desc->jeita_tab_size)
+			desc->jeita_tab = desc->jeita_tab_array[CM_JEITA_DCP];
+		if (desc->normal_charge_voltage_max)
+			desc->charge_voltage_max = desc->normal_charge_voltage_max;
+		if (desc->normal_charge_voltage_drop)
+			desc->charge_voltage_drop = desc->normal_charge_voltage_drop;
+		break;
+	case POWER_SUPPLY_USB_CHARGER_TYPE_PD_PPS:
+	case POWER_SUPPLY_USB_CHARGER_TYPE_SFCP_2P0:
+		if (desc->cp.cp_running && !desc->cp.recovery) {
+			desc->charge_limit_cur = desc->cur.flash_cur;
+			desc->input_limit_cur = desc->cur.flash_limit;
+			thm_info->adapter_default_charge_vol = 11;
+			if (desc->jeita_tab_size)
+				desc->jeita_tab = desc->jeita_tab_array[CM_JEITA_FLASH];
+			if (desc->flash_charge_voltage_max)
+				desc->charge_voltage_max = desc->flash_charge_voltage_max;
+			if (desc->flash_charge_voltage_drop)
+				desc->charge_voltage_drop = desc->flash_charge_voltage_drop;
+			break;
+		}
+		desc->charge_limit_cur = desc->cur.dcp_cur;
+		desc->input_limit_cur = desc->cur.dcp_limit;
+		thm_info->adapter_default_charge_vol = 5;
+		if (desc->jeita_tab_size)
+			desc->jeita_tab = desc->jeita_tab_array[CM_JEITA_DCP];
+		if (desc->normal_charge_voltage_max)
+			desc->charge_voltage_max = desc->normal_charge_voltage_max;
+		if (desc->normal_charge_voltage_drop)
+			desc->charge_voltage_drop = desc->normal_charge_voltage_drop;
+		break;
+	case POWER_SUPPLY_WIRELESS_CHARGER_TYPE_BPP:
+		desc->charge_limit_cur = desc->cur.wl_bpp_cur;
+		desc->input_limit_cur = desc->cur.wl_bpp_limit;
+		thm_info->adapter_default_charge_vol = 5;
+		if (desc->jeita_tab_size)
+			desc->jeita_tab = desc->jeita_tab_array[CM_JEITA_WL_BPP];
+		if (desc->wireless_normal_charge_voltage_max)
+			desc->charge_voltage_max = desc->wireless_normal_charge_voltage_max;
+		if (desc->wireless_normal_charge_voltage_drop)
+			desc->charge_voltage_drop = desc->wireless_normal_charge_voltage_drop;
+		break;
+	case POWER_SUPPLY_WIRELESS_CHARGER_TYPE_EPP:
+		desc->charge_limit_cur = desc->cur.wl_epp_cur;
+		desc->input_limit_cur = desc->cur.wl_epp_limit;
+		thm_info->adapter_default_charge_vol = 11;
+		if (desc->jeita_tab_size)
+			desc->jeita_tab = desc->jeita_tab_array[CM_JEITA_WL_EPP];
+		if (desc->wireless_fast_charge_voltage_max)
+			desc->charge_voltage_max = desc->wireless_fast_charge_voltage_max;
+		if (desc->wireless_fast_charge_voltage_drop)
+			desc->charge_voltage_drop = desc->wireless_fast_charge_voltage_drop;
+		break;
+	default:
+		desc->charge_limit_cur = desc->cur.unknown_cur;
+		desc->input_limit_cur = desc->cur.unknown_limit;
+		thm_info->adapter_default_charge_vol = 5;
+		if (desc->jeita_tab_size)
+			desc->jeita_tab = desc->jeita_tab_array[CM_JEITA_UNKNOWN];
+		if (desc->normal_charge_voltage_max)
+			desc->charge_voltage_max = desc->normal_charge_voltage_max;
+		if (desc->normal_charge_voltage_drop)
+			desc->charge_voltage_drop = desc->normal_charge_voltage_drop;
+		break;
+	}
+
+	if (thm_info->thm_pwr && thm_info->adapter_default_charge_vol)
+		thm_info->thm_adjust_cur = (int)(thm_info->thm_pwr /
+			thm_info->adapter_default_charge_vol) * 1000;
+
+	dev_info(cm->dev, "%s, chgr type = %d, fchg_en = %d, cp_running = %d, cp_recovery = %d"
+		 " max chg_lmt_cur = %duA, max inpt_lmt_cur = %duA, max chg_volt = %duV,"
+		 " chg_volt_drop = %d, adapter_chg_volt = %dmV, thm_cur = %d, chg_info_cmd = 0x%x\n",
+		 __func__, desc->charger_type, desc->enable_fast_charge, desc->cp.cp_running,
+		 desc->cp.recovery, desc->charge_limit_cur, desc->input_limit_cur,
+		 desc->charge_voltage_max, desc->charge_voltage_drop,
+		 thm_info->adapter_default_charge_vol * 1000, thm_info->thm_adjust_cur, cmd);
+
+	if (!cm->cm_charge_vote || !cm->cm_charge_vote->vote) {
+		dev_err(cm->dev, "%s: cm_charge_vote is null\n", __func__);
+		return;
+	}
+
+	if (cmd & CM_CHARGE_INFO_CHARGE_LIMIT)
+		cm->cm_charge_vote->vote(cm->cm_charge_vote, true,
+					 SPRD_VOTE_TYPE_IBAT,
+					 SPRD_VOTE_TYPE_IBAT_ID_CHARGER_TYPE,
+					 SPRD_VOTE_CMD_MIN, desc->charge_limit_cur, cm);
+	if (cmd & CM_CHARGE_INFO_INPUT_LIMIT)
+		cm->cm_charge_vote->vote(cm->cm_charge_vote, true,
+					 SPRD_VOTE_TYPE_IBUS,
+					 SPRD_VOTE_TYPE_IBUS_ID_CHARGER_TYPE,
+					 SPRD_VOTE_CMD_MIN, desc->input_limit_cur, cm);
+	if (cmd & CM_CHARGE_INFO_THERMAL_LIMIT && thm_info->thm_adjust_cur > 0)
+		cm->cm_charge_vote->vote(cm->cm_charge_vote, true,
+					 SPRD_VOTE_TYPE_IBUS,
+					 SPRD_VOTE_TYPE_IBUS_ID_CHARGE_CONTROL_LIMIT,
+					 SPRD_VOTE_CMD_MIN,
+					 cm->desc->thm_info.thm_adjust_cur, cm);
+	if (cmd & CM_CHARGE_INFO_JEITA_LIMIT)
+		cm_update_current_jeita_status(cm);
+}
+
+static void cm_vote_property(struct charger_manager *cm, int target_val,
+			     const char **name, enum power_supply_property psp)
+{
+	union power_supply_propval val;
+	struct power_supply *psy;
+	int i, ret;
+
+	if (!name) {
+		dev_err(cm->dev, "psy name is null!!!\n");
+		return;
+	}
+
+	for (i = 0; name[i]; i++) {
+		psy = power_supply_get_by_name(name[i]);
+		if (!psy) {
+			dev_err(cm->dev, "Cannot find power supply \"%s\"\n", name[i]);
+			continue;
+		}
+
+		val.intval = target_val;
+		ret = power_supply_set_property(psy, psp, &val);
+		power_supply_put(psy);
+		if (ret) {
+			dev_err(cm->dev, "failed to %s set power_supply_property[%d], ret = %d\n",
+				name[i], ret, psp);
+			continue;
+		}
+	}
+}
+
+static int cm_check_parallel_charger(struct charger_manager *cm, int cur)
+{
+	if (cm->desc->enable_fast_charge && cm->desc->psy_charger_stat[1]) {
+		if (cm->desc->double_ic_total_limit_current &&
+		    (cur >= (int)cm->desc->double_ic_total_limit_current))
+			cur = (int)cm->desc->double_ic_total_limit_current;
+		cur /= 2;
+	}
+
+	return cur;
+}
+
+static void cm_sprd_vote_callback(struct sprd_vote *vote_gov, int vote_type,
+				  int value, void *data)
+{
+	struct charger_manager *cm = (struct charger_manager *)data;
+	const char **psy_charger_name;
+
+	dev_info(cm->dev, "%s, %s[%d]\n", __func__, vote_type_names[vote_type], value);
+	switch (vote_type) {
+	case SPRD_VOTE_TYPE_IBAT:
+		psy_charger_name = cm->desc->psy_charger_stat;
+		cm_vote_property(cm, value, psy_charger_name,
+				 POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT);
+		break;
+	case SPRD_VOTE_TYPE_IBUS:
+		psy_charger_name = cm->desc->psy_charger_stat;
+		value = cm_check_parallel_charger(cm, value);
+		cm_vote_property(cm, value, psy_charger_name,
+				 POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT);
+		break;
+	case SPRD_VOTE_TYPE_CCCV:
+		psy_charger_name = cm->desc->psy_charger_stat;
+		if (cm->desc->cp.cp_running)
+			psy_charger_name = cm->desc->psy_cp_stat;
+		cm_vote_property(cm, value, psy_charger_name,
+				 POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE_MAX);
+		break;
+	default:
+		dev_err(cm->dev, "vote_gov: vote_type[%d] error!!!\n", vote_type);
+		break;
 	}
 }
 
@@ -1931,19 +1884,10 @@ static int cm_fast_charge_enable_check(struct charger_manager *cm)
 	/*
 	 * adjust over voltage protection in 9V
 	 */
-	cm_update_charge_voltage_protection(cm, USB_CHARGE_TYPE_FAST);
-	cm_update_charge_current_info(cm);
-	cm_update_input_limit_current(cm);
-
-	/*
-	 * if enable jeita, we should adjust current
-	 * using CM_JEITA_FCHG in fast charge status
-	 * according to current temperature.
-	 */
-	if (desc->jeita_tab_size) {
-		cm_update_jeita_table(cm);
-		cm_update_current_jeita_status(cm);
-	}
+	cm_update_charge_info(cm, (CM_CHARGE_INFO_CHARGE_LIMIT |
+				   CM_CHARGE_INFO_INPUT_LIMIT |
+				   CM_CHARGE_INFO_THERMAL_LIMIT |
+				   CM_CHARGE_INFO_JEITA_LIMIT));
 
 	return 0;
 }
@@ -1986,19 +1930,10 @@ static int cm_fast_charge_disable(struct charger_manager *cm)
 	/*
 	 * adjust over voltage protection in 5V
 	 */
-	cm_update_charge_voltage_protection(cm, USB_CHARGE_TYPE_NORMAL);
-	cm_update_charge_current_info(cm);
-	cm_update_input_limit_current(cm);
-
-	/*
-	 * if enable jeita, we should adjust current
-	 * using CM_JEITA_DCP in fast charge status
-	 * according to current temperature.
-	 */
-	if (desc->jeita_tab_size) {
-		cm_update_jeita_table(cm);
-		cm_update_current_jeita_status(cm);
-	}
+	cm_update_charge_info(cm, (CM_CHARGE_INFO_CHARGE_LIMIT |
+				   CM_CHARGE_INFO_INPUT_LIMIT |
+				   CM_CHARGE_INFO_THERMAL_LIMIT |
+				   CM_CHARGE_INFO_JEITA_LIMIT));
 
 	return 0;
 }
@@ -2076,62 +2011,6 @@ static int try_fast_charger_enable(struct charger_manager *cm, bool enable)
 	return 0;
 }
 
-static void cm_set_primary_charger_max_voltage(struct charger_manager *cm,
-					       int target_cccv)
-{
-	union power_supply_propval val;
-	struct power_supply *psy;
-	int i, ret;
-
-	for (i = 0; cm->desc->psy_charger_stat[i]; i++) {
-		psy = power_supply_get_by_name(cm->desc->psy_charger_stat[i]);
-		if (!psy) {
-			dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
-				cm->desc->psy_charger_stat[i]);
-			continue;
-		}
-
-		val.intval = target_cccv;
-		ret = power_supply_set_property(psy,
-						POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE_MAX,
-						&val);
-
-		power_supply_put(psy);
-		if (ret) {
-			dev_err(cm->dev, "failed to set terminate voltage, ret = %d\n", ret);
-			continue;
-		}
-	}
-}
-
-static void cm_set_cp_charger_max_voltage(struct charger_manager *cm,
-					       int target_cccv)
-{
-	union power_supply_propval val;
-	struct power_supply *psy;
-	int i, ret;
-
-	for (i = 0; cm->desc->psy_cp_stat[i]; i++) {
-		psy = power_supply_get_by_name(cm->desc->psy_cp_stat[i]);
-		if (!psy) {
-			dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
-				cm->desc->psy_cp_stat[i]);
-			continue;
-		}
-
-		val.intval = target_cccv;
-		ret = power_supply_set_property(psy,
-						POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE_MAX,
-						&val);
-
-		power_supply_put(psy);
-		if (ret) {
-			dev_err(cm->dev, "failed to set terminate voltage, ret = %d\n", ret);
-			continue;
-		}
-	}
-}
-
 static int cm_get_ibat_avg(struct charger_manager *cm, int *ibat)
 {
 	int ret, batt_uA, min, max, i, sum = 0;
@@ -2165,102 +2044,6 @@ static int cm_get_ibat_avg(struct charger_manager *cm, int *ibat)
 
 	if (*ibat < 0)
 		*ibat = 0;
-
-	return ret;
-}
-
-static int cm_set_charge_limit_current(struct charger_manager *cm)
-{
-	union power_supply_propval val;
-	struct power_supply *psy;
-	int i, ret = 0, target_cur;
-
-	target_cur = cm->desc->charge_limit_cur;
-
-	dev_info(cm->dev, "Target charge limit current = %d\n", target_cur);
-
-	for (i = 0; cm->desc->psy_charger_stat[i]; i++) {
-		psy = power_supply_get_by_name(cm->desc->psy_charger_stat[i]);
-		if (!psy) {
-			dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
-				cm->desc->psy_charger_stat[i]);
-			continue;
-		}
-
-		val.intval = target_cur;
-		ret = power_supply_set_property(psy,
-						POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT,
-						&val);
-		power_supply_put(psy);
-		if (ret) {
-			dev_err(cm->dev,
-				"failed to set charge current, ret = %d\n",
-				ret);
-			continue;
-		}
-	}
-
-	return ret;
-}
-
-static int cm_set_input_limit_current(struct charger_manager *cm)
-{
-	union power_supply_propval val;
-	struct power_supply *psy;
-	int i, ret = 0, target_cur, thm_cur;
-
-	thm_cur = cm->desc->thm_info.thm_adjust_cur;
-	target_cur = cm->desc->input_limit_cur;
-
-	if (thm_cur > 0) {
-		if (cm->desc->enable_fast_charge && cm->desc->psy_charger_stat[1]) {
-			if (cm->desc->double_ic_total_limit_current &&
-			    (thm_cur >= (int)cm->desc->double_ic_total_limit_current))
-				thm_cur = (int)cm->desc->double_ic_total_limit_current;
-			thm_cur /= 2;
-		}
-
-		target_cur = min(thm_cur, target_cur);
-	}
-
-	dev_info(cm->dev, "Target input limit current = %d\n", target_cur);
-
-	for (i = 0; cm->desc->psy_charger_stat[i]; i++) {
-		psy = power_supply_get_by_name(cm->desc->psy_charger_stat[i]);
-		if (!psy) {
-			dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
-				cm->desc->psy_charger_stat[i]);
-			continue;
-		}
-
-		val.intval = target_cur;
-		ret = power_supply_set_property(psy,
-						POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT,
-						&val);
-		if (ret) {
-			power_supply_put(psy);
-			dev_err(cm->dev,
-				"failed to set input limit current, ret = %d\n",
-				ret);
-			continue;
-		}
-
-		if (!cm->desc->thm_info.need_calib_charge_lmt) {
-			power_supply_put(psy);
-			continue;
-		}
-
-		ret = power_supply_set_property(psy,
-						POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT,
-						&val);
-		power_supply_put(psy);
-		if (ret) {
-			dev_err(cm->dev,
-				"failed to set charge limit current, ret = %d\n",
-				ret);
-			continue;
-		}
-	}
 
 	return ret;
 }
@@ -2328,13 +2111,16 @@ static void cm_ir_compensation(struct charger_manager *cm,
 
 	ir_sts->last_target_cccv = *target;
 	switch (state) {
-	case CM_IR_COMP_STATE_NORMAL:
-		cm_set_primary_charger_max_voltage(cm, *target);
-		break;
 	case CM_IR_COMP_STATE_CP:
 		target_cccv = min(ir_sts->us_upper_limit,
 				  (*target + ir_sts->cp_upper_limit_offset));
-		cm_set_cp_charger_max_voltage(cm, target_cccv);
+		fallthrough;
+	case CM_IR_COMP_STATE_NORMAL:
+		cm->cm_charge_vote->vote(cm->cm_charge_vote, true,
+					SPRD_VOTE_TYPE_CCCV,
+					SPRD_VOTE_TYPE_CCCV_ID_IR,
+					SPRD_VOTE_CMD_MAX,
+					target_cccv, cm);
 		break;
 	default:
 		break;
@@ -2942,11 +2728,12 @@ static void cm_cp_state_recovery(struct charger_manager *cm)
 	dev_info(cm->dev, "cm_cp_state_machine: state %d, %s\n",
 	       cp->cp_state, cm_cp_state_names[cp->cp_state]);
 
-	cm->desc->cp.recovery = false;
-	if (is_ext_pwr_online(cm) && cm_is_reach_cp_threshold(cm))
+	if (is_ext_pwr_online(cm) && cm_is_reach_cp_threshold(cm)) {
 		cm_cp_state_change(cm, CM_CP_STATE_ENTRY);
-	else
+	} else {
+		cm->desc->cp.recovery = false;
 		cm_cp_state_change(cm, CM_CP_STATE_EXIT);
+	}
 }
 
 static void cm_cp_state_entry(struct charger_manager *cm)
@@ -2983,15 +2770,16 @@ static void cm_cp_state_entry(struct charger_manager *cm)
 
 	cm_init_cp(cm);
 
-	cm_update_charge_voltage_protection(cm, USB_CHARGE_TYPE_FLASH);
-	cm_update_jeita_table(cm);
-	cm_update_charge_current_info(cm);
-	cm_update_input_limit_current(cm);
-	cm_update_current_jeita_status(cm);
-	cm_cp_master_charger_enable(cm, true);
-
 	cp->recovery = false;
 	cm->desc->enable_fast_charge = true;
+
+	cm_update_charge_info(cm, (CM_CHARGE_INFO_CHARGE_LIMIT |
+				   CM_CHARGE_INFO_INPUT_LIMIT |
+				   CM_CHARGE_INFO_THERMAL_LIMIT |
+				   CM_CHARGE_INFO_JEITA_LIMIT));
+
+	cm_cp_master_charger_enable(cm, true);
+
 	cm->desc->cp.tune_vbus_retry = 0;
 	primary_charger_dis_retry = 0;
 	cp->cp_ibat_ucp_cnt = 0;
@@ -3133,11 +2921,11 @@ static void cm_cp_state_exit(struct charger_manager *cm)
 	if (!cp->recovery)
 		cp->cp_running = false;
 
-	cm_update_charge_voltage_protection(cm, USB_CHARGE_TYPE_NORMAL);
-	cm_update_jeita_table(cm);
-	cm_update_charge_current_info(cm);
-	cm_update_input_limit_current(cm);
-	cm_update_current_jeita_status(cm);
+	cm_update_charge_info(cm, (CM_CHARGE_INFO_CHARGE_LIMIT |
+				   CM_CHARGE_INFO_INPUT_LIMIT |
+				   CM_CHARGE_INFO_THERMAL_LIMIT |
+				   CM_CHARGE_INFO_JEITA_LIMIT));
+
 	if (!cm->charging_status && !cm->emergency_stop) {
 		cm_primary_charger_enable(cm, true);
 		cm_ir_compensation_enable(cm, true);
@@ -3813,9 +3601,7 @@ static bool cm_manager_adjust_current(struct charger_manager *cm,
 				      int jeita_status)
 {
 	struct charger_desc *desc = cm->desc;
-	union power_supply_propval val;
-	struct power_supply *psy;
-	int term_volt, target_cur, i, ret = -ENODEV;
+	int term_volt, target_cur;
 
 	if (cm->charging_status != 0 &&
 	    !(cm->charging_status & (CM_CHARGE_TEMP_OVERHEAT | CM_CHARGE_TEMP_COLD)))
@@ -3861,41 +3647,17 @@ static bool cm_manager_adjust_current(struct charger_manager *cm,
 	dev_info(cm->dev, "target terminate voltage = %d, target current = %d\n",
 		 term_volt, target_cur);
 
-	for (i = 0; cm->desc->psy_charger_stat[i]; i++) {
-		psy = power_supply_get_by_name(cm->desc->psy_charger_stat[i]);
-		if (!psy) {
-			dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
-				cm->desc->psy_charger_stat[i]);
-			continue;
-		}
+	cm->cm_charge_vote->vote(cm->cm_charge_vote, true,
+				 SPRD_VOTE_TYPE_IBAT,
+				 SPRD_VOTE_TYPE_IBAT_ID_JEITA,
+				 SPRD_VOTE_CMD_MIN,
+				 target_cur, cm);
+	cm->cm_charge_vote->vote(cm->cm_charge_vote, true,
+				 SPRD_VOTE_TYPE_CCCV,
+				 SPRD_VOTE_TYPE_CCCV_ID_JEITA,
+				 SPRD_VOTE_CMD_MIN,
+				 term_volt, cm);
 
-		val.intval = term_volt;
-		ret = power_supply_set_property(psy,
-						POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE_MAX,
-						&val);
-		if (ret) {
-			power_supply_put(psy);
-			dev_err(cm->dev,
-				"failed to set terminate voltage, ret = %d\n",
-				ret);
-			continue;
-		}
-
-		val.intval = target_cur;
-		ret = power_supply_set_property(psy,
-					POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT,
-					&val);
-		power_supply_put(psy);
-		if (ret) {
-			dev_err(cm->dev,
-				"failed to set charge current, ret = %d\n",
-				ret);
-			continue;
-		}
-	}
-
-	if (ret)
-		return false;
 exit:
 	try_charger_enable(cm, true);
 	cm->charging_status &= ~(CM_CHARGE_TEMP_OVERHEAT | CM_CHARGE_TEMP_COLD);
@@ -4326,37 +4088,6 @@ static bool cm_charger_is_support_fchg(struct charger_manager *cm)
 	return false;
 }
 
-static void cm_set_fast_charge_setting(struct charger_manager *cm)
-{
-	struct power_supply *psy;
-	union power_supply_propval val;
-	int ret;
-
-	if (cm->desc->is_fast_charge &&
-		!cm->desc->enable_fast_charge) {
-
-		/*
-		 * make the psy_charger_stat[0] to be main charger,
-		 * set the main charger charge current and limit current
-		 * with DCP type setting if the charger is fast charger.
-		 */
-		psy = power_supply_get_by_name(cm->desc->psy_charger_stat[0]);
-		if (!psy) {
-			dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
-				cm->desc->psy_charger_stat[0]);
-			power_supply_put(psy);
-			return;
-		}
-
-		val.intval = CM_FAST_CHARGE_DISABLE_CMD;
-		ret = power_supply_set_property(psy, POWER_SUPPLY_PROP_STATUS, &val);
-		power_supply_put(psy);
-		if (ret)
-			dev_err(cm->dev,
-				"failed to set main charger current in 9V ret = %d\n", ret);
-	}
-}
-
 static void cm_charger_int_handler(struct charger_manager *cm)
 {
 	dev_info(cm->dev, "%s\n", __func__);
@@ -4382,7 +4113,9 @@ static void fast_charge_handler(struct charger_manager *cm)
 	if (!is_ext_pwr_online(cm))
 		return;
 
-	cm_set_fast_charge_setting(cm);
+	if (cm->desc->is_fast_charge && !cm->desc->enable_fast_charge)
+		cm_update_charge_info(cm, (CM_CHARGE_INFO_CHARGE_LIMIT |
+					   CM_CHARGE_INFO_INPUT_LIMIT));
 
 	if (cm->desc->fast_charger_type == POWER_SUPPLY_USB_CHARGER_TYPE_PD_PPS &&
 	    !cm->desc->cp.cp_running && cm->charger_enabled) {
@@ -4443,30 +4176,10 @@ static void misc_event_handler(struct charger_manager *cm, enum cm_event_types t
 			cm->desc->wl_charge_en = true;
 		}
 
-		cm_update_jeita_table(cm);
-		cm_update_charge_voltage_protection_by_charger_type(cm);
-		cm_update_charge_current_info(cm);
-		cm_update_input_limit_current(cm);
+		cm_update_charge_info(cm, (CM_CHARGE_INFO_CHARGE_LIMIT |
+					   CM_CHARGE_INFO_INPUT_LIMIT |
+					   CM_CHARGE_INFO_JEITA_LIMIT));
 
-		cm_set_fast_charge_setting(cm);
-
-		if (cm->desc->jeita_tab_size) {
-			/*
-			 * reset this value, because this place will call
-			 * try_charger_enable again, and will satisfy the condition
-			 * that adjust 9V to enter fast charge.
-			 */
-			cm->desc->fast_charge_enable_count = 0;
-
-			cm_update_current_jeita_status(cm);
-		} else {
-			ret = cm_set_charge_limit_current(cm);
-			if (ret)
-				dev_err(cm->dev, "Fail to set charge limit current, ret = %d\n", ret);
-
-			if (!cm->charging_status)
-				try_charger_enable(cm, true);
-		}
 	} else {
 		try_wireless_charger_enable(cm, false);
 		try_charger_enable(cm, false);
@@ -4492,6 +4205,8 @@ static void misc_event_handler(struct charger_manager *cm, enum cm_event_types t
 		cm->desc->thm_info.adapter_default_charge_vol = 5;
 		cm->desc->wl_charge_en = 0;
 		cm->desc->usb_charge_en = 0;
+		cm->cm_charge_vote->vote(cm->cm_charge_vote, false,
+					 SPRD_VOTE_TYPE_ALL, 0, 0, 0, cm);
 	}
 
 	cm_update_charger_type_status(cm);
@@ -4839,58 +4554,31 @@ charger_set_property(struct power_supply *psy,
 {
 	struct charger_manager *cm = power_supply_get_drvdata(psy);
 	int ret = 0;
-	int i;
 
 	if (!is_ext_pwr_online(cm))
 		return -ENODEV;
 
 	switch (psp) {
 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT:
-		for (i = 0; cm->desc->psy_charger_stat[i]; i++) {
-			psy = power_supply_get_by_name(
-					cm->desc->psy_charger_stat[i]);
-			if (!psy) {
-				dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
-					cm->desc->psy_charger_stat[i]);
-				continue;
-			}
-
-			ret = power_supply_set_property(psy,
-				POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT, val);
-			power_supply_put(psy);
-			if (ret) {
-				dev_err(cm->dev, "set charge current failed\n");
-				continue;
-			}
-		}
+		cm->cm_charge_vote->vote(cm->cm_charge_vote, true,
+					 SPRD_VOTE_TYPE_IBAT,
+					 SPRD_VOTE_TYPE_IBAT_ID_CONSTANT_CHARGE_CURRENT,
+					 SPRD_VOTE_CMD_MIN,
+					 val->intval, cm);
 		break;
 
 	case POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT:
-		for (i = 0; cm->desc->psy_charger_stat[i]; i++) {
-			psy = power_supply_get_by_name(
-					cm->desc->psy_charger_stat[i]);
-			if (!psy) {
-				dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
-					cm->desc->psy_charger_stat[i]);
-				continue;
-			}
-
-			ret = power_supply_set_property(psy,
-				POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT, val);
-			power_supply_put(psy);
-			if (ret) {
-				dev_err(cm->dev, "set charge limit current failed\n");
-				continue;
-			}
-		}
+		cm->cm_charge_vote->vote(cm->cm_charge_vote, true,
+					 SPRD_VOTE_TYPE_IBUS,
+					 SPRD_VOTE_TYPE_IBUS_ID_INPUT_CURRENT_LIMIT,
+					 SPRD_VOTE_CMD_MIN,
+					 val->intval, cm);
 		break;
 
 	case POWER_SUPPLY_PROP_CHARGE_CONTROL_LIMIT:
 		dev_info(cm->dev, "thermal set charge power limit, thm_pwr = %dmW\n", val->intval);
 		cm->desc->thm_info.thm_pwr = val->intval;
-		cm_update_charge_current_info(cm);
-		cm_update_input_limit_current(cm);
-		cm_update_current_jeita_status(cm);
+		cm_update_charge_info(cm, CM_CHARGE_INFO_THERMAL_LIMIT);
 
 		if (cm->desc->cp.cp_running)
 			cm_check_target_ibus(cm);
@@ -6842,6 +6530,14 @@ static int charger_manager_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "Failed to get battery information\n");
 		goto err_reg_extcon;
 	}
+
+	cm->cm_charge_vote = sprd_charge_vote_register("cm_charge_vote",
+						       cm_sprd_vote_callback, cm);
+	if (IS_ERR(cm->cm_charge_vote)) {
+		dev_err(&pdev->dev, "Failed to register charge vote, ret = %d\n", ret);
+		goto err_reg_extcon;
+	}
+
 	if (cm_event_type)
 		cm_notify_type_handle(cm, cm_event_type, cm_event_msg);
 
@@ -7117,7 +6813,7 @@ void cm_notify_event(struct power_supply *psy, enum cm_event_types type,
 	}
 	mutex_unlock(&cm_list_mtx);
 
-	if (!found_power_supply) {
+	if (!found_power_supply || !cm->cm_charge_vote) {
 		cm_event_msg = msg;
 		cm_event_type = type;
 		return;
