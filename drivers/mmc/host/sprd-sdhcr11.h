@@ -859,4 +859,6 @@ sprd_sdhc_set_dll_backup(struct sprd_sdhc_host *host, u8 mask)
 	sprd_sdhc_writel(host, tmp, SPRD_SDHC_REG_DEBOUNCE);
 }
 
+void dump_sdio_reg(struct sprd_sdhc_host *host);
+#define CONFIG_SPRD_MMC_DEBUG
 #endif /* __SPRD_SDHC_H_ */

@@ -19,6 +19,7 @@
 #include <linux/slab.h>
 #include <linux/of_gpio.h>
 #include <linux/gpio/consumer.h>
+#include <linux/usb/tcpm.h>
 
 /* registers definitions for controller REGS_TYPEC */
 #define SC27XX_EN			0x00
@@ -29,6 +30,12 @@
 #define SC27XX_INT_MASK			0x18
 #define SC27XX_STATUS			0x1c
 #define SC27XX_RTRIM			0x3c
+#define SC27XX_DBG1			0x60
+
+/* SC27XX_DBG1 */
+#define SC27XX_CC_MASK            GENMASK(7, 0)
+#define SC27XX_CC_1_DETECT        BIT(0)
+#define SC27XX_CC_2_DETECT        BIT(4)
 
 /* SC27XX_TYPEC_EN */
 #define SC27XX_TYPEC_USB20_ONLY		BIT(4)
@@ -151,6 +158,9 @@ static int sc27xx_typec_connect(struct sc27xx_typec *sc, u32 status)
 	enum typec_role power_role = TYPEC_SOURCE;
 	enum typec_role vconn_role = TYPEC_SOURCE;
 	struct typec_partner_desc desc;
+	enum typec_cc_polarity cc_polarity;
+	u32 val;
+	int ret;
 
 	if (sc->partner)
 		return 0;
@@ -204,6 +214,27 @@ static int sc27xx_typec_connect(struct sc27xx_typec *sc, u32 status)
 	default:
 		break;
 	}
+
+	ret = regmap_read(sc->regmap, sc->base + SC27XX_DBG1, &val);
+	if (ret < 0) {
+		dev_err(sc->dev, "failed to read DBG1 register.\n");
+		return ret;
+	}
+	dev_err(sc->dev, "regmap_read[val]:[%x]\n", val);
+	val &= SC27XX_CC_MASK;
+
+	switch (val) {
+		case SC27XX_CC_1_DETECT:
+			cc_polarity = TYPEC_POLARITY_CC1;
+		break;
+		case SC27XX_CC_2_DETECT:
+			cc_polarity = TYPEC_POLARITY_CC2;
+		break;
+		default:
+			cc_polarity = TYPEC_POLARITY_CC1;
+		break;
+	}
+	typec_set_cc_polarity_role(sc->port, cc_polarity);
 
 	return 0;
 }

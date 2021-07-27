@@ -1,3 +1,7 @@
+ifeq ($(BUILD_DPWK),YES)
+    ccflags-y += -DAUTH_VERSION
+    $(info ++++++++++++++++++++++++++firefly++++++++++++++++ AUTH version)
+endif
 obj-$(CONFIG_SPRD_MEMDISK)	+= sprd_memdisk.o
 obj-$(CONFIG_SPRD_7SRESET)	+= sprd_7sreset.o
 obj-$(CONFIG_SPRD_SYSTIMER)	+= sprd_systimer.o
