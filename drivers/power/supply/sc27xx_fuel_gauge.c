@@ -60,6 +60,7 @@
 #define SC27XX_FGU_USER_AREA_STATUS1	0xc8
 #define SC27XX_FGU_VOLTAGE_BUF		0xd0
 #define SC27XX_FGU_CURRENT_BUF		0xf0
+#define SC27XX_FGU_REG_MAX		0x260
 
 /* SC27XX_FGU_CONFIG */
 #define SC27XX_FGU_LOW_POWER_MODE	BIT(1)
@@ -192,6 +193,22 @@ struct sc27xx_fgu_debug_info {
 	bool debug_batt_present;
 	int debug_chg_vol;
 	int debug_batt_health;
+
+	int sel_reg_id;
+};
+
+struct sc27xx_fgu_sysfs {
+	char *name;
+	struct attribute_group attr_g;
+	struct device_attribute attr_sc27xx_fgu_dump_info;
+	struct device_attribute attr_sc27xx_fgu_sel_reg_id;
+	struct device_attribute attr_sc27xx_fgu_reg_val;
+	struct device_attribute attr_sc27xx_fgu_enable_sleep_calib;
+	struct device_attribute attr_sc27xx_fgu_relax_cnt_th;
+	struct device_attribute attr_sc27xx_fgu_relax_cur_th;
+	struct attribute *attrs[7];
+
+	struct sc27xx_fgu_data *data;
 };
 
 struct sc27xx_fgu_energy_density_ocv_table {
@@ -305,6 +322,7 @@ struct sc27xx_fgu_data {
 	struct sc27xx_fgu_debug_info debug_info;
 	struct sc27xx_fgu_sleep_capacity_calibration slp_cap_calib;
 	struct sc27xx_fgu_energy_density_ocv_table *dens_table;
+	struct sc27xx_fgu_sysfs *sysfs;
 };
 
 struct sc27xx_fgu_variant_data {
@@ -2714,6 +2732,348 @@ static int sc27xx_fgu_usb_change(struct notifier_block *nb,
 	return NOTIFY_OK;
 }
 
+static ssize_t sc27xx_fgu_dump_info_show(struct device *dev,
+					 struct device_attribute *attr,
+					 char *buf)
+{
+	struct sc27xx_fgu_sysfs *sysfs =
+		container_of(attr, struct sc27xx_fgu_sysfs,
+			     attr_sc27xx_fgu_dump_info);
+	struct sc27xx_fgu_data *data = sysfs->data;
+
+	if (!data) {
+		dev_err(dev, "%s sc27xx_fgu_data is null\n", __func__);
+		return snprintf(buf, PAGE_SIZE, "%s sc27xx_fgu_data is null\n", __func__);
+	}
+
+	return snprintf(buf, PAGE_SIZE, "[batt present:%d];\n[total_cap:%d];\n[init_cap:%d];\n"
+			"[init_clbcnt:%d];\n[alarm_cap:%d];\n[boot_cap:%d];\n[normal_temp_cap:%d];\n"
+			"[max_volt:%d];\n[min_volt:%d];\n[first_calib_volt:%d];\n[first_calib_cap:%d];\n"
+			"[uusoc_vbat:%d];\n[boot_vol:%d];\n[last_clbcnt:%d];\n[cur_clbcnt:%d];\n"
+			"[bat_temp:%d];\n[online:%d];\n[is_first_poweron:%d];\n[chg_type:%d]\n",
+			data->bat_present, data->total_cap, data->init_cap, data->init_clbcnt,
+			data->alarm_cap, data->boot_cap, data->normal_temp_cap, data->max_volt,
+			data->min_volt, data->first_calib_volt, data->first_calib_cap,
+			data->uusoc_vbat, data->boot_volt, data->last_clbcnt, data->cur_clbcnt,
+			data->bat_temp, data->online, data->is_first_poweron, data->chg_type);
+}
+
+static ssize_t sc27xx_fgu_sel_reg_id_show(struct device *dev,
+					  struct device_attribute *attr,
+					  char *buf)
+{
+	struct sc27xx_fgu_sysfs *sysfs =
+		container_of(attr, struct sc27xx_fgu_sysfs,
+			     attr_sc27xx_fgu_sel_reg_id);
+	struct sc27xx_fgu_data *data = sysfs->data;
+
+	if (!data) {
+		dev_err(dev, "%s sc27xx_fgu_data is null\n", __func__);
+		return snprintf(buf, PAGE_SIZE, "%s sc27xx_fgu_data is null\n", __func__);
+	}
+
+	return snprintf(buf, PAGE_SIZE, "[sel_reg_id:0x%x]\n", data->debug_info.sel_reg_id);
+}
+
+static ssize_t sc27xx_fgu_sel_reg_id_store(struct device *dev,
+					   struct device_attribute *attr,
+					   const char *buf, size_t count)
+{
+	struct sc27xx_fgu_sysfs *sysfs =
+		container_of(attr, struct sc27xx_fgu_sysfs,
+			     attr_sc27xx_fgu_sel_reg_id);
+	struct sc27xx_fgu_data *data = sysfs->data;
+	u32 val;
+	int ret;
+
+	if (!data) {
+		dev_err(dev, "%s sc27xx_fgu_data is null\n", __func__);
+		return count;
+	}
+
+	ret =  kstrtouint(buf, 16, &val);
+	if (ret) {
+		dev_err(data->dev, "fail to get addr, ret = %d\n", ret);
+		return count;
+	}
+
+	if (val > SC27XX_FGU_REG_MAX) {
+		dev_err(data->dev, "val = %d, out of SC27XX_FGU_REG_MAX\n", val);
+		return count;
+	}
+
+	data->debug_info.sel_reg_id = val;
+
+	return count;
+}
+
+static ssize_t sc27xx_fgu_reg_val_show(struct device *dev,
+				       struct device_attribute *attr,
+				       char *buf)
+{
+	struct sc27xx_fgu_sysfs *sysfs =
+		container_of(attr, struct sc27xx_fgu_sysfs,
+			     attr_sc27xx_fgu_reg_val);
+	struct sc27xx_fgu_data *data = sysfs->data;
+	u32 reg_val;
+	int ret;
+
+	if (!data) {
+		dev_err(dev, "%s sc27xx_fgu_data is null\n", __func__);
+		return snprintf(buf, PAGE_SIZE, "%s sc27xx_fgu_data is null\n", __func__);
+	}
+
+	ret = regmap_read(data->regmap,
+			  data->base + data->debug_info.sel_reg_id,
+			  &reg_val);
+	if (ret)
+		return snprintf(buf, PAGE_SIZE, "Fail to read [REG_0x%x], ret = %d\n",
+				data->debug_info.sel_reg_id, ret);
+
+	return snprintf(buf, PAGE_SIZE, "[REG_0x%x][0x%x]\n",
+			data->debug_info.sel_reg_id, reg_val);
+}
+
+static ssize_t sc27xx_fgu_reg_val_store(struct device *dev,
+					struct device_attribute *attr,
+					const char *buf, size_t count)
+{
+	struct sc27xx_fgu_sysfs *sysfs =
+		container_of(attr, struct sc27xx_fgu_sysfs,
+			     attr_sc27xx_fgu_reg_val);
+	struct sc27xx_fgu_data *data = sysfs->data;
+	u32 reg_val;
+	int ret;
+
+	if (!data) {
+		dev_err(dev, "%s sc27xx_fgu_data is null\n", __func__);
+		return count;
+	}
+
+	ret =  kstrtouint(buf, 16, &reg_val);
+	if (ret) {
+		dev_err(data->dev, "fail to get addr, ret = %d\n", ret);
+		return count;
+	}
+
+	dev_info(data->dev, "Try to set [REG_0x%x][0x%x]\n", data->debug_info.sel_reg_id, reg_val);
+
+	ret = regmap_write(data->regmap, data->base + data->debug_info.sel_reg_id, reg_val);
+	if (ret)
+		dev_err(data->dev, "fail to set [REG_0x%x][0x%x], ret = %d\n",
+			data->debug_info.sel_reg_id, reg_val, ret);
+
+	return count;
+}
+
+static ssize_t sc27xx_fgu_enable_sleep_calib_show(struct device *dev,
+						  struct device_attribute *attr,
+						  char *buf)
+{
+	struct sc27xx_fgu_sysfs *sysfs =
+		container_of(attr, struct sc27xx_fgu_sysfs,
+			     attr_sc27xx_fgu_enable_sleep_calib);
+	struct sc27xx_fgu_data *data = sysfs->data;
+
+	if (!data) {
+		dev_err(dev, "%s sc27xx_fgu_data is null\n", __func__);
+		return snprintf(buf, PAGE_SIZE, "%s sc27xx_fgu_data is null\n", __func__);
+	}
+
+	return snprintf(buf, PAGE_SIZE, "capacity sleep calibration function [%s]\n",
+			data->slp_cap_calib.support_slp_calib ? "Enabled" : "Disabled");
+}
+
+static ssize_t sc27xx_fgu_enable_sleep_calib_store(struct device *dev,
+						   struct device_attribute *attr,
+						   const char *buf, size_t count)
+{
+	struct sc27xx_fgu_sysfs *sysfs =
+		container_of(attr, struct sc27xx_fgu_sysfs,
+			     attr_sc27xx_fgu_enable_sleep_calib);
+	struct sc27xx_fgu_data *data = sysfs->data;
+	bool enbale_slp_calib;
+	int ret;
+
+	if (!data) {
+		dev_err(dev, "%s sc27xx_fgu_data is null\n", __func__);
+		return count;
+	}
+
+	ret =  kstrtobool(buf, &enbale_slp_calib);
+	if (ret) {
+		dev_err(data->dev, "fail to get sleep_calib info, ret = %d\n", ret);
+		return count;
+	}
+
+	data->slp_cap_calib.support_slp_calib = enbale_slp_calib;
+
+	dev_info(data->dev, "Try to [%s] capacity sleep calibration function\n",
+		 data->slp_cap_calib.support_slp_calib ? "Enabled" : "Disabled");
+
+	return count;
+}
+
+static ssize_t sc27xx_fgu_relax_cnt_th_show(struct device *dev,
+					    struct device_attribute *attr,
+					    char *buf)
+{
+	struct sc27xx_fgu_sysfs *sysfs =
+		container_of(attr, struct sc27xx_fgu_sysfs,
+			     attr_sc27xx_fgu_relax_cnt_th);
+	struct sc27xx_fgu_data *data = sysfs->data;
+
+	if (!data) {
+		dev_err(dev, "%s sc27xx_fgu_data is null\n", __func__);
+		return snprintf(buf, PAGE_SIZE, "%s sc27xx_fgu_data is null\n", __func__);
+	}
+
+	return snprintf(buf, PAGE_SIZE, "[relax_cnt_th][%d]\n",
+			data->slp_cap_calib.relax_cnt_threshold);
+}
+
+static ssize_t sc27xx_fgu_relax_cnt_th_store(struct device *dev,
+					     struct device_attribute *attr,
+					     const char *buf, size_t count)
+{
+	struct sc27xx_fgu_sysfs *sysfs =
+		container_of(attr, struct sc27xx_fgu_sysfs,
+			     attr_sc27xx_fgu_relax_cnt_th);
+	struct sc27xx_fgu_data *data = sysfs->data;
+	u32 relax_cnt;
+	int ret;
+
+	if (!data) {
+		dev_err(dev, "%s sc27xx_fgu_data is null\n", __func__);
+		return count;
+	}
+
+	ret =  kstrtouint(buf, 10, &relax_cnt);
+	if (ret) {
+		dev_err(data->dev, "fail to get relax_cnt info, ret = %d\n", ret);
+		return count;
+	}
+
+	data->slp_cap_calib.relax_cnt_threshold = relax_cnt;
+
+	dev_info(data->dev, "Try to set [relax_cnt_th] to [%d]\n",
+		 data->slp_cap_calib.relax_cnt_threshold);
+
+	return count;
+}
+
+static ssize_t sc27xx_fgu_relax_cur_th_show(struct device *dev,
+					    struct device_attribute *attr,
+					    char *buf)
+{
+	struct sc27xx_fgu_sysfs *sysfs =
+		container_of(attr, struct sc27xx_fgu_sysfs,
+			     attr_sc27xx_fgu_relax_cur_th);
+	struct sc27xx_fgu_data *data = sysfs->data;
+
+	if (!data) {
+		dev_err(dev, "%s sc27xx_fgu_data is null\n", __func__);
+		return snprintf(buf, PAGE_SIZE, "%s sc27xx_fgu_data is null\n", __func__);
+	}
+
+	return snprintf(buf, PAGE_SIZE, "[relax_cur_th][%d]\n",
+			data->slp_cap_calib.relax_cur_threshold);
+}
+
+static ssize_t sc27xx_fgu_relax_cur_th_store(struct device *dev,
+					     struct device_attribute *attr,
+					     const char *buf, size_t count)
+{
+	struct sc27xx_fgu_sysfs *sysfs =
+		container_of(attr, struct sc27xx_fgu_sysfs,
+			     attr_sc27xx_fgu_relax_cur_th);
+	struct sc27xx_fgu_data *data = sysfs->data;
+	u32 relax_cur;
+	int ret;
+
+	if (!data) {
+		dev_err(dev, "%s sc27xx_fgu_data is null\n", __func__);
+		return count;
+	}
+
+	ret =  kstrtouint(buf, 10, &relax_cur);
+	if (ret) {
+		dev_err(data->dev, "fail to get relax_cnt info, ret = %d\n", ret);
+		return count;
+	}
+
+	data->slp_cap_calib.relax_cur_threshold = relax_cur;
+
+	dev_info(data->dev, "Try to set [relax_cur_th] to [%d]\n",
+		 data->slp_cap_calib.relax_cur_threshold);
+
+	return count;
+}
+
+static int sc27xx_fgu_register_sysfs(struct sc27xx_fgu_data *data)
+{
+	struct sc27xx_fgu_sysfs *sysfs;
+	int ret;
+
+	sysfs = devm_kzalloc(data->dev, sizeof(*sysfs), GFP_KERNEL);
+	if (!sysfs)
+		return -ENOMEM;
+
+	data->sysfs = sysfs;
+	sysfs->data = data;
+	sysfs->name = "sc27xx_fgu_sysfs";
+	sysfs->attrs[0] = &sysfs->attr_sc27xx_fgu_dump_info.attr;
+	sysfs->attrs[1] = &sysfs->attr_sc27xx_fgu_sel_reg_id.attr;
+	sysfs->attrs[2] = &sysfs->attr_sc27xx_fgu_reg_val.attr;
+	sysfs->attrs[3] = &sysfs->attr_sc27xx_fgu_enable_sleep_calib.attr;
+	sysfs->attrs[4] = &sysfs->attr_sc27xx_fgu_relax_cnt_th.attr;
+	sysfs->attrs[5] = &sysfs->attr_sc27xx_fgu_relax_cur_th.attr;
+	sysfs->attrs[6] = NULL;
+	sysfs->attr_g.name = "debug";
+	sysfs->attr_g.attrs = sysfs->attrs;
+
+	sysfs_attr_init(&sysfs->attr_sc27xx_fgu_dump_info.attr);
+	sysfs->attr_sc27xx_fgu_dump_info.attr.name = "dump_info";
+	sysfs->attr_sc27xx_fgu_dump_info.attr.mode = 0444;
+	sysfs->attr_sc27xx_fgu_dump_info.show = sc27xx_fgu_dump_info_show;
+
+	sysfs_attr_init(&sysfs->attr_sc27xx_fgu_sel_reg_id.attr);
+	sysfs->attr_sc27xx_fgu_sel_reg_id.attr.name = "sel_reg_id";
+	sysfs->attr_sc27xx_fgu_sel_reg_id.attr.mode = 0644;
+	sysfs->attr_sc27xx_fgu_sel_reg_id.show = sc27xx_fgu_sel_reg_id_show;
+	sysfs->attr_sc27xx_fgu_sel_reg_id.store = sc27xx_fgu_sel_reg_id_store;
+
+	sysfs_attr_init(&sysfs->attr_sc27xx_fgu_reg_val.attr);
+	sysfs->attr_sc27xx_fgu_reg_val.attr.name = "reg_val";
+	sysfs->attr_sc27xx_fgu_reg_val.attr.mode = 0644;
+	sysfs->attr_sc27xx_fgu_reg_val.show = sc27xx_fgu_reg_val_show;
+	sysfs->attr_sc27xx_fgu_reg_val.store = sc27xx_fgu_reg_val_store;
+
+	sysfs_attr_init(&sysfs->attr_sc27xx_fgu_enable_sleep_calib.attr);
+	sysfs->attr_sc27xx_fgu_enable_sleep_calib.attr.name = "enable_sleep_calib";
+	sysfs->attr_sc27xx_fgu_enable_sleep_calib.attr.mode = 0644;
+	sysfs->attr_sc27xx_fgu_enable_sleep_calib.show = sc27xx_fgu_enable_sleep_calib_show;
+	sysfs->attr_sc27xx_fgu_enable_sleep_calib.store = sc27xx_fgu_enable_sleep_calib_store;
+
+	sysfs_attr_init(&sysfs->attr_sc27xx_fgu_relax_cnt_th.attr);
+	sysfs->attr_sc27xx_fgu_relax_cnt_th.attr.name = "relax_cnt_th";
+	sysfs->attr_sc27xx_fgu_relax_cnt_th.attr.mode = 0644;
+	sysfs->attr_sc27xx_fgu_relax_cnt_th.show = sc27xx_fgu_relax_cnt_th_show;
+	sysfs->attr_sc27xx_fgu_relax_cnt_th.store = sc27xx_fgu_relax_cnt_th_store;
+
+	sysfs_attr_init(&sysfs->attr_sc27xx_fgu_relax_cur_th.attr);
+	sysfs->attr_sc27xx_fgu_relax_cur_th.attr.name = "relax_cur_th";
+	sysfs->attr_sc27xx_fgu_relax_cur_th.attr.mode = 0644;
+	sysfs->attr_sc27xx_fgu_relax_cur_th.show = sc27xx_fgu_relax_cur_th_show;
+	sysfs->attr_sc27xx_fgu_relax_cur_th.store = sc27xx_fgu_relax_cur_th_store;
+
+	ret = sysfs_create_group(&data->battery->dev.kobj, &sysfs->attr_g);
+	if (ret < 0)
+		dev_err(data->dev, "Cannot create sysfs , ret = %d\n", ret);
+
+	return ret;
+}
+
 static int sc27xx_fgu_hw_init(struct sc27xx_fgu_data *data,
 			      const struct sc27xx_fgu_variant_data *pdata)
 {
@@ -3090,6 +3450,10 @@ static int sc27xx_fgu_probe(struct platform_device *pdev)
 		}
 		sc27xx_fgu_track_capacity_init(data);
 	}
+
+	ret = sc27xx_fgu_register_sysfs(data);
+	if (ret)
+		dev_err(&pdev->dev, "register sysfs fail, ret = %d\n", ret);
 
 	mutex_unlock(&data->lock);
 	return 0;
