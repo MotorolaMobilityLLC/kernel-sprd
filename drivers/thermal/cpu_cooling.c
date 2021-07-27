@@ -95,10 +95,6 @@ static DEFINE_IDA(cpufreq_ida);
 static DEFINE_MUTEX(cooling_list_lock);
 static LIST_HEAD(cpufreq_cdev_list);
 
-#ifdef CONFIG_SPRD_THERMAL_CDEV_REGISTER_ONCE
-#define CLUSTER_NUM 3
-int register_flags[CLUSTER_NUM];
-#endif
 /* Below code defines functions to be used for cpufreq as cooling device */
 
 /**
@@ -699,9 +695,6 @@ of_cpufreq_cooling_register(struct cpufreq_policy *policy)
 	struct device_node *np = of_get_cpu_node(policy->cpu, NULL);
 	struct thermal_cooling_device *cdev = NULL;
 	u32 capacitance = 0;
-#ifdef CONFIG_SPRD_THERMAL_CDEV_REGISTER_ONCE
-	int id = topology_physical_package_id(policy->cpu);
-#endif
 
 	if (!np) {
 		pr_err("cpu_cooling: OF node not available for cpu%d\n",
@@ -713,25 +706,12 @@ of_cpufreq_cooling_register(struct cpufreq_policy *policy)
 		of_property_read_u32(np, "dynamic-power-coefficient",
 				     &capacitance);
 
-#ifdef CONFIG_SPRD_THERMAL_CDEV_REGISTER_ONCE
-		if (id <= CLUSTER_NUM-1 && !register_flags[id]) {
-			cdev = __cpufreq_cooling_register(np, policy, capacitance);
-			if (IS_ERR(cdev)) {
-				pr_err("cpu_cooling: cpu%d failed to register as cooling device: %ld\n",
-			       policy->cpu, PTR_ERR(cdev));
-				cdev = NULL;
-			} else {
-				register_flags[id] = 1;
-			}
-		}
-#else
 		cdev = __cpufreq_cooling_register(np, policy, capacitance);
 		if (IS_ERR(cdev)) {
 			pr_err("cpu_cooling: cpu%d failed to register as cooling device: %ld\n",
 			       policy->cpu, PTR_ERR(cdev));
 			cdev = NULL;
 		}
-#endif
 	}
 
 	of_node_put(np);
@@ -745,11 +725,6 @@ EXPORT_SYMBOL_GPL(of_cpufreq_cooling_register);
  *
  * This interface function unregisters the "thermal-cpufreq-%x" cooling device.
  */
-#ifdef CONFIG_SPRD_THERMAL_CDEV_REGISTER_ONCE
-void cpufreq_cooling_unregister(struct thermal_cooling_device *cdev)
-{
-}
-#else
 void cpufreq_cooling_unregister(struct thermal_cooling_device *cdev)
 {
 	struct cpufreq_cooling_device *cpufreq_cdev;
@@ -770,5 +745,4 @@ void cpufreq_cooling_unregister(struct thermal_cooling_device *cdev)
 	kfree(cpufreq_cdev->freq_table);
 	kfree(cpufreq_cdev);
 }
-#endif
 EXPORT_SYMBOL_GPL(cpufreq_cooling_unregister);
