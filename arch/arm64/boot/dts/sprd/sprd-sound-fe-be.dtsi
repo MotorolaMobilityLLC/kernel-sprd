@@ -35,7 +35,7 @@
 		};
 		sprd,headset-button@2 {
 			/* volume down */
-			adc-min = <1153>;
+			adc-min = <1050>;
 			adc-max =<1952>;
 			code = <114>;
 		};
