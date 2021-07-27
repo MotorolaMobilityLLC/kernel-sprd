@@ -698,6 +698,15 @@ CONFIG_ARCH_SUPPORTS_NUMA_BALANCING
 	[must] busybox_console
 	[missing plat description] none
 	[function] adds support for automatic NUMA aware memory/task placement
+CONFIG_ARCH_SUPPORTS_PGO_CLANG
+	[arch] arm64
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
+	[field] menu
+	[subsys] core
+	[must] none
+	[missing plat description] none
+	[function] it indicates whether arch supports clang PGO
 CONFIG_ARCH_SUPPORTS_SHADOW_CALL_STACK
 	[arch] arm64
 	[plat] sharkl3,sharkl5Pro
