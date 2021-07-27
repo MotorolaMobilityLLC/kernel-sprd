@@ -50,6 +50,8 @@
 #define SC27XX_FGU_CLBCNT_VALH		0x68
 #define SC27XX_FGU_CLBCNT_VALL		0x6c
 #define SC27XX_FGU_CLBCNT_QMAXL		0x74
+#define SC27XX_FGU_RELAX_CURT_THRE	0x80
+#define SC27XX_FGU_RELAX_CNT_THRE	0x84
 #define SC27XX_FGU_USER_AREA_SET	0xa0
 #define SC27XX_FGU_USER_AREA_CLEAR	0xa4
 #define SC27XX_FGU_USER_AREA_STATUS	0xa8
@@ -59,6 +61,11 @@
 #define SC27XX_FGU_VOLTAGE_BUF		0xd0
 #define SC27XX_FGU_CURRENT_BUF		0xf0
 
+/* SC27XX_FGU_CONFIG */
+#define SC27XX_FGU_LOW_POWER_MODE	BIT(1)
+#define SC27XX_FGU_RELAX_CNT_MODE	0
+#define SC27XX_FGU_DEEP_SLEEP_MODE	1
+
 #define SC27XX_WRITE_SELCLB_EN		BIT(0)
 #define SC27XX_FGU_CLBCNT_MASK		GENMASK(15, 0)
 #define SC27XX_FGU_CLBCNT_SHIFT		16
@@ -67,6 +74,8 @@
 #define SC27XX_FGU_INT_MASK		GENMASK(9, 0)
 #define SC27XX_FGU_LOW_OVERLOAD_INT	BIT(0)
 #define SC27XX_FGU_CLBCNT_DELTA_INT	BIT(2)
+#define SC27XX_FGU_RELX_CNT_INT		BIT(3)
+#define SC27XX_FGU_RELX_CNT_STS		BIT(3)
 
 #define SC27XX_FGU_MODE_AREA_MASK	GENMASK(15, 12)
 #define SC27XX_FGU_CAP_AREA_MASK	GENMASK(11, 0)
@@ -91,6 +100,28 @@
 #define SC27XX_FGU_IDEAL_RESISTANCE	20000
 #define SC27XX_FGU_LOW_VBAT_REGION	3300
 #define SC27XX_FGU_LOW_VBAT_REC_REGION	3400
+#define SC27XX_FGU_RELAX_CNT_THRESHOLD	320
+#define SC27XX_FGU_RELAX_CUR_THRESHOLD_MA	30
+#define SC27XX_FGU_SLP_CAP_CALIB_SLP_TIME	300
+#define SC27XX_FGU_SLP_CAP_CALIB_TEMP_LOW	100
+#define SC27XX_FGU_SLP_CAP_CALIB_TEMP_HI	450
+
+/* Efuse fgu calibration bit definition */
+#define SC2720_FGU_CAL			GENMASK(8, 0)
+#define SC2720_FGU_CAL_SHIFT		0
+#define SC2730_FGU_CAL			GENMASK(8, 0)
+#define SC2730_FGU_CAL_SHIFT		0
+#define SC2731_FGU_CAL			GENMASK(8, 0)
+#define SC2731_FGU_CAL_SHIFT		0
+#define UMP9620_FGU_CAL			GENMASK(15, 7)
+#define UMP9620_FGU_CAL_SHIFT		7
+
+/* SC27XX_FGU_RELAX_CURT_THRE */
+#define SC2720_FGU_RELAX_CURT_THRE_MASK		GENMASK(13, 0)
+#define SC2720_FGU_RELAX_CURT_THRE_SHITF	0
+/* SC27XX_FGU_RELAX_CNT_THRE */
+#define SC2720_FGU_RELAX_CNT_THRE_MASK		GENMASK(12, 0)
+#define SC2720_FGU_RELAX_CNT_THRE_SHITF		0
 
 #define SC27XX_FGU_CURRENT_BUFF_CNT	8
 #define SC27XX_FGU_DISCHG_CNT		4
@@ -99,26 +130,6 @@
 #define SC27XX_FGU_DEBUG_EN_CMD		0x5a5aa5a5
 #define SC27XX_FGU_DEBUG_DIS_CMD	0x5a5a5a5a
 #define SC27XX_FGU_FCC_PERCENT		1000
-
-/* Efuse fgu calibration bit definition */
-#define SC2720_FGU_CAL			GENMASK(8, 0)
-#define SC2720_FGU_CAL_SHIFT		0
-#define SC2730_FGU_CAL			GENMASK(8, 0)
-#define SC2730_FGU_CAL_SHIFT		0
-#define SC2731_FGU_CAL			GENMASK(8, 0)
-#define SC2731_FGU_CAL_SHIFT		0
-#define UMP9620_FGU_CAL			GENMASK(15, 7)
-#define UMP9620_FGU_CAL_SHIFT		7
-
-/* Efuse fgu calibration bit definition */
-#define SC2720_FGU_CAL			GENMASK(8, 0)
-#define SC2720_FGU_CAL_SHIFT		0
-#define SC2730_FGU_CAL			GENMASK(8, 0)
-#define SC2730_FGU_CAL_SHIFT		0
-#define SC2731_FGU_CAL			GENMASK(8, 0)
-#define SC2731_FGU_CAL_SHIFT		0
-#define UMP9620_FGU_CAL			GENMASK(15, 7)
-#define UMP9620_FGU_CAL_SHIFT		7
 
 #define SC27XX_FGU_TRACK_CAP_START_VOLTAGE		3650
 #define SC27XX_FGU_TRACK_CAP_START_CURRENT		50
@@ -181,7 +192,27 @@ struct sc27xx_fgu_debug_info {
 	bool debug_batt_present;
 	int debug_chg_vol;
 	int debug_batt_health;
+};
 
+struct sc27xx_fgu_energy_density_ocv_table {
+	int engy_dens_ocv_hi;
+	int engy_dens_ocv_lo;
+};
+
+struct sc27xx_fgu_sleep_capacity_calibration {
+	bool support_slp_calib;
+	int suspend_ocv;
+	int resume_ocv;
+	int suspend_clbcnt;
+	int resume_clbcnt;
+	u64 suspend_time;
+	u64 resume_time;
+	int resume_ocv_cap;
+
+	int relax_cnt_threshold;
+	int relax_cur_threshold;
+
+	bool relax_cnt_int_ocurred;
 };
 
 /*
@@ -243,6 +274,7 @@ struct sc27xx_fgu_data {
 	int temp_table_len;
 	int cap_table_len;
 	int resist_table_len;
+	int dens_table_len;
 	int cur_1000ma_adc;
 	int vol_1000mv_adc;
 	int calib_resist;
@@ -271,6 +303,8 @@ struct sc27xx_fgu_data {
 	struct notifier_block usb_notify;
 	const struct sc27xx_fgu_variant_data *pdata;
 	struct sc27xx_fgu_debug_info debug_info;
+	struct sc27xx_fgu_sleep_capacity_calibration slp_cap_calib;
+	struct sc27xx_fgu_energy_density_ocv_table *dens_table;
 };
 
 struct sc27xx_fgu_variant_data {
@@ -979,7 +1013,7 @@ static int sc27xx_fgu_get_charge_vol(struct sc27xx_fgu_data *data, int *val)
 	if (ret < 0)
 		return ret;
 
-	*val = vol * 1000;
+	*val = vol;
 	return 0;
 }
 
@@ -1106,6 +1140,375 @@ static int sc27xx_fgu_get_status(struct sc27xx_fgu_data *data, int *status)
 	return ret;
 }
 
+static int sc27xx_fgu_parse_energy_density_ocv_table(struct sc27xx_fgu_data *data)
+{
+	struct device_node *np = data->dev->of_node;
+	struct sc27xx_fgu_energy_density_ocv_table *table;
+	const __be32 *list;
+	int i, size;
+
+	list = of_get_property(np, "sprd,energy-desity-ocv-table", &size);
+	if (!list || !size)
+		return 0;
+
+	data->dens_table_len = size / (sizeof(struct sc27xx_fgu_energy_density_ocv_table) /
+				       sizeof(int) * sizeof(__be32));
+
+	table = devm_kzalloc(data->dev, sizeof(struct sc27xx_fgu_energy_density_ocv_table) *
+			     (data->dens_table_len + 1), GFP_KERNEL);
+	if (!table)
+		return -ENOMEM;
+
+	for (i = 0; i < data->dens_table_len; i++) {
+		table[i].engy_dens_ocv_lo = be32_to_cpu(*list++);
+		table[i].engy_dens_ocv_hi = be32_to_cpu(*list++);
+		dev_info(data->dev, "engy_dens_ocv_hi = %d, engy_dens_ocv_lo = %d\n",
+			 table[i].engy_dens_ocv_hi, table[i].engy_dens_ocv_lo);
+	}
+
+	data->dens_table = table;
+
+	return 0;
+}
+
+static int sc27xx_fgu_suspend_calib_check_chg_sts(struct sc27xx_fgu_data *data)
+{
+	int ret = -EINVAL;
+	int status;
+
+	ret = sc27xx_fgu_get_status(data, &status);
+	if (ret) {
+		dev_err(data->dev, "Suspend calib failed to get charging status, ret = %d\n", ret);
+		return ret;
+	}
+
+	if (status != POWER_SUPPLY_STATUS_NOT_CHARGING &&
+	    status != POWER_SUPPLY_STATUS_DISCHARGING) {
+		dev_info(data->dev, "Suspend calib charging status = %d, not meet conditions\n", ret);
+		return ret;
+	}
+
+	return 0;
+}
+
+static int sc27xx_fgu_suspend_calib_check_temp(struct sc27xx_fgu_data *data)
+{
+	int ret, temp, i;
+
+	for (i = 0; i < SC27XX_FGU_TEMP_BUFF_CNT; i++) {
+		ret = sc27xx_fgu_get_temp(data, &temp);
+		if (ret) {
+			dev_err(data->dev, "Suspend calib failed to temp, ret = %d\n", ret);
+			return ret;
+		}
+		udelay(100);
+	}
+
+	if (temp < SC27XX_FGU_SLP_CAP_CALIB_TEMP_LOW || temp > SC27XX_FGU_SLP_CAP_CALIB_TEMP_HI) {
+		dev_err(data->dev, "Suspend calib  temp = %d out range\n", temp);
+		ret = -EINVAL;
+	}
+
+	dev_info(data->dev, "%s, temp = %d\n", __func__, temp);
+
+	return ret;
+}
+
+static int sc27xx_fgu_suspend_calib_check_relax_cnt_int(struct sc27xx_fgu_data *data)
+{
+	int ret = -EINVAL;
+	u32 int_status;
+
+	mutex_lock(&data->lock);
+	if (data->slp_cap_calib.relax_cnt_int_ocurred) {
+		data->slp_cap_calib.relax_cnt_int_ocurred = false;
+		ret = 0;
+		dev_info(data->dev, "RELX_CNT_INT ocurred 1!!\n");
+		goto no_relax_cnt_int;
+	}
+
+	ret = regmap_read(data->regmap, data->base + SC27XX_FGU_INT_STS, &int_status);
+	if (ret) {
+		dev_err(data->dev, "suspend_calib failed to get fgu interrupt status, ret = %d\n", ret);
+		goto no_relax_cnt_int;
+	}
+
+	if (!(int_status & SC27XX_FGU_RELX_CNT_STS)) {
+		dev_info(data->dev, "no RELX_CNT_INT ocurred!!\n");
+		ret = -EINVAL;
+		goto no_relax_cnt_int;
+	}
+
+	ret = regmap_update_bits(data->regmap, data->base + SC27XX_FGU_INT_CLR,
+				SC27XX_FGU_RELX_CNT_STS, SC27XX_FGU_RELX_CNT_STS);
+	if (ret)
+		dev_err(data->dev, "failed to clear  RELX_CNT_STS interrupt status, ret = %d\n", ret);
+
+	dev_info(data->dev, "RELX_CNT_INT ocurred!!\n");
+	ret = 0;
+
+no_relax_cnt_int:
+	mutex_unlock(&data->lock);
+	return ret;
+}
+
+static int sc27xx_fgu_suspend_calib_check_sleep_time(struct sc27xx_fgu_data *data)
+{
+	struct timespec64 cur_time;
+
+	cur_time = ktime_to_timespec64(ktime_get_boottime());
+	data->slp_cap_calib.resume_time =  cur_time.tv_sec;
+
+	dev_info(data->dev, "%s, resume_time = %lld, suspend_time = %lld\n",
+		 __func__, data->slp_cap_calib.resume_time, data->slp_cap_calib.suspend_time);
+
+	if (data->slp_cap_calib.resume_time - data->slp_cap_calib.suspend_time <
+	    SC27XX_FGU_SLP_CAP_CALIB_SLP_TIME) {
+		dev_info(data->dev, "suspend time not met: suspend_time = %lld, resume_time = %lld\n",
+			 data->slp_cap_calib.suspend_time,
+			 data->slp_cap_calib.resume_time);
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
+static int sc27xx_fgu_suspend_calib_check_sleep_cur(struct sc27xx_fgu_data *data)
+{
+	int mah, clbcnt, times, sleep_cur = 0;
+
+	sc27xx_fgu_get_clbcnt(data, &data->slp_cap_calib.resume_clbcnt);
+
+	clbcnt = data->slp_cap_calib.suspend_clbcnt - data->slp_cap_calib.resume_clbcnt;
+	times = data->slp_cap_calib.resume_time -  data->slp_cap_calib.suspend_time;
+
+	mah = DIV_ROUND_CLOSEST(clbcnt * 10, 36 * SC27XX_FGU_SAMPLE_HZ);
+
+	/* sleep_cur = mah * 3600 / times, but mah may be some, and will be zero after div_s64.
+	 * so we *3600 first.
+	 */
+	mah *= 3600;
+	if (mah > 0)
+		mah = mah + data->cur_1000ma_adc / 2;
+	else
+		mah = mah - data->cur_1000ma_adc / 2;
+
+	mah = div_s64(mah, data->cur_1000ma_adc);
+
+	sleep_cur = mah / times;
+
+	dev_info(data->dev, "%s, suspend_clbcnt = %d, resume_clbcnt = %d, clbcnt = %d\n",
+		 __func__, data->slp_cap_calib.suspend_clbcnt,
+		 data->slp_cap_calib.resume_clbcnt, clbcnt);
+	dev_info(data->dev, "%s, sleep_cur = %d, times = %d, clbcnt = %d, mah = %d, 1000ma_adc = %d\n",
+		 __func__, sleep_cur, times, clbcnt, mah, data->cur_1000ma_adc);
+
+	if (abs(sleep_cur) > data->slp_cap_calib.relax_cur_threshold) {
+		dev_info(data->dev, "Sleep calib sleep current = %d, not meet conditions\n", sleep_cur);
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
+static int sc27xx_fgu_suspend_calib_get_ocv(struct sc27xx_fgu_data *data)
+{
+	int ret, i, cur = 0x7fffffff;
+	u32 vol = 0;
+
+	for (i = SC27XX_FGU_VOLTAGE_BUFF_CNT - 1; i >= 0; i--) {
+		vol = 0;
+		ret = regmap_read(data->regmap,
+				  data->base + SC27XX_FGU_VOLTAGE_BUF + i * 4,
+				  &vol);
+		if (ret) {
+			dev_info(data->dev, "Sleep calib fail to get vbat_buf[%d]\n", i);
+			continue;
+		}
+
+		/*
+		 * It is ADC values reading from registers which need to convert to
+		 * corresponding voltage values.
+		 */
+		vol = sc27xx_fgu_adc_to_voltage(data, vol);
+
+		cur = 0x7fffffff;
+		ret = regmap_read(data->regmap,
+				  data->base + SC27XX_FGU_CURRENT_BUF + i * 4,
+				  &cur);
+		if (ret) {
+			dev_info(data->dev, "Sleep calib fail to get cur_buf[%d]\n", i);
+			continue;
+		}
+
+		/*
+		 * It is ADC values reading from registers which need to convert to
+		 * corresponding current values.
+		 */
+		cur = sc27xx_fgu_adc_to_current(data, cur - SC27XX_FGU_CUR_BASIC_ADC);
+		if (abs(cur) < data->slp_cap_calib.relax_cur_threshold) {
+			dev_info(data->dev, "Sleep calib get cur[%d] = %d met condition\n", i, cur);
+			break;
+		}
+	}
+
+	if (vol == 0 || cur == 0x7fffffff) {
+		dev_info(data->dev, "Sleep calib fail to get cur and vol: cur = %d, vol = %d\n",
+			 cur, vol);
+		return -EINVAL;
+	}
+
+	dev_info(data->dev, "Sleep calib vol = %d, cur = %d, i = %d\n", vol, cur, i);
+
+	data->slp_cap_calib.resume_ocv = vol * 1000;
+
+	return 0;
+}
+
+static int sc27xx_fgu_suspend_calib_check_ocv(struct sc27xx_fgu_data *data)
+{
+	bool is_matched = false;
+	int i;
+
+	if (data->dens_table_len == 0) {
+		dev_warn(data->dev, "Sleep calib energy density ocv table len is 0 !!!!\n");
+		return -EINVAL;
+	}
+
+	for (i = 0; i < data->dens_table_len; i++) {
+		if (data->slp_cap_calib.resume_ocv > data->dens_table[i].engy_dens_ocv_lo &&
+		    data->slp_cap_calib.resume_ocv < data->dens_table[i].engy_dens_ocv_hi) {
+			dev_info(data->dev, "Sleep calib get valid resume ocv, vol = %d\n",
+				 data->slp_cap_calib.resume_ocv);
+			is_matched = true;
+			break;
+		}
+	}
+
+	if (is_matched)
+		return 0;
+
+	dev_info(data->dev, "Sleep calib resume ocv is out of dens range, vol = %d\n",
+		 data->slp_cap_calib.resume_ocv);
+
+	return -EINVAL;
+}
+
+static void sc27xx_fgu_suspend_calib_cap_calib(struct sc27xx_fgu_data *data)
+{
+	data->slp_cap_calib.resume_ocv_cap =
+		power_supply_ocv2cap_simple(data->cap_table,
+					    data->table_len,
+					    data->slp_cap_calib.resume_ocv);
+
+	data->slp_cap_calib.resume_ocv_cap *= 10;
+
+	dev_info(data->dev, "%s, resume_ocv_cap = %d, normal_temp_cap = %d, init_cap = %d\n",
+		 __func__, data->slp_cap_calib.resume_ocv_cap,
+		 data->normal_temp_cap, data->init_cap);
+
+	if (data->slp_cap_calib.resume_ocv_cap > data->normal_temp_cap + 30)
+		data->init_cap += (data->slp_cap_calib.resume_ocv_cap -
+				   data->normal_temp_cap - 30);
+	else if (data->slp_cap_calib.resume_ocv_cap < data->normal_temp_cap - 30)
+		data->init_cap -= (data->normal_temp_cap -
+				   data->slp_cap_calib.resume_ocv_cap - 30);
+}
+
+static void sc27xx_fgu_suspend_calib_check(struct sc27xx_fgu_data *data)
+{
+	int ret;
+
+	if (!data->slp_cap_calib.support_slp_calib)
+		return;
+
+	ret = sc27xx_fgu_suspend_calib_check_chg_sts(data);
+	if (ret)
+		return;
+
+	ret = sc27xx_fgu_suspend_calib_check_temp(data);
+	if (ret)
+		return;
+
+	ret = sc27xx_fgu_suspend_calib_check_relax_cnt_int(data);
+	if (ret)
+		return;
+
+	ret = sc27xx_fgu_suspend_calib_check_sleep_time(data);
+	if (ret)
+		return;
+
+	ret = sc27xx_fgu_suspend_calib_check_sleep_cur(data);
+	if (ret)
+		return;
+
+	ret = sc27xx_fgu_suspend_calib_get_ocv(data);
+	if (ret)
+		return;
+
+	ret = sc27xx_fgu_suspend_calib_check_ocv(data);
+	if (ret)
+		return;
+
+	sc27xx_fgu_suspend_calib_cap_calib(data);
+
+	return;
+}
+
+static void sc27xx_fgu_enable_relax_cnt_int(struct sc27xx_fgu_data *data)
+{
+	int ret;
+
+	ret = regmap_update_bits(data->regmap, data->base + SC27XX_FGU_INT_CLR,
+				SC27XX_FGU_RELX_CNT_STS, SC27XX_FGU_RELX_CNT_STS);
+	if (ret)
+		dev_err(data->dev, "Sleep calib failed to clear  RELX_CNT_INT_STS, ret = %d\n", ret);
+
+	ret = regmap_update_bits(data->regmap, data->base + SC27XX_FGU_INT_EN,
+				 SC27XX_FGU_RELX_CNT_INT, SC27XX_FGU_RELX_CNT_INT);
+	if (ret)
+		dev_err(data->dev, "Sleep calib Fail to enable RELX_CNT_INT, re= %d\n", ret);
+}
+
+static int sc27xx_fgu_relax_mode_config(struct sc27xx_fgu_data *data)
+{
+	int ret;
+
+	ret = regmap_update_bits(data->regmap, data->base + SC27XX_FGU_RELAX_CNT_THRE,
+				 SC2720_FGU_RELAX_CNT_THRE_MASK,
+				 data->slp_cap_calib.relax_cnt_threshold <<
+				 SC2720_FGU_RELAX_CNT_THRE_SHITF);
+	if (ret) {
+		dev_err(data->dev, "Sleep calib Fail to enable RELX_CNT_THRE, re= %d\n", ret);
+		return ret;
+	}
+
+	ret = regmap_update_bits(data->regmap, data->base + SC27XX_FGU_RELAX_CURT_THRE,
+				 SC2720_FGU_RELAX_CURT_THRE_MASK,
+				 data->slp_cap_calib.relax_cur_threshold <<
+				 SC2720_FGU_RELAX_CURT_THRE_SHITF);
+	if (ret)
+		dev_err(data->dev, "Sleep calib Fail to enable RELX_CURT_THRE, re= %d\n", ret);
+
+	return ret;
+}
+
+static void sc27xx_fgu_suspend_calib_config(struct sc27xx_fgu_data *data)
+{
+	struct timespec64 cur_time;
+	int ret;
+
+	if (!data->slp_cap_calib.support_slp_calib)
+		return;
+
+	cur_time = ktime_to_timespec64(ktime_get_boottime());
+	data->slp_cap_calib.suspend_time =  cur_time.tv_sec;
+	sc27xx_fgu_get_clbcnt(data, &data->slp_cap_calib.suspend_clbcnt);
+	ret = sc27xx_fgu_relax_mode_config(data);
+	if (!ret)
+		sc27xx_fgu_enable_relax_cnt_int(data);
+}
+
 static int sc27xx_fgu_get_property(struct power_supply *psy,
 				   enum power_supply_property psp,
 				   union power_supply_propval *val)
@@ -1226,7 +1629,7 @@ static int sc27xx_fgu_get_property(struct power_supply *psy,
 		if (ret)
 			goto error;
 
-		val->intval = value;
+		val->intval = value * 1000;
 		break;
 
 	case POWER_SUPPLY_PROP_CURRENT_AVG:
@@ -1745,6 +2148,11 @@ static irqreturn_t sc27xx_fgu_interrupt(int irq, void *dev_id)
 				 status, status);
 	if (ret)
 		goto out;
+
+	if (status & SC27XX_FGU_RELX_CNT_STS) {
+		data->slp_cap_calib.relax_cnt_int_ocurred = true;
+		dev_info(data->dev, "%s,  RELX_CNT_INT ocurred!!\n", __func__);
+	}
 
 	/*
 	 * When low overload voltage interrupt happens, we should calibrate the
@@ -2434,6 +2842,13 @@ static int sc27xx_fgu_hw_init(struct sc27xx_fgu_data *data,
 		goto disable_clk;
 	}
 
+	ret = regmap_update_bits(data->regmap, data->base + SC27XX_FGU_CONFIG,
+				 SC27XX_FGU_LOW_POWER_MODE, SC27XX_FGU_RELAX_CNT_MODE);
+	if (ret) {
+		dev_err(data->dev, "Fail to enable RELAX_CNT_MODE, re= %d\n", ret);
+		goto disable_clk;
+	}
+
 	/*
 	 * Get the boot battery capacity when system powers on, which is used to
 	 * initialize the coulomb counter. After that, we can read the coulomb
@@ -2562,6 +2977,34 @@ static int sc27xx_fgu_probe(struct platform_device *pdev)
 	if (ret)
 		dev_warn(dev, "no fgu track.end_vol support\n");
 
+	data->slp_cap_calib.support_slp_calib =
+		device_property_read_bool(dev, "sprd,capacity-sleep-calibration");
+	if (!data->slp_cap_calib.support_slp_calib) {
+		dev_warn(&pdev->dev, "no fgu capacity sleep calibration support\n");
+	} else {
+		ret = device_property_read_u32(dev, "sprd,relax-counter-threshold",
+					       &data->slp_cap_calib.relax_cnt_threshold);
+		if (ret)
+			dev_warn(dev, "no relax-counter-threshold support\n");
+
+		ret = device_property_read_u32(dev, "sprd,relax-current-threshold",
+					       &data->slp_cap_calib.relax_cur_threshold);
+		if (ret)
+			dev_warn(dev, "no relax_current_threshold support\n");
+
+		if (data->slp_cap_calib.relax_cnt_threshold < SC27XX_FGU_RELAX_CNT_THRESHOLD)
+			data->slp_cap_calib.relax_cnt_threshold = SC27XX_FGU_RELAX_CNT_THRESHOLD;
+
+		if (data->slp_cap_calib.relax_cur_threshold == 0)
+			data->slp_cap_calib.relax_cur_threshold = SC27XX_FGU_RELAX_CUR_THRESHOLD_MA;
+
+		ret = sc27xx_fgu_parse_energy_density_ocv_table(data);
+		if (ret) {
+			dev_err(dev, "Fail to parse energy density ocv table, ret = %d\n", ret);
+			return ret;
+		}
+	}
+
 	data->gpiod = devm_gpiod_get(dev, "bat-detect", GPIOD_IN);
 	if (IS_ERR(data->gpiod)) {
 		dev_err(dev, "failed to get battery detection GPIO\n");
@@ -2669,6 +3112,8 @@ static int sc27xx_fgu_resume(struct device *dev)
 		return -EINVAL;
 	}
 
+	sc27xx_fgu_suspend_calib_check(data);
+
 	ret = regmap_update_bits(data->regmap, data->base + SC27XX_FGU_INT_EN,
 				 SC27XX_FGU_LOW_OVERLOAD_INT |
 				 SC27XX_FGU_CLBCNT_DELTA_INT, 0);
@@ -2694,8 +3139,10 @@ static int sc27xx_fgu_suspend(struct device *dev)
 	}
 
 	ret = sc27xx_fgu_get_status(data, &status);
-	if (ret)
+	if (ret) {
+		dev_err(data->dev, "failed to get charging status, ret = %d\n", ret);
 		return ret;
+	}
 
 	/*
 	 * If we are charging, then no need to enable the FGU interrupts to
@@ -2738,6 +3185,8 @@ static int sc27xx_fgu_suspend(struct device *dev)
 		cancel_delayed_work_sync(&data->track.track_capacity_work);
 		cancel_delayed_work_sync(&data->track.fgu_update_work);
 	}
+
+	sc27xx_fgu_suspend_calib_config(data);
 
 	return 0;
 
