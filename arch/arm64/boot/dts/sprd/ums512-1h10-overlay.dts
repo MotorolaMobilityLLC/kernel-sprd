@@ -444,8 +444,8 @@
 		reusable;
 	};
 
-	vdsp_reserved: vdsp-mem@fd780000 {
-		reg = <0x0 0xfd780000 0x0 0x02800000>;
+	vdsp_reserved: vdsp-mem@fd770000 {
+		reg = <0x0 0xfd770000 0x0 0x02800000>;
 	};
 };
 

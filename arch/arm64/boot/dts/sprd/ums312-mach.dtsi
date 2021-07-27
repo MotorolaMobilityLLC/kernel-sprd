@@ -429,11 +429,6 @@
 			reg = <0x0 0x80001000 0x0 0x00001000>;
 		};
 
-		rebootescrow@0x83ef0000 {
-			no-map;
-			reg = <0x0 0x83ef0000 0x0 0x00010000>; /* 64K */
-		};
-
 		audio_reserved: audio-mem@87500000{
 			reg = <0x0 0x87500000 0x0 0x00300000>;
 		};
@@ -463,6 +458,11 @@
 
 		tos_reserved: tos-mem@b0040000{
 			reg = <0x0 0xb0040000 0x0 0x03fc0000>;
+		};
+
+		rebootescrow@0xbff70000 {
+			no-map;
+			reg = <0x0 0xbff70000 0x0 0x00010000>; /* 64K */
 		};
 
 		pstore: pstore@bff80000{
@@ -509,7 +509,7 @@
 
 	rebootescrow@0 {
 		compatible = "pmem-region";
-		reg = <0x0 0x83ef0000 0x0 0x00010000>;
+		reg = <0x0 0xbff70000 0x0 0x00010000>;
 	};
 
 	autotest: autotest {

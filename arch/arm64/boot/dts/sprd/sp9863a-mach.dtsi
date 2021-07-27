@@ -49,11 +49,6 @@
 			reg = <0x0 0x80001000 0x0 0x00001000>;
 		};
 
-		rebootescrow@0x83ef0000 {
-			no-map;
-			reg = <0x0 0x83ef0000 0x0 0x00010000>; /* 64K */
-		};
-
 		wcn_reserved: wcn-mem@84000000 {
 			reg = <0x0 0x84000000 0x0 0x00300000>;
 		};
@@ -92,6 +87,11 @@
 			linux,cma-default;
 		};
 
+		rebootescrow@0xfff70000 {
+			no-map;
+			reg = <0x0 0xfff70000 0x0 0x00010000>; /* 64K */
+		};
+
 		pstore_reserved: ramoops@fff80000 {
 			compatible = "ramoops";
 			reg = <0x0 0xfff80000 0x0 0x00040000>;
@@ -109,7 +109,7 @@
 
 	rebootescrow@0 {
 		compatible = "pmem-region";
-		reg = <0x0 0x83ef0000 0x0 0x00010000>;
+		reg = <0x0 0xfff70000 0x0 0x00010000>;
 	};
 
 	ddr_dfs: scene-frequency {

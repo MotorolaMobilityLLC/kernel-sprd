@@ -42,11 +42,6 @@
 			reg = <0x0 0x80001000 0x0 0x00001000>;
 		};
 
-		rebootescrow@0x85ef0000 {
-			no-map;
-			reg = <0x0 0x85ef0000 0x0 0x00010000>; /* 64K */
-		};
-
 		wcn_reserved: wcn-mem@87000000 {
 			reg = <0x0 0x87000000 0x0 0x00800000>;
 		};
@@ -99,6 +94,11 @@
 			reg = <0x0 0xf0800000 0x0 0x04000000>;
 			reusable;
 			linux,cma-default;
+		};
+
+		rebootescrow@0xfff70000 {
+			no-map;
+			reg = <0x0 0xfff70000 0x0 0x00010000>; /* 64K */
 		};
 
 		pstore_reserved: ramoops@fff80000 {
