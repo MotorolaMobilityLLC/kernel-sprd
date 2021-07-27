@@ -50,7 +50,8 @@ static inline void tx_dequeue_data_msg(struct sprd_hif *hif, struct sprd_msg *ms
 	else
 		lock = &msg->xmit_msg_list->send_lock;
 	spin_lock_bh(lock);
-	hif->ops->free_msg_content(msg);
+	if (hif->ops->free_msg_content)
+		hif->ops->free_msg_content(msg);
 	list_del(&msg->list);
 	sprd_free_msg(msg, msg->msglist);
 	spin_unlock_bh(lock);
@@ -942,7 +943,8 @@ void sc2355_dequeue_tofreelist_buf(struct sprd_hif *hif, struct sprd_msg *msg)
 
 	lock = &msg->xmit_msg_list->free_lock;
 	spin_lock_bh(lock);
-	hif->ops->free_msg_content(msg);
+	if (hif->ops->free_msg_content)
+		hif->ops->free_msg_content(msg);
 	list_del(&msg->list);
 	sprd_free_msg(msg, msg->msglist);
 	spin_unlock_bh(lock);
