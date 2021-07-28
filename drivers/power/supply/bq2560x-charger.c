@@ -341,12 +341,14 @@ static int bq2560x_charger_hw_init(struct bq2560x_charger_info *info)
 		}
 
 		//charge safety timer disable by pony date20210109 start
+		/*
 		ret = bq2560x_update_bits(info, BQ2560X_REG_5,
 					  BQ2560X_REG_TIMER_MASK,0);
 		if (ret) {
 			dev_err(info->dev, "charge safety timer disable failed\n");
 			return ret;
 		}
+		*/
 		//charge safety timer disable by pony date20210109 end
 
 		if (info->role == BQ2560X_ROLE_MASTER_DEFAULT) {
@@ -800,6 +802,16 @@ static void bq2560x_charger_work(struct work_struct *data)
 		case SDP_TYPE:
 			limit_cur = info->cur.sdp_limit;
 			cur = info->cur.sdp_cur;
+
+			//safety timer disable for sdp type by pony date20210728 start
+			ret = bq2560x_update_bits(info, BQ2560X_REG_5,
+						  BQ2560X_REG_TIMER_MASK,0);
+			if (ret) {
+				dev_err(info->dev, "charge safety timer disable failed\n");
+			//	return ret;
+			}
+			//safety timer disable for sdp type by pony date20210728 end
+
 			break;
 		case DCP_TYPE:
 			limit_cur = info->cur.dcp_limit;
