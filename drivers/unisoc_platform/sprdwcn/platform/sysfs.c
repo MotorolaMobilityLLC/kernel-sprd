@@ -71,11 +71,6 @@ static int wcn_send_atcmd(void *cmd, unsigned char cmd_len,
 	/* common buf for kmalloc */
 	unsigned char *com_buf = NULL;
 
-	if (unlikely(!marlin_get_module_status())) {
-		WCN_ERR("WCN module have not open\n");
-		return -EIO;
-	}
-
 	if (g_match_config && g_match_config->unisoc_wcn_pcie) {
 		pcie_dev = get_wcn_device_info();
 		if (!pcie_dev) {

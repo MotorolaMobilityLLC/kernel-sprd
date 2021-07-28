@@ -149,8 +149,11 @@ static void loopcheck_work_queue(struct work_struct *work)
 	snprintf(a, (size_t)sizeof(a), "at+loopcheck=%llu,%llu\r\n",
 		 loopcheck_tx_ns, marlin_boot_t);
 
-	if (!test_bit(WCN_LOOPCHECK_OPEN, &loopcheck.status))
+	if ((unlikely(!marlin_get_module_status())) ||
+	    (!test_bit(WCN_LOOPCHECK_OPEN, &loopcheck.status))) {
+		WCN_ERR("WCN module have not open\n");
 		return;
+	}
 
 	sprdwcn_rx_cnt_a = sprdwcn_bus_get_rx_total_cnt();
 	usleep_range(4000, 6000);
