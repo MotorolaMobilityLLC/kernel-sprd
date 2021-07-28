@@ -79,8 +79,9 @@
 #define CM_CP_VSTEP				20000
 #define CM_CP_ISTEP				50000
 #define CM_CP_PRIMARY_CHARGER_DIS_TIMEOUT	20
-#define CM_CP_IBAT_UCP_THRESHOLD		3
-#define CM_CP_ADJUST_VOLTAGE_THRESHOLD		(6 * 1000 / CM_CP_WORK_TIME_MS)
+#define CM_CP_IBAT_UCP_THRESHOLD		8
+#define CM_CP_ADJUST_VOLTAGE_THRESHOLD		(5 * 1000 / CM_CP_WORK_TIME_MS)
+#define CM_CP_ACC_VBAT_HTHRESHOLD		3850000
 #define CM_CP_VBAT_STEP1			300000
 #define CM_CP_VBAT_STEP2			150000
 #define CM_CP_VBAT_STEP3			50000
@@ -202,6 +203,12 @@ static int cm_capacity_remap(struct charger_manager *cm, int fuel_cap)
 {
 	int i, temp, cap = 0;
 
+	if (cm->desc->cap_remap_full_percent) {
+		fuel_cap = fuel_cap * 100 / cm->desc->cap_remap_full_percent;
+		if (fuel_cap > CM_CAP_FULL_PERCENT)
+			fuel_cap  = CM_CAP_FULL_PERCENT;
+	}
+
 	if (!cm->desc->cap_remap_table)
 		return fuel_cap;
 
@@ -238,41 +245,6 @@ static int cm_capacity_remap(struct charger_manager *cm, int fuel_cap)
 	}
 
 	return cap;
-}
-
-/*
- * cm_capacity_unmap - unmap remapped cap to real fuel gauge cap
- * @remmaped_cap: remapped_cap from cm_capacity_remap function
- * Return real fuel gauge cap
- */
-static int cm_capacity_unmap(struct charger_manager *cm, int cap)
-{
-	int fuel_cap = 0, i;
-
-	if (!cm->desc->cap_remap_table)
-		return cap;
-
-	for (i = cm->desc->cap_remap_table_len - 1; i >= 0; i--) {
-		if (cap >= (cm->desc->cap_remap_table[i].hcap * 10)) {
-			fuel_cap = (cap - cm->desc->cap_remap_table[i].hcap * 10) * 100 +
-				cm->desc->cap_remap_table[i].hb;
-			break;
-		} else if (cap >= (cm->desc->cap_remap_table[i].lcap * 10)) {
-			fuel_cap = (cap - cm->desc->cap_remap_table[i].lcap * 10) *
-				cm->desc->cap_remap_table[i].cnt * 100 +
-				cm->desc->cap_remap_table[i].lb;
-			break;
-		}
-
-		if (i == 0 && cap <= cm->desc->cap_remap_table[i].lcap * 10) {
-			fuel_cap = cap * 100;
-			break;
-		}
-	}
-
-	fuel_cap  = DIV_ROUND_CLOSEST(fuel_cap, cm->desc->cap_remap_total_cnt);
-
-	return fuel_cap;
 }
 
 static int cm_init_cap_remap_table(struct charger_desc *desc, struct device *dev)
@@ -2682,10 +2654,12 @@ static bool cm_cp_check_ibat_ucp_status(struct charger_manager *cm)
 {
 	struct cm_charge_pump_status *cp = &cm->desc->cp;
 	bool status = false;
+	bool ibat_ucp_flag = false;
 
 	if (cp->alm.bat_ucp_alarm) {
 		dev_warn(cm->dev, "%s, bat_ucp_alarm = %d\n", __func__, cp->alm.bat_ucp_alarm);
 		cp->cp_ibat_ucp_cnt++;
+		ibat_ucp_flag = true;
 	}
 
 	if (!cp->cp_ibat_ucp_cnt)
@@ -2696,9 +2670,9 @@ static bool cm_cp_check_ibat_ucp_status(struct charger_manager *cm)
 		return status;
 	}
 
-	if (cp->ibat_uA < cp->cp_taper_current)
+	if (cp->ibat_uA < cp->cp_taper_current && !(ibat_ucp_flag))
 		cp->cp_ibat_ucp_cnt++;
-	else
+	else if (cp->ibat_uA >= cp->cp_taper_current)
 		cp->cp_ibat_ucp_cnt = 0;
 
 	if (cp->cp_ibat_ucp_cnt > CM_CP_IBAT_UCP_THRESHOLD)
@@ -2771,7 +2745,12 @@ static void cm_cp_state_entry(struct charger_manager *cm)
 	cp->cp_ibat_ucp_cnt = 0;
 
 	cp->cp_target_ibus = cp->cp_max_ibus;
-	cp->cp_target_vbus = cp->vbat_uV * 205 / 100 + 2 * CM_CP_VSTEP;
+
+	if (cp->vbat_uV <= CM_CP_ACC_VBAT_HTHRESHOLD)
+		cp->cp_target_vbus = cp->vbat_uV * 205 / 100 + 10 * CM_CP_VSTEP;
+	else
+		cp->cp_target_vbus = cp->vbat_uV * 205 / 100 + 2 * CM_CP_VSTEP;
+
 
 	dev_dbg(cm->dev, "%s, target_ibat = %d, cp_target_vbus = %d\n",
 		 __func__, cp->cp_target_ibat, cp->cp_target_vbus);
@@ -5704,6 +5683,8 @@ static struct charger_desc *of_cm_parse_desc(struct device *dev)
 			     &desc->ir_comp.cp_upper_limit_offset);
 	of_property_read_u32(np, "cm-force-jeita-status",
 			     &desc->force_jeita_status);
+	of_property_read_u32(np, "cm-cap-full-advance-percent",
+			     &desc->cap_remap_full_percent);
 
 	/* Initialize the jeita temperature table. */
 	ret = cm_init_jeita_table(desc, dev);
@@ -6149,7 +6130,7 @@ static void cm_batt_works(struct work_struct *work)
 
 		cm->desc->cap = fuel_cap;
 		if (cm->desc->uvlo_trigger_cnt < CM_UVLO_CALIBRATION_CNT_THRESHOLD)
-			set_batt_cap(cm, cm_capacity_unmap(cm, cm->desc->cap));
+			set_batt_cap(cm, cm->desc->cap);
 	}
 
 schedule_cap_update_work:
@@ -6336,8 +6317,6 @@ static int charger_manager_probe(struct platform_device *pdev)
 	}
 
 	ret = get_boot_cap(cm, &cm->desc->cap);
-	cm->desc->cap = cm_capacity_remap(cm, cm->desc->cap);
-
 	if (ret) {
 		dev_err(&pdev->dev, "Failed to get initial battery capacity\n");
 		return ret;
@@ -6519,7 +6498,7 @@ static void charger_manager_shutdown(struct platform_device *pdev)
 	struct charger_manager *cm = platform_get_drvdata(pdev);
 
 	if (cm->desc->uvlo_trigger_cnt < CM_UVLO_CALIBRATION_CNT_THRESHOLD)
-		set_batt_cap(cm, cm_capacity_unmap(cm, cm->desc->cap));
+		set_batt_cap(cm, cm->desc->cap);
 
 	cancel_delayed_work_sync(&cm_monitor_work);
 	cancel_delayed_work_sync(&cm->fullbatt_vchk_work);

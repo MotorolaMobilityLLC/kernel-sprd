@@ -728,6 +728,7 @@ struct charger_desc {
 	struct cap_remap_table *cap_remap_table;
 	int cap_remap_table_len;
 	int cap_remap_total_cnt;
+	int cap_remap_full_percent;
 	bool is_fast_charge;
 	bool enable_fast_charge;
 	u32 fast_charge_enable_count;
