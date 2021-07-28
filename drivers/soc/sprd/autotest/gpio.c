@@ -80,7 +80,12 @@ static int gpio_test(struct autotest_handler *handler, void *arg)
 			return ret;
 		}
 	} else {
-		gpiod_direction_input(desc);
+		ret = gpiod_direction_input(desc);
+		if (ret < 0) {
+			pr_err("set direction failed, %d", ret);
+			return ret;
+		}
+
 		val = gpiod_get_value(desc) ? 1 : 0;
 		gpio_data &= ~SPRD_GPIO_TEST_VAL_MSK;
 		gpio_data |= (val << SPRD_GPIO_TEST_VAL_SHIFT) &
