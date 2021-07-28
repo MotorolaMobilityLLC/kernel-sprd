@@ -642,6 +642,7 @@ struct mm_struct {
 		atomic_long_t hugetlb_usage;
 #endif
 		struct work_struct async_put_work;
+		ANDROID_KABI_RESERVE(1);
 #ifdef CONFIG_SPECULATIVE_PAGE_FAULT_DEBUG
 		seqlock_t mm_seq;
 #else
@@ -815,6 +816,7 @@ struct mm_struct_shadow {
 		atomic_long_t hugetlb_usage;
 #endif
 		struct work_struct async_put_work;
+		ANDROID_KABI_RESERVE(1);
 		u64 mm_seq;
 	} __randomize_layout;
 
