@@ -16924,6 +16924,33 @@ CONFIG_SPRD_MINI_SYSDUMP
 	[must] user
 	[missing plat description] none
 	[function] This function is used to enable sprd brife sysdump feature
+CONFIG_SPRD_MIPI_LOG_R4P2
+	[arch] arm64
+	[plat] sharkl3
+	[missing plat] sharkl5Pro
+	[field]
+	[subsys]
+	[must]
+	[missing plat description]
+	[function]
+CONFIG_SPRD_MIPI_LOG_R5P0
+	[arch] arm64
+	[plat] sharkl5Pro
+	[missing plat] sharkl3
+	[field]
+	[subsys]
+	[must]
+	[missing plat description]
+	[function]
+CONFIG_SPRD_MODEM_DEBUG
+	[arch] arm64
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
 CONFIG_SPRD_MODEM_POWER_MANAGER
 	[arch] all
 	[plat] all

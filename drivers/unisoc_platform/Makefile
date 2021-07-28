@@ -10,3 +10,4 @@ obj-$(CONFIG_SND_SOC)				+= audio/
 obj-$(CONFIG_WLAN_VENDOR_SPREADTRUM)		+= wlan/
 obj-y						+= sprd_apdu/
 obj-$(CONFIG_SPRD_CP_DUMP)			+= cp_dump/
+obj-$(CONFIG_SPRD_MODEM_DEBUG) += debug_log/
