@@ -488,11 +488,11 @@ extra:
 
 		if (!sg_supported)
 			continue;
-		if (!req->sg)
+		if (req->sg)
 			kfree(req->sg);
-		if (!req->context)
+		if (req->context)
 			kfree(req->context);
-		if (!req->buf)
+		if (req->buf)
 			kfree(req->buf);
 	}
 	return -ENOMEM;
