@@ -49,19 +49,19 @@ static void notrace clear_eirqsoff_data(void)
 
 static void notrace show_eirqsoff_info(u64 start_time, u64 interval)
 {
-	u64 start_timestamp_ms = do_div(start_time, NSEC_PER_SEC);
-	u64 interval_us = do_div(interval, NSEC_PER_MSEC);
+//	u64 start_timestamp_ms = do_div(start_time, NSEC_PER_SEC);
+	//u64 interval_us = do_div(interval, NSEC_PER_MSEC);
 
-	pr_warn("Detected Process %d disable interrupt %lld.%06lldms "
-		"from %lld.%09llds\n",
-		__this_cpu_read(eirqsoff_pid),
-		interval, interval_us,
-		start_time, start_timestamp_ms);
+//	pr_warn("Detected Process %d disable interrupt %lld.%06lldms "
+//		"from %lld.%09llds\n",
+//		__this_cpu_read(eirqsoff_pid),
+//		interval, interval_us,
+//		start_time, start_timestamp_ms);
 
-	pr_warn("disable at:\n");
-	print_ip_sym(__this_cpu_read(eirqsoff_parent_ip));
-	print_ip_sym(__this_cpu_read(eirqsoff_ip));
-	show_stack(NULL, NULL);
+//	pr_warn("disable at:\n");
+//	print_ip_sym(__this_cpu_read(eirqsoff_parent_ip));
+//	print_ip_sym(__this_cpu_read(eirqsoff_ip));
+//	show_stack(NULL, NULL);
 }
 
 void notrace start_eirqsoff_timing(unsigned long ip, unsigned long parent_ip)
@@ -147,19 +147,19 @@ static void notrace clear_epreempt_data(void)
 
 static void notrace show_epreempt_info(u64 start_time, u64 interval)
 {
-	u64 start_timestamp_ms = do_div(start_time, NSEC_PER_SEC);
-	u64 interval_us = do_div(interval, NSEC_PER_MSEC);
+	//u64 start_timestamp_ms = do_div(start_time, NSEC_PER_SEC);
+	//u64 interval_us = do_div(interval, NSEC_PER_MSEC);
 
-	pr_warn("Detected Process %d disable preempt %lld.%06lldms "
-		"from %lld.%09llds\n",
-		__this_cpu_read(epreempt_pid),
-		interval, interval_us,
-		start_time, start_timestamp_ms);
+//	pr_warn("Detected Process %d disable preempt %lld.%06lldms "
+//		"from %lld.%09llds\n",
+//		__this_cpu_read(epreempt_pid),
+//		interval, interval_us,
+//		start_time, start_timestamp_ms);
 
-	pr_warn("disable at:\n");
-	print_ip_sym(__this_cpu_read(epreempt_parent_ip));
-	print_ip_sym(__this_cpu_read(epreempt_ip));
-	show_stack(NULL, NULL);
+//	pr_warn("disable at:\n");
+//	print_ip_sym(__this_cpu_read(epreempt_parent_ip));
+//	print_ip_sym(__this_cpu_read(epreempt_ip));
+	//show_stack(NULL, NULL);
 }
 
 void notrace start_epreempt_timing(unsigned long ip, unsigned long parent_ip)
