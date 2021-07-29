@@ -221,6 +221,8 @@ static bool bq2560x_charger_is_bat_present(struct bq2560x_charger_info *info)
 		dev_err(info->dev, "Failed to get psy of sc27xx_fgu\n");
 		return present;
 	}
+
+	val.intval = 0;
 	ret = power_supply_get_property(psy, POWER_SUPPLY_PROP_PRESENT,
 					&val);
 	if (ret == 0 && val.intval)
@@ -515,6 +517,7 @@ bq2560x_charger_get_charge_voltage(struct bq2560x_charger_info *info,
 		return -ENODEV;
 	}
 
+	val.intval = 0;
 	ret = power_supply_get_property(psy,
 					POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE,
 					&val);
@@ -1026,7 +1029,7 @@ static int bq2560x_charger_usb_get_property(struct power_supply *psy,
 					    union power_supply_propval *val)
 {
 	struct bq2560x_charger_info *info = power_supply_get_drvdata(psy);
-	u32 cur, online, health, enabled = 0;
+	u32 cur = 0, online, health, enabled = 0;
 	enum usb_charger_type type;
 	int ret = 0;
 

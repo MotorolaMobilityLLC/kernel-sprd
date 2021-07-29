@@ -1150,6 +1150,8 @@ static bool aw32257_charger_is_bat_present(struct aw32257_device *info)
 		dev_err(info->dev, "Failed to get psy of sc27xx_fgu\n");
 		return present;
 	}
+
+	val.intval = 0;
 	ret = power_supply_get_property(psy, POWER_SUPPLY_PROP_PRESENT,
 					&val);
 	if (ret == 0 && val.intval)

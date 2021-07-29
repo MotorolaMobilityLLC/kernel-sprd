@@ -456,6 +456,7 @@ static int sc2730_get_pps_voltage_max(struct sc2730_fchg_info *info, u32 *max_vo
 		return -EINVAL;
 	}
 
+	val.intval = 0;
 	ret = power_supply_get_property(info->psy_tcpm,
 					POWER_SUPPLY_PROP_VOLTAGE_MAX,
 					&val);
@@ -480,6 +481,7 @@ static int sc2730_get_pps_current_max(struct sc2730_fchg_info *info, u32
 		return -EINVAL;
 	}
 
+	val.intval = 0;
 	ret = power_supply_get_property(info->psy_tcpm,
 					POWER_SUPPLY_PROP_CURRENT_MAX,
 					&val);
@@ -667,6 +669,7 @@ static void sc2730_fchg_pd_change_work(struct work_struct *data)
 		goto out;
 	}
 
+	val.intval = 0;
 	ret = power_supply_get_property(info->psy_tcpm,
 					POWER_SUPPLY_PROP_USB_TYPE,
 					&val);
