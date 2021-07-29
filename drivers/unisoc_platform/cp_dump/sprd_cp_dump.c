@@ -12,6 +12,7 @@
  */
 
 #include <linux/cdev.h>
+#include <linux/compat.h>
 #include <linux/miscdevice.h>
 #include <linux/kernel.h>
 #include <linux/mm.h>
@@ -322,6 +323,12 @@ static long cp_dump_ioctl(struct file *filp, unsigned int cmd, unsigned long arg
 	return ret;
 }
 
+static long cp_dump_compat_ioctl(struct file *filp, unsigned int cmd,
+				unsigned long arg)
+{
+	return cp_dump_ioctl(filp, cmd, (unsigned long)compat_ptr(arg));
+}
+
 static int cp_dump_parse_dt(struct device_node *np)
 {
 	struct pm_reg_ctrl *pm_reg_ctl;
@@ -365,6 +372,7 @@ static const struct file_operations cp_dump_fops = {
 	.release = cp_dump_release,
 	.read = cp_dump_read,
 	.unlocked_ioctl = cp_dump_ioctl,
+	.compat_ioctl = cp_dump_compat_ioctl,
 	.owner = THIS_MODULE
 };
 
