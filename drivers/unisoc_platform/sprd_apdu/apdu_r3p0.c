@@ -1664,7 +1664,7 @@ static ssize_t med_info_parse_store(struct device *dev,
 				    const char *buf, size_t count)
 {
 	struct sprd_apdu_device *apdu = dev_get_drvdata(dev);
-	struct med_parse_info_t med_info;
+	struct med_parse_info_t med_info = {0};
 	u32 data_offset, data_len;
 	u64 temp_value = 0;
 	ssize_t ret;
