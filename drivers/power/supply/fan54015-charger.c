@@ -1028,11 +1028,6 @@ static int fan54015_charger_probe(struct i2c_client *client,
 		return -EINVAL;
 	}
 
-	if (!dev) {
-		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
-		return -EINVAL;
-	}
-
 	if (!i2c_check_functionality(adapter, I2C_FUNC_SMBUS_BYTE_DATA)) {
 		dev_err(dev, "No support for SMBUS_BYTE_DATA\n");
 		return -ENODEV;
@@ -1121,7 +1116,7 @@ static int fan54015_charger_probe(struct i2c_client *client,
 	ret = fan54015_charger_hw_init(info);
 	if (ret) {
 		dev_err(dev, "failed to fan54015_charger_hw_init\n");
-		goto err_psy_usb;
+		goto err_regmap_exit;
 	}
 
 	fan54015_charger_stop_charge(info);
@@ -1135,7 +1130,7 @@ static int fan54015_charger_probe(struct i2c_client *client,
 	ret = fan54015_charger_register_vbus_regulator(info);
 	if (ret) {
 		dev_err(dev, "failed to register vbus regulator.\n");
-		goto err_psy_usb;
+		goto err_regmap_exit;
 	}
 
 	INIT_WORK(&info->work, fan54015_charger_work);
@@ -1144,16 +1139,13 @@ static int fan54015_charger_probe(struct i2c_client *client,
 	ret = usb_register_notifier(info->usb_phy, &info->usb_notify);
 	if (ret) {
 		dev_err(dev, "failed to register notifier:%d\n", ret);
-		return ret;
+		goto err_regmap_exit;
 	}
 
 	mutex_unlock(&info->lock);
 	fan54015_charger_detect_status(info);
 
 	return 0;
-
-err_psy_usb:
-	power_supply_unregister(info->psy_usb);
 
 err_regmap_exit:
 	regmap_exit(info->pmic);
