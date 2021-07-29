@@ -109,6 +109,9 @@ DEV_ATTR_DECLARE(battery)
 DEV_ATTR_DEFINE("vendor",battery_vendor_name)
 DEV_ATTR_DECLARE_END;
 ONTIM_DEBUG_DECLARE_AND_INIT(battery,battery,8);
+
+static int ontim_charge_onoff_control = 1;/*1=enable charge  0 or other=disable charge*/
+
 static const char * const jeita_type_names[] = {
 	[CM_JEITA_UNKNOWN] = "cm-unknown-jeita-temp-table",
 	[CM_JEITA_SDP] = "cm-sdp-jeita-temp-table",
@@ -3423,6 +3426,12 @@ static int try_charger_enable(struct charger_manager *cm, bool enable)
 {
 	int err = 0;
 
+	if(ontim_charge_onoff_control  !=  1)
+	{
+		enable = false;
+		}
+
+
 	try_fast_charger_enable(cm, enable);
 
 	/* Ignore if it's redundant command */
@@ -5238,7 +5247,10 @@ static ssize_t charger_stop_store(struct device *dev,
 	if (!is_ext_pwr_online(cm))
 		return -EINVAL;
 
+	dev_err(cm->dev, "%s;%d;%d;\n",__func__,stop_charge,ontim_charge_onoff_control);
+
 	if (!stop_charge) {
+		ontim_charge_onoff_control =1;		
 		set_charger_enable_powerpath(cm, true);
 		ret = try_charger_enable(cm, true);
 		if (ret) {
@@ -5257,6 +5269,7 @@ static ssize_t charger_stop_store(struct device *dev,
 		}
 
 	} else {
+		ontim_charge_onoff_control =0;		
 		set_charger_enable_powerpath(cm, false);
 		ret = try_charger_enable(cm, false);
 		if (ret) {
