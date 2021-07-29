@@ -13,6 +13,8 @@
 
 / {
 	cpuinfo_hardware = "Unisoc ums512";
+	soc-module = "UMS512";
+	soc-manufacturer = "Spreadtrum";
 
 	cpus {
 		#address-cells = <2>;

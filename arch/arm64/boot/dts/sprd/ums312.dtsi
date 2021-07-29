@@ -11,6 +11,8 @@
 #include "ums312-qos.dtsi"
 / {
 	cpuinfo_hardware = "Unisoc T310";
+	soc-module = "T310";
+	soc-manufacturer = "Spreadtrum";
 
 	cpus {
 		#address-cells = <2>;
