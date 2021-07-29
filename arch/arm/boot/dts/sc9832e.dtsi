@@ -10,6 +10,8 @@
 
 / {
 	cpuinfo_hardware = "Unisoc SC9832E";
+	soc-module = "SC9832E";
+	soc-manufacturer = "Spreadtrum";
 
 	cpus {
 		#address-cells = <1>;

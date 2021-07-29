@@ -12,6 +12,8 @@
 
 / {
 	cpuinfo_hardware = "Unisoc SC9863A";
+	soc-module = "SC9863A";
+	soc-manufacturer = "Spreadtrum";
 
 	cpus {
 		#address-cells = <1>;
