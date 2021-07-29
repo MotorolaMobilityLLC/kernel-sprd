@@ -7,6 +7,19 @@
 
 
 / { qos {
+  #address-cells=<1>;
+  #size-cells=<0>;
+  ranges;
+
+		dpu_qos: qos@1 {
+			reg = <1>;
+			awqos-high	= [0a];
+			awqos-low	= [0a];
+			arqos-high	= [0d];
+			arqos-low	= [0c];
+			arqos-threshold = [0c];
+			awqos-threshold = [0f];
+		};
 		mm {
 			#address-cells=<1>;
 			#size-cells=<0>;
