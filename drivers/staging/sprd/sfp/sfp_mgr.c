@@ -1091,21 +1091,6 @@ static int sfp_if_netdev_event_handler(
 			   ifindex);
 		sfp_clear_fwd_table(ifindex);
 		break;
-	case NETDEV_REGISTER:
-		if (sfp_clatd_dev_check(dev)) {
-			sysctl_net_sfp_enable = 0;
-			sfp_mgr_proc_disable();
-			FP_PRT_DBG(FP_PRT_WARN,
-				   "clatd check succeeded, wont enable sfp\n");
-		}
-		break;
-	case NETDEV_UNREGISTER:
-		if (sfp_clatd_dev_check(dev)) {
-			sysctl_net_sfp_enable = 1;
-			FP_PRT_DBG(FP_PRT_WARN,
-				   "clatd check failed, re-enable sfp\n");
-		}
-		break;
 	}
 	return NOTIFY_DONE;
 }
