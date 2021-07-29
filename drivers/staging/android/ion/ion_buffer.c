@@ -4,7 +4,8 @@
  *
  * Copyright (c) 2019, Google, Inc.
  */
-
+#include <asm/cacheflush.h>
+#include <linux/highmem.h>
 #include <linux/mm.h>
 #include <linux/module.h>
 #include <linux/slab.h>
@@ -12,6 +13,7 @@
 #include <linux/dma-noncoherent.h>
 
 #define CREATE_TRACE_POINTS
+#define COHERENT    1
 #include "ion_trace.h"
 #include "ion_private.h"
 
@@ -236,6 +238,35 @@ int ion_buffer_zero(struct ion_buffer *buffer)
 }
 EXPORT_SYMBOL_GPL(ion_buffer_zero);
 
+#ifdef CONFIG_ARM
+static void ion_flush_buffer(struct page *page, size_t size, int coherent_flag)
+{
+	if (PageHighMem(page)) {
+		phys_addr_t base = __pfn_to_phys(page_to_pfn(page));
+		phys_addr_t end = base + size;
+
+		while (size > 0) {
+			void *ptr = kmap_atomic(page);
+
+			if (coherent_flag != COHERENT)
+				dmac_flush_range(ptr, ptr + PAGE_SIZE);
+			kunmap_atomic(ptr);
+			page++;
+			size -= PAGE_SIZE;
+		}
+		if (coherent_flag != COHERENT)
+			outer_flush_range(base, end);
+	} else {
+		void *ptr = page_address(page);
+
+		if (coherent_flag != COHERENT) {
+			dmac_flush_range(ptr, ptr + size);
+			outer_flush_range(__pa(ptr), __pa(ptr) + size);
+		}
+	}
+}
+#endif
+
 void ion_buffer_prep_noncached(struct ion_buffer *buffer)
 {
 	struct scatterlist *sg;
@@ -249,8 +280,19 @@ void ion_buffer_prep_noncached(struct ion_buffer *buffer)
 
 	table = buffer->sg_table;
 
-	for_each_sg(table->sgl, sg, table->orig_nents, i)
+	for_each_sg(table->sgl, sg, table->orig_nents, i) {
 		arch_dma_prep_coherent(sg_page(sg), sg->length);
+	/*
+	 * For uncached buffers, we need to initially flush cpu cache, since
+	 * the __GFP_ZERO on the allocation means the zeroing was done by the
+	 * cpu and thus it is likely cached. Map (and implicitly flush) and
+	 * unmap it now so we don't get corruption later on.arch_dma_prep_coherent()
+	 * is missing for arm32 so we flush cache in our own way.
+	 */
+#ifdef CONFIG_ARM
+	 ion_flush_buffer(sg_page(sg), sg->length, 0);
+#endif
+	}
 }
 EXPORT_SYMBOL_GPL(ion_buffer_prep_noncached);
 
