@@ -5552,7 +5552,6 @@ static inline struct charger_desc *cm_get_drv_data(struct platform_device *pdev)
 static int cm_get_bat_info(struct charger_manager *cm)
 {
 	struct power_supply_battery_info info = { };
-	struct power_supply_battery_ocv_table *table;
 	const char *value;
 	struct device_node *battery_np;
 	int ret, err;
@@ -5564,22 +5563,6 @@ static int cm_get_bat_info(struct charger_manager *cm)
 	}
 
 	cm->desc->internal_resist = info.factory_internal_resistance_uohm / 1000;
-
-	/*
-	 * For CHARGER MANAGER device, we only use one ocv-capacity
-	 * table in normal temperature 20 Celsius.
-	 */
-	table = power_supply_find_ocv2cap_table(&info, 20, &cm->desc->cap_table_len);
-	if (!table)
-		return -EINVAL;
-
-	cm->desc->cap_table = devm_kmemdup(cm->dev, table,
-				     cm->desc->cap_table_len * sizeof(*table),
-				     GFP_KERNEL);
-	if (!cm->desc->cap_table) {
-		power_supply_put_battery_info(cm->charger_psy, &info);
-		return -ENOMEM;
-	}
 
 	power_supply_put_battery_info(cm->charger_psy, &info);
 

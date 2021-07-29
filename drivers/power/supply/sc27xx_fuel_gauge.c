@@ -141,6 +141,7 @@
 #define SC27XX_FGU_TRACK_TIMEOUT_THRESHOLD		108000
 #define SC27XX_FGU_TRACK_START_CAP_THRESHOLD		200
 #define SC27XX_FGU_TRACK_WAKE_UP_MS			25000
+#define SC27XX_FGU_CHECK_CAP_TABLE_VOL_THRESHOLD	3000000
 #define SC27XX_FGU_TRACK_FILE_PATH "/mnt/vendor/battery/calibration_data/.battery_file"
 
 #define interpolate(x, x1, y1, x2, y2) \
@@ -3074,6 +3075,27 @@ static int sc27xx_fgu_register_sysfs(struct sc27xx_fgu_data *data)
 	return ret;
 }
 
+static bool sc27xx_fgu_cap_table_is_valid(struct sc27xx_fgu_data *data,
+					  struct power_supply_battery_ocv_table *table,
+					  int table_len)
+{
+	int i;
+
+	if (table[table_len - 1].ocv / SC27XX_FGU_CHECK_CAP_TABLE_VOL_THRESHOLD != 1 ||
+	    table[0].capacity != 100 || table[table_len - 1].capacity != 0)
+		return false;
+	for (i = 0; i < table_len - 2; i++) {
+		if (table[i].ocv <= table[i + 1].ocv ||
+		    table[i].capacity <= table[i + 1].capacity) {
+			dev_info(data->dev, "the index = %d or %d ocv-cap table value is abnormal!\n",
+				 i, i + 1);
+			return false;
+		}
+	}
+
+	return true;
+}
+
 static int sc27xx_fgu_hw_init(struct sc27xx_fgu_data *data,
 			      const struct sc27xx_fgu_variant_data *pdata)
 {
@@ -3109,6 +3131,9 @@ static int sc27xx_fgu_hw_init(struct sc27xx_fgu_data *data,
 		power_supply_put_battery_info(data->battery, &info);
 		return -ENOMEM;
 	}
+
+	if (!sc27xx_fgu_cap_table_is_valid(data, data->cap_table, data->table_len))
+		dev_info(data->dev, "the ocv-cap table is invalid, please check the configuration\n");
 
 	ret = sc27xx_fgu_get_battery_table_info(data->battery, data);
 	if (ret) {
