@@ -222,8 +222,6 @@ struct shub_data {
 	struct workqueue_struct *driver_wq;
 	struct delayed_work time_sync_work;
 	atomic_t delay;
-	struct work_struct download_cali_data_work;
-	struct work_struct savecalifile_work;
 	struct notifier_block early_suspend;
 	struct notifier_block shub_reboot_notifier;
 	int is_sensorhub;
