@@ -1187,7 +1187,7 @@
 			};
 
 			ap_thm0: thermal@32200000 {
-				compatible = "sprd,sharkl5-thermal";
+				compatible = "sprd,ums512-thermal";
 				reg = <0 0x32200000 0 0x10000>;
 				clock-names = "enable";
 				clocks = <&aonapb_gate CLK_THM0_EB>;
@@ -1223,7 +1223,7 @@
 			};
 
 			ap_thm1: thermal@32210000 {
-				compatible = "sprd,sharkl5-thermal";
+				compatible = "sprd,ums512-thermal";
 				reg = <0 0x32210000 0 0x10000>;
 				clock-names = "enable";
 				clocks = <&aonapb_gate CLK_THM1_EB>;
@@ -1247,7 +1247,7 @@
 			};
 
 			ap_thm2: thermal@32220000 {
-				compatible = "sprd,sharkl5-thermal";
+				compatible = "sprd,ums512-thermal";
 				reg = <0 0x32220000 0 0x10000>;
 				clock-names = "enable";
 				clocks = <&aonapb_gate CLK_THM2_EB>;
