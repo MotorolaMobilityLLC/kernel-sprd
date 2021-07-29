@@ -755,6 +755,7 @@
 
 &pmic_fchg {
 	sprd,input-voltage-microvolt = <5000000>;
+	sprd,support-sfcp;
 	phys = <&hsphy>;
 };
 
