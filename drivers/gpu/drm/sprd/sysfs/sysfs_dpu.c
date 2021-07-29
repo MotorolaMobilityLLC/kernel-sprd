@@ -11,14 +11,11 @@
  * GNU General Public License for more details.
  */
 
-#include <drm/drm_crtc_helper.h>
-#include <drm/drm_atomic_helper.h>
 #include <linux/interrupt.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/of_irq.h>
 #include <linux/platform_device.h>
-#include <linux/pm_runtime.h>
 #include <linux/sysfs.h>
 #include <linux/timer.h>
 #include <linux/timex.h>
@@ -26,39 +23,10 @@
 
 #include "disp_lib.h"
 #include "sprd_dpu.h"
-#include "sprd_drm.h"
 #include "sprd_panel.h"
 #include "sysfs_display.h"
 
-#define DRM_DPMS_SUSPEND 0
-#define DRM_DPMS_RESUME  1
-
 static uint32_t bg_color;
-
-
-static ssize_t cali_dpu_stop_store(struct device *dev,
-				struct device_attribute *attr,
-				const char *buf, size_t count)
-{
-	struct sprd_dpu *dpu = dev_get_drvdata(dev);
-
-	cali_sprd_dpu_stop(dpu);
-
-	return count;
-}
-static DEVICE_ATTR_WO(cali_dpu_stop);
-
-static ssize_t dpms_state_store(struct device *dev,
-				struct device_attribute *attr,
-				const char *buf, size_t count)
-{
-	struct sprd_dpu *dpu = dev_get_drvdata(dev);
-
-	cali_dpu_glb_disable(&dpu->ctx);
-	cali_dpu_clk_disable(&dpu->ctx);
-	return count;
-}
-static DEVICE_ATTR_WO(dpms_state);
 
 static ssize_t run_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
@@ -442,8 +410,6 @@ static struct attribute *dpu_attrs[] = {
 	&dev_attr_wb_debug.attr,
 	&dev_attr_irq_register.attr,
 	&dev_attr_irq_unregister.attr,
-	&dev_attr_dpms_state.attr,
-	&dev_attr_cali_dpu_stop.attr,
 	NULL,
 };
 static const struct attribute_group dpu_group = {

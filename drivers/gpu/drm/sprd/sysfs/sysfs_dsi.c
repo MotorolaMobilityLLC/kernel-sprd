@@ -28,18 +28,6 @@ static uint8_t input_len;
 static uint8_t read_buf[64];
 static uint8_t lp_cmd_en;
 
-static ssize_t cali_dsi_suspend_store(struct device *dev,
-				struct device_attribute *attr,
-				const char *buf, size_t count)
-{
-	struct sprd_dsi *dsi = dev_get_drvdata(dev);
-
-	cali_dsi_glb_disable(&dsi->ctx);
-
-	return count;
-}
-static DEVICE_ATTR_WO(cali_dsi_suspend);
-
 static ssize_t phy_freq_store(struct device *dev,
 				struct device_attribute *attr,
 				const char *buf, size_t count)
@@ -716,7 +704,6 @@ static struct attribute *dsi_attrs[] = {
 	&dev_attr_suspend.attr,
 	&dev_attr_resume.attr,
 	&dev_attr_dpms_mode.attr,
-	&dev_attr_cali_dsi_suspend.attr,
 	NULL,
 };
 ATTRIBUTE_GROUPS(dsi);
