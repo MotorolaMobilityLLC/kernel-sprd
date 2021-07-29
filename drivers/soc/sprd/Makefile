@@ -16,3 +16,4 @@ obj-y				+= pub/
 obj-$(CONFIG_SPRD_MEMDISK)	+= sprd_memdisk.o
 obj-$(CONFIG_SPRD_PIKE2_SLEEP)  += sprd_pike2_sleep.o
 obj-$(CONFIG_SPRD_SFP_SUPPORT)	+= sfp/
+obj-m				+= sprd_manufacturer_model.o
