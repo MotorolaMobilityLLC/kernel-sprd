@@ -286,23 +286,6 @@ static int dpu_clk_disable(struct dpu_context *ctx)
 	return 0;
 }
 
-int cali_dpu_clk_disable(struct dpu_context *ctx)
-{
-	struct dpu_clk_context *clk_ctx = &dpu_clk_ctx;
-
-	clk_prepare_enable(clk_ctx->clk_dpu_core);
-
-	clk_prepare_enable(clk_ctx->clk_dpu_dpi);
-
-	clk_disable_unprepare(clk_ctx->clk_dpu_dpi);
-	clk_disable_unprepare(clk_ctx->clk_dpu_core);
-
-	clk_set_parent(clk_ctx->clk_dpu_dpi, clk_ctx->clk_src_96m);
-	clk_set_parent(clk_ctx->clk_dpu_core, clk_ctx->clk_src_153m6);
-
-	return 0;
-}
-
 static int dpu_glb_parse_dt(struct dpu_context *ctx,
 				struct device_node *np)
 {
@@ -360,12 +343,6 @@ static void dpu_glb_enable(struct dpu_context *ctx)
 
 static void dpu_glb_disable(struct dpu_context *ctx)
 {
-	clk_disable_unprepare(clk_ap_ahb_disp_eb);
-}
-
-void cali_dpu_glb_disable(struct dpu_context *ctx)
-{
-	clk_prepare_enable(clk_ap_ahb_disp_eb);
 	clk_disable_unprepare(clk_ap_ahb_disp_eb);
 }
 

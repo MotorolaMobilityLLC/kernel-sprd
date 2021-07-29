@@ -217,7 +217,6 @@ extern struct list_head dsi_core_head;
 extern struct list_head dsi_glb_head;
 
 int dsi_panel_set_dpms_mode(struct sprd_dsi *dsi);
-void cali_dsi_glb_disable(struct dsi_context *ctx);
 
 #define dsi_core_ops_register(entry) \
 	disp_ops_register(entry, &dsi_core_head)

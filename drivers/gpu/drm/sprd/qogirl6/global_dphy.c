@@ -75,18 +75,6 @@ static void dphy_glb_disable(struct dphy_context *ctx)
 		ctx_enable.ctrl_mask,
 		(unsigned int)(~ctx_enable.ctrl_mask));
 }
-void cali_dphy_glb_disable(struct dphy_context *ctx)
-{
-	regmap_update_bits(ctx_enable.regmap,
-		ctx_enable.ctrl_reg,
-		ctx_enable.ctrl_mask,
-		ctx_enable.ctrl_mask);
-
-	regmap_update_bits(ctx_enable.regmap,
-		ctx_enable.ctrl_reg,
-		ctx_enable.ctrl_mask,
-		(unsigned int)(~ctx_enable.ctrl_mask));
-}
 
 static void dphy_power_domain(struct dphy_context *ctx, int enable)
 {

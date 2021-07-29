@@ -117,6 +117,5 @@ void sprd_dphy_force_pll(struct sprd_dphy *dphy, bool enable);
 void sprd_dphy_hs_clk_en(struct sprd_dphy *dphy, bool enable);
 void sprd_dphy_test_write(struct sprd_dphy *dphy, u8 address, u8 data);
 u8 sprd_dphy_test_read(struct sprd_dphy *dphy, u8 address);
-//void cali_dphy_power_domain(struct dphy_context *ctx, int enable);
-void cali_dphy_glb_disable(struct dphy_context *ctx);
+
 #endif /* _SPRD_DPHY_H_ */

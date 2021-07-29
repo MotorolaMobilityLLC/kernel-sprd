@@ -909,7 +909,7 @@ static int sprd_dsi_probe(struct platform_device *pdev)
 
 	if (calibration_mode) {
 		DRM_WARN("Calibration Mode! Don't register sprd dsi driver\n");
-		//return -ENODEV;
+		return -ENODEV;
 	}
 
 	dsi = devm_kzalloc(&pdev->dev, sizeof(*dsi), GFP_KERNEL);

@@ -224,7 +224,6 @@ struct sprd_dpu {
 	struct drm_display_mode *mode;
 	struct sprd_dpu_layer *layers;
 	struct sprd_dsi *dsi;
-	struct drm_device *drm;
 	u8 pending_planes;
 };
 
@@ -255,7 +254,5 @@ static inline struct sprd_dpu *crtc_to_dpu(struct drm_crtc *crtc)
 int sprd_dpu_run(struct sprd_dpu *dpu);
 int sprd_dpu_stop(struct sprd_dpu *dpu);
 void sprd_dpu_resume(struct sprd_dpu *dpu);
-int cali_sprd_dpu_stop(struct sprd_dpu *dpu);
-int cali_dpu_clk_disable(struct dpu_context *ctx);
-void cali_dpu_glb_disable(struct dpu_context *ctx);
+
 #endif

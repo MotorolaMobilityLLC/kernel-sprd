@@ -43,7 +43,7 @@
 static bool tipc_init;
 static int zorder_used[R8P0_IMGL_NUM + R8P0_OSDL_NUM] = {0};
 int gsp_enabled_layer_count;
-extern bool cali_mode;
+
 static void print_image_layer_cfg(struct gsp_r8p0_img_layer *layer)
 {
 	struct gsp_r8p0_img_layer_params *params = NULL;
@@ -825,11 +825,7 @@ int gsp_r8p0_core_parse_dt(struct gsp_core *core)
 
 	gsp_r8p0_core_parse_clk(r8p0_core);
 
-	if (!cali_mode) {
-		GSP_WARN(" NOT Calibration Mode! ");
-		sprd_iommu_restore(core->dev);
-	}
-
+	sprd_iommu_restore(core->dev);
 	/*
 	 * update dpu
 	 * gsp_core_reg_update(core->base + 4, 4, 4);

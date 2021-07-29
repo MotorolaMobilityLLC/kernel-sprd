@@ -671,7 +671,7 @@ static void dpu_stop(struct dpu_context *ctx)
 {
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
 
-	//if (ctx->if_type == SPRD_DISPC_IF_DPI)
+	if (ctx->if_type == SPRD_DISPC_IF_DPI)
 		reg->dpu_ctrl |= BIT(1);
 
 	dpu_wait_stop_done(ctx);

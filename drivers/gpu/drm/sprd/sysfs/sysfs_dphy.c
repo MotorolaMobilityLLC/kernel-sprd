@@ -28,20 +28,6 @@ static int ulps_en;
 static u32 input_param[64];
 static u32 read_buf[64];
 
-static ssize_t cali_dphy_suspend_store(struct device *dev,
-				struct device_attribute *attr,
-				const char *buf, size_t count)
-{
-	struct sprd_dphy *dphy = dev_get_drvdata(dev);
-
-	//sprd_dphy_suspend(dphy);
-	cali_dphy_glb_disable(&dphy->ctx);
-	//cali_dphy_power_domain(&dphy->ctx, 0);
-
-	return count;
-}
-static DEVICE_ATTR_WO(cali_dphy_suspend);
-
 static ssize_t reg_read_store(struct device *dev,
 				struct device_attribute *attr,
 				const char *buf, size_t count)
@@ -410,7 +396,6 @@ static struct attribute *dphy_attrs[] = {
 	&dev_attr_resume.attr,
 	&dev_attr_reset.attr,
 	&dev_attr_shutdown.attr,
-	&dev_attr_cali_dphy_suspend.attr,
 	NULL,
 };
 ATTRIBUTE_GROUPS(dphy);
