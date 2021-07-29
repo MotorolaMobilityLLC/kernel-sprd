@@ -481,7 +481,7 @@ static struct attribute *dev_entries[] = {
 };
 
 static struct attribute_group gov_vote_attrs = {
-	.name   = "sprd_governor",
+	.name   = "sprd-governor",
 	.attrs  = dev_entries,
 };
 
