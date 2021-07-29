@@ -1168,7 +1168,7 @@ static bool is_full_charged(struct charger_manager *cm)
 	bool is_full = false;
 	int ret = 0;
 	//int uV, uA;
-	int batt_ocv;
+	int batt_ocv,bat_uA;
 
 	/* If there is no battery, it cannot be charged */
 	if (!is_batt_present(cm))
@@ -1225,6 +1225,8 @@ static bool is_full_charged(struct charger_manager *cm)
 	}
 #endif
 	get_batt_ocv(cm, &batt_ocv);
+	get_batt_uA(cm, &bat_uA);
+
 
 	/* Full, if the capacity is more than fullbatt_soc */
 	if (desc->fullbatt_soc > 0) {
@@ -1233,7 +1235,7 @@ static bool is_full_charged(struct charger_manager *cm)
 		ret = power_supply_get_property(fuel_gauge,
 				POWER_SUPPLY_PROP_CAPACITY, &val);
 		if (!ret && val.intval >= desc->fullbatt_soc) {
-			if( batt_ocv > 4300000)
+			if( batt_ocv > 4260000 && bat_uA <450000 && bat_uA >0)
 			is_full = true;
 			goto out;
 		}
