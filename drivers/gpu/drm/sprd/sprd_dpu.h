@@ -212,6 +212,7 @@ struct dpu_context {
 	bool dual_dsi_en;
 	bool dsc_en;
 	int  dsc_mode;
+	bool bootup_slp;
 };
 
 struct sprd_dpu {

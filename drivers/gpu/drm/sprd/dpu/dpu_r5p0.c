@@ -1788,9 +1788,10 @@ static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
 		reg->dpu_enhance_cfg |= BIT(4);
 		pr_info("enhance slp set\n");
 		if ((ctx->if_type == SPRD_DISPC_IF_DPI) && !ctx->is_stopped) {
-			if (vsync_count > 4) {
+			if (vsync_count > 4 || (vsync_count <= 4 && !ctx->bootup_slp)) {
 				reg->dpu_ctrl |= BIT(2);
 				dpu_wait_update_done(ctx);
+				ctx->bootup_slp = 1;
 			} else
 				reg->dpu_ctrl |= BIT(2);
 		} else if ((ctx->if_type == SPRD_DISPC_IF_EDPI) && panel_ready) {
