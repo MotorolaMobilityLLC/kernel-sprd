@@ -472,6 +472,7 @@ struct cm_charge_pump_status {
 	int cp_ibat_ucp_cnt;
 	int cp_taper_current;
 	bool cp_fault_event;
+	bool cp_state_tune_log;
 
 	struct cm_fault_status  flt;
 	struct cm_alarm_status  alm;
