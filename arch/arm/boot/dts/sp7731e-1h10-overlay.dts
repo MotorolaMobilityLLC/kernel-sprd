@@ -195,6 +195,9 @@
 
 				cm-thermal-zone = "board-thmzone";
 
+				/* This switch is turned on when chargerIC is charging linearly */
+				cm-support-linear-charge;
+
 				/* when the safe charging voltage is exceeded, stop charging */
 				cm-charge-voltage-max = <6500000>;
 				/* drop voltage in microVolts to restart charging */
