@@ -313,7 +313,7 @@ static int  bq2560x_enable_powerpath(struct bq2560x_charger_info *info, bool en)
 	dev_err(info->dev,"%s; %d;\n", __func__,en);
 
 	if(en)
-		ret=bq2560x_charger_set_vindpm(info, 4400);
+		ret=bq2560x_charger_set_vindpm(info, 4500);
 	else	
 		ret=bq2560x_charger_set_vindpm(info, 5400);
 
