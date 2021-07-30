@@ -69,7 +69,6 @@
 #include <net/smc.h>
 #include <net/l3mdev.h>
 #include <linux/android_kabi.h>
-#include <linux/android_vendor.h>
 
 /*
  * This structure really needs to be cleaned up.
@@ -522,8 +521,6 @@ struct sock {
 	ANDROID_KABI_RESERVE(6);
 	ANDROID_KABI_RESERVE(7);
 	ANDROID_KABI_RESERVE(8);
-
-	ANDROID_OEM_DATA(1);
 };
 
 enum sk_pacing {
