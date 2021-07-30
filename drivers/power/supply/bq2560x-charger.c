@@ -222,7 +222,7 @@ static int  bq2560x_enable_powerpath(struct bq2560x_charger_info *info, bool en)
 	dev_err(info->dev,"%s; %d;\n", __func__,en);
 
 	if(en)
-		ret=bq2560x_charger_set_vindpm(info, 4400);
+		ret=bq2560x_charger_set_vindpm(info, 4500);
 	else	
 		ret=bq2560x_charger_set_vindpm(info, 5400);
 
@@ -736,52 +736,8 @@ static void bq2560x_charger_work(struct work_struct *data)
 {
 	struct bq2560x_charger_info *info =
 		container_of(data, struct bq2560x_charger_info, work);
-	int limit_cur, cur, ret;
 	bool present = bq2560x_charger_is_bat_present(info);
 
-	mutex_lock(&info->lock);
-
-	if (info->limit > 0 && !info->charging && present) {
-		/* set current limitation and start to charge */
-		switch (info->usb_phy->chg_type) {
-		case SDP_TYPE:
-			limit_cur = info->cur.sdp_limit;
-			cur = info->cur.sdp_cur;
-			break;
-		case DCP_TYPE:
-			limit_cur = info->cur.dcp_limit;
-			cur = info->cur.dcp_cur;
-			break;
-		case CDP_TYPE:
-			limit_cur = info->cur.cdp_limit;
-			cur = info->cur.cdp_cur;
-			break;
-		default:
-			limit_cur = info->cur.unknown_limit;
-			cur = info->cur.unknown_cur;
-		}
-
-		ret = bq2560x_charger_set_limit_current(info, limit_cur);
-		if (ret)
-			goto out;
-
-		ret = bq2560x_charger_set_current(info, cur);
-		if (ret)
-			goto out;
-
-		ret = bq2560x_charger_start_charge(info);
-		if (ret)
-			goto out;
-
-		info->charging = true;
-	} else if ((!info->limit && info->charging) || !present) {
-		/* Stop charging */
-		info->charging = false;
-		bq2560x_charger_stop_charge(info);
-	}
-
-out:
-	mutex_unlock(&info->lock);
 	dev_info(info->dev, "battery present = %d, charger type = %d\n",
 		 present, info->usb_phy->chg_type);
 	cm_notify_event(info->psy_usb, CM_EVENT_CHG_START_STOP, NULL);

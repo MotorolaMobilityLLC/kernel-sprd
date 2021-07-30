@@ -189,9 +189,9 @@ static int  cx7601_enable_powerpath(struct cx7601_charger_info *info, bool en)
 	dev_err(info->dev,"%s; %d;\n", __func__,en);
 
 	if(en)
-		ret=cx7601_charger_set_vindpm(info, 4400);
+		ret=cx7601_charger_set_vindpm(info, 4520);
 	else	
-		ret=cx7601_charger_set_vindpm(info, 5400);
+		ret=cx7601_charger_set_vindpm(info, 5080);
 
 	return ret;
 }
@@ -300,15 +300,14 @@ static int cx7601_disable_watchdog_timer(struct cx7601_charger_info *info)
 
 	return cx7601_update_bits(info, CX7601_REG_05, REG05_WDT_MASK, val);
 }
-#if 0
+#ifdef TEST_CX7601
 static int cx7601_reset_watchdog_timer(struct cx7601_charger_info *info)
 {
 	u8 val = REG01_WDT_RESET << REG01_WDT_RESET_SHIFT;
 
 	return cx7601_update_bits(info, CX7601_REG_01, REG01_WDT_RESET_MASK, val);
 }
-#endif 
-#ifdef TEST_CX7601
+
 static int cx7601_reset_chip(struct cx7601_charger_info *info)
 {
 	int ret;
@@ -532,19 +531,19 @@ static int cx7601_disable_safety_timer(struct cx7601_charger_info *info)
 static int cx7601_trim(struct cx7601_charger_info *info)
 {
 	int ret;
-	u8 data;
+//	u8 data;
 	
-	ret = cx7601_write(info, 0x40, 0x50);
-	ret = cx7601_write(info, 0x40, 0x57);
-	ret = cx7601_write(info, 0x40, 0x44);
-	ret = cx7601_write(info, 0x83, 0x2D);
-	ret = cx7601_read(info, &data, 0x83);
-	if (data != 0x2C) {
-		pr_err("Failed to trim cx7601: reg=%02X, data=%02X\n", 0x83, data);
-	}
-	else {
-		pr_err("Trim cx7601 OK\n");
-	}
+//	ret = cx7601_write(info, 0x40, 0x50);
+//	ret = cx7601_write(info, 0x40, 0x57);
+//	ret = cx7601_write(info, 0x40, 0x44);
+//	ret = cx7601_write(info, 0x83, 0x2D);
+//	ret = cx7601_read(info, &data, 0x83);
+//	if (data != 0x2C) {
+//		pr_err("Failed to trim cx7601: reg=%02X, data=%02X\n", 0x83, data);
+//	}
+//	else {
+//		pr_err("Trim cx7601 OK\n");
+//	}
 	ret = cx7601_update_bits(info,0x84,0x03, 0x02);
 	ret = cx7601_write(info, 0x40, 0x00);
 	ret = cx7601_update_bits(info, CX7601_REG_0C, 0x20, 0x20); //BAT_LOADEN=1
@@ -897,52 +896,8 @@ static void cx7601_charger_work(struct work_struct *data)
 {
 	struct cx7601_charger_info *info =
 		container_of(data, struct cx7601_charger_info, work);
-	int limit_cur, cur, ret;
 	bool present = cx7601_charger_is_bat_present(info);
 
-	mutex_lock(&info->lock);
-
-	if (info->limit > 0 && !info->charging && present) {
-		/* set current limitation and start to charge */
-		switch (info->usb_phy->chg_type) {
-		case SDP_TYPE:
-			limit_cur = info->cur.sdp_limit;
-			cur = info->cur.sdp_cur;
-			break;
-		case DCP_TYPE:
-			limit_cur = info->cur.dcp_limit;
-			cur = info->cur.dcp_cur;
-			break;
-		case CDP_TYPE:
-			limit_cur = info->cur.cdp_limit;
-			cur = info->cur.cdp_cur;
-			break;
-		default:
-			limit_cur = info->cur.unknown_limit;
-			cur = info->cur.unknown_cur;
-		}
-
-		ret = cx7601_charger_set_limit_current(info, limit_cur);
-		if (ret)
-			goto out;
-
-		ret = cx7601_charger_set_current(info, cur);
-		if (ret)
-			goto out;
-
-		ret = cx7601_charger_start_charge(info);
-		if (ret)
-			goto out;
-
-		info->charging = true;
-	} else if ((!info->limit && info->charging) || !present) {
-		/* Stop charging */
-		info->charging = false;
-		cx7601_charger_stop_charge(info);
-	}
-
-out:
-	mutex_unlock(&info->lock);
 	dev_info(info->dev, "battery present = %d, charger type = %d\n",
 		 present, info->usb_phy->chg_type);
 	cm_notify_event(info->psy_usb, CM_EVENT_CHG_START_STOP, NULL);
@@ -1400,7 +1355,16 @@ static int cx7601_charger_probe(struct i2c_client *client,
 	info->client->addr = 0x6b;
 	info->dev = dev;
 
+	cx7601_write(info, 0x40, 0x50);
+	cx7601_write(info, 0x40, 0x57);
+	cx7601_write(info, 0x40, 0x44);
+	cx7601_write(info, 0x83, 0x2D);
+	cx7601_read(info, &val, 0x83);
+	dev_err(dev, "%s;enter;0x83=%x;\n",__func__,val);
+
+
 	cx7601_read(info, &val, CX7601_REG_0A);
+	dev_err(dev, "%s;%x;\n",__func__,val);
 	if( ((val & 0xe0) >>5) == 0x02  &&   (val & 0x07) == 0x00 )
 	       strncpy(charge_ic_vendor_name,"CX7601",20);
 	else
