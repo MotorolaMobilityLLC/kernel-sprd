@@ -622,6 +622,29 @@ int sc2355_send_cmd_recv_rsp(struct sprd_priv *priv, struct sprd_msg *msg, u8 *r
 	hdr = (struct sprd_cmd_hdr *)(msg->tran_data + priv->hif.hif_offset);
 	cmd_id = hdr->cmd_id;
 	ctx_id = hdr->common.mode;
+
+	if (atomic_read(&priv->hif.block_cmd_after_close) == 1) {
+		if (cmd_id != CMD_CLOSE) {
+			pr_info("%s need block cmd after close : %s\n",
+				__func__, cmdevt_cmd2str(cmd_id));
+			sprd_chip_free_msg(&priv->chip, msg);
+			kfree(msg->tran_data);
+			cmdevt_unlock_cmd(cmd);
+			goto out;
+		}
+	}
+
+	if (atomic_read(&priv->hif.change_iface_block_cmd) == 1) {
+		if (cmd_id != CMD_CLOSE && cmd_id != CMD_OPEN) {
+			pr_info("%s need block cmd while change iface : %s\n",
+				__func__, cmdevt_cmd2str(cmd_id));
+			sprd_chip_free_msg(&priv->chip, msg);
+			kfree(msg->tran_data);
+			cmdevt_unlock_cmd(cmd);
+			goto out;
+		}
+	}
+
 	reinit_completion(&cmd->completed);
 
 	ret = cmdevt_send_cmd(priv, msg);

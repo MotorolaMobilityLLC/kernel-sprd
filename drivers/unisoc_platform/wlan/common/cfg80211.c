@@ -108,13 +108,16 @@ static void cfg80211_do_work(struct work_struct *work)
 	struct sprd_priv *priv = container_of(work, struct sprd_priv, work);
 
 	while (1) {
-		if (list_empty(&priv->work_list))
-			return;
-
 		spin_lock_bh(&priv->work_lock);
+		if (list_empty(&priv->work_list)) {
+			spin_unlock_bh(&priv->work_lock);
+			return;
+		}
+
 		sprd_work = list_first_entry(&priv->work_list,
 					     struct sprd_work, list);
 		if (!sprd_work) {
+			pr_err("%s get sprd work error!\n", __func__);
 			spin_unlock_bh(&priv->work_lock);
 			return;
 		}
@@ -324,10 +327,35 @@ int sprd_cfg80211_change_iface(struct wiphy *wiphy, struct net_device *ndev,
 			       struct vif_params *params)
 {
 	struct sprd_vif *vif = netdev_priv(ndev);
-	enum nl80211_iftype old_type = vif->wdev.iftype;
+	enum nl80211_iftype old_type = NL80211_IFTYPE_UNSPECIFIED;
+	struct sprd_hif *hif = NULL;
 	int ret;
 
 	netdev_info(ndev, "%s type %d -> %d\n", __func__, old_type, type);
+
+	if (!vif || !vif->priv) {
+		netdev_err(ndev, "%s can not get vif or priv!\n", __func__);
+		return -ENODEV;
+	}
+
+	old_type = vif->wdev.iftype;
+	hif = &vif->priv->hif;
+	if (!hif) {
+		netdev_err(ndev, "%s can not get hif!\n", __func__);
+		return -ENODEV;
+	}
+
+	/*
+	 * hif->power_cnt = 1 means there is only one mode and all
+	 * of the mode are set to NONE after close command. but it
+	 * should not send any command between close and open,
+	 * change_iface_block_cmd need set to 1 to block other cmd.
+	 * more info please ref:1576772
+	 */
+	if (atomic_read(&hif->power_cnt) == 1) {
+		netdev_info(ndev, "hif->power_cnt is 1, need block command!\n");
+		atomic_set(&hif->change_iface_block_cmd, 1);
+	}
 
 	ret = sprd_uninit_fw(vif);
 	if (!ret) {
@@ -335,6 +363,11 @@ int sprd_cfg80211_change_iface(struct wiphy *wiphy, struct net_device *ndev,
 		ret = sprd_init_fw(vif);
 		if (ret)
 			vif->wdev.iftype = old_type;
+	}
+
+	if (atomic_read(&hif->change_iface_block_cmd) == 1) {
+		netdev_info(ndev, "block command finished, reset change_iface_block_cmd!\n");
+		atomic_set(&hif->change_iface_block_cmd, 0);
 	}
 
 	if (!ret && type == NL80211_IFTYPE_AP)
@@ -1142,12 +1175,23 @@ void sprd_cfg80211_stop_p2p_device(struct wiphy *wiphy,
 
 	netdev_info(vif->ndev, "%s\n", __func__);
 
+	/* hif->power_cnt = 1 means there is only one mode and
+	 * stop_marlin will be called after closed.but it should
+	 * not send any command between close and stop_marlin,
+	 * block_cmd_after_close need set to 1 to block other cmd.
+	 */
+	if (atomic_read(&hif->power_cnt) == 1)
+		atomic_set(&hif->block_cmd_after_close, 1);
+
 	sprd_report_scan_done(vif, true);
 	sprd_uninit_fw(vif);
 
 	wiphy_info(wiphy, "Power off WCN (%d time)\n",
 		   atomic_read(&hif->power_cnt));
 	sprd_hif_power_off(hif);
+
+	if (atomic_read(&hif->block_cmd_after_close) == 1)
+		atomic_set(&hif->block_cmd_after_close, 0);
 }
 
 int sprd_cfg80211_set_mac_acl(struct wiphy *wiphy, struct net_device *ndev,

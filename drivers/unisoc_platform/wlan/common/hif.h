@@ -199,6 +199,11 @@ struct sprd_hif {
 	int mbuf_num;
 	int pushfail_count;
 	int remove_flag;
+
+	/* block command before stop marlin */
+	atomic_t block_cmd_after_close;
+	/* block command while change iface */
+	atomic_t change_iface_block_cmd;
 };
 
 struct sprd_hif_ops {
@@ -261,11 +266,15 @@ static inline int sprd_hif_power_on(struct sprd_hif *hif)
 	if (atomic_read(&hif->power_cnt) != 1)
 		return 0;
 
-	if (start_marlin(MARLIN_WIFI))
+	if (start_marlin(MARLIN_WIFI)) {
+		atomic_sub(1, &hif->power_cnt);
 		return -ENODEV;
+	}
 
-	if (sprd_hif_post_init(hif))
+	if (sprd_hif_post_init(hif)) {
+		atomic_sub(1, &hif->power_cnt);
 		return -ENODEV;
+	}
 
 	/* need reset hif->exit flag, if wcn reset happened */
 	if (unlikely(hif->exit) || unlikely(hif->cp_asserted)) {
@@ -274,8 +283,10 @@ static inline int sprd_hif_power_on(struct sprd_hif *hif)
 			hif->ops->reset(hif);
 	}
 
-	if (sprd_sync_version(hif))
+	if (sprd_sync_version(hif)) {
+		atomic_sub(1, &hif->power_cnt);
 		return -EIO;
+	}
 
 	sprd_download_hw_param(hif);
 

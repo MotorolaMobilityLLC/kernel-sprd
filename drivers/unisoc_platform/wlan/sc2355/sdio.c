@@ -265,7 +265,7 @@ static int sdio_suspend_resume_handle(int chn, int mode)
 	if (hif->cp_asserted) {
 		pr_err("%s, %d, error! cp2 has asserted!\n", __func__,
 		       __LINE__);
-		return -EBUSY;
+		return 0;
 	}
 
 	if (mode == 0) {

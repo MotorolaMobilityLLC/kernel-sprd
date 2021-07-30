@@ -56,10 +56,12 @@ void sprd_clean_work(struct sprd_priv *priv)
 
 	cancel_work_sync(&priv->work);
 
+	spin_lock_bh(&priv->work_lock);
 	list_for_each_entry_safe(sprd_work, pos, &priv->work_list, list) {
 		list_del(&sprd_work->list);
 		kfree(sprd_work);
 	}
+	spin_unlock_bh(&priv->work_lock);
 
 	flush_workqueue(priv->common_workq);
 }

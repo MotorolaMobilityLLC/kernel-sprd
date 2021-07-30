@@ -355,10 +355,21 @@ static int iface_close(struct net_device *ndev)
 	if (netif_carrier_ok(ndev))
 		netif_carrier_off(ndev);
 
+	/* hif->power_cnt = 1 means there is only one mode and
+	 * stop_marlin will be called after closed.but it should
+	 * not send any command between close and stop_marlin,
+	 * block_cmd_after_close need set to 1 to block other cmd.
+	 */
+	if (atomic_read(&hif->power_cnt) == 1)
+		atomic_set(&hif->block_cmd_after_close, 1);
+
 	sprd_uninit_fw(vif);
 	netdev_info(ndev, "Power off WCN (%d time)\n",
 		    atomic_read(&hif->power_cnt));
 	sprd_hif_power_off(hif);
+
+	if (atomic_read(&hif->block_cmd_after_close) == 1)
+		atomic_set(&hif->block_cmd_after_close, 0);
 
 	return 0;
 }

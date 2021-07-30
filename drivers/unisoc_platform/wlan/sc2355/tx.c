@@ -475,6 +475,19 @@ static void tx_prepare_addba(struct sprd_hif *hif, unsigned char lut_index,
 	    peer_entry->vowifi_enabled != 1 &&
 	    !test_bit(tid, &peer_entry->ba_tx_done_map)) {
 		struct timespec time;
+		struct sprd_vif *vif;
+
+		vif = sc2355_ctxid_to_vif(hif->priv, peer_entry->ctx_id);
+		if (!vif) {
+			pr_err("can not get vif base peer_entry ctx id\n");
+			return;
+		}
+
+		if (vif->mode == SPRD_MODE_STATION ||
+		    vif->mode == SPRD_MODE_P2P_CLIENT) {
+			if (!peer_entry->ip_acquired)
+				return;
+		}
 
 		getnstimeofday(&time);
 		/*need to delay 3s if priv addba failed */
