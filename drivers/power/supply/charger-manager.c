@@ -1246,6 +1246,19 @@ static bool is_full_charged(struct charger_manager *cm)
 		if (ret)
 			goto out;
 
+		/* Battery is already full, checks voltage drop. */
+		if (cm->battery_status == POWER_SUPPLY_STATUS_FULL && desc->fullbatt_vchkdrop_uV) {
+			int batt_ocv;
+
+			ret = get_batt_ocv(cm, &batt_ocv);
+			if (ret)
+				goto out;
+
+			if (batt_ocv > (cm->desc->fullbatt_uV - cm->desc->fullbatt_vchkdrop_uV))
+				is_full = true;
+			goto out;
+		}
+
 		if (desc->first_fullbatt_uA > 0 && uV >= desc->fullbatt_uV &&
 		    uA > desc->fullbatt_uA && uA <= desc->first_fullbatt_uA && uA >= 0) {
 			if (++desc->first_trigger_cnt > 1)
@@ -3720,6 +3733,9 @@ static int cm_get_target_status(struct charger_manager *cm)
 		dev_warn(cm->dev, "Charging duration is still abnormal\n");
 		return POWER_SUPPLY_STATUS_NOT_CHARGING;
 	}
+
+	if (is_full_charged(cm))
+		return POWER_SUPPLY_STATUS_FULL;
 	/* Charging is allowed. */
 	return POWER_SUPPLY_STATUS_CHARGING;
 }
@@ -3733,57 +3749,39 @@ static int cm_get_target_status(struct charger_manager *cm)
  */
 static bool _cm_monitor(struct charger_manager *cm)
 {
-	int target, i;
+	int i;
 	static int last_target = -1;
 
 	for (i = 0; i < cm->desc->num_charger_regulators; i++) {
 		if (cm->desc->charger_regulators[i].externally_control) {
 			dev_info(cm->dev, "Charger has been controlled externally, so no need monitoring\n");
+			last_target = -1;
 			return false;
 		}
 	}
 
-	target = cm_get_target_status(cm);
+	cm->battery_status = cm_get_target_status(cm);
 
-	if (target == POWER_SUPPLY_STATUS_CHARGING) {
-		/*
-		 * Check dropped voltage of battery. If battery voltage is more
-		 * dropped than fullbatt_vchkdrop_uV after fully charged state,
-		 * charger-manager have to recharge battery.
-		 */
-		if (!cm->charger_enabled && last_target == POWER_SUPPLY_STATUS_FULL) {
-			fullbatt_vchk(&cm->fullbatt_vchk_work.work);
-			if (!cm->charger_enabled)
-				target = POWER_SUPPLY_STATUS_FULL;
-		/*
-		 * Check whether fully charged state to protect overcharge
-		 * if charger-manager is charging for battery.
-		 */
-		} else if (is_full_charged(cm) && cm->charger_enabled) {
-			try_charger_enable(cm, false);
-			fullbatt_vchk(&cm->fullbatt_vchk_work.work);
-			if (!cm->charger_enabled)
-				target = POWER_SUPPLY_STATUS_FULL;
-		} else {
-			cm->emergency_stop = 0;
-			cm->charging_status = 0;
-			try_charger_enable(cm, true);
-			if (cm_is_need_start_cp(cm)) {
-				dev_info(cm->dev, "%s, reach pps threshold\n", __func__);
-				cm_start_cp_state_machine(cm, true);
-			}
+	if (cm->battery_status == POWER_SUPPLY_STATUS_CHARGING) {
+		cm->emergency_stop = 0;
+		cm->charging_status = 0;
+		try_charger_enable(cm, true);
+		if (cm_is_need_start_cp(cm)) {
+			dev_info(cm->dev, "%s, reach pps threshold\n", __func__);
+			cm_start_cp_state_machine(cm, true);
 		}
 	} else {
 		try_charger_enable(cm, false);
 	}
 
-	if (last_target != target) {
-		last_target = target;
+	if (last_target != cm->battery_status) {
+		last_target = cm->battery_status;
 		power_supply_changed(cm->charger_psy);
 	}
 
-	dev_info(cm->dev, "target %d, charging_status %d\n", target, cm->charging_status);
-	return (target == POWER_SUPPLY_STATUS_NOT_CHARGING);
+	dev_info(cm->dev, "battery_status %d, charging_status %d\n",
+		 cm->battery_status, cm->charging_status);
+	return (cm->battery_status == POWER_SUPPLY_STATUS_NOT_CHARGING);
 }
 
 /**
@@ -4165,15 +4163,16 @@ static int charger_get_property(struct power_supply *psy,
 	switch (psp) {
 	case POWER_SUPPLY_PROP_STATUS:
 		if (is_charging(cm)) {
-			val->intval = POWER_SUPPLY_STATUS_CHARGING;
+			cm->battery_status = POWER_SUPPLY_STATUS_CHARGING;
 		} else if (is_ext_pwr_online(cm)) {
 			if (is_full_charged(cm))
-				val->intval = POWER_SUPPLY_STATUS_FULL;
+				cm->battery_status = POWER_SUPPLY_STATUS_FULL;
 			else
-				val->intval = POWER_SUPPLY_STATUS_NOT_CHARGING;
+				cm->battery_status = POWER_SUPPLY_STATUS_NOT_CHARGING;
 		} else {
-			val->intval = POWER_SUPPLY_STATUS_DISCHARGING;
+			cm->battery_status = POWER_SUPPLY_STATUS_DISCHARGING;
 		}
+		val->intval = cm->battery_status;
 		break;
 
 	case POWER_SUPPLY_PROP_HEALTH:
@@ -4892,6 +4891,7 @@ static ssize_t charger_stop_store(struct device *dev,
 		charger->externally_control = true;
 	}
 
+	power_supply_changed(cm->charger_psy);
 	return count;
 }
 
@@ -5841,7 +5841,7 @@ static void cm_batt_works(struct work_struct *work)
 	struct charger_manager *cm = container_of(dwork,
 				struct charger_manager, cap_update_work);
 	struct timespec64 cur_time;
-	int batt_uV, batt_ocV, batt_uA, fuel_cap, chg_sts, ret;
+	int batt_uV, batt_ocV, batt_uA, fuel_cap, ret;
 	int period_time, flush_time, cur_temp, board_temp = 0;
 	int chg_cur = 0, chg_limit_cur = 0, input_cur = 0;
 	int chg_vol = 0, vbat_avg = 0, ibat_avg = 0, recharge_uv = 0;
@@ -5930,19 +5930,19 @@ static void cm_batt_works(struct work_struct *work)
 	cur_time = ktime_to_timespec64(ktime_get_boottime());
 
 	if (is_full_charged(cm))
-		chg_sts = POWER_SUPPLY_STATUS_FULL;
+		cm->battery_status = POWER_SUPPLY_STATUS_FULL;
 	else if (is_charging(cm))
-		chg_sts = POWER_SUPPLY_STATUS_CHARGING;
+		cm->battery_status = POWER_SUPPLY_STATUS_CHARGING;
 	else if (is_ext_pwr_online(cm))
-		chg_sts = POWER_SUPPLY_STATUS_NOT_CHARGING;
+		cm->battery_status = POWER_SUPPLY_STATUS_NOT_CHARGING;
 	else
-		chg_sts = POWER_SUPPLY_STATUS_DISCHARGING;
+		cm->battery_status = POWER_SUPPLY_STATUS_DISCHARGING;
 
 	/*
 	 * Record the charging time when battery
 	 * capacity is larger than 99%.
 	 */
-	if (chg_sts == POWER_SUPPLY_STATUS_CHARGING) {
+	if (cm->battery_status == POWER_SUPPLY_STATUS_CHARGING) {
 		if (cm->desc->cap >= 986) {
 			cm->desc->trickle_time =
 				cur_time.tv_sec - cm->desc->trickle_start_time;
@@ -5963,7 +5963,7 @@ static void cm_batt_works(struct work_struct *work)
 	if (cm->desc->force_set_full && is_ext_pwr_online(cm))
 		cm->desc->charger_status = POWER_SUPPLY_STATUS_FULL;
 	else
-		cm->desc->charger_status = chg_sts;
+		cm->desc->charger_status = cm->battery_status;
 
 	dev_info(cm->dev, "vbat: %d, vbat_avg: %d, OCV: %d, ibat: %d, ibat_avg: %d, ibus: %d,"
 		 " vbus: %d, msoc: %d, chg_sts: %d, frce_full: %d, chg_lmt_cur: %d,"

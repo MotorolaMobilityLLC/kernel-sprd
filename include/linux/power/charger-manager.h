@@ -781,6 +781,7 @@ struct charger_desc {
  * @charging_start_time: saved start time of enabling charging
  * @charging_end_time: saved end time of disabling charging
  * @charging_status: saved charging status, 0 means charging normal
+ * @battery_status: Current battery status
  * @charge_ws: wakeup source to prevent ap enter sleep mode in charge
  *	pump mode
  */
@@ -809,6 +810,7 @@ struct charger_manager {
 	u64 charging_start_time;
 	u64 charging_end_time;
 	u32 charging_status;
+	int battery_status;
 	struct cm_track_capacity track;
 
 	struct wakeup_source *charge_ws;
