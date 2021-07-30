@@ -22,13 +22,6 @@
 #define GNSS_FIRMWARE_MAX_SIZE 0x58000
 #endif
 
-/* Mutex macro */
-#if (!defined CONFIG_WCN_INTEG) && (!defined CONFIG_SC2355) && \
-	(!defined CONFIG_UMW2652) && (!defined CONFIG_UMW2653)
-#define DUMP_PACKET_SIZE        (1024)
-#define GNSS_CP_START_ADDR      0x40A20000
-#define GNSS_FIRMWARE_MAX_SIZE 0x58000
-
 #endif
 
 

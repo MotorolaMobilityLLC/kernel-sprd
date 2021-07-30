@@ -15,12 +15,7 @@
 
 #include <linux/bug.h>
 #include <linux/delay.h>
-#ifdef CONFIG_WCN_INTEG
-#include "gnss.h"
-#include <misc/wcn_integrate_platform.h>
-#else
 #include <misc/marlin_platform.h>
-#endif
 #include <linux/init.h>
 #include <linux/kernel.h>
 #include <linux/miscdevice.h>
@@ -59,7 +54,6 @@ enum gnss_status_e {
 	GNSS_STATUS_POWERON_GOING,
 	GNSS_STATUS_MAX,
 };
-#ifdef CONFIG_WCN_INTEG
 enum gnss_cp_status_subtype {
 	GNSS_CP_STATUS_CALI = 1,
 	GNSS_CP_STATUS_INIT = 2,
@@ -70,14 +64,32 @@ enum gnss_cp_status_subtype {
 	GNSS_CP_STATUS__MAX,
 };
 
-#endif
 static unsigned int gnssver = 0x22;
 static const struct of_device_id gnss_common_ctl_of_match[] = {
 	{.compatible = "sprd,gnss", .data = (void *)&gnssver},
 	{},
 };
 
-#if defined(CONFIG_UMW2652) || defined(CONFIG_UMW2631_I)
+static int isM3lite(void)
+{
+	int iRet = FALSE;
+
+#ifdef CONFIG_UMW2652
+	iRet = TRUE;
+#endif
+	return iRet;
+}
+
+static int isQogirl6(void)
+{
+	int iRet = FALSE;
+
+	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6)
+		iRet = TRUE;
+
+	return iRet;
+}
+
 static void gnss_tsen_enable(int type)
 {
 	struct platform_device *pdev_regmap;
@@ -87,6 +99,13 @@ static void gnss_tsen_enable(int type)
 	int ret;
 	unsigned int value, temp;
 	struct device *dev = gnss_common_ctl_dev.dev;
+
+	dev_err(dev, "%s M3l=[%d],L6=[%d]\n", __func__, isM3lite(), isQogirl6());
+
+	if ((isM3lite() == FALSE) && (isQogirl6() == FALSE)) {
+		dev_err(dev, "%s not M3lite or L6\n", __func__);
+		return;
+	}
 
 	if (base == 0) {
 		regmap_np = of_find_compatible_node(NULL, NULL,
@@ -165,6 +184,12 @@ static void gnss_tsen_disable(int type)
 	unsigned int value, temp;
 	struct device *dev = gnss_common_ctl_dev.dev;
 
+	dev_err(dev, "%s M3l=[%d],L6=[%d]\n", __func__, isM3lite(), isQogirl6());
+
+	if ((isM3lite() == FALSE) && (isQogirl6() == FALSE)) {
+		dev_err(dev, "%s not M3lite or L6\n", __func__);
+		return;
+	}
 	if (base == 0) {
 		regmap_np = of_find_compatible_node(NULL, NULL,
 						    "sprd,sc27xx-syscon");
@@ -213,14 +238,19 @@ static void gnss_tsen_disable(int type)
 
 	of_node_put(regmap_np);
 }
-#endif
 
-#ifdef CONFIG_UMW2631_I
 static void gnss_tcxo_enable(void)
 {
 	u32 val_buf;
 	u32 val_ctl;
 	struct device *dev = gnss_common_ctl_dev.dev;
+
+	dev_err(dev, "%s M3l=[%d],L6=[%d]\n", __func__, isM3lite(), isQogirl6());
+
+	if ((isM3lite() == FALSE) && (isQogirl6() == FALSE)) {
+		dev_err(dev, "%s not M3lite or L6\n", __func__);
+		return;
+	}
 
 	wcn_read_data_from_phy_addr(XTLBUF3_REL_CFG_ADDR, (void *)&val_buf, 4);
 	wcn_read_data_from_phy_addr(WCN_XTL_CTRL_ADDR, (void *)&val_ctl, 4);
@@ -247,6 +277,13 @@ static void gnss_tcxo_disable(void)
 	u32 val_ctl;
 	struct device *dev = gnss_common_ctl_dev.dev;
 
+	dev_err(dev, "%s M3l=[%d],L6=[%d]\n", __func__, isM3lite(), isQogirl6());
+
+	if ((isM3lite() == FALSE) && (isQogirl6() == FALSE)) {
+		dev_err(dev, "%s not M3lite or L6\n", __func__);
+		return;
+	}
+
 	wcn_read_data_from_phy_addr(XTLBUF3_REL_CFG_ADDR, (void *)&val_buf, 4);
 	wcn_read_data_from_phy_addr(WCN_XTL_CTRL_ADDR, (void *)&val_ctl, 4);
 	dev_info(dev, "tcxo_dis 1read buf=%x ctl=%x\n", val_buf, val_ctl);
@@ -266,34 +303,27 @@ static void gnss_tcxo_disable(void)
 	wcn_read_data_from_phy_addr(WCN_XTL_CTRL_ADDR, (void *)&val_ctl, 4);
 	dev_info(dev, "tcxo_dis 2read buf=%x ctl=%x\n", val_buf, val_ctl);
 }
-#endif
 
 static void gnss_power_on(bool enable)
 {
 	int ret;
 	struct device *dev = gnss_common_ctl_dev.dev;
 
-	dev_info(dev, "%s en=%d,status=%d v1.0\n", __func__,
+	dev_info(dev, "%s en=%d,status=%d v3.0\n", __func__,
 		 enable, gnss_common_ctl_dev.gnss_status);
 
-#if defined(CONFIG_UMW2652) || defined(CONFIG_UMW2631_I)
 	dev_info(dev, "%s clktp=%d\n", __func__, wcn_get_xtal_26m_clk_type());
-#endif
 
 	if (enable && gnss_common_ctl_dev.gnss_status == GNSS_STATUS_POWEROFF) {
 		gnss_common_ctl_dev.gnss_status = GNSS_STATUS_POWERON_GOING;
-#ifdef CONFIG_UMW2652
-		if (wcn_get_xtal_26m_clk_type() == WCN_CLOCK_TYPE_TSX)
-			gnss_tsen_enable(TSEN_EXT);
-#endif
-#ifdef CONFIG_UMW2631_I
+
+		/* only marlin3lite and qogirl6 need */
 		if (wcn_get_xtal_26m_clk_type() == WCN_CLOCK_TYPE_TSX)
 			gnss_tsen_enable(TSEN_EXT);
 		else if (wcn_get_xtal_26m_clk_type() == WCN_CLOCK_TYPE_TCXO)
 			gnss_tcxo_enable();
 		else
 			dev_info(dev, "%s: unknown clk_type\n", __func__);
-#endif
 
 		ret = start_marlin(gnss_common_ctl_dev.gnss_subsys);
 		if (ret != 0)
@@ -305,18 +335,14 @@ static void gnss_power_on(bool enable)
 	} else if (!enable && gnss_common_ctl_dev.gnss_status
 			== GNSS_STATUS_POWERON) {
 		gnss_common_ctl_dev.gnss_status = GNSS_STATUS_POWEROFF_GOING;
-#ifdef CONFIG_UMW2652
-		if (wcn_get_xtal_26m_clk_type() == WCN_CLOCK_TYPE_TSX)
-			gnss_tsen_disable(TSEN_EXT);
-#endif
-#ifdef CONFIG_UMW2631_I
+
+		/* only marlin3lite and qogirl6 need */
 		if (wcn_get_xtal_26m_clk_type() == WCN_CLOCK_TYPE_TSX)
 			gnss_tsen_disable(TSEN_EXT);
 		else if (wcn_get_xtal_26m_clk_type() == WCN_CLOCK_TYPE_TCXO)
 			gnss_tcxo_disable();
 		else
 			dev_info(dev, "%s: unknown clk_type\n", __func__);
-#endif
 
 		ret = stop_marlin(gnss_common_ctl_dev.gnss_subsys);
 		if (ret != 0)
@@ -409,13 +435,17 @@ static DEVICE_ATTR_RW(gnss_subsys);
 static int gnss_status_get(void)
 {
 	phys_addr_t phy_addr;
+	phys_addr_t addr_offset;
 	u32 magic_value = 0;
 	struct device *dev = gnss_common_ctl_dev.dev;
 
-	phy_addr = wcn_get_gnss_base_addr() + GNSS_STATUS_OFFSET;
-#ifdef CONFIG_UMW2631_I
-	phy_addr = wcn_get_gnss_base_addr() + GNSS_QOGIRL6_STATUS_OFFSET;
-#endif
+	if (isQogirl6() == TRUE)
+		addr_offset = GNSS_QOGIRL6_STATUS_OFFSET;
+	else
+		addr_offset = GNSS_STATUS_OFFSET;
+
+	phy_addr = wcn_get_gnss_base_addr() + addr_offset;
+
 	wcn_read_data_from_phy_addr(phy_addr, &magic_value, sizeof(u32));
 	dev_info(dev, "%s magic_value=%d\n", __func__, magic_value);
 
@@ -520,7 +550,6 @@ static ssize_t gnss_status_show(struct device *dev,
 }
 static DEVICE_ATTR_RO(gnss_status);
 
-#if defined(CONFIG_UMW2652) || defined(CONFIG_UMW2631_I)
 static ssize_t gnss_clktype_show(struct device *dev,
 				 struct device_attribute *attr, char *buf)
 {
@@ -534,7 +563,6 @@ static ssize_t gnss_clktype_show(struct device *dev,
 	return i;
 }
 static DEVICE_ATTR_RO(gnss_clktype);
-#endif
 
 #ifndef CONFIG_WCN_INTEG
 static uint gnss_op_reg;
@@ -628,9 +656,7 @@ static struct attribute *gnss_common_ctl_attrs[] = {
 	&dev_attr_gnss_dump.attr,
 	&dev_attr_gnss_status.attr,
 	&dev_attr_gnss_subsys.attr,
-#if defined(CONFIG_UMW2652) || defined(CONFIG_UMW2631_I)
 	&dev_attr_gnss_clktype.attr,
-#endif
 #ifndef CONFIG_WCN_INTEG
 	&dev_attr_gnss_regr.attr,
 	&dev_attr_gnss_regaddr.attr,
@@ -656,7 +682,7 @@ static int gnss_common_ctl_probe(struct platform_device *pdev)
 	int ret;
 	const struct of_device_id *of_id;
 
-	dev_info(&pdev->dev, "%s V2.0 entry\n", __func__);
+	dev_info(&pdev->dev, "%s V3.1 entry\n", __func__);
 
 	gnss_common_ctl_dev.dev = &pdev->dev;
 	gnss_common_ctl_dev.gnss_status = GNSS_STATUS_POWEROFF;
