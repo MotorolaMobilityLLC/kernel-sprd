@@ -312,25 +312,6 @@ struct charger_jeita_table {
 	int term_volt;
 };
 
-enum cm_track_state {
-	CAP_TRACK_INIT,
-	CAP_TRACK_IDLE,
-	CAP_TRACK_UPDATING,
-	CAP_TRACK_DONE,
-	CAP_TRACK_ERR,
-};
-
-struct cm_track_capacity {
-	enum cm_track_state state;
-	int start_clbcnt;
-	int start_cap;
-	int end_vol;
-	int end_cur;
-	s64 start_time;
-	bool cap_tracking;
-	struct delayed_work track_capacity_work;
-};
-
 /*
  * struct cap_remap_table
  * @cnt: record the counts of battery capacity of this scope
@@ -811,7 +792,6 @@ struct charger_manager {
 	u64 charging_end_time;
 	u32 charging_status;
 	int battery_status;
-	struct cm_track_capacity track;
 
 	struct wakeup_source *charge_ws;
 	struct sprd_vote *cm_charge_vote;
