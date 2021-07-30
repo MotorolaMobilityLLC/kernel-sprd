@@ -99,8 +99,15 @@ static long map_user_ioctl(struct file *file,
 	return 0;
 }
 
-/* Temporary disable compat ioctl for building issue */
-#if 0
+#ifdef CONFIG_COMPAT
+#define COMPAT_MAP_USER_VIR  _IOWR(SPRD_MAP_IOCTRL_MAGIC, 0, \
+				   struct compat_sprd_pmem_info)
+
+struct compat_sprd_pmem_info {
+	compat_ulong_t phy_addr;
+	compat_uint_t phys_offset;
+	compat_size_t size;
+};
 static int compat_get_map_user_data(
 			       struct compat_sprd_pmem_info __user *data32,
 			       struct sprd_pmem_info  __user *data)
@@ -120,7 +127,7 @@ static int compat_get_map_user_data(
 	return err;
 }
 
-long compat_map_user_ioctl(struct file *filp, unsigned int cmd,
+static long compat_map_user_ioctl(struct file *filp, unsigned int cmd,
 		     unsigned long arg)
 {
 	struct compat_sprd_pmem_info __user *data32;
