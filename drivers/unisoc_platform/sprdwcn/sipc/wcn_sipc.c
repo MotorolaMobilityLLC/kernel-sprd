@@ -60,7 +60,6 @@
 
 static struct wcn_sipc_info_t g_sipc_info = {0};
 
-
 /* default sipc channel info */
 /* at/bt/fm use sbuf channel 4:  */
 /* at bufid 5  bt bufid(tx 11 rx 10) fm bufid(tx 14 rx 13) */
@@ -460,6 +459,25 @@ static void wcn_sipc_sbuf_push_list_dequeue(struct sipc_chn_info *sipc_chn)
 	wcn_sipc_pop_list_flush(sipc_chn);
 }
 
+int wcn_check_sbuf_status(u8 dst, u8 channel)
+{
+	unsigned long timeout;
+
+	timeout = jiffies + msecs_to_jiffies(1000);
+	while (1) {
+		if (!sbuf_status(dst, channel)) {
+			break;
+		} else if (time_after(jiffies, timeout)) {
+			WCN_INFO("channel %d-%d is not ready!\n",
+				 dst, channel);
+			return -E_INVALIDPARA;
+		}
+		msleep(20);
+	}
+
+	return 0;
+}
+
 static int wcn_sipc_sbuf_push(u8 index,
 			struct mbuf_t *head, struct mbuf_t *tail, int num)
 {
@@ -468,6 +486,8 @@ static int wcn_sipc_sbuf_push(u8 index,
 	if (SIPC_INVALID_CHN(index))
 		return -E_INVALIDPARA;
 	sipc_chn = SIPC_CHN(index);
+	if (wcn_check_sbuf_status(sipc_chn->dst, sipc_chn->chn))
+		return -E_INVALIDPARA;
 
 	wcn_sipc_record_mbuf_recv_from_user(index, num);
 	wcn_sipc_push_list_enqueue(sipc_chn, head, tail, num);
@@ -556,14 +576,21 @@ static int wcn_sipc_sblk_send(struct sipc_chn_info *sipc_chn,
 	}
 	WCN_HERE_CHN(sipc_chn->index);
 	if (blk.length < len) {
-		WCN_ERR("[%s]:The size of sblock is so tiny!\n",
-			sipc_chn_tostr(sipc_chn->chn, 0));
+		WCN_ERR("[%s]:The size of sblock is so tiny!len:%d,blk.length:%d\n",
+			sipc_chn_tostr(sipc_chn->chn, 0), len, blk.length);
 		sblock_put(sipc_chn->dst, sipc_chn->chn, &blk);
 		WARN_ON(1);
 		return E_INVALIDPARA;
 	}
 	addr = (u8 *)blk.addr + SIPC_SBLOCK_HEAD_RESERV;
 	blk.length = len + SIPC_SBLOCK_HEAD_RESERV;
+	if (sipc_chn->index == SIPC_WIFI_DATA0_TX)
+	    WCN_DEBUG("sipc sblk send. buf: %p, addr: %p, blk.length: %d\n",
+		     buf, addr, blk.length);
+	if (!buf) {
+		WCN_ERR("buf is null. buf: %p\n", buf);
+		return E_INVALIDPARA;
+	}
 	memcpy(((u8 *)addr), buf, len);
 	ret = sblock_send_prepare(sipc_chn->dst, sipc_chn->chn, &blk);
 	WCN_HERE_CHN(sipc_chn->index);
@@ -622,6 +649,19 @@ static void wcn_sipc_sblk_push_list_dequeue(struct sipc_chn_info *sipc_chn)
 	WCN_HERE_CHN(sipc_chn->index);
 }
 
+int wcn_sipc_sblk_chn_rx_status_check(u8 index)
+{
+	struct sipc_chn_info *sipc_chn;
+
+	sipc_chn = SIPC_CHN(index + 1);
+	if (!sipc_chn->sipc_chn_status) {
+		WCN_ERR("chn status(%d)! sipc_chn(%d)\n",
+				 sipc_chn->sipc_chn_status, sipc_chn->chn);
+		return -E_INVALIDPARA;
+	} else
+	return 0;
+}
+
 static int wcn_sipc_sblk_push(u8 index,
 			struct mbuf_t *head, struct mbuf_t *tail, int num)
 {
@@ -629,6 +669,10 @@ static int wcn_sipc_sblk_push(u8 index,
 
 	if (unlikely(SIPC_INVALID_CHN(index)))
 		return -E_INVALIDPARA;
+
+	if (wcn_sipc_sblk_chn_rx_status_check(index))
+		return -E_INVALIDPARA;
+
 	sipc_chn = SIPC_CHN(index);
 	wcn_sipc_record_mbuf_recv_from_user(index, num);
 	wcn_sipc_push_list_enqueue(sipc_chn, head, tail, num);
@@ -651,6 +695,9 @@ static void wcn_sipc_sblk_recv(struct sipc_chn_info *sipc_chn)
 		length = blk.length - SIPC_SBLOCK_HEAD_RESERV;
 		WCN_DEBUG("sblk length %d", length);
 		wcn_sipc_record_mbuf_recv_from_bus(sipc_chn->index, 1);
+		if (sipc_chn->index == SIPC_WIFI_DATA0_RX)
+			WCN_DEBUG("sipc sblk send. blk.addr: %p, length: %d\n",
+				 blk.addr, length);
 		wcn_sipc_recv(sipc_chn,
 			      (u8 *)blk.addr + SIPC_SBLOCK_HEAD_RESERV, length);
 		ret = sblock_release(sipc_chn->dst, sipc_chn->chn, &blk);
@@ -658,6 +705,16 @@ static void wcn_sipc_sblk_recv(struct sipc_chn_info *sipc_chn)
 			WCN_ERR("release sblock[%d] err:%d\n",
 				sipc_chn->chn, ret);
 	}
+}
+
+void wcn_sipc_chn_set_status(void *data, bool flag)
+{
+	struct sipc_chn_info *sipc_chn = (struct sipc_chn_info *)data;
+
+	if (flag)
+		sipc_chn->sipc_chn_status = true;
+	else
+		sipc_chn->sipc_chn_status = false;
 }
 
 static void wcn_sipc_sblk_notifer(int event, void *data)
@@ -675,6 +732,12 @@ static void wcn_sipc_sblk_notifer(int event, void *data)
 	/* SBLOCK_NOTIFY_GET sblock release */
 	case SBLOCK_NOTIFY_GET:
 		wcn_sipc_wakeup_tx(sipc_chn);
+		break;
+	case SBLOCK_NOTIFY_OPEN:
+		wcn_sipc_chn_set_status(sipc_chn, true);
+		break;
+	case SBLOCK_NOTIFY_CLOSE:
+		wcn_sipc_chn_set_status(sipc_chn, false);
 		break;
 	default:
 		WCN_ERR("Invalid event sblock notify:%d\n", event);
@@ -767,11 +830,11 @@ int wcn_sipc_chn_work_init(struct sipc_chn_info *sipc_chn)
 {
 	sipc_chn->wcn_sipc_thread = kthread_create(wcn_sipc_work_func, sipc_chn,
 			"WCN_SIPC_TX_THREAD%u", sipc_chn->index);
+	init_completion(&sipc_chn->callback_complete);
 	if (sipc_chn->wcn_sipc_thread)
 		wake_up_process(sipc_chn->wcn_sipc_thread);
 	else
 		WCN_ERR("%s create a new thread failed\n", __func__);
-	init_completion(&sipc_chn->callback_complete);
 
 	return 0;
 }

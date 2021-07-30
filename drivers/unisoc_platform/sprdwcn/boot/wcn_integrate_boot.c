@@ -51,6 +51,38 @@ void wcn_device_poweroff(void)
 	WCN_INFO("all subsys power off finish!\n");
 }
 
+static void wcn_assert_to_reset_mdbg(void)
+{
+	wcn_chip_power_off();
+}
+
+static int wcn_sys_chip_reset(struct notifier_block *this, unsigned long ev, void *ptr)
+{
+	WCN_INFO("%s: reset callback coming\n", __func__);
+	wcn_assert_to_reset_mdbg();
+
+	return NOTIFY_DONE;
+}
+
+static struct notifier_block wcn_reset_block = {
+	.notifier_call = wcn_sys_chip_reset,
+};
+
+int wcn_reset_mdbg_notifier_init(void)
+{
+	atomic_notifier_chain_register(&wcn_reset_notifier_list,
+				       &wcn_reset_block);
+
+	return 0;
+}
+
+int wcn_reset_mdbg_notifier_deinit(void)
+{
+	atomic_notifier_chain_unregister(&wcn_reset_notifier_list,
+				       &wcn_reset_block);
+
+	return 0;
+}
 void integ_wcn_chip_power_off(void)
 {
 	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
@@ -1324,10 +1356,10 @@ int wcn_sys_forbid_deep_sleep(struct wcn_device *wcn_dev)
 		WCN_ERR("[-]%s NULL\n", __func__);
 		return -1;
 	}
-
+	/* clear force btwf top aon */
+	btwf_clear_force_deepsleep_aontop(wcn_dev);
 	/* force btwf sys exit deep, and then force wcn sys exit deep */
 	btwf_sys_force_exit_deep_sleep(wcn_dev);
-
 	btwf_sys_polling_wakeup(wcn_dev);
 	btwf_sys_polling_poweron(wcn_dev);
 	wcn_sys_polling_wakeup(wcn_dev);
@@ -1808,10 +1840,33 @@ int btwf_sys_poweron(struct wcn_device *wcn_dev)
 	WCN_INFO("Set REG 0x4080c098:val=0x%x(clr auto shutdown)!\n",
 		      reg_val);
 
+	/* [SharkL6][WCN]BTWF poweron add reg set bit[2]=0*/
+	reg_val &= (~(0x1<<2));
+	wcn_regmap_raw_write_bit(
+			wcn_dev->rmap[REGMAP_WCN_AON_APB],
+			0x0098, reg_val);
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_APB],
+				 0x0098, &reg_val);
+	WCN_INFO("Set REG 0x4080c098:val=0x%x!(btwf_ss_arm_sys_power_down)\n",
+			 reg_val);
+
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_AON_APB],
+				 0x0354, &reg_val);
+	WCN_INFO("REG 0x64000354:val=0x%x!\n", reg_val);
+	reg_val = 0;
+	wcn_regmap_raw_write_bit(wcn_dev->rmap[REGMAP_AON_APB],
+				 0x0354, reg_val);
+	WCN_INFO("Set REG 0x64000354:val=0x%x!\n", reg_val);
+
+
 	/* check btwf sys power on whether succ */
-	if ((btwf_sys_polling_wakeup(wcn_dev) == false) &&
-		btwf_sys_polling_poweron(wcn_dev) == false) {
+	if (btwf_sys_polling_wakeup(wcn_dev) == false) {
 		WCN_ERR("[-]%s btwf sys wakeup fail\n", __func__);
+		return -1;
+	}
+
+	if (btwf_sys_polling_poweron(wcn_dev) == false) {
+		WCN_ERR("[-]%s btwf sys poweron fail\n", __func__);
 		return -1;
 	}
 
@@ -2135,18 +2190,12 @@ int btwf_sys_shutdown(struct wcn_device *wcn_dev)
 
 	if (btwf_sys_polling_deepsleep(wcn_dev) == false) {
 		WCN_ERR("[-]%s btwf sys deep fail\n", __func__);
-
-		/* force assert */
-		wcn_assert_interface(0, "btwf sys deepsleep fail");
-		return -1;
+		btwf_force_deepsleep_aontop(wcn_dev);
 	}
 
 	if (btwf_sys_polling_powerdown(wcn_dev) == false) { /* shutdown fail */
 		WCN_ERR("[-]%s btwf sys shutdown fail\n", __func__);
-
-		/* force assert */
-		wcn_assert_interface(0, "btwf sys shutdown fail");
-		return -1;
+		btwf_force_shutdown_aontop(wcn_dev);
 	}
 
 	/*
@@ -3338,6 +3387,101 @@ int stop_integrate_wcn_truely(u32 subsys)
 	return 0;
 }
 
+int btwf_force_deepsleep_aontop(struct wcn_device *wcn_dev)
+{
+	u32 reg_val = 0;
+
+	WCN_INFO("[+]%s\n", __func__);
+	if (wcn_dev == NULL) {
+		WCN_ERR("[-]%s NULL\n", __func__);
+		return -1;
+	}
+
+	/* Force btwf deep sleep. bit[5] set 1 */
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_AON_APB],
+		 0x0350, &reg_val);
+	WCN_INFO("Read 0x64000350:val=0x%x!\n", reg_val);
+	reg_val = reg_val | 0x20;
+	wcn_regmap_raw_write_bit(
+		wcn_dev->rmap[REGMAP_AON_APB], 0x0350, reg_val);
+	WCN_INFO("Write 0x64000350:val=0x%x!\n", reg_val);
+
+
+	return 0;
+
+}
+
+int btwf_clear_force_deepsleep_aontop(struct wcn_device *wcn_dev)
+{
+	u32 reg_val = 0;
+
+	WCN_INFO("[+]%s\n", __func__);
+	if (wcn_dev == NULL) {
+		WCN_ERR("[-]%s NULL\n", __func__);
+		return -1;
+	}
+
+	/* Force btwf deep sleep. bit[5] set 0 */
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_AON_APB],
+				 0x0350, &reg_val);
+	WCN_INFO("Read 0x64000350:val=0x%x!\n", reg_val);
+	reg_val &= (~(0x20));
+	wcn_regmap_raw_write_bit(
+			wcn_dev->rmap[REGMAP_AON_APB],
+			0x0350, reg_val);
+	WCN_INFO("Write 0x64000350:val=0x%x!\n", reg_val);
+
+	return 0;
+
+}
+
+int btwf_force_shutdown_aontop(struct wcn_device *wcn_dev)
+{
+	u32 reg_val = 0;
+
+	WCN_INFO("[+]%s\n", __func__);
+	if (wcn_dev == NULL) {
+		WCN_ERR("[-]%s NULL\n", __func__);
+		return -1;
+	}
+
+	/* Force btwf shutdown. bit[21] set 1 */
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_AON_APB],
+				 0x0350, &reg_val);
+	WCN_INFO("Read 0x64000350:val=0x%x!\n", reg_val);
+	reg_val = reg_val | 0x200000;
+	wcn_regmap_raw_write_bit(
+			wcn_dev->rmap[REGMAP_AON_APB],
+			0x0350, reg_val);
+	WCN_INFO("Write 0x64000350:val=0x%x!\n", reg_val);
+
+	return 0;
+}
+
+int btwf_clear_force_shutdown_aontop(struct wcn_device *wcn_dev)
+{
+	u32 reg_val = 0;
+
+	WCN_INFO("[+]%s\n", __func__);
+	if (wcn_dev == NULL) {
+		WCN_ERR("[-]%s NULL\n", __func__);
+		return -1;
+	}
+
+	/* Force btwf shutdown. bit[21] set 0 */
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_AON_APB],
+				 0x0350, &reg_val);
+	WCN_INFO("Read 0x64000350:val=0x%x!\n", reg_val);
+	reg_val &= (~(0x200000));
+	wcn_regmap_raw_write_bit(
+			wcn_dev->rmap[REGMAP_AON_APB],
+			0x0350, reg_val);
+	WCN_INFO("Write 0x64000350:val=0x%x!\n", reg_val);
+
+
+	return 0;
+}
+
 int stop_integrate_wcn_module(u32 subsys)
 {
 	bool is_marlin;
@@ -3381,13 +3525,8 @@ int stop_integrate_wcn_module(u32 subsys)
 
 	/* confirm the shutdown sys is at deep status */
 	if (is_marlin) {
-		if (btwf_sys_polling_deepsleep(wcn_dev) == false) {
-			wcn_assert_interface(WCN_SOURCE_BTWF,
-						"btwf shutdown isn't at deepsleep");
-			mutex_unlock(&wcn_dev->power_lock);
-
-			return -1;
-		}
+		if (btwf_sys_polling_deepsleep(wcn_dev) == false)
+			btwf_force_deepsleep_aontop(wcn_dev);
 	} else {
 		if (gnss_sys_polling_deepsleep(wcn_dev) == false) {
 			wcn_assert_interface(WCN_SOURCE_GNSS,
@@ -3466,8 +3605,11 @@ int stop_integrate_wcn_module(u32 subsys)
 		 wcn_dev->name, wcn_dev->wcn_open_status,
 		 wcn_dev->power_state, subsys);
 
-	if (is_marlin)
+	if (is_marlin) {
+		btwf_clear_force_deepsleep_aontop(wcn_dev);
+		btwf_clear_force_shutdown_aontop(wcn_dev);
 		wcn_set_module_state(false);
+	}
 	mutex_unlock(&wcn_dev->power_lock);
 
 	wcn_show_dev_status("after stop2");
@@ -3504,5 +3646,3 @@ int stop_integ_marlin(u32 subsys)
 {
 	return stop_integrate_wcn(subsys);
 }
-
-//MODULE_IMPORT_NS(VFS_internal_I_am_really_a_filesystem_and_am_NOT_a_driver);

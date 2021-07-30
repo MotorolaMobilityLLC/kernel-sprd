@@ -488,5 +488,16 @@ int btwf_gnss_force_unshutdown(struct wcn_device *wcn_dev);
 int pll1_pll2_stable_time(struct wcn_device *wcn_dev);
 int btwf_clear_force_shutdown(struct wcn_device *wcn_dev);
 
+/* when close last btwf, and btwf donot into deepsleep. Need to
+ * force deepsleep ont AON_TOP register.
+ */
+int btwf_force_deepsleep_aontop(struct wcn_device *wcn_dev);
+int btwf_clear_force_deepsleep_aontop(struct wcn_device *wcn_dev);
+
+/* when shutdown last btwf, and btwf donot into shutdown. Need to
+ * force shutdown on AON_TOP register. end of stop btwf, clear reg.
+ */
+int btwf_force_shutdown_aontop(struct wcn_device *wcn_dev);
+int btwf_clear_force_shutdown_aontop(struct wcn_device *wcn_dev);
 
 #endif

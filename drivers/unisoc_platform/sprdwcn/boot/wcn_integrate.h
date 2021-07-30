@@ -120,6 +120,8 @@ struct wcn_dfs_sync_info {
 		};
 		u32	gnss_dfs_info;
 	};
+	u32 debugdfs0;
+	u32 debugdfs1;
 };
 
 #define WCN_GNSS_DDR_OFFSET (0x600000)
