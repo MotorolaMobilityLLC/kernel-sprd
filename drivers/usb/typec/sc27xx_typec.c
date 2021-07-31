@@ -298,7 +298,9 @@ static irqreturn_t sc27xx_typec_interrupt(int irq, void *data)
 	event &= sc->var_data->event_mask;
 
 	ret = regmap_read(sc->regmap, sc->base + SC27XX_STATUS, &sc->state);
-	if (ret)
+	dev_info(sc->dev, "lxf_typec: the sc->state is %d, the ret is %d\n",
+                sc->state, ret);
+        if (ret)
 		goto clear_ints;
 
 	sc->state &= sc->var_data->state_mask;
