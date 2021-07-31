@@ -1551,7 +1551,7 @@ static bool bq2560x_charger_check_otg_fault(struct bq2560x_charger_info *info)
 		return status;
 	}
 
-	if ((value & BQ2560X_REG_BOOST_FAULT_MASK ) == 0x07)
+	if ((value & BQ2560X_REG_BOOST_FAULT_MASK ) == 0xe0)
 		status = false;
 	else
 		dev_err(info->dev, "otg fault occurs, REG_8 = 0x%x\n", value);
