@@ -1217,6 +1217,7 @@ static int cx7601_charger_enable_otg(struct regulator_dev *dev)
 {
 	struct cx7601_charger_info *info = rdev_get_drvdata(dev);
 	int ret;
+	dev_err(info->dev, "%s\n",__func__);
 
 	/*
 	 * Disable charger detection function in case
@@ -1243,6 +1244,7 @@ static int cx7601_charger_enable_otg(struct regulator_dev *dev)
 	schedule_delayed_work(&info->otg_work,
 			      msecs_to_jiffies(CX7601_OTG_VALID_MS));
 
+	cx7601_dump_regs(info);
 	return 0;
 }
 
@@ -1250,6 +1252,7 @@ static int cx7601_charger_disable_otg(struct regulator_dev *dev)
 {
 	struct cx7601_charger_info *info = rdev_get_drvdata(dev);
 	int ret;
+	dev_err(info->dev, "%s\n",__func__);
 
 	cancel_delayed_work_sync(&info->wdt_work);
 	cancel_delayed_work_sync(&info->otg_work);
