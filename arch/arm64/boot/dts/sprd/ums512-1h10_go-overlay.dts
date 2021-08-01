@@ -11,6 +11,7 @@
 #include "lcd/lcd_ssd2092_truly_mipi_fhd.dtsi"
 #include "lcd/lcd_ili9883a_auo_mipi_hd.dtsi"
 #include "lcd/lcd_nt36525c_boe_mipi_fhd.dtsi"
+#include "lcd/lcd_icnl9911c_tm_mipi_hd.dtsi"
 #include "lcd/lcd_dummy_mipi.dtsi"
 
 / {
@@ -630,7 +631,7 @@
 &spi2{
     status = "okay";
     spi@0 {
-        compatible = "sprd,tddi-ilitek", "sprd,tddi-novatek";
+        compatible = "sprd,tddi-ilitek", "sprd,tddi-novatek", "chipone-tddi";
         reg = <0x0>;
 
         status = "okay";
@@ -652,6 +653,28 @@
         novatek,spi-rd-fast-addr    = <0x03F310>;
         /* MP */
         //novatek,mp-support-dt;
+		
+		 /*chipone, 3-icnl9911c-touch start */
+        chipone,irq-gpio = <&ap_gpio 144 GPIO_ACTIVE_HIGH>;
+		chipone,rst-gpio = <&ap_gpio 145 GPIO_ACTIVE_HIGH>;
+		chipone,x-res = <720>;
+		chipone,y-res = <1600>;
+
+		/* Charger detect */
+		chipone,touch-charger-detect-enable;
+		chipone,touch-charger-detect-type = "notify"; /* notify, poll */
+		chipone,touch-charger-detect-psy-name = "charger";
+		chipone,touch-charger-detect-psp = "POWER_SUPPLY_PROP_ONLINE";
+		chipone,touch-charger-detect-psp-poll-interval = <1000>;
+
+		/* Earjack detect */
+		chipone,touch-earjack-detect-enable;
+		/* MTK:  /sys/bus/platform/drivers/Accdet_Driver/state,
+		Sprd: /sys/kernel/headset/state
+		QCOM: None, and disable it */
+		chipone,touch-earjack-state-filepath = "/sys/bus/headset/state";
+		chipone,touch-earjack-poll-interval = <1000>;
+        /*chipone, 3-icnl9911c-touch end */
     };
 };
 

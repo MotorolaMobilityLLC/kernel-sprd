@@ -643,6 +643,14 @@ static int sprd_oled_set_brightness(struct backlight_device *bdev)
         }
       // pr_err("wzx11111%s level: %d\n",lcd_name, level);
 	}
+    if (strncmp(lcd_name, "lcd_icnl9911c_tm_mipi_hd", strlen(lcd_name)) == 0)
+    {
+        if (level < 256)
+        {
+            level = ((level * 84) + 6)/ 100;
+            g_last_level = level;
+        }
+    }
 	else{
         if (level < 256){
             g_last_level = level;
