@@ -4004,11 +4004,6 @@ static int cm_get_target_status(struct charger_manager *cm)
 {
 	int ret;
 
-	if (!is_ext_pwr_online(cm))
-		return POWER_SUPPLY_STATUS_DISCHARGING;
-
-	if (cm_check_thermal_status(cm))
-		return POWER_SUPPLY_STATUS_NOT_CHARGING;
 
 	/*
 	 * Adjust the charging current according to current battery
@@ -4017,6 +4012,12 @@ static int cm_get_target_status(struct charger_manager *cm)
 	ret = cm_manager_jeita_current_monitor(cm);
 	if (ret)
 		dev_warn(cm->dev, "Errors orrurs when adjusting charging current\n");
+
+	if (!is_ext_pwr_online(cm))
+		return POWER_SUPPLY_STATUS_DISCHARGING;
+
+	if (cm_check_thermal_status(cm))
+		return POWER_SUPPLY_STATUS_NOT_CHARGING;
 
 	if (cm->charging_status & (CM_CHARGE_TEMP_OVERHEAT | CM_CHARGE_TEMP_COLD)) {
 		dev_warn(cm->dev, "battery overheat or cold is still abnormal\n");
@@ -4410,8 +4411,10 @@ static void misc_event_handler(struct charger_manager *cm, enum cm_event_types t
 	cm_update_charger_type_status(cm);
 
 	cm->is_full = false;
-	if (is_polling_required(cm) && cm->desc->polling_interval_ms)
-		schedule_delayed_work(&cm_monitor_work, 0);
+	if (is_polling_required(cm) && cm->desc->polling_interval_ms){
+		_cm_monitor(cm);
+		schedule_work(&setup_polling);
+	}
 	power_supply_changed(cm->charger_psy);
 }
 
