@@ -166,6 +166,13 @@ static irqreturn_t sprd_musb_interrupt(int irq, void *__hci)
 
 	spin_lock(&glue->lock);
 
+	if (glue->suspending) {
+		spin_unlock(&glue->lock);
+		dev_err(musb->controller,
+			"interrupt is already cleared!\n");
+		return retval;
+	}
+
 	/* In order to implement 2nd charger detection
 	 * initialize musb controller, so musb IRQ may
 	 * happen during 2nd charger detection flow.
@@ -184,13 +191,6 @@ static irqreturn_t sprd_musb_interrupt(int irq, void *__hci)
 			 musb_readw(musb->mregs, MUSB_INTRTX),
 			 musb_readw(musb->mregs, MUSB_INTRRXE),
 			 musb_readw(musb->mregs, MUSB_INTRRX));
-		return retval;
-	}
-
-	if (glue->suspending) {
-		spin_unlock(&glue->lock);
-		dev_err(musb->controller,
-			"interrupt is already cleared!\n");
 		return retval;
 	}
 
