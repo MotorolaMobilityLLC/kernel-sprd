@@ -753,6 +753,8 @@ struct ufs_hba {
 	struct rw_semaphore clk_scaling_lock;
 	struct ufs_desc_size desc_size;
 
+	uint16_t manufacturer_id;
+
 #ifdef CONFIG_SCSI_UFS_CRYPTO
 	/* crypto */
 	union ufs_crypto_capabilities crypto_capabilities;
@@ -966,6 +968,8 @@ int ufshcd_query_attr(struct ufs_hba *hba, enum query_opcode opcode,
 	enum attr_idn idn, u8 index, u8 selector, u32 *attr_val);
 int ufshcd_query_flag(struct ufs_hba *hba, enum query_opcode opcode,
 	enum flag_idn idn, bool *flag_res);
+int ufshcd_query_attr(struct ufs_hba *hba, enum query_opcode opcode,
+			enum attr_idn idn, u8 index, u8 selector, u32 *attr_val);
 int ufshcd_read_string_desc(struct ufs_hba *hba, int desc_index,
 			    u8 *buf, u32 size, bool ascii);
 
@@ -1116,5 +1120,11 @@ static inline void ufshcd_vops_dbg_register_dump(struct ufs_hba *hba)
 }
 
 extern struct ufs_pm_lvl_states ufs_pm_lvl_states[];
+
+void sprd_ufs_device_quiesce(struct ufs_hba *hba);
+void sprd_ufs_device_resume(struct ufs_hba *hba);
+
+#define WB_MODE_MASK (0x1F)
+#define DOWNLOAD_MODE (0xE)
 
 #endif /* End of Header */

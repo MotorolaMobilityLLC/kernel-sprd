@@ -49,6 +49,7 @@
 #include "unipro.h"
 #include "ufs-sysfs.h"
 #include "ufshcd-crypto.h"
+#include "ufs-ioctl.h"
 
 #define CREATE_TRACE_POINTS
 #include <trace/events/ufs.h>
@@ -121,6 +122,7 @@ enum {
 	UFSHCD_STATE_ERROR,
 	UFSHCD_STATE_OPERATIONAL,
 	UFSHCD_STATE_EH_SCHEDULED,
+	UFSHCD_STATE_FFU,
 };
 
 /* UFSHCD error handling flags */
@@ -2327,6 +2329,71 @@ static inline u16 ufshcd_upiu_wlun_to_scsi_wlun(u8 upiu_wlun_id)
 	return (upiu_wlun_id & ~UFS_UPIU_WLUN_ID) | SCSI_W_LUN_BASE;
 }
 
+int wait_for_ufs_all_complete(struct ufs_hba *hba, int timeout_ms)
+{
+	if (hba == NULL)
+		return -EINVAL;
+	while (timeout_ms-- > 0) {
+		if (!hba->outstanding_reqs)
+			return 0;
+		/* wait 1 ms */
+		udelay(1000);
+	}
+	dev_err(hba->dev, "%s: outstanding req : 0x%lx\n", __func__,
+			hba->outstanding_reqs);
+	return -ETIMEDOUT;
+}
+
+void sprd_ufs_device_quiesce(struct ufs_hba *hba)
+{
+	struct scsi_device *scsi_d;
+	int i;
+
+	/*
+	 * Wait all cmds done & block user issue cmds to
+	 * general LUs, wlun device, wlun rpmb and wlun boot.
+	 * To avoid new cmds coming after device has been
+	 * stopped by SSU cmd in ufshcd_suspend().
+	 */
+	for (i = 0; i < UFS_UPIU_MAX_GENERAL_LUN; i++) {
+		scsi_d = scsi_device_lookup(hba->host, 0, 0, i);
+		if (scsi_d)
+			scsi_device_quiesce(scsi_d);
+	}
+
+	scsi_d = scsi_device_lookup(hba->host, 0, 0,
+		ufshcd_upiu_wlun_to_scsi_wlun(UFS_UPIU_BOOT_WLUN));
+	if (scsi_d)
+		scsi_device_quiesce(scsi_d);
+
+	if (hba->sdev_ufs_device)
+		scsi_device_quiesce(hba->sdev_ufs_device);
+	if (hba->sdev_ufs_rpmb)
+		scsi_device_quiesce(hba->sdev_ufs_rpmb);
+}
+
+void sprd_ufs_device_resume(struct ufs_hba *hba)
+{
+	struct scsi_device *scsi_d;
+	int i;
+
+	for (i = 0; i < UFS_UPIU_MAX_GENERAL_LUN; i++) {
+		scsi_d = scsi_device_lookup(hba->host, 0, 0, i);
+		if (scsi_d)
+			scsi_device_resume(scsi_d);
+	}
+
+	scsi_d = scsi_device_lookup(hba->host, 0, 0,
+	ufshcd_upiu_wlun_to_scsi_wlun(UFS_UPIU_BOOT_WLUN));
+	if (scsi_d)
+		scsi_device_resume(scsi_d);
+
+	if (hba->sdev_ufs_device)
+		scsi_device_resume(hba->sdev_ufs_device);
+	if (hba->sdev_ufs_rpmb)
+		scsi_device_resume(hba->sdev_ufs_rpmb);
+}
+
 /**
  * ufshcd_queuecommand - main entry point for SCSI requests
  * @cmd: command from SCSI Midlayer
@@ -2373,12 +2440,30 @@ static int ufshcd_queuecommand(struct Scsi_Host *host, struct scsi_cmnd *cmd)
 		set_host_byte(cmd, DID_ERROR);
 		cmd->scsi_done(cmd);
 		goto out_unlock;
+	case UFSHCD_STATE_FFU:
+		if (cmd->cmnd[0] != WRITE_BUFFER ||
+			(cmd->cmnd[1] & WB_MODE_MASK) != DOWNLOAD_MODE) {
+			dev_dbg(hba->dev, "%s: ffu in progress\n", __func__);
+			err = SCSI_MLQUEUE_HOST_BUSY;
+			goto out_unlock;
+		}
+		break;
 	default:
 		dev_WARN_ONCE(hba->dev, 1, "%s: invalid state %d\n",
 				__func__, hba->ufshcd_state);
 		set_host_byte(cmd, DID_BAD_TARGET);
 		cmd->scsi_done(cmd);
 		goto out_unlock;
+	}
+
+	if (unlikely(cmd->cmnd[0] == WRITE_BUFFER &&
+		(cmd->cmnd[1] & WB_MODE_MASK) == DOWNLOAD_MODE)) {
+		hba->ufshcd_state = UFSHCD_STATE_FFU;
+		/* wait for ufs all complete timeout time 1s */
+		err = wait_for_ufs_all_complete(hba, 1000);
+		dev_err(hba->dev,
+			"%s: FFU process, wait_for_ufs_all_complete:%d",
+			__func__, err);
 	}
 
 	/* if error handling is in progress, don't issue commands */
@@ -6708,6 +6793,7 @@ static int ufs_get_device_desc(struct ufs_hba *hba,
 	 */
 	dev_desc->wmanufacturerid = desc_buf[DEVICE_DESC_PARAM_MANF_ID] << 8 |
 				     desc_buf[DEVICE_DESC_PARAM_MANF_ID + 1];
+	hba->manufacturer_id = dev_desc->wmanufacturerid;
 
 	/* getting Specification Version in big endian format */
 	dev_info->wspecversion = desc_buf[DEVICE_DESC_PARAM_SPEC_VER] << 8 |
@@ -7174,6 +7260,36 @@ static enum blk_eh_timer_return ufshcd_eh_timed_out(struct scsi_cmnd *scmd)
 	return found ? BLK_EH_NOT_HANDLED : BLK_EH_RESET_TIMER;
 }
 
+static int ufshcd_ioctl(struct scsi_device *dev, int cmd, void __user *buffer)
+{
+	struct ufs_hba *hba = shost_priv(dev->host);
+	int err = 0;
+
+	if (!buffer) {
+		dev_err(hba->dev, "%s: user buffer is NULL\n", __func__);
+		return -EINVAL;
+	}
+
+	switch (cmd) {
+	case UFS_IOCTL_FFU:
+		pm_runtime_get_sync(hba->dev);
+		err = sprd_ufs_ioctl_ffu(dev, buffer);
+		pm_runtime_put_sync(hba->dev);
+		break;
+	case UFS_IOCTL_GET_DEVICE_INFO:
+		err = sprd_ufs_ioctl_get_dev_info(dev, buffer);
+		break;
+	default:
+		err = -ENOIOCTLCMD;
+		dev_dbg(hba->dev,
+			"%s: Unsupported ioctl cmd %d\n",
+			__func__, cmd);
+		break;
+	}
+
+	return err;
+}
+
 static struct scsi_host_template ufshcd_driver_template = {
 	.module			= THIS_MODULE,
 	.name			= UFSHCD,
@@ -7187,6 +7303,7 @@ static struct scsi_host_template ufshcd_driver_template = {
 	.eh_device_reset_handler = ufshcd_eh_device_reset_handler,
 	.eh_host_reset_handler   = ufshcd_eh_host_reset_handler,
 	.eh_timed_out		= ufshcd_eh_timed_out,
+	.ioctl			= ufshcd_ioctl,
 	.this_id		= -1,
 	.sg_tablesize		= SG_ALL,
 	.cmd_per_lun		= UFSHCD_CMD_PER_LUN,
