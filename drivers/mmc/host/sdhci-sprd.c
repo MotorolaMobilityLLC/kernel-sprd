@@ -508,8 +508,10 @@ static int sdhci_sprd_execute_tuning(struct mmc_host *mmc, u32 opcode)
 	if (!ranges)
 		return -ENOMEM;
 	value_t = kmalloc_array(length + 1, sizeof(*value_t), GFP_KERNEL);
-	if (!value_t)
+	if (!value_t) {
+		kfree(ranges);
 		return -ENOMEM;
+	}
 
 	dll_dly = p[mmc->ios.timing];
 	do {
