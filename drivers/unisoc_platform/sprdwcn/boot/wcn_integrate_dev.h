@@ -8,6 +8,7 @@
 #define WCN_BTWF_FILENAME "wcnmodem"
 #define WCN_GNSS_FILENAME "gpsgl"
 #define WCN_GNSS_BD_FILENAME "gpsbd"
+#define WCN_GNSSMODEM_FILENAME "gnssmodem"
 
 /* NOTES:If DTS config more than REG_CTRL_CNT_MAX REGs */
 #define REG_CTRL_CNT_MAX 12

@@ -367,16 +367,20 @@ static int wcn_download_image(struct wcn_device *wcn_dev)
 
 	is_marlin = wcn_dev_is_marlin(wcn_dev);
 	memset(firmware_file_name, 0, FIRMWARE_FILEPATHNAME_LENGTH_MAX);
-
 	if (!is_marlin) {
-		if (s_wcn_device.gnss_type == WCN_GNSS_TYPE_GL)
-			strncpy(firmware_file_name, WCN_GNSS_FILENAME,
+		if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
+			strncpy(firmware_file_name, WCN_GNSSMODEM_FILENAME,
 				sizeof(firmware_file_name));
-		else if (s_wcn_device.gnss_type == WCN_GNSS_TYPE_BD)
-			strncpy(firmware_file_name, WCN_GNSS_BD_FILENAME,
-				sizeof(firmware_file_name));
-		else
-			return -EINVAL;
+		} else {
+			if (s_wcn_device.gnss_type == WCN_GNSS_TYPE_GL)
+				strncpy(firmware_file_name, WCN_GNSS_FILENAME,
+					sizeof(firmware_file_name));
+			else if (s_wcn_device.gnss_type == WCN_GNSS_TYPE_BD)
+				strncpy(firmware_file_name, WCN_GNSS_BD_FILENAME,
+					sizeof(firmware_file_name));
+			else
+				return -EINVAL;
+		}
 	}
 
 	if (is_marlin)
@@ -3044,18 +3048,26 @@ int start_integrate_wcn_truely(u32 subsys)
 
 	is_marlin = wcn_dev_is_marlin(wcn_dev);
 	if (!is_marlin) {
-		if (subsys_bit & WCN_GNSS_MASK) {
-			strncpy(&wcn_dev->firmware_path_ext[0], WCN_GNSS_FILENAME,
+		if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
+			strncpy(&wcn_dev->firmware_path_ext[0], WCN_GNSSMODEM_FILENAME,
 				FIRMWARE_FILEPATHNAME_LENGTH_MAX - 1);
-			s_wcn_device.gnss_type = WCN_GNSS_TYPE_GL;
-			WCN_INFO("wcn gnss path=%s\n",
+			WCN_INFO("wcn gnss modem path=%s\n",
 				&wcn_dev->firmware_path_ext[0]);
+
 		} else {
-			strncpy(&wcn_dev->firmware_path_ext[0], WCN_GNSS_BD_FILENAME,
-				FIRMWARE_FILEPATHNAME_LENGTH_MAX - 1);
-			s_wcn_device.gnss_type = WCN_GNSS_TYPE_BD;
-			WCN_INFO("wcn bd path=%s\n",
-				&wcn_dev->firmware_path_ext[0]);
+			if (subsys_bit & WCN_GNSS_MASK) {
+				strncpy(&wcn_dev->firmware_path_ext[0], WCN_GNSS_FILENAME,
+					FIRMWARE_FILEPATHNAME_LENGTH_MAX - 1);
+				s_wcn_device.gnss_type = WCN_GNSS_TYPE_GL;
+				WCN_INFO("wcn gnss path=%s\n",
+					&wcn_dev->firmware_path_ext[0]);
+			} else {
+				strncpy(&wcn_dev->firmware_path_ext[0], WCN_GNSS_BD_FILENAME,
+					FIRMWARE_FILEPATHNAME_LENGTH_MAX - 1);
+				s_wcn_device.gnss_type = WCN_GNSS_TYPE_BD;
+				WCN_INFO("wcn bd path=%s\n",
+					&wcn_dev->firmware_path_ext[0]);
+			}
 		}
 	}
 
