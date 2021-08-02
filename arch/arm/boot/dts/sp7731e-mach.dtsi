@@ -76,6 +76,10 @@
 			reg = <0x89600000 0x02300000>;
 		};
 
+		smem_ldsp_reserved: sipc-ldsp-mem@8b900000 {
+			reg = <0x8b900000 0x00096000>;
+		};
+
 		logo_reserved: logobuffer@9e000000 {
 			reg = <0x9e000000 0x384000>;
 		};
