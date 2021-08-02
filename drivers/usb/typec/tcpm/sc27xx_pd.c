@@ -16,7 +16,7 @@
 #include <linux/regulator/consumer.h>
 #include <linux/slab.h>
 #include <linux/usb/typec.h>
-#include <linux/usb/tcpm.h>
+#include <linux/usb/sprd_tcpm.h>
 #include <linux/usb/pd.h>
 #include <linux/usb/typec_dp.h>
 
@@ -826,9 +826,9 @@ static int sc27xx_pd_read_message(struct sc27xx_pd *pd, struct pd_message *msg)
 				return ret;
 			pd->constructed = true;
 		}
-		tcpm_pd_transmit_complete(pd->tcpm_port, TCPC_TX_SUCCESS);
+		sprd_tcpm_pd_transmit_complete(pd->tcpm_port, TCPC_TX_SUCCESS);
 	} else {
-		tcpm_pd_receive(pd->tcpm_port, msg);
+		sprd_tcpm_pd_receive(pd->tcpm_port, msg);
 	}
 
 	return sc27xx_pd_rx_flush(pd);
@@ -1121,7 +1121,7 @@ static irqreturn_t sc27xx_pd_irq(int irq, void *dev_id)
 		else if (state == false)
 			extcon_set_state_sync(pd->edev, EXTCON_CHG_USB_PD, true);
 
-		tcpm_pd_hard_reset(pd->tcpm_port);
+		sprd_tcpm_pd_hard_reset(pd->tcpm_port);
 	}
 
 	if (status & SC27XX_PD_CABLE_RST_FLAG) {
@@ -1176,7 +1176,7 @@ static irqreturn_t sc27xx_pd_irq(int irq, void *dev_id)
 	}
 
 	if (status & SC27XX_PD_TX_OK_FLAG) {
-		tcpm_pd_transmit_complete(pd->tcpm_port, TCPC_TX_SUCCESS);
+		sprd_tcpm_pd_transmit_complete(pd->tcpm_port, TCPC_TX_SUCCESS);
 		ret = regmap_update_bits(pd->regmap,
 					 pd->base + SC27XX_INT_CLR,
 					 SC27XX_PD_TX_OK_CLR,
@@ -1192,7 +1192,7 @@ static irqreturn_t sc27xx_pd_irq(int irq, void *dev_id)
 					 SC27XX_PD_TX_ERROR_CLR);
 		if (ret < 0)
 			goto done;
-		tcpm_pd_transmit_complete(pd->tcpm_port, TCPC_TX_FAILED);
+		sprd_tcpm_pd_transmit_complete(pd->tcpm_port, TCPC_TX_FAILED);
 	}
 
 	if (status & SC27XX_PD_TX_COLLSION_FLAG) {
@@ -1203,7 +1203,7 @@ static irqreturn_t sc27xx_pd_irq(int irq, void *dev_id)
 		if (ret < 0)
 			goto done;
 
-		tcpm_pd_transmit_complete(pd->tcpm_port, TCPC_TX_FAILED);
+		sprd_tcpm_pd_transmit_complete(pd->tcpm_port, TCPC_TX_FAILED);
 	}
 
 	if (status & SC27XX_PD_PKG_RV_ERROR_FLAG) {
@@ -1253,7 +1253,7 @@ static int sc27xx_get_vbus_status(struct sc27xx_pd *pd)
 	vbus_present = !!(status & SC27XX_TYPEC_VBUS_OK);
 	if (vbus_present != pd->vbus_present) {
 		pd->vbus_present = vbus_present;
-		tcpm_vbus_change(pd->tcpm_port);
+		sprd_tcpm_vbus_change(pd->tcpm_port);
 	}
 
 	return 0;
@@ -1322,7 +1322,7 @@ static void sc27xx_cc_status(struct sc27xx_pd *pd, u32 status)
 		break;
 	}
 
-	tcpm_cc_change(pd->tcpm_port);
+	sprd_tcpm_cc_change(pd->tcpm_port);
 }
 
 static int sc27xx_pd_check_vbus_cc_status(struct sc27xx_pd *pd)
@@ -1651,7 +1651,7 @@ static int sc27xx_pd_probe(struct platform_device *pdev)
 		return -ENOMEM;
 	}
 
-	pd->tcpm_port = tcpm_register_port(pd->dev, &pd->tcpc);
+	pd->tcpm_port = sprd_tcpm_register_port(pd->dev, &pd->tcpc);
 	if (IS_ERR(pd->tcpm_port)) {
 		dev_err(pd->dev, "failed to register tcpm port\n");
 		destroy_workqueue(pd->pd_wq);
@@ -1673,7 +1673,7 @@ static int sc27xx_pd_remove(struct platform_device *pdev)
 {
 	struct sc27xx_pd *pd = platform_get_drvdata(pdev);
 
-	tcpm_unregister_port(pd->tcpm_port);
+	sprd_tcpm_unregister_port(pd->tcpm_port);
 	return 0;
 }
 

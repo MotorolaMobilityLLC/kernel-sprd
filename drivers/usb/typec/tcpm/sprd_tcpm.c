@@ -26,7 +26,7 @@
 #include <linux/usb/pd_ext_sdb.h>
 #include <linux/usb/pd_vdo.h>
 #include <linux/usb/role.h>
-#include <linux/usb/tcpm.h>
+#include <linux/usb/sprd_tcpm.h>
 #include <linux/usb/typec_altmode.h>
 #include <linux/workqueue.h>
 
@@ -673,13 +673,17 @@ static int sprd_tcpm_debug_show(struct seq_file *s, void *v)
 }
 DEFINE_SHOW_ATTRIBUTE(sprd_tcpm_debug);
 
+static struct dentry *rootdir;
+
 static void sprd_tcpm_debugfs_init(struct tcpm_port *port)
 {
-	char name[NAME_MAX];
-
 	mutex_init(&port->logbuffer_lock);
-	snprintf(name, NAME_MAX, "tcpm-%s", dev_name(port->dev));
-	port->dentry = debugfs_create_file(name, S_IFREG | 0444, usb_debug_root,
+	/* /sys/kernel/debug/tcpm/usbcX */
+	if (!rootdir)
+		rootdir = debugfs_create_dir("sprd_tcpm", NULL);
+
+	port->dentry = debugfs_create_file(dev_name(port->dev),
+					   S_IFREG | 0444, rootdir,
 					   port, &sprd_tcpm_debug_fops);
 }
 
@@ -752,6 +756,7 @@ void sprd_tcpm_pd_transmit_complete(struct tcpm_port *port,
 	port->tx_status = status;
 	complete(&port->tx_complete);
 }
+EXPORT_SYMBOL_GPL(sprd_tcpm_pd_transmit_complete);
 
 static int sprd_tcpm_mux_set(struct tcpm_port *port, int state,
 			enum usb_role usb_role,
@@ -2112,6 +2117,7 @@ void sprd_tcpm_pd_receive(struct tcpm_port *port, const struct pd_message *msg)
 	memcpy(&event->msg, msg, sizeof(*msg));
 	queue_work(port->wq, &event->work);
 }
+EXPORT_SYMBOL_GPL(sprd_tcpm_pd_receive);
 
 static int sprd_tcpm_pd_send_control(struct tcpm_port *port,
 				enum pd_ctrl_msg_type type)
@@ -4081,6 +4087,7 @@ void sprd_tcpm_cc_change(struct tcpm_port *port)
 	spin_unlock(&port->pd_event_lock);
 	queue_work(port->wq, &port->event_work);
 }
+EXPORT_SYMBOL_GPL(sprd_tcpm_cc_change);
 
 void sprd_tcpm_vbus_change(struct tcpm_port *port)
 {
@@ -4089,6 +4096,7 @@ void sprd_tcpm_vbus_change(struct tcpm_port *port)
 	spin_unlock(&port->pd_event_lock);
 	queue_work(port->wq, &port->event_work);
 }
+EXPORT_SYMBOL_GPL(sprd_tcpm_vbus_change);
 
 void sprd_tcpm_pd_hard_reset(struct tcpm_port *port)
 {
@@ -4097,6 +4105,7 @@ void sprd_tcpm_pd_hard_reset(struct tcpm_port *port)
 	spin_unlock(&port->pd_event_lock);
 	queue_work(port->wq, &port->event_work);
 }
+EXPORT_SYMBOL_GPL(sprd_tcpm_pd_hard_reset);
 
 static int sprd_tcpm_dr_set(struct typec_port *p, enum typec_data_role data)
 {
@@ -4604,6 +4613,37 @@ sink:
 	return 0;
 }
 
+int sprd_tcpm_update_sink_capabilities(struct tcpm_port *port, const u32 *pdo,
+				  unsigned int nr_pdo,
+				  unsigned int operating_snk_mw)
+{
+	if (sprd_tcpm_validate_caps(port, pdo, nr_pdo))
+		return -EINVAL;
+
+	mutex_lock(&port->lock);
+	port->nr_snk_pdo = sprd_tcpm_copy_pdos(port->snk_pdo, pdo, nr_pdo);
+	port->operating_snk_mw = operating_snk_mw;
+	port->update_sink_caps = true;
+
+	switch (port->state) {
+	case SNK_NEGOTIATE_CAPABILITIES:
+	case SNK_NEGOTIATE_PPS_CAPABILITIES:
+	case SNK_READY:
+	case SNK_TRANSITION_SINK:
+	case SNK_TRANSITION_SINK_VBUS:
+		if (port->pps_data.active)
+			sprd_tcpm_set_state(port, SNK_NEGOTIATE_PPS_CAPABILITIES, 0);
+		else
+			sprd_tcpm_set_state(port, SNK_NEGOTIATE_CAPABILITIES, 0);
+		break;
+	default:
+		break;
+	}
+	mutex_unlock(&port->lock);
+	return 0;
+}
+EXPORT_SYMBOL_GPL(sprd_tcpm_update_sink_capabilities);
+
 /* Power Supply access to expose source power information */
 enum tcpm_psy_online_states {
 	TCPM_PSY_OFFLINE = 0,
@@ -4963,6 +5003,7 @@ out_destroy_wq:
 	destroy_workqueue(port->wq);
 	return ERR_PTR(err);
 }
+EXPORT_SYMBOL_GPL(sprd_tcpm_register_port);
 
 void sprd_tcpm_unregister_port(struct tcpm_port *port)
 {
@@ -4976,6 +5017,7 @@ void sprd_tcpm_unregister_port(struct tcpm_port *port)
 	sprd_tcpm_debugfs_exit(port);
 	destroy_workqueue(port->wq);
 }
+EXPORT_SYMBOL_GPL(sprd_tcpm_unregister_port);
 
 MODULE_AUTHOR("Guenter Roeck <groeck@chromium.org>");
 MODULE_DESCRIPTION("USB Type-C Port Manager");
