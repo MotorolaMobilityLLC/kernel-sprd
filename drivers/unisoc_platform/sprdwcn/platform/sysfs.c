@@ -129,10 +129,10 @@ static int wcn_send_atcmd(void *cmd, unsigned char cmd_len,
 		head->next = NULL;
 	}
 
+	reinit_completion(&sysfs_info.cmd_completion);
 	ret = sprdwcn_bus_push_list(0, head, tail, num);
 	if (ret)
 		WCN_INFO("sprdwcn_bus_push_list error=%d\n", ret);
-	reinit_completion(&sysfs_info.cmd_completion);
 	timeleft = wait_for_completion_timeout(&sysfs_info.cmd_completion,
 					       3 * HZ);
 	if (g_match_config && g_match_config->unisoc_wcn_sdio) {
