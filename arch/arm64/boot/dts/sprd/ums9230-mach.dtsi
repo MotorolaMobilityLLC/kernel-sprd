@@ -63,6 +63,10 @@
 			reg = <0x0 0x89600000 0x0 0x04900000>;
 		};
 
+		smem_ldsp_reserved: sipc-ldsp-mem@8df00000 {
+			reg = <0x0 0x8df00000 0x0 0x00096000>;
+		};
+
 		/* Only used for iq, will be removed in normal mode by uboot */
 		iq_reserved: iq-mem@90000000{
 			compatible = "sprd,iq-mem";
