@@ -392,7 +392,7 @@ static int sprd_adi_transfer_one(struct spi_controller *ctlr,
 static void sprd_adi_set_wdt_rst_mode(struct sprd_adi *sadi)
 {
 #if IS_ENABLED(CONFIG_SPRD_WATCHDOG) || IS_ENABLED(CONFIG_SPRD_WATCHDOG_FIQ)
-	u32 val;
+	u32 val = 0;
 
 	/* Init watchdog reset mode */
 	sprd_adi_read(sadi, sadi->slave_pbase + sadi->data->rst_sts, &val);
@@ -406,7 +406,7 @@ static int sprd_adi_restart_handler(struct notifier_block *this,
 {
 	struct sprd_adi *sadi = container_of(this, struct sprd_adi,
 					     restart_handler);
-	u32 wdg_base, val, reboot_mode = 0;
+	u32 wdg_base, val = 0, reboot_mode = 0;
 
 	if (!cmd)
 		reboot_mode = HWRST_STATUS_NORMAL;
