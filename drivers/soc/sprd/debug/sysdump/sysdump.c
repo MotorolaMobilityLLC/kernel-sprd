@@ -802,11 +802,11 @@ static int sprd_sysdump_open(struct inode *inode, struct file *file)
 static ssize_t sprd_sysdump_write(struct file *file, const char __user *buf,
 				size_t count, loff_t *data)
 {
-	char sysdump_buf[5] = {0};
+	char sysdump_buf[SYSDUMP_PROC_BUF_LEN] = {0};
 	int *test = NULL;
 
-	pr_info("%s: start!!!\n", __func__);
-	if (count) {
+	pr_debug("%s: start!!!\n", __func__);
+	if (count && (count < SYSDUMP_PROC_BUF_LEN)) {
 		if (copy_from_user(sysdump_buf, buf, count)) {
 			pr_err("%s: copy_from_user failed!!!\n", __func__);
 			return -1;
@@ -830,7 +830,7 @@ static ssize_t sprd_sysdump_write(struct file *file, const char __user *buf,
 		}
 	}
 
-	pr_info("%s: End!!!\n", __func__);
+	pr_debug("%s: End!!!\n", __func__);
 	return count;
 }
 
