@@ -622,11 +622,11 @@ static void sgm41511_charger_stop_charge(struct sgm41511_charger_info *info)
 	if (info->role == SGM41511_ROLE_MASTER_DEFAULT) {
 		if (!present || info->need_disable_Q1) {
 		dev_err(info->dev, "%s;%d;%d;\n",__func__,present,info->need_disable_Q1);
-			ret = sgm41511_update_bits(info, SGM41511_REG_0,
-						  SGM41511_REG_EN_HIZ_MASK,
-						  0x01 << SGM41511_REG_EN_HIZ_SHIFT);
-			if (ret)
-				dev_err(info->dev, "enable HIZ mode failed\n");
+//			ret = sgm41511_update_bits(info, SGM41511_REG_0,
+//						  SGM41511_REG_EN_HIZ_MASK,
+//						  0x01 << SGM41511_REG_EN_HIZ_SHIFT);
+//			if (ret)
+//				dev_err(info->dev, "enable HIZ mode failed\n");
 
 			info->need_disable_Q1 = false;
 		}
@@ -645,25 +645,25 @@ static void sgm41511_charger_stop_charge(struct sgm41511_charger_info *info)
 				dev_err(info->dev, "disable sgm41511 charge en failed\n");
 		}
 	} else if (info->role == SGM41511_ROLE_SLAVE) {
-		ret = sgm41511_update_bits(info, SGM41511_REG_0,
-					  SGM41511_REG_EN_HIZ_MASK,
-					  0x01 << SGM41511_REG_EN_HIZ_SHIFT);
-		if (ret)
-			dev_err(info->dev, "enable HIZ mode failed\n");
+//		ret = sgm41511_update_bits(info, SGM41511_REG_0,
+//					  SGM41511_REG_EN_HIZ_MASK,
+//					  0x01 << SGM41511_REG_EN_HIZ_SHIFT);
+//		if (ret)
+//			dev_err(info->dev, "enable HIZ mode failed\n");
 
 		gpiod_set_value_cansleep(info->gpiod, 1);
 	}
 
 	if (info->disable_power_path) {
-		ret = sgm41511_update_bits(info, SGM41511_REG_0,
-					  SGM41511_REG_EN_HIZ_MASK,
-					  0x01 << SGM41511_REG_EN_HIZ_SHIFT);
-		if (ret)
-			dev_err(info->dev, "Failed to disable power path\n");
+//		ret = sgm41511_update_bits(info, SGM41511_REG_0,
+//					  SGM41511_REG_EN_HIZ_MASK,
+//					  0x01 << SGM41511_REG_EN_HIZ_SHIFT);
+//		if (ret)
+//			dev_err(info->dev, "Failed to disable power path\n");
 	}
 
-	if (ret)
-		dev_err(info->dev, "Failed to disable sgm41511 watchdog\n");
+//	if (ret)
+//		dev_err(info->dev, "Failed to disable sgm41511 watchdog\n");
 }
 
 static int sgm41511_charger_set_current(struct sgm41511_charger_info *info,
@@ -1668,6 +1668,7 @@ static int sgm41511_charger_enable_otg(struct regulator_dev *dev)
 {
 	struct sgm41511_charger_info *info = rdev_get_drvdata(dev);
 	int ret;
+	dev_err(info->dev, "%s\n",__func__);
 
 	/*
 	 * Disable charger detection function in case
@@ -1696,6 +1697,7 @@ static int sgm41511_charger_enable_otg(struct regulator_dev *dev)
 	schedule_delayed_work(&info->otg_work,
 			      msecs_to_jiffies(SGM41511_OTG_VALID_MS));
 
+	sgm41511_dump_regs(info);
 	return 0;
 }
 
@@ -1703,6 +1705,7 @@ static int sgm41511_charger_disable_otg(struct regulator_dev *dev)
 {
 	struct sgm41511_charger_info *info = rdev_get_drvdata(dev);
 	int ret;
+	dev_err(info->dev, "%s\n",__func__);
 
 	info->otg_enable = false;
 	cancel_delayed_work_sync(&info->wdt_work);

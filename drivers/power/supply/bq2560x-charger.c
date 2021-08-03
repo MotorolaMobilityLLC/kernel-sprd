@@ -58,7 +58,7 @@
 #define BQ2560X_REG_RESET_MASK			GENMASK(6, 6)
 
 #define BQ2560X_REG_OTG_MASK			GENMASK(5, 5)
-#define BQ2560X_REG_BOOST_FAULT_MASK		GENMASK(6, 6)
+#define BQ2560X_REG_BOOST_FAULT_MASK		GENMASK(7, 5)
 
 #define BQ2560X_REG_WATCHDOG_MASK		GENMASK(6, 6)
 
@@ -575,11 +575,11 @@ static void bq2560x_charger_stop_charge(struct bq2560x_charger_info *info)
 
 	if (info->role == BQ2560X_ROLE_MASTER_DEFAULT) {
 		if (!present || info->need_disable_Q1) {
-			ret = bq2560x_update_bits(info, BQ2560X_REG_0,
-						  BQ2560X_REG_EN_HIZ_MASK,
-						  0x01 << BQ2560X_REG_EN_HIZ_SHIFT);
-			if (ret)
-				dev_err(info->dev, "enable HIZ mode failed\n");
+//			ret = bq2560x_update_bits(info, BQ2560X_REG_0,
+//						  BQ2560X_REG_EN_HIZ_MASK,
+//						  0x01 << BQ2560X_REG_EN_HIZ_SHIFT);
+//			if (ret)
+//				dev_err(info->dev, "enable HIZ mode failed\n");
 
 			info->need_disable_Q1 = false;
 		}
@@ -598,25 +598,25 @@ static void bq2560x_charger_stop_charge(struct bq2560x_charger_info *info)
 				dev_err(info->dev, "disable bq2560x charge en failed\n");
 		}
 	} else if (info->role == BQ2560X_ROLE_SLAVE) {
-		ret = bq2560x_update_bits(info, BQ2560X_REG_0,
-					  BQ2560X_REG_EN_HIZ_MASK,
-					  0x01 << BQ2560X_REG_EN_HIZ_SHIFT);
-		if (ret)
-			dev_err(info->dev, "enable HIZ mode failed\n");
+//		ret = bq2560x_update_bits(info, BQ2560X_REG_0,
+//					  BQ2560X_REG_EN_HIZ_MASK,
+//					  0x01 << BQ2560X_REG_EN_HIZ_SHIFT);
+//		if (ret)
+//			dev_err(info->dev, "enable HIZ mode failed\n");
 
 		gpiod_set_value_cansleep(info->gpiod, 1);
 	}
 
 	if (info->disable_power_path) {
-		ret = bq2560x_update_bits(info, BQ2560X_REG_0,
-					  BQ2560X_REG_EN_HIZ_MASK,
-					  0x01 << BQ2560X_REG_EN_HIZ_SHIFT);
-		if (ret)
-			dev_err(info->dev, "Failed to disable power path\n");
+//		ret = bq2560x_update_bits(info, BQ2560X_REG_0,
+//					  BQ2560X_REG_EN_HIZ_MASK,
+//					  0x01 << BQ2560X_REG_EN_HIZ_SHIFT);
+//		if (ret)
+//			dev_err(info->dev, "Failed to disable power path\n");
 	}
 
-	if (ret)
-		dev_err(info->dev, "Failed to disable bq2560x watchdog\n");
+//	if (ret)
+//		dev_err(info->dev, "Failed to disable bq2560x watchdog\n");
 }
 
 static int bq2560x_charger_set_current(struct bq2560x_charger_info *info,
@@ -1536,22 +1536,7 @@ bq2560x_charger_feed_watchdog_work(struct work_struct *work)
 #ifdef CONFIG_REGULATOR
 static bool bq2560x_charger_check_otg_valid(struct bq2560x_charger_info *info)
 {
-	int ret;
-	u8 value = 0;
-	bool status = false;
-
-	ret = bq2560x_read(info, BQ2560X_REG_1, &value);
-	if (ret) {
-		dev_err(info->dev, "get bq2560x charger otg valid status failed\n");
-		return status;
-	}
-
-	if (value & BQ2560X_REG_OTG_MASK)
-		status = true;
-	else
-		dev_err(info->dev, "otg is not valid, REG_1 = 0x%x\n", value);
-
-	return status;
+	return extcon_get_state(info->edev, EXTCON_USB);
 }
 
 static bool bq2560x_charger_check_otg_fault(struct bq2560x_charger_info *info)
@@ -1560,16 +1545,16 @@ static bool bq2560x_charger_check_otg_fault(struct bq2560x_charger_info *info)
 	u8 value = 0;
 	bool status = true;
 
-	ret = bq2560x_read(info, BQ2560X_REG_9, &value);
+	ret = bq2560x_read(info, BQ2560X_REG_8, &value);
 	if (ret) {
 		dev_err(info->dev, "get bq2560x charger otg fault status failed\n");
 		return status;
 	}
 
-	if (!(value & BQ2560X_REG_BOOST_FAULT_MASK))
+	if ((value & BQ2560X_REG_BOOST_FAULT_MASK ) == 0x07)
 		status = false;
 	else
-		dev_err(info->dev, "boost fault occurs, REG_9 = 0x%x\n", value);
+		dev_err(info->dev, "otg fault occurs, REG_8 = 0x%x\n", value);
 
 	return status;
 }
@@ -1588,7 +1573,7 @@ static void bq2560x_charger_otg_work(struct work_struct *work)
 
 	do {
 		otg_fault = bq2560x_charger_check_otg_fault(info);
-		if (!otg_fault) {
+		if (otg_fault) {
 			ret = bq2560x_update_bits(info, BQ2560X_REG_1,
 						  BQ2560X_REG_OTG_MASK,
 						  BQ2560X_REG_OTG_MASK);
@@ -1613,6 +1598,7 @@ static int bq2560x_charger_enable_otg(struct regulator_dev *dev)
 	struct bq2560x_charger_info *info = rdev_get_drvdata(dev);
 	int ret;
 
+	dev_err(info->dev, "%s\n",__func__);
 	/*
 	 * Disable charger detection function in case
 	 * affecting the OTG timing sequence.
@@ -1640,6 +1626,8 @@ static int bq2560x_charger_enable_otg(struct regulator_dev *dev)
 	schedule_delayed_work(&info->otg_work,
 			      msecs_to_jiffies(BQ2560X_OTG_VALID_MS));
 
+	bq2560x_dump_regs(info);
+
 	return 0;
 }
 
@@ -1647,6 +1635,7 @@ static int bq2560x_charger_disable_otg(struct regulator_dev *dev)
 {
 	struct bq2560x_charger_info *info = rdev_get_drvdata(dev);
 	int ret;
+	dev_err(info->dev, "%s\n",__func__);
 
 	info->otg_enable = false;
 	cancel_delayed_work_sync(&info->wdt_work);
