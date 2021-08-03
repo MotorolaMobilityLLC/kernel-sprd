@@ -73,7 +73,7 @@ static int sprd_soc_id_probe(struct platform_device *pdev)
 	int i;
 	struct device_node *np = pdev->dev.of_node;
 	const char *pname;
-	struct regmap *tregmap;
+	struct regmap *tregmap = NULL;
 	uint32_t args[2];
 
 	for (i = 0; i < ARRAY_SIZE(syscon_name); i++) {
