@@ -1592,42 +1592,13 @@ sgm41511_charger_feed_watchdog_work(struct work_struct *work)
 #ifdef CONFIG_REGULATOR
 static bool sgm41511_charger_check_otg_valid(struct sgm41511_charger_info *info)
 {
-	int ret;
-	u8 value = 0;
-	bool status = false;
-
-	ret = sgm41511_read(info, SGM41511_REG_1, &value);
-	if (ret) {
-		dev_err(info->dev, "get sgm41511 charger otg valid status failed\n");
-		return status;
-	}
-
-	if (value & SGM41511_REG_OTG_MASK)
-		status = true;
-	else
-		dev_err(info->dev, "otg is not valid, REG_1 = 0x%x\n", value);
-
-	return status;
+	return extcon_get_state(info->edev, EXTCON_USB);
 }
 
 static bool sgm41511_charger_check_otg_fault(struct sgm41511_charger_info *info)
 {
-	int ret;
-	u8 value = 0;
-	bool status = true;
+	return !extcon_get_state(info->edev, EXTCON_USB);
 
-	ret = sgm41511_read(info, SGM41511_REG_9, &value);
-	if (ret) {
-		dev_err(info->dev, "get sgm41511 charger otg fault status failed\n");
-		return status;
-	}
-
-	if (!(value & SGM41511_REG_BOOST_FAULT_MASK))
-		status = false;
-	else
-		dev_err(info->dev, "boost fault occurs, REG_9 = 0x%x\n", value);
-
-	return status;
 }
 
 static void sgm41511_charger_otg_work(struct work_struct *work)
@@ -1644,7 +1615,7 @@ static void sgm41511_charger_otg_work(struct work_struct *work)
 
 	do {
 		otg_fault = sgm41511_charger_check_otg_fault(info);
-		if (!otg_fault) {
+		if (otg_fault) {
 			ret = sgm41511_update_bits(info, SGM41511_REG_1,
 						  SGM41511_REG_OTG_MASK,
 						  SGM41511_REG_OTG_MASK);
