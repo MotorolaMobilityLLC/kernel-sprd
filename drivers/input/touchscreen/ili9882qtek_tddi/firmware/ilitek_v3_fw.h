@@ -30,7 +30,8 @@
 #define DEF_FW_REQUEST_PATH		"ILITEK_FW"
 static unsigned char CTPM_FW_DEF[] = {
 //	#include "FW_TDDI_TRUNK_FB.ili"
-    #include "ILI9882Q_Aruba_LV_V0x94_0xA8_AP_0x01_0x00__MP_0x01_0x00__20210715.ili"
+//  #include "ILI9882Q_Aruba_LV_V0x94_0xA8_AP_0x01_0x00__MP_0x01_0x00__20210715.ili"
+    #include "ILI9882Q_Aruba_LV_V0x94_0xA8_AP_0x01__MP_0x00__20210802.ili"
 };
 
 #define CSOT_INI_NAME_PATH		"/sdcard/mp_csot.ini"
