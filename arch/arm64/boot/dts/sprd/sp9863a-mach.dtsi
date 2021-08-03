@@ -328,3 +328,10 @@
 	no-sd;
 	status = "okay";
 };
+
+&modem_dbg_log {
+	status = "okay";
+	clock-names = "serdes_eb", "src0", "src1", "src2";
+	clocks = <&aonapb_gate CLK_SERDES_EB>, <&pll CLK_TWPLL>, <&pll CLK_ISPPLL>, <&pll CLK_LPLL>;
+};
+

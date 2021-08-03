@@ -38,6 +38,19 @@
 		#size-cells = <2>;
 		ranges;
 
+		modem_dbg_log: modem-dbg-log@1000c000 {
+			compatible = "sprd,dbg-log-sharkl3";
+			reg = <0 0x1000c000 0 0x4000>;
+			sprd,syscon-aon-apb = <&aon_apb_regs>;
+			sprd,syscon-dsi-apb = <&anlg_phy_g1_regs>;
+			sprd,syscon-pll-apb = <&anlg_phy_g2_regs>;
+			sprd,ch-name = "TRAINING", "WTL", "MDAR", "TPIU", "DBUS", "WCN";
+			sprd,ch-index = <15 1 0 2 3 4>;
+			sprd,dcfix;
+			sprd,mm;
+			status = "disabled";
+		};
+
 		ap_ahb_regs: syscon@20e00000 {
 			compatible = "sprd,sc9863a-glbregs", "syscon";
 			reg = <0 0x20e00000 0 0x4000>;
