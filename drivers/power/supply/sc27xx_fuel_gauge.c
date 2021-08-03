@@ -1567,7 +1567,7 @@ static bool sc27xx_fgu_discharging_current_trend(struct sc27xx_fgu_data *data)
 					  data->base + SC27XX_FGU_CURRENT_BUF + i * 4,
 					  &cur);
 			if (ret) {
-				dev_err(data->dev, "fail to init cur_now_buff[i]\n", i);
+				dev_err(data->dev, "fail to init cur_now_buff[%d]\n", i);
 				return is_discharging;
 			}
 
@@ -1588,7 +1588,7 @@ static bool sc27xx_fgu_discharging_current_trend(struct sc27xx_fgu_data *data)
 				  data->base + SC27XX_FGU_CURRENT_BUF + i * 4,
 				  &cur);
 		if (ret) {
-			dev_err(data->dev, "fail to get cur_now_buff[i]\n", i);
+			dev_err(data->dev, "fail to get cur_now_buff[%d]\n", i);
 			data->cur_now_buff[SC27XX_FGU_CURRENT_BUFF_CNT - 1] =
 				SC27XX_FGU_MAGIC_NUMBER;
 				is_discharging = false;
