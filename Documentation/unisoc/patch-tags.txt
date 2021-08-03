@@ -122,6 +122,7 @@ leds:trigger:
 lib:e_show_mem:
 
 mailbox:sprd:
+Makefile:
 media:platform:sprd-jpg:
 media:platform:sprd-vsp:
 mfd:
