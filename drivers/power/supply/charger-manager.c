@@ -3859,8 +3859,7 @@ static bool cm_charger_is_support_fchg(struct charger_manager *cm)
 		ret = power_supply_get_property(psy, POWER_SUPPLY_PROP_USB_TYPE, &val);
 		power_supply_put(psy);
 		if (!ret) {
-			if (val.intval == POWER_SUPPLY_CHARGE_TYPE_FAST ||
-			    val.intval == POWER_SUPPLY_USB_TYPE_PD ||
+			if (val.intval == POWER_SUPPLY_USB_TYPE_PD ||
 			    val.intval == POWER_SUPPLY_USB_TYPE_PD_PPS) {
 				mutex_lock(&cm->desc->charger_type_mtx);
 				desc->is_fast_charge = true;

@@ -877,11 +877,17 @@ static int sc2730_fchg_property_is_writeable(struct power_supply *psy,
 	return ret;
 }
 
+static enum power_supply_usb_type sc2730_fchg_usb_types[] = {
+	POWER_SUPPLY_USB_TYPE_UNKNOWN,
+	POWER_SUPPLY_USB_TYPE_C,
+	POWER_SUPPLY_USB_TYPE_PD,
+	POWER_SUPPLY_USB_TYPE_PD_PPS,
+	POWER_SUPPLY_USB_TYPE_PD_DRP,
+};
+
 static enum power_supply_property sc2730_fchg_usb_props[] = {
-	POWER_SUPPLY_PROP_USB_TYPE,
-	POWER_SUPPLY_PROP_CURRENT_MAX,
 	POWER_SUPPLY_PROP_VOLTAGE_MAX,
-	POWER_SUPPLY_PROP_ONLINE,
+	POWER_SUPPLY_PROP_USB_TYPE,
 };
 
 static const struct power_supply_desc sc2730_fchg_desc = {
@@ -892,6 +898,8 @@ static const struct power_supply_desc sc2730_fchg_desc = {
 	.get_property		= sc2730_fchg_usb_get_property,
 	.set_property		= sc2730_fchg_usb_set_property,
 	.property_is_writeable	= sc2730_fchg_property_is_writeable,
+	.usb_types              = sc2730_fchg_usb_types,
+	.num_usb_types          = ARRAY_SIZE(sc2730_fchg_usb_types),
 };
 
 static void sc2730_fchg_work(struct work_struct *data)
