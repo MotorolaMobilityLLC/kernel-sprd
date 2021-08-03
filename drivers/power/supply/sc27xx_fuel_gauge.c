@@ -226,8 +226,8 @@ struct sc27xx_fgu_energy_density_ocv_table {
 
 struct sc27xx_fgu_sleep_capacity_calibration {
 	bool support_slp_calib;
-	int suspend_ocv;
-	int resume_ocv;
+	int suspend_ocv_uv;
+	int resume_ocv_uv;
 	int suspend_clbcnt;
 	int resume_clbcnt;
 	u64 suspend_time;
@@ -256,9 +256,9 @@ struct sc27xx_fgu_sleep_capacity_calibration {
  * @alarm_cap: the alarm capacity
  * @normal_temp_cap: the normal temperature capacity
  * @init_clbcnt: the initial coulomb counter
- * @max_volt: the maximum constant input voltage in millivolt
- * @min_volt: the minimum drained battery voltage in microvolt
- * @boot_volt: the voltage measured during boot in microvolt
+ * @max_volt_uv: the maximum constant input voltage in millivolt
+ * @min_volt_uv: the minimum drained battery voltage in microvolt
+ * @boot_volt_uv: the voltage measured during boot in microvolt
  * @table_len: the capacity table length
  * @temp_table_len: temp_table length
  * @cap_table_len：the capacity temperature table length
@@ -292,9 +292,9 @@ struct sc27xx_fgu_data {
 	int boot_cap;
 	int normal_temp_cap;
 	int init_clbcnt;
-	int max_volt;
-	int min_volt;
-	int boot_volt;
+	int max_volt_uv;
+	int min_volt_uv;
+	int boot_volt_uv;
 	int table_len;
 	int temp_table_len;
 	int cap_table_len;
@@ -308,7 +308,7 @@ struct sc27xx_fgu_data {
 	int uusoc_vbat;
 	unsigned int comp_resistance;
 	int index;
-	int ocv;
+	int ocv_uv;
 	int batt_uV;
 	int temp_buff[SC27XX_FGU_TEMP_BUFF_CNT];
 	int cur_now_buff[SC27XX_FGU_CURRENT_BUFF_CNT];
@@ -399,12 +399,7 @@ static int get_boot_mode(void)
 }
 
 static void sc27xx_fgu_capacity_calibration(struct sc27xx_fgu_data *data, bool int_mode);
-static void sc27xx_fgu_adjust_cap(struct sc27xx_fgu_data *data, int cap);
-static int sc27xx_fgu_get_temp(struct sc27xx_fgu_data *data, int *temp);
-static int sc27xx_fgu_get_vbat_ocv(struct sc27xx_fgu_data *data, int *val);
-static int sc27xx_fgu_get_vbat_now(struct sc27xx_fgu_data *data, int *val);
 static int sc27xx_fgu_resistance_algo(struct sc27xx_fgu_data *data, int cur_ua, int vol_uv);
-static int sc27xx_fgu_get_current_avg(struct sc27xx_fgu_data *data, int *val);
 
 static const char * const sc27xx_charger_supply_name[] = {
 	"sc2731_charger",
@@ -430,17 +425,17 @@ static int sc27xx_fgu_adc_to_voltage(struct sc27xx_fgu_data *data, s64 adc)
 	return DIV_S64_ROUND_CLOSEST(adc * 1000, data->vol_1000mv_adc);
 }
 
-static int sc27xx_fgu_voltage_to_adc(struct sc27xx_fgu_data *data, int vol)
+static inline int sc27xx_fgu_voltage2adc(struct sc27xx_fgu_data *data, int vol_mv)
 {
-	return DIV_ROUND_CLOSEST(vol * data->vol_1000mv_adc, 1000);
+	return DIV_ROUND_CLOSEST(vol_mv * data->vol_1000mv_adc, 1000);
 }
 
-static int sc27xx_fgu_cap2mah(struct sc27xx_fgu_data *data, int cap)
+static inline int sc27xx_fgu_cap2mah(struct sc27xx_fgu_data *data, int cap)
 {
 	return DIV_ROUND_CLOSEST(data->total_cap * cap, SC27XX_FGU_FCC_PERCENT);
 }
 
-static int sc27xx_fgu_cap_to_clbcnt(struct sc27xx_fgu_data *data, int capacity)
+static int sc27xx_fgu_cap2clbcnt(struct sc27xx_fgu_data *data, int capacity)
 {
 	/*
 	 * Get current capacity (mAh) = battery total capacity (mAh) *
@@ -475,18 +470,18 @@ static int sc27xx_fgu_clbcnt2mah(struct sc27xx_fgu_data *data, int clbcnt)
 }
 
 static int sc27xx_fgu_ocv2cap_simple(struct power_supply_battery_ocv_table *table,
-				     int table_len, int ocv)
+				     int table_len, int ocv_uv)
 {
 	int i, cap, tmp;
 
 	for (i = 0; i < table_len; i++) {
-		if (ocv > table[i].ocv)
+		if (ocv_uv > table[i].ocv)
 			break;
 	}
 
 	if (i > 0 && i < table_len) {
 		tmp = (table[i - 1].capacity * 10 - table[i].capacity * 10) *
-			(ocv - table[i].ocv);
+			(ocv_uv - table[i].ocv);
 		tmp /= table[i - 1].ocv - table[i].ocv;
 		cap = tmp + table[i].capacity * 10;
 	} else if (i == 0) {
@@ -498,8 +493,8 @@ static int sc27xx_fgu_ocv2cap_simple(struct power_supply_battery_ocv_table *tabl
 	return cap;
 }
 
-static int sc27xx_fgu_temp_to_cap(struct power_supply_capacity_temp_table *table,
-				  int table_len, int temp)
+static int sc27xx_fgu_temp2cap(struct power_supply_capacity_temp_table *table,
+			       int table_len, int temp)
 {
 	int i, capacity;
 
@@ -521,6 +516,204 @@ static int sc27xx_fgu_temp_to_cap(struct power_supply_capacity_temp_table *table
 	}
 
 	return DIV_ROUND_UP(capacity, 10);
+}
+
+/* @val: value of battery voltage in mV*/
+static int sc27xx_fgu_get_vbat_now(struct sc27xx_fgu_data *data, int *val)
+{
+	int ret, vol_adc = 0;
+
+	ret = regmap_read(data->regmap, data->base + SC27XX_FGU_VOLTAGE, &vol_adc);
+	if (ret)
+		return ret;
+
+	/*
+	 * It is ADC values reading from registers which need to convert to
+	 * corresponding voltage values.
+	 */
+	*val = sc27xx_fgu_adc_to_voltage(data, vol_adc);
+
+	return 0;
+}
+
+/* @val: average value of battery current in mA*/
+static int sc27xx_fgu_get_current_avg(struct sc27xx_fgu_data *data, int *val)
+{
+	int ret, cur_adc = 0;
+	int i;
+
+	*val = 0;
+
+	for (i = 0; i < SC27XX_FGU_CURRENT_BUFF_CNT; i++) {
+		ret = regmap_read(data->regmap,
+				  data->base + SC27XX_FGU_CURRENT_BUF + i * 4,
+				  &cur_adc);
+		if (ret)
+			return ret;
+		/*
+		 * It is ADC values reading from registers which need to convert to
+		 * corresponding current values (unit mA).
+		 */
+		*val += sc27xx_fgu_adc_to_current(data, (s64)cur_adc - SC27XX_FGU_CUR_BASIC_ADC);
+	}
+
+	*val /= 8;
+
+	return 0;
+}
+
+static int sc27xx_fgu_set_clbcnt(struct sc27xx_fgu_data *data, int clbcnt)
+{
+	int ret;
+
+	ret = regmap_update_bits(data->regmap,
+				 data->base + SC27XX_FGU_CLBCNT_SETL,
+				 SC27XX_FGU_CLBCNT_MASK, clbcnt);
+	if (ret)
+		return ret;
+
+	ret = regmap_update_bits(data->regmap,
+				 data->base + SC27XX_FGU_CLBCNT_SETH,
+				 SC27XX_FGU_CLBCNT_MASK,
+				 clbcnt >> SC27XX_FGU_CLBCNT_SHIFT);
+	if (ret)
+		return ret;
+
+	return regmap_update_bits(data->regmap, data->base + SC27XX_FGU_START,
+				 SC27XX_WRITE_SELCLB_EN,
+				 SC27XX_WRITE_SELCLB_EN);
+}
+
+static int sc27xx_fgu_get_clbcnt(struct sc27xx_fgu_data *data, int *clb_cnt)
+{
+	int ccl, cch, ret;
+
+	ret = regmap_read(data->regmap, data->base + SC27XX_FGU_CLBCNT_VALL, &ccl);
+	if (ret)
+		return ret;
+
+	ret = regmap_read(data->regmap, data->base + SC27XX_FGU_CLBCNT_VALH, &cch);
+	if (ret)
+		return ret;
+
+	*clb_cnt = ccl & SC27XX_FGU_CLBCNT_MASK;
+	*clb_cnt |= (cch & SC27XX_FGU_CLBCNT_MASK) << SC27XX_FGU_CLBCNT_SHIFT;
+
+	return 0;
+}
+
+/* @val: average value of battery voltage in mV*/
+static int sc27xx_fgu_get_vbat_avg(struct sc27xx_fgu_data *data, int *val)
+{
+	int ret, i;
+	u32 vol_adc = 0;
+
+	*val = 0;
+	for (i = 0; i < SC27XX_FGU_VOLTAGE_BUFF_CNT; i++) {
+		ret = regmap_read(data->regmap,
+				  data->base + SC27XX_FGU_VOLTAGE_BUF + i * 4,
+				  &vol_adc);
+		if (ret)
+			return ret;
+
+		/*
+		 * It is ADC values reading from registers which need to convert to
+		 * corresponding voltage values.
+		 */
+		*val += sc27xx_fgu_adc_to_voltage(data, vol_adc);
+	}
+
+	*val /= 8;
+
+	return 0;
+}
+
+/* @val: value of battery current in mA*/
+static int sc27xx_fgu_get_current_now(struct sc27xx_fgu_data *data, int *val)
+{
+	int ret;
+	u32 cur_adc = 0;
+
+	ret = regmap_read(data->regmap, data->base + SC27XX_FGU_CURRENT, &cur_adc);
+	if (ret)
+		return ret;
+
+	/*
+	 * It is ADC values reading from registers which need to convert to
+	 * corresponding current values (unit mA).
+	 */
+	*val = sc27xx_fgu_adc_to_current(data, (s64)cur_adc - SC27XX_FGU_CUR_BASIC_ADC);
+
+	return 0;
+}
+
+static void sc27xx_fgu_adjust_cap(struct sc27xx_fgu_data *data, int cap)
+{
+	int ret;
+
+	data->init_cap = cap;
+	ret = sc27xx_fgu_get_clbcnt(data, &data->init_clbcnt);
+	if (ret)
+		dev_err(data->dev, "failed to get init clbcnt\n");
+}
+
+static int sc27xx_fgu_temp2resistance(struct power_supply_resistance_temp_table *table,
+				      int table_len, int value)
+{
+	int i, temp;
+
+	value = value / 10;
+	for (i = 0; i < table_len; i++)
+		if (value > table[i].temp)
+			break;
+
+	if (i > 0 && i < table_len) {
+		temp = interpolate(value,
+				   table[i].temp,
+				   table[i].resistance,
+				   table[i - 1].temp,
+				   table[i - 1].resistance);
+	} else if (i == 0) {
+		temp = table[0].resistance;
+	} else {
+		temp = table[table_len - 1].resistance;
+	}
+
+	return temp;
+}
+
+/* @val: value of battery ocv in uV*/
+static int sc27xx_fgu_get_vbat_ocv(struct sc27xx_fgu_data *data, int *val)
+{
+	int vol_mv, cur_ma, resistance, ret;
+
+	ret = sc27xx_fgu_get_vbat_now(data, &vol_mv);
+	if (ret)
+		return ret;
+
+	ret = sc27xx_fgu_get_current_now(data, &cur_ma);
+	if (ret)
+		return ret;
+
+	if (data->support_multi_resistance) {
+		resistance = sc27xx_fgu_resistance_algo(data, cur_ma * 1000, vol_mv * 1000);
+		goto resistance_algo;
+	}
+
+	resistance = data->internal_resist;
+	if (data->resist_table_len > 0) {
+		resistance =
+			sc27xx_fgu_temp2resistance(data->resist_table,
+						   data->resist_table_len,
+						   data->bat_temp);
+		resistance = data->internal_resist * resistance / 100;
+	}
+
+resistance_algo:
+	/* Return the battery OCV in micro volts. */
+	*val = vol_mv * 1000 - cur_ma * (resistance + SC27XX_FGU_RBAT_CMP_MOH);
+
+	return 0;
 }
 
 static void sc27xx_fgu_dump_resistance_table(struct sc27xx_fgu_data *data, char *str)
@@ -754,46 +947,46 @@ static int sc27xx_fgu_read_last_cap(struct sc27xx_fgu_data *data, int *cap)
 	return 0;
 }
 
-static int sc27xx_fgu_get_boot_voltage(struct sc27xx_fgu_data *data, int *pocv)
+static int sc27xx_fgu_get_boot_voltage(struct sc27xx_fgu_data *data, int *pocv_uv)
 {
-	int volt, cur, oci, ret, ocv;
+	int vol_mv, cur_adc, oci_ma, ret, ocv_uv;
 
 	/*
 	 * After system booting on, the SC27XX_FGU_CLBCNT_QMAXL register saved
 	 * the first sampled open circuit current.
 	 */
-	ret = regmap_read(data->regmap, data->base + SC27XX_FGU_CLBCNT_QMAXL, &cur);
+	ret = regmap_read(data->regmap, data->base + SC27XX_FGU_CLBCNT_QMAXL, &cur_adc);
 	if (ret) {
 		dev_err(data->dev, "Failed to read CLBCNT_QMAXL, ret = %d\n",
 			ret);
 		return ret;
 	}
 
-	cur <<= 1;
-	oci = sc27xx_fgu_adc_to_current(data, (s64)cur - SC27XX_FGU_CUR_BASIC_ADC);
+	cur_adc <<= 1;
+	oci_ma = sc27xx_fgu_adc_to_current(data, (s64)cur_adc - SC27XX_FGU_CUR_BASIC_ADC);
 
 	/*
 	 * Should get the OCV from SC27XX_FGU_POCV register at the system
 	 * beginning. It is ADC values reading from registers which need to
 	 * convert the corresponding voltage.
 	 */
-	ret = regmap_read(data->regmap, data->base + SC27XX_FGU_POCV, &volt);
+	ret = regmap_read(data->regmap, data->base + SC27XX_FGU_POCV, &vol_mv);
 	if (ret) {
 		dev_err(data->dev, "Failed to read FGU_POCV, ret = %d\n", ret);
 		return ret;
 	}
 
-	volt = sc27xx_fgu_adc_to_voltage(data, volt);
-	if (volt < SC27XX_FGU_POCV_VOLT_THRESHOLD) {
-		ret = sc27xx_fgu_get_vbat_ocv(data, &ocv);
+	vol_mv = sc27xx_fgu_adc_to_voltage(data, vol_mv);
+	if (vol_mv < SC27XX_FGU_POCV_VOLT_THRESHOLD) {
+		ret = sc27xx_fgu_get_vbat_ocv(data, &ocv_uv);
 		if (ret) {
 			dev_err(data->dev, "Failed to read volt, ret = %d\n", ret);
 			return ret;
 		}
-		volt = ocv / 1000;
+		vol_mv = ocv_uv / 1000;
 	}
-	*pocv = volt * 1000 - oci * data->internal_resist;
-	dev_info(data->dev, "oci = %d, volt = %d, pocv = %d\n", oci, volt, *pocv);
+	*pocv_uv = vol_mv * 1000 - oci_ma * data->internal_resist;
+	dev_info(data->dev, "oci_ma = %d, vol_mv = %d, pocv = %d\n", oci_ma, vol_mv, *pocv_uv);
 
 	return 0;
 }
@@ -806,11 +999,11 @@ static int sc27xx_fgu_get_boot_voltage(struct sc27xx_fgu_data *data, int *pocv)
  */
 static int sc27xx_fgu_get_boot_capacity(struct sc27xx_fgu_data *data, int *cap)
 {
-	int ocv, ret;
+	int ocv_uv, ret;
 	bool is_first_poweron = sc27xx_fgu_is_first_poweron(data);
 
 	if (is_charger_mode)
-		sc27xx_fgu_get_boot_voltage(data, &data->boot_volt);
+		sc27xx_fgu_get_boot_voltage(data, &data->boot_volt_uv);
 	/*
 	 * If system is not the first power on, we should use the last saved
 	 * battery capacity as the initial battery capacity. Otherwise we should
@@ -843,14 +1036,14 @@ static int sc27xx_fgu_get_boot_capacity(struct sc27xx_fgu_data *data, int *cap)
 		return sc27xx_fgu_save_boot_mode(data, SC27XX_FGU_NORMAIL_POWERTON);
 	}
 
-	sc27xx_fgu_get_boot_voltage(data, &ocv);
+	sc27xx_fgu_get_boot_voltage(data, &ocv_uv);
+
 	/*
 	 * Parse the capacity table to look up the correct capacity percent
 	 * according to current battery's corresponding OCV values.
 	 */
-	*cap = power_supply_ocv2cap_simple(data->cap_table, data->table_len, ocv);
+	*cap = sc27xx_fgu_ocv2cap_simple(data->cap_table, data->table_len, ocv_uv);
 
-	*cap *= 10;
 	data->boot_cap = *cap;
 	ret = sc27xx_fgu_save_last_cap(data, *cap);
 	if (ret) {
@@ -859,138 +1052,56 @@ static int sc27xx_fgu_get_boot_capacity(struct sc27xx_fgu_data *data, int *cap)
 	}
 
 	data->is_first_poweron = true;
-	dev_info(data->dev, "First_poweron: ocv = %d, cap = %d\n", ocv, *cap);
+	dev_info(data->dev, "First_poweron: ocv_uv = %d, cap = %d\n", ocv_uv, *cap);
 	return sc27xx_fgu_save_boot_mode(data, SC27XX_FGU_NORMAIL_POWERTON);
-}
-
-static int sc27xx_fgu_set_clbcnt(struct sc27xx_fgu_data *data, int clbcnt)
-{
-	int ret;
-
-	ret = regmap_update_bits(data->regmap,
-				 data->base + SC27XX_FGU_CLBCNT_SETL,
-				 SC27XX_FGU_CLBCNT_MASK, clbcnt);
-	if (ret)
-		return ret;
-
-	ret = regmap_update_bits(data->regmap,
-				 data->base + SC27XX_FGU_CLBCNT_SETH,
-				 SC27XX_FGU_CLBCNT_MASK,
-				 clbcnt >> SC27XX_FGU_CLBCNT_SHIFT);
-	if (ret)
-		return ret;
-
-	return regmap_update_bits(data->regmap, data->base + SC27XX_FGU_START,
-				 SC27XX_WRITE_SELCLB_EN,
-				 SC27XX_WRITE_SELCLB_EN);
-}
-
-static int sc27xx_fgu_get_clbcnt(struct sc27xx_fgu_data *data, int *clb_cnt)
-{
-	int ccl, cch, ret;
-
-	ret = regmap_read(data->regmap, data->base + SC27XX_FGU_CLBCNT_VALL, &ccl);
-	if (ret)
-		return ret;
-
-	ret = regmap_read(data->regmap, data->base + SC27XX_FGU_CLBCNT_VALH, &cch);
-	if (ret)
-		return ret;
-
-	*clb_cnt = ccl & SC27XX_FGU_CLBCNT_MASK;
-	*clb_cnt |= (cch & SC27XX_FGU_CLBCNT_MASK) << SC27XX_FGU_CLBCNT_SHIFT;
-
-	return 0;
-}
-
-static int sc27xx_fgu_get_vbat_avg(struct sc27xx_fgu_data *data, int *val)
-{
-	int ret, i;
-	u32 vol = 0;
-
-	*val = 0;
-	for (i = 0; i < SC27XX_FGU_VOLTAGE_BUFF_CNT; i++) {
-		ret = regmap_read(data->regmap,
-				  data->base + SC27XX_FGU_VOLTAGE_BUF + i * 4,
-				  &vol);
-		if (ret)
-			return ret;
-
-		/*
-		 * It is ADC values reading from registers which need to convert to
-		 * corresponding voltage values.
-		 */
-		*val += sc27xx_fgu_adc_to_voltage(data, vol);
-	}
-
-	*val /= 8;
-
-	return 0;
-}
-
-static int sc27xx_fgu_get_current_now(struct sc27xx_fgu_data *data, int *val)
-{
-	int ret;
-	u32 cur = 0;
-
-	ret = regmap_read(data->regmap, data->base + SC27XX_FGU_CURRENT, &cur);
-	if (ret)
-		return ret;
-
-	/*
-	 * It is ADC values reading from registers which need to convert to
-	 * corresponding current values.
-	 */
-	*val = sc27xx_fgu_adc_to_current(data, (s64)cur - SC27XX_FGU_CUR_BASIC_ADC);
-
-	return 0;
 }
 
 static int sc27xx_fgu_uusoc_algo(struct sc27xx_fgu_data *data, int *uusoc_mah)
 {
-	int vol, cur, ret, cur_avg;
-	int resistance_moh = 0, ocv_pzero;
+	int vol_mv, cur_ma, ret, cur_avg_ma;
+	int resistance_moh = 0, ocv_pzero_uv;
 	int ocv_pzero_cap, ocv_pzero_mah;
 
-	ret = sc27xx_fgu_get_vbat_now(data, &vol);
+	ret = sc27xx_fgu_get_vbat_now(data, &vol_mv);
 	if (ret) {
 		dev_info(data->dev, "UUSOC fail to get vbat, ret = %d\n", ret);
 		return ret;
 	}
 
-	ret = sc27xx_fgu_get_current_now(data, &cur);
+	ret = sc27xx_fgu_get_current_now(data, &cur_ma);
 	if (ret) {
-		dev_info(data->dev, "UUSOC fail to get cur, ret = %d\n", ret);
+		dev_info(data->dev, "UUSOC fail to get cur_ma, ret = %d\n", ret);
 		return ret;
 	}
 
-	ret = sc27xx_fgu_get_current_avg(data, &cur_avg);
+	ret = sc27xx_fgu_get_current_avg(data, &cur_avg_ma);
 	if (ret) {
-		dev_info(data->dev, "UUSOC fail to get cur_avg, ret = %d\n", ret);
+		dev_info(data->dev, "UUSOC fail to get cur_avg_ma, ret = %d\n", ret);
 		return ret;
 	}
 
-	ocv_pzero = data->cap_table[data->table_len - 1].ocv;
-	if (cur_avg < 0) {
-		resistance_moh = sc27xx_fgu_resistance_algo(data, cur * 1000, vol * 1000);
-		ocv_pzero -= cur_avg * resistance_moh;
+	ocv_pzero_uv = data->cap_table[data->table_len - 1].ocv;
+	if (cur_avg_ma < 0) {
+		resistance_moh = sc27xx_fgu_resistance_algo(data, cur_ma * 1000,
+							    vol_mv * 1000);
+		ocv_pzero_uv -= cur_avg_ma * resistance_moh;
 	}
 
-	ocv_pzero_cap = sc27xx_fgu_ocv2cap_simple(data->cap_table, data->table_len, ocv_pzero);
+	ocv_pzero_cap = sc27xx_fgu_ocv2cap_simple(data->cap_table, data->table_len, ocv_pzero_uv);
 
 	ocv_pzero_mah = sc27xx_fgu_cap2mah(data, ocv_pzero_cap);
 	*uusoc_mah = ocv_pzero_mah;
 
-	dev_info(data->dev, "UUSOC: cur_avg = %d, resistance_moh = %d, ocv_pzero = %d, "
+	dev_info(data->dev, "UUSOC: cur_avg_ma = %d, resistance_moh = %d, ocv_pzero_uv = %d, "
 			"ocv_pzero_cap = %d, ocv_pzero_mah = %d\n",
-			cur_avg, resistance_moh, ocv_pzero, ocv_pzero_cap, ocv_pzero_mah);
+			cur_avg_ma, resistance_moh, ocv_pzero_uv, ocv_pzero_cap, ocv_pzero_mah);
 
 	return 0;
 }
 
 static int sc27xx_fgu_get_capacity(struct sc27xx_fgu_data *data, int *cap)
 {
-	int ret, cur_clbcnt, delta_clbcnt, delta_cap, temp, temp_cap;
+	int ret, cur_clbcnt, delta_clbcnt, delta_cap, cc_mah, temp_cap;
 	int uusoc_mah, init_mah;
 
 	/* Get current coulomb counters firstly */
@@ -1002,13 +1113,13 @@ static int sc27xx_fgu_get_capacity(struct sc27xx_fgu_data *data, int *cap)
 	data->last_clbcnt = data->cur_clbcnt;
 	data->cur_clbcnt = cur_clbcnt;
 
-	temp = sc27xx_fgu_clbcnt2mah(data, delta_clbcnt);
+	cc_mah = sc27xx_fgu_clbcnt2mah(data, delta_clbcnt);
 
 	/*
 	 * Convert to capacity percent of the battery total capacity,
 	 * and multiplier is 100 too.
 	 */
-	delta_cap = DIV_ROUND_CLOSEST(temp * 1000, data->total_cap);
+	delta_cap = DIV_ROUND_CLOSEST(cc_mah * 1000, data->total_cap);
 	*cap = delta_cap + data->init_cap;
 	data->normal_temp_cap = *cap;
 	if (data->normal_temp_cap < 0)
@@ -1042,11 +1153,11 @@ static int sc27xx_fgu_get_capacity(struct sc27xx_fgu_data *data, int *cap)
 		}
 
 		init_mah = sc27xx_fgu_cap2mah(data, data->init_cap);
-		*cap = DIV_ROUND_CLOSEST((init_mah + temp - uusoc_mah) * 1000,
+		*cap = DIV_ROUND_CLOSEST((init_mah + cc_mah - uusoc_mah) * 1000,
 					 (data->total_cap - uusoc_mah));
 
 		dev_info(data->dev, "UUSOC: init_mah = %d, uusoc_mah = %d, cc_mah = %d, *cap = %d\n",
-				init_mah, uusoc_mah, temp, *cap);
+				init_mah, uusoc_mah, cc_mah, *cap);
 
 		if (*cap < 0) {
 			dev_info(data->dev, "UUSOC *cap < 0, adjust !!!\n");
@@ -1061,9 +1172,9 @@ static int sc27xx_fgu_get_capacity(struct sc27xx_fgu_data *data, int *cap)
 
 normal_cap_calc:
 	if (data->cap_table_len > 0) {
-		temp_cap = sc27xx_fgu_temp_to_cap(data->cap_temp_table,
-						  data->cap_table_len,
-						  data->bat_temp);
+		temp_cap = sc27xx_fgu_temp2cap(data->cap_temp_table,
+					       data->cap_table_len,
+					       data->bat_temp);
 		/*
 		 * Battery capacity at different temperatures, we think
 		 * the change is linear, the follow the formula: y = ax + k
@@ -1105,46 +1216,6 @@ capacity_calibration:
 		dev_info(data->dev, "Capacity_temp > 1000, adjust !!!\n");
 		*cap = SC27XX_FGU_FCC_PERCENT;
 	}
-
-	return 0;
-}
-
-static int sc27xx_fgu_get_vbat_now(struct sc27xx_fgu_data *data, int *val)
-{
-	int ret, vol = 0;
-
-	ret = regmap_read(data->regmap, data->base + SC27XX_FGU_VOLTAGE, &vol);
-	if (ret)
-		return ret;
-
-	/*
-	 * It is ADC values reading from registers which need to convert to
-	 * corresponding voltage values.
-	 */
-	*val = sc27xx_fgu_adc_to_voltage(data, vol);
-
-	return 0;
-}
-
-static int sc27xx_fgu_get_current_avg(struct sc27xx_fgu_data *data, int *val)
-{
-	int ret, cur = 0;
-	int i;
-
-	*val = 0;
-
-	for (i = 0; i < SC27XX_FGU_CURRENT_BUFF_CNT; i++) {
-		ret = regmap_read(data->regmap, data->base + SC27XX_FGU_CURRENT_BUF + i * 4, &cur);
-		if (ret)
-			return ret;
-		/*
-		 * It is ADC values reading from registers which need to convert to
-		 * corresponding current values.
-		 */
-		*val += sc27xx_fgu_adc_to_current(data, (s64)cur - SC27XX_FGU_CUR_BASIC_ADC);
-	}
-
-	*val /= 8;
 
 	return 0;
 }
@@ -1298,56 +1369,24 @@ static int sc27xx_fgu_resistance_algo(struct sc27xx_fgu_data *data, int cur_ua, 
 	resistance_moh = DIV_ROUND_CLOSEST(sum, SC27XX_FGU_RESIST_ALG_OCV_CNT);
 
 	if (data->support_debug_log)
-		dev_info(data->dev, "Valid  resistance_moh =  %d, resistance_valid = %d\n",
+		dev_info(data->dev, "Get resistance_moh =  %d, resistance_valid = %d\n",
 			resistance_moh, resistance_valid);
 
 	return resistance_moh;
 
 }
 
-static int sc27xx_fgu_get_vbat_ocv(struct sc27xx_fgu_data *data, int *val)
-{
-	int vol, cur, ret, resistance;
-
-	ret = sc27xx_fgu_get_vbat_now(data, &vol);
-	if (ret)
-		return ret;
-
-	ret = sc27xx_fgu_get_current_now(data, &cur);
-	if (ret)
-		return ret;
-
-	if (data->support_multi_resistance) {
-		resistance = sc27xx_fgu_resistance_algo(data, cur * 1000, vol * 1000);
-		goto resistance_algo;
-	}
-
-	resistance = data->internal_resist;
-	if (data->resist_table_len > 0) {
-		resistance = power_supply_temp2resist_simple(data->resist_table,
-							     data->resist_table_len,
-							     data->bat_temp / 10);
-		resistance = data->internal_resist * resistance / 100;
-	}
-
-resistance_algo:
-	/* Return the battery OCV in micro volts. */
-	*val = vol * 1000 - cur * (resistance + SC27XX_FGU_RBAT_CMP_MOH);
-
-	return 0;
-}
-
-static int sc27xx_fgu_vol_to_temp(struct power_supply_vol_temp_table *table,
-				  int table_len, int vol)
+static int sc27xx_fgu_vol2temp(struct power_supply_vol_temp_table *table,
+			       int table_len, int vol_uv)
 {
 	int i, temp;
 
 	for (i = 0; i < table_len; i++)
-		if (vol > table[i].vol)
+		if (vol_uv > table[i].vol)
 			break;
 
 	if (i > 0 && i < table_len) {
-		temp = interpolate(vol,
+		temp = interpolate(vol_uv,
 				   table[i].vol,
 				   table[i].temp,
 				   table[i - 1].vol,
@@ -1363,13 +1402,13 @@ static int sc27xx_fgu_vol_to_temp(struct power_supply_vol_temp_table *table,
 
 static int sc27xx_fgu_get_charge_vol(struct sc27xx_fgu_data *data, int *val)
 {
-	int ret, vol;
+	int ret, vol_mv;
 
-	ret = iio_read_channel_processed(data->charge_chan, &vol);
+	ret = iio_read_channel_processed(data->charge_chan, &vol_mv);
 	if (ret < 0)
 		return ret;
 
-	*val = vol;
+	*val = vol_mv;
 	return 0;
 }
 
@@ -1406,16 +1445,16 @@ static int sc27xx_fgu_get_average_temp(struct sc27xx_fgu_data *data, int temp)
 
 static int sc27xx_fgu_get_temp(struct sc27xx_fgu_data *data, int *temp)
 {
-	int vol, ret;
+	int vol_mv, ret;
 
-	ret = iio_read_channel_processed(data->channel, &vol);
+	ret = iio_read_channel_processed(data->channel, &vol_mv);
 	if (ret < 0)
 		return ret;
 
 	if (data->comp_resistance) {
-		int bat_current, resistance_vol;
+		int bat_current_ma, resistance_vol;
 
-		ret = sc27xx_fgu_get_current_now(data, &bat_current);
+		ret = sc27xx_fgu_get_current_now(data, &bat_current_ma);
 		if (ret) {
 			dev_err(data->dev, "failed to get battery current\n");
 			return ret;
@@ -1433,19 +1472,18 @@ static int sc27xx_fgu_get_temp(struct sc27xx_fgu_data *data, int *temp)
 		 *  UR = Vadc -Vresistance +
 		 *  Vresistance * (Vadc - Vresistance) / (1850 - Vresistance)
 		 */
-		resistance_vol = bat_current * data->comp_resistance;
+		resistance_vol = bat_current_ma * data->comp_resistance;
 		resistance_vol = DIV_ROUND_CLOSEST(resistance_vol, 1000);
-
-		vol = vol - (resistance_vol * (1850 - vol)) / (1850 - resistance_vol);
-
-		if (vol < 0)
-			vol = 0;
+		vol_mv = vol_mv - resistance_vol + (resistance_vol *
+			(vol_mv - resistance_vol)) / (1850 - resistance_vol);
+		if (vol_mv < 0)
+			vol_mv = 0;
 	}
 
 	if (data->temp_table_len > 0) {
-		*temp = sc27xx_fgu_vol_to_temp(data->temp_table,
-					       data->temp_table_len,
-					       vol * 1000);
+		*temp = sc27xx_fgu_vol2temp(data->temp_table,
+					    data->temp_table_len,
+					    vol_mv * 1000);
 		*temp = sc27xx_fgu_get_average_temp(data, *temp);
 	} else {
 		*temp = 200;
@@ -1458,13 +1496,13 @@ static int sc27xx_fgu_get_temp(struct sc27xx_fgu_data *data, int *temp)
 
 static int sc27xx_fgu_get_health(struct sc27xx_fgu_data *data, int *health)
 {
-	int ret, vol;
+	int ret, vol_mv;
 
-	ret = sc27xx_fgu_get_vbat_now(data, &vol);
+	ret = sc27xx_fgu_get_vbat_now(data, &vol_mv);
 	if (ret)
 		return ret;
 
-	if (vol > data->max_volt)
+	if ((vol_mv * 1000) > data->max_volt_uv)
 		*health = POWER_SUPPLY_HEALTH_OVERVOLTAGE;
 	else
 		*health = POWER_SUPPLY_HEALTH_GOOD;
@@ -1631,7 +1669,7 @@ static int sc27xx_fgu_suspend_calib_check_sleep_time(struct sc27xx_fgu_data *dat
 
 static int sc27xx_fgu_suspend_calib_check_sleep_cur(struct sc27xx_fgu_data *data)
 {
-	int mah, clbcnt, times, sleep_cur = 0;
+	int mah, clbcnt, times, sleep_cur_ma = 0;
 
 	sc27xx_fgu_get_clbcnt(data, &data->slp_cap_calib.resume_clbcnt);
 
@@ -1640,7 +1678,7 @@ static int sc27xx_fgu_suspend_calib_check_sleep_cur(struct sc27xx_fgu_data *data
 
 	mah = DIV_ROUND_CLOSEST(clbcnt * 10, 36 * SC27XX_FGU_SAMPLE_HZ);
 
-	/* sleep_cur = mah * 3600 / times, but mah may be some, and will be zero after div_s64.
+	/* sleep_cur_ma = mah * 3600 / times, but mah may be some, and will be zero after div_s64.
 	 * so we *3600 first.
 	 */
 	mah *= 3600;
@@ -1651,16 +1689,16 @@ static int sc27xx_fgu_suspend_calib_check_sleep_cur(struct sc27xx_fgu_data *data
 
 	mah = div_s64(mah, data->cur_1000ma_adc);
 
-	sleep_cur = mah / times;
+	sleep_cur_ma = mah / times;
 
 	dev_info(data->dev, "%s, suspend_clbcnt = %d, resume_clbcnt = %d, clbcnt = %d\n",
 		 __func__, data->slp_cap_calib.suspend_clbcnt,
 		 data->slp_cap_calib.resume_clbcnt, clbcnt);
-	dev_info(data->dev, "%s, sleep_cur = %d, times = %d, clbcnt = %d, mah = %d, 1000ma_adc = %d\n",
-		 __func__, sleep_cur, times, clbcnt, mah, data->cur_1000ma_adc);
+	dev_info(data->dev, "%s, sleep_cur_ma = %d, times = %d, clbcnt = %d, mah = %d, 1000ma_adc = %d\n",
+		 __func__, sleep_cur_ma, times, clbcnt, mah, data->cur_1000ma_adc);
 
-	if (abs(sleep_cur) > data->slp_cap_calib.relax_cur_threshold) {
-		dev_info(data->dev, "Sleep calib sleep current = %d, not meet conditions\n", sleep_cur);
+	if (abs(sleep_cur_ma) > data->slp_cap_calib.relax_cur_threshold) {
+		dev_info(data->dev, "Sleep calib sleep current = %d, not meet conditions\n", sleep_cur_ma);
 		return -EINVAL;
 	}
 
@@ -1669,14 +1707,14 @@ static int sc27xx_fgu_suspend_calib_check_sleep_cur(struct sc27xx_fgu_data *data
 
 static int sc27xx_fgu_suspend_calib_get_ocv(struct sc27xx_fgu_data *data)
 {
-	int ret, i, cur = 0x7fffffff;
-	u32 vol = 0;
+	int ret, i, cur_ma = 0x7fffffff;
+	u32 vol_mv = 0;
 
 	for (i = SC27XX_FGU_VOLTAGE_BUFF_CNT - 1; i >= 0; i--) {
-		vol = 0;
+		vol_mv = 0;
 		ret = regmap_read(data->regmap,
 				  data->base + SC27XX_FGU_VOLTAGE_BUF + i * 4,
-				  &vol);
+				  &vol_mv);
 		if (ret) {
 			dev_info(data->dev, "Sleep calib fail to get vbat_buf[%d]\n", i);
 			continue;
@@ -1686,12 +1724,12 @@ static int sc27xx_fgu_suspend_calib_get_ocv(struct sc27xx_fgu_data *data)
 		 * It is ADC values reading from registers which need to convert to
 		 * corresponding voltage values.
 		 */
-		vol = sc27xx_fgu_adc_to_voltage(data, vol);
+		vol_mv = sc27xx_fgu_adc_to_voltage(data, vol_mv);
 
-		cur = 0x7fffffff;
+		cur_ma = 0x7fffffff;
 		ret = regmap_read(data->regmap,
 				  data->base + SC27XX_FGU_CURRENT_BUF + i * 4,
-				  &cur);
+				  &cur_ma);
 		if (ret) {
 			dev_info(data->dev, "Sleep calib fail to get cur_buf[%d]\n", i);
 			continue;
@@ -1701,22 +1739,22 @@ static int sc27xx_fgu_suspend_calib_get_ocv(struct sc27xx_fgu_data *data)
 		 * It is ADC values reading from registers which need to convert to
 		 * corresponding current values.
 		 */
-		cur = sc27xx_fgu_adc_to_current(data, cur - SC27XX_FGU_CUR_BASIC_ADC);
-		if (abs(cur) < data->slp_cap_calib.relax_cur_threshold) {
-			dev_info(data->dev, "Sleep calib get cur[%d] = %d met condition\n", i, cur);
+		cur_ma = sc27xx_fgu_adc_to_current(data, (s64)cur_ma - SC27XX_FGU_CUR_BASIC_ADC);
+		if (abs(cur_ma) < data->slp_cap_calib.relax_cur_threshold) {
+			dev_info(data->dev, "Sleep calib get cur[%d] = %d met condition\n", i, cur_ma);
 			break;
 		}
 	}
 
-	if (vol == 0 || cur == 0x7fffffff) {
+	if (vol_mv == 0 || cur_ma == 0x7fffffff) {
 		dev_info(data->dev, "Sleep calib fail to get cur and vol: cur = %d, vol = %d\n",
-			 cur, vol);
+			 cur_ma, vol_mv);
 		return -EINVAL;
 	}
 
-	dev_info(data->dev, "Sleep calib vol = %d, cur = %d, i = %d\n", vol, cur, i);
+	dev_info(data->dev, "Sleep calib vol = %d, cur = %d, i = %d\n", vol_mv, cur_ma, i);
 
-	data->slp_cap_calib.resume_ocv = vol * 1000;
+	data->slp_cap_calib.resume_ocv_uv = vol_mv * 1000;
 
 	return 0;
 }
@@ -1732,10 +1770,10 @@ static int sc27xx_fgu_suspend_calib_check_ocv(struct sc27xx_fgu_data *data)
 	}
 
 	for (i = 0; i < data->dens_table_len; i++) {
-		if (data->slp_cap_calib.resume_ocv > data->dens_table[i].engy_dens_ocv_lo &&
-		    data->slp_cap_calib.resume_ocv < data->dens_table[i].engy_dens_ocv_hi) {
+		if (data->slp_cap_calib.resume_ocv_uv > data->dens_table[i].engy_dens_ocv_lo &&
+		    data->slp_cap_calib.resume_ocv_uv < data->dens_table[i].engy_dens_ocv_hi) {
 			dev_info(data->dev, "Sleep calib get valid resume ocv, vol = %d\n",
-				 data->slp_cap_calib.resume_ocv);
+				 data->slp_cap_calib.resume_ocv_uv);
 			is_matched = true;
 			break;
 		}
@@ -1745,7 +1783,7 @@ static int sc27xx_fgu_suspend_calib_check_ocv(struct sc27xx_fgu_data *data)
 		return 0;
 
 	dev_info(data->dev, "Sleep calib resume ocv is out of dens range, vol = %d\n",
-		 data->slp_cap_calib.resume_ocv);
+		 data->slp_cap_calib.resume_ocv_uv);
 
 	return -EINVAL;
 }
@@ -1755,7 +1793,7 @@ static void sc27xx_fgu_suspend_calib_cap_calib(struct sc27xx_fgu_data *data)
 	data->slp_cap_calib.resume_ocv_cap =
 		sc27xx_fgu_ocv2cap_simple(data->cap_table,
 					  data->table_len,
-					  data->slp_cap_calib.resume_ocv);
+					  data->slp_cap_calib.resume_ocv_uv);
 
 	dev_info(data->dev, "%s, resume_ocv_cap = %d, normal_temp_cap = %d, init_cap = %d\n",
 		 __func__, data->slp_cap_calib.resume_ocv_cap,
@@ -2022,7 +2060,7 @@ static int sc27xx_fgu_get_property(struct power_supply *psy,
 		break;
 
 	case POWER_SUPPLY_PROP_VOLTAGE_BOOT:
-		val->intval = data->boot_volt;
+		val->intval = data->boot_volt_uv;
 		break;
 
 	default:
@@ -2284,16 +2322,6 @@ static const struct power_supply_desc sc27xx_fgu_desc = {
 	.no_thermal		= true,
 };
 
-static void sc27xx_fgu_adjust_cap(struct sc27xx_fgu_data *data, int cap)
-{
-	int ret;
-
-	data->init_cap = cap;
-	ret = sc27xx_fgu_get_clbcnt(data, &data->init_clbcnt);
-	if (ret)
-		dev_err(data->dev, "failed to get init coulomb counter\n");
-}
-
 static void sc27xx_fgu_adjust_uusoc_vbat(struct sc27xx_fgu_data *data)
 {
 	if (data->batt_uV >= SC27XX_FGU_LOW_VBAT_REC_REGION) {
@@ -2306,16 +2334,16 @@ static void sc27xx_fgu_adjust_uusoc_vbat(struct sc27xx_fgu_data *data)
 
 static void sc27xx_fgu_low_capacity_match_ocv(struct sc27xx_fgu_data *data)
 {
-	if (data->ocv < data->min_volt && data->normal_temp_cap > data->alarm_cap) {
+	if (data->ocv_uv < data->min_volt_uv && data->normal_temp_cap > data->alarm_cap) {
 		data->init_cap -= 5;
 		if (data->init_cap < 0)
 			data->init_cap = 0;
-	} else if (data->ocv > data->min_volt && data->normal_temp_cap <= data->alarm_cap) {
+	} else if (data->ocv_uv > data->min_volt_uv && data->normal_temp_cap <= data->alarm_cap) {
 		sc27xx_fgu_adjust_cap(data, data->alarm_cap);
-	} else if (data->ocv <= data->cap_table[data->table_len - 1].ocv) {
+	} else if (data->ocv_uv <= data->cap_table[data->table_len - 1].ocv) {
 		sc27xx_fgu_adjust_cap(data, 0);
 	} else if (data->first_calib_volt > 0 && data->first_calib_cap > 0 &&
-		   data->ocv <= data->first_calib_volt &&
+		   data->ocv_uv <= data->first_calib_volt &&
 		   data->normal_temp_cap > data->first_calib_cap) {
 		data->init_cap -= 5;
 		if (data->init_cap < 0)
@@ -2344,7 +2372,7 @@ static bool sc27xx_fgu_discharging_current_trend(struct sc27xx_fgu_data *data)
 			}
 
 			data->cur_now_buff[i] =
-				sc27xx_fgu_adc_to_current(data, cur - SC27XX_FGU_CUR_BASIC_ADC);
+				sc27xx_fgu_adc_to_current(data, (s64)cur - SC27XX_FGU_CUR_BASIC_ADC);
 		}
 
 		return is_discharging;
@@ -2368,7 +2396,7 @@ static bool sc27xx_fgu_discharging_current_trend(struct sc27xx_fgu_data *data)
 		}
 
 		data->cur_now_buff[i] =
-			sc27xx_fgu_adc_to_current(data, cur - SC27XX_FGU_CUR_BASIC_ADC);
+			sc27xx_fgu_adc_to_current(data, (s64)cur - SC27XX_FGU_CUR_BASIC_ADC);
 		if (data->cur_now_buff[i] > 0)
 			is_discharging = false;
 	}
@@ -2426,7 +2454,7 @@ static void sc27xx_fgu_capacity_calibration(struct sc27xx_fgu_data *data, bool i
 {
 	int ret, chg_sts, adc;
 
-	ret = sc27xx_fgu_get_vbat_ocv(data, &data->ocv);
+	ret = sc27xx_fgu_get_vbat_ocv(data, &data->ocv_uv);
 	if (ret) {
 		dev_err(data->dev, "get battery ocv error.\n");
 		return;
@@ -2458,7 +2486,7 @@ static void sc27xx_fgu_capacity_calibration(struct sc27xx_fgu_data *data, bool i
 
 	sc27xx_fgu_low_capacity_match_ocv(data);
 
-	if (data->ocv <= data->min_volt) {
+	if (data->ocv_uv <= data->min_volt_uv) {
 		if (!int_mode)
 			return;
 
@@ -2466,14 +2494,15 @@ static void sc27xx_fgu_capacity_calibration(struct sc27xx_fgu_data *data, bool i
 		 * After adjusting the battery capacity, we should set the
 		 * lowest alarm voltage instead.
 		 */
-		data->min_volt = data->cap_table[data->table_len - 1].ocv;
-		data->alarm_cap = power_supply_ocv2cap_simple(data->cap_table,
-							      data->table_len,
-							      data->min_volt);
+		data->min_volt_uv = data->cap_table[data->table_len - 1].ocv;
+		data->alarm_cap = sc27xx_fgu_ocv2cap_simple(data->cap_table,
+							    data->table_len,
+							    data->min_volt_uv);
 
-		data->alarm_cap *= 10;
+		if (data->alarm_cap < 10)
+			data->alarm_cap = 10;
 
-		adc = sc27xx_fgu_voltage_to_adc(data, data->min_volt / 1000);
+		adc = sc27xx_fgu_voltage2adc(data, data->min_volt_uv / 1000);
 		regmap_update_bits(data->regmap,
 				   data->base + SC27XX_FGU_LOW_OVERLOAD,
 				   SC27XX_FGU_LOW_OVERLOAD_MASK, adc);
@@ -2763,15 +2792,15 @@ static int sc27xx_fgu_get_batt_energy_now(struct sc27xx_fgu_data *data, int *clb
 	}
 
 	value = DIV_ROUND_CLOSEST(value * 10, 36 * SC27XX_FGU_SAMPLE_HZ);
-	*clbcnt = sc27xx_fgu_adc_to_current(data, value);
+	*clbcnt = sc27xx_fgu_adc_to_current(data, (s64)value);
 
 	return 0;
 }
 
 static void sc27xx_fgu_track_capacity_monitor(struct sc27xx_fgu_data *data)
 {
-	int ibat_avg, ret;
-	int capacity, clbcnt, ocv, vbat_avg;
+	int ibat_avg_ma, ret;
+	int capacity, clbcnt, ocv_mv, vbat_avg_mv;
 	u32 total_cap;
 
 	if (!data->track.cap_tracking)
@@ -2788,25 +2817,25 @@ static void sc27xx_fgu_track_capacity_monitor(struct sc27xx_fgu_data *data)
 		return;
 	}
 
-	ret = sc27xx_fgu_get_current_avg(data, &ibat_avg);
+	ret = sc27xx_fgu_get_current_avg(data, &ibat_avg_ma);
 	if (ret) {
 		dev_err(data->dev, "failed to get relax current.\n");
 		return;
 	}
 
-	ret = sc27xx_fgu_get_vbat_avg(data, &vbat_avg);
+	ret = sc27xx_fgu_get_vbat_avg(data, &vbat_avg_mv);
 	if (ret) {
 		dev_err(data->dev, "failed to get battery voltage.\n");
 		return;
 	}
 
-	ret = sc27xx_fgu_get_vbat_ocv(data, &ocv);
+	ret = sc27xx_fgu_get_vbat_ocv(data, &ocv_mv);
 	if (ret) {
 		dev_err(data->dev, "get ocv error\n");
 		return;
 	}
 
-	ocv = ocv / 1000;
+	ocv_mv = ocv_mv / 1000;
 
 	/*
 	 * If the capacity tracking monitor in idle state, we will
@@ -2841,22 +2870,22 @@ static void sc27xx_fgu_track_capacity_monitor(struct sc27xx_fgu_data *data)
 		 * starting condition.
 		 */
 
-		if (abs(ibat_avg) > SC27XX_FGU_TRACK_CAP_START_CURRENT ||
-		    ocv > SC27XX_FGU_TRACK_CAP_START_VOLTAGE) {
+		if (abs(ibat_avg_ma) > SC27XX_FGU_TRACK_CAP_START_CURRENT ||
+		    ocv_mv > SC27XX_FGU_TRACK_CAP_START_VOLTAGE) {
 			dev_info(data->dev, "not satisfy power on start condition.\n");
 			return;
 		}
 
-		dev_info(data->dev, "start ibat_avg = %d, vbat_avg = %d, ocv = %d\n",
-			 ibat_avg, vbat_avg, ocv);
+		dev_info(data->dev, "start ibat_avg_ma = %d, vbat_avg_mv = %d,"
+			 "ocv_mv = %d\n", ibat_avg_ma, vbat_avg_mv, ocv_mv);
 		/*
 		 * Parse the capacity table to look up the correct capacity percent
 		 * according to current battery's corresponding OCV values.
 		 */
-		data->track.start_cap = power_supply_ocv2cap_simple(data->cap_table,
-								    data->table_len,
-								    ocv * 1000);
-		data->track.start_cap *= 10;
+		data->track.start_cap = sc27xx_fgu_ocv2cap_simple(data->cap_table,
+								  data->table_len,
+								  ocv_mv * 1000);
+
 		dev_info(data->dev, "is_charger_mode = %d, start_cap = %d\n",
 			 is_charger_mode, data->track.start_cap);
 		/*
@@ -2901,8 +2930,8 @@ static void sc27xx_fgu_track_capacity_monitor(struct sc27xx_fgu_data *data)
 		 * stop charging condition as the the capacity
 		 * tracking end condition.
 		 */
-		if (vbat_avg > data->track.end_vol &&
-		    ibat_avg < data->track.end_cur) {
+		if (vbat_avg_mv > data->track.end_vol &&
+		    ibat_avg_ma < data->track.end_cur) {
 			if (!data->online) {
 				dev_err(data->dev, "pwr not online\n");
 				return;
@@ -2922,8 +2951,8 @@ static void sc27xx_fgu_track_capacity_monitor(struct sc27xx_fgu_data *data)
 			}
 
 			total_cap = data->total_cap;
-			dev_info(data->dev, "end ibat_avg = %d, vbat_avg = %d, ocv = %d\n",
-				 ibat_avg, vbat_avg, ocv);
+			dev_info(data->dev, "end ibat_avg_ma = %d, vbat_avg_mv = %d,"
+				 "ocv_mv = %d\n", ibat_avg_ma, vbat_avg_mv, ocv_mv);
 			/*
 			 * Due to the capacity tracking function started, the
 			 * coulomb amount corresponding to the initial
@@ -3078,9 +3107,9 @@ static ssize_t sc27xx_fgu_dump_info_show(struct device *dev,
 			"[bat_temp:%d];\n[online:%d];\n[is_first_poweron:%d];\n[chg_type:%d]\n"
 			"[support_debug_log:%d]\n",
 			data->bat_present, data->total_cap, data->init_cap, data->init_clbcnt,
-			data->alarm_cap, data->boot_cap, data->normal_temp_cap, data->max_volt,
-			data->min_volt, data->first_calib_volt, data->first_calib_cap,
-			data->uusoc_vbat, data->boot_volt, data->last_clbcnt, data->cur_clbcnt,
+			data->alarm_cap, data->boot_cap, data->normal_temp_cap, data->max_volt_uv,
+			data->min_volt_uv, data->first_calib_volt, data->first_calib_cap,
+			data->uusoc_vbat, data->boot_volt_uv, data->last_clbcnt, data->cur_clbcnt,
 			data->bat_temp, data->online, data->is_first_poweron, data->chg_type,
 			data->support_debug_log);
 }
@@ -3494,6 +3523,7 @@ static int sc27xx_fgu_parse_resistance_table(struct sc27xx_fgu_data *data)
 	    data->rbat_ocv_table && data->rbat_table && data->target_rbat_table)
 		data->support_multi_resistance = true;
 
+	data->support_debug_log = true;
 	sc27xx_fgu_dump_resistance_table(data, "parse_resistance_table");
 
 	sprd_battery_put_battery_info(data->battery, &info);
@@ -3523,9 +3553,9 @@ static int sc27xx_fgu_hw_init(struct sc27xx_fgu_data *data,
 	}
 
 	data->total_cap = info.charge_full_design_uah / 1000;
-	data->max_volt = info.constant_charge_voltage_max_uv / 1000;
+	data->max_volt_uv = info.constant_charge_voltage_max_uv;
 	data->internal_resist = info.factory_internal_resistance_uohm / 1000;
-	data->min_volt = info.voltage_min_design_uv;
+	data->min_volt_uv = info.voltage_min_design_uv;
 
 	/*
 	 * For SC27XX fuel gauge device, we only use one ocv-capacity
@@ -3552,13 +3582,20 @@ static int sc27xx_fgu_hw_init(struct sc27xx_fgu_data *data,
 		return ret;
 	}
 
-	data->alarm_cap = power_supply_ocv2cap_simple(data->cap_table,
-						      data->table_len,
-						      data->min_volt);
-	data->alarm_cap *= 10;
-
-	if (!data->alarm_cap)
-		data->alarm_cap += 10;
+	data->alarm_cap = sc27xx_fgu_ocv2cap_simple(data->cap_table,
+						    data->table_len,
+						    data->min_volt_uv);
+	/*
+	 * We must keep the alarm capacity is larger than 0%. When in monkey
+	 * test, the precision power supply setting 4000mv, but the fake battery
+	 * has been simulated into a real battery. Due to it has been discharging,
+	 * the battery capacity has been decreasing, finally will reach 0%, so upper
+	 * layer will issue a command to shutdown. we in order to prevent such problem,
+	 * we determine if the ocv voltage is greater than data->min_volt_uv and cap is
+	 * small alarm capacity. We will recalculate the battery capacity based on ocv voltage.
+	 */
+	if (data->alarm_cap < 10)
+		data->alarm_cap = 10;
 
 	data->resist_table_len = info.resist_table_size;
 	if (data->resist_table_len > 0) {
@@ -3606,7 +3643,7 @@ static int sc27xx_fgu_hw_init(struct sc27xx_fgu_data *data,
 	 * voltage is lower than this threshold, the controller will generate
 	 * one interrupt to notify.
 	 */
-	alarm_adc = sc27xx_fgu_voltage_to_adc(data, data->min_volt / 1000);
+	alarm_adc = sc27xx_fgu_voltage2adc(data, data->min_volt_uv / 1000);
 	ret = regmap_update_bits(data->regmap, data->base + SC27XX_FGU_LOW_OVERLOAD,
 				 SC27XX_FGU_LOW_OVERLOAD_MASK, alarm_adc);
 	if (ret) {
@@ -3621,7 +3658,7 @@ static int sc27xx_fgu_hw_init(struct sc27xx_fgu_data *data,
 	 * capacity. Now we set the delta threshold as a counter value of 1%
 	 * capacity.
 	 */
-	delta_clbcnt = sc27xx_fgu_cap_to_clbcnt(data, 10);
+	delta_clbcnt = sc27xx_fgu_cap2clbcnt(data, 10);
 
 	ret = regmap_update_bits(data->regmap, data->base + SC27XX_FGU_CLBCNT_DELTL,
 				 SC27XX_FGU_CLBCNT_MASK, delta_clbcnt);
@@ -3660,7 +3697,7 @@ static int sc27xx_fgu_hw_init(struct sc27xx_fgu_data *data,
 	 * Convert battery capacity to the corresponding initial coulomb counter
 	 * and set into coulomb counter registers.
 	 */
-	data->init_clbcnt = sc27xx_fgu_cap_to_clbcnt(data, data->init_cap);
+	data->init_clbcnt = sc27xx_fgu_cap2clbcnt(data, data->init_cap);
 	data->last_clbcnt = data->cur_clbcnt = data->init_clbcnt;
 	ret = sc27xx_fgu_set_clbcnt(data, data->init_clbcnt);
 	if (ret) {
@@ -3969,7 +4006,7 @@ static int sc27xx_fgu_suspend(struct device *dev)
 	 * coulomb counter threshold interrupt to notify events to adjust the
 	 * battery capacity.
 	 */
-	if (ocv < data->min_volt) {
+	if (ocv < data->min_volt_uv) {
 		ret = regmap_update_bits(data->regmap,
 					 data->base + SC27XX_FGU_INT_EN,
 					 SC27XX_FGU_CLBCNT_DELTA_INT,
