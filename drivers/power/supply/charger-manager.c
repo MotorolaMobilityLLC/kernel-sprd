@@ -1494,12 +1494,21 @@ static void cm_update_charge_info(struct charger_manager *cm, int cmd)
 					 SPRD_VOTE_TYPE_IBUS,
 					 SPRD_VOTE_TYPE_IBUS_ID_CHARGER_TYPE,
 					 SPRD_VOTE_CMD_MIN, desc->input_limit_cur, cm);
-	if (cmd & CM_CHARGE_INFO_THERMAL_LIMIT && thm_info->thm_adjust_cur > 0)
-		cm->cm_charge_vote->vote(cm->cm_charge_vote, true,
-					 SPRD_VOTE_TYPE_IBUS,
-					 SPRD_VOTE_TYPE_IBUS_ID_CHARGE_CONTROL_LIMIT,
+	if (cmd & CM_CHARGE_INFO_THERMAL_LIMIT && thm_info->thm_adjust_cur > 0) {
+		/* The ChargerIC with linear charging cannot set Ibus, only Ibat. */
+		if (cm->desc->thm_info.need_calib_charge_lmt)
+			cm->cm_charge_vote->vote(cm->cm_charge_vote, true,
+					 SPRD_VOTE_TYPE_IBAT,
+					 SPRD_VOTE_TYPE_IBAT_ID_CHARGE_CONTROL_LIMIT,
 					 SPRD_VOTE_CMD_MIN,
 					 cm->desc->thm_info.thm_adjust_cur, cm);
+		else
+			cm->cm_charge_vote->vote(cm->cm_charge_vote, true,
+						 SPRD_VOTE_TYPE_IBUS,
+						 SPRD_VOTE_TYPE_IBUS_ID_CHARGE_CONTROL_LIMIT,
+						 SPRD_VOTE_CMD_MIN,
+						 cm->desc->thm_info.thm_adjust_cur, cm);
+	}
 	if (cmd & CM_CHARGE_INFO_JEITA_LIMIT)
 		cm_update_current_jeita_status(cm);
 }
@@ -2044,9 +2053,7 @@ static void cm_ir_compensation_enable(struct charger_manager *cm, bool enable)
 	}
 }
 
-static void cm_ir_compensation(struct charger_manager *cm,
-			       enum cm_ir_comp_state state,
-			       int *target)
+static void cm_ir_compensation(struct charger_manager *cm, enum cm_ir_comp_state state, int *target)
 {
 	struct cm_ir_compensation *ir_sts = &cm->desc->ir_comp;
 	int ibat_avg, target_cccv;
@@ -3332,11 +3339,11 @@ static void check_charging_duration(struct charger_manager *cm)
 	return;
 }
 
-static int cm_get_battery_temperature_by_psy(struct charger_manager *cm,
-					int *temp)
+static int cm_get_battery_temperature_by_psy(struct charger_manager *cm, int *temp)
 {
 	struct power_supply *fuel_gauge;
 	int ret;
+	int64_t temp_val;
 
 	fuel_gauge = power_supply_get_by_name(cm->desc->psy_fuel_gauge);
 	if (!fuel_gauge)
@@ -3344,14 +3351,14 @@ static int cm_get_battery_temperature_by_psy(struct charger_manager *cm,
 
 	ret = power_supply_get_property(fuel_gauge,
 					POWER_SUPPLY_PROP_TEMP,
-					(union power_supply_propval *)temp);
+					(union power_supply_propval *)&temp_val);
 	power_supply_put(fuel_gauge);
 
+	*temp = (int)temp_val;
 	return ret;
 }
 
-static int cm_get_battery_temperature(struct charger_manager *cm,
-					int *temp)
+static int cm_get_battery_temperature(struct charger_manager *cm, int *temp)
 {
 	int ret = 0;
 
@@ -3537,8 +3544,7 @@ static int cm_feed_watchdog(struct charger_manager *cm)
 	return 0;
 }
 
-static bool cm_manager_adjust_current(struct charger_manager *cm,
-				      int jeita_status)
+static bool cm_manager_adjust_current(struct charger_manager *cm, int jeita_status)
 {
 	struct charger_desc *desc = cm->desc;
 	int term_volt, target_cur;
@@ -3576,13 +3582,6 @@ static bool cm_manager_adjust_current(struct charger_manager *cm,
 			 term_volt, target_cur);
 		cm->desc->cp.cp_target_ibat = target_cur;
 		goto exit;
-	}
-
-	if (cm->desc->thm_info.need_calib_charge_lmt &&
-	    cm->desc->thm_info.thm_adjust_cur >= 0 &&
-	    cm->desc->thm_info.thm_adjust_cur < target_cur) {
-		target_cur = cm->desc->thm_info.thm_adjust_cur;
-		dev_info(cm->dev, "thermel current is less than jeita current\n");
 	}
 
 	dev_info(cm->dev, "target terminate voltage = %d, target current = %d\n",
@@ -4204,8 +4203,8 @@ static int usb_get_property(struct power_supply *psy, enum power_supply_property
 }
 
 static int charger_get_property(struct power_supply *psy,
-		enum power_supply_property psp,
-		union power_supply_propval *val)
+				enum power_supply_property psp,
+				union power_supply_propval *val)
 {
 	struct charger_manager *cm = power_supply_get_drvdata(psy);
 	struct power_supply *fuel_gauge = NULL;
@@ -4512,6 +4511,16 @@ charger_set_property(struct power_supply *psy,
 		break;
 
 	case POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT:
+		/* The ChargerIC with linear charging cannot set Ibus, only Ibat. */
+		if (cm->desc->thm_info.need_calib_charge_lmt) {
+			cm->cm_charge_vote->vote(cm->cm_charge_vote, true,
+					 SPRD_VOTE_TYPE_IBAT,
+					 SPRD_VOTE_TYPE_IBAT_ID_INPUT_CURRENT_LIMIT,
+					 SPRD_VOTE_CMD_MIN,
+					 val->intval, cm);
+			break;
+		}
+
 		cm->cm_charge_vote->vote(cm->cm_charge_vote, true,
 					 SPRD_VOTE_TYPE_IBUS,
 					 SPRD_VOTE_TYPE_IBUS_ID_INPUT_CURRENT_LIMIT,
@@ -4535,8 +4544,7 @@ charger_set_property(struct power_supply *psy,
 	return ret;
 }
 
-static int charger_property_is_writeable(struct power_supply *psy,
-					 enum power_supply_property psp)
+static int charger_property_is_writeable(struct power_supply *psy, enum power_supply_property psp)
 {
 	int ret;
 
@@ -4757,8 +4765,7 @@ static bool cm_setup_timer(void)
  * @event: the cable state.
  * @ptr: the data pointer of notifier block.
  */
-static int charger_extcon_notifier(struct notifier_block *self,
-			unsigned long event, void *ptr)
+static int charger_extcon_notifier(struct notifier_block *self, unsigned long event, void *ptr)
 {
 	struct charger_cable *cable =
 		container_of(self, struct charger_cable, nb);
@@ -4788,8 +4795,7 @@ static int charger_extcon_notifier(struct notifier_block *self,
  * @cm: the Charger Manager representing the battery.
  * @cable: the Charger cable representing the external connector.
  */
-static int charger_extcon_init(struct charger_manager *cm,
-		struct charger_cable *cable)
+static int charger_extcon_init(struct charger_manager *cm, struct charger_cable *cable)
 {
 	int ret;
 
@@ -4857,7 +4863,7 @@ static int charger_manager_register_extcon(struct charger_manager *cm)
 
 /* help function of sysfs node to control charger(regulator) */
 static ssize_t charger_name_show(struct device *dev,
-				struct device_attribute *attr, char *buf)
+				 struct device_attribute *attr, char *buf)
 {
 	struct charger_regulator *charger
 		= container_of(attr, struct charger_regulator, attr_name);
@@ -4866,7 +4872,7 @@ static ssize_t charger_name_show(struct device *dev,
 }
 
 static ssize_t charger_state_show(struct device *dev,
-				struct device_attribute *attr, char *buf)
+				  struct device_attribute *attr, char *buf)
 {
 	struct charger_regulator *charger
 		= container_of(attr, struct charger_regulator, attr_state);
@@ -5004,7 +5010,7 @@ static ssize_t charge_pump_current_id_store(struct device *dev,
 	return count;
 }
 static ssize_t charger_stop_show(struct device *dev,
-				struct device_attribute *attr, char *buf)
+				 struct device_attribute *attr, char *buf)
 {
 	struct charger_regulator *charger
 		= container_of(attr, struct charger_regulator,
@@ -5017,8 +5023,8 @@ static ssize_t charger_stop_show(struct device *dev,
 }
 
 static ssize_t charger_stop_store(struct device *dev,
-				struct device_attribute *attr, const char *buf,
-				size_t count)
+				  struct device_attribute *attr, const char *buf,
+				  size_t count)
 {
 	struct charger_regulator *charger
 		= container_of(attr, struct charger_regulator,
@@ -5055,7 +5061,7 @@ static ssize_t charger_stop_store(struct device *dev,
 }
 
 static ssize_t charger_externally_control_show(struct device *dev,
-				struct device_attribute *attr, char *buf)
+					       struct device_attribute *attr, char *buf)
 {
 	struct charger_regulator *charger = container_of(attr,
 			struct charger_regulator, attr_externally_control);
@@ -5064,8 +5070,8 @@ static ssize_t charger_externally_control_show(struct device *dev,
 }
 
 static ssize_t charger_externally_control_store(struct device *dev,
-				struct device_attribute *attr, const char *buf,
-				size_t count)
+						struct device_attribute *attr, const char *buf,
+						size_t count)
 {
 	struct charger_regulator *charger
 		= container_of(attr, struct charger_regulator,
@@ -5249,8 +5255,7 @@ static int charger_manager_register_sysfs(struct charger_manager *cm)
 	return 0;
 }
 
-static int cm_init_thermal_data(struct charger_manager *cm,
-		struct power_supply *fuel_gauge)
+static int cm_init_thermal_data(struct charger_manager *cm, struct power_supply *fuel_gauge)
 {
 	struct charger_desc *desc = cm->desc;
 	union power_supply_propval val;
@@ -6130,6 +6135,9 @@ static int charger_manager_probe(struct platform_device *pdev)
 	cm->desc->thm_info.thm_adjust_cur = -EINVAL;
 	cm->desc->ir_comp.ibat_buf[CM_IBAT_BUFF_CNT - 1] = CM_MAGIC_NUM;
 	cm->desc->ir_comp.us_lower_limit = cm->desc->ir_comp.us;
+
+	if (device_property_read_bool(&pdev->dev, "cm-support-linear-charge"))
+		cm->desc->thm_info.need_calib_charge_lmt = true;
 
 	ret = cm_get_battery_temperature_by_psy(cm, &cm->desc->temperature);
 	if (ret) {
