@@ -64,7 +64,8 @@
 
 #define	MODEM_READ_ALL_MEM 0xff
 #define	MODEM_READ_MODEM_MEM 0xfe
-#define	MODEM_READ_MINI_MEM 0xfd
+#define	MODEM_READ_MINI_MEM_PS 0xfd
+#define MODEM_READ_MINI_MEM_PHY 0xfc
 
 #define RUN_STATE_INVALID 0xff
 
@@ -201,9 +202,14 @@ static void modem_get_base_range(struct modem_device *modem,
 			size = modem->modem_size;
 			break;
 
-		case MODEM_READ_MINI_MEM:
-			base = modem->mini_base;
-			size = modem->mini_size;
+		case MODEM_READ_MINI_MEM_PS:
+			base = modem->mini_base[MINI_DUMP_PS];
+			size = modem->mini_size[MINI_DUMP_PS];
+			break;
+
+		case MODEM_READ_MINI_MEM_PHY:
+			base = modem->mini_base[MINI_DUMP_PHY];
+			size = modem->mini_size[MINI_DUMP_PHY];
 			break;
 
 		default:
@@ -325,10 +331,11 @@ static ssize_t sprd_modem_seg_dump(u32 base, u32 maxsz, char __user *buf,
 }
 
 static ssize_t modem_read_mini_dump(struct file *filp,
-			  char __user *buf, size_t count, loff_t *ppos)
+			  char __user *buf, size_t count, loff_t *ppos,
+			  phys_addr_t base, size_t size)
 
 {
-	struct modem_dump_info *s_cur_info;
+	static struct modem_dump_info *s_cur_info;
 	static int mini_number;
 	struct modem_device *modem = filp->private_data;
 	u8 head[sizeof(struct modem_dump_info) + 32];
@@ -339,22 +346,21 @@ static ssize_t modem_read_mini_dump(struct file *filp,
 
 	dev_info(modem->p_dev, "read, %s mini_dump!\n", modem->modem_name);
 
-	if (!mini_number && *ppos)
+	if (!s_cur_info && *ppos)
 		return 0;
 
 	if (mini_number) {
-		vmem = modem_map_memory(modem, modem->mini_base +
+		vmem = modem_map_memory(modem, base +
 					struct_size * mini_number,
 					struct_size, &map_size);
 		s_cur_info = (struct modem_dump_info *)vmem;
 	} else {
-		vmem = modem_map_memory(modem, modem->mini_base,
-				       modem->mini_size, &map_size);
+		vmem = modem_map_memory(modem, base, size, &map_size);
 	}
 
 	if (!vmem) {
 		dev_err(modem->p_dev,
-			"read, Unable to map  base: 0x%llx\n", modem->mini_base);
+			"read, Unable to map  base: 0x%llx\n", base);
 		return -ENOMEM;
 	}
 
@@ -442,16 +448,19 @@ static ssize_t modem_read(struct file *filp,
 		return -EACCES;
 	}
 
-	if (modem->read_region == MODEM_READ_MINI_MEM) {
+	modem_get_base_range(modem, &base, &size, 1);
+
+	if (modem->read_region == MODEM_READ_MINI_MEM_PS ||
+	    modem->read_region == MODEM_READ_MINI_MEM_PHY) {
 		ret = sprd_modem_pms_request_resource(modem->rd_pms, -1);
 		if (ret)
 			return ret;
-		ret = modem_read_mini_dump(filp, buf, count, ppos);
+		ret = modem_read_mini_dump(filp, buf, count, ppos,
+					   base, size);
 		sprd_modem_pms_release_resource(modem->rd_pms);
 		return ret;
 	}
 
-	modem_get_base_range(modem, &base, &size, 1);
 	offset = *ppos;
 	dev_info(modem->p_dev, "read, offset = 0x%lx, count = 0x%lx!\n",
 		offset, count);
@@ -839,8 +848,14 @@ static long modem_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			modem->modem_base = (phys_addr_t)
 					    modem->load->modem_base;
 			modem->modem_size = (size_t)modem->load->modem_size;
-			modem->mini_base = (phys_addr_t)modem->load->mini_base;
-			modem->mini_size = (size_t)modem->load->mini_size;
+			modem->mini_base[MINI_DUMP_PS] =
+				(phys_addr_t)modem->load->mini_base[MINI_DUMP_PS];
+			modem->mini_size[MINI_DUMP_PS] =
+				(size_t)modem->load->mini_size[MINI_DUMP_PS];
+			modem->mini_base[MINI_DUMP_PHY] =
+				(phys_addr_t)modem->load->mini_base[MINI_DUMP_PHY];
+			modem->mini_size[MINI_DUMP_PHY] =
+				(size_t)modem->load->mini_size[MINI_DUMP_PHY];
 		}
 		break;
 

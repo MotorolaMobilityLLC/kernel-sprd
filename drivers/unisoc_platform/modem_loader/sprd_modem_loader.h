@@ -42,6 +42,12 @@ enum {
 	MODEM_CTRL_NR
 };
 
+enum {
+	MINI_DUMP_PS = 0,
+	MINI_DUMP_PHY,
+	MINI_DUMP_NR
+};
+
 struct modem_region_info {
 	u64	address;
 	u32	size;
@@ -50,8 +56,8 @@ struct modem_region_info {
 
 struct modem_load_info {
 	u32	region_cnt;
-	u64	mini_base;
-	u32	mini_size;
+	u64	mini_base[MINI_DUMP_NR];
+	u32	mini_size[MINI_DUMP_NR];
 	u64	modem_base;
 	u32	modem_size;
 	u64	all_base;
@@ -90,8 +96,8 @@ struct modem_device {
 	u32	write_pose;
 	u32	remote_flag;
 
-	phys_addr_t	mini_base;
-	size_t		mini_size;
+	phys_addr_t	mini_base[MINI_DUMP_NR];
+	size_t		mini_size[MINI_DUMP_NR];
 	phys_addr_t	modem_base;
 	size_t		modem_size;
 	phys_addr_t	all_base;
