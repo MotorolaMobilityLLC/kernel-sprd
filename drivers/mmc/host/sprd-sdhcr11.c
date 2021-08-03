@@ -1117,15 +1117,9 @@ static void sprd_sdhc_finish_tasklet(unsigned long param)
 	struct mmc_request *mrq;
 
 	del_timer(&host->timer);
-#ifdef CONFIG_EMMC_SOFTWARE_CQ_SUPPORT
-	if (!host->need_polling)
-#endif
-		spin_lock_irqsave(&host->lock, flags);
+	spin_lock_irqsave(&host->lock, flags);
 	if (!host->mrq) {
-#ifdef CONFIG_EMMC_SOFTWARE_CQ_SUPPORT
-		if (!host->need_polling)
-#endif
-			spin_unlock_irqrestore(&host->lock, flags);
+		spin_unlock_irqrestore(&host->lock, flags);
 		return;
 	}
 	mrq = host->mrq;
@@ -1133,10 +1127,7 @@ static void sprd_sdhc_finish_tasklet(unsigned long param)
 	host->mrq = NULL;
 	host->cmd = NULL;
 	mmiowb();
-#ifdef CONFIG_EMMC_SOFTWARE_CQ_SUPPORT
-	if (!host->need_polling)
-#endif
-		spin_unlock_irqrestore(&host->lock, flags);
+	spin_unlock_irqrestore(&host->lock, flags);
 
 	mmc_request_done(host->mmc, mrq);
 	sprd_sdhc_runtime_pm_put(host);
