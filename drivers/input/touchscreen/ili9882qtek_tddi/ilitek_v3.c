@@ -696,7 +696,7 @@ int ili_fw_upgrade_handler(void *data)
         snprintf(lcdname, sizeof(lcdname), "youda-ili9882q");
 	fw_ver = (ilits->chip->fw_ver >> 8) & 0xFF;
     	ILI_INFO("fw_ver = %d\n",fw_ver);
-        snprintf(version, sizeof(version),"fw:0x20 VID:0xA3");
+        snprintf(version, sizeof(version),"fw:0x01 VID:0xA3");
 /* yangyuxiang <add LCD and CTP hardware infomation node> end*/
 	}
 	atomic_set(&ilits->fw_stat, END);
