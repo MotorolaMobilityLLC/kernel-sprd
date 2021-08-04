@@ -115,6 +115,7 @@ leds:trigger:
 lib:e_show_mem:
 
 mailbox:sprd:
+Makefile:
 media:platform:sprd-jpg:
 media:platform:sprd-vsp:
 mfd:sprd:
@@ -141,6 +142,7 @@ nvmem:sprd:
 
 pci:dwc:
 pci:dwc:sprd:
+pgo:
 pinctrl:sprd:
 power:
 power:reset:
