@@ -206,7 +206,7 @@ static void cts_tp_fw(struct cts_device *cts_dev)
                     CTS_DEVICE_FW_REG_VERSION, &device_fw_ver, 5, 0);
 	cts_fw = be16_to_cpup(&device_fw_ver);
 	cts_info("ver:0x%x", cts_fw);
-	snprintf(version, sizeof(version)," FW:02_04, VID:0xA4", cts_fw);
+	snprintf(version, sizeof(version)," FW:02_05, VID:0xA4", cts_fw);
 	cts_info("version:%s", version);
 }
 
