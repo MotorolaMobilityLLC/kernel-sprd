@@ -8,7 +8,7 @@
 
 #include <linux/bitops.h>
 #include <linux/usb/typec.h>
-#include "pd.h"
+#include "sprd_pd.h"
 
 enum typec_cc_status {
 	TYPEC_CC_OPEN,
@@ -143,7 +143,7 @@ struct tcpc_dev {
 			      enum typec_cc_status cc);
 	int (*try_role)(struct tcpc_dev *dev, int role);
 	int (*pd_transmit)(struct tcpc_dev *dev, enum tcpm_transmit_type type,
-			   const struct pd_message *msg);
+			   const struct sprd_pd_message *msg);
 };
 
 struct tcpm_port;
@@ -158,7 +158,7 @@ int sprd_tcpm_update_sink_capabilities(struct tcpm_port *port, const u32 *pdo,
 void sprd_tcpm_vbus_change(struct tcpm_port *port);
 void sprd_tcpm_cc_change(struct tcpm_port *port);
 void sprd_tcpm_pd_receive(struct tcpm_port *port,
-		     const struct pd_message *msg);
+		     const struct sprd_pd_message *msg);
 void sprd_tcpm_pd_transmit_complete(struct tcpm_port *port,
 				    enum tcpm_transmit_status status);
 void sprd_tcpm_pd_hard_reset(struct tcpm_port *port);

@@ -1,8 +1,10 @@
-// SPDX-License-Identifier: GPL-2.0+
 /*
- * Copyright 2015-2017 Google, Inc
+ * Copyright (C) 2011 Unisoc Co., Ltd.
+ * Rong.wu <Rong.wu@unisoc.com>
  *
- * USB Power Delivery protocol stack.
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
  */
 
 #include <linux/completion.h>
@@ -20,7 +22,7 @@
 #include <linux/slab.h>
 #include <linux/spinlock.h>
 #include <linux/usb.h>
-#include <linux/usb/pd.h>
+#include <linux/usb/sprd_pd.h>
 #include <linux/usb/pd_ado.h>
 #include <linux/usb/pd_bdo.h>
 #include <linux/usb/pd_ext_sdb.h>
@@ -130,97 +132,97 @@ enum tcpm_state {
 };
 
 static const char * const tcpm_states[] = {
-	"INVALID_STATE",
+	"INVALID_STATE",				/* = 0 */
 	"TOGGLING",
 	"SRC_UNATTACHED",
 	"SRC_ATTACH_WAIT",
 	"SRC_ATTACHED",
-	"SRC_STARTUP",
+	"SRC_STARTUP",					/* = 5 */
 	"SRC_SEND_CAPABILITIES",
 	"SRC_SEND_CAPABILITIES_TIMEOUT",
 	"SRC_NEGOTIATE_CAPABILITIES",
 	"SRC_TRANSITION_SUPPLY",
-	"SRC_READY",
+	"SRC_READY",					/* = 10 */
 	"SRC_WAIT_NEW_CAPABILITIES",
 
 	"SNK_UNATTACHED",
 	"SNK_ATTACH_WAIT",
 	"SNK_DEBOUNCED",
-	"SNK_ATTACHED",
+	"SNK_ATTACHED",					/* = 15 */
 	"SNK_STARTUP",
 	"SNK_DISCOVERY",
 	"SNK_DISCOVERY_DEBOUNCE",
 	"SNK_DISCOVERY_DEBOUNCE_DONE",
-	"SNK_WAIT_CAPABILITIES",
+	"SNK_WAIT_CAPABILITIES",			/* = 20 */
 	"SNK_NEGOTIATE_CAPABILITIES",
 	"SNK_NEGOTIATE_PPS_CAPABILITIES",
 	"SNK_TRANSITION_SINK",
 	"SNK_TRANSITION_SINK_VBUS",
-	"SNK_READY",
+	"SNK_READY",					/* = 25 */
 
 	"ACC_UNATTACHED",
 	"DEBUG_ACC_ATTACHED",
 	"AUDIO_ACC_ATTACHED",
 	"AUDIO_ACC_DEBOUNCE",
 
-	"HARD_RESET_SEND",
+	"HARD_RESET_SEND",				/* = 30 */
 	"HARD_RESET_START",
 	"SRC_HARD_RESET_VBUS_OFF",
 	"SRC_HARD_RESET_VBUS_ON",
 	"SNK_HARD_RESET_SINK_OFF",
-	"SNK_HARD_RESET_WAIT_VBUS",
+	"SNK_HARD_RESET_WAIT_VBUS",			/* = 35 */
 	"SNK_HARD_RESET_SINK_ON",
 
 	"SOFT_RESET",
 	"SOFT_RESET_SEND",
 
 	"DR_SWAP_ACCEPT",
-	"DR_SWAP_SEND",
+	"DR_SWAP_SEND",					/* = 40 */
 	"DR_SWAP_SEND_TIMEOUT",
 	"DR_SWAP_CANCEL",
 	"DR_SWAP_CHANGE_DR",
 
 	"PR_SWAP_ACCEPT",
-	"PR_SWAP_SEND",
+	"PR_SWAP_SEND",					/* = 45 */
 	"PR_SWAP_SEND_TIMEOUT",
 	"PR_SWAP_CANCEL",
 	"PR_SWAP_START",
 	"PR_SWAP_SRC_SNK_TRANSITION_OFF",
-	"PR_SWAP_SRC_SNK_SOURCE_OFF",
+	"PR_SWAP_SRC_SNK_SOURCE_OFF",			/* = 50 */
 	"PR_SWAP_SRC_SNK_SOURCE_OFF_CC_DEBOUNCED",
 	"PR_SWAP_SRC_SNK_SINK_ON",
 	"PR_SWAP_SNK_SRC_SINK_OFF",
 	"PR_SWAP_SNK_SRC_SOURCE_ON",
-	"PR_SWAP_SNK_SRC_SOURCE_ON_VBUS_RAMPED_UP",
+	"PR_SWAP_SNK_SRC_SOURCE_ON_VBUS_RAMPED_UP",	/* = 55 */
 
 	"VCONN_SWAP_ACCEPT",
 	"VCONN_SWAP_SEND",
 	"VCONN_SWAP_SEND_TIMEOUT",
 	"VCONN_SWAP_CANCEL",
-	"VCONN_SWAP_START",
+	"VCONN_SWAP_START",				/* = 60 */
 	"VCONN_SWAP_WAIT_FOR_VCONN",
 	"VCONN_SWAP_TURN_ON_VCONN",
 	"VCONN_SWAP_TURN_OFF_VCONN",
 
 	"SNK_TRY",
-	"SNK_TRY_WAIT",
+	"SNK_TRY_WAIT",					/* = 65 */
 	"SNK_TRY_WAIT_DEBOUNCE",
 	"SNK_TRY_WAIT_DEBOUNCE_CHECK_VBUS",
 	"SRC_TRYWAIT",
 	"SRC_TRYWAIT_DEBOUNCE",
-	"SRC_TRYWAIT_UNATTACHED",
+	"SRC_TRYWAIT_UNATTACHED",			/* = 70 */
 
 	"SRC_TRY",
 	"SRC_TRY_WAIT",
 	"SRC_TRY_DEBOUNCE",
 	"SNK_TRYWAIT",
-	"SNK_TRYWAIT_DEBOUNCE",
+	"SNK_TRYWAIT_DEBOUNCE",				/* = 75 */
 	"SNK_TRYWAIT_VBUS",
 	"BIST_RX",
 
 	"GET_STATUS_SEND",
 	"GET_STATUS_SEND_TIMEOUT",
-	"GET_PPS_STATUS_SEND",
+	"GET_PPS_STATUS_SEND",				/* = 80 */
 	"GET_PPS_STATUS_SEND_TIMEOUT",
 
 	"ERROR_RECOVERY",
@@ -441,7 +443,7 @@ struct tcpm_port {
 struct pd_rx_event {
 	struct work_struct work;
 	struct tcpm_port *port;
-	struct pd_message msg;
+	struct sprd_pd_message msg;
 };
 
 #define tcpm_cc_is_sink(cc) \
@@ -599,15 +601,15 @@ static void sprd_tcpm_log_source_caps(struct tcpm_port *port)
 
 	for (i = 0; i < port->nr_source_caps; i++) {
 		u32 pdo = port->source_caps[i];
-		enum pd_pdo_type type = pdo_type(pdo);
+		enum sprd_pd_pdo_type type = sprd_pdo_type(pdo);
 		char msg[64];
 
 		switch (type) {
-		case PDO_TYPE_FIXED:
+		case SPRD_PDO_TYPE_FIXED:
 			scnprintf(msg, sizeof(msg),
 				  "%u mV, %u mA [%s%s%s%s%s%s]",
-				  pdo_fixed_voltage(pdo),
-				  pdo_max_current(pdo),
+				  sprd_pdo_fixed_voltage(pdo),
+				  sprd_pdo_max_current(pdo),
 				  (pdo & PDO_FIXED_DUAL_ROLE) ?
 							"R" : "",
 				  (pdo & PDO_FIXED_SUSPEND) ?
@@ -621,27 +623,27 @@ static void sprd_tcpm_log_source_caps(struct tcpm_port *port)
 				  (pdo & PDO_FIXED_EXTPOWER) ?
 							"E" : "");
 			break;
-		case PDO_TYPE_VAR:
+		case SPRD_PDO_TYPE_VAR:
 			scnprintf(msg, sizeof(msg),
 				  "%u-%u mV, %u mA",
-				  pdo_min_voltage(pdo),
-				  pdo_max_voltage(pdo),
-				  pdo_max_current(pdo));
+				  sprd_pdo_min_voltage(pdo),
+				  sprd_pdo_max_voltage(pdo),
+				  sprd_pdo_max_current(pdo));
 			break;
-		case PDO_TYPE_BATT:
+		case SPRD_PDO_TYPE_BATT:
 			scnprintf(msg, sizeof(msg),
 				  "%u-%u mV, %u mW",
-				  pdo_min_voltage(pdo),
-				  pdo_max_voltage(pdo),
-				  pdo_max_power(pdo));
+				  sprd_pdo_min_voltage(pdo),
+				  sprd_pdo_max_voltage(pdo),
+				  sprd_pdo_max_power(pdo));
 			break;
-		case PDO_TYPE_APDO:
-			if (pdo_apdo_type(pdo) == APDO_TYPE_PPS)
+		case SPRD_PDO_TYPE_APDO:
+			if (sprd_pdo_apdo_type(pdo) == SPRD_APDO_TYPE_PPS)
 				scnprintf(msg, sizeof(msg),
 					  "%u-%u mV, %u mA",
-					  pdo_pps_apdo_min_voltage(pdo),
-					  pdo_pps_apdo_max_voltage(pdo),
-					  pdo_pps_apdo_max_current(pdo));
+					  sprd_pdo_pps_apdo_min_voltage(pdo),
+					  sprd_pdo_pps_apdo_max_voltage(pdo),
+					  sprd_pdo_pps_apdo_max_current(pdo));
 			else
 				strcpy(msg, "undefined APDO");
 			break;
@@ -715,7 +717,7 @@ static void sprd_tcpm_debugfs_exit(const struct tcpm_port *port) { }
 
 static int sprd_tcpm_pd_transmit(struct tcpm_port *port,
 			    enum tcpm_transmit_type type,
-			    const struct pd_message *msg)
+			    const struct sprd_pd_message *msg)
 {
 	unsigned long timeout;
 	int ret;
@@ -870,9 +872,9 @@ static enum typec_cc_status sprd_tcpm_rp_cc(struct tcpm_port *port)
 	for (i = 0; i < nr_pdo; i++) {
 		const u32 pdo = src_pdo[i];
 
-		if (pdo_type(pdo) == PDO_TYPE_FIXED &&
-		    pdo_fixed_voltage(pdo) == 5000) {
-			unsigned int curr = pdo_max_current(pdo);
+		if (sprd_pdo_type(pdo) == SPRD_PDO_TYPE_FIXED &&
+		    sprd_pdo_fixed_voltage(pdo) == 5000) {
+			unsigned int curr = sprd_pdo_max_current(pdo);
 
 			if (curr >= 3000)
 				return TYPEC_CC_RP_3_0;
@@ -941,19 +943,19 @@ static int sprd_tcpm_set_pwr_role(struct tcpm_port *port, enum typec_role role)
 
 static int sprd_tcpm_pd_send_source_caps(struct tcpm_port *port)
 {
-	struct pd_message msg;
+	struct sprd_pd_message msg;
 	int i;
 
 	memset(&msg, 0, sizeof(msg));
 	if (!port->nr_src_pdo) {
 		/* No source capabilities defined, sink only */
-		msg.header = PD_HEADER_LE(PD_CTRL_REJECT,
+		msg.header = PD_HEADER_LE(SPRD_PD_CTRL_REJECT,
 					  port->pwr_role,
 					  port->data_role,
 					  port->negotiated_rev,
 					  port->message_id, 0);
 	} else {
-		msg.header = PD_HEADER_LE(PD_DATA_SOURCE_CAP,
+		msg.header = PD_HEADER_LE(SPRD_PD_DATA_SOURCE_CAP,
 					  port->pwr_role,
 					  port->data_role,
 					  port->negotiated_rev,
@@ -968,19 +970,19 @@ static int sprd_tcpm_pd_send_source_caps(struct tcpm_port *port)
 
 static int sprd_tcpm_pd_send_sink_caps(struct tcpm_port *port)
 {
-	struct pd_message msg;
+	struct sprd_pd_message msg;
 	int i;
 
 	memset(&msg, 0, sizeof(msg));
 	if (!port->nr_snk_pdo) {
 		/* No sink capabilities defined, source only */
-		msg.header = PD_HEADER_LE(PD_CTRL_REJECT,
+		msg.header = PD_HEADER_LE(SPRD_PD_CTRL_REJECT,
 					  port->pwr_role,
 					  port->data_role,
 					  port->negotiated_rev,
 					  port->message_id, 0);
 	} else {
-		msg.header = PD_HEADER_LE(PD_DATA_SINK_CAP,
+		msg.header = PD_HEADER_LE(SPRD_PD_DATA_SINK_CAP,
 					  port->pwr_role,
 					  port->data_role,
 					  port->negotiated_rev,
@@ -1383,7 +1385,7 @@ static unsigned int sprd_vdm_ready_timeout(u32 vdm_hdr)
 
 static void sprd_vdm_run_state_machine(struct tcpm_port *port)
 {
-	struct pd_message msg;
+	struct sprd_pd_message msg;
 	int i, res;
 
 	switch (port->vdm_state) {
@@ -1403,7 +1405,7 @@ static void sprd_vdm_run_state_machine(struct tcpm_port *port)
 
 		/* Prepare and send VDM */
 		memset(&msg, 0, sizeof(msg));
-		msg.header = PD_HEADER_LE(PD_DATA_VENDOR_DEF,
+		msg.header = PD_HEADER_LE(SPRD_PD_DATA_VENDOR_DEF,
 					  port->pwr_role,
 					  port->data_role,
 					  port->negotiated_rev,
@@ -1511,15 +1513,15 @@ static enum pdo_err sprd_tcpm_caps_err(struct tcpm_port *port, const u32 *pdo,
 		return PDO_ERR_NO_VSAFE5V;
 
 	/* The vSafe5V Fixed Supply Object Shall always be the first object */
-	if (pdo_type(pdo[0]) != PDO_TYPE_FIXED ||
-	    pdo_fixed_voltage(pdo[0]) != VSAFE5V)
+	if (sprd_pdo_type(pdo[0]) != SPRD_PDO_TYPE_FIXED ||
+	    sprd_pdo_fixed_voltage(pdo[0]) != VSAFE5V)
 		return PDO_ERR_VSAFE5V_NOT_FIRST;
 
 	for (i = 1; i < nr_pdo; i++) {
-		if (pdo_type(pdo[i]) < pdo_type(pdo[i - 1])) {
+		if (sprd_pdo_type(pdo[i]) < sprd_pdo_type(pdo[i - 1])) {
 			return PDO_ERR_PDO_TYPE_NOT_IN_ORDER;
-		} else if (pdo_type(pdo[i]) == pdo_type(pdo[i - 1])) {
-			enum pd_pdo_type type = pdo_type(pdo[i]);
+		} else if (sprd_pdo_type(pdo[i]) == sprd_pdo_type(pdo[i - 1])) {
+			enum sprd_pd_pdo_type type = sprd_pdo_type(pdo[i]);
 
 			switch (type) {
 			/*
@@ -1527,9 +1529,9 @@ static enum pdo_err sprd_tcpm_caps_err(struct tcpm_port *port, const u32 *pdo,
 			 * present, shall be sent in voltage order;
 			 * lowest to highest.
 			 */
-			case PDO_TYPE_FIXED:
-				if (pdo_fixed_voltage(pdo[i]) <=
-				    pdo_fixed_voltage(pdo[i - 1]))
+			case SPRD_PDO_TYPE_FIXED:
+				if (sprd_pdo_fixed_voltage(pdo[i]) <=
+				    sprd_pdo_fixed_voltage(pdo[i - 1]))
 					return PDO_ERR_FIXED_NOT_SORTED;
 				break;
 			/*
@@ -1537,15 +1539,15 @@ static enum pdo_err sprd_tcpm_caps_err(struct tcpm_port *port, const u32 *pdo,
 			 * supply, if present shall be sent in Minimum
 			 * Voltage order; lowest to highest.
 			 */
-			case PDO_TYPE_VAR:
-			case PDO_TYPE_BATT:
-				if (pdo_min_voltage(pdo[i]) <
-				    pdo_min_voltage(pdo[i - 1]))
+			case SPRD_PDO_TYPE_VAR:
+			case SPRD_PDO_TYPE_BATT:
+				if (sprd_pdo_min_voltage(pdo[i]) <
+				    sprd_pdo_min_voltage(pdo[i - 1]))
 					return PDO_ERR_VARIABLE_BATT_NOT_SORTED;
-				else if ((pdo_min_voltage(pdo[i]) ==
-					  pdo_min_voltage(pdo[i - 1])) &&
-					 (pdo_max_voltage(pdo[i]) ==
-					  pdo_max_voltage(pdo[i - 1])))
+				else if ((sprd_pdo_min_voltage(pdo[i]) ==
+					  sprd_pdo_min_voltage(pdo[i - 1])) &&
+					 (sprd_pdo_max_voltage(pdo[i]) ==
+					  sprd_pdo_max_voltage(pdo[i - 1])))
 					return PDO_ERR_DUPE_PDO;
 				break;
 			/*
@@ -1553,19 +1555,19 @@ static enum pdo_err sprd_tcpm_caps_err(struct tcpm_port *port, const u32 *pdo,
 			 * shall be sent in Maximum Voltage order;
 			 * lowest to highest.
 			 */
-			case PDO_TYPE_APDO:
-				if (pdo_apdo_type(pdo[i]) != APDO_TYPE_PPS)
+			case SPRD_PDO_TYPE_APDO:
+				if (sprd_pdo_apdo_type(pdo[i]) != SPRD_APDO_TYPE_PPS)
 					break;
 
-				if (pdo_pps_apdo_max_voltage(pdo[i]) <
-				    pdo_pps_apdo_max_voltage(pdo[i - 1]))
+				if (sprd_pdo_pps_apdo_max_voltage(pdo[i]) <
+				    sprd_pdo_pps_apdo_max_voltage(pdo[i - 1]))
 					return PDO_ERR_PPS_APDO_NOT_SORTED;
-				else if (pdo_pps_apdo_min_voltage(pdo[i]) ==
-					  pdo_pps_apdo_min_voltage(pdo[i - 1]) &&
-					 pdo_pps_apdo_max_voltage(pdo[i]) ==
-					  pdo_pps_apdo_max_voltage(pdo[i - 1]) &&
-					 pdo_pps_apdo_max_current(pdo[i]) ==
-					  pdo_pps_apdo_max_current(pdo[i - 1]))
+				else if (sprd_pdo_pps_apdo_min_voltage(pdo[i]) ==
+					  sprd_pdo_pps_apdo_min_voltage(pdo[i - 1]) &&
+					 sprd_pdo_pps_apdo_max_voltage(pdo[i]) ==
+					  sprd_pdo_pps_apdo_max_voltage(pdo[i - 1]) &&
+					 sprd_pdo_pps_apdo_max_current(pdo[i]) ==
+					  sprd_pdo_pps_apdo_max_current(pdo[i - 1]))
 					return PDO_ERR_DUPE_PPS_APDO;
 				break;
 			default:
@@ -1653,7 +1655,7 @@ static inline enum tcpm_state sprd_ready_state(struct tcpm_port *port)
 }
 
 static int sprd_tcpm_pd_send_control(struct tcpm_port *port,
-				enum pd_ctrl_msg_type type);
+				     enum sprd_pd_ctrl_msg_type type);
 
 static void sprd_tcpm_handle_alert(struct tcpm_port *port, const __le32 *payload,
 			      int cnt)
@@ -1681,15 +1683,15 @@ static void sprd_tcpm_handle_alert(struct tcpm_port *port, const __le32 *payload
 }
 
 static void sprd_tcpm_pd_data_request(struct tcpm_port *port,
-				 const struct pd_message *msg)
+				 const struct sprd_pd_message *msg)
 {
-	enum pd_data_msg_type type = pd_header_type_le(msg->header);
-	unsigned int cnt = pd_header_cnt_le(msg->header);
-	unsigned int rev = pd_header_rev_le(msg->header);
+	enum sprd_pd_data_msg_type type = sprd_pd_header_type_le(msg->header);
+	unsigned int cnt = sprd_pd_header_cnt_le(msg->header);
+	unsigned int rev = sprd_pd_header_rev_le(msg->header);
 	unsigned int i;
 
 	switch (type) {
-	case PD_DATA_SOURCE_CAP:
+	case SPRD_PD_DATA_SOURCE_CAP:
 		if (port->pwr_role != TYPEC_SINK)
 			break;
 
@@ -1729,7 +1731,7 @@ static void sprd_tcpm_pd_data_request(struct tcpm_port *port,
 		 */
 		sprd_tcpm_set_state(port, SNK_NEGOTIATE_CAPABILITIES, 0);
 		break;
-	case PD_DATA_REQUEST:
+	case SPRD_PD_DATA_REQUEST:
 		if (port->pwr_role != TYPEC_SOURCE ||
 		    cnt != 1) {
 			sprd_tcpm_queue_message(port, PD_MSG_CTRL_REJECT);
@@ -1752,26 +1754,26 @@ static void sprd_tcpm_pd_data_request(struct tcpm_port *port,
 		port->sink_request = le32_to_cpu(msg->payload[0]);
 		sprd_tcpm_set_state(port, SRC_NEGOTIATE_CAPABILITIES, 0);
 		break;
-	case PD_DATA_SINK_CAP:
+	case SPRD_PD_DATA_SINK_CAP:
 		/* We don't do anything with this at the moment... */
 		for (i = 0; i < cnt; i++)
 			port->sink_caps[i] = le32_to_cpu(msg->payload[i]);
 		port->nr_sink_caps = cnt;
 		break;
-	case PD_DATA_VENDOR_DEF:
+	case SPRD_PD_DATA_VENDOR_DEF:
 		sprd_tcpm_handle_vdm_request(port, msg->payload, cnt);
 		break;
-	case PD_DATA_BIST:
+	case SPRD_PD_DATA_BIST:
 		if (port->state == SRC_READY || port->state == SNK_READY) {
 			port->bist_request = le32_to_cpu(msg->payload[0]);
 			sprd_tcpm_set_state(port, BIST_RX, 0);
 		}
 		break;
-	case PD_DATA_ALERT:
+	case SPRD_PD_DATA_ALERT:
 		sprd_tcpm_handle_alert(port, msg->payload, cnt);
 		break;
-	case PD_DATA_BATT_STATUS:
-	case PD_DATA_GET_COUNTRY_INFO:
+	case SPRD_PD_DATA_BATT_STATUS:
+	case SPRD_PD_DATA_GET_COUNTRY_INFO:
 		/* Currently unsupported */
 		sprd_tcpm_queue_message(port, PD_MSG_CTRL_NOT_SUPP);
 		break;
@@ -1791,16 +1793,16 @@ static void sprd_tcpm_pps_complete(struct tcpm_port *port, int result)
 }
 
 static void sprd_tcpm_pd_ctrl_request(struct tcpm_port *port,
-				 const struct pd_message *msg)
+				      const struct sprd_pd_message *msg)
 {
-	enum pd_ctrl_msg_type type = pd_header_type_le(msg->header);
+	enum sprd_pd_ctrl_msg_type type = sprd_pd_header_type_le(msg->header);
 	enum tcpm_state next_state;
 
 	switch (type) {
-	case PD_CTRL_GOOD_CRC:
-	case PD_CTRL_PING:
+	case SPRD_PD_CTRL_GOOD_CRC:
+	case SPRD_PD_CTRL_PING:
 		break;
-	case PD_CTRL_GET_SOURCE_CAP:
+	case SPRD_PD_CTRL_GET_SOURCE_CAP:
 		switch (port->state) {
 		case SRC_READY:
 		case SNK_READY:
@@ -1811,7 +1813,7 @@ static void sprd_tcpm_pd_ctrl_request(struct tcpm_port *port,
 			break;
 		}
 		break;
-	case PD_CTRL_GET_SINK_CAP:
+	case SPRD_PD_CTRL_GET_SINK_CAP:
 		switch (port->state) {
 		case SRC_READY:
 		case SNK_READY:
@@ -1822,9 +1824,9 @@ static void sprd_tcpm_pd_ctrl_request(struct tcpm_port *port,
 			break;
 		}
 		break;
-	case PD_CTRL_GOTO_MIN:
+	case SPRD_PD_CTRL_GOTO_MIN:
 		break;
-	case PD_CTRL_PS_RDY:
+	case SPRD_PD_CTRL_PS_RDY:
 		switch (port->state) {
 		case SNK_TRANSITION_SINK:
 			if (port->vbus_present) {
@@ -1855,9 +1857,9 @@ static void sprd_tcpm_pd_ctrl_request(struct tcpm_port *port,
 			break;
 		}
 		break;
-	case PD_CTRL_REJECT:
-	case PD_CTRL_WAIT:
-	case PD_CTRL_NOT_SUPP:
+	case SPRD_PD_CTRL_REJECT:
+	case SPRD_PD_CTRL_WAIT:
+	case SPRD_PD_CTRL_NOT_SUPP:
 		switch (port->state) {
 		case SNK_NEGOTIATE_CAPABILITIES:
 			/* USB PD specification, Figure 8-43 */
@@ -1871,22 +1873,22 @@ static void sprd_tcpm_pd_ctrl_request(struct tcpm_port *port,
 			/* Revert data back from any requested PPS updates */
 			port->pps_data.req_out_volt = port->supply_voltage;
 			port->pps_data.req_op_curr = port->current_limit;
-			port->pps_status = (type == PD_CTRL_WAIT ?
+			port->pps_status = (type == SPRD_PD_CTRL_WAIT ?
 					    -EAGAIN : -EOPNOTSUPP);
 			sprd_tcpm_set_state(port, SNK_READY, 0);
 			break;
 		case DR_SWAP_SEND:
-			port->swap_status = (type == PD_CTRL_WAIT ?
+			port->swap_status = (type == SPRD_PD_CTRL_WAIT ?
 					     -EAGAIN : -EOPNOTSUPP);
 			sprd_tcpm_set_state(port, DR_SWAP_CANCEL, 0);
 			break;
 		case PR_SWAP_SEND:
-			port->swap_status = (type == PD_CTRL_WAIT ?
+			port->swap_status = (type == SPRD_PD_CTRL_WAIT ?
 					     -EAGAIN : -EOPNOTSUPP);
 			sprd_tcpm_set_state(port, PR_SWAP_CANCEL, 0);
 			break;
 		case VCONN_SWAP_SEND:
-			port->swap_status = (type == PD_CTRL_WAIT ?
+			port->swap_status = (type == SPRD_PD_CTRL_WAIT ?
 					     -EAGAIN : -EOPNOTSUPP);
 			sprd_tcpm_set_state(port, VCONN_SWAP_CANCEL, 0);
 			break;
@@ -1894,7 +1896,7 @@ static void sprd_tcpm_pd_ctrl_request(struct tcpm_port *port,
 			break;
 		}
 		break;
-	case PD_CTRL_ACCEPT:
+	case SPRD_PD_CTRL_ACCEPT:
 		switch (port->state) {
 		case SNK_NEGOTIATE_CAPABILITIES:
 			port->pps_data.active = false;
@@ -1932,10 +1934,10 @@ static void sprd_tcpm_pd_ctrl_request(struct tcpm_port *port,
 			break;
 		}
 		break;
-	case PD_CTRL_SOFT_RESET:
+	case SPRD_PD_CTRL_SOFT_RESET:
 		sprd_tcpm_set_state(port, SOFT_RESET, 0);
 		break;
-	case PD_CTRL_DR_SWAP:
+	case SPRD_PD_CTRL_DR_SWAP:
 		if (port->port_type != TYPEC_PORT_DRP) {
 			sprd_tcpm_queue_message(port, PD_MSG_CTRL_REJECT);
 			break;
@@ -1955,7 +1957,7 @@ static void sprd_tcpm_pd_ctrl_request(struct tcpm_port *port,
 			break;
 		}
 		break;
-	case PD_CTRL_PR_SWAP:
+	case SPRD_PD_CTRL_PR_SWAP:
 		if (port->port_type != TYPEC_PORT_DRP) {
 			sprd_tcpm_queue_message(port, PD_MSG_CTRL_REJECT);
 			break;
@@ -1970,7 +1972,7 @@ static void sprd_tcpm_pd_ctrl_request(struct tcpm_port *port,
 			break;
 		}
 		break;
-	case PD_CTRL_VCONN_SWAP:
+	case SPRD_PD_CTRL_VCONN_SWAP:
 		switch (port->state) {
 		case SRC_READY:
 		case SNK_READY:
@@ -1981,11 +1983,11 @@ static void sprd_tcpm_pd_ctrl_request(struct tcpm_port *port,
 			break;
 		}
 		break;
-	case PD_CTRL_GET_SOURCE_CAP_EXT:
-	case PD_CTRL_GET_STATUS:
-	case PD_CTRL_FR_SWAP:
-	case PD_CTRL_GET_PPS_STATUS:
-	case PD_CTRL_GET_COUNTRY_CODES:
+	case SPRD_PD_CTRL_GET_SOURCE_CAP_EXT:
+	case SPRD_PD_CTRL_GET_STATUS:
+	case SPRD_PD_CTRL_FR_SWAP:
+	case SPRD_PD_CTRL_GET_PPS_STATUS:
+	case SPRD_PD_CTRL_GET_COUNTRY_CODES:
 		/* Currently not supported */
 		sprd_tcpm_queue_message(port, PD_MSG_CTRL_NOT_SUPP);
 		break;
@@ -1996,10 +1998,10 @@ static void sprd_tcpm_pd_ctrl_request(struct tcpm_port *port,
 }
 
 static void sprd_tcpm_pd_ext_msg_request(struct tcpm_port *port,
-				    const struct pd_message *msg)
+				    const struct sprd_pd_message *msg)
 {
-	enum pd_ext_msg_type type = pd_header_type_le(msg->header);
-	unsigned int data_size = pd_ext_header_data_size_le(msg->ext_msg.header);
+	enum sprd_pd_ext_msg_type type = sprd_pd_header_type_le(msg->header);
+	unsigned int data_size = sprd_pd_ext_header_data_size_le(msg->ext_msg.header);
 
 	if (!(msg->ext_msg.header & PD_EXT_HDR_CHUNKED)) {
 		sprd_tcpm_log(port, "Unchunked extended messages unsupported");
@@ -2012,7 +2014,7 @@ static void sprd_tcpm_pd_ext_msg_request(struct tcpm_port *port,
 	}
 
 	switch (type) {
-	case PD_EXT_STATUS:
+	case SPRD_PD_EXT_STATUS:
 		/*
 		 * If PPS related events raised then get PPS status to clear
 		 * (see USB PD 3.0 Spec, 6.5.2.4)
@@ -2023,25 +2025,25 @@ static void sprd_tcpm_pd_ext_msg_request(struct tcpm_port *port,
 		else
 			sprd_tcpm_set_state(port, sprd_ready_state(port), 0);
 		break;
-	case PD_EXT_PPS_STATUS:
+	case SPRD_PD_EXT_PPS_STATUS:
 		/*
 		 * For now the PPS status message is used to clear events
 		 * and nothing more.
 		 */
 		sprd_tcpm_set_state(port, sprd_ready_state(port), 0);
 		break;
-	case PD_EXT_SOURCE_CAP_EXT:
-	case PD_EXT_GET_BATT_CAP:
-	case PD_EXT_GET_BATT_STATUS:
-	case PD_EXT_BATT_CAP:
-	case PD_EXT_GET_MANUFACTURER_INFO:
-	case PD_EXT_MANUFACTURER_INFO:
-	case PD_EXT_SECURITY_REQUEST:
-	case PD_EXT_SECURITY_RESPONSE:
-	case PD_EXT_FW_UPDATE_REQUEST:
-	case PD_EXT_FW_UPDATE_RESPONSE:
-	case PD_EXT_COUNTRY_INFO:
-	case PD_EXT_COUNTRY_CODES:
+	case SPRD_PD_EXT_SOURCE_CAP_EXT:
+	case SPRD_PD_EXT_GET_BATT_CAP:
+	case SPRD_PD_EXT_GET_BATT_STATUS:
+	case SPRD_PD_EXT_BATT_CAP:
+	case SPRD_PD_EXT_GET_MANUFACTURER_INFO:
+	case SPRD_PD_EXT_MANUFACTURER_INFO:
+	case SPRD_PD_EXT_SECURITY_REQUEST:
+	case SPRD_PD_EXT_SECURITY_RESPONSE:
+	case SPRD_PD_EXT_FW_UPDATE_REQUEST:
+	case SPRD_PD_EXT_FW_UPDATE_RESPONSE:
+	case SPRD_PD_EXT_COUNTRY_INFO:
+	case SPRD_PD_EXT_COUNTRY_CODES:
 		sprd_tcpm_queue_message(port, PD_MSG_CTRL_NOT_SUPP);
 		break;
 	default:
@@ -2054,8 +2056,8 @@ static void sprd_tcpm_pd_rx_handler(struct work_struct *work)
 {
 	struct pd_rx_event *event = container_of(work,
 						 struct pd_rx_event, work);
-	const struct pd_message *msg = &event->msg;
-	unsigned int cnt = pd_header_cnt_le(msg->header);
+	const struct sprd_pd_message *msg = &event->msg;
+	unsigned int cnt = sprd_pd_header_cnt_le(msg->header);
 	struct tcpm_port *port = event->port;
 
 	mutex_lock(&port->lock);
@@ -2064,8 +2066,8 @@ static void sprd_tcpm_pd_rx_handler(struct work_struct *work)
 		 port->attached);
 
 	if (port->attached) {
-		enum pd_ctrl_msg_type type = pd_header_type_le(msg->header);
-		unsigned int msgid = pd_header_msgid_le(msg->header);
+		enum sprd_pd_ctrl_msg_type type = sprd_pd_header_type_le(msg->header);
+		unsigned int msgid = sprd_pd_header_msgid_le(msg->header);
 
 		/*
 		 * USB PD standard, 6.6.1.2:
@@ -2076,7 +2078,7 @@ static void sprd_tcpm_pd_rx_handler(struct work_struct *work)
 		 * Message). Note: this shall not apply to the Soft_Reset
 		 * Message which always has a MessageID value of zero."
 		 */
-		if (msgid == port->rx_msgid && type != PD_CTRL_SOFT_RESET)
+		if (msgid == port->rx_msgid && type != SPRD_PD_CTRL_SOFT_RESET)
 			goto done;
 		port->rx_msgid = msgid;
 
@@ -2104,7 +2106,7 @@ done:
 	kfree(event);
 }
 
-void sprd_tcpm_pd_receive(struct tcpm_port *port, const struct pd_message *msg)
+void sprd_tcpm_pd_receive(struct tcpm_port *port, const struct sprd_pd_message *msg)
 {
 	struct pd_rx_event *event;
 
@@ -2120,9 +2122,9 @@ void sprd_tcpm_pd_receive(struct tcpm_port *port, const struct pd_message *msg)
 EXPORT_SYMBOL_GPL(sprd_tcpm_pd_receive);
 
 static int sprd_tcpm_pd_send_control(struct tcpm_port *port,
-				enum pd_ctrl_msg_type type)
+				     enum sprd_pd_ctrl_msg_type type)
 {
-	struct pd_message msg;
+	struct sprd_pd_message msg;
 
 	memset(&msg, 0, sizeof(msg));
 	msg.header = PD_HEADER_LE(type, port->pwr_role,
@@ -2148,13 +2150,13 @@ static bool sprd_tcpm_send_queued_message(struct tcpm_port *port)
 
 		switch (queued_message) {
 		case PD_MSG_CTRL_WAIT:
-			sprd_tcpm_pd_send_control(port, PD_CTRL_WAIT);
+			sprd_tcpm_pd_send_control(port, SPRD_PD_CTRL_WAIT);
 			break;
 		case PD_MSG_CTRL_REJECT:
-			sprd_tcpm_pd_send_control(port, PD_CTRL_REJECT);
+			sprd_tcpm_pd_send_control(port, SPRD_PD_CTRL_REJECT);
 			break;
 		case PD_MSG_CTRL_NOT_SUPP:
-			sprd_tcpm_pd_send_control(port, PD_CTRL_NOT_SUPP);
+			sprd_tcpm_pd_send_control(port, SPRD_PD_CTRL_NOT_SUPP);
 			break;
 		case PD_MSG_DATA_SINK_CAP:
 			sprd_tcpm_pd_send_sink_caps(port);
@@ -2182,40 +2184,40 @@ static int sprd_tcpm_pd_check_request(struct tcpm_port *port)
 {
 	u32 pdo, rdo = port->sink_request;
 	unsigned int max, op, pdo_max, index;
-	enum pd_pdo_type type;
+	enum sprd_pd_pdo_type type;
 
-	index = rdo_index(rdo);
+	index = sprd_rdo_index(rdo);
 	if (!index || index > port->nr_src_pdo)
 		return -EINVAL;
 
 	pdo = port->src_pdo[index - 1];
-	type = pdo_type(pdo);
+	type = sprd_pdo_type(pdo);
 	switch (type) {
-	case PDO_TYPE_FIXED:
-	case PDO_TYPE_VAR:
-		max = rdo_max_current(rdo);
-		op = rdo_op_current(rdo);
-		pdo_max = pdo_max_current(pdo);
+	case SPRD_PDO_TYPE_FIXED:
+	case SPRD_PDO_TYPE_VAR:
+		max = sprd_rdo_max_current(rdo);
+		op = sprd_rdo_op_current(rdo);
+		pdo_max = sprd_pdo_max_current(pdo);
 
 		if (op > pdo_max)
 			return -EINVAL;
 		if (max > pdo_max && !(rdo & RDO_CAP_MISMATCH))
 			return -EINVAL;
 
-		if (type == PDO_TYPE_FIXED)
+		if (type == SPRD_PDO_TYPE_FIXED)
 			sprd_tcpm_log(port,
 				 "Requested %u mV, %u mA for %u / %u mA",
-				 pdo_fixed_voltage(pdo), pdo_max, op, max);
+				 sprd_pdo_fixed_voltage(pdo), pdo_max, op, max);
 		else
 			sprd_tcpm_log(port,
 				 "Requested %u -> %u mV, %u mA for %u / %u mA",
-				 pdo_min_voltage(pdo), pdo_max_voltage(pdo),
+				 sprd_pdo_min_voltage(pdo), sprd_pdo_max_voltage(pdo),
 				 pdo_max, op, max);
 		break;
-	case PDO_TYPE_BATT:
-		max = rdo_max_power(rdo);
-		op = rdo_op_power(rdo);
-		pdo_max = pdo_max_power(pdo);
+	case SPRD_PDO_TYPE_BATT:
+		max = sprd_rdo_max_power(rdo);
+		op = sprd_rdo_op_power(rdo);
+		pdo_max = sprd_pdo_max_power(pdo);
 
 		if (op > pdo_max)
 			return -EINVAL;
@@ -2223,7 +2225,7 @@ static int sprd_tcpm_pd_check_request(struct tcpm_port *port)
 			return -EINVAL;
 		sprd_tcpm_log(port,
 			 "Requested %u -> %u mV, %u mW for %u / %u mW",
-			 pdo_min_voltage(pdo), pdo_max_voltage(pdo),
+			 sprd_pdo_min_voltage(pdo), sprd_pdo_max_voltage(pdo),
 			 pdo_max, op, max);
 		break;
 	default:
@@ -2235,8 +2237,8 @@ static int sprd_tcpm_pd_check_request(struct tcpm_port *port)
 	return 0;
 }
 
-#define min_power(x, y) min(pdo_max_power(x), pdo_max_power(y))
-#define min_current(x, y) min(pdo_max_current(x), pdo_max_current(y))
+#define min_power(x, y) min(sprd_pdo_max_power(x), sprd_pdo_max_power(y))
+#define min_current(x, y) min(sprd_pdo_max_current(x), sprd_pdo_max_current(y))
 
 static int sprd_tcpm_pd_select_pdo(struct tcpm_port *port, int *sink_pdo,
 			      int *src_pdo)
@@ -2256,20 +2258,20 @@ static int sprd_tcpm_pd_select_pdo(struct tcpm_port *port, int *sink_pdo,
 	 */
 	for (i = 0; i < port->nr_source_caps; i++) {
 		u32 pdo = port->source_caps[i];
-		enum pd_pdo_type type = pdo_type(pdo);
+		enum sprd_pd_pdo_type type = sprd_pdo_type(pdo);
 
 		switch (type) {
-		case PDO_TYPE_FIXED:
-			max_src_mv = pdo_fixed_voltage(pdo);
+		case SPRD_PDO_TYPE_FIXED:
+			max_src_mv = sprd_pdo_fixed_voltage(pdo);
 			min_src_mv = max_src_mv;
 			break;
-		case PDO_TYPE_BATT:
-		case PDO_TYPE_VAR:
-			max_src_mv = pdo_max_voltage(pdo);
-			min_src_mv = pdo_min_voltage(pdo);
+		case SPRD_PDO_TYPE_BATT:
+		case SPRD_PDO_TYPE_VAR:
+			max_src_mv = sprd_pdo_max_voltage(pdo);
+			min_src_mv = sprd_pdo_min_voltage(pdo);
 			break;
-		case PDO_TYPE_APDO:
-			if (pdo_apdo_type(pdo) == APDO_TYPE_PPS) {
+		case SPRD_PDO_TYPE_APDO:
+			if (sprd_pdo_apdo_type(pdo) == SPRD_APDO_TYPE_PPS) {
 				port->pps_data.supported = true;
 				port->usb_type =
 					POWER_SUPPLY_USB_TYPE_PD_PPS;
@@ -2282,15 +2284,15 @@ static int sprd_tcpm_pd_select_pdo(struct tcpm_port *port, int *sink_pdo,
 		}
 
 		switch (type) {
-		case PDO_TYPE_FIXED:
-		case PDO_TYPE_VAR:
-			src_ma = pdo_max_current(pdo);
+		case SPRD_PDO_TYPE_FIXED:
+		case SPRD_PDO_TYPE_VAR:
+			src_ma = sprd_pdo_max_current(pdo);
 			src_mw = src_ma * min_src_mv / 1000;
 			break;
-		case PDO_TYPE_BATT:
-			src_mw = pdo_max_power(pdo);
+		case SPRD_PDO_TYPE_BATT:
+			src_mw = sprd_pdo_max_power(pdo);
 			break;
-		case PDO_TYPE_APDO:
+		case SPRD_PDO_TYPE_APDO:
 			continue;
 		default:
 			sprd_tcpm_log(port, "Invalid source PDO type, ignoring");
@@ -2300,17 +2302,17 @@ static int sprd_tcpm_pd_select_pdo(struct tcpm_port *port, int *sink_pdo,
 		for (j = 0; j < port->nr_snk_pdo; j++) {
 			pdo = port->snk_pdo[j];
 
-			switch (pdo_type(pdo)) {
-			case PDO_TYPE_FIXED:
-				max_snk_mv = pdo_fixed_voltage(pdo);
+			switch (sprd_pdo_type(pdo)) {
+			case SPRD_PDO_TYPE_FIXED:
+				max_snk_mv = sprd_pdo_fixed_voltage(pdo);
 				min_snk_mv = max_snk_mv;
 				break;
-			case PDO_TYPE_BATT:
-			case PDO_TYPE_VAR:
-				max_snk_mv = pdo_max_voltage(pdo);
-				min_snk_mv = pdo_min_voltage(pdo);
+			case SPRD_PDO_TYPE_BATT:
+			case SPRD_PDO_TYPE_VAR:
+				max_snk_mv = sprd_pdo_max_voltage(pdo);
+				min_snk_mv = sprd_pdo_min_voltage(pdo);
 				break;
-			case PDO_TYPE_APDO:
+			case SPRD_PDO_TYPE_APDO:
 				continue;
 			default:
 				sprd_tcpm_log(port, "Invalid sink PDO type, ignoring");
@@ -2336,7 +2338,7 @@ static int sprd_tcpm_pd_select_pdo(struct tcpm_port *port, int *sink_pdo,
 }
 
 #define min_pps_apdo_current(x, y)	\
-	min(pdo_pps_apdo_max_current(x), pdo_pps_apdo_max_current(y))
+	min(sprd_pdo_pps_apdo_max_current(x), sprd_pdo_pps_apdo_max_current(y))
 
 static unsigned int sprd_tcpm_pd_select_pps_apdo(struct tcpm_port *port)
 {
@@ -2355,16 +2357,16 @@ static unsigned int sprd_tcpm_pd_select_pps_apdo(struct tcpm_port *port)
 	for (i = 1; i < port->nr_source_caps; ++i) {
 		pdo = port->source_caps[i];
 
-		switch (pdo_type(pdo)) {
-		case PDO_TYPE_APDO:
-			if (pdo_apdo_type(pdo) != APDO_TYPE_PPS) {
+		switch (sprd_pdo_type(pdo)) {
+		case SPRD_PDO_TYPE_APDO:
+			if (sprd_pdo_apdo_type(pdo) != SPRD_APDO_TYPE_PPS) {
 				sprd_tcpm_log(port, "Not PPS APDO (source), ignoring");
 				continue;
 			}
 
-			min_src_mv = pdo_pps_apdo_min_voltage(pdo);
-			max_src_mv = pdo_pps_apdo_max_voltage(pdo);
-			src_ma = pdo_pps_apdo_max_current(pdo);
+			min_src_mv = sprd_pdo_pps_apdo_min_voltage(pdo);
+			max_src_mv = sprd_pdo_pps_apdo_max_voltage(pdo);
+			src_ma = sprd_pdo_pps_apdo_max_current(pdo);
 			src_mw = (src_ma * max_src_mv) / 1000;
 
 			/*
@@ -2375,18 +2377,18 @@ static unsigned int sprd_tcpm_pd_select_pps_apdo(struct tcpm_port *port)
 			for (j = 1; j < port->nr_snk_pdo; j++) {
 				pdo = port->snk_pdo[j];
 
-				switch (pdo_type(pdo)) {
-				case PDO_TYPE_APDO:
-					if (pdo_apdo_type(pdo) != APDO_TYPE_PPS) {
+				switch (sprd_pdo_type(pdo)) {
+				case SPRD_PDO_TYPE_APDO:
+					if (sprd_pdo_apdo_type(pdo) != SPRD_APDO_TYPE_PPS) {
 						sprd_tcpm_log(port,
 							 "Not PPS APDO (sink), ignoring");
 						continue;
 					}
 
 					min_snk_mv =
-						pdo_pps_apdo_min_voltage(pdo);
+						sprd_pdo_pps_apdo_min_voltage(pdo);
 					max_snk_mv =
-						pdo_pps_apdo_max_voltage(pdo);
+						sprd_pdo_pps_apdo_max_voltage(pdo);
 					break;
 				default:
 					sprd_tcpm_log(port,
@@ -2421,10 +2423,10 @@ static unsigned int sprd_tcpm_pd_select_pps_apdo(struct tcpm_port *port)
 		src = port->source_caps[src_pdo];
 		snk = port->snk_pdo[snk_pdo];
 
-		port->pps_data.req_min_volt = max(pdo_pps_apdo_min_voltage(src),
-						  pdo_pps_apdo_min_voltage(snk));
-		port->pps_data.req_max_volt = min(pdo_pps_apdo_max_voltage(src),
-						  pdo_pps_apdo_max_voltage(snk));
+		port->pps_data.req_min_volt = max(sprd_pdo_pps_apdo_min_voltage(src),
+						  sprd_pdo_pps_apdo_min_voltage(snk));
+		port->pps_data.req_max_volt = min(sprd_pdo_pps_apdo_max_voltage(src),
+						  sprd_pdo_pps_apdo_max_voltage(snk));
 		port->pps_data.req_max_curr = min_pps_apdo_current(src, snk);
 		port->pps_data.req_out_volt = min(port->pps_data.req_max_volt,
 						  max(port->pps_data.req_min_volt,
@@ -2440,7 +2442,7 @@ static int sprd_tcpm_pd_build_request(struct tcpm_port *port, u32 *rdo)
 {
 	unsigned int mv, ma, mw, flags;
 	unsigned int max_ma, max_mw;
-	enum pd_pdo_type type;
+	enum sprd_pd_pdo_type type;
 	u32 pdo, matching_snk_pdo;
 	int src_pdo_index = 0;
 	int snk_pdo_index = 0;
@@ -2452,15 +2454,15 @@ static int sprd_tcpm_pd_build_request(struct tcpm_port *port, u32 *rdo)
 
 	pdo = port->source_caps[src_pdo_index];
 	matching_snk_pdo = port->snk_pdo[snk_pdo_index];
-	type = pdo_type(pdo);
+	type = sprd_pdo_type(pdo);
 
 	switch (type) {
-	case PDO_TYPE_FIXED:
-		mv = pdo_fixed_voltage(pdo);
+	case SPRD_PDO_TYPE_FIXED:
+		mv = sprd_pdo_fixed_voltage(pdo);
 		break;
-	case PDO_TYPE_BATT:
-	case PDO_TYPE_VAR:
-		mv = pdo_min_voltage(pdo);
+	case SPRD_PDO_TYPE_BATT:
+	case SPRD_PDO_TYPE_VAR:
+		mv = sprd_pdo_min_voltage(pdo);
 		break;
 	default:
 		sprd_tcpm_log(port, "Invalid PDO selected!");
@@ -2468,7 +2470,7 @@ static int sprd_tcpm_pd_build_request(struct tcpm_port *port, u32 *rdo)
 	}
 
 	/* Select maximum available current within the sink pdo's limit */
-	if (type == PDO_TYPE_BATT) {
+	if (type == SPRD_PDO_TYPE_BATT) {
 		mw = min_power(pdo, matching_snk_pdo);
 		ma = 1000 * mw / mv;
 	} else {
@@ -2483,12 +2485,12 @@ static int sprd_tcpm_pd_build_request(struct tcpm_port *port, u32 *rdo)
 	max_mw = mw;
 	if (mw < port->operating_snk_mw) {
 		flags |= RDO_CAP_MISMATCH;
-		if (type == PDO_TYPE_BATT &&
-		    (pdo_max_power(matching_snk_pdo) > pdo_max_power(pdo)))
-			max_mw = pdo_max_power(matching_snk_pdo);
-		else if (pdo_max_current(matching_snk_pdo) >
-			 pdo_max_current(pdo))
-			max_ma = pdo_max_current(matching_snk_pdo);
+		if (type == SPRD_PDO_TYPE_BATT &&
+		    (sprd_pdo_max_power(matching_snk_pdo) > sprd_pdo_max_power(pdo)))
+			max_mw = sprd_pdo_max_power(matching_snk_pdo);
+		else if (sprd_pdo_max_current(matching_snk_pdo) >
+			 sprd_pdo_max_current(pdo))
+			max_ma = sprd_pdo_max_current(matching_snk_pdo);
 	}
 
 	sprd_tcpm_log(port, "cc=%d cc1=%d cc2=%d vbus=%d vconn=%s polarity=%d",
@@ -2496,7 +2498,7 @@ static int sprd_tcpm_pd_build_request(struct tcpm_port *port, u32 *rdo)
 		 port->vconn_role == TYPEC_SOURCE ? "source" : "sink",
 		 port->polarity);
 
-	if (type == PDO_TYPE_BATT) {
+	if (type == SPRD_PDO_TYPE_BATT) {
 		*rdo = RDO_BATT(src_pdo_index + 1, mw, max_mw, flags);
 
 		sprd_tcpm_log(port, "Requesting PDO %d: %u mV, %u mW%s",
@@ -2518,7 +2520,7 @@ static int sprd_tcpm_pd_build_request(struct tcpm_port *port, u32 *rdo)
 
 static int sprd_tcpm_pd_send_request(struct tcpm_port *port)
 {
-	struct pd_message msg;
+	struct sprd_pd_message msg;
 	int ret;
 	u32 rdo;
 
@@ -2527,7 +2529,7 @@ static int sprd_tcpm_pd_send_request(struct tcpm_port *port)
 		return ret;
 
 	memset(&msg, 0, sizeof(msg));
-	msg.header = PD_HEADER_LE(PD_DATA_REQUEST,
+	msg.header = PD_HEADER_LE(SPRD_PD_DATA_REQUEST,
 				  port->pwr_role,
 				  port->data_role,
 				  port->negotiated_rev,
@@ -2540,7 +2542,7 @@ static int sprd_tcpm_pd_send_request(struct tcpm_port *port)
 static int sprd_tcpm_pd_build_pps_request(struct tcpm_port *port, u32 *rdo)
 {
 	unsigned int out_mv, op_ma, op_mw, max_mv, max_ma, flags;
-	enum pd_pdo_type type;
+	enum sprd_pd_pdo_type type;
 	unsigned int src_pdo_index;
 	u32 pdo;
 
@@ -2549,11 +2551,11 @@ static int sprd_tcpm_pd_build_pps_request(struct tcpm_port *port, u32 *rdo)
 		return -EOPNOTSUPP;
 
 	pdo = port->source_caps[src_pdo_index];
-	type = pdo_type(pdo);
+	type = sprd_pdo_type(pdo);
 
 	switch (type) {
-	case PDO_TYPE_APDO:
-		if (pdo_apdo_type(pdo) != APDO_TYPE_PPS) {
+	case SPRD_PDO_TYPE_APDO:
+		if (sprd_pdo_apdo_type(pdo) != SPRD_APDO_TYPE_PPS) {
 			sprd_tcpm_log(port, "Invalid APDO selected!");
 			return -EINVAL;
 		}
@@ -2615,7 +2617,7 @@ static int sprd_tcpm_pd_build_pps_request(struct tcpm_port *port, u32 *rdo)
 
 static int sprd_tcpm_pd_send_pps_request(struct tcpm_port *port)
 {
-	struct pd_message msg;
+	struct sprd_pd_message msg;
 	int ret;
 	u32 rdo;
 
@@ -2624,7 +2626,7 @@ static int sprd_tcpm_pd_send_pps_request(struct tcpm_port *port)
 		return ret;
 
 	memset(&msg, 0, sizeof(msg));
-	msg.header = PD_HEADER_LE(PD_DATA_REQUEST,
+	msg.header = PD_HEADER_LE(SPRD_PD_DATA_REQUEST,
 				  port->pwr_role,
 				  port->data_role,
 				  port->negotiated_rev,
@@ -3122,7 +3124,7 @@ static void sprd_run_state_machine(struct tcpm_port *port)
 	case SRC_NEGOTIATE_CAPABILITIES:
 		ret = sprd_tcpm_pd_check_request(port);
 		if (ret < 0) {
-			sprd_tcpm_pd_send_control(port, PD_CTRL_REJECT);
+			sprd_tcpm_pd_send_control(port, SPRD_PD_CTRL_REJECT);
 			if (!port->explicit_contract) {
 				sprd_tcpm_set_state(port,
 					       SRC_WAIT_NEW_CAPABILITIES, 0);
@@ -3130,14 +3132,14 @@ static void sprd_run_state_machine(struct tcpm_port *port)
 				sprd_tcpm_set_state(port, SRC_READY, 0);
 			}
 		} else {
-			sprd_tcpm_pd_send_control(port, PD_CTRL_ACCEPT);
+			sprd_tcpm_pd_send_control(port, SPRD_PD_CTRL_ACCEPT);
 			sprd_tcpm_set_state(port, SRC_TRANSITION_SUPPLY,
 				       PD_T_SRC_TRANSITION);
 		}
 		break;
 	case SRC_TRANSITION_SUPPLY:
 		/* XXX: regulator_set_voltage(vbus, ...) */
-		sprd_tcpm_pd_send_control(port, PD_CTRL_PS_RDY);
+		sprd_tcpm_pd_send_control(port, SPRD_PD_CTRL_PS_RDY);
 		port->explicit_contract = true;
 		typec_set_pwr_opmode(port->typec_port, TYPEC_PWR_MODE_PD);
 		port->pwr_opmode = TYPEC_PWR_MODE_PD;
@@ -3472,7 +3474,7 @@ static void sprd_run_state_machine(struct tcpm_port *port)
 	case SOFT_RESET:
 		port->message_id = 0;
 		port->rx_msgid = -1;
-		sprd_tcpm_pd_send_control(port, PD_CTRL_ACCEPT);
+		sprd_tcpm_pd_send_control(port, SPRD_PD_CTRL_ACCEPT);
 		if (port->pwr_role == TYPEC_SOURCE)
 			sprd_tcpm_set_state(port, SRC_SEND_CAPABILITIES, 0);
 		else
@@ -3481,7 +3483,7 @@ static void sprd_run_state_machine(struct tcpm_port *port)
 	case SOFT_RESET_SEND:
 		port->message_id = 0;
 		port->rx_msgid = -1;
-		if (sprd_tcpm_pd_send_control(port, PD_CTRL_SOFT_RESET))
+		if (sprd_tcpm_pd_send_control(port, SPRD_PD_CTRL_SOFT_RESET))
 			sprd_tcpm_set_state_cond(port, sprd_hard_reset_state(port), 0);
 		else
 			sprd_tcpm_set_state_cond(port, sprd_hard_reset_state(port),
@@ -3490,12 +3492,12 @@ static void sprd_run_state_machine(struct tcpm_port *port)
 
 	/* DR_Swap states */
 	case DR_SWAP_SEND:
-		sprd_tcpm_pd_send_control(port, PD_CTRL_DR_SWAP);
+		sprd_tcpm_pd_send_control(port, SPRD_PD_CTRL_DR_SWAP);
 		sprd_tcpm_set_state_cond(port, DR_SWAP_SEND_TIMEOUT,
 				    PD_T_SENDER_RESPONSE);
 		break;
 	case DR_SWAP_ACCEPT:
-		sprd_tcpm_pd_send_control(port, PD_CTRL_ACCEPT);
+		sprd_tcpm_pd_send_control(port, SPRD_PD_CTRL_ACCEPT);
 		sprd_tcpm_set_state_cond(port, DR_SWAP_CHANGE_DR, 0);
 		break;
 	case DR_SWAP_SEND_TIMEOUT:
@@ -3517,11 +3519,11 @@ static void sprd_run_state_machine(struct tcpm_port *port)
 
 	/* PR_Swap states */
 	case PR_SWAP_ACCEPT:
-		sprd_tcpm_pd_send_control(port, PD_CTRL_ACCEPT);
+		sprd_tcpm_pd_send_control(port, SPRD_PD_CTRL_ACCEPT);
 		sprd_tcpm_set_state(port, PR_SWAP_START, 0);
 		break;
 	case PR_SWAP_SEND:
-		sprd_tcpm_pd_send_control(port, PD_CTRL_PR_SWAP);
+		sprd_tcpm_pd_send_control(port, SPRD_PD_CTRL_PR_SWAP);
 		sprd_tcpm_set_state_cond(port, PR_SWAP_SEND_TIMEOUT,
 				    PD_T_SENDER_RESPONSE);
 		break;
@@ -3558,7 +3560,7 @@ static void sprd_run_state_machine(struct tcpm_port *port)
 		 * supply is turned off"
 		 */
 		sprd_tcpm_set_pwr_role(port, TYPEC_SINK);
-		if (sprd_tcpm_pd_send_control(port, PD_CTRL_PS_RDY)) {
+		if (sprd_tcpm_pd_send_control(port, SPRD_PD_CTRL_PS_RDY)) {
 			sprd_tcpm_set_state(port, ERROR_RECOVERY, 0);
 			break;
 		}
@@ -3592,16 +3594,16 @@ static void sprd_run_state_machine(struct tcpm_port *port)
 		 * Source."
 		 */
 		sprd_tcpm_set_pwr_role(port, TYPEC_SOURCE);
-		sprd_tcpm_pd_send_control(port, PD_CTRL_PS_RDY);
+		sprd_tcpm_pd_send_control(port, SPRD_PD_CTRL_PS_RDY);
 		sprd_tcpm_set_state(port, SRC_STARTUP, PD_T_SWAP_SRC_START);
 		break;
 
 	case VCONN_SWAP_ACCEPT:
-		sprd_tcpm_pd_send_control(port, PD_CTRL_ACCEPT);
+		sprd_tcpm_pd_send_control(port, SPRD_PD_CTRL_ACCEPT);
 		sprd_tcpm_set_state(port, VCONN_SWAP_START, 0);
 		break;
 	case VCONN_SWAP_SEND:
-		sprd_tcpm_pd_send_control(port, PD_CTRL_VCONN_SWAP);
+		sprd_tcpm_pd_send_control(port, SPRD_PD_CTRL_VCONN_SWAP);
 		sprd_tcpm_set_state(port, VCONN_SWAP_SEND_TIMEOUT,
 			       PD_T_SENDER_RESPONSE);
 		break;
@@ -3621,7 +3623,7 @@ static void sprd_run_state_machine(struct tcpm_port *port)
 		break;
 	case VCONN_SWAP_TURN_ON_VCONN:
 		sprd_tcpm_set_vconn(port, true);
-		sprd_tcpm_pd_send_control(port, PD_CTRL_PS_RDY);
+		sprd_tcpm_pd_send_control(port, SPRD_PD_CTRL_PS_RDY);
 		sprd_tcpm_set_state(port, sprd_ready_state(port), 0);
 		break;
 	case VCONN_SWAP_TURN_OFF_VCONN:
@@ -3651,7 +3653,7 @@ static void sprd_run_state_machine(struct tcpm_port *port)
 		sprd_tcpm_set_state(port, sprd_unattached_state(port), 0);
 		break;
 	case GET_STATUS_SEND:
-		sprd_tcpm_pd_send_control(port, PD_CTRL_GET_STATUS);
+		sprd_tcpm_pd_send_control(port, SPRD_PD_CTRL_GET_STATUS);
 		sprd_tcpm_set_state(port, GET_STATUS_SEND_TIMEOUT,
 			       PD_T_SENDER_RESPONSE);
 		break;
@@ -3659,7 +3661,7 @@ static void sprd_run_state_machine(struct tcpm_port *port)
 		sprd_tcpm_set_state(port, sprd_ready_state(port), 0);
 		break;
 	case GET_PPS_STATUS_SEND:
-		sprd_tcpm_pd_send_control(port, PD_CTRL_GET_PPS_STATUS);
+		sprd_tcpm_pd_send_control(port, SPRD_PD_CTRL_GET_PPS_STATUS);
 		sprd_tcpm_set_state(port, GET_PPS_STATUS_SEND_TIMEOUT,
 			       PD_T_SENDER_RESPONSE);
 		break;
@@ -5019,6 +5021,4 @@ void sprd_tcpm_unregister_port(struct tcpm_port *port)
 }
 EXPORT_SYMBOL_GPL(sprd_tcpm_unregister_port);
 
-MODULE_AUTHOR("Guenter Roeck <groeck@chromium.org>");
-MODULE_DESCRIPTION("USB Type-C Port Manager");
 MODULE_LICENSE("GPL");

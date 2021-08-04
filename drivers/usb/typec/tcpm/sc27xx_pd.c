@@ -17,7 +17,7 @@
 #include <linux/slab.h>
 #include <linux/usb/typec.h>
 #include <linux/usb/sprd_tcpm.h>
-#include <linux/usb/pd.h>
+#include <linux/usb/sprd_pd.h>
 #include <linux/usb/typec_dp.h>
 
 /* PMIC global registers definition */
@@ -656,7 +656,7 @@ done:
 	return ret;
 }
 
-static int sc27xx_pd_tx_msg(struct sc27xx_pd *pd, const struct pd_message *msg)
+static int sc27xx_pd_tx_msg(struct sc27xx_pd *pd, const struct sprd_pd_message *msg)
 {
 	u16 header;
 	u32 data_obj_num, data[PD_MAX_PAYLOAD * 2] = {0};
@@ -666,7 +666,7 @@ static int sc27xx_pd_tx_msg(struct sc27xx_pd *pd, const struct pd_message *msg)
 	if (ret < 0)
 		return ret;
 
-	data_obj_num = msg ? pd_header_cnt_le(msg->header) : 0;
+	data_obj_num = msg ? sprd_pd_header_cnt_le(msg->header) : 0;
 	if (data_obj_num > PD_MAX_PAYLOAD) {
 		dev_err(pd->dev, "pd tmsg too long, num=%d\n", data_obj_num);
 		return -EINVAL;
@@ -700,7 +700,7 @@ static int sc27xx_pd_tx_msg(struct sc27xx_pd *pd, const struct pd_message *msg)
 
 static int sc27xx_pd_transmit(struct tcpc_dev *tcpc,
 			      enum tcpm_transmit_type type,
-			      const struct pd_message *msg)
+			      const struct sprd_pd_message *msg)
 {
 	struct sc27xx_pd *pd = tcpc_to_sc27xx_pd(tcpc);
 	int ret;
@@ -727,7 +727,7 @@ static int sc27xx_pd_transmit(struct tcpc_dev *tcpc,
 	return ret;
 }
 
-static int sc27xx_pd_read_message(struct sc27xx_pd *pd, struct pd_message *msg)
+static int sc27xx_pd_read_message(struct sc27xx_pd *pd, struct sprd_pd_message *msg)
 {
 	int ret, i;
 	u32 data[PD_MAX_PAYLOAD * 2] = {0};
@@ -752,17 +752,17 @@ static int sc27xx_pd_read_message(struct sc27xx_pd *pd, struct pd_message *msg)
 
 	header &= SC27XX_TX_RX_BUF_MASK;
 	msg->header = cpu_to_le16(header);
-	data_obj_num = pd_header_cnt_le(msg->header);
-	spec = pd_header_rev_le(msg->header);
-	type = pd_header_type_le(msg->header);
+	data_obj_num = sprd_pd_header_cnt_le(msg->header);
+	spec = sprd_pd_header_rev_le(msg->header);
+	type = sprd_pd_header_type_le(msg->header);
 
 	if (msg->header & PD_HEADER_EXT_HDR)
 		vendor_define = false;
-	else if (data_obj_num && (type == PD_DATA_VENDOR_DEF))
+	else if (data_obj_num && (type == SPRD_PD_DATA_VENDOR_DEF))
 		vendor_define = true;
-	else if (data_obj_num && (type == PD_DATA_SOURCE_CAP))
+	else if (data_obj_num && (type == SPRD_PD_DATA_SOURCE_CAP))
 		source_capabilities = true;
-	else if (data_obj_num && (type == PD_DATA_REQUEST))
+	else if (data_obj_num && (type == SPRD_PD_DATA_REQUEST))
 		data_request = true;
 
 	if ((data_obj_num * 2 + 1) < reg_val && !vendor_define &&
@@ -788,7 +788,7 @@ static int sc27xx_pd_read_message(struct sc27xx_pd *pd, struct pd_message *msg)
 	}
 
 	if (data_obj_num &&
-	   pd_header_type_le(msg->header) == PD_DATA_VENDOR_DEF)
+	   sprd_pd_header_type_le(msg->header) == SPRD_PD_DATA_VENDOR_DEF)
 		pd->msg_flag = 1;
 	else
 		pd->msg_flag = 0;
@@ -816,7 +816,7 @@ static int sc27xx_pd_read_message(struct sc27xx_pd *pd, struct pd_message *msg)
 				data[2 * i]);
 
 	if (!data_obj_num &&
-	    pd_header_type_le(msg->header) == PD_CTRL_GOOD_CRC) {
+	    sprd_pd_header_type_le(msg->header) == SPRD_PD_CTRL_GOOD_CRC) {
 		if (!pd->constructed) {
 			ret = regmap_update_bits(pd->regmap, pd->typec_base +
 						 SC27XX_TYPC_PD_CFG,
@@ -1084,7 +1084,7 @@ static int sc27xx_pd_init(struct tcpc_dev *tcpc)
 static irqreturn_t sc27xx_pd_irq(int irq, void *dev_id)
 {
 	struct sc27xx_pd *pd = dev_id;
-	struct pd_message pd_msg;
+	struct sprd_pd_message pd_msg;
 	u32 status = 0;
 	int ret, state;
 
@@ -1485,7 +1485,7 @@ static void sc27xx_pd_read_msg_work(struct work_struct *work)
 	struct delayed_work *dwork = to_delayed_work(work);
 	struct sc27xx_pd *pd = container_of(dwork, struct sc27xx_pd,
 					   read_msg_work);
-	struct pd_message pd_msg;
+	struct sprd_pd_message pd_msg;
 
 	mutex_lock(&pd->lock);
 
