@@ -156,7 +156,7 @@ struct dpu_context {
 	/* widevine config parameters */
 	int secure_debug;
 	int time;
-	struct disp_message tos_msg;
+	struct disp_message *tos_msg;
 
 	/* other specific parameters */
 	bool panel_ready;
