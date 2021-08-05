@@ -19,31 +19,9 @@ struct vote_data {
 	unsigned int flag;
 };
 
-static struct vote_data sharkl5pro_vote_data[] = {
-{"boost", 1333, 0},
-{"lcdon", 768, 0},
-{"lcdoff", 256, 0},
-{"camlow", 384, 0},
-{"camhigh", 512, 0},
-{"camveryhigh", 0xbacd, 0},
-{"faceid", 1333, 0},
-{"top", 0xbacd, 0},
-{NULL, 0, 0}
-};
-
-static struct vote_data sharkl3_vote_data[] = {
-{"boost", 933, 0},
-{"lcdon", 400, 0},
-{"lcdoff", 233, 0},
-{"camlow", 400, 0},
-{"camhigh", 622, 0},
-{"camveryhigh", 933, 0},
-{NULL, 0, 0}
-};
-
 static struct vote_data *g_vote_data;
+static int scene_num;
 spinlock_t lock;
-
 
 static struct vote_data *find_point(const char *name)
 {
@@ -61,14 +39,17 @@ static struct vote_data *find_point(const char *name)
 static void set_flag(struct vote_data *point)
 {
 	spin_lock(&lock);
-	point->flag = 1;
+	point->flag++;
 	spin_unlock(&lock);
 }
 
 static void reset_flag(struct vote_data *point)
 {
 	spin_lock(&lock);
-	point->flag = 0;
+	if (point->flag > 0)
+		point->flag--;
+	else
+		point->flag = 0;
 	spin_unlock(&lock);
 }
 
@@ -84,11 +65,11 @@ static int check_and_vote(void)
 	static unsigned int last_freq;
 	unsigned int target_freq = 0;
 	struct vote_data *point;
-	int err;
+	int err, i;
 
 	point = g_vote_data;
-	while (point->name != NULL) {
-		if ((point->flag == 1) && (point->freq > target_freq))
+	for (i = 0; i < scene_num; i++) {
+		if ((point->flag >= 1) && (point->freq > target_freq))
 			target_freq = point->freq;
 		point++;
 	}
@@ -118,6 +99,8 @@ static int dvfs_vote(const char *name)
 {
 	struct vote_data *point;
 
+	if (g_vote_data == NULL)
+		return -EINVAL;
 	point = find_point(name);
 	if (point == NULL)
 		return -EINVAL;
@@ -131,6 +114,8 @@ static int dvfs_unvote(const char *name)
 {
 	struct vote_data *point;
 
+	if (g_vote_data == NULL)
+		return -EINVAL;
 	point = find_point(name);
 	if (point == NULL)
 		return -EINVAL;
@@ -144,6 +129,8 @@ static int dvfs_set_point(const char *name, unsigned int freq)
 {
 	struct vote_data *point;
 
+	if (g_vote_data == NULL)
+		return -EINVAL;
 	point = find_point(name);
 	if (point == NULL)
 		return -EINVAL;
@@ -153,13 +140,16 @@ static int dvfs_set_point(const char *name, unsigned int freq)
 	return check_and_vote();
 }
 
-static int dvfs_get_point_info(char **name, unsigned int *freq,
-		unsigned int *flag, int index)
+static int dvfs_get_point_info(char **name, unsigned int *freq, unsigned int *flag, int index)
 {
-	struct vote_data *point = &g_vote_data[index];
+	struct vote_data *point;
 
+	if (g_vote_data == NULL || index >= scene_num)
+		return -EINVAL;
+
+	point = &g_vote_data[index];
 	if (point->name == NULL)
-		return -ENOENT;
+		return -EINVAL;
 
 	*name = (char *)point->name;
 	*freq = point->freq;
@@ -176,34 +166,61 @@ static struct dvfs_hw_callback callbacks = {
 
 static int dvfs_probe(struct platform_device *pdev)
 {
-	int err;
+	int err, i;
+	struct device *dev = &pdev->dev;
+	struct device_node *node = dev->of_node;
 
-	g_vote_data = (struct vote_data *)of_device_get_match_data(&pdev->dev);
-	if (!g_vote_data) {
-		dev_err(&pdev->dev, "No matching driver data found\n");
-		return -EINVAL;
+	scene_num = of_property_count_strings(dev->of_node, "sprd-scene");
+	if (scene_num <= 0) {
+		dev_warn(dev, "failed read scene_num\n");
+		scene_num = 0;
+	} else {
+		g_vote_data = devm_kzalloc(dev, sizeof(struct vote_data)*scene_num, GFP_KERNEL);
+		if (g_vote_data == NULL) {
+			err = -ENOMEM;
+			return err;
+		}
 	}
-
+	for (i = 0; i < scene_num; i++) {
+		err = of_property_read_string_index(node, "sprd-scene", i,
+						    (const char **)&g_vote_data[i].name);
+		if (err < 0 || strlen(g_vote_data[i].name) == 0) {
+			dev_err(dev, "failed parse sprd-scene\n");
+			goto free_mem;
+		}
+		err = of_property_read_u32_index(node, "sprd-freq", i,
+						 &g_vote_data[i].freq);
+		if (err < 0) {
+			dev_err(dev, "failed parse sprd-freq\n");
+			goto free_mem;
+		}
+	}
 	spin_lock_init(&lock);
 
 	err = dvfs_core_init(pdev);
 	if (err < 0)
-		return err;
+		goto free_mem;
 
 	dvfs_core_hw_callback_register(&callbacks);
 	return 0;
+
+free_mem:
+	if (g_vote_data != NULL)
+		devm_kfree(&pdev->dev, g_vote_data);
+	return err;
 }
 
 static int dvfs_remove(struct platform_device *pdev)
 {
+	if (g_vote_data != NULL)
+		devm_kfree(&pdev->dev, g_vote_data);
 	dvfs_core_hw_callback_clear(&callbacks);
 	dvfs_core_clear(pdev);
 	return 0;
 }
 
 static const struct of_device_id dvfs_match[] = {
-	{ .compatible = "sprd,sharkl5pro-ddr-dvfs", .data = &sharkl5pro_vote_data },
-	{ .compatible = "sprd,sharkl3-ddr-dvfs", .data = &sharkl3_vote_data },
+	{ .compatible = "sprd,ddr-dvfs"},
 	{},
 };
 MODULE_DEVICE_TABLE(of, dvfs_match);

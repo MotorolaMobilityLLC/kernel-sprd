@@ -10,7 +10,7 @@ struct dvfs_hw_callback {
 	int (*hw_dvfs_unvote)(const char *name);
 	int (*hw_dvfs_set_point)(const char *name, unsigned int freq);
 	int (*hw_dvfs_get_point_info)(char **name, unsigned int *freq,
-			unsigned int *flag, int index);
+				      unsigned int *flag, int index);
 };
 
 struct governor_callback {
@@ -51,10 +51,10 @@ int change_scene_freq(char *scenario, unsigned int freq);
 extern struct devfreq_governor sprd_vote;
 #endif
 
-static inline void sprd_dvfs_add_governor(void)
+static inline int sprd_dvfs_add_governor(void)
 {
 #if IS_ENABLED(CONFIG_DEVFREQ_GOV_SPRD_VOTE)
-	devfreq_add_governor(&sprd_vote);
+	return devfreq_add_governor(&sprd_vote);
 #endif
 }
 
