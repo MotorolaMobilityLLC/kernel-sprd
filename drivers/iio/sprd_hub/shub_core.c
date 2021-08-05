@@ -1507,9 +1507,10 @@ static ssize_t calibrator_data_store(struct device *dev,
 	int sensor_type;
 	int err = -1;
 
-	if (count != CALIBRATION_DATA_LENGTH + 1) {
+	if (count < CALIBRATION_DATA_LENGTH + 1) {
 		dev_err(&sensor->sensor_pdev->dev,
 			"error! invalid calibration data, count=%lu\n", count);
+		return -EINVAL;
 	}
 
 	sensor_type = (int)buf[0];
@@ -1526,7 +1527,7 @@ static ssize_t calibrator_data_store(struct device *dev,
 		return err;
 	}
 
-	return count;
+	return (CALIBRATION_DATA_LENGTH + 1);
 }
 static DEVICE_ATTR_RW(calibrator_data);
 
