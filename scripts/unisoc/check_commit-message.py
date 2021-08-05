@@ -274,16 +274,11 @@ def check_tags_consistent(ret_info):
         else:
             print >> sys.stdout, "\nINFO:Ignore check of tags and modified files!"
 
-
-if __name__ == '__main__':
+def main(argv=None):
     ret_info = []
     ret_check_file = []
     get_patch_info_list = []
     get_patch_modify_file_list = []
-    MAIN_PATH = os.path.dirname(os.path.abspath(sys.argv[0]))
-    KERNEL_DIR = os.path.abspath(os.path.dirname(MAIN_PATH)+os.path.sep+"..")
-
-    status,output=commands.getstatusoutput(GET_PATCH_INFO_COMMANDS)
 
     get_patch_info_list = output.split('\n')
 
@@ -294,3 +289,13 @@ if __name__ == '__main__':
     ret_info = check_tags_commit_id(get_patch_info_list)
 
     check_tags_consistent(ret_info)
+    return ret_info[0]
+
+
+if __name__ == '__main__':
+
+    MAIN_PATH = os.path.dirname(os.path.abspath(sys.argv[0]))
+    KERNEL_DIR = os.path.abspath(os.path.dirname(MAIN_PATH)+os.path.sep+"..")
+    status,output=commands.getstatusoutput(GET_PATCH_INFO_COMMANDS)
+
+    sys.exit(main())
