@@ -1623,11 +1623,11 @@ static const struct sprd_clk_desc sc9863a_mm_gate_desc = {
 
 /* camera sensor clocks */
 static SPRD_GATE_CLK_HW(mipi_csi_clk, "mipi-csi-clk", &mahb_ckg_eb.common.hw,
-			0x20, BIT(16), 0, 0);
+			0x20, BIT(16), 0, SPRD_GATE_NON_AON);
 static SPRD_GATE_CLK_HW(mipi_csi_s_clk, "mipi-csi-s-clk", &mahb_ckg_eb.common.hw,
-			0x24, BIT(16), 0, 0);
+			0x24, BIT(16), 0, SPRD_GATE_NON_AON);
 static SPRD_GATE_CLK_HW(mipi_csi_m_clk, "mipi-csi-m-clk", &mahb_ckg_eb.common.hw,
-			0x28, BIT(16), 0, 0);
+			0x28, BIT(16), 0, SPRD_GATE_NON_AON);
 
 static struct sprd_clk_common *sc9863a_mm_clk_clks[] = {
 	/* address base is 0x60900000 */
