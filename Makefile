@@ -656,6 +656,11 @@ all: vmlinux
 CFLAGS_PGO_CLANG := -fprofile-generate
 export CFLAGS_PGO_CLANG
 
+ifdef CONFIG_USE_PROFILE
+KBUILD_CFLAGS += $(call cc-option,-fprofile-use=$(PGO_PROFILE_PATH))
+KBUILD_CFLAGS += -Wno-error=backend-plugin
+endif
+
 CFLAGS_GCOV	:= -fprofile-arcs -ftest-coverage \
 	$(call cc-option,-fno-tree-loop-im) \
 	$(call cc-disable-warning,maybe-uninitialized,)
