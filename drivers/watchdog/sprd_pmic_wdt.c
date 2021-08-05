@@ -73,7 +73,6 @@
 #define SPRD_PMIC_WDTEN_MAGIC "e551"
 #define SPRD_PMIC_WDTEN_MAGIC_LEN_MAX  10
 
-
 struct sprd_pmic_wdt {
 	struct regmap		*regmap;
 	struct device		*dev;
@@ -92,7 +91,7 @@ static int sprd_pmic_wdt_enable(struct sprd_pmic_wdt *wdt, bool en)
 	if (en)
 		p_cmd = "watchdog on";
 	else
-		p_cmd = "watchdog off";
+		p_cmd = "watchdog rstoff";
 
 	len = strlen(p_cmd) + 1;
 	nwrite =
