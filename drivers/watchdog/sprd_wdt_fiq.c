@@ -66,8 +66,6 @@
 #define SPRD_WDT_FIQ_LOW_VALUE_MASK		GENMASK(15, 0)
 #define SPRD_WDT_FIQ_LOAD_TIMEOUT		1000
 
-#define SPRD_WDTEN_MAGIC "e551"
-#define SPRD_WDTEN_MAGIC_LEN_MAX  10
 #define SPRD_DSWDTEN_MAGIC "enabled"
 #define SPRD_DSWDTEN_MAGIC_LEN_MAX  10
 
@@ -84,7 +82,6 @@ struct sprd_wdt_fiq {
 	struct clk *rtc_enable;
 	struct mutex *lock;
 	struct alarm sleep_tmr;
-	bool reset_en;
 	bool sleep_en;
 	const struct sprd_wdt_fiq_data *data;
 };
@@ -103,34 +100,6 @@ static struct sprd_wdt_fiq_data sprd_wdt_fiq_common = {
 static struct sprd_wdt_fiq_data sprd_wdt_fiq_sharkl3 = {
 	.eb_always_on = true,
 };
-
-static bool sprd_wdt_fiq_en(void)
-{
-	struct device_node *cmdline_node;
-	const char *cmd_line, *wdten_name_p;
-	char wdten_value[SPRD_WDTEN_MAGIC_LEN_MAX] = "NULL";
-	int ret;
-
-	cmdline_node = of_find_node_by_path("/chosen");
-	ret = of_property_read_string(cmdline_node, "bootargs", &cmd_line);
-
-	if (ret) {
-		pr_err("can't not parse bootargs property\n");
-		return false;
-	}
-
-	wdten_name_p = strstr(cmd_line, "androidboot.wdten=");
-	if (!wdten_name_p) {
-		pr_err("can't find androidboot.wdten\n");
-		return false;
-	}
-
-	sscanf(wdten_name_p, "androidboot.wdten=%8s", wdten_value);
-	if (strncmp(wdten_value, SPRD_WDTEN_MAGIC, strlen(SPRD_WDTEN_MAGIC)))
-		return false;
-
-	return true;
-}
 
 static bool sprd_dswdt_fiq_en(void)
 {
@@ -159,6 +128,7 @@ static bool sprd_dswdt_fiq_en(void)
 
 	return true;
 }
+
 static inline struct sprd_wdt_fiq *to_sprd_wdt_fiq(struct watchdog_device *wdd)
 {
 	return container_of(wdd, struct sprd_wdt_fiq, wdd);
@@ -281,11 +251,7 @@ static int sprd_wdt_fiq_start(struct watchdog_device *wdd)
 
 	sprd_wdt_fiq_unlock(wdt);
 	val = readl_relaxed(wdt->base + SPRD_WDT_FIQ_CTRL);
-	if (wdt->reset_en)
-		val |= SPRD_WDT_FIQ_CNT_EN_BIT | SPRD_WDT_FIQ_INT_EN_BIT |
-		       SPRD_WDT_FIQ_RST_EN_BIT;
-	else
-		val |= SPRD_WDT_FIQ_CNT_EN_BIT | SPRD_WDT_FIQ_INT_EN_BIT;
+	val |= SPRD_WDT_FIQ_CNT_EN_BIT | SPRD_WDT_FIQ_INT_EN_BIT | SPRD_WDT_FIQ_RST_EN_BIT;
 	writel_relaxed(val, wdt->base + SPRD_WDT_FIQ_CTRL);
 	set_bit(WDOG_HW_RUNNING, &wdd->status);
 	set_bit(WDOG_ACTIVE, &wdd->status);
@@ -519,7 +485,6 @@ static int sprd_wdt_fiq_probe(struct platform_device *pdev)
 	wdt->wdd.max_timeout = SPRD_WDT_FIQ_MAX_TIMEOUT;
 	wdt->wdd.timeout = SPRD_WDT_FIQ_MAX_TIMEOUT;
 
-	wdt->reset_en = sprd_wdt_fiq_en();
 	wdt->sleep_en = sprd_dswdt_fiq_en();
 	ret = sprd_wdt_fiq_enable(wdt);
 	if (ret) {
