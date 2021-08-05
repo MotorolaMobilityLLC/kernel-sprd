@@ -457,10 +457,19 @@ static ssize_t wr_regs_show(struct device *dev,
 	int i;
 	u32 reg;
 
+	down(&dpu->ctx.lock);
+	if (!dpu->ctx.enabled) {
+		pr_err("dpu is not initialized\n");
+		up(&dpu->ctx.lock);
+		return -EINVAL;
+	}
+
 	for (i = 0; i < length; i++) {
 		reg = readl((void __iomem *)(ctx->base + offset));
 		ret += snprintf(buf + ret, PAGE_SIZE, "%x ", reg);
 	}
+
+	up(&dpu->ctx.lock);
 
 	return ret;
 }
@@ -474,15 +483,29 @@ static ssize_t wr_regs_store(struct device *dev,
 	u32 offset = ctx->base_offset[0];
 	u32 length = ctx->base_offset[1];
 	u32 *value;
-	int i;
+	u32 i, actual_len;
+
+	down(&dpu->ctx.lock);
+	if (!dpu->ctx.enabled) {
+		pr_err("dpu is not initialized\n");
+		up(&dpu->ctx.lock);
+		return -EINVAL;
+	}
 
 	value = kzalloc(length * 4, GFP_KERNEL);
-	if (!value)
+	if (!value) {
+		up(&dpu->ctx.lock);
 		return -ENOMEM;
+	}
 
-	str_to_u32_array(buf, 16, value);
+	actual_len = str_to_u32_array(buf, 16, value);
+	if (!actual_len) {
+		pr_err("input format error\n");
+		up(&dpu->ctx.lock);
+		return -EINVAL;
+	}
 
-	for (i = 0; i < length; i++) {
+	for (i = 0; i < actual_len; i++) {
 		writel(value[i], (void __iomem *)(ctx->base + offset));
 		offset += 0x04;
 	}

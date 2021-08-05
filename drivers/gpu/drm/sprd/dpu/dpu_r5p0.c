@@ -34,6 +34,8 @@
 /* Layer registers offset */
 #define DPU_LAY_REG_OFFSET	0x0C
 
+#define DPU_MAX_REG_OFFSET	0x8AC
+
 #define DPU_REG_RD(reg) readl_relaxed(reg)
 
 #define DPU_REG_WR(reg, mask) writel_relaxed(mask, reg)
@@ -824,6 +826,9 @@ static int dpu_init(struct dpu_context *ctx)
 
 	if (ctx->corner_radius)
 		dpu_corner_init(ctx);
+
+	ctx->base_offset[0] = 0x0;
+	ctx->base_offset[1] = DPU_MAX_REG_OFFSET;
 
 	enhance->frame_no = 0;
 	return 0;
