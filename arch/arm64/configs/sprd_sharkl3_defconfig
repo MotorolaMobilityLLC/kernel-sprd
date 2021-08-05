@@ -731,6 +731,7 @@ CONFIG_ARCH_HAS_GCOV_PROFILE_ALL=y
 # Profile Guided Optimization (PGO) (EXPERIMENTAL)
 #
 CONFIG_ARCH_SUPPORTS_PGO_CLANG=y
+CONFIG_PGO_NONE=y
 # CONFIG_PGO_CLANG is not set
 # end of Profile Guided Optimization (PGO) (EXPERIMENTAL)
 
