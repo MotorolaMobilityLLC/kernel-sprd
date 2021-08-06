@@ -613,6 +613,21 @@ static void power_allocator_unbind(struct thermal_zone_device *tz)
 	tz->governor_data = NULL;
 }
 
+#ifdef CONFIG_SPRD_THERMAL_MAX_FREQ_LIMIT
+static void allow_maximum_freq(struct thermal_zone_device *tz)
+{
+	struct thermal_instance *instance;
+
+	mutex_lock(&tz->lock);
+	list_for_each_entry(instance, &tz->thermal_instances, tz_node) {
+		if (!cdev_is_power_actor(instance->cdev))
+			continue;
+		cpufreq_check_cdev(instance->cdev, tz);
+	}
+	mutex_unlock(&tz->lock);
+}
+#endif
+
 static int power_allocator_throttle(struct thermal_zone_device *tz, int trip)
 {
 	int ret;
@@ -625,6 +640,10 @@ static int power_allocator_throttle(struct thermal_zone_device *tz, int trip)
 	 */
 	if (trip != params->trip_max_desired_temperature)
 		return 0;
+
+#ifdef CONFIG_SPRD_THERMAL_MAX_FREQ_LIMIT
+	allow_maximum_freq(tz);
+#endif
 
 #ifdef CONFIG_SPRD_THERMAL_DEBUG
 	if (!tz->tzp->thm_enable) {

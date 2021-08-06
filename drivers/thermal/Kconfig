@@ -483,4 +483,11 @@ config SPRD_THERMAL_DEBUG
 	  Say Y here to support enable/disable thermal switch control
 	  and output critical temperature for all thermal zone before
 	  shutting down
+
+config SPRD_THERMAL_MAX_FREQ_LIMIT
+	bool "sprd thermal max frquency limit"
+	depends on ARCH_SPRD || CPU_THERMAL || THERMAL_GOV_POWER_ALLOCATOR
+	help
+	  Say Y here to support thermal max frequency limit feature
+	  IPA can only be used within the range of the max frequency limit
 endif

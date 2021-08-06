@@ -10,6 +10,9 @@
  *		Viresh Kumar <viresh.kumar@linaro.org>
  *
  */
+#ifdef CONFIG_SPRD_THERMAL_DEBUG
+#define pr_fmt(fmt) "sprd_cpufreq_cooling: " fmt
+#endif
 #include <linux/module.h>
 #include <linux/thermal.h>
 #include <linux/cpufreq.h>
@@ -19,6 +22,7 @@
 #include <linux/pm_qos.h>
 #include <linux/slab.h>
 #include <linux/cpu.h>
+#include <linux/kallsyms.h>
 #include <linux/cpu_cooling.h>
 
 #include <trace/events/thermal.h>
@@ -94,6 +98,12 @@ struct cpufreq_cooling_device {
 static DEFINE_IDA(cpufreq_ida);
 static DEFINE_MUTEX(cooling_list_lock);
 static LIST_HEAD(cpufreq_cdev_list);
+
+#ifdef CONFIG_SPRD_THERMAL_MAX_FREQ_LIMIT
+#define CPUFREQ_COOLING_NUM 5
+static unsigned int max_freq[CPUFREQ_COOLING_NUM];
+static unsigned int  (*cpufreq_update_opp_ptr)(int cpu, int temp);
+#endif
 
 /* Below code defines functions to be used for cpufreq as cooling device */
 
@@ -321,11 +331,22 @@ static int cpufreq_set_cur_state(struct thermal_cooling_device *cdev,
 {
 	struct cpufreq_cooling_device *cpufreq_cdev = cdev->devdata;
 	int ret;
+#if defined(CONFIG_SPRD_THERMAL_DEBUG) || defined(CONFIG_SPRD_THERMAL_MAX_FREQ_LIMIT)
+	unsigned int freq;
+	int cpu = cpufreq_cdev->policy->cpu;
+#endif
 
+#ifdef CONFIG_SPRD_THERMAL_MAX_FREQ_LIMIT
+	int id = topology_physical_package_id(cpu);
+#endif
 	/* Request state should be less than max_level */
 	if (WARN_ON(state > cpufreq_cdev->max_level))
 		return -EINVAL;
-
+#ifdef CONFIG_SPRD_THERMAL_MAX_FREQ_LIMIT
+	freq = cpufreq_cdev->freq_table[state].frequency;
+	if ((id < CPUFREQ_COOLING_NUM) && (max_freq[id]) && (freq >= max_freq[id]))
+		state = get_level(cpufreq_cdev, max_freq[id]);
+#endif
 	/* Check if the old cooling action is same as new cooling action */
 	if (cpufreq_cdev->cpufreq_state == state)
 		return 0;
@@ -334,6 +355,10 @@ static int cpufreq_set_cur_state(struct thermal_cooling_device *cdev,
 			cpufreq_cdev->freq_table[state].frequency);
 	if (ret > 0)
 		cpufreq_cdev->cpufreq_state = state;
+#ifdef CONFIG_SPRD_THERMAL_DEBUG
+	freq = cpufreq_cdev->freq_table[state].frequency;
+	pr_info("cpu%u update max_freq to %u\n", cpu, freq);
+#endif
 
 	return ret;
 }
@@ -471,6 +496,9 @@ static int cpufreq_power2state(struct thermal_cooling_device *cdev,
 	u32 last_load, normalised_power;
 	struct cpufreq_cooling_device *cpufreq_cdev = cdev->devdata;
 	struct cpufreq_policy *policy = cpufreq_cdev->policy;
+#ifdef CONFIG_SPRD_THERMAL_DEBUG
+	int cpu = policy->cpu;
+#endif
 
 	last_load = cpufreq_cdev->last_load ?: 1;
 	normalised_power = (power * 100) / last_load;
@@ -479,8 +507,66 @@ static int cpufreq_power2state(struct thermal_cooling_device *cdev,
 	*state = get_level(cpufreq_cdev, target_freq);
 	trace_thermal_power_cpu_limit(policy->related_cpus, target_freq, *state,
 				      power);
+#ifdef CONFIG_SPRD_THERMAL_DEBUG
+	pr_info("cpu%d temp:%d target_freq:%u power:%u\n",
+			cpu, tz->temperature, target_freq, power);
+#endif
 	return 0;
 }
+
+#ifdef CONFIG_SPRD_THERMAL_MAX_FREQ_LIMIT
+int __nocfi cpufreq_update_max_freq(struct thermal_cooling_device *cdev,
+					struct thermal_zone_device *tz)
+{
+	unsigned int freq = 0, state = 0;
+	struct cpufreq_cooling_device *cpufreq_device = cdev->devdata;
+	int cpu = cpufreq_device->policy->cpu;
+	struct device_node *np = of_get_cpu_node(cpu, NULL);
+	u32 capacitance = 0;
+	int id = topology_physical_package_id(cpu);
+
+	if ((id < CPUFREQ_COOLING_NUM) && !max_freq[id])
+		max_freq[id] = cpufreq_device->freq_table[0].frequency;
+
+	if (cpufreq_update_opp_ptr) {
+		freq = cpufreq_update_opp_ptr(cpu, tz->temperature);
+		if (freq) {
+			if (!np) {
+				pr_err("node not available for cpu%d\n", cpu);
+				return -ENODEV;
+			}
+			if (of_find_property(np, "#cooling-cells", NULL)) {
+				of_property_read_u32(np, "dynamic-power-coefficient",
+						&capacitance);
+				update_freq_table(cpufreq_device, capacitance);
+				max_freq[id] = freq;
+				state = get_level(cpufreq_device, max_freq[id]);
+				cpufreq_set_cur_state(cdev, state);
+
+				pr_info("cpu%u change dvfs table and update max_freq to %u\n",
+				cpu, max_freq[id]);
+			}
+		}
+	}
+
+	return 0;
+}
+
+char cdev0_name[THERMAL_NAME_LENGTH] = "thermal-cpufreq-0";
+char cdev1_name[THERMAL_NAME_LENGTH] = "thermal-cpufreq-1";
+char cdev2_name[THERMAL_NAME_LENGTH] = "thermal-cpufreq-2";
+
+int cpufreq_check_cdev(struct thermal_cooling_device *cdev,
+		       struct thermal_zone_device *tz)
+{
+	if (!strncmp(cdev->type, cdev0_name, strlen(cdev0_name)) ||
+	    !strncmp(cdev->type, cdev1_name, strlen(cdev1_name)) ||
+	    !strncmp(cdev->type, cdev2_name, strlen(cdev2_name)))
+		cpufreq_update_max_freq(cdev, tz);
+
+	return 0;
+}
+#endif
 
 /* Bind cpufreq callbacks to thermal cooling device ops */
 
@@ -713,7 +799,6 @@ of_cpufreq_cooling_register(struct cpufreq_policy *policy)
 			cdev = NULL;
 		}
 	}
-
 	of_node_put(np);
 	return cdev;
 }
@@ -746,3 +831,46 @@ void cpufreq_cooling_unregister(struct thermal_cooling_device *cdev)
 	kfree(cpufreq_cdev);
 }
 EXPORT_SYMBOL_GPL(cpufreq_cooling_unregister);
+
+#ifdef CONFIG_SPRD_THERMAL_MAX_FREQ_LIMIT
+static int __nocfi cpufreq_dvfs_module_notifier(struct notifier_block *nb,
+					unsigned long action, void *data)
+{
+	struct module *module = data;
+
+	if (action == MODULE_STATE_COMING &&
+	    !strncmp(module->name, "sprd_cpufreq_public", strlen("sprd_cpufreq_public"))) {
+		cpufreq_update_opp_ptr = (void *)kallsyms_lookup_name("sprd_cpufreq_update_opp");
+		if (!cpufreq_update_opp_ptr)
+			pr_err("cpu_cooling: failed to lookup sprd_cpufreq_update_opp\n");
+	}
+
+	return NOTIFY_DONE;
+}
+
+static struct notifier_block cpufreq_dvfs_module_nb = {
+	.notifier_call = cpufreq_dvfs_module_notifier,
+};
+
+static int __init sprd_cpufreq_cooling_init(void)
+{
+	int ret;
+
+	ret = register_module_notifier(&cpufreq_dvfs_module_nb);
+	if (ret)
+		pr_err("cpu_cooling: failed to register module notifier\n");
+
+	return 0;
+}
+
+static void __exit sprd_cpufreq_cooling_exit(void)
+{
+	unregister_module_notifier(&cpufreq_dvfs_module_nb);
+}
+
+late_initcall(sprd_cpufreq_cooling_init);
+module_exit(sprd_cpufreq_cooling_exit);
+
+MODULE_DESCRIPTION("sprd cpufreq cooling driver");
+MODULE_LICENSE("GPL v2");
+#endif

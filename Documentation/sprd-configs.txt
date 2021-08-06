@@ -17207,6 +17207,15 @@ CONFIG_SPRD_THERMAL_DEBUG
 	[must] user
 	[missing plat description] none
 	[function] be used to config sprd thermal debug
+CONFIG_SPRD_THERMAL_MAX_FREQ_LIMIT
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field] make
+	[subsys] thermal
+	[must] user
+	[missing plat description] none
+	[function] be used to limit the max frequency
 CONFIG_SPRD_TIMER
 	[arch] all
 	[plat] all

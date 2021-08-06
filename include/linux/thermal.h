@@ -559,4 +559,9 @@ static inline int thermal_generate_netlink_event(struct thermal_zone_device *tz,
 }
 #endif
 
+#ifdef CONFIG_SPRD_THERMAL_MAX_FREQ_LIMIT
+int cpufreq_check_cdev(struct thermal_cooling_device *cdev,
+		       struct thermal_zone_device *tz);
+#endif
+
 #endif /* __THERMAL_H__ */
