@@ -21,6 +21,9 @@
 
 #define SPRD_MIPI_DSI_FMT_DSC 0xff
 
+#define host_to_dsi(host) \
+	container_of(host, struct sprd_dsi, host)
+
 static inline struct sprd_panel *to_sprd_panel(struct drm_panel *panel)
 {
 	return container_of(panel, struct sprd_panel, base);
@@ -257,6 +260,12 @@ static int sprd_panel_esd_check(struct sprd_panel *panel)
 	struct panel_info *info = &panel->info;
 	u8 read_val = 0;
 
+	if (!panel->base.connector ||
+		!panel->base.connector->encoder ||
+		!panel->base.connector->encoder->crtc) {
+		return 0;
+	}
+
 	/* FIXME: we should enable HS cmd tx here */
 	mipi_dsi_set_maximum_return_packet_size(panel->slave, 1);
 	mipi_dsi_dcs_read(panel->slave, info->esd_check_reg,
@@ -330,7 +339,14 @@ static void sprd_panel_esd_work_func(struct work_struct *work)
 	struct sprd_panel *panel = container_of(work, struct sprd_panel,
 						esd_work.work);
 	struct panel_info *info = &panel->info;
+	struct mipi_dsi_host *host = panel->slave->host;
+	struct sprd_dsi *dsi = host_to_dsi(host);
 	int ret;
+
+	if ((!dsi->ctx.enabled) || (!panel->enabled)) {
+		DRM_ERROR("dsi is suspended, skip esd work\n");
+		return;
+	}
 
 	if (info->esd_check_mode == ESD_MODE_REG_CHECK)
 		ret = sprd_panel_esd_check(panel);
