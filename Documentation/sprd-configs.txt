@@ -4249,33 +4249,6 @@ CONFIG_EVENT_TRACING
 	[must] debug
 	[missing plat description] none
 	[function] The main swtich butten for event ftrace.
-CONFIG_EXFAT_FS
-	[arch] all
-	[plat] all
-	[missing plat] none
-	[field] make
-	[subsys] fs
-	[must] user
-	[missing plat description] none
-	[function] exfat filesystem.
-CONFIG_EXFAT_VIRTUAL_XATTR
-	[arch] all
-	[plat] all
-	[missing plat] none
-	[field] code
-	[subsys] fs
-	[must] user
-	[missing plat description] none
-	[function] exfat support extended attribute.
-CONFIG_EXFAT_VIRTUAL_XATTR_SELINUX_LABEL
-	[arch] all
-	[plat] all
-	[missing plat] none
-	[field] code
-	[subsys] fs
-	[must] user
-	[missing plat description] none
-	[function] exfat selinux label for sdcardf.
 CONFIG_EXPERT
 	[arch] all
 	[plat] all
