@@ -109,6 +109,7 @@ enum {
 	SMSG_CH_TTY1,
 	SMSG_CH_TTY2,
 	SMSG_CH_TTY3,
+	SMSG_CH_TTY_SS = 88,
 
 	/* some emergency control, channel 100~119 */
 	SMSG_CH_CTRL_BASE = 100,
@@ -208,6 +209,7 @@ static const struct sipc_config sipc_cfg[] = {
 	{SMSG_CH_PLAYBACK_VOIP, "VOIP playback"}, /* chanel 15 */
 	{SMSG_CH_CAPTURE_VOIP, "VOIP capture"}, /* chanel 16 */
 	{SMSG_CH_MONITOR_VOIP, "VOIP monitor"}, /* chanel 17 */
+	{SMSG_CH_TTY_SS, "stty ss chanel"}, /* chanel 88 */
 	{SMSG_CH_PLAYBACK_DEEP, "audio playback deep"},  /*channel 131*/
 	{SMSG_CH_IMSBR_DATA, "imsbr data"}, /* chanel 2 */
 	{SMSG_CH_IMSBR_CTRL, "imsbr control"},  /* channel 3 */
