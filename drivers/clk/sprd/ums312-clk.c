@@ -1738,7 +1738,7 @@ static const struct clk_parent_data cpp_parents[] = {
 	{ .hw = &twpll_76m8.hw  },
 	{ .hw = &twpll_128m.hw  },
 	{ .hw = &twpll_256m.hw  },
-	{ .hw = &twpll_384m.hw  },
+	{ .hw = &twpll_307m2.hw  },
 };
 static SPRD_MUX_CLK_DATA(cpp, "cpp", cpp_parents,
 			 0x34, 0, 2, UMS312_MUX_FLAG);
@@ -1746,8 +1746,8 @@ static SPRD_MUX_CLK_DATA(cpp, "cpp", cpp_parents,
 static const struct clk_parent_data jpg_parents[] = {
 	{ .hw = &twpll_76m8.hw  },
 	{ .hw = &twpll_128m.hw  },
+	{ .hw = &twpll_192m.hw  },
 	{ .hw = &twpll_256m.hw  },
-	{ .hw = &twpll_384m.hw  },
 };
 static SPRD_MUX_CLK_DATA(jpg, "jpg", jpg_parents,
 			 0x38, 0, 2, UMS312_MUX_FLAG);
