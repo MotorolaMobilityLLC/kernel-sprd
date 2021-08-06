@@ -22,7 +22,7 @@
 					sprd,esd-check-regs = <0xA>;
 					sprd,esd-return-code = <0x9c>;
 
-					sprd,reset-on-sequence = <1 10>, <0 10>, <1 10>;
+					sprd,reset-on-sequence = <1 10>, <0 10>, <1 10>, <0 10>, <1 20>;
 					sprd,reset-off-sequence = <1 10>;
 
 					sprd,initial-command = [
