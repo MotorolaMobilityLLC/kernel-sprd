@@ -136,7 +136,7 @@
 	};
 
 	ddr_dfs: scene-frequency {
-		compatible = "sprd,sharkl5pro-ddr-dvfs";
+		compatible = "sprd,ddr-dvfs";
 		freq-num = <8>;
 	};
 

@@ -223,6 +223,12 @@
 	};
 };
 
+&ddr_dfs {
+	sprd-scene = "boost", "lcdon", "lcdoff", "camlow",
+		"camhigh", "camveryhigh", "top";
+	sprd-freq = <933 400 233 400 622 933 933>;
+};
+
 &dpu {
 	sprd,logo-memory = <&logo_reserved>;
 };
