@@ -597,6 +597,7 @@ static int bq2560x_charger_get_online(struct bq2560x_charger_info *info,
 static int bq2560x_charger_feed_watchdog(struct bq2560x_charger_info *info,
 					 u32 val)
 {
+#if 0
 	int ret;
 
 	ret = bq2560x_update_bits(info, BQ2560X_REG_1,
@@ -604,10 +605,10 @@ static int bq2560x_charger_feed_watchdog(struct bq2560x_charger_info *info,
 				  BQ2560X_REG_RESET_MASK);
 	if (ret)
 		dev_err(info->dev, "reset bq2560x failed\n");
-
+#endif 
 	bq2560x_dump_regs(info);
 
-	return ret;
+	return 0;
 }
 
 static int bq2560x_charger_set_fchg_current(struct bq2560x_charger_info *info,
