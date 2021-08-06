@@ -635,14 +635,13 @@ static void dpu_wb_work_func(struct work_struct *data)
 
 static int dpu_write_back_config(struct dpu_context *ctx)
 {
-	static int need_config = 1;
 	u32 wb_hdr_size;
 	size_t wb_buf_size;
 	struct sprd_dpu *dpu =
 		(struct sprd_dpu *)container_of(ctx, struct sprd_dpu, ctx);
 	struct drm_device *drm = dpu->crtc->base.dev;
 
-	if (!need_config) {
+	if (ctx->wb_configed) {
 		pr_debug("write back has configed\n");
 		return 0;
 	}
@@ -674,7 +673,8 @@ static int dpu_write_back_config(struct dpu_context *ctx)
 	ctx->wb_layer.fbc_hsize_r = wb_hdr_size;
 
 	ctx->max_vsync_count = 4;
-	need_config = 0;
+
+	ctx->wb_configed = true;
 
 	INIT_WORK(&ctx->wb_work, dpu_wb_work_func);
 
@@ -1137,6 +1137,24 @@ static void disable_vsync(struct dpu_context *ctx)
 	DPU_REG_CLR(ctx->base + REG_DPU_INT_EN, BIT_DPU_INT_VSYNC);
 }
 
+static int dpu_context_init(struct dpu_context *ctx)
+{
+	struct dpu_enhance *enhance;
+
+	enhance = kzalloc(sizeof(*enhance), GFP_KERNEL);
+	if (!enhance)
+		return -ENOMEM;
+
+	ctx->enhance = enhance;
+
+	ctx->base_offset[0] = 0x0;
+	ctx->base_offset[1] = DPU_MAX_REG_OFFSET;
+
+	ctx->wb_configed = false;
+
+	return 0;
+}
+
 static const u32 primary_fmts[] = {
 	DRM_FORMAT_XRGB8888, DRM_FORMAT_XBGR8888,
 	DRM_FORMAT_ARGB8888, DRM_FORMAT_ABGR8888,
@@ -1154,19 +1172,6 @@ static void dpu_capability(struct dpu_context *ctx,
 	cap->max_layers = 4;
 	cap->fmts_ptr = primary_fmts;
 	cap->fmts_cnt = ARRAY_SIZE(primary_fmts);
-}
-
-static int dpu_enhance_init(struct dpu_context *ctx)
-{
-	struct dpu_enhance *enhance;
-
-	enhance = kzalloc(sizeof(*enhance), GFP_KERNEL);
-	if (!enhance)
-		return -ENOMEM;
-
-	ctx->enhance = enhance;
-
-	return 0;
 }
 
 static void dpu_enhance_backup(struct dpu_context *ctx, u32 id, void *param)
@@ -1545,9 +1550,9 @@ const struct dpu_core_ops dpu_lite_r2p0_core_ops = {
 	.bg_color = dpu_bgcolor,
 	.enable_vsync = enable_vsync,
 	.disable_vsync = disable_vsync,
+	.context_init = dpu_context_init,
 	.write_back = dpu_write_back,
 	.check_raw_int = dpu_check_raw_int,
-	.enhance_init = dpu_enhance_init,
 	.enhance_set = dpu_enhance_set,
 	.enhance_get = dpu_enhance_get,
 	.modeset = dpu_modeset,

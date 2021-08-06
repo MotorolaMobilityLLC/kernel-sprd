@@ -666,6 +666,14 @@ static void disable_vsync(struct dpu_context *ctx)
 	DPU_REG_CLR(ctx->base + REG_DPU_INT_EN, BIT_DPU_INT_DPI_VSYNC);
 }
 
+static int dpu_context_init(struct dpu_context *ctx)
+{
+	ctx->base_offset[0] = 0x0;
+	ctx->base_offset[1] = DPU_MAX_REG_OFFSET;
+
+	return 0;
+}
+
 static const u32 primary_fmts[] = {
 	DRM_FORMAT_XRGB8888, DRM_FORMAT_XBGR8888,
 	DRM_FORMAT_ARGB8888, DRM_FORMAT_ABGR8888,
@@ -698,5 +706,6 @@ const struct dpu_core_ops dpu_lite_r1p0_core_ops = {
 	.bg_color = dpu_bgcolor,
 	.enable_vsync = enable_vsync,
 	.disable_vsync = disable_vsync,
+	.context_init = dpu_context_init,
 	.check_raw_int = dpu_check_raw_int,
 };

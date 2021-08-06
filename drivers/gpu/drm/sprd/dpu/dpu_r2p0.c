@@ -511,6 +511,22 @@ static void dpu_fini(struct dpu_context *ctx)
 	ctx->panel_ready = false;
 }
 
+static int dpu_context_init(struct dpu_context *ctx)
+{
+	struct dpu_enhance *enhance;
+
+	enhance = kzalloc(sizeof(*enhance), GFP_KERNEL);
+	if (!enhance)
+		return -ENOMEM;
+
+	ctx->enhance = enhance;
+
+	ctx->base_offset[0] = 0x0;
+	ctx->base_offset[1] = DPU_MAX_REG_OFFSET;
+
+	return 0;
+}
+
 enum {
 	DPU_LAYER_FORMAT_YUV422_2PLANE,
 	DPU_LAYER_FORMAT_YUV420_2PLANE,
@@ -1048,19 +1064,6 @@ static void dpu_capability(struct dpu_context *ctx,
 	cap->fmts_cnt = ARRAY_SIZE(primary_fmts);
 }
 
-static int dpu_enhance_init(struct dpu_context *ctx)
-{
-	struct dpu_enhance *enhance;
-
-	enhance = kzalloc(sizeof(*enhance), GFP_KERNEL);
-	if (!enhance)
-		return -ENOMEM;
-
-	ctx->enhance = enhance;
-
-	return 0;
-}
-
 static void dpu_enhance_backup(struct dpu_context *ctx, u32 id, void *param)
 {
 	struct dpu_enhance *enhance = ctx->enhance;
@@ -1436,8 +1439,8 @@ const struct dpu_core_ops dpu_r2p0_core_ops = {
 	.bg_color = dpu_bgcolor,
 	.enable_vsync = enable_vsync,
 	.disable_vsync = disable_vsync,
+	.context_init = dpu_context_init,
 	.check_raw_int = dpu_check_raw_int,
-	.enhance_init = dpu_enhance_init,
 	.enhance_set = dpu_enhance_set,
 	.enhance_get = dpu_enhance_get,
 	.modeset = dpu_modeset,

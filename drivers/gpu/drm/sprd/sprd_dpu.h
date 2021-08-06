@@ -75,7 +75,7 @@ struct dpu_core_ops {
 	void (*capability)(struct dpu_context *ctx,
 			 struct sprd_crtc_capability *cap);
 	void (*bg_color)(struct dpu_context *ctx, u32 color);
-	int (*enhance_init)(struct dpu_context *ctx);
+	int (*context_init)(struct dpu_context *ctx);
 	void (*enhance_set)(struct dpu_context *ctx, u32 id, void *param);
 	void (*enhance_get)(struct dpu_context *ctx, u32 id, void *param);
 	bool (*check_raw_int)(struct dpu_context *ctx, u32 mask);
@@ -137,6 +137,8 @@ struct dpu_context {
 	struct work_struct wb_work;
 	dma_addr_t wb_addr_p;
 	void *wb_addr_v;
+	size_t wb_buf_size;
+	bool wb_configed;
 
 	/* te check parameters */
 	wait_queue_head_t te_wq;

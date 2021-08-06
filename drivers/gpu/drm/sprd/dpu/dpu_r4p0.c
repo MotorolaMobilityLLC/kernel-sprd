@@ -766,21 +766,19 @@ static void dpu_wb_work_func(struct work_struct *data)
 
 static int dpu_write_back_config(struct dpu_context *ctx)
 {
-	static int need_config;
-	size_t wb_buf_size;
 	struct sprd_dpu *dpu =
 		(struct sprd_dpu *)container_of(ctx, struct sprd_dpu, ctx);
 	struct drm_device *drm = dpu->crtc->base.dev;
 
-	if (!need_config) {
+	if (ctx->wb_configed) {
 		pr_debug("write back has configed\n");
 		return 0;
 	}
 
-	wb_buf_size = XFBC8888_BUFFER_SIZE(dpu->mode->hdisplay,
-						dpu->mode->vdisplay);
-	pr_info("use cma memory for writeback, size:0x%zx\n", wb_buf_size);
-	ctx->wb_addr_v = dma_alloc_wc(drm->dev, wb_buf_size, &ctx->wb_addr_p, GFP_KERNEL);
+	ctx->wb_buf_size = XFBC8888_BUFFER_SIZE(ctx->vm.hactive,
+						ctx->vm.vactive);
+	pr_info("use cma memory for writeback, size:0x%zx\n", ctx->wb_buf_size);
+	ctx->wb_addr_v = dma_alloc_wc(drm->dev, ctx->wb_buf_size, &ctx->wb_addr_p, GFP_KERNEL);
 	if (!ctx->wb_addr_p) {
 		ctx->max_vsync_count = 0;
 		return -ENOMEM;
@@ -794,7 +792,8 @@ static int dpu_write_back_config(struct dpu_context *ctx)
 	ctx->wb_layer.addr[0] = ctx->wb_addr_p;
 
 	ctx->max_vsync_count = 4;
-	need_config = 0;
+
+	ctx->wb_configed = true;
 
 	INIT_WORK(&ctx->wb_work, dpu_wb_work_func);
 
@@ -804,7 +803,6 @@ static int dpu_write_back_config(struct dpu_context *ctx)
 static void dpu_dvfs_task_func(unsigned long data)
 {
 	struct dpu_context *ctx = (struct dpu_context *)data;
-	//struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
 	struct sprd_layer_state layer, layers[8];
 	int i, j, max_x, max_y, min_x, min_y;
 	int layer_en, max, maxs[8], count = 0;
@@ -885,18 +883,6 @@ static void dpu_dvfs_task_func(unsigned long data)
 	dpu_dvfs_notifier_call_chain(&dvfs_freq);
 }
 
-static void dpu_dvfs_task_init(struct dpu_context *ctx)
-{
-	static int need_config = 1;
-
-	if (!need_config)
-		return;
-
-	need_config = 0;
-	tasklet_init(&ctx->dvfs_task, dpu_dvfs_task_func,
-			(unsigned long)ctx);
-}
-
 static int dpu_init(struct dpu_context *ctx)
 {
 	u32 reg_val, size;
@@ -924,15 +910,10 @@ static int dpu_init(struct dpu_context *ctx)
 
 	dpu_enhance_reload(ctx);
 
-	dpu_write_back_config(ctx);
-
 	if (ctx->corner_radius)
 		dpu_corner_init(ctx);
 
-	dpu_dvfs_task_init(ctx);
-
-	ctx->base_offset[0] = 0x0;
-	ctx->base_offset[1] = DPU_MAX_REG_OFFSET;
+	dpu_write_back_config(ctx);
 
 	enhance->frame_no = 0;
 	return 0;
@@ -1533,7 +1514,7 @@ static void disable_vsync(struct dpu_context *ctx)
 	//DPU_REG_CLR(ctx->base + REG_DPU_INT_EN, BIT_DPU_INT_VSYNC);
 }
 
-static int dpu_enhance_init(struct dpu_context *ctx)
+static int dpu_context_init(struct dpu_context *ctx)
 {
 	struct dpu_enhance *enhance;
 
@@ -1545,6 +1526,14 @@ static int dpu_enhance_init(struct dpu_context *ctx)
 	enhance->cabc_state = CABC_DISABLED;
 	INIT_WORK(&ctx->cabc_work, dpu_cabc_work_func);
 	INIT_WORK(&ctx->cabc_bl_update, dpu_cabc_bl_update_func);
+
+	tasklet_init(&ctx->dvfs_task, dpu_dvfs_task_func,
+			(unsigned long)ctx);
+
+	ctx->base_offset[0] = 0x0;
+	ctx->base_offset[1] = DPU_MAX_REG_OFFSET;
+
+	ctx->wb_configed = false;
 
 	return 0;
 }
@@ -2453,7 +2442,7 @@ const struct dpu_core_ops dpu_r4p0_core_ops = {
 	.bg_color = dpu_bgcolor,
 	.enable_vsync = enable_vsync,
 	.disable_vsync = disable_vsync,
-	.enhance_init = dpu_enhance_init,
+	.context_init = dpu_context_init,
 	.enhance_set = dpu_enhance_set,
 	.enhance_get = dpu_enhance_get,
 	.modeset = dpu_modeset,
