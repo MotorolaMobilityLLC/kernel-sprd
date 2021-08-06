@@ -56,24 +56,6 @@
 		compatible = "linux,extcon-usb-gpio";
 		vbus-gpio = <&pmic_eic 0 GPIO_ACTIVE_HIGH>;
 	};
-
-	ion: ion {
-		compatible = "sprd,ion";
-		#address-cells = <1>;
-		#size-cells = <0>;
-
-		heap@1 {
-			reg = <1>;
-			label = "carveout_mm";
-			type = <2>;
-		};
-
-		heap@2 {
-			reg = <2>;
-			label = "carveout_overlay";
-			type = <2>;
-		};
-	};
 };
 
 &mpu {
