@@ -87,6 +87,9 @@ static void hang_debug_park(unsigned int cpu)
 {
 	struct hrtimer *hrtimer = this_cpu_ptr(&sprd_wdt_hrtimer);
 
+	if (wdt_disable)
+		return;
+
 	spin_lock(&lock);
 	cpu_feed_mask &= (~(1U << cpu));
 	cpu_feed_bitmap = 0;
@@ -101,6 +104,9 @@ static void hang_debug_park(unsigned int cpu)
 
 static void hang_debug_unpark(unsigned int cpu)
 {
+	if (wdt_disable)
+		return;
+
 	spin_lock(&lock);
 	cpu_feed_mask |= (1U << cpu);
 	cpu_feed_bitmap = 0;
