@@ -395,7 +395,7 @@ static int bq2560x_charger_hw_init(struct bq2560x_charger_info *info)
 		ret = bq2560x_update_bits(info, BQ2560X_REG_4,   //TOPOFF_TIMER
 					  0x06,
 					  0);
-
+		bq2560x_write(info, BQ2560X_REG_1,0x1a); //enable charge
 	}
 
 	bq2560x_dump_regs(info);
