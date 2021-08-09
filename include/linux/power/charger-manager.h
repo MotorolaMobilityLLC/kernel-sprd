@@ -293,6 +293,7 @@ struct charger_regulator {
 	 */
 	struct charger_cable *cables;
 	int num_cables;
+	int cp_id;
 
 	struct attribute_group attr_grp;
 	struct device_attribute attr_name;
@@ -300,7 +301,10 @@ struct charger_regulator {
 	struct device_attribute attr_stop_charge;
 	struct device_attribute attr_externally_control;
 	struct device_attribute attr_jeita_control;
-	struct attribute *attrs[6];
+	struct device_attribute attr_cp_num;
+	struct device_attribute attr_charge_pump_present;
+	struct device_attribute attr_charge_pump_current;
+	struct attribute *attrs[9];
 
 	struct charger_manager *cm;
 };
@@ -716,6 +720,7 @@ struct charger_desc {
 	u32 fast_charge_enable_count;
 	u32 fast_charge_disable_count;
 	u32 double_ic_total_limit_current;
+	u32 cp_nums;
 
 	bool cm_check_int;
 	bool cm_check_fault;

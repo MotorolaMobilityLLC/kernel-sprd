@@ -516,6 +516,9 @@ static int get_cp_ibus_uA(struct charger_manager *cm, int *cur)
 	struct power_supply *cp_psy;
 	int i, ret = -ENODEV;
 
+	if (!cm->desc->psy_cp_stat)
+		return 0;
+
 	for (i = 0; cm->desc->psy_cp_stat[i]; i++) {
 		cp_psy = power_supply_get_by_name(cm->desc->psy_cp_stat[i]);
 		if (!cp_psy) {
@@ -530,6 +533,33 @@ static int get_cp_ibus_uA(struct charger_manager *cm, int *cur)
 		if (ret == 0)
 			*cur += val.intval;
 	}
+
+	return ret;
+}
+
+static int get_cp_ibat_uA_by_id(struct charger_manager *cm, int *cur, int id)
+{
+	union power_supply_propval val;
+	struct power_supply *cp_psy;
+	int ret = -ENODEV;
+
+	*cur = 0;
+
+	if (!cm->desc->psy_cp_stat || !cm->desc->psy_cp_stat[id])
+		return 0;
+
+	cp_psy = power_supply_get_by_name(cm->desc->psy_cp_stat[id]);
+	if (!cp_psy) {
+		dev_err(cm->dev, "Cannot find charge pump power supply \"%s\"\n",
+			cm->desc->psy_cp_stat[id]);
+		return ret;
+	}
+
+	ret = power_supply_get_property(cp_psy,
+					POWER_SUPPLY_PROP_CURRENT_NOW, &val);
+	power_supply_put(cp_psy);
+	if (ret == 0)
+		*cur = val.intval;
 
 	return ret;
 }
@@ -1969,9 +1999,7 @@ static void cm_ir_compensation_enable(struct charger_manager *cm, bool enable)
 	}
 }
 
-static void cm_ir_compensation(struct charger_manager *cm,
-			       enum cm_ir_comp_state state,
-			       int *target)
+static void cm_ir_compensation(struct charger_manager *cm, enum cm_ir_comp_state state, int *target)
 {
 	struct cm_ir_compensation *ir_sts = &cm->desc->ir_comp;
 	int ibat_avg, target_cccv;
@@ -3257,11 +3285,11 @@ static void check_charging_duration(struct charger_manager *cm)
 	return;
 }
 
-static int cm_get_battery_temperature_by_psy(struct charger_manager *cm,
-					int *temp)
+static int cm_get_battery_temperature_by_psy(struct charger_manager *cm, int *temp)
 {
 	struct power_supply *fuel_gauge;
 	int ret;
+	int64_t temp_val;
 
 	fuel_gauge = power_supply_get_by_name(cm->desc->psy_fuel_gauge);
 	if (!fuel_gauge)
@@ -3269,14 +3297,14 @@ static int cm_get_battery_temperature_by_psy(struct charger_manager *cm,
 
 	ret = power_supply_get_property(fuel_gauge,
 				POWER_SUPPLY_PROP_TEMP,
-				(union power_supply_propval *)temp);
+				(union power_supply_propval *)&temp_val);
 	power_supply_put(fuel_gauge);
 
+	*temp = (int)temp_val;
 	return ret;
 }
 
-static int cm_get_battery_temperature(struct charger_manager *cm,
-					int *temp)
+static int cm_get_battery_temperature(struct charger_manager *cm, int *temp)
 {
 	int ret = 0;
 
@@ -3416,8 +3444,7 @@ static void cm_check_charge_health(struct charger_manager *cm)
 	}
 }
 
-static bool cm_manager_adjust_current(struct charger_manager *cm,
-				      int jeita_status)
+static bool cm_manager_adjust_current(struct charger_manager *cm, int jeita_status)
 {
 	struct charger_desc *desc = cm->desc;
 	int term_volt, target_cur;
@@ -4064,8 +4091,8 @@ static int usb_get_property(struct power_supply *psy, enum power_supply_property
 }
 
 static int charger_get_property(struct power_supply *psy,
-		enum power_supply_property psp,
-		union power_supply_propval *val)
+				enum power_supply_property psp,
+				union power_supply_propval *val)
 {
 	struct charger_manager *cm = power_supply_get_drvdata(psy);
 	struct power_supply *fuel_gauge = NULL;
@@ -4353,11 +4380,13 @@ charger_set_property(struct power_supply *psy,
 	struct charger_manager *cm = power_supply_get_drvdata(psy);
 	int ret = 0;
 
+	if (!cm) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -ENOMEM;
+	}
+
 	if (!is_ext_pwr_online(cm))
 		return -ENODEV;
-
-	if (!cm)
-		return -ENOMEM;
 
 	switch (psp) {
 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT:
@@ -4402,8 +4431,7 @@ charger_set_property(struct power_supply *psy,
 	return ret;
 }
 
-static int charger_property_is_writeable(struct power_supply *psy,
-					 enum power_supply_property psp)
+static int charger_property_is_writeable(struct power_supply *psy, enum power_supply_property psp)
 {
 	int ret;
 
@@ -4623,8 +4651,7 @@ static bool cm_setup_timer(void)
  * @event: the cable state.
  * @ptr: the data pointer of notifier block.
  */
-static int charger_extcon_notifier(struct notifier_block *self,
-			unsigned long event, void *ptr)
+static int charger_extcon_notifier(struct notifier_block *self, unsigned long event, void *ptr)
 {
 	struct charger_cable *cable =
 		container_of(self, struct charger_cable, nb);
@@ -4654,8 +4681,7 @@ static int charger_extcon_notifier(struct notifier_block *self,
  * @cm: the Charger Manager representing the battery.
  * @cable: the Charger cable representing the external connector.
  */
-static int charger_extcon_init(struct charger_manager *cm,
-		struct charger_cable *cable)
+static int charger_extcon_init(struct charger_manager *cm, struct charger_cable *cable)
 {
 	int ret;
 
@@ -4695,8 +4721,7 @@ static int charger_manager_register_extcon(struct charger_manager *cm)
 	for (i = 0; i < desc->num_charger_regulators; i++) {
 		charger = &desc->charger_regulators[i];
 
-		charger->consumer = regulator_get(cm->dev,
-					charger->regulator_name);
+		charger->consumer = regulator_get(cm->dev, charger->regulator_name);
 		if (IS_ERR(charger->consumer)) {
 			dev_err(cm->dev, "Cannot find charger(%s)\n",
 				charger->regulator_name);
@@ -4722,20 +4747,18 @@ static int charger_manager_register_extcon(struct charger_manager *cm)
 }
 
 /* help function of sysfs node to control charger(regulator) */
-static ssize_t charger_name_show(struct device *dev,
-				struct device_attribute *attr, char *buf)
+static ssize_t charger_name_show(struct device *dev, struct device_attribute *attr, char *buf)
 {
-	struct charger_regulator *charger
-		= container_of(attr, struct charger_regulator, attr_name);
+	struct charger_regulator *charger =
+		container_of(attr, struct charger_regulator, attr_name);
 
 	return sprintf(buf, "%s\n", charger->regulator_name);
 }
 
-static ssize_t charger_state_show(struct device *dev,
-				struct device_attribute *attr, char *buf)
+static ssize_t charger_state_show(struct device *dev, struct device_attribute *attr, char *buf)
 {
-	struct charger_regulator *charger
-		= container_of(attr, struct charger_regulator, attr_state);
+	struct charger_regulator *charger =
+		container_of(attr, struct charger_regulator, attr_state);
 	int state = 0;
 
 	if (!charger->externally_control)
@@ -4744,12 +4767,10 @@ static ssize_t charger_state_show(struct device *dev,
 	return sprintf(buf, "%s\n", state ? "enabled" : "disabled");
 }
 
-static ssize_t jeita_control_show(struct device *dev,
-				  struct device_attribute *attr, char *buf)
+static ssize_t jeita_control_show(struct device *dev,  struct device_attribute *attr, char *buf)
 {
 	struct charger_regulator *charger =
-		container_of(attr, struct charger_regulator,
-			     attr_jeita_control);
+		container_of(attr, struct charger_regulator, attr_jeita_control);
 	struct charger_desc *desc = charger->cm->desc;
 
 	return sprintf(buf, "%d\n", !desc->jeita_disabled);
@@ -4761,10 +4782,14 @@ static ssize_t jeita_control_store(struct device *dev,
 {
 	int ret;
 	struct charger_regulator *charger =
-		container_of(attr, struct charger_regulator,
-			     attr_jeita_control);
+		container_of(attr, struct charger_regulator, attr_jeita_control);
 	struct charger_desc *desc = charger->cm->desc;
 	bool enabled;
+
+	if (!charger || !desc) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -ENOMEM;
+	}
 
 	ret =  kstrtobool(buf, &enabled);
 	if (ret)
@@ -4775,28 +4800,146 @@ static ssize_t jeita_control_store(struct device *dev,
 	return count;
 }
 
-static ssize_t charger_stop_show(struct device *dev,
-				struct device_attribute *attr, char *buf)
+static ssize_t
+charge_pump_present_show(struct device *dev, struct device_attribute *attr, char *buf)
 {
-	struct charger_regulator *charger
-		= container_of(attr, struct charger_regulator,
-			       attr_stop_charge);
+	struct charger_regulator *charger =
+		container_of(attr, struct charger_regulator, attr_charge_pump_present);
+	struct charger_manager *cm = charger->cm;
+	bool status = false;
+
+	if (!charger || !cm) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -ENOMEM;
+	}
+
+	if (cm_check_cp_charger_enabled(cm))
+		status = true;
+
+	return sprintf(buf, "%d\n", status);
+}
+
+static ssize_t charge_pump_present_store(struct device *dev,
+					 struct device_attribute *attr,
+					 const char *buf, size_t count)
+{
+	int ret;
+	struct charger_regulator *charger =
+		container_of(attr, struct charger_regulator, attr_charge_pump_present);
+	struct charger_manager *cm = charger->cm;
+	bool enabled;
+
+	if (!charger || !cm) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -ENOMEM;
+	}
+
+	ret =  kstrtobool(buf, &enabled);
+	if (ret)
+		return ret;
+
+	if (enabled) {
+		cm_init_cp(cm);
+		cm_primary_charger_enable(cm, false);
+		if (cm_check_primary_charger_enabled(cm)) {
+			dev_err(cm->dev, "Fail to disable primary charger\n");
+			return -EINVAL;
+		}
+
+		cm_cp_master_charger_enable(cm, true);
+		if (!cm_check_cp_charger_enabled(cm))
+			dev_err(cm->dev, "Fail to enable charge pump\n");
+	} else {
+		if (!cm_cp_master_charger_enable(cm, false))
+			dev_err(cm->dev, "Fail to disable master charge pump\n");
+	}
+
+	return count;
+}
+
+static ssize_t
+charge_pump_current_show(struct device *dev, struct device_attribute *attr, char *buf)
+{
+	struct charger_regulator *charger =
+		container_of(attr, struct charger_regulator, attr_charge_pump_current);
+	struct charger_manager *cm = charger->cm;
+	int cur, ret;
+
+	if (!charger || !cm) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -ENOMEM;
+	}
+
+	if (charger->cp_id < 0) {
+		dev_err(cm->dev, "charge pump id is error!!!!!!\n");
+		cur = 0;
+		return sprintf(buf, "%d\n", cur);
+	}
+
+	ret = get_cp_ibat_uA_by_id(cm, &cur, charger->cp_id);
+	if (ret)
+		cur = 0;
+
+	return sprintf(buf, "%d\n", cur);
+}
+
+static ssize_t charge_pump_current_id_store(struct device *dev,
+					    struct device_attribute *attr,
+					    const char *buf, size_t count)
+{
+	int ret;
+	struct charger_regulator *charger =
+		container_of(attr, struct charger_regulator, attr_charge_pump_current);
+	struct charger_manager *cm = charger->cm;
+	int cp_id;
+
+	if (!charger || !cm) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -ENOMEM;
+	}
+
+	ret =  kstrtoint(buf, 10, &cp_id);
+	if (ret)
+		return ret;
+
+	if (cp_id < 0) {
+		dev_err(cm->dev, "charge pump id is error!!!!!!\n");
+		cp_id = 0;
+	}
+	charger->cp_id = cp_id;
+
+	return count;
+}
+
+static ssize_t charger_stop_show(struct device *dev,
+				 struct device_attribute *attr, char *buf)
+{
+	struct charger_regulator *charger =
+		container_of(attr, struct charger_regulator, attr_stop_charge);
 	bool stop_charge;
 
+	if (!charger) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -ENOMEM;
+	}
 	stop_charge = is_charging(charger->cm);
 
 	return sprintf(buf, "%d\n", !stop_charge);
 }
 
 static ssize_t charger_stop_store(struct device *dev,
-				struct device_attribute *attr, const char *buf,
-				size_t count)
+				  struct device_attribute *attr, const char *buf,
+				  size_t count)
 {
-	struct charger_regulator *charger
-		= container_of(attr, struct charger_regulator,
-					attr_stop_charge);
+	struct charger_regulator *charger =
+		container_of(attr, struct charger_regulator, attr_stop_charge);
 	struct charger_manager *cm = charger->cm;
 	int stop_charge, ret;
+
+	if (!charger || !cm) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -ENOMEM;
+	}
 
 	ret = sscanf(buf, "%d", &stop_charge);
 	if (!ret)
@@ -4826,27 +4969,36 @@ static ssize_t charger_stop_store(struct device *dev,
 }
 
 static ssize_t charger_externally_control_show(struct device *dev,
-				struct device_attribute *attr, char *buf)
+					       struct device_attribute *attr, char *buf)
 {
-	struct charger_regulator *charger = container_of(attr,
-			struct charger_regulator, attr_externally_control);
+	struct charger_regulator *charger =
+		container_of(attr, struct charger_regulator, attr_externally_control);
+
+	if (!charger) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -ENOMEM;
+	}
 
 	return sprintf(buf, "%d\n", charger->externally_control);
 }
 
 static ssize_t charger_externally_control_store(struct device *dev,
-				struct device_attribute *attr, const char *buf,
-				size_t count)
+						struct device_attribute *attr, const char *buf,
+						size_t count)
 {
-	struct charger_regulator *charger
-		= container_of(attr, struct charger_regulator,
-					attr_externally_control);
+	struct charger_regulator *charger =
+		container_of(attr, struct charger_regulator, attr_externally_control);
 	struct charger_manager *cm = charger->cm;
 	struct charger_desc *desc = cm->desc;
 	int i;
 	int ret;
 	int externally_control;
 	int chargers_externally_control = 1;
+
+	if (!charger || !cm) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -ENOMEM;
+	}
 
 	ret = sscanf(buf, "%d", &externally_control);
 	if (ret == 0) {
@@ -4888,6 +5040,22 @@ static ssize_t charger_externally_control_store(struct device *dev,
 	return count;
 }
 
+static ssize_t cp_num_show(struct device *dev, struct device_attribute *attr, char *buf)
+{
+	struct charger_regulator *charger =
+		container_of(attr, struct charger_regulator, attr_cp_num);
+	struct charger_manager *cm = charger->cm;
+	int cp_num = 0;
+
+	if (!cm) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -ENOMEM;
+	}
+
+	cp_num = cm->desc->cp_nums;
+	return sprintf(buf, "%d\n", cp_num);
+}
+
 /**
  * charger_manager_prepare_sysfs - Prepare sysfs entry for each charger
  * @cm: the Charger Manager representing the battery.
@@ -4922,7 +5090,10 @@ static int charger_manager_prepare_sysfs(struct charger_manager *cm)
 		charger->attrs[2] = &charger->attr_externally_control.attr;
 		charger->attrs[3] = &charger->attr_stop_charge.attr;
 		charger->attrs[4] = &charger->attr_jeita_control.attr;
-		charger->attrs[5] = NULL;
+		charger->attrs[5] = &charger->attr_cp_num.attr;
+		charger->attrs[6] = &charger->attr_charge_pump_present.attr;
+		charger->attrs[7] = &charger->attr_charge_pump_current.attr;
+		charger->attrs[8] = NULL;
 
 		charger->attr_grp.name = name;
 		charger->attr_grp.attrs = charger->attrs;
@@ -4950,6 +5121,23 @@ static int charger_manager_prepare_sysfs(struct charger_manager *cm)
 		charger->attr_jeita_control.show = jeita_control_show;
 		charger->attr_jeita_control.store = jeita_control_store;
 
+		sysfs_attr_init(&charger->attr_cp_num.attr);
+		charger->attr_cp_num.attr.name = "cp_num";
+		charger->attr_cp_num.attr.mode = 0444;
+		charger->attr_cp_num.show = cp_num_show;
+
+		sysfs_attr_init(&charger->attr_charge_pump_present.attr);
+		charger->attr_charge_pump_present.attr.name = "charge_pump_present";
+		charger->attr_charge_pump_present.attr.mode = 0644;
+		charger->attr_charge_pump_present.show = charge_pump_present_show;
+		charger->attr_charge_pump_present.store = charge_pump_present_store;
+
+		sysfs_attr_init(&charger->attr_charge_pump_current.attr);
+		charger->attr_charge_pump_current.attr.name = "charge_pump_current";
+		charger->attr_charge_pump_current.attr.mode = 0644;
+		charger->attr_charge_pump_current.show = charge_pump_current_show;
+		charger->attr_charge_pump_current.store = charge_pump_current_id_store;
+
 		sysfs_attr_init(&charger->attr_externally_control.attr);
 		charger->attr_externally_control.attr.name
 				= "externally_control";
@@ -4975,8 +5163,7 @@ static int charger_manager_prepare_sysfs(struct charger_manager *cm)
 	return 0;
 }
 
-static int cm_init_thermal_data(struct charger_manager *cm,
-		struct power_supply *fuel_gauge)
+static int cm_init_thermal_data(struct charger_manager *cm, struct power_supply *fuel_gauge)
 {
 	struct charger_desc *desc = cm->desc;
 	union power_supply_propval val;
@@ -5172,8 +5359,7 @@ static struct charger_desc *of_cm_parse_desc(struct device *dev)
 	struct device_node *np = dev->of_node;
 	u32 poll_mode = CM_POLL_DISABLE;
 	u32 battery_stat = CM_NO_BATTERY;
-	u32 num_chgs = 0;
-	int ret, i = 0;
+	int ret, i = 0, num_chgs = 0;
 
 	desc = devm_kzalloc(dev, sizeof(*desc), GFP_KERNEL);
 	if (!desc)
@@ -5206,8 +5392,8 @@ static struct charger_desc *of_cm_parse_desc(struct device *dev)
 	desc->battery_present = battery_stat;
 
 	/* chargers */
-	of_property_read_u32(np, "cm-num-chargers", &num_chgs);
-	if (num_chgs) {
+	num_chgs = of_property_count_strings(np, "cm-chargers");
+	if (num_chgs > 0) {
 		/* Allocate empty bin at the tail of array */
 		desc->psy_charger_stat = devm_kcalloc(dev,
 						      num_chgs + 1,
@@ -5222,8 +5408,8 @@ static struct charger_desc *of_cm_parse_desc(struct device *dev)
 	}
 
 	/* fast chargers */
-	of_property_read_u32(np, "cm-num-fast-chargers", &num_chgs);
-	if (num_chgs) {
+	num_chgs = of_property_count_strings(np, "cm-fast-chargers");
+	if (num_chgs > 0) {
 		/* Allocate empty bin at the tail of array */
 		desc->psy_fast_charger_stat = devm_kzalloc(dev, sizeof(char *)
 						* (num_chgs + 1), GFP_KERNEL);
@@ -5236,9 +5422,10 @@ static struct charger_desc *of_cm_parse_desc(struct device *dev)
 	}
 
 	/* charge pumps */
-	of_property_read_u32(np, "cm-num-charge-pumps", &num_chgs);
-	if (num_chgs) {
+	num_chgs = of_property_count_strings(np, "cm-charge-pumps");
+	if (num_chgs > 0) {
 		/* Allocate empty bin at the tail of array */
+		desc->cp_nums = num_chgs;
 		desc->psy_cp_stat = devm_kzalloc(dev, sizeof(char *)
 						* (num_chgs + 1), GFP_KERNEL);
 		if (!desc->psy_cp_stat)
@@ -5250,8 +5437,8 @@ static struct charger_desc *of_cm_parse_desc(struct device *dev)
 	}
 
 	/* wireless chargers */
-	of_property_read_u32(np, "cm-num-wireless-chargers", &num_chgs);
-	if (num_chgs) {
+	num_chgs = of_property_count_strings(np, "cm-wireless-chargers");
+	if (num_chgs > 0) {
 		/* Allocate empty bin at the tail of array */
 		desc->psy_wl_charger_stat = devm_kzalloc(dev,
 							 sizeof(char *) * (num_chgs + 1),
@@ -5266,8 +5453,8 @@ static struct charger_desc *of_cm_parse_desc(struct device *dev)
 	}
 
 	/* wireless charge pump converters */
-	of_property_read_u32(np, "cm-num-wireless-charge-pump-converters", &num_chgs);
-	if (num_chgs) {
+	num_chgs = of_property_count_strings(np, "cm-wireless-charge-pump-converters");
+	if (num_chgs > 0) {
 		/* Allocate empty bin at the tail of array */
 		desc->psy_cp_converter_stat = devm_kzalloc(dev,
 							   sizeof(char *) * (num_chgs + 1),
@@ -6040,7 +6227,7 @@ static int charger_manager_probe(struct platform_device *pdev)
 	mutex_unlock(&cm_list_mtx);
 
 	/*
-	 * Charger-manager is capable of waking up the systme from sleep
+	 * Charger-manager is capable of waking up the system from sleep
 	 * when event is happened through cm_notify_event()
 	 */
 	device_init_wakeup(&pdev->dev, true);
