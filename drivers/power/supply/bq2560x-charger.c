@@ -1052,6 +1052,7 @@ bq2560x_charger_feed_watchdog_work(struct work_struct *work)
 	struct bq2560x_charger_info *info = container_of(dwork,
 							 struct bq2560x_charger_info,
 							 wdt_work);
+#if 0
 	int ret;
 
 	ret = bq2560x_update_bits(info, BQ2560X_REG_1,
@@ -1061,7 +1062,7 @@ bq2560x_charger_feed_watchdog_work(struct work_struct *work)
 		dev_err(info->dev, "reset bq2560x failed\n");
 		return;
 	}
-
+#endif
 	bq2560x_dump_regs(info);
 
 	schedule_delayed_work(&info->wdt_work, HZ * 15);
