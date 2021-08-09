@@ -211,7 +211,7 @@ struct sae_entry {
 	u8 id_len;
 	char identifier[32];
 	u8 passwd_len;
-	char password[32];
+	char password[64];
 	s32 vlan_id;
 } __packed;
 
