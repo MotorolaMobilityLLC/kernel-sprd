@@ -214,7 +214,7 @@ int jpg_get_mm_clk(struct jpg_dev_t *hw_dev)
 
 static int jpg_get_dmabuf(int fd, struct dma_buf **dmabuf, void **buf, size_t *size)
 {
-	struct ion_buffer *buffer;
+	struct ion_buffer *buffer = NULL;
 
 	if (fd < 0 && !dmabuf) {
 		pr_err("%s, input fd: %d, dmabuf: %p error\n", __func__, fd, dmabuf);
@@ -743,7 +743,7 @@ clk_disable_3:
 clk_disable_2:
 	clk_disable_unprepare(hw_dev->jpg_dev_eb);
 clk_disable_1:
-	if (hw_dev->version == SHARKL3)
+	if (hw_dev->version == SHARKL3 && hw_dev->clk_aon_jpg_emc_eb)
 		clk_disable_unprepare(hw_dev->clk_aon_jpg_emc_eb);
 clk_disable_0:
 	clk_disable_unprepare(hw_dev->jpg_domain_eb);
