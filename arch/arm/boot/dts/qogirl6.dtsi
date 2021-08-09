@@ -263,7 +263,9 @@
 					<&ap_ahb_regs REG_AP_AHB_UFS_LP_CTRL_1 (MASK_AP_AHB_UFS_SEL_LP_RESET_N | MASK_AP_AHB_UFS_SEL_LP_ISOL_EN | MASK_AP_AHB_UFS_SEL_LP_PWR_READY)>,
 					<&ap_ahb_regs REG_AP_AHB_UFS_LP_CTRL_1 MASK_AP_AHB_UFS_FORCE_LP_ISOL_EN>,
 					<&ap_ahb_regs REG_AP_AHB_UFS_LP_CTRL_1 (MASK_AP_AHB_UFS_CG_LP_PWR_READY_BYPASS | MASK_AP_AHB_UFS_FORCE_LP_RESET_N)>,
-					<&ap_ahb_regs REG_AP_AHB_MPHY_CB_CHANNEL_0 (MASK_AP_AHB_CB_RESET | MASK_AP_AHB_CB_CFGCLK)>;
+					<&ap_ahb_regs REG_AP_AHB_MPHY_CB_CHANNEL_0 (MASK_AP_AHB_CB_RESET | MASK_AP_AHB_CB_CFGCLK)>,
+					<&ap_ahb_regs REG_AP_AHB_UFS_CONTROLLER MASK_AP_AHB_IES_EN_MASK>,
+					<&ap_ahb_regs REG_AP_AHB_UFS_CLK_CTRL MASK_AP_AHB_CG_PCLKREQ_SW>;
 				syscon-names =
 					"aon_apb_ufs_en",
 					"ap_apb_ufs_en",
@@ -272,7 +274,9 @@
 					"ahb_ufs_lp",
 					"ahb_ufs_force_isol",
 					"ahb_ufs_lp_1",
-					"ahb_ufs_cb";
+					"ahb_ufs_cb",
+					"ahb_ufs_ies_en",
+					"ahb_ufs_cg_pclkreq";
 					interrupts = <GIC_SPI 147 IRQ_TYPE_LEVEL_HIGH>;
 			};
 		};
