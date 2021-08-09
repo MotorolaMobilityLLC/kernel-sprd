@@ -2002,7 +2002,6 @@ static int32_t nvt_ts_suspend(struct device *dev)
 #if MT_PROTOCOL_B
 	uint32_t i = 0;
 #endif
-	mutex_lock(&ts->lock);
 
 	NVT_LOG("testlog: nvt_ts_suspend start.\n");
 	if (!bTouchIsAwake) {
@@ -2019,6 +2018,8 @@ static int32_t nvt_ts_suspend(struct device *dev)
 	cancel_delayed_work_sync(&nvt_esd_check_work);
 	nvt_esd_check_enable(false);
 #endif /* #if NVT_TOUCH_ESD_PROTECT */
+
+	mutex_lock(&ts->lock);
 
 	NVT_LOG("start\n");
 
@@ -2041,6 +2042,7 @@ static int32_t nvt_ts_suspend(struct device *dev)
 	CTP_SPI_WRITE(ts->client, buf, 2);
 #endif // WAKEUP_GESTURE
 
+	mutex_unlock(&ts->lock);
 
 	/* release all touches */
 #if MT_PROTOCOL_B
@@ -2060,11 +2062,8 @@ static int32_t nvt_ts_suspend(struct device *dev)
 
 	msleep(50);
 
-
 	NVT_LOG("end\n");
 	NVT_LOG("testlog: nvt_ts_suspend end.\n");
-
-	mutex_unlock(&ts->lock);
 
 	return 0;
 }
@@ -2078,13 +2077,13 @@ return:
 *******************************************************/
 static int32_t nvt_ts_resume(struct device *dev)
 {
-	mutex_lock(&ts->lock);
-
 	NVT_LOG("testlog: nvt_ts_resume start.\n");
 	if (bTouchIsAwake) {
 		NVT_LOG("Touch is already resume\n");
 		return 0;
 	}
+
+	mutex_lock(&ts->lock);
 
 	NVT_LOG("start\n");
 
@@ -2111,10 +2110,10 @@ static int32_t nvt_ts_resume(struct device *dev)
 	bTouchIsAwake = 1;
 	ts->suspended = 0;
 
+	mutex_unlock(&ts->lock);
+
 	NVT_LOG("testlog: nvt_ts_resume end.\n");
 	NVT_LOG("end\n");
-
-	mutex_unlock(&ts->lock);
 
 	return 0;
 }
