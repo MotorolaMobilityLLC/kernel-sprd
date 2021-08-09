@@ -9,7 +9,7 @@
 #define M6_TO_S0_HIGH_PRIORITY 0X80000000
 
 /* time out in waiting wifi to come up */
-#define POWERUP_WAIT_MS	30000
+#define POWERUP_WAIT_MS	60000
 #define POWERUP_DELAY		200
 #define RESET_DELAY		1
 
