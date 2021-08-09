@@ -283,7 +283,7 @@ struct sc27xx_pd {
 	struct extcon_dev *edev;
 	struct extcon_dev *extcon;
 	struct notifier_block extcon_nb;
-	struct tcpm_port *tcpm_port;
+	struct sprd_tcpm_port *sprd_tcpm_port;
 	struct delayed_work typec_detect_work;
 	struct delayed_work  read_msg_work;
 	struct workqueue_struct *pd_wq;
@@ -296,9 +296,9 @@ struct sc27xx_pd {
 	struct tcpc_config config;
 	struct work_struct pd_work;
 	const struct sc27xx_pd_variant_data *var_data;
-	enum typec_cc_polarity cc_polarity;
-	enum typec_cc_status cc1;
-	enum typec_cc_status cc2;
+	enum sprd_typec_cc_polarity cc_polarity;
+	enum sprd_typec_cc_status cc1;
+	enum sprd_typec_cc_status cc2;
 	enum typec_role role;
 	enum typec_data_role data;
 	enum sc27xx_state state;
@@ -384,19 +384,19 @@ static int sc27xx_pd_disable_clk(struct sc27xx_pd *pd)
 
 static int sc27xx_pd_start_drp_toggling(struct tcpc_dev *tcpc,
 					enum typec_port_type port_type,
-					enum typec_cc_status cc)
+					enum sprd_typec_cc_status cc)
 {
 	return 0;
 }
 
-static int sc27xx_pd_set_cc(struct tcpc_dev *tcpc, enum typec_cc_status cc)
+static int sc27xx_pd_set_cc(struct tcpc_dev *tcpc, enum sprd_typec_cc_status cc)
 {
 	return 0;
 }
 
 static int sc27xx_pd_get_cc(struct tcpc_dev *tcpc,
-			    enum typec_cc_status *cc1,
-			    enum typec_cc_status *cc2)
+			    enum sprd_typec_cc_status *cc1,
+			    enum sprd_typec_cc_status *cc2)
 {
 	struct sc27xx_pd *pd = tcpc_to_sc27xx_pd(tcpc);
 
@@ -481,7 +481,7 @@ static int sc27xx_pd_get_current_limit(struct tcpc_dev *dev)
 }
 
 static int sc27xx_pd_set_polarity(struct tcpc_dev *tcpc,
-				  enum typec_cc_polarity polarity)
+				  enum sprd_typec_cc_polarity polarity)
 {
 	return 0;
 }
@@ -659,7 +659,7 @@ done:
 static int sc27xx_pd_tx_msg(struct sc27xx_pd *pd, const struct sprd_pd_message *msg)
 {
 	u16 header;
-	u32 data_obj_num, data[PD_MAX_PAYLOAD * 2] = {0};
+	u32 data_obj_num, data[SPRD_PD_MAX_PAYLOAD * 2] = {0};
 	int i, ret;
 
 	ret = sc27xx_pd_tx_flush(pd);
@@ -667,7 +667,7 @@ static int sc27xx_pd_tx_msg(struct sc27xx_pd *pd, const struct sprd_pd_message *
 		return ret;
 
 	data_obj_num = msg ? sprd_pd_header_cnt_le(msg->header) : 0;
-	if (data_obj_num > PD_MAX_PAYLOAD) {
+	if (data_obj_num > SPRD_PD_MAX_PAYLOAD) {
 		dev_err(pd->dev, "pd tmsg too long, num=%d\n", data_obj_num);
 		return -EINVAL;
 	}
@@ -699,7 +699,7 @@ static int sc27xx_pd_tx_msg(struct sc27xx_pd *pd, const struct sprd_pd_message *
 }
 
 static int sc27xx_pd_transmit(struct tcpc_dev *tcpc,
-			      enum tcpm_transmit_type type,
+			      enum sprd_tcpm_transmit_type type,
 			      const struct sprd_pd_message *msg)
 {
 	struct sc27xx_pd *pd = tcpc_to_sc27xx_pd(tcpc);
@@ -707,13 +707,13 @@ static int sc27xx_pd_transmit(struct tcpc_dev *tcpc,
 
 	mutex_lock(&pd->lock);
 	switch (type) {
-	case TCPC_TX_SOP:
+	case SPRD_TCPC_TX_SOP:
 		ret = sc27xx_pd_tx_msg(pd, msg);
 		if (ret < 0)
 			dev_err(pd->dev, "cannot send PD message, ret=%d\n",
 				ret);
 		break;
-	case TCPC_TX_HARD_RESET:
+	case SPRD_TCPC_TX_HARD_RESET:
 		ret = sc27xx_pd_send_hardreset(pd);
 		if (ret < 0)
 			dev_err(pd->dev, "cann't send hardreset ret=%d\n", ret);
@@ -730,7 +730,7 @@ static int sc27xx_pd_transmit(struct tcpc_dev *tcpc,
 static int sc27xx_pd_read_message(struct sc27xx_pd *pd, struct sprd_pd_message *msg)
 {
 	int ret, i;
-	u32 data[PD_MAX_PAYLOAD * 2] = {0};
+	u32 data[SPRD_PD_MAX_PAYLOAD * 2] = {0};
 	u32 data_obj_num, spec, reg_val = 0, header = 0, type;
 	bool vendor_define = false, source_capabilities = false;
 	bool data_request = false;
@@ -756,7 +756,7 @@ static int sc27xx_pd_read_message(struct sc27xx_pd *pd, struct sprd_pd_message *
 	spec = sprd_pd_header_rev_le(msg->header);
 	type = sprd_pd_header_type_le(msg->header);
 
-	if (msg->header & PD_HEADER_EXT_HDR)
+	if (msg->header & SPRD_PD_HEADER_EXT_HDR)
 		vendor_define = false;
 	else if (data_obj_num && (type == SPRD_PD_DATA_VENDOR_DEF))
 		vendor_define = true;
@@ -793,7 +793,7 @@ static int sc27xx_pd_read_message(struct sc27xx_pd *pd, struct sprd_pd_message *
 	else
 		pd->msg_flag = 0;
 
-	if (data_obj_num > PD_MAX_PAYLOAD) {
+	if (data_obj_num > SPRD_PD_MAX_PAYLOAD) {
 		dev_err(pd->dev, "pd rmesg too long, num=%d\n", data_obj_num);
 		return -EINVAL;
 	}
@@ -826,9 +826,9 @@ static int sc27xx_pd_read_message(struct sc27xx_pd *pd, struct sprd_pd_message *
 				return ret;
 			pd->constructed = true;
 		}
-		sprd_tcpm_pd_transmit_complete(pd->tcpm_port, TCPC_TX_SUCCESS);
+		sprd_tcpm_pd_transmit_complete(pd->sprd_tcpm_port, SPRD_TCPC_TX_SUCCESS);
 	} else {
-		sprd_tcpm_pd_receive(pd->tcpm_port, msg);
+		sprd_tcpm_pd_receive(pd->sprd_tcpm_port, msg);
 	}
 
 	return sc27xx_pd_rx_flush(pd);
@@ -1121,7 +1121,7 @@ static irqreturn_t sc27xx_pd_irq(int irq, void *dev_id)
 		else if (state == false)
 			extcon_set_state_sync(pd->edev, EXTCON_CHG_USB_PD, true);
 
-		sprd_tcpm_pd_hard_reset(pd->tcpm_port);
+		sprd_tcpm_pd_hard_reset(pd->sprd_tcpm_port);
 	}
 
 	if (status & SC27XX_PD_CABLE_RST_FLAG) {
@@ -1176,7 +1176,7 @@ static irqreturn_t sc27xx_pd_irq(int irq, void *dev_id)
 	}
 
 	if (status & SC27XX_PD_TX_OK_FLAG) {
-		sprd_tcpm_pd_transmit_complete(pd->tcpm_port, TCPC_TX_SUCCESS);
+		sprd_tcpm_pd_transmit_complete(pd->sprd_tcpm_port, SPRD_TCPC_TX_SUCCESS);
 		ret = regmap_update_bits(pd->regmap,
 					 pd->base + SC27XX_INT_CLR,
 					 SC27XX_PD_TX_OK_CLR,
@@ -1192,7 +1192,7 @@ static irqreturn_t sc27xx_pd_irq(int irq, void *dev_id)
 					 SC27XX_PD_TX_ERROR_CLR);
 		if (ret < 0)
 			goto done;
-		sprd_tcpm_pd_transmit_complete(pd->tcpm_port, TCPC_TX_FAILED);
+		sprd_tcpm_pd_transmit_complete(pd->sprd_tcpm_port, SPRD_TCPC_TX_FAILED);
 	}
 
 	if (status & SC27XX_PD_TX_COLLSION_FLAG) {
@@ -1203,7 +1203,7 @@ static irqreturn_t sc27xx_pd_irq(int irq, void *dev_id)
 		if (ret < 0)
 			goto done;
 
-		sprd_tcpm_pd_transmit_complete(pd->tcpm_port, TCPC_TX_FAILED);
+		sprd_tcpm_pd_transmit_complete(pd->sprd_tcpm_port, SPRD_TCPC_TX_FAILED);
 	}
 
 	if (status & SC27XX_PD_PKG_RV_ERROR_FLAG) {
@@ -1253,7 +1253,7 @@ static int sc27xx_get_vbus_status(struct sc27xx_pd *pd)
 	vbus_present = !!(status & SC27XX_TYPEC_VBUS_OK);
 	if (vbus_present != pd->vbus_present) {
 		pd->vbus_present = vbus_present;
-		sprd_tcpm_vbus_change(pd->tcpm_port);
+		sprd_tcpm_vbus_change(pd->sprd_tcpm_port);
 	}
 
 	return 0;
@@ -1262,9 +1262,9 @@ static int sc27xx_get_vbus_status(struct sc27xx_pd *pd)
 static void sc27xx_cc_polarity_status(struct sc27xx_pd *pd, u32 status)
 {
 	if (status & SC27XX_TYPEC_FINAL_SWITCH)
-		pd->cc_polarity = TYPEC_POLARITY_CC1;
+		pd->cc_polarity = SPRD_TYPEC_POLARITY_CC1;
 	else
-		pd->cc_polarity = TYPEC_POLARITY_CC2;
+		pd->cc_polarity = SPRD_TYPEC_POLARITY_CC2;
 }
 
 static void sc27xx_cc_status(struct sc27xx_pd *pd, u32 status)
@@ -1273,56 +1273,56 @@ static void sc27xx_cc_status(struct sc27xx_pd *pd, u32 status)
 
 	switch (rp_sts) {
 	case 0:
-		cc_rp = TYPEC_CC_RP_DEF;
+		cc_rp = SPRD_TYPEC_CC_RP_DEF;
 		break;
 	case 1:
-		cc_rp = TYPEC_CC_RP_1_5;
+		cc_rp = SPRD_TYPEC_CC_RP_1_5;
 		break;
 	case 2:
-		cc_rp = TYPEC_CC_RP_3_0;
+		cc_rp = SPRD_TYPEC_CC_RP_3_0;
 		break;
 	default:
-		cc_rp = TYPEC_CC_OPEN;
+		cc_rp = SPRD_TYPEC_CC_OPEN;
 		break;
 	}
 
 	switch (pd->state) {
 	case SC27XX_ATTACHED_SNK:
-		if (pd->cc_polarity == TYPEC_POLARITY_CC1) {
+		if (pd->cc_polarity == SPRD_TYPEC_POLARITY_CC1) {
 			pd->cc1 = cc_rp;
-			pd->cc2 = TYPEC_CC_OPEN;
+			pd->cc2 = SPRD_TYPEC_CC_OPEN;
 		} else {
-			pd->cc1 = TYPEC_CC_OPEN;
+			pd->cc1 = SPRD_TYPEC_CC_OPEN;
 			pd->cc2 = cc_rp;
 		}
 		break;
 
 	case SC27XX_ATTACHED_SRC:
-		if (pd->cc_polarity == TYPEC_POLARITY_CC1) {
-			pd->cc1 = TYPEC_CC_RD;
-			pd->cc2 = TYPEC_CC_OPEN;
+		if (pd->cc_polarity == SPRD_TYPEC_POLARITY_CC1) {
+			pd->cc1 = SPRD_TYPEC_CC_RD;
+			pd->cc2 = SPRD_TYPEC_CC_OPEN;
 		} else {
-			pd->cc1 = TYPEC_CC_OPEN;
-			pd->cc2 = TYPEC_CC_RD;
+			pd->cc1 = SPRD_TYPEC_CC_OPEN;
+			pd->cc2 = SPRD_TYPEC_CC_RD;
 		}
 		break;
 
 	case SC27XX_POWERED_CABLE:
-		if (pd->cc_polarity == TYPEC_POLARITY_CC1) {
-			pd->cc1 = TYPEC_CC_RD;
-			pd->cc2 = TYPEC_CC_RA;
+		if (pd->cc_polarity == SPRD_TYPEC_POLARITY_CC1) {
+			pd->cc1 = SPRD_TYPEC_CC_RD;
+			pd->cc2 = SPRD_TYPEC_CC_RA;
 		} else {
-			pd->cc1 = TYPEC_CC_RA;
-			pd->cc2 = TYPEC_CC_RD;
+			pd->cc1 = SPRD_TYPEC_CC_RA;
+			pd->cc2 = SPRD_TYPEC_CC_RD;
 		}
 		break;
 	default:
-		pd->cc1 = TYPEC_CC_OPEN;
-		pd->cc2 = TYPEC_CC_OPEN;
+		pd->cc1 = SPRD_TYPEC_CC_OPEN;
+		pd->cc2 = SPRD_TYPEC_CC_OPEN;
 		break;
 	}
 
-	sprd_tcpm_cc_change(pd->tcpm_port);
+	sprd_tcpm_cc_change(pd->sprd_tcpm_port);
 }
 
 static int sc27xx_pd_check_vbus_cc_status(struct sc27xx_pd *pd)
@@ -1651,11 +1651,11 @@ static int sc27xx_pd_probe(struct platform_device *pdev)
 		return -ENOMEM;
 	}
 
-	pd->tcpm_port = sprd_tcpm_register_port(pd->dev, &pd->tcpc);
-	if (IS_ERR(pd->tcpm_port)) {
+	pd->sprd_tcpm_port = sprd_tcpm_register_port(pd->dev, &pd->tcpc);
+	if (IS_ERR(pd->sprd_tcpm_port)) {
 		dev_err(pd->dev, "failed to register tcpm port\n");
 		destroy_workqueue(pd->pd_wq);
-		return PTR_ERR(pd->tcpm_port);
+		return PTR_ERR(pd->sprd_tcpm_port);
 	}
 
 	INIT_DELAYED_WORK(&pd->typec_detect_work, sc27xx_pd_detect_typec_work);
@@ -1673,7 +1673,7 @@ static int sc27xx_pd_remove(struct platform_device *pdev)
 {
 	struct sc27xx_pd *pd = platform_get_drvdata(pdev);
 
-	sprd_tcpm_unregister_port(pd->tcpm_port);
+	sprd_tcpm_unregister_port(pd->sprd_tcpm_port);
 	return 0;
 }
 

@@ -10,40 +10,40 @@
 #include <linux/usb/typec.h>
 #include "sprd_pd.h"
 
-enum typec_cc_status {
-	TYPEC_CC_OPEN,
-	TYPEC_CC_RA,
-	TYPEC_CC_RD,
-	TYPEC_CC_RP_DEF,
-	TYPEC_CC_RP_1_5,
-	TYPEC_CC_RP_3_0,
+enum sprd_typec_cc_status {
+	SPRD_TYPEC_CC_OPEN,
+	SPRD_TYPEC_CC_RA,
+	SPRD_TYPEC_CC_RD,
+	SPRD_TYPEC_CC_RP_DEF,
+	SPRD_TYPEC_CC_RP_1_5,
+	SPRD_TYPEC_CC_RP_3_0,
 };
 
-enum typec_cc_polarity {
-	TYPEC_POLARITY_CC1,
-	TYPEC_POLARITY_CC2,
+enum sprd_typec_cc_polarity {
+	SPRD_TYPEC_POLARITY_CC1,
+	SPRD_TYPEC_POLARITY_CC2,
 };
 
 /* Time to wait for TCPC to complete transmit */
-#define PD_T_TCPC_TX_TIMEOUT	100		/* in ms	*/
-#define PD_ROLE_SWAP_TIMEOUT	(MSEC_PER_SEC * 10)
-#define PD_PPS_CTRL_TIMEOUT	(MSEC_PER_SEC * 10)
+#define SPRD_PD_T_TCPC_TX_TIMEOUT		100		/* in ms */
+#define SPRD_PD_ROLE_SWAP_TIMEOUT		(MSEC_PER_SEC * 10)
+#define SPRD_PD_PPS_CTRL_TIMEOUT		(MSEC_PER_SEC * 10)
 
-enum tcpm_transmit_status {
-	TCPC_TX_SUCCESS = 0,
-	TCPC_TX_DISCARDED = 1,
-	TCPC_TX_FAILED = 2,
+enum sprd_tcpm_transmit_status {
+	SPRD_TCPC_TX_SUCCESS = 0,
+	SPRD_TCPC_TX_DISCARDED = 1,
+	SPRD_TCPC_TX_FAILED = 2,
 };
 
-enum tcpm_transmit_type {
-	TCPC_TX_SOP = 0,
-	TCPC_TX_SOP_PRIME = 1,
-	TCPC_TX_SOP_PRIME_PRIME = 2,
-	TCPC_TX_SOP_DEBUG_PRIME = 3,
-	TCPC_TX_SOP_DEBUG_PRIME_PRIME = 4,
-	TCPC_TX_HARD_RESET = 5,
-	TCPC_TX_CABLE_RESET = 6,
-	TCPC_TX_BIST_MODE_2 = 7
+enum sprd_tcpm_transmit_type {
+	SPRD_TCPC_TX_SOP = 0,
+	SPRD_TCPC_TX_SOP_PRIME = 1,
+	SPRD_TCPC_TX_SOP_PRIME_PRIME = 2,
+	SPRD_TCPC_TX_SOP_DEBUG_PRIME = 3,
+	SPRD_TCPC_TX_SOP_DEBUG_PRIME_PRIME = 4,
+	SPRD_TCPC_TX_HARD_RESET = 5,
+	SPRD_TCPC_TX_CABLE_RESET = 6,
+	SPRD_TCPC_TX_BIST_MODE_2 = 7
 };
 
 /**
@@ -86,9 +86,9 @@ struct tcpc_config {
 };
 
 /* Mux state attributes */
-#define TCPC_MUX_USB_ENABLED		BIT(0)	/* USB enabled */
-#define TCPC_MUX_DP_ENABLED		BIT(1)	/* DP enabled */
-#define TCPC_MUX_POLARITY_INVERTED	BIT(2)	/* Polarity inverted */
+#define SPRD_TCPC_MUX_USB_ENABLED		BIT(0)	/* USB enabled */
+#define SPRD_TCPC_MUX_DP_ENABLED		BIT(1)	/* DP enabled */
+#define SPRD_TCPC_MUX_POLARITY_INVERTED		BIT(2)	/* Polarity inverted */
 
 /**
  * struct tcpc_dev - Port configuration and callback functions
@@ -127,11 +127,11 @@ struct tcpc_dev {
 	int (*init)(struct tcpc_dev *dev);
 	int (*get_vbus)(struct tcpc_dev *dev);
 	int (*get_current_limit)(struct tcpc_dev *dev);
-	int (*set_cc)(struct tcpc_dev *dev, enum typec_cc_status cc);
-	int (*get_cc)(struct tcpc_dev *dev, enum typec_cc_status *cc1,
-		      enum typec_cc_status *cc2);
+	int (*set_cc)(struct tcpc_dev *dev, enum sprd_typec_cc_status cc);
+	int (*get_cc)(struct tcpc_dev *dev, enum sprd_typec_cc_status *cc1,
+		      enum sprd_typec_cc_status *cc2);
 	int (*set_polarity)(struct tcpc_dev *dev,
-			    enum typec_cc_polarity polarity);
+			    enum sprd_typec_cc_polarity polarity);
 	int (*set_vconn)(struct tcpc_dev *dev, bool on);
 	int (*set_vbus)(struct tcpc_dev *dev, bool on, bool charge);
 	int (*set_current_limit)(struct tcpc_dev *dev, u32 max_ma, u32 mv);
@@ -140,28 +140,28 @@ struct tcpc_dev {
 			 enum typec_role role, enum typec_data_role data);
 	int (*start_toggling)(struct tcpc_dev *dev,
 			      enum typec_port_type port_type,
-			      enum typec_cc_status cc);
+			      enum sprd_typec_cc_status cc);
 	int (*try_role)(struct tcpc_dev *dev, int role);
-	int (*pd_transmit)(struct tcpc_dev *dev, enum tcpm_transmit_type type,
+	int (*pd_transmit)(struct tcpc_dev *dev, enum sprd_tcpm_transmit_type type,
 			   const struct sprd_pd_message *msg);
 };
 
-struct tcpm_port;
+struct sprd_tcpm_port;
 
-struct tcpm_port *sprd_tcpm_register_port(struct device *dev, struct tcpc_dev *tcpc);
-void sprd_tcpm_unregister_port(struct tcpm_port *port);
+struct sprd_tcpm_port *sprd_tcpm_register_port(struct device *dev, struct tcpc_dev *tcpc);
+void sprd_tcpm_unregister_port(struct sprd_tcpm_port *port);
 
-int sprd_tcpm_update_sink_capabilities(struct tcpm_port *port, const u32 *pdo,
+int sprd_tcpm_update_sink_capabilities(struct sprd_tcpm_port *port, const u32 *pdo,
 				       unsigned int nr_pdo,
 				       unsigned int operating_snk_mw);
 
-void sprd_tcpm_vbus_change(struct tcpm_port *port);
-void sprd_tcpm_cc_change(struct tcpm_port *port);
-void sprd_tcpm_pd_receive(struct tcpm_port *port,
+void sprd_tcpm_vbus_change(struct sprd_tcpm_port *port);
+void sprd_tcpm_cc_change(struct sprd_tcpm_port *port);
+void sprd_tcpm_pd_receive(struct sprd_tcpm_port *port,
 		     const struct sprd_pd_message *msg);
-void sprd_tcpm_pd_transmit_complete(struct tcpm_port *port,
-				    enum tcpm_transmit_status status);
-void sprd_tcpm_pd_hard_reset(struct tcpm_port *port);
-void sprd_tcpm_tcpc_reset(struct tcpm_port *port);
+void sprd_tcpm_pd_transmit_complete(struct sprd_tcpm_port *port,
+				    enum sprd_tcpm_transmit_status status);
+void sprd_tcpm_pd_hard_reset(struct sprd_tcpm_port *port);
+void sprd_tcpm_tcpc_reset(struct sprd_tcpm_port *port);
 
 #endif /* __LINUX_USB_SPRD_TCPM_H */
