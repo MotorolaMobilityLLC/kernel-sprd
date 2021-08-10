@@ -146,6 +146,15 @@ struct tcpc_dev {
 			   const struct sprd_pd_message *msg);
 };
 
+struct adapter_power_cap {
+	uint8_t type[SPRD_PDO_MAX_OBJECTS];
+	int max_mv[SPRD_PDO_MAX_OBJECTS];
+	int min_mv[SPRD_PDO_MAX_OBJECTS];
+	int ma[SPRD_PDO_MAX_OBJECTS];
+	int pwr_mw_limit[SPRD_PDO_MAX_OBJECTS];
+	uint8_t nr_source_caps;
+};
+
 struct sprd_tcpm_port;
 
 struct sprd_tcpm_port *sprd_tcpm_register_port(struct device *dev, struct tcpc_dev *tcpc);
@@ -155,6 +164,9 @@ int sprd_tcpm_update_sink_capabilities(struct sprd_tcpm_port *port, const u32 *p
 				       unsigned int nr_pdo,
 				       unsigned int operating_snk_mw);
 
+void sprd_tcpm_get_source_capabilities(struct sprd_tcpm_port *port,
+				       struct adapter_power_cap *pd_source_cap);
+
 void sprd_tcpm_vbus_change(struct sprd_tcpm_port *port);
 void sprd_tcpm_cc_change(struct sprd_tcpm_port *port);
 void sprd_tcpm_pd_receive(struct sprd_tcpm_port *port,
@@ -163,5 +175,7 @@ void sprd_tcpm_pd_transmit_complete(struct sprd_tcpm_port *port,
 				    enum sprd_tcpm_transmit_status status);
 void sprd_tcpm_pd_hard_reset(struct sprd_tcpm_port *port);
 void sprd_tcpm_tcpc_reset(struct sprd_tcpm_port *port);
+
+void sprd_tcpm_shutdown(struct sprd_tcpm_port *port);
 
 #endif /* __LINUX_USB_SPRD_TCPM_H */

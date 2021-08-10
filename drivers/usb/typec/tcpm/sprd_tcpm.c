@@ -385,6 +385,8 @@ struct sprd_tcpm_port {
 	unsigned int nr_src_pdo;
 	u32 snk_pdo[SPRD_PDO_MAX_OBJECTS];
 	unsigned int nr_snk_pdo;
+	u32 snk_default_pdo[SPRD_PDO_MAX_OBJECTS];
+	unsigned int nr_snk_default_pdo;
 	u32 snk_vdo[VDO_MAX_OBJECTS];
 	unsigned int nr_snk_vdo;
 
@@ -3414,7 +3416,8 @@ static void sprd_run_state_machine(struct sprd_tcpm_port *port)
 		 * If it doesn't toggle, transition to SNK_HARD_RESET_SINK_ON
 		 * directly after timeout.
 		 */
-		sprd_tcpm_set_state(port, SNK_HARD_RESET_SINK_ON, SPRD_PD_T_SAFE_0V);
+		sprd_tcpm_set_state(port, SNK_HARD_RESET_SINK_ON, SPRD_PD_T_SAFE_0V +
+				    SPRD_PD_T_SRC_RECOVER_MAX + SPRD_PD_T_SRC_TURN_ON);
 		break;
 	case SNK_HARD_RESET_WAIT_VBUS:
 		/* Assume we're disconnected if VBUS doesn't come back. */
@@ -3865,6 +3868,12 @@ static void _sprd_tcpm_cc_change(struct sprd_tcpm_port *port,
 
 static void _sprd_tcpm_pd_vbus_on(struct sprd_tcpm_port *port)
 {
+	int i;
+
+	port->nr_snk_pdo = port->nr_snk_default_pdo;
+	for (i = 0; i < port->nr_snk_default_pdo; i++)
+		port->snk_pdo[i] = port->snk_default_pdo[i];
+
 	sprd_tcpm_log_force(port, "VBUS on");
 	port->vbus_present = true;
 	switch (port->state) {
@@ -4506,7 +4515,7 @@ static int sprd_tcpm_copy_vdos(u32 *dest_vdo, const u32 *src_vdo, unsigned int n
 static int sprd_tcpm_fw_get_caps(struct sprd_tcpm_port *port, struct fwnode_handle *fwnode)
 {
 	const char *cap_str;
-	int ret;
+	int ret, i;
 	u32 mw;
 
 	if (!fwnode)
@@ -4569,6 +4578,10 @@ sink:
 					    port->nr_snk_pdo))
 		return -EINVAL;
 
+	port->nr_snk_default_pdo = port->nr_snk_pdo;
+	for (i = 0; i < port->nr_snk_default_pdo; i++)
+		port->snk_default_pdo[i] = port->snk_pdo[i];
+
 	if (fwnode_property_read_u32(fwnode, "op-sink-microwatt", &mw) < 0)
 		return -EINVAL;
 	port->operating_snk_mw = mw / 1000;
@@ -4608,6 +4621,70 @@ int sprd_tcpm_update_sink_capabilities(struct sprd_tcpm_port *port, const u32 *p
 	return 0;
 }
 EXPORT_SYMBOL_GPL(sprd_tcpm_update_sink_capabilities);
+
+void sprd_tcpm_get_source_capabilities(struct sprd_tcpm_port *port,
+				       struct adapter_power_cap *pd_source_cap)
+{
+	int i;
+
+	if (!port) {
+		pd_source_cap->nr_source_caps = 0;
+		pr_warn("port Null!!!\n");
+		return;
+	}
+
+	/* Clears SRC_CAP in the disconnected state */
+	if (sprd_tcpm_port_is_disconnected(port) &&
+	    (port->state == SRC_UNATTACHED || port->state == SNK_UNATTACHED ||
+	     port->state == TOGGLING)) {
+		for (i = 0; i < pd_source_cap->nr_source_caps; i++) {
+			pd_source_cap->max_mv[i] = 0;
+			pd_source_cap->min_mv[i] = 0;
+			pd_source_cap->ma[i] = 0;
+			pd_source_cap->pwr_mw_limit[i] = 0;
+		}
+		pd_source_cap->nr_source_caps = 0;
+		return;
+	}
+
+	pd_source_cap->nr_source_caps = port->nr_source_caps;
+	for (i = 0; i < port->nr_source_caps; i++) {
+		u32 pdo = port->source_caps[i];
+		enum sprd_pd_pdo_type type = sprd_pdo_type(pdo);
+
+		pd_source_cap->type[i] = type;
+		switch (type) {
+		case SPRD_PDO_TYPE_FIXED:
+			pd_source_cap->max_mv[i] = sprd_pdo_fixed_voltage(pdo);
+			pd_source_cap->min_mv[i] = pd_source_cap->max_mv[i];
+			pd_source_cap->ma[i] = sprd_pdo_max_current(pdo);
+			break;
+		case SPRD_PDO_TYPE_VAR:
+			pd_source_cap->max_mv[i] = sprd_pdo_max_voltage(pdo);
+			pd_source_cap->min_mv[i] = sprd_pdo_min_voltage(pdo);
+			pd_source_cap->ma[i] = sprd_pdo_max_current(pdo);
+			break;
+		case SPRD_PDO_TYPE_BATT:
+			pd_source_cap->max_mv[i] = sprd_pdo_max_voltage(pdo);
+			pd_source_cap->min_mv[i] = sprd_pdo_min_voltage(pdo);
+			pd_source_cap->pwr_mw_limit[i] = sprd_pdo_max_power(pdo);
+			break;
+		case SPRD_PDO_TYPE_APDO:
+			if (sprd_pdo_apdo_type(pdo) == APDO_TYPE_PPS) {
+				pd_source_cap->max_mv[i] = sprd_pdo_pps_apdo_max_voltage(pdo);
+				pd_source_cap->min_mv[i] = sprd_pdo_pps_apdo_min_voltage(pdo);
+				pd_source_cap->ma[i] = sprd_pdo_pps_apdo_max_current(pdo);
+			} else {
+				pd_source_cap->nr_source_caps = pd_source_cap->nr_source_caps - 1;
+			}
+			break;
+		default:
+			pd_source_cap->nr_source_caps = pd_source_cap->nr_source_caps - 1;
+			break;
+		}
+	}
+}
+EXPORT_SYMBOL_GPL(sprd_tcpm_get_source_capabilities);
 
 /* Power Supply access to expose source power information */
 enum sprd_tcpm_psy_online_states {
@@ -4854,6 +4931,24 @@ static int sprd_tcpm_copy_caps(struct sprd_tcpm_port *port, const struct tcpc_co
 
 	return 0;
 }
+
+void sprd_tcpm_shutdown(struct sprd_tcpm_port *port)
+{
+	int ret;
+
+	if (port->pps_data.active) {
+		ret = sprd_tcpm_pps_activate(port, false);
+		if (ret) {
+			pr_err("failed to disable pps at shutdown, ret = %d", ret);
+			return;
+		}
+	}
+
+	cancel_delayed_work_sync(&port->state_machine);
+	cancel_delayed_work_sync(&port->vdm_state_machine);
+	cancel_work_sync(&port->event_work);
+}
+EXPORT_SYMBOL_GPL(sprd_tcpm_shutdown);
 
 struct sprd_tcpm_port *sprd_tcpm_register_port(struct device *dev, struct tcpc_dev *tcpc)
 {
