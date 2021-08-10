@@ -382,7 +382,7 @@ static int hw_param_nvm_buf_operate(char *pbuf, int file_len, void *p_data)
 
 static int hw_param_nvm_parse(struct sprd_priv *priv, const char *path, void *p_data)
 {
-	const struct firmware *fw;
+	const struct firmware *fw = NULL;
 	unsigned char *p_buf = NULL;
 	unsigned int buffer_len;
 	char *buffer = NULL;
