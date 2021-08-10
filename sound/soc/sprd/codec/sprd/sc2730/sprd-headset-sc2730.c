@@ -1159,6 +1159,7 @@ static enum sprd_headset_type sprd_headset_type_plugged(void)
 		adc_left_ideal, val;
 	bool adc_value_err = false;
 	enum sprd_headset_type headset_type;
+	static int adc_left_ideal_last = 0;
 
 	HDST_DEBUG_LOG;
 	if (!hdst)
@@ -1230,11 +1231,15 @@ static enum sprd_headset_type sprd_headset_type_plugged(void)
 		adc_left_ideal * 1250 / 4095);
 
 	/* after audio_on, adc_left_ideal is fluctuant and unfaithful */
-	if (hdst->audio_on && hdst->hdst_type_status & SND_JACK_HEADPHONE) {
-		pr_info("%s when audio_on and 3pole was reported, report 3pole instead\n",
-			__func__);
-		sprd_headset_ldetl_ref_sel(LDETL_REF_SEL_100mV);
-		return HEADSET_NO_MIC;
+	if (hdst->audio_on) {
+		if (hdst->hdst_type_status & SND_JACK_HEADPHONE) {
+			pr_info("%s when audio_on and 3pole was reported, adc_left_ideal is invalid, use the first detected value \n",
+				__func__);
+			sprd_headset_ldetl_ref_sel(LDETL_REF_SEL_100mV);
+			adc_left_ideal = adc_left_ideal_last;
+		} else {
+			adc_left_ideal_last = adc_left_ideal;
+		}
 	}
 
 	pr_info("%s sprd_half_adc_gnd %d, sprd_adc_gnd %d,sprd_one_half_adc_gnd %d, threshold_3pole %d\n",
