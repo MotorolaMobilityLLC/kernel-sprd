@@ -13,8 +13,8 @@
 #include <linux/of.h>
 #include <linux/slab.h>
 #include <linux/power/charger-manager.h>
-#include <linux/usb/tcpm.h>
-#include <linux/usb/pd.h>
+#include <linux/usb/sprd_tcpm.h>
+#include <linux/usb/sprd_pd.h>
 
 #define FCHG1_TIME1				0x0
 #define FCHG1_TIME2				0x4
@@ -452,15 +452,15 @@ static int sc2730_fchg_sfcp_adjust_voltage(struct sc2730_fchg_info *info,
 }
 
 static const u32 sc2730_snk_pdo[] = {
-	PDO_FIXED(5000, 2000, 0),
+	SPRD_PDO_FIXED(5000, 2000, 0),
 };
 
 static const u32 sc2730_snk9v_pdo[] = {
-	PDO_FIXED(5000, 2000, 0),
-	PDO_FIXED(9000, 2000, 0),
+	SPRD_PDO_FIXED(5000, 2000, 0),
+	SPRD_PDO_FIXED(9000, 2000, 0),
 };
 
-#ifdef CONFIG_TYPEC_TCPM
+#if IS_ENABLED(CONFIG_SPRD_TYPEC_TCPM)
 static int sc2730_get_pps_voltage_max(struct sc2730_fchg_info *info, u32 *max_vol)
 {
 	union power_supply_propval val;
@@ -512,8 +512,8 @@ static int sc2730_get_pps_current_max(struct sc2730_fchg_info *info, u32
 static int sc2730_fchg_pd_adjust_voltage(struct sc2730_fchg_info *info,
 					 u32 input_vol)
 {
-	struct tcpm_port *port;
-	//int ret;
+	struct sprd_tcpm_port *port;
+	int ret;
 
 	if (!info->psy_tcpm) {
 		dev_err(info->dev, "psy_tcpm is NULL !!!\n");
@@ -527,23 +527,23 @@ static int sc2730_fchg_pd_adjust_voltage(struct sc2730_fchg_info *info,
 	}
 
 	if (input_vol < FCHG_VOLTAGE_9V) {
-	//	ret = tcpm_update_sink_capabilities(port, sc2730_snk_pdo,
-	//					    ARRAY_SIZE(sc2730_snk_pdo),
-	//					    SC2730_PD_STOP_POWER_MW);
-	//	if (ret) {
-	//		dev_err(info->dev,
-	//			"failed to set pd 5V ret = %d\n", ret);
-	//		return ret;
-	//	}
+		ret = sprd_tcpm_update_sink_capabilities(port, sc2730_snk_pdo,
+							 ARRAY_SIZE(sc2730_snk_pdo),
+							 SC2730_PD_STOP_POWER_MW);
+		if (ret) {
+			dev_err(info->dev,
+				"failed to set pd 5V ret = %d\n", ret);
+			return ret;
+		}
 	} else if (input_vol < FCHG_VOLTAGE_12V) {
-	//	ret = tcpm_update_sink_capabilities(port, sc2730_snk9v_pdo,
-	//					    ARRAY_SIZE(sc2730_snk9v_pdo),
-	//					    SC2730_PD_START_POWER_MW);
-	//	if (ret) {
-	//		dev_err(info->dev,
-	//			"failed to set pd 9V ret = %d\n", ret);
-	//		return ret;
-	//	}
+		ret = sprd_tcpm_update_sink_capabilities(port, sc2730_snk9v_pdo,
+							 ARRAY_SIZE(sc2730_snk9v_pdo),
+							 SC2730_PD_START_POWER_MW);
+		if (ret) {
+			dev_err(info->dev,
+				"failed to set pd 9V ret = %d\n", ret);
+			return ret;
+		}
 	}
 
 	return 0;
@@ -649,7 +649,7 @@ static int sc2730_fchg_pd_change(struct notifier_block *nb,
 		container_of(nb, struct sc2730_fchg_info, pd_notify);
 	struct power_supply *psy = data;
 
-	if (strcmp(psy->desc->name, "tcpm-source-psy-sc27xx-pd") != 0)
+	if (strcmp(psy->desc->name, "sprd-tcpm-source-psy-sc27xx-pd") != 0)
 		goto out;
 
 	if (event != PSY_EVENT_PROP_CHANGED)
@@ -668,7 +668,7 @@ static void sc2730_fchg_pd_change_work(struct work_struct *data)
 	struct sc2730_fchg_info *info =
 		container_of(data, struct sc2730_fchg_info, pd_change_work);
 	union power_supply_propval val;
-	struct tcpm_port *port;
+	struct sprd_tcpm_port *port;
 	int pd_type = 0, ret;
 
 	mutex_lock(&info->lock);
@@ -727,6 +727,7 @@ out:
 out1:
 	dev_info(info->dev, "pd type = %d\n", pd_type);
 }
+
 #else
 static int sc2730_get_pps_voltage_max(struct sc2730_fchg_info *info, u32
 				      *max_vol)
