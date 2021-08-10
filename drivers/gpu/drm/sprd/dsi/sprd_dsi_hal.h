@@ -888,6 +888,21 @@ void dsi_hal_hs_tx_timeout(struct sprd_dsi *dsi, u16 byte_cycle)
 	if (ops->hs_tx_timeout)
 		ops->hs_tx_timeout(ctx, byte_cycle);
 }
+/**
+ * Configure the largest packet that can fit in a line during vlank region
+ * when the transmission of commands in lp mode.
+ * @dsi pointer to structure holding the DSI Host core information
+ * @size, in bytes
+ */
+static inline
+void dsi_hal_vblk_cmd_trans_limit(struct sprd_dsi *dsi, u16 size)
+{
+	const struct dsi_core_ops *ops = dsi->core;
+	struct dsi_context *ctx = &dsi->ctx;
+
+	if (ops->vblk_cmd_trans_limit)
+		ops->vblk_cmd_trans_limit(ctx, size);
+}
 /*
  * Timeout for peripheral (for controller to stay still) after bus turn around
  * @dsi pointer to structure holding the DSI Host core information

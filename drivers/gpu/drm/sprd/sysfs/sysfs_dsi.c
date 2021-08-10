@@ -670,8 +670,6 @@ int sprd_dsi_sysfs_init(struct device *dev)
 		return -ENOMEM;
 	}
 
-	sysfs->lp_cmd_en = true;
-
 	rc = sysfs_create_groups(&dev->kobj, dsi_groups);
 	if (rc)
 		pr_err("create dsi attr node failed, rc=%d\n", rc);

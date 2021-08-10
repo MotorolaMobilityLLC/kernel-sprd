@@ -68,7 +68,7 @@ static bool dsi_is_cmd_mode(struct dsi_context *ctx)
 {
 	struct dsi_reg *reg = (struct dsi_reg *)ctx->base;
 
-	return readl(&reg->DSI_MODE_CFG);
+	return readl(&reg->DSI_MODE_CFG) & BIT(0);
 }
 /**
  * Configure the read back virtual channel for the generic interface
@@ -769,6 +769,21 @@ static void dsi_max_read_time(struct dsi_context *ctx, u16 byte_cycle)
 
 	writel(byte_cycle, &reg->MAX_READ_TIME);
 }
+
+/**
+ * Configure the largest packet that can fit in a line during vlank region
+ * when	the transmission of commands in lp mode.
+ * @param instance pointer to structure holding the DSI Host core information
+ * @param size, in bytes
+ * @return error code
+ */
+static void dsi_vblk_cmd_trans_limit(struct dsi_context *ctx, u16 size)
+{
+	struct dsi_reg *reg = (struct dsi_reg *)ctx->base;
+
+	writel(size, &reg->VBLK_CMD_TRANS_LIMIT);
+}
+
 /**
  * Enable the automatic mechanism to stop providing clock in the clock
  * lane when time allows
@@ -1150,6 +1165,7 @@ const struct dsi_core_ops dsi_ctrl_r1p0_ops = {
 	.clklane_hs2lp_config           = dsi_clklane_hs2lp_config,
 	.clklane_lp2hs_config           = dsi_clklane_lp2hs_config,
 	.max_read_time                  = dsi_max_read_time,
+	.vblk_cmd_trans_limit           = dsi_vblk_cmd_trans_limit,
 	.nc_clk_en                      = dsi_nc_clk_en,
 	.tx_escape_division             = dsi_tx_escape_division,
 	.timeout_clock_division         = dsi_timeout_clock_division,
