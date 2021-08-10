@@ -175,6 +175,9 @@
 
 	cpufreq_clus0: cpufreq-clus0 {
 		cpufreq-cluster-id = <0>;
+		nvmem-cells = <&dvfs_bin_cpu0>;
+		nvmem-cell-names = "dvfs_bin";
+		sprd,cpufreq-temp-threshold = <65>;
 		cpufreq-cluster-cpumask = <0xf>;
 		clocks = <&aon_clk CLK_CORE0>,
 			<&aon_clk CLK_CORE1>,
@@ -243,6 +246,9 @@
 
 	cpufreq_clus1: cpufreq-clus1 {
 		cpufreq-cluster-id = <1>;
+		nvmem-cells = <&dvfs_bin_cpu1>;
+		nvmem-cell-names = "dvfs_bin";
+		sprd,cpufreq-temp-threshold = <65>;
 		cpufreq-cluster-cpumask = <0xf0>;
 		cpufreq-sub-clusters = <&cpufreq_fcm>;
 		clocks = <&aon_clk CLK_CORE4>,
@@ -320,6 +326,9 @@
 
 	cpufreq_fcm: cpufreq-fcm {
 		cpufreq-cluster-id = <3>;
+		nvmem-cells = <&dvfs_bin_dsu>;
+		nvmem-cell-names = "dvfs_bin";
+		sprd,cpufreq-temp-threshold = <65>;
 		clocks = <&aon_clk CLK_SCU>,
 			<&pll CLK_TWPLL_768M>,
 			<&mpll CLK_MPLL2>;

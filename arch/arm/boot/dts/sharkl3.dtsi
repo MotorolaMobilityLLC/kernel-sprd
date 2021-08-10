@@ -591,6 +591,21 @@
 					reg = <0xe8 0x4>;
 				};
 
+				dvfs_bin_cpu0: dvfs-bin-cpu0@9 {
+					reg = <0x9 0x4>;
+					bits = <0 4>;
+				};
+
+				dvfs_bin_cpu1: dvfs-bin-cpu1@9 {
+					reg = <0x9 0x4>;
+					bits = <4 4>;
+				};
+
+				dvfs_bin_dsu: dvfs-bin-dsu@a {
+					reg = <0xa 0x4>;
+					bits = <4 4>;
+				};
+
 				wcn_alpha: wcn-alpha@14 {
 					reg = <0x14 0x4>;
 				};
