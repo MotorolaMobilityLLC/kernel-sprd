@@ -720,9 +720,9 @@ static int gsp_r6p0_core_parse_clk(struct gsp_r6p0_core *core)
 	int status = 0;
 
 	core->dpu_clk = of_clk_get_by_name(core->common.node,
-					R2P0_DPU_CLOCK_NAME);
+					R6P0_DPU_CLOCK_NAME);
 	core->dpu_clk_parent = of_clk_get_by_name(core->common.node,
-					R2P0_DPU_CLOCK_PARENT);
+					R6P0_DPU_CLOCK_PARENT);
 
 	if (IS_ERR_OR_NULL(core->dpu_clk)
 	|| IS_ERR_OR_NULL(core->dpu_clk_parent)) {

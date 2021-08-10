@@ -12,8 +12,8 @@
 #include "gsp_core.h"
 #include "gsp_debug.h"
 
-#define R2P0_DPU_CLOCK_NAME	("clk_dpu_core")
-#define R2P0_DPU_CLOCK_PARENT	("clk_dpu_core_src")
+#define R6P0_DPU_CLOCK_NAME	("clk_dpu_core")
+#define R6P0_DPU_CLOCK_PARENT	("clk_dpu_core_src")
 
 #define MIN_POOL_SIZE		(6 * 1024)
 #define R6P0_GSP_COEF_CACHE_MAX 32

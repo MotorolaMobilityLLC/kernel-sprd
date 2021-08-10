@@ -149,7 +149,7 @@ void gsp_kcfg_reinit(struct gsp_kcfg *kcfg)
 		return;
 	}
 
-	memset(&kcfg->data, 0, sizeof(struct gsp_fence_data));
+	memset((void *)(&kcfg->data), 0, sizeof(struct gsp_fence_data));
 
 	kcfg->async = false;
 	kcfg->pulled = false;
@@ -380,11 +380,11 @@ int gsp_kcfg_list_fill(struct gsp_kcfg_list *kl, void __user *arg)
 	}
 
 free_cfg:
+	kfree(cfg_arg);
+exit:
 	if (ret)
 		gsp_kcfg_list_release(kl);
 
-	kfree(cfg_arg);
-exit:
 	return ret;
 }
 
