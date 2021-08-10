@@ -2989,8 +2989,7 @@ static void sprd_run_state_machine(struct sprd_tcpm_port *port)
 			sprd_tcpm_set_state(port, AUDIO_ACC_ATTACHED,
 					    SPRD_PD_T_CC_DEBOUNCE);
 		else if (sprd_tcpm_port_is_source(port))
-			sprd_tcpm_set_state(port,
-					    sprd_tcpm_try_snk(port) ? SNK_TRY : SRC_ATTACHED,
+			sprd_tcpm_set_state(port, SRC_ATTACHED,
 					    SPRD_PD_T_CC_DEBOUNCE);
 		break;
 
@@ -3052,7 +3051,7 @@ static void sprd_run_state_machine(struct sprd_tcpm_port *port)
 	case SRC_ATTACHED:
 		ret = sprd_tcpm_src_attach(port);
 		sprd_tcpm_set_state(port, SRC_UNATTACHED,
-			       ret < 0 ? 0 : SPRD_PD_T_PS_SOURCE_ON);
+				    ret < 0 ? 0 : SPRD_PD_T_PS_SOURCE_ON);
 		break;
 	case SRC_STARTUP:
 		opmode =  sprd_tcpm_get_pwr_opmode(sprd_tcpm_rp_cc(port));
