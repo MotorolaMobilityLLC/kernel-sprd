@@ -126,7 +126,9 @@ static int __init gnss_pmnotify_ctl_init(void)
 	if (err)
 		pr_err("gnss_pmnotify_ctl_device add failed!!!\n");
 
-	register_pm_notifier(&gnss_pm_notifier);
+	err = register_pm_notifier(&gnss_pm_notifier);
+	if (err)
+		pr_err("gnss_pm_notifier add failed!!!\n");
 	init_waitqueue_head(&gnss_dev.gnss_sleep_wait);
 
 	return err;
