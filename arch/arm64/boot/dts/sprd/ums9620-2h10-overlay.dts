@@ -816,6 +816,8 @@
 
 &lcd_g40396_truly_mipi_fhd {
 	sprd,phy-bit-clock = <1500000>;
+	sprd,video-lp-cmd-enable = <0>;
+	sprd,hporch-lp-disable = <0>;
 	display-timings {
 		g40396_truly_timing0: timing0 {
 			clock-frequency = <192000000>;
