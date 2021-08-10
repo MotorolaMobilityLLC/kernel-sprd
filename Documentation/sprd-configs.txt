@@ -5353,8 +5353,8 @@ CONFIG_DYNAMIC_EVENTS
 	[function]
 CONFIG_DYNAMIC_FTRACE
 	[arch] all
-	[plat] pike2,sharkl5Pro
-	[missing plat] sharkl3
+	[plat] all
+	[missing plat] none
 	[field] code
 	[subsys] core
 	[must] user
@@ -6271,8 +6271,8 @@ CONFIG_FTRACE
 	[function] Tracers
 CONFIG_FTRACE_MCOUNT_RECORD
 	[arch] all
-	[plat] pike2,sharkl5Pro
-	[missing plat] sharkl3
+	[plat] all
+	[missing plat] none
 	[field] code
 	[subsys] core
 	[must] debug
@@ -6325,8 +6325,8 @@ CONFIG_FUNCTION_PROFILER
 	[function] Trace function profiler.
 CONFIG_FUNCTION_TRACER
 	[arch] all
-	[plat] pike2,sharkl5Pro
-	[missing plat] sharkl3
+	[plat] all
+	[missing plat] none
 	[field] code
 	[subsys] core
 	[must] debug
