@@ -1278,7 +1278,7 @@
 			};
 
 			ap_thm0: thermal@644B0000 {
-				compatible = "sprd,sharkl5-thermal", "sprd,qogirl6-thermal";
+				compatible = "sprd,ums512-thermal", "sprd,qogirl6-thermal";
 				reg = <0 0x644B0000 0 0x10000>;
 				clock-names = "enable";
 				clocks = <&aonapb_gate CLK_THM0_EB>;
@@ -1326,7 +1326,7 @@
 			};
 
 			ap_thm2: thermal@644D0000 {
-				compatible = "sprd,sharkl5-thermal", "sprd,qogirl6-thermal";
+				compatible = "sprd,ums512-thermal", "sprd,qogirl6-thermal";
 				reg = <0 0x644D0000 0 0x10000>;
 				clock-names = "enable";
 				clocks = <&aonapb_gate CLK_THM2_EB>;
