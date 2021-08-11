@@ -216,9 +216,7 @@
 	};
 
 	fd_reserved: faceid-mem@b8000000{
-		compatible = "shared-dma-pool";
-		reg = <0xb8000000 0x00800000>;
-		reusable;
+		reg = <0xb8000000 0x00500000>;
 	};
 };
 
@@ -390,4 +388,16 @@
 
 &sdio0 {
 	cd-gpios = <&eic_async 9 1>;
+};
+
+&ion {
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	heap@2 {
+		reg = <2>;
+		label = "carveout_fd";
+		type = <2>;
+		memory-region = <&fd_reserved>;
+	};
 };
