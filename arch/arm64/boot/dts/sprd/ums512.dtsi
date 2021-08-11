@@ -186,6 +186,8 @@
 	cpufreq_cluster0_opp: opp-table0 {
 		sprd,hw-dvfs-device = <&cpudvfs_dev>;
 		temp-threshold = <65>;
+		nvmem-cell-names = "dvfs_bin";
+		nvmem-cells = <&dvfs_bin_cpu0>;
 		sprd,multi-version;
 		cpufreq-cluster-cpumask = <0x3f>;
 		transition_delay_us = <500>;
@@ -233,6 +235,8 @@
 	cpufreq_cluster1_opp: opp-table1 {
 		sprd,hw-dvfs-device = <&cpudvfs_dev>;
 		temp-threshold = <65>;
+		nvmem-cell-names = "dvfs_bin";
+		nvmem-cells = <&dvfs_bin_cpu1>;
 		sprd,multi-version;
 		cpufreq-cluster-cpumask = <0xc0>;
 		transition_delay_us = <500>;
