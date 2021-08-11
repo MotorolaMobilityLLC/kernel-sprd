@@ -1975,6 +1975,25 @@
 				pintcrl-0 = <&uart_inf_sel0>;
 				pintcrl-1 = <&uart_inf_sel1>;
 			};
+
+			socid: socid@640000e0{
+				compatible = "sprd,soc-id";
+				syscons = <&aon_apb_regs REG_AON_APB_AON_CHIP_ID0
+					MASK_AON_APB_AON_CHIP_ID0>,
+					<&aon_apb_regs REG_AON_APB_AON_PLAT_ID0
+					MASK_AON_APB_AON_PLAT_ID0>,
+					<&aon_apb_regs REG_AON_APB_AON_IMPL_ID
+					MASK_AON_APB_AON_IMPL_ID>,
+					<&aon_apb_regs  REG_AON_APB_AON_MFT_ID
+					MASK_AON_APB_AON_MFT_ID>,
+					<&aon_apb_regs REG_AON_APB_AON_VER_ID
+					MASK_AON_APB_AON_VER_ID>;
+				syscon-names = "chip_id",
+						"plat_id",
+						"implement_id",
+						"manufacture_id",
+						"version_id";
+			};
 		};
 
 		agcp {
