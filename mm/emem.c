@@ -39,10 +39,12 @@
 #include <linux/workqueue.h>
 #include <linux/mm_inline.h>
 #include <linux/proc_fs.h>
+#include <linux/of_reserved_mem.h>
 
 #include "internal.h"
 
 #define  DEFAULT_PROC_ADJ    900
+#define  SHOW_RESERVED_MEM	1
 #ifdef CONFIG_SPRD_DEBUG
 #define EMEM_SHOW_INTERVAL	2
 #else
@@ -125,6 +127,12 @@ static void emem_workfn(struct work_struct *work)
 			enhance_meminfo(EMEM_SHOW_INTERVAL);
 		else
 			enhance_meminfo(EMEM_SHOW_KILL_ADJ900_INTERVAL);
+
+		if (sysctl_emem_trigger == SHOW_RESERVED_MEM) {
+			sysctl_emem_trigger++;
+			pr_info("Resrved memory info:\n");
+			show_reserved_memory_info();
+		}
 	}
 }
 
