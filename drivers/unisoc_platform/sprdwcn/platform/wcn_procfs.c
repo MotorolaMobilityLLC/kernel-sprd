@@ -68,11 +68,50 @@ struct mdbg_proc_t {
 };
 
 static struct mdbg_proc_t *mdbg_proc;
+static int dump_cnt;
+
+void wcn_reset_process(void)
+{
+	WCN_INFO("%s reset begin\n", __func__);
+	wcn_reset_cp2();
+	mdbg_proc->assert_notify_flag = 0;
+	dump_cnt = 0;
+	sprdwcn_bus_set_carddump_status(false);
+	/*notify slogmodem to restore the state of saving dump*/
+	wcn_notify_fw_error(WCN_SOURCE_CP2_ALIVE, "cp2 alive");
+	WCN_INFO("%s reset end\n", __func__);
+}
+
+void wcn_dump_process(void)
+{
+	struct wcn_match_data *g_match_config = get_wcn_match_config();
+
+	if (dump_cnt) {
+		WCN_ERR("dump_cnt: %d, not dump again!\n", dump_cnt);
+		return;
+	}
+
+	WCN_INFO("%s dumpmem begin\n", __func__);
+	sprdwcn_bus_set_carddump_status(true);
+
+	if (g_match_config && g_match_config->unisoc_wcn_pcie) {
+		edma_hw_pause();
+		dump_arm_reg();
+	}
+
+	dump_cnt++;
+
+	if (g_match_config && g_match_config->unisoc_wcn_integrated)
+		mdbg_dump_mem_integ();
+	else
+		mdbg_dump_mem();
+
+	WCN_INFO("%s dumpmem end\n", __func__);
+}
 
 void wcn_assert_interface(enum wcn_source_type type, char *str)
 {
-	static int dump_cnt;
-	struct wcn_match_data *g_match_config = get_wcn_match_config();
+	int reset_prop = wcn_sysfs_get_reset_prop();
 
 	WCN_ERR("wcn_source_type:%d\n", type);
 	WCN_ERR("fw assert:%s\n", str);
@@ -94,35 +133,20 @@ void wcn_assert_interface(enum wcn_source_type type, char *str)
 		mdbg_proc->assert_notify_flag = 1;
 	}
 
-	if (wcn_sysfs_get_reset_prop()) {/* user version */
-		WCN_INFO("%s reset begin\n", __func__);
-		stop_loopcheck();
-		wcnlog_clear_log();
-		wcn_reset_cp2();
-		mdbg_proc->assert_notify_flag = 0;
-		WCN_INFO("%s reset end\n", __func__);
-		goto out;
-	}
-
-	if (dump_cnt) {
-		WCN_ERR("dump_cnt: %d, not dump again!\n", dump_cnt);
-		goto out;
-	}
-
-	WCN_INFO("%s dumpmem begin\n", __func__);
+	/*wcn reset or dump process*/
 	stop_loopcheck();
-	sprdwcn_bus_set_carddump_status(true);
-	if (g_match_config && g_match_config->unisoc_wcn_pcie) {
-		edma_hw_pause();
-		dump_arm_reg();
-	}
 	wcnlog_clear_log();
-	dump_cnt++;
-	if (g_match_config && g_match_config->unisoc_wcn_integrated)
-		mdbg_dump_mem_integ();
-	else
-		mdbg_dump_mem();
-	WCN_INFO("%s dumpmem end\n", __func__);
+
+	if (reset_prop == WCN_ASSERT_ONLY_DUMP) { /*userdebug version*/
+		wcn_dump_process();
+		goto out;
+	} else if (reset_prop == WCN_ASSERT_ONLY_RESET) { /*user version*/
+		wcn_reset_process();
+		goto out;
+	} else if (reset_prop == WCN_ASSERT_BOTH_RESET_DUMP) {
+		/*need to do, please reference androidr_trunk_u01*/
+		goto out;
+	}
 
 out:
 	mutex_unlock(&mdbg_proc->mutex);

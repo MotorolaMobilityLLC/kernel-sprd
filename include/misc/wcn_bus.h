@@ -56,7 +56,8 @@ enum slp_subsys {
 enum wcn_source_type {
 	WCN_SOURCE_BTWF,
 	WCN_SOURCE_GNSS,
-	WCN_SOURCE_WCN
+	WCN_SOURCE_WCN,
+	WCN_SOURCE_CP2_ALIVE  /*notify slogmodem wcn cp2 alive*/
 };
 
 enum wcn_bus_state {

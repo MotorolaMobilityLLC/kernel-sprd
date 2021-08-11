@@ -805,6 +805,8 @@ void wcn_notify_fw_error(enum wcn_source_type type, char *buf)
 		envp[0] = "SOURCE=WCN-CP2-EXCEPTION";
 	else if (type == WCN_SOURCE_GNSS)
 		envp[0] = "SOURCE=WCN-GE2-EXCEPTION";
+	else if (type == WCN_SOURCE_CP2_ALIVE)
+		envp[0] = "SOURCE=WCN-CP2-ALIVE";
 	else
 		envp[0] = "SOURCE=WCN";
 	envp[1] = WCN_UEVENT_FW_ERRO;
