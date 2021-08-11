@@ -639,7 +639,7 @@ static int sprd_oled_set_brightness(struct backlight_device *bdev)
     //pr_err("wzx%s level: %d\n",lcd_name, level);
 	if(strncmp(lcd_name, "lcd_nt36525c_boe_mipi_fhd",strlen(lcd_name)) == 0){
 		if (level < 256){
-			level = ((level * 84) + 6)/ 100;
+			level = ((level * 80) + 6)/ 100;
             g_last_level = level;
         }
       // pr_err("wzx11111%s level: %d\n",lcd_name, level);
@@ -655,7 +655,7 @@ static int sprd_oled_set_brightness(struct backlight_device *bdev)
 	else{
         if (level < 256){
             g_last_level = level;
-			level = ((level * 93)+ 4)/ 100;
+			level = ((level * 90)+ 4)/ 100;
 		}
 	}
 	if (level ==256)
