@@ -3160,8 +3160,12 @@ int start_integrate_wcn_truely(u32 subsys)
 		ret_wait_completion = wait_for_completion_timeout(&wcn_dev->download_done,
 					msecs_to_jiffies (300000));
 	} else {
+		/*workround bug_1478488 according to zili suggestion*/
 		ret_wait_completion = wait_for_completion_timeout(&wcn_dev->download_done,
+					msecs_to_jiffies(80000));
+		/*ret_wait_completion = wait_for_completion_timeout(&wcn_dev->download_done,
 					msecs_to_jiffies (MARLIN_WAIT_CP_INIT_MAX_TIME));
+		 */
 	}
 
 	if (ret_wait_completion <= 0) {
