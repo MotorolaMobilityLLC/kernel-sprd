@@ -4390,8 +4390,8 @@ CONFIG_EVENT_TRACING
 	[function] The main swtich butten for event ftrace.
 CONFIG_EXFAT_FS
 	[arch] all
-	[plat] all
-	[missing plat] none
+	[plat] pike2,qogirn6pro,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
+	[missing plat] qogirl6
 	[field] make
 	[subsys] fs
 	[must] user
@@ -4399,8 +4399,8 @@ CONFIG_EXFAT_FS
 	[function] exfat filesystem.
 CONFIG_EXFAT_VIRTUAL_XATTR
 	[arch] all
-	[plat] all
-	[missing plat] none
+	[plat] pike2,qogirn6pro,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
+	[missing plat] qogirl6
 	[field] code
 	[subsys] fs
 	[must] user
@@ -4408,8 +4408,8 @@ CONFIG_EXFAT_VIRTUAL_XATTR
 	[function] exfat support extended attribute.
 CONFIG_EXFAT_VIRTUAL_XATTR_SELINUX_LABEL
 	[arch] all
-	[plat] all
-	[missing plat] none
+	[plat] pike2,qogirn6pro,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
+	[missing plat] qogirl6
 	[field] code
 	[subsys] fs
 	[must] user
@@ -14695,6 +14695,15 @@ CONFIG_SPRD_SIP_FW
 	[missing plat description] Need to be supported from sharkl3.
 	[function] Provides interfaces to SoC implementation-specific secure
 	           services.
+CONFIG_SPRD_SOCID
+	[arch] arm64
+	[plat] qogirl6
+	[missing plat] qogirn6pro,sharkl3,sharkl5,sharkl5Pro
+	[field] make
+	[subsys] nvmem
+	[must] debug
+	[missing plat description] Others is no need at current
+	[function] Support read socid only
 CONFIG_SPRD_SOC_THERMAL
 	[arch] all
 	[plat] qogirl6,qogirn6pro,sharkl5,sharkl5Pro,sharkl5_32
