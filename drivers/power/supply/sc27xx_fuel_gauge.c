@@ -165,6 +165,25 @@ struct sc27xx_fgu_track_capacity {
 	struct delayed_work fgu_update_work;
 };
 
+struct sc27xx_fgu_debug_info {
+	bool temp_debug_en;
+	bool vbat_now_debug_en;
+	bool ocv_debug_en;
+	bool cur_now_debug_en;
+	bool batt_present_debug_en;
+	bool chg_vol_debug_en;
+	bool batt_health_debug_en;
+
+	int debug_temp;
+	int debug_vbat_now;
+	int debug_ocv;
+	int debug_cur_now;
+	bool debug_batt_present;
+	int debug_chg_vol;
+	int debug_batt_health;
+
+};
+
 /*
  * struct sc27xx_fgu_data: describe the FGU device
  * @regmap: regmap for register access
@@ -234,8 +253,6 @@ struct sc27xx_fgu_data {
 	int index;
 	int ocv;
 	int batt_uV;
-	bool temp_debug_en;
-	int debug_temp;
 	int temp_buff[SC27XX_FGU_TEMP_BUFF_CNT];
 	int cur_now_buff[SC27XX_FGU_CURRENT_BUFF_CNT];
 	bool dischg_trend[SC27XX_FGU_DISCHG_CNT];
@@ -253,6 +270,7 @@ struct sc27xx_fgu_data {
 	struct usb_phy *usb_phy;
 	struct notifier_block usb_notify;
 	const struct sc27xx_fgu_variant_data *pdata;
+	struct sc27xx_fgu_debug_info debug_info;
 };
 
 struct sc27xx_fgu_variant_data {
@@ -1081,6 +1099,8 @@ static int sc27xx_fgu_get_status(struct sc27xx_fgu_data *data, int *status)
 			return ret;
 
 		*status = val.intval;
+		if (*status == POWER_SUPPLY_STATUS_CHARGING)
+			break;
 	}
 
 	return ret;
@@ -1092,6 +1112,11 @@ static int sc27xx_fgu_get_property(struct power_supply *psy,
 {
 	struct sc27xx_fgu_data *data = power_supply_get_drvdata(psy);
 	int ret = 0, value = 0;
+
+	if (!data) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -EINVAL;
+	}
 
 	mutex_lock(&data->lock);
 
@@ -1105,6 +1130,11 @@ static int sc27xx_fgu_get_property(struct power_supply *psy,
 		break;
 
 	case POWER_SUPPLY_PROP_HEALTH:
+		if (data->debug_info.batt_health_debug_en) {
+			val->intval = data->debug_info.debug_batt_health;
+			break;
+		}
+
 		ret = sc27xx_fgu_get_health(data, &value);
 		if (ret)
 			goto error;
@@ -1114,18 +1144,26 @@ static int sc27xx_fgu_get_property(struct power_supply *psy,
 
 	case POWER_SUPPLY_PROP_PRESENT:
 		val->intval = data->bat_present;
+
+		if (data->debug_info.batt_present_debug_en)
+			val->intval = data->debug_info.debug_batt_present;
+
 		break;
 
 	case POWER_SUPPLY_PROP_TEMP:
-		if (data->temp_debug_en)
-			val->intval = data->debug_temp;
+		if (data->debug_info.temp_debug_en)
+			val->intval = data->debug_info.debug_temp;
+		else if (data->temp_table_len <= 0)
+			val->intval = 200;
 		else {
 			ret = sc27xx_fgu_get_temp(data, &value);
-			if (ret < 0)
+			if (ret < 0 && !data->debug_info.temp_debug_en)
 				goto error;
+
+			ret = 0;
 			val->intval = value;
 		}
-		ret = 0;
+
 		break;
 
 	case POWER_SUPPLY_PROP_TECHNOLOGY:
@@ -1154,6 +1192,11 @@ static int sc27xx_fgu_get_property(struct power_supply *psy,
 		break;
 
 	case POWER_SUPPLY_PROP_VOLTAGE_NOW:
+		if (data->debug_info.vbat_now_debug_en) {
+			val->intval = data->debug_info.debug_vbat_now;
+			break;
+		}
+
 		ret = sc27xx_fgu_get_vbat_now(data, &value);
 		if (ret)
 			goto error;
@@ -1162,6 +1205,10 @@ static int sc27xx_fgu_get_property(struct power_supply *psy,
 		break;
 
 	case POWER_SUPPLY_PROP_VOLTAGE_OCV:
+		if (data->debug_info.ocv_debug_en) {
+			val->intval = data->debug_info.debug_ocv;
+			break;
+		}
 		ret = sc27xx_fgu_get_vbat_ocv(data, &value);
 		if (ret)
 			goto error;
@@ -1170,6 +1217,11 @@ static int sc27xx_fgu_get_property(struct power_supply *psy,
 		break;
 
 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE:
+		if (data->debug_info.chg_vol_debug_en) {
+			val->intval = data->debug_info.debug_chg_vol;
+			break;
+		}
+
 		ret = sc27xx_fgu_get_charge_vol(data, &value);
 		if (ret)
 			goto error;
@@ -1186,6 +1238,11 @@ static int sc27xx_fgu_get_property(struct power_supply *psy,
 		break;
 
 	case POWER_SUPPLY_PROP_CURRENT_NOW:
+		if (data->debug_info.cur_now_debug_en) {
+			val->intval = data->debug_info.debug_cur_now;
+			break;
+		}
+
 		ret = sc27xx_fgu_get_current_now(data, &value);
 		if (ret)
 			goto error;
@@ -1228,6 +1285,11 @@ static int sc27xx_fgu_set_property(struct power_supply *psy,
 	struct sc27xx_fgu_data *data = power_supply_get_drvdata(psy);
 	int ret = 0;
 
+	if (!data) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -EINVAL;
+	}
+
 	mutex_lock(&data->lock);
 
 	switch (psp) {
@@ -1254,21 +1316,143 @@ static int sc27xx_fgu_set_property(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_TEMP:
 		if (val->intval == SC27XX_FGU_DEBUG_EN_CMD) {
 			dev_info(data->dev, "Change battery temperature to debug mode\n");
-			data->temp_debug_en = true;
-			data->debug_temp = 200;
+			data->debug_info.temp_debug_en = true;
+			data->debug_info.debug_temp = 200;
 			break;
 		} else if (val->intval == SC27XX_FGU_DEBUG_DIS_CMD) {
 			dev_info(data->dev, "Recovery battery temperature to normal mode\n");
-			data->temp_debug_en = false;
+			data->debug_info.temp_debug_en = false;
 			break;
-		} else if (!data->temp_debug_en) {
+		} else if (!data->debug_info.temp_debug_en) {
 			dev_info(data->dev, "Battery temperature not in debug mode\n");
 			break;
 		}
 
-		data->debug_temp = val->intval;
+		data->debug_info.debug_temp = val->intval;
 		dev_info(data->dev, "Battery debug temperature = %d\n", val->intval);
 		break;
+
+	case POWER_SUPPLY_PROP_PRESENT:
+		if (val->intval == SC27XX_FGU_DEBUG_EN_CMD) {
+			dev_info(data->dev, "Change battery present to debug mode\n");
+			data->debug_info.debug_batt_present = true;
+			data->debug_info.batt_present_debug_en = true;
+			break;
+		} else if (val->intval == SC27XX_FGU_DEBUG_DIS_CMD) {
+			dev_info(data->dev, "Recovery battery present to normal mode\n");
+			data->debug_info.batt_present_debug_en = false;
+			break;
+		} else if (!data->debug_info.batt_present_debug_en) {
+			dev_info(data->dev, "Battery present not in debug mode\n");
+			break;
+		}
+
+		data->debug_info.debug_batt_present = !!val->intval;
+		mutex_unlock(&data->lock);
+		cm_notify_event(data->battery, data->debug_info.debug_batt_present ?
+				CM_EVENT_BATT_IN : CM_EVENT_BATT_OUT, NULL);
+		dev_info(data->dev, "Battery debug present = %d\n", !!val->intval);
+		return ret;
+
+	case POWER_SUPPLY_PROP_VOLTAGE_NOW:
+		if (val->intval == SC27XX_FGU_DEBUG_EN_CMD) {
+			dev_info(data->dev, "Change voltage_now to debug mode\n");
+			data->debug_info.debug_vbat_now = 4000000;
+			data->debug_info.vbat_now_debug_en = true;
+			break;
+		} else if (val->intval == SC27XX_FGU_DEBUG_DIS_CMD) {
+			dev_info(data->dev, "Recovery voltage_now to normal mode\n");
+			data->debug_info.vbat_now_debug_en = false;
+			data->debug_info.debug_vbat_now = 0;
+			break;
+		} else if (!data->debug_info.vbat_now_debug_en) {
+			dev_info(data->dev, "Voltage_now not in debug mode\n");
+			break;
+		}
+
+		data->debug_info.debug_vbat_now = val->intval;
+		dev_info(data->dev, "Battery debug voltage_now = %d\n", val->intval);
+		break;
+
+	case POWER_SUPPLY_PROP_CURRENT_NOW:
+		if (val->intval == SC27XX_FGU_DEBUG_EN_CMD) {
+			dev_info(data->dev, "Change current_now to debug mode\n");
+			data->debug_info.debug_cur_now = 1000000;
+			data->debug_info.cur_now_debug_en = true;
+			break;
+		} else if (val->intval == SC27XX_FGU_DEBUG_DIS_CMD) {
+			dev_info(data->dev, "Recovery current_now to normal mode\n");
+			data->debug_info.cur_now_debug_en = false;
+			data->debug_info.debug_cur_now = 0;
+			break;
+		} else if (!data->debug_info.cur_now_debug_en) {
+			dev_info(data->dev, "Current_now not in debug mode\n");
+			break;
+		}
+
+		data->debug_info.debug_cur_now = val->intval;
+		dev_info(data->dev, "Battery debug current_now = %d\n", val->intval);
+		break;
+
+	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE:
+		if (val->intval == SC27XX_FGU_DEBUG_EN_CMD) {
+			dev_info(data->dev, "Change charge voltage to debug mode\n");
+			data->debug_info.debug_chg_vol = 5000000;
+			data->debug_info.chg_vol_debug_en = true;
+			break;
+		} else if (val->intval == SC27XX_FGU_DEBUG_DIS_CMD) {
+			dev_info(data->dev, "Recovery charge voltage to normal mode\n");
+			data->debug_info.chg_vol_debug_en = false;
+			data->debug_info.debug_chg_vol = 0;
+			break;
+		} else if (!data->debug_info.chg_vol_debug_en) {
+			dev_info(data->dev, "Charge voltage not in debug mode\n");
+			break;
+		}
+
+		data->debug_info.debug_chg_vol = val->intval;
+		dev_info(data->dev, "Battery debug charge voltage = %d\n", val->intval);
+		break;
+
+	case POWER_SUPPLY_PROP_VOLTAGE_OCV:
+		if (val->intval == SC27XX_FGU_DEBUG_EN_CMD) {
+			dev_info(data->dev, "Change OCV voltage to debug mode\n");
+			data->debug_info.debug_ocv = 4000000;
+			data->debug_info.ocv_debug_en = true;
+			break;
+		} else if (val->intval == SC27XX_FGU_DEBUG_DIS_CMD) {
+			dev_info(data->dev, "Recovery OCV voltage to normal mode\n");
+			data->debug_info.ocv_debug_en = false;
+			data->debug_info.debug_ocv = 0;
+			break;
+		} else if (!data->debug_info.ocv_debug_en) {
+			dev_info(data->dev, "OCV voltage not in debug mode\n");
+			break;
+		}
+
+		data->debug_info.debug_ocv = val->intval;
+		dev_info(data->dev, "Battery debug OCV voltage = %d\n", val->intval);
+		break;
+	case POWER_SUPPLY_PROP_HEALTH:
+		if (val->intval == SC27XX_FGU_DEBUG_EN_CMD) {
+			dev_info(data->dev, "Change Battery Health to debug mode\n");
+			data->debug_info.batt_health_debug_en = true;
+			data->debug_info.debug_batt_health = 1;
+			break;
+		} else if (val->intval == SC27XX_FGU_DEBUG_DIS_CMD) {
+			dev_info(data->dev, "Recovery  Battery Health to normal mode\n");
+			data->debug_info.batt_health_debug_en = false;
+			data->debug_info.debug_batt_health = 1;
+			break;
+		} else if (!data->debug_info.batt_health_debug_en) {
+			dev_info(data->dev, "OCV  Battery Health not in debug mode\n");
+			break;
+		}
+
+		data->debug_info.debug_batt_health = val->intval;
+		dev_info(data->dev, "Battery debug  Battery Health = %d\n", val->intval);
+		break;
+
 	default:
 		ret = -EINVAL;
 	}
@@ -1282,16 +1466,33 @@ static void sc27xx_fgu_external_power_changed(struct power_supply *psy)
 {
 	struct sc27xx_fgu_data *data = power_supply_get_drvdata(psy);
 
+	if (!data) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return;
+	}
+
 	power_supply_changed(data->battery);
 }
 
 static int sc27xx_fgu_property_is_writeable(struct power_supply *psy,
 					    enum power_supply_property psp)
 {
-	return psp == POWER_SUPPLY_PROP_CAPACITY ||
-		psp == POWER_SUPPLY_PROP_TEMP ||
-		psp == POWER_SUPPLY_PROP_CALIBRATE ||
-		psp == POWER_SUPPLY_PROP_ENERGY_FULL_DESIGN;
+	switch (psp) {
+	case POWER_SUPPLY_PROP_TEMP:
+	case POWER_SUPPLY_PROP_CAPACITY:
+	case POWER_SUPPLY_PROP_CALIBRATE:
+	case POWER_SUPPLY_PROP_ENERGY_FULL_DESIGN:
+	case POWER_SUPPLY_PROP_PRESENT:
+	case POWER_SUPPLY_PROP_VOLTAGE_NOW:
+	case POWER_SUPPLY_PROP_CURRENT_NOW:
+	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE:
+	case POWER_SUPPLY_PROP_VOLTAGE_OCV:
+	case POWER_SUPPLY_PROP_HEALTH:
+		return 1;
+
+	default:
+		return 0;
+	}
 }
 
 static enum power_supply_property sc27xx_fgu_props[] = {
@@ -1528,6 +1729,11 @@ static irqreturn_t sc27xx_fgu_interrupt(int irq, void *dev_id)
 	int ret, cap;
 	u32 status;
 
+	if (!data) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return IRQ_HANDLED;
+	}
+
 	mutex_lock(&data->lock);
 
 	ret = regmap_read(data->regmap, data->base + SC27XX_FGU_INT_STS,
@@ -1565,6 +1771,11 @@ static irqreturn_t sc27xx_fgu_bat_detection(int irq, void *dev_id)
 	struct sc27xx_fgu_data *data = dev_id;
 	int state;
 
+	if (!data) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return IRQ_HANDLED;
+	}
+
 	mutex_lock(&data->lock);
 
 	state = gpiod_get_value_cansleep(data->gpiod);
@@ -1590,6 +1801,11 @@ static irqreturn_t sc27xx_fgu_bat_detection(int irq, void *dev_id)
 static void sc27xx_fgu_disable(void *_data)
 {
 	struct sc27xx_fgu_data *data = _data;
+
+	if (!data) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return;
+	}
 
 	regmap_update_bits(data->regmap, SC27XX_CLK_EN0, SC27XX_FGU_RTC_EN, 0);
 	regmap_update_bits(data->regmap, SC27XX_MODULE_EN0, SC27XX_FGU_EN, 0);
@@ -1617,6 +1833,11 @@ static int sc27xx_fgu_calibration(struct sc27xx_fgu_data *data)
 	int calib_data, cal_4200mv;
 	void *buf;
 	size_t len;
+
+	if (!pdata) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -EINVAL;
+	}
 
 	cell = nvmem_cell_get(data->dev, "fgu_calib");
 	if (IS_ERR(cell))
@@ -1722,6 +1943,11 @@ static void sc27xx_fgu_track_capacity_work(struct work_struct *work)
 						  struct sc27xx_fgu_data,
 						  track.track_capacity_work.work);
 	u32 total_cap, capacity, check_capacity, file_buf[2];
+
+	if (!data) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return;
+	}
 	/*
 	 * open the track file on here.
 	 */
@@ -2006,6 +2232,11 @@ static void sc27xx_fgu_monitor(struct work_struct *work)
 						  struct sc27xx_fgu_data,
 						  track.fgu_update_work.work);
 
+	if (!data) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return;
+	}
+
 	sc27xx_fgu_track_capacity_monitor(data);
 	dev_info(data->dev, "track_sts: %d", data->track.state);
 	queue_delayed_work(system_power_efficient_wq, &data->track.fgu_update_work, 15 * HZ);
@@ -2038,6 +2269,11 @@ static int sc27xx_fgu_usb_change(struct notifier_block *nb,
 	u32 type;
 	struct sc27xx_fgu_data *data =
 		container_of(nb, struct sc27xx_fgu_data, usb_notify);
+
+	if (!data) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return NOTIFY_OK;
+	}
 
 	pm_stay_awake(data->dev);
 
@@ -2240,14 +2476,24 @@ disable_fgu:
 static int sc27xx_fgu_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
-	struct device_node *np = dev->of_node;
+	struct device_node *np = pdev->dev.of_node;
 	struct power_supply_config fgu_cfg = { };
 	struct sc27xx_fgu_data *data;
 	int ret, irq;
 
+	if (!np || !dev) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -EINVAL;
+	}
+
 	data = devm_kzalloc(dev, sizeof(*data), GFP_KERNEL);
-	if (!data)
+	if (!data) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
 		return -ENOMEM;
+	}
+
+	data->dev = &pdev->dev;
+	platform_set_drvdata(pdev, data);
 
 	data->pdata = of_device_get_match_data(&pdev->dev);
 	if (!data->pdata) {
@@ -2259,6 +2505,28 @@ static int sc27xx_fgu_probe(struct platform_device *pdev)
 	if (!data->regmap) {
 		dev_err(dev, "failed to get regmap\n");
 		return -ENODEV;
+	}
+
+	data->track.cap_tracking = device_property_read_bool(dev, "fgu-capacity-track");
+	if (data->track.cap_tracking) {
+		data->usb_phy = devm_usb_get_phy_by_phandle(dev, "phys", 0);
+		if (IS_ERR(data->usb_phy)) {
+			dev_err(dev, "failed to find USB phy\n");
+			return -EPROBE_DEFER;
+		}
+	}
+
+	data->channel = devm_iio_channel_get(dev, "bat-temp");
+	if (IS_ERR(data->channel)) {
+		dev_err(dev, "failed to get IIO channel, ret = %ld\n", PTR_ERR(data->channel));
+		return PTR_ERR(data->channel);
+	}
+
+	data->charge_chan = devm_iio_channel_get(dev, "charge-vol");
+	if (IS_ERR(data->charge_chan)) {
+		dev_err(dev, "failed to get charge IIO channel, ret = %ld\n",
+			PTR_ERR(data->charge_chan));
+		return PTR_ERR(data->charge_chan);
 	}
 
 	ret = device_property_read_u32(dev, "reg", &data->base);
@@ -2294,20 +2562,6 @@ static int sc27xx_fgu_probe(struct platform_device *pdev)
 	if (ret)
 		dev_warn(dev, "no fgu track.end_vol support\n");
 
-	data->track.cap_tracking = device_property_read_bool(dev, "fgu-capacity-track");
-
-	data->channel = devm_iio_channel_get(dev, "bat-temp");
-	if (IS_ERR(data->channel)) {
-		dev_err(dev, "failed to get IIO channel\n");
-		return PTR_ERR(data->channel);
-	}
-
-	data->charge_chan = devm_iio_channel_get(dev, "charge-vol");
-	if (IS_ERR(data->charge_chan)) {
-		dev_err(dev, "failed to get charge IIO channel\n");
-		return PTR_ERR(data->charge_chan);
-	}
-
 	data->gpiod = devm_gpiod_get(dev, "bat-detect", GPIOD_IN);
 	if (IS_ERR(data->gpiod)) {
 		dev_err(dev, "failed to get battery detection GPIO\n");
@@ -2322,74 +2576,55 @@ static int sc27xx_fgu_probe(struct platform_device *pdev)
 
 	data->bat_present = !!ret;
 	mutex_init(&data->lock);
-	data->dev = dev;
-	platform_set_drvdata(pdev, data);
-
-	if (data->track.cap_tracking) {
-		data->usb_phy = devm_usb_get_phy_by_phandle(data->dev, "phys", 0);
-		if (IS_ERR(data->usb_phy)) {
-			dev_err(data->dev, "failed to find USB phy\n");
-			return PTR_ERR(data->usb_phy);
-		}
-	}
+	mutex_lock(&data->lock);
 
 	fgu_cfg.drv_data = data;
 	fgu_cfg.of_node = np;
-	data->battery = devm_power_supply_register(dev, &sc27xx_fgu_desc,
-						   &fgu_cfg);
+	data->battery = devm_power_supply_register(dev, &sc27xx_fgu_desc, &fgu_cfg);
 	if (IS_ERR(data->battery)) {
 		dev_err(dev, "failed to register power supply\n");
-		return PTR_ERR(data->battery);
-	}
-
-	ret = get_boot_mode();
-	if (ret) {
-		pr_err("get_boot_mode can't not parse bootargs property\n");
-		return ret;
-	}
-
-	ret = sc27xx_fgu_hw_init(data, data->pdata);
-	if (ret) {
-		dev_err(dev, "failed to initialize fgu hardware\n");
-		return ret;
-	}
-	if (data->track.cap_tracking && data->track.end_vol
-	    && data->track.end_cur) {
-		sc27xx_fgu_track_capacity_init(data);
-		device_init_wakeup(data->dev, true);
-		data->usb_notify.notifier_call = sc27xx_fgu_usb_change;
-		ret = usb_register_notifier(data->usb_phy, &data->usb_notify);
-		if (ret) {
-			dev_err(data->dev, "failed to register notifier:%d\n", ret);
-			return ret;
-		}
+		ret = PTR_ERR(data->battery);
+		goto err;
 	}
 
 	ret = devm_add_action_or_reset(dev, sc27xx_fgu_disable, data);
 	if (ret) {
 		dev_err(dev, "failed to add fgu disable action\n");
-		return ret;
+		goto err;
+	}
+
+	ret = get_boot_mode();
+	if (ret) {
+		pr_err("get_boot_mode can't not parse bootargs property\n");
+		goto err;
+	}
+
+	ret = sc27xx_fgu_hw_init(data, data->pdata);
+	if (ret) {
+		dev_err(dev, "failed to initialize fgu hardware\n");
+		goto err;
 	}
 
 	irq = platform_get_irq(pdev, 0);
 	if (irq < 0) {
 		dev_err(dev, "no irq resource specified\n");
-		return irq;
+		ret = irq;
+		goto err;
 	}
 
-	ret = devm_request_threaded_irq(data->dev, irq, NULL,
-					sc27xx_fgu_interrupt,
+	ret = devm_request_threaded_irq(dev, irq, NULL,	sc27xx_fgu_interrupt,
 					IRQF_NO_SUSPEND | IRQF_ONESHOT,
 					pdev->name, data);
 	if (ret) {
-		dev_err(data->dev, "failed to request fgu IRQ\n");
-		return ret;
+		dev_err(dev, "failed to request fgu IRQ\n");
+		goto err;
 	}
 
 	irq = gpiod_to_irq(data->gpiod);
 	if (irq < 0) {
 		dev_err(dev, "failed to translate GPIO to IRQ\n");
-		return irq;
+		ret = irq;
+		goto err;
 	}
 
 	ret = devm_request_threaded_irq(dev, irq, NULL,
@@ -2399,10 +2634,28 @@ static int sc27xx_fgu_probe(struct platform_device *pdev)
 					pdev->name, data);
 	if (ret) {
 		dev_err(dev, "failed to request IRQ\n");
-		return ret;
+		goto err;
 	}
 
+	if (data->track.cap_tracking && data->track.end_vol && data->track.end_cur) {
+		device_init_wakeup(dev, true);
+		data->usb_notify.notifier_call = sc27xx_fgu_usb_change;
+		ret = usb_register_notifier(data->usb_phy, &data->usb_notify);
+		if (ret) {
+			dev_err(dev, "failed to register notifier:%d\n", ret);
+			goto err;
+		}
+		sc27xx_fgu_track_capacity_init(data);
+	}
+
+	mutex_unlock(&data->lock);
 	return 0;
+
+err:
+	sc27xx_fgu_disable(data);
+	mutex_unlock(&data->lock);
+	mutex_destroy(&data->lock);
+	return ret;
 }
 
 #ifdef CONFIG_PM_SLEEP
@@ -2410,6 +2663,11 @@ static int sc27xx_fgu_resume(struct device *dev)
 {
 	struct sc27xx_fgu_data *data = dev_get_drvdata(dev);
 	int ret;
+
+	if (!data) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -EINVAL;
+	}
 
 	ret = regmap_update_bits(data->regmap, data->base + SC27XX_FGU_INT_EN,
 				 SC27XX_FGU_LOW_OVERLOAD_INT |
@@ -2429,6 +2687,11 @@ static int sc27xx_fgu_suspend(struct device *dev)
 {
 	struct sc27xx_fgu_data *data = dev_get_drvdata(dev);
 	int ret, status, ocv;
+
+	if (!data) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -EINVAL;
+	}
 
 	ret = sc27xx_fgu_get_status(data, &status);
 	if (ret)
