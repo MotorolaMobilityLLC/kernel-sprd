@@ -229,7 +229,7 @@
 &ddr_dfs {
 	sprd-scene = "boost", "lcdon", "lcdoff", "camlow",
 		"camhigh", "camveryhigh","top";
-	sprd-freq = <933 400 233 400 622 933 933>;
+	sprd-freq = <933 400 233 622 622 933 933>;
 };
 
 &panel {
