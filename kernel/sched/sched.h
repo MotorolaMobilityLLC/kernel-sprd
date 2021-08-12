@@ -726,20 +726,6 @@ static inline bool sched_asym_prefer(int a, int b)
 	return arch_asym_cpu_priority(a) > arch_asym_cpu_priority(b);
 }
 
-struct pd_cache {
-	unsigned long util;
-	unsigned long util_est;
-	unsigned long util_cfs;
-	unsigned long util_irq;
-	unsigned long util_rt;
-	unsigned long util_dl;
-	unsigned long bw_dl;
-	unsigned long freq_util;
-	unsigned long nrg_util;
-};
-
-DECLARE_PER_CPU(struct pd_cache __rcu *, pdc);
-
 struct perf_domain {
 	struct em_perf_domain *em_pd;
 	struct perf_domain *next;
@@ -2448,6 +2434,11 @@ static inline bool uclamp_boosted(struct task_struct *p)
 	return uclamp_eff_value(p, UCLAMP_MIN) > 0;
 }
 
+static inline bool uclamp_blocked(struct task_struct *p)
+{
+	return uclamp_eff_value(p, UCLAMP_MAX) < SCHED_CAPACITY_SCALE;
+}
+
 /*
  * When uclamp is compiled in, the aggregation at rq level is 'turned off'
  * by default in the fast path and only gets turned on once userspace performs
@@ -2468,6 +2459,10 @@ unsigned long uclamp_rq_util_with(struct rq *rq, unsigned long util,
 	return util;
 }
 static inline bool uclamp_boosted(struct task_struct *p)
+{
+	return false;
+}
+static inline bool uclamp_blocked(struct task_struct *p)
 {
 	return false;
 }

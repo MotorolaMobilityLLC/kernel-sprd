@@ -8,6 +8,7 @@
 #include <linux/sched/numa_balancing.h>
 #include <linux/tracepoint.h>
 #include <linux/binfmts.h>
+#include "../../../kernel/sched/sprd-eas.h"
 
 /*
  * Tracepoint for calling kthread_stop, performed to end a kthread:
@@ -619,70 +620,99 @@ TRACE_EVENT(sched_wake_idle_without_ipi,
 	TP_printk("cpu=%d", __entry->cpu)
 );
 
-/*trace task schedule attriture info*/
-TRACE_EVENT(sched_task_comm_info,
+/*trace cfs task info in feec*/
+TRACE_EVENT(sched_feec_task_info,
 
-	TP_PROTO(struct task_struct *p, int latency_sensitive,
-		 int boosted, unsigned long uclamp_util),
+	TP_PROTO(struct task_struct *p, int prev_cpu, unsigned long task_util,
+		 unsigned long uclamp_util, int boosted,
+		 int latency_sensitive, int blocked),
 
-	TP_ARGS(p, latency_sensitive, boosted, uclamp_util),
+	TP_ARGS(p, prev_cpu, task_util, uclamp_util, boosted, latency_sensitive, blocked),
 
 	TP_STRUCT__entry(
-		__array(char,   comm,   TASK_COMM_LEN)
-		__field(pid_t,  pid)
-		__field(int, latency_sensitive)
-		__field(int, boosted)
+		__array(char,	comm,	TASK_COMM_LEN)
+		__field(pid_t,	pid)
+		__field(int,	prev_cpu)
+		__field(unsigned long, task_util)
 		__field(unsigned long, uclamp_util)
+		__field(int, boosted)
+		__field(int, latency_sensitive)
+		__field(int, blocked)
 	),
 
 	TP_fast_assign(
 		memcpy(__entry->comm, p->comm, TASK_COMM_LEN);
 		__entry->pid			= p->pid;
-		__entry->latency_sensitive	= latency_sensitive;
-		__entry->boosted		= boosted;
+		__entry->prev_cpu		= prev_cpu;
+		__entry->task_util		= task_util;
 		__entry->uclamp_util		= uclamp_util;
+		__entry->boosted		= boosted;
+		__entry->latency_sensitive	= latency_sensitive;
+		__entry->blocked		= blocked;
 	),
 
-	TP_printk("comm=%s pid=%d latency_sensitive=%d boosted=%d uclamp_util=%lu",
-		__entry->comm, __entry->pid, __entry->latency_sensitive,
-		__entry->boosted, __entry->uclamp_util)
+	TP_printk("comm=%s pid=%d prev_cpu=%d util=%lu uclamp_util=%lu boosted=%d latency_sensitive=%d blocked=%d",
+		__entry->comm, __entry->pid, __entry->prev_cpu, __entry->task_util, __entry->uclamp_util,
+		__entry->boosted, __entry->latency_sensitive, __entry->blocked)
 );
 
 /*
  * trace cfs rq info
  */
-TRACE_EVENT(sched_cfs_rq_task_util,
+TRACE_EVENT(sched_feec_rq_task_util,
 
-	TP_PROTO(int cpu, struct task_struct *p, unsigned long util,
-		 unsigned long spare_cap, unsigned long cpu_cap),
+	TP_PROTO(int cpu, struct task_struct *p, unsigned int idle, struct pd_cache *pd_cache,
+		 unsigned long util, unsigned long spare_cap, unsigned long cpu_cap),
 
-	TP_ARGS(cpu, p, util, spare_cap, cpu_cap),
+	TP_ARGS(cpu, p, idle, pd_cache, util, spare_cap, cpu_cap),
 
 	TP_STRUCT__entry(
 		__field(int,		cpu)
 		__field(unsigned int,	nr_running)
-		__field(unsigned long,	cfs_rq_util)
+		__field(unsigned int,	idle)
+		__field(unsigned long,	cfs_util_with_p)
 		__array(char,   comm,   TASK_COMM_LEN)
-		__field(pid_t,	pid)
+		__field(pid_t,		pid)
 		__field(unsigned long,	spare_cap)
-		__field(unsigned long,	cpu_cap)
+		__field(unsigned long,	cpu_cfs_cap)
 		__field(unsigned long,	capacity_orig)
+		__field(unsigned long,	base_cfs_util)
+		__field(unsigned long,	base_cfs_est)
+		__field(unsigned long,	base_cfs_max)
+		__field(unsigned long,	base_freq_util)
+		__field(unsigned long,	base_nrg_util)
+		__field(unsigned long,	base_irq_util)
+		__field(unsigned long,	base_rt_util)
+		__field(unsigned long,	base_dl_util)
+		__field(unsigned long,	base_dl_bw)
 	),
 
 	TP_fast_assign(
 		__entry->cpu			= cpu;
 		__entry->nr_running		= cpu_rq(cpu)->nr_running;
-		__entry->cfs_rq_util		= util;
+		__entry->idle			= idle;
+		__entry->cfs_util_with_p	= util;
 		memcpy(__entry->comm, p->comm, TASK_COMM_LEN);
 		__entry->pid			= p->pid;
 		__entry->spare_cap		= spare_cap;
-		__entry->cpu_cap		= cpu_cap;
+		__entry->cpu_cfs_cap		= cpu_cap;
 		__entry->capacity_orig		= capacity_orig_of(cpu);
+		__entry->base_cfs_util		= pd_cache->util;
+		__entry->base_cfs_est		= pd_cache->util_est;
+		__entry->base_cfs_max		= pd_cache->util_cfs;
+		__entry->base_freq_util		= pd_cache->freq_util;
+		__entry->base_nrg_util		= pd_cache->nrg_util;
+		__entry->base_irq_util		= pd_cache->util_irq;
+		__entry->base_rt_util		= pd_cache->util_rt;
+		__entry->base_dl_util		= pd_cache->util_dl;
+		__entry->base_dl_bw		= pd_cache->bw_dl;
 	),
 
-	TP_printk("cpu=%d nr_running=%u cfs_rq_util=%lu comm=%s pid=%d spare_cap=%lu capacity_of=%lu capacity_orig=%lu",
-		__entry->cpu, __entry->nr_running, __entry->cfs_rq_util, __entry->comm, __entry->pid, __entry->spare_cap,
-		__entry->cpu_cap,  __entry->capacity_orig)
+	TP_printk("cpu=%d nr_running=%u idle =%d cfs_util_with_p=%lu comm=%s pid=%d spare_cap=%lu capacity_of=%lu capacity_orig=%lu base_cfs_util=%lu "
+		  "base_cfs_est=%lu base_cfs_max=%lu base_freq_util=%lu base_nrg_util=%lu base_irq_util=%lu base_rt_util=%lu base_dl_util=%lu base_dl_bw=%lu",
+		__entry->cpu, __entry->nr_running, __entry->idle, __entry->cfs_util_with_p, __entry->comm, __entry->pid, __entry->spare_cap,
+		__entry->cpu_cfs_cap, __entry->capacity_orig, __entry->base_cfs_util, __entry->base_cfs_est, __entry->base_cfs_max,
+		__entry->base_freq_util, __entry->base_nrg_util, __entry->base_irq_util, __entry->base_rt_util, __entry->base_dl_util, __entry->base_dl_bw)
 );
 
 /*
@@ -691,9 +721,10 @@ TRACE_EVENT(sched_cfs_rq_task_util,
 TRACE_EVENT(sched_energy_diff,
 
 	TP_PROTO(unsigned long pd_energy, unsigned long base_energy, unsigned long prev_delta,
-		unsigned long curr_delta, unsigned long best_delta, int prev_cpu, int best_energy_cpu),
+		unsigned long curr_delta, unsigned long best_delta, int prev_cpu,
+		int best_energy_cpu, int max_spare_cap_cpu),
 
-	TP_ARGS(pd_energy, base_energy, prev_delta, curr_delta, best_delta, prev_cpu, best_energy_cpu),
+	TP_ARGS(pd_energy, base_energy, prev_delta, curr_delta, best_delta, prev_cpu, best_energy_cpu, max_spare_cap_cpu),
 
 	TP_STRUCT__entry(
 		__field(unsigned long,	pd_energy)
@@ -703,6 +734,7 @@ TRACE_EVENT(sched_energy_diff,
 		__field(unsigned long,	best_delta)
 		__field(int,		prev_cpu)
 		__field(int,		best_energy_cpu)
+		__field(int,		max_spare_cap_cpu)
 	),
 
 	TP_fast_assign(
@@ -713,11 +745,48 @@ TRACE_EVENT(sched_energy_diff,
 		__entry->best_delta		= best_delta;
 		__entry->prev_cpu		= prev_cpu;
 		__entry->best_energy_cpu	= best_energy_cpu;
+		__entry->max_spare_cap_cpu	= max_spare_cap_cpu;
 	),
 
-	TP_printk("pd_eng=%lu base_eng=%lu p_delta=%lu c_delta=%lu, b_delta=%lu prev_cpu=%d best_eng_cpu=%d",
+	TP_printk("pd_eng=%lu base_eng=%lu p_delta=%lu c_delta=%lu b_delta=%lu prev_cpu=%d best_eng_cpu=%d max_spare_cpu=%d",
 		  __entry->pd_energy, __entry->base_energy, __entry->prev_delta, __entry->curr_delta, __entry->best_delta,
-		__entry->prev_cpu, __entry->best_energy_cpu)
+		  __entry->prev_cpu, __entry->best_energy_cpu, __entry->max_spare_cap_cpu)
+);
+
+/*trace feec candidates */
+TRACE_EVENT(sched_feec_candidates,
+
+	TP_PROTO(int prev_cpu, int best_energy_cpu, unsigned long base_energy, unsigned long prev_delta,
+		 unsigned long best_delta, int best_idle_cpu, int max_spare_cap_cpu_ls),
+
+	TP_ARGS(prev_cpu, best_energy_cpu, base_energy, prev_delta, best_delta, best_idle_cpu, max_spare_cap_cpu_ls),
+
+	TP_STRUCT__entry(
+		__field(int,		prev_cpu)
+		__field(int,		best_energy_cpu)
+		__field(unsigned long,	base_energy)
+		__field(unsigned long,	prev_delta)
+		__field(unsigned long,	best_delta)
+		__field(unsigned long,	threshold)
+		__field(int,		best_idle_cpu)
+		__field(int,		max_spare_cap_cpu_ls)
+	),
+
+	TP_fast_assign(
+		__entry->prev_cpu		= prev_cpu;
+		__entry->best_energy_cpu	= best_energy_cpu;
+		__entry->best_idle_cpu		= best_idle_cpu;
+		__entry->base_energy		= base_energy;
+		__entry->prev_delta		= prev_delta;
+		__entry->best_delta		= best_delta;
+		__entry->threshold		= prev_delta == ULONG_MAX ? 0 : ((prev_delta + base_energy) >> 4);
+		__entry->max_spare_cap_cpu_ls	= max_spare_cap_cpu_ls;
+	),
+
+	TP_printk("prev_cpu=%d best_eng_cpu=%d base_eng=%lu p_delta=%lu b_delta=%lu threshold=%lu best_idle_cpu=%d max_spare_cpu_ls=%d",
+		  __entry->prev_cpu, __entry->best_energy_cpu, __entry->base_energy,
+		  __entry->prev_delta, __entry->best_delta, __entry->threshold,
+		  __entry->best_idle_cpu, __entry->max_spare_cap_cpu_ls)
 );
 
 /*

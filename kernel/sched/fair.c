@@ -24,6 +24,7 @@
 
 #include <trace/events/sched.h>
 #include <trace/hooks/sched.h>
+#include "sprd-eas.h"
 
 /*
  * Targeted preemption latency for CPU-bound tasks:
@@ -6391,44 +6392,6 @@ static unsigned long cpu_util_without(int cpu, struct task_struct *p)
 }
 
 /*
- * Predicts what cpu_util(@cpu) would return if @p was migrated (and enqueued)
- * to @dst_cpu.
- */
-static unsigned long cpu_util_next(int cpu, struct task_struct *p, int dst_cpu)
-{
-	struct cfs_rq *cfs_rq = &cpu_rq(cpu)->cfs;
-	unsigned long util_est, util = READ_ONCE(cfs_rq->avg.util_avg);
-
-	/*
-	 * If @p migrates from @cpu to another, remove its contribution. Or,
-	 * if @p migrates from another CPU to @cpu, add its contribution. In
-	 * the other cases, @cpu is not impacted by the migration, so the
-	 * util_avg should already be correct.
-	 */
-	if (task_cpu(p) == cpu && dst_cpu != cpu)
-		lsub_positive(&util, task_util(p));
-	else if (task_cpu(p) != cpu && dst_cpu == cpu)
-		util += task_util(p);
-
-	if (sched_feat(UTIL_EST)) {
-		util_est = READ_ONCE(cfs_rq->avg.util_est.enqueued);
-
-		/*
-		 * During wake-up, the task isn't enqueued yet and doesn't
-		 * appear in the cfs_rq->avg.util_est.enqueued of any rq,
-		 * so just add it (if needed) to "simulate" what will be
-		 * cpu_util() after the task has been enqueued.
-		 */
-		if (dst_cpu == cpu)
-			util_est += _task_util_est(p);
-
-		util = max(util, util_est);
-	}
-
-	return min(util, capacity_orig_of(cpu));
-}
-
-/*
  * Calc what cpu_util(@cpu) would return if without @p.
  */
 static unsigned long cpu_util_base(int cpu, struct task_struct *p,
@@ -6617,6 +6580,26 @@ populate_pd_cache(struct task_struct *p, struct perf_domain *pd,
 	return energy;
 }
 
+static inline int select_cpu_with_same_energy(int prev_cpu, int best_cpu, int iso_cpu,
+					struct pd_cache *pd_util, bool boosted)
+{
+	unsigned long cap_prev_cpu = capacity_orig_of(prev_cpu);
+	unsigned long cap_best_cpu = capacity_orig_of(best_cpu);
+
+	/* the prev_cpu and the best_cpu belong to the same cluster */
+	if (cap_prev_cpu == cap_best_cpu && boosted &&
+	    pd_util[best_cpu].util_cfs < pd_util[prev_cpu].util_cfs)
+		return best_cpu;
+
+	/* prefer smaller cluster */
+	if (cap_prev_cpu > cap_best_cpu && !boosted)
+		return best_cpu;
+
+	if (cpu_isolated(prev_cpu))
+		return iso_cpu;
+
+	return prev_cpu;
+}
 /*
  * find_energy_efficient_cpu(): Find most energy-efficient target CPU for the
  * waking task. find_energy_efficient_cpu() looks for the CPU with maximum
@@ -6661,28 +6644,30 @@ static int find_energy_efficient_cpu(struct task_struct *p, int prev_cpu, int sy
 	unsigned long prev_delta = ULONG_MAX, best_delta = ULONG_MAX;
 	struct root_domain *rd = cpu_rq(smp_processor_id())->rd;
 	int max_spare_cap_cpu_ls = prev_cpu, best_idle_cpu = -1;
-	unsigned long max_spare_cap_ls = 0, target_cap;
+	unsigned long max_spare_cap_ls = 0, target_cap = ULONG_MAX;
 	unsigned long cpu_cap, util, base_energy = 0;
-	bool boosted, latency_sensitive = false;
+	bool boosted, blocked, latency_sensitive = false;
 	unsigned int min_exit_lat = UINT_MAX;
-	int cpu, best_energy_cpu = prev_cpu;
+	int cpu, best_energy_cpu = -1;
 	struct cpuidle_state *idle;
 	struct pd_cache *pd_cache;
 	struct sched_domain *sd;
 	struct perf_domain *pd;
-	unsigned long uclamp_util;
-#ifdef CONFIG_SPRD_CORE_CTL
+	unsigned long task_util, uclamp_util;
+	unsigned long max_cap = rd->max_cpu_capacity.val;
 	int isolated_candidate = -1;
-#endif
 
 	rcu_read_lock();
 	pd = rcu_dereference(rd->pd);
-	if (!pd || READ_ONCE(rd->overutilized))
+	if (!pd)
 		goto fail;
 
 	cpu = smp_processor_id();
+
 	if (sync && cpu_rq(cpu)->nr_running == 1 &&
-	    cpumask_test_cpu(cpu, p->cpus_ptr)) {
+	    cpumask_test_cpu(cpu, p->cpus_ptr) &&
+	    task_fits_capacity(p, capacity_of(cpu)) &&
+	    cpumask_test_cpu(cpu, &min_cap_cpu_mask)) {
 		rcu_read_unlock();
 		return cpu;
 	}
@@ -6703,19 +6688,22 @@ static int find_energy_efficient_cpu(struct task_struct *p, int prev_cpu, int sy
 		goto fail;
 
 	sync_entity_load_avg(&p->se);
-	if (!task_util_est(p))
+	task_util = task_util_est(p);
+	if (!task_util)
 		goto unlock;
 
 	uclamp_util = uclamp_task_util(p);
 	latency_sensitive = uclamp_latency_sensitive(p);
 	boosted = uclamp_boosted(p);
-	target_cap = boosted ? 0 : ULONG_MAX;
+	blocked = uclamp_blocked(p);
 
-	trace_sched_task_comm_info(p, latency_sensitive, boosted, uclamp_util);
+	trace_sched_feec_task_info(p, prev_cpu, task_util, uclamp_util, boosted,
+				   latency_sensitive, blocked);
 
 	for (; pd; pd = pd->next) {
-		unsigned long cur_delta, spare_cap, max_spare_cap = 0;
+		unsigned long cur_delta = ULONG_MAX, spare_cap, max_spare_cap = 0;
 		unsigned long base_energy_pd;
+		unsigned long min_cfs_util = ULONG_MAX;
 		int max_spare_cap_cpu = -1;
 
 		/* Compute the 'base' energy of the pd, without @p */
@@ -6723,6 +6711,10 @@ static int find_energy_efficient_cpu(struct task_struct *p, int prev_cpu, int sy
 		base_energy += base_energy_pd;
 
 		for_each_cpu_and(cpu, perf_domain_span(pd), sched_domain_span(sd)) {
+			bool big_is_idle = false, cpu_is_idle = false;
+			unsigned int idle_exit_latency = UINT_MAX;
+			unsigned long cap_orig = capacity_orig_of(cpu);
+
 			if (!cpumask_test_cpu(cpu, p->cpus_ptr))
 				continue;
 #ifdef CONFIG_SPRD_CORE_CTL
@@ -6731,8 +6723,12 @@ static int find_energy_efficient_cpu(struct task_struct *p, int prev_cpu, int sy
 
 			if (isolated_candidate == -1)
 				isolated_candidate = cpu;
+			else if (cap_orig <= capacity_orig_of(isolated_candidate))
+				isolated_candidate = cpu;
 #endif
-			util = cpu_util_next(cpu, p, cpu);
+			/* speed up goto big core */
+			util = pd_cache[cpu].util_cfs + task_util;
+
 			cpu_cap = capacity_of(cpu);
 			spare_cap = cpu_cap;
 			lsub_positive(&spare_cap, util);
@@ -6745,15 +6741,33 @@ static int find_energy_efficient_cpu(struct task_struct *p, int prev_cpu, int sy
 			 * aligned with schedutil_cpu_util().
 			 */
 			util = uclamp_rq_util_with(cpu_rq(cpu), util, p);
-			trace_sched_cfs_rq_task_util(cpu, p, util, spare_cap, cpu_cap);
-			if (!fits_capacity(util, cpu_cap))
+
+			if (idle_cpu(cpu)) {
+				cpu_is_idle = true;
+				idle = idle_get_state(cpu_rq(cpu));
+				if (idle)
+					idle_exit_latency = idle->exit_latency;
+				else
+					idle_exit_latency = 0;
+
+				if (max_cap == cap_orig)
+					big_is_idle = true;
+			}
+
+			trace_sched_feec_rq_task_util(cpu, p, cpu_is_idle, &pd_cache[cpu],
+						      util, spare_cap, cpu_cap);
+
+			if (!big_is_idle && !fits_capacity(util, cpu_cap))
 				continue;
 
 			/* Always use prev_cpu as a candidate. */
 			if (!latency_sensitive && cpu == prev_cpu) {
 				prev_delta = compute_energy(p, prev_cpu, pd, pd_cache);
 				prev_delta -= base_energy_pd;
-				best_delta = min(best_delta, prev_delta);
+				if (prev_delta < best_delta) {
+					best_delta = prev_delta;
+					best_energy_cpu = prev_cpu;
+				}
 			}
 
 			/*
@@ -6763,25 +6777,29 @@ static int find_energy_efficient_cpu(struct task_struct *p, int prev_cpu, int sy
 			if (spare_cap > max_spare_cap) {
 				max_spare_cap = spare_cap;
 				max_spare_cap_cpu = cpu;
+			} else if (spare_cap <= 0 && big_is_idle && max_spare_cap == 0 &&
+				   pd_cache[cpu].util_cfs < min_cfs_util) {
+				max_spare_cap = spare_cap;
+				max_spare_cap_cpu = cpu;
 			}
 
 			if (!latency_sensitive)
 				continue;
 
-			if (idle_cpu(cpu)) {
-				cpu_cap = capacity_orig_of(cpu);
-				if (boosted && cpu_cap < target_cap)
-					continue;
-				if (!boosted && cpu_cap > target_cap)
-					continue;
-				idle = idle_get_state(cpu_rq(cpu));
-				if (idle && idle->exit_latency > min_exit_lat &&
-						cpu_cap == target_cap)
+			if (cpu_is_idle) {
+				/* prefer idle CPU with lower cap_orig */
+				if (cap_orig > target_cap)
 					continue;
 
-				if (idle)
-					min_exit_lat = idle->exit_latency;
-				target_cap = cpu_cap;
+				if (idle && idle->exit_latency > min_exit_lat &&
+						cap_orig == target_cap)
+					continue;
+
+				if (best_idle_cpu == prev_cpu)
+					continue;
+
+				min_exit_lat = idle_exit_latency;
+				target_cap = cap_orig;
 				best_idle_cpu = cpu;
 			} else if (spare_cap > max_spare_cap_ls) {
 				max_spare_cap_ls = spare_cap;
@@ -6791,40 +6809,47 @@ static int find_energy_efficient_cpu(struct task_struct *p, int prev_cpu, int sy
 
 		/* Evaluate the energy impact of using this CPU. */
 		if (!latency_sensitive && max_spare_cap_cpu >= 0 &&
-						max_spare_cap_cpu != prev_cpu) {
+					  max_spare_cap_cpu != prev_cpu) {
 			cur_delta = compute_energy(p, max_spare_cap_cpu, pd, pd_cache);
 			cur_delta -= base_energy_pd;
-			if (cur_delta < best_delta) {
+
+			/* prefer small core when delta is equal, but it need
+			 * satisfy the small core has the small cpu number.
+			 */
+			if (cur_delta <= best_delta) {
 				best_delta = cur_delta;
 				best_energy_cpu = max_spare_cap_cpu;
 			}
-			trace_sched_energy_diff(base_energy_pd, base_energy, prev_delta,
-						cur_delta, best_delta, prev_cpu,
-						best_energy_cpu);
 		}
+		trace_sched_energy_diff(base_energy_pd, base_energy, prev_delta,
+					cur_delta, best_delta, prev_cpu,
+					best_energy_cpu, max_spare_cap_cpu);
 
 	}
 unlock:
 	rcu_read_unlock();
 
+	trace_sched_feec_candidates(prev_cpu, best_energy_cpu, base_energy, prev_delta,
+				    best_delta, best_idle_cpu, max_spare_cap_cpu_ls);
+
 	if (latency_sensitive)
 		return best_idle_cpu >= 0 ? best_idle_cpu : max_spare_cap_cpu_ls;
 
+	/* all cpus are overutiled */
+	if (best_energy_cpu < 0)
+		return -1;
 	/*
 	 * Pick the best CPU if prev_cpu cannot be used, or if it saves at
 	 * least 6% of the energy used by prev_cpu.
 	 */
-	if (prev_delta == ULONG_MAX)
+	if (prev_delta == ULONG_MAX || best_energy_cpu == prev_cpu)
 		return best_energy_cpu;
 
 	if ((prev_delta - best_delta) > ((prev_delta + base_energy) >> 4))
 		return best_energy_cpu;
 
-#ifdef CONFIG_SPRD_CORE_CTL
-	if (cpu_isolated(prev_cpu))
-		return isolated_candidate;
-#endif
-	return prev_cpu;
+	return select_cpu_with_same_energy(prev_cpu, best_energy_cpu, isolated_candidate,
+					   pd_cache, boosted);
 
 fail:
 	rcu_read_unlock();
