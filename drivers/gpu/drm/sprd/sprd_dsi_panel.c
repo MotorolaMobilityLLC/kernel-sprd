@@ -66,16 +66,6 @@ static int sprd_panel_unprepare(struct drm_panel *p)
 
 	DRM_INFO("%s()\n", __func__);
 
-	if (panel->info.avee_gpio) {
-		gpiod_direction_output(panel->info.avee_gpio, 0);
-		mdelay(5);
-	}
-
-	if (panel->info.avdd_gpio) {
-		gpiod_direction_output(panel->info.avdd_gpio, 0);
-		mdelay(5);
-	}
-
 	if (panel->info.reset_gpio) {
 		items = panel->info.rst_off_seq.items;
 		timing = panel->info.rst_off_seq.timing;
@@ -84,6 +74,16 @@ static int sprd_panel_unprepare(struct drm_panel *p)
 						timing[i].level);
 			mdelay(timing[i].delay);
 		}
+	}
+
+	if (panel->info.avee_gpio) {
+		gpiod_direction_output(panel->info.avee_gpio, 0);
+		mdelay(5);
+	}
+
+	if (panel->info.avdd_gpio) {
+		gpiod_direction_output(panel->info.avdd_gpio, 0);
+		mdelay(5);
 	}
 
 	regulator_disable(panel->supply);
