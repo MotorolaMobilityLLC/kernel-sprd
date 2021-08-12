@@ -647,7 +647,8 @@
 	};
 
 	flash_ic: flash-ic@63 {
-		compatible = "sprd,flash-aw3643";
+		compatible = "sprd,flash-aw36514","sprd,flash-ocp81375",
+				"sprd,flash-sy7806";
 		reg = <0x63>;
 		sprd,flash-ic = <3643>;
 		sprd,torch = <1>;
