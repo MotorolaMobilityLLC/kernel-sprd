@@ -32,6 +32,34 @@ static void track_buffer_destroyed(struct ion_buffer *buffer)
 	trace_ion_stat(buffer->sg_table, -buffer->size, total);
 }
 
+#ifdef CONFIG_E_SHOW_MEM
+/* this function should only be called while dev->lock is held */
+static void ion_buffer_add(struct ion_device *dev,
+			   struct ion_buffer *buffer)
+{
+	struct rb_node **p = &dev->buffers.rb_node;
+	struct rb_node *parent = NULL;
+	struct ion_buffer *entry;
+
+	while (*p) {
+		parent = *p;
+		entry = rb_entry(parent, struct ion_buffer, node);
+
+		if (buffer < entry) {
+			p = &(*p)->rb_left;
+		} else if (buffer > entry) {
+			p = &(*p)->rb_right;
+		} else {
+			pr_err("%s: buffer already found.", __func__);
+			BUG();
+		}
+	}
+
+	rb_link_node(&buffer->node, parent, p);
+	rb_insert_color(&buffer->node, &dev->buffers);
+}
+#endif
+
 /* this function should only be called while dev->lock is held */
 static struct ion_buffer *ion_buffer_create(struct ion_heap *heap,
 					    struct ion_device *dev,
@@ -39,6 +67,9 @@ static struct ion_buffer *ion_buffer_create(struct ion_heap *heap,
 					    unsigned long flags)
 {
 	struct ion_buffer *buffer;
+#ifdef CONFIG_E_SHOW_MEM
+	struct timespec64 ts;
+#endif
 	int ret;
 
 	buffer = kzalloc(sizeof(*buffer), GFP_KERNEL);
@@ -84,10 +115,23 @@ static struct ion_buffer *ion_buffer_create(struct ion_heap *heap,
 
 	INIT_LIST_HEAD(&buffer->attachments);
 	mutex_init(&buffer->lock);
+#ifdef CONFIG_E_SHOW_MEM
+	mutex_lock(&dev->buffer_lock);
+	ion_buffer_add(dev, buffer);
+	mutex_unlock(&dev->buffer_lock);
+#endif
 	track_buffer_created(buffer);
 
 	if (buffer->heap->type == ION_HEAP_TYPE_SYSTEM)
 		atomic_long_add(buffer->size, &ion_heap_total_size);
+
+#ifdef CONFIG_E_SHOW_MEM
+	buffer->pid = task_pid_nr(current->group_leader);
+	get_task_comm(buffer->task_name, current->group_leader);
+	ktime_get_real_ts64(&ts);
+	ts.tv_sec -= sys_tz.tz_minuteswest * 60;
+	buffer->alloc_ts = ts;
+#endif
 
 	return buffer;
 
@@ -240,6 +284,12 @@ int ion_buffer_destroy(struct ion_device *dev, struct ion_buffer *buffer)
 
 	heap = buffer->heap;
 	track_buffer_destroyed(buffer);
+
+#ifdef CONFIG_E_SHOW_MEM
+	mutex_lock(&dev->buffer_lock);
+	rb_erase(&buffer->node, &dev->buffers);
+	mutex_unlock(&dev->buffer_lock);
+#endif
 
 	if (buffer->heap->type == ION_HEAP_TYPE_SYSTEM)
 		atomic_long_sub(buffer->size, &ion_heap_total_size);

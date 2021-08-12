@@ -263,6 +263,11 @@ static int ion_dma_buf_mmap(struct dma_buf *dmabuf, struct vm_area_struct *vma)
 {
 	struct ion_buffer *buffer = dmabuf->priv;
 	struct ion_heap *heap = buffer->heap;
+#ifdef CONFIG_E_SHOW_MEM
+	struct task_struct *task = current->group_leader;
+	pid_t pid = task_pid_nr(task);
+	int i;
+#endif
 	int ret;
 
 	/* now map it to userspace */
@@ -281,6 +286,26 @@ static int ion_dma_buf_mmap(struct dma_buf *dmabuf, struct vm_area_struct *vma)
 	if (ret)
 		pr_err("%s: failure mapping buffer to userspace\n", __func__);
 
+#ifdef CONFIG_E_SHOW_MEM
+	for (i = 0; i < MAX_MAP_USER; i++) {
+		if (pid == buffer->mappers[i].pid) {
+			ktime_get_real_ts64(&buffer->mappers[i].map_ts);
+			buffer->mappers[i].map_ts.tv_sec -= sys_tz.tz_minuteswest * 60;
+			goto out;
+		}
+	}
+
+	for (i = 0; i < MAX_MAP_USER; i++) {
+		if (!(buffer->mappers[i].pid)) {
+			buffer->mappers[i].pid = pid;
+			get_task_comm(buffer->mappers[i].task_name, task);
+			ktime_get_real_ts64(&buffer->mappers[i].map_ts);
+			buffer->mappers[i].map_ts.tv_sec -= sys_tz.tz_minuteswest * 60;
+			break;
+		}
+	}
+out:
+#endif
 	return ret;
 }
 

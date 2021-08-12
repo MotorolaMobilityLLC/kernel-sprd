@@ -20,6 +20,16 @@
 #include <linux/types.h>
 #include <uapi/linux/ion.h>
 
+#ifdef CONFIG_E_SHOW_MEM
+#define MAX_MAP_USER    15
+
+struct ion_map_info {
+	pid_t pid;
+	char task_name[TASK_COMM_LEN];
+	struct timespec64 map_ts;
+};
+#endif
+
 /**
  * struct ion_buffer - metadata for a particular buffer
  * @list:		element in list of deferred freeable buffers
@@ -36,7 +46,14 @@
  * @attachments:	list of devices attached to this buffer
  */
 struct ion_buffer {
+#ifdef CONFIG_E_SHOW_MEM
+	union {
+		struct rb_node node;
+		struct list_head list;
+	};
+#else
 	struct list_head list;
+#endif
 	struct ion_heap *heap;
 	unsigned long flags;
 	unsigned long private_flags;
@@ -47,6 +64,12 @@ struct ion_buffer {
 	void *vaddr;
 	struct sg_table *sg_table;
 	struct list_head attachments;
+#ifdef CONFIG_E_SHOW_MEM
+	pid_t pid;
+	char task_name[TASK_COMM_LEN];
+	struct timespec64 alloc_ts;
+	struct ion_map_info mappers[MAX_MAP_USER];
+#endif
 };
 
 /**

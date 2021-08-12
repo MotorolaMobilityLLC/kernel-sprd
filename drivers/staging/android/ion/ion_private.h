@@ -16,6 +16,7 @@
 #include <linux/plist.h>
 #include <linux/rbtree.h>
 #include <linux/rwsem.h>
+#include <linux/timekeeping.h>
 #include <linux/types.h>
 
 /**
@@ -27,6 +28,10 @@
  */
 struct ion_device {
 	struct miscdevice dev;
+#ifdef CONFIG_E_SHOW_MEM
+	struct rb_root buffers;
+	struct mutex buffer_lock;
+#endif
 	struct rw_semaphore lock;
 	DECLARE_BITMAP(heap_ids, ION_NUM_MAX_HEAPS);
 	struct plist_head heaps;

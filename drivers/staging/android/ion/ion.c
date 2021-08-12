@@ -218,6 +218,97 @@ static long ion_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	return ret;
 }
 
+#ifdef CONFIG_E_SHOW_MEM
+int ion_debug_heap_show_printk(struct ion_heap *heap,
+			       enum e_show_mem_type type,
+			       void *data)
+{
+	int i;
+	struct ion_device *dev = internal_dev;
+	struct rb_node *n;
+	size_t total_size = 0;
+	unsigned long pool_used = 0;
+	unsigned long *total_used = data;
+	struct tm t;
+
+	pr_info("Heap: %s\n", heap->name);
+	pr_info("Detail:\n");
+	pr_info("%-10s %-6s %-16s %-10s\n", "size", "pid", "name", "alloc_ts");
+	mutex_lock(&dev->buffer_lock);
+	for (n = rb_first(&dev->buffers); n; n = rb_next(n)) {
+		struct ion_buffer *buffer = rb_entry(n, struct ion_buffer,
+						     node);
+
+		if (buffer->heap->id != heap->id)
+			continue;
+		time64_to_tm(buffer->alloc_ts.tv_sec, 0, &t);
+		pr_info("%-10zu %-5d %-16s %ld.%d.%d-%d:%d:%d.%ld\n",
+			buffer->size, buffer->pid, buffer->task_name,
+			t.tm_year + 1900, t.tm_mon + 1,
+			t.tm_mday, t.tm_hour, t.tm_min,
+			t.tm_sec, buffer->alloc_ts.tv_nsec);
+		for (i = 0; i < MAX_MAP_USER; i++) {
+			if (buffer->mappers[i].pid) {
+				time64_to_tm(buffer->mappers[i].map_ts.tv_sec, 0, &t);
+				pr_info("       |---%-5d  %-16s  %ld.%d.%d-%d:%d:%d.%ld\n",
+					buffer->mappers[i].pid,
+					buffer->mappers[i].task_name,
+					t.tm_year + 1900, t.tm_mon + 1,
+					t.tm_mday, t.tm_hour, t.tm_min,
+					t.tm_sec, buffer->mappers[i].map_ts.tv_nsec);
+			}
+		}
+
+		total_size += buffer->size;
+	}
+	mutex_unlock(&dev->buffer_lock);
+	pr_info("----------------------------------------------------\n");
+	pr_info("%16s %16zu\n", "total ", total_size);
+	if (heap->flags & ION_HEAP_FLAG_DEFER_FREE)
+		pr_info("%16s %16zu\n", "deferred free",	heap->free_list_size);
+	pr_info("----------------------------------------------------\n");
+
+	pr_info("%16.s %lu\n", "total pooled", pool_used);
+	pr_info("----------------------------------------------------------\n");
+	pr_info("Total used: %lu kB\n", (unsigned long)(total_size +
+				pool_used + heap->free_list_size) / 1024);
+	pr_info("----------------------------------------------------------\n");
+	pr_info("\n");
+
+	if (heap->type == ION_HEAP_TYPE_SYSTEM) {
+		*total_used += (unsigned long)(total_size + pool_used +
+					       heap->free_list_size);
+	}
+
+	return 0;
+}
+
+static int ion_e_show_mem_handler(struct notifier_block *nb,
+				  unsigned long val, void *data)
+{
+	struct ion_device *dev = internal_dev;
+	struct ion_heap *heap;
+	enum e_show_mem_type type = (enum e_show_mem_type)val;
+	unsigned long total_used = 0;
+
+	pr_info("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
+	pr_info("Enhanced Mem-info :ION\n");
+	plist_for_each_entry(heap, &dev->heaps, node)
+		if ((type != E_SHOW_MEM_BASIC) ||
+		    (heap->type == ION_HEAP_TYPE_SYSTEM)) {
+			pr_info("%s: heap_id %d\n", __func__, heap->id);
+			ion_debug_heap_show_printk(heap, type, &total_used);
+		}
+
+	pr_info("Total allocated from Buddy: %lu kB\n", total_used / 1024);
+	return 0;
+}
+
+static struct notifier_block ion_e_show_mem_notifier = {
+	.notifier_call = ion_e_show_mem_handler,
+};
+#endif
+
 static const struct file_operations ion_fops = {
 	.owner          = THIS_MODULE,
 	.unlocked_ioctl = ion_ioctl,
@@ -507,9 +598,16 @@ static int ion_device_create(void)
 	}
 
 	idev->debug_root = debugfs_create_dir("ion", NULL);
+#ifdef CONFIG_E_SHOW_MEM
+	idev->buffers = RB_ROOT;
+	mutex_init(&idev->buffer_lock);
+#endif
 	init_rwsem(&idev->lock);
 	plist_head_init(&idev->heaps);
 	internal_dev = idev;
+#ifdef CONFIG_E_SHOW_MEM
+	register_e_show_mem_notifier(&ion_e_show_mem_notifier);
+#endif
 	return 0;
 
 err_sysfs:
