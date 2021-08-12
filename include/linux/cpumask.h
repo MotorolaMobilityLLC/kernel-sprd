@@ -91,16 +91,13 @@ extern struct cpumask __cpu_possible_mask;
 extern struct cpumask __cpu_online_mask;
 extern struct cpumask __cpu_present_mask;
 extern struct cpumask __cpu_active_mask;
-#ifdef CONFIG_SPRD_CORE_CTL
 extern struct cpumask __cpu_isolated_mask;
-#endif
+
 #define cpu_possible_mask ((const struct cpumask *)&__cpu_possible_mask)
 #define cpu_online_mask   ((const struct cpumask *)&__cpu_online_mask)
 #define cpu_present_mask  ((const struct cpumask *)&__cpu_present_mask)
 #define cpu_active_mask   ((const struct cpumask *)&__cpu_active_mask)
-#ifdef CONFIG_SPRD_CORE_CTL
-#define cpu_isolated_mask   ((const struct cpumask *)&__cpu_isolated_mask)
-#endif
+#define cpu_isolated_mask ((const struct cpumask *)&__cpu_isolated_mask)
 extern atomic_t __num_online_cpus;
 
 #if NR_CPUS > 1
@@ -133,6 +130,10 @@ static inline unsigned int num_online_cpus(void)
 	cpumask_weight(&mask);					\
 })
 #define cpu_isolated(cpu)       cpumask_test_cpu((cpu), cpu_isolated_mask)
+#else
+#define num_isolated_cpus()	0
+#define num_online_uniso_cpus()	cpumask_weight(cpu_online_mask)
+#define cpu_isolated(cpu)       false
 #endif
 
 #else

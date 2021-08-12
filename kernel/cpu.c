@@ -2344,8 +2344,8 @@ EXPORT_SYMBOL(__cpu_present_mask);
 struct cpumask __cpu_active_mask __read_mostly;
 EXPORT_SYMBOL(__cpu_active_mask);
 
-#ifdef CONFIG_SPRD_CORE_CTL
 struct cpumask __cpu_isolated_mask __read_mostly;
+#ifdef CONFIG_SPRD_CORE_CTL
 EXPORT_SYMBOL(__cpu_isolated_mask);
 void init_cpu_isolated(const struct cpumask *src)
 {
