@@ -46,8 +46,7 @@
 
 MODULE_DESCRIPTION(DRIVER_INFO);
 MODULE_LICENSE("GPL v2");
-#define DISABLE 0
-#define ENABLE 1
+
 #define MUSB_RECOVER_TIMEOUT 100
 struct sprd_glue {
 	struct device		*dev;
@@ -539,7 +538,6 @@ static struct musb_hdrc_config sprd_musb_hdrc_config_single = {
 #pragma GCC diagnostic pop
 
 extern bool USB_detect_flag;
-extern int ili_ic_func_ctrl(const char *name, int ctrl);
 static int musb_sprd_vbus_notifier(struct notifier_block *nb,
 				unsigned long event, void *data)
 {
@@ -563,9 +561,7 @@ static int musb_sprd_vbus_notifier(struct notifier_block *nb,
 		glue->vbus_active = 1;
 		glue->wq_mode = USB_DR_MODE_PERIPHERAL;
 		queue_work(system_unbound_wq, &glue->work);
-        ili_ic_func_ctrl("plug", DISABLE);
 		spin_unlock_irqrestore(&glue->lock, flags);
-        dev_info(glue->dev, "zhangshaohu usb plug insert\n");
 		dev_info(glue->dev,
 			"device connection detected from VBUS GPIO.\n");
 	} else {
@@ -580,14 +576,11 @@ static int musb_sprd_vbus_notifier(struct notifier_block *nb,
 		glue->vbus_active = 0;
 		glue->wq_mode = USB_DR_MODE_PERIPHERAL;
 		queue_work(system_unbound_wq, &glue->work);
-        ili_ic_func_ctrl("plug",ENABLE);
 		spin_unlock_irqrestore(&glue->lock, flags);
-        dev_info(glue->dev, "zhangshaohu usb plug out\n");
 		dev_info(glue->dev,
 			"device disconnect detected from VBUS GPIO.\n");
 	}
 	USB_detect_flag = glue->vbus_active;
-
 	return 0;
 }
 
