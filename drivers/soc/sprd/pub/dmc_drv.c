@@ -94,6 +94,18 @@ static const struct dmc_data pub_dmc_data = {
 	},
 };
 
+static const struct dmc_data pub_dmc_original_data = {
+	.proc_res = 0,
+	.mon_res = INVALID_RES_IDX, /* not support pub status mointor */
+	.size_l_offset = PUB_DMC_SIZE_L_OFFSET,
+	.size_h_offset = PUB_DMC_SIZE_H_OFFSET,
+	.type_offset = PUB_DMC_TYPE_OFFSET,
+	.mr_offset = {
+		PUB_DMC_CS0_MR_OFFSET,
+		PUB_DMC_CS1_MR_OFFSET,
+	},
+};
+
 static struct dmc_drv_data drv_data;
 
 static const char *const ddr_type_to_str[] = {
@@ -429,6 +441,8 @@ static int sprd_dmc_remove(struct platform_device *pdev)
 
 static const struct of_device_id sprd_dmc_of_match[] = {
 	{.compatible = "sprd,pub-dmc", .data = &pub_dmc_data},
+	/* for such earlier platform which not support pub status mointor */
+	{.compatible = "sprd,pub-dmc-original", .data = &pub_dmc_original_data},
 	{},
 };
 
