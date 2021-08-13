@@ -367,6 +367,7 @@ static ssize_t modem_read_mini_dump(struct file *filp,
 		s_cur_info = (struct modem_dump_info *)vmem;
 	} else {
 		vmem = modem_map_memory(modem, base, size, &map_size);
+		s_cur_info = NULL;
 	}
 
 	if (!vmem) {
