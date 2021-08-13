@@ -1517,6 +1517,12 @@ static ssize_t calibrator_data_store(struct device *dev,
 
 	cali_data_ptr = get_sensor_cali_data_ptr(sensor_type);
 
+	if (!cali_data_ptr) {
+		dev_err(&sensor->sensor_pdev->dev, "error! sensor_type=%d no cali data!\n",
+			sensor_type);
+		return -EINVAL;
+	}
+
 	memcpy(cali_data_ptr, &buf[1], CALIBRATION_DATA_LENGTH);
 
 	err = shub_send_command(sensor, sensor_type,
