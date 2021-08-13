@@ -2283,10 +2283,10 @@
 				status = "disabled";
 			};
 
-			dmc_controller: dmc-controller@31050000  {
-				compatible = "sprd,sharkl5-dmc";
-				reg = <0x0 0x31050000 0x0 0x7000>,
-					<0x0 0x3000 0x0 0x1000>;
+			dmc_controller: dmc-controller@31050000 {
+				compatible = "sprd,pub-dmc";
+				reg = <0x0 0x3000 0x0 0x100>, /* proc res */
+					<0x0 0x31050000 0x0 0x7000>; /* mon res */
 			};
 
 			ptm_trace: ptm@31060000 {

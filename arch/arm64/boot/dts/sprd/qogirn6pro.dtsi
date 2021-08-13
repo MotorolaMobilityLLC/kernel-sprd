@@ -2645,10 +2645,10 @@
 				status = "okay";
 			};
 
-			dmc_controller: dmc-controller@60050000  {
+			dmc_controller: dmc-controller@60050000 {
 				compatible = "sprd,pub-dmc";
-				reg = <0x0 0x60050000 0x0 0x8010>,
-					<0x0 0x65014c00 0x0 0x100>;
+				reg = <0x0 0x65014c00 0x0 0x100>, /* proc res */
+					<0x0 0x60050000 0x0 0x8010>; /* mon res */
 			};
 
 			ptm_trace: ptm@60060000 {

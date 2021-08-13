@@ -1056,10 +1056,10 @@
 				status = "okay";
 			};
 
-			dmc_controller: dmc-controller@60000000  {
+			dmc_controller: dmc-controller@60000000 {
 				compatible = "sprd,pub-dmc";
-				reg = <0x0 0x60000000 0x0 0x9000>,
-					<0x0 0x65002000 0x0 0x1000>;
+				reg = <0x0 0x65002000 0x0 0x100>, /* proc res */
+					<0x0 0x60000000 0x0 0x9000>; /* mon res */
 			};
 
 			ptm_trace: ptm@60040000 {

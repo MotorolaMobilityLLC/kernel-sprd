@@ -1391,9 +1391,9 @@
 				status = "disabled";
 			};
 
-			dmc_controller: dmc-controller@3000019c {
-				compatible = "sprd,pub-dmc";
-				reg = <0x0 0x3000019c 0x0 0x100>;
+			dmc_controller: dmc-controller@300001a8 {
+				compatible = "sprd,pub-dmc-original";
+				reg = <0x0 0x300001a8 0x0 0x100>;
 			};
 		};
 	};
