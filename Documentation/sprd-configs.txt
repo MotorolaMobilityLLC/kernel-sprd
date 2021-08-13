@@ -5495,6 +5495,15 @@ CONFIG_EMBEDDED
 	[must] user
 	[missing plat description] none
 	[function] vts require, Embedded system.
+CONFIG_ENABLE_DEFAULT_TRACERS
+	[arch] arm
+	[plat] sharkl3_32
+	[missing plat] pike2
+	[field]
+	[subsys]
+	[must]
+	[missing plat description]
+	[function]
 CONFIG_ENABLE_MUST_CHECK
 	[arch] arm
 	[plat] pike2
