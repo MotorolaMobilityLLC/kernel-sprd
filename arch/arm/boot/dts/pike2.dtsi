@@ -949,9 +949,9 @@
 			#size-cells = <1>;
 			ranges;
 
-			dmc_controller: dmc-controller@30000000 {
-				compatible = "sprd,pike2-dmc";
-				reg = <0x30000000 0x1000>;
+			dmc_controller: dmc-controller@300001b4 {
+				compatible = "sprd,pub-dmc-original";
+				reg = <0x300001b4 0x100>;
 			};
 		};
 	};
