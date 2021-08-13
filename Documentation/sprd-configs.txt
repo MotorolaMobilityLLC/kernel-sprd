@@ -17309,9 +17309,9 @@ CONFIG_SPRD_VSP_PW_DOMAIN
 	[missing plat description] none
 	[function] power on vsp domain.
 CONFIG_SPRD_WATCHDOG
-	[arch] arm
-	[plat] pike2
-	[missing plat] none
+	[arch] all
+	[plat] pike2,sharkl3
+	[missing plat] sharkl5Pro
 	[field] menu,code
 	[subsys] core
 	[must] user
