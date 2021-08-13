@@ -223,6 +223,7 @@ static struct sysdump_config sysdump_conf = {
 };
 
 static int sprd_sysdump_init;
+static int sprd_sysdump_shash_init;
 
 int sysdump_status;
 struct regmap *regmap;
@@ -671,7 +672,7 @@ static int sysdump_panic_event(struct notifier_block *self,
 		prepare_exception_info(pregs, NULL, reason);
 	}
 #endif
-	if (sprd_sysdump_init) {
+	if (sprd_sysdump_shash_init) {
 		pr_emerg("KTXT VERIFY...\n");
 		crypto_shash_update(desc, (u8 *)_stext, _etext-_stext);
 		crypto_shash_final(desc, g_ktxt_hash_data);
@@ -998,7 +999,7 @@ static int sysdump_shash_init(void)
 		pr_err("crypto_shash_init fail(%d)!\n", ret);
 		return ret;
 	}
-
+	sprd_sysdump_shash_init = 1;
 	return 0;
 error_no_desc:
 	crypto_free_shash(tfm);
