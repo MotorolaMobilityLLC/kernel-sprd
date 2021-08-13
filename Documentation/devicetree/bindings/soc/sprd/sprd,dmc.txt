@@ -4,7 +4,7 @@ DT binding for Spreadtrum dmc driver interface
 This binding follows the generic dmc bindings defined in sprd,dmc.txt.
 
 Required properties:
-- compatible: Must be "sprd,pub-dmc"
+- compatible: should be "sprd,pub-dmc","sprd,pub-dmc-original"
 - reg: Address range of ddr mode registers and pub monitor registers.
 
 Example:
