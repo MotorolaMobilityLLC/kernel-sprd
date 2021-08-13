@@ -533,7 +533,7 @@ int sc2355_sched_scan_start(struct wiphy *wiphy, struct net_device *ndev,
 		sscan_buf->rssi_thold = request->min_rssi_thold;
 
 	for (i = 0, j = 0; i < request->n_channels; i++) {
-		int ch = request->channels[i]->hw_value;
+		u16 ch = request->channels[i]->hw_value;
 
 		if (ch == 0) {
 			netdev_info(ndev, "%s  unknown frequency %dMhz\n",

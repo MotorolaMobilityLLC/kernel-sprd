@@ -239,7 +239,7 @@ struct sprd_sched_scan {
 	u32 interval;
 	u32 flags;
 	s32 rssi_thold;
-	u8 channel[SPRD_TOTAL_CHAN_NR];
+	u16 channel[SPRD_TOTAL_CHAN_NR];
 
 	u32 n_ssids;
 	u8 *ssid[SPRD_TOTAL_CHAN_NR];
