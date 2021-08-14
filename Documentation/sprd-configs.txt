@@ -18836,6 +18836,15 @@ CONFIG_USB_CONFIGFS_F_VSERIAL
 	[must] user
 	[missing plat description] none
 	[function] This macro is to support vendor serial.
+CONFIG_USB_F_VSERIAL_BYPASS_USER
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function] This macro is to support modem log using vser
 CONFIG_USB_CONFIGFS_MASS_STORAGE
 	[arch] all
 	[plat] all

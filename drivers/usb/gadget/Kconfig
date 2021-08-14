@@ -253,6 +253,15 @@ config USB_CONFIGFS_UEVENT
 	  state changes. The gadget can be in any of the following
 	  three states: "CONNECTED/DISCONNECTED/CONFIGURED"
 
+config USB_F_VSERIAL_BYPASS_USER
+	bool "vser write bypass user"
+	help
+	  The function allow vser write in kernel.
+	  nop
+	  nop
+	  nop
+	  nop
+
 config USB_CONFIGFS_SERIAL
 	bool "Generic serial bulk in/out"
 	depends on USB_CONFIGFS
