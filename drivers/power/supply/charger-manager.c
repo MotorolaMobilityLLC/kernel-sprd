@@ -1237,7 +1237,7 @@ static bool is_full_charged(struct charger_manager *cm)
 		ret = power_supply_get_property(fuel_gauge,
 				POWER_SUPPLY_PROP_CAPACITY, &val);
 		if (!ret && val.intval >= desc->fullbatt_soc) {
-			if( batt_ocv > 4260000 && bat_uA <450000 && bat_uA >0)
+			if( batt_ocv > 4260000 && bat_uA <850000 && bat_uA >0)
 			is_full = true;
 			goto out;
 		}
@@ -4032,15 +4032,19 @@ static void cm_track_capacity_work(struct work_struct *work)
 			dev_err(cm->dev, "track file data error.\n");
 			goto out;
 		}
-
+                dev_err(cm->dev, "%s; old total_cap=%d;read total_cap=%d;\n",__func__,total_cap,capacity);
 		if (abs(total_cap - capacity) < total_cap / 2)
-			set_batt_total_cap(cm, capacity);
+                {
+                        dev_err(cm->dev, "%s; set_batt_total_cap new total_cap=%d;\n",__func__,capacity);
+                        set_batt_total_cap(cm, capacity);
+                }
 		break;
 
 	case CAP_TRACK_DONE:
 		cm->track.state = CAP_TRACK_IDLE;
 		file_buf[0] = total_cap ^ CM_TRACK_CAPACITY_KEY0;
 		file_buf[1] = total_cap ^ CM_TRACK_CAPACITY_KEY1;
+                dev_err(cm->dev, "%s; write total_cap=%d;\n",__func__,total_cap);
 		ret = kernel_write(filep, &file_buf, sizeof(file_buf), &pos);
 		if (ret < 0) {
 			dev_err(cm->dev, "write file_buf data error\n");
@@ -4133,13 +4137,13 @@ static void cm_track_capacity_monitor(struct charger_manager *cm)
 		 * starting condition.
 		 */
 		if (is_charger_mode) {
-			if (boot_volt > CM_TRACK_CAPACITY_SHUTDOWN_START_VOLTAGE ||
+			if (/*boot_volt > CM_TRACK_CAPACITY_SHUTDOWN_START_VOLTAGE ||*/
 			    ocv > CM_TRACK_CAPACITY_START_VOLTAGE) {
 				dev_info(cm->dev, "not satisfy shutdown start condition.\n");
 				return;
 			}
 		} else {
-			if (abs(cur_now) > CM_TRACK_CAPACITY_START_CURRENT ||
+			if (/*abs(cur_now) > CM_TRACK_CAPACITY_START_CURRENT ||*/
 			    ocv > CM_TRACK_CAPACITY_START_VOLTAGE) {
 				dev_info(cm->dev, "not satisfy power on start condition.\n");
 				return;
@@ -4735,7 +4739,7 @@ static void cm_batt_works(struct work_struct *work)
 				fuel_cap = CM_CAP_FULL_PERCENT;
 
 			if (fuel_cap > cm->desc->cap)
-				fuel_cap = cm->desc->cap + 4;
+				fuel_cap = cm->desc->cap + 3;
 		}
 
 		break;
