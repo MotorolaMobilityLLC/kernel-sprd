@@ -67,8 +67,8 @@ static const struct attribute_group soc_attr_group = {
 
 static int sprd_manufacturer_model(void)
 {
-	struct device sprd_manufacturer_model_dev;
-	struct device *pdev = (struct device*) &sprd_manufacturer_model_dev;
+	static struct device sprd_manufacturer_model_dev;
+	static struct device *pdev = (struct device *) &sprd_manufacturer_model_dev;
 
 	device_initialize(pdev);
 
