@@ -386,6 +386,11 @@ extern int direct_vm_swappiness;
 #endif
 extern int remove_mapping(struct address_space *mapping, struct page *page);
 extern unsigned long vm_total_pages;
+#ifdef CONFIG_RCC
+#define RCC_MODE_ANON   1
+#define RCC_MODE_FILE   2
+extern int try_to_free_pages_ex(int nr_pages, int mode);
+#endif
 
 extern unsigned long reclaim_pages(struct list_head *page_list);
 #ifdef CONFIG_NUMA

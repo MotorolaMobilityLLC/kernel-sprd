@@ -22,6 +22,22 @@ config ANDROID_VSOC
 	  a 'cuttlefish' Android image inside QEmu. The driver interacts with
 	  a QEmu ivshmem device. If built as a module, it will be called vsoc.
 
+config RCC
+tristate "RAM Compress and Clean"
+	depends on SYSFS && SWAP
+	default n
+	help
+	  Creates background thread for compress and clean used RAM
+  	  dynamiclly,enabled by write 1 to /sys/kernel/rcc/enable.
+
+config RCC_DEBUG
+  bool "RAM Compress and Clean debug support"
+	depends on RCC
+	default n
+	help
+	  This option adds additional debugging code to the
+  	  RAM Compress and Clean module.
+
 source "drivers/staging/android/ion/Kconfig"
 
 endif # if ANDROID
