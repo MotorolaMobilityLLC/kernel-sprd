@@ -132,7 +132,7 @@ int sprd_dsi_init(struct sprd_dsi *dsi)
 {
 	int div;
 	struct dsi_context *ctx = &dsi->ctx;
-	u16 max_rd_time;
+	u64 max_rd_time;
 	u16 data_hs2lp, data_lp2hs, clk_hs2lp, clk_lp2hs;
 
 	dsi_hal_power_en(dsi, 0);
@@ -151,7 +151,8 @@ int sprd_dsi_init(struct sprd_dsi *dsi)
 	dsi_hal_tx_escape_division(dsi, div);
 	pr_info("escape clock divider = %d\n", div);
 
-	max_rd_time = ns_to_cycle(ctx->max_rd_time, ctx->byte_clk);
+	max_rd_time = ctx->max_rd_time * ctx->byte_clk;
+	do_div(max_rd_time, 1000000);
 	dsi_hal_max_read_time(dsi, max_rd_time);
 
 	data_hs2lp = ns_to_cycle(ctx->data_hs2lp, ctx->byte_clk);
