@@ -239,6 +239,8 @@ int fat_get_cluster(struct inode *inode, int cluster, int *fclus, int *dclus)
 		fat_fs_error_ratelimit(sb,
 			"%s: invalid start cluster (i_pos %lld, start %08x)",
 			__func__, MSDOS_I(inode)->i_pos, *dclus);
+		dump_stack();
+		panic("BUG1682994: invalid start cluster");
 		return -EIO;
 	}
 	if (cluster == 0)
