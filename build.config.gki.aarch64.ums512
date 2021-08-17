@@ -1,5 +1,4 @@
-. ${ROOT_DIR}/${KERNEL_DIR}/build.config.common
-. ${ROOT_DIR}/${KERNEL_DIR}/build.config.aarch64
+. ${ROOT_DIR}/${KERNEL_DIR}/build.config.gki.aarch64
 
 BUILD_INITRAMFS=1
 DEFCONFIG=ums512_gki_defconfig
@@ -17,5 +16,9 @@ arch/arm64/boot/Image.gz
 arch/arm64/boot/dts/sprd/ums512-1h10.dtb
 vmlinux
 "
-KMI_SYMBOL_LIST=android/abi_gki_aarch64_unisoc
+#KMI_SYMBOL_LIST=android/abi_gki_aarch64_unisoc
 GKI_MODULES_LIST=android/gki_aarch64_modules
+
+MODULES_ORDER=""
+TRIM_NONLISTED_KMI=""
+KMI_SYMBOL_LIST_STRICT_MODE=""
