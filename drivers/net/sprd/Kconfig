@@ -8,6 +8,7 @@ menu "Unisoc Net Devices"
 source "drivers/net/sprd/seth/Kconfig"
 source "drivers/net/sprd/sipa_sys/Kconfig"
 source "drivers/net/sprd/sipa_v3/Kconfig"
+source "drivers/net/sprd/sipa_delegate/Kconfig"
 
 endmenu
 

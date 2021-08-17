@@ -1,0 +1,12 @@
+menu "SIPA delegate modules"
+config SPRD_IPA_DELEGATE
+	tristate "Enable delegate for modem side sipa"
+	default n
+	depends on SPRD_IPA_V3 || SPRD_SIPC
+	help
+	  This option enables delegate for modem side sipa.
+
+	  This function is used to synchronize resource status with CP,
+	  ensure the synchronization of the power-on and power-off status
+	  between AP and CP.
+endmenu

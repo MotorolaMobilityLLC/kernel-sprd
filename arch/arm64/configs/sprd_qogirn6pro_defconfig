@@ -2118,6 +2118,12 @@ CONFIG_SPRD_IPA_V3=m
 CONFIG_SPRD_IPA_ETH=m
 CONFIG_SPRD_IPA_USB=m
 # end of SIPA_V3 modules
+
+#
+# SIPA delegate modules
+#
+CONFIG_SPRD_IPA_DELEGATE=m
+# end of SIPA delegate modules
 # end of Unisoc Net Devices
 
 # CONFIG_NETDEVSIM is not set
