@@ -90,6 +90,8 @@ struct dsi_context {
 	bool te_ack_en;
 	/* enable non coninuous clock for energy saving */
 	bool nc_clk_en;
+	/* mipi clk division config parameters*/
+	int dpi_clk_div;
 	/* dpi clk need switch to 384m fot div6/div8 feature */
 	bool clk_dpi_384m;
 	/* enable low power cmd transsmit in video mode */

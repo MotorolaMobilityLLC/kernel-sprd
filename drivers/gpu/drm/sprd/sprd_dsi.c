@@ -297,6 +297,9 @@ static int sprd_dsi_host_attach(struct mipi_dsi_host *host,
 	else
 		ctx->hporch_lp_disable = 0;
 
+	if (!of_property_read_u32(lcd_node, "sprd,dpi-clk-div", &val))
+		ctx->dpi_clk_div = val;
+
 	return 0;
 }
 

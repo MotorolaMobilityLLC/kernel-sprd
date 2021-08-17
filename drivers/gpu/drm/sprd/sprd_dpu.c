@@ -627,7 +627,7 @@ static int sprd_dpu_probe(struct platform_device *pdev)
 	struct device_node *np = pdev->dev.of_node;
 	const struct sprd_dpu_ops *pdata;
 	struct sprd_dpu *dpu;
-	int ret, val;
+	int ret;
 
 	dpu = devm_kzalloc(&pdev->dev, sizeof(*dpu), GFP_KERNEL);
 	if (!dpu)
@@ -642,9 +642,6 @@ static int sprd_dpu_probe(struct platform_device *pdev)
 		DRM_ERROR("No matching driver data found\n");
 		return -EINVAL;
 	}
-
-	if (!of_property_read_u32(np, "sprd,dpi-clk-div", &val))
-		dpu->ctx.dpi_clk_div = val;
 
 	ret = sprd_dpu_context_init(dpu, np);
 	if (ret)

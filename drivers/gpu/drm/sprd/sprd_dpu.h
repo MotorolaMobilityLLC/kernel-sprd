@@ -163,7 +163,6 @@ struct dpu_context {
 	unsigned long logo_addr;
 	unsigned long logo_size;
 	u32 prev_y2r_coef;
-	int dpi_clk_div;
 	u64 frame_count;
 };
 
