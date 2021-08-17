@@ -306,6 +306,15 @@ void ufs_sprd_reset(struct ufs_sprd_host *host)
 	ufs_remap_or(&(host->ap_apb_ufs_rst));
 	ufs_remap_and(&(host->ap_apb_ufs_rst));
 
+	ufs_sprd_rmwl(host->ufs_analog_reg, MPHY_ANR_MPHY_CTRL2_REFCLKON_MASK,
+			MPHY_ANR_MPHY_CTRL2_REFCLKON_VAL, MPHY_ANR_MPHY_CTRL2);
+	udelay(1);
+	ufs_sprd_rmwl(host->ufs_analog_reg, MPHY_REG_SEL_CFG_0_REFCLKON_MASK,
+			MPHY_REG_SEL_CFG_0_REFCLKON_VAL, MPHY_REG_SEL_CFG_0);
+	udelay(1);
+	ufs_sprd_rmwl(host->ufs_analog_reg, MPHY_APB_REFCLK_AUTOH8_EN_MASK,
+			MPHY_APB_REFCLK_AUTOH8_EN_VAL, MPHY_DIG_CFG14_LANE0);
+
 }
 
 /*
