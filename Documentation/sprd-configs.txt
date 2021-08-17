@@ -2973,15 +2973,6 @@ CONFIG_CMA_SIZE_SEL_MBYTES
 	[must] console
 	[missing plat description] none
 	[function] enbale CMA
-CONFIG_SPRD_CMA_DEBUG
-	[arch] all
-	[plat] all
-	[missing plat] none
-	[field]mm
-	[subsys]mm
-	[must]console
-	[missing plat description] none
-	[function] sprd cma debug
 CONFIG_CMDLINE
 	[arch] all
 	[plat] all
@@ -16643,6 +16634,15 @@ CONFIG_SPRD_CAMSYS_PW_DOMAIN
 	[must]
 	[missing plat description] none
 	[function]
+CONFIG_SPRD_CMA_DEBUG
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field] mm
+	[subsys] mm
+	[must] console
+	[missing plat description] none
+	[function] sprd cma debug
 CONFIG_SPRD_COMMON_CLK
 	[arch] all
 	[plat] all
@@ -18872,15 +18872,6 @@ CONFIG_USB_CONFIGFS_F_VSERIAL
 	[must] user
 	[missing plat description] none
 	[function] This macro is to support vendor serial.
-CONFIG_USB_F_VSERIAL_BYPASS_USER
-	[arch] all
-	[plat] all
-	[missing plat] none
-	[field]
-	[subsys]
-	[must]
-	[missing plat description] none
-	[function] This macro is to support modem log using vser
 CONFIG_USB_CONFIGFS_MASS_STORAGE
 	[arch] all
 	[plat] all
@@ -19070,6 +19061,15 @@ CONFIG_USB_F_VSERIAL
 	[must] user
 	[missing plat description] none
 	[function] USB gadget VSERIAL support.
+CONFIG_USB_F_VSERIAL_BYPASS_USER
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function] This macro is to support modem log using vser
 CONFIG_USB_GADGET
 	[arch] all
 	[plat] all
