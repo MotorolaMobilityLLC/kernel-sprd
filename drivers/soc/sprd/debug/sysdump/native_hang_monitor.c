@@ -611,6 +611,8 @@ static int hang_detect_thread(void *arg)
 	reset_hang_info();
 	pr_debug("[Native Hang Detect] hang_detect thread starts.\n");
 	while (!kthread_should_stop()) {
+		/* close nhmonitor func temporary */
+		hang_detect_enabled = 0;
 		if (hang_detect_enabled) {
 			if (atomic_add_negative(0, &hang_detect_counter)) {
 #ifdef CONFIG_SPRD_DEBUG
