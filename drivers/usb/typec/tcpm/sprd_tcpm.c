@@ -4670,7 +4670,7 @@ void sprd_tcpm_get_source_capabilities(struct sprd_tcpm_port *port,
 			pd_source_cap->pwr_mw_limit[i] = sprd_pdo_max_power(pdo);
 			break;
 		case SPRD_PDO_TYPE_APDO:
-			if (sprd_pdo_apdo_type(pdo) == APDO_TYPE_PPS) {
+			if (sprd_pdo_apdo_type(pdo) == SPRD_APDO_TYPE_PPS) {
 				pd_source_cap->max_mv[i] = sprd_pdo_pps_apdo_max_voltage(pdo);
 				pd_source_cap->min_mv[i] = sprd_pdo_pps_apdo_min_voltage(pdo);
 				pd_source_cap->ma[i] = sprd_pdo_pps_apdo_max_current(pdo);
