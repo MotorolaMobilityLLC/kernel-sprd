@@ -36,8 +36,6 @@ static char hang_info[HANG_INFO_MAX];
 static int hang_info_index;
 static struct task_struct *hd_thread;
 
-#define SEND_SIG_FORCED ((struct kernel_siginfo *) 2)
-
 static void log_to_hang_info(const char *fmt, ...)
 {
 	unsigned long len = 0;
@@ -508,12 +506,12 @@ static void show_bt_by_pid(int task_pid)
 
 				log_to_hang_info("%s sysTid=%d, pid=%d\n", t->comm, tid, task_pid);
 
-				do_send_sig_info(SIGSTOP, SEND_SIG_FORCED, t, true);
+				send_sig_info(SIGSTOP, SEND_SIG_PRIV, t);
 				/* change send ptrace_stop to send signal stop */
 				save_native_threadinfo_by_tid(tid);	/* catch user-space bt */
 				/* change send ptrace_stop to send signal stop */
 				if (stat_nam[state] != 'T')
-					do_send_sig_info(SIGCONT, SEND_SIG_FORCED, t, true);
+					send_sig_info(SIGCONT, SEND_SIG_PRIV, t);
 			}
 			if ((++count) % 5 == 4)
 				msleep(20);
@@ -611,8 +609,6 @@ static int hang_detect_thread(void *arg)
 	reset_hang_info();
 	pr_debug("[Native Hang Detect] hang_detect thread starts.\n");
 	while (!kthread_should_stop()) {
-		/* close nhmonitor func temporary */
-		hang_detect_enabled = 0;
 		if (hang_detect_enabled) {
 			if (atomic_add_negative(0, &hang_detect_counter)) {
 #ifdef CONFIG_SPRD_DEBUG
