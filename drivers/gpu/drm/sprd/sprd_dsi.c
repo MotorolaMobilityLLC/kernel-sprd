@@ -65,6 +65,16 @@ static void sprd_dsi_encoder_enable(struct drm_encoder *encoder)
 
 	DRM_INFO("%s()\n", __func__);
 
+	/* add if condition to avoid resume dsi for SR feature.
+	 * if esd recovery happened during display suspend, skip dsi resume.
+	 */
+	if (!encoder->crtc || !encoder->crtc->state->active ||
+	    (encoder->crtc->state->mode_changed &&
+	     !encoder->crtc->state->active_changed)) {
+		DRM_INFO("skip dsi resume\n");
+		return;
+	}
+
 	if (dsi->ctx.enabled) {
 		DRM_INFO("dsi is initialized\n");
 		return;
@@ -103,6 +113,11 @@ static void sprd_dsi_encoder_disable(struct drm_encoder *encoder)
 	struct sprd_crtc *crtc = to_sprd_crtc(encoder->crtc);
 
 	DRM_INFO("%s()\n", __func__);
+
+	/* add if condition to avoid suspend dsi for SR feature */
+	if (encoder->crtc->state->mode_changed &&
+	    !encoder->crtc->state->active_changed)
+		return;
 
 	if (!dsi->ctx.enabled) {
 		DRM_INFO("dsi isn't initialized\n");

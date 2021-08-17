@@ -131,6 +131,12 @@ static void sprd_crtc_atomic_enable(struct drm_crtc *crtc,
 {
 	struct sprd_crtc *sprd_crtc = to_sprd_crtc(crtc);
 
+	/*
+	 * add if condition to avoid resume dpu for SR feature.
+	 */
+	if (crtc->state->mode_changed && !crtc->state->active_changed)
+		return;
+
 	if (sprd_crtc->ops->atomic_enable)
 		sprd_crtc->ops->atomic_enable(sprd_crtc);
 
@@ -141,6 +147,10 @@ static void sprd_crtc_atomic_disable(struct drm_crtc *crtc,
 					   struct drm_crtc_state *old_state)
 {
 	struct sprd_crtc *sprd_crtc = to_sprd_crtc(crtc);
+
+	/* add if condition to avoid suspend dpu for SR feature */
+	if (crtc->state->mode_changed && !crtc->state->active_changed)
+		return;
 
 	drm_crtc_vblank_off(crtc);
 
