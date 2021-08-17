@@ -1,0 +1,12 @@
+menu "Sipa sys modules"
+config SPRD_IPA_SYS
+	tristate "Sprd Ipa Sys Power Management"
+	default n
+	select PM_GENERIC_DOMAINS if PM
+	help
+	  Sipa sys is a module that manages ipa low power, realized by creating
+	  a power domain.
+
+	  When you select this feature, it will enable the pm generic
+	  power domain for ipa_sys module.
+endmenu

@@ -2104,6 +2104,12 @@ CONFIG_WLAN=y
 # Unisoc Net Devices
 #
 CONFIG_SPRD_SIPC_SETH=m
+
+#
+# Sipa sys modules
+#
+CONFIG_SPRD_IPA_SYS=m
+# end of Sipa sys modules
 # end of Unisoc Net Devices
 
 # CONFIG_NETDEVSIM is not set
