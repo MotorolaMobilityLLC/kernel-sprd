@@ -324,9 +324,9 @@ struct sprd_hwdvfs_l3_info {
 
 static const struct sprd_hwdvfs_l3_info sprd_hwdvfs_l3_info_1h10 = {
 	.type = SPRD_HWDVFS_SHARKL3,
-	.def_freq0 = 2,
-	.def_freq1 = 3,
-	.def_freq2 = 3,
+	.def_freq0 = 4,
+	.def_freq1 = 5,
+	.def_freq2 = 5,
 };
 
 static const struct sprd_hwdvfs_l3_info sprd_hwdvfs_l3_info_3h10 = {

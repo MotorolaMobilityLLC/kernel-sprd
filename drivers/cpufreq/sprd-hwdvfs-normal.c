@@ -1319,6 +1319,9 @@ unsigned int sprd_cpudvfs_curr_freq_get(void *data, u32 clu_id)
 
 	sw_opp_index = hw_opp_index - 1;
 
+	if (sw_opp_index > clu->map_idx_max)
+		sw_opp_index = clu->map_idx_max;
+
 	return clu->freqvolt[sw_opp_index].freq / 1000;
 }
 

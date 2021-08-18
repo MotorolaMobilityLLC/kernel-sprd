@@ -23,7 +23,7 @@
 
 static struct cpufreq_driver sprd_hardware_cpufreq_driver;
 static unsigned long boot_done_timestamp;
-
+static int boost_mode_flag = 1;
 static struct sprd_cpufreq_info *global_cpufreq_info;
 
 static const struct of_device_id sprd_hardware_cpufreq_of_match[] = {
@@ -642,8 +642,14 @@ int sprd_hardware_cpufreq_set_target_index(struct cpufreq_policy *policy,
 	 * Should to set frequency after boot_done_timestamp ticks since the
 	 * cpufreq device has been probed
 	 */
-	if (unlikely(!time_after(jiffies, boot_done_timestamp)))
-		return 0;
+
+	if (boost_mode_flag) {
+		if (!time_after(jiffies, boot_done_timestamp))
+			return 0;
+		boost_mode_flag = 0;
+		pr_info("Disables boost it is %lu seconds after boot up\n",
+			SPRD_CPUFREQ_BOOST_DURATION / HZ);
+	}
 
 	mutex_lock(&info->pcluster->opp_mutex);
 	ret = driver->target_set(pdev, info->clu_id, index);
@@ -874,10 +880,38 @@ static unsigned int sprd_hardware_cpufreq_get(unsigned int cpu)
 
 static int sprd_hardware_cpufreq_suspend(struct cpufreq_policy *policy)
 {
+	struct sprd_cpufreq_info *info;
+	struct cpudvfs_device *pdev;
+	struct cpudvfs_phy_ops *driver;
+	int cpu;
+
 	if (!strcmp(policy->governor->name, "userspace")) {
 		pr_info("Do nothing for governor-%s\n",
 			policy->governor->name);
 		return 0;
+	}
+
+	/*
+	 * If suspend occus during the boost, cancel the boost and
+	 * actively switch frequency to suspend freq.
+	 */
+	if (boost_mode_flag) {
+		boost_mode_flag = 0;
+
+		/* Current policy switch to suspend freq */
+		info = policy->driver_data;
+		pdev = info->parchdev;
+		driver = pdev->phy_ops;
+		mutex_lock(&info->pcluster->opp_mutex);
+		driver->target_set(pdev, info->clu_id, 0);
+		mutex_unlock(&info->pcluster->opp_mutex);
+
+		/* The other policy switch to suspend freq */
+		cpu = cpumask_next_zero(-1, policy->cpus);
+		info = sprd_cpufreq_info_lookup(cpu);
+		mutex_lock(&info->pcluster->opp_mutex);
+		driver->target_set(pdev, info->clu_id, 0);
+		mutex_unlock(&info->pcluster->opp_mutex);
 	}
 
 	return cpufreq_generic_suspend(policy);

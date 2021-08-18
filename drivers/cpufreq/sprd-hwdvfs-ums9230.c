@@ -167,12 +167,12 @@ static struct reg_info ums9230_volt_misc_cfg[] = {
 };
 
 static struct reg_info ums9230_freq_misc_cfg[] = {
-	/* Set default work index 7 to twpll for lit core */
-	GENREGVALSET(0x214, 0, 0xf, 7),
-	/* Set default work index 5 to twpll for big core */
-	GENREGVALSET(0x224, 0, 0xf, 5),
-	/* Set default work index 7 to ltepll for scu */
-	GENREGVALSET(0x22c, 0, 0xf, 7),
+	/* Set default work index 10 to mpll for lit core */
+	GENREGVALSET(0x214, 0, 0xf, 0xa),
+	/* Set default work index 9 to mpll for big core */
+	GENREGVALSET(0x224, 0, 0xf, 9),
+	/* Set default work index 10 to mpll for scu */
+	GENREGVALSET(0x22c, 0, 0xf, 0xa),
 	GENREGVALSET(0, 0, 0, 0),
 };
 
