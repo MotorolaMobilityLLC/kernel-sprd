@@ -312,6 +312,7 @@
 	bus-width = <4>;
 	sd-uhs-sdr104;
 	sd-uhs-sdr50;
+	sprd,name = "sdio_sd";
 	no-sdio;
 	no-mmc;
 	status = "okay";
