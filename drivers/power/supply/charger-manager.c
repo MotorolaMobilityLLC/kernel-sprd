@@ -62,11 +62,10 @@
 #define CM_FAST_CHARGE_CURRENT_2A		2000000
 #define CM_FAST_CHARGE_VOLTAGE_9V		9000000
 #define CM_FAST_CHARGE_VOLTAGE_5V		5000000
-#define CM_FAST_CHARGE_ENABLE_COUNT		2
+#define CM_FAST_CHARGE_START_VOLTAGE_LTHRESHOLD	3520000
+#define CM_FAST_CHARGE_START_VOLTAGE_HTHRESHOLD	4200000
 #define CM_FAST_CHARGE_DISABLE_COUNT		2
 
-#define CM_CP_START_VOLTAGE_LTHRESHOLD		3520000
-#define CM_CP_START_VOLTAGE_HTHRESHOLD		4200000
 #define CM_CP_VSTEP				20000
 #define CM_CP_ISTEP				50000
 #define CM_CP_PRIMARY_CHARGER_DIS_TIMEOUT	20
@@ -1776,50 +1775,79 @@ static int cm_adjust_fast_charge_voltage(struct charger_manager *cm, int vol)
 	return 0;
 }
 
+static bool cm_is_reach_fchg_threshold(struct charger_manager *cm)
+{
+	int batt_ocv, batt_uA, fchg_ocv_threshold, thm_cur;
+	int cur_jeita_status, target_cur;
+
+	if (get_batt_ocv(cm, &batt_ocv)) {
+		dev_err(cm->dev, "get_batt_ocv error.\n");
+		return false;
+	}
+
+	if (get_ibat_now_uA(cm, &batt_uA)) {
+		dev_err(cm->dev, "get_ibat_now_uA error.\n");
+		return false;
+	}
+
+	target_cur = batt_uA;
+	if (cm->desc->jeita_tab_size) {
+		cur_jeita_status = cm_manager_get_jeita_status(cm, cm->desc->temperature);
+		if (cm->desc->jeita_disabled)
+			cur_jeita_status = cm->desc->force_jeita_status;
+
+		target_cur = 0;
+		if (cur_jeita_status != cm->desc->jeita_tab_size)
+			target_cur = cm->desc->jeita_tab[cur_jeita_status].current_ua;
+	}
+
+	fchg_ocv_threshold = CM_FAST_CHARGE_START_VOLTAGE_HTHRESHOLD;
+	if (cm->desc->fchg_ocv_threshold)
+		fchg_ocv_threshold = cm->desc->fchg_ocv_threshold;
+
+	thm_cur = CM_FAST_CHARGE_ENABLE_THERMAL_CURRENT;
+	if (cm->desc->thm_info.thm_adjust_cur > 0)
+		thm_cur = cm->desc->thm_info.thm_adjust_cur;
+
+	if (target_cur >= CM_FAST_CHARGE_ENABLE_CURRENT &&
+		 thm_cur >= CM_FAST_CHARGE_ENABLE_THERMAL_CURRENT &&
+		 batt_ocv > 0 && batt_ocv < fchg_ocv_threshold &&
+		 batt_ocv >= CM_FAST_CHARGE_START_VOLTAGE_LTHRESHOLD)
+		return true;
+	else if (batt_ocv > 0 && batt_ocv >= CM_FAST_CHARGE_START_VOLTAGE_LTHRESHOLD &&
+		 batt_uA > 0 && batt_uA >= CM_FAST_CHARGE_ENABLE_CURRENT)
+		return true;
+
+	return false;
+}
+
 static int cm_fast_charge_enable_check(struct charger_manager *cm)
 {
-	struct charger_desc *desc = cm->desc;
-	int batt_uV, batt_uA, ret;
+	int ret;
 
 	/*
-	 * if it occurs emergency event,
-	 * don't enable fast charge.
+	 * if it occurs emergency event, don't enable fast charge.
 	 */
 	if (cm->emergency_stop)
 		return -EAGAIN;
+
+	if (!cm->desc) {
+		dev_err(cm->dev, "cm->desc is a null pointer!!!\n");
+		return 0;
+	}
 
 	/*
 	 * if it don't define cm-fast-chargers in dts,
 	 * we think that it don't plan to use fast charge.
 	 */
-	if (!desc->psy_fast_charger_stat || !desc->psy_fast_charger_stat[0])
+	if (!cm->desc->psy_fast_charger_stat || !cm->desc->psy_fast_charger_stat[0])
 		return 0;
 
-	if (!desc->is_fast_charge || desc->enable_fast_charge)
+	if (!cm->desc->is_fast_charge || cm->desc->enable_fast_charge)
 		return 0;
 
-	ret = get_vbat_now_uV(cm, &batt_uV);
-	if (ret) {
-		dev_err(cm->dev, "failed to get batt uV\n");
-		return ret;
-	}
-
-	ret = get_ibat_now_uA(cm, &batt_uA);
-	if (ret) {
-		dev_err(cm->dev, "failed to get batt uA\n");
-		return ret;
-	}
-
-	if (batt_uV > CM_FAST_CHARGE_ENABLE_BATTERY_VOLTAGE &&
-	    batt_uA > CM_FAST_CHARGE_ENABLE_CURRENT)
-		desc->fast_charge_enable_count++;
-	else
-		desc->fast_charge_enable_count = 0;
-
-	if (desc->fast_charge_enable_count < CM_FAST_CHARGE_ENABLE_COUNT)
+	if (!cm_is_reach_fchg_threshold(cm))
 		return 0;
-
-	desc->fast_charge_enable_count = 0;
 
 	ret = cm_set_main_charger_current(cm, CM_FAST_CHARGE_ENABLE_CMD);
 	if (ret) {
@@ -1856,7 +1884,7 @@ static int cm_fast_charge_enable_check(struct charger_manager *cm)
 		return ret;
 	}
 
-	desc->enable_fast_charge = true;
+	cm->desc->enable_fast_charge = true;
 	/*
 	 * adjust over voltage protection in 9V
 	 */
@@ -2409,52 +2437,6 @@ static void cm_update_cp_charger_status(struct charger_manager *cm)
 	       cp->vbat_uV, cp->vbus_uV, cp->ibat_uA, cp->ibus_uA);
 }
 
-static bool cm_is_reach_cp_threshold(struct charger_manager *cm)
-{
-	int batt_ocv, batt_uA, cp_ocv_threshold, thm_cur;
-	int cur_jeita_status, target_cur;
-
-	if (get_batt_ocv(cm, &batt_ocv)) {
-		dev_err(cm->dev, "get_batt_ocv error.\n");
-		return false;
-	}
-
-	if (get_ibat_now_uA(cm, &batt_uA)) {
-		dev_err(cm->dev, "get_ibat_now_uA error.\n");
-		return false;
-	}
-
-	target_cur = batt_uA;
-	if (cm->desc->jeita_tab_size) {
-		cur_jeita_status = cm_manager_get_jeita_status(cm, cm->desc->temperature);
-		if (cm->desc->jeita_disabled)
-			cur_jeita_status = cm->desc->force_jeita_status;
-
-		target_cur = 0;
-		if (cur_jeita_status != cm->desc->jeita_tab_size)
-			target_cur = cm->desc->jeita_tab[cur_jeita_status].current_ua;
-	}
-
-	cp_ocv_threshold = CM_CP_START_VOLTAGE_HTHRESHOLD;
-	if (cm->desc->cp.cp_ocv_threshold)
-		cp_ocv_threshold = cm->desc->cp.cp_ocv_threshold;
-
-	thm_cur = CM_FAST_CHARGE_ENABLE_THERMAL_CURRENT;
-	if (cm->desc->thm_info.thm_adjust_cur > 0)
-		thm_cur = cm->desc->thm_info.thm_adjust_cur;
-
-	if (target_cur >= CM_FAST_CHARGE_ENABLE_CURRENT &&
-		 thm_cur >= CM_FAST_CHARGE_ENABLE_THERMAL_CURRENT &&
-		 batt_ocv > 0 && batt_ocv >= CM_CP_START_VOLTAGE_LTHRESHOLD &&
-		 batt_ocv < cp_ocv_threshold)
-		return true;
-	else if (batt_ocv > 0 && batt_ocv >= CM_CP_START_VOLTAGE_LTHRESHOLD &&
-		 batt_uA > 0 && batt_uA >= CM_FAST_CHARGE_ENABLE_CURRENT)
-		return true;
-
-	return false;
-}
-
 static void cm_cp_check_vbus_status(struct charger_manager *cm)
 {
 	struct cm_fault_status *fault = &cm->desc->cp.flt;
@@ -2703,7 +2685,7 @@ static void cm_cp_state_recovery(struct charger_manager *cm)
 	dev_info(cm->dev, "cm_cp_state_machine: state %d, %s\n",
 	       cp->cp_state, cm_cp_state_names[cp->cp_state]);
 
-	if (is_ext_pwr_online(cm) && cm_is_reach_cp_threshold(cm)) {
+	if (is_ext_pwr_online(cm) && cm_is_reach_fchg_threshold(cm)) {
 		cm_cp_state_change(cm, CM_CP_STATE_ENTRY);
 	} else {
 		cm->desc->cp.recovery = false;
@@ -3013,7 +2995,7 @@ static bool cm_is_need_start_cp(struct charger_manager *cm)
 	dev_info(cm->dev, "%s, check_cp_threshold = %d, pps_running = %d, fast_charger_type = %d\n",
 		 __func__, cp->check_cp_threshold, cp->cp_running, cm->desc->fast_charger_type);
 	if (cp->check_cp_threshold && !cp->cp_running &&
-	   cm_is_reach_cp_threshold(cm) && cm->charger_enabled &&
+	   cm_is_reach_fchg_threshold(cm) && cm->charger_enabled &&
 	   cm->desc->fast_charger_type == POWER_SUPPLY_USB_CHARGER_TYPE_PD_PPS)
 		need = true;
 
@@ -4088,7 +4070,6 @@ static void misc_event_handler(struct charger_manager *cm, enum cm_event_types t
 				try_charger_enable(cm, false);
 				cm->desc->is_fast_charge = false;
 				cm->desc->enable_fast_charge = false;
-				cm->desc->fast_charge_enable_count = 0;
 				cm->desc->fast_charge_disable_count = 0;
 				cm->desc->cp.cp_running = false;
 				cm->desc->fast_charger_type = 0;
@@ -4119,7 +4100,6 @@ static void misc_event_handler(struct charger_manager *cm, enum cm_event_types t
 		cm->desc->is_fast_charge = false;
 		cm->desc->ir_comp.ir_compensation_en = false;
 		cm->desc->enable_fast_charge = false;
-		cm->desc->fast_charge_enable_count = 0;
 		cm->desc->fast_charge_disable_count = 0;
 		cm->desc->cp.cp_running = false;
 		cm->desc->cm_check_int = false;
@@ -5614,11 +5594,11 @@ static int cm_get_bat_info(struct charger_manager *cm)
 
 	cm->desc->internal_resist = info.factory_internal_resistance_uohm / 1000;
 	cm->desc->ir_comp.us = info.constant_charge_voltage_max_uv;
+	cm->desc->fchg_ocv_threshold = info.fchg_ocv_threshold;
 	cm->desc->cp.cp_target_vbat = info.constant_charge_voltage_max_uv;
 	cm->desc->cp.cp_max_ibat = info.cur.flash_cur;
 	cm->desc->cp.cp_target_ibat = info.cur.flash_cur;
 	cm->desc->cp.cp_max_ibus = info.cur.flash_limit;
-	cm->desc->cp.cp_ocv_threshold = info.cp_ocv_threshold;
 	cm->desc->cur.sdp_limit = info.cur.sdp_limit;
 	cm->desc->cur.sdp_cur = info.cur.sdp_cur;
 	cm->desc->cur.dcp_limit = info.cur.dcp_limit;

@@ -651,8 +651,8 @@ int power_supply_get_battery_info(struct power_supply *psy,
 			     &info->constant_charge_voltage_max_uv);
 	of_property_read_u32(battery_np, "factory-internal-resistance-micro-ohms",
 			     &info->factory_internal_resistance_uohm);
-	of_property_read_u32(battery_np, "charge-pumps-threshold-microvolt",
-			     &info->cp_ocv_threshold);
+	of_property_read_u32(battery_np, "fast-charge-threshold-microvolt",
+			     &info->fchg_ocv_threshold);
 	of_property_read_u32_index(battery_np, "charge-sdp-current-microamp", 0,
 				   &info->cur.sdp_cur);
 	of_property_read_u32_index(battery_np, "charge-sdp-current-microamp", 1,
