@@ -32,6 +32,8 @@ struct ufs_sprd_host {
 	struct syscon_ufs ahb_ufs_lp;
 	struct syscon_ufs ahb_ufs_force_isol;
 	struct syscon_ufs ahb_ufs_cb;
+	struct syscon_ufs ahb_ufs_ies_en;
+	struct syscon_ufs ahb_ufs_cg_pclkreq;
 	struct clk *hclk_source;
 	struct clk *pclk_source;
 	struct clk *hclk;

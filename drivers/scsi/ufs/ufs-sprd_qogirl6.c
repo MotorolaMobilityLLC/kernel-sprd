@@ -17,6 +17,8 @@
 #include <linux/platform_device.h>
 #include <linux/regmap.h>
 #include <linux/time.h>
+#include <linux/sprd_soc_id.h>
+#include <dt-bindings/soc/sprd,qogirl6-regs.h>
 
 #include "ufshcd.h"
 #include "ufshcd-pltfrm.h"
@@ -155,6 +157,36 @@ int syscon_get_args(struct device *dev, struct ufs_sprd_host *host)
 		pr_err("failed to parse ahb_ufs_cb\n");
 	}
 
+	host->ahb_ufs_ies_en.regmap =
+			syscon_regmap_lookup_by_name(np, "ahb_ufs_ies_en");
+	if (IS_ERR(host->ahb_ufs_ies_en.regmap)) {
+		pr_err("failed to get ahb_ufs_ies_en\n");
+		return PTR_ERR(host->ahb_ufs_ies_en.regmap);
+	}
+
+	ret = syscon_get_args_by_name(np, "ahb_ufs_ies_en", 2, args);
+	if (ret == 2) {
+		host->ahb_ufs_ies_en.reg = args[0];
+		host->ahb_ufs_ies_en.mask = args[1];
+	} else {
+		pr_err("failed to parse ahb_ufs_ies_en\n");
+	}
+
+	host->ahb_ufs_cg_pclkreq.regmap =
+			syscon_regmap_lookup_by_name(np, "ahb_ufs_cg_pclkreq");
+	if (IS_ERR(host->ahb_ufs_cg_pclkreq.regmap)) {
+		pr_err("failed to get ahb_ufs_cg_pclkreq\n");
+		return PTR_ERR(host->ahb_ufs_cg_pclkreq.regmap);
+	}
+
+	ret = syscon_get_args_by_name(np, "ahb_ufs_cg_pclkreq", 2, args);
+	if (ret == 2) {
+		host->ahb_ufs_cg_pclkreq.reg = args[0];
+		host->ahb_ufs_cg_pclkreq.mask = args[1];
+	} else {
+		pr_err("failed to parse ahb_ufs_cg_pclkreq\n");
+	}
+
 	host->pclk = devm_clk_get(&pdev->dev, "ufs_pclk");
 	if (IS_ERR(host->pclk)) {
 		dev_warn(&pdev->dev,
@@ -226,6 +258,10 @@ static void ufs_remap_or(struct syscon_ufs *sysconufs)
 }
 void ufs_sprd_reset_pre(struct ufs_sprd_host *host)
 {
+	u32 is_AB = 0;
+
+	sprd_get_soc_id(AON_VER_ID, &is_AB, 1);
+
 	ufs_remap_or(&(host->ap_ahb_ufs_clk));
 	regmap_update_bits(host->aon_apb_ufs_en.regmap,
 			   host->aon_apb_ufs_en.reg,
@@ -233,14 +269,19 @@ void ufs_sprd_reset_pre(struct ufs_sprd_host *host)
 			   host->aon_apb_ufs_en.mask);
 	ufs_remap_or(&(host->ahb_ufs_lp));
 	ufs_remap_and(&(host->ahb_ufs_force_isol));
+
+	if (is_AB) //AB is 1,AA is 0
+		ufs_remap_or(&(host->ahb_ufs_ies_en));
 }
 
 void ufs_sprd_reset(struct ufs_sprd_host *host)
 {
 	dev_info(host->hba->dev, "ufs hardware reset!\n");
 	/* TODO: HW reset will be simple in next version. */
+
 	/* Configs need strict squence. */
 	ufs_remap_or(&(host->ap_apb_ufs_en));
+
 	/* ahb enable */
 	ufs_remap_or(&(host->ap_ahb_ufs_clk));
 
@@ -306,6 +347,9 @@ void ufs_sprd_reset(struct ufs_sprd_host *host)
 	ufs_remap_or(&(host->ap_apb_ufs_rst));
 	ufs_remap_and(&(host->ap_apb_ufs_rst));
 
+	ufs_remap_or(&(host->ahb_ufs_ies_en));
+	ufs_remap_or(&(host->ahb_ufs_cg_pclkreq));
+
 	ufs_sprd_rmwl(host->ufs_analog_reg, MPHY_ANR_MPHY_CTRL2_REFCLKON_MASK,
 			MPHY_ANR_MPHY_CTRL2_REFCLKON_VAL, MPHY_ANR_MPHY_CTRL2);
 	udelay(1);
@@ -314,7 +358,6 @@ void ufs_sprd_reset(struct ufs_sprd_host *host)
 	udelay(1);
 	ufs_sprd_rmwl(host->ufs_analog_reg, MPHY_APB_REFCLK_AUTOH8_EN_MASK,
 			MPHY_APB_REFCLK_AUTOH8_EN_VAL, MPHY_DIG_CFG14_LANE0);
-
 }
 
 /*
@@ -357,7 +400,6 @@ static int ufs_sprd_init(struct ufs_hba *hba)
 		return -ENODEV;
 	}
 
-
 	ufs_sprd_reset_pre(host);
 	return 0;
 }
@@ -395,6 +437,7 @@ static int ufs_sprd_hce_enable_notify(struct ufs_hba *hba,
 	case PRE_CHANGE:
 		/* Do hardware reset before host controller enable. */
 		ufs_sprd_hw_init(hba);
+		ufshcd_writel(hba, CONTROLLER_ENABLE, REG_CONTROLLER_ENABLE);
 		break;
 	case POST_CHANGE:
 		ufshcd_writel(hba, CLKDIV, HCLKDIV_REG);
