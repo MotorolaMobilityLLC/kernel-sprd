@@ -506,8 +506,7 @@ int sfp_ct_init(struct nf_conn *ct, struct sfp_conn *sfp_ct)
 	sfp_tuple_to_fwd_entries(tuple2, tuple1, fwd_tuple2);
 
 	timer_setup(&sfp_ct->timeout,
-		    sfp_mgr_fwd_death_by_timeout,
-		    (unsigned long)sfp_ct);
+		    sfp_mgr_fwd_death_by_timeout, 0);
 
 	if (tuple1->dst.protonum == IP_L4_PROTO_TCP)
 		sfp_ct->timeout.expires = jiffies + sysctl_tcp_aging_time;
@@ -1122,7 +1121,6 @@ static int sfp_mgr_init(void)
 		sfp_ipa_init();
 	}
 	sfp_proc_create();
-	sfp_mgr_disable();
 	return 0;
 }
 

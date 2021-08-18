@@ -385,8 +385,8 @@ static ssize_t sfp_test_proc_write(struct file *file,
 			   "test_proc = %d, ret %d\n", level, ret);
 		if (ret < 0)
 			return -EFAULT;
-		//if (level > 0)
-		//	sfp_test_init(level);
+		if (level > 0)
+			sfp_test_init(level);
 	}
 	return count;
 }
