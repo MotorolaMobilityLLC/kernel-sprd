@@ -166,8 +166,16 @@ bool __init_memblock memblock_overlaps_region(struct memblock_type *type,
 
 	for (i = 0; i < type->cnt; i++)
 		if (memblock_addrs_overlap(base, size, type->regions[i].base,
-					   type->regions[i].size))
+					   type->regions[i].size)) {
+#ifdef CONFIG_SPRD_MEM_OVERLAY_CHECK
+			pr_err("memblock overlap! base:[%#016llx - %#016llx], overlap:[%#016llx - %#016llx]",
+						(unsigned long long)type->regions[i].base,
+						(unsigned long long)type->regions[i].base + type->regions[i].size - 1,
+						(unsigned long long)base,
+						(unsigned long long)base + size - 1);
+#endif
 			break;
+		}
 	return i < type->cnt;
 }
 
