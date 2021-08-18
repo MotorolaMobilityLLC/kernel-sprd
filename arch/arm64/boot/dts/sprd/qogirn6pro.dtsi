@@ -1131,10 +1131,13 @@
 				syscons = <&mm_ahb_regs REG_MM_AHB_DCAM_BLK_SOFT_RST
 					MASK_MM_AHB_DCAM0_1_ALL_SOFT_RST>,
 					<&mm_ahb_regs REG_MM_AHB_DCAM_BLK_SOFT_RST
+					MASK_MM_AHB_DCAM0_1_AXI_SOFT_RST>,
+					<&mm_ahb_regs REG_MM_AHB_DCAM_BLK_SOFT_RST
 					MASK_MM_AHB_DCAM0_SOFT_RST>,
 					<&mm_ahb_regs REG_MM_AHB_DCAM_BLK_SOFT_RST
 					MASK_MM_AHB_DCAM1_SOFT_RST>;
 				syscon-names = "dcam01_all_reset",
+						"dcam01_axi_reset",
 						"dcam0_reset",
 						"dcam1_reset";
 
