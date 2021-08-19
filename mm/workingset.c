@@ -213,6 +213,35 @@ static void unpack_shadow(void *shadow, int *memcgidp, pg_data_t **pgdat,
 	*workingsetp = workingset;
 }
 
+#ifdef CONFIG_LRU_BALANCE_BASE_THRASHING
+/**
+ * workingset_age_nonresident - age non-resident entries as LRU ages
+ * @memcg: the lruvec that was aged
+ * @nr_pages: the number of pages to count
+ *
+ * As in-memory pages are aged, non-resident pages need to be aged as
+ * well, in order for the refault distances later on to be comparable
+ * to the in-memory dimensions. This function allows reclaim and LRU
+ * operations to drive the non-resident aging along in parallel.
+ */
+void workingset_age_nonresident(struct lruvec *lruvec, unsigned long nr_pages)
+{
+	/*
+	 * Reclaiming a cgroup means reclaiming all its children in a
+	 * round-robin fashion. That means that each cgroup has an LRU
+	 * order that is composed of the LRU orders of its child
+	 * cgroups; and every page has an LRU position not just in the
+	 * cgroup that owns it, but in all of that group's ancestors.
+	 *
+	 * So when the physical inactive list of a leaf cgroup ages,
+	 * the virtual inactive lists of all its parents, including
+	 * the root cgroup's, age as well.
+	 */
+	do {
+		atomic_long_add(nr_pages, &lruvec->nonresident_age);
+	} while ((lruvec = parent_lruvec(lruvec)));
+}
+#endif
 /**
  * workingset_eviction - note the eviction of a page from memory
  * @page: the page being evicted
@@ -234,7 +263,13 @@ void *workingset_eviction(struct page *page)
 	VM_BUG_ON_PAGE(!PageLocked(page), page);
 
 	lruvec = mem_cgroup_lruvec(pgdat, memcg);
+#ifdef CONFIG_LRU_BALANCE_BASE_THRASHING
+	workingset_age_nonresident(lruvec, hpage_nr_pages(page));
+	/* XXX: target_memcg can be NULL, go through lruvec */
+	eviction = atomic_long_read(&lruvec->nonresident_age);
+#else
 	eviction = atomic_long_inc_return(&lruvec->inactive_age);
+#endif
 	return pack_shadow(memcgid, pgdat, eviction, PageWorkingset(page));
 }
 
@@ -285,8 +320,10 @@ void workingset_refault(struct page *page, void *shadow)
 	if (!mem_cgroup_disabled() && !memcg)
 		goto out;
 	lruvec = mem_cgroup_lruvec(pgdat, memcg);
+#ifdef CONFIG_LRU_BALANCE_BASE_THRASHING
+	refault = atomic_long_read(&lruvec->nonresident_age);
+#else
 	refault = atomic_long_read(&lruvec->inactive_age);
-#ifndef CONFIG_LRU_BALANCE_BASE_THRASHING
 	active_file = lruvec_lru_size(lruvec, LRU_ACTIVE_FILE, MAX_NR_ZONES);
 #endif
 
@@ -325,13 +362,17 @@ void workingset_refault(struct page *page, void *shadow)
 						     NR_ACTIVE_ANON);
 	}
 	if (refault_distance > workingset_size)
+		goto out;
+
+	SetPageActive(page);
+	workingset_age_nonresident(lruvec, hpage_nr_pages(page));
 #else
 	if (refault_distance > active_file)
-#endif
 		goto out;
 
 	SetPageActive(page);
 	atomic_long_inc(&lruvec->inactive_age);
+#endif
 	inc_lruvec_state(lruvec, WORKINGSET_ACTIVATE);
 
 	/* Page was active prior to eviction */
@@ -370,7 +411,11 @@ void workingset_activation(struct page *page)
 	if (!mem_cgroup_disabled() && !memcg)
 		goto out;
 	lruvec = mem_cgroup_lruvec(page_pgdat(page), memcg);
+#ifdef CONFIG_LRU_BALANCE_BASE_THRASHING
+	workingset_age_nonresident(lruvec, hpage_nr_pages(page));
+#else
 	atomic_long_inc(&lruvec->inactive_age);
+#endif
 out:
 	rcu_read_unlock();
 }

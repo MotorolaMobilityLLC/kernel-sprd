@@ -430,8 +430,12 @@ void mark_page_accessed(struct page *page)
 		else
 			__lru_cache_activate_page(page);
 		ClearPageReferenced(page);
+#ifdef CONFIG_LRU_BALANCE_BASE_THRASHING
+		workingset_activation(page);
+#else
 		if (page_is_file_cache(page))
 			workingset_activation(page);
+#endif
 	} else if (!PageReferenced(page)) {
 		SetPageReferenced(page);
 	}

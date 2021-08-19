@@ -305,6 +305,8 @@ struct lruvec {
 	struct list_head		lists[NR_LRU_LISTS];
 #ifndef CONFIG_LRU_BALANCE_BASE_THRASHING
 	struct zone_reclaim_stat	reclaim_stat;
+	/* Evictions & activations on the inactive file list */
+	atomic_long_t			inactive_age;
 #else
 	/*
 	 * These track the cost of reclaiming one LRU - file or anon -
@@ -313,9 +315,9 @@ struct lruvec {
 	 */
 	unsigned long			anon_cost;
 	unsigned long			file_cost;
+	/* Non-resident age, driven by LRU movement */
+	atomic_long_t			nonresident_age;
 #endif
-	/* Evictions & activations on the inactive file list */
-	atomic_long_t			inactive_age;
 	/* Refaults at the time of last reclaim cycle */
 	unsigned long			refaults;
 #ifdef CONFIG_MEMCG

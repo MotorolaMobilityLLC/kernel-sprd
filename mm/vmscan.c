@@ -1989,6 +1989,10 @@ static unsigned noinline_for_stack move_pages_to_lru(struct lruvec *lruvec,
 				list_add(&page->lru, &pages_to_free);
 		} else {
 			nr_moved += nr_pages;
+#ifdef CONFIG_LRU_BALANCE_BASE_THRASHING
+			if (PageActive(page))
+				workingset_age_nonresident(lruvec, hpage_nr_pages(page));
+#endif
 		}
 	}
 

@@ -312,6 +312,9 @@ struct vma_swap_readahead {
 
 /* linux/mm/workingset.c */
 void *workingset_eviction(struct page *page);
+#ifdef CONFIG_LRU_BALANCE_BASE_THRASHING
+void workingset_age_nonresident(struct lruvec *lruvec, unsigned long nr_pages);
+#endif
 void workingset_refault(struct page *page, void *shadow);
 void workingset_activation(struct page *page);
 
