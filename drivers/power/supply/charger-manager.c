@@ -54,6 +54,7 @@
 #define CM_CAPACITY_LEVEL_LOW			15
 #define CM_CAPACITY_LEVEL_NORMAL		85
 #define CM_CAPACITY_LEVEL_FULL			100
+#define CM_CAPACITY_LEVEL_CRITICAL_VOLTAGE	3300000
 #define CM_FAST_CHARGE_ENABLE_BATTERY_VOLTAGE	3400000
 #define CM_FAST_CHARGE_ENABLE_CURRENT		1200000
 #define CM_FAST_CHARGE_ENABLE_THERMAL_CURRENT	1000000
@@ -4164,6 +4165,43 @@ static void misc_event_handler(struct charger_manager *cm, enum cm_event_types t
 	power_supply_changed(cm->charger_psy);
 }
 
+static int cm_get_capacity_level(struct charger_manager *cm)
+{
+	int level = POWER_SUPPLY_CAPACITY_LEVEL_UNKNOWN;
+	int uisoc, ocv_uv = 0;
+
+	if (!is_batt_present(cm)) {
+		/* There is no battery. Assume 100% */
+		level = POWER_SUPPLY_CAPACITY_LEVEL_FULL;
+		return level;
+	}
+
+	uisoc = DIV_ROUND_CLOSEST(cm->desc->cap, 10);
+
+	if (uisoc >= CM_CAPACITY_LEVEL_FULL)
+		level = POWER_SUPPLY_CAPACITY_LEVEL_FULL;
+	else if (uisoc > CM_CAPACITY_LEVEL_NORMAL)
+		level = POWER_SUPPLY_CAPACITY_LEVEL_HIGH;
+	else if (uisoc > CM_CAPACITY_LEVEL_LOW)
+		level = POWER_SUPPLY_CAPACITY_LEVEL_NORMAL;
+	else if (uisoc > CM_CAPACITY_LEVEL_CRITICAL)
+		level = POWER_SUPPLY_CAPACITY_LEVEL_LOW;
+	else
+		level = POWER_SUPPLY_CAPACITY_LEVEL_CRITICAL;
+
+
+	if (get_batt_ocv(cm, &ocv_uv)) {
+		dev_err(cm->dev, "%s, get_batt_ocV error.\n", __func__);
+		return level;
+	}
+
+	if (level == POWER_SUPPLY_CAPACITY_LEVEL_CRITICAL && is_charging(cm) &&
+	    ocv_uv > CM_CAPACITY_LEVEL_CRITICAL_VOLTAGE)
+		level = POWER_SUPPLY_CAPACITY_LEVEL_LOW;
+
+	return level;
+}
+
 static int wireless_get_property(struct power_supply *psy, enum power_supply_property
 				 psp, union power_supply_propval *val)
 {
@@ -4305,27 +4343,7 @@ static int charger_get_property(struct power_supply *psy,
 			val->intval = 0;
 		break;
 	case POWER_SUPPLY_PROP_CAPACITY_LEVEL:
-		if (!is_batt_present(cm)) {
-			/* There is no battery. Assume 100% */
-			val->intval = POWER_SUPPLY_CAPACITY_LEVEL_FULL;
-			break;
-		}
-		val->intval = DIV_ROUND_CLOSEST(cm->desc->cap, 10);
-		if (val->intval > 100)
-			val->intval = 100;
-		else if (val->intval < 0)
-			val->intval = 0;
-
-		if (val->intval == CM_CAPACITY_LEVEL_FULL)
-			val->intval = POWER_SUPPLY_CAPACITY_LEVEL_FULL;
-		else if (val->intval > CM_CAPACITY_LEVEL_NORMAL)
-			val->intval = POWER_SUPPLY_CAPACITY_LEVEL_HIGH;
-		else if (val->intval > CM_CAPACITY_LEVEL_LOW)
-			val->intval = POWER_SUPPLY_CAPACITY_LEVEL_NORMAL;
-		else if (val->intval > CM_CAPACITY_LEVEL_CRITICAL)
-			val->intval = POWER_SUPPLY_CAPACITY_LEVEL_LOW;
-		else
-			val->intval = POWER_SUPPLY_CAPACITY_LEVEL_CRITICAL;
+		val->intval = cm_get_capacity_level(cm);
 		break;
 	case POWER_SUPPLY_PROP_ONLINE:
 		if (is_ext_pwr_online(cm))
