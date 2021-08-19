@@ -1283,23 +1283,6 @@ static void dpu_singal_scaling(struct dpu_context *ctx,
 	u16 src_h;
 	struct sprd_dpu_layer *top_layer;
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
-	int secure_en = 0;
-	int i;
-
-	for (i = 0; i < count; i++) {
-		if (secure_debug || reg->dpu_secure) {
-			secure_en = 1;
-			break;
-		}
-
-		if (layers[i].secure_en) {
-			secure_en = 1;
-			break;
-		}
-	}
-
-	if (!secure_en)
-		return;
 
 	if (count == 1) {
 		top_layer = &layers[count - 1];
@@ -1353,10 +1336,7 @@ static void dpu_scaling(struct dpu_context *ctx,
 			struct sprd_dpu_layer layers[], u8 count)
 {
 	int i;
-	u16 src_w;
-	u16 src_h;
 	struct sprd_dpu_layer *top_layer;
-	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
 
 	if (mode_changed) {
 		top_layer = &layers[count - 1];
@@ -1374,53 +1354,6 @@ static void dpu_scaling(struct dpu_context *ctx,
 			pr_info("do scaling enhace: 0x%x, top layer(%dx%d)\n",
 				enhance_en, top_layer->dst_w,
 				top_layer->dst_h);
-		}
-	} else {
-		if (count == 1) {
-			top_layer = &layers[count - 1];
-			if (top_layer->rotation & (DRM_MODE_ROTATE_90 |
-							DRM_MODE_ROTATE_270)) {
-				src_w = top_layer->src_h;
-				src_h = top_layer->src_w;
-			} else {
-				src_w = top_layer->src_w;
-				src_h = top_layer->src_h;
-			}
-			if (src_w == top_layer->dst_w
-			&& src_h == top_layer->dst_h) {
-				reg->blend_size = (scale_copy.in_h << 16) |
-						scale_copy.in_w;
-				if (!need_scale)
-					reg->dpu_enhance_cfg &= ~BIT(0);
-				else
-					reg->dpu_enhance_cfg |= BIT(0);
-			} else {
-				/*
-				 * When the layer src size is not euqal to the
-				 * dst size, screened by dpu hal,the single
-				 * layer need to scaling-up. Regardless of
-				 * whether the SR function is turned on, dpu
-				 * blend size should be set to the layer src
-				 * size.
-				 */
-				reg->blend_size = (src_h << 16) | src_w;
-				/*
-				 * When the layer src size is equal to panel
-				 * size, close dpu scaling-up function.
-				 */
-				if (src_h == ctx->vm.vactive &&
-						src_w == ctx->vm.hactive)
-					reg->dpu_enhance_cfg &= ~BIT(0);
-				else
-					reg->dpu_enhance_cfg |= BIT(0);
-			}
-		} else {
-			reg->blend_size = (scale_copy.in_h << 16) |
-					  scale_copy.in_w;
-			if (!need_scale)
-				reg->dpu_enhance_cfg &= ~BIT(0);
-			else
-				reg->dpu_enhance_cfg |= BIT(0);
 		}
 	}
 }
