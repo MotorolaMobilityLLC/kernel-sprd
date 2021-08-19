@@ -140,6 +140,8 @@ net:sprd:sipa_delegate:
 nvmem:sc27xx:
 nvmem:sprd:
 
+of:
+
 pci:dwc:
 pci:dwc:sprd:
 pgo:
