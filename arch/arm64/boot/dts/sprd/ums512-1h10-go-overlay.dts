@@ -413,6 +413,12 @@
 	};
 };
 
+&ddr_dfs {
+	sprd-scene = "boost", "lcdon", "lcdoff", "camlow",
+		"camhigh", "camveryhigh", "faceid", "top";
+	sprd-freq = <1333 768 256 384 512 0xbacd 1333 0xbacd>;
+};
+
 &panel {
 	sprd,backlight = <&pwm_backlight>;
 };
