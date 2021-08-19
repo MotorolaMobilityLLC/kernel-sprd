@@ -761,7 +761,6 @@
 	sprd,logo-memory = <&logo_reserved>;
 
 	sprd,backlight = <&pwm_backlight>;
-	sprd,dpi-clk-div = <6>;
 };
 
 &lcd_g40396_truly_mipi_fhd {

@@ -22,6 +22,7 @@
 					sprd,phy-escape-clock = <20000>;/* kHz */
 
 					sprd,power-gpio-delay = <20>;/* ms */
+					sprd,dpi-clk-div = <6>;
 					sprd,video-lp-cmd-enable = <1>;
 					sprd,hporch-lp-disable = <1>;
 
