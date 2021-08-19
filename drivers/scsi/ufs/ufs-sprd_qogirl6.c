@@ -187,6 +187,21 @@ int syscon_get_args(struct device *dev, struct ufs_sprd_host *host)
 		pr_err("failed to parse ahb_ufs_cg_pclkreq\n");
 	}
 
+	host->ap_apb_ufs_glb_rst.regmap =
+			syscon_regmap_lookup_by_name(np, "ap_apb_ufs_glb_rst");
+	if (IS_ERR(host->ap_apb_ufs_glb_rst.regmap)) {
+		pr_err("failed to get ap_apb_ufs_glb_rst\n");
+		return PTR_ERR(host->ap_apb_ufs_glb_rst.regmap);
+	}
+
+	ret = syscon_get_args_by_name(np, "ap_apb_ufs_glb_rst", 2, args);
+	if (ret == 2) {
+		host->ap_apb_ufs_glb_rst.reg = args[0];
+		host->ap_apb_ufs_glb_rst.mask = args[1];
+	} else {
+		pr_err("failed to parse ap_apb_ufs_glb_rst\n");
+	}
+
 	host->pclk = devm_clk_get(&pdev->dev, "ufs_pclk");
 	if (IS_ERR(host->pclk)) {
 		dev_warn(&pdev->dev,
@@ -278,6 +293,11 @@ void ufs_sprd_reset(struct ufs_sprd_host *host)
 {
 	dev_info(host->hba->dev, "ufs hardware reset!\n");
 	/* TODO: HW reset will be simple in next version. */
+
+	ufs_remap_and(&(host->ap_apb_ufs_en));
+	ufs_remap_or(&(host->ap_apb_ufs_glb_rst));
+	udelay(10);
+	ufs_remap_and(&(host->ap_apb_ufs_glb_rst));
 
 	/* Configs need strict squence. */
 	ufs_remap_or(&(host->ap_apb_ufs_en));
