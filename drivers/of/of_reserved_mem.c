@@ -31,9 +31,10 @@ void show_reserved_memory_info(void)
 	int i;
 
 	for (i = 0; i < reserved_mem_count; i++)
-		pr_info("name: %s, base: 0x%llx, size: 0x%llx\n",
-						reserved_mem[i].name, reserved_mem[i].base,
-						reserved_mem[i].size);
+		pr_info("name: %s, base: 0x%016llx, size: 0x%016llx\n",
+						reserved_mem[i].name,
+						(unsigned long long)reserved_mem[i].base,
+						(unsigned long long)reserved_mem[i].size);
 }
 
 static int __init early_init_dt_alloc_reserved_memory_arch(phys_addr_t size,
