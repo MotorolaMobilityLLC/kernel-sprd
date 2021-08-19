@@ -1,0 +1,11 @@
+. ${ROOT_DIR}/${KERNEL_DIR}/build.config.gki.aarch64
+
+DEFCONFIG=sprd_gki_defconfig
+FRAGMENT_CONFIG=${KERNEL_DIR}/Documentation/sprd-gki-diff-config
+OUTDIR="${ROOT_DIR}/out_abi/temp"
+PRE_DEFCONFIG_CMDS="cd ${KERNEL_DIR} && make "${TOOL_ARGS[@]}" O=${OUTDIR} ${MAKE_ARGS} gki_defconfig && ${ROOT_DIR}/${KERNEL_DIR}/scripts/sprd/sprd_create_user_config.sh ${OUTDIR}/.config ${ROOT_DIR}/${FRAGMENT_CONFIG} && cp ${OUTDIR}/.config ${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/sprd_gki_defconfig && cd ${ROOT_DIR}"
+POST_DEFCONFIG_CMDS="rm ${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/${DEFCONFIG}"
+
+MODULES_ORDER=""
+TRIM_NONLISTED_KMI=""
+KMI_SYMBOL_LIST_STRICT_MODE=""
