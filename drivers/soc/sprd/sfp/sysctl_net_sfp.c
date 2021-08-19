@@ -47,14 +47,14 @@ static struct ctl_table net_sfp_table[] = {
 		.procname	= "sfp_tcp_aging_time",
 		.data		= &sysctl_tcp_aging_time,
 		.maxlen		= sizeof(u32),
-		.mode		= 0666,
+		.mode		= 0664,
 		.proc_handler	= proc_dointvec
 	},
 	{
 		.procname	= "sfp_udp_aging_time",
 		.data		= &sysctl_udp_aging_time,
 		.maxlen		= sizeof(u32),
-		.mode		= 0666,
+		.mode		= 0664,
 		.proc_handler	= proc_dointvec
 	},
 #endif /* CONFIG_NET */
