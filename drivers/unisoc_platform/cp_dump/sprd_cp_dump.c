@@ -107,12 +107,20 @@ static ssize_t cp_dump_read(struct file *filp,
 
 	/* get sp | ch sys bus control */
 	if (strstr(name, "sp_") == name && sp_ctrl && sp_ctrl->reg_offset) {
-		regmap_read(sp_ctrl->ctrl_map, sp_ctrl->reg_offset, &sp_ctrl->reg_save);
+		ret = regmap_read(sp_ctrl->ctrl_map, sp_ctrl->reg_offset, &sp_ctrl->reg_save);
+		if (ret) {
+			pr_err("sp_ctrl_map and sp_reg_offset aren't aligned!\n ");
+			return -EINVAL;
+		}
 		regmap_update_bits(sp_ctrl->ctrl_map, sp_ctrl->reg_offset, sp_ctrl->reg_mask, 0);
 	}
 
 	if (strstr(name, "ch_") == name && ch_ctrl && ch_ctrl->reg_offset) {
-		regmap_read(ch_ctrl->ctrl_map, ch_ctrl->reg_offset, &ch_ctrl->reg_save);
+		ret = regmap_read(ch_ctrl->ctrl_map, ch_ctrl->reg_offset, &ch_ctrl->reg_save);
+		if (ret) {
+			pr_err("ch_ctrl_map and ch_reg_offset aren't aligned!\n ");
+			return -EINVAL;
+		}
 		regmap_update_bits(ch_ctrl->ctrl_map, ch_ctrl->reg_offset, ch_ctrl->reg_mask, 0);
 	}
 
