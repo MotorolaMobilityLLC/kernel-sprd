@@ -592,7 +592,7 @@ static int wcn_sipc_sblk_send(struct sipc_chn_info *sipc_chn,
 		return E_INVALIDPARA;
 	}
 	memcpy(((u8 *)addr), buf, len);
-	ret = sblock_send_prepare(sipc_chn->dst, sipc_chn->chn, &blk);
+	ret = sblock_send(sipc_chn->dst, sipc_chn->chn, &blk);
 	WCN_HERE_CHN(sipc_chn->index);
 	if (ret) {
 		WCN_ERR("[%s]:err:%d\n", sipc_chn_tostr(sipc_chn->chn, 0), ret);
