@@ -327,12 +327,31 @@ int sprd_cfg80211_change_iface(struct wiphy *wiphy, struct net_device *ndev,
 			       struct vif_params *params)
 {
 	struct sprd_vif *vif = netdev_priv(ndev);
+	struct sprd_hif *hif = &vif->priv->hif;
 	enum nl80211_iftype old_type = NL80211_IFTYPE_UNSPECIFIED;
-	struct sprd_hif *hif = NULL;
 	int ret;
 
 	netdev_info(ndev, "%s type %d -> %d\n", __func__, old_type, type);
-
+	old_type = vif->wdev.iftype;
+	if (vif->mode == 0 && ((old_type == NL80211_IFTYPE_STATION && type == NL80211_IFTYPE_AP) ||
+		(old_type == NL80211_IFTYPE_AP && type == NL80211_IFTYPE_STATION))) {
+		pr_err("%s change iface but current mode 0!\n", __func__);
+		wiphy_info(wiphy, "Power on WCN (%d time)\n", atomic_read(&hif->power_cnt));
+		ret = sprd_hif_power_on(hif);
+		if (ret) {
+			if (ret == -ENODEV)
+				wiphy_err(wiphy, "failed to power on WCN!\n");
+			else if (ret == -EIO)
+				wiphy_err(wiphy, "SYNC cmd error!\n");
+				return ret;
+		}
+		pr_err("start to send softap open command\n");
+		vif->wdev.iftype = type;
+		ret = sprd_init_fw(vif);
+		if (!ret && type == NL80211_IFTYPE_AP)
+			netif_carrier_off(ndev);
+		return ret;
+	}
 	if (!vif || !vif->priv) {
 		netdev_err(ndev, "%s can not get vif or priv!\n", __func__);
 		return -ENODEV;

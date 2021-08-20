@@ -327,6 +327,11 @@ static int iface_open(struct net_device *ndev)
 
 	netdev_info(ndev, "Power on WCN (%d time)\n",
 		    atomic_read(&hif->power_cnt));
+	if ((vif->mode == SPRD_MODE_AP || vif->mode == SPRD_MODE_STATION) &&
+		(atomic_read(&hif->power_cnt) == 1)) {
+		pr_info("softap or station already open!,no need power on\n");
+		return 0;
+	}
 	ret = sprd_hif_power_on(hif);
 	if (ret) {
 		if (ret == -ENODEV)
