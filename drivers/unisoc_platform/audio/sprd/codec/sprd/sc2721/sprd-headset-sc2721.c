@@ -1286,7 +1286,7 @@ static enum sprd_headset_type headset_typec_type_detect(int gpio_det_val_last)
 			hdst->adc_big_scale = false;
 			headset_scale_set(0);
 			pr_err("get adc_mic[1] = %d error\n", adc_mic[1]);
-			return -EINVAL;
+			return HEADSET_TYPE_ERR;
 		}
 		invalid_count++;
 	} while (adc_mic[1] > INVALID_VOL && invalid_count < INVALID_TRY_COUNT);
@@ -1464,7 +1464,7 @@ static void headset_button_release_verify(void)
 	}
 }
 
-static enum snd_jack_types headset_adc_to_button(int adc_mic)
+static unsigned int headset_adc_to_button(int adc_mic)
 {
 	int i;
 	struct sprd_headset *hdst = sprd_hdst;
@@ -1472,7 +1472,7 @@ static enum snd_jack_types headset_adc_to_button(int adc_mic)
 	struct headset_buttons *hdst_btns =
 		(pdata ? pdata->headset_buttons : NULL);
 	int nb = (pdata ? pdata->nbuttons : 0);
-	enum snd_jack_types j_type = KEY_RESERVED;
+	unsigned int j_type = KEY_RESERVED;
 
 	if (!hdst || !hdst_btns) {
 		pr_err("%s: sprd_hdst(%p) or hdst_btns(%p) is NULL!\n",
@@ -2770,7 +2770,7 @@ static int sprd_headset_parse_dt(struct sprd_headset *hdst)
 	if (index < 0) {
 		pr_info("%s :no match found for Type_C switch gpio.\n", __func__);
 		hdst->sup_typec = false;
-		pdata->gpios[HDST_GPIO_SW] = -1;
+		pdata->gpios[HDST_GPIO_SW] = (u32)-1;
 	} else {
 		ret = of_get_gpio_flags(np, index, NULL);
 		if (ret < 0) {
@@ -2784,7 +2784,7 @@ static int sprd_headset_parse_dt(struct sprd_headset *hdst)
 	if (index < 0) {
 		pr_info("%s :no match found for typec_lr gpio.\n", __func__);
 		hdst->sup_typec = false;
-		pdata->gpios[HDST_GPIO_TYPEC_LR] = -1;
+		pdata->gpios[HDST_GPIO_TYPEC_LR] = (u32)-1;
 	} else {
 		ret = of_get_gpio_flags(np, index, NULL);
 		if (ret < 0) {

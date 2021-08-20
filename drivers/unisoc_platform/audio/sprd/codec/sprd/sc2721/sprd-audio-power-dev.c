@@ -47,7 +47,7 @@ static struct regulator_init_data label##_data = { \
 	}, \
 	.num_consumer_supplies = ARRAY_SIZE(label), \
 	.consumer_supplies = label, \
-};
+}
 
 #define SPRD_AUDIO_POWER_LDO(label, r_supply, id, en_reg, en_bit, sleep_ctrl, \
 		v_reg, v_mask, v_shift, v_table, on_delay, off_delay) \

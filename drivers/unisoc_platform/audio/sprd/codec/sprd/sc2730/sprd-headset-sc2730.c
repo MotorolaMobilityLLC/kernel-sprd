@@ -1528,14 +1528,14 @@ static void sprd_headset_reset(struct sprd_headset *hdst)
 	sprd_headset_eic_plugin_enable();
 }
 
-static enum snd_jack_types sprd_adc_to_button(int adc_mic)
+static unsigned int sprd_adc_to_button(int adc_mic)
 {
 	struct sprd_headset *hdst = sprd_hdst;
 	struct sprd_headset_platform_data *pdata = (hdst ? &hdst->pdata : NULL);
 	struct headset_buttons *hdst_btns =
 		(pdata ? pdata->headset_buttons : NULL);
 	int key, nb = (pdata ? pdata->nbuttons : 0);
-	enum snd_jack_types j_type = KEY_RESERVED;
+	unsigned int j_type = KEY_RESERVED;
 
 	if (!hdst || !hdst_btns) {
 		pr_err("%s: sprd_hdst(%p) or hdst_btns(%p) is NULL!\n",

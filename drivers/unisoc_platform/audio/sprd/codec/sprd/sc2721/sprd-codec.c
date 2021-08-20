@@ -3872,7 +3872,7 @@ static const struct soc_enum codec_info_enum =
 	SOC_SINGLE_EXT_TLV(xname, FUN_REG(xreg), 0, max, 1, \
 		sprd_codec_vol_get, sprd_codec_vol_put, tlv_array)
 
-#define SPRD_CODEC_MIC_BIAS(xname, xreg) \
+#define SPRD_CODEC_MIC_BIAS_CTRL(xname, xreg) \
 	SOC_SINGLE_EXT(xname, FUN_REG(xreg), 0, 1, 0, \
 		sprd_codec_mic_bias_get, sprd_codec_mic_bias_put)
 
@@ -3905,9 +3905,9 @@ static const struct snd_kcontrol_new sprd_codec_snd_controls[] = {
 
 	SPRD_CODEC_SWITCH("DACR Switch", SPRD_CODEC_DACR),
 
-	SPRD_CODEC_MIC_BIAS("MIC Bias Switch", SPRD_CODEC_MIC_BIAS),
+	SPRD_CODEC_MIC_BIAS_CTRL("MIC Bias Switch", SPRD_CODEC_MIC_BIAS),
 
-	SPRD_CODEC_MIC_BIAS("HEADMIC Bias Switch", SPRD_CODEC_HEADMIC_BIAS),
+	SPRD_CODEC_MIC_BIAS_CTRL("HEADMIC Bias Switch", SPRD_CODEC_HEADMIC_BIAS),
 
 	SOC_SINGLE_EXT("DACLSPKL Enable", 0, SPRD_CODEC_LEFT, 1, 0,
 		       dacspkl_enable_get, dacspkl_enable_put),
@@ -3947,7 +3947,7 @@ static unsigned int sprd_codec_read(struct snd_soc_component *codec,
 		reg |= SPRD_CODEC_DP_BASE_HI;
 
 		if (codec_aud_en_set() < 0)
-			return -1;
+			return (unsigned int)-1;
 		ret = readl_relaxed((void __iomem *)(reg -
 			CODEC_DP_BASE + sprd_codec_dp_base));
 		codec_aud_en_clr();
