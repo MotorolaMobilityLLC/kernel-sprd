@@ -1261,8 +1261,8 @@ static void dpu_framerate(struct dpu_context *ctx, u8 *count)
 
 	if (mode_changed) {
 		mutex_lock(&ctx->vrr_lock);
+		pr_info("cyprus change frame rate start, vfp = %d\n", vfp);
 		dpu_stop(ctx);
-		pr_info("change frame rate, vfp = %d\n", vfp);
 		ctx->vm.vfront_porch = vfp;
 		reg->dpi_v_timing = (ctx->vm.vsync_len << 0) |
 				    (ctx->vm.vback_porch << 8) |
@@ -1270,6 +1270,7 @@ static void dpu_framerate(struct dpu_context *ctx, u8 *count)
 		dpu->dsi->ctx.vm.vfront_porch = vfp;
 		dsi_hal_dpi_vfp(dpu->dsi, vfp);
 		dpu_run(ctx);
+		pr_info("cyprus change frame rate end, vfp = %d\n", vfp);
 		mode_changed = false;
 		mutex_unlock(&ctx->vrr_lock);
 	}
