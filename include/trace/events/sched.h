@@ -8,6 +8,7 @@
 #include <linux/sched/numa_balancing.h>
 #include <linux/tracepoint.h>
 #include <linux/binfmts.h>
+#include <linux/sched/idle.h>
 #include "../../../kernel/sched/sprd-eas.h"
 
 /*
@@ -870,6 +871,147 @@ TRACE_EVENT(sched_load_balance_stats,
 
 	TP_printk("busiest_group=%#lx busiest_type=%d busiest_avg_load=%ld busiest_lpt=%ld local_group=%#lx local_type=%d local_avg_load=%ld local_lpt=%ld domain_avg_load=%ld imbalance=%ld",
 		  __entry->busiest, __entry->bgp_type, __entry->bavg_load, __entry->blpt, __entry->local, __entry->lgp_type, __entry->lavg_load, __entry->llpt, __entry->sds_avg, __entry->imbalance)
+);
+
+TRACE_EVENT(sched_update_sg_lb,
+
+	TP_PROTO(unsigned long avg_load, unsigned long group_load,
+		unsigned long group_capacity,
+		int group_no_capacity, int group_weight, int group_type),
+
+	TP_ARGS(avg_load, group_load, group_capacity,
+		group_no_capacity, group_weight, group_type),
+
+	TP_STRUCT__entry(
+		__field(unsigned long, avg_load)
+		__field(unsigned long, group_load)
+		__field(unsigned long, group_capacity)
+		__field(int, group_no_capacity)
+		__field(int, group_weight)
+		__field(int, group_type)
+	),
+
+	TP_fast_assign(
+		__entry->avg_load       = avg_load;
+		__entry->group_load     = group_load;
+		__entry->group_capacity = group_capacity;
+		__entry->group_no_capacity = group_no_capacity;
+		__entry->group_weight = group_weight;
+		__entry->group_type = group_type;
+	),
+
+	TP_printk("avg_load=%lu group_load=%lu group_capacity=%lu group_no_capacity=%d weight=%d group_type=%d",
+		__entry->avg_load, __entry->group_load, __entry->group_capacity,
+		__entry->group_no_capacity, __entry->group_weight, __entry->group_type)
+);
+
+TRACE_EVENT(sched_load_balance_skip_tasks,
+
+	TP_PROTO(int scpu, int dcpu, int grp_type, int pid,
+		unsigned long h_load, unsigned long task_util,
+		unsigned long affinity),
+
+	TP_ARGS(scpu, dcpu, grp_type, pid, h_load, task_util, affinity),
+
+	TP_STRUCT__entry(
+		__field(int,            scpu)
+		__field(int,            grp_type)
+		__field(int,            dcpu)
+		__field(int,            pid)
+		__field(unsigned long,  affinity)
+		__field(unsigned long,  task_util)
+		__field(unsigned long,  h_load)
+	),
+
+	TP_fast_assign(
+		__entry->scpu		= scpu;
+		__entry->grp_type	= grp_type;
+		__entry->dcpu		= dcpu;
+		__entry->pid		= pid;
+		__entry->affinity	= affinity;
+		__entry->task_util	= task_util;
+		__entry->h_load		= h_load;
+	),
+
+	TP_printk("src_cpu=%d group_type=%d dst_cpu=%d pid=%d affinity=%#lx task_util=%lu task_h_load=%lu",
+		__entry->scpu, __entry->grp_type, __entry->dcpu, __entry->pid,
+		__entry->affinity, __entry->task_util, __entry->h_load)
+);
+
+TRACE_EVENT(sched_load_balance,
+
+	TP_PROTO(int cpu, enum cpu_idle_type idle, int balance,
+		unsigned long group_mask, int busiest_nr_running,
+		unsigned long imbalance, unsigned int env_flags, int ld_moved,
+		unsigned int balance_interval, int active_balance,
+		int overutilized),
+
+	TP_ARGS(cpu, idle, balance, group_mask, busiest_nr_running,
+		imbalance, env_flags, ld_moved, balance_interval,
+		active_balance, overutilized),
+
+	TP_STRUCT__entry(
+		__field(int,			cpu)
+		__field(enum cpu_idle_type,	idle)
+		__field(int,			balance)
+		__field(unsigned long,		group_mask)
+		__field(int,			busiest_nr_running)
+		__field(unsigned long,		imbalance)
+		__field(unsigned int,		env_flags)
+		__field(int,			ld_moved)
+		__field(unsigned int,		balance_interval)
+		__field(int,			active_balance)
+		__field(int,			overutilized)
+	),
+
+	TP_fast_assign(
+		__entry->cpu			= cpu;
+		__entry->idle			= idle;
+		__entry->balance		= balance;
+		__entry->group_mask		= group_mask;
+		__entry->busiest_nr_running	= busiest_nr_running;
+		__entry->imbalance		= imbalance;
+		__entry->env_flags		= env_flags;
+		__entry->ld_moved		= ld_moved;
+		__entry->balance_interval	= balance_interval;
+		__entry->active_balance		= active_balance;
+		__entry->overutilized		= overutilized;
+	),
+
+	TP_printk("cpu=%d state=%s balance=%d group=%#lx busy_nr=%d imbalance=%ld flags=%#x ld_moved=%d interval=%d active_balance=%d overutilized=%d",
+		__entry->cpu, __entry->idle == CPU_IDLE ? "idle" :
+		(__entry->idle == CPU_NEWLY_IDLE ? "newly_idle" : "busy"),
+		__entry->balance, __entry->group_mask, __entry->busiest_nr_running,
+		__entry->imbalance, __entry->env_flags, __entry->ld_moved,
+		__entry->balance_interval, __entry->active_balance,
+		__entry->overutilized)
+);
+
+TRACE_EVENT(sched_load_balance_nohz_kick,
+
+	TP_PROTO(int cpu, int kick_cpu),
+
+	TP_ARGS(cpu, kick_cpu),
+
+	TP_STRUCT__entry(
+		__field(int,		cpu)
+		__field(unsigned int,	cpu_nr)
+		__field(unsigned long,	misfit_task_load)
+		__field(int,		kick_cpu)
+		__field(unsigned long,	nohz_flags)
+	),
+
+	TP_fast_assign(
+		__entry->cpu		  = cpu;
+		__entry->cpu_nr		  = cpu_rq(cpu)->nr_running;
+		__entry->misfit_task_load = cpu_rq(cpu)->misfit_task_load;
+		__entry->kick_cpu	  = kick_cpu;
+		__entry->nohz_flags	  = atomic_read(nohz_flags(kick_cpu));
+	),
+
+	TP_printk("cpu=%d nr_run=%u misfit_task_load=%lu kick_cpu=%d nohz_flags=0x%lx",
+		__entry->cpu, __entry->cpu_nr, __entry->misfit_task_load,
+		__entry->kick_cpu, __entry->nohz_flags)
 );
 
 /*
