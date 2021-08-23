@@ -524,7 +524,7 @@ static ssize_t max_read_time_show(struct device *dev,
 {
 	struct sprd_dsi *dsi = dev_get_drvdata(dev);
 
-	return snprintf(buf, PAGE_SIZE, "%u ns\n", dsi->ctx.max_rd_time);
+	return snprintf(buf, PAGE_SIZE, "%llu ns\n", dsi->ctx.max_rd_time);
 }
 static DEVICE_ATTR_RW(max_read_time);
 

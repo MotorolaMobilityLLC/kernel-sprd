@@ -65,6 +65,7 @@ static void sprd_dsi_encoder_enable(struct drm_encoder *encoder)
 
 	DRM_INFO("%s()\n", __func__);
 
+	mutex_lock(&dsi->lock);
 	/* add if condition to avoid resume dsi for SR feature.
 	 * if esd recovery happened during display suspend, skip dsi resume.
 	 */
@@ -72,11 +73,13 @@ static void sprd_dsi_encoder_enable(struct drm_encoder *encoder)
 	    (encoder->crtc->state->mode_changed &&
 	     !encoder->crtc->state->active_changed)) {
 		DRM_INFO("skip dsi resume\n");
+		mutex_unlock(&dsi->lock);
 		return;
 	}
 
 	if (dsi->ctx.enabled) {
 		DRM_INFO("dsi is initialized\n");
+		mutex_unlock(&dsi->lock);
 		return;
 	}
 
@@ -105,6 +108,8 @@ static void sprd_dsi_encoder_enable(struct drm_encoder *encoder)
 	sprd_dpu_run(crtc->priv);
 
 	dsi->ctx.enabled = true;
+
+	mutex_unlock(&dsi->lock);
 }
 
 static void sprd_dsi_encoder_disable(struct drm_encoder *encoder)
@@ -114,13 +119,17 @@ static void sprd_dsi_encoder_disable(struct drm_encoder *encoder)
 
 	DRM_INFO("%s()\n", __func__);
 
+	mutex_lock(&dsi->lock);
 	/* add if condition to avoid suspend dsi for SR feature */
 	if (encoder->crtc->state->mode_changed &&
-	    !encoder->crtc->state->active_changed)
+	    !encoder->crtc->state->active_changed) {
+		mutex_unlock(&dsi->lock);
 		return;
+	}
 
 	if (!dsi->ctx.enabled) {
 		DRM_INFO("dsi isn't initialized\n");
+		mutex_unlock(&dsi->lock);
 		return;
 	}
 
@@ -138,6 +147,8 @@ static void sprd_dsi_encoder_disable(struct drm_encoder *encoder)
 	sprd_dsi_disable(dsi);
 
 	dsi->ctx.enabled = false;
+
+	mutex_unlock(&dsi->lock);
 }
 
 static void sprd_dsi_encoder_mode_set(struct drm_encoder *encoder,
@@ -658,7 +669,7 @@ static int sprd_dsi_context_init(struct sprd_dsi *dsi, struct device_node *np)
 	if (!of_property_read_u32(np, "sprd,max-read-time", &tmp))
 		ctx->max_rd_time = tmp;
 	else
-		ctx->max_rd_time = 6000;
+		ctx->max_rd_time = 0x8000;
 
 	if (!of_property_read_u32(np, "sprd,int0_mask", &tmp))
 		ctx->int0_mask = tmp;
@@ -767,6 +778,8 @@ static int sprd_dsi_probe(struct platform_device *pdev)
 	ret = sprd_dsi_host_init(&pdev->dev, dsi);
 	if (ret)
 		return ret;
+
+	mutex_init(&dsi->lock);
 
 	return component_add(&pdev->dev, &dsi_component_ops);
 }

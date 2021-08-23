@@ -148,6 +148,7 @@ static int sprd_dphy_context_init(struct sprd_dphy *dphy,
 				  struct device_node *np)
 {
 	struct resource r;
+	u32 tmp;
 
 	if (dphy->glb->parse_dt)
 		dphy->glb->parse_dt(&dphy->ctx, np);
@@ -174,8 +175,20 @@ static int sprd_dphy_context_init(struct sprd_dphy *dphy,
 		}
 	}
 
+	if (!of_property_read_u32(np, "dev-id", &tmp))
+		dphy->ctx.id = tmp;
+
+	if (!of_property_read_u32(np, "sprd,mipi-drive-capability", &tmp))
+		dphy->ctx.capability = tmp;
+
+	if (of_property_read_bool(np, "sprd,ulps-disabled"))
+		dphy->ctx.ulps_enable = false;
+	else
+		dphy->ctx.ulps_enable = true;
+
 	mutex_init(&dphy->ctx.lock);
 	dphy->ctx.enabled = true;
+	dphy->ctx.chip_id = 0xffffffff;
 
 	return 0;
 }

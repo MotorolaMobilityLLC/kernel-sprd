@@ -1447,8 +1447,8 @@ static void dpu_dpi_init(struct dpu_context *ctx)
 		/* use dpi as interface */
 		DPU_REG_CLR(ctx->base + REG_DPU_CFG0, BIT_DPU_IF_EDPI);
 
-		/* disable Halt function for SPRD DSI */
-		DPU_REG_CLR(ctx->base + REG_DPI_CTRL, BIT_DPU_DPI_HALT_EN);
+		/* enable Halt function for SPRD DSI */
+		DPU_REG_SET(ctx->base + REG_DPI_CTRL, BIT_DPU_DPI_HALT_EN);
 
 
 		/* set dpi timing */

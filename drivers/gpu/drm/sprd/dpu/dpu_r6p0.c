@@ -831,7 +831,7 @@ static void dpu_dpi_init(struct dpu_context *ctx)
 		DPU_REG_CLR(ctx->base + REG_DPU_CFG0, BIT_DPU_IF_EDPI);
 
 		/* enable Halt function for SPRD DSI */
-		DPU_REG_CLR(ctx->base + REG_DPI_CTRL, BIT_DPU_DPI_HALT_EN);
+		DPU_REG_SET(ctx->base + REG_DPI_CTRL, BIT_DPU_DPI_HALT_EN);
 
 		/* set dpi timing */
 		reg_val = ctx->vm.hsync_len << 0 |
