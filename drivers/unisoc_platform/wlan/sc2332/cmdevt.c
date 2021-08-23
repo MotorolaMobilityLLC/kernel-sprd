@@ -330,6 +330,13 @@ struct sprd_msg *sc2332_get_cmdbuf(struct sprd_priv *priv, struct sprd_vif *vif,
 	u16 plen = sizeof(*hdr) + len;
 	u8 mode = SPRD_MODE_NONE;
 
+	if (!sprd_hif_is_on(&priv->hif)) {
+		pr_err("%s Drop command %s in case of power off\n",
+		       __func__, cmdevt_cmd2str(cmd_id));
+
+		return NULL;
+	}
+
 	if (vif)
 		mode = vif->mode;
 
