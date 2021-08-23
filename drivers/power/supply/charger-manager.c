@@ -3680,18 +3680,25 @@ static int cm_manager_get_jeita_status(struct charger_manager *cm, int cur_temp)
 		jeita_status = 0;
 	/* temperature goes down */
 	} else if (last_temp >= cur_temp) {
-		if (desc->jeita_tab[temp_status].temp > desc->jeita_tab[temp_status].recovery_temp)
-			jeita_status = recovery_temp_status;
-		else if (desc->jeita_tab[temp_status].temp < desc->jeita_tab[temp_status].recovery_temp)
+		if (recovery_temp_status == desc->jeita_tab_size) {
+			if (jeita_status >= recovery_temp_status)
+				jeita_status = recovery_temp_status;
+		} else if (desc->jeita_tab[recovery_temp_status].temp > desc->jeita_tab[recovery_temp_status].recovery_temp) {
+			if (jeita_status >= recovery_temp_status)
+				jeita_status = recovery_temp_status;
+		} else if (desc->jeita_tab[temp_status].temp < desc->jeita_tab[temp_status].recovery_temp) {
 			jeita_status = temp_status;
+		}
 	/* temperature goes up */
 	} else if (last_temp < cur_temp) {
-		if (recovery_temp_status == desc->jeita_tab_size)
+		if (recovery_temp_status == desc->jeita_tab_size) {
 			jeita_status = temp_status;
-		else if (desc->jeita_tab[recovery_temp_status].temp < desc->jeita_tab[recovery_temp_status].recovery_temp)
-			jeita_status = recovery_temp_status;
-		else if (desc->jeita_tab[recovery_temp_status].temp > desc->jeita_tab[recovery_temp_status].recovery_temp)
+		} else if (desc->jeita_tab[recovery_temp_status].temp < desc->jeita_tab[recovery_temp_status].recovery_temp) {
+			if (jeita_status <= recovery_temp_status)
+				jeita_status = recovery_temp_status;
+		} else if (desc->jeita_tab[temp_status].temp > desc->jeita_tab[temp_status].recovery_temp) {
 			jeita_status = temp_status;
+		}
 	}
 
 	last_temp = cur_temp;
