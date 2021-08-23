@@ -6,17 +6,6 @@
 #ifndef _DISP_TRUSTY_H_
 #define _DISP_TRUSTY_H_
 
-enum {
-	DPU_LITE_R1P0 = 0,
-	DPU_LITE_R2P0,
-	DPU_LITE_R3P0,
-	DPU_R2P0,
-	DPU_R3P0,
-	DPU_R4P0,
-	DPU_R5P0,
-	DPU_R6P0
-};
-
 enum disp_command {
 	TA_REG_SET = 1,
 	TA_REG_CLR,
@@ -24,9 +13,21 @@ enum disp_command {
 	TA_FIREWALL_CLR
 };
 
+struct layer_reg {
+	u32 addr[4];
+	u32 ctrl;
+	u32 size;
+	u32 pitch;
+	u32 pos;
+	u32 alpha;
+	u32 ck;
+	u32 pallete;
+	u32 crop_start;
+};
+
 struct disp_message {
-	u16 version;
-	u16 cmd;
+	u8 cmd;
+	struct layer_reg layer;
 };
 
 int disp_ca_connect(void);
