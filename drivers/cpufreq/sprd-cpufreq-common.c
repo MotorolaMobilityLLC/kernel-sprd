@@ -540,7 +540,7 @@ unsigned int sprd_cpufreq_update_opp_common(int cpu, int temp_now)
 
 static int sprd_cpufreq_cpuhp_online(unsigned int cpu)
 {
-	unsigned int olcpu, cluster_id;
+	int olcpu, cluster_id;
 	struct sprd_cpufreq_driver_data *c;
 
 	if (cpu >= nr_cpu_ids || !cpu_possible(cpu)) {
@@ -570,7 +570,7 @@ static int sprd_cpufreq_cpuhp_online(unsigned int cpu)
 
 static int sprd_cpufreq_cpuhp_offline(unsigned int cpu)
 {
-	unsigned int olcpu, cluster_id;
+	int olcpu, cluster_id;
 	struct sprd_cpufreq_driver_data *c;
 
 	if (cpu >= nr_cpu_ids || !cpu_possible(cpu)) {

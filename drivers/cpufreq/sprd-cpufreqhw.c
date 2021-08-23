@@ -584,8 +584,6 @@ static int sprd_hardware_cpufreq_probe(struct platform_device *pdev)
 	else if (ret == -EPROBE_DEFER)
 		goto exit;
 
-	sprd_cpufreq_cpuhp_setup();
-
 	ret = cpufreq_register_driver(&sprd_hardware_cpufreq_driver);
 	if (ret)
 		dev_err(&pdev->dev, "Failed to reigister cpufreq driver\n");
