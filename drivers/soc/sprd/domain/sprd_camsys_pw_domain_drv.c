@@ -21,12 +21,20 @@
 #define pr_fmt(fmt) "sprd_campd: %d %d %s : "\
 	fmt, current->pid, __LINE__, __func__
 
-enum {
-	_E_PW_OFF = 0,
-	_E_PW_ON  = 1,
-};
 
 static BLOCKING_NOTIFIER_HEAD(mmsys_chain);
+
+int sprd_mm_pw_notify_register(struct notifier_block *nb)
+{
+	return blocking_notifier_chain_register(&mmsys_chain, nb);
+}
+EXPORT_SYMBOL(sprd_mm_pw_notify_register);
+
+int sprd_mm_pw_notify_unregister(struct notifier_block *nb)
+{
+	return blocking_notifier_chain_unregister(&mmsys_chain, nb);
+}
+EXPORT_SYMBOL(sprd_mm_pw_notify_unregister);
 
 static int mmsys_notifier_call_chain(unsigned long val, void *v)
 {
@@ -63,13 +71,14 @@ static int sprd_cam_pw_on(struct generic_pm_domain *domain)
 		mutex_unlock(&pw_info->mlock);
 		return ret;
 	}
-	mmsys_notifier_call_chain(_E_PW_ON, NULL);
 
 	ret  = pw_info->ops->sprd_cam_domain_eb(pw_info);
 	if (ret) {
 		mutex_unlock(&pw_info->mlock);
 		return ret;
 	}
+
+	mmsys_notifier_call_chain(_E_PW_ON, NULL);
 	mutex_unlock(&pw_info->mlock);
 	return ret;
 }

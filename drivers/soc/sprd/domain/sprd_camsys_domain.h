@@ -12,6 +12,11 @@
 
 #include <linux/pm_domain.h>
 
+enum {
+       _E_PW_OFF = 0,
+       _E_PW_ON  = 1,
+};
+
 enum sprd_campw_id {
 	CAM_PW_PIKE2,
 	CAM_PW_SHARKL3,
@@ -131,4 +136,6 @@ extern  struct camsys_power_ops camsys_power_ops_le;
 extern  struct camsys_power_ops camsys_power_ops_pike2;
 extern  struct camsys_power_ops camsys_power_ops_qogirl6;
 
+int sprd_mm_pw_notify_register(struct notifier_block *nb);
+int sprd_mm_pw_notify_unregister(struct notifier_block *nb);
 #endif
