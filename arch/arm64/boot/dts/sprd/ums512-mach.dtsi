@@ -81,7 +81,7 @@
 
 		cma_reserved: cma_share@f08000000 {
 			compatible = "shared-dma-pool";
-			reg = <0x0 0xf0800000 0x0 0x04000000>;
+			reg = <0x0 0xf0800000 0x0 0x02000000>;
 			reusable;
 			linux,cma-default;
 		};
