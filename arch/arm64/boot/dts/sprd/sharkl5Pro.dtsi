@@ -352,6 +352,9 @@
 				top_force_shutdown = <&pmu_apb_regs
 					REG_PMU_APB_RF_PD_GPU_TOP_CFG0
 					MASK_PMU_APB_RF_PD_GPU_TOP_FORCE_SHUTDOWN>;
+				mem_repaired_flag = <&aon_apb_regs
+					REG_AON_APB_RF_BOND_OPT0
+					MASK_AON_APB_RF_BOND_OPTION0>;
 				gpu_qos_sel = <&gpu_apb_regs
 					REG_GPU_APB_RF_GPU_NIC400_QOS
 					MASK_GPU_APB_RF_GPU_QOS_SEL>;
