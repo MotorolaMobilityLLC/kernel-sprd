@@ -6,12 +6,15 @@
 #include <linux/apsys_dvfs.h>
 #include <linux/delay.h>
 #include <linux/dma-buf.h>
+#include <linux/gfp.h>
 #include <linux/module.h>
 #include <linux/io.h>
 #include <linux/wait.h>
 #include <linux/workqueue.h>
 #include <linux/backlight.h>
 #include <linux/of_address.h>
+#include <linux/slab.h>
+#include <linux/string.h>
 #include <drm/drm_prime.h>
 
 #include "dpu_enhance_param.h"
@@ -339,6 +342,18 @@ struct epf_cfg {
 
 struct threed_lut {
 	u32 value[729];
+};
+
+struct layer_reg {
+	u32 addr[4];
+	u32 ctrl;
+	u32 size;
+	u32 pitch;
+	u32 pos;
+	u32 alpha;
+	u32 ck;
+	u32 pallete;
+	u32 crop_start;
 };
 
 struct dpu_enhance {
@@ -1216,18 +1231,27 @@ static void dpu_layer(struct dpu_context *ctx,
 			disp_ca_connect();
 			udelay(ctx->time);
 		}
-		ctx->tos_msg.cmd = TA_FIREWALL_SET;
-		disp_ca_write(&ctx->tos_msg, sizeof(ctx->tos_msg));
+		ctx->tos_msg->cmd = TA_FIREWALL_SET;
+		ctx->tos_msg->version = DPU_R5P0;
+		disp_ca_write(ctx->tos_msg, sizeof(*ctx->tos_msg));
 		disp_ca_wait_response();
 
-		ctx->tos_msg.cmd = TA_REG_SET;
-		ctx->tos_msg.layer = tmp;
-		disp_ca_write(&ctx->tos_msg, sizeof(ctx->tos_msg));
+		memcpy(ctx->tos_msg + 1, &tmp, sizeof(tmp));
+
+		ctx->tos_msg->cmd = TA_REG_SET;
+		ctx->tos_msg->version = DPU_R5P0;
+		disp_ca_write(ctx->tos_msg, sizeof(*ctx->tos_msg) + sizeof(tmp));
 		disp_ca_wait_response();
+
 		return;
 	} else if (secure_val) {
-		ctx->tos_msg.cmd = TA_REG_CLR;
-		disp_ca_write(&ctx->tos_msg, sizeof(ctx->tos_msg));
+		ctx->tos_msg->cmd = TA_REG_CLR;
+		ctx->tos_msg->version = DPU_R5P0;
+		disp_ca_write(ctx->tos_msg, sizeof(*ctx->tos_msg));
+		disp_ca_wait_response();
+
+		ctx->tos_msg->cmd = TA_FIREWALL_CLR;
+		disp_ca_write(ctx->tos_msg, sizeof(*ctx->tos_msg));
 		disp_ca_wait_response();
 	}
 
@@ -1413,13 +1437,7 @@ static void dpu_flip(struct dpu_context *ctx, struct sprd_plane planes[], u8 cou
 			secure_val = DPU_REG_RD(ctx->base + REG_DPU_SECURE);
 			state = to_sprd_plane_state(planes[0].base.state);
 			layer = &state->layer;
-			if ((!layer->secure_en) && secure_val) {
-				dpu_wait_update_done(ctx);
-				ctx->tos_msg.cmd = TA_FIREWALL_CLR;
-				disp_ca_write(&ctx->tos_msg, sizeof(ctx->tos_msg));
-				disp_ca_wait_response();
-			} else
-				dpu_wait_update_done(ctx);
+			dpu_wait_update_done(ctx);
 		}
 
 		DPU_REG_SET(ctx->base + REG_DPU_INT_EN, BIT_DPU_INT_ERR);
@@ -1536,6 +1554,11 @@ static int dpu_context_init(struct dpu_context *ctx)
 	ctx->base_offset[1] = DPU_MAX_REG_OFFSET;
 
 	ctx->wb_configed = false;
+
+	/* Allocate memory for trusty */
+	ctx->tos_msg = kmalloc(sizeof(struct disp_message) + sizeof(struct layer_reg), GFP_KERNEL);
+	if(!ctx->tos_msg)
+		return -ENOMEM;
 
 	return 0;
 }
