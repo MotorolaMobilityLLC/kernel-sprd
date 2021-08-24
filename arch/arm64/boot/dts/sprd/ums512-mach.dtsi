@@ -451,6 +451,93 @@
 		};
 	};
 
+	isp_dvfs: isp-dvfs {
+		compatible = "sprd,hwdvfs-isp";
+		operating-points = <
+			/* kHz    uV */
+			256000    700000
+			307200    700000
+			384000    750000
+			468000    750000
+			512000    750000
+			>;
+	};
+
+	cpp_dvfs: cpp-dvfs {
+		compatible = "sprd,hwdvfs-cpp";
+		operating-points = <
+			/* kHz    uV */
+			76800     700000
+			128000    700000
+			256000    700000
+			384000    750000
+			>;
+	};
+
+	jpg_dvfs: jpg-dvfs {
+		compatible = "sprd,hwdvfs-jpg";
+		operating-points = <
+			/* kHz    uV */
+			76800     700000
+			128000    700000
+			256000    700000
+			384000    750000
+			>;
+	};
+
+	fd_dvfs: fd-dvfs {
+		compatible = "sprd,hwdvfs-fd";
+		operating-points = <
+			/* kHz    uV */
+			76800     700000
+			192000    700000
+			307200    700000
+			384000    750000
+			>;
+	};
+
+	mtx_dvfs: mtx-dvfs {
+		compatible = "sprd,hwdvfs-mtx";
+		operating-points = <
+			/* kHz    uV */
+			76800     700000
+			128000    700000
+			256000    700000
+			307200    700000
+			384000    750000
+			468000    750000
+			512000    800000
+			>;
+	};
+
+	dcam_if_dvfs: dcam-if-dvfs {
+		compatible = "sprd,hwdvfs-dcam-if";
+		operating-points = <
+			/* kHz    uV */
+			192000    700000
+			256000    700000
+			307200    700000
+			384000    750000
+			468000    750000
+			>;
+	};
+
+	dcam_axi_dvfs: dcam-axi-dvfs {
+		compatible = "sprd,hwdvfs-dcam-axi";
+		operating-points = <
+			/* kHz    uV */
+			256000    700000
+			307200    700000
+			384000    750000
+			468000    750000
+			>;
+	};
+
+	mmsys_dvfs: mmsys-dvfs {
+		compatible = "sprd,hwdvfs-mmsys";
+		sprd,topdvfs_controller = <&topdvfs_controller>;
+	};
+
 	trusty {
 		compatible = "sprd,trusty-smc-v1";
 
