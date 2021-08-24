@@ -286,7 +286,7 @@ static void slog_bridge_event_callback(int event, void *data)
 	sblock = scb->sblock;
 
 	if (sb->wait_log_enable) {
-		dev_info(sb->dev, "slog-%d-%d: wait_log_enable",
+		dev_dbg(sb->dev, "slog-%d-%d: wait_log_enable",
 			sblock->dst, sblock->channel);
 		return;
 	}
