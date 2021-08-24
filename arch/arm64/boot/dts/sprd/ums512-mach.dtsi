@@ -86,6 +86,11 @@
 			linux,cma-default;
 		};
 
+		/* This node is added in uboot. base:0xffef 0000, size:0x80000 */
+		uboot_log_reserved: uboot_log-mem {
+			reg = <0x0 0xffef0000 0x0 0x00080000>;
+		};
+
 		rebootescrow@0xfff70000 {
 			no-map;
 			reg = <0x0 0xfff70000 0x0 0x00010000>; /* 64K */
