@@ -341,6 +341,11 @@ static int iface_open(struct net_device *ndev)
 
 		return ret;
 	}
+
+	if (atomic_read(&hif->power_cnt) == 1) {
+		if (sprd_get_fw_info(vif->priv))
+			return -EIO;
+	}
 	sprd_init_fw(vif);
 	netif_start_queue(ndev);
 
