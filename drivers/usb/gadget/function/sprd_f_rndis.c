@@ -499,49 +499,14 @@ static void rndis_response_complete(struct usb_ep *ep, struct usb_request *req)
 static void rndis_command_complete(struct usb_ep *ep, struct usb_request *req)
 {
 	struct f_rndis			*rndis = req->context;
-	struct usb_composite_dev	*cdev = rndis->port.func.config->cdev;
 	int				status;
-	rndis_init_msg_type		*buf;
 
-	if (req->status < 0)
-		return;
 	/* received RNDIS command from USB_CDC_SEND_ENCAPSULATED_COMMAND */
 //	spin_lock(&dev->lock);
 	status = sprd_rndis_msg_parser(rndis->params, (u8 *) req->buf);
 	if (status < 0)
 		pr_err("RNDIS command error %d, %d/%d\n",
 			status, req->actual, req->length);
-
-	buf = (rndis_init_msg_type *)req->buf;
-
-	if (buf->MessageType == RNDIS_MSG_INIT) {
-		if (cdev->gadget->sg_supported) {
-			rndis->port.dl_max_xfer_size = buf->MaxTransferSize;
-			gether_update_dl_max_xfer_size(&rndis->port,
-					rndis->port.dl_max_xfer_size);
-
-			/* if SG is enabled multiple packets can be put
-			 * together too quickly. However, module param
-			 * is not honored.
-			 */
-			rndis->port.dl_max_pkts_per_xfer =
-				rndis_dl_max_pkt_per_xfer;
-
-			gether_update_dl_max_pkts_per_xfer(&rndis->port,
-					 rndis->port.dl_max_pkts_per_xfer);
-
-			return;
-		}
-		if (buf->MaxTransferSize > 2048)
-			rndis->port.multi_pkt_xfer = 1;
-		else
-			rndis->port.multi_pkt_xfer = 0;
-		DBG(cdev, "%s: MaxTransferSize: %d : Multi_pkt_txr: %s\n",
-		    __func__, buf->MaxTransferSize,
-		    rndis->port.multi_pkt_xfer ? "enabled" : "disabled");
-		if (rndis_dl_max_pkt_per_xfer <= 1)
-			rndis->port.multi_pkt_xfer = 0;
-	}
 //	spin_unlock(&dev->lock);
 }
 
