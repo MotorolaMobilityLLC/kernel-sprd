@@ -292,6 +292,7 @@ struct tcpm_port {
 	unsigned int nr_snk_vdo;
 
 	unsigned int operating_snk_mw;
+	unsigned int operating_snk_default_mw;
 	bool update_sink_caps;
 
 	/* Requested current / voltage */
@@ -3754,6 +3755,8 @@ static void _tcpm_pd_vbus_on(struct tcpm_port *port)
 	for (i = 0; i < port->nr_snk_default_pdo; i++)
 		port->snk_pdo[i] = port->snk_default_pdo[i];
 
+	port->operating_snk_mw = port->operating_snk_default_mw;
+
 	tcpm_log_force(port, "VBUS on");
 	port->vbus_present = true;
 	switch (port->state) {
@@ -4378,7 +4381,7 @@ static int tcpm_fw_get_caps(struct tcpm_port *port,
 {
 	const char *cap_str;
 	int ret, i;
-	u32 mw;
+	u32 uw;
 
 	if (!fwnode)
 		return -EINVAL;
@@ -4445,9 +4448,10 @@ sink:
 	for (i = 0; i < port->nr_snk_default_pdo; i++)
 		port->snk_default_pdo[i] = port->snk_pdo[i];
 
-	if (fwnode_property_read_u32(fwnode, "op-sink-microwatt", &mw) < 0)
+	if (fwnode_property_read_u32(fwnode, "op-sink-microwatt", &uw) < 0)
 		return -EINVAL;
-	port->operating_snk_mw = mw / 1000;
+	port->operating_snk_default_mw = uw / 1000;
+	port->operating_snk_mw = port->operating_snk_default_mw;
 
 	port->self_powered = fwnode_property_read_bool(fwnode, "self-powered");
 
