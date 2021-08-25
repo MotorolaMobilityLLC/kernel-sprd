@@ -3,6 +3,7 @@
  * Copyright (C) 2020 Unisoc Inc.
  */
 
+#include <linux/compat.h>
 #include <drm/drm_atomic_helper.h>
 #include <drm/drm_file.h>
 #include <drm/drm_ioctl.h>

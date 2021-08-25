@@ -188,7 +188,6 @@ static void prepare_silent_urb(struct snd_usb_endpoint *ep,
 		unsigned int offset;
 		unsigned int length;
 		int counts;
-		struct usb_iso_packet_descriptor *iso_desc = &(urb->iso_frame_desc[0]);
 
 		if (ctx->packet_size[i])
 			counts = ctx->packet_size[i];
@@ -197,8 +196,8 @@ static void prepare_silent_urb(struct snd_usb_endpoint *ep,
 
 		length = counts * ep->stride; /* number of silent bytes */
 		offset = offs * ep->stride + extra * i;
-		iso_desc[i].offset = offset;
-		iso_desc[i].length = length + extra;
+		urb->iso_frame_desc[i].offset = offset;
+		urb->iso_frame_desc[i].length = length + extra;
 		if (extra) {
 			packet_length = cpu_to_le32(length);
 			memcpy(urb->transfer_buffer + offset,
@@ -221,7 +220,6 @@ static void prepare_outbound_urb(struct snd_usb_endpoint *ep,
 {
 	struct urb *urb = ctx->urb;
 	unsigned char *cp = urb->transfer_buffer;
-	struct usb_iso_packet_descriptor *iso_desc = &(urb->iso_frame_desc[0]);
 
 	urb->dev = ep->chip->dev; /* we need to set this at each time */
 
@@ -241,8 +239,8 @@ static void prepare_outbound_urb(struct snd_usb_endpoint *ep,
 			 * fill the length and offset of each urb descriptor.
 			 * the fixed 12.13 frequency is passed as 16.16 through the pipe.
 			 */
-			iso_desc[0].length = 4;
-			iso_desc[0].offset = 0;
+			urb->iso_frame_desc[0].length = 4;
+			urb->iso_frame_desc[0].offset = 0;
 			cp[0] = ep->freqn;
 			cp[1] = ep->freqn >> 8;
 			cp[2] = ep->freqn >> 16;
@@ -252,8 +250,8 @@ static void prepare_outbound_urb(struct snd_usb_endpoint *ep,
 			 * fill the length and offset of each urb descriptor.
 			 * the fixed 10.14 frequency is passed through the pipe.
 			 */
-			iso_desc[0].length = 3;
-			iso_desc[0].offset = 0;
+			urb->iso_frame_desc[0].length = 3;
+			urb->iso_frame_desc[0].offset = 0;
 			cp[0] = ep->freqn >> 2;
 			cp[1] = ep->freqn >> 10;
 			cp[2] = ep->freqn >> 18;
@@ -271,7 +269,6 @@ static inline void prepare_inbound_urb(struct snd_usb_endpoint *ep,
 {
 	int i, offs;
 	struct urb *urb = urb_ctx->urb;
-	struct usb_iso_packet_descriptor *iso_desc = &(urb->iso_frame_desc[0]);
 
 	urb->dev = ep->chip->dev; /* we need to set this at each time */
 
@@ -279,8 +276,8 @@ static inline void prepare_inbound_urb(struct snd_usb_endpoint *ep,
 	case SND_USB_ENDPOINT_TYPE_DATA:
 		offs = 0;
 		for (i = 0; i < urb_ctx->packets; i++) {
-			iso_desc[i].offset = offs;
-			iso_desc[i].length = ep->curpacksize;
+			urb->iso_frame_desc[i].offset = offs;
+			urb->iso_frame_desc[i].length = ep->curpacksize;
 			offs += ep->curpacksize;
 		}
 
@@ -289,8 +286,8 @@ static inline void prepare_inbound_urb(struct snd_usb_endpoint *ep,
 		break;
 
 	case SND_USB_ENDPOINT_TYPE_SYNC:
-		iso_desc[0].length = min(4u, ep->syncmaxsize);
-		iso_desc[0].offset = 0;
+		urb->iso_frame_desc[0].length = min(4u, ep->syncmaxsize);
+		urb->iso_frame_desc[0].offset = 0;
 		break;
 	}
 }
@@ -1437,7 +1434,6 @@ void snd_usb_handle_sync_urb(struct snd_usb_endpoint *ep,
 	int shift;
 	unsigned int f;
 	unsigned long flags;
-	const struct usb_iso_packet_descriptor *iso_desc = &(urb->iso_frame_desc[0]);
 
 	snd_BUG_ON(ep == sender);
 
@@ -1459,8 +1455,8 @@ void snd_usb_handle_sync_urb(struct snd_usb_endpoint *ep,
 
 		/* Count overall packet size */
 		for (i = 0; i < in_ctx->packets; i++)
-			if (iso_desc[i].status == 0)
-				bytes += iso_desc[i].actual_length;
+			if (urb->iso_frame_desc[i].status == 0)
+				bytes += urb->iso_frame_desc[i].actual_length;
 
 		/*
 		 * skip empty packets. At least M-Audio's Fast Track Ultra stops
@@ -1484,9 +1480,9 @@ void snd_usb_handle_sync_urb(struct snd_usb_endpoint *ep,
 
 		out_packet->packets = in_ctx->packets;
 		for (i = 0; i < in_ctx->packets; i++) {
-			if (iso_desc[i].status == 0)
+			if (urb->iso_frame_desc[i].status == 0)
 				out_packet->packet_size[i] =
-					iso_desc[i].actual_length / sender->stride;
+					urb->iso_frame_desc[i].actual_length / sender->stride;
 			else
 				out_packet->packet_size[i] = 0;
 		}
@@ -1514,12 +1510,12 @@ void snd_usb_handle_sync_urb(struct snd_usb_endpoint *ep,
 	 * and must detect it automatically.
 	 */
 
-	if (iso_desc[0].status != 0 ||
-	    iso_desc[0].actual_length < 3)
+	if (urb->iso_frame_desc[0].status != 0 ||
+	    urb->iso_frame_desc[0].actual_length < 3)
 		return;
 
 	f = le32_to_cpup(urb->transfer_buffer);
-	if (iso_desc[0].actual_length == 3)
+	if (urb->iso_frame_desc[0].actual_length == 3)
 		f &= 0x00ffffff;
 	else
 		f &= 0x0fffffff;
