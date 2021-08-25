@@ -1884,7 +1884,6 @@ int musb_gadget_setup(struct musb *musb)
 	musb->g.ops = &musb_gadget_operations;
 	musb->g.max_speed = USB_SPEED_HIGH;
 	musb->g.speed = USB_SPEED_UNKNOWN;
-	musb->g.sg_supported = true;
 
 	MUSB_DEV_MODE(musb);
 	musb->xceiv->otg->default_a = 0;
