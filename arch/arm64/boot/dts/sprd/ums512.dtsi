@@ -1124,23 +1124,29 @@
 			"clk_src_128m",
 			"clk_src_153m6",
 			"clk_src_192m",
+			"clk_src_204m8",
 			"clk_src_256m",
+			"clk_src_273m",
 			"clk_src_307m2",
 			"clk_src_384m",
 			"clk_dpu_core",
 			"clk_dpu_dpi",
-			"clk_ap_ahb_disp_eb";
+			"clk_ap_ahb_disp_eb",
+			"dsi_div6clk_gate";
 
 	clocks = <&pll2 CLK_TWPLL_96M>,
 		<&pll2 CLK_TWPLL_128M>,
 		<&pll2 CLK_TWPLL_153M6>,
 		<&pll2 CLK_TWPLL_192M>,
+		<&dphy_204m8>,
 		<&pll2 CLK_TWPLL_256M>,
+		<&dphy_273m>,
 		<&pll2 CLK_TWPLL_307M2>,
 		<&pll2 CLK_TWPLL_384M>,
 		<&ap_clk CLK_DISPC0>,
 		<&ap_clk CLK_DISPC0_DPI>,
-		<&apahb_gate CLK_DISPC_EB>;
+		<&apahb_gate CLK_DISPC_EB>,
+		<&pll0 CLK_DSI_DIV6CLK_GATE>;
 };
 
 &dsi {

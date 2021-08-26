@@ -816,21 +816,7 @@
 };
 
 &lcd_g40396_truly_mipi_fhd {
-	sprd,phy-bit-clock = <1500000>;
-	sprd,video-lp-cmd-enable = <0>;
-	sprd,hporch-lp-disable = <0>;
 	display-timings {
-		g40396_truly_timing0: timing0 {
-			clock-frequency = <192000000>;
-			hactive = <1080>;
-			vactive = <2400>;
-			hback-porch = <52>;
-			hfront-porch = <52>;
-			vback-porch = <36>;
-			vfront-porch = <220>;
-			hsync-len = <16>;
-			vsync-len = <4>;
-		};
 		g40396_truly_timing1: timing1 {
 			clock-frequency = <192000000>;
 			hactive = <720>;

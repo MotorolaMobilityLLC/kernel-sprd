@@ -8,6 +8,9 @@
 					sprd,dsi-work-mode = <1>;
 					sprd,dsi-lane-number = <3>;
 					sprd,dsi-color-format = "rgb888";
+					sprd,dpi-clk-div = <8>;
+					sprd,video-lp-cmd-enable = <1>;
+					sprd,hporch-lp-disable = <1>;
 
 					sprd,phy-bit-clock = <1245024>;
 					sprd,phy-escape-clock = <20000>;/* kHz */
