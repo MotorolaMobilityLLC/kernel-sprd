@@ -4086,6 +4086,16 @@ static void fast_charge_handler(struct charger_manager *cm)
 		cm_update_charge_info(cm, (CM_CHARGE_INFO_CHARGE_LIMIT |
 					   CM_CHARGE_INFO_INPUT_LIMIT));
 
+	/*
+	 * Once the fast charge is identified, it is necessary to open
+	 * the charge in the first time to avoid the fast charge to boost
+	 * the voltage in the next charging cycle, especially the SFCP
+	 * fast charge.
+	 */
+	if (cm->desc->fast_charger_type == POWER_SUPPLY_USB_TYPE_PD &&
+	    cm->charger_enabled)
+		_cm_monitor(cm);
+
 	if (cm->desc->fast_charger_type == POWER_SUPPLY_USB_CHARGER_TYPE_PD_PPS &&
 	    !cm->desc->cp.cp_running && cm->charger_enabled) {
 		cm_check_cp_start_condition(cm, true);
