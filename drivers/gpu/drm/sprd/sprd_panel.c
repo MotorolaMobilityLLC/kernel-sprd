@@ -652,10 +652,11 @@ static int sprd_oled_set_brightness(struct backlight_device *bdev)
             g_last_level = level;
         }
     }
-	else{
+	if (strncmp(lcd_name, "lcd_ili9883a_youda_mipi_hd",strlen(lcd_name)) == 0)
+    {
         if (level < 256){
+			level = ((level * 79)+ 4)/ 100;
             g_last_level = level;
-			level = ((level * 90)+ 4)/ 100;
 		}
 	}
 	if (level ==256)
