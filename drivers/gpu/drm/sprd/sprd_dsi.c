@@ -257,7 +257,7 @@ static void sprd_dsi_encoder_disable(struct drm_encoder *encoder)
 	}
 
 	sprd_dpu_stop(dpu);
-	if (dpu->ctx.dpi_clk_div) {
+	if (dsi->ctx.dpi_clk_div) {
 		if (!strcmp(dpu->ctx.version, "dpu-r6p0")) {
 			dsi->ctx.clk_dpi_384m = true;
 			dsi->glb->disable(&dsi->ctx);
@@ -479,6 +479,9 @@ static int sprd_dsi_host_attach(struct mipi_dsi_host *host,
 		ctx->hporch_lp_disable = val;
 	else
 		ctx->hporch_lp_disable = 0;
+
+	if (!of_property_read_u32(lcd_node, "sprd,dpi-clk-div", &val))
+		ctx->dpi_clk_div = val;
 
 	if (dsi->dsi_slave) {
 		ctx_slave = &dsi->dsi_slave->ctx;

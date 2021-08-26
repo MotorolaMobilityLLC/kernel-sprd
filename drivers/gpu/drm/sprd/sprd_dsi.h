@@ -109,6 +109,8 @@ struct dsi_context {
 	bool video_lp_cmd_en;
 	/* disable return to low power mode inside horizontal porch periods */
 	bool hporch_lp_disable;
+	/* enable div6 function */
+	int dpi_clk_div;
 };
 
 struct dsi_core_ops {

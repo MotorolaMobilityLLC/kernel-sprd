@@ -208,7 +208,6 @@ struct dpu_context {
 	unsigned long logo_size;
 	struct work_struct cabc_work;
 	struct work_struct cabc_bl_update;
-	int dpi_clk_div;
 	bool dual_dsi_en;
 	bool dsc_en;
 	int  dsc_mode;

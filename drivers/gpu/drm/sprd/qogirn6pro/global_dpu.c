@@ -210,12 +210,14 @@ static int dpu_clk_init(struct dpu_context *ctx)
 	u32 dpi_src_val;
 	struct clk *clk_src;
 	struct dpu_clk_context *clk_ctx = &dpu_clk_ctx;
+	struct sprd_dpu *dpu = (struct sprd_dpu *)container_of(ctx,
+				struct sprd_dpu, ctx);
 
 	dpu_core_val = calc_dpu_core_clk();
 
-	if (ctx->dpi_clk_div) {
+	if (dpu->dsi->ctx.dpi_clk_div) {
 		pr_info("DPU_CORE_CLK = %u, DPI_CLK_DIV = %d\n",
-				dpu_core_val, ctx->dpi_clk_div);
+				dpu_core_val, dpu->dsi->ctx.dpi_clk_div);
 	} else {
 		dpi_src_val = calc_dpi_clk_src(ctx->vm.pixelclock);
 		pr_info("DPU_CORE_CLK = %u, DPI_CLK_SRC = %u\n",
@@ -228,8 +230,8 @@ static int dpu_clk_init(struct dpu_context *ctx)
 	if (ret)
 		pr_warn("set dpu core clk source failed\n");
 
-	if (ctx->dpi_clk_div) {
-		clk_src = div_to_clk(clk_ctx, ctx->dpi_clk_div);
+	if (dpu->dsi->ctx.dpi_clk_div) {
+		clk_src = div_to_clk(clk_ctx, dpu->dsi->ctx.dpi_clk_div);
 		ret = clk_set_parent(clk_ctx->clk_dpu_dpi, clk_src);
 		if (ret)
 			pr_warn("set dpi clk source failed\n");
@@ -252,6 +254,8 @@ static int dpu_clk_enable(struct dpu_context *ctx)
 	int ret;
 	struct dpu_clk_context *clk_ctx = &dpu_clk_ctx;
 	static bool div6_uboot_enable = true;
+	struct sprd_dpu *dpu = (struct sprd_dpu *)container_of(ctx,
+				struct sprd_dpu, ctx);
 
 	ret = clk_prepare_enable(clk_ctx->clk_dpu_core);
 	if (ret) {
@@ -266,7 +270,7 @@ static int dpu_clk_enable(struct dpu_context *ctx)
 		return ret;
 	}
 
-	if (ctx->dpi_clk_div) {
+	if (dpu->dsi->ctx.dpi_clk_div) {
 		if (div6_uboot_enable) {
 			div6_uboot_enable = false;
 			return 0;
