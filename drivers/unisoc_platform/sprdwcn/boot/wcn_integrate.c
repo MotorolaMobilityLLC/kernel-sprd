@@ -1127,8 +1127,7 @@ void wcn_power_set_vddcon(u32 value)
 	if (s_wcn_device.vddwcn)
 		ret = regulator_set_voltage(s_wcn_device.vddwcn,
 					    value, value);
-	if (ret == 0)
-		WCN_ERR("wcn_power_set_vddcon is error\n");
+	WCN_INFO("%s ret = %d\n", __func__, ret);
 }
 
 void wcn_power_set_dcxo1v8(u32 value)
@@ -1137,8 +1136,7 @@ void wcn_power_set_dcxo1v8(u32 value)
 	if (s_wcn_device.dcxo1v8)
 		ret = regulator_set_voltage(s_wcn_device.dcxo1v8,
 					    value, value);
-	if (ret == 0)
-		WCN_ERR("wcn_power_set_dcxo1v8 is error\n");
+	WCN_INFO("%s ret = %d\n", __func__, ret);
 }
 
 /*
@@ -1243,8 +1241,7 @@ void wcn_power_set_vddwifipa(u32 value)
 	if (btwf_device->vddwifipa)
 		ret = regulator_set_voltage(btwf_device->vddwifipa,
 					    value, value);
-	if (ret == 0)
-		WCN_ERR("wcn_power_set_vddwifipa is error\n");
+	WCN_INFO("%s ret = %d\n", __func__, ret);
 	WCN_INFO("vddwifipa value %d\n", value);
 }
 
