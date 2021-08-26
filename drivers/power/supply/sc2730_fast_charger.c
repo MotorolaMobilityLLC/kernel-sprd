@@ -84,8 +84,7 @@
 #define SC2730_FCHG_TIMEOUT			msecs_to_jiffies(5000)
 #define SC2730_FAST_CHARGER_DETECT_MS		msecs_to_jiffies(1000)
 
-#define SC2730_PD_START_POWER_MW		18000
-#define SC2730_PD_STOP_POWER_MW			10000
+#define SC2730_PD_DEFAULT_POWER_UW		10000000
 
 #define SC2730_ENABLE_PPS			2
 #define SC2730_DISABLE_PPS			1
@@ -126,9 +125,11 @@ struct sc2730_fchg_info {
 	struct work_struct pd_change_work;
 	struct mutex lock;
 	struct completion completion;
+	struct adapter_power_cap pd_source_cap;
 	u32 state;
 	u32 base;
 	int input_vol;
+	int pd_fixed_max_uw;
 	u32 limit;
 	bool detected;
 	bool pd_enable;
@@ -449,16 +450,41 @@ static int sc2730_fchg_sfcp_adjust_voltage(struct sc2730_fchg_info *info,
 	return 0;
 }
 
-static const u32 sc2730_snk_pdo[] = {
-	PDO_FIXED(5000, 2000, 0),
-};
-
-static const u32 sc2730_snk9v_pdo[] = {
-	PDO_FIXED(5000, 2000, 0),
-	PDO_FIXED(9000, 2000, 0),
-};
-
 #ifdef CONFIG_TYPEC_TCPM
+static int sc2730_get_pd_fixed_voltage_max(struct sc2730_fchg_info *info, u32 *max_vol)
+{
+	struct tcpm_port *port;
+	int i, adptor_max_vbus = 0;
+
+	if (!info->psy_tcpm) {
+		dev_err(info->dev, "psy_tcpm is NULL !!!\n");
+		return -EINVAL;
+	}
+
+	port = power_supply_get_drvdata(info->psy_tcpm);
+	if (!port) {
+		dev_err(info->dev, "failed to get tcpm port\n");
+		return -EINVAL;
+	}
+
+	tcpm_get_source_capabilities(port, &info->pd_source_cap);
+	if (!info->pd_source_cap.nr_source_caps) {
+		dev_err(info->dev, "failed to obtain the PD power supply capacity\n");
+		return -EINVAL;
+	}
+
+	for (i = 0; i < info->pd_source_cap.nr_source_caps; i++) {
+		if (info->pd_source_cap.type[i] == PDO_TYPE_FIXED &&
+		    adptor_max_vbus < info->pd_source_cap.max_mv[i])
+			adptor_max_vbus = info->pd_source_cap.max_mv[i];
+	}
+
+	*max_vol = adptor_max_vbus * 1000;
+
+	return 0;
+}
+
+
 static int sc2730_get_pps_voltage_max(struct sc2730_fchg_info *info, u32 *max_vol)
 {
 	union power_supply_propval val;
@@ -505,11 +531,14 @@ static int sc2730_get_pps_current_max(struct sc2730_fchg_info *info, u32
 
 	return ret;
 }
+
 static int sc2730_fchg_pd_adjust_voltage(struct sc2730_fchg_info *info,
 					 u32 input_vol)
 {
 	struct tcpm_port *port;
-	int ret;
+	int ret, i, index = -1;
+	u32 pdo[PDO_MAX_OBJECTS];
+	unsigned int snk_uw;
 
 	if (!info->psy_tcpm) {
 		dev_err(info->dev, "psy_tcpm is NULL !!!\n");
@@ -522,24 +551,47 @@ static int sc2730_fchg_pd_adjust_voltage(struct sc2730_fchg_info *info,
 		return -EINVAL;
 	}
 
-	if (input_vol < FCHG_VOLTAGE_9V) {
-		ret = tcpm_update_sink_capabilities(port, sc2730_snk_pdo,
-						    ARRAY_SIZE(sc2730_snk_pdo),
-						    SC2730_PD_STOP_POWER_MW);
-		if (ret) {
-			dev_err(info->dev,
-				"failed to set pd 5V ret = %d\n", ret);
-			return ret;
-		}
-	} else if (input_vol < FCHG_VOLTAGE_12V) {
-		ret = tcpm_update_sink_capabilities(port, sc2730_snk9v_pdo,
-						    ARRAY_SIZE(sc2730_snk9v_pdo),
-						    SC2730_PD_START_POWER_MW);
-		if (ret) {
-			dev_err(info->dev,
-				"failed to set pd 9V ret = %d\n", ret);
-			return ret;
-		}
+	tcpm_get_source_capabilities(port, &info->pd_source_cap);
+	if (!info->pd_source_cap.nr_source_caps) {
+		pdo[0] = PDO_FIXED(5000, 2000, 0);
+		snk_uw = SC2730_PD_DEFAULT_POWER_UW;
+		goto done;
+	}
+
+	for (i = 0; i < info->pd_source_cap.nr_source_caps; i++) {
+		if ((info->pd_source_cap.max_mv[i] <= input_vol / 1000) &&
+		    (info->pd_source_cap.type[i] == PDO_TYPE_FIXED))
+			index = i;
+	}
+
+	/*
+	 * Ensure that index is within a valid range to prevent arrays
+	 * from crossing bounds.
+	 */
+	if (index < 0 || index >= info->pd_source_cap.nr_source_caps) {
+		dev_err(info->dev, "Index is invalid!!!\n");
+		return -EINVAL;
+	}
+
+	snk_uw = info->pd_source_cap.max_mv[index] * info->pd_source_cap.ma[index];
+	if (snk_uw > info->pd_fixed_max_uw)
+		snk_uw = info->pd_fixed_max_uw;
+
+	for (i = 0; i < index + 1; i++) {
+		pdo[i] = PDO_FIXED(info->pd_source_cap.max_mv[i], info->pd_source_cap.ma[i], 0);
+		if (info->pd_source_cap.max_mv[i] * info->pd_source_cap.ma[i] > snk_uw)
+			pdo[i] = PDO_FIXED(info->pd_source_cap.max_mv[i],
+					   snk_uw / info->pd_source_cap.max_mv[i],
+					   0);
+	}
+
+done:
+	ret = tcpm_update_sink_capabilities(port, pdo,
+					    index + 1,
+					    snk_uw / 1000);
+	if (ret) {
+		dev_err(info->dev, "failed to set pd, ret = %d\n", ret);
+		return ret;
 	}
 
 	return 0;
@@ -723,6 +775,12 @@ out1:
 	dev_info(info->dev, "pd type = %d\n", pd_type);
 }
 #else
+static int sc2730_get_pd_fixed_voltage_max(struct sc2730_fchg_info *info, u32
+				      *max_vol)
+{
+	return 0;
+}
+
 static int sc2730_get_pps_voltage_max(struct sc2730_fchg_info *info, u32
 				      *max_vol)
 {
@@ -784,8 +842,12 @@ static int sc2730_fchg_usb_get_property(struct power_supply *psy,
 		break;
 	case POWER_SUPPLY_PROP_VOLTAGE_MAX:
 		val->intval = 0;
-		if (info->pps_enable)
+		if (info->pd_enable)
+			sc2730_get_pd_fixed_voltage_max(info, &val->intval);
+		else if (info->pps_enable)
 			sc2730_get_pps_voltage_max(info, &val->intval);
+		else if (info->sfcp_enable)
+			val->intval = FCHG_VOLTAGE_9V;
 		break;
 	case POWER_SUPPLY_PROP_CURRENT_MAX:
 		if (info->pps_enable)
@@ -982,6 +1044,15 @@ static int sc2730_fchg_probe(struct platform_device *pdev)
 	if (ret) {
 		dev_err(&pdev->dev, "failed to get fast charger voltage.\n");
 		return ret;
+	}
+
+	ret = device_property_read_u32(&pdev->dev,
+				       "sprd,pd-fixed-max-microwatt",
+				       &info->pd_fixed_max_uw);
+	if (ret) {
+		dev_info(&pdev->dev, "failed to get pd fixed max uw.\n");
+		/* If this parameter is not defined in DTS, the default power is 10W */
+		info->pd_fixed_max_uw = SC2730_PD_DEFAULT_POWER_UW;
 	}
 
 	info->support_pd_pps = device_property_read_bool(&pdev->dev,
