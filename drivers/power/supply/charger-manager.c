@@ -1926,7 +1926,7 @@ static bool cm_is_reach_fchg_threshold(struct charger_manager *cm)
 
 static int cm_fast_charge_enable_check(struct charger_manager *cm)
 {
-	int ret;
+	int ret, adapter_max_vbus;
 
 	/*
 	 * if it occurs emergency event, don't enable fast charge.
@@ -1973,10 +1973,19 @@ static int cm_fast_charge_enable_check(struct charger_manager *cm)
 	/*
 	 * adjust fast charger output voltage from 5V to 9V
 	 */
-	ret = cm_adjust_fast_charge_voltage(cm, CM_FAST_CHARGE_VOLTAGE_9V);
+	ret = cm_get_adapter_max_voltage(cm, &adapter_max_vbus);
+	if (ret) {
+		dev_err(cm->dev, "failed to obtain the adapter max voltage\n");
+		return ret;
+	}
+
+	if (adapter_max_vbus > CM_FAST_CHARGE_VOLTAGE_9V)
+		adapter_max_vbus = CM_FAST_CHARGE_VOLTAGE_9V;
+
+	ret = cm_adjust_fast_charge_voltage(cm, adapter_max_vbus);
 	if (ret) {
 		cm_set_main_charger_current(cm, CM_FAST_CHARGE_DISABLE_CMD);
-		dev_err(cm->dev, "failed to adjust 9V fast charger voltage\n");
+		dev_err(cm->dev, "failed to adjust fast charger voltage\n");
 		return ret;
 	}
 
