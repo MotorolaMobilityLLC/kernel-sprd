@@ -2715,7 +2715,7 @@ static int vbc_turning_profile_loading(const u8 *profile_data, size_t profile_si
 	}
 
 	offset = sizeof(struct vbc_fw_header);
-	len = p_profile_setting->hdr[profile_id].num_mode * p_profile_setting->hdr[profile_id].len_mode;
+	len = (size_t)(p_profile_setting->hdr[profile_id].num_mode) * p_profile_setting->hdr[profile_id].len_mode;
 	if (p_profile_setting->data[profile_id] == NULL) {
 		p_profile_setting->data[profile_id] = kzalloc(len, GFP_KERNEL);
 		if (p_profile_setting->data[profile_id] == NULL) {
