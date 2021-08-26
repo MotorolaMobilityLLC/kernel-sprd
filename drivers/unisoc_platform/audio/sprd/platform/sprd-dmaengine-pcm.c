@@ -889,6 +889,11 @@ static int sprd_pcm_config_dma(struct snd_pcm_substream *substream,
 		return -EINVAL;
 	}
 
+	if (ch_cnt <= 0) {
+		pr_err("ERR: channel count(%d) is less than 1\n", ch_cnt);
+		return -EINVAL;
+	}
+
 	for (i = 0; i < ch_cnt; i++) {
 		cfg = dma_config_ptr[i];
 		sg = dma_config_ptr[i]->sg;
