@@ -406,7 +406,7 @@ static struct sprd_clk_desc sharkl5pro_gc_pll_desc = {
 static SPRD_SC_GATE_CLK_FW_NAME(dsi_eb, "dsi-eb", "ext-26m",
 				0x0, 0x1000, BIT(0), 0, 0);
 static SPRD_SC_GATE_CLK_FW_NAME(dispc_eb, "dispc-eb", "ext-26m",
-				0x0, 0x1000, BIT(1), 0, 0);
+				0x0, 0x1000, BIT(1), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK_FW_NAME(vsp_eb, "vsp-eb", "ext-26m",
 				0x0, 0x1000, BIT(2), 0, 0);
 static SPRD_SC_GATE_CLK_FW_NAME(vdma_eb, "vdma-eb", "ext-26m",
@@ -1236,7 +1236,7 @@ static SPRD_SC_GATE_CLK_FW_NAME(pwm0_eb, "pwm0-eb", "ext-26m",
 static SPRD_SC_GATE_CLK_FW_NAME(pwm1_eb, "pwm1-eb", "ext-26m",
 				0x8, 0x1000, BIT(26), 0, 0);
 static SPRD_SC_GATE_CLK_FW_NAME(pwm2_eb, "pwm2-eb", "ext-26m",
-				0x8, 0x1000, BIT(27), 0, 0);
+				0x8, 0x1000, BIT(27), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK_FW_NAME(pwm3_eb, "pwm3-eb", "ext-26m",
 				0x8, 0x1000, BIT(28), 0, 0);
 static SPRD_SC_GATE_CLK_FW_NAME(ap_wdg_eb, "ap-wdg-eb", "ext-26m",
