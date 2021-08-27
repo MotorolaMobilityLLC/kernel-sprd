@@ -16708,6 +16708,15 @@ CONFIG_SPRD_DEDICATE_THERMAL
 				   because project thermal ip.
 	[function] This function is config thermal driver to support read
 		   temperature of monitored area.
+CONFIG_SPRD_DISP_PM_DOMAIN_SHARKL3
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
 CONFIG_SPRD_DJTAG
 	[arch] all
 	[plat] all

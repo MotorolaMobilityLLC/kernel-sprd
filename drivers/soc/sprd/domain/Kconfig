@@ -20,3 +20,12 @@ config SPRD_CAMSYS_PW_DOMAIN
 	select PM_GENERIC_DOMAINS if PM
 	help
 	  If you select this feature, it will enable the camera sys power domain.
+
+config SPRD_DISP_PM_DOMAIN_SHARKL3
+	tristate "SPRD Display PM Generic Domain for SharkL3"
+	default m
+	depends on ARCH_SPRD || COMPILE_TEST
+	select PM_GENERIC_DOMAINS if PM
+	help
+	  When you select this feature, it will enable the pm generic
+	  power domain for SharkL3 display module.
