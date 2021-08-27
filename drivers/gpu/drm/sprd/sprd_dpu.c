@@ -10,6 +10,7 @@
 #include <linux/of_address.h>
 #include <linux/of_device.h>
 #include <linux/of_irq.h>
+#include <linux/pm_runtime.h>
 #include <linux/mm.h>
 #include <linux/sprd_iommu.h>
 #include <linux/memblock.h>
@@ -161,8 +162,13 @@ static enum drm_mode_status sprd_dpu_mode_valid(struct sprd_crtc *crtc,
 static void sprd_dpu_atomic_enable(struct sprd_crtc *crtc)
 {
 	struct sprd_dpu *dpu = crtc->priv;
+	static bool is_enable = true;
 
 	DRM_INFO("%s()\n", __func__);
+	if (is_enable)
+		is_enable = false;
+	else
+		pm_runtime_get_sync(dpu->dev.parent);
 
 	sprd_dpu_enable(dpu);
 
@@ -182,6 +188,8 @@ static void sprd_dpu_atomic_disable(struct sprd_crtc *crtc)
 	disable_irq(dpu->ctx.irq);
 
 	sprd_dpu_disable(dpu);
+
+	pm_runtime_put(dpu->dev.parent);
 }
 
 static void sprd_dpu_atomic_begin(struct sprd_crtc *crtc)
@@ -656,6 +664,10 @@ static int sprd_dpu_probe(struct platform_device *pdev)
 		return ret;
 
 	platform_set_drvdata(pdev, dpu);
+
+	pm_runtime_set_active(&pdev->dev);
+	pm_runtime_get_noresume(&pdev->dev);
+	pm_runtime_enable(&pdev->dev);
 
 	return component_add(&pdev->dev, &dpu_component_ops);
 }
