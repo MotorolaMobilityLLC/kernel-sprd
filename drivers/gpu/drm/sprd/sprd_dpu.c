@@ -1212,7 +1212,6 @@ static int sprd_dpu_probe(struct platform_device *pdev)
 	struct sprd_dpu *dpu;
 	const char *str;
 	int ret;
-	int val;
 
 	if (calibration_mode) {
 		DRM_WARN("Calibration Mode! Don't register sprd dpu driver\n");
@@ -1234,9 +1233,6 @@ static int sprd_dpu_probe(struct platform_device *pdev)
 		dpu->glb = dpu_glb_ops_attach(str);
 	} else
 		DRM_WARN("sprd,soc was not found\n");
-
-	if (!of_property_read_u32(np, "sprd,dpi-clk-div", &val))
-		dpu->ctx.dpi_clk_div = val;
 
 	ret = sprd_dpu_context_init(dpu, np);
 	if (ret)

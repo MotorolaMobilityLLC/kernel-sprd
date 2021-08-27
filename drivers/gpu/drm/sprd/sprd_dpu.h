@@ -202,7 +202,6 @@ struct dpu_context {
 	int vrefresh;
 	struct work_struct cabc_work;
 	struct work_struct cabc_bl_update;
-	int dpi_clk_div;
 };
 
 struct sprd_dpu {
