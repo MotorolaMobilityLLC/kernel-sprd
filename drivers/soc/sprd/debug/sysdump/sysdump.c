@@ -347,7 +347,7 @@ int minidump_save_extend_information(const char *name, unsigned long paddr_start
 			break;
 	}
 	minidump_info_g.section_info_total.total_num = i;
-	index = minidump_info_g.section_info_total.total_num++;
+	index = minidump_info_g.section_info_total.total_num;
 
 	if (index >= (SECTION_NUM_MAX - 1)) {
 		pr_err("No space for new section.\n");
@@ -370,6 +370,7 @@ int minidump_save_extend_information(const char *name, unsigned long paddr_start
 	}
 	pr_emerg("%s added successfully in minidump section:paddr_start=%lx,paddr_end=%lx\n",
 			name, paddr_start, paddr_end);
+	minidump_info_g.section_info_total.total_num++;
 	mutex_unlock(&section_mutex);
 	return 0;
 }
