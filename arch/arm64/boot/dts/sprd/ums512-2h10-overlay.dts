@@ -102,6 +102,7 @@
 				constant_charge_voltage_max_microvolt = <4400000>;
 				factory-internal-resistance-micro-ohms = <130000>;
 				voltage-min-design-microvolt = <3450000>;
+				fast-charge-threshold-microvolt = <4100000>;
 				ocv-capacity-celsius = <20>;
 				ocv-capacity-table-0 = <4380000 100>, <4317000 95>, <4258000 90>,
 							<4200000 85>, <4145000 80>, <4092000 75>,
