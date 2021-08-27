@@ -1596,6 +1596,7 @@ static struct sprd_hif_ops sc2355_sdio_ops = {
 	.init = sc2355_sdio_init,
 	.deinit = sc2355_sdio_deinit,
 	.sync_version = sc2355_sync_version,
+	.tx_special_data = sprd_tx_special_data,
 	.download_hw_param = sc2355_download_hw_param,
 	.reset = sc2355_reset,
 };
