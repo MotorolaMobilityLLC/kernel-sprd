@@ -271,6 +271,7 @@ struct sprd_priv {
 
 	/* OTT support */
 	unsigned char ott_supt;
+	unsigned int rand_mac_flag;
 };
 
 static inline void sprd_version_init(struct sprd_ver *ver)

@@ -17,6 +17,7 @@
 #define SPRD_NPI_CMD_SET_PROTECTION_MODE	50
 #define SPRD_NPI_CMD_GET_PROTECTION_MODE	51
 #define SPRD_NPI_CMD_SET_RTS_THRESHOLD		52
+#define SPRD_NPI_CMD_SET_RANDOM_MAC         200
 
 struct sprd_priv;
 struct sprd_vif;

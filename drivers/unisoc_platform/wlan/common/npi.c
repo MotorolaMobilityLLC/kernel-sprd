@@ -99,6 +99,15 @@ static int npi_nl_handler(struct sk_buff *skb_2, struct genl_info *info)
 		strcat(r_buf, id_name);
 		r_len = strlen(r_buf);
 		pr_err("r_len = %d, %s\n", r_len, __func__);
+	} else if (hdr->subtype == SPRD_NPI_CMD_SET_RANDOM_MAC) {
+		char *rand_mac = s_buf + sizeof(struct sprd_npi_cmd_hdr);
+		priv->rand_mac_flag = *((unsigned int *)rand_mac);
+		pr_err("%s NPI random mac flag%d\n", dbgstr, priv->rand_mac_flag);
+		hdr->len = sizeof(int);
+		hdr->type = SPRD_CP2HT_REPLY;
+		r_len = sizeof(*hdr) + hdr->len;
+		memcpy(r_buf, hdr, sizeof(*hdr));
+		memcpy(r_buf + sizeof(*hdr), &ret, hdr->len);
 	} else {
 		sprd_npi_send_recv(priv, vif, s_buf, s_len, r_buf, &r_len);
 

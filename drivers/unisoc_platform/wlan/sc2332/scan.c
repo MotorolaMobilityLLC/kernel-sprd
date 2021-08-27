@@ -159,7 +159,6 @@ int sc2332_scan(struct wiphy *wiphy,
 
 	netdev_info(vif->ndev, "%s n_channels %u\n", __func__,
 		    request->n_channels);
-
 	if (priv->scan_request)
 		netdev_err(vif->ndev, "%s error scan %p running [%p, %p]\n",
 			   __func__, priv->scan_request, priv->scan_vif, vif);
@@ -179,11 +178,12 @@ int sc2332_scan(struct wiphy *wiphy,
 			goto err;
 	}
 
-	if (request->flags & NL80211_SCAN_FLAG_RANDOM_ADDR &&
-	    vif->mode == SPRD_MODE_STATION)
-		get_random_mask_addr(mac_addr, request->mac_addr,
+	if ((request->flags & NL80211_SCAN_FLAG_RANDOM_ADDR) &&
+	    (vif->mode == SPRD_MODE_STATION && priv->rand_mac_flag == 1)) {
+			get_random_mask_addr(mac_addr, request->mac_addr,
 				     request->mac_addr_mask);
-
+			netdev_info(vif->ndev, "%s random mac address is %pM\n", __func__, mac_addr);
+		}
 	for (i = 0; i < request->n_channels; i++)
 		channels |= (1 << (request->channels[i]->hw_value - 1));
 
