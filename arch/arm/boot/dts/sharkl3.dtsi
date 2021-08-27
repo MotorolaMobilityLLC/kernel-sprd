@@ -71,6 +71,14 @@
 			reg = <0x402b0000 0x4000>;
 		};
 
+		disp_pd: power-domain@402b0058 {
+			compatible = "sprd,sharkl3-disp-domain";
+			reg = <0x402b0058 0x20>;
+			disp-power = <&pmu_apb_regs REG_PMU_APB_PD_DISP_CFG
+				MASK_PMU_APB_PD_DISP_FORCE_SHUTDOWN>;
+			#power-domain-cells = <0>;
+		};
+
 		aon_apb_regs: syscon@402e0000 {
 			compatible = "sprd,sc9863a-glbregs", "syscon";
 			reg = <0x402e0000 0x4000>;
@@ -1143,6 +1151,7 @@
 				interrupts = <GIC_SPI 46 IRQ_TYPE_LEVEL_HIGH>;
 				status = "disabled";
 				iommus = <&iommu_dispc>;
+				power-domains = <&disp_pd>;
 
 				reset-syscon = <&aon_apb_regs REG_AON_APB_APB_RST1
 						MASK_AON_APB_DISP_SOFT_RST>;
