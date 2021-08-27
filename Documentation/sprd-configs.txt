@@ -13746,15 +13746,6 @@ CONFIG_PERF_USE_VMALLOC
 	[must] console
 	[missing plat description] none
 	[function] Enable kernel support Performance Counters for Linux.
-CONFIG_PGO_NONE
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
-	[missing plat] none
-	[field] make
-	[subsys] core
-	[must] none
-	[missing plat description] none
-	[function] disable LLVM profile guided optimization(PGO)
 CONFIG_PGTABLE_LEVELS
 	[arch] all
 	[plat] all
@@ -19457,6 +19448,15 @@ CONFIG_USE_OF
 	[must] console
 	[missing plat description] none
 	[function] Flattened Device Tree support.
+CONFIG_USE_PROFILE
+	[arch] arm64
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
+	[field] code
+	[subsys] core
+	[must] none
+	[missing plat description] none
+	[function] use profile to guide kernel compilation.
 CONFIG_UTS_NS
 	[arch] all
 	[plat] all
