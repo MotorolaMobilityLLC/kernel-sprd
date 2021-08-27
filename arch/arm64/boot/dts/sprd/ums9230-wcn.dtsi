@@ -120,11 +120,11 @@
 			sprd-sipc {
 				/* sipc-wcn: 2MB */
 				compatible = "sprd,sipc";
-				sipc2: sipc@87200000 {
+				sipc2: sipc@87240000 {
 					sprd,name = "sipc-wcn";
 					sprd,dst = <3 8>; /* <dst core-id> */
 					/* <ap-addr dst-maped-addr size> */
-					sprd,smem-info = <0x87200000 0x00200000 0x180000>;
+					sprd,smem-info = <0x87240000 0x00240000 0x140000>;
 				};
 			};
 
