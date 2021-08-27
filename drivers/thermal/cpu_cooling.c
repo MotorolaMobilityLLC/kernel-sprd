@@ -25,6 +25,7 @@
 #include <linux/kallsyms.h>
 #include <linux/cpu_cooling.h>
 
+#include <trace/events/power.h>
 #include <trace/events/thermal.h>
 
 /*
@@ -40,6 +41,10 @@
  *	level 1 --> 2nd Max Freq
  *	...
  */
+
+#define FTRACE_CLUS0_LIMIT_FREQ_NAME "thermal-cpufreq-0-limit"
+#define FTRACE_CLUS1_LIMIT_FREQ_NAME "thermal-cpufreq-1-limit"
+#define FTRACE_CLUS2_LIMIT_FREQ_NAME "thermal-cpufreq-2-limit"
 
 /**
  * struct freq_table - frequency table along with power entries
@@ -496,6 +501,7 @@ static int cpufreq_power2state(struct thermal_cooling_device *cdev,
 	u32 last_load, normalised_power;
 	struct cpufreq_cooling_device *cpufreq_cdev = cdev->devdata;
 	struct cpufreq_policy *policy = cpufreq_cdev->policy;
+	int cluster_id;
 #ifdef CONFIG_SPRD_THERMAL_DEBUG
 	int cpu = policy->cpu;
 #endif
@@ -505,6 +511,28 @@ static int cpufreq_power2state(struct thermal_cooling_device *cdev,
 	target_freq = cpu_power_to_freq(cpufreq_cdev, normalised_power);
 
 	*state = get_level(cpufreq_cdev, target_freq);
+
+	cluster_id = topology_physical_package_id(policy->cpu);
+	switch (cluster_id) {
+	case 0:
+		trace_clock_set_rate(FTRACE_CLUS0_LIMIT_FREQ_NAME,
+			target_freq, smp_processor_id());
+		break;
+
+	case 1:
+		trace_clock_set_rate(FTRACE_CLUS1_LIMIT_FREQ_NAME,
+			target_freq, smp_processor_id());
+		break;
+
+	case 2:
+		trace_clock_set_rate(FTRACE_CLUS2_LIMIT_FREQ_NAME,
+			target_freq, smp_processor_id());
+		break;
+
+	default:
+		break;
+	}
+
 	trace_thermal_power_cpu_limit(policy->related_cpus, target_freq, *state,
 				      power);
 #ifdef CONFIG_SPRD_THERMAL_DEBUG

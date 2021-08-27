@@ -28,7 +28,31 @@
 
 #include <trace/events/thermal.h>
 
+#undef TRACE_SYSTEM
+#define TRACE_SYSTEM power
+#define FTRACE_DEV0_LIMIT_FREQ_NAME "thermal-devfreq-0-limit"
+#define FTRACE_DEV1_LIMIT_FREQ_NAME "thermal-devfreq-1-limit"
 #define SCALE_ERROR_MITIGATION 100
+
+#if !defined(_TRACE_POWER_H) || defined(TRACE_HEADER_MULTI_READ)
+#define _TRACE_POWER_H
+
+/*
+ * Define clock_set_rate event.
+ * This event here is used to trace on limited frequency of devfreq
+ * cooling devices.
+ */
+DEFINE_EVENT(clock, clock_set_rate,
+
+	TP_PROTO(const char *name, unsigned int state, unsigned int cpu_id),
+
+	TP_ARGS(name, state, cpu_id)
+);
+
+#endif /* _TRACE_POWER_H */
+
+/* This part must be outside protection */
+#include <trace/define_trace.h>
 
 static DEFINE_IDA(devfreq_ida);
 
@@ -389,6 +413,17 @@ static int devfreq_cooling_power2state(struct thermal_cooling_device *cdev,
 	*state = i;
 	dfc->capped_state = i;
 	trace_thermal_power_devfreq_limit(cdev, freq, *state, power);
+	if (!strncmp(cdev->type, FTRACE_DEV0_LIMIT_FREQ_NAME,
+						strlen(cdev->type)))
+		trace_clock_set_rate(FTRACE_DEV0_LIMIT_FREQ_NAME, freq,
+						 smp_processor_id());
+	else if (!strncmp(cdev->type, FTRACE_DEV1_LIMIT_FREQ_NAME,
+						strlen(cdev->type)))
+		trace_clock_set_rate(FTRACE_DEV1_LIMIT_FREQ_NAME, freq,
+						 smp_processor_id());
+	else
+		return 0;
+
 	return 0;
 }
 
