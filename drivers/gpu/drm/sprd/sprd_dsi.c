@@ -356,10 +356,9 @@ static int sprd_dsi_host_attach(struct mipi_dsi_host *host,
 		ctx->esc_clk = val > 20000 ? 20000 : val;
 	else
 		ctx->esc_clk = 20000;
-	if (!of_property_read_u32(lcd_node, "sprd,dpi-clk-div", &val))
-               dsi->phy->ctx.dpi_clk_div = val;
 
-       DRM_INFO("dphy->ctx.dpi_clk_div =%d\n", dsi->phy->ctx.dpi_clk_div);
+	if (!of_property_read_u32(lcd_node, "sprd,dpi-clk-div", &val))
+		ctx->dpi_clk_div = val;
 
        ret = of_property_read_u32(lcd_node, "sprd,video-lp-cmd-enable", &val);
        if (!ret)

@@ -22,7 +22,6 @@ struct dphy_context {
 	u32 chip_id;
 	bool ulps_enable;
 	bool is_enabled;
-	int dpi_clk_div;
 };
 
 struct dphy_pll_ops {
