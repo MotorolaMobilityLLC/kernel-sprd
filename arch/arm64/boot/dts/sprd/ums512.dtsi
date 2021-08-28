@@ -7,6 +7,8 @@
 
 #include <dt-bindings/clock/sprd,ums512-clk.h>
 #include <dt-bindings/interrupt-controller/arm-gic.h>
+#include <dt-bindings/soc/sprd,sharkl5pro-regs.h>
+#include <dt-bindings/soc/sprd,sharkl5pro-mask.h>
 
 / {
 	interrupt-parent = <&gic>;
