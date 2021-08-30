@@ -615,7 +615,7 @@ static int sprd_spi_dma_tx_config(struct sprd_spi *ss, struct spi_transfer *t)
 	};
 	int ret;
 
-	if (ss->dma_trans_len > t->len)
+	if (ss->trans_mode == SPRD_SPI_RX_MODE || ss->dma_trans_len > t->len)
 		ret = sprd_spi_dma_submit(ss, dma_chan, &config,
 					  NULL, DMA_MEM_TO_DEV);
 	else
