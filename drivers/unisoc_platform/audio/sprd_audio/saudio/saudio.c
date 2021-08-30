@@ -1046,7 +1046,7 @@ static int saudio_data_trigger_process(struct saudio_stream *stream,
 	struct sblock blk = { 0 };
 	struct cmd_common *common = NULL;
 	struct snd_pcm_runtime *runtime = stream->substream->runtime;
-
+	int ret = 0;
 	ADEBUG();
 
 	if (stream->stream_id == SNDRV_PCM_STREAM_PLAYBACK) {
@@ -1079,7 +1079,11 @@ static int saudio_data_trigger_process(struct saudio_stream *stream,
 		    stream->period * blk.length +
 		    stream->saudio->ap_addr_to_cp;
 
-		sblock_send(stream->dst, stream->channel, &blk);
+		ret = sblock_send(stream->dst, stream->channel, &blk);
+		if (ret) {
+			pr_err("sblock send failed, ret = %d!\n", ret);
+			sblock_put(stream->dst, stream->channel, &blk);
+		}
 
 		stream->period++;
 		stream->period = stream->period % runtime->periods;
@@ -1099,6 +1103,7 @@ static int saudio_data_transfer_process(struct saudio_stream *stream,
 	struct sblock blk = { 0 };
 	s32 result = 0;
 	struct cmd_common *common = NULL;
+	int ret = 0;
 
 	s32 elapsed_blks = 0;
 	s32 periods_avail;
@@ -1140,7 +1145,11 @@ static int saudio_data_transfer_process(struct saudio_stream *stream,
 			    stream->period * blk.length +
 			    stream->saudio->ap_addr_to_cp;
 
-			sblock_send(stream->dst, stream->channel, &blk);
+			ret = sblock_send(stream->dst, stream->channel, &blk);
+			if (ret) {
+				pr_err("sblock send failed, ret = %d!\n", ret);
+				sblock_put(stream->dst, stream->channel, &blk);
+			}
 
 			stream->periods_tosend--;
 			stream->period++;
@@ -1190,6 +1199,7 @@ static int saudio_cmd_prepare_process(struct saudio_dev_ctrl *dev_ctrl,
 	struct snd_saudio *saudio = NULL;
 	s32 result = 0;
 	int dev = 0;
+	int ret = 0;
 	struct snd_pcm_runtime *runtime =
 	    dev_ctrl->stream[msg->stream_id].substream->runtime;
 	ADEBUG();
@@ -1214,8 +1224,13 @@ static int saudio_cmd_prepare_process(struct saudio_dev_ctrl *dev_ctrl,
 
 		mutex_lock(&dev_ctrl->mutex);
 
-		sblock_send(dev_ctrl->dst, dev_ctrl->channel,
+		ret = sblock_send(dev_ctrl->dst, dev_ctrl->channel,
 			    (struct sblock *)&blk);
+		if (ret) {
+			pr_err("sblock send failed, ret = %d!\n", ret);
+			sblock_put(dev_ctrl->dst, dev_ctrl->channel, (struct sblock *)&blk);
+		}
+
 		result =
 		    saudio_wait_common_cmd(dev_ctrl->dst, dev_ctrl->channel,
 					   SAUDIO_CMD_PREPARE_RET,
