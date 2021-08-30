@@ -309,7 +309,7 @@ static void gnss_power_on(bool enable)
 	int ret;
 	struct device *dev = gnss_common_ctl_dev.dev;
 
-	dev_info(dev, "%s en=%d,status=%d v3.0\n", __func__,
+	dev_info(dev, "%s en=%d,status=%d v3.2\n", __func__,
 		 enable, gnss_common_ctl_dev.gnss_status);
 
 	dev_info(dev, "%s clktp=%d\n", __func__, wcn_get_xtal_26m_clk_type());
@@ -682,7 +682,7 @@ static int gnss_common_ctl_probe(struct platform_device *pdev)
 	int ret;
 	const struct of_device_id *of_id;
 
-	dev_info(&pdev->dev, "%s V3.1 entry\n", __func__);
+	dev_info(&pdev->dev, "%s V3.2 entry\n", __func__);
 
 	gnss_common_ctl_dev.dev = &pdev->dev;
 	gnss_common_ctl_dev.gnss_status = GNSS_STATUS_POWEROFF;
@@ -720,6 +720,22 @@ static int gnss_common_ctl_probe(struct platform_device *pdev)
 		goto err_attr_failed;
 	}
 
+#ifdef GNSS_SINGLE_MODULE
+	dev_err(&pdev->dev, "%s single ko\n", __func__);
+
+	ret = gnss_pnt_ctl_init();
+	if (ret != 0)
+		dev_err(&pdev->dev, "%s gnss_pnt_ctl_init[%d]\n",
+			__func__, ret);
+
+	ret = gnss_gdb_init();
+	if (ret != 0)
+		dev_err(&pdev->dev, "%s gnss_gdb_init[%d]\n",
+			__func__, ret);
+#else
+	dev_err(&pdev->dev, "%s multiple  ko\n", __func__);
+#endif
+
 	return 0;
 
 err_attr_failed:
@@ -733,6 +749,10 @@ static int gnss_common_ctl_remove(struct platform_device *pdev)
 				&gnss_common_ctl_group);
 
 	misc_deregister(&gnss_common_ctl_miscdev);
+#ifdef GNSS_SINGLE_MODULE
+	gnss_pnt_ctl_cleanup();
+	gnss_gdb_exit();
+#endif
 	return 0;
 }
 static struct platform_driver gnss_common_ctl_drv = {

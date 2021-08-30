@@ -115,4 +115,11 @@ enum{
 
 bool gnss_delay_ctl(void);
 
+#ifdef GNSS_SINGLE_MODULE
+int gnss_pnt_ctl_init(void);
+int gnss_gdb_init(void);
+void gnss_pnt_ctl_cleanup(void);
+void gnss_gdb_exit(void);
+#endif
+
 #endif

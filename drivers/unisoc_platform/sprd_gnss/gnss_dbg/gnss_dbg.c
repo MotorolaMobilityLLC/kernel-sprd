@@ -378,10 +378,62 @@ static struct miscdevice gnss_slog_device = {
 	.name = "slog_gnss",
 	.fops = &gnss_slog_fops,
 };
+#ifdef GNSS_SINGLE_MODULE
+int gnss_gdb_init(void)
+{
+	int ret;
+
+	pr_err("%s entry sigle ko", __func__);
+	gnss_rx_ring = gnss_ring_init(GNSS_RX_RING_SIZE,
+				      gnss_memcpy_rd, gnss_memcpy_wr);
+	if (!gnss_rx_ring) {
+		pr_err("Ring malloc error\n");
+		return -GNSS_ERR_MALLOC_FAIL;
+	}
+
+	do {
+		ret = gnss_device_init();
+		if (ret != 0) {
+			gnss_ring_destroy(gnss_rx_ring);
+			break;
+		}
+
+		ret = misc_register(&gnss_dbg_device);
+		if (ret != 0) {
+			gnss_ring_destroy(gnss_rx_ring);
+			gnss_device_destroy();
+			break;
+		}
+
+		ret = misc_register(&gnss_slog_device);
+		if (ret != 0) {
+			gnss_ring_destroy(gnss_rx_ring);
+			gnss_device_destroy();
+			misc_deregister(&gnss_dbg_device);
+			break;
+		}
+	} while (0);
+
+	if (ret != 0)
+		pr_err("misc register error\n");
+
+	return ret;
+}
+
+void gnss_gdb_exit(void)
+{
+	gnss_ring_destroy(gnss_rx_ring);
+	gnss_device_destroy();
+	misc_deregister(&gnss_dbg_device);
+	misc_deregister(&gnss_slog_device);
+}
+
+#else
 
 static int __init gnss_module_init(void)
 {
 	int ret;
+	pr_err("%s entry multiple ko", __func__);
 
 	gnss_rx_ring = gnss_ring_init(GNSS_RX_RING_SIZE,
 				      gnss_memcpy_rd, gnss_memcpy_wr);
@@ -430,3 +482,5 @@ static void __exit gnss_module_exit(void)
 module_init(gnss_module_init);
 module_exit(gnss_module_exit);
 MODULE_LICENSE("GPL");
+
+#endif

@@ -116,12 +116,35 @@ static struct miscdevice gnss_pmnotify_ctl_device = {
 	.name = "gnss_pmnotify_ctl",
 	.fops = &gnss_pmnotify_ctl_fops,
 };
+#ifdef GNSS_SINGLE_MODULE
+int gnss_pnt_ctl_init(void)
+{
+	int err = 0;
 
+	pr_info("%s entry single ko\n", __func__);
+	err = misc_register(&gnss_pmnotify_ctl_device);
+	if (err)
+		pr_err("gnss_pmnotify_ctl_device add failed!!!\n");
+
+	err = register_pm_notifier(&gnss_pm_notifier);
+	if (err)
+		pr_err("gnss_pm_notifier add failed!!!\n");
+	init_waitqueue_head(&gnss_dev.gnss_sleep_wait);
+
+	return err;
+}
+
+void gnss_pnt_ctl_cleanup(void)
+{
+	misc_deregister(&gnss_pmnotify_ctl_device);
+	unregister_pm_notifier(&gnss_pm_notifier);
+}
+#else
 static int __init gnss_pmnotify_ctl_init(void)
 {
 	int err = 0;
 
-	pr_info("%s entry\n", __func__);
+	pr_info("%s entry multiple ko\n", __func__);
 	err = misc_register(&gnss_pmnotify_ctl_device);
 	if (err)
 		pr_err("gnss_pmnotify_ctl_device add failed!!!\n");
@@ -144,3 +167,4 @@ module_init(gnss_pmnotify_ctl_init);
 module_exit(gnss_pmnotify_ctl_cleanup);
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("sprd gnss pmnotify ctl driver");
+#endif
