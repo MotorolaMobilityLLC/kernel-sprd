@@ -46,7 +46,6 @@ config USE_PROFILE
 	bool "Enable clang's Profile Guided Optimization (PGO)"
 	depends on ARCH_SUPPORTS_PGO_CLANG
 	depends on CC_IS_CLANG && CLANG_VERSION >= 120000
-	depends on "$(PGO_PROFILE_PATH)" != ""
 	help
 	  This option enables clang's PGO (Profile Guided Optimization) based
 	  code profiling to better optimize the kernel.
