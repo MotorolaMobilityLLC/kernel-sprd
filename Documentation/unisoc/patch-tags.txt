@@ -79,7 +79,7 @@ devfreq:sprd:
 dmaengine:sprd:
 dma-buf:
 Documentation:
-Documentation:unisoc
+Documentation:unisoc:
 drm:sprd:
 drm:sprd:cabc:
 drm:sprd:dphy:
@@ -88,6 +88,7 @@ drm:sprd:dsi:
 drm:sprd:dummy:
 drm:sprd:gsp:
 drm:sprd:sysfs:
+drm:panfrost:
 dt-bindings:*
 
 firmware:psci:
