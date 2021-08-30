@@ -563,8 +563,12 @@ static inline void sfp_clear_ipa_tbl(int id)
 
 void sfp_clear_all_ipa_tbl(void)
 {
-	sfp_clear_ipa_tbl(T0);
-	sfp_clear_ipa_tbl(T1);
+	if (!fwd_tbl.ipa_tbl_mgr.tbl[T0].h_tbl.v_addr &&
+	    !fwd_tbl.ipa_tbl_mgr.tbl[T0].h_tbl.handle)
+		sfp_clear_ipa_tbl(T0);
+	if (!fwd_tbl.ipa_tbl_mgr.tbl[T1].h_tbl.v_addr &&
+	    !fwd_tbl.ipa_tbl_mgr.tbl[T1].h_tbl.handle)
+		sfp_clear_ipa_tbl(T1);
 }
 
 void sfp_ipa_fwd_clear(void)
