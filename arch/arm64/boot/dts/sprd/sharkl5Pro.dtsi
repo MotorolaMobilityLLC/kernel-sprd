@@ -2474,6 +2474,11 @@
 			bits = <3 3>;
 		};
 
+		dvfs_bin_dsu: dvfs-bin@13{
+			reg = <0x13 0x4>;
+			bits = <0 3>;
+		};
+
 		dvfs_bin_cpu0: dvfs-bin@17{
 			reg = <0x17 0x4>;
 			bits = <0 3>;
