@@ -327,12 +327,23 @@ int sprd_cfg80211_change_iface(struct wiphy *wiphy, struct net_device *ndev,
 			       struct vif_params *params)
 {
 	struct sprd_vif *vif = netdev_priv(ndev);
-	struct sprd_hif *hif = &vif->priv->hif;
+	struct sprd_hif *hif = NULL;
 	enum nl80211_iftype old_type = NL80211_IFTYPE_UNSPECIFIED;
 	int ret;
 
-	netdev_info(ndev, "%s type %d -> %d\n", __func__, old_type, type);
+	if (!vif || !vif->priv) {
+		netdev_err(ndev, "%s can not get vif or priv!\n", __func__);
+		return -ENODEV;
+	}
+
 	old_type = vif->wdev.iftype;
+	hif = &vif->priv->hif;
+	if (!hif) {
+		netdev_err(ndev, "%s can not get hif!\n", __func__);
+		return -ENODEV;
+	}
+
+	netdev_info(ndev, "%s type %d -> %d\n", __func__, old_type, type);
 	if (vif->mode == 0 && ((old_type == NL80211_IFTYPE_STATION && type == NL80211_IFTYPE_AP) ||
 		(old_type == NL80211_IFTYPE_AP && type == NL80211_IFTYPE_STATION))) {
 		pr_err("%s change iface but current mode 0!\n", __func__);
@@ -351,17 +362,6 @@ int sprd_cfg80211_change_iface(struct wiphy *wiphy, struct net_device *ndev,
 		if (!ret && type == NL80211_IFTYPE_AP)
 			netif_carrier_off(ndev);
 		return ret;
-	}
-	if (!vif || !vif->priv) {
-		netdev_err(ndev, "%s can not get vif or priv!\n", __func__);
-		return -ENODEV;
-	}
-
-	old_type = vif->wdev.iftype;
-	hif = &vif->priv->hif;
-	if (!hif) {
-		netdev_err(ndev, "%s can not get hif!\n", __func__);
-		return -ENODEV;
 	}
 
 	/*
