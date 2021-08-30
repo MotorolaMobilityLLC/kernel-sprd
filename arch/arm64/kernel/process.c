@@ -526,6 +526,10 @@ static void erratum_1418040_thread_switch(struct task_struct *prev,
 	write_sysreg(val, cntkctl_el1);
 }
 
+#if defined(CONFIG_SPRD_DEBUG)
+extern void sprd_update_cpu_usage(struct task_struct *prev,
+				  struct task_struct *next);
+#endif
 /*
  * Thread switching.
  */
@@ -540,6 +544,9 @@ __notrace_funcgraph struct task_struct *__switch_to(struct task_struct *prev,
 	contextidr_thread_switch(next);
 	entry_task_switch(next);
 	uao_thread_switch(next);
+#if defined(CONFIG_SPRD_DEBUG)
+	sprd_update_cpu_usage(prev, next);
+#endif
 	ptrauth_thread_switch(next);
 	ssbs_thread_switch(next);
 	erratum_1418040_thread_switch(prev, next);

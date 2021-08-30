@@ -3,5 +3,6 @@ obj-y	+= djtag/
 obj-y	+= busmonitor/
 obj-y	+= dmc_mpu/
 obj-$(CONFIG_SPRD_DEBUG)	+= sprd_debugfs_frame.o
+obj-y	+= cpu_usage/
 obj-$(CONFIG_SPRD_LAST_REGS)	+= last_regs/
 obj-y	+= irq/
