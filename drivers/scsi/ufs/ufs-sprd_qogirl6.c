@@ -451,6 +451,80 @@ static int ufs_sprd_hce_enable_notify(struct ufs_hba *hba,
 	return err;
 }
 
+static int ufs_sprd_apply_dev_quirks(struct ufs_hba *hba)
+{
+	int ret = 0;
+	u32 granularity, peer_granularity;
+	u32 pa_tactivate, peer_pa_tactivate;
+	u32 pa_tactivate_us, peer_pa_tactivate_us, max_pa_tactivate_us;
+	u8 gran_to_us_table[] = {1, 4, 8, 16, 32, 100};
+	u32 new_pa_tactivate, new_peer_pa_tactivate;
+
+	ret = ufshcd_dme_get(hba, UIC_ARG_MIB(PA_GRANULARITY),
+				  &granularity);
+	if (ret)
+		goto out;
+
+	ret = ufshcd_dme_peer_get(hba, UIC_ARG_MIB(PA_GRANULARITY),
+				  &peer_granularity);
+	if (ret)
+		goto out;
+
+	if ((granularity < PA_GRANULARITY_MIN_VAL) ||
+	    (granularity > PA_GRANULARITY_MAX_VAL)) {
+		dev_err(hba->dev, "%s: invalid host PA_GRANULARITY %d",
+			__func__, granularity);
+		return -EINVAL;
+	}
+
+	if ((peer_granularity < PA_GRANULARITY_MIN_VAL) ||
+	    (peer_granularity > PA_GRANULARITY_MAX_VAL)) {
+		dev_err(hba->dev, "%s: invalid device PA_GRANULARITY %d",
+			__func__, peer_granularity);
+		return -EINVAL;
+	}
+
+	ret = ufshcd_dme_get(hba, UIC_ARG_MIB(PA_TACTIVATE), &pa_tactivate);
+	if (ret)
+		goto out;
+
+	ret = ufshcd_dme_peer_get(hba, UIC_ARG_MIB(PA_TACTIVATE),
+				  &peer_pa_tactivate);
+	if (ret)
+		goto out;
+
+	pa_tactivate_us = pa_tactivate * gran_to_us_table[granularity - 1];
+	peer_pa_tactivate_us = peer_pa_tactivate *
+			     gran_to_us_table[peer_granularity - 1];
+
+	max_pa_tactivate_us = (pa_tactivate_us > peer_pa_tactivate_us) ?
+			pa_tactivate_us : peer_pa_tactivate_us;
+
+	if (max_pa_tactivate_us < 100)
+		max_pa_tactivate_us = 200;//because of phy will eat off 100us
+
+	new_peer_pa_tactivate = max_pa_tactivate_us /
+			      gran_to_us_table[peer_granularity - 1];
+	new_peer_pa_tactivate += 2;
+	ret = ufshcd_dme_peer_set(hba, UIC_ARG_MIB(PA_TACTIVATE),
+				  new_peer_pa_tactivate);
+	if (ret)
+		goto out;
+
+	new_pa_tactivate = max_pa_tactivate_us /
+				  gran_to_us_table[granularity - 1];
+	new_pa_tactivate += 1;
+	ret = ufshcd_dme_set(hba, UIC_ARG_MIB(PA_TACTIVATE),
+				  new_pa_tactivate);
+
+	dev_warn(hba->dev, "%s: %d,%d,%d,%d",
+		__func__, new_peer_pa_tactivate,
+		peer_granularity, new_pa_tactivate, granularity);
+
+out:
+	return ret;
+}
+
 static int ufs_sprd_link_startup_notify(struct ufs_hba *hba,
 					enum ufs_notify_change_status status)
 {
@@ -475,7 +549,6 @@ static int ufs_sprd_link_startup_notify(struct ufs_hba *hba,
 
 		break;
 	case POST_CHANGE:
-		ufshcd_dme_set(hba, UIC_ARG_MIB(PA_TACTIVATE), 0x10);
 		break;
 	default:
 		err = -EINVAL;
@@ -571,6 +644,7 @@ static struct ufs_hba_variant_ops ufs_hba_sprd_vops = {
 	.link_startup_notify = ufs_sprd_link_startup_notify,
 	.pwr_change_notify = ufs_sprd_pwr_change_notify,
 	.hibern8_notify = ufs_sprd_hibern8_notify,
+	.apply_dev_quirks = ufs_sprd_apply_dev_quirks,
 	.suspend = ufs_sprd_suspend,
 	.resume = ufs_sprd_resume,
 };
