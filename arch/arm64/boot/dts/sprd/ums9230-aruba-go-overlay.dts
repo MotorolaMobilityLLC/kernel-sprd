@@ -146,6 +146,7 @@
 
 		battery_name-0 ="NT40-SCUD-SB18D15208-4000mAh";
 		battery_name-1 ="NT40-ATL-SB18D15207-4000mAh";
+		battery_name-2 ="NT40-ATL-SB18D15161-4000mAh";
 
 				charge-full-design-microamp-hours-1 = <4000000>;
 				factory-internal-resistance-micro-ohms-1 = <143000>;
@@ -158,6 +159,19 @@
 							<3697000 10>, <3685000 5>, <3400000 0>;
 				capacity-temp-table-1 = <50 100>, <25 100>, <10 98>, <0 86>, <(-10) 60	>;
 				resistance-temp-table-1 = <50 82>, <25 100>, <10 175>, <0 636>, <(-10) 1083>;
+
+				charge-full-design-microamp-hours-2 = <4000000>;
+				factory-internal-resistance-micro-ohms-2 = <143000>;
+				ocv-capacity-table-2 = <4378000 100>, <4312000 95>, <4253000 90>,
+							<4197000 85>, <4136000 80>, <4079000 75>,
+							<4031000 70>, <3985000 65>, <3948000 60>,
+							<3899000 55>, <3859000 50>, <3832000 45>,
+							<3810000 40>, <3795000 35>, <3783000 30>,
+							<3769000 25>, <3750000 20>, <3729000 15>,
+							<3697000 10>, <3685000 5>, <3400000 0>;
+				capacity-temp-table-2 = <50 100>, <25 100>, <10 98>, <0 86>, <(-10) 60	>;
+				resistance-temp-table-2 = <50 82>, <25 100>, <10 175>, <0 636>, <(-10) 1083>;
+
 			};
 
 			charger-manager {
