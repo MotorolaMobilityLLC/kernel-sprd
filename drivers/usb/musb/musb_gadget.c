@@ -1313,10 +1313,30 @@ static int musb_gadget_dequeue(struct usb_ep *ep, struct usb_request *request)
 		if (r == req)
 			break;
 	}
+	/* continue to search for already started list */
 	if (r != req) {
-		dev_err(musb->controller, "request %p not queued to %s\n",
+		struct dma_channel *channel;
+		struct sprd_musb_dma_channel *musb_channel;
+
+		channel = musb_ep->dma;
+		if (!channel)
+			goto done;
+		musb_channel = channel->private_data;
+
+		list_for_each_entry(r, &musb_channel->req_queued, list) {
+			if (r == req)
+				break;
+		}
+
+		if (r == req) {
+			dev_info(musb->controller, "request %p queued to %s startlist\n",
 				request, ep->name);
-		status = -EINVAL;
+			status = 0;
+		} else {
+			dev_err(musb->controller, "request %p queued to %s already processed\n",
+				request, ep->name);
+			status = -EINVAL;
+		}
 		goto done;
 	}
 
