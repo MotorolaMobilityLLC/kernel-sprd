@@ -206,7 +206,6 @@ void imsbr_transit_process(struct imsbr_sipc *sipc, struct sblock *blk,
 		pr_err("fail to transit sblock to %s, err %d",
 		       target->desc, err);
 }
-EXPORT_SYMBOL(imsbr_transit_process);
 
 static void imsbr_sipc_handler(int event, void *data)
 {
@@ -319,47 +318,47 @@ static void imsbr_sipc_destroy(struct imsbr_sipc *sipc)
 	sblock_destroy(sipc->dst, sipc->channel);
 }
 
-#ifdef CONFIG_SPRD_IMS_BRIDGE_TEST
-
-void call_transit_function(struct call_t_function *ctf)
-{
-	ctf->sblock_release = imsbr_transit_sblock_release;
-	ctf->sblock_receive = imsbr_transit_sblock_receive;
-	ctf->sblock_send = imsbr_transit_sblock_send;
-	ctf->sblock_put = imsbr_transit_sblock_put;
-	ctf->sblock_get = imsbr_transit_sblock_get;
-	ctf->sipc_handler = imsbr_sipc_handler;
-	ctf->sipc_destroy = imsbr_sipc_destroy;
-}
-EXPORT_SYMBOL(call_transit_function);
-
-#endif
-
-static void imsbr_transit_sipc_init_work(struct work_struct *wk)
-{
-	int err;
-	struct imsbr_sipc *sipc = container_of(wk, struct imsbr_sipc,
-					       initwork);
-
-	err = imsbr_sipc_create(sipc);
-	if (err)
-		pr_err("fail to create dst %d channel %d\n", sipc->dst, sipc->channel);
-
-	return;
-}
-
 static int __init imsbr_transit_init(void)
 {
-	INIT_WORK(&imsbr_data_ap.initwork, imsbr_transit_sipc_init_work);
-	INIT_WORK(&imsbr_data_cp.initwork, imsbr_transit_sipc_init_work);
-	INIT_WORK(&imsbr_ctrl_ap.initwork, imsbr_transit_sipc_init_work);
-	INIT_WORK(&imsbr_ctrl_cp.initwork, imsbr_transit_sipc_init_work);
-	schedule_work(&imsbr_data_ap.initwork);
-	schedule_work(&imsbr_data_cp.initwork);
-	schedule_work(&imsbr_ctrl_ap.initwork);
-	schedule_work(&imsbr_ctrl_cp.initwork);
+	int err;
 
+	err = imsbr_sipc_create(&imsbr_data_ap);
+	if (err) {
+		pr_err("fail to create imsbr_data_ap");
+		return err;
+	}
+
+	err = imsbr_sipc_create(&imsbr_ctrl_ap);
+	if (err) {
+		pr_err("fail to create imsbr_ctrl_ap");
+		goto err_ctrl_ap;
+	}
+
+	err = imsbr_sipc_create(&imsbr_data_cp);
+	if (err) {
+		pr_err("fail to create imsbr_data_cp");
+		goto err_data_cp;
+	}
+
+	err = imsbr_sipc_create(&imsbr_ctrl_cp);
+	if (err) {
+		pr_err("fail to create err_ctrl_cp");
+		goto err_ctrl_cp;
+	}
+
+	pr_debug("ok to create all sblock channel");
 	return 0;
+
+err_ctrl_cp:
+	imsbr_sipc_destroy(&imsbr_data_cp);
+	imsbr_sipc_destroy(&imsbr_ctrl_ap);
+	imsbr_sipc_destroy(&imsbr_data_ap);
+err_data_cp:
+	imsbr_sipc_destroy(&imsbr_ctrl_ap);
+	imsbr_sipc_destroy(&imsbr_data_ap);
+err_ctrl_ap:
+	imsbr_sipc_destroy(&imsbr_data_ap);
+	return err;
 }
 
 static void imsbr_transit_exit(void)

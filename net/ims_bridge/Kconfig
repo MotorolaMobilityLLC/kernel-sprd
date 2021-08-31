@@ -5,7 +5,7 @@
 config SPRD_IMS_BRIDGE
 	tristate "Spreadtrum ims stack bridge support"
 	depends on INET && NETFILTER && SPRD_SIPC
-	default y
+	default m
 	help
 	  This option adds ims stack bridge support to the kernel. We will
 	  *route* the packets to the proper interface and ims stack, and
@@ -25,7 +25,7 @@ config SPRD_IMS_BRIDGE_TEST
 config SPRD_IMS_BRIDGE_TRANSIT
 	tristate "Spreadtrum ims stack bridge config for orca board"
 	depends on INET && NETFILTER && SPRD_SIPC
-	default y
+	default m
 	help
 	  This option add only on orca board, so the imsbr on orca on play
 	  a role as a data-transfer.

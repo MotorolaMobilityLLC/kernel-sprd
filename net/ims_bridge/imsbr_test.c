@@ -34,7 +34,6 @@
 #include "imsbr_sipc.h"
 #include "imsbr_test.h"
 #include "imsbr_netlink.h"
-#include "imsbr_transit.h"
 
 #ifdef CONFIG_SPRD_IMS_BRIDGE_TEST
 
@@ -237,7 +236,6 @@ static void imsbr_test_packet(struct nf_conntrack_tuple *nft,
 
 	blk.addr = msghdr;
 	imsbr_process_msg(&imsbr_ctrl, &blk, false);
-	imsbr_transit_process(&imsbr_ctrl, &blk, false);
 
 	blk.addr = l4pkt;
 	blk.length = l4len;
@@ -245,7 +243,6 @@ static void imsbr_test_packet(struct nf_conntrack_tuple *nft,
 
 	blk.addr = msghdr;
 	imsbr_process_msg(&imsbr_ctrl, &blk, false);
-	imsbr_transit_process(&imsbr_ctrl, &blk, false);
 
 	imsbr_flow_del(nft, flow_type, &tuple);
 }
@@ -448,7 +445,6 @@ static void imsbr_test_aptuple(unsigned long unused)
 static void imsbr_test_sblock(struct imsbr_sipc *sipc, int size)
 {
 	struct sblock *blk;
-	struct call_t_function ctf = { };
 	int cnt, i;
 
 	g_test_result = IMSBR_TEST_INPROGRESS;
@@ -467,9 +463,6 @@ static void imsbr_test_sblock(struct imsbr_sipc *sipc, int size)
 
 	}
 
-	call_transit_function(&ctf);
-	ctf.sblock_get(&imsbr_ctrl, &blk[cnt-1], size);
-
 	pr_debug("%s alloc %d sblocks\n", sipc->desc, cnt);
 
 	for (i = 0; i < cnt; i++)
@@ -482,14 +475,10 @@ static void imsbr_test_sblock(struct imsbr_sipc *sipc, int size)
 static void imsbr_test_sblock_handler(int event, void *data)
 {
 	struct call_internal_function cif = { };
-	struct call_t_function ctf = { };
 
 	g_test_result = IMSBR_TEST_INPROGRESS;
 	call_imsbr_sipc_function(&cif);
 	cif.sipc_handler(event, data);
-
-	call_transit_function(&ctf);
-	ctf.sipc_handler(event, data);
 
 	g_test_result = IMSBR_TEST_PASS;
 }
@@ -544,7 +533,6 @@ static void imsbr_test_pressure(unsigned long unused)
 static void imsbr_test_sblock_receive(struct imsbr_sipc *sipc)
 {
 	struct sblock *blk;
-	struct call_t_function ctf = { };
 	int cnt, i;
 
 	g_test_result = IMSBR_TEST_INPROGRESS;
@@ -560,9 +548,6 @@ static void imsbr_test_sblock_receive(struct imsbr_sipc *sipc)
 			break;
 		}
 	}
-
-	call_transit_function(&ctf);
-	ctf.sblock_receive(sipc, &blk[cnt - 1]);
 
 	pr_debug("%s alloc %d sblocks\n", sipc->desc, cnt);
 
@@ -740,15 +725,11 @@ static void imsbr_test_sblock_send(unsigned long unused)
 {
 	char *hellostr = "hello ims bridge!";
 	struct sblock blk;
-	struct call_t_function ctf = {};
 	int hellolen;
 
 	g_test_result = IMSBR_TEST_INPROGRESS;
 	hellolen = strlen(hellostr) + 1;
 	imsbr_sblock_send(&imsbr_ctrl, &blk, hellolen);
-
-	call_transit_function(&ctf);
-	ctf.sblock_send(&imsbr_ctrl, &blk, hellolen);
 
 	g_test_result = IMSBR_TEST_PASS;
 }
@@ -756,16 +737,11 @@ static void imsbr_test_sblock_send(unsigned long unused)
 static void imsbr_test_sblock_release(unsigned long unused)
 {
 	struct sblock blk = { };
-	struct call_t_function ctf = { };
 
 	g_test_result = IMSBR_TEST_INPROGRESS;
 
 	imsbr_sblock_release(&imsbr_data, &blk);
 	imsbr_sblock_release(&imsbr_ctrl, &blk);
-
-	call_transit_function(&ctf);
-	ctf.sblock_release(&imsbr_data, &blk);
-	ctf.sblock_release(&imsbr_ctrl, &blk);
 
 	g_test_result = IMSBR_TEST_PASS;
 }
@@ -773,15 +749,12 @@ static void imsbr_test_sblock_release(unsigned long unused)
 static void imsbr_test_sblock_put(unsigned long unused)
 {
 	struct sblock blk = { };
-	struct call_t_function ctf = { };
 
 	g_test_result = IMSBR_TEST_INPROGRESS;
 
 	imsbr_sblock_put(&imsbr_data, &blk);
 	imsbr_sblock_put(&imsbr_ctrl, &blk);
 
-	call_transit_function(&ctf);
-	ctf.sblock_put(&imsbr_ctrl, &blk);
 	g_test_result = IMSBR_TEST_PASS;
 }
 
