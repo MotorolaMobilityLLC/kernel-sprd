@@ -22,6 +22,7 @@
 #include <linux/pm_wakeup.h>
 #include <linux/power_supply.h>
 #include <linux/power/charger-manager.h>
+#include <linux/power/sprd_battery_info.h>
 #include <linux/reboot.h>
 #include <linux/regulator/consumer.h>
 #include <linux/rtc.h>
@@ -88,17 +89,6 @@
 #define CM_IR_COMPENSATION_TIME			3
 
 #define CM_CP_WORK_TIME_MS			500
-
-static const char * const jeita_type_names[] = {
-	[CM_JEITA_UNKNOWN] = "cm-unknown-jeita-temp-table",
-	[CM_JEITA_SDP] = "cm-sdp-jeita-temp-table",
-	[CM_JEITA_CDP] = "cm-cdp-jeita-temp-table",
-	[CM_JEITA_DCP] = "cm-dcp-jeita-temp-table",
-	[CM_JEITA_FCHG] = "cm-fchg-jeita-temp-table",
-	[CM_JEITA_FLASH] = "cm-flash-jeita-temp-table",
-	[CM_JEITA_WL_BPP] = "cm-wl-bpp-jeita-temp-table",
-	[CM_JEITA_WL_EPP] = "cm-wl-epp-jeita-temp-table",
-};
 
 static const char * const cm_cp_state_names[] = {
 	[CM_CP_STATE_UNKNOWN] = "Charge pump state: UNKNOWN",
@@ -1086,7 +1076,7 @@ static int get_charger_input_current(struct charger_manager *cm, int *cur)
 
 static bool cm_reset_basp_parameters(struct charger_manager *cm, int volt_uv)
 {
-	struct charger_jeita_table *table;
+	struct sprd_battery_jeita_table *table;
 	int i, j, size;
 	bool is_need_update = false;
 
@@ -1099,7 +1089,7 @@ static bool cm_reset_basp_parameters(struct charger_manager *cm, int volt_uv)
 	cm->desc->cp.cp_target_vbat = volt_uv;
 	cm->desc->constant_charge_voltage_max_uv = volt_uv;
 
-	for (i = CM_JEITA_DCP; i < CM_JEITA_MAX; i++) {
+	for (i = SPRD_BATTERY_JEITA_DCP; i < SPRD_BATTERY_JEITA_MAX; i++) {
 		table = cm->desc->jeita_tab_array[i];
 		size = cm->desc->jeita_size[i];
 
@@ -1110,7 +1100,8 @@ static bool cm_reset_basp_parameters(struct charger_manager *cm, int volt_uv)
 			if (table[j].term_volt > volt_uv) {
 				is_need_update = true;
 				dev_info(cm->dev, "%s, set table[%d] from %d to %d\n",
-						jeita_type_names[i], j, table[j].term_volt, volt_uv);
+					 sprd_battery_jeita_type_names[i], j,
+					 table[j].term_volt, volt_uv);
 				table[j].term_volt = volt_uv;
 			}
 		}
@@ -1436,9 +1427,9 @@ static void cm_update_charge_info(struct charger_manager *cm, int cmd)
 		desc->charge_limit_cur = desc->cur.dcp_cur;
 		desc->input_limit_cur = desc->cur.dcp_limit;
 		thm_info->adapter_default_charge_vol = 5;
-		if (desc->jeita_size[CM_JEITA_DCP]) {
-			desc->jeita_tab = desc->jeita_tab_array[CM_JEITA_DCP];
-			desc->jeita_tab_size = desc->jeita_size[CM_JEITA_DCP];
+		if (desc->jeita_size[SPRD_BATTERY_JEITA_DCP]) {
+			desc->jeita_tab = desc->jeita_tab_array[SPRD_BATTERY_JEITA_DCP];
+			desc->jeita_tab_size = desc->jeita_size[SPRD_BATTERY_JEITA_DCP];
 		}
 		if (desc->normal_charge_voltage_max)
 			desc->charge_voltage_max = desc->normal_charge_voltage_max;
@@ -1449,9 +1440,9 @@ static void cm_update_charge_info(struct charger_manager *cm, int cmd)
 		desc->charge_limit_cur = desc->cur.sdp_cur;
 		desc->input_limit_cur = desc->cur.sdp_limit;
 		thm_info->adapter_default_charge_vol = 5;
-		if (desc->jeita_size[CM_JEITA_SDP]) {
-			desc->jeita_tab = desc->jeita_tab_array[CM_JEITA_SDP];
-			desc->jeita_tab_size = desc->jeita_size[CM_JEITA_SDP];
+		if (desc->jeita_size[SPRD_BATTERY_JEITA_SDP]) {
+			desc->jeita_tab = desc->jeita_tab_array[SPRD_BATTERY_JEITA_SDP];
+			desc->jeita_tab_size = desc->jeita_size[SPRD_BATTERY_JEITA_SDP];
 		}
 		if (desc->normal_charge_voltage_max)
 			desc->charge_voltage_max = desc->normal_charge_voltage_max;
@@ -1462,9 +1453,9 @@ static void cm_update_charge_info(struct charger_manager *cm, int cmd)
 		desc->charge_limit_cur = desc->cur.cdp_cur;
 		desc->input_limit_cur = desc->cur.cdp_limit;
 		thm_info->adapter_default_charge_vol = 5;
-		if (desc->jeita_size[CM_JEITA_CDP]) {
-			desc->jeita_tab = desc->jeita_tab_array[CM_JEITA_CDP];
-			desc->jeita_tab_size = desc->jeita_size[CM_JEITA_CDP];
+		if (desc->jeita_size[SPRD_BATTERY_JEITA_CDP]) {
+			desc->jeita_tab = desc->jeita_tab_array[SPRD_BATTERY_JEITA_CDP];
+			desc->jeita_tab_size = desc->jeita_size[SPRD_BATTERY_JEITA_CDP];
 		}
 		if (desc->normal_charge_voltage_max)
 			desc->charge_voltage_max = desc->normal_charge_voltage_max;
@@ -1477,9 +1468,9 @@ static void cm_update_charge_info(struct charger_manager *cm, int cmd)
 			desc->charge_limit_cur = desc->cur.fchg_cur;
 			desc->input_limit_cur = desc->cur.fchg_limit;
 			thm_info->adapter_default_charge_vol = 9;
-			if (desc->jeita_size[CM_JEITA_FCHG]) {
-				desc->jeita_tab = desc->jeita_tab_array[CM_JEITA_FCHG];
-				desc->jeita_tab_size = desc->jeita_size[CM_JEITA_FCHG];
+			if (desc->jeita_size[SPRD_BATTERY_JEITA_FCHG]) {
+				desc->jeita_tab = desc->jeita_tab_array[SPRD_BATTERY_JEITA_FCHG];
+				desc->jeita_tab_size = desc->jeita_size[SPRD_BATTERY_JEITA_FCHG];
 			}
 			if (desc->fast_charge_voltage_max)
 				desc->charge_voltage_max = desc->fast_charge_voltage_max;
@@ -1490,9 +1481,9 @@ static void cm_update_charge_info(struct charger_manager *cm, int cmd)
 		desc->charge_limit_cur = desc->cur.dcp_cur;
 		desc->input_limit_cur = desc->cur.dcp_limit;
 		thm_info->adapter_default_charge_vol = 5;
-		if (desc->jeita_size[CM_JEITA_DCP]) {
-			desc->jeita_tab = desc->jeita_tab_array[CM_JEITA_DCP];
-			desc->jeita_tab_size = desc->jeita_size[CM_JEITA_DCP];
+		if (desc->jeita_size[SPRD_BATTERY_JEITA_DCP]) {
+			desc->jeita_tab = desc->jeita_tab_array[SPRD_BATTERY_JEITA_DCP];
+			desc->jeita_tab_size = desc->jeita_size[SPRD_BATTERY_JEITA_DCP];
 		}
 		if (desc->normal_charge_voltage_max)
 			desc->charge_voltage_max = desc->normal_charge_voltage_max;
@@ -1505,9 +1496,9 @@ static void cm_update_charge_info(struct charger_manager *cm, int cmd)
 			desc->charge_limit_cur = desc->cur.flash_cur;
 			desc->input_limit_cur = desc->cur.flash_limit;
 			thm_info->adapter_default_charge_vol = 11;
-			if (desc->jeita_size[CM_JEITA_FLASH]) {
-				desc->jeita_tab = desc->jeita_tab_array[CM_JEITA_FLASH];
-				desc->jeita_tab_size = desc->jeita_size[CM_JEITA_FLASH];
+			if (desc->jeita_size[SPRD_BATTERY_JEITA_FLASH]) {
+				desc->jeita_tab = desc->jeita_tab_array[SPRD_BATTERY_JEITA_FLASH];
+				desc->jeita_tab_size = desc->jeita_size[SPRD_BATTERY_JEITA_FLASH];
 			}
 			if (desc->flash_charge_voltage_max)
 				desc->charge_voltage_max = desc->flash_charge_voltage_max;
@@ -1518,9 +1509,9 @@ static void cm_update_charge_info(struct charger_manager *cm, int cmd)
 		desc->charge_limit_cur = desc->cur.dcp_cur;
 		desc->input_limit_cur = desc->cur.dcp_limit;
 		thm_info->adapter_default_charge_vol = 5;
-		if (desc->jeita_size[CM_JEITA_DCP]) {
-			desc->jeita_tab = desc->jeita_tab_array[CM_JEITA_DCP];
-			desc->jeita_tab_size = desc->jeita_size[CM_JEITA_DCP];
+		if (desc->jeita_size[SPRD_BATTERY_JEITA_DCP]) {
+			desc->jeita_tab = desc->jeita_tab_array[SPRD_BATTERY_JEITA_DCP];
+			desc->jeita_tab_size = desc->jeita_size[SPRD_BATTERY_JEITA_DCP];
 		}
 		if (desc->normal_charge_voltage_max)
 			desc->charge_voltage_max = desc->normal_charge_voltage_max;
@@ -1531,9 +1522,9 @@ static void cm_update_charge_info(struct charger_manager *cm, int cmd)
 		desc->charge_limit_cur = desc->cur.wl_bpp_cur;
 		desc->input_limit_cur = desc->cur.wl_bpp_limit;
 		thm_info->adapter_default_charge_vol = 5;
-		if (desc->jeita_size[CM_JEITA_WL_BPP]) {
-			desc->jeita_tab = desc->jeita_tab_array[CM_JEITA_WL_BPP];
-			desc->jeita_tab_size = desc->jeita_size[CM_JEITA_WL_BPP];
+		if (desc->jeita_size[SPRD_BATTERY_JEITA_WL_BPP]) {
+			desc->jeita_tab = desc->jeita_tab_array[SPRD_BATTERY_JEITA_WL_BPP];
+			desc->jeita_tab_size = desc->jeita_size[SPRD_BATTERY_JEITA_WL_BPP];
 		}
 		if (desc->wireless_normal_charge_voltage_max)
 			desc->charge_voltage_max = desc->wireless_normal_charge_voltage_max;
@@ -1544,9 +1535,9 @@ static void cm_update_charge_info(struct charger_manager *cm, int cmd)
 		desc->charge_limit_cur = desc->cur.wl_epp_cur;
 		desc->input_limit_cur = desc->cur.wl_epp_limit;
 		thm_info->adapter_default_charge_vol = 11;
-		if (desc->jeita_size[CM_JEITA_WL_EPP]) {
-			desc->jeita_tab = desc->jeita_tab_array[CM_JEITA_WL_EPP];
-			desc->jeita_tab_size = desc->jeita_size[CM_JEITA_WL_EPP];
+		if (desc->jeita_size[SPRD_BATTERY_JEITA_WL_EPP]) {
+			desc->jeita_tab = desc->jeita_tab_array[SPRD_BATTERY_JEITA_WL_EPP];
+			desc->jeita_tab_size = desc->jeita_size[SPRD_BATTERY_JEITA_WL_EPP];
 		}
 		if (desc->wireless_fast_charge_voltage_max)
 			desc->charge_voltage_max = desc->wireless_fast_charge_voltage_max;
@@ -1557,9 +1548,9 @@ static void cm_update_charge_info(struct charger_manager *cm, int cmd)
 		desc->charge_limit_cur = desc->cur.unknown_cur;
 		desc->input_limit_cur = desc->cur.unknown_limit;
 		thm_info->adapter_default_charge_vol = 5;
-		if (desc->jeita_size[CM_JEITA_UNKNOWN]) {
-			desc->jeita_tab = desc->jeita_tab_array[CM_JEITA_UNKNOWN];
-			desc->jeita_tab_size = desc->jeita_size[CM_JEITA_UNKNOWN];
+		if (desc->jeita_size[SPRD_BATTERY_JEITA_UNKNOWN]) {
+			desc->jeita_tab = desc->jeita_tab_array[SPRD_BATTERY_JEITA_UNKNOWN];
+			desc->jeita_tab_size = desc->jeita_size[SPRD_BATTERY_JEITA_UNKNOWN];
 		}
 		if (desc->normal_charge_voltage_max)
 			desc->charge_voltage_max = desc->normal_charge_voltage_max;
@@ -1906,7 +1897,7 @@ static bool cm_is_reach_fchg_threshold(struct charger_manager *cm)
 	}
 
 	fchg_ocv_threshold = CM_FAST_CHARGE_START_VOLTAGE_HTHRESHOLD;
-	if (cm->desc->fchg_ocv_threshold)
+	if (cm->desc->fchg_ocv_threshold > 0)
 		fchg_ocv_threshold = cm->desc->fchg_ocv_threshold;
 
 	thm_cur = CM_FAST_CHARGE_ENABLE_THERMAL_CURRENT;
@@ -5445,53 +5436,33 @@ static int cm_init_thermal_data(struct charger_manager *cm, struct power_supply 
 	return ret;
 }
 
-static int cm_parse_jeita_table(struct charger_desc *desc,
-				struct device *dev,
-				int jeita_num)
+static int cm_init_jeita_table(struct sprd_battery_info *info,
+			       struct charger_desc *desc, struct device *dev)
 {
-	struct device_node *np = dev->of_node;
-	struct charger_jeita_table *table;
-	const __be32 *list;
-	const char *np_name = jeita_type_names[jeita_num];
-	struct charger_jeita_table **cur_table = &desc->jeita_tab_array[jeita_num];
-	int i, size;
+	int i;
 
-	list = of_get_property(np, np_name, &size);
-	if (!list || !size)
-		return 0;
+	for (i = SPRD_BATTERY_JEITA_DCP; i < SPRD_BATTERY_JEITA_MAX; i++) {
+		desc->jeita_size[i] = info->sprd_battery_jeita_size[i];
+		if (!desc->jeita_size[i]) {
+			dev_warn(dev, "%s jeita_size is zero\n",
+				 sprd_battery_jeita_type_names[i]);
+			continue;
+		}
 
-	desc->jeita_size[jeita_num] = size / (sizeof(struct charger_jeita_table) /
-				       sizeof(int) * sizeof(__be32));
-
-	table = devm_kzalloc(dev, sizeof(struct charger_jeita_table) *
-				(desc->jeita_size[jeita_num] + 1), GFP_KERNEL);
-	if (!table)
-		return -ENOMEM;
-
-	for (i = 0; i < desc->jeita_size[jeita_num]; i++) {
-		table[i].temp = be32_to_cpu(*list++) - 1000;
-		table[i].recovery_temp = be32_to_cpu(*list++) - 1000;
-		table[i].current_ua = be32_to_cpu(*list++);
-		table[i].term_volt = be32_to_cpu(*list++);
+		desc->jeita_tab_array[i] = devm_kmemdup(dev, info->jeita_table[i],
+							desc->jeita_size[i] *
+							sizeof(struct sprd_battery_jeita_table),
+							GFP_KERNEL);
+		if (!desc->jeita_tab_array[i]) {
+			dev_warn(dev, "Fail to kmemdup %s\n",
+				 sprd_battery_jeita_type_names[i]);
+			return -ENOMEM;
+		}
 	}
 
-	*cur_table = table;
+	desc->jeita_tab = desc->jeita_tab_array[SPRD_BATTERY_JEITA_UNKNOWN];
+	desc->jeita_tab_size = desc->jeita_size[SPRD_BATTERY_JEITA_UNKNOWN];
 
-	return 0;
-}
-
-static int cm_init_jeita_table(struct charger_desc *desc, struct device *dev)
-{
-	int ret, i;
-
-	for (i = CM_JEITA_DCP; i < CM_JEITA_MAX; i++) {
-		ret = cm_parse_jeita_table(desc, dev, i);
-		if (ret)
-			return ret;
-	}
-
-	desc->jeita_tab = desc->jeita_tab_array[CM_JEITA_UNKNOWN];
-	desc->jeita_tab_size = desc->jeita_size[CM_JEITA_UNKNOWN];
 	return 0;
 }
 
@@ -5617,9 +5588,6 @@ static struct charger_desc *of_cm_parse_desc(struct device *dev)
 					&desc->fullbatt_vchkdrop_ms);
 	of_property_read_u32(np, "cm-fullbatt-vchkdrop-volt",
 					&desc->fullbatt_vchkdrop_uV);
-	of_property_read_u32(np, "cm-fullbatt-voltage", &desc->fullbatt_uV);
-	of_property_read_u32(np, "cm-fullbatt-current", &desc->fullbatt_uA);
-	of_property_read_u32(np, "cm-first-fullbatt-current", &desc->first_fullbatt_uA);
 	of_property_read_u32(np, "cm-fullbatt-soc", &desc->fullbatt_soc);
 	of_property_read_u32(np, "cm-fullbatt-capacity",
 					&desc->fullbatt_full_capacity);
@@ -5742,23 +5710,8 @@ static struct charger_desc *of_cm_parse_desc(struct device *dev)
 			     &desc->wireless_fast_charge_voltage_drop);
 	of_property_read_u32(np, "cm-cp-taper-current",
 			     &desc->cp.cp_taper_current);
-	of_property_read_u32(np, "cm-ir-rc", &desc->ir_comp.rc);
-	of_property_read_u32(np, "cm-ir-us-upper-limit-microvolt",
-			     &desc->ir_comp.us_upper_limit);
-	of_property_read_u32(np, "cm-ir-cv-offset-microvolt",
-			     &desc->ir_comp.cp_upper_limit_offset);
-	of_property_read_u32(np, "cm-force-jeita-status",
-			     &desc->force_jeita_status);
 	of_property_read_u32(np, "cm-cap-full-advance-percent",
 			     &desc->cap_remap_full_percent);
-
-	/* Initialize the jeita temperature table. */
-	ret = cm_init_jeita_table(desc, dev);
-	if (ret)
-		return ERR_PTR(ret);
-
-	if (!desc->force_jeita_status)
-		desc->force_jeita_status = (desc->jeita_tab_size + 1) / 2;
 
 	ret = cm_init_cap_remap_table(desc, dev);
 	if (ret)
@@ -5781,80 +5734,89 @@ static inline struct charger_desc *cm_get_drv_data(struct platform_device *pdev)
 
 static int cm_get_bat_info(struct charger_manager *cm)
 {
-	struct power_supply_battery_info info = { };
-	const char *value;
-	struct device_node *battery_np;
-	int ret, err;
+	struct sprd_battery_info info = {};
+	int ret;
 
-	ret = power_supply_get_battery_info(cm->charger_psy, &info);
+	ret = sprd_battery_get_battery_info(cm->charger_psy, &info);
 	if (ret) {
 		dev_err(cm->dev, "failed to get battery information\n");
+		sprd_battery_put_battery_info(cm->charger_psy, &info);
 		return ret;
 	}
 
 	cm->desc->internal_resist = info.factory_internal_resistance_uohm / 1000;
+	cm->desc->ir_comp.us = info.constant_charge_voltage_max_uv;
+	cm->desc->ir_comp.us_upper_limit = info.ir.us_upper_limit_uv;
+	cm->desc->ir_comp.rc = info.ir.rc_uohm / 1000;
+	cm->desc->ir_comp.cp_upper_limit_offset = info.ir.cv_upper_limit_offset_uv;
+	cm->desc->constant_charge_voltage_max_uv = info.constant_charge_voltage_max_uv;
+	cm->desc->fchg_ocv_threshold = info.fast_charge_ocv_threshold_uv;
+	cm->desc->cp.cp_target_vbat = info.constant_charge_voltage_max_uv;
+	cm->desc->cp.cp_max_ibat = info.cur.flash_cur;
+	cm->desc->cp.cp_target_ibat = info.cur.flash_cur;
+	cm->desc->cp.cp_max_ibus = info.cur.flash_limit;
+	cm->desc->cur.sdp_limit = info.cur.sdp_limit;
+	cm->desc->cur.sdp_cur = info.cur.sdp_cur;
+	cm->desc->cur.dcp_limit = info.cur.dcp_limit;
+	cm->desc->cur.dcp_cur = info.cur.dcp_cur;
+	cm->desc->cur.cdp_limit = info.cur.cdp_limit;
+	cm->desc->cur.cdp_cur = info.cur.cdp_cur;
+	cm->desc->cur.unknown_limit = info.cur.unknown_limit;
+	cm->desc->cur.unknown_cur = info.cur.unknown_cur;
+	cm->desc->cur.fchg_limit = info.cur.fchg_limit;
+	cm->desc->cur.fchg_cur = info.cur.fchg_cur;
+	cm->desc->cur.flash_limit = info.cur.flash_limit;
+	cm->desc->cur.flash_cur = info.cur.flash_cur;
+	cm->desc->cur.wl_bpp_limit = info.cur.wl_bpp_limit;
+	cm->desc->cur.wl_bpp_cur = info.cur.wl_bpp_cur;
+	cm->desc->cur.wl_epp_limit = info.cur.wl_epp_limit;
+	cm->desc->cur.wl_epp_cur = info.cur.wl_epp_cur;
+	cm->desc->fullbatt_uV = info.fullbatt_voltage_uv;
+	cm->desc->fullbatt_uA = info.fullbatt_current_uA;
+	cm->desc->first_fullbatt_uA = info.first_fullbatt_current_uA;
+	cm->desc->force_jeita_status = info.force_jeita_status;
 
-	power_supply_put_battery_info(cm->charger_psy, &info);
+	dev_info(cm->dev, "SPRD_BATTERY_INFO: internal_resist = %d, us = %d, "
+		 "constant_charge_voltage_max_uv = %d, fchg_ocv_threshold = %d, "
+		 "cp_target_vbat = %d, cp_max_ibat = %d, cp_target_ibat = %d "
+		 "cp_max_ibus = %d, sdp_limit = %d, sdp_cur = %d, dcp_limit = %d, "
+		 "dcp_cur = %d, cdp_limit = %d, cdp_cur = %d, unknown_limit=%d, "
+		 "unknown_cur = %d. fchg_limit = %d, fchg_cur = %d, flash_limit = %d, "
+		 "flash_cur = %d, wl_bpp_limit = %d, wl_bpp_cur= %d, wl_epp_limit = %d, "
+		 "wl_epp_cur = %d, fullbatt_uV= %d, fullbatt_uA= %d, "
+		 "cm->desc->first_fullbatt_uA = %d, us_upper_limit = %d, rc = %d, "
+		 "cp_upper_limit_offset = %d, force_jeita_status = %d\n",
+		 cm->desc->internal_resist, cm->desc->ir_comp.us,
+		 cm->desc->constant_charge_voltage_max_uv, cm->desc->fchg_ocv_threshold,
+		 cm->desc->cp.cp_target_vbat, cm->desc->cp.cp_max_ibat,
+		 cm->desc->cp.cp_target_ibat, cm->desc->cp.cp_max_ibus, cm->desc->cur.sdp_limit,
+		 cm->desc->cur.sdp_cur, cm->desc->cur.dcp_limit, cm->desc->cur.dcp_cur,
+		 cm->desc->cur.cdp_limit, cm->desc->cur.cdp_cur, cm->desc->cur.unknown_limit,
+		 cm->desc->cur.unknown_cur, cm->desc->cur.fchg_limit, cm->desc->cur.fchg_cur,
+		 cm->desc->cur.flash_limit, cm->desc->cur.flash_cur, cm->desc->cur.wl_bpp_limit,
+		 cm->desc->cur.wl_bpp_cur, cm->desc->cur.wl_epp_limit, cm->desc->cur.wl_epp_cur,
+		 cm->desc->fullbatt_uV, cm->desc->fullbatt_uA, cm->desc->first_fullbatt_uA,
+		 cm->desc->ir_comp.us_upper_limit, cm->desc->ir_comp.rc,
+		 cm->desc->ir_comp.cp_upper_limit_offset, cm->desc->force_jeita_status);
 
-	battery_np = of_parse_phandle(cm->charger_psy->of_node, "monitored-battery", 0);
-	if (!battery_np)
-		return -ENODEV;
-
-	err = of_property_read_string(battery_np, "compatible", &value);
-	if (err)
-		goto out_put_node;
-
-	if (strcmp("simple-battery", value)) {
-		err = -ENODEV;
-		goto out_put_node;
+	ret = cm_init_jeita_table(&info, cm->desc, cm->dev);
+	if (ret) {
+		sprd_battery_put_battery_info(cm->charger_psy, &info);
+		return ret;
 	}
 
-	of_property_read_u32(battery_np, "fast-charge-threshold-microvolt",
-			     &cm->desc->fchg_ocv_threshold);
-	of_property_read_u32_index(battery_np, "charge-sdp-current-microamp", 0,
-				   &cm->desc->cur.sdp_cur);
-	of_property_read_u32_index(battery_np, "charge-sdp-current-microamp", 1,
-				   &cm->desc->cur.sdp_limit);
-	of_property_read_u32_index(battery_np, "charge-dcp-current-microamp", 0,
-				   &cm->desc->cur.dcp_cur);
-	of_property_read_u32_index(battery_np, "charge-dcp-current-microamp", 1,
-				   &cm->desc->cur.dcp_limit);
-	of_property_read_u32_index(battery_np, "charge-cdp-current-microamp", 0,
-				   &cm->desc->cur.cdp_cur);
-	of_property_read_u32_index(battery_np, "charge-cdp-current-microamp", 1,
-				   &cm->desc->cur.cdp_limit);
-	of_property_read_u32_index(battery_np, "charge-unknown-current-microamp", 0,
-				   &cm->desc->cur.unknown_cur);
-	of_property_read_u32_index(battery_np, "charge-unknown-current-microamp", 1,
-				   &cm->desc->cur.unknown_limit);
-	of_property_read_u32_index(battery_np, "charge-fchg-current-microamp", 0,
-				   &cm->desc->cur.fchg_cur);
-	of_property_read_u32_index(battery_np, "charge-fchg-current-microamp", 1,
-				   &cm->desc->cur.fchg_limit);
-	of_property_read_u32_index(battery_np, "charge-flash-current-microamp", 0,
-				   &cm->desc->cur.flash_cur);
-	of_property_read_u32_index(battery_np, "charge-flash-current-microamp", 1,
-				   &cm->desc->cur.flash_limit);
-	of_property_read_u32_index(battery_np, "charge-wl-bpp-current-microamp", 0,
-				   &cm->desc->cur.wl_bpp_cur);
-	of_property_read_u32_index(battery_np, "charge-wl-bpp-current-microamp", 1,
-				   &cm->desc->cur.wl_bpp_limit);
-	of_property_read_u32_index(battery_np, "charge-wl-epp-current-microamp", 0,
-				   &cm->desc->cur.wl_epp_cur);
-	of_property_read_u32_index(battery_np, "charge-wl-epp-current-microamp", 1,
-				   &cm->desc->cur.wl_epp_limit);
+	if (cm->desc->force_jeita_status <= 0)
+		cm->desc->force_jeita_status = (cm->desc->jeita_tab_size + 1) / 2;
 
-	cm->desc->internal_resist = info.factory_internal_resistance_uohm / 1000;
-	cm->desc->ir_comp.us = info.constant_charge_voltage_max_uv;
-	cm->desc->constant_charge_voltage_max_uv = info.constant_charge_voltage_max_uv;
-	cm->desc->cp.cp_target_vbat = info.constant_charge_voltage_max_uv;
-	cm->desc->cp.cp_max_ibat = cm->desc->cur.flash_cur;
-	cm->desc->cp.cp_target_ibat = cm->desc->cur.flash_cur;
-	cm->desc->cp.cp_max_ibus = cm->desc->cur.flash_limit;
+	if (cm->desc->fullbatt_uV == 0)
+		dev_info(cm->dev, "Ignoring full-battery voltage threshold as it is not supplied\n");
 
-out_put_node:
-	of_node_put(battery_np);
-	return err;
+	if (cm->desc->fullbatt_uA == 0)
+		dev_info(cm->dev, "Ignoring full-battery current threshold as it is not supplied\n");
+
+	sprd_battery_put_battery_info(cm->charger_psy, &info);
+
+	return 0;
 }
 
 static void cm_uvlo_check_work(struct work_struct *work)
@@ -6236,12 +6198,6 @@ static int charger_manager_probe(struct platform_device *pdev)
 	 * Some of the following do not need to be errors.
 	 * Users may intentionally ignore those features.
 	 */
-	if (desc->fullbatt_uV == 0) {
-		dev_info(&pdev->dev, "Ignoring full-battery voltage threshold as it is not supplied\n");
-	}
-
-	if (desc->fullbatt_uA == 0)
-		dev_info(&pdev->dev, "Ignoring full-battery current threshold as it is not supplied\n");
 
 	if (!desc->fullbatt_vchkdrop_ms || !desc->fullbatt_vchkdrop_uV) {
 		dev_info(&pdev->dev, "Disabling full-battery voltage drop checking mechanism as it is not supplied\n");

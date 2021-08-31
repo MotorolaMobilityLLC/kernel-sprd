@@ -144,7 +144,6 @@
 #define SC27XX_FGU_TRACK_TIMEOUT_THRESHOLD		108000
 #define SC27XX_FGU_TRACK_START_CAP_THRESHOLD		200
 #define SC27XX_FGU_TRACK_WAKE_UP_MS			15000
-#define SC27XX_FGU_CHECK_CAP_TABLE_VOL_THRESHOLD	3000000
 #define SC27XX_FGU_TRACK_CHECK_TIME			4
 #define SC27XX_FGU_TRACK_FINISH_CNT_THRESHOLD		2
 #define SC27XX_FGU_TRACK_CHECK_WAKE_UP_MS		12000
@@ -963,11 +962,16 @@ static void sc27xx_fgu_dump_battery_info(struct sc27xx_fgu_data *data, char *str
 	int i, j;
 
 	dev_info(data->dev, "%s, ocv_table_len = %d, temp_table_len = %d, rabat_table_len = %d, "
-			"basp_ocv_table_len = %d, basp_full_design_table_len = %d, "
-			"basp_voltage_max_table_len = %d\n",
+		 "basp_ocv_table_len = %d, basp_full_design_table_len = %d, "
+		 "basp_voltage_max_table_len = %d, track.end_vol = %d, track.end_cur = %d, "
+		 "first_calib_volt = %d, first_calib_cap = %d, total_mah = %d, max_volt_uv = %d, "
+		 "internal_resist = %d, min_volt_uv = %d\n",
 		 str, data->rbat_ocv_table_len, data->rbat_temp_table_len,
 		 data->rabat_table_len, data->basp_ocv_table_len,
-		 data->basp_full_design_table_len, data->basp_voltage_max_table_len);
+		 data->basp_full_design_table_len, data->basp_voltage_max_table_len,
+		 data->track.end_vol, data->track.end_cur, data->first_calib_volt,
+		 data->first_calib_cap, data->total_mah, data->max_volt_uv,
+		 data->internal_resist, data->min_volt_uv);
 
 	if (data->rbat_temp_table_len > 0) {
 		for (i = 0; i < data->rbat_temp_table_len; i++)
@@ -2986,76 +2990,6 @@ static int sc27xx_fgu_calibration(struct sc27xx_fgu_data *data)
 	return 0;
 }
 
-static int sc27xx_fgu_get_battery_table_info(struct power_supply *psy,
-				  struct sc27xx_fgu_data *data)
-{
-	struct device_node *battery_np;
-	const char *value;
-	const __be32 *list;
-	int err, index, size;
-
-	data->temp_table = NULL;
-	data->temp_table_len = -EINVAL;
-
-	if (!psy->of_node) {
-		dev_warn(&psy->dev, "%s currently only supports devicetree\n",
-			 __func__);
-		return -ENXIO;
-	}
-
-	battery_np = of_parse_phandle(psy->of_node, "monitored-battery", 0);
-	if (!battery_np)
-		return -ENODEV;
-
-	err = of_property_read_string(battery_np, "compatible", &value);
-	if (err)
-		return err;
-
-	if (strcmp("simple-battery", value))
-		return -ENODEV;
-
-	list = of_get_property(battery_np, "voltage-temp-table", &size);
-	if (!list || !size)
-		return 0;
-
-	data->temp_table_len = size / (2 * sizeof(__be32));
-	data->temp_table = devm_kcalloc(&psy->dev,
-					data->temp_table_len,
-					sizeof(*data->temp_table),
-					GFP_KERNEL);
-	if (!data->temp_table)
-		return -ENOMEM;
-
-	/*
-	 * We should give a initial temperature value of temp_buff.
-	 */
-	data->temp_buff[0] = -500;
-
-	for (index = 0; index < data->temp_table_len; index++) {
-		data->temp_table[index].vol = be32_to_cpu(*list++);
-		data->temp_table[index].temp = be32_to_cpu(*list++);
-	}
-
-	list = of_get_property(battery_np, "capacity-temp-table", &size);
-	if (!list || !size)
-		return 0;
-
-	data->cap_table_len = size / (2 * sizeof(__be32));
-	data->cap_temp_table = devm_kcalloc(&psy->dev,
-					    data->cap_table_len,
-					    sizeof(*data->cap_temp_table),
-					    GFP_KERNEL);
-	if (!data->cap_temp_table)
-		return -ENOMEM;
-
-	for (index = 0; index < data->cap_table_len; index++) {
-		data->cap_temp_table[index].temp = be32_to_cpu(*list++);
-		data->cap_temp_table[index].cap = be32_to_cpu(*list++);
-	}
-
-	return 0;
-}
-
 static int sc27xx_fgu_track_capacity_init(struct sc27xx_fgu_data *data)
 {
 	u32 total_mah, learned_mah;
@@ -3772,81 +3706,97 @@ static int sc27xx_fgu_register_sysfs(struct sc27xx_fgu_data *data)
 	return ret;
 }
 
-static bool sc27xx_fgu_cap_table_is_valid(struct sc27xx_fgu_data *data,
-					  struct power_supply_battery_ocv_table *table,
-					  int table_len)
+static int sc27xx_fgu_parse_sprd_battery_info(struct sc27xx_fgu_data *data,
+					      struct sprd_battery_info *info)
 {
+	struct sprd_battery_ocv_table *table;
 	int i;
 
-	if (table[table_len - 1].ocv / SC27XX_FGU_CHECK_CAP_TABLE_VOL_THRESHOLD != 1 ||
-	    table[0].capacity != 100 || table[table_len - 1].capacity != 0)
-		return false;
-	for (i = 0; i < table_len - 2; i++) {
-		if (table[i].ocv <= table[i + 1].ocv ||
-		    table[i].capacity <= table[i + 1].capacity) {
-			dev_info(data->dev, "the index = %d or %d ocv-cap table value is abnormal!\n",
-				 i, i + 1);
-			return false;
-		}
+	/*
+	 * For SC27XX fuel gauge device, we only use one ocv-capacity
+	 * table in normal temperature 20 Celsius.
+	 */
+	table = sprd_battery_find_ocv2cap_table(info, 20, &data->table_len);
+	if (!table)
+		return -EINVAL;
+
+	data->cap_table = devm_kmemdup(data->dev, table,
+				       data->table_len * sizeof(*table),
+				       GFP_KERNEL);
+	if (!data->cap_table)
+		return -ENOMEM;
+
+	/*
+	 * We should give a initial temperature value of temp_buff.
+	 */
+	data->temp_buff[0] = -500;
+
+	data->temp_table_len = info->battery_vol_temp_table_len;
+	if (data->temp_table_len > 0) {
+		data->temp_table = devm_kmemdup(data->dev, info->battery_vol_temp_table,
+						data->temp_table_len *
+						sizeof(struct sprd_battery_vol_temp_table),
+						GFP_KERNEL);
+		if (!data->temp_table)
+			return -ENOMEM;
 	}
 
-	return true;
-}
-
-static int sc27xx_fgu_parse_sprd_battery_info(struct sc27xx_fgu_data *data)
-{
-	struct sprd_battery_info info = {};
-	int i, ret;
-
-	ret = sprd_battery_get_battery_info(data->battery, &info);
-	if (ret) {
-		dev_err(data->dev, "failed to get sprd battery information\n");
-		sprd_battery_put_battery_info(data->battery, &info);
-		return ret;
+	data->cap_table_len = info->battery_temp_cap_table_len;
+	if (data->cap_table_len > 0) {
+		data->cap_temp_table = devm_kmemdup(data->dev, info->battery_temp_cap_table,
+						    data->cap_table_len *
+						    sizeof(struct sprd_battery_temp_cap_table),
+						    GFP_KERNEL);
+		if (!data->cap_temp_table)
+			return -ENOMEM;
 	}
 
-	data->rbat_temp_table_len = info.battery_internal_resistance_temp_table_len;
+	data->resist_table_len = info->battery_temp_resist_table_len;
+	if (data->resist_table_len > 0) {
+		data->resist_table = devm_kmemdup(data->dev, info->battery_temp_resist_table,
+						  data->resist_table_len *
+						  sizeof(struct sprd_battery_resistance_temp_table),
+						  GFP_KERNEL);
+		if (!data->resist_table)
+			return -ENOMEM;
+	}
+
+	data->rbat_temp_table_len = info->battery_internal_resistance_temp_table_len;
 	if (data->rbat_temp_table_len > 0) {
 		data->rbat_temp_table =
 			devm_kmemdup(data->dev,
-				     info.battery_internal_resistance_temp_table,
+				     info->battery_internal_resistance_temp_table,
 				     (u32)data->rbat_temp_table_len * sizeof(int), GFP_KERNEL);
-		if (!data->rbat_temp_table) {
-			sprd_battery_put_battery_info(data->battery, &info);
+		if (!data->rbat_temp_table)
 			return -ENOMEM;
-		}
 	}
 
-	data->rbat_ocv_table_len = info.battery_internal_resistance_ocv_table_len;
+	data->rbat_ocv_table_len = info->battery_internal_resistance_ocv_table_len;
 	if (data->rbat_ocv_table_len > 0) {
 		data->rbat_ocv_table =
 			devm_kmemdup(data->dev,
-				     info.battery_internal_resistance_ocv_table,
+				     info->battery_internal_resistance_ocv_table,
 				     (u32)data->rbat_ocv_table_len * sizeof(int), GFP_KERNEL);
-		if (!data->rbat_ocv_table) {
-			sprd_battery_put_battery_info(data->battery, &info);
+		if (!data->rbat_ocv_table)
 			return -ENOMEM;
-		}
 	}
 
-	data->rabat_table_len = info.battery_internal_resistance_table_len[0];
+	data->rabat_table_len = info->battery_internal_resistance_table_len[0];
 	if (data->rabat_table_len > 0) {
 		data->rbat_table = devm_kzalloc(data->dev,
 						(u32)data->rbat_temp_table_len * sizeof(int *),
 						GFP_KERNEL);
 		if (!data->rbat_table) {
 			dev_err(data->dev, "Fail to alloc rbat_table\n");
-			sprd_battery_put_battery_info(data->battery, &info);
 			return -ENOMEM;
 		}
 		for (i = 0; i < data->rbat_temp_table_len; i++) {
 			data->rbat_table[i] =
 				devm_kmemdup(data->dev,
-					     info.battery_internal_resistance_table[i],
+					     info->battery_internal_resistance_table[i],
 					     (u32)data->rabat_table_len * sizeof(int), GFP_KERNEL);
 			if (!data->rbat_table[i]) {
 				dev_err(data->dev, "data->rbat_table[%d]\n", i);
-				sprd_battery_put_battery_info(data->battery, &info);
 				return -ENOMEM;
 			}
 		}
@@ -3858,7 +3808,6 @@ static int sc27xx_fgu_parse_sprd_battery_info(struct sc27xx_fgu_data *data)
 						       GFP_KERNEL);
 		if (!data->target_rbat_table) {
 			dev_err(data->dev, "Fail to alloc resist_table\n");
-			sprd_battery_put_battery_info(data->battery, &info);
 			return -ENOMEM;
 		}
 	}
@@ -3868,44 +3817,41 @@ static int sc27xx_fgu_parse_sprd_battery_info(struct sc27xx_fgu_data *data)
 	    data->rbat_ocv_table && data->rbat_table && data->target_rbat_table)
 		data->support_multi_resistance = true;
 
-	data->dens_table_len = info.dens_ocv_table_len;
+	data->dens_table_len = info->dens_ocv_table_len;
 	if (data->dens_table_len > 0) {
 		data->dens_table =
-			devm_kmemdup(data->dev, info.dens_ocv_table,
+			devm_kmemdup(data->dev, info->dens_ocv_table,
 				     (u32)data->dens_table_len * sizeof(density_ocv_table),
 				     GFP_KERNEL);
 		if (!data->dens_table) {
 			dev_err(data->dev, "data->dens_table is null\n");
-			sprd_battery_put_battery_info(data->battery, &info);
 			return -ENOMEM;
 		}
 	}
 
-	data->basp_full_design_table_len = info.basp_charge_full_design_uah_table_len;
+	data->basp_full_design_table_len = info->basp_charge_full_design_uah_table_len;
 	if (data->basp_full_design_table_len > 0) {
 		data->basp_full_design_table =
-			devm_kmemdup(data->dev, info.basp_charge_full_design_uah_table,
+			devm_kmemdup(data->dev, info->basp_charge_full_design_uah_table,
 				     data->basp_full_design_table_len * sizeof(int), GFP_KERNEL);
 		if (!data->basp_full_design_table) {
 			dev_err(data->dev, "data->basp_full_design_table is null\n");
-			sprd_battery_put_battery_info(data->battery, &info);
 			return -ENOMEM;
 		}
 	}
 
-	data->basp_voltage_max_table_len = info.basp_constant_charge_voltage_max_uv_table_len;
+	data->basp_voltage_max_table_len = info->basp_constant_charge_voltage_max_uv_table_len;
 	if (data->basp_voltage_max_table_len > 0) {
 		data->basp_voltage_max_table =
-			devm_kmemdup(data->dev, info.basp_constant_charge_voltage_max_uv_table,
+			devm_kmemdup(data->dev, info->basp_constant_charge_voltage_max_uv_table,
 				     data->basp_voltage_max_table_len * sizeof(int), GFP_KERNEL);
 		if (!data->basp_voltage_max_table) {
 			dev_err(data->dev, "data->basp_voltage_max_table is null\n");
-			sprd_battery_put_battery_info(data->battery, &info);
 			return -ENOMEM;
 		}
 	}
 
-	data->basp_ocv_table_len = info.basp_ocv_table_len[0];
+	data->basp_ocv_table_len = info->basp_ocv_table_len[0];
 	if (data->basp_ocv_table_len > 0) {
 		data->basp_ocv_table =
 			devm_kzalloc(data->dev, data->basp_voltage_max_table_len * sizeof(int *),
@@ -3913,28 +3859,64 @@ static int sc27xx_fgu_parse_sprd_battery_info(struct sc27xx_fgu_data *data)
 
 		if (!data->basp_ocv_table) {
 			dev_err(data->dev, "Fail to alloc basp_ocv_table\n");
-			sprd_battery_put_battery_info(data->battery, &info);
 			return -ENOMEM;
 		}
 
 		for (i = 0; i < data->basp_voltage_max_table_len; i++) {
 			data->basp_ocv_table[i] =
-				devm_kmemdup(data->dev, info.basp_ocv_table[i],
+				devm_kmemdup(data->dev, info->basp_ocv_table[i],
 					     data->basp_ocv_table_len *
 					     sizeof(struct sprd_battery_ocv_table),
 					     GFP_KERNEL);
 			if (!data->basp_ocv_table[i]) {
 				dev_err(data->dev, "data->basp_ocv_table[%d]\n", i);
-				sprd_battery_put_battery_info(data->battery, &info);
 				return -ENOMEM;
 			}
 		}
 	}
 
+	if (info->fullbatt_track_end_voltage_uv > 0)
+		data->track.end_vol = info->fullbatt_track_end_voltage_uv / 1000;
+	else
+		dev_warn(data->dev, "no fgu track.end_vol support\n");
+
+	if (info->fullbatt_track_end_current_uA > 0)
+		data->track.end_cur = info->fullbatt_track_end_current_uA / 1000;
+	else
+		dev_warn(data->dev, "no fgu track.end_cur support\n");
+
+	if (info->first_capacity_calibration_voltage_uv > 0)
+		data->first_calib_volt = info->first_capacity_calibration_voltage_uv;
+	else
+		dev_warn(data->dev, "no fgu first_calib_volt support\n");
+
+	if (info->first_capacity_calibration_capacity > 0)
+		data->first_calib_cap = info->first_capacity_calibration_capacity;
+	else
+		dev_warn(data->dev, "no fgu first_calib_cap support\n");
+
+	if (info->charge_full_design_uah > 0)
+		data->total_mah = info->charge_full_design_uah / 1000;
+	else
+		dev_warn(data->dev, "no fgu charge_full_design_uah support\n");
+
+	if (info->constant_charge_voltage_max_uv > 0)
+		data->max_volt_uv = info->constant_charge_voltage_max_uv;
+	else
+		dev_warn(data->dev, "no fgu constant_charge_voltage_max_uv support\n");
+
+	if (info->factory_internal_resistance_uohm > 0)
+		data->internal_resist = info->factory_internal_resistance_uohm / 1000;
+	else
+		dev_warn(data->dev, "no fgu factory_internal_resistance_uohm support\n");
+
+	if (info->voltage_min_design_uv > 0)
+		data->min_volt_uv = info->voltage_min_design_uv;
+	else
+		dev_warn(data->dev, "no fgu voltage_min_design_uv support\n");
+
 	if (data->support_debug_log)
 		sc27xx_fgu_dump_battery_info(data, "parse_resistance_table");
-
-	sprd_battery_put_battery_info(data->battery, &info);
 
 	return 0;
 }
@@ -3942,70 +3924,24 @@ static int sc27xx_fgu_parse_sprd_battery_info(struct sc27xx_fgu_data *data)
 static int sc27xx_fgu_hw_init(struct sc27xx_fgu_data *data,
 			      const struct sc27xx_fgu_variant_data *pdata)
 {
-	struct power_supply_battery_info info = { };
-	struct power_supply_battery_ocv_table *table;
 	int ret, delta_clbcnt, alarm_adc;
+	struct sprd_battery_info info = {};
 
 	data->cur_now_buff[SC27XX_FGU_CURRENT_BUFF_CNT - 1] = SC27XX_FGU_MAGIC_NUMBER;
 
-	ret = sc27xx_fgu_parse_sprd_battery_info(data);
+	ret = sprd_battery_get_battery_info(data->battery, &info);
+	if (ret) {
+		sprd_battery_put_battery_info(data->battery, &info);
+		dev_err(data->dev, "failed to get sprd battery information\n");
+		return ret;
+	}
+
+	ret = sc27xx_fgu_parse_sprd_battery_info(data, &info);
+	sprd_battery_put_battery_info(data->battery, &info);
 	if (ret) {
 		dev_err(data->dev, "failed to parse battery information, ret = %d\n", ret);
 		return ret;
 	}
-
-	ret = power_supply_get_battery_info(data->battery, &info);
-	if (ret) {
-		dev_err(data->dev, "failed to get battery information\n");
-		return ret;
-	}
-
-	data->total_mah = info.charge_full_design_uah / 1000;
-	data->max_volt_uv = info.constant_charge_voltage_max_uv;
-	data->internal_resist = info.factory_internal_resistance_uohm / 1000;
-	data->min_volt_uv = info.voltage_min_design_uv;
-
-	/*
-	 * For SC27XX fuel gauge device, we only use one ocv-capacity
-	 * table in normal temperature 20 Celsius.
-	 */
-	table = power_supply_find_ocv2cap_table(&info, 20, &data->table_len);
-	if (!table) {
-		power_supply_put_battery_info(data->battery, &info);
-		return -EINVAL;
-	}
-
-	data->cap_table = devm_kmemdup(data->dev, table,
-				       data->table_len * sizeof(*table),
-				       GFP_KERNEL);
-	if (!data->cap_table) {
-		power_supply_put_battery_info(data->battery, &info);
-		return -ENOMEM;
-	}
-
-	if (!sc27xx_fgu_cap_table_is_valid(data, data->cap_table, data->table_len))
-		dev_info(data->dev, "the ocv-cap table is invalid, please check the configuration\n");
-
-	ret = sc27xx_fgu_get_battery_table_info(data->battery, data);
-	if (ret) {
-		power_supply_put_battery_info(data->battery, &info);
-		dev_err(data->dev, "failed to get battery table information\n");
-		return ret;
-	}
-
-	data->resist_table_len = info.resist_table_size;
-	if (data->resist_table_len > 0) {
-		data->resist_table = devm_kmemdup(data->dev, info.resist_table,
-						  data->resist_table_len *
-						  sizeof(struct power_supply_resistance_temp_table),
-						  GFP_KERNEL);
-		if (!data->resist_table) {
-			power_supply_put_battery_info(data->battery, &info);
-			return -ENOMEM;
-		}
-	}
-
-	power_supply_put_battery_info(data->battery, &info);
 
 	sc27xx_fgu_parse_cmdline(data);
 
@@ -4204,26 +4140,11 @@ static int sc27xx_fgu_probe(struct platform_device *pdev)
 		return ret;
 	}
 
-	ret = device_property_read_u32(dev, "first-calib-voltage", &data->first_calib_volt);
-	if (ret)
-		dev_warn(dev, "failed to get fgu first calibration voltage\n");
-
-	ret = device_property_read_u32(dev, "first-calib-capacity", &data->first_calib_cap);
-	if (ret)
-		dev_warn(dev, "failed to get fgu first calibration capacity\n");
-
-	ret = device_property_read_u32(dev, "sprd,comp-resistance-mohm", &data->comp_resistance);
+	ret = device_property_read_u32(dev,
+				       "sprd,comp-resistance-mohm",
+				       &data->comp_resistance);
 	if (ret)
 		dev_warn(dev, "no fgu compensated resistance support\n");
-
-	device_property_read_u32(dev, "fullbatt-track-end-cur", &data->track.end_cur);
-	device_property_read_u32(dev, "fullbatt-track-end-vol", &data->track.end_vol);
-
-	if (!data->track.cap_tracking || !data->track.end_vol || !data->track.end_cur) {
-		dev_warn(dev, "Not support fgu track. cap_tracking = %d, end_vol = %d, end_cur = %d\n",
-			 data->track.cap_tracking, data->track.end_vol, data->track.end_cur);
-		data->track.cap_tracking = false;
-	}
 
 	data->slp_cap_calib.support_slp_calib =
 		device_property_read_bool(dev, "sprd,capacity-sleep-calibration");
@@ -4339,6 +4260,12 @@ static int sc27xx_fgu_probe(struct platform_device *pdev)
 	device_init_wakeup(dev, true);
 	pm_wakeup_event(data->dev, SC27XX_FGU_TRACK_WAKE_UP_MS);
 
+	if (!data->track.cap_tracking || !data->track.end_vol || !data->track.end_cur) {
+		dev_warn(dev, "Not support fgu track. cap_tracking = %d, end_vol = %d, end_cur = %d\n",
+			 data->track.cap_tracking, data->track.end_vol, data->track.end_cur);
+		data->track.cap_tracking = false;
+	}
+
 	/* init capacity track function */
 	if (data->track.cap_tracking) {
 		data->usb_notify.notifier_call = sc27xx_fgu_usb_change;
@@ -4410,15 +4337,14 @@ static int sc27xx_fgu_suspend(struct device *dev)
 	ret = sc27xx_fgu_get_status(data, &status);
 	if (ret) {
 		dev_err(data->dev, "failed to get charging status, ret = %d\n", ret);
-		return ret;
+		status = POWER_SUPPLY_STATUS_UNKNOWN;
 	}
 
 	/*
 	 * If we are charging, then no need to enable the FGU interrupts to
 	 * adjust the battery capacity.
 	 */
-	if (status != POWER_SUPPLY_STATUS_NOT_CHARGING &&
-	    status != POWER_SUPPLY_STATUS_DISCHARGING)
+	if (status == POWER_SUPPLY_STATUS_CHARGING || status == POWER_SUPPLY_STATUS_FULL)
 		return 0;
 
 	ret = regmap_update_bits(data->regmap, data->base + SC27XX_FGU_INT_EN,

@@ -16,7 +16,99 @@
 #include <linux/power/sprd_battery_info.h>
 #include <linux/slab.h>
 
-#define SPRD_BATTERY_OCV_TABLE_CHECK_VOLT_UV 3400000
+#define SPRD_BATTERY_OCV_TABLE_CHECK_VOLT_UV		3400000
+#define SPRD_BATTERY_OCV_CAP_TABLE_CHECK_VOLT_THRESHOLD	3000000
+
+static int sprd_battery_parse_cmdline_match(struct power_supply *psy,
+					    char *match_str, char *result, int size)
+{
+	struct device_node *cmdline_node = NULL;
+	const char *cmdline;
+	char *match, *match_end;
+	int len, match_str_len, ret;
+
+	if (!result || !match_str)
+		return -EINVAL;
+
+	memset(result, '\0', size);
+	match_str_len = strlen(match_str);
+
+	cmdline_node = of_find_node_by_path("/chosen");
+	if (!cmdline_node) {
+		dev_warn(&psy->dev, "%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -EINVAL;
+	}
+
+	ret = of_property_read_string(cmdline_node, "bootargs", &cmdline);
+	if (ret) {
+		dev_warn(&psy->dev, "%s failed to read bootargs\n", __func__);
+		return -EINVAL;
+	}
+
+	match = strstr(cmdline, match_str);
+	if (!match) {
+		dev_warn(&psy->dev, "Mmatch: %s fail in cmdline\n", match_str);
+		return -EINVAL;
+	}
+
+	match_end = strstr((match + match_str_len), " ");
+	if (!match_end) {
+		dev_warn(&psy->dev, "Match end of : %s fail in cmdline\n", match_str);
+		return -EINVAL;
+	}
+
+	len = match_end - (match + match_str_len);
+	if (len < 0) {
+		dev_warn(&psy->dev, "Match cmdline :%s fail, len = %d\n", match_str, len);
+		return -EINVAL;
+	}
+
+	memcpy(result, (match + match_str_len), len);
+
+	return 0;
+}
+
+int sprd_battery_parse_battery_id(struct power_supply *psy)
+{
+	char *str = "bat.id=";
+	char result[32] = {};
+	int id = 0, ret;
+
+	ret = sprd_battery_parse_cmdline_match(psy, str, result, sizeof(result));
+	if (!ret) {
+		ret = kstrtoint(result, 10, &id);
+		if (ret) {
+			id = 0;
+			dev_err(&psy->dev, "Covert bat_id fail, ret = %d, result = %s\n",
+				ret, result);
+		}
+	}
+	dev_info(&psy->dev, "Batteryid = %d\n", id);
+
+	return id;
+}
+EXPORT_SYMBOL_GPL(sprd_battery_parse_battery_id);
+
+static bool sprd_battery_ocv_cap_table_check(struct power_supply *psy,
+					     struct sprd_battery_ocv_table *table,
+					     int table_len)
+{
+	int i;
+
+	if (table[table_len - 1].ocv / SPRD_BATTERY_OCV_CAP_TABLE_CHECK_VOLT_THRESHOLD != 1 ||
+	    table[0].capacity != 100 || table[table_len - 1].capacity != 0)
+		return false;
+	for (i = 0; i < table_len - 2; i++) {
+		if (table[i].ocv <= table[i + 1].ocv ||
+		    table[i].capacity <= table[i + 1].capacity) {
+			dev_info(&psy->dev, "the index = %d or %d ocv_cap table value is abnormal!\n",
+				 i, i + 1);
+			return false;
+		}
+	}
+
+	return true;
+}
 
 static bool sprd_battery_resistance_ocv_table_check(int *ocv_table, int len)
 {
@@ -75,6 +167,143 @@ static int sprd_battery_factory_internal_resistance_check(struct sprd_battery_in
 							   info->battery_internal_resistance_ocv_table_len);
 
 	return ret;
+}
+
+static int sprd_battery_parse_battery_ocv_capacity_table(struct sprd_battery_info *info,
+							 struct device_node *battery_np,
+							 struct power_supply *psy)
+{
+	int len, index;
+
+	len = of_property_count_u32_elems(battery_np, "ocv-capacity-celsius");
+	if (len < 0 && len != -EINVAL) {
+		return len;
+	} else if (len > SPRD_BATTERY_OCV_TEMP_MAX) {
+		dev_err(&psy->dev, "Too many temperature values\n");
+		return -EINVAL;
+	} else if (len > 0) {
+		of_property_read_u32_array(battery_np, "ocv-capacity-celsius",
+					   info->battery_ocv_temp_table, len);
+	}
+
+	for (index = 0; index < len; index++) {
+		struct sprd_battery_ocv_table *table;
+		char *propname;
+		const __be32 *list;
+		int i, tab_len, size;
+
+		propname = kasprintf(GFP_KERNEL, "ocv-capacity-table-%d", index);
+		list = of_get_property(battery_np, propname, &size);
+		if (!list || !size) {
+			dev_err(&psy->dev, "failed to get %s\n", propname);
+			kfree(propname);
+			return -EINVAL;
+		}
+
+		kfree(propname);
+		tab_len = size / (2 * sizeof(__be32));
+		info->battery_ocv_table_len[index] = tab_len;
+
+		table = info->battery_ocv_table[index] =
+			devm_kcalloc(&psy->dev, tab_len, sizeof(*table), GFP_KERNEL);
+		if (!info->battery_ocv_table[index])
+			return -ENOMEM;
+
+		for (i = 0; i < tab_len; i++) {
+			table[i].ocv = be32_to_cpu(*list++);
+			table[i].capacity = be32_to_cpu(*list++);
+		}
+
+		if (!sprd_battery_ocv_cap_table_check(psy, info->battery_ocv_table[index],
+						      info->battery_ocv_table_len[index])) {
+			dev_err(&psy->dev, "ocv_cap_table value is wrong, please check\n");
+			return -EINVAL;
+		}
+	}
+
+	return 0;
+}
+
+static int sprd_battery_parse_battery_voltage_temp_table(struct sprd_battery_info *info,
+							 struct device_node *battery_np,
+							 struct power_supply *psy)
+{
+	struct sprd_battery_vol_temp_table *battery_vol_temp_table;
+	const __be32 *list;
+	int index, len;
+
+	list = of_get_property(battery_np, "voltage-temp-table", &len);
+	if (!list || !len)
+		return 0;
+
+	info->battery_vol_temp_table_len = len / (2 * sizeof(__be32));
+	battery_vol_temp_table = info->battery_vol_temp_table =
+		devm_kcalloc(&psy->dev, info->battery_vol_temp_table_len,
+			     sizeof(*battery_vol_temp_table), GFP_KERNEL);
+	if (!info->battery_vol_temp_table)
+		return -ENOMEM;
+
+	for (index = 0; index < info->battery_vol_temp_table_len; index++) {
+		battery_vol_temp_table[index].vol = be32_to_cpu(*list++);
+		battery_vol_temp_table[index].temp = be32_to_cpu(*list++);
+	}
+
+	return 0;
+}
+
+static int sprd_battery_parse_battery_temp_capacity_table(struct sprd_battery_info *info,
+							  struct device_node *battery_np,
+							  struct power_supply *psy)
+{
+	struct sprd_battery_temp_cap_table *battery_temp_cap_table;
+	const __be32 *list;
+	int index, len;
+
+	list = of_get_property(battery_np, "capacity-temp-table", &len);
+	if (!list || !len)
+		return 0;
+
+	info->battery_temp_cap_table_len = len / (2 * sizeof(__be32));
+	battery_temp_cap_table = info->battery_temp_cap_table =
+		devm_kcalloc(&psy->dev, info->battery_temp_cap_table_len,
+			     sizeof(*battery_temp_cap_table), GFP_KERNEL);
+	if (!info->battery_temp_cap_table)
+		return -ENOMEM;
+
+	for (index = 0; index < info->battery_temp_cap_table_len; index++) {
+		battery_temp_cap_table[index].temp = be32_to_cpu(*list++);
+		battery_temp_cap_table[index].cap = be32_to_cpu(*list++);
+	}
+
+	return 0;
+}
+
+static int sprd_battery_parse_battery_resistance_temp_table(struct sprd_battery_info *info,
+							    struct device_node *battery_np,
+							    struct power_supply *psy)
+{
+	struct sprd_battery_resistance_temp_table *resist_table;
+	const __be32 *list;
+	int index, len;
+
+	list = of_get_property(battery_np, "resistance-temp-table", &len);
+	if (!list || !len)
+		return 0;
+
+	info->battery_temp_resist_table_len = len / (2 * sizeof(__be32));
+	resist_table = info->battery_temp_resist_table = devm_kcalloc(&psy->dev,
+							 info->battery_temp_resist_table_len,
+							 sizeof(*resist_table),
+							 GFP_KERNEL);
+	if (!info->battery_temp_resist_table)
+		return -ENOMEM;
+
+	for (index = 0; index < info->battery_temp_resist_table_len; index++) {
+		resist_table[index].temp = be32_to_cpu(*list++);
+		resist_table[index].resistance = be32_to_cpu(*list++);
+	}
+
+	return 0;
 }
 
 static int sprd_battery_parse_battery_internal_resistance_table(struct sprd_battery_info *info,
@@ -357,12 +586,85 @@ static int sprd_battery_parse_basp_ocv_table(struct sprd_battery_info *info,
 	return 0;
 }
 
+static int sprd_battery_init_jeita_table(struct sprd_battery_info *info,
+					 struct device_node *battery_np,
+					 struct device *dev,
+					 int jeita_num)
+{
+	struct sprd_battery_jeita_table *table;
+	const __be32 *list;
+	const char *np_name = sprd_battery_jeita_type_names[jeita_num];
+	struct sprd_battery_jeita_table **cur_table = &info->jeita_table[jeita_num];
+	int i, size;
+
+	list = of_get_property(battery_np, np_name, &size);
+	if (!list || !size)
+		return 0;
+
+	info->sprd_battery_jeita_size[jeita_num] =
+		size / (sizeof(struct sprd_battery_jeita_table) /
+			sizeof(int) * sizeof(__be32));
+
+	table = devm_kzalloc(dev, sizeof(struct sprd_battery_jeita_table) *
+			     (info->sprd_battery_jeita_size[jeita_num] + 1), GFP_KERNEL);
+	if (!table)
+		return -ENOMEM;
+
+	for (i = 0; i < info->sprd_battery_jeita_size[jeita_num]; i++) {
+		table[i].temp = be32_to_cpu(*list++) - 1000;
+		table[i].recovery_temp = be32_to_cpu(*list++) - 1000;
+		table[i].current_ua = be32_to_cpu(*list++);
+		table[i].term_volt = be32_to_cpu(*list++);
+	}
+
+	*cur_table = table;
+
+	return 0;
+}
+
+static int sprd_battery_parse_jeita_table(struct sprd_battery_info *info,
+					  struct device_node *battery_np,
+					  struct power_supply *psy)
+{
+	int ret, i;
+
+	for (i = SPRD_BATTERY_JEITA_DCP; i < SPRD_BATTERY_JEITA_MAX; i++) {
+		ret = sprd_battery_init_jeita_table(info, battery_np, &psy->dev, i);
+		if (ret)
+			return ret;
+	}
+
+	return 0;
+}
+
+struct sprd_battery_ocv_table *sprd_battery_find_ocv2cap_table(struct sprd_battery_info *info,
+							       int temp, int *table_len)
+{
+	int best_temp_diff = INT_MAX, temp_diff;
+	u8 i, best_index = 0;
+
+	if (!info->battery_ocv_table[0])
+		return NULL;
+
+	for (i = 0; i < SPRD_BATTERY_OCV_TEMP_MAX; i++) {
+		temp_diff = abs(info->battery_ocv_temp_table[i] - temp);
+
+		if (temp_diff < best_temp_diff) {
+			best_temp_diff = temp_diff;
+			best_index = i;
+		}
+	}
+
+	*table_len = info->battery_ocv_table_len[best_index];
+	return info->battery_ocv_table[best_index];
+}
+EXPORT_SYMBOL_GPL(sprd_battery_find_ocv2cap_table);
 
 int sprd_battery_get_battery_info(struct power_supply *psy, struct sprd_battery_info *info)
 {
 	struct device_node *battery_np;
 	const char *value;
-	int err, index;
+	int err, index, battery_id;
 
 	info->charge_full_design_uah         = -EINVAL;
 	info->voltage_min_design_uv          = -EINVAL;
@@ -378,6 +680,12 @@ int sprd_battery_get_battery_info(struct power_supply *psy, struct sprd_battery_
 	info->basp_charge_full_design_uah_table_len = -EINVAL;
 	info->basp_constant_charge_voltage_max_uv_table = NULL;
 	info->basp_constant_charge_voltage_max_uv_table_len = -EINVAL;
+	info->fullbatt_track_end_voltage_uv = -EINVAL;
+	info->fullbatt_track_end_current_uA = -EINVAL;
+	info->first_capacity_calibration_voltage_uv = -EINVAL;
+	info->first_capacity_calibration_capacity = -EINVAL;
+	info->fast_charge_ocv_threshold_uv = -EINVAL;
+	info->force_jeita_status = -EINVAL;
 	info->cur.sdp_cur = -EINVAL;
 	info->cur.sdp_limit = -EINVAL;
 	info->cur.dcp_cur = -EINVAL;
@@ -411,9 +719,13 @@ int sprd_battery_get_battery_info(struct power_supply *psy, struct sprd_battery_
 		return -ENXIO;
 	}
 
-	battery_np = of_parse_phandle(psy->of_node, "monitored-battery", 0);
-	if (!battery_np)
+	battery_id = sprd_battery_parse_battery_id(psy);
+
+	battery_np = of_parse_phandle(psy->of_node, "monitored-battery", battery_id);
+	if (!battery_np) {
+		dev_warn(&psy->dev, "Fail to get monitored-battery-id-%d\n", battery_id);
 		return -ENODEV;
+	}
 
 	err = of_property_read_string(battery_np, "compatible", &value);
 	if (err)
@@ -436,6 +748,30 @@ int sprd_battery_get_battery_info(struct power_supply *psy, struct sprd_battery_
 			     &info->constant_charge_voltage_max_uv);
 	of_property_read_u32(battery_np, "factory-internal-resistance-micro-ohms",
 			     &info->factory_internal_resistance_uohm);
+	of_property_read_u32(battery_np, "fullbatt-track-end-vol",
+			     &info->fullbatt_track_end_voltage_uv);
+	of_property_read_u32(battery_np, "fullbatt-track-end-cur",
+			     &info->fullbatt_track_end_current_uA);
+	of_property_read_u32(battery_np, "first-calib-voltage",
+			     &info->first_capacity_calibration_voltage_uv);
+	of_property_read_u32(battery_np, "first-calib-capacity",
+			     &info->first_capacity_calibration_capacity);
+	of_property_read_u32(battery_np, "fullbatt-voltage",
+			     &info->fullbatt_voltage_uv);
+	of_property_read_u32(battery_np, "fullbatt-current",
+			     &info->fullbatt_current_uA);
+	of_property_read_u32(battery_np, "first-fullbatt-current",
+			     &info->first_fullbatt_current_uA);
+	of_property_read_u32(battery_np, "fast-charge-threshold-microvolt",
+			     &info->fast_charge_ocv_threshold_uv);
+	of_property_read_u32(battery_np, "ir-rc-micro-ohms", &info->ir.rc_uohm);
+	of_property_read_u32(battery_np, "ir-us-upper-limit-microvolt",
+			     &info->ir.us_upper_limit_uv);
+	of_property_read_u32(battery_np, "ir-cv-offset-microvolt",
+			     &info->ir.cv_upper_limit_offset_uv);
+	of_property_read_u32(battery_np, "force-jeita-status",
+			     &info->force_jeita_status);
+
 	of_property_read_u32_index(battery_np, "charge-sdp-current-microamp", 0,
 				   &info->cur.sdp_cur);
 	of_property_read_u32_index(battery_np, "charge-sdp-current-microamp", 1,
@@ -469,9 +805,33 @@ int sprd_battery_get_battery_info(struct power_supply *psy, struct sprd_battery_
 	of_property_read_u32_index(battery_np, "charge-wl-epp-current-microamp", 1,
 				   &info->cur.wl_epp_limit);
 
+	err = sprd_battery_parse_battery_ocv_capacity_table(info, battery_np, psy);
+	if (err) {
+		dev_err(&psy->dev, "Fail to get battery ocv capacity table, ret = %d\n", err);
+		return err;
+	}
+
+	err = sprd_battery_parse_battery_voltage_temp_table(info, battery_np, psy);
+	if (err) {
+		dev_err(&psy->dev, "Fail to get battery voltage temp table, ret = %d\n", err);
+		return err;
+	}
+
+	err = sprd_battery_parse_battery_temp_capacity_table(info, battery_np, psy);
+	if (err) {
+		dev_err(&psy->dev, "Fail to get battery temp capacity table, ret = %d\n", err);
+		return err;
+	}
+
+	err = sprd_battery_parse_battery_resistance_temp_table(info, battery_np, psy);
+	if (err) {
+		dev_err(&psy->dev, "Fail to get battery resist temp table, ret = %d\n", err);
+		return err;
+	}
+
 	err = sprd_battery_parse_battery_internal_resistance_table(info, battery_np, psy);
 	if (err) {
-		dev_err(&psy->dev, "Fail to get factory internal resistance table, ret = %d\n", err);
+		dev_err(&psy->dev, "Fail to get factory internal resist table, ret = %d\n", err);
 		return err;
 	}
 
@@ -484,7 +844,7 @@ int sprd_battery_get_battery_info(struct power_supply *psy, struct sprd_battery_
 	err = sprd_battery_factory_internal_resistance_check(info);
 	if (err) {
 		dev_err(&psy->dev, "factory_internal_resistance is not right, err = %d\n", err);
-		return -EINVAL;
+		return err;
 	}
 
 	err = sprd_battery_parse_energy_density_ocv_table(info, battery_np, psy);
@@ -496,6 +856,12 @@ int sprd_battery_get_battery_info(struct power_supply *psy, struct sprd_battery_
 	err = sprd_battery_parse_basp_ocv_table(info, battery_np, psy);
 	if (err) {
 		dev_err(&psy->dev, "Fail to parse basp ocv table, ret = %d\n", err);
+		return err;
+	}
+
+	err = sprd_battery_parse_jeita_table(info, battery_np, psy);
+	if (err) {
+		dev_err(&psy->dev, "Fail to parse jeita table, err = %d\n", err);
 		return err;
 	}
 

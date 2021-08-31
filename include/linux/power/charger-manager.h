@@ -16,6 +16,7 @@
 #include <linux/alarmtimer.h>
 #include <linux/extcon.h>
 #include <linux/power_supply.h>
+#include <linux/power/sprd_battery_info.h>
 #include <linux/power/sprd_vote.h>
 
 enum cm_charge_info_cmd {
@@ -69,18 +70,6 @@ enum cm_event_types {
 	CM_EVENT_FAST_CHARGE,
 	CM_EVENT_INT,
 	CM_EVENT_OTHERS,
-};
-
-enum cm_jeita_types {
-	CM_JEITA_DCP = 0,
-	CM_JEITA_SDP,
-	CM_JEITA_CDP,
-	CM_JEITA_UNKNOWN,
-	CM_JEITA_FCHG,
-	CM_JEITA_FLASH,
-	CM_JEITA_WL_BPP,
-	CM_JEITA_WL_EPP,
-	CM_JEITA_MAX,
 };
 
 enum cm_capacity_cmd {
@@ -307,13 +296,6 @@ struct charger_regulator {
 	struct attribute *attrs[9];
 
 	struct charger_manager *cm;
-};
-
-struct charger_jeita_table {
-	int temp;
-	int recovery_temp;
-	int current_ua;
-	int term_volt;
 };
 
 /*
@@ -700,10 +682,10 @@ struct charger_desc {
 
 	int thm_adjust_cur;
 
-	struct charger_jeita_table *jeita_tab;
-	u32 jeita_size[CM_JEITA_MAX];
+	struct sprd_battery_jeita_table *jeita_tab;
+	u32 jeita_size[SPRD_BATTERY_JEITA_MAX];
 	u32 jeita_tab_size;
-	struct charger_jeita_table *jeita_tab_array[CM_JEITA_MAX];
+	struct sprd_battery_jeita_table *jeita_tab_array[SPRD_BATTERY_JEITA_MAX];
 
 	bool jeita_disabled;
 	int force_jeita_status;
