@@ -112,6 +112,13 @@
 				constant-charge-voltage-max-microvolt = <4400000>;
 				factory-internal-resistance-micro-ohms = <130000>;
 				voltage-min-design-microvolt = <3450000>;
+				fullbatt-voltage = <4350000>;
+				fullbatt-current = <120000>;
+				fullbatt-track-end-vol = <4345000>;
+				fullbatt-track-end-cur = <130000>;
+				first-calib-voltage = <3630000>;
+				first-calib-capacity = <50>;
+
 				ocv-capacity-celsius = <20>;
 				ocv-capacity-table-0 = <4380000 100>, <4317000 95>, <4258000 90>,
 							<4200000 85>, <4145000 80>, <4092000 75>,
@@ -173,6 +180,16 @@
 				charge-dcp-current-microamp = <1150000 3000000>;
 				charge-cdp-current-microamp = <1150000 1150000>;
 				charge-unknown-current-microamp = <500000 500000>;
+
+				dcp-jeita-temp-table = <1000 1030 0 4400000>, <1150 1180 700000 4400000>,
+					<1450 1420 1150000 4400000>, <1600 1570 700000 4100000>;
+				sdp-jeita-temp-table = <1000 1030 0 4400000>, <1150 1180 500000 4400000>,
+					<1450 1420 500000 4400000>, <1600 1570 500000 4100000>;
+				cdp-jeita-temp-table = <1000 1030 0 4400000>, <1150 1180 700000 4400000>,
+					<1450 1420 1150000 4400000>, <1600 1570 700000 4100000>;
+				unknown-jeita-temp-table = <1000 1030 0 4400000>, <1150 1180 500000 4400000>,
+					<1450 1420 500000 4400000>, <1600 1570 500000 4100000>;
+				force-jeita-status = <2>;
 			};
 
 			charger-manager {
@@ -184,8 +201,6 @@
 
 				cm-fullbatt-vchkdrop-ms = <30000>;
 				cm-fullbatt-vchkdrop-volt = <60000>;
-				cm-fullbatt-voltage = <4350000>;
-				cm-fullbatt-current = <120000>;
 				cm-fullbatt-capacity = <100>;
 
 				cm-num-chargers = <1>;
@@ -219,14 +234,6 @@
 				cm-charge-voltage-max = <6500000>;
 				/* drop voltage in microVolts to restart charging */
 				cm-charge-voltage-drop = <700000>;
-				cm-dcp-jeita-temp-table = <1000 1030 0 4400000>, <1150 1180 700000 4400000>,
-					<1450 1420 1150000 4400000>, <1600 1570 700000 4100000>;
-				cm-sdp-jeita-temp-table = <1000 1030 0 4400000>, <1150 1180 500000 4400000>,
-					<1450 1420 500000 4400000>, <1600 1570 500000 4100000>;
-				cm-cdp-jeita-temp-table = <1000 1030 0 4400000>, <1150 1180 700000 4400000>,
-					<1450 1420 1150000 4400000>, <1600 1570 700000 4100000>;
-				cm-unknown-jeita-temp-table = <1000 1030 0 4400000>, <1150 1180 500000 4400000>,
-					<1450 1420 500000 4400000>, <1600 1570 500000 4100000>;
 
 				monitored-battery = <&bat>;
 
@@ -549,8 +556,9 @@
 	monitored-battery = <&bat>;
 	sprd,calib-resistance-micro-ohms = <10000>;
 	sprd,comp-resistance-mohm = <20>;
-	first-calib-voltage = <3630000>;
-	first-calib-capacity = <40>;
+
+	fgu-capacity-track;
+	phys = <&hsphy>;
 };
 
 &sdio0 {
