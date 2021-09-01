@@ -20258,6 +20258,15 @@ CONFIG_ZRAM
 	[missing plat description] none
 	[function] SWAP partition based on RAM is used to access the compressed anon page
 		   to avoid the influence of IO speed restriction on the system,
+CONFIG_ZRAM_DEDUP
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function] Deduplicate ZRAM data to reduce amount of memory consumption.
 CONFIG_ZRAM_WRITEBACK
 	[arch] all
 	[plat] all
