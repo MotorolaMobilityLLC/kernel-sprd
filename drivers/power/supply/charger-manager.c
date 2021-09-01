@@ -2156,21 +2156,28 @@ static int cm_get_ibat_avg(struct charger_manager *cm, int *ibat)
 	return ret;
 }
 
-static void cm_ir_compensation_exit(struct charger_manager *cm)
+static void cm_ir_compensation_init(struct charger_manager *cm)
 {
 	cm->desc->ir_comp.ibat_buf[CM_IBAT_BUFF_CNT - 1] = CM_MAGIC_NUM;
 	cm->desc->ir_comp.ibat_index = 0;
 	cm->desc->ir_comp.last_target_cccv = 0;
+	if (cm->cm_charge_vote)
+		cm->cm_charge_vote->vote(cm->cm_charge_vote, false,
+					 SPRD_VOTE_TYPE_CCCV,
+					 SPRD_VOTE_TYPE_CCCV_ID_IR,
+					 SPRD_VOTE_CMD_MIN,
+					 0, cm);
 }
 
 static void cm_ir_compensation_enable(struct charger_manager *cm, bool enable)
 {
 	struct cm_ir_compensation *ir_sts = &cm->desc->ir_comp;
 
+	cm_ir_compensation_init(cm);
+
 	if (enable) {
 		if (ir_sts->rc && !ir_sts->ir_compensation_en) {
 			dev_info(cm->dev, "%s enable ir compensation\n", __func__);
-			ir_sts->last_target_cccv = ir_sts->us;
 			ir_sts->ir_compensation_en = true;
 			queue_delayed_work(system_power_efficient_wq,
 					   &cm->ir_compensation_work,
@@ -2182,7 +2189,6 @@ static void cm_ir_compensation_enable(struct charger_manager *cm, bool enable)
 			dev_info(cm->dev, "%s stop ir compensation\n", __func__);
 			cancel_delayed_work_sync(&cm->ir_compensation_work);
 			ir_sts->ir_compensation_en = false;
-			cm_ir_compensation_exit(cm);
 		}
 	}
 }
@@ -3013,8 +3019,6 @@ static void cm_cp_state_exit(struct charger_manager *cm)
 	cp->cp_fault_event = false;
 	cp->cp_ibat_ucp_cnt = 0;
 	cp->cp_state_tune_log = false;
-
-	cm_ir_compensation_exit(cm);
 }
 
 static int cm_cp_state_machine(struct charger_manager *cm)
