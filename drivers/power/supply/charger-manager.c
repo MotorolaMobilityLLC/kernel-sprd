@@ -1088,6 +1088,7 @@ static bool cm_reset_basp_parameters(struct charger_manager *cm, int volt_uv)
 	cm->desc->ir_comp.us = volt_uv;
 	cm->desc->cp.cp_target_vbat = volt_uv;
 	cm->desc->constant_charge_voltage_max_uv = volt_uv;
+	cm->desc->fullbatt_uV = volt_uv - cm->desc->fullbatt_voltage_offset_uv;
 
 	for (i = SPRD_BATTERY_JEITA_DCP; i < SPRD_BATTERY_JEITA_MAX; i++) {
 		table = cm->desc->jeita_tab_array[i];
@@ -5761,6 +5762,7 @@ static int cm_get_bat_info(struct charger_manager *cm)
 	cm->desc->ir_comp.rc = info.ir.rc_uohm / 1000;
 	cm->desc->ir_comp.cp_upper_limit_offset = info.ir.cv_upper_limit_offset_uv;
 	cm->desc->constant_charge_voltage_max_uv = info.constant_charge_voltage_max_uv;
+	cm->desc->fullbatt_voltage_offset_uv = info.fullbatt_voltage_offset_uv;
 	cm->desc->fchg_ocv_threshold = info.fast_charge_ocv_threshold_uv;
 	cm->desc->cp.cp_target_vbat = info.constant_charge_voltage_max_uv;
 	cm->desc->cp.cp_max_ibat = info.cur.flash_cur;
@@ -5824,6 +5826,9 @@ static int cm_get_bat_info(struct charger_manager *cm)
 
 	if (cm->desc->fullbatt_uA == 0)
 		dev_info(cm->dev, "Ignoring full-battery current threshold as it is not supplied\n");
+
+	if (cm->desc->fullbatt_voltage_offset_uv == 0)
+		dev_info(cm->dev, "Ignoring full-battery voltage offset as it is not supplied\n");
 
 	sprd_battery_put_battery_info(cm->charger_psy, &info);
 

@@ -672,6 +672,7 @@ int sprd_battery_get_battery_info(struct power_supply *psy, struct sprd_battery_
 	info->charge_term_current_ua         = -EINVAL;
 	info->constant_charge_current_max_ua = -EINVAL;
 	info->constant_charge_voltage_max_uv = -EINVAL;
+	info->fullbatt_voltage_offset_uv = 0;
 	info->factory_internal_resistance_uohm  = -EINVAL;
 	info->battery_internal_resistance_ocv_table = NULL;
 	info->battery_internal_resistance_temp_table_len = -EINVAL;
@@ -742,10 +743,12 @@ int sprd_battery_get_battery_info(struct power_supply *psy, struct sprd_battery_
 			     &info->precharge_current_ua);
 	of_property_read_u32(battery_np, "charge-term-current-microamp",
 			     &info->charge_term_current_ua);
-	of_property_read_u32(battery_np, "constant_charge_current_max_microamp",
+	of_property_read_u32(battery_np, "constant-charge-current-max-microamp",
 			     &info->constant_charge_current_max_ua);
-	of_property_read_u32(battery_np, "constant_charge_voltage_max_microvolt",
+	of_property_read_u32(battery_np, "constant-charge-voltage-max-microvolt",
 			     &info->constant_charge_voltage_max_uv);
+	of_property_read_u32(battery_np, "fullbatt-voltage-offset-microvolt",
+			     &info->fullbatt_voltage_offset_uv);
 	of_property_read_u32(battery_np, "factory-internal-resistance-micro-ohms",
 			     &info->factory_internal_resistance_uohm);
 	of_property_read_u32(battery_np, "fullbatt-track-end-vol",

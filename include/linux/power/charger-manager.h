@@ -616,6 +616,7 @@ struct charger_desc {
 	unsigned int fullbatt_soc;
 	unsigned int fullbatt_full_capacity;
 	unsigned int constant_charge_voltage_max_uv;
+	unsigned int fullbatt_voltage_offset_uv;
 
 	enum data_source battery_present;
 

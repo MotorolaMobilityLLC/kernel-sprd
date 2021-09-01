@@ -111,6 +111,8 @@ struct sprd_battery_info {
 	int constant_charge_current_max_ua;
 	/* microVolts */
 	int constant_charge_voltage_max_uv;
+	/* microVolts */
+	int fullbatt_voltage_offset_uv;
 	/* microOhms */
 	int factory_internal_resistance_uohm;
 	/* microVolts */
