@@ -542,7 +542,8 @@ int sc2355_sched_scan_start(struct wiphy *wiphy, struct net_device *ndev,
 		}
 
 		netdev_info(ndev, "%s: channel is %d\n", __func__, ch);
-		sscan_buf->channel[j + 1] = ch;
+		if ((j + 1) < SPRD_TOTAL_CHAN_NR)
+			sscan_buf->channel[j + 1] = ch;
 		j++;
 	}
 	sscan_buf->channel[0] = j;
