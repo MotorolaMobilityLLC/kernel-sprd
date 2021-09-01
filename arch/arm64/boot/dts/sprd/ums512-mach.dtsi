@@ -229,6 +229,13 @@
 					<&cluster1_cooling THERMAL_NO_LIMIT \
 					THERMAL_NO_LIMIT>;
 				};
+				map4 {
+					trip = <&soc_target>;
+					contribution = <1024>;
+					cooling-device =
+					<&gpu_cooling0 THERMAL_NO_LIMIT \
+					THERMAL_NO_LIMIT>;
+				};
 			};
 		};
 
@@ -323,7 +330,7 @@
 			thmzone-cells = <&ank0_thmzone>, <&ank1_thmzone>, <&ank2_thmzone>,
 				<&ank3_thmzone>, <&ank4_thmzone>, <&ank5_thmzone>,
 				<&prometheus6_tzone0>, <&prometheus6_tzone1>,
-				<&prometheus7_thmzone>;
+				<&prometheus7_thmzone>, <&gpu_thmzone>;
 	};
 
 	cooling-devices {
