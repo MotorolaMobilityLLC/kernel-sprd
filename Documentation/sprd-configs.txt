@@ -6409,9 +6409,9 @@ CONFIG_GCC_VERSION
 	[missing plat description] none
 	[function]
 CONFIG_GENERIC_ADC_THERMAL
-	[arch] arm
-	[plat] pike2
-	[missing plat] none
+	[arch] all
+	[plat] pike2,sharkl3
+	[missing plat] sharkl5Pro
 	[field] make
 	[subsys] thermal
 	[must] user
