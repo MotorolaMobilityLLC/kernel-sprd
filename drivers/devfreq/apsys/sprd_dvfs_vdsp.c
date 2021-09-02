@@ -664,10 +664,10 @@ static const struct sprd_vdsp_dvfs_ops roc1_dvfs_ops = {
 };
 
 static const struct of_device_id vdsp_dvfs_of_match[] = {
-	{ .compatible = "sprd,hwdvfs-vdsp-roc1",
-	  .data = &sharkl5pro_dvfs_ops },
 	{ .compatible = "sprd,hwdvfs-vdsp-sharkl5pro",
-	  .data = &roc1_vdsp_dvfs_ops },
+	  .data = &sharkl5pro_dvfs_ops },
+	{ .compatible = "sprd,hwdvfs-vdsp-roc1",
+	  .data = &roc1_dvfs_ops },
 	{ },
 };
 
