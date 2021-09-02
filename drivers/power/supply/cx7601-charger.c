@@ -79,8 +79,10 @@ struct cx7601_charger_info {
 	struct gpio_desc *gpiod;
 	struct extcon_dev *edev;
 	u32 last_limit_current;
+	u32 last_current;
 	u32 role;
 	bool need_disable_Q1;
+	u32 term_voltage;
 };
 
 #include <ontim/ontim_dev_dgb.h>
@@ -644,6 +646,7 @@ cx7601_charger_set_termina_vol(struct cx7601_charger_info *info, u32 vol)
 {
 	u8 val;
 
+	info->term_voltage = vol;
 	if (vol < REG04_VREG_BASE)
 		vol = REG04_VREG_BASE;
 
@@ -745,8 +748,7 @@ static int cx7601_charger_set_current(struct cx7601_charger_info *info,
 				       u32 cur)
 {
 
-	cur = cur / 1000;
-
+	info->last_current = cur;
 	cx7601_set_chargecurrent(info,cur);
 	return 0;
 }
@@ -776,7 +778,6 @@ cx7601_charger_set_limit_current(struct cx7601_charger_info *info,
 {
 
 	info->last_limit_current = limit_cur;
-	limit_cur = limit_cur / 1000;
 	cx7601_set_input_current_limit(info, limit_cur);
 
 	return 0;
@@ -839,8 +840,18 @@ static int cx7601_charger_get_online(struct cx7601_charger_info *info,
 static int cx7601_charger_feed_watchdog(struct cx7601_charger_info *info,
 					 u32 val)
 {
+	u8 reg;
 
 //	cx7601_reset_watchdog_timer(info);
+	cx7601_read(info, &reg, CX7601_REG_05 );
+	if((reg & 0x30 ) == 0x10)
+	{
+		dev_err(info->dev,"%s  reg=%x;",__func__,reg);
+		cx7601_init_device(info);
+		cx7601_charger_set_termina_vol(info, info->term_voltage);
+		cx7601_charger_set_limit_current(info, info->last_limit_current);
+		cx7601_charger_set_current(info, info->last_current);
+	}
 
 	cx7601_dump_regs(info);
 
@@ -1039,12 +1050,12 @@ static int cx7601_charger_usb_set_property(struct power_supply *psy,
 
 	switch (psp) {
 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT:
-		ret = cx7601_charger_set_current(info, val->intval);
+		ret = cx7601_charger_set_current(info, val->intval/1000);
 		if (ret < 0)
 			dev_err(info->dev, "set charge current failed\n");
 		break;
 	case POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT:
-		ret = cx7601_charger_set_limit_current(info, val->intval);
+		ret = cx7601_charger_set_limit_current(info, val->intval/1000);
 		if (ret < 0)
 			dev_err(info->dev, "set input current limit failed\n");
 		break;
@@ -1244,7 +1255,6 @@ static int cx7601_charger_enable_otg(struct regulator_dev *dev)
 	schedule_delayed_work(&info->otg_work,
 			      msecs_to_jiffies(CX7601_OTG_VALID_MS));
 
-	cx7601_dump_regs(info);
 	return 0;
 }
 
