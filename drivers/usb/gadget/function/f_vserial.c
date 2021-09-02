@@ -1039,7 +1039,7 @@ ssize_t vser_pass_user_write(char *buf, size_t count)
 {
 	struct vser_dev *dev = _vser_dev;
 	struct usb_composite_dev *cdev;
-	struct usb_request *req;
+	struct usb_request *req = 0;
 	int r = count, xfer, ret;
 
 	if (!dev || !dev->online)
@@ -1060,7 +1060,6 @@ ssize_t vser_pass_user_write(char *buf, size_t count)
 
 	while (count > 0) {
 		/* get an idle tx request to use */
-		req = 0;
 		ret = wait_event_interruptible(dev->write_wq,
 			(req = vser_req_get(dev, &dev->tx_pass_idle)));
 
@@ -1101,7 +1100,7 @@ ssize_t vser_iq_write(char *buf, size_t count)
 {
 	struct vser_dev *dev = _vser_dev;
 	struct usb_composite_dev *cdev;
-	struct usb_request *req;
+	struct usb_request *req = 0;
 	int r = count, xfer, ret;
 
 	if (!dev || !dev->online)
@@ -1122,7 +1121,6 @@ ssize_t vser_iq_write(char *buf, size_t count)
 
 	while (count > 0) {
 		/* get an idle tx request to use */
-		req = 0;
 		ret = wait_event_interruptible(dev->write_wq,
 			(req = vser_req_get(dev, &dev->tx_pass_idle)));
 
