@@ -40,7 +40,7 @@
 #include <linux/regmap.h>
 
 #include "sprd-asoc-common.h"
-#ifdef CONFIG_SND_SOC_UNISOC_AUDIO_TWO_STAGE_DMAENGINE_SURPPORT
+#if (defined(CONFIG_SND_SOC_UNISOC_AUDIO_TWO_STAGE_DMAENGINE) || defined(CONFIG_SND_SOC_UNISOC_AUDIO_TWO_STAGE_DMAENGINE_MODULE))
 #include "sprd-2stage-dmaengine-pcm.h"
 #else
 #include "sprd-dmaengine-pcm.h"
