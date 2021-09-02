@@ -230,8 +230,8 @@ static int cfg80211_add_cipher_key(struct sprd_vif *vif, bool pairwise,
 		    pairwise ? "pairwise" : "group", key_index);
 
 	if (vif->key_len[pairwise][0] || vif->key_len[pairwise][1] ||
-	    vif->key_len[pairwise][2] || vif->key_len[pairwise][3]
-	    || vif->key_len[pairwise][4]) {
+	    vif->key_len[pairwise][2] || vif->key_len[pairwise][3] ||
+	    vif->key_len[pairwise][4] || vif->key_len[pairwise][5]) {
 		vif->prwise_crypto = sprd_parse_cipher(cipher);
 		cipher_ptr = vif->prwise_crypto;
 
@@ -400,6 +400,9 @@ int sprd_cfg80211_add_key(struct wiphy *wiphy, struct net_device *ndev,
 			  struct key_params *params)
 {
 	struct sprd_vif *vif = netdev_priv(ndev);
+
+	netdev_info(ndev, "%s key_index=%d, pairwise=%d, key_len=%d\n",
+		    __func__, key_index, pairwise, params->key_len);
 
 	vif->key_index[pairwise] = key_index;
 	vif->key_len[pairwise][key_index] = params->key_len;
