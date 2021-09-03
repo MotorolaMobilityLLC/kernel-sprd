@@ -34,10 +34,12 @@ ifeq ($(BSP_BUILD_FAMILY),qogirl6)
 dtbo-$(CONFIG_ARCH_SPRD) += \
 	ums9230-1h10-overlay.dtbo \
 	ums9230-1h10_go-overlay.dtbo \
+	ums9230-4h10-overlay.dtbo \
 	ums9230-4h10_go-overlay.dtbo
 
 ums9230-1h10-overlay.dtbo-base := ums9230.dtb
 ums9230-1h10_go-overlay.dtbo-base := ums9230.dtb
+ums9230-4h10-overlay.dtbo-base := ums9230.dtb
 ums9230-4h10_go-overlay.dtbo-base := ums9230.dtb
 endif
 
@@ -74,6 +76,7 @@ dtbo-$(CONFIG_ARCH_SPRD) += \
 	ums9230-1h10-overlay.dtbo \
 	ums9230-1h10_go-overlay.dtbo \
 	ums9230-4h10_go-overlay.dtbo \
+	ums9230-4h10-overlay.dtbo \
 	ums9620-1h10-overlay.dtbo \
 	ums9620-2h10-overlay.dtbo
 
