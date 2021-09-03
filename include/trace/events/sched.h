@@ -78,7 +78,7 @@ DECLARE_EVENT_CLASS(sched_wakeup_template,
 		__entry->target_cpu	= task_cpu(p);
 	),
 
-	TP_printk("comm=%s pid=%d prio=%d target_cpu=%03d",
+	TP_printk("comm=%s pid=%d prio=%u target_cpu=%03d",
 		  __entry->comm, __entry->pid, __entry->prio,
 		  __entry->target_cpu)
 );
@@ -166,7 +166,7 @@ TRACE_EVENT(sched_switch,
 		/* XXX SCHED_DEADLINE */
 	),
 
-	TP_printk("prev_comm=%s prev_pid=%d prev_prio=%d prev_state=%s%s ==> next_comm=%s next_pid=%d next_prio=%d",
+	TP_printk("prev_comm=%s prev_pid=%d prev_prio=%u prev_state=%s%s ==> next_comm=%s next_pid=%d next_prio=%u",
 		__entry->prev_comm, __entry->prev_pid, __entry->prev_prio,
 
 		(__entry->prev_state & (TASK_REPORT_MAX - 1)) ?
