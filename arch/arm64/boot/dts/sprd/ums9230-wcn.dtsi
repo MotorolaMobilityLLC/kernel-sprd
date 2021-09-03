@@ -155,7 +155,7 @@
 		/* <&mailbox  channel_id  is_no_wakeup(default 0)> */
 		mboxes = <&mailbox 8 0>;
 		/* This is temporary plan*/
-		sprd,smem-info = <0x87200000 0x00200000 0x180000>;
+		sprd,smem-info = <0x87240000 0x00240000 0x140000>;
 
 		wcn_bt {
 			compatible = "sprd,wcn_internal_chip";
