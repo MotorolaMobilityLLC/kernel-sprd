@@ -12,6 +12,7 @@
 
 #include "disp_lib.h"
 #include "sprd_dphy.h"
+#include "sprd_dsi.h"
 #include "sysfs_display.h"
 #include "../dphy/sprd_dphy_api.h"
 
@@ -314,8 +315,13 @@ static ssize_t suspend_store(struct device *dev,
 				const char *buf, size_t count)
 {
 	struct sprd_dphy *dphy = dev_get_drvdata(dev);
+	struct device *dsi_dev = sprd_disp_pipe_get_input(dphy->dev.parent);
+	struct sprd_dsi *dsi = dev_get_drvdata(dsi_dev);
 
-	sprd_dphy_disable(dphy);
+	if ((dsi->ctx.enabled) && (dphy->ctx.enabled)) {
+		sprd_dphy_disable(dphy);
+		dphy->ctx.enabled = false;
+	}
 
 	return count;
 }
@@ -326,8 +332,13 @@ static ssize_t resume_store(struct device *dev,
 				const char *buf, size_t count)
 {
 	struct sprd_dphy *dphy = dev_get_drvdata(dev);
+	struct device *dsi_dev = sprd_disp_pipe_get_input(dphy->dev.parent);
+	struct sprd_dsi *dsi = dev_get_drvdata(dsi_dev);
 
-	sprd_dphy_enable(dphy);
+	if ((dsi->ctx.enabled) && (!dphy->ctx.enabled)) {
+		sprd_dphy_enable(dphy);
+		dphy->ctx.enabled = true;
+	}
 
 	return count;
 }
