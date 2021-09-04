@@ -4567,6 +4567,8 @@ static int sprd_codec_soc_probe(struct snd_soc_component *codec)
 
 	sprd_codec_audio_ldo(sprd_codec);
 
+	snd_soc_dapm_ignore_suspend(dapm, "Normal-Playback");
+	snd_soc_dapm_ignore_suspend(dapm, "Normal-Capture");
 	snd_soc_dapm_ignore_suspend(dapm, "Virt Output Pin");
 
 	/*

@@ -2485,6 +2485,11 @@ static const struct snd_soc_dapm_widget sprd_codec_dapm_widgets[] = {
 		0,
 		chan_event,
 		SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
+	SND_SOC_DAPM_DAC_E("DAC", "Normal-Playback-AP23",
+		FUN_REG(SPRD_CODEC_PLAYBACK), 0,
+		0,
+		chan_event,
+		SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
 	SND_SOC_DAPM_PGA_S("Digital DACL Switch", -4, SOC_REG(AUD_TOP_CTL),
 		DAC_EN_L, 0, 0, 0),
 	SND_SOC_DAPM_PGA_S("Digital DACR Switch", -4, SOC_REG(AUD_TOP_CTL),
@@ -3570,7 +3575,7 @@ static struct snd_soc_dai_driver sprd_codec_dai[] = {
 	{
 		.name = "sprd-codec-normal-ap23",
 		.playback = {
-			.stream_name = "Normal-Playback",
+			.stream_name = "Normal-Playback-AP23",
 			.channels_min = 1,
 			.channels_max = 2,
 			.rates = SPRD_CODEC_PCM_RATES,
@@ -3648,6 +3653,9 @@ static int sprd_codec_soc_probe(struct snd_soc_component *codec)
 	sprd_codec->codec = codec;
 
 	sprd_codec_proc_init(sprd_codec);
+
+	snd_soc_dapm_ignore_suspend(dapm, "Normal-Playback");
+	snd_soc_dapm_ignore_suspend(dapm, "Normal-Capture-AP01");
 
 	/*
 	 * Even without headset driver, codec could work well.

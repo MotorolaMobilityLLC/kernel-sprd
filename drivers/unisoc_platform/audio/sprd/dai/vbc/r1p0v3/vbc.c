@@ -6332,6 +6332,9 @@ static int vbc_codec_soc_probe(struct snd_soc_component *codec)
 	vbc_proc_init(codec);
 	snd_soc_dapm_disable_pin(dapm, "DFM");
 
+	snd_soc_dapm_ignore_suspend(dapm, "DFM_CODEC_P");
+	snd_soc_dapm_ignore_suspend(dapm, "DEEPBUF_CODEC_P");
+
 	return ret;
 }
 

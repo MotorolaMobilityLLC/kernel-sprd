@@ -143,8 +143,21 @@ struct snd_soc_dai_driver sprd_vaudio_dai[] = {
 	},
 };
 
+static int vaudio_soc_probe(struct snd_soc_component *codec)
+{
+	struct snd_soc_dapm_context *dapm = snd_soc_component_get_dapm(codec);
+
+	sp_asoc_pr_dbg("%s\n", __func__);
+
+	snd_soc_dapm_ignore_suspend(dapm, "VAUDIO_DA_CODEC_P");
+	snd_soc_dapm_ignore_suspend(dapm, "VAUDIO_AD01_CODEC_C");
+
+	return 0;
+}
+
 static const struct snd_soc_component_driver sprd_vaudio_component = {
 	.name = "vaudio",
+	.probe = vaudio_soc_probe,
 };
 
 static int sprd_vaudio_drv_probe(struct platform_device *pdev)

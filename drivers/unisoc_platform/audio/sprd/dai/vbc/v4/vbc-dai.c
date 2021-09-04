@@ -4687,6 +4687,12 @@ static int vbc_codec_soc_probe(struct snd_soc_component *codec)
 
 	vbc_proc_init(codec);
 
+	snd_soc_dapm_ignore_suspend(dapm, "BE_DAI_OFFLOAD_CODEC_P");
+	snd_soc_dapm_ignore_suspend(dapm, "BE_DAI_FM_CODEC_P");
+	snd_soc_dapm_ignore_suspend(dapm, "BE_DAI_VOICE_CODEC_P");
+	snd_soc_dapm_ignore_suspend(dapm, "BE_DAI_VOICE_CODEC_C");
+	snd_soc_dapm_ignore_suspend(dapm, "BE_DAI_CAP_RECOGNISE_CODEC_C");
+
 	return 0;
 }
 
