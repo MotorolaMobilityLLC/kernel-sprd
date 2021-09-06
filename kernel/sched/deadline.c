@@ -1612,6 +1612,62 @@ select_task_rq_dl(struct task_struct *p, int cpu, int sd_flag, int flags)
 	rcu_read_lock();
 	curr = READ_ONCE(rq->curr); /* unlocked access */
 
+	if (sched_energy_enabled() && dl_entity_is_special(&p->dl)) {
+		int i;
+		unsigned long best_idle_cap = ULONG_MAX, min_util = ULONG_MAX;
+		unsigned long best_busy_cap = ULONG_MAX;
+		int best_busy_cpu = -1, best_idle_cpu = -1;
+
+		/* fast path for prev_cpu */
+		if (cpumask_test_cpu(cpu, &min_cap_cpu_mask) && idle_cpu(cpu) &&
+			!cpu_isolated(cpu))
+			goto unlock;
+
+		for_each_online_cpu(i) {
+			unsigned long util, cap;
+			struct rq *rq = cpu_rq(i);
+
+			if (!cpumask_test_cpu(i, p->cpus_ptr) || cpu_isolated(i))
+				continue;
+
+			cap = capacity_orig_of(i);
+
+			if (idle_cpu(i)) {
+				if (cpumask_test_cpu(i, &min_cap_cpu_mask)) {
+					cpu = i;
+					goto unlock;
+				}
+				if (cap < best_idle_cap) {
+					best_idle_cpu = i;
+					best_idle_cap = cap;
+				}
+				continue;
+			}
+
+			/* prefer cpu with smaller util */
+			util = cpu_util_cfs(rq) + cpu_util_rt(rq);
+			if ((util * 1280 < cap * 1024) && cap <= best_busy_cap) {
+				if (cap != best_busy_cap)
+					min_util = ULONG_MAX;
+				best_busy_cap = cap;
+				if (util < min_util) {
+					min_util = util;
+					best_busy_cpu = i;
+				}
+			}
+		}
+		if (best_busy_cpu != -1) {
+			if (best_idle_cpu == -1)
+				cpu = best_busy_cpu;
+			else
+				cpu = (best_busy_cap < best_idle_cap) ?
+					best_busy_cpu : best_idle_cpu;
+		} else if (best_idle_cpu != -1) {
+			cpu = best_idle_cpu;
+		}
+
+		goto unlock;
+	}
 	/*
 	 * If we are dealing with a -deadline task, we must
 	 * decide where to wake it up.
@@ -1633,13 +1689,13 @@ select_task_rq_dl(struct task_struct *p, int cpu, int sd_flag, int flags)
 				(cpu_rq(target)->dl.dl_nr_running == 0)))
 			cpu = target;
 	}
+unlock:
 	rcu_read_unlock();
 
 out:
-#ifdef CONFIG_SPRD_CORE_CTL
+
 	if (cpu_isolated(cpu))
 		cpu = cpumask_any(cpu_online_mask);
-#endif
 	return cpu;
 }
 
