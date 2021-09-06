@@ -295,6 +295,11 @@
 			compatible = "sprd,trusty-log-v1";
 		};
 	};
+
+	autotest:autotest{
+		compatible = "sprd,autotest";
+		sprd,pinctrl = <&pin_controller>;
+	};
 };
 
 &adi_bus {
