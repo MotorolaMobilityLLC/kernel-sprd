@@ -6410,8 +6410,8 @@ CONFIG_GCC_VERSION
 	[function]
 CONFIG_GENERIC_ADC_THERMAL
 	[arch] all
-	[plat] pike2,sharkl3
-	[missing plat] sharkl5Pro
+	[plat] all
+	[missing plat] none
 	[field] make
 	[subsys] thermal
 	[must] user
