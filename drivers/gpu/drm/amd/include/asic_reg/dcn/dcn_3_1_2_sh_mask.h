@@ -5971,6 +5971,7 @@
 #define DMCUB_INTERRUPT_ENABLE__DMCUB_GPINT1_INT_EN__SHIFT                                                    0xb
 #define DMCUB_INTERRUPT_ENABLE__DMCUB_GPINT2_INT_EN__SHIFT                                                    0xc
 #define DMCUB_INTERRUPT_ENABLE__DMCUB_UNDEFINED_ADDRESS_FAULT_INT_EN__SHIFT                                   0xd
+#define DMCUB_INTERRUPT_ENABLE__DMCUB_GPINT_IH_INT_EN__SHIFT                                                  0x11
 #define DMCUB_INTERRUPT_ENABLE__DMCUB_TIMER0_INT_EN_MASK                                                      0x00000001L
 #define DMCUB_INTERRUPT_ENABLE__DMCUB_TIMER1_INT_EN_MASK                                                      0x00000002L
 #define DMCUB_INTERRUPT_ENABLE__DMCUB_INBOX0_READY_INT_EN_MASK                                                0x00000004L
@@ -5985,6 +5986,7 @@
 #define DMCUB_INTERRUPT_ENABLE__DMCUB_GPINT1_INT_EN_MASK                                                      0x00000800L
 #define DMCUB_INTERRUPT_ENABLE__DMCUB_GPINT2_INT_EN_MASK                                                      0x00001000L
 #define DMCUB_INTERRUPT_ENABLE__DMCUB_UNDEFINED_ADDRESS_FAULT_INT_EN_MASK                                     0x00002000L
+#define DMCUB_INTERRUPT_ENABLE__DMCUB_GPINT_IH_INT_EN_MASK                                                    0x00020000L
 //DMCUB_INTERRUPT_ACK
 #define DMCUB_INTERRUPT_ACK__DMCUB_TIMER0_INT_ACK__SHIFT                                                      0x0
 #define DMCUB_INTERRUPT_ACK__DMCUB_TIMER1_INT_ACK__SHIFT                                                      0x1
@@ -6000,6 +6002,7 @@
 #define DMCUB_INTERRUPT_ACK__DMCUB_GPINT1_INT_ACK__SHIFT                                                      0xb
 #define DMCUB_INTERRUPT_ACK__DMCUB_GPINT2_INT_ACK__SHIFT                                                      0xc
 #define DMCUB_INTERRUPT_ACK__DMCUB_UNDEFINED_ADDRESS_FAULT_ACK__SHIFT                                         0xd
+#define DMCUB_INTERRUPT_ACK__DMCUB_GPINT_IH_INT_ACK__SHIFT                                                    0x11
 #define DMCUB_INTERRUPT_ACK__DMCUB_TIMER0_INT_ACK_MASK                                                        0x00000001L
 #define DMCUB_INTERRUPT_ACK__DMCUB_TIMER1_INT_ACK_MASK                                                        0x00000002L
 #define DMCUB_INTERRUPT_ACK__DMCUB_INBOX0_READY_INT_ACK_MASK                                                  0x00000004L
@@ -6014,6 +6017,7 @@
 #define DMCUB_INTERRUPT_ACK__DMCUB_GPINT1_INT_ACK_MASK                                                        0x00000800L
 #define DMCUB_INTERRUPT_ACK__DMCUB_GPINT2_INT_ACK_MASK                                                        0x00001000L
 #define DMCUB_INTERRUPT_ACK__DMCUB_UNDEFINED_ADDRESS_FAULT_ACK_MASK                                           0x00002000L
+#define DMCUB_INTERRUPT_ACK__DMCUB_GPINT_IH_INT_ACK_MASK                                                      0x00020000L
 //DMCUB_INTERRUPT_STATUS
 #define DMCUB_INTERRUPT_STATUS__DMCUB_TIMER0_INT_STAT__SHIFT                                                  0x0
 #define DMCUB_INTERRUPT_STATUS__DMCUB_TIMER1_INT_STAT__SHIFT                                                  0x1
