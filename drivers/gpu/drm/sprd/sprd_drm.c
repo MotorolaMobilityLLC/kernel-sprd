@@ -132,8 +132,8 @@ static void sprd_commit_tail(struct drm_atomic_state *old_state)
 static void sprd_commit_work(struct kthread_work *work)
 {
 	struct sprd_drm *sprd = container_of(work,
-					struct sprd_drm,
-					commit_kwork);
+					 struct sprd_drm,
+					 commit_kwork);
 	sprd_commit_tail(sprd->state);
 }
 
