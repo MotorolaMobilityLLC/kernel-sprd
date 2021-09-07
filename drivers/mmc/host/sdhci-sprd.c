@@ -30,8 +30,6 @@
 #define  SDHCI_SPRD_DLL_SEARCH_MODE	BIT(16)
 #define  SDHCI_SPRD_DLL_INIT_COUNT	0xc00
 #define  SDHCI_SPRD_DLL_PHASE_INTERNAL	0x3
-#define  SDHCI_SPRD_DLL_CPST_THRES	(0x20)
-
 
 #define SDHCI_SPRD_REG_32_DLL_DLY	0x204
 
@@ -75,8 +73,6 @@
  * It is not standard register of SDIO
  */
 #define SDHCI_SPRD_REG_32_DLL_STS0	0x210
-#define SDHCI_SPRD_DLL_LOCKED		0x00040000
-
 #define SDHCI_SPRD_REG_32_DLL_STS1	0x214
 #define SDHCI_SPRD_DLL_WAIT_CNT		0xC0000000
 
@@ -254,8 +250,6 @@ static inline void _sdhci_sprd_set_clock(struct sdhci_host *host,
 	struct sdhci_sprd_host *sprd_host = TO_SPRD_HOST(host);
 	u32 div, val, mask;
 
-	usleep_range(20000, 22500);
-
 	sdhci_writew(host, 0, SDHCI_CLOCK_CONTROL);
 
 	div = sdhci_sprd_calc_div(sprd_host->base_rate, clk);
@@ -270,7 +264,6 @@ static inline void _sdhci_sprd_set_clock(struct sdhci_host *host,
 		val |= mask;
 		sdhci_writel(host, val, SDHCI_SPRD_REG_32_BUSY_POSI);
 	}
-
 }
 
 static void sdhci_sprd_enable_phy_dll(struct sdhci_host *host)
@@ -285,8 +278,7 @@ static void sdhci_sprd_enable_phy_dll(struct sdhci_host *host)
 
 	tmp = sdhci_readl(host, SDHCI_SPRD_REG_32_DLL_CFG);
 	tmp |= SDHCI_SPRD_DLL_ALL_CPST_EN | SDHCI_SPRD_DLL_SEARCH_MODE |
-		SDHCI_SPRD_DLL_INIT_COUNT | SDHCI_SPRD_DLL_PHASE_INTERNAL |
-		SDHCI_SPRD_DLL_CPST_THRES | SDHCI_SPRD_DLL_WAIT_CNT;
+		SDHCI_SPRD_DLL_INIT_COUNT | SDHCI_SPRD_DLL_PHASE_INTERNAL;
 	sdhci_writel(host, tmp, SDHCI_SPRD_REG_32_DLL_CFG);
 	/* wait 1ms */
 	usleep_range(1000, 1250);
@@ -296,22 +288,6 @@ static void sdhci_sprd_enable_phy_dll(struct sdhci_host *host)
 	sdhci_writel(host, tmp, SDHCI_SPRD_REG_32_DLL_CFG);
 	/* wait 1ms */
 	usleep_range(1000, 1250);
-
-	while ((sdhci_readl(host, SDHCI_SPRD_REG_32_DLL_STS0) &
-		SDHCI_SPRD_DLL_LOCKED) != SDHCI_SPRD_DLL_LOCKED) {
-		pr_warn("%s: dpll locked fail!\n", mmc_hostname(host->mmc));
-		pr_info("%s: DLL_STS0 : 0x%x, DLL_CFG : 0x%x\n",
-			 mmc_hostname(host->mmc),
-			 sdhci_readl(host, SDHCI_SPRD_REG_32_DLL_STS0),
-			 sdhci_readl(host, SDHCI_SPRD_REG_32_DLL_CFG));
-		pr_info("%s: DLL_DLY : 0x%x, DLL_STS1 : 0x%x\n",
-			 mmc_hostname(host->mmc),
-			 sdhci_readl(host, SDHCI_SPRD_REG_32_DLL_DLY),
-			 sdhci_readl(host, SDHCI_SPRD_REG_32_DLL_STS1));
-		mdelay(1);
-	}
-
-	pr_info("%s: dpll locked done\n", mmc_hostname(host->mmc));
 }
 
 static void sdhci_sprd_set_clock(struct sdhci_host *host, unsigned int clock)
