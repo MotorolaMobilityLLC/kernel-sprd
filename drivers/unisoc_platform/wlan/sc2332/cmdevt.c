@@ -1751,9 +1751,24 @@ out:
 
 bool sc2332_do_delay_work(struct sprd_work *work)
 {
+	u8 mac_addr[ETH_ALEN];
+	u16 reason_code;
+	struct sprd_vif *vif;
+
 	if (!work)
 		return false;
-
+	vif = work->vif;
+	netdev_dbg(vif->ndev, "process delayed work: %d\n",
+				work->id);
+	switch (work->id) {
+	case SPRD_P2P_GO_DEL_STATION:
+		memcpy(mac_addr, (u8 *)work->data, ETH_ALEN);
+		memcpy(&reason_code, (u16 *)(work->data + ETH_ALEN), sizeof(u16));
+		sc2332_del_station(vif->priv, vif, mac_addr, reason_code);
+		break;
+	default:
+		break;
+	}
 	return true;
 }
 
