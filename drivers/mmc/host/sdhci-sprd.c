@@ -73,6 +73,8 @@
  * It is not standard register of SDIO
  */
 #define SDHCI_SPRD_REG_32_DLL_STS0	0x210
+#define SDHCI_SPRD_DLL_LOCKED		BIT(18)
+
 #define SDHCI_SPRD_REG_32_DLL_STS1	0x214
 #define SDHCI_SPRD_DLL_WAIT_CNT		0xC0000000
 
@@ -268,6 +270,7 @@ static inline void _sdhci_sprd_set_clock(struct sdhci_host *host,
 
 static void sdhci_sprd_enable_phy_dll(struct sdhci_host *host)
 {
+	int timeout = 1000;
 	u32 tmp;
 
 	tmp = sdhci_readl(host, SDHCI_SPRD_REG_32_DLL_CFG);
@@ -288,6 +291,25 @@ static void sdhci_sprd_enable_phy_dll(struct sdhci_host *host)
 	sdhci_writel(host, tmp, SDHCI_SPRD_REG_32_DLL_CFG);
 	/* wait 1ms */
 	usleep_range(1000, 1250);
+
+	while (--timeout) {
+		if ((sdhci_readl(host, SDHCI_SPRD_REG_32_DLL_STS0) &
+				SDHCI_SPRD_DLL_LOCKED))
+			break;
+		usleep_range(1000, 1250);
+	}
+
+	if (!timeout) {
+		pr_err("%s: dpll locked fail!\n", mmc_hostname(host->mmc));
+		pr_info("%s: DLL_STS0 : 0x%x, DLL_CFG : 0x%x\n",
+			 mmc_hostname(host->mmc),
+			 sdhci_readl(host, SDHCI_SPRD_REG_32_DLL_STS0),
+			 sdhci_readl(host, SDHCI_SPRD_REG_32_DLL_CFG));
+		pr_info("%s: DLL_DLY : 0x%x, DLL_STS1 : 0x%x\n",
+			 mmc_hostname(host->mmc),
+			 sdhci_readl(host, SDHCI_SPRD_REG_32_DLL_DLY),
+			 sdhci_readl(host, SDHCI_SPRD_REG_32_DLL_STS1));
+	}
 }
 
 static void sdhci_sprd_set_clock(struct sdhci_host *host, unsigned int clock)
@@ -778,7 +800,8 @@ static const struct sdhci_pltfm_data sdhci_sprd_pdata = {
 		  SDHCI_QUIRK_MISSING_CAPS,
 	.quirks2 = SDHCI_QUIRK2_BROKEN_HS200 |
 		   SDHCI_QUIRK2_USE_32BIT_BLK_CNT |
-		   SDHCI_QUIRK2_PRESET_VALUE_BROKEN,
+		   SDHCI_QUIRK2_PRESET_VALUE_BROKEN |
+		   SDHCI_QUIRK2_RE_ENABLE_CARD_EN,
 	.ops = &sdhci_sprd_ops,
 };
 
