@@ -120,7 +120,7 @@
 
 		CPU6: cpu@600 {
 			device_type = "cpu";
-			compatible = "arm,cortex-a55";
+			compatible = "arm,cortex-a75";
 			reg = <0x0 0x600>;
 			enable-method = "psci";
 			cpu-idle-states = <&CORE_PD &CLUSTER_PD>;
@@ -132,7 +132,7 @@
 
 		CPU7: cpu@700 {
 			device_type = "cpu";
-			compatible = "arm,cortex-a55";
+			compatible = "arm,cortex-a75";
 			reg = <0x0 0x700>;
 			enable-method = "psci";
 			cpu-idle-states = <&CORE_PD &CLUSTER_PD>;
