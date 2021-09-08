@@ -122,7 +122,6 @@ struct dpu_context {
 
 	/* pq enhance parameters */
 	void *enhance;
-	bool bootup_slp;
 	int corner_radius;
 	struct semaphore cabc_lock;
 	struct work_struct cabc_work;

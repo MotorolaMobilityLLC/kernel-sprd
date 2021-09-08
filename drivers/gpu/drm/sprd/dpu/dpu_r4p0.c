@@ -1789,18 +1789,11 @@ static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
 			(slp->cabc_startv << 0));
 		DPU_REG_SET(ctx->base + REG_DPU_ENHANCE_CFG, BIT(4));
 		pr_info("enhance slp set\n");
-		if ((ctx->if_type == SPRD_DPU_IF_DPI) && !ctx->stopped) {
-			if (ctx->vsync_count > 4 || (ctx->vsync_count <= 4 && !ctx->bootup_slp)) {
-				DPU_REG_SET(ctx->base + REG_DPU_CTRL, BIT(2));
-				dpu_wait_update_done(ctx);
-				ctx->bootup_slp = 1;
-			} else
-				DPU_REG_SET(ctx->base + REG_DPU_CTRL, BIT(2));
-                } else if ((ctx->if_type == SPRD_DPU_IF_EDPI) && ctx->panel_ready) {
-                        DPU_REG_SET(ctx->base + REG_DPU_CTRL, BIT(0));
-                        ctx->stopped = false;
-                }
-                return;
+		if (enhance->cabc_para.video_mode) {
+			enhance->enhance_en = DPU_REG_RD(ctx->base + REG_DPU_ENHANCE_CFG);
+			return;
+		}
+		break;
 	case ENHANCE_CFG_ID_GAMMA:
 		memcpy(&enhance->gamma_copy, param, sizeof(enhance->gamma_copy));
 		gamma = &enhance->gamma_copy;
