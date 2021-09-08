@@ -45,7 +45,7 @@
 		/* Only used for iq, will be removed in normal mode by uboot */
 		iq_reserved: iq-mem@84e00000 {
 			compatible = "sprd,iq-mem";
-			reg = <0x0 0x84e00000 0x0 0x04000000>;
+			reg = <0x84e00000 0x04000000>;
 		};
 
 		smem_reserved: sipc-mem@88e00000 {
