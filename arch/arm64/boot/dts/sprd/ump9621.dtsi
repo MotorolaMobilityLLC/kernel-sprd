@@ -19,7 +19,7 @@
 			reg = <0x2000>;
 		};
 
-		efuse@800 {
+		ump9621_efuse: efuse@800 {
 			compatible = "sprd,ump9621-efuse", "sprd,sc27xx-efuse";
 			reg = <0x800>;
 			#address-cells = <1>;

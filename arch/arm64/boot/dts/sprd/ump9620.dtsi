@@ -97,7 +97,7 @@
 			interrupts = <3 IRQ_TYPE_LEVEL_HIGH>;
 		};
 
-		efuse@c00 {
+		ump9620_efuse: efuse@c00 {
 			compatible = "sprd,ump9620-efuse", "sprd,sc27xx-efuse";
 			reg = <0xc00>;
 			#address-cells = <1>;
