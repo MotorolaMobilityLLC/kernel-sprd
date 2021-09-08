@@ -955,29 +955,6 @@ static ssize_t epf_write(struct file *fp, struct kobject *kobj,
 }
 static BIN_ATTR_RW(epf, 14);
 
-static ssize_t sr_epf_write(struct file *fp, struct kobject *kobj,
-			struct bin_attribute *attr, char *buf,
-			loff_t off, size_t count)
-{
-	struct device *dev = container_of(kobj, struct device, kobj);
-	struct sprd_dpu *dpu = dev_get_drvdata(dev);
-	struct dpu_context *ctx = &dpu->ctx;
-
-	if (!dpu->core->enhance_set)
-		return -EIO;
-
-	/* I need to get my data in one piece */
-	if (off != 0 || count != attr->size)
-		return -EINVAL;
-
-	down(&ctx->lock);
-	dpu->core->enhance_set(ctx, ENHANCE_CFG_ID_SR_EPF, buf);
-	up(&ctx->lock);
-
-	return count;
-}
-static BIN_ATTR_WO(sr_epf, 14);
-
 static ssize_t hsv_read(struct file *fp, struct kobject *kobj,
 			struct bin_attribute *attr, char *buf,
 			loff_t off, size_t count)
@@ -1229,7 +1206,6 @@ static struct bin_attribute *pq_bin_attrs[] = {
 	&bin_attr_cabc_run,
 	&bin_attr_cabc_cur_bl,
 	&bin_attr_cabc_state,
-	&bin_attr_sr_epf,
 	&bin_attr_lut3d,
 	&bin_attr_enable,
 	&bin_attr_disable,
