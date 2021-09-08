@@ -72,8 +72,8 @@ static const struct mfd_cell sprd_ump9620_devs[] = {
 		.name = "sc27xx-eic",
 		.of_compatible = "sprd,sc27xx-eic",
 	}, {
-		.name = "sc27xx-efuse",
-		.of_compatible = "sprd,sc27xx-efuse",
+		.name = "ump9620-efuse",
+		.of_compatible = "sprd,ump9620-efuse",
 	}, {
 		.name = "sc27xx-thermal",
 		.of_compatible = "sprd,sc27xx-thermal",
