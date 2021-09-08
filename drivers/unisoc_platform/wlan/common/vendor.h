@@ -918,6 +918,7 @@ struct wifi_interface_link_layer_info {
 	u8 bssid[6];
 	u8 ap_country_str[3];
 	u8 country_str[3];
+	u8 time_slicing_duty_cycle_percent;
 };
 
 enum wifi_traffic_ac {

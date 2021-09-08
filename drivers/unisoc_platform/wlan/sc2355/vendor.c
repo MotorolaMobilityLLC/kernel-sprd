@@ -765,6 +765,7 @@ static int vendor_get_llstat_handler(struct wiphy *wiphy,
 
 	/* set data for iface struct */
 	iface_st->info.mode = vif->mode;
+	iface_st->info.time_slicing_duty_cycle_percent = 50;
 	memcpy(iface_st->info.mac_addr, vif->ndev->dev_addr, ETH_ALEN);
 	iface_st->info.state = (enum vendor_wifi_connection_state)vif->sm_state;
 	memcpy(iface_st->info.ssid, vif->ssid, IEEE80211_MAX_SSID_LEN);
