@@ -234,9 +234,6 @@ static int sprd_pub_monitor_status_show(struct seq_file *m, void *v)
 	u64 fx_time[8], total_tm, sts_tm;
 	u32 light_cnt, sref_cnt;
 
-	if (!drv_data.mon_base)
-		return -ENOMEM;
-
 	if (!drv_data.pub_mon_enabled)
 		return -ENODATA;
 
@@ -401,7 +398,7 @@ static int sprd_dmc_probe(struct platform_device *pdev)
 			return -ENODEV;
 		io_addr = devm_ioremap_resource(&pdev->dev, res);
 		if (IS_ERR(io_addr))
-			return PTR_ERR(io_addr);
+			return (int)PTR_ERR(io_addr);
 		drv_data.size = readl_relaxed(io_addr + pdata->size_l_offset)
 		  + ((u64) readl_relaxed(io_addr + pdata->size_h_offset) << 32);
 		drv_data.type = readl_relaxed(io_addr + pdata->type_offset);
@@ -421,7 +418,7 @@ static int sprd_dmc_probe(struct platform_device *pdev)
 			return -ENODEV;
 		drv_data.mon_base = devm_ioremap_resource(&pdev->dev, res);
 		if (IS_ERR(drv_data.mon_base))
-			return PTR_ERR(drv_data.mon_base);
+			return (int)PTR_ERR(drv_data.mon_base);
 		sprd_pub_monitor_init();
 	}
 	return 0;
