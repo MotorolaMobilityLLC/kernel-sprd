@@ -699,8 +699,8 @@ CONFIG_ARCH_SUPPORTS_NUMA_BALANCING
 	[missing plat description] none
 	[function] adds support for automatic NUMA aware memory/task placement
 CONFIG_ARCH_SUPPORTS_PGO_CLANG
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field] menu
 	[subsys] core
@@ -13746,6 +13746,15 @@ CONFIG_PERF_USE_VMALLOC
 	[must] console
 	[missing plat description] none
 	[function] Enable kernel support Performance Counters for Linux.
+CONFIG_PGO_NONE
+	[arch] arm
+	[plat] pike2
+	[missing plat] none
+	[field] code
+	[subsys] core
+	[must] none
+	[missing plat description] none
+	[function] disable clang's PGO
 CONFIG_PGTABLE_LEVELS
 	[arch] all
 	[plat] all
