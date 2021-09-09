@@ -41,6 +41,7 @@ enum {
 enum {
 	ESD_MODE_REG_CHECK,
 	ESD_MODE_TE_CHECK,
+	ESD_MODE_MIX_CHECK,
 };
 
 struct dsi_cmd_desc {

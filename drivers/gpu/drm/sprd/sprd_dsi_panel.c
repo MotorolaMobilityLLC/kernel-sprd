@@ -334,6 +334,25 @@ static int sprd_panel_te_check(struct sprd_panel *panel)
 	return ret < 0 ? ret : 0;
 }
 
+static int sprd_panel_mix_check(struct sprd_panel *panel)
+{
+	int ret;
+
+	ret = sprd_panel_esd_check(panel);
+	if (ret) {
+		DRM_ERROR("mix check use read reg with error\n");
+		return ret;
+	}
+
+	ret = sprd_panel_te_check(panel);
+	if (ret) {
+		DRM_ERROR("mix check use te signal with error\n");
+		return ret;
+	}
+
+	return 0;
+}
+
 static void sprd_panel_esd_work_func(struct work_struct *work)
 {
 	struct sprd_panel *panel = container_of(work, struct sprd_panel,
@@ -352,6 +371,8 @@ static void sprd_panel_esd_work_func(struct work_struct *work)
 		ret = sprd_panel_esd_check(panel);
 	else if (info->esd_check_mode == ESD_MODE_TE_CHECK)
 		ret = sprd_panel_te_check(panel);
+	else if (info->esd_check_mode == ESD_MODE_MIX_CHECK)
+		ret = sprd_panel_mix_check(panel);
 	else {
 		DRM_ERROR("unknown esd check mode:%d\n", info->esd_check_mode);
 		return;
