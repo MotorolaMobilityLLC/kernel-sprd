@@ -205,8 +205,12 @@ static ulong trusty_std_call_helper_reschedule(void *param)
 		atomic_notifier_call_chain(&s->notifier, TRUSTY_CALL_PREPARE,
 					   NULL);
 		ret = trusty_std_call_inner(dev, smcnr, a0, a1, a2);
-		atomic_notifier_call_chain(&s->notifier, TRUSTY_CALL_RETURNED,
-					   NULL);
+		if (ret == SM_ERR_PANIC)
+			atomic_notifier_call_chain(&s->notifier, TRUSTY_CALL_PANIC,
+						   NULL);
+		else
+			atomic_notifier_call_chain(&s->notifier, TRUSTY_CALL_RETURNED,
+						   NULL);
 		local_irq_enable();
 
 		if ((int)ret != SM_ERR_BUSY)

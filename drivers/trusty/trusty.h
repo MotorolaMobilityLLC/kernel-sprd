@@ -19,6 +19,7 @@ struct notifier_block;
 enum {
 	TRUSTY_CALL_PREPARE,
 	TRUSTY_CALL_RETURNED,
+	TRUSTY_CALL_PANIC,
 };
 int trusty_call_notifier_register(struct device *dev,
 				  struct notifier_block *n);

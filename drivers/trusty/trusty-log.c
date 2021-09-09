@@ -78,7 +78,7 @@ static int log_read_line(struct trusty_log_state *s, int put, int get)
 	return i;
 }
 
-static void trusty_dump_logs(struct trusty_log_state *s)
+static void trusty_dump_logs(struct trusty_log_state *s, unsigned long action)
 {
 	struct log_rb *log = s->log;
 	uint32_t get, put, alloc;
@@ -122,7 +122,10 @@ static void trusty_dump_logs(struct trusty_log_state *s)
 			get = alloc - log->sz;
 			continue;
 		}
-		pr_info("trusty: %s", s->line_buffer);
+		if (action == TRUSTY_CALL_PANIC)
+			pr_emerg("trusty: %s", s->line_buffer);
+		else
+			pr_info("trusty: %s", s->line_buffer);
 		get += read_chars;
 	}
 	s->get = get;
@@ -134,12 +137,12 @@ static int trusty_log_call_notify(struct notifier_block *nb,
 	struct trusty_log_state *s;
 	unsigned long flags;
 
-	if (action != TRUSTY_CALL_RETURNED)
+	if (action == TRUSTY_CALL_PREPARE)
 		return NOTIFY_DONE;
 
 	s = container_of(nb, struct trusty_log_state, call_notifier);
 	spin_lock_irqsave(&s->lock, flags);
-	trusty_dump_logs(s);
+	trusty_dump_logs(s, action);
 	spin_unlock_irqrestore(&s->lock, flags);
 	return NOTIFY_OK;
 }
@@ -148,7 +151,6 @@ static int trusty_log_panic_notify(struct notifier_block *nb,
 				   unsigned long action, void *data)
 {
 	struct trusty_log_state *s;
-
 	/*
 	 * Don't grab the spin lock to hold up the panic notifier, even
 	 * though this is racy.
@@ -156,7 +158,7 @@ static int trusty_log_panic_notify(struct notifier_block *nb,
 	s = container_of(nb, struct trusty_log_state, panic_notifier);
 	pr_info("trusty-log panic notifier - trusty version %s",
 		trusty_version_str_get(s->trusty_dev));
-	trusty_dump_logs(s);
+	trusty_dump_logs(s, TRUSTY_CALL_PANIC);
 	return NOTIFY_OK;
 }
 
