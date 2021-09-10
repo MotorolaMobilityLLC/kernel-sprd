@@ -35,4 +35,14 @@ config TRUSTY_VIRTIO_IPC
 	  If you choose to build a module, it'll be called trusty-ipc.
 	  Say N if unsure.
 
+config SPRD_TSHM
+	tristate "Spreadtrum TSHM driver"
+	depends on TRUSTY
+	default n
+	help
+	  This provides a simple method to allocate physical share memory
+	  in user space.
+	  Say N here if you are unsure about need this.
+	  Otherwise say Y to select.
+
 endmenu

@@ -17470,6 +17470,15 @@ CONFIG_SPRD_TOP_DVFS_DEVFREQ
 				   frequency ofsome devices which include gpu,modem and so
 				   on.sharkl3 don't have the function.
 	[function] Enable device dvfs function.
+CONFIG_SPRD_TSHM
+	[arch] arm64
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
+	[field] make
+	[subsys] tee
+	[must] user
+	[missing plat description] none
+	[function] Enable tshm driver for GPAPI used.
 CONFIG_SPRD_UID
 	[arch] all
 	[plat] all
