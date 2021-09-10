@@ -61,7 +61,7 @@ static void nf_xfrm6_output_decode_cap_log(struct sk_buff *skb,
 	orig_dev = out_dev;
 	skb_reset_network_header(copy_skb);
 
-	if (!skb->sk) {
+	if (!orig_dev && skb->sk) {
 		pr_err("no netdevice found in skb and check lo device.\n");
 		net = sock_net(skb->sk);
 		if (net) {
