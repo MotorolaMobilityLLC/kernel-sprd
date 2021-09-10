@@ -8,10 +8,15 @@
 
 #include <drm/drm_atomic.h>
 #include <drm/drm_print.h>
+#include <linux/kthread.h>
 
 struct sprd_drm {
+	struct drm_atomic_state *state;
 	struct drm_device *drm;
 	struct device *gsp_dev;
+	struct kthread_worker commit_kworker;
+	struct kthread_work commit_kwork;
+	struct task_struct *commit_thread;
 };
 
 #ifdef CONFIG_DRM_SPRD_DUMMY

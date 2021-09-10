@@ -4,13 +4,16 @@
  */
 
 #include <linux/component.h>
+#include <linux/delay.h>
 #include <linux/dma-mapping.h>
+#include <linux/kthread.h>
 #include <linux/module.h>
 #include <linux/mutex.h>
 #include <linux/of_graph.h>
 #include <linux/of_platform.h>
 #include <linux/of_reserved_mem.h>
 #include <uapi/drm/sprd_drm_gsp.h>
+#include <uapi/linux/sched/types.h>
 
 #include <drm/drm_atomic_helper.h>
 #include <drm/drm_crtc_helper.h>
@@ -74,18 +77,19 @@ static void sprd_commit_tail(struct drm_atomic_state *old_state)
 	drm_atomic_state_put(old_state);
 }
 
-static void sprd_commit_work(struct work_struct *work)
+static void sprd_commit_work(struct kthread_work *work)
 {
-	struct drm_atomic_state *state = container_of(work,
-						      struct drm_atomic_state,
-						      commit_work);
-	sprd_commit_tail(state);
+	struct sprd_drm *sprd = container_of(work,
+					 struct sprd_drm,
+					 commit_kwork);
+	sprd_commit_tail(sprd->state);
 }
 
 int sprd_atomic_helper_commit(struct drm_device *dev,
 			struct drm_atomic_state *state, bool nonblock)
 {
 	int ret;
+	struct sprd_drm *sprd = dev->dev_private;
 
 	/*
 	 * FIXME:
@@ -102,8 +106,6 @@ int sprd_atomic_helper_commit(struct drm_device *dev,
 	if (ret)
 		return ret;
 
-	INIT_WORK(&state->commit_work, sprd_commit_work);
-
 	ret = drm_atomic_helper_prepare_planes(dev, state);
 	if (ret)
 		return ret;
@@ -113,8 +115,9 @@ int sprd_atomic_helper_commit(struct drm_device *dev,
 		goto err;
 
 	drm_atomic_state_get(state);
+	sprd->state = state;
 	if (nonblock)
-		queue_work(system_unbound_wq, &state->commit_work);
+		kthread_queue_work(&sprd->commit_kworker, &sprd->commit_kwork);
 	else
 		sprd_commit_tail(state);
 
@@ -197,6 +200,7 @@ static int sprd_drm_bind(struct device *dev)
 	struct drm_device *drm;
 	struct sprd_drm *sprd;
 	int err;
+	struct sched_param param = { .sched_priority = 1 };
 
 	DRM_INFO("%s()\n", __func__);
 
@@ -250,6 +254,23 @@ static int sprd_drm_bind(struct device *dev)
 	if (err < 0)
 		goto err_kms_helper_poll_fini;
 
+	/* initialize kworker & kwork and create kthread */
+	kthread_init_worker(&sprd->commit_kworker);
+
+	kthread_init_work(&sprd->commit_kwork, sprd_commit_work);
+
+	sprd->commit_thread = kthread_run(kthread_worker_fn, &sprd->commit_kworker,
+			   "sprd_drm_commit_worker_thread");
+
+	if (IS_ERR(sprd->commit_thread)) {
+		sprd->commit_thread = NULL;
+		DRM_ERROR("%s: failed to run config posting thread: \n",
+				__func__);
+		return 0;
+	}
+
+	sched_setscheduler(sprd->commit_thread, SCHED_FIFO, &param);
+
 	return 0;
 
 err_kms_helper_poll_fini:
@@ -267,6 +288,12 @@ err_free_drm:
 static void sprd_drm_unbind(struct device *dev)
 {
 	struct drm_device *drm = dev_get_drvdata(dev);
+	struct sprd_drm *sprd = drm->dev_private;
+
+	if (sprd->commit_thread) {
+		kthread_flush_worker(&sprd->commit_kworker);
+		kthread_stop(sprd->commit_thread);
+	}
 
 	DRM_INFO("%s()\n", __func__);
 
