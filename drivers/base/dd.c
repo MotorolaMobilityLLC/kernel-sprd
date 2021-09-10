@@ -509,7 +509,6 @@ static int really_probe(struct device *dev, struct device_driver *drv)
 	int local_trigger_count = atomic_read(&deferred_trigger_count);
 	bool test_remove = IS_ENABLED(CONFIG_DEBUG_TEST_DRIVER_REMOVE) &&
 			   !drv->suppress_bind_attrs;
-	u64 pre_time, post_time, msec, dotmsec;
 
 	if (defer_all_probes) {
 		/*
@@ -563,8 +562,6 @@ re_probe:
 			goto probe_failed;
 	}
 
-	pre_time = ktime_get_mono_fast_ns();
-
 	if (dev->bus->probe) {
 		ret = dev->bus->probe(dev);
 		if (ret)
@@ -574,12 +571,6 @@ re_probe:
 		if (ret)
 			goto probe_failed;
 	}
-
-	post_time = ktime_get_mono_fast_ns();
-	msec = post_time-pre_time;
-	dotmsec = do_div(msec, 1000000);
-	pr_info("drv: %s, dev: %s, taste_time: %lld.%lldms\n",
-		drv->name, dev_name(dev), msec, dotmsec);
 
 	if (device_add_groups(dev, drv->dev_groups)) {
 		dev_err(dev, "device_add_groups() failed\n");
