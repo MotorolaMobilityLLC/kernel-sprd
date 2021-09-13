@@ -277,6 +277,7 @@ static int sprd_hardware_cpufreq_init(struct cpufreq_policy *policy)
 	int ret, cpu = 0;
 	int curr_cluster;
 	unsigned int cluster_cpumask;
+	unsigned int policy_trans_delay;
 
 	pdev = sprd_hardware_dvfs_device_get();
 
@@ -367,6 +368,10 @@ static int sprd_hardware_cpufreq_init(struct cpufreq_policy *policy)
 	policy->freq_table = freq_table;
 
 	data->update_opp = sprd_cpufreq_update_opp_common;
+
+	if (!of_property_read_u32(cpufreq_of_node, "transition_delay_us",
+				   &policy_trans_delay))
+		policy->transition_delay_us = policy_trans_delay;
 
 #ifdef CONFIG_SMP
 	/* CPUs in the same cluster share a clock and power domain */
