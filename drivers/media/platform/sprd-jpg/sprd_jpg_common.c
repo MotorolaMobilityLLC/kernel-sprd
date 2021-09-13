@@ -212,36 +212,6 @@ int jpg_get_mm_clk(struct jpg_dev_t *hw_dev)
 	return ret;
 }
 
-static int jpg_get_dmabuf(int fd, struct dma_buf **dmabuf, void **buf, size_t *size)
-{
-	struct ion_buffer *buffer = NULL;
-
-	if (fd < 0 && !dmabuf) {
-		pr_err("%s, input fd: %d, dmabuf: %p error\n", __func__, fd, dmabuf);
-		return PTR_ERR(buffer);
-	}
-
-	if (fd >= 0) {
-		*dmabuf = dma_buf_get(fd);
-		if (IS_ERR_OR_NULL(*dmabuf)) {
-			pr_err("%s, dmabuf error: %p !\n", __func__, *dmabuf);
-			return PTR_ERR(buffer);
-		}
-		buffer = (*dmabuf)->priv;
-		dma_buf_put(*dmabuf);
-	} else {
-		buffer = (*dmabuf)->priv;
-	}
-
-	if (IS_ERR(buffer))
-		return PTR_ERR(buffer);
-
-	*buf = (void *)buffer;
-	*size = buffer->size;
-
-	return 0;
-}
-
 #ifdef CONFIG_COMPAT
 int compat_get_mmu_map_data(struct compat_jpg_iommu_map_data __user *
 				   data32,
@@ -369,13 +339,13 @@ int jpg_get_iova(struct jpg_dev_t *hw_dev,
 	struct jpg_iommu_map_entry *entry;
 
 	if (sprd_iommu_attach_device(hw_dev->jpg_dev) == 0) {
-		ret = jpg_get_dmabuf(mapdata->fd, &dmabuf,
-					    &(iommu_map_data.buf),
-					    &iommu_map_data.iova_size);
-		if (ret) {
-			pr_err("jpg_get_dmabuf failed: ret=%d\n", ret);
+		dmabuf = dma_buf_get(mapdata->fd);
+		if (IS_ERR_OR_NULL(dmabuf)) {
+			pr_err("get dmabuf failed\n");
+			ret = PTR_ERR(dmabuf);
 			goto err_get_dmabuf;
 		}
+		dma_buf_put(dmabuf);
 
 		attachment = dma_buf_attach(dmabuf, hw_dev->jpg_dev);
 		if (IS_ERR_OR_NULL(attachment)) {
@@ -391,6 +361,8 @@ int jpg_get_iova(struct jpg_dev_t *hw_dev,
 			goto err_map_attachment;
 		}
 
+		iommu_map_data.buf = dmabuf->priv;
+		iommu_map_data.iova_size = ((struct ion_buffer *)(dmabuf->priv))->size;
 		iommu_map_data.ch_type = SPRD_IOMMU_FM_CH_RW;
 		ret = sprd_iommu_map(hw_dev->jpg_dev, &iommu_map_data);
 		if (!ret) {
