@@ -3599,11 +3599,48 @@ exit:
 	return true;
 }
 
+static void cm_jeita_temp_goes_down(struct charger_desc *desc, int status,
+				    int recovery_status, int *jeita_status)
+{
+	if (recovery_status == desc->jeita_tab_size) {
+		if (*jeita_status >= recovery_status)
+			*jeita_status = recovery_status;
+		return;
+	}
+
+	if (desc->jeita_tab[recovery_status].temp > desc->jeita_tab[recovery_status].recovery_temp) {
+		if (*jeita_status >= recovery_status)
+			*jeita_status = recovery_status;
+		return;
+	}
+
+	if (desc->jeita_tab[status].temp < desc->jeita_tab[status].recovery_temp)
+		*jeita_status = status;
+}
+
+static void cm_jeita_temp_goes_up(struct charger_desc *desc, int status,
+				  int recovery_status, int *jeita_status)
+{
+	if (recovery_status == desc->jeita_tab_size) {
+		*jeita_status = status;
+		return;
+	}
+
+	if (desc->jeita_tab[recovery_status].temp < desc->jeita_tab[recovery_status].recovery_temp) {
+		if (*jeita_status <= recovery_status)
+			*jeita_status = recovery_status;
+		return;
+	}
+
+	if (desc->jeita_tab[status].temp > desc->jeita_tab[status].recovery_temp)
+		*jeita_status = status;
+}
+
 static int cm_manager_get_jeita_status(struct charger_manager *cm, int cur_temp)
 {
 	struct charger_desc *desc = cm->desc;
 	static int jeita_status, last_temp;
-	int i, temp_status, recovery_temp_status;
+	int i, temp_status, recovery_temp_status = -1;
 
 	for (i = desc->jeita_tab_size - 1; i >= 0; i--) {
 		if ((cur_temp >= desc->jeita_tab[i].temp && i > 0) ||
@@ -3614,6 +3651,14 @@ static int cm_manager_get_jeita_status(struct charger_manager *cm, int cur_temp)
 
 	temp_status = i + 1;
 
+	if (temp_status == desc->jeita_tab_size) {
+		jeita_status = desc->jeita_tab_size;
+		goto out;
+	} else if (temp_status == 0) {
+		jeita_status = 0;
+		goto out;
+	}
+
 	for (i = desc->jeita_tab_size - 1; i >= 0; i--) {
 		if ((cur_temp >= desc->jeita_tab[i].recovery_temp && i > 0) ||
 		    (cur_temp > desc->jeita_tab[i].recovery_temp && i == 0)) {
@@ -3623,40 +3668,16 @@ static int cm_manager_get_jeita_status(struct charger_manager *cm, int cur_temp)
 
 	recovery_temp_status = i + 1;
 
-	if (temp_status == desc->jeita_tab_size) {
-		jeita_status = desc->jeita_tab_size;
-	} else if (temp_status == 0) {
-		jeita_status = 0;
 	/* temperature goes down */
-	} else if (last_temp >= cur_temp) {
-		if (recovery_temp_status == desc->jeita_tab_size) {
-			if (jeita_status >= recovery_temp_status)
-				jeita_status = recovery_temp_status;
-		} else if (desc->jeita_tab[recovery_temp_status].temp > desc->jeita_tab[recovery_temp_status].recovery_temp) {
-			if (jeita_status >= recovery_temp_status)
-				jeita_status = recovery_temp_status;
-		} else if (desc->jeita_tab[temp_status].temp < desc->jeita_tab[temp_status].recovery_temp) {
-			jeita_status = temp_status;
-		}
+	if (last_temp >= cur_temp)
+		cm_jeita_temp_goes_down(desc, temp_status, recovery_temp_status, &jeita_status);
 	/* temperature goes up */
-	} else if (last_temp < cur_temp) {
-		if (recovery_temp_status == desc->jeita_tab_size) {
-			jeita_status = temp_status;
-		} else if (desc->jeita_tab[recovery_temp_status].temp < desc->jeita_tab[recovery_temp_status].recovery_temp) {
-			if (jeita_status <= recovery_temp_status)
-				jeita_status = recovery_temp_status;
-		} else if (desc->jeita_tab[temp_status].temp > desc->jeita_tab[temp_status].recovery_temp) {
-			jeita_status = temp_status;
-		}
-	}
+	else
+		cm_jeita_temp_goes_up(desc, temp_status, recovery_temp_status, &jeita_status);
 
+out:
 	last_temp = cur_temp;
-	if (jeita_status > desc->jeita_tab_size)
-		jeita_status = desc->jeita_tab_size;
-	else if (jeita_status < 0)
-		jeita_status = 0;
-
-	dev_info(cm->dev, "%s: jeita status:(%d)-%d-%d, temperature:%d, jeita_size:%d\n",
+	dev_info(cm->dev, "%s: jeita status:(%d) %d %d, temperature:%d, jeita_size:%d\n",
 		 __func__, jeita_status, temp_status, recovery_temp_status,
 		 cur_temp, desc->jeita_tab_size);
 
