@@ -140,10 +140,19 @@ vmlinux_link()
 				${@}"
 		fi
 
-		${LD} ${KBUILD_LDFLAGS} ${LDFLAGS_vmlinux}	\
+		if [ "${SRCARCH}" = "arm" ] && [ -n "${CONFIG_USE_PROFILE}" ];then
+			# workaround PGO for arm
+			${PGO_LD} ${LDFLAGS_vmlinux}		\
 			${strip_debug#-Wl,}			\
 			-o ${output}				\
 			-T ${lds} ${objects}
+		else
+			${LD} ${KBUILD_LDFLAGS} 		\
+			${LDFLAGS_vmlinux}			\
+			${strip_debug#-Wl,}			\
+			-o ${output}				\
+			-T ${lds} ${objects}
+		fi
 	else
 		objects="-Wl,--whole-archive			\
 			${KBUILD_VMLINUX_OBJS}			\
