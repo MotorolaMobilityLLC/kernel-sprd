@@ -127,6 +127,7 @@ misc:sprd_uid:
 misc:sprdwcn:
 mm:
 mmc:core:
+mmc:host:
 mmc:sprd:
 mm:emem:
 mm:memblock:
