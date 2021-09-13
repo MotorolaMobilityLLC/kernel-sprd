@@ -59,6 +59,7 @@
 			capacity-dmips-mhz = <544>;
 			dynamic-power-coefficient = <102>;
 			cpufreq-data-v1 = <&cpufreq_cluster0_opp>;
+			sugov_slack_timer;
 		};
 		CPU1: cpu@100 {
 			device_type = "cpu";
