@@ -18,9 +18,18 @@
 #include "sblock.h"
 #include <linux/hrtimer.h>
 #include <asm/cacheflush.h>
+#include <linux/dma-mapping.h>
+#include <linux/dma-direction.h>
 
 #define SIPX_STATE_IDLE		0
 #define SIPX_STATE_READY	0x7c7d7e7f
+
+#ifdef CONFIG_SPRD_SIPC_MEM_CACHE_EN
+#define SIPC_DATA_TO_SKB_CACHE_INV(dev, addr, size) \
+	dma_sync_single_for_cpu(dev, addr, size, DMA_FROM_DEVICE)
+#define SKB_DATA_TO_SIPC_CACHE_FLUSH(dev, addr, size) \
+	dma_sync_single_for_device(dev, addr, size, DMA_TO_DEVICE)
+#endif
 
 struct sipx_mgr;
 

@@ -66,6 +66,10 @@ int g_flow_on = 1;
 
 static struct sipx_mgr *sipxs[SIPC_ID_NR];
 
+#ifdef CONFIG_SPRD_SIPC_MEM_CACHE_EN
+static struct device *sipx_dev;
+#endif
+
 #if defined(CONFIG_DEBUG_FS)
 static int  sipx_init_debugfs(void *root);
 #endif
@@ -86,12 +90,24 @@ static int sipx_debug_show(struct seq_file *m, void *private)
 
 		/*sipx*/
 		sipc_debug_putline(m, '*', 180);
+#ifdef CONFIG_SPRD_SIPC_MEM_CACHE_EN
+		seq_printf(m, "sipx dst 0x%0x, state: 0x%0x, recovery: %d, ",
+			   sipx->dst, sipx->state, sipx->recovery);
+		seq_printf(m, "smem_virt: 0x%p, smem_cached_virt: 0x%p, ",
+			   sipx->smem_virt, sipx->smem_cached_virt);
+		seq_printf(m, "smem_addr: 0x%0x, mapped_smem_addr:",
+			   sipx->smem_addr);
+		seq_printf(m, "0x%0x\n, smem_size: 0x%0x",
+			   sipx->dst_smem_addr,
+			   sipx->smem_size);
+#else
 		seq_printf(m, "sipx dst %d, state: 0x%0x, recovery: %d, ",
 			   sipx->dst, sipx->state, sipx->recovery);
 		seq_printf(m, "smem_virt: 0x%p, smem_addr: 0x%0x, smem_size: 0x%0x\n",
 			   sipx->smem_virt,
 			   sipx->smem_addr,
 			   sipx->smem_size);
+#endif
 		seq_printf(m, "dl_pool_size: %d, dl_ack_pool_size: %d,",
 			   sipx->dl_pool_size,
 			   sipx->dl_ack_pool_size);
@@ -357,6 +373,10 @@ static int sipx_put_item_to_ring(struct sipx_ring *ring, struct sblock *blk,
 	int cnt;
 	struct sipx_blk_item item;
 
+#ifdef CONFIG_SPRD_SIPC_MEM_CACHE_EN
+	SKB_DATA_TO_SIPC_CACHE_FLUSH(sipx_dev, (blk->addr - sipxs[SIPC_ID_PSCP]->smem_cached_virt
+				     + sipxs[SIPC_ID_PSCP]->smem_addr), blk->length);
+#endif
 	/* multi-gotter may cause got failure */
 	spin_lock_irqsave(&ring->lock, flags);
 	pos = sblock_get_ringpos(ring->fifo_info->fifo_wrptr,
@@ -407,6 +427,10 @@ static int sipx_get_item_from_ring(struct sipx_ring *ring, struct sblock *blk)
 			blk->offset;
 
 		ring->fifo_info->fifo_rdptr = rd + 1;
+#ifdef CONFIG_SPRD_SIPC_MEM_CACHE_EN
+		SIPC_DATA_TO_SKB_CACHE_INV(sipx_dev, (blk->addr - sipxs[SIPC_ID_PSCP]->smem_cached_virt
+					   + sipxs[SIPC_ID_PSCP]->smem_addr), blk->length);
+#endif
 	}
 
 	spin_unlock_irqrestore(&ring->lock, flags);
@@ -654,11 +678,6 @@ static int sipx_thread(void *data)
 			/* handle seblock send/release events */
 			switch (mrecv.flag) {
 			case SMSG_EVENT_SBLOCK_SEND:
-				if (sipx_chan->handler)
-					sipx_chan->handler(
-							   SBLOCK_NOTIFY_RECV,
-							   sipx_chan->data);
-
 				break;
 			case SMSG_EVENT_SBLOCK_RELEASE:
 #ifdef UL_TEST
@@ -740,6 +759,11 @@ static int destroy_spix_mgr(struct sipx_mgr *sipx)
 
 	if (sipx->smem_virt)
 		shmem_ram_unmap(sipx->dst, sipx->smem_virt);
+
+#ifdef CONFIG_SPRD_SIPC_MEM_CACHE_EN
+	if (sipx->smem_cached_virt)
+		shmem_ram_unmap(sipx->dst, sipx->smem_cached_virt);
+#endif
 
 	if (sipx->smem_addr)
 		smem_free(sipx->dst, sipx->smem_addr, sipx->smem_size);
@@ -859,6 +883,17 @@ static int create_sipx_mgr(struct sipx_mgr **out, struct sipx_init_data *pdata)
 		goto fail;
 	}
 
+#ifdef CONFIG_SPRD_SIPC_MEM_CACHE_EN
+	sipx->smem_cached_virt = shmem_ram_vmap_cache(sipx->dst,
+							  sipx->smem_addr,
+							  sipx->smem_size);
+
+	if (!sipx->smem_cached_virt) {
+		ret = -EFAULT;
+		goto fail;
+	}
+#endif
+
 	/* memset(sipx->smem_virt, 0, sipx->smem_size); */
 	for (p = sipx->smem_virt; p < sipx->smem_virt + sipx->smem_size;) {
 #ifdef CONFIG_64BIT
@@ -880,11 +915,19 @@ static int create_sipx_mgr(struct sipx_mgr **out, struct sipx_init_data *pdata)
 	fifo_info->fifo_wrptr = 0;
 	/* offset of smem_addr */
 	fifo_info->fifo_addr = sipx->dst_smem_addr + offset_dl_fifo;
+#ifdef CONFIG_SPRD_SIPC_MEM_CACHE_EN
+	ret = create_sipx_pool_ctrl(&sipx->dl_pool,
+				    fifo_info,
+				    sipx->smem_virt + offset_dl_fifo,
+				    sipx->smem_cached_virt + offset_dl_blk,
+				    sipx);
+#else
 	ret = create_sipx_pool_ctrl(&sipx->dl_pool,
 				    fifo_info,
 				    sipx->smem_virt + offset_dl_fifo,
 				    sipx->smem_virt + offset_dl_blk,
 				    sipx);
+#endif
 
 	if (ret)
 		goto fail;
@@ -898,11 +941,19 @@ static int create_sipx_mgr(struct sipx_mgr **out, struct sipx_init_data *pdata)
 	fifo_info->fifo_rdptr = 0;
 	fifo_info->fifo_wrptr = 0;
 	fifo_info->fifo_addr = sipx->dst_smem_addr + offset_dl_ack_fifo;
+#ifdef CONFIG_SPRD_SIPC_MEM_CACHE_EN
+	ret = create_sipx_pool_ctrl(&sipx->dl_ack_pool,
+				    fifo_info,
+				    sipx->smem_virt + offset_dl_ack_fifo,
+				    sipx->smem_cached_virt + offset_dl_ack_blk,
+				    sipx);
+#else
 	ret = create_sipx_pool_ctrl(&sipx->dl_ack_pool,
 				    fifo_info,
 				    sipx->smem_virt + offset_dl_ack_fifo,
 				    sipx->smem_virt + offset_dl_ack_blk,
 				    sipx);
+#endif
 
 	if (ret)
 		goto fail;
@@ -919,10 +970,20 @@ static int create_sipx_mgr(struct sipx_mgr **out, struct sipx_init_data *pdata)
 
 	/* offset of smem_addr */
 	fifo_info->fifo_addr = sipx->dst_smem_addr + offset_ul_fifo;
-	ret = create_sipx_pool_ctrl(&sipx->ul_pool, fifo_info,
+#ifdef CONFIG_SPRD_SIPC_MEM_CACHE_EN
+	ret = create_sipx_pool_ctrl(&sipx->ul_pool,
+				    fifo_info,
+				    sipx->smem_virt + offset_ul_fifo,
+				    sipx->smem_cached_virt + offset_ul_blk,
+				    sipx);
+#else
+	ret = create_sipx_pool_ctrl(&sipx->ul_pool,
+				    fifo_info,
 				    sipx->smem_virt + offset_ul_fifo,
 				    sipx->smem_virt + offset_ul_blk,
 				    sipx);
+#endif
+
 	if (ret)
 		goto fail;
 
@@ -935,12 +996,20 @@ static int create_sipx_mgr(struct sipx_mgr **out, struct sipx_init_data *pdata)
 	fifo_info->fifo_rdptr = 0;
 	fifo_info->fifo_wrptr = 0;
 	fifo_info->fifo_addr = sipx->dst_smem_addr + offset_ul_ack_fifo;
-
+#ifdef CONFIG_SPRD_SIPC_MEM_CACHE_EN
+	ret = create_sipx_pool_ctrl(&sipx->ul_ack_pool,
+				    fifo_info,
+				    sipx->smem_virt + offset_ul_ack_fifo,
+				    sipx->smem_cached_virt + offset_ul_ack_blk,
+				    sipx);
+#else
 	ret = create_sipx_pool_ctrl(&sipx->ul_ack_pool,
 				    fifo_info,
 				    sipx->smem_virt + offset_ul_ack_fifo,
 				    sipx->smem_virt + offset_ul_ack_blk,
 				    sipx);
+#endif
+
 	if (ret)
 		goto fail;
 
@@ -948,9 +1017,15 @@ static int create_sipx_mgr(struct sipx_mgr **out, struct sipx_init_data *pdata)
 	chan_cnt = (volatile u32 *)((sipx->smem_virt) +
 			offset_chan_cnt);
 	*chan_cnt = SMSG_CH_NR;
+#ifdef CONFIG_SPRD_SIPC_MEM_CACHE_EN
+	/* save pool start pos */
+	sipx->dl_ack_start = sipx->smem_cached_virt + offset_dl_ack_blk;
+	sipx->ul_ack_start = sipx->smem_cached_virt + offset_ul_ack_blk;
+#else
 	/* save pool start pos */
 	sipx->dl_ack_start = sipx->smem_virt + offset_dl_ack_blk;
 	sipx->ul_ack_start = sipx->smem_virt + offset_ul_ack_blk;
+#endif
 
 	sipx->state = SIPX_STATE_READY;
 	*out = sipx;
@@ -1922,6 +1997,7 @@ int sipx_chan_create(u8 dst, u8 channel)
 		ret = PTR_ERR(sipx_chan->thread);
 		goto fail;
 	}
+	sipx_chan_record[channel] = sipx_chan;
 
 	/* set the thread as a real time thread, and its priority is 11 */
 	sched_setscheduler(sipx_chan->thread, SCHED_RR, &param);
@@ -1981,6 +2057,10 @@ static int sipx_probe(struct platform_device *pdev)
 	}
 
 	platform_set_drvdata(pdev, sipx);
+
+#ifdef CONFIG_SPRD_SIPC_MEM_CACHE_EN
+	sipx_dev = dev;
+#endif
 
 #if defined(CONFIG_DEBUG_FS)
 	if (!root)

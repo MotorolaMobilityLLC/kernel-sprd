@@ -17213,6 +17213,15 @@ CONFIG_SPRD_SIPC
 	[must] user
 	[missing plat description] none
 	[function] This function is used to enable sipc function between modem and AP.
+CONFIG_SPRD_SIPC_MEM_CACHE_EN
+	[arch] arm64
+	[plat] sharkl3
+	[missing plat] sharkl5Pro
+	[field] code
+	[subsys] staging
+	[must] user
+	[missing plat description] none
+	[function] This function is used to enable sipx share memmory cache.
 CONFIG_SPRD_SIPC_SBLOCK_BRIDGE
 	[arch] all
 	[plat] all

@@ -73,6 +73,13 @@ config SPRD_SIPC_ZERO_COPY_SIPX
 
 	  Say M here if you want to build a module.
 
+config SPRD_SIPC_MEM_CACHE_EN
+	bool "Enable cache from sipc memory"
+	default n
+	depends on SPRD_SIPC_ZERO_COPY_SIPX
+	help
+	  Enable cache from sipc memory.
+
 config SPRD_SIPC_WCN
 	bool "Enable sipc for WCN"
 	default n

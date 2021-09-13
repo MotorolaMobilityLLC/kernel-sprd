@@ -39,6 +39,8 @@
 #include <linux/sipc.h>
 
 #include "sipc_priv.h"
+#include "sipx.h"
+#include "sblock.h"
 
 #define SMSG_TXBUF_ADDR		(0)
 #define SMSG_TXBUF_SIZE		(SZ_1K)
@@ -60,6 +62,9 @@ static u8 g_wakeup_flag;
 
 struct smsg_ipc *smsg_ipcs[SIPC_ID_NR];
 EXPORT_SYMBOL_GPL(smsg_ipcs);
+
+struct sipx_channel *sipx_chan_record[SMSG_CH_NR + 1];
+EXPORT_SYMBOL_GPL(sipx_chan_record);
 
 static u8 channel2index[SMSG_CH_NR + 1];
 
@@ -145,6 +150,15 @@ void smsg_msg_process(struct smsg_ipc *ipc, struct smsg *msg, bool wake_lock)
 		SIPC_WRITEL(SIPC_READL(ch->wrptr) + 1, ch->wrptr);
 	}
 
+	if (((msg->channel >= SMSG_CH_DATA0 && msg->channel <= SMSG_CH_DATA2) ||
+	    (msg->channel >= SMSG_CH_DATA3 && msg->channel <= SMSG_CH_DATA5) ||
+	    (msg->channel >= SMSG_CH_DATA6 && msg->channel <= SMSG_CH_DATA13)) &&
+	    msg->type == SMSG_TYPE_EVENT && msg->flag == SMSG_EVENT_SBLOCK_SEND) {
+		if (sipx_chan_record[msg->channel]->handler)
+			sipx_chan_record[msg->channel]->handler(
+				   SBLOCK_NOTIFY_RECV,
+				   sipx_chan_record[msg->channel]->data);
+	}
 	wake_up_interruptible_all(&ch->rxwait);
 
 	if (wake_lock)
