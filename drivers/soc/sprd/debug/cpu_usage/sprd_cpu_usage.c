@@ -618,7 +618,7 @@ static int show_cpu_usage(struct seq_file *m, void *v)
 	p->cating--;
 	if (p->cating == 0 && p->ticking) {
 		p->idx += p->ticking;
-		p->idx = 0;
+		p->ticking = 0;
 	}
 	spin_unlock_irqrestore(&p->lock, flags);
 	return 0;
@@ -652,7 +652,7 @@ static enum hrtimer_restart sprd_cpu_usage_hr_func(struct hrtimer *timer)
 
 	_update_cpu_usage(true);
 
-	kt = ms_to_ktime(p_sprd_cpu_usage->interval * 1000);
+	kt = ms_to_ktime(p_sprd_cpu_usage->interval * MSEC_PER_SEC);
 	hrtimer_forward_now(timer, kt);
 	return HRTIMER_RESTART;
 }
@@ -668,8 +668,10 @@ static int __init sprd_cpu_usage_init(void)
 		return -ENOMEM;
 
 	p->buf = kmalloc(LOG_BUFF_SIZE, GFP_KERNEL);
-	if (!p->buf)
+	if (!p->buf) {
+		kfree(p);
 		return -ENOMEM;
+	}
 
 	/* create /sys/kernel/debug/sprd_debug/cpu/cpu_usage */
 	dentry = debugfs_create_file("cpu_usage",
@@ -677,13 +679,16 @@ static int __init sprd_cpu_usage_init(void)
 				      sprd_debugfs_entry(CPU),
 				      NULL,
 				      &cpu_usage_fops);
-	if (IS_ERR(dentry))
+	if (IS_ERR(dentry)) {
+		kfree(p->buf);
+		kfree(p);
 		return -ENOMEM;
+	}
 
 	/* init the member */
 	spin_lock_init(&p->lock);
 	p->interval = HRTIMER_INTERVAL;
-	kt = ms_to_ktime(p->interval * 1000);
+	kt = ms_to_ktime(p->interval * MSEC_PER_SEC);
 	hrtimer_init(&p->hrtimer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
 	p->hrtimer.function = sprd_cpu_usage_hr_func;
 	hrtimer_start(&p->hrtimer, kt, HRTIMER_MODE_REL);
@@ -694,8 +699,11 @@ static int __init sprd_cpu_usage_init(void)
 
 static void __exit sprd_cpu_usage_exit(void)
 {
-	if (p_sprd_cpu_usage)
+	if (p_sprd_cpu_usage) {
 		hrtimer_cancel(&p_sprd_cpu_usage->hrtimer);
+		kfree(p_sprd_cpu_usage->buf);
+		kfree(p_sprd_cpu_usage);
+	}
 }
 
 subsys_initcall(sprd_cpu_usage_init);
