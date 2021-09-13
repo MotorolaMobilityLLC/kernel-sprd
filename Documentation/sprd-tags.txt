@@ -168,6 +168,7 @@ regulator:umps520:
 rtc:sc27xx:
 
 sched:*
+scripts:
 scripts:dtc:
 scripts:sprd:
 scsi:ufs:sprd:
