@@ -100,6 +100,7 @@ static int sprd_pmic_wdt_enable(struct sprd_pmic_wdt *wdt, bool en)
 			   p_cmd, len,
 			   msecs_to_jiffies(timeout));
 
+	pr_err("cm4 watchdog on/off: len = %d, nwrite = %d\n", len, nwrite);
 	if (nwrite != len)
 		return -ENODEV;
 

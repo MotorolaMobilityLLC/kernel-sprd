@@ -233,6 +233,7 @@ static int sprd_wdt_fiq_start(struct watchdog_device *wdd)
 	u32 val;
 	int ret;
 
+	pr_err("ap watchdog sprd_wdt_fiq start: timeout = %d, pretimeout = %d\n", wdd->timeout, wdd->pretimeout);
 	ret = sprd_wdt_fiq_load_value(wdt, wdd->timeout, wdd->pretimeout);
 	if (ret)
 		return ret;
@@ -326,7 +327,6 @@ EXPORT_SYMBOL(sprd_wdt_fiq_get_dev);
 int sprd_wdt_fiq_syscore_suspend(void)
 {
 #ifdef SPRD_WDT_SYSCORE_SUSPEND_RESUME
-	pr_info("sprd_wdt_fiq_syscore_suspend_start");
 	if (!wdt_fiq)
 		return -ENODEV;
 
@@ -336,7 +336,6 @@ int sprd_wdt_fiq_syscore_suspend(void)
 	if (!wdt_fiq->data->eb_always_on)
 		sprd_wdt_fiq_disable(wdt_fiq);
 #endif
-	pr_info("sprd_wdt_fiq_syscore_suspend_end");
 	return 0;
 }
 EXPORT_SYMBOL(sprd_wdt_fiq_syscore_suspend);
@@ -345,8 +344,6 @@ void sprd_wdt_fiq_syscore_resume(void)
 {
 #ifdef SPRD_WDT_SYSCORE_SUSPEND_RESUME
 	int ret;
-
-	pr_info("sprd_wdt_fiq_syscore_resume_start");
 
 	if (!wdt_fiq)
 		return;
@@ -362,7 +359,6 @@ void sprd_wdt_fiq_syscore_resume(void)
 			return;
 		}
 	}
-	pr_info("sprd_wdt_fiq_syscore_resume_end");
 #endif
 }
 EXPORT_SYMBOL(sprd_wdt_fiq_syscore_resume);

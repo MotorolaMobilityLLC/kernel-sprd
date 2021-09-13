@@ -208,6 +208,8 @@ static int sprd_wdt_start(struct watchdog_device *wdd)
 	u32 val;
 	int ret;
 
+	pr_err("ap watchdog sprd_wdt start: timeout = %d, pretimeout = %d\n",
+	       wdd->timeout, wdd->pretimeout);
 	ret = sprd_wdt_load_value(wdt, wdd->timeout, wdd->pretimeout);
 	if (ret)
 		return ret;
