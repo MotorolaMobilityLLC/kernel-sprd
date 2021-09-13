@@ -158,7 +158,7 @@ static void sugov_slack_timer_setup(struct sugov_policy *sg_policy,
 	if (!slack_timer_setup)
 		return;
 
-	if (next_freq > policy->cpuinfo.min_freq) {
+	if (next_freq > policy->min) {
 		unsigned int slack_us;
 
 		slack_us = sg_policy->tunables->timer_slack_val_us;
@@ -667,15 +667,17 @@ rate_limit_us_store(struct gov_attr_set *attr_set, const char *buf, size_t count
 	struct sugov_tunables *tunables = to_sugov_tunables(attr_set);
 	struct sugov_policy *sg_policy;
 	unsigned int rate_limit_us;
+	unsigned int timer_slack_val_us;
 
 	if (kstrtouint(buf, 10, &rate_limit_us))
 		return -EINVAL;
 
 	tunables->rate_limit_us = rate_limit_us;
+	timer_slack_val_us = TICK_NSEC / NSEC_PER_USEC + tunables->rate_limit_us;
 
-	if (slack_timer_setup)
-		tunables->timer_slack_val_us = TICK_NSEC / NSEC_PER_USEC +
-			tunables->rate_limit_us;
+	if (slack_timer_setup &&
+	    tunables->timer_slack_val_us < timer_slack_val_us)
+		tunables->timer_slack_val_us = timer_slack_val_us;
 
 	list_for_each_entry(sg_policy, &attr_set->policy_list, tunables_hook)
 		sg_policy->freq_update_delay_ns = rate_limit_us * NSEC_PER_USEC;
@@ -877,24 +879,35 @@ static void sugov_slack_timer(struct timer_list *t)
 			return;
 	}
 
+	if (policy->cur == policy->min)
+		return;
+
+	if (!raw_spin_trylock(&sg_policy->update_lock))
+		return;
+
 	sg_policy->cached_raw_freq = UINT_MAX;
-	sg_policy->next_freq = policy->cpuinfo.min_freq;
+	sg_policy->next_freq = policy->min;
 
 	if (policy->fast_switch_enabled) {
 		if (!cpufreq_driver_fast_switch(policy, sg_policy->next_freq))
-			return;
+			goto unlock;
 
 		policy->cur = sg_policy->next_freq;
-		trace_cpu_frequency(sg_policy->next_freq, smp_processor_id());
-	} else {
+		if (trace_cpu_frequency_enabled()) {
+			for_each_cpu(cpu, policy->cpus)
+				trace_cpu_frequency(sg_policy->next_freq, cpu);
+		}
+	} else if (!sg_policy->work_in_progress) {
 		/*
 		 * don't update sg_policy->sg_policy->last_freq_update_time
 		 * here, so that the next freq from scheduler can be set
 		 * immediately.
 		 */
 		sg_policy->work_in_progress = true;
-		kthread_queue_work(&sg_policy->worker, &sg_policy->work);
+		irq_work_queue(&sg_policy->irq_work);
 	}
+unlock:
+	raw_spin_unlock(&sg_policy->update_lock);
 }
 
 static void sugov_set_freq_margin(struct timer_list *t)
