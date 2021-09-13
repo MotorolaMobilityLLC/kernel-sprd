@@ -669,9 +669,9 @@ void sc2355_report_scan_result(struct sprd_vif *vif, u16 chan, s16 rssi,
 	beacon_interval = le16_to_cpu(mgmt->u.probe_resp.beacon_int);
 	capability = le16_to_cpu(mgmt->u.probe_resp.capab_info);
 
-	netdev_dbg(vif->ndev, "   %s, %pM, channel %2u, signal %d\n",
+	netdev_info(vif->ndev, "   %s, %pM, channel %2u, signal %d, freq %u\n",
 		   ieee80211_is_probe_resp(mgmt->frame_control)
-		   ? "proberesp" : "beacon   ", mgmt->bssid, chan, signal);
+		   ? "proberesp" : "beacon   ", mgmt->bssid, chan, signal, freq);
 
 	bss = cfg80211_inform_bss(wiphy, channel, CFG80211_BSS_FTYPE_UNKNOWN,
 				  mgmt->bssid, tsf, capability, beacon_interval,

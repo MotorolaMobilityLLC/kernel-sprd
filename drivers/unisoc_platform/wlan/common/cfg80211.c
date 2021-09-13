@@ -897,12 +897,14 @@ int sprd_cfg80211_connect(struct wiphy *wiphy, struct net_device *ndev,
 	if (sme->channel) {
 		con.channel =
 		    ieee80211_frequency_to_channel(sme->channel->center_freq);
-		netdev_info(ndev, "channel %d\n", con.channel);
+		netdev_info(ndev, "channel %d, band %d, center_freq %u.\n",
+			con.channel, sme->channel->band, sme->channel->center_freq);
 	} else if (sme->channel_hint) {
 		con.channel =
 		    ieee80211_frequency_to_channel(sme->
 						   channel_hint->center_freq);
-		netdev_info(ndev, "channel %d\n", con.channel);
+		netdev_info(ndev, "channel %d, band %d, center_freq %u.\n", con.channel,
+			sme->channel_hint->band, sme->channel_hint->center_freq);
 	} else {
 		netdev_info(ndev, "No channel specified!\n");
 	}
