@@ -194,6 +194,7 @@
 		clock-latency = <50000>;
 		voltage-tolerance = <6413>;
 		volt-share-masters-bits = <0x1>;
+		transition_delay_us = <500>;
 		operating-points = <
 			/* kHz	uV */
 			1200000	1121875
@@ -267,6 +268,7 @@
 		voltage-tolerance = <0>;
 		volt-share-masters-bits = <0xa>;
 		freq-sync-slaves-bits = <0x8>;
+		transition_delay_us = <500>;
 		operating-points = <
 			/* kHz	uV */
 			1600000	1121875
