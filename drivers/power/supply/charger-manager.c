@@ -3820,7 +3820,8 @@ static bool _cm_monitor(struct charger_manager *cm)
 		cm->charging_status = 0;
 		try_charger_enable(cm, true);
 
-		if (!cm_check_primary_charger_enabled(cm) && !cm->desc->force_set_full) {
+		if (!cm->desc->cp.cp_running && !cm_check_primary_charger_enabled(cm)
+		    && !cm->desc->force_set_full) {
 			dev_info(cm->dev, "%s, primary charger does not enable,enable it\n", __func__);
 			cm_primary_charger_enable(cm, true);
 		}
