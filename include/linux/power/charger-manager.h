@@ -106,6 +106,8 @@ enum cm_fast_charge_command {
 	CM_FAST_CHARGE_OVP_DISABLE_CMD,
 	CM_PPS_CHARGE_ENABLE_CMD,
 	CM_PPS_CHARGE_DISABLE_CMD,
+	CM_POWER_PATH_ENABLE_CMD,
+	CM_POWER_PATH_DISABLE_CMD,
 };
 
 enum cm_present_command {
@@ -293,7 +295,8 @@ struct charger_regulator {
 	struct device_attribute attr_cp_num;
 	struct device_attribute attr_charge_pump_present;
 	struct device_attribute attr_charge_pump_current;
-	struct attribute *attrs[9];
+	struct device_attribute attr_enable_power_path;
+	struct attribute *attrs[10];
 
 	struct charger_manager *cm;
 };

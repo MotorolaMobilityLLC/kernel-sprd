@@ -751,6 +751,42 @@ static int bq2560x_charger_get_status(struct bq2560x_charger_info *info)
 		return POWER_SUPPLY_STATUS_NOT_CHARGING;
 }
 
+static bool bq2560x_charger_get_power_path_status(struct bq2560x_charger_info *info)
+{
+	u8 value;
+	int ret;
+	bool power_path_enabled = true;
+
+	ret = bq2560x_read(info, BQ2560X_REG_0, &value);
+	if (ret < 0) {
+		dev_err(info->dev, "Fail to get power path status, ret = %d\n", ret);
+		return power_path_enabled;
+	}
+
+	if (value & BQ2560X_REG_EN_HIZ_MASK)
+		power_path_enabled = false;
+
+	return power_path_enabled;
+}
+
+static int bq2560x_charger_set_power_path_status(struct bq2560x_charger_info *info, bool enable)
+{
+	int ret = 0;
+	u8 value = 0x1;
+
+	if (enable)
+		value = 0;
+
+	ret = bq2560x_update_bits(info, BQ2560X_REG_0,
+				  BQ2560X_REG_EN_HIZ_MASK,
+				  value << BQ2560X_REG_EN_HIZ_SHIFT);
+	if (ret)
+		dev_err(info->dev, "%s HIZ mode failed, ret = %d\n",
+			enable ? "Enable" : "Disable", ret);
+
+	return ret;
+}
+
 static void bq2560x_check_wireless_charge(struct bq2560x_charger_info *info, bool enable)
 {
 	int ret;
@@ -932,6 +968,12 @@ static int bq2560x_charger_usb_get_property(struct power_supply *psy,
 
 	switch (psp) {
 	case POWER_SUPPLY_PROP_STATUS:
+		if (val->intval == CM_POWER_PATH_ENABLE_CMD ||
+		    val->intval == CM_POWER_PATH_DISABLE_CMD) {
+			val->intval = bq2560x_charger_get_power_path_status(info);
+			break;
+		}
+
 		if (info->limit || info->is_wireless_charge)
 			val->intval = bq2560x_charger_get_status(info);
 		else
@@ -1086,6 +1128,14 @@ static int bq2560x_charger_usb_set_property(struct power_supply *psy,
 		break;
 
 	case POWER_SUPPLY_PROP_STATUS:
+		if (val->intval == CM_POWER_PATH_ENABLE_CMD) {
+			ret = bq2560x_charger_set_power_path_status(info, true);
+			break;
+		} else if (val->intval == CM_POWER_PATH_DISABLE_CMD) {
+			ret = bq2560x_charger_set_power_path_status(info, false);
+			break;
+		}
+
 		ret = bq2560x_charger_set_status(info, val->intval, input_vol, bat_present);
 		if (ret < 0)
 			dev_err(info->dev, "set charge status failed\n");
