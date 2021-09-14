@@ -425,15 +425,12 @@
 
 	cpufreq_clus0: cpufreq-clus0 {
 		cpufreq-cluster-id = <0>;
-		sprd,cpufreq-temp-threshold = <65>;
 		cpufreq-sub-clusters =  <&cpufreq_scu>,
 				<&cpufreq_periph>,
 				<&cpufreq_gic>;
 		clock-latency = <50000>;
 		voltage-tolerance = <6413>;
 		sprd,multi-version;
-		nvmem-cells = <&dvfs_bin_cpu0>;
-		nvmem-cell-names = "dvfs_bin";
 		operating-points = <
 		/* kHZ   uV */
 		1820000 1000000
@@ -450,15 +447,12 @@
 
 	cpufreq_clus1: cpufreq-clus1 {
 		cpufreq-cluster-id = <1>;
-		sprd,cpufreq-temp-threshold = <65>;
 		cpufreq-sub-clusters =  <&cpufreq_scu>,
 				<&cpufreq_periph>,
 				<&cpufreq_gic>;
 		clock-latency = <50000>;
 		voltage-tolerance = <6413>;
 		sprd,multi-version;
-		nvmem-cells = <&dvfs_bin_cpu1>;
-		nvmem-cell-names = "dvfs_bin";
 		operating-points = <
 		/* kHZ   uV */
 		2002000 1000000
@@ -472,12 +466,9 @@
 
 	cpufreq_scu: cpufreq-scu {
 		cpufreq-cluster-id = <2>;
-		sprd,cpufreq-temp-threshold = <65>;
 		clock-latency = <50000>;
 		voltage-tolerance = <0>;
 		sprd,multi-version;
-		nvmem-cells = <&dvfs_bin_dsu>;
-		nvmem-cell-names = "dvfs_bin";
 		operating-points = <
 		/* kHz   uV */
 		1404000 1000000
@@ -494,12 +485,9 @@
 
 	cpufreq_periph: cpufreq-periph {
 		cpufreq-cluster-id = <3>;
-		sprd,cpufreq-temp-threshold = <65>;
 		clock-latency = <50000>;
 		voltage-tolerance = <0>;
 		sprd,multi-version;
-		nvmem-cells = <&dvfs_bin_dsu>;
-		nvmem-cell-names = "dvfs_bin";
 		operating-points = <
 		/* kHZ  uV */
 		768000 1000000
@@ -512,12 +500,9 @@
 
 	cpufreq_gic: cpufreq-gic {
 		cpufreq-cluster-id = <4>;
-		sprd,cpufreq-temp-threshold = <65>;
 		clock-latency = <50000>;
 		voltage-tolerance = <0>;
 		sprd,multi-version;
-		nvmem-cells = <&dvfs_bin_dsu>;
-		nvmem-cell-names = "dvfs_bin";
 		operating-points = <
 		/* kHZ  uV */
 		512000 800000
@@ -530,10 +515,7 @@
 
 	cpufreq_atb: cpufreq-atb {
 		cpufreq-cluster-id = <5>;
-		sprd,cpufreq-temp-threshold = <65>;
 		sprd,multi-version;
-		nvmem-cells = <&dvfs_bin_dsu>;
-		nvmem-cell-names = "dvfs_bin";
 		operating-points = <
 		/* kHZ  uV */
 		768000 1000000
