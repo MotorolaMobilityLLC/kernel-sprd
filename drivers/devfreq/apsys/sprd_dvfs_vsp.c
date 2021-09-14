@@ -254,7 +254,7 @@ static ssize_t get_dvfs_status_show(struct device *dev,
 {
 	struct devfreq *devfreq = to_devfreq(dev);
 	struct vsp_dvfs *vsp = dev_get_drvdata(devfreq->dev.parent);
-	struct ip_dvfs_status ip_status;
+	struct ip_dvfs_status ip_status = {0};
 	ssize_t len = 0;
 
 	if (vsp->dvfs_ops && vsp->dvfs_ops->get_dvfs_status)
