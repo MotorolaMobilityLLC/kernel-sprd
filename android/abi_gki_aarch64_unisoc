@@ -297,8 +297,10 @@
   genl_unregister_family
   gen_pool_add_owner
   gen_pool_alloc_algo_owner
+  gen_pool_best_fit
   gen_pool_create
   gen_pool_free_owner
+  gen_pool_set_algo
   genphy_resume
   get_cpu_device
   __get_free_pages
