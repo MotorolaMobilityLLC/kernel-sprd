@@ -38,11 +38,11 @@ static struct task_struct *hd_thread;
 
 static void log_to_hang_info(const char *fmt, ...)
 {
-	unsigned long len = 0;
+	int len = 0;
 	static int times;
 	va_list ap;
 
-	if ((hang_info_index + MAX_STRING_SIZE) >= (unsigned long)HANG_INFO_MAX) {
+	if ((hang_info_index + MAX_STRING_SIZE) >= (int)HANG_INFO_MAX) {
 		if (!times)
 			pr_err("HangInfo Buffer overflow len(0x%x), times:%d, HANG_INFO_MAX:0x%lx !!!!!!!\n",
 				hang_info_index, times, (long)HANG_INFO_MAX);

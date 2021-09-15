@@ -319,7 +319,7 @@ int minidump_save_extend_information(const char *name, unsigned long paddr_start
 		return -1;
 	}
 	memcpy(str_name, name, strlen(name));
-	for (j = 0; j < strlen(str_name); j++) {
+	for (j = 0; j < (int)strlen(str_name); j++) {
 		tmp = str_name[j];
 		if (tmp == '?' || tmp == '*' || tmp == '/' || tmp == '>' || tmp == '<'
 								|| tmp == '"' || tmp == '|') {
@@ -363,8 +363,8 @@ int minidump_save_extend_information(const char *name, unsigned long paddr_start
 	} else {
 		extend_section->section_start_paddr = paddr_start;
 		extend_section->section_end_paddr = paddr_end;
-		extend_section->section_size = extend_section->section_end_paddr -
-						extend_section->section_start_paddr;
+		extend_section->section_size = (int)(extend_section->section_end_paddr -
+						extend_section->section_start_paddr);
 		minidump_info_g.section_info_total.total_size += extend_section->section_size;
 		minidump_info_g.minidump_data_size += extend_section->section_size;
 	}
@@ -1538,7 +1538,7 @@ static void section_info_per_cpu(void)
 {
 	int ret;
 	long vaddr = (long)(__per_cpu_start) + (long)(__per_cpu_offset[0]);
-	int len = (__per_cpu_offset[1] - __per_cpu_offset[0]) * CONFIG_NR_CPUS;
+	int len = (int)(__per_cpu_offset[1] - __per_cpu_offset[0]) * CONFIG_NR_CPUS;
 
 	ret = minidump_save_extend_information("per_cpu", __pa(vaddr), __pa(vaddr + len));
 	if (!ret)
@@ -1563,8 +1563,8 @@ static void minidump_addr_convert(int i)
 	minidump_info_g.section_info_total.section_info[i].section_end_paddr =
 		__pa(minidump_info_g.section_info_total.section_info[i].section_end_vaddr);
 	minidump_info_g.section_info_total.section_info[i].section_size =
-		minidump_info_g.section_info_total.section_info[i].section_end_paddr -
-		minidump_info_g.section_info_total.section_info[i].section_start_paddr;
+		(int)(minidump_info_g.section_info_total.section_info[i].section_end_paddr -
+		minidump_info_g.section_info_total.section_info[i].section_start_paddr);
 }
 static void minidump_info_init(void)
 {
