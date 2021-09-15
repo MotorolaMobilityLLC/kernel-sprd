@@ -447,6 +447,7 @@ u32 sprd_iommuvau_cll_enable(sprd_iommu_hdl p_iommu_hdl)
 		}
 		/*config update arqos,access ddr priority,default 7*/
 		mmu_vau_pt_update_arqos(p_iommu_priv->mmu_reg_addr, 7);
+		mmu_vau_int_enable(p_iommu_priv->mmu_reg_addr, iommu_id, iommu_type);
 	} else {
 		/*isp iommu need config page table size*/
 		mmuvau_pagetable_size(p_iommu_priv->mmu_reg_addr,
