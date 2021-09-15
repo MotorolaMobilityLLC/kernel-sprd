@@ -75,7 +75,7 @@
 /* timeout (ms) for pm runtime autosuspend */
 #define SPRD_I2C_PM_TIMEOUT	1000
 /* timeout (ms) for transfer message */
-#define I2C_XFER_TIMEOUT	1000
+#define I2C_XFER_TIMEOUT	3000
 
 /* SPRD i2c data structure */
 struct sprd_i2c {
