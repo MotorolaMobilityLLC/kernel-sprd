@@ -19,7 +19,7 @@
 
 	chosen: chosen {
 		stdout-path = &uart1;
-		bootargs = "earlycon=sprd_serial,0x70100000,115200n8 console=ttySPRD1,115200n8 loglevel=7 init=/init root=/dev/ram0 rw vmalloc=360M printk.devkmsg=on androidboot.boot_devices=soc/soc:ap-ahb/20600000.sdio";
+		bootargs = "earlycon=sprd_serial,0x70100000,115200n8 console=ttySPRD1,115200n8 loglevel=7 init=/init root=/dev/ram0 rw vmalloc=360M printk.devkmsg=on androidboot.boot_devices=soc/soc:ap-ahb/20600000.sdio initcall_debug=1";
 	};
 
 	memory: memory@80000000 {
