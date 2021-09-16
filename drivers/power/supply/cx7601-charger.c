@@ -562,7 +562,7 @@ static int cx7601_init_device(struct cx7601_charger_info *info)
 	cx7601_disable_watchdog_timer(info);
 	cx7601_charger_set_vindpm(info,4520);
     cx7601_disable_safety_timer(info);     //modified
-    cx7601_enable_term(info,true);
+    cx7601_enable_term(info,false);
 	
 	ret = cx7601_set_stat_ctrl(info, 3);//info->platform_data->statctrl);
 	if (ret)
@@ -709,6 +709,8 @@ static int cx7601_charger_start_charge(struct cx7601_charger_info *info)
 		gpiod_set_value_cansleep(info->gpiod, 0);
 	}
 
+	cx7601_enable_term(info,true);
+
 	cx7601_charging(info,true);
 
 	ret = cx7601_charger_set_limit_current(info,
@@ -846,12 +848,29 @@ static int cx7601_charger_feed_watchdog(struct cx7601_charger_info *info,
 					 u32 val)
 {
 	u8 reg;
+	static u8 ovp=0;
 
 //	cx7601_reset_watchdog_timer(info);
+	cx7601_read(info, &reg, CX7601_REG_09 );
+	if((ovp==0) &&  ((reg & 0x08) == 0x08)) //ovp
+	{
+		dev_err(info->dev,"%s ovp 09 reg=%x;",__func__,reg);
+		cx7601_update_bits(info,CX7601_REG_07,0x20,0x20);
+		ovp=1;
+	}
+	else if((ovp==1)  && ((reg & 0x08) == 0x00))  // not ovp
+	{
+
+		dev_err(info->dev,"%s novp  09 reg=%x;",__func__,reg);
+		cx7601_update_bits(info,CX7601_REG_07,0x20,0x00);
+		ovp=0;	
+	}
+
+
 	cx7601_read(info, &reg, CX7601_REG_05 );
 	if((reg & 0x30 ) == 0x10)
 	{
-		dev_err(info->dev,"%s  reg=%x;",__func__,reg);
+		dev_err(info->dev,"%s  05 reg=%x;",__func__,reg);
 		cx7601_init_device(info);
 		cx7601_charger_set_termina_vol(info, info->term_voltage);
 		cx7601_charger_set_limit_current(info, info->last_limit_current);
@@ -874,7 +893,11 @@ static bool cx7601_charge_done(struct cx7601_charger_info *info)
 		val = ( val >> 4 ) & 0x03;
 
 		if(val == 0x3)
+		{
+			cx7601_enable_term(info,false);
+
 			return true;
+		}
 		else
 			return false;
 	}	
