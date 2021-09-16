@@ -30,6 +30,7 @@ static const char * const syscon_name[] = {
 	"force-shutdown",
 	"pwr-status0",
 	"bus-status0",
+	"aon-apb-mm-eb",
 	"init-dis-bits"
 };
 
@@ -38,6 +39,7 @@ enum  {
 	CAMSYS_FORCE_SHUTDOWN,
 	CAMSYS_PWR_STATUS0,
 	CAMSYS_BUS_STATUS0,
+	CAMSYS_AON_APB_MM_EB,
 	CAMSYS_INIT_DIS_BITS
 };
 
@@ -230,6 +232,7 @@ static int sprd_campw_init(struct platform_device *pdev, struct camsys_power_inf
 	struct device_node *np = pdev->dev.of_node;
 	const char *pname;
 	struct regmap *tregmap;
+	struct register_gpr *preg_gpr;
 	uint32_t args[2];
 
 	pw_info->u.l3.cam_clk_cphy_cfg_gate_eb =
@@ -283,6 +286,25 @@ static int sprd_campw_init(struct platform_device *pdev, struct camsys_power_inf
 			pw_info->u.l3.syscon_regs[i].reg,
 			pw_info->u.l3.syscon_regs[i].mask);
 	}
+
+	//fix bug 1707122
+	preg_gpr = &pw_info->u.l3.syscon_regs[CAMSYS_AON_APB_MM_EB];
+	regmap_update_bits(preg_gpr->gpr,
+				preg_gpr->reg,
+				preg_gpr->mask,
+				~preg_gpr->mask);
+
+	preg_gpr = &pw_info->u.l3.syscon_regs[CAMSYS_SHUTDOWN_EN];
+	regmap_update_bits(preg_gpr->gpr,
+				preg_gpr->reg,
+				preg_gpr->mask,
+				~preg_gpr->mask);
+
+	preg_gpr = &pw_info->u.l3.syscon_regs[CAMSYS_FORCE_SHUTDOWN];
+	regmap_update_bits(preg_gpr->gpr,
+				preg_gpr->reg,
+				preg_gpr->mask,
+				preg_gpr->mask);
 
 	return 0;
 }
