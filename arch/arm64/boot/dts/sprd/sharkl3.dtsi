@@ -967,6 +967,9 @@
 				bus-status0 = <&pmu_apb_regs
 					REG_PMU_APB_BUS_STATUS0
 					0x80000>;
+				aon-apb-mm-eb = <&aon_apb_regs
+					REG_AON_APB_APB_EB0
+					MASK_AON_APB_MM_EB>;
 				init-dis-bits = <&aon_apb_regs
 					REG_AON_APB_AON_CLK_TOP_CFG
 					(MASK_AON_APB_CLK_MM_EMC_EB |
