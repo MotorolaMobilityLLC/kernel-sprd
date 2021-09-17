@@ -217,17 +217,18 @@ static unsigned int get_next_freq(struct sugov_policy *sg_policy,
 	trace_android_vh_map_util_freq(util, freq, max, &next_freq);
 	if (next_freq)
 		freq = next_freq;
-	else
+	else {
 		freq_margin = sg_policy->tunables->freq_margin;
 
-	/*
-	 * freq_margin should be a percentage between -100 and 100.
-	 */
-	if (freq_margin > -100 && freq_margin < 100) {
-		freq_margin = ((int)freq * freq_margin) / 100;
-		freq = div64_u64((u64)((int)freq + freq_margin) * (u64)util, max);
-	} else
-		freq = map_util_freq(util, freq, max);
+		/*
+		 * freq_margin should be a percentage between -100 and 100.
+		 */
+		if (freq_margin > -100 && freq_margin < 100) {
+			freq_margin = ((int)freq * freq_margin) / 100;
+			freq = div64_u64((u64)((int)freq + freq_margin) * (u64)util, max);
+		} else
+			freq = map_util_freq(util, freq, max);
+	}
 
 	trace_sugov_next_freq(policy->cpu, util, max, freq);
 
