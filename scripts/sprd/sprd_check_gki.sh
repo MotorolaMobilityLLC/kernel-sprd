@@ -72,7 +72,7 @@ function do_gki_ckeck() {
 
   echo "========================================================"
   echo "Run check gki script at: ${abipath}/build/check_gki.sh"
-  bash ${abipath}/build/check_gki.sh ${KERNEL_CODE_DIR} ${KERNEL_DIR} "${state}" "${jobs}"
+  bash ${abipath}/build/check_gki.sh ${KERNEL_CODE_DIR} ${KERNEL_DIR} "${state}" "${jobs}" "${BUILD_CONFIG}" "${mode}"
 
   if [ $? -ne 0 ]; then
     let RET_VAL+=2
@@ -222,12 +222,14 @@ fail_usage()
 	exit 1
 }
 
-TEMP=`getopt --options j:,p:,l:,h --longoptions jobs:,cktoolpath:,lto:,help -- "$@"` || fail_usage ""
+TEMP=`getopt --options j:,p:,l:,m:,h --longoptions jobs:,cktoolpath:,lto:,mode:,help -- "$@"` || fail_usage ""
 eval set -- "$TEMP"
 
 jobs=
 abipath=
 state="full"
+mode=""
+BUILD_CONFIG="build.config.gki_unisoc.aarch64"
 while true; do
 	case "$1" in
 	-j|--jobs)
@@ -240,6 +242,10 @@ while true; do
 	;;
 	-l|--lto)
 	state="$2"
+	shift
+	;;
+	-m|--mode)
+	mode="$2"
 	shift
 	;;
 	-h|--help)
