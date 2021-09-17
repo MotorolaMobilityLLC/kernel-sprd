@@ -1774,6 +1774,28 @@ bool sc2355_is_vowifi_pkt(struct sk_buff *skb, bool *b_cmd_path)
 	unsigned char iphdrlen = 0;
 	struct iphdr *iphdr;
 	struct udphdr *udphdr;
+	u32 mark;
+
+	mark = skb->mark & DUAL_VOWIFI_MASK_MARK;
+	pr_info("%s Dual vowifi: mark bits 0x%x\n", __func__, mark);
+	switch (mark) {
+	case DUAL_VOWIFI_NOT_SUPPORT:
+		break;
+	case DUAL_VOWIFI_SIP_MARK:
+	case DUAL_VOWIFI_IKE_MARK:
+		ret = true;
+		(*b_cmd_path) = true;
+		return ret;
+	case DUAL_VOWIFI_VOICE_MARK:
+	case DUAL_VOWIFI_VIDEO_MARK:
+		ret = true;
+		(*b_cmd_path) = false;
+		return ret;
+
+	default:
+		pr_info("Dual vowifi: unexpect mark bits 0x%x\n", skb->mark);
+		break;
+	}
 
 	if (ethhdr->h_proto != htons(ETH_P_IP))
 		return false;
