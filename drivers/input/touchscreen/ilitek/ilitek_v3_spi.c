@@ -568,7 +568,7 @@ static int ilitek_spi_probe(struct spi_device *spi)
 		ILI_ERR("failed to crate lcd device\n");
 		return -ENODEV;
     }
-    if ( NULL == strstr(lcd_name, "ili9883a")) {
+    if (( NULL == strstr(lcd_name, "ili9883a")) && ( NULL == strstr(lcd_name, "ili9882q"))){
 		ILI_ERR("failed to find ilitek device, cmdline=%s\n", lcd_name);
 		return -ENODEV;
     }
