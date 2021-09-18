@@ -253,6 +253,9 @@ static int vendor_compose_iface_st(struct sk_buff *reply,
 		    sizeof(iface_st->info.country_str),
 		    iface_st->info.country_str))
 		goto out_put_fail;
+	if (nla_put_u32(reply, ATTR_LL_STATS_IFACE_INFO_TIME_SLICING_DUTY_CYCLE_PERCENT,
+			iface_st->info.time_slicing_duty_cycle_percent))
+		goto out_put_fail;
 	if (nla_put_u32(reply, ATTR_LL_STATS_IFACE_BEACON_RX,
 			iface_st->beacon_rx))
 		goto out_put_fail;
