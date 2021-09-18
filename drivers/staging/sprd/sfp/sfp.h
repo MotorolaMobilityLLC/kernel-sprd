@@ -141,8 +141,8 @@ struct sfp_entry_info {
 	u16  new_port;
 	u8   nf_flags;
 	/* Get info from routing */
-	u8 in_ifindex;
-	u8 out_ifindex;
+	u16 in_ifindex;
+	u16 out_ifindex;
 };
 
 struct sfp_trans_tuple {
@@ -150,8 +150,8 @@ struct sfp_trans_tuple {
 	struct pkt_tuple_info trans_info;
 	u8 fwd_flags;
 	u32 count;
-	u8 in_ifindex;
-	u8 out_ifindex;
+	u16 in_ifindex;
+	u16 out_ifindex;
 	u8 in_ipaifindex;
 	u8 out_ipaifindex;
 };
@@ -162,8 +162,8 @@ struct sfp_mgr_fwd_tuple {
 	struct pkt_tuple_info orig_info;
 	struct pkt_tuple_info trans_info;
 	u32 count;
-	u8 in_ifindex;
-	u8 out_ifindex;
+	u16 in_ifindex;
+	u16 out_ifindex;
 	u8 in_ipaifindex;
 	u8 out_ipaifindex;
 	/*
@@ -381,8 +381,8 @@ struct sfp_routing_info {
 	u32 src_ip;
 	u32 dst_ip;
 	/* Get info from routing */
-	u8 in_ifindex;
-	u8 out_ifindex;
+	u16 in_ifindex;
+	u16 out_ifindex;
 };
 
 struct sfp_route_entry {
