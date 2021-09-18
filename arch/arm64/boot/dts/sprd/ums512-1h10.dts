@@ -17,7 +17,7 @@
 
 	compatible = "sprd,ums512-1h10", "sprd,ums512";
 
-	sprd,sc-id = <512 1 0x20000>;
+	sprd,sc-id = "ums512 1h10 1000";
 
 	aliases {
 		serial0 = &uart0;
