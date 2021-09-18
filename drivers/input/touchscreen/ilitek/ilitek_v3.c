@@ -693,6 +693,12 @@ int ili_fw_upgrade_handler(void *data)
             snprintf(vendor_name, sizeof(vendor_name), TOUCHSCREEN_ILITEK_MODEL);
             snprintf(version, sizeof(version),"FW:%02x,VID:0x93", fw_ver);
         }
+	else if( NULL != strstr(lcd_name, "ili9882q")){
+	    uint8_t fw_ver = (ilits->chip->fw_ver >> 8) & 0xFF;
+	    snprintf(lcdname, sizeof(lcdname), "%s", "dj-ili9882q");
+	    snprintf(vendor_name, sizeof(vendor_name), "%s", "dj-ili9882q");
+	    snprintf(version, sizeof(version),"FW:%02x,VID:0x94", fw_ver);
+	}
         REGISTER_AND_INIT_ONTIM_DEBUG_FOR_THIS_DEV();
     }
 #endif
@@ -1075,6 +1081,10 @@ static int ilitek_get_tp_module(void)
 	 * TODO: users should implement this function
 	 * if there are various tp modules been used in projects.
 	 */
+	if(strncmp(lcd_name, "lcd_ili9882q_dj_mipi_hd", strlen(lcd_name)) == 0)
+	{
+		return MODEL_DJ1;
+	}
 
 	return 0;
 }
@@ -1148,6 +1158,15 @@ static void ili_update_tp_module_info(void)
 		ilits->md_ini_rq_path = TM_INI_REQUEST_PATH;
 		ilits->md_fw_ili = CTPM_FW_TM;
 		ilits->md_fw_ili_size = sizeof(CTPM_FW_TM);
+		break;
+	case MODEL_DJ1:
+		ilits->md_name = "DJ1";
+		ilits->md_fw_filp_path = DJ_FW_FILP_PATH1;
+		ilits->md_fw_rq_path = DJ_FW_REQUEST_PATH1;
+		ilits->md_ini_path = DJ_INI_NAME_PATH1;
+		ilits->md_ini_rq_path = DJ_INI_REQUEST_PATH;
+		ilits->md_fw_ili = CTPM_FW_DJ1;
+		ilits->md_fw_ili_size = sizeof(CTPM_FW_DJ1);
 		break;
 	default:
 		break;
