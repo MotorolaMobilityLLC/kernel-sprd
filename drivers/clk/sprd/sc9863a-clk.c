@@ -275,10 +275,10 @@ static SPRD_PLL_HW(dpll1, "dpll1", &dpll1_gate.common.hw, 0x18, 3, itable_dpll,
 
 static CLK_FIXED_FACTOR_HW(dpll0_933m, "dpll0-933m", &dpll0.common.hw, 2, 1, 0);
 static CLK_FIXED_FACTOR_HW(dpll0_622m3, "dpll0-622m3", &dpll0.common.hw, 3, 1, 0);
-static CLK_FIXED_FACTOR_HW(dpll1_400m, "dpll1-400m", &dpll0.common.hw, 4, 1, 0);
-static CLK_FIXED_FACTOR_HW(dpll1_266m7, "dpll1-266m7", &dpll0.common.hw, 6, 1, 0);
-static CLK_FIXED_FACTOR_HW(dpll1_123m1, "dpll1-123m1", &dpll0.common.hw, 13, 1, 0);
-static CLK_FIXED_FACTOR_HW(dpll1_50m, "dpll1-50m", &dpll0.common.hw, 32, 1, 0);
+static CLK_FIXED_FACTOR_HW(dpll1_400m, "dpll1-400m", &dpll1.common.hw, 4, 1, 0);
+static CLK_FIXED_FACTOR_HW(dpll1_266m7, "dpll1-266m7", &dpll1.common.hw, 6, 1, 0);
+static CLK_FIXED_FACTOR_HW(dpll1_123m1, "dpll1-123m1", &dpll1.common.hw, 13, 1, 0);
+static CLK_FIXED_FACTOR_HW(dpll1_50m, "dpll1-50m", &dpll1.common.hw, 32, 1, 0);
 
 static struct sprd_clk_common *sc9863a_dpll_clks[] = {
 	/* address base is 0x40363000 */
