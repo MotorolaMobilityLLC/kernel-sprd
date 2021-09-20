@@ -23,6 +23,7 @@ config SPRD_PMIC_SYSCON
 
 source "drivers/soc/sprd/debug/Kconfig"
 source "drivers/soc/sprd/power_debug/Kconfig"
+source "drivers/soc/sprd/power_stat/Kconfig"
 source "drivers/soc/sprd/autotest/Kconfig"
 source "drivers/soc/sprd/domain/Kconfig"
 source "drivers/soc/sprd/modem/Kconfig"

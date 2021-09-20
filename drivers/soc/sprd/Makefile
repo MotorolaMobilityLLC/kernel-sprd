@@ -6,6 +6,7 @@ obj-$(CONFIG_SPRD_TIME_SYNC_CH)	+= sprd_time_sync_ch.o
 obj-$(CONFIG_SPRD_TIME_SYNC_CP) += sprd_time_sync_cp.o
 obj-$(CONFIG_SPRD_DEBUG)	+= debug/
 obj-$(CONFIG_SPRD_POWER_DEBUG)	+= power_debug/
+obj-$(CONFIG_SPRD_POWER_STAT)	+= power_stat/
 obj-y				+= debug/sysdump/
 obj-$(CONFIG_SPRD_HANG_DEBUG)	+= debug/hang_debug/
 obj-y				+= autotest/

@@ -1,0 +1,69 @@
+#
+# SPRD Soc power statistics
+#
+
+menuconfig SPRD_POWER_STAT
+	tristate "Spreadtrum debug power stat output"
+	depends on ARCH_SPRD
+	help
+	  Select this to enable debug power stat driver for sprd soc.
+
+if SPRD_POWER_STAT
+
+config SPRD_POWER_STAT_CORE
+	tristate "driver core for debug power statistics"
+	depends on SPRD_POWER_STAT
+	help
+	  This add the power state core output function for
+	  unisoc paltform.
+
+config SPRD_POWER_STAT_SHARKL6PRO
+	tristate "SharkL6Pro debug power statistics"
+	depends on SPRD_POWER_STAT && SPRD_POWER_STAT_CORE
+	help
+	  This add the power state output function for
+	  sharkl6pro.
+
+config SPRD_POWER_STAT_SHARKL6
+	tristate "SharkL6 debug power statistics"
+	depends on SPRD_POWER_STAT && SPRD_POWER_STAT_CORE
+	help
+	  This add the power state output function for
+	  sharkl6.
+
+config SPRD_POWER_STAT_SHARKL5PRO
+	tristate "SharkL5Pro debug power statistics"
+	depends on SPRD_POWER_STAT && SPRD_POWER_STAT_CORE
+	help
+	  This add the power state output function for
+	  sharkl5pro.
+
+config SPRD_POWER_STAT_SHARKL5
+	tristate "SharkL5 debug power statistics"
+	depends on SPRD_POWER_STAT && SPRD_POWER_STAT_CORE
+	help
+	  This add the power state output function for
+	  sharkl5.
+
+config SPRD_POWER_STAT_SHARKL3
+	tristate "SharkL3 debug power statistics"
+	depends on SPRD_POWER_STAT && SPRD_POWER_STAT_CORE
+	help
+	  This add the power state output function for
+	  sharkl3.
+
+config SPRD_POWER_STAT_SHARKLE
+	tristate "SharkLE debug power statistics"
+	depends on SPRD_POWER_STAT && SPRD_POWER_STAT_CORE
+	help
+	  This add the power state output function for
+	  sharkle.
+
+config SPRD_POWER_STAT_PIKE2
+	tristate "Pike2 debug power statistics"
+	depends on SPRD_POWER_STAT && SPRD_POWER_STAT_CORE
+	help
+	  This add the power state output function for
+	  pike2.
+
+endif #SPRD_POWER_STAT
