@@ -313,12 +313,12 @@ static SPRD_PLL_HW(gpll, "gpll", &gpll_gate.common.hw, 0x48, 3,
 static CLK_FIXED_FACTOR_HW(gpll_42m5, "gpll-42m5", &gpll.common.hw,
 			   20, 1, 0);
 
-static SPRD_PLL_HW(mpll0, "mpll0", &mpll1_gate.common.hw, 0x84, 3,
+static SPRD_PLL_HW(mpll0, "mpll0", &mpll0_gate.common.hw, 0x84, 3,
 		   itable_mpll, f_mpll, 240, 1000, 1000, 1, 1000000000);
 static CLK_FIXED_FACTOR_HW(mpll0_56m25, "mpll0-56m25", &mpll0.common.hw,
 			   32, 1, 0);
 
-static SPRD_PLL_HW(mpll2, "mpll2", &mpll1_gate.common.hw, 0xcc, 3,
+static SPRD_PLL_HW(mpll2, "mpll2", &mpll2_gate.common.hw, 0xcc, 3,
 		   itable_mpll, f_mpll, 240, 1000, 1000, 1, 1000000000);
 static CLK_FIXED_FACTOR_HW(mpll2_46m88, "mpll2-46m88", &mpll2.common.hw,
 			   32, 1, 0);
@@ -707,7 +707,7 @@ static const struct clk_parent_data ufs_pck_parents[] = {
 	{ .hw = &twpll_192m.hw  },
 	{ .hw = &twpll_256m.hw  },
 };
-static SPRD_MUX_CLK_DATA(ufs_pck_clk, "ufs-pck-clk", ufs_tx_rx_parents,
+static SPRD_MUX_CLK_DATA(ufs_pck_clk, "ufs-pck-clk", ufs_pck_parents,
 			 0xa0, 0, 3, UMS9230_MUX_FLAG);
 
 static const struct clk_parent_data vsp_parents[] = {
@@ -1504,8 +1504,7 @@ static const struct clk_parent_data cssys_parents[] = {
 	{ .fw_name = "ext-26m" },
 	{ .fw_name = "rco-100m" },
 	{ .hw = &twpll_153m6.hw  },
-	{ .hw = &twpll_384m.hw  },
-	{ .hw = &twpll_512m.hw  },
+	{ .hw = &twpll_256m.hw  },
 };
 static SPRD_COMP_CLK_DATA(cssys_clk, "cssys-clk", cssys_parents,
 			  0xe0, 0, 3, 8, 2, 0);
@@ -1755,6 +1754,7 @@ static const struct clk_parent_data mm_mtx_parents[] = {
 	{ .hw = &twpll_76m8.hw  },
 	{ .hw = &twpll_128m.hw  },
 	{ .hw = &twpll_256m.hw  },
+	{ .hw = &twpll_307m2.hw  },
 	{ .hw = &twpll_384m.hw  },
 	{ .hw = &isppll_468m.hw  },
 	{ .hw = &twpll_512m.hw  },
