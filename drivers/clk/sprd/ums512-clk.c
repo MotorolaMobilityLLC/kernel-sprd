@@ -235,7 +235,7 @@ static struct clk_bit_field f_mpll2[PLL_FACT_MAX] = {
 	{ .shift = 0,	.width = 0 },	/* prediv	*/
 	{ .shift = 77,	.width = 1 },	/* postdiv	*/
 };
-static SPRD_PLL_HW(mpll0, "mpll0", &mpll1_gate.common.hw, 0x54, 3,
+static SPRD_PLL_HW(mpll0, "mpll0", &mpll0_gate.common.hw, 0x54, 3,
 		   itable_mpll, f_mpll, 240, 1000, 1000, 1, 1200000000);
 static CLK_FIXED_FACTOR_HW(mpll0_56m88, "mpll0-56m88", &mpll0.common.hw,
 			   32, 1, 0);
@@ -245,7 +245,7 @@ static const u64 itable_mpll2[6] = {5,
 			1600000000ULL, 1800000000ULL,
 			2000000000ULL};
 
-static SPRD_PLL_HW(mpll2, "mpll2", &mpll1_gate.common.hw, 0x9c, 3,
+static SPRD_PLL_HW(mpll2, "mpll2", &mpll2_gate.common.hw, 0x9c, 3,
 		   itable_mpll2, f_mpll2, 240, 1000, 1000, 1, 1000000000);
 static CLK_FIXED_FACTOR_HW(mpll2_47m13, "mpll2-47m13", &mpll2.common.hw,
 			   32, 1, 0);
@@ -1772,6 +1772,7 @@ static const struct clk_parent_data mm_mtx_parents[] = {
 	{ .hw = &twpll_76m8.hw  },
 	{ .hw = &twpll_128m.hw  },
 	{ .hw = &twpll_256m.hw  },
+	{ .hw = &twpll_307m2.hw  },
 	{ .hw = &twpll_384m.hw  },
 	{ .hw = &isppll_468m.hw  },
 	{ .hw = &twpll_512m.hw  },
