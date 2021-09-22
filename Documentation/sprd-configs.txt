@@ -17005,6 +17005,15 @@ CONFIG_SPRD_NATIVE_HANG_MONITOR
 	[must] user
 	[missing plat description] none
 	[function] This functio is used to monitor native hang.
+CONFIG_SPRD_NET_HELPER
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
 CONFIG_SPRD_PIKE2_POWER_DEBUG
 	[arch] arm
 	[plat] pike2
