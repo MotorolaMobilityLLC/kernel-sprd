@@ -348,6 +348,13 @@ int wcn_get_btwf_power_status(void)
 	return s_wcn_device.btwf_device->power_state;
 }
 
+int wcn_get_gnss_power_status(void)
+{
+	WCN_INFO("gnss_device power_state:%d\n",
+		 s_wcn_device.gnss_device->power_state);
+	return s_wcn_device.gnss_device->power_state;
+}
+
 int integ_marlin_get_power(void)
 {
 	if (s_wcn_device.gnss_device &&

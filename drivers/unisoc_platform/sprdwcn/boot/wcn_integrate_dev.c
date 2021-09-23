@@ -46,6 +46,7 @@
 #include "wcn_procfs.h"
 #include "../include/wcn_dbg.h"
 #include "wcn_txrx.h"
+#include "wcn_gnss_dump.h"
 
 #define SUFFIX "androidboot.slot_suffix="
 
@@ -1271,6 +1272,7 @@ int wcn_probe(struct platform_device *pdev)
 
 		proc_fs_init();
 		log_dev_init();
+		wcn_gnss_dump_init();
 
 		init_wcn_sysfs();
 		mdbg_atcmd_owner_init();
@@ -1325,6 +1327,7 @@ int wcn_remove(struct platform_device *pdev)
 	if (wcn_dev_is_marlin(wcn_dev)) {
 		loopcheck_deinit();
 		mdbg_atcmd_owner_deinit();
+		wcn_gnss_dump_exit();
 		log_dev_exit();
 		proc_fs_exit();
 		wcn_bus_deinit();

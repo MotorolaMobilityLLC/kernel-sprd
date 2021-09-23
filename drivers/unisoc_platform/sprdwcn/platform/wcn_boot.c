@@ -49,6 +49,7 @@
 #include "mdbg_type.h"
 #include "wcn_glb_reg.h"
 #include "wcn_ca_trusty.h"
+#include "wcn_gnss_dump.h"
 
 #ifdef MODULE_PARAM_PREFIX
 #undef MODULE_PARAM_PREFIX
@@ -2907,7 +2908,7 @@ int marlin_probe(struct platform_device *pdev)
 	err = sprdwcn_bus_preinit();
 	if (err) {
 		pr_err("sprdwcn_bus_preinit error: %d\n", err);
-		goto error3;
+		goto error4;
 	}
 
 	sprdwcn_bus_register_rescan_cb(marlin_scan_finish);
@@ -2929,12 +2930,18 @@ int marlin_probe(struct platform_device *pdev)
 	err = proc_fs_init();
 	if (err) {
 		pr_err("proc_fs_init error: %d\n", err);
-		goto error2;
+		goto error3;
 	}
 
 	err = log_dev_init();
 	if (err) {
 		pr_err("log_dev_init error: %d\n", err);
+		goto error2;
+	}
+
+	err = wcn_gnss_dump_init();
+	if (err) {
+		pr_err("wcn_gnss_dump_init error: %d\n", err);
 		goto error1;
 	}
 
@@ -2964,16 +2971,18 @@ int marlin_probe(struct platform_device *pdev)
 
 	return 0;
 error0:
-	log_dev_exit();
+	wcn_gnss_dump_exit();
 error1:
-	proc_fs_exit();
+	log_dev_exit();
 error2:
+	proc_fs_exit();
+error3:
 	if (g_match_config && !g_match_config->unisoc_wcn_pcie) {
 		mem_pd_exit();
 		sdio_pub_int_deinit();
 	}
 	sprdwcn_bus_deinit();
-error3:
+error4:
 	wcn_bus_deinit();
 	if (g_match_config && g_match_config->unisoc_wcn_slp)
 		slp_mgr_deinit();

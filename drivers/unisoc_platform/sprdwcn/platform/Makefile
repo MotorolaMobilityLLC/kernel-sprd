@@ -36,6 +36,8 @@ marlin-y += wcn_swd_dap.o
 #marlin3:sdio pcie
 MARLINOFILES += wcn_boot.o \
 		wcn_dump.o \
+		wcn_gnss_dump.o \
+		gnss_dump.o \
 		wcn_op.o
 
 marlin-y += mem_pd_mgr.o

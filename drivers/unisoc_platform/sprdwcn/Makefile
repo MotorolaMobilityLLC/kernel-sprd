@@ -4,6 +4,7 @@ subdir-ccflags-y := \
 	-I $(srctree)/$(src)/platform \
 	-I $(srctree)/$(src)/pcie \
 	-I $(srctree)/$(src)/platform/rf \
+	-I $(srctree)/$(src)/platform/gnss \
 	-I $(srctree)/$(src)/sleep \
 	-I $(srctree)/$(src)/sipc
 
@@ -41,6 +42,8 @@ wcn_bsp-y += platform/wcn_dump_integrate.o
 wcn_bsp-y += platform/wcn_boot.o
 wcn_bsp-y += platform/gnss/gnss.o
 wcn_bsp-y += platform/wcn_dump.o
+wcn_bsp-y += platform/gnss_dump.o
+wcn_bsp-y += platform/wcn_gnss_dump.o
 wcn_bsp-y += platform/wcn_swd_dap.o
 wcn_bsp-y += platform/mem_pd_mgr.o
 wcn_bsp-y += platform/wcn_debugfs.o

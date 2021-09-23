@@ -9,14 +9,13 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU General Public License for more details.
  */
+#ifndef __WCN_GNSS_DUMP_H__
+#define __WCN_GNSS_DUMP_H__
 
-#ifndef _WCN_DUMP_H
-#define _WCN_DUMP_H
-
-int mdbg_dump_mem(void);
-int dump_arm_reg(void);
-void sprdwcn_bus_armreg_write(unsigned int reg_index, unsigned int value);
-int gnss_dump_data(void *start_addr, int len);
-void gnss_dump_str(char *str, int str_len);
+void gnss_ring_reset(void);
+unsigned long gnss_ring_free_space(void);
+int gnss_dump_write(char *buf, int len);
+int wcn_gnss_dump_init(void);
+void wcn_gnss_dump_exit(void);
 
 #endif

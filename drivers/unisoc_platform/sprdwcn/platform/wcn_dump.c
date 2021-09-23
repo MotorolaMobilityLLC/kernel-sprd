@@ -19,10 +19,11 @@
 #include "wcn_txrx.h"
 #include "wcn_log.h"
 #include "wcn_swd_dap.h"
-
 #include "../include/wcn_glb_reg.h"
 #include "mdbg_type.h"
 #include "../include/wcn_dbg.h"
+#include "gnss_dump.h"
+#include "wcn_gnss_dump.h"
 
 #define DUMP_PACKET_SIZE		(32 * 1024)
 
@@ -192,6 +193,41 @@ static int mdbg_dump_data(unsigned int start_addr,
 	}
 
 out:
+	kfree(buf);
+
+	return count;
+}
+
+int gnss_dump_data(void *start_addr, int len)
+{
+	char *buf, *temp_buf;
+	int count, trans_size;
+
+	if (len == 0)
+		return 0;
+
+	buf = kmalloc(DUMP_PACKET_SIZE, GFP_KERNEL);
+	temp_buf = buf;
+	if (!buf)
+		return -ENOMEM;
+
+	count = 0;
+	while (count < len) {
+		trans_size = (len - count) > DUMP_PACKET_SIZE ?
+			DUMP_PACKET_SIZE : (len - count);
+		temp_buf = buf;
+		memcpy(buf, start_addr+count, trans_size);
+		while (gnss_ring_free_space() - 1 == 0) {
+			WCN_ERR("no space to write mem,sleep...\n");
+			msleep(20);
+		}
+		WCN_INFO("gnss_dump_write:%d", trans_size);
+		gnss_dump_write(temp_buf, trans_size);
+		if (trans_size >= 0x4000) {
+			msleep(10);
+		}
+		count += trans_size;
+	}
 	kfree(buf);
 
 	return count;
@@ -463,6 +499,18 @@ static void mdbg_dump_str(char *str, int str_len)
 
 	mdbg_ring_write(mdbg_dev->ring_dev->ring, str, str_len);
 	wake_up_log_wait();
+	WCN_INFO("dump str finish!");
+}
+
+void gnss_dump_str(char *str, int str_len)
+{
+	mm_segment_t fs;
+	if (!str)
+		return;
+	fs = get_fs();
+	set_fs(KERNEL_DS);
+	gnss_dump_write(str, str_len);
+	set_fs(fs);
 	WCN_INFO("dump str finish!");
 }
 
@@ -1542,10 +1590,11 @@ next:
 	WCN_INFO("mdbg dump bt_bb_rx_buf %ld ok!\n", count);
 #endif
 
+	/* dump gnss */
+	gnss_dump_mem(0);
 end:
 	/* Make sure only string "marlin_memdump_finish" to slog one time */
 	msleep(40);
-
 	mdbg_dump_str(WCN_DUMP_END_STRING, strlen(WCN_DUMP_END_STRING));
 	WCN_INFO("mdbg dump memory finish\n");
 #ifdef WCN_RDCDBG
