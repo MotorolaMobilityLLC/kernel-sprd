@@ -241,8 +241,8 @@ static void gnss_tsen_disable(int type)
 
 static void gnss_tcxo_enable(void)
 {
-	u32 val_buf;
-	u32 val_ctl;
+	u32 val_buf = 0;
+	u32 val_ctl = 0;
 	struct device *dev = gnss_common_ctl_dev.dev;
 
 	dev_err(dev, "%s M3l=[%d],L6=[%d]\n", __func__, isM3lite(), isQogirl6());
@@ -273,8 +273,8 @@ static void gnss_tcxo_enable(void)
 }
 static void gnss_tcxo_disable(void)
 {
-	u32 val_buf;
-	u32 val_ctl;
+	u32 val_buf = 0;
+	u32 val_ctl = 0;
 	struct device *dev = gnss_common_ctl_dev.dev;
 
 	dev_err(dev, "%s M3l=[%d],L6=[%d]\n", __func__, isM3lite(), isQogirl6());
