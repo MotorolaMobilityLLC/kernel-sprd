@@ -848,21 +848,6 @@
 			#size-cells = <2>;
 			ranges;
 
-			sdio0: sdio@71100000 {
-				compatible = "sprd,sdhci-r11";
-				reg = <0 0x71100000 0 0x1000>;
-				interrupts = <GIC_SPI 19 IRQ_TYPE_LEVEL_HIGH>;
-				clock-names = "sdio", "enable";
-				clocks = <&ap_clk CLK_SDIO0_2X>,
-					 <&apapb_gate CLK_SDIO0_EB>;
-				assigned-clocks = <&ap_clk CLK_SDIO0_2X>;
-				assigned-clock-parents = <&pll1 CLK_RPLL>;
-
-				bus-width = <4>;
-				no-sdio;
-				no-mmc;
-			};
-
 			sdio3: sdio@71400000 {
 				compatible = "sprd,sdhci-r11";
 				reg = <0 0x71400000 0 0x1000>;
@@ -878,6 +863,21 @@
 				no-sdio;
 				no-sd;
 				cap-mmc-hw-reset;
+			};
+
+			sdio0: sdio@71100000 {
+				compatible = "sprd,sdhci-r11";
+				reg = <0 0x71100000 0 0x1000>;
+				interrupts = <GIC_SPI 19 IRQ_TYPE_LEVEL_HIGH>;
+				clock-names = "sdio", "enable";
+				clocks = <&ap_clk CLK_SDIO0_2X>,
+					 <&apapb_gate CLK_SDIO0_EB>;
+				assigned-clocks = <&ap_clk CLK_SDIO0_2X>;
+				assigned-clock-parents = <&pll1 CLK_RPLL>;
+
+				bus-width = <4>;
+				no-sdio;
+				no-mmc;
 			};
 		};
 
