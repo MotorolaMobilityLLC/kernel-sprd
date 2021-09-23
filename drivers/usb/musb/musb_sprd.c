@@ -510,38 +510,6 @@ static void musb_sprd_detect_cable(struct sprd_glue *glue)
 	spin_unlock_irqrestore(&glue->lock, flags);
 }
 
-static int musb_sprd_resume_child(struct device *dev, void *data)
-{
-	int ret;
-
-	ret = pm_runtime_get_sync(dev);
-	if (ret) {
-		dev_err(dev, "musb child device enters resume failed!!!\n");
-		return ret;
-	}
-
-	return 0;
-}
-
-static int musb_sprd_suspend_child(struct device *dev, void *data)
-{
-	int ret, cnt = 300;
-
-	ret = pm_runtime_put_sync(dev);
-	if (ret)
-		dev_err(dev, "enters suspend failed, ret = %d\n", ret);
-
-	while (!pm_runtime_suspended(dev) && --cnt > 0)
-		msleep(200);
-
-	if (cnt <= 0) {
-		dev_err(dev, "musb child device enters suspend failed!!!\n");
-		return -EAGAIN;
-	}
-
-	return 0;
-}
-
 static bool musb_sprd_is_connect_host(struct sprd_glue *glue)
 {
 	struct usb_phy *usb_phy = glue->xceiv;
@@ -645,7 +613,7 @@ static void sprd_musb_work(struct work_struct *work)
 #endif
 
 	glue->dr_mode = current_mode;
-	dev_dbg(glue->dev, "%s enter: vbus = %d mode = %d\n",
+	dev_dbg(musb->controller, "%s enter: vbus = %d mode = %d\n",
 			__func__, current_state, current_mode);
 
 	disable_irq_nosync(glue->vbus_irq);
@@ -675,14 +643,15 @@ static void sprd_musb_work(struct work_struct *work)
 			goto end;
 		}
 		cnt = 100;
-		while (!pm_runtime_suspended(glue->dev)
+		while (!pm_runtime_suspended(musb->controller)
 			&& (--cnt > 0))
 			msleep(200);
 
 		if (cnt <= 0) {
 			glue->dr_mode = USB_DR_MODE_UNKNOWN;
-			dev_err(glue->dev,
-			"Wait for musb core enter suspend failed!\n");
+			glue->vbus = NULL;
+			dev_err(musb->controller,
+				"Wait for musb controller enter suspend failed!\n");
 			goto end;
 		}
 
@@ -711,31 +680,14 @@ static void sprd_musb_work(struct work_struct *work)
 			}
 		}
 
-		ret = pm_runtime_get_sync(glue->dev);
+		ret = pm_runtime_get_sync(musb->controller);
 		if (ret) {
-			spin_lock_irqsave(&glue->lock, flags);
-			glue->dr_mode = USB_DR_MODE_UNKNOWN;
-			spin_unlock_irqrestore(&glue->lock, flags);
-			dev_err(glue->dev, "Resume sprd_musb device failed!\n");
-			goto end;
-		}
-
-		ret = device_for_each_child(glue->dev, NULL,
-			musb_sprd_resume_child);
-		if (ret) {
-			pm_runtime_put_sync(glue->dev);
-			spin_lock_irqsave(&glue->lock, flags);
-			glue->dr_mode = USB_DR_MODE_UNKNOWN;
-			spin_unlock_irqrestore(&glue->lock, flags);
-			dev_err(glue->dev, "Resume sprd_musb core failed!\n");
-			goto end;
+			dev_err(musb->controller,
+				"musb controller pm_runtime_get_sync failed with %d.\n", ret);
 		}
 
 		ret = musb_reset_all_fifo_2_default(musb);
 		if (ret) {
-			device_for_each_child(glue->dev, NULL,
-				      musb_sprd_suspend_child);
-			pm_runtime_put_sync(glue->dev);
 			spin_lock_irqsave(&glue->lock, flags);
 			glue->dr_mode = USB_DR_MODE_UNKNOWN;
 			spin_unlock_irqrestore(&glue->lock, flags);
@@ -765,12 +717,13 @@ static void sprd_musb_work(struct work_struct *work)
 		charging_only = glue->charging_mode;
 		spin_unlock_irqrestore(&glue->lock, flags);
 		usb_gadget_set_state(&musb->g, USB_STATE_NOTATTACHED);
-		if (charging_only || pm_runtime_suspended(glue->dev)) {
+		if (charging_only || pm_runtime_suspended(musb->controller)) {
 			glue->dr_mode = USB_DR_MODE_UNKNOWN;
 			dev_info(glue->dev,
 					"musb device had been in suspend status!\n");
 			goto end;
 		}
+
 		if (glue->dr_mode == USB_DR_MODE_PERIPHERAL) {
 			u8 devctl = musb_readb(musb->mregs, MUSB_DEVCTL);
 
@@ -794,19 +747,10 @@ static void sprd_musb_work(struct work_struct *work)
 		musb->shutdowning = 0;
 		musb->offload_used = 0;
 
-		ret = device_for_each_child(glue->dev, NULL,
-					musb_sprd_suspend_child);
-		if (ret) {
-			dev_err(glue->dev, "musb core suspend failed!\n");
-			goto end;
-		}
-
 		MUSB_DEV_MODE(musb);
-		ret = pm_runtime_put_sync(glue->dev);
-		if (ret) {
-			dev_err(glue->dev, "musb sprd suspend failed!\n");
-			goto end;
-		}
+		pm_runtime_mark_last_busy(musb->controller);
+		ret = pm_runtime_put_autosuspend(musb->controller);
+
 		if (!charging_only && !(glue->power_always_on &&
 		    glue->dr_mode == USB_DR_MODE_HOST))
 			__pm_relax(glue->wake_lock);
