@@ -89,6 +89,11 @@ modules := $(sort $(shell cat $(MODORDER)))
 modpost-ext = $(if $(CONFIG_LTO_CLANG),.lto,)
 
 ifdef CONFIG_LTO_CLANG
+ifneq ($(CONFIG_FRAME_WARN),0)
+ld_flags += -plugin-opt=-warn-stack-size=$(CONFIG_FRAME_WARN)
+ld_flags += -fatal-warnings
+endif
+
 quiet_cmd_cc_lto_link_modules = LTO [M] $@
 cmd_cc_lto_link_modules =						\
 	$(LD) $(ld_flags) -r -o $(@)					\
