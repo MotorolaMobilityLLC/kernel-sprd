@@ -582,6 +582,19 @@
 	cd-gpios = <&eic_sync 35 GPIO_ACTIVE_HIGH>;
 };
 
+&sdio1 {
+	sprd,phy-delay-sd-uhs-sdr104 = <0x7f 0x7f 0x7f 0x7f>;
+	sprd,phy-delay-sd-uhs-sdr50 = <0x7f 0x7f 0x8f 0x8f>;
+	sd-uhs-sdr104;
+	sd-uhs-sdr50;
+	bus-width = <4>;
+	sprd,name = "sdio_wifi";
+	sprd,sdio-adma;
+	no-sd;
+	no-mmc;
+	status = "okay";
+};
+
 &ufs {
 	status = "okay";
 };
