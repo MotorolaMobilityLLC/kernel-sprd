@@ -19996,6 +19996,15 @@ CONFIG_WQ_POWER_EFFICIENT_DEFAULT
 	[must] user
 	[missing plat description] none
 	[function] power efficient work queue
+CONFIG_WRITEBACK_SWAPCACHE
+	[arch] arm64
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
+	[field] mm
+	[subsys] swap
+	[must] user
+	[missing plat description] none
+	[function] write back swap cache
 CONFIG_X509_CERTIFICATE_PARSER
 	[arch] all
 	[plat] all
