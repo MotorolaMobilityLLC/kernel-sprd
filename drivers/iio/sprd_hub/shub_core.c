@@ -1252,7 +1252,7 @@ static int shub_save_als_cali_data(struct shub_data *sensor,
 	return 0;
 }
 
-static int set_als_calib_cmd(struct shub_data *sensor, u8 cmd, u8 id)
+static int set_als_calib_cmd(struct shub_data *sensor)
 {
 	int err, i, average_als, als_cali_coef, status;
 	u8 data[2];
@@ -1264,17 +1264,20 @@ static int set_als_calib_cmd(struct shub_data *sensor, u8 cmd, u8 id)
 		err = shub_sipc_read(sensor, SHUB_GET_LIGHT_RAWDATA_SUBTYPE,
 				     data, sizeof(data));
 		if (err < 0) {
-			pr_err("read RegMapR_GetLightRawData failed!\n");
+			dev_err(&sensor->sensor_pdev->dev,
+				 "read RegMapR_GetLightRawData failed!\n");
 			return err;
 		}
 		/*sleep for light senor collect data every 100ms*/
 		msleep(100);
-		pr_debug("shub_sipc_read: ptr[0] = %d\n", ptr[0]);
+		dev_info(&sensor->sensor_pdev->dev,
+			 "shub_sipc_read: ptr[0] = %d\n", ptr[0]);
 		light_sum += ptr[0];
 	}
 	average_als = light_sum / LIGHT_CALI_DATA_COUNT;
-	pr_info("light sensor cali light_sum:%d, average_als = %d\n",
-		light_sum, average_als);
+	dev_info(&sensor->sensor_pdev->dev,
+		 "light sensor cali light_sum:%d, average_als = %d\n",
+		 light_sum, average_als);
 
 	if (average_als < LIGHT_SENSOR_MIN_VALUE ||
 	    average_als > LIGHT_SENSOR_MAX_VALUE) {
@@ -1288,7 +1291,8 @@ static int set_als_calib_cmd(struct shub_data *sensor, u8 cmd, u8 id)
 
 	err = shub_save_als_cali_data(sensor, als_data, sizeof(als_data));
 	if (err < 0) {
-		pr_err("Save Light Sensor CalibratorData Fail\n");
+		dev_err(&sensor->sensor_pdev->dev,
+			 "Save Light Sensor CalibratorData Fail\n");
 		return err;
 	}
 
@@ -1296,77 +1300,34 @@ static int set_als_calib_cmd(struct shub_data *sensor, u8 cmd, u8 id)
 				SHUB_SET_CALIBRATION_DATA_SUBTYPE,
 				als_data, CALIBRATION_DATA_LENGTH);
 	if (err < 0) {
-		pr_err("Write Light Sensor CalibratorData Fail\n");
+		dev_err(&sensor->sensor_pdev->dev,
+			 "Write Light Sensor CalibratorData Fail\n");
 		return err;
 	}
-	pr_debug("Light Sensor Calibrator status = %d\n", status);
+	dev_info(&sensor->sensor_pdev->dev,
+		 "Light Sensor Calibrator status = %d\n", status);
 
 	return status;
-}
-
-static ssize_t light_sensor_calibrator_store(struct device *dev,
-					     struct device_attribute *attr,
-					     const char *buf, size_t count)
-{
-	struct shub_data *sensor = dev_get_drvdata(dev);
-	int err, len;
-
-	if (sensor->mcu_mode <= SHUB_OPDOWNLOAD) {
-		pr_err("mcu_mode == SHUB_BOOT!\n");
-		return -EINVAL;
-	}
-
-	len = sscanf(buf, "%d %d\n", &sensor->cal_cmd, &sensor->cal_id);
-	if (len < 2)
-		return -EINVAL;
-	pr_debug("id:%d,type:%d\n", sensor->cal_cmd, sensor->cal_id);
-	if (sensor->cal_cmd != CALIB_DATA_WRITE ||
-	    sensor->cal_id != SENSOR_TYPE_LIGHT) {
-		pr_err("light sensor cali cmd error\n");
-		return -EINVAL;
-	}
-
-	err = set_als_calib_cmd(sensor, sensor->cal_cmd, sensor->cal_id);
-	if (err < 0)
-		pr_err("light sensor cali Fail!\n");
-
-	return err < 0 ? err : count;
 }
 
 static ssize_t light_sensor_calibrator_show(struct device *dev,
 					    struct device_attribute *attr,
 					    char *buf)
 {
-	int err, cali_data_coef;
-	int status = CALIB_STATUS_NON;
-	const struct firmware *fw_cali_data;
 	struct shub_data *sensor = dev_get_drvdata(dev);
+	int als_calib_result;
 
-	dev_info(&sensor->sensor_pdev->dev, "%s sensor_type = %d start\n",
-		 __func__, sensor->cal_id);
-	err = request_firmware(&fw_cali_data,
-			       calibration_filename[sensor->cal_id],
-			       &sensor->sensor_pdev->dev);
-	if (err) {
-		dev_err(&sensor->sensor_pdev->dev,
-			"Failed to load firmware data: %s, %d\n",
-			calibration_filename[sensor->cal_id], err);
-		return err;
+	als_calib_result = set_als_calib_cmd(sensor);
+	dev_info(&sensor->sensor_pdev->dev,
+		 "%s light_calibration status: %d\n", __func__, als_calib_result);
+	if (als_calib_result == CALIB_STATUS_PASS &&
+	    sensor->cali_store.type == SENSOR_TYPE_LIGHT) {
+		memcpy(buf, sensor->cali_store.udata, CALIBRATION_DATA_LENGTH);
 	}
 
-	memcpy(&cali_data_coef, fw_cali_data->data, sizeof(cali_data_coef));
-	dev_info(&sensor->sensor_pdev->dev,
-		 "cali_data_coef = %d\n", cali_data_coef);
-	if (cali_data_coef < 0)
-		status = CALIB_STATUS_FAIL;
-	else
-		status = CALIB_STATUS_PASS;
-
-	release_firmware(fw_cali_data);
-
-	return sprintf(buf, "%d\n", status);
+	return als_calib_result < 0 ? -EINVAL : CALIBRATION_DATA_LENGTH;
 }
-static DEVICE_ATTR_RW(light_sensor_calibrator);
+static DEVICE_ATTR_RO(light_sensor_calibrator);
 
 static ssize_t calibrator_cmd_show(struct device *dev,
 				   struct device_attribute *attr, char *buf)
@@ -1437,7 +1398,6 @@ static char *get_sensor_cali_data_ptr(int sensor_type)
 	return data;
 }
 
-
 static ssize_t calibrator_data_show(struct device *dev,
 				    struct device_attribute *attr, char *buf)
 {
@@ -1448,11 +1408,6 @@ static ssize_t calibrator_data_show(struct device *dev,
 	if (sensor->mcu_mode <= SHUB_OPDOWNLOAD) {
 		dev_err(&sensor->sensor_pdev->dev, "mcu_mode == SHUB_BOOT!\n");
 		return -EINVAL;
-	}
-
-	if (sensor->cal_id == SENSOR_TYPE_LIGHT) {
-		memcpy(buf, sensor->cali_store.udata, CALIBRATION_DATA_LENGTH);
-		return CALIBRATION_DATA_LENGTH;
 	}
 
 	memset(sensor->cali_store.udata, 0x00, CALIBRATION_DATA_LENGTH);
