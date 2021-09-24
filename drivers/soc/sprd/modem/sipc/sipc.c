@@ -284,7 +284,7 @@ static void __exit sprd_ipc_exit(void)
 	platform_driver_unregister(&sprd_ipc_driver);
 }
 
-late_initcall_sync(sprd_ipc_init);
+subsys_initcall_sync(sprd_ipc_init);
 module_exit(sprd_ipc_exit);
 
 MODULE_AUTHOR("Wenping Zhou <wenping.zhou@unisoc.com>");

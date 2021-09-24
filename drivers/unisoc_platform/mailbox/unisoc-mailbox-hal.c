@@ -5,6 +5,8 @@
  * Copyright (c) 2020 Spreadtrum Communications Inc.
  */
 #include <linux/debugfs.h>
+#include <linux/mfd/syscon.h>
+#include <linux/regmap.h>
 #include <linux/kthread.h>
 #include "unisoc-mailbox.h"
 
@@ -14,6 +16,12 @@ struct sprd_mbox_tx_data {
 	u64 fifo[SPRD_MBOX_TX_FIFO_LEN];
 	u32 wt_cnt;
 	u32 rd_cnt;
+};
+
+struct sprd_mbox_ctrl_reg {
+	struct regmap *regmap;
+	u32 addr;
+	u32 mask;
 };
 
 static int chan_num;
@@ -26,6 +34,8 @@ static wait_queue_head_t deliver_thread_wait;
 
 static spinlock_t mbox_lock;
 static spinlock_t outbox_lock;
+
+static struct sprd_mbox_ctrl_reg reg_ctrl;
 
 #if defined(CONFIG_DEBUG_FS)
 static int sprd_mbox_debug_open(struct inode *inode, struct file *file)
@@ -230,7 +240,7 @@ static void sprd_mbox_shutdown(struct mbox_chan *chan)
 static const struct mbox_chan_ops sprd_mbox_ops = {
 	.send_data	= sprd_mbox_send_data,
 	.flush		= sprd_mbox_flush,
-	.startup		= sprd_mbox_startup,
+	.startup	= sprd_mbox_startup,
 	.shutdown	= sprd_mbox_shutdown,
 };
 
@@ -238,7 +248,10 @@ static void sprd_mbox_disable(void *data)
 {
 	struct sprd_mbox_priv *priv = data;
 
-	clk_disable_unprepare(priv->clk);
+	if (reg_ctrl.regmap == NULL)
+		return;
+	regmap_update_bits(reg_ctrl.regmap, reg_ctrl.addr, reg_ctrl.mask, 0);
+	dev_info(priv->dev, "mailbox disabled.\n");
 }
 
 static int sprd_mbox_request_irq(struct sprd_mbox_priv *priv)
@@ -289,23 +302,26 @@ static int sprd_mbox_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
 	struct sprd_mbox_priv *priv;
+	struct regmap *regmap = NULL;
+	struct device_node *np = pdev->dev.of_node;
 	int ret;
 	unsigned long id;
+	u32 out_args[2];
 
 	priv = devm_kzalloc(dev, sizeof(*priv), GFP_KERNEL);
 	if (!priv)
 		return -ENOMEM;
 
 	priv->dev = dev;
-	priv->clk = devm_clk_get(dev, "enable");
-	if (IS_ERR(priv->clk)) {
+	regmap = syscon_regmap_lookup_by_phandle_args(np, "sprd,mailbox_clk", 2, out_args);
+	if (IS_ERR(regmap)) {
 		dev_err(dev, "failed to get mailbox clock\n");
-		return PTR_ERR(priv->clk);
+		return -EINVAL;
 	}
-	/* Enable mailbox clock */
-	ret = clk_prepare_enable(priv->clk);
-	if (ret)
-		return ret;
+	regmap_update_bits(regmap, out_args[0], out_args[1], out_args[1]);
+	reg_ctrl.regmap = regmap;
+	reg_ctrl.addr = out_args[0];
+	reg_ctrl.mask = out_args[1];
 
 #if defined CONFIG_UNISOC_MAILBOX_R1
 	ret = sprd_mbox_phy_r1_init(priv);
@@ -384,7 +400,12 @@ static struct platform_driver sprd_mbox_driver = {
 	},
 	.probe	= sprd_mbox_probe,
 };
-module_platform_driver(sprd_mbox_driver);
+
+static int __init sprd_mbox_init(void)
+{
+	return platform_driver_register(&sprd_mbox_driver);
+}
+subsys_initcall(sprd_mbox_init);
 
 MODULE_AUTHOR("Magnum.Shan <magnum.shan@unisoc.com>");
 MODULE_DESCRIPTION("Unisoc mailbox driver");

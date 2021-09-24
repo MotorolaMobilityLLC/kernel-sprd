@@ -65,7 +65,18 @@ static struct platform_driver sprd_sipc_virt_bus_driver = {
 	.probe	= sprd_sipc_virt_bus_probe,
 };
 
-module_platform_driver(sprd_sipc_virt_bus_driver);
+static int __init sprd_sipc_virt_bus_init(void)
+{
+	return platform_driver_register(&sprd_sipc_virt_bus_driver);
+}
+
+static void __exit sprd_sipc_virt_bus_exit(void)
+{
+	platform_driver_unregister(&sprd_sipc_virt_bus_driver);
+}
+
+arch_initcall(sprd_sipc_virt_bus_init);
+module_exit(sprd_sipc_virt_bus_exit);
 
 MODULE_AUTHOR("Haidong Yao <haidong.yao@unisoc.com>");
 MODULE_DESCRIPTION("Spreadtrum sipc virt bus driver");
