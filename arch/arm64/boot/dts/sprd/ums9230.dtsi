@@ -731,9 +731,8 @@
 	};
 
 	ddr_dfs: scene-frequency {
-		compatible = "sprd,dfs";
+		compatible = "sprd,ddr-dvfs";
 		freq-num = <8>;
-		backdoor = <1866>;
 	};
 };
 
