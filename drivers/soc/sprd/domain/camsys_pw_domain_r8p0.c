@@ -35,6 +35,7 @@ static const char * const syscon_name[] = {
 	"force_shutdown",
 	"shutdown_en", /* clear */
 	"power_state",/* on: 0; off:7 */
+	"aon_apb_mm_eb",
 };
 
 #define PD_MM_DOWN_FLAG    0x7
@@ -46,6 +47,7 @@ enum  {
 	FORCE_SHUTDOWN = 0,
 	SHUTDOWN_EN,/*auto shutdown_en*/
 	PWR_DGB_6, /*status dbg 6*/
+	CAMSYS_MM_EB,
 };
 
 struct register_gpr {
@@ -213,6 +215,15 @@ static int sprd_campw_init(struct platform_device *pdev)
 			pw_info->regs[i].reg,
 			pw_info->regs[i].mask);
 	}
+
+	//fix bug 1703277
+	regmap_update_bits_mmsys(&pw_info->regs[CAMSYS_MM_EB],
+			0);
+	regmap_update_bits_mmsys(&pw_info->regs[SHUTDOWN_EN],
+			0);
+	regmap_update_bits_mmsys(&pw_info->regs[FORCE_SHUTDOWN],
+			~((uint32_t)0));
+	pr_info("mm_eb off & cam domain force shutdown\n");
 
 	mutex_init(&pw_info->mlock);
 	atomic_set(&pw_info->inited, 1);
