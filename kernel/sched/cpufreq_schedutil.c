@@ -882,15 +882,12 @@ static void sugov_slack_timer(struct timer_list *t)
 	if (policy->cur == policy->min)
 		return;
 
-	if (!raw_spin_trylock(&sg_policy->update_lock))
-		return;
-
 	sg_policy->cached_raw_freq = UINT_MAX;
 	sg_policy->next_freq = policy->min;
 
 	if (policy->fast_switch_enabled) {
 		if (!cpufreq_driver_fast_switch(policy, sg_policy->next_freq))
-			goto unlock;
+			return;
 
 		policy->cur = sg_policy->next_freq;
 		if (trace_cpu_frequency_enabled()) {
@@ -904,10 +901,8 @@ static void sugov_slack_timer(struct timer_list *t)
 		 * immediately.
 		 */
 		sg_policy->work_in_progress = true;
-		irq_work_queue(&sg_policy->irq_work);
+		kthread_queue_work(&sg_policy->worker, &sg_policy->work);
 	}
-unlock:
-	raw_spin_unlock(&sg_policy->update_lock);
 }
 
 static void sugov_set_freq_margin(struct timer_list *t)
