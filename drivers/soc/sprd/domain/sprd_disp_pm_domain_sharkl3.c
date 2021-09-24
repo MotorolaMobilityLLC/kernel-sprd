@@ -73,19 +73,33 @@ static int sprd_disp_power_off(struct generic_pm_domain *domain)
 	return 0;
 }
 
+static bool cali_mode_check(const char *str)
+{
+	struct device_node *cmdline_node;
+	const char *cmd_line;
+	int rc;
+
+	cmdline_node = of_find_node_by_path("/chosen");
+	rc = of_property_read_string(cmdline_node, "bootargs", &cmd_line);
+	if (rc)
+		return false;
+
+	if (!strstr(cmd_line, str))
+		return false;
+
+	return true;
+}
+
 static int sprd_disp_pm_domain_probe(struct platform_device *pdev)
 {
 	struct disp_pm_domain *pd;
 	struct device_node *np = pdev->dev.of_node;
 	unsigned int syscon_args[2];
+	bool cali_mode;
 
 	pd = devm_kzalloc(&pdev->dev, sizeof(*pd), GFP_KERNEL);
 	if (!pd)
 		return -ENOMEM;
-
-	pd->pd.name = kstrdup(np->name, GFP_KERNEL);
-	pd->pd.power_off = sprd_disp_power_off;
-	pd->pd.power_on = sprd_disp_power_on;
 
 	pd->regmap = syscon_regmap_lookup_by_phandle_args(np,
 			"disp-power", 2, syscon_args);
@@ -96,6 +110,23 @@ static int sprd_disp_pm_domain_probe(struct platform_device *pdev)
 		pd->ctrl_reg = syscon_args[0];
 		pd->ctrl_mask = syscon_args[1];
 	}
+
+	/* Workaround:
+	 * When enter Cali mode, need to power off the disp manually.
+	 */
+	cali_mode = cali_mode_check("androidboot.mode=cali");
+	if (cali_mode) {
+		regmap_update_bits(pd->regmap,
+		    pd->ctrl_reg,
+		    pd->ctrl_mask,
+		    pd->ctrl_mask);
+
+		pr_info("Calibration Mode! disp power domain off\n");
+	}
+
+	pd->pd.name = kstrdup(np->name, GFP_KERNEL);
+	pd->pd.power_off = sprd_disp_power_off;
+	pd->pd.power_on = sprd_disp_power_on;
 
 	pm_genpd_init(&pd->pd, NULL, true);
 	of_genpd_add_provider_simple(np, &pd->pd);
