@@ -85,6 +85,9 @@ struct completion ge2_completion;
 static int first_call_flag = 1;
 static struct marlin_device *marlin_dev;
 struct sprdwcn_gnss_ops *gnss_ops;
+static struct completion find_tsx_completion;
+static const struct firmware *tsx_firmware;
+static bool is_tsx_found = true;
 
 unsigned char  flag_reset;
 char functionmask[8];
@@ -304,27 +307,47 @@ const char *strno(enum wcn_sub_sys subsys)
 /* #undef E2S */
 }
 
+static void request_firmware_find_tsx_func(struct work_struct *work)
+{
+	int ret = 0;
+
+	is_tsx_found = false;
+	ret = request_firmware(&tsx_firmware, "tsx_data", NULL);
+	if (!ret)
+		is_tsx_found = true;
+
+	complete(&find_tsx_completion);
+}
+
 /* tsx/dac init */
 int marlin_tsx_cali_data_read(struct tsx_data *p_tsx_data)
 {
 	u32 size = 0;
 	char *pdata;
-	const struct firmware *firmware;
-	u32 ret = 0;
+	int timeleft = 0;
+	struct work_struct find_tsx_wq;
 
-	ret = request_firmware(&firmware, "tsx_data", NULL);
-	if (ret != 0) {
-		pr_err("tsx_data not found\n");
-		return ret;
+	init_completion(&find_tsx_completion);
+	INIT_WORK(&find_tsx_wq, request_firmware_find_tsx_func);
+	schedule_work(&find_tsx_wq);
+
+	timeleft = wait_for_completion_timeout(&find_tsx_completion, msecs_to_jiffies(5000));
+	if (!timeleft) {
+		pr_err("find tsx_data timeout\n");
+		return -1;
+	}
+	if (!is_tsx_found) {
+		pr_err("file /mnt/vendor/productinfo/wcn/tsx_bt_data.txt not found\n");
+		return -1;
 	}
 
-	pr_info("open symlink successfully, size: %ld, data: %s\n", firmware->size, firmware->data);
-	/* copy firmware->data to buffer */
+	pr_info("open tsx_data success, size: %ld, data: %s\n", tsx_firmware->size, tsx_firmware->data);
+	/* copy tsx_firmware->data to buffer */
 	size = sizeof(struct tsx_data);
 	pdata = (char *)p_tsx_data;
-	strncpy(pdata, firmware->data, size);
+	strncpy(pdata, tsx_firmware->data, size);
 
-	release_firmware(firmware);
+	release_firmware(tsx_firmware);
 	pr_info("read tsx cali, pdata = %p, p_tsx_data->dac = %02x\n", pdata,
 			 p_tsx_data->dac);
 
