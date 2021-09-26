@@ -132,10 +132,6 @@ static void marlin_write_cali_data(void)
 	phys_addr_t phy_addr;
 	u32 cali_flag;
 
-	/* get cali para from RF */
-	get_connectivity_config_param(&wifi_data.config_data);
-	get_connectivity_cali_param(&wifi_data.cali_data);
-
 	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
 		/* copy calibration file data to target ddr address */
 		phy_addr = s_wcn_device.btwf_device->base_addr +
@@ -148,6 +144,10 @@ static void marlin_write_cali_data(void)
 		   (phys_addr_t)&qogirl6_s_wssm_phy_offset_p->wifi.calibration_flag;
 		wcn_write_data_to_phy_addr(phy_addr, &cali_flag, sizeof(cali_flag));
 	} else {
+		/* get cali para from RF */
+		get_connectivity_config_param(&wifi_data.config_data);
+		get_connectivity_cali_param(&wifi_data.cali_data);
+
 		/* copy calibration file data to target ddr address */
 		phy_addr = s_wcn_device.btwf_device->base_addr +
 		   (phys_addr_t)&s_wssm_phy_offset_p->wifi.calibration_data;
@@ -3156,17 +3156,10 @@ int start_integrate_wcn_truely(u32 subsys)
 	init_completion(&wcn_dev->download_done);
 	schedule_delayed_work(&wcn_dev->power_wq, 0);
 
-	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
-		ret_wait_completion = wait_for_completion_timeout(&wcn_dev->download_done,
-					msecs_to_jiffies (300000));
-	} else {
-		/*workround bug_1478488 according to zili suggestion*/
-		ret_wait_completion = wait_for_completion_timeout(&wcn_dev->download_done,
-					msecs_to_jiffies(80000));
-		/*ret_wait_completion = wait_for_completion_timeout(&wcn_dev->download_done,
-					msecs_to_jiffies (MARLIN_WAIT_CP_INIT_MAX_TIME));
-		 */
-	}
+	/*request_firmware keep waiting for file system ready, the max waiting time is 80s*/
+	/*after wcn ko move to stage2, the time can be modified back to 20s*/
+	ret_wait_completion = wait_for_completion_timeout(&wcn_dev->download_done,
+				msecs_to_jiffies(MARLIN_WAIT_CP_INIT_MAX_TIME));
 
 	if (ret_wait_completion <= 0) {
 		/* marlin download fail dump memory */

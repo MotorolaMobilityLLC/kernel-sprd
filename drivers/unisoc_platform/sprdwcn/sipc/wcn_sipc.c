@@ -845,11 +845,6 @@ static int wcn_sipc_chn_init(struct mchn_ops_t *ops)
 	u8 chntype = 0;
 	int idx = 0;
 	struct sipc_chn_info *sipc_chn;
-//K54_TAG begin
-#if 0
-	struct swcnblk_create_info info = {0};
-#endif
-//K54_TAG end
 
 	idx = ops->channel;
 	if (unlikely(SIPC_INVALID_CHN(idx)))
@@ -902,19 +897,6 @@ static int wcn_sipc_chn_init(struct mchn_ops_t *ops)
 			  sipc_chn->sblk.rxblocknum,
 			  sipc_chn->sblk.rxblocksize);
 
-//K54_TAG begin
-#if 0
-		info.dst = sipc_chn->dst;
-		info.channel = sipc_chn->chn;
-		info.txblocknum = sipc_chn->sblk.txblocknum;
-		info.txblocksize = sipc_chn->sblk.txblocksize;
-		info.rxblocknum = sipc_chn->sblk.rxblocknum;
-		info.rxblocksize = sipc_chn->sblk.rxblocksize;
-		info.basemem = sipc_chn->sblk.basemem;
-		info.alignsize = sipc_chn->sblk.alignsize;
-		info.mapped_smem_base = sipc_chn->sblk.mapped_smem_base;
-#endif
-//K54_TAG end
 		/* rx chn record tx chn */
 		sipc_chn->relate_index = sipc_chn->index;
 		/* sblock */

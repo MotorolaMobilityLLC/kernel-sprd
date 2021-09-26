@@ -634,14 +634,6 @@ static int write_file(struct file *fp, char *buf, size_t len)
 	loff_t offset = 0;
 
 	offset = vfs_llseek(fp, 0, SEEK_END);
-//K54_TAG begin
-#if 0
-	if (kernel_write(fp, buf, len, &offset) < 0) {
-		pr_err("kernel_write() for fp failed:");
-		return -1;
-	}
-#endif
-//K54_TAG end
 	return 0;
 }
 
@@ -659,12 +651,7 @@ static void cali_save_file(char *path, struct wifi_cali_t *p)
 
 	set_fs(KERNEL_DS);
 
-//K54_TAG begin
 	fp = NULL;
-#if 0
-	fp = filp_open(path, O_RDWR | O_CREAT | O_TRUNC, 0771);
-#endif
-//K54_TAG end
 	if (IS_ERR_OR_NULL(fp)) {
 		pr_err("%s(), open error!\n", __func__);
 		return;
@@ -914,11 +901,6 @@ static void cali_save_file(char *path, struct wifi_cali_t *p)
 		p->tpc_cfg.tpc_reserved[2],
 		p->tpc_cfg.tpc_reserved[3]);
 
-//K54_TAG begin
-#if 0
-	filp_close(fp, NULL);
-#endif
-//K54_TAG end
     set_fs(USER_DS);
 }
 
