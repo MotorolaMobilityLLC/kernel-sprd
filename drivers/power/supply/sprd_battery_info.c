@@ -101,7 +101,8 @@ static int sprd_battery_parse_battery_internal_resistance_table(struct sprd_batt
 		int *table;
 		char *propname;
 		const __be32 *list;
-		int i, tab_len, size;
+		int i, size;
+		u32 tab_len;
 
 		propname = kasprintf(GFP_KERNEL, "battery-internal-resistance-table-%d", index);
 		list = of_get_property(battery_np, propname, &size);
@@ -113,7 +114,7 @@ static int sprd_battery_parse_battery_internal_resistance_table(struct sprd_batt
 		}
 
 		kfree(propname);
-		tab_len = size / (sizeof(__be32));
+		tab_len = (u32)size / (sizeof(__be32));
 		info->battery_internal_resistance_table_len[index] = tab_len;
 
 		table = info->battery_internal_resistance_table[index] =
@@ -142,7 +143,7 @@ static int sprd_battery_parse_battery_internal_resistance_ocv_table(struct sprd_
 	if (!list || !size)
 		return 0;
 
-	info->battery_internal_resistance_ocv_table_len = size / (sizeof(__be32));
+	info->battery_internal_resistance_ocv_table_len = (u32)size / (sizeof(__be32));
 	resistance_ocv_table = info->battery_internal_resistance_ocv_table =
 		devm_kcalloc(&psy->dev, info->battery_internal_resistance_ocv_table_len,
 			     sizeof(*resistance_ocv_table), GFP_KERNEL);

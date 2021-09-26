@@ -1196,10 +1196,10 @@ static bool is_full_charged(struct charger_manager *cm)
 			int batt_ocv;
 
 			ret = get_batt_ocv(cm, &batt_ocv);
-			if (ret)
+			if (ret || batt_ocv < 0)
 				goto out;
 
-			if (batt_ocv > (cm->desc->fullbatt_uV - cm->desc->fullbatt_vchkdrop_uV))
+			if ((u32)batt_ocv > (cm->desc->fullbatt_uV - cm->desc->fullbatt_vchkdrop_uV))
 				is_full = true;
 			goto out;
 		}
@@ -3514,7 +3514,8 @@ static int cm_manager_get_jeita_status(struct charger_manager *cm, int cur_temp)
 {
 	struct charger_desc *desc = cm->desc;
 	static int jeita_status, last_temp;
-	int i, temp_status, recovery_temp_status;
+	u32 temp_status, recovery_temp_status;
+	int i;
 
 	for (i = desc->jeita_tab_size - 1; i >= 0; i--) {
 		if ((cur_temp >= desc->jeita_tab[i].temp && i > 0) ||
@@ -5418,8 +5419,8 @@ static struct charger_desc *of_cm_parse_desc(struct device *dev)
 	num_chgs = of_property_count_strings(np, "cm-fast-chargers");
 	if (num_chgs > 0) {
 		/* Allocate empty bin at the tail of array */
-		desc->psy_fast_charger_stat = devm_kzalloc(dev, sizeof(char *)
-						* (num_chgs + 1), GFP_KERNEL);
+		desc->psy_fast_charger_stat =
+			devm_kzalloc(dev, sizeof(char *) * (u32)(num_chgs + 1), GFP_KERNEL);
 		if (!desc->psy_fast_charger_stat)
 			return ERR_PTR(-ENOMEM);
 
@@ -5433,8 +5434,8 @@ static struct charger_desc *of_cm_parse_desc(struct device *dev)
 	if (num_chgs > 0) {
 		/* Allocate empty bin at the tail of array */
 		desc->cp_nums = num_chgs;
-		desc->psy_cp_stat = devm_kzalloc(dev, sizeof(char *)
-						* (num_chgs + 1), GFP_KERNEL);
+		desc->psy_cp_stat =
+			devm_kzalloc(dev, sizeof(char *) * (u32)(num_chgs + 1), GFP_KERNEL);
 		if (!desc->psy_cp_stat)
 			return ERR_PTR(-ENOMEM);
 
@@ -5447,9 +5448,8 @@ static struct charger_desc *of_cm_parse_desc(struct device *dev)
 	num_chgs = of_property_count_strings(np, "cm-wireless-chargers");
 	if (num_chgs > 0) {
 		/* Allocate empty bin at the tail of array */
-		desc->psy_wl_charger_stat = devm_kzalloc(dev,
-							 sizeof(char *) * (num_chgs + 1),
-							 GFP_KERNEL);
+		desc->psy_wl_charger_stat =
+			devm_kzalloc(dev,  sizeof(char *) * (u32)(num_chgs + 1), GFP_KERNEL);
 		if (desc->psy_wl_charger_stat) {
 			for (i = 0; i < num_chgs; i++)
 				of_property_read_string_index(np, "cm-wireless-chargers",
@@ -5463,9 +5463,8 @@ static struct charger_desc *of_cm_parse_desc(struct device *dev)
 	num_chgs = of_property_count_strings(np, "cm-wireless-charge-pump-converters");
 	if (num_chgs > 0) {
 		/* Allocate empty bin at the tail of array */
-		desc->psy_cp_converter_stat = devm_kzalloc(dev,
-							   sizeof(char *) * (num_chgs + 1),
-							   GFP_KERNEL);
+		desc->psy_cp_converter_stat =
+			devm_kzalloc(dev, sizeof(char *) * (u32)(num_chgs + 1), GFP_KERNEL);
 		if (desc->psy_cp_converter_stat) {
 			for (i = 0; i < num_chgs; i++)
 				of_property_read_string_index(np, "cm-wireless-charge-pump-converters",
@@ -5632,12 +5631,12 @@ static void cm_uvlo_check_work(struct work_struct *work)
 	int batt_uV, ret;
 
 	ret = get_vbat_now_uV(cm, &batt_uV);
-	if (ret) {
+	if (ret || batt_uV < 0) {
 		dev_err(cm->dev, "get_vbat_now_uV error.\n");
 		return;
 	}
 
-	if (batt_uV < cm->desc->shutdown_voltage)
+	if ((u32)batt_uV < cm->desc->shutdown_voltage)
 		cm->desc->uvlo_trigger_cnt++;
 	else
 		cm->desc->uvlo_trigger_cnt = 0;

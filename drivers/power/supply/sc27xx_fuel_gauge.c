@@ -464,7 +464,7 @@ static int sc27xx_fgu_clbcnt2mah(struct sc27xx_fgu_data *data, int clbcnt)
 	else
 		mah = mah - data->cur_1000ma_adc / 2;
 
-	mah = div_s64(mah, data->cur_1000ma_adc);
+	mah = (int)div_s64(mah, data->cur_1000ma_adc);
 
 	return mah;
 }
@@ -540,7 +540,7 @@ static int sc27xx_fgu_get_vbat_now(struct sc27xx_fgu_data *data, int *val)
 static int sc27xx_fgu_get_current_avg(struct sc27xx_fgu_data *data, int *val)
 {
 	int ret, cur_adc = 0;
-	int i;
+	u32 i;
 
 	*val = 0;
 
@@ -751,7 +751,8 @@ static void sc27xx_fgu_dump_resistance_table(struct sc27xx_fgu_data *data, char 
 
 static bool sc27xx_fgu_is_first_poweron(struct sc27xx_fgu_data *data)
 {
-	int ret, status = 0, cap, mode;
+	int ret;
+	u32 status = 0, cap, mode;
 
 	ret = regmap_read(data->regmap, data->base + SC27XX_FGU_USER_AREA_STATUS, &status);
 	if (ret)
@@ -1542,14 +1543,14 @@ static int sc27xx_fgu_parse_energy_density_ocv_table(struct sc27xx_fgu_data *dat
 	int i, size;
 
 	list = of_get_property(np, "sprd,energy-desity-ocv-table", &size);
-	if (!list || !size)
+	if (!list || size <= 0)
 		return 0;
 
 	data->dens_table_len = size / (sizeof(struct sc27xx_fgu_energy_density_ocv_table) /
 				       sizeof(int) * sizeof(__be32));
 
 	table = devm_kzalloc(data->dev, sizeof(struct sc27xx_fgu_energy_density_ocv_table) *
-			     (data->dens_table_len + 1), GFP_KERNEL);
+			     (u32)(data->dens_table_len + 1), GFP_KERNEL);
 	if (!table)
 		return -ENOMEM;
 
@@ -1674,7 +1675,7 @@ static int sc27xx_fgu_suspend_calib_check_sleep_cur(struct sc27xx_fgu_data *data
 	sc27xx_fgu_get_clbcnt(data, &data->slp_cap_calib.resume_clbcnt);
 
 	clbcnt = data->slp_cap_calib.suspend_clbcnt - data->slp_cap_calib.resume_clbcnt;
-	times = data->slp_cap_calib.resume_time -  data->slp_cap_calib.suspend_time;
+	times = (int)(data->slp_cap_calib.resume_time -  data->slp_cap_calib.suspend_time);
 
 	mah = DIV_ROUND_CLOSEST(clbcnt * 10, 36 * SC27XX_FGU_SAMPLE_HZ);
 
