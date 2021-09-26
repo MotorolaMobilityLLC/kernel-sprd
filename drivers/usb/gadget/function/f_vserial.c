@@ -782,7 +782,7 @@ static int vser_function_set_alt(struct usb_function *f,
 	struct usb_composite_dev *cdev = f->config->cdev;
 	int ret;
 
-	DBG(cdev, "%s: intf: %d alt: %d\n", __func__, intf, alt);
+	DBG(cdev, "%s: intf: %d alt: %d dev:%p\n", __func__, intf, alt, dev);
 
 	ret = config_ep_by_speed(cdev->gadget, f, dev->ep_in);
 	if (ret)
@@ -1038,20 +1038,17 @@ EXPORT_SYMBOL(kernel_vser_set_pass_mode);
 ssize_t vser_pass_user_write(char *buf, size_t count)
 {
 	struct vser_dev *dev = _vser_dev;
-	struct usb_composite_dev *cdev;
 	struct usb_request *req = 0;
 	int r = count, xfer, ret;
 
 	if (!dev || !dev->online)
 		return -ENODEV;
 
-	cdev = dev->cdev;
-
-	DBG(cdev, "%s: buf:0x%p, count:0x%llx, epname:%s\n",
+	pr_debug("%s: buf:0x%p, count:0x%llx, epname:%s\n",
 		__func__, buf, (long long)count, dev->ep_in->name);
 
 	if (!dev->ep_in->enabled) {
-		ERROR(cdev, "vser deactivated\n");
+		pr_err("vser deactivated\n");
 		return -ENODEV;
 	}
 
@@ -1065,7 +1062,7 @@ ssize_t vser_pass_user_write(char *buf, size_t count)
 
 		if (ret < 0) {
 			r = ret;
-			DBG(cdev, "%s:line %d wait event failed.\n",
+			pr_debug("%s:line %d wait event failed.\n",
 				__func__, __LINE__);
 			break;
 		}
@@ -1076,7 +1073,7 @@ ssize_t vser_pass_user_write(char *buf, size_t count)
 			req->length = xfer;
 			ret = usb_ep_queue(dev->ep_in, req, GFP_ATOMIC);
 			if (ret < 0) {
-				DBG(cdev, "%s: xfer error %d\n", __func__, ret);
+				pr_debug("%s: xfer error %d\n", __func__, ret);
 				dev->wr_error = 1;
 				r = -EIO;
 				break;
@@ -1091,7 +1088,7 @@ ssize_t vser_pass_user_write(char *buf, size_t count)
 		vser_req_put(dev, &dev->tx_pass_idle, req);
 
 	vser_unlock(&dev->write_excl);
-	DBG(cdev, "%s: returning %x\n", __func__, r);
+	pr_debug("%s: returning %x\n", __func__, r);
 	return r;
 }
 EXPORT_SYMBOL(vser_pass_user_write);
