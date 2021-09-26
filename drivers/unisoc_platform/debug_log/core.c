@@ -92,7 +92,7 @@ struct dbg_log_device *dbg_log_device_register(struct device *parent,
 					       const char *serdes_name)
 {
 	struct dbg_log_device *dbg;
-	int i;
+	unsigned int i;
 
 	DEBUG_LOG_PRINT("entry\n");
 
@@ -128,10 +128,6 @@ struct dbg_log_device *dbg_log_device_register(struct device *parent,
 	}
 
 	dbg->serdes.ch_num = ARRAY_SIZE(ch_str);
-	if (ARRAY_SIZE(ch_str) >= CH_MAX) {
-		dev_err(&dbg->dev, "error: array ch_str out of range.\n");
-		goto phy_free;
-	}
 
 	for (i = 0; i < ARRAY_SIZE(ch_str); i++)
 		dbg->serdes.ch_str[i] = ch_str[i];

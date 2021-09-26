@@ -112,8 +112,6 @@ static ssize_t channel_show(struct device *dev,
 	else
 		return snprintf(buf, PAGE_SIZE, "UNKNOWN [ " STR_CH_DISABLE "%s]\n",
 			     temp_sbuf);
-
-	return ret;
 }
 
 static ssize_t channel_store(struct device *dev,
