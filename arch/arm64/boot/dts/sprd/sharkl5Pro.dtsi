@@ -1654,6 +1654,7 @@
 				sprd,dcfix;
 				sprd,mm;
 				sprd,mipi-l5pro = <1>;
+				power-domains = <&mm_domain>;
 				status = "okay";
 			};
 
