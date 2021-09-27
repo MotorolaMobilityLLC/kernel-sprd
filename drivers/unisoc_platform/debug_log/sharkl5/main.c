@@ -17,6 +17,9 @@
 #include <linux/gpio/consumer.h>
 #include <linux/regulator/consumer.h>
 #include <linux/kernel.h>
+#include <linux/gpio.h>
+#include <linux/of_device.h>
+#include <linux/of_gpio.h>
 
 #include <linux/pm_runtime.h>
 
@@ -30,8 +33,7 @@
 #define MATCH_FREQ(f, src_f) (abs((f) - (src_f)) <= FREQ_OFFSET)
 
 static struct regulator *vddio;
-static struct gpio_desc *mipi_switch_en;
-static struct gpio_desc *mipi_gpio_id;
+static int mipi_switch_gpio_num, mipi_switch_mode_gpio_num;
 
 extern struct dbg_log_device *dbg_log_device_register(struct device *parent,
 					       struct dbg_log_ops *ops,
@@ -78,15 +80,19 @@ static int sprd_sensor_set_voltage(unsigned int val)
 		pr_err("Error in regulator_enable: ret %d", ret);
 		return ret;
 	}
-
 	return 0;
 }
 
 /* set mipi switch: enable mipi switch(gpio55 0),switch (gpio8 1) */
 static void sprd_sensor_set_mipi_level(u32 plus_level)
 {
-	gpiod_direction_output(mipi_switch_en, 0);
-	gpiod_direction_output(mipi_gpio_id, plus_level);
+	/* set gpio55 out 0 */
+	gpio_direction_output(mipi_switch_gpio_num, 1);
+	gpio_set_value(mipi_switch_gpio_num, 0);
+
+	/* set gpio8 out 1 */
+	gpio_direction_output(mipi_switch_mode_gpio_num, 1);
+	gpio_set_value(mipi_switch_mode_gpio_num, plus_level);
 }
 
 static void inter_dbg_log_init(struct dbg_log_device *dbg)
@@ -94,10 +100,14 @@ static void inter_dbg_log_init(struct dbg_log_device *dbg)
 	int ret = 0;
 
 	/* only sharkl5pro use */
+
 	if (L5proSwitchFlag) {
 		sprd_sensor_set_voltage(1800000);
 		sprd_sensor_set_mipi_level(1);
 		DEBUG_LOG_PRINT("L5pro switch on\n");
+	} else {
+		DEBUG_LOG_PRINT("L5proSwitchFlag=%d\n", L5proSwitchFlag);
+		return;
 	}
 
 	DEBUG_LOG_PRINT("entry\n");
@@ -124,12 +134,17 @@ static void inter_dbg_log_init(struct dbg_log_device *dbg)
 	DEBUG_LOG_PRINT("dbg->mm = %d", dbg->mm);
 	if (dbg->mm) {
 		DEBUG_LOG_PRINT("MIPI LOG use MM Power Domain\n");
+		pm_runtime_use_autosuspend(&dbg->dev);
+		pm_runtime_set_active(&dbg->dev);
+		pm_runtime_enable(&dbg->dev);
 		ret = pm_runtime_get_sync(&dbg->dev);
-		if (!ret) {
-			DEBUG_LOG_PRINT("fail to sprd_cam_pw_on!\n");
+		if (ret < 0) {
+			DEBUG_LOG_PRINT("fail to sprd_cam_pw_on, ret=%d\n", ret);
+			pm_runtime_disable(&dbg->dev);
 			return;
 		}
 	}
+	DEBUG_LOG_PRINT("power on ok!\n");
 
 	/* here need wait */
 	usleep_range(1000, 1100); /* Wait for 1mS */
@@ -209,8 +224,17 @@ static void inter_dbg_log_init(struct dbg_log_device *dbg)
 
 static void inter_dbg_log_exit(struct dbg_log_device *dbg)
 {
-	if (dbg->mm)
-		pm_runtime_put_sync(&dbg->dev);
+	int ret;
+
+	if (dbg->mm) {
+		ret = pm_runtime_put_sync(&dbg->dev);
+		if (ret < 0) {
+			DEBUG_LOG_PRINT("sprd cam power off fail, ret=%d\n", ret);
+			return;
+		}
+		pm_runtime_disable(&dbg->dev);
+	}
+	DEBUG_LOG_PRINT("sprd cam power off ok!\n");
 
 	/* disable serdes */
 	clk_disable_unprepare(dbg->clk_serdes_eb);
@@ -299,8 +323,9 @@ static int dbg_log_probe(struct platform_device *pdev)
 	void __iomem *addr, *serdes_apb;
 	struct dbg_log_device *dbg;
 	struct regmap *dsi_apb, *mm_ahb;
+	struct device_node *np = pdev->dev.of_node;
 	int count, i, rc;
-	int l5Proswitch;
+	int l5Proswitch, ret;
 
 	DEBUG_LOG_PRINT("hello world! entry\n");
 
@@ -321,13 +346,38 @@ static int dbg_log_probe(struct platform_device *pdev)
 			vddio = NULL;
 		}
 
-		mipi_switch_en = devm_gpiod_get_index(&pdev->dev, "mipi-switch-en", 0, GPIOD_IN);
-		if (IS_ERR(mipi_switch_en))
-			return PTR_ERR(mipi_switch_en);
+		/* kernel5_4 ko new gpio request way */
+		mipi_switch_gpio_num = of_get_named_gpio(np, "mipi-switch-en-gpios", 0);
+		if (!gpio_is_valid(mipi_switch_gpio_num)) {
+			dev_err(&pdev->dev,
+				"open mipi-switch-en-gpios fail %d\n",
+				mipi_switch_gpio_num);
+			return mipi_switch_gpio_num;
+		}
+		ret = gpio_request_one(mipi_switch_gpio_num, GPIOF_OUT_INIT_LOW, "mipi-switch-en");
+		if (ret < 0 && ret != -EBUSY) {
+			dev_err(&pdev->dev,
+				"mipi-switch-en-gpio request fail ret=%d\n",
+				ret);
+			return ret;
+		}
 
-		mipi_gpio_id = devm_gpiod_get_index(&pdev->dev, "mipi-switch-mode", 0, GPIOD_IN);
-		if (IS_ERR(mipi_gpio_id))
-			return PTR_ERR(mipi_gpio_id);
+		mipi_switch_mode_gpio_num = of_get_named_gpio(np, "mipi-switch-mode-gpios", 0);
+		if (!gpio_is_valid(mipi_switch_mode_gpio_num)) {
+			dev_err(&pdev->dev,
+				"open mipi-switch-mode-gpios fail %d\n",
+				mipi_switch_mode_gpio_num);
+			return mipi_switch_mode_gpio_num;
+		}
+		ret = gpio_request_one(mipi_switch_mode_gpio_num, GPIOF_OUT_INIT_LOW, "mipi-switch-mode");
+		if (ret < 0 && ret != -EBUSY) {
+			dev_err(&pdev->dev,
+				"mipi-switch-mode-gpio request fail ret=%d\n",
+				ret);
+			return ret;
+		} /* kernel5_4 ko new gpio request way */
+
+		DEBUG_LOG_PRINT("ums512 mipilog enable success!\n");
 	}
 
 	dsi_apb = syscon_regmap_lookup_by_phandle(pdev->dev.of_node, "sprd,syscon-dsi-apb");
@@ -457,7 +507,7 @@ static int dbg_log_probe(struct platform_device *pdev)
 		pr_err("get div1 map failed\n");
 
 	inter_dbg_log_is_freq_valid(dbg, dbg->phy->freq);
-
+	DEBUG_LOG_PRINT("Finish mipilog probe\n");
 	return 0;
 }
 
