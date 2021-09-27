@@ -48,6 +48,7 @@
 			sprd,ch-index = <15 1 0 2 3 4>;
 			sprd,dcfix;
 			sprd,mm;
+			power-domains = <&mm_domain>;
 			status = "disabled";
 		};
 
