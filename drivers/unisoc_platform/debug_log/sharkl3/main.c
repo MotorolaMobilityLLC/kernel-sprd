@@ -68,6 +68,7 @@ static void dbg_phy_iso_sw_en(struct dbg_log_device *dbg, int h)
 
 static void inter_dbg_log_init(struct dbg_log_device *dbg)
 {
+	int ret;
 	DEBUG_LOG_PRINT("entry\n");
 
 	regmap_update_bits(dbg->aon_apb, REG_AON_APB_APB_EB2,
@@ -82,7 +83,15 @@ static void inter_dbg_log_init(struct dbg_log_device *dbg)
 
 	if (dbg->mm) {
 		pr_info("MIPI LOG use MM Power Domain\n");
-		pm_runtime_get_sync(&dbg->dev);
+		pm_runtime_use_autosuspend(&dbg->dev);
+		pm_runtime_set_active(&dbg->dev);
+		pm_runtime_enable(&dbg->dev);
+		ret = pm_runtime_get_sync(&dbg->dev);
+		if (ret < 0) {
+			pr_info("Sprd camera power on fail, ret = %d\n", ret);
+			pm_runtime_disable(&dbg->dev);
+			return;
+		}
 	}
 
 	dbg_phy_ps_pd_l(dbg, 1);
@@ -93,12 +102,19 @@ static void inter_dbg_log_init(struct dbg_log_device *dbg)
 
 static void inter_dbg_log_exit(struct dbg_log_device *dbg)
 {
+	int ret;
 	dbg_phy_exit(dbg->phy);
 	dbg_phy_iso_sw_en(dbg, 1);
 	dbg_phy_ps_pd_s(dbg, 1);
 	dbg_phy_ps_pd_l(dbg, 1);
-	if (dbg->mm)
-		pm_runtime_put_sync(&dbg->dev);
+	if (dbg->mm) {
+		ret = pm_runtime_put_sync(&dbg->dev);
+		if (ret < 0) {
+			pr_info("Power down fail, ret = %d\n", ret);
+			return;
+		}
+		pm_runtime_disable(&dbg->dev);
+	}
 
 	clk_disable_unprepare(dbg->clk_src[dbg->phy->clk_sel]);
 
@@ -290,7 +306,7 @@ static int dbg_log_probe(struct platform_device *pdev)
 	}
 
 	inter_dbg_log_is_freq_valid(dbg, dbg->phy->freq);
-
+	DEBUG_LOG_PRINT("Finish mipilog probeFun\n");
 	return 0;
 }
 
