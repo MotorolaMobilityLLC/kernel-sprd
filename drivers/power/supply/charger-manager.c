@@ -3318,7 +3318,7 @@ static int cm_get_battery_temperature(struct charger_manager *cm, int *temp)
 	if (!cm->desc->measure_battery_temp)
 		return -ENODEV;
 
-#ifdef CONFIG_THERMAL
+#if IS_ENABLED(CONFIG_THERMAL)
 	if (cm->tzd_batt) {
 		ret = thermal_zone_get_temp(cm->tzd_batt, temp);
 		if (!ret)
@@ -5187,7 +5187,7 @@ static int cm_init_thermal_data(struct charger_manager *cm, struct power_supply 
 		cm->charger_psy_desc.num_properties++;
 		cm->desc->measure_battery_temp = true;
 	}
-#ifdef CONFIG_THERMAL
+#if IS_ENABLED(CONFIG_THERMAL)
 	if (desc->thermal_zone) {
 		cm->tzd_batt =
 			thermal_zone_get_zone_by_name(desc->thermal_zone);

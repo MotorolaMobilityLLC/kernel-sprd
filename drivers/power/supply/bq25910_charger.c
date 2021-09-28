@@ -1231,7 +1231,7 @@ static int bq25910_charger_remove(struct i2c_client *client)
 	return 0;
 }
 
-#ifdef CONFIG_PM_SLEEP
+#if IS_ENABLED(CONFIG_PM_SLEEP)
 static int bq25910_charger_suspend(struct device *dev)
 {
 	struct bq25910_charger_info *info = dev_get_drvdata(dev);

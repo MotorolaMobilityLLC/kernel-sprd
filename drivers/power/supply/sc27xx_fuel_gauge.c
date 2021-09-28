@@ -3939,7 +3939,7 @@ err:
 	return ret;
 }
 
-#ifdef CONFIG_PM_SLEEP
+#if IS_ENABLED(CONFIG_PM_SLEEP)
 static int sc27xx_fgu_resume(struct device *dev)
 {
 	struct sc27xx_fgu_data *data = dev_get_drvdata(dev);

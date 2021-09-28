@@ -1043,7 +1043,7 @@ eta6937_charger_feed_watchdog_work(struct work_struct *work)
 	schedule_delayed_work(&info->wdt_work, HZ * 15);
 }
 
-#ifdef CONFIG_REGULATOR
+#if IS_ENABLED(CONFIG_REGULATOR)
 static void eta6937_charger_otg_work(struct work_struct *work)
 {
 	struct delayed_work *dwork = to_delayed_work(work);
@@ -1364,7 +1364,7 @@ static int eta6937_charger_remove(struct i2c_client *client)
 	return 0;
 }
 
-#ifdef CONFIG_PM_SLEEP
+#if IS_ENABLED(CONFIG_PM_SLEEP)
 static int eta6937_charger_suspend(struct device *dev)
 {
 	struct eta6937_charger_info *info = dev_get_drvdata(dev);
