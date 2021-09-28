@@ -667,7 +667,7 @@ static int sy65153_wl_charger_toggle_ldo_on_off(struct sy65153_wl_charger_info *
 }
 
 static enum power_supply_property sy65153_wireless_properties[] = {
-	POWER_SUPPLY_PROP_CHARGE_TYPE,
+	POWER_SUPPLY_PROP_TYPE,
 	POWER_SUPPLY_PROP_PRESENT,
 	POWER_SUPPLY_PROP_ONLINE,
 	POWER_SUPPLY_PROP_CURRENT_NOW,
@@ -728,7 +728,7 @@ static int sy65153_wl_charger_get_property(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE:
 		ret = sy65153_wl_charger_get_vout(info, &val->intval);
 		break;
-	case POWER_SUPPLY_PROP_CHARGE_TYPE:
+	case POWER_SUPPLY_PROP_TYPE:
 		rpp_type = sy65153_wl_charger_get_rx_rpp_type(info);
 		if (rpp_type == SY65153_RPP_TYPE_BPP || rpp_type == SY65153_RPP_TYPE_10W)
 			val->intval = POWER_SUPPLY_WIRELESS_CHARGER_TYPE_BPP;

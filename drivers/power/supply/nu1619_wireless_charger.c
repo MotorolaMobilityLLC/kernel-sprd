@@ -1389,7 +1389,7 @@ static ssize_t chip_vtx_store(struct device *dev,
 	if (ret)
 		dev_err(chip->dev, "%s failed\n", __func__);
 
-	dev_info(chip->dev, "[rx1619] [%s] --Store output_voltage = %d\n",
+	dev_info(chip->dev, "[rx1619] [%s] --Store output_voltage = %ld\n",
 		 __func__, index);
 	if ((index < 4000) || (index > 21000)) {
 		dev_err(chip->dev, "[rx1619] [%s] Store Voltage %s is invalid\n",
@@ -1419,7 +1419,7 @@ static ssize_t chip_vout_store(struct device *dev,
 	if (ret)
 		dev_err(chip->dev, "%s failed\n", __func__);
 
-	dev_info(chip->dev, "[rx1619] [%s], Store output_voltage = %d\n",
+	dev_info(chip->dev, "[rx1619] [%s], Store output_voltage = %ld\n",
 		 __func__, index);
 	if ((index < 4000) || (index > 21000)) {
 		dev_err(chip->dev, "[rx1619] [%s] Store Voltage %s is invalid\n",
@@ -1489,7 +1489,7 @@ static ssize_t chip_fod_parameter_store(struct device *dev,
 		val = 0;
 		ret = kstrtoul(&buf[i * 3], 16, &val);
 		if (ret) {
-			dev_err(chip->dev, "%s store fod_param[i] failed\n",
+			dev_err(chip->dev, "%s store fod_param[%d] failed\n",
 				__func__, i);
 			return ret;
 		}
@@ -1550,13 +1550,13 @@ static ssize_t chip_version_show(struct device *dev,
 }
 
 static enum power_supply_property nu1619_wireless_properties[] = {
-	POWER_SUPPLY_PROP_CHARGE_TYPE,
 	POWER_SUPPLY_PROP_PRESENT,
 	POWER_SUPPLY_PROP_ONLINE,
 	POWER_SUPPLY_PROP_CURRENT_NOW,
 	POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE,
 	POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE_MAX,
 	POWER_SUPPLY_PROP_CALIBRATE,
+	POWER_SUPPLY_PROP_TYPE,
 };
 
 static int nu1619_wireless_set_property(struct power_supply *psy,
@@ -1606,7 +1606,7 @@ static int nu1619_wireless_get_property(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE:
 		val->intval = nu1619_rx_get_rx_vout(chip);
 		break;
-	case POWER_SUPPLY_PROP_CHARGE_TYPE:
+	case POWER_SUPPLY_PROP_TYPE:
 		rpp_type = nu1619_rx_get_rx_rpp_type(chip);
 		if (rpp_type == NU1619_RPP_TYPE_BPP)
 			val->intval = POWER_SUPPLY_WIRELESS_CHARGER_TYPE_BPP;

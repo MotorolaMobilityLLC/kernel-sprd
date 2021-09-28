@@ -1192,11 +1192,11 @@ static int bq2560x_charger_usb_set_property(struct power_supply *psy,
 			bq2560x_charger_stop_charge(info);
 		}
 		break;
-	case POWER_SUPPLY_PROP_CHARGE_TYPE:
-		if (val->intval == POWER_SUPPLY_WIRELESS_TYPE_BPP) {
+	case POWER_SUPPLY_PROP_TYPE:
+		if (val->intval == POWER_SUPPLY_WIRELESS_CHARGER_TYPE_BPP) {
 			info->is_wireless_charge = true;
 			ret = bq2560x_charger_set_ovp(info, BQ2560X_FCHG_OVP_6V);
-		} else if (val->intval == POWER_SUPPLY_WIRELESS_TYPE_EPP) {
+		} else if (val->intval == POWER_SUPPLY_WIRELESS_CHARGER_TYPE_EPP) {
 			info->is_wireless_charge = true;
 			ret = bq2560x_charger_set_ovp(info, BQ2560X_FCHG_OVP_14V);
 		} else {
@@ -1224,7 +1224,7 @@ static int bq2560x_charger_property_is_writeable(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT:
 	case POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT:
 	case POWER_SUPPLY_PROP_CALIBRATE:
-	case POWER_SUPPLY_PROP_CHARGE_TYPE:
+	case POWER_SUPPLY_PROP_TYPE:
 	case POWER_SUPPLY_PROP_STATUS:
 		ret = 1;
 		break;
@@ -1255,7 +1255,7 @@ static enum power_supply_property bq2560x_usb_props[] = {
 	POWER_SUPPLY_PROP_HEALTH,
 	POWER_SUPPLY_PROP_USB_TYPE,
 	POWER_SUPPLY_PROP_CALIBRATE,
-	POWER_SUPPLY_PROP_CHARGE_TYPE,
+	POWER_SUPPLY_PROP_TYPE,
 };
 
 static const struct power_supply_desc bq2560x_charger_desc = {
