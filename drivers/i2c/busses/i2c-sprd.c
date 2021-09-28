@@ -12,6 +12,7 @@
 #include <linux/init.h>
 #include <linux/interrupt.h>
 #include <linux/kernel.h>
+#include <linux/kthread.h>
 #include <linux/module.h>
 #include <linux/of.h>
 #include <linux/of_device.h>
@@ -75,7 +76,7 @@
 /* timeout (ms) for pm runtime autosuspend */
 #define SPRD_I2C_PM_TIMEOUT	1000
 /* timeout (ms) for transfer message */
-#define I2C_XFER_TIMEOUT	3000
+#define I2C_XFER_TIMEOUT	5000
 
 /* SPRD i2c data structure */
 struct sprd_i2c {
@@ -87,6 +88,7 @@ struct sprd_i2c {
 	u32 src_clk;
 	u32 bus_freq;
 	struct completion complete;
+	struct completion busy_complete;
 	u8 *buf;
 	u32 count;
 	int irq;
@@ -244,17 +246,39 @@ static void sprd_i2c_data_transfer(struct sprd_i2c *i2c_dev)
 	}
 }
 
+static int sprd_i2c_busy_and_noint(void *data)
+{
+	struct sprd_i2c *i2c_dev = data;
+	bool busy_status;
+	bool int_status;
+	unsigned long time_left;
+
+	time_left = wait_for_completion_timeout(&i2c_dev->complete,
+				msecs_to_jiffies(I2C_XFER_TIMEOUT));
+
+	busy_status = !!(readl(i2c_dev->base + I2C_STATUS) & I2C_BUSY);
+	int_status = !!(readl(i2c_dev->base + I2C_STATUS) & I2C_INT);
+
+	if (!time_left && busy_status && !int_status) {
+		dev_err(i2c_dev->dev, "i2c is busy\n");
+		i2c_dev->err = -EBUSY;
+		sprd_i2c_clear_start(i2c_dev);
+		complete(&i2c_dev->complete);
+	}
+	complete_and_exit(&i2c_dev->busy_complete, 0);
+}
+
 static int sprd_i2c_handle_msg(struct i2c_adapter *i2c_adap,
 			       struct i2c_msg *msg, bool is_last_msg)
 {
 	struct sprd_i2c *i2c_dev = i2c_adap->algo_data;
-	unsigned long time_left;
+	struct task_struct *busy_task;
 
 	i2c_dev->msg = msg;
 	i2c_dev->buf = msg->buf;
 	i2c_dev->count = msg->len;
-
 	reinit_completion(&i2c_dev->complete);
+	reinit_completion(&i2c_dev->busy_complete);
 	sprd_i2c_reset_fifo(i2c_dev);
 	sprd_i2c_set_devaddr(i2c_dev, msg);
 	sprd_i2c_set_count(i2c_dev, msg->len);
@@ -276,12 +300,18 @@ static int sprd_i2c_handle_msg(struct i2c_adapter *i2c_adap,
 	else
 		sprd_i2c_data_transfer(i2c_dev);
 
+	busy_task = kthread_run(sprd_i2c_busy_and_noint, i2c_dev, "%s", i2c_adap->name);
+	if (IS_ERR(busy_task)) {
+		dev_err(i2c_dev->dev, "failed to create kernel_thread (%ld)!\n",
+			PTR_ERR(busy_task));
+		i2c_dev->err = -EIO;
+		return i2c_dev->err;
+	}
+
 	sprd_i2c_opt_start(i2c_dev);
 
-	time_left = wait_for_completion_timeout(&i2c_dev->complete,
-				msecs_to_jiffies(I2C_XFER_TIMEOUT));
-	if (!time_left)
-		return -ETIMEDOUT;
+	wait_for_completion(&i2c_dev->complete);
+	wait_for_completion(&i2c_dev->busy_complete);
 
 	return i2c_dev->err;
 }
@@ -409,7 +439,7 @@ static irqreturn_t sprd_i2c_isr_thread(int irq, void *dev_id)
 	/* Transmission is done and clear ack and start operation */
 	sprd_i2c_clear_ack(i2c_dev);
 	sprd_i2c_clear_start(i2c_dev);
-	complete(&i2c_dev->complete);
+	complete_all(&i2c_dev->complete);
 
 	return IRQ_HANDLED;
 }
@@ -509,6 +539,7 @@ static int sprd_i2c_probe(struct platform_device *pdev)
 
 	i2c_set_adapdata(&i2c_dev->adap, i2c_dev);
 	init_completion(&i2c_dev->complete);
+	init_completion(&i2c_dev->busy_complete);
 	snprintf(i2c_dev->adap.name, sizeof(i2c_dev->adap.name),
 		 "%s", "sprd-i2c");
 
