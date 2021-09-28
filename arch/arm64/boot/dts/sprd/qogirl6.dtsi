@@ -1642,6 +1642,14 @@
 				       <&aonapb_gate CLK_AC_WDG_RTC_EB>;
 			};
 
+			apb_bm: apb-busmonitor@64510000 {
+				compatible = "sprd,apb-busmonitor";
+				reg = <0 0x64510000 0 0x1000>;
+				interrupts = <GIC_SPI 102 IRQ_TYPE_LEVEL_HIGH>;
+				sprd,target-addr = <0 0>;
+				sprd,target-data = <0 0>;
+			 };
+
 			pin_controller: pinctrl@64710000 {
 				compatible = "sprd,qogirl6-pinctrl";
 				reg = <0 0x64710000 0 0x10000>;
