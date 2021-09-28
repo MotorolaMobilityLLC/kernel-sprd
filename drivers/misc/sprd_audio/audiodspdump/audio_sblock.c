@@ -930,6 +930,8 @@ int audio_sblock_receive(
 			    (blk->addr - ring->rxblk_virt), sblock->rxblksz);
 			ring->rxrecord[index] = SBLOCK_BLK_STATE_PENDING;
 		} else {
+			blk->length = 0;
+			blk->addr = NULL;
 			sblock->rxblks_err++;
 			pr_err("%s:ch:%d, block error:addr:0x%p,length:%x,err blk cnt:%d\n",
 			    __func__, sblock->channel, blk->addr, blk->length,
