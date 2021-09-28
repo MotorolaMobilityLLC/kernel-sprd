@@ -109,6 +109,8 @@ struct sprd_chip_ops {
 			 const u8 *peer, u8 user_prio, u16 admitted_time);
 	int (*del_tx_ts)(struct sprd_priv *priv, struct sprd_vif *vif, u8 tsid,
 			 const u8 *peer);
+	int (*sync_wmm_param)(struct sprd_priv *priv,
+			      struct sprd_connect_info *conn_info);
 	int (*set_mc_filter)(struct sprd_priv *priv, struct sprd_vif *vif,
 			     u8 sub_type, u8 num, u8 *mac_addr);
 	int (*set_11v_feature_support)(struct sprd_priv *priv,
@@ -587,6 +589,13 @@ static inline int sprd_set_qos_map(struct sprd_priv *priv, struct sprd_vif *vif,
 	if (priv->chip.ops->set_qos_map)
 		return priv->chip.ops->set_qos_map(priv, vif, map);
 
+	return 0;
+}
+static inline int sprd_chip_sync_wmm_param(struct sprd_priv *priv,
+					   struct sprd_connect_info *conn_info)
+{
+	if (priv->chip.ops->sync_wmm_param)
+		return priv->chip.ops->sync_wmm_param(priv, conn_info);
 	return 0;
 }
 

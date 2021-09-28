@@ -8,6 +8,7 @@
 #include "cfg80211.h"
 #include "common.h"
 #include "delay_work.h"
+#include "chip_ops.h"
 
 void sprd_report_scan_done(struct sprd_vif *vif, bool abort)
 {
@@ -232,6 +233,9 @@ done:
 			   __func__, vif->sm_state, status_code);
 		goto err;
 	}
+
+	if (sprd_chip_sync_wmm_param(vif->priv, conn_info) != 0)
+		pr_err("%s: failed to synchronize wmm parameter", __func__);
 
 	if (!netif_carrier_ok(vif->ndev)) {
 		netif_carrier_on(vif->ndev);

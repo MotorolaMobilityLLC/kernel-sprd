@@ -191,7 +191,14 @@ const u8 *get_wmm_ie(u8 *res, u16 ie_len, u8 ie, uint oui, uint oui_type)
 			/*match the OUI_MICROSOFT 0x0050f2 ie, and WMM ie */
 			if ((((pos[2] << 16) | (pos[3] << 8) | pos[4]) == oui) &&
 			    pos[5] == WMM_OUI_TYPE) {
-				pos += 2;
+
+				/*skip head of wmm_ac parameter(oui[3],oui_type,...,reserved)*/
+				if (pos[1] > 10) {
+					pos += 10;
+				} else {
+					pos += 2;
+				}
+
 				return pos;
 			}
 			break;
@@ -345,6 +352,32 @@ void sc2355_qos_update_admitted_time(struct sprd_priv *priv, u8 tsid,
 	wmmac_available[ac] = (wmmac_usedtime[ac] < wmmac_admittedtime[ac]);
 }
 
+int sc2355_sync_wmm_param(struct sprd_priv *priv,
+			  struct sprd_connect_info *conn_info)
+{
+	struct sprd_wmmac_params *wmm_params = NULL;
+	int i;
+
+	wmm_params = (struct sprd_wmmac_params *)
+			get_wmm_ie(conn_info->resp_ie,
+				   conn_info->resp_ie_len,
+				   WLAN_EID_VENDOR_SPECIFIC,
+				   OUI_MICROSOFT,
+				   WMM_OUI_TYPE);
+	if (wmm_params != NULL) {
+		for (i = 0; i < NUM_AC; i++) {
+			pr_info("%s: wmm_params->ac[%d].aci_aifsn: %x",
+				__func__, i, wmm_params->ac[i].aci_aifsn);
+			priv->wmmac.ac[i].aci_aifsn =
+				wmm_params->ac[i].aci_aifsn;
+		}
+		return 1;
+	} else {
+		pr_err("%s, wmm_params is NULL!!!!", __func__);
+		return 0;
+	}
+}
+
 /*change priority according to the wmmac_available value */
 unsigned int sc2355_qos_change_priority_if(struct sprd_priv *priv,
 					   unsigned char *tid,
@@ -353,6 +386,27 @@ unsigned int sc2355_qos_change_priority_if(struct sprd_priv *priv,
 	unsigned int qos_index, ac;
 	int match_index = 0;
 	unsigned char priority = *tos;
+
+	priority >>= 2;
+
+	for (match_index = 0; match_index < QOS_MAP_MAX_DSCP_EXCEPTION;
+	     match_index++) {
+		if (priority == qos_map.qos_exceptions[match_index].dscp) {
+			*tid = qos_map.qos_exceptions[match_index].up;
+			break;
+		}
+	}
+
+	if (match_index >= QOS_MAP_MAX_DSCP_EXCEPTION) {
+		for (match_index = 0; match_index < 8; match_index++) {
+			if (priority >=
+			     qos_map.qos_ranges[match_index].low && priority <=
+				qos_map.qos_ranges[match_index].high) {
+				*tid = qos_map.qos_ranges[match_index].up;
+				break;
+			}
+		}
+	}
 
 	if (qos_enable == 1) {
 		ac = sc2355_qos_map_priority_to_edca_ac(*tid);
@@ -381,26 +435,6 @@ unsigned int sc2355_qos_change_priority_if(struct sprd_priv *priv,
 		*tid = qos_map_edca_ac_to_priority(ac);
 	}
 
-	priority >>= 2;
-
-	for (match_index = 0; match_index < QOS_MAP_MAX_DSCP_EXCEPTION;
-	     match_index++) {
-		if (priority == qos_map.qos_exceptions[match_index].dscp) {
-			*tid = qos_map.qos_exceptions[match_index].up;
-			break;
-		}
-	}
-
-	if (match_index >= QOS_MAP_MAX_DSCP_EXCEPTION) {
-		for (match_index = 0; match_index < 8; match_index++) {
-			if (priority >=
-			    qos_map.qos_ranges[match_index].low && priority <=
-			    qos_map.qos_ranges[match_index].high) {
-				*tid = qos_map.qos_ranges[match_index].up;
-				break;
-			}
-		}
-	}
 	switch (*tid) {
 	case prio_1:
 		qos_index = SPRD_AC_BK;

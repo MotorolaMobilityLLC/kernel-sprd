@@ -200,6 +200,8 @@ unsigned int sc2355_qos_get_tid_index(void *skb, int data_offset,
 unsigned int sc2355_qos_map_priority_to_edca_ac(int priority);
 void sc2355_qos_update_wmmac_ts_info(u8 tsid, u8 up, u8 ac, bool status,
 				     u16 admitted_time);
+int sc2355_sync_wmm_param(struct sprd_priv *priv,
+			  struct sprd_connect_info *conn_info);
 void sc2355_qos_remove_wmmac_ts_info(u8 tsid);
 void sc2355_qos_update_admitted_time(struct sprd_priv *priv, u8 tsid,
 				     u16 medium_time, bool increase);
