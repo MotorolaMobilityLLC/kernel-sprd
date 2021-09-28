@@ -177,9 +177,8 @@ int sc2332_scan(struct wiphy *wiphy,
 		if (ret)
 			goto err;
 	}
-
 	if ((request->flags & NL80211_SCAN_FLAG_RANDOM_ADDR) &&
-	    (vif->mode == SPRD_MODE_STATION && priv->rand_mac_flag == 1)) {
+	    (vif->mode == SPRD_MODE_STATION && priv->rand_mac_flag == 0)) {
 			get_random_mask_addr(mac_addr, request->mac_addr,
 				     request->mac_addr_mask);
 			netdev_info(vif->ndev, "%s random mac address is %pM\n", __func__, mac_addr);
