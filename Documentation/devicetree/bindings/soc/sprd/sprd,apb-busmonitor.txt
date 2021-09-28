@@ -2,7 +2,7 @@ Spreadtrum APB BUSMONITOR
 
 Required properties:
 - compatible: Should be one of follow:
-	"sprd,sharkl5-apb-busmonitor".
+	"sprd,apb-busmonitor".
 - interrupts: Should contain the APB BUSMONITOR interrupt number.
 - reg: Address and length of APB BUSMONITOR controller register space.
 - sprd,target-addr: Should contain the target address and mask bits for the
@@ -31,7 +31,7 @@ Optional properties:
 
 Example:
 apb_bm: apb-busmonitor@32370000 {
-	compatible = "sprd,sharkl5-apb-busmonitor";
+	compatible = "sprd,apb-busmonitor";
 	reg = <0 0x32370000 0 0x1000>;
 	interrupts = <GIC_SPI 102 IRQ_TYPE_LEVEL_HIGH>;
 	sprd,match-addr;
