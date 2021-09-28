@@ -8003,6 +8003,7 @@ void calculate_min_free_kbytes(void)
 		if (min_free_kbytes > 65536)
 			min_free_kbytes = 65536;
 	} else {
+		min_free_kbytes = user_min_free_kbytes;
 		pr_warn("min_free_kbytes is not updated to %d because user defined value %d is preferred\n",
 				new_min_free_kbytes, user_min_free_kbytes);
 	}
