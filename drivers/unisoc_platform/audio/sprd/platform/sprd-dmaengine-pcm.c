@@ -1052,6 +1052,10 @@ static int sprd_pcm_hw_params(struct snd_pcm_substream *substream,
 		return -EINVAL;
 	}
 
+	if (ch_cnt <= 0) {
+		pr_err("ERR: channel count(%d) is less than 1\n", ch_cnt);
+		return -EINVAL;
+	}
 	/*
 	 * this may get called several times by oss emulation
 	 * with different params
