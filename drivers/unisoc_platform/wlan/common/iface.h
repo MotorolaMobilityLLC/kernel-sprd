@@ -72,6 +72,7 @@ struct sprd_vif {
 	u8 bssid[ETH_ALEN];
 	unsigned char beacon_loss;
 	bool local_mac_flag;
+	bool ap_reset_flag;
 
 	/* encryption stuff */
 	u8 prwise_crypto;

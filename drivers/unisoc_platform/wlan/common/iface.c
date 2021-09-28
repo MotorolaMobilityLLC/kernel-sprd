@@ -358,6 +358,11 @@ static int iface_close(struct net_device *ndev)
 	struct sprd_hif *hif = &vif->priv->hif;
 
 	netdev_info(ndev, "%s\n", __func__);
+	if (vif->ap_reset_flag) {
+		netdev_info(ndev, "softap is resetting,do not close iface!\n");
+		vif->ap_reset_flag = false;
+		return 0;
+	}
 
 	sprd_report_scan_done(vif, true);
 	sprd_report_sched_scan_done(vif, true);
