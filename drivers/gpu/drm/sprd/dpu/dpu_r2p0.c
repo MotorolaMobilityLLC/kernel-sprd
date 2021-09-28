@@ -860,14 +860,15 @@ static void dpu_layer(struct dpu_context *ctx,
 		hwlayer->xfbc, hwlayer->rotation);
 
 	/*
-	 * if layer0 blend mode is premult mode, and layer alpha value
-	 * is 0xff, use layer alpha.
+	 * if layer0 blend mode is premult mode
+	 * use layer alpha.
+	 * blend mode use normal mode.
 	 */
 	if (hwlayer->index == 0 &&
-		(hwlayer->blending == DRM_MODE_BLEND_PREMULTI) &&
-		(hwlayer->alpha == 0xff)) {
+		(hwlayer->blending == DRM_MODE_BLEND_PREMULTI)) {
 		ctrl &= ~BIT(3); // Fix it later
 		ctrl |= BIT_DPU_LAY_LAYER_ALPHA;
+		ctrl &= ~BIT(16);
 	}
 
 	DPU_REG_WR(ctx->base + DPU_LAY_REG(REG_LAY_CTRL,
