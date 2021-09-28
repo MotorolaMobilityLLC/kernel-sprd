@@ -1279,6 +1279,9 @@
   usb_ep_disable
   usb_speed_string
 
+# required by nu1619_wireless_charger.ko
+  regmap_bulk_read
+
 # required by pcie-sprd.ko
   device_get_next_child_node
   devm_gpiod_get_index
