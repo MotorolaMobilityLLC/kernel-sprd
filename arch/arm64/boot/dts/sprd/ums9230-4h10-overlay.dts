@@ -314,10 +314,7 @@
 					 <&ext_32k>,
 					 <&aonapb_gate CLK_AUX2_EB>;
 
-				reg = <0 0x87000000 0 0x00100000>,
-					<0 0x87100000 0 0xA0000>;
-				reg-names = "btwf_mem", "gnss_mem";
-
+				extcon = <&sdio1>;
 				sdhci-name = <&sdio1>;
 				sprd,btwf-file-name = "/dev/block/by-name/wcnmodem";
 				sprd,gnss-file-name = "/dev/block/by-name/gnssmodem";
@@ -340,6 +337,14 @@
 				sprd-fm {
 					compatible = "sprd,marlin3-fm";
 					sprd,name = "sprd-fm";
+				};
+
+				wlan {
+					compatible = "sprd,sc2355-sdio-wifi";
+				};
+
+				gnss {
+					compatible = "sprd,gnss";
 				};
 			};
 
