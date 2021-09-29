@@ -395,6 +395,13 @@ static ssize_t wcn_sysfs_show_armlog_status(struct device *dev,
 	wcn_send_atcmd(a, strlen(a), buf, &len);
 
 	WCN_INFO("%s:len=%zd, buf=%s\n", __func__, len, buf);
+	if (!memcmp(buf, "+ARMLOG: ", strlen("+ARMLOG: "))) {
+		buf[0] = buf[strlen("+ARMLOG: ")];
+		buf[1] = '\0';
+	} else {
+		buf[0] = '\0';
+	}
+
 	len = strlen(buf);
 	WCN_INFO("show:len=%zd\n", len);
 
