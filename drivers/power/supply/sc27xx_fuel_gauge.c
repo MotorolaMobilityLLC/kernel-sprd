@@ -3509,7 +3509,7 @@ static int sc27xx_fgu_parse_resistance_table(struct sc27xx_fgu_data *data)
 		}
 	}
 
-	if (data->rabat_table_len) {
+	if (data->rabat_table_len > 0) {
 		data->target_rbat_table = devm_kzalloc(data->dev,
 						       data->rabat_table_len * sizeof(int),
 						       GFP_KERNEL);
