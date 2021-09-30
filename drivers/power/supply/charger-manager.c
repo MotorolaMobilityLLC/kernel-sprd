@@ -1106,6 +1106,60 @@ static int get_charger_input_current(struct charger_manager *cm, int *cur)
 	return ret;
 }
 
+
+static void cm_power_path_enable(struct charger_manager *cm, int cmd)
+{
+	int ret, i;
+	union power_supply_propval val = {0,};
+	struct power_supply *psy;
+
+	for (i = 0; cm->desc->psy_charger_stat[i]; i++) {
+		psy = power_supply_get_by_name(cm->desc->psy_charger_stat[i]);
+		if (!psy) {
+			dev_err(cm->dev, "Cannot find primary power supply \"%s\"\n",
+				cm->desc->psy_charger_stat[i]);
+			continue;
+		}
+
+		val.intval = cmd;
+		ret = power_supply_set_property(psy, POWER_SUPPLY_PROP_STATUS, &val);
+		power_supply_put(psy);
+		if (ret) {
+			dev_err(cm->dev, "Fail to set power_path[%d] of %s, ret = %d\n",
+				cmd, cm->desc->psy_charger_stat[i], ret);
+			continue;
+		}
+	}
+}
+
+static bool cm_is_power_path_enabled(struct charger_manager *cm)
+{
+	int ret, i;
+	bool enabled = false;
+	union power_supply_propval val = {0,};
+	struct power_supply *psy;
+
+	for (i = 0; cm->desc->psy_charger_stat[i]; i++) {
+		psy = power_supply_get_by_name(cm->desc->psy_charger_stat[i]);
+		if (!psy) {
+			dev_err(cm->dev, "Cannot find primary power supply \"%s\"\n",
+				cm->desc->psy_charger_stat[i]);
+			continue;
+		}
+
+		val.intval = CM_POWER_PATH_ENABLE_CMD;
+		ret = power_supply_get_property(psy, POWER_SUPPLY_PROP_STATUS, &val);
+		power_supply_put(psy);
+		if (!ret && val.intval) {
+			enabled = true;
+			break;
+		}
+	}
+
+	dev_info(cm->dev, "%s: %s\n", __func__, enabled ? "enabled" : "disabled");
+	return enabled;
+}
+
 /**
  * is_charging - Returns true if the battery is being charged.
  * @cm: the Charger Manager representing the battery.
@@ -5191,6 +5245,46 @@ static ssize_t cp_num_show(struct device *dev,
 	return sprintf(buf, "%d\n", cp_num);
 }
 
+static ssize_t enable_power_path_show(struct device *dev,
+				      struct device_attribute *attr,
+				      char *buf)
+{
+	struct charger_regulator *charger
+		= container_of(attr, struct charger_regulator,
+			       attr_enable_power_path);
+	struct charger_manager *cm = charger->cm;
+	bool power_path_enabled;
+
+	power_path_enabled = cm_is_power_path_enabled(cm);
+
+	return sprintf(buf, "%d\n", power_path_enabled);
+}
+
+static ssize_t enable_power_path_store(struct device *dev,
+				       struct device_attribute *attr,
+				       const char *buf, size_t count)
+{
+	struct charger_regulator *charger
+		= container_of(attr, struct charger_regulator,
+			       attr_enable_power_path);
+	struct charger_manager *cm = charger->cm;
+	bool power_path_enabled;
+	int ret;
+
+	ret =  kstrtobool(buf, &power_path_enabled);
+	if (ret)
+		return ret;
+
+	if (power_path_enabled)
+		cm_power_path_enable(cm, CM_POWER_PATH_ENABLE_CMD);
+	else
+		cm_power_path_enable(cm, CM_POWER_PATH_DISABLE_CMD);
+
+	power_supply_changed(cm->charger_psy);
+
+	return count;
+}
+
 /**
  * charger_manager_register_sysfs - Register sysfs entry for each charger
  * @cm: the Charger Manager representing the battery.
@@ -5234,7 +5328,8 @@ static int charger_manager_register_sysfs(struct charger_manager *cm)
 		charger->attrs[5] = &charger->attr_cp_num.attr;
 		charger->attrs[6] = &charger->attr_charge_pump_present.attr;
 		charger->attrs[7] = &charger->attr_charge_pump_current.attr;
-		charger->attrs[8] = NULL;
+		charger->attrs[8] = &charger->attr_enable_power_path.attr;
+		charger->attrs[9] = NULL;
 
 		charger->attr_g.name = str;
 		charger->attr_g.attrs = charger->attrs;
@@ -5271,6 +5366,12 @@ static int charger_manager_register_sysfs(struct charger_manager *cm)
 		charger->attr_charge_pump_present.attr.mode = 0644;
 		charger->attr_charge_pump_present.show = charge_pump_present_show;
 		charger->attr_charge_pump_present.store = charge_pump_present_store;
+
+		sysfs_attr_init(&charger->attr_enable_power_path.attr);
+		charger->attr_enable_power_path.attr.name = "enable_power_path";
+		charger->attr_enable_power_path.attr.mode = 0644;
+		charger->attr_enable_power_path.show = enable_power_path_show;
+		charger->attr_enable_power_path.store = enable_power_path_store;
 
 		sysfs_attr_init(&charger->attr_charge_pump_current.attr);
 		charger->attr_charge_pump_current.attr.name = "charge_pump_current";
