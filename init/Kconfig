@@ -1205,6 +1205,16 @@ config SPRD_CORE_ISOLATION
         unisolate cores based on cpu load and utilization. In
         IPA, isolation cpu can also reduce cpu temperature.
 
+config SPRD_ROTATION_TASK
+	bool "Sprd rotation task"
+	depends on SMP
+	default n
+	help
+	  This option enables task rotation feature. In ARM big.little cpu
+	  topology, benchmark app may start NR_CPUS big tasks to run,
+	  rotation task can improve system performance between big core
+	  and little core.
+
 config SYSFS_DEPRECATED
 	bool "Enable deprecated sysfs features to support old userspace tools"
 	depends on SYSFS

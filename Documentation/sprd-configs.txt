@@ -17149,6 +17149,15 @@ CONFIG_SPRD_PTM
 	[must] debug
 	[missing plat description] none
 	[function] Support Spreadtrum PTM.
+CONFIG_SPRD_ROTATION_TASK
+	[arch] arm64
+	[plat] sharkl5Pro
+	[missing plat] sharkl3
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
 CONFIG_SPRD_SC7731E_CLK
 	[arch] arm
 	[plat] pike2

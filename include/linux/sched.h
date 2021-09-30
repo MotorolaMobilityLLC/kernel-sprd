@@ -1309,7 +1309,7 @@ struct task_struct {
 	unsigned long			prev_lowest_stack;
 #endif
 
-	ANDROID_VENDOR_DATA_ARRAY(1, 2);
+	_ANDROID_KABI_REPLACE(ANDROID_VENDOR_DATA_ARRAY(1, 2), struct{ u64 last_enqueue_ts; u64 scheduler_reserve; });
 	ANDROID_OEM_DATA_ARRAY(1, 3);
 
 	ANDROID_KABI_RESERVE(1);

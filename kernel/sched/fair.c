@@ -6734,7 +6734,7 @@ static int find_energy_efficient_cpu(struct task_struct *p, int prev_cpu, int sy
 			unsigned int idle_exit_latency = UINT_MAX;
 			unsigned long cap_orig = capacity_orig_of(cpu);
 
-			if (!cpumask_test_cpu(cpu, p->cpus_ptr))
+			if (!cpumask_test_cpu(cpu, p->cpus_ptr) || is_reserved(cpu))
 				continue;
 #ifdef CONFIG_SPRD_CORE_CTL
 			if (cpu_isolated(cpu))
@@ -9624,6 +9624,12 @@ more_balance:
 
 			raw_spin_lock_irqsave(&busiest->lock, flags);
 
+			if (is_reserved(this_cpu) ||
+				is_reserved(cpu_of(busiest))) {
+				raw_spin_unlock_irqrestore(&busiest->lock, flags);
+				*continue_balancing = 0;
+				goto out;
+			}
 			/*
 			 * Don't kick the active_load_balance_cpu_stop,
 			 * if the curr task on busiest CPU can't be
@@ -9868,6 +9874,8 @@ out_unlock:
 		if (push_task_detached)
 			attach_one_task(target_rq, push_task);
 		put_task_struct(push_task);
+
+		clear_reserved(target_cpu);
 	}
 
 	if (p)
@@ -11385,6 +11393,7 @@ void check_for_migration(struct rq *rq, struct task_struct *p)
 	int new_cpu = -1;
 	int cpu = smp_processor_id();
 	int prev_cpu = task_cpu(p);
+	int ret;
 
 	if (sched_energy_enabled() && rq->misfit_task_load) {
 		if (rq->curr->state != TASK_RUNNING ||
@@ -11402,12 +11411,17 @@ void check_for_migration(struct rq *rq, struct task_struct *p)
 			active_balance = kick_active_balance(rq, p, new_cpu);
 
 			if (active_balance) {
+				mark_reserved(new_cpu);
 				raw_spin_unlock(&migration_lock);
-				stop_one_cpu_nowait(cpu,
+				ret = stop_one_cpu_nowait(cpu,
 					active_load_balance_cpu_stop, rq,
 					&rq->active_balance_work);
+				if (!ret)
+					clear_reserved(new_cpu);
 				return;
 			}
+		} else {
+			check_for_task_rotation(rq);
 		}
 		raw_spin_unlock(&migration_lock);
 	}
