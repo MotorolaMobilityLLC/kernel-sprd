@@ -1006,8 +1006,8 @@
 				reg = <0 0x60200000 0 0x10000>;
 				interrupts = <GIC_SPI 111 IRQ_TYPE_LEVEL_HIGH>;
 				syscon-names = "irq_clr", "irq_en";
-				syscons = <&pub_apb_regs 0x32f0 0x200>,
-					<&pub_apb_regs 0x32f0 0x100>;
+				mpu-irq-clr-syscon = <&pub_apb_regs 0x32f0 0x200>;
+				mpu-irq-en-syscon = <&pub_apb_regs 0x32f0 0x100>;
 				sprd,channel-num = <8>;
 				sprd,mpu-num = <16>;
 				sprd,channel-names =
