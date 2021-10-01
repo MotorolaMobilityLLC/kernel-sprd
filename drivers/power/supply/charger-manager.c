@@ -788,25 +788,13 @@ static int get_boot_cap(struct charger_manager *cm, int *cap)
 	return 0;
 }
 
-/**
- * get_usb_charger_type - Get the charger type
- * @cm: the Charger Manager representing the battery.
- * @type: the charger type returned.
- *
- * Returns 0 if there is no error.
- * Returns a negative value on error.
- */
-static int get_usb_charger_type(struct charger_manager *cm, u32 *type)
+static int cm_get_usb_type(struct charger_manager *cm, u32 *type)
 {
 	union power_supply_propval val;
 	struct power_supply *psy;
 	int ret = -EINVAL, i;
 
-	mutex_lock(&cm->desc->charger_type_mtx);
-	if (cm->desc->is_fast_charge) {
-		mutex_unlock(&cm->desc->charger_type_mtx);
-		return 0;
-	}
+	*type = POWER_SUPPLY_USB_TYPE_UNKNOWN;
 
 	for (i = 0; cm->desc->psy_charger_stat[i]; i++) {
 		psy = power_supply_get_by_name(cm->desc->psy_charger_stat[i]);
@@ -823,6 +811,29 @@ static int get_usb_charger_type(struct charger_manager *cm, u32 *type)
 			break;
 		}
 	}
+
+	return ret;
+}
+
+/**
+ * get_usb_charger_type - Get the charger type
+ * @cm: the Charger Manager representing the battery.
+ * @type: the charger type returned.
+ *
+ * Returns 0 if there is no error.
+ * Returns a negative value on error.
+ */
+static int get_usb_charger_type(struct charger_manager *cm, u32 *type)
+{
+	int ret = -EINVAL;
+
+	mutex_lock(&cm->desc->charger_type_mtx);
+	if (cm->desc->is_fast_charge) {
+		mutex_unlock(&cm->desc->charger_type_mtx);
+		return 0;
+	}
+
+	ret = cm_get_usb_type(cm, type);
 
 	mutex_unlock(&cm->desc->charger_type_mtx);
 	return ret;
@@ -4380,9 +4391,14 @@ static int charger_get_property(struct power_supply *psy,
 
 		break;
 
+	case POWER_SUPPLY_PROP_USB_TYPE:
+		ret = cm_get_usb_type(cm, &val->intval);
+		break;
+
 	default:
 		return -EINVAL;
 	}
+
 	if (fuel_gauge)
 		power_supply_put(fuel_gauge);
 	return ret;
@@ -4498,11 +4514,12 @@ static enum power_supply_property default_charger_props[] = {
 	POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN,
 	POWER_SUPPLY_PROP_TIME_TO_FULL_NOW,
 	POWER_SUPPLY_PROP_TECHNOLOGY,
+	POWER_SUPPLY_PROP_USB_TYPE,
+	POWER_SUPPLY_PROP_TEMP,
+	POWER_SUPPLY_PROP_TEMP_AMBIENT,
 	/*
 	 * Optional properties are:
 	 * POWER_SUPPLY_PROP_CHARGE_NOW,
-	 * POWER_SUPPLY_PROP_TEMP, and
-	 * POWER_SUPPLY_PROP_TEMP_AMBIENT,
 	 */
 };
 
@@ -4542,6 +4559,17 @@ static struct usb_data usb_main = {
 	.USB_ONLINE = 0,
 };
 
+static enum power_supply_usb_type default_usb_types[] = {
+	POWER_SUPPLY_USB_TYPE_UNKNOWN,
+	POWER_SUPPLY_USB_TYPE_SDP,
+	POWER_SUPPLY_USB_TYPE_DCP,
+	POWER_SUPPLY_USB_TYPE_CDP,
+	POWER_SUPPLY_USB_TYPE_C,
+	POWER_SUPPLY_USB_TYPE_PD,
+	POWER_SUPPLY_USB_TYPE_PD_DRP,
+	POWER_SUPPLY_USB_TYPE_APPLE_BRICK_ID
+};
+
 static const struct power_supply_desc psy_default = {
 	.name = "battery",
 	.type = POWER_SUPPLY_TYPE_BATTERY,
@@ -4550,6 +4578,8 @@ static const struct power_supply_desc psy_default = {
 	.get_property = charger_get_property,
 	.set_property = charger_set_property,
 	.property_is_writeable	= charger_property_is_writeable,
+	.usb_types		= default_usb_types,
+	.num_usb_types		= ARRAY_SIZE(default_usb_types),
 	.no_thermal = true,
 };
 
