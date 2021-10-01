@@ -109,6 +109,16 @@ struct modem_data {
 const struct ext_modem_operations *ext_modem_ops;
 #endif
 
+#ifdef CONFIG_ARM64
+#define modem_memory_unmap(type, vmem)		memunmap((vmem))
+#define ALIGN_NUM				8
+#define ALIGN_MASK				0xFFFFFFFFFFFFFFF8
+#else
+#define modem_memory_unmap(type, vmem)		modem_ram_unmap((type), (vmem))
+#define ALIGN_NUM				4
+#define ALIGN_MASK				0xFFFFFFFC
+#endif
+
 const char *modem_ctrl_args[MODEM_CTRL_NR] = {
 	"shutdown",
 	"deepsleep",
@@ -241,16 +251,18 @@ static void *modem_map_memory(struct modem_device *modem, phys_addr_t start,
 
 	do {
 		map_size = PAGE_ALIGN(map_size);
+#ifdef CONFIG_ARM64
+		map = modem_ram_vmap_nocache(modem->modem_type, start, map_size);
+#else
 		map = memremap(start, map_size, MEMREMAP_WB);
+#endif
 		if (map) {
 			if (map_size_ptr)
 				*map_size_ptr = map_size;
-
 			return map;
 		}
 		map_size /= 2;
 	} while (map_size >= PAGE_SIZE);
-
 	return NULL;
 }
 
@@ -280,8 +292,8 @@ static int list_each_dump_info(struct modem_dump_info *base,
 	return ret;
 }
 
-static ssize_t sprd_modem_seg_dump(u32 base, u32 maxsz, char __user *buf,
-						size_t count, loff_t offset)
+static ssize_t sprd_modem_seg_dump(struct modem_device *modem, u32 base, u32 maxsz,
+					char __user *buf, size_t count, loff_t offset)
 {
 	void *vmem;
 	phys_addr_t loop = 0;
@@ -299,10 +311,8 @@ static ssize_t sprd_modem_seg_dump(u32 base, u32 maxsz, char __user *buf,
 
 	do {
 		u32 copy_size = MODEM_VMALLOC_SIZE_LIMIT;
-
 		vmem = memremap(start_addr + MODEM_VMALLOC_SIZE_LIMIT * loop,
 				MODEM_VMALLOC_SIZE_LIMIT, MEMREMAP_WB);
-
 		if (!vmem) {
 			pr_err("unable to map base: 0x%08llx\n",
 			       start_addr + MODEM_VMALLOC_SIZE_LIMIT * loop);
@@ -317,11 +327,11 @@ static ssize_t sprd_modem_seg_dump(u32 base, u32 maxsz, char __user *buf,
 
 		if (_unalign_copy_to_user(buf, vmem, copy_size)) {
 			pr_err("copy data to user error !\n");
-			memunmap(vmem);
+			modem_memory_unmap(modem->modem_type, vmem);
 			return -EFAULT;
 		}
 
-		memunmap(vmem);
+		modem_memory_unmap(modem->modem_type, vmem);
 
 		count -= copy_size;
 		loop++;
@@ -389,7 +399,7 @@ static ssize_t modem_read_mini_dump(struct file *filp,
 			if (_unalign_copy_to_user(buf + total,
 					head + *ppos, written)) {
 				dev_err(modem->p_dev, "copy mini-dump data to user error !\n");
-				memunmap(vmem);
+				modem_memory_unmap(modem->modem_type, vmem);
 				return -EFAULT;
 			}
 			*ppos += written;
@@ -398,6 +408,7 @@ static ssize_t modem_read_mini_dump(struct file *filp,
 		count -= written;
 		if (count) {
 			written = sprd_modem_seg_dump(
+					modem,
 					s_cur_info->start_addr,
 					s_cur_info->size,
 					buf + total,
@@ -414,7 +425,7 @@ static ssize_t modem_read_mini_dump(struct file *filp,
 					mini_number++;
 				}
 			} else {
-				memunmap(vmem);
+				modem_memory_unmap(modem->modem_type, vmem);
 				return written;
 			}
 
@@ -426,7 +437,7 @@ static ssize_t modem_read_mini_dump(struct file *filp,
 		offset = 0;
 	}
 
-	memunmap(vmem);
+	modem_memory_unmap(modem->modem_type, vmem);
 	return total;
 }
 
@@ -486,14 +497,17 @@ static ssize_t modem_read(struct file *filp,
 		}
 
 		copy_size = min_t(size_t, r, map_size);
-		if (_unalign_copy_to_user(buf, vmem, copy_size)) {
+		if (copy_size > ALIGN_NUM) {
+			copy_size &= ALIGN_MASK;
+		}
+		if (_copy_to_user(buf, vmem, copy_size)) {
 			dev_err(modem->p_dev,
 				"read, copy data from user err!\n");
-			memunmap(vmem);
+			modem_memory_unmap(modem->modem_type, vmem);
 			sprd_modem_pms_release_resource(modem->rd_pms);
 			return -EFAULT;
 		}
-		memunmap(vmem);
+		modem_memory_unmap(modem->modem_type, vmem);
 		sprd_modem_pms_release_resource(modem->rd_pms);
 		r -= copy_size;
 		buf += copy_size;
@@ -548,14 +562,18 @@ static ssize_t modem_write(struct file *filp,
 			return -ENOMEM;
 		}
 		copy_size = min_t(size_t, r, map_size);
-		if (_unalign_copy_from_user(vmem, buf, copy_size)) {
+		if (copy_size > ALIGN_NUM) {
+			copy_size &= ALIGN_MASK;
+		}
+
+		if (_copy_from_user(vmem, buf, copy_size)) {
 			dev_err(modem->p_dev,
 				"write, copy data from user err!\n");
-			memunmap(vmem);
+			modem_memory_unmap(modem->modem_type, vmem);
 			sprd_modem_pms_release_resource(modem->wt_pms);
 			return -EFAULT;
 		}
-		memunmap(vmem);
+		modem_memory_unmap(modem->modem_type, vmem);
 		sprd_modem_pms_release_resource(modem->wt_pms);
 		r -= copy_size;
 		buf += copy_size;
