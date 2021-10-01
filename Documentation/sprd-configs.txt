@@ -17122,6 +17122,33 @@ CONFIG_SPRD_POWER_DEBUG
 	[must]
 	[missing plat description] none
 	[function]
+CONFIG_SPRD_POWER_STAT
+	[arch] arm64
+	[plat] sharkl5Pro
+	[missing plat] sharkl3
+	[field] make
+	[subsys] debug
+	[must] debug
+	[missing plat description] none
+	[function]
+CONFIG_SPRD_POWER_STAT_CORE
+	[arch] arm64
+	[plat] sharkl5Pro
+	[missing plat] sharkl3
+	[field] make
+	[subsys] debug
+	[must] debug
+	[missing plat description] none
+	[function]
+CONFIG_SPRD_POWER_STAT_SHARKL5PRO
+	[arch] arm64
+	[plat] sharkl5Pro
+	[missing plat] sharkl3
+	[field] make
+	[subsys] debug
+	[must] debug
+	[missing plat description] none
+	[function]
 CONFIG_SPRD_PTM
 	[arch] arm64
 	[plat] sharkl3,sharkl5Pro
