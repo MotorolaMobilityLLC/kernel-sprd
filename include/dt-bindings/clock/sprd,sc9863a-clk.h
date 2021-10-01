@@ -58,11 +58,11 @@
 #define CLK_DPLL1		1
 #define CLK_DPLL0_933M		2
 #define CLK_DPLL0_622M3		3
-#define CLK_DPLL0_400M		4
-#define CLK_DPLL0_266M7		5
-#define CLK_DPLL0_123M1		6
-#define CLK_DPLL0_50M		7
-#define CLK_ANLG_PHY_G7_NUM	(CLK_DPLL0_50M + 1)
+#define CLK_DPLL1_400M		4
+#define CLK_DPLL1_266M7		5
+#define CLK_DPLL1_123M1		6
+#define CLK_DPLL1_50M		7
+#define CLK_ANLG_PHY_G7_NUM	(CLK_DPLL1_50M + 1)
 
 #define CLK_MPLL0		0
 #define CLK_MPLL1		1
