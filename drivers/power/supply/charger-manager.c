@@ -3655,7 +3655,7 @@ static int cm_get_target_status(struct charger_manager *cm)
 	if (ret)
 		dev_warn(cm->dev, "Errors orrurs when adjusting charging current\n");
 
-	if (!is_ext_pwr_online(cm))
+	if (!is_ext_pwr_online(cm) || (!is_batt_present(cm) && !allow_charger_enable))
 		return POWER_SUPPLY_STATUS_DISCHARGING;
 
 	if (cm_check_thermal_status(cm))
@@ -3716,6 +3716,13 @@ static bool _cm_monitor(struct charger_manager *cm)
 		cm->emergency_stop = 0;
 		cm->charging_status = 0;
 		try_charger_enable(cm, true);
+
+		if (!cm->desc->cp.cp_running && !cm_check_primary_charger_enabled(cm)
+		    && !cm->desc->force_set_full) {
+			dev_info(cm->dev, "%s, primary charger does not enable,enable it\n", __func__);
+			cm_primary_charger_enable(cm, true);
+		}
+
 		if (cm_is_need_start_cp(cm)) {
 			dev_info(cm->dev, "%s, reach pps threshold\n", __func__);
 			cm_start_cp_state_machine(cm, true);
