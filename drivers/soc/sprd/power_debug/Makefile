@@ -18,3 +18,6 @@ sprd_roc1_pdbg-objs := sprd_pdbg_core.o sprd_pdbg_roc1.o
 
 obj-$(CONFIG_SPRD_ORCA_POWER_DEBUG)	+= sprd_orca_pdbg.o
 sprd_orca_pdbg-objs := sprd_pdbg_core.o sprd_pdbg_orca.o
+
+obj-$(CONFIG_SPRD_SHARKL6_POWER_DEBUG) += sprd_trad_pdbg_sharkl6.o
+sprd_trad_pdbg_sharkl6-objs := sprd_trad_pdbg_core.o sprd_trad_pdbg_drv.o sprd_pdbg_sharkl6.o
