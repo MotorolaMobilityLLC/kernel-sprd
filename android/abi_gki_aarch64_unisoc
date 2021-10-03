@@ -94,6 +94,7 @@
   compat_alloc_user_space
   complete
   complete_all
+  complete_and_exit
   config_ep_by_speed
   config_group_init_type_name
   contig_page_data
