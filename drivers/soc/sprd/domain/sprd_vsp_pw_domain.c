@@ -28,6 +28,7 @@ enum {
 	PMU_VSP_AUTO_SHUTDOWN = 0,
 	PMU_VSP_FORCE_SHUTDOWN,
 	PMU_PWR_STATUS,
+	VSP_DOMAIN_EB,
 	REG_MAX
 };
 
@@ -35,6 +36,7 @@ static char * const vsp_pm_name[REG_MAX] = {
 	[PMU_VSP_AUTO_SHUTDOWN] = "pmu-vsp-auto-shutdown-syscon",
 	[PMU_VSP_FORCE_SHUTDOWN] = "pmu-vsp-force-shutdown-syscon",
 	[PMU_PWR_STATUS] = "pmu-pwr-status-syscon",
+	[VSP_DOMAIN_EB] = "vsp-domain-eb-syscon",
 };
 
 struct sprd_vsp_pd {
@@ -44,6 +46,50 @@ struct sprd_vsp_pd {
 	unsigned int reg[REG_MAX];
 	unsigned int mask[REG_MAX];
 };
+
+static int boot_mode_check(void)
+{
+	struct device_node *np;
+	const char *cmd_line;
+	int ret = 0;
+
+	np = of_find_node_by_path("/chosen");
+	if (!np)
+		return 0;
+
+	ret = of_property_read_string(np, "bootargs", &cmd_line);
+	if (ret < 0)
+		return 0;
+
+	if (strstr(cmd_line, "androidboot.mode=cali"))
+		ret = 1;
+
+	return ret;
+}
+
+static int vsp_shutdown(struct sprd_vsp_pd *vsp_pd)
+{
+	int ret = 0;
+	ret = regmap_update_bits(vsp_pd->regmap[VSP_DOMAIN_EB],
+		vsp_pd->reg[VSP_DOMAIN_EB],
+		vsp_pd->mask[VSP_DOMAIN_EB], 0);
+	if (ret) {
+		pr_err("cali regmap_update_bits failed %s, %d\n",
+			__func__, __LINE__);
+		return ret;
+	}
+
+	ret = regmap_update_bits(vsp_pd->regmap[PMU_VSP_FORCE_SHUTDOWN],
+		vsp_pd->reg[PMU_VSP_FORCE_SHUTDOWN],
+		vsp_pd->mask[PMU_VSP_FORCE_SHUTDOWN],
+		vsp_pd->mask[PMU_VSP_FORCE_SHUTDOWN]);
+	if (ret) {
+		pr_err("cali regmap_update_bits failed %s, %d\n",
+			__func__, __LINE__);
+		return ret;
+	}
+	return ret;
+}
 
 static int vsp_pw_on(struct generic_pm_domain *domain)
 {
@@ -136,7 +182,7 @@ static int vsp_pd_probe(struct platform_device *pdev)
 	struct regmap *tregmap;
 	uint32_t syscon_args[2];
 	struct sprd_vsp_pd *pd;
-	int i;
+	int i, ret;
 
 	dev_info(dev, "%s, %d\n", __func__, __LINE__);
 	pd = devm_kzalloc(dev, sizeof(*pd), GFP_KERNEL);
@@ -166,6 +212,16 @@ static int vsp_pd_probe(struct platform_device *pdev)
 		pd->mask[i] = syscon_args[1];
 		dev_info(dev, "VSP syscon[%s]%p, offset 0x%x, mask 0x%x\n",
 			pname, pd->regmap[i], pd->reg[i], pd->mask[i]);
+	}
+
+	if (boot_mode_check()) {
+		ret = vsp_shutdown(pd);
+		if (!ret) {
+			pr_info("%s: calibration mode and not probe\n", __func__);
+		} else {
+			pr_err("%s: calibration mode vsp shutdown failed\n", __func__);
+		}
+		return 0;
 	}
 
 	pm_genpd_init(&pd->gpd, NULL, true);
