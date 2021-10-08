@@ -8,6 +8,7 @@ import commands
 
 MAIN_PATH = ''
 TAGS_FILE_NAME = 'Documentation/unisoc/patch-tags.txt'
+AGREEMENT_FILE_NAME = 'Documentation/unisoc/Open-Source-Agreement'
 
 GET_PATCH_INFO_COMMANDS = 'git log -1'
 GET_PATCH_MODIFY_FILE_INFO = 'git log -1 --pretty="format:" --name-only'
@@ -18,7 +19,9 @@ SUBSYSTEM2_TAGS = []
 SUBSYSTEM3_TAGS = []
 SUBSYSTEM1_TAGS_NOCHECK = []
 SPECIAL_CHECK_TAGS = ['Documentation', 'dts']
+PATCH_SIGNATURE = []
 check_tags_flag = 1
+check_signature_flag = 1
 
 def read_line(path,file_name):
     read_file = path + '/' + file_name
@@ -104,6 +107,36 @@ def find_last_char(string, p):
         i += 1
 
     return index
+
+def check_patch_signature(patch_info_list):
+    global PATCH_SIGNATURE
+    global check_signature_flag
+    current_signature = ""
+
+    read_message_lines = read_line(KERNEL_DIR,AGREEMENT_FILE_NAME)
+
+    for x in patch_info_list:
+        if "Signed-off-by" in x:
+            check_signature_flag = 0
+            current_signature = "- " + x[x.index(":") + 2:]
+            PATCH_SIGNATURE.append(current_signature)
+
+            for y in read_message_lines:
+                if "\n" in y:
+                    y = y.strip("\n")
+
+                if current_signature == y:
+                    PATCH_SIGNATURE.remove(current_signature)
+                    break;
+
+    if check_signature_flag == 1:
+        print >> sys.stderr, "\nERROR: Signature(Signed-off-by) doesnot exist for commit message!!!"
+        sys.exit(check_signature_flag);
+    if len(PATCH_SIGNATURE) != 0:
+        print >> sys.stderr, "\nERROR: the following signature not in Documentation/unisoc/Open-Source-Agreement"
+        for x in PATCH_SIGNATURE:
+            print >> sys.stderr, " %s" % x
+        sys.exit(1);
 
 def check_tags_commit_id(patch_info_list):
     global check_tags_flag
@@ -286,6 +319,7 @@ def main(argv=None):
 #for x in get_patch_info_list:
 #print "%s" % x
 
+    check_patch_signature(get_patch_info_list)
     ret_info = check_tags_commit_id(get_patch_info_list)
 
     check_tags_consistent(ret_info)
