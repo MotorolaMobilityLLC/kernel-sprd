@@ -478,7 +478,8 @@ int aud_smsg_recv(u8 dst, struct aud_smsg *msg, int timeout)
 			sp_asoc_pr_info("warning %s wait interrupted!\n",
 				__func__);
 			goto recv_failed;
-		} else if (rval == 0) {
+		} else if ((rval == 0) && (readl_relaxed((void *)ch->wrptr) ==
+				readl_relaxed((void *)ch->rdptr))) {
 			unsigned long flags_tx, flags_rx;
 			struct aud_smsg msg;
 			u32 is_timeout = 1;
