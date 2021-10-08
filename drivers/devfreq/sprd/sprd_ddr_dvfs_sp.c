@@ -175,7 +175,8 @@ static int dvfs_probe(struct platform_device *pdev)
 		dev_warn(dev, "failed read scene_num\n");
 		scene_num = 0;
 	} else {
-		g_vote_data = devm_kzalloc(dev, sizeof(struct vote_data)*scene_num, GFP_KERNEL);
+		g_vote_data = devm_kzalloc(dev, sizeof(struct vote_data)*(unsigned int)scene_num,
+					   GFP_KERNEL);
 		if (g_vote_data == NULL) {
 			err = -ENOMEM;
 			return err;
