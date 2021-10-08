@@ -5258,6 +5258,15 @@ CONFIG_DRM_SPRD_GSP
 	[must] home
 	[missing plat description] none
 	[function] DRM_SPRD_GSP is used for enable gsp.
+CONFIG_DRM_SPRD_GSP_IPC_TRUSTY
+	[arch] arm64
+	[plat] sharkl5Pro
+	[missing plat] sharkl3
+	[field] make,code
+	[subsys] drm
+	[must] home
+	[missing plat description] support after l5pro SoC.
+	[function] DRM_SPRD_GSP_IPC_TRUSTY is used for enable gsp widevine.
 CONFIG_DRM_TTM
 	[arch] all
 	[plat] all
