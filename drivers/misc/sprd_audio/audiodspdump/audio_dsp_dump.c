@@ -39,6 +39,10 @@
 
 #define DSP_MEM_OFFSET    (64*1024)
 
+#define MAX_MEMORY_LOG_BUFFER_SIZE    (5*1024*1024)
+
+#define MAX_PRINT_LOG_POINTS	256
+
 /*flag for TP log output*/
 #define AUDIO_LOG_DISABLE	0
 #define AUDIO_LOG_BY_UART	1
@@ -59,6 +63,8 @@ enum{
 	SBLOCK_TYPE_RESPONSE_ADDR = 0x22,
 	SBLOCK_TYPE_EVENT = 0x23,
 	SBLOCK_TYPE_TPLOG = 0x24,
+	AUDIO_DUMP_MEMORY_LOG_ENABLE = 0x25,
+
 };
 
 #define SPRD_MAX_NAME_LEN 64
@@ -98,6 +104,9 @@ struct dsp_log_device {
 	wait_queue_head_t mem_ready_wait;
 	struct mutex mutex;
 	int dsp_assert;
+	u32 mem_log_addr;
+	u32  mem_log_size;
+	u32 *mem_log_addr_v;
 };
 
 struct dsp_log_sbuf {
@@ -278,13 +287,66 @@ static int audio_dsp_mem_dump(struct dsp_log_init_data *init, void *buf,
 	return bytes;
 }
 
+static void adsp_memlog_print(struct dsp_log_device *dsp_log)
+{
+	int i;
+	u32 *mem_log_addr;
+	u32 last_log_pos;
+	u32 log_print_count;
+	u32 total_point_count;
+	u32 max_print_count = MAX_PRINT_LOG_POINTS;
+
+	if (!dsp_log)
+		return;
+
+	if (dsp_log->mem_log_addr_v) {
+		last_log_pos = *((u32 *)dsp_log->mem_log_addr_v + 2);
+		mem_log_addr = (u32 *)dsp_log->mem_log_addr_v + 3;
+		total_point_count = (dsp_log->mem_log_size>>2) - 3;
+
+		if (max_print_count > total_point_count)
+			max_print_count = total_point_count;
+
+		pr_info("last_log_pos:%d,total:%d, max :%d\n", last_log_pos,
+			total_point_count, max_print_count);
+
+		log_print_count = (last_log_pos + 1) > max_print_count
+			? max_print_count : (last_log_pos + 1);
+
+		for (i = 0; i < max_print_count - log_print_count; i++) {
+			pr_info("dsplog:%d:  %x\n", i,
+			*(mem_log_addr + (total_point_count - 1)
+				- (max_print_count - log_print_count)
+				+ 1+i));
+		}
+
+		for (i = 0; i < log_print_count; i++) {
+			pr_info("dsplog:%d:  %x\n", max_print_count
+				- log_print_count + i,
+				*(mem_log_addr + last_log_pos
+					- log_print_count + 1+i));
+		}
+	}
+}
+
 static int audio_dsp_audio_info_dump(void *private, u32 is_timeout)
 {
 	u32 bytes = 0;
-	struct dsp_log_init_data *init  = private;
+	struct dsp_log_device *dsp_log = private;
+	struct dsp_log_init_data *init = NULL;
+ 
+	if (!dsp_log)
+		return -1;
+
+	init = dsp_log->init;
 
 	if (!init)
 		return -1;
+   
+	pr_info("%s: mem_log_addr : %x, mem_log_size:%d", __func__,
+			dsp_log->mem_log_addr, dsp_log->mem_log_size);
+
+	adsp_memlog_print(dsp_log);
 
 	bytes  = aud_ipc_dump(init->dump_mem_addr_v, DSP_MEM_OFFSET);
 	pr_info("%s: ipc dump bytes : %d", __func__, bytes);
@@ -447,8 +509,17 @@ static long audio_dsp_ioctl(struct file *filp,
 	unsigned int cmd, unsigned long arg)
 {
 	struct dsp_log_sbuf *audio_buf = filp->private_data;
+	struct dsp_log_device *dev_res;
 	int ret = 0;
+	u32 in_arg = 0;
+	u32 mem_addr = 0;
 
+	if (!audio_buf)
+		return -EFAULT;
+	dev_res = audio_buf->dev_res;
+	if (!dev_res)
+		return -EFAULT;
+   
 	pr_info("%s enter into\n", __func__);
 	switch (cmd) {
 	case DSPLOG_CMD_LOG_ENABLE:
@@ -497,6 +568,55 @@ static long audio_dsp_ioctl(struct file *filp,
 	case DSPLOG_CMD_TIMEOUTDUMP_ENABLE:
 		audio_buf->dev_res->init->timeout_dump = (u32)arg;
 		break;
+	case DSPLOG_CMD_MEMORYLOG_ENABLE:
+		in_arg = (u32)arg;
+		mutex_lock(&dev_res->mutex);
+		if (!in_arg) {
+			pr_info("DSP_LOG_TO_MEMORY_DISABLE:addr:%x, size_bytes:%ld\n",
+				(u32)dev_res->mem_log_addr,
+				dev_res->mem_log_size);
+			ret = aud_send_cmd_no_param(audio_buf->channel,
+				AUDIO_DUMP_MEMORY_LOG_ENABLE, 0, 0, 0, 0, -1);
+			if (dev_res->mem_log_addr) {
+				audio_mem_free(DDR32,
+						(u32)dev_res->mem_log_addr,
+						dev_res->mem_log_size);
+				dev_res->mem_log_addr = 0;
+				dev_res->mem_log_size = 0;
+				audio_mem_unmap(dev_res->mem_log_addr_v);
+				dev_res->mem_log_addr_v = NULL;
+			}
+		} else {
+			if (in_arg > MAX_MEMORY_LOG_BUFFER_SIZE)
+				in_arg = MAX_MEMORY_LOG_BUFFER_SIZE;
+			if (dev_res->mem_log_addr) {
+				audio_mem_free(DDR32,
+						(u32)dev_res->mem_log_addr,
+						dev_res->mem_log_size);
+				dev_res->mem_log_addr = 0;
+				dev_res->mem_log_size = 0;
+				audio_mem_unmap(
+					(const void *)dev_res->mem_log_addr_v);
+				dev_res->mem_log_addr_v = NULL;
+			}
+			mem_addr = audio_mem_alloc(DDR32, (u32 *)&in_arg);
+			if (mem_addr) {
+				dev_res->mem_log_addr = mem_addr;
+				dev_res->mem_log_addr_v = (u32 *)audio_mem_vmap(
+					(phys_addr_t)mem_addr, in_arg, 0);
+				dev_res->mem_log_size = in_arg;
+				mem_addr = audio_addr_ap2dsp(DDR32,
+						mem_addr, false);
+				ret = aud_send_cmd_no_wait(
+						audio_buf->channel,
+						AUDIO_DUMP_MEMORY_LOG_ENABLE,
+						(u32)mem_addr, in_arg, 0, 0);
+			}
+			pr_info("DSP_LOG_TO_MEMORY_ENABLE:addr:%x, size_bytes:%ld\n",
+				(u32)mem_addr, in_arg);
+		}
+		mutex_unlock(&dev_res->mutex);
+		break;
 	default:
 		return -EINVAL;
 	}
@@ -508,6 +628,9 @@ static inline void audio_dsp_destroy_pdata(struct dsp_log_init_data **init)
 {
 	struct dsp_log_init_data *pdata = *init;
 
+	if (!pdata)
+		return;
+   
 	audio_sblock_destroy(pdata->dst, pdata->channel);
 	kfree(pdata);
 	*init = NULL;
@@ -721,6 +844,16 @@ static int audio_dsp_probe(struct platform_device *pdev)
 			init = NULL;
 			return rval;
 		}
+ 	} else if (init->channel) {
+		rval = aud_ipc_ch_open(init->channel);
+		if (rval != 0) {
+			pr_err("Failed to open channel : %d, ret:%d\n",
+					init->channel, rval);
+			kfree(init);
+			init = NULL;
+			return rval;
+		}
+		pr_info("channel %d open ok\n", init->channel);
 	}
 
 	if (init->dump_type == DSP_MEM) {
@@ -749,8 +882,6 @@ static int audio_dsp_probe(struct platform_device *pdev)
 					init->usedmem_size, 1);
 			memset_io(init->dump_mem_addr_v, 0, init->usedmem_size);
 		}
-		aud_smsg_register_dump_func(audio_dsp_audio_info_dump,
-					  (void *)init);
 	}
 
 	dsp_log = kzalloc(sizeof(struct dsp_log_device), GFP_KERNEL);
@@ -786,6 +917,11 @@ static int audio_dsp_probe(struct platform_device *pdev)
 	mutex_init(&dsp_log->mutex);
 	init_waitqueue_head(&dsp_log->mem_ready_wait);
 	platform_set_drvdata(pdev, dsp_log);
+	if (init->dump_type == DSP_MEM) {
+		aud_smsg_register_dump_func(
+				audio_dsp_audio_info_dump,
+				(void *)dsp_log);
+	}
 	pr_info("dsp_log_tp_probe success  %s\n", init->name);
 
 	return 0;
@@ -793,9 +929,30 @@ static int audio_dsp_probe(struct platform_device *pdev)
 
 static int  audio_dsp_remove(struct platform_device *pdev)
 {
-
+	int rval;
 	struct dsp_log_device *dsp_log = platform_get_drvdata(pdev);
 
+	if (!dsp_log)
+		return -EINVAL;
+
+	if (dsp_log->init
+		&& dsp_log->init->channel) {
+		rval = aud_ipc_ch_close(dsp_log->init->channel);
+		if (rval != 0)
+			pr_err("Failed to close channel : %d, ret:%d\n",
+				dsp_log->init->channel, rval);
+	}
+
+	if (dsp_log->mem_log_addr) {
+		audio_mem_free(DDR32,
+				(u32)dsp_log->mem_log_addr,
+				dsp_log->mem_log_size);
+		dsp_log->mem_log_addr = 0;
+		dsp_log->mem_log_size = 0;
+		audio_mem_unmap(dsp_log->mem_log_addr_v);
+		dsp_log->mem_log_addr_v = NULL;
+	}
+ 
 	cdev_del(&(dsp_log->cdev));
 	unregister_chrdev_region(
 		MKDEV(dsp_log->major, dsp_log->minor), 1);
@@ -807,6 +964,7 @@ static int  audio_dsp_remove(struct platform_device *pdev)
 }
 
 static struct platform_driver audio_dsp_driver = {
+
 	.driver = {
 		.owner = THIS_MODULE,
 		.name = "sprd_audio_dsp_dump",
