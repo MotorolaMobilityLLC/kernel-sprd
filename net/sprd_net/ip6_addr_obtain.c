@@ -58,7 +58,8 @@ static ssize_t sn_v6_iface_id_write(struct file *filp,
 
 	tok = strsep(&p_v6_addr_info, " ");
 	if (tok)
-		kstrtol(tok, 10, &index);
+		if (kstrtol(tok, 10, &index))
+			return -EINVAL;
 
 	if (index < 0 || index >= MAX_IFACE_NUM) {
 		pr_err("index %ld is illegal\n", index);
@@ -74,7 +75,8 @@ static ssize_t sn_v6_iface_id_write(struct file *filp,
 			pr_info("continue here\n");
 			continue;
 		}
-		kstrtol(tok, 16, &tmp);
+		if (kstrtol(tok, 16, &tmp))
+			return -EINVAL;
 		gl_ipv6_iface_id[index].v6_iface_id.in6_u.u6_addr8[i++] =
 				IP_SFT(tmp, 8);
 		gl_ipv6_iface_id[index].v6_iface_id.in6_u.u6_addr8[i++] =
@@ -183,7 +185,8 @@ static int sn_ip6_parse_ra_options(struct sk_buff *skb)
 			if (strncmp(dev->name, IFACE_NAME, strlen(IFACE_NAME)))
 				goto put;
 
-			kstrtol(&dev->name[strlen(IFACE_NAME)], 10, &index);
+			if (kstrtol(&dev->name[strlen(IFACE_NAME)], 10, &index))
+				return -EINVAL;
 
 			pinfo = (struct prefix_info *)nd_opt;
 			pr_info("skb %p RA: %pI6, %d\n", skb, &pinfo->prefix, pinfo->prefix_len);
