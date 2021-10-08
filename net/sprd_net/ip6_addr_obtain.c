@@ -72,7 +72,7 @@ static ssize_t sn_v6_iface_id_write(struct file *filp,
 
 	while ((tok = strsep(&p_v6_addr, ":"))) {
 		if (!*tok) {
-			pr_info("continue here\n");
+			pr_debug("continue here\n");
 			continue;
 		}
 		if (kstrtol(tok, 16, &tmp))
@@ -156,7 +156,7 @@ static int sn_ip6_parse_ra_options(struct sk_buff *skb)
 	optlen = (skb_tail_pointer(skb) - skb_transport_header(skb)) -
 		  sizeof(struct ra_msg);
 
-	pr_info("skb %p, optlen %d\n", skb, optlen);
+	pr_debug("skb %p, optlen %d\n", skb, optlen);
 
 	if (!(ipv6_addr_type(&ipv6_hdr(skb)->saddr) & IPV6_ADDR_LINKLOCAL)) {
 		pr_warn("RA: source address is not link-local\n");
@@ -178,7 +178,7 @@ static int sn_ip6_parse_ra_options(struct sk_buff *skb)
 		if (optlen < l || l == 0)
 			goto put;
 
-		pr_info("skb %p, nd_opt_type %d\n", skb, nd_opt->nd_opt_type);
+		pr_debug("skb %p, nd_opt_type %d\n", skb, nd_opt->nd_opt_type);
 		switch (nd_opt->nd_opt_type) {
 		case ND_OPT_PREFIX_INFO:
 
@@ -189,13 +189,13 @@ static int sn_ip6_parse_ra_options(struct sk_buff *skb)
 				return -EINVAL;
 
 			pinfo = (struct prefix_info *)nd_opt;
-			pr_info("skb %p RA: %pI6, %d\n", skb, &pinfo->prefix, pinfo->prefix_len);
+			pr_debug("skb %p RA: %pI6, %d\n", skb, &pinfo->prefix, pinfo->prefix_len);
 
 			if (gl_ipv6_iface_id[index].initialized) {
 				memcpy(&gl_ipv6_iface_id[index].v6_iface_id, &pinfo->prefix, 8);
 
-				pr_info("skb %p - index %ld global ipv6: %pI6, %pI6\n", skb, index,
-					&pinfo->prefix, &gl_ipv6_iface_id[index].v6_iface_id);
+				pr_debug("skb %p - index %ld global ipv6: %pI6, %pI6\n", skb, index,
+					 &pinfo->prefix, &gl_ipv6_iface_id[index].v6_iface_id);
 
 				v6_iface_id = gl_ipv6_iface_id[index].v6_iface_id;
 				err = addrconf_prefix_rcv_add_addr(net, dev, pinfo, in6_dev,
@@ -205,7 +205,7 @@ static int sn_ip6_parse_ra_options(struct sk_buff *skb)
 								   false, ntohl(pinfo->valid),
 								   ntohl(pinfo->prefered));
 
-				pr_info("skb %p, add addr err %d\n", skb, err);
+				pr_debug("skb %p, add addr err %d\n", skb, err);
 				goto put;
 			}
 			break;
@@ -230,7 +230,6 @@ static unsigned int nf_sn_ra_process(void *priv,
 	struct ipv6hdr *hdr = ipv6_hdr(skb);
 	u8 nexthdr = hdr->nexthdr;
 
-	pr_info("1 skb %p, nexthdr %d\n", skb, nexthdr);
 	if (ipv6_ext_hdr(nexthdr)) {
 		offset = ipv6_skip_exthdr(skb, sizeof(*hdr), &nexthdr, &frag_off);
 		if (offset < 0)
@@ -239,7 +238,6 @@ static unsigned int nf_sn_ra_process(void *priv,
 		offset = sizeof(struct ipv6hdr);
 	}
 
-	pr_info("2 skb %p, nexthdr %d\n", skb, nexthdr);
 	if (nexthdr == IPPROTO_ICMPV6) {
 		struct icmp6hdr *icmp6;
 
@@ -249,11 +247,11 @@ static unsigned int nf_sn_ra_process(void *priv,
 
 		icmp6 = (struct icmp6hdr *)(skb_network_header(skb) + offset);
 
-		pr_info("skb %p, icmp6 type %d, icmp6 %20ph\n", skb,
-			icmp6->icmp6_type, (char *)icmp6);
+		pr_debug("skb %p, icmp6 type %d, icmp6 %20ph\n", skb,
+			 icmp6->icmp6_type, (char *)icmp6);
 		switch (icmp6->icmp6_type) {
 		case NDISC_ROUTER_ADVERTISEMENT:
-			pr_info("skb %p is a RA\n", skb);
+			pr_debug("skb %p is a RA\n", skb);
 			ret = sn_ip6_parse_ra_options(skb);
 			break;
 		default:
