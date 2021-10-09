@@ -159,7 +159,7 @@ static bool imsbr_packet_is_ike_auth(unsigned char *ptr, unsigned int len)
 		ub_begin = 28;
 		ub_end = 32;
 		pkt_type = ptr[9];
-		if (ptr[46] == 0x22  && ptr[44] == 0x21) {
+		if (ptr[20] == 0x01 && ptr[21] == 0xf4) {
 			pr_info("this is ike packet DO SA INIT!");
 			return true;
 		}
