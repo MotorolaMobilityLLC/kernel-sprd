@@ -284,6 +284,7 @@ int __update_load_avg_blocked_se(u64 now, struct sched_entity *se)
 		trace_pelt_se_tp(se);
 		return 1;
 	}
+	trace_pelt_se_tp(se);
 
 	return 0;
 }
@@ -298,6 +299,7 @@ int __update_load_avg_se(u64 now, struct cfs_rq *cfs_rq, struct sched_entity *se
 		trace_pelt_se_tp(se);
 		return 1;
 	}
+	trace_pelt_se_tp(se);
 
 	return 0;
 }
@@ -313,6 +315,7 @@ int __update_load_avg_cfs_rq(u64 now, struct cfs_rq *cfs_rq)
 		trace_pelt_cfs_tp(cfs_rq);
 		return 1;
 	}
+	trace_pelt_cfs_tp(cfs_rq);
 
 	return 0;
 }
@@ -339,6 +342,7 @@ int update_rt_rq_load_avg(u64 now, struct rq *rq, int running)
 		trace_pelt_rt_tp(rq);
 		return 1;
 	}
+	trace_pelt_rt_tp(rq);
 
 	return 0;
 }
@@ -363,6 +367,7 @@ int update_dl_rq_load_avg(u64 now, struct rq *rq, int running)
 		trace_pelt_dl_tp(rq);
 		return 1;
 	}
+	trace_pelt_dl_tp(rq);
 
 	return 0;
 }
