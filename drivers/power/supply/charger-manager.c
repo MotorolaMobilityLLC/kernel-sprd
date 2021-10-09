@@ -788,6 +788,30 @@ static int get_boot_cap(struct charger_manager *cm, int *cap)
 	return 0;
 }
 
+static int cm_get_charge_cycle(struct charger_manager *cm, int *cycle)
+{
+	struct power_supply *fuel_gauge = NULL;
+	union power_supply_propval val;
+	int ret;
+
+	fuel_gauge = power_supply_get_by_name(cm->desc->psy_fuel_gauge);
+	if (!fuel_gauge) {
+		ret = -ENODEV;
+		return ret;
+	}
+
+	*cycle = 0;
+
+	ret = power_supply_get_property(fuel_gauge, POWER_SUPPLY_PROP_CYCLE_COUNT, &val);
+	if (ret)
+		return ret;
+
+	power_supply_put(fuel_gauge);
+	*cycle = val.intval;
+
+	return 0;
+}
+
 static int cm_get_usb_type(struct charger_manager *cm, u32 *type)
 {
 	union power_supply_propval val;
@@ -1057,6 +1081,105 @@ static int get_charger_input_current(struct charger_manager *cm, int *cur)
 	}
 
 	return ret;
+}
+
+static bool cm_reset_basp_parameters(struct charger_manager *cm, int volt_uv)
+{
+	struct charger_jeita_table *table;
+	int i, j, size;
+	bool is_need_update = false;
+
+	if (cm->desc->constant_charge_voltage_max_uv == volt_uv) {
+		dev_warn(cm->dev, "BASP does not reset: volt_uv == constant charge voltage\n");
+		return is_need_update;
+	}
+
+	cm->desc->ir_comp.us = volt_uv;
+	cm->desc->cp.cp_target_vbat = volt_uv;
+	cm->desc->constant_charge_voltage_max_uv = volt_uv;
+
+	for (i = CM_JEITA_DCP; i < CM_JEITA_MAX; i++) {
+		table = cm->desc->jeita_tab_array[i];
+		size = cm->desc->jeita_size[i];
+
+		if (!table || !size)
+			continue;
+
+		for (j = 0; j < size; j++) {
+			if (table[j].term_volt > volt_uv) {
+				is_need_update = true;
+				dev_info(cm->dev, "%s, set table[%d] from %d to %d\n",
+						jeita_type_names[i], j, table[j].term_volt, volt_uv);
+				table[j].term_volt = volt_uv;
+			}
+		}
+	}
+
+	return is_need_update;
+}
+
+static int cm_set_basp_max_volt(struct charger_manager *cm, int max_volt_uv)
+{
+	struct power_supply *fuel_gauge = NULL;
+	union power_supply_propval val;
+	int ret;
+
+	fuel_gauge = power_supply_get_by_name(cm->desc->psy_fuel_gauge);
+	if (!fuel_gauge) {
+		ret = -ENODEV;
+		return ret;
+	}
+
+	val.intval = max_volt_uv;
+	ret = power_supply_set_property(fuel_gauge, POWER_SUPPLY_PROP_VOLTAGE_MAX_DESIGN, &val);
+	power_supply_put(fuel_gauge);
+
+	if (ret)
+		dev_err(cm->dev, "failed to set basp max voltage, ret = %d\n", ret);
+
+	return ret;
+}
+
+static int cm_get_basp_max_volt(struct charger_manager *cm, int *max_volt_uv)
+{
+	struct power_supply *fuel_gauge = NULL;
+	union power_supply_propval val;
+	int ret;
+
+	fuel_gauge = power_supply_get_by_name(cm->desc->psy_fuel_gauge);
+	if (!fuel_gauge) {
+		dev_err(cm->dev, "%s: Fail to get fuel_gauge\n", __func__);
+		ret = -ENODEV;
+		return ret;
+	}
+
+	*max_volt_uv = 0;
+
+	ret = power_supply_get_property(fuel_gauge, POWER_SUPPLY_PROP_VOLTAGE_MAX_DESIGN, &val);
+	if (ret) {
+		dev_err(cm->dev, "Fail to get voltage max design, ret = %d\n", ret);
+		return ret;
+	}
+
+	power_supply_put(fuel_gauge);
+	*max_volt_uv = val.intval;
+
+	return ret;
+}
+
+static bool cm_init_basp_parameter(struct charger_manager *cm)
+{
+	int ret;
+	int max_volt_uv;
+
+	ret = cm_get_basp_max_volt(cm, &max_volt_uv);
+	if (ret)
+		return false;
+
+	if (max_volt_uv == 0 || max_volt_uv == -1)
+		return false;
+
+	return cm_reset_basp_parameters(cm, max_volt_uv);
 }
 
 /**
@@ -4359,8 +4482,7 @@ static int charger_get_property(struct power_supply *psy,
 		break;
 
 	case POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN:
-		fuel_gauge = power_supply_get_by_name(
-					cm->desc->psy_fuel_gauge);
+		fuel_gauge = power_supply_get_by_name(cm->desc->psy_fuel_gauge);
 		if (!fuel_gauge) {
 			ret = -ENODEV;
 			break;
@@ -4393,6 +4515,14 @@ static int charger_get_property(struct power_supply *psy,
 
 	case POWER_SUPPLY_PROP_USB_TYPE:
 		ret = cm_get_usb_type(cm, &val->intval);
+		break;
+
+	case POWER_SUPPLY_PROP_CYCLE_COUNT:
+		ret = cm_get_charge_cycle(cm, &val->intval);
+		break;
+
+	case POWER_SUPPLY_PROP_VOLTAGE_MAX_DESIGN:
+		ret = cm_get_basp_max_volt(cm, &val->intval);
 		break;
 
 	default:
@@ -4456,6 +4586,18 @@ charger_set_property(struct power_supply *psy,
 			cm_check_target_ibus(cm);
 
 		break;
+
+	case POWER_SUPPLY_PROP_VOLTAGE_MAX_DESIGN:
+		ret = cm_set_basp_max_volt(cm, val->intval);
+		if (ret)
+			break;
+
+		if (cm_init_basp_parameter(cm)) {
+			if (cm->cm_charge_vote && cm->cm_charge_vote->vote)
+				cm_update_charge_info(cm, CM_CHARGE_INFO_JEITA_LIMIT);
+		}
+
+		break;
 	default:
 		ret = -EINVAL;
 	}
@@ -4471,6 +4613,7 @@ static int charger_property_is_writeable(struct power_supply *psy, enum power_su
 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT:
 	case POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT:
 	case POWER_SUPPLY_PROP_CHARGE_CONTROL_LIMIT:
+	case POWER_SUPPLY_PROP_VOLTAGE_MAX_DESIGN:
 		ret = 1;
 		break;
 
@@ -4517,6 +4660,8 @@ static enum power_supply_property default_charger_props[] = {
 	POWER_SUPPLY_PROP_USB_TYPE,
 	POWER_SUPPLY_PROP_TEMP,
 	POWER_SUPPLY_PROP_TEMP_AMBIENT,
+	POWER_SUPPLY_PROP_CYCLE_COUNT,
+	POWER_SUPPLY_PROP_VOLTAGE_MAX_DESIGN,
 	/*
 	 * Optional properties are:
 	 * POWER_SUPPLY_PROP_CHARGE_NOW,
@@ -5649,7 +5794,9 @@ static int cm_get_bat_info(struct charger_manager *cm)
 	of_property_read_u32_index(battery_np, "charge-wl-epp-current-microamp", 1,
 				   &cm->desc->cur.wl_epp_limit);
 
+	cm->desc->internal_resist = info.factory_internal_resistance_uohm / 1000;
 	cm->desc->ir_comp.us = info.constant_charge_voltage_max_uv;
+	cm->desc->constant_charge_voltage_max_uv = info.constant_charge_voltage_max_uv;
 	cm->desc->cp.cp_target_vbat = info.constant_charge_voltage_max_uv;
 	cm->desc->cp.cp_max_ibat = cm->desc->cur.flash_cur;
 	cm->desc->cp.cp_target_ibat = cm->desc->cur.flash_cur;
@@ -6274,6 +6421,8 @@ static int charger_manager_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "Failed to register charge vote, ret = %d\n", ret);
 		goto err_reg_extcon;
 	}
+
+	cm_init_basp_parameter(cm);
 
 	if (cm_event_type)
 		cm_notify_type_handle(cm, cm_event_type, cm_event_msg);

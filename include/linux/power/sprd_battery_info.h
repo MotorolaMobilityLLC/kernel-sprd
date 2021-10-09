@@ -13,6 +13,7 @@
 #include <linux/device.h>
 
 #define SPRD_BATTERY_INFO_RESISTENCE_TEMP_MAX 20
+#define SPRD_BATTERY_BASP_OCV_TABLE_MAX 20
 
 /* microAmps */
 struct sprd_battery_charge_current {
@@ -32,6 +33,16 @@ struct sprd_battery_charge_current {
 	int wl_bpp_limit;
 	int wl_epp_cur;
 	int wl_epp_limit;
+};
+
+typedef struct sprd_battery_energy_density_ocv_table {
+	int engy_dens_ocv_hi;
+	int engy_dens_ocv_lo;
+} density_ocv_table;
+
+struct sprd_battery_ocv_table {
+	int ocv;	/* microVolts */
+	int capacity;	/* percent */
 };
 
 struct sprd_battery_info {
@@ -64,6 +75,16 @@ struct sprd_battery_info {
 	int battery_internal_resistance_ocv_table_len;
 
 	struct sprd_battery_charge_current cur;
+	density_ocv_table *dens_ocv_table;
+	int dens_ocv_table_len;
+
+	struct sprd_battery_ocv_table *basp_ocv_table[SPRD_BATTERY_BASP_OCV_TABLE_MAX];
+	int basp_ocv_table_len[SPRD_BATTERY_BASP_OCV_TABLE_MAX];
+	/* microAmp-hours */
+	int *basp_charge_full_design_uah_table;
+	int basp_charge_full_design_uah_table_len;
+	int *basp_constant_charge_voltage_max_uv_table;
+	int basp_constant_charge_voltage_max_uv_table_len;
 };
 
 extern void sprd_battery_put_battery_info(struct power_supply *psy,

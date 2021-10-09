@@ -516,6 +516,7 @@ struct cm_thermal_info {
  * @fullbatt_full_capacity: full capacity measure
  *	If full capacity of battery >= fullbatt_full_capacity,
  *	it is assumed to be full.
+ * @constant_charge_voltage_max_uv: max battery voltage
  * @polling_interval_ms: interval in millisecond at which
  *	charger manager will monitor battery health
  * @battery_present:
@@ -632,6 +633,7 @@ struct charger_desc {
 	unsigned int first_fullbatt_uA;
 	unsigned int fullbatt_soc;
 	unsigned int fullbatt_full_capacity;
+	unsigned int constant_charge_voltage_max_uv;
 
 	enum data_source battery_present;
 
