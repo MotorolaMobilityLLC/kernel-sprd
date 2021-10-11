@@ -79,6 +79,14 @@
 				};
 			};
 
+			usb_cable: usb_cable {
+				compatible = "sprd,usb_cable_eint";
+				status = "okay";
+				usbcable-gpio = <&ap_gpio 126 0>;
+				interrupt-parent = <&ap_gpio>;
+				debounce = <256000>;
+			};
+
 		/*	pwm_backlight: backlight {
 				compatible = "sprd,sharkl5pro-backlight";
 				pwms = <&pwms 2 40000>;
