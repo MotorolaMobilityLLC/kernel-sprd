@@ -88,6 +88,15 @@ config TYPEC_QCOM_PMIC
 	  It will also enable the VBUS output to connected devices when a
 	  DFP connection is made.
 
+config USB_SC27XX_TYPEC
+	tristate "Unisoc SC27XX Serials PMICs Typec Controller"
+	depends on MFD_SC27XX_PMIC || MFD_UMP96XX_PMIC || COMPILE_TEST
+	default n
+	help
+	  If PMIC chip is Unisoc SC27xx serials platform, select this configuration.
+	  Otherwise keep the default value.
+	  Select this when you want to enable Spreadtrum Type-C v1.1 module.
+
 source "drivers/usb/typec/mux/Kconfig"
 
 source "drivers/usb/typec/altmodes/Kconfig"
