@@ -532,6 +532,12 @@ config MEMORY_STATE_TIME
 	help
 	  Memory time statistics exported to /sys/kernel/memory_state_time
 
+config USB_CABLE
+	bool "Check Rf Detect"
+	default n
+	help
+	  Detect RF Gpio Status and report it's
+
 source "drivers/misc/c2port/Kconfig"
 source "drivers/misc/eeprom/Kconfig"
 source "drivers/misc/cb710/Kconfig"
@@ -549,4 +555,5 @@ source "drivers/misc/sprd_jpg/Kconfig"
 source "drivers/misc/sprdwcn/Kconfig"
 source "drivers/misc/sprd_audio/Kconfig"
 source "drivers/misc/sprd_apdu/Kconfig"
+source "drivers/misc/sprd_rf_cable/Kconfig"
 endmenu
