@@ -1291,7 +1291,7 @@ static void wcn_shutdown(struct platform_device *pdev)
 			open_status = wcn_dev->wcn_open_status;
 			for (subsys_bit = 0; subsys_bit < 32; subsys_bit++) {
 				if (open_status & (0x1<<subsys_bit))
-					ret = stop_marlin(0x1<<subsys_bit);
+					ret = stop_marlin(subsys_bit);
 				if (ret)
 					WCN_ERR("stop_marlin ret: %d\n", ret);
 			}
