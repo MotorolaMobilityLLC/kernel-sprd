@@ -962,8 +962,25 @@ EXPORT_SYMBOL_GPL(sprd_pms_release_wakelock);
  */
 void sprd_pms_request_wakelock_period(struct sprd_pms *pms, unsigned int msec)
 {
-	sprd_pms_request_wakelock(pms);
-	sprd_pms_release_wakelock_later(pms, msec);
+	unsigned long flags;
+	unsigned long expires;
+
+	if (!pms)
+		return;
+	spin_lock_irqsave(&pms->expires_lock, flags);
+	if (!msec)
+		goto unlock;
+	sprd_pms_stay_awake(pms);
+	expires = jiffies + msecs_to_jiffies(msec);
+	if (!expires)
+		expires = 1;
+	if (!pms->expires || time_after(expires, pms->expires)) {
+		mod_timer(&pms->wake_timer, expires);
+		pms->expires = expires;
+
+	}
+unlock:
+	spin_unlock_irqrestore(&pms->expires_lock, flags);
 }
 EXPORT_SYMBOL_GPL(sprd_pms_request_wakelock_period);
 
