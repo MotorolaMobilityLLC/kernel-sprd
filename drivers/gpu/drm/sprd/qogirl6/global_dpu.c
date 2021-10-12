@@ -207,6 +207,7 @@ static u32 calc_dpi_clk_src(u32 pclk)
 	return 96000000;
 }
 
+extern int hx83102_clk_div;
 static int dpu_clk_init(struct dpu_context *ctx)
 {
 	int ret;
@@ -219,9 +220,9 @@ static int dpu_clk_init(struct dpu_context *ctx)
 
 	dpu_core_val = calc_dpu_core_clk();
 
-	if (dpu->dsi->ctx.dpi_clk_div) {
+	if (hx83102_clk_div) {
 		pr_info("DPU_CORE_CLK = %u, DPI_CLK_DIV = %d\n",
-				dpu_core_val, dpu->dsi->ctx.dpi_clk_div);
+				dpu_core_val, hx83102_clk_div);
 	} else {
 		dpi_src_val = calc_dpi_clk_src(ctx->vm.pixelclock);
 		pr_info("DPU_CORE_CLK = %u, DPI_CLK_SRC = %u\n",
@@ -234,8 +235,8 @@ static int dpu_clk_init(struct dpu_context *ctx)
 	if (ret)
 		pr_warn("set dpu core clk source failed\n");
 
-	if (dpu->dsi->ctx.dpi_clk_div) {
-		clk_src = div_to_clk(clk_ctx, dpu->dsi->ctx.dpi_clk_div);
+	if (hx83102_clk_div) {
+		clk_src = div_to_clk(clk_ctx, hx83102_clk_div);
 		ret = clk_set_parent(clk_ctx->clk_dpu_dpi, clk_src);
 		if (ret)
 			pr_warn("set dpi clk source failed\n");

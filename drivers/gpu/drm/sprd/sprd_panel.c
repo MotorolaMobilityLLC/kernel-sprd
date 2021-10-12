@@ -29,6 +29,30 @@
 #define SPRD_MIPI_DSI_FMT_DSC 0xff
 static DEFINE_MUTEX(panel_lock);
 
+typedef enum tagLcd
+{
+    NotLCD,
+    NT36525b_dj_mipi_hd,        // 11 digit
+    ICNL9911c_dj_mipi_hd,       // 11 digit
+    ILI9882q_youda_mipi_hd,
+	HX83102d_youda_mipi_hd      // high 8 digit
+} LCD;
+
+static LCD check_lcd_by_name(const char* lcd_name)
+{
+	const int name_len = lcd_name == NULL ? 0 : strlen(lcd_name);
+	if (name_len <= 0) return NotLCD;
+    if (strncmp(lcd_name, "lcd_nt36525b_dj_mipi_hd", name_len) == 0)
+		return NT36525b_dj_mipi_hd;
+	if (strncmp(lcd_name, "lcd_icnl9911c_dj_mipi_hd", name_len) == 0)
+		return ICNL9911c_dj_mipi_hd;
+    if (strncmp(lcd_name, "lcd_hx83102d_youda_mipi_hd", name_len) == 0)
+		return HX83102d_youda_mipi_hd;
+    if (strncmp(lcd_name, "lcd_ili9882q_youda_mipi_hd", name_len) == 0)
+        return ILI9882q_youda_mipi_hd;
+    return NotLCD;
+}
+
 const char *lcd_name;
 static int __init lcd_name_get(char *str)
 {
@@ -38,6 +62,23 @@ static int __init lcd_name_get(char *str)
 	return 0;
 }
 __setup("lcd_name=", lcd_name_get);
+
+const char *cit_tp;
+int cit_buffer;
+static int __init cit_tp_get(char *str)
+{
+    int ret;
+    if (str != NULL)
+        cit_tp = str;
+    ret = kstrtouint(cit_tp, 16, &cit_buffer);
+    if(ret < 0)
+        DRM_ERROR("cit_tp kstrtouint fail\n");
+
+    printk(KERN_ERR "cit_tp from uboot: %s, cit_buffer: 0x%02X\n", cit_tp, cit_buffer);
+
+    return ret;
+}
+__setup("cit_tp=", cit_tp_get);
 
 static inline struct sprd_panel *to_sprd_panel(struct drm_panel *panel)
 {
@@ -326,7 +367,7 @@ static const struct drm_panel_funcs sprd_panel_funcs = {
 static int sprd_panel_esd_check(struct sprd_panel *panel)
 {
 	struct panel_info *info = &panel->info;
-	u8 read_val = 0;
+        u8 read_val = 0;
 
 	/* FIXME: we should enable HS cmd tx here */
 	mipi_dsi_set_maximum_return_packet_size(panel->slave, 1);
@@ -337,6 +378,7 @@ static int sprd_panel_esd_check(struct sprd_panel *panel)
 	 * TODO:
 	 * Should we support multi-registers check in the future?
 	 */
+	printk(KERN_ERR "read_val:0x%02X, esd_check_val:0x%02X\n", read_val, info->esd_check_val);
 	if (read_val != info->esd_check_val) {
 		DRM_ERROR("esd check failed, read value = 0x%02x\n",
 			  read_val);
@@ -352,6 +394,8 @@ static int sprd_panel_te_check(struct sprd_panel *panel)
 	struct sprd_dpu *dpu;
 	int ret;
 	bool irq_occur = false;
+
+	printk(KERN_ERR "ontim:te check mode enter!\n");
 
 	if (!panel->base.connector ||
 	    !panel->base.connector->encoder ||
@@ -392,7 +436,7 @@ static int sprd_panel_te_check(struct sprd_panel *panel)
 			} else
 				DRM_WARN("TE occur, but isr schedule delay\n");
 		} else {
-			DRM_ERROR("TE esd timeout.\n");
+			DRM_ERROR("TE esd timeout!\n");
 			ret = -1;
 		}
 	}
@@ -403,6 +447,14 @@ static int sprd_panel_te_check(struct sprd_panel *panel)
 	return ret < 0 ? ret : 0;
 }
 
+static int sprd_oled_set_brightness(struct backlight_device *bdev);
+unsigned int g_last_level = 25;
+struct backlight_device *g_bdev;
+struct device *dev;
+extern int32_t nvt_ts_suspend(struct device *dev);
+extern int32_t nvt_ts_resume(struct device *dev);
+
+extern void himax_esd_resume_func(void);
 static void sprd_panel_esd_work_func(struct work_struct *work)
 {
 	struct sprd_panel *panel = container_of(work, struct sprd_panel,
@@ -410,6 +462,7 @@ static void sprd_panel_esd_work_func(struct work_struct *work)
 	struct panel_info *info = &panel->info;
 	int ret;
 
+	printk(KERN_ERR "ontim:%s(%d) check_mode:%d\n", __func__, __LINE__, info->esd_check_mode);
 	if (info->esd_check_mode == ESD_MODE_REG_CHECK)
 		ret = sprd_panel_esd_check(panel);
 	else if (info->esd_check_mode == ESD_MODE_TE_CHECK)
@@ -418,6 +471,8 @@ static void sprd_panel_esd_work_func(struct work_struct *work)
 		DRM_ERROR("unknown esd check mode:%d\n", info->esd_check_mode);
 		return;
 	}
+
+	printk(KERN_ERR "ontim:ret = %d\n", ret);
 
 	if (ret && panel->base.connector && panel->base.connector->encoder) {
 		const struct drm_encoder_helper_funcs *funcs;
@@ -434,8 +489,21 @@ static void sprd_panel_esd_work_func(struct work_struct *work)
 		}
 
 		DRM_INFO("====== esd recovery start ========\n");
+
+		if(strncmp(lcd_name, "lcd_nt36525b_dj_mipi_hd", strlen(lcd_name)) == 0){
+			nvt_ts_suspend(dev);
+		}
+
 		funcs->disable(encoder);
 		funcs->enable(encoder);
+
+		if(strncmp(lcd_name, "lcd_nt36525b_dj_mipi_hd", strlen(lcd_name)) == 0){
+			nvt_ts_resume(dev);
+		}else if(strncmp(lcd_name, "lcd_hx83102d_youda_mipi_hd",strlen(lcd_name)) == 0){
+			himax_esd_resume_func();
+		}
+
+		sprd_oled_set_brightness(g_bdev);
 		DRM_INFO("======= esd recovery end =========\n");
 	} else
 		schedule_delayed_work(&panel->esd_work,
@@ -593,18 +661,67 @@ static int of_parse_oled_cmds(struct sprd_oled *oled,
 		oled->cmds[i] = p;
 		p = (struct dsi_cmd_desc *)(p->payload + len);
 	}
-
 	oled->cmds_total = total;
 	oled->cmd_len = len + 4;
 
 	return 0;
 }
 
+#ifdef CONFIG_HBM_SUPPORT
+extern bool g_hbm_enable;
+int hbm_set_backlight_level(unsigned int level)
+{
+	if (g_bdev != NULL) {
+		g_bdev->props.brightness = level;
+		sprd_oled_set_brightness(g_bdev);
+		return 0;
+	} else {
+		DRM_INFO("firefly, g_bdev is null, please register sprd backlight\n");
+		return -1;
+	}
+
+}
+#endif
+
+static void set_lcd_oled_level(struct sprd_oled *oled, int level)
+{
+	LCD lcd = check_lcd_by_name(lcd_name);
+	switch (lcd)
+	{
+	case NT36525b_dj_mipi_hd:
+		oled->cmds[0]->payload[1] = (level >> 5) & 0x0F;
+		oled->cmds[0]->payload[2] = (level & 0x07) | ((level << 3) & 0xF8);
+		break;
+	case ICNL9911c_dj_mipi_hd:
+		oled->cmds[0]->payload[1] = level & 0xFF;
+		oled->cmds[0]->payload[2] = 0x00;
+        break;
+    case ILI9882q_youda_mipi_hd:
+        oled->cmds[0]->payload[1] = level & 0xFF;
+        oled->cmds[0]->payload[2] = 0x00;    
+		break;
+	case HX83102d_youda_mipi_hd:
+		oled->cmds[0]->payload[1] = level;
+		oled->cmds[0]->payload[2] = level & 0x00;
+		break;
+	default:
+	    DRM_INFO("Unknown lcd: %s", lcd_name);
+	    break;
+	}
+}
+
 static int sprd_oled_set_brightness(struct backlight_device *bdev)
 {
-	int brightness;
+	int brightness, level;
 	struct sprd_oled *oled = bl_get_data(bdev);
 	struct sprd_panel *panel = oled->panel;
+
+    if (g_hbm_enable){
+		DRM_INFO("firefly ,Now hbm enable, want to set level = %d\n", bdev->props.brightness);
+		DRM_INFO("firefly ,Do not allow to set other level backlight\n");
+		if (g_last_level > 0)
+            bdev->props.brightness = 256;
+	}
 
 	mutex_lock(&panel_lock);
 	if (!panel->is_enabled) {
@@ -614,26 +731,62 @@ static int sprd_oled_set_brightness(struct backlight_device *bdev)
 	}
 
 	brightness = bdev->props.brightness;
+	level = brightness * oled->max_level / 255;
 
-	DRM_INFO("%s brightness: %d\n", __func__, brightness);
+	DRM_INFO("%s Source level: %d\n", __func__, level);
+
+	if(check_lcd_by_name(lcd_name) == NT36525b_dj_mipi_hd)
+	{
+		if (level < 256){
+			g_last_level = level;
+			level = ((level * 83) + 30)/ 100;
+		}
+	}
+	else if(check_lcd_by_name(lcd_name) == HX83102d_youda_mipi_hd)
+	{
+		if (level < 256){
+			g_last_level = level;
+			level = ((level * 88) + 40)/ 100;
+		}
+	}
+    else if (check_lcd_by_name(lcd_name) == ICNL9911c_dj_mipi_hd)
+    {
+        if (level < 256)
+        {
+            g_last_level = level;
+            level = ((level * 81) + 30)/ 100;
+        }
+    }
+    else if (check_lcd_by_name(lcd_name) == ILI9882q_youda_mipi_hd)
+    {
+        if (level < 256)
+        {
+            g_last_level = level;
+            level = ((level * 83) + 30)/ 100;
+        }
+    }
+
+	if (level == 256)
+		level = 255;
+
+	DRM_INFO("%s Target level: %d\n", __func__, level);
 
 	sprd_panel_send_cmds(panel->slave,
 			     panel->info.cmds[CMD_OLED_REG_LOCK],
 			     panel->info.cmds_len[CMD_OLED_REG_LOCK]);
 
+	//printk(KERN_ERR "ontim->%s(%d) cmds_total:%d, wc_l:%d\n", __func__, __LINE__, oled->cmds_total, oled->cmds[0]->wc_l);
 	if (oled->cmds_total == 1) {
 		if (oled->cmds[0]->wc_l == 3) {
-			oled->cmds[0]->payload[1] = brightness >> 8;
-			oled->cmds[0]->payload[2] = brightness & 0xFF;
+			set_lcd_oled_level(oled, level);
 		} else
-			oled->cmds[0]->payload[1] = brightness;
-
+			oled->cmds[0]->payload[1] = level;
 		sprd_panel_send_cmds(panel->slave,
 			     oled->cmds[0],
 			     oled->cmd_len);
 	} else
 		sprd_panel_send_cmds(panel->slave,
-			     oled->cmds[brightness],
+			     oled->cmds[level],
 			     oled->cmd_len);
 
 	sprd_panel_send_cmds(panel->slave,
@@ -715,11 +868,16 @@ static int sprd_oled_backlight_init(struct sprd_panel *panel)
 			panel->info.cmds[CMD_OLED_BRIGHTNESS],
 			panel->info.cmds_len[CMD_OLED_BRIGHTNESS]);
 
+#ifdef CONFIG_HBM_SUPPORT
+        g_bdev = oled->bdev;
+#endif
+
 	DRM_INFO("%s() ok\n", __func__);
 
 	return 0;
 }
 
+int hx83102_clk_div = 0;
 int sprd_panel_parse_lcddtb(struct device_node *lcd_node,
 	struct sprd_panel *panel)
 {
@@ -727,7 +885,8 @@ int sprd_panel_parse_lcddtb(struct device_node *lcd_node,
 	struct panel_info *info = &panel->info;
 	int bytes, rc;
 	const void *p;
-	const char *str;
+	char *buffer;
+    const char *str;
 
 	if (!lcd_node) {
 		DRM_ERROR("Lcd node from dtb is Null\n");
@@ -794,6 +953,11 @@ int sprd_panel_parse_lcddtb(struct device_node *lcd_node,
 	if (!rc)
 		info->esd_check_en = val;
 
+	rc = of_property_read_u32(lcd_node, "sprd,dpi-clk-div", &val);
+	if (!rc)
+		hx83102_clk_div = val;
+	printk(KERN_ERR "%s(%d) clk_div:%d", __func__, __LINE__, hx83102_clk_div);
+
 	rc = of_property_read_u32(lcd_node, "sprd,esd-check-mode", &val);
 	if (!rc)
 		info->esd_check_mode = val;
@@ -834,9 +998,20 @@ int sprd_panel_parse_lcddtb(struct device_node *lcd_node,
 		DRM_ERROR("parse lcd reset sequence failed\n");
 
 	p = of_get_property(lcd_node, "sprd,initial-command", &bytes);
-	if (p) {
-		info->cmds[CMD_CODE_INIT] = p;
-		info->cmds_len[CMD_CODE_INIT] = bytes;
+	if (p){
+        printk(KERN_ERR "%s(%d) bytes:%d\n", __func__, __LINE__, bytes);
+            if (strncmp(lcd_name, "lcd_icnl9911c_dj_mipi_hd", strlen(lcd_name)) == 0){
+                buffer = (char *)kzalloc(bytes, GFP_KERNEL);
+                if(!buffer)
+                    buffer =(char *)p;
+                else
+                    memcpy(buffer, (char *)p, bytes);
+                printk(KERN_ERR "lcd_name is %s\n", lcd_name);
+                buffer[66] = cit_buffer;
+                info->cmds[CMD_CODE_INIT] = (const void *)buffer;
+            }else
+                info->cmds[CMD_CODE_INIT] = p;
+        info->cmds_len[CMD_CODE_INIT] = bytes;
 	} else
 		DRM_ERROR("can't find sprd,initial-command property\n");
 

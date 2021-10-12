@@ -13,6 +13,7 @@
 #include <linux/module.h>
 #include <linux/mutex.h>
 #include <linux/slab.h>
+#include <linux/usb/tcpm.h>
 
 #include "bus.h"
 
@@ -46,6 +47,7 @@ struct typec_port {
 	enum typec_data_role		data_role;
 	enum typec_role			pwr_role;
 	enum typec_role			vconn_role;
+	enum typec_cc_polarity		cc_polarity;
 	enum typec_pwr_opmode		pwr_opmode;
 	enum typec_port_type		port_type;
 	struct mutex			port_type_lock;
@@ -950,6 +952,13 @@ static const char * const typec_mode_type[] = {
 	[TYPEC_HOST]	= "dfp",
 };
 
+static const char * const typec_cc_polarity_roles[] = {
+    [TYPEC_POLARITY_CC1]    = "cc_1",
+    [TYPEC_POLARITY_CC2]    = "cc_2",
+};
+
+int g_typec_cc_polarity = 0;
+
 static ssize_t
 preferred_role_store(struct device *dev, struct device_attribute *attr,
 		     const char *buf, size_t size)
@@ -1163,6 +1172,15 @@ supported_modes_show(struct device *dev, struct device_attribute *attr,
 }
 static DEVICE_ATTR_RO(supported_modes);
 
+static ssize_t
+typec_cc_polarity_role_show(struct device *dev, struct device_attribute *attr,
+                char *buf)
+{
+    struct typec_port *port = to_typec_port(dev);
+
+    return sprintf(buf, "%s\n", typec_cc_polarity_roles[port->cc_polarity]);
+}
+static DEVICE_ATTR_RO(typec_cc_polarity_role);
 
 static const char * const typec_pwr_opmodes[] = {
 	[TYPEC_PWR_MODE_USB]	= "default",
@@ -1276,6 +1294,7 @@ static struct attribute *typec_attrs[] = {
 	&dev_attr_port_type.attr,
 	&dev_attr_mode.attr,
 	&dev_attr_supported_modes.attr,
+	&dev_attr_typec_cc_polarity_role.attr,
 	NULL,
 };
 ATTRIBUTE_GROUPS(typec);
@@ -1329,6 +1348,26 @@ void typec_set_data_role(struct typec_port *port, enum typec_data_role role)
 	kobject_uevent(&port->dev.kobj, KOBJ_CHANGE);
 }
 EXPORT_SYMBOL_GPL(typec_set_data_role);
+
+/**
+ * typec_set_cc_polarity_role - Report cc polarity role change
+ * @port: The USB Type-C Port where the typec polarity cc was changed
+ * @polarity: The new cc polarity role
+ *
+ * This routine is used by the port drivers to report cc role changes.
+ */
+void typec_set_cc_polarity_role(struct typec_port *port,
+                enum typec_cc_polarity polarity)
+{
+    g_typec_cc_polarity = (int)polarity;
+    if (port->cc_polarity == polarity)
+        return;
+
+    port->cc_polarity = polarity;
+    sysfs_notify(&port->dev.kobj, NULL, "cc_polarity");
+    kobject_uevent(&port->dev.kobj, KOBJ_CHANGE);
+}
+EXPORT_SYMBOL_GPL(typec_set_cc_polarity_role);
 
 /**
  * typec_set_pwr_role - Report power role change

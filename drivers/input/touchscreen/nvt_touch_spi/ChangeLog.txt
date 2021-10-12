@@ -1,0 +1,10 @@
+---------------------------------------------------------------------------------------------------
+ID        Author                         Module                              Date
+---------------------------------------------------------------------------------------------------
+01.       Amber Huang                    All                                 2021/03/30
+
+	Deciption:
+		V1.0
+		- Initial release for Moto based on SVN V4.31
+		- Adding /proc/nvt_update for selftest jar lib.
+		

@@ -250,6 +250,7 @@ int sprd_dsi_dpi_video(struct sprd_dsi *dsi)
 	dsi_hal_dpi_vfp(dsi, vm->vfront_porch);
 	dsi_hal_dpi_vbp(dsi, vm->vback_porch);
 	dsi_hal_dpi_vsync(dsi, vm->vsync_len);
+	//dsi_hal_dpi_hporch_lp_en(dsi, 1);
 	dsi_hal_vblk_cmd_trans_limit(dsi, 0x80);
 	if (!ctx->hporch_lp_disable)
 		dsi_hal_dpi_hporch_lp_en(dsi, 1);
