@@ -822,7 +822,7 @@
 &dpu {
 	sprd,logo-memory = <&logo_reserved>;
 	sprd,wb-memory = <&wb_reserved>;
-	sprd,backlight = <&pwm_backlight>;
+	//sprd,backlight = <&pwm_backlight>;
 };
 
 &pmic_fchg {

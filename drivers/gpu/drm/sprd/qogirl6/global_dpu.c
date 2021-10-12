@@ -215,8 +215,6 @@ static int dpu_clk_init(struct dpu_context *ctx)
 	u32 dpi_src_val;
 	struct clk *clk_src;
 	struct dpu_clk_context *clk_ctx = &dpu_clk_ctx;
-	struct sprd_dpu *dpu = (struct sprd_dpu *)container_of(ctx,
-				struct sprd_dpu, ctx);
 
 	dpu_core_val = calc_dpu_core_clk();
 

@@ -5206,12 +5206,14 @@ static ssize_t jeita_control_store(struct device *dev,
 
 	return count;
 }
-* add for limit soc 70% */
+
+/* add for limit soc 70% */
 static ssize_t ontim_limit_soc_show(struct device *dev,
 				struct device_attribute *attr, char *buf)
 {
 	return sprintf(buf, "%d\n", ontim_runin_onoff_control);
 }
+
 static ssize_t ontim_limit_soc_store(struct device *dev,
 			struct device_attribute *attr, const char *buf, size_t size)
 {
@@ -6189,10 +6191,10 @@ static void cm_batt_works(struct work_struct *work)
 	dev_info(cm->dev, "vbat=%d,OCV=%d,ibat=%d,ibus=%d,vbus=%d,"
 		 "soc=%d,%d,chg_sts=%d,frce_full=%d,chg_lmt_cur=%d,"
 		 "inpt_lmt_cur = %d, chgr_type = %d, Tboard = %d, Tbatt = %d ,"
-		 "track_sts=%d,thm_cur=%d,thm_pwr=%dW,is_fst_chg=%d,fst_chg_en=%d,term_vol=%d\n",
+		 "thm_cur=%d,thm_pwr=%dW,is_fst_chg=%d,fst_chg_en=%d,term_vol=%d\n",
 		 batt_uV/1000, batt_ocV/1000, batt_uA/1000, input_cur/1000,  chg_vol/1000, fuel_cap,cm->desc->cap ,cm->desc->charger_status,
 		 cm->desc->force_set_full, chg_cur/1000, chg_limit_cur/1000, cm->desc->charger_type,
-		 board_temp, cur_temp, cm->track.state, cm->desc->thm_info.thm_adjust_cur/1000,
+		 board_temp, cur_temp, cm->desc->thm_info.thm_adjust_cur/1000,
 		 cm->desc->thm_info.thm_pwr/1000, cm->desc->is_fast_charge,
 		 cm->desc->enable_fast_charge,term_vol/1000);
 		 
