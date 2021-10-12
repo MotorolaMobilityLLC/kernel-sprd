@@ -630,6 +630,17 @@ static void ipi_complete(unsigned int cpu)
 extern bool ipi_is_triggered(unsigned int cpu);
 #endif
 
+#ifdef CONFIG_SPRD_SYSDUMP
+extern void sysdump_ipi(struct pt_regs *regs);
+static void sysdump_ipi_handle(void)
+{
+	struct pt_regs *regs = get_irq_regs();
+
+	sysdump_ipi(regs);
+
+}
+#endif
+
 /*
  * Main handler for inter-processor interrupts
  */
@@ -671,6 +682,9 @@ static void do_handle_IPI(int ipinr)
 		break;
 
 	case IPI_CPU_STOP:
+#ifdef CONFIG_SPRD_SYSDUMP
+		sysdump_ipi_handle();
+#endif
 		ipi_cpu_stop(cpu);
 		break;
 
