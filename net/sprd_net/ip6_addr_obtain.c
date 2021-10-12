@@ -150,7 +150,7 @@ static int sn_ip6_parse_ra_options(struct sk_buff *skb)
 	in6_dev = in6_dev_get(dev);
 	if (!in6_dev) {
 		pr_warn("device %s not configured\n", dev->name);
-		goto put;
+		return NF_ACCEPT;
 	}
 
 	optlen = (skb_tail_pointer(skb) - skb_transport_header(skb)) -
@@ -186,7 +186,7 @@ static int sn_ip6_parse_ra_options(struct sk_buff *skb)
 				goto put;
 
 			if (kstrtol(&dev->name[strlen(IFACE_NAME)], 10, &index))
-				return -EINVAL;
+				goto put;
 
 			pinfo = (struct prefix_info *)nd_opt;
 			pr_debug("skb %p RA: %pI6, %d\n", skb, &pinfo->prefix, pinfo->prefix_len);
@@ -217,6 +217,7 @@ static int sn_ip6_parse_ra_options(struct sk_buff *skb)
 	}
 
 put:
+	in6_dev_put(in6_dev);
 	return NF_ACCEPT;
 }
 
