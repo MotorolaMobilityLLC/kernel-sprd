@@ -134,13 +134,10 @@ static void inter_dbg_log_init(struct dbg_log_device *dbg)
 	DEBUG_LOG_PRINT("dbg->mm = %d", dbg->mm);
 	if (dbg->mm) {
 		DEBUG_LOG_PRINT("MIPI LOG use MM Power Domain\n");
-		pm_runtime_use_autosuspend(&dbg->dev);
-		pm_runtime_set_active(&dbg->dev);
-		pm_runtime_enable(&dbg->dev);
-		ret = pm_runtime_get_sync(&dbg->dev);
+		ret = pm_runtime_get_sync(dbg->dev.parent);
 		if (ret < 0) {
 			DEBUG_LOG_PRINT("fail to sprd_cam_pw_on, ret=%d\n", ret);
-			pm_runtime_disable(&dbg->dev);
+			pm_runtime_disable(dbg->dev.parent);
 			return;
 		}
 	}
@@ -227,12 +224,12 @@ static void inter_dbg_log_exit(struct dbg_log_device *dbg)
 	int ret;
 
 	if (dbg->mm) {
-		ret = pm_runtime_put_sync(&dbg->dev);
+		ret = pm_runtime_put_sync(dbg->dev.parent);
 		if (ret < 0) {
 			DEBUG_LOG_PRINT("sprd cam power off fail, ret=%d\n", ret);
+			pm_runtime_disable(dbg->dev.parent);
 			return;
 		}
-		pm_runtime_disable(&dbg->dev);
 	}
 	DEBUG_LOG_PRINT("sprd cam power off ok!\n");
 
@@ -507,6 +504,10 @@ static int dbg_log_probe(struct platform_device *pdev)
 		pr_err("get div1 map failed\n");
 
 	inter_dbg_log_is_freq_valid(dbg, dbg->phy->freq);
+
+	pm_runtime_set_active(&pdev->dev);
+	pm_runtime_enable(&pdev->dev);
+
 	DEBUG_LOG_PRINT("Finish mipilog probe\n");
 	return 0;
 }
