@@ -268,7 +268,7 @@ static void imsbr_packet_input(struct sk_buff *skb)
 	}
 }
 
-static void imsbr_dumpcap(struct sk_buff *skb)
+void imsbr_dumpcap(struct sk_buff *skb)
 {
 	const char mac[ETH_ALEN] = {0x88, 0x88, 0x88, 0x88, 0x88, 0x88};
 	struct sk_buff *nskb;

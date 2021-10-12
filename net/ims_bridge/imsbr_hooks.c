@@ -25,12 +25,15 @@
 #include <net/netfilter/nf_conntrack_core.h>
 #include <net/esp.h>
 #include <net/udp.h>
+#include <net/xfrm.h>
 #include <uapi/linux/ims_bridge/ims_bridge.h>
 #include "imsbr_core.h"
 #include "imsbr_packet.h"
 #include "imsbr_hooks.h"
 #include "imsbr_netlink.h"
 
+static int xfrm_frag_enable __read_mostly = 1;
+module_param(xfrm_frag_enable, int, 0644);
 struct espheader esphs[MAX_ESPS];
 static bool is_icmp_error(struct nf_conntrack_tuple *nft)
 {
@@ -328,6 +331,767 @@ static unsigned int nf_imsbr_output(void *priv,
 	return NF_ACCEPT;
 }
 
+static void ip_copy_metadata1(struct sk_buff *to, struct sk_buff *from)
+{
+	to->pkt_type = from->pkt_type;
+	to->priority = from->priority;
+	to->protocol = from->protocol;
+	to->skb_iif = from->skb_iif;
+	skb_dst_drop(to);
+	skb_dst_copy(to, from);
+	to->dev = from->dev;
+	to->mark = from->mark;
+
+	skb_copy_hash(to, from);
+
+#ifdef CONFIG_NET_SCHED
+	to->tc_index = from->tc_index;
+#endif
+	nf_copy(to, from);
+	skb_ext_copy(to, from);
+#if IS_ENABLED(CONFIG_IP_VS)
+	to->ipvs_property = from->ipvs_property;
+#endif
+	skb_copy_secmark(to, from);
+}
+
+static void ip6_copy_metadata1(struct sk_buff *to, struct sk_buff *from)
+{
+	to->pkt_type = from->pkt_type;
+	to->priority = from->priority;
+	to->protocol = from->protocol;
+	skb_dst_drop(to);
+	skb_dst_set(to, dst_clone(skb_dst(from)));
+	to->dev = from->dev;
+	to->mark = from->mark;
+
+	skb_copy_hash(to, from);
+
+#ifdef CONFIG_NET_SCHED
+	to->tc_index = from->tc_index;
+#endif
+	nf_copy(to, from);
+	skb_ext_copy(to, from);
+	skb_copy_secmark(to, from);
+}
+
+void ip_options_fragment1(struct sk_buff *skb)
+{
+	unsigned char *optptr = skb_network_header(skb) + sizeof(struct iphdr);
+	struct ip_options *opt = &(IPCB(skb)->opt);
+	int  l = opt->optlen;
+	int  optlen;
+
+	while (l > 0) {
+		switch (*optptr) {
+		case IPOPT_END:
+			return;
+		case IPOPT_NOOP:
+			l--;
+			optptr++;
+			continue;
+		}
+		optlen = optptr[1];
+		if (optlen < 2 || optlen > l)
+			return;
+		if (!IPOPT_COPIED(*optptr))
+			memset(optptr, IPOPT_NOOP, optlen);
+		l -= optlen;
+		optptr += optlen;
+	}
+	opt->ts = 0;
+	opt->rr = 0;
+	opt->rr_needaddr = 0;
+	opt->ts_needaddr = 0;
+	opt->ts_needtime = 0;
+}
+
+int ip4_do_xfrm_frag1(struct net *net, struct sock *sk, struct sk_buff *skb,
+		      int pmtu,
+		      int (*output)(struct net *,
+				    struct sock *,
+				    struct sk_buff *))
+{
+	struct iphdr *iph;
+	int ptr;
+	struct net_device *dev;
+	struct sk_buff *skb2;
+	unsigned int mtu, hlen, left, len, ll_rs;
+	int offset;
+	__be16 not_last_frag;
+	struct rtable *rt = skb_rtable(skb);
+	int err = 0;
+
+	dev = rt->dst.dev;
+	/* for offloaded checksums cleanup checksum before fragmentation */
+	if (skb->ip_summed == CHECKSUM_PARTIAL) {
+		err = skb_checksum_help(skb);
+		if (err)
+			goto fail;
+	}
+	/*Point into the IP datagram header.*/
+	iph = ip_hdr(skb);
+	/*Setup starting values.*/
+
+	hlen = iph->ihl * 4;
+	mtu = pmtu - hlen;	/* Size of data space */
+	IPCB(skb)->flags |= IPSKB_FRAG_COMPLETE;
+
+	ll_rs = LL_RESERVED_SPACE(rt->dst.dev);
+	/* When frag_list is given, use it. First, check its validity:
+	 * some transformers could create wrong frag_list or break existing
+	 * one, it is not prohibited. In this case fall back to copying.
+	 *
+	 * LATER: this step can be merged to real generation of fragments,
+	 * we can switch to copy when see the first bad fragment.
+	 */
+	if (skb_has_frag_list(skb)) {
+		struct sk_buff *frag, *frag2;
+		int first_len = skb_pagelen(skb);
+
+		if (first_len - hlen > mtu ||
+		    ((first_len - hlen) & 7) ||
+		    ip_is_fragment(iph) ||
+		    skb_cloned(skb) ||
+		    skb_headroom(skb) < ll_rs)
+			goto slow_path;
+
+		skb_walk_frags(skb, frag) {
+			/* Correct geometry. */
+			if (frag->len > mtu ||
+			    ((frag->len & 7) && frag->next) ||
+			    skb_headroom(frag) < hlen + ll_rs)
+				goto slow_path_clean;
+
+			/* Partially cloned skb? */
+			if (skb_shared(frag))
+				goto slow_path_clean;
+
+			/*BUG_ON(frag->sk);*/
+			WARN_ON(frag->sk);
+			if (skb->sk) {
+				frag->sk = skb->sk;
+				frag->destructor = sock_wfree;
+			}
+			skb->truesize -= frag->truesize;
+		}
+
+		/* Everything is OK. Generate! */
+
+		err = 0;
+		offset = 0;
+		frag = skb_shinfo(skb)->frag_list;
+		skb_frag_list_init(skb);
+		skb->data_len = first_len - skb_headlen(skb);
+		skb->len = first_len;
+		iph->tot_len = htons(first_len);
+		iph->frag_off = htons(IP_MF);
+		ip_send_check(iph);
+
+		for (;;) {
+			/* Prepare header of the next frame,
+			 * before previous one went down.
+			 */
+			if (frag) {
+				frag->ip_summed = CHECKSUM_NONE;
+				skb_reset_transport_header(frag);
+				__skb_push(frag, hlen);
+				skb_reset_network_header(frag);
+				memcpy(skb_network_header(frag), iph, hlen);
+				iph = ip_hdr(frag);
+				iph->tot_len = htons(frag->len);
+				ip_copy_metadata1(frag, skb);
+				if (offset == 0)
+					ip_options_fragment1(frag);
+				offset += skb->len - hlen;
+				iph->frag_off = htons(offset >> 3);
+				if (frag->next)
+					iph->frag_off |= htons(IP_MF);
+				/* Ready, complete checksum */
+				ip_send_check(iph);
+			}
+
+			err = output(net, sk, skb);
+
+			if (!err)
+				IP_INC_STATS(net, IPSTATS_MIB_FRAGCREATES);
+			if (err || !frag)
+				break;
+
+			skb = frag;
+			frag = skb->next;
+			skb->next = NULL;
+		}
+
+		if (err == 0) {
+			IP_INC_STATS(net, IPSTATS_MIB_FRAGOKS);
+			return 0;
+		}
+
+		while (frag) {
+			skb = frag->next;
+			kfree_skb(frag);
+			frag = skb;
+		}
+		IP_INC_STATS(net, IPSTATS_MIB_FRAGFAILS);
+		return err;
+
+slow_path_clean:
+		skb_walk_frags(skb, frag2) {
+			if (frag2 == frag)
+				break;
+			frag2->sk = NULL;
+			frag2->destructor = NULL;
+			skb->truesize += frag2->truesize;
+		}
+	}
+
+slow_path:
+	iph = ip_hdr(skb);
+
+	left = skb->len - hlen;		/* Space per frame */
+	ptr = hlen;		/* Where to start from */
+
+	/*Fragment the datagram.*/
+
+	offset = (ntohs(iph->frag_off) & IP_OFFSET) << 3;
+	not_last_frag = iph->frag_off & htons(IP_MF);
+
+	/*Keep copying data until we run out.*/
+
+	while (left > 0) {
+		len = left;
+		/* IF: it doesn't fit, use 'mtu' - the data space left */
+		if (len > mtu)
+			len = mtu;
+		/* IF: we are not sending up to and including the packet end
+		 * then align the next start on an eight byte boundary
+		 */
+		if (len < left)
+			len &= ~7;
+
+		/* Allocate buffer */
+		skb2 = alloc_skb(len + hlen + ll_rs, GFP_ATOMIC);
+		if (!skb2) {
+			err = -ENOMEM;
+			goto fail;
+		}
+
+		/*Set up data on packet*/
+		ip_copy_metadata1(skb2, skb);
+		skb_reserve(skb2, ll_rs);
+		skb_put(skb2, len + hlen);
+		skb_reset_network_header(skb2);
+		skb2->transport_header = skb2->network_header + hlen;
+
+		/*Charge the memory for the fragment to any owner
+		 *it might possess
+		 */
+		if (skb->sk)
+			skb_set_owner_w(skb2, skb->sk);
+
+		/*Copy the packet header into the new buffer.*/
+
+		skb_copy_from_linear_data(skb, skb_network_header(skb2), hlen);
+
+		/*Copy a block of the IP datagram.*/
+		if (skb_copy_bits(skb, ptr, skb_transport_header(skb2), len)) {
+			/*BUG();*/
+			kfree_skb(skb2);
+			goto fail;
+		}
+		left -= len;
+
+		/*Fill in the new header fields.*/
+		iph = ip_hdr(skb2);
+		iph->frag_off = htons((offset >> 3));
+
+		if (IPCB(skb)->flags & IPSKB_FRAG_PMTU)
+			iph->frag_off |= htons(IP_DF);
+
+		/* ANK: dirty, but effective trick. Upgrade options only if
+		 * the segment to be fragmented was THE FIRST (otherwise,
+		 * options are already fixed) and make it ONCE
+		 * on the initial skb, so that all the following fragments
+		 * will inherit fixed options.
+		 */
+		if (offset == 0)
+			ip_options_fragment1(skb);
+
+		/*Added AC : If we are fragmenting a fragment that's not the
+		 *last fragment then keep MF on each bit
+		 */
+		if (left > 0 || not_last_frag)
+			iph->frag_off |= htons(IP_MF);
+		ptr += len;
+		offset += len;
+
+		/*Put this fragment into the sending queue.*/
+		iph->tot_len = htons(len + hlen);
+
+		ip_send_check(iph);
+
+		err = output(net, sk, skb2);
+		if (err)
+			goto fail;
+
+		IP_INC_STATS(net, IPSTATS_MIB_FRAGCREATES);
+	}
+	consume_skb(skb);
+	IP_INC_STATS(net, IPSTATS_MIB_FRAGOKS);
+	return err;
+
+fail:
+	kfree_skb(skb);
+	IP_INC_STATS(net, IPSTATS_MIB_FRAGFAILS);
+	return err;
+}
+
+int ip6_do_xfrm_frag1(struct net *net, struct sock *sk, struct sk_buff *skb,
+		      int pmtu,
+		      int (*output)(struct net *,
+				    struct sock *,
+				    struct sk_buff *))
+{
+	struct sk_buff *frag;
+	struct rt6_info *rt = (struct rt6_info *)skb_dst(skb);
+	struct ipv6_pinfo *np = skb->sk && !dev_recursion_level() ?
+				inet6_sk(skb->sk) : NULL;
+	struct ipv6hdr *tmp_hdr;
+	struct frag_hdr *fh;
+	unsigned int mtu, hlen, left, len;
+	int hroom, troom;
+	__be32 frag_id;
+	int ptr, offset = 0, err = 0;
+	u8 *prevhdr, nexthdr = 0;
+
+	err = ip6_find_1stfragopt(skb, &prevhdr);
+	if (err < 0)
+		goto fail;
+
+	hlen = err;
+	nexthdr = *prevhdr;
+
+	/*mtu = ip6_skb_dst_mtu(skb);*/
+	mtu = pmtu;
+	/* We must not fragment if the socket is set to force MTU discovery
+	 * or if the skb it not generated by a local socket.
+	 */
+	if (unlikely(!skb->ignore_df && skb->len > mtu))
+		goto fail_toobig;
+
+	if (IP6CB(skb)->frag_max_size) {
+		if (IP6CB(skb)->frag_max_size > mtu)
+			goto fail_toobig;
+
+		/* don't send fragments larger than what we received */
+		mtu = IP6CB(skb)->frag_max_size;
+		if (mtu < IPV6_MIN_MTU)
+			mtu = IPV6_MIN_MTU;
+	}
+
+	if (np && np->frag_size < mtu) {
+		if (np->frag_size)
+			mtu = np->frag_size;
+	}
+	if (mtu < hlen + sizeof(struct frag_hdr) + 8)
+		goto fail_toobig;
+	mtu -= hlen + sizeof(struct frag_hdr);
+
+	frag_id = ipv6_select_ident(net, &ipv6_hdr(skb)->daddr,
+				    &ipv6_hdr(skb)->saddr);
+	/* After check the ip_summed,and do skb_checksum_help,
+	 * otherwise it will crash.
+	 */
+	if (skb->ip_summed == CHECKSUM_PARTIAL) {
+		err = skb_checksum_help(skb);
+		if (err)
+			goto fail;
+	}
+
+	hroom = LL_RESERVED_SPACE(rt->dst.dev);
+	if (skb_has_frag_list(skb)) {
+		int first_len = skb_pagelen(skb);
+		struct sk_buff *frag2;
+
+		if (first_len - hlen > mtu ||
+		    ((first_len - hlen) & 7) ||
+		    skb_cloned(skb) ||
+		    skb_headroom(skb) < (hroom + sizeof(struct frag_hdr)))
+			goto slow_path;
+
+		skb_walk_frags(skb, frag) {
+			/* Correct geometry. */
+			if (frag->len > mtu ||
+			    ((frag->len & 7) && frag->next) ||
+			    skb_headroom(frag) < (hlen + hroom +
+						  sizeof(struct frag_hdr)))
+				goto slow_path_clean;
+
+			/* Partially cloned skb? */
+			if (skb_shared(frag))
+				goto slow_path_clean;
+
+			WARN_ON(frag->sk);
+			if (skb->sk) {
+				frag->sk = skb->sk;
+				frag->destructor = sock_wfree;
+			}
+			skb->truesize -= frag->truesize;
+		}
+
+		err = 0;
+		offset = 0;
+		/* BUILD HEADER */
+
+		*prevhdr = NEXTHDR_FRAGMENT;
+		tmp_hdr = kmemdup(skb_network_header(skb), hlen, GFP_ATOMIC);
+		if (!tmp_hdr) {
+			IP6_INC_STATS(net, ip6_dst_idev(skb_dst(skb)),
+				      IPSTATS_MIB_FRAGFAILS);
+			err = -ENOMEM;
+			goto fail;
+		}
+		frag = skb_shinfo(skb)->frag_list;
+		skb_frag_list_init(skb);
+
+		__skb_pull(skb, hlen);
+		fh = (struct frag_hdr *)
+		      __skb_push(skb, sizeof(struct frag_hdr));
+
+		__skb_push(skb, hlen);
+		skb_reset_network_header(skb);
+		memcpy(skb_network_header(skb), tmp_hdr, hlen);
+
+		fh->nexthdr = nexthdr;
+		fh->reserved = 0;
+		fh->frag_off = htons(IP6_MF);
+		fh->identification = frag_id;
+
+		first_len = skb_pagelen(skb);
+		skb->data_len = first_len - skb_headlen(skb);
+		skb->len = first_len;
+		ipv6_hdr(skb)->payload_len = htons(first_len -
+						   sizeof(struct ipv6hdr));
+
+		dst_hold(&rt->dst);
+
+		for (;;) {
+			/* Prepare header of the next frame,
+			 * before previous one went down.
+			 */
+			if (frag) {
+				frag->ip_summed = CHECKSUM_NONE;
+				skb_reset_transport_header(frag);
+				fh = (struct frag_hdr *)
+				      __skb_push(frag, sizeof(struct frag_hdr));
+				__skb_push(frag, hlen);
+				skb_reset_network_header(frag);
+				memcpy(skb_network_header(frag),
+				       tmp_hdr,
+				       hlen);
+				offset += (skb->len - hlen -
+					   sizeof(struct frag_hdr));
+				fh->nexthdr = nexthdr;
+				fh->reserved = 0;
+				fh->frag_off = htons(offset);
+				if (frag->next)
+					fh->frag_off |= htons(IP6_MF);
+				fh->identification = frag_id;
+				ipv6_hdr(frag)->payload_len =
+						htons(frag->len -
+						      sizeof(struct ipv6hdr));
+				ip6_copy_metadata1(frag, skb);
+			}
+
+			err = output(net, sk, skb);
+			if (!err)
+				IP6_INC_STATS(net, ip6_dst_idev(&rt->dst),
+					      IPSTATS_MIB_FRAGCREATES);
+
+			if (err || !frag)
+				break;
+
+			skb = frag;
+			frag = skb->next;
+			skb->next = NULL;
+		}
+
+		kfree(tmp_hdr);
+
+		if (err == 0) {
+			IP6_INC_STATS(net, ip6_dst_idev(&rt->dst),
+				      IPSTATS_MIB_FRAGOKS);
+			ip6_rt_put(rt);
+			return 0;
+		}
+
+		kfree_skb_list(frag);
+
+		IP6_INC_STATS(net, ip6_dst_idev(&rt->dst),
+			      IPSTATS_MIB_FRAGFAILS);
+		ip6_rt_put(rt);
+		return err;
+
+slow_path_clean:
+		skb_walk_frags(skb, frag2) {
+			if (frag2 == frag)
+				break;
+			frag2->sk = NULL;
+			frag2->destructor = NULL;
+			skb->truesize += frag2->truesize;
+		}
+	}
+
+slow_path:
+	left = skb->len - hlen;		/*Space per frame */
+	ptr = hlen;			/*Where to start from */
+
+	/*Fragment the datagram.*/
+
+	*prevhdr = NEXTHDR_FRAGMENT;
+	troom = rt->dst.dev->needed_tailroom;
+
+	/*Keep copying data until we run out.*/
+	while (left > 0) {
+		len = left;
+		/* IF: it doesn't fit, use 'mtu' - the data space left */
+		if (len > mtu)
+			len = mtu;
+		/*IF: we are not sending up to and including the packet end
+		 *then align the next start on an eight byte boundary
+		 */
+		if (len < left)
+			len &= ~7;
+
+		/* Allocate buffer */
+		frag = alloc_skb(len + hlen + sizeof(struct frag_hdr) +
+				 hroom + troom, GFP_ATOMIC);
+		if (!frag) {
+			IP6_INC_STATS(net, ip6_dst_idev(skb_dst(skb)),
+				      IPSTATS_MIB_FRAGFAILS);
+			err = -ENOMEM;
+			goto fail;
+		}
+
+		/*Set up data on packet*/
+
+		ip6_copy_metadata1(frag, skb);
+		skb_reserve(frag, hroom);
+		skb_put(frag, len + hlen + sizeof(struct frag_hdr));
+		skb_reset_network_header(frag);
+		fh = (struct frag_hdr *)(skb_network_header(frag) + hlen);
+		frag->transport_header = (frag->network_header + hlen +
+					  sizeof(struct frag_hdr));
+
+		/*Charge the memory for the fragment to any owner
+		 *it might possess
+		 */
+		if (skb->sk)
+			skb_set_owner_w(frag, skb->sk);
+
+		/*Copy the packet header into the new buffer.*/
+		skb_copy_from_linear_data(skb, skb_network_header(frag), hlen);
+
+		/*Build fragment header.*/
+		fh->nexthdr = nexthdr;
+		fh->reserved = 0;
+		fh->identification = frag_id;
+
+		/*Copy a block of the IP datagram.*/
+		WARN_ON(skb_copy_bits(skb, ptr, skb_transport_header(frag),
+				      len));
+		left -= len;
+
+		fh->frag_off = htons(offset);
+		if (left > 0)
+			fh->frag_off |= htons(IP6_MF);
+		ipv6_hdr(frag)->payload_len =
+				htons(frag->len - sizeof(struct ipv6hdr));
+
+		ptr += len;
+		offset += len;
+
+		/*Put this fragment into the sending queue.*/
+		err = output(net, sk, frag);
+		if (err)
+			goto fail;
+
+		IP6_INC_STATS(net, ip6_dst_idev(skb_dst(skb)),
+			      IPSTATS_MIB_FRAGCREATES);
+	}
+	IP6_INC_STATS(net, ip6_dst_idev(skb_dst(skb)),
+		      IPSTATS_MIB_FRAGOKS);
+	consume_skb(skb);
+	return err;
+
+fail_toobig:
+	if (skb->sk && dst_allfrag(skb_dst(skb)))
+		sk_nocaps_add(skb->sk, NETIF_F_GSO_MASK);
+
+	skb->dev = skb_dst(skb)->dev;
+	icmpv6_send(skb, ICMPV6_PKT_TOOBIG, 0, mtu);
+	err = -EMSGSIZE;
+
+fail:
+	IP6_INC_STATS(net, ip6_dst_idev(skb_dst(skb)),
+		      IPSTATS_MIB_FRAGFAILS);
+	kfree_skb(skb);
+	return err;
+}
+
+static int __xfrm_output_resume_ss_after_frag1(struct net *net,
+					       struct sock *sock, struct sk_buff *skb)
+{
+	const struct xfrm_state_afinfo *afinfo;
+	int ret = -EAFNOSUPPORT;
+	struct dst_entry *dst = skb_dst(skb);
+	struct xfrm_state *x = dst->xfrm;
+
+	if (!x)
+		return dst_output(net, sock, skb);
+
+	rcu_read_lock();
+	imsbr_dumpcap(skb);
+	afinfo = xfrm_state_afinfo_get_rcu(x->outer_mode.family);
+	if (likely(afinfo))
+		ret = afinfo->output_finish(sock, skb);
+	else
+		kfree_skb(skb);
+
+	rcu_read_unlock();
+	return ret;
+}
+
+static unsigned int nf_imsbr_ipv4_frag_output(void *priv,
+					      struct sk_buff *skb,
+					      const struct nf_hook_state *state)
+{
+	struct net *net;
+	struct nf_conntrack_tuple nft;
+	struct inet_sock *inet;
+	struct iphdr *ipv4h = ip_hdr(skb);
+	struct udphdr *uh = udp_hdr(skb);
+	struct dst_entry *dst = skb_dst(skb);
+	struct xfrm_state *x = dst->xfrm;
+	int pmtu = 1400;
+
+	if (!xfrm_frag_enable)
+		return NF_ACCEPT;
+
+	inet = skb->sk ? inet_sk(skb->sk) : NULL;
+	pmtu = (inet && inet->pmtudisc == 3) ? dst->dev->mtu : dst_mtu(dst);
+
+	if (imsbr_get_tuple(state->net, skb, &nft))
+		return NF_ACCEPT;
+
+	imsbr_nfct_debug("output", skb, &nft);
+
+	if (!x)
+		return NF_ACCEPT;
+
+	pmtu = pmtu - x->props.header_len - x->props.trailer_len;
+	if (unlikely(pmtu < 0)) {
+		printk_ratelimited(KERN_ERR
+	"The mtu is too small,pmtu=%d,to keep communication,set the pmtu quals to 1400\n",
+				pmtu);
+		pmtu = (1400
+			- x->props.header_len
+			- x->props.trailer_len);
+	}
+	if (skb->len > pmtu &&
+	    ((ipv4h->protocol == IPPROTO_UDP && ntohs(uh->dest) == 5060) ||
+	    ipv4h->protocol == IPPROTO_ESP)) {
+		int segs = 0;
+		int seg_pmtu = 0;
+
+		imsbr_dumpcap(skb);
+		segs = skb->len / pmtu;
+		segs++;
+		seg_pmtu = skb->len / segs;
+		seg_pmtu = (seg_pmtu / 4 + 1) * 4;
+		if (ipv4h->protocol == IPPROTO_ESP && skb->ignore_df == 0)
+			skb->ignore_df = 1;
+
+		seg_pmtu += ipv4h->ihl * 4;
+		if (seg_pmtu > pmtu)
+			seg_pmtu = pmtu;
+		printk_ratelimited(KERN_ERR
+	"IPv4:The pkt is average divided into %d parts with mtu %d.\n",
+		segs, seg_pmtu);
+		net = xs_net(x);
+		ip4_do_xfrm_frag1(net, skb->sk, skb, seg_pmtu,
+				  __xfrm_output_resume_ss_after_frag1);
+		return NF_STOLEN;
+	}
+	return NF_ACCEPT;
+}
+
+static unsigned int nf_imsbr_ipv6_frag_output(void *priv,
+					      struct sk_buff *skb,
+					      const struct nf_hook_state *state)
+{
+	struct net *net;
+	struct nf_conntrack_tuple nft;
+	struct ipv6hdr *ipv6h = ipv6_hdr(skb);
+	struct udphdr *uh = udp_hdr(skb);
+	struct dst_entry *dst = skb_dst(skb);
+	struct xfrm_state *x = dst->xfrm;
+	struct ipv6_pinfo *np = skb->sk ? inet6_sk(skb->sk) : NULL;
+	int pmtu = 1400;
+
+	if (!xfrm_frag_enable)
+		return NF_ACCEPT;
+
+	pmtu = (np && np->pmtudisc == IPV6_PMTUDISC_PROBE) ? skb_dst(skb)->dev->mtu :
+		dst_mtu(skb_dst(skb));
+
+	if (imsbr_get_tuple(state->net, skb, &nft))
+		return NF_ACCEPT;
+
+	imsbr_nfct_debug("output", skb, &nft);
+
+	if (!x)
+		return NF_ACCEPT;
+
+	pmtu = pmtu - x->props.header_len - x->props.trailer_len;
+	if (unlikely(pmtu < 0)) {
+		printk_ratelimited(KERN_ERR
+	"The mtu is too small,pmtu=%d,to keep communication,set the pmtu quals to 1400\n",
+				pmtu);
+		pmtu = (1400
+			- x->props.header_len
+			- x->props.trailer_len);
+	}
+
+	if (skb->len > pmtu &&
+	    ((ipv6h->nexthdr == NEXTHDR_UDP && ntohs(uh->dest) == 5060) ||
+	    (ipv6h->nexthdr == NEXTHDR_ESP && x->props.mode == XFRM_MODE_TUNNEL))) {
+		int segs = 0;
+		int seg_pmtu = 0;
+
+		segs = skb->len / pmtu;
+		segs++;
+		seg_pmtu = skb->len / segs;
+		seg_pmtu = (seg_pmtu / 4 + 1) * 4;
+		if (seg_pmtu > pmtu)
+			seg_pmtu = pmtu;
+		else if (seg_pmtu < 1280)
+			seg_pmtu = 1280;
+		printk_ratelimited(KERN_ERR
+	"IPv6: The pkt is divided into %d parts with mtu %d.\n",
+		segs, seg_pmtu);
+		if (skb->ignore_df == 0)
+			skb->ignore_df = 1;
+
+		net = xs_net(x);
+		ip6_do_xfrm_frag1(net, skb->sk, skb, seg_pmtu,
+				  __xfrm_output_resume_ss_after_frag1);
+		return NF_STOLEN;
+	}
+	return NF_ACCEPT;
+}
+
 static struct nf_hook_ops nf_imsbr_ops[] __read_mostly = {
 	{
 		.hook		= nf_imsbr_input,
@@ -340,6 +1104,18 @@ static struct nf_hook_ops nf_imsbr_ops[] __read_mostly = {
 		.pf		= NFPROTO_IPV4,
 		.hooknum	= NF_INET_LOCAL_OUT,
 		.priority	= NF_IP_PRI_FILTER - 1,
+	},
+	{
+		.hook		= nf_imsbr_ipv4_frag_output,
+		.pf		= NFPROTO_IPV4,
+		.hooknum	= NF_INET_LOCAL_OUT,
+		.priority	= NF_IP_PRI_MANGLE - 1,
+	},
+	{
+		.hook		= nf_imsbr_ipv6_frag_output,
+		.pf		= NFPROTO_IPV6,
+		.hooknum	= NF_INET_LOCAL_OUT,
+		.priority	= NF_IP6_PRI_MANGLE - 1,
 	},
 	{
 		.hook		= nf_imsbr_input,

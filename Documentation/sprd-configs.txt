@@ -20241,8 +20241,8 @@ CONFIG_XFRM_ALGO
 	[function] support for xfrm algorithum
 CONFIG_XFRM_FRAGMENT
 	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
-	[missing plat] none
+	[plat] sharkl3
+	[missing plat] sharkl5Pro
 	[field] menu
 	[subsys] net
 	[must] user
