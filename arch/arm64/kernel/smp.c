@@ -52,6 +52,9 @@
 #include <asm/ptrace.h>
 #include <asm/virt.h>
 
+#include <asm/system_misc.h>
+#include <linux/soc/sprd/sprd_sysdump.h>
+
 #define CREATE_TRACE_POINTS
 #include <trace/events/ipi.h>
 #undef CREATE_TRACE_POINTS
@@ -829,6 +832,9 @@ void arch_irq_work_raise(void)
 }
 #endif
 
+#ifdef CONFIG_SPRD_SYSDUMP
+static DEFINE_RAW_SPINLOCK(stop_lock);
+#endif
 static void local_cpu_stop(void)
 {
 	set_cpu_online(smp_processor_id(), false);
@@ -887,7 +893,9 @@ static void do_handle_IPI(int ipinr)
 {
 	unsigned int cpu = smp_processor_id();
 	struct pt_regs *regs = get_irq_regs();
-
+#ifdef CONFIG_SPRD_SYSDUMP
+	struct pt_regs pregs;
+#endif
 	if ((unsigned)ipinr < NR_IPI)
 		trace_ipi_entry_rcuidle(ipi_types[ipinr]);
 
@@ -909,9 +917,18 @@ static void do_handle_IPI(int ipinr)
 
 	case IPI_CPU_STOP:
 		trace_android_vh_ipi_stop_rcuidle(regs);
-		#ifdef CONFIG_SPRD_SYSDUMP
-			sysdump_ipi(regs);
-		#endif
+#ifdef CONFIG_SPRD_SYSDUMP
+		if ((system_state == SYSTEM_BOOTING ||
+			system_state == SYSTEM_RUNNING)) {
+			raw_spin_lock(&stop_lock);
+			pr_crit("CPU%u: stopping...\n", cpu);
+			memset(&pregs, 0x00, sizeof(pregs));
+			get_pt_regs(&pregs);
+			sprd_dump_stack_reg(cpu, &pregs);
+			raw_spin_unlock(&stop_lock);
+		}
+		sysdump_ipi(regs);
+#endif
 		local_cpu_stop();
 		break;
 

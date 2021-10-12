@@ -1616,7 +1616,7 @@ static void minidump_info_init(void)
 
 static struct notifier_block sysdump_panic_event_nb = {
 	.notifier_call	= sysdump_panic_event,
-	.priority	= INT_MAX,
+	.priority	= INT_MAX - 2,
 };
 
 static int sysdump_panic_event_init(void)
