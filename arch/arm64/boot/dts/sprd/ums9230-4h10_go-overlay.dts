@@ -411,7 +411,7 @@
 				<&pll1 CLK_TWPLL_48M>,<&ext_26m>;
 		vddio-supply = <&vddcamio>;
 		vddcama-supply = <&vddcama0>;
-		dvdd-gpios = <&ap_gpio 11 0>;
+		dvdd-gpios = <&ap_gpio 137 0>;
 		vddcammot-supply = <&vddcammot>;
 		reset-gpios = <&ap_gpio 45 0>;
 		power-down-gpios = <&ap_gpio 47 0>;
@@ -431,7 +431,7 @@
 				<&pll1 CLK_TWPLL_48M>,<&ext_26m>;
 		vddio-supply = <&vddcamio>;
 		vddcama-supply = <&vddcama0>;
-		dvdd-gpios = <&ap_gpio 11 0>;
+		dvdd-gpios = <&ap_gpio 137 0>;
 		vddcammot-supply = <&vddcammot>;
 		reset-gpios = <&ap_gpio 44 0>;
 		power-down-gpios = <&ap_gpio 46 0>;
@@ -463,7 +463,7 @@
 		vddcamd-supply = <&vddcamd0>;
 		vddcammot-supply = <&vddcammot>;
 		avdd-gpios = <&ap_gpio 33 0>;
-		mot-gpios = <&ap_gpio 88 0>;
+		mot-gpios = <&ap_gpio 113 0>;
 		reset-gpios = <&ap_gpio 41 0>;
 		power-down-gpios = <&ap_gpio 40 0>;
 	/*	mipi-switch-en-gpios = <&ap_gpio 55 0>;*/
