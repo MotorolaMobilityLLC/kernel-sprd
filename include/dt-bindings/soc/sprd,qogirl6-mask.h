@@ -311,6 +311,7 @@
 #define MASK_AON_APB_RC100M_ANA_SOFT_RST                    0x0010
 #define MASK_AON_APB_RC100M_FORCE_EN                        0x0002
 #define MASK_AON_APB_RC100M_AUTO_GATE_EN                    0x0001
+#define MASK_AON_APB_RF_BOND_OPTION0                        0xffffffff
 #define MASK_AON_APB_LTE_PCCSCC_RFTI_CLK_SW_CFG             0xFF000000
 #define MASK_AON_APB_CGM_UFS_AO_EN                          0x800000
 #define MASK_AON_APB_CGM_LPLL1_WTLCP_SEL                    0x200000

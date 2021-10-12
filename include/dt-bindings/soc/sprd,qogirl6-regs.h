@@ -54,6 +54,7 @@
 #define REG_AON_APB_SP_CFG_BUS                              0x0124
 #define REG_AON_APB_APB_RST3                                0x0130
 #define REG_AON_APB_RC100M_CFG                              0x0134
+#define REG_AON_APB_RF_BOND_OPT0                            0x083c
 #define REG_AON_APB_CGM_REG1                                0x0138
 #define REG_AON_APB_CGM_CLK_TOP_REG1                        0x013C
 #define REG_AON_APB_AUDCP_DSP_CTRL0                         0x0140
