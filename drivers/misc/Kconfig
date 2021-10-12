@@ -481,6 +481,13 @@ config UID_SYS_STATS_DEBUG
 	help
 	  Per TASK based io statistics exported to /proc/uid_io
 
+config UID_IO_DEBUG
+	bool "uid_io state debug"
+	depends on SPRD_DEBUG && UID_SYS_STATS
+	default y
+	help
+	  log uid io stats per 5s with 2 buff
+
 config PVPANIC
 	tristate "pvpanic device support"
 	depends on HAS_IOMEM && (ACPI || OF)

@@ -28,6 +28,14 @@
 #include <linux/slab.h>
 #include <linux/uaccess.h>
 
+#ifdef CONFIG_UID_IO_DEBUG
+#include <linux/kthread.h>
+#include <linux/sched.h>
+#include <linux/err.h>
+#include <linux/timekeeping.h>
+
+#define IO_MINTOR_INTERVAL 5000
+#endif
 
 #define UID_HASH_BITS	10
 DECLARE_HASHTABLE(hash_table, UID_HASH_BITS);
@@ -75,7 +83,22 @@ struct uid_entry {
 #ifdef CONFIG_UID_SYS_STATS_DEBUG
 	DECLARE_HASHTABLE(task_entries, UID_HASH_BITS);
 #endif
+#ifdef CONFIG_UID_IO_DEBUG
+	char comm[TASK_COMM_LEN];
+	struct io_stats io_buff[2][UID_STATE_BUCKET_SIZE];
+#endif
 };
+
+#ifdef CONFIG_UID_IO_DEBUG
+struct io_debug_state{
+	u64 time;	//last update time
+	u64 new;	//last update buff number
+};
+
+struct io_debug_state io_debug_state;
+struct task_struct *io_mintor_thread;
+struct wait_queue_head io_mintor_wait_queue;
+#endif
 
 static u64 compute_write_bytes(struct task_struct *task)
 {
@@ -484,6 +507,10 @@ static void update_io_stats_all_locked(void)
 		uid = from_kuid_munged(user_ns, task_uid(task));
 		if (!uid_entry || uid_entry->uid != uid)
 			uid_entry = find_or_register_uid(uid);
+#ifdef CONFIG_UID_IO_DEBUG
+		if (uid_entry && uid_entry->comm[0] == 0)
+			memcpy(uid_entry->comm, task->group_leader->comm, TASK_COMM_LEN);
+#endif
 		if (!uid_entry)
 			continue;
 		add_uid_io_stats(uid_entry, task, UID_STATE_TOTAL_CURR);
@@ -565,6 +592,91 @@ static const struct file_operations uid_io_fops = {
 	.llseek		= seq_lseek,
 	.release	= single_release,
 };
+
+#ifdef CONFIG_UID_IO_DEBUG
+static int uid_io_debug(struct seq_file *m, void *v)
+{
+	struct uid_entry *uid_entry;
+	unsigned long bkt;
+	u64 first, last, now, last_time, now_rem, last_rem;
+
+	rt_mutex_lock(&uid_lock);
+
+	update_io_stats_all_locked();
+
+	first = io_debug_state.new;
+	last = first ? 0 : 1;
+
+	now = ktime_get_boottime_ns();
+	last_time = io_debug_state.time;
+	now_rem = do_div(now, NSEC_PER_SEC);
+	last_rem = do_div(last_time, NSEC_PER_SEC);
+
+	seq_printf(m, "now time is %5llu.%06llu, 5s-pre time is %5llu.%06llu, 5s-pre is buff[%llu]\n",
+			now, now_rem / 1000, last_time, last_rem / 1000, io_debug_state.new);
+
+	seq_printf(m, "  uid             comm       fore_rchar       fore_wchar   fore_readbytes"
+			"  fore_writebytes       back_rchar       back_wchar   back_readbytes  fore_writebytes"
+			"       fore_fsync       back_fsync\n");
+
+	hash_for_each(hash_table, bkt, uid_entry, hash) {
+		seq_printf(m, "%5d %16s %16llu %16llu %16llu %16llu %16llu %16llu %16llu %16llu %16llu %16llu\n"
+				"                       "
+				"%16llu %16llu %16llu %16llu %16llu %16llu %16llu %16llu %16llu %16llu\n"
+				"                       "
+				"%16llu %16llu %16llu %16llu %16llu %16llu %16llu %16llu %16llu %16llu\n",
+				uid_entry->uid,
+				uid_entry->comm,
+				uid_entry->io[UID_STATE_FOREGROUND].rchar,
+				uid_entry->io[UID_STATE_FOREGROUND].wchar,
+				uid_entry->io[UID_STATE_FOREGROUND].read_bytes,
+				uid_entry->io[UID_STATE_FOREGROUND].write_bytes,
+				uid_entry->io[UID_STATE_BACKGROUND].rchar,
+				uid_entry->io[UID_STATE_BACKGROUND].wchar,
+				uid_entry->io[UID_STATE_BACKGROUND].read_bytes,
+				uid_entry->io[UID_STATE_BACKGROUND].write_bytes,
+				uid_entry->io[UID_STATE_FOREGROUND].fsync,
+				uid_entry->io[UID_STATE_BACKGROUND].fsync,
+
+				uid_entry->io_buff[first][UID_STATE_FOREGROUND].rchar,
+				uid_entry->io_buff[first][UID_STATE_FOREGROUND].wchar,
+				uid_entry->io_buff[first][UID_STATE_FOREGROUND].read_bytes,
+				uid_entry->io_buff[first][UID_STATE_FOREGROUND].write_bytes,
+				uid_entry->io_buff[first][UID_STATE_BACKGROUND].rchar,
+				uid_entry->io_buff[first][UID_STATE_BACKGROUND].wchar,
+				uid_entry->io_buff[first][UID_STATE_BACKGROUND].read_bytes,
+				uid_entry->io_buff[first][UID_STATE_BACKGROUND].write_bytes,
+				uid_entry->io_buff[first][UID_STATE_FOREGROUND].fsync,
+				uid_entry->io_buff[first][UID_STATE_BACKGROUND].fsync,
+
+				uid_entry->io_buff[last][UID_STATE_FOREGROUND].rchar,
+				uid_entry->io_buff[last][UID_STATE_FOREGROUND].wchar,
+				uid_entry->io_buff[last][UID_STATE_FOREGROUND].read_bytes,
+				uid_entry->io_buff[last][UID_STATE_FOREGROUND].write_bytes,
+				uid_entry->io_buff[last][UID_STATE_BACKGROUND].rchar,
+				uid_entry->io_buff[last][UID_STATE_BACKGROUND].wchar,
+				uid_entry->io_buff[last][UID_STATE_BACKGROUND].read_bytes,
+				uid_entry->io_buff[last][UID_STATE_BACKGROUND].write_bytes,
+				uid_entry->io_buff[last][UID_STATE_FOREGROUND].fsync,
+				uid_entry->io_buff[last][UID_STATE_BACKGROUND].fsync);
+	}
+
+	rt_mutex_unlock(&uid_lock);
+	return 0;
+}
+
+static int uid_io_debug_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, uid_io_debug, PDE_DATA(inode));
+}
+
+static const struct file_operations uid_io_debug_fops = {
+	.open		= uid_io_debug_open,
+	.read		= seq_read,
+	.llseek		= seq_lseek,
+	.release	= single_release,
+};
+#endif
 
 static int uid_procstat_open(struct inode *inode, struct file *file)
 {
@@ -656,6 +768,39 @@ static struct notifier_block process_notifier_block = {
 	.notifier_call	= process_notifier,
 };
 
+#ifdef CONFIG_UID_IO_DEBUG
+static int io_monitor_thread(void *data)
+{
+	struct uid_entry *uid_entry;
+	unsigned long bkt;
+
+	do {
+		wait_event_interruptible_timeout(io_mintor_wait_queue,
+					kthread_should_stop(),
+					msecs_to_jiffies(IO_MINTOR_INTERVAL));
+		if (kthread_should_stop())
+		    return 0;
+
+		rt_mutex_lock(&uid_lock);
+
+		update_io_stats_all_locked();
+
+		io_debug_state.time = ktime_get_boottime_ns();
+		io_debug_state.new = io_debug_state.new ? 0 : 1;
+
+		hash_for_each(hash_table, bkt, uid_entry, hash) {
+			memcpy(uid_entry->io_buff[io_debug_state.new],
+				uid_entry->io,
+				2 * sizeof(struct io_stats));
+		}
+		rt_mutex_unlock(&uid_lock);
+
+	} while (!kthread_should_stop());
+	return 0;
+
+}
+#endif
+
 static int __init proc_uid_sys_stats_init(void)
 {
 	hash_init(hash_table);
@@ -681,7 +826,16 @@ static int __init proc_uid_sys_stats_init(void)
 
 	proc_create_data("stats", 0444, io_parent,
 		&uid_io_fops, NULL);
-
+#ifdef CONFIG_UID_IO_DEBUG
+	init_waitqueue_head(&io_mintor_wait_queue);
+	io_mintor_thread = kthread_run(io_monitor_thread, NULL, "%s", "io_monitor run\n");
+	if (IS_ERR(io_mintor_thread)) {
+		pr_err("Creat io debug mintor fail: %ld\n", PTR_ERR(io_mintor_thread));
+	} else {
+		proc_create_data("debug", 0444, io_parent,
+			&uid_io_debug_fops, NULL);
+	}
+#endif
 	proc_parent = proc_mkdir("uid_procstat", NULL);
 	if (!proc_parent) {
 		pr_err("%s: failed to create uid_procstat proc entry\n",

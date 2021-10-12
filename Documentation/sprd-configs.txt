@@ -18599,6 +18599,15 @@ CONFIG_UID16
 	[must] console
 	[missing plat description] none
 	[function] Enable 16-bit UID system calls.
+CONFIG_UID_IO_DEBUG
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field] make
+	[subsys] fs
+	[must] user
+	[missing plat description] none
+	[function] collect uid_io stats per 5s log in 2 buff
 CONFIG_UID_SYS_STATS
 	[arch] all
 	[plat] all
