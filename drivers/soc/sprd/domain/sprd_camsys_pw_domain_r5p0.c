@@ -43,6 +43,26 @@ enum  {
 	CAMSYS_INIT_DIS_BITS
 };
 
+static int boot_mode_check(void)
+{
+	struct device_node *np;
+	const char *cmd_line;
+	int ret = 0;
+
+	np = of_find_node_by_path("/chosen");
+	if (!np)
+		return 0;
+
+	ret = of_property_read_string(np, "bootargs", &cmd_line);
+	if (ret < 0)
+		return 0;
+
+	if (strstr(cmd_line, "androidboot.mode=cali"))
+		ret = 1;
+
+	return ret;
+}
+
 static int sprd_cam_domain_eb(struct camsys_power_info *pw_info)
 {
 	pr_info("cb %pS\n", __builtin_return_address(0));
@@ -288,23 +308,26 @@ static int sprd_campw_init(struct platform_device *pdev, struct camsys_power_inf
 	}
 
 	//fix bug 1707122
-	preg_gpr = &pw_info->u.l3.syscon_regs[CAMSYS_AON_APB_MM_EB];
-	regmap_update_bits(preg_gpr->gpr,
-				preg_gpr->reg,
-				preg_gpr->mask,
-				~preg_gpr->mask);
+	if (boot_mode_check()) {
+		preg_gpr = &pw_info->u.l3.syscon_regs[CAMSYS_AON_APB_MM_EB];
+		regmap_update_bits(preg_gpr->gpr,
+					preg_gpr->reg,
+					preg_gpr->mask,
+					~preg_gpr->mask);
 
-	preg_gpr = &pw_info->u.l3.syscon_regs[CAMSYS_SHUTDOWN_EN];
-	regmap_update_bits(preg_gpr->gpr,
-				preg_gpr->reg,
-				preg_gpr->mask,
-				~preg_gpr->mask);
+		preg_gpr = &pw_info->u.l3.syscon_regs[CAMSYS_SHUTDOWN_EN];
+		regmap_update_bits(preg_gpr->gpr,
+					preg_gpr->reg,
+					preg_gpr->mask,
+					~preg_gpr->mask);
 
-	preg_gpr = &pw_info->u.l3.syscon_regs[CAMSYS_FORCE_SHUTDOWN];
-	regmap_update_bits(preg_gpr->gpr,
-				preg_gpr->reg,
-				preg_gpr->mask,
-				preg_gpr->mask);
+		preg_gpr = &pw_info->u.l3.syscon_regs[CAMSYS_FORCE_SHUTDOWN];
+		regmap_update_bits(preg_gpr->gpr,
+					preg_gpr->reg,
+					preg_gpr->mask,
+					preg_gpr->mask);
+		pr_info("calibration mode MM SHUTDOWN");
+	}
 
 	return 0;
 }
