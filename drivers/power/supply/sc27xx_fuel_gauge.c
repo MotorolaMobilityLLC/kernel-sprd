@@ -462,7 +462,7 @@ static int sc27xx_fgu_set_basp_volt(struct sc27xx_fgu_data *data, int max_volt_u
 {
 	int i, index;
 
-	if (!data->support_basp || max_volt_uv == -1)
+	if (!data->support_basp || max_volt_uv == -1 || !data->basp_voltage_max_table)
 		return 0;
 
 	for (i = 0; i < data->basp_voltage_max_table_len; i++) {
@@ -4227,8 +4227,10 @@ static int sc27xx_fgu_hw_init(struct sc27xx_fgu_data *data,
 	 * table in normal temperature 20 Celsius.
 	 */
 	table = power_supply_find_ocv2cap_table(&info, 20, &data->table_len);
-	if (!table)
+	if (!table) {
+		power_supply_put_battery_info(data->battery, &info);
 		return -EINVAL;
+	}
 
 	data->cap_table = devm_kmemdup(data->dev, table,
 				       data->table_len * sizeof(*table),
@@ -4243,8 +4245,21 @@ static int sc27xx_fgu_hw_init(struct sc27xx_fgu_data *data,
 
 	ret = sc27xx_fgu_get_battery_table_info(data->battery, data);
 	if (ret) {
+		power_supply_put_battery_info(data->battery, &info);
 		dev_err(data->dev, "failed to get battery table information\n");
 		return ret;
+	}
+
+	data->resist_table_len = info.resist_table_size;
+	if (data->resist_table_len > 0) {
+		data->resist_table = devm_kmemdup(data->dev, info.resist_table,
+						  data->resist_table_len *
+						  sizeof(struct power_supply_resistance_temp_table),
+						  GFP_KERNEL);
+		if (!data->resist_table) {
+			power_supply_put_battery_info(data->battery, &info);
+			return -ENOMEM;
+		}
 	}
 
 	power_supply_put_battery_info(data->battery, &info);
@@ -4265,20 +4280,6 @@ static int sc27xx_fgu_hw_init(struct sc27xx_fgu_data *data,
 	 */
 	if (data->alarm_cap < 10)
 		data->alarm_cap = 10;
-
-	data->resist_table_len = info.resist_table_size;
-	if (data->resist_table_len > 0) {
-		data->resist_table = devm_kmemdup(data->dev, info.resist_table,
-						  data->resist_table_len *
-						  sizeof(struct power_supply_resistance_temp_table),
-						  GFP_KERNEL);
-		if (!data->resist_table) {
-			power_supply_put_battery_info(data->battery, &info);
-			return -ENOMEM;
-		}
-	}
-
-	power_supply_put_battery_info(data->battery, &info);
 
 	ret = sc27xx_fgu_calibration(data);
 	if (ret)
