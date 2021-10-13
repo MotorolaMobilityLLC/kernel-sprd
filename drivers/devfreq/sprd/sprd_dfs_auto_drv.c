@@ -660,6 +660,8 @@ int set_overflow(unsigned int value, unsigned int sel)
 
 	if (g_dfs_data == NULL)
 		return -ENOENT;
+	if (sel >= g_dfs_data->freq_num)
+		return -ENOENT;
 	mutex_lock(&g_dfs_data->sync_mutex);
 	err = dfs_msg(&data, value, DFS_CMD_PARA_OVERFLOW+sel, 500);
 	if ((err == 0) && (g_dfs_data->init_done == 1))
@@ -674,6 +676,8 @@ int set_underflow(unsigned int value, unsigned int sel)
 	unsigned int data;
 
 	if (g_dfs_data == NULL)
+		return -ENOENT;
+	if (sel >= g_dfs_data->freq_num)
 		return -ENOENT;
 	mutex_lock(&g_dfs_data->sync_mutex);
 	err = dfs_msg(&data, value, DFS_CMD_PARA_UNDERFLOW+sel, 500);
