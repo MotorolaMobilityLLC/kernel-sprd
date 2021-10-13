@@ -760,8 +760,14 @@ static int audio_dsp_probe(struct platform_device *pdev)
 		return -ENOMEM;
 	}
 
+	dsp_log->init = init;
+	mutex_init(&dsp_log->mutex);
+	init_waitqueue_head(&dsp_log->mem_ready_wait);
+
 	rval = alloc_chrdev_region(&devid, 0, 1, init->name);
 	if (rval != 0) {
+		mutex_destroy(&dsp_log->mutex);
+		dsp_log->init = NULL;
 		kfree(dsp_log);
 		audio_dsp_destroy_pdata(&init);
 		pr_err("Failed to alloc dsp_log chrdev\n");
@@ -770,6 +776,8 @@ static int audio_dsp_probe(struct platform_device *pdev)
 	cdev_init(&(dsp_log->cdev), &dsp_log_tp_fops);
 	rval = cdev_add(&(dsp_log->cdev), devid, 1);
 	if (rval != 0) {
+		mutex_destroy(&dsp_log->mutex);
+		dsp_log->init = NULL;
 		kfree(dsp_log);
 		unregister_chrdev_region(devid, 1);
 		audio_dsp_destroy_pdata(&init);
@@ -782,9 +790,6 @@ static int audio_dsp_probe(struct platform_device *pdev)
 	device_create(audio_dsp_class, NULL,
 			MKDEV(dsp_log->major, dsp_log->minor),
 			NULL, "%s", init->name);
-	dsp_log->init = init;
-	mutex_init(&dsp_log->mutex);
-	init_waitqueue_head(&dsp_log->mem_ready_wait);
 	platform_set_drvdata(pdev, dsp_log);
 	pr_info("dsp_log_tp_probe success  %s\n", init->name);
 
