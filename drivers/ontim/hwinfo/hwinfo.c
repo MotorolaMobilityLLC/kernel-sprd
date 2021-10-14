@@ -135,6 +135,10 @@ static mid_match_t emmc_table[] = {
 	},
 // END 9888845
 	{
+		.index = 0xd6,
+		.name = "FORESEE"
+	},
+	{
 		.index = 0x90,
 		.name = "Hynix"
 	},
