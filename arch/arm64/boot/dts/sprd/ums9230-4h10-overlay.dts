@@ -296,6 +296,12 @@
 				irq_gpio = <&ap_gpio 169 GPIO_ACTIVE_HIGH>;
 			};
 
+			sprd_uid {
+				compatible = "sprd-uid";
+				nvmem-cells = <&uid_start>, <&uid_end>;
+				nvmem-cell-names = "uid_start", "uid_end";
+			};
+
 			sprd_marlin3: sprd-marlin3 {
 				compatible = "sprd,marlin3";
 				m2-wakeup-ap-gpios = <&ap_gpio 53 GPIO_ACTIVE_LOW>;
