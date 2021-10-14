@@ -811,6 +811,13 @@ config SPRD_FTRACE_GCOV
 	help
 	  Say Y here to enable gcov for ftrace
 
+config SPRD_KTP
+	bool "Register ktp"
+	default n
+	help
+	  The KTP(kernel trace point) is used to log discrete events in system
+	  in a buffer that can be post processed from sysdumps.
+
 endif # FTRACE
 
 endif # TRACING_SUPPORT

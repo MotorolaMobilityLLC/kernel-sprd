@@ -13,6 +13,7 @@
 #include <linux/compiler.h>
 #include <linux/sched.h>
 #include <linux/sched/hotplug.h>
+#include <linux/sprd_ktp.h>
 #include <linux/mm_types.h>
 
 #include <asm/cacheflush.h>
@@ -28,11 +29,15 @@ extern bool rodata_full;
 
 static inline void contextidr_thread_switch(struct task_struct *next)
 {
+	pid_t pid;
+
 	if (!IS_ENABLED(CONFIG_PID_IN_CONTEXTIDR))
 		return;
 
-	write_sysreg(task_pid_nr(next), contextidr_el1);
+	pid = task_pid_nr(next);
+	write_sysreg(pid, contextidr_el1);
 	isb();
+	kevent_tp(KTP_CTXID, (void *)(u64)pid);
 }
 
 /*
