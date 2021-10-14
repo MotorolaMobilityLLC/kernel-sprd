@@ -1272,7 +1272,7 @@
 						dcdc-subsys-tune-enable = <0x150 5 0>;
 					};
 					gpu_sys: gpu-sys {
-						dcdc-subsys-tune-enable = <0x150 1 0>;
+						dcdc-subsys-tune-enable = <0x150 1 1>;
 					};
 					mm_sys: mm-sys {
 						dcdc-subsys-tune-enable = <0x150 2 0>;
