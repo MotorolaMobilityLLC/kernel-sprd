@@ -1073,6 +1073,7 @@
   generic_write_end
   __getblk_gfp
   ilookup
+  in6_dev_finish_destroy
   inc_nlink
   in_group_p
   __insert_inode_hash
