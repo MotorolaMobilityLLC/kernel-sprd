@@ -102,36 +102,65 @@
 
 			bat: battery {
 				compatible = "simple-battery";
-				charge-full-design-microamp-hours = <2950000>;
-				charge-term-current-microamp = <60000>;
-				constant_charge_voltage_max_microvolt = <4340000>;
-				factory-internal-resistance-micro-ohms = <252000>;
+				charge-full-design-microamp-hours-0 = <4000000>;
+				charge-term-current-microamp = <180000>;
+				constant_charge_voltage_max_microvolt = <4400000>;
+				factory-internal-resistance-micro-ohms-0 = <146000>;
 				voltage-min-design-microvolt = <3450000>;
-				fast-charge-threshold-microvolt = <4100000>;
-				ocv-capacity-celsius = <20>;
-				ocv-capacity-table-0 = <4313000 100>, <4254000 95>, <4201000 90>,
-							<4151000 85>, <4102000 80>, <4060000 75>,
-							<4006000 70>, <3973000 65>, <3930000 60>,
-							<3882000 55>, <3851000 50>, <3829000 45>,
-							<3810000 40>, <3795000 35>, <3781000 30>,
-							<3765000 25>, <3746000 20>, <3722000 15>,
-							<3694000 10>, <3682000 5>, <3400000 0>;
-				voltage-temp-table = <1084000 800>, <975000 850>, <868000 900>,
-							  <765000 950>, <668000 1000>, <580000 1050>,
-							  <501000 1100>, <430000 1150>, <369000 1200>,
-							  <315000 1250>, <270000 1300>, <231000 1350>,
-							  <197000 1400>, <169000 1450>, <145000 1500>,
-							  <125000 1550>, <108000 1600>, <93000 1650>;
-				capacity-temp-table = <45 100>, <25 100>, <10 100>, <0 95>, <(-10) 90>;
-				resistance-temp-table = <45 53>, <25 100>, <10 395>, <0 567>, <(-10) 793>;
-				charge-sdp-current-microamp = <500000 500000>;
-				charge-dcp-current-microamp = <2000000 3000000>;
-				charge-cdp-current-microamp = <1500000 1500000>;
-				charge-unknown-current-microamp = <500000 500000>;
+				charge-pumps-threshold-microvolt = <4100000>;
+				ocv-capacity-celsius = <25>;
+				ocv-capacity-table-0 = <4384000 100>, <4314000 95>, <4255000 90>,
+							<4199000 85>, <4138000 80>, <4086000 75>,
+							<4029000 70>, <3980000 65>, <3947000 60>,
+							<3896000 55>, <3856000 50>, <3831000 45>,
+							<3812000 40>, <3794000 35>, <3781000 30>,
+							<3765000 25>, <3746000 20>, <3723000 15>,
+							<3694000 10>, <3684000 5>, <3400000 0>;
+		voltage-temp-table = <1307000 700>, <1203000 750>, <1095000 800>, <986000 850>, <878000 900>,
+				      <775000 950>, <678000 1000>, <590000 1050>,
+				      <510000 1100>, <440000 1150>, <378000 1200>,
+				      <324000 1250>, <278000 1300>, <238000 1350>,
+				      <204000 1400>, <175000 1450>, <150000 1500>,
+				      <129000 1550>, <111000 1600>, <96000 1650> , <83000 1700>,<63000 1800>;
+				capacity-temp-table-0 = <50 100>, <25 100>, <10 98>, <0 97>, <(-10) 87>;
+				resistance-temp-table-0 = <50 74>, <25 100>, <10 200>, <0 339>, <(-10) 593>;
+				charge-sdp-current-microamp = <600000 500000>;
+				charge-dcp-current-microamp = <2400000 2100000>;
+				charge-cdp-current-microamp = <600000 500000>;
+				charge-unknown-current-microamp = <600000 500000>;
 				charge-fchg-current-microamp = <3250000 3000000>;
 				charge-flash-current-microamp = <5000000 2700000>;
 				charge-wl-bpp-current-microamp = <1000000 1000000>;
 				charge-wl-epp-current-microamp = <2000000 1000000>;
+
+		battery_name-0 ="NT40-SCUD-SB18D15208-4000mAh";
+		battery_name-1 ="NT40-ATL-SB18D15207-4000mAh";
+		battery_name-2 ="NT40-ATL-SB18D15161-4000mAh";
+
+				charge-full-design-microamp-hours-1 = <4000000>;
+				factory-internal-resistance-micro-ohms-1 = <143000>;
+				ocv-capacity-table-1 = <4378000 100>, <4312000 95>, <4253000 90>,
+							<4197000 85>, <4136000 80>, <4079000 75>,
+							<4031000 70>, <3985000 65>, <3948000 60>,
+							<3899000 55>, <3859000 50>, <3832000 45>,
+							<3810000 40>, <3795000 35>, <3783000 30>,
+							<3769000 25>, <3750000 20>, <3729000 15>,
+							<3697000 10>, <3685000 5>, <3400000 0>;
+				capacity-temp-table-1 = <50 100>, <25 100>, <10 98>, <0 86>, <(-10) 60	>;
+				resistance-temp-table-1 = <50 82>, <25 100>, <10 175>, <0 636>, <(-10) 1083>;
+
+				charge-full-design-microamp-hours-2 = <4000000>;
+				factory-internal-resistance-micro-ohms-2 = <143000>;
+				ocv-capacity-table-2 = <4378000 100>, <4312000 95>, <4253000 90>,
+							<4197000 85>, <4136000 80>, <4079000 75>,
+							<4031000 70>, <3985000 65>, <3948000 60>,
+							<3899000 55>, <3859000 50>, <3832000 45>,
+							<3810000 40>, <3795000 35>, <3783000 30>,
+							<3769000 25>, <3750000 20>, <3729000 15>,
+							<3697000 10>, <3685000 5>, <3400000 0>;
+				capacity-temp-table-2 = <50 100>, <25 100>, <10 98>, <0 86>, <(-10) 60	>;
+				resistance-temp-table-2 = <50 82>, <25 100>, <10 175>, <0 636>, <(-10) 1083>;
+
 			};
 
 			charger-manager {
@@ -143,18 +172,19 @@
 
 				cm-fullbatt-vchkdrop-ms = <30000>;
 				cm-fullbatt-vchkdrop-volt = <60000>;
-				cm-fullbatt-voltage = <4300000>;
-				cm-fullbatt-current = <120000>;
+				cm-fullbatt-voltage = <4390000>;
+				cm-fullbatt-current = <180000>;
 				cm-fullbatt-capacity = <100>;
+				cm-fullbatt-soc =<940>;
 				/*Charge pump target charge current*/
 				cm-cp-taper-current = <1000000>;
 
 				cm-num-chargers = <1>;
-				cm-num-charge-pumps = <1>;
-				cm-num-fast-chargers = <1>;
-				cm-num-wireless-chargers = <1>;
-				cm-num-wireless-charge-pump-converters = <1>;
-				cm-chargers = "bq2560x_charger";
+				cm-num-charge-pumps = <0>;
+				cm-num-fast-chargers = <0>;
+				cm-num-wireless-chargers = <0>;
+				cm-num-wireless-charge-pump-converters = <0>;
+				cm-chargers = "charger";
 				cm-charge-pumps = "bq2597x-standalone";
 				cm-fast-chargers = "sc2730_fast_charger";
 				cm-wireless-chargers = "nu1619_wireless_charger";
@@ -162,10 +192,10 @@
 				cm-fuel-gauge = "sc27xx-fgu";
 
 				/* in deci centigrade */
-				cm-battery-cold = <200>;
+				cm-battery-cold = <000>;
 				cm-battery-cold-in-minus;
-				cm-battery-hot = <800>;
-				cm-battery-temp-diff = <100>;
+				cm-battery-hot = <550>;
+				cm-battery-temp-diff = <20>;
 
 				/* Allow charging for 6hr */
 				cm-charging-max = <21600000>;
@@ -176,7 +206,7 @@
 				cm-wdt-interval = <60>;
 
 				/* drop voltage in microVolts to allow shutdown */
-				cm-shutdown-voltage = <3100000>;
+				cm-shutdown-voltage = <3400000>;
 
 				/* when 99% of the time is exceeded, it will be forced to 100% */
 				cm-tickle-time-out = <1500>;
@@ -197,16 +227,16 @@
 				cm-wireless-charge-voltage-drop = <700000>;
 				cm-wireless-fast-charge-voltage-drop = <1000000>;
 
-				cm-dcp-jeita-temp-table = <1000 1030 0 4340000>, <1150 1180 700000 4340000>,
-					<1450 1420 2000000 4340000>, <1600 1570 700000 4100000>;
-				cm-sdp-jeita-temp-table = <1000 1030 0 4340000>, <1150 1180 500000 4340000>,
-					<1450 1420 500000 4340000>, <1600 1570 500000 4100000>;
-				cm-cdp-jeita-temp-table = <1000 1030 0 4340000>, <1150 1180 700000 4340000>,
-					<1450 1420 1500000 4340000>, <1600 1570 700000 4100000>;
-				cm-unknown-jeita-temp-table = <1000 1030 0 4340000>, <1150 1180 500000 4340000>,
-					<1450 1420 500000 4340000>, <1600 1570 500000 4100000>;
-				cm-fchg-jeita-temp-table = <1000 1030 0 4340000>, <1150 1180 700000 4340000>,
-					<1450 1420 3250000 4340000>, <1600 1570 700000 4100000>;
+				cm-dcp-jeita-temp-table = <1000 1020 0 4200000>, <1150 1180 1050000 4400000>,
+					<1450 1420 2400000 4400000>, <1550 1520 2400000 4200000>;
+				cm-sdp-jeita-temp-table = <1000 1020 0 4200000>, <1150 1180 600000 4400000>,
+					<1450 1420 600000 4400000>, <1550 1520 600000 4200000>;
+				cm-cdp-jeita-temp-table = <1000 1020 0 4200000>, <1150 1180 600000 4400000>,
+					<1450 1420 600000 4400000>, <1550 1520 600000 4200000>;
+				cm-unknown-jeita-temp-table = <1000 1020 0 4200000>, <1150 1180 600000 4400000>,
+					<1450 1420 600000 4400000>, <1550 1520 600000 4200000>;
+				cm-fchg-jeita-temp-table = <1000 1030 0 4200000>, <1150 1180 1050000 4400000>,
+					<1450 1420 3250000 4400000>, <1550 1520 2000000 4200000>;
 				cm-flash-jeita-temp-table = <1000 1030 0 4340000>, <1150 1180 1000000 4340000>,
 					<1450 1420 5000000 4340000>, <1600 1570 1000000 4100000>;
 				cm-wl-bpp-jeita-temp-table = <1000 1030 0 4340000>, <1150 1180 500000 4340000>,
@@ -220,7 +250,7 @@
 				cm-capacity-track;
 
 				cm-ir-cv-offset-microvolt = <100000>;
-				cm-ir-rc = <20>;
+				cm-ir-rc = <0>;
 				cm-ir-us-upper-limit-microvolt = <4500000>;
 
 				regulator@0 {
@@ -526,6 +556,33 @@
 			regulator-name = "vddvbus";
 		};
 	};
+
+	sgm41511_chg: charger@6c {
+		compatible = "sgm,sgm41511_chg";
+		reg = <0x6c>;
+		phys = <&hsphy>;
+		monitored-battery = <&bat>;
+		extcon = <&extcon_gpio>, <&pmic_pd>;
+		pd-extcon-enable;
+		irq-gpio = <&ap_gpio 115 GPIO_ACTIVE_LOW>;
+		vddvbus1:otg-vbus {
+			regulator-name = "vddvbus";
+		};
+	};
+
+	cx7601_chg: charger@6a {
+		compatible = "sun,cx7601_chg";
+		reg = <0x6a>;
+		phys = <&hsphy>;
+		monitored-battery = <&bat>;
+		extcon = <&extcon_gpio>, <&pmic_pd>;
+		pd-extcon-enable;
+		irq-gpio = <&ap_gpio 115 GPIO_ACTIVE_LOW>;
+		vddvbus2:otg-vbus {
+			regulator-name = "vddvbus";
+		};
+	};
+
 /* modify by yrn: gpio126 use to key_google, and bq2597x is not used.
 	bq2597x_chg: charger@65 {
 		compatible = "ti,bq2597x-standalone";
@@ -743,14 +800,16 @@
 &hsphy {
 	vdd-supply = <&vddusb33>;
 	extcon = <&extcon_gpio>;
-	sprd,hsphy-device-eye-pattern = <0x04f3d1c0>;
-	sprd,hsphy-host-eye-pattern = <0x04f3d1c0>;
+	sprd,hsphy-device-eye-pattern = <0x0673d1c0>;
+	sprd,hsphy-host-eye-pattern = <0x0673d1c0>;
 	status = "okay";
 };
 
 &usb {
 	extcon = <&extcon_gpio>, <&pmic_typec>;
 	vbus-supply = <&vddvbus>;
+	vbus1-supply = <&vddvbus1>;
+	vbus2-supply = <&vddvbus2>;
 	status = "okay";
 };
 
@@ -825,11 +884,9 @@
 	//sprd,backlight = <&pwm_backlight>;
 };
 
+
 &pmic_fchg {
 	sprd,input-voltage-microvolt = <5000000>;
-	sprd,pd-fixed-max-microwatt = <18000000>;
-	sprd,support-sfcp;
-	sprd,support-pd-pps;
 	phys = <&hsphy>;
 };
 
@@ -841,7 +898,7 @@
 		power-role = "dual";
 		try-power-role = "sink";
 		source-pdos = <PDO_FIXED(5000, 400, PDO_FIXED_USB_COMM)>;
-		sink-pdos = <PDO_FIXED(5000, 3000, PDO_FIXED_USB_COMM)
+		sink-pdos = <PDO_FIXED(5000, 2000, PDO_FIXED_USB_COMM)
 			     PDO_PPS_APDO(3300, 11000, 3000)>;
 		op-sink-microwatt = <10000000>;
 	};
