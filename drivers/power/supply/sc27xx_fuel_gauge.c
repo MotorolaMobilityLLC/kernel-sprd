@@ -449,7 +449,8 @@ static int sc27xx_fgu_set_basp_volt(struct sc27xx_fgu_data *data, int max_volt_u
 {
 	int i, index;
 
-	if (!data->support_basp || max_volt_uv == -1 || !data->basp_voltage_max_table)
+	if (!data->support_basp || max_volt_uv == -1 || !data->basp_voltage_max_table ||
+	    !data->basp_full_design_table || !data->basp_ocv_table)
 		return 0;
 
 	for (i = 0; i < data->basp_voltage_max_table_len; i++) {
@@ -2392,7 +2393,7 @@ static int sc27xx_fgu_get_property(struct power_supply *psy,
 		break;
 
 	case POWER_SUPPLY_PROP_CYCLE_COUNT:
-		val->intval = data->charge_cycle / 1000;
+		val->intval = data->charge_cycle;
 		break;
 
 	case POWER_SUPPLY_PROP_VOLTAGE_MAX_DESIGN:
