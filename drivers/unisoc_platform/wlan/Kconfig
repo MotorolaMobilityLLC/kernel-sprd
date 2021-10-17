@@ -15,5 +15,6 @@ if WLAN_VENDOR_SPREADTRUM
 source "drivers/unisoc_platform/wlan/common/Kconfig"
 source "drivers/unisoc_platform/wlan/sc2332/Kconfig"
 source "drivers/unisoc_platform/wlan/sc2355/Kconfig"
+source "drivers/unisoc_platform/wlan/marlin3_sipc/Kconfig"
 
 endif # WLAN_VENDOR_SPREADTRUM

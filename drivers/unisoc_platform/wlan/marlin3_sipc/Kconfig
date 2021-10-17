@@ -1,0 +1,9 @@
+# SPDX-License-Identifier: GPL-2.0-only
+config SC2355_SIPC_WLAN
+	tristate "sc2355 WLAN support (SIPC)"
+	select CFG80211
+	help
+	  This option enables the SIPC interface support for
+	  Spreadtrum sc2355 embedded fullmac driver.
+
+	  Say Y if you want to use the driver for a SIPC wireless module.
