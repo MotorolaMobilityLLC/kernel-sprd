@@ -4297,6 +4297,21 @@ static int usb_get_property(struct power_supply *psy, enum power_supply_property
 	return ret;
 }
 
+static bool cm_add_battery_psy_property(struct charger_manager *cm, enum power_supply_property psp)
+{
+	u32 i;
+
+	for (i = 0; i < cm->charger_psy_desc.num_properties; i++)
+		if (cm->charger_psy_desc.properties[i] == psp)
+			break;
+
+	if (i == cm->charger_psy_desc.num_properties) {
+		cm->charger_psy_desc.properties[cm->charger_psy_desc.num_properties++] = psp;
+		return true;
+	}
+	return false;
+}
+
 static int charger_get_property(struct power_supply *psy,
 				enum power_supply_property psp,
 				union power_supply_propval *val)
@@ -5401,9 +5416,8 @@ static int cm_init_thermal_data(struct charger_manager *cm, struct power_supply 
 	ret = power_supply_get_property(fuel_gauge, POWER_SUPPLY_PROP_TEMP, &val);
 
 	if (!ret) {
-		cm->charger_psy_desc.properties[cm->charger_psy_desc.num_properties] =
-				POWER_SUPPLY_PROP_TEMP;
-		cm->charger_psy_desc.num_properties++;
+		if (!cm_add_battery_psy_property(cm, POWER_SUPPLY_PROP_TEMP))
+			dev_warn(cm->dev, "POWER_SUPPLY_PROP_TEMP is present\n");
 		cm->desc->measure_battery_temp = true;
 	}
 #if IS_ENABLED(CONFIG_THERMAL)
@@ -5414,9 +5428,8 @@ static int cm_init_thermal_data(struct charger_manager *cm, struct power_supply 
 			return PTR_ERR(cm->tzd_batt);
 
 		/* Use external thermometer */
-		cm->charger_psy_desc.properties[cm->charger_psy_desc.num_properties] =
-				POWER_SUPPLY_PROP_TEMP_AMBIENT;
-		cm->charger_psy_desc.num_properties++;
+		if (!cm_add_battery_psy_property(cm, POWER_SUPPLY_PROP_TEMP_AMBIENT))
+			dev_warn(cm->dev, "POWER_SUPPLY_PROP_TEMP_AMBIENT is present\n");
 		cm->desc->measure_battery_temp = true;
 		ret = 0;
 	}
@@ -6329,16 +6342,14 @@ static int charger_manager_probe(struct platform_device *pdev)
 	}
 
 	if (!power_supply_get_property(fuel_gauge, POWER_SUPPLY_PROP_CHARGE_NOW, &val)) {
-		cm->charger_psy_desc.properties[cm->charger_psy_desc.num_properties] =
-			POWER_SUPPLY_PROP_CHARGE_NOW;
-		cm->charger_psy_desc.num_properties++;
+		if (!cm_add_battery_psy_property(cm, POWER_SUPPLY_PROP_CHARGE_NOW))
+			dev_warn(&pdev->dev, "POWER_SUPPLY_PROP_CHARGE_NOW is present\n");
 	}
 
 	val.intval = CM_IBAT_CURRENT_NOW_CMD;
 	if (!power_supply_get_property(fuel_gauge, POWER_SUPPLY_PROP_CURRENT_NOW, &val)) {
-		cm->charger_psy_desc.properties[cm->charger_psy_desc.num_properties] =
-			POWER_SUPPLY_PROP_CURRENT_NOW;
-		cm->charger_psy_desc.num_properties++;
+		if (!cm_add_battery_psy_property(cm, POWER_SUPPLY_PROP_CURRENT_NOW))
+			dev_warn(&pdev->dev, "POWER_SUPPLY_PROP_CURRENT_NOW is present\n");
 	}
 
 	ret = get_boot_cap(cm, &cm->desc->cap);
