@@ -265,7 +265,7 @@
 	};
 
 	sprd-map-user {
-		compatible = "sprd,map-user";
+		compatible = "unisoc,map-user";
 	};
 
 	thm_zone: thermal-zones {
