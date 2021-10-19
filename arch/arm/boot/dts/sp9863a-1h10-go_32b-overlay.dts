@@ -279,8 +279,8 @@
 		reg = <0x9e000000 0x007e9000>;
 	};
 
-	fd_reserved: faceid-mem@b8000000{
-		reg = <0xb8000000 0x00500000>;
+	fd_reserved: faceid-mem@bfa70000{
+		reg = <0xbfa70000 0x00500000>;
 	};
 };
 
