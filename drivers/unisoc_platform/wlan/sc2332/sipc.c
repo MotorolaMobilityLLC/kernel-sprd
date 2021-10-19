@@ -407,8 +407,6 @@ static void sipc_rx_process(unsigned char *data, unsigned int len)
 static int sipc_rx_handle(void *data, unsigned int len)
 {
 	unsigned char *rdata;
-	unsigned char *pos;
-	int i;
 
 	if (!data || !len) {
 		dev_err(&sc2332_hif->pdev->dev,
@@ -422,9 +420,7 @@ static int sipc_rx_handle(void *data, unsigned int len)
 	rdata = kmalloc(len, GFP_KERNEL);
 	if (unlikely(!rdata))
 		return -ENOMEM;
-	pos = (unsigned char *)data;
-	for (i = len - 1; i >= 0; i--)
-		rdata[i] = pos[i];
+	memcpy(rdata, data, len);
 
 	sipc_rx_process(rdata, len);
 	kfree(rdata);
