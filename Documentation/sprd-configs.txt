@@ -5335,8 +5335,8 @@ CONFIG_DVFS_APSYS_SPRD
 	[function]
 CONFIG_DYNAMIC_DEBUG
 	[arch] all
-	[plat] pike2,sharkl5Pro
-	[missing plat] sharkl3
+	[plat] all
+	[missing plat] none
 	[field] code
 	[subsys] core,usb
 	[must] debug
