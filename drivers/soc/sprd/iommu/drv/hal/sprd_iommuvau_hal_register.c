@@ -31,9 +31,7 @@ void mmu_vau_vaorbypass_clkgate_enable_combined(ulong ctrl_base_addr,
 	u32  reg_value = 0;
 
 	if (iommu_id == IOMMU_VAU_DCAM || iommu_id == IOMMU_VAU_ISP ||
-	    iommu_id == IOMMU_VAU_VSP || iommu_id == IOMMU_VAU_VSP1 ||
-	    iommu_id == IOMMU_VAU_VSP2 || iommu_id == IOMMU_VAU_JPG ||
-	    iommu_id == IOMMU_VAU_CPP) {
+	    iommu_id == IOMMU_VAU_JPG || iommu_id == IOMMU_VAU_CPP) {
 		reg_value = reg_read_dword(reg_addr);
 		reg_write_dword(reg_addr, reg_value | 0x3);
 	} else {
