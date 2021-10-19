@@ -509,6 +509,11 @@
 	};
 };
 
+&aon_i2c0 {
+	status = "okay";
+	clock-frequency = <1000000>;
+};
+
 &ddr_dfs {
 	sprd-scene = "boost", "lcdon", "lcdoff", "camlow",
 		"camhigh", "camveryhigh", "faceid", "top";
