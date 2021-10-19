@@ -252,7 +252,7 @@
 
 	rebootescrow@0 {
 		compatible = "pmem-region";
-		reg = <0x0 0x85ef0000 0x0 0x00010000>;
+		reg = <0x0 0xfff70000 0x0 0x00010000>;
 	};
 
 	extcon_gpio: extcon-gpio {
