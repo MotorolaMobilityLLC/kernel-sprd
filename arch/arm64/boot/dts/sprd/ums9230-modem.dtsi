@@ -77,6 +77,26 @@
 		/* This is temporary plan*/
 		sprd,smem-info = <0x87800000 0x87800000 0x800000>;
 
+		imsbr_data: channel@2 {
+			compatible = "sprd,spool";
+			reg = <2>;
+			label = "imsbr_data";
+			sprd,tx-blksize = <0x5F4>;
+			sprd,tx-blknum = <64>;
+			sprd,rx-blksize = <0x5F4>;
+			sprd,rx-blknum = <64>;
+		};
+
+		imsbr_ctrl: channel@3 {
+			compatible = "sprd,spool";
+			reg = <3>;
+			label = "imsbr_ctrl";
+			sprd,tx-blksize = <0x80>;
+			sprd,tx-blknum = <64>;
+			sprd,rx-blksize = <0x80>;
+			sprd,rx-blknum = <64>;
+		};
+
 		/* these nodes of channel should be probed by its parent node */
 		spipe_lte: channel@4 {
 			compatible = "sprd,spipe";
