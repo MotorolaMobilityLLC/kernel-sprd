@@ -19,6 +19,7 @@
 #include <linux/interrupt.h>
 #include <linux/kernel.h>
 #include <linux/kthread.h>
+#include <linux/mfd/syscon.h>
 #include <linux/miscdevice.h>
 #include <linux/module.h>
 #include <linux/platform_device.h>
@@ -42,6 +43,7 @@ static const struct of_device_id sprd_ptm_of_match[] = {
 	{ .compatible = "sprd,roc1-ptm", .data = &ptm_v2_data},
 	{ .compatible = "sprd,orca-ptm", .data = &ptm_v2_data},
 	{ .compatible = "sprd,sharkl5pro-ptm", .data = &ptm_v2_data},
+	{ .compatible = "sprd,qogirl6-ptm", .data = &ptm_v2_data},
 	{ },
 };
 static struct attribute_group ptm_legacy_group;
@@ -1026,7 +1028,9 @@ static int sprd_ptm_probe(struct platform_device *pdev)
 	struct sprd_ptm_dev *sdev;
 	const struct ptm_pvt_para *ptm_ver_info;
 	void __iomem *funnel_base, *tmc_base, *tpiu_base;
+	struct regmap *regmap;
 	int i, ret;
+	u32 args[2];
 
 	ptm_ver_info = of_device_get_match_data(&pdev->dev);
 	if (!ptm_ver_info)
@@ -1104,6 +1108,13 @@ static int sprd_ptm_probe(struct platform_device *pdev)
 	if (IS_ERR(sdev->clk_cs_src)) {
 		dev_err(&pdev->dev, "Error: Can not get the cs src clock!\n");
 		return PTR_ERR(sdev->clk_cs_src);
+	}
+	/* get pub clk */
+	regmap = syscon_regmap_lookup_by_phandle_args(pdev->dev.of_node, "enable-syscon", 2, args);
+	if (IS_ERR(regmap))
+		dev_warn(&pdev->dev, "failed to get enable-syscon\n");
+	else {
+		regmap_update_bits(regmap, args[0], args[1], args[1]);
 	}
 
 	sdev->pvt_data = ptm_ver_info;
