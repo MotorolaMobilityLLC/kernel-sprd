@@ -283,7 +283,7 @@ def check_tags_file(modify_file_list, tags_list):
 def check_tags_consistent(ret_info):
     if ret_info[0] != 0:
         print >> sys.stderr, "\nERROR: %s" %  ret_info[1]
-        print >> sys.stderr, "Please read 'Documentation/sprd-tags.txt' file."
+        print >> sys.stderr, "Please read 'Documentation/unisoc/patch-tags.txt' file."
     else:
         print >> sys.stdout, "\nCheck tags OK, tags list: %s\n" % ret_info[1]
 
@@ -295,7 +295,7 @@ def check_tags_consistent(ret_info):
 
             if ret_check_file[0] != 0:
                 print >> sys.stderr, "\nERROR: Tags and modified files are inconsistent!"
-                print >> sys.stderr, "Please read 'Documentation/sprd-tags.txt' file.\n\ninconsistent file list:"
+                print >> sys.stderr, "Please read 'Documentation/unisoc/patch-tags.txt' file.\n\ninconsistent file list:"
             elif len(ret_check_file[1]) > 0:
                 print >> sys.stdout, "\nWARNING: Tags and modified files are inconsistent.\n\ninconsistent file list:"
             else:
