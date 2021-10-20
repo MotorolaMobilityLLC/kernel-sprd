@@ -70,12 +70,16 @@ static int boot_mode_check(void)
 static int vsp_shutdown(struct sprd_vsp_pd *vsp_pd)
 {
 	int ret = 0;
-	ret = regmap_update_bits(vsp_pd->regmap[VSP_DOMAIN_EB],
-		vsp_pd->reg[VSP_DOMAIN_EB],
-		vsp_pd->mask[VSP_DOMAIN_EB], 0);
-	if (ret) {
-		pr_err("cali regmap_update_bits failed %s, %d\n",
-			__func__, __LINE__);
+
+	if (vsp_pd->regmap[VSP_DOMAIN_EB] != NULL) {
+		pr_info("VSP_DOMAIN_EB shutdown\n");
+		ret = regmap_update_bits(vsp_pd->regmap[VSP_DOMAIN_EB],
+			vsp_pd->reg[VSP_DOMAIN_EB],
+			vsp_pd->mask[VSP_DOMAIN_EB], 0);
+		if (ret) {
+			pr_err("cali regmap_update_bits failed %s, %d\n",
+				__func__, __LINE__);
+		}
 		return ret;
 	}
 
