@@ -11131,6 +11131,51 @@ CONFIG_MODULES_USE_ELF_RELA
 	[missing plat description] none
 	[function] Modules only use ELF RELA relocations.  Modules with ELF REL
 	relocations will give an error.
+CONFIG_MODULE_SIG
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
+CONFIG_MODULE_SIG_ALL
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
+CONFIG_MODULE_SIG_FORCE
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
+CONFIG_MODULE_SIG_FORMAT
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
+CONFIG_MODULE_SIG_SHA512
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
 CONFIG_MODULE_UNLOAD
 	[arch] all
 	[plat] all
