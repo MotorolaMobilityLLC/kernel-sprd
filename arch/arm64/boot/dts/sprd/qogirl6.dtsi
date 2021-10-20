@@ -1066,8 +1066,7 @@
 					<0x0 0x7c003000 0x0 0x1000>,
 					<0x0 0x7c006000 0x0 0x1000>;
 				interrupts = <GIC_SPI 109 IRQ_TYPE_LEVEL_HIGH>;
-				syscon-names = "enable";
-				syscons = <&pub_apb_regs 0x31cc 0x80>;
+				enable-syscon = <&pub_apb_regs 0x31cc 0x80>;
 				clock-names = "clk_cs","cs_src";
 				clocks = <&aon_clk CLK_CSSYS>,
 					<&pll1 CLK_TWPLL_256M>;
