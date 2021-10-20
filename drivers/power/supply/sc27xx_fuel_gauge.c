@@ -656,8 +656,9 @@ static int sc27xx_fgu_get_boot_capacity(struct sc27xx_fgu_data *data, int *cap)
 	int charger_voltage;
 
 	sc27xx_fgu_get_charge_vol(data, &charger_voltage);
+	dev_err(data->dev, "%s charger_voltage%d;\n",__func__,charger_voltage/1000);
 
-	if(!is_first_poweron && data->bat_temp>150 && data->bat_temp<450 && charger_voltage<4000000)
+	if(!is_first_poweron && data->bat_temp>150 && data->bat_temp<450 )
 	{
 		sc27xx_fgu_get_vbat_ocv(data, &current_ocv);
 		current_cap = power_supply_ocv2cap_simple(data->cap_table, data->table_len,
