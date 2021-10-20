@@ -2281,18 +2281,18 @@
 
 	audiocp_boot {
 		compatible = "sprd,audcp-boot";
-		syscons = <&pmu_apb_regs REG_WTL_AON_APB_OCM_RST_MSK MASK_AON_APB_AP_WDG_EB>,
-			<&pmu_apb_regs REG_AP_AHB_AP_ASYNC_BRG MASK_MM_AHB_DCAM_INT_1_MASK>,
-			<&pmu_apb_regs REG_AP_AHB_ASYNC_BRIDGE_DEBUG_SIGNAL_W_AP MASK_MM_AHB_JPG_SOFT_RST_MASK>,
-			<&pmu_apb_regs REG_AP_AHB_AP_QOS0  MASK_MM_AHB_ISP_SOFT_RST>,
-			<&pmu_apb_regs REG_AP_AHB_AP_QOS0  MASK_MM_AHB_CPP_DMA_SOFT_RST>,
-			<&pmu_apb_regs REG_PMU_APB_APCPU_SOFT_RST_TYPE_CFG MASK_WTL_AON_APB_RSV_REG_B_ZEROS>,
-			<&pmu_apb_regs REG_AP_AHB_AP_QOS1  MASK_WTL_AON_APB_RSV_REG_B_ZEROS>,
-			<&pmu_apb_regs REG_PMU_APB_BISR_BYP_CFG_1 MASK_WTL_AON_APB_RSV_REG_B_ZEROS>,
+		syscons = <&pmu_apb_regs REG_PMU_APB_PD_AUDCP_CFG_0 0x3000000>,
+			<&pmu_apb_regs REG_PMU_APB_PD_AUDCP_AUDDSP_CFG_0 0x3000000>,
+			<&pmu_apb_regs REG_PMU_APB_FORCE_DEEP_SLEEP_CFG_0 MASK_PMU_APB_AUDCP_FORCE_DEEP_SLEEP_REG>,
+			<&pmu_apb_regs REG_PMU_APB_DM_SOFT_RST  MASK_PMU_APB_AUDCP_SOFT_RST>,
+			<&pmu_apb_regs REG_PMU_APB_SYS_SOFT_RST_0  MASK_PMU_APB_AUDCP_SOFT_RST>,
+			<&pmu_apb_regs REG_PMU_APB_SOFT_RST_SEL_0 MASK_PMU_APB_AUDCP_SOFT_RST>,
+			<&pmu_apb_regs REG_PMU_APB_PWR_STATUS_DBG_21  MASK_PMU_APB_PD_AUDCP_STATE>,
+			<&pmu_apb_regs REG_PMU_APB_PWR_STATUS_DBG_21 MASK_PMU_APB_PD_AUDCP_AUDDSP_STATE >,
 			<&pmu_apb_regs REG_AON_APB_AUTO_GATE_CTRL1 MASK_WTL_AON_APB_RSV_REG_B_ZEROS>,
-			<&aon_apb_regs REG_AP_AHB_M6_LPC  MASK_WTL_AON_APB_RSV_REG_B_ZEROS>,
-			<&aon_apb_regs REG_PMU_APB_BISR_BUSY_STATUS_2 MASK_WTL_AON_APB_RSV_REG_B_ZEROS>,
-			<&aon_apb_regs REG_AON_APB_AUDCP_DSP_CTRL1 MASK_WTL_AON_APB_RSV_REG_B_ZEROS>;
+			<&aon_apb_regs REG_AON_APB_AUDCP_BOOT_PROT MASK_AON_APB_AUDCP_REG_PROT_VAL>,
+			<&aon_apb_regs REG_AON_APB_AUDCP_DSP_CTRL0 MASK_WTL_AON_APB_RSV_REG_B_ZEROS>,
+			<&aon_apb_regs REG_AON_APB_AUDCP_DSP_CTRL1 MASK_AON_APB_AUDCP_DSP_BOOT>;
 		syscon-names = "sysshutdown", "coreshutdown", "deepsleep", "corereset",
 			"sysreset", "reset_sel", "sysstatus", "corestatus", "sleepstatus",
 			"bootprotect", "bootvector", "bootaddress_sel";
