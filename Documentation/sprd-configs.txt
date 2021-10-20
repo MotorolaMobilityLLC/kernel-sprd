@@ -11131,69 +11131,6 @@ CONFIG_MODULES_USE_ELF_RELA
 	[missing plat description] none
 	[function] Modules only use ELF RELA relocations.  Modules with ELF REL
 	relocations will give an error.
-CONFIG_MODULE_SIG
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
-	[missing plat] none
-	[field] make
-	[subsys] core
-	[must] none
-	[missing plat description] none
-	[function] module signature verification
-CONFIG_MODULE_SIG_ALL
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
-	[missing plat] none
-	[field] make
-	[subsys] core
-	[must] none
-	[missing plat description] none
-	[function] module signature verification
-CONFIG_MODULE_SIG_FORCE
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
-	[missing plat] none
-	[field] make
-	[subsys] core
-	[must] none
-	[missing plat description] none
-	[function] module signature verification
-CONFIG_MODULE_SIG_FORMAT
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
-	[missing plat] none
-	[field] make
-	[subsys] make
-	[must] none
-	[missing plat description] none
-	[function] module signature verification
-CONFIG_MODULE_SIG_HASH
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
-	[missing plat] none
-	[field] make
-	[subsys] core
-	[must] none
-	[missing plat description] none
-	[function] module signature verification
-CONFIG_MODULE_SIG_KEY
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
-	[missing plat] none
-	[field] none
-	[subsys] core
-	[must] none
-	[missing plat description] none
-	[function] module signature verification
-CONFIG_MODULE_SIG_SHA512
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
-	[missing plat] none
-	[field] none
-	[subsys] core
-	[must] none
-	[missing plat description] none
-	[function] module signature verification
 CONFIG_MODULE_UNLOAD
 	[arch] all
 	[plat] all
