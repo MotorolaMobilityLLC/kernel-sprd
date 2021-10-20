@@ -2629,17 +2629,8 @@ static int dapm_update_dai_chan(struct snd_soc_dapm_path *p,
 
 	if (w->channel < channels)
 		soc_dapm_connect_path(p, true, "dai update");
-	else {
-		if (((strcmp(p->source->name, "BE_IF_OFFLOAD_CODEC_P") == 0)
-			&& (strcmp(p->sink->name, "BE_DAI_OFFLOAD_CODEC_P") == 0)) ||
-			((strcmp(p->source->name, "BE_IF_OFFLOAD_USB_P") == 0)
-			&& (strcmp(p->sink->name, "BE_DAI_OFFLOAD_USB_P") == 0)) ||
-			((strcmp(p->source->name, "BE_IF_OFFLOAD_A2DP_P") == 0)
-			&& (strcmp(p->sink->name, "BE_DAI_OFFLOAD_A2DP_P") == 0)))
-			soc_dapm_connect_path(p, true, "dai update");
-		else
-			soc_dapm_connect_path(p, false, "dai update");
-	}
+	else
+		soc_dapm_connect_path(p, false, "dai update");
 
 	return 0;
 }
