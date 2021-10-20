@@ -1591,6 +1591,14 @@ void gether_enable_sg(struct gether *link, bool enable)
 }
 EXPORT_SYMBOL_GPL(gether_enable_sg);
 
+bool gether_is_sg_enabled(struct gether *link)
+{
+	struct eth_dev		*dev = link->ioport;
+
+	return dev->sg_enabled;
+}
+EXPORT_SYMBOL_GPL(gether_is_sg_enabled);
+
 void gether_update_dl_max_pkts_per_xfer(struct gether *link, u32 n)
 {
 	struct eth_dev		*dev = link->ioport;

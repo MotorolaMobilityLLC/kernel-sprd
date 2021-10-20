@@ -390,7 +390,7 @@ static struct sk_buff *rndis_add_header(struct gether *port,
 	rndis = func_to_rndis(&port->func);
 	cdev = port->func.config->cdev;
 
-	if (rndis->port.multi_pkt_xfer || cdev->gadget->sg_supported) {
+	if (rndis->port.multi_pkt_xfer || gether_is_sg_enabled(&rndis->port)) {
 		if (port->header) {
 			if (pad_flag) {
 				pad_len = skb->len % 4;
@@ -523,7 +523,7 @@ static void rndis_command_complete(struct usb_ep *ep, struct usb_request *req)
 	buf = (rndis_init_msg_type *)req->buf;
 
 	if (buf->MessageType == RNDIS_MSG_INIT) {
-		if (cdev->gadget->sg_supported) {
+		if (gether_is_sg_enabled(&rndis->port)) {
 			rndis->port.dl_max_xfer_size = buf->MaxTransferSize;
 			gether_update_dl_max_xfer_size(&rndis->port,
 					rndis->port.dl_max_xfer_size);

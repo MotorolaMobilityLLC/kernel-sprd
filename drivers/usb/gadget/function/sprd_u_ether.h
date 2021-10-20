@@ -257,6 +257,7 @@ void sprd_gether_disconnect(struct gether *);
 void gether_update_dl_max_pkts_per_xfer(struct gether *link, u32 n);
 void gether_update_dl_max_xfer_size(struct gether *link, u32 s);
 void gether_enable_sg(struct gether *link, bool);
+bool gether_is_sg_enabled(struct gether *link);
 /* Some controllers can't support CDC Ethernet (ECM) ... */
 static inline bool can_support_ecm(struct usb_gadget *gadget)
 {
