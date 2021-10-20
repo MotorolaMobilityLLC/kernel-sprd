@@ -668,15 +668,8 @@ static int sprd_oled_set_brightness(struct backlight_device *bdev)
 			     panel->info.cmds_len[CMD_OLED_REG_LOCK]);
 
 	if (oled->cmds_total == 1) {
-		if (oled->cmd_len - 4 == 3) {
-			if (strncmp(lcd_name, "lcd_ili9882q_dj_mipi_hd", strlen(lcd_name)) == 0) {
-				oled->cmds[0]->payload[1] = (level >> 4) & 0x0f;
-				oled->cmds[0]->payload[2] = (level << 4) & 0xf0;
-			//	printk(KERN_ERR "ontim---yyx---ili9882q:payload[1]:0x%02x, payload[2]:0x%02x\n", oled->cmds[0]->payload[1], oled->cmds[0]->payload[2]);
-			}
-		}
-		else
-			oled->cmds[0]->payload[1] = level;
+			oled->cmds[0]->payload[1] = level & 0xFF;
+			oled->cmds[0]->payload[2] = 0x00;
 
 		sprd_panel_send_cmds(panel->slave,
 			     oled->cmds[0],
