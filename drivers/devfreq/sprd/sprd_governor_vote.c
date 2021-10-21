@@ -35,14 +35,14 @@ static ssize_t scaling_force_ddr_freq_store(struct device *dev,
 
 	err = sscanf(buf, "%u\n", &force_freq);
 	if (err < 1) {
-		dev_err(dev, "force freq para err: %d", err);
+		dev_warn(dev->parent, "get scaling force ddr freq err: %d", err);
 		return count;
 	}
 	mutex_lock(&devfreq->lock);
 	err = update_devfreq(devfreq);
 	mutex_unlock(&devfreq->lock);
 	if (err)
-		dev_err(dev, "force freq fail: %d", err);
+		dev_err(dev->parent, "force freq %u fail: %d", force_freq, err);
 	return count;
 }
 static DEVICE_ATTR_RW(scaling_force_ddr_freq);
@@ -51,20 +51,22 @@ static ssize_t scaling_overflow_show(struct device *dev,
 				     struct device_attribute *attr, char *buf)
 {
 	ssize_t count = 0;
-	unsigned int freq_num;
+	unsigned int i, freq_num;
 	unsigned int data;
 	struct devfreq *devfreq = to_devfreq(dev);
 	struct governor_callback *gov_callback =
 		(struct governor_callback *)devfreq->last_status.private_data;
-	int i, err;
+	int err;
 
 	err = gov_callback->get_freq_num(&freq_num);
 	if (err < 0)
 		freq_num = 0;
 	for (i = 0; i < freq_num; i++) {
 		err = gov_callback->get_overflow(&data, i);
-		if (err < 0)
+		if (err < 0) {
 			data = 0;
+			dev_err(dev->parent, "get sel[%u] overflow fail: %d", i, err);
+		}
 		count += sprintf(&buf[count], "%u ", data);
 	}
 	count += sprintf(&buf[count], "\n");
@@ -84,12 +86,12 @@ static ssize_t scaling_overflow_store(struct device *dev,
 
 	err = sscanf(buf, "%u %u\n", &sel, &overflow);
 	if (err < 2) {
-		dev_warn(dev, "overflow para err: %d", err);
+		dev_warn(dev->parent, "overflow para err: %d", err);
 		return count;
 	}
 	err = gov_callback->set_overflow(overflow, sel);
 	if (err)
-		dev_err(dev, "set overflow fail: %d", err);
+		dev_err(dev->parent, "set sel[%u] overflow %u fail: %d", sel, overflow, err);
 	return count;
 }
 static DEVICE_ATTR_RW(scaling_overflow);
@@ -98,20 +100,22 @@ static ssize_t scaling_underflow_show(struct device *dev,
 				     struct device_attribute *attr, char *buf)
 {
 	ssize_t count = 0;
-	unsigned int freq_num;
+	unsigned int i, freq_num;
 	unsigned int data;
 	struct devfreq *devfreq = to_devfreq(dev);
 	struct governor_callback *gov_callback =
 		(struct governor_callback *)devfreq->last_status.private_data;
-	int i, err;
+	int err;
 
 	err = gov_callback->get_freq_num(&freq_num);
 	if (err < 0)
 		freq_num = 0;
 	for (i = 0; i < freq_num; i++) {
 		err = gov_callback->get_underflow(&data, i);
-		if (err < 0)
+		if (err < 0) {
 			data = 0;
+			dev_err(dev->parent, "get sel[%u] underflow fail: %d", i, err);
+		}
 		count += sprintf(&buf[count], "%u ", data);
 	}
 	count += sprintf(&buf[count], "\n");
@@ -131,12 +135,12 @@ static ssize_t scaling_underflow_store(struct device *dev,
 
 	err = sscanf(buf, "%u %u\n", &sel, &underflow);
 	if (err < 2) {
-		dev_warn(dev, "overflow para err: %d", err);
+		dev_warn(dev->parent, "underflow para err: %d", err);
 		return count;
 	}
 	err = gov_callback->set_underflow(underflow, sel);
 	if (err)
-		dev_err(dev, "set underflow fail: %d", err);
+		dev_err(dev->parent, "set sel[%u] underflow %u fail: %d", sel, underflow, err);
 	return count;
 }
 static DEVICE_ATTR_RW(scaling_underflow);
@@ -152,8 +156,10 @@ static ssize_t dfs_on_off_show(struct device *dev,
 	int err;
 
 	err = gov_callback->get_dvfs_status(&data);
-	if (err < 0)
+	if (err < 0) {
 		data = 0;
+		dev_err(dev->parent, "get ddr dfs status fail: %d ", err);
+	}
 	count = sprintf(buf, "%u\n", data);
 	return count;
 }
@@ -170,7 +176,7 @@ static ssize_t dfs_on_off_store(struct device *dev,
 
 	err = sscanf(buf, "%u\n", &enable);
 	if (err < 1) {
-		dev_warn(dev, "enable para err: %d", err);
+		dev_warn(dev->parent, "enable para err: %d", err);
 		return count;
 	}
 	if (enable == 1)
@@ -180,7 +186,7 @@ static ssize_t dfs_on_off_store(struct device *dev,
 	else
 		err = -EINVAL;
 	if (err)
-		dev_err(dev, "enable fail: %d", err);
+		dev_err(dev->parent, "ddr dfs enable[%u] fail: %d", enable, err);
 	return count;
 }
 static DEVICE_ATTR_RW(dfs_on_off);
@@ -196,8 +202,10 @@ static ssize_t auto_dfs_on_off_show(struct device *dev,
 	int err;
 
 	err = gov_callback->get_dvfs_auto_status(&data);
-	if (err < 0)
+	if (err < 0) {
 		data = 0;
+		dev_err(dev->parent, "get ddr auto dfs status fail: %d", err);
+	}
 	count = sprintf(buf, "%u\n", data);
 	return count;
 }
@@ -214,7 +222,7 @@ static ssize_t auto_dfs_on_off_store(struct device *dev,
 
 	err = sscanf(buf, "%u\n", &enable);
 	if (err < 1) {
-		dev_warn(dev, "enable para err: %d", err);
+		dev_warn(dev->parent, "get auto dfs enable para err: %d", err);
 		return count;
 	}
 	if (enable == 1)
@@ -224,7 +232,7 @@ static ssize_t auto_dfs_on_off_store(struct device *dev,
 	else
 		err = -EINVAL;
 	if (err)
-		dev_err(dev, "enable fail: %d", err);
+		dev_err(dev->parent, "ddr auto dfs enable[%u] fail: %d", enable, err);
 	return count;
 }
 static DEVICE_ATTR_RW(auto_dfs_on_off);
@@ -240,8 +248,10 @@ static ssize_t ddrinfo_cur_freq_show(struct device *dev,
 	int err;
 
 	err = gov_callback->get_cur_freq(&data);
-	if (err < 0)
+	if (err < 0) {
 		data = 0;
+		dev_err(dev->parent, "get ddr cur freq fail: %d", err);
+	}
 	count = sprintf(buf, "%u\n", data);
 	return count;
 }
@@ -251,12 +261,12 @@ static ssize_t ddrinfo_freq_table_show(struct device *dev,
 				struct device_attribute *attr, char *buf)
 {
 	ssize_t count = 0;
-	unsigned int freq_num;
+	unsigned int i, freq_num;
 	unsigned int data;
 	struct devfreq *devfreq = to_devfreq(dev);
 	struct governor_callback *gov_callback =
 		(struct governor_callback *)devfreq->last_status.private_data;
-	int i, err;
+	int err;
 
 	err = gov_callback->get_freq_num(&freq_num);
 	if (err < 0)
@@ -294,7 +304,7 @@ static ssize_t scenario_dfs_store(struct device *dev,
 	memcpy(arg, buf, name_len);
 	err = gov_callback->governor_vote(arg);
 	if (err)
-		dev_err(dev, "scene enter fail: %d", err);
+		dev_err(dev->parent, "scene %s enter fail: %d", arg, err);
 	kfree(arg);
 	return count;
 }
@@ -323,7 +333,7 @@ static ssize_t exit_scene_store(struct device *dev,
 	memcpy(arg, buf, name_len);
 	err = gov_callback->governor_unvote(arg);
 	if (err)
-		dev_err(dev, "scene exit fail: %d", err);
+		dev_err(dev->parent, "scene %s exit fail: %d", arg, err);
 	kfree(arg);
 	return count;
 }
@@ -354,14 +364,14 @@ static ssize_t scene_freq_set_store(struct device *dev,
 
 	err = sscanf(&buf[name_len], "%u\n", &freq);
 	if (err < 1) {
-		dev_warn(dev, "enable para err: %d", err);
+		dev_warn(dev->parent, "get set freq fail: %d", err);
 		kfree(arg);
 		return count;
 	}
 
 	err = gov_callback->governor_change_point(arg, freq);
 	if (err)
-		dev_err(dev, "scene freq set fail: %d", err);
+		dev_err(dev->parent, "scene %s change freq %u fail: %d", arg, freq, err);
 	kfree(arg);
 	return count;
 }
@@ -380,7 +390,7 @@ static ssize_t scene_boost_dfs_store(struct device *dev,
 
 	err = sscanf(buf, "%u %u\n", &enable, &freq);
 	if (err < 2) {
-		dev_warn(dev, "overflow para err: %d", err);
+		dev_warn(dev->parent, "get boost para err: %d", err);
 		return count;
 	}
 	if (enable == 1)
@@ -390,7 +400,7 @@ static ssize_t scene_boost_dfs_store(struct device *dev,
 	else
 		err = -EINVAL;
 	if (err)
-		dev_err(dev, "scene exit fail: %d", err);
+		dev_err(dev->parent, "scene boost enter[%u] fail: %d", enable, err);
 	return count;
 }
 static DEVICE_ATTR_WO(scene_boost_dfs);
@@ -414,7 +424,7 @@ static ssize_t backdoor_store(struct device *dev,
 
 	err = sscanf(buf, "%d\n", &backdoor);
 	if (err < 1) {
-		dev_warn(dev, "set backdoor err: %d", err);
+		dev_warn(dev->parent, "set backdoor err: %d", err);
 		return count;
 	}
 
@@ -429,7 +439,7 @@ static ssize_t backdoor_store(struct device *dev,
 		err = -EINVAL;
 
 	if (err)
-		dev_err(dev, "set backdoor fail: %d", err);
+		dev_err(dev->parent, "set backdoor %d fail: %d", backdoor, err);
 	else
 		backdoor_status  = backdoor;
 
@@ -498,7 +508,7 @@ int scene_dfs_request(char *scenario)
 
 	err = gov_callback->governor_vote(scenario);
 	if (err)
-		dev_err(&devfreq->dev, "scene enter fail: %d", err);
+		dev_err(devfreq->dev.parent, "scene %s enter fail: %d", scenario, err);
 
 	return err;
 }
@@ -517,7 +527,7 @@ int scene_exit(char *scenario)
 
 	err = gov_callback->governor_unvote(scenario);
 	if (err)
-		dev_err(&devfreq->dev, "scene enter fail: %d", err);
+		dev_err(devfreq->dev.parent, "scene %s exit fail: %d", scenario, err);
 
 	return err;
 }
@@ -536,7 +546,8 @@ int change_scene_freq(char *scenario, unsigned int freq)
 
 	err = gov_callback->governor_change_point(scenario, freq);
 	if (err)
-		dev_err(&devfreq->dev, "scene enter fail: %d", err);
+		dev_err(devfreq->dev.parent, "scene %s change freq %u fail: %d",
+			scenario, freq, err);
 
 	return err;
 }
@@ -548,17 +559,15 @@ static int gov_vote_start(struct devfreq *devfreq)
 
 	err = sysfs_create_group(&devfreq->dev.kobj, &gov_vote_attrs);
 	if (err) {
-		dev_err(&devfreq->dev, "dvfs sysfs create fail: %d", err);
+		dev_err(devfreq->dev.parent, "dvfs sysfs create fail: %d", err);
 		return err;
 	}
 	err = devfreq_update_stats(devfreq);
 	if (err) {
-		dev_err(&devfreq->dev, "dvfs update states fail: %d", err);
+		dev_err(devfreq->dev.parent, "dvfs update states fail: %d", err);
 		return err;
 	}
 	gov_devfreq = devfreq;
-
-	scene_dfs_request("lcdon");
 
 	return err;
 }

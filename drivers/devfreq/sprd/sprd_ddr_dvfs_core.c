@@ -365,7 +365,7 @@ static int set_overflow(unsigned int value, unsigned int sel)
 	int err;
 	unsigned int data;
 
-	if (g_dvfs_data == NULL)
+	if (g_dvfs_data == NULL || sel >= g_dvfs_data->freq_num)
 		return -EINVAL;
 	mutex_lock(&g_dvfs_data->sync_mutex);
 	err = dvfs_msg(&data, value, DVFS_CMD_PARA_OVERFLOW+sel, 500);
@@ -380,7 +380,7 @@ static int set_underflow(unsigned int value, unsigned int sel)
 	int err;
 	unsigned int data;
 
-	if (g_dvfs_data == NULL)
+	if (g_dvfs_data == NULL || sel >= g_dvfs_data->freq_num)
 		return -EINVAL;
 	mutex_lock(&g_dvfs_data->sync_mutex);
 	err = dvfs_msg(&data, value, DVFS_CMD_PARA_UNDERFLOW+sel, 500);
