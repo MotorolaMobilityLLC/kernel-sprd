@@ -30,7 +30,6 @@
 		spi2 = &spi2;
 		spi3 = &spi3;
 		spi4 = &adi_bus;
-		spi5 = &adi_bus1;
 		thm-sensor15 = &cluster0_sensor;
 		thm-sensor16 = &cluster1_sensor;
 		thm-sensor17 = &soc_sensor;
@@ -1783,13 +1782,6 @@
 				clock-names = "enable", "rtc_enable";
 				clocks = <&aonapb_gate CLK_APCPU_WDG_EB>,
 				       <&aonapb_gate CLK_AC_WDG_RTC_EB>;
-			};
-
-			adi_bus1: spi@64600000 {
-				compatible = "sprd,qogirl6-adi-r5p1";
-				reg = <0 0x64600000 0 0x100000>;
-				#address-cells = <1>;
-				#size-cells = <0>;
 			};
 
 			pin_controller: pinctrl@64710000 {
