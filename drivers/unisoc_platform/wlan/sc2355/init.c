@@ -476,6 +476,7 @@ struct sprd_chip_ops sc2355_chip_ops = {
 	.set_qos_map = sc2355_set_qos_map,
 	.add_tx_ts = sc2355_add_tx_ts,
 	.sync_wmm_param = sc2355_sync_wmm_param,
+	.set_miracast = sc2355_set_miracast,
 	.del_tx_ts = sc2355_del_tx_ts,
 	.set_mc_filter = sc2355_set_mc_filter,
 	.set_11v_feature_support = sc2355_set_11v_feature_support,

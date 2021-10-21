@@ -90,6 +90,9 @@ static const char *cmdevt_cmd2str(u8 cmd)
 	case CMD_SET_CHANNEL:
 		return "CMD_SET_CHANNEL";
 
+	case CMD_SET_MIRACAST:
+		return "CMD_SET_MIRACAST";
+
 	case CMD_START_AP:
 		return "CMD_START_AP";
 	case CMD_DEL_STATION:
@@ -1572,6 +1575,22 @@ int sc2355_power_save(struct sprd_priv *priv, struct sprd_vif *vif,
 	return send_cmd_recv_rsp(priv, msg, NULL, NULL);
 }
 
+int sc2355_enable_miracast(struct sprd_priv *priv,
+			   struct sprd_vif *vif, int val)
+{
+	struct sprd_msg *msg;
+	struct cmd_miracast *p = NULL;
+
+	msg = get_cmdbuf(priv, vif, sizeof(*p),
+			 CMD_SET_MIRACAST);
+	if (!msg)
+		return -ENOMEM;
+	p = (struct cmd_miracast *)msg->data;
+	p->value = val;
+
+	return send_cmd_recv_rsp(priv, msg, NULL, NULL);
+}
+
 int sc2355_add_key(struct sprd_priv *priv, struct sprd_vif *vif,
 		   const u8 *key_data, u8 key_len, bool pairwise, u8 key_index,
 		   const u8 *key_seq, u8 cypher_type, const u8 *mac_addr)
@@ -2646,6 +2665,45 @@ int sc2355_set_vowifi(struct net_device *ndev, struct ifreq *ifr)
 			   __func__, tlv->type);
 out:
 	kfree(tlv);
+	return ret;
+}
+
+int sc2355_set_miracast(struct net_device *ndev, struct ifreq *ifr)
+{
+	struct sprd_vif *vif = netdev_priv(ndev);
+	struct sprd_priv *priv = vif->priv;
+	struct android_wifi_priv_cmd priv_cmd;
+	char *command = NULL;
+	unsigned short subtype;
+	int ret = 0, value;
+
+	if (ifr->ifr_data == NULL)
+		return -EINVAL;
+	if (copy_from_user(&priv_cmd, ifr->ifr_data, sizeof(priv_cmd)))
+		return -EINVAL;
+
+	/*add length check to avoid invalid NULL ptr*/
+	if (priv_cmd.total_len == 0) {
+		pr_err("%s: priv cmd total len is invalid", __func__);
+		return -EINVAL;
+	}
+
+	command = kmalloc(priv_cmd.total_len, GFP_KERNEL);
+	if (command == NULL)
+		return -EINVAL;
+	if (copy_from_user(command, priv_cmd.buf, priv_cmd.total_len)) {
+		ret = -EFAULT;
+		goto out;
+	}
+
+	subtype = *(unsigned short *)command;
+	if (subtype == 5) {
+		value = *((int *)(command + 2 * sizeof(unsigned short)));
+		pr_info("%s: set miracast value : %d", __func__, value);
+		ret = sc2355_enable_miracast(priv, vif, value);
+	}
+out:
+	kfree(command);
 	return ret;
 }
 

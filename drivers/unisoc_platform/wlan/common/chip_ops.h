@@ -113,6 +113,7 @@ struct sprd_chip_ops {
 			      struct sprd_connect_info *conn_info);
 	int (*set_mc_filter)(struct sprd_priv *priv, struct sprd_vif *vif,
 			     u8 sub_type, u8 num, u8 *mac_addr);
+	int (*set_miracast)(struct net_device *ndev, struct ifreq *ifr);
 	int (*set_11v_feature_support)(struct sprd_priv *priv,
 				       struct sprd_vif *vif,
 				       u16 val);
@@ -706,6 +707,14 @@ static inline int sprd_set_vowifi(struct sprd_priv *priv,
 	if (priv->chip.ops->set_vowifi)
 		return priv->chip.ops->set_vowifi(ndev, ifr);
 
+	return 0;
+}
+
+static inline int sprd_set_miracast(struct sprd_priv *priv,
+				struct net_device *ndev, struct ifreq *ifr)
+{
+	if (priv->chip.ops->set_miracast)
+		return priv->chip.ops->set_miracast(ndev, ifr);
 	return 0;
 }
 

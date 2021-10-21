@@ -977,9 +977,9 @@ static int iface_ioctl(struct net_device *ndev, struct ifreq *req, int cmd)
 	case SPRDWLIOCTL:
 	case SPRDWLSETCOUNTRY:
 		return iface_priv_cmd(ndev, req);
-	case SPRDWLGETSSID:
+	case SPRDWLSETMIRACAST:
 		netdev_err(ndev, "for vts test %d\n", cmd);
-		return 0;
+		return sprd_set_miracast(priv, ndev, req);
 	case SPRDWLSETFCC:
 	case SPRDWLSETSUSPEND:
 		return iface_set_power_save(ndev, req);

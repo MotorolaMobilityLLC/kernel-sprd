@@ -277,6 +277,11 @@ struct sprd_api_version_t api_array[] = {
 		.cmd_id = CMD_VOWIFI_DATA_PROTECT,
 		.drv_version = 1,
 	},
+	[82]{
+		/*ID:82*/
+		.cmd_id = CMD_SET_MIRACAST,
+		.drv_version = 1,
+	},
 	[84]{
 		/*ID:84*/
 		.cmd_id = CMD_PACKET_OFFLOAD,

@@ -265,6 +265,7 @@ enum CMD_LIST {
 	/*Please add new command above line,
 	 * conditional compile flag is not recommended
 	 */
+	CMD_SET_MIRACAST = 82,
 	CMD_PACKET_OFFLOAD = 84,
 	CMD_SET_SAE_PARAM = 85,
 	CMD_RESERVED_FOR_PAM_WIFI = 86,
@@ -541,6 +542,10 @@ struct cmd_set_mac_addr {
 
 struct cmd_rsp_state_code {
 	__le32 code;
+} __packed;
+
+struct cmd_miracast {
+	u8 value;
 } __packed;
 
 /* 11v cmd struct */
@@ -935,6 +940,8 @@ int sc2355_power_save(struct sprd_priv *priv, struct sprd_vif *vif,
 int sc2355_add_key(struct sprd_priv *priv, struct sprd_vif *vif,
 		   const u8 *key_data, u8 key_len, bool pairwise, u8 key_index,
 		   const u8 *key_seq, u8 cypher_type, const u8 *mac_addr);
+int sc2355_enable_miracast(struct sprd_priv *priv,
+			   struct sprd_vif *vif, int val);
 int sc2355_del_key(struct sprd_priv *priv, struct sprd_vif *vif, u8 key_index,
 		   bool pairwise, const u8 *mac_addr);
 int sc2355_set_def_key(struct sprd_priv *priv, struct sprd_vif *vif,
@@ -1019,6 +1026,7 @@ int sc2355_set_random_mac(struct sprd_priv *priv, struct sprd_vif *vif,
 int sc2355_send_tdls_cmd(struct sprd_vif *vif, const u8 *peer, int oper);
 int sc2355_set_vowifi(struct net_device *ndev, struct ifreq *ifr);
 bool sc2355_do_delay_work(struct sprd_work *work);
+int sc2355_set_miracast(struct net_device *ndev, struct ifreq *ifr);
 void sc2355_scan_timeout(struct timer_list *t);
 int sc2355_scan(struct wiphy *wiphy,
 		struct cfg80211_scan_request *request);
