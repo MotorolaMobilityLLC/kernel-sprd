@@ -1175,7 +1175,7 @@ static int sprd_inter_speaker_pa(struct snd_soc_component *codec, int on)
 		/* delay 20ms as weifeng's suggestion to avoid
 		 * pop noise from spk
 		 */
-		sprd_codec_wait(20);
+		sprd_codec_wait(40);
 		sprd_codec_pa_en(codec, 1);
 		sprd_codec->inter_pa.set = 1;
 	} else {
