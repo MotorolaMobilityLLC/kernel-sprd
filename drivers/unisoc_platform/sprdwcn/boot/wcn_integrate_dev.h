@@ -233,6 +233,7 @@ struct wcn_device {
 	char	*file_path_ext;
 	char	*file_path_ufs;
 	char	*file_path_ext_ufs;
+	char	*firmware_path_name;
 	char	firmware_path[FIRMWARE_FILEPATHNAME_LENGTH_MAX];
 	char	firmware_path_ext[FIRMWARE_FILEPATHNAME_LENGTH_MAX];
 	u32	file_length;
@@ -283,6 +284,7 @@ struct wcn_device_manage {
 };
 
 extern struct wcn_device_manage s_wcn_device;
+extern char gnss_firmware_path[FIRMWARE_FILEPATHNAME_LENGTH_MAX];
 
 static inline bool wcn_dev_is_marlin(struct wcn_device *dev)
 {

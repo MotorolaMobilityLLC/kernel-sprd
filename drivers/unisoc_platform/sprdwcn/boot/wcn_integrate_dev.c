@@ -906,7 +906,12 @@ static int wcn_parse_dt(struct platform_device *pdev,
 					(const char **)&wcn_dev->file_path_ext_ufs);
 	if (!ret)
 		WCN_DBG("firmware name ext:%s\n", wcn_dev->file_path_ext_ufs);
-
+	ret = of_property_read_string(np, "sprd,firmware-path",
+					(const char **)&wcn_dev->firmware_path_name);
+	if (!ret) {
+		WCN_DBG("firmware path:%s\n", wcn_dev->firmware_path_name);
+		strcpy(gnss_firmware_path, wcn_dev->firmware_path_name);
+	}
 	cmdline_node = of_find_node_by_path("/chosen");
 	if (cmdline_node)
 		rc = of_property_read_string(cmdline_node, "bootargs", &cmd_line);

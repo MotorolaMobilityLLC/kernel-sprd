@@ -29,6 +29,7 @@ static char gnss_firmware_parent_path[FIRMWARE_FILEPATHNAME_LENGTH_MAX];
 
 static char firmware_file_name[FIRMWARE_FILEPATHNAME_LENGTH_MAX];
 static char firmware_file_path[FIRMWARE_FILEPATHNAME_LENGTH_MAX];
+char gnss_firmware_path[FIRMWARE_FILEPATHNAME_LENGTH_MAX];
 
 void wcn_boot_init(void)
 {
@@ -428,6 +429,7 @@ static int wcn_download_image(struct wcn_device *wcn_dev)
 
 	is_marlin = wcn_dev_is_marlin(wcn_dev);
 	memset(firmware_file_name, 0, FIRMWARE_FILEPATHNAME_LENGTH_MAX);
+	memset(firmware_file_path, 0, FIRMWARE_FILEPATHNAME_LENGTH_MAX);
 	if (!is_marlin) {
 		if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
 			strncpy(firmware_file_name, WCN_GNSSMODEM_FILENAME,
@@ -447,8 +449,12 @@ static int wcn_download_image(struct wcn_device *wcn_dev)
 	if (is_marlin)
 		strncpy(firmware_file_name, WCN_BTWF_FILENAME,
 			sizeof(firmware_file_name));
-
 	strcat(firmware_file_name, ".bin");
+
+	strcpy(firmware_file_path, gnss_firmware_path);
+	strcat(firmware_file_path, firmware_file_name);
+	WCN_INFO("gnss firmware path:%s\n", firmware_file_path);
+
 	WCN_INFO("loading image [%s] from firmware subsystem ...\n",
 		 firmware_file_name);
 	err = request_firmware(&firmware, firmware_file_name, NULL);

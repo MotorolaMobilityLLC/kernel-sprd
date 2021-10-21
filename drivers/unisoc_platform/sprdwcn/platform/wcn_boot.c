@@ -1253,10 +1253,10 @@ static int marlin_parse_dt(struct platform_device *pdev)
 	if (slot_suffix) {
 		if (strcmp(slot_suffix, "_a") == 0) {
 			strcat(BTWF_FIRMWARE_PATH, "_a");
-			strcat(GNSS_FIRMWARE_PATH, "_a");
+			//strcat(GNSS_FIRMWARE_PATH, "_a");
 		} else if (strcmp(slot_suffix, "_b") == 0) {
 			strcat(BTWF_FIRMWARE_PATH, "_b");
-			strcat(GNSS_FIRMWARE_PATH, "_b");
+			//strcat(GNSS_FIRMWARE_PATH, "_b");
 		}
 	} else {
 		if (!rc) {
@@ -1265,10 +1265,10 @@ static int marlin_parse_dt(struct platform_device *pdev)
 				pr_debug("fstab: %s\n", parse_cmdline);
 				if (!strncmp(parse_cmdline + strlen(SUFFIX), "_a", 2)) {
 					strcat(BTWF_FIRMWARE_PATH, "_a");
-					strcat(GNSS_FIRMWARE_PATH, "_a");
+					//strcat(GNSS_FIRMWARE_PATH, "_a");
 				} else if (!strncmp(parse_cmdline + strlen(SUFFIX), "_b", 2)) {
 					strcat(BTWF_FIRMWARE_PATH, "_b");
-					strcat(GNSS_FIRMWARE_PATH, "_b");
+					//strcat(GNSS_FIRMWARE_PATH, "_b");
 				}
 			}
 		}
