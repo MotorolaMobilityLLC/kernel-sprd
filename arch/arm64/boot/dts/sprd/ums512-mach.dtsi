@@ -37,6 +37,10 @@
 		#size-cells = <2>;
 		ranges;
 
+		ddrbist_reserved: ddrbist-mem@0x80000000 {
+			reg = <0x0 0x80000000 0x0 0x00001000>;
+		};
+
 		sysdump_reserved: sysdumpinfo-mem@80001000 {
 			reg = <0x0 0x80001000 0x0 0x00001000>;
 		};
