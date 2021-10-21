@@ -1329,6 +1329,271 @@ int _atoi(char * str)
 	return sign * value;
 }
 
+//extern char *saved_command_line;
+
+static char *get_bootdevice()
+{
+	static char bootdevice[BUF_SIZE] = {0};
+	if ( ! *bootdevice ) {
+		char *p, *q;
+		int len;
+		p = strstr(saved_command_line, "androidboot.boot_devices=");
+		if (p) {
+			p = strstr(p, "=") + 1;
+			q = strstr(p, " ");
+			if (q)
+				len = q - p;
+			else
+				len = strlen(p);
+			strncpy(bootdevice, p, len);
+			bootdevice[len] = 0;
+		} else {
+			strcpy(bootdevice, "unknown");
+		}
+	}
+	return bootdevice;
+}
+
+static char ufs_file[255];
+
+#define UFS_CAPACITY_FILE "/sys/devices/platform/%s/geometry_descriptor/raw_device_capacity"
+static void get_ufs_capacity(void)
+{
+	char buf[MAX_HWINFO_SIZE] = {'\0'};
+	int ret = 0;
+	int cap = 0;
+
+	//read ufs capacity
+	memset(buf, 0x00, sizeof(buf));
+	sprintf(ufs_file, UFS_CAPACITY_FILE, get_bootdevice());
+	ret = hwinfo_read_file(ufs_file, buf, sizeof(buf) - 1);
+	printk(KERN_INFO "Read %s (ret=%d)\n", ufs_file, ret);
+	if (ret != 0)
+		return;
+	if (buf[strlen(buf) - 1] == '\n')
+		buf[strlen(buf) - 1] = '\0';
+	cap = _atoi(buf) / (1024 * 1024 * 2);
+	if (cap < 4)
+		cap = 4;
+	else if (cap > 6 && cap < 8)
+		cap = 8;
+	else if (cap > 8 && cap < 16)
+		cap = 16;
+	else if (cap < 32 && cap > 16)
+		cap = 32;
+	else if (cap < 64 && cap > 32)
+		cap = 64;
+	else if (cap < 128 && cap > 100)
+		cap = 128;
+	sprintf(hwinfo[ufs_capacity].hwinfo_buf, "%dGB", cap);
+	printk(KERN_INFO "%s: %s (%dGB)\n", __func__, buf, cap);
+}
+
+#define UFS_LIFE_A_FILE "/sys/devices/platform/%s/health_descriptor/life_time_estimation_a"
+#define UFS_LIFE_B_FILE "/sys/devices/platform/%s/health_descriptor/life_time_estimation_b"
+static void get_ufs_life(void)
+{
+	char buf[MAX_HWINFO_SIZE] = {'\0'};
+	int ret = 0;
+
+	//read ufs life A
+	memset(buf, 0x00, sizeof(buf));
+	sprintf(ufs_file, UFS_LIFE_A_FILE, get_bootdevice());
+	ret = hwinfo_read_file(ufs_file, buf, sizeof(buf) - 1);
+	printk(KERN_INFO "Read %s (ret=%d)\n", ufs_file, ret);
+	if (ret != 0)
+		return;
+	if (buf[strlen(buf) - 1] == '\n')
+		buf[strlen(buf) - 1] = '\0';
+	printk(KERN_INFO "%s: %s\n", __func__, buf);
+
+	strcpy(hwinfo[ufs_life].hwinfo_buf, buf);
+
+	//read ufs life B
+	memset(buf, 0x00, sizeof(buf));
+	sprintf(ufs_file, UFS_LIFE_B_FILE, get_bootdevice());
+	ret = hwinfo_read_file(ufs_file, buf, sizeof(buf) - 1);
+	printk(KERN_INFO "Read %s (ret=%d)\n", ufs_file, ret);
+	if (ret != 0)
+		return;
+	if (buf[strlen(buf) - 1] == '\n')
+		buf[strlen(buf) - 1] = '\0';
+	printk(KERN_INFO "%s: %s\n", __func__, buf);
+
+	// combine life A and B
+	strcat(hwinfo[ufs_life].hwinfo_buf, " ");
+	strcat(hwinfo[ufs_life].hwinfo_buf, buf);
+}
+
+#define UFS_MF_DATE_FILE "/sys/devices/platform/%s/device_descriptor/manufacturing_date"
+static void get_ufs_manufacturing_date(void)
+{
+	char buf[MAX_HWINFO_SIZE] = {'\0'};
+	int ret = 0;
+
+	//read ufs manufacturing_date
+	memset(buf, 0x00, sizeof(buf));
+	sprintf(ufs_file,UFS_MF_DATE_FILE , get_bootdevice());
+	ret = hwinfo_read_file(ufs_file, buf, sizeof(buf) - 1);
+	printk(KERN_INFO "Read %s (ret=%d)\n", ufs_file, ret);
+	if (ret != 0)
+		return;
+	printk(KERN_INFO "%s: %s\n", __func__, buf);
+	if (strlen(buf) >= 6)
+		sprintf(hwinfo[ufs_manufacturing_date].hwinfo_buf, "%c%c/%c%c", buf[2], buf[3], buf[4], buf[5]);
+}
+
+#define UFS_MFR_FILE "/sys/devices/platform/%s/string_descriptors/manufacturer_name"
+static void get_ufs_mfr(void)
+{
+	char buf[MAX_HWINFO_SIZE] = {'\0'};
+	int ret = 0;
+
+	//read ufs mfr
+	memset(buf, 0x00, sizeof(buf));
+	sprintf(ufs_file, UFS_MFR_FILE, get_bootdevice());
+	ret = hwinfo_read_file(ufs_file, buf, sizeof(buf) - 1);
+	printk(KERN_INFO "Read %s (ret=%d)\n", ufs_file, ret);
+	if (ret != 0)
+		return;
+	if (buf[strlen(buf) - 1] == '\n')
+		buf[strlen(buf) - 1] = '\0';
+	printk(KERN_INFO "%s: %s\n", __func__, buf);
+	strcpy(hwinfo[ufs_mfr].hwinfo_buf, buf);
+	strcpy(hwinfo[lpddr_mfr].hwinfo_buf, buf);
+}
+
+#define UFS_OEM_ID_FILE "/sys/devices/platform/%s/string_descriptors/oem_id"
+static void get_ufs_oem_id(void)
+{
+	char buf[MAX_HWINFO_SIZE] = {'\0'};
+	int ret = 0;
+
+	//read ufs oem_id
+	memset(buf, 0x00, sizeof(buf));
+	sprintf(ufs_file, UFS_OEM_ID_FILE, get_bootdevice());
+	ret = hwinfo_read_file(ufs_file, buf, sizeof(buf) - 1);
+	printk(KERN_INFO "Read %s (ret=%d)\n", ufs_file, ret);
+	if (ret != 0)
+		return;
+	if (buf[strlen(buf) - 1] == '\n')
+		buf[strlen(buf) - 1] = '\0';
+	printk(KERN_INFO "%s: %s\n", __func__, buf);
+	strcpy(hwinfo[ufs_oem_id].hwinfo_buf, buf);
+}
+
+#define UFS_PRODUCT_NAME_FILE "/sys/devices/platform/%s/string_descriptors/product_name"
+static void get_ufs_product_name(void)
+{
+	char buf[MAX_HWINFO_SIZE] = {'\0'};
+	int ret = 0;
+
+	//read ufs product_name
+	memset(buf, 0x00, sizeof(buf));
+	sprintf(ufs_file, UFS_PRODUCT_NAME_FILE, get_bootdevice());
+	ret = hwinfo_read_file(ufs_file, buf, sizeof(buf) - 1);
+	printk(KERN_INFO "Read %s (ret=%d)\n", ufs_file, ret);
+	if (ret != 0)
+		return;
+	if (buf[strlen(buf) - 1] == '\n')
+		buf[strlen(buf) - 1] = '\0';
+	printk(KERN_INFO "%s: %s\n", __func__, buf);
+	strcpy(hwinfo[ufs_product_name].hwinfo_buf, buf);
+}
+
+#define UFS_PRODUCT_REV_FILE "/sys/devices/platform/%s/string_descriptors/product_revision"
+static void get_ufs_product_revision(void)
+{
+	char buf[MAX_HWINFO_SIZE] = {'\0'};
+	int ret = 0;
+
+	//read ufs product_revision
+	memset(buf, 0x00, sizeof(buf));
+	sprintf(ufs_file, UFS_PRODUCT_REV_FILE, get_bootdevice());
+	ret = hwinfo_read_file(ufs_file, buf, sizeof(buf) - 1);
+	printk(KERN_INFO "Read %s (ret=%d)\n", ufs_file, ret);
+	if (ret != 0)
+		return;
+	if (buf[strlen(buf) - 1] == '\n')
+		buf[strlen(buf) - 1] = '\0';
+	printk(KERN_INFO "%s: %s\n", __func__, buf);
+	strcpy(hwinfo[ufs_product_revision].hwinfo_buf, buf);
+}
+
+#define UFS_SN_FILE "/sys/devices/platform/%s/string_descriptors/serial_number"
+static void get_ufs_sn(void)
+{
+	char buf[MAX_HWINFO_SIZE] = {'\0'};
+	int ret = 0;
+
+	//read ufs sn
+	memset(buf, 0x00, sizeof(buf));
+	sprintf(ufs_file, UFS_SN_FILE, get_bootdevice());
+	ret = hwinfo_read_file(ufs_file, buf, sizeof(buf) - 1);
+	printk(KERN_INFO "Read %s (ret=%d)\n", ufs_file, ret);
+	if (ret != 0)
+		return;
+	if (buf[strlen(buf) - 1] == '\n')
+		buf[strlen(buf) - 1] = '\0';
+	printk(KERN_INFO "%s: %s\n", __func__, buf);
+	strcpy(hwinfo[ufs_sn].hwinfo_buf, buf);
+}
+
+#define UFS_SPEC_VER_FILE "/sys/devices/platform/%s/device_descriptor/specification_version"
+static void get_ufs_spec_ver(void)
+{
+	char buf[MAX_HWINFO_SIZE] = {'\0'};
+	int ret = 0;
+
+	//read ufs wwid
+	memset(buf, 0x00, sizeof(buf));
+	sprintf(ufs_file, UFS_SPEC_VER_FILE, get_bootdevice());
+	ret = hwinfo_read_file(ufs_file, buf, sizeof(buf) - 1);
+	printk(KERN_INFO "Read %s (ret=%d)\n", ufs_file, ret);
+	if (ret != 0)
+		return;
+	if (buf[strlen(buf) - 1] == '\n')
+		buf[strlen(buf) - 1] = '\0';
+	printk(KERN_INFO "%s: %s\n", __func__, buf);
+	strcpy(hwinfo[ufs_spec_ver].hwinfo_buf, buf);
+}
+
+#define UFS_WWID_FILE "/sys/devices/platform/%s/host0/target0:0:0/0:0:0:0/wwid"
+static void get_ufs_wwid(void)
+{
+	char buf[MAX_HWINFO_SIZE] = {'\0'};
+	int ret = 0;
+
+	//read ufs wwid
+	memset(buf, 0x00, sizeof(buf));
+	sprintf(ufs_file, UFS_WWID_FILE, get_bootdevice());
+	ret = hwinfo_read_file(ufs_file, buf, sizeof(buf) - 1);
+	printk(KERN_INFO "Read %s (ret=%d)\n", ufs_file, ret);
+	if (ret != 0)
+		return;
+	if (buf[strlen(buf) - 1] == '\n')
+		buf[strlen(buf) - 1] = '\0';
+	printk(KERN_INFO "%s: %s\n", __func__, buf);
+	strcpy(hwinfo[ufs_wwid].hwinfo_buf, buf);
+}
+
+// cid exists in EMMC, but not in ufs, so use related to fields to generate a similar one
+static void get_ufs_cid(void)
+{
+	get_ufs_mfr();
+	get_ufs_product_name();
+	get_ufs_product_revision();
+	get_ufs_manufacturing_date();
+
+	snprintf(hwinfo[ufs_cid].hwinfo_buf, sizeof(hwinfo[ufs_cid].hwinfo_buf), "%s %s %s %s",
+		hwinfo[ufs_mfr].hwinfo_buf,
+		hwinfo[ufs_product_name].hwinfo_buf,
+		hwinfo[ufs_product_revision].hwinfo_buf,
+		hwinfo[ufs_manufacturing_date].hwinfo_buf);
+
+	printk(KERN_INFO "%s: %s\n", __func__, hwinfo[ufs_cid].hwinfo_buf);
+}
+
 #define BYTE(_x) (_x<<0x03)
 #define EMMC_SN_FILE     "/sys/class/mmc_host/mmc0/mmc0:0001/serial"
 static void get_emmc_sn(void)
@@ -1716,6 +1981,39 @@ static ssize_t hwinfo_show(struct kobject *kobj, struct kobj_attribute *attr, ch
 	case secboot_version:
 		get_secure_boot_version();
 		break;
+	case ufs_capacity:
+		get_ufs_capacity();
+		break;
+	case ufs_cid:
+		get_ufs_cid();
+		break;
+	case ufs_life:
+		get_ufs_life();
+		break;
+	case ufs_manufacturing_date:
+		get_ufs_manufacturing_date();
+		break;
+	case ufs_mfr:
+		get_ufs_mfr();
+		break;
+	case ufs_oem_id:
+		get_ufs_oem_id();
+		break;
+	case ufs_product_name:
+		get_ufs_product_name();
+		break;
+	case ufs_product_revision:
+		get_ufs_product_revision();
+		break;
+	case ufs_sn:
+		get_ufs_sn();
+		break;
+	case ufs_spec_ver:
+		get_ufs_spec_ver();
+		break;
+	case ufs_wwid:
+		get_ufs_wwid();
+		break;
 	case emmc_sn:
 		get_emmc_sn();
 		break;
@@ -1723,17 +2021,19 @@ static ssize_t hwinfo_show(struct kobject *kobj, struct kobj_attribute *attr, ch
 		get_emmc_cid();
 		break;
 	case emmc_mfr:
-	case lpddr_mfr:
 		get_emmc_mfr();
 		break;
 	case emmc_capacity:
 		get_emmc_size();
 		break;
-	case lpddr_capacity:
-		get_ddr_cap();
-		break;
 	case emmc_life:
 		get_emmc_lifetime();
+		break;
+	case lpddr_mfr:
+		get_ufs_mfr();
+		get_emmc_mfr();
+	case lpddr_capacity:
+		get_ddr_cap();
 		break;
 	//case current_cpuid:
 	//	get_current_cpuid();
@@ -1858,6 +2158,8 @@ EXPORT_SYMBOL(ontim_hwinfo_register);
 static int __init hwinfo_init(void)
 {
 	struct kobject *k_hwinfo = NULL;
+	char *bootdevice = get_bootdevice();
+	int  isUFS = strstr(bootdevice, "ufs") ? 1 : 0;
 
 	if ( (k_hwinfo = kobject_create_and_add("hwinfo", NULL)) == NULL ) {
 		printk(KERN_ERR "%s:hwinfo sys node create error \n", __func__);
@@ -1865,6 +2167,26 @@ static int __init hwinfo_init(void)
 
 	if ( sysfs_create_group(k_hwinfo, &attr_group) ) {
 		printk(KERN_ERR "%s: sysfs_create_group failed\n", __func__);
+	}
+	printk(KERN_INFO "bootdevice=%s\n", bootdevice);
+	if (isUFS) {
+		sysfs_remove_file_from_group(k_hwinfo, attr_group.attrs[emmc_mfr], NULL);
+		sysfs_remove_file_from_group(k_hwinfo, attr_group.attrs[emmc_life], NULL);
+		sysfs_remove_file_from_group(k_hwinfo, attr_group.attrs[emmc_sn], NULL);
+		sysfs_remove_file_from_group(k_hwinfo, attr_group.attrs[emmc_cid], NULL);
+		sysfs_remove_file_from_group(k_hwinfo, attr_group.attrs[emmc_capacity], NULL);
+	} else {
+		sysfs_remove_file_from_group(k_hwinfo, attr_group.attrs[ufs_capacity], NULL);
+		sysfs_remove_file_from_group(k_hwinfo, attr_group.attrs[ufs_cid], NULL);
+		sysfs_remove_file_from_group(k_hwinfo, attr_group.attrs[ufs_life], NULL);
+		sysfs_remove_file_from_group(k_hwinfo, attr_group.attrs[ufs_manufacturing_date], NULL);
+		sysfs_remove_file_from_group(k_hwinfo, attr_group.attrs[ufs_mfr], NULL);
+		sysfs_remove_file_from_group(k_hwinfo, attr_group.attrs[ufs_oem_id], NULL);
+		sysfs_remove_file_from_group(k_hwinfo, attr_group.attrs[ufs_product_name], NULL);
+		sysfs_remove_file_from_group(k_hwinfo, attr_group.attrs[ufs_product_revision], NULL);
+		sysfs_remove_file_from_group(k_hwinfo, attr_group.attrs[ufs_sn], NULL);
+		sysfs_remove_file_from_group(k_hwinfo, attr_group.attrs[ufs_spec_ver], NULL);
+		sysfs_remove_file_from_group(k_hwinfo, attr_group.attrs[ufs_wwid], NULL);
 	}
     //get_current_cpuid();
 

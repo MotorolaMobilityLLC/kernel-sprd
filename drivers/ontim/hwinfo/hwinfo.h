@@ -17,6 +17,21 @@ KEYWORD(hw_version)
 KEYWORD(band_id)
 KEYWORD(qcn_type)
 KEYWORD(serialno)
+
+// Nodes for ufs
+KEYWORD(ufs_capacity)
+KEYWORD(ufs_cid)
+KEYWORD(ufs_life)
+KEYWORD(ufs_manufacturing_date)
+KEYWORD(ufs_mfr)
+KEYWORD(ufs_oem_id)
+KEYWORD(ufs_product_name)
+KEYWORD(ufs_product_revision)
+KEYWORD(ufs_sn)
+KEYWORD(ufs_spec_ver)
+KEYWORD(ufs_wwid)
+
+// Nodes for emmc
 KEYWORD(emmc_mfr)
 KEYWORD(emmc_life)
 KEYWORD(emmc_sn)
