@@ -405,11 +405,11 @@
 
 			gpio_boardid:gpio_boardid {
 					compatible = "gpio,boardid";
-					gpio,boardid0 = <&ap_gpio 130 0>;
-					gpio,boardid1 = <&ap_gpio 131 0>;
-		                        gpio,boardid2 = <&ap_gpio 133 0>;
-					gpio,boardprjid = <&ap_gpio 112 0>;
-					gpio,boardprjid0 = <&ap_gpio 113 0>;
+					gpio,boardid0 = <&ap_gpio 131 0>;
+		                        gpio,boardid1 = <&ap_gpio 133 0>;
+					gpio,boardprjid0 = <&ap_gpio 130 0>;
+					gpio,boardprjid1 = <&ap_gpio 112 0>;
+					gpio,boardprjid2 = <&ap_gpio 113 0>;
 			};
 
 		};

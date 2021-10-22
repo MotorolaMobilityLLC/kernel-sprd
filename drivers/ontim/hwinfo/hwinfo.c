@@ -74,32 +74,21 @@ typedef struct board_id {
 	const char *qcn_type;
 	const char *model;
 } boardid_match_t;
-/*
-Version gpio130 gpio131 gpio133
-P0      0		0		0
-DVT1    0		0		1
-DVT2    0		1		0
-PVT     0		1		1
+/* hawaii
+Version gpio131 gpio133
+P0      0		0
+DVT1    0		1
+DVT2    1		0
+PVT     1		1
 
 only care hw_version, DONOT care qcn_type and model.
 */
 static boardid_match_t board_table[] = {
-	{ .index = 0,  .hw_version = "P0",         .qcn_type = "no-ca-split", .model = "advanced1"  },//P0
-	{ .index = 1,  .hw_version = "DVT2",       .qcn_type = "no-ca"      , .model = "primary"    },
-	{ .index = 2,  .hw_version = "DVT2",       .qcn_type = "no-ca-del"  , .model = "primary"    },//DVT2
-	{ .index = 3,  .hw_version = "REL",        .qcn_type = "no-ca-del"  , .model = "primary"    },
-	{ .index = 4,  .hw_version = "DVT1",       .qcn_type = "no-ca-del"  , .model = "standard"   },//DVT1
-	{ .index = 5,  .hw_version = "DVT2",       .qcn_type = "no-ca"      , .model = "advanced1"  },
-	{ .index = 6,  .hw_version = "PVT",        .qcn_type = "no-ca-split", .model = "advanced1"  },//PVT
-	{ .index = 7,  .hw_version = "REL",        .qcn_type = "no-ca-del"  , .model = "standard"   },
-	{ .index = 8,  .hw_version = "EVT",        .qcn_type = "ca"         , .model = "advanced1"  },
-	{ .index = 9,  .hw_version = "DVT1",       .qcn_type = "ca"         , .model = "advanced1"  },
-	{ .index = 10, .hw_version = "DVT1-SPLIT", .qcn_type = "no-ca-split", .model = "advanced1"  },
-	{ .index = 11, .hw_version = "REL-SPLIT",  .qcn_type = "no-ca-split", .model = "advanced2"  },
-	{ .index = 12, .hw_version = "DVT2.5",     .qcn_type = "no-ca-del"  , .model = "primary"    },
-	{ .index = 13, .hw_version = "PVT",        .qcn_type = "no-ca-del"  , .model = "primary"    },
-	{ .index = 14, .hw_version = "PVT",        .qcn_type = "no-ca-del"  , .model = "standard"   },
-	{ .index = 15, .hw_version = "REL-SPLIT",  .qcn_type = "no-ca-split", .model = "advanced1"  },
+//	{ .index = 0,  .hw_version = "P0",         .qcn_type = "no-ca", .model = "primary"  },//P0
+	{ .index = 0,  .hw_version = "P0",         .qcn_type = "unknown", .model = "primary"  },
+	{ .index = 1,  .hw_version = "DVT1",       .qcn_type = "unknown", .model = "primary"    },
+	{ .index = 2,  .hw_version = "DVT2",       .qcn_type = "unknown", .model = "primary"    },
+	{ .index = 3,  .hw_version = "PVT",        .qcn_type = "unknown", .model = "primary"    },
 };
 
 typedef struct mid_match {
