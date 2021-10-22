@@ -515,31 +515,32 @@ static int ufs_sprd_apply_dev_quirks(struct ufs_hba *hba)
 
 	pa_tactivate_us = pa_tactivate * gran_to_us_table[granularity - 1];
 	peer_pa_tactivate_us = peer_pa_tactivate *
-			     gran_to_us_table[peer_granularity - 1];
-
+			gran_to_us_table[peer_granularity - 1];
 	max_pa_tactivate_us = (pa_tactivate_us > peer_pa_tactivate_us) ?
 			pa_tactivate_us : peer_pa_tactivate_us;
 
-	if (max_pa_tactivate_us < 100)
-		max_pa_tactivate_us = 200;//because of phy will eat off 100us
+	new_peer_pa_tactivate = (max_pa_tactivate_us + 400) /
+			gran_to_us_table[peer_granularity - 1];
 
-	new_peer_pa_tactivate = max_pa_tactivate_us /
-			      gran_to_us_table[peer_granularity - 1];
-	new_peer_pa_tactivate += 2;
 	ret = ufshcd_dme_peer_set(hba, UIC_ARG_MIB(PA_TACTIVATE),
 				  new_peer_pa_tactivate);
-	if (ret)
+	if (ret) {
+		dev_err(hba->dev, "%s: peer_pa_tactivate set err ", __func__);
 		goto out;
+	}
 
-	new_pa_tactivate = max_pa_tactivate_us /
-				  gran_to_us_table[granularity - 1];
-	new_pa_tactivate += 1;
+	new_pa_tactivate = (max_pa_tactivate_us + 300) /
+			gran_to_us_table[granularity - 1];
 	ret = ufshcd_dme_set(hba, UIC_ARG_MIB(PA_TACTIVATE),
-				  new_pa_tactivate);
+			     new_pa_tactivate);
+	if (ret) {
+		dev_err(hba->dev, "%s: pa_tactivate set err ", __func__);
+		goto out;
+	}
 
 	dev_warn(hba->dev, "%s: %d,%d,%d,%d",
-		__func__, new_peer_pa_tactivate,
-		peer_granularity, new_pa_tactivate, granularity);
+		 __func__, new_peer_pa_tactivate,
+		 peer_granularity, new_pa_tactivate, granularity);
 
 out:
 	return ret;
