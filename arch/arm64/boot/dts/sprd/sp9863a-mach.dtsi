@@ -121,6 +121,11 @@
 		compatible = "sprd,sharkl3-sensorhub", "sprd,sensor-hub";
 	};
 
+	autotest: autotest {
+		compatible = "sprd,autotest";
+		sprd,pinctrl = <&pin_controller>;
+	};
+
 	trusty {
 		compatible = "sprd,trusty-smc-v1";
 

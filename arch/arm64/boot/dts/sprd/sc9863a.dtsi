@@ -419,11 +419,6 @@
 			     <GIC_SPI 151 IRQ_TYPE_LEVEL_HIGH>;
 	};
 
-	autotest: autotest {
-		compatible = "sprd,autotest";
-		sprd,pinctrl = <&pin_controller>;
-	};
-
 	gsp: sprd-gsp {
 		compatible = "sprd,gsp-r6p0-sharkl3";
 		name = "sprd-gsp";
