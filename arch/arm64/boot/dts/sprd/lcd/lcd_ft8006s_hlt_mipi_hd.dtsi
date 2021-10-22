@@ -1,0 +1,74 @@
+/ {
+	fragment {
+		target-path = "/";
+		__overlay__ {
+			lcds {
+				lcd_ft8006s_hlt_mipi_hd: lcd_ft8006s_hlt_mipi_hd {
+
+				sprd,dsi-work-mode = <1>; /* video burst mode*/
+				sprd,dsi-lane-number = <4>;
+				sprd,dsi-color-format = "rgb888";
+
+				sprd,phy-bit-clock = <522144>;	/* kbps */
+				sprd,phy-escape-clock = <20000>;/* kHz */
+				sprd,width-mm = <68>;
+				sprd,height-mm = <121>;
+				sprd,dpi-clk-div = <6>;
+				sprd,video-lp-cmd-enable = <1>;
+				sprd,hporch-lp-disable = <1>;
+
+				sprd,esd-check-enable = <1>;
+				sprd,esd-check-mode = <1>;
+				sprd,esd-check-period = <2000>;
+				sprd,esd-check-regs = <0xA>;
+				sprd,esd-return-code = <0x9C>;
+
+				sprd,reset-on-sequence = <1 5>, <0 5>, <1 20>;
+				sprd,reset-off-sequence = <1 5>;
+
+				sprd,initial-command = [
+					39 00 00 03 51 00 00
+					23 00 00 02 53 2C
+					23 00 00 02 55 03
+					23 00 00 02 35 00
+					23 78 00 02 11 00
+					23 14 00 02 29 00
+				];
+
+				sprd,sleep-in-command = [
+					13 14 00 01 28
+					13 78 00 01 10
+				];
+
+				sprd,sleep-out-command = [
+					13 78 00 01 11
+					13 14 00 01 29
+				];
+
+				oled-backlight {
+						default-brightness-level = <33>;
+						sprd,max-level = <255>;
+
+						brightness-levels = [
+							23 00 00 02 51 FF
+							];
+						};
+				display-timings {
+					native-mode = <&ft8006s_timing0>;
+					ft8006s_timing0: timing0 {
+							clock-frequency = <87024000>;
+							hactive = <720>;
+							vactive = <1600>;
+							hback-porch = <24>;
+							hfront-porch = <24>;
+							vback-porch = <110>;
+							vfront-porch = <130>;
+							hsync-len = <16>;
+							vsync-len = <10>;
+						};
+					};
+				};
+			};
+		};
+	};
+};
