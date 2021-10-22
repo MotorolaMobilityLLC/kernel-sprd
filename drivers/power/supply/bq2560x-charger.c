@@ -2019,6 +2019,7 @@ static struct i2c_driver bq2560x_master_charger_driver = {
 	},
 	.probe = bq2560x_charger_probe,
 	.remove = bq2560x_charger_remove,
+	.shutdown = bq2560x_charger_shutdown,
 	.id_table = bq2560x_i2c_id,
 };
 
@@ -2029,7 +2030,6 @@ static struct i2c_driver bq2560x_slave_charger_driver = {
 		.pm = &bq2560x_charger_pm_ops,
 	},
 	.probe = bq2560x_charger_probe,
-	.shutdown = bq2560x_charger_shutdown,
 	.remove = bq2560x_charger_remove,
 	.id_table = bq2560x_slave_i2c_id,
 };
