@@ -63,7 +63,6 @@
 				compatible = "microarray,afs121";
 				fpint-gpios = <&eic_async 29 0>;
 			};
-
 			gpio-keys {
 				compatible = "gpio-keys";
 
@@ -99,6 +98,14 @@
 					wakeup-source;
 				};
 			};
+
+                        usb_cable: usb_cable {
+                                compatible = "sprd,usb_cable_eint";
+                                status = "okay";
+                                usbcable-gpio = <&ap_gpio 121 0>;
+                                interrupt-parent = <&ap_gpio>;
+                                debounce = <256000>;
+                        };
 
 			bat: battery {
 				compatible = "simple-battery";
@@ -337,6 +344,12 @@
 				irq_gpio = <&ap_gpio 169 GPIO_ACTIVE_HIGH>;
 			};
 
+			sprd_uid {
+				compatible = "sprd-uid";
+				nvmem-cells = <&uid_start>, <&uid_end>;
+				nvmem-cell-names = "uid_start", "uid_end";
+			};
+
 			sprd_marlin3: sprd-marlin3 {
 				compatible = "sprd,marlin3";
 				m2-wakeup-ap-gpios = <&ap_gpio 53 GPIO_ACTIVE_LOW>;
@@ -404,8 +417,8 @@
 };
 
 &sdio1 {
-	sprd,sdr104-dly = <0x7f 0x7f 0x7f 0x7f>;
-	sprd,sdr50-dly = <0x7f 0x7f 0x8f 0x8f>;
+	sprd,sdr104-dly = <0x7f 0x62 0x61 0x61>;
+	sprd,sdr50-dly = <0x7f 0xb6 0xb4 0xb4>;
 	sd-uhs-sdr104;
 	sd-uhs-sdr50;
 	bus-width = <4>;
@@ -843,6 +856,16 @@
 
 &i2c3 {
 	status = "okay";
+
+	sx933x@28 { /* SAR sensor */
+	compatible = "Semtech,sx933x";
+		reg = <0x28>;
+		interrupt-parent = <&ap_gpio>;
+		interrupts = <176 0x02>;
+		interrupt-names = "sx933x_irq";
+		Semtech,nirq-gpio= <&ap_gpio 176 0>;
+		status = "ok";
+	};
 };
 
 &sprd_headset {
@@ -856,7 +879,7 @@
 &sound_vbc_v4_sprd_codec {
 	status = "okay";
 	/*ext_control_type, hook selection, mode, gpio share*/
-	sprd,spk-ext-pa-info = <0 0 3 0>;
+	sprd,spk-ext-pa-info = <0 0 2 0>;
 	sprd,spk-ext-pa-gpio = <&ap_gpio 129 0>;
 };
 
@@ -866,7 +889,7 @@
 
 &pmic_fgu {
 	monitored-battery = <&bat>;
-	sprd,calib-resistance-real = <4850>;
+	sprd,calib-resistance-real = <5000>;
 	sprd,calib-resistance-spec = <20000>;
 	first-calib-voltage = <3580000>;
 	first-calib-capacity = <50>;
@@ -887,6 +910,7 @@
 
 &pmic_fchg {
 	sprd,input-voltage-microvolt = <5000000>;
+	sprd,pd-fixed-max-microwatt = <18000000>;
 	phys = <&hsphy>;
 };
 
@@ -898,7 +922,7 @@
 		power-role = "dual";
 		try-power-role = "sink";
 		source-pdos = <PDO_FIXED(5000, 400, PDO_FIXED_USB_COMM)>;
-		sink-pdos = <PDO_FIXED(5000, 2000, PDO_FIXED_USB_COMM)
+		sink-pdos = <PDO_FIXED(5000, 3000, PDO_FIXED_USB_COMM)
 			     PDO_PPS_APDO(3300, 11000, 3000)>;
 		op-sink-microwatt = <10000000>;
 	};
@@ -917,7 +941,7 @@
 	/* rfctl6, rfctl7, keyin0 */
 	"gpio_25", "gpio_26", "gpio_124",
 	/* bt_rfctl2 */
-	"gpio_175", "gpio121";
+	"gpio_175", "gpio_121";
 	pinctrl-0 = <&gpio_8>;
 	pinctrl-1 = <&gpio_22>;
 	pinctrl-2 = <&gpio_24>;
@@ -962,7 +986,7 @@
 		function = "func4";
 	};
 
-	gpio_121: keyout0 {
+	gpio_121: keyout0  {
 		pins = "QOGIRL6_KEYOUT0";
 		function = "func4";
 	};
