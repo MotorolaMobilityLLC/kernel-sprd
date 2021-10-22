@@ -571,6 +571,7 @@ static ssize_t _name##_show(struct device *dev,				\
 	int ret;							\
 	int desc_len = QUERY_DESC_MAX_SIZE;				\
 	u8 *desc_buf;							\
+	int isSN = (DEVICE_DESC_PARAM##_pname == DEVICE_DESC_PARAM_SN);	\
 	desc_buf = kzalloc(QUERY_DESC_MAX_SIZE, GFP_ATOMIC);		\
 	if (!desc_buf)							\
 		return -ENOMEM;						\
@@ -582,14 +583,24 @@ static ssize_t _name##_show(struct device *dev,				\
 		goto out;						\
 	}								\
 	index = desc_buf[DEVICE_DESC_PARAM##_pname];			\
+	dev_info(dev, "param=DEVICE_DESC_PARAM%s(0x%x) index=%d\n", #_pname, DEVICE_DESC_PARAM##_pname, index); \
 	memset(desc_buf, 0, QUERY_DESC_MAX_SIZE);			\
 	if (ufshcd_read_string_desc(hba, index, desc_buf,		\
-		QUERY_DESC_MAX_SIZE, true)) {				\
+		QUERY_DESC_MAX_SIZE, !isSN)) {				\
 		ret = -EINVAL;						\
 		goto out;						\
 	}								\
-	ret = snprintf(buf, PAGE_SIZE, "%s\n",				\
-		desc_buf + QUERY_DESC_HDR_SIZE);			\
+	if (isSN) {							\
+		int i = 0;						\
+		int n = 0;						\
+		ret = min((unsigned long)desc_buf[0] * 2, PAGE_SIZE - 1);\
+		for (; i < ret / 2; i++)				\
+			n += sprintf(buf + n, "%02X", desc_buf[QUERY_DESC_HDR_SIZE + i]);\
+	} else {							\
+		ret = snprintf(buf, PAGE_SIZE, "%s\n",			\
+			desc_buf + QUERY_DESC_HDR_SIZE);		\
+	}								\
+	dev_info(dev, "len=%d buf=\"%s\"", ret, buf);		\
 out:									\
 	kfree(desc_buf);						\
 	return ret;							\
