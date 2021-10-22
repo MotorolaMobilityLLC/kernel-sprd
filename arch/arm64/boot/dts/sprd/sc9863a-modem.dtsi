@@ -80,7 +80,7 @@
 		/* <&mailbox  channel_id  is_no_wakeup(default 0)> */
 		mboxes = <&mailbox 2 0>;
 		/* This is temporary plan*/
-		sprd,smem-info = <0x88e00000 0x88e00000 0x800000>;
+		sprd,smem-info = <0x88d80000 0x88d80000 0x880000>;
 
 		imsbr_data: channel@2 {
 			compatible = "sprd,spool";
@@ -108,7 +108,7 @@
 			/* channel number */
 			reg = <4>;
 			label = "spipe_lte";
-			sprd,ringnr = <15>;
+			sprd,ringnr = <20>;
 			sprd,size-rxbuf = <0x1000>;	/* 4*1024 */
 			sprd,size-txbuf = <0x1000>;	/* 4*1024 */
 		};
