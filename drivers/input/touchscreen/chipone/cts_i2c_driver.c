@@ -15,12 +15,12 @@ extern char lcd_info_pr[256];
 u16  device_fw_ver = 0;
 #include <ontim/ontim_dev_dgb.h>
 static char version[40] = "0x00";
-static char vendor_name[50] = "dj-icnl9911c";
-static char lcdname[50] = "dj-icnl9911c";
+static char vendor_name[50] = "tm-icnl9911c";
+static char lcd_name[50] = "tm-icnl9911c";
 DEV_ATTR_DECLARE(touch_screen)
 DEV_ATTR_DEFINE("version", version)
 DEV_ATTR_DEFINE("vendor", vendor_name)
-DEV_ATTR_DEFINE("lcdvendor", lcdname)
+DEV_ATTR_DEFINE("lcdvendor", lcd_name)
 DEV_ATTR_DECLARE_END;
 ONTIM_DEBUG_DECLARE_AND_INIT(touch_screen,touch_screen,8);
 /* END */
@@ -206,7 +206,7 @@ static void cts_tp_fw(struct cts_device *cts_dev)
                     CTS_DEVICE_FW_REG_VERSION, &device_fw_ver, 5, 0);
 	cts_fw = be16_to_cpup(&device_fw_ver);
 	cts_info("ver:0x%x", cts_fw);
-	snprintf(version, sizeof(version)," FW:02_05, VID:0xA4", cts_fw);
+	snprintf(version, sizeof(version)," FW:02_02, VID:0x01", cts_fw);
 	cts_info("version:%s", version);
 }
 
@@ -377,11 +377,11 @@ static int cts_driver_probe(struct spi_device *client)
     // snprintf(lcdname, sizeof(lcdname),"%s","easyquick-icnl9911c-608");
     // snprintf(vendor_name, sizeof(vendor_name),"%s","easyquick-icnl9911c-608");
     if (LCM_INFO_EASYQUICK_608 == g_lcm_info_flag) {
-        snprintf(lcdname, sizeof(lcdname),"%s ", "easyquick-icn19911c-608" );
+        snprintf(lcd_name, sizeof(lcd_name),"%s ", "easyquick-icn19911c-608" );
         snprintf(vendor_name, sizeof(vendor_name),"%s ", "easyquick-icn19911c-608" );
     } else if (LCM_INFO_HLT_GLASS == g_lcm_info_flag) {
-        snprintf(lcdname, sizeof(lcdname),"%s ", "dj-icnl9911c" );
-        snprintf(vendor_name, sizeof(vendor_name),"%s ", "dj-icnl9911c" );
+        snprintf(lcd_name, sizeof(lcd_name),"%s ", "tm-icnl9911c" );
+        snprintf(vendor_name, sizeof(vendor_name),"%s ", "tm-icnl9911c" );
     }
     cts_tp_fw(&cts_data->cts_dev);
     REGISTER_AND_INIT_ONTIM_DEBUG_FOR_THIS_DEV();
@@ -807,7 +807,11 @@ static int __init cts_driver_init(void)
     int ret = 0;
 
     cts_info("Init");
-
+	    if ( NULL == strstr(lcd_name, "icnl9911c")) {
+         cts_info("failed to find icnl9911c device, cmdline=%s\n",lcd_name);
+        return -ENODEV;
+    }
+pr_err("ontim icnl is begin\n");
 #ifdef CONFIG_CTS_I2C_HOST
     ret = i2c_add_driver(&cts_i2c_driver);
 #else
@@ -815,6 +819,7 @@ static int __init cts_driver_init(void)
 #endif
 
     cts_info("Init return "CTS_ERR_FMT_STR, CTS_ERR_ARG(ret));
+    pr_err("ontim icnl is out \n");
 
     return ret;
 }

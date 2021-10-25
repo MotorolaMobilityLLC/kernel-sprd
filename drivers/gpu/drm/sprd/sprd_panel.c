@@ -35,7 +35,10 @@ typedef enum tagLcd
     NT36525b_dj_mipi_hd,        // 11 digit
     ICNL9911c_dj_mipi_hd,       // 11 digit
     ILI9882q_youda_mipi_hd,
-	HX83102d_youda_mipi_hd      // high 8 digit
+    HX83102d_youda_mipi_hd,      // high 8 digit
+    ICNL9911C_TM_MIPI_HD,
+    ILI9883A_YOU_MIPI_HD,
+
 } LCD;
 
 static LCD check_lcd_by_name(const char* lcd_name)
@@ -229,7 +232,6 @@ static int sprd_panel_disable(struct drm_panel *p)
 
 	DRM_INFO("%s()\n", __func__);
 
-	mutex_lock(&panel_lock);
 	/*
 	 * FIXME:
 	 * The cancel work should be executed before DPU stop,
@@ -242,6 +244,7 @@ static int sprd_panel_disable(struct drm_panel *p)
 		cancel_delayed_work_sync(&panel->esd_work);
 		panel->esd_work_pending = false;
 	}
+	 mutex_lock(&panel_lock);
 
 	if (panel->backlight) {
 		panel->backlight->props.power = FB_BLANK_POWERDOWN;
@@ -280,6 +283,7 @@ static int sprd_panel_enable(struct drm_panel *p)
 		schedule_delayed_work(&panel->esd_work,
 				      msecs_to_jiffies(1000));
 		panel->esd_work_pending = true;
+		panel->esd_work_backup = false;
 	}
 
 	panel->is_enabled = true;
@@ -368,11 +372,25 @@ static int sprd_panel_esd_check(struct sprd_panel *panel)
 {
 	struct panel_info *info = &panel->info;
         u8 read_val = 0;
+	struct sprd_dpu *dpu;
+
+	mutex_lock(&panel_lock);
+	if (!panel->is_enabled) {
+		DRM_INFO("panel is not enabled, skip esd check\n");
+		mutex_unlock(&panel_lock);
+		return 0;
+	}
+
+	dpu = container_of(panel->base.connector->encoder->crtc,
+		struct sprd_dpu, crtc);
+
+	mutex_lock(&dpu->ctx.vrr_lock);
 
 	/* FIXME: we should enable HS cmd tx here */
 	mipi_dsi_set_maximum_return_packet_size(panel->slave, 1);
 	mipi_dsi_dcs_read(panel->slave, info->esd_check_reg,
 			  &read_val, 1);
+	mutex_unlock(&dpu->ctx.vrr_lock);
 
 	/*
 	 * TODO:
@@ -382,9 +400,10 @@ static int sprd_panel_esd_check(struct sprd_panel *panel)
 	if (read_val != info->esd_check_val) {
 		DRM_ERROR("esd check failed, read value = 0x%02x\n",
 			  read_val);
+		mutex_unlock(&panel_lock);
 		return -EINVAL;
 	}
-
+	mutex_unlock(&panel_lock);
 	return 0;
 }
 
@@ -485,22 +504,26 @@ static void sprd_panel_esd_work_func(struct work_struct *work)
 		if (!encoder->crtc || (encoder->crtc->state &&
 		    !encoder->crtc->state->active)) {
 			DRM_INFO("skip esd recovery during panel suspend\n");
+			panel->esd_work_backup = true;
 			return;
 		}
 
 		DRM_INFO("====== esd recovery start ========\n");
 
 		if(strncmp(lcd_name, "lcd_nt36525b_dj_mipi_hd", strlen(lcd_name)) == 0){
-			nvt_ts_suspend(dev);
+			//nvt_ts_suspend(dev);
 		}
 
 		funcs->disable(encoder);
 		funcs->enable(encoder);
+		if (!panel->esd_work_pending && panel->is_enabled)
+			schedule_delayed_work(&panel->esd_work,
+					msecs_to_jiffies(info->esd_check_period));
 
 		if(strncmp(lcd_name, "lcd_nt36525b_dj_mipi_hd", strlen(lcd_name)) == 0){
-			nvt_ts_resume(dev);
+			//nvt_ts_resume(dev);
 		}else if(strncmp(lcd_name, "lcd_hx83102d_youda_mipi_hd",strlen(lcd_name)) == 0){
-			himax_esd_resume_func();
+			//himax_esd_resume_func();
 		}
 
 		sprd_oled_set_brightness(g_bdev);
@@ -621,6 +644,9 @@ static int of_parse_buildin_modes(struct panel_info *info,
 		info->buildin_modes[i].vrefresh = info->mode.vrefresh;
 	}
 	info->num_buildin_modes = num_timings;
+	if (info->num_buildin_modes == 2 &&
+	   (info->buildin_modes[0].htotal == info->buildin_modes[1].htotal))
+		dynamic_framerate_mode =true;
 	DRM_INFO("info->num_buildin_modes = %d\n", num_timings);
 	goto done;
 
@@ -769,13 +795,13 @@ static int sprd_oled_set_brightness(struct backlight_device *bdev)
 	if (level == 256)
 		level = 255;
 
-	DRM_INFO("%s Target level: %d\n", __func__, level);
+	DRM_ERROR("%s Target level: %d\n", __func__, level);
 
 	sprd_panel_send_cmds(panel->slave,
 			     panel->info.cmds[CMD_OLED_REG_LOCK],
 			     panel->info.cmds_len[CMD_OLED_REG_LOCK]);
 
-	//printk(KERN_ERR "ontim->%s(%d) cmds_total:%d, wc_l:%d\n", __func__, __LINE__, oled->cmds_total, oled->cmds[0]->wc_l);
+	pr_err(KERN_ERR "ontim->%s(%d) cmds_total:%d, wc_l:%d\n", __func__, __LINE__, oled->cmds_total, oled->cmds[0]->wc_l);
 	if (oled->cmds_total == 1) {
 		if (oled->cmds[0]->wc_l == 3) {
 			set_lcd_oled_level(oled, level);
