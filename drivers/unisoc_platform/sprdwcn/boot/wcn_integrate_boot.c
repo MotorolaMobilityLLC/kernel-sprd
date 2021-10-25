@@ -3105,7 +3105,7 @@ int start_integrate_wcn_truely(u32 subsys)
 	bool is_marlin;
 	struct wcn_device *wcn_dev;
 	u32 subsys_bit = 1 << subsys;
-	int ret_wait_completion = 0;
+	unsigned long ret_wait_completion = 0;
 
 	WCN_INFO("start subsys:%d\n", subsys);
 	wcn_dev = wcn_get_dev_by_type(subsys_bit);

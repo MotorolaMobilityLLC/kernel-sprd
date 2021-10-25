@@ -324,7 +324,7 @@ int marlin_tsx_cali_data_read(struct tsx_data *p_tsx_data)
 {
 	u32 size = 0;
 	char *pdata;
-	int timeleft = 0;
+	unsigned long timeleft = 0;
 	struct work_struct find_tsx_wq;
 
 	init_completion(&find_tsx_completion);
