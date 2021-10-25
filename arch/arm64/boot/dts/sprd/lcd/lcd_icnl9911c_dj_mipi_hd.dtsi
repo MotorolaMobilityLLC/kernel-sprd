@@ -1,0 +1,87 @@
+/ {
+	fragment {
+		target-path = "/";
+		__overlay__ {
+			lcds {
+				lcd_icnl9911c_dj_mipi_hd: lcd_icnl9911c_dj_mipi_hd {
+
+					sprd,dsi-work-mode = <1>; /* video burst mode*/
+					sprd,dsi-lane-number = <4>;
+					sprd,dsi-color-format = "rgb888";
+
+					sprd,phy-bit-clock = <640000>;	/* kbps */
+					sprd,phy-escape-clock = <20000>;/* kHz */
+					sprd,width-mm = <68>;
+					sprd,height-mm = <121>;
+
+
+					sprd,esd-check-enable = <1>;
+					sprd,esd-check-mode = <1>;
+					sprd,esd-check-period = <2000>;
+					sprd,esd-check-regs = <0xA>;
+					sprd,esd-return-code = <0x9c>;
+
+					sprd,reset-on-sequence = <1 10>, <0 10>, <1 10>;
+					sprd,reset-off-sequence = <1 10>;
+
+					sprd,initial-command = [
+
+						39 00 00 03 F0 5A 59
+						39 00 00 03 F1 A5 A6
+		             	39 00 00 04 BD E9 02 4E
+						39 00 00 03 BE 5A 5A
+						39 00 00 14 C1 C0 20 20 7C 04 5a 5a 04 2A 40 36 00 07 CF FF FF 97 01 C0
+						39 00 00 04 FA 45 93 01
+						39 00 00 02 F6 00
+
+						39 00 00 03 51 00 00
+						23 00 00 02 53 2C
+						23 00 00 02 55 01
+						23 00 00 02 35 00
+
+						39 00 00 17 C7 FC B0 8B 70 40 20 F1 48 18 F2 CD A1 FA CF B2 87 70 4D 1A 7E C0 00 
+						39 00 00 17 C8 FC B0 8B 70 40 20 F1 48 18 F2 CD A1 FA CF B2 87 70 4D 1A 7E C0 00
+						39 00 00 03 F1 5A 59
+						39 00 00 03 F0 A5 A6
+						13 78 00 01 11
+						13 14 00 01 29
+						23 00 00 02 26 01
+					];
+					sprd,sleep-in-command = [
+						23 00 00 02 26 08
+						13 14 00 01 28
+						13 78 00 01 10
+					];
+
+					sprd,sleep-out-command = [
+						13 78 00 01 11
+						13 14 00 01 29
+						23 00 00 02 26 01
+					];
+					oled-backlight {
+						default-brightness-level = <80>;
+						sprd,max-level = <255>;
+						brightness-levels = [
+							39 00 00 03 51 FF 0E
+						];
+					};
+
+					display-timings {
+						native-mode = <&icnl9911c_timing0>;
+						icnl9911c_timing0: timing0 {
+							clock-frequency = <96000000>;
+							hactive = <720>;
+							vactive = <1600>;
+							hback-porch = <90>;
+							hfront-porch = <90>;
+							vback-porch = <32>;
+							vfront-porch = <124>;
+							hsync-len = <4>;
+							vsync-len = <4>;
+						};
+					};
+				};
+			};
+		};
+	};
+};

@@ -414,9 +414,10 @@
 
 			vddldo1: LDO_VDDLDO1 {
 				regulator-name = "vddldo1";
-				regulator-min-microvolt = <1200000>;
-				regulator-max-microvolt = <3750000>;
+				regulator-min-microvolt = <1800000>;
+				regulator-max-microvolt = <1800000>;
 				regulator-ramp-delay = <25000>;
+                                regulator-always-on;
 			};
 
 			vddldo2: LDO_VDDLDO2 {

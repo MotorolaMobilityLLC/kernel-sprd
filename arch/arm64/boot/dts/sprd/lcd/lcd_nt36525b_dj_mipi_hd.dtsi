@@ -1,0 +1,115 @@
+/ {
+	fragment {
+		target-path = "/";
+		__overlay__ {
+			lcds {
+
+			lcd_nt36525b_dj_mipi_hd: lcd_nt36525b_dj_mipi_hd {
+
+					sprd,dsi-work-mode = <1>; /* video burst mode*/
+					sprd,dsi-lane-number = <4>;
+					sprd,dsi-color-format = "rgb888";
+
+					sprd,phy-bit-clock = <640000>;	/* kbps */
+					sprd,phy-escape-clock = <20000>;/* kHz */
+
+					sprd,width-mm = <68>;
+					sprd,height-mm = <121>;
+
+					sprd,esd-check-enable = <1>;
+					sprd,esd-check-mode = <1>;
+					sprd,esd-check-period = <2000>;
+					sprd,esd-check-regs = <0xA>;
+					sprd,esd-return-code = <0x9c>;
+
+					sprd,reset-on-sequence = <1 10>, <0 10>, <1 10>, <0 10>, <1 20>;
+					sprd,reset-off-sequence = <1 10>;
+
+					sprd,initial-command = [
+
+						23 00 00 02 FF 24
+						23 00 00 02 FB 01
+						23 00 00 02 3A 98
+						23 00 00 02 3B A6
+						23 00 00 02 5A 98
+						23 00 00 02 5B A6
+						23 00 00 02 92 B3
+						23 00 00 02 93 0A
+						23 00 00 02 94 0C
+						23 00 00 02 B1 AF
+
+						23 00 00 02 FF 25
+						23 00 00 02 FB 01
+						23 00 00 02 0B 25
+
+						23 00 00 02 FF 26
+			                        23 00 00 02 FB 01
+						23 00 00 02 00 A0
+
+						23 00 00 02 FF 27
+						23 00 00 02 FB 01
+						23 00 00 02 13 00
+						23 00 00 02 14 44
+						23 00 00 02 15 B4
+						23 00 00 02 1F 55
+						23 00 00 02 26 0F
+						23 00 00 02 C0 18
+						23 00 00 02 C1 F2
+						23 00 00 02 C2 00
+						23 00 00 02 C3 00
+						23 00 00 02 C4 F2
+						23 00 00 02 C5 00
+						23 00 00 02 C6 00
+
+			                        23 00 00 02 FF 10
+						23 00 00 02 FB 01
+
+						23 00 00 02 35 00
+						39 00 00 03 51 00 00
+						39 00 00 03 68 02 01
+						23 00 00 02 53 2C
+						23 00 00 02 55 01
+						13 78 00 01 11
+			                        13 14 00 01 29
+
+						];
+
+					sprd,sleep-in-command = [
+						13 14 00 01 28
+						13 78 00 01 10
+						];
+
+					sprd,sleep-out-command = [
+						13 78 00 01 11
+						13 14 00 01 29
+						];
+
+					oled-backlight {
+						default-brightness-level = <33>;
+						sprd,max-level = <255>;
+
+						brightness-levels = [
+							23 00 00 03 51 0F FF
+							];
+						};
+
+					display-timings {
+						native-mode = <&nt36525b_dj_timing0>;
+
+						nt36525b_dj_timing0: timing0 {
+									clock-frequency = <96000000>;
+									hactive = <720>;
+									vactive = <1600>;
+									hback-porch = <65>;
+									hfront-porch = <70>;
+									vback-porch = <252>;
+									vfront-porch = <10>;
+									hsync-len = <4>;
+									vsync-len = <2>;
+						};
+					};
+				};
+			};
+		};
+	};
+};

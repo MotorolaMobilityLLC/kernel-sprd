@@ -1291,7 +1291,7 @@ static enum sprd_headset_type sprd_headset_type_plugged(void)
 			 */
 			headset_type = sprd_detect_type_through_mdet(hdst);
 			if (headset_type == HEADSET_4POLE_NORMAL)
-				sprd_headset_ldetl_ref_sel(LDETL_REF_SEL_20mV);
+				sprd_headset_ldetl_ref_sel(LDETL_REF_SEL_100mV);
 			else
 				sprd_headset_ldetl_ref_sel(LDETL_REF_SEL_100mV);
 			return headset_type;
@@ -1313,7 +1313,7 @@ static enum sprd_headset_type sprd_headset_type_plugged(void)
 			hdst->lineout_status = true;
 			headset_type = sprd_detect_type_through_mdet(hdst);
 			if (headset_type == HEADSET_4POLE_NORMAL)
-				sprd_headset_ldetl_ref_sel(LDETL_REF_SEL_20mV);
+				sprd_headset_ldetl_ref_sel(LDETL_REF_SEL_100mV);
 			else
 				sprd_headset_ldetl_ref_sel(LDETL_REF_SEL_100mV);
 			return headset_type;

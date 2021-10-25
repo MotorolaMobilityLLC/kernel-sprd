@@ -650,6 +650,18 @@ config CHARGER_BQ2560X
 	help
 	  Say Y to include support for TI BQ2560X Battery Charger.
 
+config CHARGER_CX7601
+	tristate "sun CX7601 Charger"
+	depends on I2C || COMPILE_TEST
+	help
+	  Say Y to include support for sun CX7601 Battery Charger.
+	  
+config CHARGER_SGM41511
+	tristate "sun SGM41511 Charger"
+	depends on I2C || COMPILE_TEST
+	help
+	  Say Y to include support for sun CX7601 Battery Charger.
+	  
 config CHARGER_BQ2597X
 	tristate "TI BQ2597X Charger"
 	depends on I2C || COMPILE_TEST
