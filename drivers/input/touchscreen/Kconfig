@@ -1269,6 +1269,9 @@ config TOUCHSCREEN_HIMAX_CHIPSET
           module will be called HX83102D.
 
 source drivers/input/touchscreen/hxchipset/Kconfig
+source drivers/input/touchscreen/ilitek/Kconfig
+source drivers/input/touchscreen/chipone/Kconfig
+source drivers/input/touchscreen/novatek/Kconfig
 
 config TOUCHSCREEN_CHIPONE
 	tristate "Chipone TDDI touchscreen for QualComm package"

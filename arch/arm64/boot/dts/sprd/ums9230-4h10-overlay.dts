@@ -10,6 +10,10 @@
 #include "lcd/lcd_hx83102d_auo_mipi_hd.dtsi"
 #include "lcd/lcd_icnl9911c_dj_mipi_hd.dtsi"
 #include "lcd/lcd_ili9882q_auo_mipi_hd.dtsi"
+#include "lcd/lcd_nt36525c_boe_mipi_fhd.dtsi"
+#include "lcd/lcd_ili9883a_auo_mipi_hd.dtsi"
+#include "lcd/lcd_icnl9911c_tm_mipi_hd.dtsi"
+#include "lcd/lcd_ili9882q_dj_mipi_hd.dtsi"
 #include "lcd/lcd_dummy_mipi.dtsi"
 
 / {
@@ -704,7 +708,7 @@
 	spi@0 {
 		status = "okay";
 
-		compatible = "novatek,NVT-ts-spi", "himax,hxcommon", "chipone-tddi", "tchip,ilitek";
+		compatible = "novatek,NVT-ts-spi","himax,hxcommon", "chipone-tddi", "sprd,tddi-ilitek";
 		reg = <0x0>;
 		spi-max-frequency = <9600000>;
 		interrupt-parent = <&ap_gpio>;
@@ -746,8 +750,8 @@
 		/*chipone touch end*/
 		
 		/*ilitek start*/
-		touch,irq-gpio = <&ap_gpio 144 GPIO_ACTIVE_HIGH>;
-		touch,reset-gpio = <&ap_gpio 145 GPIO_ACTIVE_HIGH>;
+		ilitek,irq-gpio = <&ap_gpio 144 GPIO_ACTIVE_HIGH>;
+		ilitek,reset-gpio = <&ap_gpio 145 GPIO_ACTIVE_HIGH>;
 		/*ilitek end*/
 	};
 };

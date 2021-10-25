@@ -58,6 +58,7 @@ struct sprd_plane_state {
 LIST_HEAD(dpu_core_head);
 LIST_HEAD(dpu_clk_head);
 LIST_HEAD(dpu_glb_head);
+bool dynamic_framerate_mode;
 
 bool calibration_mode;
 static unsigned long frame_count;
@@ -1215,6 +1216,7 @@ static int sprd_dpu_context_init(struct sprd_dpu *dpu,
 
 	sema_init(&ctx->refresh_lock, 1);
 	sema_init(&ctx->cabc_lock, 1);
+	mutex_init(&ctx->vrr_lock);
 	return 0;
 }
 

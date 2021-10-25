@@ -1,0 +1,10 @@
+
+config TOUCHSCREEN_NOVATEK_S00
+    tristate "generic touchscreen novatek driver"
+    help
+    add support for touchscreen driver.
+
+config TOUCHSCREEN_NOVATEK_MODEL
+    string "novatek model, kernel defconfig"
+    help
+    novatek model, kernel defconfig
