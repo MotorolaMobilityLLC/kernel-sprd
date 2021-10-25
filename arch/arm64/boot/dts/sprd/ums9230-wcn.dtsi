@@ -49,6 +49,7 @@
 				reg = <0x0 0x87000000 0x0 0x200000>;
 				sprd,file-name ="/dev/block/platform/soc/soc:ap-apb/201d0000.sdio/by-name/wcnmodem";
 				sprd,file-name-ufs ="/dev/block/platform/soc/soc:ap-apb/20200000.ufs/by-name/wcnmodem";
+				sprd,firmware-path = "/vendor/firmware/";
 				sprd,file-length = <0x200000>;
 				/* for btwf: cpu addr 0 map to ddr 0m */
 				sprd,apcp-sync-addr = <0x007fdc00>;

@@ -325,7 +325,7 @@
 				extcon = <&sdio1>;
 				sdhci-name = <&sdio1>;
 				sprd,btwf-file-name = "/dev/block/by-name/wcnmodem";
-				sprd,gnss-file-name = "/dev/block/by-name/gnssmodem";
+				sprd,gnss-file-name = "/vendor/firmware/gnssmodem.bin";
 				adma-tx;
 				adma-rx;
 

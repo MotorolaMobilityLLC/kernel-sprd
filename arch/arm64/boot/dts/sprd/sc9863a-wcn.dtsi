@@ -40,6 +40,7 @@
 		sprd,ctrl-shutdown-type = <0x3 0x1>;
 		reg = <0x0 0x84000000 0x0 0x180000>;
 		sprd,file-name = "/dev/block/platform/soc/soc:ap-ahb/20600000.sdio/by-name/wcnmodem";
+		sprd,firmware-path = "/vendor/firmware/";
 		sprd,file-length = <0x178000>;
 		memory_region = < &wcn_reserved >;
 		vddwcn-supply = <&vddcon>;

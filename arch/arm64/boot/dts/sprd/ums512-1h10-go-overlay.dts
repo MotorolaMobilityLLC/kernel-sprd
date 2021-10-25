@@ -289,7 +289,7 @@
 				sdhci-name = <&sdio1>;
 
 				sprd,btwf-file-name = "/dev/block/platform/soc/soc:ap-apb/71400000.sdio/by-name/wcnmodem";
-				sprd,gnss-file-name = "/dev/block/platform/soc/soc:ap-apb/71400000.sdio/by-name/gnssmodem";
+				sprd,gnss-file-name = "/vendor/firmware/gnssmodem.bin";
 				adma-tx;
 				adma-rx;
 				/*
