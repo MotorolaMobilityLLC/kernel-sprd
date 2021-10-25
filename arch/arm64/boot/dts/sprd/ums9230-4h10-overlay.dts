@@ -494,32 +494,12 @@
 				<&pll1 CLK_TWPLL_48M>,<&ext_26m>;
 		vddio-supply = <&vddcamio>;
 		vddcama-supply = <&vddcama0>;
-		dvdd-gpios = <&ap_gpio 137 0>;
+		//dvdd-gpios = <&ap_gpio 11 0>;
+		vddcamd-supply = <&vddcamd0>;
 		vddcammot-supply = <&vddcammot>;
 		reset-gpios = <&ap_gpio 45 0>;
-		power-down-gpios = <&ap_gpio 47 0>;
+		//power-down-gpios = <&ap_gpio 47 0>;
 		sprd,phyid = <0>;
-		csi = <&csi0>;
-	};
-
-	sensor_sub: sensor-sub@5a {
-		compatible = "sprd,sensor-sub";
-		reg = <0x5a>;
-		clock-names = "clk_src","sensor_eb",
-			"clk_96m","clk_76m8",
-			"clk_48m","clk_26m";
-		clocks = <&mm_clk CLK_SENSOR0>,<&mm_gate CLK_MM_SENSOR0_EB>,
-				<&pll1 CLK_TWPLL_96M>,<&pll1 CLK_TWPLL_76M8>,
-				<&pll1 CLK_TWPLL_48M>,<&ext_26m>;
-		vddio-supply = <&vddcamio>;
-		vddcama-supply = <&vddcama0>;
-		dvdd-gpios = <&ap_gpio 137 0>;
-		vddcammot-supply = <&vddcammot>;
-		reset-gpios = <&ap_gpio 44 0>;
-		power-down-gpios = <&ap_gpio 46 0>;
-	/*	mipi-switch-en-gpios = <&ap_gpio 55 0>;*/
-	/*	mipi-switch-mode-gpios = <&ap_gpio 8 0>;*/
-		sprd,phyid = <2>;
 		csi = <&csi0>;
 	};
 };
@@ -528,22 +508,71 @@
 	status = "okay";
 	clock-frequency = <400000>;
 
+	sensor_sub2: sensor-sub2@2e {
+		compatible = "sprd,sensor-sub2";
+		reg = <0x2e>;
+		clock-names = "clk_src","sensor_eb",
+			"clk_96m","clk_76m8",
+			"clk_48m","clk_26m";
+		clocks = <&mm_clk CLK_SENSOR1>,<&mm_gate CLK_MM_SENSOR1_EB>,
+ 				<&pll1 CLK_TWPLL_96M>,<&pll1 CLK_TWPLL_76M8>,
+ 				<&pll1 CLK_TWPLL_48M>,<&ext_26m>;
+		vddio-supply = <&vddcamio>;
+		vddcama-supply = <&vddcama1>;
+		//avdd-gpios = <&ap_gpio 130 0>;
+		//vddcamd-supply = <&vddcamd1>;
+		//vddcammot-supply = <&vddcammot>;
+		//mot-gpios = <&ap_gpio 112 0>;
+		reset-gpios = <&ap_gpio 46 0>;
+		//power-down-gpios = <&ap_gpio 40 0>;
+		sprd,phyid = <3>;
+		csi = <&csi2>;
+	};
+};
+
+&i2c6 {
+	status = "okay";
+	clock-frequency = <400000>;
+
+	sensor_sub: sensor-sub@5a {
+		compatible = "sprd,sensor-sub";
+		reg = <0x5a>;
+		clock-names = "clk_src","sensor_eb",
+			"clk_96m","clk_76m8",
+			"clk_48m","clk_26m";
+		clocks = <&mm_clk CLK_SENSOR2>,<&mm_gate CLK_MM_SENSOR2_EB>,
+				<&pll1 CLK_TWPLL_96M>,<&pll1 CLK_TWPLL_76M8>,
+				<&pll1 CLK_TWPLL_48M>,<&ext_26m>;
+		vddio-supply = <&vddcamio>;
+		vddcama-supply = <&vddcama1>;
+		//dvdd-gpios = <&ap_gpio 11 0>;
+		vddcamd-supply = <&vddcamd1>;
+		//vddcammot-supply = <&vddcammot>;
+		reset-gpios = <&ap_gpio 44 0>;
+		//power-down-gpios = <&ap_gpio 46 0>;
+		//mipi-switch-en-gpios = <&ap_gpio 55 0>;
+		//mipi-switch-mode-gpios = <&ap_gpio 8 0>;
+		sprd,phyid = <2>;
+		csi = <&csi0>;
+	};
+
 	sensor_main2: sensor-main2@20 {
 		compatible = "sprd,sensor-main2";
 		reg = <0x20>;
 		clock-names = "clk_src","sensor_eb",
 			"clk_96m","clk_76m8",
 			"clk_48m","clk_26m";
-		clocks = <&mm_clk CLK_SENSOR1>,<&mm_gate CLK_MM_SENSOR1_EB>,
+		clocks = <&mm_clk CLK_SENSOR2>,<&mm_gate CLK_MM_SENSOR2_EB>,
 				<&pll1 CLK_TWPLL_96M>,<&pll1 CLK_TWPLL_76M8>,
 				<&pll1 CLK_TWPLL_48M>,<&ext_26m>;
 		vddio-supply = <&vddcamio>;
 		vddcama-supply = <&vddcama1>;
-		vddcamd-supply = <&vddcamd0>;
-		vddcammot-supply = <&vddcammot>;
-		mot-gpios = <&ap_gpio 113 0>;
+		//vddcamd-supply = <&vddcamd0>;
+		//vddcammot-supply = <&vddcammot>;
+		//avdd-gpios = <&ap_gpio 33 0>;
+		//mot-gpios = <&ap_gpio 88 0>;
 		reset-gpios = <&ap_gpio 41 0>;
-		power-down-gpios = <&ap_gpio 40 0>;
+		//power-down-gpios = <&ap_gpio 40 0>;
 	/*	mipi-switch-en-gpios = <&ap_gpio 55 0>;*/
 	/*	mipi-switch-mode-gpios = <&ap_gpio 8 0>;*/
 		sprd,phyid = <4>;
@@ -644,9 +673,10 @@
 	};
 
 	flash_ic: flash-ic@63 {
-		compatible = "sprd,flash-ocp8137";
+		compatible = "sprd,flash-aw36514","sprd,flash-ocp81375",
+				"sprd,flash-sy7806";
 		reg = <0x63>;
-		sprd,flash-ic = <8137>;
+		sprd,flash-ic = <3643>;
 		sprd,torch = <1>;
 		sprd,preflash = <1>;
 		sprd,highlight = <1>;
@@ -656,41 +686,18 @@
 		sprd,lvfm-enable = <1>;
 		flash-torch-en-gpios = <&ap_gpio 32 0>;
 		flash-chip-en-gpios = <&ap_gpio 138 0>;
-		flash-en-gpios = <&ap_gpio 139 0>;
-		flash-sync-gpios = <&ap_gpio 121 0>;
+		//flash-en-gpios = <&ap_gpio 139 0>;
+		//flash-sync-gpios = <&ap_gpio 121 0>;
+		status = "okay";
 	};
 };
-
-&i2c6 {
-	status = "okay";
-	clock-frequency = <400000>;
-
-	sensor_sub2: sensor-sub2@6e {
-		compatible = "sprd,sensor-sub2";
-		reg = <0x6e>;
-		clock-names = "clk_src","sensor_eb",
-			"clk_96m","clk_76m8",
-			"clk_48m","clk_26m";
-		clocks = <&mm_clk CLK_SENSOR2>,<&mm_gate CLK_MM_SENSOR2_EB>,
-			<&pll1 CLK_TWPLL_96M>,<&pll1 CLK_TWPLL_76M8>,
-			<&pll1 CLK_TWPLL_48M>,<&ext_26m>;
-		vddio-supply = <&vddcamio>;
-		avdd-gpios = <&ap_gpio 130 0>;
-		vddcamd-supply = <&vddcamd1>;
-		vddcammot-supply = <&vddcammot>;
-		mot-gpios = <&ap_gpio 112 0>;
-		reset-gpios = <&ap_gpio 114 0>;
-	/*	power-down-gpios = <&ap_gpio 40 0>;*/
-		sprd,phyid = <3>;
-		csi = <&csi2>;
-	};
-};
-
+/*
 &aon_i2c0 {
 	status = "okay";
 	clock-frequency = <1000000>;
 };
 
+*/
 &spi3 {
 	status = "okay";
 
