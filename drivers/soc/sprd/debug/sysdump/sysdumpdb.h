@@ -113,7 +113,7 @@ struct minidump_data_desc{
 #endif
 
 struct exception_info_item {
-	char kernel_magic[4];  /* "K2.0" :make sure excep data valid */
+	char kernel_magic[8];  /* "K2.0" :make sure excep data valid */
 	char exception_serialno[EXCEPTION_INFO_SIZE_SHORT];
 	char exception_kernel_version[EXCEPTION_INFO_SIZE_MID];
 	char exception_reboot_reason[EXCEPTION_INFO_SIZE_SHORT];
