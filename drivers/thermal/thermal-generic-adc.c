@@ -38,6 +38,8 @@ static int gadc_thermal_adc_to_temp(struct gadc_thermal_info *gti, int val)
 		temp = gti->lookup_table[0];
 	} else if (i >= gti->nlookup_table) {
 		temp = gti->lookup_table[2 * (gti->nlookup_table - 1)];
+		dev_err(gti->dev, "%s;%d;%d;\n",__func__,val,temp);
+		
 	} else {
 		adc_hi = gti->lookup_table[2 * i - 1];
 		adc_lo = gti->lookup_table[2 * i + 1];
