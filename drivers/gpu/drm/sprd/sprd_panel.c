@@ -37,7 +37,7 @@ typedef enum tagLcd
     ILI9882q_youda_mipi_hd,
     HX83102d_youda_mipi_hd,      // high 8 digit
     ICNL9911C_TM_MIPI_HD,
-    ILI9883A_YOU_MIPI_HD,
+    ILI9882Q_DJ_MIPI_HD,
 
 } LCD;
 
@@ -53,6 +53,10 @@ static LCD check_lcd_by_name(const char* lcd_name)
 		return HX83102d_youda_mipi_hd;
     if (strncmp(lcd_name, "lcd_ili9882q_youda_mipi_hd", name_len) == 0)
         return ILI9882q_youda_mipi_hd;
+    if (strncmp(lcd_name, "lcd_icnl9911c_tm_mipi_hd", name_len) == 0)
+        return ICNL9911C_TM_MIPI_HD;
+    if (strncmp(lcd_name, "lcd_ili9882q_dj_mipi_hd", name_len) == 0)
+        return ILI9882Q_DJ_MIPI_HD;
     return NotLCD;
 }
 
@@ -773,6 +777,20 @@ static int sprd_oled_set_brightness(struct backlight_device *bdev)
 		if (level < 256){
 			g_last_level = level;
 			level = ((level * 88) + 40)/ 100;
+		}
+	}
+
+	else if (check_lcd_by_name(lcd_name) == ICNL9911C_TM_MIPI_HD){
+		if (level < 256){
+		    g_last_level = level;
+		    level = ((level * 82) + 30)/ 100;
+		}
+	}
+
+	else if (check_lcd_by_name(lcd_name) == ILI9882Q_DJ_MIPI_HD){
+		if (level < 256){
+		    g_last_level = level;
+		    level = ((level * 83) + 30)/ 100;
 		}
 	}
     else if (check_lcd_by_name(lcd_name) == ICNL9911c_dj_mipi_hd)
