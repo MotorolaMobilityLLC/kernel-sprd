@@ -17387,6 +17387,15 @@ CONFIG_SPRD_THERMAL_MAX_FREQ_LIMIT
 	[must] user
 	[missing plat description] none
 	[function] be used to limit the max frequency
+CONFIG_SPRD_THERMAL_POLICY
+	[arch] arm64
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
+	[field] make
+	[subsys] thermal
+	[must] user
+	[missing plat description] none
+	[function] be used to extend sprd thermal policy
 CONFIG_SPRD_TIMER
 	[arch] all
 	[plat] all

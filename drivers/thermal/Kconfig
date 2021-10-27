@@ -490,4 +490,11 @@ config SPRD_THERMAL_MAX_FREQ_LIMIT
 	help
 	  Say Y here to support thermal max frequency limit feature
 	  IPA can only be used within the range of the max frequency limit
+
+config SPRD_THERMAL_POLICY
+	bool "sprd thermal policy"
+	depends on ARCH_SPRD || CPU_THERMAL || THERMAL_GOV_POWER_ALLOCATOR
+	help
+	  Say Y here to extend thermal policy for sprd platform.
+	  in addition to support the generic kernel thermal policy.
 endif

@@ -10,8 +10,9 @@
  *		Viresh Kumar <viresh.kumar@linaro.org>
  *
  */
-#ifdef CONFIG_SPRD_THERMAL_DEBUG
+#ifdef CONFIG_SPRD_THERMAL_POLICY
 #define pr_fmt(fmt) "sprd_cpufreq_cooling: " fmt
+#include <trace/events/power.h>
 #endif
 #include <linux/module.h>
 #include <linux/thermal.h>
@@ -25,7 +26,6 @@
 #include <linux/kallsyms.h>
 #include <linux/cpu_cooling.h>
 
-#include <trace/events/power.h>
 #include <trace/events/thermal.h>
 
 /*
@@ -41,10 +41,6 @@
  *	level 1 --> 2nd Max Freq
  *	...
  */
-
-#define FTRACE_CLUS0_LIMIT_FREQ_NAME "thermal-cpufreq-0-limit"
-#define FTRACE_CLUS1_LIMIT_FREQ_NAME "thermal-cpufreq-1-limit"
-#define FTRACE_CLUS2_LIMIT_FREQ_NAME "thermal-cpufreq-2-limit"
 
 /**
  * struct freq_table - frequency table along with power entries
@@ -102,12 +98,20 @@ struct cpufreq_cooling_device {
 
 static DEFINE_IDA(cpufreq_ida);
 static DEFINE_MUTEX(cooling_list_lock);
+
 static LIST_HEAD(cpufreq_cdev_list);
 
 #ifdef CONFIG_SPRD_THERMAL_MAX_FREQ_LIMIT
 #define CPUFREQ_COOLING_NUM 5
 static unsigned int max_freq[CPUFREQ_COOLING_NUM];
 static unsigned int  (*cpufreq_update_opp_ptr)(int cpu, int temp);
+#endif
+
+#ifdef CONFIG_SPRD_THERMAL_POLICY
+#define FTRACE_CLUS0_LIMIT_FREQ_NAME "thermal-cpufreq-0-limit"
+#define FTRACE_CLUS1_LIMIT_FREQ_NAME "thermal-cpufreq-1-limit"
+#define FTRACE_CLUS2_LIMIT_FREQ_NAME "thermal-cpufreq-2-limit"
+static int cur_temp;
 #endif
 
 /* Below code defines functions to be used for cpufreq as cooling device */
@@ -336,7 +340,7 @@ static int cpufreq_set_cur_state(struct thermal_cooling_device *cdev,
 {
 	struct cpufreq_cooling_device *cpufreq_cdev = cdev->devdata;
 	int ret;
-#if defined(CONFIG_SPRD_THERMAL_DEBUG) || defined(CONFIG_SPRD_THERMAL_MAX_FREQ_LIMIT)
+#if defined(CONFIG_SPRD_THERMAL_POLICY) || defined(CONFIG_SPRD_THERMAL_MAX_FREQ_LIMIT)
 	unsigned int freq;
 	int cpu = cpufreq_cdev->policy->cpu;
 #endif
@@ -360,9 +364,9 @@ static int cpufreq_set_cur_state(struct thermal_cooling_device *cdev,
 			cpufreq_cdev->freq_table[state].frequency);
 	if (ret > 0)
 		cpufreq_cdev->cpufreq_state = state;
-#ifdef CONFIG_SPRD_THERMAL_DEBUG
+#ifdef CONFIG_SPRD_THERMAL_POLICY
 	freq = cpufreq_cdev->freq_table[state].frequency;
-	pr_info("cpu%u update max_freq to %u\n", cpu, freq);
+	pr_info("cpu%u temp: %d update max_freq to %u\n", cpu, cur_temp, freq);
 #endif
 
 	return ret;
@@ -402,7 +406,11 @@ static int cpufreq_get_requested_power(struct thermal_cooling_device *cdev,
 	struct cpufreq_policy *policy = cpufreq_cdev->policy;
 	u32 *load_cpu = NULL;
 
+#ifdef CONFIG_SPRD_THERMAL_POLICY
+	freq = cpufreq_quick_get_max(policy->cpu);
+#else
 	freq = cpufreq_quick_get(policy->cpu);
+#endif
 
 	if (trace_thermal_power_cpu_get_power_enabled()) {
 		u32 ncpus = cpumask_weight(policy->related_cpus);
@@ -473,6 +481,25 @@ static int cpufreq_state2power(struct thermal_cooling_device *cdev,
 	return 0;
 }
 
+#ifdef CONFIG_SPRD_THERMAL_POLICY
+static struct cpufreq_cooling_device *find_cpufreq_cdev(
+					struct cpufreq_cooling_device *curr)
+{
+	struct cpufreq_cooling_device *cpufreq_cdev_pos;
+	struct cpufreq_cooling_device *cpufreq_cdev_next = NULL;
+
+	list_for_each_entry(cpufreq_cdev_pos, &cpufreq_cdev_list, node) {
+		if ((curr->id + 1) == cpufreq_cdev_pos->id) {
+			cpufreq_cdev_next = cpufreq_cdev_pos;
+			break;
+		}
+	}
+
+	return cpufreq_cdev_next;
+
+}
+#endif
+
 /**
  * cpufreq_power2state() - convert power to a cooling device state
  * @cdev:	&thermal_cooling_device pointer
@@ -501,16 +528,33 @@ static int cpufreq_power2state(struct thermal_cooling_device *cdev,
 	u32 last_load, normalised_power;
 	struct cpufreq_cooling_device *cpufreq_cdev = cdev->devdata;
 	struct cpufreq_policy *policy = cpufreq_cdev->policy;
+#ifdef CONFIG_SPRD_THERMAL_POLICY
 	int cluster_id;
-#ifdef CONFIG_SPRD_THERMAL_DEBUG
 	int cpu = policy->cpu;
+	struct cpufreq_cooling_device *cpufreq_cdev_find = NULL;
+	unsigned int curr_max_freq;
 #endif
-
 	last_load = cpufreq_cdev->last_load ?: 1;
 	normalised_power = (power * 100) / last_load;
 	target_freq = cpu_power_to_freq(cpufreq_cdev, normalised_power);
 
-	*state = get_level(cpufreq_cdev, target_freq);
+#ifdef CONFIG_SPRD_THERMAL_POLICY
+	cur_temp = tz->temperature;
+	curr_max_freq = cpufreq_quick_get_max(policy->cpu);
+	cpufreq_cdev_find = find_cpufreq_cdev(cpufreq_cdev);
+	if (cpufreq_cdev_find) {
+		if (curr_max_freq > target_freq) {
+			if (cpufreq_cdev_find->policy->max == cpufreq_cdev_find->policy->min)
+				*state = get_level(cpufreq_cdev, target_freq);
+			else {
+				target_freq = curr_max_freq;
+				*state = get_level(cpufreq_cdev, target_freq);
+			}
+		} else
+			*state = get_level(cpufreq_cdev, target_freq);
+
+	} else
+		*state = get_level(cpufreq_cdev, target_freq);
 
 	cluster_id = topology_physical_package_id(policy->cpu);
 	switch (cluster_id) {
@@ -533,12 +577,14 @@ static int cpufreq_power2state(struct thermal_cooling_device *cdev,
 		break;
 	}
 
+	pr_debug("cpu%d temp:%d target_freq:%u power:%u\n",
+			cpu, tz->temperature, target_freq, power);
+#else
+	*state = get_level(cpufreq_cdev, target_freq);
+#endif
+
 	trace_thermal_power_cpu_limit(policy->related_cpus, target_freq, *state,
 				      power);
-#ifdef CONFIG_SPRD_THERMAL_DEBUG
-	pr_info("cpu%d temp:%d target_freq:%u power:%u\n",
-			cpu, tz->temperature, target_freq, power);
-#endif
 	return 0;
 }
 

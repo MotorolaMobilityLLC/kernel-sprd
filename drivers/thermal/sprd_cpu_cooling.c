@@ -55,6 +55,7 @@ struct cluster_power_coefficients {
 	u32 hotplug_period;
 	u32 min_cpufreq;
 	u32 min_cpunum;
+	u32 max_temp;
 	int leak_core_base;
 	int leak_cluster_base;
 	struct scale_coeff core_temp_scale;
@@ -92,6 +93,8 @@ struct cpu_power_ops {
 
 	u32 (*get_cluster_min_cpunum_p)(int cooling_id);
 
+	u32 (*get_cluster_max_temp_p)(int cooling_id);
+
 	u32 (*get_cluster_cycle_p)(int cooling_id);
 
 	u32 (*get_sensor_count_p)(int cooling_id);
@@ -124,6 +127,8 @@ struct cpu_cooling_device {
 	unsigned int power;
 	unsigned int cur_freq;
 	unsigned int min_freq;
+	unsigned int total_freq;
+	unsigned int max_temp;
 	struct cpumask allowed_cpus;
 	struct run_cpus_table *table;
 	struct thermal_cooling_device *cdev;
@@ -390,7 +395,7 @@ static int cpu_get_requested_power(struct thermal_cooling_device *cdev,
 	struct cpu_cooling_device *cpu_cdev = cdev->devdata;
 
 	cpu = cpumask_any(&cpu_cdev->allowed_cpus);
-	freq = cpufreq_quick_get(cpu);
+	freq = cpufreq_quick_get_max(cpu);
 	ncpus = cpumask_weight(&cpu_cdev->allowed_cpus);
 	ret = cpu_get_static_power(cpu_cdev, tz, freq, &static_power, 1);
 	if (ret)
@@ -426,7 +431,7 @@ static int cpu_power2state(struct thermal_cooling_device *cdev,
 			       struct thermal_zone_device *tz, u32 power,
 			       unsigned long *state)
 {
-	unsigned int cpu, cur_freq;
+	unsigned int cpu, avg_freq;
 	int cpus, max_cpus, id;
 	u32 static_power;
 	struct cpu_cooling_device *cpu_cdev = cdev->devdata;
@@ -447,6 +452,7 @@ static int cpu_power2state(struct thermal_cooling_device *cdev,
 	max_cpus = cpumask_weight(&cpu_cdev->allowed_cpus);
 	cpus = min(cpus, max_cpus);
 	cpu_cdev->total += cpus;
+	cpu_cdev->total_freq += cpu_cdev->cur_freq;
 	cpu_cdev->round++;
 
 	if (cpu_cdev->round < cpu_cdev->cycle) {
@@ -455,31 +461,39 @@ static int cpu_power2state(struct thermal_cooling_device *cdev,
 	}
 
 	cpus = cpu_cdev->total / cpu_cdev->round;
+	avg_freq = cpu_cdev->total_freq / cpu_cdev->round;
 	cpu_cdev->total = 0;
+	cpu_cdev->total_freq = 0;
 	cpu_cdev->round = 0;
 
 	id = get_cluster_id(cpu);
 	if (cpu_cdev->power_ops->get_cluster_min_cpunum_p != NULL &&
-	    cpu_cdev->power_ops->get_cluster_min_cpufreq_p != NULL) {
+	    cpu_cdev->power_ops->get_cluster_min_cpufreq_p != NULL &&
+	    cpu_cdev->power_ops->get_cluster_max_temp_p != NULL) {
 		cpu_cdev->min_cpus =
 			cpu_cdev->power_ops->get_cluster_min_cpunum_p(id);
 		cpu_cdev->min_freq =
 			cpu_cdev->power_ops->get_cluster_min_cpufreq_p(id);
+		cpu_cdev->max_temp =
+			cpu_cdev->power_ops->get_cluster_max_temp_p(id);
 	}
 
-	cur_freq = cpu_cdev->cur_freq;
 	cpus = max(cpus, cpu_cdev->min_cpus);
 	if (cpus < cpu_cdev->run_cpus) {
-		if (cur_freq > cpu_cdev->min_freq) {
+		if (avg_freq > cpu_cdev->min_freq)  {
 			*state = get_level(cpu_cdev, cpu_cdev->run_cpus);
 			return 0;
-		}
-	}
+		} else if (tz->temperature < cpu_cdev->max_temp) {
+			*state = get_level(cpu_cdev, cpu_cdev->run_cpus);
+			return 0;
+		} else
+			*state = get_level(cpu_cdev, cpus);
 
-	*state = get_level(cpu_cdev, cpus);
+	} else
+		*state = get_level(cpu_cdev, cpus);
 
-	pr_info("cpu%u temp:%u cur_freq:%u cur_cpus:%d target_cpus:%d\n",
-		cpu, tz->temperature, cur_freq, cpu_cdev->run_cpus, cpus);
+	pr_debug("cpu%u temp:%u cur_freq:%u cur_cpus:%d target_cpus:%d\n",
+		cpu, tz->temperature, cpu_cdev->cur_freq, cpu_cdev->run_cpus, cpus);
 
 	return 0;
 }
@@ -565,6 +579,7 @@ cpu_cooling_register(struct device_node *np,
 
 	cpu_cdev->round = 0;
 	cpu_cdev->total = 0;
+	cpu_cdev->total_freq = 0;
 	cpu_cdev->min_cpus = 0;
 	cpu_cdev->power = 0;
 	cpu_cdev->run_cpus = cpu_cdev->table[0].cpus;
@@ -637,9 +652,12 @@ SPRD_CPU_SHOW(min_freq);
 SPRD_CPU_STORE(min_freq);
 SPRD_CPU_SHOW(min_core_num);
 SPRD_CPU_STORE(min_core_num);
+SPRD_CPU_SHOW(max_ctrl_temp);
+SPRD_CPU_STORE(max_ctrl_temp);
 static struct device_attribute sprd_cpu_atrr[] = {
 	SPRD_CPU_ATTR(min_freq),
 	SPRD_CPU_ATTR(min_core_num),
+	SPRD_CPU_ATTR(max_ctrl_temp),
 };
 
 static int sprd_cpu_creat_attr(struct device *dev)
@@ -750,6 +768,33 @@ static ssize_t sprd_cpu_store_min_core_num(struct device *dev,
 	return count;
 }
 
+static ssize_t sprd_cpu_show_max_ctrl_temp(struct device *dev,
+				struct device_attribute *attr, char *buf)
+{
+	struct thermal_cooling_device *cdev = to_cooling_device(dev);
+	struct cpu_cooling_device *cpu_cdev = cdev->devdata;
+	int id = get_cluster_id(cpumask_any(&cpu_cdev->allowed_cpus));
+
+	return sprintf(buf, "%u\n", cluster_data[id].max_temp);
+}
+
+static ssize_t sprd_cpu_store_max_ctrl_temp(struct device *dev,
+				struct device_attribute *attr,
+				const char *buf, size_t count)
+{
+	struct thermal_cooling_device *cdev = to_cooling_device(dev);
+	struct cpu_cooling_device *cpu_cdev = cdev->devdata;
+	int id = get_cluster_id(cpumask_any(&cpu_cdev->allowed_cpus));
+	unsigned long val;
+
+	if (kstrtoul(buf, 10, &val))
+		return -EINVAL;
+
+	cluster_data[id].max_temp = val;
+
+	return count;
+}
+
 static int get_all_core_temp(int cluster_id, int cpu)
 {
 	int i, ret = 0;
@@ -810,6 +855,11 @@ static u32 get_cluster_min_cpufreq(int cluster_id)
 static u32 get_cluster_min_cpunum(int cluster_id)
 {
 	return cluster_data[cluster_id].min_cpunum;
+}
+
+static u32 get_cluster_max_temp(int cluster_id)
+{
+	return cluster_data[cluster_id].max_temp;
 }
 
 static u32 get_cluster_cycle(int cluster_id)
@@ -1195,9 +1245,14 @@ static int sprd_get_power_model_coeff(struct device_node *np,
 		pr_err("fail to get cooling devices min_cpufreq\n");
 
 	ret = of_property_read_u32(np,
-		"sprd,min-cpunum", &power_coeff->min_cpunum);
+		"sprd,max-cpunum", &power_coeff->min_cpunum);
 	if (ret)
 		pr_err("fail to get cooling devices min_cpunum\n");
+
+	ret = of_property_read_u32(np,
+		"sprd,max-temp", &power_coeff->max_temp);
+	if (ret)
+		pr_err("fail to get cooling devices max_temp\n");
 
 	power_coeff->nsensor = 0;
 	count = of_property_count_strings(np, "sprd,sensor-names");
@@ -1258,6 +1313,7 @@ static struct cpu_power_ops power_ops = {
 		.get_core_static_power_p = get_core_static_power,
 		.get_cluster_min_cpufreq_p = get_cluster_min_cpufreq,
 		.get_cluster_min_cpunum_p = get_cluster_min_cpunum,
+		.get_cluster_max_temp_p = get_cluster_max_temp,
 		.get_cluster_cycle_p = get_cluster_cycle,
 		.get_sensor_count_p = get_sensor_count,
 		.get_core_temp_p = get_core_temp,

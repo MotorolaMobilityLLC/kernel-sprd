@@ -471,7 +471,7 @@ static void thermal_zone_device_reset(struct thermal_zone_device *tz)
 	thermal_zone_device_init(tz);
 }
 
-#ifdef CONFIG_SPRD_THERMAL_DEBUG
+#ifdef CONFIG_SPRD_THERMAL_POLICY
 static int  thermal_temp_debug(struct thermal_zone_device *tz)
 {
 	int crit_temp = 0, warn_temp;
@@ -517,7 +517,7 @@ void thermal_zone_device_update(struct thermal_zone_device *tz,
 		return;
 
 	update_temperature(tz);
-#ifdef CONFIG_SPRD_THERMAL_DEBUG
+#ifdef CONFIG_SPRD_THERMAL_POLICY
 	thermal_temp_debug(tz);
 #endif
 	thermal_zone_set_trips(tz);
