@@ -3,6 +3,7 @@
 
 #include <linux/gpio/consumer.h>
 #include <linux/iio/consumer.h>
+#include <linux/init.h>
 #include <linux/interrupt.h>
 #include <linux/kernel.h>
 #include <linux/math64.h>
@@ -11,15 +12,14 @@
 #include <linux/of.h>
 #include <linux/of_device.h>
 #include <linux/platform_device.h>
+#include <linux/pm_wakeup.h>
 #include <linux/power_supply.h>
 #include <linux/power/charger-manager.h>
+#include <linux/power/sprd_battery_info.h>
 #include <linux/regmap.h>
 #include <linux/slab.h>
-#include <linux/power/sprd_battery_info.h>
-#include <linux/pm_wakeup.h>
 #include <linux/usb/phy.h>
 #include <linux/rtc.h>
-#include <linux/init.h>
 
 /* PMIC global control registers definition */
 #define SC27XX_MODULE_EN0		0xc08

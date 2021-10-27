@@ -28,6 +28,7 @@
 #include <linux/platform_device.h>
 #include <linux/pm_wakeup.h>
 #include <linux/power/charger-manager.h>
+#include <linux/power/sprd_battery_info.h>
 #include <linux/power_supply.h>
 #include <linux/regmap.h>
 #include <linux/regulator/driver.h>
@@ -321,83 +322,15 @@ static int bq25910_charger_set_limit_current(struct bq25910_charger_info *info,
 	return ret;
 }
 
-static int bq25910_charger_get_battery_cur(struct power_supply *psy,
-					   struct bq25910_charge_current *cur)
-{
-	struct device_node *battery_np;
-	const char *value;
-	int err;
-
-	cur->sdp_cur = -EINVAL;
-	cur->sdp_limit = -EINVAL;
-	cur->dcp_cur = -EINVAL;
-	cur->dcp_limit = -EINVAL;
-	cur->cdp_cur = -EINVAL;
-	cur->cdp_limit = -EINVAL;
-	cur->unknown_cur = -EINVAL;
-	cur->unknown_limit = -EINVAL;
-	cur->fchg_cur = -EINVAL;
-	cur->fchg_limit = -EINVAL;
-
-	if (!psy->of_node) {
-		dev_warn(&psy->dev, "%s currently only supports devicetree\n",
-			 __func__);
-		return -ENXIO;
-	}
-
-	battery_np = of_parse_phandle(psy->of_node, "monitored-battery", 0);
-	if (!battery_np)
-		return -ENODEV;
-
-	err = of_property_read_string(battery_np, "compatible", &value);
-	if (err)
-		goto out_put_node;
-
-	if (strcmp("simple-battery", value)) {
-		err = -ENODEV;
-		goto out_put_node;
-	}
-
-	of_property_read_u32_index(battery_np, "charge-sdp-current-microamp", 0,
-				   &cur->sdp_cur);
-	of_property_read_u32_index(battery_np, "charge-sdp-current-microamp", 1,
-				   &cur->sdp_limit);
-	of_property_read_u32_index(battery_np, "charge-dcp-current-microamp", 0,
-				   &cur->dcp_cur);
-	of_property_read_u32_index(battery_np, "charge-dcp-current-microamp", 1,
-				   &cur->dcp_limit);
-	of_property_read_u32_index(battery_np, "charge-cdp-current-microamp", 0,
-				   &cur->cdp_cur);
-	of_property_read_u32_index(battery_np, "charge-cdp-current-microamp", 1,
-				   &cur->cdp_limit);
-	of_property_read_u32_index(battery_np, "charge-unknown-current-microamp", 0,
-				   &cur->unknown_cur);
-	of_property_read_u32_index(battery_np, "charge-unknown-current-microamp", 1,
-				   &cur->unknown_limit);
-	of_property_read_u32_index(battery_np, "charge-fchg-current-microamp", 0,
-				   &cur->unknown_cur);
-	of_property_read_u32_index(battery_np, "charge-fchg-current-microamp", 1,
-				   &cur->unknown_limit);
-
-out_put_node:
-	of_node_put(battery_np);
-	return err;
-}
-
 static int bq25910_charger_hw_init(struct bq25910_charger_info *info)
 {
-	struct power_supply_battery_info bat_info;
+	struct sprd_battery_info bat_info = {};
 	int ret;
 
-	ret = bq25910_charger_get_battery_cur(info->psy_usb, &info->cur);
+	ret = sprd_battery_get_battery_info(info->psy_usb, &bat_info);
 	if (ret) {
 		dev_warn(info->dev, "no battery information is supplied\n");
 
-		/*
-		 * If no battery information is supplied, we should set
-		 * default charge termination current to 100 mA, and default
-		 * charge termination voltage to 4.2V.
-		 */
 		info->cur.sdp_limit = 500000;
 		info->cur.sdp_cur = 500000;
 		info->cur.dcp_limit = 1500000;
@@ -406,15 +339,27 @@ static int bq25910_charger_hw_init(struct bq25910_charger_info *info)
 		info->cur.cdp_cur = 1000000;
 		info->cur.unknown_limit = 500000;
 		info->cur.unknown_cur = 500000;
-	}
 
-	ret = power_supply_get_battery_info(info->psy_usb, &bat_info);
-	if (ret) {
-		dev_warn(info->dev, "no battery information is supplied\n");
+		/*
+		 * If no battery information is supplied, we should set
+		 * default charge termination current to 120 mA, and default
+		 * charge termination voltage to 4.44V.
+		 */
 		info->vol_max_mv = 4440;
 	} else {
+		info->cur.sdp_limit = bat_info.cur.sdp_limit;
+		info->cur.sdp_cur = bat_info.cur.sdp_cur;
+		info->cur.dcp_limit = bat_info.cur.dcp_limit;
+		info->cur.dcp_cur = bat_info.cur.dcp_cur;
+		info->cur.cdp_limit = bat_info.cur.cdp_limit;
+		info->cur.cdp_cur = bat_info.cur.cdp_cur;
+		info->cur.unknown_limit = bat_info.cur.unknown_limit;
+		info->cur.unknown_cur = bat_info.cur.unknown_cur;
+		info->cur.fchg_limit = bat_info.cur.fchg_limit;
+		info->cur.fchg_cur = bat_info.cur.fchg_cur;
+
 		info->vol_max_mv = bat_info.constant_charge_voltage_max_uv / 1000;
-		power_supply_put_battery_info(info->psy_usb, &bat_info);
+		sprd_battery_put_battery_info(info->psy_usb, &bat_info);
 	}
 
 	ret = regmap_update_bits(info->regmap, BQ25910_REG_D,

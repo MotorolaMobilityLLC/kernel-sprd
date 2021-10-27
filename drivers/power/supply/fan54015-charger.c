@@ -17,6 +17,7 @@
 #include <linux/pm_wakeup.h>
 #include <linux/power_supply.h>
 #include <linux/power/charger-manager.h>
+#include <linux/power/sprd_battery_info.h>
 #include <linux/regmap.h>
 #include <linux/regulator/driver.h>
 #include <linux/regulator/machine.h>
@@ -227,77 +228,16 @@ static int fan54015_charger_set_safety_cur(struct fan54015_charger_info *info, u
 				    reg_val << FAN54015_REG_CURRENT_MASK_SHIFT);
 }
 
-int fan54015_get_battery_cur(struct power_supply *psy,
-			     struct fan54015_charge_current *bat_cur)
-{
-	struct device_node *battery_np;
-	const char *value;
-	int err;
-
-	bat_cur->sdp_cur = -EINVAL;
-	bat_cur->sdp_limit = -EINVAL;
-	bat_cur->dcp_cur = -EINVAL;
-	bat_cur->dcp_limit = -EINVAL;
-	bat_cur->cdp_cur = -EINVAL;
-	bat_cur->cdp_limit = -EINVAL;
-	bat_cur->unknown_cur = -EINVAL;
-	bat_cur->unknown_limit = -EINVAL;
-
-	if (!psy->of_node) {
-		dev_warn(&psy->dev, "%s currently only supports devicetree\n", __func__);
-		return -ENXIO;
-	}
-
-	battery_np = of_parse_phandle(psy->of_node, "monitored-battery", 0);
-	if (!battery_np)
-		return -ENODEV;
-
-	err = of_property_read_string(battery_np, "compatible", &value);
-	if (err)
-		goto out_put_node;
-
-	if (strcmp("simple-battery", value)) {
-		err = -ENODEV;
-		goto out_put_node;
-	}
-
-	of_property_read_u32_index(battery_np, "charge-sdp-current-microamp", 0,
-				   &bat_cur->sdp_cur);
-	of_property_read_u32_index(battery_np, "charge-sdp-current-microamp", 1,
-				   &bat_cur->sdp_limit);
-	of_property_read_u32_index(battery_np, "charge-dcp-current-microamp", 0,
-				   &bat_cur->dcp_cur);
-	of_property_read_u32_index(battery_np, "charge-dcp-current-microamp", 1,
-				   &bat_cur->dcp_limit);
-	of_property_read_u32_index(battery_np, "charge-cdp-current-microamp", 0,
-				   &bat_cur->cdp_cur);
-	of_property_read_u32_index(battery_np, "charge-cdp-current-microamp", 1,
-				   &bat_cur->cdp_limit);
-	of_property_read_u32_index(battery_np, "charge-unknown-current-microamp", 0,
-				   &bat_cur->unknown_cur);
-	of_property_read_u32_index(battery_np, "charge-unknown-current-microamp", 1,
-				   &bat_cur->unknown_limit);
-
-out_put_node:
-	of_node_put(battery_np);
-	return err;
-}
-
 static int fan54015_charger_hw_init(struct fan54015_charger_info *info)
 {
-	struct power_supply_battery_info bat_info = { };
+	struct sprd_battery_info bat_info = {};
 	int voltage_max_microvolt;
 	int ret;
 
-	ret = fan54015_get_battery_cur(info->psy_usb, &info->cur);
+	ret = sprd_battery_get_battery_info(info->psy_usb, &bat_info);
 	if (ret) {
-		dev_warn(info->dev, "no battery current information is supplied\n");
+		dev_warn(info->dev, "no battery information is supplied\n");
 
-		/*
-		 * If no battery information is supplied, we should set
-		 * default charge termination current to 100 mA, and default
-		 * charge termination voltage to 4.2V.
-		 */
 		info->cur.sdp_limit = 500000;
 		info->cur.sdp_cur = 500000;
 		info->cur.dcp_limit = 1500000;
@@ -306,15 +246,25 @@ static int fan54015_charger_hw_init(struct fan54015_charger_info *info)
 		info->cur.cdp_cur = 1000000;
 		info->cur.unknown_limit = 500000;
 		info->cur.unknown_cur = 500000;
-	}
 
-	ret = power_supply_get_battery_info(info->psy_usb, &bat_info);
-	if (ret) {
-		dev_warn(info->dev, "no battery information is supplied\n");
+		/*
+		 * If no battery information is supplied, we should set
+		 * default charge termination current to 120 mA, and default
+		 * charge termination voltage to 4.44V.
+		 */
 		voltage_max_microvolt = 4440;
 	} else {
+		info->cur.sdp_limit = bat_info.cur.sdp_limit;
+		info->cur.sdp_cur = bat_info.cur.sdp_cur;
+		info->cur.dcp_limit = bat_info.cur.dcp_limit;
+		info->cur.dcp_cur = bat_info.cur.dcp_cur;
+		info->cur.cdp_limit = bat_info.cur.cdp_limit;
+		info->cur.cdp_cur = bat_info.cur.cdp_cur;
+		info->cur.unknown_limit = bat_info.cur.unknown_limit;
+		info->cur.unknown_cur = bat_info.cur.unknown_cur;
+
 		voltage_max_microvolt = bat_info.constant_charge_voltage_max_uv / 1000;
-		power_supply_put_battery_info(info->psy_usb, &bat_info);
+		sprd_battery_put_battery_info(info->psy_usb, &bat_info);
 	}
 
 	if (of_device_is_compatible(info->dev->of_node, "fairchild,fan54015_chg")) {
