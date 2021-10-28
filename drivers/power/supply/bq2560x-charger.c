@@ -1801,10 +1801,16 @@ static int bq2560x_charger_probe(struct i2c_client *client,
 		strncpy(charge_ic_vendor_name,"SY6974",20);
 	else if ( val == 0x11 )
 		strncpy(charge_ic_vendor_name,"BQ25601",20);
-	else if ( ((val & 0x7c) == 0x64)  || ((val & 0x7c) == 0x6c) )
-		strncpy(charge_ic_vendor_name,"SGM41542",20);
 	else
-		return -ENODEV;
+	{
+		info->client->addr = 0x3b;
+		bq2560x_read(info,BQ2560X_REG_B, &val);
+		dev_err(dev, "%s;i2c 0x3b  val=%x;\n",__func__,val);
+		if ( ((val & 0x7c) == 0x64)  || ((val & 0x7c) == 0x6c) )
+			strncpy(charge_ic_vendor_name,"SGM41542",20);
+		else
+			return -ENODEV;
+	}
 
 	dev_err(dev, "%s;%s;\n",__func__,charge_ic_vendor_name);
 
