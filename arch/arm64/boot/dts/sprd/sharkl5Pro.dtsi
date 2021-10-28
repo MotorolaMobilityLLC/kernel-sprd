@@ -2093,11 +2093,11 @@
 		clock-output-names = "dphy-204m8";
 	};
 
-	cache_efuse: efuse@15c00 {
+	cache_efuse: efuse@800 {
 		compatible = "sprd,ums312-cache-efuse", "sprd,ums512-cache-efuse";
 		#address-cells = <1>;
 		#size-cells = <1>;
-		reg = <0 0x15c00 0 0x3ff>;
+		reg = <0 0x800 0 0x3ff>;
 
 		uid_start: uid-start@5c{
 			reg = <0x5c 0x4>;
