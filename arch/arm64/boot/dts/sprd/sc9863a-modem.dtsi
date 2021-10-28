@@ -327,7 +327,7 @@
 		sprd,name = "slog_bridge";
 		sprd,tx_is_usb = <1>;
 		sprd,tx_dst = <0>;
-		sprd,rx_dst = <5 1>;
+		sprd,rx_dst = <5>;
 		sprd,priority = <86>;
 	};
 
