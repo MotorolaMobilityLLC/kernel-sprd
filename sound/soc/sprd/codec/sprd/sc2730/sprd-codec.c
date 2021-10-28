@@ -96,6 +96,7 @@ enum {
 	SPRD_CODEC_DC_OS_SWITCH_ORDER = 104,
 	SPRD_CODEC_DC_OS_ORDER = 105,
 	SPRD_CODEC_RCV_DEPOP_ORDER = 106,
+	SPRD_CODEC_HP_DALR_ORDER = 107,
 	SPRD_CODEC_MIXER_ORDER = 110,/* Must be the last one */
 };
 
@@ -1836,6 +1837,22 @@ static int rcv_depop_event(struct snd_soc_dapm_widget *w,
 	return ret;
 }
 
+/*add sprd patch by yyx start*/
+static int hpr_sdar_event(struct snd_soc_dapm_widget *w,
+				struct snd_kcontrol *kcontrol, int event)
+{
+	struct snd_soc_codec *codec = snd_soc_dapm_to_codec(w->dapm);
+	int on = !!SND_SOC_DAPM_EVENT_ON(event);
+
+	sp_asoc_pr_dbg("%s wname %s %s\n", __func__, w->name, get_event_name(event));
+
+	if (on) {
+		update_switch(codec, SDARHPR, on);
+	}
+	return 0;
+}
+/*add sprd patch by yyx end*/
+
 static int hp_depop_event(struct snd_soc_dapm_widget *w,
 			    struct snd_kcontrol *kcontrol, int event)
 {
@@ -1898,6 +1915,22 @@ static int ear_path_event(struct snd_soc_dapm_widget *w,
 	}
 	return ret;
 }
+
+/*add sprd patch by yyx start*/
+static int hpl_sdal_event(struct snd_soc_dapm_widget *w,
+				struct snd_kcontrol *kcontrol, int event)
+{
+	struct snd_soc_codec *codec = snd_soc_dapm_to_codec(w->dapm);
+	int on = !!SND_SOC_DAPM_EVENT_ON(event);
+
+	sp_asoc_pr_dbg("%s wname %s %s\n", __func__, w->name, get_event_name(event));
+
+	if (on) {
+		update_switch(codec, SDALHPL, on);
+	}
+	return 0;
+}
+/*add sprd patch by yyx end*/
 
 static int adcl_event(struct snd_soc_dapm_widget *w,
 			 struct snd_kcontrol *kcontrol, int event)
@@ -2568,6 +2601,19 @@ static const struct snd_soc_dapm_widget sprd_codec_dapm_widgets[] = {
 	SND_SOC_DAPM_MIXER("HPR Mixer", SND_SOC_NOPM, 0, 0,
 		&hpr_mixer_controls[0],
 		ARRAY_SIZE(hpr_mixer_controls)),
+
+/*add sprd patch by yyx start*/
+	SND_SOC_DAPM_PGA_S("HPL SDAL", SPRD_CODEC_HP_DALR_ORDER,
+		SND_SOC_NOPM,
+		0, 0, hpl_sdal_event,
+		SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_PRE_PMD),
+
+	SND_SOC_DAPM_PGA_S("HPR SDAR", SPRD_CODEC_HP_DALR_ORDER,
+		SND_SOC_NOPM,
+		0, 0, hpr_sdar_event,
+		SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_PRE_PMD),
+/*add sprd patch by yyx end*/
+
 	SND_SOC_DAPM_PGA_S("HP DEPOP", SPRD_CODEC_DEPOP_ORDER,
 		SND_SOC_NOPM,
 		0, 0, hp_depop_event,
@@ -2759,6 +2805,14 @@ static const struct snd_soc_dapm_route sprd_codec_intercon[] = {
 	{"HPR Mixer", "DACRHPR Switch", "DACR Switch"},
 	{"HP DEPOP", NULL, "HPL Mixer"},
 	{"HP DEPOP", NULL, "HPR Mixer"},
+
+/*add sprd patch by yyx start*/
+	{"HPL SDAL", NULL, "HPL Mixer"},
+	{"HPR SDAR", NULL, "HPR Mixer"},
+	{"HP DEPOP", NULL, "HPL SDAL"},
+	{"HP DEPOP", NULL, "HPR SDAR"},
+/*add sprd patch by yyx end*/
+
 	{"DALR DC Offset", NULL, "HP DEPOP"},
 	{"HP BUF Switch", NULL, "DALR DC Offset"},
 	{"HPL EAR Sel2", NULL, "HP BUF Switch"},
