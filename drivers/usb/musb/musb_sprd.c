@@ -1121,13 +1121,18 @@ static void musb_sprd_disable_all_interrupts(struct musb *musb)
 	/* disable dma interrupts */
 	for (i = 1; i <= MUSB_DMA_CHANNELS; i++) {
 		intr = musb_readl(mbase, MUSB_DMA_CHN_INTR(i));
-		if (i < 16)
-			intr |= CHN_LLIST_INT_CLR | CHN_START_INT_CLR |
-				CHN_FRAG_INT_CLR | CHN_BLK_INT_CLR;
-		else
-			intr |= CHN_LLIST_INT_CLR | CHN_START_INT_CLR |
-				CHN_FRAG_INT_CLR | CHN_BLK_INT_CLR |
-				CHN_USBRX_LAST_INT_CLR;
+		intr &= ~(CHN_LLIST_INT_EN | CHN_START_INT_EN |
+			CHN_USBRX_INT_EN | CHN_CLEAR_INT_EN);
+		musb_writel(mbase, MUSB_DMA_CHN_INTR(i),
+			intr);
+	}
+
+	/* flush dma interrupts */
+	for (i = 1; i <= MUSB_DMA_CHANNELS; i++) {
+		intr = musb_readl(mbase, MUSB_DMA_CHN_INTR(i));
+		intr |= CHN_LLIST_INT_CLR | CHN_START_INT_CLR |
+			CHN_FRAG_INT_CLR | CHN_BLK_INT_CLR |
+			CHN_USBRX_LAST_INT_CLR;
 		musb_writel(mbase, MUSB_DMA_CHN_INTR(i),
 			intr);
 	}
