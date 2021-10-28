@@ -571,8 +571,8 @@
 		//vddcammot-supply = <&vddcammot>;
 		reset-gpios = <&ap_gpio 44 0>;
 		//power-down-gpios = <&ap_gpio 46 0>;
-		//mipi-switch-en-gpios = <&ap_gpio 55 0>;
-		//mipi-switch-mode-gpios = <&ap_gpio 8 0>;
+		mipi-switch-en-gpios = <&ap_gpio 172 0>;
+		mipi-switch-mode-gpios = <&ap_gpio 167 0>;
 		sprd,phyid = <2>;
 		csi = <&csi0>;
 	};
