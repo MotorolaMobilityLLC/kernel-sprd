@@ -722,10 +722,6 @@
 	status = "okay";
 };
 
-&fd {
-	status = "okay";
-};
-
 &cpp {
 	status = "okay";
 };

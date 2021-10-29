@@ -697,39 +697,6 @@
 				status = "okay";
 				#iommu-cells = <0>;
 			};
-			fd: fd@3C000000 {
-				compatible = "sprd,fd";
-				reg = <0 0x3C000000 0 0x100000>;
-				interrupts = <GIC_SPI 40 IRQ_TYPE_LEVEL_HIGH>;
-				interrupts_name = "fdraw";
-				clock-names = "fd_eb",
-					"fd_axi_eb", /* no need read, TBC */
-					"fd_clk",
-					"fd_clk_parent";
-				clocks = <&mm_gate CLK_MM_FD_EB>,
-					<&mm_gate CLK_MM_ISP_EB>,
-					<&mm_clk CLK_FD>,
-					<&pll1 CLK_TWPLL_384M>;
-				fd_eb = <&mm_ahb_regs
-					REG_MM_AHB_AHB_EB
-					MASK_MM_AHB_FD_EB>;
-				fd_rst = <&mm_ahb_regs
-					REG_MM_AHB_AHB_RST
-					MASK_MM_AHB_FD_SOFT_RST>;
-				fd_save_rst = <&mm_ahb_regs
-					REG_MM_AHB_AHB_RST
-					MASK_MM_AHB_FD_SOFT_RST_MASK>;
-				fd_lpc = <&mm_ahb_regs
-					REG_MM_AHB_MM_LPC_CTRL_FD
-					MASK_MM_AHB_LP_EB_FD>;
-				fd_dvfs_eb = <&mm_ahb_regs
-					REG_MM_AHB_AHB_EB
-					MASK_MM_AHB_DVFS_EB>;
-				iommus = <&iommu_fd>;
-				fd_qos = <&fd_qos>;
-				power-domains = <&mm_domain>;
-				status = "okay";
-			};
 			iommu_fd: iommu@3C000000 {
 				compatible = "sprd,iommuvaul6-fd";
 				reg = <0 0x3C000000 0 0x110>,
