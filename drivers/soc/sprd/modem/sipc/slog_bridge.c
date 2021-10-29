@@ -86,6 +86,7 @@ struct slog_bridge {
 	struct list_head pool_list;
 	struct list_head send_list;
 	struct list_head pending_list;
+	struct block_node *blk_buffer;
 	spinlock_t	list_lock;
 };
 
@@ -137,38 +138,17 @@ static void slog_block_list_init(struct slog_bridge *sb)
 
 	for (i = 0; i < BLK_POOL_CNT; i++) {
 		blk = devm_kzalloc(sb->dev, sizeof(*blk), GFP_KERNEL);
-		if (blk)
+		if (blk) {
+			sb->blk_buffer = blk;
 			list_add_tail(&blk->list, &sb->pool_list);
+		}
 	}
 }
 
 static void slog_block_list_free(struct slog_bridge *sb)
 {
-	struct block_node *blk, *temp;
-
-	list_for_each_entry_safe(blk,
-				 temp,
-				 &sb->pool_list,
-				 list) {
-		list_del(&blk->list);
-		kfree(blk);
-	}
-
-	list_for_each_entry_safe(blk,
-				 temp,
-				 &sb->send_list,
-				 list) {
-		list_del(&blk->list);
-		kfree(blk);
-	}
-
-	list_for_each_entry_safe(blk,
-				 temp,
-				 &sb->pending_list,
-				 list) {
-		list_del(&blk->list);
-		kfree(blk);
-	}
+	if (sb->blk_buffer != NULL)
+		kfree(sb->blk_buffer);
 }
 
 static void slog_block_release(struct slog_bridge *sb, void *addr,
@@ -244,13 +224,33 @@ static struct block_node *slog_block_request(struct slog_bridge *sb,
 	return blk;
 }
 
+static struct block_node *slog_block_pending(struct slog_bridge *sb, struct block_node *blk)
+{
+	unsigned long flags;
+
+	spin_lock_irqsave(&sb->list_lock, flags);
+	/* get from send list */
+	blk = list_first_entry(&sb->send_list, struct block_node, list);
+	sb->pending_cnt++;
+	sb->send_cnt--;
+
+	/* remove from send list */
+	list_del(&blk->list);
+	/* add to pending list*/
+	list_add(&blk->list, &sb->pending_list);
+	spin_unlock_irqrestore(&sb->list_lock, flags);
+	return blk;
+}
+
 static struct block_node *slog_block_send(struct slog_bridge *sb)
 {
 	struct block_node *blk;
 	unsigned long flags;
 
-	if (list_empty(&sb->pending_list))
+	if (list_empty(&sb->pending_list)) {
+		pr_err("slog_bridge, %s: list empty, return\n", __func__);
 		return NULL;
+	}
 
 	spin_lock_irqsave(&sb->list_lock, flags);
 	/* get from pending list */
@@ -398,8 +398,10 @@ static int slog_bridge_receive(struct slog_bridge *sb,
 
 	/* all rx read data send to tx. */
 	if (!(ushort volatile)log_transport || sblock_receive(sblock_rx->dst, sblock_rx->channel,
-			      &blk_rx, 0) != 0)
+			      &blk_rx, 0) != 0) {
+		pr_err("%s: log_transport=%d\n", __func__, (ushort volatile)log_transport);
 		return -1;
+	}
 
 	vaddr = __va(blk_rx.addr - sblock_rx->smem_virt +
 		     sblock_rx->stored_smem_addr);
@@ -468,7 +470,7 @@ static void slog_bridge_write_to_usb(struct slog_bridge *sb)
 	/* all rx read data send to tx. */
 	while (sb->send_cnt < 80 && (blk = slog_block_send(sb)) != NULL) {
 		if (!(ushort volatile)log_transport) {
-			dev_info(sb->dev, "slog usb pull out!\n");
+			dev_info(sb->dev, "%s: usb pull out!\n", __func__);
 			slog_block_release(sb, blk->vaddr, blk->length);
 		}
 
@@ -478,7 +480,7 @@ static void slog_bridge_write_to_usb(struct slog_bridge *sb)
 			/* means usb is busy, write later. */
 			dev_err_once(sb->dev, "dst = %d, vser_pass_user_write fail ret = %d!\n",
 				blk->dst, ret);
-			slog_block_release(sb, blk->vaddr, blk->length);
+			slog_block_pending(sb, blk);
 			break;
 		}
 	}
