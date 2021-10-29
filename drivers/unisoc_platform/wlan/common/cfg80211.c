@@ -738,6 +738,9 @@ int sprd_cfg80211_disconnect(struct wiphy *wiphy, struct net_device *ndev,
 	if (ret)
 		vif->sm_state = old_state;
 
+	if (vif->mode == SPRD_MODE_STATION ||
+	    vif->mode == SPRD_MODE_STATION_SECOND)
+		vif->dis_random_flag = 1;
 	return ret;
 }
 

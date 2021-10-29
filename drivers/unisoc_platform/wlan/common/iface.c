@@ -1029,6 +1029,18 @@ static int iface_set_mac(struct net_device *dev, void *addr)
 			memcpy(dev->dev_addr, vif->mac, ETH_ALEN);
 		}
 	}
+	if (vif->dis_random_flag == 1) {
+		if (vif->has_rand_mac) {
+			netdev_info(dev, "set random mac after disconnect: %pM\n",
+				    vif->random_mac);
+			ret = sprd_set_random_mac(vif->priv, vif,
+						  SPRD_CONNECT_RANDOM_ADDR,
+						  vif->random_mac);
+			if (ret)
+				netdev_info(dev, "set random mac failed after disconnect!\n");
+		}
+		vif->dis_random_flag = 0;
+	}
 
 	if (vif->wdev.iftype == NL80211_IFTYPE_P2P_GO ||
 	    vif->wdev.iftype == NL80211_IFTYPE_P2P_CLIENT) {

@@ -96,6 +96,7 @@ struct sprd_vif {
 	struct kobject sprd_power_obj;
 	bool reduce_power;
 	enum nl80211_cqm_rssi_threshold_event cqm;
+	unsigned int dis_random_flag;
 };
 
 void sprd_put_vif(struct sprd_vif *vif);
