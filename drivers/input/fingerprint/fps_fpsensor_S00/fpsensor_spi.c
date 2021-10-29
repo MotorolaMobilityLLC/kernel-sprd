@@ -366,7 +366,7 @@ out:
 }
 #endif
 
-static int fpsensor_enable_power(void)
+/*static int fpsensor_enable_power(void)
 {
     int ret = 0;
     fpsensor_data_t *fp_dev = g_fpsensor ;
@@ -414,7 +414,7 @@ static int fpsensor_disable_power(void)
 err:
     regulator_put(g_fpsensor->vdd_reg);
     return ret;
-}
+}*/
 
 static long fpsensor_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
@@ -496,7 +496,7 @@ static long fpsensor_ioctl(struct file *filp, unsigned int cmd, unsigned long ar
     case FPSENSOR_IOC_ENABLE_POWER:
         fpsensor_info("FPSENSOR_IOC_ENABLE_POWER ======\n");
         //fpsensor_hw_power_enable(1);
-        fpsensor_enable_power();
+        //fpsensor_enable_power();
         break;
     case FPSENSOR_IOC_DISABLE_POWER:
         fpsensor_info("FPSENSOR_IOC_DISABLE_POWER ======\n");
@@ -589,7 +589,7 @@ static long fpsensor_ioctl(struct file *filp, unsigned int cmd, unsigned long ar
       #else
       wake_lock_destroy(&fpsensor_dev->ttw_wl);
        #endif
-        fpsensor_disable_power();
+        //fpsensor_disable_power();
         fpsensor_info("remove finished\n");
         break;
     case FPSENSOR_IOC_CANCEL_WAIT:
