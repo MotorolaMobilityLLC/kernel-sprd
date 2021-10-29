@@ -1,6 +1,10 @@
 subdir-ccflags-y += -I$(src)
 subdir-ccflags-y += -I$(src)/sys
 
+ifdef CONFIG_ARM64
+KBUILD_CFLAGS += -mstrict-align
+endif
+
 apsys-dvfs-y := \
 	sprd_dvfs_apsys.o \
 	sprd_dvfs_dpu.o \

@@ -2,7 +2,7 @@
 /*
  * Copyright (C) 2020 Unisoc Inc.
  */
-
+#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 #include "sprd_dvfs_vsp.h"
 #include "../sys/apsys_dvfs_sharkl5pro.h"
 

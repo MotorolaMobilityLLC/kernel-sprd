@@ -2,7 +2,7 @@
 /*
  * Copyright (C) 2020 Unisoc Inc.
  */
-
+#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 #include "sprd_dvfs_vsp.h"
 
 LIST_HEAD(vsp_dvfs_head);
