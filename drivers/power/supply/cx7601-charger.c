@@ -551,8 +551,8 @@ static int cx7601_trim(struct cx7601_charger_info *info)
 //	else {
 //		pr_err("Trim cx7601 OK\n");
 //	}
-	ret = cx7601_update_bits(info,0x84,0x03, 0x02);
-	ret = cx7601_write(info, 0x40, 0x00);
+//	ret = cx7601_update_bits(info,0x84,0x03, 0x02);
+//	ret = cx7601_write(info, 0x40, 0x00);
 	ret = cx7601_update_bits(info, CX7601_REG_0C, 0x20, 0x20); //BAT_LOADEN=1
 	return ret;
 }
@@ -1459,10 +1459,12 @@ static int cx7601_charger_probe(struct i2c_client *client,
 	cx7601_write(info, 0x83, 0x2D);
 	cx7601_read(info, &val, 0x83);
 	dev_err(dev, "%s;enter;0x83=%x;\n",__func__,val);
+	ret = cx7601_update_bits(info,0x84,0x03, 0x01);
+	ret = cx7601_write(info, 0x40, 0x00);
 
 
 	cx7601_read(info, &val, CX7601_REG_0A);
-	dev_err(dev, "%s;%x;\n",__func__,val);
+	dev_err(dev, "%s;%x;01;\n",__func__,val);
 	if( ((val & 0xe0) >>5) == 0x02  &&   (val & 0x07) == 0x00 )
 	       strncpy(charge_ic_vendor_name,"CX7601",20);
 	else
