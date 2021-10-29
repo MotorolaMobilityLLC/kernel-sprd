@@ -744,8 +744,8 @@ static ssize_t msg_print_ext_header(char *buf, size_t size,
 
 	do_div(ts_usec, 1000);
 
-	return scnprintf(buf, size, "%u,%llu,%llu,%c%s;",
-			 (msg->facility << 3) | msg->level, seq, ts_usec,
+	return scnprintf(buf, size, "%u,%llu,%llu,c%d,%c%s;",
+			 (msg->facility << 3) | msg->level, seq, ts_usec, msg->cpu,
 			 msg->flags & LOG_CONT ? 'c' : '-', caller);
 }
 
