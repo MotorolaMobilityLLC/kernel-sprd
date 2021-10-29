@@ -83,6 +83,13 @@
                                // egis-fp,vcc-current = <12000>;
                         };
 
+			flash-gpios {
+				compatible = "sprd,flash-aw3641";
+				flash-ic = <3641>;
+				flash-torch-en-gpios = <&ap_gpio 139 0>;
+				flash-en-gpios = <&ap_gpio 138 0>;
+			};
+
 			gpio-keys {
 				compatible = "gpio-keys";
 
@@ -692,7 +699,7 @@
 		switch_chg_en_gpio = <&ap_gpio 171 GPIO_ACTIVE_HIGH>;
 		//switch_flag_en_gpio = <&ap_gpio 176 GPIO_ACTIVE_HIGH>;
 	};
-
+/*
 	flash_ic: flash-ic@63 {
 		compatible = "sprd,flash-aw36514","sprd,flash-ocp81375",
 				"sprd,flash-sy7806";
@@ -711,6 +718,7 @@
 		//flash-sync-gpios = <&ap_gpio 121 0>;
 		status = "okay";
 	};
+*/
 };
 /*
 &aon_i2c0 {
