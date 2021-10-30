@@ -33,6 +33,14 @@
 #endif
 //#include <linux/cdc_com.h>
 
+//begin, add for hwinfo
+#include "ontim/ontim_dev_dgb.h"
+#define CHIPONE_HW_INFO "ICNF7312"
+DEV_ATTR_DECLARE(fingersensor)
+DEV_ATTR_DEFINE("vendor", CHIPONE_HW_INFO)
+DEV_ATTR_DECLARE_END;
+ONTIM_DEBUG_DECLARE_AND_INIT(fingersensor, fingersensor, 8);
+//end
 
 #define FPSENSOR_SPI_VERSION              "fpsensor_spi_tee_spreadtrum_v1.22.2"
 #define FP_NOTIFY                         1
@@ -616,6 +624,10 @@ static long fpsensor_ioctl(struct file *filp, unsigned int cmd, unsigned long ar
         }
         fpsensor_dev->enable_report_blankon = val;
         fpsensor_info("%s: FPSENSOR_IOC_ENABLE_REPORT_BLANKON: %d\n", __func__, val);
+        //add fpvendor for chipone hwinfo
+        fpsensor_debug("add fpvendor for hwinfo\n");
+        CHECK_THIS_DEV_DEBUG_AREADY_EXIT();
+        REGISTER_AND_INIT_ONTIM_DEBUG_FOR_THIS_DEV();
         break;
     case FPSENSOR_IOC_UPDATE_DRIVER_SN:
         if (copy_from_user(&g_cmd_sn, (void __user *)arg, sizeof(uint32_t))) {
@@ -624,7 +636,7 @@ static long fpsensor_ioctl(struct file *filp, unsigned int cmd, unsigned long ar
             break;
         }
         break;
-	     case FPSENSOR_IOC_GET_CHIP_INFO:
+    case FPSENSOR_IOC_GET_CHIP_INFO:
         if (copy_from_user(&fpsensor_chip_info,
 			(chipone_chip_info *)arg, sizeof(fpsensor_chip_info))) {
             fpsensor_error("fpsensor Failed to get fpsensor_chip_info from user\n");

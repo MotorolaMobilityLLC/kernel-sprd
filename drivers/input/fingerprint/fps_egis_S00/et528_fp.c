@@ -60,6 +60,15 @@
 #include "et528_fp.h"
 #include <linux/input.h>
 
+//begin, add for hwinfo
+#include "ontim/ontim_dev_dgb.h"
+#define EGIS_HW_INFO "ET528"
+DEV_ATTR_DECLARE(fingersensor)
+DEV_ATTR_DEFINE("vendor", EGIS_HW_INFO)
+DEV_ATTR_DECLARE_END;
+ONTIM_DEBUG_DECLARE_AND_INIT(fingersensor, fingersensor, 8);
+//end
+
 #define EGIS_COMPATIBLE_NODE "sprd,fingerprint-fpsensor"
 struct egisfp_dev_t *g_data = NULL;
 DECLARE_BITMAP(minors, N_SPI_MINORS);
@@ -521,6 +530,10 @@ long egisfp_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	{
 	case FP_GET_RESOURCE:
 		DEBUG_PRINT(" %s : FP_GET_RESOURCE \n", __func__);
+                //add fpvendor for egis hwinfo
+                DEBUG_PRINT(" %s : add hwinfo for egis \n", __func__);
+                CHECK_THIS_DEV_DEBUG_AREADY_EXIT();
+                REGISTER_AND_INIT_ONTIM_DEBUG_FOR_THIS_DEV();
 		if (egisfp_platforminit(egis_dev))
 			retval = -EIO;
 		break;
