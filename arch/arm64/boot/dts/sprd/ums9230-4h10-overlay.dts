@@ -894,7 +894,7 @@
 &i2c3 {
 	status = "okay";
 
-	sx933x@28 { /* SAR sensor */
+	/*sx933x@28 { SAR sensor
 	compatible = "Semtech,sx933x";
 		reg = <0x28>;
 		interrupt-parent = <&ap_gpio>;
@@ -902,7 +902,18 @@
 		interrupt-names = "sx933x_irq";
 		Semtech,nirq-gpio= <&ap_gpio 176 0>;
 		status = "ok";
-	};
+	};*/
+        aw9610x_sar@12 {
+                compatible = "awinic,aw9610x_sar";
+                reg = <0x12>;
+                interrupt-parent = <&ap_gpio>;
+                interrupts = <176 0x02>;
+                irq-gpio = <&ap_gpio 176 0>;
+                aw9610x,using-firmware;
+                //vcc0-supply = <&pm660l_l4>;
+                sar-num = < 0 >;
+                status = "okay";
+        };
 };
 
 &sprd_headset {
