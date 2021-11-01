@@ -500,7 +500,7 @@ void sprd_dump_stack_reg(int cpu, struct pt_regs *pregs)
 
 	if (!sprd_virt_addr_valid(frame.pc)) {
 		SEQ_printf(sprd_sr_seq_buf, "invalid pc\n");
-		return;
+		goto unlock;
 	}
 	SEQ_printf(sprd_sr_seq_buf, "callstack:\n");
 	SEQ_printf(sprd_sr_seq_buf, "[<%08lx>] (%ps)\n", frame.pc, (void *)frame.pc);
