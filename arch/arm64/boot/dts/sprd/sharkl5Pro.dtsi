@@ -456,6 +456,9 @@
 				qos-aw = <&mm_ahb_regs
 					REG_MM_AHB_RF_MM_QOS
 					MASK_MM_AHB_RF_AW_QOS_THRESHOLD_MM>;
+				aon-apb-mm-eb = <&aon_apb_regs
+					REG_AON_APB_RF_APB_EB0
+					MASK_AON_APB_RF_MM_EB>;
 				clock-names = "clk_mm_eb",
 					"clk_mm_ahb_eb",
 					"clk_mm_ahb",
