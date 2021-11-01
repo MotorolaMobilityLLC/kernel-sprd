@@ -71,6 +71,10 @@
 #define SPRD_KEY_SEQ_LEN			8
 #define SPRD_ACS_CHAN_NUM_MIN			3
 
+#ifndef SPRD_MAX_CMD_TXLEN
+#define SPRD_MAX_CMD_TXLEN			1396
+#endif
+
 extern unsigned int wfa_cap;
 enum CMD_LIST {
 	CMD_MIN = 0,
