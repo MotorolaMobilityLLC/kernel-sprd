@@ -478,6 +478,7 @@ void sprd_dump_stack_reg(int cpu, struct pt_regs *pregs)
 #ifdef CONFIG_FUNCTION_GRAPH_TRACER
 	frame.graph = 0;
 #endif
+	bitmap_zero(frame.stacks_done, __NR_STACK_TYPES);
 #else
 	frame.fp = pregs->ARM_fp;
 	frame.sp = pregs->ARM_sp;
