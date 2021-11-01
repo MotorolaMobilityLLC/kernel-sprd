@@ -2405,7 +2405,6 @@ musb_init_controller(struct device *dev, int nIrq, void __iomem *ctrl)
 	musb->is_initialized = 1;
 	pm_runtime_mark_last_busy(musb->controller);
 	pm_runtime_put_autosuspend(musb->controller);
-	pm_suspend_ignore_children(musb->controller, true);
 
 	return 0;
 

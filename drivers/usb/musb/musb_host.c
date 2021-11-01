@@ -3004,9 +3004,6 @@ static int musb_bus_suspend(struct usb_hcd *hcd)
 	u8		devctl;
 	int		ret;
 
-	if (pm_runtime_suspended(musb->controller))
-		return 0;
-
 	ret = musb_port_suspend(musb, true);
 	if (ret)
 		return ret;
