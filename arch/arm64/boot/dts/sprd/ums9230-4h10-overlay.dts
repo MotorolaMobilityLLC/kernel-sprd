@@ -555,7 +555,7 @@
 		reset-gpios = <&ap_gpio 46 0>;
 		//power-down-gpios = <&ap_gpio 40 0>;
 		sprd,phyid = <3>;
-		csi = <&csi2>;
+		csi = <&csi0>;
 	};
 };
 
