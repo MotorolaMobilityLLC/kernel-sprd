@@ -2616,9 +2616,11 @@ int sc2355_set_vowifi(struct net_device *ndev, struct ifreq *ifr)
 	if (copy_from_user(&priv_cmd, ifr->ifr_data, sizeof(priv_cmd)))
 		return -EFAULT;
 
-	if (priv_cmd.total_len < sizeof(*tlv)) {
-		netdev_info(ndev, "%s: priv cmd total len is invalid\n",
-			    __func__);
+	/*bug1743709, add length check to avoid invalid NULL ptr*/
+	if ((priv_cmd.total_len < sizeof(*tlv)) ||
+	    (priv_cmd.total_len > SPRD_MAX_CMD_TXLEN)) {
+		netdev_info(ndev, "%s: priv cmd total len is invalid: %d\n",
+			    __func__, priv_cmd.total_len);
 		return -EINVAL;
 	}
 
