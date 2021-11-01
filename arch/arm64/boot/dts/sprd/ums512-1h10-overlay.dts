@@ -338,6 +338,13 @@
 		type = <2>;
 		memory-region = <&widevine_reserved>;
 	};
+
+	heap@2 {
+		reg = <2>;
+		label = "carveout_fd";
+		type = <2>;
+		memory-region = <&fd_reserved>;
+	};
 };
 
 &i2c0 {
