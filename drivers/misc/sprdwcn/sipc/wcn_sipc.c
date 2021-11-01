@@ -1022,6 +1022,51 @@ static int wcn_sipc_parse_dt(void)
 	return ret;
 }
 
+
+int wcn_sipc_mdbg_debug_show(void)
+{
+	struct sipc_chn_info *sipc_chn;
+	int i;
+
+	WCN_INFO("sipc chn info\n");
+	WCN_INFO("************************************\n");
+	for (i = 0; i < SIPC_CHN_NUM; i++) {
+			sipc_chn = SIPC_CHN(i);
+		if (!sipc_chn || !sipc_chn->chn)
+			continue;
+		WCN_INFO("index:%d inout:%d chntype:%d channel: %d",
+			sipc_chn->index,
+			sipc_chn->inout,
+			sipc_chn->chntype,
+			sipc_chn->chn);
+		WCN_INFO("chn_status %d pushq_num %d popq_num %d\n",
+			sipc_chn->sipc_chn_status,
+			sipc_chn->push_queue.mbuf_num,
+			sipc_chn->pop_queue.mbuf_num);
+	}
+	WCN_INFO("sipc chn statics info\n");
+	WCN_INFO("************************************\n");
+	for (i = 0; i < SIPC_CHN_NUM; i++) {
+			sipc_chn = SIPC_CHN(i);
+		if (!sipc_chn || !sipc_chn->chn)
+			continue;
+		WCN_INFO("\tindex:%.8u", sipc_chn->index);
+		WCN_INFO("\tuser_send %.8lld\tgivebackto_user %.8lld",
+			sipc_chn->chn_static.mbuf_recv_from_user,
+			sipc_chn->chn_static.mbuf_giveback_to_user);
+		WCN_INFO("\tbus_send %.8lld \tbus_recv %.8lld",
+			sipc_chn->chn_static.mbuf_send_to_bus,
+			sipc_chn->chn_static.mbuf_recv_from_bus);
+		WCN_INFO("\tmbuf_alloc %.8lld \tmbuf_free %.8lld",
+			sipc_chn->chn_static.mbuf_alloc_num,
+			sipc_chn->chn_static.mbuf_free_num);
+		WCN_INFO("\tbuf_alloc %.8lld \tbuf_free %.8lld\n",
+			sipc_chn->chn_static.buf_alloc_num,
+			sipc_chn->chn_static.buf_free_num);
+	}
+	return 0;
+}
+
 #if defined(CONFIG_DEBUG_FS)
 static int wcn_sipc_debug_show(struct seq_file *m, void *private)
 {

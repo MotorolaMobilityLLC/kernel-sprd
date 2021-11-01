@@ -31,6 +31,8 @@
 /* used for HEAD, so all dump mem in this array.
  * if new member added, please modify the macor XXX_START XXX_end above.
  */
+
+extern int wcn_sipc_mdbg_debug_show(void);
 struct wcn_dump_mem_reg {
 	/* some CP regs can't dump */
 	u32 addr;
@@ -700,6 +702,7 @@ void mdbg_dump_mem(void)
 
 	/* dump btwf */
 	btwf_dump_mem();
+	wcn_sipc_mdbg_debug_show();
 }
 
 int dump_arm_reg(void)
