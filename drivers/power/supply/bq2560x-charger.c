@@ -700,8 +700,7 @@ static void bq2560x_dump_register(struct bq2560x_charger_info *info)
 	dev_info(info->dev, "%s: %s", __func__, buf);
 }
 
-static int bq2560x_charger_feed_watchdog(struct bq2560x_charger_info *info,
-					 u32 val)
+static int bq2560x_charger_feed_watchdog(struct bq2560x_charger_info *info)
 {
 	int ret;
 	u32 limit_cur = 0;
@@ -713,6 +712,9 @@ static int bq2560x_charger_feed_watchdog(struct bq2560x_charger_info *info,
 		dev_err(info->dev, "reset bq2560x failed\n");
 		return ret;
 	}
+
+	if (info->otg_enable)
+		return 0;
 
 	ret = bq2560x_charger_get_limit_current(info, &limit_cur);
 	if (ret) {
@@ -1062,11 +1064,12 @@ static int bq2560x_charger_usb_get_property(struct power_supply *psy,
 				dev_err(info->dev, "get bq2560x charge status failed\n");
 				goto out;
 			}
+			val->intval = !(enabled & info->charger_pd_mask);
 		} else if (info->role == BQ2560X_ROLE_SLAVE) {
 			enabled = gpiod_get_value_cansleep(info->gpiod);
+			val->intval = !enabled;
 		}
 
-		val->intval = !enabled;
 		break;
 	default:
 		ret = -EINVAL;
@@ -1463,14 +1466,11 @@ bq2560x_charger_feed_watchdog_work(struct work_struct *work)
 							 wdt_work);
 	int ret;
 
-	ret = bq2560x_update_bits(info, BQ2560X_REG_1,
-				  BQ2560X_REG_WATCHDOG_MASK,
-				  BQ2560X_REG_WATCHDOG_MASK);
-	if (ret) {
-		dev_err(info->dev, "reset bq2560x failed\n");
-		return;
-	}
-	schedule_delayed_work(&info->wdt_work, HZ * 15);
+	ret = bq2560x_charger_feed_watchdog(info);
+	if (ret)
+		schedule_delayed_work(&info->wdt_work, HZ * 5);
+	else
+		schedule_delayed_work(&info->wdt_work, HZ * 15);
 }
 
 #if IS_ENABLED(CONFIG_REGULATOR)
@@ -1911,7 +1911,7 @@ static int bq2560x_charger_suspend(struct device *dev)
 	unsigned int wakeup_ms = BQ2560X_OTG_ALARM_TIMER_MS;
 
 	if (info->otg_enable || info->limit)
-		bq2560x_charger_feed_watchdog(info, 0);
+		bq2560x_charger_feed_watchdog(info);
 
 	if (!info->otg_enable)
 		return 0;
@@ -1932,7 +1932,7 @@ static int bq2560x_charger_resume(struct device *dev)
 	struct bq2560x_charger_info *info = dev_get_drvdata(dev);
 
 	if (info->otg_enable || info->limit)
-		bq2560x_charger_feed_watchdog(info, 0);
+		bq2560x_charger_feed_watchdog(info);
 
 	if (!info->otg_enable)
 		return 0;

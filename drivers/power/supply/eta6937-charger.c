@@ -686,8 +686,7 @@ static int eta6937_charger_get_online(struct eta6937_charger_info *info,
 	return 0;
 }
 
-static int eta6937_charger_feed_watchdog(struct eta6937_charger_info *info,
-					  u32 val)
+static int eta6937_charger_feed_watchdog(struct eta6937_charger_info *info)
 {
 	int ret;
 
@@ -978,13 +977,11 @@ eta6937_charger_feed_watchdog_work(struct work_struct *work)
 		return;
 	}
 
-	ret = eta6937_update_bits(info, ETA6937_REG_0, ETA6937_REG_TMR_RST_OTG_STAT_MASK,
-				  ETA6937_REG_TMR_RST_OTG_STAT_MASK);
-	if (ret) {
-		dev_err(info->dev, "%s, feed watchdog  failed ret = %d\n", __func__, ret);
-		return;
-	}
-	schedule_delayed_work(&info->wdt_work, HZ * 15);
+	ret = eta6937_charger_feed_watchdog(info);
+	if (ret)
+		schedule_delayed_work(&info->wdt_work, HZ * 5);
+	else
+		schedule_delayed_work(&info->wdt_work, HZ * 15);
 }
 
 #if IS_ENABLED(CONFIG_REGULATOR)
@@ -1317,7 +1314,7 @@ static int eta6937_charger_suspend(struct device *dev)
 
 	if (info->otg_enable || info->limit)
 		/* feed watchdog first before suspend */
-		eta6937_charger_feed_watchdog(info, 0);
+		eta6937_charger_feed_watchdog(info);
 
 	if (!info->otg_enable)
 		return 0;
@@ -1343,7 +1340,7 @@ static int eta6937_charger_resume(struct device *dev)
 
 	if (info->otg_enable || info->limit)
 		/* feed watchdog first before suspend */
-		eta6937_charger_feed_watchdog(info, 0);
+		eta6937_charger_feed_watchdog(info);
 
 	if (!info->otg_enable)
 		return 0;

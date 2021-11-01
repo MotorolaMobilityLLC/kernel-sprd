@@ -523,7 +523,7 @@ static int fan54015_charger_feed_watchdog(struct fan54015_charger_info *info)
 	ret = fan54015_update_bits(info, FAN54015_REG_0,
 				   FAN54015_REG_RESET_MASK, FAN54015_REG_RESET);
 	if (ret)
-		dev_err(info->dev, "reset fan54015 failed\n");
+		dev_err(info->dev, "fan54015 is failed to feeding watchdog, ret = %d\n", ret);
 
 	return ret;
 }
@@ -689,7 +689,7 @@ static int fan54015_charger_usb_get_property(struct power_supply *psy,
 			dev_err(info->dev, "get charge status failed\n");
 			goto out;
 		}
-		val->intval = !status;
+		val->intval = !(status & info->charger_pd_mask);
 		break;
 
 	default:
@@ -843,14 +843,12 @@ static void fan54015_charger_feed_watchdog_work(struct work_struct *work)
 		return;
 	}
 
-	ret = fan54015_update_bits(info, FAN54015_REG_0,
-				   FAN54015_REG_RESET_MASK,
-				   FAN54015_REG_RESET);
-	if (ret) {
-		dev_err(info->dev, "reset fan54015 failed\n");
-		return;
-	}
-	schedule_delayed_work(&info->wdt_work, HZ * 15);
+	ret = fan54015_charger_feed_watchdog(info);
+	if (ret)
+		schedule_delayed_work(&info->wdt_work, HZ * 5);
+	else
+		schedule_delayed_work(&info->wdt_work, HZ * 15);
+
 }
 
 #if IS_ENABLED(CONFIG_REGULATOR)

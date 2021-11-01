@@ -986,6 +986,9 @@ static int bq25890_charger_feed_watchdog(struct bq25890_charger_info *info)
 		return ret;
 	}
 
+	if (info->otg_enable)
+		return 0;
+
 	ret = bq25890_charger_get_limit_current(info, &limit_cur);
 	if (ret) {
 		dev_err(info->dev, "get limit cur failed\n");
@@ -1425,7 +1428,7 @@ static int bq25890_charger_usb_get_property(struct power_supply *psy,
 			goto out;
 		}
 
-		val->intval = !enabled;
+		val->intval = !(enabled & info->charger_pd_mask);
 		break;
 	default:
 		ret = -EINVAL;
@@ -1573,13 +1576,11 @@ static void bq25890_charger_feed_watchdog_work(struct work_struct *work)
 							 wdt_work);
 	int ret;
 
-	ret = bq25890_update_bits(info, BQ25890_REG_03, REG03_WDT_RESET_MASK,
-				  REG03_WDT_RESET << REG03_WDT_RESET_SHIFT);
-	if (ret) {
-		dev_err(info->dev, "reset bq25890 failed\n");
-		return;
-	}
-	schedule_delayed_work(&info->wdt_work, HZ * 15);
+	ret = bq25890_charger_feed_watchdog(info);
+	if (ret)
+		schedule_delayed_work(&info->wdt_work, HZ * 5);
+	else
+		schedule_delayed_work(&info->wdt_work, HZ * 15);
 }
 
 #ifdef CONFIG_REGULATOR
