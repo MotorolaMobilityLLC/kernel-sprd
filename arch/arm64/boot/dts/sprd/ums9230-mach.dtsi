@@ -86,8 +86,8 @@
 			reg = <0x0 0xb0040000 0x0 0x05fc0000>;
 		};
 
-		tos_shm_reserved: sh-mem@b6000000{
-			reg = <0x0 0xb6000000 0x0 0x00100000>;
+		tos_shm_reserved: sh-mem@fc2a0000{
+			reg = <0x0 0xfc2a0000 0x0 0x00100000>;
 		};
 
 		pstore_reserved: ramoops@fff80000 {
