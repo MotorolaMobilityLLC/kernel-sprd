@@ -125,7 +125,7 @@ static u32 gro_enable;
 static struct dentry *root_gl;
 static int seth_debugfs_mknod(void *root, void *data);
 #endif
-
+module_param(gro_enable, uint, 0644);
 static void seth_rx_timer_handler(struct timer_list *t);
 
 #ifdef CONFIG_DEBUG_FS
