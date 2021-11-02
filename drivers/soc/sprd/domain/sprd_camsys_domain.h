@@ -67,7 +67,7 @@ struct camsys_power_info {
 
 			struct clk *isppll_clk;
 
-			struct register_gpr regs[5];
+			struct register_gpr regs[6];
 		} l5pro;
 		struct {
 			struct clk *cam_clk_cphy_cfg_gate_eb;

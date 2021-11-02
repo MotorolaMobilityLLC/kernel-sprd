@@ -36,6 +36,7 @@ static const char * const syscon_name[] = {
 	"power-state", /* on: 0; off:7 */
 	"qos-ar",
 	"qos-aw",
+	"aon-apb-mm-eb",
 };
 
 enum  {
@@ -44,8 +45,28 @@ enum  {
 	PWR_STATUS0,
 	QOS_AR,
 	QOS_AW,
+	CAMSYS_MM_EB,
 };
 
+static int boot_mode_check(void)
+{
+	struct device_node *np;
+	const char *cmd_line;
+	int ret = 0;
+
+	np = of_find_node_by_path("/chosen");
+	if (!np)
+		return 0;
+
+	ret = of_property_read_string(np, "bootargs", &cmd_line);
+	if (ret < 0)
+		return 0;
+
+	if (strstr(cmd_line, "androidboot.mode=cali"))
+		ret = 1;
+
+	return ret;
+}
 
 static void regmap_update_bits_mmsys(struct register_gpr *p, uint32_t val)
 {
@@ -302,6 +323,16 @@ static int sprd_campw_init(struct platform_device *pdev, struct camsys_power_inf
 			pw_info->u.l5pro.mm_qos_ar, pw_info->u.l5pro.mm_qos_aw);
 	}
 
+	//fix bug 1740133
+	if (boot_mode_check()) {
+		regmap_update_bits_mmsys(&pw_info->u.l5pro.regs[CAMSYS_MM_EB],
+				0);
+		regmap_update_bits_mmsys(&pw_info->u.l5pro.regs[SHUTDOWN_EN],
+				0);
+		regmap_update_bits_mmsys(&pw_info->u.l5pro.regs[FORCE_SHUTDOWN],
+				~((uint32_t)0));
+		pr_info("calibration mode MM SHUTDOWN");
+	}
 	return ret;
 }
 
