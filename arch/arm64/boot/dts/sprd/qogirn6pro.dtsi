@@ -3042,7 +3042,7 @@
 		sprd-dst = /bits/ 8 <1>; /* AGDSP */
 		sprd-channel =/bits/ 8 <5>;
 		/* for cmd para addr */
-		sprd,dspdumpmem = <0x33000000 0x10000
+		sprd,dspdumpmem = <0x56200000 0x3000
 				   0x65009400 0x1000
 				   0x89300000 0x5f000>;
 	};
