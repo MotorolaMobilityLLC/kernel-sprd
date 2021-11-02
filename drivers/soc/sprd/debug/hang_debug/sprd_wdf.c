@@ -202,10 +202,10 @@ static ssize_t hang_debug_proc_write(struct file *file, const char *buf,
 		}
 
 		pretimeout = timeout;
-		do_div(pretimeout, 2);
+		pretimeout = div_u64(pretimeout, 2);
 
 		g_interval = timeout;
-		do_div(g_interval, 5);
+		g_interval = div_u64(g_interval, 5);
 
 		pr_notice("timeout = %llu interval = %llu\n", g_timeout, g_interval);
 
