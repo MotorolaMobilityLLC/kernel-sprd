@@ -1081,11 +1081,14 @@ static int ilitek_get_tp_module(void)
 	 * TODO: users should implement this function
 	 * if there are various tp modules been used in projects.
 	 */
-	if(strncmp(lcd_name, "lcd_ili9882q_dj_mipi_hd", strlen(lcd_name)) == 0)
+	if(strncmp(lcd_name, "lcd_ili9882q_dj_mipi_back_hd", strlen(lcd_name)) == 0)
 	{
 		return MODEL_DJ1;
 	}
-
+	if(strncmp(lcd_name, "lcd_ili9882q_dj_mipi_hd", strlen(lcd_name)) == 0)
+	{
+		return MODEL_DJ2;
+	}
 	return 0;
 }
 
@@ -1168,6 +1171,16 @@ static void ili_update_tp_module_info(void)
 		ilits->md_fw_ili = CTPM_FW_DJ1;
 		ilits->md_fw_ili_size = sizeof(CTPM_FW_DJ1);
 		break;
+	case MODEL_DJ2:
+                ilits->md_name = "DJ2";
+                ilits->md_fw_filp_path = DJ_FW_FILP_PATH2;
+                ilits->md_fw_rq_path = DJ_FW_REQUEST_PATH2;
+                ilits->md_ini_path = DJ_INI_NAME_PATH2;
+                ilits->md_ini_rq_path = DJ_INI_REQUEST_PATH2;
+                ilits->md_fw_ili = CTPM_FW_DJ2;
+                ilits->md_fw_ili_size = sizeof(CTPM_FW_DJ2);
+                break;
+
 	default:
 		break;
 	}

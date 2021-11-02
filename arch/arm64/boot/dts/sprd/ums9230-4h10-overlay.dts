@@ -14,6 +14,8 @@
 #include "lcd/lcd_ili9883a_auo_mipi_hd.dtsi"
 #include "lcd/lcd_icnl9911c_tm_mipi_hd.dtsi"
 #include "lcd/lcd_ili9882q_dj_mipi_hd.dtsi"
+#include "lcd/lcd_ili9882q_dj_mipi_hd_back.dtsi"
+
 #include "lcd/lcd_icnl9911c_tm_mipi_hd_back.dtsi"
 #include "lcd/lcd_dummy_mipi.dtsi"
 

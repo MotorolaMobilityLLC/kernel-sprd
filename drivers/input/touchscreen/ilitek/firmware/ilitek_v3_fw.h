@@ -95,4 +95,11 @@ static unsigned char CTPM_FW_TM[] = {
 static unsigned char CTPM_FW_DJ1[] = {
 	#include "dj/ili9882q/382_Cyprus_MDT_DJN_6528_LongV_V0xA0.0x48.0x01_AP_0x01_MP_20210901.ili"
 };
+#define DJ_INI_NAME_PATH2		"/vendor/firmware/mp_dj_9882q.ini"
+#define DJ_FW_FILP_PATH2                 "/vendor/firmware/ILITEK_FW_DJ2"
+#define DJ_INI_REQUEST_PATH2		"mp_dj_9882q.ini"
+#define DJ_FW_REQUEST_PATH2		"ILITEK_FW_DJ2"
+static unsigned char CTPM_FW_DJ2[] = {
+	#include "dj/ili9882q/hawaii_fw_01.ili"
+};
 #endif

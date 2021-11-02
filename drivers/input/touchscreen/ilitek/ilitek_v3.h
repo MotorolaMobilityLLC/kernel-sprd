@@ -334,6 +334,7 @@ enum TP_MODEL {
 	MODEL_TXD,
 	MODEL_TM,
 	MODEL_DJ1,
+	MODEL_DJ2,
 };
 
 enum TP_ERR_CODE {

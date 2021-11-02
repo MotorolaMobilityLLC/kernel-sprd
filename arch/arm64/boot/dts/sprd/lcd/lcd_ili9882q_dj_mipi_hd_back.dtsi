@@ -2,8 +2,8 @@
 	fragment {
 		target-path = "/";
 		__overlay__ {
-			lcds {
-			lcd_ili9882q_dj_mipi_hd: lcd_ili9882q_dj_mipi_hd {
+			lcds {  
+			lcd_ili9882q_dj_mipi_back_hd: lcd_ili9882q_dj_mipi_back_hd {
 				sprd,dsi-work-mode = <1>; /* video burst mode*/
 				sprd,dsi-lane-number = <4>;
 				sprd,dsi-color-format = "rgb888";
@@ -37,7 +37,7 @@
 
 					39 00 00 04 FF 98 82 06
 					23 00 00 02 06 84
-					23 00 00 02 08 00
+					23 00 00 02 08 01
 
 					39 00 00 04 FF 98 82 03
 					23 00 00 02 C6 16
@@ -46,20 +46,7 @@
 					23 00 00 02 82 04
 					23 00 00 02 83 E0
 					23 00 00 02 84 00
-					39 00 00 04 FF 98 82 03
-					23 00 00 02 9A 85
-					23 00 00 02 AA 22
-					23 00 00 02 9B 8E
-					23 00 00 02 9C 04
-					23 00 00 02 9D 04
-					23 00 00 02 9E 8B
-					23 00 00 02 9F 8B
-					39 00 00 04 FF 98 82 02
-					23 00 00 02 06 57
-					23 00 00 02 0B A0
-					23 00 00 02 0C 80
-					23 00 00 02 0D 22
-					23 00 00 02 0E 6E
+
 					39 00 00 04 FF 98 82 00
 					13 14 00 01 29
 
@@ -85,10 +72,10 @@
 						};
 
 					display-timings {
-						native-mode = <&ili9882_timing0>;
+						native-mode = <&back_ili9882_timing0>;
 
 						//timing0 is 90hz
-						ili9882_timing0: timing0 {
+						back_ili9882_timing0: timing0 {
 									clock-frequency = <142560000>;
 									hactive = <720>;
 									vactive = <1600>;
@@ -102,7 +89,7 @@
 
 						};
 						//timing1 is 60hz
-						ili9882_timing1: timing1 {
+						back_ili9882_timing1: timing1 {
 									clock-frequency = <142280000>;
 									hactive = <720>;
 									vactive = <1600>;
