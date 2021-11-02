@@ -60,11 +60,13 @@
 #define CM_FAST_CHARGE_ENABLE_THERMAL_CURRENT	1000000
 #define CM_FAST_CHARGE_DISABLE_BATTERY_VOLTAGE	3400000
 #define CM_FAST_CHARGE_DISABLE_CURRENT		1000000
+#define CM_FAST_CHARGE_TRANSITION_CURRENT_1P5A	1500000
 #define CM_FAST_CHARGE_CURRENT_2A		2000000
 #define CM_FAST_CHARGE_VOLTAGE_9V		9000000
 #define CM_FAST_CHARGE_VOLTAGE_5V		5000000
 #define CM_FAST_CHARGE_START_VOLTAGE_LTHRESHOLD	3520000
 #define CM_FAST_CHARGE_START_VOLTAGE_HTHRESHOLD	4200000
+#define CM_FAST_CHARGE_ENABLE_COUNT		3
 #define CM_FAST_CHARGE_DISABLE_COUNT		2
 
 #define CM_CP_VSTEP				20000
@@ -1735,77 +1737,39 @@ static int cm_get_adapter_max_current(struct charger_manager *cm, int *max_cur)
 	return 0;
 }
 
-static int cm_set_main_charger_current(struct charger_manager *cm, int cmd)
+static int cm_set_charger_ovp(struct charger_manager *cm, int cmd)
 {
 	struct charger_desc *desc = cm->desc;
 	struct power_supply *psy;
 	union power_supply_propval val;
-	int ret;
+	int ret, i;
 
-	if (!desc->psy_charger_stat[0])
+	if (!desc->psy_charger_stat) {
+		dev_err(cm->dev, "psy_charger_stat is null!!!\n");
 		return -ENODEV;
+	}
 
 	/*
 	 * make the psy_charger_stat[0] to be main charger,
 	 * set the main charger charge current and limit current
 	 * in 9V/5V fast charge status.
 	 */
+	for (i = 0; desc->psy_charger_stat[i]; i++) {
+		psy = power_supply_get_by_name(desc->psy_charger_stat[i]);
+		if (!psy) {
+			dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
+				desc->psy_charger_stat[i]);
+			return -ENODEV;
+		}
 
-	psy = power_supply_get_by_name(desc->psy_charger_stat[0]);
-	if (!psy) {
-		dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
-			desc->psy_charger_stat[0]);
+		val.intval = cmd;
+		ret = power_supply_set_property(psy, POWER_SUPPLY_PROP_STATUS, &val);
 		power_supply_put(psy);
-		return -ENODEV;
-	}
-
-	val.intval = cmd;
-	ret = power_supply_set_property(psy, POWER_SUPPLY_PROP_STATUS, &val);
-	power_supply_put(psy);
-	if (ret) {
-		dev_err(cm->dev,
-			"failed to set main charger current cmd = %d\n", cmd);
-		return ret;
-	}
-
-	return 0;
-}
-
-static int cm_set_second_charger_current(struct charger_manager *cm)
-{
-	struct charger_desc *desc = cm->desc;
-	struct power_supply *psy;
-	union power_supply_propval val;
-	int ret;
-
-	if (!desc->psy_charger_stat[1])
-		return 0;
-
-	/*
-	 * if psy_charger_stat[1] defined,
-	 * make the psy_charger_stat[1] to be second charger,
-	 * set the second charger current.
-	 */
-	psy = power_supply_get_by_name(desc->psy_charger_stat[1]);
-	if (!psy) {
-		dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
-			desc->psy_charger_stat[1]);
-		power_supply_put(psy);
-		return -ENODEV;
-	}
-
-	/*
-	 * set the second charger charge current and limit current
-	 * in 9V fast charge status.
-	 */
-	val.intval = CM_FAST_CHARGE_ENABLE_CMD;
-	ret = power_supply_set_property(psy, POWER_SUPPLY_PROP_STATUS, &val);
-	power_supply_put(psy);
-	if (ret) {
-		dev_err(cm->dev,
-			"failed to set second charger current"
-			"in 9V fast charge status\n");
-		return ret;
+		if (ret) {
+			dev_err(cm->dev, "failed to set \"%s\" ovp cmd = %d, ret = %d\n",
+				desc->psy_charger_stat[i], cmd, ret);
+			return ret;
+		}
 	}
 
 	return 0;
@@ -1907,17 +1871,17 @@ static bool cm_is_reach_fchg_threshold(struct charger_manager *cm)
 
 	if (target_cur >= CM_FAST_CHARGE_ENABLE_CURRENT &&
 	    thm_cur >= CM_FAST_CHARGE_ENABLE_THERMAL_CURRENT &&
-	    batt_ocv > 0 && batt_ocv < fchg_ocv_threshold &&
-	    batt_ocv >= CM_FAST_CHARGE_START_VOLTAGE_LTHRESHOLD)
+	    batt_ocv >= CM_FAST_CHARGE_START_VOLTAGE_LTHRESHOLD &&
+	    batt_ocv < fchg_ocv_threshold)
 		return true;
-	else if (batt_ocv > 0 && batt_ocv >= CM_FAST_CHARGE_START_VOLTAGE_LTHRESHOLD &&
-		 batt_uA > 0 && batt_uA >= CM_FAST_CHARGE_ENABLE_CURRENT)
+	else if (batt_ocv >= CM_FAST_CHARGE_START_VOLTAGE_LTHRESHOLD &&
+		 batt_uA >= CM_FAST_CHARGE_ENABLE_CURRENT)
 		return true;
 
 	return false;
 }
 
-static int cm_fast_charge_enable_check(struct charger_manager *cm)
+static int cm_fixed_fchg_enable(struct charger_manager *cm)
 {
 	int ret, adapter_max_vbus;
 
@@ -1942,25 +1906,42 @@ static int cm_fast_charge_enable_check(struct charger_manager *cm)
 	if (!cm->desc->is_fast_charge || cm->desc->enable_fast_charge)
 		return 0;
 
-	if (!cm_is_reach_fchg_threshold(cm))
+	if (!cm->cm_charge_vote || !cm->cm_charge_vote->vote) {
+		dev_err(cm->dev, "%s: cm_charge_vote is null\n", __func__);
 		return 0;
-
-	ret = cm_set_main_charger_current(cm, CM_FAST_CHARGE_ENABLE_CMD);
-	if (ret) {
-		/*
-		 * if it failed to set fast charge current, reset to DCP setting
-		 * first so that the charging current can reach the condition again.
-		 */
-		cm_set_main_charger_current(cm, CM_FAST_CHARGE_DISABLE_CMD);
-		dev_err(cm->dev, "failed to set main charger current\n");
-		return ret;
 	}
 
-	ret = cm_set_second_charger_current(cm);
+	/*
+	 * cm->desc->enable_fast_charge should be set to true when the transient
+	 * current is voting, otherwise the current of the parallel charging
+	 * scheme cannot be halved.
+	 *
+	 * In the normal fast charge voltage regulation process, add the normal
+	 * fast charge transition current to prevent overload and other abnormal
+	 * situations.
+	 */
+	cm->desc->enable_fast_charge = true;
+	cm->cm_charge_vote->vote(cm->cm_charge_vote, true,
+				 SPRD_VOTE_TYPE_IBUS,
+				 SPRD_VOTE_TYPE_IBUS_ID_FCHG_FIXED_TRANSITION,
+				 SPRD_VOTE_CMD_MIN, CM_FAST_CHARGE_TRANSITION_CURRENT_1P5A, cm);
+
+	cm_update_charge_info(cm, (CM_CHARGE_INFO_CHARGE_LIMIT |
+				   CM_CHARGE_INFO_INPUT_LIMIT |
+				   CM_CHARGE_INFO_THERMAL_LIMIT |
+				   CM_CHARGE_INFO_JEITA_LIMIT));
+
+	/*
+	 * adjust over voltage protection in 9V
+	 */
+	ret = cm_set_charger_ovp(cm, CM_FAST_CHARGE_OVP_ENABLE_CMD);
 	if (ret) {
-		cm_set_main_charger_current(cm, CM_FAST_CHARGE_DISABLE_CMD);
-		dev_err(cm->dev, "failed to set second charger current\n");
-		return ret;
+		dev_err(cm->dev, "failed to enable fchg ovp\n");
+		/*
+		 * if it failed to set fast charge ovp, reset to DCP setting
+		 * first so that the charging ovp can reach the condition again.
+		 */
+		goto tran_cur_err;
 	}
 
 	/*
@@ -1969,7 +1950,7 @@ static int cm_fast_charge_enable_check(struct charger_manager *cm)
 	ret = cm_get_adapter_max_voltage(cm, &adapter_max_vbus);
 	if (ret) {
 		dev_err(cm->dev, "failed to obtain the adapter max voltage\n");
-		return ret;
+		goto ovp_err;
 	}
 
 	if (adapter_max_vbus > CM_FAST_CHARGE_VOLTAGE_9V)
@@ -1977,37 +1958,56 @@ static int cm_fast_charge_enable_check(struct charger_manager *cm)
 
 	ret = cm_adjust_fast_charge_voltage(cm, adapter_max_vbus);
 	if (ret) {
-		cm_set_main_charger_current(cm, CM_FAST_CHARGE_DISABLE_CMD);
 		dev_err(cm->dev, "failed to adjust fast charger voltage\n");
-		return ret;
+		goto ovp_err;
 	}
 
 	ret = cm_enable_second_charger(cm, true);
 	if (ret) {
-		cm_set_main_charger_current(cm, CM_FAST_CHARGE_DISABLE_CMD);
 		dev_err(cm->dev, "failed to enable second charger\n");
-		return ret;
+		goto adj_vol_err;
 	}
 
-	cm->desc->enable_fast_charge = true;
-	/*
-	 * adjust over voltage protection in 9V
-	 */
+	goto out;
+
+adj_vol_err:
+	cm_adjust_fast_charge_voltage(cm, CM_FAST_CHARGE_VOLTAGE_5V);
+
+ovp_err:
+	cm_set_charger_ovp(cm, CM_FAST_CHARGE_OVP_DISABLE_CMD);
+
+tran_cur_err:
+	cm->desc->enable_fast_charge = false;
 	cm_update_charge_info(cm, (CM_CHARGE_INFO_CHARGE_LIMIT |
 				   CM_CHARGE_INFO_INPUT_LIMIT |
 				   CM_CHARGE_INFO_THERMAL_LIMIT |
 				   CM_CHARGE_INFO_JEITA_LIMIT));
 
-	return 0;
+out:
+	cm->cm_charge_vote->vote(cm->cm_charge_vote, false,
+				 SPRD_VOTE_TYPE_IBUS,
+				 SPRD_VOTE_TYPE_IBUS_ID_FCHG_FIXED_TRANSITION,
+				 SPRD_VOTE_CMD_MIN, CM_FAST_CHARGE_TRANSITION_CURRENT_1P5A, cm);
+	return ret;
 }
 
-static int cm_fast_charge_disable(struct charger_manager *cm)
+static int cm_fixed_fchg_disable(struct charger_manager *cm)
 {
 	struct charger_desc *desc = cm->desc;
 	int ret;
 
 	if (!desc->enable_fast_charge)
 		return 0;
+
+	if (!cm->cm_charge_vote || !cm->cm_charge_vote->vote) {
+		dev_err(cm->dev, "%s: cm_charge_vote is null\n", __func__);
+		return 0;
+	}
+
+	cm->cm_charge_vote->vote(cm->cm_charge_vote, true,
+				 SPRD_VOTE_TYPE_IBUS,
+				 SPRD_VOTE_TYPE_IBUS_ID_FCHG_FIXED_TRANSITION,
+				 SPRD_VOTE_CMD_MIN, CM_FAST_CHARGE_TRANSITION_CURRENT_1P5A, cm);
 
 	/*
 	 * if defined psy_charger_stat[1], then disable the second
@@ -2016,7 +2016,7 @@ static int cm_fast_charge_disable(struct charger_manager *cm)
 	ret = cm_enable_second_charger(cm, false);
 	if (ret) {
 		dev_err(cm->dev, "failed to disable second charger\n");
-		return ret;
+		goto out;
 	}
 
 	/*
@@ -2024,15 +2024,14 @@ static int cm_fast_charge_disable(struct charger_manager *cm)
 	 */
 	ret = cm_adjust_fast_charge_voltage(cm, CM_FAST_CHARGE_VOLTAGE_5V);
 	if (ret) {
-		dev_err(cm->dev,
-				"failed to adjust 5V fast charger voltage\n");
-		return ret;
+		dev_err(cm->dev, "failed to adjust 5V fast charger voltage\n");
+		goto out;
 	}
 
-	ret = cm_set_main_charger_current(cm, CM_FAST_CHARGE_DISABLE_CMD);
+	ret = cm_set_charger_ovp(cm, CM_FAST_CHARGE_OVP_DISABLE_CMD);
 	if (ret) {
-		dev_err(cm->dev, "failed to set DCP current\n");
-		return ret;
+		dev_err(cm->dev, "failed to disable fchg ovp\n");
+		goto out;
 	}
 
 	desc->enable_fast_charge = false;
@@ -2044,26 +2043,31 @@ static int cm_fast_charge_disable(struct charger_manager *cm)
 				   CM_CHARGE_INFO_THERMAL_LIMIT |
 				   CM_CHARGE_INFO_JEITA_LIMIT));
 
-	return 0;
+out:
+	cm->cm_charge_vote->vote(cm->cm_charge_vote, false,
+				 SPRD_VOTE_TYPE_IBUS,
+				 SPRD_VOTE_TYPE_IBUS_ID_FCHG_FIXED_TRANSITION,
+				 SPRD_VOTE_CMD_MIN, CM_FAST_CHARGE_TRANSITION_CURRENT_1P5A, cm);
+	return ret;
 }
 
-static int cm_fast_charge_disable_check(struct charger_manager *cm)
+static bool cm_is_disable_fixed_fchg_check(struct charger_manager *cm)
 {
 	int batt_uV, batt_uA, ret;
 
 	if (!cm->desc->enable_fast_charge)
-		return 0;
+		return true;
 
 	ret = get_vbat_now_uV(cm, &batt_uV);
 	if (ret) {
-		dev_err(cm->dev, "failed to get batt uV\n");
-		return ret;
+		dev_err(cm->dev, "%s, failed to get batt uV, ret=%d\n", __func__, ret);
+		return false;
 	}
 
 	ret = get_ibat_now_uA(cm, &batt_uA);
 	if (ret) {
-		dev_err(cm->dev, "failed to get batt uA\n");
-		return ret;
+		dev_err(cm->dev, "%s, failed to get batt uA, ret=%d\n", __func__, ret);
+		return false;
 	}
 
 	if (batt_uV < CM_FAST_CHARGE_DISABLE_BATTERY_VOLTAGE ||
@@ -2073,51 +2077,11 @@ static int cm_fast_charge_disable_check(struct charger_manager *cm)
 		cm->desc->fast_charge_disable_count = 0;
 
 	if (cm->desc->fast_charge_disable_count < CM_FAST_CHARGE_DISABLE_COUNT)
-		return 0;
+		return false;
 
 	cm->desc->fast_charge_disable_count = 0;
-	ret = cm_fast_charge_disable(cm);
-	if (ret) {
-		dev_err(cm->dev, "failed to disable fast charge\n");
-		return ret;
-	}
 
-	return 0;
-}
-
-static int try_fast_charger_enable(struct charger_manager *cm, bool enable)
-{
-	int err = 0;
-
-	if (cm->desc->fast_charger_type != POWER_SUPPLY_USB_CHARGER_TYPE_PD &&
-	    cm->desc->fast_charger_type != POWER_SUPPLY_CHARGE_TYPE_FAST &&
-	    cm->desc->fast_charger_type != POWER_SUPPLY_USB_CHARGER_TYPE_SFCP_1P0)
-		return 0;
-
-	if (enable) {
-		err = cm_fast_charge_enable_check(cm);
-		if (err) {
-			dev_err(cm->dev,
-				"failed to check fast charge enable\n");
-			return err;
-		}
-
-		err = cm_fast_charge_disable_check(cm);
-		if (err) {
-			dev_err(cm->dev,
-				"failed to check fast charge disable\n");
-			return err;
-		}
-	} else {
-		err = cm_fast_charge_disable(cm);
-		if (err) {
-			dev_err(cm->dev,
-				"failed to disable fast charge\n");
-			return err;
-		}
-	}
-
-	return 0;
+	return true;
 }
 
 static int cm_get_ibat_avg(struct charger_manager *cm, int *ibat)
@@ -2254,6 +2218,103 @@ static void cm_ir_compensation_works(struct work_struct *work)
 	queue_delayed_work(system_power_efficient_wq,
 			   &cm->ir_compensation_work,
 			   CM_IR_COMPENSATION_TIME * HZ);
+}
+
+static void cm_fixed_fchg_control_switch(struct charger_manager *cm, bool enable)
+{
+	int ret;
+
+	dev_dbg(cm->dev, "%s enable = %d start\n", __func__, enable);
+
+	if (!cm->desc->psy_fast_charger_stat)
+		return;
+
+	cm->desc->check_fixed_fchg_threshold = enable;
+	if (!enable && cm->desc->fixed_fchg_running) {
+		cancel_delayed_work_sync(&cm->fixed_fchg_work);
+		ret = cm_fixed_fchg_disable(cm);
+		if (ret)
+			dev_err(cm->dev, "%s, failed to disable fixed fchg\n", __func__);
+	}
+}
+
+static bool cm_is_need_start_fixed_fchg(struct charger_manager *cm)
+{
+	bool need = false;
+
+	if (!cm->desc->psy_fast_charger_stat || cm->desc->fixed_fchg_running)
+		return false;
+
+	cm_charger_is_support_fchg(cm);
+	if ((cm->desc->fast_charger_type == POWER_SUPPLY_USB_CHARGER_TYPE_PD ||
+	     cm->desc->fast_charger_type == POWER_SUPPLY_USB_CHARGER_TYPE_SFCP_1P0) &&
+	     cm->charger_enabled && cm->desc->check_fixed_fchg_threshold &&
+	     cm_is_reach_fchg_threshold(cm))
+		need = true;
+
+	return need;
+}
+
+static void cm_start_fixed_fchg(struct charger_manager *cm, bool start)
+{
+	if (!cm->desc->fixed_fchg_running && start) {
+		dev_info(cm->dev, "%s, reach fchg threshold, enable it\n", __func__);
+		cm->desc->fixed_fchg_running = true;
+		schedule_delayed_work(&cm->fixed_fchg_work, 0);
+	}
+}
+
+static void cm_fixed_fchg_work(struct work_struct *work)
+{
+	struct delayed_work *dwork = to_delayed_work(work);
+	struct charger_manager *cm = container_of(dwork,
+						  struct charger_manager,
+						  fixed_fchg_work);
+	int ret, delay_work_ms = cm->desc->polling_interval_ms;
+
+	/*
+	 * Effects:
+	 *   1. Prevent CM_FAST_CHARGE_ENABLE_COUNT from becoming PPS
+	 *      within the time and enable the fast charge status.
+	 */
+	if (cm->desc->fast_charger_type != POWER_SUPPLY_USB_CHARGER_TYPE_PD &&
+	    cm->desc->fast_charger_type != POWER_SUPPLY_USB_CHARGER_TYPE_SFCP_1P0)
+		goto stop_fixed_fchg;
+
+	/*
+	 * The first if branch: fix the problem that the Xiaomi 65W
+	 *                      charger PD2.0 and PPS follow closely.
+	 */
+	if (cm->desc->fast_charger_type == POWER_SUPPLY_USB_CHARGER_TYPE_PD &&
+	    cm->desc->fast_charge_enable_count < CM_FAST_CHARGE_ENABLE_COUNT) {
+		cm->desc->fast_charge_enable_count++;
+		delay_work_ms = CM_CP_WORK_TIME_MS;
+	} else if (cm->desc->enable_fast_charge) {
+		if (cm_is_disable_fixed_fchg_check(cm))
+			goto stop_fixed_fchg;
+	} else {
+		ret = cm_fixed_fchg_enable(cm);
+		if (ret) {
+			dev_err(cm->dev, "%s, failed to enable fixed fchg\n", __func__);
+			cm->desc->fixed_fchg_running = false;
+			cm->desc->fast_charge_enable_count = 0;
+			return;
+		}
+	}
+
+	schedule_delayed_work(&cm->fixed_fchg_work, msecs_to_jiffies(delay_work_ms));
+	return;
+
+stop_fixed_fchg:
+	ret = cm_fixed_fchg_disable(cm);
+	if (ret) {
+		dev_err(cm->dev, "%s, failed to disable fixed fchg\n", __func__);
+		schedule_delayed_work(&cm->fixed_fchg_work,
+				      msecs_to_jiffies(cm->desc->polling_interval_ms));
+		return;
+	}
+	cm->desc->fixed_fchg_running = false;
+	cm->desc->fast_charge_enable_count = 0;
 }
 
 static void cm_cp_state_change(struct charger_manager *cm, int state)
@@ -3071,7 +3132,7 @@ static void cm_cp_work(struct work_struct *work)
 		schedule_delayed_work(&cm->cp_work, msecs_to_jiffies(CM_CP_WORK_TIME_MS));
 }
 
-static void cm_check_cp_start_condition(struct charger_manager *cm, bool enable)
+static void cm_cp_control_switch(struct charger_manager *cm, bool enable)
 {
 	struct cm_charge_pump_status *cp = &cm->desc->cp;
 
@@ -3098,16 +3159,31 @@ static bool cm_is_need_start_cp(struct charger_manager *cm)
 {
 	struct cm_charge_pump_status *cp = &cm->desc->cp;
 	bool need = false;
+	int ret;
 
-	if (!cm->desc->psy_cp_stat)
+	if (!cm->desc->psy_cp_stat || cm->desc->cp.cp_running ||
+	    cm->desc->fast_charger_type != POWER_SUPPLY_USB_CHARGER_TYPE_PD_PPS)
 		return false;
+
+	/*
+	 * Before starting the cp state machine, you need to turn
+	 * off fixed_fchg. If the shutdown fails, the next charging
+	 * cycle will be judged again.
+	 */
+	if (cm->desc->fixed_fchg_running) {
+		cancel_delayed_work_sync(&cm->fixed_fchg_work);
+		ret = cm_fixed_fchg_disable(cm);
+		if (ret) {
+			dev_err(cm->dev, "%s, failed to disable fixed fchg\n", __func__);
+			return false;
+		}
+	}
 
 	cm_charger_is_support_fchg(cm);
 	dev_info(cm->dev, "%s, check_cp_threshold = %d, pps_running = %d, fast_charger_type = %d\n",
 		 __func__, cp->check_cp_threshold, cp->cp_running, cm->desc->fast_charger_type);
 	if (cp->check_cp_threshold && !cp->cp_running &&
-	   cm_is_reach_fchg_threshold(cm) && cm->charger_enabled &&
-	   cm->desc->fast_charger_type == POWER_SUPPLY_USB_CHARGER_TYPE_PD_PPS)
+	    cm_is_reach_fchg_threshold(cm) && cm->charger_enabled)
 		need = true;
 
 	return need;
@@ -3271,8 +3347,6 @@ static int try_charger_enable(struct charger_manager *cm, bool enable)
 {
 	int err = 0;
 
-	try_fast_charger_enable(cm, enable);
-
 	/* Ignore if it's redundant command */
 	if (enable == cm->charger_enabled)
 		return 0;
@@ -3297,7 +3371,8 @@ static int try_charger_enable(struct charger_manager *cm, bool enable)
 
 		err = try_charger_enable_by_psy(cm, enable);
 		cm_ir_compensation_enable(cm, enable);
-		cm_check_cp_start_condition(cm, enable);
+		cm_fixed_fchg_control_switch(cm, enable);
+		cm_cp_control_switch(cm, enable);
 	} else {
 		/*
 		 * Save end time of charging to maintain fully charged state
@@ -3305,7 +3380,8 @@ static int try_charger_enable(struct charger_manager *cm, bool enable)
 		 */
 		cm->charging_start_time = 0;
 		cm->charging_end_time = ktime_to_ms(ktime_get());
-		cm_check_cp_start_condition(cm, enable);
+		cm_cp_control_switch(cm, enable);
+		cm_fixed_fchg_control_switch(cm, enable);
 		cm_ir_compensation_enable(cm, enable);
 		err = try_charger_enable_by_psy(cm, enable);
 	}
@@ -3870,10 +3946,10 @@ static bool _cm_monitor(struct charger_manager *cm)
 			cm_primary_charger_enable(cm, true);
 		}
 
-		if (cm_is_need_start_cp(cm)) {
-			dev_info(cm->dev, "%s, reach pps threshold\n", __func__);
+		if (cm_is_need_start_cp(cm))
 			cm_start_cp_state_machine(cm, true);
-		}
+		else if (!cm->desc->cp.cp_running && cm_is_need_start_fixed_fchg(cm))
+			cm_start_fixed_fchg(cm, true);
 	} else {
 		try_charger_enable(cm, false);
 	}
@@ -4083,16 +4159,20 @@ static void cm_charger_int_handler(struct charger_manager *cm)
  */
 static void fast_charge_handler(struct charger_manager *cm)
 {
+	bool ext_pwr_online;
+
 	if (cm_suspended)
 		device_set_wakeup_capable(cm->dev, true);
 
 	cm_charger_is_support_fchg(cm);
+	ext_pwr_online = is_ext_pwr_online(cm);
 
-	dev_info(cm->dev, "%s fast_charger_type = %d, cp_running = %d, charger_enabled = %d\n",
-		 __func__, cm->desc->fast_charger_type,
-		 cm->desc->cp.cp_running, cm->charger_enabled);
+	dev_info(cm->dev, "%s, fast_charger_type = %d, cp_running = %d, "
+		 "charger_enabled = %d, ext_pwr_online = %d\n",
+		 __func__, cm->desc->fast_charger_type, cm->desc->cp.cp_running,
+		 cm->charger_enabled, ext_pwr_online);
 
-	if (!is_ext_pwr_online(cm))
+	if (!ext_pwr_online)
 		return;
 
 	if (cm->desc->is_fast_charge && !cm->desc->enable_fast_charge)
@@ -4111,7 +4191,7 @@ static void fast_charge_handler(struct charger_manager *cm)
 
 	if (cm->desc->fast_charger_type == POWER_SUPPLY_USB_CHARGER_TYPE_PD_PPS &&
 	    !cm->desc->cp.cp_running && cm->charger_enabled) {
-		cm_check_cp_start_condition(cm, true);
+		cm_cp_control_switch(cm, true);
 		schedule_delayed_work(&cm_monitor_work, 0);
 	}
 }
@@ -4151,7 +4231,9 @@ static void misc_event_handler(struct charger_manager *cm, enum cm_event_types t
 				try_charger_enable(cm, false);
 				cm->desc->is_fast_charge = false;
 				cm->desc->enable_fast_charge = false;
+				cm->desc->fast_charge_enable_count = 0;
 				cm->desc->fast_charge_disable_count = 0;
+				cm->desc->fixed_fchg_running = false;
 				cm->desc->cp.cp_running = false;
 				cm->desc->fast_charger_type = 0;
 				cm->desc->cp.cp_target_vbus = 0;
@@ -4181,7 +4263,9 @@ static void misc_event_handler(struct charger_manager *cm, enum cm_event_types t
 		cm->desc->is_fast_charge = false;
 		cm->desc->ir_comp.ir_compensation_en = false;
 		cm->desc->enable_fast_charge = false;
+		cm->desc->fast_charge_enable_count = 0;
 		cm->desc->fast_charge_disable_count = 0;
+		cm->desc->fixed_fchg_running = false;
 		cm->desc->cp.cp_running = false;
 		cm->desc->cm_check_int = false;
 		cm->desc->fast_charger_type = 0;
@@ -6356,6 +6440,7 @@ static int charger_manager_probe(struct platform_device *pdev)
 
 	INIT_DELAYED_WORK(&cm->fullbatt_vchk_work, fullbatt_vchk);
 	INIT_DELAYED_WORK(&cm->cap_update_work, cm_batt_works);
+	INIT_DELAYED_WORK(&cm->fixed_fchg_work, cm_fixed_fchg_work);
 	INIT_DELAYED_WORK(&cm->cp_work, cm_cp_work);
 	INIT_DELAYED_WORK(&cm->ir_compensation_work, cm_ir_compensation_works);
 

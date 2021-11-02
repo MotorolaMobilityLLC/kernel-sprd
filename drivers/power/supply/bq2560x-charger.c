@@ -743,36 +743,6 @@ static irqreturn_t bq2560x_int_handler(int irq, void *dev_id)
 	return IRQ_HANDLED;
 }
 
-static int bq2560x_charger_set_fchg_current(struct bq2560x_charger_info *info,
-					    u32 val)
-{
-	int ret, limit_cur, cur;
-
-	if (val == CM_FAST_CHARGE_ENABLE_CMD) {
-		limit_cur = info->cur.fchg_limit;
-		cur = info->cur.fchg_cur;
-	} else if (val == CM_FAST_CHARGE_DISABLE_CMD) {
-		limit_cur = info->cur.dcp_limit;
-		cur = info->cur.dcp_cur;
-	} else {
-		return 0;
-	}
-
-	ret = bq2560x_charger_set_limit_current(info, limit_cur);
-	if (ret) {
-		dev_err(info->dev, "failed to set fchg limit current\n");
-		return ret;
-	}
-
-	ret = bq2560x_charger_set_current(info, cur);
-	if (ret) {
-		dev_err(info->dev, "failed to set fchg current\n");
-		return ret;
-	}
-
-	return 0;
-}
-
 static int bq2560x_charger_get_status(struct bq2560x_charger_info *info)
 {
 	if (info->charging)
@@ -818,23 +788,13 @@ static int bq2560x_charger_set_status(struct bq2560x_charger_info *info,
 {
 	int ret = 0;
 
-	if (val == CM_FAST_CHARGE_ENABLE_CMD) {
-		ret = bq2560x_charger_set_fchg_current(info, val);
-		if (ret) {
-			dev_err(info->dev, "failed to set 9V fast charge current\n");
-			return ret;
-		}
+	if (val == CM_FAST_CHARGE_OVP_ENABLE_CMD) {
 		ret = bq2560x_charger_set_ovp(info, BQ2560X_FCHG_OVP_9V);
 		if (ret) {
 			dev_err(info->dev, "failed to set fast charge 9V ovp\n");
 			return ret;
 		}
-	} else if (val == CM_FAST_CHARGE_DISABLE_CMD) {
-		ret = bq2560x_charger_set_fchg_current(info, val);
-		if (ret) {
-			dev_err(info->dev, "failed to set 5V normal charge current\n");
-			return ret;
-		}
+	} else if (val == CM_FAST_CHARGE_OVP_DISABLE_CMD) {
 		ret = bq2560x_charger_set_ovp(info, BQ2560X_FCHG_OVP_6V);
 		if (ret) {
 			dev_err(info->dev, "failed to set fast charge 5V ovp\n");

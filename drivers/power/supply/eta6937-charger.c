@@ -710,6 +710,9 @@ static int eta6937_charger_set_status(struct eta6937_charger_info *info, int val
 {
 	int ret = 0;
 
+	if (val > CM_FAST_CHARGE_NORMAL_CMD)
+		return 0;
+
 	if (!val && info->charging) {
 		eta6937_charger_stop_charge(info);
 		info->charging = false;

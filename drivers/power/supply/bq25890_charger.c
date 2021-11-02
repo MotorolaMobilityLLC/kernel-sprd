@@ -1007,36 +1007,6 @@ static int bq25890_charger_feed_watchdog(struct bq25890_charger_info *info)
 	return 0;
 }
 
-static int bq25890_charger_set_fchg_current(struct bq25890_charger_info *info,
-					    u32 val)
-{
-	int ret, limit_cur, cur;
-
-	if (val == CM_FAST_CHARGE_ENABLE_CMD) {
-		limit_cur = info->cur.fchg_limit;
-		cur = info->cur.fchg_cur;
-	} else if (val == CM_FAST_CHARGE_DISABLE_CMD) {
-		limit_cur = info->cur.dcp_limit;
-		cur = info->cur.dcp_cur;
-	} else {
-		return 0;
-	}
-
-	ret = bq25890_charger_set_limit_current(info, limit_cur);
-	if (ret) {
-		dev_err(info->dev, "failed to set fchg limit current\n");
-		return ret;
-	}
-
-	ret = bq25890_charger_set_current(info, cur);
-	if (ret) {
-		dev_err(info->dev, "failed to set fchg current\n");
-		return ret;
-	}
-
-	return 0;
-}
-
 static inline int bq25890_charger_get_status(struct bq25890_charger_info *info)
 {
 	if (info->charging)
@@ -1051,18 +1021,7 @@ static int bq25890_charger_set_status(struct bq25890_charger_info *info,
 	int ret = 0;
 	u32 input_vol;
 
-	if (val == CM_FAST_CHARGE_ENABLE_CMD) {
-		ret = bq25890_charger_set_fchg_current(info, val);
-		if (ret) {
-			dev_err(info->dev, "failed to set 9V fast charge current\n");
-			return ret;
-		}
-	} else if (val == CM_FAST_CHARGE_DISABLE_CMD) {
-		ret = bq25890_charger_set_fchg_current(info, val);
-		if (ret) {
-			dev_err(info->dev, "failed to set 5V normal charge current\n");
-			return ret;
-		}
+	if (val == CM_FAST_CHARGE_OVP_DISABLE_CMD) {
 		ret = bq25890_charger_get_charge_voltage(info, &input_vol);
 		if (ret) {
 			dev_err(info->dev, "failed to get 9V charge voltage\n");

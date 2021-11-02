@@ -102,8 +102,8 @@ enum cm_charge_status {
 
 enum cm_fast_charge_command {
 	CM_FAST_CHARGE_NORMAL_CMD = 1,
-	CM_FAST_CHARGE_ENABLE_CMD,
-	CM_FAST_CHARGE_DISABLE_CMD,
+	CM_FAST_CHARGE_OVP_ENABLE_CMD,
+	CM_FAST_CHARGE_OVP_DISABLE_CMD,
 	CM_PPS_CHARGE_ENABLE_CMD,
 	CM_PPS_CHARGE_DISABLE_CMD,
 };
@@ -702,6 +702,9 @@ struct charger_desc {
 	int cap_remap_full_percent;
 	bool is_fast_charge;
 	bool enable_fast_charge;
+	bool fixed_fchg_running;
+	bool check_fixed_fchg_threshold;
+	u32 fast_charge_enable_count;
 	u32 fast_charge_disable_count;
 	u32 double_ic_total_limit_current;
 	u32 cp_nums;
@@ -772,6 +775,7 @@ struct charger_manager {
 	struct delayed_work cap_update_work;
 	struct delayed_work uvlo_work;
 	struct delayed_work ir_compensation_work;
+	struct delayed_work fixed_fchg_work;
 	struct delayed_work cp_work;
 	int emergency_stop;
 

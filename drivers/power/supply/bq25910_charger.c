@@ -570,36 +570,6 @@ static void bq25910_charger_feed_watchdog_work(struct work_struct *work)
 	schedule_delayed_work(&info->wdt_work, HZ * 15);
 }
 
-static int bq25910_charger_set_fchg_current(struct bq25910_charger_info *info,
-					    u32 val)
-{
-	int ret, limit_cur, cur;
-
-	if (val == CM_FAST_CHARGE_ENABLE_CMD) {
-		limit_cur = info->cur.fchg_limit;
-		cur = info->cur.fchg_cur;
-	} else if (val == CM_FAST_CHARGE_DISABLE_CMD) {
-		limit_cur = info->cur.dcp_limit;
-		cur = info->cur.dcp_cur;
-	} else {
-		return 0;
-	}
-
-	ret = bq25910_charger_set_limit_current(info, limit_cur);
-	if (ret) {
-		dev_err(info->dev, "failed to set fchg limit current\n");
-		return ret;
-	}
-
-	ret = bq25910_charger_set_current(info, cur);
-	if (ret) {
-		dev_err(info->dev, "failed to set fchg current\n");
-		return ret;
-	}
-
-	return 0;
-}
-
 static inline int bq25910_charger_get_status(struct bq25910_charger_info *info)
 {
 	if (info->charging)
@@ -612,12 +582,6 @@ static int bq25910_charger_set_status(struct bq25910_charger_info *info,
 				      int val)
 {
 	int ret = 0;
-
-	ret = bq25910_charger_set_fchg_current(info, val);
-	if (ret) {
-		dev_err(info->dev, "failed to set fast charge current\n");
-		return ret;
-	}
 
 	if (val > CM_FAST_CHARGE_NORMAL_CMD)
 		return 0;
