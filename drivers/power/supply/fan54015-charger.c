@@ -1139,6 +1139,7 @@ fan54015_charger_probe(struct i2c_client *client, const struct i2c_device_id *id
 
 	device_init_wakeup(info->dev, true);
 
+	alarm_init(&info->wdg_timer, ALARM_BOOTTIME, NULL);
 	INIT_DELAYED_WORK(&info->otg_work, fan54015_charger_otg_work);
 	INIT_DELAYED_WORK(&info->wdt_work, fan54015_charger_feed_watchdog_work);
 
