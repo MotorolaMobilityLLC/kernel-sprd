@@ -87,6 +87,8 @@ struct sprd_vif {
 	struct ieee80211_channel listen_channel;
 	u64 listen_cookie;
 	struct list_head survey_info_list;
+	/* mutex for survey_info_list */
+	struct mutex survey_lock;
 	u8 acs_scan_index;
 	u8 random_mac[ETH_ALEN];
 	bool has_rand_mac;

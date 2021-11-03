@@ -2005,7 +2005,9 @@ static int cmdevt_report_acs_evt(struct sprd_vif *vif, u8 *data, u16 len)
 		acs->channel_num = acs_channel->channel;
 		acs->duration = acs_channel->duration;
 		acs->busy = acs_channel->busy;
+		mutex_lock(&vif->survey_lock);
 		list_add_tail(&acs->survey_list, &vif->survey_info_list);
+		mutex_unlock(&vif->survey_lock);
 		acs_channel += 1;
 	}
 	return 0;

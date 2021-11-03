@@ -22,9 +22,11 @@ int sc2332_dump_survey(struct wiphy *wiphy, struct net_device *ndev,
 	int err = 0;
 
 	if (!list_empty(&vif->survey_info_list)) {
+		mutex_lock(&vif->survey_lock);
 		info = list_first_entry(&vif->survey_info_list,
 					struct survey_info_node, survey_list);
 		list_del(&info->survey_list);
+		mutex_unlock(&vif->survey_lock);
 		if (info->channel_num) {
 			band = sprd_channel_to_band(info->channel_num);
 			freq =

@@ -1178,6 +1178,7 @@ static void iface_init_vif(struct sprd_priv *priv, struct sprd_vif *vif,
 	strcpy(vif->name, name);
 	vif->priv = priv;
 	vif->sm_state = SPRD_DISCONNECTED;
+	mutex_init(&vif->survey_lock);
 	INIT_LIST_HEAD(&vif->survey_info_list);
 	INIT_LIST_HEAD(&vif->scan_head_ptr);
 }
@@ -1204,6 +1205,7 @@ static void iface_deinit_vif(struct sprd_vif *vif)
 		} while (vif->ref > 0);
 		netdev_dbg(vif->ndev, "cnt %d\n", cnt);
 	}
+	mutex_destroy(&vif->survey_lock);
 }
 
 static struct sprd_vif *iface_register_wdev(struct sprd_priv *priv,
