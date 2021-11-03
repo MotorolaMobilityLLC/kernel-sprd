@@ -15,6 +15,8 @@
 #define _UFS_SPRD_H_
 #include <linux/bits.h>
 
+extern int ufshcd_uic_change_pwr_mode(struct ufs_hba *hba, u8 mode);
+
 struct syscon_ufs {
 	struct regmap *regmap;
 	u32 reg;

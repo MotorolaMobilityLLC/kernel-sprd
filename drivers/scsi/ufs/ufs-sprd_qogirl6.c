@@ -380,6 +380,103 @@ void ufs_sprd_reset(struct ufs_sprd_host *host)
 			MPHY_APB_REFCLK_AUTOH8_EN_VAL, MPHY_DIG_CFG14_LANE0);
 }
 
+static int is_ufs_sprd_host_in_pwm(struct ufs_hba *hba)
+{
+	int ret = 0;
+	u32 pwr_mode = 0;
+
+	ret = ufshcd_dme_get(hba, UIC_ARG_MIB(PA_PWRMODE),
+			     &pwr_mode);
+	if (ret)
+		goto out;
+	if (((pwr_mode>>0)&0xf) == SLOWAUTO_MODE ||
+		((pwr_mode>>0)&0xf) == SLOW_MODE     ||
+		((pwr_mode>>4)&0xf) == SLOWAUTO_MODE ||
+		((pwr_mode>>4)&0xf) == SLOW_MODE) {
+		ret = SLOW_MODE | (SLOW_MODE << 4);
+	}
+
+out:
+	return ret;
+}
+
+static int __sprd_ufs_pwrchange(struct ufs_hba *hba,
+				struct ufs_pa_layer_attr *pwr_mode)
+{
+	int ret;
+
+	/*
+	 * Configure attributes for power mode change with below.
+	 * - PA_RXGEAR, PA_ACTIVERXDATALANES, PA_RXTERMINATION,
+	 * - PA_TXGEAR, PA_ACTIVETXDATALANES, PA_TXTERMINATION,
+	 * - PA_HSSERIES
+	 */
+	ufshcd_dme_set(hba, UIC_ARG_MIB(PA_RXGEAR), pwr_mode->gear_rx);
+	ufshcd_dme_set(hba, UIC_ARG_MIB(PA_ACTIVERXDATALANES),
+			pwr_mode->lane_rx);
+	if (pwr_mode->pwr_rx == FASTAUTO_MODE ||
+			pwr_mode->pwr_rx == FAST_MODE)
+		ufshcd_dme_set(hba, UIC_ARG_MIB(PA_RXTERMINATION), TRUE);
+	else
+		ufshcd_dme_set(hba, UIC_ARG_MIB(PA_RXTERMINATION), FALSE);
+
+	ufshcd_dme_set(hba, UIC_ARG_MIB(PA_TXGEAR), pwr_mode->gear_tx);
+	ufshcd_dme_set(hba, UIC_ARG_MIB(PA_ACTIVETXDATALANES),
+			pwr_mode->lane_tx);
+
+	if (pwr_mode->pwr_tx == FASTAUTO_MODE ||
+			pwr_mode->pwr_tx == FAST_MODE)
+		ufshcd_dme_set(hba, UIC_ARG_MIB(PA_TXTERMINATION), TRUE);
+	else
+		ufshcd_dme_set(hba, UIC_ARG_MIB(PA_TXTERMINATION), FALSE);
+
+	if (pwr_mode->pwr_rx == FASTAUTO_MODE ||
+	    pwr_mode->pwr_tx == FASTAUTO_MODE ||
+	    pwr_mode->pwr_rx == FAST_MODE ||
+	    pwr_mode->pwr_tx == FAST_MODE)
+		ufshcd_dme_set(hba, UIC_ARG_MIB(PA_HSSERIES),
+						pwr_mode->hs_rate);
+
+	ret = ufshcd_uic_change_pwr_mode(hba, pwr_mode->pwr_rx << 4
+			| pwr_mode->pwr_tx);
+
+	if (ret) {
+		dev_err(hba->dev,
+			"%s: power mode change failed %d\n", __func__, ret);
+	} else {
+		ufshcd_vops_pwr_change_notify(hba, POST_CHANGE, NULL,
+								pwr_mode);
+
+		memcpy(&hba->pwr_info, pwr_mode,
+			sizeof(struct ufs_pa_layer_attr));
+	}
+
+	return ret;
+}
+
+static int sprd_ufs_pwrchange(struct ufs_hba *hba)
+{
+	int ret;
+	struct ufs_pa_layer_attr pwr_info;
+
+	pwr_info.gear_rx = UFS_PWM_G1;
+	pwr_info.gear_tx = UFS_PWM_G1;
+	pwr_info.lane_rx = 1;
+	pwr_info.lane_tx = 1;
+	pwr_info.pwr_rx = SLOW_MODE;
+	pwr_info.pwr_tx = SLOW_MODE;
+	pwr_info.hs_rate = 0;
+
+	ret = __sprd_ufs_pwrchange(hba, &(pwr_info));
+	if (ret)
+		goto out;
+	if (hba->max_pwr_info.is_valid == true)
+		ret = __sprd_ufs_pwrchange(hba, &(hba->max_pwr_info.info));
+
+out:
+	return ret;
+
+}
 /*
  * ufs_sprd_init - find other essential mmio bases
  * @hba: host controller instance
@@ -403,7 +500,8 @@ static int ufs_sprd_init(struct ufs_hba *hba)
 
 	hba->quirks |= UFSHCD_QUIRK_BROKEN_UFS_HCI_VERSION |
 		       UFSHCD_QUIRK_DELAY_BEFORE_DME_CMDS;
-	hba->caps |= UFSHCD_CAP_CLK_GATING | UFSHCD_CAP_WB_EN;
+	hba->caps |= UFSHCD_CAP_CLK_GATING | UFSHCD_CAP_WB_EN |
+			UFSHCD_CAP_HIBERN8_WITH_CLK_GATING;
 
 	res = platform_get_resource_byname(pdev,
 					IORESOURCE_MEM, "ufs_analog_reg");
@@ -619,6 +717,8 @@ static void ufs_sprd_hibern8_notify(struct ufs_hba *hba,
 				enum uic_cmd_dme cmd,
 				enum ufs_notify_change_status status)
 {
+	int ret;
+
 	switch (status) {
 	case PRE_CHANGE:
 		if (cmd == UIC_CMD_DME_HIBER_ENTER) {
@@ -628,6 +728,25 @@ static void ufs_sprd_hibern8_notify(struct ufs_hba *hba,
 		break;
 	case POST_CHANGE:
 		if (cmd == UIC_CMD_DME_HIBER_EXIT) {
+
+			hba->caps &= ~UFSHCD_CAP_CLK_GATING;
+
+			ret = is_ufs_sprd_host_in_pwm(hba);
+			if (ret == (SLOW_MODE|(SLOW_MODE<<4))) {
+				ret = sprd_ufs_pwrchange(hba);
+				if (ret) {
+					pr_err("ufs_pwm2hs err");
+				} else {
+					ret = is_ufs_sprd_host_in_pwm(hba);
+					if (ret == (SLOW_MODE|(SLOW_MODE<<4)) &&
+					  hba->max_pwr_info.is_valid == true)
+						pr_err("ufs_pwm2hs fail");
+					else
+						pr_err("ufs_pwm2hs succ\n");
+				}
+			}
+
+			hba->caps |= UFSHCD_CAP_CLK_GATING;
 			/* Set auto h8 ilde time to 10ms */
 			ufshcd_auto_hibern8_enable(hba);
 		}

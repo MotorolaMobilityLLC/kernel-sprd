@@ -3809,7 +3809,7 @@ out:
  *
  * Returns 0 on success, non-zero value on failure
  */
-static int ufshcd_uic_change_pwr_mode(struct ufs_hba *hba, u8 mode)
+int ufshcd_uic_change_pwr_mode(struct ufs_hba *hba, u8 mode)
 {
 	struct uic_command uic_cmd = {0};
 	int ret;
@@ -8775,8 +8775,6 @@ int ufshcd_init(struct ufs_hba *hba, void __iomem *mmio_base, unsigned int irq)
 
 	/* Set the default auto-hiberate idle timer value to 10 ms */
 	if (ufshcd_is_auto_hibern8_supported(hba) && !hba->ahit) {
-		hba->ahit = FIELD_PREP(UFSHCI_AHIBERN8_TIMER_MASK, 10) |
-			    FIELD_PREP(UFSHCI_AHIBERN8_SCALE_MASK, 3);
 	}
 
 	/* Hold auto suspend until async scan completes */
