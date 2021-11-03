@@ -58,7 +58,7 @@ static int sprd_battery_parse_cmdline_match(struct power_supply *psy,
 	}
 
 	len = match_end - (match + match_str_len);
-	if (len < 0) {
+	if (len < 0 || len > size) {
 		dev_warn(&psy->dev, "Match cmdline :%s fail, len = %d\n", match_str, len);
 		return -EINVAL;
 	}
