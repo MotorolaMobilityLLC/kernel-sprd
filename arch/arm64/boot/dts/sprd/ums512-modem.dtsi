@@ -55,6 +55,11 @@
 					"sysreset", "getstatus", "dspreset";
 		sprd,version = <0x02>;
 	};
+
+	cp_dump {
+		compatible = "sprd,cp_dump";
+		sprd,sys-bus-ctrl-sp = <&aon_apb_regs 0x0124 0x1>;
+	};
 };
 
 /*
