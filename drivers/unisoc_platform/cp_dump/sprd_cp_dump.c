@@ -27,7 +27,7 @@
 #include <linux/regmap.h>
 #include <linux/debugfs.h>
 #include <linux/gpio/consumer.h>
-//#include <linux/soc/sprd/sprd_sysdump.h>
+#include <linux/soc/sprd/sprd_sysdump.h>
 
 #include "sprd_cp_dump.h"
 
@@ -305,13 +305,13 @@ static long cp_dump_ioctl(struct file *filp, unsigned int cmd, unsigned long arg
 			cp_dump->dump_info->regions[i].size = (u32)tmp.regions[i].size;
 			strcpy(cp_dump->dump_info->regions[i].name, tmp.regions[i].name);
 			cp_dump->dump_info->regions[i].mini_dump_flag = tmp.regions[i].mini_dump_flag;
-			/*if (tmp.regions[i].mini_dump_flag) {
+			if (tmp.regions[i].mini_dump_flag) {
 				ret = minidump_save_extend_information(tmp.regions[i].name,
 						tmp.regions[i].address,
 						tmp.regions[i].address + tmp.regions[i].size);
 				if (ret)
 					pr_err("%s miniump err\n", tmp.regions[i].name);
-			}*/
+			}
 		}
 		break;
 	default:
