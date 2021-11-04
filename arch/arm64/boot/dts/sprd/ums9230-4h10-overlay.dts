@@ -1007,7 +1007,7 @@
 &sound_vbc_v4_sprd_codec {
 	status = "okay";
 	/*ext_control_type, hook selection, mode, gpio share*/
-	sprd,spk-ext-pa-info = <0 0 2 0>;
+	sprd,spk-ext-pa-info = <0 0 6 0>;
 	sprd,spk-ext-pa-gpio = <&ap_gpio 129 0>;
 };
 
