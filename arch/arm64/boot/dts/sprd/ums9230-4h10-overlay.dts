@@ -79,17 +79,22 @@
 */
                         fps_fpsensor {
                                 compatible = "sprd,fingerprint-fpsensor";
+                                fpsensor-ctrl-power ;
+                                fpsensor-gpio-vcc-enable;
                                 fpsensor,eint-gpio   = <&eic_async 29 0 >;
                                 fpsensor,reset-gpio  = <&ap_gpio 169 0 >;
+                                fpsensor,gpio_vcc_en  = <&ap_gpio 165 0 >;
                                 //vcc_fp-supply = <&vddldo2>;
                         };
 
                         fingerprint_egis {
                                 compatible = "egis,fingerprint";
-                                //fp-ctrl-power;
+                                fp-ctrl-power;
+                                fp-gpio-vcc-enable;
+                                egistec,gpio_vcc_en  = <&ap_gpio 165 0 >;
                                 //vcc_fp-supply = <&vddldo2>;       // ldo for support module vcc
-                                //egis-fp,vcc-voltage = <3000000 3000000>;        // ldo voltage default 3.3V
-                               // egis-fp,vcc-current = <12000>;
+                                //egis-fp,vcc-voltage = <2800000 3000000>;        // ldo voltage default 3.3V
+                                //egis-fp,vcc-current = <12000>;
                         };
 
 			pwm_flash: pwm_flash {

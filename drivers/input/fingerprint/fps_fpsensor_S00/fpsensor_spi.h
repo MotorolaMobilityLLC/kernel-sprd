@@ -97,6 +97,9 @@ typedef struct {
     int irq_gpio;
     int reset_gpio;
     int power_gpio;
+    unsigned int vcc_33v_Pin; /* Vcc GPIO pin number */
+    int pwr_by_gpio;
+    int ctrl_power;
     #if FPSENSOR_WAKEUP_SOURCE
     struct wakeup_source ttw_wl;
      #else	

@@ -923,20 +923,22 @@ int egisfp_parse_dt(struct egisfp_dev_t *egis_dev)
 	int ret;
 	//struct device_node *node = egis_dev->dd->dev.of_node;
 	struct device_node *node = NULL;
+	struct device_node *power_node = NULL;
 	u32 voltage_supply[2];
-	u32 current_supply;
+	//u32 current_supply;
 	INFO_PRINT(" %s : start \n", __func__);
 
-        node = of_find_compatible_node(NULL, NULL, EGIS_COMPATIBLE_NODE);
-	if (node)
+        //node = of_find_compatible_node(NULL, NULL, EGIS_COMPATIBLE_NODE);
+        power_node = of_find_compatible_node(NULL, NULL, "egis,fingerprint");
+	if (power_node)
 	{
-		egis_dev->ctrl_power = of_property_read_bool(node, "fp-ctrl-power");
+		egis_dev->ctrl_power = of_property_read_bool(power_node, "fp-ctrl-power");
 		if (egis_dev->ctrl_power)
 		{
-			egis_dev->pwr_by_gpio = of_property_read_bool(node, "fp-gpio-vcc-enable");
+			egis_dev->pwr_by_gpio = of_property_read_bool(power_node, "fp-gpio-vcc-enable");
 			if (egis_dev->pwr_by_gpio)
 			{
-				egis_dev->vcc_33v_Pin = of_get_named_gpio(node, "egistec,gpio_vcc_en", 0);
+				egis_dev->vcc_33v_Pin = of_get_named_gpio(power_node, "egistec,gpio_vcc_en", 0);
 				INFO_PRINT(" %s : vcc_33v_pin gpio num is %d \n", __func__, egis_dev->vcc_33v_Pin);
 				if (!gpio_is_valid(egis_dev->vcc_33v_Pin))
 				{
@@ -946,7 +948,7 @@ int egisfp_parse_dt(struct egisfp_dev_t *egis_dev)
 			}
 			else
 			{
-				ret = of_property_read_u32_array(node, "egis-fp,vcc-voltage", voltage_supply, 2);
+				ret = of_property_read_u32_array(power_node, "egis-fp,vcc-voltage", voltage_supply, 2);
 				if (ret < 0)
 				{
 					ERROR_PRINT(" %s : fail to get vcc regulator voltage \n", __func__);
@@ -956,17 +958,21 @@ int egisfp_parse_dt(struct egisfp_dev_t *egis_dev)
 				egis_dev->regulator_voltage_max = voltage_supply[1];
 				egis_dev->regulator_voltage_min = voltage_supply[0];
 
-				ret = of_property_read_u32_array(node, "egis-fp,vcc-current", &current_supply, 1);
+				/*ret = of_property_read_u32_array(node, "egis-fp,vcc-current", &current_supply, 1);
 				if (ret < 0)
 				{
 					ERROR_PRINT("  %s : fail to get vcc regulator current_supply \n", __func__);
 					return -ENODEV;
 				}
 				INFO_PRINT(" %s : vcc regulator current get %d \n", __func__, current_supply);
-				egis_dev->regulator_current = current_supply;
+				egis_dev->regulator_current = current_supply; */
 			}
 		}
-
+                else
+                {
+                    ERROR_PRINT(" %s : ctrl_power property is null for power_node \n", __func__);
+                }
+                node = of_find_compatible_node(NULL, NULL, EGIS_COMPATIBLE_NODE);
 		egis_dev->rstPin = of_get_named_gpio(node, "fpsensor,reset-gpio", 0);
 		INFO_PRINT(" %s : rst pin gpio num is %d \n", __func__, egis_dev->rstPin);
 		if (!gpio_is_valid(egis_dev->rstPin))

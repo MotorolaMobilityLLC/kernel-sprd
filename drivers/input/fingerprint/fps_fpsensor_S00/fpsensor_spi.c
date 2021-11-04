@@ -374,55 +374,109 @@ out:
 }
 #endif
 
-/*static int fpsensor_enable_power(void)
+static int fpsensor_enable_power(void)
 {
+    /*
     int ret = 0;
-    fpsensor_data_t *fp_dev = g_fpsensor ;
+    fpsensor_data_t *fp_dev = g_fpsensor;
     struct regulator *fp_reg = NULL;
     struct device dev = fp_dev->platform_device->dev;
- 
-    fpsensor_debug("get regulator from dts \n");
+    */
 
-    fp_reg = regulator_get(&dev, "vcc_fp");
+    int ret = 0;
+    struct device_node *power_node = NULL;
+    struct device dev = g_fpsensor->platform_device->dev;
+    power_node = of_find_compatible_node(NULL, NULL, "sprd,fingerprint-fpsensor");
+    if (power_node)
+    {
+        g_fpsensor->ctrl_power = of_property_read_bool(power_node, "fpsensor-ctrl-power");
+        if (g_fpsensor->ctrl_power)
+        {
+            g_fpsensor->pwr_by_gpio = of_property_read_bool(power_node, "fpsensor-gpio-vcc-enable");
+            if (g_fpsensor->pwr_by_gpio)
+            {
+                g_fpsensor->vcc_33v_Pin = of_get_named_gpio(power_node, "fpsensor,gpio_vcc_en", 0);
+                fpsensor_info(" %s : vcc_33v_pin gpio num is %d \n", __func__, g_fpsensor->vcc_33v_Pin);
+                if (!gpio_is_valid(g_fpsensor->vcc_33v_Pin))
+                {
+                    fpsensor_error(" %s : vcc_33v_pin gpio is invalid \n", __func__);
+                    return -ENODEV;
+                }
+                ret = gpio_request(g_fpsensor->vcc_33v_Pin, "fpsensor_dev-33v-gpio");
+                if (ret < 0)
+                {
+                    fpsensor_error(" %s : vcc_33v_pin request failed \n", __func__);
+                    goto fpsensor_power_request_fail;
+                }
+                ret = gpio_direction_output(g_fpsensor->vcc_33v_Pin, 1);
+            }
+            else
+            {
+                fpsensor_info("get regulator from dts \n");
+                g_fpsensor->vdd_reg = regulator_get(&dev, "vcc_fp");
+                if (IS_ERR(g_fpsensor->vdd_reg)) {
+                    fpsensor_info("get regulator failed %d \n", IS_ERR(g_fpsensor->vdd_reg));
+                    return IS_ERR(g_fpsensor->vdd_reg);
+                }
+                ret = regulator_set_voltage(g_fpsensor->vdd_reg, 2800000, 2800000);
+                if (ret) {
+                    fpsensor_info("regulator_set_voltage(%d)\n", ret);
+                    goto err;
+                }
+                ret = regulator_enable(g_fpsensor->vdd_reg);
+                fpsensor_info("regulator_enable(%d)\n", ret);
+                if (ret) {
+                    fpsensor_info("regulator enable failed(%d)\n", ret);
+                    goto err;
+                }
 
-    if (IS_ERR(fp_reg)) {
-        fpsensor_error("get regulator failed %d \n", IS_ERR(fp_reg));
-        return IS_ERR(fp_reg);
+            }
+        }
+        else
+        {
+            fpsensor_info(" %s : ctrl_power property is null\n", __func__);
+        }
     }
-
-    ret = regulator_set_voltage(fp_reg, 2800000, 2800000);
-    if (ret) {
-        fpsensor_debug("regulator_set_voltage(%d)\n", ret);
-        goto err;
+    else
+    {
+        fpsensor_info(" %s : power_node is null\n", __func__);
     }
-    ret = regulator_enable(fp_reg);
-    if (ret) {
-        fpsensor_error("regulator enable failed(%d)\n", ret);
-        goto err;
-    }
+    fpsensor_info(" %s : successful \n", __func__);
     return 0;
 
+fpsensor_power_request_fail:
+    return -EIO;
+
 err:
-    regulator_put(fp_reg);
+    regulator_put(g_fpsensor->vdd_reg);
     return ret;
 }
 
 static int fpsensor_disable_power(void)
 {
     int ret = 0;
-    ret = regulator_disable(g_fpsensor->vdd_reg);
-    if (ret) {
-        fpsensor_error("regulator disable failed(%d)\n", ret);
-        goto err;
-    }else{
-        fpsensor_debug("regulator disable success\n");
-        return 0;
+    if (g_fpsensor->pwr_by_gpio)
+    {
+        gpio_set_value(g_fpsensor->vcc_33v_Pin, 0);
+        gpio_free(g_fpsensor->vcc_33v_Pin);
+
     }
-    regulator_put(g_fpsensor->vdd_reg);
+    else
+    {
+        ret = regulator_disable(g_fpsensor->vdd_reg);
+        if (ret) {
+            fpsensor_error("regulator disable failed(%d)\n", ret);
+            goto err;
+        }else{
+            fpsensor_info("regulator disable success\n");
+        }
+        regulator_put(g_fpsensor->vdd_reg);
+        return ret;
+    }
 err:
     regulator_put(g_fpsensor->vdd_reg);
     return ret;
-}*/
+}
 
 static long fpsensor_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
@@ -461,6 +515,7 @@ static long fpsensor_ioctl(struct file *filp, unsigned int cmd, unsigned long ar
         // fix Unbalanced enable for IRQ, disable irq at first
         fpsensor_dev->irq_enabled = 1;
         fpsensor_disable_irq(fpsensor_dev);
+        fpsensor_enable_power();
         fpsensor_info("fpsensor init finished======\n");
         break;
 
@@ -592,12 +647,12 @@ static long fpsensor_ioctl(struct file *filp, unsigned int cmd, unsigned long ar
 #endif
         //fpsensor_hw_power_enable(0);
         //wake_lock_destroy(&fpsensor_dev->ttw_wl);
-     #if FPSENSOR_WAKEUP_SOURCE	
+     #if FPSENSOR_WAKEUP_SOURCE
 	  wakeup_source_trash(&fpsensor_dev->ttw_wl);
       #else
       wake_lock_destroy(&fpsensor_dev->ttw_wl);
        #endif
-        //fpsensor_disable_power();
+        fpsensor_disable_power();
         fpsensor_info("remove finished\n");
         break;
     case FPSENSOR_IOC_CANCEL_WAIT:
