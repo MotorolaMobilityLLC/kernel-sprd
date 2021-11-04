@@ -43,6 +43,7 @@ dtbo-$(CONFIG_ARCH_SPRD) += ums9230-haps-backdoor-overlay.dtbo \
 	ums9230-zebu-backdoor-overlay.dtbo \
 	ums9230-1h10-overlay.dtbo \
 	ums9230-4h10-overlay.dtbo \
+	ums9230-4h10-DC4CPU-overlay.dtbo \
 	ums9230-4h10-go-overlay.dtbo \
 	ums9230-aruba-go-overlay.dtbo \
 	ums9230-arubaBsp-go-overlay.dtbo \
@@ -56,6 +57,7 @@ ums9230-haps-flash-overlay.dtbo-base := ums9230-haps.dtb
 ums9230-zebu-backdoor-overlay.dtbo-base := ums9230-zebu.dtb
 ums9230-1h10-overlay.dtbo-base := ums9230.dtb
 ums9230-4h10-overlay.dtbo-base := ums9230.dtb
+ums9230-4h10-DC4CPU-overlay.dtbo-base := ums9230.dtb
 ums9230-4h10-go-overlay.dtbo-base := ums9230.dtb
 ums9230-aruba-go-overlay.dtbo-base := ums9230.dtb
 ums9230-arubaBsp-go-overlay.dtbo-base := ums9230.dtb

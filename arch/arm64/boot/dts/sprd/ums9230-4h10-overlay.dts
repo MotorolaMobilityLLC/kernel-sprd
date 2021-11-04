@@ -20,15 +20,21 @@
 #include "lcd/lcd_dummy_mipi.dtsi"
 
 / {
-
-	model = "Spreadtrum UMS9230 4H10 Board";
-
-	compatible = "sprd,ums9230-4h10";
-
+#ifdef USE_DC4CPU
+	sprd,sc-id = "ums9230 4h10 DC4CPU";
+#else
 	sprd,sc-id = "ums9230 4h10 1000";
+#endif
 	fragment {
 		target-path = "/";
 		__overlay__ {
+			model = "Spreadtrum UMS9230 4H10 Board";
+			compatible = "sprd,ums9230-4h10";
+#ifdef USE_DC4CPU
+			sprd,sc-id = "ums9230 4h10 DC4CPU";
+#else
+			sprd,sc-id = "ums9230 4h10 1000";
+#endif
 /*			pwm_backlight: sprd_backlight {
 				compatible = "sprd,sharkl6-backlight";
 				pwms = <&pwms 2 40000>;
@@ -815,6 +821,7 @@
 	chnl-in-i2c = <0>;
 };
 
+#ifdef USE_DC4CPU
 &dvfs_dcdc_cpu1_supply {
 	chnl-i2c-used;
 	third-pmic-used;
@@ -848,6 +855,40 @@
 	tuning-latency-us = <0>;
 	chnl-in-i2c = <1>;
 };
+#else
+&dvfs_dcdc_cpu1_supply {
+	pmic-type-num = <0>;
+	slew-rate = <9375>; /* 9375uV/us */
+	supply-type-sel = <0x120 0 0>;
+	top-dvfs-adi-state = <0x9c 0 0xf>;
+	voltage-grade-num = <8>;
+	voltage-grade = <0 0xf0 0x100 0 0x1ff>,
+		<1 0x100 0x100 9 0x1ff>,
+		<2 0x110 0x100 18 0x1ff>,
+		<3 0x120 0x104 0 0x1ff>,
+		<4 0x130 0x104 9 0x1ff>,
+		<5 0x140 0x104 18 0x1ff>,
+		<6 0x140 0x108 0 0x1ff>,
+		<7 0x140 0x108 9 0x1ff>;
+	voltage-up-delay = <50 0x84 0 0xffff 0x600>,
+		<100 0x84 16 0xffff 0xa00>,
+		<150 0x80 0 0xffff 0xf00>,
+		<200 0x80 16 0xffff 0x1400>,
+		<250 0x7c 0 0xffff 0x1900>,
+		<300 0x7c 16 0xffff 0x1e00>,
+		<350 0x118 0 0xffff 0x2300>;
+	voltage-down-delay = <50 0x90 0 0xffff 0x600>,
+		<100 0x90 16 0xffff 0xa00>,
+		<150 0x8c 0 0xffff 0xf00>,
+		<200 0x8c 16 0xffff 0x1400>,
+		<250 0x88 0 0xffff 0x1900>,
+		<300 0x88 16 0xffff 0x1e00>,
+		<350 0x11c 0 0xffff 0x2300>;
+	tuning-latency-us = <0>;
+	chnl-in-i2c = <0>;
+};
+
+#endif
 
 &hsphy {
 	vdd-supply = <&vddusb33>;
@@ -1051,8 +1092,17 @@
 	};
 };
 
+
+#ifdef USE_DC4CPU
 &adi_bus {
 	sprd,hw-channels = <2 0x18cc>, <3 0x18cc>, <13 0x1854>, <15 0x1874>,
 			<17 0x1844>,<19 0x1844>, <21 0x1864>, <30 0x1820>,
 			<35 0x19b8>, <39 0x19ac>;
 };
+#else
+&adi_bus {
+	sprd,hw-channels = <2 0x18cc>, <3 0x18cc>, <13 0x1874>, <15 0x1874>,
+			<17 0x1844>,<19 0x1854>, <21 0x1864>, <30 0x1820>,
+			<35 0x19b8>, <39 0x19ac>;
+};
+#endif
