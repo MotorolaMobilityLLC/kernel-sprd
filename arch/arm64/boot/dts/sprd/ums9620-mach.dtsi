@@ -593,6 +593,7 @@
 			sprd,hotplug-period = <10>;
 			sprd,min-cpufreq = <614400>;
 			sprd,min-cpunum = <1>;
+			sprd,max-temp = <90000>;
 			sprd,core-base = <2163>;
 			sprd,cluster-base = <9406>;
 			sprd,dynamic-core =
@@ -642,6 +643,7 @@
 			sprd,hotplug-period = <10>;
 			sprd,min-cpufreq = <1228800>;
 			sprd,min-cpunum = <0>;
+			sprd,max-temp = <85000>;
 			sprd,core-base = <13764>;
 			sprd,cluster-base = <9406>;
 			sprd,dynamic-core =
@@ -687,6 +689,7 @@
 			sprd,hotplug-period = <10>;
 			sprd,min-cpufreq = <1228800>;
 			sprd,min-cpunum = <0>;
+			sprd,max-temp = <85000>;
 			sprd,core-base = <16032>;
 			sprd,cluster-base = <9406>;
 			sprd,dynamic-core =

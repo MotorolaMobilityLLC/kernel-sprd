@@ -197,7 +197,7 @@
 		soc_thmzone: soc-thmzone {
 			polling-delay-passive = <100>;
 			polling-delay = <1000>;
-			sustainable-power = <4500>;
+			sustainable-power = <5800>;
 			thermal-sensors = <&virtual_sensor  0>;
 			trips {
 				soc_threshold: trip-point@0 {
@@ -226,14 +226,14 @@
 				};
 				map1 {
 					trip = <&soc_target>;
-					contribution = <410>;
+					contribution = <682>;
 					cooling-device =
 					<&CPU6 THERMAL_NO_LIMIT \
 					THERMAL_NO_LIMIT>;
 				};
 				map2 {
 					trip = <&soc_target>;
-					contribution = <2048>;
+					contribution = <1024>;
 					cooling-device =
 					<&cluster0_cooling THERMAL_NO_LIMIT \
 					THERMAL_NO_LIMIT>;
@@ -381,6 +381,7 @@
 			sprd,hotplug-period = <10>;
 			sprd,min-cpufreq = <614400>;
 			sprd,min-cpunum = <6>;
+			sprd,max-temp = <90000>;
 			sprd,core-base = <3950>;
 			sprd,cluster-base = <3896>;
 			sprd,dynamic-core =
@@ -422,6 +423,7 @@
 			sprd,hotplug-period = <10>;
 			sprd,min-cpufreq = <1228800>;
 			sprd,min-cpunum = <0>;
+			sprd,max-temp = <85000>;
 			sprd,core-base = <11552>;
 			sprd,cluster-base = <3896>;
 			sprd,dynamic-core =

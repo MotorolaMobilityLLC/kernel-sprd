@@ -447,6 +447,7 @@
 			sprd,hotplug-period = <10>;
 			sprd,min-cpufreq = <614400>;
 			sprd,min-cpunum = <6>;
+			sprd,max-temp = <90000>;
 			sprd,core-base = <4075>;
 			sprd,cluster-base = <3891>;
 			sprd,dynamic-core =
@@ -488,6 +489,7 @@
 			sprd,hotplug-period = <10>;
 			sprd,min-cpufreq = <1228800>;
 			sprd,min-cpunum = <0>;
+			sprd,max-temp = <85000>;
 			sprd,core-base = <11051>;
 			sprd,cluster-base = <3891>;
 			sprd,dynamic-core =
