@@ -4,6 +4,7 @@
  *
  * Copyright (C) 2019 Unisoc, Inc.
  */
+#include <linux/apsys_dvfs.h>
 #include <linux/cdev.h>
 #include <linux/clk.h>
 #include <linux/clk-provider.h>
@@ -69,9 +70,7 @@ static long vsp_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	int ret = 0;
 	int codec_counter = -1;
 	u32 mm_eb_reg;
-#ifndef CONFIG_SPRD_APSYS_DVFS_DEVFREQ
 	struct clk *clk_parent;
-#endif
 	unsigned long frequency;
 	struct vsp_iommu_map_data mapdata;
 	struct vsp_iommu_map_data ummapdata;
@@ -87,12 +86,11 @@ static long vsp_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	switch (cmd) {
 	case VSP_CONFIG_FREQ:
 		get_user(vsp_hw_dev.freq_div, (int __user *)arg);
-#ifndef CONFIG_SPRD_APSYS_DVFS_DEVFREQ
 		clk_parent = vsp_get_clk_src_name(clock_name_map,
 				vsp_hw_dev.freq_div, max_freq_level);
 		vsp_hw_dev.vsp_parent_clk = clk_parent;
 		pr_debug("VSP_CONFIG_FREQ %d\n", vsp_hw_dev.freq_div);
-#else
+#if IS_ENABLED(CONFIG_DVFS_APSYS_SPRD)
 		if (vsp_hw_dev.freq_div >= max_freq_level)
 			vsp_hw_dev.freq_div = max_freq_level - 1;
 		frequency = clock_name_map[vsp_hw_dev.freq_div].freq;
@@ -452,6 +450,10 @@ static int vsp_parse_dt(struct platform_device *pdev)
 	uint32_t syscon_args[2];
 
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+	if (!res) {
+		dev_err(dev, "no VSP resource\n");
+		return -EINVAL;
+	}
 
 	sprd_vsp_base = devm_ioremap_resource(&pdev->dev, res);
 	if (IS_ERR(sprd_vsp_base))
