@@ -1002,6 +1002,8 @@
 &pmic_fchg {
 	sprd,input-voltage-microvolt = <5000000>;
 	sprd,pd-fixed-max-microwatt = <18000000>;
+	sprd,support-sfcp;
+	sprd,support-pd-pps;
 	phys = <&hsphy>;
 };
 
