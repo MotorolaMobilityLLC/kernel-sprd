@@ -405,6 +405,7 @@ struct sprd_tcpm_port {
 	struct power_supply *psy;
 	struct power_supply_desc psy_desc;
 	enum power_supply_usb_type usb_type;
+	enum power_supply_usb_type last_usb_type;
 
 	u32 bist_request;
 
@@ -849,7 +850,6 @@ static int sprd_tcpm_set_current_limit(struct sprd_tcpm_port *port, u32 max_ma, 
 
 	port->supply_voltage = mv;
 	port->current_limit = max_ma;
-	power_supply_changed(port->psy);
 
 	if (port->tcpc->set_current_limit)
 		ret = port->tcpc->set_current_limit(port->tcpc, max_ma, mv);
@@ -1908,7 +1908,6 @@ static void sprd_tcpm_pd_ctrl_request(struct sprd_tcpm_port *port,
 			port->pps_data.max_curr = port->pps_data.req_max_curr;
 			port->req_supply_voltage = port->pps_data.req_out_volt;
 			port->req_current_limit = port->pps_data.req_op_curr;
-			power_supply_changed(port->psy);
 			sprd_tcpm_set_state(port, SNK_TRANSITION_SINK, 0);
 			break;
 		case SOFT_RESET_SEND:
@@ -2247,7 +2246,6 @@ static int sprd_tcpm_pd_select_pdo(struct sprd_tcpm_port *port, int *sink_pdo, i
 
 	port->pps_data.supported = false;
 	port->usb_type = POWER_SUPPLY_USB_TYPE_PD;
-	power_supply_changed(port->psy);
 
 	/*
 	 * Select the source PDO providing the most power which has a
@@ -2272,7 +2270,6 @@ static int sprd_tcpm_pd_select_pdo(struct sprd_tcpm_port *port, int *sink_pdo, i
 				port->pps_data.supported = true;
 				port->usb_type =
 					POWER_SUPPLY_USB_TYPE_PD_PPS;
-				power_supply_changed(port->psy);
 			}
 			continue;
 		default:
@@ -2664,7 +2661,6 @@ static int sprd_tcpm_set_charge(struct sprd_tcpm_port *port, bool charge)
 			return ret;
 	}
 	port->vbus_charge = charge;
-	power_supply_changed(port->psy);
 	return 0;
 }
 
@@ -2828,6 +2824,9 @@ static void sprd_tcpm_reset_port(struct sprd_tcpm_port *port)
 	port->try_src_count = 0;
 	port->try_snk_count = 0;
 	port->usb_type = POWER_SUPPLY_USB_TYPE_C;
+	port->last_usb_type = POWER_SUPPLY_USB_TYPE_C;
+
+	power_supply_changed(port->psy);
 }
 
 static void sprd_tcpm_detach(struct sprd_tcpm_port *port)
@@ -3359,8 +3358,14 @@ static void sprd_run_state_machine(struct sprd_tcpm_port *port)
 		sprd_tcpm_check_send_discover(port);
 		sprd_tcpm_pps_complete(port, port->pps_status);
 
-		power_supply_changed(port->psy);
-
+		/*
+		 * When avoiding PPS charging, the upper layer is notified
+		 * repeatedly if the USB type is changed.
+		*/
+		if (port->usb_type != port->last_usb_type) {
+			port->last_usb_type = port->usb_type;
+			power_supply_changed(port->psy);
+		}
 		break;
 
 	/* Accessory states */
@@ -3388,6 +3393,7 @@ static void sprd_run_state_machine(struct sprd_tcpm_port *port)
 		port->tcpc->set_pd_rx(port->tcpc, false);
 		sprd_tcpm_unregister_altmodes(port);
 		port->send_discover = true;
+		port->last_usb_type = POWER_SUPPLY_USB_TYPE_C;
 		if (port->pwr_role == TYPEC_SOURCE)
 			sprd_tcpm_set_state(port, SRC_HARD_RESET_VBUS_OFF,
 					    SPRD_PD_T_PS_HARD_RESET);
@@ -4856,7 +4862,7 @@ static int sprd_tcpm_psy_set_prop(struct power_supply *psy,
 		ret = -EINVAL;
 		break;
 	}
-	power_supply_changed(port->psy);
+
 	return ret;
 }
 
@@ -4908,6 +4914,7 @@ static int devm_sprd_tcpm_psy_register(struct sprd_tcpm_port *port)
 	port->psy_desc.property_is_writeable = sprd_tcpm_psy_prop_writeable,
 
 	port->usb_type = POWER_SUPPLY_USB_TYPE_C;
+	port->last_usb_type = POWER_SUPPLY_USB_TYPE_C;
 
 	port->psy = devm_power_supply_register(port->dev, &port->psy_desc,
 					       &psy_cfg);
@@ -5018,7 +5025,6 @@ struct sprd_tcpm_port *sprd_tcpm_register_port(struct device *dev, struct tcpc_d
 	err = devm_sprd_tcpm_psy_register(port);
 	if (err)
 		goto out_role_sw_put;
-	power_supply_changed(port->psy);
 
 	port->typec_port = typec_register_port(port->dev, &port->typec_caps);
 	if (IS_ERR(port->typec_port)) {
