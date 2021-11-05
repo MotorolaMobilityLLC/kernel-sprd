@@ -99,7 +99,7 @@
 				key-volumedown {
 					label = "Volume Down Key";
 					linux,code = <KEY_VOLUMEDOWN>;
-					gpios = <&pmic_eic 4 GPIO_ACTIVE_HIGH>;
+					gpios = <&ap_gpio 124 GPIO_ACTIVE_LOW>;
 					debounce-interval = <2>;
 					wakeup-source;
 				};
@@ -115,7 +115,7 @@
 				key-volumeup {
 					label = "Volume Up Key";
 					linux,code = <KEY_VOLUMEUP>;
-					gpios = <&ap_gpio 124 GPIO_ACTIVE_LOW>;
+					gpios = <&pmic_eic 4 GPIO_ACTIVE_HIGH>;
 					debounce-interval = <2>;
 					wakeup-source;
 				};
