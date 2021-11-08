@@ -74,6 +74,11 @@
 			reg = <0x0 0x94100000 0x0 0x00300000>;
 		};
 
+		/* The uboot_log_reserved node is added in uboot. base:0x9de8 0000, size:0x80000 */
+		uboot_log_reserved: uboot_log-mem {
+			reg = <0x0 0x9de80000 0x0 0x00080000>;
+		};
+
 		uboot_reserved: sysdump-uboot@9f000000 {
 			reg = <0x0 0x9f000000 0x0 0x01000000>;
 		};
