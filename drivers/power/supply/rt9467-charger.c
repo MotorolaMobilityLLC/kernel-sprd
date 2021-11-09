@@ -4284,7 +4284,7 @@ static int rt9467_charger_usb_get_property(struct power_supply *psy,
 		
 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE_MAX:
 		ret = rt9467_charger_get_termina_vol(info, &vol);
-		val->intval = vol *1000;
+		val->intval = vol;
 		break;
 
 	default:
