@@ -2225,6 +2225,7 @@ static int __rt9467_get_mivr(struct rt9467_info *info, u32 *mivr)
 	*mivr = rt9467_closest_value(RT9467_MIVR_MIN, RT9467_MIVR_MAX,
 		RT9467_MIVR_STEP, reg_mivr);
 
+
 	return ret;
 }
 
@@ -3546,7 +3547,6 @@ rt9467_charger_get_termina_vol(struct rt9467_info *info, u32 *vol)
 	reg_cv = (ret & RT9467_MASK_CV) >> RT9467_SHIFT_CV;
 	*vol = rt9467_closest_value(RT9467_CV_MIN, RT9467_CV_MAX,
 		RT9467_CV_STEP, reg_cv);
-	dev_info(info->dev, "%s: cv = %d(0x%02X)\n", __func__, *vol, reg_cv);
 
 	return 0;
 }
@@ -3594,8 +3594,8 @@ static int rt9467_charger_hw_init(struct rt9467_info *info)
 		info->cur.fchg_cur = bat_info.cur.fchg_cur;
 
 		voltage_max_microvolt =
-			bat_info.constant_charge_voltage_max_uv / 1000;
-		termination_cur = bat_info.charge_term_current_ua / 1000;
+			bat_info.constant_charge_voltage_max_uv ;
+		termination_cur = bat_info.charge_term_current_ua;
 		info->termination_cur = termination_cur;
 		power_supply_put_battery_info(info->psy_usb, &bat_info);
 
@@ -3628,7 +3628,7 @@ static int rt9467_charger_hw_init(struct rt9467_info *info)
 			}
 		}
 
-		ret = rt9467_charger_set_vindpm(info, 4500);
+		ret = rt9467_charger_set_vindpm(info, 4500000);
 		if (ret<0) {
 			dev_err(info->dev, "set rt9467 vindpm vol failed\n");
 			return ret;
