@@ -655,6 +655,12 @@ config CHARGER_CX7601
 	depends on I2C || COMPILE_TEST
 	help
 	  Say Y to include support for sun CX7601 Battery Charger.
+
+config CHARGER_RT9467
+	tristate "sun RT9467 Charger"
+	depends on I2C || COMPILE_TEST
+	help
+	  Say Y to include support for sun CX7601 Battery Charger.
 	  
 config CHARGER_SGM41511
 	tristate "sun SGM41511 Charger"

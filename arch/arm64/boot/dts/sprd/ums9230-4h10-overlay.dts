@@ -686,9 +686,9 @@
 		};
 	};
 
-	cx7601_chg: charger@6a {
-		compatible = "sun,cx7601_chg";
-		reg = <0x6a>;
+	rt9467_chg: charger@5b {
+		compatible = "richtek,rt9467_chg";
+		reg = <0x5b>;
 		phys = <&hsphy>;
 		monitored-battery = <&bat>;
 		extcon = <&extcon_gpio>, <&pmic_pd>;
