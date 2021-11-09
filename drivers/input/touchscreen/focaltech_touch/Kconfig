@@ -1,0 +1,28 @@
+#
+# Focaltech Touchscreen driver configuration
+#
+
+config TOUCHSCREEN_FOCALTECH_TS
+        tristate "focaltech touchscreen for QualComm package"
+        depends on SPI
+        default n
+        help
+          Say y here if you have focaltech touch panel.
+
+          If unsure, say N.
+
+          To compile this driver as a module, choose M here: the
+          module will be called FT8006s.
+
+#config TOUCHSCREEN_FTS
+#    bool "Focaltech Touchscreen"
+#    default n
+#    help
+#      Say Y here if you have Focaltech touch panel.
+#      If unsure, say N.
+      
+config TOUCHSCREEN_FTS_DIRECTORY
+    string "Focaltech ts directory name"
+    default "focaltech_touch"
+    depends on TOUCHSCREEN_FTS
+    

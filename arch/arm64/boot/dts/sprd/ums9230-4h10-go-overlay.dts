@@ -704,7 +704,7 @@
 	spi@0 {
 		status = "okay";
 
-		compatible = "novatek,NVT-ts-spi", "himax,hxcommon", "chipone-tddi", "tchip,ilitek";
+		compatible = "novatek,NVT-ts-spi", "himax,hxcommon", "chipone-tddi", "tchip,ilitek", "focaltech,fts";
 		reg = <0x0>;
 		spi-max-frequency = <9600000>;
 		interrupt-parent = <&ap_gpio>;
@@ -749,6 +749,13 @@
 		touch,irq-gpio = <&ap_gpio 144 GPIO_ACTIVE_HIGH>;
 		touch,reset-gpio = <&ap_gpio 145 GPIO_ACTIVE_HIGH>;
 		/*ilitek end*/
+
+		/*focaltech start*/
+		focaltech,irq-gpio = <&ap_gpio 144 GPIO_ACTIVE_HIGH>;
+		focaltech,reset-gpio = <&ap_gpio 145 GPIO_ACTIVE_HIGH>;
+		focaltech,max-touch-number = <10>;
+		focaltech,display-coords =  <0 0 720 1600>;
+
 	};
 };
 

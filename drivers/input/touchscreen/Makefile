@@ -109,3 +109,4 @@ obj-$(CONFIG_TOUCHSCREEN_NVT_SPI)       += nvt_touch_spi/
 obj-$(CONFIG_TOUCHSCREEN_HIMAX_CHIPSET) += hxchipset/
 obj-$(CONFIG_TOUCHSCREEN_CHIPONE)		+= chipone/
 obj-$(CONFIG_TOUCHSCREEN_ILITEK_TDDI)   += ili9882qtek_tddi/
+obj-$(CONFIG_TOUCHSCREEN_FOCALTECH_TS)   += focaltech_touch/
