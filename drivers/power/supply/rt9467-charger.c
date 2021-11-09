@@ -3528,7 +3528,9 @@ rt9467_charger_set_ovp(struct rt9467_info *info, u32 vol)
 static int
 rt9467_charger_set_termina_vol(struct rt9467_info *info, u32 vol)
 {
-	return __rt9467_set_cv(info, vol);
+
+	__rt9467_set_cv(info, vol);
+	return 0;
 }
 
 static int
@@ -3544,14 +3546,16 @@ rt9467_charger_get_termina_vol(struct rt9467_info *info, u32 *vol)
 	reg_cv = (ret & RT9467_MASK_CV) >> RT9467_SHIFT_CV;
 	*vol = rt9467_closest_value(RT9467_CV_MIN, RT9467_CV_MAX,
 		RT9467_CV_STEP, reg_cv);
+	dev_info(info->dev, "%s: cv = %d(0x%02X)\n", __func__, *vol, reg_cv);
 
-	return ret;
+	return 0;
 }
 
 static int
 rt9467_charger_set_termina_cur(struct rt9467_info *info, u32 cur)
 {
-	return __rt9467_set_ieoc(info, cur);
+	__rt9467_set_ieoc(info, cur);
+	return 0;
 }
 
 static int rt9467_charger_hw_init(struct rt9467_info *info)
@@ -3725,7 +3729,7 @@ static int rt9467_charger_start_charge(struct rt9467_info *info)
 	if (ret<0)
 		dev_err(info->dev, "set rt9467 terminal cur failed\n");
 
-	return ret;
+	return 0;
 }
 
 static void rt9467_charger_stop_charge(struct rt9467_info *info)
@@ -3780,13 +3784,15 @@ static void rt9467_charger_stop_charge(struct rt9467_info *info)
 static int rt9467_charger_set_current(struct rt9467_info *info,
 				       u32 cur)
 {
-	return __rt9467_set_ichg(info, cur);
+	__rt9467_set_ichg(info, cur);
+	return 0;
 }
 
 static int rt9467_charger_get_current(struct rt9467_info *info,
 				       u32 *cur)
 {
-	return __rt9467_get_ichg(info, cur);
+	__rt9467_get_ichg(info, cur);
+	return 0;
 }
 
 static int
@@ -3802,7 +3808,7 @@ rt9467_charger_set_limit_current(struct rt9467_info *info,
 
 	info->actual_limit_cur = limit_cur;
 
-	return ret;
+	return 0;
 }
 
 static u32
@@ -3820,7 +3826,7 @@ rt9467_charger_get_limit_current(struct rt9467_info *info,
 	*limit_cur = rt9467_closest_value(RT9467_AICR_MIN, RT9467_AICR_MAX,
 		RT9467_AICR_STEP, reg_aicr);
 
-	return ret;
+	return 0;
 }
 
 static int rt9467_charger_get_health(struct rt9467_info *info,
@@ -4044,7 +4050,7 @@ static int rt9467_charger_set_status(struct rt9467_info *info,
 			info->charging = true;
 	}
 
-	return ret;
+	return 0;
 }
 
 static bool rt9467_charger_get_power_path_status(struct rt9467_info *info)
@@ -4079,7 +4085,7 @@ static int rt9467_charger_set_power_path_status(struct rt9467_info *info, bool e
 		dev_err(info->dev, "%s HIZ mode failed, ret = %d\n",
 			enable ? "Enable" : "Disable", ret);
 
-	return ret;
+	return 0;
 }
 
 static void rt9467_charger_work(struct work_struct *data)
@@ -5173,7 +5179,7 @@ static int rt9467_charger_probe(struct i2c_client *client,
 	atomic_set(&info->bc12_wkard, 0);
 
 	ret = rt9467_charger_hw_init(info);
-	if (ret) {
+	if (ret<0) {
 		dev_err(dev, "failed to rt9467_charger_hw_init\n");
 		goto err_psy_usb;
 	}
