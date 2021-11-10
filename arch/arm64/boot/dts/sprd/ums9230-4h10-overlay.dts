@@ -673,9 +673,9 @@
 		};
 	};
 
-	sgm41511_chg: charger@6c {
-		compatible = "sgm,sgm41511_chg";
-		reg = <0x6c>;
+	sy6970_chg: charger@6a {
+		compatible = "sy,sy6970_chg";
+		reg = <0x6a>;
 		phys = <&hsphy>;
 		monitored-battery = <&bat>;
 		extcon = <&extcon_gpio>, <&pmic_pd>;
