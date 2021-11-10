@@ -3,18 +3,51 @@
 		target-path = "/";
 		__overlay__ {
 			lcds {
-				lcd_dummy_mipi_hd: lcd_dummy_mipi_hd {
+			lcd_dummy_mipi_hd: lcd_dummy_mipi_hd {
 
-					sprd,dsi-work-mode = <1>; /* video burst mode*/
-					sprd,dsi-lane-number = <4>;
-					sprd,dsi-color-format = "rgb888";
+				sprd,dsi-work-mode = <1>; /* video burst mode*/
+				sprd,dsi-lane-number = <4>;
+				sprd,dsi-color-format = "rgb888";
+
+				sprd,phy-bit-clock = <770000>;	/* kbps */
+				sprd,phy-escape-clock = <20000>;/* kHz */
+				sprd,width-mm = <68>;
+				sprd,height-mm = <121>;
+
+				sprd,esd-check-enable = <0>;
+				sprd,esd-check-mode = <1>;
+				sprd,esd-check-period = <2000>;
+				sprd,esd-check-regs = <0xA>;
+				sprd,esd-return-code = <0x9c>;
+
+				sprd,dpi-clk-div = <6>;
+				sprd,video-lp-cmd-enable = <1>;
+				sprd,hporch-lp-disable = <1>;
+				sprd,reset-on-sequence = <1 5>, <0 5>, <1 20>;
+				sprd,reset-off-sequence = <1 5>;
 
 					sprd,initial-command = [
-						13 78 00 01 11
-						13 64 00 01 29
+						39 00 00 03 F0 5A 59
+						39 00 00 03 F1 A5 A6
+						23 00 00 02 FE EF
+						39 00 00 18 E1 FE FE FE FE FE EE F0 80 D0 00 00 00 C0 00 C0 00 F0 F0 00 80 00 07 D0
+						39 00 00 0E E0 30 00 20 18 01 1F 23 62 DF A0 04 CC 01
+						39 00 00 03 F1 5A 59
+						39 00 00 03 F0 A5 A6
+						23 00 00 02 35 00
+						39 00 00 03 51 FF 0E
+						23 00 00 02 53 24
+                        			23 00 00 02 35 00
+						39 00 00 03 51 00 00
+						23 00 00 02 53 2C
+						23 00 00 02 55 03
+						23 78 00 02 11 00
+						23 64 00 02 29 00
+						23 00 00 02 26 02
 						];
-					sprd,sleep-in-command = [
-						13 0A 00 01 28
+					sprd,sleep-in-command =  [
+						23 00 00 02 26 08
+						13 14 00 01 28
 						13 78 00 01 10
 						];
 					sprd,sleep-out-command = [
@@ -22,18 +55,30 @@
 						13 64 00 01 29
 						];
 
+
 					display-timings {
 						native-mode = <&dummy_timing0>;
 
 						dummy_timing0: timing0 {
-							clock-frequency = <76800000>;
+							clock-frequency = <128000000>;
 							hactive = <720>;
-							vactive = <1280>;
-							hback-porch = <60>;
-							hfront-porch = <80>;
-							vback-porch = <12>;
-							vfront-porch = <38>;
-							hsync-len = <60>;
+							vactive = <1600>;
+							hback-porch = <24>;
+							hfront-porch = <40>;
+							vback-porch = <32>;
+							vfront-porch = <150>;
+							hsync-len = <4>;
+							vsync-len = <4>;
+						};
+						dummy_timing1: timing1 {
+							clock-frequency = <133000000>;
+							hactive = <720>;
+							vactive = <1600>;
+							hback-porch = <24>;
+							hfront-porch = <48>;
+							vback-porch = <32>;
+							vfront-porch = <1039>;
+							hsync-len = <4>;
 							vsync-len = <4>;
 						};
 					};
