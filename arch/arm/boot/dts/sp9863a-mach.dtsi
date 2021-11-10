@@ -129,7 +129,7 @@
 		cpu_thmzone: cpu-thmzone {
 			polling-delay-passive = <100>;
 			polling-delay = <1000>;
-			sustainable-power = <3000>;
+			sustainable-power = <3600>;
 			thermal-sensors = <&cpu_thm  0>;
 			trips {
 				cpu_threshold: trip-point@0 {
@@ -158,14 +158,14 @@
 				};
 				map1 {
 					trip = <&cpu_target>;
-					contribution = <410>;
+					contribution = <768>;
 					cooling-device =
 					<&CPU4 THERMAL_NO_LIMIT \
 					THERMAL_NO_LIMIT>;
 				};
 				map2 {
 					trip = <&cpu_target>;
-					contribution = <2048>;
+					contribution = <1024>;
 					cooling-device =
 					<&cluster0_cooling THERMAL_NO_LIMIT \
 					THERMAL_NO_LIMIT>;
