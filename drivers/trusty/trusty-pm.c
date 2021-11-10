@@ -7,6 +7,7 @@
 #include <asm/arch_timer.h>
 
 #include "trusty.h"
+#include <trace/hooks/psci.h>
 
 #ifdef pr_fmt
 #undef pr_fmt
@@ -64,12 +65,26 @@ static struct syscore_ops trusty_pm_ops = {
 	.resume = trusty_pm_resume,
 };
 
+static void trusty_resident_on_cpu(void *data, int cpu, bool *resident)
+{
+	*resident = !trusty_fast_call32(NULL, SMC_FC_CPU_CAN_DOWN, cpu, 0, 0);
+}
+
+static void trusty_check_cpu_suspend(void *data, u32 state, bool *deny)
+{
+	trusty_resident_on_cpu(NULL, smp_processor_id(), deny);
+}
+
 static int __init trusty_pm_init(void)
 {
 	/* Fist time sync on boot up */
 	trusty_sync_boot_time();
 
 	register_syscore_ops(&trusty_pm_ops);
+
+	/* vendor hooks cannot be unregistered */
+	register_trace_android_vh_psci_tos_resident_on(trusty_resident_on_cpu, NULL);
+	register_trace_android_vh_psci_cpu_suspend(trusty_check_cpu_suspend, NULL);
 
 	return 0;
 }
