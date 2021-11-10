@@ -2077,6 +2077,7 @@ static ssize_t fts_test_store(
     input_dev = ts_data->input_dev;
     memset(fwname, 0, sizeof(fwname));
     snprintf(fwname, FILE_NAME_LENGTH, "%s", buf);
+    fwname[count - 1] = '\0';
     FTS_TEST_DBG("fwname:%s.", fwname);
 
     mutex_lock(&input_dev->mutex);
@@ -2126,7 +2127,6 @@ static ssize_t factory_test_show(
     input_dev = ts_data->input_dev;
     memset(fwname, 0, sizeof(fwname));
     snprintf(fwname, FILE_NAME_LENGTH, "%s", "/vendor/firmware/FT8006S-AN_Aruba_test02.ini");
-    fwname[count - 1] = '\0';
     FTS_TEST_DBG("fwname:%s.", fwname);
 
     mutex_lock(&input_dev->mutex);
