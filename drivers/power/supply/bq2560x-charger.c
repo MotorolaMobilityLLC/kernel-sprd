@@ -344,10 +344,8 @@ bq2560x_charger_set_termina_vol(struct bq2560x_charger_info *info, u32 vol)
 {
 	u8 reg_val;
 
-	if (vol < 3500)
+	if (vol < 3856)
 		reg_val = 0x0;
-	else if (vol >= 4440)
-		reg_val = 0x2e;
 	else
 		reg_val = (vol - 3856) / 32;
 
@@ -1801,6 +1799,8 @@ static int bq2560x_charger_probe(struct i2c_client *client,
 		strncpy(charge_ic_vendor_name,"SY6974",20);
 	else if ( val == 0x11 )
 		strncpy(charge_ic_vendor_name,"BQ25601",20);
+	else if ( (val & 0x7c) == 0x14  )
+		strncpy(charge_ic_vendor_name,"SGM41511",20);
 	else
 	{
 		info->client->addr = 0x3b;
