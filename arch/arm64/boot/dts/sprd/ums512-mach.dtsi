@@ -79,16 +79,16 @@
 			reg = <0x0 0x94040000 0x0 0x05fc0000>;
 		};
 
+		/* The uboot_log_reserved node is added in uboot. base:0x9de8 0000, size:0x80000 */
+		uboot_log_reserved: uboot_log-mem {
+			reg = <0x0 0x9de80000 0x0 0x00080000>;
+		};
+
 		cma_reserved: cma_share@f00000000 {
 			compatible = "shared-dma-pool";
 			reg = <0x0 0xf0000000 0x0 0x02000000>;
 			reusable;
 			linux,cma-default;
-		};
-
-		/* This node is added in uboot. base:0xffef 0000, size:0x80000 */
-		uboot_log_reserved: uboot_log-mem {
-			reg = <0x0 0xffef0000 0x0 0x00080000>;
 		};
 
 		rebootescrow@0xfff70000 {
