@@ -527,10 +527,9 @@ static int bq2560x_charger_start_charge(struct bq2560x_charger_info *info)
 	return ret;
 }
 
-static void bq2560x_charger_stop_charge(struct bq2560x_charger_info *info)
+static void bq2560x_charger_stop_charge(struct bq2560x_charger_info *info, bool present)
 {
 	int ret;
-	bool present = bq2560x_charger_is_bat_present(info);
 
 	if (info->role == BQ2560X_ROLE_MASTER_DEFAULT) {
 		if (!present || info->need_disable_Q1) {
@@ -815,10 +814,9 @@ static void bq2560x_check_wireless_charge(struct bq2560x_charger_info *info, boo
 }
 
 static int bq2560x_charger_set_status(struct bq2560x_charger_info *info,
-				      int val)
+				      int val, u32 input_vol, bool bat_present)
 {
 	int ret = 0;
-	u32 input_vol;
 
 	if (val == CM_FAST_CHARGE_ENABLE_CMD) {
 		ret = bq2560x_charger_set_fchg_current(info, val);
@@ -843,21 +841,11 @@ static int bq2560x_charger_set_status(struct bq2560x_charger_info *info,
 			return ret;
 		}
 		if (info->role == BQ2560X_ROLE_MASTER_DEFAULT) {
-			ret = bq2560x_charger_get_charge_voltage(info, &input_vol);
-			if (ret) {
-				dev_err(info->dev, "failed to get 9V charge voltage\n");
-				return ret;
-			}
 			if (input_vol > BQ2560X_FAST_CHARGER_VOLTAGE_MAX)
 				info->need_disable_Q1 = true;
 		}
 	} else if ((val == false) &&
 		   (info->role == BQ2560X_ROLE_MASTER_DEFAULT)) {
-		ret = bq2560x_charger_get_charge_voltage(info, &input_vol);
-		if (ret) {
-			dev_err(info->dev, "failed to get 5V charge voltage\n");
-			return ret;
-		}
 		if (input_vol > BQ2560X_NORMAL_CHARGER_VOLTAGE_MAX)
 			info->need_disable_Q1 = true;
 	}
@@ -867,7 +855,7 @@ static int bq2560x_charger_set_status(struct bq2560x_charger_info *info,
 
 	if (!val && info->charging) {
 		bq2560x_check_wireless_charge(info, false);
-		bq2560x_charger_stop_charge(info);
+		bq2560x_charger_stop_charge(info, bat_present);
 		info->charging = false;
 	} else if (val && !info->charging) {
 		bq2560x_check_wireless_charge(info, true);
@@ -1086,6 +1074,26 @@ static int bq2560x_charger_usb_set_property(struct power_supply *psy,
 {
 	struct bq2560x_charger_info *info = power_supply_get_drvdata(psy);
 	int ret = 0;
+	u32 input_vol;
+	bool bat_present;
+
+	if (!info) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -EINVAL;
+	}
+
+	/*
+	 * input_vol and bat_present should be assigned a value, only if psp is
+	 * POWER_SUPPLY_PROP_STATUS and POWER_SUPPLY_PROP_CALIBRATE.
+	 */
+	if (psp == POWER_SUPPLY_PROP_STATUS || psp == POWER_SUPPLY_PROP_CALIBRATE) {
+		bat_present = bq2560x_charger_is_bat_present(info);
+		ret = bq2560x_charger_get_charge_voltage(info, &input_vol);
+		if (ret) {
+			input_vol = 0;
+			dev_err(info->dev, "failed to get charge voltage! ret = %d\n", ret);
+		}
+	}
 
 	mutex_lock(&info->lock);
 
@@ -1118,7 +1126,7 @@ static int bq2560x_charger_usb_set_property(struct power_supply *psy,
 		break;
 
 	case POWER_SUPPLY_PROP_STATUS:
-		ret = bq2560x_charger_set_status(info, val->intval);
+		ret = bq2560x_charger_set_status(info, val->intval, input_vol, bat_present);
 		if (ret < 0)
 			dev_err(info->dev, "set charge status failed\n");
 		break;
@@ -1137,7 +1145,7 @@ static int bq2560x_charger_usb_set_property(struct power_supply *psy,
 				dev_err(info->dev, "start charge failed\n");
 		} else if (val->intval == false) {
 			bq2560x_check_wireless_charge(info, false);
-			bq2560x_charger_stop_charge(info);
+			bq2560x_charger_stop_charge(info, bat_present);
 		}
 		break;
 	case POWER_SUPPLY_PROP_TYPE:
@@ -1674,6 +1682,7 @@ static int bq2560x_charger_probe(struct i2c_client *client,
 	struct device_node *regmap_np;
 	struct platform_device *regmap_pdev;
 	int ret;
+	bool bat_present;
 
 	if (!i2c_check_functionality(adapter, I2C_FUNC_SMBUS_BYTE_DATA)) {
 		dev_err(dev, "No support for SMBUS_BYTE_DATA\n");
@@ -1832,7 +1841,8 @@ static int bq2560x_charger_probe(struct i2c_client *client,
 		goto err_psy_usb;
 	}
 
-	bq2560x_charger_stop_charge(info);
+	bat_present = bq2560x_charger_is_bat_present(info);
+	bq2560x_charger_stop_charge(info, bat_present);
 
 	device_init_wakeup(info->dev, true);
 	info->usb_notify.notifier_call = bq2560x_charger_usb_change;
