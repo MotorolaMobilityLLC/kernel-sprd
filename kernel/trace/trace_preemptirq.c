@@ -11,6 +11,7 @@
 #include <linux/ftrace.h>
 #include <linux/kprobes.h>
 #include "trace.h"
+#include "preemptirq_timing.h"
 
 #define CREATE_TRACE_POINTS
 #include <trace/events/preemptirq.h>
@@ -25,6 +26,7 @@ void trace_hardirqs_on(void)
 		if (!in_nmi())
 			trace_irq_enable_rcuidle(CALLER_ADDR0, CALLER_ADDR1);
 		tracer_hardirqs_on(CALLER_ADDR0, CALLER_ADDR1);
+		stop_irqsoff_timing();
 		this_cpu_write(tracing_irq_cpu, 0);
 	}
 
@@ -38,6 +40,7 @@ void trace_hardirqs_off(void)
 	if (!this_cpu_read(tracing_irq_cpu)) {
 		this_cpu_write(tracing_irq_cpu, 1);
 		tracer_hardirqs_off(CALLER_ADDR0, CALLER_ADDR1);
+		start_irqsoff_timing();
 		if (!in_nmi())
 			trace_irq_disable_rcuidle(CALLER_ADDR0, CALLER_ADDR1);
 	}
@@ -83,6 +86,7 @@ void trace_preempt_on(unsigned long a0, unsigned long a1)
 	if (!in_nmi())
 		trace_preempt_enable_rcuidle(a0, a1);
 	tracer_preempt_on(a0, a1);
+	stop_preemptoff_timing();
 }
 
 void trace_preempt_off(unsigned long a0, unsigned long a1)
@@ -90,5 +94,6 @@ void trace_preempt_off(unsigned long a0, unsigned long a1)
 	if (!in_nmi())
 		trace_preempt_disable_rcuidle(a0, a1);
 	tracer_preempt_off(a0, a1);
+	start_preemptoff_timing();
 }
 #endif

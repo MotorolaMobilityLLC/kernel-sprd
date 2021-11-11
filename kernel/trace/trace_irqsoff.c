@@ -16,6 +16,7 @@
 #include <linux/ftrace.h>
 #include <linux/kprobes.h>
 
+#include "preemptirq_timing.h"
 #include "trace.h"
 
 #include <trace/events/preemptirq.h>
@@ -442,6 +443,9 @@ void start_critical_timings(void)
 
 	if (preempt_trace(pc) || irq_trace())
 		start_critical_timing(CALLER_ADDR0, CALLER_ADDR1, pc);
+
+	stop_irqsoff_extra_timing();
+	stop_preemptoff_extra_timing();
 }
 EXPORT_SYMBOL_GPL(start_critical_timings);
 NOKPROBE_SYMBOL(start_critical_timings);
@@ -452,6 +456,9 @@ void stop_critical_timings(void)
 
 	if (preempt_trace(pc) || irq_trace())
 		stop_critical_timing(CALLER_ADDR0, CALLER_ADDR1, pc);
+
+	start_irqsoff_extra_timing();
+	start_preemptoff_extra_timing();
 }
 EXPORT_SYMBOL_GPL(stop_critical_timings);
 NOKPROBE_SYMBOL(stop_critical_timings);

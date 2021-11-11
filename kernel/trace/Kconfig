@@ -209,6 +209,13 @@ config IRQSOFF_TRACER
 	  enabled. This option and the preempt-off timing option can be
 	  used together or separately.)
 
+config IRQSOFF_WARN
+	bool "Interrupts-off Latency Warning"
+	depends on IRQSOFF_TRACER
+	help
+	  This option measures the time spent in irqs-off critical sections,
+	  and print some information if the time exceeds the set threshold.
+
 config IRQSOFF_TRACER_BYTEDANCY
 	bool "Interrupts-off Latency Tracer By Bytedancy"
 	default n
@@ -242,6 +249,14 @@ config PREEMPT_TRACER
 	  (Note that kernel size and overhead increase with this option
 	  enabled. This option and the irqs-off timing option can be
 	  used together or separately.)
+
+config PREEMPT_WARN
+	bool "Preemption-off Latency Warning"
+	depends on PREEMPT_TRACER
+	help
+	  This option measures the time spent in preemption-off critical
+	  sections, and print some information if the time exceeds the set
+	  threshold.
 
 config SCHED_TRACER
 	bool "Scheduling Latency Tracer"

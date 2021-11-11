@@ -9846,6 +9846,15 @@ CONFIG_IRQSOFF_TRACER_BYTEDANCY
 	[must] user
 	[missing plat description] none
 	[function] Enable/disable trace irq off of BD
+CONFIG_IRQSOFF_WARN
+	[arch] arm64
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
+	[field] make,code
+	[subsys] trace
+	[must] none
+	[missing plat description] none
+	[function] print some info if IRQ is disabled for a long time
 CONFIG_IRQ_BYPASS_MANAGER
 	[arch] arm64
 	[plat] sharkl3,sharkl5Pro
@@ -14298,6 +14307,15 @@ CONFIG_PREEMPT_TRACER
 	[must] user
 	[missing plat description] none
 	[function] Preemption-off Latency Tracer.
+CONFIG_PREEMPT_WARN
+	[arch] arm64
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
+	[field] make, code
+	[subsys] trace
+	[must] none
+	[missing plat description] none
+	[function] print some info if preempt is disabled for a long time
 CONFIG_PREVENT_FIRMWARE_BUILD
 	[arch] all
 	[plat] all
