@@ -16834,15 +16834,6 @@ CONFIG_SPRD_EFUSE
 	[must] home
 	[missing plat description] none
 	[function] get sprdtrum soc series efuse value
-CONFIG_SPRD_EIRQSOFF
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
-	[missing plat] none
-	[field]
-	[subsys]
-	[must]
-	[missing plat description] none
-	[function]
 CONFIG_SPRD_EMERGENCY_RESTART
 	[arch] all
 	[plat] all
