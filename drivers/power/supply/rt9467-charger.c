@@ -48,37 +48,6 @@
 
 #define RT9467_REG_ICHG_LSB			60
 
-#define RT9467_REG_ICHG_MASK			GENMASK(5, 0)
-
-#define RT9467_REG_CHG_MASK			GENMASK(4, 4)
-#define RT9467_REG_CHG_SHIFT			4
-
-#define RT9467_REG_EN_TIMER_MASK	GENMASK(3, 3)
-
-
-#define RT9467_REG_RESET_MASK			GENMASK(6, 6)
-
-#define RT9467_REG_OTG_MASK			GENMASK(5, 5)
-#define RT9467_REG_BOOST_FAULT_MASK		GENMASK(7, 5)
-
-#define RT9467_REG_WATCHDOG_MASK		GENMASK(6, 6)
-
-#define RT9467_REG_WATCHDOG_TIMER_MASK		GENMASK(5, 4)
-#define RT9467_REG_WATCHDOG_TIMER_SHIFT	4
-
-#define RT9467_REG_TERMINAL_VOLTAGE_MASK	GENMASK(7, 3)
-#define RT9467_REG_TERMINAL_VOLTAGE_SHIFT	3
-
-#define RT9467_REG_TERMINAL_CUR_MASK		GENMASK(3, 0)
-
-#define RT9467_REG_VINDPM_VOLTAGE_MASK		GENMASK(3, 0)
-#define RT9467_REG_OVP_MASK			GENMASK(7, 6)
-#define RT9467_REG_OVP_SHIFT			6
-
-#define RT9467_REG_EN_HIZ_MASK			GENMASK(7, 7)
-#define RT9467_REG_EN_HIZ_SHIFT		7
-
-#define RT9467_REG_LIMIT_CURRENT_MASK		GENMASK(4, 0)
 
 #define RT9467_DISABLE_PIN_MASK		BIT(0)
 #define RT9467_DISABLE_PIN_MASK_2721		BIT(15)
@@ -86,8 +55,7 @@
 #define RT9467_OTG_VALID_MS			500
 #define RT9467_FEED_WATCHDOG_VALID_MS		50
 #define RT9467_OTG_RETRY_TIMES			10
-#define RT9467_LIMIT_CURRENT_MAX		3200000
-#define RT9467_LIMIT_CURRENT_OFFSET		100000
+
 #define RT9467_REG_IINDPM_LSB			100
 
 #define RT9467_ROLE_MASTER_DEFAULT		1
@@ -579,7 +547,7 @@ static int rt9467_write(struct rt9467_info *info, u8 reg, u8 data)
 {
 	return i2c_smbus_write_byte_data(info->client, reg, data);
 }
-
+#ifdef OLD
 static int rt9467_update_bits(struct rt9467_info *info, u8 reg,
 			       u8 mask, u8 data)
 {
@@ -595,6 +563,7 @@ static int rt9467_update_bits(struct rt9467_info *info, u8 reg,
 
 	return rt9467_write(info, reg, v);
 }
+#endif
 static int rt9467_device_read(void *client, u32 addr, int leng, void *dst)
 {
 	struct i2c_client *i2c = (struct i2c_client *)client;
@@ -2009,6 +1978,7 @@ static bool rt9467_is_hw_exist(struct rt9467_info *info)
 
 	return true;
 }
+
 #endif
 
 static inline int rt9467_maskall_irq(struct rt9467_info *info)
@@ -3171,6 +3141,44 @@ static int rt9467_sw_reset(struct rt9467_info *info)
 	return ret;
 }
 #endif
+static void rt9467_init_setting_work(struct rt9467_info *info)
+{
+	int ret = 0, retry_cnt = 0;
+
+	do {
+		/* Select IINLMTSEL to use AICR */
+		ret = rt9467_select_input_current_limit(info,
+			RT9467_IINLMTSEL_AICR);
+		if (ret < 0) {
+			dev_notice(info->dev, "%s: sel ilmtsel fail\n",
+				__func__);
+			retry_cnt++;
+		}
+	} while (retry_cnt < 5 && ret < 0);
+
+	msleep(150);
+
+	retry_cnt = 0;
+	do {
+		/* Disable hardware ILIM */
+		ret = rt9467_enable_ilim(info, false);
+		if (ret < 0) {
+			dev_notice(info->dev, "%s: disable ilim fail\n",
+				__func__);
+			retry_cnt++;
+		}
+	} while (retry_cnt < 5 && ret < 0);
+
+}
+
+static int rt9467_kick_wdt(struct rt9467_info *info)
+{
+	enum rt9467_charging_status chg_status = RT9467_CHG_STATUS_READY;
+
+	/* Any I2C communication can reset watchdog timer */
+	return rt9467_get_charging_status(info, &chg_status);
+}
+
 static int rt9467_init_setting(struct rt9467_info *info)
 {
 	int ret = 0;
@@ -3297,6 +3305,9 @@ static int rt9467_init_setting(struct rt9467_info *info)
 				__func__);
 	}
 #endif	
+
+	rt9467_init_setting_work(info);
+
 err:
 	return ret;
 }
@@ -3421,6 +3432,46 @@ out:
 	return ret;
 }
 
+
+static void rt9467_init_setting_work_handler(struct work_struct *work)
+{
+	int ret = 0, retry_cnt = 0;
+	struct rt9467_info *info = (struct rt9467_info *)container_of(work,
+		struct rt9467_info, init_work);
+
+	do {
+		/* Select IINLMTSEL to use AICR */
+		ret = rt9467_select_input_current_limit(info,
+			RT9467_IINLMTSEL_AICR);
+		if (ret < 0) {
+			dev_notice(info->dev, "%s: sel ilmtsel fail\n",
+				__func__);
+			retry_cnt++;
+		}
+	} while (retry_cnt < 5 && ret < 0);
+
+	msleep(150);
+
+	retry_cnt = 0;
+	do {
+		/* Disable hardware ILIM */
+		ret = rt9467_enable_ilim(info, false);
+		if (ret < 0) {
+			dev_notice(info->dev, "%s: disable ilim fail\n",
+				__func__);
+			retry_cnt++;
+		}
+	} while (retry_cnt < 5 && ret < 0);
+
+	rt9467_dump_register(info->chg_dev);
+
+	/* Schedule work for microB's BC1.2 */
+#ifndef CONFIG_TCPC_CLASS
+	if (info->desc->en_chgdet)
+		schedule_work(&info->chgdet_work);
+#endif /* CONFIG_TCPC_CLASS */
+}
+
 #endif
 
 
@@ -3456,7 +3507,7 @@ static void rt9467_dump_regs(struct rt9467_info *info)
 	int adc_vsys = 0, adc_vbat = 0, adc_ibat = 0;
 	int adc_ibus = 0, adc_vbus = 0;
 	enum rt9467_charging_status chg_status = RT9467_CHG_STATUS_READY;
-	u8 chg_stat = 0, chg_ctrl[2] = {0};
+	u8 chg_stat = 0, chg_ctrl[21] = {0};
 
 	ret = __rt9467_get_ichg(info, &ichg);
 	ret = rt9467_get_aicr(info, &aicr);
@@ -3471,7 +3522,8 @@ static void rt9467_dump_regs(struct rt9467_info *info)
 	ret = rt9467_get_adc(info, RT9467_ADC_IBUS, &adc_ibus);
 	ret = rt9467_get_adc(info, RT9467_ADC_VBUS_DIV5, &adc_vbus);
 	chg_stat = rt9467_i2c_read_byte(info, RT9467_REG_CHG_STATC);
-	ret = rt9467_i2c_block_read(info, RT9467_REG_CHG_CTRL1, 2, chg_ctrl);
+	ret = rt9467_i2c_block_read(info, RT9467_REG_CORE_CTRL0, 21, chg_ctrl);
+
 
 	/* Charging fault, dump all registers' value */
 	if (chg_status == RT9467_CHG_STATUS_FAULT) {
@@ -3493,8 +3545,12 @@ static void rt9467_dump_regs(struct rt9467_info *info)
 		"%s: CHG_EN = %d, CHG_STATUS = %s, CHG_STAT = 0x%02X\n",
 		__func__, chg_en, rt9467_chg_status_name[chg_status], chg_stat);
 
-	dev_info(info->dev, "%s: CHG_CTRL1 = 0x%02X, CHG_CTRL2 = 0x%02X\n",
-		__func__, chg_ctrl[0], chg_ctrl[1]);
+	dev_info(info->dev, "%s: %02X %02X %02X %02X  %02X %02X %02X %02X\n",
+		__func__, chg_ctrl[0], chg_ctrl[1],chg_ctrl[2],chg_ctrl[3],chg_ctrl[4],chg_ctrl[5],chg_ctrl[6],chg_ctrl[7]);
+	dev_info(info->dev, "%s: %02X %02X %02X %02X  %02X %02X %02X %02X\n",
+		 __func__,chg_ctrl[8], chg_ctrl[9],chg_ctrl[10],chg_ctrl[11],chg_ctrl[12],chg_ctrl[13],chg_ctrl[14],chg_ctrl[15]);
+	dev_info(info->dev, "%s: %02X %02X %02X %02X  %02X \n",
+		 __func__,chg_ctrl[16], chg_ctrl[17],chg_ctrl[18],chg_ctrl[19],chg_ctrl[20]);
 
 }
 
@@ -4885,7 +4941,7 @@ static int rt9467_charger_enable_otg(struct regulator_dev *dev)
 
 	ret = rt9467_enable_otg(info , true);
 
-	if (ret) {
+	if (ret<0) {
 		dev_err(info->dev, "enable rt9467 otg failed\n");
 		regmap_update_bits(info->pmic, info->charger_detect,
 				   BIT_DP_DM_BC_ENB, 0);
@@ -5238,10 +5294,8 @@ static void rt9467_charger_shutdown(struct i2c_client *client)
 	if (info->otg_enable) {
 		info->otg_enable = false;
 		cancel_delayed_work_sync(&info->otg_work);
-		ret = rt9467_update_bits(info, RT9467_REG_1,
-					  RT9467_REG_OTG_MASK,
-					  0);
-		if (ret)
+		ret =  rt9467_enable_otg(info, false);
+		if (ret<0)
 			dev_err(info->dev, "disable rt9467 otg failed ret = %d\n", ret);
 
 		/* Enable charger detection function to identify the charger type */
@@ -5277,10 +5331,8 @@ static int rt9467_charger_suspend(struct device *dev)
 	cancel_delayed_work_sync(&info->cur_work);
 
 	/* feed watchdog first before suspend */
-	ret = rt9467_update_bits(info, RT9467_REG_1,
-				   RT9467_REG_RESET_MASK,
-				   RT9467_REG_RESET_MASK);
-	if (ret)
+	ret = rt9467_kick_wdt(info);
+	if (ret<0)
 		dev_warn(info->dev, "reset rt9467 failed before suspend\n");
 
 	now = ktime_get_boottime();
@@ -5302,10 +5354,8 @@ static int rt9467_charger_resume(struct device *dev)
 	alarm_cancel(&info->otg_timer);
 
 	/* feed watchdog first after resume */
-	ret = rt9467_update_bits(info, RT9467_REG_1,
-				   RT9467_REG_RESET_MASK,
-				   RT9467_REG_RESET_MASK);
-	if (ret)
+	ret = rt9467_kick_wdt(info);
+	if (ret<0)
 		dev_warn(info->dev, "reset rt9467 failed after resume\n");
 
 	schedule_delayed_work(&info->wdt_work, HZ * 15);
