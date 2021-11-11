@@ -6,7 +6,7 @@
 enum HWINFO_E{
 #endif
 
-KEYWORD(CPU_TYPE)
+KEYWORD(cpu_type)
 KEYWORD(NFC_MFR)
 KEYWORD(pon_reason)
 KEYWORD(secboot_version)
@@ -15,7 +15,7 @@ KEYWORD(board_nfc_flag)
 KEYWORD(prj_ver_flag)
 KEYWORD(hw_version)
 KEYWORD(band_id)
-KEYWORD(qcn_type)
+//KEYWORD(qcn_type)
 KEYWORD(serialno)
 
 // Nodes for ufs
@@ -82,7 +82,7 @@ KEYWORD(hbm)
 #ifdef CONFIG_USB_CABLE
 KEYWORD(RF_GPIO)
 #endif
-KEYWORD(current_cpuid)// current cpuid
+//KEYWORD(current_cpuid)// current cpuid
 
 #ifdef KEYWORD_ENUM
 KEYWORD(HWINFO_MAX)

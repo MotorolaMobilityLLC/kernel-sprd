@@ -12,6 +12,7 @@
 #include <linux/fs.h>
 #include <linux/gpio.h>
 #include <linux/of.h>
+#include <linux/of_fdt.h>
 
 #include <linux/fs.h>
 #include <asm/system_misc.h>
@@ -234,6 +235,39 @@ static int hwinfo_write_file(char *file_name, const char buf[], int buf_size)
 	set_fs(fs);
 	return 0;
 }
+
+//extern char *saved_command_line;
+
+int get_cmdline_param_val(const char *param, char *val, int len)
+{
+	char *p, *q;
+	char *s = "unknown";
+	int n;
+	if ( (len <= 1) || !param || !val)
+		return -1;
+	p = strstr(saved_command_line, param);
+	if (p) {
+		p = strstr(p, "=") + 1;
+		if (*p == '"') {
+			p++;
+			q = strstr(p, "\"");
+		} else
+			q = strstr(p, " ");
+		if (q)
+			n = q - p;
+		else
+			n = strlen(p);
+		n = min(len - 1, n);
+		strncpy(val, p, n);
+		val[n] = 0;
+	} else {
+		n = min_t(int, len - 1, strlen(s));
+		strncpy(val, s, n);
+		val[n] = 0;
+	}
+	return n;
+}
+
 #if 0
 /*Android:Settings->About phone->CPU  register function to distinguish the CPU model*/
 static char *msm_read_hardware_id(void)
@@ -263,7 +297,7 @@ err_path:
 #endif
 static int  get_cpu_type(void)
 {
-	//sprintf(hwinfo[CPU_TYPE].hwinfo_buf, "%s",arch_read_hardware_id());
+	sprintf(hwinfo[cpu_type].hwinfo_buf, "%s", of_flat_dt_get_cpuinfo_hw() ? of_flat_dt_get_cpuinfo_hw() : "unknown");
 	return 0;
 }
 #if 0
@@ -1140,6 +1174,7 @@ static int get_pon_reason(void)
 			pon_reason_info = "unknow";
 			break;
 		}*/
+	get_cmdline_param_val("bootcause=", pon_reason_info, sizeof(pon_reason_info));
 
 	return sprintf(hwinfo[pon_reason].hwinfo_buf, "%s", pon_reason_info);
 }
@@ -1245,6 +1280,7 @@ static int get_version_id(void)
 #endif
 }
 
+#if 0
 static int get_qcn_type(void)
 {
 	int id = platform_board_id;
@@ -1252,6 +1288,7 @@ static int get_qcn_type(void)
 		id = sizeof(board_table) / sizeof(boardid_match_t) - 1;
 	return sprintf(hwinfo[qcn_type].hwinfo_buf, "%s", board_table[id].qcn_type);
 }
+#endif
 
 static int get_hw_version(void)
 {
@@ -1329,28 +1366,11 @@ int _atoi(char * str)
 	return sign * value;
 }
 
-//extern char *saved_command_line;
-
 static char *get_bootdevice()
 {
 	static char bootdevice[BUF_SIZE] = {0};
-	if ( ! *bootdevice ) {
-		char *p, *q;
-		int len;
-		p = strstr(saved_command_line, "androidboot.boot_devices=");
-		if (p) {
-			p = strstr(p, "=") + 1;
-			q = strstr(p, " ");
-			if (q)
-				len = q - p;
-			else
-				len = strlen(p);
-			strncpy(bootdevice, p, len);
-			bootdevice[len] = 0;
-		} else {
-			strcpy(bootdevice, "unknown");
-		}
-	}
+	if ( ! *bootdevice )
+		get_cmdline_param_val("androidboot.boot_devices=", bootdevice, sizeof(bootdevice));
 	return bootdevice;
 }
 
@@ -1882,7 +1902,7 @@ static ssize_t hwinfo_show(struct kobject *kobj, struct kobj_attribute *attr, ch
 
 	switch (i)
 	{
-	case CPU_TYPE:
+	case cpu_type:
 		get_cpu_type();
 		break;
 	case NFC_MFR:
@@ -1927,9 +1947,11 @@ static ssize_t hwinfo_show(struct kobject *kobj, struct kobj_attribute *attr, ch
 	case hw_version:
 		get_hw_version();
 		break;
+#if 0
 	case qcn_type:
 		get_qcn_type();
 		break;
+#endif
 	case LCD_MFR:
 		get_lcd_type();
 		break;
