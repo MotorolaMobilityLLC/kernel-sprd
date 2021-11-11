@@ -120,6 +120,8 @@ static int sprdwl_nl_get_info_handler(struct sk_buff *skb_2,
 	unsigned short r_len = 0;
 	int ret = 0;
 
+	wl_err("%s enter\n", __func__);
+
 	if (vif) {
 		ether_addr_copy(r_buf, vif->ndev->dev_addr);
 		sprdwl_put_vif(vif);
@@ -153,7 +155,7 @@ static struct genl_ops sprdwl_nl_ops[] = {
 
 static struct genl_family sprdwl_nl_genl_family = {
 	.hdrsize = 0,
-	.name = "SPRDWL_NL",
+	.name = "SPRD_NL",
 	.version = 1,
 	.maxattr = SPRDWL_NL_ATTR_MAX,
 	.policy = sprdwl_genl_policy,
