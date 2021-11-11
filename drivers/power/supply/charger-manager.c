@@ -1195,6 +1195,7 @@ static int get_charger_term_voltage(struct charger_manager *cm, int *vol)
 	return ret;
 }
 
+#ifdef OLD_MODE		
 static int set_charger_enable_powerpath(struct charger_manager *cm, bool en)
 {
 	union power_supply_propval val;
@@ -1221,7 +1222,7 @@ static int set_charger_enable_powerpath(struct charger_manager *cm, bool en)
 
 	return ret;
 }
-
+#endif
 
 static void cm_power_path_enable(struct charger_manager *cm, int cmd)
 {
@@ -5418,7 +5419,9 @@ static ssize_t charger_stop_store(struct device *dev,
 
 	if (!stop_charge) {
 		ontim_charge_onoff_control =1;		
+#ifdef OLD_MODE		
 		set_charger_enable_powerpath(cm, true);
+#endif
 		ret = try_charger_enable(cm, true);
 		if (ret) {
 			dev_err(cm->dev, "failed to start charger.\n");
@@ -5437,7 +5440,9 @@ static ssize_t charger_stop_store(struct device *dev,
 
 	} else {
 		ontim_charge_onoff_control =0;		
+#ifdef OLD_MODE		
 		set_charger_enable_powerpath(cm, false);
+#endif
 		ret = try_charger_enable(cm, false);
 		if (ret) {
 			dev_err(cm->dev, "failed to stop charger.\n");
@@ -5854,7 +5859,7 @@ static struct charger_desc *of_cm_parse_desc(struct device *dev)
 	}
 
 	/* fast chargers */
-	num_chgs = of_property_count_strings(np, "cm-fast-chargers");
+	of_property_read_u32(np, "cm-num-fast-chargers", &num_chgs);
 	if (num_chgs > 0) {
 		/* Allocate empty bin at the tail of array */
 		desc->psy_fast_charger_stat = devm_kzalloc(dev, sizeof(char *)
@@ -5869,7 +5874,7 @@ static struct charger_desc *of_cm_parse_desc(struct device *dev)
 	}
 
 	/* charge pumps */
-	num_chgs = of_property_count_strings(np, "cm-charge-pumps");
+	of_property_read_u32(np, "cm-num-charge-pumps", &num_chgs);
 	if (num_chgs > 0) {
 		/* Allocate empty bin at the tail of array */
 		desc->cp_nums = num_chgs;
@@ -5885,7 +5890,7 @@ static struct charger_desc *of_cm_parse_desc(struct device *dev)
 	}
 
 	/* wireless chargers */
-	num_chgs = of_property_count_strings(np, "cm-wireless-chargers");
+	of_property_read_u32(np, "cm-num-wireless-chargers", &num_chgs);
 	if (num_chgs > 0) {
 		/* Allocate empty bin at the tail of array */
 		desc->psy_wl_charger_stat = devm_kzalloc(dev,
@@ -5901,7 +5906,7 @@ static struct charger_desc *of_cm_parse_desc(struct device *dev)
 	}
 
 	/* wireless charge pump converters */
-	num_chgs = of_property_count_strings(np, "cm-wireless-charge-pump-converters");
+	of_property_read_u32(np, "cm-num-wireless-charge-pump-converters", &num_chgs);
 	if (num_chgs > 0) {
 		/* Allocate empty bin at the tail of array */
 		desc->psy_cp_converter_stat = devm_kzalloc(dev,
@@ -6457,7 +6462,7 @@ static void cm_batt_works(struct work_struct *work)
 	{
 		low_bat =0;
 	}
-	if( (term_vol ==4040000 || term_vol ==4048000) && fuel_cap > 750)
+	if( (term_vol >3950000 &&  term_vol <4100000) && fuel_cap > 750)
 	{
 		fuel_cap =750;
 		dev_info(cm->dev, "%s;force soc=750;\n",__func__);
@@ -6489,7 +6494,7 @@ static void cm_batt_works(struct work_struct *work)
 	else
 		cal_count = 0;
 		
-	if( (!charge_done)  && term_vol >4000000 && batt_ocV >(term_vol - 100000) &&  check_charge_done(cm)  )
+	if( (!charge_done)  && term_vol >3950000 && batt_ocV >(term_vol - 100000) &&  check_charge_done(cm)  )
 	{		
 		charge_done = true;
 		is_cal_cap = 1;
