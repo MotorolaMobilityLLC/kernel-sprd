@@ -20,6 +20,7 @@ KEYWORD(serialno)
 
 // Nodes for ufs
 KEYWORD(ufs_capacity)
+KEYWORD(ufs_info)
 KEYWORD(ufs_cid)
 KEYWORD(ufs_life)
 KEYWORD(ufs_manufacturing_date)

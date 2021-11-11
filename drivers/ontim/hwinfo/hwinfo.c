@@ -1578,21 +1578,53 @@ static void get_ufs_wwid(void)
 }
 
 // cid exists in EMMC, but not in ufs, so use related to fields to generate a similar one
-static void get_ufs_cid(void)
+static void get_ufs_info(void)
 {
 	get_ufs_mfr();
 	get_ufs_product_name();
 	get_ufs_product_revision();
 	get_ufs_manufacturing_date();
 
-	snprintf(hwinfo[ufs_cid].hwinfo_buf, sizeof(hwinfo[ufs_cid].hwinfo_buf), "%s %s %s %s",
+	snprintf(hwinfo[ufs_info].hwinfo_buf, sizeof(hwinfo[ufs_info].hwinfo_buf), "%s %s %s %s",
 		hwinfo[ufs_mfr].hwinfo_buf,
 		hwinfo[ufs_product_name].hwinfo_buf,
 		hwinfo[ufs_product_revision].hwinfo_buf,
 		hwinfo[ufs_manufacturing_date].hwinfo_buf);
 
+	printk(KERN_INFO "%s: %s\n", __func__, hwinfo[ufs_info].hwinfo_buf);
+}
+
+#define UFS_CID_LEN 32
+static void get_ufs_cid(void)
+{
+	int n, i;
+	int len;
+	char *src;
+	char *dst;
+	get_ufs_sn();
+	src = hwinfo[ufs_sn].hwinfo_buf;
+	dst = hwinfo[ufs_cid].hwinfo_buf;
+	len = strlen(src);
+	if ((src[0] == '0') && (src[1] == '0')) {
+		// unicode case
+		len = min(len / 4, UFS_CID_LEN / 2);
+		for (n = 0, i = UFS_CID_LEN / 2 - len; i > 0; i--)
+			n += sprintf(dst + n, "00");
+		for (i = 0; i < len; i++) {
+			dst[n + 2 * i] = src[4 * i + 2];
+			dst[n + 2 * i + 1] = src[4 * i + 3];
+		}
+		dst[n + 2 * i] = 0;
+	} else {
+		// asc case
+		len = min(len, UFS_CID_LEN);
+		for (n = 0, i = UFS_CID_LEN - len; i > 0; i--)
+			n += sprintf(dst + n, "0");
+		snprintf(dst + n, len, src);
+	}
 	printk(KERN_INFO "%s: %s\n", __func__, hwinfo[ufs_cid].hwinfo_buf);
 }
+
 
 #define BYTE(_x) (_x<<0x03)
 #define EMMC_SN_FILE     "/sys/class/mmc_host/mmc0/mmc0:0001/serial"
@@ -1984,6 +2016,9 @@ static ssize_t hwinfo_show(struct kobject *kobj, struct kobj_attribute *attr, ch
 	case ufs_capacity:
 		get_ufs_capacity();
 		break;
+	case ufs_info:
+		get_ufs_info();
+		break;
 	case ufs_cid:
 		get_ufs_cid();
 		break;
@@ -2178,6 +2213,7 @@ static int __init hwinfo_init(void)
 	} else {
 		sysfs_remove_file_from_group(k_hwinfo, attr_group.attrs[ufs_capacity], NULL);
 		sysfs_remove_file_from_group(k_hwinfo, attr_group.attrs[ufs_cid], NULL);
+		sysfs_remove_file_from_group(k_hwinfo, attr_group.attrs[ufs_info], NULL);
 		sysfs_remove_file_from_group(k_hwinfo, attr_group.attrs[ufs_life], NULL);
 		sysfs_remove_file_from_group(k_hwinfo, attr_group.attrs[ufs_manufacturing_date], NULL);
 		sysfs_remove_file_from_group(k_hwinfo, attr_group.attrs[ufs_mfr], NULL);
