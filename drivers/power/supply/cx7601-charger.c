@@ -80,6 +80,8 @@ struct cx7601_charger_info {
 	struct extcon_dev *edev;
 	u32 last_limit_current;
 	u32 last_current;
+	u32 set_limit_current_reg;
+	u32 get_limit_current_reg;
 	u32 role;
 	bool need_disable_Q1;
 	u32 term_voltage;
@@ -450,6 +452,7 @@ static int cx7601_set_input_current_limit(struct cx7601_charger_info *info, int 
 	else
 		val = 7;
 
+	info ->set_limit_current_reg = val;
 	return cx7601_update_bits(info, CX7601_REG_00, REG00_IINLIM_MASK,
 				val << REG00_IINLIM_SHIFT);//done
 }
@@ -548,8 +551,8 @@ static int cx7601_trim(struct cx7601_charger_info *info)
 //	else {
 //		pr_err("Trim cx7601 OK\n");
 //	}
-	ret = cx7601_update_bits(info,0x84,0x03, 0x02);
-	ret = cx7601_write(info, 0x40, 0x00);
+//	ret = cx7601_update_bits(info,0x84,0x03, 0x02);
+//	ret = cx7601_write(info, 0x40, 0x00);
 	ret = cx7601_update_bits(info, CX7601_REG_0C, 0x20, 0x20); //BAT_LOADEN=1
 	return ret;
 }
@@ -750,6 +753,9 @@ static int cx7601_charger_set_current(struct cx7601_charger_info *info,
 				       u32 cur)
 {
 
+	if(cur ==600)
+		cur=512;
+		
 	info->last_current = cur;
 	pr_info("[%s] cur=%d\n", __func__, cur);
 
@@ -821,6 +827,7 @@ cx7601_charger_get_limit_current(struct cx7601_charger_info *info,
 		
 	pr_info("[%s] limit_cur=%d\n", __func__, *limit_cur /1000);
 		
+	info->get_limit_current_reg	 = reg_val;
 
 	return 0;
 }
@@ -847,11 +854,12 @@ static int cx7601_charger_get_online(struct cx7601_charger_info *info,
 static int cx7601_charger_feed_watchdog(struct cx7601_charger_info *info,
 					 u32 val)
 {
-	u8 reg;
+	u8 reg,reg07;
 	static u8 ovp=0;
 
 //	cx7601_reset_watchdog_timer(info);
 	cx7601_read(info, &reg, CX7601_REG_09 );
+	cx7601_read(info, &reg07, CX7601_REG_07 );
 	if((ovp==0) &&  ((reg & 0x08) == 0x08)) //ovp
 	{
 		dev_err(info->dev,"%s ovp 09 reg=%x;",__func__,reg);
@@ -865,6 +873,12 @@ static int cx7601_charger_feed_watchdog(struct cx7601_charger_info *info,
 		cx7601_update_bits(info,CX7601_REG_07,0x20,0x00);
 		ovp=0;	
 	}
+	else if((ovp==0)  && (reg07 & 0x20))
+	{
+		dev_err(info->dev,"%s batfet   07 reg=%x;",__func__,reg07);
+		cx7601_update_bits(info,CX7601_REG_07,0x20,0x00);
+
+	}
 
 	cx7601_read(info, &reg, CX7601_REG_05 );
 	if((reg & 0x30 ) == 0x10)
@@ -875,6 +889,15 @@ static int cx7601_charger_feed_watchdog(struct cx7601_charger_info *info,
 		cx7601_charger_set_limit_current(info, info->last_limit_current);
 		cx7601_charger_set_current(info, info->last_current);
 	}
+
+	if(info->set_limit_current_reg != info->get_limit_current_reg)
+	{
+		dev_err(info->dev,"%s  limit=%x;%x;",__func__,info->set_limit_current_reg,info->get_limit_current_reg);
+		cx7601_update_bits(info, CX7601_REG_00, REG00_IINLIM_MASK,
+					info->set_limit_current_reg << REG00_IINLIM_SHIFT);		
+	}
+	
+
 	cx7601_dump_regs(info);
 
 	return 0;
@@ -1405,6 +1428,8 @@ static int cx7601_charger_probe(struct i2c_client *client,
 	cx7601_write(info, 0x83, 0x2D);
 	cx7601_read(info, &val, 0x83);
 	dev_err(dev, "%s;enter;0x83=%x;\n",__func__,val);
+	ret = cx7601_update_bits(info,0x84,0x03, 0x01);
+	ret = cx7601_write(info, 0x40, 0x00);
 
 
 	cx7601_read(info, &val, CX7601_REG_0A);
