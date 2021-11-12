@@ -50,7 +50,6 @@
  * frame sizes. Set the max size to 15k+52 to prevent allocating 32k
  * blocks and still have efficient handling. */
 #define GETHER_MAX_ETH_FRAME_LEN 15412
-#define UETHER_TASK_PRIO 80
 
 static struct workqueue_struct	*uether_tx_wq;
 static int tx_start_threshold = 1500;
@@ -553,13 +552,10 @@ static void rx_fill(struct eth_dev *dev, gfp_t gfp_flags)
 static int process_rx_w(void *data)
 {
 	struct eth_dev	*dev = (struct eth_dev *)data;
-	struct sched_param param;
 	struct sk_buff	*skb;
 	int		status = 0;
 
-	param.sched_priority = UETHER_TASK_PRIO;
-	sched_setscheduler(current, SCHED_FIFO, &param);
-
+	set_user_nice(current, -20);
 	while (!kthread_should_stop()) {
 		skb = skb_dequeue(&dev->rx_frames);
 		if (!skb) {
