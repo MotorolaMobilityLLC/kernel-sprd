@@ -2590,6 +2590,7 @@
   unregister_syscore_ops
 
 # required by ufs-sprd.ko
+  ufshcd_dme_get_attr
   ufshcd_dme_set_attr
   ufshcd_get_local_unipro_ver
   ufshcd_pltfrm_init

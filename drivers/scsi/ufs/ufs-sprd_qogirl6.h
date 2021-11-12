@@ -32,6 +32,9 @@ struct ufs_sprd_host {
 	struct syscon_ufs ahb_ufs_lp;
 	struct syscon_ufs ahb_ufs_force_isol;
 	struct syscon_ufs ahb_ufs_cb;
+	struct syscon_ufs ahb_ufs_ies_en;
+	struct syscon_ufs ahb_ufs_cg_pclkreq;
+	struct syscon_ufs ap_apb_ufs_glb_rst;
 	struct clk *hclk_source;
 	struct clk *pclk_source;
 	struct clk *hclk;
@@ -40,6 +43,7 @@ struct ufs_sprd_host {
 };
 
 #define AUTO_H8_IDLE_TIME_10MS 0x1001
+
 /* UFS analog registers */
 #define MPHY_2T2R_APB_REG1 0x68
 #define MPHY_2T2R_APB_RESETN (0x1 << 3)
@@ -89,5 +93,17 @@ struct ufs_sprd_host {
 #define	MPHY_DIG_CFG60_LANE1 0xC8F0
 #define	MPHY_RX_STEP4_CYCLE_G3_MASK GENMASK(31, 16)
 #define	MPHY_RX_STEP4_CYCLE_G3_VAL  BIT(23)
+
+#define	MPHY_DIG_CFG14_LANE0 0xC038
+#define	MPHY_APB_REFCLK_AUTOH8_EN_MASK GENMASK(24, 24)
+#define	MPHY_APB_REFCLK_AUTOH8_EN_VAL (0<<24)
+
+#define	MPHY_REG_SEL_CFG_0 0xF0
+#define	MPHY_REG_SEL_CFG_0_REFCLKON_MASK GENMASK(18, 18)
+#define	MPHY_REG_SEL_CFG_0_REFCLKON_VAL BIT(18)
+
+#define	MPHY_ANR_MPHY_CTRL2 0x40
+#define	MPHY_ANR_MPHY_CTRL2_REFCLKON_MASK GENMASK(8, 8)
+#define	MPHY_ANR_MPHY_CTRL2_REFCLKON_VAL BIT(8)
 
 #endif/* _UFS_SPRD_H_ */
