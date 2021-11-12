@@ -4598,7 +4598,11 @@ static int charger_get_property(struct power_supply *psy,
 		else if (val->intval > CM_CAPACITY_LEVEL_CRITICAL)
 			val->intval = POWER_SUPPLY_CAPACITY_LEVEL_LOW;
 		else
-			val->intval = POWER_SUPPLY_CAPACITY_LEVEL_CRITICAL;
+//#ifdef    DUAL_85_VERSION
+			val->intval = POWER_SUPPLY_CAPACITY_LEVEL_LOW;
+//#else
+//			val->intval = POWER_SUPPLY_CAPACITY_LEVEL_CRITICAL;
+//#endif
 		break;
 	case POWER_SUPPLY_PROP_ONLINE:
 		if (is_ext_pwr_online(cm))
@@ -6230,6 +6234,7 @@ static void cm_batt_works(struct work_struct *work)
 	int term_vol;
 	static int is_cal_cap=0,cal_count=0,low_bat=0;
 	int real_cap; 
+	static int last_temp=0;
 
 	ret = get_vbat_now_uV(cm, &batt_uV);
 	if (ret) {
@@ -6297,6 +6302,13 @@ static void cm_batt_works(struct work_struct *work)
 	}
 
 	cm->desc->temperature = cur_temp;
+
+	if (DIV_ROUND_CLOSEST(last_temp, 10) != DIV_ROUND_CLOSEST(cur_temp, 10))
+	{
+		dev_err(cm->dev, "%s;temp %d;%d;\n",__func__,last_temp,cur_temp);
+		power_supply_changed(cm->charger_psy);
+		last_temp =cur_temp;
+	}
 
 #ifdef    DUAL_85_VERSION
 	dev_err(cm->dev, "%s;D85 temp=%d; cur_temp=%d;\n",__func__,sc27xx_fgu_get_d85_temp(),cur_temp);
