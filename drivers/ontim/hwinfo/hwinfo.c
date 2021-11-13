@@ -857,7 +857,7 @@ static ssize_t get_fingerprint_id(void)
 	return 0;
 }
 
-#define GSENSOR_VENDOR_FILE "/sys/ontim_dev_debug/gsensor/vendor"
+#define GSENSOR_VENDOR_FILE "/sys/class/sprd_sensorhub/sensor_hub/gyr_info"
 static ssize_t get_gsensor_id(void)
 {
 	char buf[MAX_HWINFO_SIZE] = {};
@@ -877,7 +877,7 @@ static ssize_t get_gsensor_id(void)
 	return 0;
 }
 
-#define ALSPS_VENDOR_FILE "/sys/ontim_dev_debug/als_prox/vendor"
+#define ALSPS_VENDOR_FILE "/sys/class/sprd_sensorhub/sensor_hub/light_info"
 static ssize_t get_alsps_id(void)
 {
 	char buf[MAX_HWINFO_SIZE] = {};

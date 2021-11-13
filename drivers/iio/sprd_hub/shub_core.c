@@ -2407,6 +2407,16 @@ static ssize_t acc_info_show(struct device *dev,
 }
 static DEVICE_ATTR_RO(acc_info);
 
+static ssize_t gyr_info_show(struct device *dev,
+				struct device_attribute *attr, char *buf)
+{
+	if (hw_sensor_id[2].id_status != _IDSTA_OK)
+		return -EINVAL;
+
+	return sprintf(buf, "%s", hw_sensor_id[2].pname);
+}
+static DEVICE_ATTR_RO(gyr_info);
+
 static ssize_t mag_info_show(struct device *dev,
                         struct device_attribute *attr, char *buf)
 {
@@ -2554,12 +2564,13 @@ static struct attribute *sensorhub_attrs[] = {
 	&dev_attr_mag_cali_flag.attr,
 	&dev_attr_shub_debug.attr,
 	&dev_attr_cm4_operate.attr,
-    	&dev_attr_acc_info.attr,
-    	&dev_attr_mag_info.attr,
-    	&dev_attr_prox_info.attr,
-    	&dev_attr_light_info.attr,
-    	&dev_attr_als_target_lux.attr,
-    	&dev_attr_als_cali_para.attr,
+	&dev_attr_acc_info.attr,
+	&dev_attr_mag_info.attr,
+	&dev_attr_prox_info.attr,
+	&dev_attr_light_info.attr,
+	&dev_attr_gyr_info.attr,
+	&dev_attr_als_target_lux.attr,
+	&dev_attr_als_cali_para.attr,
 	&dev_attr_cm4_spi_set.attr,
 	&dev_attr_cm4_spi_sync.attr,
 	NULL,
