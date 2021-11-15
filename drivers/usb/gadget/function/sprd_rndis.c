@@ -78,6 +78,7 @@ static const struct file_operations rndis_proc_fops;
 
 #endif /* CONFIG_USB_GADGET_DEBUG_FILES */
 
+static DEFINE_SPINLOCK(rndis_lock);
 /* supported OIDs */
 static const u32 oid_supported_list[] = {
 	/* the general stuff */
@@ -1033,7 +1034,9 @@ void sprd_rndis_free_response(struct rndis_params *params, u8 *buf)
 {
 	rndis_resp_t *r;
 	struct list_head *act, *tmp;
+	unsigned long flags;
 
+	spin_lock_irqsave(&rndis_lock, flags);
 	list_for_each_safe(act, tmp, &(params->resp_queue)) {
 		r = list_entry(act, rndis_resp_t, list);
 		if (r && r->buf == buf) {
@@ -1041,6 +1044,7 @@ void sprd_rndis_free_response(struct rndis_params *params, u8 *buf)
 			kfree(r);
 		}
 	}
+	spin_unlock_irqrestore(&rndis_lock, flags);
 }
 EXPORT_SYMBOL_GPL(sprd_rndis_free_response);
 
@@ -1048,18 +1052,22 @@ u8 *sprd_rndis_get_next_response(struct rndis_params *params, u32 *length)
 {
 	rndis_resp_t *r;
 	struct list_head *act, *tmp;
+	unsigned long flags;
 
 	if (!length)
 		return NULL;
 
+	spin_lock_irqsave(&rndis_lock, flags);
 	list_for_each_safe(act, tmp, &(params->resp_queue)) {
 		r = list_entry(act, rndis_resp_t, list);
 		if (!r->send) {
 			r->send = 1;
 			*length = r->length;
+			spin_unlock_irqrestore(&rndis_lock, flags);
 			return r->buf;
 		}
 	}
+	spin_unlock_irqrestore(&rndis_lock, flags);
 
 	return NULL;
 }
@@ -1068,6 +1076,7 @@ EXPORT_SYMBOL_GPL(sprd_rndis_get_next_response);
 static rndis_resp_t *rndis_add_response(struct rndis_params *params, u32 length)
 {
 	rndis_resp_t *r;
+	unsigned long flags;
 
 	/* NOTE: this gets copied into ether.c USB_BUFSIZ bytes ... */
 	r = kmalloc(sizeof(rndis_resp_t) + length, GFP_ATOMIC);
@@ -1077,8 +1086,9 @@ static rndis_resp_t *rndis_add_response(struct rndis_params *params, u32 length)
 	r->buf = (u8 *)(r + 1);
 	r->length = length;
 	r->send = 0;
-
+	spin_lock_irqsave(&rndis_lock, flags);
 	list_add_tail(&r->list, &params->resp_queue);
+	spin_unlock_irqrestore(&rndis_lock, flags);
 	return r;
 }
 
