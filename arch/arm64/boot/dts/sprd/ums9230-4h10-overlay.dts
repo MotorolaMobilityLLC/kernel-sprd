@@ -213,6 +213,7 @@
 				charge-wl-bpp-current-microamp = <1000000 1000000>;
 				charge-wl-epp-current-microamp = <2000000 1000000>;
 
+		battery_total_number =<2>;	
 		battery_name-0 ="NT40-Sunwoda-SB18D34206-5000mAh";
 		battery_name-1 ="NT40-ATL-SB18D34202-4000mAh";
 
