@@ -220,19 +220,43 @@ cx7601_charger_set_ovp(struct cx7601_charger_info *info, u32 vol)
 
 static int cx7601_enable_otg(struct cx7601_charger_info *info)
 {
-	u8 val = REG01_OTG_ENABLE << REG01_OTG_CONFIG_SHIFT;
+//	u8 val = REG01_OTG_ENABLE << REG01_OTG_CONFIG_SHIFT;
         pr_info("cx7601_enable_otg enter\n");
-	return cx7601_update_bits(info, CX7601_REG_01,
-				REG01_OTG_CONFIG_MASK, val);
+//	return cx7601_update_bits(info, CX7601_REG_01,
+//				REG01_OTG_CONFIG_MASK, val);
+	 cx7601_write(info, CX7601_REG_01, 0x3b);
 
+	return 0;
 }
 
 static int cx7601_disable_otg(struct cx7601_charger_info *info)
 {
-	u8 val = REG01_OTG_DISABLE << REG01_OTG_CONFIG_SHIFT;
-	pr_info("cx7601_disable_otg enter\n");
-	return cx7601_update_bits(info, CX7601_REG_01,
-				   REG01_OTG_CONFIG_MASK, val);
+	u8 val;
+	u8 count=0;
+//	u8 val = REG01_OTG_DISABLE << REG01_OTG_CONFIG_SHIFT;
+//	return cx7601_update_bits(info, CX7601_REG_01,
+//				   REG01_OTG_CONFIG_MASK, val);
+
+	 cx7601_write(info, CX7601_REG_01, 0x1b);
+
+	do{
+		msleep(1);
+		cx7601_read(info, &val,CX7601_REG_01);
+		if( val == 0x1b)
+			break;
+		else
+		{
+			msleep(1);
+			 cx7601_write(info, CX7601_REG_01, 0x1b);
+		}	 
+			
+		count++;
+		
+	}while(count <4);
+	
+	pr_info("cx7601_disable_otg enter,count=%d;\n",count);
+
+	return 0;
 
 }
 
