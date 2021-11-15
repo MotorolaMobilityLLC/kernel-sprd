@@ -16,8 +16,6 @@
 #include <linux/ftrace.h>
 #include <linux/kprobes.h>
 
-#include <drivers/soc/sprd/debug/irq/eirqsoff/trace_eirqsoff.h>
-
 #include "trace.h"
 
 #include <trace/events/preemptirq.h>
@@ -444,9 +442,6 @@ void start_critical_timings(void)
 
 	if (preempt_trace(pc) || irq_trace())
 		start_critical_timing(CALLER_ADDR0, CALLER_ADDR1, pc);
-
-	continue_eirqsoff_timing();
-	continue_epreempt_timing();
 }
 EXPORT_SYMBOL_GPL(start_critical_timings);
 NOKPROBE_SYMBOL(start_critical_timings);
@@ -454,9 +449,6 @@ NOKPROBE_SYMBOL(start_critical_timings);
 void stop_critical_timings(void)
 {
 	int pc = preempt_count();
-
-	pause_eirqsoff_timing();
-	pause_epreempt_timing();
 
 	if (preempt_trace(pc) || irq_trace())
 		stop_critical_timing(CALLER_ADDR0, CALLER_ADDR1, pc);
@@ -619,7 +611,6 @@ void tracer_hardirqs_on(unsigned long a0, unsigned long a1)
 {
 	unsigned int pc = preempt_count();
 
-	stop_eirqsoff_timing(CALLER_ADDR0, CALLER_ADDR1);
 	if (!preempt_trace(pc) && irq_trace())
 		stop_critical_timing(a0, a1, pc);
 }
@@ -631,7 +622,6 @@ void tracer_hardirqs_off(unsigned long a0, unsigned long a1)
 
 	if (!preempt_trace(pc) && irq_trace())
 		start_critical_timing(a0, a1, pc);
-	start_eirqsoff_timing(CALLER_ADDR0, CALLER_ADDR1);
 }
 NOKPROBE_SYMBOL(tracer_hardirqs_off);
 
@@ -673,7 +663,6 @@ void tracer_preempt_on(unsigned long a0, unsigned long a1)
 {
 	int pc = preempt_count();
 
-	stop_epreempt_timing(a0, a1);
 	if (preempt_trace(pc) && !irq_trace())
 		stop_critical_timing(a0, a1, pc);
 }
@@ -684,7 +673,6 @@ void tracer_preempt_off(unsigned long a0, unsigned long a1)
 
 	if (preempt_trace(pc) && !irq_trace())
 		start_critical_timing(a0, a1, pc);
-	start_epreempt_timing(a0, a1);
 }
 
 static int preemptoff_tracer_init(struct trace_array *tr)
