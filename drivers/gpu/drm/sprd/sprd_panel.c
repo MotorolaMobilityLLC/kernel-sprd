@@ -125,9 +125,11 @@ static int sprd_panel_prepare(struct drm_panel *p)
 
 	if (panel->info.avee_gpio) {
 		gpiod_direction_output(panel->info.avee_gpio, 1);
-		mdelay(5);
+		if (strstr(lcd_name, "icnl9911") != NULL)
+			mdelay(10);
+		else
+			mdelay(5);
 	}
-
 	if (panel->info.reset_gpio) {
 		items = panel->info.rst_on_seq.items;
 		timing = panel->info.rst_on_seq.timing;
