@@ -238,10 +238,11 @@ static int cx7601_disable_otg(struct cx7601_charger_info *info)
 
 static int cx7601_enable_charger(struct cx7601_charger_info *info)
 {
-	int ret;
-	u8 val = REG01_CHG_ENABLE << REG01_CHG_CONFIG_SHIFT;
+	int ret=0;
+//	u8 val = REG01_CHG_ENABLE << REG01_CHG_CONFIG_SHIFT;
 	//cx7601_dump_regs(bq);
-	ret = cx7601_update_bits(info, CX7601_REG_01, REG01_CHG_CONFIG_MASK, val);
+//	ret = cx7601_update_bits(info, CX7601_REG_01, REG01_CHG_CONFIG_MASK, val);
+		 cx7601_write(info, CX7601_REG_01, 0x1b);
 
 	return ret;
 }
