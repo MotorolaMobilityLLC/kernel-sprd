@@ -96,6 +96,7 @@
 				charge-full-design-microamp-hours = <2950000>;
 				charge-term-current-microamp = <60000>;
 				constant-charge-voltage-max-microvolt = <4340000>;
+				fullbatt-voltage-offset-microvolt = <45000>;
 				factory-internal-resistance-micro-ohms = <252000>;
 				voltage-min-design-microvolt = <3450000>;
 				fast-charge-threshold-microvolt = <4100000>;
