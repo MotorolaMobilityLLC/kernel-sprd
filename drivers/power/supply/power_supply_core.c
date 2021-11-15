@@ -580,6 +580,7 @@ int power_supply_get_battery_info(struct power_supply *psy,
 	int err, len, index, size;
 	char *propname;
 	unsigned char battery_id=0;
+	int battery_total_num=0;
 
 	battery_id = ontim_get_battery_type();
 
@@ -642,6 +643,12 @@ int power_supply_get_battery_info(struct power_supply *psy,
 	 * Documentation/power/power_supply_class.txt.
 	 */
 
+	of_property_read_u32(battery_np, "battery_total_number",
+						&battery_total_num);
+	dev_err(&psy->dev, "%s ;battery_total_num=%d;\n", __func__,battery_total_num);
+	if( battery_id >= battery_total_num)
+		battery_id =0;
+	
 	propname = kasprintf(GFP_KERNEL, "battery_name-%d", battery_id);
 	of_property_read_string(battery_np, propname,	&info->battery_name);
 	strncpy(battery_vendor_name,info->battery_name,32);
