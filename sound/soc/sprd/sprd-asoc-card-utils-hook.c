@@ -52,6 +52,68 @@ static struct sprd_asoc_hook_spk_priv hook_spk_priv;
 
 #define EN_LEVEL 1
 
+#define CONFIG_SND_FS1512N
+
+#ifdef CONFIG_SND_FS1512N
+#define FS1512N_START  300
+#define FS1512N_PULSE_DELAY_US 20
+#define FS1512N_T_WORK  300
+#define FS1512N_T_PWD  10000
+
+void fs15xx_shutdown(unsigned int gpio)
+{
+	spinlock_t *lock = &hook_spk_priv.lock;
+	unsigned long flags;
+
+	spin_lock_irqsave(lock, flags);
+	gpio_set_value( gpio, 0);
+	udelay(FS1512N_T_PWD);
+	spin_unlock_irqrestore(lock, flags);
+
+}
+
+int hook_gpio_pulse_control_FS1512N(unsigned int gpio,int mode)
+{
+	unsigned long flags;
+	spinlock_t *lock = &hook_spk_priv.lock;
+	int count;
+	int ret = 0;
+
+	pr_info("mode: %d-->%d\n", gpio, mode);
+
+	// switch mode online, need shut down pa firstly
+	fs15xx_shutdown(gpio);
+
+	// enable pa into work mode
+	// make sure idle mode: gpio output low
+	gpio_direction_output(gpio, 0);
+	spin_lock_irqsave(lock, flags);
+	// 1. send T-sta
+	gpio_set_value( gpio, 1);
+	udelay(FS1512N_START);
+	gpio_set_value( gpio, 0);
+	udelay(FS1512N_PULSE_DELAY_US); // < 140us
+
+	// 2. send mode
+	count = mode - 1;
+	while (count > 0) { // count of pulse
+		gpio_set_value( gpio, 1);
+		udelay(FS1512N_PULSE_DELAY_US); // < 140us 10-150
+		gpio_set_value( gpio, 0);
+		udelay(FS1512N_PULSE_DELAY_US); // < 140us
+		count--;
+	}
+
+	// 3. pull up gpio and delay, enable pa
+	gpio_set_value( gpio, 1);
+	spin_unlock_irqrestore(lock, flags);
+	udelay(FS1512N_T_WORK); // pull up gpio > 220us
+
+
+	return ret;
+}
+#endif
+
 static int select_mode;
 
 static ssize_t select_mode_show(struct kobject *kobj,
@@ -105,7 +167,7 @@ static int ext_debug_sysfs_init(void)
 
 	return ret;
 }
-
+/*
 static void hook_gpio_pulse_control(unsigned int gpio, unsigned int mode)
 {
 	int i = 1;
@@ -123,7 +185,7 @@ static void hook_gpio_pulse_control(unsigned int gpio, unsigned int mode)
 	gpio_set_value(gpio, EN_LEVEL);
 	spin_unlock_irqrestore(lock, flags);
 }
-
+*/
 static int hook_general_spk(int id, int on)
 {
 	int gpio, mode;
@@ -141,7 +203,11 @@ static int hook_general_spk(int id, int on)
 
 	/* Off */
 	if (!on) {
+#ifndef CONFIG_SND_FS1512N
 		gpio_set_value(gpio, !EN_LEVEL);
+#else
+		fs15xx_shutdown(gpio);
+#endif
 		return HOOK_OK;
 	}
 
@@ -151,7 +217,13 @@ static int hook_general_spk(int id, int on)
 		pr_info("%s mode: %d, select_mode: %d\n",
 			__func__, mode, select_mode);
 	}
+
+#ifndef CONFIG_SND_FS1512N
 	hook_gpio_pulse_control(gpio, mode);
+#else
+//	pr_info("%s det_type: %d, fs15xx\n",__func__, det_type);
+	hook_gpio_pulse_control_FS1512N(gpio, mode);
+#endif
 
 	/* When the first time open speaker path and play a very short sound,
 	 * the sound can't be heard. So add a delay here to make sure the AMP
@@ -259,9 +331,7 @@ static int sprd_asoc_card_parse_hook(struct device *dev,
 		pr_info("ext_ctrl_type %d hook_sel %d priv_data %d gpio %d",
 			ext_ctrl_type, hook_sel, priv_data, ret);
 
-		gpio_flag = GPIOF_DIR_OUT;
-		gpio_flag |= ext_hook_arr[hook_sel].en_level ?
-			GPIOF_INIT_HIGH : GPIOF_INIT_LOW;
+		gpio_flag = GPIOF_DIR_OUT | GPIOF_INIT_LOW ;
 		ret = gpio_request_one(hook_spk_priv.gpio[ext_ctrl_type],
 				       gpio_flag, NULL);
 		if (ret < 0) {
@@ -271,6 +341,16 @@ static int sprd_asoc_card_parse_hook(struct device *dev,
 			return ret;
 		}
 	}
+
+#ifndef CONFIG_SND_FS1512N
+        spin_lock_irqsave(&hook_spk_priv.lock, gpio_flag);
+        gpio_set_value(hook_spk_priv.gpio[0], 0);
+        udelay(20);
+        gpio_set_value(hook_spk_priv.gpio[0], 1);
+        udelay(500);
+        gpio_set_value(hook_spk_priv.gpio[0], 0);
+        spin_unlock_irqrestore(&hook_spk_priv.lock, gpio_flag);
+#endif
 
 	return 0;
 }
