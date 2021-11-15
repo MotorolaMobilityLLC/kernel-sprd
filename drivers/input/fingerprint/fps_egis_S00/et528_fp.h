@@ -25,26 +25,13 @@
 #define MTK_PLATFORM
 //#define LSI_PLATFORM
 #define EGIS_DEBUG
-/*
+
 #define DEBUG_PRINT(fmt, arg...)
 
 #define INFO_PRINT(fmt, arg...) \
 	printk("[EGISFP]" fmt, ##arg)
 #define ERROR_PRINT(fmt, arg...) \
 	printk(KERN_ERR "[EGISFP]" fmt, ##arg)
-*/
-
-
-#define DEBUG_PRINT(fmt, arg...) \
-	printk("[EGISFP]" fmt, ##arg)
-
-#define INFO_PRINT(fmt, arg...) \
-	printk("[EGISFP]" fmt, ##arg)
-
-#define ERROR_PRINT(fmt, arg...) \
-	printk("[EGISFP]" fmt, ##arg)
-
-
 
 #define EGIS_FP_MAJOR 100 /* assigned */
 #define N_SPI_MINORS 32	  /* ... up to 256 */
@@ -93,6 +80,7 @@
 #define FP_WAKELOCK_TIMEOUT_ENABLE 0xb1
 #define FP_WAKELOCK_TIMEOUT_DISABLE 0xb2
 #define GET_SCREEN_ONOFF 0xb3
+#define GET_HWINFO 0xb4  //ontim
 
 #define DRDY_IRQ_ENABLE 1
 #define DRDY_IRQ_DISABLE 0

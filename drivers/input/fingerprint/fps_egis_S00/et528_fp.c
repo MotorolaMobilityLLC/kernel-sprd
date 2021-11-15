@@ -70,6 +70,7 @@ ONTIM_DEBUG_DECLARE_AND_INIT(fingersensor, fingersensor, 8);
 //end
 
 #define EGIS_COMPATIBLE_NODE "sprd,fingerprint-fpsensor"
+
 struct egisfp_dev_t *g_data = NULL;
 DECLARE_BITMAP(minors, N_SPI_MINORS);
 LIST_HEAD(device_list);
@@ -530,10 +531,6 @@ long egisfp_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	{
 	case FP_GET_RESOURCE:
 		DEBUG_PRINT(" %s : FP_GET_RESOURCE \n", __func__);
-                //add fpvendor for egis hwinfo
-                DEBUG_PRINT(" %s : add hwinfo for egis \n", __func__);
-                CHECK_THIS_DEV_DEBUG_AREADY_EXIT();
-                REGISTER_AND_INIT_ONTIM_DEBUG_FOR_THIS_DEV();
 		if (egisfp_platforminit(egis_dev))
 			retval = -EIO;
 		break;
@@ -633,6 +630,11 @@ long egisfp_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		{
 			return -EFAULT;
 		}
+		break;
+	case GET_HWINFO:
+		DEBUG_PRINT(" %s : add hwinfo for egis \n", __func__);
+		CHECK_THIS_DEV_DEBUG_AREADY_EXIT();
+		REGISTER_AND_INIT_ONTIM_DEBUG_FOR_THIS_DEV();
 		break;
 	default:
 		retval = 0;
