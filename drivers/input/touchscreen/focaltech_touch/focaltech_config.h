@@ -279,5 +279,11 @@
 #define FTS_UPGRADE_FW3_FILE                     "include/firmware/fw_sample.i"
 
 /*********************************************************/
+#define SPRD_SYSFS_SUSPEND_RESUME 1
+
+#if SPRD_SYSFS_SUSPEND_RESUME
+int fts_ts_suspend(struct device *dev);
+int fts_ts_resume(struct device *dev);
+#endif
 
 #endif /* _LINUX_FOCLATECH_CONFIG_H_ */

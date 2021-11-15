@@ -1109,6 +1109,34 @@ static ssize_t fts_log_level_store(
 
     return count;
 }
+#if SPRD_SYSFS_SUSPEND_RESUME
+static ssize_t fts_light_suspend_show(struct device *dev,
+				  struct device_attribute *attr, char *buf)
+{
+	struct fts_ts_data *ts_data = fts_data;
+
+	return snprintf(buf, PAGE_SIZE, "%s\n",
+		ts_data->suspended ? "true" : "false");
+}
+
+static ssize_t fts_light_suspend_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count)
+{
+	unsigned int input;
+
+	if (kstrtouint(buf, 10, &input))
+		return -EINVAL;
+	if (input == 1)
+		fts_ts_suspend(dev);
+	else if (input == 0)
+		fts_ts_resume(dev);
+	else
+		return -EINVAL;
+
+	return count;
+}
+static DEVICE_ATTR(ts_suspend, 0664, fts_light_suspend_show, fts_light_suspend_store);
+#endif
 
 /* get the fw version  example:cat fw_version */
 static DEVICE_ATTR(fts_fw_version, S_IRUGO | S_IWUSR, fts_tpfwver_show, fts_tpfwver_store);
@@ -1151,6 +1179,9 @@ static struct attribute *fts_attributes[] = {
     &dev_attr_fts_boot_mode.attr,
     &dev_attr_fts_touch_point.attr,
     &dev_attr_fts_log_level.attr,
+#if SPRD_SYSFS_SUSPEND_RESUME
+	&dev_attr_ts_suspend.attr,
+#endif
     NULL
 };
 

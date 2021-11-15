@@ -98,8 +98,6 @@ struct fts_ts_data *fts_data;
 /*****************************************************************************
 * Static function prototypes
 *****************************************************************************/
-static int fts_ts_suspend(struct device *dev);
-static int fts_ts_resume(struct device *dev);
 
 static bool fts_check_id(u8 idh, u8 idl, bool is_boot)
 {
@@ -771,7 +769,6 @@ static int fts_irq_registration(struct fts_ts_data *ts_data)
     int ret = 0;
     struct fts_ts_platform_data *pdata = ts_data->pdata;
 
-    printk(KERN_ERR "ontim---yyx---irq\n");
     ts_data->irq = gpio_to_irq(pdata->irq_gpio);
     pdata->irq_gpio_flags = IRQF_TRIGGER_FALLING | IRQF_ONESHOT;
     FTS_INFO("irq:%d, flag:%x", ts_data->irq, pdata->irq_gpio_flags);
@@ -1310,7 +1307,7 @@ static void fts_resume_work(struct work_struct *work)
 
     fts_ts_resume(ts_data->dev);
 }
-
+#if 0
 #if defined(CONFIG_FB)
 static int fb_notifier_callback(struct notifier_block *self,
                                 unsigned long event, void *data)
@@ -1495,7 +1492,7 @@ static void fts_ts_late_resume(struct early_suspend *handler)
     queue_work(fts_data->ts_workqueue, &fts_data->resume_work);
 }
 #endif
-
+#endif
 static int fts_ts_probe_entry(struct fts_ts_data *ts_data)
 {
     int ret = 0;
@@ -1599,6 +1596,10 @@ static int fts_ts_probe_entry(struct fts_ts_data *ts_data)
     if (ret) {
         FTS_ERROR("create sysfs node fail");
     }
+#if SPRD_SYSFS_SUSPEND_RESUME
+    if (sysfs_create_link(NULL, &ts_data->dev->kobj, "touchscreen") < 0)
+        FTS_ERROR("Failed to create link!\n");
+#endif
 
 #if FTS_POINT_REPORT_CHECK_EN
     ret = fts_point_report_check_init(ts_data);
@@ -1650,7 +1651,7 @@ static int fts_ts_probe_entry(struct fts_ts_data *ts_data)
     init_completion(&ts_data->pm_completion);
     ts_data->pm_suspend = false;
 #endif
-
+#if 0
 #if defined(CONFIG_FB)
     ts_data->fb_notif.notifier_call = fb_notifier_callback;
     ret = fb_register_client(&ts_data->fb_notif);
@@ -1676,6 +1677,7 @@ static int fts_ts_probe_entry(struct fts_ts_data *ts_data)
     ts_data->early_suspend.suspend = fts_ts_early_suspend;
     ts_data->early_suspend.resume = fts_ts_late_resume;
     register_early_suspend(&ts_data->early_suspend);
+#endif
 #endif
 
 #ifdef ONTIM_DEV_FOCALTECH_INFO
@@ -1784,7 +1786,7 @@ static int fts_ts_remove_entry(struct fts_ts_data *ts_data)
     return 0;
 }
 
-static int fts_ts_suspend(struct device *dev)
+int fts_ts_suspend(struct device *dev)
 {
     int ret = 0;
     struct fts_ts_data *ts_data = fts_data;
@@ -1794,7 +1796,6 @@ static int fts_ts_suspend(struct device *dev)
         FTS_INFO("Already in suspend state");
         return 0;
     }
-
     if (ts_data->fw_loading) {
         FTS_INFO("fw upgrade in process, can't suspend");
         return 0;
@@ -1803,11 +1804,9 @@ static int fts_ts_suspend(struct device *dev)
 #if FTS_ESDCHECK_EN
     fts_esdcheck_suspend();
 #endif
-
     if (ts_data->gesture_mode) {
         fts_gesture_suspend(ts_data);
     } else {
-
         FTS_INFO("make TP enter into sleep mode");
         ret = fts_write_reg(FTS_REG_POWER_MODE, FTS_REG_POWER_MODE_SLEEP);
         if (ret < 0)
@@ -1822,17 +1821,15 @@ static int fts_ts_suspend(struct device *dev)
 #endif
         }
     }
-
     fts_release_all_finger();
     ts_data->suspended = true;
     FTS_FUNC_EXIT();
     return 0;
 }
 
-static int fts_ts_resume(struct device *dev)
+int fts_ts_resume(struct device *dev)
 {
     struct fts_ts_data *ts_data = fts_data;
-
     FTS_FUNC_ENTER();
     if (!ts_data->suspended) {
         FTS_DEBUG("Already in awake state");
