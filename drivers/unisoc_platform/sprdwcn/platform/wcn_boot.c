@@ -332,7 +332,7 @@ int marlin_tsx_cali_data_read(struct tsx_data *p_tsx_data)
 	INIT_WORK(&find_tsx_wq, request_firmware_find_tsx_func);
 	schedule_work(&find_tsx_wq);
 
-	timeleft = wait_for_completion_timeout(&find_tsx_completion, msecs_to_jiffies(5000));
+	timeleft = wait_for_completion_timeout(&find_tsx_completion, msecs_to_jiffies(1000));
 	if (!timeleft) {
 		pr_err("find tsx_data timeout\n");
 		return -1;
