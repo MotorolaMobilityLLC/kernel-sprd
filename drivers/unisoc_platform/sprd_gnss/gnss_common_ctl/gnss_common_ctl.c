@@ -360,6 +360,7 @@ static ssize_t gnss_power_enable_store(struct device *dev,
 				  const char *buf, size_t count)
 {
 	unsigned long set_value;
+	ssize_t ret = count;
 
 	if (kstrtoul(buf, GNSS_MAX_STRING_LEN, &set_value)) {
 		dev_err(dev, "%s Maybe store string is too long\n", __func__);
@@ -371,11 +372,11 @@ static ssize_t gnss_power_enable_store(struct device *dev,
 	else if (set_value == 0)
 		gnss_power_on(0);
 	else {
-		count = -EINVAL;
+		ret = -EINVAL;
 		dev_info(dev, "%s unknown control\n", __func__);
 	}
 
-	return count;
+	return ret;
 }
 
 static DEVICE_ATTR_WO(gnss_power_enable);
@@ -385,6 +386,7 @@ static ssize_t gnss_subsys_store(struct device *dev,
 				  const char *buf, size_t count)
 {
 	unsigned long set_value;
+	ssize_t ret = count;
 
 	if (kstrtoul(buf, GNSS_MAX_STRING_LEN, &set_value))
 		return -EINVAL;
@@ -398,9 +400,9 @@ static ssize_t gnss_subsys_store(struct device *dev,
 	else if (set_value == WCN_GNSS_BD)
 		gnss_common_ctl_dev.gnss_subsys  = WCN_GNSS_BD;
 	else
-		count = -EINVAL;
+		ret = -EINVAL;
 #endif
-	return count;
+	return ret;
 }
 
 static ssize_t gnss_subsys_show(struct device *dev,
@@ -530,7 +532,7 @@ static ssize_t gnss_dump_store(struct device *dev,
 #endif
 		ret = GNSS_DUMP_DATA_START_UP;
 	} else
-		count = -EINVAL;
+		ret = -EINVAL;
 
 	return ret;
 }
