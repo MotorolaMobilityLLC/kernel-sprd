@@ -220,13 +220,12 @@ static int sprd_cam_pw_on(struct camsys_power_info *pw_info)
 	return 0;
 }
 
-static int sprd_campw_init(struct platform_device *pdev, struct camsys_power_info *pw_info)
+static long sprd_campw_init(struct platform_device *pdev, struct camsys_power_info *pw_info)
 {
-	int i;
 	struct device_node *np = pdev->dev.of_node;
 	const char *pname;
 	struct regmap *tregmap;
-	uint32_t args[2];
+	uint32_t i, args[2];
 
 	pw_info->u.le.cam_clk_cphy_cfg_gate_eb =
 		devm_clk_get(&pdev->dev, "clk_cphy_cfg_gate_eb");

@@ -222,15 +222,15 @@ err_pw_on:
 	return ret;
 }
 
-static int sprd_campw_init(struct platform_device *pdev, struct camsys_power_info *pw_info)
+static long sprd_campw_init(struct platform_device *pdev, struct camsys_power_info *pw_info)
 {
-	int i, ret = 0;
+	int ret = 0;
 	struct device_node *np = pdev->dev.of_node;
 	struct device_node *np_qos;
 
 	const char *pname;
 	struct regmap *tregmap;
-	uint32_t args[2];
+	uint32_t i, args[2];
 
 	if (IS_ERR_OR_NULL(pw_info)) {
 		pr_err("fail to alloc pw_info\n");
@@ -333,7 +333,7 @@ static int sprd_campw_init(struct platform_device *pdev, struct camsys_power_inf
 				~((uint32_t)0));
 		pr_info("calibration mode MM SHUTDOWN");
 	}
-	return ret;
+	return 0;
 }
 
 struct camsys_power_ops camsys_power_ops_l5pro = {

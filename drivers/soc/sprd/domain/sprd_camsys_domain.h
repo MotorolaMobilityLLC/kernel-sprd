@@ -36,7 +36,7 @@ struct register_gpr {
 struct camsys_power_info;
 
 struct camsys_power_ops {
-	int (*sprd_campw_init)(struct platform_device *pdev, struct camsys_power_info *pw_info);
+	long (*sprd_campw_init)(struct platform_device *pdev, struct camsys_power_info *pw_info);
 	int (*sprd_cam_domain_eb)(struct camsys_power_info *domain);
 	int (*sprd_cam_domain_disable)(struct camsys_power_info *domain);
 	int (*sprd_cam_pw_on)(struct camsys_power_info *domain);

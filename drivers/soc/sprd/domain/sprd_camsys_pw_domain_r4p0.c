@@ -264,7 +264,7 @@ err_pw_on:
 	return ret;
 }
 
-static int sprd_cam_pw_domain_init(struct platform_device *pdev, struct camsys_power_info *pw_info)
+static long sprd_cam_pw_domain_init(struct platform_device *pdev, struct camsys_power_info *pw_info)
 {
 	int ret = 0;
 	struct regmap *cam_ahb_gpr = NULL;
