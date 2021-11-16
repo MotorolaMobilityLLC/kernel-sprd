@@ -3686,6 +3686,7 @@ static void cm_check_charge_voltage(struct charger_manager *cm)
 	struct power_supply *fuel_gauge;
 	union power_supply_propval val;
 	int ret, charge_vol;
+	return;
 
 	if (!desc->charge_voltage_max || !desc->charge_voltage_drop)
 		return;
