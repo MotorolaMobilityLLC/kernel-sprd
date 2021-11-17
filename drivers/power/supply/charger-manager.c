@@ -984,14 +984,14 @@ static int adjust_fuel_cap(struct charger_manager *cm, int cap)
 }
 
 /**
- * get_charger_current - Get the charging current from charging ic
+ * get_constant_charge_current - Get the charging current from charging ic
  * @cm: the Charger Manager representing the battery.
  * @cur: the charging current returned.
  *
  * Returns 0 if there is no error.
  * Returns a negative value on error.
  */
-static int get_charger_current(struct charger_manager *cm, int *cur)
+static int get_constant_charge_current(struct charger_manager *cm, int *cur)
 {
 	union power_supply_propval val;
 	struct power_supply *psy;
@@ -1018,14 +1018,14 @@ static int get_charger_current(struct charger_manager *cm, int *cur)
 }
 
 /**
- * get_charger_limit_current - Get the charging limit current from charging ic
+ * get_input_current_limit - Get the input current limit from charging ic
  * @cm: the Charger Manager representing the battery.
  * @cur: the charging input limit current returned.
  *
  * Returns 0 if there is no error.
  * Returns a negative value on error.
  */
-static int get_charger_limit_current(struct charger_manager *cm, int *cur)
+static int get_input_current_limit(struct charger_manager *cm, int *cur)
 {
 	union power_supply_propval val;
 	struct power_supply *psy;
@@ -4368,6 +4368,68 @@ static void misc_event_handler(struct charger_manager *cm, enum cm_event_types t
 	power_supply_changed(cm->charger_psy);
 }
 
+static void cm_get_charging_status(struct charger_manager *cm, int *status)
+{
+	if (is_charging(cm)) {
+		cm->battery_status = POWER_SUPPLY_STATUS_CHARGING;
+	} else if (is_ext_pwr_online(cm)) {
+		if (is_full_charged(cm))
+			cm->battery_status = POWER_SUPPLY_STATUS_FULL;
+		else
+			cm->battery_status = POWER_SUPPLY_STATUS_NOT_CHARGING;
+	} else {
+		cm->battery_status = POWER_SUPPLY_STATUS_DISCHARGING;
+	}
+
+	*status = cm->battery_status;
+}
+
+static void cm_get_charging_health_status(struct charger_manager *cm, int *status)
+{
+	if (cm->emergency_stop == CM_EVENT_BATT_OVERHEAT ||
+	    (cm->charging_status & CM_CHARGE_TEMP_OVERHEAT))
+		*status = POWER_SUPPLY_HEALTH_OVERHEAT;
+	else if (cm->emergency_stop == CM_EVENT_BATT_COLD ||
+		 (cm->charging_status & CM_CHARGE_TEMP_COLD))
+		*status = POWER_SUPPLY_HEALTH_COLD;
+	else if (cm->charging_status & CM_CHARGE_VOLTAGE_ABNORMAL)
+		*status = POWER_SUPPLY_HEALTH_OVERVOLTAGE;
+	else
+		*status = POWER_SUPPLY_HEALTH_GOOD;
+}
+
+static int cm_get_battery_technology(struct charger_manager *cm, union power_supply_propval *val)
+{
+	struct power_supply *fuel_gauge = NULL;
+	int ret;
+
+	val->intval = POWER_SUPPLY_TECHNOLOGY_UNKNOWN;
+
+	fuel_gauge = power_supply_get_by_name(cm->desc->psy_fuel_gauge);
+	if (!fuel_gauge)
+		return -ENODEV;
+
+	ret = power_supply_get_property(fuel_gauge, POWER_SUPPLY_PROP_TECHNOLOGY, val);
+	power_supply_put(fuel_gauge);
+
+	return ret;
+}
+
+static void cm_get_uisoc(struct charger_manager *cm, int *uisoc)
+{
+	if (!is_batt_present(cm)) {
+		/* There is no battery. Assume 100% */
+		*uisoc = 100;
+		return;
+	}
+
+	*uisoc = DIV_ROUND_CLOSEST(cm->desc->cap, 10);
+	if (*uisoc > 100)
+		*uisoc = 100;
+	else if (*uisoc < 0)
+		*uisoc = 0;
+}
+
 static int cm_get_capacity_level(struct charger_manager *cm)
 {
 	int level = POWER_SUPPLY_CAPACITY_LEVEL_UNKNOWN;
@@ -4403,6 +4465,168 @@ static int cm_get_capacity_level(struct charger_manager *cm)
 		level = POWER_SUPPLY_CAPACITY_LEVEL_LOW;
 
 	return level;
+}
+
+static int cm_get_charge_full_design(struct charger_manager *cm, union power_supply_propval *val)
+{
+	struct power_supply *fuel_gauge = NULL;
+	int ret;
+
+	val->intval = 0;
+	fuel_gauge = power_supply_get_by_name(cm->desc->psy_fuel_gauge);
+	if (!fuel_gauge)
+		return -ENODEV;
+
+	ret = power_supply_get_property(fuel_gauge, POWER_SUPPLY_PROP_ENERGY_FULL_DESIGN, val);
+	power_supply_put(fuel_gauge);
+
+	return ret;
+}
+
+static int cm_get_charge_now(struct charger_manager *cm, int *charge_now)
+{
+	int total_uah;
+	int ret;
+
+	ret = get_batt_total_cap(cm, &total_uah);
+	if (ret) {
+		dev_err(cm->dev, "failed to get total uah.\n");
+		return ret;
+	}
+
+	*charge_now = total_uah * cm->desc->cap / CM_CAP_FULL_PERCENT;
+
+	return ret;
+}
+
+static int cm_get_charge_counter(struct charger_manager *cm, int *charge_counter)
+{
+	int ret;
+
+	*charge_counter = 0;
+	ret = cm_get_charge_now(cm, charge_counter);
+
+	if (*charge_counter <= 0) {
+		*charge_counter = 1;
+		ret = 0;
+	}
+
+	return ret;
+}
+
+static int cm_get_charge_control_limit(struct charger_manager *cm,
+				       union power_supply_propval *val)
+{
+	struct power_supply *psy = NULL;
+	int i, ret = 0;
+
+	for (i = 0; cm->desc->psy_charger_stat[i]; i++) {
+		psy = power_supply_get_by_name(cm->desc->psy_charger_stat[i]);
+		if (!psy) {
+			dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
+				cm->desc->psy_charger_stat[i]);
+			continue;
+		}
+
+		ret = power_supply_get_property(psy, POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT, val);
+		power_supply_put(psy);
+		if (!ret) {
+			if (cm->desc->enable_fast_charge && cm->desc->psy_charger_stat[1])
+				val->intval *= 2;
+
+			break;
+		}
+
+		ret = power_supply_get_property(psy,
+						POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT,
+						val);
+		if (!ret)
+			break;
+	}
+
+	return ret;
+}
+
+static int cm_get_charge_full_uah(struct charger_manager *cm, union power_supply_propval *val)
+{
+	return cm_get_charge_full_design(cm, val);
+}
+
+static int cm_get_time_to_full_now(struct charger_manager *cm, int *time)
+{
+	unsigned int total_cap = 0;
+	int chg_cur = 0;
+	int ret;
+
+	ret = get_constant_charge_current(cm, &chg_cur);
+	if (ret) {
+		dev_err(cm->dev, "get chg_cur error.\n");
+		return ret;
+	}
+
+	chg_cur = chg_cur / 1000;
+
+	ret = get_batt_total_cap(cm, &total_cap);
+	if (ret) {
+		dev_err(cm->dev, "failed to get total cap.\n");
+		return ret;
+	}
+
+	total_cap = total_cap / 1000;
+
+	*time = ((1000 - cm->desc->cap) * total_cap / 1000) * 3600 / chg_cur;
+
+	if (*time <= 0)
+		*time = 1;
+
+	return ret;
+}
+
+static void cm_get_current_max(struct charger_manager *cm, int *current_max)
+{
+	int ret;
+
+	*current_max = 0;
+
+	if (cm->desc->cp.cp_running) {
+		*current_max = cm->desc->cp.cp_target_ibat;
+		return;
+	}
+
+	ret = get_constant_charge_current(cm, current_max);
+	if (ret)
+		dev_err(cm->dev, "Fail to get current max\n");
+}
+
+static void cm_get_voltage_max(struct charger_manager *cm, int *voltage_max)
+{
+	*voltage_max = cm->desc->constant_charge_voltage_max_uv;
+}
+
+static void cm_set_charge_control_limit(struct charger_manager *cm, int power)
+{
+	dev_info(cm->dev, "thermal set charge power limit, thm_pwr = %dmW\n", power);
+	cm->desc->thm_info.thm_pwr = power;
+	cm_update_charge_info(cm, CM_CHARGE_INFO_THERMAL_LIMIT);
+
+	if (cm->desc->cp.cp_running)
+		cm_check_target_ibus(cm);
+}
+
+static int cm_set_voltage_max_design(struct charger_manager *cm, int voltage_max)
+{
+	int ret;
+
+	ret = cm_set_basp_max_volt(cm, voltage_max);
+	if (ret)
+		return ret;
+
+	if (cm_init_basp_parameter(cm)) {
+		if (cm->cm_charge_vote && cm->cm_charge_vote->vote)
+			cm_update_charge_info(cm, CM_CHARGE_INFO_JEITA_LIMIT);
+	}
+
+	return ret;
 }
 
 static int wireless_get_property(struct power_supply *psy, enum power_supply_property
@@ -4479,252 +4703,93 @@ static int charger_get_property(struct power_supply *psy,
 				union power_supply_propval *val)
 {
 	struct charger_manager *cm = power_supply_get_drvdata(psy);
-	struct power_supply *fuel_gauge = NULL;
-	unsigned int total_cap = 0;
-	int chg_cur = 0;
 	int ret = 0;
-	int i;
 
 	if (!cm)
 		return -ENOMEM;
 
 	switch (psp) {
 	case POWER_SUPPLY_PROP_STATUS:
-		if (is_charging(cm)) {
-			cm->battery_status = POWER_SUPPLY_STATUS_CHARGING;
-		} else if (is_ext_pwr_online(cm)) {
-			if (is_full_charged(cm))
-				cm->battery_status = POWER_SUPPLY_STATUS_FULL;
-			else
-				cm->battery_status = POWER_SUPPLY_STATUS_NOT_CHARGING;
-		} else {
-			cm->battery_status = POWER_SUPPLY_STATUS_DISCHARGING;
-		}
-		val->intval = cm->battery_status;
+		cm_get_charging_status(cm, &val->intval);
 		break;
 
 	case POWER_SUPPLY_PROP_HEALTH:
-		if (cm->emergency_stop == CM_EVENT_BATT_OVERHEAT ||
-			(cm->charging_status & CM_CHARGE_TEMP_OVERHEAT))
-			val->intval = POWER_SUPPLY_HEALTH_OVERHEAT;
-		else if (cm->emergency_stop == CM_EVENT_BATT_COLD ||
-			(cm->charging_status & CM_CHARGE_TEMP_COLD))
-			val->intval = POWER_SUPPLY_HEALTH_COLD;
-		else if (cm->charging_status & CM_CHARGE_VOLTAGE_ABNORMAL)
-			val->intval = POWER_SUPPLY_HEALTH_OVERVOLTAGE;
-		else
-			val->intval = POWER_SUPPLY_HEALTH_GOOD;
+		cm_get_charging_health_status(cm, &val->intval);
 		break;
+
 	case POWER_SUPPLY_PROP_PRESENT:
-		if (is_batt_present(cm))
-			val->intval = 1;
-		else
-			val->intval = 0;
+		val->intval = is_batt_present(cm);
 		break;
+
 	case POWER_SUPPLY_PROP_VOLTAGE_AVG:
 		ret = get_vbat_avg_uV(cm, &val->intval);
 		break;
+
 	case POWER_SUPPLY_PROP_VOLTAGE_NOW:
 		ret = get_vbat_now_uV(cm, &val->intval);
 		break;
+
 	case POWER_SUPPLY_PROP_CURRENT_AVG:
 		ret = get_ibat_avg_uA(cm, &val->intval);
 		break;
+
 	case POWER_SUPPLY_PROP_CURRENT_NOW:
 		ret = get_ibat_now_uA(cm, &val->intval);
 		break;
+
 	case POWER_SUPPLY_PROP_TECHNOLOGY:
-		val->intval = POWER_SUPPLY_TECHNOLOGY_UNKNOWN;
-		fuel_gauge = power_supply_get_by_name(cm->desc->psy_fuel_gauge);
-		if (!fuel_gauge) {
-			ret = -ENODEV;
-			break;
-		}
-		ret = power_supply_get_property(fuel_gauge, POWER_SUPPLY_PROP_TECHNOLOGY, val);
+		ret = cm_get_battery_technology(cm, val);
 		break;
+
 	case POWER_SUPPLY_PROP_TEMP:
 		val->intval = cm->desc->temperature;
 		break;
+
 	case POWER_SUPPLY_PROP_TEMP_AMBIENT:
 		return cm_get_battery_temperature(cm, &val->intval);
+
 	case POWER_SUPPLY_PROP_CAPACITY:
-		if (!is_batt_present(cm)) {
-			/* There is no battery. Assume 100% */
-			val->intval = 100;
-			break;
-		}
-		val->intval = DIV_ROUND_CLOSEST(cm->desc->cap, 10);
-		if (val->intval > 100)
-			val->intval = 100;
-		else if (val->intval < 0)
-			val->intval = 0;
+		cm_get_uisoc(cm, &val->intval);
 		break;
+
 	case POWER_SUPPLY_PROP_CAPACITY_LEVEL:
 		val->intval = cm_get_capacity_level(cm);
 		break;
+
 	case POWER_SUPPLY_PROP_ONLINE:
-		if (is_ext_pwr_online(cm))
-			val->intval = 1;
-		else
-			val->intval = 0;
+		val->intval = is_ext_pwr_online(cm);
 		break;
+
 	case POWER_SUPPLY_PROP_CHARGE_FULL:
-		fuel_gauge = power_supply_get_by_name(
-					cm->desc->psy_fuel_gauge);
-		if (!fuel_gauge) {
-			ret = -ENODEV;
-			break;
-		}
-
-		ret = power_supply_get_property(fuel_gauge,
-						POWER_SUPPLY_PROP_ENERGY_FULL_DESIGN,
-						val);
+		ret = cm_get_charge_full_uah(cm, val);
 		break;
+
 	case POWER_SUPPLY_PROP_CHARGE_NOW:
-		if (is_charging(cm)) {
-			fuel_gauge = power_supply_get_by_name(
-					cm->desc->psy_fuel_gauge);
-			if (!fuel_gauge) {
-				ret = -ENODEV;
-				break;
-			}
-
-			ret = power_supply_get_property(fuel_gauge,
-							POWER_SUPPLY_PROP_CHARGE_NOW,
-							val);
-			if (ret) {
-				val->intval = 1;
-				ret = 0;
-			} else {
-				/* If CHARGE_NOW is supplied, use it */
-				val->intval = (val->intval > 0) ?
-						val->intval : 1;
-			}
-		} else {
-			val->intval = 0;
-		}
+		ret = cm_get_charge_now(cm, &val->intval);
 		break;
+
 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT:
-		for (i = 0; cm->desc->psy_charger_stat[i]; i++) {
-			psy = power_supply_get_by_name(
-					cm->desc->psy_charger_stat[i]);
-			if (!psy) {
-				dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
-					cm->desc->psy_charger_stat[i]);
-				continue;
-			}
-
-			ret = power_supply_get_property(psy,
-							POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT,
-							val);
-			power_supply_put(psy);
-			if (ret) {
-				dev_err(cm->dev, "get charge current failed\n");
-				continue;
-			}
-		}
+		ret = get_constant_charge_current(cm, &val->intval);
 		break;
+
 	case POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT:
-		for (i = 0; cm->desc->psy_charger_stat[i]; i++) {
-			psy = power_supply_get_by_name(
-					cm->desc->psy_charger_stat[i]);
-			if (!psy) {
-				dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
-					cm->desc->psy_charger_stat[i]);
-				continue;
-			}
-
-			ret = power_supply_get_property(psy,
-							POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT,
-							val);
-			power_supply_put(psy);
-			if (ret) {
-				dev_err(cm->dev, "set charge limit current failed\n");
-				continue;
-			}
-		}
+		ret = get_input_current_limit(cm,  &val->intval);
 		break;
-	case POWER_SUPPLY_PROP_CHARGE_COUNTER:
-		fuel_gauge = power_supply_get_by_name(
-					cm->desc->psy_fuel_gauge);
-		if (!fuel_gauge) {
-			ret = -ENODEV;
-			break;
-		}
 
-		ret = power_supply_get_property(fuel_gauge,
-						POWER_SUPPLY_PROP_ENERGY_FULL_DESIGN,
-						val);
-		if (ret) {
-			val->intval = 1;
-			ret = 0;
-		} else {
-			/* If CHARGE_COUNTER is supplied, use it */
-			val->intval = val->intval > 0 ? (val->intval / 1000) : 1;
-			val->intval = (cm->desc->cap * val->intval);
-		}
+	case POWER_SUPPLY_PROP_CHARGE_COUNTER:
+		ret = cm_get_charge_counter(cm, &val->intval);
 		break;
 
 	case POWER_SUPPLY_PROP_CHARGE_CONTROL_LIMIT:
-		for (i = 0; cm->desc->psy_charger_stat[i]; i++) {
-			psy = power_supply_get_by_name(cm->desc->psy_charger_stat[i]);
-			if (!psy) {
-				dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
-					cm->desc->psy_charger_stat[i]);
-				continue;
-			}
-
-			ret = power_supply_get_property(psy,
-							POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT,
-							val);
-			if (!ret) {
-				power_supply_put(psy);
-				if (cm->desc->enable_fast_charge &&
-				    cm->desc->psy_charger_stat[1])
-					val->intval *= 2;
-				break;
-			}
-
-			ret = power_supply_get_property(psy,
-							POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT,
-							val);
-			if (!ret) {
-				power_supply_put(psy);
-				break;
-			}
-		}
+		ret = cm_get_charge_control_limit(cm, val);
 		break;
 
 	case POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN:
-		fuel_gauge = power_supply_get_by_name(cm->desc->psy_fuel_gauge);
-		if (!fuel_gauge) {
-			ret = -ENODEV;
-			break;
-		}
-
-		ret = power_supply_get_property(fuel_gauge,
-						POWER_SUPPLY_PROP_ENERGY_FULL_DESIGN,
-						val);
+		ret = cm_get_charge_full_design(cm, val);
 		break;
 
 	case POWER_SUPPLY_PROP_TIME_TO_FULL_NOW:
-		ret = get_charger_current(cm, &chg_cur);
-		if (ret) {
-			dev_err(cm->dev, "get chg_cur error.\n");
-			break;
-		}
-		chg_cur = chg_cur / 1000;
-
-		ret = get_batt_total_cap(cm, &total_cap);
-		if (ret) {
-			dev_err(cm->dev, "failed to get total cap.\n");
-			break;
-		}
-		total_cap = total_cap / 1000;
-
-		val->intval =
-			((1000 - cm->desc->cap) * total_cap / 1000) * 3600 / chg_cur;
-
+		ret = cm_get_time_to_full_now(cm, &val->intval);
 		break;
 
 	case POWER_SUPPLY_PROP_USB_TYPE:
@@ -4739,19 +4804,24 @@ static int charger_get_property(struct power_supply *psy,
 		ret = cm_get_basp_max_volt(cm, &val->intval);
 		break;
 
+	case POWER_SUPPLY_PROP_CURRENT_MAX:
+		cm_get_current_max(cm, &val->intval);
+		break;
+
+	case POWER_SUPPLY_PROP_VOLTAGE_MAX:
+		cm_get_voltage_max(cm, &val->intval);
+		break;
+
 	default:
 		return -EINVAL;
 	}
 
-	if (fuel_gauge)
-		power_supply_put(fuel_gauge);
 	return ret;
 }
 
-static int
-charger_set_property(struct power_supply *psy,
-		     enum power_supply_property psp,
-		     const union power_supply_propval *val)
+static int charger_set_property(struct power_supply *psy,
+				enum power_supply_property psp,
+				const union power_supply_propval *val)
 {
 	struct charger_manager *cm = power_supply_get_drvdata(psy);
 	int ret = 0;
@@ -4760,9 +4830,6 @@ charger_set_property(struct power_supply *psy,
 		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
 		return -ENOMEM;
 	}
-
-	if (!is_ext_pwr_online(cm))
-		return -ENODEV;
 
 	switch (psp) {
 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT:
@@ -4792,26 +4859,13 @@ charger_set_property(struct power_supply *psy,
 		break;
 
 	case POWER_SUPPLY_PROP_CHARGE_CONTROL_LIMIT:
-		dev_info(cm->dev, "thermal set charge power limit, thm_pwr = %dmW\n", val->intval);
-		cm->desc->thm_info.thm_pwr = val->intval;
-		cm_update_charge_info(cm, CM_CHARGE_INFO_THERMAL_LIMIT);
-
-		if (cm->desc->cp.cp_running)
-			cm_check_target_ibus(cm);
-
+		cm_set_charge_control_limit(cm, val->intval);
 		break;
 
 	case POWER_SUPPLY_PROP_VOLTAGE_MAX_DESIGN:
-		ret = cm_set_basp_max_volt(cm, val->intval);
-		if (ret)
-			break;
-
-		if (cm_init_basp_parameter(cm)) {
-			if (cm->cm_charge_vote && cm->cm_charge_vote->vote)
-				cm_update_charge_info(cm, CM_CHARGE_INFO_JEITA_LIMIT);
-		}
-
+		ret = cm_set_voltage_max_design(cm, val->intval);
 		break;
+
 	default:
 		ret = -EINVAL;
 	}
@@ -4876,6 +4930,8 @@ static enum power_supply_property default_charger_props[] = {
 	POWER_SUPPLY_PROP_TEMP_AMBIENT,
 	POWER_SUPPLY_PROP_CYCLE_COUNT,
 	POWER_SUPPLY_PROP_VOLTAGE_MAX_DESIGN,
+	POWER_SUPPLY_PROP_CURRENT_MAX,
+	POWER_SUPPLY_PROP_VOLTAGE_MAX,
 	/*
 	 * Optional properties are:
 	 * POWER_SUPPLY_PROP_CHARGE_NOW,
@@ -6114,11 +6170,11 @@ static void cm_batt_works(struct work_struct *work)
 	}
 	fuel_cap = cm_capacity_remap(cm, fuel_cap);
 
-	ret = get_charger_current(cm, &chg_cur);
+	ret = get_constant_charge_current(cm, &chg_cur);
 	if (ret)
-		dev_warn(cm->dev, "get chg_cur error.\n");
+		dev_warn(cm->dev, "get constant charge error.\n");
 
-	ret = get_charger_limit_current(cm, &chg_limit_cur);
+	ret = get_input_current_limit(cm, &chg_limit_cur);
 	if (ret)
 		dev_warn(cm->dev, "get chg_limit_cur error.\n");
 
