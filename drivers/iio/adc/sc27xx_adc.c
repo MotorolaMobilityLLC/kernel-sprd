@@ -702,7 +702,26 @@ unlock_adc:
 	hwspin_unlock_raw(data->hwlock);
 
 	if (!ret)
+	{
 		*val = rawdata;
+		if(*val == 0)
+		{
+			if (channel == 0 || channel == 1 || channel == 2 || channel == 4 )
+			{
+				int reg[6];
+				dev_err(data->dev, "%s,  warning rawdata==0,channel:%d, scale:%d\n", __func__,  channel, scale);
+				regmap_read(data->regmap, data->base + SC27XX_ADC_CTL, &reg[0]);
+				regmap_read(data->regmap, data->base + SC27XX_ADC_INT_CLR, &reg[1]);
+				regmap_read(data->regmap, data->base + SC27XX_ADC_CH_CFG, &reg[2]);
+				regmap_read(data->regmap, data->base + SC27XX_ADC_INT_RAW, &reg[3]);
+				regmap_read(data->regmap, data->base + SC27XX_ADC_DATA, &reg[4]);
+				dev_err(data->dev, "%s,  reg:%x, %x,%x,%x,%x;\n", __func__,  
+					reg[0],reg[1],reg[2],reg[3],reg[4]);
+				
+			}
+		}
+		
+	}	
 
 	return ret;
 }

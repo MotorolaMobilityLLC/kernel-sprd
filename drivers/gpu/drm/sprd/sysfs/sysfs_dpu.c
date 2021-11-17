@@ -90,6 +90,49 @@ static ssize_t refresh_store(struct device *dev,
 	return count;
 }
 static DEVICE_ATTR_WO(refresh);
+static inline struct sprd_panel *to_sprd_panel(struct drm_panel *panel)
+{
+	return container_of(panel, struct sprd_panel, base);
+}
+
+static ssize_t modeset_store(struct device *dev,
+			struct device_attribute *attr,
+			const char *buf, size_t count)
+{
+	struct sprd_dpu *dpu = dev_get_drvdata(dev);
+	struct dpu_context *ctx = &dpu->ctx;
+	struct sprd_panel *panel = to_sprd_panel(dpu->dsi->panel);
+	struct drm_mode_modeinfo umode;
+	int index, ret;
+
+	down(&ctx->refresh_lock);
+
+	pr_info("[drm] %s()\n", __func__);
+
+	if (!ctx->is_inited) {
+		pr_err("dpu is powered off\n");
+		up(&ctx->refresh_lock);
+		return -1;
+	}
+	ret = kstrtoint(buf, 10, &index);
+
+	if (ret || (index >= panel->info.num_buildin_modes)) {
+		pr_err("Invalid input index\n");
+		return -EINVAL;
+	}
+
+	umode.vsync_start = panel->info.buildin_modes[index].vsync_start;
+	umode.vdisplay = panel->info.buildin_modes[index].vdisplay;
+	umode.hdisplay = panel->info.buildin_modes[index].hdisplay;
+	umode.vrefresh = panel->info.buildin_modes[index].vrefresh;
+	dpu->core->modeset(ctx, &umode);
+
+	up(&ctx->refresh_lock);
+
+	return count;
+}
+static DEVICE_ATTR_WO(modeset);
+
 
 static ssize_t bg_color_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
@@ -411,6 +454,7 @@ static struct attribute *dpu_attrs[] = {
 	&dev_attr_wr_regs.attr,
 	&dev_attr_dpu_version.attr,
 	&dev_attr_wb_debug.attr,
+	&dev_attr_modeset.attr,
 	&dev_attr_irq_register.attr,
 	&dev_attr_irq_unregister.attr,
 	NULL,

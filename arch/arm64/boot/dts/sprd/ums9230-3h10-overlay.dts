@@ -6,9 +6,8 @@
 #include <dt-bindings/mfd/sprd,sc2730-regs.h>
 #include <dt-bindings/mfd/sprd,sc2730-mask.h>
 #include <dt-bindings/usb/pd.h>
-#include "lcd/lcd_g40396_truly_mipi_fhd.dtsi"
 #include "lcd/lcd_dummy_mipi.dtsi"
-#include "ums9230-wcn.dtsi"
+//#include "ums9230-wcn.dtsi"
 
 / {
 
@@ -741,21 +740,6 @@
 	sprd,backlight = <&pwm_backlight>;
 };
 
-&lcd_g40396_truly_mipi_fhd {
-	display-timings {
-		g40396_truly_timing1: timing1 {
-			clock-frequency = <192000000>;
-			hactive = <720>;
-			vactive = <1600>;
-			hback-porch = <75>;
-			hfront-porch = <75>;
-			vback-porch = <32>;
-			vfront-porch = <8>;
-			hsync-len = <75>;
-			vsync-len = <8>;
-		};
-	};
-};
 
 &pmic_fchg {
 	sprd,input-voltage-microvolt = <5000000>;

@@ -1,0 +1,4 @@
+// Do NOT modify this file!!!
+
+#define USE_DC4CPU
+#include "ums9230-4h10-overlay.dts"

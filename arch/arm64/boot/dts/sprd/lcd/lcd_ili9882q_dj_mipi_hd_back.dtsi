@@ -1,0 +1,110 @@
+/ {
+	fragment {
+		target-path = "/";
+		__overlay__ {
+			lcds {  
+			lcd_ili9882q_dj_mipi_back_hd: lcd_ili9882q_dj_mipi_back_hd {
+				sprd,dsi-work-mode = <1>; /* video burst mode*/
+				sprd,dsi-lane-number = <4>;
+				sprd,dsi-color-format = "rgb888";
+
+				sprd,phy-bit-clock = <855360>;	/* kbps */
+				sprd,phy-escape-clock = <20000>;/* kHz */
+				sprd,width-mm = <68>;
+				sprd,height-mm = <121>;
+
+				sprd,esd-check-enable = <0>;
+				sprd,esd-check-mode = <0>;
+				sprd,esd-check-period = <2000>;
+				sprd,esd-check-regs = <0xA>;
+				sprd,esd-return-code = <0x9c>;
+
+				sprd,dpi-clk-div = <6>;
+				sprd,video-lp-cmd-enable = <1>;
+				sprd,hporch-lp-disable = <1>;
+				sprd,reset-on-sequence = <1 5>, <0 5>, <1 20>;
+				sprd,reset-off-sequence = <1 5>;
+
+				sprd,initial-command = [
+
+					39 00 00 04 FF 98 82 00
+					39 00 00 03 68 04 00
+					39 00 00 03 51 07 FF
+					23 00 00 02 53 2C
+					23 00 00 02 55 03
+					23 00 00 02 35 00
+					13 78 00 01 11
+
+					39 00 00 04 FF 98 82 06
+					23 00 00 02 06 84
+					23 00 00 02 08 01
+
+					39 00 00 04 FF 98 82 03
+					23 00 00 02 C6 16
+					23 00 00 02 80 04
+					23 00 00 02 81 04
+					23 00 00 02 82 04
+					23 00 00 02 83 E0
+					23 00 00 02 84 00
+
+					39 00 00 04 FF 98 82 00
+					13 14 00 01 29
+
+                ];
+
+				sprd,sleep-in-command = [
+					13 14 00 01 28
+					13 78 00 01 10
+				];
+
+				sprd,sleep-out-command = [
+				    13 78 00 01 11
+					13 14 00 01 29
+			];
+
+					oled-backlight {
+						default-brightness-level = <33>;
+						sprd,max-level = <255>;
+
+						brightness-levels = [
+							23 00 00 02 51 FF
+							];
+						};
+
+					display-timings {
+						native-mode = <&back_ili9882_timing0>;
+
+						//timing0 is 90hz
+						back_ili9882_timing0: timing0 {
+									clock-frequency = <142560000>;
+									hactive = <720>;
+									vactive = <1600>;
+                               		hback-porch = <24>;
+                               		hfront-porch = <24>;
+                               		vback-porch = <32>;
+                               		vfront-porch = <366>;
+                               		hsync-len = <24>;
+                               		vsync-len = <2>;
+								
+
+						};
+						//timing1 is 60hz
+						back_ili9882_timing1: timing1 {
+									clock-frequency = <142280000>;
+									hactive = <720>;
+									vactive = <1600>;
+									hback-porch = <24>;
+									hfront-porch = <24>;
+									vback-porch = <32>;
+									vfront-porch = <1360>;
+									hsync-len = <24>;
+									vsync-len = <2>;
+
+
+						};
+					};
+				};
+			};
+		};
+	};
+};

@@ -38,6 +38,8 @@ static int gadc_thermal_adc_to_temp(struct gadc_thermal_info *gti, int val)
 		temp = gti->lookup_table[0];
 	} else if (i >= gti->nlookup_table) {
 		temp = gti->lookup_table[2 * (gti->nlookup_table - 1)];
+		dev_err(gti->dev, "%s;%d;%d;\n",__func__,val,temp);
+		
 	} else {
 		adc_hi = gti->lookup_table[2 * i - 1];
 		adc_lo = gti->lookup_table[2 * i + 1];
@@ -64,6 +66,13 @@ static int gadc_thermal_get_temp(void *data, int *temp)
 		return ret;
 	}
 	*temp = gadc_thermal_adc_to_temp(gti, val);
+
+	if (*temp >= 38000)	/* abnormal high temp */
+		dev_err(gti->dev, "T_AP=%d\n", *temp);
+
+#ifdef    DUAL_85_VERSION
+	*temp = 38000;
+#endif
 
 	return 0;
 }

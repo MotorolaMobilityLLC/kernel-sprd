@@ -1248,4 +1248,53 @@ config TOUCHSCREEN_ROHM_BU21023
 	  To compile this driver as a module, choose M here: the
 	  module will be called bu21023_ts.
 
+config TOUCHSCREEN_NVT_SPI
+	tristate "NVP SPI touchscreen"
+	help
+	  Say Y here if you have the Ntrig/Microsoft SPI touchscreen
+	  controller chip as found on the Surface 3 in your system.
+
+	  If unsure, say N.
+
+config TOUCHSCREEN_HIMAX_CHIPSET
+        tristate "HX83102D  touchscreen for QualComm package"
+        depends on SPI
+        default n
+        help
+          Say y here if you have chipone touch panel.
+
+          If unsure, say N.
+
+          To compile this driver as a module, choose M here: the
+          module will be called HX83102D.
+
+source drivers/input/touchscreen/hxchipset/Kconfig
+source drivers/input/touchscreen/ilitek/Kconfig
+source drivers/input/touchscreen/chipone/Kconfig
+source drivers/input/touchscreen/novatek/Kconfig
+
+config TOUCHSCREEN_CHIPONE
+	tristate "Chipone TDDI touchscreen for QualComm package"
+	depends on SPI
+	default n
+	help
+	  Say y here if you have chipone TDDI touch panel.
+
+	  If unsure, say N.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called chipone-tddi.
+
+config TOUCHSCREEN_ILITEK_TDDI
+    tristate "Ilitekt9882q for Mediatek package"
+    depends on SPI
+    default n
+    help
+      Say y here if you have ilitek touch panel.
+
+      if unsure, say N.
+
+      To compile this driver as a module, choose M here: the 
+      module will be called ilitek-tddi
+
 endif

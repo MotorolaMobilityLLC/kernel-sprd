@@ -109,6 +109,7 @@ struct sprd_panel {
 	struct regulator *supply;
 	struct delayed_work esd_work;
 	bool esd_work_pending;
+	bool esd_work_backup;
 	bool is_enabled;
 };
 

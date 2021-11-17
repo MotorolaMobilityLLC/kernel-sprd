@@ -1,0 +1,7 @@
+
+config FPS_GOODIX_S00
+    tristate "generic goodix fingerprint driver"
+    help
+    add support for goodix fingerprint driver.
+ 
+

@@ -285,7 +285,8 @@ struct charger_regulator {
 	struct device_attribute attr_charge_pump_present;
 	struct device_attribute attr_charge_pump_current;
 	struct device_attribute attr_enable_power_path;
-	struct attribute *attrs[10];
+        struct device_attribute attr_soc_control;
+	struct attribute *attrs[11];
 
 	struct charger_manager *cm;
 };
@@ -754,6 +755,7 @@ struct charger_manager {
 	u64 charging_start_time;
 	u64 charging_end_time;
 	u32 charging_status;
+	bool is_full;
 	int battery_status;
 
 	struct wakeup_source charge_ws;

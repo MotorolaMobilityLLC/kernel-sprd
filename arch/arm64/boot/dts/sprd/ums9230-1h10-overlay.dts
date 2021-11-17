@@ -7,7 +7,7 @@
 #include <dt-bindings/mfd/sprd,sc2730-regs.h>
 #include <dt-bindings/mfd/sprd,sc2730-mask.h>
 #include <dt-bindings/usb/pd.h>
-#include "lcd/lcd_g40396_truly_mipi_fhd.dtsi"
+#include "lcd/lcd_hx83102d_auo_mipi_hd.dtsi"
 #include "lcd/lcd_dummy_mipi.dtsi"
 #include "ums9230-wcn.dtsi"
 
@@ -70,6 +70,14 @@
 					label = "Volume Down Key";
 					linux,code = <KEY_VOLUMEDOWN>;
 					gpios = <&ap_gpio 124 GPIO_ACTIVE_LOW>;
+					debounce-interval = <2>;
+					wakeup-source;
+				};
+
+				key-google {
+					label = "Google Key";
+					linux,code = <KEY_GOOGLE>;
+					gpios = <&ap_gpio 126 GPIO_ACTIVE_LOW>;
 					debounce-interval = <2>;
 					wakeup-source;
 				};
@@ -439,7 +447,7 @@
 			regulator-name = "vddvbus";
 		};
 	};
-
+/* modify by yrn: gpio126 use to key_google, and bq2597x is not used.
 	bq2597x_chg: charger@65 {
 		compatible = "ti,bq2597x-standalone";
 		reg = <0x65>;
@@ -470,7 +478,7 @@
 		ti,bq2597x,ss-timeout = <100000>;
 		ti,bq2597x,watchdog-timer = <30000>;
 	};
-
+*/
 	hl1506_cp_converter: charger@1b {
 		compatible = "halo,hl1506_cp_converter";
 		reg = <0x1b>;
@@ -483,7 +491,7 @@
 		phys = <&hsphy>;
 		rx,irq_gpio = <&ap_gpio 146 GPIO_ACTIVE_LOW>;
 		switch_chg_en_gpio = <&ap_gpio 171 GPIO_ACTIVE_HIGH>;
-		switch_flag_en_gpio = <&ap_gpio 176 GPIO_ACTIVE_HIGH>;
+		//switch_flag_en_gpio = <&ap_gpio 176 GPIO_ACTIVE_HIGH>;
 	};
 
 	flash_ic: flash-ic@63 {
@@ -532,14 +540,25 @@
 &spi3 {
 	status = "okay";
 
-	focaltech@0 {
-		compatible = "focaltech,fts";
+	spi@0 {
+		status = "okay";
+
+		compatible = "novatek,NVT-ts-spi", "himax,hxcommon";
 		reg = <0x0>;
-		focaltech,reset-gpio = <&ap_gpio 145 GPIO_ACTIVE_HIGH>;
-		focaltech,irq-gpio = <&ap_gpio 144 GPIO_ACTIVE_HIGH>;
-		focaltech,max-touch-number = <5>;
-		focaltech,display-coords =  <0 0 1080 2400>;
-		spi-max-frequency = <6000000>;
+		spi-max-frequency = <9600000>;
+
+		novatek,reset-gpio = <&ap_gpio 145 GPIO_ACTIVE_HIGH>;
+		novatek,irq-gpio = <&ap_gpio 144 GPIO_ACTIVE_HIGH>;
+		novatek,swrst-n8-addr = <0x03F0FE>;
+
+		/*himax touch start*/
+		realtime-task = <1>;
+		himax,panel-coords = <0 720 0 1600>;
+		himax,display-coords = <0 720 0 1600>;
+		himax,irq-gpio = <&ap_gpio 144 GPIO_ACTIVE_HIGH>;
+		himax,rst-gpio = <&ap_gpio 145 GPIO_ACTIVE_HIGH>;
+		report_type = <1>;
+		/*himax touch end*/
 	};
 };
 
@@ -811,21 +830,6 @@
 	sprd,backlight = <&pwm_backlight>;
 };
 
-&lcd_g40396_truly_mipi_fhd {
-	display-timings {
-		g40396_truly_timing1: timing1 {
-			clock-frequency = <192000000>;
-			hactive = <720>;
-			vactive = <1600>;
-			hback-porch = <75>;
-			hfront-porch = <75>;
-			vback-porch = <32>;
-			vfront-porch = <8>;
-			hsync-len = <75>;
-			vsync-len = <8>;
-		};
-	};
-};
 
 &pmic_fchg {
 	sprd,input-voltage-microvolt = <5000000>;
