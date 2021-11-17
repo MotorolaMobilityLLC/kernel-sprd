@@ -177,5 +177,28 @@
 			sprd,rx_bufid = <13>;
 		};
 	};
+	sipc_gnss: core@4 {
+		compatible = "sprd,sipc";
+		#address-cells = <1>;
+		#size-cells = <0>;
+		/* endpoint id - should be same with mailbox channel id */
+		reg = <4>;
+		label = "sipc-gnss";
+		/* <&mailbox  channel_id  is_no_wakeup(default 0)> */
+		mboxes = <&mailbox 6 0>;
+		/* This is temporary plan*/
+		sprd,smem-info = <0x8441b000 0x11b000 0x32000>;
+
+		/* these nodes of channel should be probed by its parent node */
+		sttygnss0: channel@4 {
+			compatible = "sprd,spipe";
+			/* channel number */
+			reg = <4>;
+			label = "sttygnss0";
+			sprd,ringnr = <1>;
+			sprd,size-rxbuf = <0x19000>;    /* 100*1024 */
+			sprd,size-txbuf = <0xc800>;     /* 50*1024 */
+		};
+	};
 };
 
