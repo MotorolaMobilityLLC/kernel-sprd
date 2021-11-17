@@ -3,7 +3,7 @@
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
  * may be copied, distributed, and modified under those terms.
- *
+ /
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
@@ -18,6 +18,7 @@
 #include "mdbg_type.h"
 #include "loopcheck.h"
 #include "../include/wcn_dbg.h"
+#include "gnss_dump.h"
 
 /* SUB_NAME len not more than 15 bytes */
 #define UMW2631_WCN_DUMP_VERSION_SUB_NAME "SIPC_26xx"
@@ -756,9 +757,11 @@ static int btwf_dump_mem(void)
 void mdbg_dump_mem_integ(void)
 {
 	/* dump gnss */
-	if (gnss_dump_handle) {
-		WCN_INFO("need dump gnss\n");
-		gnss_dump_handle();
+	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
+		WCN_INFO("sharkl6-2 can dump!\n");
+		gnss_dump_mem(0);
+	} else {
+		WCN_INFO("sharkl3 cannot dump!\n");
 	}
 
 	/* dump btwf */
