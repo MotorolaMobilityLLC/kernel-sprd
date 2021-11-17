@@ -141,6 +141,9 @@
 #define WDG_LOAD_MASK			GENMASK(15, 0)
 #define WDG_UNLOCK_KEY			0xe551
 
+/*Adi single soft multi hard*/
+#define SPRD_ADI_MAGIC_LEN_MAX          5
+
 struct sprd_adi_variant_data {
 	int (*read_check)(u32 val, u32 reg_paddr);
 	int (*write_wait)(void __iomem *adi_base);
@@ -474,12 +477,41 @@ static int sprd_adi_restart_handler(struct notifier_block *this,
 	return NOTIFY_DONE;
 }
 
+static void sprd_adi_power_ssmh(char *adi_supply)
+{
+	struct device_node *cmdline_node;
+	const char *cmd_line, *adi_type;
+	char adi_value[SPRD_ADI_MAGIC_LEN_MAX] = "";
+	int ret;
+
+	cmdline_node = of_find_node_by_path("/chosen");
+	ret = of_property_read_string(cmdline_node, "bootargs", &cmd_line);
+
+	if (ret) {
+		pr_err("can't parse bootargs property\n");
+		return;
+	}
+
+	adi_type = strstr(cmd_line, "power.from.extern=");
+	if (!adi_type) {
+		pr_err("can't find power.from.extern\n");
+		return;
+	}
+
+	sscanf(adi_type, "power.from.extern=%s\n", adi_value);
+	if (!adi_value[0])
+		return;
+
+	strcat(adi_supply, adi_value);
+}
+
 static void sprd_adi_hw_init(struct sprd_adi *sadi)
 {
 	struct device_node *np = sadi->dev->of_node;
 	int i, size, chn_cnt;
 	const __be32 *list;
 	u32 tmp;
+	char adi_supply[25] = "sprd,hw-channels";
 
 	/* Set all channels as default priority */
 	writel_relaxed(0, sadi->base + REG_ADI_CHN_PRIL);
@@ -491,7 +523,10 @@ static void sprd_adi_hw_init(struct sprd_adi *sadi)
 	writel_relaxed(tmp, sadi->base + REG_ADI_GSSI_CFG0);
 
 	/* Set hardware channels setting */
-	list = of_get_property(np, "sprd,hw-channels", &size);
+	sprd_adi_power_ssmh(adi_supply);
+	dev_info(sadi->dev, "adi supply is %s\n", adi_supply);
+
+	list = of_get_property(np, adi_supply, &size);
 	if (!list || !size) {
 		dev_info(sadi->dev, "no hw channels setting in node\n");
 		return;
