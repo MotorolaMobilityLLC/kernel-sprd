@@ -32,6 +32,9 @@
 static struct power_debug *pgdb_entry;
 static struct proc_dir_entry *sprd_pdbg_proc_dir;
 
+extern void pm_get_active_wakeup_sources(char *pending_wakeup_source, size_t max);
+#define MAX_ACTIVE_WS_LEN 256
+
 /**
  * sprd_pgdb_print_pdm_info - output the power state of each power domain
  * @pdebug_entry: the pointer of the core structure of this driver
@@ -257,6 +260,7 @@ static struct notifier_block sprd_pgdb_notifier_block = {
 static int sprd_pgdb_thread(void *data)
 {
 	struct power_debug *pdbg = (struct power_debug *)data;
+	char active_ws[MAX_ACTIVE_WS_LEN];
 
 	while (pdbg->task) {
 		if (kthread_should_stop())
@@ -264,8 +268,9 @@ static int sprd_pgdb_thread(void *data)
 
 		sprd_pgdb_print_pdm_info(pdbg);
 
-		dev_info(pdbg->dev, "PM: has wakeup events in progress:\n");
-		pm_print_active_wakeup_sources();
+		pr_info("debug_monitor_scan: active wakeup sources check:\n");
+		pm_get_active_wakeup_sources(active_ws, MAX_ACTIVE_WS_LEN);
+		pr_info("%s\n", active_ws);
 
 		set_current_state(TASK_INTERRUPTIBLE);
 		schedule_timeout(pdbg->scan_interval * HZ);

@@ -21,6 +21,9 @@
 static struct task_struct *debug_task;
 static struct debug_log *debug_log;
 
+extern void pm_get_active_wakeup_sources(char *pending_wakeup_source, size_t max);
+#define MAX_ACTIVE_WS_LEN 256
+
 /**
  * sleep_notifier - Sleep condition check
  */
@@ -148,6 +151,7 @@ static int state_monitor(void *data)
 {
 	struct debug_event *monitor;
 	int ret;
+	char active_ws[MAX_ACTIVE_WS_LEN];
 
 	if (!debug_log) {
 		pr_err("%s: The debug log is not register\n", __func__);
@@ -170,6 +174,10 @@ static int state_monitor(void *data)
 		ret = monitor->handle(debug_log->dev, &monitor->data);
 		if (ret)
 			dev_warn(debug_log->dev, "State monitor error\n");
+
+		pr_info("debug_monitor_scan: active wakeup sources check:\n");
+		pm_get_active_wakeup_sources(active_ws, MAX_ACTIVE_WS_LEN);
+		pr_info("%s\n", active_ws);
 
 		schedule_timeout(DEBUGLOG_MONITOR_INTERVAL * HZ);
 		set_current_state(TASK_INTERRUPTIBLE);
