@@ -1547,6 +1547,9 @@ int sc2355_close_fw(struct sprd_priv *priv, struct sprd_vif *vif)
 {
 	struct sprd_msg *msg;
 	struct cmd_close *p;
+	struct tx_mgmt *tx_mgmt;
+	struct sprd_hif *hif;
+	int i;
 
 	msg = get_cmdbuf(priv, vif, sizeof(*p), CMD_CLOSE);
 	if (!msg)
@@ -1556,6 +1559,18 @@ int sc2355_close_fw(struct sprd_priv *priv, struct sprd_vif *vif)
 
 	send_cmd_recv_rsp(priv, msg, NULL, NULL);
 	/* FIXME - in case of close failure */
+
+	hif = &vif->priv->hif;
+	tx_mgmt = (struct tx_mgmt *)hif->tx_mgmt;
+
+	for (i = 0; i < MAX_COLOR_BIT; i++) {
+		if (tx_mgmt->flow_ctrl[i].mode == vif->mode) {
+			pr_info(" %s, %d, _fc_, clear mode%d because closed\n",
+				__func__, __LINE__, vif->mode);
+			tx_mgmt->flow_ctrl[i].mode = SPRD_MODE_NONE;
+		}
+	}
+
 	return 0;
 }
 
