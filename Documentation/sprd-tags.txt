@@ -46,6 +46,7 @@ arm64:dts:
 arm64:topology:
 arm/arm64:configs:
 arm/arm64:dts:
+arm/arm64:kernel:
 arm/arm64:topology:
 arm:configs:
 arm:dts:
