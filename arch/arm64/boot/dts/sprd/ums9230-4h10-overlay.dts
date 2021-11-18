@@ -92,11 +92,12 @@
                                // egis-fp,vcc-current = <12000>;
                         };
 
-			flash-gpios {
-				compatible = "sprd,flash-aw3641";
-				flash-ic = <3641>;
-				flash-torch-en-gpios = <&ap_gpio 139 0>;
-				flash-en-gpios = <&ap_gpio 138 0>;
+			pwm_flash: pwm_flash {
+					compatible = "sprd,pwm-ocp8135b";
+					pwms = <&pwms 0 40000>;
+					pwm-names = "pwm0";
+					flash-enf-gpios = <&ap_gpio 138 0>;
+					#pwm-cells = <2>;
 			};
 
 			gpio-keys {
