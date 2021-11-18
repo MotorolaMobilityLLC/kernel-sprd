@@ -1,0 +1,13 @@
+if INPUT_FINGERPRINT
+config FPS_EGIS_S00
+	tristate "ET528 fingureprint driver"
+	depends on SPI
+	default n
+	---help---
+	  egistec ET528 fingerprint driver.
+	  This is a driver based on the SPI kernel layers.
+
+	  To compile this driver as a module, choose m here. The module will
+	  be called fpsensor.
+	  Say N if unsure.
+endif

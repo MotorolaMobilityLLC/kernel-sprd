@@ -1,0 +1,153 @@
+/ {
+	fragment {
+		target-path = "/";
+		__overlay__ {
+			lcds {
+			
+			lcd_ili9883a_youda_mipi_hd: lcd_ili9883a_youda_mipi_hd {
+				sprd,dsi-work-mode = <1>; /* video burst mode*/
+				sprd,dsi-lane-number = <4>;
+				sprd,dsi-color-format = "rgb888";
+
+				sprd,phy-bit-clock = <922000>;	/* kbps */
+				sprd,phy-escape-clock = <20000>;/* kHz */
+				sprd,width-mm = <68>;
+				sprd,height-mm = <121>;
+
+				sprd,esd-check-enable = <0>;
+				sprd,esd-check-mode = <0>;
+				sprd,esd-check-period = <2000>;
+				sprd,esd-check-regs = <0xA>;
+				sprd,esd-return-code = <0x9c>;
+
+				sprd,dpi-clk-div = <6>;
+				sprd,video-lp-cmd-enable = <1>;
+				sprd,hporch-lp-disable = <1>;
+				sprd,reset-on-sequence = <1 5>, <0 5>, <1 20>;
+				sprd,reset-off-sequence = <1 5>;
+
+				sprd,initial-command = [
+
+				        39 00 00 04 FF 98 83 06
+                        23 00 00 02 3E E2
+                        39 00 00 04 FF 98 83 0B
+                        23 00 00 02 AA 22
+                        23 00 00 02 9A 85
+                        23 00 00 02 9B 8B
+                        23 78 00 02 9C 04
+                        23 00 00 02 9D 04
+                        23 00 00 02 9E 8A
+                        23 78 00 02 9F 8A
+                        39 00 00 04 FF 98 83 00
+        				23 00 00 02 35 00
+                		23 00 00 02 51 ff
+			            23 00 00 02 53 2C
+                		23 00 00 02 55 02
+                		23 78 00 02 11 00
+                        23 00 00 04 FF 98 83 01
+                        23 00 00 02 28 8A
+                        23 00 00 02 29 48
+                        23 00 00 02 2A 8A
+                        23 00 00 02 2B 48
+                        23 00 00 02 3A 23
+                        23 00 00 02 3B 22
+                        23 00 00 02 50 23
+                        23 00 00 02 51 22
+                        39 00 00 04 FF 98 83 03
+                		23 00 00 02 83 E0
+                		23 00 00 02 84 00
+                        23 00 00 02 8C D2
+                        23 00 00 02 8D D6
+                        23 00 00 02 8E DA
+                        23 00 00 02 8F DE
+                        23 00 00 02 90 DF
+                        23 00 00 02 91 E6
+                        23 00 00 02 92 E9
+                        23 00 00 02 93 ED
+                        23 00 00 02 94 F0
+                        23 00 00 02 95 FF
+                        23 00 00 02 96 B5
+                        23 00 00 02 97 BA
+                        23 00 00 02 98 BF
+                        23 00 00 02 99 C4
+                        23 00 00 02 9A C9
+                        23 00 00 02 9B CD
+                        23 00 00 02 9C D5
+                        23 00 00 02 9D E6
+                        23 00 00 02 9E F6 
+                        23 00 00 02 9F FB  
+                        23 00 00 02 87 4D
+                        23 00 00 02 c6 16
+                		39 00 00 04 FF 98 83 00
+                		39 00 00 03 68 04 00
+                		23 14 00 02 29 00
+                		];
+
+				sprd,sleep-in-command = [
+					13 14 00 01 28
+					13 78 00 01 10
+				];
+
+				sprd,sleep-out-command = [
+				    39 00 00 04 FF 98 83 00
+                    13 78 00 01 11
+                    39 00 00 04 FF 98 83 01
+                    39 00 00 02 28 8A
+                    39 00 00 02 29 48
+                    39 00 00 02 2A 8A
+                    39 00 00 02 2B 48
+                    39 00 00 02 3A 23
+                    39 00 00 02 3B 22
+                    39 00 00 02 50 23 
+                    39 00 00 02 51 22
+                    39 00 00 04 FF 98 83 00
+                    13 14 00 01 29
+			];
+
+					oled-backlight {
+						default-brightness-level = <33>;
+						sprd,max-level = <255>;
+
+						brightness-levels = [
+							23 00 00 02 51 FF
+							];
+						};
+
+					display-timings {
+						native-mode = <&ili9883_timing0>;
+
+						
+						ili9883_timing0: timing0 {
+									clock-frequency = <153600000>;
+									hactive = <720>;
+					                                vactive = <1600>;
+                               						hback-porch = <48>;
+                               						hfront-porch = <40>;
+                               						vback-porch = <50>;
+                               						vfront-porch = <380>;
+                               						hsync-len = <20>;
+                               						vsync-len = <20>;
+								
+
+						};
+	#if 0 
+						ili9883_timing1: timing1 {
+									clock-frequency = <153600000>;
+									hactive = <720>;
+									vactive = <1600>;
+									hback-porch = <48>;
+									hfront-porch = <40>;
+									vback-porch = <50>;
+									vfront-porch = <1421>;
+									hsync-len = <20>;
+									vsync-len = <20>;
+
+
+						};
+	#endif
+					};
+				};
+			};
+		};
+	};
+};

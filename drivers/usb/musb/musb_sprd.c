@@ -93,6 +93,19 @@ static const bool is_slave = true;
 static const bool is_slave;
 #endif
 
+static const char *lcd_name = NULL;
+static int __init lcd_name_get(char *str)
+{
+	if (str != NULL)
+		lcd_name = str;
+	//DRM_INFO("lcd name from uboot: %s\n", lcd_name);
+	return 0;
+}
+__setup("lcd_name=", lcd_name_get);
+#define DISABLE 0
+#define ENABLE 1
+extern int ili_ic_func_ctrl(const char *name, int ctrl);
+
 static void sprd_musb_enable(struct musb *musb)
 {
 	struct sprd_glue *glue = dev_get_drvdata(musb->controller->parent);
@@ -537,11 +550,13 @@ static struct musb_hdrc_config sprd_musb_hdrc_config_single = {
 };
 #pragma GCC diagnostic pop
 
+extern bool USB_detect_flag;
 static int musb_sprd_vbus_notifier(struct notifier_block *nb,
 				unsigned long event, void *data)
 {
 	struct sprd_glue *glue = container_of(nb, struct sprd_glue, vbus_nb);
 	unsigned long flags;
+	const int name_len = (lcd_name == NULL ? 0 : strlen(lcd_name));
 
 	if (is_slave) {
 		dev_info(glue->dev, "%s, event(%ld) ignored in slave mode\n", __func__, event);
@@ -560,6 +575,9 @@ static int musb_sprd_vbus_notifier(struct notifier_block *nb,
 		glue->vbus_active = 1;
 		glue->wq_mode = USB_DR_MODE_PERIPHERAL;
 		queue_work(system_unbound_wq, &glue->work);
+		if ( (name_len != 0) && (strncmp(lcd_name, "lcd_ili9882q_youda_mipi_hd", name_len) == 0)) {
+			ili_ic_func_ctrl("plug", DISABLE);
+		}
 		spin_unlock_irqrestore(&glue->lock, flags);
 		dev_info(glue->dev,
 			"device connection detected from VBUS GPIO.\n");
@@ -575,11 +593,14 @@ static int musb_sprd_vbus_notifier(struct notifier_block *nb,
 		glue->vbus_active = 0;
 		glue->wq_mode = USB_DR_MODE_PERIPHERAL;
 		queue_work(system_unbound_wq, &glue->work);
+		if ( (name_len != 0 ) && (strncmp(lcd_name, "lcd_ili9882q_youda_mipi_hd", name_len) == 0) ) {
+			ili_ic_func_ctrl("plug",ENABLE);
+		}
 		spin_unlock_irqrestore(&glue->lock, flags);
 		dev_info(glue->dev,
 			"device disconnect detected from VBUS GPIO.\n");
 	}
-
+	USB_detect_flag = glue->vbus_active;
 	return 0;
 }
 
@@ -625,7 +646,7 @@ static int musb_sprd_id_notifier(struct notifier_block *nb,
 		dev_info(glue->dev,
 			"host disconnect detected from ID GPIO.\n");
 	}
-
+	USB_detect_flag = glue->vbus_active;
 	return 0;
 }
 
@@ -922,9 +943,24 @@ static void sprd_musb_work(struct work_struct *work)
 				if (IS_ERR(glue->vbus)) {
 					dev_err(glue->dev,
 						"unable to get vbus supply\n");
-					glue->vbus = NULL;
-					goto end;
-				}
+
+					glue->vbus = devm_regulator_get(glue->dev, "vbus1");	
+					if (IS_ERR(glue->vbus)) {
+						dev_err(glue->dev,
+							"unable to get vbus1 supply\n");
+						glue->vbus = devm_regulator_get(glue->dev, "vbus2");	
+						if (IS_ERR(glue->vbus)) {
+						dev_err(glue->dev,
+							"unable to get vbus2 supply\n");
+
+						glue->vbus = NULL;
+						goto end;
+						}
+				       }
+				}	
+
+
+	
 			}
 			ret = regulator_enable(glue->vbus);
 			if (ret) {
@@ -1253,7 +1289,19 @@ static int musb_sprd_probe(struct platform_device *pdev)
 		if (IS_ERR(glue->vbus)) {
 			ret = PTR_ERR(glue->vbus);
 			dev_warn(dev, "unable to get vbus supply %d\n", ret);
-			glue->vbus = NULL;
+
+			glue->vbus = devm_regulator_get(dev, "vbus1");
+			if (IS_ERR(glue->vbus)) {
+				ret = PTR_ERR(glue->vbus);
+				dev_warn(dev, "unable to get vbus1 supply %d\n", ret);
+				glue->vbus = devm_regulator_get(dev, "vbus2");
+				if (IS_ERR(glue->vbus)) {
+					glue->vbus = NULL;
+					ret = PTR_ERR(glue->vbus);
+					dev_warn(dev, "unable to get vbus1 supply %d\n", ret);
+				}
+			}
+			
 		}
 	}
 	glue->pmu = syscon_regmap_lookup_by_name(dev->of_node,

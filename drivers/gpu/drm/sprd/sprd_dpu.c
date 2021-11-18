@@ -58,6 +58,7 @@ struct sprd_plane_state {
 LIST_HEAD(dpu_core_head);
 LIST_HEAD(dpu_clk_head);
 LIST_HEAD(dpu_glb_head);
+bool dynamic_framerate_mode;
 
 bool calibration_mode;
 static unsigned long frame_count;
@@ -1215,6 +1216,7 @@ static int sprd_dpu_context_init(struct sprd_dpu *dpu,
 
 	sema_init(&ctx->refresh_lock, 1);
 	sema_init(&ctx->cabc_lock, 1);
+	mutex_init(&ctx->vrr_lock);
 	return 0;
 }
 
@@ -1223,7 +1225,7 @@ static int sprd_dpu_probe(struct platform_device *pdev)
 	struct device_node *np = pdev->dev.of_node;
 	struct sprd_dpu *dpu;
 	const char *str;
-	int ret;
+	int ret; //val;
 
 	if (calibration_mode) {
 		DRM_WARN("Calibration Mode! Don't register sprd dpu driver\n");
@@ -1245,6 +1247,9 @@ static int sprd_dpu_probe(struct platform_device *pdev)
 		dpu->glb = dpu_glb_ops_attach(str);
 	} else
 		DRM_WARN("sprd,soc was not found\n");
+
+	//if (!of_property_read_u32(np, "sprd,dpi-clk-div", &val))
+	//	dpu->ctx.dpi_clk_div = val;
 
 	ret = sprd_dpu_context_init(dpu, np);
 	if (ret)

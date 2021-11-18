@@ -74,6 +74,7 @@
 
 /* Bits & mask definition for register STS2 */
 #define SPRD_SPI_TX_BUSY		BIT(8)
+#define SPI_TX_FIFO_REALLY_EMPTY	BIT(7)
 
 /* Bits & mask definition for register CTL1 */
 #define SPRD_SPI_RX_MODE		BIT(12)
@@ -827,6 +828,7 @@ static void sprd_spi_init_hw(struct sprd_spi *ss, struct spi_transfer *t)
 
 	/* Reset SPI fifo */
 	writel_relaxed(1, ss->base + SPRD_SPI_FIFO_RST);
+	udelay(1);
 	writel_relaxed(0, ss->base + SPRD_SPI_FIFO_RST);
 
 	/* Set SPI work mode */

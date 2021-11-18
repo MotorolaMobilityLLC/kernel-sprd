@@ -80,6 +80,7 @@ static bool dsi_is_cmd_mode(struct dsi_context *ctx)
 {
 	struct dsi_reg *reg = (struct dsi_reg *)ctx->base;
 
+	//return read32(&reg->DSI_MODE_CFG);
 	return read32(&reg->DSI_MODE_CFG) & BIT(0);
 }
 /**

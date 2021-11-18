@@ -22,7 +22,7 @@
 #include "dpu_r5p0_corner_param.h"
 #include "dpu_enhance_param.h"
 #include "disp_trusty.h"
-
+#include "../dsi/sprd_dsi_hal.h"
 #define DISPC_INT_FBC_PLD_ERR_MASK	BIT(8)
 #define DISPC_INT_FBC_HDR_ERR_MASK	BIT(9)
 #define DISPC_INT_MMU_PAOR_WR_MASK	BIT(7)
@@ -402,6 +402,7 @@ static struct device_node *g_np;
 static int secure_debug;
 static int time = 5000;
 static struct disp_message tos_msg;
+static int vfp;
 module_param(time, int, 0644);
 module_param(secure_debug, int, 0644);
 static u8 skip_layer_index;
@@ -670,7 +671,6 @@ static int dpu_wait_update_done(struct dpu_context *ctx)
 static void dpu_stop(struct dpu_context *ctx)
 {
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
-
 	if (ctx->if_type == SPRD_DISPC_IF_DPI)
 		reg->dpu_ctrl |= BIT(1);
 
@@ -1364,49 +1364,78 @@ static void dpu_layer(struct dpu_context *ctx,
 				hwlayer->src_w, hwlayer->src_h);
 }
 
+static void dpu_framerate(struct dpu_context *ctx, u8 *count)
+{
+	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
+	struct sprd_dpu *dpu = (struct sprd_dpu *)container_of(ctx,
+							struct sprd_dpu, ctx);
+
+	if(mode_changed) {
+		dpu_stop(ctx);
+		pr_info("change frame rate, vfp = %d\n", vfp);
+		ctx->vm.vfront_porch = vfp;
+		reg->dpi_v_timing = (ctx->vm.vsync_len << 0) |
+				    (ctx->vm.vback_porch << 8) |
+				    (ctx->vm.vfront_porch << 20);
+		dpu->dsi->ctx.vm.vfront_porch = vfp;
+		dsi_hal_dpi_vfp(dpu->dsi, vfp);
+		dpu_run(ctx);
+		*count = 1;
+		mode_changed = false;
+	}
+}
+
 static void dpu_scaling(struct dpu_context *ctx,
 			struct sprd_dpu_layer layers[], u8 count)
 {
 	int i;
 	u16 src_w;
 	u16 src_h;
-	struct sprd_dpu_layer *btm_layer;
+	int secure_en = 0;
+	struct sprd_dpu_layer *top_layer;
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
+	
+	for (i = 0; i < count; i++) {
+		if (secure_debug || reg->dpu_secure) {
+			secure_en = 1;
+			break;
+		}
+
+		if (layers[i].secure_en) {
+			secure_en = 1;
+			break;
+		}
+	}
 
 	if (mode_changed) {
-		btm_layer = &layers[0];
+		top_layer = &layers[count - 1];
 		pr_debug("------------------------------------\n");
 		for (i = 0; i < count; i++) {
 			pr_debug("layer[%d] : %dx%d --- (%d)\n", i,
 				layers[i].dst_w, layers[i].dst_h,
 				scale_copy.in_w);
-			if (layers[i].dst_w != scale_copy.in_w) {
-				skip_layer_index = i;
-				break;
-			}
 		}
-
-		if  (btm_layer->dst_w <= scale_copy.in_w) {
+		if  (top_layer->dst_w < scale_copy.in_w) {
 			dpu_sr_config(ctx);
 			mode_changed = false;
 
-			pr_info("do scaling enhace: 0x%x, bottom layer(%dx%d)\n",
-				enhance_en, btm_layer->dst_w,
-				btm_layer->dst_h);
+			pr_info("do scaling enhace: 0x%x, top layer(%dx%d)\n",
+				enhance_en, top_layer->dst_w,
+				top_layer->dst_h);
 		}
-	} else {
+	} else if (secure_en == 1) {
 		if (count == 1) {
-			btm_layer = &layers[count - 1];
-			if (btm_layer->rotation & (DRM_MODE_ROTATE_90 |
+			top_layer = &layers[count - 1];
+			if (top_layer->rotation & (DRM_MODE_ROTATE_90 |
 							DRM_MODE_ROTATE_270)) {
-				src_w = btm_layer->src_h;
-				src_h = btm_layer->src_w;
+				src_w = top_layer->src_h;
+				src_h = top_layer->src_w;
 			} else {
-				src_w = btm_layer->src_w;
-				src_h = btm_layer->src_h;
+				src_w = top_layer->src_w;
+				src_h = top_layer->src_h;
 			}
-			if (src_w == btm_layer->dst_w
-			&& src_h == btm_layer->dst_h) {
+			if (src_w == top_layer->dst_w
+			&& src_h == top_layer->dst_h) {
 				reg->blend_size = (scale_copy.in_h << 16) |
 						scale_copy.in_w;
 				if (!need_scale)
@@ -1468,8 +1497,12 @@ static void dpu_flip(struct dpu_context *ctx,
 	/* disable all the layers */
 	dpu_clean_all(ctx);
 
-	/* to check if dpu need scaling the frame for SR */
-	dpu_scaling(ctx, layers, count);
+	if (dynamic_framerate_mode)
+		/* to check if dpu need change the frame rate */
+		dpu_framerate(ctx, &count);
+	else
+		/* to check if dpu need scaling the frame for SR */
+		dpu_scaling(ctx, layers, count);
 
 	/* start configure dpu layers */
 	for (i = 0; i < count; i++) {
@@ -2353,11 +2386,15 @@ static int dpu_modeset(struct dpu_context *ctx,
 	scale_copy.in_w = mode->hdisplay;
 	scale_copy.in_h = mode->vdisplay;
 
-	if ((mode->hdisplay != ctx->vm.hactive) ||
-	    (mode->vdisplay != ctx->vm.vactive))
-		need_scale = true;
-	else
-		need_scale = false;
+	if (dynamic_framerate_mode)
+		vfp = mode->vsync_start - mode->vdisplay;
+	else {
+		if ((mode->hdisplay != ctx->vm.hactive) ||
+			(mode->vdisplay != ctx->vm.vactive))
+			need_scale = true;
+		else
+			need_scale = false;
+	}
 
 	mode_changed = true;
 	pr_info("begin switch to %u x %u\n", mode->hdisplay, mode->vdisplay);

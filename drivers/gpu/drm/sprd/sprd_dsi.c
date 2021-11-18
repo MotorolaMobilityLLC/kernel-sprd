@@ -135,6 +135,7 @@ static void sprd_dsi_encoder_enable(struct drm_encoder *encoder)
 {
 	struct sprd_dsi *dsi = encoder_to_dsi(encoder);
 	struct sprd_dpu *dpu = crtc_to_dpu(encoder->crtc);
+	struct sprd_panel *panel = NULL;
 	static bool is_enabled = true;
 
 	DRM_INFO("%s(last_dpms=%d, dpms=%d)\n",
@@ -161,6 +162,12 @@ static void sprd_dsi_encoder_enable(struct drm_encoder *encoder)
 	if (is_enabled) {
 		is_enabled = false;
 		dsi->ctx.is_inited = true;
+		if (dsi->panel)
+			panel = container_of(dsi->panel, struct sprd_panel, base);
+
+		if (panel && panel->info.esd_check_en && panel->esd_work_backup)
+			schedule_delayed_work(&panel->esd_work,
+					msecs_to_jiffies(panel->info.esd_check_period));
 		mutex_unlock(&dsi_lock);
 		return;
 	}
@@ -480,8 +487,8 @@ static int sprd_dsi_host_attach(struct mipi_dsi_host *host,
 	else
 		ctx->hporch_lp_disable = 0;
 
-	if (!of_property_read_u32(lcd_node, "sprd,dpi-clk-div", &val))
-		ctx->dpi_clk_div = val;
+	//if (!of_property_read_u32(lcd_node, "sprd,dpi-clk-div", &val))
+	//	ctx->dpi_clk_div = val;
 
 	if (dsi->dsi_slave) {
 		ctx_slave = &dsi->dsi_slave->ctx;

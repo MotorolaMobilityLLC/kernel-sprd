@@ -1,0 +1,10 @@
+
+config TOUCHSCREEN_CHIPONE_SOO
+    tristate "generic touchscreen chipone driver"
+    help
+    add support for touchscreen driver.
+
+config TOUCHSCREEN_CHIPONE_MODEL
+    string "chipone model, kernel defconfig"
+    help
+    chipone model, kernel defconfig
