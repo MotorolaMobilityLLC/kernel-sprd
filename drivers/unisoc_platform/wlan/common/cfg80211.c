@@ -527,7 +527,7 @@ int sprd_cfg80211_start_ap(struct wiphy *wiphy, struct net_device *ndev,
 		memcpy(data + beacon->head_len + hidden_len, beacon->tail,
 		       beacon->tail_len);
 
-	ret = sprd_start_ap(vif->priv, vif, (unsigned char *)mgmt, mgmt_len);
+	ret = sprd_start_ap(vif->priv, vif, (unsigned char *)mgmt, mgmt_len, settings);
 	if (ret)
 		netdev_err(ndev, "%s failed to start AP!\n", __func__);
 

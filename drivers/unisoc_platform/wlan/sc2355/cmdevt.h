@@ -961,7 +961,7 @@ int sc2355_set_assocresp_ie(struct sprd_priv *priv, struct sprd_vif *vif,
 int sc2355_set_sae_ie(struct sprd_priv *priv, struct sprd_vif *vif,
 		      const u8 *ie, u16 len);
 int sc2355_start_ap(struct sprd_priv *priv, struct sprd_vif *vif, u8 *beacon,
-		    u16 len);
+		    u16 len, struct cfg80211_ap_settings *settings);
 int sc2355_del_station(struct sprd_priv *priv, struct sprd_vif *vif,
 		       const u8 *mac_addr, u16 reason_code);
 int sc2355_get_station(struct sprd_priv *priv, struct sprd_vif *vif,

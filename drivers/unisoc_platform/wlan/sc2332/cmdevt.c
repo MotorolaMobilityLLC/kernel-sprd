@@ -1018,7 +1018,7 @@ int sc2332_set_sae_ie(struct sprd_priv *priv, struct sprd_vif *vif,
 }
 
 int sc2332_start_ap(struct sprd_priv *priv, struct sprd_vif *vif, u8 *beacon,
-		    u16 len)
+		    u16 len, struct cfg80211_ap_settings *settings)
 {
 	struct sprd_msg *msg;
 	struct cmd_start_ap *p;
@@ -1027,6 +1027,13 @@ int sc2332_start_ap(struct sprd_priv *priv, struct sprd_vif *vif, u8 *beacon,
 	struct cfg80211_chan_def chandef;
 	u16 freq = 0;
 	int ret;
+
+	if (settings->chandef.chan) {
+		freq = settings->chandef.chan->center_freq;
+		netdev_info(vif->ndev, "%s freq : %d\n", __func__, freq);
+	} else {
+		netdev_err(vif->ndev, "%s can not get channel info\n", __func__);
+	}
 
 	msg = get_cmdbuf(priv, vif, datalen, CMD_START_AP);
 	if (!msg)

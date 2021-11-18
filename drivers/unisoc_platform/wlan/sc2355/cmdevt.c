@@ -1742,7 +1742,7 @@ int sc2355_set_sae_ie(struct sprd_priv *priv, struct sprd_vif *vif,
 }
 
 int sc2355_start_ap(struct sprd_priv *priv, struct sprd_vif *vif, u8 *beacon,
-		    u16 len)
+		    u16 len, struct cfg80211_ap_settings *settings)
 {
 	struct sprd_msg *msg;
 	struct cmd_start_ap *p;
