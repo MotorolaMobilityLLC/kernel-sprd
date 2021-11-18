@@ -17,6 +17,8 @@
 #include <linux/pm_runtime.h>
 #include <linux/regulator/consumer.h>
 #include <linux/slab.h>
+#include <linux/regmap.h>
+#include <linux/mfd/syscon.h>
 
 #include "sdhci-pltfm.h"
 #include "mmc_hsq.h"
@@ -99,6 +101,12 @@ struct ranges_t {
 	int end;
 };
 
+struct register_hotplug {
+	struct regmap *regmap;
+	u32 reg;
+	u32 mask;
+};
+
 struct sdhci_sprd_host {
 	u32 version;
 	struct clk *clk_sdio;
@@ -114,6 +122,13 @@ struct sdhci_sprd_host {
 	u32 dll_cnt;
 	u32 mid_dll_cnt;
 	struct ranges_t *ranges;
+	int detect_gpio;
+	bool detect_gpio_polar;
+	struct register_hotplug reg_detect_polar;
+	struct register_hotplug reg_protect_enable;
+	struct register_hotplug reg_debounce_en;
+	struct register_hotplug reg_debounce_cn;
+	struct register_hotplug reg_rmldo_en;
 };
 
 struct sdhci_sprd_phy_cfg {
@@ -643,6 +658,61 @@ out:
 	return err;
 }
 
+static void sdhci_sprd_fast_hotplug_disable(struct sdhci_sprd_host *sprd_host)
+{
+	regmap_update_bits(sprd_host->reg_protect_enable.regmap,
+		sprd_host->reg_protect_enable.reg,
+		sprd_host->reg_protect_enable.mask, 0);
+}
+
+static void sdhci_sprd_fast_hotplug_enable(struct sdhci_sprd_host *sprd_host)
+{
+	int debounce_counter = 3;
+	u32 reg_value = 0;
+	int ret = 0;
+
+	if (sprd_host->reg_rmldo_en.regmap) {
+		/* this register do not support update in bits */
+		ret = regmap_read(sprd_host->reg_rmldo_en.regmap,
+				sprd_host->reg_rmldo_en.reg,
+				&reg_value);
+		if (ret < 0) {
+			pr_err("remap global register failed!\n");
+			return;
+		}
+		reg_value |= sprd_host->reg_rmldo_en.mask;
+		ret = regmap_write(sprd_host->reg_rmldo_en.regmap,
+				sprd_host->reg_rmldo_en.reg,
+				reg_value);
+		if (ret < 0) {
+			pr_err("remap global register failed!\n");
+			return;
+		}
+	}
+
+	regmap_update_bits(sprd_host->reg_protect_enable.regmap,
+		sprd_host->reg_protect_enable.reg,
+		sprd_host->reg_protect_enable.mask,
+		sprd_host->reg_protect_enable.mask);
+	regmap_update_bits(sprd_host->reg_debounce_en.regmap,
+		sprd_host->reg_debounce_en.reg,
+		sprd_host->reg_debounce_en.mask,
+		sprd_host->reg_debounce_en.mask);
+	regmap_update_bits(sprd_host->reg_debounce_cn.regmap,
+		sprd_host->reg_debounce_cn.reg,
+		sprd_host->reg_debounce_cn.mask,
+		debounce_counter << 16);
+	if (sprd_host->detect_gpio_polar)
+		regmap_update_bits(sprd_host->reg_detect_polar.regmap,
+			sprd_host->reg_detect_polar.reg,
+			sprd_host->reg_detect_polar.mask, 0);
+	else
+		regmap_update_bits(sprd_host->reg_detect_polar.regmap,
+			sprd_host->reg_detect_polar.reg,
+			sprd_host->reg_detect_polar.mask,
+			sprd_host->reg_detect_polar.mask);
+}
+
 static void sdhci_sprd_signal_voltage_on_off(struct sdhci_host *host,
 	u32 on_off)
 {
@@ -675,10 +745,27 @@ static void sdhci_sprd_signal_voltage_on_off(struct sdhci_host *host,
 static void sdhci_sprd_set_power(struct sdhci_host *host, unsigned char mode,
 	unsigned short vdd)
 {
+	struct sdhci_sprd_host *sprd_host = TO_SPRD_HOST(host);
 	struct mmc_host *mmc = host->mmc;
+	int ret;
 
 	switch (mode) {
 	case MMC_POWER_OFF:
+		if (sprd_host->reg_protect_enable.regmap
+				&& host->mmc_host_ops.get_cd(host->mmc))
+			sdhci_sprd_fast_hotplug_disable(sprd_host);
+
+		if (!host->mmc_host_ops.get_cd(host->mmc)) {
+			/*
+			 * make sure io_voltage will keep 3.3V in next power up while plugin sd,
+			 * but will not do this in deepsleep power off
+			 */
+			mmc->ios.signal_voltage = MMC_SIGNAL_VOLTAGE_330;
+			ret = host->mmc_host_ops.start_signal_voltage_switch(mmc, &mmc->ios);
+			if (ret)
+				pr_err("signal voltage set to 3.3v fail %d!\n", ret);
+		}
+
 		sdhci_sprd_signal_voltage_on_off(host, 0);
 		if (!IS_ERR(mmc->supply.vmmc))
 			mmc_regulator_set_ocr(host->mmc, mmc->supply.vmmc, 0);
@@ -689,6 +776,12 @@ static void sdhci_sprd_set_power(struct sdhci_host *host, unsigned char mode,
 			mmc_regulator_set_ocr(host->mmc, mmc->supply.vmmc, vdd);
 		usleep_range(200, 250);
 		sdhci_sprd_signal_voltage_on_off(host, 1);
+
+		if (sprd_host->reg_detect_polar.regmap && sprd_host->reg_protect_enable.regmap
+			&& sprd_host->reg_detect_polar.regmap
+			&& sprd_host->reg_protect_enable.regmap
+			&& host->mmc_host_ops.get_cd(host->mmc))
+			sdhci_sprd_fast_hotplug_enable(sprd_host);
 		break;
 	}
 }
@@ -855,8 +948,48 @@ static const struct sdhci_pltfm_data sdhci_sprd_pdata = {
 	.ops = &sdhci_sprd_ops,
 };
 
+static void sdhci_sprd_get_fast_hotplug_reg(struct device_node *np,
+	struct register_hotplug *reg, const char *name)
+{
+	struct regmap *regmap;
+	u32 syscon_args[2];
+
+	regmap = syscon_regmap_lookup_by_phandle_args(np, name, 2, syscon_args);
+	if (IS_ERR(regmap)) {
+		pr_warn("read sdio fast hotplug %s regmap fail\n", name);
+		reg->regmap = NULL;
+		reg->reg = 0x0;
+		reg->mask = 0x0;
+		goto out;
+	} else {
+		reg->regmap = regmap;
+		reg->reg = syscon_args[0];
+		reg->mask = syscon_args[1];
+	}
+
+out:
+	of_node_put(np);
+}
+
+static void sdhci_sprd_get_fast_hotplug_info(struct device_node *np,
+	struct sdhci_sprd_host *sprd_host)
+{
+	sdhci_sprd_get_fast_hotplug_reg(np, &sprd_host->reg_detect_polar,
+		"sd-detect-pol-syscon");
+	sdhci_sprd_get_fast_hotplug_reg(np, &sprd_host->reg_protect_enable,
+		"sd-hotplug-protect-en-syscon");
+	sdhci_sprd_get_fast_hotplug_reg(np, &sprd_host->reg_debounce_en,
+		"sd-hotplug-debounce-en-syscon");
+	sdhci_sprd_get_fast_hotplug_reg(np, &sprd_host->reg_debounce_cn,
+		"sd-hotplug-debounce-cn-syscon");
+	sdhci_sprd_get_fast_hotplug_reg(np, &sprd_host->reg_rmldo_en,
+		"sd-hotplug-rmldo-en-syscon");
+}
+
 static int sdhci_sprd_probe(struct platform_device *pdev)
 {
+	struct device_node *np = pdev->dev.of_node;
+	enum of_gpio_flags flags;
 	struct sdhci_host *host;
 	struct sdhci_sprd_host *sprd_host;
 	struct mmc_hsq *hsq;
@@ -912,6 +1045,14 @@ static int sdhci_sprd_probe(struct platform_device *pdev)
 			ret = PTR_ERR(sprd_host->pins_default);
 			goto pltfm_free;
 		}
+	}
+
+	sprd_host->detect_gpio = of_get_named_gpio_flags(np, "cd-gpios", 0, &flags);
+	if (!gpio_is_valid(sprd_host->detect_gpio))
+		sprd_host->detect_gpio = -1;
+	else {
+		sdhci_sprd_get_fast_hotplug_info(np, sprd_host);
+		sprd_host->detect_gpio_polar = flags;
 	}
 
 	clk = devm_clk_get(&pdev->dev, "sdio");
