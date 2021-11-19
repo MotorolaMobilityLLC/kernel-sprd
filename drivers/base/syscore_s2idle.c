@@ -137,6 +137,7 @@ static int __nocfi sprd_module_notifier_fn(struct notifier_block *nb,
 					   unsigned long action,
 					   void *data)
 {
+	struct module *module = data;
 	struct syscore_s2idle_ops sprd_wdt_fiq_syscore_s2idle_ops;
 
 	if (action != MODULE_STATE_LIVE)
@@ -146,13 +147,15 @@ static int __nocfi sprd_module_notifier_fn(struct notifier_block *nb,
 	if (sprd_wdt_fiq_syscore_suspend_ptr && sprd_wdt_fiq_syscore_resume_ptr)
 		return NOTIFY_DONE;
 
-	sprd_wdt_fiq_syscore_suspend_ptr = (void *)
-		kallsyms_lookup_name("sprd_wdt_fiq_syscore_suspend");
+	if (!strncmp(module->name, "sprd_wdt_fiq", strlen("sprd_wdt_fiq"))) {
+		sprd_wdt_fiq_syscore_suspend_ptr = (void *)
+			module_kallsyms_lookup_name("sprd_wdt_fiq_syscore_suspend");
+		sprd_wdt_fiq_syscore_resume_ptr = (void *)
+			module_kallsyms_lookup_name("sprd_wdt_fiq_syscore_resume");
+	}
+
 	if (!sprd_wdt_fiq_syscore_suspend_ptr)
 		return NOTIFY_DONE;
-
-	sprd_wdt_fiq_syscore_resume_ptr = (void *)
-		kallsyms_lookup_name("sprd_wdt_fiq_syscore_resume");
 	if (!sprd_wdt_fiq_syscore_resume_ptr)
 		return NOTIFY_DONE;
 
