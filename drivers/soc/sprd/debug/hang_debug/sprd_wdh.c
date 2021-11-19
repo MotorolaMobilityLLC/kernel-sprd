@@ -656,6 +656,7 @@ static int __nocfi sprd_module_notifier_fn(struct notifier_block *nb,
 		unsigned long action, void *data)
 {
 	int ret = 0;
+	struct module *module = data;
 
 	if (action != MODULE_STATE_LIVE)
 		return NOTIFY_DONE;
@@ -664,8 +665,11 @@ static int __nocfi sprd_module_notifier_fn(struct notifier_block *nb,
 	if (sprd_sip_svc_get_handle_ptr)
 		return NOTIFY_DONE;
 
-	sprd_sip_svc_get_handle_ptr = (void *)
-		kallsyms_lookup_name("sprd_sip_svc_get_handle");
+	if (!strncmp(module->name, "sprd_sip_svc", strlen("sprd_sip_svc"))) {
+		sprd_sip_svc_get_handle_ptr = (void *)
+			module_kallsyms_lookup_name("sprd_sip_svc_get_handle");
+	}
+
 	if (!sprd_sip_svc_get_handle_ptr)
 		return NOTIFY_DONE;
 
@@ -685,7 +689,6 @@ static int __nocfi sprd_module_notifier_fn(struct notifier_block *nb,
 
 	if (ret)
 		pr_emerg("init ATF el1_entry_for_wdh error[%d]\n", ret);
-
 
 	return NOTIFY_DONE;
 }
