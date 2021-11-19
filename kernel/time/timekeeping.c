@@ -1244,6 +1244,7 @@ static int __nocfi sprd_module_notifier_fn(struct notifier_block *nb,
 					   void *data)
 {
 	int ret = 0;
+	struct module *module = data;
 
 	if (action != MODULE_STATE_LIVE)
 		return NOTIFY_DONE;
@@ -1252,8 +1253,12 @@ static int __nocfi sprd_module_notifier_fn(struct notifier_block *nb,
 	if (sprd_time_sync_fn_ptr)
 		return NOTIFY_DONE;
 
-	sprd_time_sync_fn_ptr = (int (*)(struct notifier_block *, unsigned long, void *))
-		kallsyms_lookup_name("sprd_time_sync_fn");
+	/* only module is sprd_cpu_cooling to find symbol */
+	if (!strncmp(module->name, "sprd_time_sync_cp", strlen("sprd_time_sync_cp"))) {
+		sprd_time_sync_fn_ptr = (int (*)(struct notifier_block *, unsigned long, void *))
+			module_kallsyms_lookup_name("sprd_time_sync_fn");
+	}
+
 	if (!sprd_time_sync_fn_ptr)
 		return NOTIFY_DONE;
 
