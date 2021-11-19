@@ -468,7 +468,7 @@ static int jpg_open(struct inode *inode, struct file *filp)
 	hw_dev.condition_work_BSM = 0;
 	hw_dev.jpg_int_status = 0;
 
-	pm_runtime_get(hw_dev.jpg_dev);
+	pm_runtime_get_sync(hw_dev.jpg_dev);
 	ret = 0;
 	dev_info(hw_dev.jpg_dev, "jpg pw_on: ret %d", ret);
 
@@ -500,7 +500,7 @@ static int jpg_release(struct inode *inode, struct file *filp)
 	}
 
 	pm_runtime_mark_last_busy(hw_dev.jpg_dev);
-	pm_runtime_put_autosuspend(hw_dev.jpg_dev);
+	pm_runtime_put_sync(hw_dev.jpg_dev);
 	dev_info(hw_dev.jpg_dev, "jpg pw_off: ret %d", ret);
 
 	dev_info(hw_dev.jpg_dev, "%s %p\n", __func__, jpg_fp);
