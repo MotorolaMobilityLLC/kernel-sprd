@@ -733,8 +733,8 @@ static void eta6937_charger_work(struct work_struct *data)
 		container_of(data, struct eta6937_charger_info, work);
 	bool present = eta6937_charger_is_bat_present(info);
 
-	dev_info(info->dev, "battery present = %d, charger type = %d\n",
-		 present, info->usb_phy->chg_type);
+	dev_info(info->dev, "battery present = %d, charger type = %d, limit = %d\n",
+		 present, info->usb_phy->chg_type, info->limit);
 	cm_notify_event(info->psy_usb, CM_EVENT_CHG_START_STOP, NULL);
 }
 
