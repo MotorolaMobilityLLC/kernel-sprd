@@ -965,6 +965,18 @@
 
 &i2c2 {
 	status = "okay";
+	sec-nfc@27 {
+	compatible = "sec-nfc";
+	reg = <0x27>;
+        clock-names = "nfc_clk","source","enable";
+	clocks = <&aon_clk CLK_AUX1>,<&ext_26m>,<&aonapb_gate CLK_AUX1_EB>;
+	sec-nfc,ven-gpio = <&ap_gpio 122 0>;
+	sec-nfc,firm-gpio = <&ap_gpio 29 0>;
+	//sec-nfc,irq-gpio = <&eic_async 31 0>;
+	sec-nfc,irq-gpio = <&ap_gpio 166 0>;
+	sec-nfc,clk-req = <&ap_gpio 30 0>;
+	};
+
 };
 
 &i2c3 {
