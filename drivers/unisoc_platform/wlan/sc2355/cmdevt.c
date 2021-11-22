@@ -194,6 +194,11 @@ static const char *cmdevt_cmd2str(u8 cmd)
 	}
 }
 
+const char *sc2355_cmdevt_cmd2str(u8 cmd)
+{
+	return cmdevt_cmd2str(cmd);
+}
+
 static const char *cmdevt_evt2str(u8 evt)
 {
 	switch (evt) {
@@ -1054,7 +1059,7 @@ int sc2355_cmd_host_wakeup_fw(struct sprd_priv *priv, struct sprd_vif *vif)
 
 	if (!ret && r_buf == 1) {
 		hif->fw_awake = 1;
-		queue_work(tx_mgmt->tx_queue, &tx_mgmt->tx_work);
+		sc2355_tx_up(tx_mgmt);
 	} else {
 		hif->fw_awake = 0;
 		pr_err("host wakeup fw cmd failed, ret=%d\n", ret);
@@ -3319,7 +3324,7 @@ static void cmdevt_report_suspend_resume_evt(struct sprd_vif *vif, u8 *data, u16
 	if (suspend_resume->status == 1 &&
 	    hif->suspend_mode == SPRD_PS_RESUMING) {
 		hif->suspend_mode = SPRD_PS_RESUMED;
-		queue_work(tx_mgmt->tx_queue, &tx_mgmt->tx_work);
+		sc2355_tx_up(tx_mgmt);
 		pr_info("%s, %d,resumed,wakeuptx\n", __func__, __LINE__);
 	}
 }
@@ -3365,7 +3370,7 @@ static void cmdevt_report_hang_recovery_evt(struct sprd_vif *vif, u8 *data, u16 
 	if (hang->action == HANG_RECOVERY_BEGIN)
 		cmdevt_add_hang_cmd(vif);
 	if (hang->action == HANG_RECOVERY_END)
-		queue_work(tx_mgmt->tx_queue, &tx_mgmt->tx_work);
+		sc2355_tx_up(tx_mgmt);
 }
 
 static void cmdevt_add_close_cmd(struct sprd_vif *vif, enum sprd_mode mode)
@@ -3400,7 +3405,7 @@ static void cmdevt_report_thermal_warn_evt(struct sprd_vif *vif, u8 *data, u16 l
 	switch (thermal->action) {
 	case THERMAL_TX_RESUME:
 		sprd_net_flowcontrl(priv, SPRD_MODE_NONE, true);
-		queue_work(tx_mgmt->tx_queue, &tx_mgmt->tx_work);
+		sc2355_tx_up(tx_mgmt);
 		break;
 	case THERMAL_TX_STOP:
 		pr_err("%s, %d, netif_stop_queue because of thermal warn\n",

@@ -162,6 +162,7 @@ static int tx_cmd(struct sprd_hif *hif, struct sprd_msg_list *list)
 	int ret = 0;
 	struct sprd_msg *msg;
 	struct tx_mgmt *tx_mgmt;
+	struct sprd_cmd_hdr *hdr;
 
 	tx_mgmt = (struct tx_mgmt *)hif->tx_mgmt;
 	while ((msg = sprd_peek_msg(list))) {
@@ -172,9 +173,11 @@ static int tx_cmd(struct sprd_hif *hif, struct sprd_msg_list *list)
 			continue;
 		}
 		if (time_after(jiffies, msg->timeout)) {
+			hdr = (struct sprd_cmd_hdr *)(msg->tran_data + hif->hif_offset);
 			tx_mgmt->drop_cmd_cnt++;
-			pr_err("tx drop cmd msg,dropcnt:%lu\n",
-			       tx_mgmt->drop_cmd_cnt);
+			pr_err("tx drop cmd msg,dropcnt:%lu, [%u]ctx_id %d send[%s]\n",
+			       tx_mgmt->drop_cmd_cnt, le32_to_cpu(hdr->mstime),
+			       hdr->common.mode, sc2355_cmdevt_cmd2str(hdr->cmd_id));
 			kfree(msg->tran_data);
 			msg->tran_data = NULL;
 			sprd_dequeue_msg(msg, list);
@@ -187,6 +190,12 @@ static int tx_cmd(struct sprd_hif *hif, struct sprd_msg_list *list)
 				    msg->len);
 		if (ret) {
 			pr_err("%s err:%d\n", __func__, ret);
+			if (msg->tran_data) {
+				hdr = (struct sprd_cmd_hdr *)(msg->tran_data + hif->hif_offset);
+				pr_err("%s [%u]ctx_id %d send[%s] err.\n", __func__,
+					le32_to_cpu(hdr->mstime),
+					hdr->common.mode, sc2355_cmdevt_cmd2str(hdr->cmd_id));
+			}
 			msg->tran_data = NULL;
 			sc2355_free_cmd_buf(msg, list);
 		}
@@ -552,18 +561,16 @@ static void tx_get_pcie_dma_addr(struct sprd_hif *hif, struct sk_buff *skb)
 	}
 }
 
-static void tx_work_queue(struct work_struct *work)
+static void tx_work_queue(struct tx_mgmt *tx_mgmt)
 {
 	unsigned long need_polling;
 	unsigned int polling_times = 0;
 	struct sprd_hif *hif;
-	struct tx_mgmt *tx_mgmt;
 	enum sprd_mode mode = SPRD_MODE_NONE;
 	int send_num = 0;
 	struct sprd_priv *priv;
 	struct sprd_vif *vif = NULL, *tmp_vif;
 
-	tx_mgmt = container_of(work, struct tx_mgmt, tx_work);
 	hif = tx_mgmt->hif;
 	priv = hif->priv;
 
@@ -689,6 +696,25 @@ RETRY:
 	} else {
 		return;
 	}
+}
+
+static int sc2355_tx_thread(void *data)
+{
+	struct tx_mgmt *tx_mgmt = (struct tx_mgmt *)data;
+
+	set_user_nice(current, -20);
+	while (!kthread_should_stop()) {
+		sc2355_tx_down(tx_mgmt);
+		if (unlikely(tx_mgmt->tx_thread_exit))
+			goto exit;
+
+		tx_work_queue(tx_mgmt);
+	}
+
+exit:
+	tx_mgmt->tx_thread_exit = 0;
+	pr_info("%s exit.\n", __func__);
+	return 0;
 }
 
 static inline unsigned short tx_from32to16(unsigned int x)
@@ -1270,7 +1296,7 @@ out:
 		in_count = flow[0] + flow[1] + flow[2] + flow[3];
 		tx_mgmt->ring_cp += in_count;
 		if (hif->fw_awake == 1)
-			queue_work(tx_mgmt->tx_queue, &tx_mgmt->tx_work);
+			sc2355_tx_up(tx_mgmt);
 	}
 	/* Firmware want to reset credit, will send us
 	 * a credit event with all 4 parameters set to zero
@@ -1503,11 +1529,11 @@ int sc2355_tx(struct sprd_chip *chip, struct sprd_msg *msg)
 		sprd_queue_msg(msg, msg->msglist);
 
 	if (msg->msg_type == SPRD_TYPE_CMD)
-		queue_work(tx_mgmt->tx_queue, &tx_mgmt->tx_work);
+		sc2355_tx_up(tx_mgmt);
 	if (msg->msg_type == SPRD_TYPE_DATA &&
 	    ((hif->fw_awake == 0 &&
 	      hif->fw_power_down == 1) || hif->fw_awake == 1))
-		queue_work(tx_mgmt->tx_queue, &tx_mgmt->tx_work);
+		sc2355_tx_up(tx_mgmt);
 
 	return 0;
 }
@@ -1654,6 +1680,16 @@ void sc2355_tx_drop_tcp_msg(struct sprd_chip *chip, struct sprd_msg *msg)
 	sc2355_wake_net_ifneed(hif, list, mode);
 }
 
+void sc2355_tx_down(struct tx_mgmt *tx_mgmt)
+{
+	wait_for_completion(&tx_mgmt->tx_completed);
+}
+
+void sc2355_tx_up(struct tx_mgmt *tx_mgmt)
+{
+	complete(&tx_mgmt->tx_completed);
+}
+
 int sc2355_tx_init(struct sprd_hif *hif)
 {
 	int ret = 0;
@@ -1694,16 +1730,14 @@ int sc2355_tx_init(struct sprd_hif *hif)
 	}
 	tx_init_xmit_list(tx_mgmt);
 
-	tx_mgmt->tx_queue = alloc_ordered_workqueue("SPRD_TX_QUEUE",
-						    WQ_MEM_RECLAIM |
-						    WQ_HIGHPRI |
-						    WQ_CPU_INTENSIVE);
-	if (!tx_mgmt->tx_queue) {
-		pr_err("%s SPRD_TX_QUEUE create failed", __func__);
+	tx_mgmt->tx_thread_exit = 0;
+	tx_mgmt->tx_thread = kthread_create(sc2355_tx_thread,
+			       (void *)tx_mgmt, "SC2355_TX_THREAD");
+	if (!tx_mgmt->tx_thread) {
+		pr_err("%s SC2355_TX_THREAD create failed", __func__);
 		ret = -ENOMEM;
 		goto err_txlist;
 	}
-	INIT_WORK(&tx_mgmt->tx_work, tx_work_queue);
 
 	hif->tx_mgmt = (void *)tx_mgmt;
 	tx_mgmt->hif = hif;
@@ -1719,6 +1753,9 @@ int sc2355_tx_init(struct sprd_hif *hif)
 
 	tx_mgmt->hang_recovery_status = HANG_RECOVERY_END;
 	hif->remove_flag = 0;
+
+	init_completion(&tx_mgmt->tx_completed);
+	wake_up_process(tx_mgmt->tx_thread);
 
 	return ret;
 
@@ -1746,8 +1783,13 @@ void sc2355_tx_deinit(struct sprd_hif *hif)
 	hif->exit = 1;
 	hif->remove_flag = 1;
 
-	flush_workqueue(tx_mgmt->tx_queue);
-	destroy_workqueue(tx_mgmt->tx_queue);
+	if (tx_mgmt->tx_thread) {
+		/*let tx_thread exit */
+		tx_mgmt->tx_thread_exit = 1;
+		sc2355_tx_up(tx_mgmt);
+		kthread_stop(tx_mgmt->tx_thread);
+		tx_mgmt->tx_thread = NULL;
+	}
 
 	/*need to check if there is some data and cmdpending
 	 *or sending by HIF, and wait until tx complete and freed

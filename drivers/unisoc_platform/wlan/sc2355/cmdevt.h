@@ -834,6 +834,7 @@ struct cmd_extended_llstate {
 	u8 data[0];
 } __packed;
 
+const char *sc2355_cmdevt_cmd2str(u8 cmd);
 struct sprd_vif *sc2355_ctxid_to_vif(struct sprd_priv *priv, u8 vif_ctx_id);
 void sc2355_tdls_count_flow(struct sprd_vif *vif, u8 *data, u16 len);
 

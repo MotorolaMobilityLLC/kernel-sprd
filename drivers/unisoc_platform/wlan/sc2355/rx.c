@@ -205,8 +205,7 @@ void sc2355_tx_free_data_num(struct sprd_hif *hif, unsigned char *data)
 	data_num = txc_addr->number;
 	atomic_sub(data_num, &tx_mgmt->xmit_msg_list.free_num);
 
-	if (!work_pending(&tx_mgmt->tx_work))
-		queue_work(tx_mgmt->tx_queue, &tx_mgmt->tx_work);
+	sc2355_tx_up(tx_mgmt);
 }
 
 void sc2355_count_rx_tp(struct sprd_hif *hif, int len)

@@ -116,8 +116,6 @@ struct tx_mgmt {
 	unsigned long tx_num;
 	unsigned long txc_num;
 
-	struct work_struct tx_work;
-	struct workqueue_struct *tx_queue;
 	enum sprd_mode mode;
 
 	/* 4 flow control color, 00/01/10/11 */
@@ -137,6 +135,10 @@ struct tx_mgmt {
 	struct sprd_xmit_msg_list xmit_msg_list;
 	struct qos_tx_t *tx_list[SPRD_MODE_MAX];
 	int net_stopped;
+
+	int tx_thread_exit;
+	struct completion tx_completed;
+	struct task_struct *tx_thread;
 };
 
 struct tx_msdu_dscr {
@@ -264,6 +266,8 @@ static inline bool sc2355_is_group(unsigned char *addr)
 }
 
 void sc2355_fc_add_share_credit(struct sprd_vif *vif);
+void sc2355_tx_down(struct tx_mgmt *tx_mgmt);
+void sc2355_tx_up(struct tx_mgmt *tx_mgmt);
 
 struct sprd_msg *sc2355_tx_get_msg(struct sprd_chip *chip,
 				   enum sprd_head_type type,
