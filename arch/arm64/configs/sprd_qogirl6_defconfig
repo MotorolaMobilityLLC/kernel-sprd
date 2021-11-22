@@ -2395,6 +2395,8 @@ CONFIG_HW_RANDOM=y
 # CONFIG_TCG_TPM is not set
 # CONFIG_DEVPORT is not set
 # CONFIG_XILLYBUS is not set
+CONFIG_RPMB_INTF_DEV=m
+# CONFIG_RPMB_SIM is not set
 # end of Character devices
 
 # CONFIG_RANDOM_TRUST_BOOTLOADER is not set
