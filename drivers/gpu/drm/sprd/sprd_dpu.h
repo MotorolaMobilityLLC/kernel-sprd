@@ -29,7 +29,9 @@
 #include <uapi/drm/drm_mode.h>
 #include "disp_lib.h"
 #include "sprd_dsi.h"
-
+#include "sprd_panel.h"
+#include "dsi/sprd_dsi_api.h"
+#include "dsi/sprd_dsi_hal.h"
 #define DRM_MODE_BLEND_PREMULTI		2
 #define DRM_MODE_BLEND_COVERAGE		1
 #define DRM_MODE_BLEND_PIXEL_NONE	0
@@ -233,6 +235,7 @@ extern struct list_head dpu_clk_head;
 extern struct list_head dpu_glb_head;
 extern bool calibration_mode;
 extern bool dynamic_framerate_mode;
+extern bool vrr_mode;
 
 static inline struct sprd_dpu *crtc_to_dpu(struct drm_crtc *crtc)
 {

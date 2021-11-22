@@ -1370,18 +1370,25 @@ static void dpu_framerate(struct dpu_context *ctx, u8 *count)
 	struct sprd_dpu *dpu = (struct sprd_dpu *)container_of(ctx,
 							struct sprd_dpu, ctx);
 
+	if (ctx->is_stopped) {
+		//pr_err("dpu is stoped\n");
+		mode_changed = false;
+		return;
+	}
+
 	if(mode_changed) {
+		//pr_err(" mode_changed=1\n");
+		mutex_lock(&ctx->vrr_lock);
 		dpu_stop(ctx);
-		pr_info("change frame rate, vfp = %d\n", vfp);
-		ctx->vm.vfront_porch = vfp;
+		pr_err("change frame rate, vfp:%d\n", vfp);
 		reg->dpi_v_timing = (ctx->vm.vsync_len << 0) |
 				    (ctx->vm.vback_porch << 8) |
 				    (ctx->vm.vfront_porch << 20);
 		dpu->dsi->ctx.vm.vfront_porch = vfp;
 		dsi_hal_dpi_vfp(dpu->dsi, vfp);
 		dpu_run(ctx);
-		*count = 1;
 		mode_changed = false;
+		mutex_unlock(&ctx->vrr_lock);
 	}
 }
 
@@ -1409,7 +1416,7 @@ static void dpu_scaling(struct dpu_context *ctx,
 
 	if (mode_changed) {
 		top_layer = &layers[count - 1];
-		pr_debug("------------------------------------\n");
+		pr_err("ontim-----------------------------------\n");
 		for (i = 0; i < count; i++) {
 			pr_debug("layer[%d] : %dx%d --- (%d)\n", i,
 				layers[i].dst_w, layers[i].dst_h,
@@ -1419,7 +1426,7 @@ static void dpu_scaling(struct dpu_context *ctx,
 			dpu_sr_config(ctx);
 			mode_changed = false;
 
-			pr_info("do scaling enhace: 0x%x, top layer(%dx%d)\n",
+			pr_err("do scaling enhace: 0x%x, top layer(%dx%d)\n",
 				enhance_en, top_layer->dst_w,
 				top_layer->dst_h);
 		}
@@ -1497,9 +1504,12 @@ static void dpu_flip(struct dpu_context *ctx,
 	/* disable all the layers */
 	dpu_clean_all(ctx);
 
-	if (dynamic_framerate_mode)
+
+	if (vrr_mode){
 		/* to check if dpu need change the frame rate */
+		//pr_err("frame rate modify \n");
 		dpu_framerate(ctx, &count);
+	}
 	else
 		/* to check if dpu need scaling the frame for SR */
 		dpu_scaling(ctx, layers, count);
@@ -2383,12 +2393,32 @@ static int dpu_cabc_trigger(struct dpu_context *ctx)
 static int dpu_modeset(struct dpu_context *ctx,
 		struct drm_mode_modeinfo *mode)
 {
+	struct sprd_dpu *dpu =
+		(struct sprd_dpu *)container_of(ctx, struct sprd_dpu, ctx);
+	struct sprd_panel *panel =
+		(struct sprd_panel *)container_of(dpu->dsi->panel, struct sprd_panel, base);
+
 	scale_copy.in_w = mode->hdisplay;
 	scale_copy.in_h = mode->vdisplay;
+	pr_err("begin dpu_modeset");
+	if (ctx->is_stopped) {
+		pr_err("dpu is stoped\n");
+		return -1;
+	}
 
-	if (dynamic_framerate_mode)
+	if (vrr_mode) {
+		pr_err("begin vrr_mode");
+		if (ctx->vrefresh == mode->vrefresh) {
+			pr_info("modeset skip same fps:%d\n", mode->vrefresh);
+			return 0;
+		}
 		vfp = mode->vsync_start - mode->vdisplay;
-	else {
+		ctx->vrefresh = mode->vrefresh;
+		ctx->vm.vfront_porch = vfp;
+		/* update vfp of vporch node for vrr mode */
+		panel->info.mode.vdisplay = mode->vdisplay;
+		panel->info.mode.vsync_start = mode->vsync_start;
+	} else {
 		if ((mode->hdisplay != ctx->vm.hactive) ||
 			(mode->vdisplay != ctx->vm.vactive))
 			need_scale = true;
@@ -2397,7 +2427,10 @@ static int dpu_modeset(struct dpu_context *ctx,
 	}
 
 	mode_changed = true;
-	pr_info("begin switch to %u x %u\n", mode->hdisplay, mode->vdisplay);
+	pr_err("mode_changed=%d\n",
+			mode_changed);
+	pr_err("Switch to %dx%d @ %dfps\n",
+			mode->hdisplay, mode->vdisplay, mode->vrefresh);
 
 	return 0;
 }

@@ -272,11 +272,11 @@ static int sprd_panel_enable(struct drm_panel *p)
 
 	DRM_INFO("%s()\n", __func__);
 
-	mutex_lock(&panel_lock);
 	sprd_panel_send_cmds(panel->slave,
 			     panel->info.cmds[CMD_CODE_INIT],
 			     panel->info.cmds_len[CMD_CODE_INIT]);
 
+	mutex_lock(&panel_lock);
 	if (panel->backlight) {
 		panel->backlight->props.power = FB_BLANK_UNBLANK;
 		panel->backlight->props.state &= ~BL_CORE_FBBLANK;
@@ -378,6 +378,11 @@ static int sprd_panel_esd_check(struct sprd_panel *panel)
         u8 read_val = 0;
 	struct sprd_dpu *dpu;
 
+	if (!panel->base.connector ||
+	    !panel->base.connector->encoder ||
+	    !panel->base.connector->encoder->crtc) {
+		return 0;
+	}
 	mutex_lock(&panel_lock);
 	if (!panel->is_enabled) {
 		DRM_INFO("panel is not enabled, skip esd check\n");
@@ -615,8 +620,8 @@ static int of_parse_buildin_modes(struct panel_info *info,
 	struct device_node *lcd_node)
 {
 	int i, rc, num_timings;
+	char timing_check_ct = 0;
 	struct device_node *timings_np;
-
 
 	timings_np = of_get_child_by_name(lcd_node, "display-timings");
 	if (!timings_np) {
@@ -645,13 +650,21 @@ static int of_parse_buildin_modes(struct panel_info *info,
 
 		info->buildin_modes[i].width_mm = info->mode.width_mm;
 		info->buildin_modes[i].height_mm = info->mode.height_mm;
+		info->mode.vrefresh = drm_mode_vrefresh(&info->buildin_modes[i]);
 		info->buildin_modes[i].vrefresh = info->mode.vrefresh;
 	}
 	info->num_buildin_modes = num_timings;
-	if (info->num_buildin_modes == 2 &&
-	   (info->buildin_modes[0].htotal == info->buildin_modes[1].htotal))
-		dynamic_framerate_mode =true;
-	DRM_INFO("info->num_buildin_modes = %d\n", num_timings);
+
+	if(info->num_buildin_modes > 1) {
+		for(i = 1; i < num_timings; i++)
+			if(info->buildin_modes[0].htotal
+					== info->buildin_modes[i].htotal)
+				timing_check_ct ++;
+		if(timing_check_ct == num_timings - 1)
+			vrr_mode = true;
+	}
+	pr_err("info->num_buildin_modes = %d, vrr_mode = %d\n",
+						num_timings, vrr_mode);
 	goto done;
 
 entryfail:

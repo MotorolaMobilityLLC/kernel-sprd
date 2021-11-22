@@ -63,7 +63,7 @@ bool dynamic_framerate_mode;
 bool calibration_mode;
 static unsigned long frame_count;
 module_param(frame_count, ulong, 0444);
-
+bool vrr_mode; /* Variable Refresh Rate mode */
 static int sprd_dpu_init(struct sprd_dpu *dpu);
 static int sprd_dpu_uninit(struct sprd_dpu *dpu);
 
