@@ -85,7 +85,7 @@
 							hsync-len = <4>;
 							vsync-len = <4>;
 						};
-/*
+
 						lcd_icnl9911c_tm_mipi_hd_timing1: timing1 {
 							clock-frequency = <128000000>;
 							hactive = <720>;
@@ -97,7 +97,7 @@
 							hsync-len = <4>;
 							vsync-len = <4>;
 						};
-*/
+
 					};
 				};
 			};
