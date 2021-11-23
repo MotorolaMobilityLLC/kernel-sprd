@@ -9,6 +9,7 @@
 #include <dt-bindings/interrupt-controller/arm-gic.h>
 #include <dt-bindings/soc/sprd,sharkl5pro-regs.h>
 #include <dt-bindings/soc/sprd,sharkl5pro-mask.h>
+#include "ums512-qos.dtsi"
 
 / {
 	interrupt-parent = <&gic>;
@@ -816,7 +817,6 @@
 			};
 		};
 
-
 		apb@70000000 {
 			compatible = "simple-bus";
 			#address-cells = <1>;
@@ -888,13 +888,13 @@
 			ranges;
 
 			dpu: dpu@20300000 {
-				compatible = "sprd,sharkl3-dpu";
+				compatible = "sprd,sharkl5pro-dpu";
 				reg = <0x0 0x20300000 0x0 0x1000>;
 				interrupts = <GIC_SPI 27 IRQ_TYPE_LEVEL_HIGH>;
 
-				//reset-syscon = <&aon_apb_regs REG_AON_APB_APB_RST1
-				//		MASK_AON_APB_DISP_SOFT_RST>;
-				iommus = <&iommu_dispc>;
+				reset-syscon = <&aon_apb_regs 0x0004 0x2>;
+				status = "disabled";
+				//iommus = <&iommu_dispc>;
 				dpu_port: port {
 					dpu_out: endpoint {
 						remote-endpoint = <&dsi_in>;
@@ -904,18 +904,21 @@
 
 			iommu_dispc: iommu@20300000 {
 				compatible = "sprd,iommu-v1";
-				reg = <0x0 0x20300800 0x0 0x80>;
+				reg = <0x0 0x20300000 0x0 0x800>,
+						<0x0 0x20300800 0x0 0x80>;
+				iova-base = <0x30000000>;
+				iova-size = <0x10000000>;
+				reg_name = "mmu_interrupt_reg","mmu_reg";
 				#iommu-cells = <0>;
 			};
 
 			dsi: dsi@20400000 {
-				compatible = "sprd,sharkl3-dsi-host";
+				compatible = "sprd,sharkl5pro-dsi-host";
 				reg = <0x0 0x20400000 0x0 0x1000>;
+				reset-syscon = <&ap_ahb_regs 0x0004 0x1>;
 				interrupts = <GIC_SPI 30 IRQ_TYPE_LEVEL_HIGH>,
 					<GIC_SPI 31 IRQ_TYPE_LEVEL_HIGH>;
 				status = "disabled";
-
-				//reset-syscon = <&aon_apb_regs REG_AON_APB_JVL_DUMMY 0x04>;
 
 				ports {
 					#address-cells = <1>;
@@ -938,20 +941,15 @@
 			};
 
 			dphy: dphy {
-				compatible = "sprd,sharkl3-dsi-phy";
+				compatible = "sprd,sharkl5pro-dsi-phy";
+				#address-cells = <1>;
+				#size-cells = <0>;
 				reg = <0x0 0x20400000 0x0 0x1000>;
+				enable-syscon = <&ap_ahb_regs 0x0040 (0x2 | 0x1)>;
+				power-syscon = <&ap_ahb_regs 0x035c 0x8>;
 				status = "disabled";
 
-				//enable-syscon = <&aon_apb_regs REG_AON_APB_APB_EB2
-				//		(MASK_AON_APB_DPHY_REF_EB |
-				//		MASK_AON_APB_DPHY_CFG_EB)>;
-				//power-small-syscon = <&aon_apb_regs REG_AON_APB_PWR_CTRL
-				//		MASK_AON_APB_MIPI_DSI_PS_PD_S>;
-				//power-large-syscon = <&aon_apb_regs REG_AON_APB_PWR_CTRL
-				//		MASK_AON_APB_MIPI_DSI_PS_PD_L>;
-				//power-iso-syscon = <&aon_apb_regs REG_AON_APB_PWR_CTRL
-				//		MASK_AON_APB_MIPI_DSI_ISO_SW_EN>;
-
+				/* output port */
 				ports {
 					#address-cells = <1>;
 					#size-cells = <0>;
@@ -963,6 +961,7 @@
 						};
 					};
 
+					/* input port*/
 					port@1 {
 						reg = <1>;
 						dphy_in: endpoint {
@@ -1011,6 +1010,28 @@
 					<17 0x1844>,<19 0x1844>, <21 0x1864>, <30 0x1820>,
 					<35 0x19b8>, <39 0x19ac>;
 			};
+
+			pwms: pwm@32260000 {
+				compatible = "sprd,ums512-pwm";
+				reg = <0 0x32260000 0 0x10000>;
+				clock-names = "pwm0", "enable0",
+					      "pwm1", "enable1",
+						  "pwm2", "enable2",
+					      "pwm3", "enable3";
+				clocks = <&aon_clk CLK_PWM0>, <&aonapb_gate CLK_PWM0_EB>,
+					 <&aon_clk CLK_PWM1>, <&aonapb_gate CLK_PWM1_EB>,
+					 <&aon_clk CLK_PWM2>, <&aonapb_gate CLK_PWM2_EB>,
+					 <&aon_clk CLK_PWM3>, <&aonapb_gate CLK_PWM3_EB>;
+				assigned-clocks = <&aon_clk CLK_PWM0>,
+						  <&aon_clk CLK_PWM1>,
+						  <&aon_clk CLK_PWM2>,
+						  <&aon_clk CLK_PWM3>;
+				assigned-clock-parents = <&ext_26m>,
+							 <&ext_26m>,
+							 <&ext_26m>,
+							 <&ext_26m>;
+				#pwm-cells = <2>;
+			};
 		};
 	};
 
@@ -1047,3 +1068,35 @@
 		clock-output-names = "rco-100m";
 	};
 };
+
+&dpu {
+	sprd,qos = <&dpu_qos>;
+	clock-names = "clk_src_96m",
+			"clk_src_128m",
+			"clk_src_153m6",
+			"clk_src_192m",
+			"clk_src_256m",
+			"clk_src_307m2",
+			"clk_src_384m",
+			"clk_dpu_core",
+			"clk_dpu_dpi",
+			"clk_ap_ahb_disp_eb";
+
+	clocks = <&pll2 CLK_TWPLL_96M>,
+		<&pll2 CLK_TWPLL_128M>,
+		<&pll2 CLK_TWPLL_153M6>,
+		<&pll2 CLK_TWPLL_192M>,
+		<&pll2 CLK_TWPLL_256M>,
+		<&pll2 CLK_TWPLL_307M2>,
+		<&pll2 CLK_TWPLL_384M>,
+		<&ap_clk CLK_DISPC0>,
+		<&ap_clk CLK_DISPC0_DPI>,
+		<&apahb_gate CLK_DISPC_EB>;
+};
+
+&dsi {
+	clock-names = "clk_ap_ahb_dsi_eb";
+	clocks = <&apahb_gate CLK_DSI_EB>;
+};
+
+

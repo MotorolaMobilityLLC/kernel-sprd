@@ -9,16 +9,20 @@
 		sprd,phy-escape-clock = <20000>; /* kHz */
 
 		sprd,width-mm = <68>;
-		sprd,height-mm = <121>;
+		sprd,height-mm = <136>;
 
-		sprd,esd-check-mode = <3>;
+		sprd,esd-check-mode = <2>;
+		sprd,esd-check-enable = <1>;
+		sprd,esd-check-register = <0x0A>;
+		sprd,esd-check-value = <0x1C>;
+		sprd,esd-check-period = <3000>;
 
 		sprd,reset-on-sequence = <1 5>, <0 5>, <1 20>;
 		sprd,reset-off-sequence = <0 5>;
 
 		sprd,use-dcs-write;
 
-		sprd,init-command = [
+		sprd,initial-command = [
 			39 00 00 02 b0 00
 			39 00 00 04 B3 31 00 06
 			39 00 00 02 b4 00
@@ -73,7 +77,9 @@
 			];
 
 		display-timings {
-			timing0 {
+			native-mode = <&td4310_truly_timing0>;
+
+			td4310_truly_timing0: timing0 {
 				clock-frequency = <153600000>;
 				hactive = <1080>;
 				vactive = <2160>;
