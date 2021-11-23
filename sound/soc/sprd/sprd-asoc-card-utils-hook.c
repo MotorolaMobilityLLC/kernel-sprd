@@ -60,6 +60,8 @@ static struct sprd_asoc_hook_spk_priv hook_spk_priv;
 #define FS1512N_T_WORK  300
 #define FS1512N_T_PWD  10000
 
+static int det_type = 0;
+
 void fs15xx_shutdown(unsigned int gpio)
 {
 	spinlock_t *lock = &hook_spk_priv.lock;
@@ -79,7 +81,7 @@ int hook_gpio_pulse_control_FS1512N(unsigned int gpio,int mode)
 	int count;
 	int ret = 0;
 
-	pr_info("mode: %d-->%d\n", gpio, mode);
+	pr_info("%s : mode: %d-->%d\n", __func__,gpio, mode);
 
 	// switch mode online, need shut down pa firstly
 	fs15xx_shutdown(gpio);
@@ -108,7 +110,6 @@ int hook_gpio_pulse_control_FS1512N(unsigned int gpio,int mode)
 	gpio_set_value( gpio, 1);
 	spin_unlock_irqrestore(lock, flags);
 	udelay(FS1512N_T_WORK); // pull up gpio > 220us
-
 
 	return ret;
 }
@@ -141,6 +142,14 @@ static ssize_t select_mode_store(struct kobject *kobj,
 	return len;
 }
 
+#ifdef CONFIG_SND_FS1512N
+static ssize_t pa_info_show(struct kobject *kobj,
+				struct kobj_attribute *attr, char *buff)
+{
+	return sprintf(buff, "%s\n", det_type?"awxxx":"fs15xx");
+}
+#endif
+
 static int ext_debug_sysfs_init(void)
 {
 	int ret;
@@ -149,6 +158,13 @@ static int ext_debug_sysfs_init(void)
 		__ATTR(select_mode, 0644,
 		select_mode_show,
 		select_mode_store);
+
+#ifdef CONFIG_SND_FS1512N
+	static struct kobj_attribute ext_info_attr =
+		__ATTR(pa_info, 0644,
+		pa_info_show,
+		NULL);
+#endif
 
 	if (ext_debug_kobj)
 		return 0;
@@ -165,9 +181,16 @@ static int ext_debug_sysfs_init(void)
 		return ret;
 	}
 
+#ifdef CONFIG_SND_FS1512N
+	ret = sysfs_create_file(ext_debug_kobj, &ext_info_attr.attr);
+	if (ret) {
+		pr_err("create sysfs failed. ret = %d\n", ret);
+		return ret;
+	}
+#endif
 	return ret;
 }
-/*
+
 static void hook_gpio_pulse_control(unsigned int gpio, unsigned int mode)
 {
 	int i = 1;
@@ -185,7 +208,7 @@ static void hook_gpio_pulse_control(unsigned int gpio, unsigned int mode)
 	gpio_set_value(gpio, EN_LEVEL);
 	spin_unlock_irqrestore(lock, flags);
 }
-*/
+
 static int hook_general_spk(int id, int on)
 {
 	int gpio, mode;
@@ -203,10 +226,14 @@ static int hook_general_spk(int id, int on)
 
 	/* Off */
 	if (!on) {
-#ifndef CONFIG_SND_FS1512N
-		gpio_set_value(gpio, !EN_LEVEL);
-#else
+#ifdef CONFIG_SND_FS1512N
+	if(!det_type){
 		fs15xx_shutdown(gpio);
+	}else{
+		gpio_set_value(gpio,!EN_LEVEL);
+	}
+#else
+		gpio_set_value(gpio,!EN_LEVEL);
 #endif
 		return HOOK_OK;
 	}
@@ -218,11 +245,14 @@ static int hook_general_spk(int id, int on)
 			__func__, mode, select_mode);
 	}
 
-#ifndef CONFIG_SND_FS1512N
-	hook_gpio_pulse_control(gpio, mode);
+#ifdef CONFIG_SND_FS1512N
+	if(!det_type){
+		hook_gpio_pulse_control_FS1512N(gpio, mode);
+	}else{
+		hook_gpio_pulse_control(gpio, mode);
+	}
 #else
-//	pr_info("%s det_type: %d, fs15xx\n",__func__, det_type);
-	hook_gpio_pulse_control_FS1512N(gpio, mode);
+	hook_gpio_pulse_control(gpio, mode);
 #endif
 
 	/* When the first time open speaker path and play a very short sound,
@@ -244,6 +274,8 @@ static int sprd_asoc_card_parse_hook(struct device *dev,
 	struct device_node *np = dev->of_node;
 	const char *prop_pa_info = "sprd,spk-ext-pa-info";
 	const char *prop_pa_gpio = "sprd,spk-ext-pa-gpio";
+	const char *prop_pa_id = "sprd,spk-ext-pa-id-pin";
+	int det_gpio;
 	int spk_cnt, elem_cnt, i;
 	int ret = 0;
 	unsigned long gpio_flag;
@@ -342,14 +374,27 @@ static int sprd_asoc_card_parse_hook(struct device *dev,
 		}
 	}
 
-#ifndef CONFIG_SND_FS1512N
-        spin_lock_irqsave(&hook_spk_priv.lock, gpio_flag);
-        gpio_set_value(hook_spk_priv.gpio[0], 0);
-        udelay(20);
-        gpio_set_value(hook_spk_priv.gpio[0], 1);
-        udelay(500);
-        gpio_set_value(hook_spk_priv.gpio[0], 0);
-        spin_unlock_irqrestore(&hook_spk_priv.lock, gpio_flag);
+#ifdef CONFIG_SND_FS1512N
+		det_gpio = of_get_named_gpio_flags(np, prop_pa_id, 0, NULL);
+		gpio_flag = GPIOF_DIR_IN;
+		ret = gpio_request_one(det_gpio, gpio_flag, "det_gpio");
+		if (ret < 0) {
+			dev_err(dev, "det_gpio det request failed:%d!\n", ret);
+			return ret;
+		}
+
+		det_type = gpio_get_value(det_gpio);
+		dev_info(dev, "det_gpio det:%d\n", det_type);
+
+		if(!det_type){
+            spin_lock_irqsave(&hook_spk_priv.lock, gpio_flag);
+            gpio_set_value(hook_spk_priv.gpio[0], 0);
+            udelay(20);
+            gpio_set_value(hook_spk_priv.gpio[0], 1);
+            udelay(500);
+            gpio_set_value(hook_spk_priv.gpio[0], 0);
+            spin_unlock_irqrestore(&hook_spk_priv.lock, gpio_flag);
+        }
 #endif
 
 	return 0;
