@@ -150,6 +150,10 @@ struct bq2560x_charger_info {
 
 	int reg_id;
 	bool disable_power_path;
+	bool bc1p2;
+
+	struct delayed_work hand_work;
+	
 };
 
 struct bq2560x_charger_reg_tab {
@@ -277,16 +281,16 @@ static void bq2560x_dump_regs(struct bq2560x_charger_info *info)
 {
 
 	int addr;
-	u8 val[0x0c];
+	u8 val[0x0e];
 	int ret;
 
-	for (addr = 0x0; addr <= 0x0B; addr++) {
+	for (addr = 0x0; addr <= 0x0d; addr++) {
 		ret = bq2560x_read(info, addr, &val[addr]);
 	}
 	dev_err(info->dev,"bq25601 [0x0]=0x%.2x [0x1]=0x%.2x [0x2]=0x%.2x  [0x3]=0x%.2x [0x4]=0x%.2x [0x5]=0x%.2x [0x6]=0x%.2x \n",
 		                      val[0],val[1],val[2],val[3],val[4],val[5],val[6]);
-	dev_err(info->dev,"bq25601 [0x7]=0x%.2x [0x8]=0x%.2x [0x9]=0x%.2x  [0xa]=0x%.2x [0xb]=0x%.2x  \n",
-		                      val[7],val[8],val[9],val[0xa],val[0xb]);
+	dev_err(info->dev,"bq25601 [0x7]=0x%.2x [0x8]=0x%.2x [0x9]=0x%.2x  [0xa]=0x%.2x [0xb]=0x%.2x [0xc]=0x%.2x [0xd]=0x%.2x  \n",
+		                      val[7],val[8],val[9],val[0xa],val[0xb],val[0xc],val[0xd]);
 
 }
 
@@ -953,6 +957,137 @@ static int bq2560x_charger_set_power_path_status(struct bq2560x_charger_info *in
 
 	return ret;
 }
+static int bq2560x_fgu_get_vbus(struct bq2560x_charger_info *info)
+{
+	struct power_supply *psy;
+	union power_supply_propval val;
+	int ret;
+
+	psy = power_supply_get_by_name(BQ2560X_BATTERY_NAME);
+	if (!psy) {
+		dev_err(info->dev, "Failed to get psy of sc27xx_fgu\n");
+		return false;
+	}
+	ret = power_supply_get_property(psy, POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE,
+					&val);
+	power_supply_put(psy);
+
+	return val.intval;
+}
+#if 1
+static void bq2560x_check_pe(struct bq2560x_charger_info *info)
+{
+		int vol;
+		int try_count=0;
+		u8 reg_val;
+		int delta;
+		#define VUBS_9V 9000000
+		#define VUBS_5V 5000000
+		#define V_500MV 500000
+		#define I_500MA 500000
+		bool pe20_connect =false;
+		int last_limit_current;
+
+		bq2560x_charger_set_ovp(info, 9000);
+		bq2560x_charger_get_limit_current(info,&last_limit_current);
+		bq2560x_charger_set_limit_current(info, I_500MA);
+		msleep(500);
+		bq2560x_write(info, 0x0d, 0xc0);  //enable and up
+
+		do{
+			msleep(100);
+			
+			vol=bq2560x_fgu_get_vbus(info);
+			 bq2560x_read(info, 0x0d, &reg_val);
+			dev_info(info->dev, "%s;%d;0x%x;%d;\n",__func__,vol,reg_val,try_count);
+			 
+			if(vol<VUBS_9V && (reg_val & 0x40) ==0)
+			{
+				
+				if((abs(vol -VUBS_9V)) < V_500MV)
+					break;
+				bq2560x_write(info, 0x0d,0xc0);   //up
+				dev_info(info->dev, "%s;up; count %d;\n",__func__,try_count);
+				
+			}	
+			else if(vol>VUBS_9V && (reg_val & 0x20) ==0)	
+			{
+				bq2560x_write(info, 0x0d,0xa0); //down
+				dev_info(info->dev, "%s;down; count %d;\n",__func__,try_count);
+			}
+
+			try_count++;
+
+			delta =abs(vol-VUBS_9V);
+			
+
+		}while(delta>V_500MV && try_count <100);
+
+		delta =abs(vol-VUBS_9V);
+
+		if(delta < V_500MV)
+			pe20_connect = true;
+		else
+			pe20_connect = false;
+
+		bq2560x_write(info, 0x0d,0x00); //clear
+
+		dev_info(info->dev, "%s;%d;count %d;\n",__func__,pe20_connect,try_count);
+
+		bq2560x_charger_set_limit_current(info, last_limit_current);
+		
+
+}
+#endif
+#if 0
+static void bq2560x_check_qc(struct bq2560x_charger_info *info)
+{
+
+	int vol;
+	int try_count=0;
+	u8 reg_val;
+
+	dev_info(info->dev, "%s;\n",__func__);
+	bq2560x_charger_set_ovp(info, BQ2560X_FCHG_OVP_14V);
+	bq2560x_charger_set_limit_current(info, 100000);
+//	bq2560x_write(info, 0x0d, 0x14);      //d+ 0.6  d- 0.6
+	bq2560x_write(info, 0x0d, 0x10);      //d+ 0.6
+	msleep(2500);
+	do{
+
+		bq2560x_write(info, 0x0d, 0x1c);      //d+ 3.3 , d- 0.6
+
+//		bq2560x_write(info, 0x0d, 0x06);      //  d- 3.3       programm
+//		bq2560x_write(info, 0x0d, 0x04);      //  d- 0.6      12v
+
+		msleep(2500);
+
+		vol = bq2560x_fgu_get_vbus(info)/1000;
+		if((abs(vol-5000)) >1000)
+		{
+
+		       bq2560x_read(info, 0x0d, &reg_val);
+			dev_info(info->dev, "%s;QC checked %d;0x%x;%d;\n",__func__,vol,reg_val,try_count);
+			break;
+		}
+
+		try_count++;
+		dev_info(info->dev, "%s;%d;%d;\n",__func__,vol,try_count);
+	}while(try_count<3);
+
+
+	dev_info(info->dev, "%s;QC checke?? %d;%d;\n",__func__,vol,try_count);
+}
+#endif
+static void bq2560x_charger_hand_work(struct work_struct *data)
+{
+	struct delayed_work *dwork = to_delayed_work(data);
+	struct bq2560x_charger_info *info =
+		container_of(dwork, struct bq2560x_charger_info, hand_work);
+
+	bq2560x_check_pe(info);
+
+}
 
 static void bq2560x_charger_work(struct work_struct *data)
 {
@@ -962,6 +1097,30 @@ static void bq2560x_charger_work(struct work_struct *data)
 
 	dev_info(info->dev, "battery present = %d, charger type = %d\n",
 		 present, info->usb_phy->chg_type);
+
+
+	if(info->limit > 0 && !info->charging )
+	{
+		if(info->usb_phy->chg_type == DCP_TYPE)
+		{
+			info->bc1p2=true;
+			
+			info->usb_phy->sprd_hsphy_set_dpdm(info->usb_phy,0);
+
+			schedule_delayed_work(&info->hand_work,  250);
+		}
+	}
+	else if(!info->limit && info->charging)
+	{
+		if(info->bc1p2)
+		{
+			bq2560x_write(info, 0x0d, 0x00);   
+
+			info->usb_phy->sprd_hsphy_set_dpdm(info->usb_phy,1);
+		}
+		info->bc1p2 = false;
+	
+	}
 	cm_notify_event(info->psy_usb, CM_EVENT_CHG_START_STOP, NULL);
 }
 
@@ -1979,6 +2138,9 @@ static int bq2560x_charger_probe(struct i2c_client *client,
 	INIT_DELAYED_WORK(&info->otg_work, bq2560x_charger_otg_work);
 	INIT_DELAYED_WORK(&info->wdt_work,
 			  bq2560x_charger_feed_watchdog_work);
+
+	INIT_DELAYED_WORK(&info->hand_work, bq2560x_charger_hand_work);
+	
 
 	dev_err(dev, "bq2560x_charger_probe ok to register\n");
 

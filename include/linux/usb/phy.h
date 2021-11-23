@@ -164,6 +164,8 @@ struct usb_phy {
 	 */
 	enum usb_charger_type (*retry_charger_detect)(struct usb_phy *x);
 
+	int (*sprd_hsphy_set_dpdm)(struct usb_phy *x ,  int on);
+
 	/* reset the PHY */
 	int	(*reset_phy)(struct usb_phy *x);
 

@@ -102,6 +102,98 @@ static __init int sprd_hsphy_cali_mode(char *str)
 }
 __setup("androidboot.mode=", sprd_hsphy_cali_mode);
 
+static int sprd_hsphy_set_dpdm(struct usb_phy *x ,  int on)
+{
+	struct sprd_hsphy *phy = container_of(x, struct sprd_hsphy, phy);
+	u32 reg, msk;
+	int ret = 0;
+	int cnt=5;
+	u32 val;
+	dev_err(x->dev, " %s;on=%d;\n",__func__,on);
+
+	if (on) {
+			ret = regmap_update_bits(phy->pmic, 0x1ba0,      //CHGR_DET_FGU_CTRL
+				 1,
+				 0);         //        to bc1.2 ,bc1.2 enable
+
+			cnt=5;
+			do {
+				msleep(1);
+				ret = regmap_read(phy->pmic, 0x1ba0, &val);
+
+				if ((val & 1) == 0) {
+					break;
+				}
+				dev_err(x->dev, " %s;bc1.2 enable c=%d;\n",__func__,cnt);
+
+				ret = regmap_update_bits(phy->pmic, 0x1ba0,      //CHGR_DET_FGU_CTRL
+					 1,
+					 0);         //        to usb phy ,bc1.2 enable
+			} while (--cnt > 0);
+			return 0;
+			/* before detect charge type, make sure usb phy is power on */ 
+			ret |= regmap_update_bits(phy->ana_g2, 
+									REG_ANLG_PHY_G2_ANALOG_USB20_USB20_ISO_SW,  
+									MASK_ANLG_PHY_G2_ANALOG_USB20_USB20_ISO_SW_EN, 0); 
+
+			msk = (MASK_ANLG_PHY_G2_ANALOG_USB20_USB20_PS_PD_L | 
+				MASK_ANLG_PHY_G2_ANALOG_USB20_USB20_PS_PD_S); 
+			ret |= regmap_update_bits(phy->ana_g2,  
+								REG_ANLG_PHY_G2_ANALOG_USB20_USB20_BATTER_PLL, msk, 0); 
+
+
+			reg = msk = MASK_ANLG_PHY_G2_ANALOG_USB20_USB20_VBUSVLDEXT;
+			ret |= regmap_update_bits(phy->ana_g2,
+				REG_ANLG_PHY_G2_ANALOG_USB20_USB20_UTMI_CTL1,	msk, reg);
+
+
+
+
+	} else {
+
+
+
+			/* before detect charge type, make sure usb phy is power on */ 
+			ret |= regmap_update_bits(phy->ana_g2, 
+									REG_ANLG_PHY_G2_ANALOG_USB20_USB20_ISO_SW,  
+									MASK_ANLG_PHY_G2_ANALOG_USB20_USB20_ISO_SW_EN, 0); 
+
+			msk = (MASK_ANLG_PHY_G2_ANALOG_USB20_USB20_PS_PD_L | 
+				MASK_ANLG_PHY_G2_ANALOG_USB20_USB20_PS_PD_S); 
+			ret |= regmap_update_bits(phy->ana_g2,  
+								REG_ANLG_PHY_G2_ANALOG_USB20_USB20_BATTER_PLL, msk, 0); 
+
+			/* set dp&dm highZ*/ 
+			msk = MASK_ANLG_PHY_G2_ANALOG_USB20_USB20_VBUSVLDEXT; 
+			ret |= regmap_update_bits(phy->ana_g2,  
+				REG_ANLG_PHY_G2_ANALOG_USB20_USB20_UTMI_CTL1, msk, 0);
+
+
+			ret = regmap_update_bits(phy->pmic, 0x1ba0,      //CHGR_DET_FGU_CTRL
+				 1,
+				 1);         //        to usb phy ,bc1.2 disble
+
+			cnt=5;
+			do {
+				msleep(1);
+				ret = regmap_read(phy->pmic, 0x1ba0, &val);
+
+				if (val & 1) {
+					break;
+				}
+				dev_err(x->dev, " %s;bc1.2 disble c=%d;\n",__func__,cnt);
+
+				ret = regmap_update_bits(phy->pmic, 0x1ba0,      //CHGR_DET_FGU_CTRL
+					 1,
+					 1);         //        to usb phy ,bc1.2 disble
+			} while (--cnt > 0);
+
+
+
+	}
+
+	return ret;
+}
 static enum usb_charger_type sc27xx_charger_detect(struct regmap *regmap)
 {
 	enum usb_charger_type type;
@@ -691,6 +783,7 @@ static int sprd_hsphy_probe(struct platform_device *pdev)
 	phy->phy.vbus_nb.notifier_call = sprd_hsphy_vbus_notify;
 	phy->phy.charger_detect = sprd_hsphy_charger_detect;
 	phy->phy.retry_charger_detect = sprd_hsphy_retry_charger_detect;
+	phy->phy.sprd_hsphy_set_dpdm = sprd_hsphy_set_dpdm;
 	otg->usb_phy = &phy->phy;
 
 	platform_set_drvdata(pdev, phy);
