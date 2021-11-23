@@ -1055,6 +1055,7 @@ static inline void sprd_codec_inter_pa_init(struct sprd_codec_priv *sprd_codec)
 {
 	sprd_codec->inter_pa.setting.DTRI_F_sel = 0x2;
 	sprd_codec->spk_fall_dg = 0x1;
+	sprd_codec->hp_mix_mode = 0x1;
 }
 
 /* NOTE: VB, BG & BIAS must be enabled before calling this function. */
