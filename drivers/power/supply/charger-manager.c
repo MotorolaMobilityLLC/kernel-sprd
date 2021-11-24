@@ -1194,6 +1194,7 @@ static int get_charger_term_voltage(struct charger_manager *cm, int *vol)
 
 	return ret;
 }
+#define OLD_MODE
 
 #ifdef OLD_MODE		
 static int set_charger_enable_powerpath(struct charger_manager *cm, bool en)
@@ -5398,7 +5399,6 @@ static ssize_t charger_stop_show(struct device *dev,
 
 	return sprintf(buf, "%d\n", !stop_charge);
 }
-#define OLD_MODE
 static ssize_t charger_stop_store(struct device *dev,
 				  struct device_attribute *attr, const char *buf,
 				  size_t count)
