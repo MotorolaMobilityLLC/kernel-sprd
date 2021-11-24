@@ -5398,7 +5398,7 @@ static ssize_t charger_stop_show(struct device *dev,
 
 	return sprintf(buf, "%d\n", !stop_charge);
 }
-
+#define OLD_MODE
 static ssize_t charger_stop_store(struct device *dev,
 				  struct device_attribute *attr, const char *buf,
 				  size_t count)
