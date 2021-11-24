@@ -989,7 +989,8 @@ static void bq2560x_check_pe(struct bq2560x_charger_info *info)
 		int last_limit_current;
 
 		bq2560x_charger_set_ovp(info, 9000);
-		bq2560x_charger_get_limit_current(info,&last_limit_current);
+		last_limit_current = info->last_limit_cur;
+		dev_info(info->dev, "%s;%d;\n",__func__,last_limit_current/1000);
 		bq2560x_charger_set_limit_current(info, I_500MA);
 		msleep(500);
 		bq2560x_write(info, 0x0d, 0xc0);  //enable and up
@@ -1032,9 +1033,10 @@ static void bq2560x_check_pe(struct bq2560x_charger_info *info)
 
 		bq2560x_write(info, 0x0d,0x00); //clear
 
-		dev_info(info->dev, "%s;%d;count %d;\n",__func__,pe20_connect,try_count);
+		dev_info(info->dev, "%s;%d;count %d;%d;%d;\n",__func__,pe20_connect,try_count,last_limit_current/1000,info->last_limit_cur/1000);
 
-		bq2560x_charger_set_limit_current(info, last_limit_current);
+		if(info->last_limit_cur == I_500MA)
+			bq2560x_charger_set_limit_current(info, last_limit_current);
 		
 
 }
