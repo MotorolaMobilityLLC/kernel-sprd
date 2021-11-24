@@ -566,87 +566,6 @@ static ssize_t gnss_clktype_show(struct device *dev,
 }
 static DEVICE_ATTR_RO(gnss_clktype);
 
-#ifndef CONFIG_WCN_INTEG
-static uint gnss_op_reg;
-static uint gnss_indirect_reg_offset;
-static ssize_t gnss_regr_show(struct device *dev, struct device_attribute *attr,
-			      char *buf)
-{
-	int i = 0;
-	unsigned int op_reg = gnss_op_reg;
-	unsigned int buffer;
-
-	dev_info(dev, "%s register is 0x%x\n", __func__, gnss_op_reg);
-	if (op_reg == GNSS_INDIRECT_OP_REG) {
-		int set_value;
-
-		set_value = gnss_indirect_reg_offset + 0x80000000;
-		sprdwcn_bus_reg_write(op_reg, &set_value, 4);
-	}
-	sprdwcn_bus_reg_read(op_reg, &buffer, 4);
-	dev_info(dev, "%s temp value is 0x%x\n", __func__, buffer);
-
-	i += scnprintf((char *)buf + i, PAGE_SIZE - i, "show: 0x%x\n", buffer);
-
-	return i;
-}
-static DEVICE_ATTR_RO(gnss_regr);
-
-static ssize_t gnss_regaddr_store(struct device *dev,
-				  struct device_attribute *attr,
-				  const char *buf, size_t count)
-{
-	unsigned long set_addr;
-
-	if (kstrtoul(buf, GNSS_DATA_BASE_TYPE_H, &set_addr)) {
-		dev_err(dev, "%s input error\n", __func__);
-		return -EINVAL;
-	}
-	dev_info(dev, "%s set_addr 0x%lx\n", __func__, set_addr);
-	gnss_op_reg = (uint)set_addr;
-
-	return count;
-}
-static DEVICE_ATTR_WO(gnss_regaddr);
-
-static ssize_t gnss_regspaddr_store(struct device *dev,
-				    struct device_attribute *attr,
-				    const char *buf, size_t count)
-{
-	unsigned long set_addr;
-
-	if (kstrtoul(buf, GNSS_DATA_BASE_TYPE_H, &set_addr)) {
-		dev_info(dev, "%s input error\n", __func__);
-		return -EINVAL;
-	}
-	dev_info(dev, "%s set_addr 0x%lx\n", __func__, set_addr);
-	gnss_op_reg = GNSS_INDIRECT_OP_REG;
-	gnss_indirect_reg_offset = (uint)set_addr;
-	return count;
-}
-static DEVICE_ATTR_WO(gnss_regspaddr);
-
-static ssize_t gnss_regw_store(struct device *dev,
-				struct device_attribute *attr,
-				const char *buf, size_t count)
-{
-	unsigned long set_value;
-	unsigned int op_reg = gnss_op_reg;
-
-	if (kstrtoul(buf, GNSS_DATA_BASE_TYPE_H, &set_value)) {
-		dev_err(dev, "%s input error\n", __func__);
-		return -EINVAL;
-	}
-	if (op_reg == GNSS_INDIRECT_OP_REG)
-		set_value = gnss_indirect_reg_offset + set_value;
-	dev_info(dev, "%s set_value 0x%lx\n", __func__, set_value);
-	sprdwcn_bus_reg_write(op_reg, &set_value, 4);
-
-	return count;
-}
-static DEVICE_ATTR_WO(gnss_regw);
-#endif
-
 bool gnss_delay_ctl(void)
 {
 	return (gnss_common_ctl_dev.gnss_status == GNSS_STATUS_POWERON);
@@ -659,12 +578,6 @@ static struct attribute *gnss_common_ctl_attrs[] = {
 	&dev_attr_gnss_status.attr,
 	&dev_attr_gnss_subsys.attr,
 	&dev_attr_gnss_clktype.attr,
-#ifndef CONFIG_WCN_INTEG
-	&dev_attr_gnss_regr.attr,
-	&dev_attr_gnss_regaddr.attr,
-	&dev_attr_gnss_regspaddr.attr,
-	&dev_attr_gnss_regw.attr,
-#endif
 	NULL,
 };
 
