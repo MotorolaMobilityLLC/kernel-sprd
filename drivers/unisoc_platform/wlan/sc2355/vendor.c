@@ -4387,7 +4387,6 @@ int sc2355_report_acs_lte_event(struct sprd_vif *vif)
 	struct sk_buff *reply;
 	int payload, ret = 0;
 
-	vif->ap_reset_flag = true;
 	payload = 4;
 	reply =
 	    cfg80211_vendor_event_alloc(wiphy, &vif->wdev, payload,
