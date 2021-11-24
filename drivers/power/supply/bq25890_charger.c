@@ -843,10 +843,9 @@ static int bq25890_charger_start_charge(struct bq25890_charger_info *info)
 	return ret;
 }
 
-static void bq25890_charger_stop_charge(struct bq25890_charger_info *info)
+static void bq25890_charger_stop_charge(struct bq25890_charger_info *info, bool present)
 {
 	int ret;
-	bool present = bq25890_charger_is_bat_present(info);
 
 	if (!present || info->need_disable_Q1) {
 		ret = bq25890_update_bits(info, BQ25890_REG_00, REG00_ENHIZ_MASK,
@@ -1016,25 +1015,14 @@ static inline int bq25890_charger_get_status(struct bq25890_charger_info *info)
 }
 
 static int bq25890_charger_set_status(struct bq25890_charger_info *info,
-				      int val)
+				      int val, u32 input_vol, bool bat_present)
 {
 	int ret = 0;
-	u32 input_vol;
 
 	if (val == CM_FAST_CHARGE_OVP_DISABLE_CMD) {
-		ret = bq25890_charger_get_charge_voltage(info, &input_vol);
-		if (ret) {
-			dev_err(info->dev, "failed to get 9V charge voltage\n");
-			return ret;
-		}
 		if (input_vol > BQ25890_FAST_CHG_VOL_MAX)
 			info->need_disable_Q1 = true;
 	} else if (val == false) {
-		ret = bq25890_charger_get_charge_voltage(info, &input_vol);
-		if (ret) {
-			dev_err(info->dev, "failed to get 5V charge voltage\n");
-			return ret;
-		}
 		if (input_vol > BQ25890_NORMAL_CHG_VOL_MAX)
 			info->need_disable_Q1 = true;
 	}
@@ -1043,7 +1031,7 @@ static int bq25890_charger_set_status(struct bq25890_charger_info *info,
 		return 0;
 
 	if (!val && info->charging) {
-		bq25890_charger_stop_charge(info);
+		bq25890_charger_stop_charge(info, bat_present);
 		info->charging = false;
 	} else if (val && !info->charging) {
 		ret = bq25890_charger_start_charge(info);
@@ -1404,9 +1392,24 @@ static int bq25890_charger_usb_set_property(struct power_supply *psy,
 {
 	struct bq25890_charger_info *info = power_supply_get_drvdata(psy);
 	int ret = 0;
+	u32 input_vol = 0;
+	bool present = false;
 
 	if (!info)
 		return -ENOMEM;
+
+	/*
+	 * It can cause the sysdum due to deadlock, that get value from fgu when
+	 * psp == POWER_SUPPLY_PROP_STATUS of psp == POWER_SUPPLY_PROP_CALIBRATE.
+	 */
+	if (psp == POWER_SUPPLY_PROP_STATUS || psp == POWER_SUPPLY_PROP_CALIBRATE) {
+		present = bq25890_charger_is_bat_present(info);
+		ret = bq25890_charger_get_charge_voltage(info, &input_vol);
+		if (ret) {
+			input_vol = 0;
+			dev_err(info->dev, "failed to get charge voltage, ret = %d\n", ret);
+		}
+	}
 
 	mutex_lock(&info->lock);
 
@@ -1423,7 +1426,7 @@ static int bq25890_charger_usb_set_property(struct power_supply *psy,
 		break;
 
 	case POWER_SUPPLY_PROP_STATUS:
-		ret = bq25890_charger_set_status(info, val->intval);
+		ret = bq25890_charger_set_status(info, val->intval, input_vol, present);
 		if (ret < 0)
 			dev_err(info->dev, "set charge status failed\n");
 		break;
@@ -1440,7 +1443,7 @@ static int bq25890_charger_usb_set_property(struct power_supply *psy,
 			if (ret)
 				dev_err(info->dev, "start charge failed\n");
 		} else if (val->intval == false) {
-			bq25890_charger_stop_charge(info);
+			bq25890_charger_stop_charge(info, present);
 		}
 		break;
 	default:
@@ -1741,6 +1744,7 @@ static int bq25890_charger_probe(struct i2c_client *client,
 	struct device_node *regmap_np;
 	struct platform_device *regmap_pdev;
 	int ret;
+	bool bat_present;
 
 	if (!i2c_check_functionality(adapter, I2C_FUNC_SMBUS_BYTE_DATA)) {
 		dev_err(dev, "No support for SMBUS_BYTE_DATA\n");
@@ -1844,7 +1848,8 @@ static int bq25890_charger_probe(struct i2c_client *client,
 		goto err_mutex_lock;
 	}
 
-	bq25890_charger_stop_charge(info);
+	bat_present = bq25890_charger_is_bat_present(info);
+	bq25890_charger_stop_charge(info, bat_present);
 
 	device_init_wakeup(info->dev, true);
 	info->usb_notify.notifier_call = bq25890_charger_usb_change;
