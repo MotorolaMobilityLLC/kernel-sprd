@@ -22,6 +22,9 @@
 #include <linux/cpumask.h>
 #include <linux/irq_work.h>
 #include <linux/printk.h>
+#include <linux/moduleparam.h>
+#include <linux/ktime.h>
+#include <linux/rtc.h>
 
 #include "internal.h"
 
@@ -373,7 +376,7 @@ void __printk_safe_exit(void)
 	this_cpu_dec(printk_context);
 }
 
-__printf(1, 0) int vprintk_func(const char *fmt, va_list args)
+static int _vprintk_func(const char *fmt, va_list args)
 {
 	/*
 	 * Try to use the main logbuf even in NMI. But avoid calling console
@@ -399,6 +402,39 @@ __printf(1, 0) int vprintk_func(const char *fmt, va_list args)
 
 	/* No obstacles. */
 	return vprintk_default(fmt, args);
+}
+
+static int timestamp_interval = 15;
+module_param(timestamp_interval, int, 0644);
+MODULE_PARM_DESC(timestamp_interval, "print timestamp per timestamp_interval(unit: second)");
+
+static unsigned long next_jiffies = 0;
+
+static void myprintk(const char *fmt, ...)
+{
+	va_list args;
+	va_start(args, fmt);
+	_vprintk_func(fmt, args);
+	va_end(args);
+}
+
+__printf(1, 0) int vprintk_func(const char *fmt, va_list args)
+{
+	struct timespec ts;
+	struct rtc_time tm;
+
+	if (!next_jiffies)
+		next_jiffies = jiffies + msecs_to_jiffies(30 * 1000);
+	if (time_after(jiffies, next_jiffies)) {
+		next_jiffies = jiffies + msecs_to_jiffies(timestamp_interval * 1000);
+		if (!next_jiffies)
+			next_jiffies++;
+		getnstimeofday(&ts);
+		rtc_time_to_tm(ts.tv_sec, &tm);
+		myprintk("real time: %d-%02d-%02d %02d:%02d:%02d.%06lu UTC\n",
+			tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec, ts.tv_nsec / 1000);
+	}
+	return _vprintk_func(fmt, args);
 }
 
 void __init printk_safe_init(void)
