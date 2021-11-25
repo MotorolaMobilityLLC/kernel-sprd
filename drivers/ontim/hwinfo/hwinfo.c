@@ -1640,7 +1640,7 @@ static void get_ufs_cid(void)
 		len = min(len, UFS_CID_LEN);
 		for (n = 0, i = UFS_CID_LEN - len; i > 0; i--)
 			n += sprintf(dst + n, "0");
-		snprintf(dst + n, len, src);
+		snprintf(dst + n, len + 1, src);
 	}
 	printk(KERN_INFO "%s: %s\n", __func__, hwinfo[ufs_cid].hwinfo_buf);
 }
