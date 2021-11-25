@@ -286,7 +286,7 @@ static ssize_t scenario_dfs_store(struct device *dev,
 					const char *buf, size_t count)
 {
 	int err;
-	int name_len;
+	unsigned int name_len;
 	char *arg;
 	struct devfreq *devfreq = to_devfreq(dev);
 	struct governor_callback *gov_callback =
@@ -315,7 +315,7 @@ static ssize_t exit_scene_store(struct device *dev,
 					const char *buf, size_t count)
 {
 	int err;
-	int name_len;
+	unsigned int name_len;
 	char *arg;
 	struct devfreq *devfreq = to_devfreq(dev);
 	struct governor_callback *gov_callback =
@@ -344,7 +344,7 @@ static ssize_t scene_freq_set_store(struct device *dev,
 					const char *buf, size_t count)
 {
 	int err;
-	int name_len;
+	unsigned int name_len;
 	char *arg;
 	unsigned int freq;
 	struct devfreq *devfreq = to_devfreq(dev);
