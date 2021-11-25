@@ -71,6 +71,10 @@
 			reg = <0x0 0x89600000 0x0 0x03e80000>;
 		};
 
+		smem_ldsp_reserved: sipc-ldsp-mem@8d480000 {
+			reg = <0x0 0x8d480000 0x0 0x00096000>;
+		};
+
 		/* must be 1M aligned */
 		sml_reserved: sml-mem@b0000000 {
 			reg = <0x0 0xb0000000 0x0 0x00020000>;

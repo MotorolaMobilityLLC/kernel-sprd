@@ -341,13 +341,38 @@
 		};
 	};
 
+	sipc_ldsp: core@1 {
+		compatible = "sprd,sipc";
+		#address-cells = <1>;
+		#size-cells = <0>;
+		/* endpoint id - should be same with sipc processor id */
+		reg = <1>; //dst
+		label = "sipc-ldsp";
+		/* <&mailbox  channel_id  is_no_wakeup(default 0)> */
+		mboxes = <&mailbox 4 0>;
+		/* This is temporary plan*/
+		sprd,smem-info = <0x8df00000 0x8df00000 0x96000>;
+
+		/* these nodes of channel should be probed by its parent node */
+		slog_ldsp: channel@5 {
+			compatible = "sprd,spool";
+			/* channel number */
+			reg = <5>;
+			label = "slog_ldsp";
+			sprd,tx-blksize = <0>;
+			sprd,tx-blknum = <0>;
+			sprd,rx-blksize = <0x800>; /* 2k*/
+			sprd,rx-blknum = <290>;
+		};
+	};
+
 	sbridge-log {
 		/* use usb get modem log ,put to PC*/
 		compatible = "sprd,slog_bridge";
 		sprd,name = "slog_bridge";
 		sprd,tx_is_usb = <1>;
 		sprd,tx_dst = <0>;
-		sprd,rx_dst = <5>;
+		sprd,rx_dst = <5 1>;
 		sprd,priority = <86>;
 	};
 
