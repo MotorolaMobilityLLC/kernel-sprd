@@ -247,14 +247,18 @@
 				compatible = "sprd,sdhci-r11";
 				reg = <0 0x201a0000 0 0x1000>;
 				interrupts = <GIC_SPI 19 IRQ_TYPE_LEVEL_HIGH>;
-				syscons = <&aon_apb_regs REG_AON_APB_AP_SDIO0_PHY_CTRL MASK_AON_APB_AP_SDIO0_CARD_PRESENT_32K>,
-					  <&aon_apb_regs REG_AON_APB_AP_SDIO0_PHY_CTRL MASK_AON_APB_AP_SDIO0_CARD_PROTECT_32K>,
-					  <&aon_apb_regs REG_AON_APB_AP_SDIO0_PHY_CTRL MASK_AON_APB_AP_SDIO0_CARDDET_DBNC_EN_32K>,
-					  <&aon_apb_regs REG_AON_APB_AP_SDIO0_PHY_CTRL MASK_AON_APB_AP_SDIO0_CARDDET_DBNC_THD_32K>;
-				syscon-names = "sd_detect_pol",
-					       "sd_hotplug_protect_en",
-					       "sd_hotplug_debounce_en",
-					       "sd_hotplug_debounce_cn";
+				sd-detect-pol-syscon = <&aon_apb_regs
+					REG_AON_APB_AP_SDIO0_PHY_CTRL
+					MASK_AON_APB_AP_SDIO0_CARD_PRESENT_32K>;
+				sd-hotplug-protect-en-syscon = <&aon_apb_regs
+					REG_AON_APB_AP_SDIO0_PHY_CTRL
+					MASK_AON_APB_AP_SDIO0_CARD_PROTECT_32K>;
+				sd-hotplug-debounce-en-syscon = <&aon_apb_regs
+					REG_AON_APB_AP_SDIO0_PHY_CTRL
+					MASK_AON_APB_AP_SDIO0_CARDDET_DBNC_EN_32K>;
+				sd-hotplug-debounce-cn-syscon = <&aon_apb_regs
+					REG_AON_APB_AP_SDIO0_PHY_CTRL
+					MASK_AON_APB_AP_SDIO0_CARDDET_DBNC_THD_32K>;
 				clock-names = "sdio", "enable";
 				clocks = <&ap_clk CLK_SDIO0_2X>,
 					 <&apapb_gate CLK_SDIO0_EB>;

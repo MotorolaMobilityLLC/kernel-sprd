@@ -832,6 +832,18 @@
 					 <&apapb_gate CLK_SDIO0_EB>;
 				assigned-clocks = <&ap_clk CLK_SDIO0_2X>;
 				assigned-clock-parents = <&pll1 CLK_RPLL>;
+				sd-detect-pol-syscon = <&aon_apb_regs
+					REG_AON_APB_RF_AP_SDIO0_PHY_CTRL
+					MASK_AON_APB_RF_AP_SDIO0_CARD_PRESENT_32K>;
+				sd-hotplug-protect-en-syscon = <&aon_apb_regs
+					REG_AON_APB_RF_AP_SDIO0_PHY_CTRL
+					MASK_AON_APB_RF_AP_SDIO0_CARD_PROTECT_32K>;
+				sd-hotplug-debounce-en-syscon = <&aon_apb_regs
+					REG_AON_APB_RF_AP_SDIO0_PHY_CTRL
+					MASK_AON_APB_RF_AP_SDIO0_CARDDET_DBNC_EN_32K>;
+				sd-hotplug-debounce-cn-syscon = <&aon_apb_regs
+					REG_AON_APB_RF_AP_SDIO0_PHY_CTRL
+					MASK_AON_APB_RF_AP_SDIO0_CARDDET_DBNC_THD_32K>;
 			};
 
 			sdio1: sdio@71200000 {
