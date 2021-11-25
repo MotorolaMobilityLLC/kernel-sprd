@@ -50,6 +50,8 @@ Optional properties:
 	transfer data triggered by hardware automatically, and the second
 	value specifies the analog chip address where user want to access
 	by hardware components.
+-sprd,hw-channels_1:ADI single-soft-multi-hard configuration,
+	distinguish from "adi_ssmh_en" by cmdline.
 
 SPI slave nodes must be children of the SPI controller node and can contain
 properties described in Documentation/devicetree/bindings/spi/spi-bus.txt.
