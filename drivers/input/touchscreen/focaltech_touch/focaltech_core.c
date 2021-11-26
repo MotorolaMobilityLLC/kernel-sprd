@@ -1792,6 +1792,9 @@ int fts_ts_suspend(struct device *dev)
     struct fts_ts_data *ts_data = fts_data;
 
     FTS_FUNC_ENTER();
+
+    fts_release_all_finger();
+
     if (ts_data->suspended) {
         FTS_INFO("Already in suspend state");
         return 0;
@@ -1821,7 +1824,7 @@ int fts_ts_suspend(struct device *dev)
 #endif
         }
     }
-    fts_release_all_finger();
+    //fts_release_all_finger();
     ts_data->suspended = true;
     FTS_FUNC_EXIT();
     return 0;

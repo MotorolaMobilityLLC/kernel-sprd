@@ -105,6 +105,7 @@ __setup("lcd_name=", lcd_name_get);
 #define DISABLE 0
 #define ENABLE 1
 extern int ili_ic_func_ctrl(const char *name, int ctrl);
+extern int fts_write_reg(u8 addr, u8 value);
 
 static void sprd_musb_enable(struct musb *musb)
 {
@@ -577,6 +578,8 @@ static int musb_sprd_vbus_notifier(struct notifier_block *nb,
 		queue_work(system_unbound_wq, &glue->work);
 		if ( (name_len != 0) && (strncmp(lcd_name, "lcd_ili9882q_youda_mipi_hd", name_len) == 0)) {
 			ili_ic_func_ctrl("plug", DISABLE);
+		}else if((name_len != 0) && (strstr(lcd_name, "ft8006") != NULL)) {
+			fts_write_reg(0x8B, 1);
 		}
 		spin_unlock_irqrestore(&glue->lock, flags);
 		dev_info(glue->dev,
@@ -595,6 +598,8 @@ static int musb_sprd_vbus_notifier(struct notifier_block *nb,
 		queue_work(system_unbound_wq, &glue->work);
 		if ( (name_len != 0 ) && (strncmp(lcd_name, "lcd_ili9882q_youda_mipi_hd", name_len) == 0) ) {
 			ili_ic_func_ctrl("plug",ENABLE);
+		}else if((name_len != 0) && (strstr(lcd_name, "ft8006") != NULL)) {
+			fts_write_reg(0x8B, 0);
 		}
 		spin_unlock_irqrestore(&glue->lock, flags);
 		dev_info(glue->dev,
