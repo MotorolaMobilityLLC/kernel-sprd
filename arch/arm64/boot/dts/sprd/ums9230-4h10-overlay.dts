@@ -459,7 +459,7 @@
 			sprd-fm {
 				compatible = "sprd,marlin3-fm";
 				sprd,name = "sprd-fm";
-				switch-inner-ana-gpios = <&ap_gpio 132 0>; /* FM_LNA_EN: support lna switch */
+				switch-inner-ana-gpios = <&ap_gpio 125 0>; /* FM_LNA_EN: support lna switch */
 			};
 
 			gnss_common_ctl {
