@@ -37,7 +37,7 @@
 #define pr_fmt(fmt) "sprd_wdh: " fmt
 
 #define MAX_CALLBACK_LEVEL  16
-#define SPRD_PRINT_BUF_LEN  524288
+#define SPRD_PRINT_BUF_LEN  8192
 #define SPRD_STACK_SIZE 256
 
 enum hand_dump_phase {
@@ -59,8 +59,8 @@ static atomic_t sprd_enter_wdh;
 extern void sysdump_ipi(struct pt_regs *regs);
 extern unsigned long gic_get_gicd_base(void);
 
-char sprd_log_buf[SPRD_PRINT_BUF_LEN];
-static int log_buf_pos;
+static DEFINE_PER_CPU(char [SPRD_PRINT_BUF_LEN], sprd_log_buf);
+static DEFINE_PER_CPU(int, sprd_log_buf_pos);
 static int log_length;
 static struct gicd_data *gicd_regs;
 static struct gicc_data *gicc_regs;
@@ -128,15 +128,18 @@ extern void sprd_hangd_console_write(const char *s, unsigned int count);
 					pfn_valid(__pa(kaddr) >> PAGE_SHIFT))
 #endif
 
-static void sprd_write_print_buf(char *source, int size)
+static void sprd_write_print_buf(char *source, int size, int cpu)
 {
+	unsigned char *log_buf = per_cpu_ptr(sprd_log_buf, cpu);
+	int log_buf_pos = per_cpu(sprd_log_buf_pos, cpu);
+
 	if (log_buf_pos + size <= SPRD_PRINT_BUF_LEN) {
-		memcpy(sprd_log_buf + log_buf_pos, source, size);
-		log_buf_pos += size;
+		memcpy(log_buf + log_buf_pos, source, size);
+		per_cpu(sprd_log_buf_pos, cpu) = log_buf_pos + size;
 	} else {
-		memcpy(sprd_log_buf + log_buf_pos, source, (SPRD_PRINT_BUF_LEN - log_buf_pos));
-		log_buf_pos = log_buf_pos + size - SPRD_PRINT_BUF_LEN;
-		memcpy(sprd_log_buf, source, log_buf_pos);
+		memcpy(log_buf + log_buf_pos, source, (SPRD_PRINT_BUF_LEN - log_buf_pos));
+		per_cpu(sprd_log_buf_pos, cpu) = log_buf_pos + size - SPRD_PRINT_BUF_LEN;
+		memcpy(log_buf, source, log_buf_pos);
 	}
 #if IS_ENABLED(CONFIG_SPRD_HANG_DEBUG_UART)
 	sprd_hangd_console_write(source, size);
@@ -178,7 +181,7 @@ void sprd_hang_debug_printf(const char *fmt, ...)
 	size += vsprintf(wdh_tmp_buf + size, fmt, args);
 	va_end(args);
 
-	sprd_write_print_buf(wdh_tmp_buf, size);
+	sprd_write_print_buf(wdh_tmp_buf, size, cpu);
 
 	raw_spin_unlock(&sprd_wdh_prlock);
 }
