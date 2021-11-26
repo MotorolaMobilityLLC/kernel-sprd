@@ -1198,9 +1198,6 @@ static int get_charger_term_voltage(struct charger_manager *cm, int *vol)
 
 	return ret;
 }
-#define OLD_MODE
-
-#ifdef OLD_MODE		
 static int set_charger_enable_powerpath(struct charger_manager *cm, bool en)
 {
 	union power_supply_propval val;
@@ -1227,7 +1224,7 @@ static int set_charger_enable_powerpath(struct charger_manager *cm, bool en)
 
 	return ret;
 }
-#endif
+
 
 static void cm_power_path_enable(struct charger_manager *cm, int cmd)
 {
@@ -5472,21 +5469,22 @@ static ssize_t charger_stop_store(struct device *dev,
 					attr_stop_charge);
 	struct charger_manager *cm = charger->cm;
 	int stop_charge, ret;
+	int stop_sys=0;
 
-	ret = sscanf(buf, "%d", &stop_charge);
+	ret = sscanf(buf, "%d %d", &stop_charge,&stop_sys);	
 	if (!ret)
 		return -EINVAL;
 
 	if (!is_ext_pwr_online(cm))
 		return -EINVAL;
 
-	dev_err(cm->dev, "%s;%d;%d;\n",__func__,stop_charge,ontim_charge_onoff_control);
+	dev_err(cm->dev, "%s;%d;%d;%d;\n",__func__,stop_charge,stop_sys,ontim_charge_onoff_control);
 
 	if (!stop_charge) {
 		ontim_charge_onoff_control =1;		
-#ifdef OLD_MODE		
+
 		set_charger_enable_powerpath(cm, true);
-#endif
+
 		ret = try_charger_enable(cm, true);
 		if (ret) {
 			dev_err(cm->dev, "failed to start charger.\n");
@@ -5505,9 +5503,10 @@ static ssize_t charger_stop_store(struct device *dev,
 
 	} else {
 		ontim_charge_onoff_control =0;		
-#ifdef OLD_MODE		
+
+                if( stop_sys != 255)
 		set_charger_enable_powerpath(cm, false);
-#endif
+
 		ret = try_charger_enable(cm, false);
 		if (ret) {
 			dev_err(cm->dev, "failed to stop charger.\n");
