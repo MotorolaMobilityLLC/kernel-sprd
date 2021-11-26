@@ -939,7 +939,11 @@ static int get_usb_charger_type(struct charger_manager *cm, u32 *type)
 		}
 	}
 
+	if (*type == POWER_SUPPLY_USB_TYPE_SFCP_1P0)
+		cm->desc->is_fast_charge = true;
+
 	cm_get_charger_type(cm, type);
+	cm->desc->fast_charger_type = *type;
 
 	mutex_unlock(&cm->desc->charger_type_mtx);
 	return ret;
@@ -1845,7 +1849,33 @@ static void cm_sprd_vote_callback(struct sprd_vote *vote_gov, int vote_type,
 		break;
 	}
 }
+static int cm_get_main_adapter_max_voltage(struct charger_manager *cm, int *max_vol)
+{
+	struct charger_desc *desc = cm->desc;
+	struct power_supply *psy;
+	union power_supply_propval val;
+	int ret;
 
+	*max_vol = 0;
+	psy = power_supply_get_by_name(desc->psy_charger_stat[0]);
+	if (!psy) {
+		dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
+			desc->psy_fast_charger_stat[0]);
+		return -ENODEV;
+	}
+
+	ret = power_supply_get_property(psy, POWER_SUPPLY_PROP_VOLTAGE_MAX, &val);
+	power_supply_put(psy);
+	if (ret) {
+		dev_err(cm->dev,
+			"failed to get max voltage\n");
+		return ret;
+	}
+
+	*max_vol = val.intval;
+
+	return 0;
+}
 static int cm_get_adapter_max_voltage(struct charger_manager *cm, int *max_vol)
 {
 	struct charger_desc *desc = cm->desc;
@@ -2038,6 +2068,31 @@ static int cm_adjust_fast_charge_voltage(struct charger_manager *cm, int vol)
 	return 0;
 }
 
+static int cm_adjust_main_charge_voltage(struct charger_manager *cm, int vol)
+{
+	struct charger_desc *desc = cm->desc;
+	struct power_supply *psy;
+	union power_supply_propval val;
+	int ret;
+
+	psy = power_supply_get_by_name(desc->psy_charger_stat[0]);
+	if (!psy) {
+		dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
+			desc->psy_charger_stat[0]);
+		return -ENODEV;
+	}
+
+	val.intval = vol;
+	ret = power_supply_set_property(psy, POWER_SUPPLY_PROP_VOLTAGE_MAX, &val);
+	power_supply_put(psy);
+	if (ret) {
+		dev_err(cm->dev,
+			"failed to adjust fast charger voltage vol = %d\n", vol);
+		return ret;
+	}
+
+	return 0;
+}
 static bool cm_is_reach_fchg_threshold(struct charger_manager *cm)
 {
 	int batt_ocv, batt_uA, fchg_ocv_threshold, thm_cur;
@@ -2149,6 +2204,11 @@ static int cm_fast_charge_enable_check(struct charger_manager *cm)
 		return ret;
 	}
 
+	ret = cm_get_main_adapter_max_voltage(cm, &adapter_max_vbus);
+	if (adapter_max_vbus > CM_FAST_CHARGE_VOLTAGE_9V)
+		adapter_max_vbus = CM_FAST_CHARGE_VOLTAGE_9V;
+	cm_adjust_main_charge_voltage(cm, adapter_max_vbus);
+
 	ret = cm_enable_second_charger(cm, true);
 	if (ret) {
 		cm_set_main_charger_current(cm, CM_FAST_CHARGE_DISABLE_CMD);
@@ -2195,6 +2255,8 @@ static int cm_fast_charge_disable(struct charger_manager *cm)
 				"failed to adjust 5V fast charger voltage\n");
 		return ret;
 	}
+
+	cm_adjust_main_charge_voltage(cm, CM_FAST_CHARGE_VOLTAGE_5V);
 
 	ret = cm_set_main_charger_current(cm, CM_FAST_CHARGE_DISABLE_CMD);
 	if (ret) {
@@ -3434,12 +3496,14 @@ static int try_charger_enable(struct charger_manager *cm, bool enable)
 {
 	int err = 0;
 
+
 	if(ontim_charge_onoff_control  !=  1)
 	{
 		enable = false;
 		}
 
-
+	get_usb_charger_type(cm, &cm->desc->charger_type);
+	
 	try_fast_charger_enable(cm, enable);
 
 	/* Ignore if it's redundant command */
