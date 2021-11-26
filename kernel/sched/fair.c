@@ -9473,6 +9473,8 @@ static int load_balance(int this_cpu, struct rq *this_rq,
 	schedstat_inc(sd->lb_count[idle]);
 
 redo:
+	group = NULL;
+	busiest = NULL;
 	if (!should_we_balance(&env)) {
 		*continue_balancing = 0;
 		goto out_balanced;
