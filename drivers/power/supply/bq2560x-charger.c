@@ -98,6 +98,13 @@
 #define BQ2560X_FAST_CHARGER_VOLTAGE_MAX	10500000
 #define BQ2560X_NORMAL_CHARGER_VOLTAGE_MAX	6500000
 
+#define VBUS_9V 9000000
+#define VBUS_7V 7000000
+#define VBUS_5V 5000000
+#define V_500MV 500000
+#define I_500MA 500000
+
+
 #define BQ2560X_WAKE_UP_MS			1000
 #define BQ2560X_CURRENT_WORK_MS			msecs_to_jiffies(100)
 
@@ -150,8 +157,11 @@ struct bq2560x_charger_info {
 
 	int reg_id;
 	bool disable_power_path;
-	bool bc1p2;
 
+	bool enable_pe;
+       bool enable_qc;
+	u32 current_vbus;
+	u32  set_vbus;
 	struct delayed_work hand_work;
 	
 };
@@ -975,25 +985,25 @@ static int bq2560x_fgu_get_vbus(struct bq2560x_charger_info *info)
 	return val.intval;
 }
 #if 1
-static void bq2560x_check_pe(struct bq2560x_charger_info *info)
+static void bq2560x_set_pe(struct bq2560x_charger_info *info, u32 vbus)
 {
 		int vol;
 		int try_count=0;
 		u8 reg_val;
 		int delta;
-		#define VUBS_9V 9000000
-		#define VUBS_5V 5000000
-		#define V_500MV 500000
-		#define I_500MA 500000
-		bool pe20_connect =false;
 		int last_limit_current;
 
-		bq2560x_charger_set_ovp(info, 9000);
+		dev_info(info->dev, "%s;cur=%d;vbus=%d;%d;\n",__func__,info->last_limit_cur/1000,vbus/1000,info->current_vbus/1000);
+		if( vbus == info->current_vbus )
+			goto pe_exit ;
+		bq2560x_charger_set_ovp(info, BQ2560X_FCHG_OVP_9V);
 		last_limit_current = info->last_limit_cur;
-		dev_info(info->dev, "%s;%d;\n",__func__,last_limit_current/1000);
 		bq2560x_charger_set_limit_current(info, I_500MA);
 		msleep(500);
-		bq2560x_write(info, 0x0d, 0xc0);  //enable and up
+		if(vbus > info->current_vbus)
+			bq2560x_write(info, 0x0d, 0xc0);  //enable and up
+		else	
+			bq2560x_write(info, 0x0d, 0xa0);  //enable and down
 
 		do{
 			msleep(100);
@@ -1002,42 +1012,56 @@ static void bq2560x_check_pe(struct bq2560x_charger_info *info)
 			 bq2560x_read(info, 0x0d, &reg_val);
 			dev_info(info->dev, "%s;%d;0x%x;%d;\n",__func__,vol,reg_val,try_count);
 			 
-			if(vol<VUBS_9V && (reg_val & 0x40) ==0)
+			if(vol<vbus && (reg_val & 0x40) ==0)
 			{
 				
-				if((abs(vol -VUBS_9V)) < V_500MV)
+				if((abs(vol -vbus)) < V_500MV)
 					break;
 				bq2560x_write(info, 0x0d,0xc0);   //up
 				dev_info(info->dev, "%s;up; count %d;\n",__func__,try_count);
 				
 			}	
-			else if(vol>VUBS_9V && (reg_val & 0x20) ==0)	
+			else if(vol>vbus && (reg_val & 0x20) ==0)	
 			{
+				if((abs(vol -vbus)) < V_500MV)
+					break;
 				bq2560x_write(info, 0x0d,0xa0); //down
 				dev_info(info->dev, "%s;down; count %d;\n",__func__,try_count);
 			}
 
 			try_count++;
 
-			delta =abs(vol-VUBS_9V);
-			
 
-		}while(delta>V_500MV && try_count <100);
+		}while((abs(vol-vbus))>V_500MV && try_count <100);
 
-		delta =abs(vol-VUBS_9V);
+		delta =abs(vol-vbus);
 
-		if(delta < V_500MV)
-			pe20_connect = true;
+		if(delta < V_500MV  && vbus > VBUS_5V)
+		{
+			info->enable_pe = true;
+			info->current_vbus = vbus;
+
+		}
 		else
-			pe20_connect = false;
+		{
+			info->enable_pe = false;
+			info->current_vbus = VBUS_5V;
 
-		bq2560x_write(info, 0x0d,0x00); //clear
+		}
 
-		dev_info(info->dev, "%s;%d;count %d;%d;%d;\n",__func__,pe20_connect,try_count,last_limit_current/1000,info->last_limit_cur/1000);
+
+		dev_info(info->dev, "%s;%d;count %d;%d;%d;\n",__func__,info->enable_pe,try_count,last_limit_current/1000,info->last_limit_cur/1000);
 
 		if(info->last_limit_cur == I_500MA)
 			bq2560x_charger_set_limit_current(info, last_limit_current);
-		
+
+pe_exit:
+		bq2560x_write(info, 0x0d, 0x00);   //clear
+
+		info->usb_phy->sprd_hsphy_set_dpdm(info->usb_phy,1);
+
+		info->set_vbus =0;
+		return ;
 
 }
 #endif
@@ -1087,7 +1111,7 @@ static void bq2560x_charger_hand_work(struct work_struct *data)
 	struct bq2560x_charger_info *info =
 		container_of(dwork, struct bq2560x_charger_info, hand_work);
 
-	bq2560x_check_pe(info);
+	bq2560x_set_pe(info, info->set_vbus);
 
 }
 
@@ -1105,7 +1129,7 @@ static void bq2560x_charger_work(struct work_struct *data)
 	{
 		if(info->usb_phy->chg_type == DCP_TYPE)
 		{
-			info->bc1p2=true;
+			info->set_vbus = VBUS_9V;
 			
 			info->usb_phy->sprd_hsphy_set_dpdm(info->usb_phy,0);
 
@@ -1114,13 +1138,6 @@ static void bq2560x_charger_work(struct work_struct *data)
 	}
 	else if(!info->limit && info->charging)
 	{
-		if(info->bc1p2)
-		{
-			bq2560x_write(info, 0x0d, 0x00);   
-
-			info->usb_phy->sprd_hsphy_set_dpdm(info->usb_phy,1);
-		}
-		info->bc1p2 = false;
 	
 	}
 	cm_notify_event(info->psy_usb, CM_EVENT_CHG_START_STOP, NULL);
@@ -1289,7 +1306,10 @@ static int bq2560x_charger_usb_get_property(struct power_supply *psy,
 		default:
 			val->intval = POWER_SUPPLY_USB_TYPE_UNKNOWN;
 		}
-
+		
+		if(info->enable_pe)
+			val->intval = POWER_SUPPLY_USB_TYPE_SFCP_1P0;
+		
 		break;
 
 	case POWER_SUPPLY_PROP_CHARGE_ENABLED:
@@ -1312,6 +1332,12 @@ static int bq2560x_charger_usb_get_property(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE_MAX:
 		ret = bq2560x_charger_get_termina_vol(info, &vol);
 		val->intval = vol *1000;
+		break;
+	case POWER_SUPPLY_PROP_VOLTAGE_MAX:
+		if (info->enable_pe)
+			val->intval =VBUS_9V;
+		else
+			val->intval =VBUS_5V;
 		break;
 
 	default:
@@ -1415,6 +1441,18 @@ static int bq2560x_charger_usb_set_property(struct power_supply *psy,
 			dev_err(info->dev, "failed to set fast charge ovp\n");
 
 		break;
+	case POWER_SUPPLY_PROP_VOLTAGE_MAX:
+		if (info->enable_pe) 
+		{
+			if(info->current_vbus == val->intval ||info->set_vbus == val->intval)
+				break;
+			info->set_vbus = val->intval;
+			
+			info->usb_phy->sprd_hsphy_set_dpdm(info->usb_phy,0);
+
+			schedule_delayed_work(&info->hand_work,  250);
+		}	
+		break;		
 	default:
 		ret = -EINVAL;
 	}
@@ -1434,6 +1472,7 @@ static int bq2560x_charger_property_is_writeable(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_CHARGE_ENABLED:
 	case POWER_SUPPLY_PROP_WIRELESS_TYPE:
 	case POWER_SUPPLY_PROP_STATUS:
+	case POWER_SUPPLY_PROP_VOLTAGE_MAX:
 		ret = 1;
 		break;
 
@@ -1452,7 +1491,8 @@ static enum power_supply_usb_type bq2560x_charger_usb_types[] = {
 	POWER_SUPPLY_USB_TYPE_C,
 	POWER_SUPPLY_USB_TYPE_PD,
 	POWER_SUPPLY_USB_TYPE_PD_DRP,
-	POWER_SUPPLY_USB_TYPE_APPLE_BRICK_ID
+	POWER_SUPPLY_USB_TYPE_APPLE_BRICK_ID,
+	POWER_SUPPLY_USB_TYPE_SFCP_1P0	
 };
 
 static enum power_supply_property bq2560x_usb_props[] = {
@@ -1467,6 +1507,7 @@ static enum power_supply_property bq2560x_usb_props[] = {
 	POWER_SUPPLY_PROP_CHARGE_FULL,
 	POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE_MAX,
 	POWER_SUPPLY_PROP_POWER_NOW,
+	POWER_SUPPLY_PROP_VOLTAGE_MAX,
 };
 
 static const struct power_supply_desc bq2560x_charger_desc = {
@@ -2133,6 +2174,10 @@ static int bq2560x_charger_probe(struct i2c_client *client,
 		goto error_sysfs;
 	}
 
+	info->enable_pe = false;
+	info->enable_qc = false;
+	info->current_vbus =VBUS_5V;
+	
 	INIT_WORK(&info->work, bq2560x_charger_work);
 	INIT_DELAYED_WORK(&info->cur_work, bq2560x_current_work);
 

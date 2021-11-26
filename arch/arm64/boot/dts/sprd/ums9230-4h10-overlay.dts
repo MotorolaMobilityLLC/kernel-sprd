@@ -211,7 +211,7 @@
 				capacity-temp-table-0 = <50 100>, <25 100>, <10 99>, <0 96>, <(-10) 94>;
 				resistance-temp-table-0 = <50 86>, <25 100>, <10 143>, <0 257>, <(-10) 522>;
 				charge-sdp-current-microamp = <600000 500000>;
-				charge-dcp-current-microamp = <3200000 3100000>;
+				charge-dcp-current-microamp = <2400000 2100000>;
 				charge-cdp-current-microamp = <600000 500000>;
 				charge-unknown-current-microamp = <600000 500000>;
 				charge-fchg-current-microamp = <3200000 3100000>;
@@ -302,7 +302,7 @@
 				cm-wireless-fast-charge-voltage-drop = <1000000>;
 
 				cm-dcp-jeita-temp-table = <1000 1020 0 4200000>, <1150 1180 1050000 4450000>,
-					<1450 1420 3200000 4450000>, <1550 1520 3200000 4200000>;
+					<1450 1420 2400000 4450000>, <1550 1520 2400000 4200000>;
 				cm-sdp-jeita-temp-table = <1000 1020 0 4200000>, <1150 1180 600000 4450000>,
 					<1450 1420 600000 4450000>, <1550 1520 600000 4200000>;
 				cm-cdp-jeita-temp-table = <1000 1020 0 4200000>, <1150 1180 600000 4450000>,
