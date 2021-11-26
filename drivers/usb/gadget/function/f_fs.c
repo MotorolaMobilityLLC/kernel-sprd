@@ -959,6 +959,10 @@ static ssize_t ffs_epfile_io(struct file *file, struct ffs_io_data *io_data)
 		if (file->f_flags & O_NONBLOCK)
 			return -EAGAIN;
 
+		if ((!io_data->read) && (!strcmp(epfile->ffs->dev_name, "mtp")
+				|| !strcmp(epfile->ffs->dev_name, "ptp")))
+			return -ENODEV;
+
 		ret = wait_event_interruptible(
 				epfile->ffs->wait, (ep = epfile->ep));
 		if (ret)
