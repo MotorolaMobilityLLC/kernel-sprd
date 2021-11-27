@@ -151,6 +151,25 @@ static void sprd_dsi_encoder_disable(struct drm_encoder *encoder)
 	mutex_unlock(&dsi->lock);
 }
 
+void sprd_dsi_encoder_disable_force(struct drm_encoder *encoder)
+{
+	struct sprd_dsi *dsi = encoder_to_dsi(encoder);
+
+	DRM_INFO("%s()\n", __func__);
+
+	sprd_dsi_set_work_mode(dsi, DSI_MODE_CMD);
+	sprd_dsi_lp_cmd_enable(dsi, true);
+
+	if (dsi->panel) {
+		drm_panel_disable(dsi->panel);
+		sprd_dphy_ulps_enter(dsi->phy);
+		drm_panel_unprepare(dsi->panel);
+	}
+
+	sprd_dphy_disable(dsi->phy);
+	sprd_dsi_disable(dsi);
+}
+
 static void sprd_dsi_encoder_mode_set(struct drm_encoder *encoder,
 				 struct drm_display_mode *mode,
 				 struct drm_display_mode *adj_mode)

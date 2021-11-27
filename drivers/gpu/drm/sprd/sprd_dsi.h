@@ -208,6 +208,8 @@ struct sprd_dsi {
 	struct dsi_context ctx;
 };
 
+void sprd_dsi_encoder_disable_force(struct drm_encoder *encoder);
+
 extern const struct dsi_core_ops dsi_ctrl_r1p0_ops;
 extern const struct dsi_glb_ops sharkle_dsi_glb_ops;
 extern const struct dsi_glb_ops pike2_dsi_glb_ops;

@@ -192,6 +192,21 @@ static void sprd_dpu_atomic_disable(struct sprd_crtc *crtc)
 	pm_runtime_put(dpu->dev.parent);
 }
 
+void sprd_dpu_atomic_disable_force(struct drm_crtc *crtc)
+{
+	struct sprd_crtc *sprd_crtc = container_of(crtc, struct sprd_crtc, base);
+	struct sprd_dpu *dpu = sprd_crtc->priv;
+
+	DRM_INFO("%s()\n", __func__);
+
+	/* dpu is not initialized,it should enable first! */
+	sprd_dpu_enable(dpu);
+	enable_irq(dpu->ctx.irq);
+
+	disable_irq(dpu->ctx.irq);
+	sprd_dpu_disable(dpu);
+}
+
 static void sprd_dpu_atomic_begin(struct sprd_crtc *crtc)
 {
 	struct sprd_dpu *dpu = crtc->priv;

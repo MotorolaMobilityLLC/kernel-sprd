@@ -28,6 +28,8 @@
 #include "sprd_drm.h"
 #include "sprd_drm_gsp.h"
 #include "sprd_gem.h"
+#include "sprd_dpu.h"
+#include "sprd_dsi.h"
 #include "sysfs/sysfs_display.h"
 
 #define DRIVER_NAME	"sprd"
@@ -36,7 +38,7 @@
 #define DRIVER_MAJOR	1
 #define DRIVER_MINOR	0
 
-static bool cali_mode_check(const char *str)
+static bool boot_mode_check(const char *str)
 {
 	struct device_node *cmdline_node;
 	const char *cmd_line;
@@ -448,6 +450,9 @@ static int sprd_drm_pm_suspend(struct device *dev)
 	struct drm_device *drm = dev_get_drvdata(dev);
 	struct drm_atomic_state *state;
 	struct sprd_drm *sprd;
+	struct drm_crtc *crtc;
+	struct drm_encoder *encoder;
+	static bool is_suspend;
 
 	if (!drm) {
 		DRM_WARN("drm device is not available, no suspend\n");
@@ -455,6 +460,27 @@ static int sprd_drm_pm_suspend(struct device *dev)
 	}
 
 	DRM_INFO("%s()\n", __func__);
+
+	if (boot_mode_check("androidboot.mode=autotest")) {
+		if (is_suspend)
+			return 0;
+
+		drm_for_each_crtc(crtc, drm) {
+			if (!crtc->state->active) {
+				/* crtc force power down! */
+				sprd_dpu_atomic_disable_force(crtc);
+
+				/* encoder force power down! */
+				drm_for_each_encoder(encoder, drm) {
+					sprd_dsi_encoder_disable_force(encoder);
+				}
+
+				is_suspend = true; /* For BBAT deep sleep */
+				return 0;
+			}
+		}
+		is_suspend = true; /* For BBAT display test */
+	}
 
 	drm_kms_helper_poll_disable(drm);
 
@@ -478,6 +504,11 @@ static int sprd_drm_pm_resume(struct device *dev)
 
 	if (!drm) {
 		DRM_WARN("drm device is not available, no resume\n");
+		return 0;
+	}
+
+	if (boot_mode_check("androidboot.mode=autotest")) {
+		DRM_WARN("BBAT mode not need resume\n");
 		return 0;
 	}
 
@@ -535,7 +566,7 @@ static int __init sprd_drm_init(void)
 	int ret;
 	bool cali_mode;
 
-	cali_mode = cali_mode_check("androidboot.mode=cali");
+	cali_mode = boot_mode_check("androidboot.mode=cali");
 	if (cali_mode) {
 		DRM_WARN("Calibration Mode! Don't register sprd drm driver");
 		return 0;

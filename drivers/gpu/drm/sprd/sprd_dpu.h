@@ -184,6 +184,7 @@ struct sprd_dpu {
 
 void sprd_dpu_run(struct sprd_dpu *dpu);
 void sprd_dpu_stop(struct sprd_dpu *dpu);
+void sprd_dpu_atomic_disable_force(struct drm_crtc *crtc);
 
 extern const struct dpu_clk_ops sharkle_dpu_clk_ops;
 extern const struct dpu_glb_ops sharkle_dpu_glb_ops;
