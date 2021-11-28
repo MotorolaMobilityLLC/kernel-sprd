@@ -564,6 +564,7 @@ static long fpsensor_ioctl(struct file *filp, unsigned int cmd, unsigned long ar
     case FPSENSOR_IOC_DISABLE_POWER:
         fpsensor_info("FPSENSOR_IOC_DISABLE_POWER ======\n");
         //fpsensor_hw_power_enable(0);
+        fpsensor_disable_power();
         break;
     case FPSENSOR_IOC_INIT_INPUT_DEV:
         fpsensor_debug("FPSENSOR_IOC_INIT_INPUT_DEV ======\n");
