@@ -22,6 +22,11 @@
 
 #include "sdhci-pltfm.h"
 #include "mmc_hsq.h"
+#if IS_ENABLED(CONFIG_MMC_SWCQ)
+#include "mmc_swcq.h"
+#include "sdhci-sprd-swcq.h"
+#include "sdhci-sprd-swcq.c"
+#endif
 
 /* SDHCI_ARGUMENT2 register high 16bit */
 #define SDHCI_SPRD_ARG2_STUFF		GENMASK(31, 16)
@@ -453,9 +458,17 @@ static void sdhci_sprd_request_done(struct sdhci_host *host,
 				    struct mmc_request *mrq)
 {
 	/* Validate if the request was from software queue firstly. */
-	if (mmc_hsq_finalize_request(host->mmc, mrq))
-		return;
-
+#if IS_ENABLED(CONFIG_MMC_SWCQ)
+	if (HOST_IS_EMMC_TYPE(host->mmc)) {
+		if (mmc_swcq_finalize_request(host->mmc, mrq))
+			return;
+	} else {
+#endif
+		if (mmc_hsq_finalize_request(host->mmc, mrq))
+			return;
+#if IS_ENABLED(CONFIG_MMC_SWCQ)
+	}
+#endif
 	 mmc_request_done(host->mmc, mrq);
 }
 
@@ -817,16 +830,38 @@ static void sdhci_sprd_check_auto_cmd23(struct mmc_host *mmc,
 	 * block count register which doesn't support stuff bits of
 	 * CMD23 argument on Spreadtrum's sd host controller.
 	 */
+#if IS_ENABLED(CONFIG_MMC_SWCQ)
 	if (host->version >= SDHCI_SPEC_410 &&
-	    mrq->sbc && (mrq->sbc->arg & SDHCI_SPRD_ARG2_STUFF) &&
-	    (host->flags & SDHCI_AUTO_CMD23))
+	mrq->sbc && ((mrq->sbc->arg & SDHCI_SPRD_ARG2_STUFF) ||
+	(host->mmc->card && mmc_card_cmdq(host->mmc->card))) &&
+	(host->flags & SDHCI_AUTO_CMD23))
+#else
+	if (host->version >= SDHCI_SPEC_410 &&
+	mrq->sbc && (mrq->sbc->arg & SDHCI_SPRD_ARG2_STUFF) &&
+	(host->flags & SDHCI_AUTO_CMD23))
+#endif
 		host->flags &= ~SDHCI_AUTO_CMD23;
+
 }
 
 static void sdhci_sprd_request(struct mmc_host *mmc, struct mmc_request *mrq)
 {
-	sdhci_sprd_check_auto_cmd23(mmc, mrq);
+#if IS_ENABLED(CONFIG_MMC_SWCQ)
+	struct mmc_swcq *swcq = mmc->cqe_private;
+	struct sdhci_host *host = mmc_priv(mmc);
+#endif
 
+	sdhci_sprd_check_auto_cmd23(mmc, mrq);
+#if IS_ENABLED(CONFIG_MMC_SWCQ)
+	if (HOST_IS_EMMC_TYPE(mmc)) {
+		if (!swcq->need_polling)
+			sdhci_writel(host, host->ier, SDHCI_SIGNAL_ENABLE);
+		else {
+			sdhci_sprd_request_sync(mmc, mrq);
+			return;
+		}
+	}
+#endif
 	sdhci_request(mmc, mrq);
 }
 
@@ -834,8 +869,14 @@ static int sdhci_sprd_request_atomic(struct mmc_host *mmc,
 				      struct mmc_request *mrq)
 {
 	sdhci_sprd_check_auto_cmd23(mmc, mrq);
-
+#if IS_ENABLED(CONFIG_MMC_SWCQ)
+	if (HOST_IS_EMMC_TYPE(mmc)
+	 && mmc->card && mmc_card_cmdq(mmc->card))
+		return sdhci_sprd_request_sync(mmc, mrq);
+	return _sdhci_request_atomic(mmc, mrq);
+#else
 	return sdhci_request_atomic(mmc, mrq);
+#endif
 }
 
 static int sdhci_sprd_voltage_switch(struct mmc_host *mmc, struct mmc_ios *ios)
@@ -993,7 +1034,9 @@ static int sdhci_sprd_probe(struct platform_device *pdev)
 	enum of_gpio_flags flags;
 	struct sdhci_host *host;
 	struct sdhci_sprd_host *sprd_host;
+#if !IS_ENABLED(CONFIG_MMC_SWCQ)
 	struct mmc_hsq *hsq;
+#endif
 	struct clk *clk;
 	int ret = 0;
 
@@ -1127,6 +1170,9 @@ static int sdhci_sprd_probe(struct platform_device *pdev)
 
 	sprd_host->flags = host->flags;
 
+#if IS_ENABLED(CONFIG_MMC_SWCQ)
+	ret = mmc_hsq_swcq_init(host, pdev);
+#else
 	hsq = devm_kzalloc(&pdev->dev, sizeof(*hsq), GFP_KERNEL);
 	if (!hsq) {
 		ret = -ENOMEM;
@@ -1134,12 +1180,19 @@ static int sdhci_sprd_probe(struct platform_device *pdev)
 	}
 
 	ret = mmc_hsq_init(hsq, host->mmc);
+#endif
+
 	if (ret)
 		goto err_cleanup_host;
 
 	ret = __sdhci_add_host(host);
 	if (ret)
 		goto err_cleanup_host;
+#if IS_ENABLED(CONFIG_MMC_SWCQ)
+	ret = sdhci_sprd_irq_request_swcq(host);
+	if (ret)
+		goto err_cleanup_host;
+#endif
 
 	pm_runtime_mark_last_busy(&pdev->dev);
 	pm_runtime_put_autosuspend(&pdev->dev);
@@ -1196,8 +1249,12 @@ static int sdhci_sprd_runtime_suspend(struct device *dev)
 {
 	struct sdhci_host *host = dev_get_drvdata(dev);
 	struct sdhci_sprd_host *sprd_host = TO_SPRD_HOST(host);
-
-	mmc_hsq_suspend(host->mmc);
+#if IS_ENABLED(CONFIG_MMC_SWCQ)
+	if (HOST_IS_EMMC_TYPE(host->mmc))
+		mmc_swcq_suspend(host->mmc);
+	else
+#endif
+		mmc_hsq_suspend(host->mmc);
 	sdhci_runtime_suspend_host(host);
 
 	clk_disable_unprepare(sprd_host->clk_sdio);
@@ -1231,7 +1288,12 @@ static int sdhci_sprd_runtime_resume(struct device *dev)
 		goto clk_disable;
 
 	sdhci_runtime_resume_host(host, 1);
-	mmc_hsq_resume(host->mmc);
+#if IS_ENABLED(CONFIG_MMC_SWCQ)
+	if (HOST_IS_EMMC_TYPE(host->mmc))
+		mmc_swcq_resume(host->mmc);
+	else
+#endif
+		mmc_hsq_resume(host->mmc);
 
 	return 0;
 
