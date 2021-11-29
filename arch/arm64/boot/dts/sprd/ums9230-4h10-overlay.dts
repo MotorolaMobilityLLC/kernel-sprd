@@ -473,8 +473,10 @@
 
 			gpio_boardid:gpio_boardid {
 					compatible = "gpio,boardid";
-					gpio,boardid0 = <&ap_gpio 131 0>;
-		                        gpio,boardid1 = <&ap_gpio 133 0>;
+					// boardid0 is low bit, boardidx is high bit
+					// it will impact /sys/hwinfo/board_id and /sys/hwinfo/hw_version
+					gpio,boardid0 = <&ap_gpio 133 0>;
+		                        gpio,boardid1 = <&ap_gpio 131 0>;
 					gpio,boardprjid0 = <&ap_gpio 130 0>;
 					gpio,boardprjid1 = <&ap_gpio 112 0>;
 					gpio,boardprjid2 = <&ap_gpio 113 0>;
