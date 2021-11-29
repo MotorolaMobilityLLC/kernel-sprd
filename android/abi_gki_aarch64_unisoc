@@ -43,6 +43,11 @@
   blk_queue_max_discard_sectors
   blk_queue_max_write_zeroes_sectors
   blk_queue_physical_block_size
+  blk_mq_complete_request
+  __blk_mq_end_request
+  blk_mq_requeue_request
+  blk_mq_run_hw_queues
+  blk_update_request
   blocking_notifier_chain_register
   blocking_notifier_chain_unregister
   bpf_trace_run1
@@ -1256,6 +1261,12 @@
 # required by mmc_hsq.ko
   mmc_cqe_request_done
   mmc_send_tuning
+  mmc_cmdq_enable
+  mmc_cqe_post_req
+  mmc_hw_reset
+  mmc_put_card
+  mmc_switch
+  mmc_wait_for_cmd
 
 # required by musb_hdrc.ko
   device_wakeup_enable
@@ -1322,6 +1333,8 @@
   sdio_release_irq
   sdio_set_host_pm_flags
   sdio_writew
+  sg_copy_from_buffer
+  sg_copy_to_buffer
 
 # required by phy-sprd-sharkl3.ko
   usb_add_phy_dev
@@ -1538,6 +1551,8 @@
   sdhci_set_bus_width
   sdhci_setup_host
 
+# required by mmc_swcq.ko
+  mmc_cmdq_disable
 # required by sdiohal.ko
   mmc_detect_change
   mmc_set_data_timeout
