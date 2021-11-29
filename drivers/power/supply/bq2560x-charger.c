@@ -101,6 +101,7 @@
 #define VBUS_9V 9000000
 #define VBUS_7V 7000000
 #define VBUS_5V 5000000
+#define VBUS_1V 1000000
 #define V_500MV 500000
 #define I_500MA 500000
 
@@ -1008,6 +1009,9 @@ static void bq2560x_set_pe(struct bq2560x_charger_info *info, u32 vbus)
 			vol=bq2560x_fgu_get_vbus(info);
 			 bq2560x_read(info, 0x0d, &reg_val);
 			dev_info(info->dev, "%s;%d;0x%x;%d;\n",__func__,vol,reg_val,try_count);
+
+			if(vol < VBUS_1V)
+				goto pe_exit ;       //charger plug out
 			 
 			if(vol<vbus && (reg_val & 0x40) ==0)
 			{
@@ -1130,12 +1134,18 @@ static void bq2560x_charger_work(struct work_struct *data)
 			
 			info->usb_phy->sprd_hsphy_set_dpdm(info->usb_phy,0);
 
-			schedule_delayed_work(&info->hand_work,  250);
+			schedule_delayed_work(&info->hand_work,  msecs_to_jiffies(2500));
 		}
 	}
 	else if(!info->limit && info->charging)
 	{
-	
+			cancel_delayed_work_sync(&info->hand_work);
+
+			info->enable_pe = false;
+			info->current_vbus = VBUS_5V;
+
+			info->usb_phy->sprd_hsphy_set_dpdm(info->usb_phy,1);
+
 	}
 	cm_notify_event(info->psy_usb, CM_EVENT_CHG_START_STOP, NULL);
 }
