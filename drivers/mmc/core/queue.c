@@ -280,11 +280,12 @@ static blk_status_t mmc_mq_queue_rq(struct blk_mq_hw_ctx *hctx,
 		}
 		break;
 	case MMC_ISSUE_ASYNC:
-		/*
-		 * For MMC host software queue, we only allow 2 requests in
-		 * flight to avoid a long latency.
+		/* If cqe_ops registered with cqe_is_busy, then use cqe
+		 * to obtain busy state, else we use orignal condition to
+		 * obtain busy state.
 		 */
-		if (host->hsq_enabled && mq->in_flight[issue_type] > 2) {
+		if (mq->use_cqe && mmc_cqe_is_busy(host,
+			host->hsq_enabled && mq->in_flight[issue_type] > 2)) {
 			spin_unlock_irq(&mq->lock);
 			return BLK_STS_RESOURCE;
 		}

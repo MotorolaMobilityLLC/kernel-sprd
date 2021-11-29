@@ -221,7 +221,10 @@ struct mmc_cqe_ops {
 	 * will have zero data bytes transferred.
 	 */
 	void	(*cqe_recovery_finish)(struct mmc_host *host);
-
+	/*
+	 * Use ANDROID_KABI_RESERVE(1) for cqe_is_busy.
+	 * Get the busy condition of cqe device. Return true when busy.
+	 */
 	ANDROID_KABI_RESERVE(1);
 	ANDROID_KABI_RESERVE(2);
 };
