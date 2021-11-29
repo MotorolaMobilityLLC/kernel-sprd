@@ -757,12 +757,7 @@ static int btwf_dump_mem(void)
 void mdbg_dump_mem_integ(void)
 {
 	/* dump gnss */
-	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
-		WCN_INFO("sharkl6-2 can dump!\n");
-		gnss_dump_mem(0);
-	} else {
-		WCN_INFO("sharkl3 cannot dump!\n");
-	}
+	gnss_dump_mem(0);
 
 	/* dump btwf */
 	btwf_dump_mem();

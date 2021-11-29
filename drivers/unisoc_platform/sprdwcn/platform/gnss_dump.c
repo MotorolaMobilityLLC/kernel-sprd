@@ -391,7 +391,11 @@ static int gnss_dump_ap_register(void)
 	} else if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_SHARKL3) {
 		gnss_ap_reg = gnss_sharkl3_ap_reg;
 		len = (GNSS_DUMP_REG_NUMBER + 1) * sizeof(u32);
-	}
+	} else if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
+		GNSSDUMP_INFO("SHARKL6 dont dump ap reg!\n");
+		return 0;
+	} else
+		return 0;
 
 	apreg_buffer = vmalloc(len);
 	if (!apreg_buffer)
@@ -571,7 +575,8 @@ static int gnss_integrated_dump_mem(void)
 
 	GNSSDUMP_INFO("gnss_dump_mem entry\n");
 
-	gnss_hold_cpu();
+	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6)
+		gnss_hold_cpu();
 	ret = gnss_dump_share_memory(GNSS_SHARE_MEMORY_SIZE);
 	gnss_dump_iram();
 	gnss_dump_register();
