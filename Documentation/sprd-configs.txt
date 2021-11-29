@@ -11083,6 +11083,15 @@ CONFIG_MMC_SDHCI_SPRD
 	[must]
 	[missing plat description] none
 	[function]
+CONFIG_MMC_SWCQ
+	[arch] arm64
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
 CONFIG_MMU
 	[arch] all
 	[plat] all

@@ -643,6 +643,15 @@ config MMC_SDHCI_SPRD
 
 	  If unsure, say N.
 
+config MMC_SWCQ
+	tristate "SPRD eMMC Soft Command Queuing support"
+	default n
+	help
+	  This enables eMMC software Command Queuing support by Spreadtrum.
+	  Say Y if you want to
+	  use eMMC Command Queuing scheme.
+	  If unsure, say N.
+
 config MMC_TMIO_CORE
 	tristate
 
