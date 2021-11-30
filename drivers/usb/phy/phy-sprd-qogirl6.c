@@ -109,8 +109,14 @@ static int sprd_hsphy_set_dpdm(struct usb_phy *x ,  int on)
 	int ret = 0;
 	int cnt=5;
 	u32 val;
-	dev_err(x->dev, " %s;on=%d;\n",__func__,on);
+	static int bc1p2_connetc=1;
 
+	dev_err(x->dev, " %s;on=%d;connect=%d;\n",__func__,on,bc1p2_connetc);
+	if(bc1p2_connetc == on)
+		return 0;
+
+	bc1p2_connetc = on ;
+	
 	if (on) {
 			ret = regmap_update_bits(phy->pmic, 0x1ba0,      //CHGR_DET_FGU_CTRL
 				 1,
@@ -130,8 +136,8 @@ static int sprd_hsphy_set_dpdm(struct usb_phy *x ,  int on)
 					 1,
 					 0);         //        to usb phy ,bc1.2 enable
 			} while (--cnt > 0);
-			return 0;
-			/* before detect charge type, make sure usb phy is power on */ 
+
+ 			/* before detect charge type, make sure usb phy is power on */ 
 			ret |= regmap_update_bits(phy->ana_g2, 
 									REG_ANLG_PHY_G2_ANALOG_USB20_USB20_ISO_SW,  
 									MASK_ANLG_PHY_G2_ANALOG_USB20_USB20_ISO_SW_EN, 0); 
