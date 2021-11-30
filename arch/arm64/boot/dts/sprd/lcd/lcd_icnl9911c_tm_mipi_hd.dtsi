@@ -31,7 +31,7 @@
 				sprd,dpi-clk-div = <6>;
 				sprd,video-lp-cmd-enable = <1>;
 				sprd,hporch-lp-disable = <1>;
-				sprd,reset-on-sequence = <1 5>, <0 5>, <1 20>;
+				sprd,reset-on-sequence = <0 5>, <1 5>;
 				sprd,reset-off-sequence = <1 5>;
 
 					sprd,initial-command = [
@@ -44,21 +44,21 @@
 						39 00 00 03 F1 5A 59
 						39 00 00 03 F0 A5 A6
 						23 00 00 02 35 00
-						39 00 00 03 51 00 00
+						39 00 00 02 51 00 
 						23 00 00 02 53 2C
 						23 00 00 02 55 01
 						23 78 00 02 11 00
-						23 64 00 02 29 00
+						23 0A 00 02 29 00
 						23 00 00 02 26 02
 						];
 					sprd,sleep-in-command =  [
 						23 00 00 02 26 08
-						13 14 00 01 28
+						13 0A 00 01 28
 						13 78 00 01 10
 						];
 					sprd,sleep-out-command = [
 						13 78 00 01 11
-						13 64 00 01 29
+						13 0A 00 01 29
 						23 00 00 02 26 02
 						];
 
