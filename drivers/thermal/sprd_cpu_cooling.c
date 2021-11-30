@@ -1245,7 +1245,7 @@ static int sprd_get_power_model_coeff(struct device_node *np,
 		pr_err("fail to get cooling devices min_cpufreq\n");
 
 	ret = of_property_read_u32(np,
-		"sprd,max-cpunum", &power_coeff->min_cpunum);
+		"sprd,min-cpunum", &power_coeff->min_cpunum);
 	if (ret)
 		pr_err("fail to get cooling devices min_cpunum\n");
 
