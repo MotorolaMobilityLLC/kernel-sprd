@@ -210,6 +210,8 @@ static int sprd_panel_get_modes(struct drm_panel *p, struct drm_connector *conne
 	connector->display_info.width_mm = panel->info.mode.width_mm;
 	connector->display_info.height_mm = panel->info.mode.height_mm;
 
+	mode_count++;
+
 	return mode_count;
 }
 
