@@ -1321,6 +1321,7 @@ int sprd_init_fw(struct sprd_vif *vif)
 	enum nl80211_iftype type = vif->wdev.iftype;
 	enum sprd_mode mode;
 	u8 *mac;
+	vif->ctx_id = 0;
 
 	netdev_info(vif->ndev, "%s type %d, mode %d, name %s\n", __func__, type,
 		    vif->mode, vif->name);

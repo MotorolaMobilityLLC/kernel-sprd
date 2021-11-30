@@ -479,7 +479,6 @@ static void tx_prepare_addba(struct sprd_hif *hif, unsigned char lut_index,
 {
 	if (hif->tx_num[lut_index] > 9 &&
 	    peer_entry &&
-	    peer_entry->ip_acquired &&
 	    peer_entry->ht_enable &&
 	    peer_entry->vowifi_enabled != 1 &&
 	    !test_bit(tid, &peer_entry->ba_tx_done_map)) {
