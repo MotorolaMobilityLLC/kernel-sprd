@@ -22,10 +22,16 @@
 #include "sysdump64.h"
 #endif
 
-#define SPRD_DUMP_RQ_SIZE	(2000 * NR_CPUS)
+/* GKI requires the NR_CPUS is 32 */
+#if NR_CPUS >= 8
+#define SPRD_NR_CPUS		8
+#else
+#define SPRD_NR_CPUS		NR_CPUS
+#endif
+#define SPRD_DUMP_RQ_SIZE	(2000 * SPRD_NR_CPUS)
 #define SPRD_DUMP_MAX_TASK	3000
-#define SPRD_DUMP_TASK_SIZE	(141 * (SPRD_DUMP_MAX_TASK + 2))
-#define SPRD_DUMP_STACK_SIZE	(2048 * NR_CPUS)
+#define SPRD_DUMP_TASK_SIZE	(160 * (SPRD_DUMP_MAX_TASK + 2))
+#define SPRD_DUMP_STACK_SIZE	(2048 * SPRD_NR_CPUS)
 #define MAX_CALLBACK_LEVEL  16
 
 #define SEQ_printf(m, x...)			\
@@ -131,7 +137,8 @@ static void dump_task_info(struct task_struct *task, char *status,
 	SEQ_printf(sprd_rq_seq_buf, " prio: %d aff: %*pb",
 		       task->prio, cpumask_pr_args(&task->cpus_mask));
 	SEQ_printf(sprd_rq_seq_buf, " enqueue: %llu", task->last_enqueue_ts);
-	SEQ_printf(sprd_rq_seq_buf, " vrun: %llu arr: %llu sum_ex: %llu\n",
+	SEQ_printf(sprd_rq_seq_buf, " last_sleep: %llu", task->last_sleep_ts);
+	SEQ_printf(sprd_rq_seq_buf, " vrun: %llu exec_start: %llu sum_ex: %llu\n",
 		se->vruntime, se->exec_start, se->sum_exec_runtime);
 }
 
@@ -227,7 +234,7 @@ static void dump_rt_rq(struct rt_rq  *rt_rq, struct task_struct *curr)
 	}
 }
 
-static void sprd_dump_runqueues(void)
+void sprd_dump_runqueues(void)
 {
 	int cpu;
 	struct rq *rq;
@@ -283,11 +290,14 @@ static void sprd_print_task_stats(int cpu, struct rq *rq, struct task_struct *p)
 	SEQ_printf(task_seq_buf, "   %6lld.%09ld",
 				nsec_high(p->last_enqueue_ts),
 				nsec_low(p->last_enqueue_ts));
+	SEQ_printf(task_seq_buf, "   %6lld.%09ld",
+				nsec_high(p->last_sleep_ts),
+				nsec_low(p->last_sleep_ts));
 
 	SEQ_printf(task_seq_buf, "\n");
 }
 
-static void sprd_dump_task_stats(void)
+void sprd_dump_task_stats(void)
 {
 	struct task_struct *g, *p;
 	int cpu;
@@ -298,21 +308,20 @@ static void sprd_dump_task_stats(void)
 
 	SEQ_printf(sprd_task_seq_buf, "cpu  S       task_comm   PID  prio   num_of_exec");
 #ifdef CONFIG_SCHED_INFO
-	SEQ_printf(sprd_task_seq_buf, "   exec_started_ts    last_queued_ts   total_wait_time ");
+	SEQ_printf(sprd_task_seq_buf, "   last_arrival_ts    last_queued_ts   total_wait_time ");
 #endif
 	SEQ_printf(sprd_task_seq_buf, "   total_exec_time");
 	SEQ_printf(sprd_task_seq_buf, "    last_enqueue_ts");
-	SEQ_printf(sprd_task_seq_buf, "\n-----------------------------------------------------------"
-		"---------------------------------------------------------------------------------\n");
+	SEQ_printf(sprd_task_seq_buf, "      last_sleep_ts");
+	SEQ_printf(sprd_task_seq_buf, "\n-------------------------------------------------------------------"
+		"-------------------------------------------------------------------------------------------\n");
 
-	rcu_read_lock();
 	for_each_process_thread(g, p) {
 		cpu = task_cpu(p);
 		rq = cpu_rq(cpu);
 
 		sprd_print_task_stats(cpu, rq, p);
 	}
-	rcu_read_unlock();
 }
 
 #ifdef CONFIG_ARM64
@@ -506,7 +515,7 @@ void sprd_dump_stack_reg(int cpu, struct pt_regs *pregs)
 		goto unlock;
 	}
 	SEQ_printf(sprd_sr_seq_buf, "callstack:\n");
-	SEQ_printf(sprd_sr_seq_buf, "[<%08lx>] (%ps)\n", frame.pc, (void *)frame.pc);
+	SEQ_printf(sprd_sr_seq_buf, "[<%08lx>] (%pS)\n", frame.pc, (void *)frame.pc);
 
 	for (i = 0; i < MAX_CALLBACK_LEVEL; i++) {
 		int urc;
@@ -533,10 +542,120 @@ unlock:
 	raw_spin_unlock(&dump_lock);
 }
 
+static int sprd_add_task_stats(void)
+{
+	int ret = 0;
+
+	sprd_task_buf = kzalloc(SPRD_DUMP_TASK_SIZE, GFP_KERNEL);
+	if (!sprd_task_buf)
+		return -ENOMEM;
+
+	sprd_task_seq_buf = kzalloc(sizeof(*sprd_task_seq_buf), GFP_KERNEL);
+	if (!sprd_task_seq_buf) {
+		ret = -ENOMEM;
+		goto err_task_seq;
+	}
+
+	if (minidump_add_section("task_stats", (unsigned long)(sprd_task_buf), SPRD_DUMP_TASK_SIZE)) {
+		ret = -EINVAL;
+		goto err_task_save;
+	}
+
+	seq_buf_init(sprd_task_seq_buf, sprd_task_buf, SPRD_DUMP_TASK_SIZE);
+
+	return 0;
+
+err_task_save:
+	kfree(sprd_task_seq_buf);
+err_task_seq:
+	kfree(sprd_task_buf);
+
+	return ret;
+}
+
+static void sprd_free_task_stats(void)
+{
+	kfree(sprd_task_buf);
+	kfree(sprd_task_seq_buf);
+}
+
+static int sprd_add_runq_stats(void)
+{
+	int ret = 0;
+
+	sprd_runq_buf = kzalloc(SPRD_DUMP_RQ_SIZE, GFP_KERNEL);
+	if (!sprd_runq_buf)
+		return -ENOMEM;
+
+	sprd_rq_seq_buf = kzalloc(sizeof(*sprd_rq_seq_buf), GFP_KERNEL);
+	if (!sprd_rq_seq_buf) {
+		ret = -ENOMEM;
+		goto err_rq_seq;
+	}
+
+	if (minidump_add_section("runqueue", (unsigned long)(sprd_runq_buf), SPRD_DUMP_RQ_SIZE)) {
+		ret = -EINVAL;
+		goto err_rq_save;
+	}
+
+	seq_buf_init(sprd_rq_seq_buf, sprd_runq_buf, SPRD_DUMP_RQ_SIZE);
+
+	return 0;
+
+err_rq_save:
+	kfree(sprd_rq_seq_buf);
+err_rq_seq:
+	kfree(sprd_runq_buf);
+
+	return ret;
+}
+
+static void sprd_free_runq_stats(void)
+{
+	kfree(sprd_runq_buf);
+	kfree(sprd_rq_seq_buf);
+}
+
+static int sprd_add_stack_regs_stats(void)
+{
+	int ret = 0;
+
+	sprd_stack_reg_buf = kzalloc(SPRD_DUMP_STACK_SIZE, GFP_KERNEL);
+	if (!sprd_stack_reg_buf)
+		return -ENOMEM;
+
+	sprd_sr_seq_buf = kzalloc(sizeof(*sprd_sr_seq_buf), GFP_KERNEL);
+	if (!sprd_sr_seq_buf) {
+		ret = -ENOMEM;
+		goto err_sr_seq;
+	}
+
+	if (minidump_add_section("stack_regs", (unsigned long)(sprd_stack_reg_buf), SPRD_DUMP_STACK_SIZE)) {
+		ret = -EINVAL;
+		goto err_sr_save;
+	}
+
+	seq_buf_init(sprd_sr_seq_buf, sprd_stack_reg_buf, SPRD_DUMP_STACK_SIZE);
+
+	return 0;
+
+err_sr_save:
+	kfree(sprd_sr_seq_buf);
+err_sr_seq:
+	kfree(sprd_stack_reg_buf);
+
+	return ret;
+}
+
+static void sprd_free_stack_regs_stats(void)
+{
+	kfree(sprd_stack_reg_buf);
+	kfree(sprd_sr_seq_buf);
+}
+
 static int sprd_sched_panic_event(struct notifier_block *self,
 				  unsigned long val, void *reason)
 {
-	pr_crit("Dump runqueue/task stats...\n");
 	sprd_dump_runqueues();
 	sprd_dump_task_stats();
 
@@ -548,54 +667,12 @@ static struct notifier_block sprd_sched_panic_event_nb = {
 	.priority	= INT_MAX - 1,
 };
 
-static int __init sprd_dump_sched_init(void)
+static int __init sprd_dump_msg_init(void)
 {
-	int ret;
 
-	sprd_task_buf = kzalloc(SPRD_DUMP_TASK_SIZE, GFP_KERNEL);
-	if (!sprd_task_buf)
-		return -EINVAL;
-
-	sprd_task_seq_buf = kzalloc(sizeof(*sprd_task_seq_buf), GFP_KERNEL);
-	if (!sprd_task_seq_buf) {
-		ret = -EINVAL;
-		goto err_task_seq;
-	}
-
-	sprd_runq_buf = kzalloc(SPRD_DUMP_RQ_SIZE, GFP_KERNEL);
-	if (!sprd_runq_buf) {
-		ret = -EINVAL;
-		goto err_runq;
-	}
-
-	sprd_rq_seq_buf = kzalloc(sizeof(*sprd_rq_seq_buf), GFP_KERNEL);
-	if (!sprd_rq_seq_buf) {
-		ret = -EINVAL;
-		goto err_rq_seq;
-	}
-
-	sprd_stack_reg_buf = kzalloc(SPRD_DUMP_STACK_SIZE, GFP_KERNEL);
-	if (!sprd_stack_reg_buf) {
-		ret = -EINVAL;
-		goto err_sr_buf;
-	}
-
-	sprd_sr_seq_buf = kzalloc(sizeof(*sprd_sr_seq_buf), GFP_KERNEL);
-	if (!sprd_sr_seq_buf) {
-		ret = -EINVAL;
-		goto err_sr_seq;
-	}
-
-	if (minidump_add_section("task_stats", (unsigned long)(sprd_task_buf), SPRD_DUMP_TASK_SIZE) ||
-	    minidump_add_section("runqueue", (unsigned long)(sprd_runq_buf), SPRD_DUMP_RQ_SIZE) ||
-	    minidump_add_section("stack_regs", (unsigned long)(sprd_stack_reg_buf), SPRD_DUMP_STACK_SIZE)) {
-		ret = -EINVAL;
-		goto err_save;
-	}
-
-	seq_buf_init(sprd_task_seq_buf, sprd_task_buf, SPRD_DUMP_TASK_SIZE);
-	seq_buf_init(sprd_rq_seq_buf, sprd_runq_buf, SPRD_DUMP_RQ_SIZE);
-	seq_buf_init(sprd_sr_seq_buf, sprd_stack_reg_buf, SPRD_DUMP_STACK_SIZE);
+	sprd_add_task_stats();
+	sprd_add_runq_stats();
+	sprd_add_stack_regs_stats();
 
 	/* register sched panic notifier */
 	atomic_notifier_chain_register(&panic_notifier_list,
@@ -605,36 +682,19 @@ static int __init sprd_dump_sched_init(void)
 
 	return 0;
 
-err_save:
-	kfree(sprd_sr_seq_buf);
-err_sr_seq:
-	kfree(sprd_stack_reg_buf);
-err_sr_buf:
-	kfree(sprd_rq_seq_buf);
-err_rq_seq:
-	kfree(sprd_runq_buf);
-err_runq:
-	kfree(sprd_task_seq_buf);
-err_task_seq:
-	kfree(sprd_task_buf);
-
-	return ret;
 }
 
-static void __exit sprd_dump_sched_exit(void)
+static void __exit sprd_dump_msg_exit(void)
 {
 	atomic_notifier_chain_unregister(&panic_notifier_list,
 					 &sprd_sched_panic_event_nb);
-	kfree(sprd_task_buf);
-	kfree(sprd_task_seq_buf);
-	kfree(sprd_runq_buf);
-	kfree(sprd_rq_seq_buf);
-	kfree(sprd_stack_reg_buf);
-	kfree(sprd_sr_seq_buf);
+	sprd_free_task_stats();
+	sprd_free_runq_stats();
+	sprd_free_stack_regs_stats();
 }
 
-late_initcall_sync(sprd_dump_sched_init);
-module_exit(sprd_dump_sched_exit);
+late_initcall_sync(sprd_dump_msg_init);
+module_exit(sprd_dump_msg_exit);
 
-MODULE_DESCRIPTION("kernel sched stats for Unisoc");
+MODULE_DESCRIPTION("kernel dump stats for Unisoc");
 MODULE_LICENSE("GPL");

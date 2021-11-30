@@ -29,4 +29,6 @@ extern int minidump_change_extend_information(const char *name,
  * @pregs:	pt_regs.
  */
 extern void sprd_dump_stack_reg(int cpu, struct pt_regs *pregs);
+extern void sprd_dump_task_stats(void);
+extern void sprd_dump_runqueues(void);
 

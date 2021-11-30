@@ -26,6 +26,7 @@
 #include <asm/io.h>
 #include <asm/traps.h>
 #include <linux/module.h>
+#include <linux/soc/sprd/sprd_sysdump.h>
 #include <linux/sprd_sip_svc.h>
 #if IS_ENABLED(CONFIG_ARM)
 #include <asm/cacheflush.h>
@@ -51,6 +52,7 @@ enum hand_dump_phase {
 	SPRD_HANG_DUMP_GICC_REGS,
 	SPRD_HANG_DUMP_SYSDUMP,
 	SPRD_HANG_DUMP_GICD_REGS,
+	SPRD_HANG_DUMP_INFO,
 	SPRD_HANG_DUMP_END,
 };
 
@@ -616,6 +618,7 @@ asmlinkage __visible void wdh_atf_entry(struct pt_regs *data)
 
 	if (user_mode(pregs) || atomic_xchg(&sprd_enter_wdh, 1)) {
 		sprd_hang_debug_printf("%s: goto panic idle\n", __func__);
+		sprd_dump_stack_reg(cpu, pregs);
 		sysdump_ipi(pregs);
 		wdh_step[cpu] = SPRD_HANG_DUMP_SYSDUMP;
 		flush_cache_all();
@@ -649,10 +652,16 @@ asmlinkage __visible void wdh_atf_entry(struct pt_regs *data)
 
 	prepare_dump_info_for_wdh(pregs, "wdt fiq assert");
 
-	wdh_step[cpu] = SPRD_HANG_DUMP_END;
+	wdh_step[cpu] = SPRD_HANG_DUMP_INFO;
 	print_step(cpu);
 
+	sprd_dump_task_stats();
+	sprd_dump_runqueues();
+	sprd_dump_stack_reg(cpu, pregs);
 	sysdump_ipi(pregs);
+
+	wdh_step[cpu] = SPRD_HANG_DUMP_END;
+	print_step(cpu);
 
 	mdelay(50);
 	do_kernel_restart("panic");
