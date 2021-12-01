@@ -6288,8 +6288,8 @@ CONFIG_FTRACE_MCOUNT_RECORD
 	[missing plat description] none
 	[function] Trace mcount record.
 CONFIG_FTRACE_SYSCALLS
-	[arch] arm
-	[plat] pike2
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field] code,make
 	[subsys] core

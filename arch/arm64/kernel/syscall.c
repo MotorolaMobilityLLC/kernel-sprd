@@ -17,6 +17,25 @@
 long compat_arm_syscall(struct pt_regs *regs, int scno);
 long sys_ni_syscall(void);
 
+#ifdef CONFIG_CFI_CLANG
+unsigned long __init arch_syscall_addr(int nr)
+{
+	u32 inst;
+	unsigned long addr = (unsigned long)sys_call_table[nr];
+
+	/*
+	 * Clang's CFI will replace the address of each system call function
+	 * with the address of a jump table entry. In this case, the jump
+	 * target address is the actual address of the system call.
+	 */
+	if (likely(!aarch64_insn_read((void *)addr, &inst) &&
+		   aarch64_insn_is_b(inst)))
+		addr += aarch64_get_branch_offset(inst);
+
+	return addr;
+}
+#endif
+
 static long do_ni_syscall(struct pt_regs *regs, int scno)
 {
 #ifdef CONFIG_COMPAT
