@@ -331,7 +331,7 @@ static int gnss_dump_cp_register_data(u32 addr, u32 len)
 			/* direct map */
 			phy_addr =  addr + GNSS_AP_ACCESS_CP_OFFSET;
 			for (i = 0; i < len / 4; i++) {
-				pt = buf + i * 4;
+				pt = (u8 *) (buf + i * 4);
 				wcn_read_data_from_phy_addr(phy_addr, pt, 4);
 				phy_addr = phy_addr + GNSS_DUMP_ADDR_OFFSET;
 			}
@@ -344,7 +344,7 @@ static int gnss_dump_cp_register_data(u32 addr, u32 len)
 			wcn_regmap_raw_write_bit(map,
 						 ANLG_WCN_WRITE_ADDR, addr);
 			for (i = 0; i < len / 4; i++) {
-				pt = buf + i * 4;
+				pt = (u8 *) (buf + i * 4);
 				wcn_regmap_read(map,
 						ANLG_WCN_READ_ADDR, (u32 *)pt);
 			}
