@@ -479,6 +479,8 @@ void sprd_dump_stack_reg(int cpu, struct pt_regs *pregs)
 	frame.graph = 0;
 #endif
 	bitmap_zero(frame.stacks_done, __NR_STACK_TYPES);
+	frame.prev_fp = 0;
+	frame.prev_type = STACK_TYPE_UNKNOWN;
 #else
 	frame.fp = pregs->ARM_fp;
 	frame.sp = pregs->ARM_sp;
