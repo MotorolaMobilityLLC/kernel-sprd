@@ -1164,7 +1164,6 @@ fan54015_charger_probe(struct i2c_client *client, const struct i2c_device_id *id
 	return 0;
 
 err_regmap_exit:
-	regmap_exit(info->pmic);
 	mutex_unlock(&info->lock);
 	mutex_destroy(&info->lock);
 	return ret;

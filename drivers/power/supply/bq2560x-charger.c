@@ -1833,7 +1833,6 @@ err_psy_usb:
 	if (info->irq_gpio)
 		gpio_free(info->irq_gpio);
 err_regmap_exit:
-	regmap_exit(info->pmic);
 	mutex_destroy(&info->lock);
 	return ret;
 }
