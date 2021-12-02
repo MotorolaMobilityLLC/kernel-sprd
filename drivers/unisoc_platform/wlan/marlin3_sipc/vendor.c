@@ -249,6 +249,9 @@ static int sprdwl_compose_iface_st(struct sk_buff *reply,
 		    sizeof(iface_st->info.ap_country_str),
 		    iface_st->info.ap_country_str))
 		goto out_put_fail;
+	if (nla_put_u32(reply, SPRDWL_LL_STATS_IFACE_INFO_TIME_SLICING_DUTY_CYCLE_PERCENT,
+			iface_st->info.time_slicing_duty_cycle_percent))
+		goto out_put_fail;
 	if (nla_put(reply, SPRDWL_LL_STATS_IFACE_INFO_COUNTRY_STR,
 		    sizeof(iface_st->info.country_str),
 		    iface_st->info.country_str))
@@ -442,6 +445,7 @@ static int sprdwl_vendor_get_llstat_handler(struct wiphy *wiphy,
 
 	/*set data for iface struct*/
 	iface_st->info.mode = vif->mode;
+	iface_st->info.time_slicing_duty_cycle_percent = 50;
 	memcpy(iface_st->info.mac_addr, vif->ndev->dev_addr,
 	       ETH_ALEN);
 	iface_st->info.state = (enum wifi_connection_state)vif->sm_state;

@@ -279,6 +279,7 @@ enum sprdwl_vendor_attr_ll_stats_results {
 	SPRDWL_LL_STATS_IFACE_RTS_FAIL_CNT = 80,
 	SPRDWL_LL_STATS_IFACE_PPDU_SUCC_CNT = 81,
 	SPRDWL_LL_STATS_IFACE_PPDU_FAIL_CNT = 82,
+	SPRDWL_LL_STATS_IFACE_INFO_TIME_SLICING_DUTY_CYCLE_PERCENT = 84,
 
 	/* keep last */
 	SPRDWL_LL_STATS_AFTER_LAST,
@@ -1060,6 +1061,14 @@ enum wifi_roam_state {
 	WIFI_ROAMING_ACTIVE = 1,
 };
 
+struct llstat_channel_info {
+	u32 channel_width;
+	u32 center_freq;
+	u32 center_freq0;
+	u32 center_freq1;
+	u32 on_time;
+	u32 cca_busy_time;
+} __packed;
 /* access categories */
 enum wifi_traffic_ac {
 	WIFI_AC_VO = 0,
@@ -1119,6 +1128,7 @@ struct wifi_interface_link_layer_info {
 	u8 bssid[6];
 	u8 ap_country_str[3];
 	u8 country_str[3];
+	u8 time_slicing_duty_cycle_percent;
 };
 
 /* Per access category statistics */
