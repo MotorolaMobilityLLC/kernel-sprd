@@ -10,6 +10,7 @@
 #include <dt-bindings/soc/sprd,qogirl6-mask.h>
 #include <dt-bindings/debug/busmonitor/busmonitor.h>
 #include <dt-bindings/debug/dmc_mpu/qogirl6_dmc_mpu.h>
+#include "ums9230-qos.dtsi"
 
 / {
 	interrupt-parent = <&gic>;
@@ -822,6 +823,7 @@
 				interrupts = <GIC_SPI 27 IRQ_TYPE_LEVEL_HIGH>;
 				status = "disabled";
 				iommus = <&iommu_dispc>;
+				sprd,qos = <&dpu_qos>;
 
 				dpu_port: port {
 					dpu_out: endpoint {

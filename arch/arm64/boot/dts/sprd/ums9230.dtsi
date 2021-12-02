@@ -8,7 +8,6 @@
 #include <dt-bindings/interrupt-controller/arm-gic.h>
 #include <dt-bindings/clock/sprd,ums9230-clk.h>
 #include "qogirl6.dtsi"
-#include "ums9230-qos.dtsi"
 
 / {
 	cpuinfo_hardware = "Unisoc ums9230";

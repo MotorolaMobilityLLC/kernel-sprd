@@ -8,7 +8,6 @@
 #include <dt-bindings/interrupt-controller/arm-gic.h>
 #include <dt-bindings/clock/sprd,ums512-clk.h>
 #include "sharkl5Pro.dtsi"
-#include "ums512-qos.dtsi"
 #include "ums512-modem.dtsi"
 
 / {

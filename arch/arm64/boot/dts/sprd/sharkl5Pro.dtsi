@@ -10,6 +10,7 @@
 #include <dt-bindings/clock/sprd,ums512-clk.h>
 #include <dt-bindings/debug/busmonitor/busmonitor.h>
 #include <dt-bindings/debug/dmc_mpu/sharkl5pro_dmc_mpu.h>
+#include "ums512-qos.dtsi"
 
 / {
 	interrupt-parent = <&gic>;
@@ -791,6 +792,7 @@
 				interrupts = <GIC_SPI 27 IRQ_TYPE_LEVEL_HIGH>;
 				status = "disabled";
 				iommus = <&iommu_dispc>;
+				sprd,qos = <&dpu_qos>;
 
 				dpu_port: port {
 					dpu_out: endpoint {
