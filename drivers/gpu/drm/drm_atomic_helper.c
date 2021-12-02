@@ -2813,12 +2813,14 @@ EXPORT_SYMBOL(drm_atomic_helper_disable_all);
  * This is just a convenience wrapper around drm_atomic_helper_disable_all(),
  * and it is the atomic version of drm_crtc_force_disable_all().
  */
+int lcd_shutdown_flag = 0;
 void drm_atomic_helper_shutdown(struct drm_device *dev)
 {
 	struct drm_modeset_acquire_ctx ctx;
 	int ret;
 
 	drm_modeset_acquire_init(&ctx, 0);
+	lcd_shutdown_flag = 1;
 	while (1) {
 		ret = drm_modeset_lock_all_ctx(dev, &ctx);
 		if (!ret)

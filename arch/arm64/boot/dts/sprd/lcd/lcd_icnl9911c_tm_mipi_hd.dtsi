@@ -31,7 +31,7 @@
 				sprd,dpi-clk-div = <6>;
 				sprd,video-lp-cmd-enable = <1>;
 				sprd,hporch-lp-disable = <1>;
-				sprd,reset-on-sequence = <0 5>, <1 5>;
+				sprd,reset-on-sequence = <0 15>, <1 10>;
 				sprd,reset-off-sequence = <1 5>;
 
 					sprd,initial-command = [

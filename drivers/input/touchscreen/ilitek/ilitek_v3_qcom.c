@@ -39,6 +39,10 @@ void ili_tp_reset(void)
 	mdelay(ilits->rst_edge_delay);
 }
 
+void ilitek_tp_rst(void){
+	gpio_set_value(ilits->tp_rst, 0);
+}
+EXPORT_SYMBOL(ilitek_tp_rst);
 void ili_input_register(void)
 {
 	ILI_INFO();

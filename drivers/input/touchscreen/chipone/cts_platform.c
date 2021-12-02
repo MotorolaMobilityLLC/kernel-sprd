@@ -820,13 +820,14 @@ int cts_plat_disable_irq(struct cts_platform_data *pdata)
 }
 
 #ifdef CFG_CTS_HAS_RESET_PIN
+int gpio_rst = 0;
 int cts_plat_reset_device(struct cts_platform_data *pdata)
 {
     /* !!!can not be modified*/
     /* !!!can not be modified*/
     /* !!!can not be modified*/
     cts_info("Reset device");
-
+    gpio_rst = pdata->rst_gpio;
     gpio_set_value(pdata->rst_gpio, 1);
     mdelay(1);
     gpio_set_value(pdata->rst_gpio, 0);
@@ -835,6 +836,9 @@ int cts_plat_reset_device(struct cts_platform_data *pdata)
     mdelay(40);
 
     return 0;
+}
+void cts_tp_rst(void){
+	gpio_set_value(gpio_rst,0);
 }
 
 int cts_plat_set_reset(struct cts_platform_data *pdata, int val)

@@ -124,24 +124,15 @@ static int sprd_panel_send_cmds(struct mipi_dsi_device *dsi,
 	return 0;
 }
 
+extern int lcd_shutdown_flag;
+extern void ilitek_tp_rst(void);
+extern void cts_tp_rst(void);
 static int sprd_panel_unprepare(struct drm_panel *p)
 {
 	struct sprd_panel *panel = to_sprd_panel(p);
 	struct gpio_timing *timing;
 	int items, i;
-
 	DRM_INFO("%s()\n", __func__);
-
-	if (panel->info.avee_gpio) {
-		gpiod_direction_output(panel->info.avee_gpio, 0);
-		mdelay(panel->info.power_gpio_delay);
-	}
-
-	if (panel->info.avdd_gpio) {
-		gpiod_direction_output(panel->info.avdd_gpio, 0);
-		mdelay(5);
-	}
-
 	if (panel->info.reset_gpio) {
 		items = panel->info.rst_off_seq.items;
 		timing = panel->info.rst_off_seq.timing;
@@ -151,7 +142,28 @@ static int sprd_panel_unprepare(struct drm_panel *p)
 			mdelay(timing[i].delay);
 		}
 	}
+	if (lcd_shutdown_flag) {
+		if(strncmp(lcd_name, "lcd_ili9882q_dj_mipi_hd", strlen(lcd_name)) == 0) {
+			ilitek_tp_rst();
+			pr_err("3333ontim\n");
+		}
+		if (strncmp(lcd_name, "lcd_icnl9911c_tm_mipi_hd", strlen(lcd_name))== 0) {
+			cts_tp_rst();
+			pr_err("4444ontim\n");
+		}
+		gpiod_direction_output(panel->info.reset_gpio,0);
+		mdelay(1);
+		pr_err("1111ontim\n");
+	}
+	if (panel->info.avee_gpio) {
+		gpiod_direction_output(panel->info.avee_gpio, 0);
+		mdelay(panel->info.power_gpio_delay);
+	}
 
+	if (panel->info.avdd_gpio) {
+		gpiod_direction_output(panel->info.avdd_gpio, 0);
+		mdelay(5);
+	}
 	regulator_disable(panel->supply);
 
 	return 0;
@@ -162,9 +174,8 @@ static int sprd_panel_prepare(struct drm_panel *p)
 	struct sprd_panel *panel = to_sprd_panel(p);
 	struct gpio_timing *timing;
 	int items, i, ret;
-
 	DRM_INFO("%s()\n", __func__);
-
+	pr_err("ontim %s()\n", __func__);
 	ret = regulator_enable(panel->supply);
 	if (ret < 0)
 		DRM_ERROR("enable lcd regulator failed\n");
@@ -258,23 +269,19 @@ static int sprd_panel_disable(struct drm_panel *p)
 		panel->backlight->props.state |= BL_CORE_FBBLANK;
 		backlight_update_status(panel->backlight);
 	}
-
 	sprd_panel_send_cmds(panel->slave,
 			     panel->info.cmds[CMD_CODE_SLEEP_IN],
 			     panel->info.cmds_len[CMD_CODE_SLEEP_IN]);
 
 	panel->is_enabled = false;
 	mutex_unlock(&panel_lock);
-
 	return 0;
 }
 
 static int sprd_panel_enable(struct drm_panel *p)
 {
 	struct sprd_panel *panel = to_sprd_panel(p);
-
 	DRM_INFO("%s()\n", __func__);
-
 	sprd_panel_send_cmds(panel->slave,
 			     panel->info.cmds[CMD_CODE_INIT],
 			     panel->info.cmds_len[CMD_CODE_INIT]);
@@ -761,7 +768,6 @@ static int sprd_oled_set_brightness(struct backlight_device *bdev)
 	int brightness, level;
 	struct sprd_oled *oled = bl_get_data(bdev);
 	struct sprd_panel *panel = oled->panel;
-
     if (g_hbm_enable){
 		DRM_INFO("firefly ,Now hbm enable, want to set level = %d\n", bdev->props.brightness);
 		DRM_INFO("firefly ,Do not allow to set other level backlight\n");
@@ -1275,7 +1281,6 @@ static int sprd_panel_remove(struct mipi_dsi_device *slave)
 
 	sprd_panel_disable(&panel->base);
 	sprd_panel_unprepare(&panel->base);
-
 	ret = mipi_dsi_detach(slave);
 	if (ret < 0)
 		DRM_ERROR("failed to detach from DSI host: %d\n", ret);
