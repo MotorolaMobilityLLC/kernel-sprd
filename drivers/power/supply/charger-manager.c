@@ -4598,11 +4598,11 @@ static int charger_get_property(struct power_supply *psy,
 		else if (val->intval > CM_CAPACITY_LEVEL_CRITICAL)
 			val->intval = POWER_SUPPLY_CAPACITY_LEVEL_LOW;
 		else
-//#ifdef    DUAL_85_VERSION
+			val->intval = POWER_SUPPLY_CAPACITY_LEVEL_CRITICAL;
+
+	if (val->intval == POWER_SUPPLY_CAPACITY_LEVEL_CRITICAL  && is_charging(cm) )
 			val->intval = POWER_SUPPLY_CAPACITY_LEVEL_LOW;
-//#else
-//			val->intval = POWER_SUPPLY_CAPACITY_LEVEL_CRITICAL;
-//#endif
+
 		break;
 	case POWER_SUPPLY_PROP_ONLINE:
 		if (is_ext_pwr_online(cm))
