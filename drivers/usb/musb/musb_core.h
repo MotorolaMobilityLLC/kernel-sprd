@@ -143,6 +143,7 @@ struct musb_io;
  */
 struct musb_platform_ops {
 
+#define MUSB_DMA_SPRD		BIT(10)
 #define MUSB_G_NO_SKB_RESERVE	BIT(9)
 #define MUSB_DA8XX		BIT(8)
 #define MUSB_PRESERVE_SESSION	BIT(7)
@@ -192,6 +193,18 @@ struct musb_platform_ops {
 	void	(*clear_ep_rxintr)(struct musb *musb, int epnum);
 };
 
+struct musb_host_ops {
+	void    (*host_start)(struct musb *musb);
+	void    (*advance_schedule)(struct musb *musb, struct urb *urb,
+			struct musb_hw_ep *hw_ep, int is_in);
+	bool    (*tx_dma_program)(struct dma_controller *dma,
+			struct musb_hw_ep *hw_ep, struct musb_qh *qh,
+			struct urb *urb, u32 offset, u32 length);
+	void    (*rx_dma_program)(struct dma_channel *dma_channel,
+			struct musb *musb, u8 epnum, struct musb_qh *qh,
+			struct urb *urb, u32 offset, size_t len);
+};
+
 /*
  * struct musb_hw_ep - endpoint hardware (bidirectional)
  *
@@ -236,6 +249,9 @@ struct musb_hw_ep {
 	/* peripheral side */
 	struct musb_ep		ep_in;			/* TX */
 	struct musb_ep		ep_out;			/* RX */
+#ifdef CONFIG_USB_MUSB_SPRD
+	struct usb_host_endpoint	*hep[2];
+#endif
 };
 
 static inline struct musb_request *next_in_request(struct musb_hw_ep *hw_ep)
@@ -408,6 +424,10 @@ struct musb {
 	struct usb_gadget	g;			/* the gadget */
 	struct usb_gadget_driver *gadget_driver;	/* its driver */
 	struct usb_hcd		*hcd;			/* the usb hcd */
+	unsigned		fixup_ep0fifo:1;
+	bool			is_offload;     /* i2s mode for usb audio */
+	bool			offload_used;
+	int			shutdowning;
 
 	const struct musb_hdrc_config *config;
 
@@ -415,6 +435,8 @@ struct musb {
 #ifdef CONFIG_DEBUG_FS
 	struct dentry		*debugfs_root;
 #endif
+	bool			restore_complete;
+	struct	musb_host_ops	hops;
 };
 
 /* This must be included after struct musb is defined */
@@ -504,6 +526,8 @@ extern void musb_load_testpacket(struct musb *);
 extern irqreturn_t musb_interrupt(struct musb *);
 
 extern void musb_hnp_stop(struct musb *musb);
+
+extern int musb_reset_all_fifo_2_default(struct musb *musb);
 
 int musb_queue_resume_work(struct musb *musb,
 			   int (*callback)(struct musb *musb, void *data),
