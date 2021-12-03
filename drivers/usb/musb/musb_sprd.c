@@ -747,9 +747,16 @@ static void sprd_musb_work(struct work_struct *work)
 		musb->shutdowning = 0;
 		musb->offload_used = 0;
 
-		MUSB_DEV_MODE(musb);
 		pm_runtime_mark_last_busy(musb->controller);
 		ret = pm_runtime_put_autosuspend(musb->controller);
+
+		cnt = 250;
+		while (!pm_runtime_suspended(musb->controller) && --cnt > 0)
+			msleep(20);
+		if (cnt <= 0) {
+			dev_err(musb->controller, "musb child device enters suspend failed!!!\n");
+			goto end;
+		}
 
 		if (!charging_only && !(glue->power_always_on &&
 		    glue->dr_mode == USB_DR_MODE_HOST))
@@ -760,6 +767,8 @@ static void sprd_musb_work(struct work_struct *work)
 		musb->xceiv->otg->state = OTG_STATE_B_IDLE;
 		glue->dr_mode = USB_DR_MODE_UNKNOWN;
 		spin_unlock_irqrestore(&glue->lock, flags);
+
+		MUSB_DEV_MODE(musb);
 
 		dev_info(glue->dev, "is shut down\n");
 		goto end;
