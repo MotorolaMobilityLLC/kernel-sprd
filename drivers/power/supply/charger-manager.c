@@ -941,6 +941,8 @@ static int get_usb_charger_type(struct charger_manager *cm, u32 *type)
 
 	if (*type == POWER_SUPPLY_USB_TYPE_SFCP_1P0)
 		cm->desc->is_fast_charge = true;
+	else
+		cm->desc->is_fast_charge = false;
 
 	cm_get_charger_type(cm, type);
 	cm->desc->fast_charger_type = *type;
@@ -1734,13 +1736,13 @@ static void cm_update_charge_info(struct charger_manager *cm, int cmd)
 		thm_info->thm_adjust_cur = (int)(thm_info->thm_pwr /
 			thm_info->adapter_default_charge_vol) * 1000;
 
-	dev_info(cm->dev, "%s, chgr type = %d, fchg_en = %d, cp_running = %d, cp_recovery = %d"
-		 " max chg_lmt_cur = %duA, max inpt_lmt_cur = %duA, max chg_volt = %duV,"
-		 " chg_volt_drop = %d, adapter_chg_volt = %dmV, thm_cur = %d, chg_info_cmd = 0x%x\n",
+	dev_info(cm->dev, "%s,chgr type =%d,fchg_en=%d,cp_running=%d,cp_recovery=%d"
+		 "chg_lmt_cur=%dmA,inpt_lmt_cur=%dmA,max chg_volt=%dmV,"
+		 "chg_volt_drop=%d,adapter_chg_volt= dV,thm_cur=%d,dyna=%d;chg_info_cmd=0x%x\n",
 		 __func__, desc->charger_type, desc->enable_fast_charge, desc->cp.cp_running,
-		 desc->cp.recovery, desc->charge_limit_cur, desc->input_limit_cur,
-		 desc->charge_voltage_max, desc->charge_voltage_drop,
-		 thm_info->adapter_default_charge_vol * 1000, thm_info->thm_adjust_cur, cmd);
+		 desc->cp.recovery, desc->charge_limit_cur/1000, desc->input_limit_cur/1000,
+		 desc->charge_voltage_max/1000, desc->charge_voltage_drop/1000,
+		 thm_info->adapter_default_charge_vol, thm_info->thm_adjust_cur/1000, cm->dynamic_charge_current/1000,cmd);
 
 	if (!cm->cm_charge_vote || !cm->cm_charge_vote->vote) {
 		dev_err(cm->dev, "%s: cm_charge_vote is null\n", __func__);
@@ -1752,7 +1754,7 @@ static void cm_update_charge_info(struct charger_manager *cm, int cmd)
 					 SPRD_VOTE_TYPE_IBAT,
 					 SPRD_VOTE_TYPE_IBAT_ID_CHARGER_TYPE,
 					 SPRD_VOTE_CMD_MIN, desc->charge_limit_cur, cm);
-	if (cmd & CM_CHARGE_INFO_INPUT_LIMIT)
+	if (cmd & CM_CHARGE_INFO_INPUT_LIMIT)		
 		cm->cm_charge_vote->vote(cm->cm_charge_vote, true,
 					 SPRD_VOTE_TYPE_IBUS,
 					 SPRD_VOTE_TYPE_IBUS_ID_CHARGER_TYPE,
@@ -1774,6 +1776,12 @@ static void cm_update_charge_info(struct charger_manager *cm, int cmd)
 	}
 	if (cmd & CM_CHARGE_INFO_JEITA_LIMIT)
 		cm_update_current_jeita_status(cm);
+
+	if (cmd & CM_CHARGE_INFO_CHK2A3A_LIMIT)
+		cm->cm_charge_vote->vote(cm->cm_charge_vote, true,
+					 SPRD_VOTE_TYPE_IBUS,
+					 SPRD_VOTE_TYPE_IBUS_ID_2A3A_TYPE,
+					 SPRD_VOTE_CMD_MIN, cm->dynamic_charge_current, cm);
 }
 
 static void cm_vote_property(struct charger_manager *cm, int target_val,
@@ -2315,9 +2323,9 @@ static int try_fast_charger_enable(struct charger_manager *cm, bool enable)
 {
 	int err = 0;
 
-	if (cm->desc->fast_charger_type != POWER_SUPPLY_USB_CHARGER_TYPE_PD &&
-	    cm->desc->fast_charger_type != POWER_SUPPLY_USB_CHARGER_TYPE_SFCP_1P0)
-		return 0;
+	//if (cm->desc->fast_charger_type != POWER_SUPPLY_USB_CHARGER_TYPE_PD &&
+	//    cm->desc->fast_charger_type != POWER_SUPPLY_USB_CHARGER_TYPE_SFCP_1P0)
+	//	return 0;
 
 	if (enable) {
 		err = cm_fast_charge_enable_check(cm);
@@ -3479,6 +3487,72 @@ static void try_wireless_charger_enable(struct charger_manager *cm, bool enable)
 	if (ret)
 		dev_err(cm->dev, "enable wl charger fail, ret = %d\n", ret);
 }
+
+static int  chg_check_vbus(struct charger_manager *cm, bool enable)
+{
+	int vchr = 0;
+	static int low_vbus=0;
+	#define VBUS_5V 5000000
+	#define V_4P4V 4400000
+	#define V_500MV 500000
+	#define I_100MA 100000
+	#define V_4P5V 4500000
+	#define V_90MV 90000
+	#define I_2P6A 2600000
+	#define I_2P1A 2100000
+	bool enable_check=true;
+	#define VBUS_THRESHOLD (V_4P5V+V_90MV)
+
+	if(!enable)
+	{
+		low_vbus = 0 ;
+		return 0;
+	}
+	
+	if(cm->check_2A3A_done)
+		return 0;
+	
+	get_charger_voltage(cm, &vchr);
+	if (vchr > (VBUS_5V +V_500MV)) {
+
+		cm->check_2A3A_done = true;
+		return 0;
+	}
+
+	dev_err(cm->dev, "%s;%d\n", __func__,vchr/1000);
+	
+	if (enable_check  && cm->desc->charger_type == POWER_SUPPLY_USB_CHARGER_TYPE_DCP){
+		
+	if(vchr < VBUS_THRESHOLD && vchr > V_4P4V){
+		
+		low_vbus ++;
+		if(low_vbus >5)
+		{
+			      // low_vbus =0;
+			if (cm->dynamic_charge_current == -1)
+				cm->dynamic_charge_current = cm->desc->cur.dcp_limit  - I_100MA;
+			else if( cm->dynamic_charge_current  > I_2P6A)
+				cm->dynamic_charge_current -= I_100MA;
+			else
+			  {
+				cm->dynamic_charge_current = I_2P1A;  //set 2.1A for 2A DCP scharger
+				cm->check_2A3A_done = true;
+			   }
+		}
+	}
+	else
+		low_vbus	= 0;
+
+	dev_err(cm->dev,"%s: vbus(%d mV)  min(%d mV) ; current=%d;%d;\n", __func__, vchr / 1000,
+		VBUS_THRESHOLD/1000 ,
+		cm->dynamic_charge_current/1000 ,
+		low_vbus);
+
+		cm_update_charge_info(cm,CM_CHARGE_INFO_CHK2A3A_LIMIT);
+	}
+
+	return 0;
+}
 /**
  * try_charger_enable - Enable/Disable chargers altogether
  * @cm: the Charger Manager representing the battery.
@@ -3503,6 +3577,8 @@ static int try_charger_enable(struct charger_manager *cm, bool enable)
 	
 	try_fast_charger_enable(cm, enable);
 
+	chg_check_vbus(cm, enable);
+	
 	/* Ignore if it's redundant command */
 	if (enable == cm->charger_enabled)
 		return 0;
@@ -4523,6 +4599,9 @@ static void misc_event_handler(struct charger_manager *cm, enum cm_event_types t
 	cm_update_charger_type_status(cm);
          
         cm->is_full = false;
+	 cm->dynamic_charge_current =-1;
+	 cm->check_2A3A_done = false;
+	 	
 	if (is_polling_required(cm) && cm->desc->polling_interval_ms) {
 		_cm_monitor(cm);
 		schedule_work(&setup_polling);
