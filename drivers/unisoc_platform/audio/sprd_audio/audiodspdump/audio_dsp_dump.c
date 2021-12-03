@@ -307,6 +307,11 @@ static void adsp_memlog_print(struct dsp_log_device *dsp_log)
 		if (max_print_count > total_point_count)
 			max_print_count = total_point_count;
 
+		if (last_log_pos > total_point_count-1) {
+			pr_err("last_log_pos error");
+			last_log_pos = total_point_count-1;
+		}
+
 		pr_info("last_log_pos:%d,total:%d, max :%d\n", last_log_pos,
 			total_point_count, max_print_count);
 
