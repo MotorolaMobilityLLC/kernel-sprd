@@ -29,7 +29,8 @@
 #define SLOG_POLL_ALL	(0xffff)
 #define MAX_RX_BLOCK	8
 #define BLK_POOL_CNT	2000
-#define SEND_CNT	100
+#define PENDING_CNT	100
+#define SEND_CNT	80
 
 /* actions */
 enum {
@@ -240,7 +241,6 @@ static struct block_node *slog_block_request(struct slog_bridge *sb,
 	/* add to pending list*/
 	list_add_tail(&blk->list, &sb->pending_list);
 	spin_unlock_irqrestore(&sb->list_lock, flags);
-	dev_dbg(sb->dev, "%s: blk->dst=%d, sb->pending_cnt=%d\n", __func__, blk->dst, sb->pending_cnt);
 	return blk;
 }
 
@@ -259,7 +259,7 @@ static struct block_node *slog_block_pending(struct slog_bridge *sb, struct bloc
 	/* add to pending list*/
 	list_add(&blk->list, &sb->pending_list);
 	spin_unlock_irqrestore(&sb->list_lock, flags);
-	dev_dbg(sb->dev, "%s: blk->dst=%d, sb->pending_cnt=%d\n", __func__, blk->dst, sb->pending_cnt);
+	dev_dbg(sb->dev, "%s: blk->dst=%d, sb->pending_cnt=%d, sb->send_cnt=%d\n", __func__, blk->dst, sb->pending_cnt, sb->send_cnt);
 	return blk;
 }
 
@@ -284,7 +284,7 @@ static struct block_node *slog_block_send(struct slog_bridge *sb)
 	/* add to send list*/
 	list_add_tail(&blk->list, &sb->send_list);
 	spin_unlock_irqrestore(&sb->list_lock, flags);
-	dev_dbg(sb->dev, "%s: blk->dst=%d, sb->send_cnt=%d\n", __func__, blk->dst, sb->send_cnt);
+	dev_dbg(sb->dev, "%s: blk->dst=%d, sb->pending_cnt=%d, sb->send_cnt=%d\n", __func__, blk->dst, sb->pending_cnt, sb->send_cnt);
 	return blk;
 }
 
@@ -308,15 +308,15 @@ static void slog_bridge_event_callback(int event, void *data)
 	sblock = scb->sblock;
 
 	if (sb->wait_log_enable) {
-		dev_dbg(sb->dev, "%s: slog-%d-%d: wait_log_enable",
-			__func__, sblock->dst, sblock->channel);
+		dev_dbg(sb->dev, "slog-%d-%d: wait_log_enable",
+			sblock->dst, sblock->channel);
 		return;
 	}
 
 	switch (event) {
 	case SBLOCK_NOTIFY_OPEN:
-		dev_dbg(sb->dev, "%s: slog-%d-%d: SBLOCK_NOTIFY_READY",
-			 __func__, sblock->dst, sblock->channel);
+		dev_dbg(sb->dev, "slog-%d-%d: SBLOCK_NOTIFY_READY",
+			 sblock->dst, sblock->channel);
 		if (!sblock_has_data(sblock, false))
 			break;
 
@@ -326,8 +326,8 @@ static void slog_bridge_event_callback(int event, void *data)
 		break;
 
 	case SBLOCK_NOTIFY_RECV:
-		dev_dbg(sb->dev, "%s: slog-%d-%d: SBLOCK_NOTIFY_RECV",
-			 __func__, sblock->dst, sblock->channel);
+		dev_dbg(sb->dev, "slog-%d-%d: SBLOCK_NOTIFY_RECV",
+			 sblock->dst, sblock->channel);
 
 		sprd_add_action_ex(sb->log_action.actions,
 				   SLOG_READ_DATA_ACTION,
@@ -429,8 +429,7 @@ static int slog_bridge_receive(struct slog_bridge *sb,
 		     sblock_rx->stored_smem_addr);
 	slog_block_request(sb, sblock_rx->dst, sblock_rx->channel,
 			   &blk_rx, vaddr);
-	dev_dbg(sb->dev, "%s: sblk_rx->dts=%d, sb->pending_cnt=%d\n",
-		__func__, sblock_rx->dst, sb->pending_cnt);
+	dev_dbg(sb->dev, "%s: sblock_rx->dst=%d, sb->pending_cnt=%d, sb->send_cnt=%d\n", __func__, sblock_rx->dst, sb->pending_cnt, sb->send_cnt);
 	return 0;
 }
 
@@ -490,18 +489,19 @@ static void slog_bridge_write_to_usb(struct slog_bridge *sb)
 	struct block_node *blk;
 
 	/* all rx read data send to tx. */
-	while (sb->send_cnt < 80 && (blk = slog_block_send(sb)) != NULL) {
+	while (sb->send_cnt < SEND_CNT && (blk = slog_block_send(sb)) != NULL) {
 		if (!(ushort volatile)log_transport) {
 			dev_info(sb->dev, "%s: usb pull out!\n", __func__);
 			slog_block_release(sb, blk->vaddr, blk->length);
+			continue;
 		}
 
 		/* vser_pass_user_write need pass __va(phy address) */
 		ret = vser_pass_user_write(blk->vaddr, blk->length);
 		if (ret < 0) {
 			/* means usb is busy, write later. */
-			dev_err_once(sb->dev, "%s: dst = %d, vser_pass_user_write fail ret = %d!\n",
-				 __func__, blk->dst, ret);
+			dev_err_once(sb->dev, "dst = %d, vser_pass_user_write fail ret = %d!\n",
+				blk->dst, ret);
 			slog_block_pending(sb, blk);
 			continue;
 		}
@@ -554,7 +554,7 @@ static void slog_bridge_data_move(struct slog_action *sba, int param)
 				mask += 1<<i;
 		}
 
-		while (sb->pending_cnt < SEND_CNT && mask > 0) {
+		while (sb->pending_cnt < PENDING_CNT && mask > 0) {
 			for (i = 0; i < sb->rx_cnt; i++) {
 				if ((mask & (1<<i)) == 0)
 					continue;
