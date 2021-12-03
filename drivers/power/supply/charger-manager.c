@@ -5746,6 +5746,7 @@ static const struct of_device_id charger_manager_match[] = {
 	},
 	{},
 };
+MODULE_DEVICE_TABLE(of, charger_manager_match);
 
 static int charger_extcon_data_init(struct charger_cable *cables,
 				    const struct device_node *_child)

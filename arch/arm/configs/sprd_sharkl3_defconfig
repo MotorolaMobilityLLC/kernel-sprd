@@ -1,6 +1,6 @@
 #
 # Automatically generated file; DO NOT EDIT.
-# Linux/arm 5.4.125 Kernel Configuration
+# Linux/arm 5.4.147 Kernel Configuration
 #
 CONFIG_CC_VERSION_TEXT="Android (7284624, based on r416183b) clang version 12.0.5 (https://android.googlesource.com/toolchain/llvm-project c935d99d7cf2016289302412d708641d52d2f7ee)"
 CONFIG_GCC_VERSION=0
@@ -1469,6 +1469,7 @@ CONFIG_BLK_DEV_RAM_SIZE=8192
 # NVME Support
 #
 # CONFIG_NVME_FC is not set
+# CONFIG_NVME_TCP is not set
 # CONFIG_NVME_TARGET is not set
 # end of NVME Support
 
@@ -2339,6 +2340,7 @@ CONFIG_CHARGER_MANAGER=m
 # CONFIG_CHARGER_BQ25890 is not set
 # CONFIG_CHARGER_SMB347 is not set
 # CONFIG_BATTERY_GAUGE_LTC2941 is not set
+# CONFIG_BATTERY_RT5033 is not set
 # CONFIG_CHARGER_RT9455 is not set
 # CONFIG_CHARGER_SC2731 is not set
 CONFIG_CHARGER_FAN54015=m

@@ -4409,6 +4409,7 @@ static const struct of_device_id sc27xx_fgu_of_match[] = {
 	{ .compatible = "sprd,ump9620-fgu", .data = &ump9620_info},
 	{ }
 };
+MODULE_DEVICE_TABLE(of, sc27xx_fgu_of_match);
 
 static struct platform_driver sc27xx_fgu_driver = {
 	.shutdown = sc27xx_fgu_shutdown,
