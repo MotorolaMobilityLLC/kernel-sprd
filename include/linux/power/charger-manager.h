@@ -42,6 +42,7 @@ enum cm_charge_info_cmd {
 	CM_CHARGE_INFO_INPUT_LIMIT = BIT(1),
 	CM_CHARGE_INFO_THERMAL_LIMIT = BIT(2),
 	CM_CHARGE_INFO_JEITA_LIMIT = BIT(3),
+	CM_CHARGE_INFO_CHK2A3A_LIMIT = BIT(4),
 };
 
 enum data_source {
@@ -760,6 +761,10 @@ struct charger_manager {
 
 	struct wakeup_source charge_ws;
 	struct sprd_vote *cm_charge_vote;
+
+	bool check_2A3A_done;
+	int dynamic_charge_current;
+	
 };
 
 #ifdef CONFIG_CHARGER_MANAGER

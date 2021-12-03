@@ -359,6 +359,8 @@ bq2560x_charger_set_termina_vol(struct bq2560x_charger_info *info, u32 vol)
 {
 	u8 reg_val;
 
+	dev_err(info->dev, "%s;%d;\n",__func__,vol);
+
 	if (vol < 3856)
 		reg_val = 0x0;
 	else
@@ -637,6 +639,8 @@ static int bq2560x_charger_set_current(struct bq2560x_charger_info *info,
 {
 	u8 reg_val;
 
+	dev_err(info->dev, "%s;%d;\n",__func__,cur/1000);
+
 	cur = cur / 1000;
 
 	reg_val = cur / BQ2560X_REG_ICHG_LSB;
@@ -669,6 +673,8 @@ bq2560x_charger_set_limit_current(struct bq2560x_charger_info *info,
 {
 	u8 reg_val;
 	int ret;
+
+	dev_err(info->dev, "%s;%d;\n",__func__,limit_cur/1000);
 
 	if (limit_cur >= BQ2560X_LIMIT_CURRENT_MAX)
 		limit_cur = BQ2560X_LIMIT_CURRENT_MAX;
