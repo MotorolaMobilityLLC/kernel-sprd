@@ -85,6 +85,13 @@ extern int sysctl_protected_symlinks;
 extern int sysctl_protected_hardlinks;
 extern int sysctl_protected_fifos;
 extern int sysctl_protected_regular;
+#if defined(CONFIG_SPRD_DEBUG)
+extern int sysctl_fs_timeout[];
+#define vfs_read_max_ms		(sysctl_fs_timeout[0])
+#define vfs_write_max_ms	(sysctl_fs_timeout[1])
+#define fs_sync_max_ms		(sysctl_fs_timeout[2])
+#define io_schedule_max_ms	(sysctl_fs_timeout[3])
+#endif
 
 typedef __kernel_rwf_t rwf_t;
 

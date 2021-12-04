@@ -1995,6 +1995,15 @@ static struct ctl_table fs_table[] = {
 		.extra1		= SYSCTL_ZERO,
 		.extra2		= &two,
 	},
+#if defined(CONFIG_SPRD_DEBUG)
+	{
+		.procname	= "fs_timeout_ms",
+		.data		= &sysctl_fs_timeout[0],
+		.maxlen		= 4*sizeof(int),
+		.mode		= 0644,
+		.proc_handler	= proc_dointvec,
+	},
+#endif
 	{
 		.procname	= "suid_dumpable",
 		.data		= &suid_dumpable,
