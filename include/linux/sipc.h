@@ -251,9 +251,11 @@ struct smsg_callback_t {
 #define	SMSG_OPEN_MAGIC		0xBEEE
 #define	SMSG_CLOSE_MAGIC	0xEDDD
 
-void smsg_callback_register(u8 dst,
+void smsg_callback_register(u8 dst, u8 channel,
 			void (*callback)(const struct smsg *msg, void *data),
 			void *data);
+
+void smsg_callback_unregister(u8 dst, u8 channel);
 
 /**
 * sipc_get_wakeup_flag

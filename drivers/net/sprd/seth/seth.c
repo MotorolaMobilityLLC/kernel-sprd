@@ -931,7 +931,7 @@ static int seth_probe(struct platform_device *pdev)
 		SBLOCK_DESTROY(pdata->dst, pdata->channel);
 		return ret;
 	}
-	smsg_callback_register(pdata->dst, seth_recv_handler, seth);
+	smsg_callback_register(pdata->dst, pdata->channel, seth_recv_handler, seth);
 
 	/* Register new Ethernet interface */
 	ret = register_netdev(netdev);
@@ -973,7 +973,7 @@ static int seth_remove(struct platform_device *pdev)
 	SBLOCK_DESTROY(pdata->dst, pdata->channel);
 	unregister_netdev(seth->netdev);
 	free_netdev(seth->netdev);
-
+	smsg_callback_unregister(pdata->dst, pdata->channel);
 	platform_set_drvdata(pdev, NULL);
 	return 0;
 }

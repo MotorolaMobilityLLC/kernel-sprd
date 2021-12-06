@@ -59,7 +59,7 @@
 #define HIGH_OFFSET_FLAG (0xFEFE)
 
 static u8 g_wakeup_flag;
-static struct smsg_callback_t smsg_callback[SIPC_ID_NR];
+static struct smsg_callback_t smsg_callback[SIPC_ID_NR][SMSG_CH_NR + 1];
 
 struct smsg_ipc *smsg_ipcs[SIPC_ID_NR];
 EXPORT_SYMBOL_GPL(smsg_ipcs);
@@ -88,14 +88,21 @@ void smsg_init_channel2index(void)
 	}
 }
 
-void smsg_callback_register(u8 dst,
+void smsg_callback_register(u8 dst, u8 channel,
 			void (*callback)(const struct smsg *msg, void *data),
 			void *data)
 {
-	smsg_callback[dst].callback = callback;
-	smsg_callback[dst].data = data;
+	smsg_callback[dst][channel].callback = callback;
+	smsg_callback[dst][channel].data = data;
 }
 EXPORT_SYMBOL_GPL(smsg_callback_register);
+
+void smsg_callback_unregister(u8 dst, u8 channel)
+{
+	smsg_callback[dst][channel].callback = NULL;
+	smsg_callback[dst][channel].data = NULL;
+}
+EXPORT_SYMBOL_GPL(smsg_callback_unregister);
 
 void smsg_msg_process(struct smsg_ipc *ipc, struct smsg *msg, bool wake_lock)
 {
@@ -105,7 +112,7 @@ void smsg_msg_process(struct smsg_ipc *ipc, struct smsg *msg, bool wake_lock)
 	u8 ch_index;
 
 	ch_index = channel2index[msg->channel];
-	callback_handler = &smsg_callback[ipc->dst];
+	callback_handler = &smsg_callback[ipc->dst][msg->channel];
 	atomic_inc(&ipc->busy[ch_index]);
 
 	pr_debug("smsg:get dst=%d msg channel=%d, type=%d, flag=0x%04x, value=0x%08x\n",
