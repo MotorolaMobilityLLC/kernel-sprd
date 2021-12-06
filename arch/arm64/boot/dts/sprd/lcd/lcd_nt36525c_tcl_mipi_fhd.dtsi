@@ -29,18 +29,16 @@
 				sprd,dpi-clk-div = <6>;
 				sprd,video-lp-cmd-enable = <1>;
 				sprd,hporch-lp-disable = <1>;
-				sprd,reset-on-sequence = <1 5>, <0 5>,<1 5>, <0 5>, <1 20>;
+				sprd,reset-on-sequence = <0 12>, <1 12>, <0 12>, <1 15>;
 				sprd,reset-off-sequence = <1 5>;
 
-					sprd,initial-command = [
-						
+		sprd,initial-command = [
 						23 00 00 02 FF 23
 						23 00 00 02 FB 01
-						23 00 00 02 00 00
+						23 00 00 02 00 98
 						23 00 00 02 07 00
-						23 00 00 02 09 E4
-						23 00 00 02 08 08
-						
+						23 00 00 02 09 00
+						23 00 00 02 08 01
 
 						23 00 00 02 FF 10
 						23 00 00 02 FB 01
