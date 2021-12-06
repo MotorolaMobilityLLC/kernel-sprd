@@ -244,6 +244,8 @@
 
 			gpio-keys {
 				compatible = "gpio-keys";
+				pinctrl-names = "gpio_124";
+				pinctrl-0 = <&gpio_124>;
 				key-volumedown {
 					label = "Volume Down Key";
 					linux,code = <KEY_VOLUMEDOWN>;
