@@ -1727,6 +1727,8 @@ static int sprdwl_cfg80211_sched_scan_start(struct wiphy *wiphy,
 			match_ssid_tmp = request->match_sets + i;
 			sscan_buf->mssid[i] = match_ssid_tmp->ssid.ssid;
 		}
+	} else {
+		sscan_buf->n_match_ssids = 0;
 	}
 	sscan_buf->ie_len = request->ie_len;
 	sscan_buf->ie = request->ie;
