@@ -5585,6 +5585,8 @@ static ssize_t charger_stop_store(struct device *dev,
 
                 if( stop_sys != 255)
 		set_charger_enable_powerpath(cm, false);
+		 else
+		set_charger_enable_powerpath(cm, true);
 
 		ret = try_charger_enable(cm, false);
 		if (ret) {
