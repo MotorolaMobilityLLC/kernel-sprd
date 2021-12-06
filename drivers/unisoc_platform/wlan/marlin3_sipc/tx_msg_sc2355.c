@@ -510,7 +510,6 @@ static void sprdwl_sdio_flush_txlist(struct sprdwl_msg_list *list)
 		else
 			kfree(msgbuf->tran_data);
 		sprdwl_dequeue_msg_buf(msgbuf, list);
-		continue;
 	}
 }
 
