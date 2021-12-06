@@ -187,7 +187,7 @@
 		/* <&mailbox  channel_id  is_no_wakeup(default 0)> */
 		mboxes = <&mailbox 6 0>;
 		/* This is temporary plan*/
-		sprd,smem-info = <0x8441b000 0x11b000 0x32000>;
+		sprd,smem-info = <0x8749b000 0x11b000 0x32000>;
 
 		/* these nodes of channel should be probed by its parent node */
 		sttygnss0: channel@4 {
