@@ -918,10 +918,10 @@ static int get_usb_charger_type(struct charger_manager *cm, u32 *type)
 	int ret = -EINVAL, i;
 
 	mutex_lock(&cm->desc->charger_type_mtx);
-//	if (cm->desc->is_fast_charge) {
-//		mutex_unlock(&cm->desc->charger_type_mtx);
-//		return 0;
-//	}
+	if (cm->desc->is_fast_charge) {
+		mutex_unlock(&cm->desc->charger_type_mtx);
+		return 0;
+	}
 
 	for (i = 0; cm->desc->psy_charger_stat[i]; i++) {
 		psy = power_supply_get_by_name(cm->desc->psy_charger_stat[i]);
@@ -941,8 +941,8 @@ static int get_usb_charger_type(struct charger_manager *cm, u32 *type)
 
 	if (*type == POWER_SUPPLY_USB_TYPE_SFCP_1P0)
 		cm->desc->is_fast_charge = true;
-	else
-		cm->desc->is_fast_charge = false;
+//	else
+//		cm->desc->is_fast_charge = false;
 
 	cm_get_charger_type(cm, type);
 	cm->desc->fast_charger_type = *type;
@@ -2323,9 +2323,9 @@ static int try_fast_charger_enable(struct charger_manager *cm, bool enable)
 {
 	int err = 0;
 
-	//if (cm->desc->fast_charger_type != POWER_SUPPLY_USB_CHARGER_TYPE_PD &&
-	//    cm->desc->fast_charger_type != POWER_SUPPLY_USB_CHARGER_TYPE_SFCP_1P0)
-	//	return 0;
+	if (cm->desc->fast_charger_type != POWER_SUPPLY_USB_CHARGER_TYPE_PD &&
+	    cm->desc->fast_charger_type != POWER_SUPPLY_USB_CHARGER_TYPE_SFCP_1P0)
+		return 0;
 
 	if (enable) {
 		err = cm_fast_charge_enable_check(cm);
@@ -3511,6 +3511,11 @@ static int  chg_check_vbus(struct charger_manager *cm, bool enable)
 	
 	if(cm->check_2A3A_done)
 		return 0;
+
+	if (cm->desc->is_fast_charge) {
+		cm->check_2A3A_done = true;
+		return 0;
+	}
 	
 	get_charger_voltage(cm, &vchr);
 	if (vchr > (VBUS_5V +V_500MV)) {
