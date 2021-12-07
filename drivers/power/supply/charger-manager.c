@@ -918,10 +918,10 @@ static int get_usb_charger_type(struct charger_manager *cm, u32 *type)
 	int ret = -EINVAL, i;
 
 	mutex_lock(&cm->desc->charger_type_mtx);
-	if (cm->desc->is_fast_charge) {
-		mutex_unlock(&cm->desc->charger_type_mtx);
-		return 0;
-	}
+//	if (cm->desc->is_fast_charge) {
+//		mutex_unlock(&cm->desc->charger_type_mtx);
+//		return 0;
+//	}
 
 	for (i = 0; cm->desc->psy_charger_stat[i]; i++) {
 		psy = power_supply_get_by_name(cm->desc->psy_charger_stat[i]);
@@ -1777,7 +1777,7 @@ static void cm_update_charge_info(struct charger_manager *cm, int cmd)
 	if (cmd & CM_CHARGE_INFO_JEITA_LIMIT)
 		cm_update_current_jeita_status(cm);
 
-	if (cmd & CM_CHARGE_INFO_CHK2A3A_LIMIT)
+	if (cmd & CM_CHARGE_INFO_CHK2A3A_LIMIT && cm->dynamic_charge_current > 0)
 		cm->cm_charge_vote->vote(cm->cm_charge_vote, true,
 					 SPRD_VOTE_TYPE_IBUS,
 					 SPRD_VOTE_TYPE_IBUS_ID_2A3A_TYPE,
@@ -3538,17 +3538,25 @@ static int  chg_check_vbus(struct charger_manager *cm, bool enable)
 				cm->dynamic_charge_current = I_2P1A;  //set 2.1A for 2A DCP scharger
 				cm->check_2A3A_done = true;
 			   }
+			cm_update_charge_info(cm,CM_CHARGE_INFO_CHK2A3A_LIMIT);
 		}
 	}
 	else
+	{
+		if(cm->dynamic_charge_current != -1)
+		{
+			cm->dynamic_charge_current = -1;
+			cm->check_2A3A_done = true;
+			cm_update_charge_info(cm, CM_CHARGE_INFO_INPUT_LIMIT );
+		}
 		low_vbus	= 0;
+	}	
 
-	dev_err(cm->dev,"%s: vbus(%d mV)  min(%d mV) ; current=%d;%d;\n", __func__, vchr / 1000,
+	dev_err(cm->dev,"%s: vbus(%d mV)  min(%d mV) ; current=%d;%d;%d;\n", __func__, vchr / 1000,
 		VBUS_THRESHOLD/1000 ,
-		cm->dynamic_charge_current/1000 ,
+		cm->desc->cur.dcp_limit,cm->dynamic_charge_current/1000 ,
 		low_vbus);
 
-		cm_update_charge_info(cm,CM_CHARGE_INFO_CHK2A3A_LIMIT);
 	}
 
 	return 0;
