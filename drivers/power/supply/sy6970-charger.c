@@ -37,6 +37,8 @@
 #define SY6970_REG_9				0x9
 #define SY6970_REG_A				0xa
 #define SY6970_REG_B				0xb
+#define SY6970_REG_C				0xc
+#define SY6970_REG_D				0xd
 #define SY6970_REG_NUM				12
 
 #define SY6970_BATTERY_NAME			"sc27xx-fgu"
@@ -45,12 +47,14 @@
 
 #define	SY6970_REG_IINLIM_BASE			50
 
-#define SY6970_REG_ICHG_LSB			64
+#define SY6970_REG_ICHG_LSB			60
 
 #define SY6970_REG_ICHG_MASK			GENMASK(6, 0)
 
 #define SY6970_REG_CHG_MASK			GENMASK(4, 4)
 #define SY6970_REG_CHG_SHIFT			4
+
+#define SY6970_REG_EN_TERM_MASK	GENMASK(7, 7)
 
 #define SY6970_REG_EN_TIMER_MASK	GENMASK(3, 3)
 
@@ -70,7 +74,7 @@
 
 #define SY6970_REG_TERMINAL_CUR_MASK		GENMASK(3, 0)
 
-#define SY6970_REG_VINDPM_VOLTAGE_MASK		GENMASK(3, 0)
+#define SY6970_REG_VINDPM_VOLTAGE_MASK		GENMASK(7, 2)
 #define SY6970_REG_OVP_MASK			GENMASK(7, 6)
 #define SY6970_REG_OVP_SHIFT			6
 
@@ -240,6 +244,12 @@ static int sy6970_charger_is_fgu_present(struct sy6970_charger_info *info)
 	return 0;
 }
 
+static int sy6970_block_read(struct sy6970_charger_info *info, u8 reg, u8 *data, u32 len)
+{
+
+	return i2c_smbus_read_i2c_block_data(info->client, reg, len, data);
+}
+
 static int sy6970_read(struct sy6970_charger_info *info, u8 reg, u8 *data)
 {
 	int ret;
@@ -276,18 +286,16 @@ static int sy6970_update_bits(struct sy6970_charger_info *info, u8 reg,
 static void sy6970_dump_regs(struct sy6970_charger_info *info)
 {
 
-	int addr;
-	u8 val[0x0c];
+	u8 val[0x15];
 	int ret;
 
-	for (addr = 0x0; addr <= 0x0B; addr++) {
-		ret = sy6970_read(info, addr, &val[addr]);
-	}
-	dev_err(info->dev,"sy6970 [0x0]=0x%.2x [0x1]=0x%.2x [0x2]=0x%.2x  [0x3]=0x%.2x [0x4]=0x%.2x [0x5]=0x%.2x [0x6]=0x%.2x \n",
-		                      val[0],val[1],val[2],val[3],val[4],val[5],val[6]);
-	dev_err(info->dev,"sy6970 [0x7]=0x%.2x [0x8]=0x%.2x [0x9]=0x%.2x  [0xa]=0x%.2x [0xb]=0x%.2x  \n",
-		                      val[7],val[8],val[9],val[0xa],val[0xb]);
+	ret = sy6970_block_read(info, SY6970_REG_0, &val[0],0x15);
 
+	dev_err(info->dev,"sy6970 [0]=%.2x [1]=%.2x [2]=%.2x [3]=%.2x  [4]=%.2x [5]=%.2x [6]=%.2x [7]=%.2x\n",
+		                      val[0],val[1],val[2],val[3],val[4],val[5],val[6], val[7]);
+	dev_err(info->dev,"sy6970 [8]=%.2x [9]=%.2x [a]=%.2x [b]=%.2x  [c]=%.2x [d]=%.2x [e]=%.2x [f]=%.2x    [10]=%.2x [11]=%.2x  [12]=%.2x [13]=%.2x [14]=%.2x\n",
+		                      val[8],val[9],val[0xa],val[0xb],val[0xc],val[0xd],val[0xe],val[0xf],
+		                      val[0x10],val[0x11],val[0x12],val[0x13],val[0x14]);
 }
 
 
@@ -296,16 +304,12 @@ sy6970_charger_set_vindpm(struct sy6970_charger_info *info, u32 vol)
 {
 	u8 reg_val;
 
-	return 0;
-	
-	if (vol < 3900)
+	if (vol < 2600)
 		reg_val = 0x0;
-	else if (vol > 5400)
-		reg_val = 0x0f;
 	else
-		reg_val = (vol - 3900) / 100;
+		reg_val = (vol - 2600) / 100;
 
-	return sy6970_update_bits(info, SY6970_REG_6,
+	return sy6970_update_bits(info, SY6970_REG_D,
 				   SY6970_REG_VINDPM_VOLTAGE_MASK, reg_val);
 }
 static int  sy6970_enable_powerpath(struct sy6970_charger_info *info, bool en)
@@ -325,22 +329,9 @@ static int  sy6970_enable_powerpath(struct sy6970_charger_info *info, bool en)
 static int
 sy6970_charger_set_ovp(struct sy6970_charger_info *info, u32 vol)
 {
-	u8 reg_val;
 
 	return 0;
 	
-	if (vol < 5500)
-		reg_val = 0x0;
-	else if (vol > 5500 && vol < 6500)
-		reg_val = 0x01;
-	else if (vol > 6500 && vol < 10500)
-		reg_val = 0x02;
-	else
-		reg_val = 0x03;
-
-	return sy6970_update_bits(info, SY6970_REG_6,
-				   SY6970_REG_OVP_MASK,
-				   reg_val << SY6970_REG_OVP_SHIFT);
 }
 
 static int
@@ -379,10 +370,10 @@ sy6970_charger_set_termina_cur(struct sy6970_charger_info *info, u32 cur)
 {
 	u8 reg_val;
 
-	if (cur < 64)
+	if (cur < 30)
 		reg_val = 0x0;
 	else
-		reg_val = (cur - 64) / 64;
+		reg_val = (cur - 30) / 60;
 
 	return sy6970_update_bits(info, SY6970_REG_5,
 				   SY6970_REG_TERMINAL_CUR_MASK,
@@ -483,7 +474,7 @@ static int sy6970_charger_hw_init(struct sy6970_charger_info *info)
 					  0);
 
 		ret = sy6970_update_bits(info, SY6970_REG_7, //EN_TERM
-					  SY6970_REG_EN_TIMER_MASK,
+					  SY6970_REG_EN_TERM_MASK,
 					  0x80);
 
 		ret = sy6970_update_bits(info, SY6970_REG_7,
@@ -728,13 +719,6 @@ static int sy6970_charger_feed_watchdog(struct sy6970_charger_info *info,
 	int ret;
 	u32 limit_cur = 0;
 
-	ret = sy6970_update_bits(info, SY6970_REG_1,
-				  SY6970_REG_RESET_MASK,
-				  SY6970_REG_RESET_MASK);
-	if (ret) {
-		dev_err(info->dev, "reset sy6970 failed\n");
-		return ret;
-	}
 
 	sy6970_dump_regs(info);
 
@@ -1571,15 +1555,6 @@ sy6970_charger_feed_watchdog_work(struct work_struct *work)
 	struct sy6970_charger_info *info = container_of(dwork,
 							 struct sy6970_charger_info,
 							 wdt_work);
-	int ret;
-
-	ret = sy6970_update_bits(info, SY6970_REG_3,
-				  SY6970_REG_WATCHDOG_MASK,
-				  SY6970_REG_WATCHDOG_MASK);
-	if (ret) {
-		dev_err(info->dev, "reset sy6970 failed\n");
-		return;
-	}
 
 	sy6970_dump_regs(info);
 
@@ -1802,6 +1777,8 @@ static int sy6970_charger_probe(struct i2c_client *client,
 	dev_err(dev, "%s;%x;\n",__func__,val);
 	if( (val & 0x38) == 0x08)
 		strncpy(charge_ic_vendor_name,"SY6970",20);
+	if( (val & 0x38) == 0x20)
+		strncpy(charge_ic_vendor_name,"SC89890",20);
 	else
 		return -ENODEV;
 
@@ -2003,7 +1980,7 @@ static void sy6970_charger_shutdown(struct i2c_client *client)
 	if (info->otg_enable) {
 		info->otg_enable = false;
 		cancel_delayed_work_sync(&info->otg_work);
-		ret = sy6970_update_bits(info, SY6970_REG_1,
+		ret = sy6970_update_bits(info, SY6970_REG_3,
 					  SY6970_REG_OTG_MASK,
 					  0);
 		if (ret)
@@ -2042,9 +2019,9 @@ static int sy6970_charger_suspend(struct device *dev)
 	cancel_delayed_work_sync(&info->cur_work);
 
 	/* feed watchdog first before suspend */
-	ret = sy6970_update_bits(info, SY6970_REG_1,
-				   SY6970_REG_RESET_MASK,
-				   SY6970_REG_RESET_MASK);
+	ret = sy6970_update_bits(info, SY6970_REG_3,
+				   SY6970_REG_CHG_MASK,
+				   SY6970_REG_CHG_MASK);
 	if (ret)
 		dev_warn(info->dev, "reset sy6970 failed before suspend\n");
 
@@ -2067,9 +2044,9 @@ static int sy6970_charger_resume(struct device *dev)
 	alarm_cancel(&info->otg_timer);
 
 	/* feed watchdog first after resume */
-	ret = sy6970_update_bits(info, SY6970_REG_1,
-				   SY6970_REG_RESET_MASK,
-				   SY6970_REG_RESET_MASK);
+	ret = sy6970_update_bits(info, SY6970_REG_3,
+				   SY6970_REG_CHG_MASK,
+				   SY6970_REG_CHG_MASK);
 	if (ret)
 		dev_warn(info->dev, "reset sy6970 failed after resume\n");
 
