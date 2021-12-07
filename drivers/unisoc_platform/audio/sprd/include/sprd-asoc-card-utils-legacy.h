@@ -77,6 +77,8 @@ void sprd_asoc_shutdown(struct platform_device *pdev);
 int sprd_asoc_card_parse_ext_hook(struct device *dev,
 				  struct sprd_asoc_ext_hook *ext_hook);
 
+int sprd_asoc_card_ext_hook_free_gpio(struct device *dev);
+
 int sprd_asoc_card_parse_smartamp_boost(struct device *dev,
 				  struct smartamp_boost_data *boost_data);
 

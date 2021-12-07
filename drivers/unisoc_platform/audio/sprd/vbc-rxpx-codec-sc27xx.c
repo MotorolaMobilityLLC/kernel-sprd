@@ -161,7 +161,7 @@ static int vbc_rxpx_codec_sc27xx_probe(struct platform_device *pdev)
 	ret = asoc_sprd_card_probe(pdev, &card);
 	if (ret) {
 		pr_err("ERR: %s, asoc_sprd_card_probe failed!\n", __func__);
-		return ret;
+		goto error;
 	}
 
 	sprd_asoc_board_comm_probe();
@@ -170,7 +170,8 @@ static int vbc_rxpx_codec_sc27xx_probe(struct platform_device *pdev)
 			      pdev->dev.of_node);
 	if (!of_id) {
 		pr_err("Get the asoc board of device id failed!\n");
-		return -ENODEV;
+		ret = -ENODEV;
+		goto error;
 	}
 	mdata = snd_soc_card_get_drvdata(card);
 	if (mdata)
@@ -185,7 +186,14 @@ static int vbc_rxpx_codec_sc27xx_probe(struct platform_device *pdev)
 	card->num_dapm_widgets = sprd_asoc_card_widgets.size;
 
 	card->late_probe = vbc_rxpx_codec_sc27xx_late_probe;
-	return asoc_sprd_register_card(&pdev->dev, card);
+	ret = asoc_sprd_register_card(&pdev->dev, card);
+	if (ret < 0)
+		goto error;
+	return ret;
+error:
+	/* free the requested gpios if using ext-pa */
+	sprd_asoc_card_ext_hook_free_gpio(&pdev->dev);
+	return ret;
 }
 
 static struct platform_driver vbc_rxpx_codec_sc27xx_driver = {

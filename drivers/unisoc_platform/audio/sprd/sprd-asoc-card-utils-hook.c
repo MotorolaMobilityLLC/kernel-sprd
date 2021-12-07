@@ -43,6 +43,7 @@ enum {
 struct sprd_asoc_hook_spk_priv {
 	int gpio[BOARD_FUNC_MAX];
 	int priv_data[BOARD_FUNC_MAX];
+	bool gpio_requested[BOARD_FUNC_MAX];
 	spinlock_t lock;
 };
 
@@ -264,9 +265,14 @@ static int sprd_asoc_card_parse_hook(struct device *dev,
 			GPIOF_INIT_HIGH : GPIOF_INIT_LOW;
 		ret = gpio_request_one(hook_spk_priv.gpio[ext_ctrl_type],
 				       gpio_flag, NULL);
-		if (ret < 0) {
+		dev_info(dev, "Gpio request[%d] ret:%d! hook_p = %p, ext_ctrl_p = %p \n",
+			ext_ctrl_type, ret, ext_hook, ext_hook->ext_ctrl[ext_ctrl_type]);
+		if (ret == 0) {
+			hook_spk_priv.gpio_requested[ext_ctrl_type] = true;
+		} else if (ret < 0) {
 			dev_err(dev, "Gpio request[%d] failed:%d!\n",
 				ext_ctrl_type, ret);
+			hook_spk_priv.gpio_requested[ext_ctrl_type] = false;
 			ext_hook->ext_ctrl[ext_ctrl_type] = NULL;
 			return ret;
 		}
@@ -279,6 +285,68 @@ int sprd_asoc_card_parse_ext_hook(struct device *dev,
 {
 	ext_debug_sysfs_init();
 	return sprd_asoc_card_parse_hook(dev, ext_hook);
+}
+
+int sprd_asoc_card_ext_hook_free_gpio(struct device *dev)
+{
+	struct device_node *np = dev->of_node;
+	const char *prop_pa_info = "sprd,spk-ext-pa-info";
+	int spk_cnt, elem_cnt, i;
+	unsigned int ext_ctrl_type;
+	int ret = 0;
+	u32 *buf;
+
+	elem_cnt = of_property_count_u32_elems(np, prop_pa_info);
+	if (elem_cnt <= 0) {
+		dev_info(dev,
+			"Count '%s' failed!(%d)\n", prop_pa_info, elem_cnt);
+		return -EINVAL;
+	}
+
+	if (elem_cnt % CELL_NUMBER) {
+		dev_err(dev, "Spk pa info is not a multiple of %d.\n",
+			CELL_NUMBER);
+		return -EINVAL;
+	}
+
+	spk_cnt = elem_cnt / CELL_NUMBER;
+	if (spk_cnt > BOARD_FUNC_MAX) {
+		dev_warn(dev, "Speaker count %d is greater than %d!\n",
+			 spk_cnt, BOARD_FUNC_MAX);
+		spk_cnt = BOARD_FUNC_MAX;
+	}
+
+	buf = devm_kmalloc(dev, elem_cnt * sizeof(u32), GFP_KERNEL);
+	if (!buf)
+		return -ENOMEM;
+
+	ret = of_property_read_u32_array(np, prop_pa_info, buf, elem_cnt);
+	if (ret < 0) {
+		dev_err(dev, "Read property '%s' failed!\n", prop_pa_info);
+		//return ret;
+	}
+
+	for (i = 0; i < spk_cnt; i++) {
+		int num = i * CELL_NUMBER;
+
+		/* Get the ctrl type */
+		ext_ctrl_type = buf[CELL_CTRL_TYPE + num];
+		if (ext_ctrl_type >= BOARD_FUNC_MAX) {
+			dev_err(dev, "Ext ctrl type %d is invalid!\n",
+				ext_ctrl_type);
+			return -EINVAL;
+		}
+
+		pr_info("%s, spk cnt = %d, ext_ctrl_type = %d\n", __func__, spk_cnt, ext_ctrl_type);
+
+		if (hook_spk_priv.gpio_requested[ext_ctrl_type]) {
+			gpio_free(hook_spk_priv.gpio[ext_ctrl_type]);
+			hook_spk_priv.gpio_requested[ext_ctrl_type] = false;
+			pr_info("%s, gpio_freed\n", __func__);
+		}
+	}
+
+	return 0;
 }
 
 MODULE_ALIAS("platform:asoc-sprd-card");
