@@ -87,7 +87,7 @@ extern int sysctl_protected_fifos;
 extern int sysctl_protected_regular;
 #if defined(CONFIG_SPRD_DEBUG)
 extern int sysctl_fs_timeout[];
-#define vfs_read_max_ms		(sysctl_fs_timeout[0])
+#define vfs_open_max_ms		(sysctl_fs_timeout[0])
 #define vfs_write_max_ms	(sysctl_fs_timeout[1])
 #define fs_sync_max_ms		(sysctl_fs_timeout[2])
 #define io_schedule_max_ms	(sysctl_fs_timeout[3])
@@ -2622,6 +2622,7 @@ extern int do_truncate(struct dentry *, loff_t start, unsigned int time_attrs,
 		       struct file *filp);
 extern int vfs_fallocate(struct file *file, int mode, loff_t offset,
 			loff_t len);
+extern void _trace_vfs(struct file *filp, char *op, u64 time);
 extern long do_sys_open(int dfd, const char __user *filename, int flags,
 			umode_t mode);
 extern struct file *file_open_name(struct filename *, int, umode_t);
