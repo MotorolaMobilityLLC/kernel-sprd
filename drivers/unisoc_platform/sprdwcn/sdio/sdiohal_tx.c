@@ -62,6 +62,7 @@ int sdiohal_tx_thread(void *data)
 	static int times_count;
 	int ret;
 
+	set_user_nice(current, -20);
 	param.sched_priority = SDIO_TX_TASK_PRIO;
 	sched_setscheduler(current, SCHED_FIFO, &param);
 

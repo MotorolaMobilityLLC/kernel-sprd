@@ -75,6 +75,7 @@ static int pub_int_handle_thread(void *data)
 	union PUB_INT_STS0_REG pub_int_sts0 = {0};
 	int bit_num, ret;
 
+	set_user_nice(current, -20);
 	while (!kthread_should_stop()) {
 		wait_for_completion(&(sdio_int.pub_int_completion));
 

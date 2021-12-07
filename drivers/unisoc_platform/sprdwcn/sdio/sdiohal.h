@@ -87,8 +87,8 @@
 #define MAX_CHAIN_NODE_NUM	100
 
 /* task prio */
-#define SDIO_TX_TASK_PRIO	89
-#define SDIO_RX_TASK_PRIO	90
+#define SDIO_TX_TASK_PRIO	94
+#define SDIO_RX_TASK_PRIO	95
 
 /* cp blk size */
 #define SDIOHAL_BLK_SIZE	840

@@ -209,6 +209,7 @@ int sdiohal_rx_thread(void *data)
 	static long time_total_ns;
 	static int times_count;
 
+	set_user_nice(current, -20);
 	param.sched_priority = SDIO_RX_TASK_PRIO;
 	sched_setscheduler(current, SCHED_FIFO, &param);
 	sdiohal_rx_adapt_set_dtbs(0);
