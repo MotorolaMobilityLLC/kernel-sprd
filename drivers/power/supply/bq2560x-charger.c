@@ -37,6 +37,10 @@
 #define BQ2560X_REG_9				0x9
 #define BQ2560X_REG_A				0xa
 #define BQ2560X_REG_B				0xb
+#define BQ2560X_REG_C				0xc
+#define BQ2560X_REG_D				0xd
+#define BQ2560X_REG_E				0xe
+#define BQ2560X_REG_F				0xf
 #define BQ2560X_REG_NUM				12
 
 #define BQ2560X_BATTERY_NAME			"sc27xx-fgu"
@@ -255,6 +259,12 @@ static int bq2560x_charger_is_fgu_present(struct bq2560x_charger_info *info)
 	return 0;
 }
 
+static int bq2560x_block_read(struct bq2560x_charger_info *info, u8 reg, u8 *data, u32 len)
+{
+
+	return i2c_smbus_read_i2c_block_data(info->client, reg, len, data);
+}
+
 static int bq2560x_read(struct bq2560x_charger_info *info, u8 reg, u8 *data)
 {
 	int ret;
@@ -291,18 +301,16 @@ static int bq2560x_update_bits(struct bq2560x_charger_info *info, u8 reg,
 static void bq2560x_dump_regs(struct bq2560x_charger_info *info)
 {
 
-	int addr;
-	u8 val[0x0e];
+	u8 val[0x10];
 	int ret;
 
-	for (addr = 0x0; addr <= 0x0d; addr++) {
-		ret = bq2560x_read(info, addr, &val[addr]);
-	}
-	dev_err(info->dev,"bq25601 [0x0]=0x%.2x [0x1]=0x%.2x [0x2]=0x%.2x  [0x3]=0x%.2x [0x4]=0x%.2x [0x5]=0x%.2x [0x6]=0x%.2x \n",
-		                      val[0],val[1],val[2],val[3],val[4],val[5],val[6]);
-	dev_err(info->dev,"bq25601 [0x7]=0x%.2x [0x8]=0x%.2x [0x9]=0x%.2x  [0xa]=0x%.2x [0xb]=0x%.2x [0xc]=0x%.2x [0xd]=0x%.2x  \n",
-		                      val[7],val[8],val[9],val[0xa],val[0xb],val[0xc],val[0xd]);
+	ret = bq2560x_block_read(info, BQ2560X_REG_0, &val[0],0x10);
 
+
+	dev_err(info->dev,"bq25601 [0]=%.2x [1]=%.2x [2]=%.2x [3]=%.2x  [4]=%.2x [5]=%.2x [6]=%.2x [7]=%.2x\n",
+		                      val[0],val[1],val[2],val[3],val[4],val[5],val[6], val[7]);
+	dev_err(info->dev,"bq25601 [8]=%.2x [9]=%.2x [a]=%.2x [b]=%.2x  [c]=%.2x [d]=%.2x [e]=%.2x [f]=%.2x\n",
+		                      val[8],val[9],val[0xa],val[0xb],val[0xc],val[0xd],val[0xe],val[0xf]);
 }
 
 
@@ -364,7 +372,7 @@ bq2560x_charger_set_termina_vol(struct bq2560x_charger_info *info, u32 vol)
 	if (vol < 3856)
 		reg_val = 0x0;
 	else
-		reg_val = (vol - 3856) / 32;
+		reg_val = (vol - 3856) / 32 +32;
 
 	return bq2560x_update_bits(info, BQ2560X_REG_4,
 				   BQ2560X_REG_TERMINAL_VOLTAGE_MASK,
@@ -382,7 +390,7 @@ bq2560x_charger_get_termina_vol(struct bq2560x_charger_info *info, u32 *vol)
 		return ret;
 
 	reg_val &= BQ2560X_REG_TERMINAL_VOLTAGE_MASK;
-	*vol = 3856 + (reg_val >> BQ2560X_REG_TERMINAL_VOLTAGE_SHIFT) * 32;
+	*vol = 3856 + (reg_val >> BQ2560X_REG_TERMINAL_VOLTAGE_SHIFT) * 32 +32;
 
 	return 0;
 }
@@ -501,6 +509,13 @@ static int bq2560x_charger_hw_init(struct bq2560x_charger_info *info)
 		ret = bq2560x_update_bits(info, BQ2560X_REG_4,   //TOPOFF_TIMER
 					  0x06,
 					  0);
+		ret = bq2560x_update_bits(info, BQ2560X_REG_F,   //VREG_FIT  -16   //4.448v
+					  0xc0,
+					  0xc0);
+
+//		ret = bq2560x_update_bits(info, BQ2560X_REG_F,   //VREG_FIT  +8            //4.472v
+//					  0x40,
+//					  0x40);
 
 	}
 
@@ -1072,15 +1087,17 @@ pe_exit:
 
 }
 #endif
-#if 0
+#if 1
 static void bq2560x_check_qc(struct bq2560x_charger_info *info)
 {
 
 	int vol;
 	int try_count=0;
 	u8 reg_val;
+	int last_limit_current;
 
 	dev_info(info->dev, "%s;\n",__func__);
+	last_limit_current = info->last_limit_cur;
 	bq2560x_charger_set_ovp(info, BQ2560X_FCHG_OVP_14V);
 	bq2560x_charger_set_limit_current(info, 100000);
 //	bq2560x_write(info, 0x0d, 0x14);      //d+ 0.6  d- 0.6
@@ -1108,6 +1125,8 @@ static void bq2560x_check_qc(struct bq2560x_charger_info *info)
 		dev_info(info->dev, "%s;%d;%d;\n",__func__,vol,try_count);
 	}while(try_count<3);
 
+	if(info->last_limit_cur == 100000)
+		bq2560x_charger_set_limit_current(info, last_limit_current);
 
 	dev_info(info->dev, "%s;QC checke?? %d;%d;\n",__func__,vol,try_count);
 }
@@ -1118,7 +1137,13 @@ static void bq2560x_charger_hand_work(struct work_struct *data)
 	struct bq2560x_charger_info *info =
 		container_of(dwork, struct bq2560x_charger_info, hand_work);
 
+	bool test_pe=true; 
+	
+	if(test_pe)
 	bq2560x_set_pe(info, info->set_vbus);
+	else
+	bq2560x_check_qc(info);
+
 
 }
 

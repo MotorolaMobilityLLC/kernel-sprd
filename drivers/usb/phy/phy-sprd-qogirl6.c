@@ -154,6 +154,9 @@ static int sprd_hsphy_set_dpdm(struct usb_phy *x ,  int on)
 				REG_ANLG_PHY_G2_ANALOG_USB20_USB20_UTMI_CTL1,	msk, reg);
 
 
+			ret = regmap_update_bits(phy->pmic, 0x19e8,     // 0x1e8 vddusb33 power down
+				 1,
+				 1);         
 
 
 	} else {
@@ -175,6 +178,10 @@ static int sprd_hsphy_set_dpdm(struct usb_phy *x ,  int on)
 			ret |= regmap_update_bits(phy->ana_g2,  
 				REG_ANLG_PHY_G2_ANALOG_USB20_USB20_UTMI_CTL1, msk, 0);
 
+
+			ret = regmap_update_bits(phy->pmic, 0x19e8,     // 0x1e8 vddusb33 power up
+				 1,
+				 0);         
 
 			ret = regmap_update_bits(phy->pmic, 0x1ba0,      //CHGR_DET_FGU_CTRL
 				 1,
