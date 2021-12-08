@@ -382,6 +382,7 @@ static void ufs_sprd_exit(struct ufs_hba *hba)
 	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
 
 	devm_kfree(dev, host);
+	hba->priv = NULL;
 }
 
 static u32 ufs_sprd_get_ufs_hci_version(struct ufs_hba *hba)
@@ -829,7 +830,7 @@ static inline void ufs_sprd_rpmb_remove(struct ufs_hba *hba)
 {
 	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
 
-	if (!host->sdev_ufs_rpmb)
+	if (!host || !host->sdev_ufs_rpmb)
 		return;
 
 	rpmb_dev_unregister(hba->dev);
@@ -892,8 +893,8 @@ static int ufs_sprd_remove(struct platform_device *pdev)
 	struct ufs_hba *hba =  platform_get_drvdata(pdev);
 
 	pm_runtime_get_sync(&(pdev)->dev);
-	ufshcd_remove(hba);
 	ufs_sprd_rpmb_remove(hba);
+	ufshcd_remove(hba);
 	return 0;
 }
 /*
@@ -906,8 +907,8 @@ static void ufs_sprd_shutdown(struct platform_device *pdev)
 {
 	struct ufs_hba *hba =  platform_get_drvdata(pdev);
 
-	ufshcd_pltfrm_shutdown(pdev);
 	ufs_sprd_rpmb_remove(hba);
+	ufshcd_pltfrm_shutdown(pdev);
 }
 static const struct of_device_id ufs_sprd_of_match[] = {
 	{.compatible = "sprd,ufshc"},
