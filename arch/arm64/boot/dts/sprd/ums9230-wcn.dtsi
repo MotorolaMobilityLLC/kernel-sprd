@@ -185,7 +185,7 @@
 		reg = <4>;
 		label = "sipc-gnss";
 		/* <&mailbox  channel_id  is_no_wakeup(default 0)> */
-		mboxes = <&mailbox 6 0>;
+		mboxes = <&mailbox 9 0>;
 		/* This is temporary plan*/
 		sprd,smem-info = <0x8749b000 0x11b000 0x32000>;
 
