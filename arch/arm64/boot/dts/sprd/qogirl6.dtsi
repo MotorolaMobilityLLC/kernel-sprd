@@ -1903,7 +1903,7 @@
 			&agcp_dma 11 &agcp_dma 6
 			&agcp_dma 14 &agcp_dma 14
 			&agcp_dma 12 &agcp_dma 6
-			&agcp_dma 19 &agcp_dma 20>;
+			&agcp_dma 7 &agcp_dma 20>;
 
 		dma-names =
 			"normal_p_l", "normal_p_r",
