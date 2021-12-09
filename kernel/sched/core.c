@@ -3005,7 +3005,7 @@ try_to_wake_up(struct task_struct *p, unsigned int state, int wake_flags)
 #if defined(CONFIG_SPRD_DEBUG)
 		delta = ktime_get_boot_fast_ns() - p->iowait_start;
 		if (delta > io_schedule_max_ms * NSEC_PER_MSEC) {
-			pr_info("iowait: [%16s] %4lldms waked by %16s, <c%d><%d>\n",
+			pr_info("iowait: [%-16s] %4lldms waked by %-16s, <c%d><%d>\n",
 				p->comm, ktime_to_ms(delta), current->comm,
 				task_cpu(p), atomic_read(&task_rq(p)->nr_iowait) - 1);
 			if (delta > io_schedule_max_ms * NSEC_PER_MSEC * 5)
@@ -6214,7 +6214,7 @@ void io_schedule_finish(int token)
 	unsigned long long delta = ktime_get_boot_fast_ns() - current->iowait_start;
 
 	if (delta > io_schedule_max_ms * NSEC_PER_MSEC) {
-		pr_info("iowait: [%16s] %4lldms g_leader %16s\n",
+		pr_info("iowait: [%-16s] %4lldms g_leader %-16s\n",
 			current->comm, ktime_to_ms(delta),
 			current->group_leader ? current->group_leader->comm : "");
 		if (delta > io_schedule_max_ms * NSEC_PER_MSEC * 5)

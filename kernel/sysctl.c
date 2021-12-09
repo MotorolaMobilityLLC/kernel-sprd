@@ -1999,7 +1999,7 @@ static struct ctl_table fs_table[] = {
 	{
 		.procname	= "fs_timeout_ms",
 		.data		= &sysctl_fs_timeout[0],
-		.maxlen		= 4*sizeof(int),
+		.maxlen		= 5*sizeof(int),
 		.mode		= 0644,
 		.proc_handler	= proc_dointvec,
 	},

@@ -91,6 +91,7 @@ extern int sysctl_fs_timeout[];
 #define vfs_write_max_ms	(sysctl_fs_timeout[1])
 #define fs_sync_max_ms		(sysctl_fs_timeout[2])
 #define io_schedule_max_ms	(sysctl_fs_timeout[3])
+#define io_interval		(sysctl_fs_timeout[4])
 #endif
 
 typedef __kernel_rwf_t rwf_t;

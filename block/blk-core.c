@@ -1417,6 +1417,142 @@ void blk_steal_bios(struct bio_list *list, struct request *rq)
 }
 EXPORT_SYMBOL_GPL(blk_steal_bios);
 
+#if defined(CONFIG_SPRD_DEBUG)
+static DEFINE_SPINLOCK(_io_lock);
+
+#define IO_ARRAY_SIZE 12	/* 2^(12-2) = 1024ms */
+/*
+ * convert ms to index: (ilog2(ms) + 1)
+ * array[6]++ means the time is: 32ms <= time < 64ms
+ * [0] [1] [2] [3] [4] [5]  [6]  [7]  [8]   [9]   [10]  [11]
+ * 0ms 1ms 2ms 4ms 8ms 16ms 32ms 64ms 128ms 256ms 512ms 1024ms
+ */
+
+struct io_disk_info {
+	char disk_name[32];
+	unsigned long rq_count;
+	unsigned long insert2issue[IO_ARRAY_SIZE];
+	unsigned long issue2complete[IO_ARRAY_SIZE];
+};
+
+struct io_debug_info {
+	struct io_disk_info	disk_info[4];
+	unsigned long insert2issue[IO_ARRAY_SIZE];
+	unsigned long issue2complete[IO_ARRAY_SIZE];
+	u64 start;
+};
+
+static struct io_debug_info io_debug = {
+	.disk_info = {
+		{
+			.disk_name = "sda",
+		},
+		{
+			.disk_name = "mmcblk0",
+		},
+		{
+			.disk_name = "mmcblk1",
+		},
+		{
+			.disk_name = "others"
+		},
+	},
+};
+
+static inline unsigned int ms_to_index(unsigned int ms)
+{
+	if (!ms)
+		return 0;	/* less than 1ms */
+
+	if (ms >= (1 << (IO_ARRAY_SIZE - 2)))
+		return (IO_ARRAY_SIZE - 1);
+
+	return min((IO_ARRAY_SIZE - 1), ilog2(ms) + 1);
+}
+
+void _io_update(u64 complete, u64 issue, u64 insert, struct gendisk *disk)
+{
+	unsigned int msecs;
+	unsigned long *io_time;
+	struct io_disk_info *info;
+	int i, index;
+
+	for (i = 0; i < 4; i++) {
+		info = &io_debug.disk_info[i];
+		if (!strcmp(info->disk_name, disk->disk_name))
+			break;
+	}
+
+	spin_lock(&_io_lock);
+
+	++info->rq_count;
+
+	/* start/insert to issue */
+	msecs = ktime_to_ms(issue - insert);
+	index = ms_to_index(msecs);
+	++io_debug.insert2issue[index];
+	++info->insert2issue[index];
+
+	/* issue to complete */
+	msecs = ktime_to_ms(complete - issue);
+	index = ms_to_index(msecs);
+	++io_debug.issue2complete[index];
+	++info->issue2complete[index];
+
+	if (complete > (io_debug.start + (1000000000ULL * io_interval))) {
+		/* print insert to issue */
+		io_time = io_debug.insert2issue;
+		pr_info("io insert-issue:%5ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld\n",
+			io_time[0], io_time[1], io_time[2],
+			io_time[3], io_time[4], io_time[5],
+			io_time[6], io_time[7], io_time[8],
+			io_time[9], io_time[10], io_time[11]);
+		memset(io_debug.insert2issue, 0, sizeof(unsigned long) * IO_ARRAY_SIZE);
+
+		for (i = 0; i < 4; i++) {
+			info = &io_debug.disk_info[i];
+			if (!info->rq_count)
+				continue;
+
+			io_time = info->insert2issue;
+			pr_info("|_i2i%10s:%5ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld\n",
+				info->disk_name, io_time[0], io_time[1], io_time[2],
+				io_time[3], io_time[4], io_time[5],
+				io_time[6], io_time[7], io_time[8],
+				io_time[9], io_time[10], io_time[11]);
+			memset(info->insert2issue, 0, sizeof(unsigned long) * IO_ARRAY_SIZE);
+		}
+
+		/* print issue to complete */
+		io_time = io_debug.issue2complete;
+		pr_info("io issue - comp:%5ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld\n",
+			io_time[0], io_time[1], io_time[2],
+			io_time[3], io_time[4], io_time[5],
+			io_time[6], io_time[7], io_time[8],
+			io_time[9], io_time[10], io_time[11]);
+		memset(io_debug.issue2complete, 0, sizeof(unsigned long) * IO_ARRAY_SIZE);
+
+		for (i = 0; i < 4; i++) {
+			info = &io_debug.disk_info[i];
+			if (!info->rq_count)
+				continue;
+
+			io_time = info->issue2complete;
+			pr_info("|_i2c%10s:%5ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld\n",
+				info->disk_name, io_time[0], io_time[1], io_time[2],
+				io_time[3], io_time[4], io_time[5],
+				io_time[6], io_time[7], io_time[8],
+				io_time[9], io_time[10], io_time[11]);
+			memset(info->issue2complete, 0, sizeof(unsigned long) * IO_ARRAY_SIZE);
+			info->rq_count = 0;
+		}
+
+		io_debug.start = complete;
+	}
+	spin_unlock(&_io_lock);
+}
+#endif
+
 /**
  * blk_update_request - Special helper function for request stacking drivers
  * @req:      the request being processed
@@ -1448,6 +1584,12 @@ bool blk_update_request(struct request *req, blk_status_t error,
 {
 	int total_bytes;
 
+#if defined(CONFIG_SPRD_DEBUG)
+	if (req->io_start_time_ns && req->start_time_ns && req->rq_disk) {
+		_io_update(ktime_get_ns(), req->io_start_time_ns,
+			req->start_time_ns, req->rq_disk);
+	}
+#endif
 	trace_block_rq_complete(req, blk_status_to_errno(error), nr_bytes);
 
 	if (!req->bio)

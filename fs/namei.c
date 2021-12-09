@@ -979,9 +979,10 @@ int sysctl_protected_regular __read_mostly;
 #if defined(CONFIG_SPRD_DEBUG)
 int sysctl_fs_timeout[] = {
 	200,	/* vfs_open_max_ms */
-	200,	/* vfs_write_max_ms */
+	500,	/* vfs_write_max_ms */
 	1000,	/* fs_sync_max_ms */
-	200	/* io_schedule_max_ms */
+	200,	/* io_schedule_max_ms */
+	10,	/* io_interval in seconds */
 };
 #endif
 
