@@ -106,7 +106,7 @@
 #define VBUS_7V 7000000
 #define VBUS_5V 5000000
 #define VBUS_1V 1000000
-#define V_500MV 500000
+#define V_500MV 700000
 #define I_500MA 500000
 
 
@@ -168,6 +168,7 @@ struct bq2560x_charger_info {
 	u32 current_vbus;
 	u32  set_vbus;
 	struct delayed_work hand_work;
+	unsigned int dpdm_gpio;
 	
 };
 
@@ -1013,8 +1014,17 @@ static void bq2560x_set_pe(struct bq2560x_charger_info *info, u32 vbus)
 		int last_limit_current;
 
 		dev_info(info->dev, "%s;cur=%d;vbus=%d;%d;\n",__func__,info->last_limit_cur/1000,vbus/1000,info->current_vbus/1000);
+		
+		if(info->enable_qc)
+			goto pe_exit ;
+
 		if( vbus == info->current_vbus )
 			goto pe_exit ;
+
+		vol=bq2560x_fgu_get_vbus(info);
+		if((abs(vol -vbus)) < V_500MV)
+			goto pe_exit ;
+
 		bq2560x_charger_set_ovp(info, BQ2560X_FCHG_OVP_9V);
 		last_limit_current = info->last_limit_cur;
 		bq2560x_charger_set_limit_current(info, I_500MA);
@@ -1054,7 +1064,7 @@ static void bq2560x_set_pe(struct bq2560x_charger_info *info, u32 vbus)
 			try_count++;
 
 
-		}while((abs(vol-vbus))>V_500MV && try_count <100);
+		}while((abs(vol-vbus))>V_500MV && try_count <80);
 
 		delta =abs(vol-vbus);
 
@@ -1088,47 +1098,99 @@ pe_exit:
 }
 #endif
 #if 1
-static void bq2560x_check_qc(struct bq2560x_charger_info *info)
+static void bq2560x_check_qc(struct bq2560x_charger_info *info, u32 vbus)
 {
 
 	int vol;
 	int try_count=0;
 	u8 reg_val;
 	int last_limit_current;
+	dev_info(info->dev, "%s;cur=%d;vbus=%d;%d;\n",__func__,info->last_limit_cur/1000,vbus/1000,info->current_vbus/1000);
 
-	dev_info(info->dev, "%s;\n",__func__);
+	if(info->enable_pe)
+		goto qc_exit ;
+	
+	if( vbus == info->current_vbus )
+		return ;
+
+	vol=bq2560x_fgu_get_vbus(info);
+	if((abs(vol -vbus)) < V_500MV)
+		return;
+
+	gpio_direction_output(info->dpdm_gpio, 1);
+
+	info->usb_phy->sprd_hsphy_set_dpdm(info->usb_phy,0);
+	msleep(2500);
+
 	last_limit_current = info->last_limit_cur;
 	bq2560x_charger_set_ovp(info, BQ2560X_FCHG_OVP_14V);
 	bq2560x_charger_set_limit_current(info, 100000);
 //	bq2560x_write(info, 0x0d, 0x14);      //d+ 0.6  d- 0.6
 	bq2560x_write(info, 0x0d, 0x10);      //d+ 0.6
 	msleep(2500);
-	do{
-
+	if(vbus == VBUS_9V)
 		bq2560x_write(info, 0x0d, 0x1c);      //d+ 3.3 , d- 0.6
+	else if (vbus == VBUS_5V)	
+		bq2560x_write(info, 0x0d, 0x10);      //d+ 0.6
 
 //		bq2560x_write(info, 0x0d, 0x06);      //  d- 3.3       programm
 //		bq2560x_write(info, 0x0d, 0x04);      //  d- 0.6      12v
 
+	do{
+
 		msleep(2500);
 
-		vol = bq2560x_fgu_get_vbus(info)/1000;
-		if((abs(vol-5000)) >1000)
-		{
+		vol = bq2560x_fgu_get_vbus(info);
 
-		       bq2560x_read(info, 0x0d, &reg_val);
-			dev_info(info->dev, "%s;QC checked %d;0x%x;%d;\n",__func__,vol,reg_val,try_count);
+		if(vol < VBUS_1V)
+			break ;       //charger plug out
+
+		if((abs(vol -vbus)) < V_500MV)
 			break;
-		}
+
+
+
+	       bq2560x_read(info, 0x0d, &reg_val);
 
 		try_count++;
-		dev_info(info->dev, "%s;%d;%d;\n",__func__,vol,try_count);
+
+		dev_info(info->dev, "%s;QC checke %d;0x%x;%d;\n",__func__,vol,reg_val,try_count);
+
 	}while(try_count<3);
+
 
 	if(info->last_limit_cur == 100000)
 		bq2560x_charger_set_limit_current(info, last_limit_current);
 
 	dev_info(info->dev, "%s;QC checke?? %d;%d;\n",__func__,vol,try_count);
+
+
+	if((abs(vol-vbus)) < V_500MV  && vbus > VBUS_5V)
+	{
+		info->enable_qc = true;
+		info->current_vbus = vbus;
+
+	}
+	else
+	{
+		info->enable_qc = false;
+		info->current_vbus = VBUS_5V;
+		goto qc_exit ;
+	}
+
+
+
+	return ;
+qc_exit:
+		bq2560x_write(info, 0x0d, 0x00);   //clear
+
+		gpio_direction_output(info->dpdm_gpio, 0); //analogy swtich
+
+		info->usb_phy->sprd_hsphy_set_dpdm(info->usb_phy,1);
+
+		info->set_vbus =0;
+		return ;
+
 }
 #endif
 static void bq2560x_charger_hand_work(struct work_struct *data)
@@ -1137,12 +1199,9 @@ static void bq2560x_charger_hand_work(struct work_struct *data)
 	struct bq2560x_charger_info *info =
 		container_of(dwork, struct bq2560x_charger_info, hand_work);
 
-	bool test_pe=true; 
 	
-	if(test_pe)
 	bq2560x_set_pe(info, info->set_vbus);
-	else
-	bq2560x_check_qc(info);
+	bq2560x_check_qc(info,info->set_vbus);
 
 
 }
@@ -1165,7 +1224,7 @@ static void bq2560x_charger_work(struct work_struct *data)
 			
 			info->usb_phy->sprd_hsphy_set_dpdm(info->usb_phy,0);
 
-			schedule_delayed_work(&info->hand_work,  msecs_to_jiffies(2500));
+			schedule_delayed_work(&info->hand_work,  msecs_to_jiffies(10000));
 		}
 	}
 	else if(!info->limit && info->charging)
@@ -1175,6 +1234,7 @@ static void bq2560x_charger_work(struct work_struct *data)
 			info->enable_pe = false;
 			info->current_vbus = VBUS_5V;
 
+			gpio_direction_output(info->dpdm_gpio, 0); //analogy swtich
 			info->usb_phy->sprd_hsphy_set_dpdm(info->usb_phy,1);
 
 	}
@@ -1345,7 +1405,7 @@ static int bq2560x_charger_usb_get_property(struct power_supply *psy,
 			val->intval = POWER_SUPPLY_USB_TYPE_UNKNOWN;
 		}
 		
-		if(info->enable_pe)
+		if(info->enable_pe ||info->enable_qc)
 			val->intval = POWER_SUPPLY_USB_TYPE_SFCP_1P0;
 		
 		break;
@@ -1480,7 +1540,7 @@ static int bq2560x_charger_usb_set_property(struct power_supply *psy,
 
 		break;
 	case POWER_SUPPLY_PROP_VOLTAGE_MAX:
-		if (info->enable_pe) 
+		if (info->enable_pe || info->enable_qc) 
 		{
 			if(info->current_vbus == val->intval ||info->set_vbus == val->intval)
 				break;
@@ -2162,6 +2222,15 @@ static int bq2560x_charger_probe(struct i2c_client *client,
 		ret = PTR_ERR(info->psy_usb);
 		goto err_regmap_exit;
 	}
+
+	info->dpdm_gpio = of_get_named_gpio(info->dev->of_node, "dpdm-gpio", 0);
+	if (gpio_is_valid(info->dpdm_gpio)) {
+		ret = devm_gpio_request_one(info->dev, info->dpdm_gpio,
+					    GPIOF_ACTIVE_LOW, "bq2560x_dpdm");
+		if (ret)
+			dev_err(dev, "dpdm-gpio request failed, ret = %x\n", ret);
+	}
+	
 #if 0
 	info->irq_gpio = of_get_named_gpio(info->dev->of_node, "irq-gpio", 0);
 	if (gpio_is_valid(info->irq_gpio)) {
