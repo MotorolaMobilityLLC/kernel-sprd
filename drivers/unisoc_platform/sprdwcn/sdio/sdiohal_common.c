@@ -403,12 +403,23 @@ void sdiohal_op_enter(void)
 	struct sdiohal_data_t *p_data = sdiohal_get_data();
 
 	mutex_lock(&p_data->xmit_lock);
+	p_data->op_enter_ns = ktime_get_boot_fast_ns();
 }
 
 void sdiohal_op_leave(void)
 {
 	struct sdiohal_data_t *p_data = sdiohal_get_data();
+	u64 expire_time_ns = NSEC_PER_SEC;
 
+	p_data->op_leave_ns = ktime_get_boot_fast_ns();
+	if (p_data->op_leave_ns - p_data->op_enter_ns > expire_time_ns) {
+		p_data->op_expire_cnt++;
+		pr_err_ratelimited("%s %ps->%ps->%ps->%ps expire_%llums_cnt %llu(%llu, %llu).\n",
+		current->comm, __builtin_return_address(3), __builtin_return_address(2),
+		__builtin_return_address(1), __builtin_return_address(0),
+		expire_time_ns/NSEC_PER_MSEC, p_data->op_expire_cnt,
+		p_data->op_enter_ns, p_data->op_leave_ns);
+	}
 	mutex_unlock(&p_data->xmit_lock);
 }
 
@@ -430,6 +441,9 @@ static void sdiohal_mutex_init(void)
 {
 	struct sdiohal_data_t *p_data = sdiohal_get_data();
 
+	p_data->op_enter_ns = 0;
+	p_data->op_leave_ns = 0;
+	p_data->op_expire_cnt = 0;
 	mutex_init(&p_data->xmit_lock);
 	mutex_init(&p_data->xmit_sdma);
 }

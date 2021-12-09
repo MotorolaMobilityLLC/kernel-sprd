@@ -273,6 +273,10 @@ struct sdiohal_data_t {
 	struct wakeup_source *scan_ws;
 	struct completion scan_done;
 	struct completion remove_done;
+
+	u64 op_enter_ns;
+	u64 op_leave_ns;
+	u64 op_expire_cnt;
 };
 
 struct sdiohal_data_t *sdiohal_get_data(void);
