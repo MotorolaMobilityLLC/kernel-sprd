@@ -412,9 +412,9 @@ int sprdwl_init_fw(struct sprdwl_vif *vif)
 	else
 		mac = vif->ndev->dev_addr;
 
-	if (vif->mode == SPRDWL_MODE_P2P_GO) {
+	if (vif->mode == SPRDWL_MODE_P2P_GO || vif->mode == SPRDWL_MODE_AP) {
 		if (vif->has_rand_mac) {
-			netdev_info(vif->ndev, "GO use random mac addr: %pM\n", vif->random_mac);
+			netdev_info(vif->ndev, "use random mac addr: %pM\n", vif->random_mac);
 			mac = vif->random_mac;
 		}
 	}
@@ -580,6 +580,15 @@ static int sprdwl_cfg80211_change_iface(struct wiphy *wiphy,
 		return -EOPNOTSUPP;
 	}
 
+	if (vif->mode == 0 && ((old_type == NL80211_IFTYPE_STATION && type == NL80211_IFTYPE_AP) ||
+			(old_type == NL80211_IFTYPE_AP && type == NL80211_IFTYPE_STATION))) {
+		pr_info("%s change iface but current mode 0!\n", __func__);
+		vif->wdev.iftype = type;
+		ret = sprdwl_init_fw(vif);
+		if (!ret && type == NL80211_IFTYPE_AP)
+			netif_carrier_off(ndev);
+		return ret;
+	}
 	ret = sprdwl_uninit_fw(vif);
 	if (!ret) {
 		vif->wdev.iftype = type;
@@ -707,13 +716,14 @@ static int sprdwl_add_cipher_key(struct sprdwl_vif *vif, bool pairwise,
 		    pairwise ? "pairwise" : "group", key_index);
 
 	if (vif->key_len[pairwise][0] || vif->key_len[pairwise][1] ||
-	    vif->key_len[pairwise][2] || vif->key_len[pairwise][3]) {
+	    vif->key_len[pairwise][2] || vif->key_len[pairwise][3] ||
+	    vif->key_len[pairwise][4] || vif->key_len[pairwise][5]) {
 		*cipher_ptr = vif->prwise_crypto = sprdwl_parse_cipher(cipher);
 
 		ret = sprdwl_add_key(vif->priv, vif->ctx_id,
 				     vif->key[pairwise][key_index],
 				     vif->key_len[pairwise][key_index],
-				     pairwise, key_index, key_seq,
+				     (u8)pairwise, key_index, key_seq,
 				     *cipher_ptr, mac_addr);
 	}
 

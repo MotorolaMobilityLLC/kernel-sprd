@@ -3511,7 +3511,7 @@ static int sprdwl_softap_convert_para(struct sprdwl_vif *vif,
 		tmp = &setting->entry[index];
 		/* add sae entry tlv first */
 		tlv = (struct sprdwl_tlv_data *)pos;
-		tlv->type = SPRDWL_VENDOR_SAE_ENTRY;
+		tlv->type = SPRDWL_VENDOR_SAE_ENTRY - 1;
 		tlv->len = 0;
 		pos += header_len;
 		data_len += header_len;
@@ -3519,7 +3519,7 @@ static int sprdwl_softap_convert_para(struct sprdwl_vif *vif,
 		/* PASSWORD ELEMENT */
 		if (tmp->passwd_len > 0) {
 			tlv = (struct sprdwl_tlv_data *)pos;
-			tlv->type = SPRDWL_VENDOR_SAE_PASSWORD;
+			tlv->type = SPRDWL_VENDOR_SAE_PASSWORD - 1;
 			tlv->len = tmp->passwd_len;
 
 			memcpy(tlv->data, tmp->password, tmp->passwd_len);
@@ -3533,7 +3533,7 @@ static int sprdwl_softap_convert_para(struct sprdwl_vif *vif,
 		tmp = &setting->entry[index];
 		if (tmp->id_len > 0) {
 			tlv = (struct sprdwl_tlv_data *)pos;
-			tlv->type = SPRDWL_VENDOR_SAE_IDENTIFIER;
+			tlv->type = SPRDWL_VENDOR_SAE_IDENTIFIER - 1;
 			tlv->len = tmp->id_len;
 			memcpy(tlv->data, tmp->identifier, tmp->id_len);
 			wl_info("%s id: %s, len:%d\n", __func__,
@@ -3544,7 +3544,7 @@ static int sprdwl_softap_convert_para(struct sprdwl_vif *vif,
 		/* PEER_ADDRESS ELEMENT */
 		if (!is_zero_ether_addr(tmp->peer_addr)) {
 			tlv = (struct sprdwl_tlv_data *)pos;
-			tlv->type = SPRDWL_VENDOR_SAE_PEER_ADDR;
+			tlv->type = SPRDWL_VENDOR_SAE_PEER_ADDR - 1;
 			tlv->len = ETH_ALEN;
 
 			memcpy(tlv->data, tmp->peer_addr, ETH_ALEN);
@@ -3554,7 +3554,7 @@ static int sprdwl_softap_convert_para(struct sprdwl_vif *vif,
 		/* VLAN_ID ELEMENT */
 		if (tmp->vlan_id != -1) {
 			tlv = (struct sprdwl_tlv_data *)pos;
-			tlv->type = SPRDWL_VENDOR_SAE_VLAN_ID;
+			tlv->type = SPRDWL_VENDOR_SAE_VLAN_ID - 1;
 			tlv->len = sizeof(tmp->vlan_id);
 			d = (u32 *)tlv->data;
 			*d = tmp->vlan_id;
@@ -3566,14 +3566,14 @@ static int sprdwl_softap_convert_para(struct sprdwl_vif *vif,
 	if (setting->passphrase_len) {
 		/*ADD ENTRY*/
 		tlv = (struct sprdwl_tlv_data *)pos;
-		tlv->type = SPRDWL_VENDOR_SAE_ENTRY;
+		tlv->type = SPRDWL_VENDOR_SAE_ENTRY - 1;
 		tlv->len = 0;
 		pos += header_len;
 		data_len += header_len;
 
 		/* PASSWORD ELEMENT */
 		tlv = (struct sprdwl_tlv_data *)pos;
-		tlv->type = SPRDWL_VENDOR_SAE_PWD;
+		tlv->type = SPRDWL_VENDOR_SAE_PWD - 1;
 		tlv->len = setting->passphrase_len;
 		memcpy(tlv->data, setting->passphrase, setting->passphrase_len);
 		wl_info("%s passphrase: %d, len:%d\n", __func__, setting->passphrase_len, setting->passphrase_len);
@@ -3584,7 +3584,7 @@ static int sprdwl_softap_convert_para(struct sprdwl_vif *vif,
 	/*GROUP*/
 	if (setting->group_count) {
 		tlv = (struct sprdwl_tlv_data *)pos;
-		tlv->type = SPRDWL_VENDOR_SAE_GROUP_ID;
+		tlv->type = SPRDWL_VENDOR_SAE_GROUP_ID - 1;
 		tlv->len = setting->group_count;
 		pos = tlv->data;
 		for (index = 0; index < setting->group_count; index++) {
@@ -3597,7 +3597,7 @@ static int sprdwl_softap_convert_para(struct sprdwl_vif *vif,
 	/*ACT*/
 	if (setting->act != -1) {
 		tlv = (struct sprdwl_tlv_data *)pos;
-		tlv->type = SPRDWL_VENDOR_SAE_ACT;
+		tlv->type = SPRDWL_VENDOR_SAE_ACT - 1;
 		tlv->len = sizeof(u32);
 		d = (u32 *)tlv->data;
 		*d = (setting->act);
