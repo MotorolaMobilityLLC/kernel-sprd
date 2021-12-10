@@ -2301,7 +2301,8 @@ static int cm_fast_charge_disable_check(struct charger_manager *cm)
 	}
 
 	if (batt_uV < CM_FAST_CHARGE_DISABLE_BATTERY_VOLTAGE ||
-	    batt_uA < CM_FAST_CHARGE_DISABLE_CURRENT)
+	    (batt_uA < CM_FAST_CHARGE_DISABLE_CURRENT  && cm->desc->thm_info.thm_adjust_cur>1200000) )
+	    
 		cm->desc->fast_charge_disable_count++;
 	else
 		cm->desc->fast_charge_disable_count = 0;
