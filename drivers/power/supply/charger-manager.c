@@ -121,6 +121,7 @@ static char *charger_manager_supplied_to[] = {
  */
 #define CM_RTC_SMALL		(2)
 
+#define CM_EVENT_TYPE_NUM	6
 static LIST_HEAD(cm_list);
 static DEFINE_MUTEX(cm_list_mtx);
 
@@ -130,8 +131,9 @@ static struct alarm *cm_timer;
 static bool cm_suspended;
 static bool cm_timer_set;
 static unsigned long cm_suspend_duration_ms;
-static enum cm_event_types cm_event_type;
-static char *cm_event_msg;
+static int cm_event_num;
+static enum cm_event_types cm_event_type[CM_EVENT_TYPE_NUM];
+static char *cm_event_msg[CM_EVENT_TYPE_NUM];
 
 /* About normal (not suspended) monitoring */
 static unsigned long polling_jiffy = ULONG_MAX; /* ULONG_MAX: no polling */
@@ -6708,9 +6710,11 @@ static int charger_manager_probe(struct platform_device *pdev)
 
 	cm_init_basp_parameter(cm);
 
-	if (cm_event_type)
-		cm_notify_type_handle(cm, cm_event_type, cm_event_msg);
-
+	if (cm_event_num > 0) {
+		for (i = 0; i < cm_event_num; i++)
+			cm_notify_type_handle(cm, cm_event_type[i], cm_event_msg[i]);
+		cm_event_num = 0;
+	}
 	/*
 	 * Charger-manager have to check the charging state right after
 	 * initialization of charger-manager and then update current charging
@@ -6996,8 +7000,12 @@ void cm_notify_event(struct power_supply *psy, enum cm_event_types type,
 	mutex_unlock(&cm_list_mtx);
 
 	if (!found_power_supply || !cm->cm_charge_vote) {
-		cm_event_msg = msg;
-		cm_event_type = type;
+		if (cm_event_num < CM_EVENT_TYPE_NUM) {
+			cm_event_msg[cm_event_num] = msg;
+			cm_event_type[cm_event_num++] = type;
+		} else {
+			pr_err("%s: too many cm_event_num!!\n", __func__);
+		}
 		return;
 	}
 
