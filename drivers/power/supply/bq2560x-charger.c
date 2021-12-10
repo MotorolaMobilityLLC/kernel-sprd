@@ -373,7 +373,7 @@ bq2560x_charger_set_termina_vol(struct bq2560x_charger_info *info, u32 vol)
 	if (vol < 3856)
 		reg_val = 0x0;
 	else
-		reg_val = (vol - 3856) / 32 +32;
+		reg_val = (vol+32 - 3856) / 32;
 
 	return bq2560x_update_bits(info, BQ2560X_REG_4,
 				   BQ2560X_REG_TERMINAL_VOLTAGE_MASK,
@@ -391,7 +391,7 @@ bq2560x_charger_get_termina_vol(struct bq2560x_charger_info *info, u32 *vol)
 		return ret;
 
 	reg_val &= BQ2560X_REG_TERMINAL_VOLTAGE_MASK;
-	*vol = 3856 + (reg_val >> BQ2560X_REG_TERMINAL_VOLTAGE_SHIFT) * 32 +32;
+	*vol = 3856 + (reg_val >> BQ2560X_REG_TERMINAL_VOLTAGE_SHIFT) * 32 ;
 
 	return 0;
 }
