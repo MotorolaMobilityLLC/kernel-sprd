@@ -1251,7 +1251,7 @@ static int musb_gadget_queue(struct usb_ep *ep, struct usb_request *req,
 				req, (int)(request->tx));
 		if (status) {
 			musb_dbg(musb, "failed to map request\n");
-			return status;
+			goto end;
 		}
 	} else {
 		map_dma_buffer(request, musb, musb_ep);
@@ -1283,6 +1283,7 @@ static int musb_gadget_queue(struct usb_ep *ep, struct usb_request *req,
 
 unlock:
 	spin_unlock_irqrestore(&musb->lock, lockflags);
+end:
 	pm_runtime_mark_last_busy(musb->controller);
 	pm_runtime_put_autosuspend(musb->controller);
 

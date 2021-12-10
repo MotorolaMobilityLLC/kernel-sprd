@@ -621,6 +621,13 @@ static void sprd_musb_work(struct work_struct *work)
 		if ((musb->g.state != USB_STATE_NOTATTACHED) &&
 		    pm_runtime_active(glue->dev)) {
 			dev_info(glue->dev, "musb device is resumed!\n");
+			/* we know pm_runtime_get_sync will fail here
+			 * but we need to make sure the usage_count will add
+			 * 1, if not, device will enter suspend  when we call
+			 * pm_runtime_put_autosuspend and 500ms pass
+			 */
+			if (glue->dr_mode == USB_DR_MODE_PERIPHERAL)
+				pm_runtime_get_noresume(musb->controller);
 			goto end;
 		}
 
@@ -642,6 +649,7 @@ static void sprd_musb_work(struct work_struct *work)
 			 "Don't need resume musb device in charging mode!\n");
 			goto end;
 		}
+
 		cnt = 100;
 		while (!pm_runtime_suspended(musb->controller)
 			&& (--cnt > 0))
