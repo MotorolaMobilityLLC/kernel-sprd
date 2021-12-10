@@ -34,7 +34,7 @@ struct sprd_cma_debug {
 	unsigned int sum_cnt;
 };
 
-int sysctl_sprd_cma_debug;
+extern int sysctl_sprd_cma_debug;
 int sysctl_sprd_cma_debug_handler(struct ctl_table *table, int write,
 			void __user *buffer, size_t *length, loff_t *ppos);
 #endif

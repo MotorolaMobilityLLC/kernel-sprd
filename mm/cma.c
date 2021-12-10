@@ -43,6 +43,7 @@ struct cma cma_areas[MAX_CMA_AREAS];
 unsigned cma_area_count;
 #ifdef CONFIG_SPRD_CMA_DEBUG
 struct sprd_cma_debug sprd_cma;
+int sysctl_sprd_cma_debug;
 #endif
 
 phys_addr_t cma_get_base(const struct cma *cma)
