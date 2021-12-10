@@ -86,6 +86,16 @@
 #define SY6970_DISABLE_PIN_MASK		BIT(0)
 #define SY6970_DISABLE_PIN_MASK_2721		BIT(15)
 
+#define SY6970_REG_EN_PUMPX_MASK			GENMASK(7, 7)
+#define SY6970_REG_EN_PUMPX_SHIFT		7
+
+#define SY6970_REG_PUMP_UP_MASK			GENMASK(1, 1)
+#define SY6970_REG_PUMP_UP_SHIFT		1
+
+#define SY6970_REG_PUMP_DN_MASK			GENMASK(0, 0)
+#define SY6970_REG_PUMP_DN_SHIFT		0
+
+
 #define SY6970_OTG_VALID_MS			500
 #define SY6970_FEED_WATCHDOG_VALID_MS		50
 #define SY6970_OTG_RETRY_TIMES			10
@@ -101,6 +111,14 @@
 #define SY6970_FCHG_OVP_14V			14000
 #define SY6970_FAST_CHARGER_VOLTAGE_MAX	10500000
 #define SY6970_NORMAL_CHARGER_VOLTAGE_MAX	6500000
+
+#define VBUS_9V 9000000
+#define VBUS_7V 7000000
+#define VBUS_5V 5000000
+#define VBUS_1V 1000000
+#define V_500MV 700000
+#define I_500MA 500000
+
 
 #define SY6970_WAKE_UP_MS			1000
 #define SY6970_CURRENT_WORK_MS			msecs_to_jiffies(100)
@@ -154,6 +172,14 @@ struct sy6970_charger_info {
 
 	int reg_id;
 	bool disable_power_path;
+
+	bool enable_pe;
+        bool enable_qc;
+	u32 current_vbus;
+	u32  set_vbus;
+	struct delayed_work hand_work;
+	unsigned int dpdm_gpio;
+	
 };
 
 struct sy6970_charger_reg_tab {
@@ -942,6 +968,241 @@ static int sy6970_charger_set_power_path_status(struct sy6970_charger_info *info
 
 	return ret;
 }
+static int sy6970_fgu_get_vbus(struct sy6970_charger_info *info)
+{
+	struct power_supply *psy;
+	union power_supply_propval val;
+	int ret;
+
+	psy = power_supply_get_by_name(SY6970_BATTERY_NAME);
+	if (!psy) {
+		dev_err(info->dev, "Failed to get psy of sc27xx_fgu\n");
+		return false;
+	}
+	ret = power_supply_get_property(psy, POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE,
+					&val);
+	power_supply_put(psy);
+
+	return val.intval;
+}
+#if 1
+static void sy6970_set_pe(struct sy6970_charger_info *info, u32 vbus)
+{
+		int vol;
+		int try_count=0;
+		u8 reg_val;
+		int delta;
+		int last_limit_current;
+
+		dev_info(info->dev, "%s;cur=%d;vbus=%d;%d;\n",__func__,info->last_limit_cur/1000,vbus/1000,info->current_vbus/1000);
+		
+		if(info->enable_qc)
+			goto pe_exit ;
+
+		if( vbus == info->current_vbus )
+			goto pe_exit ;
+
+		vol=sy6970_fgu_get_vbus(info);
+		if((abs(vol -vbus)) < V_500MV)
+			goto pe_exit ;
+
+		sy6970_charger_set_ovp(info, SY6970_FCHG_OVP_9V);
+		last_limit_current = info->last_limit_cur;
+		sy6970_charger_set_limit_current(info, I_500MA);
+		msleep(500);
+		if(vbus > info->current_vbus)
+		{
+			sy6970_update_bits(info, SY6970_REG_4,
+						  SY6970_REG_EN_PUMPX_MASK,
+						  SY6970_REG_EN_PUMPX_MASK);  //enable 
+			sy6970_update_bits(info, SY6970_REG_9,
+						  SY6970_REG_PUMP_UP_MASK,   //up
+						  SY6970_REG_PUMP_UP_MASK);
+
+		}
+		else	
+		{
+			sy6970_update_bits(info, SY6970_REG_4,
+						  SY6970_REG_EN_PUMPX_MASK,
+						  SY6970_REG_EN_PUMPX_MASK);  //enable
+			sy6970_update_bits(info, SY6970_REG_9,
+						  SY6970_REG_PUMP_DN_MASK,   //down
+						  SY6970_REG_PUMP_DN_MASK);
+		}
+
+		do{
+			msleep(100);
+			
+			vol=sy6970_fgu_get_vbus(info);
+			 sy6970_read(info, SY6970_REG_9, &reg_val);
+			dev_info(info->dev, "%s;%d;0x%x;%d;\n",__func__,vol,reg_val,try_count);
+
+			if(vol < VBUS_1V)
+				goto pe_exit ;       //charger plug out
+			 
+			if(vol<vbus && (reg_val & SY6970_REG_EN_PUMPX_MASK) ==0)
+			{
+				
+				if((abs(vol -vbus)) < V_500MV)
+					break;
+				sy6970_update_bits(info, SY6970_REG_9,
+							  SY6970_REG_PUMP_UP_MASK,   //up
+							  SY6970_REG_PUMP_UP_MASK);
+				dev_info(info->dev, "%s;up; count %d;\n",__func__,try_count);
+				
+			}	
+			else if(vol>vbus && (reg_val & SY6970_REG_PUMP_DN_MASK) ==0)	
+			{
+				if((abs(vol -vbus)) < V_500MV)
+					break;
+				sy6970_update_bits(info, SY6970_REG_9,
+							  SY6970_REG_PUMP_DN_MASK,   //down
+							  SY6970_REG_PUMP_DN_MASK);
+				dev_info(info->dev, "%s;down; count %d;\n",__func__,try_count);
+			}
+
+			try_count++;
+
+
+		}while((abs(vol-vbus))>V_500MV && try_count <80);
+
+		delta =abs(vol-vbus);
+
+		if(delta < V_500MV  && vbus > VBUS_5V)
+		{
+			info->enable_pe = true;
+			info->current_vbus = vbus;
+
+		}
+		else
+		{
+			info->enable_pe = false;
+			info->current_vbus = VBUS_5V;
+
+		}
+
+
+		dev_info(info->dev, "%s;%d;count %d;%d;%d;\n",__func__,info->enable_pe,try_count,last_limit_current/1000,info->last_limit_cur/1000);
+
+		if(info->last_limit_cur == I_500MA)
+			sy6970_charger_set_limit_current(info, last_limit_current);
+
+pe_exit:
+		sy6970_update_bits(info, SY6970_REG_4,
+					  SY6970_REG_EN_PUMPX_MASK,
+					  0);
+
+		info->usb_phy->sprd_hsphy_set_dpdm(info->usb_phy,1);
+
+		info->set_vbus =0;
+		return ;
+
+}
+#endif
+#if 1
+static void sy6970_check_qc(struct sy6970_charger_info *info, u32 vbus)
+{
+
+	int vol;
+	int try_count=0;
+	u8 reg_val;
+	int last_limit_current;
+	dev_info(info->dev, "%s;cur=%d;vbus=%d;%d;\n",__func__,info->last_limit_cur/1000,vbus/1000,info->current_vbus/1000);
+
+	if(info->enable_pe)
+		goto qc_exit ;
+
+	if( vbus == info->current_vbus )
+		return ;
+
+	vol=sy6970_fgu_get_vbus(info);
+	if((abs(vol -vbus)) < V_500MV)
+		return;
+
+	gpio_direction_output(info->dpdm_gpio, 1);
+
+	info->usb_phy->sprd_hsphy_set_dpdm(info->usb_phy,0);
+	msleep(2500);
+
+	last_limit_current = info->last_limit_cur;
+	sy6970_charger_set_ovp(info, SY6970_FCHG_OVP_14V);
+	sy6970_charger_set_limit_current(info, 100000);
+//	sy6970_write(info, SY6970_REG_1, 0x49);      //d+ 0.6  d- 0.6
+	sy6970_write(info, SY6970_REG_1, 0x41);      //d+ 0.6
+	msleep(2500);
+	if(vbus == VBUS_9V)
+		sy6970_write(info, SY6970_REG_1, 0xc9);      //d+ 3.3 , d- 0.6
+	else if (vbus == VBUS_5V)	
+		sy6970_write(info, SY6970_REG_1, 0x41);      //d+ 0.6
+
+
+	do{
+
+		msleep(2500);
+
+		vol = sy6970_fgu_get_vbus(info);
+
+		if(vol < VBUS_1V)
+			break ;       //charger plug out
+
+		if((abs(vol -vbus)) < V_500MV)
+			break;
+
+
+
+	       sy6970_read(info, 0x0d, &reg_val);
+
+		try_count++;
+
+		dev_info(info->dev, "%s;QC checke %d;0x%x;%d;\n",__func__,vol,reg_val,try_count);
+
+	}while(try_count<3);
+
+
+	if(info->last_limit_cur == 100000)
+		sy6970_charger_set_limit_current(info, last_limit_current);
+
+	dev_info(info->dev, "%s;QC checke?? %d;%d;\n",__func__,vol,try_count);
+
+
+	if((abs(vol-vbus)) < V_500MV  && vbus > VBUS_5V)
+	{
+		info->enable_qc = true;
+		info->current_vbus = vbus;
+
+	}
+	else
+	{
+		info->enable_qc = false;
+		info->current_vbus = VBUS_5V;
+		goto qc_exit ;
+	}
+
+
+
+	return ;
+qc_exit:
+		sy6970_write(info, SY6970_REG_1, 0x01);   //clear
+
+		gpio_direction_output(info->dpdm_gpio, 0); //analogy swtich
+
+		info->usb_phy->sprd_hsphy_set_dpdm(info->usb_phy,1);
+
+		info->set_vbus =0;
+		return ;
+
+}
+#endif
+static void sy6970_charger_hand_work(struct work_struct *data)
+{
+	struct delayed_work *dwork = to_delayed_work(data);
+	struct sy6970_charger_info *info =
+		container_of(dwork, struct sy6970_charger_info, hand_work);
+
+	sy6970_set_pe(info, info->set_vbus);
+	sy6970_check_qc(info,info->set_vbus);
+
+}
 
 static void sy6970_charger_work(struct work_struct *data)
 {
@@ -951,6 +1212,30 @@ static void sy6970_charger_work(struct work_struct *data)
 
 	dev_info(info->dev, "battery present = %d, charger type = %d\n",
 		 present, info->usb_phy->chg_type);
+
+
+	if(info->limit > 0 && !info->charging )
+	{
+		if(info->usb_phy->chg_type == DCP_TYPE)
+		{
+			info->set_vbus = VBUS_9V;
+			
+			info->usb_phy->sprd_hsphy_set_dpdm(info->usb_phy,0);
+
+			schedule_delayed_work(&info->hand_work,  msecs_to_jiffies(10000));
+		}
+	}
+	else if(!info->limit && info->charging)
+	{
+			cancel_delayed_work_sync(&info->hand_work);
+
+			info->enable_pe = false;
+			info->current_vbus = VBUS_5V;
+
+			gpio_direction_output(info->dpdm_gpio, 0); //analogy swtich
+			info->usb_phy->sprd_hsphy_set_dpdm(info->usb_phy,1);
+
+	}
 	cm_notify_event(info->psy_usb, CM_EVENT_CHG_START_STOP, NULL);
 }
 
@@ -1118,6 +1403,9 @@ static int sy6970_charger_usb_get_property(struct power_supply *psy,
 			val->intval = POWER_SUPPLY_USB_TYPE_UNKNOWN;
 		}
 
+		if(info->enable_pe ||info->enable_qc)
+			val->intval = POWER_SUPPLY_USB_TYPE_SFCP_1P0;
+		
 		break;
 
 	case POWER_SUPPLY_PROP_CHARGE_ENABLED:
@@ -1140,6 +1428,12 @@ static int sy6970_charger_usb_get_property(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE_MAX:
 		ret = sy6970_charger_get_termina_vol(info, &vol);
 		val->intval = vol *1000;
+		break;
+	case POWER_SUPPLY_PROP_VOLTAGE_MAX:
+		if (info->enable_pe)
+			val->intval =VBUS_9V;
+		else
+			val->intval =VBUS_5V;
 		break;
 
 	default:
@@ -1243,6 +1537,18 @@ static int sy6970_charger_usb_set_property(struct power_supply *psy,
 			dev_err(info->dev, "failed to set fast charge ovp\n");
 
 		break;
+	case POWER_SUPPLY_PROP_VOLTAGE_MAX:
+		if (info->enable_pe || info->enable_qc) 
+		{
+			if(info->current_vbus == val->intval ||info->set_vbus == val->intval)
+				break;
+			info->set_vbus = val->intval;
+			
+			info->usb_phy->sprd_hsphy_set_dpdm(info->usb_phy,0);
+
+			schedule_delayed_work(&info->hand_work,  250);
+		}	
+		break;		
 	default:
 		ret = -EINVAL;
 	}
@@ -1262,6 +1568,7 @@ static int sy6970_charger_property_is_writeable(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_CHARGE_ENABLED:
 	case POWER_SUPPLY_PROP_WIRELESS_TYPE:
 	case POWER_SUPPLY_PROP_STATUS:
+	case POWER_SUPPLY_PROP_VOLTAGE_MAX:
 		ret = 1;
 		break;
 
@@ -1280,7 +1587,8 @@ static enum power_supply_usb_type sy6970_charger_usb_types[] = {
 	POWER_SUPPLY_USB_TYPE_C,
 	POWER_SUPPLY_USB_TYPE_PD,
 	POWER_SUPPLY_USB_TYPE_PD_DRP,
-	POWER_SUPPLY_USB_TYPE_APPLE_BRICK_ID
+	POWER_SUPPLY_USB_TYPE_APPLE_BRICK_ID,
+	POWER_SUPPLY_USB_TYPE_SFCP_1P0	
 };
 
 static enum power_supply_property sy6970_usb_props[] = {
@@ -1295,6 +1603,7 @@ static enum power_supply_property sy6970_usb_props[] = {
 	POWER_SUPPLY_PROP_CHARGE_FULL,
 	POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE_MAX,
 	POWER_SUPPLY_PROP_POWER_NOW,
+	POWER_SUPPLY_PROP_VOLTAGE_MAX,
 };
 
 static const struct power_supply_desc sy6970_charger_desc = {
@@ -1892,6 +2201,15 @@ static int sy6970_charger_probe(struct i2c_client *client,
 		ret = PTR_ERR(info->psy_usb);
 		goto err_regmap_exit;
 	}
+
+	info->dpdm_gpio = of_get_named_gpio(info->dev->of_node, "dpdm-gpio", 0);
+	if (gpio_is_valid(info->dpdm_gpio)) {
+		ret = devm_gpio_request_one(info->dev, info->dpdm_gpio,
+					    GPIOF_ACTIVE_LOW, "bq2560x_dpdm");
+		if (ret)
+			dev_err(dev, "dpdm-gpio request failed, ret = %x\n", ret);
+	}
+	
 #if 0
 	info->irq_gpio = of_get_named_gpio(info->dev->of_node, "irq-gpio", 0);
 	if (gpio_is_valid(info->irq_gpio)) {
@@ -1942,6 +2260,11 @@ static int sy6970_charger_probe(struct i2c_client *client,
 		goto error_sysfs;
 	}
 
+	info->enable_pe = false;
+	info->enable_qc = false;
+	info->current_vbus =VBUS_5V;
+	
+
 	INIT_WORK(&info->work, sy6970_charger_work);
 	INIT_DELAYED_WORK(&info->cur_work, sy6970_current_work);
 
@@ -1949,6 +2272,8 @@ static int sy6970_charger_probe(struct i2c_client *client,
 	INIT_DELAYED_WORK(&info->otg_work, sy6970_charger_otg_work);
 	INIT_DELAYED_WORK(&info->wdt_work,
 			  sy6970_charger_feed_watchdog_work);
+
+	INIT_DELAYED_WORK(&info->hand_work, sy6970_charger_hand_work);
 
 	dev_err(dev, "sy6970_charger_probe ok to register\n");
 
