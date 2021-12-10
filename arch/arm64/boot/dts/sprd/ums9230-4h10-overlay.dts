@@ -1019,6 +1019,7 @@
 	/*ext_control_type, hook selection, mode, gpio share*/
 	sprd,spk-ext-pa-info = <0 0 6 0>;
 	sprd,spk-ext-pa-gpio = <&ap_gpio 129 0>;
+	sprd,spk-ext-pa-id-pin = <&ap_gpio 8 0>;
 };
 
 &vddldo0 {
