@@ -1685,7 +1685,7 @@ static int fts_ts_probe_entry(struct fts_ts_data *ts_data)
        snprintf(lcdname, sizeof(lcdname),"%s ","hlt-ft8006s" );
        pr_err("lcdname\n ");
     }
-    snprintf(version, sizeof(version),"FW:03");
+    snprintf(version, sizeof(version),"FW:04");
     snprintf(vendor_name, sizeof(vendor_name),"hlt-ft8006s" );
     REGISTER_AND_INIT_ONTIM_DEBUG_FOR_THIS_DEV();
 #endif
