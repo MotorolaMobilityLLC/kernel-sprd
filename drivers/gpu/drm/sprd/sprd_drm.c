@@ -436,24 +436,14 @@ static int sprd_drm_remove(struct platform_device *pdev)
 static void sprd_drm_shutdown(struct platform_device *pdev)
 {
 	struct drm_device *drm = dev_get_drvdata(&pdev->dev);
-	struct drm_atomic_state *state;
-	struct sprd_drm *sprd;
 
-	if (!drm)
-		return;
 
-	DRM_INFO("%s()\n", __func__);
-
-	drm_kms_helper_poll_disable(drm);
-
-	state = drm_atomic_helper_suspend(drm);
-	if (IS_ERR(state)) {
-		drm_kms_helper_poll_enable(drm);
+	if (!drm) {
+		DRM_WARN("drm device is not available, no shutdown\n");
 		return;
 	}
 
-	sprd = drm->dev_private;
-	sprd->state = state;
+	drm_atomic_helper_shutdown(drm);
 }
 
 static int sprd_drm_pm_suspend(struct device *dev)

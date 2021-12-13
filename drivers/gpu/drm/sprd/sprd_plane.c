@@ -59,6 +59,11 @@ static void sprd_plane_atomic_update(struct drm_plane *drm_plane,
 	if (!drm_state->fb)
 		return;
 
+	if (drm_plane->state->crtc->state->active_changed) {
+		DRM_DEBUG("resume or suspend, no need to update plane\n");
+		return;
+	}
+
 	if (layer->pallete_en) {
 		layer->index = plane->index;
 		layer->dst_x = drm_state->crtc_x;
