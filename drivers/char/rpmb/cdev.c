@@ -154,7 +154,7 @@ static long rpmb_ioctl_seq_cmd(struct rpmb_dev *rdev,
 			       struct rpmb_ioc_seq_cmd __user *ptr)
 {
 	__u64 ncmds;
-	struct rpmb_cmd *cmds;
+	struct rpmb_cmd *cmds = NULL;
 	struct rpmb_ioc_cmd __user *ucmds;
 
 	int i;
