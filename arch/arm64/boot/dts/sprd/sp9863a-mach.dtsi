@@ -75,6 +75,11 @@
 			reg = <0x0 0x8d480000 0x0 0x00096000>;
 		};
 
+		/* The uboot_log_reserved node is added in uboot. base:0x9de8 0000, size:0x80000 */
+		uboot_log_reserved: uboot_log-mem@9de80000 {
+			reg = <0x0 0x9de80000 0x0 0x00080000>;
+		};
+
 		/* must be 1M aligned */
 		sml_reserved: sml-mem@b0000000 {
 			reg = <0x0 0xb0000000 0x0 0x00020000>;
