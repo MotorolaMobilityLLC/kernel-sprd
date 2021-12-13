@@ -33,6 +33,12 @@
 				sprd,reset-off-sequence = <1 5>;
 
 		sprd,initial-command = [
+
+						23 00 00 02 FF 24
+						23 00 00 02 FB 01
+						23 00 00 02 5A 82
+						23 00 00 02 5B 72
+
 						23 00 00 02 FF 23
 						23 00 00 02 FB 01
 						23 00 00 02 00 98
