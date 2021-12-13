@@ -108,6 +108,16 @@
 #define UMP9620_MODULE_EN		0x2008
 #define UMP9620_CLK_EN			0x2010
 #define UMP9620_WDT_BASE		0x40
+#define UMP9620_SWRST_CTRL0             0x23f8
+#define UMP9620_SOFT_RST_HW             0x2024
+#define SC2730_SWRST_CTRL0              0x1bf8
+#define SC2730_SOFT_RST_HW              0x1824
+#define SC2721_SWRST_CTRL0              0xf1c
+#define SC2721_SOFT_RST_HW              0xc24
+#define SC2720_SWRST_CTRL0              0xe68
+#define SC2720_SOFT_RST_HW              0xc24
+#define REG_RST_EN                      BIT(4)
+#define REG_SOFT_RST                    BIT(0)
 
 /* Definition of PMIC reset status register */
 #define HWRST_STATUS_SECURITY		0x02
@@ -138,6 +148,8 @@ struct sprd_adi_variant_data {
 	u32 rst_sts;
 	u32 wdg_en;
 	u32 wdg_clk;
+	u32 swrst_base;
+	u32 softrst_base;
 };
 
 struct sprd_adi {
@@ -406,7 +418,7 @@ static int sprd_adi_restart_handler(struct notifier_block *this,
 {
 	struct sprd_adi *sadi = container_of(this, struct sprd_adi,
 					     restart_handler);
-	u32 wdg_base, val = 0, reboot_mode = 0;
+	u32 val = 0, reboot_mode = 0;
 
 	if (!cmd)
 		reboot_mode = HWRST_STATUS_NORMAL;
@@ -443,37 +455,15 @@ static int sprd_adi_restart_handler(struct notifier_block *this,
 	val |= reboot_mode;
 	sprd_adi_write(sadi, sadi->slave_pbase + sadi->data->rst_sts, val);
 
-	/* Enable the interface clock of the watchdog */
-	sprd_adi_read(sadi, sadi->slave_pbase + sadi->data->wdg_en, &val);
-	val |= BIT_WDG_EN;
-	sprd_adi_write(sadi, sadi->slave_pbase + sadi->data->wdg_en, val);
+	/*enable register reboot mode*/
+	sprd_adi_read(sadi, sadi->slave_pbase + sadi->data->swrst_base, &val);
+	val |= REG_RST_EN;
+	sprd_adi_write(sadi, sadi->slave_pbase + sadi->data->swrst_base, val);
 
-	/* Enable the work clock of the watchdog */
-	sprd_adi_read(sadi, sadi->slave_pbase + sadi->data->wdg_clk, &val);
-	val |= BIT_WDG_EN;
-	sprd_adi_write(sadi, sadi->slave_pbase + sadi->data->wdg_clk, val);
-
-	wdg_base = sadi->slave_pbase + sadi->data->wdg_base;
-
-	/* Unlock the watchdog */
-	sprd_adi_write(sadi, wdg_base + REG_WDG_LOCK, WDG_UNLOCK_KEY);
-
-	sprd_adi_read(sadi, wdg_base + REG_WDG_CTRL, &val);
-	val |= BIT_WDG_NEW;
-	sprd_adi_write(sadi, wdg_base + REG_WDG_CTRL, val);
-
-	/* Load the watchdog timeout value, 50ms is always enough. */
-	sprd_adi_write(sadi, wdg_base + REG_WDG_LOAD_HIGH, 0);
-	sprd_adi_write(sadi, wdg_base + REG_WDG_LOAD_LOW,
-		       WDG_LOAD_VAL & WDG_LOAD_MASK);
-
-	/* Start the watchdog to reset system */
-	sprd_adi_read(sadi, wdg_base + REG_WDG_CTRL, &val);
-	val |= BIT_WDG_RUN | BIT_WDG_RST;
-	sprd_adi_write(sadi, wdg_base + REG_WDG_CTRL, val);
-
-	/* Lock the watchdog */
-	sprd_adi_write(sadi, wdg_base + REG_WDG_LOCK, ~WDG_UNLOCK_KEY);
+	/*enable soft reboot mode */
+	sprd_adi_read(sadi, sadi->slave_pbase + sadi->data->softrst_base, &val);
+	val |= REG_SOFT_RST;
+	sprd_adi_write(sadi, sadi->slave_pbase + sadi->data->softrst_base, val);
 
 	mdelay(1000);
 
@@ -651,6 +641,8 @@ static struct sprd_adi_variant_data sharkl3_data = {
 	.rst_sts = SC2721_RST_STATUS,
 	.wdg_en = SC2721_MODULE_EN,
 	.wdg_clk = SC2721_CLK_EN,
+	.swrst_base = SC2721_SWRST_CTRL0,
+	.softrst_base = SC2721_SOFT_RST_HW,
 };
 
 static struct sprd_adi_variant_data pike2_data = {
@@ -660,6 +652,8 @@ static struct sprd_adi_variant_data pike2_data = {
 	.rst_sts = SC2720_RST_STATUS,
 	.wdg_en = SC2720_MODULE_EN,
 	.wdg_clk = SC2720_CLK_EN,
+	.swrst_base = SC2720_SWRST_CTRL0,
+	.softrst_base = SC2720_SOFT_RST_HW,
 };
 
 static struct sprd_adi_variant_data sharkl5pro_data = {
@@ -669,6 +663,8 @@ static struct sprd_adi_variant_data sharkl5pro_data = {
 	.rst_sts = SC2730_RST_STATUS,
 	.wdg_en = SC2730_MODULE_EN,
 	.wdg_clk = SC2730_CLK_EN,
+	.swrst_base = SC2730_SWRST_CTRL0,
+	.softrst_base = SC2730_SOFT_RST_HW,
 };
 
 static struct sprd_adi_variant_data qogirn6pro_data = {
@@ -678,6 +674,8 @@ static struct sprd_adi_variant_data qogirn6pro_data = {
 	.rst_sts = UMP9620_RST_STATUS,
 	.wdg_en = UMP9620_MODULE_EN,
 	.wdg_clk = UMP9620_CLK_EN,
+	.swrst_base = UMP9620_SWRST_CTRL0,
+	.softrst_base = UMP9620_SOFT_RST_HW,
 };
 
 static const struct of_device_id sprd_adi_of_match[] = {
