@@ -1094,7 +1094,6 @@ pe_exit:
 
 		info->usb_phy->sprd_hsphy_set_dpdm(info->usb_phy,1);
 
-		info->set_vbus =0;
 		return ;
 
 }
@@ -1188,7 +1187,6 @@ qc_exit:
 
 		info->usb_phy->sprd_hsphy_set_dpdm(info->usb_phy,1);
 
-		info->set_vbus =0;
 		return ;
 
 }
@@ -1540,7 +1538,7 @@ static int sy6970_charger_usb_set_property(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_VOLTAGE_MAX:
 		if (info->enable_pe || info->enable_qc) 
 		{
-			if(info->current_vbus == val->intval ||info->set_vbus == val->intval)
+			if( info->current_vbus == val->intval)
 				break;
 			info->set_vbus = val->intval;
 			
