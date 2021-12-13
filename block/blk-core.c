@@ -1470,10 +1470,15 @@ static inline unsigned int ms_to_index(unsigned int ms)
 	return min((IO_ARRAY_SIZE - 1), ilog2(ms) + 1);
 }
 
+#define io_log(array, fmt, ...) \
+	pr_info(fmt ":%5ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld\n", \
+		##__VA_ARGS__, array[0], array[1], array[2], array[3], \
+		array[4], array[5], array[6], array[7], \
+		array[8], array[9], array[10], array[11])
+
 void _io_update(u64 complete, u64 issue, u64 insert, struct gendisk *disk)
 {
 	unsigned int msecs;
-	unsigned long *io_time;
 	struct io_disk_info *info;
 	int i, index;
 
@@ -1501,12 +1506,7 @@ void _io_update(u64 complete, u64 issue, u64 insert, struct gendisk *disk)
 
 	if (complete > (io_debug.start + (1000000000ULL * io_interval))) {
 		/* print insert to issue */
-		io_time = io_debug.insert2issue;
-		pr_info("io insert-issue:%5ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld\n",
-			io_time[0], io_time[1], io_time[2],
-			io_time[3], io_time[4], io_time[5],
-			io_time[6], io_time[7], io_time[8],
-			io_time[9], io_time[10], io_time[11]);
+		io_log(io_debug.insert2issue, "io insert-issue");
 		memset(io_debug.insert2issue, 0, sizeof(unsigned long) * IO_ARRAY_SIZE);
 
 		for (i = 0; i < 4; i++) {
@@ -1514,22 +1514,12 @@ void _io_update(u64 complete, u64 issue, u64 insert, struct gendisk *disk)
 			if (!info->rq_count)
 				continue;
 
-			io_time = info->insert2issue;
-			pr_info("|_i2i%10s:%5ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld\n",
-				info->disk_name, io_time[0], io_time[1], io_time[2],
-				io_time[3], io_time[4], io_time[5],
-				io_time[6], io_time[7], io_time[8],
-				io_time[9], io_time[10], io_time[11]);
+			io_log(info->insert2issue, "|_i2i%10s", info->disk_name);
 			memset(info->insert2issue, 0, sizeof(unsigned long) * IO_ARRAY_SIZE);
 		}
 
 		/* print issue to complete */
-		io_time = io_debug.issue2complete;
-		pr_info("io issue - comp:%5ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld\n",
-			io_time[0], io_time[1], io_time[2],
-			io_time[3], io_time[4], io_time[5],
-			io_time[6], io_time[7], io_time[8],
-			io_time[9], io_time[10], io_time[11]);
+		io_log(io_debug.issue2complete, "io issue - comp");
 		memset(io_debug.issue2complete, 0, sizeof(unsigned long) * IO_ARRAY_SIZE);
 
 		for (i = 0; i < 4; i++) {
@@ -1537,12 +1527,7 @@ void _io_update(u64 complete, u64 issue, u64 insert, struct gendisk *disk)
 			if (!info->rq_count)
 				continue;
 
-			io_time = info->issue2complete;
-			pr_info("|_i2c%10s:%5ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld\n",
-				info->disk_name, io_time[0], io_time[1], io_time[2],
-				io_time[3], io_time[4], io_time[5],
-				io_time[6], io_time[7], io_time[8],
-				io_time[9], io_time[10], io_time[11]);
+			io_log(info->issue2complete, "|_i2c%10s", info->disk_name);
 			memset(info->issue2complete, 0, sizeof(unsigned long) * IO_ARRAY_SIZE);
 			info->rq_count = 0;
 		}
