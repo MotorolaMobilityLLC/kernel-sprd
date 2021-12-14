@@ -2033,11 +2033,11 @@ int cts_resume_device(struct cts_device *cts_dev)
             break;
         }
     }
-
+    pr_err("update is on \n");
     if (retries < 0) {
         const struct cts_firmware *firmware;
 
-        cts_info("Need update firmware when resume");
+        pr_err("Need update firmware when resume");
         firmware = cts_request_firmware(cts_dev->hwdata->hwid,
                 cts_dev->hwdata->fwid, 0);
         if (firmware) {
@@ -2055,7 +2055,7 @@ int cts_resume_device(struct cts_device *cts_dev)
             goto err_set_program_mode;
         }
     }
-
+    pr_err("update sucess\n");
 #ifdef CONFIG_CTS_CHARGER_DETECT
     if (cts_is_charger_exist(cts_dev)) {
         int r = cts_set_dev_charger_attached(cts_dev, true);
