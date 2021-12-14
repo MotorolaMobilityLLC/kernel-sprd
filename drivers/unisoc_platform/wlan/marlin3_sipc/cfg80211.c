@@ -1716,7 +1716,8 @@ static int sprdwl_cfg80211_sched_scan_start(struct wiphy *wiphy,
 		}
 
 		netdev_info(ndev, "%s: channel is %d\n", __func__, ch);
-		sscan_buf->channel[j + 1] = ch;
+		if (j + 1 < TOTAL_2G_5G_CHANNEL_NUM)
+			sscan_buf->channel[j + 1] = ch;
 		j++;
 	}
 	sscan_buf->channel[0] = j;
