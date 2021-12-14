@@ -103,6 +103,9 @@
 #define BQ2560X_WAKE_UP_MS			1000
 #define BQ2560X_CURRENT_WORK_MS			msecs_to_jiffies(100)
 
+#define BQ2560X_PD_HARD_RESET_MS		500
+#define BQ2560X_PD_RECONNECT_MS			3000
+
 struct bq2560x_charger_sysfs {
 	char *name;
 	struct attribute_group attr_g;
@@ -142,7 +145,15 @@ struct bq2560x_charger_info {
 	struct delayed_work cur_work;
 	struct regmap *pmic;
 	struct gpio_desc *gpiod;
-	struct extcon_dev *edev;
+	struct extcon_dev *typec_extcon;
+	struct notifier_block typec_extcon_nb;
+	struct delayed_work typec_extcon_work;
+	struct extcon_dev *pd_extcon;
+	struct notifier_block pd_extcon_nb;
+	struct delayed_work pd_hard_reset_work;
+	bool pd_hard_reset;
+	bool pd_extcon_enable;
+	bool typec_online;
 	struct alarm otg_timer;
 	struct bq2560x_charger_sysfs *sysfs;
 	u32 charger_detect;
@@ -933,6 +944,163 @@ static void bq2560x_current_work(struct work_struct *data)
 	schedule_delayed_work(&info->cur_work, BQ2560X_CURRENT_WORK_MS);
 }
 
+#if IS_ENABLED(CONFIG_SC27XX_PD)
+static int bq2560x_charger_pd_extcon_event(struct notifier_block *nb,
+					   unsigned long event, void *param)
+{
+	struct bq2560x_charger_info *info =
+		container_of(nb, struct bq2560x_charger_info, pd_extcon_nb);
+
+	if (info->pd_hard_reset) {
+		dev_info(info->dev, "Already receive USB PD hard reset\n");
+		return NOTIFY_OK;
+	}
+
+	info->pd_hard_reset = true;
+	dev_info(info->dev, "Receive USB PD hard reset request\n");
+	schedule_delayed_work(&info->pd_hard_reset_work,
+			      msecs_to_jiffies(BQ2560X_PD_HARD_RESET_MS));
+
+	return NOTIFY_OK;
+}
+
+static void bq2560x_charger_detect_pd_extcon_status(struct bq2560x_charger_info *info)
+{
+	if (!info->pd_extcon_enable)
+		return;
+
+	if (extcon_get_state(info->pd_extcon, EXTCON_CHG_USB_PD)) {
+		info->pd_hard_reset = true;
+		dev_info(info->dev, "Detect USB PD hard reset request\n");
+		schedule_delayed_work(&info->pd_hard_reset_work,
+				      msecs_to_jiffies(BQ2560X_PD_HARD_RESET_MS));
+	}
+}
+
+static void bq2560x_charger_pd_hard_reset_work(struct work_struct *work)
+{
+	struct delayed_work *dwork = to_delayed_work(work);
+	struct bq2560x_charger_info *info = container_of(dwork,
+			struct bq2560x_charger_info, pd_hard_reset_work);
+
+	if (!info->pd_hard_reset) {
+		if (info->usb_phy->chg_state == USB_CHARGER_PRESENT)
+			return;
+
+		dev_info(info->dev, "Not USB PD hard reset, charger out\n");
+
+		info->limit = 0;
+		schedule_work(&info->work);
+	}
+	info->pd_hard_reset = false;
+}
+
+static int bq2560x_charger_register_pd_extcon(struct device *dev,
+					      struct bq2560x_charger_info *info)
+{
+	int ret = 0;
+
+	info->pd_extcon_enable = device_property_read_bool(dev, "pd-extcon-enable");
+
+	if (!info->pd_extcon_enable)
+		return 0;
+
+	INIT_DELAYED_WORK(&info->pd_hard_reset_work, bq2560x_charger_pd_hard_reset_work);
+
+	if (of_property_read_bool(dev->of_node, "extcon")) {
+		info->pd_extcon = extcon_get_edev_by_phandle(dev, 1);
+		if (IS_ERR(info->pd_extcon)) {
+			dev_err(info->dev, "failed to find pd extcon device.\n");
+			return -EPROBE_DEFER;
+		}
+
+		info->pd_extcon_nb.notifier_call = bq2560x_charger_pd_extcon_event;
+		ret = devm_extcon_register_notifier_all(dev,
+							info->pd_extcon,
+							&info->pd_extcon_nb);
+		if (ret)
+			dev_err(info->dev, "Can't register pd extcon\n");
+	}
+
+	return ret;
+}
+
+static void bq2560x_charger_typec_extcon_work(struct work_struct *work)
+{
+	struct delayed_work *dwork = to_delayed_work(work);
+	struct bq2560x_charger_info *info =
+		container_of(dwork, struct bq2560x_charger_info, typec_extcon_work);
+
+	if (!extcon_get_state(info->typec_extcon, EXTCON_USB)) {
+		info->limit = 0;
+		info->typec_online = false;
+		pm_wakeup_event(info->dev, BQ2560X_WAKE_UP_MS);
+		dev_info(info->dev, "typec disconnect while pd hard reset.\n");
+		schedule_work(&info->work);
+	}
+}
+
+static int bq2560x_charger_typec_extcon_event(struct notifier_block *nb,
+					      unsigned long event, void *param)
+{
+	struct bq2560x_charger_info *info =
+		container_of(nb, struct bq2560x_charger_info, typec_extcon_nb);
+
+	if (info->typec_online) {
+		dev_info(info->dev, "typec status change.\n");
+		schedule_delayed_work(&info->typec_extcon_work, 0);
+	}
+
+	return NOTIFY_OK;
+}
+
+static int bq2560x_charger_register_typec_extcon(struct device *dev,
+						 struct bq2560x_charger_info *info)
+{
+	int ret = 0;
+
+	if (!info->pd_extcon_enable)
+		return 0;
+
+	INIT_DELAYED_WORK(&info->typec_extcon_work, bq2560x_charger_typec_extcon_work);
+
+	if (of_property_read_bool(dev->of_node, "extcon")) {
+		info->typec_extcon = extcon_get_edev_by_phandle(dev, 0);
+		if (IS_ERR(info->typec_extcon)) {
+			dev_err(info->dev, "failed to find typec extcon device.\n");
+			return -EPROBE_DEFER;
+		}
+
+		info->typec_extcon_nb.notifier_call = bq2560x_charger_typec_extcon_event;
+		ret = devm_extcon_register_notifier_all(dev,
+							info->typec_extcon,
+							&info->typec_extcon_nb);
+		if (ret) {
+			dev_err(info->dev, "Can't register typec extcon\n");
+			return ret;
+		}
+	}
+
+	return 0;
+}
+#else
+static void bq2560x_charger_detect_pd_extcon_status(struct bq2560x_charger_info *info)
+{
+
+}
+
+static int bq2560x_charger_register_pd_extcon(struct device *dev,
+					      struct bq2560x_charger_info *info)
+{
+	return 0;
+}
+
+static int bq2560x_charger_register_typec_extcon(struct device *dev,
+						 struct bq2560x_charger_info *info)
+{
+	return 0;
+}
+#endif
 
 static int bq2560x_charger_usb_change(struct notifier_block *nb,
 				      unsigned long limit, void *data)
@@ -940,7 +1108,10 @@ static int bq2560x_charger_usb_change(struct notifier_block *nb,
 	struct bq2560x_charger_info *info =
 		container_of(nb, struct bq2560x_charger_info, usb_notify);
 
-	info->limit = limit;
+	if (!info) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return NOTIFY_OK;
+	}
 
 	/*
 	 * only master should do work when vbus change.
@@ -949,9 +1120,35 @@ static int bq2560x_charger_usb_change(struct notifier_block *nb,
 	if (info->role == BQ2560X_ROLE_SLAVE)
 		return NOTIFY_OK;
 
-	pm_wakeup_event(info->dev, BQ2560X_WAKE_UP_MS);
+	if (!info->pd_hard_reset) {
+		info->limit = limit;
+		if (info->typec_online) {
+			info->typec_online = false;
+			dev_info(info->dev, "typec not disconnect while pd hard reset.\n");
+		}
 
-	schedule_work(&info->work);
+		pm_wakeup_event(info->dev, BQ2560X_WAKE_UP_MS);
+
+		schedule_work(&info->work);
+	} else {
+		info->pd_hard_reset = false;
+		if (info->usb_phy->chg_state == USB_CHARGER_PRESENT) {
+			dev_err(info->dev, "The adapter is not PD adapter.\n");
+			info->limit = limit;
+			pm_wakeup_event(info->dev, BQ2560X_WAKE_UP_MS);
+			schedule_work(&info->work);
+		} else if (!extcon_get_state(info->typec_extcon, EXTCON_USB)) {
+			dev_err(info->dev, "typec disconnect before pd hard reset.\n");
+			info->limit = 0;
+			pm_wakeup_event(info->dev, BQ2560X_WAKE_UP_MS);
+			schedule_work(&info->work);
+		} else {
+			info->typec_online = true;
+			dev_err(info->dev, "USB PD hard reset, ignore vbus off\n");
+			cancel_delayed_work_sync(&info->pd_hard_reset_work);
+		}
+	}
+
 	return NOTIFY_OK;
 }
 
@@ -1734,10 +1931,16 @@ static int bq2560x_charger_probe(struct i2c_client *client,
 		return PTR_ERR(info->usb_phy);
 	}
 
-	info->edev = extcon_get_edev_by_phandle(info->dev, 0);
-	if (IS_ERR(info->edev)) {
-		dev_err(dev, "failed to find vbus extcon device.\n");
-		return PTR_ERR(info->edev);
+	ret = bq2560x_charger_register_pd_extcon(info->dev, info);
+	if (ret) {
+		dev_err(info->dev, "failed to register pd extcon\n");
+		return -EPROBE_DEFER;
+	}
+
+	ret = bq2560x_charger_register_typec_extcon(info->dev, info);
+	if (ret) {
+		dev_err(info->dev, "failed to register typec extcon\n");
+		return -EPROBE_DEFER;
 	}
 
 	ret = bq2560x_charger_is_fgu_present(info);
@@ -1869,6 +2072,7 @@ static int bq2560x_charger_probe(struct i2c_client *client,
 	}
 
 	bq2560x_charger_detect_status(info);
+	bq2560x_charger_detect_pd_extcon_status(info);
 	INIT_DELAYED_WORK(&info->otg_work, bq2560x_charger_otg_work);
 	INIT_DELAYED_WORK(&info->wdt_work,
 			  bq2560x_charger_feed_watchdog_work);
