@@ -1237,7 +1237,7 @@ static bool is_full_charged(struct charger_manager *cm)
 		ret = power_supply_get_property(fuel_gauge,
 				POWER_SUPPLY_PROP_CAPACITY, &val);
 		if (!ret && val.intval >= desc->fullbatt_soc) {
-			if( batt_ocv > 4260000 && bat_uA <850000 && bat_uA >0)
+			if( batt_ocv > 4300000 && bat_uA <450000 && bat_uA >0)
 			is_full = true;
 			goto out;
 		}
