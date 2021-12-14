@@ -499,7 +499,7 @@ static int of_parse_buildin_modes(struct panel_info *info,
 	info->buildin_modes = kzalloc(sizeof(struct drm_display_mode) *
 				num_timings, GFP_KERNEL);
 
-	for (i = 0; i < num_timings - 1; i++) {
+	for (i = 0; i < num_timings; i++) {
 		rc = of_get_drm_display_mode(lcd_node,
 			&info->buildin_modes[i], NULL, i);
 		if (rc) {
@@ -511,7 +511,7 @@ static int of_parse_buildin_modes(struct panel_info *info,
 		info->buildin_modes[i].height_mm = info->mode.height_mm;
 		info->buildin_modes[i].vrefresh = info->mode.vrefresh;
 	}
-	info->num_buildin_modes = num_timings - 1;
+	info->num_buildin_modes = num_timings;
 	DRM_INFO("info->num_buildin_modes = %d\n", num_timings);
 	goto done;
 
