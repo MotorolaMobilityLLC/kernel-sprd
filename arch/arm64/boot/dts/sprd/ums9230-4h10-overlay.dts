@@ -623,7 +623,7 @@
 		mipi-switch-en-gpios = <&ap_gpio 172 0>;
 		mipi-switch-mode-gpios = <&ap_gpio 167 0>;
 		sprd,phyid = <2>;
-		csi = <&csi0>;
+		csi = <&csi1>;
 	};
 
 	sensor_main2: sensor-main2@20 {
