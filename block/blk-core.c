@@ -1431,14 +1431,19 @@ static DEFINE_SPINLOCK(_io_lock);
 struct io_disk_info {
 	char disk_name[32];
 	unsigned long rq_count;
+	unsigned long rq_count_bak;
 	unsigned long insert2issue[IO_ARRAY_SIZE];
+	unsigned long insert2issue_bak[IO_ARRAY_SIZE];
 	unsigned long issue2complete[IO_ARRAY_SIZE];
+	unsigned long issue2complete_bak[IO_ARRAY_SIZE];
 };
 
 struct io_debug_info {
 	struct io_disk_info	disk_info[4];
 	unsigned long insert2issue[IO_ARRAY_SIZE];
+	unsigned long insert2issue_bak[IO_ARRAY_SIZE];
 	unsigned long issue2complete[IO_ARRAY_SIZE];
+	unsigned long issue2complete_bak[IO_ARRAY_SIZE];
 	u64 start;
 };
 
@@ -1476,10 +1481,64 @@ static inline unsigned int ms_to_index(unsigned int ms)
 		array[4], array[5], array[6], array[7], \
 		array[8], array[9], array[10], array[11])
 
+void _io_backup_log(u64 complete)
+{
+	struct io_disk_info *info;
+	int size, i;
+
+	size = sizeof(unsigned long) * IO_ARRAY_SIZE;
+
+	memcpy(io_debug.insert2issue_bak, io_debug.insert2issue, size);
+	memset(io_debug.insert2issue, 0, size);
+	memcpy(io_debug.issue2complete_bak, io_debug.issue2complete, size);
+	memset(io_debug.issue2complete, 0, size);
+
+	for (i = 0; i < 4; i++) {
+		info = &io_debug.disk_info[i];
+
+		info->rq_count_bak = info->rq_count;
+		if (!info->rq_count)
+			continue;
+
+		info->rq_count = 0;
+		memcpy(info->insert2issue_bak, info->insert2issue, size);
+		memset(info->insert2issue, 0, size);
+		memcpy(info->issue2complete_bak, info->issue2complete, size);
+		memset(info->issue2complete, 0, size);
+	}
+
+	io_debug.start = complete;
+}
+
+void _io_print_info(void)
+{
+	struct io_disk_info *info;
+	int i;
+
+	/* print insert to issue */
+	io_log(io_debug.insert2issue_bak, "io insert-issue");
+	for (i = 0; i < 4; i++) {
+		info = &io_debug.disk_info[i];
+		if (!info->rq_count_bak)
+			continue;
+		io_log(info->insert2issue_bak, "|_i2i%10s", info->disk_name);
+	}
+
+	/* print issue to complete */
+	io_log(io_debug.issue2complete_bak, "io issue - comp");
+	for (i = 0; i < 4; i++) {
+		info = &io_debug.disk_info[i];
+		if (!info->rq_count_bak)
+			continue;
+		io_log(info->issue2complete_bak, "|_i2c%10s", info->disk_name);
+	}
+}
+
 void _io_update(u64 complete, u64 issue, u64 insert, struct gendisk *disk)
 {
 	unsigned int msecs;
 	struct io_disk_info *info;
+	unsigned long flags;
 	int i, index;
 
 	for (i = 0; i < 4; i++) {
@@ -1488,7 +1547,7 @@ void _io_update(u64 complete, u64 issue, u64 insert, struct gendisk *disk)
 			break;
 	}
 
-	spin_lock(&_io_lock);
+	spin_lock_irqsave(&_io_lock, flags);
 
 	++info->rq_count;
 
@@ -1505,36 +1564,11 @@ void _io_update(u64 complete, u64 issue, u64 insert, struct gendisk *disk)
 	++info->issue2complete[index];
 
 	if (complete > (io_debug.start + (1000000000ULL * io_interval))) {
-		/* print insert to issue */
-		io_log(io_debug.insert2issue, "io insert-issue");
-		memset(io_debug.insert2issue, 0, sizeof(unsigned long) * IO_ARRAY_SIZE);
-
-		for (i = 0; i < 4; i++) {
-			info = &io_debug.disk_info[i];
-			if (!info->rq_count)
-				continue;
-
-			io_log(info->insert2issue, "|_i2i%10s", info->disk_name);
-			memset(info->insert2issue, 0, sizeof(unsigned long) * IO_ARRAY_SIZE);
-		}
-
-		/* print issue to complete */
-		io_log(io_debug.issue2complete, "io issue - comp");
-		memset(io_debug.issue2complete, 0, sizeof(unsigned long) * IO_ARRAY_SIZE);
-
-		for (i = 0; i < 4; i++) {
-			info = &io_debug.disk_info[i];
-			if (!info->rq_count)
-				continue;
-
-			io_log(info->issue2complete, "|_i2c%10s", info->disk_name);
-			memset(info->issue2complete, 0, sizeof(unsigned long) * IO_ARRAY_SIZE);
-			info->rq_count = 0;
-		}
-
-		io_debug.start = complete;
-	}
-	spin_unlock(&_io_lock);
+		_io_backup_log(complete);
+		spin_unlock_irqrestore(&_io_lock, flags);
+		_io_print_info();
+	} else
+		spin_unlock_irqrestore(&_io_lock, flags);
 }
 #endif
 
