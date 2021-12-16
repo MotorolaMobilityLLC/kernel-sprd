@@ -541,6 +541,23 @@ int __weak arch_show_interrupts(struct seq_file *p, int prec)
 # define ACTUAL_NR_IRQS nr_irqs
 #endif
 
+#ifdef CONFIG_GENERIC_IRQ_SHOW_LEVEL
+char *parse_irq_flags(unsigned long flags)
+{
+	// Represent each IRQF_TRIGGER_XX in include/linux/interrupt.h
+	char s[]="-CENFNOINPTPSxxPLHFR";
+	static char ret[sizeof(s)];
+	int i, len;
+	len = strlen(s);
+	s[len] = 0;
+	for (i = len - 1; i >= 0; i--) {
+		ret[i] = (flags & 1) ? s[i] : '-';
+		flags >>= 1;
+	}
+	return ret;
+}
+#endif
+
 int show_interrupts(struct seq_file *p, void *v)
 {
 	static int prec;
@@ -599,6 +616,8 @@ int show_interrupts(struct seq_file *p, void *v)
 		seq_printf(p, " %*s", prec, "");
 #ifdef CONFIG_GENERIC_IRQ_SHOW_LEVEL
 	seq_printf(p, " %-8s", irqd_is_level_type(&desc->irq_data) ? "Level" : "Edge");
+	if (action)
+		seq_printf(p, " %s", parse_irq_flags(action->flags));
 #endif
 	if (desc->name)
 		seq_printf(p, "-%-8s", desc->name);
