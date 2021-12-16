@@ -606,7 +606,7 @@ asmlinkage __visible void wdh_atf_entry(struct pt_regs *data)
 
 	sprd_hang_debug_printf("cpu_state = 0x%04x\n", (unsigned int)cpu_state);
 
-	if (atomic_xchg(&sprd_enter_wdh, 1)) {
+	if (user_mode(pregs) || atomic_xchg(&sprd_enter_wdh, 1)) {
 		sprd_hang_debug_printf("%s: goto panic idle\n", __func__);
 		sysdump_ipi(pregs);
 		wdh_step[cpu] = SPRD_HANG_DUMP_SYSDUMP;
