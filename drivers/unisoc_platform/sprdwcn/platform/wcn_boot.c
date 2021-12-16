@@ -351,21 +351,21 @@ int marlin_tsx_cali_data_read(struct tsx_data *p_tsx_data)
 	release_firmware(tsx_firmware);
 	pr_info("read tsx cali, pdata = %p, p_tsx_data->dac = %02x\n", pdata,
 			 p_tsx_data->dac);
-
 	return 0;
 }
 
 static u16 marlin_tsx_cali_data_get(void)
 {
-	int ret;
+	//int ret = 1;
 
 	pr_info("tsx cali init flag %d\n", marlin_dev->tsxcali.init_flag);
 
 	if (marlin_dev->tsxcali.init_flag == AFC_CALI_READ_FINISH)
 		return marlin_dev->tsxcali.tsxdata.dac;
-
-	ret = marlin_tsx_cali_data_read(&marlin_dev->tsxcali.tsxdata);
+	/*not find tsx data from a12,only ott use for bt cali*/
+	//ret = marlin_tsx_cali_data_read(&marlin_dev->tsxcali.tsxdata);
 	marlin_dev->tsxcali.init_flag = AFC_CALI_READ_FINISH;
+ #if 0
 	if (ret != 0) {
 		marlin_dev->tsxcali.tsxdata.dac = 0xffff;
 		pr_info("tsx cali read fail! default 0xffff\n");
@@ -380,7 +380,9 @@ static u16 marlin_tsx_cali_data_get(void)
 	pr_info("dac flag %d value:0x%x\n",
 			    marlin_dev->tsxcali.tsxdata.flag,
 			    marlin_dev->tsxcali.tsxdata.dac);
-
+#endif
+	marlin_dev->tsxcali.tsxdata.dac = 0xffff;
+	pr_info("tsx cali read fail! default 0xffff\n");
 	return marlin_dev->tsxcali.tsxdata.dac;
 }
 
