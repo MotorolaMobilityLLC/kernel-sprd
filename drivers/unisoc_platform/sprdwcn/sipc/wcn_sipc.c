@@ -948,7 +948,6 @@ static int wcn_sipc_chn_init(struct mchn_ops_t *ops)
 static int wcn_sipc_chn_deinit(struct mchn_ops_t *ops)
 {
 	int idx = ops->channel;
-	int ret = 0;
 
 	struct sipc_chn_info *sipc_chn;
 
@@ -961,10 +960,6 @@ static int wcn_sipc_chn_deinit(struct mchn_ops_t *ops)
 		if (SIPC_CHN_STATUS(sipc_chn->chn) == SIPC_CHANNEL_CREATED) {
 
 			sblock_destroy(sipc_chn->dst, sipc_chn->chn);
-			if (ret < 0) {
-				WCN_ERR("sblock chn[%d] sblock_destroy fail!\n", idx);
-				return ret;
-			}
 			SIPC_CHN_STATUS(sipc_chn->chn) = SIPC_CHANNEL_UNCREATED;
 		}
 	}
