@@ -15,7 +15,7 @@
 
 #define LZ4_MAX_DISTANCE_PAGES	(DIV_ROUND_UP(LZ4_DISTANCE_MAX, PAGE_SIZE) + 1)
 #ifndef LZ4_DECOMPRESS_INPLACE_MARGIN
-#define LZ4_DECOMPRESS_INPLACE_MARGIN(srcsize)  (((srcsize) >> 8) + 32)
+#define LZ4_DECOMPRESS_INPLACE_MARGIN(srcsize)  (((srcsize) >> 8) + 64)
 #endif
 
 struct z_erofs_decompressor {
@@ -170,8 +170,8 @@ static int z_erofs_lz4_decompress(struct z_erofs_decompress_req *rq, u8 *out)
 					  inlen, rq->outputsize);
 
 	if (ret != rq->outputsize) {
-		erofs_err(rq->sb, "failed to decompress %d in[%u, %u] out[%u]",
-			  ret, inlen, inputmargin, rq->outputsize);
+		erofs_err(rq->sb, "rq:%px failed to decompress %d in[%px, %u, %u](page ptr: %px) out[%px, %u]",
+			  rq, ret, src, inlen, inputmargin, rq->in[0], out, rq->outputsize);
 
 		WARN_ON(1);
 		print_hex_dump(KERN_DEBUG, "[ in]: ", DUMP_PREFIX_OFFSET,
@@ -271,10 +271,6 @@ static int z_erofs_decompress_generic(struct z_erofs_decompress_req *rq,
 		return ret;
 	} else if (ret) {
 		dst = page_address(*rq->out);
-		if (printk_ratelimit()) {
-			printk("erofs:%d dst=%lx, nrpages_out=%u",  __LINE__, (unsigned long)dst, nrpages_out);
-		}
-
 		dst_maptype = 1;
 		goto dstmap_out;
 	}
@@ -291,10 +287,6 @@ static int z_erofs_decompress_generic(struct z_erofs_decompress_req *rq,
 
 	if (!dst)
 		return -ENOMEM;
-
-	if (printk_ratelimit()) {
-		printk("erofs:%d dst=%lx, nrpages_out=%u",  __LINE__, (unsigned long)dst, nrpages_out);
-	}
 
 	dst_maptype = 2;
 

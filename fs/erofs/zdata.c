@@ -929,8 +929,12 @@ out:
 		if (z_erofs_put_stagingpage(pagepool, page))
 			continue;
 
-		if (err < 0)
+		if (err < 0) {
 			SetPageError(page);
+			/* For check IO position and fs size when decompress failed */
+			erofs_err(sb, "pcluster index:%lu, fs size:%u, page ptr: %px",
+				pcl->obj.index, sbi->blocks, compressed_pages[0]);
+		}
 
 		z_erofs_onlinepage_endio(page);
 	}
