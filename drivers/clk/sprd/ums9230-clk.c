@@ -1299,26 +1299,22 @@ static const struct clk_parent_data aux_parents[] = {
 	{ .hw = &dpll0_50m.hw  },
 	{ .hw = &gpll_42m5.hw  },
 	{ .hw = &twpll_48m.hw  },
-};
-static const struct clk_parent_data aux1_parents[] = {
-	{ .fw_name = "ext-32k" },
-	{ .fw_name = "ext-26m" },
-	{ .hw = &clk_26m_aud.hw  },
-	{ .hw = &rco_25m.hw  },
-	{ .hw = &mpll0_56m25.hw  },
-	{ .hw = &mpll1_62m5.hw  },
-	{ .hw = &mpll2_46m88.hw  },
-	{ .hw = &dpll0_50m.hw  },
-	{ .hw = &gpll_42m5.hw  },
-	{ .hw = &twpll_19m2.hw  },
 	{ .hw = &lpll_30m72.hw  },
-	{ .hw = &rpll.common.hw  },
+	{ .fw_name = "rpll-26m" },
+	{ .fw_name = "lvdspll-44m" },
+	{ .fw_name = "isppll-29m25" },
+	{ .fw_name = "wcn-ana" },
+	{ .fw_name = "wcnpll1" },
+	{ .fw_name = "wcnpll2" },
+	{ .fw_name = "gnsspll" },
+	{ .fw_name = "deskewpll" },
+	{ .hw = &twpll_19m2.hw  },
 	{ .hw = &twpll_12m29.hw  },
 
 };
 static SPRD_COMP_CLK_DATA(aux0_clk, "aux0-clk", aux_parents,
 			  0x28, 0, 5, 8, 4, 0);
-static SPRD_COMP_CLK_DATA(aux1_clk, "aux1-clk", aux1_parents,
+static SPRD_COMP_CLK_DATA(aux1_clk, "aux1-clk", aux_parents,
 			  0x2c, 0, 5, 8, 4, 0);
 static SPRD_COMP_CLK_DATA(aux2_clk, "aux2-clk", aux_parents,
 			  0x30, 0, 5, 8, 4, 0);
