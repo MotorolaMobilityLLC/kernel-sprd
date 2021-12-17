@@ -659,6 +659,8 @@ static int bq2560x_charger_set_current(struct bq2560x_charger_info *info,
 
 	cur = cur / 1000;
 
+	if(cur >3780)
+		cur =3780;
 	reg_val = cur / BQ2560X_REG_ICHG_LSB;
 	reg_val &= BQ2560X_REG_ICHG_MASK;
 
