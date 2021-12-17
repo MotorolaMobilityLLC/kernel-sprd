@@ -1476,7 +1476,7 @@ static bool is_full_charged(struct charger_manager *cm)
 	bool is_full = false;
 	int ret = 0;
 	//int uV, uA;
-	int batt_ocv;
+	int batt_ocv,batt_uA;
 
 	/* If there is no battery, it cannot be charged */
 	if (!is_batt_present(cm))
@@ -1555,6 +1555,7 @@ static bool is_full_charged(struct charger_manager *cm)
 	}
 #endif
 	get_batt_ocv(cm, &batt_ocv);
+	get_ibat_now_uA(cm, &batt_uA);
 
 	/* Full, if the capacity is more than fullbatt_soc */
 	if (desc->fullbatt_soc > 0) {
@@ -1562,6 +1563,7 @@ static bool is_full_charged(struct charger_manager *cm)
 
 		ret = power_supply_get_property(fuel_gauge, POWER_SUPPLY_PROP_CAPACITY, &val);
 		if (!ret && val.intval >= desc->fullbatt_soc) {
+			if( batt_ocv > 4300000 && batt_uA <450000 && batt_uA >0)
 			if( batt_ocv > 4300000)
 			is_full = true;
 			goto out;
@@ -6485,8 +6487,10 @@ static void cm_batt_works(struct work_struct *work)
 					 * The percentage of electricity is not
 					 * allowed to change by 1% in cm->desc->cap_one_time.
 					 */
-					if ((cm->desc->cap - fuel_cap) >= 5)
-						fuel_cap = cm->desc->cap - 5;
+//					if ((cm->desc->cap - fuel_cap) >= 5)
+//						fuel_cap = cm->desc->cap - 5;
+					if ((cm->desc->cap - fuel_cap) >= 1)
+						fuel_cap = cm->desc->cap - 1;     //slow than 5
 					if (flush_time < cm->desc->cap_one_time &&
 					    DIV_ROUND_CLOSEST(fuel_cap, 10) !=
 					    DIV_ROUND_CLOSEST(cm->desc->cap, 10))
