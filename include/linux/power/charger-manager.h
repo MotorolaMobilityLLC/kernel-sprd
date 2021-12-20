@@ -213,22 +213,11 @@ enum uvlo_shutdown_modes {
 
 #define CM_IBAT_BUFF_CNT 7
 
-struct wireless_data {
+struct cm_power_supply_data {
 	struct power_supply_desc psd;
 	struct power_supply *psy;
-	int WIRELESS_ONLINE;
-};
-
-struct ac_data {
-	struct power_supply_desc psd;
-	struct power_supply *psy;
-	int AC_ONLINE;
-};
-
-struct usb_data {
-	struct power_supply_desc psd;
-	struct power_supply *psy;
-	int USB_ONLINE;
+	struct charger_manager *cm;
+	int ONLINE;
 };
 
 /**

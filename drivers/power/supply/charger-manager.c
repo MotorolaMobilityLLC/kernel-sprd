@@ -4700,51 +4700,24 @@ static int cm_set_voltage_max_design(struct charger_manager *cm, int voltage_max
 	return ret;
 }
 
-static int wireless_get_property(struct power_supply *psy, enum power_supply_property
+static int cm_get_power_supply_property(struct power_supply *psy, enum power_supply_property
 				 psp, union power_supply_propval *val)
 {
 	int ret = 0;
-	struct wireless_data *data = container_of(psy->desc, struct  wireless_data, psd);
+	struct cm_power_supply_data *data = container_of(psy->desc, struct  cm_power_supply_data, psd);
+
+	if (!data || !data->cm)
+		return -ENOMEM;
 
 	switch (psp) {
 	case POWER_SUPPLY_PROP_ONLINE:
-		val->intval = data->WIRELESS_ONLINE;
+		val->intval = data->ONLINE;
 		break;
-	default:
-		ret = -EINVAL;
+	case POWER_SUPPLY_PROP_CURRENT_MAX:
+		cm_get_current_max(data->cm, &val->intval);
 		break;
-	}
-
-	return ret;
-}
-
-static int ac_get_property(struct power_supply *psy, enum power_supply_property psp,
-			   union power_supply_propval *val)
-{
-	int ret = 0;
-	struct ac_data *data = container_of(psy->desc, struct ac_data, psd);
-
-	switch (psp) {
-	case POWER_SUPPLY_PROP_ONLINE:
-		val->intval = data->AC_ONLINE;
-		break;
-	default:
-		ret = -EINVAL;
-		break;
-	}
-
-	return ret;
-}
-
-static int usb_get_property(struct power_supply *psy, enum power_supply_property psp,
-			    union power_supply_propval *val)
-{
-	int ret = 0;
-	struct usb_data *data = container_of(psy->desc, struct usb_data, psd);
-
-	switch (psp) {
-	case POWER_SUPPLY_PROP_ONLINE:
-		val->intval = data->USB_ONLINE;
+	case POWER_SUPPLY_PROP_VOLTAGE_MAX:
+		cm_get_voltage_max(data->cm, &val->intval);
 		break;
 	default:
 		ret = -EINVAL;
@@ -4966,14 +4939,20 @@ static int charger_property_is_writeable(struct power_supply *psy, enum power_su
 
 static enum power_supply_property wireless_props[] = {
 	POWER_SUPPLY_PROP_ONLINE,
+	POWER_SUPPLY_PROP_CURRENT_MAX,
+	POWER_SUPPLY_PROP_VOLTAGE_MAX,
 };
 
 static enum power_supply_property ac_props[] = {
 	POWER_SUPPLY_PROP_ONLINE,
+	POWER_SUPPLY_PROP_CURRENT_MAX,
+	POWER_SUPPLY_PROP_VOLTAGE_MAX,
 };
 
 static enum power_supply_property usb_props[] = {
 	POWER_SUPPLY_PROP_ONLINE,
+	POWER_SUPPLY_PROP_CURRENT_MAX,
+	POWER_SUPPLY_PROP_VOLTAGE_MAX,
 };
 
 static enum power_supply_property default_charger_props[] = {
@@ -5010,39 +4989,39 @@ static enum power_supply_property default_charger_props[] = {
 };
 
 /* wireless_data initialization */
-static struct wireless_data wireless_main = {
+static struct cm_power_supply_data wireless_main = {
 	.psd = {
 		.name = "wireless",
 		.type =	POWER_SUPPLY_TYPE_WIRELESS,
 		.properties = wireless_props,
 		.num_properties = ARRAY_SIZE(wireless_props),
-		.get_property = wireless_get_property,
+		.get_property = cm_get_power_supply_property,
 	},
-	.WIRELESS_ONLINE = 0,
+	.ONLINE = 0,
 };
 
 /* ac_data initialization */
-static struct ac_data ac_main = {
+static struct cm_power_supply_data ac_main = {
 	.psd = {
 		.name = "ac",
 		.type = POWER_SUPPLY_TYPE_MAINS,
 		.properties = ac_props,
 		.num_properties = ARRAY_SIZE(ac_props),
-		.get_property = ac_get_property,
+		.get_property = cm_get_power_supply_property,
 	},
-	.AC_ONLINE = 0,
+	.ONLINE = 0,
 };
 
 /* usb_data initialization */
-static struct usb_data usb_main = {
+static struct cm_power_supply_data usb_main = {
 	.psd = {
 		.name = "usb",
 		.type = POWER_SUPPLY_TYPE_USB,
 		.properties = usb_props,
 		.num_properties = ARRAY_SIZE(usb_props),
-		.get_property = usb_get_property,
+		.get_property = cm_get_power_supply_property,
 	},
-	.USB_ONLINE = 0,
+	.ONLINE = 0,
 };
 
 static enum power_supply_usb_type default_usb_types[] = {
@@ -5079,24 +5058,24 @@ static void cm_update_charger_type_status(struct charger_manager *cm)
 		case POWER_SUPPLY_USB_CHARGER_TYPE_PD_PPS:
 		case POWER_SUPPLY_USB_CHARGER_TYPE_SFCP_1P0:
 		case POWER_SUPPLY_USB_CHARGER_TYPE_SFCP_2P0:
-			wireless_main.WIRELESS_ONLINE = 0;
-			usb_main.USB_ONLINE = 0;
-			ac_main.AC_ONLINE = 1;
+			wireless_main.ONLINE = 0;
+			usb_main.ONLINE = 0;
+			ac_main.ONLINE = 1;
 			break;
 		default:
-			wireless_main.WIRELESS_ONLINE = 0;
-			ac_main.AC_ONLINE = 0;
-			usb_main.USB_ONLINE = 1;
+			wireless_main.ONLINE = 0;
+			ac_main.ONLINE = 0;
+			usb_main.ONLINE = 1;
 			break;
 		}
 	} else if (is_ext_wl_pwr_online(cm)) {
-		wireless_main.WIRELESS_ONLINE = 1;
-		ac_main.AC_ONLINE = 0;
-		usb_main.USB_ONLINE = 0;
+		wireless_main.ONLINE = 1;
+		ac_main.ONLINE = 0;
+		usb_main.ONLINE = 0;
 	} else {
-		wireless_main.WIRELESS_ONLINE = 0;
-		ac_main.AC_ONLINE = 0;
-		usb_main.USB_ONLINE = 0;
+		wireless_main.ONLINE = 0;
+		ac_main.ONLINE = 0;
+		usb_main.ONLINE = 0;
 	}
 }
 
@@ -6789,6 +6768,7 @@ static int charger_manager_probe(struct platform_device *pdev)
 	cm->charger_psy->num_supplicants =
 		ARRAY_SIZE(charger_manager_supplied_to);
 
+	wireless_main.cm = cm;
 	wireless_main.psy = power_supply_register(&pdev->dev, &wireless_main.psd, NULL);
 	if (IS_ERR(wireless_main.psy)) {
 		dev_err(&pdev->dev, "Cannot register wireless_main.psy with name \"%s\"\n",
@@ -6797,6 +6777,7 @@ static int charger_manager_probe(struct platform_device *pdev)
 
 	}
 
+	ac_main.cm = cm;
 	ac_main.psy = power_supply_register(&pdev->dev, &ac_main.psd, NULL);
 	if (IS_ERR(ac_main.psy)) {
 		dev_err(&pdev->dev, "Cannot register usb_main.psy with name \"%s\"\n",
@@ -6805,6 +6786,7 @@ static int charger_manager_probe(struct platform_device *pdev)
 
 	}
 
+	usb_main.cm = cm;
 	usb_main.psy = power_supply_register(&pdev->dev, &usb_main.psd, NULL);
 	if (IS_ERR(usb_main.psy)) {
 		dev_err(&pdev->dev, "Cannot register usb_main.psy with name \"%s\"\n",
