@@ -376,6 +376,47 @@ int minidump_save_extend_information(const char *name, unsigned long paddr_start
 }
 EXPORT_SYMBOL(minidump_save_extend_information);
 
+/**
+ * save extend debug information of modules in minidump, for AP CPU HANG
+ *
+ * @name:       the name of the modules, and the string will be a part
+ *              of the file name.
+ *              note:
+ *              special characters can't be included in the file name,
+ *              such as:'?','*','/','\','<','>',':','"','|'.
+ *
+ * @paddr_start:the start paddr in memory of the modules debug information
+ * @paddr_end:  the end paddr in memory of the modules debug information
+ * note: print function can't be used in this function
+ * Return: 0 means success, -1 means fail.
+ */
+int minidump_change_extend_information(const char *name, unsigned long paddr_start,
+		unsigned long paddr_end)
+{
+	int i;
+	char str_name[SECTION_NAME_MAX];
+
+	if (strlen(name) > (SECTION_NAME_MAX - strlen(EXTEND_STRING) - 1))
+		return -1;
+
+	sprintf(str_name, "%s_%s", EXTEND_STRING, name);
+
+	for (i = 0; i < SECTION_NUM_MAX; i++) {
+		if (!strlen(minidump_info_g.section_info_total.section_info[i].section_name))
+			return -1;
+		if (!memcmp(minidump_info_g.section_info_total.section_info[i].section_name, str_name,
+					strlen(str_name)))
+			break;
+	}
+	if (i >= SECTION_NUM_MAX)
+		return -1;
+
+	minidump_info_g.section_info_total.section_info[i].section_start_paddr = paddr_start;
+	minidump_info_g.section_info_total.section_info[i].section_end_paddr = paddr_end;
+
+	return 0;
+}
+
 static char *storenote(struct memelfnote *men, char *bufp)
 {
 	struct elf_note en;

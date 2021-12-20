@@ -17,6 +17,10 @@ extern int minidump_save_extend_information(const char *name,
 						unsigned long paddr_start,
 						unsigned long paddr_end);
 
+extern int minidump_change_extend_information(const char *name,
+		unsigned long paddr_start,
+		unsigned long paddr_end);
+
 /*
  * save per-cpu's stack and regs in sysdump.
  *
