@@ -226,31 +226,34 @@ static int sprd_sip_svc_perf_get_parent(u32 id, u32 *p_parent_id)
 	return sprd_sip_remap_err(res.a0);
 }
 
-static int sprd_sip_svc_dbg_set_hang_hdl(uintptr_t hdl, uintptr_t pgd)
+static int sprd_sip_svc_dbg_set_hang_hdl(uintptr_t hdl,
+					 uintptr_t pgd,
+					 unsigned long level)
 {
 	struct arm_smccc_res res;
-
+	pr_notice("hdl for sprd svc sip : func_addr = 0x%lx, pdg = 0x%lx, level = 0x%lx\n",
+		  hdl, pgd, level);
 #ifdef CONFIG_ARM64
 	arm_smccc_smc(SPRD_SIP_SVC_DBG_SET_HANG_HDL_AARCH64,
-		      hdl, pgd, 0, 0, 0, 0, 0, &res);
+		      hdl, pgd, level, 0, 0, 0, 0, &res);
 #else
 	arm_smccc_smc(SPRD_SIP_SVC_DBG_SET_HANG_HDL_AARCH32,
-		      hdl, pgd, 0, 0, 0, 0, 0, &res);
+		      hdl, pgd, level, 0, 0, 0, 0, &res);
 #endif
 
 	return sprd_sip_remap_err(res.a0);
 }
 
-static int sprd_sip_svc_dbg_get_hang_ctx(uintptr_t id, uintptr_t *val)
+static int sprd_sip_svc_dbg_get_hang_ctx(unsigned long id, unsigned long core_id, uintptr_t *val)
 {
 	struct arm_smccc_res res;
 
 #ifdef CONFIG_ARM64
 	arm_smccc_smc(SPRD_SIP_SVC_DBG_GET_HANG_CTX_AARCH64,
-		      id, 0, 0, 0, 0, 0, 0, &res);
+		      id, core_id, 0, 0, 0, 0, 0, &res);
 #else
 	arm_smccc_smc(SPRD_SIP_SVC_DBG_GET_HANG_CTX_AARCH32,
-		      id, 0, 0, 0, 0, 0, 0, &res);
+		      id, core_id, 0, 0, 0, 0, 0, &res);
 #endif
 
 	if (val != NULL)

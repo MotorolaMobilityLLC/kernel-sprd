@@ -39,6 +39,9 @@
 #define MAX_CALLBACK_LEVEL  16
 #define SPRD_PRINT_BUF_LEN  8192
 #define SPRD_STACK_SIZE 256
+#define SPRD_NS_EL0 (0x0)
+#define SPRD_NS_EL1 (0x1)
+#define SPRD_NS_EL2 (0x2)
 
 enum hand_dump_phase {
 	SPRD_HANG_DUMP_ENTER = 1,
@@ -186,18 +189,21 @@ void sprd_hang_debug_printf(const char *fmt, ...)
 	raw_spin_unlock(&sprd_wdh_prlock);
 }
 
-static int __nocfi set_panic_debug_entry(unsigned long func_addr, unsigned long pgd)
+static int __nocfi set_panic_debug_entry(unsigned long func_addr,
+					 unsigned long pgd,
+					 unsigned long level)
 {
 #if IS_ENABLED(CONFIG_SPRD_SIP_FW)
 	int ret;
 
-	ret = svc_handle->dbg_ops.set_hang_hdl(func_addr, pgd);
+	ret = svc_handle->dbg_ops.set_hang_hdl(func_addr, pgd, level);
+
 	if (ret) {
 		pr_err("failed to set panic debug entry\n");
 		return -EPERM;
 	}
 #endif
-	pr_emerg("func_addr = 0x%lx, pgd = 0x%lx\n", func_addr, pgd);
+	pr_emerg("func_addr = 0x%lx , pdg = 0x%lx level = 0x%lx\n", func_addr, pgd, level);
 	return 0;
 }
 
@@ -206,13 +212,13 @@ __weak void prepare_dump_info_for_wdh(struct pt_regs *regs, const char *reason)
 	sprd_hang_debug_printf("Not defined func %s, for %p, %s\n", __func__, regs, reason);
 }
 
-static unsigned long smcc_get_regs(enum smcc_regs_id id)
+static unsigned long smcc_get_regs(enum smcc_regs_id id, int core_id)
 {
 	uintptr_t val = 0;
 #if IS_ENABLED(CONFIG_SPRD_SIP_FW)
 	int ret;
 
-	ret = svc_handle->dbg_ops.get_hang_ctx(id, &val);
+	ret = svc_handle->dbg_ops.get_hang_ctx(id, core_id, &val);
 	if (ret) {
 		sprd_hang_debug_printf("%s: failed to get cpu statue\n", __func__);
 		return EPERM;
@@ -220,15 +226,15 @@ static unsigned long smcc_get_regs(enum smcc_regs_id id)
 #endif
 	return val;
 }
-static unsigned short smcc_get_cpu_state(void)
+static unsigned short smcc_get_cpu_state(int core_id)
 {
 	uintptr_t val = 0;
 #if IS_ENABLED(CONFIG_SPRD_SIP_FW)
 	int ret;
 
-	ret = svc_handle->dbg_ops.get_hang_ctx(CPU_STATUS, &val);
+	ret = svc_handle->dbg_ops.get_hang_ctx(CPU_STATUS, core_id, &val);
 	if (ret) {
-		pr_err("failed to get cpu statue\n");
+		sprd_hang_debug_printf("failed to get cpu statue\n");
 		return EPERM;
 	}
 #endif
@@ -273,7 +279,8 @@ static void cpu_regs_value_dump(int cpu)
 	int i;
 
 	sprd_hang_debug_printf("pc : %016llx, lr : %016llx, pstate : %016llx, sp_el0 : %016llx, sp_el1 : %016llx\n",
-		      pregs->pc, pregs->regs[30], pregs->pstate, smcc_get_regs(CPU_SP_EL0), smcc_get_regs(CPU_SP_EL1));
+				pregs->pc, pregs->regs[30], pregs->pstate,
+				smcc_get_regs(CPU_SP_EL0, cpu), smcc_get_regs(CPU_SP_EL1, cpu));
 
 	if (sprd_virt_addr_valid(pregs->pc))
 		sprd_hang_debug_printf("pc :(%ps)\n", (void *)pregs->pc);
@@ -286,7 +293,8 @@ static void cpu_regs_value_dump(int cpu)
 	}
 #else
 	sprd_hang_debug_printf("pc  : %08lx, lr : %08lx, cpsr : %08lx, sp_usr : %08lx, sp_svc : %08lx\n",
-		      pregs->ARM_pc, pregs->ARM_lr, pregs->ARM_cpsr, smcc_get_regs(CPU_SP_EL0), smcc_get_regs(CPU_SP_EL1));
+				pregs->ARM_pc, pregs->ARM_lr, pregs->ARM_cpsr,
+				smcc_get_regs(CPU_SP_EL0, cpu), smcc_get_regs(CPU_SP_EL1, cpu));
 	if (sprd_virt_addr_valid(pregs->ARM_pc))
 		sprd_hang_debug_printf("pc :(%ps)\n", (void *)pregs->ARM_pc);
 	sprd_hang_debug_printf("sp  : %08lx, ip : %08lx, fp : %08lx\n",
@@ -458,8 +466,8 @@ static void gicd_regs_value_dump(int cpu)
 		return;
 	}
 	for (i = 0; i < 7; i++) {
-		gicd_regs->gicd_igroup[i] = (u32)smcc_get_regs(GICD_IGROUP_0 + i);
-		gicd_regs->gicd_igrpmodr[i] = (u32)smcc_get_regs(GICD_IGRPMODR_0 + i);
+		gicd_regs->gicd_igroup[i] = (u32)smcc_get_regs(GICD_IGROUP_0 + i, i);
+		gicd_regs->gicd_igrpmodr[i] = (u32)smcc_get_regs(GICD_IGRPMODR_0 + i, i);
 	}
 
 	ret = get_gicd_regs(gicd_regs);
@@ -589,14 +597,14 @@ asmlinkage __visible void wdh_atf_entry(struct pt_regs *data)
 	pregs = &cpu_context[cpu];
 	*pregs = *data;
 #if IS_ENABLED(CONFIG_ARM64)
-	pregs->pc = (unsigned long)smcc_get_regs(CPU_PC);
-	pregs->pstate = (unsigned long)smcc_get_regs(CPU_CPSR);
+	pregs->pc = (unsigned long)smcc_get_regs(CPU_PC, cpu);
+	pregs->pstate = (unsigned long)smcc_get_regs(CPU_CPSR, cpu);
 #else
-	pregs->ARM_pc = (unsigned long)smcc_get_regs(CPU_PC);
-	pregs->ARM_cpsr = (unsigned long)smcc_get_regs(CPU_CPSR);
+	pregs->ARM_pc = (unsigned long)smcc_get_regs(CPU_PC, cpu);
+	pregs->ARM_cpsr = (unsigned long)smcc_get_regs(CPU_CPSR, cpu);
 #endif
 
-	cpu_state = smcc_get_cpu_state();
+	cpu_state = smcc_get_cpu_state(cpu);
 	is_last_cpu = is_el3_ret_last_cpu(cpu, cpu_state);
 
 	cpu_regs_value_dump(cpu);
@@ -620,7 +628,7 @@ asmlinkage __visible void wdh_atf_entry(struct pt_regs *data)
 	/* wait for other cpu finised */
 	while (wait_last_cnt-- && !is_last_cpu) {
 		mdelay(50);
-		cpu_state = smcc_get_cpu_state();
+		cpu_state = smcc_get_cpu_state(cpu);
 		is_last_cpu = is_el3_ret_last_cpu(cpu, cpu_state);
 	}
 	sprd_hang_debug_printf("wait last cpu %s\n", is_last_cpu ? "ok" : "failed");
@@ -647,14 +655,16 @@ asmlinkage __visible void wdh_atf_entry(struct pt_regs *data)
 	sysdump_ipi(pregs);
 
 	mdelay(50);
-
 	do_kernel_restart("panic");
 }
 
 static struct sprd_sip_svc_handle *(*sprd_sip_svc_get_handle_ptr)(void);
 
-asmlinkage void el1_entry_for_wdh(void);
-
+#if IS_ENABLED(CONFIG_ARM64)
+asmlinkage void entry_for_wdh_el0(void);
+#endif
+asmlinkage void entry_for_wdh_el1(void);
+asmlinkage void entry_for_wdh_el2(void);
 static int __nocfi sprd_module_notifier_fn(struct notifier_block *nb,
 		unsigned long action, void *data)
 {
@@ -682,16 +692,30 @@ static int __nocfi sprd_module_notifier_fn(struct notifier_block *nb,
 		return NOTIFY_DONE;
 	}
 
-	ret = set_panic_debug_entry((unsigned long)el1_entry_for_wdh,
+	ret = set_panic_debug_entry(
 #if IS_ENABLED(CONFIG_ARM64)
-		read_sysreg(ttbr1_el1)
-#else
-		0
-#endif
-	);
+		(unsigned long)entry_for_wdh_el0,
 
+#else
+		(unsigned long)entry_for_wdh_el1,
+#endif
+		0, SPRD_NS_EL0);
 	if (ret)
-		pr_emerg("init ATF el1_entry_for_wdh error[%d]\n", ret);
+		pr_emerg("init ATF entry_for_wdh0 error[%d]\n", ret);
+
+	ret = set_panic_debug_entry((unsigned long)entry_for_wdh_el1,
+#if IS_ENABLED(CONFIG_ARM64)
+		read_sysreg(ttbr1_el1),
+#else
+		0,
+#endif
+		SPRD_NS_EL1);
+	if (ret)
+		pr_emerg("init ATF entry_for_wdh1 error[%d]\n", ret);
+
+	ret = set_panic_debug_entry((unsigned long)__pa_symbol(entry_for_wdh_el2), 0, SPRD_NS_EL2);
+	if (ret)
+		pr_emerg("init ATF entry_for_wdh2 error[%d]\n", ret);
 
 	return NOTIFY_DONE;
 }

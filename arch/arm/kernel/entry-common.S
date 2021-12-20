@@ -158,7 +158,7 @@ ENTRY(ret_from_fork)
 ENDPROC(ret_from_fork)
 
 #if IS_ENABLED(CONFIG_SPRD_HANG_DEBUG)
-ENTRY(el1_entry_for_wdh)
+ENTRY(entry_for_wdh_el1)
 	sub	sp, sp, #PT_REGS_SIZE
 	str	r0, [sp, #S_R0]
 	str	r1, [sp, #S_R1]
@@ -178,7 +178,11 @@ ENTRY(el1_entry_for_wdh)
 	str	r1, [sp, #S_SP]
 	mov	r0, sp
 	bl   wdh_atf_entry
-ENDPROC(el1_entry_for_wdh)
+ENDPROC(entry_for_wdh_el1)
+
+ENTRY(entry_for_wdh_el2)
+	b .
+ENDPROC(entry_for_wdh_el2)
 #endif
 
 /*=============================================================================
