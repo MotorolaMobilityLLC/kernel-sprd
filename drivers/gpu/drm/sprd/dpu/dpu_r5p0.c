@@ -1307,10 +1307,6 @@ static void dpu_layer(struct dpu_context *ctx,
 		ctx->tos_msg->version = DPU_R5P0;
 		disp_ca_write(ctx->tos_msg, sizeof(*ctx->tos_msg));
 		disp_ca_wait_response();
-
-		ctx->tos_msg->cmd = TA_FIREWALL_CLR;
-		disp_ca_write(ctx->tos_msg, sizeof(*ctx->tos_msg));
-		disp_ca_wait_response();
 	}
 
 	for (i = 0; i < hwlayer->planes; i++)
@@ -1495,7 +1491,13 @@ static void dpu_flip(struct dpu_context *ctx, struct sprd_plane planes[], u8 cou
 			secure_val = DPU_REG_RD(ctx->base + REG_DPU_SECURE);
 			state = to_sprd_plane_state(planes[0].base.state);
 			layer = &state->layer;
-			dpu_wait_update_done(ctx);
+			if ((!layer->secure_en) && secure_val) {
+				dpu_wait_update_done(ctx);
+				ctx->tos_msg->cmd = TA_FIREWALL_CLR;
+				disp_ca_write(&(ctx->tos_msg), sizeof(ctx->tos_msg));
+				disp_ca_wait_response();
+			} else
+				dpu_wait_update_done(ctx);
 		}
 
 		DPU_REG_SET(ctx->base + REG_DPU_INT_EN, BIT_DPU_INT_ERR);
