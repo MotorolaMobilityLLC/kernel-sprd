@@ -125,7 +125,7 @@ struct camsys_power_info {
 
 			struct clk *isppll_clk;
 
-			struct register_gpr regs[3];
+			struct register_gpr regs[4];
 		} qogirl6;
 	} u;
 };
