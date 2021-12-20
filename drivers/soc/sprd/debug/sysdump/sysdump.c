@@ -445,7 +445,10 @@ void crash_note_save_cpu(struct pt_regs *regs, int cpu)
 	notes.data = &prstatus;
 
 	memset(&prstatus, 0, sizeof(struct elf_prstatus));
-	fill_prstatus(&prstatus, current, 0);
+	if (virt_addr_valid(current))
+		fill_prstatus(&prstatus, current, 0);
+	else
+		return;
 	memcpy(&prstatus.pr_reg, regs, DUMP_REGS_SIZE);
 	/* memcpy(&prstatus.pr_reg, regs, sizeof(struct pt_regs)); */
 	storenote(&notes, (char *)per_cpu_ptr(crash_notes, cpu));
@@ -1481,9 +1484,6 @@ static int prepare_exception_info(struct pt_regs *regs,
 
 	struct timespec64 ts;
 	struct rtc_time tm;
-
-	if (!tsk)
-		tsk = current;
 	memset(&minidump_info_g.exception_info, 0,
 		sizeof(minidump_info_g.exception_info));
 	memcpy(minidump_info_g.exception_info.kernel_magic, KERNEL_MAGIC, 4);
@@ -1515,6 +1515,12 @@ static int prepare_exception_info(struct pt_regs *regs,
 	/*	exception_file & exception_line		*/
 	get_file_line_info(regs);
 	/*	exception_task_id	*/
+	if (!tsk) {
+		if (virt_addr_valid(current))
+			tsk = current;
+		else
+			return 0;
+	}
 	minidump_info_g.exception_info.exception_task_id = tsk->pid;
 	/*	exception_stack		*/
 	get_exception_stack_info(regs);

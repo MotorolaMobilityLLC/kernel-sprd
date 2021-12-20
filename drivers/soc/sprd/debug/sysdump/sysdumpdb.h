@@ -47,9 +47,9 @@
 
 /*	minidump contents description macro	*/
 #define REGS_NUM_MAX 50 		/* max dump regs num in minidump,real num in regs_info_item  */
-#define SECTION_NUM_MAX 50		/* max dump section num in minidump */
+#define SECTION_NUM_MAX 200		/* max dump section num in minidump */
 #define SECTION_NAME_MAX 40
-#define MINIDUMP_MEM_MAX 50
+#define MINIDUMP_MEM_MAX (REGS_NUM_MAX + SECTION_NUM_MAX + 1)
 #define PT_BUF_SIZE	(2 * 1024 * 1024)
 
 #define EXTEND_STRING "extend"
