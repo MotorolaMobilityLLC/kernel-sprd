@@ -1109,7 +1109,7 @@ void _trace_vfs(struct file *filp, char *op, u64 time)
 	if (IS_ERR(fname))
 		goto out;
 
-	pr_info("[%16s]%16s vfs %5s %4lldms %s\n", current->comm,
+	pr_info("[%-16s]%-16s vfs %5s %5lldms %s\n", current->comm,
 		current->group_leader ? current->group_leader->comm : "",
 		op, ktime_to_ms(time), fname);
 out:
