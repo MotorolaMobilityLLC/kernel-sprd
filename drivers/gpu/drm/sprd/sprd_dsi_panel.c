@@ -195,6 +195,8 @@ static int sprd_panel_get_modes(struct drm_panel *p)
 {
 	struct drm_display_mode *mode;
 	struct sprd_panel *panel = to_sprd_panel(p);
+	struct sprd_dsi *dsi =
+		container_of(p->connector, struct sprd_dsi, connector);
 	struct device_node *np = panel->slave->dev.of_node;
 	u32 surface_width = 0, surface_height = 0;
 	int i, mode_count = 0;
@@ -239,6 +241,7 @@ static int sprd_panel_get_modes(struct drm_panel *p)
 		drm_display_mode_from_videomode(&vm, mode);
 		drm_mode_probed_add(p->connector, mode);
 		mode_count++;
+		dsi->ctx.surface_mode = true;
 	}
 
 	p->connector->display_info.width_mm = panel->info.mode.width_mm;

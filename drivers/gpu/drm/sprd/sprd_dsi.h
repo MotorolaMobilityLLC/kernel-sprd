@@ -98,6 +98,8 @@ struct dsi_context {
 	bool video_lp_cmd_en;
 	/* disable hporch enter in low power mode */
 	bool hporch_lp_disable;
+	/* simulated small resolution display mode */
+	bool surface_mode;
 };
 
 struct dsi_core_ops {

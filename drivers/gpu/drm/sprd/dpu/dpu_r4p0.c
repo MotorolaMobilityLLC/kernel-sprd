@@ -1447,6 +1447,7 @@ static void dpu_flip(struct dpu_context *ctx, struct sprd_plane planes[], u8 cou
 	struct sprd_plane_state *state;
 	struct sprd_layer_state *layer;
 	struct dpu_enhance *enhance = ctx->enhance;
+	struct sprd_dpu *dpu = container_of(ctx, struct sprd_dpu, ctx);
 
 	ctx->vsync_count = 0;
 	if (ctx->max_vsync_count > 0 && count > 1)
@@ -1466,8 +1467,14 @@ static void dpu_flip(struct dpu_context *ctx, struct sprd_plane planes[], u8 cou
 	/* disable all the layers */
 	dpu_clean_all(ctx);
 
+	/*
+	 * TODO:
+	 * SR and surface functions are mutually exclusive,
+	 * should we optimize it?
+	 */
 	/* to check if dpu need scaling the frame for SR */
-	dpu_scaling(ctx, planes, count);
+	if (!dpu->dsi->ctx.surface_mode)
+		dpu_scaling(ctx, planes, count);
 
 	/* start configure dpu layers */
 	for (i = 0; i < count; i++) {
