@@ -856,8 +856,11 @@ static void sdhci_sprd_request(struct mmc_host *mmc, struct mmc_request *mrq)
 	sdhci_sprd_check_auto_cmd23(mmc, mrq);
 #if IS_ENABLED(CONFIG_MMC_SWCQ)
 	if (HOST_IS_EMMC_TYPE(mmc)) {
-		if (!swcq->need_polling)
+		if (!swcq->need_polling) {
 			sdhci_writel(host, host->ier, SDHCI_SIGNAL_ENABLE);
+			if (mrq->cmd)
+				dbg_add_host_log(mmc, 0, mrq->cmd->opcode, mrq->cmd->arg, mrq);
+		}
 		else {
 			sdhci_sprd_request_sync(mmc, mrq);
 			return;
