@@ -20,8 +20,6 @@
 #include <linux/fs.h>
 #include <linux/seq_file.h>
 
-#define SWCQ_SPIN_LOCK spin_lock_irq(&swcq->lock)
-#define SWCQ_SPIN_UNLOCK spin_unlock_irq(&swcq->lock)
 #define SCHED_WORK(x) queue_work(system_unbound_wq, x)
 #define SCHED_PUMP_WORK(x, t) queue_delayed_work(system_unbound_wq, x, t);
 
@@ -34,7 +32,6 @@
 struct mmc_swcq *g_swcq;
 
 /**************debug log*******************/
-static unsigned int printk_cpu_test = UINT_MAX;
 
 inline void __dbg_add_host_log(struct mmc_host *mmc, int type,
 			int cmd, int arg, int cpu, unsigned long reserved, struct mmc_request *mrq)
@@ -42,9 +39,10 @@ inline void __dbg_add_host_log(struct mmc_host *mmc, int type,
 	struct mmc_swcq *swcq = mmc->cqe_private;
 	unsigned long long t, tn;
 	unsigned long long nanosec_rem;
-	static int last_cmd, last_arg, skip;
+	static int last_cmd, last_arg, skip, last_type;
 	int l_skip = 0;
 	struct dbg_run_host_log  *dbg_run_host_log_dat;
+	unsigned long flags;
 
 	if (!swcq)
 		return;
@@ -52,11 +50,9 @@ inline void __dbg_add_host_log(struct mmc_host *mmc, int type,
 	if (!HOST_IS_EMMC_TYPE(mmc))
 		return;
 
+	spin_lock_irqsave(&swcq->log_lock, flags);
 	dbg_run_host_log_dat = &swcq->cmd_history[0];
-
-	t = cpu_clock(printk_cpu_test);
-
-	spin_lock(&swcq->log_lock);
+	t = sched_clock();
 
 	switch (type) {
 	case 0: /* normal - cmd */
@@ -67,16 +63,26 @@ inline void __dbg_add_host_log(struct mmc_host *mmc, int type,
 		dbg_run_host_log_dat[swcq->dbg_host_cnt].type = type;
 		dbg_run_host_log_dat[swcq->dbg_host_cnt].cmd = cmd;
 		dbg_run_host_log_dat[swcq->dbg_host_cnt].arg = arg;
-		dbg_run_host_log_dat[swcq->dbg_host_cnt].blocks =
-		mrq->data ? mrq->data->blocks : 0;
+		dbg_run_host_log_dat[swcq->dbg_host_cnt].blocks = mrq ?
+		(mrq->data ? mrq->data->blocks : 0) : 0;
 		dbg_run_host_log_dat[swcq->dbg_host_cnt].skip = l_skip;
 		dbg_run_host_log_dat[swcq->dbg_host_cnt].mrq = mrq;
 		dbg_run_host_log_dat[swcq->dbg_host_cnt].tag = mrq ? mrq->tag : -1;
 		dbg_run_host_log_dat[swcq->dbg_host_cnt].pid = current->pid;
 		dbg_run_host_log_dat[swcq->dbg_host_cnt].qcnt =
-			swcq ? atomic_read(&swcq->qcnt) : -1;
+			atomic_read(&swcq->qcnt);
 		dbg_run_host_log_dat[swcq->dbg_host_cnt].cmdq_cnt =
-			swcq ? atomic_read(&swcq->cmdq_cnt) : -1;
+			atomic_read(&swcq->cmdq_cnt);
+		/*
+		* flags =
+		* work_on<<24 | hsq_running<<16 | enabled <<8 |pump_busy<<4
+		* |busy<<2|timer_running<<1 | cmdq_mode
+		*/
+		dbg_run_host_log_dat[swcq->dbg_host_cnt].flags =
+		atomic_read(&swcq->work_on) << 24 | swcq->hsq_running << 16
+		| swcq->enabled << 8 | swcq->pump_busy << 4
+		| atomic_read(&swcq->busy) << 2 | swcq->timer_running << 1
+		| swcq->cmdq_mode;
 		swcq->dbg_host_cnt++;
 		if (swcq->dbg_host_cnt >= dbg_max_cnt)
 			swcq->dbg_host_cnt = 0;
@@ -103,16 +109,21 @@ inline void __dbg_add_host_log(struct mmc_host *mmc, int type,
 		dbg_run_host_log_dat[swcq->dbg_host_cnt].type = type;
 		dbg_run_host_log_dat[swcq->dbg_host_cnt].cmd = cmd;
 		dbg_run_host_log_dat[swcq->dbg_host_cnt].arg = arg;
-		dbg_run_host_log_dat[swcq->dbg_host_cnt].blocks =
-		mrq->data ? mrq->data->blocks : 0;
+		dbg_run_host_log_dat[swcq->dbg_host_cnt].blocks = mrq ?
+		(mrq->data ? mrq->data->blocks : 0) : 0;
 		dbg_run_host_log_dat[swcq->dbg_host_cnt].skip = l_skip;
 		dbg_run_host_log_dat[swcq->dbg_host_cnt].mrq = mrq;
 		dbg_run_host_log_dat[swcq->dbg_host_cnt].tag = mrq ? mrq->tag : -1;
 		dbg_run_host_log_dat[swcq->dbg_host_cnt].pid = current->pid;
 		dbg_run_host_log_dat[swcq->dbg_host_cnt].qcnt =
-			swcq ? atomic_read(&swcq->qcnt) : -1;
+			atomic_read(&swcq->qcnt);
 		dbg_run_host_log_dat[swcq->dbg_host_cnt].cmdq_cnt =
-			swcq ? atomic_read(&swcq->cmdq_cnt) : -1;
+			atomic_read(&swcq->cmdq_cnt);
+		dbg_run_host_log_dat[swcq->dbg_host_cnt].flags =
+		atomic_read(&swcq->work_on) << 24 | swcq->hsq_running << 16
+		| swcq->enabled << 8 | swcq->pump_busy << 4
+		| atomic_read(&swcq->busy) << 2 | swcq->timer_running << 1
+		| swcq->cmdq_mode;
 		swcq->dbg_host_cnt++;
 		if (swcq->dbg_host_cnt >= dbg_max_cnt)
 			swcq->dbg_host_cnt = 0;
@@ -122,8 +133,24 @@ inline void __dbg_add_host_log(struct mmc_host *mmc, int type,
 	case 4:
 	case 33:
 	case 44:
+	case 58:
+	case 59:
+	case 60:
 		tn = t;
 		nanosec_rem = do_div(t, 1000000000)/1000;
+		/*skip log if last cmd rsp are the same*/
+		if (last_type == type &&
+			type == 58) {
+			skip++;
+			if (swcq->dbg_host_cnt == 0)
+				swcq->dbg_host_cnt = dbg_max_cnt;
+			/*remove type = 0, command*/
+			swcq->dbg_host_cnt--;
+			break;
+		}
+		last_type = type;
+		l_skip = skip;
+		skip = 0;
 		dbg_run_host_log_dat[swcq->dbg_host_cnt].time_sec = t;
 		dbg_run_host_log_dat[swcq->dbg_host_cnt].time_usec = nanosec_rem;
 		dbg_run_host_log_dat[swcq->dbg_host_cnt].type = type;
@@ -135,9 +162,14 @@ inline void __dbg_add_host_log(struct mmc_host *mmc, int type,
 		dbg_run_host_log_dat[swcq->dbg_host_cnt].tag = mrq ? mrq->tag : -1;
 		dbg_run_host_log_dat[swcq->dbg_host_cnt].pid = current->pid;
 		dbg_run_host_log_dat[swcq->dbg_host_cnt].qcnt =
-			swcq ? atomic_read(&swcq->qcnt) : -1;
+			atomic_read(&swcq->qcnt);
 		dbg_run_host_log_dat[swcq->dbg_host_cnt].cmdq_cnt =
-			swcq ? atomic_read(&swcq->cmdq_cnt) : -1;
+			atomic_read(&swcq->cmdq_cnt);
+		dbg_run_host_log_dat[swcq->dbg_host_cnt].flags =
+		atomic_read(&swcq->work_on) << 24 | swcq->hsq_running << 16
+		| swcq->enabled << 8 | swcq->pump_busy << 4
+		| atomic_read(&swcq->busy) << 2 | swcq->timer_running << 1
+		| swcq->cmdq_mode;
 		swcq->dbg_host_cnt++;
 		if (swcq->dbg_host_cnt >= dbg_max_cnt)
 			swcq->dbg_host_cnt = 0;
@@ -146,7 +178,7 @@ inline void __dbg_add_host_log(struct mmc_host *mmc, int type,
 	default:
 		break;
 	}
-	spin_unlock(&swcq->log_lock);
+	spin_unlock_irqrestore(&swcq->log_lock, flags);
 }
 
 /* all cases which except softirq of IO */
@@ -163,30 +195,21 @@ void dump_cmd_history(struct mmc_swcq *swcq)
 
 	if (!swcq)
 		return;
-	pr_err("==========dump cmd history[max:100 entries]==========\n");
-	for (i = 0, j = swcq->dbg_host_cnt; i < 100; i++, j++) {
-		if (j >= 100)
+	pr_err("==========dump cmd history[max:%d entries]==========\n", dbg_max_cnt);
+	for (i = 0, j = swcq->dbg_host_cnt; i < dbg_max_cnt; i++, j++) {
+		if (j >= dbg_max_cnt)
 			j = 0;
 		if (swcq->cmd_history[j].time_sec == 0)
 			continue;
-		if (swcq->cmd_history[j].type == 0) {
-			pr_info("[%d] time_sec:%lld, time_usec:%lld CMD%d=> arg:0x%x,"
-			"skip:%d, pid:%d, mrq:0x%p qcnt:%d cmdq_cnt:%d",
-			i, swcq->cmd_history[j].time_sec, swcq->cmd_history[j].time_usec,
-			swcq->cmd_history[j].cmd, swcq->cmd_history[j].arg,
-			swcq->cmd_history[j].skip, swcq->cmd_history[j].pid,
-			swcq->cmd_history[j].mrq, swcq->cmd_history[j].qcnt,
-			swcq->cmd_history[j].cmdq_cnt);
-		} else {
-			pr_info("[%d] time_sec:%lld, time_usec:%lld CMD%d resp:0x%x,"
-			"skip:%d, pid:%d, mrq:0x%p qcnt:%d cmdq_cnt:%d",
-			i, swcq->cmd_history[j].time_sec, swcq->cmd_history[j].time_usec,
-			swcq->cmd_history[j].cmd, swcq->cmd_history[j].arg,
-			swcq->cmd_history[j].skip, swcq->cmd_history[j].pid,
-			swcq->cmd_history[j].mrq, swcq->cmd_history[j].qcnt,
-			swcq->cmd_history[j].cmdq_cnt);
 
-		}
+			pr_info("[%d] time_sec:%lld time_usec:%lld type:%d CMD%d arg:0x%x,"
+			"skip:%d pid:%d mrq:0x%p qcnt:%d cmdq_cnt:%d flags:0x%x",
+			i, swcq->cmd_history[j].time_sec, swcq->cmd_history[j].time_usec,
+			swcq->cmd_history[j].type,
+			swcq->cmd_history[j].cmd, swcq->cmd_history[j].arg,
+			swcq->cmd_history[j].skip, swcq->cmd_history[j].pid,
+			swcq->cmd_history[j].mrq, swcq->cmd_history[j].qcnt,
+			swcq->cmd_history[j].cmdq_cnt, swcq->cmd_history[j].flags);
 
 	}
 	pr_err("==========dump cmd history end==========:\n");
@@ -237,42 +260,81 @@ static int mmc_reset_for_cmdq(struct mmc_swcq *swcq)
 	return err;
 }
 
-static inline struct swcq_node *alloc_swcq_node(struct mmc_swcq *swcq)
+static inline struct swcq_node *alloc_swcq_cmd_node(struct mmc_swcq *swcq)
 {
 	int i;
+	unsigned long flags;
 
-	spin_lock(&swcq->node_lock);
-	for (i = 0; i < (SWCQ_NUM_SLOTS + EMMC_MAX_QUEUE_DEPTH); i++) {
-		if (!atomic_read(&swcq->node_array[i].used)) {
-			atomic_set(&swcq->node_array[i].used, 1);
+	spin_lock_irqsave(&swcq->cmd_node_lock, flags);
+	for (i = 0; i < SWCQ_NUM_SLOTS; i++) {
+		if (!atomic_read(&swcq->cmd_node_array[i].used)) {
+			atomic_set(&swcq->cmd_node_array[i].used, 1);
+			swcq->cmd_node_array[i].mrq = NULL;
 			break;
 		}
 	}
-	spin_unlock(&swcq->node_lock);
-	BUG_ON(i == SWCQ_NUM_SLOTS + EMMC_MAX_QUEUE_DEPTH);
-	return &swcq->node_array[i];
+	spin_unlock_irqrestore(&swcq->cmd_node_lock, flags);
+	BUG_ON(i == SWCQ_NUM_SLOTS);
+
+	return &swcq->cmd_node_array[i];
 }
 
-static inline void free_swcq_node(struct mmc_swcq *swcq, struct swcq_node *node)
+static inline void free_swcq_cmd_node(struct mmc_swcq *swcq, struct swcq_node *node)
 {
+	unsigned long flags;
+
 	BUG_ON(!atomic_read(&node->used));
+
+	spin_lock_irqsave(&swcq->cmd_node_lock, flags);
 	atomic_set(&node->used, 0);
+	spin_unlock_irqrestore(&swcq->cmd_node_lock, flags);
+
+}
+
+static inline struct swcq_node *alloc_swcq_data_node(struct mmc_swcq *swcq)
+{
+	int i;
+	unsigned long flags;
+
+	spin_lock_irqsave(&swcq->data_node_lock, flags);
+	for (i = 0; i < EMMC_MAX_QUEUE_DEPTH; i++) {
+		if (!atomic_read(&swcq->data_node_array[i].used)) {
+			atomic_set(&swcq->data_node_array[i].used, 1);
+			swcq->data_node_array[i].mrq = NULL;
+			break;
+		}
+	}
+	spin_unlock_irqrestore(&swcq->data_node_lock, flags);
+	BUG_ON(i == EMMC_MAX_QUEUE_DEPTH);
+	return &swcq->data_node_array[i];
+}
+
+static inline void free_swcq_data_node(struct mmc_swcq *swcq, struct swcq_node *node)
+{
+	unsigned long flags;
+
+	BUG_ON(!atomic_read(&node->used));
+	spin_lock_irqsave(&swcq->data_node_lock, flags);
+	atomic_set(&node->used, 0);
+	spin_unlock_irqrestore(&swcq->data_node_lock, flags);
 
 }
 
 static void mmc_enqueue_queue(struct mmc_swcq *swcq, struct mmc_request *mrq)
 {
 	unsigned long flags;
-	struct swcq_node *node = alloc_swcq_node(swcq);
-
-	node->mrq = mrq;
+	struct swcq_node *node;
 
 	if (mrq->cmd->opcode == MMC_EXECUTE_READ_TASK ||
 		mrq->cmd->opcode == MMC_EXECUTE_WRITE_TASK) {
+		node = alloc_swcq_data_node(swcq);
+		node->mrq = mrq;
 		//spin_lock_irqsave(&swcq->data_que_lock, flags);
 		list_add_tail(&node->link, &swcq->data_que);
 		//spin_unlock_irqrestore(&swcq->data_que_lock, flags);
 	} else {
+		node = alloc_swcq_cmd_node(swcq);
+		node->mrq = mrq;
 		spin_lock_irqsave(&swcq->cmd_que_lock, flags);
 		//if (mrq->flags)
 		//	list_add(&mrq->link, &swcq->cmd_que);
@@ -295,29 +357,21 @@ static void mmc_dequeue_queue(struct mmc_swcq *swcq, struct mmc_request *mrq)
 	}
 }
 
-static void mmc_get_cmd_que_active(struct mmc_swcq *swcq)
-{
-	INIT_LIST_HEAD(&swcq->rq_list);
-
-	if (!list_empty(&swcq->cmd_que))
-		list_splice_init(&swcq->cmd_que, &swcq->rq_list);
-}
-
 static struct mmc_request *mmc_get_cmd_que(struct mmc_swcq *swcq)
 {
 	struct mmc_request *mrq = NULL;
 	unsigned long flags;
 	struct swcq_node *node;
 
-	spin_lock_irqsave(&swcq->rqlist_lock, flags);
-	if (!list_empty(&swcq->rq_list)) {
-		node = list_first_entry(&swcq->rq_list,
+	spin_lock_irqsave(&swcq->cmd_que_lock, flags);
+	if (!list_empty(&swcq->cmd_que)) {
+		node = list_first_entry(&swcq->cmd_que,
 			struct swcq_node, link);
 		list_del_init(&node->link);
 		mrq = node->mrq;
-		free_swcq_node(swcq, node);
+		free_swcq_cmd_node(swcq, node);
 	}
-	spin_unlock_irqrestore(&swcq->rqlist_lock, flags);
+	spin_unlock_irqrestore(&swcq->cmd_que_lock, flags);
 
 	return mrq;
 }
@@ -340,7 +394,7 @@ static void mmc_clear_data_list(struct mmc_swcq *swcq)
 	spin_lock_irqsave(&swcq->data_que_lock, flags);
 	list_for_each_entry_safe(node, node_next, &swcq->data_que, link) {
 		list_del_init(&node->link);
-		free_swcq_node(swcq, node);
+		free_swcq_data_node(swcq, node);
 	}
 	spin_unlock_irqrestore(&swcq->data_que_lock, flags);
 
@@ -374,7 +428,7 @@ static struct mmc_request *mmc_get_data_que(struct mmc_swcq *swcq)
 			struct swcq_node, link);
 		mrq = node->mrq;
 		list_del_init(&node->link);
-		free_swcq_node(swcq, node);
+		free_swcq_data_node(swcq, node);
 	}
 
 	return mrq;
@@ -794,6 +848,8 @@ static void mmc_swcq_pump_requests(struct mmc_swcq *swcq)
 	spin_lock_irqsave(&swcq->lock, flags);
 	/* Make sure we are not already running a request now */
 	if (swcq->mrq || swcq->pump_busy) {
+		if (swcq->pump_busy)
+			dbg_add_host_log(swcq->mmc, 58, 0, swcq->pump_busy, 0);
 		spin_unlock_irqrestore(&swcq->lock, flags);
 		return;
 	}
@@ -801,8 +857,10 @@ static void mmc_swcq_pump_requests(struct mmc_swcq *swcq)
 	swcq->pump_busy = true;
 	/* Make sure there are remain requests need to pump */
 	if (!atomic_read(&swcq->qcnt) || !swcq->enabled) {
+		dbg_add_host_log(swcq->mmc, 59, 0, atomic_read(&swcq->qcnt)<<16 | swcq->enabled, 0);
+		swcq->pump_busy = false;
 		spin_unlock_irqrestore(&swcq->lock, flags);
-		goto out;
+		return;
 	}
 
 	if (!swcq->timer_running) {
@@ -814,8 +872,9 @@ static void mmc_swcq_pump_requests(struct mmc_swcq *swcq)
 		/*come from hsq interrupt handler context*/
 		if (in_irq()) {
 			SCHED_PUMP_WORK(&swcq->delayed_pump_work, 0);
+			swcq->pump_busy = false;
 			spin_unlock_irqrestore(&swcq->lock, flags);
-			goto out;
+			return;
 		}
 
 		if (!swcq->mmc->card->ext_csd.cmdq_en) {
@@ -824,12 +883,15 @@ static void mmc_swcq_pump_requests(struct mmc_swcq *swcq)
 			hsq_is_idle(swcq));
 			spin_lock_irqsave(&swcq->lock, flags);
 		}
+		if (swcq->hsq_running)
+			swcq->hsq_running = false;
 again:
 		index = mmc_get_cmdq_index(swcq);
 		if (index == swcq->cmdq_depth) {
 			pr_info("mmc0: %s %d ", __func__, __LINE__);
+			swcq->pump_busy = false;
 			spin_unlock_irqrestore(&swcq->lock, flags);
-			goto out;
+			return;
 		}
 
 		slot = &swcq->slot[swcq->next_tag];
@@ -839,8 +901,9 @@ again:
 
 		if (!mrq) {
 			WARN_ON(1);
+			swcq->pump_busy = false;
 			spin_unlock_irqrestore(&swcq->lock, flags);
-			goto out;
+			return;
 		}
 
 		if ((mrq->data->flags & MMC_DATA_READ)
@@ -872,15 +935,16 @@ again:
 		if (remains > 0)
 			goto again;
 
+		swcq->pump_busy = false;
 		spin_unlock_irqrestore(&swcq->lock, flags);
-
-		goto out;
+		return;
 	}
 	/*no cmdq mode*/
 	if (swcq->mmc->card->ext_csd.cmdq_en) {
 		spin_unlock_irqrestore(&swcq->lock, flags);
 		wait_event(swcq->wait_cmdq_idle,
 			cmdq_is_idle(swcq));
+		mmc_swcq_switch_cmdq(swcq, false);
 		spin_lock_irqsave(&swcq->lock, flags);
 	}
 
@@ -894,15 +958,13 @@ again:
 
 	if (!swcq->mrq) {
 		WARN_ON(1);
+		swcq->pump_busy = false;
 		spin_unlock_irqrestore(&swcq->lock, flags);
-		goto out;
+		return;
 	}
 	atomic_dec(&swcq->qcnt);
-
+	swcq->pump_busy = false;
 	spin_unlock_irqrestore(&swcq->lock, flags);
-
-	if (swcq->mmc->card->ext_csd.cmdq_en)
-		mmc_swcq_switch_cmdq(swcq, false);
 
 	if (mmc->ops->request_atomic)
 		ret = mmc->ops->request_atomic(mmc, swcq->mrq);
@@ -922,9 +984,6 @@ again:
 		schedule_work(&swcq->retry_work);
 	else
 		WARN_ON_ONCE(ret);
-out:
-	if (swcq->pump_busy)
-		swcq->pump_busy = false;
 }
 
 static inline void mmc_cmdq_post_request(struct mmc_swcq *swcq, int task_id)
@@ -1210,14 +1269,17 @@ static void mmc_cmdq_work(struct work_struct *work)
 	bool is_done = false;
 	int ret;
 	u64 chk_time = 0;
-	//struct sdhci_host *sdhci_host = mmc_priv(host);
+	unsigned long flags;
 
 	//pr_notice("[CQ]mmc0 start cmdq work\n");
-	if (atomic_read(&swcq->cmdq_cnt) == 0 || atomic_read(&swcq->work_on))
+	spin_lock_irqsave(&swcq->lock, flags);
+	if (atomic_read(&swcq->cmdq_cnt) == 0 || atomic_read(&swcq->work_on)) {
+		spin_unlock_irqrestore(&swcq->lock, flags);
 		return;
-
+	}
 	atomic_set(&swcq->work_on, true);
 	swcq->worker_pid = current->pid;
+	spin_unlock_irqrestore(&swcq->lock, flags);
 
 	while (1) {
 		/* End request stage 1/2 */
@@ -1321,9 +1383,6 @@ reset_card:
 		if (atomic_read(&swcq->cq_tuning_now) == 0
 			&& atomic_read(&swcq->cq_rdy_cnt) == 0
 			&& !atomic_read(&swcq->busy)) {
-			spin_lock_irq(&swcq->cmd_que_lock);
-			mmc_get_cmd_que_active(swcq);
-			spin_unlock_irq(&swcq->cmd_que_lock);
 
 			cmd_mrq = mmc_get_cmd_que(swcq);
 			while (cmd_mrq) {
@@ -1401,7 +1460,7 @@ reset_card:
 				usleep_range(2000, 5000);
 		}
 		/* Sleep when nothing to do */
-		SWCQ_SPIN_LOCK;
+		spin_lock_irqsave(&swcq->lock, flags);
 		if (atomic_read(&swcq->cmdq_cnt) == 0) {
 			atomic_set(&swcq->work_on, false);
 			if (swcq->waiting_for_cmdq_idle) {
@@ -1415,11 +1474,12 @@ reset_card:
 			if (atomic_read(&swcq->qcnt) > 0) {
 				SCHED_PUMP_WORK(&swcq->delayed_pump_work, 0);
 			}
-			SWCQ_SPIN_UNLOCK;
+			dbg_add_host_log(swcq->mmc, 60, 0, atomic_read(&swcq->qcnt), 0);
+			spin_unlock_irqrestore(&swcq->lock, flags);
 			break;
 
 		}
-		SWCQ_SPIN_UNLOCK;
+		spin_unlock_irqrestore(&swcq->lock, flags);
 	}
 }
 
@@ -1605,23 +1665,25 @@ static bool mmc_swcq_is_busy(struct mmc_host *mmc)
 static void mmc_swcq_recovery_start(struct mmc_host *mmc)
 {
 	struct mmc_swcq *swcq = mmc->cqe_private;
+	unsigned long flags;
 
-	SWCQ_SPIN_LOCK;
+	spin_lock_irqsave(&swcq->lock, flags);
 	swcq->recovery_halt = true;
 	swcq->mode_need_change = false;
-	SWCQ_SPIN_UNLOCK;
+	spin_unlock_irqrestore(&swcq->lock, flags);
 }
 
 static void mmc_swcq_recovery_finish(struct mmc_host *mmc)
 {
 	struct mmc_swcq *swcq = mmc->cqe_private;
 	int remains;
+	unsigned long flags;
 
-	SWCQ_SPIN_LOCK;
+	spin_lock_irqsave(&swcq->lock, flags);
 	swcq->recovery_halt = false;
 	swcq->mode_need_change = true;
 	remains = atomic_read(&swcq->qcnt);
-	SWCQ_SPIN_UNLOCK;
+	spin_unlock_irqrestore(&swcq->lock, flags);
 
 	/*
 	 * Try to pump new request if there are request pending in software
@@ -1671,17 +1733,6 @@ static int mmc_swcq_request(struct mmc_host *mmc, struct mmc_request *mrq)
 	atomic_inc(&swcq->qcnt);
 
 	dbg_add_host_log(mmc, 2, 0, 0, mrq);
-	/*
-	 * Normal case, if both cmdq work and hsq are not running,
-	 * qcnt should be less than 2. If not, should pump it later.
-	 */
-	if (!atomic_read(&swcq->work_on) && !swcq->hsq_running
-			&& atomic_read(&swcq->qcnt) > 1) {
-		BUG_ON(1);
-		SCHED_PUMP_WORK(&swcq->delayed_pump_work, 1);
-		spin_unlock_irqrestore(&swcq->lock, flags);
-		return 0;
-	}
 
 	spin_unlock_irqrestore(&swcq->lock, flags);
 	mmc_swcq_pump_requests(swcq);
@@ -1726,15 +1777,16 @@ static void mmc_swcq_disable(struct mmc_host *mmc)
 {
 	struct mmc_swcq *swcq = mmc->cqe_private;
 	u32 timeout = 500;
+	unsigned long flags;
 	int ret;
 
-	SWCQ_SPIN_LOCK;
+	spin_lock_irqsave(&swcq->lock, flags);
 	if (!swcq->enabled) {
-		SWCQ_SPIN_UNLOCK;
+		spin_unlock_irqrestore(&swcq->lock, flags);
 		return;
 	}
 
-	SWCQ_SPIN_UNLOCK;
+	spin_unlock_irqrestore(&swcq->lock, flags);
 
 	ret = wait_event_timeout(swcq->wait_queue,
 				 mmc_swcq_queue_is_idle(swcq, &ret),
@@ -1744,18 +1796,17 @@ static void mmc_swcq_disable(struct mmc_host *mmc)
 		return;
 	}
 
-	SWCQ_SPIN_LOCK;
-
+	spin_lock_irqsave(&swcq->lock, flags);
 	swcq->enabled = false;
-
-	SWCQ_SPIN_UNLOCK;
+	spin_unlock_irqrestore(&swcq->lock, flags);
 }
 /*mmc-card-init, cqe_enable, add card, mmc_init_queue */
 static int mmc_swcq_enable(struct mmc_host *mmc, struct mmc_card *card)
 {
 	struct mmc_swcq *swcq = mmc->cqe_private;
+	unsigned long flags;
 
-	SWCQ_SPIN_LOCK;
+	spin_lock_irqsave(&swcq->lock, flags);
 
 	if (!swcq->initialized && card) {
 		swcq->initialized = true;
@@ -1764,12 +1815,12 @@ static int mmc_swcq_enable(struct mmc_host *mmc, struct mmc_card *card)
 	}
 
 	if (swcq->enabled) {
-		SWCQ_SPIN_UNLOCK;
+		spin_unlock_irqrestore(&swcq->lock, flags);
 		return -EBUSY;
 	}
 
 	swcq->enabled = true;
-	SWCQ_SPIN_UNLOCK;
+	spin_unlock_irqrestore(&swcq->lock, flags);
 
 	return 0;
 }
@@ -1934,47 +1985,52 @@ static int sprd_swcq_cmd_show(struct seq_file *m, void *v)
 			continue;
 		if (swcq->cmd_history[j].type == 0) {
 			seq_printf(m, "[%d] time_sec:%lld, time_usec:%lld CMD%d=> arg:0x%x, "
-			"skip:%d, pid:%d, blocks:%d mrq:0x%p qcnt:%d cmdq_cnt:%d\n",
+			"skip:%d pid:%d blocks:%d mrq:0x%p qcnt:%d cmdq_cnt:%d flags:0x%x\n",
 			i, swcq->cmd_history[j].time_sec, swcq->cmd_history[j].time_usec,
 			swcq->cmd_history[j].cmd, swcq->cmd_history[j].arg,
 			swcq->cmd_history[j].skip, swcq->cmd_history[j].pid,
 			swcq->cmd_history[j].blocks, swcq->cmd_history[j].mrq,
-			swcq->cmd_history[j].qcnt, swcq->cmd_history[j].cmdq_cnt);
+			swcq->cmd_history[j].qcnt, swcq->cmd_history[j].cmdq_cnt,
+			swcq->cmd_history[j].flags);
 		} else if (swcq->cmd_history[j].type == 1) {
-			seq_printf(m, "[%d] time_sec:%lld, time_usec:%lld CMD%d resp:0x%x, "
-			"skip:%d, pid:%d, blocks:%d mrq:0x%p qcnt:%d cmdq_cnt:%d\n",
+			seq_printf(m, "[%d] time_sec:%lld time_usec:%lld CMD%d resp:0x%x, "
+			"skip:%d pid:%d blocks:%d mrq:0x%p qcnt:%d cmdq_cnt:%d flags:0x%x\n",
 			i, swcq->cmd_history[j].time_sec, swcq->cmd_history[j].time_usec,
 			swcq->cmd_history[j].cmd, swcq->cmd_history[j].arg,
 			swcq->cmd_history[j].skip, swcq->cmd_history[j].pid,
 			swcq->cmd_history[j].blocks, swcq->cmd_history[j].mrq,
-			swcq->cmd_history[j].qcnt, swcq->cmd_history[j].cmdq_cnt);
+			swcq->cmd_history[j].qcnt, swcq->cmd_history[j].cmdq_cnt,
+			swcq->cmd_history[j].flags);
 
 		} else if (swcq->cmd_history[j].type == 2) {
-			seq_printf(m, "[%d] time_sec:%lld, time_usec:%lld issue, next:%d, "
-			"skip:%d, pid:%d, blocks:%d mrq:0x%p qcnt:%d cmdq_cnt:%d\n",
+			seq_printf(m, "[%d] time_sec:%lld, time_usec:%lld issue next:%d, "
+			"skip:%d pid:%d blocks:%d mrq:0x%p qcnt:%d cmdq_cnt:%d flags:0x%x\n",
 			i, swcq->cmd_history[j].time_sec, swcq->cmd_history[j].time_usec,
 			swcq->cmd_history[j].arg,
 			swcq->cmd_history[j].skip, swcq->cmd_history[j].pid,
 			swcq->cmd_history[j].blocks, swcq->cmd_history[j].mrq,
-			swcq->cmd_history[j].qcnt, swcq->cmd_history[j].cmdq_cnt);
+			swcq->cmd_history[j].qcnt, swcq->cmd_history[j].cmdq_cnt,
+			swcq->cmd_history[j].flags);
 
 		} else if (swcq->cmd_history[j].type == 3) {
-			seq_printf(m, "[%d] time_sec:%lld, time_usec:%lld finish next:%d, "
-			"skip:%d, pid:%d, blocks:%d mrq:0x%p qcnt:%d cmdq_cnt:%d\n",
+			seq_printf(m, "[%d] time_sec:%lld time_usec:%lld finish next:%d, "
+			"skip:%d pid:%d blocks:%d mrq:0x%p qcnt:%d cmdq_cnt:%d flags:0x%x\n",
 			i, swcq->cmd_history[j].time_sec, swcq->cmd_history[j].time_usec,
 			swcq->cmd_history[j].arg,
 			swcq->cmd_history[j].skip, swcq->cmd_history[j].pid,
 			swcq->cmd_history[j].blocks, swcq->cmd_history[j].mrq,
-			swcq->cmd_history[j].qcnt, swcq->cmd_history[j].cmdq_cnt);
+			swcq->cmd_history[j].qcnt, swcq->cmd_history[j].cmdq_cnt,
+			swcq->cmd_history[j].flags);
 
 		} else {
-			seq_printf(m, "[%d] time_sec:%lld, time_usec:%lld type:%d args:0x%x, "
-			"skip:%d, pid:%d, blocks:%d mrq:0x%p qcnt:%d cmdq_cnt:%d\n",
+			seq_printf(m, "[%d] time_sec:%lld time_usec:%lld type:%d args:0x%x, "
+			"skip:%d pid:%d blocks:%d mrq:0x%p qcnt:%d cmdq_cnt:%d flags:0x%x\n",
 			i, swcq->cmd_history[j].time_sec, swcq->cmd_history[j].time_usec,
 			swcq->cmd_history[j].type, swcq->cmd_history[j].arg,
 			swcq->cmd_history[j].skip, swcq->cmd_history[j].pid,
 			swcq->cmd_history[j].blocks, swcq->cmd_history[j].mrq,
-			swcq->cmd_history[j].qcnt, swcq->cmd_history[j].cmdq_cnt);
+			swcq->cmd_history[j].qcnt, swcq->cmd_history[j].cmdq_cnt,
+			swcq->cmd_history[j].flags);
 
 		}
 
@@ -2095,18 +2151,27 @@ int mmc_swcq_init(struct mmc_swcq *swcq, struct mmc_host *mmc)
 	swcq->num_slots = SWCQ_NUM_SLOTS;
 	swcq->next_tag = SWCQ_INVALID_TAG;
 
-	swcq->node_array = kzalloc(sizeof(struct swcq_node) *
-	(SWCQ_NUM_SLOTS + EMMC_MAX_QUEUE_DEPTH), GFP_KERNEL);
+	swcq->cmd_node_array = kzalloc(sizeof(struct swcq_node) *
+	SWCQ_NUM_SLOTS, GFP_KERNEL);
 
-	if (!swcq->node_array)
+	if (!swcq->cmd_node_array)
 		return -ENOMEM;
+
+	swcq->data_node_array = kzalloc(sizeof(struct swcq_node) *
+	EMMC_MAX_QUEUE_DEPTH, GFP_KERNEL);
+
+	if (!swcq->data_node_array)
+		goto nomem_err1;
 
 	swcq->slot = devm_kcalloc(mmc_dev(mmc), swcq->num_slots,
 				 sizeof(struct swcq_slot), GFP_KERNEL);
 	if (!swcq->slot)
-		return -ENOMEM;
+		goto nomem_err2;
+
 	swcq->check_slot = devm_kcalloc(mmc_dev(mmc), swcq->num_slots,
 				 sizeof(struct swcq_check), GFP_KERNEL);
+	if (!swcq->check_slot)
+		goto nomem_err3;
 
 	for (i = 0; i < EMMC_MAX_QUEUE_DEPTH; i++) {
 		swcq->cmdq_slot[i].mrq = NULL;
@@ -2134,7 +2199,8 @@ int mmc_swcq_init(struct mmc_swcq *swcq, struct mmc_host *mmc)
 	spin_lock_init(&swcq->data_que_lock);
 	spin_lock_init(&swcq->lock);
 	spin_lock_init(&swcq->log_lock);
-	spin_lock_init(&swcq->node_lock);
+	spin_lock_init(&swcq->cmd_node_lock);
+	spin_lock_init(&swcq->data_node_lock);
 
 	atomic_set(&swcq->cq_rw, false);
 	atomic_set(&swcq->cq_w, false);
@@ -2163,8 +2229,16 @@ int mmc_swcq_init(struct mmc_swcq *swcq, struct mmc_host *mmc)
 	swcq->mode_need_change = true;
 	swcq->pump_busy = false;
 	sprd_create_swcq_proc_init();
+	pr_notice("[notice] swcq init finish.\n");
 
 	return 0;
+nomem_err3:
+	devm_kfree(mmc_dev(mmc), swcq->slot);
+nomem_err2:
+	kfree(swcq->data_node_array);
+nomem_err1:
+	kfree(swcq->cmd_node_array);
+	return -ENOMEM;
 }
 EXPORT_SYMBOL_GPL(mmc_swcq_init);
 

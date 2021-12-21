@@ -27,6 +27,12 @@ struct dbg_run_host_log {
 	int blocks;
 	int qcnt;
 	int cmdq_cnt;
+	/*
+	 * flags =
+	 * work_on<<24 | hsq_running<<16 | enabled <<8 |pump_busy<<4
+	 * |busy<<2|timer_running<<1 | cmdq_mode
+	 */
+	int flags;
 	int skip;
 	int pid;
 	int tag;
@@ -82,7 +88,8 @@ struct mmc_swcq {
 	spinlock_t		rqlist_lock;/*lock for rqlist operating*/
 	spinlock_t		data_que_lock;/*lock for data queue operating*/
 	spinlock_t		log_lock;/*lock for adding log*/
-	spinlock_t		node_lock;/*lock for node adding/removing*/
+	spinlock_t		cmd_node_lock;/*lock for node adding/removing*/
+	spinlock_t		data_node_lock;/*lock for node adding/removing*/
 	struct list_head	cmd_que;/*queue for cmd type request*/
 	struct list_head	rq_list;/*list for tmp store cmd type request*/
 	struct list_head	data_que;/*queue for data type request*/
@@ -134,7 +141,8 @@ struct mmc_swcq {
 	bool mode_need_change;/*mode need change state*/
 	bool hsq_running;/*1: hsq is running 0: hsq in not running*/
 	struct swcq_check *check_slot;/*slot for checking, duplicate of slot*/
-	struct swcq_node *node_array;/*node pool(workaround to replace link of mmc_host)*/
+	struct swcq_node *cmd_node_array;/*node pool(workaround to replace link of mmc_host)*/
+	struct swcq_node *data_node_array;/*node pool(workaround to replace link of mmc_host)*/
 	int dbg_host_cnt;/*debug entries of cmd history*/
 	int debug1;
 	struct dbg_run_host_log cmd_history[dbg_max_cnt];/*cmd hisotry buffer*/
