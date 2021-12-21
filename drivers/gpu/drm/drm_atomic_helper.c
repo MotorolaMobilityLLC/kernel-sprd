@@ -714,9 +714,16 @@ drm_atomic_helper_check_modeset(struct drm_device *dev,
 		if (ret != 0)
 			return ret;
 
-		ret = drm_atomic_add_affected_planes(state, crtc);
-		if (ret != 0)
-			return ret;
+		/*
+		 * FIXME:
+		 * Just mode changed no need to display previous planes.
+		 * Deleted by SPRD for HWC SR function.
+		 * There is no need to add all old planes for sprd drm according to plane mask.
+		 * Because the dpu driver will display extra planes which reduce display abnormal.
+		 *ret = drm_atomic_add_affected_planes(state, crtc);
+		 *if (ret != 0)
+		 *	return ret;
+		 */
 	}
 
 	/*
