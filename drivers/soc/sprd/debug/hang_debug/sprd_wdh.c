@@ -619,6 +619,7 @@ asmlinkage __visible void wdh_atf_entry(struct pt_regs *data)
 	if (user_mode(pregs) || atomic_xchg(&sprd_enter_wdh, 1)) {
 		sprd_hang_debug_printf("%s: goto panic idle\n", __func__);
 		sprd_dump_stack_reg(cpu, pregs);
+		minidump_update_current_stack(cpu, pregs);
 		sysdump_ipi(pregs);
 		wdh_step[cpu] = SPRD_HANG_DUMP_SYSDUMP;
 		flush_cache_all();
@@ -660,6 +661,7 @@ asmlinkage __visible void wdh_atf_entry(struct pt_regs *data)
 	sprd_dump_stack_reg(cpu, pregs);
 	sprd_dump_mem_stat();
 	sprd_dump_interrupts();
+	minidump_update_current_stack(cpu, pregs);
 	sysdump_ipi(pregs);
 
 	wdh_step[cpu] = SPRD_HANG_DUMP_END;

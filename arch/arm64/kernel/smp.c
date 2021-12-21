@@ -946,6 +946,7 @@ static void do_handle_IPI(int ipinr)
 			sprd_dump_stack_reg(cpu, &pregs);
 			raw_spin_unlock(&stop_lock);
 		}
+		minidump_update_current_stack(cpu, regs);
 		sysdump_ipi(regs);
 #endif
 		local_cpu_stop();

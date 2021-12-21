@@ -234,6 +234,7 @@ void panic(const char *fmt, ...)
 		buf[len - 1] = '\0';
 
 #ifdef CONFIG_SPRD_SYSDUMP
+	minidump_update_current_stack(this_cpu, &regs);
 	sprd_dump_stack_reg(this_cpu, &regs);
 #endif
 

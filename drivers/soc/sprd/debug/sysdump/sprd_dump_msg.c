@@ -120,6 +120,65 @@ static void minidump_add_irq_stack(void)
 static inline void minidump_add_irq_stack(void) {}
 #endif
 
+static int currstack_inited;
+static void minidump_add_current_stack(void)
+{
+	char name[MAX_NAME_LEN];
+	int cpu;
+#ifdef CONFIG_VMAP_STACK
+	int i, page_count;
+
+	page_count = THREAD_SIZE / PAGE_SIZE;
+	for_each_possible_cpu(cpu)
+		for (i = 0; i < page_count; i++) {
+			scnprintf(name, MAX_NAME_LEN, "cpustack%d_%d", cpu, i);
+			if (minidump_save_extend_information(name, 0, PAGE_SIZE))
+				return;
+		}
+#else
+	for_each_possible_cpu(cpu) {
+		scnprintf(name, MAX_NAME_LEN, "cpustack%d", cpu);
+		minidump_save_extend_information(name, 0, THREAD_SIZE);
+	}
+#endif
+	currstack_inited = 1;
+}
+void minidump_update_current_stack(int cpu, struct pt_regs *regs)
+{
+	unsigned long sp;
+	char name[MAX_NAME_LEN];
+#ifdef CONFIG_VMAP_STACK
+	struct vm_struct *stack_vm_area;
+	int i, page_count;
+
+	if (!currstack_inited || user_mode(regs) || is_idle_task(current))
+		return;
+
+	stack_vm_area = task_stack_vm_area(current);
+	sp = (unsigned long)stack_vm_area->addr;
+
+	sp &= ~(PAGE_SIZE - 1);
+	page_count = THREAD_SIZE / PAGE_SIZE;
+	for (i = 0; i < page_count; i++) {
+		struct page *sp_page;
+		unsigned long phys_addr;
+
+		scnprintf(name, MAX_NAME_LEN, "cpustack%d_%d", cpu, i);
+		sp_page = vmalloc_to_page((const void *) sp);
+		phys_addr = page_to_phys(sp_page);
+		if (minidump_change_extend_information(name, phys_addr, phys_addr + PAGE_SIZE))
+			return;
+		sp += PAGE_SIZE;
+	}
+#else
+	if (!currstack_inited || user_mode(regs) || is_idle_task(current))
+		return;
+
+	sp = (unsigned long)current->stack;
+	scnprintf(name, MAX_NAME_LEN, "cpustack%d", cpu);
+	minidump_change_extend_information(name, __pa(sp), __pa(sp + THREAD_SIZE));
+#endif
+}
 /*
  * Ease the printing of nsec fields:
  */
@@ -810,6 +869,7 @@ static int __init sprd_dump_msg_init(void)
 	sprd_add_memory_stat();
 	sprd_add_interrupt_stat();
 	minidump_add_irq_stack();
+	minidump_add_current_stack();
 
 	/* register sched panic notifier */
 	atomic_notifier_chain_register(&panic_notifier_list,
