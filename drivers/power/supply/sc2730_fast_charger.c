@@ -48,6 +48,7 @@
 
 #define ANA_REG_IB_TRIM_MASK			GENMASK(6, 0)
 #define ANA_REG_IB_TRIM_SHIFT			2
+#define ANA_REG_IB_TRIM_MAX			0x7f
 #define ANA_REG_IB_TRIM_EM_SEL_BIT		BIT(1)
 #define ANA_REG_IB_TRUM_OFFSET			0x1e
 
@@ -151,7 +152,7 @@ static int sc2730_fchg_internal_cur_calibration(struct sc2730_fchg_info *info)
 	const struct sc27xx_fast_chg_data *pdata = info->pdata;
 
 	cell = nvmem_cell_get(info->dev, "fchg_cur_calib");
-	if (IS_ERR(cell))
+	if (IS_ERR_OR_NULL(cell))
 		return PTR_ERR(cell);
 
 	buf = nvmem_cell_read(cell, &len);
@@ -170,6 +171,12 @@ static int sc2730_fchg_internal_cur_calibration(struct sc2730_fchg_info *info)
 	 */
 	calib_current = (calib_data & FCHG_CALI_MASK) >> FCHG_CALI_SHIFT;
 	calib_current += ANA_REG_IB_TRUM_OFFSET;
+
+	if (calib_current < 0 || calib_current > ANA_REG_IB_TRIM_MAX) {
+		dev_info(info->dev, "The compensated calib_current exceeds the range of IB_TRIM,"
+			 " calib_current=%d\n", calib_current);
+		calib_current = (calib_data & FCHG_CALI_MASK) >> FCHG_CALI_SHIFT;
+	}
 
 	ret = regmap_update_bits(info->regmap,
 				 pdata->ib_ctrl,
