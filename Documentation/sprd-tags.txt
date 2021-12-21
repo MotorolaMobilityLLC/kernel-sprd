@@ -74,6 +74,7 @@ devfreq:sprd:
 dmaengine:sprd:
 dma-buf:
 Documentation:*
+drm:
 drm:sprd:
 drm:sprd:cabc:
 drm:sprd:dphy:
