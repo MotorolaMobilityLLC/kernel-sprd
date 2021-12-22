@@ -6208,6 +6208,81 @@ void io_schedule_finish(int token)
 	current->in_iowait = token;
 }
 
+#if defined(CONFIG_SPRD_DEBUG)
+static DEFINE_SPINLOCK(_io_wait);
+
+#define IOWAIT_ARRAY_CNT 12
+static int iowait_cp[IOWAIT_ARRAY_CNT] = {
+	1, 10, 100, 200, 500, 1000, 2000, 4000, 8000, 16000, 32000, -1,
+};
+
+struct io_wait_info {
+	int pp;
+	int cnt[2];
+	int time[2][IOWAIT_ARRAY_CNT];
+	unsigned long start;
+};
+
+static struct io_wait_info io_wait = {
+	.start = INITIAL_JIFFIES,
+};
+
+static int get_iowait_idx(unsigned long now, unsigned long start)
+{
+	int i;
+
+	for (i = 0; i < (IOWAIT_ARRAY_CNT - 1); i++)
+		if (time_before_eq(now, start + msecs_to_jiffies(iowait_cp[i])))
+			break;
+
+	return i;
+}
+
+bool _update_iowait_info(unsigned long start)
+{
+	unsigned long now = jiffies;
+	unsigned long flags;
+	int idx = get_iowait_idx(now, start);
+	bool ret = false;
+	int pp;
+
+	spin_lock_irqsave(&_io_wait, flags);
+
+	pp = io_wait.pp & 0x1;
+	++io_wait.cnt[pp];
+	++io_wait.time[pp][idx];
+
+	if (time_after_eq(now, io_wait.start + io_interval * HZ)) {
+		io_wait.start = now;
+		io_wait.pp ^= 0x1;
+
+		pp = io_wait.pp & 0x1;
+		io_wait.cnt[pp] = 0;
+		memset(io_wait.time[pp], 0, sizeof(int) * IOWAIT_ARRAY_CNT);
+
+		ret = true;
+	}
+
+	spin_unlock_irqrestore(&_io_wait, flags);
+
+	return ret;
+}
+
+#define iowait_log(array, fmt, ...) \
+	pr_info(fmt ":%5d %4d %4d %4d %4d %4d %4d %4d %4d %4d %4d %4d\n", \
+		##__VA_ARGS__, array[0], array[1], array[2], array[3], \
+		array[4], array[5], array[6], array[7], \
+		array[8], array[9], array[10], array[11])
+
+void _print_iowait_info(void)
+{
+	int pp = io_wait.pp ^ 0x1;
+
+	pp &= 0x1;
+	iowait_log(io_wait.time[pp], "iowait");
+}
+#endif
+
 /*
  * This task is about to go to sleep on IO. Increment rq->nr_iowait so
  * that process accounting knows that this is a task in IO wait state.
@@ -6216,10 +6291,18 @@ long __sched io_schedule_timeout(long timeout)
 {
 	int token;
 	long ret;
+#if defined(CONFIG_SPRD_DEBUG)
+	unsigned long start = jiffies;
+#endif
 
 	token = io_schedule_prepare();
 	ret = schedule_timeout(timeout);
 	io_schedule_finish(token);
+
+#if defined(CONFIG_SPRD_DEBUG)
+	if (_update_iowait_info(start))
+		_print_iowait_info();
+#endif
 
 	return ret;
 }
@@ -6228,10 +6311,18 @@ EXPORT_SYMBOL(io_schedule_timeout);
 void __sched io_schedule(void)
 {
 	int token;
+#if defined(CONFIG_SPRD_DEBUG)
+	unsigned long start = jiffies;
+#endif
 
 	token = io_schedule_prepare();
 	schedule();
 	io_schedule_finish(token);
+
+#if defined(CONFIG_SPRD_DEBUG)
+	if (_update_iowait_info(start))
+		_print_iowait_info();
+#endif
 }
 EXPORT_SYMBOL(io_schedule);
 
