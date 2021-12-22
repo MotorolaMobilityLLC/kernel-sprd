@@ -658,6 +658,7 @@ asmlinkage __visible void wdh_atf_entry(struct pt_regs *data)
 	sprd_dump_task_stats();
 	sprd_dump_runqueues();
 	sprd_dump_stack_reg(cpu, pregs);
+	sprd_dump_mem_stat();
 	sysdump_ipi(pregs);
 
 	wdh_step[cpu] = SPRD_HANG_DUMP_END;

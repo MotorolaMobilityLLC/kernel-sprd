@@ -959,7 +959,18 @@ long nr_blockdev_pages(void)
 	spin_unlock(&bdev_lock);
 	return ret;
 }
+#ifdef CONFIG_SPRD_SYSDUMP
+long nr_blockdev_pages_nolock(void)
+{
+	struct block_device *bdev;
+	long ret = 0;
 
+	list_for_each_entry(bdev, &all_bdevs, bd_list) {
+		ret += bdev->bd_inode->i_mapping->nrpages;
+	}
+	return ret;
+}
+#endif
 void bdput(struct block_device *bdev)
 {
 	iput(bdev->bd_inode);

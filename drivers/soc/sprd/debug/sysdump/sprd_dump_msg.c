@@ -32,6 +32,7 @@
 #define SPRD_DUMP_MAX_TASK	3000
 #define SPRD_DUMP_TASK_SIZE	(160 * (SPRD_DUMP_MAX_TASK + 2))
 #define SPRD_DUMP_STACK_SIZE	(2048 * SPRD_NR_CPUS)
+#define SPRD_DUMP_MEM_SIZE	12288 /* 12k */
 #define MAX_CALLBACK_LEVEL  16
 
 #define SEQ_printf(m, x...)			\
@@ -60,6 +61,8 @@ static char *sprd_runq_buf;
 static struct seq_buf *sprd_rq_seq_buf;
 static char *sprd_stack_reg_buf;
 static struct seq_buf *sprd_sr_seq_buf;
+static char *sprd_meminfo_buf;
+struct seq_buf *sprd_mem_seq_buf;
 
 static DEFINE_RAW_SPINLOCK(dump_lock);
 
@@ -653,17 +656,70 @@ static void sprd_free_stack_regs_stats(void)
 	kfree(sprd_sr_seq_buf);
 }
 
-static int sprd_sched_panic_event(struct notifier_block *self,
+static int sprd_add_memory_stat(void)
+{
+	int ret = 0;
+
+	sprd_meminfo_buf = kzalloc(SPRD_DUMP_MEM_SIZE, GFP_KERNEL);
+	if (!sprd_meminfo_buf)
+		return -ENOMEM;
+
+	sprd_mem_seq_buf = kzalloc(sizeof(*sprd_mem_seq_buf), GFP_KERNEL);
+	if (!sprd_mem_seq_buf) {
+		ret = -ENOMEM;
+		goto err_mem_seq;
+	}
+	if (minidump_add_section("memstat", (unsigned long)(sprd_meminfo_buf), SPRD_DUMP_MEM_SIZE)) {
+		ret = -EINVAL;
+		goto err_save;
+	}
+
+	seq_buf_init(sprd_mem_seq_buf, sprd_meminfo_buf, SPRD_DUMP_MEM_SIZE);
+
+	return 0;
+
+err_save:
+	kfree(sprd_mem_seq_buf);
+err_mem_seq:
+	kfree(sprd_meminfo_buf);
+
+	return ret;
+}
+static void sprd_free_memory_stat(void)
+{
+	kfree(sprd_meminfo_buf);
+	kfree(sprd_mem_seq_buf);
+}
+
+void sprd_dump_mem_stat(void)
+{
+	if (!sprd_mem_seq_buf || !sprd_meminfo_buf)
+		return;
+	SEQ_printf(sprd_mem_seq_buf, "-----MemInfo-----\n\n");
+	sprd_dump_meminfo();
+	SEQ_printf(sprd_mem_seq_buf, "\n\n-----Vmstat-----\n\n");
+	sprd_dump_vmstat();
+	SEQ_printf(sprd_mem_seq_buf, "\n\n-----BuddyInfo-----\n\n");
+	sprd_dump_buddyinfo();
+	SEQ_printf(sprd_mem_seq_buf, "\n\n-----ZoneInfo-----\n\n");
+	sprd_dump_zoneinfo();
+	SEQ_printf(sprd_mem_seq_buf, "\n\n-----PagetypeInfo-----\n\n");
+	sprd_dump_pagetypeinfo();
+	flush_cache_all();
+}
+
+static int sprd_kmsg_panic_event(struct notifier_block *self,
 				  unsigned long val, void *reason)
 {
 	sprd_dump_runqueues();
 	sprd_dump_task_stats();
+	sprd_dump_mem_stat();
 
 	return NOTIFY_DONE;
 }
 
-static struct notifier_block sprd_sched_panic_event_nb = {
-	.notifier_call	= sprd_sched_panic_event,
+static struct notifier_block sprd_kmsg_panic_event_nb = {
+	.notifier_call	= sprd_kmsg_panic_event,
 	.priority	= INT_MAX - 1,
 };
 
@@ -673,12 +729,13 @@ static int __init sprd_dump_msg_init(void)
 	sprd_add_task_stats();
 	sprd_add_runq_stats();
 	sprd_add_stack_regs_stats();
+	sprd_add_memory_stat();
 
 	/* register sched panic notifier */
 	atomic_notifier_chain_register(&panic_notifier_list,
-					&sprd_sched_panic_event_nb);
+					&sprd_kmsg_panic_event_nb);
 
-	pr_info("sprd: sched_panic_nofifier_register success\n");
+	pr_info("sprd_kmsg_panic_notifier_register success!\n");
 
 	return 0;
 
@@ -687,14 +744,15 @@ static int __init sprd_dump_msg_init(void)
 static void __exit sprd_dump_msg_exit(void)
 {
 	atomic_notifier_chain_unregister(&panic_notifier_list,
-					 &sprd_sched_panic_event_nb);
+					 &sprd_kmsg_panic_event_nb);
 	sprd_free_task_stats();
 	sprd_free_runq_stats();
 	sprd_free_stack_regs_stats();
+	sprd_free_memory_stat();
 }
 
 late_initcall_sync(sprd_dump_msg_init);
 module_exit(sprd_dump_msg_exit);
 
-MODULE_DESCRIPTION("kernel dump stats for Unisoc");
+MODULE_DESCRIPTION("kernel kmsg stats for Unisoc");
 MODULE_LICENSE("GPL");

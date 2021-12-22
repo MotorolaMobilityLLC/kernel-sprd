@@ -1286,6 +1286,29 @@ unlock_out:
 	rcu_read_unlock();
 	return NULL;
 }
+#ifdef CONFIG_SPRD_SYSDUMP
+struct swap_info_struct *get_swap_device_nolock(swp_entry_t entry)
+{
+	struct swap_info_struct *si;
+	unsigned long offset;
+
+	if (!entry.val)
+		goto out;
+	si = swp_swap_info(entry);
+	if (!si)
+		goto out;
+
+	if (!(si->flags & SWP_VALID))
+		goto out;
+	offset = swp_offset(entry);
+	if (offset >= si->max)
+		goto out;
+
+	return si;
+out:
+	return NULL;
+}
+#endif
 
 static unsigned char __swap_entry_free(struct swap_info_struct *p,
 				       swp_entry_t entry, unsigned char usage)
@@ -3378,7 +3401,22 @@ void si_swapinfo(struct sysinfo *val)
 	val->totalswap = total_swap_pages + nr_to_be_unused;
 	spin_unlock(&swap_lock);
 }
+#ifdef CONFIG_SPRD_SYSDUMP
+void si_swapinfo_nolock(struct sysinfo *val)
+{
+	unsigned int type;
+	unsigned long nr_to_be_unused = 0;
 
+	for (type = 0; type < nr_swapfiles; type++) {
+		struct swap_info_struct *si = swap_info[type];
+
+		if ((si->flags & SWP_USED) && !(si->flags & SWP_WRITEOK))
+			nr_to_be_unused += si->inuse_pages;
+	}
+	val->freeswap = atomic_long_read(&nr_swap_pages) + nr_to_be_unused;
+	val->totalswap = total_swap_pages + nr_to_be_unused;
+}
+#endif
 /*
  * Verify that a swap entry is valid and increment its swap map count.
  *

@@ -433,6 +433,9 @@ extern struct address_space *swapper_spaces[];
 	(&swapper_spaces[swp_type(entry)][swp_offset(entry) \
 		>> SWAP_ADDRESS_SPACE_SHIFT])
 extern unsigned long total_swapcache_pages(void);
+#ifdef CONFIG_SPRD_SYSDUMP
+extern unsigned long total_swapcache_pages_nolock(void);
+#endif
 extern void show_swap_cache_info(void);
 extern int add_to_swap(struct page *page);
 extern int add_to_swap_cache(struct page *, swp_entry_t, gfp_t);
@@ -473,6 +476,9 @@ static inline long get_nr_swap_pages(void)
 }
 
 extern void si_swapinfo(struct sysinfo *);
+#ifdef CONFIG_SPRD_SYSDUMP
+extern void si_swapinfo_nolock(struct sysinfo *);
+#endif
 extern swp_entry_t get_swap_page(struct page *page);
 extern void put_swap_page(struct page *page, swp_entry_t entry);
 extern swp_entry_t get_swap_page_of_type(int);
@@ -500,6 +506,9 @@ struct backing_dev_info;
 extern int init_swap_address_space(unsigned int type, unsigned long nr_pages);
 extern void exit_swap_address_space(unsigned int type);
 extern struct swap_info_struct *get_swap_device(swp_entry_t entry);
+#ifdef CONFIG_SPRD_SYSDUMP
+extern struct swap_info_struct *get_swap_device_nolock(swp_entry_t entry);
+#endif
 sector_t swap_page_sector(struct page *page);
 
 static inline void put_swap_device(struct swap_info_struct *si)
@@ -527,6 +536,11 @@ static inline struct swap_info_struct *swp_swap_info(swp_entry_t entry)
 
 #define si_swapinfo(val) \
 	do { (val)->freeswap = (val)->totalswap = 0; } while (0)
+#ifdef CONFIG_SPRD_SYSDUMP
+#define total_swapcache_pages_nolock()		0UL
+#define si_swapinfo_nolock(val) \
+	do { (val)->freeswap = (val)->totalswap = 0; } while (0)
+#endif
 /* only sparc can not include linux/pagemap.h in this file
  * so leave put_page and release_pages undeclared... */
 #define free_page_and_swap_cache(page) \

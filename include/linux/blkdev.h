@@ -1159,6 +1159,9 @@ static inline unsigned short blk_rq_nr_discard_segments(struct request *rq)
 extern int blk_rq_map_sg(struct request_queue *, struct request *, struct scatterlist *);
 extern void blk_dump_rq_flags(struct request *, char *);
 extern long nr_blockdev_pages(void);
+#ifdef CONFIG_SPRD_SYSDUMP
+extern long nr_blockdev_pages_nolock(void);
+#endif
 
 bool __must_check blk_get_queue(struct request_queue *);
 struct request_queue *blk_alloc_queue(gfp_t);
@@ -1837,7 +1840,12 @@ static inline long nr_blockdev_pages(void)
 {
 	return 0;
 }
-
+#ifdef CONFIG_SPRD_SYSDUMP
+static inline long nr_blockdev_pages_nolock(void)
+{
+	return 0;
+}
+#endif
 struct blk_plug {
 };
 

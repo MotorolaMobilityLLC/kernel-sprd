@@ -21,6 +21,7 @@ extern int minidump_change_extend_information(const char *name,
 		unsigned long paddr_start,
 		unsigned long paddr_end);
 
+#ifdef CONFIG_SPRD_SYSDUMP
 /*
  * save per-cpu's stack and regs in sysdump.
  *
@@ -31,4 +32,25 @@ extern int minidump_change_extend_information(const char *name,
 extern void sprd_dump_stack_reg(int cpu, struct pt_regs *pregs);
 extern void sprd_dump_task_stats(void);
 extern void sprd_dump_runqueues(void);
+/*
+ * save meminfo in sysdump.
+ */
+extern void sprd_dump_mem_stat(void);
+extern void sprd_dump_meminfo(void);
+extern void sprd_dump_vmstat(void);
+extern void sprd_dump_buddyinfo(void);
+extern void sprd_dump_zoneinfo(void);
+extern void sprd_dump_pagetypeinfo(void);
+extern struct seq_buf *sprd_mem_seq_buf;
+#else
+static inline void sprd_dump_stack_reg(int cpu, struct pt_regs *pregs) {}
+static inline void sprd_dump_task_stats(void) {}
+extern inline void sprd_dump_runqueues(void) {}
+static inline void sprd_dump_mem_stat(void) {}
+static inline void sprd_dump_meminfo(void) {}
+static inline void sprd_dump_vmstat(void) {}
+static inline void sprd_dump_buddyinfo(void) {}
+static inline void sprd_dump_zoneinfo(void) {}
+static inline void sprd_dump_pagetypeinfo(void) {}
+#endif
 
