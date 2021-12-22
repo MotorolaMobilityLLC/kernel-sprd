@@ -6205,12 +6205,14 @@ static int iowait_cp[IOWAIT_ARRAY_CNT] = {
 
 struct io_wait_info {
 	int pp;
+	int level;
 	int cnt[2];
 	int time[2][IOWAIT_ARRAY_CNT];
 	unsigned long start;
 };
 
 static struct io_wait_info io_wait = {
+	.level = 2,
 	.start = INITIAL_JIFFIES,
 };
 
@@ -6231,9 +6233,15 @@ bool _update_iowait_info(unsigned long start)
 	unsigned long flags;
 	int idx = get_iowait_idx(now, start);
 	bool ret = false;
+	bool print = false;
 	int pp;
 
 	spin_lock_irqsave(&_io_wait, flags);
+
+	if (idx > io_wait.level) {
+		io_wait.level = idx;
+		print = true;
+	}
 
 	pp = io_wait.pp & 0x1;
 	++io_wait.cnt[pp];
@@ -6245,12 +6253,18 @@ bool _update_iowait_info(unsigned long start)
 
 		pp = io_wait.pp & 0x1;
 		io_wait.cnt[pp] = 0;
+		io_wait.level = 2;
 		memset(io_wait.time[pp], 0, sizeof(int) * IOWAIT_ARRAY_CNT);
 
 		ret = true;
 	}
 
 	spin_unlock_irqrestore(&_io_wait, flags);
+
+	if (print)
+		pr_info("iowait:%5dms [%-16s] %-16s\n",
+			jiffies_to_msecs(now - start), current->comm,
+			current->group_leader ? current->group_leader->comm : "");
 
 	return ret;
 }
