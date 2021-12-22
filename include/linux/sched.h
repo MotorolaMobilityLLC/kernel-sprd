@@ -1309,9 +1309,6 @@ struct task_struct {
 	unsigned long			prev_lowest_stack;
 #endif
 
-#if defined(CONFIG_SPRD_DEBUG)
-	u64 iowait_start;
-#endif
 	_ANDROID_KABI_REPLACE(ANDROID_VENDOR_DATA_ARRAY(1, 2), struct{ u64 last_enqueue_ts; u64 last_sleep_ts; });
 
 	ANDROID_OEM_DATA_ARRAY(1, 3);
