@@ -40,7 +40,9 @@
 #include <linux/kernel.h>
 #include <linux/init.h>
 #include <linux/interrupt.h>
+#include <linux/seq_buf.h>
 #include <linux/seq_file.h>
+#include <linux/soc/sprd/sprd_sysdump.h>
 
 #include <asm/cacheflush.h>
 #include <asm/cp15.h>
@@ -85,8 +87,15 @@ static struct fiq_handler *current_fiq = &default_owner;
 int show_fiq_list(struct seq_file *p, int prec)
 {
 	if (current_fiq != &default_owner)
-		seq_printf(p, "%*s:              %s\n", prec, "FIQ",
-			current_fiq->name);
+#ifdef CONFIG_SPRD_SYSDUMP
+		if (!p) {
+			if (sprd_irqstat_seq_buf)
+				seq_buf_printf(sprd_irqstat_seq_buf, "%*s:              %s\n",
+						prec, "FIQ", current_fiq->name);
+		} else
+#endif
+			seq_printf(p, "%*s:              %s\n", prec, "FIQ",
+					current_fiq->name);
 
 	return 0;
 }

@@ -8,12 +8,19 @@
 #include <linux/irq.h>
 #include <linux/gfp.h>
 #include <linux/proc_fs.h>
+#include <linux/seq_buf.h>
 #include <linux/seq_file.h>
+#include <linux/soc/sprd/sprd_sysdump.h>
 #include <linux/interrupt.h>
 #include <linux/kernel_stat.h>
 #include <linux/mutex.h>
 
 #include "internals.h"
+#ifdef CONFIG_ARM
+#include <asm/cacheflush.h>
+#else
+#include "../../drivers/soc/sprd/debug/sysdump/sysdump64.h"
+#endif
 
 /*
  * Access rules:
@@ -540,5 +547,81 @@ int show_interrupts(struct seq_file *p, void *v)
 outsparse:
 	rcu_read_unlock();
 	return 0;
+}
+#endif
+
+#ifdef CONFIG_SPRD_SYSDUMP
+void sprd_dump_interrupts(void)
+{
+	int prec;
+	struct seq_buf *p = sprd_irqstat_seq_buf;
+	unsigned long any_count = 0;
+	int i, j;
+
+	if (!p)
+		return;
+
+	/* print header and calculate the width of the first column */
+	for (prec = 3, j = 1000; prec < 10 && j <= nr_irqs; ++prec)
+		j *= 10;
+
+	seq_buf_printf(p, "%*s", prec + 8, "");
+	for_each_possible_cpu(j)
+		seq_buf_printf(p, "CPU%-8d", j);
+	seq_buf_printf(p, "\n");
+
+	for (i = 0; i < ACTUAL_NR_IRQS; i++) {
+		struct irq_desc *desc;
+		struct irqaction *action;
+
+		desc = irq_to_desc(i);
+		if (!desc || irq_settings_is_hidden(desc))
+			continue;
+
+		if (desc->kstat_irqs)
+			for_each_possible_cpu(j)
+				any_count |= *per_cpu_ptr(desc->kstat_irqs, j);
+
+		if ((!desc->action || irq_desc_is_chained(desc)) && !any_count)
+			continue;
+
+		seq_buf_printf(p, "%*d: ", prec, i);
+		for_each_possible_cpu(j)
+			seq_buf_printf(p, "%10u ", desc->kstat_irqs ?
+					*per_cpu_ptr(desc->kstat_irqs, j) : 0);
+
+		if (desc->irq_data.chip) {
+			if (desc->irq_data.chip->irq_print_chip)
+				desc->irq_data.chip->irq_print_chip(&desc->irq_data, NULL);
+			else if (desc->irq_data.chip->name)
+				seq_buf_printf(p, " %8s", desc->irq_data.chip->name);
+			else
+				seq_buf_printf(p, " %8s", "-");
+		} else {
+			seq_buf_printf(p, " %8s", "None");
+		}
+		if (desc->irq_data.domain)
+			seq_buf_printf(p, " %*d", prec, (int) desc->irq_data.hwirq);
+		else
+			seq_buf_printf(p, " %*s", prec, "");
+#ifdef CONFIG_GENERIC_IRQ_SHOW_LEVEL
+		seq_buf_printf(p, " %-8s", irqd_is_level_type(&desc->irq_data) ? "Level" : "Edge");
+#endif
+		if (desc->name)
+			seq_buf_printf(p, "-%-8s", desc->name);
+
+		action = desc->action;
+		if (action) {
+			seq_buf_printf(p, "  %s", action->name);
+			while ((action = action->next) != NULL)
+				seq_buf_printf(p, ", %s", action->name);
+		}
+
+		seq_buf_printf(p, "\n");
+	}
+
+	arch_show_interrupts(NULL, prec);
+
+	flush_cache_all();
 }
 #endif

@@ -18,6 +18,7 @@
 #include <linux/mm.h>
 #include <linux/err.h>
 #include <linux/cpu.h>
+#include <linux/seq_buf.h>
 #include <linux/seq_file.h>
 #include <linux/irq.h>
 #include <linux/nmi.h>
@@ -544,6 +545,28 @@ void show_ipi_list(struct seq_file *p, int prec)
 {
 	unsigned int cpu, i;
 
+#ifdef CONFIG_SPRD_SYSDUMP
+	if (!p) {
+		if (!sprd_irqstat_seq_buf)
+			return;
+		for (i = 0; i < NR_IPI; i++) {
+			unsigned int irq;
+
+			if (!ipi_desc[i])
+				continue;
+
+			irq = irq_desc_get_irq(ipi_desc[i]);
+			seq_buf_printf(sprd_irqstat_seq_buf, "%*s%u: ", prec - 1, "IPI", i);
+
+			for_each_possible_cpu(cpu)
+				seq_buf_printf(sprd_irqstat_seq_buf, "%10u ",
+						kstat_irqs_cpu(irq, cpu));
+
+			seq_buf_printf(sprd_irqstat_seq_buf, " %s\n", ipi_types[i]);
+		}
+		return;
+	}
+#endif
 	for (i = 0; i < NR_IPI; i++) {
 		unsigned int irq;
 

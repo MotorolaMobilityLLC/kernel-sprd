@@ -22,6 +22,7 @@
 #include <linux/err.h>
 #include <linux/cpu.h>
 #include <linux/smp.h>
+#include <linux/seq_buf.h>
 #include <linux/seq_file.h>
 #include <linux/irq.h>
 #include <linux/irqchip/arm-gic-v3.h>
@@ -795,6 +796,24 @@ int arch_show_interrupts(struct seq_file *p, int prec)
 {
 	unsigned int cpu, i;
 
+#ifdef CONFIG_SPRD_SYSDUMP
+	if (!p) {
+		if (sprd_irqstat_seq_buf) {
+			for (i = 0; i < NR_IPI; i++) {
+				unsigned int irq = irq_desc_get_irq(ipi_desc[i]);
+
+				seq_buf_printf(sprd_irqstat_seq_buf, "%*s%u:%s", prec - 1, "IPI", i,
+						prec >= 4 ? " " : "");
+				for_each_possible_cpu(cpu)
+					seq_buf_printf(sprd_irqstat_seq_buf, "%10u ", kstat_irqs_cpu(irq, cpu));
+				seq_buf_printf(sprd_irqstat_seq_buf, "      %s\n", ipi_types[i]);
+			}
+
+			seq_buf_printf(sprd_irqstat_seq_buf, "%*s: %10lu\n", prec, "Err", irq_err_count);
+		}
+		return 0;
+	}
+#endif
 	for (i = 0; i < NR_IPI; i++) {
 		unsigned int irq = irq_desc_get_irq(ipi_desc[i]);
 		seq_printf(p, "%*s%u:%s", prec - 1, "IPI", i,

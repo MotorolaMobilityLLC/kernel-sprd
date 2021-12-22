@@ -42,6 +42,11 @@ extern void sprd_dump_buddyinfo(void);
 extern void sprd_dump_zoneinfo(void);
 extern void sprd_dump_pagetypeinfo(void);
 extern struct seq_buf *sprd_mem_seq_buf;
+/*
+ * save proc/interrupts in sysdump.
+ */
+extern void sprd_dump_interrupts(void);
+extern struct seq_buf *sprd_irqstat_seq_buf;
 #else
 static inline void sprd_dump_stack_reg(int cpu, struct pt_regs *pregs) {}
 static inline void sprd_dump_task_stats(void) {}
@@ -52,5 +57,6 @@ static inline void sprd_dump_vmstat(void) {}
 static inline void sprd_dump_buddyinfo(void) {}
 static inline void sprd_dump_zoneinfo(void) {}
 static inline void sprd_dump_pagetypeinfo(void) {}
+static inline void sprd_dump_interrupts(void) {}
 #endif
 

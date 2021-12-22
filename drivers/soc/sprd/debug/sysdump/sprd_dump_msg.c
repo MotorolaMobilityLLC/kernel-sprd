@@ -33,6 +33,7 @@
 #define SPRD_DUMP_TASK_SIZE	(160 * (SPRD_DUMP_MAX_TASK + 2))
 #define SPRD_DUMP_STACK_SIZE	(2048 * SPRD_NR_CPUS)
 #define SPRD_DUMP_MEM_SIZE	12288 /* 12k */
+#define SPRD_DUMP_IRQ_SIZE	12288
 #define MAX_CALLBACK_LEVEL  16
 
 #define SEQ_printf(m, x...)			\
@@ -63,6 +64,8 @@ static char *sprd_stack_reg_buf;
 static struct seq_buf *sprd_sr_seq_buf;
 static char *sprd_meminfo_buf;
 struct seq_buf *sprd_mem_seq_buf;
+static char *sprd_irqstat_buf;
+struct seq_buf *sprd_irqstat_seq_buf;
 
 static DEFINE_RAW_SPINLOCK(dump_lock);
 
@@ -708,12 +711,49 @@ void sprd_dump_mem_stat(void)
 	flush_cache_all();
 }
 
+static int sprd_add_interrupt_stat(void)
+{
+	int ret = 0;
+
+	sprd_irqstat_buf = kzalloc(SPRD_DUMP_IRQ_SIZE, GFP_KERNEL);
+	if (!sprd_irqstat_buf)
+		return -ENOMEM;
+
+	sprd_irqstat_seq_buf = kzalloc(sizeof(*sprd_irqstat_seq_buf), GFP_KERNEL);
+	if (!sprd_irqstat_seq_buf) {
+		ret = -ENOMEM;
+		goto err_irqstat_seq;
+	}
+
+	if (minidump_add_section("interruptes", (unsigned long)(sprd_irqstat_buf), SPRD_DUMP_IRQ_SIZE)) {
+		ret = -EINVAL;
+		goto err_save;
+	}
+
+	seq_buf_init(sprd_irqstat_seq_buf, sprd_irqstat_buf, SPRD_DUMP_IRQ_SIZE);
+
+	return 0;
+
+err_save:
+	kfree(sprd_irqstat_seq_buf);
+err_irqstat_seq:
+	kfree(sprd_irqstat_buf);
+
+	return ret;
+}
+static void sprd_free_interrupt_stat(void)
+{
+	kfree(sprd_irqstat_buf);
+	kfree(sprd_irqstat_seq_buf);
+}
+
 static int sprd_kmsg_panic_event(struct notifier_block *self,
 				  unsigned long val, void *reason)
 {
 	sprd_dump_runqueues();
 	sprd_dump_task_stats();
 	sprd_dump_mem_stat();
+	sprd_dump_interrupts();
 
 	return NOTIFY_DONE;
 }
@@ -730,6 +770,7 @@ static int __init sprd_dump_msg_init(void)
 	sprd_add_runq_stats();
 	sprd_add_stack_regs_stats();
 	sprd_add_memory_stat();
+	sprd_add_interrupt_stat();
 
 	/* register sched panic notifier */
 	atomic_notifier_chain_register(&panic_notifier_list,
@@ -749,6 +790,7 @@ static void __exit sprd_dump_msg_exit(void)
 	sprd_free_runq_stats();
 	sprd_free_stack_regs_stats();
 	sprd_free_memory_stat();
+	sprd_free_interrupt_stat();
 }
 
 late_initcall_sync(sprd_dump_msg_init);

@@ -10,8 +10,10 @@
 #include <linux/irqchip/chained_irq.h>
 #include <linux/irqchip/irq-partition-percpu.h>
 #include <linux/irqdomain.h>
+#include <linux/seq_buf.h>
 #include <linux/seq_file.h>
 #include <linux/slab.h>
+#include <linux/soc/sprd/sprd_sysdump.h>
 
 struct partition_desc {
 	int				nr_parts;
@@ -98,6 +100,14 @@ static void partition_irq_print_chip(struct irq_data *d, struct seq_file *p)
 	struct irq_chip *chip = irq_desc_get_chip(part->chained_desc);
 	struct irq_data *data = irq_desc_get_irq_data(part->chained_desc);
 
+#ifdef CONFIG_SPRD_SYSDUMP
+	if (!p) {
+		if (sprd_irqstat_seq_buf)
+			seq_buf_printf(sprd_irqstat_seq_buf, " %5s-%lu",
+					chip->name, data->hwirq);
+		return;
+	}
+#endif
 	seq_printf(p, " %5s-%lu", chip->name, data->hwirq);
 }
 
