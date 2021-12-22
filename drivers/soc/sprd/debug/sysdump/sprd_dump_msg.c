@@ -34,7 +34,8 @@
 #define SPRD_DUMP_STACK_SIZE	(2048 * SPRD_NR_CPUS)
 #define SPRD_DUMP_MEM_SIZE	12288 /* 12k */
 #define SPRD_DUMP_IRQ_SIZE	12288
-#define MAX_CALLBACK_LEVEL  16
+#define MAX_CALLBACK_LEVEL	16
+#define MAX_NAME_LEN		16
 
 #define SEQ_printf(m, x...)			\
 do {						\
@@ -81,6 +82,43 @@ static int minidump_add_section(const char *name, long vaddr, int size)
 
 	return ret;
 }
+
+#if defined(CONFIG_ARM64)
+static void minidump_add_irq_stack(void)
+{
+	int cpu, page_count;
+	unsigned int i;
+	u64 irq_stack_base, sp;
+	char name[MAX_NAME_LEN];
+
+	for_each_possible_cpu(cpu) {
+		irq_stack_base = (u64)per_cpu(irq_stack_ptr, cpu);
+		if (!irq_stack_base)
+			return;
+#ifdef CONFIG_VMAP_STACK
+		page_count = IRQ_STACK_SIZE / PAGE_SIZE;
+		sp = irq_stack_base & ~(PAGE_SIZE - 1);
+		for (i = 0; i < page_count; i++) {
+			struct page *sp_page;
+			unsigned long phys_addr;
+
+			scnprintf(name, MAX_NAME_LEN, "irqstack%d_%d", cpu, i);
+			sp_page = vmalloc_to_page((const void *) sp);
+			phys_addr = page_to_phys(sp_page);
+			if (minidump_save_extend_information(name, phys_addr, phys_addr + PAGE_SIZE))
+				return;
+			sp += PAGE_SIZE;
+		}
+#else
+		sp = irq_stack_base;
+		scnprintf(name, MAX_NAME_LEN, "irqstack%d", cpu);
+		minidump_add_section(name, sp, IRQ_STACK_SIZE);
+#endif
+	}
+}
+#else
+static inline void minidump_add_irq_stack(void) {}
+#endif
 
 /*
  * Ease the printing of nsec fields:
@@ -771,6 +809,7 @@ static int __init sprd_dump_msg_init(void)
 	sprd_add_stack_regs_stats();
 	sprd_add_memory_stat();
 	sprd_add_interrupt_stat();
+	minidump_add_irq_stack();
 
 	/* register sched panic notifier */
 	atomic_notifier_chain_register(&panic_notifier_list,
