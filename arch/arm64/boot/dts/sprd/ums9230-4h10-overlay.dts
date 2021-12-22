@@ -220,8 +220,8 @@
 				charge-wl-epp-current-microamp = <2000000 1000000>;
 
 		battery_total_number =<2>;	
-		battery_name-0 ="NT50-Sunwoda-SB18D34206-5000mAh";
-		battery_name-1 ="NT50-ATL-SB18D34202-5000mAh";
+		battery_name-0 ="NH50-Sunwoda-SB18D34206-5000mAh";
+		battery_name-1 ="NH50-ATL-SB18D34202-5000mAh";
 
 				charge-full-design-microamp-hours-1 = <5000000>;
 				factory-internal-resistance-micro-ohms-1 = <104000>;
