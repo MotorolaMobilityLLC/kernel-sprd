@@ -1105,6 +1105,34 @@ static ssize_t lut3d_write(struct file *fp, struct kobject *kobj,
 }
 static BIN_ATTR_RW(lut3d, 2916);
 
+static ssize_t enable_read(struct file *fp, struct kobject *kobj,
+			struct bin_attribute *attr, char *buf,
+			loff_t off, size_t count)
+{
+	struct device *dev = container_of(kobj, struct device, kobj);
+	struct sprd_dpu *dpu = dev_get_drvdata(dev);
+	struct dpu_context *ctx = &dpu->ctx;
+
+	if (!dpu->core->enhance_get)
+		return -EIO;
+
+	/* I need to get my data in one piece */
+	if (off != 0 || count != attr->size)
+		return -EINVAL;
+
+	down(&ctx->lock);
+	if (!ctx->enabled) {
+		pr_err("dpu is not initialized\n");
+		up(&ctx->lock);
+		return -EINVAL;
+	}
+	dpu->core->enhance_get(ctx, ENHANCE_CFG_ID_ENABLE, buf);
+
+	up(&ctx->lock);
+
+	return count;
+}
+
 static ssize_t enable_write(struct file *fp, struct kobject *kobj,
 			struct bin_attribute *attr, char *buf,
 			loff_t off, size_t count)
@@ -1126,7 +1154,7 @@ static ssize_t enable_write(struct file *fp, struct kobject *kobj,
 
 	return count;
 }
-static BIN_ATTR_WO(enable, 4);
+static BIN_ATTR_RW(enable, 4);
 
 static ssize_t disable_write(struct file *fp, struct kobject *kobj,
 			struct bin_attribute *attr, char *buf,
@@ -1151,42 +1179,8 @@ static ssize_t disable_write(struct file *fp, struct kobject *kobj,
 }
 static BIN_ATTR_WO(disable, 4);
 
-static ssize_t status_show(struct device *dev,
-			struct device_attribute *attr,
-			char *buf)
-{
-	struct sprd_dpu *dpu = dev_get_drvdata(dev);
-	struct dpu_context *ctx = &dpu->ctx;
-	u32 en = 0;
-	int ret = 0;
-
-	if (!dpu->core->enhance_get)
-		return -EIO;
-
-	down(&ctx->lock);
-	if (!ctx->enabled) {
-		pr_err("dpu is not initialized\n");
-		up(&ctx->lock);
-		return -EINVAL;
-	}
-	dpu->core->enhance_get(ctx, ENHANCE_CFG_ID_ENABLE, &en);
-	up(&ctx->lock);
-
-	ret += snprintf(buf + ret, PAGE_SIZE, "0x%08x\n", en);
-	ret += snprintf(buf + ret, PAGE_SIZE, "scl: %d\n", !!(en & BIT(0)));
-	ret += snprintf(buf + ret, PAGE_SIZE, "epf: %d\n", !!(en & BIT(1)));
-	ret += snprintf(buf + ret, PAGE_SIZE, "hsv: %d\n", !!(en & BIT(2)));
-	ret += snprintf(buf + ret, PAGE_SIZE, "cm: %d\n", !!(en & BIT(3)));
-	ret += snprintf(buf + ret, PAGE_SIZE, "slp: %d\n", !!(en & BIT(4)));
-	ret += snprintf(buf + ret, PAGE_SIZE, "gamma: %d\n", !!(en & BIT(5)));
-
-	return ret;
-}
-static DEVICE_ATTR_RO(status);
-
 static struct attribute *pq_ascii_attrs[] = {
 	&dev_attr_scl.attr,
-	&dev_attr_status.attr,
 	&dev_attr_slp_lut.attr,
 	NULL,
 };
