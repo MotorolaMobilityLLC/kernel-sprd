@@ -33,6 +33,15 @@ struct mmc_swcq *g_swcq;
 
 /**************debug log*******************/
 
+static inline void swcq_dump_host_regs(struct mmc_host *mmc)
+{
+	struct sdhci_host *host = (struct sdhci_host *)mmc->private;
+
+	pr_notice("[CQ] %s.\n", __func__);
+	if (host->ops->dump_vendor_regs)
+		host->ops->dump_vendor_regs(host);
+}
+
 inline void __dbg_add_host_log(struct mmc_host *mmc, int type,
 			int cmd, int arg, int cpu, unsigned long reserved, struct mmc_request *mrq)
 {
@@ -688,7 +697,7 @@ static void swcq_mmc_blk_cqe_complete_rq(struct mmc_queue *mq, struct request *r
 		mmc_put_card(mq->card, &mq->ctx);
 }
 
-static inline void mmc_swcq_switch_cmdq(struct mmc_swcq *swcq, bool enable)
+static inline int mmc_swcq_switch_cmdq(struct mmc_swcq *swcq, bool enable)
 {
 	int ret;
 	struct mmc_host *mmc = swcq->mmc;
@@ -699,6 +708,7 @@ static inline void mmc_swcq_switch_cmdq(struct mmc_swcq *swcq, bool enable)
 	else
 		ret = mmc_cmdq_disable(card);
 
+	return ret;
 }
 
 static inline bool check_need_cmdq(struct mmc_swcq *swcq)
@@ -878,10 +888,19 @@ static void mmc_swcq_pump_requests(struct mmc_swcq *swcq)
 		}
 
 		if (!swcq->mmc->card->ext_csd.cmdq_en) {
+			atomic_set(&swcq->busy, true);
+			swcq->mode_need_change = false;
 			spin_unlock_irqrestore(&swcq->lock, flags);
 			wait_event(swcq->wait_hsq_idle,
 			hsq_is_idle(swcq));
+			ret = mmc_swcq_switch_cmdq(swcq, true);
+			if (ret) {
+				atomic_set(&swcq->busy, false);
+				goto reset;
+			}
 			spin_lock_irqsave(&swcq->lock, flags);
+			swcq->mode_need_change = true;
+			atomic_set(&swcq->busy, false);
 		}
 		if (swcq->hsq_running)
 			swcq->hsq_running = false;
@@ -916,15 +935,6 @@ again:
 		atomic_inc(&swcq->cmdq_cnt);
 		atomic_dec(&swcq->qcnt);
 
-		if (!swcq->mmc->card->ext_csd.cmdq_en
-			&& !atomic_read(&swcq->busy)) {
-			atomic_set(&swcq->busy, true);
-			spin_unlock_irqrestore(&swcq->lock, flags);
-			mmc_swcq_switch_cmdq(swcq, true);
-			spin_lock_irqsave(&swcq->lock, flags);
-			atomic_set(&swcq->busy, false);
-		}
-
 		cmd_mrq = prepare_cmdq_extmrq(swcq, mrq, index);
 		mmc_enqueue_queue(swcq, cmd_mrq);
 		SCHED_WORK(&swcq->cmdq_work);
@@ -941,11 +951,16 @@ again:
 	}
 	/*no cmdq mode*/
 	if (swcq->mmc->card->ext_csd.cmdq_en) {
+		swcq->mode_need_change = false;
 		spin_unlock_irqrestore(&swcq->lock, flags);
 		wait_event(swcq->wait_cmdq_idle,
 			cmdq_is_idle(swcq));
-		mmc_swcq_switch_cmdq(swcq, false);
+		ret = mmc_swcq_switch_cmdq(swcq, false);
+		if (ret)
+			goto reset;
+
 		spin_lock_irqsave(&swcq->lock, flags);
+		swcq->mode_need_change = true;
 	}
 
 	slot = &swcq->slot[swcq->next_tag];
@@ -984,6 +999,30 @@ again:
 		schedule_work(&swcq->retry_work);
 	else
 		WARN_ON_ONCE(ret);
+
+	return;
+
+reset:
+	if (swcq->timer_running) {
+		swcq->timer_running = false;
+		del_timer(&swcq->check_timer);
+	}
+
+	swcq_dump_host_regs(mmc);
+	pr_notice("[CQ] switch_cmdq err! do reset.\n");
+
+	if (mmc_reset_for_cmdq(swcq)) {
+		pr_notice("[CQ] reinit fail after switch_cmdq\n");
+		WARN_ON(1);
+	}
+	spin_lock_irqsave(&swcq->lock, flags);
+	if (atomic_read(&swcq->qcnt) > 0)
+		SCHED_PUMP_WORK(&swcq->delayed_pump_work, 1);
+
+	swcq->mode_need_change = true;
+	swcq->pump_busy = false;
+	spin_unlock_irqrestore(&swcq->lock, flags);
+
 }
 
 static inline void mmc_cmdq_post_request(struct mmc_swcq *swcq, int task_id)
@@ -1294,6 +1333,7 @@ static void mmc_cmdq_work(struct work_struct *work)
 		if (done_mrq) {
 			if (done_mrq->data->error || done_mrq->cmd->error) {
 				emmc_resetting_when_cmdq = 1;
+				swcq_dump_host_regs(host);
 				if (mmc_wait_transfer(host)
 				    || mmc_discard_cmdq(swcq)
 				    || mmc_wait_transfer(host))
@@ -1402,6 +1442,7 @@ reset_card:
 				/* add for emmc reset when error happen */
 				if ((cmd_mrq->sbc && cmd_mrq->sbc->error)
 				|| cmd_mrq->cmd->error) {
+					swcq_dump_host_regs(host);
 		/* wait data irq handle done otherwise timing issue happen*/
 					msleep(2000);
 					if (mmc_reset_for_cmdq(swcq)) {
@@ -1881,6 +1922,7 @@ static void check_cmdq_timer(struct timer_list *t)
 	bool result = false;
 	int reason = 0;
 	int read_cnt, pre_qcnt, pre_cmdqcnt, pre_mode;
+	static u64 pre_checksum, cur_checksum;
 
 	swcq = from_timer(swcq, t, check_timer);
 	mmc = swcq->mmc;
@@ -1909,6 +1951,7 @@ static void check_cmdq_timer(struct timer_list *t)
 		/*from hsq to cmdq checking*/
 		memset(swcq->check_slot, 0, swcq->num_slots*sizeof(struct swcq_check));
 		spin_lock_irqsave(&swcq->lock, flags);
+		cur_checksum = 0;
 		for (i = 0, j = 0; i < swcq->num_slots; i++) {
 			slot = &swcq->slot[i];
 			mrq = slot->mrq;
@@ -1917,6 +1960,7 @@ static void check_cmdq_timer(struct timer_list *t)
 					read_cnt++;
 					swcq->check_slot[j].blk_addr = mrq->data->blk_addr;
 					swcq->check_slot[j].blocks = mrq->data->blocks;
+					cur_checksum += swcq->check_slot[j].blk_addr;
 					j++;
 			}
 		}
@@ -1927,6 +1971,17 @@ static void check_cmdq_timer(struct timer_list *t)
 			reason = 3;
 			goto out;
 		}
+		/* use checksum to judge if solt is unpumped.
+		 * if yes, kee in hsq mode.
+		 */
+		if (pre_checksum == cur_checksum && cur_checksum != 0) {
+			result = false;
+			reason = 5;
+		}
+
+		pre_checksum = cur_checksum;
+		if (reason == 5)
+			goto out;
 
 		sort(swcq->check_slot, read_cnt,
 				sizeof(struct swcq_check), my_cmp, NULL);
@@ -1956,6 +2011,7 @@ out:
 	if (!result && !pre_result && swcq->mode_need_change)
 		swcq->cmdq_mode = false;
 	pre_result = result;
+
 	if (pre_mode != swcq->cmdq_mode) {
 		pr_info("mmc0 qcnt:%d cmdq_cnt:%d swcq->cmdq_mode: %s",
 		pre_qcnt,
