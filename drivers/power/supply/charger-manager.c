@@ -1563,9 +1563,8 @@ static bool is_full_charged(struct charger_manager *cm)
 
 		ret = power_supply_get_property(fuel_gauge, POWER_SUPPLY_PROP_CAPACITY, &val);
 		if (!ret && val.intval >= desc->fullbatt_soc) {
-			if( batt_ocv > 4300000 && batt_uA <450000 && batt_uA >0)
-			if( batt_ocv > 4300000)
-			is_full = true;
+			if( batt_ocv > 4300000 && batt_uA <500000 )
+				is_full = true;
 			goto out;
 		}
 	}
@@ -5036,6 +5035,7 @@ charger_set_property(struct power_supply *psy,
 #endif
 		dev_info(cm->dev, "thermal set charge power limit, thm_pwr = %dmW\n", val->intval);
 		cm->desc->thm_info.thm_pwr = val->intval;
+//		cm->desc->thm_info.thm_pwr = 18000;
 		cm_update_charge_info(cm, CM_CHARGE_INFO_THERMAL_LIMIT);
 
 		if (cm->desc->cp.cp_running)
@@ -6487,10 +6487,8 @@ static void cm_batt_works(struct work_struct *work)
 					 * The percentage of electricity is not
 					 * allowed to change by 1% in cm->desc->cap_one_time.
 					 */
-//					if ((cm->desc->cap - fuel_cap) >= 5)
-//						fuel_cap = cm->desc->cap - 5;
-					if ((cm->desc->cap - fuel_cap) >= 1)
-						fuel_cap = cm->desc->cap - 1;     //slow than 5
+					if ((cm->desc->cap - fuel_cap) >= 5)
+						fuel_cap = cm->desc->cap - 5;
 					if (flush_time < cm->desc->cap_one_time &&
 					    DIV_ROUND_CLOSEST(fuel_cap, 10) !=
 					    DIV_ROUND_CLOSEST(cm->desc->cap, 10))
@@ -6565,8 +6563,10 @@ static void cm_batt_works(struct work_struct *work)
 			}
 		} */else {
 			if (period_time < cm->desc->cap_one_time) {
-				if ((cm->desc->cap - fuel_cap) >= 5)
-					fuel_cap = cm->desc->cap - 5;
+//				if ((cm->desc->cap - fuel_cap) >= 5)
+//					fuel_cap = cm->desc->cap - 5;
+				if ((cm->desc->cap - fuel_cap) >= 1)
+					fuel_cap = cm->desc->cap - 1;     //slow than 5
 				if (flush_time < cm->desc->cap_one_time &&
 				    DIV_ROUND_CLOSEST(fuel_cap, 10) !=
 				    DIV_ROUND_CLOSEST(cm->desc->cap, 10))
