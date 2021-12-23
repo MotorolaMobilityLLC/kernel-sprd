@@ -2084,7 +2084,7 @@ static int sy6970_charger_probe(struct i2c_client *client,
 	dev_err(dev, "%s;%x;\n",__func__,val);
 	if( (val & 0x38) == 0x08)
 		strncpy(charge_ic_vendor_name,"SY6970",20);
-	if( (val & 0x38) == 0x20)
+	else if( (val & 0x38) == 0x20)
 		strncpy(charge_ic_vendor_name,"SC89890",20);
 	else
 		return -ENODEV;
