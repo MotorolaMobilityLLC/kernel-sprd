@@ -2225,8 +2225,10 @@ void wcn_chip_power_off(void)
 {
 	struct wcn_match_data *g_match_config = get_wcn_match_config();
 
-	if (g_match_config && g_match_config->unisoc_wcn_integrated)
-		return integ_wcn_chip_power_off();
+	if (g_match_config && g_match_config->unisoc_wcn_integrated) {
+		integ_wcn_chip_power_off();
+		return;
+	}
 
 	mutex_lock(&marlin_dev->power_lock);
 	chip_power_off(0);
