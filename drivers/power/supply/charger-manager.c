@@ -1237,7 +1237,7 @@ static bool is_full_charged(struct charger_manager *cm)
 		ret = power_supply_get_property(fuel_gauge,
 				POWER_SUPPLY_PROP_CAPACITY, &val);
 		if (!ret && val.intval >= desc->fullbatt_soc) {
-			if( batt_ocv > 4300000 && bat_uA <450000 && bat_uA >0)
+			if( batt_ocv > 4300000 && bat_uA <500000)
 			is_full = true;
 			goto out;
 		}
@@ -4713,8 +4713,10 @@ static void cm_batt_works(struct work_struct *work)
 			}
 		} */else {
 			if (period_time < cm->desc->cap_one_time &&
-			    (cm->desc->cap - fuel_cap) >= 5)
-				fuel_cap = cm->desc->cap - 5;
+//			    (cm->desc->cap - fuel_cap) >= 5)
+//				fuel_cap = cm->desc->cap - 5;
+			    (cm->desc->cap - fuel_cap) >= 1)
+				fuel_cap = cm->desc->cap - 1;
 			/*
 			 * If wake up from long sleep mode,
 			 * will make a percentage compensation based on time.
