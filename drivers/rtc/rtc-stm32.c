@@ -756,7 +756,7 @@ static int stm32_rtc_probe(struct platform_device *pdev)
 
 	ret = clk_prepare_enable(rtc->rtc_ck);
 	if (ret)
-		goto err_no_rtc_ck;
+		goto err;
 
 	if (rtc->data->need_dbp)
 		regmap_update_bits(rtc->dbp, rtc->dbp_reg,
@@ -832,12 +832,10 @@ static int stm32_rtc_probe(struct platform_device *pdev)
 	}
 
 	return 0;
-
 err:
-	clk_disable_unprepare(rtc->rtc_ck);
-err_no_rtc_ck:
 	if (rtc->data->has_pclk)
 		clk_disable_unprepare(rtc->pclk);
+	clk_disable_unprepare(rtc->rtc_ck);
 
 	if (rtc->data->need_dbp)
 		regmap_update_bits(rtc->dbp, rtc->dbp_reg, rtc->dbp_mask, 0);

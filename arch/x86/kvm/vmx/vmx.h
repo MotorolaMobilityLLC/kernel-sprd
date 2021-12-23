@@ -512,7 +512,7 @@ static inline void decache_tsc_multiplier(struct vcpu_vmx *vmx)
 
 static inline bool vmx_has_waitpkg(struct vcpu_vmx *vmx)
 {
-	return secondary_exec_controls_get(vmx) &
+	return vmx->secondary_exec_control &
 		SECONDARY_EXEC_ENABLE_USR_WAIT_PAUSE;
 }
 

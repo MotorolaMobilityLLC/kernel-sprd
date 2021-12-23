@@ -134,23 +134,18 @@ static bool ip6_parse_tlv(const struct tlvtype_proc *procs,
 	len -= 2;
 
 	while (len > 0) {
-		int optlen, i;
+		int optlen = nh[off + 1] + 2;
+		int i;
 
-		if (nh[off] == IPV6_TLV_PAD1) {
+		switch (nh[off]) {
+		case IPV6_TLV_PAD1:
+			optlen = 1;
 			padlen++;
 			if (padlen > 7)
 				goto bad;
-			off++;
-			len--;
-			continue;
-		}
-		if (len < 2)
-			goto bad;
-		optlen = nh[off + 1] + 2;
-		if (optlen > len)
-			goto bad;
+			break;
 
-		if (nh[off] == IPV6_TLV_PADN) {
+		case IPV6_TLV_PADN:
 			/* RFC 2460 states that the purpose of PadN is
 			 * to align the containing header to multiples
 			 * of 8. 7 is therefore the highest valid value.
@@ -167,7 +162,12 @@ static bool ip6_parse_tlv(const struct tlvtype_proc *procs,
 				if (nh[off + i] != 0)
 					goto bad;
 			}
-		} else {
+			break;
+
+		default: /* Other TLV code so scan list */
+			if (optlen > len)
+				goto bad;
+
 			tlv_count++;
 			if (tlv_count > max_count)
 				goto bad;
@@ -187,6 +187,7 @@ static bool ip6_parse_tlv(const struct tlvtype_proc *procs,
 				return false;
 
 			padlen = 0;
+			break;
 		}
 		off += optlen;
 		len -= optlen;
@@ -304,7 +305,7 @@ fail_and_free:
 #endif
 
 	if (ip6_parse_tlv(tlvprocdestopt_lst, skb,
-			  net->ipv6.sysctl.max_dst_opts_cnt)) {
+			  init_net.ipv6.sysctl.max_dst_opts_cnt)) {
 		skb->transport_header += extlen;
 		opt = IP6CB(skb);
 #if IS_ENABLED(CONFIG_IPV6_MIP6)
@@ -843,7 +844,7 @@ fail_and_free:
 
 	opt->flags |= IP6SKB_HOPBYHOP;
 	if (ip6_parse_tlv(tlvprochopopt_lst, skb,
-			  net->ipv6.sysctl.max_hbh_opts_cnt)) {
+			  init_net.ipv6.sysctl.max_hbh_opts_cnt)) {
 		skb->transport_header += extlen;
 		opt = IP6CB(skb);
 		opt->nhoff = sizeof(struct ipv6hdr);

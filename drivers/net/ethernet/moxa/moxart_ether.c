@@ -481,10 +481,6 @@ static int moxart_mac_probe(struct platform_device *pdev)
 	priv->pdev = pdev;
 
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-	if (!res) {
-		ret = -EINVAL;
-		goto init_fail;
-	}
 	ndev->base_addr = res->start;
 	priv->base = devm_ioremap_resource(p_dev, res);
 	if (IS_ERR(priv->base)) {
@@ -545,8 +541,10 @@ static int moxart_mac_probe(struct platform_device *pdev)
 	SET_NETDEV_DEV(ndev, &pdev->dev);
 
 	ret = register_netdev(ndev);
-	if (ret)
+	if (ret) {
+		free_netdev(ndev);
 		goto init_fail;
+	}
 
 	netdev_dbg(ndev, "%s: IRQ=%d address=%pM\n",
 		   __func__, ndev->irq, ndev->dev_addr);

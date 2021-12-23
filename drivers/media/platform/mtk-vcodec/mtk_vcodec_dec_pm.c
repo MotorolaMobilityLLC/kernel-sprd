@@ -89,15 +89,13 @@ void mtk_vcodec_release_dec_pm(struct mtk_vcodec_dev *dev)
 	put_device(dev->pm.larbvdec);
 }
 
-int mtk_vcodec_dec_pw_on(struct mtk_vcodec_pm *pm)
+void mtk_vcodec_dec_pw_on(struct mtk_vcodec_pm *pm)
 {
 	int ret;
 
-	ret = pm_runtime_resume_and_get(pm->dev);
+	ret = pm_runtime_get_sync(pm->dev);
 	if (ret)
-		mtk_v4l2_err("pm_runtime_resume_and_get fail %d", ret);
-
-	return ret;
+		mtk_v4l2_err("pm_runtime_get_sync fail %d", ret);
 }
 
 void mtk_vcodec_dec_pw_off(struct mtk_vcodec_pm *pm)

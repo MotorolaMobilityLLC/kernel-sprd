@@ -505,6 +505,11 @@ enum {
 	 */
 	BTRFS_FS_EXCL_OP,
 	/*
+	 * To info transaction_kthread we need an immediate commit so it
+	 * doesn't need to wait for commit_interval
+	 */
+	BTRFS_FS_NEED_ASYNC_COMMIT,
+	/*
 	 * Indicate that balance has been set up from the ioctl and is in the
 	 * main phase. The fs_info::balance_ctl is initialized.
 	 * Set and cleared while holding fs_info::balance_mutex.
@@ -827,10 +832,7 @@ struct btrfs_fs_info {
 	 */
 	struct ulist *qgroup_ulist;
 
-	/*
-	 * Protect user change for quota operations. If a transaction is needed,
-	 * it must be started before locking this lock.
-	 */
+	/* protect user change for quota operations */
 	struct mutex qgroup_ioctl_lock;
 
 	/* list of dirty qgroups to be written at next commit */
@@ -943,8 +945,6 @@ enum {
 	BTRFS_ROOT_DEAD_TREE,
 	/* The root has a log tree. Used only for subvolume roots. */
 	BTRFS_ROOT_HAS_LOG_TREE,
-	/* Qgroup flushing is in progress */
-	BTRFS_ROOT_QGROUP_FLUSHING,
 };
 
 /*
@@ -1097,7 +1097,6 @@ struct btrfs_root {
 	spinlock_t qgroup_meta_rsv_lock;
 	u64 qgroup_meta_rsv_pertrans;
 	u64 qgroup_meta_rsv_prealloc;
-	wait_queue_head_t qgroup_flush_wait;
 
 	/* Number of active swapfiles */
 	atomic_t nr_swapfiles;

@@ -4053,20 +4053,12 @@ bad:
 
 /*
  * Delayed work handler to process end of delayed cap release LRU list.
- *
- * If new caps are added to the list while processing it, these won't get
- * processed in this run.  In this case, the ci->i_hold_caps_max will be
- * returned so that the work can be scheduled accordingly.
  */
-unsigned long ceph_check_delayed_caps(struct ceph_mds_client *mdsc)
+void ceph_check_delayed_caps(struct ceph_mds_client *mdsc)
 {
 	struct inode *inode;
 	struct ceph_inode_info *ci;
 	int flags = CHECK_CAPS_NODELAY;
-	struct ceph_mount_options *opt = mdsc->fsc->mount_options;
-	unsigned long delay_max = opt->caps_wanted_delay_max * HZ;
-	unsigned long loop_start = jiffies;
-	unsigned long delay = 0;
 
 	dout("check_delayed_caps\n");
 	while (1) {
@@ -4076,11 +4068,6 @@ unsigned long ceph_check_delayed_caps(struct ceph_mds_client *mdsc)
 		ci = list_first_entry(&mdsc->cap_delay_list,
 				      struct ceph_inode_info,
 				      i_cap_delay_list);
-		if (time_before(loop_start, ci->i_hold_caps_max - delay_max)) {
-			dout("%s caps added recently.  Exiting loop", __func__);
-			delay = ci->i_hold_caps_max;
-			break;
-		}
 		if ((ci->i_ceph_flags & CEPH_I_FLUSH) == 0 &&
 		    time_before(jiffies, ci->i_hold_caps_max))
 			break;
@@ -4097,8 +4084,6 @@ unsigned long ceph_check_delayed_caps(struct ceph_mds_client *mdsc)
 		}
 	}
 	spin_unlock(&mdsc->cap_delay_lock);
-
-	return delay;
 }
 
 /*

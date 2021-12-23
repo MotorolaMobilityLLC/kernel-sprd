@@ -2800,15 +2800,8 @@ static void ext4_orphan_cleanup(struct super_block *sb,
 			inode_lock(inode);
 			truncate_inode_pages(inode->i_mapping, inode->i_size);
 			ret = ext4_truncate(inode);
-			if (ret) {
-				/*
-				 * We need to clean up the in-core orphan list
-				 * manually if ext4_truncate() failed to get a
-				 * transaction handle.
-				 */
-				ext4_orphan_del(NULL, inode);
+			if (ret)
 				ext4_std_error(inode->i_sb, ret);
-			}
 			inode_unlock(inode);
 			nr_truncates++;
 		} else {
@@ -4672,7 +4665,6 @@ no_journal:
 			ext4_msg(sb, KERN_ERR,
 			       "unable to initialize "
 			       "flex_bg meta info!");
-			ret = -ENOMEM;
 			goto failed_mount6;
 		}
 

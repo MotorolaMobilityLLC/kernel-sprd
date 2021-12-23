@@ -349,6 +349,8 @@ static inline void free_ep(struct uac_rtd_params *prm, struct usb_ep *ep)
 	if (!prm->ep_enabled)
 		return;
 
+	prm->ep_enabled = false;
+
 	audio_dev = uac->audio_dev;
 	params = &audio_dev->params;
 
@@ -366,11 +368,10 @@ static inline void free_ep(struct uac_rtd_params *prm, struct usb_ep *ep)
 		}
 	}
 
-	prm->ep_enabled = false;
-
 	if (usb_ep_disable(ep))
 		dev_err(uac->card->dev, "%s:%d Error!\n", __func__, __LINE__);
 }
+
 
 int u_audio_start_capture(struct g_audio *audio_dev)
 {

@@ -597,7 +597,6 @@
   __local_bh_enable_ip
   param_ops_ulong
   regulatory_hint
-  rfc1042_header
   skb_copy
   skb_realloc_headroom
   strlcat
@@ -1359,7 +1358,6 @@
   sdhci_remove_host
   sdhci_reset
   sdhci_set_bus_width
-  __sdhci_set_timeout
   sdhci_setup_host
 
 # required by smem.ko

@@ -371,6 +371,6 @@ static void __exit ion_system_heap_exit(void)
 	ion_system_heap_destroy_pools(system_heap.pools);
 }
 
-subsys_initcall(ion_system_heap_init);
+module_init(ion_system_heap_init);
 module_exit(ion_system_heap_exit);
 MODULE_LICENSE("GPL v2");

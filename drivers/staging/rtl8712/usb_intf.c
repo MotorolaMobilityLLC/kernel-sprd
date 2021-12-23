@@ -380,11 +380,13 @@ static int r871xu_drv_init(struct usb_interface *pusb_intf,
 	/* step 3.
 	 * initialize the dvobj_priv
 	 */
-
-	status = padapter->dvobj_init(padapter);
-	if (status != _SUCCESS)
+	if (!padapter->dvobj_init) {
 		goto error;
-
+	} else {
+		status = padapter->dvobj_init(padapter);
+		if (status != _SUCCESS)
+			goto error;
+	}
 	/* step 4. */
 	status = r8712_init_drv_sw(padapter);
 	if (status)
@@ -604,8 +606,7 @@ static void r871xu_dev_remove(struct usb_interface *pusb_intf)
 			padapter->surprise_removed = true;
 		if (pnetdev->reg_state != NETREG_UNINITIALIZED)
 			unregister_netdev(pnetdev); /* will call netdev_close() */
-		r8712_flush_rwctrl_works(padapter);
-		r8712_flush_led_works(padapter);
+		flush_scheduled_work();
 		udelay(1);
 		/* Stop driver mlme relation timer */
 		r8712_stop_drv_timers(padapter);

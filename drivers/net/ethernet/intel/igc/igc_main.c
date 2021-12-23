@@ -256,8 +256,6 @@ static void igc_clean_tx_ring(struct igc_ring *tx_ring)
 					       DMA_TO_DEVICE);
 		}
 
-		tx_buffer->next_to_watch = NULL;
-
 		/* move us one more past the eop_desc for start of next pkt */
 		tx_buffer++;
 		i++;
@@ -4312,8 +4310,8 @@ err_sw_init:
 err_ioremap:
 	free_netdev(netdev);
 err_alloc_etherdev:
-	pci_disable_pcie_error_reporting(pdev);
-	pci_release_mem_regions(pdev);
+	pci_release_selected_regions(pdev,
+				     pci_select_bars(pdev, IORESOURCE_MEM));
 err_pci_reg:
 err_dma:
 	pci_disable_device(pdev);

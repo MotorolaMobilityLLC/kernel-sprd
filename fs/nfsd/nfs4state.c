@@ -2572,9 +2572,9 @@ static void force_expire_client(struct nfs4_client *clp)
 	struct nfsd_net *nn = net_generic(clp->net, nfsd_net_id);
 	bool already_expired;
 
-	spin_lock(&nn->client_lock);
+	spin_lock(&clp->cl_lock);
 	clp->cl_time = 0;
-	spin_unlock(&nn->client_lock);
+	spin_unlock(&clp->cl_lock);
 
 	wait_event(expiry_wq, atomic_read(&clp->cl_rpc_users) == 0);
 	spin_lock(&nn->client_lock);

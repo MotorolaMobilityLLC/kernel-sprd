@@ -5979,18 +5979,11 @@ EXPORT_SYMBOL(napi_schedule_prep);
  * __napi_schedule_irqoff - schedule for receive
  * @n: entry to schedule
  *
- * Variant of __napi_schedule() assuming hard irqs are masked.
- *
- * On PREEMPT_RT enabled kernels this maps to __napi_schedule()
- * because the interrupt disabled assumption might not be true
- * due to force-threaded interrupts and spinlock substitution.
+ * Variant of __napi_schedule() assuming hard irqs are masked
  */
 void __napi_schedule_irqoff(struct napi_struct *n)
 {
-	if (!IS_ENABLED(CONFIG_PREEMPT_RT))
-		____napi_schedule(this_cpu_ptr(&softnet_data), n);
-	else
-		__napi_schedule(n);
+	____napi_schedule(this_cpu_ptr(&softnet_data), n);
 }
 EXPORT_SYMBOL(__napi_schedule_irqoff);
 

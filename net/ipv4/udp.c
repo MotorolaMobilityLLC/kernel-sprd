@@ -1043,7 +1043,7 @@ int udp_sendmsg(struct sock *sk, struct msghdr *msg, size_t len)
 	}
 
 	ipcm_init_sk(&ipc, inet);
-	ipc.gso_size = READ_ONCE(up->gso_size);
+	ipc.gso_size = up->gso_size;
 
 	if (msg->msg_controllen) {
 		err = udp_cmsg_send(sk, msg, &ipc.gso_size);
@@ -2511,9 +2511,6 @@ void udp_destroy_sock(struct sock *sk)
 {
 	struct udp_sock *up = udp_sk(sk);
 	bool slow = lock_sock_fast(sk);
-
-	/* protects from races with udp_abort() */
-	sock_set_flag(sk, SOCK_DEAD);
 	udp_flush_pending_frames(sk);
 	unlock_sock_fast(sk, slow);
 	if (static_branch_unlikely(&udp_encap_needed_key)) {
@@ -2598,7 +2595,7 @@ int udp_lib_setsockopt(struct sock *sk, int level, int optname,
 	case UDP_SEGMENT:
 		if (val < 0 || val > USHRT_MAX)
 			return -EINVAL;
-		WRITE_ONCE(up->gso_size, val);
+		up->gso_size = val;
 		break;
 
 	case UDP_GRO:
@@ -2703,7 +2700,7 @@ int udp_lib_getsockopt(struct sock *sk, int level, int optname,
 		break;
 
 	case UDP_SEGMENT:
-		val = READ_ONCE(up->gso_size);
+		val = up->gso_size;
 		break;
 
 	case UDP_GRO:
@@ -2784,17 +2781,10 @@ int udp_abort(struct sock *sk, int err)
 {
 	lock_sock(sk);
 
-	/* udp{v6}_destroy_sock() sets it under the sk lock, avoid racing
-	 * with close()
-	 */
-	if (sock_flag(sk, SOCK_DEAD))
-		goto out;
-
 	sk->sk_err = err;
 	sk->sk_error_report(sk);
 	__udp_disconnect(sk, 0);
 
-out:
 	release_sock(sk);
 
 	return 0;

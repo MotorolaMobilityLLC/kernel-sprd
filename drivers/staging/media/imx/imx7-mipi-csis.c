@@ -528,15 +528,13 @@ static void mipi_csis_clear_counters(struct csi_state *state)
 
 static void mipi_csis_log_counters(struct csi_state *state, bool non_errors)
 {
-	unsigned int num_events = non_errors ? MIPI_CSIS_NUM_EVENTS
-				: MIPI_CSIS_NUM_EVENTS - 6;
+	int i = non_errors ? MIPI_CSIS_NUM_EVENTS : MIPI_CSIS_NUM_EVENTS - 4;
 	struct device *dev = &state->pdev->dev;
 	unsigned long flags;
-	unsigned int i;
 
 	spin_lock_irqsave(&state->slock, flags);
 
-	for (i = 0; i < num_events; ++i) {
+	for (i--; i >= 0; i--) {
 		if (state->events[i].counter > 0 || state->debug)
 			dev_info(dev, "%s events: %d\n", state->events[i].name,
 				 state->events[i].counter);

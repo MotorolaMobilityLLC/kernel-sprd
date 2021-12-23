@@ -611,11 +611,12 @@
 	>;
 };
 
-&gpio3_target {
+&gpio3 {
+	status = "okay";
 	ti,no-reset-on-init;
 };
 
-&gpio2_target {
+&gpio2 {
 	status = "okay";
 	ti,no-reset-on-init;
 };
