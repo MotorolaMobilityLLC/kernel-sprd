@@ -474,6 +474,7 @@ static void thermal_zone_device_reset(struct thermal_zone_device *tz)
 
 static int  thermal_temp_debug(struct thermal_zone_device *tz)
 {
+#ifndef DUAL_85_VERSION
 	int crit_temp, warn_temp;
 	int ret = -EPERM;
 	int count;
@@ -499,6 +500,19 @@ static int  thermal_temp_debug(struct thermal_zone_device *tz)
 			break;
 		}
 	}
+#else
+	int ret = 0;
+	int tz_temp = 0;
+	struct thermal_zone_device *pos;
+
+	list_for_each_entry(pos, &thermal_tz_list, node) {
+		if (!strcmp(pos->type, "soc-thmzone")) {
+			thermal_zone_get_temp(pos, &tz_temp);
+			pr_info("tz=%s temp=%d\n", pos->type, tz_temp);
+			break;
+		}
+	}
+#endif
 
 	return ret;
 }
