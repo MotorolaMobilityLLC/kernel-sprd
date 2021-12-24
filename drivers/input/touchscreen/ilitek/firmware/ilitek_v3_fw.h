@@ -100,6 +100,6 @@ static unsigned char CTPM_FW_DJ1[] = {
 #define DJ_INI_REQUEST_PATH2		"mp_dj_9882q.ini"
 #define DJ_FW_REQUEST_PATH2		"ILITEK_FW_DJ2"
 static unsigned char CTPM_FW_DJ2[] = {
-	#include "dj/ili9882q/hawaii_fw_01.ili"
+	#include "dj/ili9882q/hawaii_fw.ili"
 };
 #endif
