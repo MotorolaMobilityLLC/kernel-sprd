@@ -1201,6 +1201,12 @@ static int sdhci_sprd_probe(struct platform_device *pdev)
 		goto err_cleanup_host;
 #endif
 
+	/* disable polling scan for sdiocard */
+	if ((host->mmc->caps2 & MMC_CAP2_NO_SD)
+			&& (host->mmc->caps2 & MMC_CAP2_NO_MMC)) {
+		host->mmc->caps &= ~MMC_CAP_NEEDS_POLL;
+	}
+
 	pm_runtime_mark_last_busy(&pdev->dev);
 	pm_runtime_put_autosuspend(&pdev->dev);
 
