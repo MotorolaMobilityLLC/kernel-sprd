@@ -657,10 +657,6 @@
 	status = "okay";
 };
 
-&ufs {
-	status = "okay";
-};
-
 &i2c2 {
 	status = "okay";
 	#address-cells = <1>;

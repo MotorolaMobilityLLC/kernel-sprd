@@ -363,6 +363,7 @@
 				ap_apb_ufs_glb_rst = <&ap_apb_regs
 						REG_AP_APB_APB_EB MASK_AP_APB_APB_REG_EB>;
 				interrupts = <GIC_SPI 147 IRQ_TYPE_LEVEL_HIGH>;
+				status = "okay";
 			};
 		};
 

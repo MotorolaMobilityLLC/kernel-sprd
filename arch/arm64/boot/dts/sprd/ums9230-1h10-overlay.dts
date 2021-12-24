@@ -637,10 +637,6 @@
 	cd-gpios = <&eic_sync 35 GPIO_ACTIVE_HIGH>;
 };
 
-&ufs {
-	status = "okay";
-};
-
 &i2c2 {
 	status = "okay";
 	#address-cells = <1>;
