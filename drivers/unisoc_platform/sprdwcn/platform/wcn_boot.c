@@ -2966,7 +2966,7 @@ int marlin_probe(struct platform_device *pdev)
 	INIT_DELAYED_WORK(&marlin_dev->power_wq, marlin_power_wq);
 	if (g_match_config && !g_match_config->unisoc_wcn_pcie) {
 		schedule_delayed_work(&marlin_dev->power_wq,
-				      msecs_to_jiffies(6000));
+				      msecs_to_jiffies(1000));
 	}
 
 	pr_info("%s driver match successful v2!\n", __func__);
