@@ -817,6 +817,9 @@ static struct sdhci_ops sdhci_sprd_ops = {
 	.get_max_timeout_count = sdhci_sprd_get_max_timeout_count,
 	.get_ro = sdhci_sprd_get_ro,
 	.request_done = sdhci_sprd_request_done,
+#if IS_ENABLED(CONFIG_MMC_SWCQ)
+	.dump_vendor_regs = sdhci_sprd_dumpregs,
+#endif
 };
 
 static void sdhci_sprd_check_auto_cmd23(struct mmc_host *mmc,
