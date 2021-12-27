@@ -178,8 +178,9 @@ static void slog_block_release(struct slog_bridge *sb, void *addr,
 	struct block_node *blk;
 	struct sblock blk_rx;
 	unsigned long flags;
+	struct block_node *temp;
 
-	list_for_each_entry(blk, &sb->send_list, list) {
+	list_for_each_entry_safe(blk, temp, &sb->send_list, list) {
 		if (blk->vaddr == addr) {
 			blk->send_len += len;
 			if (blk->length > blk->send_len) {
