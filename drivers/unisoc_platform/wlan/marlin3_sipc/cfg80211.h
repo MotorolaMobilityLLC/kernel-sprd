@@ -141,10 +141,17 @@ struct sprdwl_sched_scan_buf {
 	size_t ie_len;
 };
 
+struct sprdwl_reg_rule {
+	struct ieee80211_freq_range freq_range;
+	struct ieee80211_power_rule power_rule;
+	u32 flags;
+	u32 dfs_cac_ms;
+};
+
 struct sprdwl_ieee80211_regdomain {
 	u32 n_reg_rules;
 	char alpha2[2];
-	struct ieee80211_reg_rule reg_rules[];
+	struct sprdwl_reg_rule reg_rules[];
 };
 
 /* WIFI_EVENT_CONNECT */

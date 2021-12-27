@@ -3402,7 +3402,7 @@ static void sprdwl_reg_notify(struct wiphy *wiphy,
 	}
 
 	rd_size = sizeof(struct sprdwl_ieee80211_regdomain) +
-	    n_rules * sizeof(struct ieee80211_reg_rule);
+	    n_rules * sizeof(struct sprdwl_reg_rule);
 
 	rd = kzalloc(rd_size, GFP_KERNEL);
 	if (!rd) {
@@ -3439,9 +3439,15 @@ static void sprdwl_reg_notify(struct wiphy *wiphy,
 			if (last_start_freq != freq_range->start_freq_khz &&
 			    i < n_rules) {
 				last_start_freq = freq_range->start_freq_khz;
-
-				memcpy(&rd->reg_rules[i], reg_rule,
-				       sizeof(struct ieee80211_reg_rule));
+				memcpy(&rd->reg_rules[i].freq_range,
+					&reg_rule->freq_range,
+					sizeof(struct ieee80211_freq_range));
+				memcpy(&rd->reg_rules[i].power_rule,
+					&reg_rule->power_rule,
+					sizeof(struct ieee80211_power_rule));
+				rd->reg_rules[i].flags = reg_rule->flags;
+				rd->reg_rules[i].dfs_cac_ms =
+					reg_rule->dfs_cac_ms;
 				i++;
 
 				wl_info(
