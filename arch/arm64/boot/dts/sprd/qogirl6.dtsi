@@ -320,9 +320,11 @@
 				/*#clock-cells = <1>;*/
 				reg = <0 0x20200000 0 0x10000>,
 				      <0 0x20400000 0 0x10000>,
+				      <0 0x64000000 0 0x100>,
 				      <0 0x64560000 0 0x10000>;
 				reg-names = "ufshci_reg",
 					    "ap_ahb_reg",
+					    "aon_apb_reg",
 					    "ufs_analog_reg";
 				aon_apb_ufs_en = <&aon_apb_regs
 						  REG_AON_APB_APB_EB1
