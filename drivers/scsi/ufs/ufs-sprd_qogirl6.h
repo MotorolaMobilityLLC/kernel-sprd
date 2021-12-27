@@ -25,6 +25,7 @@ struct ufs_sprd_host {
 	struct ufs_hba *hba;
 	struct scsi_device *sdev_ufs_rpmb;
 	void __iomem *ufs_analog_reg;
+	void __iomem *aon_apb_reg;
 	struct syscon_ufs aon_apb_ufs_en;
 	struct syscon_ufs ap_ahb_ufs_clk;
 	struct syscon_ufs ap_apb_ufs_rst;

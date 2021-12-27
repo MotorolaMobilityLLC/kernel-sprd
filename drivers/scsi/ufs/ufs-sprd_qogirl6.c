@@ -220,7 +220,6 @@ static void ufs_remap_or(struct syscon_ufs *sysconufs)
 }
 void ufs_sprd_reset_pre(struct ufs_sprd_host *host)
 {
-
 	ufs_remap_or(&(host->ap_ahb_ufs_clk));
 	regmap_update_bits(host->aon_apb_ufs_en.regmap,
 			   host->aon_apb_ufs_en.reg,
@@ -228,6 +227,9 @@ void ufs_sprd_reset_pre(struct ufs_sprd_host *host)
 			   host->aon_apb_ufs_en.mask);
 	ufs_remap_or(&(host->ahb_ufs_lp));
 	ufs_remap_and(&(host->ahb_ufs_force_isol));
+
+	if (readl(host->aon_apb_reg + REG_AON_APB_AON_VER_ID))
+		ufs_remap_or(&(host->ahb_ufs_ies_en));
 }
 
 void ufs_sprd_reset(struct ufs_sprd_host *host)
@@ -343,7 +345,7 @@ static int ufs_sprd_init(struct ufs_hba *hba)
 
 	hba->quirks |= UFSHCD_QUIRK_BROKEN_UFS_HCI_VERSION |
 		       UFSHCD_QUIRK_DELAY_BEFORE_DME_CMDS;
-	hba->caps |= UFSHCD_CAP_CLK_GATING;
+	hba->caps |= UFSHCD_CAP_CLK_GATING | UFSHCD_CAP_CRYPTO;
 
 	res = platform_get_resource_byname(pdev,
 					IORESOURCE_MEM, "ufs_analog_reg");
@@ -360,6 +362,20 @@ static int ufs_sprd_init(struct ufs_hba *hba)
 		return -ENODEV;
 	}
 
+	res = platform_get_resource_byname(pdev,
+			IORESOURCE_MEM, "aon_apb_reg");
+	if (!res) {
+		dev_err(dev, "Missing aon_apb_reg register resource\n");
+		return -ENODEV;
+	}
+	host->aon_apb_reg = devm_ioremap_nocache(dev, res->start,
+			resource_size(res));
+	if (IS_ERR(host->aon_apb_reg)) {
+		dev_err(dev, "%s: could not map aon_apb_reg, err %ld\n",
+				__func__, PTR_ERR(host->aon_apb_reg));
+		host->aon_apb_reg = NULL;
+		return -ENODEV;
+	}
 
 	ufs_sprd_reset_pre(host);
 	return 0;
@@ -399,6 +415,7 @@ static int ufs_sprd_hce_enable_notify(struct ufs_hba *hba,
 	case PRE_CHANGE:
 		/* Do hardware reset before host controller enable. */
 		ufs_sprd_hw_init(hba);
+		ufshcd_writel(hba, CONTROLLER_ENABLE, REG_CONTROLLER_ENABLE);
 		break;
 	case POST_CHANGE:
 		ufshcd_writel(hba, CLKDIV, HCLKDIV_REG);
