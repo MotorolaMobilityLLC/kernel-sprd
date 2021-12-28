@@ -9149,6 +9149,7 @@ EXPORT_SYMBOL(ufshcd_runtime_idle);
 int ufshcd_shutdown(struct ufs_hba *hba)
 {
 	int ret = 0;
+	struct scsi_device *sdev;
 
 	if (!hba->is_powered)
 		goto out;
@@ -9158,6 +9159,21 @@ int ufshcd_shutdown(struct ufs_hba *hba)
 
 	pm_runtime_get_sync(hba->dev);
 
+	/*
+	 * I/O requests could be still submitted to SCSI devices
+	 * when we are here. Quiesce the scsi device of UFS Device
+	 * well known LU but remove all the other scsi devices.
+	 * After the scsi device is quiesced, only PM requests can
+	 * pass through SCSI layer, which well serves the purpose
+	 * of sending the SSU cmd during ufshcd_suspend().
+	 */
+	shost_for_each_device(sdev, hba->host) {
+		if (sdev == hba->sdev_ufs_device)
+			scsi_device_quiesce(sdev);
+		else
+			scsi_remove_device(sdev);
+
+	}
 	ret = ufshcd_suspend(hba, UFS_SHUTDOWN_PM);
 out:
 	if (ret)
