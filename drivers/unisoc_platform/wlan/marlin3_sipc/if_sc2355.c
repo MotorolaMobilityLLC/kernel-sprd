@@ -818,6 +818,7 @@ unsigned char sprdwl_find_lut_index(struct sprdwl_intf *intf,
 
 	for (i = 0; i < MAX_LUT_NUM; i++) {
 		if ((vif->mode == SPRDWL_MODE_STATION ||
+			vif->mode == SPRDWL_MODE_STATION_SECOND ||
 		     vif->mode == SPRDWL_MODE_P2P_CLIENT) &&
 		    (intf->peer_entry[i].ctx_id == vif->ctx_id)) {
 			wl_debug("%s, %d, lut_index=%d\n",
@@ -829,6 +830,7 @@ unsigned char sprdwl_find_lut_index(struct sprdwl_intf *intf,
 
 out:
 	if (vif->mode == SPRDWL_MODE_STATION ||
+		vif->mode == SPRDWL_MODE_STATION_SECOND ||
 		vif->mode == SPRDWL_MODE_P2P_CLIENT) {
 		wl_err("%s,%d,bssid not found, multicast?\n"
 		       "default of STA/GC = 0,\n",

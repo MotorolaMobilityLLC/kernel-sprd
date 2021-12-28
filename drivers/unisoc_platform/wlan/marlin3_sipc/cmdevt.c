@@ -952,6 +952,7 @@ int sprdwl_get_fw_info(struct sprdwl_priv *priv)
 			ether_addr_copy(priv->mac_addr, p->mac_addr);
 		} else {
 			memset(priv->mac_addr, 0x00, ETH_ALEN);
+			memset(priv->mac_addr_sta_second, 0x00, ETH_ALEN);
 			goto out;
 		}
 		len_count += ETH_ALEN;

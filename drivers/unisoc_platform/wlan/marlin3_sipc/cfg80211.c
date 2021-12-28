@@ -342,13 +342,16 @@ inline struct sprdwl_vif *mode_to_vif(struct sprdwl_priv *priv, u8 vif_mode)
 	return found;
 }
 
-static inline enum sprdwl_mode type_to_mode(enum nl80211_iftype type)
+static inline enum sprdwl_mode type_to_mode(enum nl80211_iftype type, char *name)
 {
 	enum sprdwl_mode mode;
 
 	switch (type) {
 	case NL80211_IFTYPE_STATION:
-		mode = SPRDWL_MODE_STATION;
+		if (strncmp(name, "wlan1", 5) == 0)
+			mode = SPRDWL_MODE_STATION_SECOND;
+		else
+			mode = SPRDWL_MODE_STATION;
 		break;
 	case NL80211_IFTYPE_AP:
 		mode = SPRDWL_MODE_AP;
@@ -393,7 +396,7 @@ int sprdwl_init_fw(struct sprdwl_vif *vif)
 		return -EBUSY;
 	}
 
-	mode = type_to_mode(type);
+	mode = type_to_mode(type, vif->name);
 	if ((mode <= SPRDWL_MODE_NONE) || (mode >= SPRDWL_MODE_MAX)) {
 		netdev_err(vif->ndev, "%s unsupported interface type: %d\n",
 			   __func__, type);
@@ -1475,7 +1478,8 @@ static int sprdwl_cfg80211_scan(struct wiphy *wiphy,
 			   __func__, priv->scan_request, priv->scan_vif, vif);
 
 #ifdef RND_MAC_SUPPORT
-	if (vif->mode == SPRDWL_MODE_STATION) {
+	if (vif->mode == SPRDWL_MODE_STATION ||
+		vif->mode == SPRDWL_MODE_STATION_SECOND) {
 		random_mac_addr(rand_addr);
 		if (flags & NL80211_SCAN_FLAG_RANDOM_ADDR) {
 			random_mac_flag = 1;
@@ -1827,7 +1831,8 @@ static int sprdwl_cfg80211_connect(struct wiphy *wiphy, struct net_device *ndev,
 		goto err;
 	}
 
-	if (vif->mode == SPRDWL_MODE_STATION) {
+	if (vif->mode == SPRDWL_MODE_STATION ||
+		vif->mode == SPRDWL_MODE_STATION_SECOND) {
 		if (vif->has_rand_mac) {
 			random_mac_flag = SPRDWL_CONNECT_RANDOM_ADDR;
 			ret = wlan_cmd_set_rand_mac(vif->priv, vif->ctx_id,

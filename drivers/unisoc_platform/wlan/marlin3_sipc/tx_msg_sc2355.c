@@ -1326,7 +1326,8 @@ void prepare_addba(struct sprdwl_intf *intf, unsigned char lut_index,
 		}
 
 		if (vif->mode == SPRDWL_MODE_STATION ||
-		    vif->mode == SPRDWL_MODE_P2P_CLIENT) {
+			vif->mode == SPRDWL_MODE_STATION_SECOND ||
+			vif->mode == SPRDWL_MODE_P2P_CLIENT) {
 			if (!peer_entry->ip_acquired)
 				return;
 		}

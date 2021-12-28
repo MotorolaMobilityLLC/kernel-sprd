@@ -201,6 +201,7 @@ struct sprdwl_priv {
 	u8 max_acl_mac_addrs;
 	u8 max_mc_mac_addrs;
 	u8 mac_addr[ETH_ALEN];
+	u8 mac_addr_sta_second[ETH_ALEN];
 	u8 wnm_ft_support;
 	u32 wiphy_sec2_flag;
 	struct wiphy_sec2_t wiphy_sec2;
@@ -237,6 +238,7 @@ struct sprdwl_priv {
 
 	/* default MAC addr*/
 	unsigned char default_mac[ETH_ALEN];
+	unsigned char default_mac_sta_second[ETH_ALEN];
 #define SPRDWL_INTF_CLOSE	(0)
 #define SPRDWL_INTF_OPEN	(1)
 #define SPRDWL_INTF_CLOSING	(2)

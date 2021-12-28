@@ -251,8 +251,10 @@ static netdev_tx_t sprdwl_start_xmit(struct sk_buff *skb, struct net_device *nde
 	}
 
 	/*do not send packet before connected*/
-	if ((vif->mode == SPRDWL_MODE_STATION && vif->sm_state != SPRDWL_CONNECTED) ||
-		(vif->mode != SPRDWL_MODE_STATION && vif->priv->fw_stat[vif->mode] != SPRDWL_INTF_OPEN)) {
+	if (((vif->mode == SPRDWL_MODE_STATION || vif->mode == SPRDWL_MODE_STATION_SECOND) &&
+		vif->sm_state != SPRDWL_CONNECTED) ||
+		(vif->mode != SPRDWL_MODE_STATION && vif->mode != SPRDWL_MODE_STATION_SECOND &&
+		vif->priv->fw_stat[vif->mode] != SPRDWL_INTF_OPEN)) {
 		printk_ratelimited("%s, %d, error! should not send this data\n",
 		       __func__, __LINE__);
 		dev_kfree_skb(skb);
@@ -971,7 +973,8 @@ static int sprdwl_set_mac(struct net_device *dev, void *addr)
 		return -EINVAL;
 	}
 
-	if (vif->mode == SPRDWL_MODE_STATION) {
+	if (vif->mode == SPRDWL_MODE_STATION ||
+		vif->mode == SPRDWL_MODE_STATION_SECOND) {
 		if (!is_zero_ether_addr(sa->sa_data)) {
 			vif->has_rand_mac = true;
 			memcpy(vif->random_mac, sa->sa_data, ETH_ALEN);
@@ -1132,8 +1135,12 @@ static void sprdwl_set_mac_addr(struct sprdwl_vif *vif, u8 *pending_addr,
 
 	if (!addr) {
 		return;
-	} else if (priv && is_valid_ether_addr(priv->default_mac)) {
+	} else if (priv && (strncmp(vif->name, "wlan0", 5) == 0) &&
+			is_valid_ether_addr(priv->default_mac)) {
 		ether_addr_copy(addr, priv->default_mac);
+	} else if (priv && (strncmp(vif->name, "wlan1", 5) == 0) &&
+			is_valid_ether_addr(priv->default_mac_sta_second)) {
+		ether_addr_copy(addr, priv->default_mac_sta_second);
 	} else {
 		random_ether_addr(addr);
 		netdev_warn(vif->ndev, "%s Warning: use random MAC address\n",
@@ -1152,7 +1159,10 @@ static void sprdwl_set_mac_addr(struct sprdwl_vif *vif, u8 *pending_addr,
 	switch (type) {
 	case NL80211_IFTYPE_STATION:
 	case NL80211_IFTYPE_AP:
-		ether_addr_copy(priv->default_mac, addr);
+		if (strncmp(vif->name, "wlan1", 5) == 0)
+			ether_addr_copy(priv->default_mac_sta_second, addr);
+		else
+			ether_addr_copy(priv->default_mac, addr);
 		break;
 	case NL80211_IFTYPE_P2P_CLIENT:
 		fallthrough;
