@@ -16,7 +16,7 @@
 #define MMC_CQE_RETRIES 2
 #endif
 
-#define dbg_max_cnt (200)
+#define dbg_max_cnt (400)
 
 struct dbg_run_host_log {
 	unsigned long long time_sec;
@@ -32,6 +32,7 @@ struct dbg_run_host_log {
 	 * work_on<<24 | hsq_running<<16 | enabled <<8 |pump_busy<<4
 	 * |busy<<2|timer_running<<1 | cmdq_mode
 	 */
+	unsigned int task_id_index;
 	int flags;
 	int skip;
 	int pid;

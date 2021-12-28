@@ -92,6 +92,8 @@ inline void __dbg_add_host_log(struct mmc_host *mmc, int type,
 		| swcq->enabled << 8 | swcq->pump_busy << 4
 		| atomic_read(&swcq->busy) << 2 | swcq->timer_running << 1
 		| swcq->cmdq_mode;
+		dbg_run_host_log_dat[swcq->dbg_host_cnt].task_id_index =
+		swcq->task_id_index;
 		swcq->dbg_host_cnt++;
 		if (swcq->dbg_host_cnt >= dbg_max_cnt)
 			swcq->dbg_host_cnt = 0;
@@ -133,6 +135,8 @@ inline void __dbg_add_host_log(struct mmc_host *mmc, int type,
 		| swcq->enabled << 8 | swcq->pump_busy << 4
 		| atomic_read(&swcq->busy) << 2 | swcq->timer_running << 1
 		| swcq->cmdq_mode;
+		dbg_run_host_log_dat[swcq->dbg_host_cnt].task_id_index =
+		swcq->task_id_index;
 		swcq->dbg_host_cnt++;
 		if (swcq->dbg_host_cnt >= dbg_max_cnt)
 			swcq->dbg_host_cnt = 0;
@@ -179,6 +183,8 @@ inline void __dbg_add_host_log(struct mmc_host *mmc, int type,
 		| swcq->enabled << 8 | swcq->pump_busy << 4
 		| atomic_read(&swcq->busy) << 2 | swcq->timer_running << 1
 		| swcq->cmdq_mode;
+		dbg_run_host_log_dat[swcq->dbg_host_cnt].task_id_index =
+		swcq->task_id_index;
 		swcq->dbg_host_cnt++;
 		if (swcq->dbg_host_cnt >= dbg_max_cnt)
 			swcq->dbg_host_cnt = 0;
@@ -212,13 +218,14 @@ void dump_cmd_history(struct mmc_swcq *swcq)
 			continue;
 
 			pr_info("[%d] time_sec:%lld time_usec:%lld type:%d CMD%d arg:0x%x,"
-			"skip:%d pid:%d mrq:0x%p qcnt:%d cmdq_cnt:%d flags:0x%x",
+			"skip:%d pid:%d mrq:0x%p qcnt:%d cmdq_cnt:%d flags:0x%x tsk_idx:0x%x",
 			i, swcq->cmd_history[j].time_sec, swcq->cmd_history[j].time_usec,
 			swcq->cmd_history[j].type,
 			swcq->cmd_history[j].cmd, swcq->cmd_history[j].arg,
 			swcq->cmd_history[j].skip, swcq->cmd_history[j].pid,
 			swcq->cmd_history[j].mrq, swcq->cmd_history[j].qcnt,
-			swcq->cmd_history[j].cmdq_cnt, swcq->cmd_history[j].flags);
+			swcq->cmd_history[j].cmdq_cnt, swcq->cmd_history[j].flags,
+			swcq->cmd_history[j].task_id_index);
 
 	}
 	pr_err("==========dump cmd history end==========:\n");
@@ -240,11 +247,14 @@ static int mmc_reset_for_cmdq(struct mmc_swcq *swcq)
 {
 	struct mmc_host *mmc = swcq->mmc;
 	int err, ret;
+	unsigned long flags;
 
+	spin_lock_irqsave(&swcq->lock, flags);
 	emmc_resetting_when_cmdq = 1;
+	spin_unlock_irqrestore(&swcq->lock, flags);
 	err = mmc_hw_reset(mmc);
 	/* Ensure we switch back to the correct partition */
-	if (err != -EOPNOTSUPP) {
+	if (err != -EOPNOTSUPP && !swcq->hsq_running) {
 		u8 part_config = mmc->card->ext_csd.part_config;
 
 		part_config &= ~EXT_CSD_PART_CONFIG_ACC_MASK;
@@ -265,7 +275,9 @@ static int mmc_reset_for_cmdq(struct mmc_swcq *swcq)
 		mmc->card->ext_csd.part_config = part_config;
 
 	}
+	spin_lock_irqsave(&swcq->lock, flags);
 	emmc_resetting_when_cmdq = 0;
+	spin_unlock_irqrestore(&swcq->lock, flags);
 	return err;
 }
 
@@ -857,7 +869,8 @@ static void mmc_swcq_pump_requests(struct mmc_swcq *swcq)
 
 	spin_lock_irqsave(&swcq->lock, flags);
 	/* Make sure we are not already running a request now */
-	if (swcq->mrq || swcq->pump_busy) {
+	if (swcq->mrq || swcq->pump_busy
+		|| (emmc_resetting_when_cmdq == 1)) {
 		if (swcq->pump_busy)
 			dbg_add_host_log(swcq->mmc, 58, 0, swcq->pump_busy, 0);
 		spin_unlock_irqrestore(&swcq->lock, flags);
@@ -1573,13 +1586,13 @@ void mmc_wait_cmdq_done(struct mmc_request *mrq)
 		pr_debug("CMD%d, resp = %d\n", cmd->opcode, resp);
 
 		if (resp == 0) {
-			/* Workaround for ALPS03808823: if task not ready over 30s, reinit emmc */
+			/* if task not ready over 5s, reinit emmc */
 			if (!not_ready_time)
 				not_ready_time = jiffies;
 			else if (time_after(jiffies, not_ready_time
-			+ msecs_to_jiffies(30 * 1000))) {
-				pr_info("mmc0: error: task not ready over 30s\n");
-				msleep(2000);
+			+ msecs_to_jiffies(5 * 1000))) {
+				pr_info("mmc0: error: task not ready over 5s\n");
+				//msleep(2000);
 				if (mmc_reset_for_cmdq(swcq)) {
 					pr_notice("[CQ] reinit fail\n");
 					WARN_ON(1);
@@ -2041,52 +2054,57 @@ static int sprd_swcq_cmd_show(struct seq_file *m, void *v)
 			continue;
 		if (swcq->cmd_history[j].type == 0) {
 			seq_printf(m, "[%d] time_sec:%lld, time_usec:%lld CMD%d=> arg:0x%x, "
-			"skip:%d pid:%d blocks:%d mrq:0x%p qcnt:%d cmdq_cnt:%d flags:0x%x\n",
+			"skip:%d pid:%d blocks:%d mrq:0x%p qcnt:%d cmdq_cnt:%d flags:0x%x"
+			" task_id_index:0x%x\n",
 			i, swcq->cmd_history[j].time_sec, swcq->cmd_history[j].time_usec,
 			swcq->cmd_history[j].cmd, swcq->cmd_history[j].arg,
 			swcq->cmd_history[j].skip, swcq->cmd_history[j].pid,
 			swcq->cmd_history[j].blocks, swcq->cmd_history[j].mrq,
 			swcq->cmd_history[j].qcnt, swcq->cmd_history[j].cmdq_cnt,
-			swcq->cmd_history[j].flags);
+			swcq->cmd_history[j].flags, swcq->cmd_history[j].task_id_index);
 		} else if (swcq->cmd_history[j].type == 1) {
 			seq_printf(m, "[%d] time_sec:%lld time_usec:%lld CMD%d resp:0x%x, "
-			"skip:%d pid:%d blocks:%d mrq:0x%p qcnt:%d cmdq_cnt:%d flags:0x%x\n",
+			"skip:%d pid:%d blocks:%d mrq:0x%p qcnt:%d cmdq_cnt:%d flags:0x%x"
+			" task_id_index:0x%x\n",
 			i, swcq->cmd_history[j].time_sec, swcq->cmd_history[j].time_usec,
 			swcq->cmd_history[j].cmd, swcq->cmd_history[j].arg,
 			swcq->cmd_history[j].skip, swcq->cmd_history[j].pid,
 			swcq->cmd_history[j].blocks, swcq->cmd_history[j].mrq,
 			swcq->cmd_history[j].qcnt, swcq->cmd_history[j].cmdq_cnt,
-			swcq->cmd_history[j].flags);
+			swcq->cmd_history[j].flags, swcq->cmd_history[j].task_id_index);
 
 		} else if (swcq->cmd_history[j].type == 2) {
 			seq_printf(m, "[%d] time_sec:%lld, time_usec:%lld issue next:%d, "
-			"skip:%d pid:%d blocks:%d mrq:0x%p qcnt:%d cmdq_cnt:%d flags:0x%x\n",
+			"skip:%d pid:%d blocks:%d mrq:0x%p qcnt:%d cmdq_cnt:%d flags:0x%x"
+			" task_id_index:0x%x\n",
 			i, swcq->cmd_history[j].time_sec, swcq->cmd_history[j].time_usec,
 			swcq->cmd_history[j].arg,
 			swcq->cmd_history[j].skip, swcq->cmd_history[j].pid,
 			swcq->cmd_history[j].blocks, swcq->cmd_history[j].mrq,
 			swcq->cmd_history[j].qcnt, swcq->cmd_history[j].cmdq_cnt,
-			swcq->cmd_history[j].flags);
+			swcq->cmd_history[j].flags, swcq->cmd_history[j].task_id_index);
 
 		} else if (swcq->cmd_history[j].type == 3) {
 			seq_printf(m, "[%d] time_sec:%lld time_usec:%lld finish next:%d, "
-			"skip:%d pid:%d blocks:%d mrq:0x%p qcnt:%d cmdq_cnt:%d flags:0x%x\n",
+			"skip:%d pid:%d blocks:%d mrq:0x%p qcnt:%d cmdq_cnt:%d flags:0x%x"
+			" task_id_index:0x%x\n",
 			i, swcq->cmd_history[j].time_sec, swcq->cmd_history[j].time_usec,
 			swcq->cmd_history[j].arg,
 			swcq->cmd_history[j].skip, swcq->cmd_history[j].pid,
 			swcq->cmd_history[j].blocks, swcq->cmd_history[j].mrq,
 			swcq->cmd_history[j].qcnt, swcq->cmd_history[j].cmdq_cnt,
-			swcq->cmd_history[j].flags);
+			swcq->cmd_history[j].flags, swcq->cmd_history[j].task_id_index);
 
 		} else {
 			seq_printf(m, "[%d] time_sec:%lld time_usec:%lld type:%d args:0x%x, "
-			"skip:%d pid:%d blocks:%d mrq:0x%p qcnt:%d cmdq_cnt:%d flags:0x%x\n",
+			"skip:%d pid:%d blocks:%d mrq:0x%p qcnt:%d cmdq_cnt:%d flags:0x%x"
+			" task_id_index:0x%x\n",
 			i, swcq->cmd_history[j].time_sec, swcq->cmd_history[j].time_usec,
 			swcq->cmd_history[j].type, swcq->cmd_history[j].arg,
 			swcq->cmd_history[j].skip, swcq->cmd_history[j].pid,
 			swcq->cmd_history[j].blocks, swcq->cmd_history[j].mrq,
 			swcq->cmd_history[j].qcnt, swcq->cmd_history[j].cmdq_cnt,
-			swcq->cmd_history[j].flags);
+			swcq->cmd_history[j].flags, swcq->cmd_history[j].task_id_index);
 
 		}
 
