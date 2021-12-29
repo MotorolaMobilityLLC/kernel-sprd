@@ -346,6 +346,11 @@ static int sprd_mbox_probe(struct platform_device *pdev)
 	for (id = 0; id < chan_num; id++)
 		priv->mbox.chans[id].con_priv = (void *)id;
 
+	/* To avoid triggering outbox and obb-outbox IRQ at the same time */
+	spin_lock_init(&outbox_lock);
+	spin_lock_init(&mbox_lock);
+	init_waitqueue_head(&deliver_thread_wait);
+
 	/* Request mailbox IRQ */
 	ret = sprd_mbox_request_irq(priv);
 	if (ret) {
@@ -365,10 +370,6 @@ static int sprd_mbox_probe(struct platform_device *pdev)
 		return ret;
 	}
 
-	/* To avoid triggering outbox and obb-outbox IRQ at the same time */
-	spin_lock_init(&outbox_lock);
-	spin_lock_init(&mbox_lock);
-	init_waitqueue_head(&deliver_thread_wait);
 	tx_data = devm_kzalloc(dev, sizeof(struct sprd_mbox_tx_data) * chan_num, GFP_KERNEL);
 	if (!tx_data)
 		return -ENOMEM;
