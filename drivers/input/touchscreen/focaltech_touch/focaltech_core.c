@@ -1793,8 +1793,6 @@ int fts_ts_suspend(struct device *dev)
 
     FTS_FUNC_ENTER();
 
-    fts_release_all_finger();
-
     if (ts_data->suspended) {
         FTS_INFO("Already in suspend state");
         return 0;
@@ -1810,6 +1808,7 @@ int fts_ts_suspend(struct device *dev)
     if (ts_data->gesture_mode) {
         fts_gesture_suspend(ts_data);
     } else {
+        fts_irq_disable();
         FTS_INFO("make TP enter into sleep mode");
         ret = fts_write_reg(FTS_REG_POWER_MODE, FTS_REG_POWER_MODE_SLEEP);
         if (ret < 0)
@@ -1824,7 +1823,7 @@ int fts_ts_suspend(struct device *dev)
 #endif
         }
     }
-    //fts_release_all_finger();
+    fts_release_all_finger();
     ts_data->suspended = true;
     FTS_FUNC_EXIT();
     return 0;
@@ -1858,6 +1857,7 @@ int fts_ts_resume(struct device *dev)
     if (ts_data->gesture_mode) {
         fts_gesture_resume(ts_data);
     } else {
+        fts_irq_enable();
     }
 
     ts_data->suspended = false;
