@@ -23,7 +23,7 @@
 				sprd,esd-check-regs = <0xA>;
 				sprd,esd-return-code = <0x9C>;
 
-				sprd,reset-on-sequence = <1 5>, <0 5>, <1 20>;
+				sprd,reset-on-sequence = <1 5>, <0 5>, <1 50>;
 				sprd,reset-off-sequence = <1 5>;
 
 				sprd,initial-command = [
@@ -39,7 +39,7 @@
 
 				sprd,sleep-in-command = [
 					13 14 00 01 28
-					13 78 00 01 10
+					13 A0 00 01 10
 				];
 
 				sprd,sleep-out-command = [
