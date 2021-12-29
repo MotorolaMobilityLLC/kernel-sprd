@@ -11085,8 +11085,8 @@ CONFIG_MMC_SDHCI_SPRD
 	[function]
 CONFIG_MMC_SWCQ
 	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
-	[missing plat] none
+	[plat] sharkl5Pro
+	[missing plat] sharkl3
 	[field]
 	[subsys]
 	[must]
