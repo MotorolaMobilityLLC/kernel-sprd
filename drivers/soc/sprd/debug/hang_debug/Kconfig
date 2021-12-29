@@ -24,6 +24,11 @@ config SPRD_HANG_DEBUG_UART
 	depends on SPRD_HANG_DEBUG && SERIAL_SPRD_CONSOLE
 	default y
 
+config SPRD_HANG_RESET
+	bool "trigger cm4 handling ap watchdog reset"
+	depends on SPRD_HANG_DEBUG
+	default y
+
 config SPRD_HANG_TRIGGER
 	bool "supply a driver for trigger AP cpu hang"
 	depends on SPRD_HANG_DEBUG

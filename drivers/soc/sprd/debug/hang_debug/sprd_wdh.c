@@ -727,6 +727,13 @@ asmlinkage __visible void wdh_atf_entry(struct pt_regs *data)
 	print_step(cpu);
 
 	mdelay(50);
+#if IS_ENABLED(CONFIG_SPRD_HANG_RESET)
+	/* wait last cpu failed,wait 20s to trigger cm4 continue to handle ap watchdog reset */
+	if (!is_last_cpu) {
+		sprd_hang_debug_printf(true, "wait 20s,trigger cm4 handling ap watchdog reset\n");
+		mdelay(20000);
+	}
+#endif
 	do_kernel_restart("panic");
 }
 

@@ -16897,6 +16897,15 @@ CONFIG_SPRD_HANG_DEBUG_UART
 	[must]
 	[missing plat description] none
 	[function]
+CONFIG_SPRD_HANG_RESET
+	[arch] arm64
+	[plat] sharkl5Pro
+	[missing plat] sharkl3
+	[field] code
+	[subsys] debug
+	[must] debug
+	[missing plat description] sharkl3 don't support hang reset
+	[function] trigger cm4 handling ap watchdog reset
 CONFIG_SPRD_HANG_TRIGGER
 	[arch] arm64
 	[plat] sharkl3,sharkl5Pro
