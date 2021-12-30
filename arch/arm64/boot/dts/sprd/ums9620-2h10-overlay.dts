@@ -382,24 +382,16 @@
 		reg = <0x0 0xc31a0000 0x0 0x0c800000>;
 	};
 
-	ai_reserved: ai@f8848000 {
-		reg = <0x0 0xf8848000 0x0 0x02000000>;
+	ai_reserved: ai@fb210000 {
+		reg = <0x0 0xfb210000 0x0 0x02000000>;
 	};
 
-	fd_reserved: faceid-mem@fa848000 {
-		reg = <0x0 0xfa848000 0x0 0x00500000>;
+	fd_reserved: faceid-mem@fd210000 {
+		reg = <0x0 0xfd210000 0x0 0x00500000>;
 	};
 
-	vdsp_reserved: vdsp-mem@fad48000 {
-		reg = <0x0 0xfad48000 0x0 0x02800000>;
-	};
-
-	wb_reserved: writeback@fd5a8000 {
-		reg = <0x0 0xfd5a8000 0x0 0x00a1e000>;
-	};
-
-	fb_reserved: framebuffer-mem@fdfc6000 {
-		reg = <0x0 0xfdfc6000 0x0 0x01fba000>;
+	vdsp_reserved: vdsp-mem@fd710000 {
+		reg = <0x0 0xfd710000 0x0 0x02800000>;
 	};
 };
 
@@ -511,13 +503,6 @@
 		memory-region = <&widevine_reserved>;
 	};
 
-	heap@3 {
-		reg = <3>;
-		label = "carveout_fb";
-		type = <2>;
-		memory-region = <&fb_reserved>;
-	};
-
 	heap@4 {
 		reg = <4>;
 		label = "carveout_fd";
@@ -590,7 +575,6 @@
 
 &dpu {
 	sprd,logo-memory = <&logo_reserved>;
-	sprd,wb-memory = <&wb_reserved>;
 	sprd,backlight = <&pwm_backlight>;
 };
 

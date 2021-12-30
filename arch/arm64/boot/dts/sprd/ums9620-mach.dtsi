@@ -94,17 +94,18 @@
 			reg = <0x0 0x80001000 0x0 0x00001000>;
 		};
 
-		rebootescrow@853f0000 {
-			no-map;
-			reg = <0x0 0x853f0000 0x0 0x00010000>; /* 64K */
-		};
-
 		smem_reserved: sipc-mem@87800000 {
 			reg = <0x0 0x87800000 0x0 0x00800000>;
 		};
 
 		cp_reserved: cp-modem@88000000 {
 			reg = <0x0 0x88000000 0x0 0x22000000>;
+		};
+
+		/* Only used for iq, will be removed in normal mode by uboot */
+		iq_reserved: iq-mem@aa000000{
+			compatible = "sprd,iq-mem";
+			reg = <0x0 0xaa000000 0x0 0x4000000>;
 		};
 
 		ch_ddr_reserved: ch_ddr@ae600000 {
@@ -117,6 +118,11 @@
 
 		audiodsp_reserved: audiodsp-mem@afa00000 {
 			reg = <0x0 0xafa00000 0x0 0x00600000>;
+		};
+
+		/* The uboot_log_reserved node is added in uboot. base:0xbbe8 0000, size:0x80000 */
+		uboot_log_reserved: uboot_log-mem@bbe80000 {
+			reg = <0x0 0xbbe80000 0x0 0x00080000>;
 		};
 
 		ise_med_reserved: ise_med@bc000000 {
@@ -133,8 +139,11 @@
 			reg = <0x0 0xbd020000 0x0 0x05fe0000>;
 		};
 
-		dptx_hdcp_reserved: dptx_hdcp@fd548000 {
-			reg = <0x0 0xfd548000 0x0 0x00060000>;
+		cma_reserved: cma_share@f00000000 {
+			compatible = "shared-dma-pool";
+			reg = <0x0 0xf0000000 0x0 0x03000000>;
+			reusable;
+			linux,cma-default;
 		};
 
 		drm_reserved: framebuffer {
@@ -142,11 +151,29 @@
 			size = <0x0 0x02c00000>;
 			reusable;
 		};
+
+		dptx_hdcp_reserved: dptx_hdcp@fff10000 {
+			reg = <0x0 0xfff10000 0x0 0x00060000>;
+		};
+
+		rebootescrow@fff70000 {
+			no-map;
+			reg = <0x0 0xfff70000 0x0 0x00010000>; /* 64K */
+		};
+
+		pstore_reserved: ramoops@fff80000 {
+			compatible = "ramoops";
+			reg = <0x0 0xfff80000 0x0 0x00040000>;
+			record-size = <0x8000>;
+			console-size = <0x8000>;
+			pmsg-size = <0x8000>;
+		};
+
 	};
 
 	rebootescrow@0 {
 		compatible = "pmem-region";
-		reg = <0x0 0x853f0000 0x0 0x00010000>;
+		reg = <0x0 0xfff70000 0x0 0x00010000>;
 	};
 
 	thm_zone: thermal-zones {
