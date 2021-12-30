@@ -1968,19 +1968,19 @@ static void sc27xx_fgu_track_capacity_work(struct work_struct *work)
 		 */
 		data->track.state = CAP_TRACK_IDLE;
 
-		if (data->is_first_poweron && !data->track.clear_cap_flag) {
+		if (0){//data->is_first_poweron && !data->track.clear_cap_flag) {
 			file_buf[0] = 0 ^ SC27XX_FGU_TRACK_CAP_KEY0;
 			file_buf[1] = 0 ^ SC27XX_FGU_TRACK_CAP_KEY1;
 			ret = kernel_write(filep, &file_buf, sizeof(file_buf), &pos);
 			if (ret < 0) {
-				dev_err(data->dev, "write file_buf data error\n");
+				dev_err(data->dev, "track write file_buf data error\n");
 				goto out;
 			}
 			data->track.clear_cap_flag = true;
 			break;
 		}
 
-		dev_info(data->dev, "clear_cap_flag = %d\n", data->track.clear_cap_flag);
+		dev_info(data->dev, "track clear_cap_flag = %d\n", data->track.clear_cap_flag);
 
 		if (kernel_read(filep, (char *)&file_buf, sizeof(file_buf), &pos) < 0) {
 			dev_err(data->dev, "track file is empty or read error\n");
@@ -1994,6 +1994,8 @@ static void sc27xx_fgu_track_capacity_work(struct work_struct *work)
 			goto out;
 		}
 
+		dev_err(data->dev, "%s; old total_cap=%d;read total_cap=%d;\n",__func__,total_cap,capacity);
+
 		if (abs(total_cap - capacity) < total_cap / 5)
 			data->total_cap = capacity;
 		break;
@@ -2002,9 +2004,10 @@ static void sc27xx_fgu_track_capacity_work(struct work_struct *work)
 		data->track.state = CAP_TRACK_IDLE;
 		file_buf[0] = total_cap ^ SC27XX_FGU_TRACK_CAP_KEY0;
 		file_buf[1] = total_cap ^ SC27XX_FGU_TRACK_CAP_KEY1;
+		dev_err(data->dev, "%s; write total_cap=%d;\n",__func__,total_cap);		
 		ret = kernel_write(filep, &file_buf, sizeof(file_buf), &pos);
 		if (ret < 0) {
-			dev_err(data->dev, "write file_buf data error\n");
+			dev_err(data->dev, "track write file_buf data error\n");
 			goto out;
 		}
 		break;
@@ -2046,31 +2049,31 @@ static void sc27xx_fgu_track_capacity_monitor(struct sc27xx_fgu_data *data)
 		return;
 
 	if (!data->bat_present) {
-		dev_err(data->dev, "battery is not present, cancel monitor.\n");
+		dev_err(data->dev, "track battery is not present, cancel monitor.\n");
 		return;
 	}
 
 	if (data->bat_temp > SC27XX_FGU_TRACK_HIGH_TEMP_THRESHOLD ||
 	    data->bat_temp < SC27XX_FGU_TRACK_LOW_TEMP_THRESHOLD) {
-		dev_err(data->dev, "exceed temperature range, cancel monitor.\n");
+		dev_err(data->dev, "track exceed temperature range, cancel monitor.\n");
 		return;
 	}
 
 	ret = sc27xx_fgu_get_current_avg(data, &ibat_avg);
 	if (ret) {
-		dev_err(data->dev, "failed to get relax current.\n");
+		dev_err(data->dev, "track failed to get relax current.\n");
 		return;
 	}
 
 	ret = sc27xx_fgu_get_vbat_avg(data, &vbat_avg);
 	if (ret) {
-		dev_err(data->dev, "failed to get battery voltage.\n");
+		dev_err(data->dev, "track failed to get battery voltage.\n");
 		return;
 	}
 
 	ret = sc27xx_fgu_get_vbat_ocv(data, &ocv);
 	if (ret) {
-		dev_err(data->dev, "get ocv error\n");
+		dev_err(data->dev, "track get ocv error\n");
 		return;
 	}
 
@@ -2109,13 +2112,13 @@ static void sc27xx_fgu_track_capacity_monitor(struct sc27xx_fgu_data *data)
 		 * starting condition.
 		 */
 
-		if (abs(ibat_avg) > SC27XX_FGU_TRACK_CAP_START_CURRENT ||
+		if (/*abs(ibat_avg) > SC27XX_FGU_TRACK_CAP_START_CURRENT ||*/
 		    ocv > SC27XX_FGU_TRACK_CAP_START_VOLTAGE) {
-			dev_info(data->dev, "not satisfy power on start condition.\n");
+			dev_info(data->dev, "track not satisfy power on start condition.\n");
 			return;
 		}
 
-		dev_info(data->dev, "start ibat_avg = %d, vbat_avg = %d,"
+		dev_info(data->dev, "track start ibat_avg = %d, vbat_avg = %d,"
 			 "ocv = %d\n", ibat_avg, vbat_avg, ocv);
 		/*
 		 * Parse the capacity table to look up the correct capacity percent
@@ -2125,7 +2128,7 @@ static void sc27xx_fgu_track_capacity_monitor(struct sc27xx_fgu_data *data)
 								    data->table_len,
 								    ocv * 1000);
 		data->track.start_cap *= 10;
-		dev_info(data->dev, "is_charger_mode = %d, start_cap = %d\n",
+		dev_info(data->dev, "track is_charger_mode = %d, start_cap = %d\n",
 			 is_charger_mode, data->track.start_cap);
 		/*
 		 * When the capacity tracking start condition is met,
@@ -2144,14 +2147,14 @@ static void sc27xx_fgu_track_capacity_monitor(struct sc27xx_fgu_data *data)
 
 		ret = sc27xx_fgu_get_batt_energy_now(data, &clbcnt);
 		if (ret) {
-			dev_err(data->dev, "failed to get energy now.\n");
+			dev_err(data->dev, "track failed to get energy now.\n");
 			return;
 		}
 
 		data->track.start_time = ktime_divns(ktime_get_boottime(), NSEC_PER_SEC);
 		data->track.start_clbcnt = clbcnt;
 		data->track.state = CAP_TRACK_UPDATING;
-		dev_info(data->dev, "start_time = %lld, clbcnt = %d\n",
+		dev_info(data->dev, "track start_time = %lld, clbcnt = %d\n",
 			 data->track.start_time, clbcnt);
 		break;
 
@@ -2169,28 +2172,32 @@ static void sc27xx_fgu_track_capacity_monitor(struct sc27xx_fgu_data *data)
 		 * stop charging condition as the the capacity
 		 * tracking end condition.
 		 */
-		if (vbat_avg > data->track.end_vol &&
-		    ibat_avg < data->track.end_cur) {
+//		if (vbat_avg > data->track.end_vol &&
+		if (ocv > data->track.end_vol &&
+		    ibat_avg < data->track.end_cur &&
+		    ibat_avg >0
+		     ) {
 			if (!data->online) {
-				dev_err(data->dev, "pwr not online\n");
+				dev_err(data->dev, "track pwr not online\n");
 				return;
 			}
 
 
 			if ((data->chg_type == POWER_SUPPLY_CHARGER_TYPE_UNKNOWN)
 			    || (data->chg_type == POWER_SUPPLY_USB_CHARGER_TYPE_SDP)) {
-				dev_err(data->dev, "chg_type not support, ret = %d\n", ret);
+				dev_err(data->dev, "track chg_type not support, ret = %d\n", ret);
+				
 				return;
 			}
 
 			ret = sc27xx_fgu_get_batt_energy_now(data, &clbcnt);
 			if (ret) {
-				dev_err(data->dev, "failed to get energy now.\n");
+				dev_err(data->dev, "track failed to get energy now.\n");
 				return;
 			}
 
 			total_cap = data->total_cap;
-			dev_info(data->dev, "end ibat_avg = %d, vbat_avg = %d,"
+			dev_info(data->dev, "track end ibat_avg = %d, vbat_avg = %d,"
 				 "ocv = %d\n", ibat_avg, vbat_avg, ocv);
 			/*
 			 * Due to the capacity tracking function started, the
@@ -2211,11 +2218,11 @@ static void sc27xx_fgu_track_capacity_monitor(struct sc27xx_fgu_data *data)
 			 * capacity = total_cap * (start_cap / 100) + capacity
 			 */
 			capacity = (clbcnt - data->track.start_clbcnt) / 1000;
-			dev_info(data->dev, "clbcnt = %d, start_clbcnt = %d,"
+			dev_info(data->dev, "track clbcnt = %d, start_clbcnt = %d,"
 				 "capacity_temp = %d\n", clbcnt,
 				 data->track.start_clbcnt, capacity);
 			capacity = (total_cap * (u32)data->track.start_cap) / 1000 + (u32)capacity;
-			dev_info(data->dev, "total_cap = %d, start_cap = %d, capacity = %d\n",
+			dev_info(data->dev, "track total_cap = %d, start_cap = %d, capacity = %d\n",
 				 total_cap, data->track.start_cap, capacity);
 
 			if (abs(capacity - total_cap) < total_cap / 5) {
@@ -2230,7 +2237,7 @@ static void sc27xx_fgu_track_capacity_monitor(struct sc27xx_fgu_data *data)
 			} else {
 				data->track.state = CAP_TRACK_IDLE;
 				dev_info(data->dev,
-					 "less than half standard capacity.\n");
+					 "track less than half standard capacity.\n");
 			}
 		}
 		break;
@@ -2269,8 +2276,54 @@ static void sc27xx_fgu_track_capacity_init(struct sc27xx_fgu_data *data)
 			   &data->track.track_capacity_work,
 			   5 * HZ);
 	queue_delayed_work(system_power_efficient_wq, &data->track.fgu_update_work, 15 * HZ);
-	dev_info(data->dev, "end_vol = %d, end_cur = %d\n", data->track.end_vol,
+	dev_info(data->dev, "track end_vol = %d, end_cur = %d\n", data->track.end_vol,
 		 data->track.end_cur);
+}
+
+
+static void sc27xx_fgu_usb_check(struct sc27xx_fgu_data *data)
+{
+	unsigned int min, max;
+	u32 type;
+
+	/*
+	 * If the USB charger status has been USB_CHARGER_PRESENT before
+	 * registering the notifier, we should start to charge with getting
+	 * the charge current.
+	 */
+	if (data->usb_phy->chg_state != USB_CHARGER_PRESENT)
+		return;
+
+
+	usb_phy_get_charger_current(data->usb_phy, &min, &max);
+	
+	if (min)
+		data->online = true;
+	else
+		data->online = false;
+
+	type = data->usb_phy->chg_type;
+
+	dev_err(data->dev,
+		"%s;chg_state=%d,type=%d;\n",__func__,data->usb_phy->chg_state,type);
+
+	switch (type) {
+	case SDP_TYPE:
+		data->chg_type = POWER_SUPPLY_USB_TYPE_SDP;
+		break;
+
+	case DCP_TYPE:
+		data->chg_type = POWER_SUPPLY_USB_TYPE_DCP;
+		break;
+
+	case CDP_TYPE:
+		data->chg_type = POWER_SUPPLY_USB_TYPE_CDP;
+		break;
+
+	default:
+		data->chg_type = POWER_SUPPLY_USB_TYPE_UNKNOWN;
+	}
+
 }
 
 static int sc27xx_fgu_usb_change(struct notifier_block *nb,
@@ -2288,6 +2341,9 @@ static int sc27xx_fgu_usb_change(struct notifier_block *nb,
 		data->online = false;
 
 	type = data->usb_phy->chg_type;
+
+	dev_err(data->dev,
+		"%s;limit=%d;type=%d;\n",__func__,limit,type);
 
 	switch (type) {
 	case SDP_TYPE:
@@ -2672,6 +2728,7 @@ static int sc27xx_fgu_probe(struct platform_device *pdev)
 			dev_err(data->dev, "failed to register notifier:%d\n", ret);
 			return ret;
 		}
+		sc27xx_fgu_usb_check(data);
 	}
 
 	ret = devm_add_action(&pdev->dev, sc27xx_fgu_disable, data);

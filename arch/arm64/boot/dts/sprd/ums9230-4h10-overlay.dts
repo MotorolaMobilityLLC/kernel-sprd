@@ -188,7 +188,7 @@
 
 			bat: battery {
 				compatible = "simple-battery";
-				charge-full-design-microamp-hours-0 = <5000000>;
+				charge-full-design-microamp-hours-0 = <4850000>;
 				charge-term-current-microamp = <180000>;
 				constant_charge_voltage_max_microvolt = <4450000>;
 				factory-internal-resistance-micro-ohms-0 = <103000>;
@@ -223,7 +223,7 @@
 		battery_name-0 ="NH50-Sunwoda-SB18D34206-5000mAh";
 		battery_name-1 ="NH50-ATL-SB18D34202-5000mAh";
 
-				charge-full-design-microamp-hours-1 = <5000000>;
+				charge-full-design-microamp-hours-1 = <4850000>;
 				factory-internal-resistance-micro-ohms-1 = <104000>;
 				ocv-capacity-table-1 = <4407500 100>, <4343600 95>, <4285000 90>,
 							<4225000 85>, <4166000 80>, <4110000 75>,
@@ -1032,6 +1032,10 @@
 	sprd,calib-resistance-spec = <20000>;
 	first-calib-voltage = <3580000>;
 	first-calib-capacity = <50>;
+	phys = <&hsphy>;
+	fgu-capacity-track;
+	fullbatt-track-end-vol = <4300>;
+	fullbatt-track-end-cur = <180>;	
 };
 
 &panel {

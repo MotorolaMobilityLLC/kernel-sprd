@@ -6349,6 +6349,7 @@ static void cm_batt_works(struct work_struct *work)
 		dev_err(cm->dev, "get fuel_cap error.\n");
 		goto schedule_cap_update_work;
 	}
+	if(0)
 	fuel_cap = cm_capacity_remap(cm, fuel_cap);
 
 	ret = get_charger_current(cm, &chg_cur);
