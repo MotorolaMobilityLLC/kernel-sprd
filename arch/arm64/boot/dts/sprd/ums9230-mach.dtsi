@@ -83,10 +83,6 @@
 			reg = <0x0 0x9de80000 0x0 0x00080000>;
 		};
 
-		uboot_reserved: sysdump-uboot@9f000000 {
-			reg = <0x0 0x9f000000 0x0 0x01000000>;
-		};
-
 		sml_reserved: sml-mem@b0000000 {
 		/* the reg valus may be not accurate,
 		   they have been fixed in uboot !!! */
