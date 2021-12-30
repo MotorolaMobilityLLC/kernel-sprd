@@ -1004,9 +1004,9 @@
 	non-removable;
 	cap-mmc-hw-reset;
 	/*mmc-hs400-enhanced-strobe;
-	mmc-hs400-1_8v;*/
+	mmc-hs400-1_8v;
 	mmc-hs200-1_8v;
-	mmc-ddr-1_8v;
+	mmc-ddr-1_8v; */
 	sprd,name = "sdio_emmc";
 	sprd,sdio-adma;
 	no-sdio;
