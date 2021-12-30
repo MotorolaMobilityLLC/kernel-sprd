@@ -495,6 +495,7 @@ static netdev_tx_t iface_start_xmit(struct sk_buff *skb, struct net_device *ndev
 	u8 *data_temp;
 	int offset;
 	struct sprd_vif *vif = netdev_priv(ndev);
+	struct sprd_hif *hif = &vif->priv->hif;
 	struct sprd_msg *msg = NULL;
 	struct sprd_eap_hdr *eap_temp;
 	struct sk_buff *tmp_skb = skb;
@@ -556,7 +557,7 @@ static netdev_tx_t iface_start_xmit(struct sk_buff *skb, struct net_device *ndev
 	}
 
 	offset = sprd_send_data_offset(vif->priv);
-
+	sprd_hif_throughput_ctl_pd(hif, skb->len);
 	ret = sprd_send_data(vif->priv, vif, msg, skb, SPRD_DATA_TYPE_NORMAL,
 			     offset, true);
 	if (ret) {

@@ -8,6 +8,7 @@
 #include <linux/of_device.h>
 #include <linux/regmap.h>
 #include <misc/marlin_platform.h>
+#include <linux/pm_qos.h>
 
 #include "cmdevt.h"
 #include "common/chip_ops.h"
@@ -240,6 +241,7 @@ static int sdio_rx_handle(int chn, struct mbuf_t *head,
  * 0 - suspend
  * 1 - resume
  */
+struct throughput_sta throughput_static;
 static int sdio_suspend_resume_handle(int chn, int mode)
 {
 	struct sprd_hif *hif = sc2355_get_hif();
@@ -266,6 +268,13 @@ static int sdio_suspend_resume_handle(int chn, int mode)
 		pr_err("%s, %d, error! cp2 has asserted!\n", __func__,
 		       __LINE__);
 		return 0;
+	}
+
+	if (throughput_static.disable_pd_flag) {
+		throughput_static.disable_pd_flag = false;
+		//allow core powerdown
+		pm_qos_update_request(&throughput_static.pm_qos_request_idle,
+					      PM_QOS_CPU_DMA_LAT_DEFAULT_VALUE);
 	}
 
 	if (mode == 0) {
@@ -1510,6 +1519,44 @@ int sc2355_fc_test_send_num(struct sprd_hif *hif,
 	return min(send_num, data_num);
 }
 
+void sc2355_sdio_throughput_static_init(void)
+{
+	throughput_static.tx_bytes = 0;
+	throughput_static.last_time = jiffies;
+	throughput_static.disable_pd_flag = false;
+	pm_qos_add_request(&throughput_static.pm_qos_request_idle,
+			   PM_QOS_CPU_DMA_LATENCY, PM_QOS_CPU_DMA_LAT_DEFAULT_VALUE);
+}
+
+void sc2355_sdio_throughput_static_deinit(void)
+{
+	pm_qos_remove_request(&throughput_static.pm_qos_request_idle);
+}
+
+void sc2355_sdio_throughput_ctl_core_pd(unsigned int len)
+{
+	throughput_static.tx_bytes += len;
+	if (time_after(jiffies, throughput_static.last_time +  msecs_to_jiffies(1000))) {
+		throughput_static.last_time = jiffies;
+		if (throughput_static.tx_bytes >= DISABLE_PD_THRESHOLD) {
+			if (!throughput_static.disable_pd_flag)	{
+				throughput_static.disable_pd_flag = true;
+				// forbid core powerdown
+				pm_qos_update_request(&throughput_static.pm_qos_request_idle,
+					      100);
+			}
+		} else {
+			if (throughput_static.disable_pd_flag) {
+				throughput_static.disable_pd_flag = false;
+				//allow core powerdown
+				pm_qos_update_request(&throughput_static.pm_qos_request_idle,
+					      PM_QOS_CPU_DMA_LAT_DEFAULT_VALUE);
+			}
+		}
+		throughput_static.tx_bytes = 0;
+	}
+}
+
 int sc2355_sdio_init(struct sprd_hif *hif)
 {
 	u8 i;
@@ -1537,6 +1584,8 @@ int sc2355_sdio_init(struct sprd_hif *hif)
 		pr_err("%s tx_list init failed\n", __func__);
 		goto err_tx_init;
 	}
+
+	sc2355_sdio_throughput_static_init();
 
 	if (hif->hw_type == SPRD_HW_SC2355_SDIO) {
 		sc2355_hif.mchn_ops = sdio_hif_ops;
@@ -1588,6 +1637,7 @@ void sc2355_sdio_deinit(struct sprd_hif *hif)
 	sc2355_hif.hif = NULL;
 	sc2355_hif.max_num = 0;
 
+	sc2355_sdio_throughput_static_deinit();
 	sc2355_tx_deinit(hif);
 	sc2355_rx_deinit(hif);
 }
@@ -1599,6 +1649,7 @@ static struct sprd_hif_ops sc2355_sdio_ops = {
 	.tx_special_data = sprd_tx_special_data,
 	.download_hw_param = sc2355_download_hw_param,
 	.reset = sc2355_reset,
+	.throughput_ctl_pd = sc2355_sdio_throughput_ctl_core_pd,
 };
 
 extern struct sprd_chip_ops sc2355_chip_ops;

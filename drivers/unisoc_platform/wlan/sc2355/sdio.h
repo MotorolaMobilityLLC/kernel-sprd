@@ -12,6 +12,7 @@
 #include <linux/wait.h>
 #include <linux/workqueue.h>
 #include <misc/wcn_bus.h>
+#include <linux/pm_qos.h>
 
 #include "common/hif.h"
 
@@ -46,6 +47,14 @@
 #define HIGHER_DDR_PRIORITY	0xAA
 
 #define SDIO_HEX_DUMP_BUF_SIZE	255
+
+#define DISABLE_PD_THRESHOLD (25 * 0x100000)  //200Mbit/s  or 25Mbyte/s
+struct throughput_sta {
+	unsigned long tx_bytes;
+	unsigned long last_time;
+	bool disable_pd_flag;
+	struct  pm_qos_request pm_qos_request_idle;
+};
 
 struct sc2355_sdiohal_puh {
 	unsigned int pad:6;

@@ -223,6 +223,7 @@ struct sprd_hif_ops {
 			     unsigned char *data, int len,
 			     bool send_now);
 	int (*reset)(struct sprd_hif *hif);
+	void (*throughput_ctl_pd)(unsigned int len);
 };
 
 void sprd_clean_work(struct sprd_priv *priv);
@@ -338,6 +339,12 @@ static inline int sprd_hif_tx_special_data(struct sprd_hif *hif,
 	if (hif->ops->tx_special_data)
 		return hif->ops->tx_special_data(skb, ndev);
 	return -1;
+}
+
+static inline void sprd_hif_throughput_ctl_pd(struct sprd_hif *hif, unsigned int len)
+{
+	if (hif->ops->throughput_ctl_pd)
+		hif->ops->throughput_ctl_pd(len);
 }
 
 #endif
