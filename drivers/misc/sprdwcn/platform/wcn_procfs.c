@@ -213,7 +213,8 @@ int wcn_slp_info_operation(enum wcn_slp_info_cmd cmd,
 			   struct subsys_sleep_info *buf)
 {
 	char *write_buf = NULL;
-	unsigned long ret;
+	unsigned int ret;
+	size_t len = 0;
 
 	if (unlikely(marlin_get_module_status() != true)) {
 		WCN_WARN("wcn_slp:WCN module have not open\n");
@@ -230,18 +231,15 @@ int wcn_slp_info_operation(enum wcn_slp_info_cmd cmd,
 		return -1;
 	}
 	WCN_INFO("wcn_slp:%s, count = %d", write_buf, strlen(write_buf));
-	mdbg_send(write_buf, strlen(write_buf), MDBG_SUBTYPE_AT);
-
-	ret = wait_for_completion_timeout(
-			&wcn_sleep_info_completed,
-			msecs_to_jiffies(1000));
-	if (ret == 0) {
-		WCN_ERR("wcn_slp:read wcn sleep info time out\n");
+	ret = wcn_send_atcmd(write_buf, strlen(write_buf),
+			     wcn_cp2_slp_info_recv, &len);
+	len = strlen(wcn_cp2_slp_info_recv);
+	if (ret) {
+		WCN_ERR("wcn_slp:read wcn sleep info fail\n");
 		return -1;
 	}
-
-	WCN_INFO("wcn_slp:%s", ((struct subsys_sleep_info *)
-		wcn_cp2_slp_info_recv)->subsystem_name);
+	WCN_INFO("wcn_slp:%s, len = %d\n", ((struct subsys_sleep_info *)
+		wcn_cp2_slp_info_recv)->subsystem_name, len);
 
 	if (buf) {
 		memcpy((void *)buf, wcn_cp2_slp_info_recv,
@@ -268,6 +266,7 @@ struct subsys_sleep_info *wcn_sleep_info_read(void *data)
 #if (defined CONFIG_WCN_SIPC)
 	wcn_cp2_slp_info_buf = (struct subsys_sleep_info *)
 		phys_to_virt(WCN_CP2_SLP_INFO_ADDR);
+
 	if (!wcn_cp2_slp_info_buf)
 		WCN_ERR("Failed to phys_to_virt wcn phy_addr");
 
@@ -284,18 +283,6 @@ int wcn_sleep_info_close(void)
 {
 	return wcn_slp_info_operation(WCN_SLP_CLOSE, NULL);
 }
-
-int wcn_sleep_info_read_buf(int channel, struct mbuf_t *head,
-			    struct mbuf_t *tail, int num)
-{
-	memset(wcn_cp2_slp_info_recv, 0, WCN_CP2_SLP_INFO_SIZE);
-	memcpy(wcn_cp2_slp_info_recv,
-	       head->buf + PUB_HEAD_RSV, WCN_CP2_SLP_INFO_SIZE);
-
-	complete(&wcn_sleep_info_completed);
-	sprdwcn_bus_push_list(channel, head, tail, num);
-	return 0;
-}
 #endif
 
 static int mdbg_at_cmd_read(int channel, struct mbuf_t *head,
@@ -311,14 +298,6 @@ static int mdbg_at_cmd_read(int channel, struct mbuf_t *head,
 		sprdwcn_bus_push_list(channel, head, tail, num);
 		return -1;
 	}
-
-#ifdef CONFIG_WCN_SLEEP_INFO
-	if (strncmp(head->buf + PUB_HEAD_RSV, "wcn_sys", 7) == 0) {
-		wcn_sleep_info_read_buf(channel, head, tail, num);
-		return 0;
-	}
-#endif
-
 	memset(mdbg_proc->at_cmd.buf, 0, MDBG_AT_CMD_SIZE);
 	memcpy(mdbg_proc->at_cmd.buf, head->buf + PUB_HEAD_RSV, puh->len);
 	mdbg_proc->at_cmd.rcv_len = puh->len;
@@ -328,12 +307,6 @@ static int mdbg_at_cmd_read(int channel, struct mbuf_t *head,
 	notify_at_cmd_finish(mdbg_proc->at_cmd.buf, mdbg_proc->at_cmd.rcv_len);
 	sprdwcn_bus_push_list(channel, head, tail, num);
 #else
-#ifdef CONFIG_WCN_SLEEP_INFO
-	if (strncmp(head->buf, "wcn_sys", 7) == 0) {
-		wcn_sleep_info_read_buf(channel, head, tail, num);
-		return 0;
-	}
-#endif
 	memset(mdbg_proc->at_cmd.buf, 0, MDBG_AT_CMD_SIZE);
 	memcpy(mdbg_proc->at_cmd.buf, head->buf, head->len);
 	mdbg_proc->at_cmd.rcv_len = head->len;

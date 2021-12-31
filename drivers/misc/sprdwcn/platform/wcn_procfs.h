@@ -25,6 +25,9 @@ extern unsigned int wcn_reboot_count;
 
 int wcn_sleep_info_open(void);
 struct subsys_sleep_info *wcn_sleep_info_read(void *data);
+int wcn_send_atcmd(void *cmd, unsigned char cmd_len,
+		   void *response, size_t *response_len);
+
 
 struct wcn_cp2_slp_duration_total {
 	unsigned long long int total_dut;

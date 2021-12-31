@@ -47,8 +47,8 @@ int notify_at_cmd_finish(void *buf, unsigned char len)
 	return 0;
 }
 
-static int wcn_send_atcmd(void *cmd, unsigned char cmd_len,
-			  void *response, size_t *response_len)
+int wcn_send_atcmd(void *cmd, unsigned char cmd_len,
+		   void *response, size_t *response_len)
 {
 	struct mbuf_t *head = NULL;
 	struct mbuf_t *tail = NULL;
@@ -115,10 +115,10 @@ static int wcn_send_atcmd(void *cmd, unsigned char cmd_len,
 	head->len = cmd_len;
 	head->next = NULL;
 #endif
+	reinit_completion(&sysfs_info.cmd_completion);
 	ret = sprdwcn_bus_push_list(0, head, tail, num);
 	if (ret)
 		WCN_INFO("sprdwcn_bus_push_list error=%d\n", ret);
-	reinit_completion(&sysfs_info.cmd_completion);
 	timeleft = wait_for_completion_timeout(&sysfs_info.cmd_completion,
 					       3 * HZ);
 #ifdef CONFIG_SDIOHAL
@@ -140,8 +140,9 @@ static int wcn_send_atcmd(void *cmd, unsigned char cmd_len,
 	}
 
 	*response_len = sysfs_info.len;
-	scnprintf(response, (size_t)sysfs_info.len, "%s",
-		  (char *)sysfs_info.p);
+	memcpy(response, sysfs_info.p, (size_t)sysfs_info.len);
+	//scnprintf(response, (size_t)sysfs_info.len, "%s",
+	//	  (char *)sysfs_info.p);
 	WCN_DBG("len=%zu, buf=%s\n", *response_len, (char *)(response));
 	mutex_unlock(&sysfs_info.mutex);
 
