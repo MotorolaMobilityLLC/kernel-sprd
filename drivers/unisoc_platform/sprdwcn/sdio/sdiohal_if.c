@@ -79,9 +79,9 @@ static unsigned int sdio_get_carddump_status(void)
 	return sdiohal_get_carddump_status();
 }
 
-static void sdio_set_carddump_status(unsigned int flag)
+static inline void sdio_set_carddump_status(unsigned int flag)
 {
-	return sdiohal_set_carddump_status(flag);
+	sdiohal_set_carddump_status(flag);
 }
 
 static unsigned long long sdio_get_rx_total_cnt(void)
@@ -104,14 +104,14 @@ static int sdio_rescan(void *wcn_dev)
 	return sdiohal_scan_card(wcn_dev);
 }
 
-static void sdio_register_rescan_cb(void *func)
+static inline void sdio_register_rescan_cb(void *func)
 {
-	return sdiohal_register_scan_notify(func);
+	sdiohal_register_scan_notify(func);
 }
 
-static void sdio_remove_card(void *wcn_dev)
+static inline void sdio_remove_card(void *wcn_dev)
 {
-	return sdiohal_remove_card(wcn_dev);
+	sdiohal_remove_card(wcn_dev);
 }
 
 static enum wcn_hard_intf_type sdio_get_hwintf_type(void)
