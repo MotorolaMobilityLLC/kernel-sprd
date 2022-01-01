@@ -72,11 +72,19 @@ struct modem_ctrl {
 	struct regmap *ctrl_map[MODEM_CTRL_NR];
 };
 
+struct pm_reg_ctrl {
+	u32	reg_offset;  /* offset value*/
+	u32	reg_mask;  /* mask bit */
+	u32	reg_save;  /* pre reg bit */
+	struct regmap	*ctrl_map;
+};
+
 struct modem_device {
 	struct modem_load_info	*load;
 	const char		*modem_name;
 	u32			modem_dst;
 	struct modem_ctrl	*modem_ctrl;
+	struct pm_reg_ctrl	*pm_reg_ctrl;
 
 #ifdef CONFIG_SPRD_EXT_MODEM_POWER_CTRL
 	struct gpio_desc	*modem_reset;
