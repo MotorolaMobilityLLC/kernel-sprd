@@ -231,7 +231,7 @@ static int fpsensor_get_gpio_dts_info(fpsensor_data_t *fpsensor)
     }
     // set reset direction output
     gpio_direction_output(fpsensor->reset_gpio, 1);
-    fpsensor_hw_reset(1250);
+    fpsensor_hw_reset(4000);
 
     return ret;
 }
@@ -529,7 +529,7 @@ static long fpsensor_ioctl(struct file *filp, unsigned int cmd, unsigned long ar
 
     case FPSENSOR_IOC_RESET:
         fpsensor_info("chip reset command\n");
-        fpsensor_hw_reset(1250);
+        fpsensor_hw_reset(4000);
         break;
 
     case FPSENSOR_IOC_ENABLE_IRQ:
