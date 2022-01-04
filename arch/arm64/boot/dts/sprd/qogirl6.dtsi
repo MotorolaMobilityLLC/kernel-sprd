@@ -890,7 +890,7 @@
 				#size-cells = <0>;
 				reg = <0x0 0x31100000 0x0 0x1000>;
 				enable-syscon = <&ap_ahb_regs 0x0040 (0x2 | 0x1)>;
-				power-syscon = <&ap_ahb_regs 0x009C 0x0020>;
+				power-syscon = <&ap_apb_regs 0x009C 0x0020>;
 				syscon-names = "enable", "power";
 				status = "disabled";
 
