@@ -492,8 +492,8 @@
 		dpu_vsp_clk: clock-controller@30110000 {
 			compatible = "sprd,ums9620-dpu-vsp-clk";
 			reg = <0 0x30110000 0 0x3000>;
-			clocks = <&ext_26m>;
-			clock-names = "ext-26m";
+			clocks = <&ext_26m>, <&dphy_312m5>, <&dphy_416m7>;
+			clock-names = "ext-26m", "dphy-312m5", "dphy-416m7";
 			#clock-cells = <1>;
 		};
 
