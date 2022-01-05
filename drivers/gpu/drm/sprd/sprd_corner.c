@@ -44,8 +44,10 @@ static int sprd_corner_create(struct dpu_context *ctx)
 		GFP_DMA | __GFP_ZERO, get_order(buf_size));
 	ctx->layer_bottom = (u32 *)__get_free_pages(GFP_KERNEL |
 		GFP_DMA | __GFP_ZERO, get_order(buf_size));
-	if (NULL == ctx->layer_top || NULL == ctx->layer_bottom)
-		return ENOMEM;
+	if (NULL == ctx->layer_top || NULL == ctx->layer_bottom) {
+		DRM_ERROR("%s(): get_free_pages is NULL\n", __func__);
+		return -ENOMEM;
+	}
 
 	return 0;
 }
@@ -165,8 +167,10 @@ int sprd_corner_hwlayer_init(struct dpu_context *ctx)
 	unsigned int *layer_bottom = ctx->layer_bottom;
 
 	ret = sprd_corner_create(ctx);
-	if (ret < 0)
-		return ENOMEM;
+	if (ret < 0) {
+		DRM_ERROR("%s(): sprd_corner_create failed\n", __func__);
+		return -ENOMEM;
+	}
 
 #if USE_EXTERNAL_SOURCE
 	memcpy(layer_top, layer_top_header, ctx->vm.hactive * corner_radius * 4);
