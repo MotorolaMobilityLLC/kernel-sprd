@@ -795,6 +795,28 @@ static struct notifier_block sprd_module_notifier = {
 	.notifier_call = sprd_module_notifier_fn,
 };
 
+#ifdef CONFIG_SPRD_SYSDUMP
+#define MAX_NAME_LEN 16
+
+static void minidump_add_sprd_log_buf(void)
+{
+	int cpu;
+	u64 buf_base;
+	char name[MAX_NAME_LEN];
+
+	for (cpu = 0; cpu < SPRD_CPUS; cpu++) {
+		buf_base = (u64)sprd_log_buf[cpu];
+		if (!buf_base)
+			return;
+		scnprintf(name, MAX_NAME_LEN, "sprd_log_buf%d", cpu);
+		if (minidump_save_extend_information(name, __pa(buf_base),
+						__pa(buf_base + SPRD_PRINT_BUF_LEN)))
+			return;
+	}
+}
+#else
+static inline void minidump_add_sprd_log_buf(void) {}
+#endif
 static int sprd_wdh_atf_init(void)
 {
 	int i;
@@ -828,6 +850,7 @@ static int sprd_wdh_atf_init(void)
 			goto out;
 		}
 	}
+	minidump_add_sprd_log_buf();
 	return ret;
 
 out:
