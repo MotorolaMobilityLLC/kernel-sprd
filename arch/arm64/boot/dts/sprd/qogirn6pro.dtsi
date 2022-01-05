@@ -461,18 +461,21 @@
 						<0 0>,
 						<0 0>,
 						<0 0>;
-				syscons =
-					<&ap_ahb_regs REG_AP_AHB_AHB_RST
-					  MASK_AP_AHB_UFS_SOFT_RST>,
-					<&aon_apb_regs REG_AON_APB_UFSDEV_REG
-					  MASK_AON_APB_UFSDEV_SOFT_RST>,
-					<&anlg_phy_g12_regs 0x0c 0x01>,
-					<&aon_apb_regs REG_AON_APB_UFSHC_CTRL
+				ap_ahb_ufs_rst = <&ap_ahb_regs REG_AP_AHB_AHB_RST
+					  MASK_AP_AHB_UFS_SOFT_RST>;
+				aon_apb_ufs_rst = <&aon_apb_regs REG_AON_APB_UFSDEV_REG
+					  MASK_AON_APB_UFSDEV_SOFT_RST>;
+				phy_sram_init_done = <&anlg_phy_g12_regs 0x0c 0x01>;
+				aon_apb_ufs_clk_en = <&aon_apb_regs REG_AON_APB_UFSHC_CTRL
 					 (MASK_AON_APB_UFSHC_PCLK_EN|MASK_AON_APB_UFSHC_HCLK_EN)>;
-				syscon-names = "ap_ahb_ufs_rst",
-					       "aon_apb_ufs_rst",
-					       "phy_sram_init_done",
-					       "aon_apb_ufs_clk_en";
+				ufsdev_refclk_en = <&aon_apb_regs REG_AON_APB_UFSDEV_REG
+					 MASK_AON_APB_UFSDEV_REFCLK_EN>;
+				usb31pllv_ref2mphy_en = <&aon_apb_regs  REG_AON_APB_USB31PLL_CTRL_MISC
+					 MASK_AON_APB_REG_ANALOG_USB31PLLV_REF2MPHY_EN>;
+
+				nvmem-cells = <&ufs_cali_lane1>, <&ufs_cali_lane0>;
+				nvmem-cell-names = "ufs_cali_lane1", "ufs_cali_lane0";
+
 				status = "okay";
 			};
 
@@ -1889,6 +1892,14 @@
 				thm3_sen5: thm3-sen0@aa {
 					reg = <0xaa 0x1>;
 					bits = <0 8>;
+				};
+
+				ufs_cali_lane1: cali_dblk68@3c {
+					reg = <0x3c 0x4>;
+				};
+
+				ufs_cali_lane0: cali_dblk69@40 {
+					reg = <0x40 0x4>;
 				};
 			};
 
