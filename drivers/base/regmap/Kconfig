@@ -53,3 +53,6 @@ config REGMAP_SCCB
 config REGMAP_I3C
 	tristate
 	depends on I3C
+
+config REGMAP_HOOK
+	tristate "Unisoc regmap hook"

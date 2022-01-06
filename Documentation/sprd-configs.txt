@@ -14898,6 +14898,15 @@ CONFIG_REGMAP
 	[must] user
 	[missing plat description] none
 	[function] Support regmap.
+CONFIG_REGMAP_HOOK
+	[arch] arm64
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
 CONFIG_REGMAP_I2C
 	[arch] all
 	[plat] all
