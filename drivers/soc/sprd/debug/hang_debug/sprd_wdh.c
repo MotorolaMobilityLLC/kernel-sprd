@@ -38,11 +38,12 @@
 #define pr_fmt(fmt) "sprd_wdh: " fmt
 
 #define MAX_CALLBACK_LEVEL  16
-#define SPRD_PRINT_BUF_LEN  8192
+#define SPRD_PRINT_BUF_LEN  32768
 #define SPRD_STACK_SIZE 256
 #define SPRD_NS_EL0 (0x0)
 #define SPRD_NS_EL1 (0x1)
 #define SPRD_NS_EL2 (0x2)
+#define SPRD_CPUS 8
 
 enum hand_dump_phase {
 	SPRD_HANG_DUMP_ENTER = 1,
@@ -64,9 +65,8 @@ static atomic_t sprd_enter_wdh;
 extern void sysdump_ipi(struct pt_regs *regs);
 extern unsigned long gic_get_gicd_base(void);
 
-static DEFINE_PER_CPU(char [SPRD_PRINT_BUF_LEN], sprd_log_buf);
-static DEFINE_PER_CPU(int, sprd_log_buf_pos);
-static int log_length;
+static char *sprd_log_buf[SPRD_CPUS];
+static int sprd_log_buf_pos[SPRD_CPUS];
 static struct gicd_data *gicd_regs;
 static struct gicc_data *gicc_regs;
 
@@ -133,27 +133,35 @@ extern void sprd_hangd_console_write(const char *s, unsigned int count);
 					pfn_valid(__pa(kaddr) >> PAGE_SHIFT))
 #endif
 
-static void sprd_write_print_buf(char *source, int size, int cpu)
+static void sprd_write_print_buf(bool console, char *source, int size, int cpu)
 {
-	unsigned char *log_buf = per_cpu_ptr(sprd_log_buf, cpu);
-	int log_buf_pos = per_cpu(sprd_log_buf_pos, cpu);
+	unsigned char *log_buf;
+	int log_buf_pos;
+
+	if (!sprd_log_buf[cpu])
+		goto out;
+
+	log_buf = sprd_log_buf[cpu];
+	log_buf_pos = sprd_log_buf_pos[cpu];
 
 	if (log_buf_pos + size <= SPRD_PRINT_BUF_LEN) {
 		memcpy(log_buf + log_buf_pos, source, size);
-		per_cpu(sprd_log_buf_pos, cpu) = log_buf_pos + size;
+		sprd_log_buf_pos[cpu] = log_buf_pos + size;
 	} else {
 		memcpy(log_buf + log_buf_pos, source, (SPRD_PRINT_BUF_LEN - log_buf_pos));
-		per_cpu(sprd_log_buf_pos, cpu) = log_buf_pos + size - SPRD_PRINT_BUF_LEN;
+		sprd_log_buf_pos[cpu] = log_buf_pos + size - SPRD_PRINT_BUF_LEN;
 		memcpy(log_buf, source, log_buf_pos);
 	}
+
+out:
 #if IS_ENABLED(CONFIG_SPRD_HANG_DEBUG_UART)
-	sprd_hangd_console_write(source, size);
+	if (console)
+		sprd_hangd_console_write(source, size);
 #endif
-	log_length += size;
 }
 
 static char wdh_tmp_buf[256];
-void sprd_hang_debug_printf(const char *fmt, ...)
+static void sprd_hang_debug_printf(bool console, const char *fmt, ...)
 {
 	int cpu = smp_processor_id();
 	u64 boottime_us = ktime_get_boot_fast_ns();
@@ -186,7 +194,7 @@ void sprd_hang_debug_printf(const char *fmt, ...)
 	size += vsprintf(wdh_tmp_buf + size, fmt, args);
 	va_end(args);
 
-	sprd_write_print_buf(wdh_tmp_buf, size, cpu);
+	sprd_write_print_buf(console, wdh_tmp_buf, size, cpu);
 
 	raw_spin_unlock(&sprd_wdh_prlock);
 }
@@ -211,7 +219,7 @@ static int __nocfi set_panic_debug_entry(unsigned long func_addr,
 
 __weak void prepare_dump_info_for_wdh(struct pt_regs *regs, const char *reason)
 {
-	sprd_hang_debug_printf("Not defined func %s, for %p, %s\n", __func__, regs, reason);
+	sprd_hang_debug_printf(true, "Not defined func %s, for %p, %s\n", __func__, regs, reason);
 }
 
 static unsigned long smcc_get_regs(enum smcc_regs_id id, int core_id)
@@ -222,7 +230,7 @@ static unsigned long smcc_get_regs(enum smcc_regs_id id, int core_id)
 
 	ret = svc_handle->dbg_ops.get_hang_ctx(id, core_id, &val);
 	if (ret) {
-		sprd_hang_debug_printf("%s: failed to get cpu statue\n", __func__);
+		sprd_hang_debug_printf(true, "%s: failed to get cpu statue\n", __func__);
 		return EPERM;
 	}
 #endif
@@ -236,7 +244,7 @@ static unsigned short smcc_get_cpu_state(int core_id)
 
 	ret = svc_handle->dbg_ops.get_hang_ctx(CPU_STATUS, core_id, &val);
 	if (ret) {
-		sprd_hang_debug_printf("failed to get cpu statue\n");
+		sprd_hang_debug_printf(true, "failed to get cpu statue\n");
 		return EPERM;
 	}
 #endif
@@ -270,7 +278,80 @@ static int is_el3_ret_last_cpu(int cpu, unsigned short n)
 
 static void print_step(int cpu)
 {
-	sprd_hang_debug_printf("wdh_step = %d\n", wdh_step[cpu]);
+	sprd_hang_debug_printf(true, "wdh_step = %d\n", wdh_step[cpu]);
+}
+
+static void show_data(unsigned long addr, const char *name)
+{
+#if IS_ENABLED(CONFIG_VMAP_STACK)
+	struct vm_struct *vaddr;
+#endif
+	int i, j;
+	unsigned int *p;
+	unsigned int data;
+	char str[sizeof(" 12345678") * 8 + 1];
+
+	/*
+	 * don't attempt to dump non-kernel addresses or
+	 * values that are probably just small negative numbers
+	 */
+#if IS_ENABLED(CONFIG_VMAP_STACK)
+	if (!((addr >= VMALLOC_START) && (addr < VMALLOC_END)))
+		return;
+
+	vaddr = find_vm_area_no_wait((const void *)addr);
+	if (!vaddr || ((vaddr->flags & VM_IOREMAP) == VM_IOREMAP))
+		return;
+#else
+	if (!sprd_virt_addr_valid(addr))
+		return;
+#endif
+	p = (unsigned int *)addr;
+
+	sprd_hang_debug_printf(false, "%s : [%lx ---- %lx]\n",
+				name, addr, (addr + SPRD_STACK_SIZE));
+
+	for (i = 0; i < (SPRD_STACK_SIZE >> 5); i++) {
+		memset(str, ' ', sizeof(str));
+		str[sizeof(str) - 1] = '\0';
+
+		for (j = 0; j < 8; j++) {
+			if (!__get_user(data, p))
+				sprintf(str + j * 9, " %08x", data);
+			else
+				sprintf(str + j * 9, " ********");
+			++p;
+		}
+		sprd_hang_debug_printf(false, "%04lx:%s\n", (unsigned long)(p - 8) & 0xffff, str);
+	}
+}
+
+static void show_extra_register_data(struct pt_regs *regs)
+{
+	mm_segment_t fs;
+	unsigned int i;
+	char name[4];
+
+	fs = get_fs();
+	set_fs(KERNEL_DS);
+#if IS_ENABLED(CONFIG_ARM64)
+	show_data(regs->pc - SPRD_STACK_SIZE / 2, "PC");
+	show_data(regs->regs[30] - SPRD_STACK_SIZE / 2, "LR");
+	for (i = 0; i < 30; i++) {
+		snprintf(name, sizeof(name), "X%u", i);
+		show_data(regs->regs[i] - SPRD_STACK_SIZE / 2, name);
+	}
+#else
+	show_data(regs->ARM_pc - SPRD_STACK_SIZE / 2, "PC");
+	show_data(regs->ARM_lr - SPRD_STACK_SIZE / 2, "LR");
+	show_data(regs->ARM_ip - SPRD_STACK_SIZE / 2, "IP");
+	show_data(regs->ARM_fp - SPRD_STACK_SIZE / 2, "FP");
+	for (i = 0; i < 11; i++) {
+		snprintf(name, sizeof(name), "r%u", i);
+		show_data(regs->uregs[i] - SPRD_STACK_SIZE / 2, name);
+	}
+#endif
+	set_fs(fs);
 }
 
 static void cpu_regs_value_dump(int cpu)
@@ -280,36 +361,38 @@ static void cpu_regs_value_dump(int cpu)
 #if IS_ENABLED(CONFIG_ARM64)
 	int i;
 
-	sprd_hang_debug_printf("pc : %016llx, lr : %016llx, pstate : %016llx, sp_el0 : %016llx, sp_el1 : %016llx\n",
+	sprd_hang_debug_printf(true, "pc : %016llx, lr : %016llx, pstate : %016llx, sp_el0 : %016llx, sp_el1 : %016llx\n",
 				pregs->pc, pregs->regs[30], pregs->pstate,
 				smcc_get_regs(CPU_SP_EL0, cpu), smcc_get_regs(CPU_SP_EL1, cpu));
 
 	if (sprd_virt_addr_valid(pregs->pc))
-		sprd_hang_debug_printf("pc :(%ps)\n", (void *)pregs->pc);
-	sprd_hang_debug_printf("sp : %016llx\n", pregs->sp);
+		sprd_hang_debug_printf(true, "pc :(%ps)\n", (void *)pregs->pc);
+	sprd_hang_debug_printf(true, "sp : %016llx\n", pregs->sp);
 
 	for (i = 29; i >= 0; ) {
-		sprd_hang_debug_printf("x%-2d: %016llx x%-2d: %016llx\n", i, pregs->regs[i], i - 1,
+		sprd_hang_debug_printf(true, "x%-2d: %016llx x%-2d: %016llx\n", i, pregs->regs[i], i - 1,
 			pregs->regs[i - 1]);
 		i -= 2;
 	}
 #else
-	sprd_hang_debug_printf("pc  : %08lx, lr : %08lx, cpsr : %08lx, sp_usr : %08lx, sp_svc : %08lx\n",
+	sprd_hang_debug_printf(true, "pc  : %08lx, lr : %08lx, cpsr : %08lx, sp_usr : %08lx, sp_svc : %08lx\n",
 				pregs->ARM_pc, pregs->ARM_lr, pregs->ARM_cpsr,
 				smcc_get_regs(CPU_SP_EL0, cpu), smcc_get_regs(CPU_SP_EL1, cpu));
 	if (sprd_virt_addr_valid(pregs->ARM_pc))
-		sprd_hang_debug_printf("pc :(%ps)\n", (void *)pregs->ARM_pc);
-	sprd_hang_debug_printf("sp  : %08lx, ip : %08lx, fp : %08lx\n",
+		sprd_hang_debug_printf(true, "pc :(%ps)\n", (void *)pregs->ARM_pc);
+	sprd_hang_debug_printf(true, "sp  : %08lx, ip : %08lx, fp : %08lx\n",
 		      pregs->ARM_sp, pregs->ARM_ip, pregs->ARM_fp);
-	sprd_hang_debug_printf("r10 : %08lx, r9 : %08lx, r8 : %08lx\n",
+	sprd_hang_debug_printf(true, "r10 : %08lx, r9 : %08lx, r8 : %08lx\n",
 		      pregs->ARM_r10, pregs->ARM_r9, pregs->ARM_r8);
-	sprd_hang_debug_printf("r7  : %08lx, r6 : %08lx, r5 : %08lx\n",
+	sprd_hang_debug_printf(true, "r7  : %08lx, r6 : %08lx, r5 : %08lx\n",
 		      pregs->ARM_r7, pregs->ARM_r6, pregs->ARM_r5);
-	sprd_hang_debug_printf("r4  : %08lx, r3 : %08lx, r2 : %08lx\n",
+	sprd_hang_debug_printf(true, "r4  : %08lx, r3 : %08lx, r2 : %08lx\n",
 		      pregs->ARM_r4, pregs->ARM_r3, pregs->ARM_r2);
-	sprd_hang_debug_printf("r1  : %08lx, r0 : %08lx\n",
+	sprd_hang_debug_printf(true, "r1  : %08lx, r0 : %08lx\n",
 			  pregs->ARM_r1, pregs->ARM_r0);
 #endif
+	if (!user_mode(pregs))
+		show_extra_register_data(pregs);
 
 	wdh_step[cpu] = SPRD_HANG_DUMP_CPU_REGS;
 	print_step(cpu);
@@ -317,73 +400,48 @@ static void cpu_regs_value_dump(int cpu)
 
 static void cpu_stack_data_dump(int cpu)
 {
-	int i, j;
 	unsigned long sp, pc;
-	unsigned int *p;
-	unsigned int data;
 	struct pt_regs *pregs = &cpu_context[cpu];
-	mm_segment_t fs;
-	char str[sizeof(" 12345678") * 8 + 1];
-
-	/* maybe deadlock here? */
-	fs = get_fs();
-	set_fs(KERNEL_DS);
 
 	if (wdh_step[cpu] == SPRD_HANG_DUMP_CPU_REGS) {
 #if IS_ENABLED(CONFIG_ARM64)
-		sp = pregs->sp - (SPRD_STACK_SIZE >> 1);
+		sp = pregs->sp;
 		pc = pregs->pc;
 #else
 		sp = pregs->ARM_sp;
 		pc = pregs->ARM_pc;
 #endif
 		if (sp & 3) {
-			sprd_hang_debug_printf("%s sp unaligned %08lx\n", __func__, sp);
+			sprd_hang_debug_printf(true, "%s sp unaligned %08lx\n", __func__, sp);
 			return;
 		}
 		if (!sprd_virt_addr_valid(pc)) {
-			sprd_hang_debug_printf("%s: It's not in valid kernel space!\n", __func__);
+			sprd_hang_debug_printf(true, "%s: It's not in valid kernel space!\n", __func__);
 			return;
 		}
 #if IS_ENABLED(CONFIG_VMAP_STACK)
 		if (!((sp >= VMALLOC_START) && (sp < VMALLOC_END))) {
-			sprd_hang_debug_printf("%s sp out of kernel addr space %08lx\n", sp);
+			sprd_hang_debug_printf(true, "%s sp out of kernel addr space %08lx\n", sp);
 			return;
 		}
 		if (!(((sp + SPRD_STACK_SIZE) >= VMALLOC_START) && ((sp + SPRD_STACK_SIZE) < VMALLOC_END))) {
-			sprd_hang_debug_printf("%s sp top out of kernel addr space %08lx\n",
+			sprd_hang_debug_printf(true, "%s sp top out of kernel addr space %08lx\n",
 				(sp + SPRD_STACK_SIZE));
 			return;
 		}
 #else
 		if (!((sp >= (PAGE_OFFSET + THREAD_SIZE)) && sprd_virt_addr_valid(sp))) {
-			sprd_hang_debug_printf("%s sp out of kernel addr space %08lx\n", sp);
+			sprd_hang_debug_printf(true, "%s sp out of kernel addr space %08lx\n", sp);
 			return;
 		}
 		if (!(((sp + SPRD_STACK_SIZE) >= (PAGE_OFFSET + THREAD_SIZE)) && sprd_virt_addr_valid(sp))) {
-			sprd_hang_debug_printf("%s sp top out of kernel addr space %08lx\n",
+			sprd_hang_debug_printf(true, "%s sp top out of kernel addr space %08lx\n",
 				      (sp + SPRD_STACK_SIZE));
 			return;
 		}
 #endif
 		/* we always set 256 Bytes as stack size here */
-		p = (unsigned int *)sp;
-		sprd_hang_debug_printf("sp : [%lx ---- %lx]\n",
-			sp, (sp + SPRD_STACK_SIZE));
-
-		for (i = 0; i < (SPRD_STACK_SIZE >> 5); i++) {
-			memset(str, ' ', sizeof(str));
-			str[sizeof(str) - 1] = '\0';
-
-			for (j = 0; j < 8; j++) {
-				if (!__get_user(data, p))
-					sprintf(str + j * 9, " %08x", data);
-				else
-					sprintf(str + j * 9, " ********");
-				++p;
-			}
-			sprd_hang_debug_printf("%04lx:%s\n", (unsigned long)(p - 8) & 0xffff, str);
-		}
+		show_data(sp, "SP");
 		flush_cache_all();
 		wdh_step[cpu] = SPRD_HANG_DUMP_STACK_DATA;
 	} else {
@@ -441,19 +499,19 @@ static int get_gicd_regs(struct gicd_data *d)
 static void gicc_regs_value_dump(int cpu)
 {
 	if (!gicc_regs) {
-		sprd_hang_debug_printf("gicc_regs allocation failed\n");
+		sprd_hang_debug_printf(true, "gicc_regs allocation failed\n");
 		return;
 	}
 
 	get_gicc_regs(gicc_regs);
 
-	sprd_hang_debug_printf("gicc_ctlr  : %08x, gicc_pmr : %08x, gicc_bpr : %08x\n",
+	sprd_hang_debug_printf(true, "gicc_ctlr  : %08x, gicc_pmr : %08x, gicc_bpr : %08x\n",
 		     gicc_regs->gicc_ctlr, gicc_regs->gicc_pmr, gicc_regs->gicc_bpr);
-	sprd_hang_debug_printf("gicc_rpr  : %08x, gicc_hppir0 : %08x, gicc_abpr : %08x\n",
+	sprd_hang_debug_printf(true, "gicc_rpr  : %08x, gicc_hppir0 : %08x, gicc_abpr : %08x\n",
 		     gicc_regs->gicc_rpr, gicc_regs->gicc_hppir, gicc_regs->gicc_abpr);
-	sprd_hang_debug_printf("gicc_aiar  : %08x, gicc_ahppir : %08x, gicc_statusr : %08x\n",
+	sprd_hang_debug_printf(true, "gicc_aiar  : %08x, gicc_ahppir : %08x, gicc_statusr : %08x\n",
 		     gicc_regs->gicc_aiar, gicc_regs->gicc_ahppir, gicc_regs->gicc_statusr);
-	sprd_hang_debug_printf("gicc_iidr  : %08x\n", gicc_regs->gicc_iidr);
+	sprd_hang_debug_printf(true, "gicc_iidr  : %08x\n", gicc_regs->gicc_iidr);
 
 	wdh_step[cpu] = SPRD_HANG_DUMP_GICC_REGS;
 	print_step(cpu);
@@ -464,7 +522,7 @@ static void gicd_regs_value_dump(int cpu)
 	int i, ret;
 
 	if (!gicd_regs) {
-		sprd_hang_debug_printf("gicd_regs allocation failed\n");
+		sprd_hang_debug_printf(true, "gicd_regs allocation failed\n");
 		return;
 	}
 	for (i = 0; i < 7; i++) {
@@ -474,14 +532,14 @@ static void gicd_regs_value_dump(int cpu)
 
 	ret = get_gicd_regs(gicd_regs);
 	if (!ret) {
-		sprd_hang_debug_printf("--- show the gicd regs ---\n");
+		sprd_hang_debug_printf(true, "--- show the gicd regs ---\n");
 
-		sprd_hang_debug_printf("gicd_ctlr: %08x, gicd_typer : %08x, gicd_statusr : %08x\n",
+		sprd_hang_debug_printf(true, "gicd_ctlr: %08x, gicd_typer : %08x, gicd_statusr : %08x\n",
 			gicd_regs->gicd_ctlr,
 			gicd_regs->gicd_typer,
 			gicd_regs->gicd_statusr);
 
-		sprd_hang_debug_printf("gicd_igroup: %08x, %08x, %08x, %08x, %08x, %08x, %08x\n",
+		sprd_hang_debug_printf(true, "gicd_igroup: %08x, %08x, %08x, %08x, %08x, %08x, %08x\n",
 			gicd_regs->gicd_igroup[0],
 			gicd_regs->gicd_igroup[1],
 			gicd_regs->gicd_igroup[2],
@@ -490,7 +548,7 @@ static void gicd_regs_value_dump(int cpu)
 			gicd_regs->gicd_igroup[5],
 			gicd_regs->gicd_igroup[6]);
 
-		sprd_hang_debug_printf("gicd_isenabler: %08x, %08x, %08x, %08x, %08x, %08x, %08x\n",
+		sprd_hang_debug_printf(true, "gicd_isenabler: %08x, %08x, %08x, %08x, %08x, %08x, %08x\n",
 			gicd_regs->gicd_isenabler[0],
 			gicd_regs->gicd_isenabler[1],
 			gicd_regs->gicd_isenabler[2],
@@ -499,7 +557,7 @@ static void gicd_regs_value_dump(int cpu)
 			gicd_regs->gicd_isenabler[5],
 			gicd_regs->gicd_isenabler[6]);
 
-		sprd_hang_debug_printf("gicd_ispendr: %08x, %08x, %08x, %08x, %08x, %08x, %08x\n",
+		sprd_hang_debug_printf(true, "gicd_ispendr: %08x, %08x, %08x, %08x, %08x, %08x, %08x\n",
 			gicd_regs->gicd_ispendr[0],
 			gicd_regs->gicd_ispendr[1],
 			gicd_regs->gicd_ispendr[2],
@@ -508,7 +566,7 @@ static void gicd_regs_value_dump(int cpu)
 			gicd_regs->gicd_ispendr[5],
 			gicd_regs->gicd_ispendr[6]);
 
-		sprd_hang_debug_printf("gicd_igrpmodr: %08x, %08x, %08x, %08x, %08x, %08x, %08x\n",
+		sprd_hang_debug_printf(true, "gicd_igrpmodr: %08x, %08x, %08x, %08x, %08x, %08x, %08x\n",
 			gicd_regs->gicd_igrpmodr[0],
 			gicd_regs->gicd_igrpmodr[1],
 			gicd_regs->gicd_igrpmodr[2],
@@ -545,21 +603,21 @@ static void sprd_unwind_backtrace_dump(int cpu)
 
 #if IS_ENABLED(CONFIG_VMAP_STACK)
 	if (!((sp >= VMALLOC_START) && (sp < VMALLOC_END))) {
-		sprd_hang_debug_printf("%s sp out of kernel addr space %08lx\n", sp);
+		sprd_hang_debug_printf(true, "%s sp out of kernel addr space %08lx\n", sp);
 		return;
 	}
 #else
 	if (!sprd_virt_addr_valid(sp)) {
-		sprd_hang_debug_printf("invalid sp[%lx]\n", sp);
+		sprd_hang_debug_printf(true, "invalid sp[%lx]\n", sp);
 		return;
 	}
 #endif
 	if (!sprd_virt_addr_valid(frame.pc)) {
-		sprd_hang_debug_printf("invalid pc\n");
+		sprd_hang_debug_printf(true, "invalid pc\n");
 		return;
 	}
-	sprd_hang_debug_printf("callstack:\n");
-	sprd_hang_debug_printf("[<%08lx>] (%ps)\n", frame.pc, (void *)frame.pc);
+	sprd_hang_debug_printf(true, "callstack:\n");
+	sprd_hang_debug_printf(true, "[<%08lx>] (%pS)\n", frame.pc, (void *)frame.pc);
 
 	for (i = 0; i < MAX_CALLBACK_LEVEL; i++) {
 		int urc;
@@ -572,11 +630,11 @@ static void sprd_unwind_backtrace_dump(int cpu)
 			break;
 
 		if (!sprd_virt_addr_valid(frame.pc)) {
-			sprd_hang_debug_printf("i=%d, sprd_virt_addr_valid fail\n", i);
+			sprd_hang_debug_printf(true, "i=%d, sprd_virt_addr_valid fail\n", i);
 			break;
 		}
 
-		sprd_hang_debug_printf("[<%08lx>] (%ps)\n", frame.pc, (void *)frame.pc);
+		sprd_hang_debug_printf(true, "[<%08lx>] (%ps)\n", frame.pc, (void *)frame.pc);
 	}
 
 	wdh_step[cpu] = SPRD_HANG_DUMP_CALL_STACK;
@@ -593,7 +651,7 @@ asmlinkage __visible void wdh_atf_entry(struct pt_regs *data)
 
 	cpu = smp_processor_id();
 	wdh_step[cpu] = SPRD_HANG_DUMP_ENTER;
-	sprd_hang_debug_printf("---wdh enter!---\n");
+	sprd_hang_debug_printf(true, "---wdh enter!---\n");
 
 	oops_in_progress = 1;
 	pregs = &cpu_context[cpu];
@@ -614,10 +672,10 @@ asmlinkage __visible void wdh_atf_entry(struct pt_regs *data)
 	sprd_unwind_backtrace_dump(cpu);
 	gicc_regs_value_dump(cpu);
 
-	sprd_hang_debug_printf("cpu_state = 0x%04x\n", (unsigned int)cpu_state);
+	sprd_hang_debug_printf(true, "cpu_state = 0x%04x\n", (unsigned int)cpu_state);
 
 	if (user_mode(pregs) || atomic_xchg(&sprd_enter_wdh, 1)) {
-		sprd_hang_debug_printf("%s: goto panic idle\n", __func__);
+		sprd_hang_debug_printf(true, "%s: goto panic idle\n", __func__);
 		sprd_dump_stack_reg(cpu, pregs);
 		minidump_update_current_stack(cpu, pregs);
 		sysdump_ipi(pregs);
@@ -635,10 +693,10 @@ asmlinkage __visible void wdh_atf_entry(struct pt_regs *data)
 		cpu_state = smcc_get_cpu_state(cpu);
 		is_last_cpu = is_el3_ret_last_cpu(cpu, cpu_state);
 	}
-	sprd_hang_debug_printf("wait last cpu %s\n", is_last_cpu ? "ok" : "failed");
+	sprd_hang_debug_printf(true, "wait last cpu %s\n", is_last_cpu ? "ok" : "failed");
 
 	if (!is_last_cpu)
-		sprd_hang_debug_printf("cpu_state = 0x%04x\n", (unsigned int)cpu_state);
+		sprd_hang_debug_printf(true, "cpu_state = 0x%04x\n", (unsigned int)cpu_state);
 	else {
 		for_each_online_cpu(cpu_num) {
 			wait_last_cnt = 10;
@@ -739,6 +797,9 @@ static struct notifier_block sprd_module_notifier = {
 
 static int sprd_wdh_atf_init(void)
 {
+	int i;
+	int ret = 0;
+
 	raw_spin_lock_init(&sprd_wdh_prlock);
 	raw_spin_lock_init(&sprd_wdh_wclock);
 	atomic_set(&sprd_enter_wdh, 0);
@@ -747,9 +808,36 @@ static int sprd_wdh_atf_init(void)
 	register_module_notifier(&sprd_module_notifier);
 
 	gicc_regs = kmalloc(sizeof(struct gicc_data), GFP_KERNEL);
-	gicd_regs = kmalloc(sizeof(struct gicd_data), GFP_KERNEL);
+	if (!gicc_regs) {
+		pr_err("alloc gicc_regs fail!\n");
+		return -ENOMEM;
+	}
 
-	return 0;
+	gicd_regs = kmalloc(sizeof(struct gicd_data), GFP_KERNEL);
+	if (!gicd_regs) {
+		pr_err("alloc gicd_regs fail!\n");
+		ret = -ENOMEM;
+		goto gic_fail;
+	}
+
+	for (i = 0; i < SPRD_CPUS; i++) {
+		sprd_log_buf[i] = kzalloc(SPRD_PRINT_BUF_LEN, GFP_KERNEL);
+		if (!sprd_log_buf[i]) {
+			pr_err("alloc sprd_log_buf fail!\n");
+			ret = -ENOMEM;
+			goto out;
+		}
+	}
+	return ret;
+
+out:
+	for (i = 0; i < SPRD_CPUS; i++)
+		kfree(sprd_log_buf[i]);
+
+	kfree(gicd_regs);
+gic_fail:
+	kfree(gicc_regs);
+	return ret;
 }
 
 late_initcall(sprd_wdh_atf_init);
