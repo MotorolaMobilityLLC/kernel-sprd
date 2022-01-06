@@ -1298,9 +1298,15 @@ static int musb_gadget_dequeue(struct usb_ep *ep, struct usb_request *request)
 	unsigned long		flags;
 	int			status = 0;
 	struct musb		*musb = musb_ep->musb;
+	struct device		*dev = musb->controller;
 
 	if (!ep || !request || req->ep != musb_ep)
 		return -EINVAL;
+
+	if (pm_runtime_suspended(dev)) {
+		WARN(1, "cann't access musb in suspended\n");
+		return -EINVAL;
+	}
 
 	trace_musb_req_deq(req);
 
