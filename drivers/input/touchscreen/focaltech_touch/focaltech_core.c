@@ -1833,6 +1833,7 @@ int fts_ts_resume(struct device *dev)
 {
     struct fts_ts_data *ts_data = fts_data;
     FTS_FUNC_ENTER();
+    msleep(100);
     if (!ts_data->suspended) {
         FTS_DEBUG("Already in awake state");
         return 0;
