@@ -130,6 +130,10 @@ static char *charger_manager_supplied_to[] = {
 
 #define UEVENT_BUF_SIZE		32
 
+#define CHARGE_FULL_SOC_VALUE 970
+/* CHARGE_SOC_VALUE_FACTOR = (1000 * 1000) / 970 integer*/
+#define CHARGE_SOC_VALUE_FACTOR 1031
+
 static LIST_HEAD(cm_list);
 static DEFINE_MUTEX(cm_list_mtx);
 
@@ -4501,13 +4505,15 @@ static void cm_batt_works(struct work_struct *work)
 				struct charger_manager, cap_update_work);
 	struct timespec64 cur_time;
 	int batt_uV, batt_ocV, bat_uA, fuel_cap, chg_sts, ret;
-	int period_time, flush_time, cur_temp, board_temp;
+	int /*period_time, flush_time, */cur_temp, board_temp;
 	int chg_cur = 0, chg_limit_cur = 0, charger_input_vol = 0;
 	static int last_fuel_cap = CM_CAP_MAGIC_NUM;
 	static bool charge_done=false;
 	int term_vol;
 	static int is_cal_cap=0,cal_count=0,low_bat=0;
 	int real_cap; 
+	static int last_temp=0;
+	int fuel_cap_buf = 0;
 
 	ret = get_batt_uV(cm, &batt_uV);
 	if (ret) {
@@ -4532,6 +4538,7 @@ static void cm_batt_works(struct work_struct *work)
 		dev_warn(cm->dev, "failed to get charger input voltage\n");
 
 	ret = get_batt_cap(cm, &fuel_cap);
+	dev_info(cm->dev, "get_batt_cap:fuel_cap = %d\n", fuel_cap);
 	if (ret) {
 		dev_err(cm->dev, "get fuel_cap error.\n");
 		goto schedule_cap_update_work;
@@ -4602,32 +4609,36 @@ static void cm_batt_works(struct work_struct *work)
 	else
 		chg_sts = POWER_SUPPLY_STATUS_DISCHARGING;
 
+	dev_info(cm->dev, "chg_sts:%d\n", chg_sts);
+
 	/*
 	 * Record the charging time when battery
 	 * capacity is larger than 99%.
 	 */
-	if (chg_sts == POWER_SUPPLY_STATUS_CHARGING) {
-		if (cm->desc->cap >= 986) {
-			cm->desc->trickle_time =
-				cur_time.tv_sec - cm->desc->trickle_start_time;
-		} else {
-			cm->desc->trickle_start_time = cur_time.tv_sec;
-			cm->desc->trickle_time = 0;
-		}
-	} else {
-		cm->desc->trickle_start_time = cur_time.tv_sec;
-		cm->desc->trickle_time = cm->desc->trickle_time_out +
-				cm->desc->cap_one_time;
-	}
+	// if (chg_sts == POWER_SUPPLY_STATUS_CHARGING) {
+	// 	if (cm->desc->cap >= 986) {
+	// 		cm->desc->trickle_time =
+	// 			cur_time.tv_sec - cm->desc->trickle_start_time;
+	// 	} else {
+	// 		cm->desc->trickle_start_time = cur_time.tv_sec;
+	// 		cm->desc->trickle_time = 0;
+	// 	}
+	// } else {
+	// 	cm->desc->trickle_start_time = cur_time.tv_sec;
+	// 	cm->desc->trickle_time = cm->desc->trickle_time_out +
+	// 			cm->desc->cap_one_time;
+	// }
 
-	flush_time = cur_time.tv_sec - cm->desc->update_capacity_time;
-	period_time = cur_time.tv_sec - cm->desc->last_query_time;
-	cm->desc->last_query_time = cur_time.tv_sec;
+	// flush_time = cur_time.tv_sec - cm->desc->update_capacity_time;
+	// period_time = cur_time.tv_sec - cm->desc->last_query_time;
+	// cm->desc->last_query_time = cur_time.tv_sec;
 
 	if (cm->desc->force_set_full && is_ext_pwr_online(cm))
 		cm->desc->charger_status = POWER_SUPPLY_STATUS_FULL;
 	else
 		cm->desc->charger_status = chg_sts;
+
+	dev_info(cm->dev, "cm->desc->charger_status:%d\n", cm->desc->charger_status);
 
 	dev_info(cm->dev, "Vbat=%d,OCV=%d,cur=%d,Vchr=%d,"
 		 "soc=%d,%d,status=%d,force=%d,"
@@ -4643,106 +4654,125 @@ static void cm_batt_works(struct work_struct *work)
 
 	switch (cm->desc->charger_status) {
 	case POWER_SUPPLY_STATUS_CHARGING:
-		last_fuel_cap = fuel_cap;
-		if (fuel_cap < cm->desc->cap) {
-			if (bat_uA >= 0) {
-				fuel_cap = cm->desc->cap;
-			} else {
-				/*
-				 * The percentage of electricity is not
-				 * allowed to change by 1% in cm->desc->cap_one_time.
-				 */
-				if (period_time < cm->desc->cap_one_time &&
-					(cm->desc->cap - fuel_cap) >= 5)
-					fuel_cap = cm->desc->cap - 5;
-				/*
-				 * If wake up from long sleep mode,
-				 * will make a percentage compensation based on time.
-				 */
-				if ((cm->desc->cap - fuel_cap) >=
-				    (flush_time / cm->desc->cap_one_time) * 10)
-					fuel_cap = cm->desc->cap -
-						(flush_time / cm->desc->cap_one_time) * 10;
-			}
-		} else if (fuel_cap > cm->desc->cap) {
-			if (period_time < cm->desc->cap_one_time &&
-					(fuel_cap - cm->desc->cap) >= 5)
-				fuel_cap = cm->desc->cap + 5;
+		// last_fuel_cap = fuel_cap;
+		// if (fuel_cap < cm->desc->cap) {
+		// 	if (bat_uA >= 0) {
+		// 		fuel_cap = cm->desc->cap;
+		// 	} else {
+		// 		/*
+		// 		 * The percentage of electricity is not
+		// 		 * allowed to change by 1% in cm->desc->cap_one_time.
+		// 		 */
+		// 		if (period_time < cm->desc->cap_one_time &&
+		// 			(cm->desc->cap - fuel_cap) >= 5)
+		// 			fuel_cap = cm->desc->cap - 5;
+		// 		/*
+		// 		 * If wake up from long sleep mode,
+		// 		 * will make a percentage compensation based on time.
+		// 		 */
+		// 		if ((cm->desc->cap - fuel_cap) >=
+		// 		    (flush_time / cm->desc->cap_one_time) * 10)
+		// 			fuel_cap = cm->desc->cap -
+		// 				(flush_time / cm->desc->cap_one_time) * 10;
+		// 	}
+		// } else if (fuel_cap > cm->desc->cap) {
+		// 	if (period_time < cm->desc->cap_one_time &&
+		// 			(fuel_cap - cm->desc->cap) >= 5)
+		// 		fuel_cap = cm->desc->cap + 5;
 
-			if ((fuel_cap - cm->desc->cap) >=
-			    (flush_time / cm->desc->cap_one_time) * 10)
-				fuel_cap = cm->desc->cap +
-					(flush_time / cm->desc->cap_one_time) * 10;
+		// 	if ((fuel_cap - cm->desc->cap) >=
+		// 	    (flush_time / cm->desc->cap_one_time) * 10)
+		// 		fuel_cap = cm->desc->cap +
+		// 			(flush_time / cm->desc->cap_one_time) * 10;
+		// }
+
+		// if (cm->desc->cap >= 985 && cm->desc->cap <= 994 &&
+		//     fuel_cap >= CM_CAP_FULL_PERCENT)
+		// 	fuel_cap = 994;
+
+		if (fuel_cap >= CHARGE_FULL_SOC_VALUE) {
+			fuel_cap_buf = 1000;
+		} else {
+			fuel_cap_buf = (fuel_cap * CHARGE_SOC_VALUE_FACTOR) / 1000;
 		}
-
-		if (cm->desc->cap >= 985 && cm->desc->cap <= 994 &&
-		    fuel_cap >= CM_CAP_FULL_PERCENT)
-			fuel_cap = 994;
 		/*
 		 * Record 99% of the charging time.
 		 * if it is greater than 1500s,
 		 * it will be mandatory to display 100%,
 		 * but the background is still charging.
 		 */
-		if (cm->desc->cap >= 995 &&
-		    cm->desc->trickle_time >= cm->desc->trickle_time_out &&
-		    cm->desc->trickle_time_out > 0 &&
-		    bat_uA > 0)
-			cm->desc->force_set_full = true;
+		// if (cm->desc->cap >= 995 &&
+		//     cm->desc->trickle_time >= cm->desc->trickle_time_out &&
+		//     cm->desc->trickle_time_out > 0 &&
+		//     bat_uA > 0)
+		// 	cm->desc->force_set_full = true;
 
 		break;
 
 	case POWER_SUPPLY_STATUS_NOT_CHARGING:
 	case POWER_SUPPLY_STATUS_DISCHARGING:
-		/*
-		 * In not charging status,
-		 * the cap is not allowed to increase.
-		 */
-		if (fuel_cap >= cm->desc->cap) {
-			last_fuel_cap = fuel_cap;
-			fuel_cap = cm->desc->cap;
-		} /*else if (cm->desc->cap >= CM_HCAP_THRESHOLD) {
-			if (last_fuel_cap - fuel_cap >= CM_HCAP_DECREASE_STEP) {
-				if (cm->desc->cap - fuel_cap >= CM_CAP_ONE_PERCENT)
-					fuel_cap = cm->desc->cap - CM_CAP_ONE_PERCENT;
-				else
-					fuel_cap = cm->desc->cap - CM_HCAP_DECREASE_STEP;
-
-				last_fuel_cap -= CM_HCAP_DECREASE_STEP;
-			} else {
-				fuel_cap = cm->desc->cap;
-			}
-		} */else {
-			if (period_time < cm->desc->cap_one_time &&
-//			    (cm->desc->cap - fuel_cap) >= 5)
-//				fuel_cap = cm->desc->cap - 5;
-			    (cm->desc->cap - fuel_cap) >= 1)
-				fuel_cap = cm->desc->cap - 1;
-			/*
-			 * If wake up from long sleep mode,
-			 * will make a percentage compensation based on time.
-			 */
-			if ((cm->desc->cap - fuel_cap) >=
-			    (flush_time / cm->desc->cap_one_time) * 10)
-				fuel_cap = cm->desc->cap -
-					(flush_time / cm->desc->cap_one_time) * 10;
-			else if (cm->desc->cap - fuel_cap > CM_CAP_ONE_PERCENT)
-				fuel_cap = cm->desc->cap - CM_CAP_ONE_PERCENT;
+		if (fuel_cap >= CHARGE_FULL_SOC_VALUE) {
+			fuel_cap_buf = 1000;
+		} else {
+			fuel_cap_buf = (fuel_cap * CHARGE_SOC_VALUE_FACTOR) / 1000;
 		}
+
+// 		/*
+// 		 * In not charging status,
+// 		 * the cap is not allowed to increase.
+// 		 */
+// 		if (fuel_cap >= cm->desc->cap) {
+// 			last_fuel_cap = fuel_cap;
+// 			fuel_cap = cm->desc->cap;
+// 		} /*else if (cm->desc->cap >= CM_HCAP_THRESHOLD) {
+// 			if (last_fuel_cap - fuel_cap >= CM_HCAP_DECREASE_STEP) {
+// 				if (cm->desc->cap - fuel_cap >= CM_CAP_ONE_PERCENT)
+// 					fuel_cap = cm->desc->cap - CM_CAP_ONE_PERCENT;
+// 				else
+// 					fuel_cap = cm->desc->cap - CM_HCAP_DECREASE_STEP;
+
+// 				last_fuel_cap -= CM_HCAP_DECREASE_STEP;
+// 			} else {
+// 				fuel_cap = cm->desc->cap;
+// 			}
+// 		} */else {
+// 			if (period_time < cm->desc->cap_one_time &&
+// //			    (cm->desc->cap - fuel_cap) >= 5)
+// //				fuel_cap = cm->desc->cap - 5;
+// 			    (cm->desc->cap - fuel_cap) >= 1)
+// 				fuel_cap = cm->desc->cap - 1;
+// 			/*
+// 			 * If wake up from long sleep mode,
+// 			 * will make a percentage compensation based on time.
+// 			 */
+// 			if ((cm->desc->cap - fuel_cap) >=
+// 			    (flush_time / cm->desc->cap_one_time) * 10)
+// 				fuel_cap = cm->desc->cap -
+// 					(flush_time / cm->desc->cap_one_time) * 10;
+// 			else if (cm->desc->cap - fuel_cap > CM_CAP_ONE_PERCENT)
+// 				fuel_cap = cm->desc->cap - CM_CAP_ONE_PERCENT;
+// 		}
+
 		break;
 
 	case POWER_SUPPLY_STATUS_FULL:
-		last_fuel_cap = fuel_cap;
-		cm->desc->update_capacity_time = cur_time.tv_sec;
-		if ((batt_ocV < (cm->desc->fullbatt_uV - cm->desc->fullbatt_vchkdrop_uV - 50000))
-		    && (bat_uA < 0))
-			cm->desc->force_set_full = false;
-		if (is_ext_pwr_online(cm)) {
-			if (fuel_cap != CM_CAP_FULL_PERCENT)
-				fuel_cap = CM_CAP_FULL_PERCENT;
+		// last_fuel_cap = fuel_cap;
+		// cm->desc->update_capacity_time = cur_time.tv_sec;
+		// if ((batt_ocV < (cm->desc->fullbatt_uV - cm->desc->fullbatt_vchkdrop_uV - 50000))
+		//     && (bat_uA < 0))
+		// 	cm->desc->force_set_full = false;
 
-			if (fuel_cap > cm->desc->cap)
-				fuel_cap = cm->desc->cap + 3;
+		if (is_ext_pwr_online(cm)) {
+			// if (fuel_cap != CM_CAP_FULL_PERCENT)
+			// 	fuel_cap = CM_CAP_FULL_PERCENT;
+
+			dev_info(cm->dev, "POWER_SUPPLY_STATUS_FULL:fuel_cap = %d\n", fuel_cap);
+			if (fuel_cap >= CHARGE_FULL_SOC_VALUE) {
+				fuel_cap_buf = 1000;
+			} else {
+				fuel_cap_buf = (fuel_cap * CHARGE_SOC_VALUE_FACTOR) / 1000;
+			}
+			dev_info(cm->dev, "POWER_SUPPLY_STATUS_FULL:fuel_cap_buf:%d\n", fuel_cap_buf);
 		}
 
 		break;
@@ -4755,6 +4785,7 @@ static void cm_batt_works(struct work_struct *work)
 //		dev_err(cm->dev, "WARN: batt_uV less than uvlo, will shutdown\n");
 //		orderly_poweroff(true);
 //	}
+
 	if (low_bat >=3  || batt_uV <= 3200000) {
 		low_bat ++;		
 		dev_err(cm->dev, "%s;WARN: batt_uV=%d;%d; will shutdown\n",__func__,batt_uV,low_bat);
@@ -4771,9 +4802,10 @@ static void cm_batt_works(struct work_struct *work)
 		low_bat =0;
 	}
 
-	if((term_vol == 3984000) && fuel_cap > 650)
+	if((term_vol == 3984000) && /*fuel_cap > 650*/fuel_cap_buf > 650)
 	{
-		fuel_cap =650;
+		// fuel_cap =650;
+		fuel_cap_buf = 650;
 		dev_info(cm->dev, "%s;force soc=650;\n",__func__);
 	}
 
@@ -4794,6 +4826,7 @@ static void cm_batt_works(struct work_struct *work)
 			if (DIV_ROUND_CLOSEST(fuel_cap, 10) != DIV_ROUND_CLOSEST(real_cap, 10))
 			{
 				fuel_cap = real_cap;
+				fuel_cap_buf = (fuel_cap * CHARGE_SOC_VALUE_FACTOR) / 1000;
 				adjust_fuel_cap(cm,fuel_cap);
 			}
 
@@ -4809,8 +4842,10 @@ static void cm_batt_works(struct work_struct *work)
 		is_cal_cap = 1;
 		dev_err(cm->dev, "%s;full;fuel_cap=%d, ui cap=%d\n",__func__,
 			 fuel_cap, cm->desc->cap);
-		if( term_vol >= 4400000)
-			fuel_cap =1000;		
+		if( term_vol >= 4400000){
+			fuel_cap =1000;
+			fuel_cap_buf = 1000;
+		}
 		else
 		{
 			real_cap = power_supply_ocv2cap_simple(cm->desc->cap_table,
@@ -4820,29 +4855,29 @@ static void cm_batt_works(struct work_struct *work)
 			dev_err(cm->dev, "%s;full;fuel_cap=%d,%d, term_vol=%d\n",__func__,
 				 fuel_cap, real_cap,term_vol/1000);
 			fuel_cap = real_cap;
-		}	
+			fuel_cap_buf = (fuel_cap * CHARGE_SOC_VALUE_FACTOR) / 1000;
+		}
 		adjust_fuel_cap(cm,fuel_cap);
 	}
 	else if ( !check_charge_done(cm))
 		charge_done = false;
-				
 
-	dev_info(cm->dev, "battery cap = %d, charger manager cap = %d\n",
-		 fuel_cap, cm->desc->cap);
 
-	if (fuel_cap != cm->desc->cap) {
-		if (DIV_ROUND_CLOSEST(fuel_cap, 10) != DIV_ROUND_CLOSEST(cm->desc->cap, 10)) {
-			cm->desc->cap = fuel_cap;
-			cm->desc->update_capacity_time = cur_time.tv_sec;
-			power_supply_changed(cm->charger_psy);
-		}
+	cm->desc->cap = fuel_cap_buf;
 
-		cm->desc->cap = fuel_cap;
-//		set_batt_cap(cm, cm_capacity_unmap(cm, cm->desc->cap));
-		set_batt_cap(cm, cm->desc->cap);
+	if (DIV_ROUND_CLOSEST(fuel_cap, 10) != DIV_ROUND_CLOSEST(cm->desc->cap, 10)) {
+		// cm->desc->cap = fuel_cap;
+		cm->desc->update_capacity_time = cur_time.tv_sec;
+		power_supply_changed(cm->charger_psy);
 	}
 
-        cm_track_capacity_monitor(cm);
+//		set_batt_cap(cm, cm_capacity_unmap(cm, cm->desc->cap));
+	set_batt_cap(cm, cm->desc->cap);
+
+	dev_info(cm->dev, "battery cap = %d, charger manager cap = %d, fuel_cap_buf = %d\n",
+		 fuel_cap, cm->desc->cap, fuel_cap_buf);
+
+	cm_track_capacity_monitor(cm);
 
 schedule_cap_update_work:
 	queue_delayed_work(system_power_efficient_wq,
