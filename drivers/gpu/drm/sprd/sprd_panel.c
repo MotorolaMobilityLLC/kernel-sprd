@@ -805,7 +805,7 @@ static int sprd_oled_set_brightness(struct backlight_device *bdev)
 	else if (check_lcd_by_name(lcd_name) == ICNL9911C_TM_MIPI_HD){
 		if (level < 256){
 		    g_last_level = level;
-		    level = ((level * 77) + 30)/ 100;
+		    level = ((level * 81) + 30)/ 100;
 		}
 	}
 
@@ -818,7 +818,7 @@ static int sprd_oled_set_brightness(struct backlight_device *bdev)
 	else if (check_lcd_by_name(lcd_name) == NT36525c_TCL_MIPI_HD){
 		if (level < 256){
 		    g_last_level = level;
-		    level = ((level * 83) + 30)/ 100;
+		    level = ((level * 81) + 30)/ 100;
 		}
 	}
     else if (check_lcd_by_name(lcd_name) == ICNL9911c_dj_mipi_hd)
