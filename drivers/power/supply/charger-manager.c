@@ -947,6 +947,10 @@ static int get_usb_charger_type(struct charger_manager *cm, u32 *type)
 	cm_get_charger_type(cm, type);
 	cm->desc->fast_charger_type = *type;
 
+	if (cm->desc->is_fast_charge)
+		power_supply_changed(cm->charger_psy);
+
+
 	mutex_unlock(&cm->desc->charger_type_mtx);
 	return ret;
 }
