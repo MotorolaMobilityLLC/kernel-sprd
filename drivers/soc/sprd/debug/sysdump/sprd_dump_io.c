@@ -214,7 +214,7 @@ static int sprd_dump_requests_in_use(struct request_queue *q, u64 now)
 	return total_reqs;
 }
 
-static void sprd_dump_io(void)
+void sprd_dump_io(void)
 {
 	struct device *dev;
 	struct request_queue *q;

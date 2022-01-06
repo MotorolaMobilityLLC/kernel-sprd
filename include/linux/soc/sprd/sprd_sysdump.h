@@ -32,6 +32,7 @@ extern int minidump_change_extend_information(const char *name,
 extern void sprd_dump_stack_reg(int cpu, struct pt_regs *pregs);
 extern void sprd_dump_task_stats(void);
 extern void sprd_dump_runqueues(void);
+extern void sprd_dump_io(void);
 /*
  * save meminfo in sysdump.
  */
@@ -62,6 +63,7 @@ static inline void sprd_dump_buddyinfo(void) {}
 static inline void sprd_dump_zoneinfo(void) {}
 static inline void sprd_dump_pagetypeinfo(void) {}
 static inline void sprd_dump_interrupts(void) {}
+static inline void sprd_dump_io(void) {}
 static inline void minidump_update_current_stack(int cpu, struct pt_regs *regs) {}
 #endif
 
