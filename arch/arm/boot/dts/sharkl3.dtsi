@@ -64,7 +64,7 @@
 
 		pub_wrap_regs: syscon@300f0000 {
 			compatible = "sprd,sc9863a-glbregs", "syscon";
-			reg = <0x300f0000 0x1000>;
+			reg = <0x300f0000 0x3000>;
 		};
 
 		pmu_apb_regs: syscon@402b0000 {
