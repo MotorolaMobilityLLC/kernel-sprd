@@ -127,7 +127,6 @@ static irqreturn_t sprd_musb_interrupt(int irq, void *__hci)
 	u32 reg_dma;
 	u16 mask16;
 	u8 mask8;
-	unsigned long flags;
 
 	spin_lock(&glue->lock);
 
@@ -138,7 +137,7 @@ static irqreturn_t sprd_musb_interrupt(int irq, void *__hci)
 		return retval;
 	}
 
-	spin_lock_irqsave(&musb->lock, flags);
+	spin_lock(&musb->lock);
 	mask8 = musb_readb(musb->mregs, MUSB_INTRUSBE);
 	musb->int_usb = musb_readb(musb->mregs, MUSB_INTRUSB) & mask8;
 
@@ -160,7 +159,7 @@ static irqreturn_t sprd_musb_interrupt(int irq, void *__hci)
 	if (reg_dma)
 		retval = sprd_dma_interrupt(musb, reg_dma);
 #endif
-	spin_unlock_irqrestore(&musb->lock, flags);
+	spin_unlock(&musb->lock);
 	spin_unlock(&glue->lock);
 
 	return retval;
