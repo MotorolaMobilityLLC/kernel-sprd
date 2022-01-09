@@ -986,6 +986,18 @@ static int sprdwl_set_mac(struct net_device *dev, void *addr)
 			memcpy(dev->dev_addr, vif->mac, ETH_ALEN);																						}
 	}
 
+	if (vif->dis_random_flag == 1) {
+		if (vif->has_rand_mac) {
+			netdev_info(dev, "set random mac after disconnect: %pM\n",
+					vif->random_mac);
+			ret = wlan_cmd_set_rand_mac(vif->priv, vif->ctx_id,
+							SPRDWL_CONNECT_RANDOM_ADDR, sa->sa_data);
+			if (ret)
+				netdev_info(dev, "set random mac failed after disconnect!\n");
+		}
+		vif->dis_random_flag = 0;
+	}
+
 	if (vif->mode == SPRDWL_MODE_P2P_CLIENT || vif->mode == SPRDWL_MODE_P2P_GO) {
 		if (!is_zero_ether_addr(sa->sa_data)) {
 			netdev_info(dev, "%s vif-> mac : %pM\n", __func__, vif->mac);

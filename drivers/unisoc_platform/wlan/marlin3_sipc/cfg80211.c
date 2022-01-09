@@ -1806,6 +1806,9 @@ static int sprdwl_cfg80211_disconnect(struct wiphy *wiphy,
 	if (ret)
 		vif->sm_state = old_state;
 
+	if (vif->mode == SPRDWL_MODE_STATION ||
+		vif->mode == SPRDWL_MODE_STATION_SECOND)
+		vif->dis_random_flag = 1;
 	trace_deauth_reason(vif->mode, reason_code, LOCAL_EVENT);
 
 	return ret;

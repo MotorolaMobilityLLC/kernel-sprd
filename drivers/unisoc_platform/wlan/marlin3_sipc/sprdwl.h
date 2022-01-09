@@ -136,6 +136,7 @@ struct sprdwl_vif {
 	u8 wps_flag;
 	bool has_rand_mac;
 	u8 random_mac[ETH_ALEN];
+	unsigned int dis_random_flag;
 };
 
 enum sprdwl_hw_type {
