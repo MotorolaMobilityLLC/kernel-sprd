@@ -157,7 +157,7 @@
 				battery_name-2 ="JK50-SCUD-SB18C77226-5000mAh";
 				battery_name-3 ="JK50-Sunwoda-SB18C98449-5000mAh";
 
-				charge-full-design-microamp-hours-1 = <5000000>;
+				charge-full-design-microamp-hours-1 = <4900000>;
 				factory-internal-resistance-micro-ohms-1 = <122000>;
 				ocv-capacity-table-1 = <4391000 100>, <4327000 95>, <4267000 90>,
 							<4207000 85>, <4150000 80>, <4095000 75>,
@@ -170,7 +170,7 @@
 				resistance-temp-table-1 = <50 90>, <25 100>, <0 230>, <(-10) 518>;
 
 
-				charge-full-design-microamp-hours-2 = <4950000>;
+				charge-full-design-microamp-hours-2 = <4900000>;
 				factory-internal-resistance-micro-ohms-2 = <127000>;
 				ocv-capacity-table-2 = <4382000 100>, <4320000 95>, <4261000 90>,
 							<4205000 85>, <4144000 80>, <4091000 75>,
@@ -183,7 +183,7 @@
 				resistance-temp-table-2 = <50 86>, <25 100>, <0 317>, <(-10) 520>;
 
 
-				charge-full-design-microamp-hours-3 = <5000000>;
+				charge-full-design-microamp-hours-3 = <4900000>;
 				factory-internal-resistance-micro-ohms-3 = <122000>;
 				ocv-capacity-table-3 = <4391000 100>, <4327000 95>, <4267000 90>,
 							<4207000 85>, <4150000 80>, <4095000 75>,

@@ -4020,6 +4020,7 @@ static void cm_track_capacity_work(struct work_struct *work)
 		 * in contrast, when writing data to the file system,
 		 * we need to encrypt it.
 		 */
+		 
 		cm->track.state = CAP_TRACK_IDLE;
 		if (kernel_read(filep, (char *)&file_buf, sizeof(file_buf), &pos) < 0) {
 			dev_err(cm->dev, "track file is empty or read error\n");
