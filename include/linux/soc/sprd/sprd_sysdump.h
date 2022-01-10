@@ -55,7 +55,7 @@ extern void minidump_update_current_stack(int cpu, struct pt_regs *regs);
 #else
 static inline void sprd_dump_stack_reg(int cpu, struct pt_regs *pregs) {}
 static inline void sprd_dump_task_stats(void) {}
-extern inline void sprd_dump_runqueues(void) {}
+static inline void sprd_dump_runqueues(void) {}
 static inline void sprd_dump_mem_stat(void) {}
 static inline void sprd_dump_meminfo(void) {}
 static inline void sprd_dump_vmstat(void) {}

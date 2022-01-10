@@ -69,6 +69,8 @@ static char *sprd_log_buf[SPRD_CPUS];
 static int sprd_log_buf_pos[SPRD_CPUS];
 static struct gicd_data *gicd_regs;
 static struct gicc_data *gicc_regs;
+struct cpumask *sprd_cpu_feed_mask;
+struct cpumask *sprd_cpu_feed_bitmap;
 
 struct gicc_data {
 	u32 gicc_ctlr;	//nonsecure
@@ -653,6 +655,11 @@ asmlinkage __visible void wdh_atf_entry(struct pt_regs *data)
 	wdh_step[cpu] = SPRD_HANG_DUMP_ENTER;
 	sprd_hang_debug_printf(true, "---wdh enter!---\n");
 
+	if (sprd_cpu_feed_mask && sprd_cpu_feed_bitmap)
+		sprd_hang_debug_printf(true, "cpu_feed_mask:%*pbl cpu_feed_bitmap:%*pbl\n",
+					cpumask_pr_args(sprd_cpu_feed_mask),
+					cpumask_pr_args(sprd_cpu_feed_bitmap));
+
 	oops_in_progress = 1;
 	pregs = &cpu_context[cpu];
 	*pregs = *data;
@@ -726,7 +733,7 @@ asmlinkage __visible void wdh_atf_entry(struct pt_regs *data)
 	wdh_step[cpu] = SPRD_HANG_DUMP_END;
 	print_step(cpu);
 
-	mdelay(50);
+	mdelay(100);
 #if IS_ENABLED(CONFIG_SPRD_HANG_RESET)
 	/* wait last cpu failed,wait 20s to trigger cm4 continue to handle ap watchdog reset */
 	if (!is_last_cpu) {
@@ -803,6 +810,34 @@ static struct notifier_block sprd_module_notifier = {
 	.notifier_call = sprd_module_notifier_fn,
 };
 
+static int __nocfi sprd_getmask_notifier_fn(struct notifier_block *nb,
+		unsigned long action, void *data)
+{
+	struct module *module = data;
+
+	if (action != MODULE_STATE_LIVE)
+		return NOTIFY_DONE;
+	/* return immediately if the func has been found */
+	if (sprd_cpu_feed_mask || sprd_cpu_feed_bitmap)
+		return NOTIFY_DONE;
+
+	if (!strncmp(module->name, "sprd_wdf", strlen("sprd_wdf"))) {
+		sprd_cpu_feed_mask = (struct cpumask *)
+			module_kallsyms_lookup_name("cpu_feed_mask");
+		sprd_cpu_feed_bitmap = (struct cpumask *)
+			module_kallsyms_lookup_name("cpu_feed_bitmap");
+
+		if (!sprd_cpu_feed_mask || !sprd_cpu_feed_bitmap)
+			pr_emerg("can not find cpu feed mask!\n");
+	}
+
+	return NOTIFY_DONE;
+}
+
+static struct notifier_block sprd_getmask_notifier = {
+	.notifier_call = sprd_getmask_notifier_fn,
+};
+
 #ifdef CONFIG_SPRD_SYSDUMP
 #define MAX_NAME_LEN 16
 
@@ -858,6 +893,10 @@ static int sprd_wdh_atf_init(void)
 			goto out;
 		}
 	}
+
+	/* register a notifier which called when modules install */
+	register_module_notifier(&sprd_getmask_notifier);
+
 	minidump_add_sprd_log_buf();
 	return ret;
 
