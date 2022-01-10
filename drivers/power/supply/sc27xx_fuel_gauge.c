@@ -752,6 +752,12 @@ static int sc27xx_fgu_get_capacity(struct sc27xx_fgu_data *data, int *cap,
 	else if (data->normal_temperature_cap > 1000)
 		data->normal_temperature_cap = 1000;
 
+	dev_err(data->dev, "init_cap = %d, init_clbcnt = %d, cur_clbcnt = %d, normal_cap = %d, "
+		 "delta_cap = %d, Tbat  = %d\n",
+		 data->init_cap, data->init_clbcnt, cur_clbcnt,
+		 data->normal_temperature_cap, delta_cap, data->bat_temp );
+
+
 	if (*cap < 0) {
 		dev_err(data->dev, "%s;cap=%d;\n",__func__,*cap );	
 		*cap = 0;
@@ -786,7 +792,7 @@ static int sc27xx_fgu_get_capacity(struct sc27xx_fgu_data *data, int *cap,
 
 	if (*cap > 1000) {
 		*cap = 1000;
-		data->init_cap = 1000 - delta_cap;
+//		data->init_cap = 1000 - delta_cap;
 		return 0;
 	}
 
