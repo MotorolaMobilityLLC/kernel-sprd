@@ -29,10 +29,18 @@ extern struct platform_driver sprd_dpu_driver;
 extern struct platform_driver sprd_backlight_driver;
 #endif
 
+#ifdef CONFIG_DRM_SPRD_DPU1
+extern struct platform_driver sprd_dpu1_driver;
+#endif
+
 #ifdef CONFIG_DRM_SPRD_DSI
 extern struct platform_driver sprd_dsi_driver;
 extern struct platform_driver sprd_dphy_driver;
 extern struct mipi_dsi_driver sprd_panel_driver;
+#endif
+
+#ifdef CONFIG_DRM_SPRD_DP
+extern struct platform_driver sprd_dp_driver;
 #endif
 
 #ifdef CONFIG_COMPAT

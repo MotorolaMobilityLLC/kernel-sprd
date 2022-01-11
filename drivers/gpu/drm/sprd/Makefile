@@ -26,6 +26,24 @@ sprd-drm-$(CONFIG_DRM_SPRD_DPU0) += \
 	dpu/dpu_r5p0.o \
 	dpu/dpu_r6p0.o
 
+sprd-drm-$(CONFIG_DRM_SPRD_DP) += \
+	dp/dp_api.o \
+	dp/dp_aux.o \
+	dp/dp_core.o \
+	dp/dp_link.o \
+	dp/dp_test.o \
+	dp/dp_video.o \
+	dp/dw_dptx.o
+	#dp/dp_audio.o \
+	#dp/dp_hdcp.o
+
+sprd-drm-$(CONFIG_DRM_SPRD_DPU1) += \
+	sprd_dp.o \
+	sprd_dpu1.o \
+	dpu/dpu_lite_r3p0.o \
+	qogirn6pro/global_dpu1.o \
+	qogirn6pro/global_dp.o
+
 sprd-drm-$(CONFIG_DRM_SPRD_DSI) += \
 	sprd_dsi.o \
 	sprd_dphy.o \

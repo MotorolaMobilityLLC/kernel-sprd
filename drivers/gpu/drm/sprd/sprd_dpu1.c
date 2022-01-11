@@ -23,7 +23,7 @@
 #include <drm/drm_vblank.h>
 
 #include "sprd_crtc.h"
-#include "sprd_dpu.h"
+#include "sprd_dpu1.h"
 #include "sprd_drm.h"
 #include "sprd_gem.h"
 #include "sprd_plane.h"
@@ -52,45 +52,12 @@ static void sprd_dpu_prepare_fb(struct sprd_crtc *crtc,
 	}
 }
 
-static unsigned long sprd_free_reserved_area(void *start, void *end, int poison, const char *s)
-{
-	void *pos;
-	unsigned long pages = 0;
-
-	start = (void *)PAGE_ALIGN((unsigned long)start);
-	end = (void *)((unsigned long)end & PAGE_MASK);
-	for (pos = start; pos < end; pos += PAGE_SIZE, pages++) {
-		struct page *page = virt_to_page(pos);
-		void *direct_map_addr;
-
-		/*
-		 * 'direct_map_addr' might be different from 'pos'
-		 * because some architectures' virt_to_page()
-		 * work with aliases.  Getting the direct map
-		 * address ensures that we get a _writeable_
-		 * alias for the memset().
-		 */
-		direct_map_addr = page_address(page);
-		if ((unsigned int)poison <= 0xFF)
-			memset(direct_map_addr, poison, PAGE_SIZE);
-
-		free_reserved_page(page);
-	}
-
-	if (pages && s)
-		pr_info("Freeing %s memory: %ldK\n",
-			s, pages << (PAGE_SHIFT - 10));
-
-	return pages;
-}
-
 static void sprd_dpu_cleanup_fb(struct sprd_crtc *crtc,
 				struct drm_plane_state *old_state)
 {
 	struct drm_gem_object *obj;
 	struct sprd_gem_obj *sprd_gem;
 	struct sprd_dpu *dpu = crtc->priv;
-	static atomic_t logo2animation = { -1 };
 	int i;
 
 	if (!dpu->ctx.enabled) {
@@ -103,15 +70,6 @@ static void sprd_dpu_cleanup_fb(struct sprd_crtc *crtc,
 		sprd_gem = to_sprd_gem_obj(obj);
 		sprd_crtc_iommu_unmap(&dpu->dev, sprd_gem);
 	}
-
-	if (unlikely(atomic_inc_not_zero(&logo2animation)) &&
-		dpu->ctx.logo_addr) {
-		DRM_INFO("free logo memory addr:0x%lx size:0x%lx\n",
-			dpu->ctx.logo_addr, dpu->ctx.logo_size);
-		sprd_free_reserved_area(phys_to_virt(dpu->ctx.logo_addr),
-			phys_to_virt(dpu->ctx.logo_addr + dpu->ctx.logo_size),
-			-1, "logo");
-	}
 }
 
 static void sprd_dpu_mode_set_nofb(struct sprd_crtc *crtc)
@@ -121,22 +79,6 @@ static void sprd_dpu_mode_set_nofb(struct sprd_crtc *crtc)
 
 	DRM_INFO("%s() set mode: %s\n", __func__, dpu->mode->name);
 
-	/*
-	 * TODO:
-	 * Currently, low simulator resolution only support
-	 * DPI mode, support for EDPI in the future.
-	 */
-	if (mode->type & DRM_MODE_TYPE_USERDEF) {
-		dpu->ctx.if_type = SPRD_DPU_IF_DPI;
-		return;
-	}
-
-	if ((dpu->mode->hdisplay == dpu->mode->htotal) ||
-	    (dpu->mode->vdisplay == dpu->mode->vtotal))
-		dpu->ctx.if_type = SPRD_DPU_IF_EDPI;
-	else
-		dpu->ctx.if_type = SPRD_DPU_IF_DPI;
-
 	if (dpu->core->modeset && crtc->base.state->mode_changed)
 		dpu->core->modeset(&dpu->ctx, mode);
 }
@@ -145,15 +87,17 @@ static enum drm_mode_status sprd_dpu_mode_valid(struct sprd_crtc *crtc,
 					const struct drm_display_mode *mode)
 {
 	struct sprd_dpu *dpu = crtc->priv;
+	int vic;
 
 	DRM_INFO("%s() mode: "DRM_MODE_FMT"\n", __func__, DRM_MODE_ARG(mode));
 
-	if (mode->type == DRM_MODE_TYPE_DRIVER)
-		dpu->mode = (struct drm_display_mode *)mode;
+	vic = drm_match_cea_mode(mode);
 
-	if (mode->type & DRM_MODE_TYPE_PREFERRED) {
-		dpu->mode = (struct drm_display_mode *)mode;
-		drm_display_mode_to_videomode(dpu->mode, &dpu->ctx.vm);
+	/* 1920x1080@60Hz is used by default */
+	if (vic == 16 && mode->clock == 148500) {
+		DRM_INFO("%s() mode: "DRM_MODE_FMT"\n",
+				__func__, DRM_MODE_ARG(mode));
+		drm_display_mode_to_videomode(mode, &dpu->ctx.vm);
 	}
 
 	return MODE_OK;
@@ -190,21 +134,6 @@ static void sprd_dpu_atomic_disable(struct sprd_crtc *crtc)
 	sprd_dpu_disable(dpu);
 
 	pm_runtime_put(dpu->dev.parent);
-}
-
-void sprd_dpu_atomic_disable_force(struct drm_crtc *crtc)
-{
-	struct sprd_crtc *sprd_crtc = container_of(crtc, struct sprd_crtc, base);
-	struct sprd_dpu *dpu = sprd_crtc->priv;
-
-	DRM_INFO("%s()\n", __func__);
-
-	/* dpu is not initialized,it should enable first! */
-	sprd_dpu_enable(dpu);
-	enable_irq(dpu->ctx.irq);
-
-	disable_irq(dpu->ctx.irq);
-	sprd_dpu_disable(dpu);
 }
 
 static void sprd_dpu_atomic_begin(struct sprd_crtc *crtc)
@@ -267,7 +196,7 @@ static const struct sprd_crtc_ops sprd_dpu_ops = {
 	.cleanup_fb = sprd_dpu_cleanup_fb,
 };
 
-void sprd_dpu_run(struct sprd_dpu *dpu)
+void sprd_dpu1_run(struct sprd_dpu *dpu)
 {
 	struct dpu_context *ctx = &dpu->ctx;
 
@@ -291,7 +220,7 @@ void sprd_dpu_run(struct sprd_dpu *dpu)
 	drm_crtc_vblank_on(&dpu->crtc->base);
 }
 
-void sprd_dpu_stop(struct sprd_dpu *dpu)
+void sprd_dpu1_stop(struct sprd_dpu *dpu)
 {
 	struct dpu_context *ctx = &dpu->ctx;
 
@@ -356,10 +285,8 @@ static void sprd_dpu_disable(struct sprd_dpu *dpu)
 	struct dpu_context *ctx = &dpu->ctx;
 
 	down(&ctx->lock);
-	down(&ctx->cabc_lock);
 	if (!ctx->enabled) {
 		up(&ctx->lock);
-		up(&ctx->cabc_lock);
 		return;
 	}
 
@@ -373,7 +300,6 @@ static void sprd_dpu_disable(struct sprd_dpu *dpu)
 		dpu->glb->power(ctx, false);
 
 	ctx->enabled = false;
-	up(&ctx->cabc_lock);
 	up(&ctx->lock);
 }
 
@@ -385,19 +311,10 @@ static irqreturn_t sprd_dpu_isr(int irq, void *data)
 
 	int_mask = dpu->core->isr(ctx);
 
-	if (int_mask & BIT_DPU_INT_TE) {
-		if (ctx->te_check_en) {
-			ctx->evt_te = true;
-			wake_up_interruptible_all(&ctx->te_wq);
-		}
-		if (ctx->if_type == SPRD_DPU_IF_EDPI)
-			drm_crtc_handle_vblank(&dpu->crtc->base);
-	}
-
 	if (int_mask & BIT_DPU_INT_ERR)
 		DRM_WARN("Warning: dpu underflow!\n");
 
-	if (int_mask & BIT_DPU_INT_VSYNC)
+	if ((int_mask & BIT_DPU_INT_VSYNC) && ctx->enabled)
 		drm_crtc_handle_vblank(&dpu->crtc->base);
 
 	return IRQ_HANDLED;
@@ -418,7 +335,7 @@ static int sprd_dpu_irq_request(struct sprd_dpu *dpu)
 
 	irq_set_status_flags(irq_num, IRQ_NOAUTOEN);
 	ret = devm_request_irq(&dpu->dev, irq_num, sprd_dpu_isr,
-					0, "DISPC", dpu);
+					0, "DISPC1", dpu);
 	if (ret) {
 		DRM_ERROR("error: dpu request irq failed\n");
 		return -EINVAL;
@@ -427,27 +344,6 @@ static int sprd_dpu_irq_request(struct sprd_dpu *dpu)
 	ctx->dpu_isr = sprd_dpu_isr;
 
 	return 0;
-}
-
-static struct sprd_dsi *sprd_dpu_dsi_attach(struct sprd_dpu *dpu)
-{
-	struct device *dev;
-	struct sprd_dsi *dsi;
-
-	DRM_INFO("dpu attach dsi\n");
-	dev = sprd_disp_pipe_get_output(&dpu->dev);
-	if (!dev) {
-		DRM_ERROR("dpu pipe get output failed\n");
-		return NULL;
-	}
-
-	dsi = dev_get_drvdata(dev);
-	if (!dsi) {
-		DRM_ERROR("dpu attach dsi failed\n");
-		return NULL;
-	}
-
-	return dsi;
 }
 
 static int sprd_dpu_bind(struct device *dev, struct device *master, void *data)
@@ -462,18 +358,16 @@ static int sprd_dpu_bind(struct device *dev, struct device *master, void *data)
 	dpu->core->version(&dpu->ctx);
 	dpu->core->capability(&dpu->ctx, &cap);
 
-	planes = sprd_plane_init(drm, &cap, DRM_PLANE_TYPE_PRIMARY, 1);
+	planes = sprd_plane_init(drm, &cap, DRM_PLANE_TYPE_PRIMARY, 0xff);
 	if (IS_ERR_OR_NULL(planes))
 		return PTR_ERR(planes);
 
-	dpu->crtc = sprd_crtc_init(drm, planes, SPRD_DISPLAY_TYPE_LCD,
+	dpu->crtc = sprd_crtc_init(drm, planes, SPRD_DISPLAY_TYPE_DP,
 				&sprd_dpu_ops, dpu->ctx.version, dpu->ctx.corner_size, dpu);
 	if (IS_ERR(dpu->crtc))
 		return PTR_ERR(dpu->crtc);
 
 	sprd_dpu_irq_request(dpu);
-
-	dpu->dsi = sprd_dpu_dsi_attach(dpu);
 
 	return 0;
 }
@@ -501,7 +395,7 @@ static int sprd_dpu_device_create(struct sprd_dpu *dpu,
 	dpu->dev.class = display_class;
 	dpu->dev.parent = parent;
 	dpu->dev.of_node = parent->of_node;
-	dev_set_name(&dpu->dev, "dispc0");
+	dev_set_name(&dpu->dev, "dispc1");
 	dev_set_drvdata(&dpu->dev, dpu);
 
 	ret = device_register(&dpu->dev);
@@ -509,33 +403,6 @@ static int sprd_dpu_device_create(struct sprd_dpu *dpu,
 		DRM_ERROR("dpu device register failed\n");
 		return ret;
 	}
-
-	return 0;
-}
-
-static int of_get_logo_memory_info(struct sprd_dpu *dpu,
-	struct device_node *np)
-{
-	struct device_node *node;
-	struct resource r;
-	int ret;
-	struct dpu_context *ctx = &dpu->ctx;
-
-	node = of_parse_phandle(np, "sprd,logo-memory", 0);
-	if (!node) {
-		DRM_INFO("no sprd,logo-memory specified\n");
-		return 0;
-	}
-
-	ret = of_address_to_resource(node, 0, &r);
-	of_node_put(node);
-	if (ret) {
-		DRM_ERROR("invalid logo reserved memory node!\n");
-		return -EINVAL;
-	}
-
-	ctx->logo_addr = r.start;
-	ctx->logo_size = resource_size(&r);
 
 	return 0;
 }
@@ -571,77 +438,24 @@ static int sprd_dpu_context_init(struct sprd_dpu *dpu,
 		return -EFAULT;
 	}
 
-	of_get_logo_memory_info(dpu, np);
-
 	sema_init(&ctx->lock, 1);
-	sema_init(&ctx->cabc_lock, 1);
 	init_waitqueue_head(&ctx->wait_queue);
 
 	ctx->panel_ready = true;
 	ctx->time = 5000;
 
-	init_waitqueue_head(&dpu->ctx.te_wq);
-
 	return 0;
 }
 
-static const struct sprd_dpu_ops sharkle_dpu = {
-	.core = &dpu_lite_r1p0_core_ops,
-	.clk = &sharkle_dpu_clk_ops,
-	.glb = &sharkle_dpu_glb_ops,
-};
-
-static const struct sprd_dpu_ops pike2_dpu = {
-	.core = &dpu_lite_r1p0_core_ops,
-	.clk = &pike2_dpu_clk_ops,
-	.glb = &pike2_dpu_glb_ops,
-};
-
-static const struct sprd_dpu_ops sharkl3_dpu = {
-	.core = &dpu_r2p0_core_ops,
-	.clk = &sharkl3_dpu_clk_ops,
-	.glb = &sharkl3_dpu_glb_ops,
-};
-
-static const struct sprd_dpu_ops sharkl5_dpu = {
-	.core = &dpu_lite_r2p0_core_ops,
-	.clk = &sharkl5_dpu_clk_ops,
-	.glb = &sharkl5_dpu_glb_ops,
-};
-
-static const struct sprd_dpu_ops sharkl5pro_dpu = {
-	.core = &dpu_r4p0_core_ops,
-	.clk = &sharkl5pro_dpu_clk_ops,
-	.glb = &sharkl5pro_dpu_glb_ops,
-};
-
-static const struct sprd_dpu_ops qogirl6_dpu = {
-	.core = &dpu_r5p0_core_ops,
-	.clk = &qogirl6_dpu_clk_ops,
-	.glb = &qogirl6_dpu_glb_ops,
-};
-
-static const struct sprd_dpu_ops qogirn6pro_dpu = {
-	.core = &dpu_r6p0_core_ops ,
-	.clk = &qogirn6pro_dpu_clk_ops,
-	.glb = &qogirn6pro_dpu_glb_ops,
+static const struct sprd_dpu_ops qogirn6pro1_dpu = {
+	.core = &dpu_lite_r3p0_core_ops,
+	.clk = &qogirn6pro_dpu1_clk_ops,
+	.glb = &qogirn6pro_dpu1_glb_ops,
 };
 
 static const struct of_device_id dpu_match_table[] = {
-	{ .compatible = "sprd,sharkle-dpu",
-	  .data = &sharkle_dpu },
-	{ .compatible = "sprd,pike2-dpu",
-	  .data = &pike2_dpu },
-	{ .compatible = "sprd,sharkl3-dpu",
-	  .data = &sharkl3_dpu },
-	{ .compatible = "sprd,sharkl5-dpu",
-	  .data = &sharkl5_dpu },
-	{ .compatible = "sprd,sharkl5pro-dpu",
-	  .data = &sharkl5pro_dpu },
-	{ .compatible = "sprd,qogirl6-dpu",
-	  .data = &qogirl6_dpu },
-	{ .compatible = "sprd,qogirn6pro-dpu",
-	  .data = &qogirn6pro_dpu },
+	{ .compatible = "sprd,qogirn6pro-dpu1",
+	  .data = &qogirn6pro1_dpu },
 	{ /* sentinel */ },
 };
 
@@ -693,11 +507,11 @@ static int sprd_dpu_remove(struct platform_device *pdev)
 	return 0;
 }
 
-struct platform_driver sprd_dpu_driver = {
+struct platform_driver sprd_dpu1_driver = {
 	.probe = sprd_dpu_probe,
 	.remove = sprd_dpu_remove,
 	.driver = {
-		.name = "sprd-dpu-drv",
+		.name = "sprd-dpu1-drv",
 		.of_match_table = dpu_match_table,
 	},
 };

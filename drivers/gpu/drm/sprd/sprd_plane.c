@@ -342,7 +342,8 @@ static int sprd_plane_create_properties(struct sprd_plane *plane, int index)
 
 struct sprd_plane *sprd_plane_init(struct drm_device *drm,
 					struct sprd_crtc_capability *cap,
-					enum drm_plane_type type)
+					enum drm_plane_type type,
+					uint32_t possible_crtcs)
 {
 	struct sprd_plane *planes = NULL;
 	int err, i;
@@ -352,8 +353,7 @@ struct sprd_plane *sprd_plane_init(struct drm_device *drm,
 		return ERR_PTR(-ENOMEM);
 
 	for (i = 0; i < cap->max_layers; i++) {
-		err = drm_universal_plane_init(drm, &planes[i].base,
-					       1 << drm->mode_config.num_crtc,
+		err = drm_universal_plane_init(drm, &planes[i].base, possible_crtcs,
 					       &sprd_plane_funcs, cap->fmts_ptr,
 					       cap->fmts_cnt, NULL, type, NULL);
 		if (err) {

@@ -559,6 +559,12 @@ static struct platform_driver *sprd_drm_drivers[]  = {
 	&sprd_dsi_driver,
 	&sprd_dphy_driver,
 #endif
+#ifdef CONFIG_DRM_SPRD_DPU1
+	&sprd_dpu1_driver,
+#endif
+#ifdef CONFIG_DRM_SPRD_DP
+	&sprd_dp_driver,
+#endif
 	&sprd_drm_driver,
 };
 
