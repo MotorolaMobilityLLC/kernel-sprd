@@ -4512,7 +4512,6 @@ static void cm_batt_works(struct work_struct *work)
 	int term_vol;
 	static int is_cal_cap=0,cal_count=0,low_bat=0;
 	int real_cap; 
-	static int last_temp=0;
 	int fuel_cap_buf = 0;
 
 	ret = get_batt_uV(cm, &batt_uV);
