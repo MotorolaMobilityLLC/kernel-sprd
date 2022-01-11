@@ -859,7 +859,7 @@
 
 	display-subsystem {
 		compatible = "sprd,display-subsystem";
-		ports = <&dpu_port>;
+		ports = <&dpu_port>, <&dpu1_port>;
 		gsp = <&gsp>;
 	};
 };
@@ -892,6 +892,10 @@
 	};
 };
 
+
+&dpu1 {
+	status = "okay";
+};
 
 &iommu_dispc1 {
 	status = "okay";

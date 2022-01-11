@@ -1632,9 +1632,53 @@
 				power-domains = <&pd_ipa_sys>;
 			};
 
+			dpu1: dpu1@31880000 {
+				compatible = "sprd,qogirn6pro-dpu1";
+				reg = <0x0 0x31880000 0x0 0x3000>;
+				reset-syscon = <&ipa_dispc_glb_apb_regs REG_DISPC1_GLB_APB_APB_RST
+						MASK_DISPC1_GLB_APB_DPU1_SOFT_RST>;
+				force-shutdown-syscon = <&pmu_apb_regs REG_PMU_APB_PD_DPU_DP_CFG_0
+						MASK_PMU_APB_PD_DPU_DP_FORCE_SHUTDOWN>;
+				interrupts = <GIC_SPI 120 IRQ_TYPE_LEVEL_HIGH>;
+				status = "disable";
+				iommus = <&iommu_dispc1>;
+
+				sprd,initial-stop-state;
+
+				power-domains = <&pd_ipa_sys>;
+				clock-names = "clk_src_128m",
+						"clk_src_192m",
+						"clk_src_256m",
+						"clk_pixelpll",
+						"clk_src_307m2",
+						"clk_src_384m",
+						"clk_src_512m",
+						"clk_dpu_core",
+						"clk_dpu_dpi",
+						"clk_ipa_apb_dispc1_eb";
+				clocks = <&g5l_pll CLK_TGPLL_128M>,
+					  <&g5l_pll CLK_TGPLL_192M>,
+					  <&g5l_pll CLK_TGPLL_256M>,
+					  <&g5r_pll CLK_PIXELPLL>,
+					  <&g5l_pll CLK_TGPLL_307M2>,
+					  <&g5l_pll CLK_TGPLL_384M>,
+					  <&g5l_pll CLK_TGPLL_512M>,
+					  <&ipa_clk CLK_IPA_DPU>,
+					  <&ipa_clk CLK_IPA_DPI>,
+					  <&ipadispc_gate CLK_IPA_DPU1_EB>;
+
+				dpu1_port: port {
+					dpu1_out: endpoint {
+						remote-endpoint = <&dptx_in>;
+					};
+				};
+			};
+
 			iommu_dispc1: iommu@31880000 {
 				compatible = "sprd,iommuvau-dispc1";
-				reg = <0x0 0x31880800 0x0 0x80>;
+				reg = <0x0 0x31880000 0x0 0x80>,
+				      <0x0 0x31880800 0x0 0x80>;
+				//reg = <0x0 0x31880800 0x0 0x80>;
 				sprd,iova-base = <0x40000000>;
 				sprd,iova-size = <0x10000000>;
 				reg_name = "mmu_reg";
@@ -1653,8 +1697,6 @@
 				status = "disable";
 				interrupts = <GIC_SPI 123 IRQ_TYPE_LEVEL_HIGH>;
 
-				sprd,soc = "qogirn6pro1";
-
 				power-domains = <&pd_ipa_sys>;
 				clock-names = "clk_ipa_apb_dpu1_eb",
 						"clk_ipa_apb_dptx_eb";
@@ -1666,6 +1708,13 @@
 				ports {
 					#address-cells = <1>;
 					#size-cells = <0>;
+
+					port@1 {
+						reg = <1>;
+						dptx_in: endpoint {
+						remote-endpoint = <&dpu1_out>;
+						};
+					};
 				};
 			};
 
