@@ -77,8 +77,10 @@ static int z_erofs_lz4_prepare_destpages(struct z_erofs_decompress_req *rq,
 			get_page(victim);
 		} else {
 			victim = erofs_allocpage(pagepool, GFP_KERNEL, false);
-			if (!victim)
+			if (!victim) {
+				erofs_err(rq->sb, "line:%d erofs_allocpage() failed!", __LINE__);
 				return -ENOMEM;
+			}
 			victim->mapping = Z_EROFS_MAPPING_STAGING;
 		}
 		rq->out[i] = victim;
@@ -285,8 +287,10 @@ static int z_erofs_decompress_generic(struct z_erofs_decompress_req *rq,
 		vm_unmap_aliases();
 	}
 
-	if (!dst)
+	if (!dst) {
+		erofs_err(rq->sb, "line:%d kmap(out) failed!", __LINE__);
 		return -ENOMEM;
+	}
 
 	dst_maptype = 2;
 

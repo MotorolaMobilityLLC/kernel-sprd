@@ -725,6 +725,9 @@ static inline void z_erofs_vle_read_endio(struct bio *bio)
 	struct bio_vec *bvec;
 	struct bvec_iter_all iter_all;
 
+	if (err)
+		pr_err("%s:%d: i/o error %u", __func__, __LINE__, (unsigned int)err);
+
 	bio_for_each_segment_all(bvec, bio, iter_all) {
 		struct page *page = bvec->bv_page;
 		bool cachemngd = false;
@@ -850,8 +853,10 @@ static int z_erofs_decompress_pcluster(struct super_block *sb,
 
 		if (!z_erofs_page_is_staging(page)) {
 			if (erofs_page_is_managed(sbi, page)) {
-				if (!PageUptodate(page))
+				if (!PageUptodate(page)) {
 					err = -EIO;
+					erofs_err(sb, "line:%d don't success get data!", __LINE__);
+				}
 				continue;
 			}
 
@@ -877,6 +882,7 @@ static int z_erofs_decompress_pcluster(struct super_block *sb,
 		if (PageError(page)) {
 			DBG_BUGON(PageUptodate(page));
 			err = -EIO;
+			erofs_err(sb, "line:%d page marked error when return from disk!", __LINE__);
 		}
 	}
 
@@ -1351,8 +1357,10 @@ static int z_erofs_vle_normalaccess_readpage(struct file *file,
 	/* if some compressed cluster ready, need submit them anyway */
 	z_erofs_submit_and_unzip(inode->i_sb, &f.clt, &pagepool, true);
 
-	if (err)
+	if (err) {
 		erofs_err(inode->i_sb, "failed to read, err [%d]", err);
+		dump_stack();
+	}
 
 	if (f.map.mpage)
 		put_page(f.map.mpage);
@@ -1417,10 +1425,12 @@ static int z_erofs_vle_normalaccess_readpages(struct file *filp,
 		head = (void *)page_private(page);
 
 		err = z_erofs_do_read_page(&f, page, &pagepool);
-		if (err)
+		if (err) {
 			erofs_err(inode->i_sb,
-				  "readahead error at page %lu @ nid %llu",
-				  page->index, EROFS_I(inode)->nid);
+				  "readahead error at page %lu @ nid %llu err:%0x",
+				  page->index, EROFS_I(inode)->nid, -err);
+			dump_stack();
+		}
 		put_page(page);
 	}
 
