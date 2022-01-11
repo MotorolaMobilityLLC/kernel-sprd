@@ -345,7 +345,8 @@ static int ufs_sprd_init(struct ufs_hba *hba)
 
 	hba->quirks |= UFSHCD_QUIRK_BROKEN_UFS_HCI_VERSION |
 		       UFSHCD_QUIRK_DELAY_BEFORE_DME_CMDS;
-	hba->caps |= UFSHCD_CAP_CLK_GATING | UFSHCD_CAP_CRYPTO;
+	hba->caps |= UFSHCD_CAP_CLK_GATING | UFSHCD_CAP_CRYPTO |
+		     UFSHCD_CAP_WB_EN;
 
 	res = platform_get_resource_byname(pdev,
 					IORESOURCE_MEM, "ufs_analog_reg");
