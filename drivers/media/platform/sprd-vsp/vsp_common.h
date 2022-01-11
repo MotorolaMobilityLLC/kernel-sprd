@@ -12,7 +12,7 @@
 #include <uapi/video/sprd_vsp.h>
 #include <linux/dma-buf.h>
 #include <linux/mutex.h>
-extern unsigned int codec_instance_count[VSP_CODEC_INSTANCE_COUNT_MAX];
+
 #define VSP_MINOR MISC_DYNAMIC_MINOR
 #define VSP_AQUIRE_TIMEOUT_MS	500
 #define VSP_INIT_TIMEOUT_MS	200
@@ -46,7 +46,7 @@ struct vsp_fh {
 	wait_queue_head_t wait_queue_work;
 	int condition_work;
 	int vsp_int_status;
-	unsigned int codec_id;
+	int codec_id;
 };
 
 struct sprd_vsp_cfg_data {

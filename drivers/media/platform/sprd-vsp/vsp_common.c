@@ -35,7 +35,6 @@ struct vsp_iommu_map_entry {
 	struct sg_table *table;
 };
 
-unsigned int codec_instance_count[VSP_CODEC_INSTANCE_COUNT_MAX];
 struct register_gpr regs[ARRAY_SIZE(tb_name)];
 
 struct clk *vsp_get_clk_src_name(struct clock_name_map_t clock_name_map[],

@@ -77,6 +77,7 @@ static long vsp_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	struct vsp_fh *vsp_fp = filp->private_data;
 	u8 need_rst_axi = 0;
 	u32 tmp_rst_msk = 0;
+	int tmp_codec_id = 0;
 
 	if (vsp_fp == NULL) {
 		pr_err("%s error occurred, vsp_fp == NULL\n", __func__);
@@ -302,25 +303,23 @@ static long vsp_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		break;
 
 	case VSP_SET_CODEC_ID:
-		get_user(vsp_fp->codec_id, (int __user *)arg);
-		if (vsp_fp->codec_id >= VSP_ENC) {
-			pr_info("set invalid codec_id %d\n", vsp_fp->codec_id);
+		get_user(tmp_codec_id, (int __user *)arg);
+		if (tmp_codec_id < VSP_H264_DEC || tmp_codec_id > VSP_ENC) {
+			pr_err("set invalid codec_id %d\n", tmp_codec_id);
 			return -EINVAL;
 		}
-
-		codec_instance_count[vsp_fp->codec_id]++;
-		pr_debug("set codec_id %d counter %d\n", vsp_fp->codec_id,
-			codec_instance_count[vsp_fp->codec_id]);
+		vsp_fp->codec_id = tmp_codec_id;
+		pr_debug("set codec_id %d\n", vsp_fp->codec_id);
 		break;
 
 	case VSP_GET_CODEC_COUNTER:
 
-		if (vsp_fp->codec_id >= VSP_ENC) {
+		if (vsp_fp->codec_id < VSP_H264_DEC || vsp_fp->codec_id > VSP_ENC) {
 			pr_info("invalid vsp codec_id %d\n", vsp_fp->codec_id);
 			return -EINVAL;
 		}
 
-		codec_counter = codec_instance_count[vsp_fp->codec_id];
+		codec_counter = atomic_read(&vsp_instance_cnt);
 		put_user(codec_counter, (int __user *)arg);
 		pr_debug("total  counter %d current codec-id %d\n",
 			codec_counter, vsp_fp->codec_id);
@@ -610,9 +609,6 @@ static int vsp_release(struct inode *inode, struct file *filp)
 	pr_info("%s: instance_cnt %d\n", __func__, instance_cnt);
 
 	atomic_dec(&vsp_instance_cnt);
-	codec_instance_count[vsp_fp->codec_id]--;
-	pr_debug("release codec_id %d counter %d\n", vsp_fp->codec_id,
-		codec_instance_count[vsp_fp->codec_id]);
 
 	if (vsp_fp->is_clock_enabled) {
 		pr_err("error occurred and close clock\n");
@@ -652,7 +648,6 @@ static struct miscdevice vsp_dev = {
 static int vsp_probe(struct platform_device *pdev)
 {
 	int ret;
-	int i = 0;
 	struct device *dev = &pdev->dev;
 	struct device_node *node = pdev->dev.of_node;
 	const struct of_device_id *of_id;
@@ -697,9 +692,6 @@ static int vsp_probe(struct platform_device *pdev)
 
 	vsp_hw_dev.vsp_parent_df_clk =
 		vsp_get_clk_src_name(clock_name_map, 0, max_freq_level);
-
-	for (i = 0; i < VSP_ENC; i++)
-		codec_instance_count[i] = 0;
 
 	ret = misc_register(&vsp_dev);
 	if (ret) {
