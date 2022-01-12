@@ -26,7 +26,7 @@
 #include "ufs-sprd_qogirl6.h"
 #include "ufs_quirks.h"
 #include "unipro.h"
-
+#include "ufs-ioctl.h"
 
 int syscon_get_args(struct device *dev, struct ufs_sprd_host *host)
 {
@@ -468,6 +468,31 @@ static int __sprd_ufs_pwrchange(struct ufs_hba *hba,
 	return ret;
 }
 
+static int sprd_ufs_pwmmode_change(struct ufs_hba *hba)
+{
+	int ret;
+	struct ufs_pa_layer_attr pwr_info;
+
+	ret = is_ufs_sprd_host_in_pwm(hba);
+	if (ret == (SLOW_MODE|(SLOW_MODE<<4)))
+		return 0;
+
+	pwr_info.gear_rx = UFS_PWM_G3;
+	pwr_info.gear_tx = UFS_PWM_G3;
+	pwr_info.lane_rx = 2;
+	pwr_info.lane_tx = 2;
+	pwr_info.pwr_rx = SLOW_MODE;
+	pwr_info.pwr_tx = SLOW_MODE;
+	pwr_info.hs_rate = 0;
+
+	ret = __sprd_ufs_pwrchange(hba, &(pwr_info));
+	if (ret)
+		goto out;
+out:
+	return ret;
+}
+
+
 static int sprd_ufs_pwrchange(struct ufs_hba *hba)
 {
 	int ret;
@@ -760,22 +785,35 @@ static void ufs_sprd_hibern8_notify(struct ufs_hba *hba,
 		break;
 	case POST_CHANGE:
 		if (cmd == UIC_CMD_DME_HIBER_EXIT) {
-
 			hba->caps &= ~UFSHCD_CAP_CLK_GATING;
-
-			ret = is_ufs_sprd_host_in_pwm(hba);
-			if (ret == (SLOW_MODE|(SLOW_MODE<<4))) {
-				ufs_set_hstxsclk(hba);
-				ret = sprd_ufs_pwrchange(hba);
-				if (ret) {
-					pr_err("ufs_pwm2hs err");
-				} else {
-					ret = is_ufs_sprd_host_in_pwm(hba);
-					if (ret == (SLOW_MODE|(SLOW_MODE<<4)) &&
-					  hba->max_pwr_info.is_valid == true)
-						pr_err("ufs_pwm2hs fail");
-					else
-						pr_err("ufs_pwm2hs succ\n");
+			if (hba->ioctl_cmd == UFS_IOCTL_ENTER_MODE) {
+				ret = sprd_ufs_pwmmode_change(hba);
+				if (ret)
+					pr_err("change pwm mode failed!\n");
+				else {
+					if (hba->pwm_async_done != NULL)
+						complete(hba->pwm_async_done);
+				}
+			} else {
+				ret = is_ufs_sprd_host_in_pwm(hba);
+				if (ret == (SLOW_MODE|(SLOW_MODE<<4))) {
+					ufs_set_hstxsclk(hba);
+					ret = sprd_ufs_pwrchange(hba);
+					if (ret) {
+						pr_err("ufs_pwm2hs err");
+					} else {
+						ret = is_ufs_sprd_host_in_pwm(hba);
+						if (ret == (SLOW_MODE|(SLOW_MODE<<4)) &&
+						    hba->max_pwr_info.is_valid == true)
+							pr_err("ufs_pwm2hs fail");
+						else {
+							pr_err("ufs_pwm2hs succ\n");
+							if (hba->ioctl_cmd == UFS_IOCTL_AFC_EXIT) {
+								if (hba->hs_async_done)
+									complete(hba->hs_async_done);
+							}
+						}
+					}
 				}
 			}
 

@@ -7,6 +7,8 @@
  */
 #define UFS_IOCTL_FFU                               0x5379
 #define UFS_IOCTL_GET_DEVICE_INFO                   0x5392
+#define UFS_IOCTL_ENTER_MODE			    0x5395
+#define UFS_IOCTL_AFC_EXIT			    0x5396
 
 #define UFS_IOCTL_FFU_MAX_FW_VER_BYTES              (4)
 #define UFS_IOCTL_FFU_MAX_MODEL_BYTES               (16)
@@ -56,7 +58,7 @@ struct ufs_ioctl_query_device_info {
 
 int sprd_ufs_ioctl_ffu(struct scsi_device *dev, void __user *buf_user);
 int sprd_ufs_ioctl_get_dev_info(struct scsi_device *dev, void __user *buf_user);
-
+int sprd_ufs_ioctl_get_pwr_info(struct scsi_device *dev, void __user *buf_user);
 extern void emergency_restart(void);
 
 #endif

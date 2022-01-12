@@ -663,6 +663,9 @@ struct ufs_hba {
 	struct mutex uic_cmd_mutex;
 	struct completion *uic_async_done;
 	struct mutex      ufshcd_clk_mutex;
+	struct completion *pwm_async_done;
+	u32 ioctl_cmd;
+	struct completion *hs_async_done;
 
 	u32 ufshcd_state;
 	u32 eh_flags;

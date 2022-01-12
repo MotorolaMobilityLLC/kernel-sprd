@@ -259,3 +259,72 @@ out:
 	return 0;
 }
 
+
+int sprd_ufs_ioctl_get_pwr_info(struct scsi_device *dev, void __user *buf_user)
+{
+	struct ufs_hba *hba;
+	unsigned int *idata = NULL;
+	int err;
+
+	if (dev)
+		hba = shost_priv(dev->host);
+	else
+		return -ENODEV;
+
+	/* check scsi device instance */
+	if (!dev->rev) {
+		dev_err(hba->dev, "%s: scsi_device or rev is NULL\n", __func__);
+		err = -ENOENT;
+		goto out;
+	}
+
+	idata = kzalloc(sizeof(unsigned int), GFP_KERNEL);
+	if (!idata) {
+		err = -ENOMEM;
+		goto out;
+	}
+
+	/* extract params from user buffer */
+	err = copy_from_user(idata, buf_user, sizeof(unsigned int));
+	if (err) {
+		dev_err(hba->dev,
+			"%s: failed copying buffer from user, err %d\n",
+			__func__, err);
+		goto out_release_mem;
+	}
+
+	if (hba->ioctl_cmd == UFS_IOCTL_ENTER_MODE) {
+		if ((((hba->pwr_info.pwr_tx) << 4)|
+		      (hba->pwr_info.pwr_rx)) == 0x22)
+			*idata = 1;
+		else
+			*idata = 0;
+	}
+
+	if (hba->ioctl_cmd == UFS_IOCTL_AFC_EXIT) {
+		if ((((hba->pwr_info.pwr_tx) << 4)|
+		      (hba->pwr_info.pwr_rx)) == 0x11)
+			*idata = 1;
+		else
+			*idata = 0;
+	}
+
+	dev_err(hba->dev,
+		"%s:gear[0x%x:0x%x],lane[0x%x:0x%x],pwr[0x%x:0x%x],hs_rate=0x%x,idata=0x%x!\n",
+		__func__, hba->pwr_info.gear_rx, hba->pwr_info.gear_tx,
+		hba->pwr_info.lane_rx, hba->pwr_info.lane_tx,
+		hba->pwr_info.pwr_rx, hba->pwr_info.pwr_tx,
+		hba->pwr_info.hs_rate, *idata);
+
+	err = copy_to_user(buf_user, idata, sizeof(unsigned int));
+	if (err) {
+		dev_err(hba->dev, "%s: err %d copying to user.\n",
+				__func__, err);
+		goto out_release_mem;
+	}
+
+out_release_mem:
+	kfree(idata);
+out:
+	return 0;
+}

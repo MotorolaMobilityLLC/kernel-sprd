@@ -7270,6 +7270,8 @@ static int ufshcd_ioctl(struct scsi_device *dev, int cmd, void __user *buffer)
 {
 	struct ufs_hba *hba = shost_priv(dev->host);
 	int err = 0;
+	struct completion pwm_async_done;
+	struct completion hs_async_done;
 
 	if (!buffer) {
 		dev_err(hba->dev, "%s: user buffer is NULL\n", __func__);
@@ -7284,6 +7286,30 @@ static int ufshcd_ioctl(struct scsi_device *dev, int cmd, void __user *buffer)
 		break;
 	case UFS_IOCTL_GET_DEVICE_INFO:
 		err = sprd_ufs_ioctl_get_dev_info(dev, buffer);
+		break;
+	case UFS_IOCTL_ENTER_MODE:
+		hba->ioctl_cmd = UFS_IOCTL_ENTER_MODE;
+		init_completion(&pwm_async_done);
+		hba->pwm_async_done = &pwm_async_done;
+		if (!wait_for_completion_timeout(hba->pwm_async_done, 5000)) {
+			pr_err("pwm mode time out!\n");
+			return 1;
+		}
+		ufshcd_print_pwr_info(hba);
+		err = sprd_ufs_ioctl_get_pwr_info(dev, buffer);
+		hba->pwm_async_done = NULL;
+		break;
+	case UFS_IOCTL_AFC_EXIT:
+		hba->ioctl_cmd = UFS_IOCTL_AFC_EXIT;
+		init_completion(&hs_async_done);
+		hba->hs_async_done = &hs_async_done;
+		if (!wait_for_completion_timeout(hba->hs_async_done, 50000)) {
+			pr_err("hs mode time out!\n");
+			return 1;
+		}
+		ufshcd_print_pwr_info(hba);
+		err = sprd_ufs_ioctl_get_pwr_info(dev, buffer);
+		hba->hs_async_done = NULL;
 		break;
 	default:
 		err = -ENOIOCTLCMD;
@@ -7310,6 +7336,9 @@ static struct scsi_host_template ufshcd_driver_template = {
 	.eh_host_reset_handler   = ufshcd_eh_host_reset_handler,
 	.eh_timed_out		= ufshcd_eh_timed_out,
 	.ioctl			= ufshcd_ioctl,
+#ifdef CONFIG_COMPAT
+	.compat_ioctl		= ufshcd_ioctl,
+#endif
 	.this_id		= -1,
 	.sg_tablesize		= SG_ALL,
 	.cmd_per_lun		= UFSHCD_CMD_PER_LUN,
