@@ -290,6 +290,9 @@ struct zspage {
 #ifdef CONFIG_COMPACTION
 	rwlock_t lock;
 #endif
+#if defined(CONFIG_E_SHOW_MEM) && defined(CONFIG_ARM64)
+	gfp_t gfp_mask;
+#endif
 };
 
 struct mapping_area {
@@ -1081,6 +1084,10 @@ static struct zspage *alloc_zspage(struct zs_pool *pool,
 
 	for (i = 0; i < class->pages_per_zspage; i++) {
 		struct page *page;
+#if defined(CONFIG_E_SHOW_MEM) && defined(CONFIG_ARM64)
+		unsigned long pfn;
+		unsigned long page_addr;
+#endif
 
 		page = alloc_page(gfp);
 		if (!page) {
@@ -1092,6 +1099,16 @@ static struct zspage *alloc_zspage(struct zs_pool *pool,
 			return NULL;
 		}
 
+#if defined(CONFIG_E_SHOW_MEM) && defined(CONFIG_ARM64)
+		pfn = page_to_pfn(page);
+		page_addr = pfn<<12;
+		zspage->gfp_mask = gfp;
+		if ((page_addr >= 0xf0000000) && (page_addr < 0xf3000000)) {
+			pr_info("XXXX-CMA-WARN: pfn: 0x%lx,gfp_mask:%#x\n", pfn, gfp);
+			pr_info("CMA-ERROR: If print this log, please contact xiaosong.ma\n");
+			BUG_ON(1);
+		}
+#endif
 		inc_zone_page_state(page, NR_ZSPAGES);
 		pages[i] = page;
 	}
