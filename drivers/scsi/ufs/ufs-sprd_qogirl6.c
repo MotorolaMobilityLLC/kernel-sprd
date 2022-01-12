@@ -235,6 +235,17 @@ int syscon_get_args(struct device *dev, struct ufs_sprd_host *host)
 	return 0;
 }
 
+static inline int ufs_sprd_mask(void __iomem *base, u32 mask, u32 reg)
+{
+	u32 tmp;
+
+	tmp = readl((base) + (reg));
+	if (tmp & mask)
+		return 1;
+	else
+		return 0;
+}
+
 /*
  * ufs_sprd_rmwl - read modify write into a register
  * @base - base address
@@ -378,6 +389,9 @@ void ufs_sprd_reset(struct ufs_sprd_host *host)
 	udelay(1);
 	ufs_sprd_rmwl(host->ufs_analog_reg, MPHY_APB_REFCLK_AUTOH8_EN_MASK,
 			MPHY_APB_REFCLK_AUTOH8_EN_VAL, MPHY_DIG_CFG14_LANE0);
+	udelay(1);
+	ufs_sprd_rmwl(host->ufs_analog_reg, MPHY_APB_PLLTIMER_MASK,
+			MPHY_APB_PLLTIMER_VAL, MPHY_DIG_CFG18_LANE0);
 }
 
 static int is_ufs_sprd_host_in_pwm(struct ufs_hba *hba)
@@ -714,6 +728,23 @@ out:
 	return err;
 }
 
+void ufs_set_hstxsclk(struct ufs_hba *hba)
+{
+	int ret;
+	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
+
+	ret = ufs_sprd_mask(host->ufs_analog_reg,
+			MPHY_APB_HSTXSCLKINV1_MASK,
+			MPHY_DIG_CFG19_LANE0);
+	if (!ret) {
+		ufs_sprd_rmwl(host->ufs_analog_reg,
+				MPHY_APB_HSTXSCLKINV1_MASK,
+				MPHY_APB_HSTXSCLKINV1_VAL,
+				MPHY_DIG_CFG19_LANE0);
+		pr_err("ufs_pwm2hs set hstxsclk\n");
+	}
+
+}
 static void ufs_sprd_hibern8_notify(struct ufs_hba *hba,
 				enum uic_cmd_dme cmd,
 				enum ufs_notify_change_status status)
@@ -734,6 +765,7 @@ static void ufs_sprd_hibern8_notify(struct ufs_hba *hba,
 
 			ret = is_ufs_sprd_host_in_pwm(hba);
 			if (ret == (SLOW_MODE|(SLOW_MODE<<4))) {
+				ufs_set_hstxsclk(hba);
 				ret = sprd_ufs_pwrchange(hba);
 				if (ret) {
 					pr_err("ufs_pwm2hs err");
