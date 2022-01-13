@@ -661,6 +661,12 @@ static int sprd_oled_set_brightness(struct backlight_device *bdev)
             g_last_level = level;
 		}
 	}
+	if (strncmp(lcd_name, "lcd_ili9882q_dj_mipi_hd",strlen(lcd_name)) == 0)
+	{
+		if(level < 256){
+			g_last_level = level;
+		}
+	}
 	if (level ==256)
 		level = 255;
 
