@@ -85,6 +85,8 @@ drm:sprd:gsp:
 drm:sprd:sysfs:
 dt-bindings:*
 
+extcon:
+
 firmware:psci:
 firmware:sprd:
 fs:
