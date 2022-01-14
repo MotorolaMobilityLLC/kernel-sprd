@@ -1689,11 +1689,9 @@ static void cm_vote_property(struct charger_manager *cm, int target_val,
 		val.intval = target_val;
 		ret = power_supply_set_property(psy, psp, &val);
 		power_supply_put(psy);
-		if (ret) {
+		if (ret)
 			dev_err(cm->dev, "failed to %s set power_supply_property[%d], ret = %d\n",
-				name[i], ret, psp);
-			continue;
-		}
+				name[i], psp, ret);
 	}
 }
 
