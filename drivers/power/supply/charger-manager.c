@@ -2439,6 +2439,8 @@ static void cm_ir_compensation(struct charger_manager *cm, enum cm_ir_comp_state
 
 	if (!ir_sts->rc)
 		return;
+	if (ontim_runin_onoff_control == 1)
+		return;
 
 	if (cm_get_ibat_avg(cm, &ibat_avg))
 		return;
@@ -4010,7 +4012,7 @@ static bool cm_manager_adjust_current(struct charger_manager *cm, int jeita_stat
         /* add for limit soc 70% */
 	if (ontim_runin_onoff_control == 1)
 	{
-		term_volt = 4050000;
+		term_volt = 4000000;
 		dev_info(cm->dev,"smt set term_volt:%d\n",term_volt);
 	}
 
@@ -6630,11 +6632,11 @@ static void cm_batt_works(struct work_struct *work)
 	{
 		low_bat =0;
 	}
-	if( (term_vol >3950000 &&  term_vol <4100000) && fuel_cap > 750)
-	{
-		fuel_cap =750;
-		dev_info(cm->dev, "%s;force soc=750;\n",__func__);
-	}
+//	if( (term_vol >3950000 &&  term_vol <4100000) && fuel_cap > 750)
+//	{
+//		fuel_cap =750;
+//		dev_info(cm->dev, "%s;force soc=750;\n",__func__);
+//	}
 
 	if(is_cal_cap ==0 && batt_uA/1000 >0 && batt_uA/1000 <10)
 	{
@@ -6662,7 +6664,7 @@ static void cm_batt_works(struct work_struct *work)
 	else
 		cal_count = 0;
 		
-	if( (!charge_done)  && term_vol >3950000 && batt_ocV >(term_vol - 100000) &&  check_charge_done(cm)  )
+	if( (!charge_done)  && term_vol >3950000 && batt_ocV >(term_vol - 100000)  &&  check_charge_done(cm)  )
 	{		
 		charge_done = true;
 		is_cal_cap = 1;
@@ -6674,10 +6676,10 @@ static void cm_batt_works(struct work_struct *work)
 		{
 			real_cap = power_supply_ocv2cap_simple(cm->desc->cap_table,
 						      cm->desc->cap_table_len,
-						      term_vol);
+						      batt_uV);
 			real_cap =real_cap *10;
-			dev_err(cm->dev, "%s;full;fuel_cap=%d,%d, term_vol=%d\n",__func__,
-				 fuel_cap, real_cap,term_vol/1000);
+			dev_err(cm->dev, "%s;full;fuel_cap=%d,%d, batt_uV=%d\n",__func__,
+				 fuel_cap, real_cap,batt_uV/1000);
 			fuel_cap = real_cap;
 		}	
 		adjust_fuel_cap(cm,fuel_cap);
