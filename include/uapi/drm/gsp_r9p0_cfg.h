@@ -119,6 +119,7 @@ struct gsp_r9p0_img_layer_params {
 	struct gsp_yuv_adjust_para		yuv_adjust;
 	struct gsp_scale_para			scale_para;
 	__u32   				header_size_r;
+	__u8					secure_en;
 };
 
 struct gsp_r9p0_img_layer_user {
@@ -144,6 +145,7 @@ struct gsp_r9p0_osd_layer_params {
 	__u8					pmargb_mod;
 	__u8					zorder;
 	__u32   				header_size_r;
+	__u8					secure_en;
 };
 
 struct gsp_r9p0_osd_layer_user {
@@ -176,9 +178,9 @@ struct gsp_r9p0_misc_cfg_user {
 	__u8 co_work1;
 	__u8 work_mod;
 	__u8 pmargb_en;
+	__u8 secure_en;
 	struct gsp_rect workarea_src_rect;
 	struct gsp_pos workarea_des_pos;
-	__u8 secure_en;
 };
 
 struct gsp_r9p0_cfg_user {

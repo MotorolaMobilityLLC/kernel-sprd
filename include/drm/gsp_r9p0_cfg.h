@@ -36,9 +36,9 @@ struct gsp_r9p0_misc_cfg {
 	u8 co_work1;
 	u8 work_mod;
 	u8 pmargb_en;
+	u8 secure_en;
 	struct gsp_rect workarea_src_rect;
 	struct gsp_pos workarea_des_pos;
-	u8 secure_en;
 };
 
 struct gsp_r9p0_cfg {
