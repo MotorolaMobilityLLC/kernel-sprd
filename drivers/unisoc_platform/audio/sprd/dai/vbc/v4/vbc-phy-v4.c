@@ -1520,6 +1520,50 @@ int vbc_dsp_func_trigger(int id, int stream, int up_down)
 	return 0;
 }
 
+/***********************************************************
+ * cmd for SND_KCTL_TYPE_HP_CROSSTALK_EN
+ ***********************************************************/
+int dsp_hp_crosstalk_en_set(u32 enable)
+{
+	int ret;
+	u32 hp_crosstalk_enable = enable;
+
+	pr_info("%s enable = %d", __func__, enable);
+
+	ret = aud_send_cmd(AMSG_CH_VBC_CTL,
+		SND_KCTL_TYPE_HP_CROSSTALK_EN,
+		-1, SND_VBC_DSP_IO_KCTL_SET, &hp_crosstalk_enable,
+		sizeof(hp_crosstalk_enable),
+		AUDIO_SIPC_WAIT_FOREVER);
+	if (ret < 0)
+		pr_err("Failed to set hp_crosstalk_enable, ret %d\n", ret);
+
+	return ret;
+}
+
+/***********************************************************
+ * cmd for SND_KCTL_TYPE_HP_CROSSTALK_GAIN
+ ***********************************************************/
+int dsp_hp_crosstalk_gain(int value0, int value1)
+{
+	int ret;
+	struct hp_crosstalk_gain_t hp_crosstalk_gain;
+
+	hp_crosstalk_gain.gain0 = value0;
+	hp_crosstalk_gain.gain1 = value1;
+	pr_info("%s gain0 = %d, gain1 = %d", __func__, value0, value1);
+
+	ret = aud_send_cmd(AMSG_CH_VBC_CTL,
+		SND_KCTL_TYPE_HP_CROSSTALK_GAIN,
+		-1, SND_VBC_DSP_IO_KCTL_SET, &hp_crosstalk_gain,
+		sizeof(hp_crosstalk_gain),
+		AUDIO_SIPC_WAIT_FOREVER);
+	if (ret < 0)
+		pr_err("Failed to set hp_crosstalk_gain, ret %d\n", ret);
+
+	return ret;
+}
+
 /*********************************************************
  * others
  *********************************************************/

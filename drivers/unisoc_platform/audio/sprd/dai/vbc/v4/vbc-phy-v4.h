@@ -581,6 +581,8 @@ enum KCTL_TYPE {
 	SND_KCTL_TYPE_FM_MUTE_EN,
 	SND_KCTL_TYPE_FM_MUTE,
 	SND_KCTL_TYPE_FM_MDG_STP,
+	SND_KCTL_TYPE_HP_CROSSTALK_EN = 0x2D,
+	SND_KCTL_TYPE_HP_CROSSTALK_GAIN = 0x2E,
 	SND_KCTL_TYPE_END,
 };
 
@@ -1198,6 +1200,12 @@ struct vbc_voice_pcm_play_t {
 	u16 mix_pcm_mode;
 };
 
+/* SND_KCTL_TYPE_HP_CROSSTALK_GAIN */
+struct hp_crosstalk_gain_t {
+	int gain0;
+	int gain1;
+};
+
 /**********************************************************************
  * define for SND_VBC_DSP_IO_SHAREMEM_GET / SND_VBC_DSP_IO_SHAREMEM_SET
  **********************************************************************/
@@ -1498,6 +1506,8 @@ struct vbc_codec_priv {
 	u32 iis_mst_width;
 	u16 voice_capture_type;
 	u16 voice_pcm_play_mode;
+	u32 hp_crosstalk_en;
+	struct hp_crosstalk_gain_t hp_crosstalk_gain;
 };
 
 /********************************************************************
@@ -1588,5 +1598,7 @@ int hifi_func_startup(int scene_id, int stream,
 int hifi_func_shutdown(int scene_id, int stream,
 	struct snd_pcm_hifi_stream *hifi_shutdown_info);
 int hifi_func_trigger(int id, int stream, int up_down);
+int dsp_hp_crosstalk_en_set(u32 enable);
+int dsp_hp_crosstalk_gain(int value0, int value1);
 
 #endif /* __VBC_V4_PHY_DRV_H */

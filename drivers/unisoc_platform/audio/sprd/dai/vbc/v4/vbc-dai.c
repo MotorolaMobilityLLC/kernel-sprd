@@ -3996,6 +3996,67 @@ static int vbc_voice_pcm_play_mode_put(struct snd_kcontrol *kcontrol,
 	return value;
 }
 
+static int dsp_hp_crosstalk_en_get(struct snd_kcontrol *kcontrol,
+				struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_component *codec = snd_soc_kcontrol_component(kcontrol);
+	struct vbc_codec_priv *vbc_codec = snd_soc_component_get_drvdata(codec);
+
+	ucontrol->value.integer.value[0] = vbc_codec->hp_crosstalk_en;
+
+	return 0;
+}
+
+static int dsp_hp_crosstalk_en_put(struct snd_kcontrol *kcontrol,
+				    struct snd_ctl_elem_value *ucontrol)
+{
+	u32 enable;
+	int ret;
+	struct snd_soc_component *codec = snd_soc_kcontrol_component(kcontrol);
+	struct vbc_codec_priv *vbc_codec = snd_soc_component_get_drvdata(codec);
+
+	enable = ucontrol->value.enumerated.item[0];
+	pr_info("%s enable = %d\n", __func__, enable);
+
+	vbc_codec->hp_crosstalk_en = enable;
+	ret = dsp_hp_crosstalk_en_set(enable);
+	if (ret != 0)
+		pr_err("%s set hp_crosstalk_en failed %d\n", __func__, ret);
+	return 0;
+}
+
+static int dsp_hp_crosstalk_gain_get(struct snd_kcontrol *kcontrol,
+				struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_component *codec = snd_soc_kcontrol_component(kcontrol);
+	struct vbc_codec_priv *vbc_codec = snd_soc_component_get_drvdata(codec);
+
+	ucontrol->value.integer.value[0] = vbc_codec->hp_crosstalk_gain.gain0;
+	ucontrol->value.integer.value[1] = vbc_codec->hp_crosstalk_gain.gain1;
+
+	return 0;
+}
+
+static int dsp_hp_crosstalk_gain_put(struct snd_kcontrol *kcontrol,
+				    struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_component *codec = snd_soc_kcontrol_component(kcontrol);
+	struct vbc_codec_priv *vbc_codec = snd_soc_component_get_drvdata(codec);
+	int val0, val1, ret;
+
+	val0 = ucontrol->value.integer.value[0];
+	val1 = ucontrol->value.integer.value[1];
+	sp_asoc_pr_dbg("%s, hp_crosstalk_gain, gain0=%d, gain1=%d\n",
+		       __func__, val0, val1);
+	vbc_codec->hp_crosstalk_gain.gain0 = val0;
+	vbc_codec->hp_crosstalk_gain.gain1 = val1;
+
+	ret = dsp_hp_crosstalk_gain(val0, val1);
+	if (ret != 0)
+		pr_err("%s set hp_crosstalk_gain failed %d\n", __func__, ret);
+	return 0;
+}
+
 /* -9450dB to 0dB in 150dB steps ( mute instead of -9450dB) */
 static const DECLARE_TLV_DB_SCALE(mdg_tlv, -9450, 150, 1);
 static const DECLARE_TLV_DB_SCALE(dg_tlv, -9450, 150, 1);
@@ -4004,6 +4065,7 @@ static const DECLARE_TLV_DB_SCALE(smthdg_step_tlv, -9450, 150, 1);
 static const DECLARE_TLV_DB_SCALE(mixerdg_tlv, -9450, 150, 1);
 static const DECLARE_TLV_DB_SCALE(mixerdg_step_tlv, -9450, 150, 1);
 static const DECLARE_TLV_DB_SCALE(offload_dg_tlv, 0, 150, 1);
+static const DECLARE_TLV_DB_SCALE(hpg_tlv, -9450, 150, 0);
 
 static const struct snd_kcontrol_new vbc_codec_snd_controls[] = {
 	/* MDG */
@@ -4492,6 +4554,13 @@ static const struct snd_kcontrol_new vbc_codec_snd_controls[] = {
 	SOC_ENUM_EXT("VBC_DSP_VOICE_PCM_PLAY_MODE",
 		     dsp_voice_pcm_play_enum,
 		     vbc_voice_pcm_play_mode_get, vbc_voice_pcm_play_mode_put),
+
+	SOC_SINGLE_BOOL_EXT("HP_CROSSTALK_EN", 0,
+			    dsp_hp_crosstalk_en_get, dsp_hp_crosstalk_en_put),
+	SOC_DOUBLE_R_EXT_TLV("HP_CROSSTALK_GAIN",
+			     0, 1, 0, MIXERDG_MAX_VAL, 0,
+			     dsp_hp_crosstalk_gain_get,
+			     dsp_hp_crosstalk_gain_put, hpg_tlv),
 };
 
 static u32 vbc_codec_read(struct snd_soc_component *codec,
