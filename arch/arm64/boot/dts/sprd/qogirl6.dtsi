@@ -1782,16 +1782,12 @@
 			usbpinmux: usbpinmux {
 				compatible = "sprd,qogirl6-usbpinmux";
 				sprd,syscon-config = <&aon_apb_regs>;
-				syscons = <&aon_apb_regs REG_AON_APB_USB_UART_JTAG_MUX
+				usb-mux-syscon = <&aon_apb_regs REG_AON_APB_USB_UART_JTAG_MUX
 					(MASK_AON_APB_USB_JTAG_HW_SEL_EN |
 					MASK_AON_APB_DAP_USB_JTAG_SEL |
 					MASK_AON_APB_USB_BYPASS_SEL | MASK_AON_APB_UART_JTAG_SEL)>;
-				syscon-names = "usb_uart_jtag_mux";
 				vdd-supply = <&vddusb33>;
 				sprd,vdd-voltage = <3300000>;
-				pinctrl-names = "uart_inf_sel0", "uart_inf_sel1";
-				pintcrl-0 = <&uart_inf_sel0>;
-				pintcrl-1 = <&uart_inf_sel1>;
 			};
 		};
 
