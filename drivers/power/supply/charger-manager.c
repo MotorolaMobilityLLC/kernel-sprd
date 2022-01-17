@@ -2438,9 +2438,15 @@ static void cm_ir_compensation(struct charger_manager *cm, enum cm_ir_comp_state
 {
 	struct cm_ir_compensation *ir_sts = &cm->desc->ir_comp;
 	int ibat_avg, target_cccv;
+	int term_vol;
 
 	if (!ir_sts->rc)
 		return;
+
+	get_charger_term_voltage(cm, &term_vol);
+	if(term_vol <4400000)
+		return;
+
 	if (ontim_runin_onoff_control == 1)
 		return;
 
