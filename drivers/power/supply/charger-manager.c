@@ -2146,6 +2146,7 @@ static int cm_fixed_fchg_disable(struct charger_manager *cm)
 	}
 
 	desc->enable_fast_charge = false;
+	desc->fast_charge_disable_count = 0;
 	/*
 	 * Adjust over voltage protection in 5V
 	 */
@@ -2189,8 +2190,6 @@ static bool cm_is_disable_fixed_fchg_check(struct charger_manager *cm)
 
 	if (cm->desc->fast_charge_disable_count < CM_FAST_CHARGE_DISABLE_COUNT)
 		return false;
-
-	cm->desc->fast_charge_disable_count = 0;
 
 	return true;
 }
@@ -4571,6 +4570,7 @@ static void misc_event_handler(struct charger_manager *cm, enum cm_event_types t
 		cm->desc->fast_charge_enable_count = 0;
 		cm->desc->fast_charge_disable_count = 0;
 		cm->desc->fixed_fchg_running = false;
+		cm->desc->wait_vbus_stable = false;
 		cm->desc->cp.cp_running = false;
 		cm->desc->cm_check_int = false;
 		cm->desc->fast_charger_type = 0;
