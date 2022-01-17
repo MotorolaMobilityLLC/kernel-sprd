@@ -864,10 +864,11 @@ static int sc27xx_fgu_get_capacity(struct sc27xx_fgu_data *data, int *cap,
 	else if (data->normal_temp_cap > 1000)
 		data->normal_temp_cap = 1000;
 
-	dev_info(data->dev, "init_cap = %d, init_clbcnt = %d, cur_clbcnt = %d, normal_cap = %d, "
-		 "delta_cap = %d, Tbat  = %d, uusoc_vbat = %d\n",
+	dev_info(data->dev, "init_cap=%d,init_clbcnt=%d,cur_clbcnt=%d,normal_cap= %d,"
+		 "delta_cap=%d,Tbat =%d,uusoc_vbat=%d;%d;%d;\n",
 		 data->init_cap, data->init_clbcnt, cur_clbcnt,
-		 data->normal_temp_cap, delta_cap, data->bat_temp, data->uusoc_vbat);
+		 data->normal_temp_cap, delta_cap, data->bat_temp, data->uusoc_vbat,
+		 data->total_cap,data->cur_1000ma_adc);
 
 	if (*cap < 0) {
 		*cap = 0;
