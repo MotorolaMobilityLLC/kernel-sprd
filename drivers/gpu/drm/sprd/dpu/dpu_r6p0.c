@@ -25,16 +25,16 @@
 #define SLP_BRIGHTNESS_THRESHOLD 0x20
 
 /* DPU registers size, 4 Bytes(32 Bits) */
-#define DPU_REG_SIZE	0x04
+#define DPU_REG_SIZE					0x04
 /* Layer registers offset */
-#define DPU_LAY_REG_OFFSET	0x0C
+#define DPU_LAY_REG_OFFSET				0x10
 
-#define DPU_MAX_REG_OFFSET	0x19AC
-  
+#define DPU_MAX_REG_OFFSET				0x19AC
+
 #define DPU_REG_RD(reg) readl_relaxed(reg)
-  
+
 #define DPU_REG_WR(reg, mask) writel_relaxed(mask, reg)
-  
+
 #define DPU_REG_SET(reg, mask) \
 		writel_relaxed(readl_relaxed(reg) | mask, reg)
 
@@ -48,53 +48,61 @@
 		(reg + index * DPU_LAY_REG_OFFSET * DPU_REG_SIZE + plane * DPU_REG_SIZE)
 
 /*Global control registers */
-#define REG_DPU_CTRL	0x08
-#define REG_DPU_CFG0	0x0C
-#define REG_DPU_CFG1	0x10
-#define REG_PANEL_SIZE	0x18
-#define REG_BLEND_SIZE	0x1C
-#define REG_BG_COLOR	0x24
+#define REG_DPU_CTRL					0x08
+#define REG_DPU_CFG0					0x0C
+#define REG_DPU_CFG1					0x10
+#define REG_PANEL_SIZE					0x18
+#define REG_BLEND_SIZE					0x1C
+#define REG_BG_COLOR					0x24
+
+/* Layer enable */
+#define REG_LAYER_ENABLE				0x2c
 
 /* Layer0 control registers */
-#define REG_LAY_BASE_ADDR	0x30
-#define REG_LAY_CTRL		0x40
-#define REG_LAY_DES_SIZE	0x44
-#define REG_LAY_SRC_SIZE	0x48
-#define REG_LAY_PITCH		0x4C
-#define REG_LAY_POS			0x50
-#define REG_LAY_ALPHA		0x54
-#define REG_LAY_CK			0x58
-#define REG_LAY_PALLETE		0x5C
-#define REG_LAY_CROP_START	0x60
+#define REG_LAY_BASE_ADDR				0x30
+#define REG_LAY_CTRL					0x40
+#define REG_LAY_DES_SIZE				0x44
+#define REG_LAY_SRC_SIZE				0x48
+#define REG_LAY_PITCH					0x4C
+#define REG_LAY_POS					0x50
+#define REG_LAY_ALPHA					0x54
+#define REG_LAY_CK					0x58
+#define REG_LAY_PALLETE					0x5C
+#define REG_LAY_CROP_START				0x60
 
 /* Write back config registers */
-#define REG_WB_BASE_ADDR	0x230
-#define REG_WB_CTRL			0x234
-#define REG_WB_CFG			0x238
-#define REG_WB_PITCH		0x23C
+#define REG_WB_BASE_ADDR				0x230
+#define REG_WB_CTRL					0x234
+#define REG_WB_CFG					0x238
+#define REG_WB_PITCH					0x23C
 
 /* Interrupt control registers */
-#define REG_DPU_INT_EN		0x250
-#define REG_DPU_INT_CLR		0x254
-#define REG_DPU_INT_STS		0x258
-#define REG_DPU_INT_RAW		0x25C
+#define REG_DPU_INT_EN					0x250
+#define REG_DPU_INT_CLR					0x254
+#define REG_DPU_INT_STS					0x258
+#define REG_DPU_INT_RAW					0x25C
 
 /* DPI control registers */
-#define REG_DPI_CTRL		0x260
-#define REG_DPI_H_TIMING	0x264
-#define REG_DPI_V_TIMING	0x268
+#define REG_DPI_CTRL					0x260
+#define REG_DPI_H_TIMING				0x264
+#define REG_DPI_V_TIMING				0x268
+
+/* DPU STS */
+#define REG_DPU_STS_21					0x754
+#define REG_DPU_STS_22					0x758
 
 /* Global control bits */
-#define BIT_DPU_RUN			BIT(0)
-#define BIT_DPU_STOP			BIT(1)
-#define BIT_DPU_ALL_UPDATE		BIT(2)
-#define BIT_DPU_REG_UPDATE		BIT(3)
-#define BIT_DPU_IF_EDPI			BIT(0)
+#define BIT_DPU_RUN					BIT(0)
+#define BIT_DPU_STOP					BIT(1)
+#define BIT_DPU_ALL_UPDATE				BIT(2)
+#define BIT_DPU_REG_UPDATE				BIT(3)
+#define BIT_LAY_REG_UPDATE				BIT(4)
+#define BIT_DPU_IF_EDPI					BIT(0)
 
 /* Layer control bits */
-#define BIT_DPU_LAY_EN				BIT(0)
-#define BIT_DPU_LAY_LAYER_ALPHA			(0x01 << 2)
-#define BIT_DPU_LAY_COMBO_ALPHA			(0x02 << 2)
+// #define BIT_DPU_LAY_EN				BIT(0)
+#define BIT_DPU_LAY_LAYER_ALPHA				(0x01 << 2)
+#define BIT_DPU_LAY_COMBO_ALPHA				(0x01 << 3)
 #define BIT_DPU_LAY_FORMAT_YUV422_2PLANE		(0x00 << 4)
 #define BIT_DPU_LAY_FORMAT_YUV420_2PLANE		(0x01 << 4)
 #define BIT_DPU_LAY_FORMAT_YUV420_3PLANE		(0x02 << 4)
@@ -107,31 +115,33 @@
 #define BIT_DPU_LAY_DATA_ENDIAN_B3B2B1B0		(0x01 << 8)
 #define BIT_DPU_LAY_DATA_ENDIAN_B2B3B0B1		(0x02 << 8)
 #define BIT_DPU_LAY_DATA_ENDIAN_B1B0B3B2		(0x03 << 8)
-#define BIT_DPU_LAY_NO_SWITCH			(0x00 << 10)
-#define BIT_DPU_LAY_RGB888_RB_SWITCH		(0x01 << 10)
-#define BIT_DPU_LAY_RGB565_RB_SWITCH		(0x01 << 12)
-#define BIT_DPU_LAY_PALLETE_EN			(0x01 << 13)
-#define BIT_DPU_LAY_MODE_BLEND_NORMAL		(0x00 << 16)
-#define BIT_DPU_LAY_MODE_BLEND_PREMULT		(0x01 << 16)
+#define BIT_DPU_LAY_NO_SWITCH				(0x00 << 10)
+#define BIT_DPU_LAY_RGB888_RB_SWITCH			(0x01 << 10)
+#define BIT_DPU_LAY_RGB565_RB_SWITCH			(0x01 << 12)
+#define BIT_DPU_LAY_PALLETE_EN				(0x01 << 13)
+#define BIT_DPU_LAY_MODE_BLEND_NORMAL			(0x01 << 16)
+#define BIT_DPU_LAY_MODE_BLEND_PREMULT			(0x01 << 16)
 
 /*Interrupt control & status bits */
-#define BIT_DPU_INT_DONE		BIT(0)
-#define BIT_DPU_INT_TE			BIT(1)
-#define BIT_DPU_INT_ERR			BIT(2)
-#define BIT_DPU_INT_VSYNC_EN		BIT(4)
-#define BIT_DPU_INT_WB_DONE_EN		BIT(5)
-#define BIT_DPU_INT_WB_ERR_EN		BIT(6)
-#define BIT_DPU_INT_FBC_PLD_ERR		BIT(7)
-#define BIT_DPU_INT_FBC_HDR_ERR		BIT(8)
-#define BIT_DPU_INT_DPU_ALL_UPDATE_DONE		BIT(16)
-#define BIT_DPU_INT_DPU_REG_UPDATE_DONE		BIT(17)
-#define BIT_DPU_INT_LAY_REG_UPDATE_DONE		BIT(18)
-#define BIT_DPU_INT_PQ_REG_UPDATE_DONE		BIT(19)
+#define BIT_DPU_INT_DONE				BIT(0)
+#define BIT_DPU_INT_TE					BIT(1)
+#define BIT_DPU_INT_ERR					BIT(2)
+#define BIT_DPU_INT_VSYNC_EN				BIT(4)
+#define BIT_DPU_INT_WB_DONE_EN				BIT(5)
+#define BIT_DPU_INT_WB_ERR_EN				BIT(6)
+#define BIT_DPU_INT_FBC_PLD_ERR				BIT(7)
+#define BIT_DPU_INT_FBC_HDR_ERR				BIT(8)
+#define BIT_DPU_INT_DPU_ALL_UPDATE_DONE			BIT(16)
+#define BIT_DPU_INT_DPU_REG_UPDATE_DONE			BIT(17)
+#define BIT_DPU_INT_LAY_REG_UPDATE_DONE			BIT(18)
+#define BIT_DPU_INT_PQ_REG_UPDATE_DONE			BIT(19)
 
 /* DPI control bits */
-#define BIT_DPU_EDPI_TE_EN		BIT(8)
-#define BIT_DPU_EDPI_FROM_EXTERNAL_PAD	BIT(10)
-#define BIT_DPU_DPI_HALT_EN		BIT(16)
+#define BIT_DPU_EDPI_TE_EN				BIT(8)
+#define BIT_DPU_EDPI_FROM_EXTERNAL_PAD			BIT(10)
+#define BIT_DPU_DPI_HALT_EN				BIT(16)
+
+#define BIT_DPU_STS_RCH_DPU_BUSY			BIT(15)
 
 struct wb_region {
 	u32 index;
@@ -146,6 +156,18 @@ struct dpu_cfg1 {
 	u8 arqos_high;
 	u8 awqos_low;
 	u8 awqos_high;
+};
+
+struct layer_reg {
+	u32 addr[4];
+	u32 ctrl;
+	u32 size;
+	u32 pitch;
+	u32 pos;
+	u32 alpha;
+	u32 ck;
+	u32 pallete;
+	u32 crop_start;
 };
 
 static struct dpu_cfg1 qos_cfg = {
@@ -226,7 +248,7 @@ static u32 dpu_isr(struct dpu_context *ctx)
 	}
 
 	/* dpu update done isr */
-	if (reg_val & BIT_DPU_INT_UPDATE_DONE) {
+	if (reg_val & BIT_DPU_INT_LAY_REG_UPDATE_DONE) {
 		ctx->evt_update = true;
 		wake_up_interruptible_all(&ctx->wait_queue);
 	}
@@ -235,6 +257,11 @@ static u32 dpu_isr(struct dpu_context *ctx)
 		ctx->evt_all_update = true;
 		wake_up_interruptible_all(&ctx->wait_queue);
 	}
+
+	// if (reg_val & DPU_INT_PQ_REG_UPDATE_DONE_MASK) {
+		// ctx->evt_pq_update = true;
+		// wake_up_interruptible_all(&wait_queue);
+	// }
 
 	/* dpu stop done isr */
 	if (reg_val & BIT_DPU_INT_DONE) {
@@ -263,10 +290,10 @@ static u32 dpu_isr(struct dpu_context *ctx)
 	if (reg_val & BIT_DPU_INT_WB_ERR_EN) {
 		pr_err("dpu write back fail\n");
 		/*give a new chance to write back*/
-		if (ctx->max_vsync_count > 0) {
-			ctx->wb_en = true;
-			ctx->vsync_count = 0;
-		}
+		// if (ctx->max_vsync_count > 0) {
+		ctx->wb_en = true;
+		ctx->vsync_count = 0;
+		// }
 	}
 
 	/* dpu afbc payload error isr */
@@ -289,7 +316,8 @@ static u32 dpu_isr(struct dpu_context *ctx)
 
 static int dpu_wait_stop_done(struct dpu_context *ctx)
 {
-	int rc;
+	int rc, i;
+	u32 dpu_sts_21, dpu_sts_22;
 
 	if (ctx->stopped)
 		return 0;
@@ -307,6 +335,21 @@ static int dpu_wait_stop_done(struct dpu_context *ctx)
 		return -1;
 	}
 
+	for (i = 1; i <= 3000; i++) {
+		dpu_sts_21 = DPU_REG_RD(ctx->base + REG_DPU_STS_21);
+		dpu_sts_22 = DPU_REG_RD(ctx->base + REG_DPU_STS_22);
+		if ((dpu_sts_21 & BIT(15)) ||
+		  (dpu_sts_22 & BIT(15)))
+			mdelay(1);
+		else {
+			pr_info("dpu is idle now\n");
+			break;
+		}
+
+		if (i == 3000)
+			pr_err("wait for dpu idle timeout\n");
+	}
+
 	return 0;
 }
 
@@ -315,7 +358,8 @@ static int dpu_wait_update_done(struct dpu_context *ctx)
 	int rc;
 
 	/* clear the event flag before wait */
-	ctx->evt_update = false;
+	if (!ctx->stopped)
+		ctx->evt_update = false;
 
 	/* wait for reg update done interrupt */
 	rc = wait_event_interruptible_timeout(ctx->wait_queue, ctx->evt_update,
@@ -332,16 +376,18 @@ static int dpu_wait_update_done(struct dpu_context *ctx)
 
 static void dpu_stop(struct dpu_context *ctx)
 {
-		if (ctx->if_type == SPRD_DPU_IF_DPI)
+	if (ctx->if_type == SPRD_DPU_IF_DPI)
 		DPU_REG_SET(ctx->base + REG_DPU_CTRL, BIT_DPU_STOP);
 
-		dpu_wait_stop_done(ctx);
-		pr_info("dpu stop\n");
+	dpu_wait_stop_done(ctx);
+	ctx->evt_update = false;
+	pr_info("dpu stop\n");
 }
 
 static void dpu_run(struct dpu_context *ctx)
 {
 	DPU_REG_SET(ctx->base + REG_DPU_CTRL, BIT_DPU_RUN);
+	DPU_REG_SET(ctx->base + REG_DPU_CTRL, BIT_LAY_REG_UPDATE);
 	ctx->stopped = false;
 
 	pr_info("dpu run\n");
@@ -365,21 +411,22 @@ static void dpu_run(struct dpu_context *ctx)
 
 static void dpu_wb_trigger(struct dpu_context *ctx, u8 count, bool debug)
 {
-  		int mode_width  = DPU_REG_RD(ctx->base + REG_BLEND_SIZE) & 0xFFFF;
-  		int mode_height = DPU_REG_RD(ctx->base + REG_BLEND_SIZE) >> 16;
+	int mode_width  = DPU_REG_RD(ctx->base + REG_BLEND_SIZE) & 0xFFFF;
+	int mode_height = DPU_REG_RD(ctx->base + REG_BLEND_SIZE) >> 16;
 
-  		ctx->wb_layer.dst_w = mode_width;
-  		ctx->wb_layer.dst_h = mode_height;
-  		ctx->wb_layer.xfbc = ctx->wb_xfbc_en;
-  		ctx->wb_layer.pitch[0] = ALIGN(mode_width, 16) * 4;
-  		ctx->wb_layer.fbc_hsize_r = XFBC8888_HEADER_SIZE(mode_width,
-  							mode_height) / 128;
- 		DPU_REG_WR(ctx->base + REG_WB_PITCH, ALIGN((mode_width), 16));
+	ctx->wb_layer.dst_w = mode_width;
+	ctx->wb_layer.dst_h = mode_height;
+	ctx->wb_layer.src_w = mode_width;
+	ctx->wb_layer.src_h = mode_height;
+	ctx->wb_layer.pitch[0] = ALIGN(mode_width, 16) * 4;
+	ctx->wb_layer.fbc_hsize_r = XFBC8888_HEADER_SIZE(mode_width,
+						mode_height) / 128;
+	DPU_REG_WR(ctx->base + REG_WB_PITCH, ALIGN((mode_width), 16));
 
- 		ctx->wb_layer.xfbc = ctx->wb_xfbc_en;
+	ctx->wb_layer.xfbc = ctx->wb_xfbc_en;
 
-	if (ctx->wb_xfbc_en && !debug) {
-		DPU_REG_WR(ctx->base + REG_WB_CFG, (2 << 1) | BIT(0));
+	if (ctx->wb_xfbc_en) {
+		DPU_REG_WR(ctx->base + REG_WB_CFG, (ctx->wb_layer.fbc_hsize_r << 16) | BIT(0));
 		DPU_REG_WR(ctx->base + REG_WB_BASE_ADDR, ctx->wb_layer.addr[0] +
 				ctx->wb_layer.fbc_hsize_r);
 		}
@@ -388,19 +435,19 @@ static void dpu_wb_trigger(struct dpu_context *ctx, u8 count, bool debug)
 		DPU_REG_WR(ctx->base + REG_WB_BASE_ADDR, ctx->wb_layer.addr[0]);
 		}
 
-		DPU_REG_WR(ctx->base + REG_WB_PITCH, ctx->vm.hactive);
+	DPU_REG_WR(ctx->base + REG_WB_PITCH, ctx->vm.hactive);
 
-  		if (debug)
-  			/* writeback debug trigger */
-  			DPU_REG_WR(ctx->base + REG_WB_CTRL, BIT(1));
-  		else
-  			DPU_REG_SET(ctx->base + REG_WB_CTRL, BIT(0));
+	if (debug)
+		/* writeback debug trigger */
+		DPU_REG_WR(ctx->base + REG_WB_CTRL, BIT(1));
+	else
+		DPU_REG_SET(ctx->base + REG_WB_CTRL, BIT(0));
 
-		/* update trigger */
-		DPU_REG_SET(ctx->base + REG_DPU_CTRL, BIT(2));
-		dpu_wait_update_done(ctx);
+	/* update trigger */
+	DPU_REG_SET(ctx->base + REG_DPU_CTRL, BIT(4));
+	dpu_wait_update_done(ctx);
 
-		pr_debug("write back trigger\n");
+	pr_debug("write back trigger\n");
 }
 
 static void dpu_wb_flip(struct dpu_context *ctx)
@@ -408,7 +455,7 @@ static void dpu_wb_flip(struct dpu_context *ctx)
 	dpu_clean_all(ctx);
 	dpu_layer(ctx, &ctx->wb_layer);
 
-	DPU_REG_SET(ctx->base + REG_WB_CTRL, BIT(2));
+	DPU_REG_SET(ctx->base + REG_DPU_CTRL, BIT(4));
 	dpu_wait_update_done(ctx);
 	pr_debug("write back flip\n");
 }
@@ -447,7 +494,15 @@ static int dpu_write_back_config(struct dpu_context *ctx)
 	struct sprd_dpu *dpu =
 		(struct sprd_dpu *)container_of(ctx, struct sprd_dpu, ctx);
 	struct drm_device *drm = dpu->crtc->base.dev;
+	int mode_width  = DPU_REG_RD(ctx->base + REG_BLEND_SIZE) & 0xFFFF;
+
 	if (!need_config) {
+		DPU_REG_WR(ctx->base + REG_WB_BASE_ADDR, ctx->wb_addr_p);
+		DPU_REG_WR(ctx->base + REG_WB_PITCH, ALIGN((mode_width), 16));
+		if (ctx->wb_xfbc_en)
+			DPU_REG_WR(ctx->base + REG_WB_CFG, ((ctx->wb_layer.fbc_hsize_r << 16) | BIT(0)));
+		else
+			DPU_REG_WR(ctx->base + REG_WB_CFG, 0);
 		pr_debug("write back has configed\n");
 		return 0;
 	}
@@ -456,24 +511,30 @@ static int dpu_write_back_config(struct dpu_context *ctx)
 						dpu->mode->vdisplay);
 	pr_info("use wb_reserved memory for writeback, size:0x%zx\n", wb_buf_size);
 	ctx->wb_addr_v = dma_alloc_wc(drm->dev, wb_buf_size, &ctx->wb_addr_p, GFP_KERNEL);
-  	if (!ctx->wb_addr_p) {
-  		ctx->max_vsync_count = 0;
-  		return -ENOMEM;
- 	}
+	if (!ctx->wb_addr_p) {
+		ctx->max_vsync_count = 0;
+		return -ENOMEM;
+	}
 
-  		ctx->wb_xfbc_en = 1;
-  		ctx->wb_layer.index = 7;
-  		ctx->wb_layer.planes = 1;
-  		ctx->wb_layer.alpha = 0xff;
-  		ctx->wb_layer.format = DRM_FORMAT_ABGR8888;
-  		ctx->wb_layer.addr[0] = ctx->wb_addr_p;
+	// ctx->wb_xfbc_en = 1;
+	ctx->wb_layer.index = 7;
+	ctx->wb_layer.planes = 1;
+	ctx->wb_layer.alpha = 0xff;
+	ctx->wb_layer.format = DRM_FORMAT_ABGR8888;
+	ctx->wb_layer.addr[0] = ctx->wb_addr_p;
+	DPU_REG_WR(ctx->base + REG_WB_BASE_ADDR, ctx->wb_addr_p);
+	DPU_REG_WR(ctx->base + REG_WB_PITCH, ALIGN((mode_width), 16));
+	if (ctx->wb_xfbc_en) {
+		ctx->wb_layer.xfbc = ctx->wb_xfbc_en;
+		DPU_REG_WR(ctx->base + REG_WB_CFG, ((ctx->wb_layer.fbc_hsize_r << 16) | BIT(0)));
+	}
 
-  		ctx->max_vsync_count = 4;
-  		need_config = 0;
+	ctx->max_vsync_count = 0;
+	need_config = 0;
 
-  	INIT_WORK(&ctx->wb_work, dpu_wb_work_func);
+	INIT_WORK(&ctx->wb_work, dpu_wb_work_func);
 
-  	return 0;
+	return 0;
 }
 
 static int dpu_init(struct dpu_context *ctx)
@@ -494,7 +555,7 @@ static int dpu_init(struct dpu_context *ctx)
 		(qos_cfg.awqos_low << 8) |
 		(qos_cfg.arqos_high << 4) |
 		(qos_cfg.arqos_low) | BIT(18) | BIT(22) | BIT(23);
- 	DPU_REG_WR(ctx->base + REG_DPU_CFG1, reg_val);;
+	DPU_REG_WR(ctx->base + REG_DPU_CFG1, reg_val);;
 	if (ctx->stopped)
 		dpu_clean_all(ctx);
 
@@ -533,7 +594,7 @@ static u32 dpu_img_ctrl(u32 format, u32 blending, u32 compression, u32 y2r_coef,
 {
 	int reg_val = 0;
 	/* layer enable */
-	reg_val |= BIT_DPU_LAY_EN;
+	// reg_val |= BIT_DPU_LAY_EN;
 
 	switch (format) {
 	case DRM_FORMAT_BGRA8888:
@@ -603,7 +664,7 @@ static u32 dpu_img_ctrl(u32 format, u32 blending, u32 compression, u32 y2r_coef,
 		/*Y endian */
 		reg_val |= BIT_DPU_LAY_DATA_ENDIAN_B0B1B2B3;
 		/*UV endian */
-		reg_val |= BIT_DPU_LAY_DATA_ENDIAN_B3B2B1B0;
+		reg_val |= BIT_DPU_LAY_DATA_ENDIAN_B3B2B1B0 << 2;
 		break;
 	case DRM_FORMAT_NV16:
 		/*2-Lane: Yuv422 */
@@ -611,7 +672,7 @@ static u32 dpu_img_ctrl(u32 format, u32 blending, u32 compression, u32 y2r_coef,
 		/*Y endian */
 		reg_val |= BIT_DPU_LAY_DATA_ENDIAN_B3B2B1B0;
 		/*UV endian */
-		reg_val |= BIT_DPU_LAY_DATA_ENDIAN_B3B2B1B0;
+		reg_val |= BIT_DPU_LAY_DATA_ENDIAN_B3B2B1B0 << 2;
 		break;
 	case DRM_FORMAT_NV61:
 		/*2-Lane: Yuv422 */
@@ -646,7 +707,7 @@ static u32 dpu_img_ctrl(u32 format, u32 blending, u32 compression, u32 y2r_coef,
 		/* alpha mode select - combo alpha */
 		reg_val |= BIT_DPU_LAY_COMBO_ALPHA;
 		/* blending mode select - normal mode */
-		reg_val &= BIT_DPU_LAY_MODE_BLEND_NORMAL;
+		reg_val &= (~BIT_DPU_LAY_MODE_BLEND_NORMAL);
 		break;
 	case DRM_MODE_BLEND_PREMULTI:
 		/* alpha mode select - combo alpha */
@@ -671,6 +732,8 @@ static void dpu_clean_all(struct dpu_context *ctx)
 
 	for (i = 0; i < 8; i++)
 		DPU_REG_WR(ctx->base + DPU_LAY_REG(REG_LAY_CTRL, i), 0x00);
+
+	DPU_REG_WR(ctx->base + REG_LAYER_ENABLE, 0);
 }
 
 static void dpu_bgcolor(struct dpu_context *ctx, u32 color)
@@ -684,7 +747,7 @@ static void dpu_bgcolor(struct dpu_context *ctx, u32 color)
 	dpu_clean_all(ctx);
 
 	if ((ctx->if_type == SPRD_DPU_IF_DPI) && !ctx->stopped) {
-		DPU_REG_SET(ctx->base + REG_DPU_CTRL, BIT_DPU_REG_UPDATE);
+		DPU_REG_SET(ctx->base + REG_DPU_CTRL, BIT_LAY_REG_UPDATE);
 		dpu_wait_update_done(ctx);
 	} else if (ctx->if_type == SPRD_DPU_IF_EDPI) {
 		DPU_REG_SET(ctx->base + REG_DPU_CTRL, BIT_DPU_RUN);
@@ -696,71 +759,97 @@ static void dpu_layer(struct dpu_context *ctx,
 		    struct sprd_layer_state *hwlayer)
 {
 	const struct drm_format_info *info;
-	u32 size, offset, ctrl, reg_val, pitch;
+	u32 wd;
+	struct layer_reg tmp = {};
 	int i;
 
-	offset = (hwlayer->dst_x & 0xffff) | ((hwlayer->dst_y) << 16);
+	tmp.pos = (hwlayer->dst_x & 0xffff) | ((hwlayer->dst_y) << 16);
+
+	if (hwlayer->src_w && hwlayer->src_h)
+		tmp.size = (hwlayer->src_w & 0xffff) | ((hwlayer->src_h) << 16);
+	else
+		tmp.size = (hwlayer->dst_w & 0xffff) | ((hwlayer->dst_h) << 16);
+
+	tmp.alpha = hwlayer->alpha;
 
 	if (hwlayer->pallete_en) {
-		size = (hwlayer->dst_w & 0xffff) | ((hwlayer->dst_h) << 16);
-		DPU_REG_WR(ctx->base + DPU_LAY_REG(REG_LAY_POS,
-				hwlayer->index), offset);
-		DPU_REG_WR(ctx->base + DPU_LAY_REG(REG_LAY_DES_SIZE,
-				hwlayer->index), size);
-		DPU_REG_WR(ctx->base + DPU_LAY_REG(REG_LAY_ALPHA,
-				hwlayer->index), hwlayer->alpha);
-		DPU_REG_WR(ctx->base + DPU_LAY_REG(REG_LAY_PALLETE,
-				hwlayer->index), hwlayer->pallete_color);
+		tmp.size = (hwlayer->dst_w & 0xffff) | ((hwlayer->dst_h) << 16);
+		tmp.pallete = hwlayer->pallete_color;
+
 		/* pallete layer enable */
-		reg_val = BIT_DPU_LAY_EN |
-			  BIT_DPU_LAY_LAYER_ALPHA |
-			  BIT_DPU_LAY_PALLETE_EN;
+		tmp.ctrl = BIT_DPU_LAY_LAYER_ALPHA | BIT_DPU_LAY_PALLETE_EN;
+
+		pr_debug("pallete:0x%x\n", tmp.pallete);
+	} else {
+		for (i = 0; i < hwlayer->planes; i++) {
+			if (hwlayer->addr[i] % 16)
+				pr_err("layer addr[%d] is not 16 bytes align, it's 0x%08x\n",
+					i, hwlayer->addr[i]);
+			tmp.addr[i] = hwlayer->addr[i];
+		}
+
+		tmp.crop_start = (hwlayer->src_y << 16) | hwlayer->src_x;
+
+		info = drm_format_info(hwlayer->format);
+		wd = info->cpp[0];
+		if (wd == 0) {
+			pr_err("layer[%d] bytes per pixel is invalid\n",
+				hwlayer->index);
+			return;
+		}
+
+		if (hwlayer->planes == 3)
+			/* UV pitch is 1/2 of Y pitch*/
+			tmp.pitch = (hwlayer->pitch[0] / wd) |
+					(hwlayer->pitch[0] / wd << 15);
+		else
+			tmp.pitch = hwlayer->pitch[0] / wd;
+
+		tmp.ctrl = dpu_img_ctrl(hwlayer->format, hwlayer->blending,
+			hwlayer->xfbc, hwlayer->y2r_coef, hwlayer->rotation);
+	}
+
+	for (i = 0; i < hwlayer->planes; i++)
+		DPU_REG_WR(ctx->base + DPU_LAY_PLANE_ADDR(REG_LAY_BASE_ADDR,
+					hwlayer->index, i), tmp.addr[i]);
+
+	if (hwlayer->pallete_en) {
+		tmp.size = (hwlayer->dst_w & 0xffff) | ((hwlayer->dst_h) << 16);
+		DPU_REG_WR(ctx->base + DPU_LAY_REG(REG_LAY_POS,
+				hwlayer->index), tmp.pos);
+		DPU_REG_WR(ctx->base + DPU_LAY_REG(REG_LAY_DES_SIZE,
+				hwlayer->index), tmp.size);
+		DPU_REG_WR(ctx->base + DPU_LAY_REG(REG_LAY_ALPHA,
+				hwlayer->index), tmp.alpha);
+		DPU_REG_WR(ctx->base + DPU_LAY_REG(REG_LAY_PALLETE,
+				hwlayer->index), tmp.pallete);
+
 		DPU_REG_WR(ctx->base + DPU_LAY_REG(REG_LAY_CTRL,
-				hwlayer->index), reg_val);
+				hwlayer->index), tmp.ctrl);
+		DPU_REG_WR(ctx->base + REG_LAYER_ENABLE, 1 << hwlayer->index);
+
 		pr_debug("dst_x = %d, dst_y = %d, dst_w = %d, dst_h = %d, pallete:%d\n",
 			hwlayer->dst_x, hwlayer->dst_y,
 			hwlayer->dst_w, hwlayer->dst_h, hwlayer->pallete_color);
 		return;
 	}
 
-	if (hwlayer->src_w && hwlayer->src_h)
-		size = (hwlayer->src_w & 0xffff) | ((hwlayer->src_h) << 16);
-	else
-		size = (hwlayer->dst_w & 0xffff) | ((hwlayer->dst_h) << 16);
-
-	for (i = 0; i < hwlayer->planes; i++) {
-		if (hwlayer->addr[i] % 16)
-  			pr_err("layer addr[%d] is not 16 bytes align, it's 0x%08x\n",
-  				i, hwlayer->addr[i]);
-  		DPU_REG_WR(ctx->base + DPU_LAY_PLANE_ADDR(REG_LAY_BASE_ADDR,
-  				hwlayer->index, i), hwlayer->addr[i]);
-	}
-
 	DPU_REG_WR(ctx->base + DPU_LAY_REG(REG_LAY_POS,
-			hwlayer->index), offset);
+			hwlayer->index), tmp.pos);
 	DPU_REG_WR(ctx->base + DPU_LAY_REG(REG_LAY_DES_SIZE,
-			hwlayer->index), size);
+			hwlayer->index), tmp.size);
 	DPU_REG_WR(ctx->base + DPU_LAY_REG(REG_LAY_CROP_START,
-			hwlayer->index), hwlayer->src_y << 16 | hwlayer->src_x);
+			hwlayer->index), tmp.crop_start);
 	DPU_REG_WR(ctx->base + DPU_LAY_REG(REG_LAY_ALPHA,
-			hwlayer->index), hwlayer->alpha);
-
-	info = drm_format_info(hwlayer->format);
-	if (hwlayer->planes == 3) {
-		pitch = (hwlayer->pitch[0] / info->cpp[0]) |
-				(hwlayer->pitch[0] / info->cpp[0] << 15);
-		DPU_REG_WR(ctx->base + DPU_LAY_REG(REG_LAY_PITCH,
-				hwlayer->index), pitch);
-	} else {
-		pitch = hwlayer->pitch[0] / info->cpp[0];
-		DPU_REG_WR(ctx->base + DPU_LAY_REG(REG_LAY_PITCH,
-				hwlayer->index), pitch);
-	}
-	ctrl = dpu_img_ctrl(hwlayer->format, hwlayer->blending,
-		hwlayer->xfbc, hwlayer->y2r_coef, hwlayer->rotation);
-
+			hwlayer->index), tmp.alpha);
+	DPU_REG_WR(ctx->base + DPU_LAY_REG(REG_LAY_PITCH,
+			hwlayer->index), tmp.pitch);
 	DPU_REG_WR(ctx->base + DPU_LAY_REG(REG_LAY_CTRL,
-			hwlayer->index), ctrl);
+			hwlayer->index), tmp.ctrl);
+	DPU_REG_WR(ctx->base + REG_LAYER_ENABLE, 1 << hwlayer->index);
+	DPU_REG_WR(ctx->base + DPU_LAY_REG(REG_LAY_PALLETE,
+				hwlayer->index), tmp.pallete);
+
 	pr_debug("dst_x = %d, dst_y = %d, dst_w = %d, dst_h = %d\n",
 				hwlayer->dst_x, hwlayer->dst_y,
 				hwlayer->dst_w, hwlayer->dst_h);
@@ -774,6 +863,8 @@ static void dpu_flip(struct dpu_context *ctx,
 {
 	int i;
 	u32 reg_val;
+	struct sprd_plane_state *state;
+
 	ctx->vsync_count = 0;
 	if (ctx->max_vsync_count > 0 && count > 1)
 		ctx->wb_en = true;
@@ -793,32 +884,29 @@ static void dpu_flip(struct dpu_context *ctx,
 
 	/* start configure dpu layers */
 	for (i = 0; i < count; i++) {
-		struct sprd_plane_state *state;
-
 		state = to_sprd_plane_state(planes[i].base.state);
 		dpu_layer(ctx, &state->layer);
 	}
 	/* update trigger and wait */
- 	if (ctx->if_type == SPRD_DPU_IF_DPI) {
+	if (ctx->if_type == SPRD_DPU_IF_DPI) {
 		if (!ctx->stopped) {
-  		DPU_REG_SET(ctx->base + REG_DPU_CTRL, BIT_DPU_REG_UPDATE);
-  		dpu_wait_update_done(ctx);
-  		}
+			DPU_REG_SET(ctx->base + REG_DPU_CTRL, BIT_LAY_REG_UPDATE);
+			dpu_wait_update_done(ctx);
+		}
 
-  		DPU_REG_SET(ctx->base + REG_DPU_INT_EN, BIT_DPU_INT_ERR);
-  	} else if (ctx->if_type == SPRD_DPU_IF_EDPI) {
-  		DPU_REG_SET(ctx->base + REG_DPU_CTRL, BIT_DPU_RUN);
-
-  		ctx->stopped = false;
-  	}
+		DPU_REG_SET(ctx->base + REG_DPU_INT_EN, BIT_DPU_INT_ERR);
+	} else if (ctx->if_type == SPRD_DPU_IF_EDPI) {
+		DPU_REG_SET(ctx->base + REG_DPU_CTRL, BIT_DPU_RUN);
+		ctx->stopped = false;
+	}
 
 	/*
 	 * If the following interrupt was disabled in isr,
 	 * re-enable it.
 	 */
-		reg_val = BIT_DPU_INT_FBC_PLD_ERR |
- 		BIT_DPU_INT_FBC_HDR_ERR;
-		DPU_REG_SET(ctx->base + REG_DPU_INT_EN, reg_val);
+	reg_val = BIT_DPU_INT_FBC_PLD_ERR |
+	BIT_DPU_INT_FBC_HDR_ERR;
+	DPU_REG_SET(ctx->base + REG_DPU_INT_EN, reg_val);
 }
 
 static void dpu_dpi_init(struct dpu_context *ctx)
