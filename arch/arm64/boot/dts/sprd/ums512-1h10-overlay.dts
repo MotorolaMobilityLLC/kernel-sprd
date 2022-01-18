@@ -599,7 +599,6 @@
 	vqmmc-supply = <&vddsdio>;
 	sd-uhs-sdr104;
 	sd-uhs-sdr50;
-	cap-mmc-hw-reset;
 	sprd,name = "sdio_sd";
 	status = "okay";
 };
