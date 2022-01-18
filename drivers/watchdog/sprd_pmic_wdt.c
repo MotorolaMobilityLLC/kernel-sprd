@@ -72,7 +72,6 @@
 #define SPRD_PMIC_WDT_PRETIMEOUT	0
 #define SPRD_PMIC_WDT_FEEDTIME		45
 
-#define SPRD_PMIC_WDT_CHECKTIME		40
 #define SPRD_PMIC_WDTEN_MAGIC "e551"
 #define SPRD_PMIC_WDTEN_MAGIC_LEN_MAX  10
 
@@ -115,18 +114,14 @@ static int sprd_pmic_wdt_enable(struct sprd_pmic_wdt *wdt, bool en)
 	return 0;
 }
 
-static enum alarmtimer_restart sprd_pimc_wdt_init_by_alarm(struct alarm *p, ktime_t t)
+static void sprd_pimc_wdt_init(int event, void *data)
 {
-	struct sprd_pmic_wdt *pmic_wdt = container_of(p,
-						 struct sprd_pmic_wdt,
-						 wdt_timer);
+	struct sprd_pmic_wdt *pmic_wdt = data;
 
-	dev_info(pmic_wdt->dev, "sprd_pimc_wdt_init_by_alarm enter!\n");
+	dev_info(pmic_wdt->dev, "sprd pimc wdt init enter!\n");
 
 	pm_wakeup_event(pmic_wdt->dev, PMIC_WDT_WAKE_UP_MS);
 	kthread_queue_work(&pmic_wdt->wdt_kworker, &pmic_wdt->wdt_kwork);
-
-	return ALARMTIMER_NORESTART;
 }
 
 static void sprd_pimc_wdt_work(struct kthread_work *work)
@@ -135,7 +130,7 @@ static void sprd_pimc_wdt_work(struct kthread_work *work)
 						 struct sprd_pmic_wdt,
 						 wdt_kwork);
 
-	dev_info(pmic_wdt->dev, "sprd_pimc_wdt_work enter!\n");
+	dev_info(pmic_wdt->dev, "sprd pimc wdt work enter!\n");
 
 	if (sprd_pmic_wdt_enable(pmic_wdt, pmic_wdt->wdten))
 		dev_err(pmic_wdt->dev, "failed to set pmic wdt %d!\n", pmic_wdt->wdten);
@@ -181,10 +176,9 @@ static const struct of_device_id sprd_pmic_wdt_of_match[] = {
 
 static int sprd_pmic_wdt_probe(struct platform_device *pdev)
 {
-	int ret;
+	int ret, rval;
 	struct device_node *node = pdev->dev.of_node;
 	struct sprd_pmic_wdt *pmic_wdt;
-	ktime_t now, add;
 	struct sched_param param = { .sched_priority = 1 };
 
 	pmic_wdt = devm_kzalloc(&pdev->dev, sizeof(*pmic_wdt), GFP_KERNEL);
@@ -203,10 +197,12 @@ static int sprd_pmic_wdt_probe(struct platform_device *pdev)
 		return ret;
 	}
 
-	alarm_init(&pmic_wdt->wdt_timer, ALARM_BOOTTIME, sprd_pimc_wdt_init_by_alarm);
-	now = ktime_get_boottime();
-	add = ktime_set(SPRD_PMIC_WDT_CHECKTIME, 0);
-	alarm_start(&pmic_wdt->wdt_timer, ktime_add(now, add));
+	rval = sbuf_register_notifier(SIPC_ID_PM_SYS, SMSG_CH_TTY, 0,
+				      sprd_pimc_wdt_init, pmic_wdt);
+	if (rval) {
+		dev_err(&pdev->dev, "sbuf notifier failed rval = %d\n", rval);
+		return rval;
+	}
 
 	device_init_wakeup(pmic_wdt->dev, true);
 
@@ -231,6 +227,14 @@ static int sprd_pmic_wdt_probe(struct platform_device *pdev)
 static int sprd_pmic_wdt_remove(struct platform_device *pdev)
 {
 	struct sprd_pmic_wdt *pmic_wdt = dev_get_drvdata(&pdev->dev);
+	int rval;
+
+	rval = sbuf_register_notifier(SIPC_ID_PM_SYS, SMSG_CH_TTY,
+				      0, NULL, NULL);
+	if (rval) {
+		dev_err(&pdev->dev, "sbuf unregitster notifier failed rval = %d\n", rval);
+		return rval;
+	}
 
 	kthread_flush_worker(&pmic_wdt->wdt_kworker);
 	kthread_stop(pmic_wdt->wdt_thread);
