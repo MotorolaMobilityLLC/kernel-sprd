@@ -730,6 +730,8 @@ void __noreturn do_exit(long code)
 		panic("Aiee, killing interrupt handler!");
 	if (unlikely(!tsk->pid))
 		panic("Attempted to kill the idle task!");
+	if (unlikely(tsk->pid == 1) && (code != 0))
+		panic("Attempted to kill the init task!");
 
 	/*
 	 * If do_exit is called because this processes oopsed, it's possible
