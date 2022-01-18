@@ -71,7 +71,7 @@
 #define ELF_CORE_EFLAGS	0
 #endif
 
-
+#define CPU_NUM_MAX	8
 #define SYSDUMP_MAGIC	"SPRD_SYSDUMP_119"
 #define SYSDUMP_MAGIC_VOLUP  (0x766f7570) // v-l-u-p
 #define SYSDUMP_MAGIC_VOLDN  (0X766f646e) // v-l-d-n
@@ -152,6 +152,9 @@ typedef char note_buf_t[SYSDUMP_NOTE_BYTES];
 static DEFINE_PER_CPU(note_buf_t, crash_notes_temp);
 note_buf_t __percpu *crash_notes;
 
+DEFINE_PER_CPU(struct sprd_debug_mmu_reg_t, sprd_debug_mmu_reg);
+DEFINE_PER_CPU(struct sprd_debug_core_t, sprd_debug_core_reg);
+
 /* An ELF note in memory */
 struct memelfnote {
 	const char *name;
@@ -170,6 +173,23 @@ struct minidump_info_record {
 	uint64_t minidump_info_paddr;
 	int minidump_info_size;
 };
+struct log_buf_info {
+	uint64_t log_buf;
+	uint32_t log_buf_len;
+	uint64_t log_first_idx;
+	uint64_t log_next_idx;
+	uint64_t vmcoreinfo_size;
+};
+struct mmu_regs_info {
+	int sprd_pcpu_offset;
+	int cpu_id;
+	int cpu_numbers;
+	uint64_t paddr_mmu_regs_t;
+};
+struct core_regs_info {
+	uint64_t pcpu_start_paddr;
+	uint64_t paddr_core_regs_t;
+};
 struct sysdump_info {
 	char magic[16];
 	char time[32];
@@ -181,13 +201,16 @@ struct sysdump_info {
 	int crash_key;
 	struct kaslr_info sprd_kaslrinfo;
 	struct minidump_info_record sprd_minidump_info;
+	struct log_buf_info sprd_logbuf_info;
+	struct mmu_regs_info sprd_mmuregs_info;
+	struct core_regs_info sprd_coreregs_info;
 };
 
 struct sysdump_extra {
 	int enter_id;
 	int enter_cpu;
 	char reason[256];
-	struct pt_regs cpu_context[CONFIG_NR_CPUS];
+	struct pt_regs cpu_context[CPU_NUM_MAX];
 };
 
 struct sysdump_config {
@@ -505,7 +528,7 @@ static void sysdump_fill_core_hdr(struct pt_regs *regs, char *bufp)
 	/* setup ELF PT_NOTE program header */
 	nhdr = (struct elf_phdr *)bufp;
 	memset(nhdr, 0, sizeof(struct elf_phdr));
-	nhdr->p_memsz = SYSDUMP_NOTE_BYTES * NR_CPUS;
+	nhdr->p_memsz = SYSDUMP_NOTE_BYTES * CPU_NUM_MAX;
 
 	return;
 }
@@ -592,7 +615,30 @@ static int sysdump_info_init(void)
 		sprd_sysdump_info->sprd_kaslrinfo.vabits_actual = (uint64_t)VA_BITS;
 		pr_emerg("[%s]vmcore info init end!\n", __func__);
 #endif
+		/* get log_buf info */
+#ifdef CONFIG_KALLSYMS
+		sprd_sysdump_info->sprd_logbuf_info.log_buf =
+			__pa(kallsyms_lookup_name("log_buf"));
+		sprd_sysdump_info->sprd_logbuf_info.log_first_idx =
+			__pa(kallsyms_lookup_name("log_first_idx"));
+		sprd_sysdump_info->sprd_logbuf_info.log_next_idx =
+			__pa(kallsyms_lookup_name("log_next_idx"));
+#endif
+		sprd_sysdump_info->sprd_logbuf_info.log_buf_len = log_buf_len_get();
+		sprd_sysdump_info->sprd_logbuf_info.vmcoreinfo_size =
+			__pa(&vmcoreinfo_size);
+		/* get mmu regs info */
+		sprd_sysdump_info->sprd_mmuregs_info.paddr_mmu_regs_t =
+			__pa(&per_cpu(sprd_debug_mmu_reg, smp_processor_id()));
+		sprd_sysdump_info->sprd_mmuregs_info.cpu_id = smp_processor_id();
+		sprd_sysdump_info->sprd_mmuregs_info.sprd_pcpu_offset = __per_cpu_offset[1] -
+			__per_cpu_offset[0];
+		sprd_sysdump_info->sprd_mmuregs_info.cpu_numbers = CPU_NUM_MAX;
+		/* get core regs info */
+		sprd_sysdump_info->sprd_coreregs_info.paddr_core_regs_t =
+			 __pa(&per_cpu(sprd_debug_core_reg, smp_processor_id()));
 	}
+
 	return 0;
 
 }
@@ -633,8 +679,6 @@ static void sysdump_prepare_info(int enter_id, const char *reason,
 	return;
 }
 
-DEFINE_PER_CPU(struct sprd_debug_core_t, sprd_debug_core_reg);
-DEFINE_PER_CPU(struct sprd_debug_mmu_reg_t, sprd_debug_mmu_reg);
 
 static inline void sprd_debug_save_context(void)
 {
@@ -676,7 +720,6 @@ static int sysdump_panic_event(struct notifier_block *self,
 
 	/* this should before smp_send_stop() to make sysdump_ipi enable */
 	sprd_sysdump_extra.enter_cpu = smp_processor_id();
-
 	pregs = &sprd_sysdump_extra.cpu_context[sprd_sysdump_extra.enter_cpu];
 	crash_setup_regs((struct pt_regs *)pregs, NULL);
 
@@ -1585,8 +1628,10 @@ static void section_info_per_cpu(void)
 {
 	int ret;
 	long vaddr = (long)(__per_cpu_start) + (long)(__per_cpu_offset[0]);
-	int len = (int)(__per_cpu_offset[1] - __per_cpu_offset[0]) * CONFIG_NR_CPUS;
+	int len = (int)(__per_cpu_offset[1] - __per_cpu_offset[0]) * CPU_NUM_MAX;
 
+	if (sysdump_reflag)
+		sprd_sysdump_info->sprd_coreregs_info.pcpu_start_paddr = __pa(vaddr);
 	ret = minidump_save_extend_information("per_cpu", __pa(vaddr), __pa(vaddr + len));
 	if (!ret)
 		pr_info("per_cpu added to minidump section ok!!\n");
@@ -1660,7 +1705,6 @@ static void minidump_info_init(void)
 	}
 
 }
-
 static struct notifier_block sysdump_panic_event_nb = {
 	.notifier_call	= sysdump_panic_event,
 	.priority	= INT_MAX - 2,
@@ -1689,6 +1733,20 @@ static __init int sysdump_early_init(void)
 	return 0;
 }
 early_initcall(sysdump_early_init);
+static void per_cpu_funcs_register(void *info)
+{
+	/* save mmu regs per cpu */
+	sprd_debug_save_mmu_reg(&per_cpu(sprd_debug_mmu_reg, smp_processor_id()));
+}
+static __init int per_cpu_funcs_init(void)
+{
+	/* mmu regs init in all other cpus */
+	smp_call_function(per_cpu_funcs_register, NULL, 1);
+	/* mmu regs init in current cpu*/
+	sprd_debug_save_mmu_reg(&per_cpu(sprd_debug_mmu_reg, smp_processor_id()));
+	return 0;
+}
+pure_initcall(per_cpu_funcs_init);
 static int sysdump_sysctl_init(void)
 {
 	struct proc_dir_entry *sysdump_proc;
