@@ -57,6 +57,7 @@ static u32 gnss_efuse_val[GNSS_EFUSE_BLOCK_COUNT];
 static char *fstab_ab;
 static char *slot_suffix;
 module_param(slot_suffix, charp, 0444);
+extern int is_wcn_shutdown;
 
 /* efuse blk */
 static const u32
@@ -1348,6 +1349,7 @@ void wcn_shutdown(struct platform_device *pdev)
 	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
 		u32 open_status;
 		u32 subsys_bit = 0;
+		is_wcn_shutdown = 1;
 
 		if (wcn_dev && wcn_dev->wcn_open_status) {
 			WCN_INFO("%s:dev name %s\n", __func__, wcn_dev->name);
@@ -1359,6 +1361,7 @@ void wcn_shutdown(struct platform_device *pdev)
 					WCN_ERR("stop_marlin ret: %d\n", ret);
 			}
 		}
+		is_wcn_shutdown = 0;
 		return;
 	}
 

@@ -30,6 +30,7 @@ static char gnss_firmware_parent_path[FIRMWARE_FILEPATHNAME_LENGTH_MAX];
 static char firmware_file_name[FIRMWARE_FILEPATHNAME_LENGTH_MAX];
 static char firmware_file_path[FIRMWARE_FILEPATHNAME_LENGTH_MAX];
 char gnss_firmware_path[FIRMWARE_FILEPATHNAME_LENGTH_MAX];
+int is_wcn_shutdown;
 
 void wcn_boot_init(void)
 {
@@ -2197,12 +2198,16 @@ int btwf_sys_shutdown(struct wcn_device *wcn_dev)
 
 	if (btwf_sys_polling_deepsleep(wcn_dev) == false) {
 		WCN_ERR("[-]%s btwf sys deep fail\n", __func__);
-		btwf_force_deepsleep_aontop(wcn_dev);
+		if (is_wcn_shutdown == 0) {
+			btwf_force_deepsleep_aontop(wcn_dev);
+		}
 	}
 
 	if (btwf_sys_polling_powerdown(wcn_dev) == false) { /* shutdown fail */
 		WCN_ERR("[-]%s btwf sys shutdown fail\n", __func__);
-		btwf_force_shutdown_aontop(wcn_dev);
+		if (is_wcn_shutdown == 0) {
+			btwf_force_shutdown_aontop(wcn_dev);
+		}
 	}
 
 	/*
