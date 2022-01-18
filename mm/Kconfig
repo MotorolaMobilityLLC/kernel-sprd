@@ -805,6 +805,13 @@ config SPRD_MEM_GCOV
         help
           Say Y here to enable gcov in memory codes
 
+config SPRD_ZS_PAGE_MIGRATE
+        bool "solve zs_page migrate to cma_page"
+        depends on ZSMALLOC
+        default n
+        help
+          say Y will cause zs_page migrate to cma_page.
+
 config LRU_BALANCE_BASE_THRASHING
 	bool "LRU thrashing reclaim"
 	default n

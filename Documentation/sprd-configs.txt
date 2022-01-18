@@ -17587,6 +17587,15 @@ CONFIG_SPRD_WLAN_VENDOR_SPECIFIC
 	[must]
 	[missing plat description] none
 	[function]
+CONFIG_SPRD_ZS_PAGE_MIGRATE
+	[arch] arm64
+	[plat] sharkl5Pro
+	[missing plat] sharkl3
+	[field] code
+	[subsys] core
+	[must] console
+	[missing plat description] none
+	[function] avoid zs_page migrate to cma_page
 CONFIG_SRCU
 	[arch] all
 	[plat] all

@@ -1963,6 +1963,12 @@ static int zs_page_migrate(struct address_space *mapping, struct page *newpage,
 	unsigned int obj_idx;
 	int ret = -EAGAIN;
 
+#ifdef SPRD_ZS_PAGE_MIGRATE
+	if (is_migrate_cma_page(newpage)) {
+		pr_info("XXXX-CMA-WARN:zs_page migrate to cma_page and retry\n");
+		return -EAGAIN;
+	}
+#endif
 	/*
 	 * We cannot support the _NO_COPY case here, because copy needs to
 	 * happen under the zs lock, which does not work with
