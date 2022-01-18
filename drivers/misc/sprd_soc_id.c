@@ -7,8 +7,12 @@
 #include <linux/module.h>
 #include <linux/of_device.h>
 #include <linux/platform_device.h>
+#include <linux/proc_fs.h>
 #include <linux/regmap.h>
+#include <linux/seq_file.h>
 #include <linux/sprd_soc_id.h>
+
+#define KIND_OF_SOCID 5
 
 static const char * const syscon_name[] = {
 		"chip_id",
@@ -67,10 +71,56 @@ int sprd_get_soc_id(sprd_soc_id_type_t soc_id_type, u32 *id, int id_len)
 	return 0;
 }
 
+static ssize_t read_socid(struct file *file, char  *buf,
+			size_t count, loff_t *data)
+{
+	u32 value[2];
+	int i, n = 0;
+	char c[140] = {0};
+
+	for (i = 0; i < KIND_OF_SOCID; i++) {
+		n += sprintf(c + n, "%s ", syscon_name[i]);
+		sprd_get_soc_id(i, &value[0], 2);
+		n += sprintf(c + n, "0x%lx", value[0]);
+		if (i <= 1)
+			n += sprintf(c + n, "  0x%lx", value[1]);
+		n += sprintf(c + n, "%s", "\n");
+	}
+
+	return simple_read_from_buffer(buf, count, data, c, n);
+}
+
+static inline int open_socid_fs(struct inode *inode, struct file *file)
+{
+	return single_open(file, 0, NULL);
+}
+
+static const struct file_operations socid_fops = {
+	.owner = THIS_MODULE,
+	.open = open_socid_fs,
+	.read = read_socid,
+};
+
+static int sprd_create_socid_node(void)
+{
+	struct proc_dir_entry *socid_base;
+
+	socid_base = proc_mkdir("socid", NULL);
+	if (!socid_base)
+		return -ENOMEM;
+
+
+	if (!proc_create("socid_inf", 0444, socid_base, &socid_fops)) {
+		pr_err("%s: create soc_id_inf fail\n", __func__);
+		return -ENOENT;
+	}
+
+	return 0;
+}
 
 static int sprd_soc_id_probe(struct platform_device *pdev)
 {
-	int i;
+	int ret = 0, i;
 	struct device_node *np = pdev->dev.of_node;
 	const char *pname;
 	struct regmap *tregmap = NULL;
@@ -91,6 +141,11 @@ static int sprd_soc_id_probe(struct platform_device *pdev)
 			syscon_regs[i].reg,
 			syscon_regs[i].mask);
 	}
+
+	ret = sprd_create_socid_node();
+
+	if (ret)
+		return ret;
 
 	return 0;
 }
