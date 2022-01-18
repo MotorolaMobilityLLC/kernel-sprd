@@ -377,10 +377,6 @@
 		reg = <0x0 0x9e000000 0x0 0x00ab0000>;
 	};
 
-	widevine_reserved: widevine@e3800000 {
-		reg = <0x0 0xe3800000 0x0 0x0c800000>;
-	};
-
 	fd_reserved: faceid-mem@ffa70000 {
 		reg = <0x0 0xffa70000 0x0 0x00500000>;
 	};
@@ -937,13 +933,6 @@
 &ion {
 	#address-cells = <1>;
 	#size-cells = <0>;
-	heap@1 {
-		reg = <1>;
-		lable = "carveout_mm";
-		type = <2>;
-		memory_region = <&widevine_reserved>;
-	};
-
 	heap@4 {
 		reg = <4>;
 		label = "carveout_fd";
