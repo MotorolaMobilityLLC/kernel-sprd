@@ -1093,11 +1093,18 @@ static int musb_gadget_disable(struct usb_ep *ep)
 	struct musb_ep	*musb_ep;
 	void __iomem	*epio;
 	int		status = 0;
+	struct device	*dev;
 
 	musb_ep = to_musb_ep(ep);
 	musb = musb_ep->musb;
+	dev = musb->controller;
 	epnum = musb_ep->current_epnum;
 	epio = musb->endpoints[epnum].regs;
+
+	if (pm_runtime_suspended(dev)) {
+		WARN(1, "cann't access musb in suspended\n");
+		return -EINVAL;
+	}
 
 	spin_lock_irqsave(&musb->lock, flags);
 	musb_ep_select(musb->mregs, epnum);
