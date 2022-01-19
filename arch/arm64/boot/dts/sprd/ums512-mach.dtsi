@@ -83,6 +83,10 @@
 			reg = <0x0 0x94040000 0x0 0x05fc0000>;
 		};
 
+		tos_shm_reserved: sh-mem@9a000000{
+			reg = <0x0 0x9a000000 0x0 0x00100000>;
+		};
+
 		/* The uboot_log_reserved node is added in uboot. base:0x9de8 0000, size:0x80000 */
 		uboot_log_reserved: uboot_log-mem {
 			reg = <0x0 0x9de80000 0x0 0x00080000>;
@@ -579,6 +583,11 @@
 
 		log {
 			compatible = "sprd,trusty-log-v1";
+		};
+
+		sprd-tshm {
+			compatible = "sprd,tshm";
+			memory-region = <&tos_shm_reserved>;
 		};
 	};
 };
