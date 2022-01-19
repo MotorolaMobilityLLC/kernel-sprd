@@ -2124,6 +2124,11 @@ static int musb_schedule(
 	u8			toggle;
 	u8			txtype;
 	struct urb		*urb = next_urb(qh);
+	u8			epno = usb_pipeendpoint(urb->pipe);
+	u8			last_addr;
+	u8			last_epno;
+	struct usb_host_endpoint	*last_hep = NULL;
+	struct usb_host_endpoint	*hep = qh->hep;
 
 	/* use fixed hardware for control and bulk */
 	if (qh->type == USB_ENDPOINT_XFER_CONTROL) {
@@ -2155,28 +2160,40 @@ static int musb_schedule(
 		if (hw_ep == musb->bulk_ep)
 			continue;
 
+		if (epnum < 2 + epno)
+			continue;
+
 		if (musb_dma_sprd(musb)) {
-			u8	last_addr;
-			u8	epno = usb_pipeendpoint(urb->pipe);
-
-			if ((epnum < 2 + epno) || (epnum < 10 &&
-			     qh->type == USB_ENDPOINT_XFER_INT))
-				continue;
-
 			if (musb->is_multipoint) {
 				if (is_in)
 					last_addr = musb_readb(musb->mregs,
-						       musb->io.busctl_offset
-						       (epnum,
+								musb->io.busctl_offset
+								(epnum,
 							MUSB_RXFUNCADDR));
 				else
 					last_addr = musb_readb(musb->mregs,
-						       musb->io.busctl_offset
-						       (epnum,
+								musb->io.busctl_offset
+								(epnum,
 							MUSB_TXFUNCADDR));
 				if (last_addr != 0) {
 					if (last_addr != qh->addr_reg)
 						continue;
+					else {
+						last_epno = 0;
+						if (musb_dma_sprd(musb) &&
+							(musb->is_multipoint) &&
+							hw_ep->hep[!is_in]) {
+							last_hep = hw_ep->hep[!is_in];
+							last_epno = last_hep->desc.bEndpointAddress
+							& USB_ENDPOINT_NUMBER_MASK;
+						}
+
+						musb_dbg(musb, "last_epno(%d) epno(%d)\n",
+								last_epno, epno);
+
+						if (last_epno != epno)
+							continue;
+					}
 					best_end = epnum;
 					break;
 				}
@@ -2246,7 +2263,7 @@ static int musb_schedule(
 	qh->mux = 0;
 	hw_ep = musb->endpoints + best_end;
 	if (musb_dma_sprd(musb) && (musb->is_multipoint))
-		hw_ep->hep[!is_in] = qh->hep;
+		hw_ep->hep[!is_in] = hep;
 	musb_dbg(musb, "qh %p periodic slot %d", qh, best_end);
 success:
 	if (head) {
