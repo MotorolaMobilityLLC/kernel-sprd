@@ -86,10 +86,13 @@ static int minidump_add_section(const char *name, long vaddr, int size)
 #if defined(CONFIG_ARM64)
 static void minidump_add_irq_stack(void)
 {
-	int cpu, page_count;
-	unsigned int i;
+	int cpu;
 	u64 irq_stack_base, sp;
 	char name[MAX_NAME_LEN];
+#ifdef CONFIG_VMAP_STACK
+	int page_count;
+	unsigned int i;
+#endif
 
 	for_each_possible_cpu(cpu) {
 		irq_stack_base = (u64)per_cpu(irq_stack_ptr, cpu);
