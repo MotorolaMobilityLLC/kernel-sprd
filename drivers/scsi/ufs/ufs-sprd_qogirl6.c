@@ -182,6 +182,17 @@ int syscon_get_args(struct device *dev, struct ufs_sprd_host *host)
 	return 0;
 }
 
+static inline int ufs_sprd_mask(void __iomem *base, u32 mask, u32 reg)
+{
+	u32 tmp;
+
+	tmp = readl((base) + (reg));
+	if (tmp & mask)
+		return 1;
+	else
+		return 0;
+}
+
 /*
  * ufs_sprd_rmwl - read modify write into a register
  * @base - base address
@@ -320,8 +331,55 @@ void ufs_sprd_reset(struct ufs_sprd_host *host)
 	udelay(1);
 	ufs_sprd_rmwl(host->ufs_analog_reg, MPHY_APB_REFCLK_AUTOH8_EN_MASK,
 			MPHY_APB_REFCLK_AUTOH8_EN_VAL, MPHY_DIG_CFG14_LANE0);
+
+	udelay(1);
+	ufs_sprd_rmwl(host->ufs_analog_reg, MPHY_APB_PLLTIMER_MASK,
+			MPHY_APB_PLLTIMER_VAL, MPHY_DIG_CFG18_LANE0);
 }
 
+static int is_ufs_sprd_host_in_pwm(struct ufs_hba *hba)
+{
+	int ret = 0;
+	u32 pwr_mode = 0;
+
+	ret = ufshcd_dme_get(hba, UIC_ARG_MIB(PA_PWRMODE),
+			     &pwr_mode);
+	if (ret)
+		goto out;
+	if (((pwr_mode>>0)&0xf) == SLOWAUTO_MODE ||
+		((pwr_mode>>0)&0xf) == SLOW_MODE     ||
+		((pwr_mode>>4)&0xf) == SLOWAUTO_MODE ||
+		((pwr_mode>>4)&0xf) == SLOW_MODE) {
+		ret = SLOW_MODE | (SLOW_MODE << 4);
+	}
+
+out:
+	return ret;
+}
+
+static int sprd_ufs_pwrchange(struct ufs_hba *hba)
+{
+	int ret;
+	struct ufs_pa_layer_attr pwr_info;
+
+	pwr_info.gear_rx = UFS_PWM_G1;
+	pwr_info.gear_tx = UFS_PWM_G1;
+	pwr_info.lane_rx = 1;
+	pwr_info.lane_tx = 1;
+	pwr_info.pwr_rx = SLOW_MODE;
+	pwr_info.pwr_tx = SLOW_MODE;
+	pwr_info.hs_rate = 0;
+
+	ret = ufshcd_config_pwr_mode(hba, &(pwr_info));
+	if (ret)
+		goto out;
+	if (hba->max_pwr_info.is_valid == true)
+		ret = ufshcd_config_pwr_mode(hba, &(hba->max_pwr_info.info));
+
+out:
+	return ret;
+
+}
 /*
  * ufs_sprd_init - find other essential mmio bases
  * @hba: host controller instance
@@ -346,7 +404,7 @@ static int ufs_sprd_init(struct ufs_hba *hba)
 	hba->quirks |= UFSHCD_QUIRK_BROKEN_UFS_HCI_VERSION |
 		       UFSHCD_QUIRK_DELAY_BEFORE_DME_CMDS;
 	hba->caps |= UFSHCD_CAP_CLK_GATING | UFSHCD_CAP_CRYPTO |
-		     UFSHCD_CAP_WB_EN;
+		     UFSHCD_CAP_WB_EN | UFSHCD_CAP_HIBERN8_WITH_CLK_GATING;
 
 	res = platform_get_resource_byname(pdev,
 					IORESOURCE_MEM, "ufs_analog_reg");
@@ -411,11 +469,19 @@ static int ufs_sprd_hce_enable_notify(struct ufs_hba *hba,
 				      enum ufs_notify_change_status status)
 {
 	int err = 0;
+	unsigned long flags;
 
 	switch (status) {
 	case PRE_CHANGE:
 		/* Do hardware reset before host controller enable. */
 		ufs_sprd_hw_init(hba);
+
+		spin_lock_irqsave(hba->host->host_lock, flags);
+		ufshcd_writel(hba, 0, REG_AUTO_HIBERNATE_IDLE_TIMER);
+		spin_unlock_irqrestore(hba->host->host_lock, flags);
+		hba->capabilities &= ~MASK_AUTO_HIBERN8_SUPPORT;
+		hba->ahit = 0;
+
 		ufshcd_writel(hba, CONTROLLER_ENABLE, REG_CONTROLLER_ENABLE);
 		break;
 	case POST_CHANGE:
@@ -563,8 +629,7 @@ static int ufs_sprd_pwr_change_notify(struct ufs_hba *hba,
 		break;
 	case POST_CHANGE:
 		/* Set auto h8 ilde time to 10ms */
-		ufshcd_writel(hba,
-			AUTO_H8_IDLE_TIME_10MS, REG_AUTO_HIBERNATE_IDLE_TIMER);
+		//ufshcd_auto_hibern8_enable(hba);
 		break;
 	default:
 		err = -EINVAL;
@@ -575,22 +640,62 @@ out:
 	return err;
 }
 
+void ufs_set_hstxsclk(struct ufs_hba *hba)
+{
+	int ret;
+	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
+
+	ret = ufs_sprd_mask(host->ufs_analog_reg,
+			MPHY_APB_HSTXSCLKINV1_MASK,
+			MPHY_DIG_CFG19_LANE0);
+	if (!ret) {
+		ufs_sprd_rmwl(host->ufs_analog_reg,
+				MPHY_APB_HSTXSCLKINV1_MASK,
+				MPHY_APB_HSTXSCLKINV1_VAL,
+				MPHY_DIG_CFG19_LANE0);
+		pr_err("ufs_pwm2hs set hstxsclk\n");
+	}
+
+}
+
 static void ufs_sprd_hibern8_notify(struct ufs_hba *hba,
 				enum uic_cmd_dme cmd,
 				enum ufs_notify_change_status status)
 {
+	int ret;
+	unsigned long flags;
+
 	switch (status) {
 	case PRE_CHANGE:
 		if (cmd == UIC_CMD_DME_HIBER_ENTER) {
-			ufshcd_writel(hba,
-				0x0, REG_AUTO_HIBERNATE_IDLE_TIMER);
+			spin_lock_irqsave(hba->host->host_lock, flags);
+			ufshcd_writel(hba, 0, REG_AUTO_HIBERNATE_IDLE_TIMER);
+			spin_unlock_irqrestore(hba->host->host_lock, flags);
 		}
 		break;
 	case POST_CHANGE:
 		if (cmd == UIC_CMD_DME_HIBER_EXIT) {
-			ufshcd_writel(hba,
-				AUTO_H8_IDLE_TIME_10MS,
-				REG_AUTO_HIBERNATE_IDLE_TIMER);
+			hba->caps &= ~UFSHCD_CAP_CLK_GATING;
+
+			ret = is_ufs_sprd_host_in_pwm(hba);
+			if (ret == (SLOW_MODE|(SLOW_MODE<<4))) {
+				ufs_set_hstxsclk(hba);
+				ret = sprd_ufs_pwrchange(hba);
+				if (ret) {
+					pr_err("ufs_pwm2hs err");
+				} else {
+					ret = is_ufs_sprd_host_in_pwm(hba);
+					if (ret == (SLOW_MODE|(SLOW_MODE<<4)) &&
+					  hba->max_pwr_info.is_valid == true)
+						pr_err("ufs_pwm2hs fail");
+					else
+						pr_err("ufs_pwm2hs succ\n");
+				}
+			}
+
+			hba->caps |= UFSHCD_CAP_CLK_GATING;
+			/* Set auto h8 ilde time to 10ms */
+			//ufshcd_auto_hibern8_enable(hba);
 		}
 		break;
 	default:
