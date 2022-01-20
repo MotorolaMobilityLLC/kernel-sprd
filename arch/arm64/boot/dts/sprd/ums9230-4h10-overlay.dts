@@ -99,6 +99,9 @@
 
 			pwm_flash: pwm_flash {
 					compatible = "sprd,pwm-ocp8135b";
+					pinctrl-names = "gpio_32","rfctl_32";
+					pinctrl-0 = <&gpio_32>;
+					pinctrl-1 = <&rfctl_32>;
 					pwms = <&pwms 0 40000>;
 					pwm-names = "pwm0";
 					flash-enf-gpios = <&ap_gpio 138 0>;
@@ -1082,7 +1085,7 @@
 	/* rfctl16 ,rfctl3, rfctl5 */
 	"gpio_8", "gpio_22", "gpio_24",
 	/* rfctl6, rfctl7, keyin0 */
-	"gpio_25", "gpio_26", "gpio_124",
+	"gpio_25", "gpio_26", "gpio_32", "rfctl_32", "gpio_124",
 	/* bt_rfctl2 */
 	"gpio_175", "gpio_121";
 	pinctrl-0 = <&gpio_8>;
@@ -1117,6 +1120,16 @@
 	gpio_26: rfctl7 {
 		pins = "QOGIRL6_RFCTL7";
 		function = "func4";
+	};
+
+	gpio_32: rfctl13 {
+		pins = "QOGIRL6_RFCTL13";
+		function = "func4";
+	};
+
+	rfctl_32: rfctl13new {
+		pins = "QOGIRL6_RFCTL13";
+		function = "func2";
 	};
 
 	gpio_124: keyin0 {
