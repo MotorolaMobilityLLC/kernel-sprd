@@ -30,6 +30,7 @@ source "drivers/soc/sprd/modem/Kconfig"
 source "drivers/soc/sprd/sfp/Kconfig"
 source "drivers/soc/sprd/performance/Kconfig"
 source "drivers/soc/sprd/pub/Kconfig"
+source "drivers/soc/sprd/usbpinmux/Kconfig"
 
 config SPRD_MEMDISK
 	tristate "SPRD memdisk driver"

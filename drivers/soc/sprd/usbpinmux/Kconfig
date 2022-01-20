@@ -1,0 +1,11 @@
+config SPRD_USBPINMUX
+	tristate "Spreadtrum USBPINMUX Support"
+        default n
+	help
+	  Say Y here to support USBPINMUX.
+
+config SPRD_USBPINMUX_QOGIRL6
+	tristate "Spreadtrum QOGIRL6 USBPINMUX Support"
+        default n
+	help
+	  Say Y here to support QOGIRL6 USBPINMUX.
