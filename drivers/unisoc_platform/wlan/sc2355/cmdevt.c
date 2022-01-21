@@ -547,6 +547,12 @@ struct sprd_msg *sc2355_get_cmdbuf(struct sprd_priv *priv, struct sprd_vif *vif,
 		ctx_id = vif->ctx_id;
 	}
 
+	/* bug：1807181
+	 * CMD_SET_MIRACAST command is sent to driver through station mode
+	 * by supplicant, but it needs to be sent to CP2 through P2P mode*/
+	if ((cmd_id == CMD_SET_MIRACAST) && (vif))
+		ctx_id = vif->mode;
+
 	if (cmd_id >= CMD_OPEN) {
 		sprd_put_vif(vif);
 
