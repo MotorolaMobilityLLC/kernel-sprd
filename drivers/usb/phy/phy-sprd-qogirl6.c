@@ -23,6 +23,7 @@
 #include <linux/regmap.h>
 #include <linux/regulator/consumer.h>
 #include <linux/slab.h>
+#include <linux/soc/sprd/sprd_usbpinmux.h>
 #include <linux/usb/phy.h>
 #include <linux/usb/otg.h>
 #include <uapi/linux/usb/charger.h>
@@ -607,11 +608,12 @@ static int sprd_hsphy_probe(struct platform_device *pdev)
 	regmap_update_bits(phy->hsphy_glb, REG_AON_APB_CGM_REG1, msk, reg);
 
 	/* usb power down */
-	reg = msk = (MASK_ANLG_PHY_G2_ANALOG_USB20_USB20_PS_PD_L |
-		MASK_ANLG_PHY_G2_ANALOG_USB20_USB20_PS_PD_S);
-	regmap_update_bits(phy->ana_g2,
-		REG_ANLG_PHY_G2_ANALOG_USB20_USB20_BATTER_PLL, msk, reg);
-
+	if (sprd_usbmux_check_mode() != MUX_MODE) {
+		reg = msk = (MASK_ANLG_PHY_G2_ANALOG_USB20_USB20_PS_PD_L |
+			MASK_ANLG_PHY_G2_ANALOG_USB20_USB20_PS_PD_S);
+		regmap_update_bits(phy->ana_g2,
+			REG_ANLG_PHY_G2_ANALOG_USB20_USB20_BATTER_PLL, msk, reg);
+	}
 	phy->dev = dev;
 	phy->phy.dev = dev;
 	phy->phy.label = "sprd-hsphy";
