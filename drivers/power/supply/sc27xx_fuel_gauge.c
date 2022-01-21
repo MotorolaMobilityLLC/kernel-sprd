@@ -2129,6 +2129,9 @@ static void sc27xx_fgu_track_capacity_monitor(struct sc27xx_fgu_data *data)
 								    data->table_len,
 								    ocv * 1000);
 		data->track.start_cap *= 10;
+
+		data->track.start_cap = data->normal_temp_cap;
+
 		dev_info(data->dev, "track is_charger_mode = %d, start_cap = %d\n",
 			 is_charger_mode, data->track.start_cap);
 		/*
