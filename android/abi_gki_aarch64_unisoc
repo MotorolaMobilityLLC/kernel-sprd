@@ -615,6 +615,9 @@
   __pm_relax
   pm_runtime_allow
   __pm_runtime_disable
+  pm_qos_remove_request
+  pm_qos_update_request
+  pm_qos_add_request
   pm_runtime_enable
   pm_runtime_forbid
   pm_runtime_force_resume
