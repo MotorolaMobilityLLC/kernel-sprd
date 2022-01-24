@@ -305,17 +305,6 @@ static int sc27xx_fgu_get_vbat_ocv(struct sc27xx_fgu_data *data, int *val);
 static int sc27xx_fgu_get_vbat_now(struct sc27xx_fgu_data *data, int *val);
 
 static const char * const sc27xx_charger_supply_name[] = {
-	"fan54015_charger",
-	"bq2560x_charger",
-	"bq25890_charger",
-	"bq25910_charger",
-	"sc2720_charger",
-	"sc2721_charger",
-	"sc2703_charger",
-	"sc2731_charger",
-	"eta6937_charger",
-	"sc2723_charger",
-	"aw32257",
 	"charger"
 };
 
@@ -1143,6 +1132,48 @@ static int sc27xx_fgu_get_status(struct sc27xx_fgu_data *data, int *status)
 
 	return ret;
 }
+static bool sc27xx_fgu_get_charge_done(struct sc27xx_fgu_data *data)
+{
+	union power_supply_propval val;
+	struct power_supply *psy;
+	bool done = false;
+	int i, ret = -EINVAL;
+
+	for (i = 0; i < ARRAY_SIZE(sc27xx_charger_supply_name); i++) {
+		psy = power_supply_get_by_name(sc27xx_charger_supply_name[i]);
+		if (!psy)
+			continue;
+
+		ret = power_supply_get_property(psy, POWER_SUPPLY_PROP_ONLINE,
+				&val);
+		if (ret) {
+			dev_warn(data->dev, "Cannot read ONLINE value from %s\n",
+				 sc27xx_charger_supply_name[i]);
+			power_supply_put(psy);
+			continue;
+		}
+		if (val.intval == 0) {
+			power_supply_put(psy);
+			continue;
+		}
+
+
+		ret = power_supply_get_property(psy, POWER_SUPPLY_PROP_CHARGE_FULL, &val);
+		power_supply_put(psy);
+		if (ret)
+			continue;
+
+		if (val.intval == true)
+		{
+			/* Then, this is charge done. */
+			done = true;
+			break;
+		}
+	}
+
+	return done;
+}
+
 
 static int sc27xx_fgu_get_property(struct power_supply *psy,
 				   enum power_supply_property psp,
@@ -2178,8 +2209,9 @@ static void sc27xx_fgu_track_capacity_monitor(struct sc27xx_fgu_data *data)
 		 */
 //		if (vbat_avg > data->track.end_vol &&
 		if (ocv > data->track.end_vol &&
-		    ibat_avg < data->track.end_cur &&
-		    ibat_avg >0
+		    sc27xx_fgu_get_charge_done(data)  
+//		    ibat_avg < data->track.end_cur &&
+//		    ibat_avg >0
 		     ) {
 			if (!data->online) {
 				dev_err(data->dev, "track pwr not online\n");
