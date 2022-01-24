@@ -1471,11 +1471,11 @@ int sc2355_get_fw_info(struct sprd_priv *priv)
 		}
 
 out:
-		pr_info("%s, drv_version=%d, fw_version=%d, compat_ver=%d\n",
+		pr_info("%s, drv_version=%d, fw_version=%d, compat_ver=%d, ap_version=%d\n",
 			__func__,
 			(&priv->sync_api)->api_array[CMD_GET_INFO].drv_version,
 			(&priv->sync_api)->api_array[CMD_GET_INFO].fw_version,
-			compat_ver);
+			compat_ver, ap_version);
 		pr_info("chip_model:0x%x, chip_ver:0x%x\n", priv->chip_model,
 			priv->chip_ver);
 		pr_info("fw_ver:%d, fw_std:0x%x, fw_capa:0x%x\n", priv->fw_ver,

@@ -48,6 +48,7 @@
 struct sprd_priv;
 struct sprd_hif_ops;
 struct sprd_chip_ops;
+struct sprd_hif;
 
 struct sprd_vif {
 	struct net_device *ndev;	/* Linux net device */
@@ -114,5 +115,7 @@ int sprd_iface_probe(struct platform_device *pdev,
 		     struct sprd_hif_ops *hif_ops,
 		     struct sprd_chip_ops *chip_ops);
 int sprd_iface_remove(struct platform_device *pdev);
+
+int sprd_iface_set_power(struct sprd_hif *hif, int val);
 
 #endif

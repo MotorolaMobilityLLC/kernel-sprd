@@ -1,5 +1,9 @@
 # SPDX-License-Identifier: GPL-2.0-only
 
+ifeq ($(TARGET_BUILD_VARIANT),userdebug)
+ccflags-y += -DCONFIG_SPRD_WCN_DEBUG
+endif
+
 SC2355_WLAN := \
 		acs.o \
 		api_version.o \

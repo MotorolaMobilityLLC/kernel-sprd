@@ -317,6 +317,27 @@ static void iface_set_mac_addr(struct sprd_vif *vif, u8 *pending_addr,
 	}
 }
 
+int sprd_iface_set_power(struct sprd_hif *hif, int val)
+{
+	int ret = 0;
+
+	if (val) {
+		ret = sprd_hif_power_on(hif);
+		if (ret) {
+			if (ret == -ENODEV)
+				pr_err("failed to power on WCN!\n");
+			else if (ret == -EIO)
+				pr_err("SYNC cmd error!\n");
+
+			return ret;
+		}
+		if (atomic_read(&hif->power_cnt) == 1)
+			sprd_get_fw_info(hif->priv);
+	} else
+		sprd_hif_power_off(hif);
+	return ret;
+}
+
 static int iface_open(struct net_device *ndev)
 {
 	struct sprd_vif *vif = netdev_priv(ndev);
@@ -332,20 +353,10 @@ static int iface_open(struct net_device *ndev)
 		pr_info("softap or station already open!,no need power on\n");
 		return 0;
 	}
-	ret = sprd_hif_power_on(hif);
-	if (ret) {
-		if (ret == -ENODEV)
-			netdev_err(ndev, "failed to power on WCN!\n");
-		else if (ret == -EIO)
-			netdev_err(ndev, "SYNC cmd error!\n");
-
+	ret = sprd_iface_set_power(hif, true);
+	if (ret)
 		return ret;
-	}
 
-	if (atomic_read(&hif->power_cnt) == 1) {
-		if (sprd_get_fw_info(vif->priv))
-			return -EIO;
-	}
 	sprd_init_fw(vif);
 	netif_start_queue(ndev);
 
@@ -376,7 +387,7 @@ static int iface_close(struct net_device *ndev)
 	sprd_uninit_fw(vif);
 	netdev_info(ndev, "Power off WCN (%d time)\n",
 		    atomic_read(&hif->power_cnt));
-	sprd_hif_power_off(hif);
+	sprd_iface_set_power(hif, false);
 
 	if (atomic_read(&hif->block_cmd_after_close) == 1)
 		atomic_set(&hif->block_cmd_after_close, 0);
@@ -1377,7 +1388,6 @@ static int iface_core_init(struct device *dev, struct sprd_priv *priv)
 	int ret;
 
 	sprd_tcp_ack_init(priv);
-	sprd_get_fw_info(priv);
 	sprd_setup_wiphy(wiphy, priv);
 	sprd_vendor_init(priv, wiphy);
 	set_wiphy_dev(wiphy, dev);
@@ -1450,13 +1460,8 @@ int sprd_iface_probe(struct platform_device *pdev,
 	}
 
 	pr_info("Power on WCN (%d time)\n", atomic_read(&hif->power_cnt));
-	ret = sprd_hif_power_on(hif);
+	ret = sprd_iface_set_power(hif, true);
 	if (ret) {
-		if (ret == -ENODEV)
-			pr_err("failed to power on WCN!\n");
-		else if (ret == -EIO)
-			pr_err("SYNC cmd error!\n");
-
 		sprd_hif_deinit(hif);
 		sprd_core_free(priv);
 		return ret;
@@ -1467,7 +1472,7 @@ int sprd_iface_probe(struct platform_device *pdev,
 		pr_err("%s core init failed: %d\n", __func__, ret);
 		sprd_hif_deinit(hif);
 		sprd_core_free(priv);
-		sprd_hif_power_off(hif);
+		sprd_iface_set_power(hif, false);
 		return ret;
 	}
 
@@ -1477,13 +1482,13 @@ int sprd_iface_probe(struct platform_device *pdev,
 		iface_core_deinit(priv);
 		sprd_hif_deinit(hif);
 		sprd_core_free(priv);
-		sprd_hif_power_off(hif);
+		sprd_iface_set_power(hif, false);
 		return ret;
 	}
 
 	/* Power off chipset in order to save power */
 	pr_info("Power off WCN (%d time)\n", atomic_read(&hif->power_cnt));
-	sprd_hif_power_off(hif);
+	sprd_iface_set_power(hif, false);
 
 	return ret;
 }
@@ -1498,22 +1503,17 @@ int sprd_iface_remove(struct platform_device *pdev)
 	pr_info("%s\n wlan driver remove.", __func__);
 
 	pr_info("Power on WCN (%d time)\n", atomic_read(&hif->power_cnt));
-	ret = sprd_hif_power_on(hif);
-	if (ret) {
-		if (ret == -ENODEV)
-			pr_err("failed to power on WCN!\n");
-		else if (ret == -EIO)
-			pr_err("SYNC cmd error!\n");
-
+	ret = sprd_iface_set_power(hif, true);
+	if (ret)
 		return ret;
-	}
+
 	iface_notify_deinit(priv);
 	iface_core_deinit(priv);
 	sprd_hif_deinit(hif);
 	sprd_core_free(priv);
 	iface_set_priv(NULL);
 	pr_info("Power off WCN (%d time)\n", atomic_read(&hif->power_cnt));
-	sprd_hif_power_off(hif);
+	sprd_iface_set_power(hif, false);
 
 	return 0;
 }

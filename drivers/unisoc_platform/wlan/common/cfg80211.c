@@ -348,14 +348,10 @@ int sprd_cfg80211_change_iface(struct wiphy *wiphy, struct net_device *ndev,
 		(old_type == NL80211_IFTYPE_AP && type == NL80211_IFTYPE_STATION))) {
 		pr_err("%s change iface but current mode 0!\n", __func__);
 		wiphy_info(wiphy, "Power on WCN (%d time)\n", atomic_read(&hif->power_cnt));
-		ret = sprd_hif_power_on(hif);
-		if (ret) {
-			if (ret == -ENODEV)
-				wiphy_err(wiphy, "failed to power on WCN!\n");
-			else if (ret == -EIO)
-				wiphy_err(wiphy, "SYNC cmd error!\n");
-				return ret;
-		}
+		ret = sprd_iface_set_power(hif, true);
+		if (ret)
+			return ret;
+
 		pr_err("start to send softap open command\n");
 		vif->wdev.iftype = type;
 		ret = sprd_init_fw(vif);
@@ -1181,15 +1177,9 @@ int sprd_cfg80211_start_p2p_device(struct wiphy *wiphy,
 
 	wiphy_info(wiphy, "Power on WCN (%d time)\n",
 		   atomic_read(&hif->power_cnt));
-	ret = sprd_hif_power_on(hif);
-	if (ret) {
-		if (ret == -ENODEV)
-			wiphy_err(wiphy, "failed to power on WCN!\n");
-		else if (ret == -EIO)
-			wiphy_err(wiphy, "SYNC cmd error!\n");
-
+	ret = sprd_iface_set_power(hif, true);
+	if (ret)
 		return ret;
-	}
 
 	return sprd_init_fw(vif);
 }
@@ -1215,7 +1205,7 @@ void sprd_cfg80211_stop_p2p_device(struct wiphy *wiphy,
 
 	wiphy_info(wiphy, "Power off WCN (%d time)\n",
 		   atomic_read(&hif->power_cnt));
-	sprd_hif_power_off(hif);
+	sprd_iface_set_power(hif, false);
 
 	if (atomic_read(&hif->block_cmd_after_close) == 1)
 		atomic_set(&hif->block_cmd_after_close, 0);
