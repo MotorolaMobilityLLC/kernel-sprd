@@ -48,7 +48,6 @@
 enum hand_dump_phase {
 	SPRD_HANG_DUMP_ENTER = 1,
 	SPRD_HANG_DUMP_CPU_REGS,
-	SPRD_HANG_DUMP_STACK_DATA,
 	SPRD_HANG_DUMP_CALL_STACK,
 	SPRD_HANG_DUMP_GICC_REGS,
 	SPRD_HANG_DUMP_SYSDUMP,
@@ -283,74 +282,87 @@ static void print_step(int cpu)
 	sprd_hang_debug_printf(true, "wdh_step = %d\n", wdh_step[cpu]);
 }
 
-static void show_data(unsigned long addr, const char *name)
+static void show_data(unsigned long addr, int nbytes, const char *name)
 {
-#if IS_ENABLED(CONFIG_VMAP_STACK)
-	struct vm_struct *vaddr;
-#endif
-	int i, j;
-	unsigned int *p;
-	unsigned int data;
+	int	i, j;
+	int	nlines;
+	u32	*p;
 	char str[sizeof(" 12345678") * 8 + 1];
+	struct vm_struct *vaddr;
 
 	/*
 	 * don't attempt to dump non-kernel addresses or
 	 * values that are probably just small negative numbers
 	 */
-#if IS_ENABLED(CONFIG_VMAP_STACK)
-	if (!((addr >= VMALLOC_START) && (addr < VMALLOC_END)))
-		return;
-
-	vaddr = find_vm_area_no_wait((const void *)addr);
-	if (!vaddr || ((vaddr->flags & VM_IOREMAP) == VM_IOREMAP))
+#if IS_ENABLED(CONFIG_ARM64)
+	if (addr < KIMAGE_VADDR || addr > -256UL)
 		return;
 #else
-	if (!sprd_virt_addr_valid(addr))
+	if (addr < PAGE_OFFSET || addr > -256UL)
 		return;
 #endif
-	p = (unsigned int *)addr;
+	if (addr > VMALLOC_START && addr < VMALLOC_END) {
+		vaddr = find_vm_area_no_wait((const void *)addr);
+		if (!vaddr || ((vaddr->flags & VM_IOREMAP) == VM_IOREMAP))
+			return;
+	}
 
-	sprd_hang_debug_printf(false, "%s : [%lx ---- %lx]\n",
-				name, addr, (addr + SPRD_STACK_SIZE));
+	sprd_hang_debug_printf(false, "%s: %#lx:\n", name, addr + nbytes / 2);
 
-	for (i = 0; i < (SPRD_STACK_SIZE >> 5); i++) {
+	/*
+	 * round address down to a 32 bit boundary
+	 * and always dump a multiple of 32 bytes
+	 */
+	p = (u32 *)(addr & ~(sizeof(u32) - 1));
+	nbytes += (addr & (sizeof(u32) - 1));
+	nlines = (nbytes + 31) / 32;
+
+	for (i = 0; i < nlines; i++) {
+		/*
+		 * just display low 16 bits of address to keep
+		 * each line of the dump < 80 characters
+		 */
 		memset(str, ' ', sizeof(str));
 		str[sizeof(str) - 1] = '\0';
-
 		for (j = 0; j < 8; j++) {
-			if (!__get_user(data, p))
-				sprintf(str + j * 9, " %08x", data);
-			else
+			u32	data;
+			if (probe_kernel_address(p, data)) {
 				sprintf(str + j * 9, " ********");
+			} else {
+				sprintf(str + j * 9, " %08x", data);
+			}
 			++p;
 		}
 		sprd_hang_debug_printf(false, "%04lx:%s\n", (unsigned long)(p - 8) & 0xffff, str);
 	}
 }
 
-static void show_extra_register_data(struct pt_regs *regs)
+static void show_extra_register_data(struct pt_regs *regs, int nbytes)
 {
 	mm_segment_t fs;
 	unsigned int i;
-	char name[4];
 
 	fs = get_fs();
 	set_fs(KERNEL_DS);
 #if IS_ENABLED(CONFIG_ARM64)
-	show_data(regs->pc - SPRD_STACK_SIZE / 2, "PC");
-	show_data(regs->regs[30] - SPRD_STACK_SIZE / 2, "LR");
+	show_data(regs->pc - nbytes, nbytes * 2, "PC");
+	show_data(regs->regs[30] - nbytes, nbytes * 2, "LR");
+	show_data(regs->sp - nbytes, nbytes * 2, "SP");
 	for (i = 0; i < 30; i++) {
+		char name[4];
 		snprintf(name, sizeof(name), "X%u", i);
-		show_data(regs->regs[i] - SPRD_STACK_SIZE / 2, name);
+		show_data(regs->regs[i] - nbytes, nbytes * 2, name);
 	}
 #else
-	show_data(regs->ARM_pc - SPRD_STACK_SIZE / 2, "PC");
-	show_data(regs->ARM_lr - SPRD_STACK_SIZE / 2, "LR");
-	show_data(regs->ARM_ip - SPRD_STACK_SIZE / 2, "IP");
-	show_data(regs->ARM_fp - SPRD_STACK_SIZE / 2, "FP");
+	show_data(regs->ARM_pc - nbytes, nbytes * 2, "PC");
+	show_data(regs->ARM_lr - nbytes, nbytes * 2, "LR");
+	show_data(regs->ARM_sp - nbytes, nbytes * 2, "SP");
+	show_data(regs->ARM_ip - nbytes, nbytes * 2, "IP");
+	show_data(regs->ARM_fp - nbytes, nbytes * 2, "FP");
 	for (i = 0; i < 11; i++) {
-		snprintf(name, sizeof(name), "r%u", i);
-		show_data(regs->uregs[i] - SPRD_STACK_SIZE / 2, name);
+		char name[4];
+		snprintf(name, sizeof(name), "R%u", i);
+		show_data(regs->uregs[i] - nbytes, nbytes * 2, name);
 	}
 #endif
 	set_fs(fs);
@@ -394,62 +406,9 @@ static void cpu_regs_value_dump(int cpu)
 			  pregs->ARM_r1, pregs->ARM_r0);
 #endif
 	if (!user_mode(pregs))
-		show_extra_register_data(pregs);
+		show_extra_register_data(pregs, 128);
 
 	wdh_step[cpu] = SPRD_HANG_DUMP_CPU_REGS;
-	print_step(cpu);
-}
-
-static void cpu_stack_data_dump(int cpu)
-{
-	unsigned long sp, pc;
-	struct pt_regs *pregs = &cpu_context[cpu];
-
-	if (wdh_step[cpu] == SPRD_HANG_DUMP_CPU_REGS) {
-#if IS_ENABLED(CONFIG_ARM64)
-		sp = pregs->sp;
-		pc = pregs->pc;
-#else
-		sp = pregs->ARM_sp;
-		pc = pregs->ARM_pc;
-#endif
-		if (sp & 3) {
-			sprd_hang_debug_printf(true, "%s sp unaligned %08lx\n", __func__, sp);
-			return;
-		}
-		if (!sprd_virt_addr_valid(pc)) {
-			sprd_hang_debug_printf(true, "%s: It's not in valid kernel space!\n", __func__);
-			return;
-		}
-#if IS_ENABLED(CONFIG_VMAP_STACK)
-		if (!((sp >= VMALLOC_START) && (sp < VMALLOC_END))) {
-			sprd_hang_debug_printf(true, "%s sp out of kernel addr space %08lx\n", sp);
-			return;
-		}
-		if (!(((sp + SPRD_STACK_SIZE) >= VMALLOC_START) && ((sp + SPRD_STACK_SIZE) < VMALLOC_END))) {
-			sprd_hang_debug_printf(true, "%s sp top out of kernel addr space %08lx\n",
-				(sp + SPRD_STACK_SIZE));
-			return;
-		}
-#else
-		if (!((sp >= (PAGE_OFFSET + THREAD_SIZE)) && sprd_virt_addr_valid(sp))) {
-			sprd_hang_debug_printf(true, "%s sp out of kernel addr space %08lx\n", sp);
-			return;
-		}
-		if (!(((sp + SPRD_STACK_SIZE) >= (PAGE_OFFSET + THREAD_SIZE)) && sprd_virt_addr_valid(sp))) {
-			sprd_hang_debug_printf(true, "%s sp top out of kernel addr space %08lx\n",
-				      (sp + SPRD_STACK_SIZE));
-			return;
-		}
-#endif
-		/* we always set 256 Bytes as stack size here */
-		show_data(sp, "SP");
-		flush_cache_all();
-		wdh_step[cpu] = SPRD_HANG_DUMP_STACK_DATA;
-	} else {
-		wdh_step[cpu] = -SPRD_HANG_DUMP_STACK_DATA;
-	}
-
 	print_step(cpu);
 }
 
@@ -675,7 +634,6 @@ asmlinkage __visible void wdh_atf_entry(struct pt_regs *data)
 	is_last_cpu = is_el3_ret_last_cpu(cpu, cpu_state);
 
 	cpu_regs_value_dump(cpu);
-	cpu_stack_data_dump(cpu);
 	sprd_unwind_backtrace_dump(cpu);
 	gicc_regs_value_dump(cpu);
 
