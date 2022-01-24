@@ -212,7 +212,7 @@ static enum usb_charger_type sc27xx_charger_detect(struct regmap *regmap)
 {
 	enum usb_charger_type type;
 	u32 status = 0, val;
-	int ret, cnt = 10;
+	int ret, cnt = 40;
 
 	do {
 		ret = regmap_read(regmap, SC2730_CHARGE_STATUS, &val);
@@ -224,10 +224,10 @@ static enum usb_charger_type sc27xx_charger_detect(struct regmap *regmap)
 			break;
 		}
 
-		msleep(200);
+		msleep(50);
 	} while (--cnt > 0);
 
-	printk(" %s;%x;\n",__func__,val);
+	printk(" %s;%x;%d;\n",__func__,val,cnt);
 
 	switch (status) {
 	case BIT_CDP_INT:
