@@ -1086,10 +1086,10 @@ static void bq2560x_set_pe(struct bq2560x_charger_info *info, u32 vbus)
 
 		dev_info(info->dev, "%s;%d;count %d;%d;%d;\n",__func__,info->enable_pe,try_count,last_limit_current/1000,info->last_limit_cur/1000);
 
+pe_exit:
 		if(info->last_limit_cur == I_500MA)
 			bq2560x_charger_set_limit_current(info, last_limit_current);
 
-pe_exit:
 		bq2560x_write(info, 0x0d, 0x00);   //clear
 
 		info->usb_phy->sprd_hsphy_set_dpdm(info->usb_phy,1);
@@ -1112,11 +1112,11 @@ static void bq2560x_check_qc(struct bq2560x_charger_info *info, u32 vbus)
 		goto qc_exit ;
 	
 	if( vbus == info->current_vbus )
-		return ;
+		return;      
 
 	vol=bq2560x_fgu_get_vbus(info);
 	if((abs(vol -vbus)) < V_500MV)
-		return;
+		return;      
 
 	gpio_direction_output(info->dpdm_gpio, 1);
 
@@ -1124,7 +1124,7 @@ static void bq2560x_check_qc(struct bq2560x_charger_info *info, u32 vbus)
 	msleep(2500);
 
 	last_limit_current = info->last_limit_cur;
-	bq2560x_charger_set_ovp(info, BQ2560X_FCHG_OVP_14V);
+	bq2560x_charger_set_ovp(info, BQ2560X_FCHG_OVP_9V);
 	bq2560x_charger_set_limit_current(info, 100000);
 //	bq2560x_write(info, 0x0d, 0x14);      //d+ 0.6  d- 0.6
 	bq2560x_write(info, 0x0d, 0x10);      //d+ 0.6
@@ -1144,7 +1144,7 @@ static void bq2560x_check_qc(struct bq2560x_charger_info *info, u32 vbus)
 		vol = bq2560x_fgu_get_vbus(info);
 
 		if(vol < VBUS_1V)
-			break ;       //charger plug out
+			goto qc_exit  ;       //charger plug out
 
 		if((abs(vol -vbus)) < V_500MV)
 			break;
@@ -1183,6 +1183,10 @@ static void bq2560x_check_qc(struct bq2560x_charger_info *info, u32 vbus)
 
 	return ;
 qc_exit:
+
+		if(info->last_limit_cur == 100000)
+			bq2560x_charger_set_limit_current(info, last_limit_current);
+
 		bq2560x_write(info, 0x0d, 0x00);   //clear
 
 		gpio_direction_output(info->dpdm_gpio, 0); //analogy swtich
@@ -1201,6 +1205,7 @@ static void bq2560x_charger_hand_work(struct work_struct *data)
 
 	
 	bq2560x_set_pe(info, info->set_vbus);
+	if(0)
 	bq2560x_check_qc(info,info->set_vbus);
 
 
@@ -1432,7 +1437,7 @@ static int bq2560x_charger_usb_get_property(struct power_supply *psy,
 		val->intval = vol *1000;
 		break;
 	case POWER_SUPPLY_PROP_VOLTAGE_MAX:
-		if (info->enable_pe)
+		if(info->enable_pe ||info->enable_qc)
 			val->intval =VBUS_9V;
 		else
 			val->intval =VBUS_5V;

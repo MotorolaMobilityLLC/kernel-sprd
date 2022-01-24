@@ -1084,10 +1084,10 @@ static void sy6970_set_pe(struct sy6970_charger_info *info, u32 vbus)
 
 		dev_info(info->dev, "%s;%d;count %d;%d;%d;\n",__func__,info->enable_pe,try_count,last_limit_current/1000,info->last_limit_cur/1000);
 
+pe_exit:
 		if(info->last_limit_cur == I_500MA)
 			sy6970_charger_set_limit_current(info, last_limit_current);
 
-pe_exit:
 		sy6970_update_bits(info, SY6970_REG_4,
 					  SY6970_REG_EN_PUMPX_MASK,
 					  0);
@@ -1112,11 +1112,11 @@ static void sy6970_check_qc(struct sy6970_charger_info *info, u32 vbus)
 		goto qc_exit ;
 
 	if( vbus == info->current_vbus )
-		return ;
+		return ;      
 
 	vol=sy6970_fgu_get_vbus(info);
 	if((abs(vol -vbus)) < V_500MV)
-		return;
+		return ;      
 
 	gpio_direction_output(info->dpdm_gpio, 1);
 
@@ -1142,7 +1142,7 @@ static void sy6970_check_qc(struct sy6970_charger_info *info, u32 vbus)
 		vol = sy6970_fgu_get_vbus(info);
 
 		if(vol < VBUS_1V)
-			break ;       //charger plug out
+			goto qc_exit  ;       //charger plug out
 
 		if((abs(vol -vbus)) < V_500MV)
 			break;
@@ -1181,6 +1181,9 @@ static void sy6970_check_qc(struct sy6970_charger_info *info, u32 vbus)
 
 	return ;
 qc_exit:
+		if(info->last_limit_cur == 100000)
+			sy6970_charger_set_limit_current(info, last_limit_current);
+
 		sy6970_write(info, SY6970_REG_1, 0x01);   //clear
 
 		gpio_direction_output(info->dpdm_gpio, 0); //analogy swtich
@@ -1198,6 +1201,7 @@ static void sy6970_charger_hand_work(struct work_struct *data)
 		container_of(dwork, struct sy6970_charger_info, hand_work);
 
 	sy6970_set_pe(info, info->set_vbus);
+	if(0)
 	sy6970_check_qc(info,info->set_vbus);
 
 }
@@ -1428,7 +1432,7 @@ static int sy6970_charger_usb_get_property(struct power_supply *psy,
 		val->intval = vol *1000;
 		break;
 	case POWER_SUPPLY_PROP_VOLTAGE_MAX:
-		if (info->enable_pe)
+		if(info->enable_pe ||info->enable_qc)
 			val->intval =VBUS_9V;
 		else
 			val->intval =VBUS_5V;
