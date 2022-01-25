@@ -6659,7 +6659,10 @@ static void cm_batt_works(struct work_struct *work)
 		{
 			adjust_fuel_cap(cm,0);
 			if( low_bat >=4)
+			{
 				fuel_cap =0;
+				fuel_cap_buf = (fuel_cap * CHARGE_SOC_VALUE_FACTOR) / 1000;
+			}	
 			dev_err(cm->dev, "%s;WARN: batt_uV=%d; set fuel_cap %d;;\n",__func__,batt_uV,low_bat);
 		}
 	}
@@ -6726,18 +6729,20 @@ static void cm_batt_works(struct work_struct *work)
 	else if ( !check_charge_done(cm))
 		charge_done = false;
 
-
-	cm->desc->cap = fuel_cap_buf;
-
-	if (DIV_ROUND_CLOSEST(fuel_cap, 10) != DIV_ROUND_CLOSEST(cm->desc->cap, 10)) {
-		cm->desc->update_capacity_time = cur_time.tv_sec;
-		power_supply_changed(cm->charger_psy);
-	}
-
-	set_batt_cap(cm, cm->desc->cap);
-
-	dev_info(cm->dev, "battery cap = %d, charger manager cap = %d, fuel_cap_buf = %d\n",
+	dev_info(cm->dev, "fuel = %d, cm->desc->cap = %d, fuel_cap_buf = %d\n",
 		 fuel_cap, cm->desc->cap, fuel_cap_buf);
+
+
+	if (fuel_cap_buf != cm->desc->cap) {
+		if (DIV_ROUND_CLOSEST(fuel_cap_buf, 10) != DIV_ROUND_CLOSEST(cm->desc->cap, 10)) {
+			cm->desc->update_capacity_time = cur_time.tv_sec;
+			cm->desc->cap = fuel_cap_buf;
+			power_supply_changed(cm->charger_psy);
+		}
+
+		cm->desc->cap = fuel_cap_buf;
+		set_batt_cap(cm, cm->desc->cap);
+	}
 
 schedule_cap_update_work:
 	queue_delayed_work(system_power_efficient_wq,
