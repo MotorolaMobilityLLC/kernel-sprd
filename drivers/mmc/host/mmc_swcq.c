@@ -1048,13 +1048,6 @@ static inline void mmc_cmdq_post_request(struct mmc_swcq *swcq, int task_id)
 	swcq->cmdq_slot[task_id].mrq = NULL;
 	swcq->cmdq_slot[task_id].ext_mrq = NULL;
 	atomic_set(&swcq->cmdq_slot[task_id].used, false);
-
-	if (!atomic_read(&swcq->qcnt)
-		&& !atomic_read(&swcq->cmdq_cnt)
-		&& swcq->waiting_for_idle) {
-		swcq->waiting_for_idle = false;
-		wake_up(&swcq->wait_queue);
-	}
 	spin_unlock_irqrestore(&swcq->lock, flags);
 
 }
@@ -1521,6 +1514,12 @@ reset_card:
 				swcq->waiting_for_cmdq_idle = false;
 				wake_up(&swcq->wait_cmdq_idle);
 			}
+			if (!atomic_read(&swcq->qcnt)
+				&& !atomic_read(&swcq->cmdq_cnt)
+				&& swcq->waiting_for_idle) {
+				swcq->waiting_for_idle = false;
+				wake_up(&swcq->wait_queue);
+			}
 			if (atomic_read(&swcq->qcnt) == 0 && swcq->timer_running) {
 				swcq->timer_running = false;
 				del_timer(&swcq->check_timer);
@@ -1806,8 +1805,8 @@ static bool mmc_swcq_queue_is_idle(struct mmc_swcq *swcq, int *ret)
 	unsigned long flags;
 
 	spin_lock_irqsave(&swcq->lock, flags);
-	is_idle = (!swcq->mrq && !atomic_read(&swcq->qcnt) && !atomic_read(&swcq->cmdq_cnt)) ||
-		swcq->recovery_halt;
+	is_idle = (!swcq->mrq && !atomic_read(&swcq->qcnt) && !atomic_read(&swcq->cmdq_cnt)
+		  && !atomic_read(&swcq->work_on)) || swcq->recovery_halt;
 
 	*ret = swcq->recovery_halt ? -EBUSY : 0;
 	swcq->waiting_for_idle = !is_idle;
