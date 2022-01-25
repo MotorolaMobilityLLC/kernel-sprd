@@ -5,6 +5,8 @@
 #include <linux/slab.h>
 #include <linux/timer.h>
 #include <linux/workqueue.h>
+#include <linux/rtc.h>
+#include <linux/timekeeping.h>
 
 #include "wcn_glb.h"
 #include "wcn_misc.h"
@@ -141,6 +143,9 @@ static void loopcheck_work_queue(struct work_struct *work)
 	unsigned long timeleft;
 	unsigned long long sprdwcn_rx_cnt_a = 0, sprdwcn_rx_cnt_b = 0;
 	unsigned long long loopcheck_tx_ns, marlin_boot_t;
+	struct timespec64 ts;
+	struct rtc_time tm;
+	static unsigned int loopcheck_cnt;
 
 	loopcheck_tx_ns = local_clock();
 	marlin_boot_t = marlin_bootup_time_get();
@@ -166,6 +171,14 @@ static void loopcheck_work_queue(struct work_struct *work)
 		wcn_send_atcmd_unlock();
 		if (!test_bit(WCN_LOOPCHECK_OPEN, &loopcheck.status))
 			return;
+		if (loopcheck_cnt++ % 25 == 0) {
+			ktime_get_real_ts64(&ts);
+			ts.tv_sec -= sys_tz.tz_minuteswest * 60;
+			rtc_time64_to_tm(ts.tv_sec, &tm);
+			WCN_INFO("loopcheck(%u) %04d-%02d-%02d_%02d:%02d:%02d.%ld", loopcheck_cnt,
+				tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour,
+				tm.tm_min, tm.tm_sec, ts.tv_nsec);
+		}
 		if (!timeleft) {
 			set_bit(WCN_LOOPCHECK_FAIL, &loopcheck.status);
 			WCN_ERR("didn't get loopcheck ack, printk=%d\n", console_loglevel);
