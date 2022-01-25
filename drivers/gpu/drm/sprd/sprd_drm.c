@@ -38,6 +38,8 @@
 #define DRIVER_MAJOR	1
 #define DRIVER_MINOR	0
 
+#define SPRD_FENCE_WAIT_TIMEOUT 3000 /* ms */
+
 static bool boot_mode_check(const char *str)
 {
 	struct device_node *cmdline_node;
@@ -55,13 +57,72 @@ static bool boot_mode_check(const char *str)
 	return true;
 }
 
+/**
+ * sprd_atomic_wait_for_fences - wait for fences stashed in plane state
+ * @dev: DRM device
+ * @state: atomic state object with old state structures
+ * @pre_swap: If true, do an interruptible wait, and @state is the new state.
+ * Otherwise @state is the old state.
+ *
+ * For implicit sync, driver should fish the exclusive fence out from the
+ * incoming fb's and stash it in the drm_plane_state.  This is called after
+ * drm_atomic_helper_swap_state() so it uses the current plane state (and
+ * just uses the atomic state to find the changed planes)
+ *
+ * Note that @pre_swap is needed since the point where we block for fences moves
+ * around depending upon whether an atomic commit is blocking or
+ * non-blocking. For non-blocking commit all waiting needs to happen after
+ * drm_atomic_helper_swap_state() is called, but for blocking commits we want
+ * to wait **before** we do anything that can't be easily rolled back. That is
+ * before we call drm_atomic_helper_swap_state().
+ *
+ * Returns zero if success or < 0 if dma_fence_wait_timeout() fails.
+ */
+int sprd_atomic_wait_for_fences(struct drm_device *dev,
+				      struct drm_atomic_state *state,
+				      bool pre_swap)
+{
+	struct drm_plane *plane;
+	struct drm_plane_state *new_plane_state;
+	int i, ret;
+
+	for_each_new_plane_in_state(state, plane, new_plane_state, i) {
+		if (!new_plane_state->fence)
+			continue;
+
+		WARN_ON(!new_plane_state->fb);
+
+		/*
+		 * If waiting for fences pre-swap (ie: nonblock), userspace can
+		 * still interrupt the operation. Instead of blocking until the
+		 * timer expires, make the wait interruptible.
+		 */
+		ret = dma_fence_wait_timeout(new_plane_state->fence,
+				pre_swap,
+				msecs_to_jiffies(SPRD_FENCE_WAIT_TIMEOUT));
+		if (ret == 0) {
+			DRM_ERROR("wait fence timed out, index:%d,\n", i);
+			return -EBUSY;
+		} else if (ret < 0) {
+			DRM_ERROR("wait fence failed, index:%d, ret:%d.\n",
+				i, ret);
+			return ret;
+		}
+
+		dma_fence_put(new_plane_state->fence);
+		new_plane_state->fence = NULL;
+	}
+
+	return 0;
+}
+
 static void sprd_commit_tail(struct drm_atomic_state *old_state)
 {
 	struct drm_device *dev = old_state->dev;
 
 	drm_atomic_helper_wait_for_dependencies(old_state);
 
-	drm_atomic_helper_wait_for_fences(dev, old_state, false);
+	sprd_atomic_wait_for_fences(dev, old_state, false);
 
 	drm_atomic_helper_commit_modeset_disables(dev, old_state);
 
