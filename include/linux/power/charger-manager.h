@@ -706,6 +706,7 @@ struct charger_desc {
 	bool is_fast_charge;
 	bool enable_fast_charge;
 	bool fixed_fchg_running;
+	bool wait_vbus_stable;
 	bool check_fixed_fchg_threshold;
 	u32 fast_charge_enable_count;
 	u32 fast_charge_disable_count;
@@ -729,6 +730,7 @@ struct charger_desc {
 	struct cm_thermal_info thm_info;
 
 	struct mutex charger_type_mtx;
+	struct mutex charge_info_mtx;
 };
 
 #define PSY_NAME_MAX	30

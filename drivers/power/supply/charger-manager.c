@@ -91,6 +91,7 @@
 #define CM_IR_COMPENSATION_TIME			3
 
 #define CM_CP_WORK_TIME_MS			500
+#define CM_TRY_DIS_FCHG_WORK_MS			100
 
 static const char * const cm_cp_state_names[] = {
 	[CM_CP_STATE_UNKNOWN] = "Charge pump state: UNKNOWN",
@@ -1482,6 +1483,7 @@ static void cm_update_charge_info(struct charger_manager *cm, int cmd)
 	struct charger_desc *desc = cm->desc;
 	struct cm_thermal_info *thm_info = &cm->desc->thm_info;
 
+	mutex_lock(&cm->desc->charge_info_mtx);
 	switch (desc->charger_type) {
 	case POWER_SUPPLY_USB_CHARGER_TYPE_DCP:
 		desc->charge_limit_cur = desc->cur.dcp_cur;
@@ -1618,6 +1620,8 @@ static void cm_update_charge_info(struct charger_manager *cm, int cmd)
 			desc->charge_voltage_drop = desc->normal_charge_voltage_drop;
 		break;
 	}
+
+	mutex_unlock(&cm->desc->charge_info_mtx);
 
 	if (thm_info->thm_pwr && thm_info->adapter_default_charge_vol)
 		thm_info->thm_adjust_cur = (int)(thm_info->thm_pwr /
@@ -2049,7 +2053,7 @@ out:
 static int cm_fixed_fchg_disable(struct charger_manager *cm)
 {
 	struct charger_desc *desc = cm->desc;
-	int ret;
+	int ret, charge_vol;
 
 	if (!desc->enable_fast_charge)
 		return 0;
@@ -2065,7 +2069,7 @@ static int cm_fixed_fchg_disable(struct charger_manager *cm)
 				 SPRD_VOTE_CMD_MIN, CM_FAST_CHARGE_TRANSITION_CURRENT_1P5A, cm);
 
 	/*
-	 * if defined psy_charger_stat[1], then disable the second
+	 * If defined psy_charger_stat[1], then disable the second
 	 * charger first.
 	 */
 	ret = cm_enable_second_charger(cm, false);
@@ -2075,23 +2079,47 @@ static int cm_fixed_fchg_disable(struct charger_manager *cm)
 	}
 
 	/*
-	 * adjust fast charger output voltage from 9V to 5V
+	 * Adjust fast charger output voltage from 9V to 5V
 	 */
-	ret = cm_adjust_fast_charge_voltage(cm, CM_FAST_CHARGE_VOLTAGE_5V);
-	if (ret) {
-		dev_err(cm->dev, "failed to adjust 5V fast charger voltage\n");
+	if (!desc->wait_vbus_stable &&
+	    cm_adjust_fast_charge_voltage(cm, CM_FAST_CHARGE_VOLTAGE_5V)) {
+		dev_err(cm->dev, "%s, failed to adjust 5V fast charger voltage\n", __func__);
+		ret = -EINVAL;
 		goto out;
 	}
 
+	/*
+	 * Waiting for the charger to step down to prevent the occurrence
+	 * of Vbus overvoltage.
+	 * Reason: It takes a certain time for the charger to switch from
+	 *         9V to 5V. At this time, if the OVP is directly set to
+	 *         6.5V, there is a small probability that Vbus overvoltage
+	 *         will occur.
+	 */
+	ret = get_charger_voltage(cm, &charge_vol);
+	if (ret) {
+		dev_err(cm->dev, "%s, fail to get charge vol\n", __func__);
+		goto out;
+	}
+
+	if (charge_vol > desc->normal_charge_voltage_max) {
+		dev_err(cm->dev, "%s, waiting for the charger to step down\n", __func__);
+		desc->wait_vbus_stable = true;
+		ret = -EINVAL;
+		goto out;
+	}
+
+	desc->wait_vbus_stable = false;
+
 	ret = cm_set_charger_ovp(cm, CM_FAST_CHARGE_OVP_DISABLE_CMD);
 	if (ret) {
-		dev_err(cm->dev, "failed to disable fchg ovp\n");
+		dev_err(cm->dev, "%s, failed to disable fchg ovp\n", __func__);
 		goto out;
 	}
 
 	desc->enable_fast_charge = false;
 	/*
-	 * adjust over voltage protection in 5V
+	 * Adjust over voltage protection in 5V
 	 */
 	cm_update_charge_info(cm, (CM_CHARGE_INFO_CHARGE_LIMIT |
 				   CM_CHARGE_INFO_INPUT_LIMIT |
@@ -2363,9 +2391,9 @@ static void cm_fixed_fchg_work(struct work_struct *work)
 stop_fixed_fchg:
 	ret = cm_fixed_fchg_disable(cm);
 	if (ret) {
-		dev_err(cm->dev, "%s, failed to disable fixed fchg\n", __func__);
+		dev_err(cm->dev, "%s, failed to disable fixed fchg, try again!\n", __func__);
 		schedule_delayed_work(&cm->fixed_fchg_work,
-				      msecs_to_jiffies(cm->desc->polling_interval_ms));
+				      msecs_to_jiffies(CM_TRY_DIS_FCHG_WORK_MS));
 		return;
 	}
 	cm->desc->fixed_fchg_running = false;
@@ -3643,41 +3671,37 @@ static int cm_check_thermal_status(struct charger_manager *cm)
 static void cm_check_charge_voltage(struct charger_manager *cm)
 {
 	struct charger_desc *desc = cm->desc;
-	struct power_supply *fuel_gauge;
-	union power_supply_propval val;
 	int ret, charge_vol;
 
 	if (!desc->charge_voltage_max || !desc->charge_voltage_drop)
 		return;
 
-	if (cm->charging_status != 0 &&
-	    !(cm->charging_status & CM_CHARGE_VOLTAGE_ABNORMAL))
+	if (cm->charging_status != 0 && !(cm->charging_status & CM_CHARGE_VOLTAGE_ABNORMAL))
 		return;
 
-	fuel_gauge = power_supply_get_by_name(desc->psy_fuel_gauge);
-	if (!fuel_gauge)
+	mutex_lock(&cm->desc->charge_info_mtx);
+	ret = get_charger_voltage(cm, &charge_vol);
+	if (ret) {
+		mutex_unlock(&cm->desc->charge_info_mtx);
+		dev_warn(cm->dev, "Fail to get charge vol, ret = %d.\n", ret);
 		return;
-
-	ret = power_supply_get_property(fuel_gauge,
-					POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE,
-					&val);
-	power_supply_put(fuel_gauge);
-	if (ret)
-		return;
-
-	charge_vol = val.intval;
+	}
 
 	if (cm->charger_enabled && charge_vol > desc->charge_voltage_max) {
-		dev_info(cm->dev, "Charging voltage is larger than %d\n",
-			 desc->charge_voltage_max);
+		dev_info(cm->dev, "Charging voltage %d is larger than %d\n",
+			 charge_vol, desc->charge_voltage_max);
 		cm->charging_status |= CM_CHARGE_VOLTAGE_ABNORMAL;
+		mutex_unlock(&cm->desc->charge_info_mtx);
 		try_charger_enable(cm, false);
 	} else if (!cm->charger_enabled &&
 		   charge_vol <= (desc->charge_voltage_max - desc->charge_voltage_drop) &&
 		   (cm->charging_status & CM_CHARGE_VOLTAGE_ABNORMAL)) {
-		dev_info(cm->dev, "Charging voltage is less than %d, recharging\n",
-			 desc->charge_voltage_max - desc->charge_voltage_drop);
+		dev_info(cm->dev, "Charging voltage %d less than %d, recharging\n",
+			 charge_vol, desc->charge_voltage_max - desc->charge_voltage_drop);
+		mutex_unlock(&cm->desc->charge_info_mtx);
 		cm->charging_status &= ~CM_CHARGE_VOLTAGE_ABNORMAL;
+	} else {
+		mutex_unlock(&cm->desc->charge_info_mtx);
 	}
 }
 
@@ -4309,6 +4333,7 @@ static void misc_event_handler(struct charger_manager *cm, enum cm_event_types t
 				cm->desc->fast_charge_enable_count = 0;
 				cm->desc->fast_charge_disable_count = 0;
 				cm->desc->fixed_fchg_running = false;
+				cm->desc->wait_vbus_stable = false;
 				cm->desc->cp.cp_running = false;
 				cm->desc->fast_charger_type = 0;
 				cm->desc->cp.cp_target_vbus = 0;
@@ -6621,6 +6646,7 @@ static int charger_manager_probe(struct platform_device *pdev)
 	INIT_DELAYED_WORK(&cm->fixed_fchg_work, cm_fixed_fchg_work);
 	INIT_DELAYED_WORK(&cm->cp_work, cm_cp_work);
 	INIT_DELAYED_WORK(&cm->ir_compensation_work, cm_ir_compensation_works);
+	mutex_init(&cm->desc->charge_info_mtx);
 
 	/* Register sysfs entry for charger(regulator) */
 	ret = charger_manager_prepare_sysfs(cm);
