@@ -558,6 +558,7 @@ static int ufs_sprd_hce_enable_notify(struct ufs_hba *hba,
 		ufshcd_writel(hba, CONTROLLER_ENABLE, REG_CONTROLLER_ENABLE);
 		break;
 	case POST_CHANGE:
+		hba->clk_gating.delay_ms = 10;
 		ufshcd_writel(hba, CLKDIV, HCLKDIV_REG);
 		break;
 	default:
