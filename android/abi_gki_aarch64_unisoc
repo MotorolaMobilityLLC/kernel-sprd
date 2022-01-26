@@ -302,6 +302,7 @@
   gen_pool_free_owner
   gen_pool_set_algo
   genphy_resume
+  getboottime64
   get_cpu_device
   __get_free_pages
   get_governor_parent_kobj
