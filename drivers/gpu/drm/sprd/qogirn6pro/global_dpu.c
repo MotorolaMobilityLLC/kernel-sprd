@@ -306,6 +306,7 @@ static int dpu_glb_parse_dt(struct dpu_context *ctx,
 		struct device_node *np)
 {
 	unsigned int syscon_args[2];
+
 	ctx_reset.regmap = syscon_regmap_lookup_by_phandle_args(np,
 			"reset-syscon", 2, syscon_args);
 	if (IS_ERR(ctx_reset.regmap)) {
@@ -314,6 +315,16 @@ static int dpu_glb_parse_dt(struct dpu_context *ctx,
 	}  else {
 		ctx_reset.enable_reg = syscon_args[0];
 		ctx_reset.mask_bit = syscon_args[1];
+	}
+
+	vau_reset.regmap = syscon_regmap_lookup_by_phandle_args(np,
+			"vau_reset-syscon", 2, syscon_args);
+	if (IS_ERR(vau_reset.regmap)) {
+		pr_warn("failed to vau_reset syscon\n");
+		return PTR_ERR(vau_reset.regmap);
+	}  else {
+		vau_reset.enable_reg = syscon_args[0];
+		vau_reset.mask_bit = syscon_args[1];
 	}
 
 	clk_dpuvsp_eb =
@@ -342,7 +353,19 @@ static int dpu_glb_parse_dt(struct dpu_context *ctx,
 
 static void dpu_glb_enable(struct dpu_context *ctx)
 {
+	int ret;
 
+	ret = clk_prepare_enable(clk_dpuvsp_disp_eb);
+	if (ret) {
+		pr_err("enable clk_dpuvsp_disp_eb failed!\n");
+		return;
+	}
+
+	ret = clk_prepare_enable(clk_dpuvsp_eb);
+	if (ret) {
+		pr_err("enable clk_dpuvsp_eb failed!\n");
+		return;
+	}
 }
 
 static void dpu_glb_disable(struct dpu_context *ctx)
