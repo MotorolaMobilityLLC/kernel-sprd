@@ -70,7 +70,7 @@ EXPORT_SYMBOL(get_rf_gpio_value);
 	level = gpio_get_value(usbcable_gpio_num);
 	//PK_XLOG_INFO(" gpio_value=%d,last_value=%d\n",level,last_eint_level);
 	if(level!=last_eint_level){
-		PK_XLOG_INFO("report key [%d]\n",level);
+		printk(KERN_ERR "usbcable: irq handler report key [%d]\n", level);
 		input_report_key(cable_input_dev, KEY_TWEN, level);
  		input_sync(cable_input_dev);
 		last_eint_level = level;
@@ -167,7 +167,7 @@ static int usbcable_probe(struct platform_device *pdev){
 
 	ret = gpio_get_value(usbcable_gpio_num);
 	if(ret!=last_eint_level){
-		PK_XLOG_INFO("probe report key [%d]\n",ret);
+		printk(KERN_ERR "usbcable: probe report key [%d]\n", ret);
 		input_report_key(cable_input_dev, KEY_TWEN, ret);
 		input_sync(cable_input_dev);
 		last_eint_level = ret;
