@@ -366,6 +366,14 @@ struct cpufreq_driver {
 	int		(*set_boost)(int state);
 };
 
+/* for multi-level frequency control */
+struct ml_freq_ctrl {
+	struct cpufreq_policy *policy;
+	struct list_head		node;
+	unsigned int	high_level_limit_max;
+	unsigned int	high_level_limit_min;
+};
+
 /* flags */
 
 /* driver isn't removed even if all ->init() calls failed */
