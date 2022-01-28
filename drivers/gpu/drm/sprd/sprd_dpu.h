@@ -25,6 +25,12 @@
 #include "dsi/sprd_dsi_hal.h"
 
 
+#define cabc_cfg0			268439552
+#define cabc_cfg1			268439552
+#define cabc_cfg2			16777215
+#define cabc_cfg3			0
+#define cabc_cfg4			0
+
 enum {
 	SPRD_DPU_IF_DBI = 0,
 	SPRD_DPU_IF_DPI,
@@ -45,6 +51,7 @@ enum {
 	ENHANCE_CFG_ID_CABC,
 	ENHANCE_CFG_ID_CABC_MODE,
 	ENHANCE_CFG_ID_CABC_HIST,
+	ENHANCE_CFG_ID_CABC_HIST_V2,
 	ENHANCE_CFG_ID_VSYNC_COUNT,
 	ENHANCE_CFG_ID_FRAME_NO,
 	ENHANCE_CFG_ID_CABC_NO,
@@ -54,6 +61,8 @@ enum {
 	ENHANCE_CFG_ID_CABC_STATE,
 	ENHANCE_CFG_ID_SLP_LUT,
 	ENHANCE_CFG_ID_LUT3D,
+	ENHANCE_CFG_ID_UD,
+	ENHANCE_CFG_ID_UPDATE_LUTS,
 	ENHANCE_CFG_ID_SR_EPF,
 	ENHANCE_CFG_ID_MAX
 };
@@ -83,6 +92,7 @@ struct dpu_core_ops {
 	void (*enhance_get)(struct dpu_context *ctx, u32 id, void *param);
 	bool (*check_raw_int)(struct dpu_context *ctx, u32 mask);
 	int (*modeset)(struct dpu_context *ctx, struct drm_display_mode *mode);
+	void (*dma_request)(struct dpu_context *ctx);
 };
 
 struct dpu_clk_ops {
@@ -128,6 +138,7 @@ struct dpu_context {
 	bool flip_pending;
 	wait_queue_head_t wait_queue;
 	bool evt_update;
+	bool evt_pq_update;
 	bool evt_all_update;
 	bool evt_stop;
 	irqreturn_t (*dpu_isr)(int irq, void *data);
