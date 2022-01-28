@@ -855,6 +855,16 @@ static void process_tx_w(struct work_struct *w)
 
 			spin_unlock_irqrestore(&dev->lock, flags);
 
+			if (!skb) {
+				skb_queue_purge(&sg_ctx->skbs);
+				kfree(req->sg);
+				kfree(req->context);
+				kfree(req->buf);
+				usb_ep_free_request(in, req);
+				dev->tx_work_status = 0;
+				return;
+			}
+
 			if (header_on) {
 				sg_set_buf(&req->sg[req->num_sgs],
 					req->buf + hdr_offset, hlen);
