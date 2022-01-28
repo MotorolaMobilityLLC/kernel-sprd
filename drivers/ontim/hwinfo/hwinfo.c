@@ -833,6 +833,7 @@ static void get_rfgpio_state(void)
 {
 	int ret = 0;
 	ret = get_rf_gpio_value();
+	pr_err("RF_GPIO=%d\n", ret);
 	strcpy(hwinfo[RF_GPIO].hwinfo_buf, ret?"1":"0");
 }
 #endif
