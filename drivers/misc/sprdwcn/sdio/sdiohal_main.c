@@ -867,7 +867,7 @@ static int sdiohal_host_irq_init(unsigned int irq_gpio_num)
 	struct sdiohal_data_t *p_data = sdiohal_get_data();
 	int ret;
 
-	ret = gpio_request(irq_gpio_num, "sdiohal_gpio");
+	ret = gpio_request(irq_gpio_num, "wcn:sdiohal_gpio");
 	if (ret < 0) {
 		pr_err("req gpio irq = %d fail!!!", irq_gpio_num);
 		return ret;

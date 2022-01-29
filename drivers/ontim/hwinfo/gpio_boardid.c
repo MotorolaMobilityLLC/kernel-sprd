@@ -204,7 +204,7 @@ static int gpio_boardid_probe(struct platform_device *pdev)
 
 	for (i = 0; i < ARRAY_SIZE(boardid_gpios); i++) {
 		if (gpio_is_valid(data->boardid_gpio[i].gpio)) {
-			err = gpio_request(data->boardid_gpio[i].gpio,data->boardid_gpio[i].gpio_name);
+			err = gpio_request(data->boardid_gpio[i].gpio, data->boardid_gpio[i].gpio_name);
 			if (err) {
 				dev_err(&pdev->dev, "request %d gpio failed, err = %d\n",data->boardid_gpio[i].gpio, err);
 				goto gpio_request_error;
@@ -226,7 +226,7 @@ static int gpio_boardid_probe(struct platform_device *pdev)
     //yrn add project_id to distinguish project  Aruba:0 Cyprus:1
 	for (i = 0; i < ARRAY_SIZE(boardprjid_gpios); i++) {
 		if (gpio_is_valid(data->boardprjid_gpio[i].gpio)) {
-			err = gpio_request(data->boardprjid_gpio[i].gpio,data->boardprjid_gpio[i].gpio_name);
+			err = gpio_request(data->boardprjid_gpio[i].gpio, data->boardprjid_gpio[i].gpio_name);
 			if (err) {
 				dev_err(&pdev->dev, "[nfc]request %d gpio failed, err = %d\n",data->boardprjid_gpio[i].gpio, err);
 				goto gpio_request_error;

@@ -365,7 +365,7 @@ static int sprd_asoc_card_parse_hook(struct device *dev,
 
 		gpio_flag = GPIOF_DIR_OUT | GPIOF_INIT_LOW ;
 		ret = gpio_request_one(hook_spk_priv.gpio[ext_ctrl_type],
-				       gpio_flag, NULL);
+				       gpio_flag, "audio:pa_ctrl");
 		if (ret < 0) {
 			dev_err(dev, "Gpio request[%d] failed:%d!\n",
 				ext_ctrl_type, ret);
@@ -377,7 +377,7 @@ static int sprd_asoc_card_parse_hook(struct device *dev,
 #ifdef CONFIG_SND_FS1512N
 		det_gpio = of_get_named_gpio_flags(np, prop_pa_id, 0, NULL);
 		gpio_flag = GPIOF_DIR_IN;
-		ret = gpio_request_one(det_gpio, gpio_flag, "det_gpio");
+		ret = gpio_request_one(det_gpio, gpio_flag, "audio:pa_id");
 		if (ret < 0) {
 			dev_err(dev, "det_gpio det request failed:%d!\n", ret);
 			return ret;

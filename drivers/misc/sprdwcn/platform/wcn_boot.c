@@ -1114,21 +1114,21 @@ static int marlin_parse_dt(struct platform_device *pdev)
 		return -1;
 	}
 
-	ret = gpio_request(marlin_dev->reset, "reset");
+	ret = gpio_request(marlin_dev->reset, "wcn:reset");
 	if (ret)
 		pr_err("gpio reset request err: %d\n", marlin_dev->reset);
 
-	ret = gpio_request(marlin_dev->chip_en, "chip_en");
+	ret = gpio_request(marlin_dev->chip_en, "wcn:chip_en");
 	if (ret)
 		pr_err("gpio_rst request err: %d\n", marlin_dev->chip_en);
 
-	ret = gpio_request(marlin_dev->int_ap, "int_ap");
+	ret = gpio_request(marlin_dev->int_ap, "wcn:int_ap");
 	if (ret)
 		pr_err("gpio_rst request err: %d\n",
 				marlin_dev->int_ap);
 
 	if (gpio_is_valid(clk->gpio)) {
-		ret = gpio_request(clk->gpio, "wcn_xtal_26m_type");
+		ret = gpio_request(clk->gpio, "wcn:xtal_26m_type");
 		if (ret)
 			pr_err("xtal 26m gpio request err: %d\n", ret);
 	}

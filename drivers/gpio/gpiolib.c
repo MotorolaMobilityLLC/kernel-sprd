@@ -2129,7 +2129,6 @@ static int __gpiod_request(struct gpio_desc *desc, const char *label)
 	/* NOTE:  gpio_request() can be called in early boot,
 	 * before IRQs are enabled, for non-sleeping (SOC) GPIOs.
 	 */
-
 	if (test_and_set_bit(FLAG_REQUESTED, &desc->flags) == 0) {
 		desc_set_label(desc, label ? : "?");
 		status = 0;
@@ -3441,6 +3440,8 @@ struct gpio_desc *__must_check gpiod_get_index(struct device *dev,
 	enum gpio_lookup_flags lookupflags = 0;
 	/* Maybe we have a device name, maybe not */
 	const char *devname = dev ? dev_name(dev) : "?";
+	char comp_name[36];
+	const char *prop_name = NULL;
 
 	dev_dbg(dev, "GPIO lookup for consumer %s\n", con_id);
 
@@ -3473,7 +3474,9 @@ struct gpio_desc *__must_check gpiod_get_index(struct device *dev,
 	 * If a connection label was passed use that, else attempt to use
 	 * the device name as label
 	 */
-	status = gpiod_request(desc, con_id ? con_id : devname);
+	device_property_read_string(dev, "name", &prop_name);
+	snprintf(comp_name, sizeof(comp_name), "%s:%s", prop_name ? : "NULL", con_id ? : devname);
+	status = gpiod_request(desc, kstrdup(comp_name, GFP_KERNEL));
 	if (status < 0)
 		return ERR_PTR(status);
 
@@ -3791,6 +3794,7 @@ static void gpiolib_dbg_show(struct seq_file *s, struct gpio_device *gdev)
 	struct gpio_desc	*gdesc = &gdev->descs[0];
 	int			is_out;
 	int			is_irq;
+	char			irq[4] = {0};
 
 	for (i = 0; i < gdev->ngpio; i++, gpio++, gdesc++) {
 		if (!test_bit(FLAG_REQUESTED, &gdesc->flags)) {
@@ -3804,13 +3808,17 @@ static void gpiolib_dbg_show(struct seq_file *s, struct gpio_device *gdev)
 		gpiod_get_direction(gdesc);
 		is_out = test_bit(FLAG_IS_OUT, &gdesc->flags);
 		is_irq = test_bit(FLAG_USED_AS_IRQ, &gdesc->flags);
-		seq_printf(s, " gpio-%-3d(gpio%-3d) (%-10s|%-34s) %s %s %s",
+		if (is_irq)
+			snprintf(irq, sizeof(irq), "%3d", gpio_to_irq(gpio));
+		else
+			irq[0] = 0;
+		seq_printf(s, " gpio-%-3d(gpio%-3d) (%-10s|%-34s) %s %s %s %s",
 			gpio, gpio - gdev->base, gdesc->name ? gdesc->name : "", gdesc->label,
 			is_out ? "out" : "in ",
 			chip->get
 				? (chip->get(chip, i) ? "hi" : "lo")
 				: "?  ",
-			is_irq ? "IRQ" : "   ");
+			is_irq ? "IRQ" : "   ", irq);
 		seq_printf(s, "\n");
 	}
 }
