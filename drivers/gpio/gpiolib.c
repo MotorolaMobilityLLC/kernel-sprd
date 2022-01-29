@@ -3804,7 +3804,7 @@ static void gpiolib_dbg_show(struct seq_file *s, struct gpio_device *gdev)
 		gpiod_get_direction(gdesc);
 		is_out = test_bit(FLAG_IS_OUT, &gdesc->flags);
 		is_irq = test_bit(FLAG_USED_AS_IRQ, &gdesc->flags);
-		seq_printf(s, " gpio-%-3d(gpio%d) (%-20.20s|%-20.20s) %s %s %s",
+		seq_printf(s, " gpio-%-3d(gpio%-3d) (%-10s|%-34s) %s %s %s",
 			gpio, gpio - gdev->base, gdesc->name ? gdesc->name : "", gdesc->label,
 			is_out ? "out" : "in ",
 			chip->get
