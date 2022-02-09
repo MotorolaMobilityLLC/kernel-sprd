@@ -12,3 +12,7 @@ obj-y += seth/
 # Sipa sys Drivers
 #
 obj-$(CONFIG_SPRD_IPA_SYS) += sipa_sys/
+
+# Sipa core Drivers
+#
+obj-$(CONFIG_SPRD_IPA_V3) += sipa_v3/

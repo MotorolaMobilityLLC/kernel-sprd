@@ -1,0 +1,36 @@
+menu "SIPA_V3 modules"
+
+config SPRD_IPA_V3
+	tristate "Sprd IPA"
+	default n
+	help
+	  SIPA is a module designed by Spreadtrum to
+	  accelerate IP packets, which is mainly suitable
+	  for 5g scenarios.
+
+	  This option be opend indicate that the SIPA
+	  module will use the SIPA version 3.
+
+config SPRD_IPA_ETH
+	tristate "Sprd Cellular Data Network Card"
+	default n
+	depends on SPRD_IPA_V3
+	help
+	  Sprd Cellular data network card, all Cellular data will be sent and
+	  received through this network card.
+
+	  This module is a cellular data network card virtualized on the basis
+	  of sipa, it is only used to send Cellular network data.
+
+config SPRD_IPA_USB
+	tristate "Sprd Sipa Usb Networ Card"
+	default n
+	depends on SPRD_IPA_V3
+	help
+	  Sprd usb network card, all usb network data will be sent and received
+	  through this network card.
+
+	  This module is a usb network card virtualized on the basis of sipa,
+	  it is only used to send Cellular network data.
+
+endmenu

@@ -2111,6 +2111,14 @@ CONFIG_SPRD_SIPC_SETH=m
 #
 CONFIG_SPRD_IPA_SYS=m
 # end of Sipa sys modules
+
+#
+# SIPA_V3 modules
+#
+CONFIG_SPRD_IPA_V3=m
+CONFIG_SPRD_IPA_ETH=m
+CONFIG_SPRD_IPA_USB=m
+# end of SIPA_V3 modules
 # end of Unisoc Net Devices
 
 # CONFIG_NETDEVSIM is not set

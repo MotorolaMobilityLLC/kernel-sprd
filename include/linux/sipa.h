@@ -376,11 +376,11 @@ int sipa_nic_tx(enum sipa_nic_id nic_id, enum sipa_term_type dst,
 		int netid, struct sk_buff *skb);
 
 int sipa_nic_rx(struct sk_buff **out_skb, int *net_id,
-		u32 *src, u32 index, int fifoid);
+		u32 *src, u32 index);
 
 int sipa_nic_trigger_flow_ctrl_work(enum sipa_nic_id, int err);
 
-bool sipa_nic_check_recv_queue_empty(int fifoid);
+bool sipa_nic_check_recv_queue_empty(void);
 
 void sipa_nic_restore_cmn_fifo_irq(void);
 
@@ -388,9 +388,9 @@ int sipa_nic_check_suspend_condition(void);
 
 bool sipa_nic_check_flow_ctrl(enum sipa_nic_id nic_id);
 
-u32 sipa_nic_sync_recv_pkts(u32 budget, int fifoid);
+u32 sipa_nic_sync_recv_pkts(u32 budget);
 
-int sipa_nic_add_tx_fifo_rptr(u32 num, int fifoid);
+int sipa_nic_add_tx_fifo_rptr(u32 num);
 
 /*
  * Prepare for pam wifi driver.
