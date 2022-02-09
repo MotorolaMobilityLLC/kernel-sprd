@@ -173,10 +173,10 @@ struct layer_reg {
 };
 
 static struct dpu_cfg1 qos_cfg = {
-	.arqos_low = 0x01,
-	.arqos_high = 0x07,
-	.awqos_low = 0x01,
-	.awqos_high = 0x07,
+	.arqos_low = 0x0a,
+	.arqos_high = 0x0c,
+	.awqos_low = 0x0a,
+	.awqos_high = 0x0c,
 };
 
 
