@@ -101,6 +101,7 @@ static int sblock_recover(u8 dst, u8 channel)
 	int i, j, rval;
 	u8 ch_index;
 
+	pr_info("sblock_recover:channel %d", channel);
 	ch_index = sipc_channel2index(channel);
 	if (ch_index == INVALID_CHANEL_INDEX) {
 		pr_err("channel %d invalid!\n", channel);
@@ -615,6 +616,9 @@ static int sblock_thread(void *data)
 
 		switch (mrecv.type) {
 		case SMSG_TYPE_OPEN:
+			pr_info("sblock thread recv msg: dst=%d, channel=%d, type=%d, flag=0x%04x, value=0x%08x\n",
+				sblock->dst, sblock->channel,
+				mrecv.type, mrecv.flag, mrecv.value);
 			/* handle channel recovery */
 			if (recovery) {
 				if (sblock->handler)
@@ -627,6 +631,9 @@ static int sblock_thread(void *data)
 				sblock->state = SBLOCK_STATE_READY;
 			break;
 		case SMSG_TYPE_CLOSE:
+			pr_info("sblock thread recv msg: dst=%d, channel=%d, type=%d, flag=0x%04x, value=0x%08x\n",
+				sblock->dst, sblock->channel,
+				mrecv.type, mrecv.flag, mrecv.value);
 			/* handle channel recovery */
 			smsg_close_ack(sblock->dst, sblock->channel);
 			if (sblock->handler)
@@ -635,6 +642,9 @@ static int sblock_thread(void *data)
 			sblock->state = SBLOCK_STATE_IDLE;
 			break;
 		case SMSG_TYPE_CMD:
+			pr_info("sblock thread recv msg: dst=%d, channel=%d, type=%d, flag=0x%04x, value=0x%08x\n",
+				sblock->dst, sblock->channel,
+				mrecv.type, mrecv.flag, mrecv.value);
 			if (!sblock->pre_cfg) {
 				/* respond cmd done for sblock init */
 				WARN_ON(mrecv.flag != SMSG_CMD_SBLOCK_INIT);
@@ -644,6 +654,7 @@ static int sblock_thread(void *data)
 					 SMSG_DONE_SBLOCK_INIT,
 					 sblock->dst_smem_addr);
 				smsg_send(sblock->dst, &mcmd, -1);
+				pr_info("send init done!\n");
 				sblock->state = SBLOCK_STATE_READY;
 				recovery = 1;
 				pr_info("channel %d-%d, SMSG_CMD_SBLOCK_INIT, dst address = 0x%x!\n",

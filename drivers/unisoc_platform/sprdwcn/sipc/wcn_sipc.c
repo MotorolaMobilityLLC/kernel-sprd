@@ -666,14 +666,21 @@ static int wcn_sipc_sblk_push(u8 index,
 			struct mbuf_t *head, struct mbuf_t *tail, int num)
 {
 	struct sipc_chn_info *sipc_chn;
+	int check_count = 0;
 
 	if (unlikely(SIPC_INVALID_CHN(index)))
 		return -E_INVALIDPARA;
 
-	if (wcn_sipc_sblk_chn_rx_status_check(index))
-		return -E_INVALIDPARA;
-
 	sipc_chn = SIPC_CHN(index);
+	while (wcn_sipc_sblk_chn_rx_status_check(index) != 0) {
+		WCN_INFO("sipc chn %d wait create ,index %d !\n", sipc_chn->chn, index);
+		msleep(30);
+		check_count++;
+		if (check_count >= 100) {
+			WCN_ERR("sipc chn %d not created!", sipc_chn->chn);
+			return -E_INVALIDPARA;
+		}
+	}
 	wcn_sipc_record_mbuf_recv_from_user(index, num);
 	wcn_sipc_push_list_enqueue(sipc_chn, head, tail, num);
 	wcn_sipc_wakeup_tx(sipc_chn);
@@ -710,7 +717,7 @@ static void wcn_sipc_sblk_recv(struct sipc_chn_info *sipc_chn)
 void wcn_sipc_chn_set_status(void *data, bool flag)
 {
 	struct sipc_chn_info *sipc_chn = (struct sipc_chn_info *)data;
-
+	WCN_INFO("wcn_sipc_chn_set_status chn: %d ,  flag:%d\n", sipc_chn->chn, flag);
 	if (flag)
 		sipc_chn->sipc_chn_status = true;
 	else
@@ -723,7 +730,7 @@ static void wcn_sipc_sblk_notifer(int event, void *data)
 
 	if (unlikely(!sipc_chn))
 		return;
-	WCN_DEBUG("%s  %d index:%d  event:%x",
+	WCN_INFO("%s  %d index:%d  event:%x",
 		  __func__, __LINE__, sipc_chn->index, event);
 	switch (event) {
 	case SBLOCK_NOTIFY_RECV:
