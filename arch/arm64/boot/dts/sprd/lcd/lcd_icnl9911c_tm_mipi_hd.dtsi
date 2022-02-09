@@ -90,7 +90,7 @@
 							clock-frequency = <129230000>;
 							hactive = <720>;
 							vactive = <1600>;
-							hback-porch = <32>;
+							hback-porch = <36>;
 							hfront-porch = <48>;
 							vback-porch = <32>;
 							vfront-porch = <1020>;
