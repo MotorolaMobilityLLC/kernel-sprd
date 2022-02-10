@@ -542,7 +542,7 @@
 	sprd,comp-resistance-mohm= <20>;
 
 	fgu-capacity-track;
-	phys = <&hsphy>;
+	phys = <&ssphy>;
 };
 
 &pmic_fchg {

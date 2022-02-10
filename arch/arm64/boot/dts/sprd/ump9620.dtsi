@@ -166,7 +166,7 @@
 			interrupt-parent = <&ump9620_pmic>;
 			interrupts = <8 IRQ_TYPE_LEVEL_HIGH>;
 			reg = <0x380>;
-			mode = <2>;
+			sprd,mode = <2>;
 			nvmem-cells = <&typec_cc1_cal>, <&typec_cc2_cal>;
 			nvmem-cell-names = "typec_cc1_cal", "typec_cc2_cal";
 		};

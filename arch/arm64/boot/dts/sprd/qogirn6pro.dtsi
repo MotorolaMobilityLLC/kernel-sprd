@@ -1729,7 +1729,7 @@
 					interrupts = <GIC_SPI 142 IRQ_TYPE_LEVEL_HIGH>;
 					interrupt-names = "irq";
 					usb-phy = <&ssphy>, <&ssphy>;
-					usb-pam = <&pamu3>;
+					#usb-pam = <&pamu3>;
 					phy_type = "utmi";
 					snps,usb3-u1u2-disable;
 					snps,dis_u3_susphy_quirk;
@@ -1761,6 +1761,7 @@
 				compatible = "sprd,qogirn6pro-ssphy";
 				reg = <0 0x25310000 0 0x10000>;
 				reg-names = "phy_glb_regs";
+				#phy-cells = <0>;
 				power-domains = <&pd_ipa_sys>;
 				sprd,syscon-aon-apb = <&aon_apb_regs>;
 				sprd,syscon-ana-g0l = <&anlg_phy_g0l_regs>;
