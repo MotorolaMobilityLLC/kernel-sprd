@@ -161,13 +161,15 @@ struct dpu_cfg1 {
 struct layer_reg {
 	u32 addr[4];
 	u32 ctrl;
-	u32 size;
+	u32 dst_size;
+	u32 src_size;
 	u32 pitch;
 	u32 pos;
 	u32 alpha;
 	u32 ck;
 	u32 pallete;
 	u32 crop_start;
+	u32 reserved[3];
 };
 
 static struct dpu_cfg1 qos_cfg = {
@@ -589,6 +591,55 @@ enum {
 	DPU_LAYER_FORMAT_MAX_TYPES,
 };
 
+enum {
+	DPU_LAYER_ROTATION_0,
+	DPU_LAYER_ROTATION_90,
+	DPU_LAYER_ROTATION_180,
+	DPU_LAYER_ROTATION_270,
+	DPU_LAYER_ROTATION_0_M,
+	DPU_LAYER_ROTATION_90_M,
+	DPU_LAYER_ROTATION_180_M,
+	DPU_LAYER_ROTATION_270_M,
+};
+
+static u32 to_dpu_rotation(u32 angle)
+{
+	u32 rot = DPU_LAYER_ROTATION_0;
+
+	switch (angle) {
+	case 0:
+	case DRM_MODE_ROTATE_0:
+		rot = DPU_LAYER_ROTATION_0;
+		break;
+	case DRM_MODE_ROTATE_90:
+		rot = DPU_LAYER_ROTATION_90;
+		break;
+	case DRM_MODE_ROTATE_180:
+		rot = DPU_LAYER_ROTATION_180;
+		break;
+	case DRM_MODE_ROTATE_270:
+		rot = DPU_LAYER_ROTATION_270;
+		break;
+	case DRM_MODE_REFLECT_Y:
+		rot = DPU_LAYER_ROTATION_180_M;
+		break;
+	case (DRM_MODE_REFLECT_Y | DRM_MODE_ROTATE_90):
+		rot = DPU_LAYER_ROTATION_90_M;
+		break;
+	case DRM_MODE_REFLECT_X:
+		rot = DPU_LAYER_ROTATION_0_M;
+		break;
+	case (DRM_MODE_REFLECT_X | DRM_MODE_ROTATE_90):
+		rot = DPU_LAYER_ROTATION_270_M;
+		break;
+	default:
+		pr_err("rotation convert unsupport angle (drm)= 0x%x\n", angle);
+		break;
+	}
+
+	return rot;
+}
+
 static u32 dpu_img_ctrl(u32 format, u32 blending, u32 compression, u32 y2r_coef,
 		u32 rotation)
 {
@@ -759,85 +810,78 @@ static void dpu_layer(struct dpu_context *ctx,
 		    struct sprd_layer_state *hwlayer)
 {
 	const struct drm_format_info *info;
-	u32 wd;
 	struct layer_reg tmp = {};
+	u32 dst_size, src_size, offset, wd, rot, layer_enable_sts;
 	int i;
 
-	tmp.pos = (hwlayer->dst_x & 0xffff) | ((hwlayer->dst_y) << 16);
+	layer_enable_sts = DPU_REG_RD(ctx->base + REG_LAYER_ENABLE);
 
-	if (hwlayer->src_w && hwlayer->src_h)
-		tmp.size = (hwlayer->src_w & 0xffff) | ((hwlayer->src_h) << 16);
-	else
-		tmp.size = (hwlayer->dst_w & 0xffff) | ((hwlayer->dst_h) << 16);
-
-	tmp.alpha = hwlayer->alpha;
+	offset = (hwlayer->dst_x & 0xffff) | ((hwlayer->dst_y) << 16);
+	src_size = (hwlayer->src_w & 0xffff) | ((hwlayer->src_h) << 16);
+	dst_size = (hwlayer->dst_w & 0xffff) | ((hwlayer->dst_h) << 16);
 
 	if (hwlayer->pallete_en) {
-		tmp.size = (hwlayer->dst_w & 0xffff) | ((hwlayer->dst_h) << 16);
+		tmp.pos = offset;
+		tmp.src_size = src_size;
+		tmp.dst_size = dst_size;
+		tmp.alpha = hwlayer->alpha;
 		tmp.pallete = hwlayer->pallete_color;
 
 		/* pallete layer enable */
-		tmp.ctrl = BIT_DPU_LAY_LAYER_ALPHA | BIT_DPU_LAY_PALLETE_EN;
-
-		pr_debug("pallete:0x%x\n", tmp.pallete);
+		tmp.ctrl = 0x2004;
+		pr_debug("dst_x = %d, dst_y = %d, dst_w = %d, dst_h = %d, pallete:%d\n",
+				hwlayer->dst_x, hwlayer->dst_y,
+				hwlayer->dst_w, hwlayer->dst_h, tmp.pallete);
 	} else {
+		if (src_size != dst_size) {
+			rot = to_dpu_rotation(hwlayer->rotation);
+			if ((rot == DPU_LAYER_ROTATION_90) || (rot == DPU_LAYER_ROTATION_270) ||
+					(rot == DPU_LAYER_ROTATION_90_M) || (rot == DPU_LAYER_ROTATION_270_M))
+				dst_size = (hwlayer->dst_h & 0xffff) | ((hwlayer->dst_w) << 16);
+			tmp.ctrl = BIT(24);
+		}
+
 		for (i = 0; i < hwlayer->planes; i++) {
 			if (hwlayer->addr[i] % 16)
 				pr_err("layer addr[%d] is not 16 bytes align, it's 0x%08x\n",
-					i, hwlayer->addr[i]);
+						i, hwlayer->addr[i]);
 			tmp.addr[i] = hwlayer->addr[i];
 		}
 
+		tmp.pos = offset;
+		tmp.src_size = src_size;
+		tmp.dst_size = dst_size;
 		tmp.crop_start = (hwlayer->src_y << 16) | hwlayer->src_x;
+		tmp.alpha = hwlayer->alpha;
 
 		info = drm_format_info(hwlayer->format);
 		wd = info->cpp[0];
 		if (wd == 0) {
-			pr_err("layer[%d] bytes per pixel is invalid\n",
-				hwlayer->index);
+			pr_err("layer[%d] bytes per pixel is invalid\n", hwlayer->index);
 			return;
 		}
 
 		if (hwlayer->planes == 3)
 			/* UV pitch is 1/2 of Y pitch*/
 			tmp.pitch = (hwlayer->pitch[0] / wd) |
-					(hwlayer->pitch[0] / wd << 15);
+				(hwlayer->pitch[0] / wd << 15);
 		else
 			tmp.pitch = hwlayer->pitch[0] / wd;
 
-		tmp.ctrl = dpu_img_ctrl(hwlayer->format, hwlayer->blending,
-			hwlayer->xfbc, hwlayer->y2r_coef, hwlayer->rotation);
+		tmp.ctrl |= dpu_img_ctrl(hwlayer->format, hwlayer->blending,
+				hwlayer->xfbc, hwlayer->y2r_coef, hwlayer->rotation);
 	}
 
 	for (i = 0; i < hwlayer->planes; i++)
 		DPU_REG_WR(ctx->base + DPU_LAY_PLANE_ADDR(REG_LAY_BASE_ADDR,
 					hwlayer->index, i), tmp.addr[i]);
 
-	if (hwlayer->pallete_en) {
-		tmp.size = (hwlayer->dst_w & 0xffff) | ((hwlayer->dst_h) << 16);
-		DPU_REG_WR(ctx->base + DPU_LAY_REG(REG_LAY_POS,
-				hwlayer->index), tmp.pos);
-		DPU_REG_WR(ctx->base + DPU_LAY_REG(REG_LAY_DES_SIZE,
-				hwlayer->index), tmp.size);
-		DPU_REG_WR(ctx->base + DPU_LAY_REG(REG_LAY_ALPHA,
-				hwlayer->index), tmp.alpha);
-		DPU_REG_WR(ctx->base + DPU_LAY_REG(REG_LAY_PALLETE,
-				hwlayer->index), tmp.pallete);
-
-		DPU_REG_WR(ctx->base + DPU_LAY_REG(REG_LAY_CTRL,
-				hwlayer->index), tmp.ctrl);
-		DPU_REG_WR(ctx->base + REG_LAYER_ENABLE, 1 << hwlayer->index);
-
-		pr_debug("dst_x = %d, dst_y = %d, dst_w = %d, dst_h = %d, pallete:%d\n",
-			hwlayer->dst_x, hwlayer->dst_y,
-			hwlayer->dst_w, hwlayer->dst_h, hwlayer->pallete_color);
-		return;
-	}
-
 	DPU_REG_WR(ctx->base + DPU_LAY_REG(REG_LAY_POS,
 			hwlayer->index), tmp.pos);
+	DPU_REG_WR(ctx->base + DPU_LAY_REG(REG_LAY_SRC_SIZE,
+			hwlayer->index), tmp.src_size);
 	DPU_REG_WR(ctx->base + DPU_LAY_REG(REG_LAY_DES_SIZE,
-			hwlayer->index), tmp.size);
+			hwlayer->index), tmp.dst_size);
 	DPU_REG_WR(ctx->base + DPU_LAY_REG(REG_LAY_CROP_START,
 			hwlayer->index), tmp.crop_start);
 	DPU_REG_WR(ctx->base + DPU_LAY_REG(REG_LAY_ALPHA,
@@ -846,9 +890,11 @@ static void dpu_layer(struct dpu_context *ctx,
 			hwlayer->index), tmp.pitch);
 	DPU_REG_WR(ctx->base + DPU_LAY_REG(REG_LAY_CTRL,
 			hwlayer->index), tmp.ctrl);
-	DPU_REG_WR(ctx->base + REG_LAYER_ENABLE, 1 << hwlayer->index);
-	DPU_REG_WR(ctx->base + DPU_LAY_REG(REG_LAY_PALLETE,
-				hwlayer->index), tmp.pallete);
+
+	layer_enable_sts |= (1 << hwlayer->index);
+	DPU_REG_WR(ctx->base + REG_LAYER_ENABLE, layer_enable_sts);
+	// DPU_REG_WR(ctx->base + DPU_LAY_REG(REG_LAY_PALLETE,
+				// hwlayer->index), tmp.pallete);
 
 	pr_debug("dst_x = %d, dst_y = %d, dst_w = %d, dst_h = %d\n",
 				hwlayer->dst_x, hwlayer->dst_y,
