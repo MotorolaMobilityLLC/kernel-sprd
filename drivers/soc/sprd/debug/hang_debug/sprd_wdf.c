@@ -31,11 +31,14 @@
 static DEFINE_PER_CPU(struct task_struct *, hang_debug_task_store);
 static unsigned int cpu_feed_mask;
 static unsigned int cpu_feed_bitmap;
-static DEFINE_SPINLOCK(lock);
+static DEFINE_MUTEX(wdf_mutex);
+/**
+ * choose hrtimer here due to hrtimer was handled in hard interrupt context
+ * while timer was handled in soft interrupt context
+ */
 static DEFINE_PER_CPU(struct hrtimer, sprd_wdt_hrtimer);
 /* 1: which cpu need to feed, 0: cpu doesn't need to feed */
 static DEFINE_PER_CPU(int, g_enable);
-static DEFINE_PER_CPU(int, timer_change);
 struct watchdog_device *wdd;
 /* set default watchdog time */
 static u64 g_interval = 8;
@@ -45,6 +48,17 @@ static int wdt_disable;
 
 static enum hrtimer_restart sprd_wdt_timer_func(struct hrtimer *hrtimer)
 {
+	/**
+	 * hrtimer_cancel will be called in disable wdt context, however,
+	 * check wdt_disable here to bail out early. mutex shouldn't be
+	 * added here to avoid dead-lock due to mutex would have been held
+	 * before hrtimer_cancel.
+	 */
+	if (wdt_disable) {
+		pr_debug("hrtimer func: wdt_disable\n");
+		return HRTIMER_NORESTART;
+	}
+
 	__this_cpu_write(g_enable, 1);
 	wake_up_process(__this_cpu_read(hang_debug_task_store));
 	hrtimer_forward_now(hrtimer, ms_to_ktime(g_interval * MSEC_PER_SEC));
@@ -53,7 +67,7 @@ static enum hrtimer_restart sprd_wdt_timer_func(struct hrtimer *hrtimer)
 
 static void sprd_wdf_hrtimer_enable(unsigned int cpu)
 {
-	struct hrtimer *hrtimer = per_cpu_ptr(&sprd_wdt_hrtimer, cpu);
+	struct hrtimer *hrtimer = this_cpu_ptr(&sprd_wdt_hrtimer);
 
 	hrtimer_init(hrtimer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
 	hrtimer->function = sprd_wdt_timer_func;
@@ -70,7 +84,6 @@ static void hang_debug_create(unsigned int cpu)
 	sched_setscheduler(hang_debug_t, SCHED_FIFO, &param);
 
 	per_cpu(g_enable, cpu) = 0;
-	per_cpu(timer_change, cpu) = 0;
 }
 
 static int hang_debug_should_run(unsigned int cpu)
@@ -82,62 +95,64 @@ static void hang_debug_park(unsigned int cpu)
 {
 	struct hrtimer *hrtimer = this_cpu_ptr(&sprd_wdt_hrtimer);
 
-	if (wdt_disable)
-		return;
-
-	spin_lock(&lock);
+	mutex_lock(&wdf_mutex);
 	cpu_feed_mask &= (~(1U << cpu));
 	cpu_feed_bitmap = 0;
 	pr_debug("offline cpu = %u\n", cpu);
-	spin_unlock(&lock);
+
+	if (wdt_disable)
+		goto out;
 #if IS_ENABLED(CONFIG_SPRD_WATCHDOG_FIQ)
 	if (wdd->ops->start)
 		wdd->ops->start(wdd);
 #endif
 	hrtimer_cancel(hrtimer);
+out:
+	mutex_unlock(&wdf_mutex);
 }
 
 static void hang_debug_unpark(unsigned int cpu)
 {
-	if (wdt_disable)
-		return;
 
-	spin_lock(&lock);
+	mutex_lock(&wdf_mutex);
 	cpu_feed_mask |= (1U << cpu);
 	cpu_feed_bitmap = 0;
 	pr_debug("online cpu = %u\n", cpu);
-	spin_unlock(&lock);
+
+	if (wdt_disable)
+		goto out;
 #if IS_ENABLED(CONFIG_SPRD_WATCHDOG_FIQ)
 	if (wdd->ops->start)
 		wdd->ops->start(wdd);
 #endif
-	sprd_wdf_hrtimer_enable(cpu);
+	hrtimer_start(this_cpu_ptr(&sprd_wdt_hrtimer),
+			ms_to_ktime(g_interval * MSEC_PER_SEC),
+			HRTIMER_MODE_REL_PINNED);
+out:
+	mutex_unlock(&wdf_mutex);
 }
 
 static void hang_debug_task(unsigned int cpu)
 {
-	spin_lock(&lock);
+
+	mutex_lock(&wdf_mutex);
+	if (wdt_disable)
+		goto out;
 
 	cpu_feed_bitmap |= (1U << cpu);
 	if (cpu_feed_mask == cpu_feed_bitmap) {
 		pr_debug("feed wdt cpu_feed_bitmap = 0x%08x\n", cpu_feed_bitmap);
 		cpu_feed_bitmap = 0;
 #if IS_ENABLED(CONFIG_SPRD_WATCHDOG_FIQ)
-		spin_unlock(&lock);
 		if (wdd->ops->start)
 			wdd->ops->start(wdd);
 #endif
-	} else {
-		spin_unlock(&lock);
+	} else
 		pr_debug("cpu_feed_bitmap = 0x%08x\n", cpu_feed_bitmap);
-	}
-
-	if (per_cpu(timer_change, cpu)) {
-		sprd_wdf_hrtimer_enable(cpu);
-		__this_cpu_write(timer_change, 0);
-	}
 
 	__this_cpu_write(g_enable, 0);
+out:
+	mutex_unlock(&wdf_mutex);
 }
 
 static struct smp_hotplug_thread hang_debug_threads = {
@@ -150,6 +165,16 @@ static struct smp_hotplug_thread hang_debug_threads = {
 	.park			= hang_debug_park,
 	.unpark			= hang_debug_unpark,
 };
+
+static void smp_hrtimer_start(void *data)
+{
+	int cpu = smp_processor_id();
+
+	pr_debug("hrtimer restart on cpu%d\n", cpu);
+	hrtimer_start(this_cpu_ptr(&sprd_wdt_hrtimer),
+			ms_to_ktime(g_interval * MSEC_PER_SEC),
+			HRTIMER_MODE_REL_PINNED);
+}
 
 static int hang_debug_proc_read(struct seq_file *s, void *v)
 {
@@ -188,18 +213,14 @@ static ssize_t hang_debug_proc_write(struct file *file, const char *buf,
 	}
 
 	if (g_timeout != timeout) {
-		spin_lock(&lock);
+		mutex_lock(&wdf_mutex);
 		cpu_feed_bitmap = 0;
-		spin_unlock(&lock);
+
+		/* cancel timer on each cpu */
+		for_each_online_cpu(cpu)
+			hrtimer_cancel(per_cpu_ptr(&sprd_wdt_hrtimer, cpu));
 
 		g_timeout = timeout;
-
-		for_each_online_cpu(cpu) {
-			hrtimer_cancel(per_cpu_ptr(&sprd_wdt_hrtimer, cpu));
-			per_cpu(timer_change, cpu) = 1;
-			per_cpu(g_enable, cpu) = 1;
-			wake_up_process(per_cpu(hang_debug_task_store, cpu));
-		}
 
 		pretimeout = timeout;
 		pretimeout = div_u64(pretimeout, 2);
@@ -210,13 +231,19 @@ static ssize_t hang_debug_proc_write(struct file *file, const char *buf,
 		pr_notice("timeout = %llu interval = %llu\n", g_timeout, g_interval);
 
 #if IS_ENABLED(CONFIG_SPRD_WATCHDOG_FIQ)
-		if (wdd->ops->start)
-			wdd->ops->start(wdd);
+		/* set new timeout and touch watchdog */
 		if (wdd->ops->set_timeout)
 			wdd->ops->set_timeout(wdd, (u32)g_timeout);
 		if (wdd->ops->set_pretimeout)
 			wdd->ops->set_pretimeout(wdd, pretimeout);
+		if (wdd->ops->start)
+			wdd->ops->start(wdd);
 #endif
+		/* restart timer on each cpu */
+		for_each_online_cpu(cpu)
+			smp_call_function_single(cpu, smp_hrtimer_start,
+					NULL, true);
+		mutex_unlock(&wdf_mutex);
 	}
 
 	return count;
@@ -246,9 +273,12 @@ void sprd_wdf_wdt_disable(int disable)
 {
 	int cpu;
 
+	mutex_lock(&wdf_mutex);
 	if (disable && !wdt_disable) {
 		wdt_disable = 1;
+		cpu_feed_bitmap = 0;
 		for_each_online_cpu(cpu) {
+			/* cancel timer on each cpu */
 			hrtimer_cancel(per_cpu_ptr(&sprd_wdt_hrtimer, cpu));
 			per_cpu(g_enable, cpu) = 0;
 		}
@@ -258,11 +288,6 @@ void sprd_wdf_wdt_disable(int disable)
 #endif
 	} else if (!disable && wdt_disable) {
 		wdt_disable = 0;
-		for_each_online_cpu(cpu) {
-			per_cpu(timer_change, cpu) = 1;
-			per_cpu(g_enable, cpu) = 1;
-			wake_up_process(per_cpu(hang_debug_task_store, cpu));
-		}
 #if IS_ENABLED(CONFIG_SPRD_WATCHDOG_FIQ)
 		if (wdd->ops->set_timeout)
 			wdd->ops->set_timeout(wdd, (u32)g_timeout);
@@ -271,8 +296,14 @@ void sprd_wdf_wdt_disable(int disable)
 		if (wdd->ops->start)
 			wdd->ops->start(wdd);
 #endif
+		/* restart timer on each cpu */
+		for_each_online_cpu(cpu)
+			smp_call_function_single(cpu, smp_hrtimer_start,
+					NULL, true);
 	}
+	mutex_unlock(&wdf_mutex);
 }
+
 EXPORT_SYMBOL(sprd_wdf_wdt_disable);
 
 static ssize_t wdt_disable_proc_write(struct file *file, const char *buf,
