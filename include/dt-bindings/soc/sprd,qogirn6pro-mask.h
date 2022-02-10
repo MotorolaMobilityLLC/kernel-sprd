@@ -4427,4 +4427,12 @@
 #define MASK_TOP_DVFS_APB_AI_SW_DVFS_EN                     0x0020
 #define MASK_TOP_DVFS_APB_GPU_SW_DVFS_EN                    0x0040
 #define MASK_TOP_DVFS_APB_DCDC_GPU_SW_TUNE_EN               0x0001
+#define MASK_TOP_DVFS_APB_DCDC_GPU_VOLTAGE0                 0x01FF
+#define MASK_TOP_DVFS_APB_DCDC_GPU_VOLTAGE1                 0x1FF0000
+#define MASK_TOP_DVFS_APB_DCDC_GPU_VOLTAGE2                 0x01FF
+#define MASK_TOP_DVFS_APB_DCDC_GPU_VOLTAGE3                 0x1FF0000
+#define MASK_TOP_DVFS_APB_DCDC_GPU_VOLTAGE4                 0x01FF
+#define MASK_TOP_DVFS_APB_DCDC_GPU_VOLTAGE5                 0x1FF0000
+#define MASK_TOP_DVFS_APB_DCDC_GPU_VOLTAGE6                 0x01FF
+#define MASK_TOP_DVFS_APB_DCDC_GPU_VOLTAGE7                 0x1FF0000
 #endif /* __DT_BINDINGS_SPRD_QOGIRN6PRO_MASK_H */
