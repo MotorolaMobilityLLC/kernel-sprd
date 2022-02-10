@@ -17,6 +17,8 @@
 #define	SPRD_CPUFREQ_TEMP_MAX		200
 #define CPUFREQ_OPP_NAME_LEN		36
 #define SPRD_CPUFREQ_BOOST_DURATION	(60ul * HZ)
+#define ON_BOOST			0
+#define OUT_BOOST			1
 
 #define VENDOR_NAME	"operating-points"
 
@@ -58,6 +60,7 @@ struct sprd_cpufreq_info {
 	unsigned int clu_id, cpu_id;
 	struct sprd_cpu_cluster_info *pcluster;
 	unsigned int policy_trans;
+	bool boost_enable;
 	/*CUFREQ points to update opp by temp*/
 	unsigned int (*update_opp)(int cpu, int temp_now);
 };

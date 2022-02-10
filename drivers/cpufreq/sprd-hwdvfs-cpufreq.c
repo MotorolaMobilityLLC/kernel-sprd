@@ -68,6 +68,29 @@ static int sprd_related_cpus_cluster_alloc(struct sprd_cpufreq_info *info,
 	return 0;
 }
 
+static int sprd_cpufreq_boost_judge(struct cpufreq_policy *policy)
+{
+	struct sprd_cpufreq_info *info = policy->driver_data;
+
+	if (time_after(jiffies, boot_done_timestamp)) {
+		boost_mode_flag = 0;
+		info->boost_enable = false;
+		pr_info("Disables boost it is %lu seconds after boot up\n",
+			SPRD_CPUFREQ_BOOST_DURATION / HZ);
+	}
+
+	if (boost_mode_flag) {
+		if (policy->max >= policy->cpuinfo.max_freq)
+			return ON_BOOST;
+		boost_mode_flag = 0;
+		info->boost_enable = false;
+		pr_info("Disables boost due to policy max(%d<%d)\n",
+			policy->max, policy->cpuinfo.max_freq);
+	}
+
+	return OUT_BOOST;
+}
+
 static
 int sprd_nvmem_info_read(struct device_node *node, const char *name, u32 *value)
 {
@@ -642,13 +665,10 @@ int sprd_hardware_cpufreq_set_target_index(struct cpufreq_policy *policy,
 	 * Should to set frequency after boot_done_timestamp ticks since the
 	 * cpufreq device has been probed
 	 */
-
-	if (boost_mode_flag) {
-		if (!time_after(jiffies, boot_done_timestamp))
+	if (info->boost_enable) {
+		ret = sprd_cpufreq_boost_judge(policy);
+		if (ret == ON_BOOST)
 			return 0;
-		boost_mode_flag = 0;
-		pr_info("Disables boost it is %lu seconds after boot up\n",
-			SPRD_CPUFREQ_BOOST_DURATION / HZ);
 	}
 
 	mutex_lock(&info->pcluster->opp_mutex);
@@ -880,10 +900,7 @@ static unsigned int sprd_hardware_cpufreq_get(unsigned int cpu)
 
 static int sprd_hardware_cpufreq_suspend(struct cpufreq_policy *policy)
 {
-	struct sprd_cpufreq_info *info;
-	struct cpudvfs_device *pdev;
-	struct cpudvfs_phy_ops *driver;
-	int cpu;
+	struct sprd_cpufreq_info *info = policy->driver_data;
 
 	if (!strcmp(policy->governor->name, "userspace")) {
 		pr_info("Do nothing for governor-%s\n",
@@ -895,23 +912,10 @@ static int sprd_hardware_cpufreq_suspend(struct cpufreq_policy *policy)
 	 * If suspend occus during the boost, cancel the boost and
 	 * actively switch frequency to suspend freq.
 	 */
-	if (boost_mode_flag) {
+	if (info->boost_enable || boost_mode_flag) {
 		boost_mode_flag = 0;
-
-		/* Current policy switch to suspend freq */
-		info = policy->driver_data;
-		pdev = info->parchdev;
-		driver = pdev->phy_ops;
-		mutex_lock(&info->pcluster->opp_mutex);
-		driver->target_set(pdev, info->clu_id, 0);
-		mutex_unlock(&info->pcluster->opp_mutex);
-
-		/* The other policy switch to suspend freq */
-		cpu = cpumask_next_zero(-1, policy->cpus);
-		info = sprd_cpufreq_info_lookup(cpu);
-		mutex_lock(&info->pcluster->opp_mutex);
-		driver->target_set(pdev, info->clu_id, 0);
-		mutex_unlock(&info->pcluster->opp_mutex);
+		info->boost_enable = false;
+		sprd_hardware_cpufreq_set_target_index(policy, 0);
 	}
 
 	return cpufreq_generic_suspend(policy);
@@ -994,6 +998,7 @@ static int sprd_cpufreq_info_init(struct sprd_cpufreq_info *info, int cpu)
 	info->cpufreq_np = cpufreq_np;
 	info->clu_id = topology_physical_package_id(cpu);
 	info->cpu_id = cpu;
+	info->boost_enable = true;
 
 	info->parchdev = (struct cpudvfs_device *)platform_get_drvdata(pdev);
 	if (!info->parchdev) {
