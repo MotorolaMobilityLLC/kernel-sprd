@@ -944,20 +944,44 @@
 				gpu_sw_dvfs_ctrl=<&top_dvfs_apb_regs
 					REG_TOP_DVFS_APB_DCDC_GPU_SW_DVFS_CTRL
 					MASK_TOP_DVFS_APB_DCDC_GPU_SW_TUNE_EN>;
+				dcdc_gpu_voltage0=<&top_dvfs_apb_regs
+					REG_TOP_DVFS_APB_DCDC_GPU_DVFS_VOLTAGE_VALUE0
+					MASK_TOP_DVFS_APB_DCDC_GPU_VOLTAGE0>;
+				dcdc_gpu_voltage1=<&top_dvfs_apb_regs
+					REG_TOP_DVFS_APB_DCDC_GPU_DVFS_VOLTAGE_VALUE0
+					MASK_TOP_DVFS_APB_DCDC_GPU_VOLTAGE1>;
+				dcdc_gpu_voltage2=<&top_dvfs_apb_regs
+					REG_TOP_DVFS_APB_DCDC_GPU_DVFS_VOLTAGE_VALUE1
+					MASK_TOP_DVFS_APB_DCDC_GPU_VOLTAGE2>;
+				dcdc_gpu_voltage3=<&top_dvfs_apb_regs
+					REG_TOP_DVFS_APB_DCDC_GPU_DVFS_VOLTAGE_VALUE1
+					MASK_TOP_DVFS_APB_DCDC_GPU_VOLTAGE3>;
 				top_force_shutdown=<&pmu_apb_regs
 					REG_PMU_APB_PD_GPU_CFG_0
 					MASK_PMU_APB_PD_GPU_FORCE_SHUTDOWN>;
+				gpu_top_state=<&pmu_apb_regs
+					REG_PMU_APB_PWR_STATUS_DBG_4
+					MASK_PMU_APB_PD_GPU_STATE>;
 				gpll_cfg_frc_off=<&pmu_apb_regs
 					REG_PMU_APB_GPLL_REL_CFG
 					MASK_PMU_APB_GPLL_FRC_OFF>;
+				gpll_cfg_frc_on=<&pmu_apb_regs
+					REG_PMU_APB_GPLL_REL_CFG
+					MASK_PMU_APB_GPLL_FRC_ON>;
 				gpu_soft_rst=<&pmu_apb_regs
 					REG_PMU_APB_SYS_SOFT_RST_0
 					MASK_PMU_APB_GPU_SOFT_RST>;
 				/*
 				syscon-names = "top_dvfs_cfg",
 					"gpu_sw_dvfs_ctrl",
+					"dcdc_gpu_voltage0",
+					"dcdc_gpu_voltage1",
+					"dcdc_gpu_voltage2",
+					"dcdc_gpu_voltage3",
 					"top_force_shutdown",
+					"gpu_top_state",
 					"gpll_cfg_frc_off",
+					"gpll_cfg_frc_on",
 					"gpu_soft_rst";
 				*/
 
@@ -967,6 +991,9 @@
 				interrupt-names = "JOB",
 					"MMU",
 					"GPU";
+
+				nvmem-cells = <&gpu_bin>;
+				nvmem-cell-names = "gpu_bin";
 
 				operating-points = <
 					/* kHz    uV */
@@ -1902,6 +1929,12 @@
 				ufs_cali_lane0: cali_dblk69@40 {
 					reg = <0x40 0x4>;
 				};
+
+				gpu_bin: gpu-bin@48{
+					reg = <0x48 0x2>;
+					bits = <8 3>;
+				};
+
 			};
 
 			pwms: pwm@30000 {
