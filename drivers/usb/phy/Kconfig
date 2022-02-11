@@ -236,4 +236,13 @@ config USB_ULPI_VIEWPORT
 	  Provides read/write operations to the ULPI phy register set for
 	  controllers with a viewport register (e.g. Chipidea/ARC controllers).
 
+config SPRD_QOGIRN6PRO_USB31_PHY
+	tristate "Unisoc QOGIRN6PRO PHY Driver"
+	select USB_PHY
+	depends on USB_DWC3_SPRD ||  COMPILE_TEST
+	help
+	  Enable this to support QOGIRN6PRO USB3 PHY that is part of SOC. This
+	  driver takes care of all the PHY functionality, normally paired
+	  with DesignWare USB3.0 (DRD) Controller.
+
 endmenu
