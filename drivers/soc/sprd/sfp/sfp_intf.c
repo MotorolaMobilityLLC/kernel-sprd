@@ -495,8 +495,8 @@ static int sfp_check_mod_pkts(u32 ifindex,
 			    l3offset,
 			    proto,
 			    l4offset);
-
-	skb_push(skb, ETH_HLEN);
+	if (skb->dev->header_ops)
+		skb_push(skb, ETH_HLEN);
 	return out_ifindex;
 }
 
