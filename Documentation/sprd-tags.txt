@@ -122,6 +122,7 @@ mailbox:sprd:
 Makefile:
 media:platform:sprd-jpg:
 media:platform:sprd-vsp:
+media:platform:sprd-vpu:
 mfd:sprd:
 misc:audio:
 misc:sprd_apdu:
