@@ -54,9 +54,9 @@
 
 /*
  * The written value is the killed process adj, then trigger to show enhance
- * memory information. it's written to /proc/sys/vm/emem_trigger
+ * memory information. it's written to /proc/emem_trigger
  */
-int sysctl_emem_trigger;
+static int sysctl_emem_trigger;
 
 static struct work_struct emem_work;
 static DEFINE_SPINLOCK(emem_lock);
@@ -134,23 +134,6 @@ static void emem_workfn(struct work_struct *work)
 			show_reserved_memory_info();
 		}
 	}
-}
-
-int sysctl_emem_trigger_handler(struct ctl_table *table, int write,
-			void __user *buffer, size_t *length, loff_t *ppos)
-{
-	int ret;
-
-	ret = proc_dointvec_minmax(table, write, buffer, length, ppos);
-	if (ret || !write)
-		return -1;
-
-	if (sysctl_emem_trigger <= DEFAULT_PROC_ADJ) {
-		spin_lock(&emem_lock);
-		queue_work(system_power_efficient_wq, &emem_work);
-		spin_unlock(&emem_lock);
-	}
-	return 0;
 }
 
 static int tasks_e_show_mem_handler(struct notifier_block *nb,
