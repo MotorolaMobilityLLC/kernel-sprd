@@ -8,6 +8,8 @@
 /dts-v1/;
 #include <dt-bindings/gpio/gpio.h>
 #include "sc9863a.dtsi"
+#include "sp9863a-l3dvfs.dtsi"
+#include "sp9863a-l3rdvfs.dtsi"
 #include "sc2721.dtsi"
 #include "sprd-sound-sharkl.dtsi"
 #include "sp9863a-mach.dtsi"
