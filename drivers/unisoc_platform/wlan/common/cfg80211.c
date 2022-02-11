@@ -344,21 +344,6 @@ int sprd_cfg80211_change_iface(struct wiphy *wiphy, struct net_device *ndev,
 	}
 
 	netdev_info(ndev, "%s type %d -> %d\n", __func__, old_type, type);
-	if (vif->mode == 0 && ((old_type == NL80211_IFTYPE_STATION && type == NL80211_IFTYPE_AP) ||
-		(old_type == NL80211_IFTYPE_AP && type == NL80211_IFTYPE_STATION))) {
-		pr_err("%s change iface but current mode 0!\n", __func__);
-		wiphy_info(wiphy, "Power on WCN (%d time)\n", atomic_read(&hif->power_cnt));
-		ret = sprd_iface_set_power(hif, true);
-		if (ret)
-			return ret;
-
-		pr_err("start to send softap open command\n");
-		vif->wdev.iftype = type;
-		ret = sprd_init_fw(vif);
-		if (!ret && type == NL80211_IFTYPE_AP)
-			netif_carrier_off(ndev);
-		return ret;
-	}
 
 	/*
 	 * hif->power_cnt = 1 means there is only one mode and all
@@ -373,6 +358,8 @@ int sprd_cfg80211_change_iface(struct wiphy *wiphy, struct net_device *ndev,
 	}
 
 	ret = sprd_uninit_fw(vif);
+	if (ret && type == NL80211_IFTYPE_AP)
+		vif->wdev.iftype = type;
 	if (!ret) {
 		vif->wdev.iftype = type;
 		ret = sprd_init_fw(vif);
