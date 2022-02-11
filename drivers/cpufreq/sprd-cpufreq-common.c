@@ -32,7 +32,6 @@
 char global_opp_string[30] = "operating-points-v0";
 struct sprd_cpufreq_driver_data *cpufreq_datas[SPRD_CPUFREQ_MAX_MODULE];
 EXPORT_SYMBOL_GPL(cpufreq_datas);
-//void sprd_kproperty_get(const char *key, char *value, const char *default_value);
 
 __weak struct sprd_cpudvfs_device *sprd_hardware_dvfs_device_get(void)
 {
@@ -40,38 +39,30 @@ __weak struct sprd_cpudvfs_device *sprd_hardware_dvfs_device_get(void)
 	return NULL;
 }
 
-static int sprd_cpufreq_read_soc_version(char *p_version)
-{
-	//char version_default[10] = "-1";
-
-	//sprd_kproperty_get("lwfq/type", p_version, version_default);
-	return 0;
-	if (!strcmp(p_version, "0") || !strcmp(p_version, "1"))
-		return 0;
-	else {
-		pr_info("the soc version string is invalid, string is %s",
-			p_version);
-		return -EINVAL;
-	}
-}
-
 int sprd_cpufreq_read_soc_version_opp_string(char *opp_string)
 {
-	char ver_str[30] = "-v", version[10] = "";
-	int ret = 0;
+	struct device_node *hwf;
+	char ver_str[30] = "-";
+	const char *value;
 
-	ret = sprd_cpufreq_read_soc_version(version);
-	if (!ret) {
-		strcat(ver_str, version);
-		strcat(opp_string, ver_str);
-		pr_info("the soc need to distinguish version, opp_string:%s\n",
-			opp_string);
-		return ret;
-	} else {
-		pr_info("the soc don't need to distinguish version,user default opp_string:%s",
-			opp_string);
-		return ret;
+	hwf = of_find_node_by_path("/hwfeature/auto");
+	if (IS_ERR_OR_NULL(hwf)) {
+		pr_err("NO hwfeature/auto node found\n");
+		return PTR_ERR(hwf);
 	}
+
+	value = of_get_property(hwf, "efuse", NULL);
+	if (strcmp(value, "SC9863A") && strcmp(value, "SC9863A1")) {
+		pr_err("the soc version is invalid, string is %s\n", value);
+		return -EINVAL;
+	}
+
+	strcat(ver_str, value);
+	strcat(opp_string, ver_str);
+
+	pr_info("the cpu version: %s\n", opp_string);
+
+	return 0;
 }
 EXPORT_SYMBOL(sprd_cpufreq_read_soc_version_opp_string);
 
@@ -250,7 +241,7 @@ int dev_pm_opp_of_add_table_binning(int cluster,
 		np_cpufreq = np_cpufreq_in;
 	}
 
-	ver_judge = of_property_read_bool(np_cpufreq, "soc-version");
+	ver_judge = of_property_read_bool(np_cpufreq, "sprd,multi-version");
 	if (ver_judge) {
 		pr_info("dts node need to distinguish version\n");
 		cdata->version_judge = ver_judge;
