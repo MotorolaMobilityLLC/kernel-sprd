@@ -2697,6 +2697,7 @@
 # required by sprd_wdf.ko
   kstrtoull_from_user
   smpboot_register_percpu_thread
+  smp_call_function_single
 
 # required by zram.ko
   bdgrab
