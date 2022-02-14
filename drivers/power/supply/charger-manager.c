@@ -91,6 +91,7 @@
 #define CM_CP_IBUS_STEP1			1000000
 #define CM_CP_IBUS_STEP2			500000
 #define CM_CP_IBUS_STEP3			100000
+#define CM_CP_DEFAULT_TAPER_CURRENT		1000000
 
 #define CM_PPS_5V_PROG_MAX			6200000
 #define CM_PPS_VOLTAGE_11V			11000000
@@ -6353,6 +6354,9 @@ static struct charger_desc *of_cm_parse_desc(struct device *dev)
 			     &desc->cp.cp_taper_current);
 	of_property_read_u32(np, "cm-cap-full-advance-percent",
 			     &desc->cap_remap_full_percent);
+
+	if (desc->psy_cp_stat && !desc->cp.cp_taper_current)
+		desc->cp.cp_taper_current = CM_CP_DEFAULT_TAPER_CURRENT;
 
 	ret = cm_init_cap_remap_table(desc, dev);
 	if (ret)
