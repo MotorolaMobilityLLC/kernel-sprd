@@ -282,7 +282,7 @@ static long vsp_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			return -EFAULT;
 		}
 
-		ret = vsp_get_iova(&vsp_hw_dev, &mapdata,
+		ret = vsp_get_iova((void *)vsp_fp, &vsp_hw_dev, &mapdata,
 					(void __user *)arg);
 
 		break;
@@ -298,7 +298,7 @@ static long vsp_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			return -EFAULT;
 		}
 
-		ret = vsp_free_iova(&vsp_hw_dev, &ummapdata);
+		ret = vsp_free_iova((void *)vsp_fp, &vsp_hw_dev, &ummapdata);
 
 		break;
 
@@ -600,6 +600,7 @@ static int vsp_release(struct inode *inode, struct file *filp)
 {
 	struct vsp_fh *vsp_fp = filp->private_data;
 	int instance_cnt = atomic_read(&vsp_instance_cnt);
+	int ret = 0;
 
 	if (vsp_fp == NULL) {
 		pr_err("%s error occurred, vsp_fp == NULL\n", __func__);
@@ -616,10 +617,17 @@ static int vsp_release(struct inode *inode, struct file *filp)
 		vsp_clk_disable(&vsp_hw_dev);
 	}
 
-	if (vsp_fp->is_vsp_acquired) {
-		pr_err("error occurred and up vsp_mutex\n");
-		up(&vsp_hw_dev.vsp_mutex);
+	if (!vsp_fp->is_vsp_acquired) {
+		ret = down_timeout(&vsp_hw_dev.vsp_mutex, msecs_to_jiffies(VSP_AQUIRE_TIMEOUT_MS));
+		vsp_fp->is_vsp_acquired = (ret == 0);
+		pr_info("Acquire vsp mutex before unmap checking, %d\n", ret);
 	}
+
+	non_free_bufs_check((void *)vsp_fp, &vsp_hw_dev);
+
+	if (vsp_fp->is_vsp_acquired)
+		up(&vsp_hw_dev.vsp_mutex);
+
 	pm_runtime_mark_last_busy(vsp_hw_dev.vsp_dev);
 	pm_runtime_put_autosuspend(vsp_hw_dev.vsp_dev);
 
