@@ -257,9 +257,9 @@
 #define CABC_BL_COEF			1020
 
 enum {
-	CABC_WORKING,
+	CABC_DISABLED,
 	CABC_STOPPING,
-	CABC_DISABLED
+	CABC_WORKING
 };
 
 enum sprd_fw_attr {
@@ -2156,7 +2156,7 @@ static int dpu_cabc_trigger(struct dpu_context *ctx)
 {
 	struct dpu_enhance *enhance = ctx->enhance;
 
-	if (enhance->cabc_state) {
+	if (enhance->cabc_state != CABC_WORKING) {
 		if ((enhance->cabc_state == CABC_STOPPING) && (enhance->bl_dev) &&
 				(enhance->cabc_para.slp_brightness <= CABC_BRIGHTNESS)) {
 			DPU_REG_WR(ctx->base + REG_SLP_CFG0, (CABC_BRIGHTNESS_STEP << 0) |

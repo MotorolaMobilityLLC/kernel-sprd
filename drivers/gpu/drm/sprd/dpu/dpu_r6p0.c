@@ -469,9 +469,9 @@ enum {
 };
 
 enum {
-	CABC_WORKING,
+	CABC_DISABLED,
 	CABC_STOPPING,
-	CABC_DISABLED
+	CABC_WORKING
 };
 
 struct cabc_para {
@@ -2941,7 +2941,7 @@ static int dpu_cabc_trigger(struct dpu_context *ctx)
 			return 0;
 	}
 
-	if (enhance->cabc_state) {
+	if (enhance->cabc_state != CABC_WORKING) {
 		if ((enhance->cabc_state == CABC_STOPPING) && enhance->bl_dev) {
 			memset(&enhance->cabc_para, 0, sizeof(enhance->cabc_para));
 			DPU_REG_WR(ctx->base + REG_CABC_CFG0, cabc_cfg0);
