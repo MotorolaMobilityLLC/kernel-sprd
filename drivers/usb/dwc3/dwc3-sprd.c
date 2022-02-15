@@ -335,6 +335,7 @@ static int dwc3_sprd_start(struct dwc3_sprd *sdwc, enum usb_dr_mode mode)
 	 * the system, then let the dwc3 core enter suspend firstly in case
 	 * disturb the PM runtime.
 	 */
+
 	while (!pm_runtime_suspended(sdwc->dev) && (--cnt > 0))
 		msleep(DWC3_START_TIMEOUT);
 
@@ -369,7 +370,7 @@ static int dwc3_sprd_start(struct dwc3_sprd *sdwc, enum usb_dr_mode mode)
 		spin_unlock_irqrestore(&sdwc->lock, flags);
 
 		dev_info(sdwc->dev,
-			 "Don't resume dwc3 device in charging mode!\n");
+			 "Don't resume dwc3 device in charging mode! udc didn't start\n");
 		return 0;
 	}
 
@@ -407,15 +408,16 @@ static int dwc3_sprd_start(struct dwc3_sprd *sdwc, enum usb_dr_mode mode)
 		DWC3_GCTL_PRTCAP_HOST : DWC3_GCTL_PRTCAP_DEVICE;
 
 	ret = pm_runtime_get_sync(sdwc->dev);
-	if (ret) {
-		dev_err(sdwc->dev, "Resume dwc3 device failed!\n");
+	/* if ret is 1, it means already active, needn't return */
+	if (ret < 0) {
+		dev_err(sdwc->dev, "Resume dwc3 device failed %d!\n", ret);
 		return ret;
 	}
 
 	ret = device_for_each_child(sdwc->dev, NULL, dwc3_sprd_resume_child);
-	if (ret) {
+	if (ret < 0) {
 		pm_runtime_put_sync(sdwc->dev);
-		dev_err(sdwc->dev, "Resume dwc3 core failed!\n");
+		dev_err(sdwc->dev, "Resume dwc3 core failed %d!\n", ret);
 		return ret;
 	}
 
@@ -1179,7 +1181,9 @@ static int dwc3_sprd_resume_child(struct device *dev, void *data)
 	int ret;
 
 	ret = pm_runtime_get_sync(dev);
-	if (ret) {
+
+	/* ret = 1 means PM is already active */
+	if ((ret != 0) && (ret != 1)) {
 		dev_err(dev, "dwc3 child device enters resume failed!!!\n");
 		return ret;
 	}

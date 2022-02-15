@@ -38,7 +38,7 @@
 
 #include "debug.h"
 
-#define DWC3_DEFAULT_AUTOSUSPEND_DELAY	5000 /* ms */
+#define DWC3_DEFAULT_AUTOSUSPEND_DELAY	500 /* ms */
 
 /**
  * dwc3_get_dr_mode - Validates and sets dr_mode
@@ -224,6 +224,31 @@ u32 dwc3_core_fifo_space(struct dwc3_ep *dep, u8 type)
 }
 
 /**
+ * dwc3_txdeemphsis_adj - change main_cursor,pre_cursor,post_cursor
+ * for eye diagram, from ASIC
+ * @dwc: pointer to our context structure
+ */
+static int dwc3_txdeemphsis_adj(struct dwc3 *dwc)
+{
+	u32 reg;
+
+	/* gen2 txdeemphsis */
+	reg = 0x8c45;
+	dwc3_writel(dwc->regs, LCSR_TX_DEEMPH, reg);
+	/* CP13 txdeemphsis */
+	reg = 0xe45;
+	dwc3_writel(dwc->regs, LCSR_TX_DEEMPH_1, reg);
+	/* CP14 txdeemphsis */
+	reg = 0x8d80;
+	dwc3_writel(dwc->regs, LCSR_TX_DEEMPH_2, reg);
+	/* CP16 txdeemphsis */
+	reg = 0xf80;
+	dwc3_writel(dwc->regs, LCSR_TX_DEEMPH_3, reg);
+
+	return 0;
+}
+
+/**
  * dwc3_core_soft_reset - Issues core soft reset and PHY reset
  * @dwc: pointer to our context structure
  */
@@ -284,6 +309,7 @@ static int dwc3_core_soft_reset(struct dwc3 *dwc)
 	return -ETIMEDOUT;
 
 done:
+	dwc3_txdeemphsis_adj(dwc);
 	/*
 	 * For DWC_usb31 controller 1.80a and prior, once DCTL.CSFRST bit
 	 * is cleared, we must wait at least 50ms before accessing the PHY
@@ -1488,7 +1514,9 @@ static int dwc3_probe(struct platform_device *pdev)
 	if (ret < 0)
 		goto err1;
 
-	pm_runtime_forbid(dev);
+	pm_suspend_ignore_children(dev, true);
+
+//	pm_runtime_forbid(dev);
 
 	ret = dwc3_alloc_event_buffers(dwc, DWC3_EVENT_BUFFERS_SIZE);
 	if (ret) {
@@ -1737,8 +1765,16 @@ static int dwc3_runtime_checks(struct dwc3 *dwc)
 {
 	switch (dwc->current_dr_role) {
 	case DWC3_GCTL_PRTCAP_DEVICE:
+		/*
+		 * TODO: Originally we want to use connected flag to indicate
+		 * the cable plugin or not. But from testing we did not receive
+		 * one disconnect event when cable plug out. so just leave this
+		 * check here to do in future.
+		 */
+#if 0
 		if (dwc->connected)
 			return -EBUSY;
+#endif
 		break;
 	case DWC3_GCTL_PRTCAP_HOST:
 	default:
@@ -1762,7 +1798,6 @@ static int dwc3_runtime_suspend(struct device *dev)
 		return ret;
 
 	device_init_wakeup(dev, true);
-
 	return 0;
 }
 
@@ -1820,6 +1855,11 @@ static int dwc3_suspend(struct device *dev)
 	struct dwc3	*dwc = dev_get_drvdata(dev);
 	int		ret;
 
+	if (pm_runtime_enabled(dev)) {
+		dev_info(dev, "pm_runtime_enabled when suspend\n");
+		return 0;
+	}
+
 	ret = dwc3_suspend_common(dwc, PMSG_SUSPEND);
 	if (ret)
 		return ret;
@@ -1833,6 +1873,11 @@ static int dwc3_resume(struct device *dev)
 {
 	struct dwc3	*dwc = dev_get_drvdata(dev);
 	int		ret;
+
+	if (pm_runtime_enabled(dev)) {
+		dev_info(dev, " resume pm_runtime_enabled when resume\n");
+		return 0;
+	}
 
 	pinctrl_pm_select_default_state(dev);
 
