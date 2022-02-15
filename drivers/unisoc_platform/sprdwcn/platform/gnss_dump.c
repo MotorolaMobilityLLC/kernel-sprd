@@ -14,6 +14,7 @@
 #include <linux/file.h>
 #include <linux/fs.h>
 #ifdef CONFIG_WCN_INTEG
+#include "wcn_integrate.h"
 #include "gnss.h"
 #endif
 #include <linux/kthread.h>
@@ -34,22 +35,6 @@
 #include "gnss_common.h"
 #include "gnss_dump.h"
 #include "wcn_gnss_dump.h"
-
-
-enum {
-	REGMAP_AON_APB = 0x0,	/* AON APB */
-	REGMAP_PMU_APB,
-	/*
-	 * NOTES:SharkLE use it,but PIKE2 not.
-	 * We should config the DTS for PIKE2 also.
-	 */
-	REGMAP_PUB_APB, /* SharkLE only:for ddr offset */
-	REGMAP_ANLG_WRAP_WCN,
-	REGMAP_ANLG_PHY_G5, /* SharkL3 only */
-	REGMAP_ANLG_PHY_G6, /* SharkLE only */
-	REGMAP_WCN_REG,	/* SharkL3 only:0x403A 0000 */
-	REGMAP_TYPE_NR,
-};
 
 #define GNSS_DUMP_END_STRING "gnss_memdump_finish"
 #ifdef CONFIG_WCN_INTEG
@@ -172,7 +157,8 @@ static struct cp_reg_dump cp_reg[] = {
 #define GNSS_DUMP_REG_NUMBER 4
 #endif
 static char gnss_dump_level; /* 0: default, all, 1: only data, pmu, aon */
-
+static char gnss_pll_switch_flag = 1;/*0:switch fail, 1:switch suc*/
+extern struct wcn_device_manage s_wcn_device;
 #endif
 
 #ifdef CONFIG_WCN_INTEG
@@ -292,6 +278,29 @@ static void gnss_hold_cpu(void)
 		GNSSDUMP_ERR("%s gnss cache failed value %x\n", __func__,
 			value);
 	msleep(200);
+}
+static void get_gnss_pll_switch_state(void)
+{
+	struct wcn_device *wcn_dev;
+	phys_addr_t phy_addr;
+	struct wcn_dfs_sync_info dfs_info;
+
+	wcn_dev = s_wcn_device.gnss_device;
+	phy_addr = wcn_dev->base_addr - WCN_GNSS_DDR_OFFSET
+				+ WCN_SYS_DFS_SYNC_ADDR_OFFSET;
+	gnss_read_data_from_phy_addr(phy_addr, &dfs_info,
+				sizeof(struct wcn_dfs_sync_info));
+	GNSSDUMP_INFO("gnss_dfs_info: 0x%x-0x%x-0x%x\n",
+			dfs_info.gnss_dfs_info, dfs_info.debugdfs0,
+			dfs_info.debugdfs1);
+	/*debugdfs1[27]:dfs_done*/
+	if (dfs_info.debugdfs1 | (1 << 27)) {
+		gnss_pll_switch_flag = 1;
+		return;
+	}
+	/*gnss not switch pll*/
+	GNSSDUMP_INFO("gnss not switch pll");
+	gnss_pll_switch_flag = 0;
 }
 static int gnss_dump_cp_register_data(u32 addr, u32 len)
 {
@@ -575,8 +584,13 @@ static int gnss_integrated_dump_mem(void)
 
 	GNSSDUMP_INFO("gnss_dump_mem entry\n");
 
-	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6)
+	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
+		get_gnss_pll_switch_state();
+		/*gnss dont dump unless pll switch done*/
+		if (gnss_pll_switch_flag == 0)
+			return ret;
 		gnss_hold_cpu();
+	}
 	ret = gnss_dump_share_memory(GNSS_SHARE_MEMORY_SIZE);
 	gnss_dump_iram();
 	gnss_dump_register();
