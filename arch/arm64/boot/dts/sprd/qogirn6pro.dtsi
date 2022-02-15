@@ -701,6 +701,10 @@
 				interrupts = <GIC_SPI 152 IRQ_TYPE_LEVEL_HIGH>;
 				status = "disabled";
 				iommus = <&iommu_dispc>;
+
+				#power-domain-cells = <0>;
+				power-domains = <&vpu_pd_top>;
+
 				dpu_port: port {
 					dpu_out: endpoint {
 						remote-endpoint = <&dsi_in>;
@@ -747,6 +751,9 @@
 				<GIC_SPI 157 IRQ_TYPE_LEVEL_HIGH>;
 
 				status = "disabled";
+
+				#power-domain-cells = <0>;
+				power-domains = <&vpu_pd_top>;
 
 				ports {
 					#address-cells = <1>;
