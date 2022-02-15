@@ -44,6 +44,7 @@
 #define CMD_11V_WNM_SLEEP		"WNM_SLEEP"
 #define CMD_P2P_MAC			"P2PMACADDR"
 #define CMD_SET_MAX_CLIENTS		"MAX_STA"
+#define CMD_SET_SAR			"SET_SAR"
 
 struct sprd_priv;
 struct sprd_hif_ops;

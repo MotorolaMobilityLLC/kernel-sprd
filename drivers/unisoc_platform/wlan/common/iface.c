@@ -832,6 +832,15 @@ static int iface_set_power_save(struct net_device *ndev, struct ifreq *ifr)
 		netdev_info(ndev, "%s: set fcc channel,value : %d\n",
 			    __func__, value);
 		ret = sprd_power_save(priv, vif, SPRD_SET_FCC_CHANNEL, value);
+	} else if (!strncasecmp(command, CMD_SET_SAR,
+				strlen(CMD_SET_SAR))) {
+		skip = strlen(CMD_SET_SAR) + 1;
+		ret = kstrtoint(command + skip, 0, &value);
+		if (ret)
+			goto out;
+		netdev_info(ndev, "%s: set sar,value : %d\n",
+			    __func__, value);
+		ret = sprd_set_sar(priv, vif, SPRD_SET_SAR_ABSOLUTE, value);
 	} else if (!strncasecmp(command, CMD_REDUCE_TX_POWER,
 				strlen(CMD_REDUCE_TX_POWER))) {
 		skip = strlen(CMD_REDUCE_TX_POWER) + 1;

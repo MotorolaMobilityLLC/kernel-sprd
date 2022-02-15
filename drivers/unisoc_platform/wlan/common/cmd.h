@@ -116,6 +116,17 @@ enum GSCAN_SUB_COMMAND {
 	SPRD_GSCAN_SUBCMD_MAX
 };
 
+/**
+ * @SPRD_SET_SAR_RECOVERY: Indicates that need reset sar value.
+ * @SPRD_SET_SAR_ABSOLUTE: Indicates that set sar in absolute mode.
+ * @SPRD_SET_SAR_RELATIVE: Indicates that set sar in relative mode.
+ */
+enum sar_subtype {
+	SPRD_SET_SAR_RECOVERY = 0,
+	SPRD_SET_SAR_ABSOLUTE = 1,
+	SPRD_SET_SAR_RELATIVE = 2,
+};
+
 struct sprd_priv;
 struct sprd_vif;
 struct sprd_work;

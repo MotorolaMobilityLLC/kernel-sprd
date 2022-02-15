@@ -1601,6 +1601,24 @@ int sc2355_power_save(struct sprd_priv *priv, struct sprd_vif *vif,
 	return send_cmd_recv_rsp(priv, msg, NULL, NULL);
 }
 
+int sc2355_set_sar(struct sprd_priv *priv, struct sprd_vif *vif,
+		   u8 sub_type, s8 value)
+{
+	struct sprd_msg *msg;
+	struct cmd_set_sar *p;
+
+	msg = get_cmdbuf(priv, vif, sizeof(*p), CMD_POWER_SAVE);
+	if (!msg)
+		return -ENOMEM;
+
+	p = (struct cmd_set_sar *)msg->data;
+	p->power_save_type = SPRD_SET_SAR;
+	p->sub_type = sub_type;
+	p->value = value;
+	p->mode = SPRD_SET_SAR_ALL_MODE;
+	return send_cmd_recv_rsp(priv, msg, NULL, NULL);
+}
+
 int sc2355_enable_miracast(struct sprd_priv *priv,
 			   struct sprd_vif *vif, int val)
 {

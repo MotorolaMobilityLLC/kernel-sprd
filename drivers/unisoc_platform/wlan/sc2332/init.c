@@ -302,6 +302,7 @@ struct sprd_chip_ops sc2332_chip_ops = {
 	.open_fw = sc2332_open_fw,
 	.close_fw = sc2332_close_fw,
 	.power_save = sc2332_power_save,
+	.set_sar = sc2332_set_sar,
 	.add_key = sc2332_add_key,
 	.del_key = sc2332_del_key,
 	.set_def_key = sc2332_set_def_key,

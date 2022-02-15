@@ -93,6 +93,8 @@
 #define SPRD_EXTEND_FEATURE_LLSTATE	   BIT(5)
 #define SPRD_EXTEND_SOATAP_WPA3	   BIT(6)
 
+#define SPRD_SET_SAR	0x10
+
 #define	SPRD_IE_BEACON		0
 #define	SPRD_IE_PROBE_REQ		1
 #define	SPRD_IE_PROBE_RESP		2
@@ -275,6 +277,17 @@ enum CMD_LIST {
 	CMD_MAX
 };
 
+enum sar_mode {
+	SPRD_SET_SAR_2G_11B = 0,
+	SPRD_SET_SAR_2G_11G = 1,
+	SPRD_SET_SAR_2G_11N = 2,
+	SPRD_SET_SAR_2G_11AC = 3,
+	SPRD_SET_SAR_5G_11A = 4,
+	SPRD_SET_SAR_5G_11N = 5,
+	SPRD_SET_SAR_5G_11AC = 6,
+	SPRD_SET_SAR_ALL_MODE = 7,
+};
+
 /*CMD SYNC_VERSION struct*/
 struct cmd_api_t {
 	u32 main_ver;
@@ -336,6 +349,24 @@ struct cmd_close {
 struct cmd_power_save {
 	u8 sub_type;
 	u8 value;
+} __packed;
+
+/**
+ * cmd_set_sar: this struct used to describe set sar parameters.
+ *
+ * @power_save_type:power save command type, we send sar para through
+ *  power save command,so need provide power_save_sub_type,in this case
+ *  this value always set to SPRD_SET_SAR, other sub type please ref
+ *  cmd_power_save struct.
+ * @sub_type: Please refer sar_subtype struct.
+ * @value: The value we set.
+ * @mode: 802.11mode, please refer sar_mode struct.
+ */
+struct cmd_set_sar {
+	u8 power_save_type;
+	u8 sub_type;
+	s8 value;
+	u8 mode;
 } __packed;
 
 struct cmd_vowifi {
@@ -938,6 +969,8 @@ int sc2355_open_fw(struct sprd_priv *priv, struct sprd_vif *vif, u8 *mac_addr);
 int sc2355_close_fw(struct sprd_priv *priv, struct sprd_vif *vif);
 int sc2355_power_save(struct sprd_priv *priv, struct sprd_vif *vif,
 		      u8 sub_type, u8 status);
+int sc2355_set_sar(struct sprd_priv *priv, struct sprd_vif *vif,
+		   u8 sub_type, s8 value);
 int sc2355_add_key(struct sprd_priv *priv, struct sprd_vif *vif,
 		   const u8 *key_data, u8 key_len, bool pairwise, u8 key_index,
 		   const u8 *key_seq, u8 cypher_type, const u8 *mac_addr);

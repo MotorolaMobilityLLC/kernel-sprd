@@ -38,6 +38,8 @@ struct sprd_chip_ops {
 	int (*close_fw)(struct sprd_priv *priv, struct sprd_vif *vif);
 	int (*power_save)(struct sprd_priv *priv, struct sprd_vif *vif,
 			  u8 sub_type, u8 status);
+	int (*set_sar)(struct sprd_priv *priv, struct sprd_vif *vif,
+		       u8 sub_type, s8 value);
 	int (*add_key)(struct sprd_priv *priv, struct sprd_vif *vif,
 		       const u8 *key_data, u8 key_len, bool pairwise,
 		       u8 key_index, const u8 *key_seq, u8 cypher_type,
@@ -287,6 +289,15 @@ static inline int sprd_power_save(struct sprd_priv *priv, struct sprd_vif *vif,
 {
 	if (priv->chip.ops->power_save)
 		return priv->chip.ops->power_save(priv, vif, sub_type, status);
+
+	return 0;
+}
+
+static inline int sprd_set_sar(struct sprd_priv *priv, struct sprd_vif *vif,
+			       u8 sub_type, s8 value)
+{
+	if (priv->chip.ops->set_sar)
+		return priv->chip.ops->set_sar(priv, vif, sub_type, value);
 
 	return 0;
 }
