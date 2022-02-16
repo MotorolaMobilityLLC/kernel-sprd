@@ -2097,21 +2097,20 @@ static int bq2560x_charger_probe(struct i2c_client *client,
 
 	info->client = client;
 	info->dev = dev;
-
-	bq2560x_read(info,BQ2560X_REG_B, &val);
-	dev_err(dev, "%s;%x;\n",__func__,val);
-	if( (val & 0x7c) == 0x48)
+	ret = bq2560x_read(info,BQ2560X_REG_B, &val);
+	dev_err(dev, "%s;%x;%d;\n",__func__,val,ret);
+	if( ret >=0  && (val & 0x7c) == 0x48)
 		strncpy(charge_ic_vendor_name,"SY6974",20);
-	else if ( val == 0x11 )
+	else if (  ret >=0  && val == 0x11 )
 		strncpy(charge_ic_vendor_name,"BQ25601",20);
 //	else if ( (val & 0x7c) == 0x14  )
 //		strncpy(charge_ic_vendor_name,"SGM41511",20);
 	else
 	{
 		info->client->addr = 0x3b;
-		bq2560x_read(info,BQ2560X_REG_B, &val);
-		dev_err(dev, "%s;i2c 0x3b  val=%x;\n",__func__,val);
-		if ( ((val & 0x7c) == 0x64)  || ((val & 0x7c) == 0x6c) )
+		ret = bq2560x_read(info,BQ2560X_REG_B, &val);
+		dev_err(dev, "%s;i2c 0x3b  val=%x;%d;\n",__func__,val,ret);
+		if (  ret >=0  &&  ((val & 0x7c) == 0x6c) )
 			strncpy(charge_ic_vendor_name,"SGM41542",20);
 		else
 			return -ENODEV;
