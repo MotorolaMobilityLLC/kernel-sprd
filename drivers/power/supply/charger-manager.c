@@ -88,6 +88,9 @@
 #define CM_CP_IBUS_STEP2			500000
 #define CM_CP_IBUS_STEP3			100000
 
+#define CM_CP_VBUS_ERRORLO_THRESHOLD(x)		((int)(x * 205 / 100))
+#define CM_CP_VBUS_ERRORHI_THRESHOLD(x)		((int)(x * 240 / 100))
+
 #define CM_IR_COMPENSATION_TIME			3
 
 #define CM_CP_WORK_TIME_MS			500
@@ -716,7 +719,7 @@ static int get_batt_cap(struct charger_manager *cm, int *cap)
 	if (!fuel_gauge)
 		return -ENODEV;
 
-	val.intval = 0;
+	val.intval = CM_CAPACITY;
 	ret = power_supply_get_property(fuel_gauge, POWER_SUPPLY_PROP_CAPACITY, &val);
 	power_supply_put(fuel_gauge);
 	if (ret)
@@ -3001,10 +3004,9 @@ static void cm_cp_state_entry(struct charger_manager *cm)
 	cp->cp_target_ibus = cp->cp_max_ibus;
 
 	if (cp->vbat_uV <= CM_CP_ACC_VBAT_HTHRESHOLD)
-		cp->cp_target_vbus = cp->vbat_uV * 205 / 100 + 10 * CM_CP_VSTEP;
+		cp->cp_target_vbus =  CM_CP_VBUS_ERRORLO_THRESHOLD(cp->vbat_uV) + 10 * CM_CP_VSTEP;
 	else
-		cp->cp_target_vbus = cp->vbat_uV * 205 / 100 + 2 * CM_CP_VSTEP;
-
+		cp->cp_target_vbus =  CM_CP_VBUS_ERRORLO_THRESHOLD(cp->vbat_uV) + 2 * CM_CP_VSTEP;
 
 	dev_dbg(cm->dev, "%s, target_ibat = %d, cp_target_vbus = %d\n",
 		 __func__, cp->cp_target_ibat, cp->cp_target_vbus);
@@ -3025,7 +3027,8 @@ static void cm_cp_state_check_vbus(struct charger_manager *cm)
 	dev_info(cm->dev, "cm_cp_state_machine: state %d, %s\n",
 		 cp->cp_state, cm_cp_state_names[cp->cp_state]);
 
-	if (cp->flt.vbus_error_lo && cp->vbus_uV < cp->vbat_uV * 219 / 100) {
+	if (cp->flt.vbus_error_lo &&
+	    cp->vbus_uV <  CM_CP_VBUS_ERRORHI_THRESHOLD(cp->vbat_uV)) {
 		cp->tune_vbus_retry++;
 		cp->cp_target_vbus += CM_CP_VSTEP;
 		cm_check_target_vbus(cm);
@@ -3033,7 +3036,8 @@ static void cm_cp_state_check_vbus(struct charger_manager *cm)
 		if (cm_adjust_fast_charge_voltage(cm, cp->cp_target_vbus))
 			cp->cp_target_vbus -= CM_CP_VSTEP;
 
-	} else if (cp->flt.vbus_error_hi && cp->vbus_uV > cp->vbat_uV * 205 / 100) {
+	} else if (cp->flt.vbus_error_hi &&
+		   cp->vbus_uV >  CM_CP_VBUS_ERRORLO_THRESHOLD(cp->vbat_uV)) {
 		cp->tune_vbus_retry++;
 		cp->cp_target_vbus -= CM_CP_VSTEP;
 		if (cm_adjust_fast_charge_voltage(cm, cp->cp_target_vbus))
@@ -3578,7 +3582,7 @@ static void check_charging_duration(struct charger_manager *cm)
 			cm->charging_status |= CM_CHARGE_DURATION_ABNORMAL;
 			try_charger_enable(cm, false);
 		}
-	} else if (!cm->charger_enabled  && (cm->charging_status & CM_CHARGE_DURATION_ABNORMAL)) {
+	} else if (!cm->charger_enabled && (cm->charging_status & CM_CHARGE_DURATION_ABNORMAL)) {
 		duration = curr - cm->charging_end_time;
 
 		if (duration > desc->discharging_max_duration_ms) {
@@ -4286,12 +4290,12 @@ static void fast_charge_handler(struct charger_manager *cm)
 	 */
 	if (cm->desc->fast_charger_type == POWER_SUPPLY_USB_TYPE_PD &&
 	    cm->charger_enabled)
-		_cm_monitor(cm);
+		mod_delayed_work(cm_wq, &cm_monitor_work, 0);
 
 	if (cm->desc->fast_charger_type == POWER_SUPPLY_USB_CHARGER_TYPE_PD_PPS &&
 	    !cm->desc->cp.cp_running && cm->charger_enabled) {
 		cm_cp_control_switch(cm, true);
-		schedule_delayed_work(&cm_monitor_work, 0);
+		mod_delayed_work(cm_wq, &cm_monitor_work, 0);
 	}
 }
 

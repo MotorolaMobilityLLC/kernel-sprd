@@ -9,28 +9,29 @@
  * published by the Free Software Foundation.
  */
 
+#include <linux/bitops.h>
+#include <linux/debugfs.h>
+#include <linux/delay.h>
+#include <linux/err.h>
 #include <linux/gpio.h>
 #include <linux/i2c.h>
 #include <linux/init.h>
 #include <linux/interrupt.h>
-#include <linux/module.h>
-#include <linux/power_supply.h>
-#include <linux/slab.h>
 #include <linux/kernel.h>
-#include <linux/sched.h>
 #include <linux/kthread.h>
-#include <linux/delay.h>
+#include <linux/math64.h>
+#include <linux/module.h>
 #include <linux/of.h>
 #include <linux/of_device.h>
 #include <linux/of_gpio.h>
-#include <linux/err.h>
+#include <linux/power/charger-manager.h>
+#include <linux/power_supply.h>
 #include <linux/regulator/driver.h>
 #include <linux/regulator/machine.h>
-#include <linux/debugfs.h>
-#include <linux/bitops.h>
-#include <linux/math64.h>
+#include <linux/slab.h>
+#include <linux/sched.h>
+
 #include <linux/power/bq25970_reg.h>
-#include <linux/power/charger-manager.h>
 
 enum {
 	ADC_IBUS,
@@ -207,8 +208,8 @@ struct bq2597x_charger_info {
 	bool vbat_reg;
 	bool ibat_reg;
 
-	int  prev_alarm;
-	int  prev_fault;
+	int prev_alarm;
+	int prev_fault;
 
 	int chg_ma;
 	int chg_mv;
@@ -231,8 +232,6 @@ struct bq2597x_charger_info {
 
 	unsigned int int_pin;
 };
-
-static void bq2597x_dump_reg(struct bq2597x_charger_info *bq);
 
 static int __bq2597x_read_byte(struct bq2597x_charger_info *bq, u8 reg, u8 *data)
 {
@@ -371,10 +370,15 @@ static int bq2597x_check_charge_enabled(struct bq2597x_charger_info *bq, bool *e
 	u8 val;
 
 	ret = bq2597x_read_byte(bq, BQ2597X_REG_0C, &val);
-	if (!ret)
-		*enabled = !!(val & BQ2597X_CHG_EN_MASK);
+	if (ret < 0) {
+		dev_err(bq->dev, "failed to check charge enable, ret = %d\n", ret);
+		*enabled = false;
+		return ret;
+	}
 
-	return ret;
+	*enabled = !!(val & BQ2597X_CHG_EN_MASK);
+
+	return 0;
 }
 
 static int bq2597x_reset(struct bq2597x_charger_info *bq, bool reset)
@@ -1563,7 +1567,7 @@ static int bq2597x_get_temperature(struct bq2597x_charger_info *bq, int *intval)
 	int ret = 0;
 	int result = 0;
 
-	if (*intval == CM_BUS_TEMP_CMD) {
+	if (*intval == CMD_BATT_TEMP_CMD) {
 		ret = bq2597x_get_adc_data(bq, ADC_TBAT, &result);
 		if (!ret)
 			bq->bat_temp = result;

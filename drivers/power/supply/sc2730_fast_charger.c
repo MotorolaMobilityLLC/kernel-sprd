@@ -140,6 +140,7 @@ struct sc2730_fchg_info {
 	bool pps_active;
 	bool support_pd_pps;
 	bool support_sfcp;
+	bool shutdown_flag;
 	const struct sc27xx_fast_chg_data *pdata;
 };
 
@@ -276,6 +277,9 @@ static int sc2730_fchg_usb_change(struct notifier_block *nb,
 	struct sc2730_fchg_info *info =
 		container_of(nb, struct sc2730_fchg_info, usb_notify);
 
+	if (info->shutdown_flag && limit)
+		return NOTIFY_OK;
+
 	info->limit = limit;
 	if (!info->limit) {
 		cancel_delayed_work(&info->work);
@@ -291,11 +295,14 @@ static int sc2730_fchg_usb_change(struct notifier_block *nb,
 	return NOTIFY_OK;
 }
 
-static u32 sc2730_fchg_get_detect_status(struct sc2730_fchg_info *info)
+static int sc2730_fchg_get_detect_status(struct sc2730_fchg_info *info)
 {
 	unsigned long timeout;
 	int value, ret;
 	const struct sc27xx_fast_chg_data *pdata = info->pdata;
+
+	if (info->shutdown_flag)
+		return POWER_SUPPLY_USB_TYPE_UNKNOWN;
 
 	/*
 	 * In cold boot phase, system will detect fast charger status,
@@ -1144,6 +1151,11 @@ static void sc2730_fchg_shutdown(struct platform_device *pdev)
 	struct sc2730_fchg_info *info = platform_get_drvdata(pdev);
 	int ret;
 	u32 value = FCHG_DET_VOL_EXIT_SFCP;
+	const struct sc27xx_fast_chg_data *pdata = info->pdata;
+
+	info->shutdown_flag = true;
+	cancel_work_sync(&info->pd_change_work);
+	cancel_delayed_work_sync(&info->work);
 
 	/*
 	 * SFCP will handsharke failed from charging in shut down
@@ -1157,6 +1169,16 @@ static void sc2730_fchg_shutdown(struct platform_device *pdev)
 	if (ret)
 		dev_err(info->dev,
 			"failed to set fast charger detect voltage.\n");
+
+	/*
+	 * Fast charge dm current source calibration mode, select efuse calibration
+	 * as default.
+	 */
+	ret = regmap_update_bits(info->regmap, pdata->ib_ctrl,
+				 ANA_REG_IB_TRIM_EM_SEL_BIT,
+				 ANA_REG_IB_TRIM_EM_SEL_BIT);
+	if (ret)
+		dev_err(info->dev, "%s, failed to select ib trim mode.\n", __func__);
 }
 
 static const struct of_device_id sc2730_fchg_of_match[] = {
