@@ -38,6 +38,14 @@ static struct sprd_iommu_list_data sprd_iommu_list[SPRD_IOMMU_MAX] = {
 	   .enabled = false,
 	   .iommu_dev = NULL},
 
+	{ .iommu_id = SPRD_IOMMU_VSP1,
+	   .enabled = false,
+	   .iommu_dev = NULL},
+
+	{ .iommu_id = SPRD_IOMMU_VSP2,
+	   .enabled = false,
+	   .iommu_dev = NULL},
+
 	{ .iommu_id = SPRD_IOMMU_DCAM,
 	   .enabled = false,
 	   .iommu_dev = NULL},
@@ -289,6 +297,12 @@ static const struct of_device_id sprd_iommu_ids[] = {
 	{ .compatible = "unisoc,iommuvaul6p-vsp",
 	   .data = (void *)(IOMMU_VAUL6P_VSP)},
 
+	{ .compatible = "unisoc,iommuvaul6p-vsp1",
+	   .data = (void *)(IOMMU_VAUL6P_VSP1)},
+
+	{ .compatible = "unisoc,iommuvaul6p-vsp2",
+	   .data = (void *)(IOMMU_VAUL6P_VSP2)},
+
 	{ .compatible = "unisoc,iommuvaul6p-dcam",
 	   .data = (void *)(IOMMU_VAUL6P_DCAM)},
 
@@ -334,6 +348,16 @@ static void sprd_iommu_set_list(struct sprd_iommu_dev *iommu_dev)
 		sprd_iommu_list[SPRD_IOMMU_VSP].enabled = true;
 		sprd_iommu_list[SPRD_IOMMU_VSP].iommu_dev = iommu_dev;
 		iommu_dev->id = SPRD_IOMMU_VSP;
+		break;
+	case IOMMU_EX_VSP1:
+		sprd_iommu_list[SPRD_IOMMU_VSP1].enabled = true;
+		sprd_iommu_list[SPRD_IOMMU_VSP1].iommu_dev = iommu_dev;
+		iommu_dev->id = SPRD_IOMMU_VSP1;
+		break;
+	case IOMMU_EX_VSP2:
+		sprd_iommu_list[SPRD_IOMMU_VSP2].enabled = true;
+		sprd_iommu_list[SPRD_IOMMU_VSP2].iommu_dev = iommu_dev;
+		iommu_dev->id = SPRD_IOMMU_VSP2;
 		break;
 	case IOMMU_EX_DCAM:
 		sprd_iommu_list[SPRD_IOMMU_DCAM].enabled = true;
@@ -1720,6 +1744,8 @@ static int sprd_iommu_probe(struct platform_device *pdev)
 	case IOMMU_VAUL6P_GSP:
 	case IOMMU_VAUL6P_GSP1:
 	case IOMMU_VAUL6P_VSP:
+	case IOMMU_VAUL6P_VSP1:
+	case IOMMU_VAUL6P_VSP2:
 	case IOMMU_VAUL6P_DCAM:
 	case IOMMU_VAUL6P_CPP:
 	case IOMMU_VAUL6P_JPG:
@@ -1737,14 +1763,18 @@ static int sprd_iommu_probe(struct platform_device *pdev)
 		iommu_dev->ops = &sprd_iommuvau_hw_ops;
 		if (pdata->id == IOMMU_VAUL6P_GSP)
 			pdata->id = IOMMU_EX_GSP;
-		if (pdata->id == IOMMU_VAUL6P_GSP1)
+		else if (pdata->id == IOMMU_VAUL6P_GSP1)
 			pdata->id = IOMMU_EX_GSP1;
-		if (pdata->id == IOMMU_VAUL6P_DISP)
+		else if (pdata->id == IOMMU_VAUL6P_DISP)
 			pdata->id = IOMMU_EX_DISP;
-		if (pdata->id == IOMMU_VAUL6P_DISP1)
+		else if (pdata->id == IOMMU_VAUL6P_DISP1)
 			pdata->id = IOMMU_EX_DISP1;
 		else if (pdata->id == IOMMU_VAUL6P_VSP)
 			pdata->id = IOMMU_EX_VSP;
+		else if (pdata->id == IOMMU_VAUL6P_VSP1)
+			pdata->id = IOMMU_EX_VSP1;
+		else if (pdata->id == IOMMU_VAUL6P_VSP2)
+			pdata->id = IOMMU_EX_VSP2;
 		else if (pdata->id == IOMMU_VAUL6P_DCAM)
 			pdata->id = IOMMU_EX_DCAM;
 		else if (pdata->id == IOMMU_VAUL6P_ISP)
