@@ -734,9 +734,6 @@ int sprd_cfg80211_disconnect(struct wiphy *wiphy, struct net_device *ndev,
 	if (ret)
 		vif->sm_state = old_state;
 
-	if (vif->mode == SPRD_MODE_STATION ||
-	    vif->mode == SPRD_MODE_STATION_SECOND)
-		vif->dis_random_flag = 1;
 	return ret;
 }
 
@@ -758,19 +755,6 @@ int sprd_cfg80211_connect(struct wiphy *wiphy, struct net_device *ndev,
 			  __func__, vif->mode);
 		ret = -EACCES;
 		goto err;
-	}
-
-	if (vif->mode == SPRD_MODE_STATION ||
-		vif->mode == SPRD_MODE_STATION_SECOND) {
-		if (vif->has_rand_mac) {
-			netdev_info(ndev, "Set random mac : %pM\n",
-				    vif->random_mac);
-			ret = sprd_set_random_mac(vif->priv, vif,
-						  SPRD_CONNECT_RANDOM_ADDR,
-						  vif->random_mac);
-			if (ret)
-				netdev_info(ndev, "Set random mac failed!\n");
-		}
 	}
 
 	/* workround for bug 771600 */

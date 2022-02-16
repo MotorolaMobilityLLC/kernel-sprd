@@ -1027,7 +1027,14 @@ static int iface_set_mac(struct net_device *dev, void *addr)
 			vif->has_rand_mac = true;
 			memcpy(vif->random_mac, sa->sa_data, ETH_ALEN);
 			memcpy(dev->dev_addr, sa->sa_data, ETH_ALEN);
-			netdev_info(dev, "vif random mac : %pM\n", vif->random_mac);
+			netdev_info(dev, "set random mac to cp2 : %pM\n", vif->random_mac);
+			ret = sprd_set_random_mac(vif->priv, vif,
+						  SPRD_CONNECT_RANDOM_ADDR,
+						  vif->random_mac);
+			if (ret) {
+				netdev_err(dev, "%s set station random mac error\n", __func__);
+				return -EFAULT;
+			}
 		} else {
 			vif->has_rand_mac = false;
 			netdev_info(dev,
@@ -1035,18 +1042,6 @@ static int iface_set_mac(struct net_device *dev, void *addr)
 			memset(vif->random_mac, 0, ETH_ALEN);
 			memcpy(dev->dev_addr, vif->mac, ETH_ALEN);
 		}
-	}
-	if (vif->dis_random_flag == 1) {
-		if (vif->has_rand_mac) {
-			netdev_info(dev, "set random mac after disconnect: %pM\n",
-				    vif->random_mac);
-			ret = sprd_set_random_mac(vif->priv, vif,
-						  SPRD_CONNECT_RANDOM_ADDR,
-						  vif->random_mac);
-			if (ret)
-				netdev_info(dev, "set random mac failed after disconnect!\n");
-		}
-		vif->dis_random_flag = 0;
 	}
 
 	if (vif->wdev.iftype == NL80211_IFTYPE_P2P_GO ||
