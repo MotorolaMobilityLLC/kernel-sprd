@@ -897,6 +897,10 @@
 	status = "okay";
 };
 
+&iommu_gsp {
+	status = "okay";
+};
+
 &dptx {
 	status = "okay";
 };

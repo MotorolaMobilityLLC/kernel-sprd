@@ -733,11 +733,13 @@
 			};
 
 			iommu_gsp: iommu@31100000 {
-				compatible = "sprd,iommuvau-gsp";
-				reg = <0x0 0x31101000 0x0 0x80>;
-				sprd,iova-base = <0x30000000>;
-				sprd,iova-size = <0x10000000>;
+				compatible = "unisoc,iommuvaul6p-gsp";
+				reg = <0x0 0x31100000 0x0 0x80>,
+				      <0x0 0x31101000 0x0 0x80>;
+				iova-base = <0x30000000>;
+				iova-size = <0x10000000>;
 				reg_name = "mmu_reg";
+				status = "disabled";
 				#iommu-cells = <0>;
 			};
 
