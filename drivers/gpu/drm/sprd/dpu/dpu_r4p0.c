@@ -1182,26 +1182,24 @@ static int dpu_vrr(struct dpu_context *ctx)
 			struct sprd_dpu, ctx);
 	u32 reg_val;
 
-	if (ctx->fps_mode_changed) {
-		dpu_stop(ctx);
-		reg_val = (ctx->vm.vsync_len << 0) |
-			(ctx->vm.vback_porch << 8) |
-			(ctx->vm.vfront_porch << 20);
-		DPU_REG_WR(ctx->base + REG_DPI_V_TIMING, reg_val);
+	dpu_stop(ctx);
+	reg_val = (ctx->vm.vsync_len << 0) |
+		(ctx->vm.vback_porch << 8) |
+		(ctx->vm.vfront_porch << 20);
+	DPU_REG_WR(ctx->base + REG_DPI_V_TIMING, reg_val);
 
-		reg_val = (ctx->vm.hsync_len << 0) |
-			(ctx->vm.hback_porch << 8) |
-			(ctx->vm.hfront_porch << 20);
-		DPU_REG_WR(ctx->base + REG_DPI_H_TIMING, reg_val);
+	reg_val = (ctx->vm.hsync_len << 0) |
+		(ctx->vm.hback_porch << 8) |
+		(ctx->vm.hfront_porch << 20);
+	DPU_REG_WR(ctx->base + REG_DPI_H_TIMING, reg_val);
 
-		sprd_dsi_vrr_timing(dpu->dsi);
-		reg_val = DPU_REG_RD(ctx->base + REG_DPU_CTRL);
-		reg_val |= BIT(0) | BIT(4);
-		DPU_REG_WR(ctx->base + REG_DPU_CTRL, reg_val);
-		dpu_wait_update_done(ctx);
-		ctx->stopped = false;
-		ctx->fps_mode_changed = false;
-	}
+	sprd_dsi_vrr_timing(dpu->dsi);
+	reg_val = DPU_REG_RD(ctx->base + REG_DPU_CTRL);
+	reg_val |= BIT(0) | BIT(4);
+	DPU_REG_WR(ctx->base + REG_DPU_CTRL, reg_val);
+	dpu_wait_update_done(ctx);
+	ctx->stopped = false;
+	dpu->crtc->fps_mode_changed = false;
 
 	return 0;
 }
@@ -1215,8 +1213,9 @@ static void dpu_scaling(struct dpu_context *ctx,
 	struct sprd_layer_state *layer_state;
 	struct sprd_plane_state *plane_state;
 	struct scale_config_param *scale_cfg = &ctx->scale_cfg;
+	struct sprd_dpu *dpu = container_of(ctx, struct sprd_dpu, ctx);
 
-	if (scale_cfg->sr_mode_changed) {
+	if (dpu->crtc->sr_mode_changed) {
 		pr_debug("------------------------------------\n");
 		for (i = 0; i < count; i++) {
 			plane_state = to_sprd_plane_state(planes[i].base.state);
@@ -1234,7 +1233,7 @@ static void dpu_scaling(struct dpu_context *ctx,
 		layer_state = &plane_state->layer;
 		if  (layer_state->dst_w <= scale_cfg->in_w) {
 			dpu_sr_config(ctx);
-			scale_cfg->sr_mode_changed = false;
+			dpu->crtc->sr_mode_changed = false;
 			pr_info("do scaling enhace, bottom layer(%dx%d)\n",
 					layer_state->dst_w, layer_state->dst_h);
 		}
@@ -1314,7 +1313,8 @@ static void dpu_flip(struct dpu_context *ctx, struct sprd_plane planes[], u8 cou
 	DPU_REG_WR(ctx->base + REG_BG_COLOR, 0x00);
 
 	/* to check if dpu need change the frame rate */
-	dpu_vrr(ctx);
+	if (dpu->crtc->fps_mode_changed)
+		dpu_vrr(ctx);
 
 	/* disable all the layers */
 	dpu_clean_all(ctx);
@@ -2262,18 +2262,21 @@ static int dpu_modeset(struct dpu_context *ctx,
 {
 	struct scale_config_param *scale_cfg = &ctx->scale_cfg;
 	struct sprd_dpu *dpu = container_of(ctx, struct sprd_dpu, ctx);
+	struct sprd_crtc_state *state = to_sprd_crtc_state(dpu->crtc->base.state);
 	struct sprd_dsi *dsi = dpu->dsi;
 	static unsigned int now_vtotal;
 	static unsigned int now_htotal;
+	static bool first_modeset = true;
 
 	scale_cfg->in_w = mode->hdisplay;
 	scale_cfg->in_h = mode->vdisplay;
 
-	if ((mode->hdisplay != ctx->vm.hactive) ||
-		(mode->vdisplay != ctx->vm.vactive)) {
-		scale_cfg->need_scale = true;
-		scale_cfg->sr_mode_changed = true;
-	} else {
+	if (state->resolution_change) {
+		if ((mode->hdisplay != ctx->vm.hactive) || (mode->vdisplay != ctx->vm.vactive))
+			scale_cfg->need_scale = true;
+		else
+			scale_cfg->need_scale = false;
+	} else if (state->frame_rate_change) {
 		if (!now_htotal && !now_vtotal) {
 			now_htotal = ctx->vm.hactive + ctx->vm.hfront_porch +
 				ctx->vm.hback_porch + ctx->vm.hsync_len;
@@ -2289,16 +2292,16 @@ static int dpu_modeset(struct dpu_context *ctx,
 				ctx->vm.hback_porch + ctx->vm.hsync_len;
 			now_vtotal = ctx->vm.vactive + ctx->vm.vfront_porch +
 				ctx->vm.vback_porch + ctx->vm.vsync_len;
-
-			ctx->fps_mode_changed = true;
-		} else {
-			scale_cfg->sr_mode_changed = true;
 		}
+	} else if (first_modeset) {
+		first_modeset = false;
+		if ((mode->hdisplay != ctx->vm.hactive) || (mode->vdisplay != ctx->vm.vactive))
+			scale_cfg->need_scale = true;
+		else
+			scale_cfg->need_scale = false;
+	}else
+		pr_debug("%s() no mode changed, do nothing\n", __func__);
 
-		scale_cfg->need_scale = false;
-	}
-
-	ctx->wb_size_changed = true;
 	pr_info("begin switch to %u x %u\n", mode->hdisplay, mode->vdisplay);
 
 	return 0;

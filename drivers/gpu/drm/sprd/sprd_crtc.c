@@ -218,18 +218,117 @@ static void sprd_crtc_disable_vblank(struct drm_crtc *crtc)
 		sprd_crtc->ops->disable_vblank(sprd_crtc);
 }
 
+static int sprd_crtc_atomic_get_property(struct drm_crtc *drm_crtc,
+					const struct drm_crtc_state *crtc_state,
+					struct drm_property *property,
+					uint64_t *val)
+{
+	struct sprd_crtc *crtc = to_sprd_crtc(drm_crtc);
+	struct sprd_crtc_state *state = to_sprd_crtc_state(crtc_state);
+
+	DRM_DEBUG("%s() name = %s\n", __func__, property->name);
+
+	if (property == crtc->resolution_property)
+		*val = state->resolution_change;
+	else if (property == crtc->frame_rate_property)
+		*val = state->frame_rate_change;
+	else {
+		DRM_ERROR("property %s is invalid\n", property->name);
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
+static int sprd_crtc_atomic_set_property(struct drm_crtc *drm_crtc,
+					struct drm_crtc_state *crtc_state,
+					struct drm_property *property,
+					uint64_t val)
+{
+	struct sprd_crtc *crtc = to_sprd_crtc(drm_crtc);
+	struct sprd_crtc_state *state = to_sprd_crtc_state(crtc_state);
+
+	DRM_DEBUG("%s() name = %s, val = %llu\n",
+		  __func__, property->name, val);
+
+	if (property == crtc->resolution_property) {
+		state->resolution_change = val;
+		crtc->sr_mode_changed = val;
+	} else if (property == crtc->frame_rate_property) {
+		state->frame_rate_change = val;
+		crtc->fps_mode_changed = val;
+	} else {
+		DRM_ERROR("property %s is invalid\n", property->name);
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
+static struct drm_crtc_state *sprd_crtc_atomic_duplicate_state(struct drm_crtc *crtc)
+{
+	struct sprd_crtc_state *state;
+
+	DRM_DEBUG("%s()\n", __func__);
+
+	state = kzalloc(sizeof(*state), GFP_KERNEL);
+	if (!state)
+		return NULL;
+
+	__drm_atomic_helper_crtc_duplicate_state(crtc, &state->base);
+
+	WARN_ON(state->base.crtc != crtc);
+
+	state->resolution_change = false;
+	state->frame_rate_change = false;
+
+	return &state->base;
+}
+
+static void sprd_crtc_atomic_destroy_state(struct drm_crtc *crtc,
+					    struct drm_crtc_state *state)
+{
+	DRM_DEBUG("%s()\n", __func__);
+
+	__drm_atomic_helper_crtc_destroy_state(state);
+	kfree(to_sprd_crtc_state(state));
+}
+
+static void sprd_crtc_reset(struct drm_crtc *drm_crtc)
+{
+	struct sprd_crtc_state *state;
+
+	DRM_INFO("%s()\n", __func__);
+
+	if (drm_crtc->state) {
+		__drm_atomic_helper_crtc_destroy_state(drm_crtc->state);
+
+		state = to_sprd_crtc_state(drm_crtc->state);
+		memset(state, 0, sizeof(*state));
+	} else {
+		state = kzalloc(sizeof(*state), GFP_KERNEL);
+		if (!state)
+			return;
+		drm_crtc->state = &state->base;
+	}
+
+	state->base.crtc = drm_crtc;
+}
+
 static const struct drm_crtc_funcs sprd_crtc_funcs = {
 	.destroy	= sprd_crtc_cleanup,
 	.set_config	= drm_atomic_helper_set_config,
 	.page_flip	= drm_atomic_helper_page_flip,
-	.reset		= drm_atomic_helper_crtc_reset,
-	.atomic_duplicate_state	= drm_atomic_helper_crtc_duplicate_state,
-	.atomic_destroy_state	= drm_atomic_helper_crtc_destroy_state,
+	.reset 		= sprd_crtc_reset,
+	.atomic_duplicate_state	= sprd_crtc_atomic_duplicate_state,
+	.atomic_destroy_state	= sprd_crtc_atomic_destroy_state,
 	.enable_vblank	= sprd_crtc_enable_vblank,
 	.disable_vblank	= sprd_crtc_disable_vblank,
+	.atomic_set_property = sprd_crtc_atomic_set_property,
+	.atomic_get_property = sprd_crtc_atomic_get_property,
 };
 
-static int sprd_crtc_create_properties(struct drm_crtc *crtc, const char *version, u32 corner_size)
+static int sprd_crtc_create_properties(struct sprd_crtc *crtc, const char *version, u32 corner_size)
 {
 	struct drm_property *prop;
 	struct drm_property_blob *blob;
@@ -237,31 +336,47 @@ static int sprd_crtc_create_properties(struct drm_crtc *crtc, const char *versio
 
 	blob_size = strlen(version) + 1;
 
-	blob = drm_property_create_blob(crtc->dev, blob_size, version);
+	blob = drm_property_create_blob(crtc->base.dev, blob_size, version);
 	if (IS_ERR(blob)) {
 		DRM_ERROR("drm_property_create_blob dpu version failed\n");
 		return PTR_ERR(blob);
 	}
 
 	/* create dpu version property */
-	prop = drm_property_create(crtc->dev,
+	prop = drm_property_create(crtc->base.dev,
 		DRM_MODE_PROP_IMMUTABLE | DRM_MODE_PROP_BLOB,
 		"dpu version", 0);
 	if (!prop) {
 		DRM_ERROR("drm_property_create dpu version failed\n");
 		return -ENOMEM;
 	}
-	drm_object_attach_property(&crtc->base, prop, blob->base.id);
+	drm_object_attach_property(&crtc->base.base, prop, blob->base.id);
 
 	/* create corner size property */
-	prop = drm_property_create(crtc->dev,
+	prop = drm_property_create(crtc->base.dev,
 		DRM_MODE_PROP_IMMUTABLE | DRM_MODE_PROP_RANGE,
 		"corner size", 0);
 	if (!prop) {
 		DRM_ERROR("drm_property_create corner size failed\n");
 		return -ENOMEM;
 	}
-	drm_object_attach_property(&crtc->base, prop, corner_size);
+	drm_object_attach_property(&crtc->base.base, prop, corner_size);
+
+	/* create resolution change property */
+	prop = drm_property_create_range(crtc->base.dev, 0,
+			"resolution change", 0, UINT_MAX);
+	if (!prop)
+		return -ENOMEM;
+	drm_object_attach_property(&crtc->base.base, prop, 0);
+	crtc->resolution_property = prop;
+
+	/* create frame rate change property */
+	prop = drm_property_create_range(crtc->base.dev, 0,
+			"frame rate change", 0, UINT_MAX);
+	if (!prop)
+		return -ENOMEM;
+	drm_object_attach_property(&crtc->base.base, prop, 0);
+	crtc->frame_rate_property = prop;
 
 	return 0;
 }
@@ -296,7 +411,7 @@ struct sprd_crtc *sprd_crtc_init(struct drm_device *drm,
 
 	drm_crtc_helper_add(&crtc->base, &sprd_crtc_helper_funcs);
 
-	sprd_crtc_create_properties(&crtc->base, version, corner_size);
+	sprd_crtc_create_properties(crtc, version, corner_size);
 
 	return crtc;
 

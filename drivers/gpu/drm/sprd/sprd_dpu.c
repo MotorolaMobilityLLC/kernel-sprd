@@ -121,21 +121,10 @@ static void sprd_dpu_mode_set_nofb(struct sprd_crtc *crtc)
 
 	DRM_INFO("%s() set mode: %s\n", __func__, dpu->mode->name);
 
-	/*
-	 * TODO:
-	 * Currently, low simulator resolution only support
-	 * DPI mode, support for EDPI in the future.
-	 */
-	if (mode->type & DRM_MODE_TYPE_USERDEF) {
+	if (dpu->dsi->ctx.work_mode == DSI_MODE_VIDEO)
 		dpu->ctx.if_type = SPRD_DPU_IF_DPI;
-		return;
-	}
-
-	if ((dpu->mode->hdisplay == dpu->mode->htotal) ||
-	    (dpu->mode->vdisplay == dpu->mode->vtotal))
-		dpu->ctx.if_type = SPRD_DPU_IF_EDPI;
 	else
-		dpu->ctx.if_type = SPRD_DPU_IF_DPI;
+		dpu->ctx.if_type = SPRD_DPU_IF_EDPI;
 
 	if (dpu->core->modeset && crtc->base.state->mode_changed)
 		dpu->core->modeset(&dpu->ctx, mode);

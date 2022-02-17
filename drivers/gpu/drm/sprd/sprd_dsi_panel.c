@@ -236,10 +236,10 @@ static int sprd_panel_get_modes(struct drm_panel *p)
 {
 	struct drm_display_mode *mode;
 	struct sprd_panel *panel = to_sprd_panel(p);
-	struct sprd_dsi *dsi =
-		container_of(p->connector, struct sprd_dsi, connector);
+	struct sprd_dsi *dsi = container_of(p->connector, struct sprd_dsi, connector);
 	struct device_node *np = panel->slave->dev.of_node;
 	u32 surface_width = 0, surface_height = 0;
+	u32 sr_width = 0, sr_height = 0;
 	int i, mode_count = 0;
 
 	DRM_INFO("%s()\n", __func__);
@@ -264,6 +264,25 @@ static int sprd_panel_get_modes(struct drm_panel *p)
 		mode->type = DRM_MODE_TYPE_DRIVER;
 		drm_mode_probed_add(p->connector, mode);
 		mode_count++;
+	}
+
+	/* parse and create sr mode config */
+	of_property_read_u32(np, "sprd,sr-width", &sr_width);
+	of_property_read_u32(np, "sprd,sr-height", &sr_height);
+	if (sr_width && sr_height) {
+		for (i = 0; i < panel->info.num_buildin_modes; i++) {
+			struct videomode vm = {};
+
+			vm.hactive = sr_width;
+			vm.vactive = sr_height;
+			vm.pixelclock = sr_width * sr_height * drm_mode_vrefresh(&panel->info.buildin_modes[i]);
+			mode = drm_mode_create(p->drm);
+			mode->vrefresh = drm_mode_vrefresh(&panel->info.buildin_modes[i]);
+			mode->type = DRM_MODE_TYPE_DRIVER;
+			drm_display_mode_from_videomode(&vm, mode);
+			drm_mode_probed_add(p->connector, mode);
+			mode_count++;
+		}
 	}
 
 	of_property_read_u32(np, "sprd,surface-width", &surface_width);
