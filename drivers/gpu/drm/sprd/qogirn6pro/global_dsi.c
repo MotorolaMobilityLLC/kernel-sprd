@@ -121,21 +121,23 @@ static void dsi_glb_enable(struct dsi_context *ctx)
 {
 	int ret;
 
-	ret = clk_prepare_enable(clk_dpuvsp_eb);
-	if (ret) {
-		pr_err("enable clk_dpuvsp_eb failed!\n");
-		return;
-	}
+	if (!ctx->is_esd_rst) {
+		ret = clk_prepare_enable(clk_dpuvsp_eb);
+		if (ret) {
+			pr_err("enable clk_dpuvsp_eb failed!\n");
+			return;
+		}
 
-	ret = clk_prepare_enable(clk_dpuvsp_disp_eb);
-	if (ret) {
-		pr_err("enable clk_dpuvsp_disp_eb failed!\n");
-		return;
-	}
+		ret = clk_prepare_enable(clk_dpuvsp_disp_eb);
+		if (ret) {
+			pr_err("enable clk_dpuvsp_disp_eb failed!\n");
+			return;
+		}
 
-	ret = clk_prepare_enable(clk_dsi0_eb);
-	if (ret)
-		pr_err("enable clk_dsi0_eb failed!\n");
+		ret = clk_prepare_enable(clk_dsi0_eb);
+		if (ret)
+			pr_err("enable clk_dsi0_eb failed!\n");
+	}
 }
 
 static void dsi_s_glb_enable(struct dsi_context *ctx)

@@ -9,6 +9,8 @@
 #include <linux/of_device.h>
 #include <linux/of_irq.h>
 #include <linux/of_graph.h>
+#include <linux/pm_runtime.h>
+#include <linux/sprd_iommu.h>
 #include <video/mipi_display.h>
 
 #include <drm/drm_atomic_helper.h>
@@ -20,6 +22,7 @@
 #include "sprd_crtc.h"
 #include "sprd_dpu.h"
 #include "sprd_dsi.h"
+#include "sprd_dsi_panel.h"
 #include "dsi/sprd_dsi_api.h"
 #include "dphy/sprd_dphy_api.h"
 #include "sysfs/sysfs_display.h"
@@ -62,6 +65,7 @@ static void sprd_dsi_encoder_enable(struct drm_encoder *encoder)
 {
 	struct sprd_dsi *dsi = encoder_to_dsi(encoder);
 	struct sprd_crtc *crtc = to_sprd_crtc(encoder->crtc);
+	struct sprd_dpu *dpu = crtc->priv;
 
 	DRM_INFO("%s()\n", __func__);
 
@@ -72,6 +76,14 @@ static void sprd_dsi_encoder_enable(struct drm_encoder *encoder)
 	if (!encoder->crtc || !encoder->crtc->state->active ||
 	    (encoder->crtc->state->mode_changed &&
 	     !encoder->crtc->state->active_changed)) {
+		/* set dsi context esd reset status to
+		 * false for div6 esd recovery workaround
+		 * when exit this function.
+		 */
+		if (!strcmp(dpu->ctx.version, "dpu-r6p0")) {
+			if (dsi->ctx.is_esd_rst)
+				dsi->ctx.is_esd_rst = false;
+		}
 		DRM_INFO("skip dsi resume\n");
 		mutex_unlock(&dsi->lock);
 		return;
@@ -82,6 +94,9 @@ static void sprd_dsi_encoder_enable(struct drm_encoder *encoder)
 		mutex_unlock(&dsi->lock);
 		return;
 	}
+
+	if (!strcmp(dpu->ctx.version, "dpu-r6p0"))
+		pm_runtime_get_sync(dsi->dev.parent);
 
 	sprd_dsi_enable(dsi);
 	sprd_dphy_enable(dsi->phy);
@@ -105,6 +120,27 @@ static void sprd_dsi_encoder_enable(struct drm_encoder *encoder)
 	else
 		sprd_dphy_hs_clk_en(dsi->phy, true);
 
+	/* workaround:
+	 * dpu r6p0 need resume after dsi resume on div6 scences
+	 * for dsi core and dpi clk depends on dphy clk. And esd
+	 * recovery do not resume dpu, so need switch dpi clk to
+	 * div6 source when dpu enable div6 function.
+	 */
+	if (!strcmp(dpu->ctx.version, "dpu-r6p0")) {
+		if (!dsi->ctx.is_esd_rst) {
+			sprd_dpu_resume(dpu);
+		} else {
+			if (dsi->ctx.dpi_clk_div)
+				dpu_r6p0_enable_div6_clk(&dpu->ctx);
+			dsi->ctx.is_esd_rst = false;
+		}
+	}
+	/*
+	 * FIXME:
+	 * When last dpms is doze_suspend,cmd mode panel remain on in a low power state and continue displaying
+	 * its current contents indefinitely. If call sprd_dpu_run, background color will appear
+	 * that will cause panel flickering. So we should call sprd_dpu_run when flip in edpi mode.
+	 */
 	sprd_dpu_run(crtc->priv);
 
 	dsi->ctx.enabled = true;
@@ -116,6 +152,8 @@ static void sprd_dsi_encoder_disable(struct drm_encoder *encoder)
 {
 	struct sprd_dsi *dsi = encoder_to_dsi(encoder);
 	struct sprd_crtc *crtc = to_sprd_crtc(encoder->crtc);
+	struct sprd_dpu *dpu = crtc->priv;
+	struct sprd_panel *panel = container_of(dsi->panel, struct sprd_panel, base);
 
 	DRM_INFO("%s()\n", __func__);
 
@@ -133,7 +171,13 @@ static void sprd_dsi_encoder_disable(struct drm_encoder *encoder)
 		return;
 	}
 
-	sprd_dpu_stop(crtc->priv);
+	sprd_dpu_stop(dpu);
+	if (dsi->ctx.dpi_clk_div) {
+		if (!strcmp(dpu->ctx.version, "dpu-r6p0")) {
+			dsi->ctx.clk_dpi_384m = true;
+			dsi->glb->disable(&dsi->ctx);
+		}
+	}
 	sprd_dsi_set_work_mode(dsi, DSI_MODE_CMD);
 	sprd_dsi_lp_cmd_enable(dsi, true);
 
@@ -143,8 +187,22 @@ static void sprd_dsi_encoder_disable(struct drm_encoder *encoder)
 		drm_panel_unprepare(dsi->panel);
 	}
 
+	/* workaround:
+	 * dpu r6p0 need resume after dsi resume on div6 scences
+	 * for dsi core and dpi clk depends on dphy clk. And esd
+	 * recovery do not resume dpu, so dpu need get panel esd
+	 * reset status to enabe global registers or not.
+	 */
+	if (!strcmp(dpu->ctx.version, "dpu-r6p0")) {
+		if (panel->is_esd_rst)
+			dsi->ctx.is_esd_rst = true;
+	}
+
 	sprd_dphy_disable(dsi->phy);
 	sprd_dsi_disable(dsi);
+
+	if (!strcmp(dpu->ctx.version, "dpu-r6p0"))
+		pm_runtime_put(dsi->dev.parent);
 
 	dsi->ctx.enabled = false;
 
@@ -799,6 +857,10 @@ static int sprd_dsi_probe(struct platform_device *pdev)
 		return ret;
 
 	mutex_init(&dsi->lock);
+
+	pm_runtime_set_active(&pdev->dev);
+	pm_runtime_get_noresume(&pdev->dev);
+	pm_runtime_enable(&pdev->dev);
 
 	return component_add(&pdev->dev, &dsi_component_ops);
 }

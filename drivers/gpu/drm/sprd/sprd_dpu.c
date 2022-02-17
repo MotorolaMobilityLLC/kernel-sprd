@@ -165,16 +165,22 @@ static void sprd_dpu_atomic_enable(struct sprd_crtc *crtc)
 	static bool is_enable = true;
 
 	DRM_INFO("%s()\n", __func__);
-	if (is_enable)
+	if (is_enable) {
+		/* workaround:
+		 * dpu r6p0 need resume after dsi resume on div6 scences
+		 * for dsi core and dpi clk depends on dphy clk
+		 */
+		if (!strcmp(dpu->ctx.version, "dpu-r6p0")) {
+			sprd_dpu_resume(dpu);
+		}
 		is_enable = false;
+	}
 	else
 		pm_runtime_get_sync(dpu->dev.parent);
 
-	sprd_dpu_enable(dpu);
-
-	enable_irq(dpu->ctx.irq);
-
-	sprd_iommu_restore(&dpu->dev);
+	if (strcmp(dpu->ctx.version, "dpu-r6p0")) {
+		sprd_dpu_resume(dpu);
+	}
 }
 
 static void sprd_dpu_atomic_disable(struct sprd_crtc *crtc)
@@ -349,6 +355,14 @@ static void sprd_dpu_enable(struct sprd_dpu *dpu)
 	ctx->enabled = true;
 
 	up(&ctx->lock);
+}
+
+void sprd_dpu_resume(struct sprd_dpu *dpu)
+{
+	sprd_dpu_enable(dpu);
+	enable_irq(dpu->ctx.irq);
+	sprd_iommu_restore(&dpu->dev);
+	DRM_INFO("dpu resume OK\n");
 }
 
 static void sprd_dpu_disable(struct sprd_dpu *dpu)

@@ -100,6 +100,8 @@ struct dsi_context {
 	bool hporch_lp_disable;
 	/* simulated small resolution display mode */
 	bool surface_mode;
+	/* check lcd esd status if lcd be in recovery process or not */
+	bool is_esd_rst;
 };
 
 struct dsi_core_ops {

@@ -104,6 +104,7 @@ struct sprd_panel {
 	bool esd_work_pending;
 	struct mutex lock;
 	bool enabled;
+	bool is_esd_rst;
 };
 
 struct sprd_oled {
