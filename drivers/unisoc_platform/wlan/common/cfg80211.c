@@ -372,9 +372,6 @@ int sprd_cfg80211_change_iface(struct wiphy *wiphy, struct net_device *ndev,
 		atomic_set(&hif->change_iface_block_cmd, 0);
 	}
 
-	if (!ret && type == NL80211_IFTYPE_AP)
-		netif_carrier_off(ndev);
-
 	return ret;
 }
 

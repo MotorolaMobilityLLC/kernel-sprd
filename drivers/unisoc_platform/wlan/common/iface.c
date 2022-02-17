@@ -353,7 +353,11 @@ static int iface_open(struct net_device *ndev)
 	if (ret)
 		return ret;
 
-	sprd_init_fw(vif);
+	ret = sprd_init_fw(vif);
+	if (!ret && vif->wdev.iftype == NL80211_IFTYPE_AP) {
+		netif_carrier_off(ndev);
+		return 0;
+	}
 	netif_start_queue(ndev);
 
 	return 0;
