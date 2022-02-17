@@ -887,21 +887,21 @@ static int cx7601_charger_feed_watchdog(struct cx7601_charger_info *info,
 	cx7601_read(info, &reg07, CX7601_REG_07 );
 	if((ovp==0) &&  ((reg & 0x08) == 0x08)) //ovp
 	{
-		dev_err(info->dev,"%s ovp 09 reg=%x;",__func__,reg);
-		cx7601_update_bits(info,CX7601_REG_07,0x20,0x20);
+		dev_err(info->dev,"%s new test ovp 09 reg=%x;",__func__,reg);
+//		cx7601_update_bits(info,CX7601_REG_07,0x20,0x20);
 		ovp=1;
 	}
 	else if((ovp==1)  && ((reg & 0x08) == 0x00))  // not ovp
 	{
 
-		dev_err(info->dev,"%s novp  09 reg=%x;",__func__,reg);
-		cx7601_update_bits(info,CX7601_REG_07,0x20,0x00);
+		dev_err(info->dev,"%s  new test novp  09 reg=%x;",__func__,reg);
+//		cx7601_update_bits(info,CX7601_REG_07,0x20,0x00);
 		ovp=0;	
 	}
 	else if((ovp==0)  && (reg07 & 0x20))
 	{
-		dev_err(info->dev,"%s batfet   07 reg=%x;",__func__,reg07);
-		cx7601_update_bits(info,CX7601_REG_07,0x20,0x00);
+		dev_err(info->dev,"%s  new test batfet   07 reg=%x;",__func__,reg07);
+//		cx7601_update_bits(info,CX7601_REG_07,0x20,0x00);
 
 	}
 
