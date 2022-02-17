@@ -172,7 +172,7 @@
 				charge-dcp-current-microamp = <2000000 2500000>;
 				charge-cdp-current-microamp = <1500000 1500000>;
 				charge-unknown-current-microamp = <500000 500000>;
-				charge-fchg-current-microamp = <3250000 3000000>;
+				charge-fchg-current-microamp = <3250000 2000000>;
 				charge-flash-current-microamp = <5000000 2700000>;
 				charge-wl-bpp-current-microamp = <1000000 1000000>;
 				charge-wl-epp-current-microamp = <2000000 1000000>;
