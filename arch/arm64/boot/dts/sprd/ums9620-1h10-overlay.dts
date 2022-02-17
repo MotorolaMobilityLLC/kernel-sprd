@@ -695,6 +695,7 @@
 		power-down-gpios = <&ap_gpio 46 0>;
 		sprd,phyid = <0>;
 		csi = <&csi0>;
+		power-domains = <&mm_domain>;
 	};
 
 	sensor_sub: sensor-sub@5a {
@@ -714,6 +715,7 @@
 		power-down-gpios = <&ap_gpio 45 0>;
 		sprd,phyid = <1>;
 		csi = <&csi1>;
+		power-domains = <&mm_domain>;
 	};
 };
 
@@ -739,6 +741,7 @@
 		power-down-gpios = <&ap_gpio 47 0>;
 		sprd,phyid = <3>;/*6*/
 		csi = <&csi3>;
+		power-domains = <&mm_domain>;
 	};
 };
 
@@ -782,6 +785,7 @@
 		reset-gpios = <&ap_gpio 42 0>;
 		sprd,phyid = <2>;/*4*/
 		csi = <&csi2>;
+		power-domains = <&mm_domain>;
 	};
 };
 
@@ -807,6 +811,7 @@
 		power-down-gpios = <&ap_gpio 50 0>;
 		sprd,phyid = <5>;
 		csi = <&csi2>;
+		power-domains = <&mm_domain>;
 	};
 
 	sensor_sub3: sensor-sensor_sub3@2e {
@@ -825,6 +830,7 @@
 		power-down-gpios = <&ap_gpio 49 0>;
 		sprd,phyid = <7>;
 		csi = <&csi3>;
+		power-domains = <&mm_domain>;
 	};
 };
 
