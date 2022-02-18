@@ -1816,7 +1816,9 @@
   drm_atomic_helper_connector_duplicate_state
   drm_atomic_helper_connector_reset
   drm_atomic_helper_crtc_destroy_state
+  __drm_atomic_helper_crtc_destroy_state
   drm_atomic_helper_crtc_duplicate_state
+  __drm_atomic_helper_crtc_duplicate_state
   drm_atomic_helper_crtc_reset
   drm_atomic_helper_disable_plane
   drm_atomic_helper_page_flip
