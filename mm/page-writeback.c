@@ -1552,6 +1552,11 @@ static inline void wb_dirty_limits(struct dirty_throttle_control *dtc)
 	}
 }
 
+#if defined(CONFIG_SPRD_DEBUG)
+#define BALANCE_TIME_STEP	(3)
+#define BALANCE_TIME_PANIC	(600)
+#endif
+
 /*
  * balance_dirty_pages() must be called by processes which are generating dirty
  * data.  It looks at the number of dirty pages in the machine and will force
@@ -1581,6 +1586,9 @@ static void balance_dirty_pages(struct address_space *mapping,
 	struct backing_dev_info *bdi = wb->bdi;
 	bool strictlimit = bdi->capabilities & BDI_CAP_STRICTLIMIT;
 	unsigned long start_time = jiffies;
+#if defined(CONFIG_SPRD_DEBUG)
+	int tn = BALANCE_TIME_STEP;
+#endif
 
 	for (;;) {
 		unsigned long now = jiffies;
@@ -1589,6 +1597,16 @@ static void balance_dirty_pages(struct address_space *mapping,
 		unsigned long m_thresh = 0;
 		unsigned long m_bg_thresh = 0;
 
+#if defined(CONFIG_SPRD_DEBUG)
+		if (time_after(now, start_time + tn * HZ)) {
+			if (tn < BALANCE_TIME_PANIC) {
+				pr_info("%-16s %s had last %d seconds\n",
+					current->comm, __func__, tn);
+				tn += BALANCE_TIME_STEP;
+			} else
+				panic("%s\n", __func__);
+		}
+#endif
 		/*
 		 * Unstable writes are a feature of certain networked
 		 * filesystems (i.e. NFS) in which data may have been
