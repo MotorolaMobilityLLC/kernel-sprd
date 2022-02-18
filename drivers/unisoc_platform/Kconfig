@@ -1,0 +1,5 @@
+#
+# UNISOC Display drivers
+#
+
+source "drivers/unisoc_platform/sprd_disp/Kconfig"
