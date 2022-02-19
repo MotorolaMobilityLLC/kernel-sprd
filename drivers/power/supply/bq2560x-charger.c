@@ -363,17 +363,46 @@ bq2560x_charger_set_ovp(struct bq2560x_charger_info *info, u32 vol)
 				   reg_val << BQ2560X_REG_OVP_SHIFT);
 }
 
+#define  termina_vol_add0(info)  bq2560x_update_bits(info, BQ2560X_REG_F,0xc0,0x00)
+#define  termina_vol_add8(info)  bq2560x_update_bits(info, BQ2560X_REG_F,0xc0,0x40)
+#define  termina_vol_dec8(info)  bq2560x_update_bits(info, BQ2560X_REG_F,0xc0,0x80)
+#define  termina_vol_dec16(info) bq2560x_update_bits(info, BQ2560X_REG_F,0xc0,0xc0)
+
 static int
 bq2560x_charger_set_termina_vol(struct bq2560x_charger_info *info, u32 vol)
 {
-	u8 reg_val;
+	u8 reg_val,reg_remain;
 
-	dev_err(info->dev, "%s;%d;\n",__func__,vol);
 
 	if (vol < 3856)
 		reg_val = 0x0;
 	else
-		reg_val = (vol+32 - 3856) / 32;
+		reg_val = (vol - 3856) / 32;
+
+	if (reg_val == 0x0)
+		reg_remain =0;
+	else		
+		reg_remain =(vol - 3856) % 32;
+
+	if(reg_remain >=16)
+	{
+		reg_val ++;
+
+		if(reg_remain >=24)
+			termina_vol_dec8(info);
+		else
+			termina_vol_dec16(info);		
+	}
+	else
+	{
+		if(reg_remain >=8)
+			termina_vol_add8(info);
+		else
+			termina_vol_add0(info);
+				
+	}
+
+	dev_err(info->dev, "%s;%d;%d;%d;\n",__func__,vol,reg_val,reg_remain);
 
 	return bq2560x_update_bits(info, BQ2560X_REG_4,
 				   BQ2560X_REG_TERMINAL_VOLTAGE_MASK,
@@ -392,6 +421,16 @@ bq2560x_charger_get_termina_vol(struct bq2560x_charger_info *info, u32 *vol)
 
 	reg_val &= BQ2560X_REG_TERMINAL_VOLTAGE_MASK;
 	*vol = 3856 + (reg_val >> BQ2560X_REG_TERMINAL_VOLTAGE_SHIFT) * 32 ;
+
+
+	ret = bq2560x_read(info, BQ2560X_REG_F, &reg_val);
+
+	if((reg_val & 0xc0) == 0x40)
+		*vol += 8;
+	else if((reg_val & 0xc0) == 0x80)
+		*vol -= 8;
+	else if((reg_val & 0xc0) == 0xc0)
+		*vol -= 16;
 
 	return 0;
 }
@@ -510,9 +549,9 @@ static int bq2560x_charger_hw_init(struct bq2560x_charger_info *info)
 		ret = bq2560x_update_bits(info, BQ2560X_REG_4,   //TOPOFF_TIMER
 					  0x06,
 					  0);
-		ret = bq2560x_update_bits(info, BQ2560X_REG_F,   //VREG_FIT  -16   //4.448v
-					  0xc0,
-					  0xc0);
+//		ret = bq2560x_update_bits(info, BQ2560X_REG_F,   //VREG_FIT  -16   //4.448v
+//					  0xc0,
+//					  0xc0);
 
 //		ret = bq2560x_update_bits(info, BQ2560X_REG_F,   //VREG_FIT  +8            //4.472v
 //					  0x40,
