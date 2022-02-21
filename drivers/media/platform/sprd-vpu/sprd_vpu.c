@@ -417,8 +417,8 @@ static int vpu_release(struct inode *inode, struct file *filp)
 	}
 #endif
 
-	//pm_runtime_mark_last_busy(data->dev);
-	//pm_runtime_put_sync(data->dev);
+	pm_runtime_mark_last_busy(data->dev);
+	pm_runtime_put_sync(data->dev);
 
 	return 0;
 }
