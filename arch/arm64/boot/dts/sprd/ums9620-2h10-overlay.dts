@@ -215,7 +215,7 @@
 			};
 
 			sprd_marlin3: sprd-marlin3 {
-				compatible = "sprd,marlin3";
+				compatible = "unisoc,marlin3lite_sdio";
 				m2-wakeup-ap-gpios = <&ap_gpio 128 GPIO_ACTIVE_LOW>;
 				reset-gpios = <&ap_gpio 172 GPIO_ACTIVE_LOW>;
 				enable-gpios = <&ap_gpio 171 GPIO_ACTIVE_LOW>;
@@ -229,39 +229,39 @@
 				clocks = <&aonapb_gate CLK_AUX0>,
 					 <&ext_32k>,
 					 <&aonapb_gate CLK_AUX0_EB>;
-
+				extcon = <&sdio1>;
 				sdhci-name = <&sdio1>;
-				sprd,btwf-file-name = "/dev/block/platform/soc/soc:ap-ahb/22200000.sdio/by-name/wcnmodem";
-				sprd,gnss-file-name = "/dev/block/platform/soc/soc:ap-ahb/22200000.sdio/by-name/gnssmodem";
+				sprd,btwf-file-name = "/dev/block/by-name/wcnmodem";
+				sprd,gnss-file-name = "/vendor/firmware/gnssmodem.bin";
 				adma-tx;
 				adma-rx;
 				/*
 				 * bound parameter:
 				 * [0]:addr offset, [1]:mask, [2]:unboundval, [3]:boundval
 				 */
-				avdd12-parent-bound-chip = <REG_ANA_SLP_DCDC_PD_CTRL MASK_ANA_SLP_DCDCGEN1_PD_EN 0x0 MASK_ANA_SLP_DCDCGEN1_PD_EN>;
 				avdd12-bound-wbreq = <REG_ANA_LDO_XTL_EN10 MASK_ANA_LDO_VDDWCN_EXT_XTL3_EN 0x0 MASK_ANA_LDO_VDDWCN_EXT_XTL3_EN>;
 				avdd33-bound-wbreq = <REG_ANA_LDO_XTL_EN11 MASK_ANA_LDO_VDDWIFIPA_EXT_XTL3_EN 0x0 MASK_ANA_LDO_VDDWIFIPA_EXT_XTL3_EN>;
 
-				gnss_common_ctl {
-					compatible = "sprd,gnss_common_ctl";
-					sprd,name = "gnss_common_ctl";
+				wlan {
+					compatible = "sprd,sc2355-sdio-wifi";
 				};
+
+				gnss {
+					compatible = "sprd,gnss";
+				};
+
+				sprd-mtty {
+					compatible = "sprd,mtty";
+					sprd,name = "ttyBT";
+				};
+
+				sprd-fm {
+					compatible = "sprd,marlin3-fm";
+					sprd,name = "sprd-fm";
+				};
+
 			};
 
-			sprd-mtty {
-				compatible = "sprd,mtty";
-				sprd,name = "ttyBT";
-			};
-
-			sprd-fm {
-				compatible = "sprd,marlin3-fm";
-				sprd,name = "sprd-fm";
-			};
-
-			sprd-wlan{
-				compatible = "sprd,sc2355-wifi";
-			};
 
 			fingerprint@0 {
 				compatible = "microarray,afs121";
