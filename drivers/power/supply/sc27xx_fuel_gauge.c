@@ -750,6 +750,40 @@ static int sc27xx_fgu_temp2cap(struct power_supply_capacity_temp_table *table,
 	return DIV_ROUND_UP(capacity, 10);
 }
 
+static void sc27xx_fgu_capacity_loss_by_temperature(struct sc27xx_fgu_data *data, int *cap)
+{
+	int temp_cap;
+
+	if (data->cap_table_len > 0) {
+		temp_cap = sc27xx_fgu_temp2cap(data->cap_temp_table,
+					       data->cap_table_len,
+					       data->bat_temp);
+		/*
+		 * Battery capacity at different temperatures, we think
+		 * the change is linear, the follow the formula: y = ax + k
+		 *
+		 * for example: display 100% at 25 degrees need to display
+		 * 100% at -10 degrees, display 10% at 25 degrees need to
+		 * display 0% at -10 degrees, substituting the above special
+		 * points will deduced follow formula.
+		 * formula 1:
+		 * Capacity_Delta = 100 - Capacity_Percentage(T1)
+		 * formula 2:
+		 * Capacity_temp = (Capacity_Percentage(current) -
+		 * Capacity_Delta) * 100 /(100 - Capacity_Delta)
+		 */
+		temp_cap *= 10;
+
+		*cap = DIV_ROUND_CLOSEST((*cap + temp_cap - 1000) * 1000, temp_cap);
+		if (*cap < 0) {
+			*cap = 0;
+		} else if (*cap > SC27XX_FGU_FCC_PERCENT) {
+			dev_info(data->dev, "Capacity_temp > 1000, adjust !!!\n");
+			*cap = SC27XX_FGU_FCC_PERCENT;
+		}
+	}
+}
+
 /* @val: value of battery voltage in mV*/
 static int sc27xx_fgu_get_vbat_now(struct sc27xx_fgu_data *data, int *val)
 {
@@ -1438,6 +1472,7 @@ static int sc27xx_fgu_get_boot_capacity(struct sc27xx_fgu_data *data, int *cap)
 	}
 
 	*cap = pocv_cap;
+	sc27xx_fgu_capacity_loss_by_temperature(data, cap);
 	data->boot_cap = *cap;
 	ret = sc27xx_fgu_save_last_cap(data, *cap);
 	if (ret) {
@@ -1446,7 +1481,8 @@ static int sc27xx_fgu_get_boot_capacity(struct sc27xx_fgu_data *data, int *cap)
 	}
 
 	data->is_first_poweron = true;
-	dev_info(data->dev, "First_poweron: pocv_uv = %d, cap = %d\n", pocv_uv, *cap);
+	dev_info(data->dev, "First_poweron: pocv_uv = %d, pocv_cap = %d, "
+		 "boot_cap = %d\n", pocv_uv, pocv_cap, *cap);
 	return sc27xx_fgu_save_boot_mode(data, SC27XX_FGU_NORMAIL_POWERTON);
 }
 
@@ -1495,7 +1531,7 @@ static int sc27xx_fgu_uusoc_algo(struct sc27xx_fgu_data *data, int *uusoc_mah)
 
 static int sc27xx_fgu_get_capacity(struct sc27xx_fgu_data *data, int *cap)
 {
-	int ret, cur_clbcnt, delta_clbcnt, delta_cap, temp_cap;
+	int ret, cur_clbcnt, delta_clbcnt, delta_cap;
 	static int last_fgu_cap = SC27XX_FGU_MAGIC_NUMBER;
 
 	/* Get current coulomb counters firstly */
@@ -1564,41 +1600,7 @@ static int sc27xx_fgu_get_capacity(struct sc27xx_fgu_data *data, int *cap)
 	}
 
 normal_cap_calc:
-	if (data->cap_table_len > 0) {
-		temp_cap = sc27xx_fgu_temp2cap(data->cap_temp_table,
-					       data->cap_table_len,
-					       data->bat_temp);
-		/*
-		 * Battery capacity at different temperatures, we think
-		 * the change is linear, the follow the formula: y = ax + k
-		 *
-		 * for example: display 100% at 25 degrees need to display
-		 * 100% at -10 degrees, display 10% at 25 degrees need to
-		 * display 0% at -10 degrees, substituting the above special
-		 * points will deduced follow formula.
-		 * formula 1:
-		 * Capacity_Delta = 100 - Capacity_Percentage(T1)
-		 * formula 2:
-		 * Capacity_temp = (Capacity_Percentage(current) -
-		 * Capacity_Delta) * 100 /(100 - Capacity_Delta)
-		 */
-		temp_cap *= 10;
-
-		*cap = DIV_ROUND_CLOSEST((*cap + temp_cap - 1000) * 1000, temp_cap);
-		if (*cap < 0) {
-			*cap = 0;
-		} else if (*cap > SC27XX_FGU_FCC_PERCENT) {
-			dev_info(data->dev, "Capacity_temp > 1000, adjust !!!\n");
-			*cap = SC27XX_FGU_FCC_PERCENT;
-		}
-	}
-
-	if (*cap > 1000) {
-		*cap = 1000;
-		data->init_cap = 1000 - delta_cap;
-		return 0;
-	}
-	/* Calibrate the battery capacity in a normal range. */
+	sc27xx_fgu_capacity_loss_by_temperature(data, cap);
 capacity_calibration:
 	sc27xx_fgu_capacity_calibration(data, false);
 
