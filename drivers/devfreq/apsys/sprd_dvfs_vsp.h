@@ -94,6 +94,7 @@ typedef enum {
 
 #define MAX_FREQ_LEVEL 8
 
+extern const struct ip_dvfs_ops qogirl6_vsp_dvfs_ops;
 extern const struct ip_dvfs_ops sharkl5pro_vsp_dvfs_ops;
 extern const struct ip_dvfs_ops sharkl5_vsp_dvfs_ops;
 extern const struct ip_dvfs_ops roc1_vsp_dvfs_ops;

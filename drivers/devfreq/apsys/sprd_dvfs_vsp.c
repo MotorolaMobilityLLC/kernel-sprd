@@ -31,6 +31,12 @@ static const struct sprd_vsp_dvfs_data sharkl5pro_vsp_data = {
 	.dvfs_ops = &sharkl5pro_vsp_dvfs_ops,
 };
 
+static const struct sprd_vsp_dvfs_data qogirl6_vsp_data = {
+	.ver = "qogirl6",
+	.max_freq_level = 3,
+	.dvfs_ops = &qogirl6_vsp_dvfs_ops,
+};
+
 static const struct of_device_id vsp_dvfs_of_match[] = {
 	{ .compatible = "sprd,hwdvfs-vsp-sharkl5",
 	  .data = &sharkl5_vsp_data },
@@ -38,6 +44,8 @@ static const struct of_device_id vsp_dvfs_of_match[] = {
 	  .data = &roc1_vsp_data },
 	{ .compatible = "sprd,hwdvfs-vsp-sharkl5pro",
 	  .data = &sharkl5pro_vsp_data },
+	{ .compatible = "sprd,hwdvfs-vsp-qogirl6",
+	  .data = &qogirl6_vsp_data },
 	{ },
 };
 
