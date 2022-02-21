@@ -487,11 +487,18 @@ int sc2355_assert_cmd(struct sprd_priv *priv, struct sprd_vif *vif, u8 cmd_id,
 		      u8 reason)
 {
 	struct sprd_hif *hif = &priv->hif;
+	struct rx_mgmt *rx_mgmt = NULL;
 	char buf[ASSERT_INFO_BUF_SIZE] = { 0 };
 	u8 idx = 0;
 
 	pr_err("%s cmd_id:%d, reason:%d, cp_asserted:%d\n",
 	       __func__, cmd_id, reason, hif->cp_asserted);
+
+	rx_mgmt = (struct rx_mgmt *)hif->rx_mgmt;
+	if (rx_mgmt) {
+		pr_err("%s latest rx chn %u (%llu %llu).\n", __func__,
+			rx_mgmt->rx_chn, rx_mgmt->rx_handle_ns, rx_mgmt->rx_queue_ns);
+	}
 
 	if (hif->cp_asserted == 0) {
 		hif->cp_asserted = 1;

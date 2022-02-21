@@ -230,6 +230,9 @@ static int sdio_rx_handle(int chn, struct mbuf_t *head,
 		msg->buffer_type = SPRD_DEFRAG_MEM;
 		msg->data = (void *)tail;
 
+		rx_mgmt->rx_chn = chn;
+		rx_mgmt->rx_handle_ns = ktime_get_boot_fast_ns();
+
 		sprd_queue_msg(msg, &rx_mgmt->rx_list);
 	}
 	queue_work(rx_mgmt->rx_queue, &rx_mgmt->rx_work);
@@ -1284,6 +1287,8 @@ void sc2355_rx_work_queue(struct work_struct *work)
 	rx_mgmt = container_of(work, struct rx_mgmt, rx_work);
 	hif = rx_mgmt->hif;
 	priv = hif->priv;
+
+	rx_mgmt->rx_queue_ns = ktime_get_boot_fast_ns();
 
 	if (!hif->exit && !sprd_peek_msg(&rx_mgmt->rx_list))
 		sc2355_rx_process(rx_mgmt, NULL);

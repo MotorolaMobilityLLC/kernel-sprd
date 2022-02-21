@@ -74,6 +74,10 @@ struct rx_mgmt {
 	unsigned long rx_total_len;
 	ktime_t rxtimebegin;
 	ktime_t rxtimeend;
+
+	int rx_chn;
+	u64 rx_handle_ns;
+	u64 rx_queue_ns;
 };
 
 /* NOTE: MUST not modify, defined by HW */
