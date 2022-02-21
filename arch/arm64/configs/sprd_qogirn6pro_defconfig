@@ -4054,6 +4054,14 @@ CONFIG_USB_DWC3_SPRD=m
 # CONFIG_USB_CHAOSKEY is not set
 
 #
+# USB PAM drivers
+#
+CONFIG_USB_PAM=y
+CONFIG_SPRD_PAMU3=m
+CONFIG_SPRD_USBM=m
+# end of USB PAM drivers
+
+#
 # USB Physical Layer drivers
 #
 CONFIG_USB_PHY=y

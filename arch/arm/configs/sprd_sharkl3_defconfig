@@ -3687,6 +3687,13 @@ CONFIG_USB_DWC3_OF_SIMPLE=y
 # CONFIG_USB_LINK_LAYER_TEST is not set
 
 #
+# USB PAM drivers
+#
+# CONFIG_SPRD_PAMU3 is not set
+# CONFIG_SPRD_USBM is not set
+# end of USB PAM drivers
+
+#
 # USB Physical Layer drivers
 #
 CONFIG_USB_PHY=y
