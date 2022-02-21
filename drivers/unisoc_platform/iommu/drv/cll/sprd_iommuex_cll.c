@@ -49,6 +49,7 @@ u32 sprd_iommuex_cll_init(struct sprd_iommu_init_param *p_init_param,
 					sizeof(struct sprd_iommuex_priv));
 	sprd_memset((void *)p_iommu_priv, 0, sizeof(struct sprd_iommuex_priv));
 	p_iommu_priv->master_reg_addr = p_init_param->master_reg_addr;
+	p_iommu_priv->phys_offset = p_init_param->phys_offset;
 	p_iommu_priv->mmu_reg_addr = p_init_param->ctrl_reg_addr;
 	iommu_id = p_init_param->iommu_id;
 	iommu_type = p_init_param->iommu_type;
@@ -223,7 +224,9 @@ u32 sprd_iommuex_cll_map(sprd_iommu_hdl  p_iommu_hdl,
 	if (p_map_param->p_sg_table == NULL) {
 		align_map_size = MAP_SIZE_PAGE_ALIGN_UP(p_map_param->total_map_size);
 		valid_page_entries  = (u32)SIZE_TO_ENTRIES(align_map_size);
-		fault_page = p_iommu_priv->default_addr >> MMU_MAPING_PAGESIZE_SHIFFT;
+		fault_page = (p_iommu_priv->default_addr -
+				p_iommu_priv->phys_offset) >>
+			MMU_MAPING_PAGESIZE_SHIFFT;
 		if (iommu_id == IOMMU_EX_ISP)
 			fault_page = fault_page | 0x80000000;
 		memset32((void *)(p_iommu_priv->ppn_base_addr + vir_base_entry * 4),
@@ -240,6 +243,7 @@ u32 sprd_iommuex_cll_map(sprd_iommu_hdl  p_iommu_hdl,
 			      entry_index++) {
 				phy_addr = sg_to_phys(sg) +
 					(entry_index << MMU_MAPING_PAGESIZE_SHIFFT);
+				phy_addr -= p_iommu_priv->phys_offset;
 				phy_addr = phy_addr >> MMU_MAPING_PAGESIZE_SHIFFT;
 				/*isp_iommu the hightest bit 1 indicates valid addr*/
 				if (iommu_id == IOMMU_EX_ISP)
@@ -400,12 +404,12 @@ u32 sprd_iommuex_cll_enable(sprd_iommu_hdl p_iommu_hdl)
 	else
 		pgt_addr_phy = virt_to_phys(
 					(void *)p_iommu_priv->ppn_base_addr);
-
+	pgt_addr_phy -= p_iommu_priv->phys_offset;
 	mmu_ex_first_vpn(p_iommu_priv->mmu_reg_addr, iommu_id,
 		p_iommu_priv->vpn_base_addr);
 	mmu_ex_first_ppn(p_iommu_priv->mmu_reg_addr, iommu_id, pgt_addr_phy);
 
-	fault_page = p_iommu_priv->default_addr;
+	fault_page = p_iommu_priv->default_addr -= p_iommu_priv->phys_offset;
 	mmu_ex_default_ppn(p_iommu_priv->mmu_reg_addr, iommu_id, fault_page);
 
 	if (iommu_id != IOMMU_EX_ISP) {
