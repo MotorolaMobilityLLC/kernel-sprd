@@ -1167,7 +1167,7 @@ int sdiohal_list_push(int channel, struct mbuf_t *head,
 			time_total_ns = 0;
 			times_count = 0;
 		}
-		getnstimeofday(&p_data->tm_begin_sch);
+		p_data->tm_begin_sch = ktime_get_boot_fast_ns();
 
 		sdiohal_tx_up();
 	} else

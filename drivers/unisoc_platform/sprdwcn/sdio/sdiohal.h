@@ -265,10 +265,10 @@ struct sdiohal_data_t {
 	char *dtbs_buf;
 
 	/* for performance statistics */
-	struct timespec tm_begin_sch;
-	struct timespec tm_end_sch;
-	struct timespec tm_begin_irq;
-	struct timespec tm_end_irq;
+	u64 tm_begin_sch;
+	u64 tm_end_sch;
+	u64 tm_begin_irq;
+	u64 tm_end_irq;
 
 	struct wakeup_source *scan_ws;
 	struct completion scan_done;
