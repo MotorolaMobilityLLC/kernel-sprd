@@ -21,7 +21,7 @@
 #include <linux/dma/sprd-dma.h>
 #include "sprd_audio_dma.h"
 
-#define VBC_FIFO_FRAME_NUM		(512)
+#define VBC_FIFO_FRAME_NUM		(80)
 
 #define VBC_BUFFER_BYTES_MAX		(64 * 1024)
 

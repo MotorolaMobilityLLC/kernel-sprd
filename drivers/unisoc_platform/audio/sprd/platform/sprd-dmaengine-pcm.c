@@ -312,7 +312,7 @@ static int sprd_pcm_open(struct snd_pcm_substream *substream)
 	} else {
 		snd_soc_set_runtime_hwparams(substream,
 			&sprd_pcm_hardware_v1);
-		burst_len = VBC_AUDRCD_FULL_WATERMARK * 4;
+		burst_len = VBC_AUDRCD_FULL_WATERMARK / 2;
 		hw_chan = 2;
 	}
 
