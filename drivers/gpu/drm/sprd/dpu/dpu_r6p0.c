@@ -15,6 +15,7 @@
 #include "sprd_dsi.h"
 #include "sprd_crtc.h"
 #include "sprd_plane.h"
+#include "sprd_dsi_panel.h"
 
 #define XFBC8888_HEADER_SIZE(w, h) (ALIGN((ALIGN((w), 16)) * \
 				(ALIGN((h), 16)) / 16, 128))
@@ -31,6 +32,9 @@
 
 #define DPU_MAX_REG_OFFSET				0x19AC
 
+#define DSC_REG_OFFSET					0x1A00
+#define DSC1_REG_OFFSET					0x1B00
+
 #define DPU_REG_RD(reg) readl_relaxed(reg)
 
 #define DPU_REG_WR(reg, mask) writel_relaxed(mask, reg)
@@ -46,6 +50,16 @@
 
 #define DPU_LAY_PLANE_ADDR(reg, index, plane) \
 		(reg + index * DPU_LAY_REG_OFFSET * DPU_REG_SIZE + plane * DPU_REG_SIZE)
+
+#define DSC_REG(reg) (reg + DSC_REG_OFFSET)
+
+#define DSC1_REG(reg) (reg + DSC1_REG_OFFSET)
+
+/* DSC_PicW_PicH_SliceW_SliceH  */
+#define DSC_1440_2560_720_2560	0
+#define DSC_1080_2408_540_8	1
+#define DSC_720_2560_720_8	2
+#define DSC_1080_2400_540_2400	3
 
 /*Global control registers */
 #define REG_DPU_CTRL					0x08
@@ -90,6 +104,43 @@
 /* DPU STS */
 #define REG_DPU_STS_21					0x754
 #define REG_DPU_STS_22					0x758
+
+#define REG_DPU_MMU0_UPDATE				0x1808
+#define REG_DPU_MODE					0x04
+
+/* DPU SCL */
+#define REG_DPU_SCL_EN					0x20
+
+/* DPU ENHANCE */
+#define REG_DPU_ENHANCE_CFG				0x500
+
+/* DSC REG */
+#define REG_DSC_CTRL					0x00
+#define REG_DSC_PIC_SIZE				0x04
+#define REG_DSC_GRP_SIZE				0x08
+#define REG_DSC_SLICE_SIZE				0x0c
+#define REG_DSC_H_TIMING				0x10
+#define REG_DSC_V_TIMING				0x14
+#define REG_DSC_CFG0					0x18
+#define REG_DSC_CFG1					0x1c
+#define REG_DSC_CFG2					0x20
+#define REG_DSC_CFG3					0x24
+#define REG_DSC_CFG4					0x28
+#define REG_DSC_CFG5					0x2c
+#define REG_DSC_CFG6					0x30
+#define REG_DSC_CFG7					0x34
+#define REG_DSC_CFG8					0x38
+#define REG_DSC_CFG9					0x3c
+#define REG_DSC_CFG10					0x40
+#define REG_DSC_CFG11					0x44
+#define REG_DSC_CFG12					0x48
+#define REG_DSC_CFG13					0x4c
+#define REG_DSC_CFG14					0x50
+#define REG_DSC_CFG15					0x54
+#define REG_DSC_CFG16					0x58
+#define REG_DSC_STS0					0x5c
+#define REG_DSC_STS1					0x60
+#define REG_DSC_VERSION					0x64
 
 /* Global control bits */
 #define BIT_DPU_RUN					BIT(0)
@@ -143,6 +194,9 @@
 
 #define BIT_DPU_STS_RCH_DPU_BUSY			BIT(15)
 
+/* enhance config bits */
+#define BIT_DPU_ENHANCE_EN		BIT(0)
+
 struct wb_region {
 	u32 index;
 	u16 pos_x;
@@ -172,6 +226,126 @@ struct layer_reg {
 	u32 reserved[3];
 };
 
+struct scale_cfg {
+	u32 in_w;
+	u32 in_h;
+	u32 out_w;
+	u32 out_h;
+};
+
+struct hsv_entry {
+	u16 hue;
+	u16 sat;
+};
+
+struct hsv_lut {
+	struct hsv_entry table[360];
+};
+
+struct cm_cfg {
+	u16 coef00;
+	u16 coef01;
+	u16 coef02;
+	u16 coef03;
+	u16 coef10;
+	u16 coef11;
+	u16 coef12;
+	u16 coef13;
+	u16 coef20;
+	u16 coef21;
+	u16 coef22;
+	u16 coef23;
+};
+
+struct ltm_cfg {
+	u16 limit_hclip;
+	u16 limit_lclip;
+	u16 limit_clip_step;
+};
+
+struct slp_cfg {
+	u8 brightness;
+	u16 brightness_step;
+	u8 fst_max_bright_th;
+	u8 fst_max_bright_th_step[5];
+	u8 hist_exb_no;
+	u8 hist_exb_percent;
+	u16 mask_height;
+	u8 fst_pth_index[4];
+	u8 hist9_index[9];
+	u8 glb_x[3];
+	u16 glb_s[3];
+	u8 fast_ambient_th;
+	u8 scene_change_percent_th;
+	u8 local_weight;
+	u8 fst_pth;
+	u8 cabc_endv;
+	u8 cabc_startv;
+};
+
+struct gamma_lut {
+	u16 r[256];
+	u16 g[256];
+	u16 b[256];
+};
+
+struct epf_cfg {
+	u16 epsilon0;
+	u16 epsilon1;
+	u8 gain0;
+	u8 gain1;
+	u8 gain2;
+	u8 gain3;
+	u8 gain4;
+	u8 gain5;
+	u8 gain6;
+	u8 gain7;
+	u8 max_diff;
+	u8 min_diff;
+};
+
+struct threed_lut {
+	u32 value[729];
+};
+
+struct cabc_para {
+	u32 cabc_hist[32];
+	u16 gain0;
+	u16 gain1;
+	u32 gain2;
+	u8 p0;
+	u8 p1;
+	u8 p2;
+	u16 bl_fix;
+	u16 cur_bl;
+	u8 video_mode;
+	u8 slp_brightness;
+	u8 slp_local_weight;
+	u8 dci_en;
+	u8 slp_en;
+};
+
+struct dpu_enhance {
+	int enhance_en;
+	int cabc_state;
+	int frame_no;
+	bool cabc_bl_set;
+	bool mode_changed;
+	bool need_scale;
+	u8 skip_layer_index;
+
+	struct scale_cfg scale_copy;
+	struct hsv_lut hsv_copy;
+	struct cm_cfg cm_copy;
+	struct ltm_cfg ltm_copy;
+	struct slp_cfg slp_copy;
+	struct gamma_lut gamma_copy;
+	struct epf_cfg epf_copy;
+	struct threed_lut lut3d_copy;
+	struct backlight_device *bl_dev;
+	struct cabc_para cabc_para;
+};
+
 static struct dpu_cfg1 qos_cfg = {
 	.arqos_low = 0x0a,
 	.arqos_high = 0x0c,
@@ -187,10 +361,54 @@ struct dpu_dsc_cfg {
 	int  dsc_mode;
 };
 
+/*
+ * FIXME:
+ * We don't know what's the best binding to link the panel with dpu dsc.
+ * Fow now, we just add all panels that we support dsc, and search them
+ */
+static struct dpu_dsc_cfg dsc_cfg[] = {
+	{
+		.name = "lcd_nt35597_boe_mipi_qhd",
+		.dual_dsi_en = 0,
+		.dsc_en = 1,
+		.dsc_mode = 0,
+	},
+	{
+		.name = "lcd_nt57860_boe_mipi_qhd",
+		.dual_dsi_en = 1,
+		.dsc_en = 1,
+		.dsc_mode = 2,
+	},
+	{
+		.name = "lcd_nt36672c_truly_mipi_fhd",
+		.dual_dsi_en = 0,
+		.dsc_en = 1,
+		.dsc_mode = 1,
+	},
+	{
+		.name = "lcd_td4375_dijin_mipi_fhd",
+		.dual_dsi_en = 0,
+		.dsc_en = 1,
+		.dsc_mode = 3,
+	},
+	{
+		.name = "lcd_td4375_dijin_4lane_mipi_fhd",
+		.dual_dsi_en = 0,
+		.dsc_en = 1,
+		.dsc_mode = 3,
+	},
+	{
+		.name = "lcd_nt36672e_truly_mipi_fhd",
+		.dual_dsi_en = 0,
+		.dsc_en = 1,
+		.dsc_mode = 1,
+	},
+};
+
+static void dpu_sr_config(struct dpu_context *ctx);
 static void dpu_clean_all(struct dpu_context *ctx);
 static void dpu_layer(struct dpu_context *ctx,
 		    struct sprd_layer_state *hwlayer);
-
 
 static void dpu_version(struct dpu_context *ctx)
 {
@@ -539,9 +757,171 @@ static int dpu_write_back_config(struct dpu_context *ctx)
 	return 0;
 }
 
+/*
+ * FIXME:
+ * We don't know what's the best binding to link the panel with dpu dsc.
+ * Fow now, we just hunt for all panels that we support, and get dsc cfg
+ */
+static void dpu_get_dsc_cfg(struct dpu_context *ctx)
+{
+	int index;
+	struct sprd_dpu *dpu =
+		(struct sprd_dpu *)container_of(ctx, struct sprd_dpu, ctx);
+
+	for (index = 0; index < ARRAY_SIZE(dsc_cfg); index++) {
+		if (!strcmp(dsc_cfg[index].name, dpu->dsi->ctx.lcd_name)) {
+			ctx->dual_dsi_en = dsc_cfg[index].dual_dsi_en;
+			ctx->dsc_en = dsc_cfg[index].dsc_en;
+			ctx->dsc_mode = dsc_cfg[index].dsc_mode;
+			return;
+		}
+	}
+	pr_info("no found compatible, use dsc off\n");
+}
+
+static int dpu_config_dsc_param(struct dpu_context *ctx)
+{
+	u32 reg_val;
+	struct sprd_dpu *dpu =
+		(struct sprd_dpu *)container_of(ctx, struct sprd_dpu, ctx);
+
+	if (ctx->dual_dsi_en) {
+		reg_val = (ctx->vm.vactive << 16) |
+			((ctx->vm.hactive >> 1)  << 0);
+		DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_PIC_SIZE), reg_val);
+	} else {
+		reg_val = (ctx->vm.vactive << 16) |
+			(ctx->vm.hactive << 0);
+		DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_PIC_SIZE), reg_val);
+	}
+	if (ctx->dual_dsi_en) {
+		reg_val = ((ctx->vm.hsync_len >> 1) << 0) |
+			((ctx->vm.hback_porch  >> 1) << 8) |
+			((ctx->vm.hfront_porch >> 1) << 20);
+		DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_H_TIMING), reg_val);
+	} else {
+		reg_val = (ctx->vm.hsync_len << 0) |
+			(ctx->vm.hback_porch  << 8) |
+			(ctx->vm.hfront_porch << 20);
+		DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_H_TIMING), reg_val);
+	}
+	reg_val = (ctx->vm.vsync_len << 0) |
+			(ctx->vm.vback_porch  << 8) |
+			(ctx->vm.vfront_porch << 20);
+	DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_V_TIMING), reg_val);
+
+	DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_CFG0), 0x306c81db);
+	DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_CFG3), 0x12181800);
+	DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_CFG4), 0x003316b6);
+	DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_CFG5), 0x382a1c0e);
+	DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_CFG6), 0x69625446);
+	DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_CFG7), 0x7b797770);
+	DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_CFG8), 0x00007e7d);
+	DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_CFG9), 0x01000102);
+	DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_CFG10), 0x09be0940);
+	DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_CFG11), 0x19fa19fc);
+	DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_CFG12), 0x1a3819f8);
+	DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_CFG13), 0x1ab61a78);
+	DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_CFG14), 0x2b342af6);
+	DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_CFG15), 0x3b742b74);
+	DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_CFG16), 0x00006bf4);
+
+	switch (ctx->dsc_mode) {
+	case DSC_1440_2560_720_2560:
+		DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_GRP_SIZE), 0x000000f0);
+		DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_SLICE_SIZE), 0x04096000);
+		DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_CFG1), 0x000ae4bd);
+		DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_CFG2), 0x0008000a);
+		break;
+	case DSC_1080_2408_540_8:
+		DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_GRP_SIZE), 0x800b4);
+		DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_SLICE_SIZE), 0x050005a0);
+		DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_CFG1), 0x7009b);
+		DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_CFG2), 0xcb70db7);
+		break;
+	case DSC_720_2560_720_8:
+		DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_GRP_SIZE), 0x800f0);
+		DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_SLICE_SIZE), 0x1000780);
+		DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_CFG1), 0x000a00b1);
+		DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_CFG2), 0x9890db7);
+		if (ctx->dual_dsi_en) {
+			reg_val = (ctx->vm.vactive << 16) |
+				((ctx->vm.hactive >> 1) << 0);
+			DPU_REG_WR(ctx->base + DSC1_REG(REG_DSC_PIC_SIZE), reg_val);
+
+			reg_val = ((ctx->vm.hsync_len >> 1) << 0) |
+				((ctx->vm.hback_porch  >> 1) << 8) |
+				((ctx->vm.hfront_porch >> 1) << 20);
+			DPU_REG_WR(ctx->base + DSC1_REG(REG_DSC_H_TIMING), reg_val);
+
+			reg_val = (ctx->vm.vsync_len << 0) |
+				(ctx->vm.vback_porch  << 8) |
+				(ctx->vm.vfront_porch << 20);
+			DPU_REG_WR(ctx->base + DSC1_REG(REG_DSC_V_TIMING), reg_val);
+
+			DPU_REG_WR(ctx->base + DSC1_REG(REG_DSC_CFG0), 0x306c81db);
+			DPU_REG_WR(ctx->base + DSC1_REG(REG_DSC_CFG3), 0x12181800);
+			DPU_REG_WR(ctx->base + DSC1_REG(REG_DSC_CFG4), 0x003316b6);
+			DPU_REG_WR(ctx->base + DSC1_REG(REG_DSC_CFG5), 0x382a1c0e);
+			DPU_REG_WR(ctx->base + DSC1_REG(REG_DSC_CFG6), 0x69625446);
+			DPU_REG_WR(ctx->base + DSC1_REG(REG_DSC_CFG7), 0x7b797770);
+			DPU_REG_WR(ctx->base + DSC1_REG(REG_DSC_CFG8), 0x00007e7d);
+			DPU_REG_WR(ctx->base + DSC1_REG(REG_DSC_CFG9), 0x01000102);
+			DPU_REG_WR(ctx->base + DSC1_REG(REG_DSC_CFG10), 0x09be0940);
+			DPU_REG_WR(ctx->base + DSC1_REG(REG_DSC_CFG11), 0x19fa19fc);
+			DPU_REG_WR(ctx->base + DSC1_REG(REG_DSC_CFG12), 0x1a3819f8);
+			DPU_REG_WR(ctx->base + DSC1_REG(REG_DSC_CFG13), 0x1ab61a78);
+			DPU_REG_WR(ctx->base + DSC1_REG(REG_DSC_CFG14), 0x2b342af6);
+			DPU_REG_WR(ctx->base + DSC1_REG(REG_DSC_CFG15), 0x3b742b74);
+			DPU_REG_WR(ctx->base + DSC1_REG(REG_DSC_CFG16), 0x00006bf4);
+			DPU_REG_WR(ctx->base + DSC1_REG(REG_DSC_GRP_SIZE), 0x800f0);
+			DPU_REG_WR(ctx->base + DSC1_REG(REG_DSC_SLICE_SIZE), 0x1000780);
+			DPU_REG_WR(ctx->base + DSC1_REG(REG_DSC_CFG1), 0x000a00b1);
+			DPU_REG_WR(ctx->base + DSC1_REG(REG_DSC_CFG2), 0x9890db7);
+			if (dpu->dsi->ctx.work_mode == DSI_MODE_CMD)
+				DPU_REG_WR(ctx->base + DSC1_REG(REG_DSC_CTRL), 0x2000010b);
+			else
+				DPU_REG_WR(ctx->base + DSC1_REG(REG_DSC_CTRL), 0x2000000b);
+		}
+
+		break;
+	case DSC_1080_2400_540_2400:
+		DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_GRP_SIZE), 0x000000b4);
+		DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_SLICE_SIZE), 0x04069780);
+		DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_CFG0), 0x306c8200);
+		DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_CFG1), 0x0007e13f);
+		DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_CFG2), 0x000b000b);
+		DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_CFG3), 0x10f01800);
+		break;
+
+	default:
+		DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_GRP_SIZE), 0x000000f0);
+		DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_SLICE_SIZE), 0x04096000);
+		DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_CFG1), 0x000ae4bd);
+		DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_CFG2), 0x0008000a);
+		break;
+	}
+
+	if (dpu->dsi->ctx.work_mode == DSI_MODE_CMD)
+		DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_CTRL), 0x2000010b);
+	else
+		DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_CTRL), 0x2000000b);
+
+	return 0;
+}
+
 static int dpu_init(struct dpu_context *ctx)
 {
 	u32 reg_val, size;
+	struct sprd_dpu *dpu = (struct sprd_dpu *)container_of(ctx, struct sprd_dpu, ctx);
+
+	dpu_get_dsc_cfg(ctx);
+
+	if (ctx->dual_dsi_en)
+		DPU_REG_WR(ctx->base + REG_DPU_MODE, BIT(0));
+
+	if (ctx->dsc_en)
+		dpu_config_dsc_param(ctx);
 
 	/* set bg color */
 	DPU_REG_WR(ctx->base + REG_BG_COLOR, 0x00);
@@ -552,6 +932,10 @@ static int dpu_init(struct dpu_context *ctx)
 	DPU_REG_WR(ctx->base + REG_BLEND_SIZE, size);
 
 	DPU_REG_WR(ctx->base + REG_DPU_CFG0, 0x00);
+	if ((dpu->dsi->ctx.work_mode == DSI_MODE_CMD) && ctx->dsc_en) {
+		DPU_REG_SET(ctx->base + REG_DPU_CFG0, BIT(1));
+		ctx->is_single_run = true;
+	}
 
 	reg_val = (qos_cfg.awqos_high << 12) |
 		(qos_cfg.awqos_low << 8) |
@@ -797,12 +1181,15 @@ static void dpu_bgcolor(struct dpu_context *ctx, u32 color)
 
 	dpu_clean_all(ctx);
 
-	if ((ctx->if_type == SPRD_DPU_IF_DPI) && !ctx->stopped) {
-		DPU_REG_SET(ctx->base + REG_DPU_CTRL, BIT_LAY_REG_UPDATE);
-		dpu_wait_update_done(ctx);
+	if (ctx->is_single_run) {
+		DPU_REG_SET(ctx->base + REG_DPU_CTRL, BIT(4));
+		DPU_REG_SET(ctx->base + REG_DPU_CTRL, BIT(0));
 	} else if (ctx->if_type == SPRD_DPU_IF_EDPI) {
 		DPU_REG_SET(ctx->base + REG_DPU_CTRL, BIT_DPU_RUN);
 		ctx->stopped = false;
+	} else if ((ctx->if_type == SPRD_DPU_IF_DPI) && !ctx->stopped) {
+		DPU_REG_SET(ctx->base + REG_DPU_CTRL, BIT_LAY_REG_UPDATE);
+		dpu_wait_update_done(ctx);
 	}
 }
 
@@ -811,10 +1198,8 @@ static void dpu_layer(struct dpu_context *ctx,
 {
 	const struct drm_format_info *info;
 	struct layer_reg tmp = {};
-	u32 dst_size, src_size, offset, wd, rot, layer_enable_sts;
+	u32 dst_size, src_size, offset, wd, rot;
 	int i;
-
-	layer_enable_sts = DPU_REG_RD(ctx->base + REG_LAYER_ENABLE);
 
 	offset = (hwlayer->dst_x & 0xffff) | ((hwlayer->dst_y) << 16);
 	src_size = (hwlayer->src_w & 0xffff) | ((hwlayer->src_h) << 16);
@@ -890,9 +1275,8 @@ static void dpu_layer(struct dpu_context *ctx,
 			hwlayer->index), tmp.pitch);
 	DPU_REG_WR(ctx->base + DPU_LAY_REG(REG_LAY_CTRL,
 			hwlayer->index), tmp.ctrl);
-
-	layer_enable_sts |= (1 << hwlayer->index);
-	DPU_REG_WR(ctx->base + REG_LAYER_ENABLE, layer_enable_sts);
+	DPU_REG_SET(ctx->base + REG_LAYER_ENABLE,
+			(1 << hwlayer->index));
 	// DPU_REG_WR(ctx->base + DPU_LAY_REG(REG_LAY_PALLETE,
 				// hwlayer->index), tmp.pallete);
 
@@ -902,6 +1286,146 @@ static void dpu_layer(struct dpu_context *ctx,
 	pr_debug("start_x = %d, start_y = %d, start_w = %d, start_h = %d\n",
 				hwlayer->src_x, hwlayer->src_y,
 				hwlayer->src_w, hwlayer->src_h);
+}
+
+static int dpu_vrr(struct dpu_context *ctx)
+{
+	struct sprd_dpu *dpu = (struct sprd_dpu *)container_of(ctx,
+			struct sprd_dpu, ctx);
+	u32 reg_val;
+
+	if (ctx->fps_mode_changed) {
+		dpu_stop(ctx);
+		reg_val = (ctx->vm.vsync_len << 0) |
+			(ctx->vm.vback_porch << 8) |
+			(ctx->vm.vfront_porch << 20);
+		DPU_REG_WR(ctx->base + REG_DPI_V_TIMING, reg_val);
+
+		reg_val = (ctx->vm.hsync_len << 0) |
+			(ctx->vm.hback_porch << 8) |
+			(ctx->vm.hfront_porch << 20);
+		DPU_REG_WR(ctx->base + REG_DPI_H_TIMING, reg_val);
+
+		if (ctx->dsc_en) {
+			reg_val = (ctx->vm.vsync_len << 0) |
+				(ctx->vm.vback_porch  << 8) |
+				(ctx->vm.vfront_porch << 20);
+			DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_V_TIMING), reg_val);
+
+			reg_val = (ctx->vm.hsync_len << 0) |
+				(ctx->vm.hback_porch << 8) |
+				(ctx->vm.hfront_porch << 20);
+			DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_H_TIMING), reg_val);
+		}
+		sprd_dsi_vrr_timing(dpu->dsi);
+		reg_val = DPU_REG_RD(ctx->base + REG_DPU_CTRL);
+		reg_val |= BIT(0) | BIT(4);
+		DPU_REG_WR(ctx->base + REG_DPU_CTRL, reg_val);
+		dpu_wait_update_done(ctx);
+		ctx->stopped = false;
+		DPU_REG_WR(ctx->base + REG_DPU_MMU0_UPDATE, 1);
+		ctx->fps_mode_changed = false;
+	}
+
+	return 0;
+}
+
+static void dpu_scaling(struct dpu_context *ctx,
+		struct sprd_plane planes[], u8 count)
+{
+	int i;
+	u16 src_w;
+	u16 src_h;
+	u32 reg_val;
+	struct sprd_layer_state *layer_state;
+	struct sprd_plane_state *plane_state;
+	struct dpu_enhance *enhance = ctx->enhance;
+
+	if (!enhance) {
+		pr_err("%s() the pointer of enhance is NULL!\n", __func__);
+		return;
+	}
+
+	if (enhance->mode_changed) {
+		pr_debug("------------------------------------\n");
+		for (i = 0; i < count; i++) {
+			plane_state = to_sprd_plane_state(planes[i].base.state);
+			layer_state = &plane_state->layer;
+			pr_debug("layer[%d] : %dx%d --- (%d)\n", i,
+					layer_state->dst_w, layer_state->dst_h,
+					enhance->scale_copy.in_w);
+			if (layer_state->dst_w != enhance->scale_copy.in_w) {
+				enhance->skip_layer_index = i;
+				break;
+			}
+		}
+
+		plane_state = to_sprd_plane_state(planes[count - 1].base.state);
+		layer_state = &plane_state->layer;
+		if  (layer_state->dst_w <= enhance->scale_copy.in_w) {
+			dpu_sr_config(ctx);
+			enhance->mode_changed = false;
+
+			pr_info("do scaling enhace: 0x%x, bottom layer(%dx%d)\n",
+					enhance->enhance_en, layer_state->dst_w,
+					layer_state->dst_h);
+		}
+	} else {
+		if (count == 1) {
+			plane_state = to_sprd_plane_state(planes[count - 1].base.state);
+			layer_state = &plane_state->layer;
+			// btm_layer = &layers[count - 1];
+			if (layer_state->rotation & (DRM_MODE_ROTATE_90 |
+						DRM_MODE_ROTATE_270)) {
+				src_w = layer_state->src_h;
+				src_h = layer_state->src_w;
+			} else {
+				src_w = layer_state->src_w;
+				src_h = layer_state->src_h;
+			}
+			if (src_w == layer_state->dst_w
+					&& src_h == layer_state->dst_h) {
+				reg_val = (enhance->scale_copy.in_h << 16) |
+					enhance->scale_copy.in_w;
+				DPU_REG_WR(ctx->base + REG_BLEND_SIZE, reg_val);
+				if (!enhance->need_scale) {
+					DPU_REG_CLR(ctx->base + REG_DPU_SCL_EN, BIT(0));
+				} else {
+					DPU_REG_SET(ctx->base + REG_DPU_SCL_EN, BIT(0));
+				}
+			} else {
+				/*
+				 * When the layer src size is not euqal to the
+				 * dst size, screened by dpu hal,the single
+				 * layer need to scaling-up. Regardless of
+				 * whether the SR function is turned on, dpu
+				 * blend size should be set to the layer src
+				 * size.
+				 */
+				reg_val = (src_h << 16) | src_w;
+				DPU_REG_WR(ctx->base + REG_BLEND_SIZE, reg_val);
+				/*
+				 * When the layer src size is equal to panel
+				 * size, close dpu scaling-up function.
+				 */
+				if (src_h == ctx->vm.vactive &&
+						src_w == ctx->vm.hactive) {
+					DPU_REG_CLR(ctx->base + REG_DPU_ENHANCE_CFG, BIT_DPU_ENHANCE_EN);
+				} else {
+					DPU_REG_SET(ctx->base + REG_DPU_ENHANCE_CFG, BIT_DPU_ENHANCE_EN);
+				}
+			}
+		} else {
+			reg_val = (enhance->scale_copy.in_h << 16) |
+				enhance->scale_copy.in_w;
+			DPU_REG_WR(ctx->base + REG_BLEND_SIZE, reg_val);
+			if (!enhance->need_scale) {
+				DPU_REG_CLR(ctx->base + REG_DPU_ENHANCE_CFG, BIT_DPU_ENHANCE_EN);
+			} else {
+				DPU_REG_SET(ctx->base + REG_DPU_ENHANCE_CFG, BIT_DPU_ENHANCE_EN);
+			}
+		}
+	}
 }
 
 static void dpu_flip(struct dpu_context *ctx,
@@ -925,8 +1449,14 @@ static void dpu_flip(struct dpu_context *ctx,
 	/* reset the bgcolor to black */
 	DPU_REG_WR(ctx->base + REG_BG_COLOR, 0x00);
 
+	 /* to check if dpu need change the frame rate */
+	dpu_vrr(ctx);
+
 	/* disable all the layers */
 	dpu_clean_all(ctx);
+
+	/* to check if dpu need scaling the frame for SR */
+	dpu_scaling(ctx, planes, count);
 
 	/* start configure dpu layers */
 	for (i = 0; i < count; i++) {
@@ -934,16 +1464,19 @@ static void dpu_flip(struct dpu_context *ctx,
 		dpu_layer(ctx, &state->layer);
 	}
 	/* update trigger and wait */
-	if (ctx->if_type == SPRD_DPU_IF_DPI) {
+	if (ctx->is_single_run) {
+		DPU_REG_SET(ctx->base + REG_DPU_CTRL, BIT(4));
+		DPU_REG_SET(ctx->base + REG_DPU_CTRL, BIT(0));
+	} else if (ctx->if_type == SPRD_DPU_IF_EDPI) {
+		DPU_REG_SET(ctx->base + REG_DPU_CTRL, BIT_DPU_RUN);
+		ctx->stopped = false;
+	} else if (ctx->if_type == SPRD_DPU_IF_DPI) {
 		if (!ctx->stopped) {
 			DPU_REG_SET(ctx->base + REG_DPU_CTRL, BIT_LAY_REG_UPDATE);
 			dpu_wait_update_done(ctx);
 		}
 
 		DPU_REG_SET(ctx->base + REG_DPU_INT_EN, BIT_DPU_INT_ERR);
-	} else if (ctx->if_type == SPRD_DPU_IF_EDPI) {
-		DPU_REG_SET(ctx->base + REG_DPU_CTRL, BIT_DPU_RUN);
-		ctx->stopped = false;
 	}
 
 	/*
@@ -966,6 +1499,9 @@ static void dpu_dpi_init(struct dpu_context *ctx)
 
 		/* enable Halt function for SPRD DSI */
 		DPU_REG_SET(ctx->base + REG_DPI_CTRL, BIT_DPU_DPI_HALT_EN);
+
+		if (ctx->is_single_run)
+			DPU_REG_SET(ctx->base + REG_DPU_CTRL, BIT(0));
 
 		/* set dpi timing */
 		reg_val = ctx->vm.hsync_len << 0 |
@@ -1036,8 +1572,92 @@ static void disable_vsync(struct dpu_context *ctx)
 
 static int dpu_context_init(struct dpu_context *ctx)
 {
+	struct dpu_enhance *enhance;
+
+	enhance = kzalloc(sizeof(*enhance), GFP_KERNEL);
+	if (!enhance) {
+		pr_err("%s() enhance kzalloc failed!\n", __func__);
+		return -ENOMEM;
+	}
+	ctx->enhance = enhance;
+
 	ctx->base_offset[0] = 0x0;
 	ctx->base_offset[1] = DPU_MAX_REG_OFFSET;
+
+	return 0;
+}
+
+static void dpu_sr_config(struct dpu_context *ctx)
+{
+	struct dpu_enhance *enhance = ctx->enhance;
+	u32 reg_val;
+
+	if (!enhance) {
+		pr_err("%s() the pointer of enhance is NULL!\n", __func__);
+		return;
+	}
+
+	reg_val = (enhance->scale_copy.in_h << 16) | enhance->scale_copy.in_w;
+	DPU_REG_WR(ctx->base + REG_BLEND_SIZE, reg_val);
+	if (enhance->need_scale) {
+		enhance->enhance_en |= BIT(13);
+		DPU_REG_WR(ctx->base + REG_DPU_SCL_EN, BIT(0));
+		DPU_REG_WR(ctx->base + REG_DPU_ENHANCE_CFG, enhance->enhance_en);
+	} else {
+		enhance->enhance_en &= ~(BIT(13));
+		DPU_REG_WR(ctx->base + REG_DPU_SCL_EN, 0);
+		DPU_REG_WR(ctx->base + REG_DPU_ENHANCE_CFG, enhance->enhance_en);
+	}
+}
+
+static int dpu_modeset(struct dpu_context *ctx,
+		struct drm_display_mode *mode)
+{
+	struct dpu_enhance *enhance = ctx->enhance;
+	struct sprd_dpu *dpu = container_of(ctx, struct sprd_dpu, ctx);
+	struct sprd_dsi *dsi = dpu->dsi;
+	static unsigned int now_vtotal;
+	static unsigned int now_htotal;
+
+	if (!enhance) {
+		pr_err("%s() the pointer of enhance is NULL!\n", __func__);
+		return -ENOMEM;
+	}
+
+	enhance->scale_copy.in_w = mode->hdisplay;
+	enhance->scale_copy.in_h = mode->vdisplay;
+
+	if ((mode->hdisplay != ctx->vm.hactive) ||
+		(mode->vdisplay != ctx->vm.vactive)) {
+		enhance->need_scale = true;
+		enhance->mode_changed = true;
+	} else {
+		if (!now_htotal && !now_vtotal) {
+			now_htotal = ctx->vm.hactive + ctx->vm.hfront_porch +
+				ctx->vm.hback_porch + ctx->vm.hsync_len;
+			now_vtotal = ctx->vm.vactive + ctx->vm.vfront_porch +
+				ctx->vm.vback_porch + ctx->vm.vsync_len;
+		}
+
+		if ((mode->vtotal + mode->htotal) !=
+			(now_htotal + now_vtotal)) {
+			drm_display_mode_to_videomode(mode, &ctx->vm);
+			drm_display_mode_to_videomode(mode, &dsi->ctx.vm);
+			now_htotal = ctx->vm.hactive + ctx->vm.hfront_porch +
+				ctx->vm.hback_porch + ctx->vm.hsync_len;
+			now_vtotal = ctx->vm.vactive + ctx->vm.vfront_porch +
+				ctx->vm.vback_porch + ctx->vm.vsync_len;
+
+			ctx->fps_mode_changed = true;
+		} else {
+			enhance->mode_changed = true;
+		}
+
+		enhance->need_scale = false;
+	}
+
+	ctx->wb_size_changed = true;
+	pr_info("begin switch to %u x %u\n", mode->hdisplay, mode->vdisplay);
 
 	return 0;
 }
@@ -1076,5 +1696,6 @@ const struct dpu_core_ops dpu_r6p0_core_ops = {
 	.enable_vsync = enable_vsync,
 	.disable_vsync = disable_vsync,
 	.context_init = dpu_context_init,
+	.modeset = dpu_modeset,
 	.write_back = dpu_wb_trigger,
 };

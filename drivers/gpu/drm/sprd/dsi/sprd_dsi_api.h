@@ -24,5 +24,5 @@ void sprd_dsi_nc_clk_en(struct sprd_dsi *dsi, bool enable);
 void sprd_dsi_state_reset(struct sprd_dsi *dsi);
 u32 sprd_dsi_int_status(struct sprd_dsi *dsi, int index);
 void sprd_dsi_int_mask(struct sprd_dsi *dsi, int index);
-
+int sprd_dsi_vrr_timing(struct sprd_dsi *dsi);
 #endif /* _SPRD_DSI_API_H_ */

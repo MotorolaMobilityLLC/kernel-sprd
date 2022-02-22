@@ -214,6 +214,32 @@ void sprd_dsi_fini(struct sprd_dsi *dsi)
 	dsi_hal_power_en(dsi, 0);
 }
 
+int sprd_dsi_vrr_timing(struct sprd_dsi *dsi)
+{
+	u16 Bpp_x100;
+	u32 ratio_x1000;
+	u16 hline;
+	u8 coding;
+	struct dsi_context *ctx = &dsi->ctx;
+	struct videomode *vm = &dsi->ctx.vm;
+
+	coding = fmt_to_coding(ctx->format);
+	Bpp_x100 = calc_bytes_per_pixel_x100(coding);
+	ratio_x1000 = ctx->byte_clk * 1000 / (vm->pixelclock / 1000);
+	hline = vm->hactive + vm->hsync_len + vm->hfront_porch +
+		vm->hback_porch;
+	dsi_hal_dpi_sig_delay(dsi, 95 * hline * ratio_x1000 / 100000);
+	dsi_hal_dpi_hline_time(dsi, hline * ratio_x1000 / 1000);
+	dsi_hal_dpi_hsync_time(dsi, vm->hsync_len * ratio_x1000 / 1000);
+	dsi_hal_dpi_hbp_time(dsi, vm->hback_porch * ratio_x1000 / 1000);
+	dsi_hal_dpi_vact(dsi, vm->vactive);
+	dsi_hal_dpi_vfp(dsi, vm->vfront_porch);
+	dsi_hal_dpi_vbp(dsi, vm->vback_porch);
+	dsi_hal_dpi_vsync(dsi, vm->vsync_len);
+
+	return 0;
+}
+
 /*
  * Configure DPI video interface
  * - If not in burst mode, it will compute the video and null packet sizes

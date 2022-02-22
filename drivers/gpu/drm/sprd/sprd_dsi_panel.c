@@ -514,7 +514,7 @@ static int of_parse_buildin_modes(struct panel_info *info,
 
 		info->buildin_modes[i].width_mm = info->mode.width_mm;
 		info->buildin_modes[i].height_mm = info->mode.height_mm;
-		info->buildin_modes[i].vrefresh = info->mode.vrefresh;
+		info->buildin_modes[i].vrefresh = drm_mode_vrefresh(&info->buildin_modes[i]);
 	}
 	info->num_buildin_modes = num_timings;
 	DRM_INFO("info->num_buildin_modes = %d\n", num_timings);

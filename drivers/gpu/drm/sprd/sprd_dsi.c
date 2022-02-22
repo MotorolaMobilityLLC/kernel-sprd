@@ -375,6 +375,8 @@ static int sprd_dsi_host_attach(struct mipi_dsi_host *host,
 
 	lcd_node = dsi->panel->dev->of_node;
 
+	ctx->lcd_name = lcd_node->name;
+
 	if (!of_property_read_u32(lcd_node, "sprd,video-lp-cmd-enable", &val))
 		ctx->video_lp_cmd_en = val;
 	else

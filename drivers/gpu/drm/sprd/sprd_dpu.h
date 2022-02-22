@@ -21,6 +21,9 @@
 #include "disp_lib.h"
 #include "disp_trusty.h"
 #include "sprd_dsi.h"
+#include "dsi/sprd_dsi_api.h"
+#include "dsi/sprd_dsi_hal.h"
+
 
 enum {
 	SPRD_DPU_IF_DBI = 0,
@@ -119,6 +122,7 @@ struct dpu_context {
 	bool evt_stop;
 	irqreturn_t (*dpu_isr)(int irq, void *data);
 	struct tasklet_struct dvfs_task;
+	bool is_single_run;
 
 	/* pq enhance parameters */
 	void *enhance;
@@ -156,6 +160,15 @@ struct dpu_context {
 	int secure_debug;
 	int time;
 	struct disp_message *tos_msg;
+
+	/* vrr config parameters */
+	bool fps_mode_changed;
+	bool wb_size_changed;
+
+	/* dsc config parameters */
+	bool dual_dsi_en;
+	bool dsc_en;
+	int  dsc_mode;
 
 	/* other specific parameters */
 	bool panel_ready;

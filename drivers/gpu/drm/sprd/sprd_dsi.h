@@ -102,6 +102,8 @@ struct dsi_context {
 	bool surface_mode;
 	/* check lcd esd status if lcd be in recovery process or not */
 	bool is_esd_rst;
+
+	const char *lcd_name;
 };
 
 struct dsi_core_ops {
