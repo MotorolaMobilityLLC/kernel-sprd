@@ -1637,13 +1637,12 @@
 					"ipa_irq4", "ipa_irq5",
 					"ipa_irq6", "ipa_irq7",
 					"ipa_general";
-				syscons = <&ipa_glb_apb_regs
+				enable-ipa = <&ipa_glb_apb_regs
 					REG_IPA_GLB_APB_IPA_IP_EB
-					MASK_IPA_GLB_APB_IPA_EB>,
-					<&ipa_glb_apb_regs
+					MASK_IPA_GLB_APB_IPA_EB>;
+				enable-tft = <&ipa_glb_apb_regs
 					REG_IPA_GLB_APB_IPA_IP_EB
 					MASK_IPA_GLB_APB_TFT_EB>;
-				syscon-names = "enable-ipa", "enable-tft";
 
 				sprd,sipa-bypass-mode = <1>;
 
