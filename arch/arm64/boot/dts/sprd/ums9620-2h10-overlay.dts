@@ -463,6 +463,12 @@
 		interrupt-parent = <&ap_gpio>;
 		interrupts = <60 IRQ_TYPE_LEVEL_LOW>;
 	};
+
+	btn38003a: btn38003a_redriver@30 {
+		compatible = "sprd,ptn38003a redriver";
+		reg = <0x30>;
+	};
+
 };
 
 &hsphy {
