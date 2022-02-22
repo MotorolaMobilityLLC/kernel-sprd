@@ -279,6 +279,7 @@ struct sprdwl_priv {
 	unsigned char ott_supt;
 	int is_suspending;
 	int is_screen_off;
+	u8 tx_mgmt_status;
 };
 
 struct sprdwl_eap_hdr {

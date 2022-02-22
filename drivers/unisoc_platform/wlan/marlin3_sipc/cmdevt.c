@@ -2781,6 +2781,10 @@ unsigned short sprdwl_rx_rsp_process(struct sprdwl_priv *priv, u8 *msg)
 			       err2str(hdr->status));
 			handle_flag = handle_rsp_status_err(hdr->cmd_id,
 						hdr->status);
+			if (hdr->cmd_id == WIFI_CMD_TX_MGMT) {
+				wl_err("tx mgmt status : %d\n", hdr->status);
+				priv->tx_mgmt_status = hdr->status;
+			}
 
 		}
 		cmd->data = data;

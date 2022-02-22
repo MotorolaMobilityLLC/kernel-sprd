@@ -2707,10 +2707,13 @@ static int sprdwl_cfg80211_mgmt_tx(struct wiphy *wiphy,
 				     ieee80211_frequency_to_channel
 				     (chan->center_freq), dont_wait_for_ack,
 				     wait, cookie, buf, len);
-		if (ret)
-			if (!dont_wait_for_ack)
+		if (ret || vif->priv->tx_mgmt_status) {
+			if (!dont_wait_for_ack) {
 				cfg80211_mgmt_tx_status(wdev, *cookie, buf, len,
 							0, GFP_KERNEL);
+				vif->priv->tx_mgmt_status = 0;
+			}
+		}
 	}
 
 	return ret;
