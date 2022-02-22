@@ -127,6 +127,24 @@ struct camsys_power_info {
 
 			struct register_gpr regs[4];
 		} qogirl6;
+		struct {
+			atomic_t users_pw;
+			atomic_t users_dcam_pw;
+			atomic_t users_isp_pw;
+			atomic_t users_clk;
+			atomic_t users_blk_cfg_en;
+
+			struct mutex mlock;
+			struct clk *mm_eb;
+			struct clk *mm_mtx_data_en;
+			struct clk *ckg_en;
+			struct clk *blk_cfg_en;
+
+			struct clk *mm_mtx_clk;
+			struct clk *mm_mtx_clk_parent;
+			struct clk *mm_mtx_clk_defalut;
+			struct register_gpr regs[9];
+		} qogirl6pro;
 	} u;
 };
 
@@ -135,6 +153,7 @@ extern  struct camsys_power_ops camsys_power_ops_l3;
 extern  struct camsys_power_ops camsys_power_ops_le;
 extern  struct camsys_power_ops camsys_power_ops_pike2;
 extern  struct camsys_power_ops camsys_power_ops_qogirl6;
+extern  struct camsys_power_ops camsys_power_ops_qogirl6pro;
 
 int sprd_mm_pw_notify_register(struct notifier_block *nb);
 int sprd_mm_pw_notify_unregister(struct notifier_block *nb);
