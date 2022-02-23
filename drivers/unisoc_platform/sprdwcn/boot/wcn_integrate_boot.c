@@ -31,6 +31,7 @@ static char firmware_file_name[FIRMWARE_FILEPATHNAME_LENGTH_MAX];
 static char firmware_file_path[FIRMWARE_FILEPATHNAME_LENGTH_MAX];
 char gnss_firmware_path[FIRMWARE_FILEPATHNAME_LENGTH_MAX];
 int is_wcn_shutdown;
+int is_wcnpll_power_down;
 
 void wcn_boot_init(void)
 {
@@ -1788,6 +1789,63 @@ int wcn_sys_force_deep_to_shutdown(struct wcn_device *wcn_dev)
 	return 0;
 }
 
+int btwf_sys_wcnpll_power_down(struct wcn_device *wcn_dev)
+{
+	u32 reg_val = 0;
+
+	WCN_INFO("[+]%s\n", __func__);
+	if (wcn_dev == NULL) {
+		WCN_ERR("[-]%s NULL\n", __func__);
+		return -1;
+	}
+
+	/* wcn_aon_apb bpll1/2_pdn clear */
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_APB],
+				0x0040, &reg_val);
+	WCN_INFO("REG 0x4080c040:val=0x%x!\n", reg_val);
+	/* wcn_aon_apb bpll1/2_pdn Bit[1:0] default 1=>0 */
+	reg_val &= ~((0x1<<0)|(0x1<<1));
+	wcn_regmap_raw_write_bit(
+			wcn_dev->rmap[REGMAP_WCN_AON_APB],
+			0x0040, reg_val);
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_APB],
+				0x0040, &reg_val);
+	WCN_INFO("Set REG 0x4080c040:val=0x%x(shutdown bpll1/2_pdn)!\n",
+		    reg_val);
+
+	is_wcnpll_power_down = 1;
+	WCN_INFO("[-]%s\n", __func__);
+	return 0;
+}
+
+int btwf_sys_wcnpll_power_on(struct wcn_device *wcn_dev)
+{
+	u32 reg_val = 0;
+
+	WCN_INFO("[+]%s\n", __func__);
+	if (wcn_dev == NULL) {
+		WCN_ERR("[-]%s NULL\n", __func__);
+		return -1;
+	}
+
+	/* wcn_aon_apb bpll1/2_pdn set */
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_APB],
+				0x0040, &reg_val);
+	WCN_INFO("REG 0x4080c040:val=0x%x!\n", reg_val);
+	/* wcn_aon_apb bpll1/2_pdn Bit[1:0] default 0=>1 */
+	reg_val |= ((0x1<<0)|(0x1<<1));
+	wcn_regmap_raw_write_bit(
+			wcn_dev->rmap[REGMAP_WCN_AON_APB],
+			0x0040, reg_val);
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_APB],
+				0x0040, &reg_val);
+	WCN_INFO("Set REG 0x4080c040:val=0x%x(poweron bpll1/2_pdn)!\n",
+		    reg_val);
+
+	WCN_INFO("[-]%s\n", __func__);
+	return 0;
+}
+
 /* Force BTWF SYS power on and let CPU run.
  * Clear BTWF SYS shutdown and force deep switch,
  * and then let SYS,CPU,Cache... run.
@@ -1800,6 +1858,15 @@ int btwf_sys_poweron(struct wcn_device *wcn_dev)
 	if (wcn_dev == NULL) {
 		WCN_ERR("[-]%s NULL\n", __func__);
 		return -1;
+	}
+
+	/*Bug1772060 Scheme1:btwf wcnpll1/2 power on */
+	if (is_wcnpll_power_down) {
+		is_wcnpll_power_down = 0;
+		if (btwf_sys_wcnpll_power_on(wcn_dev) != 0) {
+			WCN_ERR("[-]%s:btwf wcnpll power on fail!\n", __func__);
+			return -1;
+		}
 	}
 
 	/*
@@ -2154,6 +2221,13 @@ int wcn_poweron_device(struct wcn_device *wcn_dev)
 		 * GNSS SYS deep sleep will lock the AP SYS, so WCN SYS no needs
 		 * to enter deep sleep.(It means no need to shutdown BTWF SYS)
 		 */
+
+		/*Bug1772060 Scheme1:btwf wcnpll1/2 power down */
+		ret = btwf_sys_wcnpll_power_down(wcn_dev);
+		if (ret) {
+			WCN_ERR("[-]%s:btwf wcnpll power down fail!\n", __func__);
+			return -1;
+		}
 
 		/* gnss power on */
 		ret = gnss_sys_poweron(wcn_dev);
