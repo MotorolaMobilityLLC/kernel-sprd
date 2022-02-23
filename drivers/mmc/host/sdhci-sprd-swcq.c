@@ -2086,6 +2086,8 @@ static bool sdhci_sprd_send_command(struct sdhci_host *host, struct mmc_command 
 		sdhci_writel(host, host->ier, SDHCI_SIGNAL_ENABLE);
 	}
 
+	wmb();
+
 	return true;
 }
 
