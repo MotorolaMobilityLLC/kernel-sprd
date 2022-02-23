@@ -574,8 +574,8 @@ static u32 dpu_isr(struct dpu_context *ctx)
 	/* dpu vsync isr */
 	if (reg_val & BIT_DPU_INT_VSYNC) {
 		/* write back feature */
-		if ((ctx->vsync_count == ctx->max_vsync_count) && ctx->wb_en)
-			schedule_work(&ctx->wb_work);
+		//if ((ctx->vsync_count == ctx->max_vsync_count) && ctx->wb_en)
+		//	schedule_work(&ctx->wb_work);
 
 		/* cabc update backlight */
 		if (enhance->cabc_bl_set)
@@ -600,7 +600,7 @@ static u32 dpu_isr(struct dpu_context *ctx)
 		 */
 		if ((ctx->vsync_count > ctx->max_vsync_count) && ctx->wb_en) {
 			ctx->wb_en = false;
-			schedule_work(&ctx->wb_work);
+			//schedule_work(&ctx->wb_work);
 			/*reg_val |= DISPC_INT_FENCE_SIGNAL_REQUEST;*/
 		}
 
@@ -751,6 +751,7 @@ static void dpu_cabc_bl_update_func(struct work_struct *data)
 	enhance->cabc_bl_set = false;
 }
 
+#if 0
 static void dpu_wb_trigger(struct dpu_context *ctx, u8 count, bool debug)
 {
 	u32 vcnt;
@@ -797,7 +798,9 @@ static void dpu_wb_trigger(struct dpu_context *ctx, u8 count, bool debug)
 	} else
 		ctx->vsync_count = 0;
 }
+#endif
 
+/*
 static void dpu_wb_flip(struct dpu_context *ctx)
 {
 	dpu_clean_all(ctx);
@@ -863,14 +866,15 @@ static int dpu_write_back_config(struct dpu_context *ctx)
 	ctx->wb_layer.format = DRM_FORMAT_ABGR8888;
 	ctx->wb_layer.addr[0] = ctx->wb_addr_p;
 
-	ctx->max_vsync_count = 4;
+	ctx->max_vsync_count = 0;
 
 	ctx->wb_configed = true;
 
-	INIT_WORK(&ctx->wb_work, dpu_wb_work_func);
+	//INIT_WORK(&ctx->wb_work, dpu_wb_work_func);
 
 	return 0;
 }
+*/
 
 static void dpu_dvfs_task_func(unsigned long data)
 {
@@ -985,7 +989,7 @@ static int dpu_init(struct dpu_context *ctx)
 	if (ctx->corner_radius)
 		dpu_corner_init(ctx);
 
-	dpu_write_back_config(ctx);
+	//dpu_write_back_config(ctx);
 
 	enhance->frame_no = 0;
 	return 0;
@@ -1453,6 +1457,7 @@ static void dpu_flip(struct dpu_context *ctx, struct sprd_plane planes[], u8 cou
 	if (ctx->max_vsync_count > 0 && count > 1)
 		ctx->wb_en = true;
 
+	ctx->wb_en = false;
 	/*
 	 * Make sure the dpu is in stop status. DPU_R4P0 has no shadow
 	 * registers in EDPI mode. So the config registers can only be
@@ -2447,6 +2452,6 @@ const struct dpu_core_ops dpu_r4p0_core_ops = {
 	.enhance_set = dpu_enhance_set,
 	.enhance_get = dpu_enhance_get,
 	.modeset = dpu_modeset,
-	.write_back = dpu_wb_trigger,
+	//.write_back = dpu_wb_trigger,
 	.check_raw_int = dpu_check_raw_int,
 };
