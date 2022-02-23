@@ -695,6 +695,7 @@ static int sprd_rtc_remove(struct platform_device *pdev)
 
 static const struct of_device_id sprd_rtc_of_match[] = {
 	{ .compatible = "sprd,sc2731-rtc", },
+	{ .compatible = "sprd,ump96xx-rtc", },
 	{ },
 };
 MODULE_DEVICE_TABLE(of, sprd_rtc_of_match);
