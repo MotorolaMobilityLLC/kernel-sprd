@@ -87,6 +87,7 @@ struct dwc3_sprd {
 
 static int boot_charging;
 static bool boot_calibration;
+static int dwc3_probe_finish;
 
 static int dwc3_sprd_suspend_child(struct device *dev, void *data);
 static int dwc3_sprd_resume_child(struct device *dev, void *data);
@@ -145,11 +146,10 @@ static ssize_t u1u2_enable_show(struct device *dev,
 	dwc = platform_get_drvdata(sdwc->dwc3);
 	if (!dwc)
 		return -EINVAL;
-	//todo fixme
-/*
+
 	if (dwc->u1u2_enable)
 		return sprintf(buf, "enabled\n");
-*/
+
 	return sprintf(buf, "disabled\n");
 }
 
@@ -166,14 +166,14 @@ static ssize_t u1u2_enable_store(struct device *dev,
 	dwc = platform_get_drvdata(sdwc->dwc3);
 	if (!dwc)
 		return -EINVAL;
-	//todo fixme
-/*	if (!strncmp(buf, "enable", 6))
+
+	if (!strncmp(buf, "enable", 6))
 		dwc->u1u2_enable = true;
 	else if (!strncmp(buf, "disable", 7))
 		dwc->u1u2_enable = false;
 	else
 		return -EINVAL;
-*/
+
 	return size;
 }
 static DEVICE_ATTR_RW(u1u2_enable);
@@ -223,6 +223,28 @@ static void dwc3_flush_all_events(struct dwc3_sprd *sdwc)
 	evt->flags &= ~DWC3_EVENT_PENDING;
 	spin_unlock_irqrestore(&dwc->lock, flags);
 }
+
+#if IS_ENABLED(CONFIG_SPRD_REDRIVER_PTN38003A)
+extern int ptn38003a_mode_usb32_set(unsigned int enable);
+static void limit_dwc3_max_speed(struct dwc3_sprd *sdwc)
+{
+	struct dwc3 *dwc = platform_get_drvdata(sdwc->dwc3);
+
+	if (ptn38003a_mode_usb32_set(1)) {
+		u32 reg;
+
+		reg = readl(dwc->regs + DWC3_DCFG - DWC3_GLOBALS_REGS_START);
+		reg &= ~(DWC3_DCFG_SPEED_MASK);
+		reg |= DWC3_DCFG_SUPERSPEED;
+		writel(reg, dwc->regs + DWC3_DCFG - DWC3_GLOBALS_REGS_START);
+
+		reg = readl(dwc->regs + DWC3_DSTS - DWC3_GLOBALS_REGS_START);
+		dev_info(dwc->dev, "limit dwc3 max speed to usb30, DWC3_DSTS: 0x%x\n", reg);
+	} else {
+		dev_info(dwc->dev, "Donnot limit dwc3 max speed!\n");
+	}
+}
+#endif
 
 static int dwc3_sprd_charger_mode(void)
 {
@@ -295,6 +317,7 @@ static bool dwc3_sprd_is_connect_host(struct dwc3_sprd *sdwc)
 	enum usb_charger_type type = usb_phy->charger_detect(usb_phy);
 
 	dev_info(sdwc->dev, "charger type:0x%x\n", type);
+
 	if (type == SDP_TYPE || type == CDP_TYPE)
 		return true;
 	return false;
@@ -413,6 +436,10 @@ static int dwc3_sprd_start(struct dwc3_sprd *sdwc, enum usb_dr_mode mode)
 		dev_err(sdwc->dev, "Resume dwc3 device failed %d!\n", ret);
 		return ret;
 	}
+
+#if IS_ENABLED(CONFIG_SPRD_REDRIVER_PTN38003A)
+	limit_dwc3_max_speed(sdwc);
+#endif
 
 	ret = device_for_each_child(sdwc->dev, NULL, dwc3_sprd_resume_child);
 	if (ret < 0) {
@@ -831,6 +858,12 @@ static int usb_clk_prepare_disable(struct dwc3_sprd *sdwc)
 	return 0;
 }
 
+int dwc3_sprd_probe_finish(void)
+{
+	return dwc3_probe_finish;
+}
+EXPORT_SYMBOL_GPL(dwc3_sprd_probe_finish);
+
 static int dwc3_sprd_probe(struct platform_device *pdev)
 {
 	struct device_node *node = pdev->dev.of_node, *dwc3_node;
@@ -1063,6 +1096,9 @@ static int dwc3_sprd_probe(struct platform_device *pdev)
 		dwc3_sprd_detect_cable(sdwc);
 	else
 		queue_work(system_unbound_wq, &sdwc->work);
+
+	dwc3_probe_finish = 1;
+	dev_info(sdwc->dev, "sprd dwc3 probe finish!\n");
 
 	return 0;
 

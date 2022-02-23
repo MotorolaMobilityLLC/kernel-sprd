@@ -32,6 +32,7 @@
 #include <dt-bindings/soc/sprd,qogirn6pro-mask.h>
 #include <dt-bindings/soc/sprd,qogirn6pro-regs.h>
 #include <linux/usb/sprd_usbm.h>
+#include "ptn38003a-i2c.h"
 
 struct sprd_ssphy {
 	struct usb_phy		phy;
@@ -134,6 +135,8 @@ struct sprd_ssphy {
 
 #define DEFAULT_DEVICE_EYE_PATTERN			0x067bd1c0
 #define DEFAULT_HOST_EYE_PATTERN			0x067bd1c0
+
+#define SC27XX_CHG_REDET_DELAY_MS			960
 
 /* Rest USB Core*/
 static inline void sprd_ssphy_reset_core(struct sprd_ssphy *phy)
@@ -282,11 +285,12 @@ static int sprd_ssphy_init(struct usb_phy *x)
 	int	ret = 0;
 	int timeout;
 
-	printk(KERN_INFO "sprd_ssphy_init enter \n");
 	if (atomic_read(&phy->inited)) {
 		dev_info(x->dev, "%s is already inited!\n", __func__);
 		return 0;
 	}
+
+	ptn38003a_mode_usb32_set(1);
 
 	/*
 	 * Due to chip design, some chips may turn on vddusb by default,
@@ -335,13 +339,22 @@ static int sprd_ssphy_init(struct usb_phy *x)
 	reg |= MASK_AON_APB_CGM_USB_SUSPEND_EN;
 	ret |= regmap_write(phy->aon_apb, REG_AON_APB_CGM_REG1, reg);
 
+	/*
+	 * USB2 PHY power on: set pd_l/pd_s firstly, then set iso_sw.
+	 * poweroff sequence is opposite
+	 */
+	msk = MASK_AON_APB_LVDSRF_PD_PD_L | MASK_AON_APB_LVDSRF_PS_PD_S;
+	regmap_update_bits(phy->aon_apb, REG_AON_APB_MIPI_CSI_POWER_CTRL, msk, 0);
+
 	ret |= regmap_update_bits(phy->ana_g0l,
 		REG_ANLG_PHY_G0L_ANALOG_USB20_USB20_PHY,
 		BIT_ANLG_PHY_G0L_ANALOG_USB20_USB20_ISO_SW_EN, 0);
 
-	/* USB2 PHY power on */
-	msk = MASK_AON_APB_LVDSRF_PD_PD_L | MASK_AON_APB_LVDSRF_PS_PD_S;
-	regmap_update_bits(phy->aon_apb, REG_AON_APB_MIPI_CSI_POWER_CTRL, msk, 0);
+	/* enable usb20 ISO AVDD1V8_USB*/
+	msk = MASK_AON_APB_USB20_ISO_SW_EN;
+	ret |= regmap_update_bits(phy->aon_apb, REG_AON_APB_AON_SOC_USB_CTRL,
+			 msk, 0);
+
 	/* ssphy power on @0x64900d14*/
 	msk = MASK_AON_APB_PHY_TEST_POWERDOWN;
 	regmap_update_bits(phy->aon_apb, REG_AON_APB_USB31DPCOMBPHY_CTRL, msk, 0);
@@ -466,8 +479,6 @@ static int sprd_ssphy_init(struct usb_phy *x)
 
 	atomic_set(&phy->inited, 1);
 
-	printk(KERN_INFO "ssphy_init exit \n");
-
 	return ret;
 }
 
@@ -475,7 +486,7 @@ static int sprd_ssphy_init(struct usb_phy *x)
 static void sprd_ssphy_shutdown(struct usb_phy *x)
 {
 	struct sprd_ssphy *phy = container_of(x, struct sprd_ssphy, phy);
-	u32 msk, reg;
+	u32 msk = 0, reg = 0;
 
 	if (!atomic_read(&phy->inited)) {
 		dev_dbg(x->dev, "%s is already shut down\n", __func__);
@@ -495,6 +506,12 @@ static void sprd_ssphy_shutdown(struct usb_phy *x)
 		/*hsphy vbus invalid */
 		msk = MASK_AON_APB_OTG_VBUS_VALID_PHYREG;
 		regmap_update_bits(phy->aon_apb, REG_AON_APB_OTG_PHY_TEST, msk, 0);
+
+		/* disable usb20 ISO*/
+		msk = MASK_AON_APB_USB20_ISO_SW_EN;
+		reg = msk;
+		regmap_update_bits(phy->aon_apb, REG_AON_APB_AON_SOC_USB_CTRL,
+				 msk, reg);
 
 		/* hsphy power off */
 		msk = MASK_AON_APB_LVDSRF_PD_PD_L | MASK_AON_APB_LVDSRF_PS_PD_S;
@@ -529,8 +546,10 @@ static void sprd_ssphy_shutdown(struct usb_phy *x)
 	 * Due to chip design, some chips may turn on vddusb by default,
 	 * We MUST avoid turning it off twice.
 	 */
-	if (phy->vdd)
+	if (regulator_is_enabled(phy->vdd))
 		regulator_disable(phy->vdd);
+
+	ptn38003a_mode_usb32_set(0);
 
 	atomic_set(&phy->inited, 0);
 	atomic_set(&phy->reset, 0);
@@ -693,7 +712,6 @@ static int sprd_ssphy_probe(struct platform_device *pdev)
 	int ret;
 	u32 reg, msk;
 
-	printk(KERN_INFO "sprd_ssphy_probe enter \n");
 	phy = devm_kzalloc(dev, sizeof(*phy), GFP_KERNEL);
 	if (!phy)
 		return -ENOMEM;
@@ -824,7 +842,6 @@ static int sprd_ssphy_probe(struct platform_device *pdev)
 	phy->phy.type				= USB_PHY_TYPE_USB3;
 	phy->phy.vbus_nb.notifier_call		= sprd_ssphy_vbus_notify;
 	phy->phy.charger_detect			= sprd_ssphy_charger_detect;
-
 	ret = usb_add_phy_dev(&phy->phy);
 	if (ret) {
 		dev_err(dev, "fail to add phy\n");
@@ -849,7 +866,8 @@ static int sprd_ssphy_remove(struct platform_device *pdev)
 
 	sysfs_remove_groups(&pdev->dev.kobj, usb_ssphy_groups);
 	usb_remove_phy(&phy->phy);
-	regulator_disable(phy->vdd);
+	if (regulator_is_enabled(phy->vdd))
+		regulator_disable(phy->vdd);
 	return 0;
 }
 

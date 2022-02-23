@@ -24,6 +24,7 @@ obj-$(CONFIG_USB_MXS_PHY)		+= phy-mxs-usb.o
 obj-$(CONFIG_USB_ULPI)			+= phy-ulpi.o
 obj-$(CONFIG_USB_ULPI_VIEWPORT)		+= phy-ulpi-viewport.o
 obj-$(CONFIG_KEYSTONE_USB_PHY)		+= phy-keystone.o
+obj-$(CONFIG_SPRD_REDRIVER_PTN38003A)	+= ptn38003a-i2c.o
 obj-$(CONFIG_SPRD_SHARKL3_USB2_PHY)	+= phy-sprd-sharkl3.o
 obj-$(CONFIG_SPRD_PIKE2_USB2_PHY)       += phy-sprd-pike2.o
 obj-$(CONFIG_SPRD_SHARKLE_USB2_PHY)     += phy-sprd-sharkle.o

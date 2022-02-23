@@ -245,4 +245,12 @@ config SPRD_QOGIRN6PRO_USB31_PHY
 	  driver takes care of all the PHY functionality, normally paired
 	  with DesignWare USB3.0 (DRD) Controller.
 
+config SPRD_REDRIVER_PTN38003A
+	tristate "Unisoc PTN38003A Driver"
+	select USB_PHY
+	depends on SPRD_QOGIRN6PRO_USB31_PHY
+	help
+	  Enable this to support QOGIRN6PRO USB3 PHY . This
+	  driver is redriver for usb3.0.
+
 endmenu
