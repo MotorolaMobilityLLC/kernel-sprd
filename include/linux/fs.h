@@ -77,6 +77,14 @@ extern int sysctl_protected_symlinks;
 extern int sysctl_protected_hardlinks;
 extern int sysctl_protected_fifos;
 extern int sysctl_protected_regular;
+#if defined(CONFIG_SPRD_DEBUG)
+extern int sysctl_fs_timeout[];
+#define vfs_open_max_ms		(sysctl_fs_timeout[0])
+#define vfs_write_max_ms	(sysctl_fs_timeout[1])
+#define fs_sync_max_ms		(sysctl_fs_timeout[2])
+#define io_schedule_max_ms	(sysctl_fs_timeout[3])
+#define io_interval		(sysctl_fs_timeout[4])
+#endif
 extern void ra_pages_sync(struct file_ra_state *ra, struct address_space *mapping);
 
 typedef __kernel_rwf_t rwf_t;
@@ -2452,6 +2460,9 @@ extern int do_truncate2(struct vfsmount *, struct dentry *, loff_t start,
 			unsigned int time_attrs, struct file *filp);
 extern int vfs_fallocate(struct file *file, int mode, loff_t offset,
 			loff_t len);
+#if defined(CONFIG_SPRD_DEBUG)
+extern void _trace_vfs(struct file *filp, char *op, u64 time);
+#endif
 extern long do_sys_open(int dfd, const char __user *filename, int flags,
 			umode_t mode);
 extern struct file *file_open_name(struct filename *, int, umode_t);
