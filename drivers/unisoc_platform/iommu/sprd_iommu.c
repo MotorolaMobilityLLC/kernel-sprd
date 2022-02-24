@@ -306,6 +306,9 @@ static const struct of_device_id sprd_iommu_ids[] = {
 	{ .compatible = "unisoc,iommuvaul6p-dcam",
 	   .data = (void *)(IOMMU_VAUL6P_DCAM)},
 
+	{ .compatible = "unisoc,iommuvaul6p-dcam1",
+	   .data = (void *)(IOMMU_VAUL6P_DCAM1)},
+
 	{ .compatible = "unisoc,iommuvaul6p-isp",
 	   .data = (void *)(IOMMU_VAUL6P_ISP)},
 
@@ -363,6 +366,11 @@ static void sprd_iommu_set_list(struct sprd_iommu_dev *iommu_dev)
 		sprd_iommu_list[SPRD_IOMMU_DCAM].enabled = true;
 		sprd_iommu_list[SPRD_IOMMU_DCAM].iommu_dev = iommu_dev;
 		iommu_dev->id = SPRD_IOMMU_DCAM;
+		break;
+	case IOMMU_EX_DCAM1:
+		sprd_iommu_list[SPRD_IOMMU_DCAM1].enabled = true;
+		sprd_iommu_list[SPRD_IOMMU_DCAM1].iommu_dev = iommu_dev;
+		iommu_dev->id = SPRD_IOMMU_DCAM1;
 		break;
 	case IOMMU_EX_CPP:
 		sprd_iommu_list[SPRD_IOMMU_CPP].enabled = true;
@@ -1747,6 +1755,7 @@ static int sprd_iommu_probe(struct platform_device *pdev)
 	case IOMMU_VAUL6P_VSP1:
 	case IOMMU_VAUL6P_VSP2:
 	case IOMMU_VAUL6P_DCAM:
+	case IOMMU_VAUL6P_DCAM1:
 	case IOMMU_VAUL6P_CPP:
 	case IOMMU_VAUL6P_JPG:
 	case IOMMU_VAUL6P_DISP:
@@ -1777,6 +1786,8 @@ static int sprd_iommu_probe(struct platform_device *pdev)
 			pdata->id = IOMMU_EX_VSP2;
 		else if (pdata->id == IOMMU_VAUL6P_DCAM)
 			pdata->id = IOMMU_EX_DCAM;
+		else if (pdata->id == IOMMU_VAUL6P_DCAM1)
+			pdata->id = IOMMU_EX_DCAM1;
 		else if (pdata->id == IOMMU_VAUL6P_ISP)
 			pdata->id = IOMMU_EX_NEWISP;
 		else if (pdata->id == IOMMU_VAUL6P_CPP)
