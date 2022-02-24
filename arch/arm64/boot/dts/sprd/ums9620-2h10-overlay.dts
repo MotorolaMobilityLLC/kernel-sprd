@@ -897,3 +897,48 @@
 			"camhigh", "camveryhigh", "faceid";
 	  sprd-freq = <1244 768 384 384 533 1244 1244>;
 };
+
+&pin_controller {
+	pinctrl-names =
+	/* keyin1 ,sd0_clk, emmc_cmd */
+	"gpio_8", "gpio_22", "gpio_24",
+	/* emmc_d6, emmc_d7, emmc_d7 */
+	"gpio_25", "gpio_26", "gpio_124";
+
+	pinctrl-0 = <&gpio_8>;
+	pinctrl-1 = <&gpio_22>;
+	pinctrl-2 = <&gpio_24>;
+	pinctrl-3 = <&gpio_25>;
+	pinctrl-4 = <&gpio_26>;
+	pinctrl-5 = <&gpio_124>;
+
+	gpio_8: keyin1 {
+		pins = "QOGIRN6PRO_KEYIN1";
+		function = "func4";
+	};
+
+	gpio_22: sd0_clk {
+		pins = "QOGIRN6PRO_SD0_CLK";
+		function = "func4";
+	};
+
+	gpio_24: emmc_cmd {
+		pins = "QOGIRN6PRO_EMMC_CMD";
+		function = "func4";
+	};
+
+	gpio_25: emmc_d6 {
+		pins = "QOGIRN6PRO_EMMC_D6";
+		function = "func4";
+	};
+
+	gpio_26: emmc_d7 {
+		pins = "QOGIRN6PRO_EMMC_D7";
+		function = "func4";
+	};
+
+	gpio_124: keyout1 {
+		pins = "QOGIRN6PRO_KEYOUT1";
+		function = "func4";
+	};
+};

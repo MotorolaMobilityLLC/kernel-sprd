@@ -862,6 +862,11 @@
 		ports = <&dpu_port>;
 		gsp = <&gsp>;
 	};
+
+	autotest:autotest{
+		compatible = "sprd,autotest";
+		sprd,pinctrl = <&pin_controller>;
+	};
 };
 
 &dpu {
