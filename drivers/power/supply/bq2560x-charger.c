@@ -375,32 +375,35 @@ bq2560x_charger_set_termina_vol(struct bq2560x_charger_info *info, u32 vol)
 
 
 	if (vol < 3856)
-		reg_val = 0x0;
-	else
+		vol = 3856;
+
 		reg_val = (vol - 3856) / 32;
 
-	if (reg_val == 0x0)
-		reg_remain =0;
-	else		
-		reg_remain =(vol - 3856) % 32;
+	reg_remain =(vol - 3856) % 32;
 
-	if(reg_remain >=16)
+	if(reg_remain >16)
 	{
-		reg_val ++;
 
-		if(reg_remain >=24)
-			termina_vol_dec8(info);
-		else
-			termina_vol_dec16(info);		
+		if(reg_remain >24)
+			reg_val ++;
+	       else		
+		{
+			reg_val ++;
+			termina_vol_dec8(info);		
+		}
 	}
 	else
 	{
-		if(reg_remain >=8)
-			termina_vol_add8(info);
+		if(reg_remain >8)
+		{
+			reg_val ++;
+			termina_vol_dec16(info);
+		}
 		else
-			termina_vol_add0(info);
+			termina_vol_add8(info);
 				
 	}
+
 
 	dev_err(info->dev, "%s;%d;%d;%d;\n",__func__,vol,reg_val,reg_remain);
 

@@ -363,12 +363,19 @@ sy6970_charger_set_ovp(struct sy6970_charger_info *info, u32 vol)
 static int
 sy6970_charger_set_termina_vol(struct sy6970_charger_info *info, u32 vol)
 {
-	u8 reg_val;
+	u8 reg_val,reg_remain;
 
 	if (vol < 3840)
-		reg_val = 0x0;
-	else
+		vol = 3840;
+
 		reg_val = (vol - 3840) / 16;
+	reg_remain = (vol - 3840) % 16;
+
+
+	if( reg_remain >8 )
+		reg_val ++;
+
+	dev_err(info->dev, "%s;%d;%d;%d;\n",__func__,vol,reg_val,reg_remain);
 
 	return sy6970_update_bits(info, SY6970_REG_6,
 				   SY6970_REG_TERMINAL_VOLTAGE_MASK,
