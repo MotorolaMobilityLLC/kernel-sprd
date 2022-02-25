@@ -504,9 +504,14 @@
 			};
 
 			sdio0: sdio@2210000 {
-				compatible = "sprd,sdhc-r11p1";
+				compatible = "sprd,sdhci-r11";
 				reg = <0x2210000 0x1000>;
 				interrupts = <GIC_SPI 203 IRQ_TYPE_LEVEL_HIGH>;
+				clock-names = "sdio", "enable";
+				clocks = <&aonapb_clk CLK_SDIO0_2X>,
+				       <&apahb_gate CLK_SDIO0_EB>;
+				assigned-clocks = <&aonapb_clk CLK_SDIO0_2X>;
+				assigned-clock-parents = <&g1_pll CLK_RPLL_390M>;
 				status = "disabled";
 				sd-detect-pol-syscon = <&aon_apb_regs
 					REG_AON_APB_SDIO0_CTRL_REG
