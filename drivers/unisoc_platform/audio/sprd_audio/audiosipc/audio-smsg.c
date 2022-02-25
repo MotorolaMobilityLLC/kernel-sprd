@@ -37,6 +37,7 @@
 #define  AGDSP_ASSERT			0x25
 #define  AGDSP_COMMUNICATION_TIMEOUT	0x26
 #define  WAIT_CHAN_WAKE_UP_COUNT		100
+#define  MAX_PREV_MSG_PRINTK_COUNT		70
 static struct aud_smsg_ipc *aud_smsg_ipcs[AUD_IPC_NR];
 static struct mbox_chan *aud_smsg_mboxchan;
 
@@ -51,6 +52,8 @@ module_param_named(assert_trigger, assert_trigger, ushort, 0644);
 static int aud_smsg_ch_send(struct aud_smsg_ipc *ipc, struct aud_smsg *msg);
 static int aud_smsg_all_ch_notify(struct aud_smsg_ipc *ipc,
 	struct aud_smsg *msg);
+static void aud_smsg_tx_dump(void);
+static void aud_smsg_rx_dump(void);
 
 static void aud_smsg_reset(struct aud_smsg_ipc *ipc)
 {
@@ -63,6 +66,8 @@ static void aud_smsg_reset(struct aud_smsg_ipc *ipc)
 
 static void aud_smsg_dump_func(u32 is_timeout)
 {
+	aud_smsg_rx_dump();
+	aud_smsg_tx_dump();
 	if (dump_func)
 		dump_func(dump_func_priv, is_timeout);
 }
@@ -143,6 +148,199 @@ int aud_smsg_irq_handler(void *ptr, void *dev_id)
 	/* wake_lock_timeout(&sipc_wake_lock, HZ / 50); */
 
 	return IRQ_HANDLED;
+}
+
+static void aud_smsg_tx_dump(void)
+{
+	struct aud_smsg_ipc *ipc = aud_smsg_ipcs[AUD_IPC_AGDSP];
+	struct aud_smsg *msg;
+	uintptr_t rxpos;
+	u32 tx_rd;
+	u32 max_print_count = MAX_PREV_MSG_PRINTK_COUNT;
+	u32 pre_print_count1, pre_print_count2;
+	u32 last_pre_msg_pos, last_pre_msg_addr;
+	int i;
+
+	tx_rd = readl_relaxed((void *)ipc->txbuf_rdptr);
+	last_pre_msg_pos = tx_rd & (ipc->txbuf_size - 1);
+	if (last_pre_msg_pos)
+		last_pre_msg_pos -= 1;
+	else
+		last_pre_msg_pos = ipc->rxbuf_size - 1;
+
+	last_pre_msg_addr = ipc->txbuf_addr_p +
+		last_pre_msg_pos * sizeof(struct aud_smsg);
+
+	pr_info("%s:txbuf_addr_p:%x, txbuf_rdptr_p:%x, txbuf_wrptr_p:%x",
+		__func__,
+		ipc->txbuf_addr_p, ipc->txbuf_rdptr_p,
+		ipc->txbuf_wrptr_p);
+	pr_info("%s tx_smsg: wrptr=%u, rdptr=%u, msg count:%u, last msg addr:%x, rx_rd:%d, last pos:%d\n",
+		__func__,
+		readl_relaxed((void *)ipc->txbuf_wrptr),
+		readl_relaxed((void *)ipc->txbuf_rdptr),
+		ipc->txbuf_size,
+		last_pre_msg_addr,
+		tx_rd,
+		last_pre_msg_pos);
+
+	if (max_print_count > ipc->txbuf_size)
+		max_print_count = ipc->txbuf_size;
+
+	pr_info("start to print last %d msgs ap sent to audio dsp\n",
+		max_print_count);
+	pr_info("last_log_pos:%d,total msg count:%d\n", last_pre_msg_pos,
+		ipc->txbuf_size);
+
+	pre_print_count2 = (last_pre_msg_pos + 1) > max_print_count
+		? max_print_count : (last_pre_msg_pos + 1);
+	pre_print_count1 = max_print_count - pre_print_count2;
+
+	for (i = 0; i < pre_print_count1; i++) {
+		rxpos = ipc->txbuf_addr + ((ipc->txbuf_size - 1)
+			- pre_print_count1
+			+ 1+i) * sizeof(struct aud_smsg);
+		msg = (struct aud_smsg *)rxpos;
+		pr_info("%s : -%d,prev tx read smsg: command=0x%x, channel=0x%x,parameter0=0x%08x,parameter1=0x%08x,parameter2=0x%08x, parameter3=0x%08x\n",
+			__func__, max_print_count - i - 1,
+			msg->command, msg->channel,
+			msg->parameter0, msg->parameter1,
+			msg->parameter2, msg->parameter3);
+	}
+
+	for (i = 0; i < pre_print_count2; i++) {
+		rxpos = ipc->txbuf_addr
+			+ (last_pre_msg_pos - pre_print_count2 + 1+i)
+			* sizeof(struct aud_smsg);
+		msg = (struct aud_smsg *)rxpos;
+		pr_info("%s : -%d, prev tx read smsg: command=0x%x, channel=0x%x,parameter0=0x%08x, parameter1=0x%08x,parameter2=0x%08x, parameter3=0x%08x\n",
+			__func__, max_print_count - pre_print_count1 - i - 1,
+			msg->command, msg->channel,
+			msg->parameter0, msg->parameter1,
+			msg->parameter2, msg->parameter3);
+	}
+
+	pr_info("start to print msgs ap sent to audio dsp but not being processed, count:%d\n",
+		readl_relaxed((void *)ipc->txbuf_wrptr)
+		- readl_relaxed((void *)ipc->txbuf_rdptr));
+	i = 0;
+	while (readl_relaxed((void *)ipc->txbuf_wrptr) != tx_rd) {
+		rxpos = (tx_rd &  (ipc->txbuf_size - 1))
+			* sizeof(struct aud_smsg)
+			+ ipc->txbuf_addr;
+
+		msg = (struct aud_smsg *)rxpos;
+
+		pr_info("%s : smsg:%d, wrptr=%u, rdptr=%u, rx_rd:%u, rxpos=0x%lx\n",
+			__func__, i,
+			readl_relaxed((void *)ipc->txbuf_wrptr),
+			readl_relaxed((void *)ipc->txbuf_rdptr),
+			tx_rd,
+			rxpos);
+		pr_info("%s smsg:%d: command=0x%x, channel=0x%x,parameter0=0x%08x, parameter1=0x%08x,parameter2=0x%08x, parameter3=0x%08x\n",
+			__func__, i,
+			msg->command, msg->channel,
+			msg->parameter0, msg->parameter1,
+			msg->parameter2, msg->parameter3);
+		tx_rd++;
+		i++;
+	}
+}
+
+static void aud_smsg_rx_dump(void)
+{
+	struct aud_smsg_ipc *ipc = aud_smsg_ipcs[AUD_IPC_AGDSP];
+	struct aud_smsg *msg;
+	uintptr_t rxpos;
+	u32 rx_rd;
+	u32 max_print_count = MAX_PREV_MSG_PRINTK_COUNT;
+	u32 pre_print_count1, pre_print_count2;
+	u32 last_pre_msg_pos, last_pre_msg_addr;
+	int i;
+
+	rx_rd = readl_relaxed((void *)ipc->rxbuf_rdptr);
+	last_pre_msg_pos = rx_rd & (ipc->rxbuf_size - 1);
+	if (last_pre_msg_pos)
+		last_pre_msg_pos -= 1;
+	else
+		last_pre_msg_pos = ipc->rxbuf_size - 1;
+
+	last_pre_msg_addr = ipc->rxbuf_addr_p +
+		last_pre_msg_pos * sizeof(struct aud_smsg);
+
+	pr_info("%s:rxbuf_addr_p:%x, rxbuf_rdptr_p:%x, rxbuf_wrptr_p:%x",
+		__func__,
+		ipc->rxbuf_addr_p, ipc->rxbuf_rdptr_p,
+		ipc->rxbuf_wrptr_p);
+	pr_info("%s rx_smsg: wrptr=%u, rdptr=%u, size:%u, last msg addr:%x, rx_rd:%d, last pos:%d\n",
+		__func__,
+		readl_relaxed((void *)ipc->rxbuf_wrptr),
+		readl_relaxed((void *)ipc->rxbuf_rdptr),
+		ipc->rxbuf_size,
+		last_pre_msg_addr,
+		rx_rd,
+		last_pre_msg_pos);
+
+	if (max_print_count > ipc->rxbuf_size)
+		max_print_count = ipc->rxbuf_size;
+	pr_info("start to print last %d msgs audio dsp sent to ap\n",
+		max_print_count);
+	pr_info("last_log_pos:%d,total msg count:%d\n", last_pre_msg_pos,
+		ipc->rxbuf_size);
+
+	pre_print_count2 = (last_pre_msg_pos + 1) > max_print_count
+		? max_print_count : (last_pre_msg_pos + 1);
+	pre_print_count1 = max_print_count - pre_print_count2;
+
+	for (i = 0; i < pre_print_count1; i++) {
+		rxpos = ipc->rxbuf_addr + ((ipc->rxbuf_size - 1)
+			- pre_print_count1
+			+ 1+i) * sizeof(struct aud_smsg);
+		msg = (struct aud_smsg *)rxpos;
+		pr_info("%s : -%d,prev rx read smsg: command=0x%x, channel=0x%x,parameter0=0x%08x,parameter1=0x%08x,parameter2=0x%08x, parameter3=0x%08x\n",
+			__func__, max_print_count - i - 1,
+			msg->command, msg->channel,
+			msg->parameter0, msg->parameter1,
+			msg->parameter2, msg->parameter3);
+	}
+
+	for (i = 0; i < pre_print_count2; i++) {
+		rxpos = ipc->rxbuf_addr +
+			(last_pre_msg_pos - pre_print_count2 + 1+i)
+			* sizeof(struct aud_smsg);
+		msg = (struct aud_smsg *)rxpos;
+		pr_info("%s : -%d, prev rx read smsg: command=0x%x, channel=0x%x,parameter0=0x%08x, parameter1=0x%08x,parameter2=0x%08x, parameter3=0x%08x\n",
+			__func__, max_print_count - pre_print_count1 - i - 1,
+			msg->command, msg->channel,
+			msg->parameter0, msg->parameter1,
+			msg->parameter2, msg->parameter3);
+	}
+
+	pr_info("start to print msgs ap sent to audio dsp but not being processed, count:%d\n",
+		readl_relaxed((void *)ipc->rxbuf_wrptr)
+		- readl_relaxed((void *)ipc->rxbuf_rdptr));
+	i = 0;
+	while (readl_relaxed((void *)ipc->rxbuf_wrptr) != rx_rd) {
+		rxpos = (rx_rd &  (ipc->rxbuf_size - 1))
+			* sizeof(struct aud_smsg)
+			+ ipc->rxbuf_addr;
+
+		msg = (struct aud_smsg *)rxpos;
+
+		pr_info("%s : smsg:%d, wrptr=%u, rdptr=%u, rx_rd:%u, rxpos=0x%lx\n",
+			__func__, i,
+			readl_relaxed((void *)ipc->rxbuf_wrptr),
+			readl_relaxed((void *)ipc->rxbuf_rdptr),
+			rx_rd,
+			rxpos);
+		pr_info("%s smsg:%d: command=0x%x, channel=0x%x,parameter0=0x%08x, parameter1=0x%08x,parameter2=0x%08x, parameter3=0x%08x\n",
+			__func__, i,
+			msg->command, msg->channel,
+			msg->parameter0, msg->parameter1,
+			msg->parameter2, msg->parameter3);
+		rx_rd++;
+		i++;
+	}
 }
 
 int aud_smsg_ipc_create(u8 dst, struct aud_smsg_ipc *ipc)

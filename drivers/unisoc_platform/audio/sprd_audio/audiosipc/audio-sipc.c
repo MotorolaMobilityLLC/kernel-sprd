@@ -226,18 +226,28 @@ static int audio_sipc_create(int target_id)
 	s_sipc_inst.name = "ap-agdsp-ipc";
 	s_sipc_inst.txbuf_size = ((u32)smsg_txsize) /
 		((u32)sizeof(struct aud_smsg));
+	s_sipc_inst.txbuf_addr_p = smsg_base_p;
 	s_sipc_inst.txbuf_addr = smsg_txaddr;
 	s_sipc_inst.txbuf_rdptr = smsg_txaddr + smsg_txsize +
 		smsg_rxsize + (size_t)AUDIO_SMSG_RINGHDR_EXT_TXRDPTR;
 	s_sipc_inst.txbuf_wrptr = smsg_txaddr + smsg_txsize +
 		smsg_rxsize + (size_t)AUDIO_SMSG_RINGHDR_EXT_TXWRPTR;
+	s_sipc_inst.txbuf_rdptr_p = smsg_base_p + smsg_txsize +
+		smsg_rxsize + (size_t)AUDIO_SMSG_RINGHDR_EXT_TXRDPTR;
+	s_sipc_inst.txbuf_wrptr_p = smsg_base_p + smsg_txsize +
+		smsg_rxsize + (size_t)AUDIO_SMSG_RINGHDR_EXT_TXWRPTR;
 
 	s_sipc_inst.rxbuf_size = ((u32)smsg_rxsize) /
 		((u32)sizeof(struct aud_smsg));
 	s_sipc_inst.rxbuf_addr = smsg_rxaddr;
+	s_sipc_inst.rxbuf_addr_p = smsg_base_p + smsg_txsize;
 	s_sipc_inst.rxbuf_rdptr = smsg_txaddr + smsg_txsize +
 		smsg_rxsize + (size_t)AUDIO_SMSG_RINGHDR_EXT_RXRDPTR;
+	s_sipc_inst.rxbuf_rdptr_p = smsg_base_p + smsg_txsize +
+		smsg_rxsize + (size_t)AUDIO_SMSG_RINGHDR_EXT_RXRDPTR;
 	s_sipc_inst.rxbuf_wrptr = smsg_txaddr + smsg_txsize +
+		smsg_rxsize + (size_t)AUDIO_SMSG_RINGHDR_EXT_RXWRPTR;
+	s_sipc_inst.rxbuf_wrptr_p = smsg_base_p + smsg_txsize +
 		smsg_rxsize + (size_t)AUDIO_SMSG_RINGHDR_EXT_RXWRPTR;
 
 	s_sipc_inst.target_id = target_id;

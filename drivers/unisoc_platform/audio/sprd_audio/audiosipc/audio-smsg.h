@@ -104,6 +104,12 @@ struct aud_smsg_ipc {
 	uint8_t	states[AMSG_CH_NR];
 	u8	wakeup[AMSG_CH_NR];
 	int	dsp_ready;
+	u32 txbuf_addr_p;
+	u32 txbuf_rdptr_p;
+	u32 txbuf_wrptr_p;
+	u32 rxbuf_addr_p;
+	u32 rxbuf_rdptr_p;
+	u32 rxbuf_wrptr_p;
 };
 
 typedef int (*AGDSP_DUMP_FUNC)(void *private, u32 is_timeout);
