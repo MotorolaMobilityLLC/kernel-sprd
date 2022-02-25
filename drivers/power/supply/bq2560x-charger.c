@@ -377,7 +377,7 @@ bq2560x_charger_set_termina_vol(struct bq2560x_charger_info *info, u32 vol)
 	if (vol < 3856)
 		vol = 3856;
 
-		reg_val = (vol - 3856) / 32;
+	reg_val = (vol - 3856) / 32;
 
 	reg_remain =(vol - 3856) % 32;
 

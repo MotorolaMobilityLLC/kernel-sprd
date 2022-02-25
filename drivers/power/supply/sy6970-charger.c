@@ -368,7 +368,7 @@ sy6970_charger_set_termina_vol(struct sy6970_charger_info *info, u32 vol)
 	if (vol < 3840)
 		vol = 3840;
 
-		reg_val = (vol - 3840) / 16;
+	reg_val = (vol - 3840) / 16;
 	reg_remain = (vol - 3840) % 16;
 
 
