@@ -157,6 +157,7 @@ bool sipa_rm_is_initialized(void)
 {
 	return !!sipa_rm_ctx;
 }
+EXPORT_SYMBOL(sipa_rm_is_initialized);
 
 /**
  * sipa_rm_create_resource() - create resource
