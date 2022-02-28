@@ -32,7 +32,6 @@
 #include <dt-bindings/soc/sprd,qogirl6-regs.h>
 
 #define SC2730_CHARGE_STATUS		0x1b9c
-#define BIT_NON_DCP_INT		BIT(12)
 #define BIT_CHG_DET_DONE		BIT(11)
 #define BIT_SDP_INT			BIT(7)
 #define BIT_DCP_INT			BIT(6)
@@ -220,7 +219,7 @@ static enum usb_charger_type sc27xx_charger_detect(struct regmap *regmap)
 			return UNKNOWN_TYPE;
 
 		if (val & BIT_CHG_DET_DONE) {
-			status = val & (BIT_CDP_INT | BIT_DCP_INT | BIT_SDP_INT |BIT_NON_DCP_INT);
+			status = val & (BIT_CDP_INT | BIT_DCP_INT | BIT_SDP_INT );
 			break;
 		}
 
@@ -234,9 +233,6 @@ static enum usb_charger_type sc27xx_charger_detect(struct regmap *regmap)
 		type = CDP_TYPE;
 		break;
 	case BIT_DCP_INT:
-		type = DCP_TYPE;
-		break;
-	case BIT_NON_DCP_INT:
 		type = DCP_TYPE;
 		break;
 	case BIT_SDP_INT:
