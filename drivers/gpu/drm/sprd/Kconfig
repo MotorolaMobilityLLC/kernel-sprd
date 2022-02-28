@@ -43,4 +43,10 @@ config DRM_SPRD_DSI
 	help
 	  Choose this option if you want to use DSI host controller.
 
+config DRM_SPRD_WB_DEBUG
+	bool "DPU WriteBack Debug"
+	depends on DRM_SPRD_DPU0
+	help
+	  Choose this option if you want to use DPU WriteBack Debug.
+
 endif

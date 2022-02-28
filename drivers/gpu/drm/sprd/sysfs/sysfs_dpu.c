@@ -141,6 +141,53 @@ static ssize_t bg_color_store(struct device *dev,
 }
 static DEVICE_ATTR_RW(bg_color);
 
+static ssize_t max_vsync_count_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	struct sprd_dpu *dpu = dev_get_drvdata(dev);
+	struct dpu_context *ctx = &dpu->ctx;
+	int ret;
+
+	if (!dpu->ctx.enabled) {
+		pr_err("dpu is not initialized\n");
+		up(&dpu->ctx.lock);
+		return -EINVAL;
+	}
+
+	ret = snprintf(buf, PAGE_SIZE, "%x\n", ctx->max_vsync_count);
+
+	return ret;
+}
+
+static ssize_t max_vsync_count_store(struct device *dev,
+			struct device_attribute *attr,
+			const char *buf, size_t count)
+{
+	struct sprd_dpu *dpu = dev_get_drvdata(dev);
+	struct dpu_context *ctx = &dpu->ctx;
+	int ret, max_vsync_count;
+
+
+	pr_info("[drm] %s()\n", __func__);
+
+	if (!dpu->ctx.enabled) {
+		pr_err("dpu is not initialized\n");
+		up(&dpu->ctx.lock);
+		return -EINVAL;
+	}
+
+	ret = kstrtou32(buf, 16, &max_vsync_count);
+	if (ret) {
+		pr_err("Invalid input\n");
+		return -EINVAL;
+	}
+
+	ctx->max_vsync_count = max_vsync_count;
+
+	return count;
+}
+static DEVICE_ATTR_RW(max_vsync_count);
+
 static ssize_t disable_flip_show(struct device *dev,
 	struct device_attribute *attr, char *buf)
 {
@@ -529,6 +576,45 @@ static ssize_t dpu_version_show(struct device *dev,
 }
 static DEVICE_ATTR_RO(dpu_version);
 
+#ifdef CONFIG_DRM_SPRD_WB_DEBUG
+static ssize_t wb_debug_store(struct device *dev,
+			struct device_attribute *attr,
+			const char *buf, size_t count)
+{
+	struct sprd_dpu *dpu = dev_get_drvdata(dev);
+	struct dpu_context *ctx = &dpu->ctx;
+	void *vaddr = NULL;
+	char filename[128];
+	struct timespec64 ts;
+	struct rtc_time tm;
+
+	if (!dpu->ctx.enabled) {
+		pr_err("dpu is not initialized\n");
+		return -EINVAL;
+	}
+
+	if (dpu->core && dpu->core->write_back) {
+		dpu->core->write_back(ctx, 1, true);
+		vaddr = __va(ctx->wb_addr_p);
+	} else
+		return -ENXIO;
+
+	/* FIXME: wait for writeback done isr */
+	mdelay(50);
+
+	ktime_get_real_ts64(&ts);
+	rtc_time64_to_tm(ts.tv_sec, &tm);
+	sprintf(filename, "/data/dump/wb_%d-%d-%dT%d%d%d.bmp",
+			tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour,
+			tm.tm_min, tm.tm_sec);
+
+	dump_bmp32(vaddr, ctx->vm.hactive, ctx->vm.vactive, true, filename);
+
+	return count;
+}
+static DEVICE_ATTR_WO(wb_debug);
+#endif
+
 static ssize_t irq_register_store(struct device *dev,
 		struct device_attribute *attr, const char *buf, size_t count)
 {
@@ -632,6 +718,10 @@ static struct attribute *dpu_attrs[] = {
 	&dev_attr_regs_offset.attr,
 	&dev_attr_wr_regs.attr,
 	&dev_attr_dpu_version.attr,
+	&dev_attr_max_vsync_count.attr,
+#ifdef CONFIG_DRM_SPRD_WB_DEBUG
+	&dev_attr_wb_debug.attr,
+#endif
 	&dev_attr_irq_register.attr,
 	&dev_attr_irq_unregister.attr,
 	&dev_attr_frame_count.attr,

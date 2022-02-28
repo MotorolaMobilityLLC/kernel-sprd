@@ -5267,6 +5267,15 @@ CONFIG_DRM_SPRD_GSP_IPC_TRUSTY
 	[must] home
 	[missing plat description] support after l5pro SoC.
 	[function] DRM_SPRD_GSP_IPC_TRUSTY is used for enable gsp widevine.
+CONFIG_DRM_SPRD_WB_DEBUG
+	[arch] arm64
+	[plat] sharkl5Pro
+	[missing plat] sharkl3
+	[field]
+	[subsys]
+	[must]
+	[missing plat description]
+	[function]
 CONFIG_DRM_TTM
 	[arch] all
 	[plat] all
