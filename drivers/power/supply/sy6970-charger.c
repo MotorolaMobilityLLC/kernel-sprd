@@ -74,7 +74,8 @@
 
 #define SY6970_REG_TERMINAL_CUR_MASK		GENMASK(3, 0)
 
-#define SY6970_REG_VINDPM_VOLTAGE_MASK		GENMASK(7, 2)
+#define SY6970_REG_VINDPM_VOLTAGE_MASK		GENMASK(6, 0)
+#define SY6970_REG_VINDPM_ABS_MASK		GENMASK(7, 7)
 #define SY6970_REG_OVP_MASK			GENMASK(7, 6)
 #define SY6970_REG_OVP_SHIFT			6
 
@@ -335,6 +336,8 @@ sy6970_charger_set_vindpm(struct sy6970_charger_info *info, u32 vol)
 	else
 		reg_val = (vol - 2600) / 100;
 
+	sy6970_update_bits(info, SY6970_REG_D,
+				   SY6970_REG_VINDPM_ABS_MASK, 0x80);
 	return sy6970_update_bits(info, SY6970_REG_D,
 				   SY6970_REG_VINDPM_VOLTAGE_MASK, reg_val);
 }
@@ -347,7 +350,7 @@ static int  sy6970_enable_powerpath(struct sy6970_charger_info *info, bool en)
 	if(en)
 		ret=sy6970_charger_set_vindpm(info, 4500);
 	else	
-		ret=sy6970_charger_set_vindpm(info, 5400);
+		ret=sy6970_charger_set_vindpm(info, 15300);
 
 	return ret;
 }
