@@ -415,6 +415,9 @@ static int get_cp_ibat_uA(struct charger_manager *cm, int *uA)
 	struct power_supply *cp_psy;
 	int i, ret = -ENODEV;
 
+	if (!cm || !cm->desc || !cm->desc->psy_cp_stat)
+		return ret;
+
 	for (i = 0; cm->desc->psy_cp_stat[i]; i++) {
 		cp_psy = power_supply_get_by_name(cm->desc->psy_cp_stat[i]);
 		if (!cp_psy) {
@@ -446,6 +449,9 @@ static int get_cp_vbat_uV(struct charger_manager *cm, int *uV)
 	union power_supply_propval val;
 	struct power_supply *cp_psy;
 	int i, ret = -ENODEV;
+
+	if (!cm || !cm->desc || !cm->desc->psy_cp_stat)
+		return ret;
 
 	/* If at least one of them has one, it's yes. */
 	for (i = 0; cm->desc->psy_cp_stat[i]; i++) {
@@ -480,6 +486,9 @@ static int get_cp_vbus_uV(struct charger_manager *cm, int *uV)
 	union power_supply_propval val;
 	struct power_supply *cp_psy;
 	int i, ret = -ENODEV;
+
+	if (!cm || !cm->desc || !cm->desc->psy_cp_stat)
+		return ret;
 
 	/* If at least one of them has one, it's yes. */
 	for (i = 0; cm->desc->psy_cp_stat[i]; i++) {
@@ -2445,6 +2454,9 @@ static void cm_init_cp(struct charger_manager *cm)
 	struct power_supply *cp_psy;
 	int i, ret = -ENODEV;
 
+	if (!cm->desc->psy_cp_stat)
+		return;
+
 	for (i = 0; cm->desc->psy_cp_stat[i]; i++) {
 		cp_psy = power_supply_get_by_name(cm->desc->psy_cp_stat[i]);
 		if (!cp_psy) {
@@ -2454,9 +2466,7 @@ static void cm_init_cp(struct charger_manager *cm)
 		}
 
 		val.intval = CM_USB_PRESENT_CMD;
-		ret = power_supply_set_property(cp_psy,
-						POWER_SUPPLY_PROP_PRESENT,
-						&val);
+		ret = power_supply_set_property(cp_psy, POWER_SUPPLY_PROP_PRESENT, &val);
 		power_supply_put(cp_psy);
 		if (ret) {
 			dev_err(cm->dev, "fail to init cp[%d], ret = %d\n", i, ret);
