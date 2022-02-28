@@ -108,6 +108,7 @@ enum {
 struct sprd_headset_platform_data {
 	u32 gpio_switch;
 	u32 jack_type;
+	u32 impd_en;
 #if (defined(CONFIG_SND_SOC_UNISOC_CODEC_SC2730) || defined(CONFIG_SND_SOC_UNISOC_CODEC_SC2730_MODULE))
 	u32 gpios[HDST_GPIO_AUD_MAX];
 	u32 dbnc_times[HDST_GPIO_AUD_MAX]; /* debounce times */
