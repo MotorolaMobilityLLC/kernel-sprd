@@ -81,7 +81,7 @@
 							hback-porch = <32>;
 							hfront-porch = <48>;
 							vback-porch = <32>;
-							vfront-porch = <150>;
+							vfront-porch = <160>;
 							hsync-len = <4>;
 							vsync-len = <4>;
 						};
