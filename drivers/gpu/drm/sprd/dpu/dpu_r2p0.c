@@ -177,11 +177,6 @@
 
 #define SLP_BRIGHTNESS_THRESHOLD 0x20
 
-struct scale_cfg {
-	u32 in_w;
-	u32 in_h;
-};
-
 struct epf_cfg {
 	u16 epsilon0;
 	u16 epsilon1;
@@ -237,16 +232,13 @@ struct slp_cfg {
 };
 
 struct dpu_enhance {
+	u32 enhance_en;
+
 	struct cm_cfg cm_copy;
 	struct slp_cfg slp_copy;
 	struct gamma_lut gamma_copy;
 	struct hsv_lut hsv_copy;
 	struct epf_cfg epf_copy;
-	struct scale_cfg scale_copy;
-
-	u32 enhance_en;
-	bool need_scale;
-	bool mode_changed;
 };
 
 static void dpu_enhance_reload(struct dpu_context *ctx);
@@ -1081,11 +1073,6 @@ static void dpu_enhance_backup(struct dpu_context *ctx, u32 id, void *param)
 		enhance->enhance_en &= ~(*p);
 		pr_info("enhance disable backup: 0x%x\n", *p);
 		break;
-	case ENHANCE_CFG_ID_SCL:
-		memcpy(&enhance->scale_copy, param, sizeof(enhance->scale_copy));
-		enhance->enhance_en |= BIT(0);
-		pr_info("enhance scaling backup\n");
-		break;
 	case ENHANCE_CFG_ID_HSV:
 		memcpy(&enhance->hsv_copy, param, sizeof(enhance->hsv_copy));
 		enhance->enhance_en |= BIT(2);
@@ -1128,7 +1115,6 @@ static void dpu_epf_set(struct dpu_context *ctx, struct epf_cfg *epf)
 static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
 {
 	struct dpu_enhance *enhance = ctx->enhance;
-	struct scale_cfg *scale;
 	struct cm_cfg *cm;
 	struct slp_cfg *slp;
 	struct gamma_lut *gamma;
@@ -1153,13 +1139,6 @@ static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
 		p = param;
 		DPU_REG_CLR(ctx->base + REG_DPU_ENHANCE_CFG, *p);
 		pr_info("enhance module disable: 0x%x\n", *p);
-		break;
-	case ENHANCE_CFG_ID_SCL:
-		memcpy(&enhance->scale_copy, param, sizeof(enhance->scale_copy));
-		scale = &enhance->scale_copy;
-		DPU_REG_WR(ctx->base + REG_BLEND_SIZE, (scale->in_h << 16) | scale->in_w);
-		DPU_REG_SET(ctx->base + REG_DPU_ENHANCE_CFG, BIT(0));
-		pr_info("enhance scaling: %ux%u\n", scale->in_w, scale->in_h);
 		break;
 	case ENHANCE_CFG_ID_HSV:
 		memcpy(&enhance->hsv_copy, param, sizeof(enhance->hsv_copy));
@@ -1233,7 +1212,6 @@ static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
 
 static void dpu_enhance_get(struct dpu_context *ctx, u32 id, void *param)
 {
-	struct scale_cfg *scale;
 	struct epf_cfg *ep;
 	struct slp_cfg *slp;
 	struct gamma_lut *gamma;
@@ -1244,13 +1222,6 @@ static void dpu_enhance_get(struct dpu_context *ctx, u32 id, void *param)
 		p32 = param;
 		*p32 = DPU_REG_RD(ctx->base + REG_DPU_ENHANCE_CFG);
 		pr_info("enhance module enable get\n");
-		break;
-	case ENHANCE_CFG_ID_SCL:
-		scale = param;
-		val = DPU_REG_RD(ctx->base + REG_BLEND_SIZE);
-		scale->in_w = val & 0xffff;
-		scale->in_h = val >> 16;
-		pr_info("enhance scaling get\n");
 		break;
 	case ENHANCE_CFG_ID_EPF:
 		ep = param;
@@ -1335,20 +1306,12 @@ static void dpu_enhance_get(struct dpu_context *ctx, u32 id, void *param)
 static void dpu_enhance_reload(struct dpu_context *ctx)
 {
 	struct dpu_enhance *enhance = ctx->enhance;
-	struct scale_cfg *scale;
 	struct cm_cfg *cm;
 	struct slp_cfg *slp;
 	struct gamma_lut *gamma;
 	struct hsv_lut *hsv;
 	struct epf_cfg *epf;
 	int i;
-
-	if (enhance->enhance_en & BIT(0)) {
-		scale = &enhance->scale_copy;
-		DPU_REG_WR(ctx->base + REG_BLEND_SIZE, (scale->in_h << 16) | scale->in_w);
-		pr_info("enhance scaling from %ux%u to %ux%u\n", scale->in_w,
-			scale->in_h, ctx->vm.hactive, ctx->vm.vactive);
-	}
 
 	if (enhance->enhance_en & BIT(1)) {
 		epf = &enhance->epf_copy;
@@ -1409,18 +1372,18 @@ static void dpu_enhance_reload(struct dpu_context *ctx)
 static int dpu_modeset(struct dpu_context *ctx,
 		struct drm_display_mode *mode)
 {
-	struct dpu_enhance *enhance = ctx->enhance;
+	struct scale_config_param *scale_cfg = &ctx->scale_cfg;
 
-	enhance->scale_copy.in_w = mode->hdisplay;
-	enhance->scale_copy.in_h = mode->vdisplay;
+	scale_cfg->in_w = mode->hdisplay;
+	scale_cfg->in_h = mode->vdisplay;
 
 	if ((mode->hdisplay != ctx->vm.hactive) ||
-		(mode->vdisplay != ctx->vm.vactive))
-		enhance->need_scale = true;
+	    (mode->vdisplay != ctx->vm.vactive))
+		scale_cfg->need_scale = true;
 	else
-		enhance->need_scale = false;
+		scale_cfg->need_scale = false;
 
-	enhance->mode_changed = true;
+	scale_cfg->sr_mode_changed = true;
 	pr_info("begin switch to %u x %u\n", mode->hdisplay, mode->vdisplay);
 
 	return 0;

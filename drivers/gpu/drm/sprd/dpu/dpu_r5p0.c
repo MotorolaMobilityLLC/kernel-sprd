@@ -201,7 +201,7 @@
 #define BIT_BOT_CORNER_EN		BIT(16)
 
 /* enhance config bits */
-#define BIT_DPU_ENHANCE_EN		BIT(0)
+#define BIT_DPU_SCALING_EN		BIT(0)
 
 /* mmu interrupt bits */
 #define BIT_DPU_INT_MMU_PAOR_WR_MASK	BIT(7)
@@ -266,11 +266,6 @@ struct dpu_cfg1 {
 	u8 arqos_high;
 	u8 awqos_low;
 	u8 awqos_high;
-};
-
-struct scale_cfg {
-	u32 in_w;
-	u32 in_h;
 };
 
 struct hsv_entry {
@@ -382,11 +377,7 @@ struct dpu_enhance {
 	int cabc_state;
 	int frame_no;
 	bool cabc_bl_set;
-	bool mode_changed;
-	bool need_scale;
-	u8 skip_layer_index;
 
-	struct scale_cfg scale_copy;
 	struct hsv_lut hsv_copy;
 	struct cm_cfg cm_copy;
 	struct ltm_cfg ltm_copy;
@@ -399,10 +390,10 @@ struct dpu_enhance {
 };
 
 static struct dpu_cfg1 qos_cfg = {
-	.arqos_low = 0x1,
-	.arqos_high = 0x7,
-	.awqos_low = 0x1,
-	.awqos_high = 0x7,
+	.arqos_low = 0xc,
+	.arqos_high = 0xd,
+	.awqos_low = 0xa,
+	.awqos_high = 0xa,
 };
 
 static void dpu_sr_config(struct dpu_context *ctx);
@@ -411,6 +402,7 @@ static void dpu_layer(struct dpu_context *ctx,
 		struct sprd_layer_state *hwlayer);
 static void dpu_enhance_reload(struct dpu_context *ctx);
 static int dpu_cabc_trigger(struct dpu_context *ctx);
+
 static void dpu_version(struct dpu_context *ctx)
 {
 	ctx->version = "dpu-r5p0";
@@ -1364,31 +1356,29 @@ static void dpu_scaling(struct dpu_context *ctx,
 	u16 src_h;
 	struct sprd_layer_state *layer_state;
 	struct sprd_plane_state *plane_state;
-	struct dpu_enhance *enhance = ctx->enhance;
+	struct scale_config_param *scale_cfg = &ctx->scale_cfg;
 
-	if (enhance->mode_changed) {
+	if (scale_cfg->sr_mode_changed) {
 		pr_debug("------------------------------------\n");
 		for (i = 0; i < count; i++) {
 			plane_state = to_sprd_plane_state(planes[i].base.state);
 			layer_state = &plane_state->layer;
 			pr_debug("layer[%d] : %dx%d --- (%d)\n", i,
 				layer_state->dst_w, layer_state->dst_h,
-				enhance->scale_copy.in_w);
-			if (layer_state->dst_w != enhance->scale_copy.in_w) {
-				enhance->skip_layer_index = i;
+				scale_cfg->in_w);
+			if (layer_state->dst_w != scale_cfg->in_w) {
+				scale_cfg->skip_layer_index = i;
 				break;
 			}
 		}
 
 		plane_state = to_sprd_plane_state(planes[count - 1].base.state);
 		layer_state = &plane_state->layer;
-		if  (layer_state->dst_w <= enhance->scale_copy.in_w) {
+		if  (layer_state->dst_w <= scale_cfg->in_w) {
 			dpu_sr_config(ctx);
-			enhance->mode_changed = false;
-
-			pr_info("do scaling enhance: 0x%x, top layer(%dx%d)\n",
-				enhance->enhance_en, layer_state->dst_w,
-				layer_state->dst_h);
+			scale_cfg->sr_mode_changed = false;
+			pr_info("do scaling enhace, bottom layer(%dx%d)\n",
+					layer_state->dst_w, layer_state->dst_h);
 		}
 	} else {
 		if (count == 1) {
@@ -1405,11 +1395,11 @@ static void dpu_scaling(struct dpu_context *ctx,
 			if (src_w == layer_state->dst_w
 			&& src_h == layer_state->dst_h) {
 				DPU_REG_WR(ctx->base + REG_BLEND_SIZE,
-					(enhance->scale_copy.in_h << 16) | enhance->scale_copy.in_w);
-				if (!enhance->need_scale)
-					DPU_REG_CLR(ctx->base + REG_DPU_ENHANCE_CFG, BIT_DPU_ENHANCE_EN);
+					(scale_cfg->in_h << 16) | scale_cfg->in_w);
+				if (!scale_cfg->need_scale)
+					DPU_REG_CLR(ctx->base + REG_DPU_ENHANCE_CFG, BIT_DPU_SCALING_EN);
 				else
-					DPU_REG_SET(ctx->base + REG_DPU_ENHANCE_CFG, BIT_DPU_ENHANCE_EN);
+					DPU_REG_SET(ctx->base + REG_DPU_ENHANCE_CFG, BIT_DPU_SCALING_EN);
 			} else {
 				/*
 				 * When the layer src size is not euqal to the
@@ -1426,17 +1416,17 @@ static void dpu_scaling(struct dpu_context *ctx,
 				 */
 				if (src_h == ctx->vm.vactive &&
 						src_w == ctx->vm.hactive)
-					DPU_REG_CLR(ctx->base + REG_DPU_ENHANCE_CFG, BIT_DPU_ENHANCE_EN);
+					DPU_REG_CLR(ctx->base + REG_DPU_ENHANCE_CFG, BIT_DPU_SCALING_EN);
 				else
-					DPU_REG_SET(ctx->base + REG_DPU_ENHANCE_CFG, BIT_DPU_ENHANCE_EN);
+					DPU_REG_SET(ctx->base + REG_DPU_ENHANCE_CFG, BIT_DPU_SCALING_EN);
 			}
 		} else {
-			DPU_REG_WR(ctx->base + REG_BLEND_SIZE, (enhance->scale_copy.in_h << 16) |
-					  enhance->scale_copy.in_w);
-			if (!enhance->need_scale)
-				DPU_REG_CLR(ctx->base + REG_DPU_ENHANCE_CFG, BIT_DPU_ENHANCE_EN);
+			DPU_REG_WR(ctx->base + REG_BLEND_SIZE, (scale_cfg->in_h << 16) |
+					  scale_cfg->in_w);
+			if (!scale_cfg->need_scale)
+				DPU_REG_CLR(ctx->base + REG_DPU_ENHANCE_CFG, BIT_DPU_SCALING_EN);
 			else
-				DPU_REG_SET(ctx->base + REG_DPU_ENHANCE_CFG, BIT_DPU_ENHANCE_EN);
+				DPU_REG_SET(ctx->base + REG_DPU_ENHANCE_CFG, BIT_DPU_SCALING_EN);
 		}
 	}
 }
@@ -1447,7 +1437,7 @@ static void dpu_flip(struct dpu_context *ctx, struct sprd_plane planes[], u8 cou
 	u32 reg_val, mmu_reg_val, secure_val;
 	struct sprd_plane_state *state;
 	struct sprd_layer_state *layer;
-	struct dpu_enhance *enhance = ctx->enhance;
+	struct scale_config_param *scale_cfg = &ctx->scale_cfg;
 
 	ctx->vsync_count = 0;
 	if (ctx->max_vsync_count > 0 && count > 1)
@@ -1476,8 +1466,8 @@ static void dpu_flip(struct dpu_context *ctx, struct sprd_plane planes[], u8 cou
 
 		state = to_sprd_plane_state(planes[i].base.state);
 
-		if (enhance->skip_layer_index == i && enhance->skip_layer_index) {
-			enhance->skip_layer_index = 0;
+		if (scale_cfg->skip_layer_index == i && scale_cfg->skip_layer_index) {
+			scale_cfg->skip_layer_index = 0;
 			break;
 		}
 
@@ -1670,11 +1660,6 @@ static void dpu_enhance_backup(struct dpu_context *ctx, u32 id, void *param)
 		enhance->enhance_en &= ~(*p);
 		pr_info("enhance module disable backup: 0x%x\n", *p);
 		break;
-	case ENHANCE_CFG_ID_SCL:
-		memcpy(&enhance->scale_copy, param, sizeof(enhance->scale_copy));
-		enhance->enhance_en |= BIT(0);
-		pr_info("enhance scaling backup\n");
-		break;
 	case ENHANCE_CFG_ID_HSV:
 		memcpy(&enhance->hsv_copy, param, sizeof(enhance->hsv_copy));
 		enhance->enhance_en |= BIT(2);
@@ -1724,7 +1709,6 @@ static void dpu_enhance_backup(struct dpu_context *ctx, u32 id, void *param)
 static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
 {
 	struct dpu_enhance *enhance = ctx->enhance;
-	struct scale_cfg *scale;
 	struct cm_cfg cm;
 	struct slp_cfg *slp;
 	struct ltm_cfg *ltm;
@@ -1755,13 +1739,6 @@ static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
 		p = param;
 		DPU_REG_CLR(ctx->base + REG_DPU_ENHANCE_CFG, *p);
 		pr_info("enhance module disable: 0x%x\n", *p);
-		break;
-	case ENHANCE_CFG_ID_SCL:
-		memcpy(&enhance->scale_copy, param, sizeof(enhance->scale_copy));
-		scale = &enhance->scale_copy;
-		DPU_REG_WR(ctx->base + REG_BLEND_SIZE, (scale->in_h << 16) | scale->in_w);
-		DPU_REG_SET(ctx->base + REG_DPU_ENHANCE_CFG, BIT(0));
-		pr_info("enhance scaling: %ux%u\n", scale->in_w, scale->in_h);
 		break;
 	case ENHANCE_CFG_ID_HSV:
 		memcpy(&enhance->hsv_copy, param, sizeof(enhance->hsv_copy));
@@ -1932,7 +1909,6 @@ static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
 static void dpu_enhance_get(struct dpu_context *ctx, u32 id, void *param)
 {
 	struct dpu_enhance *enhance = ctx->enhance;
-	struct scale_cfg *scale;
 	struct epf_cfg *epf;
 	struct slp_cfg *slp;
 	struct ltm_cfg *ltm;
@@ -1947,13 +1923,6 @@ static void dpu_enhance_get(struct dpu_context *ctx, u32 id, void *param)
 		p32 = param;
 		*p32 = DPU_REG_RD(ctx->base + REG_DPU_ENHANCE_CFG);
 		pr_info("enhance module enable get\n");
-		break;
-	case ENHANCE_CFG_ID_SCL:
-		scale = param;
-		val = DPU_REG_RD(ctx->base + REG_BLEND_SIZE);
-		scale->in_w = val & 0xffff;
-		scale->in_h = val >> 16;
-		pr_info("enhance scaling get\n");
 		break;
 	case ENHANCE_CFG_ID_EPF:
 		epf = param;
@@ -2136,7 +2105,6 @@ static void dpu_enhance_get(struct dpu_context *ctx, u32 id, void *param)
 static void dpu_enhance_reload(struct dpu_context *ctx)
 {
 	struct dpu_enhance *enhance = ctx->enhance;
-	struct scale_cfg *scale;
 	struct cm_cfg *cm;
 	struct slp_cfg *slp;
 	struct ltm_cfg *ltm;
@@ -2152,13 +2120,6 @@ static void dpu_enhance_reload(struct dpu_context *ctx)
 		DPU_REG_WR(ctx->base + REG_SLP_LUT_WDATA, slp_lut[i]);
 	}
 	pr_info("enhance slp lut reload\n");
-
-	if (enhance->enhance_en & BIT(0)) {
-		scale = &enhance->scale_copy;
-		DPU_REG_WR(ctx->base + REG_BLEND_SIZE, (scale->in_h << 16) | scale->in_w);
-		pr_info("enhance scaling from %ux%u to %ux%u\n", scale->in_w,
-			scale->in_h, ctx->vm.hactive, ctx->vm.vactive);
-	}
 
 	if (enhance->enhance_en & BIT(1)) {
 		epf = &enhance->epf_copy;
@@ -2264,17 +2225,15 @@ static void dpu_enhance_reload(struct dpu_context *ctx)
 
 static void dpu_sr_config(struct dpu_context *ctx)
 {
-	struct dpu_enhance *enhance = ctx->enhance;
+	struct scale_config_param *scale_cfg = &ctx->scale_cfg;
 
 	DPU_REG_WR(ctx->base + REG_BLEND_SIZE,
-			(enhance->scale_copy.in_h << 16) | enhance->scale_copy.in_w);
-	if (enhance->need_scale) {
-		enhance->enhance_en |= BIT(0);
-		DPU_REG_WR(ctx->base + REG_DPU_ENHANCE_CFG, enhance->enhance_en);
-	} else {
-		enhance->enhance_en &= ~(BIT(0));
-		DPU_REG_WR(ctx->base + REG_DPU_ENHANCE_CFG, enhance->enhance_en);
-	}
+			(scale_cfg->in_h << 16) | scale_cfg->in_w);
+
+	if (scale_cfg->need_scale)
+		DPU_REG_SET(ctx->base + REG_DPU_ENHANCE_CFG, BIT_DPU_SCALING_EN);
+	else
+		DPU_REG_CLR(ctx->base + REG_DPU_ENHANCE_CFG, BIT_DPU_SCALING_EN);
 }
 
 static int dpu_cabc_trigger(struct dpu_context *ctx)
@@ -2384,18 +2343,18 @@ static int dpu_cabc_trigger(struct dpu_context *ctx)
 static int dpu_modeset(struct dpu_context *ctx,
 		struct drm_display_mode *mode)
 {
-	struct dpu_enhance *enhance = ctx->enhance;
+	struct scale_config_param *scale_cfg = &ctx->scale_cfg;
 
-	enhance->scale_copy.in_w = mode->hdisplay;
-	enhance->scale_copy.in_h = mode->vdisplay;
+	scale_cfg->in_w = mode->hdisplay;
+	scale_cfg->in_h = mode->vdisplay;
 
 	if ((mode->hdisplay != ctx->vm.hactive) ||
 	    (mode->vdisplay != ctx->vm.vactive))
-		enhance->need_scale = true;
+		scale_cfg->need_scale = true;
 	else
-		enhance->need_scale = false;
+		scale_cfg->need_scale = false;
 
-	enhance->mode_changed = true;
+	scale_cfg->sr_mode_changed = true;
 	pr_info("begin switch to %u x %u\n", mode->hdisplay, mode->vdisplay);
 
 	return 0;

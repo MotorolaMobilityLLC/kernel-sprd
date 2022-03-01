@@ -104,6 +104,16 @@ struct dpu_glb_ops {
 	void (*power)(struct dpu_context *ctx, int enable);
 };
 
+struct scale_config_param {
+	bool sr_mode_changed;
+	bool need_scale;
+	u8 skip_layer_index;
+	u32 in_w;
+	u32 in_h;
+	u32 out_w;
+	u32 out_h;
+};
+
 struct dpu_context {
 	/* dpu common parameters */
 	void __iomem *base;
@@ -176,6 +186,9 @@ struct dpu_context {
 	unsigned long logo_size;
 	u32 prev_y2r_coef;
 	u64 frame_count;
+
+	/* scaling config parameters */
+	struct scale_config_param scale_cfg;
 };
 
 struct sprd_dpu_ops {
