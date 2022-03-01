@@ -167,7 +167,7 @@ static struct clk_bit_field f_rpll[PLL_FACT_MAX] = {
 	{ .shift = 66,	.width = 1 },	/* postdiv	*/
 };
 
-static SPRD_PLL_FW_NAME(rpll, "rpll", "ext-26m", 0x10,
+static SPRD_PLL_HW(rpll, "rpll", &clk_26m_aud.hw, 0x10,
 				   3, rpll_ftable, f_rpll, 240,
 				   1000, 1000, 1, 1560000000);
 static CLK_FIXED_FACTOR_HW(rpll_390m, "rpll-390m", &rpll.common.hw, 2, 1, 0);
