@@ -1746,6 +1746,8 @@
 					snps,disconnect_event_quirk;
 					snps,usb3_slow_suspend;
 					snps,host_suspend_capable;
+					snps,dis_u1_entry_quirk;
+					snps,dis_u2_entry_quirk;
 				};
 			};
 
