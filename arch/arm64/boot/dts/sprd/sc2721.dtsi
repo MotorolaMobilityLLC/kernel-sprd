@@ -128,6 +128,7 @@
 			compatible = "sprd,sc27xx-adc", "sprd,sc2721-adc";
 			reg = <0x400>;
 			interrupt-parent = <&sc2721_pmic>;
+			vref-supply = <&vdd28>;
 			interrupts = <0>;
 			#io-channel-cells = <1>;
 			hwlocks = <&hwlock 4>;
