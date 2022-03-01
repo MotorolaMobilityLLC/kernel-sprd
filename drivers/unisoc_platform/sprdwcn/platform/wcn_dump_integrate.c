@@ -374,7 +374,7 @@ gnss_dump_callback gnss_dump_handle;
 
 static int wcn_fill_dump_head_info(struct wcn_dump_mem_reg *mem_cfg, size_t cnt)
 {
-	unsigned int i, len, head_len;
+	unsigned int i, j, len, head_len;
 	struct wcn_dump_mem_reg *mem;
 	struct wcn_dump_head_info *head;
 	struct wcn_dump_section_info *sec;
@@ -398,16 +398,23 @@ static int wcn_fill_dump_head_info(struct wcn_dump_mem_reg *mem_cfg, size_t cnt)
 
 	head->n_sec = cpu_to_le32(cnt);
 	len = head_len;
-	for (i = 0; i < cnt; i++) {
-		sec = head->section + i;
+	for (i = 0, j = 0; i < cnt; i++) {
 		mem = mem_cfg + i;
-		sec->off = cpu_to_le32(WCN_DUMP_ALIGN(len));
-		sec->start = cpu_to_le32(mem->addr);
-		sec->end = cpu_to_le32(sec->start + mem->len - 1);
-		len += mem->len;
-		WCN_INFO("section[%d] [0x%x 0x%x 0x%x]\n",
-			 i, le32_to_cpu(sec->start),
-			 le32_to_cpu(sec->end), le32_to_cpu(sec->off));
+		if ((mem->prerequisite == NULL) || mem->prerequisite()) {
+			sec = head->section + j;
+			sec->off = cpu_to_le32(WCN_DUMP_ALIGN(len));
+			sec->start = cpu_to_le32(mem->addr);
+			sec->end = cpu_to_le32(sec->start + mem->len - 1);
+			len += mem->len;
+			WCN_INFO("section[%d] [0x%x 0x%x 0x%x]\n",
+				i, le32_to_cpu(sec->start),
+				le32_to_cpu(sec->end), le32_to_cpu(sec->off));
+			j++;
+		} else {
+			WCN_INFO("section[%d] [0x%x 0x%x] no need to dump!\n",
+				i, mem->addr,
+				mem->addr + mem->len - 1);
+		}
 	}
 	head->file_size = cpu_to_le32(len + strlen(WCN_DUMP_END_STRING));
 
