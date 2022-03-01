@@ -683,6 +683,8 @@
   radix_tree_gang_lookup
   radix_tree_insert
   radix_tree_lookup
+  raw_notifier_call_chain
+  raw_notifier_chain_register
   rc_map_unregister
   rc_repeat
   rc_keydown
