@@ -957,6 +957,22 @@
 	status = "okay";
 };
 
+&iommu_dcam {
+	status = "okay";
+};
+
+&iommu_dcam_lite {
+	status = "okay";
+};
+
+&iommu_isp {
+	status = "okay";
+};
+
+&iommu_cpp {
+	status = "okay";
+};
+
 &pwms {
 	status = "okay";
 };
