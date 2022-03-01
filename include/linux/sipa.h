@@ -22,8 +22,7 @@
 
 #define SIPA_IRQ_NAME_SIZE 30
 
-#define SIPA_RECV_QUEUES_MAX (num_possible_cpus() > 1 ? \
-			      num_possible_cpus() >> 2 : 1)
+#define SIPA_RECV_QUEUES_MAX 1
 
 #define SIPA_RECV_CMN_FIFO_NUM 8
 

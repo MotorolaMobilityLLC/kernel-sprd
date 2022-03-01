@@ -993,7 +993,7 @@ void sipa_hal_resume_glb_reg_cfg(struct device *dev)
 	sipa_hal_tcp_special_leave_to_ap();
 }
 
-u32 sipa_multi_int_callback_func(int irq, void *cookie)
+irqreturn_t sipa_multi_int_callback_func(int irq, void *cookie)
 {
 	struct sipa_plat_drv_cfg *ipa = cookie;
 

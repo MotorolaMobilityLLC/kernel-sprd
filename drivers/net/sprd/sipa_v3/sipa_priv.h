@@ -83,10 +83,8 @@ enum sipa_suspend_stage_e {
 			   SIPA_FORCE_SUSPEND | \
 			   SIPA_ACTION_SUSPEND)
 
-typedef bool (*sipa_check_send_completed)(void *priv);
 typedef void (*sipa_hal_notify_cb)(void *priv, enum sipa_hal_evt_type evt,
 				   unsigned long data);
-
 enum sipa_cmn_fifo_index {
 	SIPA_FIFO_USB_UL,
 	SIPA_FIFO_WIFI_UL,
@@ -329,11 +327,13 @@ struct sipa_recv_mem_list {
 	struct list_head list;
 };
 
+typedef bool (*sipa_check_send_completed)(struct sipa_skb_sender *sender);
+
 struct sipa_nic_cons_res {
 	bool initied;
 	enum sipa_rm_res_id cons;
 	sipa_check_send_completed chk_func;
-	void *chk_priv;
+	struct sipa_skb_sender *chk_priv;
 	spinlock_t lock;	/*spinlock for nic_cons_res lock handling*/
 	struct delayed_work work;
 	bool resource_requested;
@@ -843,7 +843,7 @@ struct sipa_plat_drv_cfg {
 	struct sipa_cmn_fifo_cfg_tag cmn_fifo_cfg[SIPA_FIFO_MAX];
 };
 
-u32 sipa_multi_int_callback_func(int evt, void *cookie);
+irqreturn_t sipa_multi_int_callback_func(int evt, void *cookie);
 void sipa_fifo_ops_init(struct sipa_fifo_phy_ops *ops);
 void sipa_glb_ops_init(struct sipa_glb_phy_ops *ops);
 
