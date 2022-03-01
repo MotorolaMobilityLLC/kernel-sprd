@@ -1222,6 +1222,8 @@ static int dwc3_sprd_resume_child(struct device *dev, void *data)
 	if ((ret != 0) && (ret != 1)) {
 		dev_err(dev, "dwc3 child device enters resume failed!!!\n");
 		return ret;
+	} else if (ret == 1) {
+		dev_info(dev, "dwc3 child device resume return 1 !\n");
 	}
 
 	return 0;
