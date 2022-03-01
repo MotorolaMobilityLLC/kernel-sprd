@@ -2951,6 +2951,7 @@ static bool cm_cp_tune_algo(struct charger_manager *cm)
 		if (cp->ibat_uA < cp->cp_taper_current) {
 			if (cp->cp_taper_trigger_cnt++ > 5) {
 				is_taper_done = true;
+				cp->cp_taper_trigger_cnt = 0;
 				return is_taper_done;
 			}
 		} else {
@@ -3294,6 +3295,7 @@ static void cm_cp_state_exit(struct charger_manager *cm)
 	cp->cp_fault_event = false;
 	cp->cp_ibat_ucp_cnt = 0;
 	cp->cp_state_tune_log = false;
+	cp->cp_taper_trigger_cnt = 0;
 }
 
 static int cm_cp_state_machine(struct charger_manager *cm)
