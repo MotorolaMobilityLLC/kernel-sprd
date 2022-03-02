@@ -386,6 +386,7 @@ static void sdhci_sprd_set_uhs_signaling(struct sdhci_host *host,
 	struct mmc_host *mmc = host->mmc;
 	u32 *p = sprd_host->phy_delay;
 	u16 ctrl_2;
+	bool en = false;
 
 	if (timing == host->timing)
 		return;
@@ -423,6 +424,13 @@ static void sdhci_sprd_set_uhs_signaling(struct sdhci_host *host,
 	}
 
 	sdhci_writew(host, ctrl_2, SDHCI_HOST_CONTROL2);
+
+	if (timing == MMC_TIMING_SD_HS || timing == MMC_TIMING_MMC_HS ||
+			timing == MMC_TIMING_LEGACY)
+		en = true;
+
+	sdhci_sprd_set_dll_invert(host, SDHCI_SPRD_BIT_CMD_DLY_INV |
+		SDHCI_SPRD_BIT_POSRD_DLY_INV, en);
 
 	if (!mmc->ios.enhanced_strobe)
 		sdhci_writel(host, p[timing], SDHCI_SPRD_REG_32_DLL_DLY);
