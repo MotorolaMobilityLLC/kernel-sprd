@@ -1017,6 +1017,7 @@ static int iface_set_mac(struct net_device *dev, void *addr)
 {
 	struct sprd_vif *vif = netdev_priv(dev);
 	struct sockaddr *sa = (struct sockaddr *)addr;
+	struct sprd_hif *hif = &vif->priv->hif;
 	int ret;
 
 	if (!dev) {
@@ -1036,13 +1037,15 @@ static int iface_set_mac(struct net_device *dev, void *addr)
 			vif->has_rand_mac = true;
 			memcpy(vif->random_mac, sa->sa_data, ETH_ALEN);
 			memcpy(dev->dev_addr, sa->sa_data, ETH_ALEN);
-			netdev_info(dev, "set random mac to cp2 : %pM\n", vif->random_mac);
-			ret = sprd_set_random_mac(vif->priv, vif,
+			if (atomic_read(&hif->power_cnt) != 0) {
+				netdev_info(dev, "set random mac to cp2 : %pM\n", vif->random_mac);
+				ret = sprd_set_random_mac(vif->priv, vif,
 						  SPRD_CONNECT_RANDOM_ADDR,
 						  vif->random_mac);
-			if (ret) {
-				netdev_err(dev, "%s set station random mac error\n", __func__);
-				return -EFAULT;
+				if (ret) {
+					netdev_err(dev, "%s set station random mac error\n", __func__);
+					return -EFAULT;
+				}
 			}
 		} else {
 			vif->has_rand_mac = false;
