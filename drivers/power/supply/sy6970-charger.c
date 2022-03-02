@@ -336,8 +336,6 @@ sy6970_charger_set_vindpm(struct sy6970_charger_info *info, u32 vol)
 	else
 		reg_val = (vol - 2600) / 100;
 
-	sy6970_update_bits(info, SY6970_REG_D,
-				   SY6970_REG_VINDPM_ABS_MASK, 0x80);
 	return sy6970_update_bits(info, SY6970_REG_D,
 				   SY6970_REG_VINDPM_VOLTAGE_MASK, reg_val);
 }
@@ -348,9 +346,18 @@ static int  sy6970_enable_powerpath(struct sy6970_charger_info *info, bool en)
 	dev_err(info->dev,"%s; %d;\n", __func__,en);
 
 	if(en)
+	{
+		sy6970_update_bits(info, SY6970_REG_D,
+					   SY6970_REG_VINDPM_ABS_MASK, 0x00);
 		ret=sy6970_charger_set_vindpm(info, 4500);
+	}	
 	else	
+	{
+
+		sy6970_update_bits(info, SY6970_REG_D,
+					   SY6970_REG_VINDPM_ABS_MASK, 0x80);
 		ret=sy6970_charger_set_vindpm(info, 15300);
+	}
 
 	return ret;
 }
