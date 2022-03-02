@@ -170,11 +170,11 @@
 
 		/* must be 1M aligned */
 		sml_reserved: sml-mem@bd000000 {
-			reg = <0x0 0xbd000000 0x0 0x00020000>;
+			reg = <0x0 0xbd000000 0x0 0x00040000>;
 		};
 
 		tos_reserved: tos-mem@bd020000 {
-			reg = <0x0 0xbd020000 0x0 0x05fe0000>;
+			reg = <0x0 0xbd040000 0x0 0x01fc0000>;
 		};
 
 		cma_reserved: cma_share@f00000000 {
