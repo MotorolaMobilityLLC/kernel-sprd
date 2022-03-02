@@ -40,6 +40,7 @@
 #define  MAX_PREV_MSG_PRINTK_COUNT		70
 static struct aud_smsg_ipc *aud_smsg_ipcs[AUD_IPC_NR];
 static struct mbox_chan *aud_smsg_mboxchan;
+static int msg_index;
 
 static ushort debug_enable;
 static ushort assert_trigger;
@@ -345,6 +346,8 @@ static void aud_smsg_rx_dump(void)
 
 int aud_smsg_ipc_create(u8 dst, struct aud_smsg_ipc *ipc)
 {
+	msg_index = 0;
+
 	if (!ipc->irq_handler)
 		ipc->irq_handler = (void *)aud_smsg_irq_handler;
 
@@ -544,7 +547,7 @@ EXPORT_SYMBOL(aud_smsg_rx_handler);
 
 int aud_smsg_send(u8 dst, struct aud_smsg *msg)
 {
-	unsigned long long msg_val = 0;
+	static unsigned long long msg_val[MBOX_TX_QUEUE_LEN];
 	unsigned long long command;
 	unsigned long long channel;
 	unsigned long long parameter0;
@@ -606,13 +609,15 @@ int aud_smsg_send(u8 dst, struct aud_smsg *msg)
 	command = msg->command;
 	channel = msg->channel;
 	parameter0 = msg->parameter0;
-	msg_val =  (command << 48) | (channel << 32) | (parameter0);
-	//mbox_raw_sent(ipc->target_id, msg_val);
-	ret = mbox_send_message(aud_smsg_mboxchan, (void *)&msg_val);
+	msg_val[msg_index] =  (command << 48) | (channel << 32) | (parameter0);
+	ret = mbox_send_message(aud_smsg_mboxchan, (void *)&msg_val[msg_index]);
 	if (ret < 0) {
-		pr_err("%s, mbox send message error!\n", __func__);
+		pr_err("%s, mbox send message error! ret=%d\n", __func__, ret);
 	}
 	mbox_chan_txdone(aud_smsg_mboxchan, 0);
+	msg_index++;
+	if (msg_index >= MBOX_TX_QUEUE_LEN)
+		msg_index = 0;
 
 send_failed:
 	spin_unlock_irqrestore(&(ipc->txpinlock), flags);

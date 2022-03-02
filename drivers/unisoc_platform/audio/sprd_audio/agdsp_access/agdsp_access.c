@@ -105,6 +105,7 @@ struct agdsp_access {
 
 static struct agdsp_access  *g_agdsp_access;
 static struct mbox_chan *g_agdsp_mboxchan;
+static int msg_index;
 
 /*extern int mbox_raw_sent(u8 target_id, u64 msg);*/
 static int agdsp_access_init_thread(void *data)
@@ -399,7 +400,7 @@ int agdsp_access_enable(void)
 	int cnt = 0;
 	int val = 0;
 	struct agdsp_access *dsp_ac = g_agdsp_access;
-	unsigned long long msg_val = 0;
+	static unsigned long long msg_val[MBOX_TX_QUEUE_LEN];
 
 	pr_dbg("%s entry auto agcp access=%d\n", __func__,
 		dsp_ac->auto_agcp_access);
@@ -448,16 +449,15 @@ int agdsp_access_enable(void)
 		 * send a mail to AGDSP to wake up it,
 		 * 100 is an invalid command
 		 */
-		msg_val = 100;
-		ret = mbox_send_message(g_agdsp_mboxchan, (void *)&msg_val);
+		msg_val[msg_index] = 100;
+		ret = mbox_send_message(g_agdsp_mboxchan, (void *)&msg_val[msg_index]);
 		if (ret < 0) {
-			pr_err("%s, mbox send message error!\n", __func__);
+			pr_err("%s, mbox send message error! ret=%d\n", __func__, ret);
 		}
 		mbox_chan_txdone(g_agdsp_mboxchan, 0);
-		if (ret < 0) {
-			pr_err("agdsp mbox_send_message error:%d\n", ret);
-			goto exit;
-		}
+		msg_index++;
+		if (msg_index >= MBOX_TX_QUEUE_LEN)
+			msg_index = 0;
 		udelay(20);
 
 		do {
@@ -782,6 +782,8 @@ static int agdsp_access_probe(struct platform_device *pdev)
 	int ret = 0;
 	u32 offset;
 	u32 auto_agcp_access;
+
+	msg_index = 0;
 
 	if (of_property_read_bool(node, "sprd,ddr-addr-offset")) {
 		if (of_property_read_u32
