@@ -389,7 +389,7 @@
 	};
 
 	ai_reserved: ai@f6048000 {
-		reg = <0x0 0xf6048000 0x0 0x02000000>;
+		reg = <0x0 0xf6048000 0x0 0x00600000>;
 	};
 
 	fd_reserved: faceid-mem@f8048000 {
