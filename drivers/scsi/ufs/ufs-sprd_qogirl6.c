@@ -716,6 +716,11 @@ static int ufs_sprd_resume(struct ufs_hba *hba, enum ufs_pm_op pm_op)
 	return 0;
 }
 
+static void ufs_sprd_device_reset(struct ufs_hba *hba)
+{
+	return;
+}
+
 static inline u16 ufs_sprd_wlun_to_scsi_lun(u8 upiu_wlun_id)
 {
 	return (upiu_wlun_id & ~UFS_UPIU_WLUN_ID) | SCSI_W_LUN_BASE;
@@ -979,6 +984,7 @@ static struct ufs_hba_variant_ops ufs_hba_sprd_vops = {
 	.apply_dev_quirks = ufs_sprd_apply_dev_quirks,
 	.suspend = ufs_sprd_suspend,
 	.resume = ufs_sprd_resume,
+	.device_reset = ufs_sprd_device_reset,
 };
 
 /*
