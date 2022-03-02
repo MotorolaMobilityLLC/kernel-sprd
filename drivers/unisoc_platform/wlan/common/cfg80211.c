@@ -640,7 +640,7 @@ int sprd_cfg80211_get_station(struct wiphy *wiphy, struct net_device *ndev,
 
 	if (tx_rate->flags & RATE_INFO_FLAGS_MCS ||
 	    tx_rate->flags & RATE_INFO_FLAGS_VHT_MCS) {
-		sinfo->txrate.flags = tx_rate->flags & 0x3;
+		sinfo->txrate.flags |= (tx_rate->flags & 0x3);
 		sinfo->txrate.mcs = tx_rate->mcs;
 
 		if (tx_rate->flags & RATE_INFO_FLAGS_VHT_MCS && tx_rate->nss)
@@ -667,7 +667,7 @@ int sprd_cfg80211_get_station(struct wiphy *wiphy, struct net_device *ndev,
 
 	if (rx_rate->flags & RATE_INFO_FLAGS_MCS ||
 	    rx_rate->flags & RATE_INFO_FLAGS_VHT_MCS) {
-		sinfo->rxrate.flags = rx_rate->flags & 0x3;
+		sinfo->rxrate.flags |= (rx_rate->flags & 0x3);
 		sinfo->rxrate.mcs = rx_rate->mcs;
 
 		if (rx_rate->flags & RATE_INFO_FLAGS_VHT_MCS && rx_rate->nss)
