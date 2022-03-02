@@ -89,7 +89,7 @@ struct sprdwcn_gnss_ops *gnss_ops;
 static struct completion find_tsx_completion;
 static const struct firmware *tsx_firmware;
 static bool is_tsx_found = true;
-
+unsigned char  is_ums9620;
 unsigned char  flag_reset;
 char functionmask[8];
 static unsigned int reg_val;
@@ -146,6 +146,27 @@ unsigned int marlin_get_wcn_chipid(void)
 	pr_info("marlin: chipid=%x, %s\n", chip_id, __func__);
 
 	return chip_id;
+}
+
+static int get_boot_hardware(void)
+{
+	struct device_node *cmdline_node;
+	const char *cmd_line;
+	int ret;
+
+	is_ums9620 = 0;
+	cmdline_node = of_find_node_by_path("/chosen");
+	ret = of_property_read_string(cmdline_node, "bootargs", &cmd_line);
+	if (ret)
+		return ret;
+
+	if (strstr(cmd_line, "ums9620")) {
+		is_ums9620 = 1;
+		pr_info("boot ums9620 \n");
+		return 0;
+	}
+
+	return 0;
 }
 
 enum wcn_chip_id_type wcn_get_chip_type(void)
@@ -2902,6 +2923,7 @@ int marlin_probe(struct platform_device *pdev)
 	if (g_match_config && g_match_config->unisoc_wcn_slp)
 		slp_mgr_init();
 
+	get_boot_hardware();
 	/* register ops */
 	wcn_bus_init();
 	bus_ops = get_wcn_bus_ops();

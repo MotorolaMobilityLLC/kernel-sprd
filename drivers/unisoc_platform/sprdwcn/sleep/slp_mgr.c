@@ -36,6 +36,7 @@
 #include "slp_dbg.h"
 
 static struct slp_mgr_t slp_mgr;
+extern unsigned char is_ums9620;
 
 struct slp_mgr_t *slp_get_info(void)
 {
@@ -68,7 +69,10 @@ int slp_mgr_wakeup(enum slp_subsys subsys)
 	mutex_lock(&(slp_mgr.wakeup_lock));
 	if (STAY_SLPING == (atomic_read(&(slp_mgr.cp2_state)))) {
 		ap_wakeup_cp();
-		time_end = ktime_add_ms(ktime_get(), 5);
+		if (is_ums9620)
+			time_end = ktime_add_ms(ktime_get(), 10);
+		else
+			time_end = ktime_add_ms(ktime_get(), 5);
 		while (1) {
 			ret = sprdwcn_bus_aon_readb(get_btwf_slp_sts_reg(), &slp_sts);
 			if (ret < 0) {
