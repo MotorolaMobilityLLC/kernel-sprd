@@ -19,5 +19,6 @@
 	};
 };
 
+#include "sc2730-adc.dtsi"
 #include "sc2730-efuse.dtsi"
 #include "sc2730-modules.dtsi"
