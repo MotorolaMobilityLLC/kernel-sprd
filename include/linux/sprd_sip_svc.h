@@ -93,6 +93,27 @@ struct sprd_sip_svc_pwr_ops {
 };
 
 /**
+ * struct sprd_sip_svc_npu_ops - represents the various operations
+ *      provided by SPRD SIP NPU
+ *
+ * @set_freq: set npu frequency
+ * @disable_idle: disable npu idle and sw dvfs
+ * @get_max_state: get the number of freq npu supported
+ * @get_opp: get npu opp
+ * @set_volts: set npu top volts
+ *
+ */
+struct sprd_sip_svc_npu_ops {
+	struct sprd_sip_svc_rev_info rev;
+
+	int (*set_freq)(u32 freq);
+	int (*disable_idle)(void);
+	int (*get_max_state)(u32 *max_state);
+	int (*get_opp)(u32 index, u32 *freq, u32 *volt);
+	int (*set_volts)(u32 high_temp);
+};
+
+/**
  * struct sprd_sip_svc_handle - Handle returned to SPRD SIP clients for usage
  *
  * @perf_ops: pointer to set of performance operations
@@ -102,6 +123,7 @@ struct sprd_sip_svc_handle {
 	struct sprd_sip_svc_perf_ops perf_ops;
 	struct sprd_sip_svc_dbg_ops dbg_ops;
 	struct sprd_sip_svc_pwr_ops pwr_ops;
+	struct sprd_sip_svc_npu_ops npu_ops;
 };
 
 /**
