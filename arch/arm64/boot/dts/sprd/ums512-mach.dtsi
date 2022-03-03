@@ -92,6 +92,11 @@
 			reg = <0x0 0x9de80000 0x0 0x00080000>;
 		};
 
+		/* Only for userdebug, will be removed in user mode by uboot */
+		uboot_reserved: sysdump-uboot@9f000000 {
+			reg = <0x0 0x9f000000 0x0 0x01000000>;
+		};
+
 		cma_reserved: cma_share@f00000000 {
 			compatible = "shared-dma-pool";
 			reg = <0x0 0xf0000000 0x0 0x03000000>;
