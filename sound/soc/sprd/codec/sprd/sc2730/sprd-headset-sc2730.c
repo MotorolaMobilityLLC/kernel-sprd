@@ -3297,6 +3297,7 @@ static int sprd_headset_read_efuse(struct platform_device *pdev,
 static int sprd_get_adc_cal_from_efuse(struct platform_device *pdev)
 {
 	u8 delta[4];
+	s8 calib_delta3;
 	u32 test[2], ret, data = 0;
 	unsigned int adie_chip_id;
 
@@ -3321,12 +3322,19 @@ static int sprd_get_adc_cal_from_efuse(struct platform_device *pdev)
 	delta[2] = test[1] & 0xFF;
 	delta[3] = (test[1] & 0xFF00) >> 8;
 
+	if ((delta[3] & 0x80) != 0) {
+        calib_delta3 = -(delta[3] & 0x7F);
+		pr_info("%s delta3[0x%x] is a minor value!\n", __func__, delta[3]);
+	} else {
+        calib_delta3 = delta[3];
+	}
+
 	pr_info("%s test[0] 0x%x %d, test[1] 0x%x %d\n",
 		__func__, test[0], test[0], test[1], test[1]);
 
 	pr_info("%s d[0] %#x %d d[1] %#x %d d[2] %#x %d d[3] %#x %d\n",
 			__func__, delta[0], delta[0], delta[1], delta[1],
-			delta[2], delta[2],  delta[3], delta[3]);
+			delta[2], delta[2], calib_delta3, calib_delta3);
 
 	adc_cal_headset.cal_type = SPRD_HEADSET_AUXADC_CAL_DO;
 	adie_chip_id  = sci_get_ana_chip_id();
@@ -3336,12 +3344,12 @@ static int sprd_get_adc_cal_from_efuse(struct platform_device *pdev)
 		adc_cal_headset.A = (delta[0] - 128) * 4 + 336;
 		adc_cal_headset.B =  (delta[1] - 128) * 4 + 3357;
 		adc_cal_headset.E1 = delta[2] * 2 + 2400;
-		adc_cal_headset.E2 = delta[3] * 4 + 1500;
+		adc_cal_headset.E2 = calib_delta3 * 4 + 1500;
 	} else {
 		adc_cal_headset.A = (delta[0] - 128) * 4 + 336;
 		adc_cal_headset.B =  (delta[1] - 128) * 4 + 3357;
 		adc_cal_headset.E1 = delta[2] * 2 + 2500;
-		adc_cal_headset.E2 = delta[3] * 4 + 1300;
+		adc_cal_headset.E2 = calib_delta3 * 4 + 1300;
 	}
 	pr_info("%s A %d, B %d E1 %d E2 %d\n",
 		__func__, adc_cal_headset.A, adc_cal_headset.B,
