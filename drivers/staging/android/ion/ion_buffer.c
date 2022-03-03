@@ -11,6 +11,7 @@
 #include <linux/slab.h>
 #include <linux/vmalloc.h>
 #include <linux/dma-noncoherent.h>
+#include <trace/hooks/ion.h>
 
 #define CREATE_TRACE_POINTS
 #define COHERENT    1
@@ -234,7 +235,7 @@ int ion_buffer_zero(struct ion_buffer *buffer)
 	else
 		pgprot = pgprot_writecombine(PAGE_KERNEL);
 
-	return ion_sglist_zero(table->sgl, table->nents, pgprot);
+	return ion_sglist_zero(table->sgl, table->orig_nents, pgprot);
 }
 EXPORT_SYMBOL_GPL(ion_buffer_zero);
 
@@ -304,6 +305,7 @@ void ion_buffer_release(struct ion_buffer *buffer)
 		ion_heap_unmap_kernel(buffer->heap, buffer);
 	}
 	buffer->heap->ops->free(buffer);
+	trace_android_vh_ion_buffer_release(buffer);
 	spin_lock(&buffer->heap->stat_lock);
 	buffer->heap->num_of_buffers--;
 	buffer->heap->num_of_alloc_bytes -= buffer->size;
