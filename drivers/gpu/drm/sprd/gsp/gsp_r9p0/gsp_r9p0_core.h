@@ -12,8 +12,6 @@
 #include "gsp_core.h"
 #include "gsp_debug.h"
 
-#define R9P0_GSP_CLOCK_NAME		("clk_gsp_eb")
-
 #define MIN_POOL_SIZE			(6 * 1024)
 #define R9P0_GSP_COEF_CACHE_MAX		32
 
@@ -27,6 +25,9 @@ struct gsp_r9p0_core {
 	char coef_buf_pool[MIN_POOL_SIZE];
 
 	struct clk *gsp_eb;
+	struct clk *gsp_dpuvsp_eb;
+	struct clk *gsp_clk;
+	struct clk *gsp_clk_parent;
 	/* module ctl reg base, virtual	0x31100000 */
 	void __iomem *gsp_ctl_reg_base;
 };

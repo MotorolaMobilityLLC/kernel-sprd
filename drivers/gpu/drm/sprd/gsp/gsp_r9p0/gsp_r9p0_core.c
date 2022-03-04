@@ -743,9 +743,28 @@ int gsp_r9p0_core_enable(struct gsp_core *c)
 
 	core = (struct gsp_r9p0_core *)c;
 
+	ret = clk_prepare_enable(core->gsp_dpuvsp_eb);
+	if (ret) {
+		GSP_ERR("enable gsp_dpuvsp_eb failed !\n");
+		return ret;
+	}
+
 	ret = clk_prepare_enable(core->gsp_eb);
 	if (ret) {
-		GSP_ERR("enable gsp_eb fail\n");
+		GSP_ERR("enable gsp_eb failed !\n");
+		goto gsp_eb_unprepare;
+	}
+
+	clk_set_parent(core->gsp_clk, NULL);
+	ret = clk_set_parent(core->gsp_clk, core->gsp_clk_parent);
+	if (ret) {
+		GSP_ERR("select gsp clk source failed !\n");
+		goto exit;
+	}
+
+	ret = clk_prepare_enable(core->gsp_clk);
+	if (ret) {
+		GSP_ERR("enable gsp_clk failed !\n");
 		goto gsp_clk_unprepare;
 	}
 
@@ -757,7 +776,10 @@ int gsp_r9p0_core_enable(struct gsp_core *c)
 	goto exit;
 
 gsp_clk_unprepare:
+	clk_disable_unprepare(core->gsp_clk);
+gsp_eb_unprepare:
 	clk_disable_unprepare(core->gsp_eb);
+
 exit:
 	return ret;
 }
@@ -768,7 +790,9 @@ void gsp_r9p0_core_disable(struct gsp_core *c)
 
 	core = (struct gsp_r9p0_core *)c;
 	gsp_r9p0_int_clear_and_disable(c);
+	clk_disable_unprepare(core->gsp_clk);
 	clk_disable_unprepare(core->gsp_eb);
+	clk_disable_unprepare(core->gsp_dpuvsp_eb);
 }
 
 static int gsp_r9p0_core_parse_clk(struct gsp_r9p0_core *core)
@@ -776,11 +800,25 @@ static int gsp_r9p0_core_parse_clk(struct gsp_r9p0_core *core)
 	int status = 0;
 
 	core->gsp_eb = of_clk_get_by_name(core->common.node,
-			R9P0_GSP_CLOCK_NAME);
-	if (IS_ERR_OR_NULL(core->gsp_eb)) {
-		GSP_ERR("parse dpu clk failed\n");
+			"clk_gsp_eb");
+
+	core->gsp_dpuvsp_eb = of_clk_get_by_name(core->common.node,
+			"clk_dpuvsp_eb");
+
+	core->gsp_clk = of_clk_get_by_name(core->common.node,
+			"clk_gsp");
+
+	core->gsp_clk_parent = of_clk_get_by_name(core->common.node,
+			"clk_src_512m");
+
+	if (IS_ERR_OR_NULL(core->gsp_eb)
+	       || IS_ERR_OR_NULL(core->gsp_dpuvsp_eb)
+	       || IS_ERR_OR_NULL(core->gsp_clk)
+	       || IS_ERR_OR_NULL(core->gsp_clk_parent)) {
+		GSP_ERR("parse gsp clk failed\n");
 		status = -1;
 	}
+
 	return status;
 }
 
