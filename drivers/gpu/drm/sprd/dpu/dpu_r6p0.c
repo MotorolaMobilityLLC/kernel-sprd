@@ -1418,6 +1418,7 @@ static void dpu_flip(struct dpu_context *ctx,
 	int i;
 	u32 reg_val;
 	struct sprd_plane_state *state;
+	struct sprd_dpu *dpu = container_of(ctx, struct sprd_dpu, ctx);
 
 	ctx->vsync_count = 0;
 	if (ctx->max_vsync_count > 0 && count > 1)
@@ -1440,7 +1441,8 @@ static void dpu_flip(struct dpu_context *ctx,
 	dpu_clean_all(ctx);
 
 	/* to check if dpu need scaling the frame for SR */
-	dpu_scaling(ctx, planes, count);
+	if (!dpu->dsi->ctx.surface_mode)
+		dpu_scaling(ctx, planes, count);
 
 	/* start configure dpu layers */
 	for (i = 0; i < count; i++) {
