@@ -1016,11 +1016,15 @@
 };
 
 &gsp_core0 {
-	clock-names =	"clk_gsp_eb",
-			"clk_dpuvsp_eb";
+	clock-names =	"clk_src_512m",
+			"clk_gsp_eb",
+			"clk_dpuvsp_eb",
+			"clk_gsp";
 
-	clocks = <&dpu_vsp_gate CLK_GSP0_EB>,
-		 <&aonapb_gate CLK_DPU_VSP_EB>;
+	clocks = <&g5l_pll CLK_TGPLL_512M>,
+		<&dpu_vsp_gate CLK_GSP0_EB>,
+		<&aonapb_gate CLK_DPU_VSP_EB>,
+		<&dpu_vsp_clk CLK_GSP0>;
 };
 
 &vpu_dec {
