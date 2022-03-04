@@ -78,6 +78,47 @@
 #define R9P0_SCALE_COEF_ADDR(base)	(base + 0x300 + R9P0_GSP_BASE_OFFSET)
 #define R9P0_SCALE_COEF_OFFSET		0x200
 
+/*HDR2SDR*/
+#define R9P0_HDR_OFFSET 0x100
+#define R9P0_HDR0_CFG(base, index)      (base + 0x1810 + index * R9P0_HDR_OFFSET)
+#define R9P0_HDR1_CFG(base, index)      (base + 0x1814 + index * R9P0_HDR_OFFSET)
+#define R9P0_HDR2_CFG(base, index)      (base + 0x1818 + index * R9P0_HDR_OFFSET)
+#define R9P0_HDR3_CFG(base, index)      (base + 0x181c + index * R9P0_HDR_OFFSET)
+#define R9P0_HDR4_CFG(base, index)      (base + 0x1820 + index * R9P0_HDR_OFFSET)
+#define R9P0_HDR5_CFG(base, index)      (base + 0x1824 + index * R9P0_HDR_OFFSET)
+#define R9P0_HDR6_CFG(base, index)      (base + 0x1828 + index * R9P0_HDR_OFFSET)
+#define R9P0_HDR7_CFG(base, index)      (base + 0x182c + index * R9P0_HDR_OFFSET)
+#define R9P0_HDR8_CFG(base, index)      (base + 0x1830 + index * R9P0_HDR_OFFSET)
+#define R9P0_HDR9_CFG(base, index)      (base + 0x1834 + index * R9P0_HDR_OFFSET)
+#define R9P0_HDR10_CFG(base, index)     (base + 0x1838 + index * R9P0_HDR_OFFSET)
+#define R9P0_HDR11_CFG(base, index)     (base + 0x183c + index * R9P0_HDR_OFFSET)
+#define R9P0_HDR12_CFG(base, index)     (base + 0x1840 + index * R9P0_HDR_OFFSET)
+#define R9P0_HDR13_CFG(base, index)     (base + 0x1844 + index * R9P0_HDR_OFFSET)
+#define R9P0_HDR14_CFG(base, index)     (base + 0x1848 + index * R9P0_HDR_OFFSET)
+#define R9P0_HDR15_CFG(base, index)     (base + 0x184c + index * R9P0_HDR_OFFSET)
+#define R9P0_HDR16_CFG(base, index)     (base + 0x1850 + index * R9P0_HDR_OFFSET)
+#define R9P0_HDR17_CFG(base, index)     (base + 0x1854 + index * R9P0_HDR_OFFSET)
+#define R9P0_HDR18_CFG(base, index)     (base + 0x1858 + index * R9P0_HDR_OFFSET)
+#define R9P0_HDR19_CFG(base, index)     (base + 0x185c + index * R9P0_HDR_OFFSET)
+#define R9P0_HDR20_CFG(base, index)     (base + 0x1860 + index * R9P0_HDR_OFFSET)
+#define R9P0_HDR21_CFG(base, index)     (base + 0x1864 + index * R9P0_HDR_OFFSET)
+#define R9P0_HDR22_CFG(base, index)     (base + 0x1868 + index * R9P0_HDR_OFFSET)
+#define R9P0_HDR23_CFG(base, index)     (base + 0x186c + index * R9P0_HDR_OFFSET)
+#define R9P0_HDR24_CFG(base, index)     (base + 0x1870 + index * R9P0_HDR_OFFSET)
+#define R9P0_HDR25_CFG(base, index)     (base + 0x1874 + index * R9P0_HDR_OFFSET)
+#define R9P0_HDR26_CFG(base, index)     (base + 0x1878 + index * R9P0_HDR_OFFSET)
+#define R9P0_HDR27_CFG(base, index)     (base + 0x187c + index * R9P0_HDR_OFFSET)
+#define R9P0_HDR28_CFG(base, index)     (base + 0x1880 + index * R9P0_HDR_OFFSET)
+#define R9P0_HDR29_CFG(base, index)     (base + 0x1884 + index * R9P0_HDR_OFFSET)
+#define R9P0_HDR30_CFG(base, index)     (base + 0x1888 + index * R9P0_HDR_OFFSET)
+#define R9P0_HDR31_CFG(base, index)     (base + 0x188c + index * R9P0_HDR_OFFSET)
+#define R9P0_HDR32_CFG(base, index)     (base + 0x1890 + index * R9P0_HDR_OFFSET)
+#define R9P0_HDR33_CFG(base, index)     (base + 0x1894 + index * R9P0_HDR_OFFSET)
+#define R9P0_HDR34_CFG(base, index)     (base + 0x1898 + index * R9P0_HDR_OFFSET)
+#define R9P0_HDR35_CFG(base, index)     (base + 0x189c + index * R9P0_HDR_OFFSET)
+#define R9P0_HDR36_CFG(base, index)     (base + 0x18a0 + index * R9P0_HDR_OFFSET)
+#define R9P0_HDR37_CFG(base, index)     (base + 0x18a4 + index * R9P0_HDR_OFFSET)
+
 struct R9P0_GSP_GLB_CFG_REG {
 	union {
 		struct {
@@ -466,7 +507,7 @@ struct R9P0_LAYERIMG_CFG_REG {
 			uint32_t   Y2R_MOD		:  3;
 			uint32_t   Y2Y_MOD		:  1;
 			uint32_t   ZNUM_L		:  2;
-			uint32_t   H2R_MOD0		:  1;
+			uint32_t   H2R_MOD		:  1;
 			uint32_t   SCALE_EN		:  1;
 			uint32_t   Limg_en		:  1;
 		};

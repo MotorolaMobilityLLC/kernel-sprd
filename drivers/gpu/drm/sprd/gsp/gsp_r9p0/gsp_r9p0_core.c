@@ -31,6 +31,7 @@
 #include "gsp_r9p0_coef_cal.h"
 #include "../gsp_interface.h"
 #include "../gsp_ipc_trusty.h"
+#include "gsp_hdr_param.h"
 
 static bool tipc_init;
 static int zorder_used[R9P0_IMGL_NUM + R9P0_OSDL_NUM] = {0};
@@ -868,6 +869,250 @@ int gsp_r9p0_core_parse_dt(struct gsp_core *core)
 	return ret;
 }
 
+static void gsp_r9p0_bit10_set(void __iomem *base, struct gsp_r9p0_cfg *cfg, int icnt)
+{
+	if (IS_ERR_OR_NULL(base)) {
+		GSP_ERR("base address error\n");
+		return;
+	}
+
+	gsp_core_reg_write(R9P0_HDR0_CFG(base, icnt), hdr_bypass_param[0]);
+	gsp_core_reg_write(R9P0_HDR1_CFG(base, icnt), hdr_bypass_param[1]);
+	gsp_core_reg_write(R9P0_HDR2_CFG(base, icnt), hdr_bypass_param[2]);
+	gsp_core_reg_write(R9P0_HDR3_CFG(base, icnt), hdr_bypass_param[3]);
+	gsp_core_reg_write(R9P0_HDR4_CFG(base, icnt), hdr_bypass_param[4]);
+	gsp_core_reg_write(R9P0_HDR5_CFG(base, icnt), hdr_bypass_param[5]);
+	gsp_core_reg_write(R9P0_HDR6_CFG(base, icnt), hdr_bypass_param[6]);
+	gsp_core_reg_write(R9P0_HDR7_CFG(base, icnt), hdr_bypass_param[7]);
+	gsp_core_reg_write(R9P0_HDR8_CFG(base, icnt), hdr_bypass_param[8]);
+
+	gsp_core_reg_write(R9P0_HDR12_CFG(base, icnt), hdr_bypass_param[12]);
+	gsp_core_reg_write(R9P0_HDR13_CFG(base, icnt), hdr_bypass_param[13]);
+	gsp_core_reg_write(R9P0_HDR14_CFG(base, icnt), hdr_bypass_param[14]);
+	gsp_core_reg_write(R9P0_HDR15_CFG(base, icnt), hdr_bypass_param[15]);
+	gsp_core_reg_write(R9P0_HDR16_CFG(base, icnt), hdr_bypass_param[16]);
+	gsp_core_reg_write(R9P0_HDR17_CFG(base, icnt), hdr_bypass_param[17]);
+	gsp_core_reg_write(R9P0_HDR18_CFG(base, icnt), hdr_bypass_param[18]);
+	gsp_core_reg_write(R9P0_HDR19_CFG(base, icnt), hdr_bypass_param[19]);
+	gsp_core_reg_write(R9P0_HDR20_CFG(base, icnt), hdr_bypass_param[20]);
+	gsp_core_reg_write(R9P0_HDR21_CFG(base, icnt), hdr_bypass_param[21]);
+	gsp_core_reg_write(R9P0_HDR22_CFG(base, icnt), hdr_bypass_param[22]);
+	gsp_core_reg_write(R9P0_HDR23_CFG(base, icnt), hdr_bypass_param[23]);
+	gsp_core_reg_write(R9P0_HDR24_CFG(base, icnt), hdr_bypass_param[24]);
+	gsp_core_reg_write(R9P0_HDR25_CFG(base, icnt), hdr_bypass_param[25]);
+	gsp_core_reg_write(R9P0_HDR27_CFG(base, icnt), hdr_bypass_param[27]);
+	gsp_core_reg_write(R9P0_HDR28_CFG(base, icnt), hdr_bypass_param[28]);
+	gsp_core_reg_write(R9P0_HDR29_CFG(base, icnt), hdr_bypass_param[29]);
+
+	gsp_core_reg_write(R9P0_HDR31_CFG(base, icnt), hdr_bypass_param[31]);
+	gsp_core_reg_write(R9P0_HDR32_CFG(base, icnt), hdr_bypass_param[32]);
+	gsp_core_reg_write(R9P0_HDR33_CFG(base, icnt), hdr_bypass_param[33]);
+	gsp_core_reg_write(R9P0_HDR34_CFG(base, icnt), hdr_bypass_param[34]);
+	gsp_core_reg_write(R9P0_HDR35_CFG(base, icnt), hdr_bypass_param[35]);
+
+	gsp_core_reg_write(R9P0_HDR26_CFG(base, icnt), hdr_bypass_param[26]);
+}
+
+static void gsp_r9p0_hdr10_set(void __iomem *base, struct gsp_r9p0_cfg *cfg, int icnt)
+{
+	uint32_t cmd;
+	int i;
+	struct gsp_r9p0_hdr10_cfg *para = &(cfg->misc.hdr10_para[icnt]);
+
+	if (IS_ERR_OR_NULL(base)) {
+		GSP_ERR("base address error\n");
+		return;
+	}
+
+	cmd = (para->reg_hdr_csc1_ycr & 0xFFFF);
+	cmd |= ((para->reg_hdr_csc1_ucr & 0xFFFF) << 16);
+	gsp_core_reg_write(R9P0_HDR2_CFG(base, icnt), cmd);
+
+	cmd = (para->reg_hdr_csc1_vcr & 0xFFFF);
+	cmd |= ((para->reg_hdr_csc1_ycg & 0xFFFF) << 16);
+	gsp_core_reg_write(R9P0_HDR3_CFG(base, icnt), cmd);
+
+	cmd = (para->reg_hdr_csc1_ucg & 0xFFFF);
+	cmd |= ((para->reg_hdr_csc1_vcg & 0xFFFF) << 16);
+	gsp_core_reg_write(R9P0_HDR4_CFG(base, icnt), cmd);
+
+	cmd = (para->reg_hdr_csc1_ycb & 0xFFFF);
+	cmd |= ((para->reg_hdr_csc1_ucb & 0xFFFF) << 16);
+	gsp_core_reg_write(R9P0_HDR5_CFG(base, icnt), cmd);
+
+	cmd = (para->reg_hdr_csc1_vcb & 0xFFFF);
+	gsp_core_reg_write(R9P0_HDR6_CFG(base, icnt), cmd);
+
+	cmd = (para->reg_hdr_csc1_ucb2 & 0xFFFF);
+	cmd |= ((para->reg_hdr_csc1_vcr2 & 0xFFFF) << 16);
+	gsp_core_reg_write(R9P0_HDR7_CFG(base, icnt), cmd);
+
+	cmd = ((para->reg_hdr_csc1_yls & 0x3FF) <<  0);
+	cmd |= ((para->reg_hdr_csc1_uls & 0x3FF) << 10);
+	cmd |= ((para->reg_hdr_csc1_vls & 0x3FF) << 20);
+	gsp_core_reg_write(R9P0_HDR8_CFG(base, icnt), cmd);
+
+	cmd = (para->reg_hdr_csc2_c11 & 0xFFFF);
+	cmd |= ((para->reg_hdr_csc2_c12 & 0xFFFF) << 16);
+	gsp_core_reg_write(R9P0_HDR12_CFG(base, icnt), cmd);
+
+	cmd = (para->reg_hdr_csc2_c13 & 0xFFFF);
+	cmd |= ((para->reg_hdr_csc2_c21 & 0xFFFF) << 16);
+	gsp_core_reg_write(R9P0_HDR13_CFG(base, icnt), cmd);
+
+	cmd = (para->reg_hdr_csc2_c22 & 0xFFFF);
+	cmd |= ((para->reg_hdr_csc2_c23 & 0xFFFF) << 16);
+	gsp_core_reg_write(R9P0_HDR14_CFG(base, icnt), cmd);
+
+	cmd = (para->reg_hdr_csc2_c31 & 0xFFFF);
+	cmd |= ((para->reg_hdr_csc2_c32 & 0xFFFF) << 16);
+	gsp_core_reg_write(R9P0_HDR15_CFG(base, icnt), cmd);
+
+	cmd = (para->reg_hdr_csc2_c33 & 0xFFFF);
+	cmd |= ((para->reg_hdr_csc2_c11_2 & 0xFFFF) << 16);
+	gsp_core_reg_write(R9P0_HDR16_CFG(base, icnt), cmd);
+
+	cmd = (para->reg_hdr_csc2_c12_2 & 0xFFFF);
+	cmd |= ((para->reg_hdr_csc2_c13_2 & 0xFFFF) << 16);
+	gsp_core_reg_write(R9P0_HDR17_CFG(base, icnt), cmd);
+
+	cmd = (para->reg_hdr_csc2_c21_2 & 0xFFFF);
+	cmd |= ((para->reg_hdr_csc2_c22_2 & 0xFFFF) << 16);
+	gsp_core_reg_write(R9P0_HDR18_CFG(base, icnt), cmd);
+
+	cmd = (para->reg_hdr_csc2_c23_2 & 0xFFFF);
+	cmd |= ((para->reg_hdr_csc2_c31_2 & 0xFFFF) << 16);
+	gsp_core_reg_write(R9P0_HDR19_CFG(base, icnt), cmd);
+
+	cmd = (para->reg_hdr_csc2_c32_2 & 0xFFFF);
+	cmd |= ((para->reg_hdr_csc2_c33_2 & 0xFFFF) << 16);
+	gsp_core_reg_write(R9P0_HDR20_CFG(base, icnt), cmd);
+
+	cmd = (para->reg_hdr_csc2_offset_r & 0xFFFF);
+	cmd |= ((para->reg_hdr_csc2_offset_g & 0xFFFF) << 16);
+	gsp_core_reg_write(R9P0_HDR21_CFG(base, icnt), cmd);
+
+	cmd = (para->reg_hdr_csc2_offset_b & 0xFFFF);
+	gsp_core_reg_write(R9P0_HDR22_CFG(base, icnt), cmd);
+
+	cmd = (para->reg_hdr_csc2_gain & 0xFFFF);
+	gsp_core_reg_write(R9P0_HDR23_CFG(base, icnt), cmd);
+
+	cmd = (para->reg_hdr_csc3_a11 & 0xFFF);
+	cmd |= ((para->reg_hdr_csc3_a12 & 0xFFF) << 16);
+	gsp_core_reg_write(R9P0_HDR31_CFG(base, icnt), cmd);
+
+	cmd = (para->reg_hdr_csc3_a13 & 0xFFF);
+	cmd |= ((para->reg_hdr_csc3_a21 & 0xFFF) << 16);
+	gsp_core_reg_write(R9P0_HDR32_CFG(base, icnt), cmd);
+
+	cmd = (para->reg_hdr_csc3_a22 & 0xFFF);
+	cmd |= ((para->reg_hdr_csc3_a23 & 0xFFF) << 16);
+	gsp_core_reg_write(R9P0_HDR33_CFG(base, icnt), cmd);
+
+	cmd = (para->reg_hdr_csc3_a31 & 0xFFF);
+	cmd |= ((para->reg_hdr_csc3_a32 & 0xFFF) << 16);
+	gsp_core_reg_write(R9P0_HDR34_CFG(base, icnt), cmd);
+
+	cmd = (para->reg_hdr_csc3_a33 & 0xFFF);
+	gsp_core_reg_write(R9P0_HDR35_CFG(base, icnt), cmd);
+
+	gsp_core_reg_write(R9P0_HDR26_CFG(base, icnt), HDR_LUT_WRITE);
+
+	for (i = 0; i < HDR_DEGAMMA_LUT_SIZE; ++i) {
+		gsp_core_reg_write(R9P0_HDR9_CFG(base, icnt), i);
+		if (para->transfer_char == PQ_TYPE)
+			cmd = hdr_pq_degamma_tbl[i];
+		else if (para->transfer_char == HLG_TYPE)
+			cmd = hdr_hlg_degamma_tbl[i];
+		else
+			cmd = hdr_default_degamma_tbl[i];
+		gsp_core_reg_write(R9P0_HDR10_CFG(base, icnt), cmd);
+	}
+
+	for (i = 0; i < HDR_REGAMMA_LUT_SIZE; ++i) {
+		gsp_core_reg_write(R9P0_HDR36_CFG(base, icnt), i);
+		gsp_core_reg_write(R9P0_HDR11_CFG(base, icnt), para->hdr_regamma_lut_table[i]);
+	}
+
+	gsp_core_reg_write(R9P0_HDR26_CFG(base, icnt), HDR_DR_LUT_WRITE_FINISH);
+
+
+	if (para->transfer_char == PQ_TYPE) {
+		gsp_core_reg_write(R9P0_HDR26_CFG(base, icnt), HDR_LUT_WRITE);
+
+		for (i = 0; i < HDR_TM_LUT_SIZE; ++i) {
+			gsp_core_reg_write(R9P0_HDR37_CFG(base, icnt), i);
+			gsp_core_reg_write(R9P0_HDR30_CFG(base, icnt), hdr_default_tm_tbl[i]);
+		}
+
+		gsp_core_reg_write(R9P0_HDR26_CFG(base, icnt), HDR_TM_LUT_WRITE_FINISH);
+	}
+
+	cmd = (para->reg_hdr_slp & 0x1);
+	cmd |= ((para->reg_hdr_bypass_csc1 & 0x1) << 8);
+	cmd |= ((para->reg_hdr_bypass_degamma & 0x1) << 9);
+	cmd |= ((para->reg_hdr_bypass_csc2 & 0x1) << 10);
+	cmd |= ((para->reg_hdr_maxcll_gain_bypass & 0x1) << 11);
+	cmd |= ((para->reg_hdr_bypass_gamma & 0x1) << 12);
+	cmd |= ((para->reg_hdr_bypass_csc3 & 0x1) << 13);
+	cmd |= ((para->reg_hdr_force_in_range_csc1 & 0x1) << 16);
+	cmd |= ((para->reg_hdr_force_in_range_csc3 & 0x1) << 17);
+	cmd |= ((para->reg_hdr_gamut_map_en & 0x1) << 18);
+	cmd |= ((para->reg_hdr_csc1_cl_en & 0x1) << 19);
+	cmd |= ((para->reg_hdr_avg_en & 0x1) << 20);
+	gsp_core_reg_write(R9P0_HDR0_CFG(base, icnt), cmd);
+
+	cmd = (para->reg_hdr_alpha_gain & 0xFF);
+	cmd |= ((para->reg_hdr_sat_thr & 0xFFFF) << 8);
+	gsp_core_reg_write(R9P0_HDR1_CFG(base, icnt), cmd);
+
+	cmd = (para->reg_hdr_rg_step1 & 0x1F);
+	cmd |= ((para->reg_hdr_rg_step2 & 0x1F) << 8);
+	cmd |= ((para->reg_hdr_rg_step3 & 0x1F) << 16);
+	cmd |= ((para->reg_hdr_rg_step4 & 0x1F) << 24);
+	gsp_core_reg_write(R9P0_HDR24_CFG(base, icnt), cmd);
+
+	cmd = (para->reg_hdr_diff_sat_thr & 0xFFFFFF);
+	gsp_core_reg_write(R9P0_HDR25_CFG(base, icnt), cmd);
+
+	cmd = (para->reg_hdr_tm_step1 & 0x1F);
+	cmd |= ((para->reg_hdr_tm_step2 & 0x1F) << 8);
+	cmd |= ((para->reg_hdr_tm_step3 & 0x1F) << 16);
+	cmd |= ((para->reg_hdr_tm_step4 & 0x1F) << 24);
+	gsp_core_reg_write(R9P0_HDR27_CFG(base, icnt), cmd);
+
+	cmd = (para->reg_hdr_tm_norm_gain & 0xFFFF);
+	cmd |= ((para->reg_hdr_tm1_beta_gain & 0xFFFF) << 16);
+	gsp_core_reg_write(R9P0_HDR28_CFG(base, icnt), cmd);
+
+	cmd = (para->reg_hdr_tm2_beta_gain & 0xFFFF);
+	cmd |= ((para->reg_hdr_tm3_beta_gain & 0xFFFF) << 16);
+	gsp_core_reg_write(R9P0_HDR29_CFG(base, icnt), cmd);
+}
+
+static void gsp_r9p0_hdr10plus_set(void __iomem *base, struct gsp_r9p0_cfg *cfg, int icnt)
+{
+	int i;
+	struct gsp_r9p0_hdr10_cfg *para = &(cfg->misc.hdr10_para[icnt]);
+
+	if (IS_ERR_OR_NULL(base)) {
+		GSP_ERR("base address error\n");
+		return;
+	}
+
+	if (para->tone_map_en == 1) {
+		gsp_core_reg_write(R9P0_HDR26_CFG(base, icnt), HDR_LUT_WRITE);
+
+		for (i = 0; i < HDR_TM_LUT_SIZE; ++i) {
+			gsp_core_reg_write(R9P0_HDR37_CFG(base, icnt), i);
+			gsp_core_reg_write(R9P0_HDR30_CFG(base, icnt), para->hdr_tone_mapping_lut_table[i]);
+		}
+
+		gsp_core_reg_write(R9P0_HDR23_CFG(base, icnt), (para->reg_hdr_csc2_gain & 0xFFFF));
+		gsp_core_reg_write(R9P0_HDR26_CFG(base, icnt), HDR_TM_LUT_WRITE_FINISH);
+	}
+}
 
 static void gsp_r9p0_core_misc_reg_set(struct gsp_core *core,
 			struct gsp_r9p0_cfg *cfg)
@@ -879,6 +1124,7 @@ static void gsp_r9p0_core_misc_reg_set(struct gsp_core *core,
 	struct R9P0_WORK_AREA_SIZE_REG work_area_size_mask;
 	struct R9P0_GSP_MOD_CFG_REG gsp_mod_cfg_value;
 	struct R9P0_GSP_MOD_CFG_REG gsp_mod_cfg_mask;
+	int icnt;
 
 	base = core->base;
 
@@ -912,6 +1158,19 @@ static void gsp_r9p0_core_misc_reg_set(struct gsp_core *core,
 	work_area_size_mask.WORK_AREA_W = 0x1FFF;
 	gsp_core_reg_update(R9P0_WORK_AREA_SIZE(base),
 		work_area_size_value.value, work_area_size_mask.value);
+
+	for (icnt = 0; icnt < R9P0_IMGL_NUM; icnt++) {
+		if (cfg->limg[icnt].params.hdr2rgb_mod == 1) {
+			if (cfg->misc.first10bit_frame[icnt] == 1) {
+				if (cfg->misc.hdr_flag[icnt] == 1) {
+					gsp_r9p0_hdr10_set(base, cfg, icnt);
+					gsp_r9p0_hdr10plus_set(base, cfg, icnt);
+				} else
+					gsp_r9p0_bit10_set(base, cfg, icnt);
+			} else if (cfg->misc.hdr10plus_update[icnt] == 1)
+				gsp_r9p0_hdr10plus_set(base, cfg, icnt);
+		}
+	}
 }
 
 static void gsp_r9p0_core_limg_reg_set(void __iomem *base,
@@ -1160,6 +1419,7 @@ static void gsp_r9p0_core_limg_reg_set(void __iomem *base,
 	limg_cfg_value.Y2Y_MOD = limg_params->y2y_mod;
 	limg_cfg_value.ZNUM_L = limg_params->zorder;
 	zorder_used[limg_cfg_value.ZNUM_L] = 1;
+	limg_cfg_value.H2R_MOD = limg_params->hdr2rgb_mod;
 	limg_cfg_value.SCALE_EN = limg_params->scaling_en;
 	limg_cfg_value.Limg_en = layer->common.enable;
 	limg_cfg_mask.value = 0;
@@ -1176,6 +1436,7 @@ static void gsp_r9p0_core_limg_reg_set(void __iomem *base,
 	limg_cfg_mask.Y2R_MOD = 0x7;
 	limg_cfg_mask.Y2Y_MOD = 0x1;
 	limg_cfg_mask.ZNUM_L = 0x3;
+	limg_cfg_mask.H2R_MOD = 0x1;
 	limg_cfg_mask.SCALE_EN = 0x1;
 	limg_cfg_mask.Limg_en = 0x1;
 	gsp_core_reg_update(R9P0_LIMG_CFG(
