@@ -378,8 +378,8 @@
 		reg = <0x0 0xb0000000 0x0 0x009e4000>;
 	};
 
-	widevine_reserved: widevine@c31a0000 {
-		reg = <0x0 0xc31a0000 0x0 0x0c800000>;
+	widevine_reserved: widevine@e4c00000 {
+		reg = <0x0 0xe4c00000 0x0 0x0b400000>;
 	};
 
 	ai_reserved: ai@fb210000 {
