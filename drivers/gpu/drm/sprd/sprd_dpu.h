@@ -174,8 +174,10 @@ struct dpu_context {
 	int sprd_corner_radius;
 	bool sprd_corner_support;
 
-	unsigned int *layer_top;
-	unsigned int *layer_bottom;
+	void *layer_top;
+	void *layer_bottom;
+	dma_addr_t layer_top_p;
+	dma_addr_t layer_bottom_p;
 
 	/* widevine config parameters */
 	bool secure_debug;

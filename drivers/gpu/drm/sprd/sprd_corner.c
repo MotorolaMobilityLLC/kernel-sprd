@@ -3,6 +3,7 @@
  * Copyright (C) 2020 Unisoc Inc.
  */
 
+#include <linux/dma-buf.h>
 #include <linux/module.h>
 #include "sprd_corner.h"
 
@@ -37,25 +38,40 @@ struct sprd_layer_state corner_layer_bottom = {
 
 static int sprd_corner_create(struct dpu_context *ctx)
 {
+	struct sprd_dpu *dpu = (struct sprd_dpu *)container_of(ctx, struct sprd_dpu, ctx);
+	struct drm_device *drm = dpu->crtc->base.dev;
 	int buf_size;
 
 	buf_size = ctx->vm.vactive * ctx->vm.hactive * 4;
-	ctx->layer_top = (u32 *)__get_free_pages(GFP_KERNEL |
-		GFP_DMA | __GFP_ZERO, get_order(buf_size));
-	ctx->layer_bottom = (u32 *)__get_free_pages(GFP_KERNEL |
-		GFP_DMA | __GFP_ZERO, get_order(buf_size));
-	if (NULL == ctx->layer_top || NULL == ctx->layer_bottom) {
-		DRM_ERROR("%s(): get_free_pages is NULL\n", __func__);
+	ctx->layer_top = dma_alloc_wc(drm->dev, buf_size, &ctx->layer_top_p, GFP_KERNEL);
+	if (!ctx->layer_top) {
+		DRM_ERROR("%s(): failed to allocate layer_top cma buf with %llu\n",
+			__func__, buf_size);
 		return -ENOMEM;
 	}
+
+	ctx->layer_bottom = dma_alloc_wc(drm->dev, buf_size, &ctx->layer_bottom_p, GFP_KERNEL);
+	if (!ctx->layer_bottom) {
+		DRM_ERROR("%s(): failed to allocate layer_bottom cma buf with %llu\n",
+			__func__, buf_size);
+		return -ENOMEM;
+	}
+	DRM_INFO("top vaddr:%px, buttom vaddr :%px top vaddr:0x%x, buttom vaddr :0x%x\n",
+		ctx->layer_top,ctx->layer_bottom,ctx->layer_top_p,ctx->layer_bottom_p);
 
 	return 0;
 }
 
 void sprd_corner_destroy(struct dpu_context *ctx)
 {
-	kfree(ctx->layer_top);
-	kfree(ctx->layer_bottom);
+	struct sprd_dpu *dpu = (struct sprd_dpu *)container_of(ctx, struct sprd_dpu, ctx);
+	struct drm_device *drm = dpu->crtc->base.dev;
+	int buf_size;
+
+	buf_size = ctx->vm.vactive * ctx->vm.hactive * 4;
+
+	dma_free_wc(drm->dev, buf_size, ctx->layer_top, ctx->layer_top_p);
+	dma_free_wc(drm->dev, buf_size, ctx->layer_bottom, ctx->layer_bottom_p);
 }
 
 static unsigned int gdi_sqrt(unsigned int x)
@@ -163,8 +179,6 @@ int sprd_corner_hwlayer_init(struct dpu_context *ctx)
 {
 	int ret;
 	int corner_radius = ctx->sprd_corner_radius;
-	unsigned int *layer_top = ctx->layer_top;
-	unsigned int *layer_bottom = ctx->layer_bottom;
 
 	ret = sprd_corner_create(ctx);
 	if (ret < 0) {
@@ -173,11 +187,11 @@ int sprd_corner_hwlayer_init(struct dpu_context *ctx)
 	}
 
 #if USE_EXTERNAL_SOURCE
-	memcpy(layer_top, layer_top_header, ctx->vm.hactive * corner_radius * 4);
-	memcpy(layer_bottom, layer_bottom_header, ctx->vm.hactive * corner_radius * 4);
+	memcpy(ctx->layer_top, layer_top_header, ctx->vm.hactive * corner_radius * 4);
+	memcpy(ctx->layer_bottom, layer_bottom_header, ctx->vm.hactive * corner_radius * 4);
 #else
-	sprd_corner_draw(layer_bottom, corner_radius, ctx->vm.hactive);
-	sprd_corner_x_mirrored(layer_top, layer_bottom, ctx->vm.hactive, corner_radius);
+	sprd_corner_draw(ctx->layer_bottom, corner_radius, ctx->vm.hactive);
+	sprd_corner_x_mirrored(ctx->layer_top, ctx->layer_bottom, ctx->vm.hactive, corner_radius);
 #endif
 
 	corner_layer_top.dst_x = 0;
@@ -185,14 +199,14 @@ int sprd_corner_hwlayer_init(struct dpu_context *ctx)
 	corner_layer_top.dst_w = ctx->vm.hactive;
 	corner_layer_top.dst_h = corner_radius;
 	corner_layer_top.pitch[0] = ctx->vm.hactive * 4;
-	corner_layer_top.addr[0] = (u32)virt_to_phys(layer_top);
+	corner_layer_top.addr[0] = (u32)ctx->layer_top_p;
 
 	corner_layer_bottom.dst_x = 0;
 	corner_layer_bottom.dst_y = ctx->vm.vactive - corner_radius;
 	corner_layer_bottom.dst_w = ctx->vm.hactive;
 	corner_layer_bottom.dst_h = corner_radius;
 	corner_layer_bottom.pitch[0] = ctx->vm.hactive * 4;
-	corner_layer_bottom.addr[0] = (u32)virt_to_phys(layer_bottom);
+	corner_layer_bottom.addr[0] = (u32)ctx->layer_bottom_p;
 
 	return 0;
 }
