@@ -9,4 +9,4 @@ sprd_mipi-objs := core.o \
 obj-$(CONFIG_SPRD_MIPI_LOG_R4P2) += sharkl3/
 obj-$(CONFIG_SPRD_MIPI_LOG_R5P0) += sharkl5/
 obj-$(CONFIG_SPRD_MIPI_LOG_R5P1) += qogirl6/
-#obj-$(CONFIG_SPRD_MIPI_LOG_QOGIRN6PRO) += qogirn6pro/
+obj-$(CONFIG_SPRD_MIPI_LOG_QOGIRN6PRO) += qogirn6pro/
