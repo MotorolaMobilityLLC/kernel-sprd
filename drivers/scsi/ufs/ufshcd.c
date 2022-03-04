@@ -529,6 +529,15 @@ static void ufshcd_print_pwr_info(struct ufs_hba *hba)
 		 hba->pwr_info.hs_rate);
 }
 
+static void ufshcd_device_reset(struct ufs_hba *hba)
+{
+	ufshcd_set_ufs_dev_active(hba);
+	if (ufshcd_is_wb_allowed(hba)) {
+		hba->wb_enabled = false;
+		hba->wb_buf_flush_enabled = false;
+	}
+}
+
 /*
  * ufshcd_wait_for_register - wait for register value to change
  * @hba - per-adapter interface
@@ -3845,6 +3854,9 @@ static int ufshcd_link_recovery(struct ufs_hba *hba)
 	ufshcd_set_eh_in_progress(hba);
 	spin_unlock_irqrestore(hba->host->host_lock, flags);
 
+	/* Reset the attached device */
+	ufshcd_device_reset(hba);
+
 	ret = ufshcd_host_reset_and_restore(hba);
 
 	spin_lock_irqsave(hba->host->host_lock, flags);
@@ -6265,6 +6277,9 @@ static int ufshcd_reset_and_restore(struct ufs_hba *hba)
 	int retries = MAX_HOST_RESET_RETRIES;
 
 	do {
+		/* Reset the attached device */
+		ufshcd_device_reset(hba);
+
 		err = ufshcd_host_reset_and_restore(hba);
 	} while (err && --retries);
 
@@ -8207,8 +8222,11 @@ set_link_active:
 	ufshcd_vreg_set_hpm(hba);
 	if (ufshcd_is_link_hibern8(hba) && !ufshcd_uic_hibern8_exit(hba))
 		ufshcd_set_link_active(hba);
-	else if (ufshcd_is_link_off(hba))
+	else if (ufshcd_is_link_off(hba)) {
+		/* Ensure WB can be re-enabled after device reset. */
+		ufshcd_device_reset(hba);
 		ufshcd_host_reset_and_restore(hba);
+	}
 set_dev_active:
 	if (!ufshcd_set_dev_pwr_mode(hba, UFS_ACTIVE_PWR_MODE))
 		ufshcd_disable_auto_bkops(hba);
@@ -8279,6 +8297,13 @@ static int ufshcd_resume(struct ufs_hba *hba, enum ufs_pm_op pm_op)
 		else
 			goto vendor_suspend;
 	} else if (ufshcd_is_link_off(hba)) {
+		/*
+		 * Kernel5.4 use ufshcd_reset_and_restore here, which
+		 * include ufshcd_device_reset. WB is not re-enabled
+		 * after device reset, so we need to reset wb_enabled
+		 * to ensure WB can be re-enabled.
+		 */
+		ufshcd_device_reset(hba);
 		ret = ufshcd_host_reset_and_restore(hba);
 		/*
 		 * ufshcd_host_reset_and_restore() should have already
@@ -8755,6 +8780,9 @@ int ufshcd_init(struct ufs_hba *hba, void __iomem *mmio_base, unsigned int irq)
 		dev_err(hba->dev, "scsi_add_host failed\n");
 		goto exit_gating;
 	}
+
+	/* Reset the attached device */
+	ufshcd_device_reset(hba);
 
 	/* Init crypto */
 	err = ufshcd_hba_init_crypto(hba);
