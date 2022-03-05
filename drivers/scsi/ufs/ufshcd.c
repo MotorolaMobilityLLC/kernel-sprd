@@ -64,8 +64,8 @@
 
 /* NOP OUT retries waiting for NOP IN response */
 #define NOP_OUT_RETRIES    10
-/* Timeout after 30 msecs if NOP OUT hangs without response */
-#define NOP_OUT_TIMEOUT    30 /* msecs */
+/* Timeout after 50 msecs if NOP OUT hangs without response */
+#define NOP_OUT_TIMEOUT    50 /* msecs */
 
 /* Query request retries */
 #define QUERY_REQ_RETRIES 3
@@ -2672,7 +2672,7 @@ static int ufshcd_wait_for_dev_cmd(struct ufs_hba *hba,
 
 	if (!time_left) {
 		err = -ETIMEDOUT;
-		dev_dbg(hba->dev, "%s: dev_cmd request timedout, tag %d\n",
+		dev_err(hba->dev, "%s: dev_cmd request timedout, tag %d\n",
 			__func__, lrbp->task_tag);
 		if (!ufshcd_clear_cmd(hba, lrbp->task_tag))
 			/* successfully cleared the command, retry if needed */
