@@ -967,8 +967,8 @@
 
 &ddr_dfs {
 	  sprd-scene = "boost", "lcdon", "lcdoff", "camlow",
-			"camhigh", "camveryhigh", "faceid";
-	  sprd-freq = <1244 768 384 384 533 1244 1244>;
+			"camhigh", "camveryhigh", "faceid", "top";
+	  sprd-freq = <1244 768 384 384 533 1244 1244 2133>;
 };
 
 &vddemmccore {
