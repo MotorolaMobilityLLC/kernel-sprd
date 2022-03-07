@@ -27,6 +27,7 @@ enum sprd_typec_cc_polarity {
 /* Time to wait for TCPC to complete transmit */
 #define SPRD_PD_T_TCPC_TX_TIMEOUT		100		/* in ms */
 #define SPRD_PD_ROLE_SWAP_TIMEOUT		(MSEC_PER_SEC * 10)
+#define SPRD_PD_CTRL_TIMEOUT			(MSEC_PER_SEC * 3)
 #define SPRD_PD_PPS_CTRL_TIMEOUT		(MSEC_PER_SEC * 10)
 
 enum sprd_tcpm_transmit_status {

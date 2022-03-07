@@ -401,6 +401,10 @@ struct sprd_tcpm_port {
 	u32 current_limit;
 	u32 supply_voltage;
 
+	/* Requested fixed PD voltage */
+	u32 fixed_pd_voltage;
+	struct completion fixed_pd_complete;
+
 	/* Used to export TA voltage and current */
 	struct power_supply *psy;
 	struct power_supply_desc psy_desc;
@@ -2507,6 +2511,7 @@ static int sprd_tcpm_pd_build_request(struct sprd_tcpm_port *port, u32 *rdo)
 
 	port->req_current_limit = ma;
 	port->req_supply_voltage = mv;
+	port->fixed_pd_voltage = mv;
 
 	return 0;
 }
@@ -2604,6 +2609,7 @@ static int sprd_tcpm_pd_build_pps_request(struct sprd_tcpm_port *port, u32 *rdo)
 
 	port->pps_data.req_op_curr = op_ma;
 	port->pps_data.req_out_volt = out_mv;
+	port->fixed_pd_voltage = 0;
 
 	return 0;
 }
@@ -3168,6 +3174,7 @@ static void sprd_run_state_machine(struct sprd_tcpm_port *port)
 	case SNK_UNATTACHED:
 		if (!port->non_pd_role_swap)
 			sprd_tcpm_swap_complete(port, -ENOTCONN);
+		complete(&port->fixed_pd_complete);
 		sprd_tcpm_pps_complete(port, -ENOTCONN);
 		sprd_tcpm_snk_detach(port);
 		if (sprd_tcpm_start_toggling(port, SPRD_TYPEC_CC_RD)) {
@@ -3356,6 +3363,7 @@ static void sprd_run_state_machine(struct sprd_tcpm_port *port)
 		sprd_tcpm_swap_complete(port, 0);
 		sprd_tcpm_typec_connect(port);
 		sprd_tcpm_check_send_discover(port);
+		complete(&port->fixed_pd_complete);
 		sprd_tcpm_pps_complete(port, port->pps_status);
 
 		/*
@@ -3648,6 +3656,7 @@ static void sprd_run_state_machine(struct sprd_tcpm_port *port)
 		break;
 	case ERROR_RECOVERY:
 		sprd_tcpm_swap_complete(port, -EPROTO);
+		complete(&port->fixed_pd_complete);
 		sprd_tcpm_pps_complete(port, -EPROTO);
 		sprd_tcpm_set_state(port, PORT_RESET, 0);
 		break;
@@ -3882,6 +3891,7 @@ static void _sprd_tcpm_pd_vbus_on(struct sprd_tcpm_port *port)
 		port->snk_pdo[i] = port->snk_default_pdo[i];
 
 	port->operating_snk_mw = port->operating_snk_default_mw;
+	port->fixed_pd_voltage = 0;
 
 	sprd_tcpm_log_force(port, "VBUS on");
 	port->vbus_present = true;
@@ -4943,16 +4953,73 @@ static int sprd_tcpm_copy_caps(struct sprd_tcpm_port *port, const struct tcpc_co
 	return 0;
 }
 
+static int sprd_tcpm_fixed_pd_deactivate(struct sprd_tcpm_port *port)
+{
+	int i, ret = 0;
+
+	mutex_lock(&port->swap_lock);
+	mutex_lock(&port->lock);
+
+	if (port->state != SNK_READY) {
+		ret = -EAGAIN;
+		goto port_unlock;
+	}
+
+	port->nr_snk_pdo = port->nr_snk_default_pdo;
+	for (i = 0; i < port->nr_snk_default_pdo; i++)
+		port->snk_pdo[i] = port->snk_default_pdo[i];
+
+	port->operating_snk_mw = port->operating_snk_default_mw;
+
+	/* Prevent 5V fixed voltage gear from not being configured in dts */
+	if (port->nr_snk_pdo <= 0 ||
+	    sprd_pdo_type(port->snk_pdo[0]) != SPRD_PDO_TYPE_FIXED ||
+	    sprd_pdo_fixed_voltage(port->snk_pdo[0]) != 5000) {
+		port->nr_snk_pdo = 1;
+		port->snk_pdo[0] = SPRD_PDO_FIXED(5000, 3000, 0);
+		port->operating_snk_mw = 15000;
+	}
+
+	reinit_completion(&port->fixed_pd_complete);
+
+	sprd_tcpm_set_state(port, SNK_NEGOTIATE_CAPABILITIES, 0);
+
+	mutex_unlock(&port->lock);
+
+	if (!wait_for_completion_timeout(&port->fixed_pd_complete,
+					 msecs_to_jiffies(SPRD_PD_CTRL_TIMEOUT)))
+		ret = -ETIMEDOUT;
+
+	goto swap_unlock;
+
+port_unlock:
+	mutex_unlock(&port->lock);
+swap_unlock:
+	mutex_unlock(&port->swap_lock);
+
+	return ret;
+}
+
 void sprd_tcpm_shutdown(struct sprd_tcpm_port *port)
 {
 	int ret;
 
+	if (port->usb_type == POWER_SUPPLY_USB_TYPE_PD ||
+	    port->usb_type == POWER_SUPPLY_USB_TYPE_PD_PPS)
+		pr_info("%s, pps_data.active=%d, pd_type=%d, fixed_pd_vol=%d\n",
+			__func__, port->pps_data.active, port->usb_type, port->fixed_pd_voltage);
+
 	if (port->pps_data.active) {
 		ret = sprd_tcpm_pps_activate(port, false);
-		if (ret) {
-			pr_err("failed to disable pps at shutdown, ret = %d", ret);
-			return;
-		}
+		if (ret)
+			pr_err("%s, failed to disable pps, ret = %d\n", __func__, ret);
+	} else if ((port->usb_type == POWER_SUPPLY_USB_TYPE_PD ||
+		    port->usb_type == POWER_SUPPLY_USB_TYPE_PD_PPS) &&
+		   port->fixed_pd_voltage > 5000) {
+		ret = sprd_tcpm_fixed_pd_deactivate(port);
+		if (ret)
+			pr_err("%s, failed to force PD charger voltage to 5V, ret = %d\n",
+			       __func__, ret);
 	}
 
 	cancel_delayed_work_sync(&port->state_machine);
@@ -4993,9 +5060,11 @@ struct sprd_tcpm_port *sprd_tcpm_register_port(struct device *dev, struct tcpc_d
 
 	init_completion(&port->tx_complete);
 	init_completion(&port->swap_complete);
+	init_completion(&port->fixed_pd_complete);
 	init_completion(&port->pps_complete);
 	sprd_tcpm_debugfs_init(port);
 
+	port->fixed_pd_voltage = 0;
 	err = sprd_tcpm_fw_get_caps(port, tcpc->fwnode);
 	if ((err < 0) && tcpc->config)
 		err = sprd_tcpm_copy_caps(port, tcpc->config);
