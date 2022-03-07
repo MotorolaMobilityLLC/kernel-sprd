@@ -111,6 +111,8 @@ struct bq2560x_charger_info {
 	bool need_disable_Q1;
 	int termination_cur;
 
+	bool is_sgm41513;
+
 };
 
 #include <ontim/ontim_dev_dgb.h>
@@ -186,9 +188,19 @@ static void bq2560x_dump_regs(struct bq2560x_charger_info *info)
 {
 
 	int addr;
-	u8 val[0x0c];
+	u8 val[0x10];
 	int ret;
 
+	if(info->is_sgm41513){
+		for (addr = 0x0; addr < 0x10; addr++) {
+			ret = bq2560x_read(info, addr, &val[addr]);
+		}
+		dev_err(info->dev,"bq25601 [0x0]=0x%.2x [0x1]=0x%.2x [0x2]=0x%.2x  [0x3]=0x%.2x [0x4]=0x%.2x [0x5]=0x%.2x [0x6]=0x%.2x \n",
+			                      val[0],val[1],val[2],val[3],val[4],val[5],val[6]);
+		dev_err(info->dev,"bq25601 [0x7]=0x%.2x [0x8]=0x%.2x [0x9]=0x%.2x  [0xa]=0x%.2x [0xb]=0x%.2x  %x;%x;%x;%x; \n",
+			                      val[7],val[8],val[9],val[0xa],val[0xb],val[0xc],val[0xd],val[0xe],val[0xf]);
+	}
+	else{
 	for (addr = 0x0; addr <= 0x0B; addr++) {
 		ret = bq2560x_read(info, addr, &val[addr]);
 	}
@@ -196,7 +208,7 @@ static void bq2560x_dump_regs(struct bq2560x_charger_info *info)
 		                      val[0],val[1],val[2],val[3],val[4],val[5],val[6]);
 	dev_err(info->dev,"bq25601 [0x7]=0x%.2x [0x8]=0x%.2x [0x9]=0x%.2x  [0xa]=0x%.2x [0xb]=0x%.2x  \n",
 		                      val[7],val[8],val[9],val[0xa],val[0xb]);
-
+		}
 }
 
 
@@ -280,11 +292,27 @@ bq2560x_charger_get_termina_vol(struct bq2560x_charger_info *info, u32 *vol)
 
 	return 0;
 }
-
+static u8 sgm41513_iterm[]=
+{
+5 ,10,15,20,
+30,40,50,60,
+80,100,120,140,160,180,200,
+240,
+};
 static int
 bq2560x_charger_set_termina_cur(struct bq2560x_charger_info *info, u32 cur)
 {
 	u8 reg_val;
+	int i=0;
+
+	if( info->is_sgm41513 ){
+		if (cur > 240)
+			cur=240;
+		while(cur > sgm41513_iterm[i])	i++;
+		reg_val = i;
+		dev_err(info->dev, "%s;%d;%x;\n",__func__,cur,i);
+		}
+	else{
 
 	if (cur <= 60)
 		reg_val = 0x0;
@@ -292,7 +320,7 @@ bq2560x_charger_set_termina_cur(struct bq2560x_charger_info *info, u32 cur)
 		reg_val = 0x8;
 	else
 		reg_val = (cur - 60) / 60;
-
+		}
 	return bq2560x_update_bits(info, BQ2560X_REG_3,
 				   BQ2560X_REG_TERMINAL_CUR_MASK,
 				   reg_val);
@@ -497,19 +525,39 @@ static void bq2560x_charger_stop_charge(struct bq2560x_charger_info *info)
 	}
 }
 
+static u32 sgm41513_ichg[]=
+{
+0,5,10,15,20,25,30,35,40,
+50,60,70,80,90,100,110,
+130,150,170,190,210,230,250,270,
+300,330,360,390,420,450,480,510,540,
+600,660,720,780,840,900,960,1020,1080,1140,1200,1260,1320,1380,1440,1500,
+1620,1740,1860,1980,2100,2220,2340,2460,2580,2700,2820,2940,
+3000,
+};
+
 static int bq2560x_charger_set_current(struct bq2560x_charger_info *info,
 				       u32 cur)
 {
 	u8 reg_val;
+	int i=0;
 
 	cur = cur / 1000;
-	if (cur > 3000) {
-		reg_val = 0x32;
-	} else {
+
+	if (cur > 3000) 
+		cur = 3000;
+
+	if( info->is_sgm41513 ){
+		while(cur > sgm41513_ichg[i]) i++;
+		reg_val = i;
+		dev_err(info->dev, "%s;%d;%x;\n",__func__,cur,i);
+	}
+		
+	else{
 		reg_val = cur / BQ2560X_REG_ICHG_LSB;
 		reg_val &= BQ2560X_REG_ICHG_MASK;
-	}
 
+	}
 	return bq2560x_update_bits(info, BQ2560X_REG_2,
 				   BQ2560X_REG_ICHG_MASK,
 				   reg_val);
@@ -526,8 +574,13 @@ static int bq2560x_charger_get_current(struct bq2560x_charger_info *info,
 		return ret;
 
 	reg_val &= BQ2560X_REG_ICHG_MASK;
+
+	if( info->is_sgm41513 )
+		*cur = sgm41513_ichg[reg_val] * 1000;			
+	else
 	*cur = reg_val * BQ2560X_REG_ICHG_LSB * 1000;
 
+	dev_err(info->dev, "%s;%d;%x;\n",__func__,*cur,reg_val);
 	return 0;
 }
 
@@ -1245,6 +1298,8 @@ static int bq2560x_charger_probe(struct i2c_client *client,
 	info->client = client;
 	info->dev = dev;
 
+	info->is_sgm41513 = false;
+
 	bq2560x_read(info,BQ2560X_REG_B, &val);
 	dev_err(dev, "%s;%x;\n",__func__,val);
 	if( (val & 0x7c) == 0x48)
@@ -1254,7 +1309,18 @@ static int bq2560x_charger_probe(struct i2c_client *client,
 	else if ( (val & 0x7c) == 0x14  )
 		strncpy(charge_ic_vendor_name,"SGM41511",20);
 	else
+	{
+		info->client->addr = 0x1a;
+		bq2560x_read(info,BQ2560X_REG_B, &val);
+		dev_err(dev, "%s;i2c 0x1a  val=%x;\n",__func__,val);
+		if ( (val & 0x78) == 0x00 )
+		{
+			strncpy(charge_ic_vendor_name,"SGM41513",20);
+			info->is_sgm41513 = true;			
+		}
+		else
 		return -ENODEV;
+	}
 
 	dev_err(dev, "%s;%s;\n",__func__,charge_ic_vendor_name);
 
