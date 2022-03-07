@@ -1967,6 +1967,10 @@ static int sy6970_charger_enable_otg(struct regulator_dev *dev)
 	}
 
 	ret = sy6970_update_bits(info, SY6970_REG_3,
+				  SY6970_REG_CHG_MASK,
+				  0);
+
+	ret = sy6970_update_bits(info, SY6970_REG_3,
 				  SY6970_REG_OTG_MASK,
 				  SY6970_REG_OTG_MASK);
 	if (ret) {
@@ -2001,6 +2005,14 @@ static int sy6970_charger_disable_otg(struct regulator_dev *dev)
 				  0);
 	if (ret) {
 		dev_err(info->dev, "disable sy6970 otg failed\n");
+
+
+
+	ret = sy6970_update_bits(info, SY6970_REG_3,
+				  SY6970_REG_CHG_MASK,
+				  SY6970_REG_CHG_MASK);
+
+
 		return ret;
 	}
 
@@ -2329,6 +2341,12 @@ static void sy6970_charger_shutdown(struct i2c_client *client)
 					  0);
 		if (ret)
 			dev_err(info->dev, "disable sy6970 otg failed ret = %d\n", ret);
+
+
+		ret = sy6970_update_bits(info, SY6970_REG_3,
+					  SY6970_REG_CHG_MASK,
+					  SY6970_REG_CHG_MASK);
+
 
 		/* Enable charger detection function to identify the charger type */
 		ret = regmap_update_bits(info->pmic, info->charger_detect,
