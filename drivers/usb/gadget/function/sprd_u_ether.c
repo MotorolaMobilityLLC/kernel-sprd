@@ -164,6 +164,7 @@ static inline int qlen(struct usb_gadget *gadget, unsigned qmult)
 #define xprintk(d, level, fmt, args...) \
 	printk(level "%s: " fmt, (d)->net->name, ## args)
 
+#if 0
 #ifdef DEBUG
 #undef DEBUG
 #define DBG(dev, fmt, args...) \
@@ -172,6 +173,9 @@ static inline int qlen(struct usb_gadget *gadget, unsigned qmult)
 #define DBG(dev, fmt, args...) \
 	do { } while (0)
 #endif /* DEBUG */
+#endif
+#define DBG(dev, fmt, args...) \
+	xprintk(dev, KERN_DEBUG, fmt, ## args)
 
 #ifdef VERBOSE_DEBUG
 #define VDBG	DBG
@@ -233,6 +237,12 @@ static void defer_kevent(struct eth_dev *dev, int flag)
 {
 	if (test_and_set_bit(flag, &dev->todo))
 		return;
+#ifdef CONFIG_USB_PAM
+	if (dev->port_usb &&
+	    dev->port_usb->out_ep &&
+	    (dev->port_usb->out_ep->android_kabi_reserved1 == 0xff))
+		return;
+#endif
 
 	if (!schedule_work(&dev->work))
 		ERROR(dev, "kevent %d may have been dropped\n", flag);
@@ -253,6 +263,7 @@ rx_submit(struct eth_dev *dev, struct usb_request *req, gfp_t gfp_flags)
 	unsigned long	flags;
 
 	spin_lock_irqsave(&dev->lock, flags);
+
 	if (dev->port_usb) {
 		out = dev->port_usb->out_ep;
 
@@ -283,6 +294,12 @@ rx_submit(struct eth_dev *dev, struct usb_request *req, gfp_t gfp_flags)
 
 	spin_unlock_irqrestore(&dev->lock, flags);
 
+#ifdef CONFIG_USB_PAM
+	if (!out || !dev->port_usb || (out->android_kabi_reserved1 == 0xff)) {
+		INFO(dev, "usb %s:size: %zd return \n", __func__, size);
+		return -ENOTCONN;
+	}
+#endif
 	DBG(dev, "%s: size: %zd\n", __func__, size);
 	skb = alloc_skb(size + NET_IP_ALIGN, gfp_flags);
 	if (skb == NULL) {
@@ -971,7 +988,13 @@ static netdev_tx_t eth_start_xmit(struct sk_buff *skb,
 		dev_kfree_skb_any(skb);
 		return NETDEV_TX_OK;
 	}
-
+#ifdef CONFIG_USB_PAM
+	if (in && (in->android_kabi_reserved1 == 0xff)) {
+		if (skb)
+			dev_kfree_skb_any(skb);
+		return NETDEV_TX_OK;
+	}
+#endif
 	/* apply outgoing CDC or RNDIS filters */
 	if (skb && !is_promisc(cdc_filter)) {
 		u8		*dest = skb->data;
@@ -1310,6 +1333,8 @@ struct eth_dev *sprd_gether_setup_name(struct usb_gadget *g,
 	dev->net = net;
 	dev->qmult = qmult;
 	snprintf(net->name, sizeof(net->name), "%s%%d", netname);
+
+	INFO(dev, "%s netdev name: %s \n", __func__, netname);
 
 	if (get_ether_addr(dev_addr, net->dev_addr))
 		dev_warn(&g->dev,
@@ -1656,7 +1681,10 @@ struct net_device *sprd_gether_connect(struct gether *link)
 			return ERR_PTR(result);
 		}
 	}
-
+#ifdef CONFIG_USB_PAM
+	link->in_ep->android_kabi_reserved1 = 0xff;
+	link->out_ep->android_kabi_reserved1 = 0xff;
+#endif
 
 	link->in_ep->driver_data = dev;
 	result = usb_ep_enable(link->in_ep);
@@ -1803,6 +1831,11 @@ void sprd_gether_disconnect(struct gether *link)
 	spin_unlock(&dev->rx_frames.lock);
 
 	link->out_ep->desc = NULL;
+
+#ifdef CONFIG_USB_PAM
+	link->in_ep->android_kabi_reserved1 = 0;
+	link->out_ep->android_kabi_reserved1 = 0;
+#endif
 
 	/* finish forgetting about this USB link episode */
 	dev->header_len = 0;
