@@ -2329,8 +2329,7 @@
 				compatible = "sprd,djtag";
 				status = "okay";
 				reg = <0x570000 0x1000>;
-				syscon-names = "soft_rst";
-				syscons = <&aon_apb_regs REG_AON_APB_APB_RST3
+				syscon = <&aon_apb_regs REG_AON_APB_APB_RST3
 					MASK_AON_APB_DJTAG_SOFT_RST>;
 				clock-names = "enable", "tck";
 				clocks = <&aonapb_gate CLK_DJTAG_EB>,
@@ -2342,7 +2341,7 @@
 				#size-cells = <0>;
 
 				aon-busmonitor@7{
-					compatible = "sprd,qogirn6pro-busmonitor";
+					compatible = "sprd,qogirn6pro-busmonitor", "sprd,sharkl5pro-busmonitor";
 					interrupts = <GIC_SPI 7 IRQ_TYPE_LEVEL_HIGH>;
 					reg = <0x7>;
 					sprd,bm-num = <11>;
