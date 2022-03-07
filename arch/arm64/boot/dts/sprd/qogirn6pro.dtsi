@@ -1741,7 +1741,7 @@
 					interrupts = <GIC_SPI 142 IRQ_TYPE_LEVEL_HIGH>;
 					interrupt-names = "irq";
 					usb-phy = <&ssphy>, <&ssphy>;
-					#usb-pam = <&pamu3>;
+					usb-pam = <&pamu3>;
 					phy_type = "utmi";
 					snps,usb3-u1u2-disable;
 					snps,dis_u3_susphy_quirk;
