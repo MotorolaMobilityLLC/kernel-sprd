@@ -1092,6 +1092,7 @@ struct dwc3 {
 	struct resource		xhci_resources[DWC3_XHCI_RESOURCES_NUM];
 
 	struct dwc3_event_buffer *ev_buf;
+	struct dwc3_event_buffer **ev_bufs_ex;
 	struct dwc3_ep		*eps[DWC3_ENDPOINTS_NUM];
 
 	struct usb_gadget	gadget;
@@ -1113,6 +1114,8 @@ struct dwc3 {
 	struct ulpi		*ulpi;
 	bool			ulpi_ready;
 
+	struct usb_phy		*pam;
+
 	void __iomem		*regs;
 	size_t			regs_size;
 
@@ -1132,6 +1135,7 @@ struct dwc3 {
 	u32			desired_otg_role;
 	bool			otg_restart_host;
 	u32			nr_scratch;
+	u32			num_ev_bufs_ex;
 	u32			u1u2;
 	u32			maximum_speed;
 
