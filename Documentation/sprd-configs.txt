@@ -5787,8 +5787,8 @@ CONFIG_E_SHOW_MEM
 	[missing plat description] none
 	[function] show enhanced meminfo.
 CONFIG_F2FS_CHECK_FS
-	[arch] arm
-	[plat] pike2
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field] code
 	[subsys] fs
