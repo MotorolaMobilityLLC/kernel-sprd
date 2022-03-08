@@ -16,6 +16,7 @@
 #include <linux/miscdevice.h>
 #include <linux/mm.h>
 #include <linux/module.h>
+#include <linux/mutex.h>
 #include <linux/of.h>
 #include <linux/of_device.h>
 #include <linux/of_address.h>
@@ -117,6 +118,9 @@ struct vpu_platform_data {
 	bool is_vpu_acquired;
 	bool iommu_exist_flag;
 	bool is_clock_enabled;
+
+	struct mutex map_lock;
+	struct list_head map_list;
 
 	wait_queue_head_t wait_queue_work;
 	atomic_t instance_cnt;

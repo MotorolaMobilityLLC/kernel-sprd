@@ -489,6 +489,7 @@ static int vpu_probe(struct platform_device *pdev)
 	vpu_core->condition_work = 0;
 	vpu_core->is_clock_enabled = false;
 	vpu_core->is_vpu_acquired = false;
+	INIT_LIST_HEAD(&vpu_core->map_list);
 
 	pm_runtime_set_active(dev);
 	pm_runtime_enable(dev);
