@@ -792,6 +792,11 @@
 					MASK_DPU_VSP_APB_DPHY0_CFG_CKG_EN)>;
 				power-syscon = <&pmu_apb_regs REG_PMU_APB_RF_ANALOG_PHY_PD_CFG
 					MASK_PMU_APB_RF_DSI0_PD_REG>;
+				aod_mode-syscon = <&aon_apb_regs REG_AON_APB_MIPI_DSI8_CTRL
+					(MASK_AON_APB_MIPI_DSI_8LANE_DSI_AOD_EN_M |
+					MASK_AON_APB_MIPI_DSI_8LANE_DSI_AOD_MOD_M)>;
+				aod_pd-syscon = <&aon_apb_regs REG_AON_APB_MIPI_DSI8_CTRL
+					MASK_AON_APB_MIPI_DSI_8LANE_DSI_AOD_PD_M>;
 				status = "disabled";
 				sprd,mipi-drive-capability = <7>;
 				ports {
