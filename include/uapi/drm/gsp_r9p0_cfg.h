@@ -17,6 +17,10 @@
 #define HDR_DEGAMMA_LUT_SIZE 1024
 #define HDR_REGAMMA_LUT_SIZE 1024
 #define HDR_TM_LUT_SIZE (1024 + 1)
+#define GSP_R9P0_FREQ_256M 256000000
+#define GSP_R9P0_FREQ_307_2M 307200000
+#define GSP_R9P0_FREQ_384M 384000000
+#define GSP_R9P0_FREQ_512M 512000000
 
 /*Original: B3B2B1B0*/
 enum gsp_r9p0_word_endian {
@@ -298,6 +302,7 @@ struct gsp_r9p0_misc_cfg_user {
 	bool hdr_flag[R9P0_IMGL_NUM];
 	bool first10bit_frame[R9P0_IMGL_NUM];
 	bool hdr10plus_update[R9P0_IMGL_NUM];
+	__u32 work_freq;
 	struct gsp_rect workarea_src_rect;
 	struct gsp_pos workarea_des_pos;
 	struct gsp_r9p0_hdr10_cfg hdr10_para[R9P0_IMGL_NUM];
