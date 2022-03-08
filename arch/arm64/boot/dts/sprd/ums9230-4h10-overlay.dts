@@ -366,6 +366,10 @@
 					 <&ext_32k>,
 					 <&aonapb_gate CLK_AUX2_EB>;
 
+				reg = <0 0x87000000 0 0x00100000>,
+					<0 0x87600000 0 0xA0000>;
+				reg-names = "btwf_mem", "gnss_mem";
+
 				extcon = <&sdio1>;
 				sdhci-name = <&sdio1>;
 				sprd,btwf-file-name = "/dev/block/by-name/wcnmodem";
