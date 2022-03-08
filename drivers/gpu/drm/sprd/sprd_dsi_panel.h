@@ -22,8 +22,8 @@ enum {
 	CMD_OLED_BRIGHTNESS,
 	CMD_OLED_REG_LOCK,
 	CMD_OLED_REG_UNLOCK,
-	CMD_CODE_RESERVED0,
-	CMD_CODE_RESERVED1,
+	CMD_CODE_DOZE_IN,
+	CMD_CODE_DOZE_OUT,
 	CMD_CODE_RESERVED2,
 	CMD_CODE_RESERVED3,
 	CMD_CODE_RESERVED4,
@@ -118,5 +118,7 @@ struct sprd_oled {
 
 int sprd_panel_parse_lcddtb(struct device_node *lcd_node,
 	struct sprd_panel *panel);
+void  sprd_panel_enter_doze(struct drm_panel *p);
+void  sprd_panel_exit_doze(struct drm_panel *p);
 
 #endif /* _SPRD_DSI_PANEL_H_ */

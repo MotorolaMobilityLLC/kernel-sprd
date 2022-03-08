@@ -638,6 +638,45 @@ static ssize_t state_reset_store(struct device *dev,
 }
 static DEVICE_ATTR_WO(state_reset);
 
+static ssize_t dpms_mode_store(struct device *dev,
+				struct device_attribute *attr,
+				const char *buf, size_t count)
+{
+	int ret;
+	int mode;
+	struct sprd_dsi *dsi = dev_get_drvdata(dev);
+
+	ret = kstrtoint(buf, 10, &mode);
+	if (ret) {
+		pr_err("Invalid input mode\n");
+		return -EINVAL;
+	}
+
+	if (mode == dsi->ctx.last_dpms) {
+		pr_info("input mode is the same as old\n");
+		return count;
+	}
+
+	pr_info("input dpms mode is %d\n", mode);
+
+	dsi->ctx.dpms = mode;
+	dsi_panel_set_dpms_mode(dsi);
+
+	return count;
+}
+
+static ssize_t dpms_mode_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	int ret;
+	struct sprd_dsi *dsi = dev_get_drvdata(dev);
+
+	ret = snprintf(buf, PAGE_SIZE, "%d\n", dsi->ctx.dpms);
+
+	return ret;
+}
+static DEVICE_ATTR_RW(dpms_mode);
+
 static struct attribute *dsi_attrs[] = {
 	&dev_attr_phy_freq.attr,
 	&dev_attr_byte_clk.attr,
@@ -656,6 +695,7 @@ static struct attribute *dsi_attrs[] = {
 	&dev_attr_int0_mask.attr,
 	&dev_attr_int1_mask.attr,
 	&dev_attr_state_reset.attr,
+	&dev_attr_dpms_mode.attr,
 	NULL,
 };
 ATTRIBUTE_GROUPS(dsi);

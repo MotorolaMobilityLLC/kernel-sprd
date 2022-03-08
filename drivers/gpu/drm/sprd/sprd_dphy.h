@@ -22,6 +22,7 @@ struct dphy_context {
 	unsigned long apbbase;
 	struct mutex lock;
 	bool enabled;
+	u8 aod_mode;
 	u32 freq;
 	u8 lanes;
 	bool ulps_enable;

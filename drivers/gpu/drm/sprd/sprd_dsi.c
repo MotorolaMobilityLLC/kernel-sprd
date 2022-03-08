@@ -15,6 +15,7 @@
 
 #include <drm/drm_atomic_helper.h>
 #include <drm/drm_crtc_helper.h>
+#include <drm/drm_mode.h>
 #include <drm/drm_of.h>
 #include <drm/drm_probe_helper.h>
 
@@ -61,13 +62,55 @@ static void sprd_dsi_disable(struct sprd_dsi *dsi)
 		dsi->glb->power(&dsi->ctx, false);
 }
 
+int dsi_panel_set_dpms_mode(struct sprd_dsi *dsi)
+{
+	mutex_lock(&dsi->lock);
+
+	/*
+	 * FIXME:
+	 * Doze Suspend -> OFF, dsi has suspended
+	 */
+	if ((dsi->ctx.dpms == DRM_MODE_DPMS_OFF) &&
+		(dsi->ctx.last_dpms == DRM_MODE_DPMS_SUSPEND)) {
+		DRM_INFO("%s(panel off)\n", __func__);
+		drm_panel_unprepare(dsi->panel);
+		dsi->ctx.last_dpms = dsi->ctx.dpms;
+		mutex_unlock(&dsi->lock);
+		return 0;
+	}
+
+	if (!dsi->ctx.enabled) {
+		mutex_unlock(&dsi->lock);
+		DRM_INFO("dsi is not inited,just skip\n");
+		return 0;
+	}
+
+	if ((dsi->ctx.dpms == DRM_MODE_DPMS_STANDBY) &&
+		(dsi->ctx.last_dpms == DRM_MODE_DPMS_ON)) {
+		sprd_panel_enter_doze(dsi->panel);
+		DRM_INFO("%s(panel enter doze)\n", __func__);
+		dsi->ctx.last_dpms = dsi->ctx.dpms;
+	} else if ((dsi->ctx.dpms == DRM_MODE_DPMS_ON) &&
+		(dsi->ctx.last_dpms == DRM_MODE_DPMS_STANDBY)) {
+		sprd_panel_exit_doze(dsi->panel);
+		DRM_INFO("%s(panel exit doze)\n", __func__);
+		dsi->ctx.last_dpms = dsi->ctx.dpms;
+	} else {
+		DRM_INFO("%s(just skip it)\n", __func__);
+	}
+	mutex_unlock(&dsi->lock);
+
+	return 0;
+}
+
 static void sprd_dsi_encoder_enable(struct drm_encoder *encoder)
 {
 	struct sprd_dsi *dsi = encoder_to_dsi(encoder);
 	struct sprd_crtc *crtc = to_sprd_crtc(encoder->crtc);
 	struct sprd_dpu *dpu = crtc->priv;
 
-	DRM_INFO("%s()\n", __func__);
+	DRM_INFO("%s(last_dpms=%d, dpms=%d)\n",
+			__func__, dsi->ctx.last_dpms, dsi->ctx.dpms);
 
 	mutex_lock(&dsi->lock);
 	/* add if condition to avoid resume dsi for SR feature.
@@ -104,8 +147,21 @@ static void sprd_dsi_encoder_enable(struct drm_encoder *encoder)
 	sprd_dsi_lp_cmd_enable(dsi, true);
 
 	if (dsi->panel) {
-		drm_panel_prepare(dsi->panel);
-		drm_panel_enable(dsi->panel);
+		if ((dsi->ctx.last_dpms == DRM_MODE_DPMS_SUSPEND) &&
+		    (dsi->ctx.dpms == DRM_MODE_DPMS_ON)) {
+			sprd_panel_exit_doze(dsi->panel);
+			DRM_INFO("%s(panel exit doze)\n", __func__);
+		} else if ((dsi->ctx.last_dpms == DRM_MODE_DPMS_SUSPEND) &&
+			   (dsi->ctx.dpms == DRM_MODE_DPMS_STANDBY)) {
+			DRM_INFO("%s(keep panel doze)\n", __func__);
+		} else {
+			drm_panel_prepare(dsi->panel);
+			drm_panel_enable(dsi->panel);
+			if (dsi->ctx.dpms == DRM_MODE_DPMS_STANDBY) {
+				DRM_INFO("%s(panel enter doze)\n", __func__);
+				sprd_panel_enter_doze(dsi->panel);
+			}
+		}
 	}
 
 	sprd_dsi_set_work_mode(dsi, dsi->ctx.work_mode);
@@ -141,9 +197,11 @@ static void sprd_dsi_encoder_enable(struct drm_encoder *encoder)
 	 * its current contents indefinitely. If call sprd_dpu_run, background color will appear
 	 * that will cause panel flickering. So we should call sprd_dpu_run when flip in edpi mode.
 	 */
-	sprd_dpu_run(crtc->priv);
+	if (dsi->ctx.last_dpms != DRM_MODE_DPMS_SUSPEND)
+		sprd_dpu_run(crtc->priv);
 
 	dsi->ctx.enabled = true;
+	dsi->ctx.last_dpms = dsi->ctx.dpms;
 
 	mutex_unlock(&dsi->lock);
 }
@@ -155,7 +213,8 @@ static void sprd_dsi_encoder_disable(struct drm_encoder *encoder)
 	struct sprd_dpu *dpu = crtc->priv;
 	struct sprd_panel *panel = container_of(dsi->panel, struct sprd_panel, base);
 
-	DRM_INFO("%s()\n", __func__);
+	DRM_INFO("%s(last_dpms=%d, dpms=%d)\n",
+			__func__, dsi->ctx.last_dpms, dsi->ctx.dpms);
 
 	mutex_lock(&dsi->lock);
 	/* add if condition to avoid suspend dsi for SR feature */
@@ -182,9 +241,17 @@ static void sprd_dsi_encoder_disable(struct drm_encoder *encoder)
 	sprd_dsi_lp_cmd_enable(dsi, true);
 
 	if (dsi->panel) {
-		drm_panel_disable(dsi->panel);
-		sprd_dphy_ulps_enter(dsi->phy);
-		drm_panel_unprepare(dsi->panel);
+		if ((dsi->ctx.dpms == DRM_MODE_DPMS_SUSPEND) &&
+		    ((dsi->ctx.last_dpms == DRM_MODE_DPMS_STANDBY)
+		     || (dsi->ctx.last_dpms == DRM_MODE_DPMS_ON))) {
+			sprd_panel_enter_doze(dsi->panel);
+			DRM_INFO("%s(panel enter doze)\n", __func__);
+		} else {
+			drm_panel_disable(dsi->panel);
+			if (dsi->phy->ctx.ulps_enable)
+				sprd_dphy_ulps_enter(dsi->phy);
+			drm_panel_unprepare(dsi->panel);
+		}
 	}
 
 	/* workaround:
@@ -205,6 +272,7 @@ static void sprd_dsi_encoder_disable(struct drm_encoder *encoder)
 		pm_runtime_put(dsi->dev.parent);
 
 	dsi->ctx.enabled = false;
+	dsi->ctx.last_dpms = dsi->ctx.dpms;
 
 	mutex_unlock(&dsi->lock);
 }
@@ -389,6 +457,11 @@ static int sprd_dsi_host_attach(struct mipi_dsi_host *host,
 
 	if (!of_property_read_u32(lcd_node, "sprd,dpi-clk-div", &val))
 		ctx->dpi_clk_div = val;
+
+	if (!of_property_read_u32(lcd_node, "sprd,phy-aod-mode", &val))
+		dsi->phy->ctx.aod_mode = val;
+	else
+		dsi->phy->ctx.aod_mode = 0;
 
 	return 0;
 }

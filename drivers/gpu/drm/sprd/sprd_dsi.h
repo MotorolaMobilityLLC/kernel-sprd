@@ -102,6 +102,9 @@ struct dsi_context {
 	bool surface_mode;
 	/* check lcd esd status if lcd be in recovery process or not */
 	bool is_esd_rst;
+	/* supported dpms mode */
+	int dpms;
+	int last_dpms;
 
 	const char *lcd_name;
 };
@@ -215,6 +218,7 @@ struct sprd_dsi {
 };
 
 void sprd_dsi_encoder_disable_force(struct drm_encoder *encoder);
+int dsi_panel_set_dpms_mode(struct sprd_dsi *dsi);
 
 extern const struct dsi_core_ops dsi_ctrl_r1p0_ops;
 extern const struct dsi_glb_ops sharkle_dsi_glb_ops;
