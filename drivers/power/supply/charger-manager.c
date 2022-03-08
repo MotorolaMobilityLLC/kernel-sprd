@@ -3264,7 +3264,7 @@ static void cm_cp_control_switch(struct charger_manager *cm, bool enable)
 			cancel_delayed_work_sync(&cm->cp_work);
 			cm_cp_state_machine(cm);
 		}
-		__pm_relax(cm->charge_ws);
+		__pm_relax(cm->cp_ws);
 	}
 }
 
@@ -3310,7 +3310,7 @@ static void cm_start_cp_state_machine(struct charger_manager *cm, bool start)
 		dev_info(cm->dev, "%s, reach pps threshold\n", __func__);
 		cp->cp_running = start;
 		cm->desc->cm_check_fault = false;
-		__pm_stay_awake(cm->charge_ws);
+		__pm_stay_awake(cm->cp_ws);
 		cm_cp_state_change(cm, CM_CP_STATE_ENTRY);
 		schedule_delayed_work(&cm->cp_work, 0);
 	}
@@ -3483,6 +3483,14 @@ static int try_charger_enable(struct charger_manager *cm, bool enable)
 		cm->charging_end_time = 0;
 
 		err = try_charger_enable_by_psy(cm, enable);
+		mutex_lock(&cm->desc->keep_awake_mtx);
+		if (!err)
+			cm->charger_enabled = enable;
+		if (!err && cm->desc->keep_awake) {
+			dev_info(cm->dev, "acquire charger_manager_wakelock when enable charge\n");
+			__pm_stay_awake(cm->charge_ws);
+		}
+		mutex_unlock(&cm->desc->keep_awake_mtx);
 		cm_ir_compensation_enable(cm, enable);
 		cm_fixed_fchg_control_switch(cm, enable);
 		cm_cp_control_switch(cm, enable);
@@ -3497,12 +3505,18 @@ static int try_charger_enable(struct charger_manager *cm, bool enable)
 		cm_fixed_fchg_control_switch(cm, enable);
 		cm_ir_compensation_enable(cm, enable);
 		err = try_charger_enable_by_psy(cm, enable);
+		mutex_lock(&cm->desc->keep_awake_mtx);
+		if (!err)
+			cm->charger_enabled = enable;
+		if (!err && cm->desc->keep_awake) {
+			dev_info(cm->dev, "Release charger_manager_wakelock when disable charge\n");
+			__pm_relax(cm->charge_ws);
+		}
+		mutex_unlock(&cm->desc->keep_awake_mtx);
 	}
 
-	if (!err) {
-		cm->charger_enabled = enable;
+	if (!err)
 		power_supply_changed(cm->charger_psy);
-	}
 	return err;
 }
 
@@ -5614,6 +5628,49 @@ static ssize_t enable_power_path_store(struct device *dev,
 	return count;
 }
 
+static ssize_t keep_awake_show(struct device *dev,
+			       struct device_attribute *attr,
+			       char *buf)
+{
+	struct charger_regulator *charger =
+		container_of(attr, struct charger_regulator,
+			     attr_keep_awake);
+	struct charger_manager *cm = charger->cm;
+
+	return sprintf(buf, "%d\n", cm->desc->keep_awake);
+}
+
+static ssize_t keep_awake_store(struct device *dev,
+				struct device_attribute *attr,
+				const char *buf, size_t count)
+{
+	int ret;
+	struct charger_regulator *charger =
+		container_of(attr, struct charger_regulator,
+			     attr_keep_awake);
+	struct charger_manager *cm = charger->cm;
+	bool enabled;
+
+	ret =  kstrtobool(buf, &enabled);
+	if (ret)
+		return ret;
+
+	if (cm->desc->keep_awake != enabled) {
+		mutex_lock(&cm->desc->keep_awake_mtx);
+		if (cm->charger_enabled && enabled) {
+			dev_info(cm->dev, "Acquire charger_manager_wakelock when enable charge\n");
+			__pm_stay_awake(cm->charge_ws);
+		} else if (cm->charger_enabled && !enabled) {
+			dev_info(cm->dev, "Release charger_manager_wakelock when disable charge\n");
+			__pm_relax(cm->charge_ws);
+		}
+		cm->desc->keep_awake = enabled;
+		mutex_unlock(&cm->desc->keep_awake_mtx);
+	}
+
+	return count;
+}
+
 /**
  * charger_manager_prepare_sysfs - Prepare sysfs entry for each charger
  * @cm: the Charger Manager representing the battery.
@@ -5652,7 +5709,8 @@ static int charger_manager_prepare_sysfs(struct charger_manager *cm)
 		charger->attrs[6] = &charger->attr_charge_pump_present.attr;
 		charger->attrs[7] = &charger->attr_charge_pump_current.attr;
 		charger->attrs[8] = &charger->attr_enable_power_path.attr;
-		charger->attrs[9] = NULL;
+		charger->attrs[9] = &charger->attr_keep_awake.attr;
+		charger->attrs[10] = NULL;
 
 		charger->attr_grp.name = name;
 		charger->attr_grp.attrs = charger->attrs;
@@ -5702,6 +5760,12 @@ static int charger_manager_prepare_sysfs(struct charger_manager *cm)
 		charger->attr_enable_power_path.attr.mode = 0644;
 		charger->attr_enable_power_path.show = enable_power_path_show;
 		charger->attr_enable_power_path.store = enable_power_path_store;
+
+		sysfs_attr_init(&charger->attr_keep_awake.attr);
+		charger->attr_keep_awake.attr.name = "keep_awake";
+		charger->attr_keep_awake.attr.mode = 0644;
+		charger->attr_keep_awake.show = keep_awake_show;
+		charger->attr_keep_awake.store = keep_awake_store;
 
 		sysfs_attr_init(&charger->attr_externally_control.attr);
 		charger->attr_externally_control.attr.name
@@ -6649,7 +6713,8 @@ static int charger_manager_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "Failed to get initial battery capacity\n");
 		return ret;
 	}
-
+	if (device_property_read_bool(&pdev->dev, "cm-keep-awake"))
+		cm->desc->keep_awake = true;
 	cm->desc->thm_info.thm_adjust_cur = -EINVAL;
 	cm->desc->ir_comp.ibat_buf[CM_IBAT_BUFF_CNT - 1] = CM_MAGIC_NUM;
 	cm->desc->ir_comp.us_lower_limit = cm->desc->ir_comp.us;
@@ -6734,6 +6799,8 @@ static int charger_manager_probe(struct platform_device *pdev)
 		goto err_reg_extcon;
 	}
 
+	mutex_init(&cm->desc->keep_awake_mtx);
+
 	/* Add to the list */
 	mutex_lock(&cm_list_mtx);
 	list_add(&cm->entry, &cm_list);
@@ -6747,6 +6814,8 @@ static int charger_manager_probe(struct platform_device *pdev)
 	device_set_wakeup_capable(&pdev->dev, false);
 	cm->charge_ws = wakeup_source_create("charger_manager_wakelock");
 	wakeup_source_add(cm->charge_ws);
+	cm->cp_ws = wakeup_source_create("charger_pump_wakelock");
+	wakeup_source_add(cm->cp_ws);
 	mutex_init(&cm->desc->charger_type_mtx);
 
 	ret = cm_get_bat_info(cm);
