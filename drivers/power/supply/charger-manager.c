@@ -3030,11 +3030,11 @@ static void cm_cp_state_check_vbus(struct charger_manager *cm)
 	if (cp->flt.vbus_error_lo &&
 	    cp->vbus_uV <  CM_CP_VBUS_ERRORHI_THRESHOLD(cp->vbat_uV)) {
 		cp->tune_vbus_retry++;
-		cp->cp_target_vbus += CM_CP_VSTEP;
+		cp->cp_target_vbus += 2 * CM_CP_VSTEP;
 		cm_check_target_vbus(cm);
 
 		if (cm_adjust_fast_charge_voltage(cm, cp->cp_target_vbus))
-			cp->cp_target_vbus -= CM_CP_VSTEP;
+			cp->cp_target_vbus -= 2 * CM_CP_VSTEP;
 
 	} else if (cp->flt.vbus_error_hi &&
 		   cp->vbus_uV >  CM_CP_VBUS_ERRORLO_THRESHOLD(cp->vbat_uV)) {
