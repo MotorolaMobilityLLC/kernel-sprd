@@ -296,7 +296,8 @@ struct charger_regulator {
 	struct device_attribute attr_charge_pump_present;
 	struct device_attribute attr_charge_pump_current;
 	struct device_attribute attr_enable_power_path;
-	struct attribute *attrs[10];
+	struct device_attribute attr_keep_awake;
+	struct attribute *attrs[11];
 
 	struct charger_manager *cm;
 };
@@ -643,6 +644,7 @@ struct charger_desc {
 
 	int cap;
 	bool measure_battery_temp;
+	bool keep_awake;
 
 	u32 charging_max_duration_ms;
 	u32 discharging_max_duration_ms;
@@ -732,6 +734,7 @@ struct charger_desc {
 
 	struct mutex charger_type_mtx;
 	struct mutex charge_info_mtx;
+	struct mutex keep_awake_mtx;
 };
 
 #define PSY_NAME_MAX	30
@@ -795,6 +798,7 @@ struct charger_manager {
 	int battery_status;
 
 	struct wakeup_source *charge_ws;
+	struct wakeup_source *cp_ws;
 	struct sprd_vote *cm_charge_vote;
 };
 
