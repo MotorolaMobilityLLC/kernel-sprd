@@ -17196,8 +17196,8 @@ CONFIG_SPRD_PTM
 	[function] Support Spreadtrum PTM.
 CONFIG_SPRD_ROTATION_TASK
 	[arch] arm64
-	[plat] sharkl5Pro
-	[missing plat] sharkl3
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
 	[field]
 	[subsys]
 	[must]
