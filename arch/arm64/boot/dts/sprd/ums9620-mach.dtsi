@@ -815,12 +815,6 @@
 		#size-cells = <0>;
 	};
 
-	ipi: interrupt-controller {
-		compatible = "android,CustomIPI";
-		#interrupt-cells = <1>;
-		interrupt-controller;
-	};
-
 	firmware {
 		android {
 			compatible = "android,firmware";
@@ -832,23 +826,23 @@
 	};
 
 	trusty {
-		compatible = "android,trusty-smc-v1";
+		compatible = "sprd,trusty-smc-v1";
 		irq {
-			compatible = "android,trusty-irq-v1";
-			interrupt-templates = <&ipi 0>,
-						<&gic 1 GIC_PPI 0>,
-						<&gic 1 GIC_SPI 0>;
+			compatible = "sprd,trusty-irq-v1";
+			interrupt-templates = <&gic 0 0 IRQ_TYPE_NONE>,
+						<&gic 1 GIC_PPI IRQ_TYPE_LEVEL_LOW>,
+						<&gic 1 GIC_SPI IRQ_TYPE_LEVEL_HIGH>;
 				interrupt-ranges = < 0  15 0>,
 						<16  31 1>,
 						<32 223 2>;
 		};
 
 		virtio {
-			compatible = "android,trusty-virtio-v1";
+			compatible = "sprd,trusty-virtio-v1";
 		};
 
 		log {
-			compatible = "android,trusty-log-v1";
+			compatible = "sprd,trusty-log-v1";
 		};
 	};
 
