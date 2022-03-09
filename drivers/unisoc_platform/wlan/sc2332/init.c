@@ -13,6 +13,7 @@
 #include "common/common.h"
 #include "qos.h"
 #include "txrx.h"
+#include "fcc.h"
 
 #define SPRD_MAX_PFN_LIST_COUNT		16
 #define SPRD_MAX_SCHED_PLANS		1
@@ -147,6 +148,8 @@ static void init_reg_notify(struct wiphy *wiphy,
 
 	if (sc2332_set_regdom(priv, (u8 *)rd, rd_size))
 		wiphy_err(wiphy, "%s failed to set regdomain!\n", __func__);
+
+	sc2332_fcc_match_country(priv, request->alpha2);
 
 	kfree(rd);
 }

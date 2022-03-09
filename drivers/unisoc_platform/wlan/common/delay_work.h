@@ -37,7 +37,7 @@
 #define SPRD_PCIE_RX_FLUSH_BUF			21
 #define SPRD_PCIE_TX_MOVE_BUF			22
 #define SPRD_PCIE_TX_FREE_BUF			23
-
+#define SPRD_WORK_REFSH_BO			24
 
 struct sprd_work {
 	struct list_head list;

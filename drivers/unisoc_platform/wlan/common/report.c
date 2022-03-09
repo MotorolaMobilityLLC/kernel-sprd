@@ -284,6 +284,7 @@ void sprd_report_disconnection(struct sprd_vif *vif, u16 reason_code)
 	}
 
 	sprd_defrag_recover(vif->priv, vif);
+	sprd_fcc_reset_bo(vif->priv);
 	vif->sm_state = SPRD_DISCONNECTED;
 	memset(vif->bssid, 0, sizeof(vif->bssid));
 	memset(vif->ssid, 0, sizeof(vif->ssid));

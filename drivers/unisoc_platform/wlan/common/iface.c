@@ -1422,6 +1422,8 @@ static int iface_core_init(struct device *dev, struct sprd_priv *priv)
 
 	sprd_init_npi();
 
+	sprd_fcc_init(priv);
+
 	sprd_qos_enable(priv, 1);
 
 	sprd_debug_init(&priv->debug);

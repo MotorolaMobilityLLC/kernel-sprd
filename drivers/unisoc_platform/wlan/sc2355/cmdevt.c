@@ -258,6 +258,8 @@ static const char *cmdevt_evt2str(u8 evt)
 		return "EVT_ACS_DONE";
 	case EVT_ACS_LTE_CONFLICT_EVENT:
 		return "EVT_ACS_LTE_CONFLICT_EVENT";
+	case EVT_FRESH_POWER_BO:
+		return "EVT_FRESH_POWER_BO";
 	default:
 		return "WIFI_EVENT_UNKNOWN";
 	}
@@ -564,6 +566,7 @@ struct sprd_msg *sc2355_get_cmdbuf(struct sprd_priv *priv, struct sprd_vif *vif,
 		sprd_put_vif(vif);
 
 		if (cmd_id == CMD_POWER_SAVE &&
+		    (!atomic_read(&priv->power_back_off)) &&
 		    (!vif || !(vif->state & VIF_STATE_OPEN))) {
 			pr_err("%s:send [%s] fail because mode close",
 			       __func__, cmdevt_cmd2str(cmd_id));
@@ -1623,6 +1626,27 @@ int sc2355_set_sar(struct sprd_priv *priv, struct sprd_vif *vif,
 	p->sub_type = sub_type;
 	p->value = value;
 	p->mode = SPRD_SET_SAR_ALL_MODE;
+	return send_cmd_recv_rsp(priv, msg, NULL, NULL);
+}
+
+int sc2355_set_power_backoff(struct sprd_priv *priv, struct sprd_vif *vif,
+			     struct sprd_power_backoff *data)
+{
+	struct sprd_msg *msg;
+	struct cmd_set_power_backoff *p;
+	int i;
+
+	msg = get_cmdbuf(priv, vif, sizeof(*p), CMD_POWER_SAVE);
+	if (!msg)
+		return -ENOMEM;
+
+	p = (struct cmd_set_power_backoff *)msg->data;
+	memset(p, 0, sizeof(*p));
+	p->power_save_type = SPRD_SET_POWER_BACKOFF;
+	if (data)
+		memcpy(&p->backoff, data, sizeof(*data));
+	for (i = 0; i < sizeof(*p); i++)
+		pr_debug("%hhu\t", *((u8 *)p + i));
 	return send_cmd_recv_rsp(priv, msg, NULL, NULL);
 }
 
@@ -2955,6 +2979,9 @@ bool sc2355_do_delay_work(struct sprd_work *work)
 		memcpy(&reason_code, (u16 *)(work->data + ETH_ALEN), sizeof(u16));
 		sc2355_del_station(vif->priv, vif, mac_addr, reason_code);
 		break;
+	case SPRD_WORK_REFSH_BO:
+		sc2355_fcc_fresh_bo_work(vif->priv, work->data, work->len);
+		break;
 	default:
 		return false;
 	}
@@ -3594,6 +3621,29 @@ static int cmdevt_report_acs_done_evt(struct sprd_vif *vif, u8 *data, u16 len)
 	return 0;
 }
 
+static int sc2355_evt_pw_backoff(struct sprd_vif *vif, u8 *data, u16 len)
+{
+	struct sprd_work *misc_work;
+
+	if (!len) {
+		netdev_err(vif->ndev, "%s event data len=0\n", __func__);
+		return -EINVAL;
+	}
+
+	misc_work = sprd_alloc_work(len);
+	if (!misc_work) {
+		pr_err("%s out of memory\n", __func__);
+		return -1;
+	}
+	misc_work->vif = vif;
+	misc_work->id = SPRD_WORK_REFSH_BO;
+	memcpy(misc_work->data, data, len);
+
+	sprd_queue_work(vif->priv, misc_work);
+
+	return 0;
+}
+
 unsigned short sc2355_rx_evt_process(struct sprd_priv *priv, u8 *msg)
 {
 	struct sprd_cmd_hdr *hdr = (struct sprd_cmd_hdr *)msg;
@@ -3737,6 +3787,9 @@ unsigned short sc2355_rx_evt_process(struct sprd_priv *priv, u8 *msg)
 		sc2355_report_acs_lte_event(vif);
 		break;
 #endif /* CONFIG_SPRD_WLAN_VENDOR_SPECIFIC */
+	case EVT_FRESH_POWER_BO:
+		sc2355_evt_pw_backoff(vif, data, len);
+		break;
 	default:
 		pr_info("unsupported event: %d\n", hdr->cmd_id);
 		break;

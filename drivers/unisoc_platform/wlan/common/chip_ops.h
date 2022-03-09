@@ -40,6 +40,8 @@ struct sprd_chip_ops {
 			  u8 sub_type, u8 status);
 	int (*set_sar)(struct sprd_priv *priv, struct sprd_vif *vif,
 		       u8 sub_type, s8 value);
+	void (*fcc_reset)(void);
+	void (*fcc_init)(void);
 	int (*add_key)(struct sprd_priv *priv, struct sprd_vif *vif,
 		       const u8 *key_data, u8 key_len, bool pairwise,
 		       u8 key_index, const u8 *key_seq, u8 cypher_type,
@@ -301,6 +303,18 @@ static inline int sprd_set_sar(struct sprd_priv *priv, struct sprd_vif *vif,
 		return priv->chip.ops->set_sar(priv, vif, sub_type, value);
 
 	return 0;
+}
+
+static inline void sprd_fcc_reset_bo(struct sprd_priv *priv)
+{
+	if (priv->chip.ops->fcc_reset)
+		return priv->chip.ops->fcc_reset();
+}
+
+static inline void sprd_fcc_init(struct sprd_priv *priv)
+{
+	if (priv->chip.ops->fcc_init)
+		return priv->chip.ops->fcc_init();
 }
 
 static inline int sprd_add_key(struct sprd_priv *priv, struct sprd_vif *vif,

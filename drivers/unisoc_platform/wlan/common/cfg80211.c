@@ -529,7 +529,9 @@ int sprd_cfg80211_change_beacon(struct wiphy *wiphy, struct net_device *ndev,
 
 int sprd_cfg80211_stop_ap(struct wiphy *wiphy, struct net_device *ndev)
 {
+	struct sprd_priv *priv = wiphy_priv(wiphy);
 	netdev_info(ndev, "%s\n", __func__);
+	sprd_fcc_reset_bo(priv);
 
 	return 0;
 }

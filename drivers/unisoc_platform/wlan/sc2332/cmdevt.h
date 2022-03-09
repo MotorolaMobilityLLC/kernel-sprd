@@ -243,6 +243,28 @@ struct cmd_set_sar {
 	u8 mode;
 } __packed;
 
+/**
+ * sprdwl_cmd_set_power_backoff: this struct used to describe set power bo parameters.
+ *
+ * @power_save_type:power save command type, we send sar para through
+ *  power save command,so need provide power_save_sub_type,in this case
+ *  this value always set to SPRDWL_SET_POWER_BACKOFF, other sub type please ref
+ *  sprdwl_cmd_power_save struct.
+ * @sub_type: Please refer sprdwl_sar_subtype struct.
+ * @value: The value we set.
+ * @mode: 802.11mode, please refer sprdwl_sar_mode struct.
+ * @channel:channel num.
+ * @bw: bandwidth info.
+ */
+struct cmd_set_power_backoff {
+#define SPRD_SET_POWER_BACKOFF	0x07
+	u8 power_save_type;
+	u8 sub_type;
+	s8 value;
+	u8 mode;
+	u8 channel;
+} __packed;
+
 struct cmd_vowifi {
 	u8 value;
 } __packed;
@@ -671,6 +693,8 @@ int sc2332_power_save(struct sprd_priv *priv, struct sprd_vif *vif,
 		      u8 sub_type, u8 status);
 int sc2332_set_sar(struct sprd_priv *priv, struct sprd_vif *vif,
 		   u8 sub_type, s8 value);
+int sc2332_set_power_backoff(struct sprd_priv *priv, struct sprd_vif *vif,
+			     u8 sub_type, s8 value, u8 mode, u8 channel);
 
 struct sprd_msg *sc2332_get_cmdbuf(struct sprd_priv *priv, struct sprd_vif *vif,
 				   u16 len, u8 cmd_id, enum sprd_head_rsp rsp);

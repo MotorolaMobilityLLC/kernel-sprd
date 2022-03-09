@@ -7,7 +7,8 @@ SC2332_WLAN := \
 		qos.o \
 		scan.o \
 		tcp_ack.o \
-		txrx.o
+		txrx.o \
+		fcc.o
 
 obj-$(CONFIG_SC2332_SDIO_WLAN)	+= sc2332_sdio_wlan.o
 sc2332_sdio_wlan-objs += \

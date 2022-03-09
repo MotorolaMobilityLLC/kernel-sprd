@@ -17,7 +17,8 @@ SC2355_WLAN := \
 		rx.o \
 		scan.o \
 		tcp_ack.o \
-		tx.o
+		tx.o \
+		fcc.o
 
 obj-$(CONFIG_SC2355_SDIO_WLAN)	+= sc2355_sdio_wlan.o
 sc2355_sdio_wlan-objs += \

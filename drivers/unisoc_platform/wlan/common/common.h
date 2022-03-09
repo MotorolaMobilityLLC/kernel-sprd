@@ -272,6 +272,9 @@ struct sprd_priv {
 	/* OTT support */
 	unsigned char ott_supt;
 	unsigned int rand_mac_flag;
+
+	/* power backoff flag */
+	atomic_t power_back_off;
 };
 
 static inline void sprd_version_init(struct sprd_ver *ver)

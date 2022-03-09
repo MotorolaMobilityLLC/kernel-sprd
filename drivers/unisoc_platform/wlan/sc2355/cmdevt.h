@@ -12,6 +12,7 @@
 #include "common/cmd.h"
 #include "common/delay_work.h"
 #include "common/msg.h"
+#include "fcc.h"
 
 #define STAP_MODE_NPI 0
 #define STAP_MODE_STA 0
@@ -369,6 +370,12 @@ struct cmd_set_sar {
 	u8 mode;
 } __packed;
 
+struct cmd_set_power_backoff {
+#define SPRD_SET_POWER_BACKOFF	0x11
+	u8 power_save_type;
+	struct sprd_power_backoff backoff;
+} __packed;
+
 struct cmd_vowifi {
 	u8 value;
 } __packed;
@@ -610,6 +617,7 @@ enum EVT_LIST {
 	/* SoftAP */
 	EVT_NEW_STATION = 0xA0,
 	EVT_RADAR_DETECTED = 0xA1,
+	EVT_FRESH_POWER_BO = 0xA2,
 
 	/* New Feature */
 	/* Uplayer Roaming */
@@ -971,6 +979,8 @@ int sc2355_power_save(struct sprd_priv *priv, struct sprd_vif *vif,
 		      u8 sub_type, u8 status);
 int sc2355_set_sar(struct sprd_priv *priv, struct sprd_vif *vif,
 		   u8 sub_type, s8 value);
+int sc2355_set_power_backoff(struct sprd_priv *priv, struct sprd_vif *vif,
+			     struct sprd_power_backoff *data);
 int sc2355_add_key(struct sprd_priv *priv, struct sprd_vif *vif,
 		   const u8 *key_data, u8 key_len, bool pairwise, u8 key_index,
 		   const u8 *key_seq, u8 cypher_type, const u8 *mac_addr);

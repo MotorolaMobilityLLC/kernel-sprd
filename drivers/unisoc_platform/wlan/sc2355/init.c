@@ -229,6 +229,8 @@ static void sc2355_reg_notify(struct wiphy *wiphy,
 	if (sc2355_set_regdom(priv, (u8 *)rd, rd_size))
 		wiphy_err(wiphy, "%s failed to set regdomain!\n", __func__);
 
+	sc2355_fcc_match_country(priv, request->alpha2);
+
 	kfree(rd);
 }
 
@@ -446,6 +448,8 @@ struct sprd_chip_ops sc2355_chip_ops = {
 	.close_fw = sc2355_close_fw,
 	.power_save = sc2355_power_save,
 	.set_sar = sc2355_set_sar,
+	.fcc_reset = sc2355_fcc_reset_bo,
+	.fcc_init = sc2355_fcc_init,
 	.add_key = sc2355_add_key,
 	.del_key = sc2355_del_key,
 	.set_def_key = sc2355_set_def_key,
