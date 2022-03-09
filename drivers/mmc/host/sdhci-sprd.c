@@ -70,7 +70,7 @@
  */
 #define  SDHCI_HW_RESET_CARD		BIT(3)
 
-#define SDHCI_SPRD_MAX_CUR		0xFFFFFF
+#define SDHCI_SPRD_MAX_CUR		1020
 #define SDHCI_SPRD_CLK_MAX_DIV		1023
 
 #define SDHCI_SPRD_CLK_DEF_RATE		26000000
@@ -1174,6 +1174,15 @@ static int sdhci_sprd_probe(struct platform_device *pdev)
 	ret = sdhci_setup_host(host);
 	if (ret)
 		goto pm_runtime_disable;
+
+	host->mmc->ocr_avail = 0x40000;
+	host->mmc->ocr_avail_sdio = host->mmc->ocr_avail;
+	host->mmc->ocr_avail_sd = host->mmc->ocr_avail;
+	host->mmc->ocr_avail_mmc = host->mmc->ocr_avail;
+
+	host->mmc->max_current_330 = SDHCI_SPRD_MAX_CUR;
+	host->mmc->max_current_300 = SDHCI_SPRD_MAX_CUR;
+	host->mmc->max_current_180 = SDHCI_SPRD_MAX_CUR;
 
 	sprd_host->flags = host->flags;
 
