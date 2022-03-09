@@ -693,13 +693,48 @@ static int sprd_ssphy_vbus_notify(struct notifier_block *nb,
 	return 0;
 }
 
-static enum usb_charger_type sprd_ssphy_charger_detect(struct usb_phy *x)
+static enum usb_charger_type sprd_ssphy_retry_charger_detect(struct usb_phy *x)
 {
 	struct sprd_ssphy *phy = container_of(x, struct sprd_ssphy, phy);
+	enum usb_charger_type type = UNKNOWN_TYPE;
+	int ret = 0;
 
 	if (!phy->pmic)
 		return UNKNOWN_TYPE;
-	return sc27xx_charger_detect(phy->pmic);
+
+	ret = sc27xx_charger_phy_redetect_trigger(phy->pmic, SC27XX_CHG_REDET_DELAY_MS);
+	if (ret) {
+		dev_err(x->dev, "trigger charger phy redetect failed, error %d\n", ret);
+		return UNKNOWN_TYPE;
+	}
+
+	type = sc27xx_charger_detect(phy->pmic);
+
+	dev_info(x->dev, "charger redetect type:0x%x\n", type);
+
+	if (type != UNKNOWN_TYPE) {
+		x->chg_type = type;
+		schedule_work(&x->chg_work);
+	}
+	return type;
+}
+
+static enum usb_charger_type sprd_ssphy_charger_detect(struct usb_phy *x)
+{
+	struct sprd_ssphy *phy = container_of(x, struct sprd_ssphy, phy);
+	enum usb_charger_type type = UNKNOWN_TYPE;
+
+	if (!phy->pmic)
+		return UNKNOWN_TYPE;
+
+	type = sc27xx_charger_detect(phy->pmic);
+	dev_info(x->dev, "charger type:0x%x\n", type);
+	if (type == UNKNOWN_TYPE) {
+		type = sprd_ssphy_retry_charger_detect(x);
+		dev_info(x->dev, "retry detected charger type:0x%x\n", type);
+	}
+
+	return type;
 }
 
 static int sprd_ssphy_probe(struct platform_device *pdev)
