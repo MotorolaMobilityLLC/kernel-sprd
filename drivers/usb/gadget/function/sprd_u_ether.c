@@ -164,7 +164,6 @@ static inline int qlen(struct usb_gadget *gadget, unsigned qmult)
 #define xprintk(d, level, fmt, args...) \
 	printk(level "%s: " fmt, (d)->net->name, ## args)
 
-#if 0
 #ifdef DEBUG
 #undef DEBUG
 #define DBG(dev, fmt, args...) \
@@ -173,9 +172,6 @@ static inline int qlen(struct usb_gadget *gadget, unsigned qmult)
 #define DBG(dev, fmt, args...) \
 	do { } while (0)
 #endif /* DEBUG */
-#endif
-#define DBG(dev, fmt, args...) \
-	xprintk(dev, KERN_DEBUG, fmt, ## args)
 
 #ifdef VERBOSE_DEBUG
 #define VDBG	DBG
