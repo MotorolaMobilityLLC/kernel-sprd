@@ -34,7 +34,7 @@
 #include <linux/err.h>
 #include <linux/timekeeping.h>
 
-#define IO_MINTOR_INTERVAL 5000
+#define IO_MINTOR_INTERVAL 20000
 #endif
 
 #define UID_HASH_BITS	10
@@ -612,7 +612,7 @@ static int uid_io_debug(struct seq_file *m, void *v)
 	now_rem = do_div(now, NSEC_PER_SEC);
 	last_rem = do_div(last_time, NSEC_PER_SEC);
 
-	seq_printf(m, "now time is %5llu.%06llu, 5s-pre time is %5llu.%06llu, 5s-pre is buff[%llu]\n",
+	seq_printf(m, "now time is %5llu.%06llu, last_tik time is %5llu.%06llu, last_tik is buff[%llu]\n",
 			now, now_rem / 1000, last_time, last_rem / 1000, io_debug_state.new);
 
 	seq_printf(m, "  uid             comm       fore_rchar       fore_wchar   fore_readbytes"
