@@ -9,7 +9,8 @@ sprd-gsp-$(CONFIG_DRM_SPRD_GSP) += gsp_r6p0/gsp_r6p0_core.o \
 	gsp_r8p0/gsp_r8p0_core.o \
 	gsp_r8p0/gsp_r8p0_coef_cal.o \
 	gsp_r9p0/gsp_r9p0_core.o \
-	gsp_r9p0/gsp_r9p0_coef_cal.o
+	gsp_r9p0/gsp_r9p0_coef_cal.o \
+	gsp_r9p0/gsp_r9p0_dvfs.o
 
 sprd-gsp-$(CONFIG_DRM_SPRD_GSP) += gsp_interface/gsp_interface_sharkl3.o \
 	gsp_interface/gsp_interface_sharkle.o \

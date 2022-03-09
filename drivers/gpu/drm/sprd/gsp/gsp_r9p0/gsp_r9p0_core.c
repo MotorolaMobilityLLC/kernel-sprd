@@ -5,7 +5,6 @@
 
 #include <linux/delay.h>
 #include <linux/device.h>
-#include <linux/interrupt.h>
 #include <linux/kernel.h>
 #include <linux/list.h>
 #include <linux/mfd/syscon.h>
@@ -30,6 +29,7 @@
 #include "gsp_r9p0_reg.h"
 #include "gsp_r9p0_coef_cal.h"
 #include "../gsp_interface.h"
+#include "gsp_r9p0_dvfs.h"
 #include "../gsp_ipc_trusty.h"
 #include "gsp_hdr_param.h"
 
@@ -620,6 +620,8 @@ int gsp_r9p0_core_init(struct gsp_core *core)
 			(struct gsp_r9p0_cfg *)kcfg->cfg, kcfg);
 	}
 
+	gsp_dvfs_task_init(c);
+
 	return ret;
 }
 
@@ -1118,6 +1120,7 @@ static void gsp_r9p0_core_misc_reg_set(struct gsp_core *core,
 			struct gsp_r9p0_cfg *cfg)
 {
 	void __iomem *base = NULL;
+	struct gsp_r9p0_core *c = (struct gsp_r9p0_core *)core;
 	struct R9P0_WORK_AREA_XY_REG  work_area_xy_value;
 	struct R9P0_WORK_AREA_XY_REG work_area_xy_mask;
 	struct R9P0_WORK_AREA_SIZE_REG work_area_size_value;
@@ -1127,6 +1130,8 @@ static void gsp_r9p0_core_misc_reg_set(struct gsp_core *core,
 	int icnt;
 
 	base = core->base;
+
+	gsp_dvfs_tasklet_schedule(c, cfg->misc.work_freq);
 
 	gsp_mod_cfg_value.value = 0x0;
 	gsp_mod_cfg_value.CORE_NUM = cfg->misc.core_num;
