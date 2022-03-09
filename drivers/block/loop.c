@@ -2040,13 +2040,50 @@ static void loop_handle_cmd(struct loop_cmd *cmd)
 	const bool write = op_is_write(req_op(rq));
 	struct loop_device *lo = rq->q->queuedata;
 	int ret = 0;
+#ifdef CONFIG_SPRD_DEBUG
+	u64 time;
+	char *loop_op;
+#endif
 
 	if (write && (lo->lo_flags & LO_FLAGS_READ_ONLY)) {
 		ret = -EIO;
 		goto failed;
 	}
 
+#ifdef CONFIG_SPRD_DEBUG
+	time = ktime_get_boot_fast_ns();
 	ret = do_req_filebacked(lo, rq);
+	time = ktime_get_boot_fast_ns() - time;
+
+	switch (req_op(rq)) {
+	case REQ_OP_FLUSH:
+		loop_op = "flush";
+		break;
+	case REQ_OP_DISCARD:
+		loop_op = "discard";
+		break;
+	case REQ_OP_WRITE:
+		loop_op = "write";
+		break;
+	case REQ_OP_READ:
+		loop_op = "read";
+		break;
+	case REQ_OP_WRITE_ZEROES:
+		loop_op = "write_zero";
+		break;
+
+	default:
+		loop_op = "unknown";
+	}
+
+	if (time > 500 * NSEC_PER_MSEC)
+		pr_info("loop%d %s %s %5lld,use_aio is %d ", lo->lo_number, loop_op,
+				lo->lo_backing_file->f_path.dentry->d_name.name,
+				ktime_to_ms(time), cmd->use_aio);
+#else
+	ret = do_req_filebacked(lo, rq);
+#endif
+
  failed:
 	/* complete non-aio request */
 	if (!cmd->use_aio || ret) {
