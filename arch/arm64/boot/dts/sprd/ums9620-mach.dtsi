@@ -16,9 +16,7 @@
 		serial1 = &uart1;
 		serial2 = &uart2;
 		serial3 = &uart3;
-		thm-sensor0 = &cluster0_sensor;
-		thm-sensor1 = &cluster1_sensor;
-		thm-sensor2 = &soc_sensor;
+		thm-sensor0 = &virtual_sensor;
 		cooling-device0 = &cluster0_cooling;
 		cooling-device1 = &cluster1_cooling;
 		cooling-device2 = &cluster2_cooling;
@@ -180,7 +178,7 @@
 			polling-delay-passive = <100>;
 			polling-delay = <1000>;
 			sustainable-power = <3000>;
-			thermal-sensors = <&soc_sensor  2>;
+			thermal-sensors = <&virtual_sensor  0>;
 			trips {
 				soc_threshold: trip-point@0 {
 					temperature = <70000>;
@@ -203,31 +201,52 @@
 					trip = <&soc_target>;
 					contribution = <1024>;
 					cooling-device =
-					<&cluster0_cooling THERMAL_NO_LIMIT \
+					<&CPU0 THERMAL_NO_LIMIT \
 					THERMAL_NO_LIMIT>;
 				};
 				map1 {
 					trip = <&soc_target>;
-					contribution = <410>;
+					contribution = <1024>;
 					cooling-device =
-					<&cluster1_cooling THERMAL_NO_LIMIT \
+					<&CPU4 THERMAL_NO_LIMIT \
 					THERMAL_NO_LIMIT>;
 				};
 				map2 {
 					trip = <&soc_target>;
-					contribution = <410>;
+					contribution = <1024>;
 					cooling-device =
-					<&cluster2_cooling THERMAL_NO_LIMIT \
+					<&CPU7 THERMAL_NO_LIMIT \
 					THERMAL_NO_LIMIT>;
 				};
 				map3 {
 					trip = <&soc_target>;
 					contribution = <1024>;
 					cooling-device =
-					<&gpu_cooling0 THERMAL_NO_LIMIT \
+					<&cluster0_cooling THERMAL_NO_LIMIT \
 					THERMAL_NO_LIMIT>;
 				};
 				map4 {
+					trip = <&soc_target>;
+					contribution = <410>;
+					cooling-device =
+					<&cluster1_cooling THERMAL_NO_LIMIT \
+					THERMAL_NO_LIMIT>;
+				};
+				map5 {
+					trip = <&soc_target>;
+					contribution = <410>;
+					cooling-device =
+					<&cluster2_cooling THERMAL_NO_LIMIT \
+					THERMAL_NO_LIMIT>;
+				};
+				map7 {
+					trip = <&soc_target>;
+					contribution = <1024>;
+					cooling-device =
+					<&gpu_cooling0 THERMAL_NO_LIMIT \
+					THERMAL_NO_LIMIT>;
+				};
+				map8 {
 					trip = <&soc_target>;
 					contribution = <1024>;
 					cooling-device =
@@ -352,18 +371,6 @@
 			thermal-sensors = <&ap_thm3 5>;
 		};
 
-		cluster0_thmzone: cluster0-thmzone {
-			polling-delay-passive = <0>;
-			polling-delay = <0>;
-			thermal-sensors = <&cluster0_sensor 0>;
-		};
-
-		cluster1_thmzone: cluster1-thmzone {
-			polling-delay-passive = <0>;
-			polling-delay = <0>;
-			thermal-sensors = <&cluster1_sensor 1>;
-		};
-
 		osctsen_thmzone: osctsen-thmzone {
 			 polling-delay-passive = <0>;
 			 polling-delay = <0>;
@@ -375,30 +382,6 @@
 			 polling-delay = <0>;
 			 thermal-sensors = <&pmic_tsensor 1>;
 		 };
-	};
-
-	cluster0_sensor: cluster0-sensor@0 {
-		compatible = "sprd,cluster0-thermal";
-		#thermal-sensor-cells = <1>;
-		sensor-names = "lit0-thmzone","lit1-thmzone",
-			"lit2-thmzone","lit3-thmzone";
-		k-po = <128>;
-		k-pu = <256>;
-		k-i = <1>;
-		k-d = <0>;
-		cutoff = <0>;
-	};
-
-	cluster1_sensor: cluster1-sensor@1 {
-		compatible = "sprd,cluster1-thermal";
-		#thermal-sensor-cells = <1>;
-		sensor-names = "mid4-thmzone","mid5-thmzone",
-			"mid6-thmzone";
-		k-po = <128>;
-		k-pu = <256>;
-		k-i = <1>;
-		k-d = <0>;
-		cutoff = <0>;
 	};
 
 	isp_dvfs: isp-dvfs {
@@ -573,18 +556,13 @@
 		sprd,syscon-topapb = <&top_dvfs_apb_regs>;
 	};
 
-
-	soc_sensor: soc-sensor@2 {
-		compatible = "sprd,soc-thermal";
+	virtual_sensor: virtual-sensor@0 {
+		compatible = "virtual-thermal";
 		#thermal-sensor-cells = <1>;
-		sensor-names = "cluster0-thmzone","cluster1-thmzone",
-			"big7-thmzone","gpu-thmzone","ai0-thmzone",
-			"ai1-thmzone";
-		k-po = <0>;
-		k-pu = <0>;
-		k-i = <1>;
-		k-d = <0>;
-		cutoff = <0>;
+		thmzone-cells = <&lit0_thmzone>, <&lit1_thmzone>, <&lit2_thmzone>,
+			<&lit3_thmzone>, <&mid4_thmzone>, <&mid5_thmzone>,
+			<&mid6_thmzone>, <&big7_thmzone>, <&gpu_thmzone>,
+			<&ai0_thmzone>, <&ai1_thmzone>;
 	};
 
 	cooling-devices {
