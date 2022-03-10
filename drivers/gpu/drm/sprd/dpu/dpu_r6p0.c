@@ -1149,6 +1149,8 @@ static u32 dpu_img_ctrl(u32 format, u32 blending, u32 compression, u32 y2r_coef,
 	}
 
 	reg_val |= y2r_coef << 28;
+	rotation = to_dpu_rotation(rotation);
+	reg_val |= (rotation & 0x7) << 20;
 
 	return reg_val;
 }
@@ -1215,7 +1217,7 @@ static void dpu_layer(struct dpu_context *ctx,
 			if ((rot == DPU_LAYER_ROTATION_90) || (rot == DPU_LAYER_ROTATION_270) ||
 					(rot == DPU_LAYER_ROTATION_90_M) || (rot == DPU_LAYER_ROTATION_270_M))
 				dst_size = (hwlayer->dst_h & 0xffff) | ((hwlayer->dst_w) << 16);
-			tmp.ctrl = BIT(24);
+			tmp.ctrl = 0;
 		}
 
 		for (i = 0; i < hwlayer->planes; i++) {
