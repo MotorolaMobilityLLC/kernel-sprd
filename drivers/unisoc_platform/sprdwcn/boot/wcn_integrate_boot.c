@@ -3017,6 +3017,7 @@ int wcn_proc_native_start(void *arg)
 int wcn_proc_native_stop(void *arg)
 {
 	struct wcn_device *wcn_dev = arg;
+	bool is_marlin;
 	u32 iloop_index;
 	u32 reg_nr = 0;
 	unsigned int val;
@@ -3029,6 +3030,7 @@ int wcn_proc_native_stop(void *arg)
 	if (!wcn_dev)
 		return -EINVAL;
 
+	is_marlin = wcn_dev_is_marlin(wcn_dev);
 	reg_nr = wcn_dev->reg_shutdown_nr < REG_SHUTDOWN_CNT_MAX ?
 		wcn_dev->reg_shutdown_nr : REG_SHUTDOWN_CNT_MAX;
 	for (iloop_index = 0; iloop_index < reg_nr; iloop_index++) {
@@ -3059,7 +3061,11 @@ int wcn_proc_native_stop(void *arg)
 		WCN_INFO("ctrl_reg[%d] = 0x%x, val=0x%x\n",
 			 iloop_index, reg_read, val);
 	}
-
+#ifdef CONFIG_SC2342_I
+	if (!is_marlin)
+		/*delay for frequent gnss reset*/
+		msleep(20);
+#endif
 	return 0;
 }
 
