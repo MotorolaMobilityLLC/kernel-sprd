@@ -146,12 +146,6 @@
 			linux,cma-default;
 		};
 
-		drm_reserved: framebuffer {
-			compatible = "shared-dma-pool";
-			size = <0x0 0x02c00000>;
-			reusable;
-		};
-
 		dptx_hdcp_reserved: dptx_hdcp@fff10000 {
 			reg = <0x0 0xfff10000 0x0 0x00060000>;
 		};
