@@ -282,6 +282,7 @@ static int sc2730_fchg_usb_change(struct notifier_block *nb,
 
 	info->limit = limit;
 	if (!info->limit) {
+		complete(&info->completion);
 		cancel_delayed_work(&info->work);
 		schedule_delayed_work(&info->work, 0);
 	} else {
