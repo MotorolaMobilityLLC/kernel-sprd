@@ -105,7 +105,7 @@ struct sprd_dpu_dvfs_ops {
 extern const struct dpu_dvfs_ops sharkl5pro_dpu_dvfs_ops;
 extern const struct dpu_dvfs_ops sharkl5_dpu_dvfs_ops;
 extern const struct dpu_dvfs_ops qogirl6_dpu_dvfs_ops;
-//extern const struct dpu_dvfs_ops qogirn6pro_dpu_dvfs_ops;
+extern const struct dpu_dvfs_ops qogirn6pro_dpu_dvfs_ops;
 extern const struct dpu_dvfs_ops roc1_dpu_dvfs_ops;
 
 #endif /* __SPRD_DVFS_DPU_H__ */

@@ -88,6 +88,9 @@ struct apsys_dvfs_ops {
 	/* top common ops */
 	void (*top_dvfs_init)(struct apsys_dev *apsys);
 	int (*top_cur_volt)(struct apsys_dev *apsys);
+
+	/* other common ops */
+	void (*get_version)(struct apsys_dev *apsys);
 };
 
 struct sprd_apsys_dvfs_ops {
@@ -95,6 +98,7 @@ struct sprd_apsys_dvfs_ops {
 };
 
 struct apsys_dev *find_apsys_device_by_name(char *name);
+int n6pro_soc_ver_id_check(void);
 
 #ifdef CONFIG_DRM_SPRD_GSP_DVFS
 extern struct platform_driver gsp_dvfs_driver;
@@ -109,6 +113,8 @@ extern struct devfreq_governor gsp_devfreq_gov;
 extern struct devfreq_governor vsp_devfreq_gov;
 extern struct devfreq_governor dpu_devfreq_gov;
 extern struct devfreq_governor vdsp_devfreq_gov;
+
+extern struct regmap *regmap_aon_base;
 
 extern const struct apsys_dvfs_ops sharkl5pro_apsys_dvfs_ops;
 extern const struct apsys_dvfs_ops sharkl5_apsys_dvfs_ops;

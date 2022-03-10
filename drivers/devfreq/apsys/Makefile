@@ -10,6 +10,7 @@ apsys-dvfs-y := \
 	sprd_dvfs_dpu.o \
 	sprd_dvfs_vsp.o \
 	sprd_dvfs_vdsp.o \
+	dpu/dpu_dvfs_qogirn6pro.o \
 	dpu/dpu_dvfs_sharkl5pro.o \
 	dpu/dpu_dvfs_sharkl5.o \
 	dpu/dpu_dvfs_qogirl6.o \

@@ -17,13 +17,32 @@
 #include "sprd_dvfs_dpu.h"
 #include "../sys/apsys_dvfs_qogirn6pro.h"
 
+enum {
+	V55 = 0, //0.55v
+	V60 = 1, //0.60v
+	V65 = 2, //0.65v
+	V70 = 3, //0.70v
+	V75 = 4, //0.75v
+};
+
+enum {
+	CLK_INDEX_256M = 0,
+	CLK_INDEX_307M2,
+	CLK_INDEX_384M,
+	CLK_INDEX_409M6,
+	CLK_INDEX_512M,
+	CLK_INDEX_614M4,
+};
+
 static struct ip_dvfs_map_cfg map_table[] = {
-	{0, VOLT70, DPU_CLK_INDEX_256M, DPU_CLK256M},
-	{1, VOLT70, DPU_CLK_INDEX_307M2, DPU_CLK307M2},
-	{2, VOLT70, DPU_CLK_INDEX_384M, DPU_CLK384M},
-	{3, VOLT70, DPU_CLK_INDEX_409M6, DPU_CLK409M6},
-	{4, VOLT70, DPU_CLK_INDEX_512M,  DPU_CLK512M},
-	{5, VOLT70, DPU_CLK_INDEX_614M4, DPU_CLK614M4},
+	{0, V65, CLK_INDEX_256M, DPU_CLK256M},
+	{1, V65, CLK_INDEX_307M2, DPU_CLK307M2},
+	{2, V65, CLK_INDEX_384M, DPU_CLK384M},
+	{3, V70, CLK_INDEX_409M6, DPU_CLK409M6},
+	{4, V70, CLK_INDEX_512M,  DPU_CLK512M},
+	{5, V75, CLK_INDEX_614M4, DPU_CLK614M4},
+	{6, V75, CLK_INDEX_614M4, DPU_CLK614M4},
+	{7, V75, CLK_INDEX_614M4, DPU_CLK614M4},
 };
 
 static void dpu_hw_dfs_en(struct dpu_dvfs *dpu, bool dfs_en)
@@ -33,9 +52,9 @@ static void dpu_hw_dfs_en(struct dpu_dvfs *dpu, bool dfs_en)
 
 	mutex_lock(&dpu->apsys->reg_lock);
 	if (dfs_en)
-		reg->ap_dfs_en_ctrl |= BIT(0);
+		reg->dpu_vsp_dfs_en_ctrl |= BIT(0);
 	else
-		reg->ap_dfs_en_ctrl &= ~BIT(0);
+		reg->dpu_vsp_dfs_en_ctrl &= ~BIT(0);
 	mutex_unlock(&dpu->apsys->reg_lock);
 }
 
@@ -159,9 +178,9 @@ static void set_dpu_gfree_wait_delay(struct dpu_dvfs *dpu, u32 para)
 	u32 temp;
 
 	mutex_lock(&dpu->apsys->reg_lock);
-	temp = reg->ap_gfree_wait_delay_cfg;
+	temp = reg->dpu_vsp_gfree_wait_delay_cfg0;
 	temp &= GENMASK(9, 0);
-	reg->ap_gfree_wait_delay_cfg = para << 10 | temp;
+	reg->dpu_vsp_gfree_wait_delay_cfg0 = para << 10 | temp;
 	mutex_unlock(&dpu->apsys->reg_lock);
 }
 
@@ -172,9 +191,9 @@ static void set_dpu_freq_upd_en_byp(struct dpu_dvfs *dpu, bool enable)
 
 	mutex_lock(&dpu->apsys->reg_lock);
 	if (enable)
-		reg->ap_freq_update_bypass |= BIT(0);
+		reg->dpu_vsp_freq_update_bypass |= BIT(0);
 	else
-		reg->ap_freq_update_bypass &= ~BIT(0);
+		reg->dpu_vsp_freq_update_bypass &= ~BIT(0);
 	mutex_unlock(&dpu->apsys->reg_lock);
 }
 
@@ -185,9 +204,9 @@ static void set_dpu_freq_upd_delay_en(struct dpu_dvfs *dpu, bool enable)
 
 	mutex_lock(&dpu->apsys->reg_lock);
 	if (enable)
-		reg->ap_freq_upd_type_cfg |= BIT(5);
+		reg->dpu_vsp_freq_upd_type_cfg |= BIT(5);
 	else
-		reg->ap_freq_upd_type_cfg &= ~BIT(5);
+		reg->dpu_vsp_freq_upd_type_cfg &= ~BIT(5);
 	mutex_unlock(&dpu->apsys->reg_lock);
 }
 
@@ -198,9 +217,9 @@ static void set_dpu_freq_upd_hdsk_en(struct dpu_dvfs *dpu, bool enable)
 
 	mutex_lock(&dpu->apsys->reg_lock);
 	if (enable)
-		reg->ap_freq_upd_type_cfg |= BIT(4);
+		reg->dpu_vsp_freq_upd_type_cfg |= BIT(4);
 	else
-		reg->ap_freq_upd_type_cfg &= ~BIT(4);
+		reg->dpu_vsp_freq_upd_type_cfg &= ~BIT(4);
 	mutex_unlock(&dpu->apsys->reg_lock);
 }
 
@@ -211,9 +230,9 @@ static void set_dpu_dvfs_swtrig_en(struct dpu_dvfs *dpu, bool enable)
 
 	mutex_lock(&dpu->apsys->reg_lock);
 	if (enable)
-		reg->ap_sw_trig_ctrl |= BIT(0);
+		reg->dpu_vsp_sw_trig_ctrl |= BIT(0);
 	else
-		reg->ap_sw_trig_ctrl &= ~BIT(0);
+		reg->dpu_vsp_sw_trig_ctrl &= ~BIT(0);
 	mutex_unlock(&dpu->apsys->reg_lock);
 }
 
@@ -244,17 +263,16 @@ static void get_dpu_dvfs_status(struct dpu_dvfs *dpu, struct ip_dvfs_status *dvf
 
 	mutex_lock(&dpu->apsys->reg_lock);
 	dvfs_status->apsys_cur_volt =
-		qogirn6pro_apsys_val_to_volt(reg->ap_dvfs_voltage_dbg >> 12 & 0x7);
+		qogirn6pro_apsys_val_to_volt(reg->dpu_vsp_dvfs_voltage_dbg >> 12 & 0x7);
 	dvfs_status->vsp_vote_volt =
-		qogirn6pro_apsys_val_to_volt(reg->ap_dvfs_voltage_dbg >> 6 & 0x7);
+		qogirn6pro_apsys_val_to_volt(reg->dpu_vsp_dvfs_voltage_dbg >> 6 & 0x7);
 	dvfs_status->dpu_vote_volt =
-		qogirn6pro_apsys_val_to_volt(reg->ap_dvfs_voltage_dbg >> 3 & 0x7);
+		qogirn6pro_apsys_val_to_volt(reg->dpu_vsp_dvfs_voltage_dbg >> 3 & 0x7);
 	dvfs_status->vdsp_vote_volt = "N/A";
 
-	dvfs_status->vsp_cur_freq =
-		qogirn6pro_vsp_val_to_freq(reg->ap_dvfs_cgm_cfg_dbg >> 3);
+	dvfs_status->vsp_cur_freq = "N/A";
 	dvfs_status->dpu_cur_freq =
-		qogirn6pro_dpu_val_to_freq(reg->ap_dvfs_cgm_cfg_dbg & 0x7);
+		qogirn6pro_dpu_val_to_freq(reg->dpu_vsp_vpu_dispc0_dvfs_cgm_cfg_dbg & 0x7);
 	dvfs_status->vdsp_cur_freq = "N/A";
 	mutex_unlock(&dpu->apsys->reg_lock);
 }
@@ -296,7 +314,14 @@ static int dpu_dvfs_parse_dt(struct dpu_dvfs *dpu,
 
 static int dpu_dvfs_init(struct dpu_dvfs *dpu)
 {
+	char chip_type[HWFEATURE_STR_SIZE_LIMIT];
+
 	pr_info("%s()\n", __func__);
+
+	if (dpu_vsp_dvfs_check_clkeb()) {
+		pr_info("%s(), dpu_vsp eb is not on\n", __func__);
+		return 0;
+	}
 
 	dpu_dvfs_map_cfg(dpu);
 	set_dpu_gfree_wait_delay(dpu, dpu->dvfs_coffe.gfree_wait_delay);

@@ -9,6 +9,7 @@
 #include <linux/devfreq-event.h>
 #include <linux/module.h>
 #include <linux/slab.h>
+#include <linux/sprd_soc_id.h>
 #include <linux/of.h>
 #include <linux/of_address.h>
 #include <linux/of_device.h>
@@ -22,6 +23,29 @@
 LIST_HEAD(apsys_dvfs_head);
 
 struct class *dvfs_class;
+struct regmap *regmap_aon_base;
+
+int n6pro_soc_ver_id_check(void)
+{
+	int ret;
+	u32 ver_id;
+
+	ret = sprd_get_soc_id(AON_VER_ID, &ver_id, 1);
+	if (ret) {
+		pr_err("fail to get soc id\n");
+		return 0;
+	}
+	if (ver_id == 0)
+		pr_info("n6pro soc is AA\n");
+	else if (ver_id == 1)
+		pr_info("n6pro soc is AB\n");
+	else {
+		pr_info("unknowned soc\n");
+		ver_id = 0;
+	}
+
+	return ver_id;
+}
 
 struct apsys_dev *find_apsys_device_by_name(char *name)
 {
@@ -39,6 +63,7 @@ struct apsys_dev *find_apsys_device_by_name(char *name)
 			pr_err("cannot find platform device by node with name :%s\n", name);
 	} else {
 		pr_err("cannot find node by name :%s\n", name);
+		return NULL;
 	}
 
 	pr_info("find platform device by node with name :%s, address:%lx\n",
@@ -252,9 +277,17 @@ static int apsys_dvfs_probe(struct platform_device *pdev)
 	pdata = of_device_get_match_data(&pdev->dev);
 	if (pdata) {
 		apsys->dvfs_ops = pdata->apsys_ops;
+		pdata->apsys_ops->get_version(apsys);
 	} else {
 		pr_err("No matching driver data found\n");
 		return -EINVAL;
+	}
+
+	if (!strcmp("qogirn6pro", apsys->version)) {
+		if (!n6pro_soc_ver_id_check()) {
+			pr_err("apsys : %s soc is AA,bypass\n", apsys->version);
+			return -EINVAL;
+		}
 	}
 
 	if (of_address_to_resource(np, 0, &r)) {
@@ -313,6 +346,10 @@ static const struct sprd_apsys_dvfs_ops sharkl5_apsys_ops = {
 	.apsys_ops = &sharkl5_apsys_dvfs_ops,
 };
 
+static const struct sprd_apsys_dvfs_ops qogirn6pro_apsys_ops = {
+	.apsys_ops = &qogirn6pro_apsys_dvfs_ops,
+};
+
 /*
 static const struct sprd_apsys_dvfs_ops sharkl5pro_apsys_ops = {
 	.apsys_ops = &sharkl5pro_apsys_dvfs_ops,
@@ -328,6 +365,8 @@ static const struct of_device_id apsys_dvfs_of_match[] = {
 	  .data = &sharkl5pro_apsys_ops },
 	{ .compatible = "sprd,hwdvfs-apsys-qogirl6",
 	  .data = &qogirl6_apsys_ops },
+	{ .compatible = "sprd,hwdvfs-dpuvsp-qogirn6pro",
+	  .data = &qogirn6pro_apsys_ops },
 	{ },
 };
 

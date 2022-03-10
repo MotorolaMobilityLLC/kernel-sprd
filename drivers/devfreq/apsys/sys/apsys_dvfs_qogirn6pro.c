@@ -9,10 +9,17 @@
 #include <linux/of.h>
 #include <linux/of_address.h>
 #include <linux/of_device.h>
+#include <linux/regmap.h>
 #include <linux/slab.h>
+#include <linux/mfd/syscon.h>
 
 #include "sprd_dvfs_apsys.h"
 #include "apsys_dvfs_qogirn6pro.h"
+
+void qogirn6pro_apsys_get_verison(struct apsys_dev *apsys)
+{
+	apsys->version = "qogirn6pro";
+}
 
 char *qogirn6pro_apsys_val_to_volt(u32 val)
 {
@@ -168,18 +175,63 @@ static void apsys_dvfs_min_volt(struct apsys_dev *apsys, u32 min_volt)
 	reg->dpu_vsp_min_voltage_cfg = min_volt;
 }
 
+static const struct of_device_id sprd_dvfs_of_match[] = {
+	{
+		.compatible = "sprd,ump962x-syscon",
+	},
+};
+
+int dpu_vsp_dvfs_check_clkeb(void)
+{
+	u32  dpu_vsp_dvfs_eb_reg = 0;
+
+	regmap_read(regmap_aon_base, 0x0, &dpu_vsp_dvfs_eb_reg);
+
+	if (dpu_vsp_dvfs_eb_reg&BIT(21))
+		return 0;
+	else
+		return -1;
+}
+
 static void apsys_top_dvfs_init(struct apsys_dev *apsys)
 {
 	void __iomem *base;
-
-	pr_info("%s()\n", __func__);
+	struct platform_device *pdev_regmap;
+	struct device_node *regmap_np;
+	const struct of_device_id *dev_id;
+	struct regmap *regmap;
+	u32 temp;
 
 	base = ioremap_nocache(0x64400000, 0x400);
 	if (IS_ERR(base))
-		pr_err("ioremap top dvfs address failed\n");
+		pr_err("ioremap top address failed\n");
 
 	apsys->top_base = (unsigned long)base;
 
+	temp = readl_relaxed(base + 0xd84);
+	temp &= 0xfffffffe;
+	writel_relaxed(temp, base + 0xd84);
+
+	regmap_np = of_find_matching_node_and_match(NULL, sprd_dvfs_of_match,
+			&dev_id);
+	if (!regmap_np) {
+		pr_err("regmap get device node fail\n");
+		return;
+	}
+
+	pdev_regmap = of_find_device_by_node(regmap_np);
+	if (!pdev_regmap) {
+		pr_err("parent device get device node fail\n");
+		return;
+	}
+
+	regmap = dev_get_regmap(pdev_regmap->dev.parent, NULL);
+	regmap_read(regmap, 0xa158, &temp);
+	/*0xa158 pmic mm dvfs enable register*/
+	temp |= BIT(2);
+	regmap_write(regmap, 0xa158, temp);
+	writel_relaxed(0x00d000d0, base + 0x3d0);
+	writel_relaxed(0x0, base + 0x39c);
 }
 
 static int dcdc_modem_cur_volt(struct apsys_dev *apsys)
@@ -197,6 +249,10 @@ static int apsys_dvfs_parse_dt(struct apsys_dev *apsys,
 	int ret;
 
 	pr_info("%s()\n", __func__);
+
+	regmap_aon_base = syscon_regmap_lookup_by_phandle(np, "sprd,aon_apb_regs_syscon");
+	if (IS_ERR(regmap_aon_base))
+		pr_err("ioremap aon address failed\n");
 
 	ret = of_property_read_u32(np, "sprd,ap-dvfs-hold",
 			&apsys->dvfs_coffe.dvfs_hold_en);
@@ -228,6 +284,11 @@ static int apsys_dvfs_parse_dt(struct apsys_dev *apsys,
 
 static void apsys_dvfs_init(struct apsys_dev *apsys)
 {
+	if (dpu_vsp_dvfs_check_clkeb()) {
+		pr_info("%s(), dpu_vsp eb is not on\n", __func__);
+		return;
+	}
+
 	apsys_dvfs_hold_en(apsys, apsys->dvfs_coffe.dvfs_hold_en);
 	apsys_dvfs_force_en(apsys, apsys->dvfs_coffe.dvfs_force_en);
 	apsys_dvfs_auto_gate(apsys, apsys->dvfs_coffe.dvfs_auto_gate);
@@ -244,4 +305,5 @@ const struct apsys_dvfs_ops qogirn6pro_apsys_dvfs_ops = {
 	.apsys_min_volt = apsys_dvfs_min_volt,
 	.top_dvfs_init = apsys_top_dvfs_init,
 	.top_cur_volt = dcdc_modem_cur_volt,
+	.get_version = qogirn6pro_apsys_get_verison,
 };

@@ -576,6 +576,13 @@ static int dpu_dvfs_probe(struct platform_device *pdev)
 	if (!apsys)
 		return -ENOMEM;
 
+	if (!strcmp("qogirn6pro", apsys->version)) {
+		if (!n6pro_soc_ver_id_check()) {
+			pr_err("apsys : %s soc is AA,bypass\n", apsys->version);
+			return -EINVAL;
+		}
+	}
+
 	dpu->apsys = apsys;
 
 	pdata = of_device_get_match_data(&pdev->dev);
@@ -656,11 +663,9 @@ static const struct sprd_dpu_dvfs_ops qogirl6_dpu_dvfs = {
 	.core = &qogirl6_dpu_dvfs_ops,
 };
 
-/*
 static const struct sprd_dpu_dvfs_ops qogirn6pro_dpu_dvfs = {
 	.core = &qogirn6pro_dpu_dvfs_ops,
 };
-*/
 
 static const struct sprd_dpu_dvfs_ops roc1_dpu_dvfs = {
 	.core = &roc1_dpu_dvfs_ops,
@@ -675,6 +680,8 @@ static const struct of_device_id dpu_dvfs_of_match[] = {
 	  .data = &sharkl5pro_dpu_dvfs},
 	{ .compatible = "sprd,hwdvfs-dpu-qogirl6",
 	  .data = &qogirl6_dpu_dvfs},
+	{ .compatible = "sprd,hwdvfs-dpu-qogirn6pro",
+	  .data = &qogirn6pro_dpu_dvfs},
 	{ }
 };
 

@@ -14,6 +14,11 @@
 #include "sprd_dvfs_apsys.h"
 #include "apsys_dvfs_sharkl5pro.h"
 
+void sharkl5pro_apsys_get_version(struct apsys_dev *apsys)
+{
+	apsys->version = "sharkl5pro";
+}
+
 char *sharkl5pro_apsys_val_to_volt(u32 val)
 {
 	switch (val) {
@@ -206,4 +211,5 @@ const struct apsys_dvfs_ops sharkl5pro_apsys_dvfs_ops = {
 	.apsys_min_volt = apsys_dvfs_min_volt,
 	.top_dvfs_init = apsys_top_dvfs_init,
 	.top_cur_volt = dcdc_modem_cur_volt,
+	.get_version = sharkl5pro_apsys_get_version,
 };

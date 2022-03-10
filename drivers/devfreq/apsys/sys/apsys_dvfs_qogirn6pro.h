@@ -110,10 +110,12 @@ struct dpu_vspsys_dvfs_reg {
 	u32 dpu_vsp_dvfs_reserved_reg_cfg3;
 };
 
+char *qogirn6pro_apsys_val_to_volt(u32 val);
 char *qogirn6pro_dpu_vspsys_val_to_volt(u32 val);
 char *qogirn6pro_dpu_val_to_freq(u32 val);
 char *qogirn6pro_gsp_val_to_volt(u32 val);
 char *qogirn6pro_gsp_val_to_freq(u32 val);
 char *qogirn6pro_vsp_val_to_freq(u32 val);
 char *qogirn6pro_vpu_mtx_val_to_freq(u32 val);
+int dpu_vsp_dvfs_check_clkeb(void);
 #endif
