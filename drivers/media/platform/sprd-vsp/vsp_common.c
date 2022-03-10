@@ -398,8 +398,6 @@ void non_free_bufs_check(void *inst_ptr, struct vsp_dev_t *vsp_hw_dev)
 					ret, unmapdata.iova_addr, unmapdata.iova_size);
 			}
 
-			dma_buf_unmap_attachment(entry->attachment, entry->table, DMA_BIDIRECTIONAL);
-			dma_buf_detach(entry->dmabuf, entry->attachment);
 			kfree(entry);
 		}
 	} while (b_find);
