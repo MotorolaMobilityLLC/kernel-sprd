@@ -1079,7 +1079,7 @@ int sprd_panel_parse_lcddtb(struct device_node *lcd_node,
                 else
                     memcpy(buffer, (char *)p, bytes);
                 printk(KERN_ERR "lcd_name is %s\n", lcd_name);
-                buffer[20] = cit_buffer;
+                buffer[19] = cit_buffer;
                 info->cmds[CMD_CODE_INIT] = (const void *)buffer;
             }else
                 info->cmds[CMD_CODE_INIT] = p;
