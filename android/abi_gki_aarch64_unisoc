@@ -998,6 +998,9 @@
   xt_unregister_target
   xt_unregister_targets
 
+# required by apsys-dvfs.ko
+  of_find_matching_node_and_match
+
 # required by blk-mq-virtio.ko
   blk_mq_map_queues
 
