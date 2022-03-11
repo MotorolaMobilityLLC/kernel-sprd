@@ -18,6 +18,7 @@
 #define SPRD_VALID_CONFIG		(0x80)
 #define SPRD_CMD_EXIT_VAL		(0x8000)
 #define CMD_WAIT_TIMEOUT		(3000)
+#define CMD_TIMEOUT_DEBUG_LEVEL		(5000)
 
 #define SPRD_STD_11D			BIT(0)
 #define SPRD_STD_11E			BIT(1)

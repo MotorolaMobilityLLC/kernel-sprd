@@ -391,6 +391,13 @@ static void reorder_msdu_process(struct rx_ba_entry *ba_entry,
 			goto out;
 		}
 
+		/* add log for bug:1592287 */
+		if (seqno_geq(seq_num, ba_node_desc->win_start) &&
+		    !msdu_desc->ampdu_flag) {
+			pr_info("%s receive non ampdu packet, seq:%d, win_start:%d\n",
+				__func__, seq_num, ba_node_desc->win_start);
+		}
+
 		old_win_start = ba_node_desc->win_start;
 		ret = reorder_msdu(ba_entry, msdu_desc, skb, ba_node);
 		if (!ret) {

@@ -327,6 +327,17 @@ static int vendor_compose_radio_st(struct sk_buff *reply,
 
 		chan_list = nla_nest_start(reply, ATTR_LL_STATS_CH_INFO);
 		chan_info = nla_nest_start(reply, 0);
+
+		if (!chan_list) {
+			pr_err("%s %d\n", __func__, __LINE__);
+			goto out_put_fail;
+		}
+
+		if (!chan_info) {
+			pr_err("%s %d\n", __func__, __LINE__);
+			goto out_put_fail;
+		}
+
 		if (nla_put_u32(reply, ATTR_LL_STATS_CHANNEL_INFO_WIDTH,
 				radio_st->channels[0].channel.width))
 			goto out_put_fail;

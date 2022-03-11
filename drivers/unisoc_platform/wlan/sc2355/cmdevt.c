@@ -677,6 +677,13 @@ int sc2355_send_cmd_recv_rsp(struct sprd_priv *priv, struct sprd_msg *msg, u8 *r
 		return -1;
 	}
 
+	/*
+	 * console_loglevel > 4 will cause cmd resp timeout easily,
+	 * so adjust timeout to 5 seconds when loglevel > 4.
+	 */
+	if ((console_loglevel > 4) && (timeout == CMD_WAIT_TIMEOUT))
+		timeout = CMD_TIMEOUT_DEBUG_LEVEL;
+
 	ret = cmdevt_recv_rsp_timeout(priv, timeout);
 	if (ret != -1) {
 		if (rbuf && rlen && *rlen) {
