@@ -343,7 +343,6 @@ static int sipa_eth_probe(struct platform_device *pdev)
 	sipa_eth->netdev = netdev;
 	sipa_eth->pdata = pdata;
 	sipa_eth->stats = &netdev->stats;
-	sipa_eth->gro_enable = 1;
 	netdev->netdev_ops = &sipa_eth_ops;
 	netdev->watchdog_timeo = 1 * HZ;
 
