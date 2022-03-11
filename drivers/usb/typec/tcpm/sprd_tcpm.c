@@ -402,6 +402,7 @@ struct sprd_tcpm_port {
 	u32 supply_voltage;
 
 	/* Requested fixed PD voltage */
+	bool fixed_pd_pending;
 	u32 fixed_pd_voltage;
 	struct completion fixed_pd_complete;
 
@@ -1784,6 +1785,14 @@ static void sprd_tcpm_pd_data_request(struct sprd_tcpm_port *port,
 	default:
 		sprd_tcpm_log(port, "Unhandled data message type %#x", type);
 		break;
+	}
+}
+
+static void sprd_tcpm_fixed_pd_complete(struct sprd_tcpm_port *port)
+{
+	if (port->fixed_pd_pending) {
+		port->fixed_pd_pending = false;
+		complete(&port->fixed_pd_complete);
 	}
 }
 
@@ -3174,7 +3183,7 @@ static void sprd_run_state_machine(struct sprd_tcpm_port *port)
 	case SNK_UNATTACHED:
 		if (!port->non_pd_role_swap)
 			sprd_tcpm_swap_complete(port, -ENOTCONN);
-		complete(&port->fixed_pd_complete);
+		sprd_tcpm_fixed_pd_complete(port);
 		sprd_tcpm_pps_complete(port, -ENOTCONN);
 		sprd_tcpm_snk_detach(port);
 		if (sprd_tcpm_start_toggling(port, SPRD_TYPEC_CC_RD)) {
@@ -3363,7 +3372,7 @@ static void sprd_run_state_machine(struct sprd_tcpm_port *port)
 		sprd_tcpm_swap_complete(port, 0);
 		sprd_tcpm_typec_connect(port);
 		sprd_tcpm_check_send_discover(port);
-		complete(&port->fixed_pd_complete);
+		sprd_tcpm_fixed_pd_complete(port);
 		sprd_tcpm_pps_complete(port, port->pps_status);
 
 		/*
@@ -3656,7 +3665,7 @@ static void sprd_run_state_machine(struct sprd_tcpm_port *port)
 		break;
 	case ERROR_RECOVERY:
 		sprd_tcpm_swap_complete(port, -EPROTO);
-		complete(&port->fixed_pd_complete);
+		sprd_tcpm_fixed_pd_complete(port);
 		sprd_tcpm_pps_complete(port, -EPROTO);
 		sprd_tcpm_set_state(port, PORT_RESET, 0);
 		break;
@@ -4980,6 +4989,7 @@ static int sprd_tcpm_fixed_pd_deactivate(struct sprd_tcpm_port *port)
 		port->operating_snk_mw = 15000;
 	}
 
+	port->fixed_pd_pending = true;
 	reinit_completion(&port->fixed_pd_complete);
 
 	sprd_tcpm_set_state(port, SNK_NEGOTIATE_CAPABILITIES, 0);
