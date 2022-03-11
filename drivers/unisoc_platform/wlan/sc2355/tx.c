@@ -508,6 +508,7 @@ static void tx_prepare_addba(struct sprd_hif *hif, unsigned char lut_index,
 			if (!test_and_set_bit(tid, &peer_entry->ba_tx_done_map))
 				sc2355_tx_addba(hif, peer_entry, tid);
 		}
+		sprd_put_vif(vif);
 	}
 }
 

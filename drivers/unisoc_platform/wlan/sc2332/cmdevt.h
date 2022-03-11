@@ -232,9 +232,9 @@ struct cmd_power_save {
  *  power save command,so need provide power_save_sub_type,in this case
  *  this value always set to SPRD_SET_SAR, other sub type please ref
  *  sprdwl_cmd_power_save struct.
- * @sub_type: Please refer sprdwl_sar_subtype struct.
+ * @sub_type: Please refer sar_subtype struct.
  * @value: The value we set.
- * @mode: 802.11mode, please refer sprdwl_sar_mode struct.
+ * @mode: 802.11mode, please refer sar_mode struct.
  */
 struct cmd_set_sar {
 	u8 power_save_type;
