@@ -78,6 +78,11 @@ struct rx_mgmt {
 	int rx_chn;
 	u64 rx_handle_ns;
 	u64 rx_queue_ns;
+
+	u8 rx_snaphdr_flag;
+	u16 rx_snaphdr_seqnum;
+	u8 rx_snaphdr_lut;
+	u8 rx_snaphdr_tid;
 };
 
 /* NOTE: MUST not modify, defined by HW */

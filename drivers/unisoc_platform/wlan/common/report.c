@@ -261,6 +261,7 @@ err:
 		   status_code);
 	memset(vif->bssid, 0, sizeof(vif->bssid));
 	memset(vif->ssid, 0, sizeof(vif->ssid));
+	vif->sm_state = SPRD_DISCONNECTED;
 }
 EXPORT_SYMBOL(sprd_report_connection);
 
@@ -282,6 +283,7 @@ void sprd_report_disconnection(struct sprd_vif *vif, u16 reason_code)
 		return;
 	}
 
+	sprd_defrag_recover(vif->priv, vif);
 	vif->sm_state = SPRD_DISCONNECTED;
 	memset(vif->bssid, 0, sizeof(vif->bssid));
 	memset(vif->ssid, 0, sizeof(vif->ssid));

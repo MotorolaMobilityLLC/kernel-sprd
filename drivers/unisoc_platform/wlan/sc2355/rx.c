@@ -94,6 +94,60 @@ static void rx_send_cmd_process(struct sprd_priv *priv, void *data, int len,
 	}
 }
 
+int sprd_rx_defragment_attack_check(struct sprd_priv *priv, struct sk_buff *skb)
+{
+	struct sprd_hif *hif = &priv->hif;
+	struct rx_mgmt *rx_mgmt = (struct rx_mgmt *)hif->rx_mgmt;
+	struct rx_msdu_desc *msdu_desc = (struct rx_msdu_desc *)skb->data;
+
+	if (msdu_desc->ctx_id >= SPRD_MAC_INDEX_MAX) {
+		pr_err("%s [ctx_id %d]RX err\n", __func__, msdu_desc->ctx_id);
+		return -1;
+	}
+
+	if ((msdu_desc->amsdu_flag == 1) && (msdu_desc->snap_hdr_present == 0)
+	    && (msdu_desc->first_msdu_of_mpdu == 1)) {
+		rx_mgmt->rx_snaphdr_flag = 1;
+		rx_mgmt->rx_snaphdr_seqnum = msdu_desc->seq_num;
+		rx_mgmt->rx_snaphdr_lut = msdu_desc->sta_lut_index;
+		rx_mgmt->rx_snaphdr_tid = msdu_desc->tid;
+		pr_err("%s snaphdr attect flag %d %d %d\n", __func__,
+			msdu_desc->seq_num,
+			msdu_desc->sta_lut_index, msdu_desc->tid);
+		if (msdu_desc->last_buff_of_mpdu == 1) {
+			rx_mgmt->rx_snaphdr_flag = 0;
+			pr_err("%s snaphdr attect over %d last %d %d %d\n", __func__,
+				msdu_desc->snap_hdr_present,
+				msdu_desc->last_msdu_of_mpdu,
+				msdu_desc->last_buff_of_mpdu,
+				msdu_desc->last_msdu_of_buff);
+		}
+		return -1;
+	}
+
+	if (rx_mgmt->rx_snaphdr_flag == 1) {
+		if ((rx_mgmt->rx_snaphdr_seqnum == msdu_desc->seq_num) &&
+		    (rx_mgmt->rx_snaphdr_lut == msdu_desc->sta_lut_index) &&
+		    (rx_mgmt->rx_snaphdr_tid == msdu_desc->tid)) {
+			pr_err("%s snaphdr attect %d %d %d\n", __func__,
+			       msdu_desc->seq_num,
+			       msdu_desc->sta_lut_index, msdu_desc->tid);
+			if (msdu_desc->last_buff_of_mpdu == 1) {
+				rx_mgmt->rx_snaphdr_flag = 0;
+				pr_err("%s snaphdr attect over %d %d %d %d last %d %d %d\n",
+				       __func__, msdu_desc->snap_hdr_present,
+					msdu_desc->seq_num,
+					msdu_desc->sta_lut_index, msdu_desc->tid,
+					msdu_desc->last_msdu_of_mpdu,
+					msdu_desc->last_buff_of_mpdu,
+					msdu_desc->last_msdu_of_buff);
+			}
+			return -1;
+		}
+	}
+	return 0;
+}
+
 static void rx_skb_process(struct sprd_priv *priv, struct sk_buff *skb)
 {
 	struct sprd_vif *vif = NULL;
@@ -102,19 +156,19 @@ static void rx_skb_process(struct sprd_priv *priv, struct sk_buff *skb)
 	struct sk_buff *tx_skb = NULL;
 	struct sprd_hif *hif;
 	struct ethhdr *eth;
+	int ret = 0;
 
 	hif = &priv->hif;
+	msdu_desc = (struct rx_msdu_desc *)skb->data;
 
 	if (unlikely(!priv)) {
 		pr_err("%s priv not init.\n", __func__);
 		goto err;
 	}
 
-	msdu_desc = (struct rx_msdu_desc *)skb->data;
-	if (msdu_desc->ctx_id >= SPRD_MAC_INDEX_MAX) {
-		pr_err("%s [ctx_id %d]RX err\n", __func__, msdu_desc->ctx_id);
+	ret = sprd_rx_defragment_attack_check(priv, skb);
+	if (ret == -1)
 		goto err;
-	}
 
 	vif = sc2355_ctxid_to_vif(priv, msdu_desc->ctx_id);
 	if (!vif) {

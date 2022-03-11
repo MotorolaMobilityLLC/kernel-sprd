@@ -8,6 +8,8 @@
 #define __DEFRAG__H__
 
 #include <linux/skbuff.h>
+#include "common/iface.h"
+#include "common/common.h"
 
 #define MAX_DEFRAG_NUM 3
 
@@ -36,5 +38,6 @@ int sc2355_defrag_init(struct rx_defrag_entry *defrag_entry);
 void sc2355_defrag_deinit(struct rx_defrag_entry *defrag_entry);
 struct sk_buff *sc2355_defrag_data_process(struct rx_defrag_entry *defrag_entry,
 					   struct sk_buff *pskb);
+void sc2355_defrag_recover(struct sprd_vif *vif);
 
 #endif

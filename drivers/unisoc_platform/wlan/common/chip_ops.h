@@ -159,6 +159,7 @@ struct sprd_chip_ops {
 			 struct sk_buff *skb, u8 type, u8 offset, bool flag);
 	int (*send_data_offset)(void);
 	void (*fc_add_share_credit)(struct sprd_vif *vif);
+	void (*defrag_recover)(struct sprd_vif *vif);
 };
 
 static
@@ -871,6 +872,13 @@ static inline void sprd_fc_add_share_credit(struct sprd_priv *priv,
 {
 	if (priv->chip.ops->fc_add_share_credit)
 		return priv->chip.ops->fc_add_share_credit(vif);
+}
+
+static inline void sprd_defrag_recover(struct sprd_priv *priv,
+				       struct sprd_vif *vif)
+{
+	if (priv->chip.ops->defrag_recover)
+		return priv->chip.ops->defrag_recover(vif);
 }
 
 #endif

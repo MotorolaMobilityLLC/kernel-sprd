@@ -418,6 +418,7 @@ int sc2355_set_rekey(struct wiphy *wiphy, struct net_device *ndev,
 		     struct cfg80211_gtk_rekey_data *data)
 {
 	struct sprd_vif *vif = netdev_priv(ndev);
+	sc2355_defrag_recover(vif);
 
 	return sc2355_set_rekey_data(vif->priv, vif, data);
 }
@@ -508,6 +509,7 @@ struct sprd_chip_ops sc2355_chip_ops = {
 	.send_data = sc2355_send_data,
 	.send_data_offset = sc2355_send_data_offset,
 	.fc_add_share_credit = sc2355_fc_add_share_credit,
+	.defrag_recover = sc2355_defrag_recover,
 };
 
 MODULE_DESCRIPTION("Spreadtrum SC2355 WLAN Driver");
