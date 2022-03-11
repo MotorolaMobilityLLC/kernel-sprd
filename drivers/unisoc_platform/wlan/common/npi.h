@@ -1,8 +1,13 @@
-/* SPDX-License-Identifier: GPL-2.0-only */
 /*
- * Copyright © 2020 Unisoc Technologies Co., Ltd.
- * <https://www.unisoc.com>
- */
+* SPDX-FileCopyrightText: 2020-2022 Unisoc (Shanghai) Technologies Co., Ltd
+* SPDX-License-Identifier: GPL-2.0
+*
+* Copyright 2020-2022 Unisoc (Shanghai) Technologies Co., Ltd
+*
+* This program is free software; you can redistribute it and/or modify it
+* under the terms of version 2 of the GNU General Public License
+* as published by the Free Software Foundation.
+*/
 
 #ifndef __NPI_H__
 #define __NPI_H__

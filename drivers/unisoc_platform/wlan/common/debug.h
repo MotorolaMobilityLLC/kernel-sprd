@@ -1,8 +1,13 @@
-/* SPDX-License-Identifier: GPL-2.0-only */
 /*
- * copyright © 2021 unisoc technologies co., ltd.
- * <https://www.unisoc.com>
- */
+* SPDX-FileCopyrightText: 2021-2022 Unisoc (Shanghai) Technologies Co., Ltd
+* SPDX-License-Identifier: GPL-2.0
+*
+* Copyright 2021-2022 Unisoc (Shanghai) Technologies Co., Ltd
+*
+* This program is free software; you can redistribute it and/or modify it
+* under the terms of version 2 of the GNU General Public License
+* as published by the Free Software Foundation.
+*/
 
 #ifndef __DEBUG_H__
 #define __DEBUG_H__

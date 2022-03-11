@@ -1,10 +1,13 @@
-// SPDX-License-Identifier: GPL-2.0-only
 /*
- * Copyright © 2015 Unisoc Technologies Co., Ltd.
- * <https://www.unisoc.com>
- *
- * Abstract: SIPC interface routines.
- */
+* SPDX-FileCopyrightText: 2015-2022 Unisoc (Shanghai) Technologies Co., Ltd
+* SPDX-License-Identifier: GPL-2.0
+*
+* Copyright 2021-2022 Unisoc (Shanghai) Technologies Co., Ltd
+*
+* This program is free software; you can redistribute it and/or modify it
+* under the terms of version 2 of the GNU General Public License
+* as published by the Free Software Foundation.
+*/
 
 #include <linux/of_device.h>
 #include <linux/sipc.h>
