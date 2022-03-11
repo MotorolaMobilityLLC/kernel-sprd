@@ -22,6 +22,8 @@
 #include "sprd-asoc-card-utils.h"
 #include "sprd-asoc-common.h"
 
+static int hook_general_spk(int id, int on);
+
 struct sprd_asoc_ext_hook_map {
 	const char *name;
 	sprd_asoc_hook_func hook;
@@ -43,6 +45,7 @@ enum {
 struct sprd_asoc_hook_spk_priv {
 	int gpio[BOARD_FUNC_MAX];
 	int priv_data[BOARD_FUNC_MAX];
+	int pa_state[BOARD_FUNC_MAX];
 	spinlock_t lock;
 };
 
@@ -58,7 +61,7 @@ static struct sprd_asoc_hook_spk_priv hook_spk_priv;
 #define FS1512N_START  300
 #define FS1512N_PULSE_DELAY_US 20
 #define FS1512N_T_WORK  300
-#define FS1512N_T_PWD  10000
+#define FS1512N_T_PWD  100
 
 static int det_type = 0;
 
@@ -69,7 +72,7 @@ void fs15xx_shutdown(unsigned int gpio)
 
 	spin_lock_irqsave(lock, flags);
 	gpio_set_value( gpio, 0);
-	udelay(FS1512N_T_PWD);
+	mdelay(FS1512N_T_PWD);
 	spin_unlock_irqrestore(lock, flags);
 
 }
@@ -129,16 +132,26 @@ static ssize_t select_mode_store(struct kobject *kobj,
 {
 	unsigned long level;
 	int ret;
-
+	int i= 0;
 
 	ret = kstrtoul(buff, 10, &level);
 	if (ret) {
 		pr_err("%s kstrtoul failed!(%d)\n", __func__, ret);
 		return len;
 	}
+	if (select_mode == level) {
+		pr_info("mode has already been %d, return\n", select_mode);
+		return len;
+	}
 	select_mode = level;
 	pr_info("speaker ext pa select_mode = %d\n", select_mode);
-
+	for(i=0;i<BOARD_FUNC_MAX;i++){
+		if(hook_spk_priv.pa_state[i] > 0){
+			hook_general_spk(i, 0);
+			hook_general_spk(i, 1);
+			pr_info("reopen pa[%d] by select_mode:%d\n", i, select_mode);
+		}
+	}
 	return len;
 }
 
@@ -235,6 +248,7 @@ static int hook_general_spk(int id, int on)
 #else
 		gpio_set_value(gpio,!EN_LEVEL);
 #endif
+		hook_spk_priv.pa_state[id] = 0;
 		return HOOK_OK;
 	}
 
@@ -244,7 +258,7 @@ static int hook_general_spk(int id, int on)
 		pr_info("%s mode: %d, select_mode: %d\n",
 			__func__, mode, select_mode);
 	}
-
+	hook_spk_priv.pa_state[id] = mode;
 #ifdef CONFIG_SND_FS1512N
 	if(!det_type){
 		hook_gpio_pulse_control_FS1512N(gpio, mode);
@@ -372,6 +386,7 @@ static int sprd_asoc_card_parse_hook(struct device *dev,
 			ext_hook->ext_ctrl[ext_ctrl_type] = NULL;
 			return ret;
 		}
+	hook_spk_priv.pa_state[ext_ctrl_type] = 0;
 	}
 
 #ifdef CONFIG_SND_FS1512N
