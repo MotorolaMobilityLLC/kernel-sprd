@@ -109,6 +109,51 @@ struct cmd_gscan_channel_list {
 	int channels[SPRD_TOTAL_CHAN_NR];
 };
 
+/*begain of sar scence param define*/
+struct set_sar_limit_param {
+	u32 sar_scence;
+	u8 sar_type;
+	s8 power_value;
+	u8 phy_mode;
+};
+
+/*sar scence define		*
+ *scence value: 		*
+ *reciver on scence   1 *
+ *recive off (normal scence) scence  5 *
+ *hot spot scence     3 */
+enum sar_scence_value {
+	WLAN_SAR_SCENCE_RECIVER_ON = 1,
+	WLAN_SAR_SCENCE_HOTSPOT = 3,
+	WLAN_SAR_SCENCE_RECIVER_OFF = 5,
+};
+/*end of sar scence param define*/
+
+/*the map of sar scence to parameter*/
+static struct set_sar_limit_param sar_param_map[] = {
+	{
+		/*recive on scence*/
+		WLAN_SAR_SCENCE_RECIVER_ON,
+		SPRD_SET_SAR_ABSOLUTE,
+		9,
+		SPRD_SET_SAR_ALL_MODE,
+	},
+	{
+		/*recive off scence*/
+		WLAN_SAR_SCENCE_RECIVER_OFF,
+		SPRD_SET_SAR_ABSOLUTE,
+		127,
+		SPRD_SET_SAR_ALL_MODE,
+	},
+	{
+		/*hotspot scence*/
+		WLAN_SAR_SCENCE_HOTSPOT,
+		SPRD_SET_SAR_ABSOLUTE,
+		6,
+		SPRD_SET_SAR_ALL_MODE,
+	},
+};
+
 /* Send link layer stats CMD */
 static int vendor_link_layer_stat(struct sprd_priv *priv,
 					 struct sprd_vif *vif, u8 subtype,
@@ -2905,46 +2950,69 @@ static int vendor_set_epno_list(struct wiphy *wiphy,
 	return ret;
 }
 
+/*read sar param according to scence code*/
+/*scence code:			 *
+ *reciver on scence    1 *
+ *reciver off scence   5 *
+ *hotspot scence       3 */
+static struct set_sar_limit_param *
+		sprdwl_vendor_read_sar_param(u32 sar_scence)
+{
+	int i = 0;
+	int sar_map_len = ARRAY_SIZE(sar_param_map);
+	struct set_sar_limit_param *psar_map = NULL;
+
+	for (i = 0; i < sar_map_len; i++) {
+		if (sar_scence == sar_param_map[i].sar_scence) {
+			psar_map = &sar_param_map[i];
+			break;
+		}
+	}
+	return psar_map;
+}
+
 /* set SAR limits function------CMD ID:146 */
 static int vendor_set_sar_limits(struct wiphy *wiphy,
 				 struct wireless_dev *wdev,
 				 const void *data, int len)
 {
-	/* to pass vts */
-	return -EOPNOTSUPP;
-/* keep these code, just in case
- *	int ret = 0;
- *	uint32_t bdf = 0xff;
- *	struct sprd_priv *priv = wiphy_priv(wiphy);
- *	struct sprd_vif *vif = container_of(wdev, struct sprd_vif, wdev);
- *	struct nlattr *tb[ATTR_SAR_LIMITS_MAX + 1];
- *
- *	pr_info("%s enter:\n", __func__);
- *	if (nla_parse(tb, ATTR_SAR_LIMITS_MAX, data, len, NULL, NULL)) {
- *		pr_err("Invalid ATTR\n");
- *		return -EINVAL;
- *	}
- *
- *	if (!tb[ATTR_SAR_LIMITS_SAR_ENABLE]) {
- *		pr_err("attr sar enable failed\n");
- *		return -EINVAL;
- *	}
- *
- *	bdf = nla_get_u32(tb[ATTR_SAR_LIMITS_SAR_ENABLE]);
- *	if (bdf > VENDOR_SAR_LIMITS_USER) {
- *		pr_err("bdf value:%d exceed the max value\n", bdf);
- *		return -EINVAL;
- *	}
- *
- *	if (bdf == VENDOR_SAR_LIMITS_BDF0) {
- *		[> set sar limits <]
- *		ret = sprd_power_save(priv, vif, SPRD_SET_TX_POWER, bdf);
- *	} else if (bdf == VENDOR_SAR_LIMITS_NONE) {
- *		[> reset sar limits <]
- *		ret = sprd_power_save(priv, vif, SPRD_SET_TX_POWER, -1);
- *	}
- *	return ret;
- */
+/**set sar param according to different scence**/
+	int ret = 0;
+	struct sprd_priv *priv = wiphy_priv(wiphy);
+	struct sprd_vif *vif = container_of(wdev, struct sprd_vif, wdev);
+	struct nlattr *tb[ATTR_SAR_LIMITS_MAX + 1];
+	struct set_sar_limit_param *psar_param;
+	u32 sar_scence = 0;
+
+	pr_info("%s enter:\n", __func__);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0)
+	if (nla_parse(tb, ATTR_SAR_LIMITS_MAX, data, len, NULL, NULL)) {
+#else
+	if (nla_parse(tb, ATTR_SAR_LIMITS_MAX, data, len, NULL)) {
+#endif
+		pr_err("Invalid ATTR\n");
+		return -EINVAL;
+	}
+
+	if (!tb[ATTR_SAR_LIMITS_SAR_ENABLE]) {
+		pr_err("attr sar enable failed\n");
+		return -EINVAL;
+	}
+
+	sar_scence = nla_get_u32(tb[ATTR_SAR_LIMITS_SAR_ENABLE]);
+	psar_param = sprdwl_vendor_read_sar_param(sar_scence);
+	if (!psar_param) {
+		pr_err("invalid sar scence: %d\n", sar_scence);
+		return -EINVAL;
+	}
+
+	netdev_info(vif->ndev, "%s: set sar, scence: %d, value : %d\n",
+			    __func__, psar_param->sar_scence,
+				psar_param->power_value);
+	ret = sc2355_set_sar(priv, vif,
+					 psar_param->sar_type,
+				     psar_param->power_value);
+	return ret;
 }
 
 static int vendor_get_akm_suite(struct wiphy *wiphy,
