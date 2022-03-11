@@ -2279,6 +2279,14 @@ success:
 }
 
 #if IS_ENABLED(CONFIG_USB_SPRD_OFFLOAD)
+/* Defined this flag to control the i2s clk configuraiton */
+static bool musb_utmi_60m_flag;
+void musb_set_utmi_60m_flag(bool flag)
+{
+	musb_utmi_60m_flag = flag;
+}
+EXPORT_SYMBOL(musb_set_utmi_60m_flag);
+
 static void musb_offload_enable(struct musb *musb, u8 bchannel)
 {
 	u32 val;
@@ -2384,6 +2392,17 @@ static void musb_offload_config(struct usb_hcd *hcd, int ep_num, int mono,
 		clkm = 4  * 24 * rate;
 	musb_writel(mbase, MUSB_AUDIO_IIS_CLKM, clkm);
 	musb_writel(mbase, MUSB_AUDIO_IIS_CLKN, MUSB_IIS_CLKN);
+
+	/* The default MUSB_IIS_CLKN(30000) is coordinate to utim 30MHz clk,
+	 * if the utmi is working at 60MHz, we should config MUSB_AUDIO_IIS_CLKN
+	 * as 60000
+	 */
+	dev_dbg(musb->controller,
+		"%s musb_utmi_60m_flag(%d)\n", __func__, musb_utmi_60m_flag);
+	if (musb_utmi_60m_flag)
+		musb_writel(mbase, MUSB_AUDIO_IIS_CLKN, MUSB_IIS_CLKN*2);
+	else
+		musb_writel(mbase, MUSB_AUDIO_IIS_CLKN, MUSB_IIS_CLKN);
 
 	tmp = musb_readl(mbase, MUSB_AUDIO_IIS_DMA_INS);
 	/* iis dma fifo width */
@@ -2558,6 +2577,10 @@ static void musb_offload_enqueue(struct usb_hcd *hcd, struct urb *urb)
 }
 
 #else
+void musb_set_utmi_60m_flag(bool flag)
+{}
+EXPORT_SYMBOL(musb_set_utmi_60m_flag);
+
 static bool musb_offload_detect(struct musb *musb, struct usb_endpoint_descriptor *epd)
 {
 	return false;

@@ -30,6 +30,7 @@
 #include <linux/wait.h>
 #include <linux/mfd/syscon.h>
 #include <linux/regmap.h>
+#include <linux/usb/sprd_usbm.h>
 
 #include "musb_core.h"
 #include "sprd_musbhsdma.h"
@@ -62,6 +63,7 @@ struct sprd_glue {
 	struct notifier_block		hot_plug_nb;
 	struct notifier_block		vbus_nb;
 	struct notifier_block		id_nb;
+	struct notifier_block		audio_nb;
 
 	bool		bus_active;
 	bool		vbus_active;
@@ -75,6 +77,20 @@ struct sprd_glue {
 };
 
 static int boot_charging;
+#if IS_ENABLED(CONFIG_SPRD_USBM)
+static const bool is_slave = true;
+#else
+static const bool is_slave;
+#endif
+
+#if IS_ENABLED(CONFIG_USB_DWC3_SPRD)
+extern int dwc3_sprd_probe_finish(void);
+#else
+int dwc3_sprd_probe_finish(void)
+{
+	return 1;
+}
+#endif
 
 static void sprd_musb_enable(struct musb *musb)
 {
@@ -172,7 +188,8 @@ static int sprd_musb_init(struct musb *musb)
 
 	musb->phy = glue->phy;
 	musb->xceiv = glue->xceiv;
-	sprd_musb_enable(musb);
+	if (!is_slave)
+		sprd_musb_enable(musb);
 
 	musb->isr = sprd_musb_interrupt;
 
@@ -403,6 +420,11 @@ static int musb_sprd_vbus_notifier(struct notifier_block *nb,
 	struct sprd_glue *glue = container_of(nb, struct sprd_glue, vbus_nb);
 	unsigned long flags;
 
+	if (is_slave) {
+		dev_info(glue->dev, "%s, event(%ld) ignored in slave mode\n", __func__, event);
+		return 0;
+	}
+
 	if (event) {
 		spin_lock_irqsave(&glue->lock, flags);
 		if (glue->vbus_active == 1 || glue->dr_mode == USB_DR_MODE_HOST) {
@@ -444,6 +466,11 @@ static int musb_sprd_id_notifier(struct notifier_block *nb,
 	struct sprd_glue *glue = container_of(nb, struct sprd_glue, id_nb);
 	unsigned long flags;
 
+	if (is_slave) {
+		dev_info(glue->dev, "%s, event(%ld) ignored in slave mode\n", __func__, event);
+		return 0;
+	}
+
 	if (event) {
 		spin_lock_irqsave(&glue->lock, flags);
 		if (glue->vbus_active == 1 || glue->dr_mode == USB_DR_MODE_PERIPHERAL) {
@@ -474,6 +501,47 @@ static int musb_sprd_id_notifier(struct notifier_block *nb,
 		spin_unlock_irqrestore(&glue->lock, flags);
 		dev_info(glue->dev,
 			"host disconnect detected from ID GPIO.\n");
+	}
+
+	return 0;
+}
+
+static int musb_sprd_audio_notifier(struct notifier_block *nb,
+				unsigned long event, void *data)
+{
+	struct sprd_glue *glue = container_of(nb, struct sprd_glue, audio_nb);
+	unsigned long flags;
+
+	dev_dbg(glue->dev, "[%s]event(%ld)\n", __func__, event);
+
+	if (event) {
+		spin_lock_irqsave(&glue->lock, flags);
+		if (glue->vbus_active == 1 || glue->dr_mode == USB_DR_MODE_PERIPHERAL) {
+			spin_unlock_irqrestore(&glue->lock, flags);
+			dev_info(glue->dev, "ignore host connection detected from audio.\n");
+			return 0;
+		}
+
+		glue->vbus_active = 1;
+		glue->wq_mode = USB_DR_MODE_HOST;
+		queue_work(system_unbound_wq, &glue->work);
+		spin_unlock_irqrestore(&glue->lock, flags);
+		dev_info(glue->dev,
+			"host connection detected from audio.\n");
+	} else {
+		spin_lock_irqsave(&glue->lock, flags);
+		if (glue->vbus_active == 0 || glue->dr_mode == USB_DR_MODE_PERIPHERAL) {
+			spin_unlock_irqrestore(&glue->lock, flags);
+			dev_info(glue->dev, "ignore host disconnect detected from audio.\n");
+			return 0;
+		}
+
+		glue->vbus_active = 0;
+		glue->wq_mode = USB_DR_MODE_HOST;
+		queue_work(system_unbound_wq, &glue->work);
+		spin_unlock_irqrestore(&glue->lock, flags);
+		dev_info(glue->dev,
+			"host disconnect detected from audio.\n");
 	}
 
 	return 0;
@@ -888,6 +956,15 @@ static struct attribute *musb_sprd_attrs[] = {
 };
 ATTRIBUTE_GROUPS(musb_sprd);
 
+static int dwc3_sprd_driver_probe_finish(struct device *dev)
+{
+	while (!dwc3_sprd_probe_finish())
+		return -EPROBE_DEFER;
+
+	dev_info(dev, "dwc3 probe finish or donnot need loading, musb start probe\n");
+	return 0;
+}
+
 static int musb_sprd_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
@@ -902,6 +979,11 @@ static int musb_sprd_probe(struct platform_device *pdev)
 		dev_info(&pdev->dev, "musb driver stop probe since usb mux jtag\n");
 		return -ENODEV;
 	}
+
+	/* Workaround: force dwc3 and musb serialization when they are both exist */
+	ret = dwc3_sprd_driver_probe_finish(&pdev->dev);
+	if (ret)
+		return ret;
 
 	glue = devm_kzalloc(&pdev->dev, sizeof(*glue), GFP_KERNEL);
 	if (!glue)
@@ -1027,6 +1109,13 @@ static int musb_sprd_probe(struct platform_device *pdev)
 		}
 	}
 
+	glue->audio_nb.notifier_call = musb_sprd_audio_notifier;
+	ret = register_sprd_usbm_notifier(&glue->audio_nb, SPRD_USBM_EVENT_HOST_MUSB);
+	if (ret) {
+		dev_err(glue->dev, "failed to register usb event\n");
+		goto err_extcon_vbus;
+	}
+
 	glue->wake_lock = wakeup_source_create("musb-sprd");
 	wakeup_source_add(glue->wake_lock);
 	glue->pd_wake_lock = wakeup_source_create("musb-sprd-pd");
@@ -1045,7 +1134,8 @@ static int musb_sprd_probe(struct platform_device *pdev)
 	pm_runtime_set_active(dev);
 	pm_runtime_enable(dev);
 	musb_sprd_charger_mode();
-	musb_sprd_detect_cable(glue);
+	if (!is_slave)
+		musb_sprd_detect_cable(glue);
 
 	return 0;
 
