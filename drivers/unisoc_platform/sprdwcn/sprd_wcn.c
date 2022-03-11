@@ -36,15 +36,48 @@
 #include <linux/spinlock.h>
 #include <misc/wcn_bus.h>
 #include "sprd_wcn.h"
+#include "./sipc/wcn_sipc.h"
 
 #ifdef CONFIG_PM_SLEEP
 static int wcn_resume(struct device *dev)
 {
+	int chn;
+	int ret;
+	struct sipc_chn_info *sipc_chn;
+
+	WCN_INFO("%s enter\n", __func__);
+	for (chn = 0; chn < SIPC_CHN_NUM; chn++) {
+		sipc_chn = wcn_sipc_channel_get(chn);
+		if ((sipc_chn != NULL) && (sipc_chn->ops != NULL) &&
+			(sipc_chn->ops->power_notify != NULL)) {
+			ret = sipc_chn->ops->power_notify(chn, 1);
+			if (ret != 0) {
+				WCN_INFO("[%s] chn:%d resume fail\n", __func__, chn);
+				return ret;
+			}
+		}
+	}
 	return 0;
 }
 
 static int wcn_suspend(struct device *dev)
 {
+	int chn;
+	int ret;
+	struct sipc_chn_info *sipc_chn;
+
+	WCN_INFO("%s enter\n", __func__);
+	for (chn = 0; chn < SIPC_CHN_NUM; chn++) {
+		sipc_chn = wcn_sipc_channel_get(chn);
+		if ((sipc_chn != NULL) && (sipc_chn->ops != NULL) &&
+			(sipc_chn->ops->power_notify != NULL)) {
+			ret = sipc_chn->ops->power_notify(chn, 0);
+			if (ret != 0) {
+				WCN_INFO("[%s] chn:%d suspend fail\n", __func__, chn);
+				return ret;
+			}
+		}
+	}
 	return 0;
 }
 #endif /* CONFIG_PM_SLEEP */
