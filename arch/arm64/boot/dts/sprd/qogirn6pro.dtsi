@@ -221,9 +221,27 @@
 			reg = <0 0x562000c8 0 0x22f8>;
 		};
 
+		audcp_clk_rf_regs: syscon@0x56240000 {
+			compatible = "sprd,ums9620-glbregs", "syscon";
+			#syscon-cells = <2>;
+			reg = <0 0x56240000 0 0x10000>;
+		};
+
+		audcp_dvfs_apb_rf_regs: syscon@0x56250000 {
+			compatible = "sprd,ums9620-glbregs", "syscon";
+			#syscon-cells = <2>;
+			reg = <0 0x56250000 0 0x4000>;
+		};
+
 		audcp_aon_apb_regs: syscon@56390000 {
 			compatible = "sprd,ums9620-glbregs", "syscon";
 			reg = <0 0x56390000 0 0x3000>;
+			#syscon-cells = <2>;
+		};
+
+		aud_aon_clk_regs: syscon@56394000 {
+			compatible = "sprd,ums9620-glbregs", "syscon";
+			reg = <0 0x56394000 0 0x400>;
 			#syscon-cells = <2>;
 		};
 
@@ -2162,6 +2180,110 @@
 					sprd,control = <0x0>;
 				};
 
+				audcp_tdm3_4: audcp-tdm3-4 {
+					pins = "QOGIRN6PRO_IIS_INF4_SYS_SEL";
+					sprd,control = <0x7>;
+				};
+
+				audcp_tdm4_4: audcp-tdm4-4 {
+					pins = "QOGIRN6PRO_IIS_INF4_SYS_SEL";
+					sprd,control = <0x10>;
+				};
+
+				ap_iis0_5: ap-iis0-5 {
+					pins = "QOGIRN6PRO_IIS_INF5_SYS_SEL";
+					sprd,control = <0x0>;
+				};
+
+				ap_iis1_5: ap-iis1-5 {
+					pins = "QOGIRN6PRO_IIS_INF5_SYS_SEL";
+					sprd,control = <0x1>;
+				};
+
+				ap_iis2_5: ap-iis2-5 {
+					pins = "QOGIRN6PRO_IIS_INF5_SYS_SEL";
+					sprd,control = <0x2>;
+				};
+
+				aon_iis0_5: aon-iis0-5 {
+					pins = "QOGIRN6PRO_IIS_INF5_SYS_SEL";
+					sprd,control = <0x3>;
+				};
+
+				audcp_iis0_5: audcp-iis0-5 {
+					pins = "QOGIRN6PRO_IIS_INF5_SYS_SEL";
+					sprd,control = <0x4>;
+				};
+
+				audcp_iis1_5: audcp-iis1-5 {
+					pins = "QOGIRN6PRO_IIS_INF5_SYS_SEL";
+					sprd,control = <0x5>;
+				};
+
+				audcp_iis2_5: audcp-iis2-5 {
+					pins = "QOGIRN6PRO_IIS_INF5_SYS_SEL";
+					sprd,control = <0x6>;
+				};
+
+				audcp_tdm3_5: audcp-tdm3-5 {
+					pins = "QOGIRN6PRO_IIS_INF5_SYS_SEL";
+					sprd,control = <0x7>;
+				};
+
+				vbc_iis0_5: vbc-iis0-5 {
+					pins = "QOGIRN6PRO_IIS_INF5_SYS_SEL";
+					sprd,control = <0x8>;
+				};
+
+				vbc_iis1_5: vbc-iis1-5 {
+					pins = "QOGIRN6PRO_IIS_INF5_SYS_SEL";
+					sprd,control = <0x9>;
+				};
+
+				vbc_iis2_5: vbc-iis2-5 {
+					pins = "QOGIRN6PRO_IIS_INF5_SYS_SEL";
+					sprd,control = <0xa>;
+				};
+
+				vbc_iis3_5: vbc-iis3-5 {
+					pins = "QOGIRN6PRO_IIS_INF5_SYS_SEL";
+					sprd,control = <0xb>;
+				};
+
+				vbc_iis4_5: vbc-iis4-5 {
+					pins = "QOGIRN6PRO_IIS_INF5_SYS_SEL";
+					sprd,control = <0xc>;
+				};
+
+				vbc_mst_iis0_5: vbc-mst-iis0-5 {
+					pins = "QOGIRN6PRO_IIS_INF5_SYS_SEL";
+					sprd,control = <0xd>;
+				};
+
+				vbc_mst_iis1_5: vbc-mst-iis1-5 {
+					pins = "QOGIRN6PRO_IIS_INF5_SYS_SEL";
+					sprd,control = <0xe>;
+				};
+
+				vbc_mst_iis2_5: vbc-mst-iis2-5 {
+					pins = "QOGIRN6PRO_IIS_INF5_SYS_SEL";
+					sprd,control = <0xf>;
+				};
+
+				audcp_tdm4_5: audcp-tdm4-5 {
+					pins = "QOGIRN6PRO_IIS_INF5_SYS_SEL";
+					sprd,control = <0x10>;
+				};
+
+				vad_din_sel_add0: vad-din-sel-add0 {
+					pins = "QOGIRN6PRO_VAD_DIN_SEL";
+					sprd,control = <0x0>;
+				};
+
+				vad_din_sel_add1: vad-din-sel-add1 {
+					pins = "QOGIRN6PRO_VAD_DIN_SEL";
+					sprd,control = <0x1>;
+				};
 			};
 
 			adi_bus: spi@400000 {
@@ -2513,7 +2635,12 @@
 				pinctrl-names =
 				"vbc_iis3_0", "vbc_iism0_0",
 				"vbc_iis_to_pad", "vbc_iis_to_aon_usb", "vbc_iism0_1", "vbc_iism0_3",
-				"vbc_iis0_3", "vbc_iis1_3", "vbc_iis2_3", "vbc_iis3_3", "ap_iis0_3";
+				"vbc_iis0_3", "vbc_iis1_3", "vbc_iis2_3", "vbc_iis3_3", "ap_iis0_3",
+				"audcp_tdm3_4", "audcp_tdm4_4", "ap_iis0_5", "ap_iis1_5", "ap_iis2_5",
+				"aon_iis0_5", "audcp_iis0_5", "audcp_iis1_5", "audcp_iis2_5", "audcp_tdm3_5",
+				"vbc_iis0_5", "vbc_iis1_5", "vbc_iis2_5", "vbc_iis3_5", "vbc_iis4_5",
+				"vbc_mst_iis0_5", "vbc_mst_iis1_5", "vbc_mst_iis2_5", "audcp_tdm4_5",
+				"vad_din_sel_add0", "vad_din_sel_add1";
 				pinctrl-0 = <&vbc_iis3_0>;
 				pinctrl-1 = <&vbc_iism0_0>;
 				pinctrl-2 = <&vbc_iis_to_pad>;
@@ -2525,6 +2652,27 @@
 				pinctrl-8 = <&vbc_iis2_3>;
 				pinctrl-9 = <&vbc_iis3_3>;
 				pinctrl-10 = <&ap_iis0_3>;
+				pinctrl-11 = <&audcp_tdm3_4>;
+				pinctrl-12 = <&audcp_tdm4_4>;
+				pinctrl-13 = <&ap_iis0_5>;
+				pinctrl-14 = <&ap_iis1_5>;
+				pinctrl-15 = <&ap_iis2_5>;
+				pinctrl-16 = <&aon_iis0_5>;
+				pinctrl-17 = <&audcp_iis0_5>;
+				pinctrl-18 = <&audcp_iis1_5>;
+				pinctrl-19 = <&audcp_iis2_5>;
+				pinctrl-20 = <&audcp_tdm3_5>;
+				pinctrl-21 = <&vbc_iis0_5>;
+				pinctrl-22 = <&vbc_iis1_5>;
+				pinctrl-23 = <&vbc_iis2_5>;
+				pinctrl-24 = <&vbc_iis3_5>;
+				pinctrl-25 = <&vbc_iis4_5>;
+				pinctrl-26 = <&vbc_mst_iis0_5>;
+				pinctrl-27 = <&vbc_mst_iis1_5>;
+				pinctrl-28 = <&vbc_mst_iis2_5>;
+				pinctrl-29 = <&audcp_tdm4_5>;
+				pinctrl-30 = <&vad_din_sel_add0>;
+				pinctrl-31 = <&vad_din_sel_add1>;
 			};
 
 			pdm_dmic: pdm-dmic@56370000 {
@@ -2554,6 +2702,17 @@
 				clock-names = "enable", "ashb_eb";
 				clocks = <&audcpglb_gate CLK_AUDCP_DMA_AP_EB>,
 					<&audcpglb_gate CLK_AUDCP_DMA_AP_ASHB_EB>;
+			};
+
+			sprd_tdm: sprd-tdm-audio@563a0000 {
+				compatible = "unisoc,tdm";
+				status = "disabled";
+				reg = <0 0x563a0000 0 0x0800>;/* 0x563A0000 563707ff */
+				#sound-dai-cells = <0>;
+				sprd,syscon-agcp-ahb = <&audcp_ahb_regs>;
+				sprd,syscon-clk-rf = <&audcp_clk_rf_regs>;
+				sprd,syscon-dvfs-apb = <&audcp_dvfs_apb_rf_regs>;
+				sprd,syscon-aon-apb = <&aon_apb_regs>;
 			};
 
 			sprd_audio_codec_dig: audio-codec@56360000 {
@@ -2795,7 +2954,9 @@
 			&agcp_dma 13 &agcp_dma 8
 			&agcp_dma 11 &agcp_dma 6
 			&agcp_dma 14 &agcp_dma 14
-			&agcp_dma 12 &agcp_dma 6>;
+			&agcp_dma 12 &agcp_dma 6
+			&agcp_dma 19 &agcp_dma 20
+			&agcp_dma 23 &agcp_dma 24>;
 
 		dma-names =
 			"normal_p_l", "normal_p_r",
@@ -2809,7 +2970,9 @@
 			/* dspfmcap_c and dspbtscocap_c same as dspcap_c */
 			"dspfmcap_c", "dspbtscocap_c",
 			/* recognise_c same as voice_c, voice_pcm_p same as loop_p */
-			"recognise_c", "voice_pcm_p";
+			"recognise_c", "voice_pcm_p",
+			"hifi_p", "hifi_fast_p",
+			"iis0_rx", "iis0_tx";
 	};
 
 	sprd_compr: sprd-compr-audio {
@@ -2947,6 +3110,20 @@
 		sprd,channel = <11>;
 	};
 
+	audio_pipe_trigger_rx {
+		compatible = "unisoc,audio_pipe_trigger_rx";
+		sprd,writesync = <0>;
+		sprd,maxuserwritebufsize = <0>;
+		sprd,channel = <13>;
+	};
+
+	audio_pipe_trigger_tx {
+		compatible = "unisoc,audio_pipe_trigger_tx";
+		sprd,writesync = <1>;
+		sprd,maxuserwritebufsize = <1024>;
+		sprd,channel = <14>;
+	};
+
 	audiocp_dvfs {
 		compatible = "unisoc,qogirn6pro-audcp-dvfs";
 		sprd,channel = <10>;
@@ -2954,18 +3131,19 @@
 
 	audiocp_boot {
 		compatible = "unisoc,audcp-boot";
-		sysshutdown = <&pmu_apb_regs REG_PMU_APB_SLEEP_STATUS_0  MASK_AON_APB_MSPI_EB>;
-		coreshutdown = <&pmu_apb_regs REG_PMU_APB_SLEEP_STATUS_0  MASK_AON_APB_MSPI_EB>;
-		deepsleep = <&pmu_apb_regs REG_PMU_APB_SLEEP_STATUS_0  MASK_AON_APB_MSPI_EB>;
-		corereset = <&pmu_apb_regs REG_PMU_APB_SLEEP_STATUS_0  MASK_AON_APB_MSPI_EB>;
-		sysreset = <&pmu_apb_regs REG_PMU_APB_SLEEP_STATUS_0  MASK_AON_APB_MSPI_EB>;
-		reset_sel = <&pmu_apb_regs REG_PMU_APB_SLEEP_STATUS_0  MASK_AON_APB_MSPI_EB>;
-		sysstatus = <&pmu_apb_regs REG_PMU_APB_SLEEP_STATUS_0  MASK_AON_APB_MSPI_EB>;
-		corestatus = <&pmu_apb_regs REG_PMU_APB_SLEEP_STATUS_0  MASK_AON_APB_MSPI_EB>;
-		sleepstatus = <&pmu_apb_regs REG_PMU_APB_SLEEP_STATUS_0  MASK_AON_APB_MSPI_EB>;
-		bootprotect = <&pmu_apb_regs REG_PMU_APB_SLEEP_STATUS_0  MASK_AON_APB_MSPI_EB>;
-		bootvector = <&pmu_apb_regs REG_PMU_APB_SLEEP_STATUS_0  MASK_AON_APB_MSPI_EB>;
-		bootaddress_sel = <&pmu_apb_regs REG_PMU_APB_SLEEP_STATUS_0  MASK_AON_APB_MSPI_EB>;
+		sysshutdown = <&pmu_apb_regs REG_PMU_APB_PD_AUDIO_CFG_0  MASK_PMU_APB_PD_AUDIO_FORCE_SHUTDOWN>;
+		coreshutdown = <&pmu_apb_regs REG_PMU_APB_PD_AUD_CEVA_CFG_0  MASK_PMU_APB_PD_AUD_CEVA_FORCE_SHUTDOWN>;
+		deepsleep = <&pmu_apb_regs REG_PMU_APB_FORCE_DEEP_SLEEP_CFG_0  MASK_PMU_APB_AUDIO_FORCE_DEEP_SLEEP_REG>;
+		corereset = <&pmu_apb_regs REG_PMU_APB_DM_SOFT_RST  MASK_PMU_APB_AUD_CEVA_SOFT_RST>;
+		sysreset = <&pmu_apb_regs REG_PMU_APB_SYS_SOFT_RST_0  MASK_PMU_APB_AUDIO_SOFT_RST>;
+		reset_sel = <&pmu_apb_regs REG_PMU_APB_SOFT_RST_SEL_0  MASK_PMU_APB_SOFT_RST_SEL>;
+		sysstatus = <&pmu_apb_regs REG_PMU_APB_PWR_STATUS_DBG_21  MASK_PMU_APB_PD_AUDIO_STATE>;
+		corestatus = <&pmu_apb_regs REG_PMU_APB_PWR_STATUS_DBG_21  MASK_PMU_APB_PD_AUD_CEVA_STATE>;
+		sleepstatus = <&pmu_apb_regs REG_PMU_APB_SLEEP_STATUS_0  MASK_PMU_APB_AUDIO_SLP_STATUS>;
+		bootprotect = <&aon_apb_regs REG_AON_APB_AUDCP_BOOT_PROT  MASK_AON_APB_AUDCP_REG_PROT_VAL>;
+		bootvector = <&aon_apb_regs REG_AON_APB_AUDCP_DSP_CTRL0  MASK_AON_APB_AUDCP_DSP_BOOT_VECTOR>;
+		bootaddress_sel = <&aon_apb_regs REG_AON_APB_AUDCP_DSP_CTRL1  MASK_AON_APB_AUDCP_DSP_BOOT>;
+
 	};
 
 	apipe-pcm {

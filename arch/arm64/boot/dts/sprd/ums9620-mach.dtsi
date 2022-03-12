@@ -988,6 +988,12 @@
 	lrdat-sel = <0x1>;
 };
 
+&sprd_headset {
+	status = "okay";
+	nvmem-cells = <&headset_adc_fir_1>, <&headset_adc_fir_2>,<&headset_adc_sec>;
+	nvmem-cell-names = "hp_adc_fir_calib_1","hp_adc_fir_calib_2", "hp_adc_sec_calib";
+};
+
 &sdio0 {
 	sprd,phy-delay-sd-uhs-sdr104 = <0x0 0xc3 0xca 0xca>;
 	sprd,phy-delay-sd-uhs-sdr50 = <0x0 0x7f 0x4d 0x4d>;
@@ -1228,3 +1234,4 @@
 		<&aonapb_gate CLK_DSI_CFG_EB>,
 		<&aonapb_gate CLK_CPHY_CFG_EN>;
 };
+

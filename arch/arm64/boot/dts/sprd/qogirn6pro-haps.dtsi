@@ -16,6 +16,24 @@
 		#size-cells = <2>;
 		ranges;
 
+		audcp_dvfs_apb_rf_regs: syscon@0x56250000 {
+			compatible = "sprd,ums9620-glbregs", "syscon";
+			#syscon-cells = <2>;
+			reg = <0 0x56250000 0 0x4000>;
+		};
+
+		audcp_aon_apb_regs: syscon@56390000 {
+			compatible = "sprd,ums9620-glbregs", "syscon";
+			reg = <0 0x56390000 0 0x3000>;
+			#syscon-cells = <2>;
+		};
+
+		aud_aon_clk_regs: syscon@56394000 {
+			compatible = "sprd,ums9620-glbregs", "syscon";
+			reg = <0 0x56394000 0 0x400>;
+			#syscon-cells = <2>;
+		};
+
 		ap-apb {
 			compatible = "simple-bus";
 			#address-cells = <1>;
