@@ -680,6 +680,11 @@ static void ufs_sprd_hibern8_notify(struct ufs_hba *hba,
 	}
 }
 
+static void ufs_sprd_device_reset(struct ufs_hba *hba)
+{
+	return;
+}
+
 /**
  * struct ufs_hba_sprd_vops - UFS sprd specific variant operations
  *
@@ -696,6 +701,7 @@ static struct ufs_hba_variant_ops ufs_hba_sprd_vops = {
 	.pwr_change_notify = ufs_sprd_pwr_change_notify,
 	.phy_initialization = ufs_sprd_phy_init,
 	.hibern8_notify = ufs_sprd_hibern8_notify,
+	.device_reset = ufs_sprd_device_reset,
 };
 
 /**
