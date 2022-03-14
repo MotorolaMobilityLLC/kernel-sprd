@@ -17,6 +17,7 @@
 #include <stdio.h>
 #include <sys/ioctl.h>
 #endif
+#define SPRD_VPU_MAP_SIZE 0x14000
 
 
 #define SPRD_VPU_IOCTL_MAGIC 'm'
