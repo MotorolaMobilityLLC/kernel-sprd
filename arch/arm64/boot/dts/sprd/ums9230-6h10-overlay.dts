@@ -377,6 +377,7 @@
 		power-down-gpios = <&ap_gpio 47 0>;
 		sprd,phyid = <0>;
 		csi = <&csi0>;
+		power-domains = <&mm_domain>;
 	};
 
 	sensor_sub: sensor-sub@5a {
@@ -398,6 +399,7 @@
 	/*	mipi-switch-mode-gpios = <&ap_gpio 8 0>;*/
 		sprd,phyid = <2>;
 		csi = <&csi0>;
+		power-domains = <&mm_domain>;
 	};
 };
 
@@ -428,6 +430,7 @@
 	/*	mipi-switch-mode-gpios = <&ap_gpio 8 0>;*/
 		sprd,phyid = <4>;
 		csi = <&csi1>;
+		power-domains = <&mm_domain>;
 	};
 
 
