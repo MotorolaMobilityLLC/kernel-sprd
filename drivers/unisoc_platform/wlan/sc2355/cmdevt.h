@@ -626,6 +626,7 @@ enum EVT_LIST {
 	EVT_TDLS,
 	EVT_SDIO_FLOWCON = 0xB3,
 
+	EVT_REPORT_IP_ADDR = 0xc0,
 	/* DEBUG/OTHER */
 	EVT_SDIO_SEQ_NUM = 0xE0,
 
@@ -845,6 +846,12 @@ struct acs_result {
 	u32 time;
 	u32 time_busy;
 	u32 time_ext_busy;
+};
+
+/*recv ip addr from cp2*/
+struct ip_addr_info {
+	u16 type;
+	u8 ip_addr[16];
 };
 
 /* packet offload struct */

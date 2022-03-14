@@ -199,6 +199,31 @@ const char *sc2355_cmdevt_cmd2str(u8 cmd)
 	return cmdevt_cmd2str(cmd);
 }
 
+int cmdevt_report_ip_addr(struct sprd_vif *vif, u8 *data, u16 len)
+{
+	struct ip_addr_info *info = (struct ip_addr_info *)data;
+	u8 *p;
+
+	if (!len) {
+		netdev_err(vif->ndev, "%s event data len=0\n", __func__);
+		return -EINVAL;
+	}
+	p = (u8 *)info->ip_addr;
+	if (info->type == 0x0800) {
+		netdev_info(vif->ndev, "%s ipv4: %pI4\n", __func__, p);
+	} else if (info->type == 0x0806) {
+		netdev_info(vif->ndev, "%s ARP ip: %pI4\n", __func__, p);
+	} else if (info->type == 0x86DD) {
+		netdev_info(vif->ndev, "%s ipv6: %pI6", __func__, p);
+	} else if (info->type == 0x888E) {
+		netdev_err(vif->ndev, "%s type: EAPOL(GTK/PTK)\n", __func__);
+	} else {
+		netdev_err(vif->ndev, "%s unknow type:%x\n", __func__, info->type);
+	}
+
+	return 0;
+}
+
 static const char *cmdevt_evt2str(u8 evt)
 {
 	switch (evt) {
@@ -260,6 +285,8 @@ static const char *cmdevt_evt2str(u8 evt)
 		return "EVT_ACS_LTE_CONFLICT_EVENT";
 	case EVT_FRESH_POWER_BO:
 		return "EVT_FRESH_POWER_BO";
+	case EVT_REPORT_IP_ADDR:
+		return "EVT_REPORT_IP_ADDR";
 	default:
 		return "WIFI_EVENT_UNKNOWN";
 	}
@@ -3796,6 +3823,9 @@ unsigned short sc2355_rx_evt_process(struct sprd_priv *priv, u8 *msg)
 #endif /* CONFIG_SPRD_WLAN_VENDOR_SPECIFIC */
 	case EVT_FRESH_POWER_BO:
 		sc2355_evt_pw_backoff(vif, data, len);
+		break;
+	case EVT_REPORT_IP_ADDR:
+		cmdevt_report_ip_addr(vif, data, len);
 		break;
 	default:
 		pr_info("unsupported event: %d\n", hdr->cmd_id);
