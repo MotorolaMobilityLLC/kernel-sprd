@@ -550,15 +550,22 @@ static int vsp_parse_dt(struct platform_device *pdev)
 
 static int vsp_nocache_mmap(struct file *filp, struct vm_area_struct *vma)
 {
+	size_t memsize = vma->vm_end - vma->vm_start;
+
+	if (memsize > SPRD_VSP_MAP_SIZE) {
+		pr_err("%s, need:%lx should be:%x ", __func__, memsize, SPRD_VSP_MAP_SIZE);
+		return -EINVAL;
+	}
+
 	vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
 	vma->vm_pgoff = (sprd_vsp_phys_addr >> PAGE_SHIFT);
 	if (remap_pfn_range(vma, vma->vm_start, vma->vm_pgoff,
-			    vma->vm_end - vma->vm_start, vma->vm_page_prot))
+			    memsize, vma->vm_page_prot))
 		return -EAGAIN;
 
 	pr_info("mmap %x,%lx,%x\n", (unsigned int)PAGE_SHIFT,
 		(unsigned long)vma->vm_start,
-		(unsigned int)(vma->vm_end - vma->vm_start));
+		(unsigned int)(memsize));
 	return 0;
 }
 

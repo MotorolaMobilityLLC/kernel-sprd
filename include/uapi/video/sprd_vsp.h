@@ -19,7 +19,7 @@
 #include <sys/ioctl.h>
 #endif
 
-#define SPRD_VSP_MAP_SIZE 0xA000
+#define SPRD_VSP_MAP_SIZE 0x14000
 #define SPRD_VSP_CLK_LEVEL_NUM 5
 
 #define SPRD_VSP_IOCTL_MAGIC 'm'
