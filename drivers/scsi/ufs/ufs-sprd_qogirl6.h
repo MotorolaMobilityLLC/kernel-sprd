@@ -44,6 +44,8 @@ struct ufs_sprd_host {
 
 };
 
+extern int sprd_get_soc_id(sprd_soc_id_type_t soc_id_type, u32 *id, int id_len);
+
 #define AUTO_H8_IDLE_TIME_10MS 0x1001
 
 /* UFS analog registers */
@@ -116,4 +118,5 @@ struct ufs_sprd_host {
 #define	MPHY_APB_HSTXSCLKINV1_MASK BIT(13)
 #define	MPHY_APB_HSTXSCLKINV1_VAL BIT(13)
 
+#define AON_VER_UFS 1
 #endif/* _UFS_SPRD_H_ */
