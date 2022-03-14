@@ -493,16 +493,23 @@ static long jpg_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 
 static int jpg_nocache_mmap(struct file *filp, struct vm_area_struct *vma)
 {
+	size_t memsize = vma->vm_end - vma->vm_start;
+
+	if (memsize > SPRD_JPG_MAP_SIZE) {
+		pr_err("%s, need:%lx should be:%x ", __func__, memsize, SPRD_JPG_MAP_SIZE);
+		return -EINVAL;
+	}
+
 	vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
 	vma->vm_pgoff = (hw_dev.sprd_jpg_phys >> PAGE_SHIFT);
 	if (remap_pfn_range(vma, vma->vm_start, vma->vm_pgoff,
-			    vma->vm_end - vma->vm_start, vma->vm_page_prot)) {
+			    memsize, vma->vm_page_prot)) {
 		dev_err(hw_dev.jpg_dev, "%s failed\n", __func__);
 		return -EAGAIN;
 	}
 	dev_info(hw_dev.jpg_dev, "mmap %x,%x,%x,%lx\n", (unsigned int)PAGE_SHIFT,
 		(unsigned int)vma->vm_start,
-		(unsigned int)(vma->vm_end - vma->vm_start),
+		(unsigned int)(memsize),
 		hw_dev.sprd_jpg_phys);
 	return 0;
 }

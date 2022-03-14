@@ -23,6 +23,7 @@
 #include <stdio.h>
 #include <sys/ioctl.h>
 #endif
+#define SPRD_JPG_MAP_SIZE 0x6000
 
 
 #define SPRD_JPG_IOCTL_MAGIC 'm'
