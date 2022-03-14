@@ -247,6 +247,7 @@ static int sc27xx_typec_connect(struct sc27xx_typec *sc, u32 status)
 		dev_err(sc->dev, "failed to read DBG1 register.\n");
 		return ret;
 	}
+	
 	val &= SC27XX_CC_MASK_DBG1;
 
 	switch (val) {
@@ -260,6 +261,7 @@ static int sc27xx_typec_connect(struct sc27xx_typec *sc, u32 status)
 			cc_polarity = TYPEC_POLARITY_CC1;
 		break;
 	}
+	dev_err(sc->dev, "%s.%x;%x;\n",__func__,val,cc_polarity);
 	typec_set_cc_polarity_role(sc->port, cc_polarity);
 
 	return 0;
