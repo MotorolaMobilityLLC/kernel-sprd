@@ -9,6 +9,6 @@ typedef enum {
 	AON_VER_ID,
 } sprd_soc_id_type_t;
 
-int sprd_get_soc_id(sprd_soc_id_type_t soc_id_type, u32 *id, int id_len);
+extern int sprd_get_soc_id(sprd_soc_id_type_t soc_id_type, u32 *id, int id_len);
 
 #endif

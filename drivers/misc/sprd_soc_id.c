@@ -71,6 +71,8 @@ int sprd_get_soc_id(sprd_soc_id_type_t soc_id_type, u32 *id, int id_len)
 	return 0;
 }
 
+EXPORT_SYMBOL(sprd_get_soc_id);
+
 static ssize_t read_socid(struct file *file, char  *buf,
 			size_t count, loff_t *data)
 {
@@ -81,9 +83,9 @@ static ssize_t read_socid(struct file *file, char  *buf,
 	for (i = 0; i < KIND_OF_SOCID; i++) {
 		n += sprintf(c + n, "%s ", syscon_name[i]);
 		sprd_get_soc_id(i, &value[0], 2);
-		n += sprintf(c + n, "0x%lx", value[0]);
+		n += sprintf(c + n, "0x%x", value[0]);
 		if (i <= 1)
-			n += sprintf(c + n, "  0x%lx", value[1]);
+			n += sprintf(c + n, "  0x%x", value[1]);
 		n += sprintf(c + n, "%s", "\n");
 	}
 
