@@ -805,7 +805,9 @@
 				sprd,syscon-enable = <&aon_apb_regs>;
 				sprd,syscon-apahb = <&ap_ahb_regs>;
 				sprd,syscon-anag4 = <&anlg_phy_g4_regs>;
-				sprd,vdd-voltage = <3300000>;
+				sprd,vdd-voltage = <3050000>;
+				io-channels = <&pmic_adc 30>, <&pmic_adc 31>;
+				io-channel-names = "dp", "dm";
 				#phy-cells = <0>;
 			};
 		};
