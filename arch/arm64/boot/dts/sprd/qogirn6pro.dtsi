@@ -825,7 +825,7 @@
 			ranges;
 
 			mm_domain: mm_domain {
-				compatible = "sprd,qogirl6pro-camsys-domain";
+				compatible = "sprd,qogirn6pro-camsys-domain";
 				force_shutdown = <&pmu_apb_regs
 				REG_PMU_APB_PD_CAMERA_CFG_0
 				MASK_PMU_APB_PD_CAMERA_FORCE_SHUTDOWN>;
