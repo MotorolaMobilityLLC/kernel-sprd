@@ -144,7 +144,7 @@ struct camsys_power_info {
 			struct clk *mm_mtx_clk_parent;
 			struct clk *mm_mtx_clk_defalut;
 			struct register_gpr regs[9];
-		} qogirl6pro;
+		} qogirn6pro;
 	} u;
 };
 
@@ -153,7 +153,7 @@ extern  struct camsys_power_ops camsys_power_ops_l3;
 extern  struct camsys_power_ops camsys_power_ops_le;
 extern  struct camsys_power_ops camsys_power_ops_pike2;
 extern  struct camsys_power_ops camsys_power_ops_qogirl6;
-extern  struct camsys_power_ops camsys_power_ops_qogirl6pro;
+extern  struct camsys_power_ops camsys_power_ops_qogirn6pro;
 
 int sprd_mm_pw_notify_register(struct notifier_block *nb);
 int sprd_mm_pw_notify_unregister(struct notifier_block *nb);
