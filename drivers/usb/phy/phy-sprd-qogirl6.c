@@ -628,15 +628,11 @@ static enum usb_charger_type sprd_hsphy_retry_charger_detect(struct usb_phy *x)
 	int cnt = 20;
 
 	if (!phy->dm || !phy->dp) {
-       dev_info(x->dev, "iio resource is not ready, try again\n");
-       phy->dp = devm_iio_channel_get(x->dev, "dp");
-       phy->dm = devm_iio_channel_get(x->dev, "dm");
-		if (!phy->dm || !phy->dp) {
-			dev_err(x->dev, " phy->dp:%p, phy->dm:%p\n",
-				phy->dp, phy->dm);
-			return UNKNOWN_TYPE;
-		}
+		dev_err(x->dev, " phy->dp:%p, phy->dm:%p\n",
+			phy->dp, phy->dm);
+		return UNKNOWN_TYPE;
 	}
+
 	regmap_update_bits(phy->pmic,
 		SC2730_ADC_OFFSET | SC2730_CHARGE_DET_FGU_CTRL,
 		BIT_DP_DM_AUX_EN | BIT_DP_DM_BC_ENB,
