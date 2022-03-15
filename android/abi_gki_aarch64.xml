@@ -2478,6 +2478,9 @@
       <elf-symbol name='pipe_lock' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xd8e3b6b1'/>
       <elf-symbol name='pipe_unlock' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x8cd76dc3'/>
       <elf-symbol name='pktgen_xfrm_outer_mode_output' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x707a8021'/>
+      <elf-symbol name='pkvm_iommu_resume' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x142f508f'/>
+      <elf-symbol name='pkvm_iommu_s2mpu_register' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xf1194caa'/>
+      <elf-symbol name='pkvm_iommu_suspend' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x77b8e58'/>
       <elf-symbol name='platform_device_add' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x8a2539c9'/>
       <elf-symbol name='platform_device_add_data' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xc3e088aa'/>
       <elf-symbol name='platform_device_add_resources' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x7b131a34'/>
@@ -105953,8 +105956,8 @@
         <parameter type-id='1ea237a6' name='ws' filepath='drivers/base/power/wakeup.c' line='641' column='1'/>
         <return type-id='48b5725f'/>
       </function-decl>
-      <function-decl name='__printk_ratelimit' mangled-name='__printk_ratelimit' filepath='kernel/printk/printk.c' line='3302' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='__printk_ratelimit'>
-        <parameter type-id='80f4b756' name='func' filepath='kernel/printk/printk.c' line='3302' column='1'/>
+      <function-decl name='__printk_ratelimit' mangled-name='__printk_ratelimit' filepath='kernel/printk/printk.c' line='3315' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='__printk_ratelimit'>
+        <parameter type-id='80f4b756' name='func' filepath='kernel/printk/printk.c' line='3315' column='1'/>
         <return type-id='95e97e5e'/>
       </function-decl>
       <function-decl name='__pskb_pull_tail' mangled-name='__pskb_pull_tail' filepath='net/core/skbuff.c' line='2182' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='__pskb_pull_tail'>
@@ -106794,13 +106797,13 @@
         <parameter type-id='7359adad' name='le' filepath='lib/find_bit.c' line='34' column='1'/>
         <return type-id='7359adad'/>
       </function-decl>
-      <function-decl name='_printk' mangled-name='_printk' filepath='kernel/printk/printk.c' line='2264' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='_printk'>
-        <parameter type-id='80f4b756' name='fmt' filepath='kernel/printk/printk.c' line='2264' column='1'/>
+      <function-decl name='_printk' mangled-name='_printk' filepath='kernel/printk/printk.c' line='2277' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='_printk'>
+        <parameter type-id='80f4b756' name='fmt' filepath='kernel/printk/printk.c' line='2277' column='1'/>
         <parameter is-variadic='yes'/>
         <return type-id='95e97e5e'/>
       </function-decl>
-      <function-decl name='_printk_deferred' mangled-name='_printk_deferred' filepath='kernel/printk/printk.c' line='3281' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='_printk_deferred'>
-        <parameter type-id='80f4b756' name='fmt' filepath='kernel/printk/printk.c' line='3281' column='1'/>
+      <function-decl name='_printk_deferred' mangled-name='_printk_deferred' filepath='kernel/printk/printk.c' line='3294' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='_printk_deferred'>
+        <parameter type-id='80f4b756' name='fmt' filepath='kernel/printk/printk.c' line='3294' column='1'/>
         <parameter is-variadic='yes'/>
         <return type-id='95e97e5e'/>
       </function-decl>
@@ -108681,11 +108684,11 @@
         <return type-id='48b5725f'/>
       </function-decl>
       <var-decl name='console_printk' type-id='2020bac4' mangled-name='console_printk' visibility='default' filepath='kernel/printk/printk.c' line='66' column='1' elf-symbol-id='console_printk'/>
-      <var-decl name='console_suspend_enabled' type-id='b50a4934' mangled-name='console_suspend_enabled' visibility='default' filepath='kernel/printk/printk.c' line='2447' column='1' elf-symbol-id='console_suspend_enabled'/>
-      <function-decl name='console_trylock' mangled-name='console_trylock' filepath='kernel/printk/printk.c' line='2550' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='console_trylock'>
+      <var-decl name='console_suspend_enabled' type-id='b50a4934' mangled-name='console_suspend_enabled' visibility='default' filepath='kernel/printk/printk.c' line='2460' column='1' elf-symbol-id='console_suspend_enabled'/>
+      <function-decl name='console_trylock' mangled-name='console_trylock' filepath='kernel/printk/printk.c' line='2563' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='console_trylock'>
         <return type-id='95e97e5e'/>
       </function-decl>
-      <function-decl name='console_unlock' mangled-name='console_unlock' filepath='kernel/printk/printk.c' line='2612' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='console_unlock'>
+      <function-decl name='console_unlock' mangled-name='console_unlock' filepath='kernel/printk/printk.c' line='2625' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='console_unlock'>
         <return type-id='48b5725f'/>
       </function-decl>
       <function-decl name='consume_skb' mangled-name='consume_skb' filepath='net/core/skbuff.c' line='908' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='consume_skb'>
@@ -118323,6 +118326,19 @@
         <parameter type-id='0fbf3cfd' name='skb' filepath='net/xfrm/xfrm_output.c' line='482' column='1'/>
         <return type-id='95e97e5e'/>
       </function-decl>
+      <function-decl name='pkvm_iommu_resume' mangled-name='pkvm_iommu_resume' filepath='arch/arm64/kvm/iommu.c' line='51' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='pkvm_iommu_resume'>
+        <parameter type-id='fa0b179b' name='dev' filepath='arch/arm64/kvm/iommu.c' line='51' column='1'/>
+        <return type-id='95e97e5e'/>
+      </function-decl>
+      <function-decl name='pkvm_iommu_s2mpu_register' mangled-name='pkvm_iommu_s2mpu_register' filepath='arch/arm64/kvm/iommu/s2mpu.c' line='72' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='pkvm_iommu_s2mpu_register'>
+        <parameter type-id='fa0b179b' name='dev' filepath='arch/arm64/kvm/iommu/s2mpu.c' line='72' column='1'/>
+        <parameter type-id='2522883d' name='addr' filepath='arch/arm64/kvm/iommu/s2mpu.c' line='72' column='1'/>
+        <return type-id='95e97e5e'/>
+      </function-decl>
+      <function-decl name='pkvm_iommu_suspend' mangled-name='pkvm_iommu_suspend' filepath='arch/arm64/kvm/iommu.c' line='44' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='pkvm_iommu_suspend'>
+        <parameter type-id='fa0b179b' name='dev' filepath='arch/arm64/kvm/iommu.c' line='44' column='1'/>
+        <return type-id='95e97e5e'/>
+      </function-decl>
       <var-decl name='platform_bus' type-id='66e487eb' mangled-name='platform_bus' visibility='default' filepath='drivers/base/platform.c' line='40' column='1' elf-symbol-id='platform_bus'/>
       <var-decl name='platform_bus_type' type-id='b31bfc8a' mangled-name='platform_bus_type' visibility='default' filepath='drivers/base/platform.c' line='1474' column='1' elf-symbol-id='platform_bus_type'/>
       <function-decl name='platform_device_add' mangled-name='platform_device_add' filepath='drivers/base/platform.c' line='651' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='platform_device_add'>
@@ -119126,8 +119142,8 @@
         <parameter type-id='80f4b756' name='name' filepath='fs/char_dev.c' line='200' column='1'/>
         <return type-id='95e97e5e'/>
       </function-decl>
-      <function-decl name='register_console' mangled-name='register_console' filepath='kernel/printk/printk.c' line='2941' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='register_console'>
-        <parameter type-id='b9aa0100' name='newcon' filepath='kernel/printk/printk.c' line='2941' column='1'/>
+      <function-decl name='register_console' mangled-name='register_console' filepath='kernel/printk/printk.c' line='2954' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='register_console'>
+        <parameter type-id='b9aa0100' name='newcon' filepath='kernel/printk/printk.c' line='2954' column='1'/>
         <return type-id='48b5725f'/>
       </function-decl>
       <function-decl name='register_die_notifier' mangled-name='register_die_notifier' filepath='kernel/notifier.c' line='533' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='register_die_notifier'>
@@ -122552,7 +122568,7 @@
         <parameter type-id='7359adad' name='th_pressure' filepath='drivers/base/arch_topology.c' line='166' column='1'/>
         <return type-id='48b5725f'/>
       </function-decl>
-      <function-decl name='touch_softlockup_watchdog' mangled-name='touch_softlockup_watchdog' filepath='kernel/watchdog.c' line='273' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='touch_softlockup_watchdog'>
+      <function-decl name='touch_softlockup_watchdog' mangled-name='touch_softlockup_watchdog' filepath='kernel/watchdog.c' line='275' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='touch_softlockup_watchdog'>
         <return type-id='48b5725f'/>
       </function-decl>
       <function-decl name='trace_array_destroy' mangled-name='trace_array_destroy' filepath='kernel/trace/trace.c' line='9372' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='trace_array_destroy'>
@@ -123156,8 +123172,8 @@
         <parameter type-id='f0981eeb' name='count' filepath='fs/char_dev.c' line='311' column='1'/>
         <return type-id='48b5725f'/>
       </function-decl>
-      <function-decl name='unregister_console' mangled-name='unregister_console' filepath='kernel/printk/printk.c' line='3077' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='unregister_console'>
-        <parameter type-id='b9aa0100' name='console' filepath='kernel/printk/printk.c' line='3077' column='1'/>
+      <function-decl name='unregister_console' mangled-name='unregister_console' filepath='kernel/printk/printk.c' line='3090' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='unregister_console'>
+        <parameter type-id='b9aa0100' name='console' filepath='kernel/printk/printk.c' line='3090' column='1'/>
         <return type-id='95e97e5e'/>
       </function-decl>
       <function-decl name='unregister_filesystem' mangled-name='unregister_filesystem' filepath='fs/filesystems.c' line='108' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='unregister_filesystem'>
