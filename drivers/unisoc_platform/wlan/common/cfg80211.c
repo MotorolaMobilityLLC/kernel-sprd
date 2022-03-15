@@ -733,10 +733,12 @@ int sprd_cfg80211_connect(struct wiphy *wiphy, struct net_device *ndev,
 	struct cmd_connect con = { 0 };
 	enum sprd_sm_state old_state = vif->sm_state;
 	bool ie_set_flag = false;
+	u16 center_freq = 0;
 	int is_wep = (sme->crypto.cipher_group == WLAN_CIPHER_SUITE_WEP40) ||
 	    (sme->crypto.cipher_group == WLAN_CIPHER_SUITE_WEP104);
 	int ret, i;
 
+	vif->is_5g_freq = 0;
 	/* workround for bug 795430 */
 	if (!(vif->state & VIF_STATE_OPEN)) {
 		wiphy_err(wiphy,
@@ -867,11 +869,13 @@ int sprd_cfg80211_connect(struct wiphy *wiphy, struct net_device *ndev,
 	/* Auth RX unencrypted EAPOL is not implemented, do nothing */
 	/* Set channel */
 	if (sme->channel) {
+		center_freq = sme->channel->center_freq;
 		con.channel =
 		    ieee80211_frequency_to_channel(sme->channel->center_freq);
 		netdev_info(ndev, "channel %d, band %d, center_freq %u.\n",
 			con.channel, sme->channel->band, sme->channel->center_freq);
 	} else if (sme->channel_hint) {
+		center_freq = sme->channel_hint->center_freq;
 		con.channel =
 		    ieee80211_frequency_to_channel(sme->
 						   channel_hint->center_freq);
@@ -880,6 +884,8 @@ int sprd_cfg80211_connect(struct wiphy *wiphy, struct net_device *ndev,
 	} else {
 		netdev_info(ndev, "No channel specified!\n");
 	}
+	if (center_freq >= 5000)
+		vif->is_5g_freq = 1;
 
 	/* Set BSSID */
 	if (sme->bssid) {

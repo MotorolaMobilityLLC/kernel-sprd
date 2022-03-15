@@ -1924,6 +1924,14 @@ int sprd_tx_filter_packet(struct sk_buff *skb, struct net_device *ndev)
 
 	if (ethhdr->h_proto == htons(ETH_P_ARP)) {
 		pr_info("incoming ARP packet\n");
+		pr_info("is_5g_flag is %d, special_data_flag is %d\n",
+			vif->is_5g_freq, special_data_flag);
+		if (vif->is_5g_freq == 1) {
+			if ((special_data_flag == 2) ||
+			   ((special_data_flag == 1) &&
+			    (vif->prwise_crypto == SPRD_CIPHER_NONE)))
+				return 1;
+		}
 		sprd_xmit_data2cmd_wq(skb, ndev);
 		return NETDEV_TX_OK;
 	}
