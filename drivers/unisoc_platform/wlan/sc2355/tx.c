@@ -643,7 +643,7 @@ RETRY:
 		printk_ratelimited("sc2355, %s, not RESUMED\n", __func__);
 		return;
 	}
-	if (hif->pushfail_count > 100)
+	if (hif->pushfail_count > 100 && priv->hif.hw_type == SPRD_HW_SC2355_PCIE)
 		usleep_range(5990, 6010);
 
 	if (!list_empty(&tx_mgmt->xmit_msg_list.to_send_list)) {
@@ -652,7 +652,7 @@ RETRY:
 			return;
 		}
 	}
-	if (hif->pushfail_count > 100)
+	if (hif->pushfail_count > 100 && priv->hif.hw_type == SPRD_HW_SC2355_PCIE)
 		sc2355_flush_tosendlist(tx_mgmt);
 
 	for (mode = SPRD_MODE_NONE; mode < SPRD_MODE_MAX; mode++) {

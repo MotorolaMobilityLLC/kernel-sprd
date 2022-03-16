@@ -201,7 +201,7 @@ static int tcp_ack_alloc_index(struct sprd_tcp_ack_manage *ack_m)
 	return -1;
 }
 
-/* return val: 0 for not handle tx, 1 for handle tx
+/* return val: 0 for handle tx, 1 for not handle tx
  * type: 2 new_msg must be send
  * 1 new_msg is ACK and can be dropped,
  * unless some conditions matched.

@@ -436,13 +436,9 @@ static void mm_normal_data_process(struct mem_mgmt *mm_entry,
 		skb_len = SKB_DATA_ALIGN(sizeof(struct skb_shared_info)) +
 		    SKB_DATA_ALIGN(msdu_total_len(msdu_desc) +
 				   mm_entry->hif_offset);
-		if (likely(skb_len <= len)) {
-			/* Use len instead of skb_len
-			 * because we could reserve more tailroom
-			 */
-
+		if (likely(skb_len <= len))
 			skb = mm_build_skb(data, skb_len, buffer_type);
-		} else {
+		else {
 			/* Should not happen */
 			pr_err("%s: data len is %d, skb need %d\n",
 			       __func__, len, skb_len);

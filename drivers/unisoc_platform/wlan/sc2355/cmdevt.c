@@ -2601,7 +2601,6 @@ int sc2355_xmit_data2cmd(struct sk_buff *skb, struct net_device *ndev)
 		if (eap->type == EAP_PACKET_TYPE &&
 		    eap->opcode == EAP_WSC_DONE) {
 			pr_info("%s, EAP_WSC_DONE!\n", __func__);
-			vif->wps_flag = 1;
 		}
 	}
 

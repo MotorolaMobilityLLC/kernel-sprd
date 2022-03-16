@@ -1133,21 +1133,22 @@ int sc2355_hif_fill_msdu_dscr(struct sprd_vif *vif,
 	memset(dscr, 0x00, sizeof(struct tx_msdu_dscr));
 	dscr->common.type = (type == SPRD_TYPE_CMD ?
 			     SPRD_TYPE_CMD : SPRD_TYPE_DATA);
-	dscr->common.direction_ind = 0;
-	dscr->common.need_rsp = 0;/*TODO*/
+/*remove unnecessary repeated assignment*/
+	//dscr->common.direction_ind = 0;
+	//dscr->common.need_rsp = 0;/*TODO*/
 	dscr->common.interface = vif->ctx_id;
 	//dscr->pkt_len = cpu_to_le16(skb->len - DSCR_LEN - dscr_rsvd);
 	dscr->pkt_len = cpu_to_le16(skb->len - DSCR_LEN);
 	dscr->offset = DSCR_LEN;
 /*TODO*/
 	dscr->tx_ctrl.sw_rate = (is_special_data == 1 ? 1 : 0);
-	dscr->tx_ctrl.wds = 0; /*TBD*/
-	dscr->tx_ctrl.swq_flag = 0; /*TBD*/
-	dscr->tx_ctrl.rsvd = 0; /*TBD*/
-	dscr->tx_ctrl.next_buffer_type = 0;
-	dscr->tx_ctrl.pcie_mh_readcomp = 0;
-	dscr->buffer_info.msdu_tid = 0;
-	dscr->buffer_info.mac_data_offset = 0;
+	//dscr->tx_ctrl.wds = 0; /*TBD*/
+	//dscr->tx_ctrl.swq_flag = 0; /*TBD*/
+	//dscr->tx_ctrl.rsvd = 0; /*TBD*/
+	//dscr->tx_ctrl.next_buffer_type = 0;
+	//dscr->tx_ctrl.pcie_mh_readcomp = 0;
+	//dscr->buffer_info.msdu_tid = 0;
+	//dscr->buffer_info.mac_data_offset = 0;
 	dscr->sta_lut_index = lut_index;
 
 	/* For MH to get phys addr */

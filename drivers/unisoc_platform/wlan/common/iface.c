@@ -429,7 +429,6 @@ static netdev_tx_t iface_start_xmit(struct sk_buff *skb, struct net_device *ndev
 
 	msg = sprd_chip_get_msg(&vif->priv->chip, SPRD_TYPE_DATA, vif->mode);
 	if (!msg) {
-		pr_err("%s, %d, get msg bug failed\n", __func__, __LINE__);
 		ndev->stats.tx_fifo_errors++;
 		return NETDEV_TX_BUSY;
 	}
