@@ -12,7 +12,7 @@
 		reg = <0x300>;
 		#address-cells = <1>;
 		#size-cells = <1>;
-		hwlocks = <&hwlock 12>;
+		/* hwlocks = <&hwlock 12>; */
 		/* Data cells */
 		adc_bcal: calib@0 {
 			reg = <0x24 0x2>;

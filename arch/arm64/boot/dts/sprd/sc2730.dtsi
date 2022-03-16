@@ -7,7 +7,7 @@
  */
 
 &adi_bus {
-	sc2730_pmic: pmic@0 {
+	pmic0: pmic@0 {
 		compatible = "sprd,sc2730";
 		reg = <0>;
 		spi-max-frequency = <26000000>;
@@ -20,7 +20,7 @@
 		pmic_eic: gpio@280 {
 			compatible = "sprd,sc2731-eic", "sprd,sc2730-eic";
 			reg = <0x280>;
-			interrupt-parent = <&sc2730_pmic>;
+			interrupt-parent = <&pmic0>;
 			interrupts = <4>;
 			gpio-controller;
 			#gpio-cells = <2>;
@@ -278,3 +278,5 @@
 		};
 	};
 };
+
+#include "sc2730-efuse.dtsi"
