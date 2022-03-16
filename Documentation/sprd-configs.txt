@@ -17112,15 +17112,6 @@ CONFIG_SPRD_PAST_RECORD
 	[must] user
 	[missing plat description] none
 	[function] This function is used to enable sprd tracing code.
-CONFIG_SPRD_PIKE2_POWER_DEBUG
-	[arch] arm
-	[plat] pike2
-	[missing plat] none
-	[field]
-	[subsys]
-	[must]
-	[missing plat description] none
-	[function]
 CONFIG_SPRD_PIKE2_SLEEP
 	[arch] arm
 	[plat] pike2
@@ -17167,27 +17158,9 @@ CONFIG_SPRD_POWER_DEBUG
 	[missing plat description] none
 	[function]
 CONFIG_SPRD_POWER_STAT
-	[arch] arm64
-	[plat] sharkl5Pro
-	[missing plat] sharkl3
-	[field] make
-	[subsys] debug
-	[must] debug
-	[missing plat description] none
-	[function]
-CONFIG_SPRD_POWER_STAT_CORE
-	[arch] arm64
-	[plat] sharkl5Pro
-	[missing plat] sharkl3
-	[field] make
-	[subsys] debug
-	[must] debug
-	[missing plat description] none
-	[function]
-CONFIG_SPRD_POWER_STAT_SHARKL5PRO
-	[arch] arm64
-	[plat] sharkl5Pro
-	[missing plat] sharkl3
+	[arch] all
+	[plat] all
+	[missing plat] none
 	[field] make
 	[subsys] debug
 	[must] debug
@@ -17248,15 +17221,6 @@ CONFIG_SPRD_SFP_SUPPORT
 	[must]
 	[missing plat description] none
 	[function]
-CONFIG_SPRD_SHARKL3_POWER_DEBUG
-	[arch] arm64
-	[plat] sharkl3
-	[missing plat] sharkl5Pro
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
 CONFIG_SPRD_SHARKL3_USB2_PHY
 	[arch] arm64
 	[plat] sharkl3
@@ -17266,15 +17230,6 @@ CONFIG_SPRD_SHARKL3_USB2_PHY
 	[must] user
 	[missing plat description] just for sharkl3 USB PHY.
 	[function] sharkl3 USB phy
-CONFIG_SPRD_SHARKL5PRO_POWER_DEBUG
-	[arch] arm64
-	[plat] sharkl5Pro
-	[missing plat] sharkl3
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
 CONFIG_SPRD_SHARKL5PRO_USB2_PHY
 	[arch] arm64
 	[plat] sharkl5Pro

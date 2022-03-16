@@ -219,24 +219,19 @@ static int (*stat_print[])(struct seq_file *m) = {
 static int stat_read(struct seq_file *m, void *v)
 {
 	struct info_node *pos;
+	struct subsys_sleep_info *info_src;
 	int i;
 
 	seq_printf(m, "Subsys information:\n");
 
 	list_for_each_entry(pos, &info_node_list, list) {
-		pos->info = pos->get(pos->data);
-		if (!pos->info) {
-			pr_err("%s: Get %s error\n", __func__, pos->name);
-			return -EINVAL;
-		}
+		info_src = pos->get(pos->data);
+		if (info_src != NULL)
+			*(pos->info) = *info_src;
 	}
 
 	for (i = 0; stat_print[i]; ++i) {
 		(stat_print[i])(m);
-	}
-
-	list_for_each_entry(pos, &info_node_list, list) {
-		pos->info = NULL;
 	}
 
 	return 0;
@@ -282,8 +277,13 @@ int stat_info_register(char *name, get_info_t *get, void *data)
 		return -ENOMEM;
 	}
 
+	pn->info = kzalloc(sizeof(struct subsys_sleep_info), GFP_KERNEL);
+	if (!pn->info) {
+		mutex_unlock(&info_mutex);
+		return -ENOMEM;
+	}
+
 	pn->name = name;
-	pn->info = NULL;
 	pn->get = get;
 	pn->data = data;
 
@@ -310,6 +310,7 @@ int stat_info_unregister(char *name)
 		if (strcmp(pos->name, name))
 			continue;
 		list_del(&pos->list);
+		kfree(pos->info);
 		kfree(pos);
 		mutex_unlock(&info_mutex);
 		return 0;
@@ -326,7 +327,7 @@ EXPORT_SYMBOL_GPL(stat_info_unregister);
 /**
  * sprd_debugstat_init - add the debug stat
  */
-static int sprd_debugstat_init(void)
+int sprd_debugstat_init(void)
 {
 	struct proc_dir_entry *dir;
 	struct proc_dir_entry *fle;
@@ -346,7 +347,3 @@ static int sprd_debugstat_init(void)
 
 	return 0;
 }
-
-late_initcall(sprd_debugstat_init);
-
-MODULE_LICENSE("GPL v2");

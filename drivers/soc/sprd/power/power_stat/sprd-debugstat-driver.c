@@ -23,6 +23,7 @@
 #include <linux/of_platform.h>
 #include <linux/platform_device.h>
 #include <linux/alarmtimer.h>
+#include <linux/soc/sprd/sprd_pdbg.h>
 #include <linux/sprd_sip_svc.h>
 #include "sprd-debugstat.h"
 
@@ -34,17 +35,18 @@ struct subsys_sleep_info *ap_sleep_info;
 static struct subsys_sleep_info *ap_sleep_info_get(void *data)
 {
 	const struct cpumask *cpu = cpu_online_mask;
-	u32 major, intc_num, intc_bit;
+	u64 major, intc_num, intc_bit;
 
-	ap_sleep_info->total_duration = ktime_get_boot_fast_ns() / 1000000000;
+	ap_sleep_info->total_duration = ktime_get_boot_fast_ns();
+	do_div(ap_sleep_info->total_duration, 1000000000);
 
 	ap_sleep_info->active_core = (uint32_t)(cpu->bits[0]);
 
-	pwr_ops->get_wakeup_source(&major, NULL, NULL);
+	pwr_ops->get_pdbg_info(PDBG_WS, 0, &major, NULL, NULL, NULL);
 	intc_num = (major >> 16) & 0xFFFF;
 	intc_bit = major & 0xFFFF;
 
-	ap_sleep_info->wakeup_reason = (intc_num << 5) + intc_bit;
+	ap_sleep_info->wakeup_reason = (uint32_t)((intc_num << 5) + intc_bit);
 
 	return ap_sleep_info;
 }
@@ -52,7 +54,10 @@ static struct subsys_sleep_info *ap_sleep_info_get(void *data)
 #ifdef CONFIG_PM_SLEEP
 static int sprd_debugstat_suspend(struct device *dev)
 {
-	ap_sleep_info->last_sleep_duration = (u32)(ktime_get_boot_fast_ns() / 1000000000);
+	u64 last_sleep_duration = ktime_get_boot_fast_ns();
+
+	do_div(last_sleep_duration, 1000000000);
+	ap_sleep_info->last_sleep_duration = (u32)last_sleep_duration;
 
 	return 0;
 }
@@ -60,8 +65,10 @@ static int sprd_debugstat_suspend(struct device *dev)
 static int sprd_debugstat_resume(struct device *dev)
 {
 	u32 sleep, wakeup;
+	u64 last_wakeup_duration = ktime_get_boot_fast_ns();
 
-	ap_sleep_info->last_wakeup_duration = (u32)(ktime_get_boot_fast_ns() / 1000000000);
+	do_div(last_wakeup_duration, 1000000000);
+	ap_sleep_info->last_wakeup_duration = (u32)last_wakeup_duration;
 
 	sleep = ap_sleep_info->last_sleep_duration;
 	wakeup = ap_sleep_info->last_wakeup_duration;
@@ -88,6 +95,8 @@ static int sprd_debugstat_driver_probe(struct platform_device *pdev)
 		pr_err("%s: Get debug device error\n", __func__);
 		return -EINVAL;
 	}
+
+	sprd_debugstat_init();
 
 	sip = sprd_sip_svc_get_handle();
 	if (!sip) {
@@ -134,7 +143,7 @@ static const struct dev_pm_ops sprd_debugstat_pm_ops = {
 };
 
 static const struct of_device_id sprd_debugstat_of_match[] = {
-	{.compatible = "sprd,debugstat-sharkl5pro",},
+	{.compatible = "sprd,debugstat",},
 	{},
 };
 MODULE_DEVICE_TABLE(of, sprd_debugstat_of_match);

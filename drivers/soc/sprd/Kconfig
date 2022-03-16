@@ -28,8 +28,7 @@ config SPRD_PMIC_SYSCON
 	  Enable this configuration option to enable pmic global driver.
 
 source "drivers/soc/sprd/debug/Kconfig"
-source "drivers/soc/sprd/power_debug/Kconfig"
-source "drivers/soc/sprd/power_stat/Kconfig"
+source "drivers/soc/sprd/power/Kconfig"
 source "drivers/soc/sprd/autotest/Kconfig"
 source "drivers/soc/sprd/domain/Kconfig"
 source "drivers/soc/sprd/modem/Kconfig"

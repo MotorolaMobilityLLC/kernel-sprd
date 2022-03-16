@@ -40,4 +40,6 @@ int stat_info_register(char *name, get_info_t *get, void *data);
  */
 int stat_info_unregister(char *name);
 
+int sprd_debugstat_init(void);
+
 #endif /* __SPRD_DEBUGSTAT_H__ */

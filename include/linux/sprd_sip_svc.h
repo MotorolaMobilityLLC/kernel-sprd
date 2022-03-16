@@ -88,8 +88,8 @@ struct sprd_sip_svc_dbg_ops {
  */
 struct sprd_sip_svc_pwr_ops {
 	struct sprd_sip_svc_rev_info rev;
-
 	int (*get_wakeup_source)(u32 *major, u32 *second, u32 *thrid);
+	u64 (*get_pdbg_info)(u32 scene, u32 phase, u64 *r0, u64 *r1, u64 *r2, u64 *r3);
 };
 
 /**
