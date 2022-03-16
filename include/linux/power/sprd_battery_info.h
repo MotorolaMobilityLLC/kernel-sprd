@@ -149,8 +149,11 @@ struct sprd_battery_info {
 	int battery_internal_resistance_ocv_table_len;
 
 	struct sprd_battery_charge_current cur;
-	density_ocv_table *dens_ocv_table;
-	int dens_ocv_table_len;
+	density_ocv_table *cap_calib_dens_ocv_table;
+	int cap_calib_dens_ocv_table_len;
+
+	density_ocv_table *cap_track_dens_ocv_table;
+	int cap_track_dens_ocv_table_len;
 
 	struct sprd_battery_ocv_table *battery_ocv_table[SPRD_BATTERY_OCV_TEMP_MAX];
 	int battery_ocv_table_len[SPRD_BATTERY_OCV_TEMP_MAX];

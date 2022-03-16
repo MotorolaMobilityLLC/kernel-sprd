@@ -411,36 +411,35 @@ static int sprd_battery_energy_density_ocv_table_check(density_ocv_table *table,
 
 static int sprd_battery_parse_energy_density_ocv_table(struct sprd_battery_info *info,
 						       struct device_node *battery_np,
-						       struct power_supply *psy)
+						       struct power_supply *psy,
+						       char *name, int *table_len,
+						       density_ocv_table **dens_ocv_table)
 {
-	struct sprd_battery_energy_density_ocv_table *table;
+	density_ocv_table *table;
 	const __be32 *list;
 	int i, size;
 
-	list = of_get_property(battery_np, "energy-desity-ocv-table", &size);
+	list = of_get_property(battery_np, name, &size);
 	if (!list || !size)
 		return 0;
 
-	info->dens_ocv_table_len = size / (sizeof(density_ocv_table) /
-					   sizeof(int) * sizeof(__be32));
+	*table_len = size / (sizeof(density_ocv_table) / sizeof(int) * sizeof(__be32));
 
-	table = devm_kzalloc(&psy->dev, sizeof(density_ocv_table) *
-			     (info->dens_ocv_table_len + 1), GFP_KERNEL);
+	table = devm_kzalloc(&psy->dev, sizeof(density_ocv_table) * (*table_len + 1), GFP_KERNEL);
 	if (!table)
 		return -ENOMEM;
 
-	for (i = 0; i < info->dens_ocv_table_len; i++) {
+	for (i = 0; i < *table_len; i++) {
 		table[i].engy_dens_ocv_lo = be32_to_cpu(*list++);
 		table[i].engy_dens_ocv_hi = be32_to_cpu(*list++);
-		dev_info(&psy->dev, "engy_dens_ocv_hi = %d, engy_dens_ocv_lo = %d\n",
-			 table[i].engy_dens_ocv_hi, table[i].engy_dens_ocv_lo);
+		dev_info(&psy->dev, "%s: engy_dens_ocv_hi = %d, engy_dens_ocv_lo = %d\n",
+			 name, table[i].engy_dens_ocv_hi, table[i].engy_dens_ocv_lo);
 	}
 
-	info->dens_ocv_table = table;
+	*dens_ocv_table = table;
 
-	if (!sprd_battery_energy_density_ocv_table_check(info->dens_ocv_table,
-							 info->dens_ocv_table_len)) {
-		dev_err(&psy->dev, "density ocv table value is wrong, please check\n");
+	if (!sprd_battery_energy_density_ocv_table_check(*dens_ocv_table, *table_len)) {
+		dev_err(&psy->dev, "%s:  density ocv table value is wrong, please check\n", name);
 		return -EINVAL;
 	}
 
@@ -850,9 +849,21 @@ int sprd_battery_get_battery_info(struct power_supply *psy, struct sprd_battery_
 		return err;
 	}
 
-	err = sprd_battery_parse_energy_density_ocv_table(info, battery_np, psy);
+	err = sprd_battery_parse_energy_density_ocv_table(info, battery_np, psy,
+							  "cap-calib-energy-density-ocv-table",
+							  &info->cap_calib_dens_ocv_table_len,
+							  &info->cap_calib_dens_ocv_table);
 	if (err) {
-		dev_err(&psy->dev, "Fail to parse density ocv table, ret = %d\n", err);
+		dev_err(&psy->dev, "Fail to parse cap cali density ocv table, ret = %d\n", err);
+		return err;
+	}
+
+	err = sprd_battery_parse_energy_density_ocv_table(info, battery_np, psy,
+							  "cap-track-energy-density-ocv-table",
+							  &info->cap_track_dens_ocv_table_len,
+							  &info->cap_track_dens_ocv_table);
+	if (err) {
+		dev_err(&psy->dev, "Fail to parse cap track density ocv table, ret = %d\n", err);
 		return err;
 	}
 
