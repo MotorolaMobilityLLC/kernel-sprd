@@ -2480,6 +2480,20 @@
 				compatible = "sprd,sharkl6pro-cpufreq";
 				//multi-version;
 			};
+
+			socid: socid{
+					compatible = "sprd,soc-id";
+					chip_id = <&aon_apb_regs REG_AON_APB_PLATFORM_ID_L
+						MASK_AON_APB_PLATFORM_ID_L>;
+					plat_id = <&aon_apb_regs REG_AON_APB_PROJECT_ID_L
+						MASK_AON_APB_PROJECT_ID_L>;
+					version_id = <&aon_apb_regs REG_AON_APB_DERIVED_ID
+						MASK_AON_APB_METAL_FIX_ID>;
+					manufacture_id = <&aon_apb_regs  REG_AON_APB_MANUFACTURE_ID
+						MASK_AON_APB_FOUNDRY_ID>;
+					implement_id = <&aon_apb_regs REG_AON_APB_IMPLEMENTATION_ID
+						MASK_AON_APB_STD_CELL>;
+				};
 		};
 
 		agcp {
