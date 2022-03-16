@@ -154,18 +154,17 @@
 		};
 	};
 
-	power: power-debug {
-		compatible = "sprd,power-debug-sharkl3";
+	debug_log: debuglog {
+		compatible                         = "sprd,debuglog";
+		sprd,pdbg-irq-domain-gic           = "GICv3";
+		sprd,pdbg-irq-domain-gpio          = "sprd-gpio-plus";
+		sprd,pdbg-irq-domain-ana           = "spi4.0";
+		sprd,pdbg-irq-domain-ana-eic       = "41800000.spi:pmic@0:gpio-controller@280";
+		sprd,pdbg-irq-domain-ap-eic-async  = "402100a0.gpio";
+	};
 
-		sprd,enable = <1>;
-		sprd,scan-interval = <30>;
-
-		sprd,sys-ap-ahb = <&ap_ahb_regs>;
-		sprd,sys-ap-apb = <&ap_apb_regs>;
-		sprd,sys-pmu-apb = <&pmu_apb_regs>;
-		sprd,sys-aon-apb = <&aon_apb_regs>;
-		sprd,sys-ap-intc = <&ap_intc0_regs &ap_intc1_regs &ap_intc2_regs
-				&ap_intc3_regs &ap_intc4_regs &ap_intc5_regs>;
+	debug_stat: debugstat {
+		compatible = "sprd,debugstat";
 	};
 
 	psci {
