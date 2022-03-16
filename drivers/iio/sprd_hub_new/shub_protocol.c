@@ -136,47 +136,42 @@ static u16 shub_data_checksum(u8 *data, u16 out_len)
 static void research_flag(struct shub_data_processor *stream)
 {
 	u8 *start = stream->cur_header;
+	int i = 0;
 
-	/* slip the first '~'  */
-	if (start[4] == 0x7e) {
-		memmove(start + 4, start + 5, 5);
-		stream->head_size = 9;
-		stream->state = SHUB_RECV_COLLECT_HEAD;
-	} else {
-		unsigned int value;
-
-		value = start[5];
-		value <<= 8;
-		value |= start[6];
-		value <<= 8;
-		value |= start[7];
-		value <<= 8;
-		value |= start[8];
-		 /* get the [5--8] is magic head  */
-		if (value == 0x7e7e7e7e) {
-			start[4] = start[9];
-			stream->head_size = 5;
-			stream->state = SHUB_RECV_COLLECT_HEAD;
-		} else {	/* get [6--9] */
-			value <<= 8;
-			value |= start[9];
-			if (value == 0x7e7e7e7e) {
-				stream->head_size = 4;
-				stream->state = SHUB_RECV_COLLECT_HEAD;
-			} else if (0x7e7e7e == (0xffffff & value)) {
-				stream->head_size = 3;
-				stream->state = SHUB_RECV_SEARCH_FLAG;
-			} else if (0x7e7e == (0xffff & value)) {
-				stream->head_size = 2;
-				stream->state = SHUB_RECV_SEARCH_FLAG;
-			} else if (0x7e == (0xff & value)) {
-				stream->head_size = 1;
-				stream->state = SHUB_RECV_SEARCH_FLAG;
-			} else {
-				stream->head_size = 0;
-				stream->state = SHUB_RECV_SEARCH_FLAG;
-			}
+	for (i = SHUB_MAX_HEAD_LEN - 1; i > 2 ;  i--) {
+		if ((i == 3) && (start[SHUB_MAX_HEAD_LEN - 1] != 0x7e)) {
+			stream->head_size = 0;
+			stream->state = SHUB_RECV_SEARCH_FLAG;
+			break;
 		}
+
+		if ((start[i] == 0x7e)
+			&& (start[i - 1] == 0x7e)
+			&& (start[i - 2] == 0x7e)
+			&& (start[i - 3] == 0x7e)) {
+			memmove(start, start + i - 3, SHUB_MAX_HEAD_LEN - (i - 3));
+			stream->head_size = SHUB_MAX_HEAD_LEN - (i - 3);
+			stream->state = SHUB_RECV_COLLECT_HEAD;
+			break;
+		}
+	}
+
+	if ((stream->head_size == SHUB_MAX_HEAD_LEN) &&
+		(start[SHUB_MAX_HEAD_LEN - 1] == 0x7e)) {
+		u16 value_2_byte = 0;
+
+		value_2_byte |= start[7];
+		value_2_byte <<= 8;
+		value_2_byte |= start[8];
+
+		if ((0xffff & value_2_byte) == 0x7e7e)
+			stream->head_size = 3;
+		else if ((0xff & value_2_byte) == 0x7e)
+			stream->head_size = 2;
+		else
+			stream->head_size = 1;
+
+		stream->state = SHUB_RECV_SEARCH_FLAG;
 	}
 }
 
@@ -219,34 +214,26 @@ static void shub_collect_header(struct shub_data_processor *stream,
 		stream->cmd_data.length = data_len;
 		if (data_len == 0) {
 			shub_dispatch(&stream->cmd_data);
-			stream->state = SHUB_RECV_SEARCH_FLAG;
-			stream->head_size = 0;
-			stream->received_data_len = 0;
-			stream->data_len = 0;
+			shub_init_parse_packet(stream);
 		} else {
 			if (data_len <
 			    (MAX_MSG_BUFF_SIZE - SHUB_MAX_HEAD_LEN -
 			     SHUB_MAX_DATA_CRC)) {
 				stream->state = SHUB_RECV_DATA;
 			} else {
-				stream->error_num++;
 				research_flag(stream);
-				pr_err("error=%d dataLen=%d\n",
-				       stream->error_num, data_len);
+				pr_err("dataLen=%d\n", data_len);
 			}
 		}
-
 	} else {
-		stream->error_num++;
 		pr_err("crc_inframe=0x%x crc=0x%x\n", crc_inframe, crc);
 		research_flag(stream);
-		pr_err("error = %d\n", stream->error_num);
 	}
 }
 
 static int shub_collect_data(struct shub_data_processor *stream,
-			     u8 *data, u16 len,
-			     u16 *processed_len)
+				u8 *data, u16 len,
+				u16 *processed_len)
 {
 	u16 n_frame_remain =
 	    stream->data_len - stream->received_data_len + SHUB_MAX_DATA_CRC;
@@ -254,6 +241,7 @@ static int shub_collect_data(struct shub_data_processor *stream,
 	u16 n_copy = n_frame_remain > len ? len : n_frame_remain;
 	u16 data_crc;
 	u16 crc_inframe;
+	u16 i;
 
 	memcpy(p_packet->buff + stream->received_data_len, data, n_copy);
 	stream->received_data_len += n_copy;
@@ -274,18 +262,26 @@ static int shub_collect_data(struct shub_data_processor *stream,
 				/* gps_dispatch(&stream->cmd_data); */
 			} else {
 				pr_info
-					("err type=%d,subtype=%d len=%d\n",
-				     p_packet->type, p_packet->subtype,
-				     p_packet->length);
-				pr_info
-				    ("err CRC=%d crc_inframe=%d\n",
-				     data_crc, crc_inframe);
+				("err type=%d,subtype=%d len=%d\n",
+				 p_packet->type, p_packet->subtype,
+				 p_packet->length);
+				pr_err
+				("err CRC=%d crc_inframe=%d *processed_len=%d\n",
+				 data_crc, crc_inframe, *processed_len);
+			}
+
+			/* fix data_crc != crc_inframe error*/
+			for (i = 0; i < stream->received_data_len; i++) {
+				if (stream->cmd_data.buff[i] == 0x7E) {
+					*processed_len =
+						((i - (stream->received_data_len - n_copy)) >= 0) ?
+						(i - (stream->received_data_len - n_copy)) : 0;
+					pr_err("it has processed %d data", *processed_len);
+					break;
+				}
 			}
 		}
-		stream->state = SHUB_RECV_SEARCH_FLAG;
-		stream->head_size = 0;
-		stream->received_data_len = 0;
-		stream->data_len = 0;
+		shub_init_parse_packet(stream);
 	}
 
 	return 0;
@@ -308,7 +304,6 @@ void shub_init_parse_packet(struct shub_data_processor *stream)
 	stream->head_size = 0;
 	stream->received_data_len = 0;
 	stream->data_len = 0;
-	stream->error_num = 0;
 }
 
 /**
@@ -325,7 +320,7 @@ void shub_init_parse_packet(struct shub_data_processor *stream)
  * Negetive  Error
  */
 int shub_parse_one_packet(struct shub_data_processor *stream,
-			  u8 *data, u16 len)
+				u8 *data, u16 len)
 {
 	u8 *input = data;
 	u16 remain_len = len;
@@ -338,15 +333,15 @@ int shub_parse_one_packet(struct shub_data_processor *stream,
 		switch (stream->state) {
 		case SHUB_RECV_SEARCH_FLAG:
 			shub_search_flag(stream, input, remain_len,
-					 &processed_len);
+				&processed_len);
 			break;
 		case SHUB_RECV_COLLECT_HEAD:
 			shub_collect_header(stream, input, remain_len,
-					    &processed_len);
+				&processed_len);
 			break;
 		case SHUB_RECV_DATA:
 			shub_collect_data(stream, input, remain_len,
-					  &processed_len);
+				&processed_len);
 			break;
 		default:
 			break;
@@ -378,8 +373,8 @@ void shub_fill_head(struct cmd_data *in_data, u8 *out_data)
 }
 
 int shub_encode_one_packet(struct cmd_data *in_data,
-			   u8 *out_data,
-			   u16 out_len)
+				u8 *out_data,
+				u16 out_len)
 {
 	int len = 0;
 	u8 *crc_data = NULL;

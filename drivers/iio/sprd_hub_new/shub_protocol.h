@@ -95,7 +95,6 @@ struct shub_data_processor {
 	u16 head_size; /* receive head len */
 	u16 received_data_len;
 	u16 data_len;
-	u16 error_num;
 	u8 cur_header[SHUB_MAX_HEAD_LEN];
 	struct cmd_data  cmd_data;
 };
