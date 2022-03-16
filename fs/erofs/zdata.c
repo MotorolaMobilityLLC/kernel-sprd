@@ -708,8 +708,15 @@ static void z_erofs_vle_unzip_kickoff(void *ptr, int bios)
 		unsigned long flags;
 
 		spin_lock_irqsave(&io->u.wait.lock, flags);
-		if (!atomic_add_return(bios, &io->pending_bios))
+		if (!atomic_add_return(bios, &io->pending_bios)) {
+			if (atomic_read(&io->exit)) {
+				pr_err("%s: io:%px, wait:%px, next:%px", __func__, io, &io->u.wait, io->u.wait.head.next);
+				print_hex_dump(KERN_DEBUG, "[erofs]: ", DUMP_PREFIX_ADDRESS,
+					16, 1, io, sizeof(struct z_erofs_unzip_io), false);
+			}
+
 			wake_up_locked(&io->u.wait);
+		}
 		spin_unlock_irqrestore(&io->u.wait.lock, flags);
 		return;
 	}
@@ -1134,6 +1141,7 @@ static struct z_erofs_unzip_io *jobqueue_init(struct super_block *sb,
 
 		init_waitqueue_head(&io->u.wait);
 		atomic_set(&io->pending_bios, 0);
+		atomic_set(&io->exit, 0);
 		goto out;
 	}
 
@@ -1332,11 +1340,12 @@ static void z_erofs_submit_and_unzip(struct super_block *sb,
 		return;
 
 	/* wait until all bios are completed */
-	wait_event(io[JQ_SUBMIT].u.wait,
+	io_wait_event(io[JQ_SUBMIT].u.wait,
 		   !atomic_read(&io[JQ_SUBMIT].pending_bios));
 
 	/* let's synchronous decompression */
 	z_erofs_vle_unzip_all(sb, &io[JQ_SUBMIT], pagepool);
+	atomic_set(&io->exit, 1);
 }
 
 static int z_erofs_vle_normalaccess_readpage(struct file *file,

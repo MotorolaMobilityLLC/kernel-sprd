@@ -86,6 +86,7 @@ struct z_erofs_pcluster {
 
 struct z_erofs_unzip_io {
 	atomic_t pending_bios;
+	atomic_t exit;
 	z_erofs_next_pcluster_t head;
 
 	union {
