@@ -1540,10 +1540,20 @@ static void dpu_layer(struct dpu_context *ctx,
 		if (src_size != dst_size) {
 			rot = to_dpu_rotation(hwlayer->rotation);
 			if ((rot == DPU_LAYER_ROTATION_90) || (rot == DPU_LAYER_ROTATION_270) ||
-					(rot == DPU_LAYER_ROTATION_90_M) || (rot == DPU_LAYER_ROTATION_270_M))
+				(rot == DPU_LAYER_ROTATION_90_M) || (rot == DPU_LAYER_ROTATION_270_M))
 				dst_size = (hwlayer->dst_h & 0xffff) | ((hwlayer->dst_w) << 16);
-			tmp.ctrl = 0;
 		}
+
+		/*
+		 * FIXME:
+		 * Bypass dst and src same size scaling to avoid causing performance problem.
+		 * Dst and src frame in same size will still be scaling in current version.
+		 * It will be bypassed by digital ip in next version.
+		 */
+		if (src_size != dst_size)
+			tmp.ctrl = BIT(24);
+		else
+			tmp.ctrl = 0;
 
 		for (i = 0; i < hwlayer->planes; i++) {
 			if (hwlayer->addr[i] % 16)
