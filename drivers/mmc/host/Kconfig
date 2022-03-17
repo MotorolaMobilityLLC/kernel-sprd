@@ -643,6 +643,16 @@ config MMC_SDHCI_SPRD
 
 	  If unsure, say N.
 
+config MMC_SPRD_SDHCR11P3
+	tristate "Spreadtrum SDIO host Controller(IP version:R11P3) support"
+	depends on ARCH_SPRD
+	default n
+	help
+	  This selects the SDIO Host Controller(IP version(R11P3)) in spreadtrum platform.
+	  If you have a controller with this interface, say Y or M here.
+
+	  If unsure, say N.
+
 config MMC_SWCQ
 	tristate "SPRD eMMC Soft Command Queuing support"
 	default n
