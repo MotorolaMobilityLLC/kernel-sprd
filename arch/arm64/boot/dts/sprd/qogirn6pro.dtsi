@@ -491,7 +491,7 @@
 				clocks = <&ap_clk CLK_AP_IIS0>;
 			};
 
-			sdio3: sdio@2200000 {
+			sdio3: sdio@22200000 {
 				compatible = "sprd,sdhci-r11";
 				reg = <0x2200000 0x1000>;
 				interrupts = <GIC_SPI 217 IRQ_TYPE_LEVEL_HIGH>;
@@ -503,7 +503,7 @@
 				status = "disabled";
 			};
 
-			sdio0: sdio@2210000 {
+			sdio0: sdio@22210000 {
 				compatible = "sprd,sdhci-r11";
 				reg = <0x2210000 0x1000>;
 				interrupts = <GIC_SPI 203 IRQ_TYPE_LEVEL_HIGH>;
