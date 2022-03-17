@@ -187,6 +187,35 @@ static bool imsbr_packet_is_ike_auth(unsigned char *ptr, unsigned int len)
 	return false;
 }
 
+static int imsbr_send_new_mtu2cp(struct sk_buff *skb)
+{
+	struct iphdr *iph, *iph1;
+	struct icmphdr *icmph;
+	struct udphdr *uh;
+	struct sblock blk;
+	u16 new_mtu;
+
+	iph = ip_hdr(skb);
+
+	if (skb->mark == MARK_FRAG_NEED && iph->protocol == IPPROTO_ICMP) {
+		iph1 = (struct iphdr *)(skb->data + (iph->ihl << 2) +
+					sizeof(struct icmphdr));
+		uh = (struct udphdr *)((unsigned char *)iph1 + (iph1->ihl << 2));
+		if (uh && ntohs(uh->dest) == ESP_PORT) {
+			icmph = (struct icmphdr *)(skb->data + (iph->ihl << 2));
+			new_mtu = ntohs(icmph->un.frag.mtu);
+			if (!imsbr_build_cmd("new-mtu", &blk, &new_mtu,
+					     sizeof(u16)))
+				imsbr_sblock_send(&imsbr_ctrl, &blk,
+						  sizeof(u16));
+
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
 static unsigned int nf_imsbr_input(void *priv,
 				   struct sk_buff *skb,
 				   const struct nf_hook_state *state)
@@ -206,6 +235,12 @@ static unsigned int nf_imsbr_input(void *priv,
 	imsbr_nfct_debug("input", skb, &nft);
 
 	iph = ip_hdr(skb);
+
+	if (imsbr_send_new_mtu2cp(skb)) {
+		kfree_skb(skb);
+		return NF_STOLEN;
+	}
+
 	if (iph && (iph->version == 4 && iph->protocol == IPPROTO_UDP)) {
 		uh = udp_hdr(skb);
 		if (uh && ntohs(uh->source) == ESP_PORT) {

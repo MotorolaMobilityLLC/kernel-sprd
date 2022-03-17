@@ -28,6 +28,7 @@ enum imsbr_call_state {
 #define IMSBR_GENL_VERSION	0x1
 
 #define MAX_ESPS 10
+#define MARK_FRAG_NEED 10	/* mark fragmentation needed packet */
 
 union imsbr_inet_addr {
 	__u32		all[4];
