@@ -120,6 +120,11 @@
 			reg = <0x0 0xafa00000 0x0 0x00600000>;
 		};
 
+		/* Only for userdebug, will be removed in user mode by uboot */
+		uboot_reserved: sysdump-uboot@b5000000 {
+			reg = <0x0 0xb5000000 0x0 0x01000000>;
+		};
+
 		/* The uboot_log_reserved node is added in uboot. base:0xbbe8 0000, size:0x80000 */
 		uboot_log_reserved: uboot_log-mem@bbe80000 {
 			reg = <0x0 0xbbe80000 0x0 0x00080000>;
