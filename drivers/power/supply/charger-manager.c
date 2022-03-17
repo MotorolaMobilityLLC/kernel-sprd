@@ -5977,6 +5977,9 @@ static struct charger_desc *of_cm_parse_desc(struct device *dev)
 	of_property_read_u32(np, "cm-poll-mode", &poll_mode);
 	desc->polling_mode = poll_mode;
 
+	desc->uvlo_shutdown_mode = CM_SHUTDOWN_MODE_KERNEL;
+	of_property_read_u32(np, "cm-uvlo-shutdown-mode", &desc->uvlo_shutdown_mode);
+
 	of_property_read_u32(np, "cm-poll-interval",
 				&desc->polling_interval_ms);
 
@@ -6240,7 +6243,25 @@ static void cm_uvlo_check_work(struct work_struct *work)
 	if (cm->desc->uvlo_trigger_cnt >= CM_UVLO_CALIBRATION_CNT_THRESHOLD) {
 		dev_err(cm->dev, "WARN: batt_uV less than uvlo, will shutdown\n");
 		set_batt_cap(cm, 0);
-		orderly_poweroff(true);
+		switch (cm->desc->uvlo_shutdown_mode) {
+		case CM_SHUTDOWN_MODE_ORDERLY:
+			orderly_poweroff(true);
+			break;
+
+		case CM_SHUTDOWN_MODE_KERNEL:
+			kernel_power_off();
+			break;
+
+		case CM_SHUTDOWN_MODE_ANDROID:
+			cancel_delayed_work_sync(&cm->cap_update_work);
+			cm->desc->cap = 0;
+			power_supply_changed(cm->charger_psy);
+			break;
+
+		default:
+			dev_warn(cm->dev, "Incorrect uvlo_shutdown_mode (%d)\n",
+				 cm->desc->uvlo_shutdown_mode);
+		}
 	}
 
 	if (batt_uV < CM_UVLO_CALIBRATION_VOLTAGE_THRESHOLD)
