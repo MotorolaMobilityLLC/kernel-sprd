@@ -3190,7 +3190,7 @@ static int vendor_set_sae_password(struct wiphy *wiphy,
 	return ret;
 }
 
-const struct wiphy_vendor_command vendor_cmd[] = {
+static const struct wiphy_vendor_command vendor_cmd[] = {
 	{/* 9 */
 		{
 		    .vendor_id = OUI_SPREAD,

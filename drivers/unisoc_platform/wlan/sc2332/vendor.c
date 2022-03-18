@@ -2214,7 +2214,7 @@ int sc2332_report_acs_lte_event(struct sprd_vif *vif)
 	return 0;
 }
 
-const struct wiphy_vendor_command vendor_cmd[] = {
+static const struct wiphy_vendor_command vendor_cmd[] = {
 	{
 		{
 			.vendor_id = OUI_SPREAD,

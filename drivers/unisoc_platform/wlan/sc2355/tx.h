@@ -17,11 +17,8 @@
 #include "common/cfg80211.h"
 #include "common/msg.h"
 #include "common/qos.h"
-#if defined(CONFIG_SC2355_SDIO_WLAN) || defined(CONFIG_SC2355_SDIO_WLAN_MODULE)
 #include "sdio.h"
-#elif defined(CONFIG_SC2355_PCIE_WLAN) || defined(CONFIG_SC2355_PCIE_WLAN_MODULE)
 #include "pcie.h"
-#endif
 
 #define WAPI_TYPE                 0x88B4
 /* descriptor len + sdio/sdio.header len + offset */

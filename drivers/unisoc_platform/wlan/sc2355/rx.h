@@ -15,11 +15,8 @@
 #include "defrag.h"
 #include "mm.h"
 #include "reorder.h"
-#if defined(CONFIG_SC2355_SDIO_WLAN) || defined(CONFIG_SC2355_SDIO_WLAN_MODULE)
 #include "sdio.h"
-#elif defined(CONFIG_SC2355_PCIE_WLAN) || defined(CONFIG_SC2355_PCIE_WLAN_MODULE)
 #include "pcie.h"
-#endif
 
 #define SPRD_MAC_INDEX_MAX	4
 

@@ -512,6 +512,7 @@ int sdio_init(struct sprd_hif *hif)
 {
 	int ret;
 
+	hif->hw_type = SPRD_HW_SC2332_SDIO;
 	hif->driver_status = 1;
 	sc2332_hif = hif;
 
