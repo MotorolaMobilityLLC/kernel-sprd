@@ -703,25 +703,13 @@ static void z_erofs_vle_unzip_kickoff(void *ptr, int bios)
 	struct z_erofs_unzip_io *io = tagptr_unfold_ptr(t);
 	bool background = tagptr_unfold_tags(t);
 
-	if (!background) {
-		unsigned long flags;
 
-		spin_lock_irqsave(&io->u.wait.lock, flags);
-		if (!atomic_add_return(bios, &io->pending_bios)) {
-			if (atomic_read(&io->exit)) {
-				pr_err("%s: io:%px, wait:%px, next:%px", __func__, io, &io->u.wait, io->u.wait.head.next);
-				print_hex_dump(KERN_DEBUG, "[erofs]: ", DUMP_PREFIX_ADDRESS,
-					16, 1, io, sizeof(struct z_erofs_unzip_io), false);
-			}
-
-			wake_up_locked(&io->u.wait);
-		}
-		spin_unlock_irqrestore(&io->u.wait.lock, flags);
-		return;
+	if (!atomic_add_return(bios, &io->pending_bios)) {
+		if (!background)
+			complete(&io->u.done);
+		else
+			queue_work(z_erofs_workqueue, &io->u.work);
 	}
-
-	if (!atomic_add_return(bios, &io->pending_bios))
-		queue_work(z_erofs_workqueue, &io->u.work);
 }
 
 static inline void z_erofs_vle_read_endio(struct bio *bio)
@@ -1138,9 +1126,8 @@ static struct z_erofs_unzip_io *jobqueue_init(struct super_block *sb,
 		/* waitqueue available for foreground io */
 		DBG_BUGON(!io);
 
-		init_waitqueue_head(&io->u.wait);
+		init_completion(&io->u.done);
 		atomic_set(&io->pending_bios, 0);
-		atomic_set(&io->exit, 0);
 		goto out;
 	}
 
@@ -1339,12 +1326,10 @@ static void z_erofs_submit_and_unzip(struct super_block *sb,
 		return;
 
 	/* wait until all bios are completed */
-	io_wait_event(io[JQ_SUBMIT].u.wait,
-		   !atomic_read(&io[JQ_SUBMIT].pending_bios));
+	wait_for_completion_io(&io[JQ_SUBMIT].u.done);
 
 	/* let's synchronous decompression */
 	z_erofs_vle_unzip_all(sb, &io[JQ_SUBMIT], pagepool);
-	atomic_set(&io->exit, 1);
 }
 
 static int z_erofs_vle_normalaccess_readpage(struct file *file,
