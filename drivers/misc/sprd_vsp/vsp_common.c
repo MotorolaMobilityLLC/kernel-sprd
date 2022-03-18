@@ -226,10 +226,9 @@ int vsp_get_iova(struct vsp_dev_t *vsp_hw_dev,
 
 		if ((power_state1 & regs[PMU_PWR_STATUS].mask) == 0x0) {
 			regmap_read(regs[RESET].gpr, 0x0, &ap_ahb_regs);
-			if ((ap_ahb_regs & (BIT(7) | BIT(2))) != (BIT(7) | BIT(2))) {
+			if ((ap_ahb_regs & BIT(2)) != BIT(2)) {
 				pr_info("ap ahb 0x%x\n", ap_ahb_regs);
-				ret = regmap_update_bits(regs[RESET].gpr, 0x0, BIT(7) | BIT(2),
-							BIT(7) | BIT(2));
+				ret = regmap_update_bits(regs[RESET].gpr, 0x0, BIT(2), BIT(2));
 				if (ret) {
 					pr_err("vsp_iova regmap_update_bits failed %s, %d\n",
 							__func__, __LINE__);
