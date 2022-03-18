@@ -88,6 +88,8 @@
 #define CM_CP_IBUS_STEP2			500000
 #define CM_CP_IBUS_STEP3			100000
 
+#define CM_PPS_5V_PROG_MAX			6200000
+
 #define CM_CP_VBUS_ERRORLO_THRESHOLD(x)		((int)(x * 205 / 100))
 #define CM_CP_VBUS_ERRORHI_THRESHOLD(x)		((int)(x * 240 / 100))
 
@@ -2969,7 +2971,6 @@ static void cm_cp_state_entry(struct charger_manager *cm)
 		return;
 	}
 
-	cm_adjust_fast_charge_voltage(cm, CM_FAST_CHARGE_VOLTAGE_5V);
 	cm_cp_master_charger_enable(cm, false);
 	cm_primary_charger_enable(cm, false);
 	cm_ir_compensation_enable(cm, false);
@@ -2984,6 +2985,21 @@ static void cm_cp_state_entry(struct charger_manager *cm)
 
 	cm_get_adapter_max_current(cm, &cp->adapter_max_ibus);
 	cm_get_adapter_max_voltage(cm, &cp->adapter_max_vbus);
+
+	/*
+	 * The CM_PPS_5V_PROG_MAX reference value is derived from
+	 * section 10.2.3.2 of the PD3.0 spec. The CP turn-on voltage
+	 * is required to be greater than 2.05 times the battery
+	 * voltage, and the battery voltage must be at least greater
+	 * than 3.5V.
+	 */
+	if (cp->adapter_max_vbus <= CM_PPS_5V_PROG_MAX) {
+		dev_info(cm->dev, "%s, APDO max_vol %d can't start the cp, exit pps!!!\n",
+			 __func__, cp->adapter_max_vbus);
+		cm->desc->force_pps_diasbled = true;
+		cm_cp_state_change(cm, CM_CP_STATE_EXIT);
+		return;
+	}
 
 	cm_init_cp(cm);
 
@@ -3248,7 +3264,7 @@ static bool cm_is_need_start_cp(struct charger_manager *cm)
 	bool need = false;
 	int ret;
 
-	if (!cm->desc->psy_cp_stat || cm->desc->cp.cp_running ||
+	if (!cm->desc->psy_cp_stat || cm->desc->cp.cp_running || cm->desc->force_pps_diasbled ||
 	    cm->desc->fast_charger_type != POWER_SUPPLY_USB_CHARGER_TYPE_PD_PPS)
 		return false;
 
@@ -4332,6 +4348,7 @@ static void misc_event_handler(struct charger_manager *cm, enum cm_event_types t
 		} else {
 			if (cm->desc->usb_charge_en) {
 				try_charger_enable(cm, false);
+				cm->desc->force_pps_diasbled = false;
 				cm->desc->is_fast_charge = false;
 				cm->desc->enable_fast_charge = false;
 				cm->desc->fast_charge_enable_count = 0;
@@ -4364,6 +4381,7 @@ static void misc_event_handler(struct charger_manager *cm, enum cm_event_types t
 		cancel_delayed_work_sync(&cm->cp_work);
 		_cm_monitor(cm);
 
+		cm->desc->force_pps_diasbled = false;
 		cm->desc->is_fast_charge = false;
 		cm->desc->ir_comp.ir_compensation_en = false;
 		cm->desc->enable_fast_charge = false;

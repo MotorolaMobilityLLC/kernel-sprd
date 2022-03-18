@@ -708,6 +708,7 @@ struct charger_desc {
 	bool fixed_fchg_running;
 	bool wait_vbus_stable;
 	bool check_fixed_fchg_threshold;
+	bool force_pps_diasbled;
 	u32 fast_charge_enable_count;
 	u32 fast_charge_disable_count;
 	u32 double_ic_total_limit_current;
