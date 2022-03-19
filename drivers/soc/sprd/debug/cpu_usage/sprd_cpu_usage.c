@@ -44,13 +44,19 @@ struct sprd_thread_time {
 	u64	st;
 };
 
+struct sprd_iowait {
+	u64	start;
+	u64	total[NR_RECORD];
+	ulong	cnt[NR_RECORD];
+	ulong	idx;
+};
+
 /* === thread info kept on stack === */
 struct sprd_thread_info {
-	/* arm:   int<4> long<4>
-	 * arm64: int<4> long<8>*/
-	ulong	idx;
 	struct sprd_thread_time	start;
 	struct sprd_thread_time	delta[NR_RECORD];
+	struct sprd_iowait io;
+	ulong	idx;
 };
 
 struct sprd_cpu_stat {
@@ -163,20 +169,35 @@ static void sprd_cpu_log(bool new, const char *fmt, ...)
 	p->offset += len;
 }
 
-static void _clean_thread_info(struct sprd_thread_info *t, unsigned long id)
+static void _clean_thread_iowait(struct sprd_iowait *io, ulong id)
 {
-	/* no record from (t->idx + 1) to p->idx */
-	int clear = NEXT_ID(t->idx);
-	unsigned long count = id - t->idx;
+	int clear = io->idx;
+	unsigned long count = id - clear;
 
 	if (count > NR_RECORD)
 		count = NR_RECORD;
 
-	/* dead loop: int count */
 	while (count--) {
+		clear = NEXT_ID(clear);
+		io->total[clear] = 0;
+		io->cnt[clear] = 0;
+	}
+
+	io->idx = id;
+}
+
+static void _clean_thread_info(struct sprd_thread_info *t, unsigned long id)
+{
+	int clear = t->idx;
+	unsigned long count = id - clear;
+
+	if (count > NR_RECORD)
+		count = NR_RECORD;
+
+	while (count--) {
+		clear = NEXT_ID(clear);
 		t->delta[clear].ut = 0;
 		t->delta[clear].st = 0;
-		clear = NEXT_ID(clear);
 	}
 
 	t->idx = id;
@@ -196,23 +217,38 @@ void sprd_update_cpu_usage(struct task_struct *prev, struct task_struct *next)
 	struct sprd_cpu_usage *p = p_sprd_cpu_usage;
 	struct sprd_thread_info *t;
 	struct sprd_thread_time *time;
+	int i, idx;
 
 	if (!p)
 		return;
 
+	/* global idx may change, just read once */
+	idx = p->idx;
+	i = BUFF_ID(idx);
+
 	/* update prev */
 	t = T_BUF(prev);
-	if (t->idx != p->idx)
-		_clean_thread_info(t, p->idx);
+	if (t->idx != idx)
+		_clean_thread_info(t, idx);
 
-	time = &t->delta[BUFF_ID(t->idx)];
+	time = &t->delta[i];
 	time->ut += (prev->utime - t->start.ut);
 	time->st += (prev->stime - t->start.st);
+
+	if (prev->in_iowait)
+		t->io.start = cpu_clock(0);
 
 	/* update next */
 	t = T_BUF(next);
 	t->start.ut = next->utime;
 	t->start.st = next->stime;
+
+	if (next->in_iowait) {
+		if (t->io.idx != idx)
+			_clean_thread_iowait(&t->io, idx);
+		t->io.total[i] += (cpu_clock(0) - t->io.start);
+		t->io.cnt[i]++;
+	}
 }
 EXPORT_SYMBOL(sprd_update_cpu_usage);
 
@@ -476,6 +512,15 @@ static void _print_cpu_stat(struct seq_file *m,
 	seq_printf(m, "%s\n", p_sprd_cpu_usage->buf);
 }
 
+static void __add_a_iowait(u64 ns, int cnt)
+{
+	if (cnt) {
+		ns_to_ms(ns);
+		sprd_cpu_log(false, "%5llu/%-6d|", ns, cnt);
+	} else
+		sprd_cpu_log(false, "%13s", "|");
+}
+
 static void __add_a_thread(u64 item, u64 sum)
 {
 	ulong ratio[2];
@@ -487,6 +532,16 @@ static void __add_a_thread(u64 item, u64 sum)
 		sprd_cpu_log(false, "%8s", "-----");
 }
 
+struct _records {
+	u64 time[NR_RECORD];
+	u64 st[NR_RECORD];
+	u64 ut[NR_RECORD];
+	u64 st_all[NR_RECORD];
+	u64 ut_all[NR_RECORD];
+	u64 iowait[NR_RECORD];
+	int cnt[NR_RECORD];
+};
+
 /* id: sprd_thread_info->delta[id]
  *     sprd_cpu_usage->info[id]
  */
@@ -497,21 +552,23 @@ static void _print_thread_info(struct seq_file *m, ulong id)
 	struct task_struct *gp, *pp;
 	struct sprd_thread_info *t;
 	struct sprd_thread_time	*delta;
+	struct _records *r;
 	void *stack;
-	u64 time[NR_RECORD];
-	u64 st[NR_RECORD], ut[NR_RECORD];
-	u64 st_all[NR_RECORD], ut_all[NR_RECORD];
 	int i, j;
 	bool print;
 
+	r = kzalloc(sizeof(struct _records), GFP_KERNEL);
+	if (!r)
+		return;
+
 	id = BUFF_ID(id);
-	for (i = 0; i < NR_RECORD; i++) {
-		if (id == i)
+	/* record from (id+1)/3 to id */
+	for (i = 0, j = NEXT_ID(id); i < NR_RECORD; i++, j = NEXT_ID(j)) {
+		if (j == id)
 			info = &p->cat;
 		else
-			info = &p->info[i];
-		time[i] = info->time.ns_end - info->time.ns_start;
-		st_all[i] = ut_all[i] = 0;
+			info = &p->info[j];
+		r->time[i] = info->time.ns_end - info->time.ns_start;
 	}
 
 	seq_puts(m, "\n* USAGE PER THREAD:\n");
@@ -529,17 +586,33 @@ static void _print_thread_info(struct seq_file *m, ulong id)
 		if (t->idx != p->idx)
 			_clean_thread_info(t, p->idx);
 
-		for (i = 0; i < NR_RECORD; i++) {
-			delta = &t->delta[i];
-			st[i] = delta->st;
-			ut[i] = delta->ut;
+		if (t->io.idx != p->idx)
+			_clean_thread_iowait(&t->io, p->idx);
 
-			if ((st[i] + ut[i]) != 0) {
-				st_all[i] += st[i];
-				ut_all[i] += ut[i];
+		for (i = 0, j = NEXT_ID(id); i < NR_RECORD; i++, j = NEXT_ID(j)) {
+			delta = &t->delta[j];
+			r->st[i] = delta->st;
+			r->ut[i] = delta->ut;
+
+			if ((r->st[i] + r->ut[i]) != 0) {
+				r->st_all[i] += r->st[i];
+				r->ut_all[i] += r->ut[i];
 				print = true;
 			}
+
+			r->iowait[i] = t->io.total[j];
+			r->cnt[i] = t->io.cnt[j];
+			if (r->cnt[i])
+				print = true;
 		}
+
+		if (pp->in_iowait) {
+			/* id: recent and last */
+			r->iowait[NR_RECORD - 1] += (cpu_clock(0) - t->io.start);
+			r->cnt[NR_RECORD - 1]++;
+			print = true;
+		}
+
 		put_task_stack(pp);
 
 		if (!print)
@@ -548,23 +621,22 @@ static void _print_thread_info(struct seq_file *m, ulong id)
 		/*print a thread's info */
 		sprd_cpu_log(true, " %-6d", pp->pid);
 		/* add user time */
-		for (i = NEXT_ID(id), j = 0; j < NR_RECORD; j++) {
-			__add_a_thread(ut[i], time[i]);
-			i = NEXT_ID(i);
-		}
+		for (i = 0; i < NR_RECORD; i++)
+			__add_a_thread(r->ut[i], r->time[i]);
+
 		sprd_cpu_log(false, "%s", " | ");
 		/* add system time */
-		for (i = NEXT_ID(id), j = 0; j < NR_RECORD; j++) {
-			__add_a_thread(st[i], time[i]);
-			i = NEXT_ID(i);
-		}
+		for (i = 0; i < NR_RECORD; i++)
+			__add_a_thread(r->st[i], r->time[i]);
+
 		sprd_cpu_log(false, "%s", " | ");
 		/* add total time */
-		for (i = NEXT_ID(id), j = 0; j < NR_RECORD; j++) {
-			__add_a_thread((ut[i] + st[i]), time[i]);
-			i = NEXT_ID(i);
-		}
-		sprd_cpu_log(false, "%s    %-15s", " | ", pp->comm);
+		for (i = 0; i < NR_RECORD; i++)
+			__add_a_thread((r->ut[i] + r->st[i]), r->time[i]);
+
+		sprd_cpu_log(false, "%s    %-15s:", " | ", pp->comm);
+		for (i = 0; i < NR_RECORD; i++)
+			__add_a_iowait(r->iowait[i], r->cnt[i]);
 		seq_printf(m, "%s\n", p->buf);
 	} while_each_thread(gp, pp);
 	read_unlock(&tasklist_lock);
@@ -572,16 +644,18 @@ static void _print_thread_info(struct seq_file *m, ulong id)
 	/* print total*/
 	seq_puts(m, " ==================\n");
 	sprd_cpu_log(true, " %-6s", "Total:");
-	for (i = NEXT_ID(id), j = 0; j < NR_RECORD; i = NEXT_ID(i), j++)
-		__add_a_thread(ut_all[i], time[i]);
+	for (i = 0; i < NR_RECORD; i++)
+		__add_a_thread(r->ut_all[i], r->time[i]);
 	sprd_cpu_log(false, "%s", " | ");
-	for (i = NEXT_ID(id), j = 0; j < NR_RECORD; i = NEXT_ID(i), j++)
-		__add_a_thread(st_all[i], time[i]);
+	for (i = 0; i < NR_RECORD; i++)
+		__add_a_thread(r->st_all[i], r->time[i]);
 	sprd_cpu_log(false, "%s", " | ");
-	for (i = NEXT_ID(id), j = 0; j < NR_RECORD; i = NEXT_ID(i), j++)
-		__add_a_thread((ut_all[i] + st_all[i]), time[i]);
+	for (i = 0; i < NR_RECORD; i++)
+		__add_a_thread((r->ut_all[i] + r->st_all[i]), r->time[i]);
 	sprd_cpu_log(false, "%s    %-15s", " | ", current->comm);
 	seq_printf(m, "%s\n", p->buf);
+
+	kfree(r);
 }
 
 static int show_cpu_usage(struct seq_file *m, void *v)
