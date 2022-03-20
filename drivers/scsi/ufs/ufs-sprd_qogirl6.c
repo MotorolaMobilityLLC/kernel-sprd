@@ -237,13 +237,13 @@ int syscon_get_args(struct device *dev, struct ufs_sprd_host *host)
 
 static inline int ufs_sprd_mask(void __iomem *base, u32 mask, u32 reg)
 {
-	u32 tmp;
+    u32 tmp;
 
-	tmp = readl((base) + (reg));
-	if (tmp & mask)
-		return 1;
-	else
-		return 0;
+    tmp = readl((base) + (reg));
+    if (tmp & mask)
+        return 1;
+    else
+        return 0;
 }
 
 /*
@@ -302,6 +302,10 @@ void ufs_sprd_reset_pre(struct ufs_sprd_host *host)
 
 void ufs_sprd_reset(struct ufs_sprd_host *host)
 {
+	u32 aon_ver_id = 0;
+
+	sprd_get_soc_id(AON_VER_ID, &aon_ver_id, 1);
+
 	dev_info(host->hba->dev, "ufs hardware reset!\n");
 	/* TODO: HW reset will be simple in next version. */
 
@@ -390,8 +394,14 @@ void ufs_sprd_reset(struct ufs_sprd_host *host)
 	ufs_sprd_rmwl(host->ufs_analog_reg, MPHY_APB_REFCLK_AUTOH8_EN_MASK,
 			MPHY_APB_REFCLK_AUTOH8_EN_VAL, MPHY_DIG_CFG14_LANE0);
 	udelay(1);
-	ufs_sprd_rmwl(host->ufs_analog_reg, MPHY_APB_PLLTIMER_MASK,
+	if (aon_ver_id == AON_VER_UFS) {
+		ufs_sprd_rmwl(host->ufs_analog_reg, MPHY_APB_PLLTIMER_MASK,
 			MPHY_APB_PLLTIMER_VAL, MPHY_DIG_CFG18_LANE0);
+		ufs_sprd_rmwl(host->ufs_analog_reg,
+			MPHY_APB_HSTXSCLKINV1_MASK,
+			MPHY_APB_HSTXSCLKINV1_VAL,
+			MPHY_DIG_CFG19_LANE0);
+	}
 }
 
 static int is_ufs_sprd_host_in_pwm(struct ufs_hba *hba)
@@ -707,6 +717,7 @@ static int ufs_sprd_link_startup_notify(struct ufs_hba *hba,
 
 		break;
 	case POST_CHANGE:
+		hba->clk_gating.delay_ms = 10;
 		break;
 	default:
 		err = -EINVAL;
@@ -774,6 +785,7 @@ static void ufs_sprd_hibern8_notify(struct ufs_hba *hba,
 				enum ufs_notify_change_status status)
 {
 	int ret;
+	u32 aon_ver_id = 0;
 
 	switch (status) {
 	case PRE_CHANGE:
@@ -796,7 +808,9 @@ static void ufs_sprd_hibern8_notify(struct ufs_hba *hba,
 			} else {
 				ret = is_ufs_sprd_host_in_pwm(hba);
 				if (ret == (SLOW_MODE|(SLOW_MODE<<4))) {
-					ufs_set_hstxsclk(hba);
+					sprd_get_soc_id(AON_VER_ID, &aon_ver_id, 1);
+					if (aon_ver_id == AON_VER_UFS)
+						ufs_set_hstxsclk(hba);
 					ret = sprd_ufs_pwrchange(hba);
 					if (ret) {
 						pr_err("ufs_pwm2hs err");

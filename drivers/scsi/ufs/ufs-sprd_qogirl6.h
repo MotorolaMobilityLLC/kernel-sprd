@@ -114,4 +114,13 @@ struct ufs_sprd_host {
 #define	MPHY_APB_HSTXSCLKINV1_MASK BIT(13)
 #define	MPHY_APB_HSTXSCLKINV1_VAL BIT(13)
 
+#define    MPHY_DIG_CFG18_LANE0  (0xc048)
+#define    MPHY_APB_PLLTIMER_MASK  GENMASK(23, 16)
+#define    MPHY_APB_PLLTIMER_VAL (0xd8<<16)
+
+#define    MPHY_DIG_CFG19_LANE0 (0xc04c)
+#define    MPHY_APB_HSTXSCLKINV1_MASK BIT(13)
+#define    MPHY_APB_HSTXSCLKINV1_VAL BIT(13)
+
+#define AON_VER_UFS 1
 #endif/* _UFS_SPRD_H_ */
