@@ -5,7 +5,7 @@ config SPRD_DEBUG
 	  Say y here to enable Debug support.
 
 config SPRD_LOOK_AT
-	bool "Sprdtrum lookat tool support"
+	tristate "Sprdtrum lookat tool support"
 	depends on SPRD_DEBUG || COMPILE_TEST
 	default n
 	help
