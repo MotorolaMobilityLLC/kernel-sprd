@@ -72,6 +72,9 @@
 #define REG_SCL_EN					0x20
 #define REG_BG_COLOR					0x24
 
+/* DPU Secure reg */
+#define REG_DPU_SECURE					0x14
+
 /* Layer enable */
 #define REG_LAYER_ENABLE				0x2c
 
@@ -1517,7 +1520,7 @@ static void dpu_layer(struct dpu_context *ctx,
 {
 	const struct drm_format_info *info;
 	struct layer_reg tmp = {};
-	u32 dst_size, src_size, offset, wd, rot;
+	u32 dst_size, src_size, offset, wd, rot, secure_val;
 	int i;
 
 	offset = (hwlayer->dst_x & 0xffff) | ((hwlayer->dst_y) << 16);
@@ -1584,6 +1587,31 @@ static void dpu_layer(struct dpu_context *ctx,
 
 		tmp.ctrl |= dpu_img_ctrl(hwlayer->format, hwlayer->blending,
 				hwlayer->xfbc, hwlayer->y2r_coef, hwlayer->rotation);
+	}
+
+	secure_val = DPU_REG_RD(ctx->base + REG_DPU_SECURE);
+	if (hwlayer->secure_en || ctx->secure_debug) {
+		if (!secure_val) {
+			disp_ca_connect();
+			mdelay(5);
+		}
+		ctx->tos_msg->cmd = TA_FIREWALL_SET;
+		ctx->tos_msg->version = DPU_R6P0;
+		disp_ca_write(ctx->tos_msg, sizeof(*ctx->tos_msg));
+		disp_ca_wait_response();
+
+		memcpy(ctx->tos_msg + 1, &tmp, sizeof(tmp));
+
+		ctx->tos_msg->cmd = TA_REG_SET;
+		ctx->tos_msg->version = DPU_R6P0;
+		disp_ca_write(ctx->tos_msg, sizeof(*ctx->tos_msg) + sizeof(tmp));
+		disp_ca_wait_response();
+		return;
+	} else if (secure_val) {
+		ctx->tos_msg->cmd = TA_REG_CLR;
+		ctx->tos_msg->version = DPU_R6P0;
+		disp_ca_write(ctx->tos_msg, sizeof(*ctx->tos_msg));
+		disp_ca_wait_response();
 	}
 
 	for (i = 0; i < hwlayer->planes; i++)
@@ -1753,8 +1781,9 @@ static void dpu_flip(struct dpu_context *ctx,
 		     struct sprd_plane planes[], u8 count)
 {
 	int i;
-	u32 reg_val;
+	u32 reg_val, secure_val;
 	struct sprd_plane_state *state;
+	struct sprd_layer_state *layer;
 	struct sprd_dpu *dpu = container_of(ctx, struct sprd_dpu, ctx);
 	struct dpu_enhance *enhance = ctx->enhance;
 
@@ -1796,13 +1825,22 @@ static void dpu_flip(struct dpu_context *ctx,
 		ctx->stopped = false;
 	} else if (ctx->if_type == SPRD_DPU_IF_DPI) {
 		if (!ctx->stopped) {
+			secure_val = DPU_REG_RD(ctx->base + REG_DPU_SECURE);
+			state = to_sprd_plane_state(planes[0].base.state);
+			layer = &state->layer;
 			if (enhance->first_frame == true) {
 				DPU_REG_SET(ctx->base + REG_DPU_CTRL, BIT_DPU_ALL_UPDATE);
 				dpu_wait_all_update_done(ctx);
 				enhance->first_frame = false;
 			} else {
 				DPU_REG_SET(ctx->base + REG_DPU_CTRL, BIT_LAY_REG_UPDATE);
-				dpu_wait_update_done(ctx);
+				if ((!layer->secure_en) && secure_val) {
+					dpu_wait_update_done(ctx);
+					ctx->tos_msg->cmd = TA_FIREWALL_CLR;
+					disp_ca_write(&(ctx->tos_msg), sizeof(ctx->tos_msg));
+					disp_ca_wait_response();
+				} else
+					dpu_wait_update_done(ctx);
 			}
 		}
 
