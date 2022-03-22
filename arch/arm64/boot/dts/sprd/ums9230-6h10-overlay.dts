@@ -547,39 +547,18 @@
 };
 
 &spi3 {
-	status = "ok";
+status = "okay";
 	#address-cells = <1>;
 	#size-cells = <0>;
 
-	/* Novatek device tree node */
-	touchpanel@0 {
-		compatible = "touchpanel";
-		reg = <0>; //Same as CS ID
-		status = "ok";
-		spi-max-frequency = <9600000>;	//4800000,9600000,15000000,19200000
-		reset-gpio = <&ap_gpio 145 GPIO_ACTIVE_HIGH>;
-		irq-gpio = <&ap_gpio 144 GPIO_ACTIVE_HIGH>;
-
-		/*------------------focaltech_ft8756------------------*/
+	focaltech@0 {
+		compatible = "focaltech,fts";
+		reg = <0x0>;
+		focaltech,reset-gpio = <&ap_gpio 145 GPIO_ACTIVE_HIGH>;
+		focaltech,irq-gpio = <&ap_gpio 144 GPIO_ACTIVE_HIGH>;
 		focaltech,max-touch-number = <5>;
 		focaltech,display-coords =  <0 0 1080 2400>;
-		//spi-max-frequency = <6000000>;
-
-		/*------------------novatek------------------*/
-		//novatek,pen-support;
-		//novatek,wgp-stylus;
-
-		/* 525 */
-		//novatek,swrst-n8-addr = <0x01F01A>;
-
-		/* 672A, 525B, 675, 526, 672C, 523 */
-		novatek,swrst-n8-addr = <0x03F0FE>;
-		novatek,spi-rd-fast-addr = <0x03F310>;
-
-		/* MP */
-		//novatek,mp-support-dt;
-
-		#include "ums9230-overlay-novatek-nt36xxx-spi.dtsi"
+		spi-max-frequency = <6000000>;
 	};
 };
 
