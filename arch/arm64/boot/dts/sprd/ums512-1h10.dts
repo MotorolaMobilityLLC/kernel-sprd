@@ -50,15 +50,6 @@
 			reg = <0x0 0x9e000000 0x0 0x009e4000>;
 		};
 	};
-	firmware {
-		android {
-			compatible = "android,firmware";
-			vbmeta {
-				compatible = "android,vbmeta";
-				parts = "vbmeta,boot,vendor_boot,dtbo,l_modem,pm_sys,l_ldsp,l_gdsp,l_agdsp,l_cdsp";
-			};
-		};
-	};
 
 	pwm_backlight: sprd_backlight {
 		compatible = "sprd,sharkl5pro-backlight";
