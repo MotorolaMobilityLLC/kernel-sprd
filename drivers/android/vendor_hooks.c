@@ -24,6 +24,7 @@
 #include <trace/hooks/usb.h>
 #include <trace/hooks/psci.h>
 #include <trace/hooks/regmap.h>
+#include <trace/hooks/ion.h>
 
 /*
  * Export tracepoints that act as a bare tracehook (ie: have no trace event
@@ -84,3 +85,4 @@ EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_usb_persist_overwrite);
 EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_psci_tos_resident_on);
 EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_psci_cpu_suspend);
 EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_regmap_update);
+EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_ion_buffer_release);

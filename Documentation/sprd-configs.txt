@@ -6139,15 +6139,6 @@ CONFIG_FORCE_MAX_ZONEORDER
 	[must] home
 	[missing plat description] none
 	[function] Enable to allocate large continuous physical pages.
-CONFIG_FORTIFY_SOURCE
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
-	[missing plat] none
-	[field]
-	[subsys]
-	[must]
-	[missing plat description] none
-	[function]
 CONFIG_FRAME_POINTER
 	[arch] arm64
 	[plat] sharkl3,sharkl5Pro
