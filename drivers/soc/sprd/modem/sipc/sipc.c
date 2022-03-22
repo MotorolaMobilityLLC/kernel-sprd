@@ -204,7 +204,7 @@ static int sprd_ipc_probe(struct platform_device *pdev)
 	}
 
 	/* request sensor mailbox channel */
-	if (ipc->dst == SIPC_ID_PM_SYS) {
+	if ((ipc->dst == SIPC_ID_PM_SYS) || (ipc->dst == SIPC_ID_CH)) {
 		/* mailbox request */
 		ipc->sensor_cl = ipc->cl;
 		ipc->sensor_cl.rx_callback = sprd_sensor_rx_callback;
