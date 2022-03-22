@@ -611,20 +611,6 @@
 	};
 };
 
-&dvfs_dcdc_cpu0_cfg {
-	pmic-type-num = <0>;
-	slew-rate = <9375>; /* 9375uV/us */
-	tuning-latency-us = <0>;
-};
-
-&dvfs_dcdc_cpu1_cfg {
-	chnl-i2c-used;
-	third-pmic-used;
-	pmic-type-num = <2>;
-	slew-rate = <4000>; /* 4000uV/us */
-	tuning-latency-us = <0>;
-};
-
 &hsphy {
 	vdd-supply = <&vddusb33>;
 	extcon = <&extcon_gpio>;

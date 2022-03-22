@@ -1206,8 +1206,8 @@
 				#pwm-cells = <2>;
 			      };
 
-			sprd_hardware_cpufreq: hardware-dvfs-platform {
-				compatible = "sprd,hardware-cpufreq";
+			apcpu_dvfs: apcpu-dvfs {
+				compatible = "sprd,cpufreq-v2";
 			};
 
 			topdvfs_controller: topdvfsctrl@322a0000 {
@@ -1216,22 +1216,7 @@
 				module-enable-cfg = <0x4 7>;
 				reg = <0 0x322a0000 0 0x8000>;
 				sprd,topdvfs-sysctrl = <&top_dvfs_apb_regs>;
-				cpu-dcdc-cells = <&dcdc_cpu0>, <&dcdc_cpu1>;
 				device-dcdc-cells = <&dcdc_mm>, <&dcdc_modem>;
-				dcdc_cpu0: dcdc-cpu0{
-					dcdc-cpu-dvfs-cfg = <&dvfs_dcdc_cpu0_cfg>;
-					dvfs-blk-sd-syscon = <&pmu_apb_regs
-						REG_PMU_APB_RF_DVFS_BLOCK_SHUTDOWN_CFG
-						MASK_PMU_APB_RF_DCDC_CPU0_DVFS_BLOCK_SHUTDOWN_EN>;
-				};
-
-				dcdc_cpu1: dcdc-cpu1{
-					dcdc-cpu-dvfs-cfg = <&dvfs_dcdc_cpu1_cfg>;
-					dvfs-blk-sd-syscon = <&pmu_apb_regs
-						REG_PMU_APB_RF_DVFS_BLOCK_SHUTDOWN_CFG
-						MASK_PMU_APB_RF_DCDC_CPU1_DVFS_BLOCK_SHUTDOWN_EN>;
-				};
-
 				dcdc_mm: dcdc-mm {
 					dcdc-dvfs-enable = <0x18 20 1>;
 					dcdc-judge-vol-sw = <0x18 1 0x7 2>;
@@ -1264,209 +1249,6 @@
 					ap_sys: ap-sys {
 						dcdc-subsys-tune-enable = <0x150 0 1>;
 					};
-				};
-			};
-
-			cpudvfs_dev: cpudvfs-dev@322a8000 {
-				compatible = "sprd,sharkl5pro-cpudvfs";
-				reg = <0 0x322a8000 0 0x1000>;
-				enable-syscon = <&aon_apb_regs REG_AON_APB_RF_APB_EB1 MASK_AON_APB_RF_DVFS_TOP_EB>;
-				topdvfs-controller = <&topdvfs_controller>;
-				host-cluster-cells = <&lit_core_cluster>,<&big_core_cluster>;
-				slave-cluster-cells = <&scu_cluster>, <&periph_cluster>,<&gic_cluster>;
-				mpll-cells = <&mpll_0>, <&mpll_1>, <&mpll_2>;
-				lit_core_cluster: lit-core-cluster {
-					belong-dcdc-cell = <0>;
-					/*sel, div, vol, vote_scu, vote_peri, vote_gic, mpllx*/
-					lit_core_cluster_tbl = <
-						0 0 0 0 0 0 0
-						1 1 0 1 1 1 0
-						2 1 0 2 1 1 0
-						3 0 0 2 1 1 0
-						3 0 0 3 1 1 1
-						1 0 1 4 1 1 0
-						3 0 2 5 4 4 2
-						2 0 3 6 4 4 0
-						3 0 4 7 4 5 3
-						3 0 5 8 4 5 4
-						3 0 6 9 5 5 5
-						>;
-					lit_core_cluster_tbl_ff = <
-						0 0 0 0 0 0 0
-						1 1 0 1 1 1 0
-						2 1 1 2 2 2 0
-						3 0 1 3 2 3 0
-						3 0 1 4 3 4 1
-						1 0 1 5 4 4 0
-						3 0 2 6 4 4 2
-						2 0 2 7 4 4 0
-						3 0 2 8 4 5 3
-						3 0 2 9 5 5 4
-						>;
-					lit_core_cluster_tbl_ff_65 = <
-						0 0 0 0 0 0 0
-						1 1 0 1 1 1 0
-						2 1 1 2 2 2 0
-						3 0 1 3 2 3 0
-						3 0 1 4 3 4 1
-						1 0 1 5 4 4 0
-						3 0 2 6 4 4 2
-						2 0 2 7 4 4 0
-						3 0 2 8 4 5 3
-						3 0 2 9 5 5 4
-						>;
-					};
-
-				big_core_cluster:big-core-cluster {
-					belong-dcdc-cell = <1>;
-					/*sel, div, vol, vote_scu, vote_peri, vote_gic, mpllx*/
-					big_core_cluster_tbl = <
-						0 0 0 0 0 0 0
-						1 0 0 3 1 1 0
-						3 0 1 5 4 4 0
-						2 0 2 6 4 4 0
-						3 0 3 7 4 5 1
-						3 0 4 8 4 5 3
-						3 0 5 9 5 5 4
-						>;
-					big_core_cluster_tbl_ff = <
-						0 0 0 0 0 0 0
-						1 0 0 3 3 4 0
-						3 0 1 5 4 4 0
-						2 0 2 6 4 4 0
-						3 0 2 7 4 5 1
-						3 0 2 8 4 5 2
-						3 0 2 9 5 5 3
-						>;
-					big_core_cluster_tbl_ff_65 = <
-						0 0 0 0 0 0 0
-						1 0 0 3 3 4 0
-						3 0 1 5 4 4 0
-						2 0 2 6 4 4 0
-						3 0 2 7 4 5 1
-						3 0 2 8 4 5 2
-						3 0 2 9 5 5 3
-						>;
-				};
-
-				scu_cluster: scu-cluster {
-					belong-dcdc-cell = <0>;
-					/*sel div vol ace_div mpllx */
-					scu_cluster_tbl = <
-						0 0 0 0 0
-						3 0 0 1 0
-						3 0 0 1 1
-						1 0 0 1 0
-						3 0 1 1 2
-						3 0 2 1 3
-						3 0 3 1 4
-						3 0 4 1 5
-						3 0 5 1 6
-						3 0 6 1 7
-						>;
-					scu_cluster_tbl_ff = <
-						0 0 0 0 0
-						3 0 0 1 0
-						3 0 1 1 1
-						1 0 1 1 0
-						3 0 1 1 2
-						3 0 1 1 3
-						3 0 2 1 4
-						3 0 2 1 5
-						3 0 2 1 6
-						3 0 2 1 7
-						>;
-					scu_cluster_tbl_ff_65 = <
-						0 0 0 0 0
-						3 0 0 1 0
-						3 0 1 1 1
-						1 0 1 1 0
-						3 0 1 1 2
-						3 0 1 1 3
-						3 0 2 1 4
-						3 0 2 1 5
-						3 0 2 1 6
-						3 0 2 1 7
-						>;
-				};
-
-				periph_cluster:periph-cluster {
-					belong-dcdc-cell = <0>;
-					/*sel div vol*/
-					periph_cluster_tbl = <
-						0 0 0
-						1 0 0
-						2 1 2
-						3 1 2
-						2 0 2
-						3 0 6
-						>;
-					periph_cluster_tbl_ff = <
-						0 0 0
-						1 0 0
-						2 1 1
-						3 1 1
-						2 0 1
-						3 0 2
-						>;
-					periph_cluster_tbl_ff_65 = <
-						0 0 0
-						1 0 0
-						2 1 1
-						3 1 1
-						2 0 1
-						3 0 2
-						>;
-				};
-
-				gic_cluster: gic-cluster {
-					belong-dcdc-cell = <0>;
-					/*sel div vol*/
-					gic_cluster_tbl = <
-						0 0 0
-						1 0 0
-						2 1 2
-						3 1 2
-						2 0 2
-						3 0 2
-						>;
-					gic_cluster_tbl_ff = <
-						0 0 0
-						1 0 0
-						2 1 1
-						3 1 1
-						2 0 1
-						3 0 1
-						>;
-					gic_cluster_tbl_ff_65 = <
-						0 0 0
-						1 0 0
-						2 1 1
-						3 1 1
-						2 0 1
-						3 0 1
-						>;
-				};
-
-				mpll_0: mpll-ananke{
-					mpll-sel-syscon = <&anlg_phy_g3_regs REG_ANLG_PHY_G3_RF_ANALOG_MPLL0_REG_SEL_CFG_0
-						(MASK_ANLG_PHY_G3_RF_DBG_SEL_ANALOG_MPLL0_MPLL0_POSTDIV |
-						MASK_ANLG_PHY_G3_RF_DBG_SEL_ANALOG_MPLL0_MPLL0_ICP |
-						MASK_ANLG_PHY_G3_RF_DBG_SEL_ANALOG_MPLL0_MPLL0_N)>;
-				};
-
-				mpll_1: mpll-prometheus{
-					mpll-sel-syscon = <&anlg_phy_g2_regs REG_ANLG_PHY_G2_RF_ANALOG_MPLL1_REG_SEL_CFG_0
-						(MASK_ANLG_PHY_G2_RF_DBG_SEL_ANALOG_MPLL1_MPLL1_POSTDIV |
-						MASK_ANLG_PHY_G2_RF_DBG_SEL_ANALOG_MPLL1_MPLL1_ICP |
-						MASK_ANLG_PHY_G2_RF_DBG_SEL_ANALOG_MPLL1_MPLL1_N)>;
-				};
-
-				mpll_2: mpll-scu{
-					mpll-sel-syscon = <&anlg_phy_g3_regs REG_ANLG_PHY_G3_RF_ANALOG_MPLL2_REG_SEL_CFG_0
-						(MASK_ANLG_PHY_G3_RF_DBG_SEL_ANALOG_MPLL2_MPLL2_POSTDIV |
-						MASK_ANLG_PHY_G3_RF_DBG_SEL_ANALOG_MPLL2_MPLL2_ICP |
-						MASK_ANLG_PHY_G3_RF_DBG_SEL_ANALOG_MPLL2_MPLL2_N)>;
 				};
 			};
 
@@ -2191,11 +1973,6 @@
 
 		dvfs_bin_cpu1: dvfs-bin@1b {
 			reg = <0x1b 0x1>;
-			bits = <0 3>;
-		};
-
-		dvfs_bin_dsu: dvfs-bin@13{
-			reg = <0x13 0x1>;
 			bits = <0 3>;
 		};
 	};
