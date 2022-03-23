@@ -604,6 +604,12 @@
 #define REG_ANLG_PHY_GC_RF_ANALOG_THM1_0_THM1_CTL                                          0x0084
 #define REG_ANLG_PHY_GC_RF_ANALOG_THM1_0_THM1_RESERVED_CTL                                 0x0088
 #define REG_ANLG_PHY_GC_RF_ANALOG_THM1_0_REG_SEL_CFG_0                                     0x008c
+#define REG_ANLG_PHY_G2_ANALOG_USB20_REG_SEL_CFG_0                                         0x0074
+#define REG_ANLG_PHY_G2_ANALOG_USB20_USB20_BATTER_PLL                                      0x005c
+#define REG_ANLG_PHY_G2_ANALOG_USB20_USB20_ISO_SW                                          0x0070
+#define REG_ANLG_PHY_G2_ANALOG_USB20_USB20_TRIMMING                                        0x0064
+#define REG_ANLG_PHY_G2_ANALOG_USB20_USB20_UTMI_CTL1                                       0x0058
+#define REG_ANLG_PHY_G2_ANALOG_USB20_USB20_UTMI_CTL2                                       0x0060
 #define REG_ANLG_PHY_G2_RF_ANALOG_MPLL1_MPLL1_CTRL0                                        0x0000
 #define REG_ANLG_PHY_G2_RF_ANALOG_MPLL1_MPLL1_CTRL1                                        0x0004
 #define REG_ANLG_PHY_G2_RF_ANALOG_MPLL1_MPLL1_CTRL2                                        0x0008
@@ -1401,6 +1407,11 @@
 #define REG_MM_DVFS_AHB_RF_MM_DVFS_RESERVED_REG_CFG1                                       0x0234
 #define REG_MM_DVFS_AHB_RF_MM_DVFS_RESERVED_REG_CFG2                                       0x0238
 #define REG_MM_DVFS_AHB_RF_MM_DVFS_RESERVED_REG_CFG3                                       0x023c
+#define REG_AON_APB_APB_EB1                                                                0x0004
+#define REG_AON_APB_APB_RST1                                                               0x0010
+#define REG_AON_APB_CGM_REG1                                                               0x0138
+#define REG_AON_APB_OTG_PHY_CTRL                                                           0x0208
+#define REG_AON_APB_OTG_PHY_TEST                                                           0x0204
 #define REG_AON_APB_RF_APB_EB0                                                             0x0000
 #define REG_AON_APB_RF_APB_EB1                                                             0x0004
 #define REG_AON_APB_RF_APB_EB2                                                             0x0008
