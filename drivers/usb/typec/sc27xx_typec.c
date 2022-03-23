@@ -87,6 +87,15 @@
 #define SC27XX_VCONN_LDO_EN		BIT(13)
 #define SC27XX_VCONN_LDO_RDY		BIT(12)
 
+/* 9620 typec ate current too larger */
+#define UMP9620_RESERVERED_CORE		0x234c
+#define TRIM_CURRENT_FROMEFUSE		BIT(4)
+
+/* pmic name string */
+#define SC2721		0x01
+#define SC2730		0x02
+#define UMP9620		0x03
+
 enum sc27xx_typec_connection_state {
 	SC27XX_DETACHED_SNK,
 	SC27XX_ATTACHWAIT_SNK,
@@ -109,6 +118,7 @@ enum sc27xx_typec_connection_state {
 };
 
 struct sprd_typec_variant_data {
+	u8 pmic_name;
 	u32 efuse_cc1_shift;
 	u32 efuse_cc2_shift;
 	u32 int_en;
@@ -121,6 +131,7 @@ struct sprd_typec_variant_data {
 };
 
 static const struct sprd_typec_variant_data sc2730_data = {
+	.pmic_name = SC2730,
 	.efuse_cc1_shift = SC2730_EFUSE_CC1_SHIFT,
 	.efuse_cc2_shift = SC2730_EFUSE_CC2_SHIFT,
 	.int_en = SC27XX_INT_EN,
@@ -133,6 +144,7 @@ static const struct sprd_typec_variant_data sc2730_data = {
 };
 
 static const struct sprd_typec_variant_data sc2721_data = {
+	.pmic_name = SC2721,
 	.efuse_cc1_shift = SC2721_EFUSE_CC1_SHIFT,
 	.efuse_cc2_shift = SC2721_EFUSE_CC2_SHIFT,
 	.int_en = SC2721_EN,
@@ -145,6 +157,7 @@ static const struct sprd_typec_variant_data sc2721_data = {
 };
 
 static const struct sprd_typec_variant_data ump9620_data = {
+	.pmic_name = UMP9620,
 	.efuse_cc1_shift = UMP9620_EFUSE_CC1_SHIFT,
 	.efuse_cc2_shift = UMP9620_EFUSE_CC2_SHIFT,
 	.int_en = SC27XX_INT_EN,
@@ -356,15 +369,24 @@ static int sc27xx_typec_enable(struct sc27xx_typec *sc)
 			return ret;
 	}
 
-	/* modify sc2730 tcc debounce to 100ms while PD signal occur at 150ms
+	/* modify sc2730/9620 tcc debounce to 100ms while PD signal occur at 150ms
 	 * and effect tccde reginize.Reason is hardware signal and clk not
 	 * accurate.
 	 */
-	if (sc->var_data->efuse_cc2_shift == SC2730_EFUSE_CC2_SHIFT) {
+	if (sc->var_data->pmic_name == SC2730 || sc->var_data->pmic_name == UMP9620) {
 		ret = regmap_write(sc->regmap, sc->base + SC27XX_TCCDE_CNT,
 				SC27XX_TCC_DEBOUNCE_CNT);
 		if (ret)
 			return ret;
+	}
+
+	if (sc->var_data->pmic_name == UMP9620) {
+		ret = regmap_read(sc->regmap, UMP9620_RESERVERED_CORE, &val);
+		if (ret)
+			return ret;
+
+		val |= TRIM_CURRENT_FROMEFUSE;
+		regmap_write(sc->regmap, UMP9620_RESERVERED_CORE, val);
 	}
 
 	/* Enable typec interrupt and enable typec */
