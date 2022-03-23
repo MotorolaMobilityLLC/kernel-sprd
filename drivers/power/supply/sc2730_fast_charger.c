@@ -418,6 +418,16 @@ static void sc2730_fchg_disable(struct sc2730_fchg_info *info)
 	const struct sc27xx_fast_chg_data *pdata = info->pdata;
 	int ret;
 
+	/*
+	 * must exit SFCP mode, otherwise the next BC1.2
+	 * recognition will be affected.
+	 */
+	ret = regmap_update_bits(info->regmap, info->base + FCHG_CTRL,
+				 FCHG_DET_VOL_MASK << FCHG_DET_VOL_SHIFT,
+				 (FCHG_DET_VOL_EXIT_SFCP & FCHG_DET_VOL_MASK) << FCHG_DET_VOL_SHIFT);
+	if (ret)
+		dev_err(info->dev, "failed to set fast charger detect voltage.\n");
+
 	ret = regmap_update_bits(info->regmap, info->base + FCHG_CTRL,
 				 FCHG_ENABLE_BIT, 0);
 	if (ret)
