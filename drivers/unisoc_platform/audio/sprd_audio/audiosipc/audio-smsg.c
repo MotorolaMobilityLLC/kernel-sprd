@@ -346,6 +346,7 @@ static void aud_smsg_rx_dump(void)
 
 int aud_smsg_ipc_create(u8 dst, struct aud_smsg_ipc *ipc)
 {
+	int i;
 	msg_index = 0;
 
 	if (!ipc->irq_handler)
@@ -354,6 +355,11 @@ int aud_smsg_ipc_create(u8 dst, struct aud_smsg_ipc *ipc)
 	spin_lock_init(&(ipc->txpinlock));
 	spin_lock_init(&(ipc->rxpinlock));
 	spin_lock_init(&(ipc->ch_rx_pinlock));
+
+	for (i = 0; i < AMSG_CH_NR; i++) {
+		atomic_set(&(ipc->use_count[i]), 0);
+		mutex_init(&(ipc->channel_mutexlock[i]));
+	}
 
 	aud_smsg_ipcs[dst] = ipc;
 	ipc->dsp_ready  = true;
@@ -393,24 +399,30 @@ int aud_smsg_ch_open(u8 dst, uint16_t channel)
 	struct aud_smsg_ipc *ipc = aud_smsg_ipcs[dst];
 	struct aud_smsg_channel *ch;
 
+	if (channel >= AMSG_CH_NR)
+		return -1;
+
 	if (!ipc) {
 		pr_err("ERR:%s ipc ENODEV\n", __func__);
 		return -EPROBE_DEFER;
 	}
 
-	if (ipc->states[channel] == CHAN_STATE_OPENED)
-		return -1;
-
-	ch = kzalloc(sizeof(struct aud_smsg_channel), GFP_KERNEL);
-	if (!ch)
-		return -ENOMEM;
-
-	atomic_set(&(ipc->busy[channel]), 1);
-	init_waitqueue_head(&(ch->rxwait));
-	mutex_init(&(ch->rxlock));
-	ipc->channels[channel] = ch;
-	ipc->states[channel] = CHAN_STATE_OPENED;
-	atomic_dec(&(ipc->busy[channel]));
+	mutex_lock(&(ipc->channel_mutexlock[channel]));
+	if (ipc->states[channel] != CHAN_STATE_OPENED) {
+		ch = kzalloc(sizeof(struct aud_smsg_channel), GFP_KERNEL);
+		if (!ch) {
+			mutex_unlock(&(ipc->channel_mutexlock[channel]));
+			return -ENOMEM;
+		}
+		atomic_set(&(ipc->busy[channel]), 1);
+		init_waitqueue_head(&(ch->rxwait));
+		mutex_init(&(ch->rxlock));
+		ipc->channels[channel] = ch;
+		ipc->states[channel] = CHAN_STATE_OPENED;
+		atomic_dec(&(ipc->busy[channel]));
+	}
+	atomic_inc(&(ipc->use_count[channel]));
+	mutex_unlock(&(ipc->channel_mutexlock[channel]));
 
 	return 0;
 }
@@ -422,6 +434,9 @@ int aud_smsg_ch_close(u8 dst, uint16_t channel)
 	struct aud_smsg_channel *ch = NULL;
 	int count = 0;
 
+	if (channel >= AMSG_CH_NR)
+		return -1;
+
 	if (!aud_smsg_ipcs[dst])
 		return 0;
 
@@ -430,24 +445,28 @@ int aud_smsg_ch_close(u8 dst, uint16_t channel)
 	if (!ch)
 		return 0;
 
-	ipc->states[channel] = CHAN_STATE_FREE;
-	/* maybe channel has been free for aud_smsg_ch_open failed */
-	if (ipc->channels[channel]) {
-		/* guarantee that channel resource isn't used in irq handler */
-		while (atomic_read(&ipc->busy[channel])
-			&& (count < WAIT_CHAN_WAKE_UP_COUNT)) {
-			pr_err("channel %d, is busy\n", channel);
-			wake_up(&ch->rxwait);
-			count++;
-			msleep(1000);
+	mutex_lock(&(ipc->channel_mutexlock[channel]));
+
+	if (atomic_dec_and_test(&(ipc->use_count[channel]))) {
+		ipc->states[channel] = CHAN_STATE_FREE;
+		/* maybe channel has been free for aud_smsg_ch_open failed */
+		if (ipc->channels[channel]) {
+			/* guarantee that channel resource isn't used in irq handler */
+			while (atomic_read(&ipc->busy[channel])
+				&& (count < WAIT_CHAN_WAKE_UP_COUNT)) {
+				pr_err("channel %d, is busy\n", channel);
+				wake_up(&ch->rxwait);
+				count++;
+				msleep(1000);
+			}
+			kfree(ch);
+			ipc->channels[channel] = NULL;
 		}
-		kfree(ch);
-		ipc->channels[channel] = NULL;
+
+		/* finally, update the channel state*/
+		ipc->states[channel] = CHAN_STATE_UNUSED;
 	}
-
-	/* finally, update the channel state*/
-	ipc->states[channel] = CHAN_STATE_UNUSED;
-
+	mutex_unlock(&(ipc->channel_mutexlock[channel]));
 	return 0;
 }
 EXPORT_SYMBOL(aud_smsg_ch_close);

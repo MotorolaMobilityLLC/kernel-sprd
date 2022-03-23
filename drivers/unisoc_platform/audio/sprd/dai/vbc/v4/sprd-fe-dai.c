@@ -1371,8 +1371,25 @@ static struct snd_soc_dai_driver sprd_fe_dais[FE_DAI_ID_MAX] = {
 		},
 		.ops = &sprd_fe_dai_ops,
 	},
-
-	/* 24: FE_DAI_ID_MM_P */
+	/* 24: FE_DAI_ID_DP_P */
+	{
+		.id = FE_DAI_ID_DP_P,
+		.name = "DisplayPort MultiMedia",
+		.probe = fe_dai_probe,
+		.playback = {
+			.stream_name = "DisplayPort MultiMedia Playback",
+			.aif_name = "DP_DL",
+			.rates = SNDRV_PCM_RATE_CONTINUOUS,
+			.formats = (SNDRV_PCM_FMTBIT_S16_LE |
+						SNDRV_PCM_FMTBIT_S24_LE |
+						SNDRV_PCM_FMTBIT_S32_LE),
+			.channels_min = 1,
+			.channels_max = 8,
+			.rate_min = 8000,
+			.rate_max = 192000,
+		},
+	},
+	/* 25: FE_DAI_ID_MM_P */
 	{
 		.id = FE_DAI_ID_MM_P,
 		.name = TO_STRING(FE_DAI_ID_MM_P),

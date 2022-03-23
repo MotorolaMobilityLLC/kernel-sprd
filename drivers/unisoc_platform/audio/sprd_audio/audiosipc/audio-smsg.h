@@ -50,6 +50,9 @@ enum {
 	AMSG_CH_DVFS,
 	AMSG_CH_DSP_BTHAL,
 	AMSG_CH_DSP_HIFI,
+	AMSG_CH_DSP_TRIGGER_RX,
+	AMSG_CH_DSP_TRIGGER_TX,
+	AMSG_CH_MISC,
 	AMSG_CH_NR,
 };
 
@@ -94,11 +97,16 @@ struct aud_smsg_ipc {
 	spinlock_t rxpinlock;		/* lock for rx-buffer */
 	spinlock_t ch_rx_pinlock;	/* lock for rx-buffer */
 
+	/* lock for open channel */
+	struct mutex channel_mutexlock[AMSG_CH_NR];
+
 	/* all fixed channels receivers */
 	struct aud_smsg_channel *channels[AMSG_CH_NR];
 
 	/* record the runtime status of smsg channel */
 	atomic_t busy[AMSG_CH_NR];
+
+	atomic_t use_count[AMSG_CH_NR];
 
 	/* all channel states: 0 unused, 1 opened */
 	uint8_t	states[AMSG_CH_NR];

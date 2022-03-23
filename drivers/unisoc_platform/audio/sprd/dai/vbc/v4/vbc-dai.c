@@ -400,6 +400,15 @@ SPRD_VBC_ENUM(SND_SOC_NOPM, 3, dsp_voice_capture_type_txt);
 static const struct soc_enum dsp_voice_pcm_play_enum  =
 SPRD_VBC_ENUM(SND_SOC_NOPM, 2, dsp_voice_pcm_play_mode_txt);
 
+static const struct soc_enum dsp_aux_mic2_enum  =
+SPRD_VBC_ENUM(SND_SOC_NOPM, 2, enable_disable_txt);
+
+static const struct soc_enum dsp_smartamp_iv_exchange_enum  =
+SPRD_VBC_ENUM(SND_SOC_NOPM, 2, enable_disable_txt);
+
+static const struct soc_enum dsp_dac0_lr_exchange_enum  =
+SPRD_VBC_ENUM(SND_SOC_NOPM, 2, enable_disable_txt);
+
 static const char * const sprd_profile_name[] = {
 	"audio_structure", "dsp_vbc", "cvs", "dsp_smartamp",
 };
@@ -2397,6 +2406,107 @@ static int vbc_put_iis_rx_width_sel(struct snd_kcontrol *kcontrol,
 	return 1;
 }
 
+static int dsp_aux_mic2_sel_get(struct snd_kcontrol *kcontrol,
+				 struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_component *codec = snd_soc_kcontrol_component(kcontrol);
+	struct vbc_codec_priv *vbc_codec = snd_soc_component_get_drvdata(codec);
+
+	ucontrol->value.integer.value[0] = vbc_codec->aux_mic2_sel_enable;
+
+	return 0;
+}
+
+static int dsp_aux_mic2_sel_put(struct snd_kcontrol *kcontrol,
+				 struct snd_ctl_elem_value *ucontrol)
+{
+	u32 value;
+	struct soc_enum *texts = (struct soc_enum *)kcontrol->private_value;
+	struct snd_soc_component *codec = snd_soc_kcontrol_component(kcontrol);
+	struct vbc_codec_priv *vbc_codec = snd_soc_component_get_drvdata(codec);
+
+	if (ucontrol->value.integer.value[0] >= texts->items) {
+		pr_err("ERR: %s,index outof bounds error\n", __func__);
+		return -EINVAL;
+	}
+	value = ucontrol->value.enumerated.item[0];
+	sp_asoc_pr_dbg("%s, %s = %s\n",
+		       __func__, "dsp_aux_mic2_sel", texts->texts[value]);
+
+	vbc_codec->aux_mic2_sel_enable = value;
+	dsp_aux_mic2_sel_set(value);
+
+	return 1;
+}
+
+static int dsp_smartamp_iv_exchange_get(struct snd_kcontrol *kcontrol,
+				 struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_component *codec = snd_soc_kcontrol_component(kcontrol);
+	struct vbc_codec_priv *vbc_codec = snd_soc_component_get_drvdata(codec);
+
+	ucontrol->value.integer.value[0] =
+					vbc_codec->smartamp_iv_exchange_enable;
+
+	return 0;
+}
+
+static int dsp_smartamp_iv_exchange_put(struct snd_kcontrol *kcontrol,
+				 struct snd_ctl_elem_value *ucontrol)
+{
+	u32 value;
+	struct soc_enum *texts = (struct soc_enum *)kcontrol->private_value;
+	struct snd_soc_component *codec = snd_soc_kcontrol_component(kcontrol);
+	struct vbc_codec_priv *vbc_codec = snd_soc_component_get_drvdata(codec);
+
+	if (ucontrol->value.integer.value[0] >= texts->items) {
+		pr_err("ERR: %s,index outof bounds error\n", __func__);
+		return -EINVAL;
+	}
+	value = ucontrol->value.enumerated.item[0];
+	sp_asoc_pr_dbg("%s, %s = %s\n",
+		    __func__, "dsp_smartamp_iv_exchange", texts->texts[value]);
+
+	vbc_codec->smartamp_iv_exchange_enable = value;
+	dsp_smartamp_iv_exchange_set(value);
+
+	return 1;
+}
+
+static int dsp_dac0_lr_exchange_get(struct snd_kcontrol *kcontrol,
+				 struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_component *codec = snd_soc_kcontrol_component(kcontrol);
+	struct vbc_codec_priv *vbc_codec = snd_soc_component_get_drvdata(codec);
+
+	ucontrol->value.integer.value[0] =
+		vbc_codec->dsp_dac0_lr_exchange;
+
+	return 0;
+}
+
+static int dsp_dac0_lr_exchange_put(struct snd_kcontrol *kcontrol,
+				 struct snd_ctl_elem_value *ucontrol)
+{
+	u32 value;
+	struct soc_enum *texts = (struct soc_enum *)kcontrol->private_value;
+	struct snd_soc_component *codec = snd_soc_kcontrol_component(kcontrol);
+	struct vbc_codec_priv *vbc_codec = snd_soc_component_get_drvdata(codec);
+
+	if (ucontrol->value.integer.value[0] >= texts->items) {
+		pr_err("ERR: %s,index outof bounds error\n", __func__);
+		return -EINVAL;
+	}
+	value = ucontrol->value.enumerated.item[0];
+	sp_asoc_pr_dbg("%s, %s = %s\n",
+		    __func__, "dsp_dac0_lr_exchange", texts->texts[value]);
+
+	vbc_codec->dsp_dac0_lr_exchange = value;
+	dsp_dac0_lr_exchange_set(value);
+
+	return 1;
+}
+
 /* IIS_RX_LR_MOD */
 static const struct soc_enum vbc_iis_rx_lr_mod_enum[VBC_MUX_IIS_RX_ID_MAX] = {
 	SPRD_VBC_ENUM(VBC_MUX_IIS_RX_ADC0, IIS_WD_MAX, vbc_iis_lr_mod_txt),
@@ -3456,18 +3566,18 @@ static int sys_iis_sel_get(struct snd_kcontrol *kcontrol,
 
 static const char * const sys_iis_sel_txt[] = {
 	"vbc_iis0", "vbc_iis1", "vbc_iis2", "vbc_iis3", "vbc_iism0", "ap_iis0",
-	"audcp_iis0", "audcp_iis1"
+	"audcp_iis0", "audcp_iis1", "audcp_tdm3", "audcp_tdm4"
 };
 
 static const struct soc_enum
 vbc_sys_iis_enum[SYS_IIS_MAX] = {
-	SPRD_VBC_ENUM(SYS_IIS0, 8, sys_iis_sel_txt),
-	SPRD_VBC_ENUM(SYS_IIS1, 8, sys_iis_sel_txt),
-	SPRD_VBC_ENUM(SYS_IIS2, 8, sys_iis_sel_txt),
-	SPRD_VBC_ENUM(SYS_IIS3, 8, sys_iis_sel_txt),
-	SPRD_VBC_ENUM(SYS_IIS4, 8, sys_iis_sel_txt),
-	SPRD_VBC_ENUM(SYS_IIS5, 8, sys_iis_sel_txt),
-	SPRD_VBC_ENUM(SYS_IIS6, 8, sys_iis_sel_txt),
+	SPRD_VBC_ENUM(SYS_IIS0, 10, sys_iis_sel_txt),
+	SPRD_VBC_ENUM(SYS_IIS1, 10, sys_iis_sel_txt),
+	SPRD_VBC_ENUM(SYS_IIS2, 10, sys_iis_sel_txt),
+	SPRD_VBC_ENUM(SYS_IIS3, 10, sys_iis_sel_txt),
+	SPRD_VBC_ENUM(SYS_IIS4, 10, sys_iis_sel_txt),
+	SPRD_VBC_ENUM(SYS_IIS5, 10, sys_iis_sel_txt),
+	SPRD_VBC_ENUM(SYS_IIS6, 10, sys_iis_sel_txt),
 };
 
 static int sys_iis_sel_put(struct snd_kcontrol *kcontrol,
@@ -3995,6 +4105,60 @@ static int vbc_voice_pcm_play_mode_put(struct snd_kcontrol *kcontrol,
 
 	return value;
 }
+
+static const char * const vad_din_ad_sel_txt[] = {
+	"vad_din_sel_add0", "vad_din_sel_add1",
+};
+
+static const struct soc_enum
+	vad_din_ad_sel_enum = SPRD_VBC_ENUM(SND_SOC_NOPM, 2,
+					    vad_din_ad_sel_txt);
+
+static int vad_din_ad_sel_get(struct snd_kcontrol *kcontrol,
+			      struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_component *codec = snd_soc_kcontrol_component(kcontrol);
+	struct vbc_codec_priv *vbc_codec = snd_soc_component_get_drvdata(codec);
+
+	ucontrol->value.integer.value[0] = vbc_codec->vad_din_ad_sel;
+
+	return 0;
+}
+
+static int vad_din_ad_sel_put(struct snd_kcontrol *kcontrol,
+			      struct snd_ctl_elem_value *ucontrol)
+{
+	struct soc_enum *texts = (struct soc_enum *)kcontrol->private_value;
+	struct snd_soc_component *codec = snd_soc_kcontrol_component(kcontrol);
+	struct vbc_codec_priv *vbc_codec = snd_soc_component_get_drvdata(codec);
+	struct pinctrl_state *state;
+	char buf[128] = {0};
+	u16 value;
+	int ret;
+
+	if (ucontrol->value.integer.value[0] >= texts->items) {
+		pr_err("%s, index outof bounds error\n", __func__);
+		return -EINVAL;
+	}
+
+	value = ucontrol->value.enumerated.item[0];
+	vbc_codec->vad_din_ad_sel = value;
+	sprintf(buf, "%s", vad_din_ad_sel_txt[value]);
+	pr_info("%s, (value %d, %s), %s\n", __func__, value,
+		texts->texts[value], buf);
+	state = pinctrl_lookup_state(vbc_codec->pctrl, buf);
+	if (IS_ERR(state)) {
+		pr_err("%s lookup pin control failed\n", __func__);
+		return -EINVAL;
+	}
+
+	ret =  pinctrl_select_state(vbc_codec->pctrl, state);
+	if (ret != 0)
+		pr_err("%s pin contrl select failed %d\n", __func__, ret);
+
+	return 0;
+}
+
 
 static int dsp_hp_crosstalk_en_get(struct snd_kcontrol *kcontrol,
 				struct snd_ctl_elem_value *ucontrol)
@@ -4554,6 +4718,8 @@ static const struct snd_kcontrol_new vbc_codec_snd_controls[] = {
 	SOC_ENUM_EXT("VBC_DSP_VOICE_PCM_PLAY_MODE",
 		     dsp_voice_pcm_play_enum,
 		     vbc_voice_pcm_play_mode_get, vbc_voice_pcm_play_mode_put),
+	SOC_ENUM_EXT("VAD_DIN_AD_SEL", vad_din_ad_sel_enum,
+		     vad_din_ad_sel_get, vad_din_ad_sel_put),
 
 	SOC_SINGLE_BOOL_EXT("HP_CROSSTALK_EN", 0,
 			    dsp_hp_crosstalk_en_get, dsp_hp_crosstalk_en_put),
@@ -4561,6 +4727,17 @@ static const struct snd_kcontrol_new vbc_codec_snd_controls[] = {
 			     0, 1, 0, MIXERDG_MAX_VAL, 0,
 			     dsp_hp_crosstalk_gain_get,
 			     dsp_hp_crosstalk_gain_put, hpg_tlv),
+	SOC_ENUM_EXT("DSP_AUX_MIC2_SEL",
+		     dsp_aux_mic2_enum,
+		     dsp_aux_mic2_sel_get, dsp_aux_mic2_sel_put),
+	SOC_ENUM_EXT("DSP_SMARTAMP_IV_EXCHANGE",
+		     dsp_smartamp_iv_exchange_enum,
+		     dsp_smartamp_iv_exchange_get,
+		     dsp_smartamp_iv_exchange_put),
+	SOC_ENUM_EXT("DSP_DAC0_LR_EXCHANGE",
+		     dsp_dac0_lr_exchange_enum,
+		     dsp_dac0_lr_exchange_get,
+		     dsp_dac0_lr_exchange_put),
 };
 
 static u32 vbc_codec_read(struct snd_soc_component *codec,

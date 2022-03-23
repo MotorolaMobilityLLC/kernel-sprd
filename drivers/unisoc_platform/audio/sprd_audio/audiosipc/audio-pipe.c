@@ -47,6 +47,8 @@ enum {
 	SPRD_PIPE_EFFECT,
 	SPRD_PIPE_RECORD_PROCESS,
 	SPRD_PIPE_BTHAL,
+	SPRD_PIPE_TRIGGER_RX,
+	SPRD_PIPE_TRIGGER_TX,
 	SPRD_PIPE_TYPE_MAX,
 };
 
@@ -343,6 +345,10 @@ static const struct of_device_id audio_pipe_match_table[] = {
 		.data = (void *)SPRD_PIPE_RECORD_PROCESS},
 	{.compatible = "unisoc,audio_pipe_bthal",
 		.data = (void *)SPRD_PIPE_BTHAL},
+	{.compatible = "unisoc,audio_pipe_trigger_rx",
+		.data = (void *)SPRD_PIPE_TRIGGER_RX},
+	{.compatible = "unisoc,audio_pipe_trigger_tx",
+		.data = (void *)SPRD_PIPE_TRIGGER_TX},
 	{ },
 };
 
@@ -384,6 +390,14 @@ static int aud_pipe_parse_dt(struct device *dev,
 	case SPRD_PIPE_BTHAL:
 		strncpy(aud_pipe_dev->device_name,
 			"audio_pipe_bthal", SPRD_PIPE_NAME_MAX);
+		break;
+	case SPRD_PIPE_TRIGGER_RX:
+		strncpy(aud_pipe_dev->device_name,
+			"audio_pipe_trigger_rx", SPRD_PIPE_NAME_MAX);
+		break;
+	case SPRD_PIPE_TRIGGER_TX:
+		strncpy(aud_pipe_dev->device_name,
+			"audio_pipe_trigger_tx", SPRD_PIPE_NAME_MAX);
 		break;
 	default:
 		ret = -EINVAL;

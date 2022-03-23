@@ -47,6 +47,10 @@
 #define ADC1_SINC_SEL_D		2
 #define ADC1_SINC_SEL_MASK	0x3
 
+/* AUD_AUD_CTR */
+#define DAC_CLR			BIT(1)
+#define ADC_CLR			BIT(0)
+
 /* AUD_I2S_CTL */
 #define ADC_LR_SEL		2
 #define DAC_LR_SEL		1
@@ -633,6 +637,8 @@
  */
 
 #define OSC_RESERVED(x)          (((x) & GENMASK(15, 0)))
+/* 1, external clk; 0 internal clk from RC OSC/2 or 26M/13 */
+#define CLK_2M_SEL				BIT(0)
 
 /*
  * Register Name   : ANA_PMU5
@@ -1333,6 +1339,8 @@
 #define VAD_ADC_DAT_INV            BIT(2)
 #define VAD_LOWPOWER(x)            (((x) & GENMASK(1, 0)))
 
+#define VAD_ADC_EN_S               3
+
 /*
  * Register Name   : ANA_RSV3
  * Register Offset : 0x00CC
@@ -1353,6 +1361,13 @@
 #define VAD_AD_D_GATE              BIT(2)
 #define VAD_AD_CLK_RST             BIT(1)
 #define VAD_AD_CLK_EN              BIT(0)
+
+#define VAD_SMIC3_S            15
+#define VAD_SMIC2_S            14
+#define VAD_SMIC1_S            13
+#define VAD_PGA_G_S            10
+#define VAD_PGA_EN_S           9
+#define VAD_AD_CLK_EN_S        0
 
 /*
  * Register Name   : ANA_HDT0
@@ -2453,6 +2468,44 @@
  * Register Offset : 0x0290
  */
 
+/* audcp aon apb rf: 0x56390000 */
+#define	APB_MODULE_EB0_STS		0x0
+#define	AUDIF_EB			BIT(3)
 
+#define APB_MODULE_EB1_STS			0x4
+#define PAD_CLK_AUDIF_EN			BIT(5)
+#define VAD_APB_EB				BIT(0)
+
+/* aon_apb_rf base 0x64900000 */
+#define REG_AON_APB_RF_APB_EB1          0x4
+#define BIT_RC60M_CAL_EB                BIT(25)
+#define BIT_AON_APB_RF_EB1_ANA_EB       BIT(12)
+#define BIT_AON_APB_RF_EB1_PIN_REG_EB   BIT(11)
+
+#define REG_AON_APB_RF_APB_RST0         0xc
+#define BIT_RC60M_CAL_SOFT_RST          BIT(12)
+
+#define REG_AON_APB_RF_AUDCP_CTRL	0x014c
+#define BIT_AON_2_AUD_ACCESS_EN	BIT(0)
+#define BIT_AP_2_AUD_ACCESS_EN		BIT(5)
+
+#define REG_AON_APB_RF_RC60M_CFG0	0xc90
+#define BIT_RC60M_CAL_START		BIT(5)
+#define BIT_RC60M_AUTO_GATE_EN		BIT(0)
+
+/* base 0x64402000 ? */
+/* defined in sprd-audio-ump9620.h */
+
+/* 0x56394000  0x400> */
+#define REG_CGM_VAD_SEL_CFG            0x34
+#define BIT_CGM_VAD_PAD_SEL            BIT(16)
+
+/* dvfs apb: 0x56250000 */
+#define REG_AUD_CP_DVFS_CLK_REG_CFG0	0xA58
+#define BIT_CGM_DSP_CORE_SEL		(BIT(0) | BIT(1) | BIT(2))
+
+/* pmu_apb_regs: 0x64910000 */
+#define REG_RCO100M_REL_CFG		0x9ec
+#define BIT_RCO100M_PUB_SEL		BIT(21)
 
 #endif // __SPRD_CODEC_UMP9620_H

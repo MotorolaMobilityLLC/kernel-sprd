@@ -17,7 +17,7 @@
 #include <sound/soc-dapm.h>
 #include <linux/io.h>
 #include <linux/iopoll.h>
-
+#include "audio-sipc.h"
 #include "sprd-audio.h"
 #include "sprd-asoc-common.h"
 #include "sprd-pdm.h"
@@ -62,6 +62,12 @@ struct sprd_pdm_priv {
 	unsigned long clk_membase;
 	u32 adc2_l_dg;
 	u32 adc2_r_dg;
+	int send_misc_msg_flag;
+};
+
+enum aud_pll_cmd {
+	DISABLE_AUD_PLL_BIND,
+	ENABLE_AUD_PLL_BIND,
 };
 
 #if 0
@@ -359,9 +365,18 @@ static const struct snd_kcontrol_new pdm_snd_controls[] = {
 void pdm_dmic2_on(struct sprd_pdm_priv *sprd_pdm, bool on_off)
 {
 	unsigned int val;
+	int ret;
 
 	pr_info("%s on_off %d\n", __func__, on_off);
 	if (on_off) {
+		if (sprd_pdm->send_misc_msg_flag == 0) {
+			ret = aud_send_cmd_no_param(AMSG_CH_MISC,
+				ENABLE_AUD_PLL_BIND, 0, 0, 0, 0, -1);
+			if (ret == 0)
+				sprd_pdm->send_misc_msg_flag = 1;
+			else
+				return;
+		}
 		pdm_module_en(sprd_pdm, true);
 		pdm_adc2_l_dg(sprd_pdm);
 		pdm_adc2_r_dg(sprd_pdm);
@@ -412,6 +427,12 @@ void pdm_dmic2_on(struct sprd_pdm_priv *sprd_pdm, bool on_off)
 		pdm_ioremap_reg_update(sprd_pdm, ADC2_CTRL, val, val);
 	} else {
 		pdm_module_en(sprd_pdm, false);
+
+		if (sprd_pdm->send_misc_msg_flag == 1) {
+			aud_send_cmd_no_param(AMSG_CH_MISC,
+				DISABLE_AUD_PLL_BIND, 0, 0, 0, 0, -1);
+			sprd_pdm->send_misc_msg_flag = 0;
+		}
 	}
 }
 
@@ -882,6 +903,14 @@ static int pdm_probe(struct platform_device *pdev)
 	int ret = 0;
 
 	pr_info("%s\n", __func__);
+
+	ret = aud_ipc_ch_open(AMSG_CH_MISC);
+	if (ret < 0) {
+		pr_err("Failed to open AMSG_CH_MISC channel\n");
+		return ret;
+
+	}
+
 	sprd_pdm = devm_kzalloc(&pdev->dev, sizeof(struct sprd_pdm_priv),
 			       GFP_KERNEL);
 	if (!sprd_pdm)
@@ -891,7 +920,7 @@ static int pdm_probe(struct platform_device *pdev)
 		pr_err("%s get board pdm of device id failed\n", __func__);
 		return -ENODEV;
 	}
-
+	sprd_pdm->send_misc_msg_flag = 0;
 	sprd_pdm->dev = dev;
 	sprd_pdm->pdev = pdev;
 	platform_set_drvdata(pdev, sprd_pdm);
@@ -950,10 +979,14 @@ static int pdm_probe(struct platform_device *pdev)
 static int pdm_remove(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
+	int ret;
 
 	snd_soc_unregister_component(&pdev->dev);
 	sysfs_remove_group(&dev->kobj, &pdm_attribute_group);
 
+	ret = aud_ipc_ch_close(AMSG_CH_MISC);
+	if (ret < 0)
+		pr_err("Failed to close AMSG_CH_MISC channel\n");
 	return 0;
 }
 

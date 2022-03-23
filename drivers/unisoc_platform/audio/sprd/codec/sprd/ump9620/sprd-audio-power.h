@@ -33,6 +33,7 @@
 #define SPRD_AUDIO_POWER_DIG_CLK_INTC	10
 #define SPRD_AUDIO_POWER_DIG_CLK_HID	11
 #define SPRD_AUDIO_POWER_CLK_DCL_32K	12
+#define SPRD_AUDIO_POWER_DAHPL_CHN	13
 
 struct sprd_audio_power_info {
 	int id;

@@ -560,13 +560,13 @@ SPRD_AUDIO_POWER_SIMPLE_LDO(BG, "VB", 3, ANA_PMU0,
 			BG_EN, NULL, 0, 0);
 SPRD_AUDIO_POWER_SIMPLE_LDO(BIAS, "VB", 4, ANA_PMU0,
 			BIAS_EN, NULL, 0, 0);
-SPRD_AUDIO_POWER_LDO_LOW(MICBIAS1, "BIAS", 5, ANA_PMU1,
+SPRD_AUDIO_POWER_LDO_LOW(MICBIAS1, "VB", 5, ANA_PMU1,
 			MIC1_BIAS_EN, NULL, NULL, power_sleep,
 			 0, 0, 0, 0, 0, 0, 0);
-SPRD_AUDIO_POWER_LDO_LOW(MICBIAS2, "BIAS", 6, ANA_PMU1,
+SPRD_AUDIO_POWER_LDO_LOW(MICBIAS2, "VB", 6, ANA_PMU1,
 			MIC2_BIAS_EN, NULL, NULL, power_sleep,
 			 0, 0, 0, 0, 0, 0, 0);
-SPRD_AUDIO_POWER_LDO_LOW(MICBIAS3, "BIAS", 7, ANA_PMU1,
+SPRD_AUDIO_POWER_LDO_LOW(MICBIAS3, "VB", 7, ANA_PMU1,
 			MIC3_BIAS_EN, NULL, NULL, power_sleep,
 			 0, 0, 0, 0, 0, 0, 0);
 SPRD_AUDIO_POWER_LDO_LOW(HEADMICBIAS, "BG", 8, 0, 0,
@@ -580,6 +580,8 @@ SPRD_AUDIO_POWER_SIMPLE_LDO(DIG_CLK_HID, "DCL", 11, ANA_DCL1,
 			DIG_CLK_HID_EN, NULL, 0, 0);
 SPRD_AUDIO_POWER_SIMPLE_LDO(CLK_DCL_32K, "DCL", 12, ANA_CLK0,
 			CLK_DCL_32K_EN, NULL, 0, 0);
+SPRD_AUDIO_POWER_SIMPLE_LDO(DAHPL_CHN, "VB", 13, ANA_DAC1,
+			DAHPL_EN, NULL, 0, 0);
 
 #define SPRD_OF_MATCH(comp, label) \
 	{ \
@@ -600,6 +602,7 @@ static const struct of_device_id sprd_audio_power_of_match[] = {
 	SPRD_OF_MATCH("sp,audio-dig-clk-intc", DIG_CLK_INTC),
 	SPRD_OF_MATCH("sp,audio-dig-clk-hid", DIG_CLK_HID),
 	SPRD_OF_MATCH("sp,audio-clk-dcl-32k", CLK_DCL_32K),
+	SPRD_OF_MATCH("sp,audio-dahpl-chn", DAHPL_CHN),
 };
 
 static struct device_node *sprd_audio_power_get_ana_node(void)

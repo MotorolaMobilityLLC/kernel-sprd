@@ -115,6 +115,7 @@ enum SPRD_BE_SWITCH {
 	S_FM_DSP_SMTPA,
 	S_HIFI_P,
 	S_DSP_HIFI_FAST_P,
+	S_AGCP_IIS0_TX,
 	S_SWITCH_CASE_MAX,
 };
 
@@ -248,6 +249,7 @@ static const struct snd_kcontrol_new sprd_audio_be_switch[S_SWITCH_CASE_MAX] = {
 	[S_FM_DSP_SMTPA] = SOC_DAPM_SINGLE("SWITCH", SND_SOC_NOPM, 0, 1, 0),
 	[S_HIFI_P] = SOC_DAPM_SINGLE("SWITCH", SND_SOC_NOPM, 0, 1, 0),
 	[S_DSP_HIFI_FAST_P] = SOC_DAPM_SINGLE("SWITCH", SND_SOC_NOPM, 0, 1, 0),
+	[S_AGCP_IIS0_TX] = SOC_DAPM_SINGLE("SWITCH", SND_SOC_NOPM, 0, 1, 0),
 };
 
 static const char *get_event_name(int event)
@@ -344,7 +346,8 @@ static const struct snd_soc_dapm_widget sprd_pcm_routing_widgets[] = {
 		0, 0, 0, 0),
 	SND_SOC_DAPM_AIF_IN("FE_IF_HIFI_P", "FE_DAI_HIFI_P", 0, 0, 0, 0),
 	SND_SOC_DAPM_AIF_IN("FE_IF_MM_P", "FE_DAI_MM_P", 0, 0, 0, 0),
-
+	SND_SOC_DAPM_AIF_IN("DP_DL",
+			"DisplayPort MultiMedia Playback", 0, 0, 0, 0),
 	/* Backend AIF */
 	SND_SOC_DAPM_AIF_IN("BE_IF_NORMAL_AP01_CODEC_P",
 		"BE_DAI_NORMAL_AP01_CODEC_P", 0, 0, 0, 0),
@@ -487,6 +490,8 @@ static const struct snd_soc_dapm_widget sprd_pcm_routing_widgets[] = {
 	SND_SOC_DAPM_AIF_IN("BE_IF_HIFI_P", "BE_DAI_HIFI_P",
 			    0, 0, 0, 0),
 	SND_SOC_DAPM_AIF_IN("BE_IF_HIFI_FAST_P", "BE_DAI_HIFI_FAST_P",
+			    0, 0, 0, 0),
+	SND_SOC_DAPM_AIF_OUT("AGCP_IIS0_TX", "AGCP_IIS0_TX Playback",
 			    0, 0, 0, 0),
 
 	/* Switches */
@@ -675,6 +680,8 @@ static const struct snd_soc_dapm_widget sprd_pcm_routing_widgets[] = {
 				  0, 0, &sprd_audio_be_switch[S_HIFI_P]),
 	SND_SOC_DAPM_SWITCH("S_DSP_HIFI_FAST_P", SND_SOC_NOPM,
 				  0, 0, &sprd_audio_be_switch[S_DSP_HIFI_FAST_P]),
+	SND_SOC_DAPM_SWITCH("S_AGCP_IIS0_TX", SND_SOC_NOPM,
+				  0, 0, &sprd_audio_be_switch[S_AGCP_IIS0_TX]),
 };
 
 /*
@@ -909,6 +916,9 @@ static const struct snd_soc_dapm_route sprd_pcm_routing_intercon[] = {
 	/* S_DSP_HIFI_FAST_P */
 	{"S_DSP_HIFI_FAST_P", "SWITCH", "FE_IF_HIFI_FAST_P"},
 	{"BE_IF_HIFI_FAST_P", NULL, "S_DSP_HIFI_FAST_P"},
+	/* S_AGCP_IIS0_TX */
+	{"S_AGCP_IIS0_TX", "SWITCH", "DP_DL"},
+	{"AGCP_IIS0_TX", NULL, "S_AGCP_IIS0_TX"},
 };
 
 static struct snd_soc_component_driver sprd_soc_routing_platform = {

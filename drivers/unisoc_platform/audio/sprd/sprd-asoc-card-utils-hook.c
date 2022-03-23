@@ -41,6 +41,11 @@ enum {
 	CELL_NUMBER,
 };
 
+enum {
+	LEFT_CHANNEL = 0,
+	RIRHT_CHANNEL = 1,
+};
+
 struct sprd_asoc_hook_spk_priv {
 	int gpio[BOARD_FUNC_MAX];
 	int priv_data[BOARD_FUNC_MAX];
@@ -130,11 +135,9 @@ static void hook_gpio_pulse_control(unsigned int gpio, unsigned int mode)
 static int hook_general_spk(int id, int on)
 {
 	int gpio, mode;
-
-	sp_asoc_pr_info("%s enter\n", __func__);
-
 #if 0
-	if (extral_iic_pa_en > 0) {
+	sp_asoc_pr_info("%s enter\n", __func__);
+	if (extral_iic_pa_en == 1) {
 		static int (*extral_i2c_pa_function)(int);
 
 		extral_i2c_pa_function = (void *)kallsyms_lookup_name("aw87xxx_i2c_pa");
@@ -145,9 +148,21 @@ static int hook_general_spk(int id, int on)
 			extral_i2c_pa_function(on);
 		}
 		return HOOK_OK;
+	} else if (extral_iic_pa_en == 2) {
+		static int (*extral_i2c_pa_function)(int, int);
+
+		extral_i2c_pa_function =
+			(void *)kallsyms_lookup_name("aw87xxx_audio_scene_load");
+		if (!extral_i2c_pa_function) {
+			sp_asoc_pr_info("%s extral_i2c_pa is not prepare\n", __func__);
+		} else {
+			sp_asoc_pr_info("%s extral_i2c_pa, on %d\n", __func__, on);
+			extral_i2c_pa_function(on, LEFT_CHANNEL);
+			extral_i2c_pa_function(on, RIRHT_CHANNEL);
+		}
+		return HOOK_OK;
 	}
 #endif
-
 	gpio = hook_spk_priv.gpio[id];
 	if (gpio < 0) {
 		pr_err("%s gpio is invalid!\n", __func__);

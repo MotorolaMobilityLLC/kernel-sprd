@@ -36,6 +36,7 @@
 #define ANA_REG_GLB_XTL_WAIT_CTRL               (CTL_BASE_ANA_GLB + 0x0378)
 #define ANA_REG_GLB_AUDIO_CTRL0                 (CTL_BASE_ANA_GLB + 0x0394)
 #define ANA_REG_GLB_LDO_VDDRF1V8_REG0           (CTL_BASE_ANA_GLB + 0x010c)
+#define ANA_REG_GLB_ADD0_DATA_SEL               (CTL_BASE_ANA_GLB + 0x034C)
 #define ANA_REG_GLB_PWR_WR_PROT_VALUE           (CTL_BASE_ANA_GLB + 0x03d0)
 
 /* ANA_REG_GLB_ARM_CLK_EN */
@@ -58,6 +59,9 @@
 #define BIT_CLK_AUD_IF_RX_INV_EN                BIT(2)
 #define BIT_CLK_AUD_IF_6P5M_TX_INV_EN           BIT(1)
 #define BIT_CLK_AUD_IF_6P5M_RX_INV_EN           BIT(0)
+
+/* ANA_REG_GLB_ADD0_DATA_SEL */
+#define BITS_ADD0_DATA_SEL(x)                 (((x) & GENMASK(1, 0)) << 7)
 
 /* ANA_REG_GLB_ARM_MODULE_EN */
 #define BIT_ANA_AUD_EN                          BIT(4)

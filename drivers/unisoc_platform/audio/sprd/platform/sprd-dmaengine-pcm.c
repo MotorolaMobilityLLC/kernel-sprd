@@ -46,6 +46,8 @@
 #include "sprd-dmaengine-pcm.h"
 #include "sprd-platform-pcm-routing.h"
 #include "sprd-i2s.h"
+#include "sprd-dai.h"
+#include "sprd-tdm.h"
 
 #define SPRD_PCM_CHANNEL_MAX 2
 #define VBC_AUDRCD_FULL_WATERMARK 160
@@ -190,15 +192,33 @@ static int __agdsp_access_disable(void)
 #pragma GCC diagnostic pop
 #endif
 
-static inline int sprd_is_i2s(struct snd_soc_dai *cpu_dai)
+static struct snd_soc_pcm_runtime *sprd_get_be_soc_runtime(
+		struct snd_pcm_substream *substream)
 {
-	return (cpu_dai->driver->id == I2S_MAGIC_ID);
+	struct snd_soc_pcm_runtime *rtd = substream->private_data;
+	int stream = substream->stream;
+	struct snd_soc_dpcm *dpcm;
+
+	list_for_each_entry(dpcm, &rtd->dpcm[stream].be_clients, list_be) {
+		if (dpcm->fe == rtd)
+			return dpcm->be;
+	}
+
+	return NULL;
+}
+
+static inline int sprd_is_i2s_or_tdm(struct snd_soc_dai *cpu_dai)
+{
+	return ((cpu_dai->driver->id == I2S_MAGIC_ID) ||
+				(cpu_dai->driver->id == TDM_MAGIC_ID));
 }
 
 static inline const char *sprd_dai_pcm_name(struct snd_soc_dai *cpu_dai)
 {
-	if (sprd_is_i2s(cpu_dai))
+	if (cpu_dai->driver->id == I2S_MAGIC_ID)
 		return "I2S";
+	if (cpu_dai->driver->id == TDM_MAGIC_ID)
+		return "TDM";
 	return cpu_dai->name ? : "VBC";
 }
 
@@ -285,9 +305,11 @@ static int sprd_pcm_open(struct snd_pcm_substream *substream)
 {
 	struct snd_pcm_runtime *runtime = substream->runtime;
 	struct snd_soc_pcm_runtime *srtd = substream->private_data;
+	struct snd_soc_pcm_runtime *be_rtd = sprd_get_be_soc_runtime(substream);
 	struct device *dev = srtd->dev;
 	struct sprd_runtime_data *rtd;
 	struct i2s_config *config;
+	struct tdm_config *tdmconf;
 	struct snd_pcm *pcm = srtd->pcm;
 	int burst_len = 0;
 	int hw_chan = 0;
@@ -300,14 +322,28 @@ static int sprd_pcm_open(struct snd_pcm_substream *substream)
 	pr_info("%s %s Open %s\n", __func__, sprd_dai_pcm_name(srtd->cpu_dai),
 			PCM_DIR_NAME(substream->stream));
 
-	if (sprd_is_i2s(srtd->cpu_dai)) {
+	if (sprd_is_i2s_or_tdm(srtd->cpu_dai)) {
 		snd_soc_set_runtime_hwparams(substream, &sprd_i2s_pcm_hardware);
-		config = sprd_i2s_dai_to_config(srtd->cpu_dai);
-		if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
-			burst_len = I2S_FIFO_DEPTH - config->tx_watermark;
-		else
-			burst_len = config->rx_watermark;
-		burst_len <<= config->byte_per_chan;
+		if (srtd->cpu_dai->driver->id == I2S_MAGIC_ID) {
+			config = sprd_i2s_dai_to_config(srtd->cpu_dai);
+			if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
+				burst_len = I2S_FIFO_DEPTH - config->tx_watermark;
+			else
+				burst_len = config->rx_watermark;
+			burst_len <<= config->byte_per_chan;
+			hw_chan = 1;
+		} else {
+			tdmconf = sprd_tdm_dai_to_config(srtd->cpu_dai);
+			if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
+				burst_len = TDM_FIFO_DEPTH - tdmconf->tx_watermark;
+			else
+				burst_len = tdmconf->rx_watermark;
+			burst_len <<= tdmconf->byte_per_chan;
+			hw_chan = 1;
+		}
+	} else if (be_rtd && be_rtd->cpu_dai->id == AGCP_IIS0_TX) {
+		snd_soc_set_runtime_hwparams(substream, &sprd_i2s_pcm_hardware);
+		burst_len = 0xc0 * 4;
 		hw_chan = 1;
 	} else {
 		snd_soc_set_runtime_hwparams(substream,
@@ -561,7 +597,7 @@ static int sprd_pcm_close(struct snd_pcm_substream *substream)
 	} else
 		pm_dma->normal_rtd = NULL;
 
-	if (rtd->is_access_enabled) {
+	if (rtd && rtd->is_access_enabled) {
 		agdsp_access_disable();
 		rtd->is_access_enabled = false;
 	}
@@ -847,6 +883,7 @@ static int sprd_pcm_config_dma(struct snd_pcm_substream *substream,
 	struct snd_pcm_runtime *runtime = substream->runtime;
 	struct sprd_runtime_data *rtd = runtime->private_data;
 	struct snd_soc_pcm_runtime *srtd = substream->private_data;
+	struct snd_soc_pcm_runtime *be_rtd = sprd_get_be_soc_runtime(substream);
 	struct sprd_pcm_dma_params *dma_data;
 	struct sprd_dma_cfg **dma_config_ptr = dma_config;
 	struct sprd_dma_cfg *cfg;
@@ -856,10 +893,14 @@ static int sprd_pcm_config_dma(struct snd_pcm_substream *substream,
 	int is_playback = substream->stream == SNDRV_PCM_STREAM_PLAYBACK;
 	u32 fragments_len;
 	struct i2s_config *config = NULL;
+	struct tdm_config *tdmconf = NULL;
 	struct scatterlist *sg = NULL;
 	int p_wakeup = !(params->flags & SNDRV_PCM_HW_PARAMS_NO_PERIOD_WAKEUP);
 
-	dma_data = snd_soc_dai_get_dma_data(srtd->cpu_dai, substream);
+	if (be_rtd && be_rtd->cpu_dai->id == AGCP_IIS0_TX)
+		dma_data = snd_soc_dai_get_dma_data(be_rtd->cpu_dai, substream);
+	else
+		dma_data = snd_soc_dai_get_dma_data(srtd->cpu_dai, substream);
 	if (!dma_data) {
 		pr_err("ERR: %s dma_data is NULL!\n", __func__);
 		return -EINVAL;
@@ -869,14 +910,25 @@ static int sprd_pcm_config_dma(struct snd_pcm_substream *substream,
 	if (dma_data->use_mcdt == 1)
 		ch_cnt = 1;
 
-	if (sprd_is_i2s(srtd->cpu_dai)) {
+	if (sprd_is_i2s_or_tdm(srtd->cpu_dai)) {
 		u16 wm;
-
-		config = sprd_i2s_dai_to_config(srtd->cpu_dai);
+		if (srtd->cpu_dai->driver->id == I2S_MAGIC_ID) {
+			config = sprd_i2s_dai_to_config(srtd->cpu_dai);
+			ch_cnt = rtd->hw_chan;
+			wm = is_playback ? (I2S_FIFO_DEPTH - config->tx_watermark) :
+				config->rx_watermark;
+			fragments_len = wm * dma_data->desc.datawidth;
+		} else {
+			tdmconf = sprd_tdm_dai_to_config(srtd->cpu_dai);
+			ch_cnt = rtd->hw_chan;
+			wm = is_playback ? (TDM_FIFO_DEPTH - tdmconf->tx_watermark) :
+				tdmconf->rx_watermark;
+			fragments_len = wm * dma_data->desc.datawidth;
+		}
+	} else if (be_rtd && be_rtd->cpu_dai->id == AGCP_IIS0_TX) {
 		ch_cnt = rtd->hw_chan;
-		wm = is_playback ? (I2S_FIFO_DEPTH - config->tx_watermark) :
-			config->rx_watermark;
-		fragments_len = wm * dma_data->desc.datawidth;
+		fragments_len =
+			dma_data->desc.fragmens_len * dma_data->desc.datawidth;
 	} else {
 		u32 fact = (dma_data->desc.datawidth ==
 			DMA_SLAVE_BUSWIDTH_2_BYTES) ? 2:4;
@@ -1009,6 +1061,7 @@ static int sprd_pcm_hw_params(struct snd_pcm_substream *substream,
 	struct snd_pcm_runtime *runtime = substream->runtime;
 	struct sprd_runtime_data *rtd = runtime->private_data;
 	struct snd_soc_pcm_runtime *srtd = substream->private_data;
+	struct snd_soc_pcm_runtime *be_rtd = sprd_get_be_soc_runtime(substream);
 	struct sprd_pcm_dma_params *dma_data;
 	struct sprd_dma_cfg *dma_config_ptr[SPRD_PCM_CHANNEL_MAX];
 	struct sprd_dma_callback_data *dma_pdata_ptr[SPRD_PCM_CHANNEL_MAX];
@@ -1016,6 +1069,7 @@ static int sprd_pcm_hw_params(struct snd_pcm_substream *substream,
 	size_t period = params_period_bytes(params);
 	dma_addr_t dma_buff_phys[SPRD_PCM_CHANNEL_MAX];
 	struct i2s_config *config = NULL;
+	struct tdm_config *tdmconf = NULL;
 	int ret = 0;
 	int i = 0;
 	int ch_cnt;
@@ -1027,7 +1081,10 @@ static int sprd_pcm_hw_params(struct snd_pcm_substream *substream,
 
 	sp_asoc_pr_info("(pcm) %s, cpudai_id=%d\n", __func__,
 			srtd->cpu_dai->id);
-	dma_data = snd_soc_dai_get_dma_data(srtd->cpu_dai, substream);
+	if (be_rtd && be_rtd->cpu_dai->id == AGCP_IIS0_TX)
+		dma_data = snd_soc_dai_get_dma_data(be_rtd->cpu_dai, substream);
+	else
+		dma_data = snd_soc_dai_get_dma_data(srtd->cpu_dai, substream);
 	if (!dma_data)
 		goto no_dma;
 
@@ -1036,8 +1093,14 @@ static int sprd_pcm_hw_params(struct snd_pcm_substream *substream,
 		ch_cnt = 1;
 	sp_asoc_pr_info("chan=%d totsize=%zu period=%zu\n", ch_cnt,
 			totsize, period);
-	if (sprd_is_i2s(srtd->cpu_dai)) {
-		config = sprd_i2s_dai_to_config(srtd->cpu_dai);
+	if (sprd_is_i2s_or_tdm(srtd->cpu_dai)) {
+		if (srtd->cpu_dai->driver->id == I2S_MAGIC_ID) {
+			config = sprd_i2s_dai_to_config(srtd->cpu_dai);
+		} else {
+			tdmconf = sprd_tdm_dai_to_config(srtd->cpu_dai);
+		}
+		ch_cnt = rtd->hw_chan;
+	} else if (be_rtd && be_rtd->cpu_dai->id == AGCP_IIS0_TX) {
 		ch_cnt = rtd->hw_chan;
 	} else {
 		rtd->interleaved = (ch_cnt == 2)
@@ -1412,12 +1475,14 @@ static int sprd_pcm_preallocate_dma_ddr32_buffer(struct snd_pcm *pcm,
 	struct snd_pcm_substream *substream = pcm->streams[stream].substream;
 	struct snd_soc_pcm_runtime *srtd = substream->private_data;
 	struct snd_soc_pcm_runtime *rtd = pcm->private_data;
+	struct snd_soc_pcm_runtime *be_rtd = sprd_get_be_soc_runtime(substream);
 	struct snd_dma_buffer *buf = &substream->dma_buffer;
 	size_t size = AUDIO_BUFFER_BYTES_MAX;
 
 	buf->dev.type = SNDRV_DMA_TYPE_DEV;
 	buf->dev.dev = pcm->card->dev;
-	if (sprd_is_i2s(rtd->cpu_dai))
+	if (sprd_is_i2s_or_tdm(rtd->cpu_dai) ||
+		(be_rtd && be_rtd->cpu_dai->id == AGCP_IIS0_TX))
 		size = I2S_BUFFER_BYTES_MAX;
 	else
 		if (!is_normal_cap_use_iram() && test_ddr_buffer_size)

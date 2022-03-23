@@ -94,16 +94,14 @@ enum {
 	SPRD_CODEC_ANA_MIXER_ORDER = 93,
 	SPRD_CODEC_DEPOP_ORDER = 96,
 	SPRD_CODEC_BUF_SWITCH_ORDER = 98,
-	SPRD_CODEC_SDA_EN_ORDER = 101,
-	SPRD_CODEC_DA_EN_ORDER = 102,
+	SPRD_CODEC_DA_EN_ORDER = 101,
+	SPRD_CODEC_SDA_EN_ORDER = 102,
 	SPRD_CODEC_SWITCH_ORDER = 103,
 	SPRD_CODEC_DC_OS_ORDER = 104,
 	SPRD_CODEC_DA_LDO_ORDER = 105,
-	SPRD_CODEC_DA_BUF_DCCAL_ORDER = 107,
 	SPRD_CODEC_AO_EN_ORDER = 108,
 	SPRD_CODEC_RCV_EN_ORDER = 109,
 	SPRD_CODEC_HP_EN_ORDER = 110,
-	SPRD_CODEC_RCV_DEPOP_ORDER = 112,
 	SPRD_CODEC_MIXER_ORDER = 115,/* Must be the last one */
 };
 
@@ -169,6 +167,19 @@ static const char * const hp_chn_type_txt[HP_TYPE_MAX] = {
 	[HP_LR_TYPE] = TO_STRING(HP_LR_TYPE),
 	[HP_R_TYPE] = TO_STRING(HP_R_TYPE),
 	[HP_L_TYPE] = TO_STRING(HP_L_TYPE),
+};
+
+enum ADD0_DATA_SEL_TYPE {
+	ADD0_DATA_MIC12,
+	ADD0_DATA_MIC13,
+	ADD0_DATA_MIC23,
+	ADD0_DATA_TYPE_MAX
+};
+
+static const char * const add0_data_sel_txt[ADD0_DATA_TYPE_MAX] = {
+	[ADD0_DATA_MIC12] = TO_STRING(ADD0_DATA_MIC12),
+	[ADD0_DATA_MIC13] = TO_STRING(ADD0_DATA_MIC13),
+	[ADD0_DATA_MIC23] = TO_STRING(ADD0_DATA_MIC23),
 };
 
 enum INVERT_MODE_TYPE {
@@ -282,6 +293,8 @@ struct sprd_codec_priv {
 	struct regulator *main_mic;
 	struct regulator *head_mic;
 	struct regulator *vb;
+	struct regulator *dahpl_chn;
+	struct regulator *bias;
 
 	int psg_state;
 	struct fgu fgu;
@@ -318,15 +331,20 @@ struct sprd_codec_priv {
 	enum INVERT_MODE_TYPE dahp_os_inv;
 	u16 dahp_os_d;
 	enum HP_CHANNEL_TYPE hp_chn_type;
+	enum ADD0_DATA_SEL_TYPE add0_data_sel;
 	/* from step 7, backup way to solve pop issue */
 	bool rcv_pop_ramp;
 	u32 sdm_l;
 	u32 sdm_h;
 	struct regmap *aon_top_apb;
+	struct regmap *audcp_aon_apb;/* baseaddr: 0x56390000 */
+	struct regmap *aon_apb_rf;/* 0x64900000 */
+	struct regmap *dvfs_apb;/* 0x56250000 */
 	u32 clk26m_sinout_pmic_reg;
 	u32 clk26m_sinout_pmic_mask;
 	u32 ana_chip_id;
 	u32 ana_chip_ver_id;
+	bool bias_en;
 };
 
 static const char * const das_input_mux_texts[] = {
@@ -363,6 +381,9 @@ static const struct soc_enum da_buf_dccal_mode_enum =
 
 static const struct soc_enum hp_chn_type_enum =
 	SOC_ENUM_SINGLE_EXT(HP_TYPE_MAX, hp_chn_type_txt);
+
+static const struct soc_enum add0_data_sel_enum =
+	SOC_ENUM_SINGLE_EXT(HP_TYPE_MAX, add0_data_sel_txt);
 
 static const char * const codec_hw_info[] = {
 	CODEC_HW_INFO
@@ -424,6 +445,11 @@ static const struct snd_kcontrol_new adc_3_pga_controls[] = {
 			 SOC_REG(ANA_CDC2), ADPGA_3_G_S, 7, adc_tlv),
 };
 
+static const struct snd_kcontrol_new vad_ad_pga_controls[] = {
+	SPRD_CODEC_PGA_M("VAD Capture Volume",
+			 SOC_REG(ANA_RSV3), VAD_PGA_G_S, 7, adc_tlv),
+};
+
 static const struct snd_kcontrol_new dac_pga_controls[] = {
 	SPRD_CODEC_PGA_MAX_INVERT("DAC Playback Volume",
 				  SOC_REG(ANA_DAC0), DA_IG_S, 2, dac_tlv),
@@ -477,8 +503,11 @@ static const struct snd_kcontrol_new dacao_mixer_controls[] = {
 	SPRD_CODEC_MIXER("ADCRAOL Switch", SND_SOC_NOPM, 0),
 };
 
-static const struct snd_kcontrol_new ear_mixer_controls[] = {
+static const struct snd_kcontrol_new ear_hpl_mixer_controls[] = {
 	SPRD_CODEC_MIXER("DACHPL Switch", SND_SOC_NOPM, SDAHPL_RCV_S),
+};
+
+static const struct snd_kcontrol_new ear_aol_mixer_controls[] = {
 	SPRD_CODEC_MIXER("DACAOL Switch", SND_SOC_NOPM, SDAAOL_RCV_S),
 };
 
@@ -513,13 +542,27 @@ static const struct snd_kcontrol_new dac_ao_hp_switch[] = {
 	SOC_DAPM_SINGLE_VIRT("Switch", 1),
 };
 
+static const struct snd_kcontrol_new vad_ad_mic_switch[] = {
+	SOC_DAPM_SINGLE_VIRT("Switch", 1),
+	SOC_DAPM_SINGLE_VIRT("Switch", 1),
+	SOC_DAPM_SINGLE_VIRT("Switch", 1),
+};
+
+static const struct snd_kcontrol_new vad_ad_virt_switch[] = {
+	SOC_DAPM_SINGLE_VIRT("Switch", 1),
+	SOC_DAPM_SINGLE_VIRT("Switch", 1),
+};
+
+static const struct snd_kcontrol_new hp_virt_switch =
+	SOC_DAPM_SINGLE_VIRT("Switch", 1);
+
 static int sprd_codec_clk26m_sinout(struct sprd_codec_priv *sprd_codec,
 				    bool clk_on)
 {
-	unsigned int regval;
-	int ret;
+	unsigned int regval = 0;
+	int ret = 0;
 
-	ret = regmap_read(sprd_codec->aon_top_apb, sprd_codec->clk26m_sinout_pmic_reg,
+	regmap_read(sprd_codec->aon_top_apb, sprd_codec->clk26m_sinout_pmic_reg,
 		    &regval);
 	sp_asoc_pr_dbg("%s clk26m_sinout_pmic, ret %d, access value 0x%x\n",
 		       __func__, ret, regval);
@@ -527,7 +570,7 @@ static int sprd_codec_clk26m_sinout(struct sprd_codec_priv *sprd_codec,
 		sprd_codec->clk26m_sinout_pmic_reg,
 		sprd_codec->clk26m_sinout_pmic_mask,
 		clk_on ? sprd_codec->clk26m_sinout_pmic_mask : 0);
-	ret = regmap_read(sprd_codec->aon_top_apb, sprd_codec->clk26m_sinout_pmic_reg,
+	regmap_read(sprd_codec->aon_top_apb, sprd_codec->clk26m_sinout_pmic_reg,
 		    &regval);
 	sp_asoc_pr_dbg("%s update clk26m_sinout_pmic, ret %d, access value 0x%x\n",
 		       __func__, ret, regval);
@@ -862,16 +905,22 @@ static void sprd_codec_sdm_init(struct snd_soc_component *codec)
 	if (sprd_codec->sdm_l)
 		val = sprd_codec->sdm_l;
 	else
-		val = 0x9999;
+		val = 0xcd9f;
 
 	if (sprd_codec->sdm_h)
 		mask = sprd_codec->sdm_h;
 	else
-		mask = 1;
+		mask = 0;
 
 	snd_soc_component_update_bits(codec, SOC_REG(AUD_DAC_SDM_L), 0xffff, val);
 	snd_soc_component_update_bits(codec, SOC_REG(AUD_DAC_SDM_H), 0xffff, mask);
 	sp_asoc_pr_info("ramp reg: SDM_L 0x%x, SDM_H 0x%x\n", val, mask);
+}
+
+static void sprd_daao_thd_n(struct snd_soc_component *codec)
+{
+	snd_soc_component_update_bits(codec, SOC_REG(ANA_DAC2), DAAO_BUF_ITRIM,
+			    DAAO_BUF_ITRIM);
 }
 
 static int daao_os_event(struct snd_soc_dapm_widget *w,
@@ -883,11 +932,12 @@ static int daao_os_event(struct snd_soc_dapm_widget *w,
 	switch (event) {
 	case SND_SOC_DAPM_PRE_PMU:
 		sprd_codec_audif_dc_os_set(codec, 6);
+		sprd_daao_thd_n(codec);
 		snd_soc_component_update_bits(codec, SOC_REG(ANA_DAC2), DAAO_OS_EN,
 				    DAAO_OS_EN);
 		snd_soc_component_update_bits(codec, SOC_REG(ANA_DAC2), DAAO_OS_INV, 0);
 		snd_soc_component_update_bits(codec, SOC_REG(ANA_DAC2), DAAO_OS_D(0x7),
-				    DAAO_OS_D(0x7));
+				    DAAO_OS_D(0x5));
 		break;
 	case SND_SOC_DAPM_POST_PMU:
 		break;
@@ -940,6 +990,33 @@ static int codec_widget_event(struct snd_soc_dapm_widget *w,
 	return 0;
 }
 
+static int ao_en_event(struct snd_soc_dapm_widget *w,
+		       struct snd_kcontrol *kcontrol, int event)
+{
+	struct snd_soc_component *codec = snd_soc_dapm_to_component(w->dapm);
+
+	sp_asoc_pr_info("'%s' %s\n", w->name, get_event_name(event));
+	switch (event) {
+	case SND_SOC_DAPM_PRE_PMU:
+	case SND_SOC_DAPM_POST_PMU:
+		snd_soc_component_update_bits(codec, SOC_REG(ANA_CDC10), AO_EN, AO_EN);
+		/* test, wait lineout to stable */
+		/* mdelay(1); */
+		break;
+	case SND_SOC_DAPM_PRE_PMD:
+	case SND_SOC_DAPM_POST_PMD:
+		/* test, wait ucp1301 close completely */
+		/* mdelay(1); */
+		snd_soc_component_update_bits(codec, SOC_REG(ANA_CDC10), AO_EN, 0);
+		break;
+	default:
+		pr_err("%s invalid event error 0x%x\n", __func__, event);
+		break;
+	}
+
+	return 0;
+}
+
 static int sdaaol_ao_event(struct snd_soc_dapm_widget *w,
 			   struct snd_kcontrol *kcontrol, int event)
 {
@@ -964,6 +1041,67 @@ static int sdaaor_ao_event(struct snd_soc_dapm_widget *w,
 	return 0;
 }
 
+static int fdin_dvld_check_event(struct snd_soc_dapm_widget *w, int event)
+{
+	struct snd_soc_component *codec = snd_soc_dapm_to_component(w->dapm);
+	struct sprd_codec_priv *sprd_codec = snd_soc_component_get_drvdata(codec);
+	int on = !!SND_SOC_DAPM_EVENT_ON(event);
+	u32 state;
+	int i = 0, j;
+
+	while (i++ < 10) {
+		sprd_codec_wait(10);
+		state = snd_soc_component_read32(codec, SOC_REG(ANA_STS1)) &
+			RCV_DAC_FDIN_DVLD;
+		if ((on && state) || (!on && !state))
+			break;
+	}
+
+	/* check further, do something in PMD? */
+	if (sprd_codec->rcv_pop_ramp && on) {
+		for (j = 4; j >= 0; j--) {
+			snd_soc_component_update_bits(codec, SOC_REG(ANA_CDC8),
+					    RCV_G(0xf), RCV_G(j));
+			usleep_range(100, 110);
+		}
+	}
+
+	sp_asoc_pr_info("%s on %d\n", __func__, on);
+	if (!on)
+		snd_soc_component_update_bits(codec, SOC_REG(ANA_CDC10), RCV_EN, 0);
+
+	sp_asoc_pr_info("'%s' %s, check %s i %d\n", w->name,
+			get_event_name(event),
+			(i >= 10) ? "failed" : "sucessful", i);
+
+	return 0;
+}
+
+static int dahpl_chn_en(struct snd_soc_component *codec, bool on_off)
+{
+	struct sprd_codec_priv *sprd_codec = snd_soc_component_get_drvdata(codec);
+	static int count_en;
+	int ret = 0;
+
+	if (on_off) {
+		ret = regulator_enable(sprd_codec->dahpl_chn);
+		snd_soc_component_update_bits(codec, SOC_REG(ANA_DAC1), DAHPL_EN, DAHPL_EN);
+		if (ret) {
+			pr_err("%s dahpl_chn regulator enable failed",
+			       __func__);
+			return ret;
+		}
+		count_en++;
+	} else {
+		regulator_disable(sprd_codec->dahpl_chn);
+		snd_soc_component_update_bits(codec, SOC_REG(ANA_DAC1), DAHPL_EN, 0);
+		count_en--;
+	}
+	pr_info("%s on_off %d, count_en %d", __func__, on_off, count_en);
+
+	return 0;
+}
+
 static int sdaaol_rcv_event(struct snd_soc_dapm_widget *w,
 			    struct snd_kcontrol *kcontrol, int event)
 {
@@ -972,6 +1110,7 @@ static int sdaaol_rcv_event(struct snd_soc_dapm_widget *w,
 
 	sp_asoc_pr_info("'%s' %s\n", w->name, get_event_name(event));
 	update_switch(codec, SDAAOL_RCV, on);
+	fdin_dvld_check_event(w, event);
 
 	return 0;
 }
@@ -984,6 +1123,7 @@ static int sdahpl_rcv_event(struct snd_soc_dapm_widget *w,
 
 	sp_asoc_pr_info("'%s' %s\n", w->name, get_event_name(event));
 	update_switch(codec, SDAHPL_RCV, on);
+	fdin_dvld_check_event(w, event);
 
 	return 0;
 }
@@ -1027,15 +1167,12 @@ static int dahp_os_event(struct snd_soc_dapm_widget *w,
 		if (sprd_codec->dahp_os_d)
 			val = sprd_codec->dahp_os_d;
 		else
-			val = 0x7;
+			val = 0x5;
 		snd_soc_component_update_bits(codec, SOC_REG(ANA_DAC1), DAHP_OS_D(0x7),
 				    DAHP_OS_D(val));
 		break;
 	case SND_SOC_DAPM_PRE_PMD:
-		snd_soc_component_update_bits(codec, SOC_REG(ANA_DAC1), DAHP_OS_INV, 0);
-		snd_soc_component_update_bits(codec, SOC_REG(ANA_DAC1), DAHP_OS_D(0x7),
-				    0);
-		snd_soc_component_update_bits(codec, SOC_REG(ANA_DAC1), DAHP_OS_EN, 0);
+	case SND_SOC_DAPM_POST_PMD:
 		break;
 	default:
 		pr_err("%s invalid event error 0x%x\n", __func__, event);
@@ -1091,35 +1228,35 @@ get_dccal_mode(struct sprd_codec_priv *sprd_codec,
 	return dccal_mode;
 }
 
-static int daaol_buf_cal_event(struct snd_soc_dapm_widget *w,
-			       struct snd_kcontrol *kcontrol, int event)
+static int daaol_en_event(struct snd_soc_dapm_widget *w,
+			  struct snd_kcontrol *kcontrol, int event)
 {
 	struct snd_soc_component *codec = snd_soc_dapm_to_component(w->dapm);
 	struct sprd_codec_priv *sprd_codec = snd_soc_component_get_drvdata(codec);
 	enum DA_BUF_CAL_MODE_TYPE dccal_mode;
+	bool need_check_cali = false;
 	int ret = 0;
 
 	sp_asoc_pr_info("'%s' %s\n", w->name, get_event_name(event));
 	switch (event) {
+	case SND_SOC_DAPM_PRE_PMU:
 	case SND_SOC_DAPM_POST_PMU:
 		dccal_mode = get_dccal_mode(sprd_codec,
 					    sprd_codec->daaol_buf_dccal);
 		switch (dccal_mode) {
 		case HW_CAL_MODE:
+			dahpl_chn_en(codec, true);
+			snd_soc_component_update_bits(codec, SOC_REG(ANA_CDC5),
+					    DAHPL_BUF_CAL_MODE_SEL, 0);
+			snd_soc_component_update_bits(codec, SOC_REG(ANA_CDC5),
+					    DAHPL_BUF_DCCAL_EN,
+					    DAHPL_BUF_DCCAL_EN);
 			snd_soc_component_update_bits(codec, SOC_REG(ANA_CDC5),
 					    DAAOL_BUF_CAL_MODE_SEL, 0);
 			snd_soc_component_update_bits(codec, SOC_REG(ANA_CDC5),
 					    DAAOL_BUF_DCCAL_EN,
 					    DAAOL_BUF_DCCAL_EN);
-			ret = sprd_codec_reg_read_poll_timeout(codec,
-				SOC_REG(ANA_CDC7),
-				DAAOL_VRPBUF_CAL_DONE,
-				DAAOL_VRNBUF_CAL_DONE,
-				DAC_CAL_POLL_DELAY_US,
-				DAC_CAL_DONE_TIMEOUT);
-			if (ret)
-				pr_err("%s check cal done fail %d\n",
-				       __func__, ret);
+			need_check_cali = true;
 			break;
 		case SW_CAL_MODE:
 		case NOT_CAL:
@@ -1134,12 +1271,26 @@ static int daaol_buf_cal_event(struct snd_soc_dapm_widget *w,
 			pr_err("daaol_buf_dccal error %d\n",
 			       sprd_codec->daaol_buf_dccal);
 		}
+		snd_soc_component_update_bits(codec, SOC_REG(ANA_DAC2),
+				    DAAOL_EN, DAAOL_EN);
+
+		if (need_check_cali) {
+			ret = sprd_codec_reg_read_poll_timeout(codec,
+				SOC_REG(ANA_CDC7),
+				DAAOL_VRPBUF_CAL_DONE,
+				DAAOL_VRNBUF_CAL_DONE,
+				DAC_CAL_POLL_DELAY_US,
+				DAC_CAL_DONE_TIMEOUT);
+			if (ret)
+				pr_err("%s check cal_done failed %d\n",
+				       __func__, ret);
+			dahpl_chn_en(codec, false);
+		}
 		break;
 	case SND_SOC_DAPM_PRE_PMD:
-		snd_soc_component_update_bits(codec, SOC_REG(ANA_CDC5),
-				    DAAOL_BUF_DCCAL_EN, 0);
-		snd_soc_component_update_bits(codec, SOC_REG(ANA_CDC5),
-				    DAAOL_BUF_CAL_MODE_SEL, 0);
+	case SND_SOC_DAPM_POST_PMD:
+		snd_soc_component_update_bits(codec, SOC_REG(ANA_DAC2),
+				    DAAOL_EN, 0);
 		break;
 	default:
 		pr_err("%s invalid event error 0x%x\n", __func__, event);
@@ -1149,35 +1300,35 @@ static int daaol_buf_cal_event(struct snd_soc_dapm_widget *w,
 	return ret;
 }
 
-static int daaor_buf_cal_event(struct snd_soc_dapm_widget *w,
-			       struct snd_kcontrol *kcontrol, int event)
+static int daaor_en_event(struct snd_soc_dapm_widget *w,
+			  struct snd_kcontrol *kcontrol, int event)
 {
 	struct snd_soc_component *codec = snd_soc_dapm_to_component(w->dapm);
 	struct sprd_codec_priv *sprd_codec = snd_soc_component_get_drvdata(codec);
 	enum DA_BUF_CAL_MODE_TYPE dccal_mode;
+	bool need_check_cali = false;
 	int ret = 0;
 
 	sp_asoc_pr_info("'%s' %s\n", w->name, get_event_name(event));
 	switch (event) {
+	case SND_SOC_DAPM_PRE_PMU:
 	case SND_SOC_DAPM_POST_PMU:
 		dccal_mode = get_dccal_mode(sprd_codec,
 					    sprd_codec->daaor_buf_dccal);
 		switch (dccal_mode) {
 		case HW_CAL_MODE:
+			dahpl_chn_en(codec, true);
+			snd_soc_component_update_bits(codec, SOC_REG(ANA_CDC5),
+					    DAHPL_BUF_CAL_MODE_SEL, 0);
+			snd_soc_component_update_bits(codec, SOC_REG(ANA_CDC5),
+					    DAHPL_BUF_DCCAL_EN,
+					    DAHPL_BUF_DCCAL_EN);
 			snd_soc_component_update_bits(codec, SOC_REG(ANA_CDC5),
 					    DAAOR_BUF_CAL_MODE_SEL, 0);
 			snd_soc_component_update_bits(codec, SOC_REG(ANA_CDC5),
 					    DAAOR_BUF_DCCAL_EN,
 					    DAAOR_BUF_DCCAL_EN);
-			ret = sprd_codec_reg_read_poll_timeout(codec,
-					SOC_REG(ANA_CDC7),
-					DAAOR_VRPBUF_CAL_DONE,
-					DAAOR_VRNBUF_CAL_DONE,
-					DAC_CAL_POLL_DELAY_US,
-					DAC_CAL_DONE_TIMEOUT);
-			if (ret)
-				pr_err("%s check cal done fail %d\n",
-				       __func__, ret);
+			need_check_cali = true;
 			break;
 		case SW_CAL_MODE:
 		case NOT_CAL:
@@ -1192,12 +1343,26 @@ static int daaor_buf_cal_event(struct snd_soc_dapm_widget *w,
 			pr_err("daaor_buf_dccal %d error\n",
 			       sprd_codec->daaor_buf_dccal);
 		}
+		snd_soc_component_update_bits(codec, SOC_REG(ANA_DAC2),
+				    DAAOR_EN, DAAOR_EN);
+
+		if (need_check_cali) {
+			ret = sprd_codec_reg_read_poll_timeout(codec,
+					SOC_REG(ANA_CDC7),
+					DAAOR_VRPBUF_CAL_DONE,
+					DAAOR_VRNBUF_CAL_DONE,
+					DAC_CAL_POLL_DELAY_US,
+					DAC_CAL_DONE_TIMEOUT);
+			if (ret)
+				pr_err("%s check cal_done failed %d\n",
+				       __func__, ret);
+			dahpl_chn_en(codec, false);
+		}
 		break;
 	case SND_SOC_DAPM_PRE_PMD:
-		snd_soc_component_update_bits(codec, SOC_REG(ANA_CDC5),
-				    DAAOR_BUF_DCCAL_EN, 0);
-		snd_soc_component_update_bits(codec, SOC_REG(ANA_CDC5),
-				    DAAOR_BUF_CAL_MODE_SEL, 0);
+	case SND_SOC_DAPM_POST_PMD:
+		snd_soc_component_update_bits(codec, SOC_REG(ANA_DAC2),
+				    DAAOR_EN, 0);
 		break;
 	default:
 		pr_err("%s invalid event error 0x%x\n", __func__, event);
@@ -1207,16 +1372,79 @@ static int daaor_buf_cal_event(struct snd_soc_dapm_widget *w,
 	return ret;
 }
 
-static int dahpl_buf_cal_event(struct snd_soc_dapm_widget *w,
-			       struct snd_kcontrol *kcontrol, int event)
+static void hp_dac_re_cali(enum HP_CHANNEL_TYPE hp_chn_type,
+	struct snd_soc_component *codec)
+{
+	int vrn, vrp, vrp_new;
+
+	if (hp_chn_type == HP_L_TYPE) {
+		snd_soc_component_update_bits(codec, SOC_REG(ANA_CDC6),
+			DA_BUF_CALO_SEL(0x3), DA_BUF_CALO_SEL(0));
+	} else if (hp_chn_type == HP_R_TYPE) {
+		snd_soc_component_update_bits(codec, SOC_REG(ANA_CDC6),
+			DA_BUF_CALO_SEL(0x3), DA_BUF_CALO_SEL(0x1));
+	} else {
+		pr_warn("%s wrong channel type\n", __func__);
+		return;
+	}
+
+	vrp = sprd_codec_read(codec, SOC_REG(ANA_CDC19)) & 0x1ff;
+	vrn = sprd_codec_read(codec, SOC_REG(ANA_CDC20)) & 0x1ff;
+
+	if (vrp >= 0x1ef) {
+		vrp_new = 0x1ff;
+	} else if (vrp >= 0x1c0 && vrp < 0x1ef) {
+		vrp_new = vrp + 0x10;
+	} else if (vrp >= 0x190 && vrp <= 0x1bf) {
+		vrp_new = vrp - 0x10;
+	} else if (vrp >= 0x180 && vrp < 0x190) {
+		vrp_new = 0x10 - (vrp - 0x180) + 0x1c0;
+	} else if (vrp < 0x180) {
+		vrp_new = 0x1c0;
+	} else {
+		pr_warn("%s wrong vrp value 0x%x\n", __func__, vrp);
+		return;
+	}
+	pr_info("%s %s vrp 0x%x, vrp_new 0x%x, vrn 0x%x\n", __func__,
+		(hp_chn_type == HP_L_TYPE) ? "left " : "right ",
+		vrp, vrp_new, vrn);
+
+	if (hp_chn_type == HP_L_TYPE) {
+		snd_soc_component_update_bits(codec, SOC_REG(ANA_CDC5),
+			DAHPL_BUF_DCCAL_EN, 0);
+		snd_soc_component_update_bits(codec, SOC_REG(ANA_CDC5),
+			DAHPL_BUF_CAL_MODE_SEL, DAHPL_BUF_CAL_MODE_SEL);
+		snd_soc_component_update_bits(codec, SOC_REG(ANA_CDC15),
+			DAL_VRPBUF_CALI(0x1ff), DAL_VRPBUF_CALI(vrp_new));
+		snd_soc_component_update_bits(codec, SOC_REG(ANA_CDC16),
+			DAL_VRNBUF_CALI(0x1ff), DAL_VRNBUF_CALI(vrn));
+	} else if (hp_chn_type == HP_R_TYPE) {
+		snd_soc_component_update_bits(codec, SOC_REG(ANA_CDC5),
+			DAHPR_BUF_DCCAL_EN, 0);
+		snd_soc_component_update_bits(codec, SOC_REG(ANA_CDC5),
+			DAHPR_BUF_CAL_MODE_SEL, DAHPR_BUF_CAL_MODE_SEL);
+		snd_soc_component_update_bits(codec, SOC_REG(ANA_CDC17),
+			DAR_VRPBUF_CALI(0x1ff), DAR_VRPBUF_CALI(vrp_new));
+		snd_soc_component_update_bits(codec, SOC_REG(ANA_CDC18),
+			DAR_VRNBUF_CALI(0x1ff), DAR_VRNBUF_CALI(vrn));
+	} else {
+		pr_warn("%s wrong channel to re cali\n", __func__);
+		return;
+	}
+}
+
+static int dahpl_en_event(struct snd_soc_dapm_widget *w,
+			  struct snd_kcontrol *kcontrol, int event)
 {
 	struct snd_soc_component *codec = snd_soc_dapm_to_component(w->dapm);
 	struct sprd_codec_priv *sprd_codec = snd_soc_component_get_drvdata(codec);
 	enum DA_BUF_CAL_MODE_TYPE dccal_mode;
+	bool need_check_cali = false;
 	int ret = 0;
 
 	sp_asoc_pr_info("'%s' %s\n", w->name, get_event_name(event));
 	switch (event) {
+	case SND_SOC_DAPM_PRE_PMU:
 	case SND_SOC_DAPM_POST_PMU:
 		dccal_mode = get_dccal_mode(sprd_codec,
 					    sprd_codec->dahpl_buf_dccal);
@@ -1227,16 +1455,7 @@ static int dahpl_buf_cal_event(struct snd_soc_dapm_widget *w,
 			snd_soc_component_update_bits(codec, SOC_REG(ANA_CDC5),
 					    DAHPL_BUF_DCCAL_EN,
 					    DAHPL_BUF_DCCAL_EN);
-			/* check further */
-			ret = sprd_codec_reg_read_poll_timeout(codec,
-					SOC_REG(ANA_CDC7),
-					DAHPL_VRPBUF_CAL_DONE,
-					DAHPL_VRNBUF_CAL_DONE,
-					DAC_CAL_POLL_DELAY_US,
-					DAC_CAL_DONE_TIMEOUT);
-			if (ret)
-				pr_err("%s check cal done fail %d\n",
-				       __func__, ret);
+			need_check_cali = true;
 			break;
 		case SW_CAL_MODE:
 		case NOT_CAL:
@@ -1251,12 +1470,24 @@ static int dahpl_buf_cal_event(struct snd_soc_dapm_widget *w,
 			pr_err("%s cal mode %d error\n", __func__,
 			       sprd_codec->dahpl_buf_dccal);
 		}
+		dahpl_chn_en(codec, true);
+
+		if (need_check_cali) {
+			ret = sprd_codec_reg_read_poll_timeout(codec,
+					SOC_REG(ANA_CDC7),
+					DAHPL_VRPBUF_CAL_DONE,
+					DAHPL_VRNBUF_CAL_DONE,
+					DAC_CAL_POLL_DELAY_US,
+					DAC_CAL_DONE_TIMEOUT);
+			if (ret)
+				pr_err("%s check cal_done failed %d\n",
+				       __func__, ret);
+			hp_dac_re_cali(HP_L_TYPE, codec);
+		}
 		break;
 	case SND_SOC_DAPM_PRE_PMD:
-		snd_soc_component_update_bits(codec, SOC_REG(ANA_CDC5),
-				    DAHPL_BUF_DCCAL_EN, 0);
-		snd_soc_component_update_bits(codec, SOC_REG(ANA_CDC5),
-				    DAHPL_BUF_CAL_MODE_SEL, 0);
+	case SND_SOC_DAPM_POST_PMD:
+		dahpl_chn_en(codec, false);
 		break;
 	default:
 		pr_err("%s invalid event error 0x%x\n", __func__, event);
@@ -1266,35 +1497,35 @@ static int dahpl_buf_cal_event(struct snd_soc_dapm_widget *w,
 	return ret;
 }
 
-static int dahpr_buf_cal_event(struct snd_soc_dapm_widget *w,
-			       struct snd_kcontrol *kcontrol, int event)
+static int dahpr_en_event(struct snd_soc_dapm_widget *w,
+			  struct snd_kcontrol *kcontrol, int event)
 {
 	struct snd_soc_component *codec = snd_soc_dapm_to_component(w->dapm);
 	struct sprd_codec_priv *sprd_codec = snd_soc_component_get_drvdata(codec);
 	enum DA_BUF_CAL_MODE_TYPE dccal_mode;
+	bool need_check_cali = false;
 	int ret = 0;
 
 	sp_asoc_pr_info("'%s' %s\n", w->name, get_event_name(event));
 	switch (event) {
+	case SND_SOC_DAPM_PRE_PMU:
 	case SND_SOC_DAPM_POST_PMU:
 		dccal_mode = get_dccal_mode(sprd_codec,
 					    sprd_codec->dahpr_buf_dccal);
 		switch (dccal_mode) {
 		case HW_CAL_MODE:
+			dahpl_chn_en(codec, true);
+			snd_soc_component_update_bits(codec, SOC_REG(ANA_CDC5),
+					    DAHPL_BUF_CAL_MODE_SEL, 0);
+			snd_soc_component_update_bits(codec, SOC_REG(ANA_CDC5),
+					    DAHPL_BUF_DCCAL_EN,
+					    DAHPL_BUF_DCCAL_EN);
 			snd_soc_component_update_bits(codec, SOC_REG(ANA_CDC5),
 					    DAHPR_BUF_CAL_MODE_SEL, 0);
 			snd_soc_component_update_bits(codec, SOC_REG(ANA_CDC5),
 					    DAHPR_BUF_DCCAL_EN,
 					    DAHPR_BUF_DCCAL_EN);
-			ret = sprd_codec_reg_read_poll_timeout(codec,
-					SOC_REG(ANA_CDC7),
-					DAHPR_VRPBUF_CAL_DONE,
-					DAHPR_VRNBUF_CAL_DONE,
-					DAC_CAL_POLL_DELAY_US,
-					DAC_CAL_DONE_TIMEOUT);
-			if (ret)
-				pr_err("%s check cal done fail %d\n",
-				       __func__, ret);
+			need_check_cali = true;
 			break;
 		case SW_CAL_MODE:
 		case NOT_CAL:
@@ -1309,13 +1540,33 @@ static int dahpr_buf_cal_event(struct snd_soc_dapm_widget *w,
 			pr_err("%s cal mode %d error\n", __func__,
 			       sprd_codec->dahpr_buf_dccal);
 		}
+		snd_soc_component_update_bits(codec, SOC_REG(ANA_DAC1), DAHPR_EN,
+				    DAHPR_EN);
+
+		if (need_check_cali) {
+			ret = sprd_codec_reg_read_poll_timeout(codec,
+					SOC_REG(ANA_CDC7),
+					DAHPR_VRPBUF_CAL_DONE,
+					DAHPR_VRNBUF_CAL_DONE,
+					DAC_CAL_POLL_DELAY_US,
+					DAC_CAL_DONE_TIMEOUT);
+			if (ret)
+				pr_err("%s check cal_done failed %d\n",
+				       __func__, ret);
+			hp_dac_re_cali(HP_R_TYPE, codec);
+			dahpl_chn_en(codec, false);
+			snd_soc_component_update_bits(codec, SOC_REG(ANA_CDC5),
+					    DAHPL_BUF_CAL_MODE_SEL,
+					    DAHPL_BUF_CAL_MODE_SEL);
+			snd_soc_component_update_bits(codec, SOC_REG(ANA_CDC5),
+					    DAHPL_BUF_DCCAL_EN,
+					    0);
+		}
 		usleep_range(20, 30);
 		break;
 	case SND_SOC_DAPM_PRE_PMD:
-		snd_soc_component_update_bits(codec, SOC_REG(ANA_CDC5),
-				    DAHPR_BUF_DCCAL_EN, 0);
-		snd_soc_component_update_bits(codec, SOC_REG(ANA_CDC5),
-				    DAHPR_BUF_CAL_MODE_SEL, 0);
+	case SND_SOC_DAPM_POST_PMD:
+		snd_soc_component_update_bits(codec, SOC_REG(ANA_DAC1), DAHPR_EN, 0);
 		break;
 	default:
 		pr_err("%s invalid event error 0x%x\n", __func__, event);
@@ -1501,7 +1752,6 @@ static int sprd_codec_digital_open(struct snd_soc_component *codec)
 			    0x3303);
 	snd_soc_component_update_bits(codec, SOC_REG(AUD_DNS_SW), BIT(RG_DNS_SW), 0);
 
-
 	return ret;
 }
 
@@ -1683,12 +1933,14 @@ static int daldo_en_event(struct snd_soc_dapm_widget *w,
 	u32 val;
 	u32 mask;
 
-	sp_asoc_pr_info("'%s' %s\n", w->name, get_event_name(event));
+	sp_asoc_pr_info("'%s' %s, daldo_bypass %d\n", w->name,
+			get_event_name(event), sprd_codec->daldo_bypass);
 
+	/* invert for temp */
 	if (sprd_codec->daldo_bypass)
-		val = DALDO_BYPASS;
-	else
 		val = DALDO_EN;
+	else
+		val = DALDO_BYPASS;
 
 	mask = DALDO_EN | DALDO_BYPASS;
 
@@ -1781,39 +2033,6 @@ void sprd_codec_intc_irq(struct snd_soc_component *codec, u32 int_shadow)
 	sprd_codec_wait(250);
 }
 
-static int fdin_dvld_check_event(struct snd_soc_dapm_widget *w,
-				 struct snd_kcontrol *kcontrol, int event)
-{
-	struct snd_soc_component *codec = snd_soc_dapm_to_component(w->dapm);
-	struct sprd_codec_priv *sprd_codec = snd_soc_component_get_drvdata(codec);
-	int on = !!SND_SOC_DAPM_EVENT_ON(event);
-	u32 state;
-	int i = 0;
-
-	while (i++ < 10) {
-		sprd_codec_wait(10);
-		state = snd_soc_component_read32(codec, SOC_REG(ANA_STS1)) &
-			RCV_DAC_FDIN_DVLD;
-		if ((on && state) || (!on && !state))
-			break;
-	}
-
-	/* check further, do something in PMD? */
-	if (sprd_codec->rcv_pop_ramp && on) {
-		for (i = 4; i >= 0; i--) {
-			snd_soc_component_update_bits(codec, SOC_REG(ANA_CDC8),
-					    RCV_G(0xf), RCV_G(i));
-			usleep_range(100, 110);
-		}
-	}
-
-	sp_asoc_pr_info("'%s' %s, check %s i %d\n", w->name,
-			get_event_name(event),
-			(i >= 10) ? "failed" : "sucessful", i);
-
-	return 0;
-}
-
 static int ear_switch_event(struct snd_soc_dapm_widget *w,
 			    struct snd_kcontrol *kcontrol, int event)
 {
@@ -1833,7 +2052,7 @@ static int ear_switch_event(struct snd_soc_dapm_widget *w,
 						       RCV_DVLD_POLL_DELAY_US,
 						       RCV_DVLD_DONE_TIMEOUT);
 		if (ret)
-			pr_err("%s check rcv dvld fail %d\n",
+			pr_err("%s check rcv dvld failed, %d\n",
 			       __func__, ret);
 
 		if (sprd_codec->rcv_pop_ramp)
@@ -1843,7 +2062,8 @@ static int ear_switch_event(struct snd_soc_dapm_widget *w,
 		/* check further, need to do something in PMD? */
 		break;
 	case SND_SOC_DAPM_PRE_PMD:
-		snd_soc_component_update_bits(codec, SOC_REG(ANA_CDC10), RCV_EN, 0);
+	case SND_SOC_DAPM_POST_PMD:
+		/* snd_soc_component_update_bits(codec, SOC_REG(ANA_CDC10), RCV_EN, 0); */
 		break;
 	default:
 		pr_err("%s invalid event error 0x%x\n", __func__, event);
@@ -2000,6 +2220,38 @@ static int adc_3_event(struct snd_soc_dapm_widget *w,
 	return ret;
 }
 
+static int vad_ad_event(struct snd_soc_dapm_widget *w,
+			struct snd_kcontrol *kcontrol, int event)
+{
+	struct snd_soc_component *codec = snd_soc_dapm_to_component(w->dapm);
+	int ret = 0;
+
+	sp_asoc_pr_info("'%s' %s\n", w->name, get_event_name(event));
+
+	switch (event) {
+	case SND_SOC_DAPM_PRE_PMU:
+		snd_soc_component_update_bits(codec, SOC_REG(ANA_RSV3),
+				    VAD_AD_CLK_RST, VAD_AD_CLK_RST);
+		snd_soc_component_update_bits(codec, SOC_REG(ANA_RSV3), VAD_AD_CLK_RST, 0);
+
+		snd_soc_component_update_bits(codec, SOC_REG(ANA_CDC21), VAD_ADC_RST, 0);
+		udelay(10);
+		snd_soc_component_update_bits(codec, SOC_REG(ANA_CDC21), VAD_ADC_RST,
+				    VAD_ADC_RST);
+		udelay(10);
+		break;
+	case SND_SOC_DAPM_POST_PMU:
+		snd_soc_component_update_bits(codec, SOC_REG(ANA_CDC21), VAD_ADC_RST, 0);
+		sprd_codec_wait(20);
+		break;
+	default:
+		pr_err("%s invalid event error 0x%x\n", __func__, event);
+		ret = -EINVAL;
+	}
+
+	return ret;
+}
+
 static int sprd_ivsense_src_event(struct snd_soc_dapm_widget *w,
 				  struct snd_kcontrol *kcontrol, int event)
 {
@@ -2012,6 +2264,268 @@ static int sprd_ivsense_src_event(struct snd_soc_dapm_widget *w,
 		sprd_codec_set_ad_sample_rate(codec, 48000, 0x0F, 0);
 		break;
 	case SND_SOC_DAPM_POST_PMD:
+		break;
+	default:
+		pr_err("%s invalid event error 0x%x\n", __func__, event);
+		ret = -EINVAL;
+	}
+
+	return ret;
+}
+
+static void sprd_codec_ap_adc_power_on(struct snd_soc_component *codec, bool on)
+{
+	if (!on) {
+		snd_soc_component_update_bits(codec, SOC_REG(ANA_CDC3),
+				    PGA_ADC_IBIAS_SEL(0xf),
+				    PGA_ADC_IBIAS_SEL(0));
+		snd_soc_component_update_bits(codec, SOC_REG(ANA_CDC3),
+				    PGA_ADC_VCMI_V(0x3), PGA_ADC_VCMI_V(0x3));
+		snd_soc_component_update_bits(codec, SOC_REG(ANA_CDC3), ADC_VREFP_V(0x3),
+				    ADC_VREFP_V(0x3));
+		snd_soc_component_update_bits(codec, SOC_REG(ANA_CDC21),
+				    VAD_ADPGA_IBIAS_EN, 0);
+		snd_soc_component_update_bits(codec, SOC_REG(ANA_DCL1), DIG_OSC_LDO_EN,
+				    0);
+		snd_soc_component_update_bits(codec, SOC_REG(ANA_DCL1), DIG_OSC_4M_EN, 0);
+		snd_soc_component_update_bits(codec, SOC_REG(ANA_DCL1), DIG_CLK_OSC_EN,
+				    0);
+		return;
+	}
+
+	//mode setting
+	snd_soc_component_update_bits(codec, SOC_REG(ANA_CDC3), PGA_ADC_IBIAS_SEL(0xf),
+			    PGA_ADC_IBIAS_SEL(0xc));
+	snd_soc_component_update_bits(codec, SOC_REG(ANA_CDC3), PGA_ADC_VCMI_V(0x3),
+			    PGA_ADC_VCMI_V(0x1));//check further, why this value can't be set
+	snd_soc_component_update_bits(codec, SOC_REG(ANA_CDC3), ADC_VREFP_V(0x3),
+			    ADC_VREFP_V(0x1));//check further, why this value can't be set
+	snd_soc_component_update_bits(codec, SOC_REG(ANA_CDC21), VAD_ADPGA_IBIAS_EN,
+			    VAD_ADPGA_IBIAS_EN);
+	snd_soc_component_update_bits(codec, SOC_REG(ANA_DCL1), DIG_OSC_LDO_EN,
+			    DIG_OSC_LDO_EN);
+	snd_soc_component_update_bits(codec, SOC_REG(ANA_DCL1), DIG_OSC_4M_EN,
+			    DIG_OSC_4M_EN);
+	snd_soc_component_update_bits(codec, SOC_REG(ANA_DCL1), DIG_CLK_OSC_EN,
+			    DIG_CLK_OSC_EN);
+}
+
+static void osc_4m_clk_cal(struct snd_soc_component *codec, bool on)
+{
+	u32 i, val;
+
+	if (!on) {
+		snd_soc_component_update_bits(codec, SOC_REG(ANA_DCL3),
+				    OSC_4M_CY_N2(0xff), OSC_4M_CY_N2(0));
+		snd_soc_component_update_bits(codec, SOC_REG(ANA_DCL3),
+				    OSC_4M_CY_N3(0xff), OSC_4M_CY_N3(0));
+		snd_soc_component_update_bits(codec, SOC_REG(ANA_DCL4),
+				    OSC_4M_CY_N1(0x1f), OSC_4M_CY_N1(0));
+		snd_soc_component_update_bits(codec, SOC_REG(ANA_DCL4),
+				    OSC_4M_N1(0x1ff), OSC_4M_N1(0));
+		snd_soc_component_update_bits(codec, SOC_REG(ANA_DCL4),
+				    OSC_LDO_4M_BIAS_SEL(0x3),
+				    OSC_LDO_4M_BIAS_SEL(0));
+		snd_soc_component_update_bits(codec, SOC_REG(ANA_RSV7),
+				    OSC_4M_N2(0xfff), OSC_4M_N2(0));
+		snd_soc_component_update_bits(codec, SOC_REG(ANA_RSV7),
+				    OSC_4M_FSM_CALVAL_SEL, 0);
+		snd_soc_component_update_bits(codec, SOC_REG(ANA_RSV8),
+				    OSC_4M_N3(0xfff), OSC_4M_N3(0));
+		snd_soc_component_update_bits(codec, SOC_REG(ANA_DCL2),
+				    CLK_2M_OUT_SEL(0x3), CLK_2M_OUT_SEL(0));
+		snd_soc_component_update_bits(codec, SOC_REG(ANA_DCL2),
+				    OSC_4M_CAL(0xfff), OSC_4M_CAL(0));
+		snd_soc_component_update_bits(codec, SOC_REG(ANA_DCL2),
+				    OSC_4M_CAL_EN(0x3), OSC_4M_CAL_EN(0));
+		return;
+	}
+
+	//snd_soc_component_update_bits(codec, SOC_REG(AUD_CFGA_VAD_CTL), BIT_AUD_SCLK_OUT_EN, BIT_AUD_SCLK_OUT_EN);//why not used in normal recording
+	snd_soc_component_update_bits(codec, SOC_REG(AUD_CFGA_VAD_CTL),
+			    BIT_AUD_SCLK_OUT_EN, 0);//peter ask to do, the default value is 0, remove?
+	//snd_soc_component_update_bits(codec, SOC_REG(ANA_DCL1), DCL_EN, DCL_EN);//check further, it is controlled on "DCL" widget
+
+	snd_soc_component_update_bits(codec, SOC_REG(ANA_DCL3), OSC_4M_CY_N2(0xff),
+			    OSC_4M_CY_N2(0x8));
+	snd_soc_component_update_bits(codec, SOC_REG(ANA_DCL3), OSC_4M_CY_N3(0xff),
+			    OSC_4M_CY_N3(0x8));
+	snd_soc_component_update_bits(codec, SOC_REG(ANA_DCL4), OSC_4M_CY_N1(0x1f),
+			    OSC_4M_CY_N1(0x1));
+	snd_soc_component_update_bits(codec, SOC_REG(ANA_DCL4), OSC_4M_N1(0x1ff),
+			    OSC_4M_N1(0x7c));
+	snd_soc_component_update_bits(codec, SOC_REG(ANA_DCL4), OSC_LDO_4M_BIAS_SEL(0x3),
+			    OSC_LDO_4M_BIAS_SEL(0x1));
+	snd_soc_component_update_bits(codec, SOC_REG(ANA_RSV7), OSC_4M_N2(0xfff),
+			    OSC_4M_N2(0x3e7));
+	snd_soc_component_update_bits(codec, SOC_REG(ANA_RSV7), OSC_4M_FSM_CALVAL_SEL,
+			    OSC_4M_FSM_CALVAL_SEL);
+	snd_soc_component_update_bits(codec, SOC_REG(ANA_RSV8), OSC_4M_N3(0xfff),
+			    OSC_4M_N3(0x3e7));
+	snd_soc_component_update_bits(codec, SOC_REG(ANA_DCL2), CLK_2M_OUT_SEL(0x3),
+			    CLK_2M_OUT_SEL(0));
+	snd_soc_component_update_bits(codec, SOC_REG(ANA_DCL2), OSC_4M_CAL(0xfff),
+			    OSC_4M_CAL(0x552));
+	snd_soc_component_update_bits(codec, SOC_REG(ANA_DCL2), OSC_4M_CAL_EN(0x3),
+			    OSC_4M_CAL_EN(0x3));
+
+	for (i = 0; i < 500; i++) {
+		val = snd_soc_component_read32(codec, SOC_REG(ANA_STS7));
+		if (val & OSC_4M_CAL_DONE)
+			break;
+		else
+			sp_asoc_pr_info("%s [%d] 0x%x\n", __func__, i, val);
+		mdelay(5);
+	}
+
+	sp_asoc_pr_info("%s osc 4m cal %s, [%d] 0x%x\n", __func__,
+			(i >= 500) ? "failed" : "successful", i, val);
+}
+
+static void rc_60m_clk(struct snd_soc_component *codec, bool on)
+{
+	struct sprd_codec_priv *sprd_codec = snd_soc_component_get_drvdata(codec);
+
+	if (!on) {
+		//do nothing?
+		return;
+	}
+
+	//rc0_60m calibration
+	//6490
+	regmap_update_bits(sprd_codec->aon_apb_rf, REG_AON_APB_RF_APB_RST0,
+			   BIT_RC60M_CAL_SOFT_RST, BIT_RC60M_CAL_SOFT_RST);
+	mdelay(1);
+	regmap_update_bits(sprd_codec->aon_apb_rf, REG_AON_APB_RF_APB_RST0,
+			   BIT_RC60M_CAL_SOFT_RST, 0);
+
+	//6490, the same value on normal recording
+	regmap_update_bits(sprd_codec->aon_apb_rf, REG_AON_APB_RF_APB_EB1,
+			   BIT_RC60M_CAL_EB, BIT_RC60M_CAL_EB);
+	//the same value on normal recording
+	regmap_update_bits(sprd_codec->aon_apb_rf, REG_AON_APB_RF_RC60M_CFG0,
+			   BIT_RC60M_AUTO_GATE_EN, BIT_RC60M_AUTO_GATE_EN);
+	//the same value on normal recording
+	regmap_update_bits(sprd_codec->aon_apb_rf, REG_AON_APB_RF_RC60M_CFG0,
+			   BIT_RC60M_CAL_START, BIT_RC60M_CAL_START);
+}
+
+static int vad_clk_power_event(struct snd_soc_dapm_widget *w,
+				  struct snd_kcontrol *kcontrol, int event)
+{
+	struct snd_soc_component *codec = snd_soc_dapm_to_component(w->dapm);
+	struct sprd_codec_priv *sprd_codec = snd_soc_component_get_drvdata(codec);
+	bool on = !!SND_SOC_DAPM_EVENT_ON(event);
+	int ret = 0;
+
+	sp_asoc_pr_info("'%s' %s\n", w->name, get_event_name(event));
+	switch (event) {
+	case SND_SOC_DAPM_PRE_PMU:
+		ret = agdsp_access_enable();
+		if (ret) {
+			pr_err("%s, agdsp_access_enable failed\n", __func__);
+			return ret;
+		}
+		//set 0 then 1 in old code, here is not, check further
+		regmap_update_bits(sprd_codec->audcp_aon_apb,
+				   APB_MODULE_EB0_STS, AUDIF_EB, AUDIF_EB);
+		regmap_update_bits(sprd_codec->audcp_aon_apb,
+				   APB_MODULE_EB1_STS, VAD_APB_EB, VAD_APB_EB);
+
+		//check further, remove these?
+		//6490
+		regmap_update_bits(sprd_codec->aon_apb_rf,
+				   REG_AON_APB_RF_APB_EB1,
+				   BIT_AON_APB_RF_EB1_ANA_EB,
+				   BIT_AON_APB_RF_EB1_ANA_EB);
+		regmap_update_bits(sprd_codec->aon_apb_rf,
+				   REG_AON_APB_RF_APB_EB1,
+				   BIT_AON_APB_RF_EB1_PIN_REG_EB,
+				   BIT_AON_APB_RF_EB1_PIN_REG_EB);
+
+		//regmap_update_bits(sprd_codec->aon_apb_rf, REG_AON_APB_RF_AUDCP_CTRL, BIT_AON_2_AUD_ACCESS_EN);
+		//regmap_update_bits(sprd_codec->aon_apb_rf, REG_AON_APB_RF_AUDCP_CTRL, BIT_AP_2_AUD_ACCESS_EN);
+		//sci_adi_set(ANA_REG_GLB_ARM_MODULE_EN, BIT_ANA_AUD_EN);//set in vreg_enable();
+		//sci_adi_set(ANA_REG_GLB_ARM_CLK_EN, BIT_CLK_AUD_IF_EN | BIT_CLK_AUD_IF_6P5M_EN | BIT_CLK_AUD_SCLK_EN);//set in analog_power_event --> sprd_codec_power_enable --> arch_audio_codec_analog_enable
+		//sci_adi_set(ANA_REG_GLB_XTL_WAIT_CTRL, BIT_XTL_EN);// 26M, set in analog_power_event --> sprd_codec_power_enable --> arch_audio_codec_analog_enable
+		//sci_adi_set(ANA_REG_GLB_SOFT_RST0, BIT_AUDRX_SOFT_RST | BIT_AUDTX_SOFT_RST | BIT_AUD_SOFT_RST);//set in vreg_enable --> arch_audio_codec_analog_reset
+		//sci_adi_clr(ANA_REG_GLB_SOFT_RST0, BIT_AUDRX_SOFT_RST | BIT_AUDTX_SOFT_RST | BIT_AUD_SOFT_RST);//set in vreg_enable --> arch_audio_codec_analog_reset
+		//snd_soc_component_update_bits(codec, SOC_REG(ANA_PMU0), VB_SLEEP_EN, 0);//why "don't set LDO_VB into sleep mode" in small code, check further
+		snd_soc_component_update_bits(codec, SOC_REG(ANA_PMU6), VAD_MIC_VREF_SEL,
+				    VAD_MIC_VREF_SEL);//from dawen's email to save power
+		snd_soc_component_update_bits(codec, SOC_REG(ANA_PMU6), VAD_MIC_LDO_SEL(0x7),
+				    VAD_MIC_LDO_SEL(0x7));//from dawen's email to save power
+		//snd_soc_component_update_bits(codec, SOC_REG(AUD_CFGA_CLK_EN), BIT_CLK_AUD_TOPA_6P5M_EN, BIT_CLK_AUD_TOPA_6P5M_EN);//set in analog_power_event -->  sprd_codec_power_enable --> sprd_codec_audif_clk_enable
+		//BIT_AUD_DIG_6P5M_SOFT_RST | BIT_AUD_DAC_POST_SOFT_RST set in analog_power_event -->  sprd_codec_power_enable --> sprd_codec_audif_clk_enable
+		snd_soc_component_update_bits(codec, SOC_REG(AUD_CFGA_AUDIF_CTL0),
+				    BIT_AUDIF_5P_MODE, BIT_AUDIF_5P_MODE);//check further, pay attention for this, it set to 0 in sprd_codec_audif_clk_enable, but need to set 1 in small code
+		sprd_codec_ap_adc_power_on(codec, on);
+		snd_soc_component_update_bits(codec, SOC_REG(AUD_CFGA_VAD_CTL),
+				    BIT_VAD_EN, BIT_VAD_EN);
+		//snd_soc_component_update_bits(codec, SOC_REG(AUD_CFGA_LP_MODULE_CTRL), BIT_ADC_EN_L, BIT_ADC_EN_L);//why only L channel en? controlled in widgets, waiting for jennifer
+		osc_4m_clk_cal(codec, on);
+		snd_soc_component_update_bits(codec, SOC_REG(ANA_CDC2),
+				    VAD_VCM_VEF_BUF_EN, VAD_VCM_VEF_BUF_EN);
+		snd_soc_component_update_bits(codec, SOC_REG(ANA_PMU4), CLK_2M_SEL,
+				    CLK_2M_SEL);//peter ask to do, wait for dawen: CLK_2M_OUT_SEL in ANA_DCL2, move to other function? check further
+		rc_60m_clk(codec, on);
+		//5625
+		//yht, this value changed to 0x1 in DSP, DSP should solve this issue, this value is not control in AP, remove these?, remove this in AP, 0920
+		//regmap_update_bits(sprd_codec->dvfs_apb, REG_AUD_CP_DVFS_CLK_REG_CFG0, BIT_CGM_DSP_CORE_SEL, BIT(1));
+		//RCO100 pub sel
+		pmu_apb_reg_update(REG_RCO100M_REL_CFG, BIT_RCO100M_PUB_SEL,
+				   BIT_RCO100M_PUB_SEL);//6491
+		//snd_soc_component_update_bits(codec, SOC_REG(ANA_DCL1), 0xffff, 0xe400);//from e700 to e400, //remove these ok on 0916
+		//snd_soc_component_update_bits(codec, SOC_REG(ANA_DCL10), 0xffff, 0x4001);//from 7821 to 4001,//remove these ok on 0916
+		regulator_set_mode(sprd_codec->vb, REGULATOR_MODE_STANDBY);
+		agdsp_access_disable();
+		break;
+	case SND_SOC_DAPM_POST_PMU:
+		break;
+	case SND_SOC_DAPM_PRE_PMD:
+		break;
+	case SND_SOC_DAPM_POST_PMD:
+		ret = agdsp_access_enable();
+		if (ret) {
+			pr_err("%s, agdsp_access_enable failed\n", __func__);
+			return ret;
+		}
+
+		pmu_apb_reg_clr(REG_RCO100M_REL_CFG, BIT_RCO100M_PUB_SEL);
+		//5625
+		//yht, this value changed to 0x1 in DSP, DSP should solve this issue, this value is not control in AP, remove these? make DUT dead when power down, 0920
+		//regmap_update_bits(sprd_codec->dvfs_apb, REG_AUD_CP_DVFS_CLK_REG_CFG0, BIT_CGM_DSP_CORE_SEL, BIT(2));
+		rc_60m_clk(codec, on);
+
+		snd_soc_component_update_bits(codec, SOC_REG(ANA_PMU4), CLK_2M_SEL, 0);
+		snd_soc_component_update_bits(codec, SOC_REG(ANA_CDC2),
+				    VAD_VCM_VEF_BUF_EN, 0);
+		osc_4m_clk_cal(codec, on);
+
+
+		snd_soc_component_update_bits(codec, SOC_REG(AUD_CFGA_VAD_CTL),
+				    BIT_VAD_EN, 0);
+		sprd_codec_ap_adc_power_on(codec, on);
+
+
+		snd_soc_component_update_bits(codec, SOC_REG(AUD_CFGA_AUDIF_CTL0),
+				    BIT_AUDIF_5P_MODE, 0);
+		snd_soc_component_update_bits(codec, SOC_REG(ANA_PMU6),
+				    VAD_MIC_LDO_SEL(0x7), VAD_MIC_LDO_SEL(0));
+		snd_soc_component_update_bits(codec, SOC_REG(ANA_PMU6), VAD_MIC_VREF_SEL,
+				    0);
+
+		/*//check further, remove these in power on/off?
+		regmap_update_bits(sprd_codec->aon_apb_rf, REG_AON_APB_RF_APB_EB1, BIT_AON_APB_RF_EB1_PIN_REG_EB, 0);//6490
+		regmap_update_bits(sprd_codec->aon_apb_rf, REG_AON_APB_RF_APB_EB1, BIT_AON_APB_RF_EB1_ANA_EB, 0);//make DUT dead
+		}
+		*/
+
+		regmap_update_bits(sprd_codec->audcp_aon_apb,
+				   APB_MODULE_EB0_STS, AUDIF_EB, 0);
+		regmap_update_bits(sprd_codec->audcp_aon_apb,
+				   APB_MODULE_EB1_STS, VAD_APB_EB, 0);
+		agdsp_access_disable();
 		break;
 	default:
 		pr_err("%s invalid event error 0x%x\n", __func__, event);
@@ -2107,7 +2621,8 @@ static void hp_dpop_dvld_check(struct snd_soc_component *codec, bool on_off,
 	char type_str[sizeof("HP_LR_TYPE")] = "";
 	int i = 0, state;
 
-	strcpy(type_str, hp_chn_type_txt[sprd_codec->hp_chn_type]);
+	strncpy(type_str, hp_chn_type_txt[sprd_codec->hp_chn_type],
+		sizeof("HP_LR_TYPE"));
 	while (i++ < 20) {
 		state = snd_soc_component_read32(codec, SOC_REG(ANA_STS1));
 
@@ -2311,10 +2826,10 @@ static int dns_event(struct snd_soc_dapm_widget *w,
 				    RG_DNS_ZC_SW);
 		snd_soc_component_update_bits(codec, SOC_REG(AUD_DNS_MODE),
 				    RG_DNS_PGA_TH_L(0xf),
-				    RG_DNS_PGA_TH_L(0x1));
+				    RG_DNS_PGA_TH_L(0xa));
 		snd_soc_component_update_bits(codec, SOC_REG(AUD_DNS_MODE),
 				    RG_DNS_PGA_TH_R(0xf),
-				    RG_DNS_PGA_TH_R(0x1));
+				    RG_DNS_PGA_TH_R(0xa));
 		snd_soc_component_update_bits(codec, SOC_REG(AUD_DNS_MODE),
 				    RG_DNS_MODE(0x3),
 				    RG_DNS_MODE(0x3));
@@ -2323,107 +2838,119 @@ static int dns_event(struct snd_soc_dapm_widget *w,
 				    RG_DNS_DG_GAIN_WT_SW);
 		snd_soc_component_update_bits(codec, SOC_REG(AUD_DNS_BLOCK_MS),
 				    RG_DNS_BLOCK_MS(0xffff),
-				    RG_DNS_BLOCK_MS(0x2));
+				    RG_DNS_BLOCK_MS(0x00fa));
 		snd_soc_component_update_bits(codec, SOC_REG(AUD_DNS_BLOCK_SMPL),
 				    RG_DNS_MS_SMPL(0xffff),
-				    RG_DNS_MS_SMPL(0xC0));
+				    RG_DNS_MS_SMPL(0x30));
 		snd_soc_component_update_bits(codec, SOC_REG(AUD_DNS_M_HOLD_SET_F),
 				    RG_DNS_M_HOLD_SET_F(0xffff),
-				    RG_DNS_M_HOLD_SET_F(0x400));
+				    RG_DNS_M_HOLD_SET_F(0x1));
 		snd_soc_component_update_bits(codec, SOC_REG(AUD_DNS_M_HOLD_SET_N),
 				    RG_DNS_M_HOLD_SET_N(0xffff),
-				    RG_DNS_M_HOLD_SET_N(0x400));
+				    RG_DNS_M_HOLD_SET_N(0x1));
 
 		snd_soc_component_update_bits(codec, SOC_REG(AUD_DNS_LEVEL_SET_0),
 				    RG_DNS_LEVEL_SET_0(0xffff),
 				    RG_DNS_LEVEL_SET_0(0x7fff));
 		snd_soc_component_update_bits(codec, SOC_REG(AUD_DNS_LEVEL_SET_1),
 				    RG_DNS_LEVEL_SET_1(0xffff),
-				    RG_DNS_LEVEL_SET_1(0x07cc));
+				    RG_DNS_LEVEL_SET_1(0x00fa));
 		snd_soc_component_update_bits(codec, SOC_REG(AUD_DNS_LEVEL_SET_2),
-				    RG_DNS_LEVEL_SET_2(0xffff), 0);
+					RG_DNS_LEVEL_SET_2(0xffff),
+					RG_DNS_LEVEL_SET_2(0x00fa));
 		snd_soc_component_update_bits(codec, SOC_REG(AUD_DNS_LEVEL_SET_3),
-				    RG_DNS_LEVEL_SET_3(0xffff), 0);
+					RG_DNS_LEVEL_SET_3(0xffff),
+					RG_DNS_LEVEL_SET_3(0x00fa));
 		snd_soc_component_update_bits(codec, SOC_REG(AUD_DNS_LEVEL_SET_4),
-				    RG_DNS_LEVEL_SET_4(0xffff), 0);
+					RG_DNS_LEVEL_SET_4(0xffff),
+					RG_DNS_LEVEL_SET_4(0x00fa));
 		snd_soc_component_update_bits(codec, SOC_REG(AUD_DNS_LEVEL_SET_5),
-				    RG_DNS_LEVEL_SET_5(0xffff), 0);
+					RG_DNS_LEVEL_SET_5(0xffff),
+					RG_DNS_LEVEL_SET_5(0x00fa));
 		snd_soc_component_update_bits(codec, SOC_REG(AUD_DNS_LEVEL_SET_6),
-				    RG_DNS_LEVEL_SET_6(0xffff), 0);
+					RG_DNS_LEVEL_SET_6(0xffff),
+					RG_DNS_LEVEL_SET_6(0x00fa));
 		snd_soc_component_update_bits(codec, SOC_REG(AUD_DNS_LEVEL_SET_7),
-				    RG_DNS_LEVEL_SET_7(0xffff), 0);
+					RG_DNS_LEVEL_SET_7(0xffff),
+					RG_DNS_LEVEL_SET_7(0x00b1));
 		snd_soc_component_update_bits(codec, SOC_REG(AUD_DNS_LEVEL_SET_8),
-				    RG_DNS_LEVEL_SET_8(0xffff), 0);
+					RG_DNS_LEVEL_SET_8(0xffff),
+					RG_DNS_LEVEL_SET_8(0x007d));
 		snd_soc_component_update_bits(codec, SOC_REG(AUD_DNS_LEVEL_SET_9),
-				    RG_DNS_LEVEL_SET_9(0xffff), 0);
+					RG_DNS_LEVEL_SET_9(0xffff),
+					RG_DNS_LEVEL_SET_9(0x0058));
 		snd_soc_component_update_bits(codec, SOC_REG(AUD_DNS_LEVEL_SET_10),
-				    RG_DNS_LEVEL_SET_10(0xffff), 0);
+					RG_DNS_LEVEL_SET_10(0xffff),
+					RG_DNS_LEVEL_SET_10(0x003e));
 		snd_soc_component_update_bits(codec, SOC_REG(AUD_DNS_LEVEL_SET_11),
-				    RG_DNS_LEVEL_SET_11(0xffff), 0);
+					RG_DNS_LEVEL_SET_11(0xffff),
+					RG_DNS_LEVEL_SET_11(0x002b));
 		snd_soc_component_update_bits(codec, SOC_REG(AUD_DNS_LEVEL_SET_12),
-				    RG_DNS_LEVEL_SET_12(0xffff), 0);
+					RG_DNS_LEVEL_SET_12(0xffff),
+					RG_DNS_LEVEL_SET_12(0x001e));
 
 		snd_soc_component_update_bits(codec, SOC_REG(AUD_DNS_DG_GAIN_SET_0),
 				    RG_DNS_DG_GAIN_SET_0(0xffff),
 				    RG_DNS_DG_GAIN_SET_0(0x0200));
 		snd_soc_component_update_bits(codec, SOC_REG(AUD_DNS_DG_GAIN_SET_1),
 				    RG_DNS_DG_GAIN_SET_1(0xffff),
-				    RG_DNS_DG_GAIN_SET_1(0x2000));
+				    RG_DNS_DG_GAIN_SET_1(0x02d4));
 		snd_soc_component_update_bits(codec, SOC_REG(AUD_DNS_DG_GAIN_SET_2),
 				    RG_DNS_DG_GAIN_SET_2(0xffff),
-				    RG_DNS_DG_GAIN_SET_2(0x2000));
+				    RG_DNS_DG_GAIN_SET_2(0x0400));
 		snd_soc_component_update_bits(codec, SOC_REG(AUD_DNS_DG_GAIN_SET_3),
 				    RG_DNS_DG_GAIN_SET_3(0xffff),
-				    RG_DNS_DG_GAIN_SET_3(0x2000));
+				    RG_DNS_DG_GAIN_SET_3(0x05a8));
 		snd_soc_component_update_bits(codec, SOC_REG(AUD_DNS_DG_GAIN_SET_4),
 				    RG_DNS_DG_GAIN_SET_4(0xffff),
-				    RG_DNS_DG_GAIN_SET_4(0x2000));
+				    RG_DNS_DG_GAIN_SET_4(0x0800));
 		snd_soc_component_update_bits(codec, SOC_REG(AUD_DNS_DG_GAIN_SET_5),
 				    RG_DNS_DG_GAIN_SET_5(0xffff),
-				    RG_DNS_DG_GAIN_SET_5(0x2000));
+				    RG_DNS_DG_GAIN_SET_5(0x0b50));
 		snd_soc_component_update_bits(codec, SOC_REG(AUD_DNS_DG_GAIN_SET_6),
 				    RG_DNS_DG_GAIN_SET_6(0xffff),
-				    RG_DNS_DG_GAIN_SET_6(0x2000));
+				    RG_DNS_DG_GAIN_SET_6(0x1000));
 		snd_soc_component_update_bits(codec, SOC_REG(AUD_DNS_DG_GAIN_SET_7),
 				    RG_DNS_DG_GAIN_SET_7(0xffff),
-				    RG_DNS_DG_GAIN_SET_7(0x2000));
+				    RG_DNS_DG_GAIN_SET_7(0x16a0));
 		snd_soc_component_update_bits(codec, SOC_REG(AUD_DNS_DG_GAIN_SET_8),
 				    RG_DNS_DG_GAIN_SET_8(0xffff),
 				    RG_DNS_DG_GAIN_SET_8(0x2000));
 		snd_soc_component_update_bits(codec, SOC_REG(AUD_DNS_DG_GAIN_SET_9),
 				    RG_DNS_DG_GAIN_SET_9(0xffff),
-				    RG_DNS_DG_GAIN_SET_9(0x2000));
+				    RG_DNS_DG_GAIN_SET_9(0x2d41));
 		snd_soc_component_update_bits(codec, SOC_REG(AUD_DNS_DG_GAIN_SET_10),
 				    RG_DNS_DG_GAIN_SET_10(0xffff),
-				    RG_DNS_DG_GAIN_SET_10(0x2000));
+				    RG_DNS_DG_GAIN_SET_10(0x4000));
 		snd_soc_component_update_bits(codec, SOC_REG(AUD_DNS_DG_GAIN_SET_11),
 				    RG_DNS_DG_GAIN_SET_11(0xffff),
-				    RG_DNS_DG_GAIN_SET_11(0x2000));
+				    RG_DNS_DG_GAIN_SET_11(0x5a82));
 		snd_soc_component_update_bits(codec, SOC_REG(AUD_DNS_DG_GAIN_SET_12),
 				    RG_DNS_DG_GAIN_SET_12(0xffff),
-				    RG_DNS_DG_GAIN_SET_12(0x2000));
+				    RG_DNS_DG_GAIN_SET_12(0x8000));
 
 		snd_soc_component_update_bits(codec, SOC_REG(AUD_DNS_DG_GAIN_VT_MAX),
 				    RG_DNS_DG_GAIN_VT_MAX(0xf),
-				    RG_DNS_DG_GAIN_VT_MAX(0xc));
+				    RG_DNS_DG_GAIN_VT_MAX(0x9));
 		snd_soc_component_update_bits(codec, SOC_REG(AUD_DNS_ZC_DG_UP_LAST_SET),
 				    RG_DNS_ZC_DG_UP_LAST_SET(0xffff),
 				    RG_DNS_ZC_DG_UP_LAST_SET(0x20));
 		snd_soc_component_update_bits(codec, SOC_REG(AUD_DNS_DG_USTEP),
 				    RG_DNS_DG_USTEP(0xf),
-				    RG_DNS_DG_USTEP(0x8));
+				    RG_DNS_DG_USTEP(0x1));
 		snd_soc_component_update_bits(codec, SOC_REG(AUD_DNS_ZC_DG_DN_C),
-				    RG_DNS_ZC_DG_DN_C, 0);
+				    RG_DNS_ZC_DG_DN_C, RG_DNS_ZC_DG_DN_C);
 		snd_soc_component_update_bits(codec, SOC_REG(AUD_DNS_ZC_PGA_C),
 				    RG_DNS_ZC_PGA_C,
 				    RG_DNS_ZC_PGA_C);
 		snd_soc_component_update_bits(codec, SOC_REG(AUD_DNS_QUICKEXTI_N),
 				    RG_DNS_QUICKEXTI_N(0xf), 0);
 		snd_soc_component_update_bits(codec, SOC_REG(AUD_DNS_DG_GAIN_DEFAULT),
-				    RG_DNS_DG_GAIN_DEFAULT(0x1f), 0);
+					RG_DNS_DG_GAIN_DEFAULT(0x1f),
+					RG_DNS_DG_GAIN_DEFAULT(0x6));
 		snd_soc_component_update_bits(codec, SOC_REG(AUD_DNS_PGA_MAX),
 				    RG_DNS_PGA_MAX(0x3f),
-				    RG_DNS_PGA_MAX(0xC));
+				    RG_DNS_PGA_MAX(0x9));
 
 		snd_soc_component_update_bits(codec, SOC_REG(AUD_DNS_PGA_GAIN_CAL_SET_0_L),
 				    RG_DNS_PGA_GAIN_CAL_SET_0_L(0x3fff),
@@ -2467,43 +2994,43 @@ static int dns_event(struct snd_soc_dapm_widget *w,
 
 		snd_soc_component_update_bits(codec, SOC_REG(AUD_DNS_PGA_DELAY_CAL_SET_0_L),
 				    RG_DNS_PGA_DELAY_CAL_SET_0_L(0x1f),
-				    RG_DNS_PGA_DELAY_CAL_SET_0_L(0x1f));
+				    RG_DNS_PGA_DELAY_CAL_SET_0_L(0x5));
 		snd_soc_component_update_bits(codec, SOC_REG(AUD_DNS_PGA_DELAY_CAL_SET_1_L),
 				    RG_DNS_PGA_DELAY_CAL_SET_1_L(0x1f),
-				    RG_DNS_PGA_DELAY_CAL_SET_1_L(0x1f));
+				    RG_DNS_PGA_DELAY_CAL_SET_1_L(0x5));
 		snd_soc_component_update_bits(codec, SOC_REG(AUD_DNS_PGA_DELAY_CAL_SET_2_L),
 				    RG_DNS_PGA_DELAY_CAL_SET_2_L(0x1f),
-				    RG_DNS_PGA_DELAY_CAL_SET_2_L(0x1f));
+				    RG_DNS_PGA_DELAY_CAL_SET_2_L(0x5));
 		snd_soc_component_update_bits(codec, SOC_REG(AUD_DNS_PGA_DELAY_CAL_SET_3_L),
 				    RG_DNS_PGA_DELAY_CAL_SET_3_L(0x1f),
-				    RG_DNS_PGA_DELAY_CAL_SET_3_L(0x1f));
+				    RG_DNS_PGA_DELAY_CAL_SET_3_L(0x5));
 		snd_soc_component_update_bits(codec, SOC_REG(AUD_DNS_PGA_DELAY_CAL_SET_4_L),
 				    RG_DNS_PGA_DELAY_CAL_SET_4_L(0x1f),
-				    RG_DNS_PGA_DELAY_CAL_SET_4_L(0x1f));
+				    RG_DNS_PGA_DELAY_CAL_SET_4_L(0x5));
 		snd_soc_component_update_bits(codec, SOC_REG(AUD_DNS_PGA_DELAY_CAL_SET_5_L),
 				    RG_DNS_PGA_DELAY_CAL_SET_5_L(0x1f),
-				    RG_DNS_PGA_DELAY_CAL_SET_5_L(0x1f));
+				    RG_DNS_PGA_DELAY_CAL_SET_5_L(0x5));
 		snd_soc_component_update_bits(codec, SOC_REG(AUD_DNS_PGA_DELAY_CAL_SET_6_L),
 				    RG_DNS_PGA_DELAY_CAL_SET_6_L(0x1f),
-				    RG_DNS_PGA_DELAY_CAL_SET_6_L(0x1f));
+				    RG_DNS_PGA_DELAY_CAL_SET_6_L(0x5));
 		snd_soc_component_update_bits(codec, SOC_REG(AUD_DNS_PGA_DELAY_CAL_SET_7_L),
 				    RG_DNS_PGA_DELAY_CAL_SET_7_L(0x1f),
-				    RG_DNS_PGA_DELAY_CAL_SET_7_L(0x1f));
+				    RG_DNS_PGA_DELAY_CAL_SET_7_L(0x5));
 		snd_soc_component_update_bits(codec, SOC_REG(AUD_DNS_PGA_DELAY_CAL_SET_8_L),
 				    RG_DNS_PGA_DELAY_CAL_SET_8_L(0x1f),
-				    RG_DNS_PGA_DELAY_CAL_SET_8_L(0x1f));
+				    RG_DNS_PGA_DELAY_CAL_SET_8_L(0x5));
 		snd_soc_component_update_bits(codec, SOC_REG(AUD_DNS_PGA_DELAY_CAL_SET_9_L),
 				    RG_DNS_PGA_DELAY_CAL_SET_9_L(0x1f),
-				    RG_DNS_PGA_DELAY_CAL_SET_9_L(0x1f));
+				    RG_DNS_PGA_DELAY_CAL_SET_9_L(0x5));
 		snd_soc_component_update_bits(codec, SOC_REG(AUD_DNS_PGA_DELAY_CAL_SET_10_L),
 				    RG_DNS_PGA_DELAY_CAL_SET_10_L(0x1f),
-				    RG_DNS_PGA_DELAY_CAL_SET_10_L(0x1f));
+				    RG_DNS_PGA_DELAY_CAL_SET_10_L(0x5));
 		snd_soc_component_update_bits(codec, SOC_REG(AUD_DNS_PGA_DELAY_CAL_SET_11_L),
 				    RG_DNS_PGA_DELAY_CAL_SET_11_L(0x1f),
-				    RG_DNS_PGA_DELAY_CAL_SET_11_L(0x1f));
+				    RG_DNS_PGA_DELAY_CAL_SET_11_L(0x5));
 		snd_soc_component_update_bits(codec, SOC_REG(AUD_DNS_PGA_DELAY_CAL_SET_12_L),
 				    RG_DNS_PGA_DELAY_CAL_SET_12_L(0x1f),
-				    RG_DNS_PGA_DELAY_CAL_SET_12_L(0x1f));
+				    RG_DNS_PGA_DELAY_CAL_SET_12_L(0x5));
 
 		snd_soc_component_update_bits(codec, SOC_REG(AUD_DNS_PGA_GAIN_CAL_SET_0_R),
 				    RG_DNS_PGA_GAIN_CAL_SET_0_R(0x3fff),
@@ -2547,43 +3074,43 @@ static int dns_event(struct snd_soc_dapm_widget *w,
 
 		snd_soc_component_update_bits(codec, SOC_REG(AUD_DNS_PGA_DELAY_CAL_SET_0_R),
 				    RG_DNS_PGA_DELAY_CAL_SET_0_R(0x1f),
-				    RG_DNS_PGA_DELAY_CAL_SET_0_R(0x1f));
+				    RG_DNS_PGA_DELAY_CAL_SET_0_R(0x5));
 		snd_soc_component_update_bits(codec, SOC_REG(AUD_DNS_PGA_DELAY_CAL_SET_1_R),
 				    RG_DNS_PGA_DELAY_CAL_SET_1_R(0x1f),
-				    RG_DNS_PGA_DELAY_CAL_SET_1_R(0x1f));
+				    RG_DNS_PGA_DELAY_CAL_SET_1_R(0x5));
 		snd_soc_component_update_bits(codec, SOC_REG(AUD_DNS_PGA_DELAY_CAL_SET_2_R),
 				    RG_DNS_PGA_DELAY_CAL_SET_2_R(0x1f),
-				    RG_DNS_PGA_DELAY_CAL_SET_2_R(0x1f));
+				    RG_DNS_PGA_DELAY_CAL_SET_2_R(0x5));
 		snd_soc_component_update_bits(codec, SOC_REG(AUD_DNS_PGA_DELAY_CAL_SET_3_R),
 				    RG_DNS_PGA_DELAY_CAL_SET_3_R(0x1f),
-				    RG_DNS_PGA_DELAY_CAL_SET_3_R(0x1f));
+				    RG_DNS_PGA_DELAY_CAL_SET_3_R(0x5));
 		snd_soc_component_update_bits(codec, SOC_REG(AUD_DNS_PGA_DELAY_CAL_SET_4_R),
 				    RG_DNS_PGA_DELAY_CAL_SET_4_R(0x1f),
-				    RG_DNS_PGA_DELAY_CAL_SET_4_R(0x1f));
+				    RG_DNS_PGA_DELAY_CAL_SET_4_R(0x5));
 		snd_soc_component_update_bits(codec, SOC_REG(AUD_DNS_PGA_DELAY_CAL_SET_5_R),
 				    RG_DNS_PGA_DELAY_CAL_SET_5_R(0x1f),
-				    RG_DNS_PGA_DELAY_CAL_SET_5_R(0x1f));
+				    RG_DNS_PGA_DELAY_CAL_SET_5_R(0x5));
 		snd_soc_component_update_bits(codec, SOC_REG(AUD_DNS_PGA_DELAY_CAL_SET_6_R),
 				    RG_DNS_PGA_DELAY_CAL_SET_6_R(0x1f),
-				    RG_DNS_PGA_DELAY_CAL_SET_6_R(0x1f));
+				    RG_DNS_PGA_DELAY_CAL_SET_6_R(0x5));
 		snd_soc_component_update_bits(codec, SOC_REG(AUD_DNS_PGA_DELAY_CAL_SET_7_R),
 				    RG_DNS_PGA_DELAY_CAL_SET_7_R(0x1f),
-				    RG_DNS_PGA_DELAY_CAL_SET_7_R(0x1f));
+				    RG_DNS_PGA_DELAY_CAL_SET_7_R(0x5));
 		snd_soc_component_update_bits(codec, SOC_REG(AUD_DNS_PGA_DELAY_CAL_SET_8_R),
 				    RG_DNS_PGA_DELAY_CAL_SET_8_R(0x1f),
-				    RG_DNS_PGA_DELAY_CAL_SET_8_R(0x1f));
+				    RG_DNS_PGA_DELAY_CAL_SET_8_R(0x5));
 		snd_soc_component_update_bits(codec, SOC_REG(AUD_DNS_PGA_DELAY_CAL_SET_9_R),
 				    RG_DNS_PGA_DELAY_CAL_SET_9_R(0x1f),
-				    RG_DNS_PGA_DELAY_CAL_SET_9_R(0x1f));
+				    RG_DNS_PGA_DELAY_CAL_SET_9_R(0x5));
 		snd_soc_component_update_bits(codec, SOC_REG(AUD_DNS_PGA_DELAY_CAL_SET_10_R),
 				    RG_DNS_PGA_DELAY_CAL_SET_10_R(0x1f),
-				    RG_DNS_PGA_DELAY_CAL_SET_10_R(0x1f));
+				    RG_DNS_PGA_DELAY_CAL_SET_10_R(0x5));
 		snd_soc_component_update_bits(codec, SOC_REG(AUD_DNS_PGA_DELAY_CAL_SET_11_R),
 				    RG_DNS_PGA_DELAY_CAL_SET_11_R(0x1f),
-				    RG_DNS_PGA_DELAY_CAL_SET_11_R(0x1f));
+				    RG_DNS_PGA_DELAY_CAL_SET_11_R(0x5));
 		snd_soc_component_update_bits(codec, SOC_REG(AUD_DNS_PGA_DELAY_CAL_SET_12_R),
 				    RG_DNS_PGA_DELAY_CAL_SET_12_R(0x1f),
-				    RG_DNS_PGA_DELAY_CAL_SET_12_R(0x1f));
+				    RG_DNS_PGA_DELAY_CAL_SET_12_R(0x5));
 
 		snd_soc_component_update_bits(codec, SOC_REG(AUD_DNS_CFG_LOAD_FLAG),
 				    RG_DNS_CFG_LOAD_FLAG, 0);
@@ -2717,7 +3244,7 @@ static const struct snd_kcontrol_new hpl_rcv_mux =
 	SOC_DAPM_ENUM("HPL EAR Sel", hpl_rcv_enum);
 
 static const char * const aol_ear_mux_texts[] = {
-	"AOL", "EAR"
+	"EAR", "AOL"
 };
 
 static SOC_ENUM_SINGLE_VIRT_DECL(aol_ear_enum, aol_ear_mux_texts);
@@ -2778,6 +3305,8 @@ static const struct snd_soc_dapm_widget sprd_codec_dapm_widgets[] = {
 			      CLK_ADC_EN_S, 0, NULL, 0),
 	SND_SOC_DAPM_SUPPLY_S("CLK_DIG_6M5", 1, SOC_REG(ANA_CLK0),
 			      CLK_DIG_6M5_EN_S, 0, NULL, 0),
+	SND_SOC_DAPM_SUPPLY_S("CLK_ADC_Norm", 1, SND_SOC_NOPM,
+			      0, 0, NULL, 0),
 /* DCL clock */
 	SND_SOC_DAPM_SUPPLY_S("DIG_CLK_DAC_BUF", 4, SOC_REG(ANA_DCL1),
 			      DIG_CLK_DAC_BUF_EN_S, 0, NULL, 0),
@@ -2810,6 +3339,10 @@ static const struct snd_soc_dapm_widget sprd_codec_dapm_widgets[] = {
 			      ADC_2_CLK_EN_S, 0, NULL, 0),
 	SND_SOC_DAPM_SUPPLY_S("ADC_3_CLK", 5, SOC_REG(ANA_CDC0),
 			      ADC_3_CLK_EN_S, 0, NULL, 0),
+	SND_SOC_DAPM_SUPPLY_S("VAD_AD_CLK", 5, SOC_REG(ANA_RSV3),
+			      VAD_AD_CLK_EN_S, 0, vad_clk_power_event,
+			      SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMU |
+			      SND_SOC_DAPM_PRE_PMD | SND_SOC_DAPM_POST_PMD),
 	SND_SOC_DAPM_SUPPLY_S("ADC_IBIAS", 3, SOC_REG(ANA_CDC0),
 			      PGA_ADC_IBIAS_EN_S, 0, NULL, 0),
 	SND_SOC_DAPM_SUPPLY_S("ADC_VREF_BUF", 3, SOC_REG(ANA_CDC0),
@@ -2828,6 +3361,12 @@ static const struct snd_soc_dapm_widget sprd_codec_dapm_widgets[] = {
 	SND_SOC_DAPM_MIXER("ADC_3 Mixer", SND_SOC_NOPM, 0, 0,
 			   &adc_3_mixer_controls[0],
 			   ARRAY_SIZE(adc_3_mixer_controls)),
+	SND_SOC_DAPM_SWITCH("VAD_SMIC1", SOC_REG(ANA_RSV3), VAD_SMIC1_S, 0,
+			    &vad_ad_mic_switch[0]),
+	SND_SOC_DAPM_SWITCH("VAD_SMIC2", SOC_REG(ANA_RSV3), VAD_SMIC2_S, 0,
+			    &vad_ad_mic_switch[1]),
+	SND_SOC_DAPM_SWITCH("VAD_SMIC3", SOC_REG(ANA_RSV3), VAD_SMIC3_S, 0,
+			    &vad_ad_mic_switch[2]),
 	SND_SOC_DAPM_SWITCH("AUD ADC0L", SND_SOC_NOPM, 0, 1,
 			    &aud_adc_switch[0]),
 	SND_SOC_DAPM_SWITCH("AUD ADC0R", SND_SOC_NOPM, 0, 1,
@@ -2843,6 +3382,11 @@ static const struct snd_soc_dapm_widget sprd_codec_dapm_widgets[] = {
 			   adc_2_pga_controls, 1, NULL, 0),
 	SND_SOC_DAPM_PGA_E("ADC_3 Gain", SOC_REG(ANA_CDC0), ADPGA_3_EN_S, 0,
 			   adc_3_pga_controls, 1, NULL, 0),
+	SND_SOC_DAPM_PGA_E("VAD_AD Gain", SOC_REG(ANA_RSV3), VAD_PGA_EN_S, 0,
+			   vad_ad_pga_controls, 1, NULL, 0),
+	SND_SOC_DAPM_PGA_E("VAD_Virt", SND_SOC_NOPM, 0, 0, NULL, 0,
+			   codec_widget_event,
+			   SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
 	SND_SOC_DAPM_PGA_E("ADC_1 Switch", SOC_REG(ANA_CDC0),
 			   ADC_1_EN_S, 0, 0, 0, adc_1_event,
 			   SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMU),
@@ -2851,6 +3395,9 @@ static const struct snd_soc_dapm_widget sprd_codec_dapm_widgets[] = {
 			   SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMU),
 	SND_SOC_DAPM_PGA_E("ADC_3 Switch", SOC_REG(ANA_CDC0),
 			   ADC_3_EN_S, 0, 0, 0, adc_3_event,
+			   SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMU),
+	SND_SOC_DAPM_PGA_E("VAD_AD Switch", SOC_REG(ANA_CDC21),
+			   VAD_ADC_EN_S, 0, 0, 0, vad_ad_event,
 			   SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMU),
 
 	SND_SOC_DAPM_PGA_S("ADie Digital ADCL Switch", 2,
@@ -2960,21 +3507,10 @@ static const struct snd_soc_dapm_widget sprd_codec_dapm_widgets[] = {
 	SND_SOC_DAPM_PGA_S("DRV SOFT T", 5, SND_SOC_NOPM,
 			   0, 0, drv_soft_t_event,
 			   SND_SOC_DAPM_POST_PMU | SND_SOC_DAPM_PRE_PMD),
-
-	SND_SOC_DAPM_PGA_S("DAAOL BUF DCCAL", SPRD_CODEC_DA_BUF_DCCAL_ORDER,
-			   SND_SOC_NOPM, 0, 0,
-			   daaol_buf_cal_event,
-			   SND_SOC_DAPM_POST_PMU | SND_SOC_DAPM_PRE_PMD),
-	SND_SOC_DAPM_PGA_S("DAAOR BUF DCCAL", SPRD_CODEC_DA_BUF_DCCAL_ORDER,
-			   SND_SOC_NOPM, 0, 0,
-			   daaor_buf_cal_event,
-			   SND_SOC_DAPM_POST_PMU | SND_SOC_DAPM_PRE_PMD),
-
 	SND_SOC_DAPM_PGA_S("DAAO OS", SPRD_CODEC_DC_OS_ORDER,
 			   SND_SOC_NOPM, 0, 0,
 			   daao_os_event,
 			   SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
-
 	SND_SOC_DAPM_PGA_E("AO Gain", SND_SOC_NOPM, 0, 0,
 			   ao_gain_controls, 1, 0, 0),
 	SND_SOC_DAPM_PGA_E("AO Virt", SND_SOC_NOPM, 0, 0, NULL, 0,
@@ -3006,11 +3542,11 @@ static const struct snd_soc_dapm_widget sprd_codec_dapm_widgets[] = {
 	SND_SOC_DAPM_DEMUX("AOL EAR Sel2", SND_SOC_NOPM, 0, 0, &aol_ear_mux),
 
 	SND_SOC_DAPM_PGA_S("DAAOL EN", SPRD_CODEC_DA_EN_ORDER,
-			   SOC_REG(ANA_DAC2), DAAOL_EN_S, 0, codec_widget_event,
-			   SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMU),
+			   SND_SOC_NOPM, 0, 0, daaol_en_event,
+			   SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
 	SND_SOC_DAPM_PGA_S("DAAOR EN", SPRD_CODEC_DA_EN_ORDER,
-			   SOC_REG(ANA_DAC2), DAAOR_EN_S, 0, codec_widget_event,
-			   SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMU),
+			   SND_SOC_NOPM, 0, 0, daaor_en_event,
+			   SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
 	SND_SOC_DAPM_SWITCH_E("DA AOL", SND_SOC_NOPM,
 			      0, 0, &dac_ao_hp_switch[0], codec_widget_event,
 			      SND_SOC_DAPM_POST_PMU | SND_SOC_DAPM_POST_PMD),
@@ -3024,24 +3560,19 @@ static const struct snd_soc_dapm_widget sprd_codec_dapm_widgets[] = {
 			      &dac_ao_hp_switch[3], codec_widget_event,
 			      SND_SOC_DAPM_POST_PMU | SND_SOC_DAPM_POST_PMD),
 	SND_SOC_DAPM_PGA_S("AO EN", SPRD_CODEC_AO_EN_ORDER,
-			   SOC_REG(ANA_CDC10), AO_EN_S, 0,
-			   codec_widget_event,
+			   SND_SOC_NOPM, 0, 0, ao_en_event,
 			   SND_SOC_DAPM_POST_PMU | SND_SOC_DAPM_POST_PMD),
 	SND_SOC_DAPM_PGA_S("SDAAOL AO", SPRD_CODEC_SDA_EN_ORDER,
-			   SND_SOC_NOPM, 0, 0,
-			   sdaaol_ao_event,
+			   SND_SOC_NOPM, 0, 0, sdaaol_ao_event,
 			   SND_SOC_DAPM_POST_PMU | SND_SOC_DAPM_POST_PMD),
 	SND_SOC_DAPM_PGA_S("SDAAOR AO", SPRD_CODEC_SDA_EN_ORDER,
-			   SND_SOC_NOPM, 0, 0,
-			   sdaaor_ao_event,
+			   SND_SOC_NOPM, 0, 0, sdaaor_ao_event,
 			   SND_SOC_DAPM_POST_PMU | SND_SOC_DAPM_POST_PMD),
 	SND_SOC_DAPM_PGA_S("SDAAOL RCV", SPRD_CODEC_SDA_EN_ORDER,
-			   SND_SOC_NOPM, 0, 0,
-			   sdaaol_rcv_event,
+			   SND_SOC_NOPM, 0, 0, sdaaol_rcv_event,
 			   SND_SOC_DAPM_POST_PMU | SND_SOC_DAPM_POST_PMD),
 	SND_SOC_DAPM_PGA_S("SDAHPL RCV", SPRD_CODEC_SDA_EN_ORDER,
-			   SND_SOC_NOPM, 0, 0,
-			   sdahpl_rcv_event,
+			   SND_SOC_NOPM, 0, 0, sdahpl_rcv_event,
 			   SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_PRE_PMD),
 
 /* HP */
@@ -3049,33 +3580,17 @@ static const struct snd_soc_dapm_widget sprd_codec_dapm_widgets[] = {
 			   SND_SOC_NOPM, 0, 0, NULL, 0),
 
 	SND_SOC_DAPM_PGA_S("DAHPL EN", SPRD_CODEC_DA_EN_ORDER,
-			   SOC_REG(ANA_DAC1), DAHPL_EN_S, 0, NULL, 0),
+			   SND_SOC_NOPM, 0, 0, dahpl_en_event,
+			   SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
 	SND_SOC_DAPM_PGA_S("DAHPR EN", SPRD_CODEC_DA_EN_ORDER,
-			   SOC_REG(ANA_DAC1), DAHPR_EN_S, 0, NULL, 0),
+			   SND_SOC_NOPM, 0, 0, dahpr_en_event,
+			   SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
 	SND_SOC_DAPM_PGA_S("DAHP OS", SPRD_CODEC_DC_OS_ORDER,
 			   SND_SOC_NOPM, 0, 0, dahp_os_event,
 			   SND_SOC_DAPM_POST_PMU | SND_SOC_DAPM_PRE_PMD),
 	SND_SOC_DAPM_PGA_S("DNS", SPRD_CODEC_DC_OS_ORDER,
 				SND_SOC_NOPM, 0, 0, dns_event,
 			    SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
-
-	/*
-	 * don't do cali on AA chip
-	 * choose one from following(do not choose both):
-	 * option 1. do cali(For not AA chip or need cali):
-	 * kcontrol "DAHPL BUF DCCAL" --> "HW_CAL_MODE"
-	 * kcontrol "DAHPR BUF DCCAL" --> "HW_CAL_MODE"
-	 *
-	 * option 2. not do cali(For AA chip or needn't cali):
-	 * kcontrol "DAHPL BUF DCCAL" --> "SW_CAL_MODE" or NOT_CAL
-	 * kcontrol "DAHPR BUF DCCAL" --> "SW_CAL_MODE" or NOT_CAL
-	 */
-	SND_SOC_DAPM_PGA_S("DAHPL BUF DCCAL", SPRD_CODEC_DA_BUF_DCCAL_ORDER,
-			   SND_SOC_NOPM, 0, 0, dahpl_buf_cal_event,
-			   SND_SOC_DAPM_POST_PMU | SND_SOC_DAPM_PRE_PMD),
-	SND_SOC_DAPM_PGA_S("DAHPR BUF DCCAL", SPRD_CODEC_DA_BUF_DCCAL_ORDER,
-			   SND_SOC_NOPM, 0, 0, dahpr_buf_cal_event,
-			   SND_SOC_DAPM_POST_PMU | SND_SOC_DAPM_PRE_PMD),
 
 	SND_SOC_DAPM_PGA_E("HPL Gain", SND_SOC_NOPM, 0, 0, hpl_pga_controls, 1,
 			   0, 0),
@@ -3090,6 +3605,9 @@ static const struct snd_soc_dapm_widget sprd_codec_dapm_widgets[] = {
 	SND_SOC_DAPM_PGA_S("HP DEPOP", SPRD_CODEC_DEPOP_ORDER, SND_SOC_NOPM,
 			   0, 0, hp_depop_event,
 			   SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_PRE_PMD),
+	SND_SOC_DAPM_SWITCH_E("HP Virt", SND_SOC_NOPM,
+			      0, 0, &hp_virt_switch, codec_widget_event,
+			      SND_SOC_DAPM_POST_PMU | SND_SOC_DAPM_POST_PMD),
 	SND_SOC_DAPM_PGA_S("HP CHN EN", SPRD_CODEC_HP_EN_ORDER,
 			   SND_SOC_NOPM, 0, 0, hp_chn_en_event,
 			   SND_SOC_DAPM_POST_PMU | SND_SOC_DAPM_PRE_PMD),
@@ -3107,14 +3625,14 @@ static const struct snd_soc_dapm_widget sprd_codec_dapm_widgets[] = {
 
 	SND_SOC_DAPM_PGA_E("EAR Gain", SND_SOC_NOPM, 0, 0,
 			   ear_pga_controls, 1, 0, 0),
-	SND_SOC_DAPM_MIXER("EAR Mixer", SND_SOC_NOPM, 0, 0,
-			   &ear_mixer_controls[0],
-			   ARRAY_SIZE(ear_mixer_controls)),
+	SND_SOC_DAPM_MIXER("EAR_HPL Mixer", SND_SOC_NOPM, 0, 0,
+			   &ear_hpl_mixer_controls[0],
+			   ARRAY_SIZE(ear_hpl_mixer_controls)),
+	SND_SOC_DAPM_MIXER("EAR_AOL Mixer", SND_SOC_NOPM, 0, 0,
+			   &ear_aol_mixer_controls[0],
+			   ARRAY_SIZE(ear_aol_mixer_controls)),
 	SND_SOC_DAPM_PGA_S("EAR Switch", SPRD_CODEC_RCV_EN_ORDER,
 			   SND_SOC_NOPM, 0, 0, ear_switch_event,
-			   SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_PRE_PMD),
-	SND_SOC_DAPM_PGA_S("FDIN DVLD", SPRD_CODEC_RCV_DEPOP_ORDER,
-			   SND_SOC_NOPM, 0, 0, fdin_dvld_check_event,
 			   SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_PRE_PMD),
 
 /* HP and EAR DEMUX */
@@ -3173,12 +3691,15 @@ static const struct snd_soc_dapm_widget sprd_codec_dapm_widgets[] = {
 			 &dig_adc_in_sel),
 	SND_SOC_DAPM_MUX("Digital ADC1 In Sel", SND_SOC_NOPM, 0, 0,
 			 &dig_adc1_in_sel),
+	SND_SOC_DAPM_SWITCH("VAD_VirtL", SND_SOC_NOPM, 0, 0,
+			    &vad_ad_virt_switch[0]),
+	SND_SOC_DAPM_SWITCH("VAD_VirtR", SND_SOC_NOPM, 0, 0,
+				&vad_ad_virt_switch[1]),
 };
 
 /* sprd_codec supported interconnection */
 static const struct snd_soc_dapm_route sprd_codec_intercon[] = {
 /* power and clock */
-	{"Analog Power", NULL, "BIAS"},
 	{"ANA_CLK", NULL, "Analog Power"},
 	{"CLK 26M IN SEL", NULL, "ANA_CLK"},
 	{"CLK_DCL_32K", NULL, "CLK 26M IN SEL"},
@@ -3199,12 +3720,14 @@ static const struct snd_soc_dapm_route sprd_codec_intercon[] = {
 	{"CLK_CP_32K", NULL, "CP"},
 	{"CP AD Cali", NULL, "CLK_CP_32K"},
 	{"CLK_DAC", NULL, "CP AD Cali"},
+	{"CLK_DAC", NULL, "BIAS"},
 
 	{"CLK_ADC", NULL, "CLK_DIG_6M5"},
 	{"CLK_ADC", NULL, "DCL"},
 	{"CLK_ADC", NULL, "DIG_CLK_DRV_SOFT"},
 	{"CLK_ADC", NULL, "Digital Power"},
-	{"CLK_ADC", NULL, "ADC_IBIAS"},
+	{"CLK_ADC_Norm", NULL, "CLK_ADC"},
+	{"CLK_ADC_Norm", NULL, "ADC_IBIAS"},
 
 /* DA route */
 	{"DAC", NULL, "CLK_DAC"},
@@ -3247,29 +3770,27 @@ static const struct snd_soc_dapm_route sprd_codec_intercon[] = {
 	{"DAC Gain", NULL, "DRV SOFT EN"},
 
 /* SPK */
+	{"DRV SOFT T", NULL, "SDM DC OS"},
 	{"DRV SOFT T", NULL, "DAC Gain"},
 	{"DAAO OS", NULL, "DRV SOFT T"},
 	{"AO Virt", NULL, "DAAO OS"},
 
 	{"AO Mixer", "AOR Switch", "AO Virt"},/* AOR not in demux */
 	{"DAAOR EN", NULL, "AO Mixer"},
-	{"DAAOR BUF DCCAL", NULL, "DAAOR EN"},
-	{"DA AOR", "Switch", "DAAOR BUF DCCAL"},
+	{"DA AOR", "Switch", "DAAOR EN"},
 	{"SDAAOR AO", NULL, "DA AOR"},
 	{"AO Virt2", NULL, "SDAAOR AO"},
 
 	{"AO Mixer", "AOL Switch", "AO Virt"},
 	{"DAAOL EN", NULL, "AO Mixer"},
-	{"DAAOL BUF DCCAL", NULL, "DAAOL EN"},
-	{"AOL EAR Sel", NULL, "DAAOL BUF DCCAL"},
+	{"AOL EAR Sel", NULL, "DAAOL EN"},
 	{"AOL Virt", "AOL", "AOL EAR Sel"},/* AOL is in demux */
 	{"AOL EAR Sel2", NULL, "AOL Virt"},
 
 	{"SDAAOL AO", "AOL", "AOL EAR Sel2"},
 	{"AO Virt2", NULL, "SDAAOL AO"},
 
-	{"AO Gain", NULL, "AO Virt2"},
-	{"AO CUR", NULL, "AO Gain"},
+	{"AO CUR", NULL, "AO Virt2"},
 	{"AO EN", NULL, "AO CUR"},
 	{"SPK PA", NULL, "AO EN"},
 	{"SPK PA", NULL, "DIG_CLK_RCV"},/* check further, enable rcv in spk? */
@@ -3284,8 +3805,7 @@ static const struct snd_soc_dapm_route sprd_codec_intercon[] = {
 	//{"DAHP OS", NULL, "DNS"},
 
 	{"DAHPL EN", NULL, "DAHP OS"},
-	{"DAHPL BUF DCCAL", NULL, "DAHPL EN"},
-	{"HPL EAR Sel", NULL, "DAHPL BUF DCCAL"},
+	{"HPL EAR Sel", NULL, "DAHPL EN"},
 	{"HPL Path", "HPL", "HPL EAR Sel"},
 	{"HPL Mixer", "DACLHPL Switch", "HPL Path"},
 	{"HPL EAR Sel2", NULL, "HPL Mixer"},/* HPL */
@@ -3293,47 +3813,55 @@ static const struct snd_soc_dapm_route sprd_codec_intercon[] = {
 	{"HP DEPOP", NULL, "HPL Gain"},
 
 	{"DAHPR EN", NULL, "DAHP OS"},
-	{"DAHPR BUF DCCAL", NULL, "DAHPR EN"},
-	{"HPR Mixer", "DACRHPR Switch", "DAHPR BUF DCCAL"},
+	{"HPR Mixer", "DACRHPR Switch", "DAHPR EN"},
 	{"HPR Gain", NULL, "HPR Mixer"},/* HPR */
 	{"HP DEPOP", NULL, "HPR Gain"},
 
-	{"HP CHN EN", NULL, "HP DEPOP"},
+	{"HP Virt", "Switch", "HP DEPOP"},
+	{"HP CHN EN", NULL, "HP Virt"},
 	{"HP Pin", NULL, "HP CHN EN"},
 
 /* EAR */
-	{"EAR Mixer", NULL, "DIG_CLK_INTC"},
-	{"EAR Mixer", NULL, "DIG_CLK_RCV"},
+	{"RCV DEPOP", NULL, "DIG_CLK_INTC"},
+	{"RCV DEPOP", NULL, "DIG_CLK_RCV"},
 	{"HPL EAR Sel", NULL, "DAC Gain"},
 	{"AOL EAR Sel", NULL, "DAC Gain"},
 
 	{"EAR_HPL Path", "EAR", "HPL EAR Sel"},
-	{"EAR Mixer", "DACHPL Switch", "EAR_HPL Path"},
-	{"SDAHPL RCV", NULL, "EAR Mixer"},
+	{"EAR_HPL Mixer", "DACHPL Switch", "EAR_HPL Path"},
+	{"SDAHPL RCV", NULL, "EAR_HPL Mixer"},
 	{"HPL EAR Sel2", NULL, "SDAHPL RCV"},
 	{"EAR Switch", "EAR", "HPL EAR Sel2"},
 
 	{"EAR_AOL Path", "EAR", "AOL EAR Sel"},
-	{"EAR Mixer", "DACAOL Switch", "EAR_AOL Path"},
-	{"SDAAOL RCV", NULL, "EAR Mixer"},
+	{"EAR_AOL Mixer", "DACAOL Switch", "EAR_AOL Path"},
+	{"SDAAOL RCV", NULL, "EAR_AOL Mixer"},
 	{"AOL EAR Sel2", NULL, "SDAAOL RCV"},
 	{"EAR Switch", "EAR", "AOL EAR Sel2"},
 
 	{"RCV DEPOP", NULL, "EAR Switch"},
-	{"FDIN DVLD", NULL, "RCV DEPOP"},
-	{"EAR Gain", NULL, "FDIN DVLD"},
+	{"EAR Gain", NULL, "RCV DEPOP"},
 	{"EAR Pin", NULL, "EAR Gain"},
 
 /* AD route */
+	{"BIAS", NULL, "BG"},
+	{"ADC_1_CLK", NULL, "BIAS"},
+	{"ADC_2_CLK", NULL, "BIAS"},
+	{"ADC_3_CLK", NULL, "BIAS"},
 	{"ADC_1 Switch", NULL, "ADC_1_CLK"},
 	{"ADC_2 Switch", NULL, "ADC_2_CLK"},
 	{"ADC_3 Switch", NULL, "ADC_3_CLK"},
+
+	{"VAD_AD_CLK", NULL, "CLK_ADC"},
+	{"VAD_AD Switch", NULL, "VAD_AD_CLK"},
 	{"ADC_1 Gain", NULL, "ADC_1 Mixer"},
 	{"ADC_2 Gain", NULL, "ADC_2 Mixer"},
 	{"ADC_3 Gain", NULL, "ADC_3 Mixer"},
+	{"VAD_AD Gain", NULL, "VAD_Virt"},
 	{"ADC_1 Switch", NULL, "ADC_1 Gain"},
 	{"ADC_2 Switch", NULL, "ADC_2 Gain"},
 	{"ADC_3 Switch", NULL, "ADC_3 Gain"},
+	{"VAD_AD Switch", NULL, "VAD_AD Gain"},
 	/*
 	 * Nate.wei: ADC_1 ADC_2 --> AUD_ADD0
 	 * ADC_3 (ADC_4 in future)  --> AUD_ADD1
@@ -3344,6 +3872,12 @@ static const struct snd_soc_dapm_route sprd_codec_intercon[] = {
 	{"ADie Digital ADCL Switch", NULL, "ADC_1 Switch"},
 	{"ADie Digital ADCR Switch", NULL, "ADC_2 Switch"},
 	{"ADie Digital ADCL Switch", NULL, "ADC_3 Switch"},
+	{"ADie Digital ADCL Switch", NULL, "VAD_AD Switch"},
+	{"ADie Digital ADCR Switch", NULL, "VAD_AD Switch"},
+
+	{"VAD_VirtL", "Switch", "ADie Digital ADCL Switch"},
+	{"VAD_VirtR", "Switch", "ADie Digital ADCR Switch"},
+
 	{"Digital ADC In Sel", "ADC", "ADie Digital ADCL Switch"},
 	{"Digital ADC In Sel", "ADC", "ADie Digital ADCR Switch"},
 	{"Digital ADC1 In Sel", "ADC", "ADie Digital ADCL Switch"},
@@ -3407,22 +3941,19 @@ static const struct snd_soc_dapm_route sprd_codec_intercon[] = {
 	{"ADC1", NULL, "AUD ADC1L"},
 	{"ADC1", NULL, "AUD ADC1R"},
 
-	{"ADC", NULL, "CLK_ADC"},
-	{"ADC1", NULL, "CLK_ADC"},
-	{"ADC AP23", NULL, "CLK_ADC"},
-	{"ADC DSP_C", NULL, "CLK_ADC"},
-	{"ADC DSP_C_btsco_test", NULL, "CLK_ADC"},
-	{"ADC DSP_C_fm_test", NULL, "CLK_ADC"},
-	{"ADC Voice", NULL, "CLK_ADC"},
-	{"Capture RECOGNISE", NULL, "CLK_ADC"},
-	{"ADC Voip", NULL, "CLK_ADC"},
-	{"ADC CODEC_TEST", NULL, "CLK_ADC"},
-	{"ADC LOOP", NULL, "CLK_ADC"},
+	{"ADC", NULL, "CLK_ADC_Norm"},
+	{"ADC1", NULL, "CLK_ADC_Norm"},
+	{"ADC AP23", NULL, "CLK_ADC_Norm"},
+	{"ADC DSP_C", NULL, "CLK_ADC_Norm"},
+	{"ADC DSP_C_btsco_test", NULL, "CLK_ADC_Norm"},
+	{"ADC DSP_C_fm_test", NULL, "CLK_ADC_Norm"},
+	{"ADC Voice", NULL, "CLK_ADC_Norm"},
+	{"Capture RECOGNISE", NULL, "CLK_ADC_Norm"},
+	{"ADC Voip", NULL, "CLK_ADC_Norm"},
+	{"ADC CODEC_TEST", NULL, "CLK_ADC_Norm"},
+	{"ADC LOOP", NULL, "CLK_ADC_Norm"},
 
 /* MIC */
-	{"MICBIAS1", NULL, "BG"},
-	{"MICBIAS2", NULL, "BG"},
-	{"MICBIAS3", NULL, "BG"},
 	{"MIC Pin", NULL, "MICBIAS1"},
 	{"MIC2 Pin", NULL, "MICBIAS2"},
 	{"MIC3 Pin", NULL, "MICBIAS3"},
@@ -3433,22 +3964,28 @@ static const struct snd_soc_dapm_route sprd_codec_intercon[] = {
 	{"ADC_1 Mixer", "HPMICPGA_1 Switch", "HPMIC Pin"},
 	{"ADC_2 Mixer", "HPMICPGA_2 Switch", "HPMIC Pin"},
 	{"ADC_3 Mixer", "HPMICPGA_3 Switch", "HPMIC Pin"},
+	{"VAD_SMIC1", "Switch", "MIC Pin"},
+	{"VAD_SMIC2", "Switch", "MIC2 Pin"},
+	{"VAD_SMIC3", "Switch", "MIC3 Pin"},
+	{"VAD_Virt", NULL, "VAD_SMIC1"},
+	{"VAD_Virt", NULL, "VAD_SMIC2"},
+	{"VAD_Virt", NULL, "VAD_SMIC3"},
 
 /* ADie loop */
 	{"ADC-DAC Adie Loop", "switch", "ADC"},
 	{"ADC1-DAC Adie Loop", "switch", "ADC1"},
 	{"ADC-DAC Adie Loop post", NULL, "ADC-DAC Adie Loop"},
-	//{"ADC1-DAC Adie Loop post", NULL, "ADC1-DAC Adie Loop"},
+//	{"ADC1-DAC Adie Loop post", NULL, "ADC1-DAC Adie Loop"},
 	{"DAC", NULL, "ADC-DAC Adie Loop post"},
-	//{"DAC", NULL, "ADC1-DAC Adie Loop post"},
+//	{"DAC", NULL, "ADC1-DAC Adie Loop post"},
 
 /* Ddie loop */
 	{"ADC-DAC Digital Loop", "switch", "ADC"},
 	{"ADC1-DAC Digital Loop", "switch", "ADC1"},
 	{"ADC-DAC Digital Loop post", NULL, "ADC-DAC Digital Loop"},
-	//{"ADC1-DAC Digital Loop post", NULL, "ADC1-DAC Digital Loop"},
+//	{"ADC1-DAC Digital Loop post", NULL, "ADC1-DAC Digital Loop"},
 	{"DAC", NULL, "ADC-DAC Digital Loop post"},
-	//{"DAC", NULL, "ADC1-DAC Digital Loop post"},
+//	{"DAC", NULL, "ADC1-DAC Digital Loop post"},
 
 	/* DMIC0 */
 	{"DMIC Switch", NULL, "DMIC Pin"},
@@ -3461,6 +3998,8 @@ static const struct snd_soc_dapm_route sprd_codec_intercon[] = {
 	{"Virt Output", "Switch", "Digital DACL Switch"},
 	{"Virt Output", "Switch", "Digital DACR Switch"},
 	{"Virt Output Pin", NULL, "Virt Output"},
+	{"Virt Output Pin", NULL, "VAD_VirtL"},
+	{"Virt Output Pin", NULL, "VAD_VirtR"},
 };
 
 static int sprd_codec_info_get(struct snd_kcontrol *kcontrol,
@@ -4234,6 +4773,96 @@ static int sprd_codec_hp_chn_type_put(struct snd_kcontrol *kcontrol,
 	return 0;
 }
 
+static int sprd_codec_add0_data_sel_get(struct snd_kcontrol *kcontrol,
+					struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_component *codec = snd_soc_kcontrol_component(kcontrol);
+	struct sprd_codec_priv *sprd_codec = snd_soc_component_get_drvdata(codec);
+
+	ucontrol->value.integer.value[0] = sprd_codec->add0_data_sel;
+
+	return 0;
+}
+
+static int sprd_codec_add0_data_sel_put(struct snd_kcontrol *kcontrol,
+					struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_component *codec = snd_soc_kcontrol_component(kcontrol);
+	struct sprd_codec_priv *sprd_codec = snd_soc_component_get_drvdata(codec);
+	struct soc_enum *texts = (struct soc_enum *)kcontrol->private_value;
+	u32 val;
+
+	if (ucontrol->value.integer.value[0] >= texts->items ||
+	    ucontrol->value.integer.value[0] < 0) {
+		pr_err("%s index outof bounds error\n", __func__);
+		return -EINVAL;
+	}
+
+	sprd_codec->add0_data_sel =
+		(enum ADD0_DATA_SEL_TYPE)ucontrol->value.integer.value[0];
+
+	switch (sprd_codec->add0_data_sel) {
+	case ADD0_DATA_MIC12:
+		val = BITS_ADD0_DATA_SEL(0);
+		break;
+	case ADD0_DATA_MIC13:
+		val = BITS_ADD0_DATA_SEL(0x2);
+		break;
+	case ADD0_DATA_MIC23:
+		val = BITS_ADD0_DATA_SEL(0x3);
+		break;
+	default:
+		val = BITS_ADD0_DATA_SEL(0);
+		sp_asoc_pr_info("%s using MIC12 for default\n", __func__);
+	}
+
+	sci_adi_set(ANA_REG_GLB_ADD0_DATA_SEL, val);
+
+	sp_asoc_pr_info("add0 data type %s\n",
+			add0_data_sel_txt[sprd_codec->add0_data_sel]);
+
+	return 0;
+}
+
+static int bias_power_get(struct snd_kcontrol *kcontrol,
+				   struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_component *codec = snd_soc_kcontrol_component(kcontrol);
+	struct sprd_codec_priv *sprd_codec = snd_soc_component_get_drvdata(codec);
+
+	ucontrol->value.integer.value[0] = sprd_codec->bias_en;
+
+	return 0;
+}
+
+static int bias_power_put(struct snd_kcontrol *kcontrol,
+				   struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_component *codec = snd_soc_kcontrol_component(kcontrol);
+	struct sprd_codec_priv *sprd_codec = snd_soc_component_get_drvdata(codec);
+	bool on_off;
+	int ret = 0;
+
+	on_off = !!ucontrol->value.integer.value[0];
+	if (on_off) {
+		ret = regulator_enable(sprd_codec->bias);
+		if (ret) {
+			pr_err("bias regulator en failed");
+			return ret;
+		}
+	} else {
+		ret = regulator_disable(sprd_codec->bias);
+		if (ret) {
+			pr_err("bias regulator en failed");
+			return ret;
+		}
+	}
+	sprd_codec->bias_en = on_off;
+	pr_info("BIAS on_off %d", on_off);
+
+	return 0;
+}
+
 static const struct snd_kcontrol_new sprd_codec_snd_controls[] = {
 	SOC_ENUM_EXT("Aud Codec Info", codec_info_enum,
 		     sprd_codec_info_get, NULL),
@@ -4283,6 +4912,17 @@ static const struct snd_kcontrol_new sprd_codec_snd_controls[] = {
 		     sprd_codec_dahp_os_inv_get, sprd_codec_dahp_os_inv_put),
 	SOC_SINGLE_EXT("DAHP OS D", SND_SOC_NOPM, 0, 7, 0,
 		       sprd_codec_dahp_os_d_get, sprd_codec_dahp_os_d_put),
+	/*
+	 * don't do cali on AA chip
+	 * choose one from following(do not choose both):
+	 * option 1. do cali(For not AA chip or need cali):
+	 * kcontrol "DAHPL BUF DCCAL" --> "HW_CAL_MODE"
+	 * kcontrol "DAHPR BUF DCCAL" --> "HW_CAL_MODE"
+	 *
+	 * option 2. not do cali(For AA chip or needn't cali):
+	 * kcontrol "DAHPL BUF DCCAL" --> "SW_CAL_MODE" or NOT_CAL
+	 * kcontrol "DAHPR BUF DCCAL" --> "SW_CAL_MODE" or NOT_CAL
+	 */
 	SOC_ENUM_EXT("DAHPL BUF DCCAL", da_buf_dccal_mode_enum,
 		     sprd_codec_dahpl_buf_dccal_get,
 		     sprd_codec_dahpl_buf_dccal_put),
@@ -4299,6 +4939,11 @@ static const struct snd_kcontrol_new sprd_codec_snd_controls[] = {
 	SOC_ENUM_EXT("HP CHN TYPE", hp_chn_type_enum,
 		     sprd_codec_hp_chn_type_get,
 		     sprd_codec_hp_chn_type_put),
+	SOC_ENUM_EXT("ADD0 DATA SEL", add0_data_sel_enum,
+		     sprd_codec_add0_data_sel_get,
+		     sprd_codec_add0_data_sel_put),
+	SOC_SINGLE_EXT("BIAS Power", SND_SOC_NOPM, 0, 1, 0,
+		bias_power_get, bias_power_put),
 };
 
 static unsigned int sprd_codec_read(struct snd_soc_component *codec,
@@ -4330,8 +4975,7 @@ static unsigned int sprd_codec_read(struct snd_soc_component *codec,
 		return ret;
 	}
 
-	sp_asoc_pr_info("read, register is not codec's reg 0x%x\n",
-			reg);
+	sp_asoc_pr_dbg("read, register is not codec's reg 0x%x\n", reg);
 
 	return 0;
 }
@@ -4377,7 +5021,7 @@ static int sprd_codec_write(struct snd_soc_component *codec, unsigned int reg,
 		return ret;
 	}
 
-	sp_asoc_pr_info("write, register is not codec's reg 0x%x\n", reg);
+	sp_asoc_pr_dbg("write, register is not codec's reg 0x%x\n", reg);
 
 	return ret;
 }
@@ -4973,6 +5617,7 @@ static int sprd_codec_soc_probe(struct snd_soc_component *codec)
 	snd_soc_dapm_ignore_suspend(dapm, "Voice-Playback");
 	snd_soc_dapm_ignore_suspend(dapm, "Voice-Capture");
 	snd_soc_dapm_ignore_suspend(dapm, "Capture-DSP-RECOGNISE");
+	snd_soc_dapm_ignore_suspend(dapm, "Virt Output Pin");
 
 	/*
 	 * Even without headset driver, codec could work well.
@@ -4983,6 +5628,10 @@ static int sprd_codec_soc_probe(struct snd_soc_component *codec)
 		sp_asoc_pr_info("The headset is not ready now\n");
 		return ret;
 	}
+
+	/* fix badly THD+N quality in HP path at the first time */
+	snd_soc_component_update_bits(codec, SOC_REG(ANA_DAC1), DAHP_BUF_ITRIM,
+		DAHP_BUF_ITRIM);
 
 	return 0;
 }
@@ -5005,6 +5654,9 @@ static int sprd_codec_power_regulator_init(struct sprd_codec_priv *sprd_codec,
 		regulator_set_mode(sprd_codec->vb, REGULATOR_MODE_STANDBY);
 		regulator_disable(sprd_codec->vb);
 	}
+	sprd_codec_power_get(dev, &sprd_codec->dahpl_chn, "DAHPL_CHN");
+	sprd_codec_power_get(dev, &sprd_codec->bias, "BIAS");
+
 	return 0;
 }
 
@@ -5013,9 +5665,11 @@ static void sprd_codec_power_regulator_exit(struct sprd_codec_priv *sprd_codec)
 	sprd_codec_power_put(&sprd_codec->main_mic);
 	sprd_codec_power_put(&sprd_codec->head_mic);
 	sprd_codec_power_put(&sprd_codec->vb);
+	sprd_codec_power_put(&sprd_codec->dahpl_chn);
+	sprd_codec_power_put(&sprd_codec->bias);
 }
 
-static const struct snd_soc_component_driver soc_codec_dev_sprd_codec = {
+static struct snd_soc_component_driver soc_codec_dev_sprd_codec = {
 	.probe = sprd_codec_soc_probe,
 	.remove = sprd_codec_soc_remove,
 	.read = sprd_codec_read,
@@ -5308,6 +5962,29 @@ static int sprd_codec_probe(struct platform_device *pdev)
 		pmu_apb_gpr = NULL;
 		ret = -EPROBE_DEFER;
 		goto clk26m_sinout;
+	}
+
+	sprd_codec->audcp_aon_apb =
+		syscon_regmap_lookup_by_phandle(np, "sprd,syscon-agcp-apb");
+	if (IS_ERR(sprd_codec->audcp_aon_apb)) {
+		pr_err("%s error, get audcp aon apb syscon failed %ld\n",
+			__func__, PTR_ERR(sprd_codec->audcp_aon_apb));
+		return -EPROBE_DEFER;
+	}
+
+	sprd_codec->aon_apb_rf = syscon_regmap_lookup_by_phandle(
+		np, "sprd,syscon-aon-apb");
+	if (IS_ERR(sprd_codec->aon_apb_rf)) {
+		pr_err("%s get aon apb rf syscon failed\n", __func__);
+		sprd_codec->aon_apb_rf = NULL;
+		return -EPROBE_DEFER;
+	}
+	sprd_codec->dvfs_apb = syscon_regmap_lookup_by_phandle(
+		np, "sprd,syscon-dvfs-apb");
+	if (IS_ERR(sprd_codec->dvfs_apb)) {
+		pr_err("%s get the dvfs apb syscon failed\n", __func__);
+		sprd_codec->dvfs_apb = NULL;
+		return -EPROBE_DEFER;
 	}
 
 	mutex_init(&sprd_codec->dig_access_mutex);

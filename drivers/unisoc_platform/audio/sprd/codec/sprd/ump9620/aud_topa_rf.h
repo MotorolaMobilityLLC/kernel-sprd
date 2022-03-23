@@ -22,6 +22,7 @@
 #define AUD_CFGA_ANA_ET2                  (CTL_BASE_AUD_TOPA_RF + 0x0010)
 #define AUD_CFGA_ANA_ET3                  (CTL_BASE_AUD_TOPA_RF + 0x0014)
 #define AUD_CFGA_ANA_ET4                  (CTL_BASE_AUD_TOPA_RF + 0x0018)
+#define AUD_CFGA_VAD_CTL                  (CTL_BASE_AUD_TOPA_RF + 0x001C)
 #define AUD_CFGA_AUDIF_CTL0               (CTL_BASE_AUD_TOPA_RF + 0x0040)
 #define AUD_CFGA_DAC_FIFO_STS             (CTL_BASE_AUD_TOPA_RF + 0x0044)
 #define AUD_CFGA_ADC_FIFO_STS             (CTL_BASE_AUD_TOPA_RF + 0x0048)
@@ -108,6 +109,15 @@
 #define BIT_RG_AUD_ET_MAX_SEL(x)                    (((x) & 0x3) << 14)
 #define BIT_RG_AUD_ET_MAX_SET(x)                    (((x) & 0x7F) << 7)
 #define BIT_RG_AUD_ET_VTRIG(x)                      (((x) & 0x7F))
+
+/*---------------------------------------------------------------------------
+ * Register Name  :REG_AUD_TOPA_RF_VAD_CTL
+ * Register Offset:0x001C
+ * Description    :
+ */
+#define BIT_AUD_SCLK_OUT_EN                        BIT(2)
+#define BIT_VAD_AD_DSEL                            BIT(1)
+#define BIT_VAD_EN                                 BIT(0)
 
 /*---------------------------------------------------------------------------
  * Register Name  :REG_AUD_TOPA_RF_AUDIF_CTL0
@@ -206,8 +216,8 @@ static void sprd_codec_audif_clk_enable(struct snd_soc_component *codec, int en)
 
 	snd_soc_component_update_bits(codec, SOC_REG(AUD_CFGA_AUDIF_CTL0),
 		BIT_AUDIF_5P_MODE, 0);
-	/* yintang: for temp test */
-	sprd_codec_audif_et_en(codec, en);
+
+	/* sprd_codec_audif_et_en(codec, en); */
 }
 
 

@@ -1520,6 +1520,57 @@ int vbc_dsp_func_trigger(int id, int stream, int up_down)
 	return 0;
 }
 
+int dsp_aux_mic2_sel_set(u32 enable)
+{
+	int ret;
+	u32 aux_mic2_sel = enable;
+
+	ret = aud_send_cmd(AMSG_CH_VBC_CTL,
+			SND_KCTL_TYPE_AUX_MIC2_SEL,
+			-1, SND_VBC_DSP_IO_KCTL_SET,
+			&aux_mic2_sel,
+			sizeof(aux_mic2_sel),
+			AUDIO_SIPC_WAIT_FOREVER);
+	if (ret < 0)
+		pr_err("Failed to set aux_mic2_sel_enable, ret %d\n", ret);
+
+	return 0;
+}
+
+int dsp_smartamp_iv_exchange_set(u32 enable)
+{
+	int ret;
+	u32 smartamp_iv_exchange_enable = enable;
+
+	ret = aud_send_cmd(AMSG_CH_VBC_CTL,
+			SND_KCTL_TYPE_SMARTAMP_IV_EXCHANGE,
+			-1, SND_VBC_DSP_IO_KCTL_SET,
+			&smartamp_iv_exchange_enable,
+			sizeof(smartamp_iv_exchange_enable),
+			AUDIO_SIPC_WAIT_FOREVER);
+	if (ret < 0)
+		pr_err("Failed to set smartamp_iv_exchange, ret %d\n", ret);
+
+	return 0;
+}
+
+int dsp_dac0_lr_exchange_set(u32 enable)
+{
+	int ret;
+	u32 dsp_dac0_lr_exchange = enable;
+
+	ret = aud_send_cmd(AMSG_CH_VBC_CTL,
+			SND_KCTL_TYPE_DSP_DAC0_LR_EXCHANGE,
+			-1, SND_VBC_DSP_IO_KCTL_SET,
+			&dsp_dac0_lr_exchange,
+			sizeof(dsp_dac0_lr_exchange),
+			AUDIO_SIPC_WAIT_FOREVER);
+	if (ret < 0)
+		pr_err("Failed to set dsp_dac0_lr_exchange %d\n", ret);
+
+	return 0;
+}
+
 /***********************************************************
  * cmd for SND_KCTL_TYPE_HP_CROSSTALK_EN
  ***********************************************************/
