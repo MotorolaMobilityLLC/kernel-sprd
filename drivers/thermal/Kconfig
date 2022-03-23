@@ -182,6 +182,16 @@ config SPRD_GPU_COOLING_DEVICE
 	  so that the sprd cooling devices can be bound to thermal zone trip points.
 	  this implements the generic gpu cooling mechanism through frequency reduction.
 
+config SPRD_NPU_COOLING_DEVICE
+        tristate "sprd npu cooling device"
+        depends on THERMAL && DEVFREQ_THERMAL
+        depends on ARCH_SPRD
+        help
+          This implements the generic npu cooling mechanism through frequency
+          reduction.
+
+          If you want this support, you should say Y here.
+
 config CLOCK_THERMAL
 	bool "Generic clock cooling support"
 	depends on COMMON_CLK

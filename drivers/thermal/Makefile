@@ -62,3 +62,4 @@ obj-$(CONFIG_SPRD_CPU_COOLING)	+= sprd_cpu_cooling.o
 obj-$(CONFIG_SC27XX_TSENSOR_THERMAL)	+= sc27xx_tsensor_thermal.o
 obj-$(CONFIG_SPRD_UMP96XX_TSENSOR)	+= sprd_ump96xx_tsensor.o
 obj-$(CONFIG_SPRD_GPU_COOLING_DEVICE)	+= sprd_gpu_cooling.o
+obj-$(CONFIG_SPRD_NPU_COOLING_DEVICE)	+= sprd_npu_cooling.o

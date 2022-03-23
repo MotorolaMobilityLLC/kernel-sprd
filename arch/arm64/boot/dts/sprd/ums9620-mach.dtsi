@@ -206,14 +206,14 @@
 				};
 				map1 {
 					trip = <&soc_target>;
-					contribution = <1024>;
+					contribution = <410>;
 					cooling-device =
 					<&CPU4 THERMAL_NO_LIMIT \
 					THERMAL_NO_LIMIT>;
 				};
 				map2 {
 					trip = <&soc_target>;
-					contribution = <1024>;
+					contribution = <410>;
 					cooling-device =
 					<&CPU7 THERMAL_NO_LIMIT \
 					THERMAL_NO_LIMIT>;
@@ -227,14 +227,14 @@
 				};
 				map4 {
 					trip = <&soc_target>;
-					contribution = <410>;
+					contribution = <1024>;
 					cooling-device =
 					<&cluster1_cooling THERMAL_NO_LIMIT \
 					THERMAL_NO_LIMIT>;
 				};
 				map5 {
 					trip = <&soc_target>;
-					contribution = <410>;
+					contribution = <1024>;
 					cooling-device =
 					<&cluster2_cooling THERMAL_NO_LIMIT \
 					THERMAL_NO_LIMIT>;
