@@ -557,17 +557,18 @@ static void sfp_ipa_alloc_tbl(int sz)
 
 static inline void sfp_clear_ipa_tbl(int id)
 {
-	memset(fwd_tbl.ipa_tbl_mgr.tbl[id].h_tbl.v_addr,
-	       0, IPA_HASH_TABLE_SIZE);
+	if (fwd_tbl.ipa_tbl_mgr.tbl[id].h_tbl.v_addr != NULL)
+		memset(fwd_tbl.ipa_tbl_mgr.tbl[id].h_tbl.v_addr,
+		       0, IPA_HASH_TABLE_SIZE);
 }
 
 void sfp_clear_all_ipa_tbl(void)
 {
-	if (!fwd_tbl.ipa_tbl_mgr.tbl[T0].h_tbl.v_addr &&
-	    !fwd_tbl.ipa_tbl_mgr.tbl[T0].h_tbl.handle)
+	if (fwd_tbl.ipa_tbl_mgr.tbl[T0].h_tbl.v_addr &&
+	    fwd_tbl.ipa_tbl_mgr.tbl[T0].h_tbl.handle)
 		sfp_clear_ipa_tbl(T0);
-	if (!fwd_tbl.ipa_tbl_mgr.tbl[T1].h_tbl.v_addr &&
-	    !fwd_tbl.ipa_tbl_mgr.tbl[T1].h_tbl.handle)
+	if (fwd_tbl.ipa_tbl_mgr.tbl[T1].h_tbl.v_addr &&
+	    fwd_tbl.ipa_tbl_mgr.tbl[T1].h_tbl.handle)
 		sfp_clear_ipa_tbl(T1);
 }
 
