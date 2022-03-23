@@ -35,20 +35,13 @@ int unregister_e_show_mem_notifier(struct notifier_block *nb)
 EXPORT_SYMBOL_GPL(unregister_e_show_mem_notifier);
 
 
-void enhanced_show_mem(enum e_show_mem_type type)
+void enhanced_show_mem(void)
 {
 	/* Module used pages */
 	unsigned long used = 0;
 	struct sysinfo si;
 
-	pr_info("Enhanced Mem-Info:");
-	if (E_SHOW_MEM_BASIC == type)
-		pr_info("E_SHOW_MEM_BASIC\n");
-	else if (E_SHOW_MEM_CLASSIC == type)
-		pr_info("E_SHOW_MEM_CLASSIC\n");
-	else
-		pr_info("E_SHOW_MEM_ALL\n");
-	pr_info("Enhanced Mem-info :SHOW MEM\n");
+	pr_info("Enhanced Mem-Info: SHOW_MEM_ALL\n");
 	show_mem(SHOW_MEM_FILTER_NODES, NULL);
 	si_meminfo(&si);
 	pr_info("MemTotal:       %8lu kB\n"
@@ -66,24 +59,7 @@ void enhanced_show_mem(enum e_show_mem_type type)
 	pr_info("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
 #endif
 
-	blocking_notifier_call_chain(&e_show_mem_notify_list,
-				(unsigned long)type, &used);
+	blocking_notifier_call_chain(&e_show_mem_notify_list, 0, &used);
 }
 
-void enhanced_mem(enum e_show_mem_type type)
-{
-	/* Module used pages */
-	unsigned long used = 0;
-
-	pr_info("Enhanced Mem-Info:");
-	if (E_SHOW_MEM_BASIC == type)
-		pr_info("E_SHOW_MEM_BASIC\n");
-	else if (E_SHOW_MEM_CLASSIC == type)
-		pr_info("E_SHOW_MEM_CLASSIC\n");
-	else
-		pr_info("E_SHOW_MEM_ALL\n");
-
-	blocking_notifier_call_chain(&e_show_mem_notify_list,
-				(unsigned long)type, &used);
-}
 

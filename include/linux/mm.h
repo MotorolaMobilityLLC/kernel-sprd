@@ -2489,13 +2489,7 @@ extern unsigned long arch_reserved_kernel_pages(void);
 #endif
 
 #ifdef CONFIG_E_SHOW_MEM
-enum e_show_mem_type {
-	E_SHOW_MEM_BASIC,
-	E_SHOW_MEM_CLASSIC,
-	E_SHOW_MEM_ALL
-};
-extern void enhanced_show_mem(enum e_show_mem_type type);
-extern void enhanced_mem(enum e_show_mem_type type);
+extern void enhanced_show_mem(void);
 extern int register_e_show_mem_notifier(struct notifier_block *nb);
 extern int unregister_e_show_mem_notifier(struct notifier_block *nb);
 #endif

@@ -3454,7 +3454,7 @@ void pcpu_free_vm_areas(struct vm_struct **vms, int nr_vms)
 #endif	/* CONFIG_SMP */
 
 #ifdef CONFIG_E_SHOW_MEM
-void print_vmalloc_info(enum e_show_mem_type type)
+void print_vmalloc_info(void)
 {
 	struct vmap_area *va;
 	struct vm_struct *v;
@@ -3474,19 +3474,9 @@ void print_vmalloc_info(enum e_show_mem_type type)
 		v = va->vm;
 		if (v->nr_pages) {
 			total_pages += v->nr_pages;
-			if (E_SHOW_MEM_BASIC == type) {
-				/* 1M Bytes */
-				if ((v->nr_pages << (PAGE_SHIFT - 10)) < 1024)
-					continue;
-			} else if (E_SHOW_MEM_CLASSIC == type) {
-				/* 512K Bytes */
-				if ((v->nr_pages << (PAGE_SHIFT - 10)) < 512)
-					continue;
-			} else {
-				/* 128K Bytes */
-				if ((v->nr_pages << (PAGE_SHIFT - 10)) < 128)
-					continue;
-			}
+			/* 128K Bytes */
+			if ((v->nr_pages << (PAGE_SHIFT - 10)) < 128)
+				continue;
 
 			pr_info("0x%p-0x%p %7ld %pS %dkB %s%s\n",
 				v->addr, v->addr + v->size, v->size, v->caller,
@@ -3505,11 +3495,10 @@ out:
 static int vmalloc_e_show_mem_handler(struct notifier_block *nb,
 			unsigned long val, void *data)
 {
-	enum e_show_mem_type type = val;
 
 	pr_info("\n");
 	pr_info("Enhanced Mem-info :VMALLOC\n");
-	print_vmalloc_info(type);
+	print_vmalloc_info();
 	return 0;
 }
 

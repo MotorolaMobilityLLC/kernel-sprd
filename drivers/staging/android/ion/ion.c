@@ -219,9 +219,7 @@ static long ion_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 }
 
 #ifdef CONFIG_E_SHOW_MEM
-int ion_debug_heap_show_printk(struct ion_heap *heap,
-			       enum e_show_mem_type type,
-			       void *data)
+int ion_debug_heap_show_printk(struct ion_heap *heap, void *data)
 {
 	int i;
 	struct ion_device *dev = internal_dev;
@@ -284,21 +282,17 @@ int ion_debug_heap_show_printk(struct ion_heap *heap,
 }
 
 static int ion_e_show_mem_handler(struct notifier_block *nb,
-				  unsigned long val, void *data)
+				unsigned long val, void *data)
 {
 	struct ion_device *dev = internal_dev;
 	struct ion_heap *heap;
-	enum e_show_mem_type type = (enum e_show_mem_type)val;
 	unsigned long total_used = 0;
 
 	pr_info("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
 	pr_info("Enhanced Mem-info :ION\n");
 	plist_for_each_entry(heap, &dev->heaps, node)
-		if ((type != E_SHOW_MEM_BASIC) ||
-		    (heap->type == ION_HEAP_TYPE_SYSTEM)) {
-			pr_info("%s: heap_id %d\n", __func__, heap->id);
-			ion_debug_heap_show_printk(heap, type, &total_used);
-		}
+	pr_info("%s: heap_id %d\n", __func__, heap->id);
+	ion_debug_heap_show_printk(heap, &total_used);
 
 	pr_info("Total allocated from Buddy: %lu kB\n", total_used / 1024);
 	return 0;

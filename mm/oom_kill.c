@@ -470,7 +470,7 @@ static void dump_header(struct oom_control *oc, struct task_struct *p)
 	if (p)
 		dump_oom_summary(oc, p);
 #ifdef CONFIG_E_SHOW_MEM
-	enhanced_mem(E_SHOW_MEM_BASIC);
+	enhanced_show_mem();
 #endif
 }
 
