@@ -21,7 +21,7 @@
 #include <linux/seq_file.h>
 
 #define SCHED_WORK(x) queue_work(system_unbound_wq, x)
-#define SCHED_PUMP_WORK(x, t) queue_delayed_work(system_unbound_wq, x, t);
+#define SCHED_PUMP_WORK(x, t) queue_delayed_work(system_unbound_wq, x, t)
 
 
 #define SWCQ_NUM_SLOTS	64
