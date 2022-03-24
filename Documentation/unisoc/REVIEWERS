@@ -77,12 +77,6 @@ T: firmware:sprd
 T: firmware:psci
 T: soc:sprd:debug
 
-[janet.liu]
-P: DSE
-R: +1
-T: fs:
-T: block:
-
 [jinfeng.lin1]
 P: FO
 R: +1
@@ -130,48 +124,10 @@ T: scsi:ufs:
 T: pci:dwc:
 T: pci:dwc:sprd:
 
-[long.gao]
-P: FO
-R: +1
-T: clk:sprd:
-T: cpufreq:
-T: cpufreq:sprd:
-T: devfreq:sprd:
-T: gpio:sprd:
-T: i2c:sprd:
-T: iio:adc:
-T: iio:sprd:
-T: input:keyboard:
-T: input:sprd:
-T: input:touchscreen:
-T: leds:sc27xx:
-T: leds:trigger:
-T: nvmem:sprd:
-T: pci:dwc:
-T: pci:dwc:sprd:
-T: pinctrl:sprd:
-T: power:supply:
-T: power:suspends:
-T: scsi:ufs:
-T: scsi:ufs:sprd:
-T: serial:sprd:
-T: spi:sprd:
-T: watchdog:sprd:
-
 [lvqiang.huang]
 P: DSE
 R: +1
 T: fs:
-
-[mingming.zhong]
-P: FO
-R: +1
-C: 2020.02.04
-T: misc:sprdwcn:
-T: misc:sprd_gnss:
-T: mmc:sprd:
-T: arm64:dts:
-T: arm:configs:
 
 [nianfu.bai]
 P: FO
@@ -202,34 +158,6 @@ P: KRG member
 R: +2
 T: Documentation:
 T: REST:
-
-[ruifeng.zhang1]
-P: FO
-R: +1
-T: arm:configs:
-T: arm64:configs:
-T: soc:sprd:memdisk:
-T: time:
-T: printk:
-T: arm:topology:
-T: arm64:topology:
-T: arm64:kernel:
-T: sprd-diffconfig:
-T: scripts:dtc:
-T: scripts:sprd:
-T: clocksource:sprd:
-T: soc:sprd:irq:
-T: arm:dts:
-T: arm64:dts:
-
-[steve.li]
-P: FO
-R: +1
-C: 2020.12.21
-T: misc:sprdwcn:
-T: mmc:sprd:
-T: arm64:dts:
-T: arm:configs:
 
 [yangyang.liu]
 P: KRG member
@@ -288,43 +216,3 @@ R: +1
 K: "reserved-memory"
 T: lib:e_show_mem:
 T: mm:
-
-[zhulin.lian]
-P: DSE
-R: +1
-T: clk:sprd:
-T: cpufreq:
-T: cpufreq:sprd:
-T: devfreq:sprd:
-T: dmaengine:sprd:
-T: gpio:sprd:
-T: i2c:sprd:
-T: iio:adc:
-T: iio:sprd:
-T: input:keyboard:
-T: input:sprd:
-T: input:touchscreen:
-T: leds:sc27xx:
-T: leds:trigger:
-T: mmc:core:
-T: mmc:host:
-T: mmc:sprd-sdhc:
-T: nvmem:sprd:
-T: pci:dwc:
-T: pci:dwc:sprd:
-T: pinctrl:sprd:
-T: power:supply:
-T: power:suspends:
-T: scsi:ufs:
-T: scsi:ufs:sprd:
-T: serial:sprd:
-T: spi:sprd:
-T: thermal:core:
-T: thermal:sprd:
-T: usb:dwc3:
-T: usb:gadget:
-T: usb:misc:
-T: usb:musb:
-T: usb:phy:
-T: usb:typec:
-T: watchdog:sprd:
