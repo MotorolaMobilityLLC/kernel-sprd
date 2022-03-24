@@ -137,6 +137,9 @@
 				charge-wl-bpp-current-microamp = <1000000 1000000>;
 				charge-wl-epp-current-microamp = <2000000 1000000>;
 
+				cap-calib-energy-density-ocv-table = <3350000 3800000>, <4150000 4350000>;
+				cap-track-energy-density-ocv-table = <3400000 3722000>;
+
 				dcp-jeita-temp-table = <1000 1030 0 4340000>, <1150 1180 700000 4340000>,
 					<1450 1420 2000000 4340000>, <1600 1570 700000 4100000>;
 				sdp-jeita-temp-table = <1000 1030 0 4340000>, <1150 1180 500000 4340000>,
@@ -824,6 +827,14 @@
 
 	fgu-capacity-track;
 	phys = <&hsphy>;
+
+	sprd,relax-counter-threshold = <580>;
+	sprd,relax-current-threshold = <30>;
+	sprd,capacity-sleep-calibration;
+
+	sprd,capacity-boot-calibration;
+	sprd,capacity-charge-cycle;
+	sprd,basp;
 };
 
 &panel {
