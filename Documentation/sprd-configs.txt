@@ -17367,6 +17367,15 @@ CONFIG_SPRD_SIP_FW
 	[missing plat description] none
 	[function] Provides interfaces to SoC implementation-specific secure
 	           services.
+CONFIG_SPRD_SOCID
+	[arch] arm64
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
+	[field] make,code
+	[subsys] misc
+	[must] user
+	[missing plat description] none
+	[function] Support read socid only
 CONFIG_SPRD_SOC_THERMAL
 	[arch] arm64
 	[plat] sharkl5Pro
