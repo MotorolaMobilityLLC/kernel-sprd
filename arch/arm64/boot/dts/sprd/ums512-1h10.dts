@@ -8,9 +8,10 @@
 /dts-v1/;
 
 #include <dt-bindings/gpio/gpio.h>
-#include "ums512.dtsi"
-#include "sc2730.dtsi"
+#include "ums512/ums512.dtsi"
+#include "sc2730/sc2730.dtsi"
 #include "lcd/lcd_td4310_truly_mipi_fhd.dtsi"
+#include "reserved-memory/common-2GB.dtsi"
 
 / {
 	model = "Spreadtrum UMS512-1H10 Board";
@@ -32,23 +33,6 @@
 	chosen {
 		stdout-path = "serial1:115200n8";
 		bootargs = "earlycon loglevel=7 androidboot.hardware=ums512 printk.devkmsg=on  androidboot.selinux=permissive androidboot.boot_devices=soc/soc:ap-apb/71400000.sdio dummy_hcd.num=0 swiotlb=1 initcall_debug=1 lcd_name=lcd_td4310_truly_mipi_fhd ";
-	};
-
-	reserved-memory {
-		#address-cells = <2>;
-		#size-cells = <2>;
-		ranges;
-
-		/* global autoconfigured region for contiguous allocations */
-		linux,cma {
-			compatible = "shared-dma-pool";
-			reusable;
-			reg = <0x0 0xf0000000 0x0 0x04000000>;
-			linux,cma-default;
-		};
-		logo_reserved: logobuffer@9e000000{
-			reg = <0x0 0x9e000000 0x0 0x009e4000>;
-		};
 	};
 
 	pwm_backlight: sprd_backlight {
@@ -87,6 +71,7 @@
 			826 832 838 844 850 856 862 868 874 880
 			>;
 	};
+
 	firmware {
 		android {
 			compatible = "android,firmware";

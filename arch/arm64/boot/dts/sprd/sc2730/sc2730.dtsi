@@ -1,0 +1,51 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Unisoc SC2730 PMIC dts file
+ *
+ * Copyright (C) 2020, Unisoc Inc.
+ *
+ */
+
+
+&adi_bus {
+	sc2730_pmic: pmic@0 {
+		compatible = "sprd,sc2730";
+		reg = <0>;
+		spi-max-frequency = <26000000>;
+		interrupt-controller;
+		#interrupt-cells = <1>;
+		interrupts = <GIC_SPI 173 IRQ_TYPE_LEVEL_HIGH>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		pmic_eic: gpio@280 {
+			compatible = "sprd,sc2731-eic", "sprd,sc2730-eic";
+			reg = <0x280>;
+			interrupt-parent = <&sc2730_pmic>;
+			interrupts = <4>;
+			gpio-controller;
+			#gpio-cells = <2>;
+			interrupt-controller;
+			#interrupt-cells = <2>;
+		};
+
+		pmic_adc: adc@504 {
+			compatible = "sprd,sc27xx-adc", "sprd,sc2730-adc";
+			reg = <0x504>;
+			interrupt-parent = <&sc2730_pmic>;
+			interrupts = <0 IRQ_TYPE_LEVEL_HIGH>;
+			#io-channel-cells = <1>;
+			hwlocks = <&hwlock 4>;
+			nvmem-cells = <&adc_bcal>, <&adc_scal>;
+			nvmem-cell-names = "big_scale_calib", "small_scale_calib";
+		};
+
+		syscon@1800 {
+			compatible = "sprd,sc2731-syscon", "sprd,sc27xx-syscon";
+			reg = <0x1800>, <0x1ba0>, <0x1b98>;
+		};
+	};
+};
+
+#include "efuse.dtsi"
+#include "regulator.dtsi"

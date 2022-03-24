@@ -2,11 +2,11 @@
 /*
  * DTS file of efuse in Spreadtrum SC2730 PMIC.
  *
- * Copyright (C) 2020, Spreadtrum Communications Inc.
+ * Copyright (C) 2020, Unisoc Inc.
  *
  */
 
-&pmic0 {
+&sc2730_pmic {
 	efuse@300 {
 		compatible = "sprd,sc27xx-efuse", "sprd,sc2730-efuse";
 		reg = <0x300>;
@@ -62,4 +62,5 @@
 			reg = <0x2c 0x2>;
 		};
 	};
+
 };

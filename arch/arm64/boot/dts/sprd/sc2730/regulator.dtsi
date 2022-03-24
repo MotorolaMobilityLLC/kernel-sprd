@@ -1,29 +1,12 @@
 // SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 /*
- * Spreadtrum SC2730 PMIC dts file
+ * Unisoc SC2730 PMIC dts file
  *
- * Copyright (C) 2020, Spreadtrum Communications Inc.
+ * Copyright (C) 2020, Unisoc Inc.
  *
  */
 
-&pmic0 {
-
-	pmic_eic: gpio@280 {
-		compatible = "sprd,sc2731-eic", "sprd,sc2730-eic";
-		reg = <0x280>;
-		interrupt-parent = <&pmic0>;
-		interrupts = <4>;
-		gpio-controller;
-		#gpio-cells = <2>;
-		interrupt-controller;
-		#interrupt-cells = <2>;
-	};
-
-	syscon@1800 {
-		compatible = "sprd,sc2731-syscon", "sprd,sc27xx-syscon";
-		reg = <0x1800>, <0x1ba0>, <0x1b98>;
-	};
-
+&sc2730_pmic {
 	power-controller@1800 {
 		compatible = "sprd,sc2731-regulator", "sprd,sc2730-regulator";
 
@@ -267,5 +250,4 @@
 			regulator-ramp-delay = <25000>;
 		};
 	};
-
 };

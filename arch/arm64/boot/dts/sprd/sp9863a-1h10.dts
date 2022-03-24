@@ -7,7 +7,7 @@
 
 /dts-v1/;
 
-#include "sc9863a.dtsi"
+#include "sc9863a/sc9863a.dtsi"
 
 / {
 	model = "Spreadtrum SP9863A-1H10 Board";
