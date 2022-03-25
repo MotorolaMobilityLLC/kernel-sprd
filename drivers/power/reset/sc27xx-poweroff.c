@@ -27,7 +27,7 @@
 #define SC2731_SLP_CTRL		0xdf0
 #define SC2731_LDO_XTL_EN	BIT(3)
 #define UMP9620_PWR_PD_HW	0x2020
-#define UMP9620_SLP_CTRL	0x2168
+#define UMP9620_SLP_CTRL	0x2248
 #define UMP9620_LDO_XTL_EN	BIT(2)
 #define SC27XX_PWR_OFF_EN	BIT(0)
 
@@ -98,7 +98,7 @@ static struct syscore_ops poweroff_syscore_ops = {
 static void sc27xx_poweroff_do_poweroff(void)
 {
 	/* Disable the external subsys connection's power firstly */
-	regmap_write(regmap, pdata->slp_ctrl_reg, pdata->ldo_xtl_en);
+	regmap_update_bits(regmap, pdata->slp_ctrl_reg, pdata->ldo_xtl_en, 0);
 
 	regmap_write(regmap, pdata->poweroff_reg, SC27XX_PWR_OFF_EN);
 }
