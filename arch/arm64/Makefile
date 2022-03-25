@@ -148,6 +148,11 @@ libs-$(CONFIG_EFI_STUB) += $(objtree)/drivers/firmware/efi/libstub/lib.a
 boot		:= arch/arm64/boot
 KBUILD_IMAGE	:= $(boot)/Image.gz
 
+BUILD_DTC_FLAGS = $(subst $\",,$(CONFIG_BUILD_ARM64_DTC_FLAGS))
+ifneq ($(BUILD_DTC_FLAGS),)
+	DTC_FLAGS += $(BUILD_DTC_FLAGS)
+endif
+
 # Don't compile Image in mixed build with "all" target
 ifndef KBUILD_MIXED_TREE
 all:	Image.gz

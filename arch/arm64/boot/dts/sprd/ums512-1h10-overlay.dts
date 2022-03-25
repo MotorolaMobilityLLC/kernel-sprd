@@ -1,0 +1,20 @@
+/dts-v1/;
+/plugin/;
+
+/ {
+	model = "Unisoc UMS512-1H10 Board";
+	compatible = "sprd,ums512-1h10", "sprd,ums512";
+	sprd,sc-id = "ums512 1h10 1000";
+	fragment {
+		target-path = "/";
+		__overlay__ {
+			#address-cells = <2>;
+			#size-cells = <2>;
+
+			dtbo: dtbo {
+				compatible = "sprd,dtbo-test";
+				reg = <0x0 0x0 0x0 0x11>;
+			};
+		};
+	};
+};
