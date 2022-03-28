@@ -120,6 +120,9 @@ obj-$(CONFIG_UNICORE32)			+= unicore2-cpufreq.o
 
 ##################################################################################
 # unisoc platform drivers
+obj-$(CONFIG_ARM_SPRD_CPUFREQ_V2) += sprd-cpufreq-v2.o
+sprd-cpufreq-v2-objs := sprd-cpufreq-v2-driver.o sprd-cpufreq-v2-debug.o
+
 obj-$(CONFIG_ARM_SPRD_SW_CPUFREQ) += sprd-swcpufreq.o
 sprd-swcpufreq-objs := sprd-cpufreqsw.o sprd-cpufreq-common.o
 

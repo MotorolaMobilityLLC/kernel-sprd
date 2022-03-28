@@ -379,6 +379,17 @@ config ARM_SPRD_SW_CPUFREQ
 
 	  If in doubt, say N.
 
+config ARM_SPRD_CPUFREQ_V2
+	tristate "Sprd apcpu hardware dvfs driver for sharkl6pro family SoCs"
+	depends on ARCH_SPRD && CPU_FREQ
+	select PM_OPP
+	help
+	  This driver enable hardware to adjust the voltage and frequency
+	  automatically for DSU cluster and cores in sharkl6pro and the platforms
+	  whose apcpu hardware DVFS IP is similar to sharkl6pro.
+
+	  If in doubt, say N.
+
 config ARM_SPRD_DUMMY_CPUFREQ
 	tristate "Dummy CPUfreq driver"
 	depends on ARCH_SPRD && CPU_FREQ

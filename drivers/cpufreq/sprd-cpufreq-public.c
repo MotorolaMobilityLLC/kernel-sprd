@@ -5,12 +5,12 @@
 // Copyright (C) 2021 Unisoc, Inc.
 
 #include "sprd-cpufreq-common.h"
-#include "sprd-hwdvfs-cpufreq.h"
+#include "sprd-cpufreq-v2.h"
 
 unsigned int sprd_cpufreq_update_normal(struct cpufreq_policy policy,
 					    int cpu, int temp)
 {
-	struct sprd_cpufreq_info *info = NULL;
+	struct cluster_info *info = NULL;
 
 	info = policy.driver_data;
 	if (IS_ERR_OR_NULL(info) || !info->update_opp)
@@ -64,7 +64,7 @@ unsigned int sprd_cpufreq_update_opp(int cpu, int temp_now)
 
 	pr_debug("%s: cluster name is: %s\n", __func__, cpufreq_np->full_name);
 
-	if (!strcmp(cpufreq_np->full_name, "opp-table0"))
+	if (!strcmp(cpufreq_np->full_name, "cpufreq-cluster0"))
 		max_freq = sprd_cpufreq_update_normal(policy, cpu, temp_now);
 	else if (!strcmp(cpufreq_np->full_name, "cpufreq-clus0"))
 		max_freq = sprd_cpufreq_update_common(policy, cpu, temp_now);

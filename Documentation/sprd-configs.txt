@@ -1482,6 +1482,16 @@ CONFIG_ARM_SPRD_CPUFREQ_PUBLIC
 	[must] user
 	[missing plat description] none
 	[function] This include all SPRD cpufreq driver public data.
+CONFIG_ARM_SPRD_CPUFREQ_V2
+	[arch] arm64
+	[plat] sharkl5Pro
+	[missing plat] sharkl3
+	[field] make
+	[subsys] cpufreq
+	[must] user
+	[missing plat description] none
+	[function] This driver enable hardware to adjust the voltage and frequency
+			automatically for DSU cluster and cores.
 CONFIG_ARM_SPRD_CPUIDLE
 	[arch] arm
 	[plat] pike2
@@ -1500,25 +1510,6 @@ CONFIG_ARM_SPRD_HW_CPUFREQ
 	[must] user
 	[missing plat description] none
 	[function] Enable apcpu hardware dvfs function.
-CONFIG_ARM_SPRD_HW_CPUFREQ_ARCH_UMS512
-	[arch] arm64
-	[plat] sharkl5Pro
-	[missing plat] sharkl3
-	[field] make
-	[subsys] cpufreq
-	[must] user
-	[missing plat description] none
-	[function] this driver enable hardware to adjust the voltage and frequency
-			automatically for DSU cluster and cores in sharkl5pro platorm.
-CONFIG_ARM_SPRD_HW_CPUFREQ_NORMAL
-	[arch] arm64
-	[plat] sharkl5Pro
-	[missing plat] sharkl3
-	[field] make
-	[subsys] cpufreq
-	[must] user
-	[missing plat description] This plat don't have hwdvfs ip like sharkl5,roc1 and so on.
-	[function] Enable apcpu hardware dvfs function in sharkl5 family SOCs.
 CONFIG_ARM_SPRD_HW_CPUFREQ_SHARKL3
 	[arch] arm64
 	[plat] sharkl3
