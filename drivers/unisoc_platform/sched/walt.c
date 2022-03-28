@@ -1467,6 +1467,7 @@ static void walt_init(struct work_struct *work)
 	init_clusters();
 
 	register_walt_vendor_hooks();
+	walt_fair_init();
 
 	stop_machine(walt_init_stop_handler, NULL, NULL);
 

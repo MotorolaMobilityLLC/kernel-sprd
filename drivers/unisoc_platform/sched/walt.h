@@ -101,6 +101,15 @@ struct walt_task_group {
 	int init_task_load_pct;
 };
 
+struct pd_cache {
+	unsigned long wake_util;
+	unsigned long cap_orig;
+	unsigned long cap;
+	unsigned long thermal_pressure;
+	unsigned long base_energy;
+	bool is_idle;
+};
+
 extern struct ctl_table walt_base_table[];
 extern unsigned int sysctl_sched_walt_cross_window_util;
 extern unsigned int sysctl_walt_account_wait_time;
@@ -152,6 +161,7 @@ static inline int same_cluster(int src_cpu, int dst_cpu)
 	return src_wrq->cluster == dest_wrq->cluster;
 }
 
+extern void walt_fair_init(void);
 extern unsigned long walt_cpu_util_freq(int cpu);
 
 #define WALT_HIGH_IRQ_TIMEOUT 3
@@ -185,12 +195,12 @@ static inline unsigned long walt_task_util(struct task_struct *p)
 static inline unsigned long walt_cpu_util(int cpu)
 {
 	struct walt_rq *wrq = (struct walt_rq *) cpu_rq(cpu)->android_vendor_data1;
-	u64 walt_cpu_util = wrq->cumulative_runnable_avg;
+	u64 cpu_util = wrq->cumulative_runnable_avg;
 
-	walt_cpu_util <<= SCHED_CAPACITY_SHIFT;
-	do_div(walt_cpu_util, walt_ravg_window);
+	cpu_util <<= SCHED_CAPACITY_SHIFT;
+	do_div(cpu_util, walt_ravg_window);
 
-	return min_t(unsigned long, walt_cpu_util, capacity_orig_of(cpu));
+	return min_t(unsigned long, cpu_util, capacity_orig_of(cpu));
 }
 
 #ifdef CONFIG_UCLAMP_TASK

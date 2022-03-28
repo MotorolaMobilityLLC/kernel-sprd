@@ -151,6 +151,164 @@ TRACE_EVENT(walt_migration_update_sum,
 	TP_printk("cpu=%d curr_runnable_sum=%llu prev_runnable_sum=%llu pid=%d",
 		  __entry->cpu, __entry->cs, __entry->ps, __entry->pid)
 );
+
+/*trace cfs task info in feec*/
+TRACE_EVENT(sched_feec_task_info,
+
+	TP_PROTO(struct task_struct *p, int prev_cpu, unsigned long task_util,
+		 unsigned long uclamp_util, int boosted,
+		 int latency_sensitive, int blocked),
+
+	TP_ARGS(p, prev_cpu, task_util, uclamp_util, boosted, latency_sensitive, blocked),
+
+	TP_STRUCT__entry(
+		__array(char,	comm,	TASK_COMM_LEN)
+		__field(pid_t,	pid)
+		__field(int,	prev_cpu)
+		__field(unsigned long, task_util)
+		__field(unsigned long, uclamp_util)
+		__field(int, boosted)
+		__field(int, latency_sensitive)
+		__field(int, blocked)
+	),
+
+	TP_fast_assign(
+		memcpy(__entry->comm, p->comm, TASK_COMM_LEN);
+		__entry->pid			= p->pid;
+		__entry->prev_cpu		= prev_cpu;
+		__entry->task_util		= task_util;
+		__entry->uclamp_util		= uclamp_util;
+		__entry->boosted		= boosted;
+		__entry->latency_sensitive	= latency_sensitive;
+		__entry->blocked		= blocked;
+	),
+
+	TP_printk("comm=%s pid=%d prev_cpu=%d util=%lu uclamp_util=%lu boosted=%d latency_sensitive=%d blocked=%d",
+		  __entry->comm, __entry->pid, __entry->prev_cpu,
+		  __entry->task_util, __entry->uclamp_util, __entry->boosted,
+		  __entry->latency_sensitive, __entry->blocked)
+);
+/*
+ * trace cfs rq info
+ */
+TRACE_EVENT(sched_feec_rq_task_util,
+
+	TP_PROTO(int cpu, struct task_struct *p, struct pd_cache *pd_cache,
+		 unsigned long util, unsigned long spare_cap, unsigned long cpu_cap),
+
+	TP_ARGS(cpu, p, pd_cache, util, spare_cap, cpu_cap),
+
+	TP_STRUCT__entry(
+		__field(int,		cpu)
+		__field(unsigned int,	nr_running)
+		__field(unsigned int,	idle)
+		__field(unsigned long,	wake_util)
+		__array(char,   comm,   TASK_COMM_LEN)
+		__field(pid_t,		pid)
+		__field(unsigned long,	spare_cap)
+		__field(unsigned long,	capacity_orig)
+		__field(unsigned long,	thermal_pressure)
+		__field(unsigned long,	cpu_cap)
+	),
+
+	TP_fast_assign(
+		__entry->cpu			= cpu;
+		__entry->nr_running		= cpu_rq(cpu)->nr_running;
+		__entry->idle			= pd_cache->is_idle;
+		__entry->wake_util		= pd_cache->wake_util;
+		memcpy(__entry->comm, p->comm, TASK_COMM_LEN);
+		__entry->pid			= p->pid;
+		__entry->spare_cap		= spare_cap;
+		__entry->capacity_orig		= pd_cache->cap_orig;
+		__entry->thermal_pressure	= pd_cache->thermal_pressure;
+		__entry->cpu_cap		= cpu_cap;
+	),
+
+	TP_printk("cpu=%d nr_running=%u idle =%d wake_util=%lu comm=%s pid=%d "
+		  "spare_cap=%lu capacity_of=%lu capacity_orig=%lu thermal_pressure=%lu",
+		  __entry->cpu, __entry->nr_running, __entry->idle, __entry->wake_util,
+		  __entry->comm, __entry->pid, __entry->spare_cap, __entry->cpu_cap,
+		  __entry->capacity_orig, __entry->thermal_pressure)
+);
+/*
+ * trace energy diff info
+ */
+TRACE_EVENT(sched_energy_diff,
+
+	TP_PROTO(unsigned long pd_energy, unsigned long base_energy, unsigned long prev_delta,
+		unsigned long curr_delta, unsigned long best_delta, int prev_cpu,
+		int best_energy_cpu, int max_spare_cap_cpu),
+
+	TP_ARGS(pd_energy, base_energy, prev_delta, curr_delta, best_delta,
+		prev_cpu, best_energy_cpu, max_spare_cap_cpu),
+
+	TP_STRUCT__entry(
+		__field(unsigned long,	pd_energy)
+		__field(unsigned long,	base_energy)
+		__field(unsigned long,	prev_delta)
+		__field(unsigned long,	curr_delta)
+		__field(unsigned long,	best_delta)
+		__field(int,		prev_cpu)
+		__field(int,		best_energy_cpu)
+		__field(int,		max_spare_cap_cpu)
+	),
+
+	TP_fast_assign(
+		__entry->pd_energy		= pd_energy;
+		__entry->base_energy		= base_energy;
+		__entry->prev_delta		= prev_delta;
+		__entry->curr_delta		= curr_delta;
+		__entry->best_delta		= best_delta;
+		__entry->prev_cpu		= prev_cpu;
+		__entry->best_energy_cpu	= best_energy_cpu;
+		__entry->max_spare_cap_cpu	= max_spare_cap_cpu;
+	),
+
+	TP_printk("pd_eng=%lu base_eng=%lu p_delta=%lu c_delta=%lu b_delta=%lu "
+		  "prev_cpu=%d best_eng_cpu=%d max_spare_cpu=%d",
+		  __entry->pd_energy, __entry->base_energy, __entry->prev_delta,
+		  __entry->curr_delta, __entry->best_delta, __entry->prev_cpu,
+		  __entry->best_energy_cpu, __entry->max_spare_cap_cpu)
+);
+
+/*trace feec candidates */
+TRACE_EVENT(sched_feec_candidates,
+
+	TP_PROTO(int prev_cpu, int best_energy_cpu, unsigned long base_energy, unsigned long prev_delta,
+		 unsigned long best_delta, int best_idle_cpu, int max_spare_cap_cpu_ls),
+
+	TP_ARGS(prev_cpu, best_energy_cpu, base_energy, prev_delta, best_delta,
+		best_idle_cpu, max_spare_cap_cpu_ls),
+
+	TP_STRUCT__entry(
+		__field(int,		prev_cpu)
+		__field(int,		best_energy_cpu)
+		__field(unsigned long,	base_energy)
+		__field(unsigned long,	prev_delta)
+		__field(unsigned long,	best_delta)
+		__field(unsigned long,	threshold)
+		__field(int,		best_idle_cpu)
+		__field(int,		max_spare_cap_cpu_ls)
+	),
+
+	TP_fast_assign(
+		__entry->prev_cpu		= prev_cpu;
+		__entry->best_energy_cpu	= best_energy_cpu;
+		__entry->best_idle_cpu		= best_idle_cpu;
+		__entry->base_energy		= base_energy;
+		__entry->prev_delta		= prev_delta;
+		__entry->best_delta		= best_delta;
+		__entry->threshold = prev_delta == ULONG_MAX ? 0 : ((prev_delta + base_energy) >> 4);
+		__entry->max_spare_cap_cpu_ls	= max_spare_cap_cpu_ls;
+	),
+
+	TP_printk("prev_cpu=%d best_eng_cpu=%d base_eng=%lu p_delta=%lu b_delta=%lu "
+		  "threshold=%lu best_idle_cpu=%d max_spare_cpu_ls=%d",
+		  __entry->prev_cpu, __entry->best_energy_cpu, __entry->base_energy,
+		  __entry->prev_delta, __entry->best_delta, __entry->threshold,
+		  __entry->best_idle_cpu, __entry->max_spare_cap_cpu_ls)
+);
+
 #endif /* _TRACE_WALT_H */
 
 #undef TRACE_INCLUDE_PATH
