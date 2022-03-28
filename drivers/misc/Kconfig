@@ -497,6 +497,11 @@ config OPEN_DICE
 
 	  If unsure, say N.
 
+config SPRD_SOCID
+	tristate "Spreadtrum soc id Support"
+	help
+	  provoid a driver to get soc id.
+
 source "drivers/misc/c2port/Kconfig"
 source "drivers/misc/eeprom/Kconfig"
 source "drivers/misc/cb710/Kconfig"
