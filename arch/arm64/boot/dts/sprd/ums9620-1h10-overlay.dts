@@ -217,6 +217,7 @@
 
 				monitored-battery = <&bat>;
 				cm-capacity-track;
+				cm-keep-awake;
 
 				regulator@0 {
 					cm-regulator-name = "vddgen0";
