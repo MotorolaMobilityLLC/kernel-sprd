@@ -2740,6 +2740,7 @@
   netlink_kernel_release
   of_get_address
   of_get_compatible_child
+  send_sig_info
 
 # required by sprd_tcpm.ko
   typec_altmode_attention
