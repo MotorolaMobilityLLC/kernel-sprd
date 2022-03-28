@@ -2,10 +2,10 @@
 /*
  * Copyright (C) 2021 Unisoc, Inc.
  */
-
 #include <linux/debugfs.h>
 #include <linux/delay.h>
 #include <linux/interrupt.h>
+#include <linux/init.h>
 #include <linux/kernel.h>
 #include <linux/mfd/syscon.h>
 #include <linux/miscdevice.h>
@@ -16,12 +16,19 @@
 #include <linux/of_device.h>
 #include <linux/platform_device.h>
 #include <linux/regmap.h>
+#include <linux/sched/signal.h>
+#include <linux/signal.h>
+#include <linux/sched.h>
+#include <linux/slab.h>
 #include <linux/uaccess.h>
 #include <net/sock.h>
 #include "apdu_r3p0.h"
 #include "qogirn6pro_ise_pd.h"
 
 static struct sock *sprd_apdu_nlsk;
+static struct task_struct *sprd_apdu_ise_srv_task;
+static struct ise_block_info *g_ise_block_info;
+static u32 sprd_apdu_ise_signo;
 
 #ifdef pr_fmt
 #undef pr_fmt
@@ -44,6 +51,34 @@ static void sprd_apdu_dump_dbg_data(u32 *buf, u32 len)
 	for (i = 0; i < len; i++)
 		pr_debug("0x%8x ", buf[i]);
 	pr_debug("\n");
+}
+
+u32 sprd_apdu_write_bits(struct sprd_apdu_device *apdu, struct regmap *map, unsigned int reg,
+			 unsigned int mask, unsigned int val)
+{
+	unsigned int set, clr;
+	long ret;
+
+	set = val & mask;
+	clr = ~set & mask;
+
+	if (set) {
+		ret = regmap_write(map, reg+0x1000, set);
+		if (ret) {
+			dev_err(apdu->dev, "regmap set bit fail\n");
+			return ret;
+		}
+	}
+
+	if (clr) {
+		ret = regmap_write(map, reg+0x2000, clr);
+		if (ret) {
+			dev_err(apdu->dev, "regmap clear bit fail\n");
+			return ret;
+		}
+	}
+
+	return 0;
 }
 
 static void sprd_apdu_int_en(void __iomem *base, u32 int_en)
@@ -283,6 +318,7 @@ static void sprd_apdu_enable(struct sprd_apdu_device *apdu)
 
 	sprd_apdu_inf_int_en(apdu->base, APDU_INF_INT_GET_ATR);
 	sprd_apdu_inf_int_en(apdu->base, APDU_INF_INT_FAULT);
+	sprd_apdu_inf_int_en(apdu->base, APDU_INF_INT_GET_ISE_LOG);
 }
 
 long sprd_apdu_power_on_check(struct sprd_apdu_device *apdu, u32 times)
@@ -337,7 +373,7 @@ static int sprd_apdu_read_data(struct sprd_apdu_device *apdu,
 				return -EBUSY;
 			}
 			/* read timeout is less than 2~4s */
-			usleep_range(10000, 20000);
+			usleep_range(1000, 2000);
 		} while (1);
 
 		once_read_len = (need_read < rx_fifo_status)
@@ -383,7 +419,7 @@ static int sprd_apdu_write_data(struct sprd_apdu_device *apdu,
 
 	/* wait for interrupt receive ISE critical data */
 	while (apdu->ise_atr.atr_rcv_status ||
-	       apdu->med_rewr.med_wr_done) {
+	       apdu->med_rewr.med_wr_done || apdu->ise_log.log_rcv_status) {
 		usleep_range(50, 100);
 		timeout++;
 		if (timeout > APDU_WR_PRE_TIMEOUT_3) {
@@ -428,7 +464,7 @@ static int sprd_apdu_write_data(struct sprd_apdu_device *apdu,
 				return -EBUSY;
 			}
 			/* write timeout is less than 2~4s */
-			usleep_range(10000, 20000);
+			usleep_range(1000, 2000);
 		} while (1);
 
 		data_to_write = (len < tx_fifo_free_space)
@@ -587,17 +623,55 @@ end:
 	return r;
 }
 
+static int sprd_apdu_send_usrmsg(char *pbuf, uint16_t len)
+{
+	struct sk_buff *nl_skb;
+	struct nlmsghdr *nlh;
+	int ret;
+
+	if (!sprd_apdu_nlsk) {
+		pr_err("netlink uninitialized\n");
+		return -EFAULT;
+	}
+
+	nl_skb = nlmsg_new(len, GFP_ATOMIC);
+	if (!nl_skb) {
+		pr_err("netlink alloc fail\n");
+		return -EFAULT;
+	}
+
+	nlh = nlmsg_put(nl_skb, 0, 0, APDU_NETLINK, len, 0);
+	if (!nlh) {
+		pr_err("nlmsg_put fail\n");
+		nlmsg_free(nl_skb);
+		return -EFAULT;
+	}
+
+	memcpy(nlmsg_data(nlh), pbuf, len);
+	ret = netlink_unicast(sprd_apdu_nlsk, nl_skb,
+			      APDU_USER_PORT, MSG_DONTWAIT);
+
+	return ret;
+}
+
 static void sprd_apdu_get_atr(struct sprd_apdu_device *apdu)
 {
-	u32 word_len, atr_len, i;
+	u32 word_len, atr_len, i, loop = 0;
 	int ret;
 
 	atr_len = APDU_ATR_DATA_MAX_SIZE + 4;
 	memset((void *)apdu->ise_atr.atr, 0x0, atr_len);
-	if (sprd_apdu_get_rx_fifo_len(apdu->base) == 0x0) {
-		dev_err(apdu->dev, "get atr fail: rx fifo not data.\n");
-		return;
-	}
+	do {
+		if (sprd_apdu_get_rx_fifo_len(apdu->base) != 0x0)
+			break;
+
+		if (++loop >= APDU_WR_RD_TIMEOUT) {
+			dev_err(apdu->dev, "get atr fail: rx fifo not data.\n");
+			return;
+		}
+		/* read timeout is less than 2~4s */
+		usleep_range(1000, 2000);
+	} while (1);
 
 	sprd_apdu_read_rx_fifo(apdu->base, apdu->ise_atr.atr, 1);
 	atr_len = APDU_DATA_LEN_MASK(*apdu->ise_atr.atr);
@@ -627,6 +701,64 @@ static void sprd_apdu_get_atr(struct sprd_apdu_device *apdu)
 	}
 }
 
+static void sprd_apdu_get_ise_log(struct sprd_apdu_device *apdu)
+{
+	u32 word_len, log_len, i, loop = 0;
+	int ret;
+	u8 *log_buf;
+
+	log_len = APDU_ISE_LOG_MAX_SIZE + 4;
+	memset((void *)apdu->ise_log.log, 0x0, log_len);
+	do {
+		if (sprd_apdu_get_rx_fifo_len(apdu->base) != 0x0)
+			break;
+
+		if (++loop >= APDU_WR_RD_TIMEOUT) {
+			dev_err(apdu->dev, "get log fail: rx fifo no data.\n");
+			return;
+		}
+		/* read timeout is less than 2~4s */
+		usleep_range(1000, 2000);
+	} while (1);
+
+	sprd_apdu_read_rx_fifo(apdu->base, apdu->ise_log.log, 1);
+	log_len = APDU_DATA_LEN_MASK(*apdu->ise_log.log);
+	word_len = DIV_CEILING(log_len, 4);
+	if ((APDU_MAGIC_MASK(*apdu->ise_log.log) == APDU_MAGIC_NUM) &&
+	    (word_len <= (APDU_ISE_LOG_MAX_SIZE / 4))) {
+		ret = sprd_apdu_read_data(apdu, &(apdu->ise_log.log[1]), word_len);
+		if (ret < 0) {
+			sprd_apdu_clear_fifo(apdu->base);
+			dev_err(apdu->dev, "get ise log error(0x%x)\n", ret);
+			return;
+		}
+		dev_info(apdu->dev, "get ise log done, len%d wlen:%d\n", log_len, word_len);
+		log_buf = ((u8 *)(apdu->ise_log.log)) + 4;
+		if (log_buf[0] == 0x0) {
+			dev_info(apdu->dev, "ISELOG START");
+			dev_info(apdu->dev, "0x%08x ", apdu->ise_log.log[0]);
+			for (i = 0; i < (word_len - 1); i++)
+				dev_info(apdu->dev, "0x%08x ",
+						((u32 *)(log_buf + 1))[i]);
+			dev_info(apdu->dev, "ISELOG END");
+		} else {
+			dev_err(apdu->dev, "ISE EXCEPTION: %s",
+						(const char *)(log_buf + 1));
+			//Notify user space fault information(first byte)
+			if (log_buf[0] != 0x7F)
+				sprd_apdu_send_usrmsg((char *)log_buf, log_len);
+		}
+	} else {
+		sprd_apdu_clear_fifo(apdu->base);
+		if (APDU_MAGIC_MASK(*apdu->ise_log.log) != APDU_MAGIC_NUM)
+			dev_err(apdu->dev, "not a effective header\n");
+		else if (word_len > (APDU_ISE_LOG_MAX_SIZE / 4))
+			dev_err(apdu->dev, "log over size\n");
+		else
+			dev_err(apdu->dev, "get ise log fail!\n");
+	}
+}
+
 static long sprd_apdu_send_enter_apdu_loop_req(struct sprd_apdu_device *apdu)
 {
 	int ret;
@@ -641,37 +773,6 @@ static long sprd_apdu_send_enter_apdu_loop_req(struct sprd_apdu_device *apdu)
 			"enter apdu loop ins:write error(%d)\n", ret);
 
 	dev_dbg(apdu->dev, "apdu send enter apdu loop return %d!\n", ret);
-	return ret;
-}
-
-static int sprd_apdu_send_usrmsg(char *pbuf, uint16_t len)
-{
-	struct sk_buff *nl_skb;
-	struct nlmsghdr *nlh;
-	int ret;
-
-	if (!sprd_apdu_nlsk) {
-		pr_err("netlink uninitialized\n");
-		return -EFAULT;
-	}
-
-	nl_skb = nlmsg_new(len, GFP_ATOMIC);
-	if (!nl_skb) {
-		pr_err("netlink alloc fail\n");
-		return -EFAULT;
-	}
-
-	nlh = nlmsg_put(nl_skb, 0, 0, APDU_NETLINK, len, 0);
-	if (!nlh) {
-		pr_err("nlmsg_put fail\n");
-		nlmsg_free(nl_skb);
-		return -EFAULT;
-	}
-
-	memcpy(nlmsg_data(nlh), pbuf, len);
-	ret = netlink_unicast(sprd_apdu_nlsk, nl_skb,
-			      APDU_USER_PORT, MSG_DONTWAIT);
-
 	return ret;
 }
 
@@ -714,10 +815,10 @@ static long med_set_high_addr(struct sprd_apdu_device *apdu,
 	base_addr = (u32)((high_addr >> (26 - bit_offset)) &
 			  GENMASK_ULL(bit_offset + 8, bit_offset));
 
-	ret = regmap_update_bits(apdu->pub_ise_cfg.pub_reg_base,
-				 apdu->pub_ise_cfg.pub_ise_reg_offset,
-				 GENMASK(bit_offset + 8, bit_offset),
-				 base_addr);
+	ret = sprd_apdu_write_bits(apdu, apdu->pub_ise_cfg.pub_reg_base,
+				   apdu->pub_ise_cfg.pub_ise_reg_offset,
+				   GENMASK(bit_offset + 8, bit_offset),
+				   base_addr);
 	if (ret) {
 		dev_err(apdu->dev, "regmap write med base addr fail\n");
 		return ret;
@@ -807,15 +908,15 @@ static long med_rewrite_info_parse(struct sprd_apdu_device *apdu,
 
 static void med_rewrite_post_process(struct sprd_apdu_device *apdu)
 {
-	u32 msg_buf[APDU_MED_INFO_PARSE_SZ + 1] = {0};
+	u32 msg_buf[APDU_MED_INFO_PARSE_SZ] = {0};
 	struct med_origin_info_t *med_origin;
 	struct med_parse_info_t *med_post;
 	u32 i, len;
 	long ret;
+	struct kernel_siginfo sig_info = {0};
 
-	msg_buf[0] = MESSAGE_HEADER_MED_INFO;
 	med_origin = (struct med_origin_info_t *)apdu->med_rewr.med_rewrite;
-	med_post = (struct med_parse_info_t *)(&msg_buf[1]);
+	med_post = (struct med_parse_info_t *)(&msg_buf[0]);
 
 	for (i = 0; i < MED_INFO_MAX_BLOCK; i++) {
 		/* ISE side rewrite offset and len array */
@@ -830,16 +931,44 @@ static void med_rewrite_post_process(struct sprd_apdu_device *apdu)
 				"%s() med rewrite info prase fail\n", __func__);
 			break;
 		}
+
+		g_ise_block_info->block[i].offset[0] =
+				med_post[i].ap_side_data_offset;
+		g_ise_block_info->block[i].length[0] =
+				med_post[i].ap_side_data_length;
+		g_ise_block_info->block[i].offset[1] =
+				med_post[i].level1_rng_offset;
+		g_ise_block_info->block[i].length[1] =
+				med_post[i].level1_rng_length;
+		g_ise_block_info->block[i].offset[2] =
+				med_post[i].level2_rng_offset;
+		g_ise_block_info->block[i].length[2] =
+				med_post[i].level2_rng_length;
+		g_ise_block_info->block[i].offset[3] =
+				med_post[i].level3_rng_offset;
+		g_ise_block_info->block[i].length[3] =
+				med_post[i].level3_rng_length;
 	}
 	if (i > 0) {
-		len = i * sizeof(struct med_parse_info_t) + 4;
+		g_ise_block_info->cnt = i;
+		len = i * sizeof(struct med_parse_info_t);
 		dev_dbg(apdu->dev, "parsed info processing\n");
 		sprd_apdu_dump_dbg_data(msg_buf, len / 4);
 
-		if (sprd_apdu_send_usrmsg((char *)msg_buf, len) < 0)
-			dev_err(apdu->dev, "med rewrite info send to user space fail\n");
-	} else {
-		dev_err(apdu->dev, "med rewrite info unable to parse\n");
+		if (sprd_apdu_ise_srv_task) {
+			dev_info(apdu->dev, "send signal to userspace!\n");
+			/*prepare signal content*/
+			sig_info.si_signo = sprd_apdu_ise_signo;    //signal
+			sig_info.si_code = SI_QUEUE;
+			sig_info.si_int = SPRD_ISE_SIG_ACT_FLUSH;
+
+			dev_info(apdu->dev, "kernel signal value is: %d\n",
+				 sprd_apdu_ise_signo);
+			ret = send_sig_info(sprd_apdu_ise_signo, &sig_info,
+					    sprd_apdu_ise_srv_task);
+			if (ret < 0)
+				dev_err(apdu->dev, "send signal failed!\n");
+		}
 	}
 }
 
@@ -863,14 +992,21 @@ long med_rewrite_post_process_check(struct sprd_apdu_device *apdu)
 
 static void sprd_apdu_get_med_rewrite_info(struct sprd_apdu_device *apdu)
 {
-	u32 word_len, med_rewrite_len, header = 0;
+	u32 word_len, med_rewrite_len, header = 0, loop = 0;
 	int ret;
 
 	memset((void *)apdu->med_rewr.med_rewrite, 0, APDU_MED_INFO_SIZE * 4);
-	if (sprd_apdu_get_rx_fifo_len(apdu->base) == 0) {
-		dev_err(apdu->dev, "get med info fail:rx fifo not data.\n");
-		return;
-	}
+	do {
+		if (sprd_apdu_get_rx_fifo_len(apdu->base) != 0)
+			break;
+
+		if (++loop >= APDU_WR_RD_TIMEOUT) {
+			dev_err(apdu->dev, "get med rewrite fail: rx fifo no data.\n");
+			return;
+		}
+			/* read timeout is less than 2~4s */
+		usleep_range(1000, 2000);
+	} while (1);
 
 	sprd_apdu_read_rx_fifo(apdu->base, &header, 1);
 	med_rewrite_len = APDU_DATA_LEN_MASK(header);
@@ -1027,6 +1163,37 @@ long sprd_apdu_normal_pd_ise_req(struct sprd_apdu_device *apdu)
 	return 0;
 }
 
+static long sprd_apdu_enter_ise_sleep(struct sprd_apdu_device *apdu)
+{
+	u32 rep_data[10] = {0};
+	char cmd_enter_ise_sleep[4] = {
+		0x00, 0xf2, 0x00, 0x00
+	};
+	long ret;
+
+	ret = sprd_apdu_send_rcv_cmd(apdu, "enter_ise_sleep",
+				     cmd_enter_ise_sleep, 3, rep_data, 2);
+	if (ret < 0) {
+		dev_err(apdu->dev, "enter ise sleep fail\n");
+		return -ENXIO;
+	}
+
+	/* check ise ready, can be enter ise sleep*/
+	if ((rep_data[1] & GENMASK(15, 0)) != ISE_APDU_ANSWER_SUCCESS) {
+		dev_err(apdu->dev, "ise not ready to enter ise sleep(0x%lx)\n",
+			(rep_data[1] & GENMASK(15, 0)));
+		return -EFAULT;
+	}
+
+	ret = (int)apdu->pd_ise->ise_sleep_status_check(apdu);
+	if (ret < 0) {
+		dev_err(apdu->dev, "ise enter sleep fail\n");
+		return -ENXIO;
+	}
+
+	return 0;
+}
+
 static long sprd_apdu_ioctl(struct file *fp, unsigned int code,
 			    unsigned long value)
 {
@@ -1035,7 +1202,7 @@ static long sprd_apdu_ioctl(struct file *fp, unsigned int code,
 	long ret = 0;
 	u64 rcv_data = 0;
 
-	dev_info(apdu->dev, "apdu ioctl code = %u\n", code);
+	dev_info(apdu->dev, "apdu ioctl code = 0x%x\n", code);
 
 	mutex_lock(&apdu->mutex);
 	switch (code) {
@@ -1304,6 +1471,36 @@ static long sprd_apdu_ioctl(struct file *fp, unsigned int code,
 		ret = apdu->pd_ise->ise_pd_status_check(apdu);
 		break;
 
+	case APDU_ISE_ENTER_SLEEP:
+		/* enter deep sleep make ise shut down (auto shut down) */
+		ret = sprd_apdu_enter_ise_sleep(apdu);
+		if (!ret) {
+			ret = apdu->pd_ise->ise_pd_status_check(apdu);
+			if (ret == ISE_PD_PWR_ON) {
+				dev_err(apdu->dev, "apdu shut down failed!\n");
+				ret = -EFAULT;
+			} else if (ret < 0) {
+				dev_err(apdu->dev, "apdu read pd status fail!\n");
+				ret = -EFAULT;
+			}
+		}
+		break;
+
+	case APDU_SET_SIG_INFO:
+		ret = copy_from_user(&sprd_apdu_ise_signo, (void __user *)value,
+				     sizeof(u32)) ? (-EFAULT) : 0;
+		if (ret)
+			dev_err(apdu->dev, "recive signal info failed!\n");
+		break;
+
+	case APDU_SET_CURRENT_TASK:
+		sprd_apdu_ise_srv_task = get_current();    //PID information
+		if (!sprd_apdu_ise_srv_task) {
+			dev_err(apdu->dev, "get ISE service's pid failed!\n");
+			ret = -EFAULT;
+		}
+		break;
+
 	default:
 		ret = -EINVAL;
 	}
@@ -1329,6 +1526,21 @@ static int sprd_apdu_release(struct inode *inode, struct file *fp)
 	return 0;
 }
 
+static int sprd_apdu_mmap(struct file *fp, struct vm_area_struct *vma)
+{
+	g_ise_block_info = kmalloc(PAGE_SIZE, GFP_KERNEL);
+
+	vma->vm_flags |= (VM_DONTEXPAND | VM_DONTDUMP);
+	if (remap_pfn_range(vma, vma->vm_start, (virt_to_phys(g_ise_block_info)
+		>>PAGE_SHIFT) + vma->vm_pgoff, vma->vm_end - vma->vm_start,
+		vma->vm_page_prot)) {
+
+		return -1;
+	}
+
+	return 0;
+}
+
 static const struct file_operations sprd_apdu_fops = {
 	.owner = THIS_MODULE,
 	.read = sprd_apdu_read,
@@ -1339,6 +1551,7 @@ static const struct file_operations sprd_apdu_fops = {
 #endif
 	.open = sprd_apdu_open,
 	.release = sprd_apdu_release,
+	.mmap = sprd_apdu_mmap,
 };
 
 static irqreturn_t sprd_apdu_interrupt(int irq, void *data)
@@ -1363,9 +1576,8 @@ static irqreturn_t sprd_apdu_interrupt(int irq, void *data)
 	 * APDU_INT_MED_WR_DONE not clear here,
 	 * clear after med_rewrite_post_process
 	 */
-	mask = (~APDU_INT_MED_WR_DONE) & APDU_INT_BITS;
+	mask = (~(APDU_INT_MED_WR_DONE | APDU_INT_MED_ERR)) & APDU_INT_BITS;
 	sprd_apdu_clear_int(apdu->base, reg_int_status & mask);
-	sprd_apdu_clear_inf_int(apdu->base, reg_inf_int_status);
 
 	/* all used inf interrupt */
 	if (reg_inf_int_status & (APDU_INF_INT_FAULT | APDU_INF_INT_GET_ATR))
@@ -1373,6 +1585,7 @@ static irqreturn_t sprd_apdu_interrupt(int irq, void *data)
 
 	if (reg_inf_int_status & APDU_INF_INT_FAULT) {
 		/* ise fault status, need to be saved as soon as possible */
+		sprd_apdu_clear_inf_int(apdu->base, APDU_INF_INT_FAULT);
 		sprd_apdu_ise_fault_status_caching(apdu, (reg_inf_int_status &
 							  APDU_INF_INT_FAULT));
 		apdu->ise_fault.ise_fault_status = 1;
@@ -1381,8 +1594,19 @@ static irqreturn_t sprd_apdu_interrupt(int irq, void *data)
 	if (reg_inf_int_status & APDU_INF_INT_GET_ATR) {
 		reg_int_status &= (~APDU_INT_RX_EMPTY_TO_NOEMPTY);
 		/* inform sprd_apdu_write_data wait atr rx done */
+		sprd_apdu_inf_int_dis(apdu->base, APDU_INF_INT_GET_ATR);
+		sprd_apdu_int_dis(apdu->base, APDU_INT_RX_EMPTY_TO_NOEMPTY);
 		apdu->ise_atr.atr_rcv_status = 1;
 	}
+
+	if (reg_inf_int_status & APDU_INF_INT_GET_ISE_LOG) {
+		reg_int_status &= (~APDU_INT_RX_EMPTY_TO_NOEMPTY);
+		 /* inform sprd_apdu_write_data wait ise log rx done */
+		sprd_apdu_inf_int_dis(apdu->base, APDU_INF_INT_GET_ISE_LOG);
+		sprd_apdu_int_dis(apdu->base, APDU_INT_RX_EMPTY_TO_NOEMPTY);
+		apdu->ise_log.log_rcv_status = 1;
+	}
+
 	if (reg_int_status & APDU_INT_MED_WR_DONE) {
 		reg_int_status &= (~APDU_INT_RX_EMPTY_TO_NOEMPTY);
 		/*
@@ -1391,10 +1615,15 @@ static irqreturn_t sprd_apdu_interrupt(int irq, void *data)
 		 * ISE will wait for AP by check interrupt sync status.
 		 */
 		sprd_apdu_int_dis(apdu->base, APDU_INT_MED_WR_DONE);
+		sprd_apdu_int_dis(apdu->base, APDU_INT_RX_EMPTY_TO_NOEMPTY);
 		apdu->med_rewr.med_wr_done = 1;
 	}
-	if (reg_int_status & APDU_INT_MED_ERR)
+
+	if (reg_int_status & APDU_INT_MED_ERR) {
+		sprd_apdu_int_dis(apdu->base, APDU_INT_MED_ERR);
 		apdu->med_err.med_error_status = 1;
+	}
+
 	if (reg_int_status & APDU_INT_RX_EMPTY_TO_NOEMPTY) {
 		apdu->rx_done = 1;
 		wake_up(&apdu->read_wq);
@@ -1406,8 +1635,8 @@ static irqreturn_t sprd_apdu_interrupt(int irq, void *data)
 
 	if ((apdu->ise_fault.ise_fault_status &&
 	     apdu->ise_fault.ise_fault_allow_to_send_flag) ||
-	    apdu->ise_atr.atr_rcv_status || apdu->med_rewr.med_wr_done ||
-	    apdu->med_err.med_error_status)
+	    apdu->ise_atr.atr_rcv_status || apdu->ise_log.log_rcv_status ||
+	    apdu->med_rewr.med_wr_done || apdu->med_err.med_error_status)
 		return IRQ_WAKE_THREAD;
 	else
 		return IRQ_HANDLED;
@@ -1418,20 +1647,23 @@ static irqreturn_t sprd_apdu_irq_thread_fn(int irq, void *data)
 	struct sprd_apdu_device *apdu = (struct sprd_apdu_device *)data;
 	u32 med_error_info = MESSAGE_HEADER_MED_ERR;
 
-	if (apdu->ise_fault.ise_fault_status &&
-	    apdu->ise_fault.ise_fault_allow_to_send_flag) {
-		apdu->ise_fault.ise_fault_allow_to_send_flag = 0;
-		apdu->ise_fault.ise_fault_status = 0;
-		apdu->ise_fault.ise_fault_buf[0] = MESSAGE_HEADER_FAULT;
-		if (apdu->ise_fault.ise_fault_ptr > 1)
-			sprd_apdu_send_usrmsg((char *)apdu->ise_fault.ise_fault_buf,
-					      (4 * apdu->ise_fault.ise_fault_ptr));
-		sprd_apdu_ise_fault_buffer_init(apdu);
+	if (apdu->ise_fault.ise_fault_status) {
+		if (apdu->ise_fault.ise_fault_allow_to_send_flag) {
+			apdu->ise_fault.ise_fault_allow_to_send_flag = 0;
+			apdu->ise_fault.ise_fault_status = 0;
+			apdu->ise_fault.ise_fault_buf[0] = MESSAGE_HEADER_FAULT;
+			if (apdu->ise_fault.ise_fault_ptr > 1)
+				sprd_apdu_send_usrmsg((char *)apdu->ise_fault.ise_fault_buf,
+						      (4 * apdu->ise_fault.ise_fault_ptr));
+			sprd_apdu_ise_fault_buffer_init(apdu);
+		}
 	}
 
 	if (apdu->med_err.med_error_status) {
 		sprd_apdu_send_usrmsg((char *)&med_error_info,
 				      sizeof(med_error_info));
+		sprd_apdu_clear_int(apdu->base, APDU_INT_MED_ERR);
+		sprd_apdu_int_en(apdu->base, APDU_INT_MED_ERR);
 		apdu->med_err.med_error_status = 0;
 	}
 
@@ -1444,12 +1676,30 @@ static irqreturn_t sprd_apdu_irq_thread_fn(int irq, void *data)
 		sprd_apdu_clear_int(apdu->base, APDU_INT_MED_WR_DONE);
 		sprd_apdu_int_en(apdu->base, APDU_INT_MED_WR_DONE);
 		apdu->med_rewr.med_wr_done = 0;
+
+		sprd_apdu_clear_int(apdu->base, APDU_INT_RX_EMPTY_TO_NOEMPTY);
+		sprd_apdu_int_en(apdu->base, APDU_INT_RX_EMPTY_TO_NOEMPTY);
 	}
 
 	/* atr just received when ise power on or reset */
 	if (apdu->ise_atr.atr_rcv_status) {
 		sprd_apdu_get_atr(apdu);
+		sprd_apdu_clear_inf_int(apdu->base, APDU_INF_INT_GET_ATR);
+		sprd_apdu_inf_int_en(apdu->base, APDU_INF_INT_GET_ATR);
 		apdu->ise_atr.atr_rcv_status = 0;
+
+		sprd_apdu_clear_int(apdu->base, APDU_INT_RX_EMPTY_TO_NOEMPTY);
+		sprd_apdu_int_en(apdu->base, APDU_INT_RX_EMPTY_TO_NOEMPTY);
+	}
+
+	if (apdu->ise_log.log_rcv_status) {
+		sprd_apdu_get_ise_log(apdu);
+		sprd_apdu_clear_inf_int(apdu->base, APDU_INF_INT_GET_ISE_LOG);
+		sprd_apdu_inf_int_en(apdu->base, APDU_INF_INT_GET_ISE_LOG);
+		apdu->ise_log.log_rcv_status = 0;
+
+		sprd_apdu_clear_int(apdu->base, APDU_INT_RX_EMPTY_TO_NOEMPTY);
+		sprd_apdu_int_en(apdu->base, APDU_INT_RX_EMPTY_TO_NOEMPTY);
 	}
 
 	return IRQ_HANDLED;
@@ -1989,6 +2239,7 @@ ATTRIBUTE_GROUPS(sprd_apdu);
 static struct sprd_apdu_pd_ise_config_t qogirn6pro_ise_pd = {
 	.ise_compatible = "sprd,qogirn6pro-ise-med",
 	.ise_pd_status_check = qogirn6pro_ise_pd_status_check,
+	.ise_sleep_status_check = qogirn6pro_ise_sleep_status_check,
 	.ise_cold_power_on = qogirn6pro_ise_cold_power_on,
 	.ise_full_power_down = qogirn6pro_ise_full_power_down,
 	.ise_hard_reset = qogirn6pro_ise_hard_reset,
@@ -2015,6 +2266,7 @@ static int sprd_apdu_probe(struct platform_device *pdev)
 	u32 atr_sz = APDU_ATR_DATA_MAX_SIZE + 4;
 	u32 med_info_sz = APDU_MED_INFO_SIZE * 4;
 	u32 ise_fault_buf_sz = ISE_ATTACK_BUFFER_SIZE * 4;
+	u32 ise_log_sz = APDU_ISE_LOG_MAX_SIZE + 4;
 	int ret;
 
 	apdu = devm_kzalloc(&pdev->dev, sizeof(*apdu), GFP_KERNEL);
@@ -2130,6 +2382,9 @@ static int sprd_apdu_probe(struct platform_device *pdev)
 		return -ENOMEM;
 	apdu->ise_atr.atr = devm_kzalloc(&pdev->dev, atr_sz, GFP_KERNEL);
 	if (!apdu->ise_atr.atr)
+		return -ENOMEM;
+	apdu->ise_log.log = devm_kzalloc(&pdev->dev, ise_log_sz, GFP_KERNEL);
+	if (!apdu->ise_log.log)
 		return -ENOMEM;
 	apdu->med_rewr.med_rewrite = devm_kzalloc(&pdev->dev, med_info_sz,
 						  GFP_KERNEL);

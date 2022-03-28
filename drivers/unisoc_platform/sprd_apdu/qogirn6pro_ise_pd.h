@@ -3,6 +3,7 @@
 #define __QOGIRN6PRO_ISE_PD_H__
 
 long qogirn6pro_ise_pd_status_check(void *apdu_dev);
+long qogirn6pro_ise_sleep_status_check(void *apdu_dev);
 long qogirn6pro_ise_cold_power_on(void *apdu_dev);
 long qogirn6pro_ise_full_power_down(void *apdu_dev);
 long qogirn6pro_ise_hard_reset(void *apdu_dev);

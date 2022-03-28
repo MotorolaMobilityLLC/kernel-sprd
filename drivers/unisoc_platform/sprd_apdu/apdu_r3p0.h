@@ -42,6 +42,7 @@
 #define APDU_INF_INT_GET_ATR		BIT(31)
 #define APDU_INF_INT_ISESYS_INT_FAIL	BIT(30)
 #define APDU_INF_INT_APDU_NO_SEC	BIT(29)
+#define APDU_INF_INT_GET_ISE_LOG        BIT(28)
 #define APDU_INF_INT_HARD_FAULT_STATUS	GENMASK(18, 14)
 #define APDU_INF_INT_SELF_CHECK_STATUS	GENMASK(13, 10)
 #define APDU_INF_INT_ATTACK		GENMASK(9, 0)
@@ -60,6 +61,7 @@
 #define APDU_TX_MAX_SIZE	(44 * 1024 + 4)
 #define APDU_RX_MAX_SIZE	(5120 + 4)
 #define APDU_ATR_DATA_MAX_SIZE	(32)
+#define APDU_ISE_LOG_MAX_SIZE   (132)
 #define MED_INFO_MAX_BLOCK	(5)
 /* 2--sizeof med_origin_info_t in words */
 #define APDU_MED_INFO_BLK_SIZE	(2)
@@ -102,6 +104,9 @@
 #define APDU_SEND_MED_HIGH_ADDR		_IO('U', 24)
 #define APDU_SEND_MED_RESERVED_SIZE	_IO('U', 25)
 #define APDU_NORMAL_POWER_DOWN_ISE	_IO('U', 26)
+#define APDU_ISE_ENTER_SLEEP		_IO('U', 27)
+#define APDU_SET_CURRENT_TASK		_IO('U', 28)
+#define APDU_SET_SIG_INFO		_IO('U', 29)
 
 #define ISE_BUSY_STATUS		(0x60)
 #define AP_WAIT_TIMES		(20)
@@ -116,7 +121,6 @@
 /* ise just send med offset and length info */
 #define ISE_MED_BASE_ADDR	(0x0)
 
-#define MESSAGE_HEADER_MED_INFO	(0x5AA55AA5)
 #define MESSAGE_HEADER_FAULT	(0x6BB66BB6)
 #define MESSAGE_HEADER_MED_ERR	(0x7CC77CC7)
 
@@ -131,7 +135,7 @@
 #define APDU_WR_PRE_TIMEOUT	(300)
 #define APDU_WR_PRE_TIMEOUT_2	(1000)
 #define APDU_WR_PRE_TIMEOUT_3	(2000)
-#define APDU_WR_RD_TIMEOUT	(200)
+#define APDU_WR_RD_TIMEOUT	(2000)
 
 /* data in big endian, 0x9000 */
 #define ISE_APDU_ANSWER_SUCCESS	(0x0090)
@@ -144,6 +148,9 @@
 #define MED_HIGH_ADDRESSING	GENMASK_ULL(34, 26)
 
 #define ISE_PD_MAGIC_NUM	(0xDEAD8810)
+
+#define ISE_BLOCK_LOOP_MAX	(MED_INFO_MAX_BLOCK)
+#define SPRD_ISE_SIG_ACT_FLUSH		(1)
 
 struct sprd_apdu_pub_ise_cfg_t {
 	struct regmap *pub_reg_base;
@@ -163,6 +170,8 @@ struct sprd_apdu_pd_ise_config_t {
 	u32 ise_pd_magic_num;
 	/* check ise power on status reg */
 	long (*ise_pd_status_check)(void *apdu_dev);
+	/* ise sleep status reg  */
+	long (*ise_sleep_status_check)(void *apdu_dev);
 	/* ise cold power on function (ise first time power on) */
 	long (*ise_cold_power_on)(void *apdu_dev);
 	/* ise full power down function (phone shutdown) */
@@ -213,6 +222,11 @@ struct sprd_apdu_atr_t {
 	u32 gp_index;
 };
 
+struct sprd_apdu_ise_log_t {
+	u32 *log;
+	u32 log_rcv_status;
+};
+
 struct sprd_apdu_device {
 	struct device *dev;
 	struct miscdevice misc;
@@ -232,6 +246,7 @@ struct sprd_apdu_device {
 	struct sprd_apdu_med_rewrite_t med_rewr;
 	struct sprd_apdu_med_error_t med_err;
 	struct sprd_apdu_atr_t ise_atr;
+	struct sprd_apdu_ise_log_t ise_log;
 };
 
 /* origin data info from ISE */
@@ -251,11 +266,21 @@ struct med_parse_info_t {
 	u32 level3_rng_length;
 };
 
+struct ise_block_info {
+	u32 cnt;	//the bytes to write
+	struct {
+		u32 offset[4];	//the offset of isedata\lv1\lv2\lv3
+		u32 length[4];	//the length of isedata\lv1\lv2\lv3
+	} block[ISE_BLOCK_LOOP_MAX];
+};
+
 extern struct net init_net;
 
 long med_rewrite_post_process_check(struct sprd_apdu_device *apdu);
 long sprd_apdu_normal_pd_ise_req(struct sprd_apdu_device *apdu);
 long sprd_apdu_power_on_check(struct sprd_apdu_device *apdu, u32 times);
+u32 sprd_apdu_write_bits(struct sprd_apdu_device *apdu, struct regmap *map,
+			 unsigned int reg, unsigned int mask, unsigned int val);
 
 #endif
 

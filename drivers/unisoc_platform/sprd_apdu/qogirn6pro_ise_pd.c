@@ -19,6 +19,13 @@
 #define PD_ISE_AUTO_SHUTDOWN_EN		(BIT(24))
 #define PD_ISE_FORCE_SHUTDOWN		(BIT(25))
 
+#define NORMAL_VOLTAGE_WAIT_CNT		(0x878)
+#define NORMAL_VOLTAGE_WAIT_CNT_MASK	GENMASK(11, 4)
+#define NORMAL_VOLTAGE_WAIT_CNT_VAL	(0x0d0)
+
+#define ISE_DEEP_SLEEP			(0x850)
+#define ISE_DEEP_SLEEP_STATUS(x)	(((x) & BIT(5)) >> 5)
+
 #define PWR_STATUS_DBG_23		(0x54c)
 #define ISE_PD_STATUS(x)		(((x) & GENMASK(12, 8)) >> 8)
 #define ISE_PD_POWER_ON			(0)
@@ -97,6 +104,31 @@ err:
 	return -EFAULT;
 }
 
+long qogirn6pro_ise_sleep_status_check(void *apdu_dev)
+{
+	struct sprd_apdu_device *apdu = (struct sprd_apdu_device *)apdu_dev;
+	u32 ise_status = 0, timeout = 0;
+	int ret;
+
+	while (1) {
+		ret = regmap_read(apdu->pd_ise->ise_pd_reg_base,
+				  ISE_DEEP_SLEEP, &ise_status);
+		if (ret) {
+			dev_err(apdu->dev, "read ise deep sleep status fail\n");
+			return -EFAULT;
+		}
+		ise_status = ISE_DEEP_SLEEP_STATUS(ise_status);
+		if (ise_status)
+			break;
+
+		usleep_range(10, 20);
+		if (++timeout > APDU_PD_CHECK_TIMEOUT)
+			return -ETIMEDOUT;
+	}
+
+	return 0;
+}
+
 long qogirn6pro_ise_cold_power_on(void *apdu_dev)
 {
 	struct sprd_apdu_device *apdu = (struct sprd_apdu_device *)apdu_dev;
@@ -109,24 +141,24 @@ long qogirn6pro_ise_cold_power_on(void *apdu_dev)
 	}
 
 	/* keep reset ise high before clock and such other operation */
-	ret = regmap_update_bits(apdu->pd_ise->ise_pd_reg_base,
-				 ADM_SOFT_RESET, ISE_AON_SOFT_RESET,
-				 ISE_AON_SOFT_RESET);
+	ret = sprd_apdu_write_bits(apdu, apdu->pd_ise->ise_pd_reg_base,
+				   ADM_SOFT_RESET, ISE_AON_SOFT_RESET,
+				   ISE_AON_SOFT_RESET);
 	if (ret)
 		goto err;
 	usleep_range(10, 20);
 
 	/* close ise force deep sleep */
-	ret = regmap_update_bits(apdu->pd_ise->ise_pd_reg_base,
-				 FORCE_DEEP_SLEEP_CFG_0,
-				 ISE_FORCE_DEEP_SLEEP_REG, 0);
+	ret = sprd_apdu_write_bits(apdu, apdu->pd_ise->ise_pd_reg_base,
+				   FORCE_DEEP_SLEEP_CFG_0,
+				   ISE_FORCE_DEEP_SLEEP_REG, 0);
 	if (ret)
 		goto err;
 	usleep_range(10, 20);
 
 	/* close ise ram/aon force power down */
-	ret = regmap_update_bits(apdu->pd_ise->ise_pd_reg_base,
-				 ISE_AON_RAM_CFG, REG_RAM_PD_ISE_AON_BIT, 0);
+	ret = sprd_apdu_write_bits(apdu, apdu->pd_ise->ise_pd_reg_base,
+				   ISE_AON_RAM_CFG, REG_RAM_PD_ISE_AON_BIT, 0);
 	if (ret)
 		goto err;
 	usleep_range(10, 20);
@@ -161,23 +193,23 @@ long qogirn6pro_ise_cold_power_on(void *apdu_dev)
 	 * before release reset hard reset signal
 	 * 0:RCO150M not force OFF  1:RCO150M force OFF
 	 */
-	ret = regmap_update_bits(apdu->pd_ise->ise_pd_reg_base,
-				 RCO150M_REL_CFG, RCO150M_RFC_OFF,
-				 RCO150M_RFC_OFF);
+	ret = sprd_apdu_write_bits(apdu, apdu->pd_ise->ise_pd_reg_base,
+				   RCO150M_REL_CFG, RCO150M_RFC_OFF,
+				   RCO150M_RFC_OFF);
 	if (ret)
 		goto err;
 	usleep_range(10, 20);
 
 	/* release ise hard  reset signal */
-	ret = regmap_update_bits(apdu->pd_ise->ise_pd_reg_base,
-				 ADM_SOFT_RESET, ISE_AON_SOFT_RESET, 0);
+	ret = sprd_apdu_write_bits(apdu, apdu->pd_ise->ise_pd_reg_base,
+				   ADM_SOFT_RESET, ISE_AON_SOFT_RESET, 0);
 	if (ret)
 		goto err;
 	usleep_range(10, 20);
 
 	/* RCO150M not force OFF */
-	ret = regmap_update_bits(apdu->pd_ise->ise_pd_reg_base,
-				 RCO150M_REL_CFG, RCO150M_RFC_OFF, 0);
+	ret = sprd_apdu_write_bits(apdu, apdu->pd_ise->ise_pd_reg_base,
+				   RCO150M_REL_CFG, RCO150M_RFC_OFF, 0);
 	if (ret)
 		goto err;
 	usleep_range(10, 20);
@@ -208,15 +240,15 @@ long qogirn6pro_ise_cold_power_on(void *apdu_dev)
 	usleep_range(10, 20);
 
 	/* after this operation, ise will power on */
-	ret = regmap_update_bits(apdu->pd_ise->ise_pd_reg_base, PD_ISE_CFG_0,
-				 PD_ISE_FORCE_SHUTDOWN, 0);
+	ret = sprd_apdu_write_bits(apdu, apdu->pd_ise->ise_pd_reg_base,
+				   PD_ISE_CFG_0, PD_ISE_FORCE_SHUTDOWN, 0);
 	if (ret)
 		goto err;
 	usleep_range(10, 20);
 
 	/* trigger rco150m (ise clock source) calibrating after ise power on */
-	ret = regmap_update_bits(apdu->pd_ise->ise_aon_reg_base, RCO150M_CFG0,
-				 RCO150M_CAL_START, RCO150M_CAL_START);
+	ret = sprd_apdu_write_bits(apdu, apdu->pd_ise->ise_aon_reg_base,
+				   RCO150M_CFG0, RCO150M_CAL_START, RCO150M_CAL_START);
 	if (ret)
 		goto err;
 	usleep_range(10, 20);
@@ -241,9 +273,17 @@ long qogirn6pro_ise_cold_power_on(void *apdu_dev)
 	}
 
 	/* when ise deep sleep, this config will let ise auto power down */
-	ret = regmap_update_bits(apdu->pd_ise->ise_pd_reg_base,
-				 PD_ISE_CFG_0, PD_ISE_AUTO_SHUTDOWN_EN,
-				 PD_ISE_AUTO_SHUTDOWN_EN);
+	ret = sprd_apdu_write_bits(apdu, apdu->pd_ise->ise_pd_reg_base,
+				   PD_ISE_CFG_0, PD_ISE_AUTO_SHUTDOWN_EN,
+				   PD_ISE_AUTO_SHUTDOWN_EN);
+	if (ret)
+		goto err;
+
+	/* this config will delay fot power on */
+	ret = sprd_apdu_write_bits(apdu, apdu->pd_ise->ise_pd_reg_base,
+				   NORMAL_VOLTAGE_WAIT_CNT,
+				   NORMAL_VOLTAGE_WAIT_CNT_MASK,
+				   NORMAL_VOLTAGE_WAIT_CNT_VAL);
 	if (ret)
 		goto err;
 
@@ -288,14 +328,14 @@ long qogirn6pro_ise_hard_reset(void *apdu_dev)
 	struct sprd_apdu_device *apdu = (struct sprd_apdu_device *)apdu_dev;
 	int ret;
 
-	ret = regmap_update_bits(apdu->pd_ise->ise_pd_reg_base, ADM_SOFT_RESET,
-				 ISE_AON_SOFT_RESET, ISE_AON_SOFT_RESET);
+	ret = sprd_apdu_write_bits(apdu, apdu->pd_ise->ise_pd_reg_base,
+				   ADM_SOFT_RESET, ISE_AON_SOFT_RESET, ISE_AON_SOFT_RESET);
 	if (ret)
 		goto err;
 
 	usleep_range(800, 1000);
-	ret = regmap_update_bits(apdu->pd_ise->ise_pd_reg_base, ADM_SOFT_RESET,
-				 ISE_AON_SOFT_RESET, 0);
+	ret = sprd_apdu_write_bits(apdu, apdu->pd_ise->ise_pd_reg_base,
+				   ADM_SOFT_RESET, ISE_AON_SOFT_RESET, 0);
 	if (ret)
 		goto err;
 
@@ -315,25 +355,25 @@ long qogirn6pro_ise_soft_reset(void *apdu_dev)
 	 * clear ise soft reset sel--if soft reset done,
 	 * ise will auto release reset signal
 	 */
-	ret = regmap_update_bits(apdu->pd_ise->ise_pd_reg_base, SOFT_RST_SEL_0,
-				 ISE_SOFT_RST, 0);
+	ret = sprd_apdu_write_bits(apdu, apdu->pd_ise->ise_pd_reg_base,
+				   SOFT_RST_SEL_0, ISE_SOFT_RST, 0);
 	if (ret)
 		goto err;
 
 	/* ensure the initial value is 0 */
-	ret = regmap_update_bits(apdu->pd_ise->ise_pd_reg_base, SYS_SOFT_RST_0,
-				 ISE_SOFT_RST, 0);
+	ret = sprd_apdu_write_bits(apdu, apdu->pd_ise->ise_pd_reg_base,
+				   SYS_SOFT_RST_0, ISE_SOFT_RST, 0);
 	if (ret)
 		goto err;
-	ret = regmap_update_bits(apdu->pd_ise->ise_pd_reg_base, SYS_SOFT_RST_0,
-				 ISE_SOFT_RST, ISE_SOFT_RST);
+	ret = sprd_apdu_write_bits(apdu, apdu->pd_ise->ise_pd_reg_base,
+				   SYS_SOFT_RST_0, ISE_SOFT_RST, ISE_SOFT_RST);
 	if (ret)
 		goto err;
 
 	usleep_range(800, 1000);
 	/* clear for next time trigger */
-	ret = regmap_update_bits(apdu->pd_ise->ise_pd_reg_base, SYS_SOFT_RST_0,
-				 ISE_SOFT_RST, 0);
+	ret = sprd_apdu_write_bits(apdu, apdu->pd_ise->ise_pd_reg_base,
+				   SYS_SOFT_RST_0, ISE_SOFT_RST, 0);
 	if (ret)
 		goto err;
 
@@ -349,9 +389,9 @@ long qogirn6pro_ise_hard_reset_set(void *apdu_dev)
 	struct sprd_apdu_device *apdu = (struct sprd_apdu_device *)apdu_dev;
 	int ret;
 
-	ret = regmap_update_bits(apdu->pd_ise->ise_pd_reg_base,
-				 ADM_SOFT_RESET, ISE_AON_SOFT_RESET,
-				 ISE_AON_SOFT_RESET);
+	ret = sprd_apdu_write_bits(apdu, apdu->pd_ise->ise_pd_reg_base,
+				   ADM_SOFT_RESET, ISE_AON_SOFT_RESET,
+				   ISE_AON_SOFT_RESET);
 	if (ret)
 		goto err;
 
@@ -367,8 +407,8 @@ long qogirn6pro_ise_hard_reset_clr(void *apdu_dev)
 	struct sprd_apdu_device *apdu = (struct sprd_apdu_device *)apdu_dev;
 	int ret;
 
-	ret = regmap_update_bits(apdu->pd_ise->ise_pd_reg_base,
-				 ADM_SOFT_RESET, ISE_AON_SOFT_RESET, 0);
+	ret = sprd_apdu_write_bits(apdu, apdu->pd_ise->ise_pd_reg_base,
+				   ADM_SOFT_RESET, ISE_AON_SOFT_RESET, 0);
 
 	if (ret)
 		goto err;
