@@ -1085,7 +1085,6 @@ static int dahpl_chn_en(struct snd_soc_component *codec, bool on_off)
 
 	if (on_off) {
 		ret = regulator_enable(sprd_codec->dahpl_chn);
-		snd_soc_component_update_bits(codec, SOC_REG(ANA_DAC1), DAHPL_EN, DAHPL_EN);
 		if (ret) {
 			pr_err("%s dahpl_chn regulator enable failed",
 			       __func__);
@@ -1094,7 +1093,6 @@ static int dahpl_chn_en(struct snd_soc_component *codec, bool on_off)
 		count_en++;
 	} else {
 		regulator_disable(sprd_codec->dahpl_chn);
-		snd_soc_component_update_bits(codec, SOC_REG(ANA_DAC1), DAHPL_EN, 0);
 		count_en--;
 	}
 	pr_info("%s on_off %d, count_en %d", __func__, on_off, count_en);
