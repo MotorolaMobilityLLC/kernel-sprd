@@ -1324,9 +1324,11 @@ endif
 
 ifeq ($(BSP_BUILD_FAMILY),sharkl3)
 dtbo-$(CONFIG_ARCH_SPRD) += \
-	sp9863a-1h10-go_32b-overlay.dtbo
+	sp9863a-1h10-go_32b-overlay.dtbo \
+	sp9863a-14c10-go_32b-overlay.dtbo
 
 sp9863a-1h10-go_32b-overlay.dtbo-base := sp9863a.dtb
+sp9863a-14c10-go_32b-overlay.dtbo-base := sp9863a.dtb
 endif
 
 endif #//BSP_BUILD_ANDROID_OS
