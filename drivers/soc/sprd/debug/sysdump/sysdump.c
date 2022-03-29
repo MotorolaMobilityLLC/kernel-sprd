@@ -91,6 +91,7 @@ static unsigned int pmic_reg;
 #define MINIDUMP_MAGIC	"SPRD_MINIDUMP"
 #define REG_SP_INDEX	31
 #define REG_PC_INDEX	32
+#define REG_MEM_SIZE	(PAGE_SIZE * 2)
 extern void stext(void);
 struct pt_regs pregs_die_g;
 struct pt_regs minidump_regs_g;
@@ -115,7 +116,7 @@ struct minidump_info  minidump_info_g =	{
 #endif
 	},
 	.regs_memory_info		=	{
-		.per_reg_memory_size	=	256,
+		.per_reg_memory_size	=	REG_MEM_SIZE,
 		.valid_reg_num	=	0,
 	},
 	.section_info_total		=	{
