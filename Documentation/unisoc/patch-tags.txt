@@ -65,6 +65,7 @@ asoc:usb:
 
 base:
 block:zram:
+build.config:
 
 clk:sprd:
 clocksource:sprd:
