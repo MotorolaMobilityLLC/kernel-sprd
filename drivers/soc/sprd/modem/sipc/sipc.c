@@ -275,12 +275,14 @@ static struct platform_driver sprd_ipc_driver = {
 
 static int __init sprd_ipc_init(void)
 {
+	smsg_init_wakeup();
 	smsg_init_channel2index();
 	return platform_driver_register(&sprd_ipc_driver);
 }
 
 static void __exit sprd_ipc_exit(void)
 {
+	smsg_remove_wakeup();
 	platform_driver_unregister(&sprd_ipc_driver);
 }
 

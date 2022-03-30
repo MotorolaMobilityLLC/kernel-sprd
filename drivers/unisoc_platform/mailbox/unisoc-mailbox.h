@@ -29,6 +29,7 @@ struct sprd_mbox_phy_ops {
 	int (*send)(struct mbox_chan *chan, void *msg);
 	irqreturn_t (*inbox_isr)(int irq, void *data);
 	irqreturn_t (*outbox_isr)(int irq, void *data);
+	bool (*outbox_has_irq)(void);
 #if defined(CONFIG_DEBUG_FS)
 	int (*debugfs_show)(struct seq_file *m, void *private);
 #endif
@@ -70,8 +71,14 @@ void mbox_start_send_tx_fifo(u8 msk);
 
 #if defined CONFIG_UNISOC_MAILBOX_R1
 int sprd_mbox_phy_r1_init(struct sprd_mbox_priv *priv);
+void sprd_mbox_change_wakeup_flag_r1(bool wakeup_flag);
+void sprd_mbox_wakeup_flag_callback_register_r1(void (*callback)(bool wakeup_flag));
+void sprd_mbox_wakeup_flag_callback_unregister_r1(void);
 #elif defined CONFIG_UNISOC_MAILBOX_R2
 int sprd_mbox_phy_r2_init(struct sprd_mbox_priv *priv);
+void sprd_mbox_change_wakeup_flag_r2(bool wakeup_flag);
+void sprd_mbox_wakeup_flag_callback_register_r2(void (*callback)(bool wakeup_flag));
+void sprd_mbox_wakeup_flag_callback_unregister_r2(void);
 #endif
 
 #endif /* _UNISOC_MAILBOX_H */

@@ -41,6 +41,7 @@
 #include "sipc_priv.h"
 #include "sipx.h"
 #include "sblock.h"
+#include "../drivers/unisoc_platform/mailbox/unisoc-mailbox.h"
 
 #define SMSG_TXBUF_ADDR		(0)
 #define SMSG_TXBUF_SIZE		(SZ_1K)
@@ -67,6 +68,29 @@ EXPORT_SYMBOL_GPL(smsg_ipcs);
 static u8 channel2index[SMSG_CH_NR + 1];
 
 static int smsg_ipc_smem_init(struct smsg_ipc *ipc);
+
+static void smsg_wakeup_print(struct smsg_ipc *ipc, struct smsg *msg)
+{
+	/* if the first msg come after the irq wake up by sipc,
+	 * use prin_fo to output log
+	 */
+	if (g_wakeup_flag) {
+		g_wakeup_flag = 0;
+		pr_info("irq read smsg: dst=%d, channel=%d,type=%d, flag=0x%04x, value=0x%08x\n",
+			ipc->dst,
+			msg->channel,
+			msg->type,
+			msg->flag,
+			msg->value);
+	} else {
+		pr_debug("irq read non wakeup smsg: dst=%d, channel=%d,type=%d, flag=0x%04x, value=0x%08x\n",
+			 ipc->dst,
+			 msg->channel,
+			 msg->type,
+			 msg->flag,
+			 msg->value);
+	}
+}
 
 void smsg_init_channel2index(void)
 {
@@ -112,6 +136,14 @@ void smsg_msg_process(struct smsg_ipc *ipc, struct smsg *msg, bool wake_lock)
 	u8 ch_index;
 
 	ch_index = channel2index[msg->channel];
+	if (ch_index == INVALID_CHANEL_INDEX) {
+		pr_err("channel %d invalid!\n", msg->channel);
+		return;
+	}
+
+	if (!ipc)
+		return;
+	smsg_wakeup_print(ipc, msg);
 	callback_handler = &smsg_callback[ipc->dst][msg->channel];
 	atomic_inc(&ipc->busy[ch_index]);
 
@@ -347,6 +379,34 @@ void sipc_clear_wakeup_flag(void)
 	g_wakeup_flag = 0;
 }
 EXPORT_SYMBOL_GPL(sipc_clear_wakeup_flag);
+
+static void smsg_wakeup_flag_notify(bool wakeup_flag)
+{
+	if (wakeup_flag)
+		sipc_set_wakeup_flag();
+	else if (sipc_get_wakeup_flag())
+		sipc_clear_wakeup_flag();
+}
+
+void smsg_init_wakeup(void)
+{
+#if defined CONFIG_UNISOC_MAILBOX_R1
+	sprd_mbox_wakeup_flag_callback_register_r1(smsg_wakeup_flag_notify);
+#elif defined CONFIG_UNISOC_MAILBOX_R2
+	sprd_mbox_wakeup_flag_callback_register_r2(smsg_wakeup_flag_notify);
+#endif
+}
+EXPORT_SYMBOL_GPL(smsg_init_wakeup);
+
+void smsg_remove_wakeup(void)
+{
+#if defined CONFIG_UNISOC_MAILBOX_R1
+	sprd_mbox_wakeup_flag_callback_unregister_r1();
+#elif defined CONFIG_UNISOC_MAILBOX_R2
+	sprd_mbox_wakeup_flag_callback_unregister_r2();
+#endif
+}
+EXPORT_SYMBOL_GPL(smsg_remove_wakeup);
 
 int smsg_ch_wake_unlock(u8 dst, u8 channel)
 {
