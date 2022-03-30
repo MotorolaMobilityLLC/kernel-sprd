@@ -2846,28 +2846,13 @@
 					<GIC_SPI 222 IRQ_TYPE_LEVEL_HIGH>,
 					<GIC_SPI 221 IRQ_TYPE_LEVEL_HIGH>,
 					<GIC_SPI 200 IRQ_TYPE_LEVEL_HIGH>;
-				syscon-names = "apb_reg",
-					"clock_reg",
-					"dvfs_reg",
-					"mtx_reg",
-					"busmon",
-					"pd_ai_sys",
-					"ai_sw_dvfs_ctrl",
-					"top_dvfs_cfg";
-				syscons = <&ai_apb_regs 0x0 0x0>,
-					<&ai_clock_regs 0x0 0x0>,
-					<&ai_dvfs_regs 0x0 0x0>,
-					<&ai_mtx_regs 0x0 0x0>,
-					<&ai_busmon_regs 0x0 0x0>,
-					<&pmu_apb_regs
-					REG_PMU_APB_PD_AI_CFG_0
-					MASK_PMU_APB_PD_AI_FORCE_SHUTDOWN>,
-					<&top_dvfs_apb_regs
-					REG_TOP_DVFS_APB_DCDC_AI_SW_DVFS_CTRL
-					MASK_TOP_DVFS_APB_DCDC_AI_SW_TUNE_EN>,
-					<&top_dvfs_apb_regs
-					REG_TOP_DVFS_APB_SUBSYS_SW_DVFS_EN_CFG
-					MASK_TOP_DVFS_APB_AI_SW_DVFS_EN>;
+				apb_reg = <&ai_apb_regs 0x0 0x0>;
+				clock_reg = <&ai_clock_regs 0x0 0x0>;
+				dvfs_reg = <&ai_dvfs_regs 0x0 0x0>;
+				mtx_reg = <&ai_mtx_regs 0x0 0x0>;
+				busmon_reg = <&ai_busmon_regs 0x0 0x0>;
+				pd_ai_sys = <&pmu_apb_regs 0x0 0x0>;
+				top_dvfs_cfg = <&top_dvfs_apb_regs 0x0 0x0>;
 				clock-names = "ai_apll",
 					"ai_eb",
 					"powervr_eb",
@@ -2884,51 +2869,7 @@
 					<&aiapb_gate CLK_OCM_EB>,
 					<&aiapb_gate CLK_AXI_PMON_EB>,
 					<&aiapb_gate CLK_AON_TO_OCM_EB>;
-				operating-points = <
-					/* kHz  uV */
-					250000 550000
-					307200 550000
-					384000 600000
-					500000 600000
-					512000 650000
-					614400 650000
-					768000 700000
-					1000000 750000
-				>;
-				sprd,dvfs-powervr-tbl = <
-					/* kHz   uV  idx */
-					250000 550000 0
-					307200 550000 1
-					384000 600000 2
-					500000 600000 3
-					512000 650000 4
-					614400 650000 5
-					768000 700000 6
-					1000000 750000 7
-				>;
-				sprd,dvfs-mtx-tbl = <
-					/* kHz   uV  idx */
-					250000 550000 0
-					307200 550000 1
-					384000 600000 2
-					500000 600000 3
-					512000 650000 4
-					614000 650000 5
-					768000 700000 6
-					1000000 750000 7
-				>;
-				sprd,dvfs-ocm-tbl = <
-					/* kHz   uV  idx */
-					153600 550000 0
-					250000 600000 1
-					333300 650000 2
-					384000 700000 3
-					500000 750000 4
-					512000 750000 5
-					512000 750000 6
-					512000 750000 7
-				>;
-				sprd,npu_dvfs_default = <0>;
+				sprd,npu_freq_default = <307200>;
 			};
 		};
 	};
