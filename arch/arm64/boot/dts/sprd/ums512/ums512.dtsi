@@ -240,7 +240,7 @@
 
 		};
 
-		aon {
+		aon: aon {
 			compatible = "simple-bus";
 			#address-cells = <2>;
 			#size-cells = <2>;
@@ -318,3 +318,5 @@
 #include "coresight.dtsi"
 #include "dispc.dtsi"
 #include "qos.dtsi"
+#include "usb.dtsi"
+

@@ -40,6 +40,17 @@
 			nvmem-cell-names = "big_scale_calib", "small_scale_calib";
 		};
 
+		pmic_typec: typec@380 {
+			compatible = "sprd,sc2730-typec", "sprd,sc27xx-typec";
+			interrupt-parent = <&sc2730_pmic>;
+			interrupts = <8>;
+			reg = <0x380>;
+			sprd,mode = <2>;
+			nvmem-cells = <&typec_cc1_cal>, <&typec_cc2_cal>;
+			nvmem-cell-names = "typec_cc1_cal", "typec_cc2_cal";
+			status = "okay";
+		};
+
 		syscon@1800 {
 			compatible = "sprd,sc2731-syscon", "sprd,sc27xx-syscon";
 			reg = <0x1800>, <0x1ba0>, <0x1b98>;
