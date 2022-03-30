@@ -389,29 +389,16 @@
 		reg = <0x0 0xb0000000 0x0 0x009e4000>;
 	};
 
-	ai_reserved: ai@f6048000 {
-		reg = <0x0 0xf6048000 0x0 0x00600000>;
+	ai_reserved: ai@f8a10000 {
+		reg = <0x0 0xf8a10000 0x0 0x00600000>;
 	};
 
-	fd_reserved: faceid-mem@f8048000 {
-		reg = <0x0 0xf8048000 0x0 0x02d00000>;
+	fd_reserved: faceid-mem@faa10000 {
+		reg = <0x0 0xfaa10000 0x0 0x02d00000>;
 	};
 
-	vdsp_reserved: vdsp-mem@fad48000 {
-		reg = <0x0 0xfad48000 0x0 0x02800000>;
-	};
-
-	wb_reserved: writeback@fd5a8000 {
-		reg = <0x0 0xfd5a8000 0x0 0x00a1e000>;
-	};
-
-	fb_reserved: framebuffer-mem@fdfc6000 {
-		reg = <0x0 0xfdfc6000 0x0 0x01fba000>;
-	};
-
-	ise_med_reserved: ise_med@bc000000 {
-		compatible = "sprd,qogirn6pro-ise-med";
-		reg = <0x0 0xbc000000 0x0 0x01000000>;
+	vdsp_reserved: vdsp-mem@fd710000 {
+		reg = <0x0 0xfd710000 0x0 0x02800000>;
 	};
 };
 
@@ -527,13 +514,6 @@
 &ion {
 	#address-cells = <1>;
 	#size-cells = <0>;
-	heap@3 {
-		reg = <3>;
-		label = "carveout_fb";
-		type = <2>;
-		memory-region = <&fb_reserved>;
-	};
-
 	heap@4 {
 		reg = <4>;
 		label = "carveout_fd";
@@ -608,7 +588,6 @@
 
 &dpu {
 	sprd,logo-memory = <&logo_reserved>;
-	sprd,wb-memory = <&wb_reserved>;
 };
 
 &spi1 {
