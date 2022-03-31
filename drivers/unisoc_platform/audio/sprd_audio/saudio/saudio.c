@@ -1172,7 +1172,11 @@ static int saudio_data_transfer_process(struct saudio_stream *stream,
 				common->command = SAUDIO_DATA_SILENCE;
 				common->sub_cmd = stream->stream_id;
 
-				sblock_send(stream->dst, stream->channel, &blk);
+				ret = sblock_send(stream->dst, stream->channel, &blk);
+				if (ret) {
+					pr_err("sblock send failed, ret = %d!\n", ret);
+					sblock_put(stream->dst, stream->channel, &blk);
+				}
 				stream->last_elapsed_count++;
 				schedule_timeout_interruptible(
 					msecs_to_jiffies(5));
