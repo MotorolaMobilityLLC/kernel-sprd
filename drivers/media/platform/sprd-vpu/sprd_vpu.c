@@ -33,6 +33,7 @@
 #include <linux/wait.h>
 #include <linux/notifier.h>
 #include <linux/compat.h>
+#include <linux/pm_wakeup.h>
 #include <uapi/video/sprd_vpu.h>
 #include "vpu_drv.h"
 #include "sprd_dvfs_vsp.h"
@@ -76,7 +77,8 @@ static const struct of_device_id of_match_table_vpu[] = {
 static long vpu_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
 	int ret = 0;
-	struct vpu_platform_data *data = filp->private_data;
+	struct vpu_fp *vpu_fp = filp->private_data;
+	struct vpu_platform_data *data = vpu_fp->dev_data;
 	u32 mm_eb_reg;
 	struct device *dev = data->dev;
 
@@ -93,12 +95,9 @@ static long vpu_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		clk_parent = get_clk_src_name(clock_name_map,
 				data->clk.freq_div, data->max_freq_level);
 		data->clk.core_parent_clk = clk_parent;
-#if IS_ENABLED(CONFIG_DVFS_APSYS_SPRD)
 		if (data->clk.freq_div >= data->max_freq_level)
 			data->clk.freq_div = data->max_freq_level - 1;
-		frequency = clock_name_map[data->clk.freq_div].freq;
-		vsp_dvfs_notifier_call_chain(&frequency, data->p_data->is_enc);
-#endif
+		dev_dbg(dev, "vpu ioctl VPU_CONFIG_FREQ\n");
 		break;
 
 	case VPU_GET_FREQ:
@@ -111,47 +110,57 @@ static long vpu_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 
 	case VPU_ENABLE:
 		dev_dbg(dev, "vpu ioctl VPU_ENABLE\n");
-#if !IS_ENABLED(CONFIG_DVFS_APSYS_SPRD)
+		__pm_stay_awake(data->vpu_wakelock);
+		vpu_fp->is_wakelock_got = true;
+
 		ret = clock_enable(data);
-		if (ret == 0)
-			data->is_clock_enabled = true;
+		if (ret == 0) {
+			vpu_fp->is_clock_enabled = true;
+#if IS_ENABLED(CONFIG_DVFS_APSYS_SPRD)
+			frequency = clock_name_map[data->clk.freq_div].freq;
+			vsp_dvfs_notifier_call_chain(&frequency,
+				data->p_data->is_enc);
 #endif
+		}
 		break;
 
 	case VPU_DISABLE:
 		dev_dbg(dev, "vpu ioctl VPU_DISABLE\n");
-		if (data->is_clock_enabled) {
+		if (vpu_fp->is_clock_enabled) {
 			clr_vpu_interrupt_mask(data);
-
-#if !IS_ENABLED(CONFIG_DVFS_APSYS_SPRD)
-			data->is_clock_enabled = false;
+			vpu_fp->is_clock_enabled = false;
 			clock_disable(data);
-#endif
 		}
+		vpu_fp->is_wakelock_got = false;
+		__pm_relax(data->vpu_wakelock);
+
 		break;
 
 	case VPU_ACQUAIRE:
 		dev_dbg(dev, "vpu ioctl VPU_ACQUAIRE begin\n");
 		ret = down_timeout(&data->vpu_mutex,
 			msecs_to_jiffies(VPU_AQUIRE_TIMEOUT_MS));
+		/*
 		if (ret) {
 			pr_err("vpu error timeout %d, release the mutex\n", ret);
 			up(&data->vpu_mutex);
 			ret = down_timeout(&data->vpu_mutex,
 				   msecs_to_jiffies(VPU_AQUIRE_TIMEOUT_MS));
 		}
+		*/
 		if (ret) {
-			pr_err("vpu error timeout\n");
+			dev_err(dev, "vpu error timeout\n");
 			return ret;
 		}
-
-		data->is_vpu_acquired = true;
+		data->inst_ptr = vpu_fp;
+		vpu_fp->is_vpu_acquired = true;
 		dev_dbg(dev, "vpu ioctl VPU_ACQUAIRE end\n");
 		break;
 
 	case VPU_RELEASE:
 		dev_dbg(dev, "vpu ioctl VPU_RELEASE\n");
-		data->is_vpu_acquired = false;
+		vpu_fp->is_vpu_acquired = false;
+		data->inst_ptr = NULL;
 		up(&data->vpu_mutex);
 		break;
 
@@ -257,7 +266,7 @@ static long vpu_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			return -EFAULT;
 		}
 
-		ret = get_iova(data, &mapdata, (void __user *)arg);
+		ret = get_iova((void *)vpu_fp, data, &mapdata, (void __user *)arg);
 
 		break;
 
@@ -270,7 +279,7 @@ static long vpu_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			dev_err(dev, "copy ummapdata failed, ret %d\n", ret);
 			return -EFAULT;
 		}
-		ret = free_iova(data, &ummapdata);
+		ret = free_iova((void *)vpu_fp, data, &ummapdata);
 		break;
 
 	case VPU_SET_CODEC_ID:
@@ -366,7 +375,8 @@ static int vpu_parse_dt(struct vpu_platform_data *data)
 
 static int vpu_nocache_mmap(struct file *filp, struct vm_area_struct *vma)
 {
-	struct vpu_platform_data *data = filp->private_data;
+	struct vpu_fp *vpu_fp = filp->private_data;
+	struct vpu_platform_data *data = vpu_fp->dev_data;
 	size_t memsize = vma->vm_end - vma->vm_start;
 
 	if (memsize > SPRD_VPU_MAP_SIZE) {
@@ -391,17 +401,21 @@ static int vpu_open(struct inode *inode, struct file *filp)
 	int ret = 0;
 	struct miscdevice *miscdev = filp->private_data;
 	struct vpu_platform_data *data = container_of(miscdev, struct vpu_platform_data, mdev);
+	struct vpu_fp *vpu_fp = kzalloc(sizeof(struct vpu_fp), GFP_KERNEL);
 
-	filp->private_data = data;
+	if (!vpu_fp) {
+		dev_err(data->dev, "alloc buffer failed\n");
+		return -ENOMEM;
+	}
+	vpu_fp->dev_data = data;
+	filp->private_data = vpu_fp;
 	atomic_inc(&data->instance_cnt);
 	dev_info(data->dev, "%s, open", data->p_data->name);
 	pm_runtime_get_sync(data->dev);
 	vpu_qos_config(data);
 
 #if IS_ENABLED(CONFIG_DVFS_APSYS_SPRD)
-	ret = clock_enable(data);
-	if (ret == 0)
-		data->is_clock_enabled = true;
+	dev_info(data->dev, "dvfs on\n");
 #endif
 
 	return ret;
@@ -409,19 +423,38 @@ static int vpu_open(struct inode *inode, struct file *filp)
 
 static int vpu_release(struct inode *inode, struct file *filp)
 {
-	struct vpu_platform_data *data = filp->private_data;
+	int ret = 0;
+	struct vpu_fp *vpu_fp = filp->private_data;
+	struct vpu_platform_data *data = vpu_fp->dev_data;
 
-	dev_info(data->dev, "%s, release", data->p_data->name);
+	dev_info(data->dev, "%s, release, inst cnt %d\n", data->p_data->name,
+		atomic_read(&data->instance_cnt));
 
 	atomic_dec(&data->instance_cnt);
 
-#if IS_ENABLED(CONFIG_DVFS_APSYS_SPRD)
-	if (data->is_clock_enabled) {
+	if (vpu_fp->is_clock_enabled) {
+		dev_err(data->dev, "error occurred and clk disable\n");
 		clock_disable(data);
-		if ((u32)atomic_read(&data->instance_cnt) == 0)
-			data->is_clock_enabled = false;
 	}
-#endif
+	if (vpu_fp->is_wakelock_got) {
+		dev_err(data->dev, "error occurred and wakelock relax\n");
+		__pm_relax(data->vpu_wakelock);
+	}
+
+	if (!vpu_fp->is_vpu_acquired) {
+		ret = down_timeout(&data->vpu_mutex, msecs_to_jiffies(VPU_AQUIRE_TIMEOUT_MS));
+		vpu_fp->is_vpu_acquired = (ret == 0);
+		pr_info("Acquire vpu mutex before unmap checking, %d\n", ret);
+	}
+
+	non_free_bufs_check((void *)vpu_fp, data);
+
+
+	if (vpu_fp->is_vpu_acquired) {
+		dev_err(data->dev, "error occurred and up vsp_mutex\n");
+		up(&data->vpu_mutex);
+	}
+	kfree(vpu_fp);
 
 	pm_runtime_mark_last_busy(data->dev);
 	pm_runtime_put_sync(data->dev);
@@ -490,11 +523,10 @@ static int vpu_probe(struct platform_device *pdev)
 	}
 
 	sema_init(&vpu_core->vpu_mutex, 1);
-	//wakeup_source_init(&vpu_core->vpu_wakelock, "pm_message_wakelock_vpu");
+	vpu_core->vpu_wakelock = wakeup_source_create(vpu_core->p_data->name);
+	wakeup_source_add(vpu_core->vpu_wakelock);
 	init_waitqueue_head(&vpu_core->wait_queue_work);
 	vpu_core->condition_work = 0;
-	vpu_core->is_clock_enabled = false;
-	vpu_core->is_vpu_acquired = false;
 	INIT_LIST_HEAD(&vpu_core->map_list);
 
 	pm_runtime_set_active(dev);
@@ -518,12 +550,14 @@ static int vpu_remove(struct platform_device *pdev)
 static int vpu_suspend(struct device *dev)
 {
 	pm_runtime_put_sync(dev);
+	dev_info(dev, "%s", __func__);
 	return 0;
 }
 
 static int vpu_resume(struct device *dev)
 {
 	pm_runtime_get_sync(dev);
+	dev_info(dev, "%s", __func__);
 	return 0;
 }
 

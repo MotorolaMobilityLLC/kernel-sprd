@@ -101,7 +101,7 @@ struct vpu_platform_data {
 	struct register_gpr regs[ARRAY_SIZE(tb_name)];
 	struct clock_name_map_t clock_name_map[ARRAY_SIZE(vpu_clk_src)];
 	struct semaphore vpu_mutex;
-	struct wakeup_source vpu_wakelock;
+	struct wakeup_source *vpu_wakelock;
 
 	void __iomem *vpu_base;
 	void __iomem *glb_reg_base;
@@ -115,7 +115,6 @@ struct vpu_platform_data {
 	int condition_work;
 	int vpu_int_status;
 
-	bool is_vpu_acquired;
 	bool iommu_exist_flag;
 	bool is_clock_enabled;
 
@@ -124,6 +123,14 @@ struct vpu_platform_data {
 
 	wait_queue_head_t wait_queue_work;
 	atomic_t instance_cnt;
+	struct vpu_fp *inst_ptr;
+};
+
+struct vpu_fp {
+	struct vpu_platform_data *dev_data;
+	bool is_vpu_acquired;
+	bool is_clock_enabled;
+	bool is_wakelock_got;
 };
 
 #define VPU_INT_STS_OFF		0x0
@@ -167,8 +174,9 @@ int find_freq_level(struct clock_name_map_t clock_name_map[], unsigned long freq
 int clock_enable(struct vpu_platform_data *data);
 void clock_disable(struct vpu_platform_data *data);
 void clr_vpu_interrupt_mask(struct vpu_platform_data *data);
-int get_iova(struct vpu_platform_data *data, struct iommu_map_data *mapdata, void __user *arg);
-int free_iova(struct vpu_platform_data *data, struct iommu_map_data *ummapdata);
+int get_iova(void *inst_ptr, struct vpu_platform_data *data, struct iommu_map_data *mapdata, void __user *arg);
+int free_iova(void *inst_ptr, struct vpu_platform_data *data, struct iommu_map_data *ummapdata);
+void non_free_bufs_check(void *inst_ptr, struct vpu_platform_data *data);
 long compat_vpu_ioctl(struct file *filp, unsigned int cmd, unsigned long arg);
 int vsp_get_dmabuf(int fd, struct dma_buf **dmabuf, void **buf, size_t *size);
 

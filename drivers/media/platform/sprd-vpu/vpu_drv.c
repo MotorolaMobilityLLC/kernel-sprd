@@ -48,6 +48,7 @@ struct vpu_iommu_map_entry {
 	struct dma_buf *dmabuf;
 	struct dma_buf_attachment *attachment;
 	struct sg_table *table;
+	void *inst_ptr;
 };
 
 void vpu_qos_config(struct vpu_platform_data *data)
@@ -68,6 +69,7 @@ void vpu_qos_config(struct vpu_platform_data *data)
 		reg_val = readl_relaxed((void __iomem *)base_addr_virt);
 		writel_relaxed((((reg_val) & (~vpu_mtx_qos[i].mask))
 		| (vpu_mtx_qos[i].value)), (void __iomem *)base_addr_virt);
+		iounmap(base_addr_virt);
 	}
 
 	for (i = 0; i < dpu_vpu_qos_num; i++) {
@@ -75,6 +77,7 @@ void vpu_qos_config(struct vpu_platform_data *data)
 		reg_val = readl_relaxed((void __iomem *)base_addr_virt);
 		writel_relaxed((((reg_val) & (~dpu_vpu_mtx_qos[i].mask))
 		| (dpu_vpu_mtx_qos[i].value)), (void __iomem *)base_addr_virt);
+		iounmap(base_addr_virt);
 	}
 
 	clock_disable(data);
@@ -203,13 +206,20 @@ void clr_vpu_interrupt_mask(struct vpu_platform_data *data)
 static irqreturn_t vpu_dec_isr_handler(struct vpu_platform_data *data)
 {
 	int ret, status = 0;
+	struct vpu_fp *inst_ptr = NULL;
 
 	if (data == NULL) {
 		pr_err("%s error occurred, data == NULL\n", __func__);
 		return IRQ_NONE;
 	}
+	inst_ptr = data->inst_ptr;
 
-	if (data->is_clock_enabled == false) {
+	if (inst_ptr == NULL) {
+		dev_err(data->dev, "%s error occurred, inst_ptr == NULL\n", __func__);
+		return IRQ_HANDLED;
+	}
+
+	if (inst_ptr->is_clock_enabled == false) {
 		dev_err(data->dev, " vpu clk is disabled");
 		return IRQ_HANDLED;
 	}
@@ -229,13 +239,20 @@ static irqreturn_t vpu_dec_isr_handler(struct vpu_platform_data *data)
 static irqreturn_t vpu_enc_isr_handler(struct vpu_platform_data *data)
 {
 	int ret, status = 0;
+	struct vpu_fp *inst_ptr = NULL;
 
 	if (data == NULL) {
 		pr_err("%s error occurred, data == NULL\n", __func__);
 		return IRQ_NONE;
 	}
+	inst_ptr = data->inst_ptr;
 
-	if (data->is_clock_enabled == false) {
+	if (inst_ptr == NULL) {
+		dev_err(data->dev, "%s error occurred, inst_ptr == NULL\n", __func__);
+		return IRQ_HANDLED;
+	}
+
+	if (inst_ptr->is_clock_enabled == false) {
 		dev_err(data->dev, " vpu clk is disabled");
 		return IRQ_HANDLED;
 	}
@@ -368,7 +385,8 @@ long compat_vpu_ioctl(struct file *filp, unsigned int cmd,
 	int err;
 	struct compat_iommu_map_data __user *data32;
 	struct iommu_map_data __user *data;
-	struct vpu_platform_data *platform_data = filp->private_data;
+	struct vpu_fp *vpu_fp = filp->private_data;
+	struct vpu_platform_data *platform_data = vpu_fp->dev_data;
 	struct device *dev = platform_data->dev;
 
 	if (!filp->f_op->unlocked_ioctl)
@@ -437,7 +455,7 @@ void vpu_check_pw_status(struct vpu_platform_data *data)
 	/*aon_apb regs BIT(21) DPU_VSP_EB*/
 	if ((dpu_vsp_eb & data->regs[VPU_DOMAIN_EB].mask) !=
 			data->regs[VPU_DOMAIN_EB].mask) {
-		pr_err("dpu_vsp_eb 0x%x\n", dpu_vsp_eb);
+		dev_err(data->dev, "dpu_vsp_eb 0x%x\n", dpu_vsp_eb);
 		ret = regmap_update_bits(data->regs[VPU_DOMAIN_EB].gpr,
 					data->regs[VPU_DOMAIN_EB].reg,
 					data->regs[VPU_DOMAIN_EB].mask,
@@ -453,7 +471,7 @@ void vpu_check_pw_status(struct vpu_platform_data *data)
 
 	if ((dpu_vsp_apb_regs & data->p_data->dev_eb_mask) !=
 			data->p_data->dev_eb_mask) {
-		pr_err("dpu_vsp_apb_regs APB_EB dev_eb 0x%x\n", dpu_vsp_apb_regs);
+		dev_err(data->dev, "dpu_vsp_apb_regs APB_EB dev_eb 0x%x\n", dpu_vsp_apb_regs);
 		ret = regmap_update_bits(data->regs[RESET].gpr, 0x0,
 					data->p_data->dev_eb_mask, data->p_data->dev_eb_mask);
 	}
@@ -490,7 +508,7 @@ int vsp_get_dmabuf(int fd, struct dma_buf **dmabuf, void **buf, size_t *size)
 	return 0;
 }
 
-int get_iova(struct vpu_platform_data *data,
+int get_iova(void *inst_ptr, struct vpu_platform_data *data,
 		 struct iommu_map_data *mapdata, void __user *arg)
 {
 	int ret = 0;
@@ -553,6 +571,7 @@ int get_iova(struct vpu_platform_data *data,
 		entry->dmabuf = dmabuf;
 		entry->attachment = attachment;
 		entry->table = table;
+		entry->inst_ptr = inst_ptr;
 		list_add(&entry->list, &data->map_list);
 		mutex_unlock(&data->map_lock);
 
@@ -563,11 +582,11 @@ int get_iova(struct vpu_platform_data *data,
 		ret = copy_to_user((void __user *)arg, (void *)mapdata,
 					sizeof(struct iommu_map_data));
 		if (ret) {
-			pr_err("fatal error! copy_to_user failed, ret=%d\n", ret);
+			dev_err(dev, "fatal error! copy_to_user failed, ret=%d\n", ret);
 			goto err_copy_to_user;
 		}
 	} else {
-		pr_err("vpu iommu map failed, ret=%d, map_size=%zu\n",
+		dev_err(dev, "vpu iommu map failed, ret=%d, map_size=%zu\n",
 			ret, iommu_map_data.iova_size);
 		goto err_iommu_map;
 	}
@@ -597,7 +616,7 @@ ignore_this_device:
 		return ret;
 }
 
-int free_iova(struct vpu_platform_data *data,
+int free_iova(void *inst_ptr, struct vpu_platform_data *data,
 		  struct iommu_map_data *ummapdata)
 {
 	int ret = 0;
@@ -608,7 +627,9 @@ int free_iova(struct vpu_platform_data *data,
 	clock_enable(data);
 	mutex_lock(&data->map_lock);
 	list_for_each_entry(entry, &data->map_list, list) {
-		if (entry->iova_addr == ummapdata->iova_addr) {
+		if (entry->iova_addr == ummapdata->iova_addr &&
+			entry->iova_size == ummapdata->size &&
+			entry->inst_ptr == inst_ptr) {
 			b_find = 1;
 			break;
 		}
@@ -620,11 +641,11 @@ int free_iova(struct vpu_platform_data *data,
 		iommu_ummap_data.ch_type = SPRD_IOMMU_FM_CH_RW;
 		iommu_ummap_data.buf = NULL;
 		list_del(&entry->list);
-		pr_debug("success to find node(iova_addr=%#lx, size=%zu)\n",
-			ummapdata->iova_addr, ummapdata->size);
+		pr_debug("success to find node(inst %p, iova_addr=%#lx, size=%zu)\n",
+			inst_ptr, ummapdata->iova_addr, ummapdata->size);
 	} else {
-		pr_err("fatal error! not find node(iova_addr=%#lx, size=%zu)\n",
-				ummapdata->iova_addr, ummapdata->size);
+		pr_err("fatal error! not find node(inst %p, iova_addr=%#lx, size=%zu)\n",
+				inst_ptr, ummapdata->iova_addr, ummapdata->size);
 		mutex_unlock(&data->map_lock);
 		clock_disable(data);
 		return -EFAULT;
@@ -647,6 +668,48 @@ int free_iova(struct vpu_platform_data *data,
 	clock_disable(data);
 
 	return ret;
+}
+
+void non_free_bufs_check(void *inst_ptr, struct vpu_platform_data *data)
+{
+	struct vpu_iommu_map_entry *entry = NULL;
+	struct sprd_iommu_unmap_data unmapdata = {0};
+	int ret = 0;
+	int b_find = 0;
+
+	clock_enable(data);
+	mutex_lock(&data->map_lock);
+
+	do {
+		b_find  = 0;
+		list_for_each_entry(entry, &data->map_list, list) {
+			if (entry->inst_ptr == inst_ptr) {
+				unmapdata.iova_addr = entry->iova_addr;
+				unmapdata.iova_size = entry->iova_size;
+				unmapdata.ch_type = SPRD_IOMMU_FM_CH_RW;
+				unmapdata.buf = NULL;
+				b_find = 1;
+				list_del(&entry->list);
+				break;
+			}
+		}
+		if (b_find) {
+			pr_info("%s, inst %p, iova_addr=%#lx, size=%zu)\n", __func__,
+				entry->inst_ptr, entry->iova_addr, entry->iova_size);
+
+			ret = sprd_iommu_unmap(data->dev, &unmapdata);
+			if (ret) {
+				pr_err("sprd_iommu_unmap failed: ret=%d, iova_addr=%#lx, size=%zu\n",
+					ret, unmapdata.iova_addr, unmapdata.iova_size);
+			}
+
+			kfree(entry);
+		}
+	} while (b_find);
+
+	mutex_unlock(&data->map_lock);
+	clock_disable(data);
+
 }
 
 int get_clk(struct vpu_platform_data *data, struct device_node *np)
