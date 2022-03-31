@@ -138,7 +138,7 @@ static int sprd_7sreset_disable(struct device *dev, int disable)
 static int sprd_7sreset_is_disable(struct device *dev)
 {
 	int ret;
-	u32 r_val;
+	u32 r_val = 0;
 	struct sprd_7sreset *sprd_7sreset_dev = dev_get_drvdata(dev);
 
 	ret = regmap_read(sprd_7sreset_dev->reg_map,
@@ -182,7 +182,7 @@ static int sprd_7sreset_set_keymode(struct device *dev, int mode)
 static int sprd_7sreset_get_keymode(struct device *dev)
 {
 	int ret;
-	u32 reg, r_val;
+	u32 reg, r_val = 0;
 	struct sprd_7sreset *sprd_7sreset_dev = dev_get_drvdata(dev);
 
 	if (sprd_7sreset_dev->priv->chip_ver == 0x2731)
@@ -227,7 +227,7 @@ static int sprd_7sreset_set_resetmode(struct device *dev, int mode)
 static int sprd_7sreset_get_resetmode(struct device *dev)
 {
 	int ret;
-	u32 r_val;
+	u32 r_val = 0;
 	struct sprd_7sreset *sprd_7sreset_dev = dev_get_drvdata(dev);
 
 	ret = regmap_read(sprd_7sreset_dev->reg_map,
@@ -267,7 +267,7 @@ static int sprd_7sreset_set_shortmode(struct device *dev, int mode)
 static int sprd_7sreset_get_shortmode(struct device *dev)
 {
 	int ret;
-	u32 r_val;
+	u32 r_val = 0;
 	struct sprd_7sreset *sprd_7sreset_dev = dev_get_drvdata(dev);
 
 	ret = regmap_read(sprd_7sreset_dev->reg_map,
@@ -306,7 +306,7 @@ static int sprd_7sreset_set_threshold(struct device *dev, u32 th)
 
 static int sprd_7sreset_get_threshold(struct device *dev)
 {
-	u32 r_val;
+	u32 r_val = 0;
 	int ret, shft = __ffs(BITS_PBINT_7S_RST_THRESHOLD(~0U));
 	struct sprd_7sreset *sprd_7sreset_dev = dev_get_drvdata(dev);
 
@@ -454,7 +454,7 @@ ATTRIBUTE_GROUPS(sprd7sreset);
 static int sprd_7sreset_probe(struct platform_device *pdev)
 {
 	int ret;
-	u32 val;
+	u32 val = 0;
 	struct device *dev = &pdev->dev;
 	struct device_node *np = pdev->dev.of_node;
 	struct sprd_7sreset *sprd_7sreset_dev;
