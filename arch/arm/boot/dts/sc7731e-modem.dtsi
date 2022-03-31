@@ -74,7 +74,7 @@
 		/* <&mailbox  channel_id  is_no_wakeup(default 0)> */
 		mboxes = <&mailbox 2 0>;
 		/* This is temporary plan*/
-		sprd,smem-info = <0x89400000 0x89400000 0x200000>;
+		sprd,smem-info = <0x8e000000 0x8e000000 0x300000>;
 
 		/* these nodes of channel should be probed by its parent node */
 		spipe_lte: channel@4 {

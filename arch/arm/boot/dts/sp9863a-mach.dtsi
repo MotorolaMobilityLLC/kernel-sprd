@@ -48,16 +48,12 @@
 			reg = <0x84d80000 0x04000000>;
 		};
 
-		smem_reserved: sipc-mem@88d80000 {
-			reg = <0x88d80000 0x00880000>;
-		};
-
 		cp_reserved: cp-modem@89600000 {
 			reg = <0x89600000 0x03e80000>;
 		};
 
-		smem_ldsp_reserved: sipc-ldsp-mem@8d480000 {
-			reg = <0x8d480000 0x00096000>;
+		smem_reserved: sipc-mem@8e000000 {
+			reg = <0x8e000000 0x00980000>;
 		};
 
 		/* The uboot_log_reserved node is added in uboot. base:0x9de8 0000, size:0x80000 */

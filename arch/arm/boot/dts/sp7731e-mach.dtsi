@@ -68,16 +68,12 @@
 			reg = <0x85400000 0x04000000>;
 		};
 
-		smem_reserved: sipc-mem@89400000 {
-			reg = <0x89400000 0x00200000>;
-		};
-
 		cp_reserved: cp-modem@89600000 {
 			reg = <0x89600000 0x02300000>;
 		};
 
-		smem_ldsp_reserved: sipc-ldsp-mem@8b900000 {
-			reg = <0x8b900000 0x00096000>;
+		smem_reserved: sipc-mem@8e000000 {
+			reg = <0x8e000000 0x00300000>;
 		};
 
 		logo_reserved: logobuffer@9e000000 {
