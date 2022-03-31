@@ -164,6 +164,11 @@ static inline unsigned int sprd_pd_ext_header_chunk_num(u16 ext_header)
 		SPRD_PD_EXT_HDR_CHUNK_NUM_MASK;
 }
 
+static inline unsigned int sprd_pd_ext_header_chunk_num_le(__le16 ext_header)
+{
+	return sprd_pd_ext_header_chunk_num(le16_to_cpu(ext_header));
+}
+
 static inline unsigned int sprd_pd_ext_header_data_size(u16 ext_header)
 {
 	return (ext_header >> SPRD_PD_EXT_HDR_DATA_SIZE_SHIFT) &

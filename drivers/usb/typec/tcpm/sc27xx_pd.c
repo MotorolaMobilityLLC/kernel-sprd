@@ -207,6 +207,10 @@
 #define SC27XX_INT_EN_MASK		0x85f7
 #define SC27xx_DETECT_TYPEC_DELAY	700
 
+/* chunked extended message */
+#define SC27XX_CHUNKED_EXT_MSG_MASK	GENMASK(7, 0)
+#define SC27XX_CHUNKED_EXT_MSG_SHIFT	8
+
 /* Timeout (us) for pd data ready according pd datasheet */
 #define SC27XX_PD_RDY_TIMEOUT		2000
 #define SC27XX_PD_POLL_RAW_STATUS	50
@@ -727,13 +731,62 @@ static int sc27xx_pd_transmit(struct tcpc_dev *tcpc,
 	return ret;
 }
 
+static int sc27xx_pd_read_ext_message(struct sc27xx_pd *pd, struct sprd_pd_message *msg)
+{
+	int ret, i, ext_msg_data_size;
+	u32 data[SPRD_PD_MAX_PAYLOAD * 2] = {0};
+	u32 ext_msg_header = 0;
+
+	ret = regmap_read(pd->regmap, pd->base + SC27XX_PD_RX_BUF, &ext_msg_header);
+	if (ret < 0) {
+		dev_err(pd->dev, "%s, failed to read ext_msg_header, ret = %d\n", __func__, ret);
+		return ret;
+	}
+
+	msg->ext_msg.header = cpu_to_le16(ext_msg_header);
+	if (!(le16_to_cpu(msg->ext_msg.header) & SPRD_PD_EXT_HDR_CHUNKED)) {
+		dev_info(pd->dev, "%s, unchunked ext_msg unsupported\n", __func__);
+		goto done;
+	}
+
+	ext_msg_data_size = sprd_pd_ext_header_data_size_le(msg->ext_msg.header);
+	if (ext_msg_data_size > SPRD_PD_EXT_MAX_CHUNK_DATA) {
+		dev_err(pd->dev, "%s, chunked ext_msg too long, data_size=%d\n",
+			__func__, ext_msg_data_size);
+		goto done;
+	}
+
+	/*
+	 * According to the datasheet, sc27xx_pd_rx_buf is 16bit,
+	 * but PD protocol source code msg->ext_msg.data is 8bit.
+	 */
+	for (i = 0; i < (ext_msg_data_size + 1) / 2; i++) {
+		ret = regmap_read(pd->regmap, pd->base + SC27XX_PD_RX_BUF,
+				(u32 *)&data[i]);
+		if (ret < 0) {
+			dev_err(pd->dev, "%s, failed to read chunked ext_msg data, ret = %d\n",
+				__func__, ret);
+			return ret;
+		}
+
+		msg->ext_msg.data[2 * i] = data[i] & SC27XX_CHUNKED_EXT_MSG_MASK;
+		if (2 * i + 1 < ext_msg_data_size)
+			msg->ext_msg.data[2 * i + 1] = (data[i] >> SC27XX_CHUNKED_EXT_MSG_SHIFT) &
+						       SC27XX_CHUNKED_EXT_MSG_MASK;
+	}
+
+done:
+	return sc27xx_pd_rx_flush(pd);
+}
+
 static int sc27xx_pd_read_message(struct sc27xx_pd *pd, struct sprd_pd_message *msg)
 {
-	int ret, i;
+	int ret, i, rx_fifo_data_num;
 	u32 data[SPRD_PD_MAX_PAYLOAD * 2] = {0};
 	u32 data_obj_num, spec, reg_val = 0, header = 0, type;
 	bool vendor_define = false, source_capabilities = false;
-	bool data_request = false;
+	bool data_request = false, data_alert = false, ext_status = false;
+	bool is_ext_msg;
 
 	ret = regmap_read(pd->regmap, pd->base + SC27XX_PD_RX_BUF,
 			  &header);
@@ -748,15 +801,18 @@ static int sc27xx_pd_read_message(struct sc27xx_pd *pd, struct sprd_pd_message *
 		pd->need_retry = false;
 		cancel_delayed_work_sync(&pd->read_msg_work);
 	}
-	reg_val &= SC27XX_PD_RX_DATA_NUM_MASK;
+	rx_fifo_data_num = reg_val & SC27XX_PD_RX_DATA_NUM_MASK;
 
 	header &= SC27XX_TX_RX_BUF_MASK;
 	msg->header = cpu_to_le16(header);
 	data_obj_num = sprd_pd_header_cnt_le(msg->header);
 	spec = sprd_pd_header_rev_le(msg->header);
 	type = sprd_pd_header_type_le(msg->header);
+	is_ext_msg = le16_to_cpu(msg->header) & SPRD_PD_HEADER_EXT_HDR;
 
-	if (msg->header & SPRD_PD_HEADER_EXT_HDR)
+	if (is_ext_msg && (type == SPRD_PD_EXT_STATUS))
+		ext_status = true;
+	else if (is_ext_msg)
 		vendor_define = false;
 	else if (data_obj_num && (type == SPRD_PD_DATA_VENDOR_DEF))
 		vendor_define = true;
@@ -764,9 +820,11 @@ static int sc27xx_pd_read_message(struct sc27xx_pd *pd, struct sprd_pd_message *
 		source_capabilities = true;
 	else if (data_obj_num && (type == SPRD_PD_DATA_REQUEST))
 		data_request = true;
+	else if (data_obj_num && (type == SPRD_PD_DATA_ALERT))
+		data_alert = true;
 
-	if ((data_obj_num * 2 + 1) < reg_val && !vendor_define &&
-		!source_capabilities && !data_request) {
+	if ((data_obj_num * 2 + 1) < rx_fifo_data_num && !vendor_define &&
+	    !source_capabilities && !data_request && !data_alert && !ext_status) {
 		pd->need_retry = true;
 		queue_delayed_work(pd->pd_wq,
 				   &pd->read_msg_work,
@@ -788,32 +846,45 @@ static int sc27xx_pd_read_message(struct sc27xx_pd *pd, struct sprd_pd_message *
 	}
 
 	if (data_obj_num &&
-	   sprd_pd_header_type_le(msg->header) == SPRD_PD_DATA_VENDOR_DEF)
+	    sprd_pd_header_type_le(msg->header) == SPRD_PD_DATA_VENDOR_DEF)
 		pd->msg_flag = 1;
 	else
 		pd->msg_flag = 0;
 
 	if (data_obj_num > SPRD_PD_MAX_PAYLOAD) {
-		dev_err(pd->dev, "pd rmesg too long, num=%d\n", data_obj_num);
+		dev_err(pd->dev, "%s, pd msg too long, num=%d\n", __func__, data_obj_num);
 		return -EINVAL;
 	}
 
-	for (i = 0; i < data_obj_num * 2; i++) {
-		ret = regmap_read(pd->regmap, pd->base + SC27XX_PD_RX_BUF,
-				  (u32 *)&data[i]);
-		if (ret < 0)
+	if (!is_ext_msg) {
+		for (i = 0; i < data_obj_num * 2; i++) {
+			ret = regmap_read(pd->regmap, pd->base + SC27XX_PD_RX_BUF,
+					  (u32 *)&data[i]);
+			if (ret < 0) {
+				dev_err(pd->dev, "%s, failed to read msg data, ret = %d\n",
+					__func__, ret);
+				return ret;
+			}
+		}
+
+		/*
+		 * According to the datasheet, sc27xx_pd_rx_buf is 16bit,
+		 * but PD protocol source code msg->payload is 32bit,
+		 * so need two 16bit assignment one 32bit.
+		 */
+		for (i = 0; i < data_obj_num; i++)
+			msg->payload[i] = cpu_to_le32(data[2 * i + 1] << 16 |
+					data[2 * i]);
+	} else {
+		ret = sc27xx_pd_read_ext_message(pd, msg);
+		if (ret < 0) {
+			dev_err(pd->dev, "%s, not read pd ext_msg, ret=%d\n", __func__, ret);
 			return ret;
+		}
+
+		sprd_tcpm_pd_receive(pd->sprd_tcpm_port, msg);
+		return 0;
 	}
-
-	/*
-	 * According to the datasheet, sc27xx_pd_rx_buf is 16bit,
-	 * but PD protocol source code msg->payload is 32bit,
-	 * so need two 16bit assignment one 32bit.
-	 */
-
-	for (i = 0; i < data_obj_num; i++)
-		msg->payload[i] = cpu_to_le32(data[2 * i + 1] << 16 |
-				data[2 * i]);
 
 	if (!data_obj_num &&
 	    sprd_pd_header_type_le(msg->header) == SPRD_PD_CTRL_GOOD_CRC) {
@@ -1165,8 +1236,10 @@ static irqreturn_t sc27xx_pd_irq(int irq, void *dev_id)
 					       (status & (~SC27XX_PD_RX_EMPTY)),
 					       SC27XX_PD_POLL_RAW_STATUS,
 					       SC27XX_PD_RDY_TIMEOUT);
-		if (ret < 0)
+		if (ret < 0) {
+			dev_err(pd->dev, "failed to read rx status, ret = %d\n", ret);
 			goto done;
+		}
 
 		ret = sc27xx_pd_read_message(pd, &pd_msg);
 		if (ret < 0) {

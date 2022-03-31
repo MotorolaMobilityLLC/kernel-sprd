@@ -2014,7 +2014,7 @@ static void sprd_tcpm_pd_ext_msg_request(struct sprd_tcpm_port *port,
 	enum sprd_pd_ext_msg_type type = sprd_pd_header_type_le(msg->header);
 	unsigned int data_size = sprd_pd_ext_header_data_size_le(msg->ext_msg.header);
 
-	if (!(msg->ext_msg.header & SPRD_PD_EXT_HDR_CHUNKED)) {
+	if (!(le16_to_cpu(msg->ext_msg.header) & SPRD_PD_EXT_HDR_CHUNKED)) {
 		sprd_tcpm_log(port, "Unchunked extended messages unsupported");
 		return;
 	}
