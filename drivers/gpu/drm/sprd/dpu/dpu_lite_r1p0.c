@@ -15,6 +15,9 @@
 /* DPU registers size, 4 Bytes(32 Bits) */
 #define DPU_REG_SIZE		0x04
 
+/* DPU meomory address to DDRC offset */
+#define DPU_MEM_DDRC_ADDR_OFFSET 0x80000000
+
 /* Layer registers offset */
 #define DPU_LAY_REG_OFFSET	0x0C
 
@@ -139,6 +142,8 @@
 
 static bool panel_ready = true;
 
+static int boot_charging;
+
 static void dpu_clean_all(struct dpu_context *ctx);
 static void dpu_layer(struct dpu_context *ctx,
 		struct sprd_layer_state *hwlayer);
@@ -158,6 +163,29 @@ static bool dpu_check_raw_int(struct dpu_context *ctx, u32 mask)
 
 	pr_err("dpu_int_raw:0x%x\n", reg_val);
 	return false;
+}
+
+static void dpu_charger_mode(void)
+{
+	struct device_node *cmdline_node;
+	const char *cmdline, *mode;
+	int ret;
+
+	cmdline_node = of_find_node_by_path("/chosen");
+	ret = of_property_read_string(cmdline_node, "bootargs", &cmdline);
+
+	if (ret) {
+		pr_err("Can't not parse bootargs\n");
+		return;
+	}
+
+	mode = strstr(cmdline, "androidboot.mode=charger");
+
+	if (mode)
+		boot_charging = 1;
+	else
+		boot_charging = 0;
+
 }
 
 static u32 dpu_isr(struct dpu_context *ctx)
@@ -303,6 +331,8 @@ static int dpu_init(struct dpu_context *ctx)
 
 	ctx->base_offset[0] = 0x0;
 	ctx->base_offset[1] = DPU_MAX_REG_OFFSET;
+
+	dpu_charger_mode();
 
 	return 0;
 }
@@ -493,6 +523,11 @@ static void dpu_layer(struct dpu_context *ctx,
 		if (hwlayer->addr[i] % 16)
 			pr_err("layer addr[%d] is not 16 bytes align, it's 0x%08x\n",
 			       i, hwlayer->addr[i]);
+		/* for poweroff charging , iommu not enabled,
+		   sharkle DPU is direct connect with DDRC, so memory addr need remove offset */
+		if (boot_charging && (hwlayer->addr[i] >= DPU_MEM_DDRC_ADDR_OFFSET)) {
+			hwlayer->addr[i] -= DPU_MEM_DDRC_ADDR_OFFSET;
+		}
 		DPU_REG_WR(ctx->base + DPU_LAY_PLANE_ADDR(REG_LAY_BASE_ADDR,
 			   hwlayer->index, i), hwlayer->addr[i]);
 	}
