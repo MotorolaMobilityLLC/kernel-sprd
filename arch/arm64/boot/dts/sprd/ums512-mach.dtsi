@@ -49,10 +49,6 @@
 			reg = <0x0 0x87400000 0x0 0x00400000>;
 		};
 
-		smem_reserved: sipc-mem@87800000 {
-			reg = <0x0 0x87800000 0x0 0x00800000>;
-		};
-
 		sp_ddr_reserved: sp_ddr-mem@88000000 {
 			reg = <0x0 0x88000000 0x0 0x00300000>;
 		};
@@ -65,8 +61,8 @@
 			reg = <0x0 0x89600000 0x0 0x04900000>;
 		};
 
-		smem_ldsp_reserved: sipc-ldsp-mem@8df00000 {
-			reg = <0x0 0x8df00000 0x0 0x00096000>;
+		smem_reserved: sipc-mem@8e000000 {
+			reg = <0x0 0x8e000000 0x0 0x00900000>;
 		};
 
 		/* Only used for iq, will be removed in normal mode by uboot */
