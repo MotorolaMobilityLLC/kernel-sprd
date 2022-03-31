@@ -1270,3 +1270,44 @@
 		<&aonapb_gate CLK_CPHY_CFG_EN>;
 };
 
+&sprd_pcm_iis {
+	dmas = <&ap_dma 5 &ap_dma 6 &agcp_dma 21 &agcp_dma 22>;
+	dma-names = "iis0_tx", "iis0_rx", "tdm_tx", "tdm_rx";
+};
+
+&sound_sprd_ap_alliis {
+	status = "okay";
+	sprd,syscon-agcp-ahb = <&audcp_ahb_regs>;
+	sprd,syscon-clk-rf = <&audcp_clk_rf_regs>;
+	sprd,syscon-dvfs-apb = <&audcp_dvfs_apb_rf_regs>;
+	sprd,syscon-aon-apb = <&aon_apb_regs>;
+	sprd-audio-card,dai-link@0 {
+		plat {
+			sound-dai = <&sprd_pcm_iis>;
+		};
+		cpu {
+			sound-dai = <&sprd_tdm>;
+		};
+		codec {
+			sound-dai = <0 0>;
+		};
+	};
+};
+
+&sprd_tdm {
+	sprd,duplex_mode = <0>;
+	sprd,slave_timeout = <0x1E00>;
+	sprd,tdm_fs = <48000>;
+	sprd,trx_mst_mode = <1>;/* master */
+	sprd,trx_threshold = <128>;
+	sprd,trx_data_width = <0>;/* 16bit */
+	sprd,trx_data_mode = <0>;/* iis */
+	sprd,trx_slot_width = <0>;/* 16bclk */
+	sprd,trx_slot_num = <0>;/* 2 chn */
+	sprd,trx_msb_mode = <0>;/* lsb */
+	sprd,trx_pulse_mode = <0>;/* 50% */
+	sprd,tdm_slot_valid = <3>;
+	sprd,trx_sync_mode = <1>;
+	status = "okay";
+};
+
