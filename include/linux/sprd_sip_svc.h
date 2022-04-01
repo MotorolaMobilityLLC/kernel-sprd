@@ -93,6 +93,41 @@ struct sprd_sip_svc_pwr_ops {
 };
 
 /**
+ * struct sprd_sip_svc_dvfs_ops - represents the various operations
+ *      provided by SPRD SIP DVFS
+ *
+ * @dvfs_enable: enable cluster dvfs
+ * @table_update: update dvfs table for cluster
+ *
+ * @step_set: set the cluster dcdc update step
+ * @margin_set: set the cluster dcdc update margin
+ *
+ * @freq_set: set cluster frequency
+ * @freq_get: get cluster current frequency
+ * @pair_get: get freq and volt of index
+ *
+ * @pmic_set: set the dcdc_cpu uses pmic type
+ * @bin_set: set cluster bin info
+ * @version_set: set SOC version info
+ * @dvfs_init: apcpu hwdvfs logic init entry
+ */
+struct sprd_sip_svc_dvfs_ops {
+	struct sprd_sip_svc_rev_info rev;
+
+	int (*dvfs_enable)(u32 cluster);
+	int (*table_update)(u32 cluster, u32 temp, u32 *num);
+	int (*step_set)(u32 cluster, u32 step);
+	int (*margin_set)(u32 cluster, u32 margin);
+	int (*freq_set)(u32 cluster, u32 index);
+	int (*freq_get)(u32 cluster, u64 *freq);
+	int (*pair_get)(u32 cluster, u32 index, u64 *freq, u64 *vol);
+	int (*pmic_set)(u32 cluster, u32 num);
+	int (*bin_set)(u32 cluster, u32 bin);
+	int (*version_set)(u32 cluster, u64 *ver);
+	int (*dvfs_init)(void);
+};
+
+/**
  * struct sprd_sip_svc_npu_ops - represents the various operations
  *      provided by SPRD SIP NPU
  *
@@ -123,6 +158,7 @@ struct sprd_sip_svc_handle {
 	struct sprd_sip_svc_perf_ops perf_ops;
 	struct sprd_sip_svc_dbg_ops dbg_ops;
 	struct sprd_sip_svc_pwr_ops pwr_ops;
+	struct sprd_sip_svc_dvfs_ops dvfs_ops;
 	struct sprd_sip_svc_npu_ops npu_ops;
 };
 
