@@ -392,9 +392,6 @@
 		reg = <0x0 0xfd210000 0x0 0x00500000>;
 	};
 
-	vdsp_reserved: vdsp-mem@fd710000 {
-		reg = <0x0 0xfd710000 0x0 0x02800000>;
-	};
 };
 
 &i2c6 {
@@ -517,13 +514,6 @@
 		label = "carveout_fd";
 		type = <2>;
 		memory-region = <&fd_reserved>;
-	};
-
-	heap@5 {
-		reg = <5>;
-		label = "carveout_vdsp";
-		type = <2>;
-		memory-region = <&vdsp_reserved>;
 	};
 
 	heap@6 {
