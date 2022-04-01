@@ -110,7 +110,7 @@ const struct ext_modem_operations *ext_modem_ops;
 #endif
 
 #ifdef CONFIG_ARM64
-#define modem_memory_unmap(type, vmem)		memunmap((vmem))
+#define modem_memory_unmap(type, vmem)		modem_ram_unmap((type), (vmem))
 #define ALIGN_NUM				8
 #define ALIGN_MASK				0xFFFFFFFFFFFFFFF8
 #else
