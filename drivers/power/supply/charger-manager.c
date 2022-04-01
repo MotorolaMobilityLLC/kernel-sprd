@@ -4066,7 +4066,7 @@ static int cm_get_target_status(struct charger_manager *cm)
  */
 static bool _cm_monitor(struct charger_manager *cm)
 {
-	int i;
+	int i, target;
 	static int last_target = -1;
 
 	for (i = 0; i < cm->desc->num_charger_regulators; i++) {
@@ -4077,9 +4077,9 @@ static bool _cm_monitor(struct charger_manager *cm)
 		}
 	}
 
-	cm->battery_status = cm_get_target_status(cm);
+	target = cm_get_target_status(cm);
 
-	if (cm->battery_status == POWER_SUPPLY_STATUS_CHARGING) {
+	if (target == POWER_SUPPLY_STATUS_CHARGING) {
 		cm->emergency_stop = 0;
 		cm->charging_status = 0;
 		try_charger_enable(cm, true);
@@ -4098,14 +4098,14 @@ static bool _cm_monitor(struct charger_manager *cm)
 		try_charger_enable(cm, false);
 	}
 
-	if (last_target != cm->battery_status) {
-		last_target = cm->battery_status;
+	if (last_target != target) {
+		last_target = target;
 		power_supply_changed(cm->charger_psy);
 	}
 
-	dev_info(cm->dev, "battery_status %d, charging_status %d\n",
-		 cm->battery_status, cm->charging_status);
-	return (cm->battery_status == POWER_SUPPLY_STATUS_NOT_CHARGING);
+	dev_info(cm->dev, "target %d, charging_status %d\n", target, cm->charging_status);
+	return (target == POWER_SUPPLY_STATUS_NOT_CHARGING);
+
 }
 
 /**
