@@ -70,6 +70,22 @@
 		sprd,sys-bus-ctrl-sp = <&aon_apb_regs 0x0128 0x1>;
 		sprd,sys-bus-ctrl-ch = <&aon_apb_regs 0x0124 0x1>;
 	};
+
+	dvfs_pscp {
+		compatible = "sprd,pscp-dvfs";
+		sprd,core_id = <2>;
+		sprd,devices-num = <3>;
+		sprd,devices-name = "core", "axi", "apb";
+		sprd,devices-id = <0>, <1>, <2>;
+	};
+
+	dvfs_phycp {
+		compatible = "sprd,phycp-dvfs";
+		sprd,core_id = <3>;
+		sprd,devices-num = <3>;
+		sprd,devices-name = "core", "axi", "apb";
+		sprd,devices-id = <0>, <1>, <2>;
+	};
 };
 
 &sipc {
@@ -268,21 +284,5 @@
 
 	time_sync {
 		compatible = "sprd,time-sync";
-	};
-
-	dvfs_pscp {
-		compatible = "sprd,pscp-dvfs";
-		sprd,core_id = <2>;
-		sprd,devices-num = <3>;
-		sprd,devices-name = "core", "axi", "apb";
-		sprd,devices-id = <0>, <1>, <2>;
-	};
-
-	dvfs_phycp {
-		compatible = "sprd,phycp-dvfs";
-		sprd,core_id = <3>;
-		sprd,devices-num = <3>;
-		sprd,devices-name = "core", "axi", "apb";
-		sprd,devices-id = <0>, <1>, <2>;
 	};
 };

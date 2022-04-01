@@ -55,6 +55,14 @@
 					"sysreset", "getstatus", "dspreset";
 		sprd,version = <0x02>;
 	};
+
+	pubcp_dvfs {
+		compatible = "sprd,pubcp-dvfs";
+		sprd,core_id = <0>;
+		sprd,devices-num = <1>;
+		sprd,devices-name = "core_axi";
+		sprd,devices-id = <0>;
+		};
 };
 
 /*
@@ -261,15 +269,6 @@
 			sprd,router = <&sipx>;
 			sprd,blknum = <256>;
 		};
-
-		pubcp_dvfs: channel@42 {
-			compatible = "sprd,pubcp-dvfs";
-			sprd,core_id = <0>;
-			sprd,devices-num = <1>;
-			sprd,devices-name = "core_axi";
-			sprd,devices-id = <0>;
-		};
-
 	};
 
 	sipc_sp: core@6 {

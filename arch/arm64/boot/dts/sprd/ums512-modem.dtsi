@@ -60,6 +60,15 @@
 		compatible = "sprd,cp_dump";
 		sprd,sys-bus-ctrl-sp = <&aon_apb_regs 0x0124 0x1>;
 	};
+
+
+	pubcp_dvfs {
+		compatible = "sprd,pubcp-dvfs";
+		sprd,core_id = <0>;
+		sprd,devices-num = <1>;
+		sprd,devices-name = "core_axi";
+		sprd,devices-id = <0>;
+		};
 };
 
 /*
@@ -264,14 +273,6 @@
 			reg = <31>;
 			sprd,router = <&sipx>;
 			sprd,blknum = <256>;
-		};
-
-		pubcp_dvfs: channel@42 {
-			compatible = "sprd,pubcp-dvfs";
-			sprd,core_id = <0>;
-			sprd,devices-num = <1>;
-			sprd,devices-name = "core_axi";
-			sprd,devices-id = <0>;
 		};
 	};
 
