@@ -137,32 +137,23 @@
 	};
 
 	cpufreq_cluster0: cpufreq-cluster0 {
-		//nvmem-cells = <&dvfs_bin_cpu0>;
-		//nvmem-cell-names = "dvfs_bin";
-		voltage-step = <750000>;		/* uV       */
-		voltage-margin = <40>;			/* Cycle    */
-		boost-duration = <60>;			/* s        */
-		transition-delay = <1000>;		/* us       */
-		//temp-threshold = <65>;		/* u32 list */
+		sprd,voltage-step = <750000>;		/* uV       */
+		sprd,voltage-margin = <40>;		/* Cycle    */
+		sprd,transition-delay = <1000>;		/* us       */
+		sprd,cluster-cpumask = <0xf>;
 	};
 
 	cpufreq_cluster1: cpufreq-cluster1 {
-		//nvmem-cells = <&dvfs_bin_cpu1>;
-		//nvmem-cell-names = "dvfs_bin";
-		voltage-step = <750000>;		/* uV       */
-		voltage-margin = <40>;			/* Cycle    */
-		boost-duration = <60>;			/* s        */
-		transition-delay = <1000>;		/* us       */
-		//temp-threshold = <65>;		/* u32 list */
+		sprd,voltage-step = <750000>;		/* uV       */
+		sprd,voltage-margin = <40>;		/* Cycle    */
+		sprd,transition-delay = <1000>;		/* us       */
+		sprd,cluster-cpumask = <0x70>;
 	};
 
 	cpufreq_cluster2: cpufreq-cluster2 {
-		//nvmem-cells = <&dvfs_bin_cpu2>;
-		//nvmem-cell-names = "dvfs_bin";
-		voltage-margin = <40>;			/* Cycle    */
-		boost-duration = <60>;			/* s        */
-		transition-delay = <1000>;		/* us       */
-		//temp-threshold = <65>;		/* u32 list */
+		sprd,voltage-margin = <40>;		/* Cycle    */
+		sprd,transition-delay = <1000>;		/* us       */
+		sprd,cluster-cpumask = <0x80>;
 	};
 
 	psci {

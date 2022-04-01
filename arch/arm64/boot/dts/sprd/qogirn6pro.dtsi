@@ -2609,8 +2609,7 @@
 				};
 			};
 			apcpu_dvfs: apcpu-dvfs@950000 {
-				compatible = "sprd,sharkl6pro-cpufreq";
-				//multi-version;
+				compatible = "sprd,cpufreq-v2";
 			};
 
 			socid: socid{
