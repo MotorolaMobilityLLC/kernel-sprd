@@ -391,7 +391,7 @@ int minidump_save_extend_information(const char *name, unsigned long paddr_start
 		minidump_info_g.section_info_total.total_size += extend_section->section_size;
 		minidump_info_g.minidump_data_size += extend_section->section_size;
 	}
-	pr_emerg("%s added successfully in minidump section:paddr_start=%lx,paddr_end=%lx\n",
+	pr_info("%s added successfully in minidump section:paddr_start=%lx,paddr_end=%lx\n",
 			name, paddr_start, paddr_end);
 	minidump_info_g.section_info_total.total_num++;
 	mutex_unlock(&section_mutex);
