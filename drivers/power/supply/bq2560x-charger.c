@@ -337,9 +337,18 @@ static int  bq2560x_enable_powerpath(struct bq2560x_charger_info *info, bool en)
 	dev_err(info->dev,"%s; %d;\n", __func__,en);
 
 	if(en)
+		{
+		 bq2560x_update_bits(info, BQ2560X_REG_7,
+				   0x3, 0x01);    //200mv
 		ret=bq2560x_charger_set_vindpm(info, 4500);
+		}
 	else	
+		{
+		
+		 bq2560x_update_bits(info, BQ2560X_REG_7,
+				   0x3, 0x00);  //disable
 		ret=bq2560x_charger_set_vindpm(info, 5400);
+		}
 
 	return ret;
 }
@@ -519,11 +528,12 @@ static int bq2560x_charger_hw_init(struct bq2560x_charger_info *info)
 			}
 		}
 
-		ret = bq2560x_charger_set_vindpm(info, 4500);
-		if (ret) {
-			dev_err(info->dev, "set bq2560x vindpm vol failed\n");
-			return ret;
-		}
+//		ret = bq2560x_charger_set_vindpm(info, 4500);
+//		if (ret) {
+//			dev_err(info->dev, "set bq2560x vindpm vol failed\n");
+//			return ret;
+//		}
+		bq2560x_enable_powerpath(info,1);
 
 		ret = bq2560x_charger_set_termina_vol(info,
 						      voltage_max_microvolt);
