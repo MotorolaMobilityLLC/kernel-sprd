@@ -178,7 +178,7 @@ struct dpu_context {
 	unsigned int *layer_bottom;
 
 	/* widevine config parameters */
-	int secure_debug;
+	bool secure_debug;
 	int time;
 	struct disp_message *tos_msg;
 

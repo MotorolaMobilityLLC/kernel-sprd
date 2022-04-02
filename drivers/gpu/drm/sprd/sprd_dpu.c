@@ -593,6 +593,7 @@ static int sprd_dpu_context_init(struct sprd_dpu *dpu,
 
 	ctx->panel_ready = true;
 	ctx->time = 5000;
+	ctx->secure_debug = false;
 
 	init_waitqueue_head(&dpu->ctx.te_wq);
 

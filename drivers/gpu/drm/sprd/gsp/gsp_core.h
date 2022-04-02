@@ -109,6 +109,7 @@ struct gsp_core {
 	char name[32];
 	int id;
 	int kcfg_num;
+	bool secure_init;
 
 	struct gsp_capability *capa;
 
