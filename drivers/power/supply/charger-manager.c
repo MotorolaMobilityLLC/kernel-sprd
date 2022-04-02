@@ -68,6 +68,7 @@
 #define CM_FAST_CHARGE_VOLTAGE_12V		12000000
 #define CM_FAST_CHARGE_VOLTAGE_9V		9000000
 #define CM_FAST_CHARGE_VOLTAGE_5V		5000000
+#define CM_FAST_CHARGE_VOLTAGE_5V_THRESHOLD	6500000
 #define CM_FAST_CHARGE_START_VOLTAGE_LTHRESHOLD	3520000
 #define CM_FAST_CHARGE_START_VOLTAGE_HTHRESHOLD	4200000
 #define CM_FAST_CHARGE_ENABLE_COUNT		3
@@ -103,6 +104,7 @@
 #define CM_IR_COMPENSATION_TIME			3
 
 #define CM_CP_WORK_TIME_MS			500
+#define CM_CHK_DIS_FCHG_WORK_MS			5000
 #define CM_TRY_DIS_FCHG_WORK_MS			100
 
 static const char * const cm_cp_state_names[] = {
@@ -2163,10 +2165,11 @@ out:
 	return ret;
 }
 
-static bool cm_is_disable_fixed_fchg_check(struct charger_manager *cm)
+static bool cm_is_disable_fixed_fchg_check(struct charger_manager *cm, int *delay_work_ms)
 {
-	int batt_uV, batt_uA, ret;
+	int batt_uV, batt_uA, ret, chg_vol = 0;
 
+	*delay_work_ms = cm->desc->polling_interval_ms;
 	if (!cm->desc->enable_fast_charge)
 		return true;
 
@@ -2182,15 +2185,25 @@ static bool cm_is_disable_fixed_fchg_check(struct charger_manager *cm)
 		return false;
 	}
 
+	ret = get_charger_voltage(cm, &chg_vol);
+	if (ret)
+		dev_err(cm->dev, "%s, get chg_vol error, ret=%d\n", __func__, ret);
+
 	if (batt_uV < CM_FAST_CHARGE_DISABLE_BATTERY_VOLTAGE ||
-	    batt_uA < CM_FAST_CHARGE_DISABLE_CURRENT)
+	    batt_uA < CM_FAST_CHARGE_DISABLE_CURRENT ||
+	    (!ret && chg_vol < CM_FAST_CHARGE_VOLTAGE_5V_THRESHOLD)) {
 		cm->desc->fast_charge_disable_count++;
-	else
+		*delay_work_ms = CM_CHK_DIS_FCHG_WORK_MS;
+		pm_wakeup_event(cm->dev, CM_CHK_DIS_FCHG_WORK_MS + 500);
+	} else {
 		cm->desc->fast_charge_disable_count = 0;
+	}
 
 	if (cm->desc->fast_charge_disable_count < CM_FAST_CHARGE_DISABLE_COUNT)
 		return false;
 
+	dev_info(cm->dev, "%s, vbat: %d, ibat: %d, vbus: %d, exit fixed fchg\n",
+		 __func__, batt_uV, batt_uA, chg_vol);
 	return true;
 }
 
@@ -2398,7 +2411,7 @@ static void cm_fixed_fchg_work(struct work_struct *work)
 		cm->desc->fast_charge_enable_count++;
 		delay_work_ms = CM_CP_WORK_TIME_MS;
 	} else if (cm->desc->enable_fast_charge) {
-		if (cm_is_disable_fixed_fchg_check(cm))
+		if (cm_is_disable_fixed_fchg_check(cm, &delay_work_ms))
 			goto stop_fixed_fchg;
 	} else {
 		ret = cm_fixed_fchg_enable(cm);
