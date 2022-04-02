@@ -44,6 +44,7 @@
 #define CM_UVLO_CALIBRATION_VOLTAGE_THRESHOLD	3250000
 #define CM_UVLO_CALIBRATION_CNT_THRESHOLD	5
 #define CM_LOW_TEMP_SHUTDOWN_VALTAGE		3200000
+#define CM_LOW_CAP_SHUTDOWN_VOLTAGE_THRESHOLD	3300000
 
 #define CM_CAP_ONE_PERCENT			10
 #define CM_HCAP_DECREASE_STEP			8
@@ -54,7 +55,7 @@
 #define CM_CAPACITY_LEVEL_LOW			15
 #define CM_CAPACITY_LEVEL_NORMAL		85
 #define CM_CAPACITY_LEVEL_FULL			100
-#define CM_CAPACITY_LEVEL_CRITICAL_VOLTAGE	3300000
+#define CM_CAPACITY_LEVEL_CRITICAL_VOLTAGE	3200000
 #define CM_FAST_CHARGE_ENABLE_BATTERY_VOLTAGE	3400000
 #define CM_FAST_CHARGE_ENABLE_CURRENT		1200000
 #define CM_FAST_CHARGE_ENABLE_THERMAL_CURRENT	1000000
@@ -4504,7 +4505,7 @@ static void cm_get_uisoc(struct charger_manager *cm, int *uisoc)
 static int cm_get_capacity_level(struct charger_manager *cm)
 {
 	int level = POWER_SUPPLY_CAPACITY_LEVEL_UNKNOWN;
-	int uisoc, ocv_uv = 0;
+	int uisoc, ocv_uv = 0, batt_uv = 0;
 
 	if (!is_batt_present(cm)) {
 		/* There is no battery. Assume 100% */
@@ -4531,8 +4532,14 @@ static int cm_get_capacity_level(struct charger_manager *cm)
 		return level;
 	}
 
+	if (get_vbat_now_uV(cm, &batt_uv)) {
+		dev_err(cm->dev, "%s, get_batt_uv error.\n", __func__);
+		return level;
+	}
+
 	if (level == POWER_SUPPLY_CAPACITY_LEVEL_CRITICAL && is_charging(cm) &&
-	    ocv_uv > CM_CAPACITY_LEVEL_CRITICAL_VOLTAGE)
+	    ocv_uv > CM_CAPACITY_LEVEL_CRITICAL_VOLTAGE &&
+	    batt_uv > CM_LOW_CAP_SHUTDOWN_VOLTAGE_THRESHOLD)
 		level = POWER_SUPPLY_CAPACITY_LEVEL_LOW;
 
 	return level;
