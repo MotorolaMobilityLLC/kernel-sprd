@@ -6355,7 +6355,7 @@ static void cm_batt_works(struct work_struct *work)
 	 * capacity is larger than 99%.
 	 */
 	if (cm->battery_status == POWER_SUPPLY_STATUS_CHARGING) {
-		if (cm->desc->cap >= 986) {
+		if (cm->desc->cap >= 985) {
 			cm->desc->trickle_time =
 				cur_time.tv_sec - cm->desc->trickle_start_time;
 		} else {
@@ -6445,7 +6445,7 @@ static void cm_batt_works(struct work_struct *work)
 		 * it will be mandatory to display 100%,
 		 * but the background is still charging.
 		 */
-		if (cm->desc->cap >= 995 &&
+		if (cm->desc->cap >= 985 &&
 		    cm->desc->trickle_time >= cm->desc->trickle_time_out &&
 		    cm->desc->trickle_time_out > 0 &&
 		    batt_uA > 0)
