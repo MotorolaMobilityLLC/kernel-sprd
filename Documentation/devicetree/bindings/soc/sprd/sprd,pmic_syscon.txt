@@ -5,9 +5,10 @@ multi modules for finding PMIC's address easier.
 
 Required properties:
 -compatible:
- -"sprd,sc2721-syscon" for SC2721 syscon
- -"sprd,sc2730-syscon" for SC2730 syscon
- -"sprd,sc2731-syscon" for SC2731 syscon
+ -"sprd,sc27xx-syscon" for SC27XX series pmic syscon
+ -"sprd,ump962x-syscon" for UMP962x main pmic syscon
+ -"sprd,ump9621-syscon" for UMP9621 sub-pmic syscon
+ -"sprd,ump9622-syscon" for UMP9622 sub-pmic syscon
 - reg: Specifies the PMIC's physical global address.
 
 Example:
