@@ -16,12 +16,11 @@ struct pmic_glb {
 	struct device *dev;
 };
 
-static struct pmic_glb *sc27xx_glb;
-static struct platform_driver sprd_pmic_glb_driver;
-
-static ssize_t pmic_reg_show(struct device_driver *drv, char *buf)
+static ssize_t pmic_reg_show(struct device *dev, struct device_attribute *attr,
+			     char *buf)
 {
 	ssize_t ret = 0;
+	struct pmic_glb *sc27xx_glb = dev_get_drvdata(dev);
 
 	if (!sc27xx_glb)
 		return ret;
@@ -29,80 +28,95 @@ static ssize_t pmic_reg_show(struct device_driver *drv, char *buf)
 	return sprintf(buf, "0x%x", sc27xx_glb->reg);
 }
 
-static ssize_t pmic_reg_store(struct device_driver *drv, const char *buf, size_t count)
+static ssize_t pmic_reg_store(struct device *dev, struct device_attribute *attr,
+			      const char *buf, size_t count)
 {
 	int ret = 0;
+	struct pmic_glb *sc27xx_glb = dev_get_drvdata(dev);
 
 	if (!sc27xx_glb)
 		return ret;
 
 	ret = sscanf(buf, "%x", &sc27xx_glb->reg);
-	if (ret != 1)
+	if (ret != 1) {
+		dev_err(dev->parent, "error input\n");
 		return -EINVAL;
+	}
 
 	return strnlen(buf, count);
 }
 
-static DRIVER_ATTR_RW(pmic_reg);
+static DEVICE_ATTR_RW(pmic_reg);
 
-static ssize_t pmic_value_show(struct device_driver *drv, char *buf)
+static ssize_t pmic_value_show(struct device *dev, struct device_attribute
+			       *attr, char *buf)
 {
 	int ret = 0;
-	u32 value;
+	u32 value = 0;
+	struct pmic_glb *sc27xx_glb = dev_get_drvdata(dev);
 
 	if (!sc27xx_glb)
 		return ret;
 
-	if (sc27xx_glb->reg < sc27xx_glb->base)
+	if (sc27xx_glb->reg < sc27xx_glb->base) {
+		dev_err(dev->parent, "out of reg range\n");
 		return -EINVAL;
+	}
 
 	ret = regmap_read(sc27xx_glb->regmap, sc27xx_glb->reg, &value);
-	if (ret)
+	if (ret) {
+		dev_err(dev->parent, "unable to get glb\n");
 		return ret;
+	}
 
 	return sprintf(buf, "%x", value);
 }
 
-static ssize_t pmic_value_store(struct device_driver *drv, const char *buf, size_t count)
+static ssize_t pmic_value_store(struct device *dev, struct device_attribute *attr,
+				const char *buf, size_t count)
 {
 	int ret = 0;
-	u32 value;
+	u32 value = 0;
+	struct pmic_glb *sc27xx_glb = dev_get_drvdata(dev);
 
 	if (!sc27xx_glb)
 		return ret;
 
 	ret = sscanf(buf, "%x", &value);
-	if (ret != 1)
+	if (ret != 1) {
+		dev_err(dev->parent, "error input\n");
 		return -EINVAL;
+	}
 
-	if (sc27xx_glb->reg < sc27xx_glb->base)
+	if (sc27xx_glb->reg < sc27xx_glb->base) {
+		dev_err(dev->parent, "out of reg range\n");
 		return -EINVAL;
+	}
 
 	ret = regmap_write(sc27xx_glb->regmap, sc27xx_glb->reg, value);
-	if (ret)
+	if (ret) {
+		dev_err(dev->parent, "unable to write glb\n");
 		return ret;
+	}
 
 	return count;
 }
 
-static DRIVER_ATTR_RW(pmic_value);
+static DEVICE_ATTR_RW(pmic_value);
 
 static struct attribute *pmic_syscon_attrs[] = {
-	&driver_attr_pmic_reg.attr,
-	&driver_attr_pmic_value.attr,
+	&dev_attr_pmic_reg.attr,
+	&dev_attr_pmic_value.attr,
 	NULL
 };
-
-static const struct attribute_group pmic_syscon_group = {
-	.attrs = pmic_syscon_attrs,
-};
+ATTRIBUTE_GROUPS(pmic_syscon);
 
 static int sprd_pmic_glb_probe(struct platform_device *pdev)
 {
 	int ret;
+	struct pmic_glb *sc27xx_glb;
 	struct device *dev = &pdev->dev;
 	struct device_node *np = pdev->dev.of_node;
-	struct device_driver *drv = &sprd_pmic_glb_driver.driver;
 
 	sc27xx_glb = devm_kzalloc(dev, sizeof(struct pmic_glb), GFP_KERNEL);
 	if (!sc27xx_glb)
@@ -122,7 +136,7 @@ static int sprd_pmic_glb_probe(struct platform_device *pdev)
 
 	sc27xx_glb->dev = &pdev->dev;
 
-	ret = sysfs_create_group(&drv->p->kobj, &pmic_syscon_group);
+	ret = sysfs_create_groups(&sc27xx_glb->dev->kobj, pmic_syscon_groups);
 	if (ret)
 		dev_warn(dev, "failed to create pmic_syscon attributes\n");
 
@@ -133,14 +147,18 @@ static int sprd_pmic_glb_probe(struct platform_device *pdev)
 
 static int sprd_pmic_glb_remove(struct platform_device *pdev)
 {
-	struct device_driver *drv = &sprd_pmic_glb_driver.driver;
+	struct device *dev = &pdev->dev;
+	struct pmic_glb *sc27xx_glb = dev_get_drvdata(dev);
 
-	sysfs_remove_group(&drv->p->kobj, &pmic_syscon_group);
+	sysfs_remove_groups(&sc27xx_glb->dev->kobj, pmic_syscon_groups);
 
 	return 0;
 }
 static const struct of_device_id sprd_pmic_glb_match[] = {
 	{ .compatible = "sprd,sc27xx-syscon"},
+	{ .compatible = "sprd,ump962x-syscon"},
+	{ .compatible = "sprd,ump9621-syscon"},
+	{ .compatible = "sprd,ump9622-syscon"},
 	{},
 };
 MODULE_DEVICE_TABLE(of, sprd_pmic_glb_match);
