@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-2.0
 
 ccflags-y := -I $(srctree)/$(src)
+subdir-ccflags-y += -I $(srctree)/$(src)/../../../devfreq/apsys/
 
 sprd-drm-y := \
 	sprd_drm.o \
