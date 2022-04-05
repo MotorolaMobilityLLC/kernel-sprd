@@ -121,6 +121,7 @@
 
 /* Definition of PMIC reset status register */
 #define HWRST_STATUS_SECURITY		0x02
+#define HWRST_STATUS_SECBOOT		0x03
 #define HWRST_STATUS_RECOVERY		0x20
 #define HWRST_STATUS_NORMAL		0x40
 #define HWRST_STATUS_ALARM		0x50
@@ -444,6 +445,8 @@ static int sprd_adi_restart_handler(struct notifier_block *this,
 		reboot_mode = HWRST_STATUS_SPRDISK;
 	else if (!strncmp(cmd, "tospanic", 8))
 		reboot_mode = HWRST_STATUS_SECURITY;
+	else if (!strncmp(cmd, "dm-verity", 9))
+		reboot_mode = HWRST_STATUS_SECBOOT;
 	else if (!strncmp(cmd, "factorytest", 11))
 		reboot_mode = HWRST_STATUS_FACTORYTEST;
 	else
