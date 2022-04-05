@@ -3720,6 +3720,7 @@ CONFIG_LEDS_CLASS=y
 # CONFIG_LEDS_IS31FL319X is not set
 # CONFIG_LEDS_IS31FL32XX is not set
 CONFIG_LEDS_SC27XX_BLTC=y
+# CONFIG_LEDS_SC27XX_KEYPAD is not set
 
 #
 # LED driver for blink(1) USB RGB LED is under Special HID drivers (HID_THINGM)
