@@ -79,6 +79,8 @@
 			reg = <0x504>;
 			interrupt-parent = <&ump9620_pmic>;
 			interrupts = <0 IRQ_TYPE_LEVEL_HIGH>;
+			sprd_adc_pm_reg = <&aon_apb_regs REG_AON_APB_MIPI_CSI_POWER_CTRL
+				MASK_AON_APB_R2G_ANALOG_BB_TOP_SINDRV_ENA_ADC>;
 			#io-channel-cells = <1>;
 			hwlocks = <&hwlock 4>;
 			nvmem-cells = <&adc_bcal1>, <&adc_bcal2>, <&adc_scal1>, <&adc_scal2>, <&vbat_det_cal1>, <&vbat_det_cal2>;
