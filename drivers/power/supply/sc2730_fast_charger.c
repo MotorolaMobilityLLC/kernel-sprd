@@ -83,6 +83,8 @@
 #define FCHG_VOLTAGE_12V			12000000
 #define FCHG_VOLTAGE_20V			20000000
 
+#define FCHG_CURRENT_2A				2000000
+
 #define SC2730_FCHG_TIMEOUT			msecs_to_jiffies(5000)
 #define SC2730_FAST_CHARGER_DETECT_MS		msecs_to_jiffies(1000)
 
@@ -883,6 +885,10 @@ static int sc2730_fchg_usb_get_property(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_CURRENT_MAX:
 		if (info->pps_enable)
 			sc2730_get_pps_current_max(info, &val->intval);
+		else if (info->pd_enable)
+			val->intval = FCHG_CURRENT_2A;
+		else if (info->sfcp_enable)
+			val->intval = FCHG_CURRENT_2A;
 		break;
 	default:
 		ret = -EINVAL;

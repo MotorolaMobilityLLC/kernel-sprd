@@ -63,6 +63,9 @@
 #define CM_FAST_CHARGE_DISABLE_CURRENT		1000000
 #define CM_FAST_CHARGE_TRANSITION_CURRENT_1P5A	1500000
 #define CM_FAST_CHARGE_CURRENT_2A		2000000
+#define CM_FAST_CHARGE_VOLTAGE_20V		20000000
+#define CM_FAST_CHARGE_VOLTAGE_15V		15000000
+#define CM_FAST_CHARGE_VOLTAGE_12V		12000000
 #define CM_FAST_CHARGE_VOLTAGE_9V		9000000
 #define CM_FAST_CHARGE_VOLTAGE_5V		5000000
 #define CM_FAST_CHARGE_START_VOLTAGE_LTHRESHOLD	3520000
@@ -90,6 +93,9 @@
 #define CM_CP_IBUS_STEP3			100000
 
 #define CM_PPS_5V_PROG_MAX			6200000
+#define CM_PPS_VOLTAGE_11V			11000000
+#define CM_PPS_VOLTAGE_16V			16000000
+#define CM_PPS_VOLTAGE_21V			21000000
 
 #define CM_CP_VBUS_ERRORLO_THRESHOLD(x)		((int)(x * 205 / 100))
 #define CM_CP_VBUS_ERRORHI_THRESHOLD(x)		((int)(x * 240 / 100))
@@ -4662,23 +4668,146 @@ static int cm_get_time_to_full_now(struct charger_manager *cm, int *time)
 
 static void cm_get_current_max(struct charger_manager *cm, int *current_max)
 {
-	int ret;
+	int adapter_max_ibus = CM_FAST_CHARGE_CURRENT_2A, chg_type_max_ibus = 0;
+	int ret = 0;
 
-	*current_max = 0;
-
-	if (cm->desc->cp.cp_running) {
-		*current_max = cm->desc->cp.cp_target_ibat;
+	if (!is_ext_pwr_online(cm)) {
+		*current_max = min(chg_type_max_ibus, adapter_max_ibus);
 		return;
 	}
 
-	ret = get_constant_charge_current(cm, current_max);
-	if (ret)
-		dev_err(cm->dev, "Fail to get current max\n");
+	switch (cm->desc->charger_type) {
+	case POWER_SUPPLY_USB_CHARGER_TYPE_DCP:
+		chg_type_max_ibus = cm->desc->cur.dcp_limit;
+		break;
+	case POWER_SUPPLY_USB_CHARGER_TYPE_SDP:
+		chg_type_max_ibus = cm->desc->cur.sdp_limit;
+		break;
+	case POWER_SUPPLY_USB_CHARGER_TYPE_CDP:
+		chg_type_max_ibus = cm->desc->cur.cdp_limit;
+		break;
+	case POWER_SUPPLY_USB_CHARGER_TYPE_PD:
+	case POWER_SUPPLY_USB_CHARGER_TYPE_SFCP_1P0:
+		chg_type_max_ibus = cm->desc->cur.fchg_limit;
+		ret = cm_get_adapter_max_current(cm, &adapter_max_ibus);
+		if (ret) {
+			adapter_max_ibus = CM_FAST_CHARGE_CURRENT_2A;
+			dev_err(cm->dev,
+				"%s, failed to obtain the adapter max_cur in fixed fchg\n",
+				__func__);
+		}
+		break;
+	case POWER_SUPPLY_USB_CHARGER_TYPE_PD_PPS:
+	case POWER_SUPPLY_USB_CHARGER_TYPE_SFCP_2P0:
+		chg_type_max_ibus = cm->desc->cur.flash_limit;
+		ret = cm_get_adapter_max_current(cm, &adapter_max_ibus);
+		if (ret) {
+			adapter_max_ibus = CM_FAST_CHARGE_CURRENT_2A;
+			dev_err(cm->dev,
+				"%s, failed to obtain the adapter max_cur in pps\n", __func__);
+			break;
+		}
+
+		if (cm->desc->charger_type == POWER_SUPPLY_USB_CHARGER_TYPE_PD_PPS &&
+		    cm->desc->force_pps_diasbled)
+			adapter_max_ibus = CM_FAST_CHARGE_CURRENT_2A;
+		break;
+	case POWER_SUPPLY_WIRELESS_CHARGER_TYPE_BPP:
+		chg_type_max_ibus = cm->desc->cur.wl_bpp_limit;
+		break;
+	case POWER_SUPPLY_WIRELESS_CHARGER_TYPE_EPP:
+		chg_type_max_ibus = cm->desc->cur.wl_epp_limit;
+		break;
+	case POWER_SUPPLY_CHARGER_TYPE_UNKNOWN:
+	default:
+		chg_type_max_ibus = cm->desc->cur.unknown_limit;
+		break;
+	}
+
+	*current_max = min(chg_type_max_ibus, adapter_max_ibus);
 }
 
 static void cm_get_voltage_max(struct charger_manager *cm, int *voltage_max)
 {
-	*voltage_max = cm->desc->constant_charge_voltage_max_uv;
+	int adapter_max_vbus = CM_FAST_CHARGE_VOLTAGE_5V, chg_type_max_vbus = 0;
+	int ret = 0;
+
+	if (!is_ext_pwr_online(cm)) {
+		*voltage_max = min(chg_type_max_vbus, adapter_max_vbus);
+		return;
+	}
+
+	switch (cm->desc->charger_type) {
+	case POWER_SUPPLY_USB_CHARGER_TYPE_PD:
+	case POWER_SUPPLY_USB_CHARGER_TYPE_SFCP_1P0:
+		if (!cm->desc->fast_charge_voltage_max) {
+			chg_type_max_vbus = CM_FAST_CHARGE_VOLTAGE_5V;
+			break;
+		}
+
+		if (cm->desc->fast_charge_voltage_max > CM_FAST_CHARGE_VOLTAGE_20V)
+			chg_type_max_vbus = CM_FAST_CHARGE_VOLTAGE_20V;
+		else if (cm->desc->fast_charge_voltage_max > CM_FAST_CHARGE_VOLTAGE_15V)
+			chg_type_max_vbus = CM_FAST_CHARGE_VOLTAGE_15V;
+		else if (cm->desc->fast_charge_voltage_max > CM_FAST_CHARGE_VOLTAGE_12V)
+			chg_type_max_vbus = CM_FAST_CHARGE_VOLTAGE_12V;
+		else if (cm->desc->fast_charge_voltage_max > CM_FAST_CHARGE_VOLTAGE_9V)
+			chg_type_max_vbus = CM_FAST_CHARGE_VOLTAGE_9V;
+
+		ret = cm_get_adapter_max_voltage(cm, &adapter_max_vbus);
+		if (ret) {
+			adapter_max_vbus = CM_FAST_CHARGE_VOLTAGE_5V;
+			dev_err(cm->dev,
+				"%s, failed to obtain the adapter max_vol in fixed fchg\n",
+				__func__);
+		}
+		break;
+	case POWER_SUPPLY_USB_CHARGER_TYPE_PD_PPS:
+	case POWER_SUPPLY_USB_CHARGER_TYPE_SFCP_2P0:
+		if (!cm->desc->flash_charge_voltage_max) {
+			chg_type_max_vbus = CM_FAST_CHARGE_VOLTAGE_5V;
+			break;
+		}
+
+		if (cm->desc->flash_charge_voltage_max > CM_FAST_CHARGE_VOLTAGE_20V)
+			chg_type_max_vbus = CM_PPS_VOLTAGE_21V;
+		else if (cm->desc->flash_charge_voltage_max > CM_FAST_CHARGE_VOLTAGE_15V)
+			chg_type_max_vbus = CM_PPS_VOLTAGE_16V;
+		else if (cm->desc->flash_charge_voltage_max > CM_FAST_CHARGE_VOLTAGE_9V)
+			chg_type_max_vbus = CM_PPS_VOLTAGE_11V;
+
+		ret = cm_get_adapter_max_voltage(cm, &adapter_max_vbus);
+		if (ret) {
+			adapter_max_vbus = CM_FAST_CHARGE_VOLTAGE_5V;
+			dev_err(cm->dev,
+				"%s, failed to obtain the adapter max_vol in pps\n",
+				__func__);
+			break;
+		}
+
+		if (cm->desc->charger_type == POWER_SUPPLY_USB_CHARGER_TYPE_PD_PPS &&
+		    cm->desc->force_pps_diasbled)
+			adapter_max_vbus = CM_FAST_CHARGE_VOLTAGE_5V;
+		break;
+	case POWER_SUPPLY_WIRELESS_CHARGER_TYPE_EPP:
+		if (!cm->desc->wireless_fast_charge_voltage_max) {
+			chg_type_max_vbus = CM_FAST_CHARGE_VOLTAGE_5V;
+			break;
+		}
+
+		chg_type_max_vbus = cm->desc->wireless_fast_charge_voltage_max;
+		break;
+	case POWER_SUPPLY_USB_CHARGER_TYPE_DCP:
+	case POWER_SUPPLY_USB_CHARGER_TYPE_CDP:
+	case POWER_SUPPLY_USB_CHARGER_TYPE_SDP:
+	case POWER_SUPPLY_CHARGER_TYPE_UNKNOWN:
+	case POWER_SUPPLY_WIRELESS_CHARGER_TYPE_BPP:
+	default:
+		chg_type_max_vbus = CM_FAST_CHARGE_VOLTAGE_5V;
+		break;
+	}
+
+	*voltage_max = min(chg_type_max_vbus, adapter_max_vbus);
 }
 
 static void cm_set_charge_control_limit(struct charger_manager *cm, int power)
@@ -4707,8 +4836,9 @@ static int cm_set_voltage_max_design(struct charger_manager *cm, int voltage_max
 	return ret;
 }
 
-static int cm_get_power_supply_property(struct power_supply *psy, enum power_supply_property
-				 psp, union power_supply_propval *val)
+static int cm_get_power_supply_property(struct power_supply *psy,
+					enum power_supply_property psp,
+					union power_supply_propval *val)
 {
 	int ret = 0;
 	struct cm_power_supply_data *data = container_of(psy->desc, struct  cm_power_supply_data, psd);
@@ -4854,15 +4984,6 @@ static int charger_get_property(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_VOLTAGE_MAX_DESIGN:
 		ret = cm_get_basp_max_volt(cm, &val->intval);
 		break;
-
-	case POWER_SUPPLY_PROP_CURRENT_MAX:
-		cm_get_current_max(cm, &val->intval);
-		break;
-
-	case POWER_SUPPLY_PROP_VOLTAGE_MAX:
-		cm_get_voltage_max(cm, &val->intval);
-		break;
-
 	default:
 		return -EINVAL;
 	}
@@ -4987,8 +5108,6 @@ static enum power_supply_property default_charger_props[] = {
 	POWER_SUPPLY_PROP_TEMP_AMBIENT,
 	POWER_SUPPLY_PROP_CYCLE_COUNT,
 	POWER_SUPPLY_PROP_VOLTAGE_MAX_DESIGN,
-	POWER_SUPPLY_PROP_CURRENT_MAX,
-	POWER_SUPPLY_PROP_VOLTAGE_MAX,
 	/*
 	 * Optional properties are:
 	 * POWER_SUPPLY_PROP_CHARGE_NOW,
