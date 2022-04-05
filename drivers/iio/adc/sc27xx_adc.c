@@ -3,6 +3,7 @@
 
 #include <linux/hwspinlock.h>
 #include <linux/iio/iio.h>
+#include <linux/mfd/syscon.h>
 #include <linux/module.h>
 #include <linux/nvmem-consumer.h>
 #include <linux/of.h>
@@ -21,10 +22,8 @@
 #define SC2731_ARM_CLK_EN		0xc10
 #define SC2730_ARM_CLK_EN		0x180c
 #define UMP9620_ARM_CLK_EN		0x200c
-#define UMP9620_XTL_WAIT_CTRL0		0x2378
 #define SC27XX_CLK_ADC_EN		BIT(5)
 #define SC27XX_CLK_ADC_CLK_EN		BIT(6)
-#define UMP9620_XTL_WAIT_CTRL0_EN	BIT(8)
 
 /* ADC controller registers definition */
 #define SC27XX_ADC_CTL			0x0
@@ -95,7 +94,16 @@ enum ump96xx_scale_cal {
 	UMP96XX_CH1_CAL,
 };
 
+struct sprd_adc_pm_data {
+	struct regmap *pm_regmap;
+	u32 clk26m_vote_reg;/* adc clk26 votre reg */
+	u32 clk26m_vote_reg_mask;/* adc clk26 votre reg mask */
+	bool pm_ctl_support;
+	bool dev_suspended;
+};
+
 struct sc27xx_adc_data {
+	struct iio_dev *indio_dev;
 	struct device *dev;
 	struct regulator *volref;
 	struct regmap *regmap;
@@ -108,6 +116,7 @@ struct sc27xx_adc_data {
 	u32 base;
 	int irq;
 	const struct sc27xx_adc_variant_data *var_data;
+	struct sprd_adc_pm_data pm_data;
 };
 
 /*
@@ -608,6 +617,11 @@ static int sc27xx_adc_read(struct sc27xx_adc_data *data, int channel,
 	int ret = 0, ret_volref = 0;
 	u32 rawdata = 0, tmp, status;
 
+	if (data->pm_data.pm_ctl_support && data->pm_data.dev_suspended) {
+		dev_info(data->dev, "adc_exp: adc clk26 bas been closed, ignore.\n");
+		return -EBUSY;
+	}
+
 	ret = hwspin_lock_timeout_raw(data->hwlock, SC27XX_ADC_HWLOCK_TIMEOUT);
 	if (ret) {
 		dev_err(data->dev, "timeout to get the hwspinlock\n");
@@ -925,6 +939,29 @@ static const struct iio_chan_spec sc27xx_channels[] = {
 	SC27XX_ADC_CHANNEL(31, BIT(IIO_CHAN_INFO_PROCESSED)),
 };
 
+static int sprd_adc_pm_handle(struct sc27xx_adc_data *sc27xx_data, bool enable)
+{
+	unsigned int regval = 0, regval_bef;
+	int ret;
+
+	regmap_read(sc27xx_data->pm_data.pm_regmap, sc27xx_data->pm_data.clk26m_vote_reg,
+		    &regval_bef);
+
+
+	ret = regmap_update_bits(sc27xx_data->pm_data.pm_regmap,
+				 sc27xx_data->pm_data.clk26m_vote_reg,
+				 sc27xx_data->pm_data.clk26m_vote_reg_mask,
+				 enable ? sc27xx_data->pm_data.clk26m_vote_reg_mask : 0);
+
+	regmap_read(sc27xx_data->pm_data.pm_regmap, sc27xx_data->pm_data.clk26m_vote_reg,
+		    &regval);
+
+	dev_info(sc27xx_data->dev, "enable %d, regval_bef 0x%x, regval 0x%x\n",
+		 enable, regval_bef, regval);
+
+	return ret;
+}
+
 static int sc27xx_adc_enable(struct sc27xx_adc_data *data)
 {
 	int ret;
@@ -933,12 +970,6 @@ static int sc27xx_adc_enable(struct sc27xx_adc_data *data)
 				 SC27XX_MODULE_ADC_EN, SC27XX_MODULE_ADC_EN);
 	if (ret)
 		return ret;
-
-	/* Enable 26MHz crvstal oscillator wait cycles for UMP9620 ADC */
-	if (data->var_data->pmic_type == UMP9620_ADC)
-		ret = regmap_update_bits(data->regmap, UMP9620_XTL_WAIT_CTRL0,
-					 UMP9620_XTL_WAIT_CTRL0_EN,
-					 UMP9620_XTL_WAIT_CTRL0_EN);
 
 	/* Enable ADC work clock */
 	ret = regmap_update_bits(data->regmap, data->var_data->clk_en,
@@ -1062,6 +1093,35 @@ static const struct sc27xx_adc_variant_data ump9620_data = {
 	.get_ratio = ump9620_adc_get_ratio,
 };
 
+static int sc27xx_adc_pm_init(struct sc27xx_adc_data *sc27xx_data)
+{
+	int ret;
+	unsigned int pm_args[2];
+	struct device_node *np = sc27xx_data->dev->of_node;
+
+	sc27xx_data->pm_data.pm_ctl_support = false;
+	sc27xx_data->pm_data.pm_regmap =
+		syscon_regmap_lookup_by_phandle_args(np, "sprd_adc_pm_reg", 2, pm_args);
+	if (!IS_ERR_OR_NULL(sc27xx_data->pm_data.pm_regmap)) {
+		sc27xx_data->pm_data.pm_ctl_support = true;
+		sc27xx_data->pm_data.clk26m_vote_reg = pm_args[0];
+		sc27xx_data->pm_data.clk26m_vote_reg_mask = pm_args[1];
+		dev_info(sc27xx_data->dev, "sprd_adc_rpm_reg reg 0x%x, mask 0x%x\n",
+			 pm_args[0], pm_args[1]);
+
+		ret = sprd_adc_pm_handle(sc27xx_data, true);
+		if (ret) {
+			dev_err(sc27xx_data->dev, "failed to set the ADC clk26m bit8 on IP\n");
+			return -EBUSY;
+		}
+
+		sc27xx_data->pm_data.dev_suspended = false;
+	}
+
+	return 0;
+
+}
+
 static int sc27xx_adc_probe(struct platform_device *pdev)
 {
 	struct device_node *np = pdev->dev.of_node;
@@ -1131,6 +1191,7 @@ static int sc27xx_adc_probe(struct platform_device *pdev)
 
 	sc27xx_data->dev = &pdev->dev;
 	sc27xx_data->var_data = pdata;
+	sc27xx_data->indio_dev = indio_dev;
 
 	sc27xx_data->var_data->init_scale(sc27xx_data);
 	ret = sc27xx_adc_enable(sc27xx_data);
@@ -1146,6 +1207,12 @@ static int sc27xx_adc_probe(struct platform_device *pdev)
 		return ret;
 	}
 
+	ret = sc27xx_adc_pm_init(sc27xx_data);
+	if (ret) {
+		dev_err(&pdev->dev, "adc pm init err.\n");
+		return ret;
+	}
+
 	indio_dev->dev.parent = &pdev->dev;
 	indio_dev->name = dev_name(&pdev->dev);
 	indio_dev->modes = INDIO_DIRECT_MODE;
@@ -1155,6 +1222,8 @@ static int sc27xx_adc_probe(struct platform_device *pdev)
 	ret = devm_iio_device_register(&pdev->dev, indio_dev);
 	if (ret)
 		dev_err(&pdev->dev, "could not register iio (ADC)");
+
+	platform_set_drvdata(pdev, indio_dev);
 
 	return ret;
 }
@@ -1168,11 +1237,80 @@ static const struct of_device_id sc27xx_adc_of_match[] = {
 	{ }
 };
 
+static int sc27xx_adc_remove(struct platform_device *pdev)
+{
+	struct iio_dev *indio_dev = platform_get_drvdata(pdev);
+	struct sc27xx_adc_data *sc27xx_data = iio_priv(indio_dev);
+	int ret;
+
+	if (sc27xx_data->pm_data.pm_ctl_support) {
+		ret = sprd_adc_pm_handle(sc27xx_data, false);
+		if (ret)
+			dev_err(sc27xx_data->dev, "clean clk26m_sinout_pmic failed\n");
+	}
+
+	return 0;
+}
+
+static int sc27xx_adc_pm_suspend(struct device *dev)
+{
+	struct sc27xx_adc_data *sc27xx_data = iio_priv(dev_get_drvdata(dev));
+	int ret;
+
+
+	if (!sc27xx_data->pm_data.pm_ctl_support)
+		return 0;
+
+	mutex_lock(&sc27xx_data->indio_dev->mlock);
+
+	ret = sprd_adc_pm_handle(sc27xx_data, false);
+	if (ret) {
+		dev_err(sc27xx_data->dev, "clean clk26m_sinout_pmic failed\n");
+		mutex_unlock(&sc27xx_data->indio_dev->mlock);
+		return 0;
+	}
+	sc27xx_data->pm_data.dev_suspended = true;
+
+	mutex_unlock(&sc27xx_data->indio_dev->mlock);
+
+	return 0;
+}
+
+static int sc27xx_adc_pm_resume(struct device *dev)
+{
+	int ret;
+	struct sc27xx_adc_data *sc27xx_data = iio_priv(dev_get_drvdata(dev));
+
+	if (!sc27xx_data->pm_data.pm_ctl_support)
+		return 0;
+
+	mutex_lock(&sc27xx_data->indio_dev->mlock);
+
+	ret = sprd_adc_pm_handle(sc27xx_data, true);
+	if (ret) {
+		dev_err(dev, "failed to set the UMP9620 ADC clk26m bit8 on IP\n");
+		mutex_unlock(&sc27xx_data->indio_dev->mlock);
+		return 0;
+	}
+	sc27xx_data->pm_data.dev_suspended = false;
+
+	mutex_unlock(&sc27xx_data->indio_dev->mlock);
+
+	return 0;
+}
+
+static const struct dev_pm_ops sc27xx_adc_pm_ops = {
+	.suspend_noirq = sc27xx_adc_pm_suspend,
+	.resume_noirq = sc27xx_adc_pm_resume,
+};
+
 static struct platform_driver sc27xx_adc_driver = {
 	.probe = sc27xx_adc_probe,
+	.remove = sc27xx_adc_remove,
 	.driver = {
 		.name = "sc27xx-adc",
 		.of_match_table = sc27xx_adc_of_match,
+		.pm	= &sc27xx_adc_pm_ops,
 	},
 };
 
