@@ -171,6 +171,7 @@ static const struct of_device_id sprd_pmic_wdt_of_match[] = {
 	{.compatible = "sprd,sc2730-wdt",},
 	{.compatible = "sprd,sc2721-wdt",},
 	{.compatible = "sprd,sc2720-wdt",},
+	{.compatible = "sprd,ump9620-wdt",},
 	{}
 };
 
