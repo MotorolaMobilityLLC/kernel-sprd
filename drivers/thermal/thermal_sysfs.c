@@ -348,6 +348,41 @@ sustainable_power_store(struct device *dev, struct device_attribute *devattr,
 	return count;
 }
 
+#ifdef CONFIG_SPRD_THERMAL_POLICY
+static ssize_t
+user_power_range_store(struct device *dev, struct device_attribute *attr,
+			const char *buf, size_t count)
+{
+	struct thermal_zone_device *tz = to_thermal_zone(dev);
+	u32 user_power_range_value;
+
+	if (kstrtou32(buf, 10, &user_power_range_value) ||
+		strcmp(tz->type, "soc-thmzone"))
+		return -EINVAL;
+
+	user_power_range = user_power_range_value;
+
+	thermal_zone_device_update(tz, THERMAL_EVENT_UNSPECIFIED);
+
+	return count;
+}
+
+static ssize_t
+user_power_range_show(struct device *dev, struct device_attribute *attr,
+			char *buf)
+{
+	struct thermal_zone_device *tz = to_thermal_zone(dev);
+
+	if (!strcmp(tz->type, "soc-thmzone"))
+		return sprintf(buf, "%d\n", user_power_range);
+	else
+		return -EINVAL;
+}
+
+static DEVICE_ATTR(user_power_range, 0644, user_power_range_show,
+			user_power_range_store);
+#endif
+
 #define create_s32_tzp_attr(name)					\
 	static ssize_t							\
 	name##_show(struct device *dev, struct device_attribute *devattr, \
@@ -426,6 +461,10 @@ static struct attribute *thermal_zone_dev_attrs[] = {
 	&dev_attr_offset.attr,
 #ifdef CONFIG_SPRD_THERMAL_DEBUG
 	&dev_attr_thm_enable.attr,
+#endif
+
+#ifdef CONFIG_SPRD_THERMAL_POLICY
+	&dev_attr_user_power_range.attr,
 #endif
 	NULL,
 };

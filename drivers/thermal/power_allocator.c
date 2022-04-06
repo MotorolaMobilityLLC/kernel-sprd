@@ -30,6 +30,10 @@
 #define int_to_frac(x) ((x) << FRAC_BITS)
 #define frac_to_int(x) ((x) >> FRAC_BITS)
 
+#ifdef CONFIG_SPRD_THERMAL_POLICY
+u32 user_power_range;
+#endif
+
 /**
  * mul_frac() - multiply two fixed-point numbers
  * @x:	first multiplicand
@@ -425,6 +429,11 @@ static int allocate_power(struct thermal_zone_device *tz,
 
 	power_range = pid_controller(tz, control_temp, max_allocatable_power);
 
+#ifdef CONFIG_SPRD_THERMAL_POLICY
+	if (user_power_range && user_power_range < power_range)
+		power_range = user_power_range;
+#endif
+
 	divvy_up_power(weighted_req_power, max_power, num_actors,
 		       total_weighted_req_power, power_range, granted_power,
 		       extra_actor_power);
@@ -594,6 +603,10 @@ static int power_allocator_bind(struct thermal_zone_device *tz)
 
 	tz->governor_data = params;
 
+#ifdef CONFIG_SPRD_THERMAL_POLICY
+	user_power_range = 0;
+#endif
+
 #ifdef CONFIG_SPRD_THERMAL_DEBUG
 	tz->tzp->thm_enable = 1;
 	tz->tzp->reset_done = 0;
@@ -667,7 +680,11 @@ static int power_allocator_throttle(struct thermal_zone_device *tz, int trip)
 #endif
 	ret = tz->ops->get_trip_temp(tz, params->trip_switch_on,
 				     &switch_on_temp);
+#ifdef CONFIG_SPRD_THERMAL_POLICY
+	if (!ret && (tz->temperature < switch_on_temp) && !user_power_range) {
+#else
 	if (!ret && (tz->temperature < switch_on_temp)) {
+#endif
 		tz->passive = 0;
 		reset_pid_controller(params);
 		allow_maximum_power(tz);

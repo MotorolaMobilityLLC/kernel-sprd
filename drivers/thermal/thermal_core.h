@@ -116,4 +116,8 @@ of_thermal_get_trip_points(struct thermal_zone_device *tz)
 }
 #endif
 
+#ifdef CONFIG_SPRD_THERMAL_POLICY
+extern u32 user_power_range;
+#endif
+
 #endif /* __THERMAL_CORE_H__ */
