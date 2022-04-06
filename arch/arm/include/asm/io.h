@@ -25,6 +25,7 @@
 #include <asm/byteorder.h>
 #include <asm/memory.h>
 #include <asm-generic/pci_iomap.h>
+#include <../drivers/soc/sprd/debug/past_record/sprd_past_record.h>
 
 /*
  * ISA I/O bus memory addresses are 1:1 with the physical address.
@@ -56,8 +57,24 @@ void __raw_readsl(const volatile void __iomem *addr, void *data, int longlen);
  * the bus. Rather than special-case the machine, just let the compiler
  * generate the access for CPUs prior to ARMv6.
  */
+#ifdef CONFIG_SPRD_PAST_RECORD
+#define __raw_readw(a)         ({ \
+		sprd_readw_reg_info(a);	\
+		unsigned short v;  \
+		__chk_io_ptr(a); \
+		v = *(unsigned short __force *)(a); \
+		v; \
+		})
+#define __raw_writew(v, a)      ({\
+		sprd_writew_reg_info(v, a);	\
+		__chk_io_ptr(a);\
+		*(unsigned short __force *)(a) = (v);\
+		})
+#else
 #define __raw_readw(a)         (__chk_io_ptr(a), *(volatile unsigned short __force *)(a))
 #define __raw_writew(v,a)      ((void)(__chk_io_ptr(a), *(volatile unsigned short __force *)(a) = (v)))
+#endif
+
 #else
 /*
  * When running under a hypervisor, we want to avoid I/O accesses with
@@ -67,6 +84,7 @@ void __raw_readsl(const volatile void __iomem *addr, void *data, int longlen);
 #define __raw_writew __raw_writew
 static inline void __raw_writew(u16 val, volatile void __iomem *addr)
 {
+	sprd_writew_reg_info(val, addr);
 	asm volatile("strh %1, %0"
 		     : : "Q" (*(volatile u16 __force *)addr), "r" (val));
 }
@@ -75,6 +93,7 @@ static inline void __raw_writew(u16 val, volatile void __iomem *addr)
 static inline u16 __raw_readw(const volatile void __iomem *addr)
 {
 	u16 val;
+	sprd_readw_reg_info(addr);
 	asm volatile("ldrh %0, %1"
 		     : "=r" (val)
 		     : "Q" (*(volatile u16 __force *)addr));
@@ -85,6 +104,7 @@ static inline u16 __raw_readw(const volatile void __iomem *addr)
 #define __raw_writeb __raw_writeb
 static inline void __raw_writeb(u8 val, volatile void __iomem *addr)
 {
+	sprd_writeb_reg_info(val, addr);
 	asm volatile("strb %1, %0"
 		     : : "Qo" (*(volatile u8 __force *)addr), "r" (val));
 }
@@ -92,6 +112,7 @@ static inline void __raw_writeb(u8 val, volatile void __iomem *addr)
 #define __raw_writel __raw_writel
 static inline void __raw_writel(u32 val, volatile void __iomem *addr)
 {
+	sprd_writel_reg_info(val, addr);
 	asm volatile("str %1, %0"
 		     : : "Qo" (*(volatile u32 __force *)addr), "r" (val));
 }
@@ -100,6 +121,7 @@ static inline void __raw_writel(u32 val, volatile void __iomem *addr)
 static inline u8 __raw_readb(const volatile void __iomem *addr)
 {
 	u8 val;
+	sprd_readb_reg_info(addr);
 	asm volatile("ldrb %0, %1"
 		     : "=r" (val)
 		     : "Qo" (*(volatile u8 __force *)addr));
@@ -110,6 +132,7 @@ static inline u8 __raw_readb(const volatile void __iomem *addr)
 static inline u32 __raw_readl(const volatile void __iomem *addr)
 {
 	u32 val;
+	sprd_readl_reg_info(addr);
 	asm volatile("ldr %0, %1"
 		     : "=r" (val)
 		     : "Qo" (*(volatile u32 __force *)addr));

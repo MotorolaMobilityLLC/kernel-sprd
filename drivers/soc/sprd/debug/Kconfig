@@ -14,6 +14,20 @@ config SPRD_LOOK_AT
 	  such as the register of each module, DDR address space, etc.
 	  When in doubt, say n
 
+config SPRD_PAST_RECORD
+	bool "SPRD past event debug"
+	depends on SPRD_DEBUG
+	default y
+	help
+	  SPRD past record for Debug.
+
+config ENABLE_SPRD_IO_TRACING
+	bool "SPRD IO TRACING event debug"
+	depends on SPRD_DEBUG
+	default y
+	help
+	  SPRD IO TRACING for Debug.
+
 source "drivers/soc/sprd/debug/djtag/Kconfig"
 source "drivers/soc/sprd/debug/busmonitor/Kconfig"
 source "drivers/soc/sprd/debug/sysdump/Kconfig"

@@ -17086,6 +17086,24 @@ CONFIG_SPRD_NATIVE_HANG_MONITOR
 	[must] user
 	[missing plat description] none
 	[function] This functio is used to monitor native hang.
+CONFIG_SPRD_PAST_RECORD
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field] make,code
+	[subsys] soc
+	[must] user
+	[missing plat description] none
+	[function] This function is used to enable sprd tracing code.
+CONFIG_ENABLE_SPRD_IO_TRACING
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field] make,code
+	[subsys] soc
+	[must] user
+	[missing plat description] none
+	[function] This function is used to enable IO tracing feature.
 CONFIG_SPRD_NET_HELPER
 	[arch] all
 	[plat] all
