@@ -1615,6 +1615,69 @@ int dsp_hp_crosstalk_gain(int value0, int value1)
 	return ret;
 }
 
+int vbc_dsp_cust_dev_set(int dev, int id, int stream)
+{
+	int ret;
+	struct vbc_dev_para vbc_para = { };
+
+	vbc_para.dev_para = dev;
+	vbc_para.val0 = id;
+	vbc_para.val1 = stream;
+
+	ret = aud_send_cmd(AMSG_CH_VBC_CTL,
+		SND_KCTL_TYPE_CUST_DEV_SET,
+		-1, SND_VBC_DSP_IO_KCTL_SET,
+		&vbc_para, sizeof(struct vbc_dev_para),
+		AUDIO_SIPC_WAIT_FOREVER);
+	if (ret < 0)
+		return -EIO;
+
+	return 0;
+}
+
+int vbc_dsp_sys_dev_set(int dev, int id, int stream)
+{
+	int ret;
+	struct vbc_dev_para vbc_para = { };
+
+	vbc_para.dev_para = dev;
+	vbc_para.val0 = id;
+	vbc_para.val1 = stream;
+
+
+	ret = aud_send_cmd(AMSG_CH_VBC_CTL,
+		SND_KCTL_TYPE_SYS_DEV_SET,
+		-1, SND_VBC_DSP_IO_KCTL_SET,
+		&vbc_para, sizeof(struct vbc_dev_para),
+		AUDIO_SIPC_WAIT_FOREVER);
+
+	if (ret < 0)
+		return -EIO;
+
+	return 0;
+}
+
+int vbc_dsp_cust_vol_set(int up_down, int id, int stream)
+{
+	int ret;
+	struct vbc_dev_para vbc_para = { };
+
+	vbc_para.dev_para = up_down;
+	vbc_para.val0 = id;
+	vbc_para.val1 = stream;
+
+	ret = aud_send_cmd(AMSG_CH_VBC_CTL,
+		SND_KCTL_TYPE_CUST_VOL_SET,
+		-1, SND_VBC_DSP_IO_KCTL_SET,
+		&vbc_para, sizeof(struct vbc_dev_para),
+		AUDIO_SIPC_WAIT_FOREVER);
+
+	if (ret < 0)
+		return -EIO;
+
+	return 0;
+}
+
 /*********************************************************
  * others
  *********************************************************/
