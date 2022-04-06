@@ -13,11 +13,11 @@
 #include <linux/sprd_soc_id.h>
 
 static const char * const syscon_name[] = {
-		"chip_id",
-		"plat_id",
-		"implement_id",
-		"manufacture_id",
-		"version_id"
+		"chip-id",
+		"plat-id",
+		"implement-id",
+		"manufacture-id",
+		"version-id"
 };
 
 struct register_gpr {
