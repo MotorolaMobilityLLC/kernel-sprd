@@ -145,6 +145,12 @@ void wcn_assert_interface(enum wcn_source_type type, char *str)
 		goto out;
 	} else if (reset_prop == WCN_ASSERT_BOTH_RESET_DUMP) {
 		/*need to do, please reference androidr_trunk_u01*/
+		wcn_dump_process();
+		msleep(2000);
+		wcn_reset_process();
+		sprdwcn_bus_set_carddump_status(false);
+		/*notify slogmodem to restore the state of saving dump*/
+		wcn_notify_fw_error(WCN_SOURCE_CP2_ALIVE, "save dump");
 		goto out;
 	}
 
