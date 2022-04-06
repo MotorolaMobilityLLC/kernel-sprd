@@ -44,6 +44,7 @@ static const struct of_device_id sprd_ptm_of_match[] = {
 	{ .compatible = "sprd,orca-ptm", .data = &ptm_v2_data},
 	{ .compatible = "sprd,sharkl5pro-ptm", .data = &ptm_v2_data},
 	{ .compatible = "sprd,qogirl6-ptm", .data = &ptm_v2_data},
+	{ .compatible = "sprd,qogirn6pro-ptm", .data = &ptm_v2_data},
 	{ },
 };
 static struct attribute_group ptm_legacy_group;
