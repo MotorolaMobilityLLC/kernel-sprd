@@ -15,6 +15,7 @@
 #define __LINUX_SPRD_USBM_H
 
 #include <linux/notifier.h>
+#include <linux/kallsyms.h>
 
 /* associate a type with PAM */
 enum sprd_usbm_event_type {

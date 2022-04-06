@@ -1477,6 +1477,7 @@ static const struct dev_pm_ops musb_sprd_pm_ops = {
 static const struct of_device_id usb_ids[] = {
 	{ .compatible = "sprd,sharkl3-musb" },
 	{ .compatible = "sprd,qogirl6-musb" },
+	{ .compatible = "sprd,qogirn6pro-musb" },
 	{}
 };
 
