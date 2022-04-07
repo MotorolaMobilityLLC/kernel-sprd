@@ -15,13 +15,11 @@ endif
 
 ifeq ($(BSP_BUILD_FAMILY),sharkl5Pro)
 
-dtb-$(CONFIG_ARCH_SPRD) += ums512-base.dtb
+dtb-$(CONFIG_ARCH_SPRD) += ums512-1h10-overlay.dtbo
+dtb-$(CONFIG_ARCH_SPRD) += ums512-1h10-go-overlay.dtbo
 
-dtb-$(CONFIG_ARCH_SPRD) += ums512-1h10-overlay.dtb
-dtb-$(CONFIG_ARCH_SPRD) += ums512-1h10-go-overlay.dtb
-
-#ums512-1h10-overlay.dtbo-base := ums512.dtb
-#ums512-1h10-go-overlay.dtbo-base := ums512.dtb
+ums512-1h10-overlay.dtbo-base := ums512-base.dtb
+ums512-1h10-go-overlay.dtbo-base := ums512-base.dtb
 endif
 
 ifeq ($(BSP_BUILD_FAMILY),sharkl5)
