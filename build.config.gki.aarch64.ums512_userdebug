@@ -12,6 +12,8 @@ EXT_MODULES="
 ../modules/kernel5.15/sample
 "
 
+DTC_FLAGS+="-@"
+
 MAKE_GOALS="${MAKE_GOALS}
 Image.gz
 dtbs
@@ -20,8 +22,8 @@ dtbs
 FILES="${FILES}
 arch/arm64/boot/Image.gz
 arch/arm64/boot/dts/sprd/ums512-base.dtb
-arch/arm64/boot/dts/sprd/ums512-1h10-go-overlay.dtb
-arch/arm64/boot/dts/sprd/ums512-1h10-overlay.dtb
+arch/arm64/boot/dts/sprd/ums512-1h10-go-overlay.dtbo
+arch/arm64/boot/dts/sprd/ums512-1h10-overlay.dtbo
 vmlinux
 "
 #KMI_SYMBOL_LIST=android/abi_gki_aarch64_unisoc
