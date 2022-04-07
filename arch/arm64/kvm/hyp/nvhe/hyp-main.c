@@ -15,6 +15,7 @@
 #include <asm/kvm_hyp.h>
 #include <asm/kvm_mmu.h>
 
+#include <nvhe/ffa.h>
 #include <nvhe/iommu.h>
 #include <nvhe/mem_protect.h>
 #include <nvhe/mm.h>
@@ -45,8 +46,6 @@ struct pkvm_loaded_state {
 static DEFINE_PER_CPU(struct pkvm_loaded_state, loaded_state);
 
 DEFINE_PER_CPU(struct kvm_nvhe_init_params, kvm_init_params);
-
-struct kvm_iommu_ops kvm_iommu_ops;
 
 void __kvm_hyp_host_forward_smc(struct kvm_cpu_context *host_ctxt);
 
@@ -289,6 +288,7 @@ static void handle_pvm_exit_hvc64(struct kvm_vcpu *host_vcpu, struct kvm_vcpu *s
 
 	case PSCI_0_2_FN_CPU_OFF:
 	case PSCI_0_2_FN_SYSTEM_OFF:
+	case PSCI_0_2_FN_SYSTEM_RESET:
 	case PSCI_0_2_FN_CPU_SUSPEND:
 	case PSCI_0_2_FN64_CPU_SUSPEND:
 		n = 1;
@@ -300,6 +300,8 @@ static void handle_pvm_exit_hvc64(struct kvm_vcpu *host_vcpu, struct kvm_vcpu *s
 		n = 4;
 		break;
 
+	case PSCI_1_1_FN_SYSTEM_RESET2:
+	case PSCI_1_1_FN64_SYSTEM_RESET2:
 	case ARM_SMCCC_VENDOR_HYP_KVM_MMIO_GUARD_MAP_FUNC_ID:
 		n = 3;
 		break;
@@ -481,7 +483,7 @@ static void sync_timer_state(struct pkvm_loaded_state *state)
 	__vcpu_sys_reg(shadow_vcpu, CNTV_CTL_EL0) = read_sysreg_el0(SYS_CNTV_CTL);
 }
 
-static void __sync_vcpu_state(struct kvm_vcpu *from_vcpu,
+static void __copy_vcpu_state(const struct kvm_vcpu *from_vcpu,
 			      struct kvm_vcpu *to_vcpu)
 {
 	int i;
@@ -503,6 +505,20 @@ static void __sync_vcpu_state(struct kvm_vcpu *from_vcpu,
 	}
 }
 
+static void __sync_vcpu_state(struct kvm_vcpu *shadow_vcpu)
+{
+	struct kvm_vcpu *host_vcpu = shadow_vcpu->arch.pkvm.host_vcpu;
+
+	__copy_vcpu_state(shadow_vcpu, host_vcpu);
+}
+
+static void __flush_vcpu_state(struct kvm_vcpu *shadow_vcpu)
+{
+	struct kvm_vcpu *host_vcpu = shadow_vcpu->arch.pkvm.host_vcpu;
+
+	__copy_vcpu_state(host_vcpu, shadow_vcpu);
+}
+
 static void flush_shadow_state(struct pkvm_loaded_state *state)
 {
 	struct kvm_vcpu *shadow_vcpu = state->vcpu;
@@ -520,7 +536,7 @@ static void flush_shadow_state(struct pkvm_loaded_state *state)
 	 */
 	if (!state->is_protected) {
 		if (READ_ONCE(host_vcpu->arch.flags) & KVM_ARM64_PKVM_STATE_DIRTY)
-			__sync_vcpu_state(host_vcpu, shadow_vcpu);
+			__flush_vcpu_state(shadow_vcpu);
 
 		state->vcpu->arch.hcr_el2 = HCR_GUEST_FLAGS & ~(HCR_RW | HCR_TWI | HCR_TWE);
 		state->vcpu->arch.hcr_el2 |= host_vcpu->arch.hcr_el2;
@@ -612,9 +628,10 @@ static void fpsimd_host_restore(void)
 
 static void handle___pkvm_vcpu_load(struct kvm_cpu_context *host_ctxt)
 {
-	DECLARE_REG(struct kvm_vcpu *, vcpu, host_ctxt, 1);
+	DECLARE_REG(int, shadow_handle, host_ctxt, 1);
+	DECLARE_REG(int, vcpu_idx, host_ctxt, 2);
+	DECLARE_REG(u64, hcr_el2, host_ctxt, 3);
 	struct pkvm_loaded_state *state;
-	int handle;
 
 	/* Why did you bother? */
 	if (!is_protected_kvm_enabled())
@@ -626,10 +643,7 @@ static void handle___pkvm_vcpu_load(struct kvm_cpu_context *host_ctxt)
 	if (state->vcpu)
 		return;
 
-	vcpu = kern_hyp_va(vcpu);
-
-	handle = READ_ONCE(vcpu->arch.pkvm.shadow_handle);
-	state->vcpu = get_shadow_vcpu(handle, vcpu->vcpu_idx);
+	state->vcpu = get_shadow_vcpu(shadow_handle, vcpu_idx);
 
 	if (!state->vcpu)
 		return;
@@ -643,27 +657,24 @@ static void handle___pkvm_vcpu_load(struct kvm_cpu_context *host_ctxt)
 		/* Propagate WFx trapping flags, trap ptrauth */
 		state->vcpu->arch.hcr_el2 &= ~(HCR_TWE | HCR_TWI |
 					       HCR_API | HCR_APK);
-		state->vcpu->arch.hcr_el2 |= vcpu->arch.hcr_el2 & (HCR_TWE |
-								   HCR_TWI);
+		state->vcpu->arch.hcr_el2 |= hcr_el2 & (HCR_TWE | HCR_TWI);
 	}
 }
 
 static void handle___pkvm_vcpu_put(struct kvm_cpu_context *host_ctxt)
 {
-	DECLARE_REG(struct kvm_vcpu *, vcpu, host_ctxt, 1);
-
 	if (unlikely(is_protected_kvm_enabled())) {
 		struct pkvm_loaded_state *state = this_cpu_ptr(&loaded_state);
 
-		vcpu = kern_hyp_va(vcpu);
+		if (state->vcpu) {
+			struct kvm_vcpu *host_vcpu = state->vcpu->arch.pkvm.host_vcpu;
 
-		if (state->vcpu && state->vcpu->arch.pkvm.host_vcpu == vcpu) {
 			if (state->vcpu->arch.flags & KVM_ARM64_FP_ENABLED)
 				fpsimd_host_restore();
 
 			if (!state->is_protected &&
-			    !(READ_ONCE(vcpu->arch.flags) & KVM_ARM64_PKVM_STATE_DIRTY))
-				__sync_vcpu_state(state->vcpu, vcpu);
+			    !(READ_ONCE(host_vcpu->arch.flags) & KVM_ARM64_PKVM_STATE_DIRTY))
+				__sync_vcpu_state(state->vcpu);
 
 			put_shadow_vcpu(state->vcpu);
 
@@ -675,18 +686,13 @@ static void handle___pkvm_vcpu_put(struct kvm_cpu_context *host_ctxt)
 
 static void handle___pkvm_vcpu_sync_state(struct kvm_cpu_context *host_ctxt)
 {
-	DECLARE_REG(struct kvm_vcpu *, vcpu, host_ctxt, 1);
-
 	if (unlikely(is_protected_kvm_enabled())) {
 		struct pkvm_loaded_state *state = this_cpu_ptr(&loaded_state);
 
-		vcpu = kern_hyp_va(vcpu);
-
-		if (!state->vcpu || state->is_protected ||
-		    state->vcpu->arch.pkvm.host_vcpu != vcpu)
+		if (!state->vcpu || state->is_protected)
 			return;
 
-		__sync_vcpu_state(state->vcpu, vcpu);
+		__sync_vcpu_state(state->vcpu);
 	}
 }
 
@@ -726,20 +732,21 @@ static void handle___pkvm_host_donate_guest(struct kvm_cpu_context *host_ctxt)
 {
 	DECLARE_REG(u64, pfn, host_ctxt, 1);
 	DECLARE_REG(u64, gfn, host_ctxt, 2);
-	DECLARE_REG(struct kvm_vcpu *, vcpu, host_ctxt, 3);
+	struct kvm_vcpu *host_vcpu;
 	struct pkvm_loaded_state *state;
 	int ret = -EINVAL;
 
 	if (!is_protected_kvm_enabled())
 		goto out;
 
-	vcpu = kern_hyp_va(vcpu);
 	state = this_cpu_ptr(&loaded_state);
 	if (!state->vcpu)
 		goto out;
 
+	host_vcpu = state->vcpu->arch.pkvm.host_vcpu;
+
 	/* Topup shadow memcache with the host's */
-	ret = pkvm_refill_memcache(state->vcpu, vcpu);
+	ret = pkvm_refill_memcache(state->vcpu, host_vcpu);
 	if (!ret) {
 		if (state->is_protected)
 			ret = __pkvm_host_donate_guest(pfn, gfn, state->vcpu);
@@ -899,7 +906,6 @@ static void handle___pkvm_init(struct kvm_cpu_context *host_ctxt)
 	DECLARE_REG(unsigned long, nr_cpus, host_ctxt, 3);
 	DECLARE_REG(unsigned long *, per_cpu_base, host_ctxt, 4);
 	DECLARE_REG(u32, hyp_va_bits, host_ctxt, 5);
-	DECLARE_REG(enum kvm_iommu_driver, iommu_driver, host_ctxt, 6);
 
 	/*
 	 * __pkvm_init() will return only if an error occurred, otherwise it
@@ -907,7 +913,7 @@ static void handle___pkvm_init(struct kvm_cpu_context *host_ctxt)
 	 * with the host context directly.
 	 */
 	cpu_reg(host_ctxt, 1) = __pkvm_init(phys, size, nr_cpus, per_cpu_base,
-					    hyp_va_bits, iommu_driver);
+					    hyp_va_bits);
 }
 
 static void handle___pkvm_cpu_set_vector(struct kvm_cpu_context *host_ctxt)
@@ -965,9 +971,46 @@ static void handle___pkvm_init_shadow(struct kvm_cpu_context *host_ctxt)
 
 static void handle___pkvm_teardown_shadow(struct kvm_cpu_context *host_ctxt)
 {
-	DECLARE_REG(struct kvm *, host_kvm, host_ctxt, 1);
+	DECLARE_REG(int, shadow_handle, host_ctxt, 1);
 
-	cpu_reg(host_ctxt, 1) = __pkvm_teardown_shadow(host_kvm);
+	cpu_reg(host_ctxt, 1) = __pkvm_teardown_shadow(shadow_handle);
+}
+
+static void handle___pkvm_iommu_driver_init(struct kvm_cpu_context *host_ctxt)
+{
+	DECLARE_REG(enum pkvm_iommu_driver_id, id, host_ctxt, 1);
+	DECLARE_REG(void *, data, host_ctxt, 2);
+	DECLARE_REG(size_t, size, host_ctxt, 3);
+
+	cpu_reg(host_ctxt, 1) = __pkvm_iommu_driver_init(id, data, size);
+}
+
+static void handle___pkvm_iommu_register(struct kvm_cpu_context *host_ctxt)
+{
+	DECLARE_REG(unsigned long, dev_id, host_ctxt, 1);
+	DECLARE_REG(enum pkvm_iommu_driver_id, drv_id, host_ctxt, 2);
+	DECLARE_REG(phys_addr_t, dev_pa, host_ctxt, 3);
+	DECLARE_REG(size_t, dev_size, host_ctxt, 4);
+	DECLARE_REG(unsigned long, parent_id, host_ctxt, 5);
+	DECLARE_REG(void *, mem, host_ctxt, 6);
+	DECLARE_REG(size_t, mem_size, host_ctxt, 7);
+
+	cpu_reg(host_ctxt, 1) = __pkvm_iommu_register(dev_id, drv_id, dev_pa,
+						      dev_size, parent_id,
+						      mem, mem_size);
+}
+
+static void handle___pkvm_iommu_pm_notify(struct kvm_cpu_context *host_ctxt)
+{
+	DECLARE_REG(unsigned long, dev_id, host_ctxt, 1);
+	DECLARE_REG(enum pkvm_iommu_pm_event, event, host_ctxt, 2);
+
+	cpu_reg(host_ctxt, 1) = __pkvm_iommu_pm_notify(dev_id, event);
+}
+
+static void handle___pkvm_iommu_finalize(struct kvm_cpu_context *host_ctxt)
+{
+	cpu_reg(host_ctxt, 1) = __pkvm_iommu_finalize();
 }
 
 typedef void (*hcall_t)(struct kvm_cpu_context *);
@@ -983,6 +1026,10 @@ static const hcall_t host_hcall[] = {
 	HANDLE_FUNC(__kvm_enable_ssbs),
 	HANDLE_FUNC(__vgic_v3_init_lrs),
 	HANDLE_FUNC(__vgic_v3_get_gic_config),
+	HANDLE_FUNC(__kvm_flush_vm_context),
+	HANDLE_FUNC(__kvm_tlb_flush_vmid_ipa),
+	HANDLE_FUNC(__kvm_tlb_flush_vmid),
+	HANDLE_FUNC(__kvm_flush_cpu_context),
 	HANDLE_FUNC(__pkvm_prot_finalize),
 
 	HANDLE_FUNC(__pkvm_host_share_hyp),
@@ -991,10 +1038,6 @@ static const hcall_t host_hcall[] = {
 	HANDLE_FUNC(__pkvm_host_donate_guest),
 	HANDLE_FUNC(__kvm_adjust_pc),
 	HANDLE_FUNC(__kvm_vcpu_run),
-	HANDLE_FUNC(__kvm_flush_vm_context),
-	HANDLE_FUNC(__kvm_tlb_flush_vmid_ipa),
-	HANDLE_FUNC(__kvm_tlb_flush_vmid),
-	HANDLE_FUNC(__kvm_flush_cpu_context),
 	HANDLE_FUNC(__kvm_timer_set_cntvoff),
 	HANDLE_FUNC(__vgic_v3_save_vmcr_aprs),
 	HANDLE_FUNC(__vgic_v3_restore_vmcr_aprs),
@@ -1003,6 +1046,10 @@ static const hcall_t host_hcall[] = {
 	HANDLE_FUNC(__pkvm_vcpu_load),
 	HANDLE_FUNC(__pkvm_vcpu_put),
 	HANDLE_FUNC(__pkvm_vcpu_sync_state),
+	HANDLE_FUNC(__pkvm_iommu_driver_init),
+	HANDLE_FUNC(__pkvm_iommu_register),
+	HANDLE_FUNC(__pkvm_iommu_pm_notify),
+	HANDLE_FUNC(__pkvm_iommu_finalize),
 };
 
 static void handle_host_hcall(struct kvm_cpu_context *host_ctxt)
@@ -1050,8 +1097,8 @@ static void handle_host_smc(struct kvm_cpu_context *host_ctxt)
 	bool handled;
 
 	handled = kvm_host_psci_handler(host_ctxt);
-	if (!handled && kvm_iommu_ops.host_smc_handler)
-		handled = kvm_iommu_ops.host_smc_handler(host_ctxt);
+	if (!handled)
+		handled = kvm_host_ffa_handler(host_ctxt);
 	if (!handled)
 		default_host_smc_handler(host_ctxt);
 
