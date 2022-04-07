@@ -160,12 +160,6 @@ static bool dpu_check_raw_int(struct dpu_context *ctx, u32 mask)
 	return false;
 }
 
-static int dpu_parse_dt(struct dpu_context *ctx,
-				struct device_node *np)
-{
-	return 0;
-}
-
 static u32 dpu_isr(struct dpu_context *ctx)
 {
 	u32 reg_val, int_mask = 0;
@@ -666,7 +660,7 @@ static void disable_vsync(struct dpu_context *ctx)
 	DPU_REG_CLR(ctx->base + REG_DPU_INT_EN, BIT_DPU_INT_DPI_VSYNC);
 }
 
-static int dpu_context_init(struct dpu_context *ctx)
+static int dpu_context_init(struct dpu_context *ctx, struct device_node *np)
 {
 	ctx->base_offset[0] = 0x0;
 	ctx->base_offset[1] = DPU_MAX_REG_OFFSET;
@@ -694,7 +688,6 @@ static void dpu_capability(struct dpu_context *ctx,
 
 const struct dpu_core_ops dpu_lite_r1p0_core_ops = {
 	.version = dpu_version,
-	.parse_dt = dpu_parse_dt,
 	.init = dpu_init,
 	.fini = dpu_fini,
 	.run = dpu_run,

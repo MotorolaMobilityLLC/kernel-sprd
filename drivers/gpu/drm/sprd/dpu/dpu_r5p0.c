@@ -269,13 +269,6 @@ enum sprd_fw_attr {
 	FW_ATTR_PROTECTED,
 };
 
-struct dpu_cfg1 {
-	u8 arqos_low;
-	u8 arqos_high;
-	u8 awqos_low;
-	u8 awqos_high;
-};
-
 struct hsv_entry {
 	u16 hue;
 	u16 sat;
@@ -397,13 +390,6 @@ struct dpu_enhance {
 	struct cabc_para cabc_para;
 };
 
-static struct dpu_cfg1 qos_cfg = {
-	.arqos_low = 0xc,
-	.arqos_high = 0xd,
-	.awqos_low = 0xa,
-	.awqos_high = 0xa,
-};
-
 static void dpu_sr_config(struct dpu_context *ctx);
 static void dpu_clean_all(struct dpu_context *ctx);
 static void dpu_layer(struct dpu_context *ctx,
@@ -426,60 +412,6 @@ static bool dpu_check_raw_int(struct dpu_context *ctx, u32 mask)
 
 	pr_err("dpu_int_raw:0x%x\n", reg_val);
 	return false;
-}
-
-static int dpu_parse_dt(struct dpu_context *ctx,
-				struct device_node *np)
-{
-	struct device_node *qos_np, *bl_np;
-	struct dpu_enhance *enhance = ctx->enhance;
-	int ret;
-
-	bl_np = of_parse_phandle(np, "sprd,backlight", 0);
-	if (bl_np) {
-		enhance->bl_dev = of_find_backlight_by_node(bl_np);
-		of_node_put(bl_np);
-		if (IS_ERR_OR_NULL(enhance->bl_dev)) {
-			DRM_WARN("backlight is not ready, dpu probe deferred\n");
-			return -EPROBE_DEFER;
-		}
-	} else {
-		pr_warn("dpu backlight node not found\n");
-	}
-
-	ret = of_property_read_u32(np, "sprd,corner-radius",
-					&ctx->corner_radius);
-	if (!ret)
-		pr_info("round corner support, radius = %d.\n",
-					ctx->corner_radius);
-
-	qos_np = of_parse_phandle(np, "sprd,qos", 0);
-	if (!qos_np)
-		pr_warn("can't find dpu qos cfg node\n");
-
-	ret = of_property_read_u8(qos_np, "arqos-low",
-					&qos_cfg.arqos_low);
-	if (ret)
-		pr_warn("read arqos-low failed, use default\n");
-
-	ret = of_property_read_u8(qos_np, "arqos-high",
-					&qos_cfg.arqos_high);
-	if (ret)
-		pr_warn("read arqos-high failed, use default\n");
-
-	ret = of_property_read_u8(qos_np, "awqos-low",
-					&qos_cfg.awqos_low);
-	if (ret)
-		pr_warn("read awqos_low failed, use default\n");
-
-	ret = of_property_read_u8(qos_np, "awqos-high",
-					&qos_cfg.awqos_high);
-	if (ret)
-		pr_warn("read awqos-high failed, use default\n");
-
-	of_node_put(qos_np);
-
-	return 0;
 }
 
 static void dpu_corner_init(struct dpu_context *ctx)
@@ -971,10 +903,10 @@ static int dpu_init(struct dpu_context *ctx)
 	DPU_REG_WR(ctx->base + REG_BLEND_SIZE, size);
 
 	DPU_REG_WR(ctx->base + REG_DPU_CFG0, 0x00);
-	reg_val = (qos_cfg.awqos_high << 12) |
-		(qos_cfg.awqos_low << 8) |
-		(qos_cfg.arqos_high << 4) |
-		(qos_cfg.arqos_low) | BIT(18) | BIT(22);
+	reg_val = (ctx->qos_cfg.awqos_high << 12) |
+		(ctx->qos_cfg.awqos_low << 8) |
+		(ctx->qos_cfg.arqos_high << 4) |
+		(ctx->qos_cfg.arqos_low) | BIT(18) | BIT(22);
 	DPU_REG_WR(ctx->base + REG_DPU_CFG1, reg_val);
 	DPU_REG_WR(ctx->base + REG_DPU_CFG2, 0x14002);
 
@@ -1606,13 +1538,68 @@ static void disable_vsync(struct dpu_context *ctx)
 	//DPU_REG_CLR(ctx->base + REG_DPU_INT_EN, BIT_DPU_INT_VSYNC);
 }
 
-static int dpu_context_init(struct dpu_context *ctx)
+static int dpu_context_init(struct dpu_context *ctx, struct device_node *np)
 {
 	struct dpu_enhance *enhance;
+	struct device_node *qos_np, *bl_np;
+	int ret;
 
 	enhance = kzalloc(sizeof(*enhance), GFP_KERNEL);
 	if (!enhance)
 		return -ENOMEM;
+
+	bl_np = of_parse_phandle(np, "sprd,backlight", 0);
+	if (bl_np) {
+		enhance->bl_dev = of_find_backlight_by_node(bl_np);
+		of_node_put(bl_np);
+		if (IS_ERR_OR_NULL(enhance->bl_dev)) {
+			DRM_WARN("backlight is not ready, dpu probe deferred\n");
+			kfree(enhance);
+			return -EPROBE_DEFER;
+		}
+	} else {
+		pr_warn("dpu backlight node not found\n");
+	}
+
+	ret = of_property_read_u32(np, "sprd,corner-radius",
+					&ctx->corner_radius);
+	if (!ret)
+		pr_info("round corner support, radius = %d.\n",
+					ctx->corner_radius);
+
+	qos_np = of_parse_phandle(np, "sprd,qos", 0);
+	if (!qos_np)
+		pr_warn("can't find dpu qos cfg node\n");
+
+	ret = of_property_read_u8(qos_np, "arqos-low",
+					&ctx->qos_cfg.arqos_low);
+	if (ret) {
+		pr_warn("read arqos-low failed, use default\n");
+		ctx->qos_cfg.arqos_low = 0xc;
+	}
+
+	ret = of_property_read_u8(qos_np, "arqos-high",
+					&ctx->qos_cfg.arqos_high);
+	if (ret) {
+		pr_warn("read arqos-high failed, use default\n");
+		ctx->qos_cfg.arqos_high = 0xd;
+	}
+
+	ret = of_property_read_u8(qos_np, "awqos-low",
+					&ctx->qos_cfg.awqos_low);
+	if (ret) {
+		pr_warn("read awqos_low failed, use default\n");
+		ctx->qos_cfg.awqos_low = 0xa;
+	}
+
+	ret = of_property_read_u8(qos_np, "awqos-high",
+					&ctx->qos_cfg.awqos_high);
+	if (ret) {
+		pr_warn("read awqos-high failed, use default\n");
+		ctx->qos_cfg.awqos_high = 0xa;
+	}
+
+	of_node_put(qos_np);
 
 	ctx->enhance = enhance;
 	enhance->cabc_state = CABC_DISABLED;
@@ -1629,7 +1616,7 @@ static int dpu_context_init(struct dpu_context *ctx)
 
 	/* Allocate memory for trusty */
 	ctx->tos_msg = kmalloc(sizeof(struct disp_message) + sizeof(struct layer_reg), GFP_KERNEL);
-	if(!ctx->tos_msg)
+	if (!ctx->tos_msg)
 		return -ENOMEM;
 
 	return 0;
@@ -2409,7 +2396,6 @@ static void dpu_capability(struct dpu_context *ctx,
 
 const struct dpu_core_ops dpu_r5p0_core_ops = {
 	.version = dpu_version,
-	.parse_dt = dpu_parse_dt,
 	.init = dpu_init,
 	.fini = dpu_fini,
 	.run = dpu_run,

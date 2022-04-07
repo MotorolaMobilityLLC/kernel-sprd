@@ -70,8 +70,6 @@ enum {
 struct dpu_context;
 
 struct dpu_core_ops {
-	int (*parse_dt)(struct dpu_context *ctx,
-			struct device_node *np);
 	void (*version)(struct dpu_context *ctx);
 	int (*init)(struct dpu_context *ctx);
 	void (*fini)(struct dpu_context *ctx);
@@ -87,7 +85,7 @@ struct dpu_core_ops {
 	void (*capability)(struct dpu_context *ctx,
 			 struct sprd_crtc_capability *cap);
 	void (*bg_color)(struct dpu_context *ctx, u32 color);
-	int (*context_init)(struct dpu_context *ctx);
+	int (*context_init)(struct dpu_context *ctx, struct device_node *np);
 	void (*enhance_set)(struct dpu_context *ctx, u32 id, void *param);
 	void (*enhance_get)(struct dpu_context *ctx, u32 id, void *param);
 	bool (*check_raw_int)(struct dpu_context *ctx, u32 mask);
@@ -122,6 +120,13 @@ struct scale_config_param {
 	u32 in_h;
 	u32 out_w;
 	u32 out_h;
+};
+
+struct dpu_qos_cfg {
+	u8 arqos_low;
+	u8 arqos_high;
+	u8 awqos_low;
+	u8 awqos_high;
 };
 
 struct dpu_context {
@@ -202,6 +207,9 @@ struct dpu_context {
 
 	/* scaling config parameters */
 	struct scale_config_param scale_cfg;
+
+	/* qos config parameters */
+	struct dpu_qos_cfg qos_cfg;
 };
 
 struct sprd_dpu_ops {

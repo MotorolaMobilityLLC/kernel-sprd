@@ -214,13 +214,6 @@ struct wb_region {
 	u16 size_h;
 };
 
-struct dpu_cfg1 {
-	u8 arqos_low;
-	u8 arqos_high;
-	u8 awqos_low;
-	u8 awqos_high;
-};
-
 struct epf_cfg {
 	u16 epsilon0;
 	u16 epsilon1;
@@ -285,13 +278,6 @@ struct dpu_enhance {
 	struct gamma_lut gamma_copy;
 };
 
-static struct dpu_cfg1 qos_cfg = {
-	.arqos_low = 0x1,
-	.arqos_high = 0x7,
-	.awqos_low = 0x1,
-	.awqos_high = 0x7,
-};
-
 static struct wb_region region[3];
 
 static void dpu_enhance_reload(struct dpu_context *ctx);
@@ -314,39 +300,6 @@ static bool dpu_check_raw_int(struct dpu_context *ctx, u32 mask)
 
 	pr_err("dpu_int_raw:0x%x\n", reg_val);
 	return false;
-}
-
-static int dpu_parse_dt(struct dpu_context *ctx,
-				struct device_node *np)
-{
-	int ret;
-	struct device_node *qos_np;
-
-	qos_np = of_parse_phandle(np, "sprd,qos", 0);
-	if (!qos_np)
-		pr_warn("can't find dpu qos cfg node\n");
-
-	ret = of_property_read_u8(qos_np, "arqos-low",
-					&qos_cfg.arqos_low);
-	if (ret)
-		pr_warn("read arqos-low failed, use default\n");
-
-	ret = of_property_read_u8(qos_np, "arqos-high",
-					&qos_cfg.arqos_high);
-	if (ret)
-		pr_warn("read arqos-high failed, use default\n");
-
-	ret = of_property_read_u8(qos_np, "awqos-low",
-					&qos_cfg.awqos_low);
-	if (ret)
-		pr_warn("read awqos_low failed, use default\n");
-
-	ret = of_property_read_u8(qos_np, "awqos-high",
-					&qos_cfg.awqos_high);
-	if (ret)
-		pr_warn("read awqos-high failed, use default\n");
-
-	return 0;
 }
 
 static void dpu_dump(struct dpu_context *ctx)
@@ -686,10 +639,10 @@ static int dpu_init(struct dpu_context *ctx)
 	DPU_REG_WR(ctx->base + REG_BLEND_SIZE, size);
 
 	DPU_REG_WR(ctx->base + REG_DPU_CFG0, 0x00);
-	reg_val = (qos_cfg.awqos_high << 12) |
-		(qos_cfg.awqos_low << 8) |
-		(qos_cfg.arqos_high << 4) |
-		(qos_cfg.arqos_low) | BIT(18) | BIT(22);
+	reg_val = (ctx->qos_cfg.awqos_high << 12) |
+		(ctx->qos_cfg.awqos_low << 8) |
+		(ctx->qos_cfg.arqos_high << 4) |
+		(ctx->qos_cfg.arqos_low) | BIT(18) | BIT(22);
 	DPU_REG_WR(ctx->base + REG_DPU_CFG1, reg_val);
 	DPU_REG_WR(ctx->base + REG_DPU_CFG2, 0x14002);
 
@@ -1129,9 +1082,44 @@ static void disable_vsync(struct dpu_context *ctx)
 	DPU_REG_CLR(ctx->base + REG_DPU_INT_EN, BIT_DPU_INT_VSYNC);
 }
 
-static int dpu_context_init(struct dpu_context *ctx)
+static int dpu_context_init(struct dpu_context *ctx, struct device_node *np)
 {
 	struct dpu_enhance *enhance;
+	struct device_node *qos_np;
+	int ret;
+
+	qos_np = of_parse_phandle(np, "sprd,qos", 0);
+	if (!qos_np)
+		pr_warn("can't find dpu qos cfg node\n");
+
+	ret = of_property_read_u8(qos_np, "arqos-low",
+					&ctx->qos_cfg.arqos_low);
+	if (ret) {
+		ctx->qos_cfg.arqos_low = 0x1;
+		pr_warn("read arqos-low failed, use default\n");
+	}
+
+	ret = of_property_read_u8(qos_np, "arqos-high",
+					&ctx->qos_cfg.arqos_high);
+	if (ret) {
+		pr_warn("read arqos-high failed, use default\n");
+		ctx->qos_cfg.arqos_high = 0x7;
+	}
+
+	ret = of_property_read_u8(qos_np, "awqos-low",
+					&ctx->qos_cfg.awqos_low);
+	if (ret) {
+		pr_warn("read awqos_low failed, use default\n");
+		ctx->qos_cfg.awqos_low = 0x1;
+	}
+
+	ret = of_property_read_u8(qos_np, "awqos-high",
+					&ctx->qos_cfg.awqos_high);
+	if (ret) {
+		pr_warn("read awqos-high failed, use default\n");
+		ctx->qos_cfg.awqos_high = 0x7;
+	}
+
 
 	enhance = kzalloc(sizeof(*enhance), GFP_KERNEL);
 	if (!enhance)
@@ -1501,7 +1489,6 @@ static int dpu_modeset(struct dpu_context *ctx,
 
 const struct dpu_core_ops dpu_lite_r2p0_core_ops = {
 	.version = dpu_version,
-	.parse_dt = dpu_parse_dt,
 	.init = dpu_init,
 	.fini = dpu_fini,
 	.run = dpu_run,

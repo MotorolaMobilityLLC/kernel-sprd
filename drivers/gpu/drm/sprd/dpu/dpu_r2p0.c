@@ -263,23 +263,6 @@ static bool dpu_check_raw_int(struct dpu_context *ctx, u32 mask)
 	return false;
 }
 
-static int dpu_parse_dt(struct dpu_context *ctx,
-				struct device_node *np)
-{
-	int ret = 0;
-
-	ret = of_property_read_u32(np, "sprd,corner-radius",
-					&ctx->sprd_corner_radius);
-	if (!ret) {
-		ctx->sprd_corner_support = 1;
-		ctx->corner_size = ctx->sprd_corner_radius;
-		pr_info("round corner support, radius = %d.\n",
-					ctx->sprd_corner_radius);
-	}
-
-	return 0;
-}
-
 static void dpu_corner_init(struct dpu_context *ctx)
 {
 	static bool corner_is_inited;
@@ -503,9 +486,20 @@ static void dpu_fini(struct dpu_context *ctx)
 	ctx->panel_ready = false;
 }
 
-static int dpu_context_init(struct dpu_context *ctx)
+static int dpu_context_init(struct dpu_context *ctx, struct device_node *np)
 {
 	struct dpu_enhance *enhance;
+	int ret = 0;
+
+	ret = of_property_read_u32(np, "sprd,corner-radius",
+					&ctx->sprd_corner_radius);
+	if (!ret) {
+		ctx->sprd_corner_support = 1;
+		ctx->corner_size = ctx->sprd_corner_radius;
+		pr_info("round corner support, radius = %d.\n",
+					ctx->sprd_corner_radius);
+	}
+
 
 	enhance = kzalloc(sizeof(*enhance), GFP_KERNEL);
 	if (!enhance)
@@ -1390,7 +1384,6 @@ static int dpu_modeset(struct dpu_context *ctx,
 }
 
 const struct dpu_core_ops dpu_r2p0_core_ops = {
-	.parse_dt = dpu_parse_dt,
 	.version = dpu_version,
 	.init = dpu_init,
 	.fini = dpu_fini,

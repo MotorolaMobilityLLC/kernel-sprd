@@ -296,13 +296,6 @@ struct wb_region {
 	u16 size_h;
 };
 
-struct dpu_cfg1 {
-	u8 arqos_low;
-	u8 arqos_high;
-	u8 awqos_low;
-	u8 awqos_high;
-};
-
 struct layer_reg {
 	u32 addr[4];
 	u32 ctrl;
@@ -493,14 +486,6 @@ struct cabc_para {
 	u8 video_mode;
 };
 
-static struct dpu_cfg1 qos_cfg = {
-	.arqos_low = 0x0a,
-	.arqos_high = 0x0c,
-	.awqos_low = 0x0a,
-	.awqos_high = 0x0c,
-};
-
-
 struct dpu_dsc_cfg {
 	char name[128];
 	bool dual_dsi_en;
@@ -603,53 +588,6 @@ static int dpu_cabc_trigger(struct dpu_context *ctx);
 static void dpu_version(struct dpu_context *ctx)
 {
 	ctx->version = "dpu-r6p0";
-}
-
-static int dpu_parse_dt(struct dpu_context *ctx,
-				struct device_node *np)
-{
-	int ret = 0;
-	struct device_node *qos_np;
-	struct device_node *bl_np;
-	struct dpu_enhance *enhance = ctx->enhance;
-
-	bl_np = of_parse_phandle(np, "sprd,backlight", 0);
-	if (bl_np) {
-		enhance->bl_dev = of_find_backlight_by_node(bl_np);
-		of_node_put(bl_np);
-		if (IS_ERR_OR_NULL(enhance->bl_dev)) {
-			DRM_WARN("backlight is not ready, dpu probe deferred\n");
-			return -EPROBE_DEFER;
-		}
-	} else {
-		pr_warn("dpu backlight node not found\n");
-	}
-
-	qos_np = of_parse_phandle(np, "sprd,qos", 0);
-	if (!qos_np)
-		pr_warn("can't find dpu qos cfg node\n");
-
-	ret = of_property_read_u8(qos_np, "arqos-low",
-					&qos_cfg.arqos_low);
-	if (ret)
-		pr_warn("read arqos-low failed, use default\n");
-
-	ret = of_property_read_u8(qos_np, "arqos-high",
-					&qos_cfg.arqos_high);
-	if (ret)
-		pr_warn("read arqos-high failed, use default\n");
-
-	ret = of_property_read_u8(qos_np, "awqos-low",
-					&qos_cfg.awqos_low);
-	if (ret)
-		pr_warn("read awqos_low failed, use default\n");
-
-	ret = of_property_read_u8(qos_np, "awqos-high",
-					&qos_cfg.awqos_high);
-	if (ret)
-		pr_warn("read awqos-high failed, use default\n");
-
-	return 0;
 }
 
 static u32 dpu_isr(struct dpu_context *ctx)
@@ -1372,10 +1310,10 @@ static int dpu_init(struct dpu_context *ctx)
 		ctx->is_single_run = true;
 	}
 
-	reg_val = (qos_cfg.awqos_high << 12) |
-		(qos_cfg.awqos_low << 8) |
-		(qos_cfg.arqos_high << 4) |
-		(qos_cfg.arqos_low) | BIT(18) | BIT(22) | BIT(23);
+	reg_val = (ctx->qos_cfg.awqos_high << 12) |
+		(ctx->qos_cfg.awqos_low << 8) |
+		(ctx->qos_cfg.arqos_high << 4) |
+		(ctx->qos_cfg.arqos_low) | BIT(18) | BIT(22) | BIT(23);
 	DPU_REG_WR(ctx->base + REG_DPU_CFG1, reg_val);;
 	if (ctx->stopped)
 		dpu_clean_all(ctx);
@@ -2054,15 +1992,64 @@ static void disable_vsync(struct dpu_context *ctx)
 	DPU_REG_CLR(ctx->base + REG_DPU_INT_EN, BIT_DPU_INT_VSYNC_EN);
 }
 
-static int dpu_context_init(struct dpu_context *ctx)
+static int dpu_context_init(struct dpu_context *ctx, struct device_node *np)
 {
+	struct device_node *qos_np;
+	struct device_node *bl_np;
 	struct dpu_enhance *enhance;
+	int ret = 0;
 
 	enhance = kzalloc(sizeof(*enhance), GFP_KERNEL);
 	if (!enhance) {
 		pr_err("%s() enhance kzalloc failed!\n", __func__);
 		return -ENOMEM;
 	}
+
+	bl_np = of_parse_phandle(np, "sprd,backlight", 0);
+	if (bl_np) {
+		enhance->bl_dev = of_find_backlight_by_node(bl_np);
+		of_node_put(bl_np);
+		if (IS_ERR_OR_NULL(enhance->bl_dev)) {
+			DRM_WARN("backlight is not ready, dpu probe deferred\n");
+			kfree(enhance);
+			return -EPROBE_DEFER;
+		}
+	} else {
+		pr_warn("dpu backlight node not found\n");
+	}
+
+	qos_np = of_parse_phandle(np, "sprd,qos", 0);
+	if (!qos_np)
+		pr_warn("can't find dpu qos cfg node\n");
+
+	ret = of_property_read_u8(qos_np, "arqos-low",
+					&ctx->qos_cfg.arqos_low);
+	if (ret) {
+		pr_warn("read arqos-low failed, use default\n");
+		ctx->qos_cfg.arqos_low = 0x0a;
+	}
+
+	ret = of_property_read_u8(qos_np, "arqos-high",
+					&ctx->qos_cfg.arqos_high);
+	if (ret) {
+		pr_warn("read arqos-high failed, use default\n");
+		ctx->qos_cfg.arqos_high = 0x0c;
+	}
+
+	ret = of_property_read_u8(qos_np, "awqos-low",
+					&ctx->qos_cfg.awqos_low);
+	if (ret) {
+		pr_warn("read awqos_low failed, use default\n");
+		ctx->qos_cfg.awqos_low = 0x0a;
+	}
+
+	ret = of_property_read_u8(qos_np, "awqos-high",
+					&ctx->qos_cfg.awqos_high);
+	if (ret) {
+		pr_warn("read awqos-high failed, use default\n");
+		ctx->qos_cfg.awqos_high = 0x0c;
+	}
+
 	ctx->enhance = enhance;
 	enhance->cabc_state = CABC_DISABLED;
 	INIT_WORK(&ctx->cabc_work, dpu_cabc_work_func);
@@ -3093,7 +3080,6 @@ static void dpu_capability(struct dpu_context *ctx,
 
 const struct dpu_core_ops dpu_r6p0_core_ops = {
 	.version = dpu_version,
-	.parse_dt = dpu_parse_dt,
 	.init = dpu_init,
 	.fini = dpu_fini,
 	.run = dpu_run,

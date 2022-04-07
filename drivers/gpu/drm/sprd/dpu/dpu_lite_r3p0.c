@@ -175,13 +175,6 @@
 #define BIT_DPU_INT_MMU_VAOR_WR_MASK	BIT(1)
 #define BIT_DPU_INT_MMU_VAOR_RD_MASK	BIT(0)
 
-struct dpu_cfg1 {
-	u8 arqos_low;
-	u8 arqos_high;
-	u8 awqos_low;
-	u8 awqos_high;
-};
-
 struct layer_reg {
 	u32 addr[4];
 	u32 ctrl;
@@ -194,13 +187,6 @@ struct layer_reg {
 	u32 crop_start;
 };
 
-static struct dpu_cfg1 qos_cfg = {
-	.arqos_low = 0xc,
-	.arqos_high = 0xd,
-	.awqos_low = 0xa,
-	.awqos_high = 0xa,
-};
-
 static void dpu_clean_all(struct dpu_context *ctx);
 static void dpu_layer(struct dpu_context *ctx,
 		struct sprd_layer_state *hwlayer);
@@ -208,41 +194,6 @@ static void dpu_layer(struct dpu_context *ctx,
 static void dpu_version(struct dpu_context *ctx)
 {
 	ctx->version = "dpu-lite-r3p0";
-}
-
-static int dpu_parse_dt(struct dpu_context *ctx,
-				struct device_node *np)
-{
-	struct device_node *qos_np;
-	int ret;
-
-	qos_np = of_parse_phandle(np, "sprd,qos", 0);
-	if (!qos_np)
-		pr_warn("can't find dpu qos cfg node\n");
-
-	ret = of_property_read_u8(qos_np, "arqos-low",
-					&qos_cfg.arqos_low);
-	if (ret)
-		pr_warn("read arqos-low failed, use default\n");
-
-	ret = of_property_read_u8(qos_np, "arqos-high",
-					&qos_cfg.arqos_high);
-	if (ret)
-		pr_warn("read arqos-high failed, use default\n");
-
-	ret = of_property_read_u8(qos_np, "awqos-low",
-					&qos_cfg.awqos_low);
-	if (ret)
-		pr_warn("read awqos_low failed, use default\n");
-
-	ret = of_property_read_u8(qos_np, "awqos-high",
-					&qos_cfg.awqos_high);
-	if (ret)
-		pr_warn("read awqos-high failed, use default\n");
-
-	of_node_put(qos_np);
-
-	return 0;
 }
 
 /*
@@ -462,10 +413,10 @@ static int dpu_init(struct dpu_context *ctx)
 	//DPU_REG_WR(ctx->base + REG_BLEND_SIZE, size);
 
 	DPU_REG_WR(ctx->base + REG_DPU_CFG0, 0x00);
-	reg_val = (qos_cfg.awqos_high << 12) |
-		(qos_cfg.awqos_low << 8) |
-		(qos_cfg.arqos_high << 4) |
-		(qos_cfg.arqos_low) | BIT(22) | BIT(23) | BIT(24);
+	reg_val = (ctx->qos_cfg.awqos_high << 12) |
+		(ctx->qos_cfg.awqos_low << 8) |
+		(ctx->qos_cfg.arqos_high << 4) |
+		(ctx->qos_cfg.arqos_low) | BIT(22) | BIT(23) | BIT(24);
 	DPU_REG_WR(ctx->base + REG_DPU_CFG1, reg_val);
 	//DPU_REG_WR(ctx->base + REG_DPU_CFG2, 0x14002);
 
@@ -942,8 +893,46 @@ static void disable_vsync(struct dpu_context *ctx)
 	//DPU_REG_CLR(ctx->base + REG_DPU_INT_EN, BIT_DPU_INT_VSYNC);
 }
 
-static int dpu_context_init(struct dpu_context *ctx)
+static int dpu_context_init(struct dpu_context *ctx, struct device_node *np)
 {
+	struct device_node *qos_np;
+	int ret;
+
+	qos_np = of_parse_phandle(np, "sprd,qos", 0);
+	if (!qos_np)
+		pr_warn("can't find dpu qos cfg node\n");
+
+	ret = of_property_read_u8(qos_np, "arqos-low",
+					&ctx->qos_cfg.arqos_low);
+	if (ret) {
+		pr_warn("read arqos-low failed, use default\n");
+		ctx->qos_cfg.arqos_low = 0xc;
+	}
+
+	ret = of_property_read_u8(qos_np, "arqos-high",
+					&ctx->qos_cfg.arqos_high);
+	if (ret) {
+		pr_warn("read arqos-high failed, use default\n");
+		ctx->qos_cfg.arqos_high = 0xd;
+	}
+
+	ret = of_property_read_u8(qos_np, "awqos-low",
+					&ctx->qos_cfg.awqos_low);
+	if (ret) {
+		pr_warn("read awqos_low failed, use default\n");
+		ctx->qos_cfg.awqos_low = 0xa;
+	}
+
+	ret = of_property_read_u8(qos_np, "awqos-high",
+					&ctx->qos_cfg.awqos_high);
+	if (ret) {
+		pr_warn("read awqos-high failed, use default\n");
+		ctx->qos_cfg.awqos_high = 0xa;
+	}
+
+	of_node_put(qos_np);
+
+
 	ctx->base_offset[0] = 0x0;
 	ctx->base_offset[1] = DPU_MAX_REG_OFFSET;
 
@@ -993,7 +982,6 @@ static void dpu_capability(struct dpu_context *ctx,
 
 const struct dpu_core_ops dpu_lite_r3p0_core_ops = {
 	.version = dpu_version,
-	.parse_dt = dpu_parse_dt,
 	.init = dpu_init,
 	.fini = dpu_fini,
 	.run = dpu_run,

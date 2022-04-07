@@ -33,8 +33,6 @@ enum {
 struct dpu_context;
 
 struct dpu_core_ops {
-	int (*parse_dt)(struct dpu_context *ctx,
-			struct device_node *np);
 	void (*version)(struct dpu_context *ctx);
 	int (*init)(struct dpu_context *ctx);
 	void (*fini)(struct dpu_context *ctx);
@@ -50,7 +48,7 @@ struct dpu_core_ops {
 	void (*capability)(struct dpu_context *ctx,
 			 struct sprd_crtc_capability *cap);
 	void (*bg_color)(struct dpu_context *ctx, u32 color);
-	int (*context_init)(struct dpu_context *ctx);
+	int (*context_init)(struct dpu_context *ctx, struct device_node *np);
 	int (*modeset)(struct dpu_context *ctx, struct drm_display_mode *mode);
 };
 
@@ -71,6 +69,13 @@ struct dpu_glb_ops {
 	void (*disable)(struct dpu_context *ctx);
 	void (*reset)(struct dpu_context *ctx);
 	void (*power)(struct dpu_context *ctx, int enable);
+};
+
+struct dpu_qos_cfg {
+	u8 arqos_low;
+	u8 arqos_high;
+	u8 awqos_low;
+	u8 awqos_high;
 };
 
 struct dpu_context {
@@ -125,6 +130,9 @@ struct dpu_context {
 	bool bypass_mode;
 	u32 hdr_static_metadata[9];
 	bool static_metadata_changed;
+
+	/* qos config parameters */
+	struct dpu_qos_cfg qos_cfg;
 };
 
 struct sprd_dpu_ops {
