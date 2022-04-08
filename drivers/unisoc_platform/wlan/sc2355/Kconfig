@@ -1,0 +1,45 @@
+# SPDX-License-Identifier: GPL-2.0-only
+config SC2355_WLAN
+	bool
+	help
+	  This module adds support for Spreadtrum sc2355 IEEE802.11ac
+	  chipset. The drivers is a fullmac driver, which make use of
+	  the cfg80211 stack.
+
+	  It has to work with at least one of the hardware interface support.
+
+config SC2355_SDIO_WLAN
+	tristate "sc2355 WLAN support (SDIO)"
+	depends on SPRD_WLAN
+	select SC2355_WLAN
+	help
+	  This option enables the SDIO interface support for
+	  Spreadtrum sc2355 embedded fullmac driver.
+
+	  Say Y if you want to use the driver for a SDIO wireless module.
+
+config SC2355_PCIE_WLAN
+	tristate "sc2355 WLAN support (PCIE)"
+	depends on SPRD_WLAN
+	select SC2355_WLAN
+	help
+	  This option enables the PCIE interface support for
+	  Spreadtrum sc2355 embedded fullmac driver.
+
+	  Say Y if you want to use the driver for a PCIE wireless module.
+
+config SC2355_WLAN_NAN
+	bool "Enable NAN support"
+	depends on SPRD_WLAN_VENDOR_SPECIFIC
+	depends on SC2355_WLAN
+	help
+	  This enables Neighbor Awareness Networking support
+	  for Spreadtrum wireless drivers.
+
+config SC2355_WLAN_RTT
+	bool "Enable RTT support"
+	depends on SPRD_WLAN_VENDOR_SPECIFIC
+	depends on SC2355_WLAN
+	help
+	  This enables Round Trip Time support
+	  for Spreadtrum wireless drivers.

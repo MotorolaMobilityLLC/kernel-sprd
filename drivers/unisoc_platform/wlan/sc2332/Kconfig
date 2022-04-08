@@ -1,0 +1,30 @@
+# SPDX-License-Identifier: GPL-2.0-only
+config SC2332_WLAN
+	bool
+	help
+	  This module adds support for Spreadtrum sc2332 IEEE802.11n
+	  chipset. The drivers is a fullmac driver, which make use of
+	  the cfg80211 stack.
+
+	  It has to work with at least one of the hardware interface support.
+
+config SC2332_SDIO_WLAN
+	tristate "sc2332 WLAN support (SDIO)"
+	depends on SPRD_WLAN
+	depends on SDIOM
+	select SC2332_WLAN
+	help
+	  This option enables the SDIO interface support for
+	  Spreadtrum sc2332 embedded fullmac driver.
+
+	  Say Y if you want to use the driver for a SDIO wireless module.
+
+config SC2332_SIPC_WLAN
+	tristate "sc2332 WLAN support (SIPC)"
+	depends on SPRD_WLAN
+	select SC2332_WLAN
+	help
+	  This option enables the SIPC interface support for
+	  Spreadtrum sc2332 embedded fullmac driver.
+
+	  Say Y if you want to use the driver for a SIPC wireless module.

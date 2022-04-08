@@ -1,0 +1,26 @@
+# SPDX-License-Identifier: GPL-2.0-only
+config SPRD_WLAN
+	tristate "Spreadtrum WLAN routine"
+	select CFG80211
+	help
+	  This is common routines for Spreadtrum WCN chipsets.
+
+if SPRD_WLAN
+
+config SPRD_WLAN_VENDOR_SPECIFIC
+	bool "Enable vendor specific support"
+	default y
+	help
+	  This enables vendor specific support, including
+	  NAN, RTT and so on.
+
+config SPRD_WLAN_DEBUGFS
+	bool "Enable debugfs support"
+	depends on SPRD_WLAN
+	help
+	  This enables creation of debugfs files which
+	  allows getting insight into the driver's state at runtime.
+	  These checks and statistics might be expensive and hurt
+	  the runtime performance.
+
+endif
