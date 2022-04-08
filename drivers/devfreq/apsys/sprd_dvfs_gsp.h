@@ -52,7 +52,7 @@ struct gsp_dvfs {
 
 	struct ip_dvfs_coffe dvfs_coffe;
 	struct ip_dvfs_status dvfs_status;
-	struct gsp_dvfs_ops *dvfs_ops;
+	const struct gsp_dvfs_ops *dvfs_ops;
 
 	struct apsys_dev *apsys;
 };
@@ -91,7 +91,7 @@ struct gsp_dvfs_ops {
 };
 
 struct sprd_gsp_dvfs_ops {
-	const struct gsp_dvfs_ops dvfs_ops;
+	const struct gsp_dvfs_ops *dvfs_ops;
 };
 
 extern const struct gsp_dvfs_ops qogirn6pro_gsp_dvfs_ops;

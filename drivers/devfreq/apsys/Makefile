@@ -27,8 +27,8 @@ apsys-dvfs-y := \
 	vdsp/vdsp_dvfs_sharkl5pro.o \
 	vdsp/vdsp_dvfs_roc1.o
 
-obj-$(CONFIG_DRM_SPRD_GSP_DVFS) += \
+apsys-dvfs-$(CONFIG_DRM_SPRD_GSP_DVFS) += \
 	sprd_dvfs_gsp.o \
-	gsp_dvfs_qogirn6pro.o
+	gsp/gsp_dvfs_qogirn6pro.o
 
 obj-$(CONFIG_DVFS_APSYS_SPRD) += apsys-dvfs.o

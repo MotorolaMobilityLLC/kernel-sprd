@@ -90,7 +90,7 @@ static ssize_t set_hw_dfs_store(struct device *dev,
 		return -EINVAL;
 
 	if (gsp->dvfs_ops && gsp->dvfs_ops->hw_dfs_en) {
-		gsp->dvfs_ops->hw_dfs_en(dfs_en);
+		gsp->dvfs_ops->hw_dfs_en(gsp, dfs_en);
 		gsp->dvfs_coffe.hw_dfs_en = dfs_en;
 	} else
 		pr_info("%s: ip ops null\n", __func__);
@@ -399,7 +399,7 @@ static int gsp_dvfs_target(struct device *dev, unsigned long *freq,
 		}
 	} else {
 		if (gsp->dvfs_ops && gsp->dvfs_ops->set_idle_freq) {
-			gsp->dvfs_ops->set_idle_freq(target_freq);
+			gsp->dvfs_ops->set_idle_freq(gsp, target_freq);
 			pr_debug("set idle freq = %u\n", target_freq);
 		}
 	}
@@ -644,13 +644,13 @@ static int gsp_dvfs_remove(struct platform_device *pdev)
 	return 0;
 }
 
-static const struct sprd_gsp_dvfs_ops qogirn6pro_gsp_dvfs_ops = {
+static const struct sprd_gsp_dvfs_ops qogirn6pro_gsp_dvfs = {
 	.dvfs_ops = &qogirn6pro_gsp_dvfs_ops,
 };
 
 static const struct of_device_id gsp_dvfs_of_match[] = {
 	{ .compatible = "sprd,hwdvfs-gsp-qogirn6pro",
-	  .data = &qogirn6pro_gsp_dvfs_ops },
+	  .data = &qogirn6pro_gsp_dvfs },
 	{ }
 };
 
