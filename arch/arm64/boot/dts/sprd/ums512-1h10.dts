@@ -11,7 +11,7 @@
 #include "ums512/ums512.dtsi"
 #include "sc2730/sc2730.dtsi"
 #include "lcd/lcd_td4310_truly_mipi_fhd.dtsi"
-#include "reserved-memory/common-2GB.dtsi"
+#include "reserved-memory/ums512-common.dtsi"
 
 / {
 	model = "Spreadtrum UMS512-1H10 Board";
