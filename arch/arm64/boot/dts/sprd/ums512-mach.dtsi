@@ -71,18 +71,6 @@
 			reg = <0x0 0x90000000 0x0 0x4000000>;
 		};
 
-		sml_reserved: sml-mem@94000000 {
-			reg = <0x0 0x94000000 0x0 0x00040000>;
-		};
-
-		tos_reserved: tos-mem@94040000 {
-			reg = <0x0 0x94040000 0x0 0x05fc0000>;
-		};
-
-		tos_shm_reserved: sh-mem@9a000000{
-			reg = <0x0 0x9a000000 0x0 0x00100000>;
-		};
-
 		/* The uboot_log_reserved node is added in uboot. base:0x9de8 0000, size:0x80000 */
 		uboot_log_reserved: uboot_log-mem {
 			reg = <0x0 0x9de80000 0x0 0x00080000>;
@@ -91,6 +79,18 @@
 		/* Only for userdebug, will be removed in user mode by uboot */
 		uboot_reserved: sysdump-uboot@9f000000 {
 			reg = <0x0 0x9f000000 0x0 0x01000000>;
+		};
+
+		sml_reserved: sml-mem@b0000000 {
+			reg = <0x0 0xb0000000 0x0 0x00040000>;
+		};
+
+		tos_reserved: tos-mem@b0040000 {
+			reg = <0x0 0xb0040000 0x0 0x05fc0000>;
+		};
+
+		tos_shm_reserved: sh-mem@b6000000{
+			reg = <0x0 0xb6000000 0x0 0x00100000>;
 		};
 
 		cma_reserved: cma_share@f00000000 {
