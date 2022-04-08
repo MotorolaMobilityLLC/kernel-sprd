@@ -1,7 +1,7 @@
 #include <linux/interrupt.h>
 
 #include "gsp_r9p0_dvfs.h"
-#include "../drivers/devfreq/apsys/sprd_dvfs_gsp.h"
+#include "sprd_dvfs_gsp.h"
 
 #ifdef CONFIG_DRM_SPRD_GSP_DVFS
 void gsp_dvfs_tasklet_schedule(struct gsp_r9p0_core *core, unsigned long data)

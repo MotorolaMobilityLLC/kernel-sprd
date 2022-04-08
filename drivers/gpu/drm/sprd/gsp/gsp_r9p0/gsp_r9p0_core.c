@@ -1897,6 +1897,8 @@ int gsp_r9p0_core_release(struct gsp_core *c)
 
 	cfg = (struct gsp_r9p0_cfg *)kcfg->cfg;
 
+	gsp_dvfs_tasklet_schedule(core, GSP_R9P0_FREQ_256M);
+
 	return 0;
 }
 
