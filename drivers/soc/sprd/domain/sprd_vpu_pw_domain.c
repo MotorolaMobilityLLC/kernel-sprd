@@ -55,6 +55,43 @@ static const struct of_device_id vpu_pd_of_match[] = {
 	{ },
 };
 
+static bool cali_mode_check(const char *str)
+{
+	struct device_node *calibration_mode;
+	const char *cmd_line;
+	int rc;
+
+	calibration_mode = of_find_node_by_path("/chosen");
+	rc = of_property_read_string(calibration_mode, "bootargs", &cmd_line);
+	if (rc)
+		return false;
+
+	if (!strstr(cmd_line, str))
+		return false;
+
+	return true;
+}
+static int vpu_vsp_cali(struct sprd_vpu_pd *vpu_pd)
+{
+	int ret = 0;
+
+	if (vpu_pd->regmap[VPU_DOMAIN_EB] == NULL) {
+		pr_info("NO VPU_DOMAIN_EB,bypass\n");
+		return ret;
+	}
+
+	ret = regmap_update_bits(vpu_pd->regmap[VPU_DOMAIN_EB],
+		vpu_pd->reg[VPU_DOMAIN_EB],
+		vpu_pd->mask[VPU_DOMAIN_EB],
+		~vpu_pd->mask[VPU_DOMAIN_EB]);
+	if (ret) {
+		pr_err("cali regmap_update_bits failed %s, %d\n",
+			__func__, __LINE__);
+		return ret;
+	}
+	return ret;
+}
+
 static int vpu_pw_on(struct generic_pm_domain *domain)
 {
 	int ret = 0;
@@ -174,7 +211,8 @@ static int vpu_pd_probe(struct platform_device *pdev)
 	struct regmap *tregmap;
 	uint32_t syscon_args[2];
 	struct sprd_vpu_pd *pd;
-	int i;
+	int i, ret;
+	bool cali_mode;
 	struct of_phandle_args child, parent;
 
 	dev_info(dev, "%s, %d\n", __func__, __LINE__);
@@ -205,6 +243,16 @@ static int vpu_pd_probe(struct platform_device *pdev)
 		pd->mask[i] = syscon_args[1];
 		dev_info(dev, "VPU syscon[%s]%p, offset 0x%x, mask 0x%x\n",
 			pname, pd->regmap[i], pd->reg[i], pd->mask[i]);
+	}
+
+	cali_mode = cali_mode_check("androidboot.mode=cali");
+	if (cali_mode) {
+		pr_info("cali mode enter success!");
+		ret = vpu_vsp_cali(pd);
+		if (!ret)
+			pr_info("%s: calibration mode and not probe\n", __func__);
+		else
+			pr_err("%s: calibration mode vpu shutdown failed\n", __func__);
 	}
 
 	pm_genpd_init(&pd->gpd, NULL, true);
