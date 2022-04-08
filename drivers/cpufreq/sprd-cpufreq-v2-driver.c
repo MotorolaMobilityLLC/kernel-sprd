@@ -293,7 +293,8 @@ static int sprd_cpufreq_init(struct cpufreq_policy *policy)
 		goto unlock_ret;
 	}
 
-	policy->cur = (u32)(freq / 1000U); /* form Hz to KHz */
+	do_div(freq, 1000); /* from Hz to KHz */
+	policy->cur = (u32)freq;
 
 	dev_pm_opp_of_register_em(policy->cpus);
 
@@ -425,7 +426,8 @@ static u32 sprd_cpufreq_get(u32 cpu)
 
 	mutex_unlock(&cluster->mutex);
 
-	return (u32)(freq / 1000U); /* from Hz to KHz */
+	do_div(freq, 1000); /* from Hz to KHz */
+	return (u32)freq;
 }
 
 static int sprd_cpufreq_suspend(struct cpufreq_policy *policy)
@@ -814,7 +816,8 @@ unsigned int sprd_cpufreq_update_opp_v2(int cpu, int now_temp)
 
 	mutex_unlock(&cluster->mutex);
 
-	return (unsigned int)(freq / 1000U);
+	do_div(freq, 1000); /* from Hz to KHz */
+	return (unsigned int)freq;
 
 ret_error:
 	mutex_unlock(&cluster->mutex);
