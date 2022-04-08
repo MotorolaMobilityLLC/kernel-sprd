@@ -12,111 +12,119 @@
 struct pmic_glb {
 	u32 reg;
 	u32 base;
+	struct kobject *kobj;
 	struct regmap *regmap;
 	struct device *dev;
+	struct list_head list;
 };
 
-static ssize_t pmic_reg_show(struct device *dev, struct device_attribute *attr,
+static LIST_HEAD(sc27xx_head);
+static struct platform_driver sprd_pmic_glb_driver;
+
+static ssize_t pmic_reg_show(struct kobject *kobj, struct kobj_attribute *attr,
 			     char *buf)
 {
-	ssize_t ret = 0;
-	struct pmic_glb *sc27xx_glb = dev_get_drvdata(dev);
+	ssize_t ret = -EINVAL;
+	struct pmic_glb *sc27xx_glb;
 
-	if (!sc27xx_glb)
-		return ret;
-
-	return sprintf(buf, "0x%x", sc27xx_glb->reg);
+	list_for_each_entry(sc27xx_glb, &sc27xx_head, list) {
+		if (sc27xx_glb->kobj == kobj)
+			return sprintf(buf, "0x%x", sc27xx_glb->reg);
+	}
+	return ret;
 }
 
-static ssize_t pmic_reg_store(struct device *dev, struct device_attribute *attr,
+static ssize_t pmic_reg_store(struct kobject *kobj, struct kobj_attribute *attr,
 			      const char *buf, size_t count)
 {
-	int ret = 0;
-	struct pmic_glb *sc27xx_glb = dev_get_drvdata(dev);
+	int ret = -EINVAL;
+	struct pmic_glb *sc27xx_glb;
 
-	if (!sc27xx_glb)
-		return ret;
+	list_for_each_entry(sc27xx_glb, &sc27xx_head, list) {
+		if (sc27xx_glb->kobj == kobj) {
+			ret = sscanf(buf, "%x", &sc27xx_glb->reg);
+			if (ret != 1)
+				return -EINVAL;
 
-	ret = sscanf(buf, "%x", &sc27xx_glb->reg);
-	if (ret != 1) {
-		dev_err(dev->parent, "error input\n");
-		return -EINVAL;
+			return strnlen(buf, count);
+		}
 	}
-
-	return strnlen(buf, count);
+	return ret;
 }
 
-static DEVICE_ATTR_RW(pmic_reg);
-
-static ssize_t pmic_value_show(struct device *dev, struct device_attribute
+static ssize_t pmic_value_show(struct kobject *kobj, struct kobj_attribute
 			       *attr, char *buf)
 {
-	int ret = 0;
-	u32 value = 0;
-	struct pmic_glb *sc27xx_glb = dev_get_drvdata(dev);
+	int ret = -EINVAL;
+	u32 value;
+	struct pmic_glb *sc27xx_glb;
 
-	if (!sc27xx_glb)
-		return ret;
+	list_for_each_entry(sc27xx_glb, &sc27xx_head, list) {
+		if (sc27xx_glb->kobj == kobj) {
+			if (sc27xx_glb->reg < sc27xx_glb->base)
+				return ret;
 
-	if (sc27xx_glb->reg < sc27xx_glb->base) {
-		dev_err(dev->parent, "out of reg range\n");
-		return -EINVAL;
+			ret = regmap_read(sc27xx_glb->regmap, sc27xx_glb->reg, &value);
+			if (ret)
+				return ret;
+
+			return sprintf(buf, "%x", value);
+		}
 	}
-
-	ret = regmap_read(sc27xx_glb->regmap, sc27xx_glb->reg, &value);
-	if (ret) {
-		dev_err(dev->parent, "unable to get glb\n");
-		return ret;
-	}
-
-	return sprintf(buf, "%x", value);
+	return ret;
 }
 
-static ssize_t pmic_value_store(struct device *dev, struct device_attribute *attr,
-				const char *buf, size_t count)
+static ssize_t pmic_value_store(struct kobject *kobj, struct kobj_attribute
+				*attr, const char *buf, size_t count)
 {
-	int ret = 0;
-	u32 value = 0;
-	struct pmic_glb *sc27xx_glb = dev_get_drvdata(dev);
+	int ret = -EINVAL;
+	u32 value;
+	struct pmic_glb *sc27xx_glb;
 
-	if (!sc27xx_glb)
-		return ret;
+	list_for_each_entry(sc27xx_glb, &sc27xx_head, list) {
+		if (sc27xx_glb->kobj == kobj) {
+			ret = sscanf(buf, "%x", &value);
+			if (ret != 1)
+				return -EINVAL;
 
-	ret = sscanf(buf, "%x", &value);
-	if (ret != 1) {
-		dev_err(dev->parent, "error input\n");
-		return -EINVAL;
+			if (sc27xx_glb->reg < sc27xx_glb->base)
+				return -EINVAL;
+
+			ret = regmap_write(sc27xx_glb->regmap, sc27xx_glb->reg, value);
+			if (ret)
+				return ret;
+
+			return count;
+		}
 	}
 
-	if (sc27xx_glb->reg < sc27xx_glb->base) {
-		dev_err(dev->parent, "out of reg range\n");
-		return -EINVAL;
-	}
-
-	ret = regmap_write(sc27xx_glb->regmap, sc27xx_glb->reg, value);
-	if (ret) {
-		dev_err(dev->parent, "unable to write glb\n");
-		return ret;
-	}
-
-	return count;
+	return ret;
 }
 
-static DEVICE_ATTR_RW(pmic_value);
+static struct kobj_attribute pmic_reg_attr =
+__ATTR(pmic_reg, 0644, pmic_reg_show, pmic_reg_store);
+static struct kobj_attribute pmic_value_attr =
+__ATTR(pmic_value, 0644, pmic_value_show, pmic_value_store);
 
 static struct attribute *pmic_syscon_attrs[] = {
-	&dev_attr_pmic_reg.attr,
-	&dev_attr_pmic_value.attr,
+	&pmic_reg_attr.attr,
+	&pmic_value_attr.attr,
 	NULL
 };
-ATTRIBUTE_GROUPS(pmic_syscon);
+
+static const struct attribute_group pmic_syscon_group = {
+	.attrs = pmic_syscon_attrs,
+};
 
 static int sprd_pmic_glb_probe(struct platform_device *pdev)
 {
 	int ret;
 	struct pmic_glb *sc27xx_glb;
+	struct kobject *sprd_pmic_glb_kobj;
 	struct device *dev = &pdev->dev;
 	struct device_node *np = pdev->dev.of_node;
+	struct device_driver *drv = &sprd_pmic_glb_driver.driver;
+	const struct of_device_id *match;
 
 	sc27xx_glb = devm_kzalloc(dev, sizeof(struct pmic_glb), GFP_KERNEL);
 	if (!sc27xx_glb)
@@ -136,9 +144,25 @@ static int sprd_pmic_glb_probe(struct platform_device *pdev)
 
 	sc27xx_glb->dev = &pdev->dev;
 
-	ret = sysfs_create_groups(&sc27xx_glb->dev->kobj, pmic_syscon_groups);
-	if (ret)
+	match = of_match_device(pdev->dev.driver->of_match_table, dev);
+	if (!match)
+		return -EINVAL;
+
+	sprd_pmic_glb_kobj = kobject_create_and_add(match->compatible, &drv->p->kobj);
+	if (sprd_pmic_glb_kobj == NULL) {
+		ret = -ENOMEM;
+		pr_err("%s register sysfs failed. ret %d\n", __func__, ret);
+		return ret;
+	}
+	ret = sysfs_create_group(sprd_pmic_glb_kobj, &pmic_syscon_group);
+	if (ret) {
 		dev_warn(dev, "failed to create pmic_syscon attributes\n");
+		kobject_put(sprd_pmic_glb_kobj);
+	}
+
+	sc27xx_glb->kobj = sprd_pmic_glb_kobj;
+
+	list_add(&sc27xx_glb->list, &sc27xx_head);
 
 	dev_set_drvdata(dev, sc27xx_glb);
 
@@ -147,11 +171,12 @@ static int sprd_pmic_glb_probe(struct platform_device *pdev)
 
 static int sprd_pmic_glb_remove(struct platform_device *pdev)
 {
-	struct device *dev = &pdev->dev;
-	struct pmic_glb *sc27xx_glb = dev_get_drvdata(dev);
+	struct pmic_glb *sc27xx_glb;
 
-	sysfs_remove_groups(&sc27xx_glb->dev->kobj, pmic_syscon_groups);
-
+	list_for_each_entry(sc27xx_glb, &sc27xx_head, list) {
+		list_del(&sc27xx_glb->list);
+		sysfs_remove_group(&sc27xx_glb->dev->kobj, &pmic_syscon_group);
+	}
 	return 0;
 }
 static const struct of_device_id sprd_pmic_glb_match[] = {
