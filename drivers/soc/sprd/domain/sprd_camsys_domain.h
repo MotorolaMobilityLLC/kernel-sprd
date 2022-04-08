@@ -143,7 +143,7 @@ struct camsys_power_info {
 			struct clk *mm_mtx_clk;
 			struct clk *mm_mtx_clk_parent;
 			struct clk *mm_mtx_clk_defalut;
-			struct register_gpr regs[9];
+			struct register_gpr regs[10];
 		} qogirn6pro;
 	} u;
 };

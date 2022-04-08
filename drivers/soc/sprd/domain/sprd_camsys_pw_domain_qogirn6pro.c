@@ -60,7 +60,8 @@ static const char * const syscon_name[] = {
 	"isp_power_state",
 	"dcam_force_shutdown",
 	"dcam_shutdown_en",
-	"dcam_power_state"
+	"dcam_power_state",
+	"aon_apb_mm_eb"
 };
 
 enum  {
@@ -73,10 +74,31 @@ enum  {
 	CAMSYS_DCAM_FORCE_SHUTDOWN,
 	CAMSYS_DCAM_SHUTDOWN_EN,
 	CAMSYS_DCAM_STATUS,
+	CAMSYS_MM_EB,
 };
 
 struct camsys_power_info;
 static BLOCKING_NOTIFIER_HEAD(mmsys_chain);
+
+static int boot_mode_check(void)
+{
+	struct device_node *np;
+	const char *cmd_line;
+	int ret = 0;
+
+	np = of_find_node_by_path("/chosen");
+	if (!np)
+		return 0;
+
+	ret = of_property_read_string(np, "bootargs", &cmd_line);
+	if (ret < 0)
+		return 0;
+
+	if (strstr(cmd_line, "androidboot.mode=cali"))
+		ret = 1;
+
+	return ret;
+}
 
 static void regmap_update_bits_mmsys(struct register_gpr *p, uint32_t val)
 {
@@ -317,6 +339,13 @@ static long sprd_campw_init(struct platform_device *pdev, struct camsys_power_in
 			pw_info->u.qogirn6pro.regs[i].mask);
 	}
 
+	/*power off in calibration mode*/
+	if (boot_mode_check()) {
+		regmap_update_bits_mmsys(&pw_info->u.qogirn6pro.regs[CAMSYS_MM_EB], 0);
+		regmap_update_bits_mmsys(&pw_info->u.qogirn6pro.regs[CAMSYS_SHUTDOWN_EN], 0);
+		regmap_update_bits_mmsys(&pw_info->u.qogirn6pro.regs[CAMSYS_FORCE_SHUTDOWN], ~((uint32_t)0));
+		pr_info("calibration mode MM SHUTDOWN");
+	}
 	return ret;
 }
 
