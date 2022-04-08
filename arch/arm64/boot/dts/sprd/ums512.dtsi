@@ -182,7 +182,6 @@
 	};
 
 	cpufreq_cluster0: cpufreq-cluster0 {
-		sprd,temp-threshold = <65>;
 		nvmem-cell-names = "dvfs_bin";
 		nvmem-cells = <&dvfs_bin_cpu0>;
 		sprd,multi-version;
@@ -193,7 +192,6 @@
 	};
 
 	cpufreq_cluster1: cpufreq-cluster1 {
-		sprd,temp-threshold = <65>;
 		nvmem-cell-names = "dvfs_bin";
 		nvmem-cells = <&dvfs_bin_cpu1>;
 		sprd,multi-version;

@@ -689,7 +689,6 @@
 	cpufreq_cluster0: cpufreq-cluster0 {
 		nvmem-cells = <&dvfs_bin_cpu0>;
 		nvmem-cell-names = "dvfs_bin";
-		sprd,temp-threshold = <65>;
 		sprd,multi-version;
 		sprd,cpufreq-boost;
 		sprd,pmic-type = <0>;
@@ -700,7 +699,6 @@
 	cpufreq_cluster1: cpufreq-cluster1 {
 		nvmem-cells = <&dvfs_bin_cpu1>;
 		nvmem-cell-names = "dvfs_bin";
-		sprd,temp-threshold = <65>;
 		sprd,multi-version;
 		sprd,cpufreq-boost;
 		sprd,pmic-type = <1>;
