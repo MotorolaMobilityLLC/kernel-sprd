@@ -86,7 +86,7 @@ struct musb_hw_ep;
 #define	is_cppi_enabled(musb)	0
 #endif
 
-#ifdef CONFIG_USB_SPRD_DMA
+#if IS_ENABLED(CONFIG_USB_SPRD_DMA)
 #define musb_dma_sprd(musb)	(musb->ops->quirks & MUSB_DMA_SPRD)
 #else
 #define musb_dma_sprd(musb)	0

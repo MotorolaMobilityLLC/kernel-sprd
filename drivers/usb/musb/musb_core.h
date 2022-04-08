@@ -249,7 +249,7 @@ struct musb_hw_ep {
 	/* peripheral side */
 	struct musb_ep		ep_in;			/* TX */
 	struct musb_ep		ep_out;			/* RX */
-#ifdef CONFIG_USB_MUSB_SPRD
+#if IS_ENABLED(CONFIG_USB_MUSB_SPRD)
 	struct usb_host_endpoint	*hep[2];
 #endif
 };

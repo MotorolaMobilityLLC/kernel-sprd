@@ -626,7 +626,7 @@ static int musb_tx_dma_set_mode_musb_tusb(struct dma_controller *dma,
 					  u32 *length,
 					  u8 *mode)
 {
-#ifdef CONFIG_USB_SPRD_DMA
+#if IS_ENABLED(CONFIG_USB_SPRD_DMA)
 	struct dma_channel *channel = hw_ep->tx_channel;
 
 	if (!musb_dma_sprd(hw_ep->musb))
@@ -649,7 +649,7 @@ void musb_rx_dma_sprd(struct dma_channel *dma_channel,
 				  struct urb *urb,
 				  u32 offset, size_t len)
 {
-#ifdef CONFIG_USB_SPRD_DMA
+#if IS_ENABLED(CONFIG_USB_SPRD_DMA)
 	struct dma_controller	*dma_controller;
 	u8	dma_ok;
 	u16	csr;
@@ -2244,7 +2244,7 @@ static int musb_schedule(
 	idle = 1;
 	qh->mux = 0;
 	hw_ep = musb->endpoints + best_end;
-#ifdef CONFIG_USB_MUSB_SPRD
+#if IS_ENABLED(CONFIG_USB_MUSB_SPRD)
 	if (musb_dma_sprd(musb) && (musb->is_multipoint))
 		hw_ep->hep[!is_in] = qh->hep;
 #endif
@@ -2568,7 +2568,7 @@ done:
 	spin_unlock_irqrestore(&musb->lock, flags);
 	return ret;
 }
-#ifdef CONFIG_USB_MUSB_SPRD
+#if IS_ENABLED(CONFIG_USB_MUSB_SPRD)
 static void musb_clear_epinfo_sprd(struct usb_hcd *hcd,
 				   struct usb_host_endpoint *hep)
 {
@@ -2625,7 +2625,7 @@ musb_h_disable(struct usb_hcd *hcd, struct usb_host_endpoint *hep)
 
 	spin_lock_irqsave(&musb->lock, flags);
 
-#ifdef CONFIG_USB_MUSB_SPRD
+#if IS_ENABLED(CONFIG_USB_MUSB_SPRD)
 	if (musb_dma_sprd(musb) && (musb->is_multipoint))
 		musb_clear_epinfo_sprd(hcd, hep);
 #endif

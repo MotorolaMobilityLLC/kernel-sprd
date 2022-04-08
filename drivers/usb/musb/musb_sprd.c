@@ -156,7 +156,7 @@ static irqreturn_t sprd_musb_interrupt(int irq, void *__hci)
 	if (musb->int_usb || musb->int_tx || musb->int_rx)
 		retval = musb_interrupt(musb);
 
-#ifdef CONFIG_USB_SPRD_DMA
+#if IS_ENABLED(CONFIG_USB_SPRD_DMA)
 	if (reg_dma)
 		retval = sprd_dma_interrupt(musb, reg_dma);
 #endif
@@ -308,7 +308,7 @@ static const struct musb_platform_ops sprd_musb_ops = {
 	.exit = sprd_musb_exit,
 	.enable = sprd_musb_enable,
 	.disable = sprd_musb_disable,
-#ifdef CONFIG_USB_SPRD_DMA
+#if IS_ENABLED(CONFIG_USB_SPRD_DMA)
 	.dma_init = sprd_musb_dma_controller_create,
 	.dma_exit = sprd_musb_dma_controller_destroy,
 #endif
@@ -1080,6 +1080,7 @@ static int musb_sprd_probe(struct platform_device *pdev)
 	pm_runtime_enable(dev);
 	musb_sprd_charger_mode();
 	musb_sprd_detect_cable(glue);
+	dev_info(dev, "musb probe ok.\n");
 
 	return 0;
 

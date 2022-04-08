@@ -188,7 +188,7 @@ struct linklist_node_s {
 	u32	reserved:5;
 	u32	data_addr :4;
 	u32	pad :20;
-#ifdef CONFIG_USB_SPRD_DMA_V3
+#if IS_ENABLED(CONFIG_USB_SPRD_DMA_V3)
 	u32	reserved1;
 #endif
 };
