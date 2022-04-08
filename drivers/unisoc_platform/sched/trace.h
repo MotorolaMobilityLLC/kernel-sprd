@@ -309,6 +309,29 @@ TRACE_EVENT(sched_feec_candidates,
 		  __entry->best_idle_cpu, __entry->max_spare_cap_cpu_ls)
 );
 
+TRACE_EVENT(sched_active_migration,
+
+	TP_PROTO(struct task_struct *p, int prev_cpu, int new_cpu),
+
+	TP_ARGS(p, prev_cpu, new_cpu),
+
+	TP_STRUCT__entry(
+		__array(char,   comm,   TASK_COMM_LEN)
+		__field(pid_t,		pid)
+		__field(int,		prev_cpu)
+		__field(int,		new_cpu)
+	),
+
+	TP_fast_assign(
+		memcpy(__entry->comm, p->comm, TASK_COMM_LEN);
+		__entry->pid			= p->pid;
+		__entry->prev_cpu		= prev_cpu;
+		__entry->new_cpu		= new_cpu;
+	),
+
+	TP_printk("comm=%s pid=%d prev_cpu=%d new_cpu=%d ", __entry->comm,
+		  __entry->pid, __entry->prev_cpu, __entry->new_cpu)
+);
 #endif /* _TRACE_WALT_H */
 
 #undef TRACE_INCLUDE_PATH

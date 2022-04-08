@@ -21,6 +21,16 @@
 	*ptr -= min_t(typeof(*ptr), *ptr, _val);		\
 } while (0)
 
+/*
+ * The policy of a RT boosted task (via PI mutex) still is a fair task,
+ * so use prio check as well. The prio check alone is not sufficient
+ * since idle task's prio is also 120.
+ */
+static inline bool is_fair_task(struct task_struct *p)
+{
+	return p->prio >= MAX_RT_PRIO && !is_idle_task(p);
+}
+
 /**
  * is_idle_cpu - is a given CPU idle currently?
  * @cpu: the processor in question.
@@ -432,7 +442,154 @@ static void walt_select_task_rq_fair(void *data, struct task_struct *p, int prev
 	*target_cpu = walt_find_energy_efficient_cpu(p, prev_cpu, sync);
 }
 
+/*
+ * detach_task() -- detach the task for the migration specified in env
+ */
+static void walt_detach_task(struct task_struct *p, struct rq *src_rq,
+						    struct rq *dst_rq)
+{
+
+	lockdep_assert_rq_held(src_rq);
+
+	deactivate_task(src_rq, p, DEQUEUE_NOCLOCK);
+	double_lock_balance(src_rq, dst_rq);
+	set_task_cpu(p, dst_rq->cpu);
+	double_unlock_balance(src_rq, dst_rq);
+}
+
+static void walt_attach_task(struct rq *rq, struct task_struct *p)
+{
+	lockdep_assert_rq_held(rq);
+
+	BUG_ON(task_rq(p) != rq);
+	activate_task(rq, p, ENQUEUE_NOCLOCK);
+	check_preempt_curr(rq, p, 0);
+}
+
+/*
+ * attach_one_task() -- attaches the task returned from detach_one_task() to
+ * its new rq.
+ */
+static void walt_attach_one_task(struct rq *rq, struct task_struct *p)
+{
+	struct rq_flags rf;
+
+	rq_lock(rq, &rf);
+	update_rq_clock(rq);
+	walt_attach_task(rq, p);
+	rq_unlock(rq, &rf);
+}
+
+static int walt_active_migration_cpu_stop(void *data)
+{
+	struct rq *busiest_rq = data;
+	int busiest_cpu = cpu_of(busiest_rq);
+	int target_cpu = busiest_rq->push_cpu;
+	struct rq *target_rq = cpu_rq(target_cpu);
+	struct walt_rq *busiest_wrq = (struct walt_rq *) busiest_rq->android_vendor_data1;
+	struct task_struct *push_task;
+	struct rq_flags rf;
+	int push_task_detached = 0;
+
+	rq_lock_irq(busiest_rq, &rf);
+	push_task = busiest_wrq->push_task;
+
+	if (!cpu_active(busiest_cpu) || !cpu_active(target_cpu) || !push_task)
+		goto out_unlock;
+
+	/* Make sure the requested CPU hasn't gone down in the meantime: */
+	if (unlikely(busiest_cpu != smp_processor_id() ||
+		     !busiest_rq->active_balance))
+		goto out_unlock;
+
+	/* Is there any task to move? */
+	if (busiest_rq->nr_running <= 1)
+		goto out_unlock;
+	/*
+	 * This condition is "impossible", if it occurs
+	 * we need to fix it. Originally reported by
+	 * Bjorn Helgaas on a 128-CPU setup.
+	 */
+	BUG_ON(busiest_rq == target_rq);
+
+	if (task_on_rq_queued(push_task) &&
+	    READ_ONCE(push_task->__state) == TASK_RUNNING &&
+	    task_cpu(push_task) == busiest_cpu &&
+	    cpu_active(target_cpu) &&
+	    cpumask_test_cpu(target_cpu, push_task->cpus_ptr)) {
+		update_rq_clock(busiest_rq);
+		walt_detach_task(push_task, busiest_rq, target_rq);
+		push_task_detached = 1;
+	}
+
+out_unlock:
+	busiest_rq->active_balance = 0;
+	busiest_wrq->push_task = NULL;
+	rq_unlock(busiest_rq, &rf);
+
+	if (push_task_detached)
+		walt_attach_one_task(target_rq, push_task);
+
+	if (push_task)
+		put_task_struct(push_task);
+
+	local_irq_enable();
+
+	return 0;
+}
+
+static DEFINE_RAW_SPINLOCK(migration_lock);
+static void android_vh_scheduler_tick(void *unused, struct rq *rq)
+{
+	int prev_cpu = rq->cpu, new_cpu;
+	struct task_struct *p = rq->curr;
+	struct walt_rq *wrq = (struct walt_rq *) rq->android_vendor_data1;
+
+	if (static_branch_unlikely(&walt_disabled))
+		return;
+
+	if (!is_fair_task(p) || !rq->misfit_task_load ||
+	    READ_ONCE(p->__state) != TASK_RUNNING || p->nr_cpus_allowed == 1)
+		return;
+
+	raw_spin_lock(&migration_lock);
+
+	rcu_read_lock();
+	new_cpu = walt_find_energy_efficient_cpu(p, prev_cpu, 0);
+	rcu_read_unlock();
+
+	if ((new_cpu != -1) &&
+	    (capacity_orig_of(new_cpu) > capacity_orig_of(prev_cpu))) {
+		/* Invoke active balance to force migrate currently running task */
+		raw_spin_rq_lock(rq);
+
+		if (rq->active_balance) {
+			raw_spin_rq_unlock(rq);
+			goto out_unlock;
+		}
+
+		rq->active_balance = 1;
+		rq->push_cpu = new_cpu;
+		get_task_struct(p);
+		wrq->push_task = p;
+
+		raw_spin_rq_unlock(rq);
+
+		raw_spin_unlock(&migration_lock);
+
+		trace_sched_active_migration(p, prev_cpu, new_cpu);
+
+		stop_one_cpu_nowait(prev_cpu, walt_active_migration_cpu_stop,
+					rq, &rq->active_balance_work);
+		return;
+	}
+
+out_unlock:
+	raw_spin_unlock(&migration_lock);
+}
+
 void walt_fair_init(void)
 {
+	register_trace_android_vh_scheduler_tick(android_vh_scheduler_tick, NULL);
 	register_trace_android_rvh_select_task_rq_fair(walt_select_task_rq_fair, NULL);
 }
