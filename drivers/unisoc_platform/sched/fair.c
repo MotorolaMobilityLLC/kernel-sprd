@@ -61,6 +61,18 @@ static int is_idle_cpu(int cpu)
  */
 #define fits_capacity(cap, max)	((cap) * cap_margin < (max) * 1024)
 
+static bool cpu_overutilized(int cpu)
+{
+	struct rq *rq = cpu_rq(cpu);
+
+	if (is_max_capacity_cpu(cpu)) {
+		if (is_idle_cpu(cpu) || rq->nr_running <= 1)
+			return false;
+	}
+
+	return !fits_capacity(walt_cpu_util(cpu), capacity_orig_of(cpu));
+}
+
 static unsigned long cpu_util_without(int cpu, struct task_struct *p)
 {
 	unsigned long util;
@@ -480,6 +492,158 @@ static void walt_attach_one_task(struct rq *rq, struct task_struct *p)
 	rq_unlock(rq, &rf);
 }
 
+static void walt_migrate_queued_task(void *data, struct rq *rq,
+				     struct rq_flags *rf, struct task_struct *p,
+				     int new_cpu, int *detached)
+{
+	if (static_branch_unlikely(&walt_disabled))
+		return;
+
+	/*
+	 * WALT expects both source and destination rqs to be
+	 * held when set_task_cpu() is called on a queued task.
+	 * so implementing this detach hook. unpin the lock
+	 * before detaching and repin it later to make lockdep
+	 * happy.
+	 */
+	BUG_ON(!rf);
+
+	rq_unpin_lock(rq, rf);
+	walt_detach_task(p, rq, cpu_rq(new_cpu));
+	rq_repin_lock(rq, rf);
+
+	*detached = 1;
+}
+
+static void walt_can_migrate_task(void *data, struct task_struct *p,
+				  int dst_cpu, int *can_migrate)
+{
+	struct walt_rq *wrq = (struct walt_rq *) task_rq(p)->android_vendor_data1;
+
+	if (static_branch_unlikely(&walt_disabled))
+		return;
+
+	/* Don't detach task if it is under active migration */
+	if (unlikely(wrq->push_task == p))
+		*can_migrate = 0;
+}
+
+static void walt_find_busiest_group(void *data, struct sched_group *busiest,
+				    struct rq *dst_rq, int *out_balance)
+{
+	int busiest_cpu;
+
+	if (static_branch_unlikely(&walt_disabled))
+		return;
+
+	if (!busiest)
+		return;
+
+	/*there is only one cpu in group */
+	busiest_cpu = group_first_cpu(busiest);
+
+	/* it's not necessary to pull task when cpus belong to
+	 * same cluster and the buiest_cpu's running is <=1;
+	 */
+	if (same_cluster(busiest_cpu, cpu_of(dst_rq)) &&
+	    cpu_rq(busiest_cpu)->nr_running > 1)
+		*out_balance = 0;
+
+}
+
+/*
+ * static void walt_find_busiest_queue(void *data, int dst_cpu,
+ *                                     struct sched_group *group,
+ *                                     struct cpumask *env_cpus,
+ *                                     struct rq **busiest, int *done)
+ * {
+ *         if (static_branch_unlikely(&walt_disabled))
+ *                 return;
+ * }
+ */
+
+static void walt_nohz_balancer_kick(void *data, struct rq *rq,
+					unsigned int *flags, int *done)
+{
+	if (static_branch_unlikely(&walt_disabled))
+		return;
+
+	if (rq->nr_running >= 2 && (cpu_overutilized(rq->cpu) ||
+		is_min_capacity_cpu(rq->cpu)))
+		*flags = NOHZ_KICK_MASK;
+
+	*done = 1;
+}
+
+static void walt_find_new_ilb(void *data, struct cpumask *nohz_idle_cpus_mask,
+					  int *ilb)
+{
+	int cpu = smp_processor_id();
+	cpumask_t idle_cpus, tmp_cpus;
+	struct sched_cluster *cluster;
+	unsigned long ref_cap = capacity_orig_of(cpu);
+	unsigned long best_cap, best_cap_cpu = -1;
+	int is_small_cpu;
+
+	if (static_branch_unlikely(&walt_disabled))
+		return;
+
+	cpumask_and(&idle_cpus, nohz_idle_cpus_mask,
+			housekeeping_cpumask(HK_FLAG_MISC));
+
+	if (cpumask_empty(&idle_cpus))
+		return;
+
+	is_small_cpu = is_min_capacity_cpu(cpu);
+	best_cap = is_small_cpu ? ULONG_MAX : 0;
+
+	for_each_sched_cluster(cluster) {
+		int i;
+		unsigned long cap;
+
+		cpumask_and(&tmp_cpus, &idle_cpus, &cluster->cpus);
+
+		/* This cluster did not have any idle CPUs */
+		if (cpumask_empty(&tmp_cpus))
+			continue;
+
+		i = cpumask_first(&tmp_cpus);
+
+		cap = capacity_orig_of(i);
+
+		/* The first preference is for the same capacity CPU */
+		if (cap == ref_cap) {
+			*ilb = i;
+			goto out;
+		}
+
+		/*
+		 * When there are no idle CPUs in the same cluster, prefer cpu
+		 * with best capacity:
+		 * this_cpu is:
+		 * small cpu : prefer middle cpu;
+		 * middle cpu: prefer big cpu;
+		 * big cpu   : prefer middle cpu;
+		 */
+		if (is_small_cpu) {
+			if (cap < best_cap) {
+				best_cap = cap;
+				best_cap_cpu = i;
+			}
+		} else {
+			if (cap > best_cap) {
+				best_cap = cap;
+				best_cap_cpu = i;
+			}
+		}
+
+	}
+out:
+	*ilb = best_cap_cpu;
+
+	trace_sched_find_new_ilb(cpu, ref_cap, best_cap_cpu, best_cap, *ilb);
+}
+
 static int walt_active_migration_cpu_stop(void *data)
 {
 	struct rq *busiest_rq = data;
@@ -588,8 +752,54 @@ out_unlock:
 	raw_spin_unlock(&migration_lock);
 }
 
+static void walt_cpu_overutilzed(void *data, int cpu, int *overutilized)
+{
+	if (static_branch_unlikely(&walt_disabled))
+		return;
+
+	*overutilized = cpu_overutilized(cpu);
+}
+
+static void android_rvh_update_misfit_status(void *data, struct task_struct *p,
+					     struct rq *rq, bool *need_update)
+{
+	struct walt_task_ravg *wtr;
+	struct walt_rq *wrq;
+
+	if (static_branch_unlikely(&walt_disabled))
+		return;
+
+	if (!p || p->nr_cpus_allowed == 1) {
+		rq->misfit_task_load = 0;
+		return;
+	}
+
+	wrq = (struct walt_rq *) rq->android_vendor_data1;
+	wtr = (struct walt_task_ravg *) p->android_vendor_data1;
+
+	if (is_max_capacity_cpu(cpu_of(rq)) ||
+	    task_fits_capacity(p, capacity_orig_of(cpu_of(rq)))) {
+		rq->misfit_task_load = 0;
+		return;
+	}
+
+	/*
+	 * Make sure that misfit_task_load will not be null even if
+	 * task_h_load() returns 0.
+	 */
+	rq->misfit_task_load = max_t(unsigned long, walt_task_util(p), 1);
+}
+
 void walt_fair_init(void)
 {
+	register_trace_android_rvh_update_misfit_status(android_rvh_update_misfit_status, NULL);
+	register_trace_android_rvh_cpu_overutilized(walt_cpu_overutilzed, NULL);
 	register_trace_android_vh_scheduler_tick(android_vh_scheduler_tick, NULL);
+	register_trace_android_rvh_migrate_queued_task(walt_migrate_queued_task, NULL);
+	register_trace_android_rvh_can_migrate_task(walt_can_migrate_task, NULL);
+	register_trace_android_rvh_find_new_ilb(walt_find_new_ilb, NULL);
+	register_trace_android_rvh_sched_nohz_balancer_kick(walt_nohz_balancer_kick, NULL);
+//	register_trace_android_rvh_find_busiest_queue(walt_find_busiest_queue, NULL);
+	register_trace_android_rvh_find_busiest_group(walt_find_busiest_group, NULL);
 	register_trace_android_rvh_select_task_rq_fair(walt_select_task_rq_fair, NULL);
 }

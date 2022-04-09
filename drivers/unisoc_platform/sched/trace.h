@@ -332,6 +332,33 @@ TRACE_EVENT(sched_active_migration,
 	TP_printk("comm=%s pid=%d prev_cpu=%d new_cpu=%d ", __entry->comm,
 		  __entry->pid, __entry->prev_cpu, __entry->new_cpu)
 );
+
+TRACE_EVENT(sched_find_new_ilb,
+
+	TP_PROTO(int cpu, unsigned long ref_cap, int best_cpu, unsigned long best_cap, int new_cpu),
+
+	TP_ARGS(cpu, ref_cap, best_cpu, best_cap, new_cpu),
+
+	TP_STRUCT__entry(
+		__field(int,		cpu)
+		__field(unsigned long,	ref_cap)
+		__field(int,		best_cpu)
+		__field(unsigned long,	best_cap)
+		__field(int,		new_cpu)
+	),
+
+	TP_fast_assign(
+		__entry->cpu		= cpu;
+		__entry->ref_cap	= ref_cap;
+		__entry->best_cpu	= best_cpu;
+		__entry->best_cap	= best_cap;
+		__entry->new_cpu	= new_cpu;
+	),
+
+	TP_printk("cpu=%d ref_cap=%lu best_cpu=%d best_cap=%lu new_cpu=%d ",
+		  __entry->cpu, __entry->ref_cap, __entry->best_cpu,
+		  __entry->best_cap, __entry->new_cpu)
+);
 #endif /* _TRACE_WALT_H */
 
 #undef TRACE_INCLUDE_PATH
