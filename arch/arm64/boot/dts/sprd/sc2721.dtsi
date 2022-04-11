@@ -337,6 +337,12 @@
 			};
 		};
 
+		pmic_smpl: smpl@c00 {
+			compatible = "sprd,sc27xx-smpl", "sprd,sc2721-smpl";
+			reg = <0xc00>;
+			sprd,smpl-timer-threshold = <1000>;
+		};
+
 		poweroff@c20 {
 			compatible = "sprd,sc27xx-poweroff", "sprd,sc2721-poweroff";
 			reg = <0xc20>;
