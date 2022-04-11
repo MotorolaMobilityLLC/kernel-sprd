@@ -15,6 +15,12 @@ config SPRD_7SRESET
 	help
 	  This driver support for 7Sreset of PMIC(2731,2730,2721)
 
+config SPRD_PMIC_SMPL
+	tristate "Spreadtrum PMIC SMPL driver"
+	depends on MFD_SC27XX_PMIC || MFD_UMP96XX_PMIC || COMPILE_TEST
+        help
+          Say Y here to enable smpl module.
+
 config SPRD_PMIC_SYSCON
 	tristate "Unisoc PMIC global driver"
 	depends on MFD_SC27XX_PMIC || MFD_UMP96XX_PMIC || COMPILE_TEST
