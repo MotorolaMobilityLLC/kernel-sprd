@@ -1,0 +1,22 @@
+#
+# SPRD Sensor Hub New drivers configuration
+#
+
+menu "Spreadtrum Sensor Hub new"
+
+config SPRD_SENSOR_HUB_NEW
+	tristate "Spreadtrum Sensor Hub New"
+	select IIO_BUFFER
+	select IIO_KFIFO_BUF
+	select IIO_TRIGGER
+	depends on SPRD_SIPC
+	depends on SPRD_SYSTIMER
+	help
+	  Support Sensor hub new Feature
+	  Provide power saving solution for integrating and
+	  processing sensor data.
+
+	  Say Y here to build support for sensor hub new.
+	  To compile this driver as a module, choose M here
+
+endmenu

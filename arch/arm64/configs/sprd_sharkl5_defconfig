@@ -5299,6 +5299,12 @@ CONFIG_SC27XX_ADC=m
 CONFIG_SPRD_SENSOR_HUB=m
 # end of Spreadtrum Sensor Hub
 
+#
+# Spreadtrum Sensor Hub new
+#
+# CONFIG_SPRD_SENSOR_HUB_NEW is not set
+# end of Spreadtrum Sensor Hub new
+
 # CONFIG_NTB is not set
 # CONFIG_VME_BUS is not set
 CONFIG_PWM=y

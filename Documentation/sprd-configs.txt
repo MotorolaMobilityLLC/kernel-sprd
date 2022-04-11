@@ -17203,15 +17203,15 @@ CONFIG_SPRD_SC9863A_CLK
 	[missing plat description] CONFIG_SPRD_SC9863A_CLK is only for sharkl3 platform and other
 				   projects have their own driver.
 	[function] This function is used to enable sharkl3 platform clock driver.
-CONFIG_SPRD_SENSOR_HUB
+CONFIG_SPRD_SENSOR_HUB_NEW
 	[arch] arm64
 	[plat] sharkl3,sharkl5Pro
 	[missing plat] none
 	[field] make
 	[subsys] iio
-	[must] user
+	[must] user debug
 	[missing plat description] none
-	[function] enable sensor hub driver built in kernel
+	[function] enable sensor hub driver new built in kernel
 CONFIG_SPRD_SFP_SUPPORT
 	[arch] all
 	[plat] all

@@ -95,5 +95,6 @@ source "drivers/iio/proximity/Kconfig"
 source "drivers/iio/resolver/Kconfig"
 source "drivers/iio/temperature/Kconfig"
 source "drivers/iio/sprd_hub/Kconfig"
+source "drivers/iio/sprd_hub_new/Kconfig"
 
 endif # IIO
