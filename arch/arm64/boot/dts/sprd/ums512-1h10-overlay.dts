@@ -1,5 +1,6 @@
 /dts-v1/;
 /plugin/;
+#include <dt-bindings/gpio/gpio.h>
 
 #include "reserved-memory/ums512-1h10-overlay.dtsi"
 
@@ -39,3 +40,8 @@
 		memory-region = <&fd_reserved>;
 	};
 };
+
+&sdio0 {
+	cd-gpios = <&eic_sync 19 GPIO_ACTIVE_HIGH>;
+};
+
