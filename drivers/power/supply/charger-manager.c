@@ -3737,6 +3737,74 @@ static void cm_check_charge_voltage(struct charger_manager *cm)
 	}
 }
 
+static int cm_set_health_cmd(struct charger_manager *cm)
+{
+	int ret;
+	union power_supply_propval val;
+	struct power_supply *fuel_gauge;
+
+	val.intval = CM_GOOD_HEALTH_CMD;
+	fuel_gauge = power_supply_get_by_name(cm->desc->psy_fuel_gauge);
+	if (!fuel_gauge)
+		return -ENOMEM;
+
+	ret = power_supply_set_property(fuel_gauge, POWER_SUPPLY_PROP_HEALTH, &val);
+	power_supply_put(fuel_gauge);
+
+	return ret;
+}
+
+static void cm_check_battery_voltage(struct charger_manager *cm)
+{
+	int ret, batt_uV, health;
+	union power_supply_propval val;
+	struct power_supply *fuel_gauge;
+
+	if (cm->charging_status != 0 && !(cm->charging_status & CM_CHARGE_BATT_OVERVOLTAGE))
+		return;
+
+	fuel_gauge = power_supply_get_by_name(cm->desc->psy_fuel_gauge);
+	if (!fuel_gauge)
+		return;
+
+	ret = power_supply_get_property(fuel_gauge, POWER_SUPPLY_PROP_HEALTH, &val);
+	power_supply_put(fuel_gauge);
+	if (ret)
+		return;
+
+	health = val.intval;
+
+	mutex_lock(&cm->desc->charge_info_mtx);
+	ret = get_vbat_now_uV(cm, &batt_uV);
+	if (ret) {
+		dev_err(cm->dev, "%s, failed to get batt uV, ret=%d\n", __func__, ret);
+		mutex_unlock(&cm->desc->charge_info_mtx);
+		return;
+	}
+
+	if (cm->charger_enabled && (health == POWER_SUPPLY_HEALTH_OVERVOLTAGE)) {
+		dev_info(cm->dev, "battery voltage too high, stop charge!!!\n");
+		cm->charging_status |= CM_CHARGE_BATT_OVERVOLTAGE;
+		mutex_unlock(&cm->desc->charge_info_mtx);
+		try_charger_enable(cm, false);
+	} else if (!cm->charger_enabled && batt_uV <= cm->desc->constant_charge_voltage_max_uv &&
+		   (cm->charging_status & CM_CHARGE_BATT_OVERVOLTAGE)) {
+			ret = cm_set_health_cmd(cm);
+			if (ret) {
+				dev_err(cm->dev, "failed to set health cmd, ret=%d\n", ret);
+				mutex_unlock(&cm->desc->charge_info_mtx);
+				return;
+			}
+
+			dev_info(cm->dev, "battery voltage %d less than %d, recharging\n", batt_uV,
+				 cm->desc->constant_charge_voltage_max_uv);
+			mutex_unlock(&cm->desc->charge_info_mtx);
+			cm->charging_status &= ~CM_CHARGE_BATT_OVERVOLTAGE;
+	} else {
+		mutex_unlock(&cm->desc->charge_info_mtx);
+	}
+}
+
 static void cm_check_charge_health(struct charger_manager *cm)
 {
 	struct charger_desc *desc = cm->desc;
@@ -4029,6 +4097,12 @@ static int cm_get_target_status(struct charger_manager *cm)
 	cm_check_charge_voltage(cm);
 	if (cm->charging_status & CM_CHARGE_VOLTAGE_ABNORMAL) {
 		dev_warn(cm->dev, "Charging voltage is still abnormal\n");
+		return POWER_SUPPLY_STATUS_NOT_CHARGING;
+	}
+
+	cm_check_battery_voltage(cm);
+	if (cm->charging_status & CM_CHARGE_BATT_OVERVOLTAGE) {
+		dev_warn(cm->dev, "battery over voltage is still abnormal\n");
 		return POWER_SUPPLY_STATUS_NOT_CHARGING;
 	}
 
@@ -7198,6 +7272,9 @@ static void cm_notify_type_handle(struct charger_manager *cm, enum cm_event_type
 		break;
 	case CM_EVENT_INT:
 		cm_charger_int_handler(cm);
+		break;
+	case CM_EVENT_BATT_OVERVOLTAGE:
+		mod_delayed_work(cm_wq, &cm_monitor_work, 0);
 		break;
 	case CM_EVENT_UNKNOWN:
 	case CM_EVENT_OTHERS:
