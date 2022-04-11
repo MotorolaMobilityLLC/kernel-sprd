@@ -149,9 +149,12 @@ static struct sprd_clk_desc ums9620_pmu_gate_desc = {
 };
 
 /* pll clock at g1 */
-static const u64 rpll_ftable[5] = {4, 0,
-			2000000000ULL, 2800000000ULL,
-			3200000000ULL};
+static struct freq_table rpll_ftable[5] = {
+	{ .ibias = 1, .max_freq = 2000000000ULL, .vco_sel = 0 },
+	{ .ibias = 2, .max_freq = 2800000000ULL, .vco_sel = 0 },
+	{ .ibias = 3, .max_freq = 3200000000ULL, .vco_sel = 0 },
+	{ .ibias = INVALID_MAX_IBIAS, .max_freq = INVALID_MAX_FREQ, .vco_sel = INVALID_MAX_VCO_SEL},
+};
 
 static struct clk_bit_field f_rpll[PLL_FACT_MAX] = {
 	{ .shift = 18,	.width = 1 },	/* lock_done	*/
@@ -164,7 +167,9 @@ static struct clk_bit_field f_rpll[PLL_FACT_MAX] = {
 	{ .shift = 55,	.width = 8 },	/* nint		*/
 	{ .shift = 32,	.width = 23},	/* kint		*/
 	{ .shift = 0,	.width = 0 },	/* prediv	*/
-	{ .shift = 66,	.width = 1 },	/* postdiv	*/
+	{ .shift = 66,	.width = 2 },	/* postdiv	*/
+	{ .shift = 0,	.width = 0 },	/* refdiv	*/
+	{ .shift = 0,	.width = 0 },	/* vco_sel	*/
 };
 
 static SPRD_PLL_HW(rpll, "rpll", &clk_26m_aud.hw, 0x10,
@@ -194,9 +199,12 @@ static struct sprd_clk_desc ums9620_g1_pll_desc = {
 };
 
 /* pll at g1l */
-static const u64 dpll_ftable[5] = {4, 0,
-			2000000000ULL, 2800000000ULL,
-			3200000000ULL};
+static struct freq_table dpll_ftable[4] = {
+	{ .ibias = 1, .max_freq = 2000000000ULL, .vco_sel = 0 },
+	{ .ibias = 2, .max_freq = 2800000000ULL, .vco_sel = 0 },
+	{ .ibias = 3, .max_freq = 3200000000ULL, .vco_sel = 0 },
+	{ .ibias = INVALID_MAX_IBIAS, .max_freq = INVALID_MAX_FREQ, .vco_sel = INVALID_MAX_VCO_SEL},
+};
 
 static struct clk_bit_field f_dpll[PLL_FACT_MAX] = {
 	{ .shift = 18,	.width = 1 },	/* lock_done	*/
@@ -209,7 +217,9 @@ static struct clk_bit_field f_dpll[PLL_FACT_MAX] = {
 	{ .shift = 55,	.width = 8 },	/* nint		*/
 	{ .shift = 32,	.width = 23},	/* kint		*/
 	{ .shift = 0,	.width = 0 },	/* prediv	*/
-	{ .shift = 66,	.width = 1 },	/* postdiv	*/
+	{ .shift = 66,	.width = 4 },	/* postdiv	*/
+	{ .shift = 0,	.width = 0 },	/* refdiv	*/
+	{ .shift = 0,	.width = 0 },	/* vco_sel	*/
 };
 
 static SPRD_PLL_FW_NAME(dpll0, "dpll0", "ext-26m", 0x4,
@@ -247,9 +257,12 @@ static struct sprd_clk_desc ums9620_g1l_pll_desc = {
 };
 
 /* pll at g5l */
-static const u64 tgpll_ftable[5] = {4, 0,
-			2000000000ULL, 2800000000ULL,
-			3200000000ULL};
+static struct freq_table tgpll_ftable[4] = {
+	{ .ibias = 1, .max_freq = 2000000000ULL, .vco_sel = 0 },
+	{ .ibias = 2, .max_freq = 2800000000ULL, .vco_sel = 0 },
+	{ .ibias = 3, .max_freq = 3200000000ULL, .vco_sel = 0 },
+	{ .ibias = INVALID_MAX_IBIAS, .max_freq = INVALID_MAX_FREQ, .vco_sel = INVALID_MAX_VCO_SEL},
+};
 
 static struct clk_bit_field f_tgpll[PLL_FACT_MAX] = {
 	{ .shift = 17,	.width = 1 },	/* lock_done	*/
@@ -263,6 +276,8 @@ static struct clk_bit_field f_tgpll[PLL_FACT_MAX] = {
 	{ .shift = 39,	.width = 23},	/* kint		*/
 	{ .shift = 0,	.width = 0 },	/* prediv	*/
 	{ .shift = 68,	.width = 1 },	/* postdiv	*/
+	{ .shift = 0,	.width = 0 },	/* refdiv	*/
+	{ .shift = 0,	.width = 0 },	/* vco_sel	*/
 };
 
 static SPRD_PLL_FW_NAME(tgpll, "tgpll", "ext-26m", 0x4,
@@ -298,6 +313,8 @@ static struct clk_bit_field f_psr8pll[PLL_FACT_MAX] = {
 	{ .shift = 0,	.width = 0 },	/* kint		*/
 	{ .shift = 0,	.width = 0 },	/* prediv	*/
 	{ .shift = 35,	.width = 1 },	/* postdiv	*/
+	{ .shift = 0,	.width = 0 },	/* refdiv	*/
+	{ .shift = 0,	.width = 0 },	/* vco_sel	*/
 };
 
 #define psr8pll_ftable tgpll_ftable
@@ -317,6 +334,8 @@ static struct clk_bit_field f_v4nrpll[PLL_FACT_MAX] = {
 	{ .shift = 32,	.width = 23},	/* kint		*/
 	{ .shift = 0,	.width = 0 },	/* prediv	*/
 	{ .shift = 81,	.width = 1 },	/* postdiv	*/
+	{ .shift = 0,	.width = 0 },	/* refdiv	*/
+	{ .shift = 0,	.width = 0 },	/* vco_sel	*/
 };
 
 #define v4nrpll_ftable tgpll_ftable
@@ -374,9 +393,12 @@ static struct sprd_clk_desc ums9620_g5l_pll_desc = {
 };
 
 /* pll at g5r */
-static const u64 gpll_ftable[5] = {4, 0,
-			2000000000ULL, 2800000000ULL,
-			3200000000ULL};
+static struct freq_table gpll_ftable[4] = {
+	{ .ibias = 1, .max_freq = 2000000000ULL, .vco_sel = 0 },
+	{ .ibias = 2, .max_freq = 2800000000ULL, .vco_sel = 0 },
+	{ .ibias = 3, .max_freq = 3200000000ULL, .vco_sel = 0 },
+	{ .ibias = INVALID_MAX_IBIAS, .max_freq = INVALID_MAX_FREQ, .vco_sel = INVALID_MAX_VCO_SEL},
+};
 
 static struct clk_bit_field f_gpll[PLL_FACT_MAX] = {
 	{ .shift = 14,	.width = 1 },	/* lock_done	*/
@@ -390,6 +412,8 @@ static struct clk_bit_field f_gpll[PLL_FACT_MAX] = {
 	{ .shift = 0,	.width = 0 },	/* kint		*/
 	{ .shift = 0,	.width = 0 },	/* prediv	*/
 	{ .shift = 35,	.width = 1 },	/* postdiv	*/
+	{ .shift = 0,	.width = 0 },	/* refdiv	*/
+	{ .shift = 0,	.width = 0 },	/* vco_sel	*/
 };
 
 static SPRD_PLL_FW_NAME(gpll, "gpll", "ext-26m", 0x0,
@@ -422,6 +446,8 @@ static struct clk_bit_field f_cpll[PLL_FACT_MAX] = {
 	{ .shift = 32,	.width = 23},	/* kint		*/
 	{ .shift = 0,	.width = 0 },	/* prediv	*/
 	{ .shift = 68,	.width = 1 },	/* postdiv	*/
+	{ .shift = 0,	.width = 0 },	/* refdiv	*/
+	{ .shift = 0,	.width = 0 },	/* vco_sel	*/
 };
 #define cpll_ftable gpll_ftable
 static SPRD_PLL_FW_NAME(cpll, "cpll", "ext-26m", 0x48,
@@ -440,6 +466,8 @@ static struct clk_bit_field f_audpll[PLL_FACT_MAX] = {
 	{ .shift = 32,	.width = 23},	/* kint		*/
 	{ .shift = 0,	.width = 0 },	/* prediv	*/
 	{ .shift = 67,	.width = 1 },	/* postdiv	*/
+	{ .shift = 0,	.width = 0 },	/* refdiv	*/
+	{ .shift = 0,	.width = 0 },	/* vco_sel	*/
 };
 
 #define audpll_ftable gpll_ftable
@@ -504,13 +532,20 @@ static struct sprd_clk_desc ums9620_g5r_pll_desc = {
 };
 
 /* pll at g8 */
-static const u64 mpllb_ftable[15] = {14, 0, 0, 0,
-			1200000000ULL, 1400000000ULL,
-			1600000000ULL, 1800000000ULL,
-			2000000000ULL, 2200000000ULL,
-			2400000000ULL, 2600000000ULL,
-			2800000000ULL, 3000000000ULL,
-			3200000000ULL};
+static struct freq_table mpllb_ftable[12] = {
+	{ .ibias = 7,  .max_freq = 1200000000ULL,  .vco_sel = 1 },
+	{ .ibias = 8,  .max_freq = 1400000000ULL,  .vco_sel = 1 },
+	{ .ibias = 9,  .max_freq = 1600000000ULL,  .vco_sel = 1 },
+	{ .ibias = 10, .max_freq = 1800000000ULL,  .vco_sel = 1 },
+	{ .ibias = 11, .max_freq = 2000000000ULL,  .vco_sel = 1 },
+	{ .ibias = 7,  .max_freq = 2200000000ULL,  .vco_sel = 0 },
+	{ .ibias = 8,  .max_freq = 2400000000ULL,  .vco_sel = 0 },
+	{ .ibias = 9,  .max_freq = 2600000000ULL,  .vco_sel = 0 },
+	{ .ibias = 10, .max_freq = 2800000000ULL,  .vco_sel = 0 },
+	{ .ibias = 11, .max_freq = 3000000000ULL,  .vco_sel = 0 },
+	{ .ibias = 12, .max_freq = 3200000000ULL,  .vco_sel = 0 },
+	{ .ibias = INVALID_MAX_IBIAS, .max_freq = INVALID_MAX_FREQ, .vco_sel = INVALID_MAX_VCO_SEL},
+};
 
 static struct clk_bit_field f_mpllb[PLL_FACT_MAX] = {
 	{ .shift = 15,	.width = 1 },	/* lock_done	*/
@@ -524,11 +559,13 @@ static struct clk_bit_field f_mpllb[PLL_FACT_MAX] = {
 	{ .shift = 0,	.width = 0},	/* kint		*/
 	{ .shift = 0,	.width = 0 },	/* prediv	*/
 	{ .shift = 67,	.width = 4 },	/* postdiv	*/
+	{ .shift = 66,	.width = 1 },	/* refdiv	*/
+	{ .shift = 96,	.width = 1 },	/* vco_sel	*/
 };
 
 static SPRD_PLL_FW_NAME(mpllb, "mpllb", "ext-26m", 0x0,
-				   3, mpllb_ftable, f_mpllb, 240,
-				   1000, 1000, 1, 1000000000);
+				   4, mpllb_ftable, f_mpllb, 240,
+				   1000, 1000, 1, 1200000000);
 
 static struct sprd_clk_common *ums9620_g8_pll_clks[] = {
 	/* address base is 0x6432c000 */
@@ -560,13 +597,15 @@ static struct clk_bit_field f_mpllm[PLL_FACT_MAX] = {
 	{ .shift = 0,	.width = 0 },	/* nint		*/
 	{ .shift = 0,	.width = 0},	/* kint		*/
 	{ .shift = 0,	.width = 0 },	/* prediv	*/
-	{ .shift = 67,	.width = 1 },	/* postdiv	*/
+	{ .shift = 68,	.width = 4 },	/* postdiv	*/
+	{ .shift = 67,	.width = 1 },	/* refdiv	*/
+	{ .shift = 96,	.width = 1 },	/* vco_sel	*/
 };
 
 #define mpllm_ftable mpllb_ftable
 static SPRD_PLL_FW_NAME(mpllm, "mpllm", "ext-26m", 0x0,
-				   3, mpllm_ftable, f_mpllm, 240,
-				   1000, 1000, 1, 1000000000);
+				   4, mpllm_ftable, f_mpllm, 240,
+				   1000, 1000, 1, 1200000000);
 
 static struct sprd_clk_common *ums9620_g9_pll_clks[] = {
 	/* address base is 0x64330000 */
@@ -590,14 +629,28 @@ static struct sprd_clk_desc ums9620_g9_pll_desc = {
 #define mplll_ftable mpllb_ftable
 #define f_mplll f_mpllm
 static SPRD_PLL_FW_NAME(mplll, "mplll", "ext-26m", 0x0,
-				   3, mplll_ftable, f_mplll, 240,
-				   1000, 1000, 1, 1000000000);
+				   4, mplll_ftable, f_mplll, 240,
+				   1000, 1000, 1, 1200000000);
 
+static struct clk_bit_field f_mplls[PLL_FACT_MAX] = {
+	{ .shift = 15,	.width = 1 },	/* lock_done	*/
+	{ .shift = 0,	.width = 0 },	/* div_s	*/
+	{ .shift = 0,	.width = 0 },	/* mod_en	*/
+	{ .shift = 0,	.width = 0 },	/* sdm_en	*/
+	{ .shift = 0,	.width = 0 },	/* refin	*/
+	{ .shift = 0,	.width = 4 },	/* icp		*/
+	{ .shift = 4,	.width = 11 },	/* n		*/
+	{ .shift = 0,	.width = 0 },	/* nint		*/
+	{ .shift = 0,	.width = 0},	/* kint		*/
+	{ .shift = 0,	.width = 0 },	/* prediv	*/
+	{ .shift = 67,	.width = 4 },	/* postdiv	*/
+	{ .shift = 71,	.width = 1 },	/* refdiv	*/
+	{ .shift = 96,	.width = 1 },	/* vco_sel	*/
+};
 #define mplls_ftable mpllb_ftable
-#define f_mplls f_mpllb
 static SPRD_PLL_FW_NAME(mplls, "mplls", "ext-26m", 0x20,
-				   3, mplls_ftable, f_mplls, 240,
-				   1000, 1000, 1, 1000000000);
+				   4, mplls_ftable, f_mplls, 240,
+				   1000, 1000, 1, 1200000000);
 
 static struct sprd_clk_common *ums9620_g10_pll_clks[] = {
 	/* address base is 0x64334000 */

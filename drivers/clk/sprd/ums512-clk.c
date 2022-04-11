@@ -112,9 +112,13 @@ static struct sprd_clk_desc ums512_pmu_gate_desc = {
 };
 
 /* pll clock at g0 */
-static const u64 itable_dpll0[7] = {6, 0, 0,
-			1173000000ULL, 1475000000ULL,
-			1855000000ULL, 1866000000ULL};
+static struct freq_table dpll0_ftable[5] = {
+	{ .ibias = 2, .max_freq = 1173000000ULL, .vco_sel = 0 },
+	{ .ibias = 3, .max_freq = 1475000000ULL, .vco_sel = 0 },
+	{ .ibias = 4, .max_freq = 1855000000ULL, .vco_sel = 0 },
+	{ .ibias = 5, .max_freq = 1866000000ULL, .vco_sel = 0 },
+	{ .ibias = INVALID_MAX_IBIAS, .max_freq = INVALID_MAX_FREQ, .vco_sel = INVALID_MAX_VCO_SEL},
+};
 
 static struct clk_bit_field f_dpll0[PLL_FACT_MAX] = {
 	{ .shift = 18,	.width = 1 },	/* lock_done	*/
@@ -128,9 +132,11 @@ static struct clk_bit_field f_dpll0[PLL_FACT_MAX] = {
 	{ .shift = 32,	.width = 23},	/* kint		*/
 	{ .shift = 0,	.width = 0 },	/* prediv	*/
 	{ .shift = 0,	.width = 0 },	/* postdiv	*/
+	{ .shift = 0,	.width = 0 },	/* refdiv	*/
+	{ .shift = 0,	.width = 0 },	/* vco_sel	*/
 };
 static SPRD_PLL_HW(dpll0, "dpll0", &dpll0_gate.common.hw, 0x4, 3,
-		   itable_dpll0, f_dpll0, 240, 1000, 1000, 0, 0);
+		   dpll0_ftable, f_dpll0, 240, 1000, 1000, 0, 0);
 static CLK_FIXED_FACTOR_HW(dpll0_58m31, "dpll0-58m31", &dpll0.common.hw,
 			   32, 1, 0);
 
@@ -154,10 +160,15 @@ static struct sprd_clk_desc ums512_g0_pll_desc = {
 };
 
 /* pll clock at g2 */
-static const u64 itable_mpll[8] = {7, 0,
-			1400000000ULL, 1600000000ULL,
-			1800000000ULL, 2000000000ULL,
-			2200000000ULL, 2500000000ULL};
+static struct freq_table mpll_ftable[7] = {
+	{ .ibias = 1, .max_freq = 1400000000ULL, .vco_sel = 0 },
+	{ .ibias = 2, .max_freq = 1600000000ULL, .vco_sel = 0 },
+	{ .ibias = 3, .max_freq = 1800000000ULL, .vco_sel = 0 },
+	{ .ibias = 4, .max_freq = 2000000000ULL, .vco_sel = 0 },
+	{ .ibias = 5, .max_freq = 2200000000ULL, .vco_sel = 0 },
+	{ .ibias = 6, .max_freq = 2500000000ULL, .vco_sel = 0 },
+	{ .ibias = INVALID_MAX_IBIAS, .max_freq = INVALID_MAX_FREQ, .vco_sel = INVALID_MAX_VCO_SEL},
+};
 
 static struct clk_bit_field f_mpll[PLL_FACT_MAX] = {
 	{ .shift = 17,	.width = 1 },	/* lock_done	*/
@@ -171,9 +182,11 @@ static struct clk_bit_field f_mpll[PLL_FACT_MAX] = {
 	{ .shift = 32,	.width = 23},	/* kint		*/
 	{ .shift = 0,	.width = 0 },	/* prediv	*/
 	{ .shift = 77,	.width = 1 },	/* postdiv	*/
+	{ .shift = 0,	.width = 0 },	/* refdiv	*/
+	{ .shift = 0,	.width = 0 },	/* vco_sel	*/
 };
 static SPRD_PLL_HW(mpll1, "mpll1", &mpll1_gate.common.hw, 0x0, 3,
-		   itable_mpll, f_mpll, 240, 1000, 1000, 1, 1200000000);
+		   mpll_ftable, f_mpll, 240, 1000, 1000, 1, 1200000000);
 static CLK_FIXED_FACTOR_HW(mpll1_63m38, "mpll1-63m38", &mpll1.common.hw,
 			   32, 1, 0);
 
@@ -197,10 +210,14 @@ static struct sprd_clk_desc ums512_g2_pll_desc = {
 };
 
 /* pll at g3 */
-static const u64 itable[8] = {7, 0, 0,
-			900000000ULL, 1100000000ULL,
-			1300000000ULL, 1500000000ULL,
-			1600000000ULL};
+static struct freq_table ftable[6] = {
+	{ .ibias = 2, .max_freq = 900000000ULL, .vco_sel = 0 },
+	{ .ibias = 3, .max_freq = 1100000000ULL, .vco_sel = 0 },
+	{ .ibias = 4, .max_freq = 1300000000ULL, .vco_sel = 0 },
+	{ .ibias = 5, .max_freq = 1500000000ULL, .vco_sel = 0 },
+	{ .ibias = 6, .max_freq = 1600000000ULL, .vco_sel = 0 },
+	{ .ibias = INVALID_MAX_IBIAS, .max_freq = INVALID_MAX_FREQ, .vco_sel = INVALID_MAX_VCO_SEL},
+};
 
 static struct clk_bit_field f_pll[PLL_FACT_MAX] = {
 	{ .shift = 18,	.width = 1 },	/* lock_done	*/
@@ -214,10 +231,12 @@ static struct clk_bit_field f_pll[PLL_FACT_MAX] = {
 	{ .shift = 32,	.width = 23},	/* kint		*/
 	{ .shift = 0,	.width = 0 },	/* prediv	*/
 	{ .shift = 77,	.width = 1 },	/* postdiv	*/
+	{ .shift = 0,	.width = 0 },	/* refdiv	*/
+	{ .shift = 0,	.width = 0 },	/* vco_sel	*/
 };
 
 static SPRD_PLL_FW_NAME(rpll, "rpll", "ext-26m", 0x0, 3,
-			itable, f_pll, 240, 1000, 1000, 1, 750000000);
+			ftable, f_pll, 240, 1000, 1000, 1, 750000000);
 
 static SPRD_SC_GATE_CLK_FW_NAME(audio_gate, "audio-gate", "ext-26m", 0x24,
 				0x1000, BIT(1), CLK_IGNORE_UNUSED, 0);
@@ -234,19 +253,25 @@ static struct clk_bit_field f_mpll2[PLL_FACT_MAX] = {
 	{ .shift = 32,	.width = 23},	/* kint		*/
 	{ .shift = 0,	.width = 0 },	/* prediv	*/
 	{ .shift = 77,	.width = 1 },	/* postdiv	*/
+	{ .shift = 0,	.width = 0 },	/* refdiv	*/
+	{ .shift = 0,	.width = 0 },	/* vco_sel	*/
 };
 static SPRD_PLL_HW(mpll0, "mpll0", &mpll0_gate.common.hw, 0x54, 3,
-		   itable_mpll, f_mpll, 240, 1000, 1000, 1, 1200000000);
+		   mpll_ftable, f_mpll, 240, 1000, 1000, 1, 1200000000);
 static CLK_FIXED_FACTOR_HW(mpll0_56m88, "mpll0-56m88", &mpll0.common.hw,
 			   32, 1, 0);
 
-static const u64 itable_mpll2[6] = {5,
-			1200000000ULL, 1400000000ULL,
-			1600000000ULL, 1800000000ULL,
-			2000000000ULL};
+static struct freq_table mpll2_ftable[6] = {
+	{ .ibias = 0, .max_freq = 1200000000ULL, .vco_sel = 0 },
+	{ .ibias = 1, .max_freq = 1400000000ULL, .vco_sel = 0 },
+	{ .ibias = 2, .max_freq = 1600000000ULL, .vco_sel = 0 },
+	{ .ibias = 3, .max_freq = 1800000000ULL, .vco_sel = 0 },
+	{ .ibias = 4, .max_freq = 2000000000ULL, .vco_sel = 0 },
+	{ .ibias = INVALID_MAX_IBIAS, .max_freq = INVALID_MAX_FREQ, .vco_sel = INVALID_MAX_VCO_SEL},
+};
 
 static SPRD_PLL_HW(mpll2, "mpll2", &mpll2_gate.common.hw, 0x9c, 3,
-		   itable_mpll2, f_mpll2, 240, 1000, 1000, 1, 1000000000);
+		   mpll2_ftable, f_mpll2, 240, 1000, 1000, 1, 1000000000);
 static CLK_FIXED_FACTOR_HW(mpll2_47m13, "mpll2-47m13", &mpll2.common.hw,
 			   32, 1, 0);
 
@@ -278,7 +303,7 @@ static struct sprd_clk_desc ums512_g3_pll_desc = {
 
 /* pll clock at gc */
 static SPRD_PLL_FW_NAME(twpll, "twpll", "ext-26m", 0x0, 3,
-			itable, f_pll, 240, 1000, 1000, 1, 750000000);
+			ftable, f_pll, 240, 1000, 1000, 1, 750000000);
 static CLK_FIXED_FACTOR_HW(twpll_768m, "twpll-768m", &twpll.common.hw,
 			   2, 1, 0);
 static CLK_FIXED_FACTOR_HW(twpll_384m, "twpll-384m", &twpll.common.hw,
@@ -321,7 +346,7 @@ static CLK_FIXED_FACTOR_HW(twpll_12m29, "twpll-12m29", &twpll.common.hw,
 			   125, 1, 0);
 
 static SPRD_PLL_FW_NAME(lpll, "lpll", "ext-26m", 0x18, 3,
-			itable, f_pll, 240, 1000, 1000, 1, 750000000);
+			ftable, f_pll, 240, 1000, 1000, 1, 750000000);
 static CLK_FIXED_FACTOR_HW(lpll_614m4, "lpll-614m4", &lpll.common.hw,
 			   2, 1, 0);
 static CLK_FIXED_FACTOR_HW(lpll_409m6, "lpll-409m6", &lpll.common.hw,
@@ -332,19 +357,19 @@ static CLK_FIXED_FACTOR_HW(lpll_30m72, "lpll-30m72", &lpll.common.hw,
 			   40, 1, 0);
 
 static SPRD_PLL_FW_NAME(isppll, "isppll", "ext-26m", 0x30, 3,
-			itable, f_pll, 240, 1000, 1000, 1, 750000000);
+			ftable, f_pll, 240, 1000, 1000, 1, 750000000);
 static CLK_FIXED_FACTOR_HW(isppll_468m, "isppll-468m", &isppll.common.hw,
 			   2, 1, 0);
 static CLK_FIXED_FACTOR_HW(isppll_78m, "isppll-78m", &isppll.common.hw,
 			   12, 1, 0);
 
 static SPRD_PLL_HW(gpll, "gpll", &gpll_gate.common.hw, 0x48, 3,
-		   itable, f_pll, 240, 1000, 1000, 1, 750000000);
+		   ftable, f_pll, 240, 1000, 1000, 1, 750000000);
 static CLK_FIXED_FACTOR_HW(gpll_40m, "gpll-40m", &gpll.common.hw,
 			   20, 1, 0);
 
 static SPRD_PLL_HW(cppll, "cppll", &cppll_gate.common.hw, 0x60, 3,
-		   itable, f_pll, 240, 1000, 1000, 1, 750000000);
+		   ftable, f_pll, 240, 1000, 1000, 1, 750000000);
 static CLK_FIXED_FACTOR_HW(cppll_39m32, "cppll-39m32", &cppll.common.hw,
 			   26, 1, 0);
 
