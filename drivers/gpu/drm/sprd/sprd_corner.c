@@ -45,18 +45,18 @@ static int sprd_corner_create(struct dpu_context *ctx)
 	buf_size = ctx->vm.vactive * ctx->vm.hactive * 4;
 	ctx->layer_top = dma_alloc_wc(drm->dev, buf_size, &ctx->layer_top_p, GFP_KERNEL);
 	if (!ctx->layer_top) {
-		DRM_ERROR("%s(): failed to allocate layer_top cma buf with %llu\n",
+		DRM_ERROR("%s(): failed to allocate layer_top cma buf with %u\n",
 			__func__, buf_size);
 		return -ENOMEM;
 	}
 
 	ctx->layer_bottom = dma_alloc_wc(drm->dev, buf_size, &ctx->layer_bottom_p, GFP_KERNEL);
 	if (!ctx->layer_bottom) {
-		DRM_ERROR("%s(): failed to allocate layer_bottom cma buf with %llu\n",
+		DRM_ERROR("%s(): failed to allocate layer_bottom cma buf with %u\n",
 			__func__, buf_size);
 		return -ENOMEM;
 	}
-	DRM_INFO("top vaddr:%px, buttom vaddr :%px top vaddr:0x%x, buttom vaddr :0x%x\n",
+	DRM_INFO("top vaddr:%px, buttom vaddr :%px top vaddr:0x%llx, buttom vaddr :0x%llx\n",
 		ctx->layer_top,ctx->layer_bottom,ctx->layer_top_p,ctx->layer_bottom_p);
 
 	return 0;
