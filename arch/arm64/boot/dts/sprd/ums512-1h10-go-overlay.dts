@@ -20,3 +20,15 @@
 		};
 	};
 };
+
+&ion {
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	heap@2 {
+		reg = <2>;
+		label = "carveout_fd";
+		type = <2>;
+		memory-region = <&fd_reserved>;
+	};
+};
