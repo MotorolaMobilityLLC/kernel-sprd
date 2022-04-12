@@ -109,13 +109,7 @@ fi
 
 # User build_abi.sh for GKI check
 if [[ $mode != "bsp" ]]; then
-	cp ${KERNEL_DIR}/build.config.gki.aarch64.ums512_user ${KERNEL_DIR}/build.config.gki.aarch64.ums512.abigail
-        echo "unset EXT_MODULES" >> ${KERNEL_DIR}/build.config.gki.aarch64.ums512.abigail
-	LTO=${state} BUILD_CONFIG=${KERNEL_DIR}/build.config.gki.aarch64.ums512.abigail build/build_abi.sh
-fi
-
-if [ -f "${KERNEL_DIR}/build.config.gki.aarch64.ums512.abigail" ]; then
-        rm -rf ${KERNEL_DIR}/build.config.gki.aarch64.ums512.abigail
+	LTO=${state} BUILD_CONFIG=${KERNEL_DIR}/build.config.gki.aarch64.ums512 build/build_abi.sh
 fi
 
 echo "========================================================" >&1
