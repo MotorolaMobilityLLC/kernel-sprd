@@ -18,6 +18,7 @@
 #include <linux/power_supply.h>
 #include <linux/power/sprd_battery_info.h>
 #include <linux/power/sprd_vote.h>
+#include <linux/power/sprd_vchg_detect.h>
 
 enum cm_charge_info_cmd {
 	CM_CHARGE_INFO_CHARGE_LIMIT = BIT(0),
@@ -640,6 +641,7 @@ struct charger_desc {
 	const char **psy_cp_stat;
 	const char **psy_wl_charger_stat;
 	const char **psy_cp_converter_stat;
+	const char **psy_battery_stat;
 
 	int num_charger_regulators;
 	struct charger_regulator *charger_regulators;
@@ -812,6 +814,7 @@ struct charger_manager {
 	struct wakeup_source *charge_ws;
 	struct wakeup_source *cp_ws;
 	struct sprd_vote *cm_charge_vote;
+	struct sprd_vchg_info *vchg_info;
 };
 
 #if IS_ENABLED(CONFIG_CHARGER_MANAGER)

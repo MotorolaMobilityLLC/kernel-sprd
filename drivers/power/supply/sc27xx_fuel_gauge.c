@@ -2294,14 +2294,6 @@ static int sc27xx_fgu_get_property(struct power_supply *psy,
 	mutex_lock(&data->lock);
 
 	switch (psp) {
-	case POWER_SUPPLY_PROP_STATUS:
-		ret = sc27xx_fgu_get_status(data, &value);
-		if (ret)
-			goto error;
-
-		val->intval = value;
-		break;
-
 	case POWER_SUPPLY_PROP_HEALTH:
 		if (data->debug_info.batt_health_debug_en) {
 			val->intval = data->debug_info.debug_batt_health;
@@ -2425,20 +2417,6 @@ static int sc27xx_fgu_get_property(struct power_supply *psy,
 
 	case POWER_SUPPLY_PROP_ENERGY_FULL_DESIGN:
 		val->intval = data->total_mah * 1000;
-		break;
-
-	case POWER_SUPPLY_PROP_CHARGE_NOW:
-		ret = sc27xx_fgu_get_clbcnt(data, &value);
-		if (ret)
-			goto error;
-
-		value = DIV_ROUND_CLOSEST(value * 10, 36 * SC27XX_FGU_SAMPLE_HZ);
-		val->intval = sc27xx_fgu_adc_to_current(data, (s64)value);
-
-		break;
-
-	case POWER_SUPPLY_PROP_VOLTAGE_BOOT:
-		val->intval = data->boot_volt_uv;
 		break;
 
 	case POWER_SUPPLY_PROP_CYCLE_COUNT:
@@ -2681,7 +2659,6 @@ static int sc27xx_fgu_property_is_writeable(struct power_supply *psy,
 }
 
 static enum power_supply_property sc27xx_fgu_props[] = {
-	POWER_SUPPLY_PROP_STATUS,
 	POWER_SUPPLY_PROP_HEALTH,
 	POWER_SUPPLY_PROP_PRESENT,
 	POWER_SUPPLY_PROP_TEMP,
@@ -2690,14 +2667,11 @@ static enum power_supply_property sc27xx_fgu_props[] = {
 	POWER_SUPPLY_PROP_VOLTAGE_NOW,
 	POWER_SUPPLY_PROP_VOLTAGE_OCV,
 	POWER_SUPPLY_PROP_VOLTAGE_AVG,
-	POWER_SUPPLY_PROP_VOLTAGE_BOOT,
 	POWER_SUPPLY_PROP_CURRENT_NOW,
 	POWER_SUPPLY_PROP_CURRENT_AVG,
 	POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE,
 	POWER_SUPPLY_PROP_ENERGY_FULL_DESIGN,
 	POWER_SUPPLY_PROP_CALIBRATE,
-	POWER_SUPPLY_PROP_CHARGE_NOW,
-	POWER_SUPPLY_PROP_CAPACITY_LEVEL,
 	POWER_SUPPLY_PROP_CYCLE_COUNT,
 	POWER_SUPPLY_PROP_VOLTAGE_MAX_DESIGN,
 };

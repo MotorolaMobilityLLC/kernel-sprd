@@ -22,8 +22,6 @@
 #include <linux/regulator/driver.h>
 #include <linux/regulator/machine.h>
 #include <linux/slab.h>
-#include <linux/usb/phy.h>
-#include <uapi/linux/usb/charger.h>
 
 #define FAN54015_REG_0					0x0
 #define FAN54015_REG_1					0x1
@@ -75,7 +73,6 @@
 #define FAN54015_DISABLE_PIN_MASK_2730			BIT(0)
 #define FAN54015_DISABLE_PIN_MASK_2721			BIT(15)
 #define FAN54015_DISABLE_PIN_MASK_2720			BIT(0)
-#define FAN54015_WAKE_UP_MS                             2000
 
 struct fan54015_charge_current {
 	int sdp_limit;
@@ -91,14 +88,10 @@ struct fan54015_charge_current {
 struct fan54015_charger_info {
 	struct i2c_client *client;
 	struct device *dev;
-	struct usb_phy *usb_phy;
-	struct notifier_block usb_notify;
 	struct power_supply *psy_usb;
 	struct fan54015_charge_current cur;
-	struct work_struct work;
 	struct mutex lock;
 	bool charging;
-	u32 limit;
 	struct delayed_work otg_work;
 	struct delayed_work wdt_work;
 	struct regmap *pmic;
@@ -109,35 +102,11 @@ struct fan54015_charger_info {
 	struct extcon_dev *edev;
 	bool otg_enable;
 	struct alarm wdg_timer;
+	bool is_charger_online;
 };
 
 static int
 fan54015_charger_set_limit_current(struct fan54015_charger_info *info, u32 limit_cur);
-
-static bool fan54015_charger_is_bat_present(struct fan54015_charger_info *info)
-{
-	struct power_supply *psy;
-	union power_supply_propval val;
-	bool present = false;
-	int ret;
-
-	psy = power_supply_get_by_name(FAN54015_BATTERY_NAME);
-	if (!psy) {
-		dev_err(info->dev, "Failed to get psy of sc27xx_fgu\n");
-		return present;
-	}
-	ret = power_supply_get_property(psy, POWER_SUPPLY_PROP_PRESENT,
-					&val);
-	if (ret == 0 && val.intval)
-		present = true;
-	power_supply_put(psy);
-
-	if (ret)
-		dev_err(info->dev,
-			"Failed to get property of present:%d\n", ret);
-
-	return present;
-}
 
 static int fan54015_read(struct fan54015_charger_info *info, u8 reg, u8 *data)
 {
@@ -506,16 +475,6 @@ static int fan54015_charger_get_health(struct fan54015_charger_info *info, u32 *
 	return 0;
 }
 
-static int fan54015_charger_get_online(struct fan54015_charger_info *info, u32 *online)
-{
-	if (info->limit)
-		*online = true;
-	else
-		*online = false;
-
-	return 0;
-}
-
 static int fan54015_charger_feed_watchdog(struct fan54015_charger_info *info)
 {
 	int ret;
@@ -554,51 +513,12 @@ static int fan54015_charger_set_status(struct fan54015_charger_info *info, int v
 	return ret;
 }
 
-static void fan54015_charger_work(struct work_struct *data)
-{
-	struct fan54015_charger_info *info =
-		container_of(data, struct fan54015_charger_info, work);
-	bool present = fan54015_charger_is_bat_present(info);
-
-	if (!info) {
-		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
-		return;
-	}
-	if (info->limit)
-		schedule_delayed_work(&info->wdt_work, 0);
-	else
-		cancel_delayed_work_sync(&info->wdt_work);
-
-	dev_info(info->dev, "battery present = %d, charger type = %d, limit = %d\n",
-		 present, info->usb_phy->chg_type, info->limit);
-	cm_notify_event(info->psy_usb, CM_EVENT_CHG_START_STOP, NULL);
-}
-
-static int fan54015_charger_usb_change(struct notifier_block *nb,
-				       unsigned long limit, void *data)
-{
-	struct fan54015_charger_info *info =
-		container_of(nb, struct fan54015_charger_info, usb_notify);
-
-	if (!info) {
-		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
-		return NOTIFY_OK;
-	}
-
-	info->limit = limit;
-
-	pm_wakeup_event(info->dev, FAN54015_WAKE_UP_MS);
-	schedule_work(&info->work);
-	return NOTIFY_OK;
-}
-
 static int fan54015_charger_usb_get_property(struct power_supply *psy,
 					     enum power_supply_property psp,
 					     union power_supply_propval *val)
 {
 	struct fan54015_charger_info *info = power_supply_get_drvdata(psy);
-	u32 cur, online, health, status = 0;
-	enum usb_charger_type type;
+	u32 cur, health, status = 0;
 	int ret = 0;
 
 	if (!info) {
@@ -610,10 +530,7 @@ static int fan54015_charger_usb_get_property(struct power_supply *psy,
 
 	switch (psp) {
 	case POWER_SUPPLY_PROP_STATUS:
-		if (info->limit)
-			val->intval = fan54015_charger_get_status(info);
-		else
-			val->intval = POWER_SUPPLY_STATUS_DISCHARGING;
+		val->intval = fan54015_charger_get_status(info);
 		break;
 
 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT:
@@ -640,15 +557,6 @@ static int fan54015_charger_usb_get_property(struct power_supply *psy,
 		}
 		break;
 
-	case POWER_SUPPLY_PROP_ONLINE:
-		ret = fan54015_charger_get_online(info, &online);
-		if (ret)
-			goto out;
-
-		val->intval = online;
-
-		break;
-
 	case POWER_SUPPLY_PROP_HEALTH:
 		if (info->charging) {
 			val->intval = 0;
@@ -659,28 +567,6 @@ static int fan54015_charger_usb_get_property(struct power_supply *psy,
 
 			val->intval = health;
 		}
-		break;
-
-	case POWER_SUPPLY_PROP_USB_TYPE:
-		type = info->usb_phy->chg_type;
-
-		switch (type) {
-		case SDP_TYPE:
-			val->intval = POWER_SUPPLY_USB_TYPE_SDP;
-			break;
-
-		case DCP_TYPE:
-			val->intval = POWER_SUPPLY_USB_TYPE_DCP;
-			break;
-
-		case CDP_TYPE:
-			val->intval = POWER_SUPPLY_USB_TYPE_CDP;
-			break;
-
-		default:
-			val->intval = POWER_SUPPLY_USB_TYPE_UNKNOWN;
-		}
-
 		break;
 
 	case POWER_SUPPLY_PROP_CALIBRATE:
@@ -707,7 +593,7 @@ fan54015_charger_usb_set_property(struct power_supply *psy,
 				  const union power_supply_propval *val)
 {
 	struct fan54015_charger_info *info = power_supply_get_drvdata(psy);
-	int ret;
+	int ret = 0;
 
 	if (!info) {
 		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
@@ -753,6 +639,15 @@ fan54015_charger_usb_set_property(struct power_supply *psy,
 			 val->intval ? "enable" : "disable");
 		break;
 
+	case POWER_SUPPLY_PROP_PRESENT:
+		info->is_charger_online = val->intval;
+		if (val->intval == true)
+			schedule_delayed_work(&info->wdt_work, 0);
+		else
+			cancel_delayed_work_sync(&info->wdt_work);
+
+		break;
+
 	default:
 		ret = -EINVAL;
 	}
@@ -770,6 +665,7 @@ fan54015_charger_property_is_writeable(struct power_supply *psy, enum power_supp
 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT:
 	case POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT:
 	case POWER_SUPPLY_PROP_CALIBRATE:
+	case POWER_SUPPLY_PROP_PRESENT:
 	case POWER_SUPPLY_PROP_STATUS:
 		ret = 1;
 		break;
@@ -781,24 +677,12 @@ fan54015_charger_property_is_writeable(struct power_supply *psy, enum power_supp
 	return ret;
 }
 
-static enum power_supply_usb_type fan54015_charger_usb_types[] = {
-	POWER_SUPPLY_USB_TYPE_UNKNOWN,
-	POWER_SUPPLY_USB_TYPE_SDP,
-	POWER_SUPPLY_USB_TYPE_DCP,
-	POWER_SUPPLY_USB_TYPE_CDP,
-	POWER_SUPPLY_USB_TYPE_C,
-	POWER_SUPPLY_USB_TYPE_PD,
-	POWER_SUPPLY_USB_TYPE_PD_DRP,
-	POWER_SUPPLY_USB_TYPE_APPLE_BRICK_ID
-};
-
 static enum power_supply_property fan54015_usb_props[] = {
 	POWER_SUPPLY_PROP_STATUS,
 	POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT,
 	POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT,
-	POWER_SUPPLY_PROP_ONLINE,
 	POWER_SUPPLY_PROP_HEALTH,
-	POWER_SUPPLY_PROP_USB_TYPE,
+	POWER_SUPPLY_PROP_PRESENT,
 	POWER_SUPPLY_PROP_CALIBRATE,
 };
 
@@ -810,26 +694,7 @@ static const struct power_supply_desc fan54015_charger_desc = {
 	.get_property		= fan54015_charger_usb_get_property,
 	.set_property		= fan54015_charger_usb_set_property,
 	.property_is_writeable	= fan54015_charger_property_is_writeable,
-	.usb_types		= fan54015_charger_usb_types,
-	.num_usb_types		= ARRAY_SIZE(fan54015_charger_usb_types),
 };
-
-static void fan54015_charger_detect_status(struct fan54015_charger_info *info)
-{
-	int min, max;
-
-	/*
-	 * If the USB charger status has been USB_CHARGER_PRESENT before
-	 * registering the notifier, we should start to charge with getting
-	 * the charge current.
-	 */
-	if (info->usb_phy->chg_state != USB_CHARGER_PRESENT)
-		return;
-
-	usb_phy_get_charger_current(info->usb_phy, &min, &max);
-	info->limit = min;
-	schedule_work(&info->work);
-}
 
 static void fan54015_charger_feed_watchdog_work(struct work_struct *work)
 {
@@ -1056,12 +921,6 @@ fan54015_charger_probe(struct i2c_client *client, const struct i2c_device_id *id
 
 	i2c_set_clientdata(client, info);
 
-	info->usb_phy = devm_usb_get_phy_by_phandle(dev, "phys", 0);
-	if (IS_ERR(info->usb_phy)) {
-		dev_err(dev, "failed to find USB phy\n");
-		return -EPROBE_DEFER;
-	}
-
 	info->edev = extcon_get_edev_by_phandle(info->dev, 0);
 	if (IS_ERR(info->edev)) {
 		dev_err(dev, "failed to find vbus extcon device.\n");
@@ -1149,17 +1008,7 @@ fan54015_charger_probe(struct i2c_client *client, const struct i2c_device_id *id
 		goto err_regmap_exit;
 	}
 
-	INIT_WORK(&info->work, fan54015_charger_work);
-
-	info->usb_notify.notifier_call = fan54015_charger_usb_change;
-	ret = usb_register_notifier(info->usb_phy, &info->usb_notify);
-	if (ret) {
-		dev_err(dev, "failed to register notifier:%d\n", ret);
-		goto err_regmap_exit;
-	}
-
 	mutex_unlock(&info->lock);
-	fan54015_charger_detect_status(info);
 
 	return 0;
 
@@ -1200,7 +1049,6 @@ static int fan54015_charger_remove(struct i2c_client *client)
 
 	cancel_delayed_work_sync(&info->wdt_work);
 	cancel_delayed_work_sync(&info->otg_work);
-	usb_unregister_notifier(info->usb_phy, &info->usb_notify);
 
 	return 0;
 }
@@ -1217,7 +1065,7 @@ static int fan54015_charger_suspend(struct device *dev)
 		return -EINVAL;
 	}
 
-	if (info->otg_enable || info->limit)
+	if (info->otg_enable || info->is_charger_online)
 		/* feed watchdog first before suspend */
 		fan54015_charger_feed_watchdog(info);
 
@@ -1243,7 +1091,7 @@ static int fan54015_charger_resume(struct device *dev)
 		return -EINVAL;
 	}
 
-	if (info->otg_enable || info->limit)
+	if (info->otg_enable || info->is_charger_online)
 		/* feed watchdog first after resume */
 		fan54015_charger_feed_watchdog(info);
 

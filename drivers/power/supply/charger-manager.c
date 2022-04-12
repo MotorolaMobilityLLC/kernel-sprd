@@ -373,27 +373,10 @@ static bool is_ext_wl_pwr_online(struct charger_manager *cm)
  */
 static bool is_ext_usb_pwr_online(struct charger_manager *cm)
 {
-	union power_supply_propval val;
-	struct power_supply *psy;
 	bool online = false;
-	int i, ret;
 
-	/* If at least one of them has one, it's yes. */
-	for (i = 0; cm->desc->psy_charger_stat[i]; i++) {
-		psy = power_supply_get_by_name(cm->desc->psy_charger_stat[i]);
-		if (!psy) {
-			dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
-					cm->desc->psy_charger_stat[i]);
-			continue;
-		}
-
-		ret = power_supply_get_property(psy, POWER_SUPPLY_PROP_ONLINE, &val);
-		power_supply_put(psy);
-		if (ret == 0 && val.intval) {
-			online = true;
-			break;
-		}
-	}
+	if (cm->vchg_info->ops && cm->vchg_info->ops->is_charger_online)
+		return cm->vchg_info->ops->is_charger_online(cm->vchg_info);
 
 	return online;
 }
@@ -831,26 +814,13 @@ static int cm_get_charge_cycle(struct charger_manager *cm, int *cycle)
 
 static int cm_get_usb_type(struct charger_manager *cm, u32 *type)
 {
-	union power_supply_propval val;
-	struct power_supply *psy;
-	int ret = -EINVAL, i;
+	int ret = -EINVAL;
 
 	*type = POWER_SUPPLY_USB_TYPE_UNKNOWN;
 
-	for (i = 0; cm->desc->psy_charger_stat[i]; i++) {
-		psy = power_supply_get_by_name(cm->desc->psy_charger_stat[i]);
-		if (!psy) {
-			dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
-				cm->desc->psy_charger_stat[i]);
-			continue;
-		}
-
-		ret = power_supply_get_property(psy, POWER_SUPPLY_PROP_USB_TYPE, &val);
-		power_supply_put(psy);
-		if (ret == 0) {
-			*type = val.intval;
-			break;
-		}
+	if (cm->vchg_info->ops && cm->vchg_info->ops->get_bc1p2_type) {
+		*type = cm->vchg_info->ops->get_bc1p2_type(cm->vchg_info);
+		ret = 0;
 	}
 
 	return ret;
@@ -1100,6 +1070,31 @@ static int get_charger_input_current(struct charger_manager *cm, int *cur)
 	return ret;
 }
 
+static void cm_set_charger_present(struct charger_manager *cm, bool present)
+{
+	int ret, i;
+	union power_supply_propval val = {0,};
+	struct power_supply *psy;
+
+	for (i = 0; cm->desc->psy_charger_stat[i]; i++) {
+		psy = power_supply_get_by_name(cm->desc->psy_charger_stat[i]);
+		if (!psy) {
+			dev_err(cm->dev, "Cannot find primary power supply \"%s\"\n",
+				cm->desc->psy_charger_stat[i]);
+			continue;
+		}
+
+		val.intval = present;
+		ret = power_supply_set_property(psy, POWER_SUPPLY_PROP_PRESENT, &val);
+		power_supply_put(psy);
+		if (ret) {
+			dev_err(cm->dev, "Fail to set present[%d] of %s, ret = %d\n",
+				present, cm->desc->psy_charger_stat[i], ret);
+			continue;
+		}
+	}
+}
+
 static bool cm_reset_basp_parameters(struct charger_manager *cm, int volt_uv)
 {
 	struct sprd_battery_jeita_table *table;
@@ -1262,7 +1257,7 @@ static bool cm_is_power_path_enabled(struct charger_manager *cm)
  */
 static bool is_charging(struct charger_manager *cm)
 {
-	bool charging = false, wl_online = false;
+	bool charging = false;
 	struct power_supply *psy;
 	union power_supply_propval val;
 	int i, ret;
@@ -1271,8 +1266,8 @@ static bool is_charging(struct charger_manager *cm)
 	if (!is_batt_present(cm))
 		return false;
 
-	if (is_ext_wl_pwr_online(cm))
-		wl_online = true;
+	if (!is_ext_pwr_online(cm))
+		return charging;
 
 	/* If at least one of the charger is charging, return yes */
 	for (i = 0; cm->desc->psy_charger_stat[i]; i++) {
@@ -1289,22 +1284,8 @@ static bool is_charging(struct charger_manager *cm)
 			continue;
 		}
 
-		/* 2. The charger should be online (ext-power) */
-		ret = power_supply_get_property(psy, POWER_SUPPLY_PROP_ONLINE, &val);
-		if (ret) {
-			dev_warn(cm->dev, "Cannot read ONLINE value from %s\n",
-				 cm->desc->psy_charger_stat[i]);
-			power_supply_put(psy);
-			continue;
-		}
-
-		if (val.intval == 0 && !wl_online) {
-			power_supply_put(psy);
-			continue;
-		}
-
 		/*
-		 * 3. The charger should not be FULL, DISCHARGING,
+		 * 2. The charger should not be FULL, DISCHARGING,
 		 * or NOT_CHARGING.
 		 */
 		ret = power_supply_get_property(psy, POWER_SUPPLY_PROP_STATUS,
@@ -4359,6 +4340,7 @@ static void misc_event_handler(struct charger_manager *cm, enum cm_event_types t
 		device_set_wakeup_capable(cm->dev, true);
 
 	if (is_ext_pwr_online(cm)) {
+		cm_set_charger_present(cm, true);
 		if (is_ext_usb_pwr_online(cm) && type == CM_EVENT_WL_CHG_START_STOP) {
 			dev_warn(cm->dev, "usb charging, does not need start wl charge\n");
 			return;
@@ -4404,10 +4386,10 @@ static void misc_event_handler(struct charger_manager *cm, enum cm_event_types t
 		cm_update_charge_info(cm, (CM_CHARGE_INFO_CHARGE_LIMIT |
 					   CM_CHARGE_INFO_INPUT_LIMIT |
 					   CM_CHARGE_INFO_JEITA_LIMIT));
-
 	} else {
 		try_wireless_charger_enable(cm, false);
 		try_charger_enable(cm, false);
+		cm_set_charger_present(cm, false);
 		cancel_delayed_work_sync(&cm_monitor_work);
 		cancel_delayed_work_sync(&cm->cp_work);
 		_cm_monitor(cm);
@@ -4439,7 +4421,7 @@ static void misc_event_handler(struct charger_manager *cm, enum cm_event_types t
 	cm_update_charger_type_status(cm);
 
 	if (is_polling_required(cm) && cm->desc->polling_interval_ms) {
-		_cm_monitor(cm);
+		mod_delayed_work(cm_wq, &cm_monitor_work, 0);
 		schedule_work(&setup_polling);
 	}
 
@@ -6103,6 +6085,22 @@ static struct charger_desc *of_cm_parse_desc(struct device *dev)
 	of_property_read_u32(np, "cm-battery-stat", &battery_stat);
 	desc->battery_present = battery_stat;
 
+	/* battery */
+	num_chgs = of_property_count_strings(np, "cm-battery");
+	if (num_chgs > 0) {
+		/* Allocate empty bin at the tail of array */
+		desc->psy_battery_stat = devm_kcalloc(dev,
+						      num_chgs + 1,
+						      sizeof(char *),
+						      GFP_KERNEL);
+		if (!desc->psy_battery_stat)
+			return ERR_PTR(-ENOMEM);
+
+		for (i = 0; i < num_chgs; i++)
+			of_property_read_string_index(np, "cm-battery", i,
+						      &desc->psy_battery_stat[i]);
+	}
+
 	/* chargers */
 	num_chgs = of_property_count_strings(np, "cm-chargers");
 	if (num_chgs > 0) {
@@ -6720,6 +6718,18 @@ static int charger_manager_probe(struct platform_device *pdev)
 		alarm_init(cm_timer, ALARM_BOOTTIME, NULL);
 	}
 
+	cm->vchg_info = sprd_vchg_info_register(cm->dev);
+	if (IS_ERR(cm->vchg_info)) {
+		dev_info(&pdev->dev, "Fail to init vchg info\n");
+		return -ENOMEM;
+	}
+
+	if (cm->vchg_info->ops && cm->vchg_info->ops->parse_dts &&
+	    cm->vchg_info->ops->parse_dts(cm->vchg_info)) {
+		dev_err(&pdev->dev, "failed to parse sprd vchg parameters\n");
+		return -EPROBE_DEFER;
+	}
+
 	/*
 	 * Some of the following do not need to be errors.
 	 * Users may intentionally ignore those features.
@@ -6730,12 +6740,11 @@ static int charger_manager_probe(struct platform_device *pdev)
 		desc->fullbatt_vchkdrop_ms = 0;
 		desc->fullbatt_vchkdrop_uV = 0;
 	}
-	if (desc->fullbatt_soc == 0) {
+	if (desc->fullbatt_soc == 0)
 		dev_info(&pdev->dev, "Ignoring full-battery soc(state of charge) threshold as it is not supplied\n");
-	}
-	if (desc->fullbatt_full_capacity == 0) {
+
+	if (desc->fullbatt_full_capacity == 0)
 		dev_info(&pdev->dev, "Ignoring full-battery full capacity threshold as it is not supplied\n");
-	}
 
 	if (!desc->charger_regulators || desc->num_charger_regulators < 1) {
 		dev_err(&pdev->dev, "charger_regulators undefined\n");
@@ -6963,6 +6972,13 @@ static int charger_manager_probe(struct platform_device *pdev)
 	}
 
 	cm_init_basp_parameter(cm);
+
+	if (cm->vchg_info->ops && cm->vchg_info->ops->init &&
+	    cm->vchg_info->ops->init(cm->vchg_info, cm->charger_psy)) {
+		dev_err(&pdev->dev, "Failed to register vchg detect notify, ret = %d\n", ret);
+		ret = -EPROBE_DEFER;
+		goto err_reg_extcon;
+	}
 
 	if (cm_event_num > 0) {
 		for (i = 0; i < cm_event_num; i++)
@@ -7211,6 +7227,14 @@ void cm_notify_event(struct power_supply *psy, enum cm_event_types type,
 
 	mutex_lock(&cm_list_mtx);
 	list_for_each_entry(cm, &cm_list, entry) {
+		if (cm->desc->psy_battery_stat) {
+			if (match_string(cm->desc->psy_battery_stat, -1,
+					 psy->desc->name) >= 0) {
+				found_power_supply = true;
+				break;
+			}
+		}
+
 		if (cm->desc->psy_charger_stat) {
 			if (match_string(cm->desc->psy_charger_stat, -1,
 					 psy->desc->name) >= 0) {
@@ -7251,6 +7275,7 @@ void cm_notify_event(struct power_supply *psy, enum cm_event_types type,
 			}
 		}
 	}
+
 	mutex_unlock(&cm_list_mtx);
 
 	if (!found_power_supply || !cm->cm_charge_vote) {
