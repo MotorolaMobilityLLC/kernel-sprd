@@ -386,8 +386,8 @@
 		reg = <0x0 0xe4c00000 0x0 0x0b400000>;
 	};
 
-	ai_reserved: ai@fb210000 {
-		reg = <0x0 0xfb210000 0x0 0x00600000>;
+	ai_reserved: ai@fcc10000 {
+		reg = <0x0 0xfcc10000 0x0 0x00600000>;
 	};
 
 	fd_reserved: faceid-mem@fd210000 {
