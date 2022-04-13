@@ -1,7 +1,7 @@
-// SPDX-License-Identifier: GPL-2.0
 /*
  * Copyright (C) 2017 Spreadtrum Communications Inc.
  *
+ * SPDX-License-Identifier: GPL-2.0
  */
 
 #include <linux/bitops.h>
@@ -144,23 +144,41 @@ static int sprd_rtc_lock_alarm(struct sprd_rtc *rtc, bool lock)
 	else
 		val |= SPRD_RTC_ALM_UNLOCK | SPRD_RTC_POWEROFF_ALM_FLAG;
 
+	ret = regmap_write(rtc->regmap, rtc->base + SPRD_RTC_INT_CLR,
+			   SPRD_RTC_SPG_UPD_EN);
+	if (ret)
+		return ret;
+
 	ret = regmap_write(rtc->regmap, rtc->base + SPRD_RTC_SPG_UPD, val);
 	if (ret)
 		return ret;
 
-	/* wait until the SPG value is updated successfully */
+	/*
+	 * It takes too long to resume alarmtimer device，about 200ms, which
+	 * affects the system resume time. The reason is that the system would
+	 * lock alarm if there are not alarms in the timerqueue, and the sprd
+	 * chip spec claims that requires about 125ms to take effect when set
+	 * rtc register to lock alarm on the chip. In order to optimize system
+	 * resuming time, we delay 5~6ms to ensure the lock info is set to the
+	 * chip instead of waiting the register is updated successfully.
+	 * System would unlock alarm when shutdown the device and there is a
+	 * poweroff alarm, so we should wait until the register is updated
+	 * successfully before system shutdown.
+	 */
+	if (lock) {
+		usleep_range(5000, 6000);
+		return 0;
+	}
+
 	ret = regmap_read_poll_timeout(rtc->regmap,
 				       rtc->base + SPRD_RTC_INT_RAW_STS, val,
 				       (val & SPRD_RTC_SPG_UPD_EN),
 				       SPRD_RTC_POLL_DELAY_US,
 				       SPRD_RTC_POLL_TIMEOUT);
-	if (ret) {
+	if (ret)
 		dev_err(rtc->dev, "failed to update SPG value:%d\n", ret);
-		return ret;
-	}
 
-	return regmap_write(rtc->regmap, rtc->base + SPRD_RTC_INT_CLR,
-			    SPRD_RTC_SPG_UPD_EN);
+	return ret;
 }
 
 static int sprd_rtc_get_secs(struct sprd_rtc *rtc, enum sprd_rtc_reg_types type,
@@ -299,6 +317,33 @@ static int sprd_rtc_set_secs(struct sprd_rtc *rtc, enum sprd_rtc_reg_types type,
 			    sts_mask);
 }
 
+static int sprd_rtc_read_aux_alarm(struct device *dev, struct rtc_wkalrm *alrm)
+{
+	struct sprd_rtc *rtc = dev_get_drvdata(dev);
+	time64_t secs;
+	u32 val;
+	int ret;
+
+	ret = sprd_rtc_get_secs(rtc, SPRD_RTC_AUX_ALARM, &secs);
+	if (ret)
+		return ret;
+
+	rtc_time64_to_tm(secs, &alrm->time);
+
+	ret = regmap_read(rtc->regmap, rtc->base + SPRD_RTC_INT_EN, &val);
+	if (ret)
+		return ret;
+
+	alrm->enabled = !!(val & SPRD_RTC_AUXALM_EN);
+
+	ret = regmap_read(rtc->regmap, rtc->base + SPRD_RTC_INT_RAW_STS, &val);
+	if (ret)
+		return ret;
+
+	alrm->pending = !!(val & SPRD_RTC_AUXALM_EN);
+	return 0;
+}
+
 static int sprd_rtc_set_aux_alarm(struct device *dev, struct rtc_wkalrm *alrm)
 {
 	struct sprd_rtc *rtc = dev_get_drvdata(dev);
@@ -388,9 +433,16 @@ static int sprd_rtc_read_alarm(struct device *dev, struct rtc_wkalrm *alrm)
 	u32 val;
 
 	/*
-	 * The RTC core checks to see if there is an alarm already set in RTC
-	 * hardware, and we always read the normal alarm at this time.
+	 * Before RTC device is registered, it will check to see if there is an
+	 * alarm already set in RTC hardware, and we always read the normal
+	 * alarm at this time.
+	 *
+	 * Or if aie_timer is enabled, we should get the normal alarm time.
+	 * Otherwise we should get auxiliary alarm time.
 	 */
+	if (rtc->rtc && rtc->rtc->aie_timer.enabled == 0)
+		return sprd_rtc_read_aux_alarm(dev, alrm);
+
 	ret = sprd_rtc_get_secs(rtc, SPRD_RTC_ALARM, &secs);
 	if (ret)
 		return ret;
@@ -519,18 +571,26 @@ static int sprd_rtc_check_power_down(struct sprd_rtc *rtc)
 {
 	u32 val;
 	int ret;
+	struct rtc_time tm = {
+		.tm_mday = 1,
+		.tm_mon = 0,
+		.tm_year = 70,
+	};
 
 	ret = regmap_read(rtc->regmap, rtc->base + SPRD_RTC_PWR_STS, &val);
 	if (ret)
 		return ret;
-
 	/*
 	 * If the RTC power status value is SPRD_RTC_POWER_RESET_VALUE, which
-	 * means the RTC has been powered down, so the RTC time values are
-	 * invalid.
+	 * means the RTC has been powered down, so init the RTC time to
+	 * 1970.0.0 0:0:0.
 	 */
-	rtc->valid = val != SPRD_RTC_POWER_RESET_VALUE;
-	return 0;
+	if (val == SPRD_RTC_POWER_RESET_VALUE)
+		ret = sprd_rtc_set_time(rtc->dev, &tm);
+	else
+		rtc->valid = true;
+
+	return ret;
 }
 
 static int sprd_rtc_check_alarm_int(struct sprd_rtc *rtc)
@@ -627,8 +687,15 @@ static int sprd_rtc_probe(struct platform_device *pdev)
 	return 0;
 }
 
+static int sprd_rtc_remove(struct platform_device *pdev)
+{
+	device_init_wakeup(&pdev->dev, 0);
+	return 0;
+}
+
 static const struct of_device_id sprd_rtc_of_match[] = {
 	{ .compatible = "sprd,sc2731-rtc", },
+	{ .compatible = "sprd,ump96xx-rtc", },
 	{ },
 };
 MODULE_DEVICE_TABLE(of, sprd_rtc_of_match);
@@ -639,6 +706,7 @@ static struct platform_driver sprd_rtc_driver = {
 		.of_match_table = sprd_rtc_of_match,
 	},
 	.probe	= sprd_rtc_probe,
+	.remove = sprd_rtc_remove,
 };
 module_platform_driver(sprd_rtc_driver);
 
