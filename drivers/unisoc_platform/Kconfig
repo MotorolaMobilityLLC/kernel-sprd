@@ -1,5 +1,9 @@
 #
 # UNISOC Display drivers
 #
+menu "Unisoc SOC drivers"
 
 source "drivers/unisoc_platform/sprd_disp/Kconfig"
+source "drivers/unisoc_platform/debug/Kconfig"
+
+endmenu
