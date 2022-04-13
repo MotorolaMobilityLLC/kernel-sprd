@@ -77,7 +77,7 @@ static void sprd_dpu_mode_set_nofb(struct sprd_crtc *crtc)
 	struct sprd_dpu *dpu = crtc->priv;
 	struct drm_display_mode *mode = &crtc->base.state->adjusted_mode;
 
-	DRM_INFO("%s() set mode: %s\n", __func__, dpu->mode->name);
+	DRM_INFO("%s() set mode: %s\n", __func__, mode->name);
 
 	if (dpu->core->modeset && crtc->base.state->mode_changed)
 		dpu->core->modeset(&dpu->ctx, mode);
@@ -427,6 +427,11 @@ static int sprd_dpu_context_init(struct sprd_dpu *dpu,
 		dpu->clk->parse_dt(ctx, np);
 	if (dpu->glb->parse_dt)
 		dpu->glb->parse_dt(ctx, np);
+
+	if (of_property_read_bool(np, "sprd,initial-stop-state")) {
+		DRM_WARN("DPU is not initialized before entering kernel\n");
+		dpu->ctx.stopped = true;
+	}
 
 	if (of_address_to_resource(np, 0, &r)) {
 		DRM_ERROR("parse dt base address failed\n");
