@@ -139,6 +139,7 @@
 				cm-num-chargers = <1>;
 				cm-chargers = "fan54015_charger";
 				cm-fuel-gauge = "sc27xx-fgu";
+				cm-battery = "battery";
 
 				/* in deci centigrade */
 				cm-battery-cold = <200>;
@@ -173,6 +174,8 @@
 				cm-thermal-zone = "board-thmzone";
 
 				cm-cap-remap-table = <1 2 3>, <2 3 2>, <98 99 2>, <99 100 3>;
+
+				phys = <&hsphy>;
 
 				regulator@0 {
 					cm-regulator-name = "vddgen0";
@@ -405,7 +408,6 @@
 	fan54015_chg: charger@6a {
 		compatible = "fairchild,fan54015_chg";
 		reg = <0x6a>;
-		phys = <&hsphy>;
 		monitored-battery = <&bat>;
 		extcon = <&extcon_gpio>;
 		vddvbus:otg-vbus {
