@@ -863,6 +863,10 @@ static int gnss_download_firmware(void)
 
 	pimghdr = (struct sys_img_header *)(firmware->data);
 	sec_img_magic = pimghdr->magic_num;
+	if (sec_img_magic != SEC_IMAGE_MAGIC) {
+		pr_info("%s image magic 0x%x, SEC_IMAGE_MAGIC =  0x%x\n",
+			__func__, sec_img_magic, SEC_IMAGE_MAGIC);
+	}
 	if (sec_img_magic == SEC_IMAGE_MAGIC) {
 		if (pimghdr->img_real_size == 0 ||
 			(pimghdr->img_signed_size <=
@@ -870,6 +874,16 @@ static int gnss_download_firmware(void)
 			pimghdr->img_signed_size > firmware->size) {
 			release_firmware(firmware);
 			pr_err("%s check signed img fail.\n", __func__);
+			return -1;
+		}
+
+		wcn_write_data_to_phy_addr(
+			marlin_dev->base_addr_btwf,
+			(void *)firmware->data, pimghdr->img_signed_size);
+		if (wcn_firmware_sec_verify(2, marlin_dev->base_addr_btwf,
+			pimghdr->img_signed_size) < 0) {
+			pr_err("%s sec verify fail.\n", __func__);
+			release_firmware(firmware);
 			return -1;
 		}
 
@@ -946,6 +960,10 @@ static int btwifi_download_firmware(void)
 
 	pimghdr = (struct sys_img_header *)(firmware->data);
 	sec_img_magic = pimghdr->magic_num;
+	if (sec_img_magic != SEC_IMAGE_MAGIC) {
+		pr_info("%s image magic 0x%x, SEC_IMAGE_MAGIC =  0x%x\n",
+			__func__, sec_img_magic, SEC_IMAGE_MAGIC);
+	}
 	if (sec_img_magic == SEC_IMAGE_MAGIC) {
 		if (pimghdr->img_real_size == 0 ||
 			(pimghdr->img_signed_size <=
@@ -956,6 +974,15 @@ static int btwifi_download_firmware(void)
 			return -1;
 		}
 
+		wcn_write_data_to_phy_addr(
+			marlin_dev->base_addr_btwf,
+			(void *)firmware->data, pimghdr->img_signed_size);
+		if (wcn_firmware_sec_verify(1, marlin_dev->base_addr_btwf,
+			pimghdr->img_signed_size) < 0) {
+			pr_err("%s sec verify fail.\n", __func__);
+			release_firmware(firmware);
+			return -1;
+		}
 		tx_img_size = pimghdr->img_real_size;
 		tx_img_ptr = vmalloc(tx_img_size);
 		if (!tx_img_ptr) {

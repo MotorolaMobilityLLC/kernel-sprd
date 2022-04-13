@@ -13,6 +13,7 @@
 #include <misc/wcn_integrate_platform.h>
 #include "wcn_glb.h"
 #include "wcn_glb_reg.h"
+#include "wcn_misc.h"
 #include "wcn_procfs.h"
 #include "../include/wcn_dbg.h"
 
