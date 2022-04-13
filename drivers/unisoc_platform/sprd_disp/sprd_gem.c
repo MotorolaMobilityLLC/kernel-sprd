@@ -85,7 +85,7 @@ int sprd_gem_dumb_create(struct drm_file *file_priv, struct drm_device *drm,
 
 	sprd_gem->vaddr = dma_alloc_wc(drm->dev, args->size,
 			&sprd_gem->dma_addr, GFP_KERNEL | __GFP_NOWARN);
-	DRM_INFO("args->pitch:%d args->size:%d vaddr:0x%p\n",
+	DRM_INFO("args->pitch:%u args->size:%llu vaddr:0x%px\n",
               args->pitch, args->size, sprd_gem->vaddr);
 	if (!sprd_gem->vaddr) {
 		DRM_ERROR("failed to allocate buffer with size %llu\n",
@@ -133,7 +133,7 @@ int sprd_gem_mmap(struct file *filp, struct vm_area_struct *vma)
 	int ret;
 
 	ret = drm_gem_mmap(filp, vma);
-  if (ret)
+	if (ret)
 		return ret;
 
 	obj = vma->vm_private_data;
