@@ -62,6 +62,7 @@ base:
 block:
 block:zram:
 
+char:hw_random:
 clk:sprd:
 clocksource:sprd:
 coresight:
