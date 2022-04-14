@@ -100,6 +100,7 @@
 				fast-charge-threshold-microvolt = <4100000>;
 				fullbatt-voltage = <4300000>;
 				fullbatt-current = <120000>;
+				first-fullbatt-current = <150000>;
 				fullbatt-track-end-vol = <4295000>;
 				fullbatt-track-end-cur = <130000>;
 				first-calib-voltage = <3580000>;
@@ -131,6 +132,9 @@
 				charge-unknown-current-microamp = <500000 500000>;
 				charge-fchg-current-microamp = <3000000 2000000>;
 				charge-flash-current-microamp = <5000000 2700000>;
+
+				cap-calib-energy-density-ocv-table = <3350000 3800000>, <4150000 4350000>;
+				cap-track-energy-density-ocv-table = <3400000 3722000>;
 
 				dcp-jeita-temp-table = <1000 1030 0 4340000>, <1150 1180 700000 4340000>,
 					<1450 1420 2000000 4340000>, <1600 1570 700000 4100000>;
@@ -541,6 +545,14 @@
 
 	fgu-capacity-track;
 	phys = <&ssphy>;
+
+	sprd,relax-counter-threshold = <580>;
+	sprd,relax-current-threshold = <30>;
+	sprd,capacity-sleep-calibration;
+
+	sprd,capacity-boot-calibration;
+	sprd,capacity-charge-cycle;
+	sprd,basp;
 };
 
 &pmic_fchg {
