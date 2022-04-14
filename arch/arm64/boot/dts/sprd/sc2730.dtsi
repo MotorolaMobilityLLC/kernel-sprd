@@ -435,7 +435,7 @@
 		pmic_smpl: smpl@1800 {
 			compatible = "sprd,sc27xx-smpl", "sprd,sc2730-smpl";
 			reg = <0x1800>;
-			sprd,smpl-timer-threshold = <1000>;
+			sprd,smpl-timer-threshold = <250>;
 		};
 
 		poweroff@1820 {

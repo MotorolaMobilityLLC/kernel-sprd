@@ -218,7 +218,7 @@
 		pmic_smpl: smpl@2000 {
 			compatible = "sprd,ump9620-smpl", "sprd,sc27xx-smpl";
 			reg = <0x2000>;
-			sprd,smpl-timer-threshold = <900>;
+			sprd,smpl-timer-threshold = <250>;
 		};
 
 		power-controller@2000 {
