@@ -601,6 +601,8 @@ static const struct nla_policy
 #define WIFI_FEATURE_IE_WHITELIST       0x1000000
 /* Support MAC & Probe Sequence Number randomization */
 #define WIFI_FEATURE_SCAN_RAND          0x2000000
+/*Support TX power limit function */
+#define WIFI_FEATURE_SET_SAR_LIMIT	0x4000000
 
 /* start of get supported feature---CMD ID:42 */
 

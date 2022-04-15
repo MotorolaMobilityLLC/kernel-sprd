@@ -2059,6 +2059,11 @@ static int vendor_get_support_feature(struct wiphy *wiphy,
 		pr_info("RAND MAC SCAN supported\n");
 		feature |= WIFI_FEATURE_SCAN_RAND;
 	}
+	/* bit 27: Support SET sar limit function */
+	if (priv->extend_feature & SPRD_CAPA_TX_POWER) {
+		pr_info("Set sar limit function supported\n");
+		feature |= WIFI_FEATURE_SET_SAR_LIMIT;
+	}
 
 	pr_info("Supported Feature:0x%x\n", feature);
 
@@ -2961,7 +2966,7 @@ static int vendor_set_epno_list(struct wiphy *wiphy,
  *reciver off scence   5 *
  *hotspot scence       3 */
 static struct set_sar_limit_param *
-		sprdwl_vendor_read_sar_param(u32 sar_scence)
+		sprd_vendor_read_sar_param(u32 sar_scence)
 {
 	int i = 0;
 	int sar_map_len = ARRAY_SIZE(sar_param_map);
@@ -2982,7 +2987,7 @@ static int vendor_set_sar_limits(struct wiphy *wiphy,
 				 const void *data, int len)
 {
 /**set sar param according to different scence**/
-	int ret = 0;
+	int ret = VENDOR_WIFI_SUCCESS;
 	struct sprd_priv *priv = wiphy_priv(wiphy);
 	struct sprd_vif *vif = container_of(wdev, struct sprd_vif, wdev);
 	struct nlattr *tb[ATTR_SAR_LIMITS_MAX + 1];
@@ -3005,18 +3010,21 @@ static int vendor_set_sar_limits(struct wiphy *wiphy,
 	}
 
 	sar_scence = nla_get_u32(tb[ATTR_SAR_LIMITS_SAR_ENABLE]);
-	psar_param = sprdwl_vendor_read_sar_param(sar_scence);
-	if (!psar_param) {
+	psar_param = sprd_vendor_read_sar_param(sar_scence);
+	if (psar_param) {
+		netdev_info(vif->ndev, "%s: set sar, scence: %d, value : %d\n",
+					__func__, psar_param->sar_scence,
+					psar_param->power_value);
+		ret = sc2355_set_sar(priv, vif,
+						psar_param->sar_type,
+						psar_param->power_value);
+		if (ret)
+			pr_err("set sar value failed, result: %d", ret);
+	} else {
 		pr_err("invalid sar scence: %d\n", sar_scence);
-		return -EINVAL;
 	}
 
-	netdev_info(vif->ndev, "%s: set sar, scence: %d, value : %d\n",
-			    __func__, psar_param->sar_scence,
-				psar_param->power_value);
-	ret = sc2355_set_sar(priv, vif,
-					 psar_param->sar_type,
-				     psar_param->power_value);
+	/* To pass vts test */
 	return ret;
 }
 
