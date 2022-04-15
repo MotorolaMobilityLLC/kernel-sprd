@@ -212,7 +212,7 @@ static ssize_t info_proc_write(struct file *filep,
 				 SC2730_SMPL_PWR_ON_FLAG_CLR_MASK |
 				 SC2730_SMPL_MODE_ACK_FLAG_CLR_MASK);
 	if (ret) {
-		dev_err(data->dev, "%s, failed to clr smpl\n");
+		dev_err(data->dev, "failed to clr smpl\n");
 		return ret;
 	}
 	ret = regmap_update_bits(data->regmap,
@@ -221,7 +221,7 @@ static ssize_t info_proc_write(struct file *filep,
 				 SC2730_GLOBAL_SMPL_ENABLE_MASK,
 				 value);
 	if (ret) {
-		dev_err(data->dev, "%s, failed to set smpl\n");
+		dev_err(data->dev, "failed to set smpl\n");
 		return ret;
 	}
 
