@@ -13,6 +13,7 @@
 #include <linux/of.h>
 #include <linux/of_device.h>
 #include <linux/platform_device.h>
+#include <linux/panic_notifier.h>
 #include <linux/reboot.h>
 #include <linux/spi/spi.h>
 #include <linux/sizes.h>
@@ -158,6 +159,29 @@ struct sprd_adi {
 	struct notifier_block	restart_handler;
 	const struct sprd_adi_data *data;
 };
+
+static char panic_reason[1024] = {0};
+static int adi_panic_event(struct notifier_block *self, unsigned long val, void
+			   *reason)
+{
+	if (reason != NULL)
+		memcpy(panic_reason, reason, strlen(reason));
+
+	return 0;
+}
+
+static struct notifier_block adi_panic_event_nb = {
+	.notifier_call  = adi_panic_event,
+	.priority       = INT_MAX,
+};
+
+static int adi_get_panic_reason_init(void)
+{
+	atomic_notifier_chain_register(&panic_notifier_list,
+				       &adi_panic_event_nb);
+
+	return 0;
+}
 
 static int sprd_adi_check_addr(struct sprd_adi *sadi, u32 reg)
 {
@@ -395,9 +419,15 @@ static int sprd_adi_restart(struct notifier_block *this, unsigned long mode,
 					     restart_handler);
 	u32 val, reboot_mode = 0;
 
-	if (!cmd)
-		reboot_mode = HWRST_STATUS_NORMAL;
-	else if (!strncmp(cmd, "recovery", 8))
+	if (!cmd) {
+		if (strlen(panic_reason)) {
+			if (strstr(panic_reason, "tospanic"))
+				reboot_mode = HWRST_STATUS_SECURITY;
+			else
+				reboot_mode = HWRST_STATUS_PANIC;
+		} else
+			reboot_mode = HWRST_STATUS_NORMAL;
+	} else if (!strncmp(cmd, "recovery", 8))
 		reboot_mode = HWRST_STATUS_RECOVERY;
 	else if (!strncmp(cmd, "alarm", 5))
 		reboot_mode = HWRST_STATUS_ALARM;
@@ -606,6 +636,7 @@ static int sprd_adi_probe(struct platform_device *pdev)
 	}
 
 	sprd_adi_hw_init(sadi);
+	adi_get_panic_reason_init();
 
 	if (sadi->data->wdg_rst)
 		sadi->data->wdg_rst(sadi);
