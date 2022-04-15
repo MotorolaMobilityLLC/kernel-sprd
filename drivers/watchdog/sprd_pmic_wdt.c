@@ -118,10 +118,16 @@ static void sprd_pimc_wdt_init(int event, void *data)
 {
 	struct sprd_pmic_wdt *pmic_wdt = data;
 
-	dev_info(pmic_wdt->dev, "sprd pimc wdt init enter!\n");
+	switch (event) {
+	case SBUF_NOTIFY_READY:
+		dev_info(pmic_wdt->dev, "sbuf ready for pmic wdt init!\n");
 
-	pm_wakeup_event(pmic_wdt->dev, PMIC_WDT_WAKE_UP_MS);
-	kthread_queue_work(&pmic_wdt->wdt_kworker, &pmic_wdt->wdt_kwork);
+		pm_wakeup_event(pmic_wdt->dev, PMIC_WDT_WAKE_UP_MS);
+		kthread_queue_work(&pmic_wdt->wdt_kworker, &pmic_wdt->wdt_kwork);
+		break;
+	default:
+		return;
+	}
 }
 
 static void sprd_pimc_wdt_work(struct kthread_work *work)
@@ -130,7 +136,7 @@ static void sprd_pimc_wdt_work(struct kthread_work *work)
 						 struct sprd_pmic_wdt,
 						 wdt_kwork);
 
-	dev_info(pmic_wdt->dev, "sprd pimc wdt work enter!\n");
+	dev_info(pmic_wdt->dev, "sprd pmic wdt work enter!\n");
 
 	if (sprd_pmic_wdt_enable(pmic_wdt, pmic_wdt->wdten))
 		dev_err(pmic_wdt->dev, "failed to set pmic wdt %d!\n", pmic_wdt->wdten);
@@ -171,6 +177,7 @@ static const struct of_device_id sprd_pmic_wdt_of_match[] = {
 	{.compatible = "sprd,sc2730-wdt",},
 	{.compatible = "sprd,sc2721-wdt",},
 	{.compatible = "sprd,sc2720-wdt",},
+	{.compatible = "sprd,ump9620-wdt",},
 	{}
 };
 
