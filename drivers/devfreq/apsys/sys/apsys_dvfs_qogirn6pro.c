@@ -202,7 +202,7 @@ static void apsys_top_dvfs_init(struct apsys_dev *apsys)
 	struct regmap *regmap;
 	u32 temp;
 
-	base = ioremap_nocache(0x64400000, 0x400);
+	base = ioremap_nocache(0x64940000, 0x600);
 	if (IS_ERR(base))
 		pr_err("ioremap top address failed\n");
 
