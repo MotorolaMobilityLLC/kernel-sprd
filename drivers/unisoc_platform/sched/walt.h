@@ -161,6 +161,7 @@ static inline int same_cluster(int src_cpu, int dst_cpu)
 	return src_wrq->cluster == dest_wrq->cluster;
 }
 
+extern void walt_rt_init(void);
 extern void walt_fair_init(void);
 extern unsigned long walt_cpu_util_freq(int cpu);
 
