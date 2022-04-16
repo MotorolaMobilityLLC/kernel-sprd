@@ -105,6 +105,213 @@ static inline int task_fits_capacity(struct task_struct *p, long capacity)
 	return fits_capacity(uclamp_task_util(p), capacity);
 }
 
+#if IS_ENABLED(CONFIG_UNISOC_ROTATION_TASK)
+/* ========================= define data struct =========================== */
+struct rotation_data {
+	struct task_struct *rotation_thread;
+	struct task_struct *src_task;
+	struct task_struct *dst_task;
+	int src_cpu;
+	int dst_cpu;
+};
+
+static DEFINE_PER_CPU(struct rotation_data, rotation_datas);
+
+#define ENABLE_DELAY_SEC	60
+#define BIG_TASK_NUM		4
+/* default enable rotation feature */
+static bool rotation_enable;
+#define threshold_time (sysctl_rotation_threshold_ms * 1000000)
+
+/* after system start 30s, start rotation feature.*/
+static struct timer_list rotation_timer;
+
+/* core function */
+static void check_for_task_rotation(struct rq *src_rq)
+{
+	int i, src_cpu = cpu_of(src_rq);
+	struct rq *dst_rq;
+	int deserved_cpu = nr_cpu_ids, dst_cpu = nr_cpu_ids;
+	struct rotation_data *rd = NULL;
+	u64 wc, wait, max_wait = 0;
+	u64 run, max_run = 0;
+	int big_task = 0;
+	struct walt_task_ravg *wtr;
+
+	if (!rotation_enable || !sysctl_rotation_enable)
+		return;
+
+	if (!is_min_capacity_cpu(src_cpu))
+		return;
+
+	for_each_possible_cpu(i) {
+		struct rq *rq = cpu_rq(i);
+		struct task_struct *curr_task = rq->curr;
+
+		if (is_fair_task(curr_task) &&
+		    !task_fits_capacity(curr_task, capacity_of(i)))
+			big_task += 1;
+	}
+	if (big_task < BIG_TASK_NUM)
+		return;
+
+	wc = walt_ktime_clock();
+	for_each_possible_cpu(i) {
+		struct rq *rq = cpu_rq(i);
+		struct task_struct *curr_task = rq->curr;
+
+		if (!is_min_capacity_cpu(i) || is_reserved(i))
+			continue;
+
+		if (!rq->misfit_task_load || is_fair_task(curr_task) ||
+		    task_fits_capacity(curr_task, capacity_of(i)))
+			continue;
+
+		wtr = (struct walt_task_ravg *) curr_task->android_vendor_data1;
+		wait = wc - wtr->last_enqueue_ts;
+		if (wait > max_wait) {
+			max_wait = wait;
+			deserved_cpu = i;
+		}
+	}
+
+	if (deserved_cpu != src_cpu)
+		return;
+
+	for_each_possible_cpu(i) {
+		struct rq *rq = cpu_rq(i);
+
+		if (is_min_capacity_cpu(i) || is_reserved(i))
+			continue;
+
+		if (!is_fair_task(rq->curr))
+			continue;
+
+		if (rq->nr_running > 1)
+			continue;
+
+		wtr = (struct walt_task_ravg *) rq->curr->android_vendor_data1;
+		run = wc - wtr->last_enqueue_ts;
+
+		if (run < threshold_time)
+			continue;
+
+		if (run > max_run) {
+			max_run = run;
+			dst_cpu = i;
+		}
+	}
+
+	if (dst_cpu == nr_cpu_ids)
+		return;
+
+	dst_rq = cpu_rq(dst_cpu);
+
+	double_rq_lock(src_rq, dst_rq);
+	if (is_fair_task(dst_rq->curr) &&
+		!src_rq->active_balance && !dst_rq->active_balance &&
+		cpumask_test_cpu(dst_cpu, src_rq->curr->cpus_ptr) &&
+		cpumask_test_cpu(src_cpu, dst_rq->curr->cpus_ptr)) {
+
+		get_task_struct(src_rq->curr);
+		get_task_struct(dst_rq->curr);
+
+		mark_reserved(src_cpu);
+		mark_reserved(dst_cpu);
+
+		rd = &per_cpu(rotation_datas, src_cpu);
+
+		rd->src_task = src_rq->curr;
+		rd->dst_task = dst_rq->curr;
+
+		rd->src_cpu = src_cpu;
+		rd->dst_cpu = dst_cpu;
+
+		src_rq->active_balance = 1;
+		dst_rq->active_balance = 1;
+	}
+	double_rq_unlock(src_rq, dst_rq);
+
+	if (rd) {
+		wake_up_process(rd->rotation_thread);
+		trace_sched_task_rotation(rd->src_cpu, rd->dst_cpu,
+				rd->src_task->pid, rd->dst_task->pid);
+	}
+}
+
+static void do_rotation_task(struct rotation_data *rd)
+{
+	unsigned long flags;
+	struct rq *src_rq = cpu_rq(rd->src_cpu), *dst_rq = cpu_rq(rd->dst_cpu);
+
+	migrate_swap(rd->src_task, rd->dst_task, rd->dst_cpu, rd->src_cpu);
+
+	put_task_struct(rd->src_task);
+	put_task_struct(rd->dst_task);
+
+	local_irq_save(flags);
+	double_rq_lock(src_rq, dst_rq);
+	dst_rq->active_balance = 0;
+	src_rq->active_balance = 0;
+	double_rq_unlock(src_rq, dst_rq);
+	local_irq_restore(flags);
+
+	clear_reserved(rd->src_cpu);
+	clear_reserved(rd->dst_cpu);
+}
+
+static int __ref try_rotation_task(void *data)
+{
+	struct rotation_data *rd = data;
+
+	do {
+		do_rotation_task(rd);
+		set_current_state(TASK_INTERRUPTIBLE);
+		schedule();
+	} while (!kthread_should_stop());
+
+	return 0;
+}
+
+static void set_rotation_enable(struct timer_list *t)
+{
+	rotation_enable = true;
+	pr_info("start rotation feature\n");
+}
+
+static void rotation_task_init(void)
+{
+	int ret = 0;
+	int i;
+
+	rotation_enable = false;
+
+	for_each_possible_cpu(i) {
+		struct rotation_data *rd = &per_cpu(rotation_datas, i);
+		struct sched_param param = { .sched_priority = 49 };
+		struct task_struct *thread;
+
+		thread = kthread_create(try_rotation_task, (void *)rd,
+					"rotation/%d", i);
+		if (IS_ERR(thread))
+			return;
+
+		ret = sched_setscheduler_nocheck(thread, SCHED_FIFO, &param);
+		if (ret) {
+			kthread_stop(thread);
+			return;
+		}
+
+		rd->rotation_thread = thread;
+	}
+
+	timer_setup(&rotation_timer, set_rotation_enable, 0);
+	rotation_timer.expires = jiffies + ENABLE_DELAY_SEC * HZ;
+	add_timer(&rotation_timer);
+
+	pr_info("%s OK\n", __func__);
+}
+#endif
 /*
  * walt_compute_energy(): Estimates the energy that @pd would consume if @p was
  * migrated to @dst_cpu. compute_energy() predicts what will be the utilization
@@ -187,7 +394,7 @@ static inline int select_cpu_when_overutiled(struct task_struct *p, int prev_cpu
 		struct rq *rq = cpu_rq(cpu);
 		unsigned int idle_exit_latency = UINT_MAX;
 
-		if (!cpumask_test_cpu(cpu, p->cpus_ptr))
+		if (!cpumask_test_cpu(cpu, p->cpus_ptr) || is_reserved(cpu))
 			continue;
 
 		if (is_idle_cpu(cpu)) {
@@ -302,7 +509,7 @@ static int walt_find_energy_efficient_cpu(struct task_struct *p, int prev_cpu, i
 
 			snapshot_pd_cache_of(pdc, cpu, p);
 
-			if (!cpumask_test_cpu(cpu, p->cpus_ptr))
+			if (!cpumask_test_cpu(cpu, p->cpus_ptr) || is_reserved(cpu))
 				continue;
 
 			/* speed up goto big core */
@@ -431,8 +638,6 @@ static int walt_find_energy_efficient_cpu(struct task_struct *p, int prev_cpu, i
 
 	return select_cpu_with_same_energy(prev_cpu, best_energy_cpu,
 					   pdc, boosted);
-
-	return -1;
 
 unlock:
 	rcu_read_unlock();
@@ -688,6 +893,7 @@ static int walt_active_migration_cpu_stop(void *data)
 
 out_unlock:
 	busiest_rq->active_balance = 0;
+	clear_reserved(target_cpu);
 	busiest_wrq->push_task = NULL;
 	rq_unlock(busiest_rq, &rf);
 
@@ -708,6 +914,7 @@ static void android_vh_scheduler_tick(void *unused, struct rq *rq)
 	int prev_cpu = rq->cpu, new_cpu;
 	struct task_struct *p = rq->curr;
 	struct walt_rq *wrq = (struct walt_rq *) rq->android_vendor_data1;
+	int ret;
 
 	if (static_branch_unlikely(&walt_disabled))
 		return;
@@ -739,13 +946,21 @@ static void android_vh_scheduler_tick(void *unused, struct rq *rq)
 
 		raw_spin_rq_unlock(rq);
 
+		mark_reserved(new_cpu);
+
 		raw_spin_unlock(&migration_lock);
 
 		trace_sched_active_migration(p, prev_cpu, new_cpu);
 
-		stop_one_cpu_nowait(prev_cpu, walt_active_migration_cpu_stop,
+		ret = stop_one_cpu_nowait(prev_cpu, walt_active_migration_cpu_stop,
 					rq, &rq->active_balance_work);
+
+		if (!ret)
+			clear_reserved(new_cpu);
+
 		return;
+	} else {
+		check_for_task_rotation(rq);
 	}
 
 out_unlock:
@@ -802,4 +1017,6 @@ void walt_fair_init(void)
 //	register_trace_android_rvh_find_busiest_queue(walt_find_busiest_queue, NULL);
 	register_trace_android_rvh_find_busiest_group(walt_find_busiest_group, NULL);
 	register_trace_android_rvh_select_task_rq_fair(walt_select_task_rq_fair, NULL);
+
+	rotation_task_init();
 }

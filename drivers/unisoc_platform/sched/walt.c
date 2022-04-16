@@ -142,7 +142,7 @@ walt_fixup_cumulative_runnable_avg(struct rq *rq, struct walt_task_ravg *wtr,
 	fixup_cum_window_demand(rq, task_load_delta);
 }
 
-static u64 walt_ktime_clock(void)
+u64 walt_ktime_clock(void)
 {
 	if (unlikely(walt_ktime_suspended))
 		return ktime_to_ns(ktime_last);

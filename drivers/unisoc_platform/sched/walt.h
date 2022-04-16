@@ -161,6 +161,7 @@ static inline int same_cluster(int src_cpu, int dst_cpu)
 	return src_wrq->cluster == dest_wrq->cluster;
 }
 
+extern u64 walt_ktime_clock(void);
 extern void walt_rt_init(void);
 extern void walt_fair_init(void);
 extern unsigned long walt_cpu_util_freq(int cpu);
@@ -337,4 +338,42 @@ static inline void walt_cpufreq_update_util(struct rq *rq, unsigned int flags)
 static inline void walt_cpufreq_update_util(struct rq *rq, unsigned int flags) {}
 #endif
 
+#if IS_ENABLED(CONFIG_UNISOC_ROTATION_TASK)
+#define CPU_RESERVED	1
+extern unsigned int sysctl_rotation_enable;
+extern unsigned int sysctl_rotation_threshold_ms;
+
+static inline bool is_reserved(int cpu)
+{
+	struct rq *rq = cpu_rq(cpu);
+	struct walt_rq *wrq = (struct walt_rq *) rq->android_vendor_data1;
+
+	return test_bit(CPU_RESERVED, &wrq->sched_flag);
+}
+
+static inline void mark_reserved(int cpu)
+{
+	struct rq *rq = cpu_rq(cpu);
+	struct walt_rq *wrq = (struct walt_rq *) rq->android_vendor_data1;
+
+	test_and_set_bit(CPU_RESERVED, &wrq->sched_flag);
+}
+
+static inline void clear_reserved(int cpu)
+{
+	struct rq *rq = cpu_rq(cpu);
+	struct walt_rq *wrq = (struct walt_rq *) rq->android_vendor_data1;
+
+	return clear_bit(CPU_RESERVED, &wrq->sched_flag);
+}
+#else
+static inline bool is_reserved(int cpu)
+{
+	return false;
+}
+static inline void mark_reserved(int cpu) { }
+static inline void clear_reserved(int cpu) { }
+static inline void rotation_task_init(void) { }
+static inline void check_for_task_rotation(struct rq *src_rq) { }
+#endif
 #endif /* _WALT_H */

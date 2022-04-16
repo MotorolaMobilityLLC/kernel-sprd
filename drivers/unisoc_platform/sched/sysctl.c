@@ -15,6 +15,33 @@ unsigned int sysctl_sched_uclamp_threshold = 100;
 unsigned int sysctl_sched_uclamp_min_to_boost = 1;
 #endif
 
+#if IS_ENABLED(CONFIG_UNISOC_ROTATION_TASK)
+unsigned int sysctl_rotation_enable = 1;
+/* default threshold value is 40ms */
+unsigned int sysctl_rotation_threshold_ms = 40;
+
+struct ctl_table rotation_table[] = {
+	{
+		.procname       = "rotation_enable",
+		.data           = &sysctl_rotation_enable,
+		.maxlen         = sizeof(unsigned int),
+		.mode           = 0644,
+		.proc_handler   = proc_dointvec_minmax,
+		.extra1		= SYSCTL_ZERO,
+		.extra2		= SYSCTL_ONE,
+	},
+	{
+		.procname	= "rotation_threshold_ms",
+		.data		= &sysctl_rotation_threshold_ms,
+		.maxlen		= sizeof(unsigned int),
+		.mode		= 0644,
+		.proc_handler	= proc_dointvec_minmax,
+		.extra1		= SYSCTL_ONE,
+		.extra2		= &one_thousand,
+	},
+	{ },
+};
+#endif
 struct ctl_table walt_table[] = {
 	{
 		.procname	= "sched_walt_init_task_load_pct",
@@ -86,6 +113,13 @@ struct ctl_table walt_table[] = {
 		.proc_handler	= proc_dointvec_minmax,
 		.extra1		= SYSCTL_ZERO,
 		.extra2		= SYSCTL_ONE,
+	},
+#endif
+#if IS_ENABLED(CONFIG_UNISOC_ROTATION_TASK)
+	{
+		.procname	= "rotation",
+		.mode		= 0555,
+		.child		= rotation_table,
 	},
 #endif
 	{ }

@@ -31,6 +31,17 @@ config UCLAMP_MIN_TO_BOOST
 	Meantime, add sysctl to let users could disable the feature and using
 	the original uclamp.
 
+config UNISOC_ROTATION_TASK
+	bool "Unisoc rotation task"
+	depends on SMP
+	depends on SCHED_WALT
+	default n
+	help
+	This option enables task rotation feature. In ARM big.little cpu
+	topology, benchmark app may start NR_CPUS big tasks to run,
+	rotation task can improve system performance between big core
+	and little core.
+
 config UNISOC_SCHEDUTIL_GOV
 	tristate "Support Unisoc Schedutil Governor"
 	depends on CPU_FREQ && SMP
