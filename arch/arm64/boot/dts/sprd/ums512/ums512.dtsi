@@ -246,29 +246,6 @@
 			#size-cells = <2>;
 			ranges;
 
-			eic_sync: gpio@320000c0 {
-				compatible = "sprd,sharkl5pro-eic-sync", "sprd,sc9860-eic-sync";
-				reg = <0 0x320200c0 0 0x20>,
-				      <0 0x320300c0 0 0x20>,
-				      <0 0x322300c0 0 0x20>,
-				      <0 0x322700c0 0 0x20>;
-				gpio-controller;
-				#gpio-cells = <2>;
-				interrupt-controller;
-				#interrupt-cells = <2>;
-				interrupts = <GIC_SPI 72 IRQ_TYPE_LEVEL_HIGH>;
-			};
-
-			ap_gpio: gpio@32070000 {
-				compatible = "sprd,sharkl5Pro-gpio", "sprd,sc9860-gpio";
-				reg = <0 0x32070000 0 0x10000>;
-				gpio-controller;
-				#gpio-cells = <2>;
-				interrupt-controller;
-				#interrupt-cells = <2>;
-				interrupts = <GIC_SPI 61 IRQ_TYPE_LEVEL_HIGH>;
-			};
-
 			adi_bus: spi@32100000 {
 				compatible = "sprd,ums512-adi";
 				reg = <0 0x32100000 0 0x100000>;
@@ -320,4 +297,5 @@
 #include "qos.dtsi"
 #include "usb.dtsi"
 #include "socid.dtsi"
+#include "gpio.dtsi"
 
