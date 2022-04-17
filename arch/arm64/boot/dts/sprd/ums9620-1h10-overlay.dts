@@ -16,6 +16,7 @@
 #include <dt-bindings/mfd/sprd,ump9620-mask.h>
 #include <dt-bindings/input/input.h>
 #include <dt-bindings/clock/sprd,ums9620-clk.h>
+#include "wcn/wcn-marlin3-sc2355-register.dtsi"
 
 / {
 
@@ -38,8 +39,7 @@
 				reg = <0x0 0x0 0x0 0x11>;
 			};
 			sprd_marlin3: sprd-marlin3 {
-				compatible = "unisoc,marlin3lite_sdio";
-				m2-wakeup-ap-gpios = <&ap_gpio 128 GPIO_ACTIVE_LOW>;
+				compatible = "unisoc,marlin3_pcie";
 				reset-gpios = <&ap_gpio 172 GPIO_ACTIVE_LOW>;
 				enable-gpios = <&ap_gpio 171 GPIO_ACTIVE_LOW>;
 				m2-to-ap-irq-gpios = <&ap_gpio 173 GPIO_ACTIVE_LOW>;
@@ -51,35 +51,34 @@
 				clocks = <&aonapb_gate CLK_AUX0>,
 					 <&ext_32k>,
 					 <&aonapb_gate CLK_AUX0_EB>;
-				extcon = <&sdio1>;
-				sdhci-name = <&sdio1>;
+
+				/* no need config dvdd12 because of share vddmem to DDR */
+				/* ufs  download*/
 				sprd,btwf-file-name = "/dev/block/by-name/wcnmodem";
 				sprd,gnss-file-name = "/vendor/firmware/gnssmodem.bin";
-				adma-tx;
-				adma-rx;
-				/*
-				 * bound parameter:
-				 * [0]:addr offset, [1]:mask, [2]:unboundval, [3]:boundval
-				 */
-				avdd12-bound-wbreq = <REG_ANA_LDO_XTL_EN10 MASK_ANA_LDO_VDDWCN_EXT_XTL3_EN 0x0 MASK_ANA_LDO_VDDWCN_EXT_XTL3_EN>;
-				avdd33-bound-wbreq = <REG_ANA_LDO_XTL_EN11 MASK_ANA_LDO_VDDWIFIPA_EXT_XTL3_EN 0x0 MASK_ANA_LDO_VDDWIFIPA_EXT_XTL3_EN>;
+				sprd,rc-ctrl = <&pcie1>;
 
-				wlan {
-					compatible = "sprd,sc2355-sdio-wifi";
+				gnss_common_ctl {
+					compatible = "sprd,gnss";
+					sprd,name = "gnss_common_ctl";
+					status = "disabled";
 				};
 
 				gnss {
 					compatible = "sprd,gnss";
+					status = "disabled";
 				};
 
 				sprd-mtty {
 					compatible = "sprd,mtty";
 					sprd,name = "ttyBT";
+					status = "disabled";
 				};
 
 				sprd-fm {
 					compatible = "sprd,marlin3-fm";
 					sprd,name = "sprd-fm";
+					status = "disabled";
 				};
 
 			};
