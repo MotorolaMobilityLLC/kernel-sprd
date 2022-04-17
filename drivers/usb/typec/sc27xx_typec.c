@@ -19,6 +19,7 @@
 #include <linux/of_gpio.h>
 #include <linux/gpio/consumer.h>
 #include <linux/extcon-provider.h>
+#include <linux/usb/tcpm.h>
 
 /* registers definitions for controller REGS_TYPEC */
 #define SC27XX_EN			0x00
@@ -30,6 +31,18 @@
 #define SC27XX_STATUS			0x1c
 #define SC27XX_TCCDE_CNT		0x20
 #define SC27XX_RTRIM			0x3c
+#define SC2730_DBG1			0x60
+#define SC2721_STATUS			0x1c
+
+/* SC2730_DBG1 */
+#define SC2730_CC_MASK			GENMASK(7, 0)
+#define SC2730_CC_1_DETECT		BIT(0)
+#define SC2730_CC_2_DETECT		BIT(4)
+
+/* SC2721_STATUS */
+#define SC2721_CC_MASK			GENMASK(6, 0)
+#define SC2721_CC_1_DETECT		BIT(5)
+#define SC2721_CC_2_DETECT		BIT(7)
 
 /* SC27XX_TYPEC_EN */
 #define SC27XX_TYPEC_USB20_ONLY		BIT(4)
@@ -92,9 +105,15 @@
 #define TRIM_CURRENT_FROMEFUSE		BIT(4)
 
 /* pmic name string */
-#define SC2721		0x01
-#define SC2730		0x02
-#define UMP9620		0x03
+#define SC2721				0x01
+#define SC2730				0x02
+#define UMP9620				0x03
+
+/* DFP/UFP DETECT */
+#define CC1_DFP_CHECK			BIT(7)
+#define CC2_DFP_CHECK			BIT(3)
+#define CC1_UFP_CON			BIT(0)
+#define CC_INSERT			GENMASK(7, 0)
 
 enum sc27xx_typec_connection_state {
 	SC27XX_DETACHED_SNK,
@@ -180,11 +199,28 @@ struct sc27xx_typec {
 
 	enum sc27xx_typec_connection_state state;
 	enum sc27xx_typec_connection_state pre_state;
+	enum typec_cc_polarity cc_polarity;
 	struct typec_port *port;
 	struct typec_partner *partner;
 	struct typec_capability typec_cap;
 	const struct sprd_typec_variant_data *var_data;
 };
+
+static const char * const typec_cc_polarity_roles[] = {
+	[TYPEC_POLARITY_CC1] = "cc_1",
+	[TYPEC_POLARITY_CC2] = "cc_2",
+};
+
+static void typec_set_cc_polarity_role(struct sc27xx_typec *sc,
+				enum typec_cc_polarity polarity)
+{
+	if (sc->cc_polarity == polarity)
+		return;
+
+	sc->cc_polarity = polarity;
+	sysfs_notify(&sc->dev->kobj, NULL, "typec_cc_polarity_role");
+	kobject_uevent(&sc->dev->kobj, KOBJ_CHANGE);
+}
 
 static int sc27xx_typec_connect(struct sc27xx_typec *sc, u32 status)
 {
@@ -192,6 +228,9 @@ static int sc27xx_typec_connect(struct sc27xx_typec *sc, u32 status)
 	enum typec_role power_role = TYPEC_SOURCE;
 	enum typec_role vconn_role = TYPEC_SOURCE;
 	struct typec_partner_desc desc;
+	enum typec_cc_polarity cc_polarity;
+	u32 val, tmp1, tmp2;
+	int ret;
 
 	if (sc->partner)
 		return 0;
@@ -245,6 +284,41 @@ static int sc27xx_typec_connect(struct sc27xx_typec *sc, u32 status)
 	default:
 		break;
 	}
+
+	if (sc->var_data->pmic_name == SC2721) {
+		ret = regmap_read(sc->regmap, sc->base + SC2721_STATUS, &val);
+		if (ret < 0) {
+			dev_err(sc->dev, "failed to read STATUS register.\n");
+			return ret;
+		}
+		val &= SC2721_CC_MASK;
+		tmp1 = val & CC1_DFP_CHECK;
+		tmp2 = val & CC2_DFP_CHECK;
+	} else {
+		ret = regmap_read(sc->regmap, sc->base + SC2730_DBG1, &val);
+		if (ret < 0) {
+			dev_err(sc->dev, "failed to read DBG1 register.\n");
+			return ret;
+		}
+		val &= SC2730_CC_MASK;
+		tmp1 = val & CC1_DFP_CHECK;
+		tmp2 = val & CC2_DFP_CHECK;
+	}
+
+	if (tmp1 || tmp2) {
+		/* DFP MODE */
+		if (tmp1)
+			cc_polarity = TYPEC_POLARITY_CC1;
+		else
+			cc_polarity = TYPEC_POLARITY_CC2;
+	} else {
+		/* UFP MODE */
+		if (val & CC1_UFP_CON)
+			cc_polarity = TYPEC_POLARITY_CC1;
+		else
+			cc_polarity = TYPEC_POLARITY_CC2;
+	}
+	typec_set_cc_polarity_role(sc, cc_polarity);
 
 	return 0;
 }
@@ -473,6 +547,22 @@ static int typec_set_rtrim(struct sc27xx_typec *sc)
 	return regmap_write(sc->regmap, sc->base + SC27XX_RTRIM, rtrim);
 }
 
+static ssize_t
+typec_cc_polarity_role_show(struct device *dev, struct device_attribute *attr,
+		char *buf)
+{
+	struct sc27xx_typec *sc = dev_get_drvdata(dev);
+
+	return sprintf(buf, "%s\n", typec_cc_polarity_roles[sc->cc_polarity]);
+}
+static DEVICE_ATTR_RO(typec_cc_polarity_role);
+
+static struct attribute *sc27xx_typec_attrs[] = {
+	&dev_attr_typec_cc_polarity_role.attr,
+	NULL,
+};
+ATTRIBUTE_GROUPS(sc27xx_typec);
+
 static int sc27xx_typec_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
@@ -564,6 +654,10 @@ static int sc27xx_typec_probe(struct platform_device *pdev)
 		return -ENODEV;
 	}
 
+	ret = sysfs_create_groups(&sc->dev->kobj, sc27xx_typec_groups);
+	if (ret < 0)
+		dev_err(sc->dev, "failed to create cc_polarity %d\n", ret);
+
 	ret = typec_set_rtrim(sc);
 	if (ret < 0) {
 		dev_err(sc->dev, "failed to set typec rtrim %d\n", ret);
@@ -595,6 +689,7 @@ static int sc27xx_typec_remove(struct platform_device *pdev)
 {
 	struct sc27xx_typec *sc = platform_get_drvdata(pdev);
 
+	sysfs_remove_groups(&sc->dev->kobj, sc27xx_typec_groups);
 	sc27xx_typec_disconnect(sc, 0);
 	typec_unregister_port(sc->port);
 
