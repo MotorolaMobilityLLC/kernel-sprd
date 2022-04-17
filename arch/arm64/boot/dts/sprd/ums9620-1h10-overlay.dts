@@ -230,7 +230,7 @@
 
 			};
 			sprd_marlin3: sprd-marlin3 {
-				compatible = "sprd,marlin3";
+				compatible = "unisoc,marlin3_pcie";
 				reset-gpios = <&ap_gpio 172 GPIO_ACTIVE_LOW>;
 				enable-gpios = <&ap_gpio 171 GPIO_ACTIVE_LOW>;
 				m2-to-ap-irq-gpios = <&ap_gpio 173 GPIO_ACTIVE_LOW>;
@@ -247,8 +247,8 @@
 
 				/* no need config dvdd12 because of share vddmem to DDR */
 				/* ufs  download*/
-				sprd,btwf-file-name = "/dev/block/platform/soc/soc:ap-ahb/22000000.ufs/by-name/wcnmodem";
-				sprd,gnss-file-name = "/dev/block/platform/soc/soc:ap-ahb/22000000.ufs/by-name/gnssmodem";
+				sprd,btwf-file-name = "/dev/block/by-name/wcnmodem";
+				sprd,gnss-file-name = "/vendor/firmware/gnssmodem.bin";
 				sprd,rc-ctrl = <&pcie1>;
 
 				gnss_common_ctl {
