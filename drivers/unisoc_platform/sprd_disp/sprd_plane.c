@@ -335,28 +335,23 @@ static int sprd_plane_create_properties(struct sprd_plane *plane, int index)
 	return 0;
 }
 
-static const uint64_t format_modifiers_win_full[] = {
-	DRM_FORMAT_MOD_LINEAR,
-	DRM_FORMAT_MOD_INVALID,
-};
-
 struct sprd_plane *sprd_plane_init(struct drm_device *drm,
 					struct sprd_crtc_capability *cap)
 {
 	struct sprd_plane *planes = NULL;
 	int err, i;
-  enum drm_plane_type type;
+	enum drm_plane_type type;
 
 	planes = devm_kcalloc(drm->dev, cap->max_layers, sizeof(*planes), GFP_KERNEL);
 	if (!planes)
 		return ERR_PTR(-ENOMEM);
 
 	for (i = 0; i < cap->max_layers; i++) {
-    type = i==0 ? DRM_PLANE_TYPE_PRIMARY : DRM_PLANE_TYPE_OVERLAY;
+		type = i==0 ? DRM_PLANE_TYPE_PRIMARY : DRM_PLANE_TYPE_OVERLAY;
 		err = drm_universal_plane_init(drm, &planes[i].base,
 					       1 << drm->mode_config.num_crtc,
 					       &sprd_plane_funcs, cap->fmts_ptr,
-					       cap->fmts_cnt, format_modifiers_win_full, type, NULL);
+					       cap->fmts_cnt, NULL, type, NULL);
 		if (err) {
 			DRM_ERROR("failed to initialize primary plane\n");
 			return ERR_PTR(err);
