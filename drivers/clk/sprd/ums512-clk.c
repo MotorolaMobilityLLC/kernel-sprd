@@ -23,7 +23,7 @@
 #include "mux.h"
 #include "pll.h"
 
-#define SHARKL5PRO_MUX_FLAG	\
+#define UMS512_MUX_FLAG	\
 	(CLK_GET_RATE_NOCACHE | CLK_SET_RATE_NO_REPARENT)
 
 /* pll gate clock */
@@ -63,7 +63,7 @@ static SPRD_PLL_SC_GATE_CLK_FW_NAME(mpll1_gate, "mpll1-gate", "ext-26m", 0x194,
 static SPRD_PLL_SC_GATE_CLK_FW_NAME(mpll2_gate, "mpll2-gate", "ext-26m", 0x198,
 				    0x1000, BIT(0), CLK_IGNORE_UNUSED, 0, 240);
 
-static struct sprd_clk_common *sharkl5pro_pmu_gate_clks[] = {
+static struct sprd_clk_common *ums512_pmu_gate_clks[] = {
 	/* address base is 0x327e0000 */
 	&isppll_gate.common,
 	&dpll0_gate.common,
@@ -78,7 +78,7 @@ static struct sprd_clk_common *sharkl5pro_pmu_gate_clks[] = {
 	&mpll2_gate.common,
 };
 
-static struct clk_hw_onecell_data sharkl5pro_pmu_gate_hws = {
+static struct clk_hw_onecell_data ums512_pmu_gate_hws = {
 	.hws	= {
 		[CLK_26M_AUD]		= &clk_26m_aud.hw,
 		[CLK_13M]		= &clk_13m.hw,
@@ -105,10 +105,10 @@ static struct clk_hw_onecell_data sharkl5pro_pmu_gate_hws = {
 	.num = CLK_PMU_GATE_NUM,
 };
 
-static struct sprd_clk_desc sharkl5pro_pmu_gate_desc = {
-	.clk_clks	= sharkl5pro_pmu_gate_clks,
-	.num_clk_clks	= ARRAY_SIZE(sharkl5pro_pmu_gate_clks),
-	.hw_clks        = &sharkl5pro_pmu_gate_hws,
+static struct sprd_clk_desc ums512_pmu_gate_desc = {
+	.clk_clks	= ums512_pmu_gate_clks,
+	.num_clk_clks	= ARRAY_SIZE(ums512_pmu_gate_clks),
+	.hw_clks        = &ums512_pmu_gate_hws,
 };
 
 /* pll clock at g0 */
@@ -134,12 +134,12 @@ static SPRD_PLL_HW(dpll0, "dpll0", &dpll0_gate.common.hw, 0x4, 3,
 static CLK_FIXED_FACTOR_HW(dpll0_58m31, "dpll0-58m31", &dpll0.common.hw,
 			   32, 1, 0);
 
-static struct sprd_clk_common *sharkl5pro_g0_pll_clks[] = {
+static struct sprd_clk_common *ums512_g0_pll_clks[] = {
 	/* address base is 0x32390000 */
 	&dpll0.common,
 };
 
-static struct clk_hw_onecell_data sharkl5pro_g0_pll_hws = {
+static struct clk_hw_onecell_data ums512_g0_pll_hws = {
 	.hws	= {
 		[CLK_DPLL0]		= &dpll0.common.hw,
 		[CLK_DPLL0_58M31]	= &dpll0_58m31.hw,
@@ -147,10 +147,10 @@ static struct clk_hw_onecell_data sharkl5pro_g0_pll_hws = {
 	.num	= CLK_ANLG_PHY_G0_NUM,
 };
 
-static struct sprd_clk_desc sharkl5pro_g0_pll_desc = {
-	.clk_clks	= sharkl5pro_g0_pll_clks,
-	.num_clk_clks	= ARRAY_SIZE(sharkl5pro_g0_pll_clks),
-	.hw_clks	= &sharkl5pro_g0_pll_hws,
+static struct sprd_clk_desc ums512_g0_pll_desc = {
+	.clk_clks	= ums512_g0_pll_clks,
+	.num_clk_clks	= ARRAY_SIZE(ums512_g0_pll_clks),
+	.hw_clks	= &ums512_g0_pll_hws,
 };
 
 /* pll clock at g2 */
@@ -177,12 +177,12 @@ static SPRD_PLL_HW(mpll1, "mpll1", &mpll1_gate.common.hw, 0x0, 3,
 static CLK_FIXED_FACTOR_HW(mpll1_63m38, "mpll1-63m38", &mpll1.common.hw,
 			   32, 1, 0);
 
-static struct sprd_clk_common *sharkl5pro_g2_pll_clks[] = {
+static struct sprd_clk_common *ums512_g2_pll_clks[] = {
 	/* address base is 0x323B0000 */
 	&mpll1.common,
 };
 
-static struct clk_hw_onecell_data sharkl5pro_g2_pll_hws = {
+static struct clk_hw_onecell_data ums512_g2_pll_hws = {
 	.hws	= {
 		[CLK_MPLL1]		= &mpll1.common.hw,
 		[CLK_MPLL1_63M38]	= &mpll1_63m38.hw,
@@ -190,10 +190,10 @@ static struct clk_hw_onecell_data sharkl5pro_g2_pll_hws = {
 	.num	= CLK_ANLG_PHY_G2_NUM,
 };
 
-static struct sprd_clk_desc sharkl5pro_g2_pll_desc = {
-	.clk_clks	= sharkl5pro_g2_pll_clks,
-	.num_clk_clks	= ARRAY_SIZE(sharkl5pro_g2_pll_clks),
-	.hw_clks	= &sharkl5pro_g2_pll_hws,
+static struct sprd_clk_desc ums512_g2_pll_desc = {
+	.clk_clks	= ums512_g2_pll_clks,
+	.num_clk_clks	= ARRAY_SIZE(ums512_g2_pll_clks),
+	.hw_clks	= &ums512_g2_pll_hws,
 };
 
 /* pll at g3 */
@@ -235,7 +235,7 @@ static struct clk_bit_field f_mpll2[PLL_FACT_MAX] = {
 	{ .shift = 0,	.width = 0 },	/* prediv	*/
 	{ .shift = 77,	.width = 1 },	/* postdiv	*/
 };
-static SPRD_PLL_HW(mpll0, "mpll0", &mpll1_gate.common.hw, 0x54, 3,
+static SPRD_PLL_HW(mpll0, "mpll0", &mpll0_gate.common.hw, 0x54, 3,
 		   itable_mpll, f_mpll, 240, 1000, 1000, 1, 1200000000);
 static CLK_FIXED_FACTOR_HW(mpll0_56m88, "mpll0-56m88", &mpll0.common.hw,
 			   32, 1, 0);
@@ -245,12 +245,12 @@ static const u64 itable_mpll2[6] = {5,
 			1600000000ULL, 1800000000ULL,
 			2000000000ULL};
 
-static SPRD_PLL_HW(mpll2, "mpll2", &mpll1_gate.common.hw, 0x9c, 3,
+static SPRD_PLL_HW(mpll2, "mpll2", &mpll2_gate.common.hw, 0x9c, 3,
 		   itable_mpll2, f_mpll2, 240, 1000, 1000, 1, 1000000000);
 static CLK_FIXED_FACTOR_HW(mpll2_47m13, "mpll2-47m13", &mpll2.common.hw,
 			   32, 1, 0);
 
-static struct sprd_clk_common *sharkl5pro_g3_pll_clks[] = {
+static struct sprd_clk_common *ums512_g3_pll_clks[] = {
 	/* address base is 0x323c0000 */
 	&rpll.common,
 	&audio_gate.common,
@@ -258,7 +258,7 @@ static struct sprd_clk_common *sharkl5pro_g3_pll_clks[] = {
 	&mpll2.common,
 };
 
-static struct clk_hw_onecell_data sharkl5pro_g3_pll_hws = {
+static struct clk_hw_onecell_data ums512_g3_pll_hws = {
 	.hws	= {
 		[CLK_RPLL]		= &rpll.common.hw,
 		[CLK_AUDIO_GATE]	= &audio_gate.common.hw,
@@ -270,10 +270,10 @@ static struct clk_hw_onecell_data sharkl5pro_g3_pll_hws = {
 	.num	= CLK_ANLG_PHY_G3_NUM,
 };
 
-static struct sprd_clk_desc sharkl5pro_g3_pll_desc = {
-	.clk_clks	= sharkl5pro_g3_pll_clks,
-	.num_clk_clks	= ARRAY_SIZE(sharkl5pro_g3_pll_clks),
-	.hw_clks	= &sharkl5pro_g3_pll_hws,
+static struct sprd_clk_desc ums512_g3_pll_desc = {
+	.clk_clks	= ums512_g3_pll_clks,
+	.num_clk_clks	= ARRAY_SIZE(ums512_g3_pll_clks),
+	.hw_clks	= &ums512_g3_pll_hws,
 };
 
 /* pll clock at gc */
@@ -331,8 +331,8 @@ static CLK_FIXED_FACTOR_HW(lpll_245m76, "lpll-245m76", &lpll.common.hw,
 static CLK_FIXED_FACTOR_HW(lpll_30m72, "lpll-30m72", &lpll.common.hw,
 			   40, 1, 0);
 
-static SPRD_PLL_HW(isppll, "isppll", &isppll_gate.common.hw, 0x30, 3,
-		   itable, f_pll, 240, 1000, 1000, 1, 750000000);
+static SPRD_PLL_FW_NAME(isppll, "isppll", "ext-26m", 0x30, 3,
+			itable, f_pll, 240, 1000, 1000, 1, 750000000);
 static CLK_FIXED_FACTOR_HW(isppll_468m, "isppll-468m", &isppll.common.hw,
 			   2, 1, 0);
 static CLK_FIXED_FACTOR_HW(isppll_78m, "isppll-78m", &isppll.common.hw,
@@ -348,7 +348,7 @@ static SPRD_PLL_HW(cppll, "cppll", &cppll_gate.common.hw, 0x60, 3,
 static CLK_FIXED_FACTOR_HW(cppll_39m32, "cppll-39m32", &cppll.common.hw,
 			   26, 1, 0);
 
-static struct sprd_clk_common *sharkl5pro_gc_pll_clks[] = {
+static struct sprd_clk_common *ums512_gc_pll_clks[] = {
 	/* address base is 0x323e0000 */
 	&twpll.common,
 	&lpll.common,
@@ -357,7 +357,7 @@ static struct sprd_clk_common *sharkl5pro_gc_pll_clks[] = {
 	&cppll.common,
 };
 
-static struct clk_hw_onecell_data sharkl5pro_gc_pll_hws = {
+static struct clk_hw_onecell_data ums512_gc_pll_hws = {
 	.hws	= {
 		[CLK_TWPLL]		= &twpll.common.hw,
 		[CLK_TWPLL_768M]	= &twpll_768m.hw,
@@ -396,17 +396,17 @@ static struct clk_hw_onecell_data sharkl5pro_gc_pll_hws = {
 	.num	= CLK_ANLG_PHY_GC_NUM,
 };
 
-static struct sprd_clk_desc sharkl5pro_gc_pll_desc = {
-	.clk_clks	= sharkl5pro_gc_pll_clks,
-	.num_clk_clks	= ARRAY_SIZE(sharkl5pro_gc_pll_clks),
-	.hw_clks	= &sharkl5pro_gc_pll_hws,
+static struct sprd_clk_desc ums512_gc_pll_desc = {
+	.clk_clks	= ums512_gc_pll_clks,
+	.num_clk_clks	= ARRAY_SIZE(ums512_gc_pll_clks),
+	.hw_clks	= &ums512_gc_pll_hws,
 };
 
 /* ap ahb gates */
 static SPRD_SC_GATE_CLK_FW_NAME(dsi_eb, "dsi-eb", "ext-26m",
 				0x0, 0x1000, BIT(0), 0, 0);
 static SPRD_SC_GATE_CLK_FW_NAME(dispc_eb, "dispc-eb", "ext-26m",
-				0x0, 0x1000, BIT(1), CLK_IGNORE_UNUSED, 0);
+				0x0, 0x1000, BIT(1), 0, 0);
 static SPRD_SC_GATE_CLK_FW_NAME(vsp_eb, "vsp-eb", "ext-26m",
 				0x0, 0x1000, BIT(2), 0, 0);
 static SPRD_SC_GATE_CLK_FW_NAME(vdma_eb, "vdma-eb", "ext-26m",
@@ -422,7 +422,7 @@ static SPRD_SC_GATE_CLK_FW_NAME(ahb_ckg_eb, "ahb-ckg-eb", "ext-26m",
 static SPRD_SC_GATE_CLK_FW_NAME(bm_clk_eb, "bm-clk-eb", "ext-26m",
 				0x0, 0x1000, BIT(8), CLK_IGNORE_UNUSED, 0);
 
-static struct sprd_clk_common *sharkl5pro_apahb_gate[] = {
+static struct sprd_clk_common *ums512_apahb_gate[] = {
 	/* address base is 0x20100000 */
 	&dsi_eb.common,
 	&dispc_eb.common,
@@ -435,7 +435,7 @@ static struct sprd_clk_common *sharkl5pro_apahb_gate[] = {
 	&bm_clk_eb.common,
 };
 
-static struct clk_hw_onecell_data sharkl5pro_apahb_gate_hws = {
+static struct clk_hw_onecell_data ums512_apahb_gate_hws = {
 	.hws	= {
 		[CLK_DSI_EB]		= &dsi_eb.common.hw,
 		[CLK_DISPC_EB]		= &dispc_eb.common.hw,
@@ -450,10 +450,10 @@ static struct clk_hw_onecell_data sharkl5pro_apahb_gate_hws = {
 	.num	= CLK_AP_AHB_GATE_NUM,
 };
 
-static struct sprd_clk_desc sharkl5pro_apahb_gate_desc = {
-	.clk_clks	= sharkl5pro_apahb_gate,
-	.num_clk_clks	= ARRAY_SIZE(sharkl5pro_apahb_gate),
-	.hw_clks	= &sharkl5pro_apahb_gate_hws,
+static struct sprd_clk_desc ums512_apahb_gate_desc = {
+	.clk_clks	= ums512_apahb_gate,
+	.num_clk_clks	= ARRAY_SIZE(ums512_apahb_gate),
+	.hw_clks	= &ums512_apahb_gate_hws,
 };
 
 /* ap clks */
@@ -464,7 +464,7 @@ static const struct clk_parent_data ap_apb_parents[] = {
 	{ .hw = &twpll_128m.hw  },
 };
 static SPRD_MUX_CLK_DATA(ap_apb_clk, "ap-apb-clk", ap_apb_parents,
-			 0x20, 0, 2, SHARKL5PRO_MUX_FLAG);
+			 0x20, 0, 2, UMS512_MUX_FLAG);
 
 static const struct clk_parent_data ipi_parents[] = {
 	{ .fw_name = "ext-26m" },
@@ -473,7 +473,7 @@ static const struct clk_parent_data ipi_parents[] = {
 	{ .hw = &twpll_128m.hw  },
 };
 static SPRD_MUX_CLK_DATA(ipi_clk, "ipi-clk", ipi_parents,
-			 0x24, 0, 2, SHARKL5PRO_MUX_FLAG);
+			 0x24, 0, 2, UMS512_MUX_FLAG);
 
 static const struct clk_parent_data ap_uart_parents[] = {
 	{ .fw_name = "ext-26m" },
@@ -549,7 +549,7 @@ static const struct clk_parent_data ap_ce_parents[] = {
 	{ .hw = &twpll_256m.hw  },
 };
 static SPRD_MUX_CLK_DATA(ap_ce_clk, "ap-ce-clk", ap_ce_parents,
-			 0x68, 0, 2, SHARKL5PRO_MUX_FLAG);
+			 0x68, 0, 2, UMS512_MUX_FLAG);
 
 static const struct clk_parent_data sdio_parents[] = {
 	{ .hw = &clk_1m.hw  },
@@ -560,11 +560,11 @@ static const struct clk_parent_data sdio_parents[] = {
 	{ .hw = &lpll_409m6.hw  },
 };
 static SPRD_MUX_CLK_DATA(sdio0_2x_clk, "sdio0-2x", sdio_parents,
-			 0x80, 0, 3, SHARKL5PRO_MUX_FLAG);
+			 0x80, 0, 3, UMS512_MUX_FLAG);
 static SPRD_MUX_CLK_DATA(sdio1_2x_clk, "sdio1-2x", sdio_parents,
-			 0x88, 0, 3, SHARKL5PRO_MUX_FLAG);
+			 0x88, 0, 3, UMS512_MUX_FLAG);
 static SPRD_MUX_CLK_DATA(emmc_2x_clk, "emmc-2x", sdio_parents,
-			 0x90, 0, 3, SHARKL5PRO_MUX_FLAG);
+			 0x90, 0, 3, UMS512_MUX_FLAG);
 
 static const struct clk_parent_data vsp_parents[] = {
 	{ .hw = &twpll_256m.hw  },
@@ -572,7 +572,7 @@ static const struct clk_parent_data vsp_parents[] = {
 	{ .hw = &twpll_384m.hw  },
 };
 static SPRD_MUX_CLK_DATA(vsp_clk, "vsp-clk", vsp_parents,
-			 0x98, 0, 2, SHARKL5PRO_MUX_FLAG);
+			 0x98, 0, 2, UMS512_MUX_FLAG);
 
 static const struct clk_parent_data dispc0_parents[] = {
 	{ .hw = &twpll_153m6.hw  },
@@ -582,7 +582,7 @@ static const struct clk_parent_data dispc0_parents[] = {
 	{ .hw = &twpll_384m.hw  },
 };
 static SPRD_MUX_CLK_DATA(dispc0_clk, "dispc0-clk", dispc0_parents,
-			 0x9c, 0, 3, SHARKL5PRO_MUX_FLAG);
+			 0x9c, 0, 3, UMS512_MUX_FLAG);
 
 static const struct clk_parent_data dispc0_dpi_parents[] = {
 	{ .hw = &twpll_96m.hw  },
@@ -600,7 +600,7 @@ static const struct clk_parent_data dsi_apb_parents[] = {
 	{ .hw = &twpll_192m.hw  },
 };
 static SPRD_MUX_CLK_DATA(dsi_apb_clk, "dsi-apb-clk", dsi_apb_parents,
-			 0xa4, 0, 2, SHARKL5PRO_MUX_FLAG);
+			 0xa4, 0, 2, UMS512_MUX_FLAG);
 
 static SPRD_GATE_CLK_FW_NAME(dsi_rxesc, "dsi-rxesc", "ext-26m",
 			     0xa8, BIT(16), 0, 0);
@@ -617,11 +617,11 @@ static const struct clk_parent_data vdsp_parents[] = {
 	{ .hw = &isppll.common.hw  },
 };
 static SPRD_MUX_CLK_DATA(vdsp_clk, "vdsp-clk", vdsp_parents,
-			 0xb0, 0, 3, SHARKL5PRO_MUX_FLAG);
+			 0xb0, 0, 3, UMS512_MUX_FLAG);
 static SPRD_DIV_CLK_HW(vdsp_m_clk, "vdsp-m-clk", &vdsp_clk.common.hw,
 		       0xb4, 8, 2, 0);
 
-static struct sprd_clk_common *sharkl5pro_ap_clks[] = {
+static struct sprd_clk_common *ums512_ap_clks[] = {
 	/* address base is 0x20200000 */
 	&ap_apb_clk.common,
 	&ipi_clk.common,
@@ -656,7 +656,7 @@ static struct sprd_clk_common *sharkl5pro_ap_clks[] = {
 
 };
 
-static struct clk_hw_onecell_data sharkl5pro_ap_clk_hws = {
+static struct clk_hw_onecell_data ums512_ap_clk_hws = {
 	.hws	= {
 		[CLK_AP_APB]		= &ap_apb_clk.common.hw,
 		[CLK_IPI]		= &ipi_clk.common.hw,
@@ -692,10 +692,10 @@ static struct clk_hw_onecell_data sharkl5pro_ap_clk_hws = {
 	.num	= CLK_AP_CLK_NUM,
 };
 
-static struct sprd_clk_desc sharkl5pro_ap_clk_desc = {
-	.clk_clks	= sharkl5pro_ap_clks,
-	.num_clk_clks	= ARRAY_SIZE(sharkl5pro_ap_clks),
-	.hw_clks	= &sharkl5pro_ap_clk_hws,
+static struct sprd_clk_desc ums512_ap_clk_desc = {
+	.clk_clks	= ums512_ap_clks,
+	.num_clk_clks	= ARRAY_SIZE(ums512_ap_clks),
+	.hw_clks	= &ums512_ap_clk_hws,
 };
 
 /* aon apb clks */
@@ -721,7 +721,7 @@ static const struct clk_parent_data adi_parents[] = {
 	{ .hw = &twpll_51m2.hw  },
 };
 static SPRD_MUX_CLK_DATA(adi_clk, "adi-clk", adi_parents,
-			 0x224, 0, 3, SHARKL5PRO_MUX_FLAG);
+			 0x224, 0, 3, UMS512_MUX_FLAG);
 
 static const struct clk_parent_data aux_parents[] = {
 	{ .fw_name = "ext-32k" },
@@ -770,20 +770,20 @@ static const struct clk_parent_data pwm_parents[] = {
 	{ .hw = &twpll_48m.hw  },
 };
 static SPRD_MUX_CLK_DATA(pwm0_clk, "pwm0-clk", pwm_parents,
-			 0x238, 0, 3, SHARKL5PRO_MUX_FLAG);
+			 0x238, 0, 3, UMS512_MUX_FLAG);
 static SPRD_MUX_CLK_DATA(pwm1_clk, "pwm1-clk", pwm_parents,
-			 0x23c, 0, 3, SHARKL5PRO_MUX_FLAG);
+			 0x23c, 0, 3, UMS512_MUX_FLAG);
 static SPRD_MUX_CLK_DATA(pwm2_clk, "pwm2-clk", pwm_parents,
-			 0x240, 0, 3, SHARKL5PRO_MUX_FLAG);
+			 0x240, 0, 3, UMS512_MUX_FLAG);
 static SPRD_MUX_CLK_DATA(pwm3_clk, "pwm3-clk", pwm_parents,
-			 0x244, 0, 3, SHARKL5PRO_MUX_FLAG);
+			 0x244, 0, 3, UMS512_MUX_FLAG);
 
 static const struct clk_parent_data efuse_parents[] = {
 	{ .hw = &rco_25m.hw  },
 	{ .fw_name = "ext-26m" },
 };
 static SPRD_MUX_CLK_DATA(efuse_clk, "efuse-clk", efuse_parents,
-			 0x248, 0, 1, SHARKL5PRO_MUX_FLAG);
+			 0x248, 0, 1, UMS512_MUX_FLAG);
 
 static const struct clk_parent_data uart_parents[] = {
 	{ .hw = &rco_4m.hw  },
@@ -795,22 +795,22 @@ static const struct clk_parent_data uart_parents[] = {
 	{ .hw = &twpll_128m.hw  },
 };
 static SPRD_MUX_CLK_DATA(uart0_clk, "uart0-clk", uart_parents,
-			 0x24c, 0, 3, SHARKL5PRO_MUX_FLAG);
+			 0x24c, 0, 3, UMS512_MUX_FLAG);
 static SPRD_MUX_CLK_DATA(uart1_clk, "uart1-clk", uart_parents,
-			 0x250, 0, 3, SHARKL5PRO_MUX_FLAG);
+			 0x250, 0, 3, UMS512_MUX_FLAG);
 
 static const struct clk_parent_data thm_parents[] = {
 	{ .fw_name = "ext-32m" },
 	{ .hw = &clk_250k.hw  },
 };
 static SPRD_MUX_CLK_DATA(thm0_clk, "thm0-clk", thm_parents,
-			 0x260, 0, 1, SHARKL5PRO_MUX_FLAG);
+			 0x260, 0, 1, UMS512_MUX_FLAG);
 static SPRD_MUX_CLK_DATA(thm1_clk, "thm1-clk", thm_parents,
-			 0x264, 0, 1, SHARKL5PRO_MUX_FLAG);
+			 0x264, 0, 1, UMS512_MUX_FLAG);
 static SPRD_MUX_CLK_DATA(thm2_clk, "thm2-clk", thm_parents,
-			 0x268, 0, 1, SHARKL5PRO_MUX_FLAG);
+			 0x268, 0, 1, UMS512_MUX_FLAG);
 static SPRD_MUX_CLK_DATA(thm3_clk, "thm3-clk", thm_parents,
-			 0x26c, 0, 1, SHARKL5PRO_MUX_FLAG);
+			 0x26c, 0, 1, UMS512_MUX_FLAG);
 
 static const struct clk_parent_data aon_i2c_parents[] = {
 	{ .hw = &rco_4m.hw  },
@@ -821,7 +821,7 @@ static const struct clk_parent_data aon_i2c_parents[] = {
 	{ .hw = &twpll_153m6.hw  },
 };
 static SPRD_MUX_CLK_DATA(aon_i2c_clk, "aon-i2c-clk", aon_i2c_parents,
-			 0x27c, 0, 3, SHARKL5PRO_MUX_FLAG);
+			 0x27c, 0, 3, UMS512_MUX_FLAG);
 
 static const struct clk_parent_data aon_iis_parents[] = {
 	{ .fw_name = "ext-26m" },
@@ -829,7 +829,7 @@ static const struct clk_parent_data aon_iis_parents[] = {
 	{ .hw = &twpll_153m6.hw  },
 };
 static SPRD_MUX_CLK_DATA(aon_iis_clk, "aon-iis-clk", aon_iis_parents,
-			 0x280, 0, 2, SHARKL5PRO_MUX_FLAG);
+			 0x280, 0, 2, UMS512_MUX_FLAG);
 
 static const struct clk_parent_data scc_parents[] = {
 	{ .fw_name = "ext-26m" },
@@ -838,7 +838,7 @@ static const struct clk_parent_data scc_parents[] = {
 	{ .hw = &twpll_96m.hw  },
 };
 static SPRD_MUX_CLK_DATA(scc_clk, "scc-clk", scc_parents,
-			 0x284, 0, 2, SHARKL5PRO_MUX_FLAG);
+			 0x284, 0, 2, UMS512_MUX_FLAG);
 
 static const struct clk_parent_data apcpu_dap_parents[] = {
 	{ .fw_name = "ext-26m" },
@@ -849,7 +849,7 @@ static const struct clk_parent_data apcpu_dap_parents[] = {
 	{ .hw = &twpll_153m6.hw  },
 };
 static SPRD_MUX_CLK_DATA(apcpu_dap_clk, "apcpu-dap-clk", apcpu_dap_parents,
-			 0x288, 0, 3, SHARKL5PRO_MUX_FLAG);
+			 0x288, 0, 3, UMS512_MUX_FLAG);
 
 static SPRD_GATE_CLK_FW_NAME(apcpu_dap_mtck, "apcpu-dap-mtck", "ext-26m",
 			     0x28c, BIT(16), 0, 0);
@@ -861,7 +861,7 @@ static const struct clk_parent_data apcpu_ts_parents[] = {
 	{ .hw = &twpll_153m6.hw  },
 };
 static SPRD_MUX_CLK_DATA(apcpu_ts_clk, "apcpu-ts-clk", apcpu_ts_parents,
-			 0x290, 0, 2, SHARKL5PRO_MUX_FLAG);
+			 0x290, 0, 2, UMS512_MUX_FLAG);
 
 static const struct clk_parent_data debug_ts_parents[] = {
 	{ .fw_name = "ext-26m" },
@@ -870,7 +870,7 @@ static const struct clk_parent_data debug_ts_parents[] = {
 	{ .hw = &twpll_192m.hw  },
 };
 static SPRD_MUX_CLK_DATA(debug_ts_clk, "debug-ts-clk", debug_ts_parents,
-			 0x294, 0, 2, SHARKL5PRO_MUX_FLAG);
+			 0x294, 0, 2, UMS512_MUX_FLAG);
 
 static SPRD_GATE_CLK_FW_NAME(dsi_test_s, "dsi-test-s", "ext-26m",
 			     0x298, BIT(16), 0, 0);
@@ -880,7 +880,7 @@ static const struct clk_parent_data djtag_tck_parents[] = {
 	{ .fw_name = "ext-26m" },
 };
 static SPRD_MUX_CLK_DATA(djtag_tck_clk, "djtag-tck-clk", djtag_tck_parents,
-			 0x2b4, 0, 1, SHARKL5PRO_MUX_FLAG);
+			 0x2b4, 0, 1, UMS512_MUX_FLAG);
 
 static SPRD_GATE_CLK_FW_NAME(djtag_tck_hw, "djtag-tck-hw", "ext-26m",
 			     0x2b8, BIT(16), 0, 0);
@@ -891,7 +891,7 @@ static const struct clk_parent_data aon_tmr_parents[] = {
 	{ .fw_name = "ext-26m" },
 };
 static SPRD_MUX_CLK_DATA(aon_tmr_clk, "aon-tmr-clk", aon_tmr_parents,
-			 0x2c0, 0, 2, SHARKL5PRO_MUX_FLAG);
+			 0x2c0, 0, 2, UMS512_MUX_FLAG);
 
 static const struct clk_parent_data aon_pmu_parents[] = {
 	{ .fw_name = "ext-32k" },
@@ -899,7 +899,7 @@ static const struct clk_parent_data aon_pmu_parents[] = {
 	{ .fw_name = "ext-4m" },
 };
 static SPRD_MUX_CLK_DATA(aon_pmu_clk, "aon-pmu-clk", aon_pmu_parents,
-			 0x2c8, 0, 2, SHARKL5PRO_MUX_FLAG);
+			 0x2c8, 0, 2, UMS512_MUX_FLAG);
 
 static const struct clk_parent_data debounce_parents[] = {
 	{ .fw_name = "ext-32k" },
@@ -908,7 +908,7 @@ static const struct clk_parent_data debounce_parents[] = {
 	{ .fw_name = "ext-26m" },
 };
 static SPRD_MUX_CLK_DATA(debounce_clk, "debounce-clk", debounce_parents,
-			 0x2cc, 0, 2, SHARKL5PRO_MUX_FLAG);
+			 0x2cc, 0, 2, UMS512_MUX_FLAG);
 
 static const struct clk_parent_data apcpu_pmu_parents[] = {
 	{ .fw_name = "ext-26m" },
@@ -917,7 +917,7 @@ static const struct clk_parent_data apcpu_pmu_parents[] = {
 	{ .hw = &twpll_128m.hw  },
 };
 static SPRD_MUX_CLK_DATA(apcpu_pmu_clk, "apcpu-pmu-clk", apcpu_pmu_parents,
-			 0x2d0, 0, 2, SHARKL5PRO_MUX_FLAG);
+			 0x2d0, 0, 2, UMS512_MUX_FLAG);
 
 static const struct clk_parent_data top_dvfs_parents[] = {
 	{ .fw_name = "ext-26m" },
@@ -926,7 +926,7 @@ static const struct clk_parent_data top_dvfs_parents[] = {
 	{ .hw = &twpll_128m.hw  },
 };
 static SPRD_MUX_CLK_DATA(top_dvfs_clk, "top-dvfs-clk", top_dvfs_parents,
-			 0x2d8, 0, 2, SHARKL5PRO_MUX_FLAG);
+			 0x2d8, 0, 2, UMS512_MUX_FLAG);
 
 static SPRD_GATE_CLK_FW_NAME(otg_utmi, "otg-utmi", "ext-26m", 0x2dc,
 				BIT(16), 0, 0);
@@ -936,7 +936,7 @@ static const struct clk_parent_data otg_ref_parents[] = {
 	{ .fw_name = "ext-26m" },
 };
 static SPRD_MUX_CLK_DATA(otg_ref_clk, "otg-ref-clk", otg_ref_parents,
-			 0x2e0, 0, 1, SHARKL5PRO_MUX_FLAG);
+			 0x2e0, 0, 1, UMS512_MUX_FLAG);
 
 static const struct clk_parent_data cssys_parents[] = {
 	{ .hw = &rco_25m.hw  },
@@ -960,7 +960,7 @@ static const struct clk_parent_data ap_axi_parents[] = {
 	{ .hw = &twpll_256m.hw  },
 };
 static SPRD_MUX_CLK_DATA(ap_axi_clk, "ap-axi-clk", ap_axi_parents,
-			 0x2f0, 0, 2, SHARKL5PRO_MUX_FLAG);
+			 0x2f0, 0, 2, UMS512_MUX_FLAG);
 
 static const struct clk_parent_data ap_mm_parents[] = {
 	{ .fw_name = "ext-26m" },
@@ -969,7 +969,7 @@ static const struct clk_parent_data ap_mm_parents[] = {
 	{ .hw = &twpll_153m6.hw  },
 };
 static SPRD_MUX_CLK_DATA(ap_mm_clk, "ap-mm-clk", ap_mm_parents,
-			 0x2f4, 0, 2, SHARKL5PRO_MUX_FLAG);
+			 0x2f4, 0, 2, UMS512_MUX_FLAG);
 
 static const struct clk_parent_data sdio2_2x_parents[] = {
 	{ .hw = &clk_1m.hw  },
@@ -980,7 +980,7 @@ static const struct clk_parent_data sdio2_2x_parents[] = {
 	{ .hw = &lpll_409m6.hw  },
 };
 static SPRD_MUX_CLK_DATA(sdio2_2x_clk, "sdio2-2x-clk", sdio2_2x_parents,
-			 0x2f8, 0, 3, SHARKL5PRO_MUX_FLAG);
+			 0x2f8, 0, 3, UMS512_MUX_FLAG);
 
 static const struct clk_parent_data analog_io_apb_parents[] = {
 	{ .fw_name = "ext-26m" },
@@ -995,7 +995,7 @@ static const struct clk_parent_data dmc_ref_parents[] = {
 	{ .fw_name = "ext-26m" },
 };
 static SPRD_MUX_CLK_DATA(dmc_ref_clk, "dmc-ref-clk", dmc_ref_parents,
-			 0x304, 0, 2, SHARKL5PRO_MUX_FLAG);
+			 0x304, 0, 2, UMS512_MUX_FLAG);
 
 static const struct clk_parent_data emc_parents[] = {
 	{ .fw_name = "ext-26m" },
@@ -1004,7 +1004,7 @@ static const struct clk_parent_data emc_parents[] = {
 	{ .hw = &twpll_768m.hw  },
 };
 static SPRD_MUX_CLK_DATA(emc_clk, "emc-clk", emc_parents,
-			 0x30c, 0, 2, SHARKL5PRO_MUX_FLAG);
+			 0x30c, 0, 2, UMS512_MUX_FLAG);
 
 static const struct clk_parent_data usb_parents[] = {
 	{ .hw = &rco_25m.hw  },
@@ -1022,9 +1022,9 @@ static const struct clk_parent_data pmu_26m_parents[] = {
 	{ .fw_name = "ext-26m" },
 };
 static SPRD_MUX_CLK_DATA(pmu_26m_clk, "26m-pmu-clk", pmu_26m_parents,
-			 0x318, 0, 1, SHARKL5PRO_MUX_FLAG);
+			 0x318, 0, 1, UMS512_MUX_FLAG);
 
-static struct sprd_clk_common *sharkl5pro_aon_apb[] = {
+static struct sprd_clk_common *ums512_aon_apb[] = {
 	/* address base is 0x32080200 */
 	&aon_apb_clk.common,
 	&adi_clk.common,
@@ -1073,7 +1073,7 @@ static struct sprd_clk_common *sharkl5pro_aon_apb[] = {
 	&pmu_26m_clk.common,
 };
 
-static struct clk_hw_onecell_data sharkl5pro_aon_apb_hws = {
+static struct clk_hw_onecell_data ums512_aon_apb_hws = {
 	.hws	= {
 		[CLK_AON_APB]		= &aon_apb_clk.common.hw,
 		[CLK_ADI]		= &adi_clk.common.hw,
@@ -1124,10 +1124,10 @@ static struct clk_hw_onecell_data sharkl5pro_aon_apb_hws = {
 	.num	= CLK_AON_APB_NUM,
 };
 
-static struct sprd_clk_desc sharkl5pro_aon_apb_desc = {
-	.clk_clks	= sharkl5pro_aon_apb,
-	.num_clk_clks	= ARRAY_SIZE(sharkl5pro_aon_apb),
-	.hw_clks	= &sharkl5pro_aon_apb_hws,
+static struct sprd_clk_desc ums512_aon_apb_desc = {
+	.clk_clks	= ums512_aon_apb,
+	.num_clk_clks	= ARRAY_SIZE(ums512_aon_apb),
+	.hw_clks	= &ums512_aon_apb_hws,
 };
 
 /* aon apb gates */
@@ -1236,7 +1236,7 @@ static SPRD_SC_GATE_CLK_FW_NAME(pwm0_eb, "pwm0-eb", "ext-26m",
 static SPRD_SC_GATE_CLK_FW_NAME(pwm1_eb, "pwm1-eb", "ext-26m",
 				0x8, 0x1000, BIT(26), 0, 0);
 static SPRD_SC_GATE_CLK_FW_NAME(pwm2_eb, "pwm2-eb", "ext-26m",
-				0x8, 0x1000, BIT(27), CLK_IGNORE_UNUSED, 0);
+				0x8, 0x1000, BIT(27), 0, 0);
 static SPRD_SC_GATE_CLK_FW_NAME(pwm3_eb, "pwm3-eb", "ext-26m",
 				0x8, 0x1000, BIT(28), 0, 0);
 static SPRD_SC_GATE_CLK_FW_NAME(ap_wdg_eb, "ap-wdg-eb", "ext-26m",
@@ -1332,7 +1332,7 @@ static SPRD_SC_GATE_CLK_FW_NAME(debug_ts_en, "debug-ts-en", "ext-26m",
 static SPRD_SC_GATE_CLK_FW_NAME(access_aud_en, "access-aud-en",
 				"ext-26m", 0x14c, 0x1000, BIT(0), 0, 0);
 
-static struct sprd_clk_common *sharkl5pro_aon_gate[] = {
+static struct sprd_clk_common *ums512_aon_gate[] = {
 	/* address base is 0x327d0000 */
 	&rc100m_cal_eb.common,
 	&djtag_tck_eb.common,
@@ -1436,7 +1436,7 @@ static struct sprd_clk_common *sharkl5pro_aon_gate[] = {
 	&access_aud_en.common,
 };
 
-static struct clk_hw_onecell_data sharkl5pro_aon_gate_hws = {
+static struct clk_hw_onecell_data ums512_aon_gate_hws = {
 	.hws	= {
 		[CLK_RC100M_CAL_EB]	= &rc100m_cal_eb.common.hw,
 		[CLK_DJTAG_TCK_EB]	= &djtag_tck_eb.common.hw,
@@ -1537,14 +1537,15 @@ static struct clk_hw_onecell_data sharkl5pro_aon_gate_hws = {
 		[CLK_PLL_TEST_EN]	= &pll_test_en.common.hw,
 		[CLK_CPHY_CFG_EN]	= &cphy_cfg_en.common.hw,
 		[CLK_DEBUG_TS_EN]	= &debug_ts_en.common.hw,
+		[CLK_ACCESS_AUD_EN]	= &access_aud_en.common.hw,
 	},
 	.num	= CLK_AON_APB_GATE_NUM,
 };
 
-static struct sprd_clk_desc sharkl5pro_aon_gate_desc = {
-	.clk_clks	= sharkl5pro_aon_gate,
-	.num_clk_clks	= ARRAY_SIZE(sharkl5pro_aon_gate),
-	.hw_clks	= &sharkl5pro_aon_gate_hws,
+static struct sprd_clk_desc ums512_aon_gate_desc = {
+	.clk_clks	= ums512_aon_gate,
+	.num_clk_clks	= ARRAY_SIZE(ums512_aon_gate),
+	.hw_clks	= &ums512_aon_gate_hws,
 };
 
 /* audcp apb gates */
@@ -1565,7 +1566,7 @@ static SPRD_SC_GATE_CLK_HW(audcp_tmr1_eb, "audcp-tmr1-eb",
 			   &access_aud_en.common.hw, 0x0, 0x100, BIT(6),
 			   CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 
-static struct sprd_clk_common *sharkl5pro_audcpapb_gate[] = {
+static struct sprd_clk_common *ums512_audcpapb_gate[] = {
 	/* address base is 0x3350d000 */
 	&audcp_wdg_eb.common,
 	&audcp_rtc_wdg_eb.common,
@@ -1573,7 +1574,7 @@ static struct sprd_clk_common *sharkl5pro_audcpapb_gate[] = {
 	&audcp_tmr1_eb.common,
 };
 
-static struct clk_hw_onecell_data sharkl5pro_audcpapb_gate_hws = {
+static struct clk_hw_onecell_data ums512_audcpapb_gate_hws = {
 	.hws	= {
 		[CLK_AUDCP_WDG_EB]	= &audcp_wdg_eb.common.hw,
 		[CLK_AUDCP_RTC_WDG_EB]	= &audcp_rtc_wdg_eb.common.hw,
@@ -1583,10 +1584,10 @@ static struct clk_hw_onecell_data sharkl5pro_audcpapb_gate_hws = {
 	.num	= CLK_AUDCP_APB_GATE_NUM,
 };
 
-static const struct sprd_clk_desc sharkl5pro_audcpapb_gate_desc = {
-	.clk_clks	= sharkl5pro_audcpapb_gate,
-	.num_clk_clks	= ARRAY_SIZE(sharkl5pro_audcpapb_gate),
-	.hw_clks	= &sharkl5pro_audcpapb_gate_hws,
+static const struct sprd_clk_desc ums512_audcpapb_gate_desc = {
+	.clk_clks	= ums512_audcpapb_gate,
+	.num_clk_clks	= ARRAY_SIZE(ums512_audcpapb_gate),
+	.hw_clks	= &ums512_audcpapb_gate_hws,
 };
 
 /* audcp ahb gates */
@@ -1649,7 +1650,7 @@ static SPRD_SC_GATE_CLK_HW(audcp_dvfs_ashb_eb, "audcp-dvfs-ashb-eb",
 			   &access_aud_en.common.hw, 0x0, 0x100, BIT(23),
 			   CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 
-static struct sprd_clk_common *sharkl5pro_audcpahb_gate[] = {
+static struct sprd_clk_common *ums512_audcpahb_gate[] = {
 	/* address base is 0x335e0000 */
 	&audcp_iis0_eb.common,
 	&audcp_iis1_eb.common,
@@ -1671,7 +1672,7 @@ static struct sprd_clk_common *sharkl5pro_audcpahb_gate[] = {
 	&audcp_dvfs_ashb_eb.common,
 };
 
-static struct clk_hw_onecell_data sharkl5pro_audcpahb_gate_hws = {
+static struct clk_hw_onecell_data ums512_audcpahb_gate_hws = {
 	.hws	= {
 		[CLK_AUDCP_IIS0_EB]		= &audcp_iis0_eb.common.hw,
 		[CLK_AUDCP_IIS1_EB]		= &audcp_iis1_eb.common.hw,
@@ -1695,10 +1696,10 @@ static struct clk_hw_onecell_data sharkl5pro_audcpahb_gate_hws = {
 	.num	= CLK_AUDCP_AHB_GATE_NUM,
 };
 
-static const struct sprd_clk_desc sharkl5pro_audcpahb_gate_desc = {
-	.clk_clks	= sharkl5pro_audcpahb_gate,
-	.num_clk_clks	= ARRAY_SIZE(sharkl5pro_audcpahb_gate),
-	.hw_clks	= &sharkl5pro_audcpahb_gate_hws,
+static const struct sprd_clk_desc ums512_audcpahb_gate_desc = {
+	.clk_clks	= ums512_audcpahb_gate,
+	.num_clk_clks	= ARRAY_SIZE(ums512_audcpahb_gate),
+	.hw_clks	= &ums512_audcpahb_gate_hws,
 };
 
 /* gpu clocks */
@@ -1729,7 +1730,7 @@ static SPRD_GATE_CLK_HW(gpu_sys_gate, "gpu-sys-gate", &gpu_eb.common.hw,
 static SPRD_DIV_CLK_HW(gpu_sys_clk, "gpu-sys-clk", &gpu_eb.common.hw,
 		       0xc, 4, 3, 0);
 
-static struct sprd_clk_common *sharkl5pro_gpu_clk[] = {
+static struct sprd_clk_common *ums512_gpu_clk[] = {
 	/* address base is 0x60100000 */
 	&gpu_core_gate.common,
 	&gpu_core_clk.common,
@@ -1739,7 +1740,7 @@ static struct sprd_clk_common *sharkl5pro_gpu_clk[] = {
 	&gpu_sys_clk.common,
 };
 
-static struct clk_hw_onecell_data sharkl5pro_gpu_clk_hws = {
+static struct clk_hw_onecell_data ums512_gpu_clk_hws = {
 	.hws	= {
 		[CLK_GPU_CORE_EB]	= &gpu_core_gate.common.hw,
 		[CLK_GPU_CORE]		= &gpu_core_clk.common.hw,
@@ -1751,10 +1752,10 @@ static struct clk_hw_onecell_data sharkl5pro_gpu_clk_hws = {
 	.num	= CLK_GPU_CLK_NUM,
 };
 
-static struct sprd_clk_desc sharkl5pro_gpu_clk_desc = {
-	.clk_clks	= sharkl5pro_gpu_clk,
-	.num_clk_clks	= ARRAY_SIZE(sharkl5pro_gpu_clk),
-	.hw_clks	= &sharkl5pro_gpu_clk_hws,
+static struct sprd_clk_desc ums512_gpu_clk_desc = {
+	.clk_clks	= ums512_gpu_clk,
+	.num_clk_clks	= ARRAY_SIZE(ums512_gpu_clk),
+	.hw_clks	= &ums512_gpu_clk_hws,
 };
 
 /* mm clocks */
@@ -1765,18 +1766,19 @@ static const struct clk_parent_data mm_ahb_parents[] = {
 	{ .hw = &twpll_153m6.hw  },
 };
 static SPRD_MUX_CLK_DATA(mm_ahb_clk, "mm-ahb-clk", mm_ahb_parents,
-			 0x20, 0, 2, SHARKL5PRO_MUX_FLAG);
+			 0x20, 0, 2, UMS512_MUX_FLAG);
 
 static const struct clk_parent_data mm_mtx_parents[] = {
 	{ .hw = &twpll_76m8.hw  },
 	{ .hw = &twpll_128m.hw  },
 	{ .hw = &twpll_256m.hw  },
+	{ .hw = &twpll_307m2.hw  },
 	{ .hw = &twpll_384m.hw  },
 	{ .hw = &isppll_468m.hw  },
 	{ .hw = &twpll_512m.hw  },
 };
 static SPRD_MUX_CLK_DATA(mm_mtx_clk, "mm-mtx-clk", mm_mtx_parents,
-			 0x24, 0, 3, SHARKL5PRO_MUX_FLAG);
+			 0x24, 0, 3, UMS512_MUX_FLAG);
 
 static const struct clk_parent_data sensor_parents[] = {
 	{ .fw_name = "ext-26m" },
@@ -1798,7 +1800,7 @@ static const struct clk_parent_data cpp_parents[] = {
 	{ .hw = &twpll_384m.hw  },
 };
 static SPRD_MUX_CLK_DATA(cpp_clk, "cpp-clk", cpp_parents,
-			 0x34, 0, 2, SHARKL5PRO_MUX_FLAG);
+			 0x34, 0, 2, UMS512_MUX_FLAG);
 
 static const struct clk_parent_data jpg_parents[] = {
 	{ .hw = &twpll_76m8.hw  },
@@ -1807,7 +1809,7 @@ static const struct clk_parent_data jpg_parents[] = {
 	{ .hw = &twpll_384m.hw  },
 };
 static SPRD_MUX_CLK_DATA(jpg_clk, "jpg-clk", jpg_parents,
-			 0x38, 0, 2, SHARKL5PRO_MUX_FLAG);
+			 0x38, 0, 2, UMS512_MUX_FLAG);
 
 static const struct clk_parent_data fd_parents[] = {
 	{ .hw = &twpll_76m8.hw  },
@@ -1816,7 +1818,7 @@ static const struct clk_parent_data fd_parents[] = {
 	{ .hw = &twpll_384m.hw  },
 };
 static SPRD_MUX_CLK_DATA(fd_clk, "fd-clk", fd_parents,
-			 0x3c, 0, 2, SHARKL5PRO_MUX_FLAG);
+			 0x3c, 0, 2, UMS512_MUX_FLAG);
 
 static const struct clk_parent_data dcam_if_parents[] = {
 	{ .hw = &twpll_192m.hw  },
@@ -1826,7 +1828,7 @@ static const struct clk_parent_data dcam_if_parents[] = {
 	{ .hw = &isppll_468m.hw  },
 };
 static SPRD_MUX_CLK_DATA(dcam_if_clk, "dcam-if-clk", dcam_if_parents,
-			 0x40, 0, 3, SHARKL5PRO_MUX_FLAG);
+			 0x40, 0, 3, UMS512_MUX_FLAG);
 
 static const struct clk_parent_data dcam_axi_parents[] = {
 	{ .hw = &twpll_256m.hw  },
@@ -1835,7 +1837,7 @@ static const struct clk_parent_data dcam_axi_parents[] = {
 	{ .hw = &isppll_468m.hw  },
 };
 static SPRD_MUX_CLK_DATA(dcam_axi_clk, "dcam-axi-clk", dcam_axi_parents,
-			 0x44, 0, 2, SHARKL5PRO_MUX_FLAG);
+			 0x44, 0, 2, UMS512_MUX_FLAG);
 
 static const struct clk_parent_data isp_parents[] = {
 	{ .hw = &twpll_256m.hw  },
@@ -1845,7 +1847,7 @@ static const struct clk_parent_data isp_parents[] = {
 	{ .hw = &twpll_512m.hw  },
 };
 static SPRD_MUX_CLK_DATA(isp_clk, "isp-clk", isp_parents,
-			 0x48, 0, 3, SHARKL5PRO_MUX_FLAG);
+			 0x48, 0, 3, UMS512_MUX_FLAG);
 
 static SPRD_GATE_CLK_HW(mipi_csi0, "mipi-csi0", &mm_eb.common.hw,
 			0x4c, BIT(16), CLK_IGNORE_UNUSED, 0);
@@ -1856,7 +1858,7 @@ static SPRD_GATE_CLK_HW(mipi_csi1, "mipi-csi1", &mm_eb.common.hw,
 static SPRD_GATE_CLK_HW(mipi_csi2, "mipi-csi2", &mm_eb.common.hw,
 			0x54, BIT(16), CLK_IGNORE_UNUSED, 0);
 
-static struct sprd_clk_common *sharkl5pro_mm_clk[] = {
+static struct sprd_clk_common *ums512_mm_clk[] = {
 	/* address base is 0x62100000 */
 	&mm_ahb_clk.common,
 	&mm_mtx_clk.common,
@@ -1874,7 +1876,7 @@ static struct sprd_clk_common *sharkl5pro_mm_clk[] = {
 	&mipi_csi2.common,
 };
 
-static struct clk_hw_onecell_data sharkl5pro_mm_clk_hws = {
+static struct clk_hw_onecell_data ums512_mm_clk_hws = {
 	.hws	= {
 		[CLK_MM_AHB]	= &mm_ahb_clk.common.hw,
 		[CLK_MM_MTX]	= &mm_mtx_clk.common.hw,
@@ -1894,10 +1896,10 @@ static struct clk_hw_onecell_data sharkl5pro_mm_clk_hws = {
 	.num	= CLK_MM_CLK_NUM,
 };
 
-static struct sprd_clk_desc sharkl5pro_mm_clk_desc = {
-	.clk_clks	= sharkl5pro_mm_clk,
-	.num_clk_clks	= ARRAY_SIZE(sharkl5pro_mm_clk),
-	.hw_clks	= &sharkl5pro_mm_clk_hws,
+static struct sprd_clk_desc ums512_mm_clk_desc = {
+	.clk_clks	= ums512_mm_clk,
+	.num_clk_clks	= ARRAY_SIZE(ums512_mm_clk),
+	.hw_clks	= &ums512_mm_clk_hws,
 };
 
 /* mm gate clocks */
@@ -1942,7 +1944,7 @@ static SPRD_SC_GATE_CLK_HW(mm_isp_axi_en, "mm-isp-axi-en", &mm_eb.common.hw,
 static SPRD_SC_GATE_CLK_HW(mm_cphy_en, "mm-cphy-en", &mm_eb.common.hw,
 			   0x8, 0x1000, BIT(8), 0, 0);
 
-static struct sprd_clk_common *sharkl5pro_mm_gate_clk[] = {
+static struct sprd_clk_common *ums512_mm_gate_clk[] = {
 	/* address base is 0x62200000 */
 	&mm_cpp_eb.common,
 	&mm_jpg_eb.common,
@@ -1966,7 +1968,7 @@ static struct sprd_clk_common *sharkl5pro_mm_gate_clk[] = {
 	&mm_cphy_en.common,
 };
 
-static struct clk_hw_onecell_data sharkl5pro_mm_gate_clk_hws = {
+static struct clk_hw_onecell_data ums512_mm_gate_clk_hws = {
 	.hws	= {
 		[CLK_MM_CPP_EB]		= &mm_cpp_eb.common.hw,
 		[CLK_MM_JPG_EB]		= &mm_jpg_eb.common.hw,
@@ -1992,10 +1994,10 @@ static struct clk_hw_onecell_data sharkl5pro_mm_gate_clk_hws = {
 	.num	= CLK_MM_GATE_CLK_NUM,
 };
 
-static struct sprd_clk_desc sharkl5pro_mm_gate_clk_desc = {
-	.clk_clks	= sharkl5pro_mm_gate_clk,
-	.num_clk_clks	= ARRAY_SIZE(sharkl5pro_mm_gate_clk),
-	.hw_clks	= &sharkl5pro_mm_gate_clk_hws,
+static struct sprd_clk_desc ums512_mm_gate_clk_desc = {
+	.clk_clks	= ums512_mm_gate_clk,
+	.num_clk_clks	= ARRAY_SIZE(ums512_mm_gate_clk),
+	.hw_clks	= &ums512_mm_gate_clk_hws,
 };
 
 /* ap apb gates */
@@ -2060,7 +2062,7 @@ static SPRD_SC_GATE_CLK_FW_NAME(sdio2_32k_eb, "sdio2-32k-eb", "ext-26m",
 static SPRD_SC_GATE_CLK_FW_NAME(emmc_32k_eb, "emmc-32k-eb", "ext-26m",
 				0x0, 0x1000, BIT(29), 0, 0);
 
-static struct sprd_clk_common *sharkl5pro_apapb_gate[] = {
+static struct sprd_clk_common *ums512_apapb_gate[] = {
 	/* address base is 0x71000000 */
 	&sim0_eb.common,
 	&iis0_eb.common,
@@ -2094,7 +2096,7 @@ static struct sprd_clk_common *sharkl5pro_apapb_gate[] = {
 	&emmc_32k_eb.common,
 };
 
-static struct clk_hw_onecell_data sharkl5pro_apapb_gate_hws = {
+static struct clk_hw_onecell_data ums512_apapb_gate_hws = {
 	.hws	= {
 		[CLK_SIM0_EB]		= &sim0_eb.common.hw,
 		[CLK_IIS0_EB]		= &iis0_eb.common.hw,
@@ -2130,48 +2132,48 @@ static struct clk_hw_onecell_data sharkl5pro_apapb_gate_hws = {
 	.num	= CLK_AP_APB_GATE_NUM,
 };
 
-static struct sprd_clk_desc sharkl5pro_apapb_gate_desc = {
-	.clk_clks	= sharkl5pro_apapb_gate,
-	.num_clk_clks	= ARRAY_SIZE(sharkl5pro_apapb_gate),
-	.hw_clks	= &sharkl5pro_apapb_gate_hws,
+static struct sprd_clk_desc ums512_apapb_gate_desc = {
+	.clk_clks	= ums512_apapb_gate,
+	.num_clk_clks	= ARRAY_SIZE(ums512_apapb_gate),
+	.hw_clks	= &ums512_apapb_gate_hws,
 };
 
-static const struct of_device_id sprd_sharkl5pro_clk_ids[] = {
-	{ .compatible = "sprd,ums512-pmu-gate",	/* 0x327e0000 */
-	  .data = &sharkl5pro_pmu_gate_desc },
-	{ .compatible = "sprd,ums512-g0-pll",	/* 0x32390000 */
-	  .data = &sharkl5pro_g0_pll_desc },
-	{ .compatible = "sprd,ums512-g2-pll",	/* 0x323b0000 */
-	  .data = &sharkl5pro_g2_pll_desc },
-	{ .compatible = "sprd,ums512-g3-pll",	/* 0x323c0000 */
-	  .data = &sharkl5pro_g3_pll_desc },
-	{ .compatible = "sprd,ums512-gc-pll",	/* 0x323e0000 */
-	  .data = &sharkl5pro_gc_pll_desc },
+static const struct of_device_id sprd_ums512_clk_ids[] = {
+	{ .compatible = "sprd,ums512-pmu-gate",		/* 0x327e0000 */
+	  .data = &ums512_pmu_gate_desc },
+	{ .compatible = "sprd,ums512-g0-pll",		/* 0x32390000 */
+	  .data = &ums512_g0_pll_desc },
+	{ .compatible = "sprd,ums512-g2-pll",		/* 0x323b0000 */
+	  .data = &ums512_g2_pll_desc },
+	{ .compatible = "sprd,ums512-g3-pll",		/* 0x323c0000 */
+	  .data = &ums512_g3_pll_desc },
+	{ .compatible = "sprd,ums512-gc-pll",		/* 0x323e0000 */
+	  .data = &ums512_gc_pll_desc },
 	{ .compatible = "sprd,ums512-apahb-gate",	/* 0x20100000 */
-	  .data = &sharkl5pro_apahb_gate_desc },
-	{ .compatible = "sprd,ums512-ap-clk",	/* 0x20200000 */
-	  .data = &sharkl5pro_ap_clk_desc },
+	  .data = &ums512_apahb_gate_desc },
+	{ .compatible = "sprd,ums512-ap-clk",		/* 0x20200000 */
+	  .data = &ums512_ap_clk_desc },
 	{ .compatible = "sprd,ums512-aonapb-clk",	/* 0x32080200 */
-	  .data = &sharkl5pro_aon_apb_desc },
-	{ .compatible = "sprd,ums512-aon-gate",	/* 0x327d0000 */
-	  .data = &sharkl5pro_aon_gate_desc },
-	{ .compatible = "sprd,ums512-audcpapb-gate",/* 0x3350d000 */
-	  .data = &sharkl5pro_audcpapb_gate_desc },
-	{ .compatible = "sprd,ums512-audcpahb-gate",/* 0x335e0000 */
-	  .data = &sharkl5pro_audcpahb_gate_desc },
-	{ .compatible = "sprd,ums512-gpu-clk",	/* 0x60100000 */
-	  .data = &sharkl5pro_gpu_clk_desc },
-	{ .compatible = "sprd,ums512-mm-clk",	/* 0x62100000 */
-	  .data = &sharkl5pro_mm_clk_desc },
+	  .data = &ums512_aon_apb_desc },
+	{ .compatible = "sprd,ums512-aon-gate",		/* 0x327d0000 */
+	  .data = &ums512_aon_gate_desc },
+	{ .compatible = "sprd,ums512-audcpapb-gate",	/* 0x3350d000 */
+	  .data = &ums512_audcpapb_gate_desc },
+	{ .compatible = "sprd,ums512-audcpahb-gate",	/* 0x335e0000 */
+	  .data = &ums512_audcpahb_gate_desc },
+	{ .compatible = "sprd,ums512-gpu-clk",		/* 0x60100000 */
+	  .data = &ums512_gpu_clk_desc },
+	{ .compatible = "sprd,ums512-mm-clk",		/* 0x62100000 */
+	  .data = &ums512_mm_clk_desc },
 	{ .compatible = "sprd,ums512-mm-gate-clk",	/* 0x62200000 */
-	  .data = &sharkl5pro_mm_gate_clk_desc },
+	  .data = &ums512_mm_gate_clk_desc },
 	{ .compatible = "sprd,ums512-apapb-gate",	/* 0x71000000 */
-	  .data = &sharkl5pro_apapb_gate_desc },
+	  .data = &ums512_apapb_gate_desc },
 	{ }
 };
-MODULE_DEVICE_TABLE(of, sprd_sharkl5pro_clk_ids);
+MODULE_DEVICE_TABLE(of, sprd_ums512_clk_ids);
 
-static int sharkl5pro_clk_probe(struct platform_device *pdev)
+static int ums512_clk_probe(struct platform_device *pdev)
 {
 	const struct sprd_clk_desc *desc;
 
@@ -2184,15 +2186,14 @@ static int sharkl5pro_clk_probe(struct platform_device *pdev)
 	return sprd_clk_probe(&pdev->dev, desc->hw_clks);
 }
 
-static struct platform_driver sharkl5pro_clk_driver = {
-	.probe	= sharkl5pro_clk_probe,
+static struct platform_driver ums512_clk_driver = {
+	.probe	= ums512_clk_probe,
 	.driver	= {
 		.name	= "ums512-clk",
-		.of_match_table	= sprd_sharkl5pro_clk_ids,
+		.of_match_table	= sprd_ums512_clk_ids,
 	},
 };
-module_platform_driver(sharkl5pro_clk_driver);
+module_platform_driver(ums512_clk_driver);
 
-MODULE_DESCRIPTION("Spreadtrum Sharkl5Pro Clock Driver");
+MODULE_DESCRIPTION("Unisoc UMS512 Clock Driver");
 MODULE_LICENSE("GPL v2");
-MODULE_ALIAS("platform:ums512-clk");

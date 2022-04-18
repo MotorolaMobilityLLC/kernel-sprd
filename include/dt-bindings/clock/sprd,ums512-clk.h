@@ -5,8 +5,8 @@
  * Copyright (C) 2019, Unisoc Inc.
  */
 
-#ifndef _DT_BINDINGS_CLK_SHARKL5PRO_H_
-#define _DT_BINDINGS_CLK_SHARKL5PRO_H_
+#ifndef _DT_BINDINGS_CLK_UMS512_H_
+#define _DT_BINDINGS_CLK_UMS512_H_
 
 #define CLK_26M_AUD			0
 #define CLK_13M				1
@@ -287,7 +287,8 @@
 #define CLK_PLL_TEST_EN			96
 #define CLK_CPHY_CFG_EN			97
 #define CLK_DEBUG_TS_EN			98
-#define CLK_AON_APB_GATE_NUM		(CLK_DEBUG_TS_EN + 1)
+#define CLK_ACCESS_AUD_EN		99
+#define CLK_AON_APB_GATE_NUM		(CLK_ACCESS_AUD_EN + 1)
 
 #define CLK_MM_CPP_EB			0
 #define CLK_MM_JPG_EB			1
@@ -393,4 +394,4 @@
 #define CLK_DEBUG_APB			13
 #define CLK_APCPU_SEC_NUM		(CLK_DEBUG_APB + 1)
 
-#endif /* _DT_BINDINGS_CLK_SHARKL5PRO_H_ */
+#endif /* _DT_BINDINGS_CLK_UMS512_H_ */
