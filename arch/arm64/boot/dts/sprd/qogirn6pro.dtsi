@@ -1754,7 +1754,6 @@
 					usb-phy = <&ssphy>, <&ssphy>;
 					usb-pam = <&pamu3>;
 					phy_type = "utmi";
-					snps,usb3-u1u2-disable;
 					snps,dis_u3_susphy_quirk;
 					snps,dis_u2_susphy_quirk;
 					snps,overlap_check_quirk;
@@ -2428,7 +2427,6 @@
 				phy-names = "usb";
 				dr-mode = "peripheral";
 				multipoint = "true";
-				wakeup-source;
 			};
 
 			hwlock: hwspinlock@a10000 {
