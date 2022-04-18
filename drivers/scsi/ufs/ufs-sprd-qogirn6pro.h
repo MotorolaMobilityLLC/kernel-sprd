@@ -22,6 +22,7 @@ struct syscon_ufs {
 
 struct ufs_sprd_host {
 	struct ufs_hba *hba;
+	struct scsi_device *sdev_ufs_rpmb;
 	void __iomem *ufshci_reg;
 	void __iomem *ufsutp_reg;
 	void __iomem *unipro_reg;
