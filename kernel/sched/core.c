@@ -6269,6 +6269,9 @@ static bool __task_can_run(struct task_struct *prev)
 # define SM_MASK_PREEMPT	SM_PREEMPT
 #endif
 
+#if defined(CONFIG_SPRD_DEBUG)
+extern void sprd_monitor_switch(struct task_struct *prev, struct task_struct *next);
+#endif
 /*
  * __schedule() is the main scheduler function.
  *
@@ -6429,6 +6432,9 @@ static void __sched notrace __schedule(unsigned int sched_mode)
 		psi_sched_switch(prev, next, !task_on_rq_queued(prev));
 
 		trace_sched_switch(sched_mode & SM_MASK_PREEMPT, prev, next);
+#if defined(CONFIG_SPRD_DEBUG)
+		sprd_monitor_switch(prev, next);
+#endif
 
 		/* Also unlocks the rq: */
 		rq = context_switch(rq, prev, next, &rf);
