@@ -12,6 +12,7 @@
 #include "sc2730/sc2730.dtsi"
 #include "lcd/lcd_td4310_truly_mipi_fhd.dtsi"
 #include "reserved-memory/ums512-common.dtsi"
+#include "ums512/gpu-gondul.dtsi"
 
 / {
 	model = "Unisoc UMS512-base Board";
