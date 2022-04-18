@@ -8,8 +8,6 @@
 /dts-v1/;
 #include <dt-bindings/gpio/gpio.h>
 #include "sc9863a.dtsi"
-#include "sp9863a-l3dvfs.dtsi"
-#include "sp9863a-l3rdvfs.dtsi"
 #include "sc2721.dtsi"
 #include "sprd-sound-sharkl.dtsi"
 #include "sp9863a-mach.dtsi"
@@ -237,43 +235,6 @@
 
 &iommu_vsp {
 	status = "okay";
-};
-
-&sprd_hwdvfs {
-	hwdvfs_cluster0: cluster@0 {
-		reg = <0 0x0>;
-		dcdc-ctrl = <&dcdc_ctrl1>;
-	};
-
-	hwdvfs_cluster1: cluster@1 {
-		reg = <0 0x1>;
-		dcdc-ctrl = <&dcdc_ctrl0>;
-	};
-
-	hwdvfs_dsu: dsu@0 {
-		reg = <0 0x0>;
-		dcdc-ctrl = <&dcdc_ctrl0>;
-	};
-
-	dcdc_ctrl0: dcdc-controller@0 {
-		reg = <0x0 0x0>;
-		volt-via-adi;
-		volt-hold-us = <50>;
-		volt-pause-us = <5>;
-		volt-timeout-us = <800>;
-		volt-stable-us  = <5>;
-		volt-max-step-microvolt = <25000>;
-	};
-
-	dcdc_ctrl1: dcdc-controller@1 {
-		reg = <0x1 0x2>;
-		volt-via-i2c;
-		volt-hold-us = <25>;
-		volt-pause-us = <20>;
-		volt-timeout-us = <800>;
-		volt-stable-us  = <25>;
-		volt-max-step-microvolt = <1200004>;
-	};
 };
 
 &hsphy {

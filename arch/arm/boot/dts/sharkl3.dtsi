@@ -612,11 +612,6 @@
 					bits = <4 4>;
 				};
 
-				dvfs_bin_dsu: dvfs-bin-dsu@a {
-					reg = <0xa 0x4>;
-					bits = <4 4>;
-				};
-
 				wcn_alpha: wcn-alpha@14 {
 					reg = <0x14 0x4>;
 				};
@@ -790,18 +785,8 @@
 				interrupts = <GIC_SPI 130 IRQ_TYPE_LEVEL_HIGH>;
 			};
 
-			sprd_hwdvfs: hwdvfs@40300000 {
-				compatible = "sprd,sharkl3-hwdvfs";
-				sprd,syscon-enable = <&aon_apb_regs>;
-				sprd,anlg-phy-g4-ctrl = <&anlg_phy_g4_regs>;
-				reg = <0x40300000 0x1000>;
-				interrupts = <GIC_SPI 121 IRQ_TYPE_LEVEL_HIGH>;
-				#address-cells = <2>;
-				#size-cells = <0>;
-			};
-
 			sprd_hardware_cpufreq: hardware-dvfs-platform {
-				compatible = "sprd,hardware-cpufreq";
+				compatible = "sprd,hardware-cpufreq", "sprd,cpufreq-v2";
 			};
 
 			watchdog@40310000 {
