@@ -108,6 +108,7 @@
 				fullbatt-track-end-cur = <130000>;
 				first-calib-voltage = <3580000>;
 				first-calib-capacity = <50>;
+				batt-ovp-threshold-microvolt = <4800000>;
 
 				ir-cv-offset-microvolt = <100000>;
 				ir-rc-micro-ohms = <20000>;
