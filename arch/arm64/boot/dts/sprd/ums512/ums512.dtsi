@@ -274,6 +274,7 @@
 #include "qos.dtsi"
 #include "usb.dtsi"
 #include "socid.dtsi"
+#include "gpu-gondul.dtsi"
 #include "gpio.dtsi"
 #include "uart.dtsi"
 #include "i2c.dtsi"
