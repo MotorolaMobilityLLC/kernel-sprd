@@ -17,6 +17,9 @@
 	compatible = "sprd,ums9230-4h10";
 
 	sprd,sc-id = "ums9230 4h10 1000";
+
+	sprd,board_id = <0x4100>; //XX00:base board,XX00~XXFF:customize board
+
 	fragment {
 		target-path = "/";
 		__overlay__ {

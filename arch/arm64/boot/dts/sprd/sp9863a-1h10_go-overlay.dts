@@ -15,6 +15,8 @@
 
 	sprd,sc-id = "sp9863a 1h10 go";
 
+	sprd,board_id = <0x1900>; //XX00:base board,XX00~XXFF:customize board
+
 	fragment {
 		target-path = "/";
 		__overlay__ {
