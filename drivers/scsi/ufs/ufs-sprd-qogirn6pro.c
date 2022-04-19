@@ -17,7 +17,7 @@
 #include <linux/platform_device.h>
 #include <linux/regmap.h>
 #include <linux/time.h>
-#if 0
+#if IS_ENABLED(CONFIG_SCSI_UFS_CRYPTO)
 #include <linux/sprd_sip_svc.h>
 #endif
 #include <linux/nvmem-consumer.h>
@@ -133,7 +133,7 @@ static int ufs_sprd_init(struct ufs_hba *hba)
 	struct ufs_sprd_host *host;
 	int ret = 0;
 
-#if 0
+#if IS_ENABLED(CONFIG_SCSI_UFS_CRYPTO)
 	struct sprd_sip_svc_handle *svc_handle;
 #endif
 
@@ -220,7 +220,7 @@ static int ufs_sprd_init(struct ufs_hba *hba)
 
 	clk_set_parent(host->hclk, host->hclk_source);
 
-#if 0
+#if IS_ENABLED(CONFIG_SCSI_UFS_CRYPTO)
 	regmap_update_bits(host->ap_ahb_ufs_rst.regmap,
 					  host->ap_ahb_ufs_rst.reg,
 					  host->ap_ahb_ufs_rst.mask,
@@ -243,9 +243,6 @@ static int ufs_sprd_init(struct ufs_hba *hba)
 		return -ENODEV;
 	}
 
-	pr_err("ufs init, get svc_handle:0x%x, get storage_ops handle: 0x%x\n",
-	       svc_handle, svc_handle->storage_ops);
-
 	ret = svc_handle->storage_ops.ufs_crypto_enable();
 	pr_err("smc: enable cfg, ret:0x%x", ret);
 #endif
@@ -253,7 +250,7 @@ static int ufs_sprd_init(struct ufs_hba *hba)
 	hba->quirks |= UFSHCD_QUIRK_BROKEN_UFS_HCI_VERSION |
 		       UFSHCD_QUIRK_DELAY_BEFORE_DME_CMDS;
 
-	hba->caps |= UFSHCD_CAP_CLK_GATING |
+	hba->caps |= UFSHCD_CAP_CLK_GATING | UFSHCD_CAP_CRYPTO |
 		     UFSHCD_CAP_HIBERN8_WITH_CLK_GATING | UFSHCD_CAP_WB_EN;
 
 	return 0;
@@ -541,7 +538,7 @@ static int ufs_sprd_hce_enable_notify(struct ufs_hba *hba,
 				      enum ufs_notify_change_status status)
 {
 	int err = 0;
-#if 0
+#if IS_ENABLED(CONFIG_SCSI_UFS_CRYPTO)
 	int ret = 0;
 	struct sprd_sip_svc_handle *svc_handle;
 #endif
@@ -550,7 +547,7 @@ static int ufs_sprd_hce_enable_notify(struct ufs_hba *hba,
 	case PRE_CHANGE:
 		/* Do hardware reset before host controller enable. */
 		ufs_sprd_hw_init(hba);
-#if 0
+#if IS_ENABLED(CONFIG_SCSI_UFS_CRYPTO)
 		ufshcd_writel(hba, CONTROLLER_ENABLE, REG_CONTROLLER_ENABLE);
 		svc_handle = sprd_sip_svc_get_handle();
 		if (!svc_handle) {
@@ -558,8 +555,6 @@ static int ufs_sprd_hce_enable_notify(struct ufs_hba *hba,
 			return -ENODEV;
 		}
 
-		pr_err("ufs init, get svc_handle:0x%x, get storage_ops handle: 0x%x\n",
-		       svc_handle, svc_handle->storage_ops);
 		ret = svc_handle->storage_ops.ufs_crypto_enable();
 		pr_err("smc: enable cfg, ret:0x%x", ret);
 #endif
