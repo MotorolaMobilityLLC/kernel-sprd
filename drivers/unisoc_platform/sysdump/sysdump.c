@@ -98,9 +98,14 @@ static unsigned int pmic_reg;
 #define REG_SP_INDEX	31
 #define REG_PC_INDEX	32
 #define REG_MEM_SIZE	(PAGE_SIZE * 2)
+
+#define MINIDUMP_INFO_BYTES	(ALIGN(sizeof(struct minidump_info), 4))
+struct minidump_info *sprd_minidump_info;
+
 extern void stext(void);
 struct pt_regs pregs_die_g;
-struct pt_regs minidump_regs_g;
+struct pt_regs *sprd_minidump_regs;
+#define MINIDUMP_REGS_BYTES	(ALIGN(sizeof(struct pt_regs), 4))
 
 struct minidump_info  minidump_info_g =	{
 	.kernel_magic			=	KERNEL_MAGIC,
@@ -209,7 +214,7 @@ struct sysdump_info {
 	unsigned long dump_mem_paddr;
 	int crash_key;
 	struct kaslr_info sprd_kaslrinfo;
-	struct minidump_info_record sprd_minidump_info;
+	struct minidump_info_record sprd_mini_info;
 	struct log_buf_info sprd_logbuf_info;
 	struct mmu_regs_info sprd_mmuregs_info;
 	struct core_regs_info sprd_coreregs_info;
@@ -232,8 +237,7 @@ struct sysdump_config {
 
 static struct sysdump_info *sprd_sysdump_info;
 static unsigned long sprd_sysdump_info_paddr;
-static unsigned long sysdump_magic_paddr = 0x80001000;
-static int sysdump_reflag = 1;
+static int sysdump_reflag;
 
 /* global var for memory hash */
 static u8 g_ktxt_hash_data[SHA1_DIGEST_SIZE];
@@ -370,16 +374,16 @@ int minidump_save_extend_information(const char *name, unsigned long paddr_start
 	/* check insert repeatly and acquire total seciton num before insert new section */
 	for (i = 0; i < SECTION_NUM_MAX; i++) {
 		if (!memcmp(str_name,
-				minidump_info_g.section_info_total.section_info[i].section_name,
+				sprd_minidump_info->section_info_total.section_info[i].section_name,
 				strlen(str_name))) {
 			mutex_unlock(&section_mutex);
 			return -1;
 		}
-		if (!strlen(minidump_info_g.section_info_total.section_info[i].section_name))
+		if (!strlen(sprd_minidump_info->section_info_total.section_info[i].section_name))
 			break;
 	}
-	minidump_info_g.section_info_total.total_num = i;
-	index = minidump_info_g.section_info_total.total_num;
+	sprd_minidump_info->section_info_total.total_num = i;
+	index = sprd_minidump_info->section_info_total.total_num;
 
 	if (index >= (SECTION_NUM_MAX - 1)) {
 		pr_err("No space for new section.\n");
@@ -387,7 +391,7 @@ int minidump_save_extend_information(const char *name, unsigned long paddr_start
 		return -1;
 	}
 	/* add new section in the tail of section_info */
-	extend_section = &minidump_info_g.section_info_total.section_info[index];
+	extend_section = &(sprd_minidump_info->section_info_total.section_info[index]);
 	sprintf(extend_section->section_name, "%s_%s", EXTEND_STRING, name);
 	if (vaddr_to_paddr_flag == 0) {
 		extend_section->section_start_vaddr = (unsigned long)__va(paddr_start);
@@ -397,12 +401,12 @@ int minidump_save_extend_information(const char *name, unsigned long paddr_start
 		extend_section->section_end_paddr = paddr_end;
 		extend_section->section_size = (int)(extend_section->section_end_paddr -
 						extend_section->section_start_paddr);
-		minidump_info_g.section_info_total.total_size += extend_section->section_size;
-		minidump_info_g.minidump_data_size += extend_section->section_size;
+		sprd_minidump_info->section_info_total.total_size += extend_section->section_size;
+		sprd_minidump_info->minidump_data_size += extend_section->section_size;
 	}
-	pr_emerg("%s added successfully in minidump section:paddr_start=%lx,paddr_end=%lx\n",
+	pr_info("%s added successfully in minidump section:paddr_start=%lx,paddr_end=%lx\n",
 			name, paddr_start, paddr_end);
-	minidump_info_g.section_info_total.total_num++;
+	sprd_minidump_info->section_info_total.total_num++;
 	mutex_unlock(&section_mutex);
 	return 0;
 }
@@ -434,21 +438,21 @@ int minidump_change_extend_information(const char *name, unsigned long paddr_sta
 	sprintf(str_name, "%s_%s", EXTEND_STRING, name);
 
 	for (i = 0; i < SECTION_NUM_MAX; i++) {
-		if (!strlen(minidump_info_g.section_info_total.section_info[i].section_name))
+		if (!strlen(sprd_minidump_info->section_info_total.section_info[i].section_name))
 			return -1;
-		if (!memcmp(minidump_info_g.section_info_total.section_info[i].section_name, str_name,
+		if (!memcmp(sprd_minidump_info->section_info_total.section_info[i].section_name, str_name,
 					strlen(str_name)))
 			break;
 	}
 	if (i >= SECTION_NUM_MAX)
 		return -1;
 
-	minidump_info_g.section_info_total.section_info[i].section_start_paddr = paddr_start;
-	minidump_info_g.section_info_total.section_info[i].section_end_paddr = paddr_end;
+	sprd_minidump_info->section_info_total.section_info[i].section_start_paddr = paddr_start;
+	sprd_minidump_info->section_info_total.section_info[i].section_end_paddr = paddr_end;
 
 	return 0;
 }
-
+EXPORT_SYMBOL(minidump_change_extend_information);
 static char *storenote(struct memelfnote *men, char *bufp)
 {
 	struct elf_note en;
@@ -570,38 +574,34 @@ __setup("sysdump_re_flag=", sysdump_reflag_setup);
 static unsigned long get_sprd_sysdump_info_paddr(void)
 {
 	struct device_node *node;
-	unsigned long *magic_addr;
-	unsigned long reg_phy = 0;
-	int aw = 0, len = 0;
+	struct resource res;
+	int ret;
+	unsigned long sysdump_re_paddr = 0;
 
-	if (sysdump_magic_paddr)
-		reg_phy = sysdump_magic_paddr;
-	else {
-		pr_err
-		    ("Not find sysdump_magic_paddr from bootargs,use sysdump node from dts\n");
-		node = of_find_node_by_name(NULL, "sprd-sysdump");
 
-		if (!node) {
-			pr_err
-			    ("Not find sprd-sysdump node from dts,use SPRD_SYSDUMP_MAGIC\n");
-			return 0;
+	node = of_find_node_by_name(NULL, SPRD_SYSDUMP_RESERVED);
+	pr_info("[%s]in\n", __func__);
+	pr_emerg("[%s]in\n", __func__);
+	if (!node) {
+		pr_err("Not find %s node from dts, use RAMDISK addr when panic\n",
+				SPRD_SYSDUMP_RESERVED);
+		sysdump_re_paddr = SPRD_SYSDUMP_MAGIC;
+		sysdump_reflag = 0;
+	} else {
+		ret = of_address_to_resource(node, 0, &res);
+		if (!ret) {
+			sysdump_re_paddr = res.start;
+			sysdump_reflag = 1;
+			pr_info("the addr of sysdump reserved memory is 0x%lx\n", sysdump_re_paddr);
+			pr_emerg("the addr of sysdump reserved memory is 0x%lx\n", sysdump_re_paddr);
 		} else {
-			magic_addr =
-			    (unsigned long *)of_get_property(node, "magic-addr",
-							     &len);
-			if (!magic_addr) {
-				pr_err
-				    ("Not find magic-addr property from sprd-sysdump node\n");
-				return 0;
-			} else {
-				aw = of_n_addr_cells(node);
-				reg_phy =
-				    of_read_ulong((const __be32 *)magic_addr,
-						  aw);
-			}
+			pr_err("Not find res property from %s node\n", SPRD_SYSDUMP_RESERVED);
+			return 0;
 		}
 	}
-	return reg_phy;
+	pr_info("[%s]out\n", __func__);
+	pr_emerg("[%s]out\n", __func__);
+	return sysdump_re_paddr;
 }
 static int sysdump_info_init(void)
 {
@@ -1139,31 +1139,31 @@ void prepare_minidump_reg_memory(struct pt_regs *regs)
 	unsigned long addr;
 //	mm_segment_t fs;
 	if (user_mode(regs))
-		for (i = 0; i < minidump_info_g.regs_info.num; i++)
-			minidump_info_g.regs_memory_info.reg_paddr[i] = 0;
+		for (i = 0; i < sprd_minidump_info->regs_info.num; i++)
+			sprd_minidump_info->regs_memory_info.reg_paddr[i] = 0;
 //	fs = get_fs();
 //	set_fs(KERNEL_DS);
 	/*	get all valid paddr every  reg refers to  */
-	for (i = 0; i < minidump_info_g.regs_info.num; i++) {
+	for (i = 0; i < sprd_minidump_info->regs_info.num; i++) {
 #ifdef CONFIG_ARM
-		addr = regs->uregs[i] - minidump_info_g.regs_memory_info.per_reg_memory_size / 2;
+		addr = regs->uregs[i] - sprd_minidump_info->regs_memory_info.per_reg_memory_size / 2;
 		pr_debug("R%d: %08lx\n", i, regs->uregs[i]);
 		pr_debug("addr: %08lx\n", addr);
 		if (addr < PAGE_OFFSET || addr > -256UL) {
 #endif
 #ifdef CONFIG_ARM64
 		if (REG_SP_INDEX == i) {
-			addr = regs->sp - minidump_info_g.regs_memory_info.per_reg_memory_size / 2;
+			addr = regs->sp - sprd_minidump_info->regs_memory_info.per_reg_memory_size / 2;
 			pr_debug("sp: %llx\n", regs->sp);
 			pr_debug("addr: %lx\n", addr);
 
 		} else if (REG_PC_INDEX == i) {
-			addr = regs->pc - minidump_info_g.regs_memory_info.per_reg_memory_size / 2;
+			addr = regs->pc - sprd_minidump_info->regs_memory_info.per_reg_memory_size / 2;
 			pr_debug("pc: %llx\n", regs->pc);
 			pr_debug("addr: %lx\n", addr);
 
 		} else {
-			addr = regs->regs[i] - minidump_info_g.regs_memory_info.per_reg_memory_size
+			addr = regs->regs[i] - sprd_minidump_info->regs_memory_info.per_reg_memory_size
 				/ 2;
 			pr_debug("R%d: %llx\n", i, regs->regs[i]);
 			pr_debug("addr: %lx\n", addr);
@@ -1171,18 +1171,18 @@ void prepare_minidump_reg_memory(struct pt_regs *regs)
 		if (addr < KIMAGE_VADDR || addr > -256UL) {
 
 #endif
-			minidump_info_g.regs_memory_info.reg_paddr[i] = 0;
+			sprd_minidump_info->regs_memory_info.reg_paddr[i] = 0;
 			pr_debug("reg value invalid !!!\n");
 		} else {
-			minidump_info_g.regs_memory_info.reg_paddr[i] = __pa(addr);
-			minidump_info_g.regs_memory_info.valid_reg_num++;
+			sprd_minidump_info->regs_memory_info.reg_paddr[i] = __pa(addr);
+			sprd_minidump_info->regs_memory_info.valid_reg_num++;
 		}
 		pr_debug("reg[%d] paddr: %lx\n",
-			 i, minidump_info_g.regs_memory_info.reg_paddr[i]);
+			 i, sprd_minidump_info->regs_memory_info.reg_paddr[i]);
 	}
-	minidump_info_g.regs_memory_info.size = minidump_info_g.regs_memory_info.valid_reg_num *
-					 minidump_info_g.regs_memory_info.per_reg_memory_size;
-	pr_debug("size : %d\n", minidump_info_g.regs_memory_info.size);
+	sprd_minidump_info->regs_memory_info.size = sprd_minidump_info->regs_memory_info.valid_reg_num *
+					 sprd_minidump_info->regs_memory_info.per_reg_memory_size;
+	pr_debug("size : %d\n", sprd_minidump_info->regs_memory_info.size);
 //	set_fs(fs);
 	return;
 }
@@ -1242,21 +1242,21 @@ static int prepare_minidump_info(struct pt_regs *regs)
 {
 
 	if (regs != NULL) {
-		/*	struct pt_regs part: save minidump_regs_g contents */
-		memcpy(&minidump_regs_g, regs, sizeof(struct pt_regs));
-		/*      memory amount regs part: save minidump_regs_g contents */
+		/*	struct pt_regs part: save minidump_regs contents */
+		memcpy(sprd_minidump_regs, regs, sizeof(struct pt_regs));
+		/*      memory amount regs part: save minidump_regs contents */
 		prepare_minidump_reg_memory(regs);
 
 	} else {
 		pr_err("%s regs NULL .\n", __func__);
 	}
 
-	minidump_info_g.minidump_data_size =  minidump_info_g.regs_info.size +
-				minidump_info_g.regs_memory_info.size +
-				minidump_info_g.section_info_total.total_size;
+	sprd_minidump_info->minidump_data_size = sprd_minidump_info->regs_info.size +
+				sprd_minidump_info->regs_memory_info.size +
+				sprd_minidump_info->section_info_total.total_size;
 
 	/*	sections part: we have got all info when init, here do nothing */
-	show_minidump_info(&minidump_info_g);
+	show_minidump_info(sprd_minidump_info);
 	return 0;
 }
 
@@ -1429,6 +1429,14 @@ static void ylog_buffer_exit(void)
 	ClearPageReserved(virt_to_page(ylog_buffer));
 	kfree(ylog_buffer);
 }
+static void minidump_info_exit(void)
+{
+	ClearPageReserved(virt_to_page(sprd_minidump_info));
+	kfree(sprd_minidump_info);
+
+	ClearPageReserved(virt_to_page(sprd_minidump_regs));
+	kfree(sprd_minidump_regs);
+}
 int minidump_init(void)
 {
 	struct proc_dir_entry *minidump_info_dir;
@@ -1447,7 +1455,7 @@ int minidump_init(void)
 		pr_err("register dump_die_notifyier failed.\n");
 		return -1;
 	}
-	minidump_info_desc_g.paddr = __pa(&minidump_info_g);
+	minidump_info_desc_g.paddr = __pa(sprd_minidump_info);
 	minidump_info_desc_g.size = sizeof(minidump_info_g);
 	section_extend_info_init();
 	pr_info("%s out.\n", __func__);
@@ -1456,27 +1464,27 @@ int minidump_init(void)
 void show_exception_info(void)
 {
 	pr_debug("kernel_magic:             %s\n ",
-		minidump_info_g.exception_info.kernel_magic);
+		sprd_minidump_info->exception_info.kernel_magic);
 	pr_debug("exception_serialno:  %s\n ",
-		minidump_info_g.exception_info.exception_serialno);
+		sprd_minidump_info->exception_info.exception_serialno);
 	pr_debug("exception_kernel_version: %s\n ",
-		minidump_info_g.exception_info.exception_kernel_version);
+		sprd_minidump_info->exception_info.exception_kernel_version);
 	pr_debug("exception_reboot_reason:  %s\n ",
-		minidump_info_g.exception_info.exception_reboot_reason);
+		sprd_minidump_info->exception_info.exception_reboot_reason);
 	pr_debug("exception_panic_reason:   %s\n ",
-		minidump_info_g.exception_info.exception_panic_reason);
+		sprd_minidump_info->exception_info.exception_panic_reason);
 	pr_debug("exception_time:           %s\n ",
-		minidump_info_g.exception_info.exception_time);
+		sprd_minidump_info->exception_info.exception_time);
 	pr_debug("exception_file_info:      %s\n ",
-		minidump_info_g.exception_info.exception_file_info);
+		sprd_minidump_info->exception_info.exception_file_info);
 	pr_debug("exception_task_id:        %d\n ",
-		minidump_info_g.exception_info.exception_task_id);
+		sprd_minidump_info->exception_info.exception_task_id);
 	pr_debug("exception_task_family:      %s\n ",
-		minidump_info_g.exception_info.exception_task_family);
+		sprd_minidump_info->exception_info.exception_task_family);
 	pr_debug("exception_pc_symbol:      %s\n ",
-		minidump_info_g.exception_info.exception_pc_symbol);
+		sprd_minidump_info->exception_info.exception_pc_symbol);
 	pr_debug("exception_stack_info:     %s\n ",
-		minidump_info_g.exception_info.exception_stack_info);
+		sprd_minidump_info->exception_info.exception_stack_info);
 }
 void get_file_line_info(void *p, const char *file, unsigned int line, unsigned long bugaddr)
 {
@@ -1507,7 +1515,7 @@ void get_file_line_info(void *p, const char *file, unsigned int line, unsigned l
 #endif //0
 
 	if (file) {
-		snprintf(minidump_info_g.exception_info.exception_file_info,
+		snprintf(sprd_minidump_info->exception_info.exception_file_info,
 			EXCEPTION_INFO_SIZE_SHORT, "[%s:%u]", file, line);
 		bug_entry_flag = 1;
 	}
@@ -1584,18 +1592,18 @@ static int prepare_exception_info(struct pt_regs *regs,
 
 	struct timespec64 ts;
 	struct rtc_time tm;
-	memset(&minidump_info_g.exception_info, 0,
-		sizeof(minidump_info_g.exception_info));
-	memcpy(minidump_info_g.exception_info.kernel_magic, KERNEL_MAGIC, 4);
+	memset(&(sprd_minidump_info->exception_info), 0,
+		sizeof(sprd_minidump_info->exception_info));
+	memcpy(sprd_minidump_info->exception_info.kernel_magic, KERNEL_MAGIC, 4);
 
 	/*	exception_kernel_version	*/
 #if 0
-	memcpy(minidump_info_g.exception_info.exception_kernel_version,
+	memcpy(sprd_minidump_info->exception_info.exception_kernel_version,
 		linux_banner,
 		strlen(linux_banner));
 #endif
 	if (reason != NULL)
-		memcpy(minidump_info_g.exception_info.exception_panic_reason,
+		memcpy(sprd_minidump_info->exception_info.exception_panic_reason,
 			reason,
 			strlen(reason));
 	/*	exception_reboot_reason	 update in uboot */
@@ -1603,7 +1611,7 @@ static int prepare_exception_info(struct pt_regs *regs,
 	/*	exception_time		*/
 	ktime_get_ts64(&ts);
 	rtc_time64_to_tm(ts.tv_sec, &tm);
-	snprintf(minidump_info_g.exception_info.exception_time,
+	snprintf(sprd_minidump_info->exception_info.exception_time,
 		EXCEPTION_INFO_SIZE_SHORT,
 		"%04d-%02d-%02d:%02d:%02d:%02d",
 		tm.tm_year + 1900,
@@ -1615,7 +1623,7 @@ static int prepare_exception_info(struct pt_regs *regs,
 
 	/*	exception_file & exception_line		*/
 	if(!bug_entry_flag) {
-		snprintf(minidump_info_g.exception_info.exception_file_info,
+		snprintf(sprd_minidump_info->exception_info.exception_file_info,
 				EXCEPTION_INFO_SIZE_SHORT, "not-bugon");
 		pr_debug("no file info ,do nothing\n");
 	}
@@ -1626,7 +1634,7 @@ static int prepare_exception_info(struct pt_regs *regs,
 		else
 			return 0;
 	}
-	minidump_info_g.exception_info.exception_task_id = tsk->pid;
+	sprd_minidump_info->exception_info.exception_task_id = tsk->pid;
 	/*	exception_stack		*/
 //	get_exception_stack_info(regs);
 	show_exception_info();
@@ -1677,17 +1685,36 @@ static void section_info_log_buf(void)
 #endif
 static void minidump_addr_convert(int i)
 {
-	minidump_info_g.section_info_total.section_info[i].section_start_paddr =
-		__pa(minidump_info_g.section_info_total.section_info[i].section_start_vaddr);
-	minidump_info_g.section_info_total.section_info[i].section_end_paddr =
-		__pa(minidump_info_g.section_info_total.section_info[i].section_end_vaddr);
-	minidump_info_g.section_info_total.section_info[i].section_size =
-		(int)(minidump_info_g.section_info_total.section_info[i].section_end_paddr -
-		minidump_info_g.section_info_total.section_info[i].section_start_paddr);
+	sprd_minidump_info->section_info_total.section_info[i].section_start_paddr =
+		__pa(sprd_minidump_info->section_info_total.section_info[i].section_start_vaddr);
+	sprd_minidump_info->section_info_total.section_info[i].section_end_paddr =
+		__pa(sprd_minidump_info->section_info_total.section_info[i].section_end_vaddr);
+	sprd_minidump_info->section_info_total.section_info[i].section_size =
+		(int)(sprd_minidump_info->section_info_total.section_info[i].section_end_paddr -
+		sprd_minidump_info->section_info_total.section_info[i].section_start_paddr);
 }
 static void minidump_info_init(void)
 {
 	int i;
+	/* alloc minidump info buffer */
+	sprd_minidump_info = kzalloc(MINIDUMP_INFO_BYTES, GFP_KERNEL);
+	if (sprd_minidump_info == NULL) {
+		pr_err("kzalloc minidump info failed, required size:%d\n",
+				MINIDUMP_INFO_BYTES);
+		return;
+	}
+	SetPageReserved(virt_to_page(sprd_minidump_info));
+	memset(sprd_minidump_info, 0, MINIDUMP_INFO_BYTES);
+	memcpy(sprd_minidump_info, &minidump_info_g, MINIDUMP_INFO_BYTES);
+	/* alloc minidump regs buffer */
+	sprd_minidump_regs = kzalloc(MINIDUMP_REGS_BYTES, GFP_KERNEL);
+	if (sprd_minidump_info == NULL) {
+		pr_err("kzalloc minidump regs failed, required size:%d\n",
+				MINIDUMP_REGS_BYTES);
+		return;
+	}
+	SetPageReserved(virt_to_page(sprd_minidump_regs));
+	memset(sprd_minidump_regs, 0, MINIDUMP_REGS_BYTES);
 
 	/* section_mutex only be inited once */
 	if (atomic_read(&mutex_init_flag) == 0) {
@@ -1698,26 +1725,26 @@ static void minidump_info_init(void)
 	mutex_lock(&section_mutex);
 	for (i = 0; i < SECTION_NUM_MAX; i++) {
 		/* when section name is null, break */
-		if (!strlen(minidump_info_g.section_info_total.section_info[i].section_name))
+		if (!strlen(sprd_minidump_info->section_info_total.section_info[i].section_name))
 			break;
 		minidump_addr_convert(i);
-		minidump_info_g.section_info_total.total_size +=
-			minidump_info_g.section_info_total.section_info[i].section_size;
+		sprd_minidump_info->section_info_total.total_size +=
+			sprd_minidump_info->section_info_total.section_info[i].section_size;
 	}
-	minidump_info_g.section_info_total.total_num = i;
+	sprd_minidump_info->section_info_total.total_num = i;
 	/* vaddr to paddr flag must nearby section info init */
 	vaddr_to_paddr_flag = 1;
 	mutex_unlock(&section_mutex);
 
 	/* regs init */
-	minidump_info_g.regs_info.paddr = __pa(&minidump_regs_g);
+	sprd_minidump_info->regs_info.paddr = __pa(sprd_minidump_regs);
 	/* regs_memory_info init*/
-	minidump_info_g.regs_memory_info.size = REGS_NUM_MAX *
-			minidump_info_g.regs_memory_info.per_reg_memory_size;
+	sprd_minidump_info->regs_memory_info.size = REGS_NUM_MAX *
+			sprd_minidump_info->regs_memory_info.per_reg_memory_size;
 	/* update minidump data size */
-	minidump_info_g.minidump_data_size = minidump_info_g.regs_info.size +
-			minidump_info_g.regs_memory_info.size +
-			minidump_info_g.section_info_total.total_size;
+	sprd_minidump_info->minidump_data_size = sprd_minidump_info->regs_info.size +
+			sprd_minidump_info->regs_memory_info.size +
+			sprd_minidump_info->section_info_total.total_size;
 
 //	section_info_log_buf();
 //	section_info_per_cpu();
@@ -1725,9 +1752,10 @@ static void minidump_info_init(void)
 	minidump_save_extend_information("etb_data", 0, 0);
 	/* update minidump info */
 	if (sysdump_reflag && sprd_sysdump_info_paddr) {
-		sprd_sysdump_info->sprd_minidump_info.minidump_info_paddr = __pa(&minidump_info_g);
-		sprd_sysdump_info->sprd_minidump_info.minidump_info_size = sizeof(minidump_info_g);
-		memcpy(sprd_sysdump_info->sprd_minidump_info.magic, MINIDUMP_MAGIC,
+		sprd_sysdump_info->sprd_mini_info.minidump_info_paddr = __pa(sprd_minidump_info);
+		pr_info("minidump_info_vaddr is 0x%llx, __pa:paddr is 0x%llx\n", sprd_minidump_info, __pa(sprd_minidump_info));
+		sprd_sysdump_info->sprd_mini_info.minidump_info_size = sizeof(minidump_info_g);
+		memcpy(sprd_sysdump_info->sprd_mini_info.magic, MINIDUMP_MAGIC,
 									sizeof(MINIDUMP_MAGIC));
 	}
 
@@ -1824,6 +1852,7 @@ void sysdump_sysctl_exit(void)
 			crypto_free_shash(desc->tfm);
 		kfree(desc);
 	}
+	minidump_info_exit();
 #ifdef CONFIG_SPRD_MINI_SYSDUMP
 	ylog_buffer_exit();
 #endif
