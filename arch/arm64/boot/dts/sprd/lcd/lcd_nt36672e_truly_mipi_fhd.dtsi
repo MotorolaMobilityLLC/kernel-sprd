@@ -15,6 +15,12 @@
 					sprd,width-mm = <68>;
 					sprd,height-mm = <152>;
 
+					sprd,slice-width = <540>;
+					sprd,slice-height = <8>;
+					sprd,output-bpc = <8>;
+					sprd,dsc-enable = <0>;
+					sprd,dual-dsi-enable = <0>;
+
 					sprd,esd-check-enable = <0>;
 					sprd,esd-check-mode = <0>;  // 0:Reg mode 1:TE mode
 					sprd,esd-check-period = <1000>;
