@@ -42,6 +42,8 @@ struct spool_device {
 struct spool_sblock {
 	u8			dst;
 	u8			channel;
+	/* support for log loop */
+	u8			sblock_loop;
 	bool			is_hold;
 	struct sblock	hold;
 };
@@ -65,6 +67,7 @@ static int spool_open(struct inode *inode, struct file *filp)
 
 	sblock->dst = spool->init->dst;
 	sblock->channel = spool->init->channel;
+	sblock->sblock_loop = spool->init->sblock_loop;
 	sblock->is_hold = 0;
 
 	return 0;
@@ -75,7 +78,9 @@ static int spool_release(struct inode *inode, struct file *filp)
 	struct spool_sblock *sblock = filp->private_data;
 
 	if (sblock->is_hold) {
-		if (sblock_release(sblock->dst, sblock->channel, &sblock->hold))
+		if (sblock->sblock_loop ? sblock_release_loop(sblock->dst,
+		    sblock->channel, &sblock->hold) : sblock_release(sblock->dst,
+		    sblock->channel, &sblock->hold))
 			pr_debug("failed to release block!\n");
 	}
 	kfree(sblock);
@@ -105,8 +110,9 @@ static ssize_t spool_read(struct file *filp,
 		blk = sblock->hold;
 	} else {
 		*ppos = 0;
-		ret = sblock_receive(sblock->dst,
-				sblock->channel, &blk, timeout);
+		ret = sblock->sblock_loop ? sblock_receive_loop(sblock->dst,
+			sblock->channel, &blk) : sblock_receive(sblock->dst,
+			sblock->channel, &blk, timeout);
 		if (ret < 0) {
 			pr_debug("failed to receive block!\n");
 			return ret;
@@ -131,7 +137,9 @@ static ssize_t spool_read(struct file *filp,
 	}
 
 	if (sblock->is_hold == 0) {
-		if (sblock_release(sblock->dst, sblock->channel, &blk))
+		if (sblock->sblock_loop ? sblock_release_loop(sblock->dst,
+		    sblock->channel, &blk) : sblock_release(sblock->dst,
+		    sblock->channel, &blk))
 			pr_err("failed to release block!\n");
 	}
 
@@ -238,6 +246,18 @@ static int spool_parse_dt(struct spool_init_data **init, struct device *dev,
 	if (!ret)
 		pdata->pre_cfg = (int)data;
 
+	ret = of_property_read_u32(np, "sprd,smem", (u32 *)&data);
+	if (!ret)
+		pdata->smem = (u8)data;
+	else
+		pdata->smem = 0;
+
+	ret = of_property_read_u32(np, "sprd,sblock_loop", (u32 *)&data);
+	if (!ret)
+		pdata->sblock_loop = (u8)data;
+	else
+		pdata->sblock_loop = 0;
+
 	ret = of_property_read_u32(np, "sprd,tx-blksize",
 				   (u32 *)&pdata->txblocksize);
 	if (ret)
@@ -319,17 +339,20 @@ static int create_spool(struct platform_device *pdev,
 	if (init->pre_cfg)
 		rval = sblock_pcfg_create(init->dst,
 					  init->channel,
+					  init->smem,
 					  init->txblocknum,
 					  init->txblocksize,
 					  init->rxblocknum,
 					  init->rxblocksize);
 	else
-		rval = sblock_create(init->dst,
-				     init->channel,
-				     init->txblocknum,
-				     init->txblocksize,
-				     init->rxblocknum,
-				     init->rxblocksize);
+		rval = sblock_create_ex(init->dst,
+					init->channel,
+					init->smem,
+					init->txblocknum,
+					init->txblocksize,
+					init->rxblocknum,
+					init->rxblocksize,
+					NULL, NULL);
 	if (rval) {
 		dev_info(dev, "Failed to create sblock: %d\n", rval);
 		goto free_devno;

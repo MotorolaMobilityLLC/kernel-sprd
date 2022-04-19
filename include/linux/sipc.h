@@ -100,6 +100,7 @@ enum {
 	SMSG_CH_PLOG1,
 	SMSG_CH_PLOG2,
 	SMSG_CH_PLOG3,
+	SMSG_CH_LOG_LOOP = 66,
 
 	/* virtual serial for telephony,  channel 80~99*/
 	SMSG_CH_TTY_BASE  = 80,
@@ -211,6 +212,7 @@ static const struct sipc_config sipc_cfg[] = {
 	{SMSG_CH_IMSBR_CTRL, "imsbr control"},  /* channel 3 */
 	{SMSG_CH_VOIP_DEEP, "audio voip deep"},  /*channel 151*/
 	{SMSG_CH_DVFS, "dvfs"},  /* channel 41 */
+	{SMSG_CH_LOG_LOOP, "log loop"},  /* channel 66 */
 	{SMSG_CH_COMM_SIPA, "sipa"},  /* channel 120 */
 	{SMSG_CH_NV, "nvsync"}, /* channel 40 */
 	{SMSG_CH_PLAYBACK_CALLSCREEN, "audio mix uplink"},  /*channel 132*/
@@ -597,6 +599,7 @@ int sblock_create(u8 dst, u8 channel,
  *
  * @dst: dest processor ID
  * @channel: channel ID
+ * @smem: smem ID,default is 0
  * @txblocknum: tx block number
  * @txblocksize: tx block size
  * @rxblocknum: rx block number
@@ -605,7 +608,7 @@ int sblock_create(u8 dst, u8 channel,
  * @data: opaque data passed to the receiver
  * @return: 0 on success, <0 on failure
  */
-int sblock_create_ex(u8 dst, u8 channel,
+int sblock_create_ex(u8 dst, u8 channel, u8 smem,
 			u32 txblocknum, u32 txblocksize,
 			u32 rxblocknum, u32 rxblocksize,
 			void (*handler)(int event, void *data), void *data);
@@ -615,6 +618,7 @@ int sblock_create_ex(u8 dst, u8 channel,
  *
  * @dst: dest processor ID
  * @channel: channel ID
+ * @smem: smem ID,default is 0
  * @tx_blk_num: tx block number
  * @tx_blk_sz: tx block size
  * @rx_blk_num: rx block number
@@ -625,7 +629,7 @@ int sblock_create_ex(u8 dst, u8 channel,
  * open the channel. The client shall open the channel using
  * sblock_pcfg_open and close the channel using sblock_close.
  */
-int sblock_pcfg_create(u8 dst, u8 channel, u32 tx_blk_num, u32 tx_blk_sz,
+int sblock_pcfg_create(u8 dst, u8 channel, u8 smem, u32 tx_blk_num, u32 tx_blk_sz,
 			u32 rx_blk_num, u32 rx_blk_sz);
 
 /* sblock_pcfg_open -- request to open preconfigured SBLOCK channel.
@@ -755,6 +759,17 @@ int sblock_receive(u8 dst, u8 channel,
 		struct sblock *blk, int timeout);
 
 /**
+ * sblock_receive_loop  -- receive a sblock, it should be released after it's handled
+ *
+ * @dst: dest processor ID
+ * @channel: channel ID
+ * @blk: return a received sblock pointer
+ * @return: 0 on success, <0 on failure
+ */
+int sblock_receive_loop(u8 dst, u8 channel,
+			struct sblock *blk);
+
+/**
  * sblock_release  -- release a sblock from reveiver
  *
  * @dst: dest processor ID
@@ -762,6 +777,15 @@ int sblock_receive(u8 dst, u8 channel,
  * @return: 0 on success, <0 on failure
  */
 int sblock_release(u8 dst, u8 channel, struct sblock *blk);
+
+/**
+ * sblock_release_loop  -- release a sblock from reveiver
+ *
+ * @dst: dest processor ID
+ * @channel: channel ID
+ * @return: 0 on success, <0 on failure
+ */
+int sblock_release_loop(u8 dst, u8 channel, struct sblock *blk);
 
 /**
  * sblock_get_arrived_count  -- get the count of sblock(s) arrived at
