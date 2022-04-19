@@ -73,6 +73,12 @@ static void dpu_dvfs_map_cfg(struct dpu_dvfs *dpu)
 		map_table[3].volt_level << 3;
 	reg->dispc_index4_map = map_table[4].clk_level |
 		map_table[4].volt_level << 3;
+	reg->dispc_index5_map = map_table[5].clk_level |
+		map_table[5].volt_level << 3;
+	reg->dispc_index6_map = map_table[5].clk_level |
+		map_table[5].volt_level << 3;
+	reg->dispc_index7_map = map_table[5].clk_level |
+		map_table[5].volt_level << 3;
 }
 
 static void set_dpu_work_freq(struct dpu_dvfs *dpu, u32 freq)
