@@ -8,4 +8,6 @@ source "drivers/unisoc_platform/debug/Kconfig"
 source "drivers/unisoc_platform/sysdump/Kconfig"
 source "drivers/unisoc_platform/iommu/Kconfig"
 source "drivers/unisoc_platform/modem/Kconfig"
+source "drivers/unisoc_platform/printk_cpuid/Kconfig"
+
 endmenu
