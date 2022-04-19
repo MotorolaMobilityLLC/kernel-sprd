@@ -22,6 +22,7 @@
 #include <drm/drm_plane_helper.h>
 #include <drm/drm_vblank.h>
 
+#include "sprd_dsc.h"
 #include "sprd_crtc.h"
 #include "sprd_dpu.h"
 #include "sprd_drm.h"

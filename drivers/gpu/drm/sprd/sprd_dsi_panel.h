@@ -76,6 +76,12 @@ struct panel_info {
 	const void *cmds[CMD_CODE_MAX];
 	int cmds_len[CMD_CODE_MAX];
 
+	u32 slice_width;
+	u32 slice_height;
+	u32 output_bpc;
+	u32 dsc_en;
+	u32 dual_dsi_en;
+
 	/* esd check parameters*/
 	bool esd_check_en;
 	u8 esd_check_mode;

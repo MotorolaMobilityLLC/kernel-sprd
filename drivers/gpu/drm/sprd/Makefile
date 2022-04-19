@@ -8,7 +8,8 @@ sprd-drm-y := \
 	sprd_gem.o \
 	sprd_crtc.o \
 	sprd_plane.o \
-	disp_lib.o
+	disp_lib.o \
+	sprd_dsc.o
 
 sprd-drm-$(CONFIG_TRUSTY_VIRTIO_IPC) += disp_trusty.o
 

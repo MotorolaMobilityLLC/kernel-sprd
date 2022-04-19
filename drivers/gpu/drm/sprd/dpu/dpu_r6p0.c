@@ -21,6 +21,7 @@
 #include "sprd_plane.h"
 #include "sprd_dsi_panel.h"
 #include <../drivers/trusty/trusty.h>
+#include "../sprd_dsc.h"
 
 #define XFBC8888_HEADER_SIZE(w, h) (ALIGN((ALIGN((w), 16)) * \
 				(ALIGN((h), 16)) / 16, 128))
@@ -486,57 +487,6 @@ struct cabc_para {
 	u8 video_mode;
 };
 
-struct dpu_dsc_cfg {
-	char name[128];
-	bool dual_dsi_en;
-	bool dsc_en;
-	int  dsc_mode;
-};
-
-/*
- * FIXME:
- * We don't know what's the best binding to link the panel with dpu dsc.
- * Fow now, we just add all panels that we support dsc, and search them
- */
-static struct dpu_dsc_cfg dsc_cfg[] = {
-	{
-		.name = "lcd_nt35597_boe_mipi_qhd",
-		.dual_dsi_en = 0,
-		.dsc_en = 1,
-		.dsc_mode = 0,
-	},
-	{
-		.name = "lcd_nt57860_boe_mipi_qhd",
-		.dual_dsi_en = 1,
-		.dsc_en = 1,
-		.dsc_mode = 2,
-	},
-	{
-		.name = "lcd_nt36672c_truly_mipi_fhd",
-		.dual_dsi_en = 0,
-		.dsc_en = 1,
-		.dsc_mode = 1,
-	},
-	{
-		.name = "lcd_td4375_dijin_mipi_fhd",
-		.dual_dsi_en = 0,
-		.dsc_en = 1,
-		.dsc_mode = 3,
-	},
-	{
-		.name = "lcd_td4375_dijin_4lane_mipi_fhd",
-		.dual_dsi_en = 0,
-		.dsc_en = 1,
-		.dsc_mode = 3,
-	},
-	{
-		.name = "lcd_nt36672e_truly_mipi_fhd",
-		.dual_dsi_en = 0,
-		.dsc_en = 1,
-		.dsc_mode = 1,
-	},
-};
-
 static void dpu_sr_config(struct dpu_context *ctx);
 static void dpu_clean_all(struct dpu_context *ctx);
 static void dpu_layer(struct dpu_context *ctx,
@@ -992,35 +942,15 @@ static int dpu_write_back_config(struct dpu_context *ctx)
 	return 0;
 }
 
-/*
- * FIXME:
- * We don't know what's the best binding to link the panel with dpu dsc.
- * Fow now, we just hunt for all panels that we support, and get dsc cfg
- */
-static void dpu_get_dsc_cfg(struct dpu_context *ctx)
-{
-	int index;
-	struct sprd_dpu *dpu =
-		(struct sprd_dpu *)container_of(ctx, struct sprd_dpu, ctx);
-
-	for (index = 0; index < ARRAY_SIZE(dsc_cfg); index++) {
-		if (!strcmp(dsc_cfg[index].name, dpu->dsi->ctx.lcd_name)) {
-			ctx->dual_dsi_en = dsc_cfg[index].dual_dsi_en;
-			ctx->dsc_en = dsc_cfg[index].dsc_en;
-			ctx->dsc_mode = dsc_cfg[index].dsc_mode;
-			return;
-		}
-	}
-	pr_info("no found compatible, use dsc off\n");
-}
-
 static int dpu_config_dsc_param(struct dpu_context *ctx)
 {
 	u32 reg_val;
 	struct sprd_dpu *dpu =
 		(struct sprd_dpu *)container_of(ctx, struct sprd_dpu, ctx);
+	struct sprd_panel *panel =
+		(struct sprd_panel *)container_of(dpu->dsi->panel, struct sprd_panel, base);
 
-	if (ctx->dual_dsi_en) {
+	if (panel->info.dual_dsi_en) {
 		reg_val = (ctx->vm.vactive << 16) |
 			((ctx->vm.hactive >> 1)  << 0);
 		DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_PIC_SIZE), reg_val);
@@ -1029,7 +959,7 @@ static int dpu_config_dsc_param(struct dpu_context *ctx)
 			(ctx->vm.hactive << 0);
 		DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_PIC_SIZE), reg_val);
 	}
-	if (ctx->dual_dsi_en) {
+	if (panel->info.dual_dsi_en) {
 		reg_val = ((ctx->vm.hsync_len >> 1) << 0) |
 			((ctx->vm.hback_porch  >> 1) << 8) |
 			((ctx->vm.hfront_porch >> 1) << 20);
@@ -1045,96 +975,63 @@ static int dpu_config_dsc_param(struct dpu_context *ctx)
 			(ctx->vm.vfront_porch << 20);
 	DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_V_TIMING), reg_val);
 
-	DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_CFG0), 0x306c81db);
-	DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_CFG3), 0x12181800);
-	DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_CFG4), 0x003316b6);
-	DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_CFG5), 0x382a1c0e);
-	DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_CFG6), 0x69625446);
-	DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_CFG7), 0x7b797770);
-	DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_CFG8), 0x00007e7d);
-	DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_CFG9), 0x01000102);
-	DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_CFG10), 0x09be0940);
-	DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_CFG11), 0x19fa19fc);
-	DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_CFG12), 0x1a3819f8);
-	DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_CFG13), 0x1ab61a78);
-	DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_CFG14), 0x2b342af6);
-	DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_CFG15), 0x3b742b74);
-	DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_CFG16), 0x00006bf4);
+	DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_GRP_SIZE), ctx->dsc_cfg.reg.dsc_grp_size);
+	DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_SLICE_SIZE), ctx->dsc_cfg.reg.dsc_slice_size);
 
-	switch (ctx->dsc_mode) {
-	case DSC_1440_2560_720_2560:
-		DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_GRP_SIZE), 0x000000f0);
-		DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_SLICE_SIZE), 0x04096000);
-		DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_CFG1), 0x000ae4bd);
-		DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_CFG2), 0x0008000a);
-		break;
-	case DSC_1080_2408_540_8:
-		DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_GRP_SIZE), 0x800b4);
-		DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_SLICE_SIZE), 0x050005a0);
-		DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_CFG1), 0x7009b);
-		DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_CFG2), 0xcb70db7);
-		break;
-	case DSC_720_2560_720_8:
-		DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_GRP_SIZE), 0x800f0);
-		DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_SLICE_SIZE), 0x1000780);
-		DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_CFG1), 0x000a00b1);
-		DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_CFG2), 0x9890db7);
-		if (ctx->dual_dsi_en) {
-			reg_val = (ctx->vm.vactive << 16) |
-				((ctx->vm.hactive >> 1) << 0);
-			DPU_REG_WR(ctx->base + DSC1_REG(REG_DSC_PIC_SIZE), reg_val);
+	DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_CFG0), ctx->dsc_cfg.reg.dsc_cfg0);
+	DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_CFG1), ctx->dsc_cfg.reg.dsc_cfg1);
+	DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_CFG2), ctx->dsc_cfg.reg.dsc_cfg2);
+	DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_CFG3), ctx->dsc_cfg.reg.dsc_cfg3);
+	DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_CFG4), ctx->dsc_cfg.reg.dsc_cfg4);
+	DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_CFG5), ctx->dsc_cfg.reg.dsc_cfg5);
+	DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_CFG6), ctx->dsc_cfg.reg.dsc_cfg6);
+	DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_CFG7), ctx->dsc_cfg.reg.dsc_cfg7);
+	DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_CFG8), ctx->dsc_cfg.reg.dsc_cfg8);
+	DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_CFG9), ctx->dsc_cfg.reg.dsc_cfg9);
+	DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_CFG10), ctx->dsc_cfg.reg.dsc_cfg10);
+	DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_CFG11), ctx->dsc_cfg.reg.dsc_cfg11);
+	DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_CFG12), ctx->dsc_cfg.reg.dsc_cfg12);
+	DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_CFG13), ctx->dsc_cfg.reg.dsc_cfg13);
+	DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_CFG14), ctx->dsc_cfg.reg.dsc_cfg14);
+	DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_CFG15), ctx->dsc_cfg.reg.dsc_cfg15);
+	DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_CFG16), ctx->dsc_cfg.reg.dsc_cfg16);
 
-			reg_val = ((ctx->vm.hsync_len >> 1) << 0) |
-				((ctx->vm.hback_porch  >> 1) << 8) |
-				((ctx->vm.hfront_porch >> 1) << 20);
-			DPU_REG_WR(ctx->base + DSC1_REG(REG_DSC_H_TIMING), reg_val);
-
-			reg_val = (ctx->vm.vsync_len << 0) |
-				(ctx->vm.vback_porch  << 8) |
-				(ctx->vm.vfront_porch << 20);
-			DPU_REG_WR(ctx->base + DSC1_REG(REG_DSC_V_TIMING), reg_val);
-
-			DPU_REG_WR(ctx->base + DSC1_REG(REG_DSC_CFG0), 0x306c81db);
-			DPU_REG_WR(ctx->base + DSC1_REG(REG_DSC_CFG3), 0x12181800);
-			DPU_REG_WR(ctx->base + DSC1_REG(REG_DSC_CFG4), 0x003316b6);
-			DPU_REG_WR(ctx->base + DSC1_REG(REG_DSC_CFG5), 0x382a1c0e);
-			DPU_REG_WR(ctx->base + DSC1_REG(REG_DSC_CFG6), 0x69625446);
-			DPU_REG_WR(ctx->base + DSC1_REG(REG_DSC_CFG7), 0x7b797770);
-			DPU_REG_WR(ctx->base + DSC1_REG(REG_DSC_CFG8), 0x00007e7d);
-			DPU_REG_WR(ctx->base + DSC1_REG(REG_DSC_CFG9), 0x01000102);
-			DPU_REG_WR(ctx->base + DSC1_REG(REG_DSC_CFG10), 0x09be0940);
-			DPU_REG_WR(ctx->base + DSC1_REG(REG_DSC_CFG11), 0x19fa19fc);
-			DPU_REG_WR(ctx->base + DSC1_REG(REG_DSC_CFG12), 0x1a3819f8);
-			DPU_REG_WR(ctx->base + DSC1_REG(REG_DSC_CFG13), 0x1ab61a78);
-			DPU_REG_WR(ctx->base + DSC1_REG(REG_DSC_CFG14), 0x2b342af6);
-			DPU_REG_WR(ctx->base + DSC1_REG(REG_DSC_CFG15), 0x3b742b74);
-			DPU_REG_WR(ctx->base + DSC1_REG(REG_DSC_CFG16), 0x00006bf4);
-			DPU_REG_WR(ctx->base + DSC1_REG(REG_DSC_GRP_SIZE), 0x800f0);
-			DPU_REG_WR(ctx->base + DSC1_REG(REG_DSC_SLICE_SIZE), 0x1000780);
-			DPU_REG_WR(ctx->base + DSC1_REG(REG_DSC_CFG1), 0x000a00b1);
-			DPU_REG_WR(ctx->base + DSC1_REG(REG_DSC_CFG2), 0x9890db7);
-			if (dpu->dsi->ctx.work_mode == DSI_MODE_CMD)
-				DPU_REG_WR(ctx->base + DSC1_REG(REG_DSC_CTRL), 0x2000010b);
-			else
-				DPU_REG_WR(ctx->base + DSC1_REG(REG_DSC_CTRL), 0x2000000b);
-		}
-
-		break;
-	case DSC_1080_2400_540_2400:
-		DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_GRP_SIZE), 0x000000b4);
-		DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_SLICE_SIZE), 0x04069780);
-		DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_CFG0), 0x306c8200);
-		DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_CFG1), 0x0007e13f);
-		DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_CFG2), 0x000b000b);
-		DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_CFG3), 0x10f01800);
-		break;
-
-	default:
-		DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_GRP_SIZE), 0x000000f0);
-		DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_SLICE_SIZE), 0x04096000);
-		DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_CFG1), 0x000ae4bd);
-		DPU_REG_WR(ctx->base + DSC_REG(REG_DSC_CFG2), 0x0008000a);
-		break;
+	if (panel->info.dual_dsi_en) {
+		reg_val = (ctx->vm.vactive << 16) |
+			((ctx->vm.hactive >> 1) << 0);
+		DPU_REG_WR(ctx->base + DSC1_REG(REG_DSC_PIC_SIZE), reg_val);
+		reg_val = ((ctx->vm.hsync_len >> 1) << 0) |
+			((ctx->vm.hback_porch  >> 1) << 8) |
+			((ctx->vm.hfront_porch >> 1) << 20);
+		DPU_REG_WR(ctx->base + DSC1_REG(REG_DSC_H_TIMING), reg_val);
+		reg_val = (ctx->vm.vsync_len << 0) |
+			(ctx->vm.vback_porch  << 8) |
+			(ctx->vm.vfront_porch << 20);
+		DPU_REG_WR(ctx->base + DSC1_REG(REG_DSC_V_TIMING), reg_val);
+		DPU_REG_WR(ctx->base + DSC1_REG(REG_DSC_GRP_SIZE), ctx->dsc_cfg.reg.dsc_grp_size);
+		DPU_REG_WR(ctx->base + DSC1_REG(REG_DSC_SLICE_SIZE),
+							ctx->dsc_cfg.reg.dsc_slice_size);
+		DPU_REG_WR(ctx->base + DSC1_REG(REG_DSC_CFG0), ctx->dsc_cfg.reg.dsc_cfg0);
+		DPU_REG_WR(ctx->base + DSC1_REG(REG_DSC_CFG1), ctx->dsc_cfg.reg.dsc_cfg1);
+		DPU_REG_WR(ctx->base + DSC1_REG(REG_DSC_CFG2), ctx->dsc_cfg.reg.dsc_cfg2);
+		DPU_REG_WR(ctx->base + DSC1_REG(REG_DSC_CFG3), ctx->dsc_cfg.reg.dsc_cfg3);
+		DPU_REG_WR(ctx->base + DSC1_REG(REG_DSC_CFG4), ctx->dsc_cfg.reg.dsc_cfg4);
+		DPU_REG_WR(ctx->base + DSC1_REG(REG_DSC_CFG5), ctx->dsc_cfg.reg.dsc_cfg5);
+		DPU_REG_WR(ctx->base + DSC1_REG(REG_DSC_CFG6), ctx->dsc_cfg.reg.dsc_cfg6);
+		DPU_REG_WR(ctx->base + DSC1_REG(REG_DSC_CFG7), ctx->dsc_cfg.reg.dsc_cfg7);
+		DPU_REG_WR(ctx->base + DSC1_REG(REG_DSC_CFG8), ctx->dsc_cfg.reg.dsc_cfg8);
+		DPU_REG_WR(ctx->base + DSC1_REG(REG_DSC_CFG9), ctx->dsc_cfg.reg.dsc_cfg9);
+		DPU_REG_WR(ctx->base + DSC1_REG(REG_DSC_CFG10), ctx->dsc_cfg.reg.dsc_cfg10);
+		DPU_REG_WR(ctx->base + DSC1_REG(REG_DSC_CFG11), ctx->dsc_cfg.reg.dsc_cfg11);
+		DPU_REG_WR(ctx->base + DSC1_REG(REG_DSC_CFG12), ctx->dsc_cfg.reg.dsc_cfg12);
+		DPU_REG_WR(ctx->base + DSC1_REG(REG_DSC_CFG13), ctx->dsc_cfg.reg.dsc_cfg13);
+		DPU_REG_WR(ctx->base + DSC1_REG(REG_DSC_CFG14), ctx->dsc_cfg.reg.dsc_cfg14);
+		DPU_REG_WR(ctx->base + DSC1_REG(REG_DSC_CFG15), ctx->dsc_cfg.reg.dsc_cfg15);
+		DPU_REG_WR(ctx->base + DSC1_REG(REG_DSC_CFG16), ctx->dsc_cfg.reg.dsc_cfg16);
+		if (dpu->dsi->ctx.work_mode == DSI_MODE_CMD)
+			DPU_REG_WR(ctx->base + DSC1_REG(REG_DSC_CTRL), 0x2000010b);
+		else
+			DPU_REG_WR(ctx->base + DSC1_REG(REG_DSC_CTRL), 0x2000000b);
 	}
 
 	if (dpu->dsi->ctx.work_mode == DSI_MODE_CMD)
@@ -1286,14 +1183,17 @@ static int dpu_init(struct dpu_context *ctx)
 	u32 reg_val, size;
 	int ret;
 	struct sprd_dpu *dpu = (struct sprd_dpu *)container_of(ctx, struct sprd_dpu, ctx);
+	struct sprd_panel *panel =
+		(struct sprd_panel *)container_of(dpu->dsi->panel, struct sprd_panel, base);
+
 	struct dpu_enhance *enhance = ctx->enhance;
 
-	dpu_get_dsc_cfg(ctx);
+	calc_dsc_params(&ctx->dsc_init);
 
-	if (ctx->dual_dsi_en)
+	if (panel->info.dual_dsi_en)
 		DPU_REG_WR(ctx->base + REG_DPU_MODE, BIT(0));
 
-	if (ctx->dsc_en)
+	if (panel->info.dsc_en)
 		dpu_config_dsc_param(ctx);
 
 	/* set bg color */
@@ -1305,7 +1205,7 @@ static int dpu_init(struct dpu_context *ctx)
 	DPU_REG_WR(ctx->base + REG_BLEND_SIZE, size);
 
 	DPU_REG_WR(ctx->base + REG_DPU_CFG0, 0x00);
-	if ((dpu->dsi->ctx.work_mode == DSI_MODE_CMD) && ctx->dsc_en) {
+	if ((dpu->dsi->ctx.work_mode == DSI_MODE_CMD) && panel->info.dsc_en) {
 		DPU_REG_SET(ctx->base + REG_DPU_CFG0, BIT(1));
 		ctx->is_single_run = true;
 	}
@@ -1703,6 +1603,8 @@ static int dpu_vrr(struct dpu_context *ctx)
 {
 	struct sprd_dpu *dpu = (struct sprd_dpu *)container_of(ctx,
 			struct sprd_dpu, ctx);
+	struct sprd_panel *panel =
+		(struct sprd_panel *)container_of(dpu->dsi->panel, struct sprd_panel, base);
 	u32 reg_val;
 
 	dpu_stop(ctx);
@@ -1716,7 +1618,7 @@ static int dpu_vrr(struct dpu_context *ctx)
 		(ctx->vm.hfront_porch << 20);
 	DPU_REG_WR(ctx->base + REG_DPI_H_TIMING, reg_val);
 
-	if (ctx->dsc_en) {
+	if (panel->info.dsc_en) {
 		reg_val = (ctx->vm.vsync_len << 0) |
 			(ctx->vm.vback_porch  << 8) |
 			(ctx->vm.vfront_porch << 20);

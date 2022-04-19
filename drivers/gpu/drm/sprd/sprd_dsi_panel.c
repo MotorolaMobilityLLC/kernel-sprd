@@ -790,6 +790,36 @@ int sprd_panel_parse_lcddtb(struct device_node *lcd_node,
 	else
 		info->lanes = 4;
 
+	rc = of_property_read_u32(lcd_node, "sprd,slice-width", &val);
+	if (!rc)
+		info->slice_width = val;
+	else
+		DRM_ERROR("slice-width is not found!\n");
+
+	rc = of_property_read_u32(lcd_node, "sprd,slice-height", &val);
+	if (!rc)
+		info->slice_height = val;
+	else
+		DRM_ERROR("slice-height is not found!\n");
+
+	rc = of_property_read_u32(lcd_node, "sprd,output-bpc", &val);
+	if (!rc)
+		info->output_bpc = val;
+	else
+		DRM_ERROR("output-bpc is not found!\n");
+
+		rc = of_property_read_u32(lcd_node, "sprd,dsc-enable", &val);
+	if (!rc)
+		info->dsc_en = val;
+	else
+		DRM_ERROR("dsc-enable is not found!\n");
+
+	rc = of_property_read_u32(lcd_node, "sprd,dual-dsi-enable", &val);
+	if (!rc)
+		info->dual_dsi_en = val;
+	else
+		DRM_ERROR("dual-dsi-enable is not found!\n");
+
 	rc = of_property_read_string(lcd_node, "sprd,dsi-color-format", &str);
 	if (rc)
 		info->format = MIPI_DSI_FMT_RGB888;
