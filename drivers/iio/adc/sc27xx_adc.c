@@ -123,21 +123,21 @@ do {									\
 }
 
 enum sc27xx_pmic_type {
-	SC27XX_ADC,
+	SC2720_ADC,
 	SC2721_ADC,
+	SC2730_ADC,
+	SC2731_ADC,
 	UMP9620_ADC,
 };
 
 enum SPRD_ADC_GRAPH_TYPE {
-	COMMON_BIG_SCALE_GRAPH,
-	COMMON_SMALL_SCALE_GRAPH,
-	SC2721_BIG_SCALE_GRAPH,
-	SC2721_SMALL_SCALE_GRAPH,
-	SC2730_BIG_SCALE_GRAPH,
-	SC2730_SMALL_SCALE_GRAPH,
-	UMP96XX_BIG_SCALE_GRAPH,
-	UMP96XX_SMALL_SCALE_GRAPH,
-	UMP96XX_VBAT_DET_GRAPH,
+	SC2721_2731_ONE_CELL_BIG_GRAPH,
+	SC2721_2731_ONE_CELL_SMALL_GRAPH,
+	SC2720_2730_ONE_CELL_BIG_GRAPH,
+	SC2720_2730_ONE_CELL_SMALL_GRAPH,
+	TWO_CELL_BIG_GRAPH,
+	TWO_CELL_SMALL_GRAPH,
+	TWO_CELL_VBAT_DET_GRAPH,
 	SPRD_ADC_GRAPH_TYPE_MAX
 };
 
@@ -181,7 +181,7 @@ struct sc27xx_adc_variant_data {
 	u32 calib_graphs_index[SPRD_ADC_GRAPH_TYPE_MAX];
 	void (*init_scale)(struct sc27xx_adc_data *data);
 	int (*get_ratio)(int channel, int scale);
-	u32 (*get_graph)(int channel, int scale);
+	u32 (*get_graph)(int channel);
 };
 
 struct sc27xx_adc_linear_graph {
@@ -203,23 +203,7 @@ static void sprd_adc_calib_with_two_cell(struct sc27xx_adc_linear_graph *graph);
  * big-scale graph.
  */
 static struct sc27xx_adc_linear_graph sprd_adc_linear_graphs[] = {
-	[COMMON_BIG_SCALE_GRAPH] = {
-		.cell_names = {"big_scale_calib", NULL},
-		.calibrate = sprd_adc_calib_with_one_cell,
-		.volt0 =  4200,
-		.adc0  =  3310,
-		.volt1 =  3600,
-		.adc1  =  2832,
-	},
-	[COMMON_SMALL_SCALE_GRAPH] = {
-		.cell_names = {"small_scale_calib", NULL},
-		.calibrate = sprd_adc_calib_with_one_cell,
-		.volt0 =  1000,
-		.adc0  =  3413,
-		.volt1 =  100,
-		.adc1  =  341,
-	},
-	[SC2721_BIG_SCALE_GRAPH] = {
+	[SC2721_2731_ONE_CELL_BIG_GRAPH] = {
 		.cell_names = {"big_scale_calib", NULL},
 		.calibrate = sprd_adc_calib_with_one_cell,
 		.volt0 =  4200,
@@ -227,7 +211,7 @@ static struct sc27xx_adc_linear_graph sprd_adc_linear_graphs[] = {
 		.volt1 =  3600,
 		.adc1  =  728,
 	},
-	[SC2721_SMALL_SCALE_GRAPH] = {
+	[SC2721_2731_ONE_CELL_SMALL_GRAPH] = {
 		.cell_names = {"small_scale_calib", NULL},
 		.calibrate = sprd_adc_calib_with_one_cell,
 		.volt0 =  1000,
@@ -235,7 +219,7 @@ static struct sc27xx_adc_linear_graph sprd_adc_linear_graphs[] = {
 		.volt1 =  100,
 		.adc1  =  84,
 	},
-	[SC2730_BIG_SCALE_GRAPH] = {
+	[SC2720_2730_ONE_CELL_BIG_GRAPH] = {
 		.cell_names = {"big_scale_calib", NULL},
 		.calibrate = sprd_adc_calib_with_one_cell,
 		.volt0 =  4200,
@@ -243,7 +227,7 @@ static struct sc27xx_adc_linear_graph sprd_adc_linear_graphs[] = {
 		.volt1 =  3600,
 		.adc1  =  733,
 	},
-	[SC2730_SMALL_SCALE_GRAPH] = {
+	[SC2720_2730_ONE_CELL_SMALL_GRAPH] = {
 		.cell_names = {"small_scale_calib", NULL},
 		.calibrate = sprd_adc_calib_with_one_cell,
 		.volt0 =  1000,
@@ -251,7 +235,7 @@ static struct sc27xx_adc_linear_graph sprd_adc_linear_graphs[] = {
 		.volt1 =  100,
 		.adc1  =  80,
 	},
-	[UMP96XX_BIG_SCALE_GRAPH] = {
+	[TWO_CELL_BIG_GRAPH] = {
 		.cell_names = {"big_scale_calib1", "big_scale_calib2", NULL},
 		.calibrate = sprd_adc_calib_with_two_cell,
 		.volt0 =  4200,
@@ -259,7 +243,7 @@ static struct sc27xx_adc_linear_graph sprd_adc_linear_graphs[] = {
 		.volt1 =  3600,
 		.adc1  =  2832,
 	},
-	[UMP96XX_SMALL_SCALE_GRAPH] = {
+	[TWO_CELL_SMALL_GRAPH] = {
 		.cell_names = {"small_scale_calib1", "small_scale_calib2", NULL},
 		.calibrate = sprd_adc_calib_with_two_cell,
 		.volt0 =  1000,
@@ -267,7 +251,7 @@ static struct sc27xx_adc_linear_graph sprd_adc_linear_graphs[] = {
 		.volt1 =  100,
 		.adc1  =  341,
 	},
-	[UMP96XX_VBAT_DET_GRAPH] = {
+	[TWO_CELL_VBAT_DET_GRAPH] = {
 		.cell_names = {"vbat_det_cal1", "vbat_det_cal2", NULL},
 		.calibrate = sprd_adc_calib_with_two_cell,
 		.volt0 =  1400,
@@ -398,64 +382,63 @@ static int sprd_adc_graphs_calibrate(struct sc27xx_adc_data *data)
 
 static int sprd_adc_graphs_init(struct sc27xx_adc_data *data)
 {
-	int ret = 0, channel, scale;
+	int ret = 0, channel;
 
 	ret = sprd_adc_graphs_calibrate(data);
 	if (ret)
 		return ret;
 
 	for (channel = 0; channel < SC27XX_ADC_CHANNEL_MAX; channel++)
-		for (scale = 0; scale < SPRD_ADC_SCALE_MAX; scale++)
-			data->graphs_index[channel] = data->var_data->get_graph(channel, scale);
+		data->graphs_index[channel] = data->var_data->get_graph(channel);
 
 	return 0;
 }
 
-static u32 sc2721_adc_get_graph(int channel, int scale)
+static u32 sc2721_2731_adc_get_graph(int channel)
 {
 	u32 graph_index = 0;
 
 	switch (channel) {
 	case 5:
-		graph_index = SC2721_BIG_SCALE_GRAPH;
+		graph_index = SC2721_2731_ONE_CELL_BIG_GRAPH;
 		break;
 	default:
-		graph_index = SC2721_SMALL_SCALE_GRAPH;
+		graph_index = SC2721_2731_ONE_CELL_SMALL_GRAPH;
 		break;
 	}
 
 	return graph_index;
 }
 
-static u32 sc2730_adc_get_graph(int channel, int scale)
+static u32 sc2720_2730_adc_get_graph(int channel)
 {
 	u32 graph_index = 0;
 
 	switch (channel) {
 	case 5:
-		graph_index = SC2730_BIG_SCALE_GRAPH;
+		graph_index = SC2720_2730_ONE_CELL_BIG_GRAPH;
 		break;
 	default:
-		graph_index = SC2730_SMALL_SCALE_GRAPH;
+		graph_index = SC2720_2730_ONE_CELL_SMALL_GRAPH;
 		break;
 	}
 
 	return graph_index;
 }
 
-static u32 ump96xx_adc_get_graph(int channel, int scale)
+static u32 ump96xx_adc_get_graph(int channel)
 {
 	u32 graph_index = 0;
 
 	switch (channel) {
 	case 0:
-		graph_index = UMP96XX_VBAT_DET_GRAPH;
+		graph_index = TWO_CELL_VBAT_DET_GRAPH;
 		break;
 	case 11:
-		graph_index = UMP96XX_BIG_SCALE_GRAPH;
+		graph_index = TWO_CELL_BIG_GRAPH;
 		break;
 	default:
-		graph_index = UMP96XX_SMALL_SCALE_GRAPH;
+		graph_index = TWO_CELL_SMALL_GRAPH;
 		break;
 	}
 
@@ -1106,7 +1089,7 @@ static int sc27xx_adc_pm_init(struct sc27xx_adc_data *sc27xx_data)
 	struct device_node *np = sc27xx_data->dev->of_node;
 
 	sc27xx_data->pm_data.pm_ctl_support = false;
-	sc27xx_data->pm_data.pm_regmap = NULL;
+	sc27xx_data->pm_data.pm_regmap =
 		syscon_regmap_lookup_by_phandle_args(np, "sprd_adc_pm_reg", 2, pm_args);
 	if (!IS_ERR_OR_NULL(sc27xx_data->pm_data.pm_regmap)) {
 		sc27xx_data->pm_data.pm_ctl_support = true;
@@ -1308,18 +1291,18 @@ static int sc27xx_adc_pm_resume(struct device *dev)
 }
 
 static const struct sc27xx_adc_variant_data sc2731_data = {
-	.pmic_type = SC27XX_ADC,
+	.pmic_type = SC2731_ADC,
 	.module_en = SC2731_MODULE_EN,
 	.clk_en = SC2731_ARM_CLK_EN,
 	.scale_shift = SC2721_ADC_SCALE_SHIFT,
 	.scale_mask = SC2721_ADC_SCALE_MASK,
 	.calib_graphs_index = {
-		SC2721_BIG_SCALE_GRAPH,
-		SC2721_SMALL_SCALE_GRAPH,
+		SC2721_2731_ONE_CELL_BIG_GRAPH,
+		SC2721_2731_ONE_CELL_SMALL_GRAPH,
 		SPRD_ADC_INVALID_DATA},
 	.init_scale = sc2731_adc_scale_init,
 	.get_ratio = sc2731_adc_get_ratio,
-	.get_graph = sc2721_adc_get_graph,
+	.get_graph = sc2721_2731_adc_get_graph,
 };
 
 static const struct sc27xx_adc_variant_data sc2721_data = {
@@ -1329,42 +1312,42 @@ static const struct sc27xx_adc_variant_data sc2721_data = {
 	.scale_shift = SC2721_ADC_SCALE_SHIFT,
 	.scale_mask = SC2721_ADC_SCALE_MASK,
 	.calib_graphs_index = {
-		SC2721_BIG_SCALE_GRAPH,
-		SC2721_SMALL_SCALE_GRAPH,
+		SC2721_2731_ONE_CELL_BIG_GRAPH,
+		SC2721_2731_ONE_CELL_SMALL_GRAPH,
 		SPRD_ADC_INVALID_DATA},
 	.init_scale = sc2731_adc_scale_init,
 	.get_ratio = sc2721_adc_get_ratio,
-	.get_graph = sc2721_adc_get_graph,
+	.get_graph = sc2721_2731_adc_get_graph,
 };
 
 static const struct sc27xx_adc_variant_data sc2730_data = {
-	.pmic_type = SC27XX_ADC,
+	.pmic_type = SC2730_ADC,
 	.module_en = SC2730_MODULE_EN,
 	.clk_en = SC2730_ARM_CLK_EN,
 	.scale_shift = SC27XX_ADC_SCALE_SHIFT,
 	.scale_mask = SC27XX_ADC_SCALE_MASK,
 	.calib_graphs_index = {
-		SC2730_BIG_SCALE_GRAPH,
-		SC2730_SMALL_SCALE_GRAPH,
+		SC2720_2730_ONE_CELL_BIG_GRAPH,
+		SC2720_2730_ONE_CELL_SMALL_GRAPH,
 		SPRD_ADC_INVALID_DATA},
 	.init_scale = sc2730_adc_scale_init,
 	.get_ratio = sc2730_adc_get_ratio,
-	.get_graph = sc2730_adc_get_graph,
+	.get_graph = sc2720_2730_adc_get_graph,
 };
 
 static const struct sc27xx_adc_variant_data sc2720_data = {
-	.pmic_type = SC27XX_ADC,
+	.pmic_type = SC2720_ADC,
 	.module_en = SC2731_MODULE_EN,
 	.clk_en = SC2721_ARM_CLK_EN,
 	.scale_shift = SC27XX_ADC_SCALE_SHIFT,
 	.scale_mask = SC27XX_ADC_SCALE_MASK,
 	.calib_graphs_index = {
-		SC2730_BIG_SCALE_GRAPH,
-		SC2730_SMALL_SCALE_GRAPH,
+		SC2720_2730_ONE_CELL_BIG_GRAPH,
+		SC2720_2730_ONE_CELL_SMALL_GRAPH,
 		SPRD_ADC_INVALID_DATA},
 	.init_scale = sc2720_adc_scale_init,
 	.get_ratio = sc2720_adc_get_ratio,
-	.get_graph = sc2730_adc_get_graph,
+	.get_graph = sc2720_2730_adc_get_graph,
 };
 
 static const struct sc27xx_adc_variant_data ump9620_data = {
@@ -1374,9 +1357,9 @@ static const struct sc27xx_adc_variant_data ump9620_data = {
 	.scale_shift = SC27XX_ADC_SCALE_SHIFT,
 	.scale_mask = SC27XX_ADC_SCALE_MASK,
 	.calib_graphs_index = {
-		UMP96XX_BIG_SCALE_GRAPH,
-		UMP96XX_SMALL_SCALE_GRAPH,
-		UMP96XX_VBAT_DET_GRAPH,
+		TWO_CELL_BIG_GRAPH,
+		TWO_CELL_SMALL_GRAPH,
+		TWO_CELL_VBAT_DET_GRAPH,
 		SPRD_ADC_INVALID_DATA},
 	.init_scale = ump9620_adc_scale_init,
 	.get_ratio = ump9620_adc_get_ratio,
