@@ -503,13 +503,13 @@ static void mdbg_dump_str(char *str, int str_len)
 
 void gnss_dump_str(char *str, int str_len)
 {
-	mm_segment_t fs;
+	//mm_segment_t fs;
 	if (!str)
 		return;
-	fs = get_fs();
-	set_fs(KERNEL_DS);
+	//fs = get_fs();
+	//set_fs(KERNEL_DS);
 	gnss_dump_write(str, str_len);
-	set_fs(fs);
+	//set_fs(fs);
 	WCN_INFO("dump str finish!");
 }
 

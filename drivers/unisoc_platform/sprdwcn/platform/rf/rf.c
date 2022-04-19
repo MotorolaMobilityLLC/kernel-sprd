@@ -649,7 +649,7 @@ static void cali_save_file(char *path, struct wifi_cali_t *p)
 	struct file *fp;
 	int i, j;
 
-	set_fs(KERNEL_DS);
+	//set_fs(KERNEL_DS);
 
 	fp = NULL;
 	if (IS_ERR_OR_NULL(fp)) {
@@ -901,7 +901,7 @@ static void cali_save_file(char *path, struct wifi_cali_t *p)
 		p->tpc_cfg.tpc_reserved[2],
 		p->tpc_cfg.tpc_reserved[3]);
 
-    set_fs(USER_DS);
+    //set_fs(USER_DS);
 }
 
 

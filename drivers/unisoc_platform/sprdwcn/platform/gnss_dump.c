@@ -304,7 +304,7 @@ static int gnss_dump_cp_register_data(u32 addr, u32 len)
 	u8 *buf = NULL;
 	u8 *pt  = NULL;
 	void  *iram_buffer = NULL;
-	mm_segment_t fs;
+	//mm_segment_t fs;
 
 	GNSSDUMP_INFO(" start dump cp register!addr:%x,len:%d\n", addr, len);
 	buf = kzalloc(len, GFP_KERNEL);
@@ -351,12 +351,12 @@ static int gnss_dump_cp_register_data(u32 addr, u32 len)
 		}
 		memcpy(iram_buffer, buf, len);
 	}
-	fs = get_fs();
-	set_fs(KERNEL_DS);
+	//fs = get_fs();
+	//set_fs(KERNEL_DS);
 	count = gnss_dump_data(iram_buffer, len);
 	kfree(buf);
 	vfree(iram_buffer);
-	set_fs(fs);
+	//set_fs(fs);
 	//msleep(40);
 	if (count != len) {
 		GNSSDUMP_ERR("gnss_dump_cp_register_data failed size is %d\n",
@@ -373,7 +373,7 @@ static int gnss_dump_ap_register(void)
 	struct regmap *regmap;
 	u32 value[GNSS_DUMP_REG_NUMBER + 1] = {0}; /* [0]board+ [..]reg */
 	u32 i = 0;
-	mm_segment_t fs;
+	//mm_segment_t fs;
 	u32 len = 0;
 	u8 *ptr = NULL;
 	int count;
@@ -426,11 +426,11 @@ static int gnss_dump_ap_register(void)
 	}
 	memset(apreg_buffer, 0, len);
 	memcpy(apreg_buffer, ptr, len);
-	fs = get_fs();
-	set_fs(KERNEL_DS);
+	//fs = get_fs();
+	//set_fs(KERNEL_DS);
 	count = gnss_dump_data(apreg_buffer, len);
 	vfree(apreg_buffer);
-	set_fs(fs);
+	//set_fs(fs);
 	if (count != len) {
 		GNSSDUMP_ERR("gnss_dump_ap_register_data failed size is %d\n",
 					count);
@@ -501,7 +501,7 @@ static int gnss_dump_share_memory(u32 len)
 	void *virt_addr;
 	phys_addr_t base_addr;
 	long int count = 0;
-	mm_segment_t fs;
+	//mm_segment_t fs;
 	void  *ddr_buffer = NULL;
 	GNSSDUMP_INFO("%s enter\n", __func__);
 	if (len == 0)
@@ -522,12 +522,12 @@ static int gnss_dump_share_memory(u32 len)
 	}
 	memset(ddr_buffer, 0, len);
 	memcpy(ddr_buffer, virt_addr, len);
-	fs = get_fs();
-	set_fs(KERNEL_DS);
+	//fs = get_fs();
+	//set_fs(KERNEL_DS);
 	count = gnss_dump_data(ddr_buffer, len);
 
 	shmem_ram_unmap(SIPC_ID_GNSS, virt_addr);
-	set_fs(fs);
+	//set_fs(fs);
 	vfree(ddr_buffer);
 	if (count != len) {
 		GNSSDUMP_ERR("%s dump ddr error,data len is %ld\n", __func__,
@@ -551,12 +551,12 @@ static int gnss_dump_share_memory(u32 len)
 	}
 	memset(ddr_buffer, 0, SIPC_BUFFER_DATA_NUM);
 	memcpy(ddr_buffer, virt_addr, SIPC_BUFFER_DATA_NUM);
-	fs = get_fs();
-	set_fs(KERNEL_DS);
+	//fs = get_fs();
+	//set_fs(KERNEL_DS);
 	count = gnss_dump_data(ddr_buffer, SIPC_BUFFER_DATA_NUM);
 
 	shmem_ram_unmap(SIPC_ID_GNSS, virt_addr);
-	set_fs(fs);
+	//set_fs(fs);
 	vfree(ddr_buffer);
 	if (count != SIPC_BUFFER_DATA_NUM) {
 		GNSSDUMP_ERR("%s dump ddr error,sipc data is %ld\n", __func__,
@@ -612,7 +612,7 @@ static int gnss_ext_dump_data(unsigned int start_addr, int len)
 	int ret = 0;
 	//, count = 0, trans = 0;
 	void  *iram_buffer = NULL;
-	mm_segment_t fs;
+	//mm_segment_t fs;
 
 	GNSSDUMP_INFO("%s, addr:%x,len:%d\n", __func__, start_addr, len);
 	buf = kzalloc(len, GFP_KERNEL);
@@ -631,8 +631,8 @@ static int gnss_ext_dump_data(unsigned int start_addr, int len)
 
 	ret = sprdwcn_bus_direct_read(start_addr, buf, len);
 
-	fs = get_fs();
-	set_fs(KERNEL_DS);
+	//fs = get_fs();
+	//set_fs(KERNEL_DS);
 	if (ret < 0) {
 		GNSSDUMP_ERR("%s read error:%d\n", __func__, ret);
 		goto dump_data_done;
@@ -651,7 +651,7 @@ static int gnss_ext_dump_data(unsigned int start_addr, int len)
 
 dump_data_done:
 	kfree(buf);
-	set_fs(fs);
+	//set_fs(fs);
 	return ret;
 }
 
