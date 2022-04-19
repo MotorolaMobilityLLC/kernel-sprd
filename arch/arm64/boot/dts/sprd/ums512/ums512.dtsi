@@ -258,3 +258,4 @@
 #include "socid.dtsi"
 #include "gpio.dtsi"
 #include "uart.dtsi"
+#include "i2c.dtsi"

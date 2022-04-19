@@ -1,0 +1,107 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Unisoc I2C dts file
+ *
+ * Copyright (C) 2020, Unisoc Inc.
+ *
+ */
+
+&apapb {
+	i2c0: i2c@70300000 {
+		compatible = "sprd,ums512-i2c", "sprd,sc9860-i2c";
+		reg = <0 0x70300000 0 0x100>;
+		interrupts = <GIC_SPI 11 IRQ_TYPE_LEVEL_HIGH>;
+		clock-frequency = <400000>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+		status = "disabled";
+	};
+
+	i2c1: i2c@70400000 {
+		compatible = "sprd,ums512-i2c", "sprd,sc9860-i2c";
+		reg = <0 0x70400000 0 0x100>;
+		interrupts = <GIC_SPI 12 IRQ_TYPE_LEVEL_HIGH>;
+		clock-frequency = <400000>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+		status = "disabled";
+	};
+
+	i2c2: i2c@70500000 {
+		compatible = "sprd,ums512-i2c", "sprd,sc9860-i2c";
+		reg = <0 0x70500000 0 0x100>;
+		interrupts = <GIC_SPI 13 IRQ_TYPE_LEVEL_HIGH>;
+		clock-frequency = <400000>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+		status = "disabled";
+	};
+
+	i2c3: i2c@70600000 {
+		compatible = "sprd,ums512-i2c", "sprd,sc9860-i2c";
+		reg = <0 0x70600000 0 0x100>;
+		interrupts = <GIC_SPI 14 IRQ_TYPE_LEVEL_HIGH>;
+		clock-frequency = <400000>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+		status = "disabled";
+	};
+
+	i2c4: i2c@70700000 {
+		compatible = "sprd,ums512-i2c", "sprd,sc9860-i2c";
+		reg = <0 0x70700000 0 0x100>;
+		interrupts = <GIC_SPI 15 IRQ_TYPE_LEVEL_HIGH>;
+		clock-frequency = <400000>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+		status = "disabled";
+	};
+
+};
+
+&i2c0 {
+	clock-names = "enable", "i2c", "source";
+        clocks = <&apapb_gate CLK_I2C0_EB>,
+		 <&ap_clk CLK_AP_I2C0>, <&ext_26m>;
+};
+
+&i2c1 {
+	clock-names = "enable", "i2c", "source";
+        clocks = <&apapb_gate CLK_I2C1_EB>,
+		 <&ap_clk CLK_AP_I2C1>, <&ext_26m>;
+};
+
+&i2c2 {
+	clock-names = "enable", "i2c", "source";
+        clocks = <&apapb_gate CLK_I2C2_EB>,
+		 <&ap_clk CLK_AP_I2C2>, <&ext_26m>;
+};
+
+&i2c3 {
+	clock-names = "enable", "i2c", "source";
+        clocks = <&apapb_gate CLK_I2C3_EB>,
+		 <&ap_clk CLK_AP_I2C3>, <&ext_26m>;
+};
+
+&i2c4 {
+	clock-names = "enable", "i2c", "source";
+        clocks = <&apapb_gate CLK_I2C4_EB>,
+		 <&ap_clk CLK_AP_I2C4>, <&ext_26m>;
+};
+
+&aon {
+	aon_i2c0: i2c@32060000 {
+		compatible = "sprd,sharkl5pro-hw-i2c";
+		reg = <0 0x32060000 0 0x1000>;
+		interrupts = <GIC_SPI 68 IRQ_TYPE_LEVEL_HIGH>;
+		clock-names = "source", "enable", "i2c",
+				"clk_hw_i2c";
+		clock-frequency = <400000>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+		status = "disabled";
+	};
+
+};
+
+
