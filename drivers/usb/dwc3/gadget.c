@@ -2053,10 +2053,9 @@ static int dwc3_gadget_pullup(struct usb_gadget *g, int is_on)
 	 * suspended state during gadget disconnect.  DWC3 gadget was already
 	 * halted/stopped during runtime suspend.
 	 */
-	if (!is_on) {
-		pm_runtime_barrier(dwc->dev);
-		if (pm_runtime_suspended(dwc->dev))
-			return 0;
+	if (pm_runtime_suspended (dwc->dev)) {
+		dev_info(dwc->dev, "%s suspended \n", __func__);
+		return 0;
 	}
 #if 0
 	/*
@@ -3129,7 +3128,6 @@ static void dwc3_gadget_disconnect_interrupt(struct dwc3 *dwc)
 static void dwc3_gadget_reset_interrupt(struct dwc3 *dwc)
 {
 	u32			reg;
-
 	/*
 	 * Ideally, dwc3_reset_gadget() would trigger the function
 	 * drivers to stop any active transfers through ep disable.

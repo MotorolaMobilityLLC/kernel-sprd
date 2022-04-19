@@ -1215,6 +1215,10 @@ static void dwc3_sprd_disable(struct dwc3_sprd *sdwc)
 static int dwc3_sprd_resume_child(struct device *dev, void *data)
 {
 	int ret;
+	if (pm_runtime_active(dev)) {
+		dev_info(dev, "dwc3 child device is already active \n");
+		return 0;
+	}
 
 	ret = pm_runtime_get_sync(dev);
 
@@ -1233,6 +1237,10 @@ static int dwc3_sprd_suspend_child(struct device *dev, void *data)
 {
 	int ret, cnt = DWC3_SUSPEND_COUNT;
 
+	if (pm_runtime_suspended(dev)) {
+		dev_info(dev, "dwc3 child device already suspended \n");
+		return 0;
+	}
 	ret = pm_runtime_put_sync(dev);
 	if (ret) {
 		dev_err(dev, "enters suspend failed, ret = %d\n", ret);
