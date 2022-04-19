@@ -7,5 +7,5 @@ source "drivers/unisoc_platform/sprd_disp/Kconfig"
 source "drivers/unisoc_platform/debug/Kconfig"
 source "drivers/unisoc_platform/sysdump/Kconfig"
 source "drivers/unisoc_platform/iommu/Kconfig"
-
+source "drivers/unisoc_platform/modem/Kconfig"
 endmenu

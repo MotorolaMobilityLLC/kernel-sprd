@@ -1,0 +1,114 @@
+CONFIG_UNISOC_MODEM_POWER_MANAGER
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
+CONFIG_UNISOC_MAILBOX
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
+CONFIG_UNISOC_MAILBOX_R1
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
+CONFIG_UNISOC_SIPC
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field] make, code
+	[subsys] staging
+	[must] user
+	[missing plat description] none
+	[function] This function is used to enable sipc function between modem and AP.
+CONFIG_UNISOC_SIPC_MEM_CACHE_EN
+	[arch] arm64
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
+	[field] code
+	[subsys] staging
+	[must] user
+	[missing plat description] none
+	[function] This function is used to enable sipx share memmory cache.
+CONFIG_UNISOC_SIPC_SBLOCK_BRIDGE
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
+CONFIG_UNISOC_SIPC_SBUF_BRIDGE
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
+CONFIG_UNISOC_SIPC_SLOG_BRIDGE
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
+CONFIG_UNISOC_SIPC_SPIPE
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field] make
+	[subsys] staging
+	[must] user
+	[missing plat description] none
+	[function] This function is used to enable spipe function.
+CONFIG_UNISOC_SIPC_SPOOL
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field] make, code
+	[subsys] staging
+	[must] user
+	[missing plat description] none
+	[function] This function is used to enable spool function.
+CONFIG_UNISOC_MODEM_LOADER
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
+CONFIG_UNISOC_SIPC_VIRT_BUS
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
+
+
+
+
+
+
