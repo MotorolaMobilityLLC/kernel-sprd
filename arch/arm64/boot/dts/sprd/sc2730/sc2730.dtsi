@@ -62,6 +62,10 @@
 			compatible = "sprd,sc2731-syscon", "sprd,sc27xx-syscon";
 			reg = <0x1800>, <0x1ba0>, <0x1b98>;
 		};
+		poweroff@1820 {
+			compatible = "sprd,sc27xx-poweroff", "sprd,sc2730-poweroff";
+			reg = <0x1820>;
+		};
 	};
 };
 
