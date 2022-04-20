@@ -118,6 +118,7 @@ config SND_SOC_UNISOC_PIKE2
 	  Say Y or M here if you want to add support for ASoC audio on Spreadtrum
 	  boards using pike2 chip
 
+source "drivers/unisoc_platform/audio/sprd/dai/Kconfig"
 source "drivers/unisoc_platform/audio/sprd/dai/vbc/Kconfig"
 source "drivers/unisoc_platform/audio/sprd/dai/i2s/Kconfig"
 source "drivers/unisoc_platform/audio/sprd/dai/tdm/Kconfig"

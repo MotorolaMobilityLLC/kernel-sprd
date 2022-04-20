@@ -7,7 +7,9 @@ subdir-ccflags-y			+= -I$(srctree)/$(SPRD_SOUND_TREE)/include/ \
 					   -I$(srctree)/$(SPRD_AUDIO_ASSISTANT_TREE)/agdsp_access/
 
 obj-$(CONFIG_SND_SOC_UNISOC_AUDIO_DMAENGINE)	+= platform/
+
 obj-$(CONFIG_SND_SOC_UNISOC_AUDIO_TWO_STAGE_DMAENGINE)	+= platform/
+obj-$(CONFIG_SND_SOC_UNISOC_DAI)	+= dai/
 obj-$(CONFIG_SND_SOC_UNISOC_VBC_V4)		+= dai/vbc/v4/
 obj-$(CONFIG_SND_SOC_UNISOC_VBC_R1P0V3)		+= dai/vbc/r1p0v3/
 obj-$(CONFIG_SND_SOC_UNISOC_VAUDIO)		+= dai/vaudio/
@@ -19,6 +21,7 @@ obj-$(CONFIG_SND_SOC_UNISOC_PA_UCP1301)		+= codec/sprd/ucp1301/
 obj-$(CONFIG_SND_SOC_UNISOC_CODEC_SC2721)		+= codec/sprd/sc2721/
 obj-$(CONFIG_SND_SOC_UNISOC_PDM_R2P0)		+= codec/sprd/pdm_r2p0/
 obj-$(CONFIG_SND_SOC_UNISOC_CODEC_UMP9620)		+= codec/sprd/ump9620/
+obj-$(CONFIG_SND_SOC_UNISOC_DP_CODEC)		+= codec/sprd/dp/
 
 # Machines
 snd-soc-sprd-card-objs		:= sprd-asoc-common.o sprd-asoc-card-utils.o \

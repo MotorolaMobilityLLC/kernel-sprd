@@ -1,0 +1,9 @@
+menu "UNISOC CPU DAI"
+
+config SND_SOC_UNISOC_DAI
+	tristate "UNISOC dai"
+	default n
+	help
+		Say Y or M here if you want to use unisoc dai.
+
+endmenu
