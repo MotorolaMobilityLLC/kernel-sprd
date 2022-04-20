@@ -328,6 +328,7 @@
 
 /* Include other IP modules */
 #include "adi.dtsi"
+#include "bm.dtsi"
 #include "glbreg.dtsi"
 #include "clock.dtsi"
 #include "coresight.dtsi"
