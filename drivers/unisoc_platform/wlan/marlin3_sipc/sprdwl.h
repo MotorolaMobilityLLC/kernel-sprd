@@ -394,4 +394,6 @@ int sprdwl_core_init(struct device *dev, struct sprdwl_priv *priv);
 int sprdwl_core_deinit(struct sprdwl_priv *priv);
 int marlin_reset_register_notify(void *callback_func, void *para);
 int marlin_reset_unregister_notify(void);
+int sprdwl_notify_init(struct sprdwl_priv *priv);
+void sprdwl_notify_deinit(struct sprdwl_priv *priv);
 #endif /* __SPRDWL_H__ */

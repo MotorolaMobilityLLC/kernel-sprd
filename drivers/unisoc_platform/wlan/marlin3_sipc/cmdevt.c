@@ -402,7 +402,7 @@ static void sprdwl_cmd_unlock(struct sprdwl_cmd *cmd)
 	if (intf->priv->is_suspending == 1)
 		intf->priv->is_suspending = 0;
 }
-
+extern struct sprdwl_intf *g_intf;
 struct sprdwl_msg_buf *__sprdwl_cmd_getbuf(struct sprdwl_priv *priv,
 					   u16 len, u8 ctx_id,
 					   enum sprdwl_head_rsp rsp,
@@ -415,7 +415,13 @@ struct sprdwl_msg_buf *__sprdwl_cmd_getbuf(struct sprdwl_priv *priv,
 #if defined(SC2355_FTR)
 	void *data = NULL;
 	struct sprdwl_vif *vif;
+	struct sprdwl_intf *intf = g_intf;
 
+	if (!sprdwl_chip_is_on(intf)) {
+		pr_err("%s Drop command %s in case of power off\n",
+			__func__, cmd2str(cmd_id));
+		return NULL;
+	}
 	if (cmd_id >= WIFI_CMD_OPEN) {
 		vif = ctx_id_to_vif(priv, ctx_id);
 		if (!vif)
@@ -625,6 +631,36 @@ int sprdwl_cmd_send_recv(struct sprdwl_priv *priv,
 #endif
 	cmd_id = hdr->cmd_id;
 	ctx_id = hdr->common.ctx_id;
+
+	if (atomic_read(&intf->block_cmd_after_close) == 1) {
+		if (cmd_id != WIFI_CMD_CLOSE) {
+			wl_err("%s need block cmd after close: %s\n",
+					__func__, cmd2str(cmd_id));
+			sprdwl_intf_free_msg_buf(priv, msg);
+#if defined(SC2355_FTR)
+			kfree(msg->tran_data);
+#else
+			dev_kfree_skb(msg->skb);
+#endif
+			sprdwl_cmd_unlock(cmd);
+			goto out;
+		}
+	}
+
+	if (atomic_read(&intf->change_iface_block_cmd) == 1) {
+		if (cmd_id != WIFI_CMD_OPEN && cmd_id != WIFI_CMD_OPEN) {
+			wl_info("%s need block cmd while change iface : %s\n",
+					__func__, cmd2str(cmd_id));
+			sprdwl_intf_free_msg_buf(priv, msg);
+#if defined(SC2355_FTR)
+			kfree(msg->tran_data);
+#else
+			dev_kfree_skb(msg->skb);
+#endif
+			sprdwl_cmd_unlock(cmd);
+			goto out;
+		}
+	}
 
 	reinit_completion(&cmd->completed);
 	ret = sprdwl_cmd_send_to_ic(priv, msg);

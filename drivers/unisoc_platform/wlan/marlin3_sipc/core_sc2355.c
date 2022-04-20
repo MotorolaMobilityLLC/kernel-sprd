@@ -34,6 +34,7 @@
 #include "debug.h"
 #include "tcp_ack.h"
 #include "edma_test.h"
+#include "cmdevt.h"
 #include <linux/of_address.h>
 #include <linux/io.h>
 #include <linux/regmap.h>
@@ -57,6 +58,72 @@ struct device *sprdwl_dev;
 
 extern struct sprdwl_intf *g_intf;
 extern unsigned int g_max_fw_tx_dscr;
+
+bool sprdwl_chip_is_on(struct sprdwl_intf *intf)
+{
+	return (atomic_read(&intf->power_cnt) == 0 ? false : true);
+}
+
+int sprdwl_chip_power_on(struct sprdwl_intf *intf)
+{
+	atomic_add(1, &intf->power_cnt);
+
+	if (atomic_read(&intf->power_cnt) != 1)
+		return 0;
+
+	if (start_marlin(MARLIN_WIFI)) {
+		atomic_sub(1, &intf->power_cnt);
+		return -ENODEV;
+	}
+
+	if (sprdwl_intf_init(intf)) {
+		atomic_sub(1, &intf->power_cnt);
+		return -ENODEV;
+	}
+
+	if (sprdwl_sync_version(intf->priv)) {
+		atomic_sub(1, &intf->power_cnt);
+		return -EIO;
+	}
+	sprdwl_download_ini(intf->priv);
+
+	return 0;
+}
+
+void sprdwl_chip_power_off(struct sprdwl_intf *intf)
+{
+	atomic_sub(1, &intf->power_cnt);
+
+	if (atomic_read(&intf->power_cnt) != 0)
+		return;
+
+	sprdwl_clean_work(intf->priv);
+	sprdwl_intf_deinit();
+
+	if (stop_marlin(MARLIN_WIFI))
+		wl_err("stop marlin failed!!!\n");
+}
+
+int sprdwl_chip_set_power(struct sprdwl_intf *intf, bool val)
+{
+	int ret = 0;
+
+	if (val) {
+		ret = sprdwl_chip_power_on(intf);
+		if (ret) {
+			if (ret == -ENODEV)
+				wl_err("failed to power on wcn!\n");
+			else if (ret == -EIO)
+				wl_err("SYNC cmd error!\n");
+
+			return ret;
+		}
+		if (atomic_read(&intf->power_cnt) == 1)
+			sprdwl_get_fw_info(intf->priv);
+	} else
+		sprdwl_chip_power_off(intf);
+	return ret;
+}
 
 void adjust_debug_level(char *buf, unsigned char offset)
 {
@@ -743,16 +810,11 @@ static int sprdwl_probe(struct platform_device *pdev)
 
 	sprdwl_dev = &pdev->dev;
 	wl_err("%s enter, printk=%d\n", __func__, console_loglevel);
-	if (start_marlin(MARLIN_WIFI)) {
-		wl_err("%s power on chipset failed\n", __func__);
-		return -ENODEV;
-	}
-
 	intf = kzalloc(sizeof(*intf), GFP_ATOMIC);
 	if (!intf) {
 		ret = -ENOMEM;
 		wl_err("%s alloc intf fail: %d\n", __func__, ret);
-		goto err;
+		return ret;
 	}
 
 	platform_set_drvdata(pdev, intf);
@@ -767,7 +829,8 @@ static int sprdwl_probe(struct platform_device *pdev)
 	if (!priv) {
 		wl_err("%s core create fail\n", __func__);
 		ret = -ENXIO;
-		goto err_core_create;
+		kfree(intf);
+		return ret;
 	}
 
 	memcpy(priv->wl_ver.kernel_ver, utsname()->release,
@@ -797,7 +860,9 @@ static int sprdwl_probe(struct platform_device *pdev)
 		if (sipc_txrx_buf_init(pdev, intf)) {
 			ret = -ENOMEM;
 			wl_err("%s sipc txrx init failed.\n", __func__);
-			goto err_txrx_buf_init;
+			sprdwl_core_free((struct sprdwl_priv *)intf->priv);
+			kfree(intf);
+			return ret;
 		}
 		wl_info("%s txrx buf init success.\n", __func__);
 #endif
@@ -810,32 +875,88 @@ static int sprdwl_probe(struct platform_device *pdev)
 		if (sprdwl_txrx_buf_init()) {
 			ret = -ENOMEM;
 			wl_err("%s txrx buf init failed.\n", __func__);
-			goto err_txrx_buf_init;
+			sprdwl_core_free((struct sprdwl_priv *)intf->priv);
+			kfree(intf);
+			return ret;
 		}
 	}
 
-	ret = sprdwl_intf_init(priv, intf);
-	if (ret) {
-		wl_err("%s intf init failed: %d\n", __func__, ret);
-		goto err_if_init;
-}
-
+	sprdwl_sipc_init(priv, intf);
 	ret = sprdwl_rx_init(intf);
 	if (ret) {
 		wl_err("%s rx init failed: %d\n", __func__, ret);
-		goto err_rx_init;
+#ifdef SIPC_SUPPORT
+		sprdwl_sipc_txrx_buf_deinit(intf);
+#endif
+		sprdwl_txrx_buf_deinit();
+		sprdwl_core_free((struct sprdwl_priv *)intf->priv);
+		sprdwl_sipc_deinit(intf);
+		kfree(intf);
+		return ret;
 	}
 
 	ret = sprdwl_tx_init(intf);
 	if (ret) {
 		wl_err("%s tx_list init failed\n", __func__);
-		goto err_tx_init;
+		sprdwl_rx_deinit(intf);
+#ifdef SIPC_SUPPORT
+		sprdwl_sipc_txrx_buf_deinit(intf);
+#endif
+		sprdwl_txrx_buf_deinit();
+		sprdwl_core_free((struct sprdwl_priv *)intf->priv);
+		sprdwl_sipc_deinit(intf);
+		kfree(intf);
+		return ret;
+	}
+
+	wl_info("%s Power on wcn (%d time)\n", __func__, atomic_read(&intf->power_cnt));
+	ret = sprdwl_chip_set_power(intf, true);
+	if (ret) {
+		sprdwl_tx_deinit(intf);
+		sprdwl_rx_deinit(intf);
+#ifdef SIPC_SUPPORT
+		sprdwl_sipc_txrx_buf_deinit(intf);
+#endif
+		sprdwl_txrx_buf_deinit();
+		sprdwl_core_free((struct sprdwl_priv *)intf->priv);
+		sprdwl_chip_set_power(intf, false);
+		sprdwl_sipc_deinit(intf);
+		kfree(intf);
+		return ret;
 	}
 
 	ret = sprdwl_core_init(&pdev->dev, priv);
-	if (ret)
-		goto err_core_init;
+	if (ret) {
+		wl_err("%s sprdwl_core_init failed!\n", __func__);
+		sprdwl_tx_deinit(intf);
+		sprdwl_rx_deinit(intf);
+#ifdef SIPC_SUPPORT
+		sprdwl_sipc_txrx_buf_deinit(intf);
+#endif
+		sprdwl_txrx_buf_deinit();
+		sprdwl_core_free((struct sprdwl_priv *)intf->priv);
+		sprdwl_chip_set_power(intf, false);
+		sprdwl_sipc_deinit(intf);
+		kfree(intf);
+		return ret;
+	}
 
+	ret = sprdwl_notify_init(priv);
+	if (ret) {
+		wl_err("%s sprdwl_notify failed!\n", __func__);
+		sprdwl_core_deinit((struct sprdwl_priv *)intf->priv);
+		sprdwl_tx_deinit(intf);
+		sprdwl_rx_deinit(intf);
+#ifdef SIPC_SUPPORT
+		sprdwl_sipc_txrx_buf_deinit(intf);
+#endif
+		sprdwl_txrx_buf_deinit();
+		sprdwl_core_free((struct sprdwl_priv *)intf->priv);
+		sprdwl_chip_set_power(intf, false);
+		sprdwl_sipc_deinit(intf);
+		kfree(intf);
+		return ret;
+	}
 #if defined FPGA_LOOPBACK_TEST
 	intf->loopback_n = 0;
 	sprdwl_intf_tx_data_fpga_test(intf, NULL, 0);
@@ -843,24 +964,9 @@ static int sprdwl_probe(struct platform_device *pdev)
 
 	sprdwl_debugfs_init(intf);
 
-	return ret;
+	wl_info("%s power off on wcn (%d time)\n", __func__, atomic_read(&intf->power_cnt));
+	sprdwl_chip_set_power(intf, false);
 
-err_core_init:
-	sprdwl_tx_deinit(intf);
-err_tx_init:
-	sprdwl_rx_deinit(intf);
-err_rx_init:
-	sprdwl_intf_deinit(intf);
-err_if_init:
-#ifdef SIPC_SUPPORT
-	sprdwl_sipc_txrx_buf_deinit(intf);
-#endif
-	sprdwl_txrx_buf_deinit();
-err_txrx_buf_init:
-	sprdwl_core_free((struct sprdwl_priv *)intf->priv);
-err_core_create:
-	kfree(intf);
-err:
 	return ret;
 }
 
@@ -868,22 +974,29 @@ static int sprdwl_remove(struct platform_device *pdev)
 {
 	struct sprdwl_intf *intf = platform_get_drvdata(pdev);
 	struct sprdwl_priv *priv = intf->priv;
+	int ret = 0;
 
+	wl_info("%s power on wcn (%d time)\n", __func__, atomic_read(&intf->power_cnt));
+	ret = sprdwl_chip_set_power(intf, true);
+	if (ret)
+		return ret;
 	sprdwl_debugfs_deinit();
+	sprdwl_notify_deinit(priv);
 	sprdwl_core_deinit(priv);
 	sprdwl_tx_deinit(intf);
 	sprdwl_rx_deinit(intf);
-	sprdwl_intf_deinit(intf);
 #ifdef SIPC_SUPPORT
 	sprdwl_sipc_txrx_buf_deinit(intf);
 #endif
 	sprdwl_txrx_buf_deinit();
 	sprdwl_core_free(priv);
+	wl_info("%s power off on wcn (%d time)\n", __func__, atomic_read(&intf->power_cnt));
+	sprdwl_chip_set_power(intf, false);
+	sprdwl_sipc_deinit(intf);
 	kfree(intf);
-	stop_marlin(MARLIN_WIFI);
 	wl_warn("%s, %d\n", __func__, __LINE__);
 
-	return 0;
+	return ret;
 }
 
 static const struct of_device_id sprdwl_of_match[] = {

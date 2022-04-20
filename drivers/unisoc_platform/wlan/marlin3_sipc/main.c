@@ -321,12 +321,24 @@ static netdev_tx_t sprdwl_start_xmit(struct sk_buff *skb, struct net_device *nde
 out:
 	return NETDEV_TX_OK;
 }
-
+extern struct sprdwl_intf *g_intf;
 static int sprdwl_open(struct net_device *ndev)
 {
 	struct sprdwl_vif *vif = netdev_priv(ndev);
+	struct sprdwl_intf *intf = g_intf;
+	int ret;
 	netdev_info(ndev, "%s\n", __func__);
 
+	netdev_info(ndev, "Power on wcn (%d time)\n", atomic_read(&intf->power_cnt));
+
+	if ((vif->mode == SPRDWL_MODE_AP || vif->mode == SPRDWL_MODE_STATION) &&
+		(atomic_read(&intf->power_cnt) == 1)) {
+		pr_info("softap or station already open!,no need power on");
+		return 0;
+	}
+	ret = sprdwl_chip_set_power(intf, true);
+	if (ret)
+		return ret;
 	/* initialize firmware */
 	sprdwl_init_fw(vif);
 
@@ -341,6 +353,7 @@ static int sprdwl_open(struct net_device *ndev)
 static int sprdwl_close(struct net_device *ndev)
 {
 	struct sprdwl_vif *vif = netdev_priv(ndev);
+	struct sprdwl_intf *intf = g_intf;
 
 	netdev_info(ndev, "%s\n", __func__);
 
@@ -350,7 +363,15 @@ static int sprdwl_close(struct net_device *ndev)
 	if (netif_carrier_ok(ndev))
 		netif_carrier_off(ndev);
 
+	if (atomic_read(&intf->power_cnt) == 1)
+		atomic_set(&intf->block_cmd_after_close, 1);
+
 	sprdwl_uninit_fw(vif);
+	netdev_info(ndev, "Power off WCN (%d time)\n", atomic_read(&intf->power_cnt));
+	sprdwl_chip_set_power(intf, false);
+
+	if (atomic_read(&intf->block_cmd_after_close) == 1)
+		atomic_set(&intf->block_cmd_after_close, 0);
 
 	return 0;
 }
@@ -1627,15 +1648,9 @@ int sprdwl_core_init(struct device *dev, struct sprdwl_priv *priv)
 {
 	struct wiphy *wiphy = priv->wiphy;
 	struct wireless_dev *wdev;
-	int ret;
-	ret = sprdwl_sync_version(priv);
-	if (ret) {
-		wl_err("SYNC CMD ERROR!!\n");
-		goto out;
-	}
-	sprdwl_download_ini(priv);
+	int ret = 0;
+
 	sprdwl_tcp_ack_init(priv);
-	sprdwl_get_fw_info(priv);
 #ifdef RTT_SUPPORT
 	sprdwl_ftm_init(priv);
 #endif /* RTT_SUPPORT */
@@ -1658,8 +1673,6 @@ int sprdwl_core_init(struct device *dev, struct sprdwl_priv *priv)
 		goto out;
 	}
 
-	atomic_notifier_chain_register(&wcn_reset_notifier_list, &wifi_host_reset);
-
 #ifdef SC2355_RX_NAPI
 	sprdwl_rx_napi_init(wdev->netdev,
 			    ((struct sprdwl_intf *)priv->hw_priv));
@@ -1669,25 +1682,8 @@ int sprdwl_core_init(struct device *dev, struct sprdwl_priv *priv)
 	qos_enable(1);
 #endif
 	sprdwl_init_npi();
-	ret = register_inetaddr_notifier(&sprdwl_inetaddr_cb);
-	if (ret)
-		wl_err("%s failed to register inetaddr notifier(%d)!\n",
-		       __func__, ret);
-	if (priv->fw_capa & SPRDWL_CAPA_NS_OFFLOAD) {
-		wl_info("\tIPV6 NS Offload supported\n");
-		ret = register_inet6addr_notifier(&sprdwl_inet6addr_cb);
-		if (ret)
-			wl_err("%s failed to register inet6addr notifier(%d)!\n",
-			       __func__, ret);
-	}
 
 	trace_info_init();
-
-	ret = marlin_reset_register_notify(priv->if_ops->force_exit, priv->hw_priv);
-	if (ret) {
-		wl_err("%s failed to register wcn cp rest notify(%d)!\n",
-		       __func__, ret);
-	}
 
 out:
 	return ret;
@@ -1695,11 +1691,6 @@ out:
 
 int sprdwl_core_deinit(struct sprdwl_priv *priv)
 {
-	marlin_reset_unregister_notify();
-	atomic_notifier_chain_unregister(&wcn_reset_notifier_list, &wifi_host_reset);
-	unregister_inetaddr_notifier(&sprdwl_inetaddr_cb);
-	if (priv->fw_capa & SPRDWL_CAPA_NS_OFFLOAD)
-		unregister_inet6addr_notifier(&sprdwl_inet6addr_cb);
 	sprdwl_deinit_npi();
 #if defined(SC2355_FTR)
 	qos_enable(0);
@@ -1715,6 +1706,40 @@ int sprdwl_core_deinit(struct sprdwl_priv *priv)
 	trace_info_deinit();
 
 	return 0;
+}
+
+int sprdwl_notify_init(struct sprdwl_priv *priv)
+{
+	int ret = 0;
+
+	atomic_notifier_chain_register(&wcn_reset_notifier_list, &wifi_host_reset);
+	ret = register_inetaddr_notifier(&sprdwl_inetaddr_cb);
+	if (ret)
+		wl_err("%s failed to register inetaddr notifier(%d)!\n",
+				__func__, ret);
+	if (priv->fw_capa & SPRDWL_CAPA_NS_OFFLOAD) {
+		wl_info("\tIPV6 NS Offload supported\n");
+		ret = register_inet6addr_notifier(&sprdwl_inet6addr_cb);
+		if (ret)
+			wl_err("%s failed to register inet6addr notifier(%d)!\n",
+					 __func__, ret);
+	}
+	ret = marlin_reset_register_notify(priv->if_ops->force_exit, priv->hw_priv);
+	if (ret) {
+		wl_err("%s failed to register wcn cp rest notify(%d)!\n",
+				__func__, ret);
+	}
+
+	return ret;
+}
+
+void sprdwl_notify_deinit(struct sprdwl_priv *priv)
+{
+	marlin_reset_unregister_notify();
+	atomic_notifier_chain_unregister(&wcn_reset_notifier_list, &wifi_host_reset);
+	unregister_inetaddr_notifier(&sprdwl_inetaddr_cb);
+	if (priv->fw_capa & SPRDWL_CAPA_NS_OFFLOAD)
+		unregister_inet6addr_notifier(&sprdwl_inet6addr_cb);
 }
 
 unsigned int wfa_cap;

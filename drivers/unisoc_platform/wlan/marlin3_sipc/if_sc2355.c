@@ -2235,9 +2235,9 @@ void sprdwl_count_rx_tp(struct sprdwl_intf *intf, int len)
 	}
 }
 
-int sprdwl_intf_init(struct sprdwl_priv *priv, struct sprdwl_intf *intf)
+void sprdwl_sipc_init(struct sprdwl_priv *priv, struct sprdwl_intf *intf)
 {
-	int ret = -EINVAL, chn = 0;
+
 #ifdef RTT_SUPPORT
 	int i;
 #endif
@@ -2258,8 +2258,6 @@ int sprdwl_intf_init(struct sprdwl_priv *priv, struct sprdwl_intf *intf)
 	priv->hw_priv = intf;
 	priv->hw_offset = intf->hif_offset;
 	intf->priv = priv;
-	intf->fw_awake = 1;
-	intf->fw_power_down = 0;
 	spin_lock_init(&intf->l1ss_lock);
 	intf->tsq_shift = 7;
 	intf->tcpack_time_in_ms = RX_TP_COUNT_IN_MS;
@@ -2270,36 +2268,14 @@ int sprdwl_intf_init(struct sprdwl_priv *priv, struct sprdwl_intf *intf)
 		priv->rtt_results.peer_rtt_result[i] =  kzalloc(2 * sizeof(struct wifi_hal_rtt_result), GFP_KERNEL);
 #endif
 
-    if (g_intf_sc2355.max_num < MAX_CHN_NUM) {
-		for (chn = 0; chn < g_intf_sc2355.max_num; chn++) {
-			ret = sprdwcn_bus_chn_init(&g_intf_sc2355.hif_ops[chn]);
-			if (ret < 0)
-				goto err;
-		}
-	} else {
-err:
-		for (; chn > 0; chn--)
-			sprdwcn_bus_chn_deinit(&g_intf_sc2355.hif_ops[chn]);
-
-		g_intf_sc2355.hif_ops = NULL;
-		g_intf_sc2355.max_num = 0;
-    }
-
-	return ret;
 }
 
 
-void sprdwl_intf_deinit(struct sprdwl_intf *intf)
+void sprdwl_sipc_deinit(struct sprdwl_intf *intf)
 {
-	int chn = 0;
 #ifdef RTT_SUPPORT
 	int i;
-#endif
 
-	for (chn = 0; chn < g_intf_sc2355.max_num; chn++)
-		sprdwcn_bus_chn_deinit(&g_intf_sc2355.hif_ops[chn]);
-
-#ifdef RTT_SUPPORT
 	for (i = 0; i < 10; i++)
 		kfree(intf->priv->rtt_results.peer_rtt_result[i]);
 #endif
@@ -2308,6 +2284,36 @@ void sprdwl_intf_deinit(struct sprdwl_intf *intf)
 	g_intf_sc2355.max_num = 0;
 	intf->hw_intf = NULL;
 	g_intf = NULL;
+}
+
+int sprdwl_intf_init(struct sprdwl_intf *intf)
+{
+	int ret = -EINVAL, chn = 0;
+
+	if (g_intf_sc2355.max_num < MAX_CHN_NUM) {
+		for (chn = 0; chn < g_intf_sc2355.max_num; chn++) {
+			ret = sprdwcn_bus_chn_init(&g_intf_sc2355.hif_ops[chn]);
+			if (ret < 0)
+				goto err;
+		}
+
+		intf->fw_awake = 1;
+		intf->fw_power_down = 0;
+	} else {
+err:
+		for (; chn > 0; chn--)
+			sprdwcn_bus_chn_deinit(&g_intf_sc2355.hif_ops[chn]);
+	}
+
+	return ret;
+}
+
+void sprdwl_intf_deinit(void)
+{
+	int chn = 0;
+
+	for (chn = 0; chn < g_intf_sc2355.max_num; chn++)
+		sprdwcn_bus_chn_deinit(&g_intf_sc2355.hif_ops[chn]);
 }
 
 int sprdwl_dis_flush_txlist(struct sprdwl_intf *intf, u8 lut_index)

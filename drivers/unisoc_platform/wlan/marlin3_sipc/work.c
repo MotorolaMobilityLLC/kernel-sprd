@@ -246,3 +246,19 @@ void sprdwl_deinit_work(struct sprdwl_priv *priv)
 	flush_workqueue(priv->common_workq);
 	destroy_workqueue(priv->common_workq);
 }
+
+void sprdwl_clean_work(struct sprdwl_priv *priv)
+{
+	struct sprdwl_work *sprdwl_work, *pos;
+
+	cancel_work_sync(&priv->work);
+
+	spin_lock_bh(&priv->work_lock);
+	list_for_each_entry_safe(sprdwl_work, pos, &priv->work_list, list) {
+		list_del(&sprdwl_work->list);
+		kfree(sprdwl_work);
+	}
+	spin_unlock_bh(&priv->work_lock);
+
+	flush_workqueue(priv->common_workq);
+}

@@ -95,6 +95,7 @@ struct sprdwl_work *sprdwl_alloc_work(int len);
 void sprdwl_queue_work(struct sprdwl_priv *priv,
 		       struct sprdwl_work *sprdwl_work);
 void sprdwl_cancle_work(struct sprdwl_priv *priv, struct sprdwl_vif *vif);
+void sprdwl_clean_work(struct sprdwl_priv *priv);
 int sprdwl_init_work(struct sprdwl_priv *priv);
 void sprdwl_deinit_work(struct sprdwl_priv *priv);
 

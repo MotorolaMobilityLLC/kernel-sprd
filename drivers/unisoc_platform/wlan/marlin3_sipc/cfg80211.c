@@ -563,7 +563,7 @@ static int sprdwl_cfg80211_del_iface(struct wiphy *wiphy,
 
 	return 0;
 }
-
+extern struct sprdwl_intf *g_intf;
 static int sprdwl_cfg80211_change_iface(struct wiphy *wiphy,
 					struct net_device *ndev,
 					enum nl80211_iftype type,
@@ -574,6 +574,7 @@ static int sprdwl_cfg80211_change_iface(struct wiphy *wiphy,
 {
 	struct sprdwl_vif *vif = netdev_priv(ndev);
 	enum nl80211_iftype old_type = vif->wdev.iftype;
+	struct sprdwl_intf *intf = g_intf;
 	int ret;
 
 	netdev_info(ndev, "%s type %d -> %d\n", __func__, old_type, type);
@@ -586,12 +587,24 @@ static int sprdwl_cfg80211_change_iface(struct wiphy *wiphy,
 	if (vif->mode == 0 && ((old_type == NL80211_IFTYPE_STATION && type == NL80211_IFTYPE_AP) ||
 			(old_type == NL80211_IFTYPE_AP && type == NL80211_IFTYPE_STATION))) {
 		pr_info("%s change iface but current mode 0!\n", __func__);
+		pr_info("%s power on wcn (%d time)\n", __func__, atomic_read(&intf->power_cnt));
+		ret = sprdwl_chip_set_power(intf, true);
+		if (ret)
+			return ret;
+
+		pr_info("start to send open softap cmd\n");
 		vif->wdev.iftype = type;
 		ret = sprdwl_init_fw(vif);
 		if (!ret && type == NL80211_IFTYPE_AP)
 			netif_carrier_off(ndev);
 		return ret;
 	}
+
+	if (atomic_read(&intf->power_cnt) == 1) {
+		netdev_info(ndev, "power cnt is 1, block command!\n");
+		atomic_set(&intf->change_iface_block_cmd, 1);
+	}
+
 	ret = sprdwl_uninit_fw(vif);
 	if (!ret) {
 		vif->wdev.iftype = type;
@@ -599,6 +612,14 @@ static int sprdwl_cfg80211_change_iface(struct wiphy *wiphy,
 		if (ret)
 			vif->wdev.iftype = old_type;
 	}
+
+	if (atomic_read(&intf->change_iface_block_cmd) == 1) {
+		netdev_info(ndev, "block command finished!, reset change_iface_block_cmd!\n");
+		atomic_set(&intf->change_iface_block_cmd, 0);
+	}
+
+	if (!ret && type == NL80211_IFTYPE_AP)
+		netif_carrier_off(ndev);
 
 	return ret;
 }
@@ -2835,9 +2856,14 @@ static int sprdwl_cfg80211_start_p2p_device(struct wiphy *wiphy,
 					    struct wireless_dev *wdev)
 {
 	struct sprdwl_vif *vif = container_of(wdev, struct sprdwl_vif, wdev);
+	struct sprdwl_intf *intf = g_intf;
+	int ret;
 
-	netdev_info(vif->ndev, "%s\n", __func__);
-
+	netdev_info(vif->ndev, "%s power on wcn (%d time)\n",
+			__func__, atomic_read(&intf->power_cnt));
+	ret = sprdwl_chip_set_power(intf, true);
+	if (ret)
+		return ret;
 	return sprdwl_init_fw(vif);
 }
 
@@ -2845,13 +2871,23 @@ static void sprdwl_cfg80211_stop_p2p_device(struct wiphy *wiphy,
 					    struct wireless_dev *wdev)
 {
 	struct sprdwl_vif *vif = container_of(wdev, struct sprdwl_vif, wdev);
+	struct sprdwl_intf *intf = g_intf;
 
 	netdev_info(vif->ndev, "%s\n", __func__);
+
+	if (atomic_read(&intf->power_cnt) == 1)
+		atomic_set(&intf->block_cmd_after_close, 1);
 
 	sprdwl_uninit_fw(vif);
 
 	if (vif->priv->scan_request)
 		sprdwl_scan_done(vif, true);
+	netdev_info(vif->ndev, "%s power off wcn (%d time)\n",
+			__func__, atomic_read(&intf->power_cnt));
+	sprdwl_chip_set_power(intf, false);
+
+	if (atomic_read(&intf->block_cmd_after_close) == 1)
+		atomic_set(&intf->block_cmd_after_close, 0);
 }
 
 static int sprdwl_cfg80211_tdls_mgmt(struct wiphy *wiphy,

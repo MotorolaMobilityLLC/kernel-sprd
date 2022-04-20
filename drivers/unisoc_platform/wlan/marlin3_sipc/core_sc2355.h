@@ -146,6 +146,7 @@ struct sprdwl_intf {
 	/* if nedd more flags which not only exit, fix it*/
 	/* unsigned int exit:1; */
 	int exit;
+	atomic_t power_cnt;
 
 	int flag;
 	int lastflag;
@@ -213,6 +214,8 @@ struct sprdwl_intf {
 #ifdef SIPC_SUPPORT
 	struct sipc_txrx_mm  *sipc_mm;
 #endif
+	atomic_t block_cmd_after_close;
+	atomic_t change_iface_block_cmd;
 };
 
 void sprdwl_free_data(void *data, int buffer_type);
@@ -221,4 +224,8 @@ enum sprdwl_hw_type sprd_core_get_hwintf_mode(void);
 void sprdwl_event_tdls_flow_count(struct sprdwl_vif *vif, u8 *data, u16 len);
 void count_tdls_flow(struct sprdwl_vif *vif, u8 *data, u16 len);
 void sprdwl_tdls_flow_flush(struct sprdwl_vif *vif, const u8 *peer, u8 oper);
+bool sprdwl_chip_is_on(struct sprdwl_intf *intf);
+int sprdwl_chip_power_on(struct sprdwl_intf *intf);
+void sprdwl_chip_power_off(struct sprdwl_intf *intf);
+int sprdwl_chip_set_power(struct sprdwl_intf *intf, bool val);
 #endif
