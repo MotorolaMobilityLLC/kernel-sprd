@@ -83,8 +83,8 @@ void dptx_disable_sdp(struct dptx *dptx, u32 *payload)
 	int i;
 
 	for (i = 0; i < DPTX_SDP_NUM; i++)
-		if (!memcmp(dptx->sdp_list[i].payload, payload, 9))
-			memset(dptx->sdp_list[i].payload, 0, 9);
+		if (!memcmp(dptx->sdp_list[i].payload, payload, 36))
+			memset(dptx->sdp_list[i].payload, 0, 36);
 }
 
 void dptx_enable_sdp(struct dptx *dptx, struct sdp_full_data *data)

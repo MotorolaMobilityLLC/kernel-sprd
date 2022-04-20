@@ -3464,6 +3464,8 @@ CONFIG_DRM_SPRD_GSP_IPC_TRUSTY=y
 # Unisoc CRTCs
 #
 CONFIG_DRM_SPRD_DPU0=y
+# CONFIG_DRM_SPRD_DP is not set
+# CONFIG_DRM_SPRD_DPU1 is not set
 
 #
 # Unisoc Encoders and Bridges

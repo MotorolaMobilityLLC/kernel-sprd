@@ -32,6 +32,16 @@ config DRM_SPRD_DPU0
 	help
 	  Choose this option if you want to use primary display controller.
 
+config DRM_SPRD_DP
+	bool "Display Port"
+	help
+	  Choose this option if you want to use Display Port.
+
+config DRM_SPRD_DPU1
+	bool "External Display Controller"
+	help
+	  Choose this option if you want to use external display controller.
+
 comment "Unisoc Encoders and Bridges"
 
 config DRM_SPRD_DSI

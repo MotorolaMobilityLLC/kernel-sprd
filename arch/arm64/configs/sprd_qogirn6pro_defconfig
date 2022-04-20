@@ -3469,6 +3469,8 @@ CONFIG_DRM_SPRD_GSP_DVFS=y
 # Unisoc CRTCs
 #
 CONFIG_DRM_SPRD_DPU0=y
+CONFIG_DRM_SPRD_DP=y
+CONFIG_DRM_SPRD_DPU1=y
 
 #
 # Unisoc Encoders and Bridges
