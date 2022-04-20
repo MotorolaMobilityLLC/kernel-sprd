@@ -16742,8 +16742,8 @@ CONFIG_SPRD_CACHE_EFUSE
 	[missing plat description] none
 	[function]
 CONFIG_SPRD_CAMSYS_PW_DOMAIN
-	[arch] all
-	[plat] all
+	[arch] arm
+	[plat] pike2
 	[missing plat] none
 	[field]
 	[subsys]
