@@ -24,12 +24,17 @@
 	aliases {
 		serial0 = &uart0;
 		serial1 = &uart1;
+		serial2 = &uart2;
 		i2c0 = &i2c0;
 		i2c1 = &i2c1;
 		i2c2 = &i2c2;
 		i2c3 = &i2c3;
 		i2c4 = &i2c4;
 		i2c5 = &aon_i2c0;
+		spi0 = &spi0;
+		spi1 = &spi1;
+		spi2 = &spi2;
+		spi3 = &spi3;
 	};
 
 	memory@80000000 {
@@ -137,6 +142,10 @@
 };
 
 &uart2 {
+	status = "okay";
+};
+
+&spi0 {
 	status = "okay";
 };
 

@@ -259,3 +259,4 @@
 #include "gpio.dtsi"
 #include "uart.dtsi"
 #include "i2c.dtsi"
+#include "spi.dtsi"
