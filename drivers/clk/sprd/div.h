@@ -54,6 +54,11 @@ struct sprd_div {
 	SPRD_DIV_CLK_HW_INIT_FN(_struct, _name, _parent, _reg, 0x0,	\
 				_shift, _width, _flags, CLK_HW_INIT)
 
+#define SPRD_DIV_CLK_FW_NAME(_struct, _name, _parent, _reg,			\
+			_shift, _width, _flags)				\
+	SPRD_DIV_CLK_HW_INIT_FN(_struct, _name, _parent, _reg, 0x0,	\
+				_shift, _width, _flags, CLK_HW_INIT_FW_NAME)
+
 #define SPRD_DIV_CLK_HW(_struct, _name, _parent, _reg,			\
 			_shift, _width, _flags)				\
 	SPRD_DIV_CLK_HW_INIT_FN(_struct, _name, _parent, _reg, 0x0,	\
