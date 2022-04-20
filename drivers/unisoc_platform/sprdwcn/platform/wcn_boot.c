@@ -1313,7 +1313,7 @@ static int marlin_parse_dt(struct platform_device *pdev)
 		if (!rc) {
 			parse_cmdline = strstr(cmd_line, SUFFIX);
 			if (parse_cmdline) {
-				pr_debug("fstab: %s\n", parse_cmdline);
+				pr_info("fstab: %s\n", parse_cmdline);
 				if (!strncmp(parse_cmdline + strlen(SUFFIX), "_a", 2)) {
 					strcat(BTWF_FIRMWARE_PATH, "_a");
 					//strcat(GNSS_FIRMWARE_PATH, "_a");
