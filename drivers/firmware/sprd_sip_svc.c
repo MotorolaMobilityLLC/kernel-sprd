@@ -631,9 +631,9 @@ static int __init sprd_sip_svc_init(void)
 	sprd_sip_svc_handle.npu_ops.set_volts =
 				sprd_sip_svc_npu_set_volts;
 
-	pr_notice("SPRD SIP SVC PWR:v%d.%d detected in firmware.\n",
-		sprd_sip_svc_handle.pwr_ops.rev.major_ver,
-		sprd_sip_svc_handle.pwr_ops.rev.minor_ver);
+	pr_notice("SPRD SIP SVC NPU:v%d.%d detected in firmware.\n",
+		sprd_sip_svc_handle.npu_ops.rev.major_ver,
+		sprd_sip_svc_handle.npu_ops.rev.minor_ver);
 
 	/* init dvfs_ops */
 	arm_smccc_smc(SPRD_SIP_SVC_DVFS_REV, 0, 0, 0, 0, 0, 0, 0, &res);
