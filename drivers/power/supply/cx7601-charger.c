@@ -590,7 +590,7 @@ static int cx7601_init_device(struct cx7601_charger_info *info)
 	cx7601_disable_watchdog_timer(info);
 	cx7601_charger_set_vindpm(info,4520);
     cx7601_disable_safety_timer(info);     //modified
-    cx7601_enable_term(info,true);
+    cx7601_enable_term(info,false);
 	
 	ret = cx7601_set_stat_ctrl(info, 3);//info->platform_data->statctrl);
 	if (ret)
@@ -944,8 +944,8 @@ static bool cx7601_charge_done(struct cx7601_charger_info *info)
 		if(val == 0x3)
 		{
 			done_c++;
-//			if(done_c >= 6)				
-//				cx7601_enable_term(info,false);
+			if(done_c >= 6)				
+				cx7601_enable_term(info,false);
 
 			return true;
 		}
@@ -1454,7 +1454,7 @@ static int cx7601_charger_probe(struct i2c_client *client,
 	cx7601_read(info, &val, 0x83);
 	dev_err(dev, "%s;enter;0x83=%x;\n",__func__,val);
 	ret = cx7601_update_bits(info,0x84,0x03, 0x01);
-	ret = cx7601_write(info, 0x41, 0x04);  //avoid VBAT OVP
+//	ret = cx7601_write(info, 0x41, 0x04);  //avoid VBAT OVP
 	ret = cx7601_write(info, 0x40, 0x00);
 
 
