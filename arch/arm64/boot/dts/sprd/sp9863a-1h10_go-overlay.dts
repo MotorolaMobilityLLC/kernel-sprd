@@ -82,6 +82,7 @@
 				fullbatt-track-end-cur = <130000>;
 				first-calib-voltage = <3554800>;
 				first-calib-capacity = <50>;
+				batt-ovp-threshold-microvolt = <4800000>;
 
 				ocv-capacity-celsius = <20>;
 				ocv-capacity-table-0 = <4330000 100>, <4249000 95>, <4189000 90>,
