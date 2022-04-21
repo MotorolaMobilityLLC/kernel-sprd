@@ -280,6 +280,32 @@ def check_tags_file(modify_file_list, tags_list):
 
     return (-1, inconsistent_file_list)
 
+def check_duplicate():
+    check_duplicate_flag = 0
+    status,output=commands.getstatusoutput(GET_PATCH_MODIFY_FILE_INFO)
+    get_patch_modify_file_list = output.split('\n')
+    if TAGS_FILE_NAME in get_patch_modify_file_list:
+        print >> sys.stdout,"modify patch-tags.txt,check duplicate tag."
+        tags_file_list = read_line(KERNEL_DIR,TAGS_FILE_NAME)
+        # remove '\n' for each element
+        tags_list_tmp = [x.strip() for x in tags_file_list]
+        # change list to str and split ',' to list
+        str_tags_file = ','.join(tags_list_tmp)
+        tags_list_tmp = str_tags_file.split(',')
+        # remove the empty element
+        tags_list = [i for i in tags_list_tmp if i != "" ]
+        info_start = tags_list.index("[info]")
+        list_all_tag = tags_list[info_start+1:]
+        lower_list_all_tags = [tags.lower().strip(':') for tags in list_all_tag]
+        for tag in list_all_tag:
+            num = lower_list_all_tags.count(tag.lower().strip(':'))
+            if num > 1 :
+                print >> sys.stderr, "%s duplicate" % tag
+                check_duplicate_flag=1
+    if check_duplicate_flag == 0 :
+         print >> sys.stdout, "\nCheck duplicate tag ok\n"
+    return check_duplicate_flag
+
 def check_tags_consistent(ret_info):
     if ret_info[0] != 0:
         print >> sys.stderr, "\nERROR: %s" %  ret_info[1]
@@ -322,6 +348,7 @@ def main(argv=None):
     check_patch_signature(get_patch_info_list)
     ret_info = check_tags_commit_id(get_patch_info_list)
 
+    check_duplicate()
     check_tags_consistent(ret_info)
     return ret_info[0]
 
