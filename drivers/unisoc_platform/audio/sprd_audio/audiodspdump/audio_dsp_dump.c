@@ -52,6 +52,7 @@ enum dump_type_e {
 	DSP_LOG = 0,
 	DSP_PCM,
 	DSP_MEM,
+	DSP_CALL_INFO,
 	DSP_ERR,
 };
 
@@ -64,7 +65,13 @@ enum{
 	SBLOCK_TYPE_EVENT = 0x23,
 	SBLOCK_TYPE_TPLOG = 0x24,
 	AUDIO_DUMP_MEMORY_LOG_ENABLE = 0x25,
+	AUDIO_DUMP_CALL_INFO = 0x26,
+};
 
+enum{
+	DUMP_CALL_INFO_DISABLE = 0,
+	DUMP_CALL_INFO_ENABLE,
+	DUMP_CALL_INFO_RESET,
 };
 
 #define SPRD_MAX_NAME_LEN 64
@@ -77,6 +84,7 @@ struct dsp_log_init_data {
 	u32 usedmem_size;
 	u32 dump_mem_addr;
 	void *dump_mem_addr_v;
+	u32 dump_mem_dsp;
 	void *dump1_v;
 	u32 dump1_p;
 	u32 dump1_bytes;
@@ -114,6 +122,7 @@ struct dsp_log_sbuf {
 	u16 channel;
 	void *sblockhandle;
 	int dump_type;
+	u32 dump_mem_dsp;
 	void *dump_mem_addr_v;
 	u32 usedmem_size;
 	u8 header_buf[PACKET_HEADER_SIZE];
@@ -210,6 +219,7 @@ static int audio_dsp_open(struct inode *inode, struct file *filp)
 	audio_buf->dst = dsp_log->init->dst;
 	audio_buf->channel = dsp_log->init->channel;
 	audio_buf->dump_type = dsp_log->init->dump_type;
+	audio_buf->dump_mem_dsp = dsp_log->init->dump_mem_dsp;
 	audio_buf->dump_mem_addr_v = dsp_log->init->dump_mem_addr_v;
 	audio_buf->usedmem_size = dsp_log->init->usedmem_size;
 	audio_buf->sn_number  = 0;
@@ -388,7 +398,8 @@ static ssize_t audio_dsp_read(struct file *filp,
 	if (filp->f_flags & O_NONBLOCK)
 		timeout = 0;
 
-	if ((audio_buf->dump_type == DSP_MEM) &&  audio_buf->dump_mem_addr_v) {
+	if (audio_buf->dump_mem_addr_v &&
+		((audio_buf->dump_type == DSP_MEM) || (audio_buf->dump_type == DSP_CALL_INFO))) {
 		if (pos < audio_buf->usedmem_size) {
 			rdsize = (audio_buf->usedmem_size - pos) < read_count ?
 				(audio_buf->usedmem_size - pos) : read_count;
@@ -402,7 +413,11 @@ static ssize_t audio_dsp_read(struct file *filp,
 			} else {
 				ret = rdsize;
 			}
-			*ppos += rdsize;
+			/*there is no need update *ppos when dumping call info,
+			cause we always read from the begining of memory.
+			ps. make sure memory size > read size*/
+			if (audio_buf->dump_type == DSP_MEM)
+				*ppos += rdsize;
 		} else {
 			ret = 0;
 		}
@@ -448,6 +463,8 @@ static ssize_t audio_dsp_read(struct file *filp,
 		else if (audio_buf->dump_type == DSP_PCM)
 			type = 0x1;
 		else if (audio_buf->dump_type == DSP_MEM)
+			type = 0x1;
+		else if (audio_buf->dump_type == DSP_CALL_INFO)
 			type = 0x1;
 
 		audio_dsp_add_headers(audio_buf->header_buf,
@@ -515,6 +532,7 @@ static long audio_dsp_ioctl(struct file *filp,
 {
 	struct dsp_log_sbuf *audio_buf = filp->private_data;
 	struct dsp_log_device *dev_res;
+	struct dsp_log_init_data *init;
 	int ret = 0;
 	u32 in_arg = 0;
 	u32 mem_addr = 0;
@@ -619,6 +637,63 @@ static long audio_dsp_ioctl(struct file *filp,
 		}
 		mutex_unlock(&dev_res->mutex);
 		break;
+	case DSPLOG_CMD_CALL_INFO_ENABLE:
+		in_arg = arg ? audio_buf->usedmem_size : DUMP_CALL_INFO_DISABLE;
+		ret = aud_send_cmd_no_wait(audio_buf->channel, AUDIO_DUMP_CALL_INFO,
+				(u32)audio_buf->dump_mem_dsp, in_arg, 0, 0);
+		if (ret < 0) {
+			pr_err("%s: fail to send AT command to dsp  %d\n",
+				__func__, ret);
+			return -EIO;
+		}
+		pr_info("call_info : %s send %s successfully, mem_addr_dsp:0x%x, mem_size:0x%x\n",
+			__func__, arg ? "enable" : "disable",
+			audio_buf->dump_mem_dsp, audio_buf->usedmem_size);
+		break;
+	case DSPLOG_CMD_CALL_INFO_SET_SIZE:
+		init = audio_buf->dev_res->init;
+
+		mutex_lock(&dev_res->mutex);
+		/* release old mem */
+		audio_mem_free(init->usedmem_type, init->dump_mem_addr, init->usedmem_size);
+
+		init->usedmem_size = arg;
+		mem_addr = audio_mem_alloc(
+			init->usedmem_type,
+			&init->usedmem_size);
+		if ((mem_addr == 0) || (init->usedmem_size == 0)) {
+			pr_err("Failed to create sblock with addr: %x\n",
+				mem_addr);
+			return -ENOMEM;
+		}
+		init->dump_mem_addr = mem_addr;
+		pr_info("aud_dsp_addr: mem: dsp space mem_addr %x\n", mem_addr);
+		if (init->usedmem_size) {
+			init->dump_mem_addr_v =
+				(void *)audio_mem_vmap(
+					(u32)init->dump_mem_addr,
+					init->usedmem_size, 1);
+			memset_io(init->dump_mem_addr_v, 0, init->usedmem_size);
+		}
+		/* used for dumping call info */
+		init->dump_mem_dsp = audio_addr_ap2dsp(init->usedmem_type,
+						init->dump_mem_addr, false);
+
+		audio_buf->dump_mem_dsp = init->dump_mem_dsp;
+		audio_buf->dump_mem_addr_v = init->dump_mem_addr_v;
+		audio_buf->usedmem_size = init->usedmem_size;
+
+		ret = aud_send_cmd_no_wait(audio_buf->channel, AUDIO_DUMP_CALL_INFO,
+				(u32)audio_buf->dump_mem_dsp, audio_buf->usedmem_size, 0, 0);
+		if (ret < 0) {
+			pr_err("%s: fail to send AT command to dsp  %d\n",
+				__func__, ret);
+			return -EIO;
+		}
+		pr_info("call_info : %s change size successfully, mem_addr_dsp:0x%x, mem_size:0x%x\n",
+			__func__, audio_buf->dump_mem_dsp, audio_buf->usedmem_size);
+		mutex_unlock(&dev_res->mutex);
+		break;
 	default:
 		return -EINVAL;
 	}
@@ -699,6 +774,8 @@ static const struct of_device_id audio_dsp_table[] = {
 		.data = (void *)DSP_PCM},
 	{.compatible = "unisoc,audio_dsp_mem",
 		.data = (void *)DSP_MEM},
+	{.compatible = "unisoc,audio_dsp_call_info",
+		.data = (void *)DSP_CALL_INFO},
 	{ },
 };
 
@@ -737,6 +814,10 @@ static int audio_dsp_parse_dt(
 		strncpy(pdata->name, "audio_dsp_mem", SPRD_MAX_NAME_LEN);
 		strncpy(pdata->dump_content, "memory", SPRD_MAX_NAME_LEN);
 		break;
+	case DSP_CALL_INFO:
+		strncpy(pdata->name, "audio_dsp_call_info", SPRD_MAX_NAME_LEN);
+		strncpy(pdata->dump_content, "call_info", SPRD_MAX_NAME_LEN);
+		break;
 	default:
 		ret = -EINVAL;
 		pr_err("%s not supported type %ld\n", __func__, type);
@@ -765,6 +846,8 @@ static int audio_dsp_parse_dt(
 		pdata->dump_type = DSP_LOG;
 	else if (!strcmp(pdata->dump_content, "pcm"))
 		pdata->dump_type = DSP_PCM;
+	else if (!strcmp(pdata->dump_content, "call_info"))
+		pdata->dump_type = DSP_CALL_INFO;
 	else
 		pdata->dump_type = DSP_ERR;
 
@@ -772,6 +855,13 @@ static int audio_dsp_parse_dt(
 		ret = audio_dsp_parse_mem_dt(np, pdata);
 		if (ret)
 			goto error;
+	} else if (pdata->dump_type == DSP_CALL_INFO) {
+		ret = of_property_read_u32(np, "sprd-usemem-bytes",
+						&pdata->usedmem_size);
+		if (ret) {
+			pr_info("%s, no sprd-usemem-bytes\n", __func__);
+			goto error;
+		}
 	} else {
 		ret = of_property_read_u32(np, "sprd-txblocknum",
 					   &pdata->txblocknum);
@@ -858,7 +948,8 @@ static int audio_dsp_probe(struct platform_device *pdev)
 		pr_info("channel %d open ok\n", init->channel);
 	}
 
-	if (init->dump_type == DSP_MEM) {
+	if ((init->dump_type == DSP_MEM) ||
+			(init->dump_type == DSP_CALL_INFO)) {
 		mem_addr = audio_mem_alloc(
 			init->usedmem_type,
 			&init->usedmem_size);
@@ -884,8 +975,14 @@ static int audio_dsp_probe(struct platform_device *pdev)
 					init->usedmem_size, 1);
 			memset_io(init->dump_mem_addr_v, 0, init->usedmem_size);
 		}
-		aud_smsg_register_dump_func(audio_dsp_audio_info_dump,
+		/* used for dumping call info */
+		init->dump_mem_dsp = audio_addr_ap2dsp(init->usedmem_type,
+						init->dump_mem_addr, false);
+
+		if (init->dump_type == DSP_MEM) {
+			aud_smsg_register_dump_func(audio_dsp_audio_info_dump,
 					  (void *)init);
+		}
 	}
 
 	dsp_log = kzalloc(sizeof(struct dsp_log_device), GFP_KERNEL);
