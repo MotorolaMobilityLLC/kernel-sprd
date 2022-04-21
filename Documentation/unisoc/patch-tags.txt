@@ -18,7 +18,7 @@ Bug<空格>#"bug_id"<空格>[attributetag:<空格>]"subsystem-tag":<空格>"modu
     attribute tag范围及描述：
         ANDROID: 解决公共代码中Android特有问题(无法upstream)。必须有Google Issue Number，一般可免于Review，直接+2。
         UPGRADE: 来自其他分支merged的提交。必须注明出处，一般可免于Review，直接+2。
-        SECURITY: 安全patch（特指Kernel CVE修复）。
+        CVE: 安全patch（特指Kernel CVE修复）。
         FROMLIST: 来自社区邮件列表，但还未合入，或被拒绝。必须注明出处，一般可免于Review，直接+2。
         UPSTREAM: 来自linux mainline分支。必须注明commit id，一般可免于Review，直接+2。
         BACKPORT: 带UPSTREAM标签需要修改才能合入，需用BACKPORT代替UPSTREAM；带FROMGIT、FROMLIST需要修改才能合入，
@@ -45,7 +45,7 @@ subsystem tag和修改文件的检查规则：
 
 可用Subsystem/module tag范围列表：（可通过提交patch增删）
 [info]
-ANDROID,UPGRADE,SECURITY,FROMLIST,UPSTREAM,BACKPORT,FROMGIT,REVERT,WORKAROUND,DIRTY,TEST
+ANDROID,UPGRADE,CVE,FROMLIST,UPSTREAM,BACKPORT,FROMGIT,REVERT,WORKAROUND,DIRTY,TEST
 
 arm64:configs:
 arm64:dts:
