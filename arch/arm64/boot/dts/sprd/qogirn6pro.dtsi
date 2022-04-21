@@ -8,6 +8,7 @@
 #include <dt-bindings/clock/sprd,ums9620-clk.h>
 #include <dt-bindings/soc/sprd,qogirn6pro-regs.h>
 #include <dt-bindings/soc/sprd,qogirn6pro-mask.h>
+#include <dt-bindings/sound/sprd,sprd-dai.h>
 #include <dt-bindings/debug/busmonitor/busmonitor.h>
 
 / {
@@ -1791,6 +1792,8 @@
 						<&ap_gpio 62 GPIO_ACTIVE_HIGH>;
 				extcon = <&pmic_pd>;
 
+				#sound-dai-cells = <1>;
+
 				ports {
 					#address-cells = <1>;
 					#size-cells = <0>;
@@ -2853,6 +2856,32 @@
 							MASK_AON_APB_AP_2_AUD_ACCESS_EN>;
 				sprd,ddr-addr-offset = <0x0>;
 				sprd,auto_agcp_access = <0>;
+			};
+
+			agcp_i2s0: i2s@56270800 {
+				compatible = "sprd,agcp-i2s-dai";
+				reg = <0 0x56270800 0 0x80>;
+				#sound-dai-cells = <0>;
+				sprd,syscon-agcp-ahb = <&audcp_ahb_regs>;
+				sprd,id = <AGCP_IIS0_TX>;
+				sprd,tx-dma-no = <24>;
+				sprd,rx-dma-no = <23>;
+				sprd,div-mode = <2>;
+				sprd,rate-multi = <512>;
+				sprd,fifo-depth = <256>;
+				sprd,bus-type = <0>;
+				sprd,hw-port = <0>;
+				sprd,work-mode = <0>;
+				sprd,trans-mode = <0>;
+				sprd,rtx-mode = <3>;
+				sprd,sync-mode = <0>;
+				sprd,bus-frame-mode = <1>;
+				sprd,multi-ch = <0x1>;
+				sprd,left-ch-lvl = <0>;
+				sprd,clk-inv = <0>;
+				sprd,tx-watermark = <0x40>;
+				sprd,rx-watermark = <0xc0>;
+				status = "okay";
 			};
 		};
 

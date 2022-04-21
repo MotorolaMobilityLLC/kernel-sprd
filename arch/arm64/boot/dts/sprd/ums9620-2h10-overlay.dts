@@ -872,6 +872,47 @@
 			sound-dai = <&pdm_dmic 0>;
 		};
 	};
+
+	/* 24: fe DisplayPort pcm */
+	sprd-audio-card,dai-link@66 {
+		link-name = "DisplayPort MultiMedia";
+		stream-name = "DisplayPort MultiMedia";
+		be-id = <0>;
+		trigger = <1 1>;
+		ignore-suspend = <1>;
+		dynamic = <1>;
+		dpcm-playback = <1>;
+		plat {
+			sound-dai = <&sprd_pcm>;
+		};
+		cpu {
+			sound-dai = <&sprd_fe_dai 24>;
+		};
+		codec {
+			sound-dai = <0 0>;
+		};
+	};
+
+	/* agcp_i2s0: be dp pcm */
+	sprd-audio-card,dai-link@65 {
+		link-name = "AGCP_IIS0_TX";
+		stream-name = "AGCP_IIS0_TX Playback";
+		be-id = <0>;
+		dai-format = "i2s";
+		ignore-suspend = <1>;
+		no-pcm = <1>;
+		dpcm-playback = <1>;
+		ignore-pmdown-time = <1>;
+		plat {
+			sound-dai = <&sprd_route_pcm>;
+		};
+		cpu {
+			sound-dai = <&agcp_i2s0 57>;
+		};
+		codec {
+			sound-dai = <&dptx 0>;
+		};
+	};
 };
 
 &ddr_dfs {
