@@ -4526,7 +4526,7 @@ static void cm_get_charging_health_status(struct charger_manager *cm, int *statu
 	else if (cm->emergency_stop == CM_EVENT_BATT_COLD ||
 		 (cm->charging_status & CM_CHARGE_TEMP_COLD))
 		*status = POWER_SUPPLY_HEALTH_COLD;
-	else if (cm->charging_status & CM_CHARGE_VOLTAGE_ABNORMAL)
+	else if (cm->charging_status & (CM_CHARGE_VOLTAGE_ABNORMAL | CM_CHARGE_BATT_OVERVOLTAGE))
 		*status = POWER_SUPPLY_HEALTH_OVERVOLTAGE;
 	else
 		*status = POWER_SUPPLY_HEALTH_GOOD;
