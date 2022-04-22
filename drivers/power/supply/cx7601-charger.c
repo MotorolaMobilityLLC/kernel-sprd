@@ -944,9 +944,13 @@ static bool cx7601_charge_done(struct cx7601_charger_info *info)
 		if(val == 0x3)
 		{
 			done_c++;
-			if(done_c >= 6)				
+			if(done_c >= 6)		
+            {		
 				cx7601_enable_term(info,false);
-
+                if(info->term_voltage == 4400)
+		            cx7601_charger_set_termina_vol(info, 4350);
+                
+            }
 			return true;
 		}
 	}	
