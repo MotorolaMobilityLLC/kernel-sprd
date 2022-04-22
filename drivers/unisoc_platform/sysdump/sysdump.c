@@ -543,7 +543,7 @@ static void sysdump_fill_core_hdr(struct pt_regs *regs, char *bufp)
 }
 #if 0
 //hdy
-static int __init sysdump_magic_setup(char *str)
+static int sysdump_magic_setup(char *str)
 {
 	if (str != NULL)
 		sscanf(&str[0], "%lx", &sysdump_magic_paddr);
@@ -557,7 +557,7 @@ __setup("sysdump_magic=", sysdump_magic_setup);
  * sysdump_reflag: 1 sysdump reserved in dts
  *		   0 sysdump don't reserved in dts
  */
-static int __init sysdump_reflag_setup(char *str)
+static int sysdump_reflag_setup(char *str)
 {
 	if (str != NULL)
 		sscanf(&str[0], "%d", &sysdump_reflag);
@@ -1745,7 +1745,7 @@ static int sysdump_panic_event_init(void)
 						&sysdump_panic_event_nb);
 	return 0;
 }
-static __init int sysdump_early_init(void)
+static int sysdump_early_init(void)
 {
 	int ret;
 	/* register sysdump panic notifier */
@@ -1765,7 +1765,7 @@ static void per_cpu_funcs_register(void *info)
 	/* save mmu regs per cpu */
 	sprd_debug_save_mmu_reg(&per_cpu(sprd_debug_mmu_reg, smp_processor_id()));
 }
-static __init int per_cpu_funcs_init(void)
+static int per_cpu_funcs_init(void)
 {
 	/* mmu regs init in all other cpus */
 	smp_call_function(per_cpu_funcs_register, NULL, 1);
