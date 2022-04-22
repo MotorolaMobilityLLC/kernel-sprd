@@ -5130,6 +5130,8 @@ struct sprd_tcpm_port *sprd_tcpm_register_port(struct device *dev, struct tcpc_d
 			alt->ops = &sprd_tcpm_altmode_ops;
 			port->port_altmode[i] = alt;
 			i++;
+			if (i == tcpc->config->nr_alt_modes)
+				break;
 			paltmode++;
 		}
 	}

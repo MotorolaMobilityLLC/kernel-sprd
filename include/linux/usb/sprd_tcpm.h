@@ -84,6 +84,7 @@ struct tcpc_config {
 	bool self_powered;	/* port belongs to a self powered device */
 
 	const struct typec_altmode_desc *alt_modes;
+	unsigned int nr_alt_modes;
 };
 
 /* Mux state attributes */

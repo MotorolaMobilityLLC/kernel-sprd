@@ -1481,6 +1481,7 @@ static const struct tcpc_config sc27xx_pd_config = {
 	.type = TYPEC_PORT_DRP,
 	.default_role = TYPEC_SOURCE,
 	.alt_modes = &sc27xx_alt_modes,
+	.nr_alt_modes = 1,
 };
 
 static void sc27xx_init_tcpc_dev(struct sc27xx_pd *pd)
