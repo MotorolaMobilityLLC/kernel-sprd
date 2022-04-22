@@ -875,7 +875,7 @@
 	display-subsystem {
 		compatible = "sprd,display-subsystem";
 		ports = <&dpu_port>, <&dpu1_port>;
-		gsp = <&gsp>;
+		gsp = <&gsp0>, <&gsp1>;
 	};
 
 	autotest:autotest{
@@ -922,6 +922,10 @@
 };
 
 &iommu_gsp {
+	status = "okay";
+};
+
+&iommu_gsp1 {
 	status = "okay";
 };
 

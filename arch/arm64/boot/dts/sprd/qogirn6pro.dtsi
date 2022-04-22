@@ -753,14 +753,14 @@
 				compatible = "unisoc,iommuvaul6p-dispc";
 				reg = <0x0 0x31000000 0x0 0x80>,
 				      <0x0 0x31001800 0x0 0x80>;
-				iova-base = <0x30000000>;
+				iova-base = <0x10000000>;
 				iova-size = <0x10000000>;
 				reg_name = "mmu_reg";
 				status = "disabled";
 				#iommu-cells = <0>;
 			};
 
-			gsp_core0: gsp@31100000 {
+			gsp0_core0: gsp@31100000 {
 				compatible = "sprd,gsp-core";
 				reg = <0 0x31100000 0 0x2000>;
 				core-id = <0>;
@@ -773,7 +773,27 @@
 				compatible = "unisoc,iommuvaul6p-gsp";
 				reg = <0x0 0x31100000 0x0 0x80>,
 				      <0x0 0x31101000 0x0 0x80>;
-				iova-base = <0x30000000>;
+				iova-base = <0x20000000>;
+				iova-size = <0x10000000>;
+				reg_name = "mmu_reg";
+				status = "disabled";
+				#iommu-cells = <0>;
+			};
+
+			gsp1_core0: gsp@31200000 {
+				compatible = "sprd,gsp-core";
+				reg = <0 0x31200000 0 0x2000>;
+				core-id = <0>;
+				kcfg-num = <16>;
+				interrupts = <GIC_SPI 150 IRQ_TYPE_LEVEL_HIGH>;
+				iommus = <&iommu_gsp1>;
+			};
+
+			iommu_gsp1: iommu@31200000 {
+				compatible = "unisoc,iommuvaul6p-gsp1";
+				reg = <0x0 0x31200000 0x0 0x80>,
+				      <0x0 0x31201000 0x0 0x80>;
+				iova-base = <0x40000000>;
 				iova-size = <0x10000000>;
 				reg_name = "mmu_reg";
 				status = "disabled";
@@ -1742,7 +1762,7 @@
 				compatible = "unisoc,iommuvaul6p-dispc1";
 				reg = <0x0 0x31880000 0x0 0x80>,
 				      <0x0 0x31880800 0x0 0x80>;
-				iova-base = <0x40000000>;
+				iova-base = <0x30000000>;
 				iova-size = <0x10000000>;
 				reg_name = "mmu_reg";
 				status = "disable";
