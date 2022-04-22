@@ -201,6 +201,12 @@
 			reg = <0 0x30000000 0 0x3000>;
 		};
 
+		mm_dvfs_regs: syscon@30014000 {
+			compatible = "sprd,ums9620-glbregs", "syscon";
+			#syscon-cells = <2>;
+			reg = <0 0x30014000 0 0x4000>;
+		};
+
 		ipa_dispc_glb_apb_regs: syscon@31800000 {
 			compatible = "sprd,ums9620-glbregs", "syscon";
 			#syscon-cells = <2>;
@@ -882,6 +888,18 @@
 				aon_apb_mm_eb = <&aon_apb_regs
 				REG_AON_APB_APB_EB0
 				MASK_AON_APB_MM_EB>;
+				mm_ahb_dvfs_en = <&mm_ahb_regs
+				REG_MM_AHB_MM_SYS_EN
+				MASK_MM_AHB_DVFS_EN>;
+				cam_sw_dvfs_ack = <&mm_dvfs_regs
+				REG_MM_DVFS_AHB_MM_SW_DVFS_CTRL
+				MASK_MM_AHB_CAMERA_DVFS_ACK>;
+				cam_sw_dvfs_volt = <&mm_dvfs_regs
+				REG_MM_DVFS_AHB_MM_SW_DVFS_CTRL
+				MASK_MM_AHB_CAMERA_DVFS_VOLTAGE_SW>;
+				cam_sw_dvfs_req = <&mm_dvfs_regs
+				REG_MM_DVFS_AHB_MM_SW_DVFS_CTRL
+				MASK_MM_AHB_CAMERA_DVFS_REQ_SW>;
 				clock-names = "clk_mm_eb",
 					"clk_ckg_en",
 					"clk_mm_mtx_data_en",
