@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-2.0
 obj-y += sprd_time_sync/
 obj-$(CONFIG_UNISOC_DISP)	+= sprd_disp/
+obj-$(CONFIG_SPRD_PMIC_SYSCON)  += sprd_pmic_syscon.o
 obj-$(CONFIG_SPRD_DEBUG)	+= debug/
 obj-$(CONFIG_SPRD_SYSDUMP) 	+= sysdump/
 obj-$(CONFIG_UNISOC_IOMMU)	+= iommu/

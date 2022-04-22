@@ -3,6 +3,12 @@
 #
 menu "Unisoc SOC drivers"
 
+config SPRD_PMIC_SYSCON
+	tristate "Unisoc PMIC global driver"
+	depends on MFD_SC27XX_PMIC || MFD_UMP96XX_PMIC || COMPILE_TEST
+	help
+		Enable this configuration option to enable pmic global driver.
+
 source "drivers/unisoc_platform/sprd_disp/Kconfig"
 source "drivers/unisoc_platform/sprd_time_sync/Kconfig"
 source "drivers/unisoc_platform/debug/Kconfig"
