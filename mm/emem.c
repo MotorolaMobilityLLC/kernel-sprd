@@ -31,6 +31,7 @@
 #include <linux/fs.h>
 #include <linux/workqueue.h>
 #include <linux/proc_fs.h>
+#include <linux/mm.h>
 
 #include "internal.h"
 
@@ -68,6 +69,7 @@ static void enhance_meminfo(u64 interval)
 	if (val.tv_sec - last_time > interval) {
 		pr_info("++++++++++++++++++++++E_SHOW_MEM_BEGIN++++++++++++++++++++\n");
 		pr_info("The killed process adj = %d\n", sysctl_emem_trigger);
+		enhanced_show_mem();
 		last_time = val.tv_sec;
 		pr_info("+++++++++++++++++++++++E_SHOW_MEM_END+++++++++++++++++++++\n");
 	}

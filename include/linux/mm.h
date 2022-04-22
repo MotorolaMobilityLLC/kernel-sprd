@@ -2530,6 +2530,7 @@ extern unsigned long arch_reserved_kernel_pages(void);
 #endif
 
 #ifdef CONFIG_E_SHOW_MEM
+extern void enhanced_show_mem(void);
 extern int register_e_show_mem_notifier(struct notifier_block *nb);
 extern int unregister_e_show_mem_notifier(struct notifier_block *nb);
 #endif
