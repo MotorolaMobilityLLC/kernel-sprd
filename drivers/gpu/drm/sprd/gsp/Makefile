@@ -6,6 +6,8 @@ sprd-gsp-$(CONFIG_DRM_SPRD_GSP) += gsp_r6p0/gsp_r6p0_core.o \
 	gsp_lite_r2p0/gsp_lite_r2p0_coef_cal.o \
 	gsp_lite_r3p0/gsp_lite_r3p0_core.o \
 	gsp_lite_r3p0/gsp_lite_r3p0_coef_cal.o \
+	gsp_lite_r4p0/gsp_lite_r4p0_core.o \
+	gsp_lite_r4p0/gsp_lite_r4p0_coef_cal.o \
 	gsp_r8p0/gsp_r8p0_core.o \
 	gsp_r8p0/gsp_r8p0_coef_cal.o \
 	gsp_r9p0/gsp_r9p0_core.o \

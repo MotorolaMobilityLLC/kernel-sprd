@@ -13,6 +13,7 @@
 #define DRM_SPRD_GSP_TRIGGER	1
 
 struct drm_gsp_cfg_user {
+	__u8 gsp_id;
 	bool async;
 	__u32 size;
 	__u32 num;
@@ -21,6 +22,7 @@ struct drm_gsp_cfg_user {
 };
 
 struct drm_gsp_capability {
+	__u8 gsp_id;
 	__u32 size;
 	void *cap;
 };

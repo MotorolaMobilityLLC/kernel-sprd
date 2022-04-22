@@ -13,13 +13,14 @@
 
 
 #define GSP_QOGIRN6PRO "qogirn6pro"
+#define GSP1_QOGIRN6PRO "r4p0-qogirn6pro"
 
-#define QOGIRN6PRO_AP_AHB_DISP_EB_NAME	  ("clk_dpuvsp_eb")
+#define QOGIRN6PRO_DPU_VSP_EB_NAME	  ("clk_dpuvsp_eb")
 
 struct gsp_interface_qogirn6pro {
 	struct gsp_interface common;
 
-	struct clk *clk_ap_ahb_disp_eb;
+	struct clk *clk_dpu_vsp_eb;
 	struct regmap *module_en_regmap;
 	struct regmap *reset_regmap;
 };

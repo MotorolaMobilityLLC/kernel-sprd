@@ -37,6 +37,8 @@ struct gsp_r9p0_core {
 
 #define MEM_OPS_ADDR_ALIGN_MASK (0x7UL)
 
+int gsp_r9p0_core_devset(struct device *drm_gsp[GSP_MAX_NUM], struct device *gspdev);
+
 int gsp_r9p0_core_parse_dt(struct gsp_core *core);
 
 int gsp_r9p0_core_copy_cfg(struct gsp_kcfg *kcfg, void *arg, int index);

@@ -181,6 +181,7 @@ struct gsp_lite_r2p0_cfg_user {
 };
 
 struct drm_gsp_lite_r2p0_cfg_user {
+	__u8 gsp_id;
 	bool async;
 	__u32 size;
 	__u32 num;

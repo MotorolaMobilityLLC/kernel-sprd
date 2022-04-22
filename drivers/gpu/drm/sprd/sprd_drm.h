@@ -9,10 +9,12 @@
 #include <drm/drm_atomic.h>
 #include <drm/drm_print.h>
 
+#define GSP_MAX_NUM 2
+
 struct sprd_drm {
 	struct drm_atomic_state *state;
 	struct drm_device *drm;
-	struct device *gsp_dev;
+	struct device *gsp_dev[GSP_MAX_NUM];
 };
 
 #ifdef CONFIG_DRM_SPRD_DUMMY

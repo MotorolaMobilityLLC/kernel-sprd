@@ -14,6 +14,7 @@
 #define DRM_IOCTL32_DEF(n, f)[DRM_##n] = {.fn = f, .name = #n}
 
 struct drm_gsp_cfg_user32 {
+	u8 gsp_id;
 	bool async;
 	u32 size;
 	u32 num;
@@ -22,6 +23,7 @@ struct drm_gsp_cfg_user32 {
 };
 
 struct drm_gsp_capability32 {
+	u8 gsp_id;
 	u32 size;
 	u32 cap;
 };
@@ -34,6 +36,7 @@ static int sprd_gsp_trigger_compat_ioctl(struct file *file, unsigned int cmd, un
 	if (copy_from_user(&getparam32, (void __user *)arg, sizeof(getparam32)))
 		return -EFAULT;
 
+	getparam.gsp_id = getparam32.gsp_id;
 	getparam.async = getparam32.async;
 	getparam.size = getparam32.size;
 	getparam.num = getparam32.num;
@@ -51,6 +54,7 @@ static int sprd_gsp_get_capability_compat_ioctl(struct file *file, unsigned int 
 	if (copy_from_user(&getparam32, (void __user *)arg, sizeof(getparam32)))
 		return -EFAULT;
 
+	getparam.gsp_id = getparam32.gsp_id;
 	getparam.size = getparam32.size;
 	getparam.cap = compat_ptr(getparam32.cap);
 	return drm_ioctl_kernel(file, sprd_gsp_get_capability_ioctl, &getparam, 0);

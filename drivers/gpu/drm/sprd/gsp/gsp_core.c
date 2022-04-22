@@ -846,15 +846,15 @@ int gsp_core_init(struct gsp_core *core)
 		return ret;
 	}
 
-	ret = core->ops->init(core);
-	if (ret) {
-		GSP_ERR("core[%d] init failed\n", gsp_core_to_id(core));
-		return ret;
-	}
-
 	ret = gsp_core_parse_dt(core);
 	if (ret) {
 		GSP_ERR("core[%d] parse dt failed\n", gsp_core_to_id(core));
+		return ret;
+	}
+
+	ret = core->ops->init(core);
+	if (ret) {
+		GSP_ERR("core[%d] init failed\n", gsp_core_to_id(core));
 		return ret;
 	}
 
