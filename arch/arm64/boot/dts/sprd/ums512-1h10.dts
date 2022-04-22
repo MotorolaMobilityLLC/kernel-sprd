@@ -143,7 +143,6 @@
 		reg = <0>;
 
 		sprd,backlight = <&pwm_backlight>;
-		sprd,force-attached = "lcd_td4310_truly_mipi_fhd";
 
 		avdd-gpio = <&ap_gpio 132 GPIO_ACTIVE_HIGH>;
 		avee-gpio = <&ap_gpio 133 GPIO_ACTIVE_HIGH>;
