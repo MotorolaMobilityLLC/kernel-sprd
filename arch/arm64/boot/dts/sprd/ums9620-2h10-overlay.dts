@@ -454,19 +454,6 @@
 		ti,bq2597x,watchdog-timer = <30000>;
 	};
 
-	ams_tcs3430: tcs3430@39 {
-		compatible = "ams,tcs3430";
-		reg = <0x39>;
-		als_name = "ams_als";
-		persist = <0>;
-		als_time_ms = <100>;
-		als_gain = <64>;
-		int_config = <0>;
-		als_can_wake = <1>;
-		irq_gpios = <60>;
-		interrupt-parent = <&ap_gpio>;
-		interrupts = <60 IRQ_TYPE_LEVEL_LOW>;
-	};
 
 	btn38003a: btn38003a_redriver@30 {
 		compatible = "sprd,ptn38003a redriver";
