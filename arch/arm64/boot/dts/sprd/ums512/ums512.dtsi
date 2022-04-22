@@ -213,6 +213,19 @@
 			#size-cells = <2>;
 			ranges;
 
+			mailbox: mailbox@320a0000 {
+				compatible = "unisoc,mailbox";
+				reg = <0 0x320a0000 0 0x8000>,
+				      <0 0x320a8000 0 0x8000>;
+				reg-names = "inbox", "outbox";
+				sprd,mailbox_clk = <&aon_apb_regs 0x4 0x4>;
+				interrupts = <GIC_SPI 82 IRQ_TYPE_LEVEL_HIGH>,
+					     <GIC_SPI 83 IRQ_TYPE_LEVEL_HIGH>,
+					     <GIC_SPI 84 IRQ_TYPE_LEVEL_HIGH>;
+				interrupt-names = "inbox", "outbox", "oob-outbox";
+				#mbox-cells = <2>;
+			};
+
 			pwms: pwm@32260000 {
 				compatible = "sprd,ums512-pwm";
 				reg = <0 0x32260000 0 0x10000>;
@@ -244,6 +257,11 @@
 			};
 		};
 	};
+	sipc: sipc-virt {
+		compatible = "unisoc,sipc-virt-bus";
+		#address-cells = <1>;
+		#size-cells = <0>;
+	};
 };
 
 /* Include other IP modules */
@@ -260,3 +278,4 @@
 #include "uart.dtsi"
 #include "i2c.dtsi"
 #include "spi.dtsi"
+#include "modem.dtsi"
