@@ -343,21 +343,20 @@ static bool report_enabled(void)
 	return !test_and_set_bit(KASAN_BIT_REPORTED, &kasan_flags);
 }
 
-static void kasan_update_kunit_status(struct kunit *cur_test, bool sync)
+static void kasan_update_kunit_status(struct kunit *cur_test)
 {
 	struct kunit_resource *resource;
-	struct kunit_kasan_status *status;
+	struct kunit_kasan_expectation *kasan_data;
 
-	resource = kunit_find_named_resource(cur_test, "kasan_status");
+	resource = kunit_find_named_resource(cur_test, "kasan_data");
 
 	if (!resource) {
 		kunit_set_failure(cur_test);
 		return;
 	}
 
-	status = (struct kunit_kasan_status *)resource->data;
-	WRITE_ONCE(status->report_found, true);
-	WRITE_ONCE(status->sync_fault, sync);
+	kasan_data = (struct kunit_kasan_expectation *)resource->data;
+	WRITE_ONCE(kasan_data->report_found, true);
 	kunit_put_resource(resource);
 }
 
@@ -369,7 +368,7 @@ void kasan_report_invalid_free(void *object, unsigned long ip)
 	object = kasan_reset_tag(object);
 
 	if (current->kunit_test)
-		kasan_update_kunit_status(current->kunit_test, true);
+		kasan_update_kunit_status(current->kunit_test);
 
 	start_report(&flags);
 	pr_err("BUG: KASAN: double-free or invalid-free in %pS\n", (void *)ip);
@@ -387,7 +386,7 @@ void kasan_report_async(void)
 	unsigned long flags;
 
 	if (current->kunit_test)
-		kasan_update_kunit_status(current->kunit_test, false);
+		kasan_update_kunit_status(current->kunit_test);
 
 	start_report(&flags);
 	pr_err("BUG: KASAN: invalid-access\n");
@@ -407,7 +406,7 @@ static void __kasan_report(unsigned long addr, size_t size, bool is_write,
 	unsigned long flags;
 
 	if (current->kunit_test)
-		kasan_update_kunit_status(current->kunit_test, true);
+		kasan_update_kunit_status(current->kunit_test);
 
 	disable_trace_on_warning();
 

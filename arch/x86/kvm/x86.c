@@ -1605,7 +1605,8 @@ static int set_efer(struct kvm_vcpu *vcpu, struct msr_data *msr_info)
 		return r;
 	}
 
-	if ((efer ^ old_efer) & KVM_MMU_EFER_ROLE_BITS)
+	/* Update reserved bits */
+	if ((efer ^ old_efer) & EFER_NX)
 		kvm_mmu_reset_context(vcpu);
 
 	return 0;

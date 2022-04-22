@@ -62,12 +62,8 @@ int vhost_iotlb_add_range_ctx(struct vhost_iotlb *iotlb,
 	 */
 	if (start == 0 && last == ULONG_MAX) {
 		u64 mid = last / 2;
-		int err = vhost_iotlb_add_range_ctx(iotlb, start, mid, addr,
-				perm, opaque);
 
-		if (err)
-			return err;
-
+		vhost_iotlb_add_range_ctx(iotlb, start, mid, addr, perm, opaque);
 		addr += mid + 1;
 		start = mid + 1;
 	}

@@ -508,14 +508,12 @@ static int rk817_platform_probe(struct platform_device *pdev)
 	if (ret < 0) {
 		dev_err(&pdev->dev, "%s() register codec error %d\n",
 			__func__, ret);
-		goto err_clk;
+		goto err_;
 	}
 
 	return 0;
-
-err_clk:
-	clk_disable_unprepare(rk817_codec_data->mclk);
 err_:
+
 	return ret;
 }
 

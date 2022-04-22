@@ -5,6 +5,7 @@
 
 #if !defined(_TRACE_HOOK_SOFTLOCKUP_H) || defined(TRACE_HEADER_MULTI_READ)
 #define _TRACE_HOOK_SOFTLOCKUP_H
+#include <linux/tracepoint.h>
 #include <trace/hooks/vendor_hooks.h>
 
 struct pt_regs;

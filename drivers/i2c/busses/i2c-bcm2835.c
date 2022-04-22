@@ -407,7 +407,7 @@ static const struct i2c_adapter_quirks bcm2835_i2c_quirks = {
 static int bcm2835_i2c_probe(struct platform_device *pdev)
 {
 	struct bcm2835_i2c_dev *i2c_dev;
-	struct resource *mem;
+	struct resource *mem, *irq;
 	int ret;
 	struct i2c_adapter *adap;
 	struct clk *mclk;
@@ -454,20 +454,21 @@ static int bcm2835_i2c_probe(struct platform_device *pdev)
 	ret = clk_prepare_enable(i2c_dev->bus_clk);
 	if (ret) {
 		dev_err(&pdev->dev, "Couldn't prepare clock");
-		goto err_put_exclusive_rate;
+		return ret;
 	}
 
-	i2c_dev->irq = platform_get_irq(pdev, 0);
-	if (i2c_dev->irq < 0) {
-		ret = i2c_dev->irq;
-		goto err_disable_unprepare_clk;
+	irq = platform_get_resource(pdev, IORESOURCE_IRQ, 0);
+	if (!irq) {
+		dev_err(&pdev->dev, "No IRQ resource\n");
+		return -ENODEV;
 	}
+	i2c_dev->irq = irq->start;
 
 	ret = request_irq(i2c_dev->irq, bcm2835_i2c_isr, IRQF_SHARED,
 			  dev_name(&pdev->dev), i2c_dev);
 	if (ret) {
 		dev_err(&pdev->dev, "Could not request IRQ\n");
-		goto err_disable_unprepare_clk;
+		return -ENODEV;
 	}
 
 	adap = &i2c_dev->adapter;
@@ -491,16 +492,7 @@ static int bcm2835_i2c_probe(struct platform_device *pdev)
 
 	ret = i2c_add_adapter(adap);
 	if (ret)
-		goto err_free_irq;
-
-	return 0;
-
-err_free_irq:
-	free_irq(i2c_dev->irq, i2c_dev);
-err_disable_unprepare_clk:
-	clk_disable_unprepare(i2c_dev->bus_clk);
-err_put_exclusive_rate:
-	clk_rate_exclusive_put(i2c_dev->bus_clk);
+		free_irq(i2c_dev->irq, i2c_dev);
 
 	return ret;
 }

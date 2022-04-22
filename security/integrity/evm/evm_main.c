@@ -86,7 +86,7 @@ static int __init evm_set_fixmode(char *str)
 	else
 		pr_err("invalid \"%s\" mode", str);
 
-	return 1;
+	return 0;
 }
 __setup("evm=", evm_set_fixmode);
 

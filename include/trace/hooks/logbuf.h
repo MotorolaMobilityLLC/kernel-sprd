@@ -7,6 +7,7 @@
 #if !defined(_TRACE_HOOK_LOGBUF_H) || defined(TRACE_HEADER_MULTI_READ)
 #define _TRACE_HOOK_LOGBUF_H
 
+#include <linux/tracepoint.h>
 #include <trace/hooks/vendor_hooks.h>
 
 struct printk_ringbuffer;

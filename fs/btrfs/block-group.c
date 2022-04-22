@@ -1504,12 +1504,8 @@ void btrfs_reclaim_bgs_work(struct work_struct *work)
 	if (!test_bit(BTRFS_FS_OPEN, &fs_info->flags))
 		return;
 
-	sb_start_write(fs_info->sb);
-
-	if (!btrfs_exclop_start(fs_info, BTRFS_EXCLOP_BALANCE)) {
-		sb_end_write(fs_info->sb);
+	if (!btrfs_exclop_start(fs_info, BTRFS_EXCLOP_BALANCE))
 		return;
-	}
 
 	/*
 	 * Long running balances can keep us blocked here for eternity, so
@@ -1517,7 +1513,6 @@ void btrfs_reclaim_bgs_work(struct work_struct *work)
 	 */
 	if (!mutex_trylock(&fs_info->reclaim_bgs_lock)) {
 		btrfs_exclop_finish(fs_info);
-		sb_end_write(fs_info->sb);
 		return;
 	}
 
@@ -1586,7 +1581,6 @@ next:
 	spin_unlock(&fs_info->unused_bgs_lock);
 	mutex_unlock(&fs_info->reclaim_bgs_lock);
 	btrfs_exclop_finish(fs_info);
-	sb_end_write(fs_info->sb);
 }
 
 void btrfs_reclaim_bgs(struct btrfs_fs_info *fs_info)

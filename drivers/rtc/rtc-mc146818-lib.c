@@ -176,10 +176,8 @@ int mc146818_set_time(struct rtc_time *time)
 	if (yrs >= 100)
 		yrs -= 100;
 
-	spin_lock_irqsave(&rtc_lock, flags);
-	save_control = CMOS_READ(RTC_CONTROL);
-	spin_unlock_irqrestore(&rtc_lock, flags);
-	if (!(save_control & RTC_DM_BINARY) || RTC_ALWAYS_BCD) {
+	if (!(CMOS_READ(RTC_CONTROL) & RTC_DM_BINARY)
+	    || RTC_ALWAYS_BCD) {
 		sec = bin2bcd(sec);
 		min = bin2bcd(min);
 		hrs = bin2bcd(hrs);

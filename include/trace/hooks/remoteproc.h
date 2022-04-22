@@ -9,6 +9,7 @@
 
 struct rproc;
 
+#include <linux/tracepoint.h>
 #include <trace/hooks/vendor_hooks.h>
 
 struct rproc;

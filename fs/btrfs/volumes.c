@@ -530,48 +530,15 @@ error:
 	return ret;
 }
 
-/*
- * Check if the device in the path matches the device in the given struct device.
- *
- * Returns:
- *   true  If it is the same device.
- *   false If it is not the same device or on error.
- */
-static bool device_matched(const struct btrfs_device *device, const char *path)
+static bool device_path_matched(const char *path, struct btrfs_device *device)
 {
-	char *device_name;
-	dev_t dev_old;
-	dev_t dev_new;
-	int ret;
-
-	/*
-	 * If we are looking for a device with the matching dev_t, then skip
-	 * device without a name (a missing device).
-	 */
-	if (!device->name)
-		return false;
-
-	device_name = kzalloc(BTRFS_PATH_NAME_MAX, GFP_KERNEL);
-	if (!device_name)
-		return false;
+	int found;
 
 	rcu_read_lock();
-	scnprintf(device_name, BTRFS_PATH_NAME_MAX, "%s", rcu_str_deref(device->name));
+	found = strcmp(rcu_str_deref(device->name), path);
 	rcu_read_unlock();
 
-	ret = lookup_bdev(device_name, &dev_old);
-	kfree(device_name);
-	if (ret)
-		return false;
-
-	ret = lookup_bdev(path, &dev_new);
-	if (ret)
-		return false;
-
-	if (dev_old == dev_new)
-		return true;
-
-	return false;
+	return found == 0;
 }
 
 /*
@@ -604,7 +571,9 @@ static int btrfs_free_stale_devices(const char *path,
 					 &fs_devices->devices, dev_list) {
 			if (skip_device && skip_device == device)
 				continue;
-			if (path && !device_matched(device, path))
+			if (path && !device->name)
+				continue;
+			if (path && !device_path_matched(path, device))
 				continue;
 			if (fs_devices->opened) {
 				/* for an already deleted device return 0 */
@@ -8216,12 +8185,10 @@ static int relocating_repair_kthread(void *data)
 	target = cache->start;
 	btrfs_put_block_group(cache);
 
-	sb_start_write(fs_info->sb);
 	if (!btrfs_exclop_start(fs_info, BTRFS_EXCLOP_BALANCE)) {
 		btrfs_info(fs_info,
 			   "zoned: skip relocating block group %llu to repair: EBUSY",
 			   target);
-		sb_end_write(fs_info->sb);
 		return -EBUSY;
 	}
 
@@ -8249,7 +8216,6 @@ out:
 		btrfs_put_block_group(cache);
 	mutex_unlock(&fs_info->reclaim_bgs_lock);
 	btrfs_exclop_finish(fs_info);
-	sb_end_write(fs_info->sb);
 
 	return ret;
 }

@@ -2152,6 +2152,12 @@ static int push_dl_task(struct rq *rq)
 		return 0;
 
 retry:
+	if (is_migration_disabled(next_task))
+		return 0;
+
+	if (WARN_ON(next_task == rq->curr))
+		return 0;
+
 	/*
 	 * If next_task preempts rq->curr, and rq->curr
 	 * can move away, it makes sense to just reschedule
@@ -2163,12 +2169,6 @@ retry:
 		resched_curr(rq);
 		return 0;
 	}
-
-	if (is_migration_disabled(next_task))
-		return 0;
-
-	if (WARN_ON(next_task == rq->curr))
-		return 0;
 
 	/* We might release rq lock */
 	get_task_struct(next_task);
