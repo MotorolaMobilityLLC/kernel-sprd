@@ -111,10 +111,14 @@ static ssize_t emem_trigger_write(struct file *file, const char __user *buf,
 	return count;
 }
 
+const struct proc_ops proc_emem_trigger_operations = {
+	.proc_write		= emem_trigger_write,
+};
+
 static int __init emem_init(void)
 {
 	INIT_WORK(&emem_work, emem_workfn);
-
+	proc_create("emem_trigger", S_IWUSR, NULL, &proc_emem_trigger_operations);
 	return 0;
 }
 
