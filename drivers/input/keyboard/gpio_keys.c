@@ -574,8 +574,7 @@ static int gpio_keys_setup_key(struct platform_device *pdev,
 			 * hrtimer instead of a standard timer for the software
 			 * debounce, to reduce the latency as much as possible.
 			 */
-			bdata->debounce_use_hrtimer =
-					!gpiod_cansleep(bdata->gpiod);
+			bdata->debounce_use_hrtimer = 0;
 		}
 
 		if (button->irq) {
