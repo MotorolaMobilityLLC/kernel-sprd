@@ -175,7 +175,7 @@
 
 				/* how much time to allow capacity change */
 				cm-one-cap-time = <30>;
-				/* cm-thermal-zone = "board-thmzone"; */
+				cm-thermal-zone = "board-thmzone";
 				/* when the safe charging voltage is exceeded, stop charging */
 				cm-charge-voltage-max = <6500000>;
 				cm-fast-charge-voltage-max = <10500000>;
