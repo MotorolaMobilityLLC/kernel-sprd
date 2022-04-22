@@ -14,11 +14,6 @@
 #include "sprd_dvfs_apsys.h"
 #include "apsys_dvfs_roc1.h"
 
-void roc1_apsys_get_version(struct apsys_dev *apsys)
-{
-	apsys->version = "roc1";
-}
-
 char *roc1_apsys_val_to_volt(u32 val)
 {
 	switch (val) {
@@ -214,5 +209,4 @@ const struct apsys_dvfs_ops roc1_apsys_dvfs_ops = {
 	.apsys_min_volt = apsys_dvfs_min_volt,
 	.top_dvfs_init = apsys_top_dvfs_init,
 	.top_cur_volt = dcdc_modem_cur_volt,
-	.get_version = roc1_apsys_get_version,
 };

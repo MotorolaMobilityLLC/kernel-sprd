@@ -14,11 +14,6 @@
 #include "sprd_dvfs_apsys.h"
 #include "apsys_dvfs_qogirl6.h"
 
-void qogirl6_apsys_get_version(struct apsys_dev *apsys)
-{
-	apsys->version = "qogirl6";
-}
-
 char *qogirl6_apsys_val_to_volt(u32 val)
 {
 	switch (val) {
@@ -211,5 +206,4 @@ const struct apsys_dvfs_ops qogirl6_apsys_dvfs_ops = {
 	.apsys_min_volt = apsys_dvfs_min_volt,
 	.top_dvfs_init = apsys_top_dvfs_init,
 	.top_cur_volt = dcdc_modem_cur_volt,
-	.get_version = qogirl6_apsys_get_version,
 };

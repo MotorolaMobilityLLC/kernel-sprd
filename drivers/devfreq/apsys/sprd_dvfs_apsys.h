@@ -65,7 +65,6 @@ struct ip_dvfs_status {
 struct apsys_dev {
 	struct device dev;
 	unsigned long base;
-	const char *version;
 
 	struct apsys_dvfs_coffe dvfs_coffe;
 	const struct apsys_dvfs_ops *dvfs_ops;
@@ -88,13 +87,11 @@ struct apsys_dvfs_ops {
 	/* top common ops */
 	void (*top_dvfs_init)(struct apsys_dev *apsys);
 	int (*top_cur_volt)(struct apsys_dev *apsys);
-
-	/* other common ops */
-	void (*get_version)(struct apsys_dev *apsys);
 };
 
 struct sprd_apsys_dvfs_ops {
-	 const struct apsys_dvfs_ops *apsys_ops;
+	const struct apsys_dvfs_ops *apsys_ops;
+	const char *version;
 };
 
 struct apsys_dev *find_apsys_device_by_name(char *name);

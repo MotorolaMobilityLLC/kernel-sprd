@@ -16,11 +16,6 @@
 #include "sprd_dvfs_apsys.h"
 #include "apsys_dvfs_qogirn6pro.h"
 
-void qogirn6pro_apsys_get_verison(struct apsys_dev *apsys)
-{
-	apsys->version = "qogirn6pro";
-}
-
 char *qogirn6pro_apsys_val_to_volt(u32 val)
 {
 	switch (val) {
@@ -305,5 +300,4 @@ const struct apsys_dvfs_ops qogirn6pro_apsys_dvfs_ops = {
 	.apsys_min_volt = apsys_dvfs_min_volt,
 	.top_dvfs_init = apsys_top_dvfs_init,
 	.top_cur_volt = dcdc_modem_cur_volt,
-	.get_version = qogirn6pro_apsys_get_verison,
 };

@@ -576,13 +576,6 @@ static int dpu_dvfs_probe(struct platform_device *pdev)
 	if (!apsys)
 		return -ENOMEM;
 
-	if (!strcmp("qogirn6pro", apsys->version)) {
-		if (!n6pro_soc_ver_id_check()) {
-			pr_err("apsys : %s soc is AA,bypass\n", apsys->version);
-			return -EINVAL;
-		}
-	}
-
 	dpu->apsys = apsys;
 
 	pdata = of_device_get_match_data(&pdev->dev);

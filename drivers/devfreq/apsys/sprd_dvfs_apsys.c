@@ -24,6 +24,7 @@ LIST_HEAD(apsys_dvfs_head);
 
 struct class *dvfs_class;
 struct regmap *regmap_aon_base;
+bool n6pro_AA_flag;
 
 int n6pro_soc_ver_id_check(void)
 {
@@ -66,8 +67,14 @@ struct apsys_dev *find_apsys_device_by_name(char *name)
 		return NULL;
 	}
 
-	pr_info("find platform device by node with name :%s, address:%lx\n",
-				name, apsys->apsys_base);
+	if (apsys) {
+		pr_info("find platform device by node with name :%s, address:%lx\n",
+					name, apsys->apsys_base);
+	} else {
+		pr_err("find apsys device failed, apsys is NULL!\n");
+		dump_stack();
+	}
+
 	return apsys;
 }
 
@@ -277,15 +284,15 @@ static int apsys_dvfs_probe(struct platform_device *pdev)
 	pdata = of_device_get_match_data(&pdev->dev);
 	if (pdata) {
 		apsys->dvfs_ops = pdata->apsys_ops;
-		pdata->apsys_ops->get_version(apsys);
 	} else {
 		pr_err("No matching driver data found\n");
 		return -EINVAL;
 	}
 
-	if (!strcmp("qogirn6pro", apsys->version)) {
+	if (!strcmp("qogirn6pro", pdata->version)) {
 		if (!n6pro_soc_ver_id_check()) {
-			pr_err("apsys : %s soc is AA,bypass\n", apsys->version);
+			pr_err("apsys : %s soc is AA,bypass\n", pdata->version);
+			n6pro_AA_flag = true;
 			return -EINVAL;
 		}
 	}
@@ -332,22 +339,27 @@ static int apsys_dvfs_remove(struct platform_device *pdev)
 
 static const struct sprd_apsys_dvfs_ops qogirl6_apsys_ops = {
 	.apsys_ops = &qogirl6_apsys_dvfs_ops,
+	.version = "qogirl6",
 };
 
 static const struct sprd_apsys_dvfs_ops roc1_apsys_ops = {
 	.apsys_ops = &roc1_apsys_dvfs_ops,
+	.version = "roc1",
 };
 
 static const struct sprd_apsys_dvfs_ops sharkl5pro_apsys_ops = {
 	.apsys_ops = &sharkl5pro_apsys_dvfs_ops,
+	.version = "sharkl5pro",
 };
 
 static const struct sprd_apsys_dvfs_ops sharkl5_apsys_ops = {
 	.apsys_ops = &sharkl5_apsys_dvfs_ops,
+	.version = "sharkl5",
 };
 
 static const struct sprd_apsys_dvfs_ops qogirn6pro_apsys_ops = {
 	.apsys_ops = &qogirn6pro_apsys_dvfs_ops,
+	.version = "qogirn6pro",
 };
 
 /*
@@ -405,8 +417,10 @@ static int __init apsys_dvfs_register(void)
 	int i, ret;
 
 	ret = platform_driver_register(&apsys_dvfs_driver);
-	if (ret)
-		return ret;
+	if (n6pro_AA_flag) {
+		pr_info("%s() n6pro aa does not need dvfs, skip other probe\n", __func__);
+		return -1;
+	}
 
 	for (i = 0; i < ARRAY_SIZE(sprd_apsys_dvfs_drivers); i++) {
 		ret = devfreq_add_governor(sprd_apsys_dvfs_governors[i]);
