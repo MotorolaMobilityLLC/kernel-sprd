@@ -61,7 +61,11 @@ static const char * const syscon_name[] = {
 	"dcam_force_shutdown",
 	"dcam_shutdown_en",
 	"dcam_power_state",
-	"aon_apb_mm_eb"
+	"aon_apb_mm_eb",
+	"mm_ahb_dvfs_en",
+	"cam_sw_dvfs_ack",
+	"cam_sw_dvfs_volt",
+	"cam_sw_dvfs_req"
 };
 
 enum  {
@@ -75,6 +79,10 @@ enum  {
 	CAMSYS_DCAM_SHUTDOWN_EN,
 	CAMSYS_DCAM_STATUS,
 	CAMSYS_MM_EB,
+	CAMSYS_DVFS_EN,
+	CAMSYS_DVFS_ACK,
+	CAMSYS_DVFS_VOLT,
+	CAMSYS_DVFS_REQ,
 };
 
 struct camsys_power_info;
@@ -121,6 +129,35 @@ static int regmap_read_mmsys(struct register_gpr *p, uint32_t *val)
 	return ret;
 }
 
+static void mmsys_sw_dvfs_voltage_tune(struct camsys_power_info *pw_info)
+{
+	/*if hw dvfs is not used, sw dvfs must be used to set cam voltage to 0.75V*/
+	int ret = 0;
+	uint32_t value;
+
+	/*dvfs_en enable*/
+	regmap_update_bits_mmsys(&pw_info->u.qogirn6pro.regs[CAMSYS_DVFS_EN],
+			0x8);
+	/*set camera volt 0.75V*/
+	regmap_update_bits_mmsys(&pw_info->u.qogirn6pro.regs[CAMSYS_DVFS_VOLT],
+			0x40);
+	regmap_update_bits_mmsys(&pw_info->u.qogirn6pro.regs[CAMSYS_DVFS_REQ],
+			0x1);
+
+	usleep_range(100, 150);
+	ret = regmap_read_mmsys(&pw_info->u.qogirn6pro.regs[CAMSYS_DVFS_ACK], &value);
+	if (ret)
+		pr_err("fail to get dvfs ack state");
+	if (value >> 8)
+		pr_info("ack return, voltage has changed done");
+
+	/*clear camera_dvfs_req_sw and ack*/
+	regmap_update_bits_mmsys(&pw_info->u.qogirn6pro.regs[CAMSYS_DVFS_REQ],
+			(~0x1));
+	regmap_update_bits_mmsys(&pw_info->u.qogirn6pro.regs[CAMSYS_DVFS_ACK],
+			(~0x100));
+}
+
 static int sprd_cam_domain_eb(struct camsys_power_info *pw_info)
 {
 	int ret = 0;
@@ -130,6 +167,7 @@ static int sprd_cam_domain_eb(struct camsys_power_info *pw_info)
 	/* config cam emc clk */
 	clk_prepare_enable(pw_info->u.qogirn6pro.mm_eb);
 	clk_prepare_enable(pw_info->u.qogirn6pro.ckg_en);
+	mmsys_sw_dvfs_voltage_tune(pw_info);
 	clk_set_parent(pw_info->u.qogirn6pro.mm_mtx_clk, pw_info->u.qogirn6pro.mm_mtx_clk_parent);
 	clk_prepare_enable(pw_info->u.qogirn6pro.mm_mtx_clk);
 	clk_prepare_enable(pw_info->u.qogirn6pro.mm_mtx_data_en);
