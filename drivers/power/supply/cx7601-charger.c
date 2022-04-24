@@ -85,6 +85,7 @@ struct cx7601_charger_info {
 	u32 role;
 	bool need_disable_Q1;
 	u32 term_voltage;
+	bool charge_enable;
 };
 
 #include <ontim/ontim_dev_dgb.h>
@@ -97,6 +98,10 @@ ONTIM_DEBUG_DECLARE_AND_INIT(charge_ic,charge_ic,8);
 static int
 cx7601_charger_set_limit_current(struct cx7601_charger_info *info,
 				  u32 limit_cur);
+static int cx7601_charger_set_current(struct cx7601_charger_info *info,
+				       u32 cur);
+static int
+cx7601_charger_set_termina_vol(struct cx7601_charger_info *info, u32 vol);
 
 static bool cx7601_charger_is_bat_present(struct cx7601_charger_info *info)
 {
@@ -664,6 +669,9 @@ static int cx7601_charger_hw_init(struct cx7601_charger_info *info)
 
 	}
 
+	cx7601_charger_set_termina_vol(info, 4400);
+	cx7601_charger_set_limit_current(info,100);
+
 	cx7601_dump_regs(info);
 
 	return ret;
@@ -673,6 +681,7 @@ static int
 cx7601_charger_set_termina_vol(struct cx7601_charger_info *info, u32 vol)
 {
 	u8 val;
+	dev_err(info->dev, "%s;%d;\n",__func__,vol);
 
 	info->term_voltage = vol;
 	if (vol < REG04_VREG_BASE)
@@ -725,6 +734,7 @@ static int cx7601_charging(struct cx7601_charger_info *info, bool enable)
 static int cx7601_charger_start_charge(struct cx7601_charger_info *info)
 {
 	int ret;
+	dev_err(info->dev, "%s;;\n",__func__);
 
 	if (info->role == CX7601_ROLE_MASTER_DEFAULT) {
 		ret = regmap_update_bits(info->pmic, info->charger_pd,
@@ -736,15 +746,22 @@ static int cx7601_charger_start_charge(struct cx7601_charger_info *info)
 	} else if (info->role == CX7601_ROLE_SLAVE) {
 		gpiod_set_value_cansleep(info->gpiod, 0);
 	}
+    info->charge_enable = true;
 
-	cx7601_enable_term(info,true);
 
 	cx7601_charging(info,true);
+
+	msleep(100);
+
 
 	ret = cx7601_charger_set_limit_current(info,
 						info->last_limit_current);
 	if (ret)
 		dev_err(info->dev, "failed to set limit current\n");
+
+	cx7601_charger_set_current(info, info->last_current);
+
+	cx7601_enable_term(info,true);
 
 	return ret;
 }
@@ -772,6 +789,8 @@ static void cx7601_charger_stop_charge(struct cx7601_charger_info *info)
 
 	cx7601_charging(info,false);
 
+	cx7601_charger_set_limit_current(info,100);
+    info->charge_enable = false;
 }
 
 static int cx7601_charger_set_current(struct cx7601_charger_info *info,
@@ -784,6 +803,7 @@ static int cx7601_charger_set_current(struct cx7601_charger_info *info,
 	info->last_current = cur;
 	pr_info("[%s] cur=%d\n", __func__, cur);
 
+	if(info->charge_enable)
 	cx7601_set_chargecurrent(info,cur);
 	return 0;
 }
@@ -814,6 +834,7 @@ cx7601_charger_set_limit_current(struct cx7601_charger_info *info,
 
 	info->last_limit_current = limit_cur;
 	pr_info("[%s] limit_cur=%d\n", __func__, limit_cur);
+	if(info->charge_enable)
 	cx7601_set_input_current_limit(info, limit_cur);
 
 	return 0;
@@ -1450,6 +1471,8 @@ static int cx7601_charger_probe(struct i2c_client *client,
 	info->client = client;
 	info->client->addr = 0x6b;
 	info->dev = dev;
+
+	info->charge_enable =false;
 
 	cx7601_write(info, 0x40, 0x50);
 	cx7601_write(info, 0x40, 0x57);
