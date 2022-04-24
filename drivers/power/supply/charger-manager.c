@@ -1381,6 +1381,8 @@ static bool check_charge_done(struct charger_manager *cm)
 	bool done = false;
 	struct power_supply *psy;
 	union power_supply_propval val;
+	static bool over =false;
+	static int over_c=0;
 
 	/* If there is no battery, it cannot be charged */
 	if (!is_batt_present(cm))
@@ -1441,15 +1443,62 @@ static bool check_charge_done(struct charger_manager *cm)
 			get_batt_ocv(cm, &ocv);
 		       get_ibat_now_uA(cm, &uA);
 			get_charger_term_voltage(cm,&term);
-			if(ocv> (term-100000) && uA <180000)
+			if(ocv> (term-100000) && uA <180000 && uA >0)
 			{
+		
 				done = true;
 				break;
 			}							
 
 		}
-			
+		else if(val.intval == 3)
+		{
+			int ocv,uA,term;
+			get_batt_ocv(cm, &ocv);
+		       get_ibat_now_uA(cm, &uA);
+			get_charger_term_voltage(cm,&term);
+			if(ocv> (term-100000) && uA <180000 && uA >0  && over ==false)
+			{
+				over_c++;	
+				if(term >4300000 && over_c > 5)
+				{
+					cm->cm_charge_vote->vote(cm->cm_charge_vote, true,
+								 SPRD_VOTE_TYPE_CCCV,
+								 SPRD_VOTE_TYPE_CCCV_ID_JEITA,
+								 SPRD_VOTE_CMD_MIN,
+								 4352000, cm);
+					over_c =0;
+					over = true;
+					dev_err(cm->dev, "%s;%d; \n",__func__,over);
+				}
+				done = true;
+				break;
+			}
+			else if(over && uA >2000 ) //2ma
+			{
 
+				over_c++;
+				if(over_c >=3)
+				{
+					cm->cm_charge_vote->vote(cm->cm_charge_vote, true,
+								 SPRD_VOTE_TYPE_CCCV,
+								 SPRD_VOTE_TYPE_CCCV_ID_JEITA,
+								 SPRD_VOTE_CMD_MAX,
+								 4400000, cm);
+					over_c =0;
+					over = false;
+					dev_err(cm->dev, "%s;%d;\n",__func__,over);
+				}
+				
+				break;
+			}
+			else
+			{
+				over_c =0;
+				break;
+			}	
+			
+		}
 	}
 
 	return done;

@@ -23,6 +23,7 @@
 #include <uapi/linux/usb/charger.h>
 #include "cx7601_reg.h"
 
+u8 close_term =1;  // 0 open; 1 close
 
 #define CX7601_BATTERY_NAME			"sc27xx-fgu"
 #define BIT_DP_DM_BC_ENB			BIT(0)
@@ -670,7 +671,6 @@ static int cx7601_charger_hw_init(struct cx7601_charger_info *info)
 	}
 
 	cx7601_charger_set_termina_vol(info, 4400);
-	cx7601_charger_set_limit_current(info,100);
 
 	cx7601_dump_regs(info);
 
@@ -749,6 +749,8 @@ static int cx7601_charger_start_charge(struct cx7601_charger_info *info)
     info->charge_enable = true;
 
 
+	cx7601_enable_term(info,false);
+
 	cx7601_charging(info,true);
 
 	msleep(100);
@@ -761,6 +763,10 @@ static int cx7601_charger_start_charge(struct cx7601_charger_info *info)
 
 	cx7601_charger_set_current(info, info->last_current);
 
+	if(close_term)
+	{
+	}
+	else
 	cx7601_enable_term(info,true);
 
 	return ret;
@@ -789,7 +795,6 @@ static void cx7601_charger_stop_charge(struct cx7601_charger_info *info)
 
 	cx7601_charging(info,false);
 
-	cx7601_charger_set_limit_current(info,100);
     info->charge_enable = false;
 }
 
@@ -949,7 +954,7 @@ static int cx7601_charger_feed_watchdog(struct cx7601_charger_info *info,
 	return 0;
 }
 
-static bool cx7601_charge_done(struct cx7601_charger_info *info)
+static u8 cx7601_charge_done(struct cx7601_charger_info *info)
 {
 	static int done_c=0;
 
@@ -958,6 +963,9 @@ static bool cx7601_charge_done(struct cx7601_charger_info *info)
 	{
 		unsigned char val = 0;
 
+		if(close_term)
+		return 3;
+		
 		cx7601_read(info, &val, 0x08 );
 		
 		val = ( val >> 4 ) & 0x03;
@@ -966,12 +974,12 @@ static bool cx7601_charge_done(struct cx7601_charger_info *info)
 		{
 			done_c++;
 			if(done_c >= 6)		
-            {		
-				cx7601_enable_term(info,false);
-                if(info->term_voltage == 4400)
-		            cx7601_charger_set_termina_vol(info, 4350);
-                
-            }
+	            {		
+			cx7601_enable_term(info,false);
+	                if(info->term_voltage == 4400)
+			            cx7601_charger_set_termina_vol(info, 4352);
+	                
+	            }
 			return true;
 		}
 	}	
