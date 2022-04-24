@@ -140,7 +140,7 @@
 #define REG_TOP_CORNER_LUT_ADDR		0x504
 #define REG_TOP_CORNER_LUT_WDATA	0x508
 #define REG_BOT_CORNER_LUT_ADDR		0x510
-#define REG_BOT_CORNER_LUT_WDATA	0x518
+#define REG_BOT_CORNER_LUT_WDATA	0x514
 
 /* mmu config registers */
 #define REG_DPU_MMU_EN			0x804
