@@ -11,7 +11,8 @@ compile_for_clang()
        -e LTO_CLANG_THIN \
        -d LTO_CLANG_FULL \
        -e THINLTO \
-       -d CONFIG_LOCALVERSION_AUTO
+       -d CONFIG_LOCALVERSION_AUTO \
+       -d WERROR
 
     make LLVM=1 LLVM=1 DEPMOD=depmod DTC=${DTC_BIN} O=$out $global -j64
 }
@@ -39,7 +40,7 @@ export KERNEL_DIR=${MAIN_SCRIPT_DIR##*/}
 echo "= ROOT_DIR: $ROOT_DIR"
 echo "= KERNEL_DIR: $KERNEL_DIR"
 
-CLANG_VERSION=`cat ${ROOT_DIR}/${KERNEL_DIR}/build.config.constants | awk -F "=" '{print $2}'`
+CLANG_VERSION=`cat ${ROOT_DIR}/${KERNEL_DIR}/build.config.constants | grep "CLANG_VERSION" | awk -F "=" '{print $2}'`
 DTC_BIN=${ROOT_DIR}/build/kernel/build-tools/path/linux-x86/dtc
 CLANG_BIN=${ROOT_DIR}/prebuilts/clang/host/linux-x86/clang-${CLANG_VERSION}/bin
 merge_check=$(git --git-dir=${MAIN_SCRIPT_DIR}/.git log -1 --pretty=short|grep "^Merge:")
@@ -130,7 +131,7 @@ if [ $check_hfile_flag -ne 0 ]; then
             global+="$predir "
         fi
     done
-    make -i LLVM=1 LLVM=1 DEPMOD=depmod DTC=${DTC_BIN} O=$out $global -j64
+    make -i KCFLAGS="-P -U__LINE__ -D__LINE__=0" LLVM=1 DEPMOD=depmod DTC=${DTC_BIN} O=$out $global -j64
     copy_specify_dir $check_ifile_flag $aosp_prefile_dir
 
 elif [ $check_cfile_flag -ne 0 ]; then
@@ -146,7 +147,7 @@ elif [ $check_cfile_flag -ne 0 ]; then
             let check_ifile_flag+=1
         fi
     done
-    make -i LLVM=1 LLVM=1 DEPMOD=depmod DTC=${DTC_BIN} O=$out $global -j64
+    make -i KCFLAGS="-P -U__LINE__ -D__LINE__=0" LLVM=1 DEPMOD=depmod DTC=${DTC_BIN} O=$out $global -j64
     copy_specify_dir $check_ifile_flag $aosp_prefile_dir
 fi
 
@@ -161,7 +162,7 @@ if [ ${#PreArrarydir[@]} -ne 0 ]; then
     do
         global_1+="$predir "
     done
-    make LLVM=1 LLVM=1 DEPMOD=depmod DTC=${DTC_BIN} O=$out $global_1 -j64
+    make KCFLAGS="-P -U__LINE__ -D__LINE__=0" LLVM=1 DEPMOD=depmod DTC=${DTC_BIN} O=$out $global_1 -j64
     cd $out
     for predir in ${PreArrarydir[*]}
     do
@@ -189,8 +190,8 @@ for ((i=0;i<check_ifile_flag;i++))
 do
     if [ -n "${PreArrarydir[i]}" ]; then
         diff $patch_prefile_dir/${PreArrarydir[i]} $aosp_prefile_dir/${PreArrarydir[i]} > /dev/null
-        return_val=$?
-        if [ $return_val -eq 0 ] || [[ ${PreArrarydir[i]} == "init/version.i"  ]]; then
+        result_val=$?
+        if [ $result_val -eq 0 ] || [[ ${PreArrarydir[i]} == "init/version.i"  ]]; then
             unset PreArrarydir[i]
         fi
     fi
@@ -202,8 +203,9 @@ if [ ${#PreArrarydir[@]} -ne 0  ]; then
     echo "the following file has been intrusively modified:" >&2
     for file in ${PreArrarydir[*]}
     do
-        cfile=${filedir/%".i"/".c"}
-        echo "   $file"
+        cfile=${file/%".i"/".c"}
+        echo "   $cfile"
+        let return_val+=1
     done
     echo "Error: gki intrusive check---------------------------fail." >&1
 else
