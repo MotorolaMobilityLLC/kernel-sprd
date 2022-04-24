@@ -280,3 +280,4 @@
 #include "i2c.dtsi"
 #include "spi.dtsi"
 #include "modem.dtsi"
+#include "battery-common.dtsi"

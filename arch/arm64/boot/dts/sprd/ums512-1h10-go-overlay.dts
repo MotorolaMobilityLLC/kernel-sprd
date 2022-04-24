@@ -2,7 +2,7 @@
 /plugin/;
 
 #include "reserved-memory/ums512-1h10-go-overlay.dtsi"
-
+#include "battery/ums512-1h10-go-overlay.dtsi"
 / {
 	model = "Unisoc UMS512-1H10 Board";
 	compatible = "sprd,ums512-1h10-go", "sprd,ums512";
@@ -37,4 +37,38 @@
 		type = <2>;
 		memory-region = <&fd_reserved>;
 	};
+};
+
+&i2c4 {
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	status = "okay";
+	fan54015_chg: charger@6a {
+		compatible = "fairchild,fan54015_chg";
+		reg = <0x6a>;
+		phys = <&hsphy>;
+		monitored-battery = <&bat>;
+		extcon = <&extcon_gpio>;
+		vddvbus:otg-vbus {
+			regulator-name = "vddvbus";
+		};
+	};
+};
+
+&pmic_fgu {
+	monitored-battery = <&bat>;
+	sprd,calib-resistance-micro-ohms = <10000>;
+	sprd,comp-resistance-mohm = <20>;
+
+	fgu-capacity-track;
+	phys = <&hsphy>;
+
+	sprd,relax-counter-threshold = <580>;
+	sprd,relax-current-threshold = <30>;
+	sprd,capacity-sleep-calibration;
+
+	sprd,capacity-boot-calibration;
+	sprd,capacity-charge-cycle;
+	sprd,basp;
 };

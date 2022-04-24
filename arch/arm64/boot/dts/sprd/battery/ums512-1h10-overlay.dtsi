@@ -1,0 +1,9 @@
+&bat {
+	status = "okay";
+};
+
+&cm {
+	cm-chargers = "fan54015_charger";
+};
+
+
