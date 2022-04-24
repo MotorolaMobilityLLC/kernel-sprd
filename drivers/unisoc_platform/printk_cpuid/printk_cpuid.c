@@ -47,17 +47,23 @@ static int __init printk_cpuid_init(void)
 
 	local_irq_save(flag);
 	if (register_trace_android_vh_printk_caller_id(encode_caller_id, NULL))
-		goto fail;
+		goto fail1;
 	if (register_trace_android_vh_printk_caller(decode_caller_id, NULL))
-		goto fail;
+		goto fail2;
 	if (register_trace_android_vh_printk_ext_header(print_ext_header, NULL))
-		goto fail;
+		goto fail3;
 	local_irq_restore(flag);
 
 	pr_info("add cpu ID info to kernel log\n");
 	return 0;
-fail:
+
+fail3:
+	unregister_trace_android_vh_printk_caller(decode_caller_id, NULL);
+fail2:
+	unregister_trace_android_vh_printk_caller_id(encode_caller_id, NULL);
+fail1:
 	pr_err("failed to register vendor hooks\n");
+	local_irq_restore(flag);
 	return -1;
 }
 
@@ -71,7 +77,7 @@ static void __exit printk_cpuid_exit(void)
 	unregister_trace_android_vh_printk_ext_header(print_ext_header, NULL);
 	local_irq_restore(flag);
 
-	pr_warn("exited\n");
+	pr_err("module exited, above logs' caller will be wrong!\n");
 }
 
 module_init(printk_cpuid_init);
