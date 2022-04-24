@@ -18,6 +18,7 @@
 #include "wcn_procfs.h"
 #include "../include/wcn_dbg.h"
 #include "wcn_ca_trusty.h"
+#include "../sipc/wcn_sipc.h"
 #define GNSS_CALI_DONE_FLAG (0x1314520)
 
 static struct mutex marlin_lock;
@@ -2283,6 +2284,7 @@ int btwf_sys_shutdown(struct wcn_device *wcn_dev)
 			btwf_force_shutdown_aontop(wcn_dev);
 		}
 	}
+	wcn_sipc_chn_set_status_all_false();
 
 	/*
 	 * Set SYS,CPU,Cache at reset status

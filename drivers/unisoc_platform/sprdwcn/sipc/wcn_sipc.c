@@ -724,6 +724,17 @@ void wcn_sipc_chn_set_status(void *data, bool flag)
 		sipc_chn->sipc_chn_status = false;
 }
 
+void wcn_sipc_chn_set_status_all_false(void)
+{
+	int index;
+
+	for (index = 0; index < SIPC_CHN_NUM; index++) {
+		if (g_sipc_chn[index].dst != SIPC_WCN_DST)
+			continue;
+		wcn_sipc_chn_set_status(&g_sipc_chn[index], false);
+	}
+}
+
 static void wcn_sipc_sblk_notifer(int event, void *data)
 {
 	struct sipc_chn_info *sipc_chn = (struct sipc_chn_info *)data;

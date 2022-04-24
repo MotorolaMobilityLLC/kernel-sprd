@@ -130,6 +130,7 @@ struct sipc_chn_info {
 
 int wcn_sipc_channel_dir(int index);
 struct sipc_chn_info *wcn_sipc_channel_get(int index);
+void wcn_sipc_chn_set_status_all_false(void);
 
 #ifdef WCN_SIPC_DBG
 #define WCN_HERE WCN_INFO("[%s] %d\n", __func__, __LINE__)
