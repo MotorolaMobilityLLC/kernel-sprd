@@ -4,7 +4,7 @@
 			reg = <0x0 0x20300000 0x0 0x1000>;
 			interrupts = <GIC_SPI 27 IRQ_TYPE_LEVEL_HIGH>;
 
-			reset-syscon = <&aon_apb_regs 0x0004 0x2>;
+			reset-syscon = <&ap_ahb_regs 0x0004 0x2>;
 			status = "disabled";
 			iommus = <&iommu_dispc>;
 			dpu_port: port {
