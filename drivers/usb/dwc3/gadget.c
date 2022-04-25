@@ -279,8 +279,6 @@ int dwc3_send_gadget_ep_cmd(struct dwc3_ep *dep, unsigned cmd,
 	int			cmd_status = 0;
 	int			ret = -EINVAL;
 
-	if (pm_runtime_suspended(dwc->dev))
-		return 0;
 	/*
 	 * When operating in USB 2.0 speeds (HS/FS), if GUSB2PHYCFG.ENBLSLPM or
 	 * GUSB2PHYCFG.SUSPHY is set, it must be cleared before issuing an
@@ -311,9 +309,12 @@ int dwc3_send_gadget_ep_cmd(struct dwc3_ep *dep, unsigned cmd,
 		int link_state;
 
 		link_state = dwc3_gadget_get_link_state(dwc);
-		if (link_state == DWC3_LINK_STATE_U1 ||
-		    link_state == DWC3_LINK_STATE_U2 ||
-		    link_state == DWC3_LINK_STATE_U3) {
+		switch (link_state) {
+		case DWC3_LINK_STATE_U2:
+			if (dwc->gadget.speed >= USB_SPEED_SUPER)
+				break;
+			fallthrough;
+		case DWC3_LINK_STATE_U3:
 			ret = __dwc3_gadget_wakeup(dwc);
 			dev_WARN_ONCE(dwc->dev, ret, "wakeup failed --> %d\n",
 					ret);
@@ -2057,7 +2058,6 @@ static int dwc3_gadget_pullup(struct usb_gadget *g, int is_on)
 		dev_info(dwc->dev, "%s suspended \n", __func__);
 		return 0;
 	}
-#if 0
 	/*
 	 * Check the return value for successful resume, or error.  For a
 	 * successful resume, the DWC3 runtime PM resume routine will handle
@@ -2075,9 +2075,9 @@ static int dwc3_gadget_pullup(struct usb_gadget *g, int is_on)
 	 */
 
 	disable_irq(dwc->irq_gadget);
-#endif
+
 	spin_lock_irqsave(&dwc->lock, flags);
-#if 0
+
 	if (!is_on) {
 		u32 count;
 
@@ -2109,13 +2109,12 @@ static int dwc3_gadget_pullup(struct usb_gadget *g, int is_on)
 	} else {
 		__dwc3_gadget_start(dwc);
 	}
-#endif
+
 	ret = dwc3_gadget_run_stop(dwc, is_on, false);
 	spin_unlock_irqrestore(&dwc->lock, flags);
-#if 0
+
 	enable_irq(dwc->irq_gadget);
 	pm_runtime_put(dwc->dev);
-#endif
 	return ret;
 }
 
@@ -2288,11 +2287,6 @@ static int dwc3_gadget_start(struct usb_gadget *g,
 	}
 
 	dwc->gadget_driver	= driver;
-	if (pm_runtime_active(dwc->dev)) {
-		__dwc3_gadget_start(dwc);
-	} else {
-		dev_info(dwc->dev, "%s pm is not active, do not start \n", __func__);
-	}
 	spin_unlock_irqrestore(&dwc->lock, flags);
 
 	return 0;
@@ -2307,15 +2301,6 @@ err0:
 
 static void __dwc3_gadget_stop(struct dwc3 *dwc)
 {
-	/*
-	 * The dwc3 device may enter suspned mode beofre UDC try to stop
-	 * gadget. So if the dwc3 device has been in suspend state, just return.
-	 */
-	if (pm_runtime_suspended(dwc->dev)) {
-		dev_info(dwc->dev, "already suspended, just return \n");
-		return;
-	}
-
 	dwc3_gadget_disable_irq(dwc);
 	__dwc3_gadget_ep_disable(dwc->eps[0]);
 	__dwc3_gadget_ep_disable(dwc->eps[1]);
@@ -2327,12 +2312,6 @@ static int dwc3_gadget_stop(struct usb_gadget *g)
 	unsigned long		flags;
 
 	spin_lock_irqsave(&dwc->lock, flags);
-	if (pm_runtime_suspended(dwc->dev)) {
-		dev_info(dwc->dev, "%s suspended \n", __func__);
-		goto out;
-	}
-	__dwc3_gadget_stop(dwc);
-out:
 	dwc->gadget_driver	= NULL;
 	spin_unlock_irqrestore(&dwc->lock, flags);
 
