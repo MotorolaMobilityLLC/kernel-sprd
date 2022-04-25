@@ -648,7 +648,7 @@ int sprdwl_cmd_send_recv(struct sprdwl_priv *priv,
 	}
 
 	if (atomic_read(&intf->change_iface_block_cmd) == 1) {
-		if (cmd_id != WIFI_CMD_OPEN && cmd_id != WIFI_CMD_OPEN) {
+		if (cmd_id != WIFI_CMD_OPEN && cmd_id != WIFI_CMD_CLOSE) {
 			wl_info("%s need block cmd while change iface : %s\n",
 					__func__, cmd2str(cmd_id));
 			sprdwl_intf_free_msg_buf(priv, msg);

@@ -298,6 +298,7 @@ static const struct wiphy_wowlan_support sprdwl_wowlan_support = {
 };
 #endif
 
+extern struct sprdwl_intf *g_intf;
 /* Interface related stuff*/
 inline void sprdwl_put_vif(struct sprdwl_vif *vif)
 {
@@ -386,6 +387,7 @@ int sprdwl_init_fw(struct sprdwl_vif *vif)
 	u8 *mac;
 	u8 vif_ctx_id = 0;
 	u8 mode_opened = 0;
+	struct sprdwl_intf *intf = g_intf;
 
 	netdev_info(vif->ndev, "%s type %d, mode %d\n", __func__, type,
 		    vif->mode);
@@ -433,6 +435,11 @@ int sprdwl_init_fw(struct sprdwl_vif *vif)
 		    __func__, type,
 		    vif->mode, vif->ctx_id);
 	priv->fw_stat[vif->mode] = SPRDWL_INTF_OPEN;
+
+	if (atomic_read(&intf->change_iface_block_cmd) == 1) {
+		netdev_info(vif->ndev, "block command finished!, reset change_iface_block_cmd!\n");
+		atomic_set(&intf->change_iface_block_cmd, 0);
+	}
 	/*TODO make sure driver send buf only once*/
 	for (mode = SPRDWL_MODE_STATION; mode < SPRDWL_MODE_MAX; mode++)
 		if (priv->fw_stat[mode] == SPRDWL_INTF_OPEN)
@@ -563,7 +570,7 @@ static int sprdwl_cfg80211_del_iface(struct wiphy *wiphy,
 
 	return 0;
 }
-extern struct sprdwl_intf *g_intf;
+
 static int sprdwl_cfg80211_change_iface(struct wiphy *wiphy,
 					struct net_device *ndev,
 					enum nl80211_iftype type,
@@ -611,11 +618,6 @@ static int sprdwl_cfg80211_change_iface(struct wiphy *wiphy,
 		ret = sprdwl_init_fw(vif);
 		if (ret)
 			vif->wdev.iftype = old_type;
-	}
-
-	if (atomic_read(&intf->change_iface_block_cmd) == 1) {
-		netdev_info(ndev, "block command finished!, reset change_iface_block_cmd!\n");
-		atomic_set(&intf->change_iface_block_cmd, 0);
 	}
 
 	if (!ret && type == NL80211_IFTYPE_AP)
