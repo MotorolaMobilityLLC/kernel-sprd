@@ -1,0 +1,33 @@
+# SPDX-License-Identifier: GPL-2.0-only
+#
+# Generic thermal drivers configuration
+#
+menu "Unisoc Thermal Management"
+
+config UNISOC_CPU_COOLING_DEVICE
+        tristate "sprd cpu cooling device"
+        depends on ARCH_SPRD
+        depends on THERMAL_OF
+        help
+          This implements sprd cpu cooling mechanism through isolate cpu that
+          cpu is forced into idle state from running state to mitigate temperature
+          rising.
+
+          If you want this support, you should say M here.
+
+config UNISOC_GPU_COOLING_DEVICE
+	tristate "sprd gpu cooling device"
+	depends on ARCH_SPRD || THERMAL_OF
+	depends on DEVFREQ_THERMAL
+	help
+	  Say M here to create gpu cooling device node and build power model for IPA.
+	  so that the sprd cooling devices can be bound to thermal zone trip points.
+	  this implements the generic gpu cooling mechanism through frequency reduction.
+
+config UNISOC_SOC_THERMAL
+	tristate "sprd soc thermal"
+	depends on ARCH_SPRD || THERMAL_OF
+	help
+	  Say M here to support virtual thermal for soc chip.
+
+endmenu
