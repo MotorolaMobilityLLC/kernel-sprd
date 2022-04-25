@@ -786,7 +786,7 @@
 			};
 
 			sprd_hardware_cpufreq: hardware-dvfs-platform {
-				compatible = "sprd,hardware-cpufreq", "sprd,cpufreq-v2";
+				compatible = "sprd,cpufreq-v2";
 			};
 
 			watchdog@40310000 {
