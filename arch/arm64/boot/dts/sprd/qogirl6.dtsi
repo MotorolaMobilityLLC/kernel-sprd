@@ -372,7 +372,7 @@
 		ap_ahb_regs: syscon@20400000 {
 			compatible = "sprd,ums9230-glbregs", "syscon";
 			#syscon-cells = <2>;
-			reg = <0 0x20400000 0 0x4000>;
+			reg = <0 0x20400000 0 0x6000>;
 		};
 
 		vsp_pd: vsp-power-domain {
