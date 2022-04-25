@@ -12,6 +12,7 @@
 #include "sc2730/sc2730.dtsi"
 #include "lcd/lcd_td4310_truly_mipi_fhd.dtsi"
 #include "reserved-memory/ums512-common.dtsi"
+#include "battery/battery-common.dtsi"
 
 / {
 	model = "Spreadtrum UMS512-1H10 Board";
@@ -207,4 +208,15 @@
 	sprd,capacity-boot-calibration;
 	sprd,capacity-charge-cycle;
 	sprd,basp;
+};
+
+&bat {
+	status = "okay";
+};
+
+&cm {
+	status = "okay";
+	cm-chargers = "fan54015_charger";
+	cm-cap-remap-table = <1 2 3>, <2 3 2>, <98 99 2>, <99 100 3>;
+	phys = <&hsphy>;
 };

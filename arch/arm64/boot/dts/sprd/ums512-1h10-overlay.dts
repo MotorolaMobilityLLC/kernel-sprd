@@ -1,9 +1,9 @@
 /dts-v1/;
 /plugin/;
 #include <dt-bindings/gpio/gpio.h>
-
 #include "reserved-memory/ums512-1h10-overlay.dtsi"
 #include "battery/ums512-1h10-overlay.dtsi"
+
 / {
 	model = "Unisoc UMS512-1H10 Board";
 	compatible = "sprd,ums512-1h10", "sprd,ums512";

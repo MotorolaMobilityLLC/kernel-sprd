@@ -3,6 +3,7 @@
 
 #include "reserved-memory/ums512-1h10-go-overlay.dtsi"
 #include "battery/ums512-1h10-go-overlay.dtsi"
+
 / {
 	model = "Unisoc UMS512-1H10 Board";
 	compatible = "sprd,ums512-1h10-go", "sprd,ums512";
