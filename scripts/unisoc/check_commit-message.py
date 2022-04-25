@@ -280,6 +280,23 @@ def check_tags_file(modify_file_list, tags_list):
 
     return (-1, inconsistent_file_list)
 
+def check_osa_ifsorted():
+    is_sorted_flag=0
+    status,output=commands.getstatusoutput(GET_PATCH_MODIFY_FILE_INFO)
+    get_patch_modify_file_list = output.split('\n')
+    if AGREEMENT_FILE_NAME in get_patch_modify_file_list:
+        osa_file_list = read_line(KERNEL_DIR,AGREEMENT_FILE_NAME)
+        tags_list_tmp = [x.strip() for x in osa_file_list]
+        osa_start= tags_list_tmp.index("- Your Name <your-email-address@unisoc.com>")
+        osa_list=tags_list_tmp[osa_start+1:]
+        print osa_list
+        if (sorted(osa_list) == osa_list or sorted(osa_list,reverse=True) == osa_list):
+            print >> sys.stdout,"\nAdd OSA sorted check pass\n"
+        else:
+            print >> sys.stderr, "\nYour OSA is not sorted alphabetically\n"
+            is_sorted_flag=1
+    return is_sorted_flag
+
 def check_duplicate():
     check_duplicate_flag = 0
     status,output=commands.getstatusoutput(GET_PATCH_MODIFY_FILE_INFO)
@@ -349,6 +366,7 @@ def main(argv=None):
     ret_info = check_tags_commit_id(get_patch_info_list)
 
     check_duplicate()
+    check_osa_ifsorted()
     check_tags_consistent(ret_info)
     return ret_info[0]
 
