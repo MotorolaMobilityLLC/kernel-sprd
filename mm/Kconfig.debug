@@ -157,3 +157,10 @@ config SPECULATIVE_PAGE_FAULT_STATS
 	help
 	  Additional statistics for speculative page faults.
 	  If in doubt, say N.
+
+config E_SHOW_MEM
+	bool "Enhanced show memory"
+	default n
+	help
+	  Enable mem info show for DMA-BUF, GPU, ZRAM, Vmalloc etc.
+
