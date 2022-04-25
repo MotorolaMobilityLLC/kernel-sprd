@@ -177,6 +177,10 @@
 			reg = <0x0 0xbd040000 0x0 0x01fc0000>;
 		};
 
+		tos_shm_reserved: sh-mem@c3000000{
+			reg = <0x0 0xc3000000 0x0 0x00100000>;
+		};
+
 		cma_reserved: cma_share@f00000000 {
 			compatible = "shared-dma-pool";
 			reg = <0x0 0xf0000000 0x0 0x03000000>;
@@ -855,6 +859,11 @@
 
 		log {
 			compatible = "sprd,trusty-log-v1";
+		};
+
+		sprd-tshm {
+			compatible = "sprd,tshm";
+			memory-region = <&tos_shm_reserved>;
 		};
 	};
 
