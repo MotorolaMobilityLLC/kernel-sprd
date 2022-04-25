@@ -293,3 +293,4 @@
 #include "modem.dtsi"
 #include "battery-common.dtsi"
 #include "marlin3lite.dtsi"
+#include "tp.dtsi"
