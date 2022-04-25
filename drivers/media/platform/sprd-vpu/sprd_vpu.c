@@ -35,7 +35,7 @@
 #include <linux/compat.h>
 #include <uapi/video/sprd_vpu.h>
 #include "vpu_drv.h"
-//#include "sprd_dvfs_vsp.h"
+#include "sprd_dvfs_vsp.h"
 
 #ifdef pr_fmt
 #undef pr_fmt
@@ -93,7 +93,7 @@ static long vpu_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		clk_parent = get_clk_src_name(clock_name_map,
 				data->clk.freq_div, data->max_freq_level);
 		data->clk.core_parent_clk = clk_parent;
-#if IS_ENABLED(CONFIG_SPRD_APSYS_DVFS_DEVFREQ)
+#if IS_ENABLED(CONFIG_DVFS_APSYS_SPRD)
 		if (data->clk.freq_div >= data->max_freq_level)
 			data->clk.freq_div = data->max_freq_level - 1;
 		frequency = clock_name_map[data->clk.freq_div].freq;
@@ -111,7 +111,7 @@ static long vpu_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 
 	case VPU_ENABLE:
 		dev_dbg(dev, "vpu ioctl VPU_ENABLE\n");
-#if !IS_ENABLED(CONFIG_SPRD_APSYS_DVFS_DEVFREQ)
+#if !IS_ENABLED(CONFIG_DVFS_APSYS_SPRD)
 		ret = clock_enable(data);
 		if (ret == 0)
 			data->is_clock_enabled = true;
@@ -123,7 +123,7 @@ static long vpu_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		if (data->is_clock_enabled) {
 			clr_vpu_interrupt_mask(data);
 
-#if !IS_ENABLED(CONFIG_SPRD_APSYS_DVFS_DEVFREQ)
+#if !IS_ENABLED(CONFIG_DVFS_APSYS_SPRD)
 			data->is_clock_enabled = false;
 			clock_disable(data);
 #endif
@@ -398,7 +398,7 @@ static int vpu_open(struct inode *inode, struct file *filp)
 	pm_runtime_get_sync(data->dev);
 	vpu_qos_config(data);
 
-#if IS_ENABLED(CONFIG_SPRD_APSYS_DVFS_DEVFREQ)
+#if IS_ENABLED(CONFIG_DVFS_APSYS_SPRD)
 	ret = clock_enable(data);
 	if (ret == 0)
 		data->is_clock_enabled = true;
@@ -415,7 +415,7 @@ static int vpu_release(struct inode *inode, struct file *filp)
 
 	atomic_dec(&data->instance_cnt);
 
-#if IS_ENABLED(CONFIG_SPRD_APSYS_DVFS_DEVFREQ)
+#if IS_ENABLED(CONFIG_DVFS_APSYS_SPRD)
 	if (data->is_clock_enabled) {
 		clock_disable(data);
 		if ((u32)atomic_read(&data->instance_cnt) == 0)

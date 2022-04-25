@@ -96,7 +96,7 @@ static long vsp_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			vsp_hw_dev.freq_div = max_freq_level - 1;
 		frequency = clock_name_map[vsp_hw_dev.freq_div].freq;
 		pr_debug("%s,cfg freq %ld\n", __func__, frequency);
-		vsp_dvfs_notifier_call_chain(&frequency);
+		vsp_dvfs_notifier_call_chain(&frequency, 0);
 #endif
 		break;
 

@@ -52,11 +52,13 @@ struct ip_dvfs_status {
 	char *gsp0_vote_volt;
 	char *gsp1_vote_volt;
 	char *vsp_vote_volt;
+	char *vpuenc_vote_volt;
 	char *vdsp_vote_volt;
 	char *dpu_cur_freq;
 	char *gsp0_cur_freq;
 	char *gsp1_cur_freq;
 	char *vsp_cur_freq;
+	char *vpuenc_cur_freq;
 	char *vdsp_cur_freq;
 	u32 vdsp_edap_div;
 	u32 vdsp_m0_div;
@@ -71,6 +73,7 @@ struct apsys_dev {
 
 	unsigned long apsys_base;
 	unsigned long top_base;
+	struct regmap *aon_base;
 	struct mutex reg_lock;
 };
 

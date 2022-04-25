@@ -88,7 +88,26 @@ char *qogirn6pro_gsp_val_to_freq(u32 val)
 	}
 }
 
-char *qogirn6pro_vsp_val_to_freq(u32 val)
+char *qogirn6pro_vpu_val_to_volt(u32 val)
+{
+	switch (val) {
+	case 0:
+		return "0.55v";
+	case 1:
+		return "0.6v";
+	case 2:
+		return "0.65v";
+	case 3:
+		return "0.7v";
+	case 4:
+		return "0.75v";
+	default:
+		pr_err("invalid voltage value %u\n", val);
+		return "N/A";
+	}
+}
+
+char *qogirn6pro_vpuenc_val_to_freq(u32 val)
 {
 	switch (val) {
 	case 0:
@@ -97,6 +116,27 @@ char *qogirn6pro_vsp_val_to_freq(u32 val)
 		return "307.2M";
 	case 2:
 		return "384M";
+	case 3:
+		return "512M";
+	default:
+		pr_err("invalid frequency value %u\n", val);
+		return "N/A";
+	}
+}
+
+char *qogirn6pro_vpudec_val_to_freq(u32 val)
+{
+	switch (val) {
+	case 0:
+		return "256M";
+	case 1:
+		return "307.2M";
+	case 2:
+		return "384M";
+	case 3:
+		return "512M";
+	case 4:
+		return "680M";
 	default:
 		pr_err("invalid frequency value %u\n", val);
 		return "N/A";
@@ -283,7 +323,6 @@ static void apsys_dvfs_init(struct apsys_dev *apsys)
 		pr_info("%s(), dpu_vsp eb is not on\n", __func__);
 		return;
 	}
-
 	apsys_dvfs_hold_en(apsys, apsys->dvfs_coffe.dvfs_hold_en);
 	apsys_dvfs_force_en(apsys, apsys->dvfs_coffe.dvfs_force_en);
 	apsys_dvfs_auto_gate(apsys, apsys->dvfs_coffe.dvfs_auto_gate);

@@ -6,6 +6,14 @@
 #ifndef __DPU_VSP_SYS_REG_qogirn6pro_H__
 #define __DPU_VSP_SYS_REG_qogirn6pro_H__
 
+enum {
+	VOL55 = 0, //0.55v
+	VOL60, //0.60v
+	VOL65, //0.65v
+	VOL70, //0.70v
+	VOL75, //0.75v
+};
+
 struct dpu_vspsys_dvfs_reg {
 	u32 dpu_vsp_dvfs_hold_ctrl;
 	u32 dpu_vsp_dvfs_wait_window_cfg;
@@ -115,7 +123,9 @@ char *qogirn6pro_dpu_vspsys_val_to_volt(u32 val);
 char *qogirn6pro_dpu_val_to_freq(u32 val);
 char *qogirn6pro_gsp_val_to_volt(u32 val);
 char *qogirn6pro_gsp_val_to_freq(u32 val);
-char *qogirn6pro_vsp_val_to_freq(u32 val);
+char *qogirn6pro_vpu_val_to_volt(u32 val);
+char *qogirn6pro_vpuenc_val_to_freq(u32 val);
+char *qogirn6pro_vpudec_val_to_freq(u32 val);
 char *qogirn6pro_vpu_mtx_val_to_freq(u32 val);
 int dpu_vsp_dvfs_check_clkeb(void);
 #endif

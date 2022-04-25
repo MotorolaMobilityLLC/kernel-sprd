@@ -82,22 +82,23 @@ typedef enum {
 	VSP_CLK307 = 307200000, //307
 	VSP_CLK384 = 384000000, //384
 	VSP_CLK512 = 512000000, //512
-
+	VSP_CLK680 = 668250000, //680
 } vsp_clock_freq;
 
 typedef enum {
 	VSP_CLK_INDEX_256 = 0,
 	VSP_CLK_INDEX_307 = 1,
 	VSP_CLK_INDEX_384 = 2,
-	VSP_CLK_INDEX_512 = 3
+	VSP_CLK_INDEX_512 = 3,
+	VSP_CLK_INDEX_680 = 4,
 } vsp_clock_level;
 
 #define MAX_FREQ_LEVEL 8
 
+extern const struct ip_dvfs_ops qogirn6pro_vpudec_vsp_dvfs_ops;
+extern const struct ip_dvfs_ops qogirn6pro_vpuenc_vsp_dvfs_ops;
 extern const struct ip_dvfs_ops qogirl6_vsp_dvfs_ops;
 extern const struct ip_dvfs_ops sharkl5pro_vsp_dvfs_ops;
 extern const struct ip_dvfs_ops sharkl5_vsp_dvfs_ops;
 extern const struct ip_dvfs_ops roc1_vsp_dvfs_ops;
-
-
 #endif

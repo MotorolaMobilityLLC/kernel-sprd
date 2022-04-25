@@ -37,6 +37,18 @@ static const struct sprd_vsp_dvfs_data qogirl6_vsp_data = {
 	.dvfs_ops = &qogirl6_vsp_dvfs_ops,
 };
 
+static const struct sprd_vsp_dvfs_data qogirn6pro_vsp_data = {
+	.ver = "qogirn6pro",
+	.max_freq_level = 5,
+	.dvfs_ops = &qogirn6pro_vpudec_vsp_dvfs_ops,
+};
+
+static const struct sprd_vsp_dvfs_data qogirn6pro_vpuenc_data = {
+	.ver = "qogirn6pro-vpuenc",
+	.max_freq_level = 4,
+	.dvfs_ops = &qogirn6pro_vpuenc_vsp_dvfs_ops,
+};
+
 static const struct of_device_id vsp_dvfs_of_match[] = {
 	{ .compatible = "sprd,hwdvfs-vsp-sharkl5",
 	  .data = &sharkl5_vsp_data },
@@ -46,16 +58,27 @@ static const struct of_device_id vsp_dvfs_of_match[] = {
 	  .data = &sharkl5pro_vsp_data },
 	{ .compatible = "sprd,hwdvfs-vsp-qogirl6",
 	  .data = &qogirl6_vsp_data },
+	{ .compatible = "sprd,hwdvfs-vsp-qogirn6pro",
+	  .data = &qogirn6pro_vsp_data },
+	{ .compatible = "sprd,hwdvfs-vpuenc-qogirn6pro",
+	  .data = &qogirn6pro_vpuenc_data },
 	{ },
 };
 
 MODULE_DEVICE_TABLE(of, vsp_dvfs_of_match);
 
 BLOCKING_NOTIFIER_HEAD(vsp_dvfs_chain);
+BLOCKING_NOTIFIER_HEAD(vpuenc_dvfs_chain);
 
-int vsp_dvfs_notifier_call_chain(void *data)
+int vsp_dvfs_notifier_call_chain(void *data, bool is_enc)
 {
-	return blocking_notifier_call_chain(&vsp_dvfs_chain, 0, data);
+	if (is_enc) {
+		pr_debug("notifier_call_chain: enc\n");
+		return blocking_notifier_call_chain(&vpuenc_dvfs_chain, 0, data);
+	} else {
+		pr_debug("notifier_call_chain: dec\n");
+		return blocking_notifier_call_chain(&vsp_dvfs_chain, 0, data);
+	}
 }
 EXPORT_SYMBOL_GPL(vsp_dvfs_notifier_call_chain);
 
@@ -273,18 +296,19 @@ static ssize_t get_dvfs_status_show(struct device *dev,
 	}
 
 	len = sprintf(buf, "apsys_cur_volt\tvsp_vote_volt\t"
-			"dpu_vote_volt\tvdsp_vote_volt\n");
+			"vpuenc_vote_volt\tdpu_vote_volt\tvdsp_vote_volt\n");
 
-	len += sprintf(buf + len, "%s\t\t%s\t\t%s\t\t%s\n",
+	len += sprintf(buf + len, "%s\t\t%s\t\t%s\t\t%s\t\t%s\n",
 			ip_status.apsys_cur_volt, ip_status.vsp_vote_volt,
+			ip_status.vpuenc_vote_volt,
 			ip_status.dpu_vote_volt, ip_status.vdsp_vote_volt);
 
-	len += sprintf(buf + len, "\t\tvsp_cur_freq\tdpu_cur_freq\t"
-			"vdsp_cur_freq\n");
+	len += sprintf(buf + len, "\t\tvsp_cur_freq\tvpuenc_cur_freq\t"
+			"dpu_cur_freq\tvdsp_cur_freq\n");
 
-	len += sprintf(buf + len, "\t\t%s\t\t%s\t\t%s\n",
-			ip_status.vsp_cur_freq, ip_status.dpu_cur_freq,
-			ip_status.vdsp_cur_freq);
+	len += sprintf(buf + len, "\t\t%s\t\t%s\t\t%s\t\t%s\n",
+			ip_status.vsp_cur_freq, ip_status.vpuenc_cur_freq,
+			ip_status.dpu_cur_freq, ip_status.vdsp_cur_freq);
 
 	return len;
 }
@@ -452,7 +476,6 @@ static int vsp_dvfs_target(struct device *dev, unsigned long *freq,
 	struct vsp_dvfs *vsp = dev_get_drvdata(dev);
 	struct dev_pm_opp *opp;
 	unsigned long target_freq;
-	int ret = 0;
 
 	pr_debug("devfreq_dev_profile-->target, freq=%lu\n", *freq);
 	opp = devfreq_recommended_opp(dev, freq, flags);
@@ -472,12 +495,7 @@ static int vsp_dvfs_target(struct device *dev, unsigned long *freq,
 		vsp->idle_freq = target_freq;
 	vsp->dvfs_ops->updata_target_freq(vsp, target_freq, vsp->freq_type);
 
-	if (ret) {
-		dev_err(dev, "Cannot to set freq:%lu to vsp, ret: %d\n",
-		target_freq, ret);
-	}
-
-	return ret;
+	return 0;
 }
 
 int vsp_dvfs_get_dev_status(struct device *dev,
@@ -574,8 +592,15 @@ static int vsp_dvfs_probe(struct platform_device *pdev)
 		return -EINVAL;
 	}
 	vsp->vsp_dvfs_nb.notifier_call = vsp_dvfs_notify_callback;
-	ret = blocking_notifier_chain_register(&vsp_dvfs_chain,
+	if (!strcmp("qogirn6pro-vpuenc", data->ver)) {
+		pr_debug("chain_register: vpuenc \n");
+		ret = blocking_notifier_chain_register(&vpuenc_dvfs_chain,
 			&vsp->vsp_dvfs_nb);
+	} else {
+		pr_debug("chain_register: vpudec \n");
+		ret = blocking_notifier_chain_register(&vsp_dvfs_chain,
+			&vsp->vsp_dvfs_nb);
+	}
 
 	platform_set_drvdata(pdev, vsp);
 	vsp->devfreq = devm_devfreq_add_device(dev,
@@ -588,7 +613,7 @@ static int vsp_dvfs_probe(struct platform_device *pdev)
 		ret = PTR_ERR(vsp->devfreq);
 		goto ret;
 	}
-	device_rename(&vsp->devfreq->dev, "vsp");
+	//device_rename(&vsp->devfreq->dev, "vsp");
 
 	if (vsp->dvfs_ops && vsp->dvfs_ops->parse_dt)
 		vsp->dvfs_ops->parse_dt(vsp, np);
@@ -601,7 +626,10 @@ static int vsp_dvfs_probe(struct platform_device *pdev)
 
 ret:
 	dev_pm_opp_of_remove_table(dev);
-	blocking_notifier_chain_unregister(&vsp_dvfs_chain, &vsp->vsp_dvfs_nb);
+	if (!strcmp("qogirn6pro-vpuenc", data->ver))
+		blocking_notifier_chain_unregister(&vpuenc_dvfs_chain, &vsp->vsp_dvfs_nb);
+	else
+		blocking_notifier_chain_unregister(&vsp_dvfs_chain, &vsp->vsp_dvfs_nb);
 
 	return ret;
 }

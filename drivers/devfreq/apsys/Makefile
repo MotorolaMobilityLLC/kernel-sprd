@@ -24,6 +24,8 @@ apsys-dvfs-y := \
 	vsp/vsp_dvfs_sharkl5.o \
 	vsp/vsp_dvfs_sharkl5pro.o \
 	vsp/vsp_dvfs_qogirl6.o \
+	vsp/vpudec_dvfs_qogirn6pro.o \
+	vsp/vpuenc_dvfs_qogirn6pro.o \
 	vdsp/vdsp_dvfs_sharkl5pro.o \
 	vdsp/vdsp_dvfs_roc1.o
 

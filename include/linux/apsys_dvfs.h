@@ -16,7 +16,7 @@
 int dpu_dvfs_notifier_call_chain(void *data);
 int gsp_dvfs_notifier_call_chain(void *data);
 int vdsp_dvfs_notifier_call_chain(void *data);
-int vsp_dvfs_notifier_call_chain(void *data);
+int vsp_dvfs_notifier_call_chain(void *data, bool is_enc);
 #else
 static inline int dpu_dvfs_notifier_call_chain(void *data)
 {
@@ -33,7 +33,7 @@ static inline int vdsp_dvfs_notifier_call_chain(void *data)
 	return 0;
 }
 
-static inline int vsp_dvfs_notifier_call_chain(void *data)
+static inline int vsp_dvfs_notifier_call_chain(void *data, bool is_enc)
 {
 	return 0;
 }
