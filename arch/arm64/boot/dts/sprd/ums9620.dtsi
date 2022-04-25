@@ -140,6 +140,7 @@
 		sprd,voltage-step = <750000>;		/* uV       */
 		sprd,voltage-margin = <40>;		/* Cycle    */
 		sprd,transition-delay = <1000>;		/* us       */
+		sprd,temp-threshold = <65>;		/* u32 list */
 		sprd,cluster-cpumask = <0xf>;
 	};
 
@@ -147,12 +148,14 @@
 		sprd,voltage-step = <750000>;		/* uV       */
 		sprd,voltage-margin = <40>;		/* Cycle    */
 		sprd,transition-delay = <1000>;		/* us       */
+		sprd,temp-threshold = <65>;		/* u32 list */
 		sprd,cluster-cpumask = <0x70>;
 	};
 
 	cpufreq_cluster2: cpufreq-cluster2 {
 		sprd,voltage-margin = <40>;		/* Cycle    */
 		sprd,transition-delay = <1000>;		/* us       */
+		sprd,temp-threshold = <65>;		/* u32 list */
 		sprd,cluster-cpumask = <0x80>;
 	};
 

@@ -179,7 +179,7 @@
 		sprd,cpufreq-boost;
 		sprd,multi-version;
 		sprd,pmic-type = <2>;
-		//sprd,temp-threshold = <65>;
+		sprd,temp-threshold = <65>;
 		sprd,cluster-cpumask = <0xf>;
 		sprd,transition-delay = <500>;
 	};
@@ -190,7 +190,7 @@
 		sprd,cpufreq-boost;
 		sprd,multi-version;
 		sprd,pmic-type = <0>;
-		//sprd,temp-threshold = <65>;
+		sprd,temp-threshold = <65>;
 		sprd,cluster-cpumask = <0xf0>;
 		sprd,transition-delay = <500>;
 	};
