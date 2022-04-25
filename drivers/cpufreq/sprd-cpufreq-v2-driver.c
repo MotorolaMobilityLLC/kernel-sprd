@@ -25,7 +25,6 @@ static struct cluster_info *pclusters;
 static unsigned long boot_done_timestamp;
 
 /* cluster common interface */
-
 static struct cluster_info *sprd_cluster_info(u32 cpu_idx)
 {
 	u32 index;
@@ -59,8 +58,7 @@ static int sprd_cpufreq_boost_judge(struct cpufreq_policy *policy)
 	return OUT_BOOST;
 }
 
-static
-int sprd_nvmem_info_read(struct device_node *node, const char *name, u32 *value)
+static int sprd_nvmem_info_read(struct device_node *node, const char *name, u32 *value)
 {
 	struct nvmem_cell *cell;
 	void *buf;
@@ -97,7 +95,6 @@ static int sprd_temp_list_init(struct list_head *head)
 	}
 
 	/* add upper temp node */
-
 	node = devm_kzalloc(dev, sizeof(*node), GFP_KERNEL);
 	if (!node) {
 		dev_err(dev, "%s: alloc for upper temp node error\n", __func__);
@@ -109,7 +106,6 @@ static int sprd_temp_list_init(struct list_head *head)
 	list_add(&node->list, head);
 
 	/* add low temp node */
-
 	node = devm_kzalloc(dev, sizeof(*node), GFP_KERNEL);
 	if (!node) {
 		dev_err(dev, "%s: alloc for low temp node error\n", __func__);
@@ -200,7 +196,7 @@ static int sprd_policy_table_update(struct cpufreq_policy *policy, int temp)
 		return -EINVAL;
 	}
 
-	dev_info(dev, "%s: cluster %u dvfs table entry num is %u\n", __func__, cluster->id, cluster->table_entry_num);
+	dev_dbg(dev, "%s: cluster %u dvfs table entry num is %u\n", __func__, cluster->id, cluster->table_entry_num);
 
 	old_table = policy->freq_table;
 	if (old_table) {
@@ -245,7 +241,6 @@ static int sprd_policy_table_update(struct cpufreq_policy *policy, int temp)
 }
 
 /* sprd_cpufreq_driver interface */
-
 static int sprd_cpufreq_init(struct cpufreq_policy *policy)
 {
 	struct cluster_info *cluster;
@@ -485,7 +480,6 @@ static struct cpufreq_driver sprd_cpufreq_driver = {
 };
 
 /* init inerface */
-
 static int sprd_cluster_temp_init(struct cluster_info *cluster)
 {
 	const char *name = "sprd,temp-threshold";
@@ -535,7 +529,6 @@ static int sprd_cluster_props_init(struct cluster_info *cluster)
 	struct cluster_prop *p;
 	struct device_node *hwf;
 	int i, ret;
-
 	struct cluster_prop props[] = {
 		{
 			.name = "sprd,voltage-step",
@@ -755,21 +748,23 @@ static int sprd_cpufreq_probe(struct platform_device *pdev)
  */
 unsigned int sprd_cpufreq_update_opp_v2(int cpu, int now_temp)
 {
-	struct cpufreq_policy policy;
+	struct cpufreq_policy *policy;
 	struct cluster_info *cluster;
 	int temp = now_temp / 1000;
 	struct temp_node *node;
 	u64 freq;
 	int ret;
 
-	if (cpufreq_get_policy(&policy, cpu)) {
+	policy = cpufreq_cpu_get(cpu);
+	if (!policy) {
 		dev_err(dev, "%s: get cpu %u policy error\n", __func__, cpu);
 		return 0;
 	}
 
-	cluster = (struct cluster_info *)policy.driver_data;
+	cluster = (struct cluster_info *)policy->driver_data;
 	if (!cluster || !cluster->pair_get) {
 		dev_err(dev, "%s: cpu %u cluster info error\n", __func__, cpu);
+		cpufreq_cpu_put(policy);
 		return 0;
 	}
 
@@ -783,7 +778,11 @@ unsigned int sprd_cpufreq_update_opp_v2(int cpu, int now_temp)
 		goto ret_error;
 	}
 
-	if (node != cluster->temp_level_node) {
+	/* immediate response to temp rise */
+	if (node->temp > cluster->temp_currt_node->temp) {
+		cluster->temp_level_node = node;
+		cluster->temp_tick = DVFS_TEMP_MAX_TICKS;
+	} else if (node != cluster->temp_level_node) {
 		cluster->temp_level_node = node;
 		cluster->temp_tick = 0U;
 		goto ret_error;
@@ -800,7 +799,7 @@ unsigned int sprd_cpufreq_update_opp_v2(int cpu, int now_temp)
 
 	dev_info(dev, "%s: update cluster %u table to %d(%d) degrees celsius\n", __func__, cluster->id, temp, cluster->temp_level_node->temp);
 
-	ret = sprd_policy_table_update(&policy, cluster->temp_level_node->temp);
+	ret = sprd_policy_table_update(policy, cluster->temp_level_node->temp);
 	if (ret) {
 		dev_err(dev, "%s: update cluster %u table error\n", __func__, cluster->id);
 		goto ret_error;
@@ -814,12 +813,14 @@ unsigned int sprd_cpufreq_update_opp_v2(int cpu, int now_temp)
 		goto ret_error;
 	}
 
+	cpufreq_cpu_put(policy);
 	mutex_unlock(&cluster->mutex);
 
 	do_div(freq, 1000); /* from Hz to KHz */
 	return (unsigned int)freq;
 
 ret_error:
+	cpufreq_cpu_put(policy);
 	mutex_unlock(&cluster->mutex);
 
 	return 0;

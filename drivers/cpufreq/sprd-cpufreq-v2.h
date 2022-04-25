@@ -29,15 +29,15 @@
 #include <linux/regmap.h>
 #include <linux/slab.h>
 #include <linux/sched.h>
+#include <linux/sprd_sip_svc.h>
 #include <linux/topology.h>
 #include <linux/types.h>
 #include <linux/uaccess.h>
 #include <linux/workqueue.h>
-#include <linux/sprd_sip_svc.h>
 
-#define DVFS_TEMP_UPPER_LIMIT		 274 /* Degrees Celsius */
-#define DVFS_TEMP_LOW_LIMIT		-274 /* Degrees Celsius */
-#define DVFS_TEMP_MAX_TICKS		 5
+#define DVFS_TEMP_UPPER_LIMIT		(274) /* Degrees Celsius */
+#define DVFS_TEMP_LOW_LIMIT		(-274) /* Degrees Celsius */
+#define DVFS_TEMP_MAX_TICKS		(3)
 
 struct temp_node {
 	int temp;
