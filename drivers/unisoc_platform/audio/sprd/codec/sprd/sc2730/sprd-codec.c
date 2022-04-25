@@ -252,6 +252,7 @@ struct sprd_codec_priv {
 	u16 dac_switch;
 	u16 adc_switch;
 	u32 aud_pabst_vcal;
+	u32 codec_product_info;
 	u32 neg_cp_efuse;
 	u32 fgu_4p2_efuse;
 	u32 hp_mix_mode;
@@ -963,7 +964,10 @@ static void sprd_codec_pa_boost(struct snd_soc_component *codec, int pa_d_en)
 		value = PABST_V(0x49) | PABST_VADJ_TRIG;
 		snd_soc_component_update_bits(codec, SOC_REG(ANA_PMU6), mask, value);
 		mask = PABST_EN;
-		snd_soc_component_update_bits(codec, SOC_REG(ANA_PMU20), mask, mask);
+		if ((sprd_codec->codec_product_info & 0x20) == 0)
+			snd_soc_component_update_bits(codec, SOC_REG(ANA_PMU20), mask, mask);
+		else
+			snd_soc_component_update_bits(codec, SOC_REG(ANA_PMU20), mask, 0);
 
 		/* wait time is about 16ms per ASIC requirement */
 		sprd_codec_wait(10);
@@ -2846,6 +2850,20 @@ static int sprd_codec_info_get(struct snd_kcontrol *kcontrol,
 	return 0;
 }
 
+static int sprd_codec_product_info_get(struct snd_kcontrol *kcontrol,
+				      struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_component *codec = snd_soc_kcontrol_component(kcontrol);
+	struct sprd_codec_priv *sprd_codec = snd_soc_component_get_drvdata(codec);
+
+	if ((sprd_codec->codec_product_info & 0x20) == 0)
+		ucontrol->value.integer.value[0] = 0;
+	else
+		ucontrol->value.integer.value[0] = 1;
+	sp_asoc_pr_info("%s, value = %ld, product_info = %x\n", __func__,
+			ucontrol->value.integer.value[0], sprd_codec->codec_product_info);
+	return 0;
+}
 
 static int sprd_codec_inter_pa_get(struct snd_kcontrol *kcontrol,
 				   struct snd_ctl_elem_value *ucontrol)
@@ -3186,6 +3204,8 @@ static const struct snd_kcontrol_new sprd_codec_snd_controls[] = {
 		sprd_codec_ivsence_dmic_put),
 	SOC_SINGLE_EXT("MICBIAS1 Power", SND_SOC_NOPM, 0, 1, 0,
 		micbias1_power_get, micbias1_power_put),
+	SOC_SINGLE_EXT("Codec Product Info", 0, 0, INT_MAX, 0,
+		sprd_codec_product_info_get, NULL),
 };
 
 static unsigned int sprd_codec_read(struct snd_soc_component *codec,
@@ -4001,6 +4021,13 @@ static int sprd_codec_probe(struct platform_device *pdev)
 		&sprd_codec->aud_pabst_vcal);
 	if (ret) {
 		pr_err("%s:read pa_bst_vcal failed!\n", __func__);
+		return ret;
+	}
+
+	ret = sprd_codec_read_efuse(pdev, "codec_product_info",
+		&sprd_codec->codec_product_info);
+	if (ret) {
+		pr_err("%s:read codec_product_info failed!\n", __func__);
 		return ret;
 	}
 
