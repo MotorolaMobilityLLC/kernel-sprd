@@ -1451,13 +1451,13 @@
 				reg = <0 0x32000000 0 0xc000>;
 				interrupts = <GIC_SPI 149 IRQ_TYPE_LEVEL_HIGH>;
 				sprd,video_ip_version = <21>;
-				vsp-domain-eb-syscon = <&dpu_vsp_apb_regs
+				reset-syscon = <&dpu_vsp_apb_regs
 					REG_DPU_VSP_APB_RST
 					(MASK_DPU_VSP_APB_VPU_ENC0_SOFT_RST |
 					MASK_DPU_VSP_APB_VPU_ENC0_VPP_SOFT_RST |
 					MASK_DPU_VSP_APB_VPU_ENC0_VSP_SOFT_RST |
 					MASK_DPU_VSP_APB_VPU_ENC0_VAU_SOFT_RST)>;
-				reset-syscon = <&aon_apb_regs
+				vsp-domain-eb-syscon = <&aon_apb_regs
 					REG_AON_APB_APB_EB0
 					MASK_AON_APB_DPU_VSP_EB>;
 				iommus = <&iommu_vpuenc0>;
@@ -1481,13 +1481,13 @@
 				reg = <0 0x32100000 0 0xc000>;
 				sprd,video_ip_version = <21>;
 				interrupts = <GIC_SPI 148 IRQ_TYPE_LEVEL_HIGH>;
-				vsp-domain-eb-syscon = <&dpu_vsp_apb_regs
+				reset-syscon = <&dpu_vsp_apb_regs
 					REG_DPU_VSP_APB_RST
 					(MASK_DPU_VSP_APB_VPU_ENC1_SOFT_RST |
 					MASK_DPU_VSP_APB_VPU_ENC1_VPP_SOFT_RST |
 					MASK_DPU_VSP_APB_VPU_ENC1_VSP_SOFT_RST |
 					MASK_DPU_VSP_APB_VPU_ENC1_VAU_SOFT_RST)>;
-				reset-syscon = <&aon_apb_regs
+				vsp-domain-eb-syscon = <&aon_apb_regs
 					REG_AON_APB_APB_EB0
 					MASK_AON_APB_DPU_VSP_EB>;
 				iommus = <&iommu_vpuenc1>;
@@ -1511,13 +1511,13 @@
 				reg = <0 0x32200000 0 0xc000>;
 				interrupts = <GIC_SPI 147 IRQ_TYPE_LEVEL_HIGH>;
 				sprd,video_ip_version = <21>;
-				vsp-domain-eb-syscon = <&dpu_vsp_apb_regs
+				reset-syscon = <&dpu_vsp_apb_regs
 					REG_DPU_VSP_APB_RST
 					(MASK_DPU_VSP_APB_VPU_DEC_SOFT_RST |
 					MASK_DPU_VSP_APB_VPU_DEC_VPP_SOFT_RST |
 					MASK_DPU_VSP_APB_VPU_DEC_VSP_SOFT_RST |
 					MASK_DPU_VSP_APB_VPU_DEC_VAU_SOFT_RST)>;
-				reset-syscon = <&aon_apb_regs
+				vsp-domain-eb-syscon = <&aon_apb_regs
 					REG_AON_APB_APB_EB0
 					MASK_AON_APB_DPU_VSP_EB>;
 				iommus = <&iommu_vpudec>;
