@@ -7,6 +7,11 @@
 
 #include <dt-bindings/clock/sprd,ums512-clk.h>
 #include <dt-bindings/interrupt-controller/arm-gic.h>
+#include <dt-bindings/clock/sprd,ums512-clk.h>
+#include <dt-bindings/input/input.h>
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/mfd/sprd,sc2730-regs.h>
+#include <dt-bindings/mfd/sprd,sc2730-mask.h>
 
 / {
 	interrupt-parent = <&gic>;
@@ -262,6 +267,12 @@
 		#address-cells = <1>;
 		#size-cells = <0>;
 	};
+
+	sprd_marlin3: sprd-marlin3 {
+		compatible = "unisoc,marlin3lite_sdio";
+		#address-cells = <1>;
+		#size-cells = <0>;
+	};
 };
 
 /* Include other IP modules */
@@ -281,3 +292,4 @@
 #include "spi.dtsi"
 #include "modem.dtsi"
 #include "battery-common.dtsi"
+#include "marlin3lite.dtsi"
