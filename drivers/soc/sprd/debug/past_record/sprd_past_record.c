@@ -13,6 +13,8 @@
 #include <asm/memory.h>
 #include <linux/hugetlb.h>
 #include <asm/pgtable.h>
+#include <linux/syscore_ops.h>
+#include <linux/device.h>
 #include "sprd_past_record.h"
 
 int serror_debug_status;
@@ -20,6 +22,18 @@ EXPORT_SYMBOL(serror_debug_status);
 
 struct sprd_debug_reg_record *sprd_past_reg_record;
 EXPORT_SYMBOL(sprd_past_reg_record);
+
+#ifdef CONFIG_ENABLE_SPRD_DEEP_SLEEP_TRACING
+#define SPRD_DS_DDR_TEST_ARRAY_LEN 1024
+#define SPRD_DS_DDR_TEST_ERR_PRINT_LEN 8
+#define SPRD_DS_DDR_TEST_FEATURE_CHAR 0xf0
+u8 *sprd_ds_ddr_test_array;
+EXPORT_SYMBOL(sprd_ds_ddr_test_array);
+struct deep_sleep_info *sprd_deep_sleep_info;
+EXPORT_SYMBOL(sprd_deep_sleep_info);
+static struct device *sprd_past_record_dev;
+static dma_addr_t sprd_ds_tracing_dma_addr;
+#endif
 
 unsigned long sprd_debug_virt_to_phys(void __iomem *addr)
 {
@@ -154,6 +168,93 @@ static const struct file_operations serror_proc_fops = {
 	.release = single_release,
 };
 
+#ifdef CONFIG_ENABLE_SPRD_DEEP_SLEEP_TRACING
+static void sprd_deep_sleep_ddr_test(void)
+{
+	u16 count = SPRD_DS_DDR_TEST_ARRAY_LEN;
+	u16 err_count = SPRD_DS_DDR_TEST_ERR_PRINT_LEN;
+	u8 *pos;
+	u8 standard = SPRD_DS_DDR_TEST_FEATURE_CHAR;
+
+	if (sprd_ds_ddr_test_array) {
+		do {
+			pos = sprd_ds_ddr_test_array + SPRD_DS_DDR_TEST_ARRAY_LEN - count;
+			if (*pos != SPRD_DS_DDR_TEST_FEATURE_CHAR) {
+				pr_info("%s: ddr test region error at pos 0x%p\n", __func__, pos);
+				pr_info("%s: 0x%x is expected\n", __func__, standard);
+				if (err_count > count)
+					err_count = count;
+				pr_info("real value:\n");
+				while (err_count--)
+					pr_info("0x%x\n", *(pos++));
+				BUG_ON(1);
+			}
+		} while (--count > 0);
+	}
+}
+
+static void sprd_past_record_resume(void)
+{
+	sprd_deep_sleep_ddr_test();
+}
+
+static int sprd_past_record_suspend(void)
+{
+	sprd_deep_sleep_ddr_test();
+
+	return 0;
+}
+
+static struct syscore_ops sprd_past_record_syscore_ops = {
+	.resume	= sprd_past_record_resume,
+	.suspend = sprd_past_record_suspend,
+};
+
+static u64 sprd_past_record_dev_dma_mask = DMA_BIT_MASK(32);
+
+static int sprd_debug_deep_sleep_tracing_init(void)
+{
+	pr_info("%s in\n", __func__);
+
+	sprd_ds_ddr_test_array = kmalloc(sizeof(u8) * SPRD_DS_DDR_TEST_ARRAY_LEN, GFP_KERNEL);
+	memset(sprd_ds_ddr_test_array, SPRD_DS_DDR_TEST_FEATURE_CHAR, SPRD_DS_DDR_TEST_ARRAY_LEN);
+
+	register_syscore_ops(&sprd_past_record_syscore_ops);
+
+	sprd_past_record_dev = kmalloc(sizeof(struct device), GFP_KERNEL);
+	if (!sprd_past_record_dev)
+		return -ENOMEM;
+	sprd_past_record_dev->coherent_dma_mask = DMA_BIT_MASK(32);
+	sprd_past_record_dev->dma_mask = &sprd_past_record_dev_dma_mask;
+
+	sprd_deep_sleep_info = dma_alloc_coherent(sprd_past_record_dev,
+								sizeof(struct deep_sleep_info),
+								&sprd_ds_tracing_dma_addr,
+								GFP_KERNEL);
+	if (!sprd_deep_sleep_info)
+		return -ENOMEM;
+	sprd_deep_sleep_info->phase = SPRD_DEEP_STATE_NOT_IN_DEEP;
+	pr_info("%s dma addr = 0x%llx\n", __func__, sprd_ds_tracing_dma_addr);
+
+	pr_info("%s done\n", __func__);
+	return 0;
+}
+
+static void sprd_debug_deep_sleep_tracing_free(void)
+{
+	if (sprd_deep_sleep_info)
+		dma_free_coherent(sprd_past_record_dev,
+			sizeof(struct deep_sleep_info),
+			sprd_deep_sleep_info,
+			sprd_ds_tracing_dma_addr);
+
+	if (sprd_past_record_dev)
+		kfree(sprd_past_record_dev);
+
+	pr_info("%s done\n", __func__);
+}
+#endif
+
 static __init int past_record_sysctl_init(void)
 {
 	struct proc_dir_entry *serror_proc;
@@ -167,6 +268,10 @@ static __init int past_record_sysctl_init(void)
 #else
 	serror_debug_status = 0;
 #endif
+#ifdef CONFIG_ENABLE_SPRD_DEEP_SLEEP_TRACING
+	sprd_debug_deep_sleep_tracing_init();
+#endif
+
 	pr_info("***past record debug init success!\n");
 	return 0;
 }
@@ -175,6 +280,9 @@ static __exit void past_record_sysctl_exit(void)
 {
 	remove_proc_entry("sprd_serror_debug", NULL);
 	sprd_debug_past_record_free();
+#ifdef CONFIG_ENABLE_SPRD_DEEP_SLEEP_TRACING
+	sprd_debug_deep_sleep_tracing_free();
+#endif
 	pr_info("***past record debug exit\n");
 }
 

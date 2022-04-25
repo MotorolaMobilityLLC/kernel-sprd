@@ -113,4 +113,29 @@ unsigned long sprd_debug_virt_to_phys(void __iomem *addr);
 #define sprd_readq_reg_info(addr)
 #endif
 
+#ifdef CONFIG_ENABLE_SPRD_DEEP_SLEEP_TRACING
+enum sprd_deep_state {
+	SPRD_DEEP_STATE_NOT_IN_DEEP = 0x0,
+	SPRD_DEEP_STATE_SUSPEND_ON_GOING = 0x1,
+	SPRD_DEEP_STATE_SUSPEND_IN_SML = 0x2,
+	SPRD_DEEP_STATE_RESUME_ON_GOING = 0x3,
+	SPRD_DEEP_STATE_MAX
+};
+
+struct deep_sleep_info {
+	unsigned int phase;
+};
+extern struct deep_sleep_info *sprd_deep_sleep_info;
+
+#define sprd_system_deep_state_enter(state)			\
+	do {											\
+		if (sprd_deep_sleep_info) {					\
+			sprd_deep_sleep_info->phase = state;	\
+			pr_info(								\
+			"sprd_system_deep_state_enter(), state=%d\n", \
+			state);									\
+		}									\
+	} while (0)
+#endif
+
 #endif

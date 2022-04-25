@@ -17085,6 +17085,15 @@ CONFIG_SPRD_PAST_RECORD
 	[must] user
 	[missing plat description] none
 	[function] This function is used to enable sprd tracing code.
+CONFIG_ENABLE_SPRD_DEEP_SLEEP_TRACING
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function] This function is used to enable sprd deep sleep tracing.
 CONFIG_ENABLE_SPRD_IO_TRACING
 	[arch] all
 	[plat] all

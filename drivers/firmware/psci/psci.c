@@ -29,6 +29,10 @@
 
 #include <trace/hooks/psci.h>
 
+#ifdef CONFIG_ENABLE_SPRD_DEEP_SLEEP_TRACING
+#include <sprd_past_record.h>
+#endif
+
 /*
  * While a 64-bit OS can make calls with SMC32 calling conventions, for some
  * calls it is necessary to use SMC64 to pass or return 64-bit values.
@@ -320,6 +324,9 @@ int psci_cpu_suspend_enter(u32 state)
 
 static int psci_system_suspend(unsigned long unused)
 {
+#ifdef CONFIG_ENABLE_SPRD_DEEP_SLEEP_TRACING
+	sprd_system_deep_state_enter(SPRD_DEEP_STATE_SUSPEND_IN_SML);
+#endif
 	return invoke_psci_fn(PSCI_FN_NATIVE(1_0, SYSTEM_SUSPEND),
 			      __pa_symbol(cpu_resume), 0, 0);
 }

@@ -28,6 +28,13 @@ config ENABLE_SPRD_IO_TRACING
 	help
 	  SPRD IO TRACING for Debug.
 
+config ENABLE_SPRD_DEEP_SLEEP_TRACING
+	bool "SPRD deep sleep debug"
+	depends on SPRD_DEBUG
+	default y
+	help
+	  SPRD deep sleep TRACING for Debug. For user version, say no.
+
 source "drivers/soc/sprd/debug/djtag/Kconfig"
 source "drivers/soc/sprd/debug/busmonitor/Kconfig"
 source "drivers/soc/sprd/debug/sysdump/Kconfig"
