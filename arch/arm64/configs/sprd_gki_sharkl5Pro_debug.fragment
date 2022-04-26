@@ -1,4 +1,5 @@
 # CONFIG_ARCH_QCOM is not set
+CONFIG_E_SHOW_MEM=y
 # CONFIG_PCIE_QCOM is not set
 # CONFIG_QCOM_GENI_SE is not set
 # CONFIG_SERIAL_QCOM_GENI is not set
