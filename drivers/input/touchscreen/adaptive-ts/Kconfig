@@ -1,0 +1,94 @@
+#
+# Adaptive touchscreen module
+#
+
+config TOUCHSCREEN_ADAPTIVE
+    tristate "adaptive touchscreen driver"
+    depends on I2C || SPI_MASTER
+    help
+      Say Y here to use adaptive touchscreen driver.
+
+config CONFIG_TOUCHSCREEN_ADAPTIVE_FOCALTECH
+    tristate "Focaltech controller definition for adaptive touchscreen"
+    depends on I2C || TOUCHSCREEN_ADAPTIVE
+    help
+      Say m here if you have a focaltech based touchscreen controller.
+
+      If unsure, say N.
+
+config TOUCHSCREEN_ADAPTIVE_MSTAR
+    tristate "MStar controller definition for adaptive touchscreen"
+    depends on I2C || TOUCHSCREEN_ADAPTIVE
+    help
+      Say m here if you have a mstar based touchscreen controller.
+
+      If unsure, say N.
+
+config TOUCHSCREEN_ADAPTIVE_TLSC6X
+    tristate "Tlsc6x controller definition for adaptive touchscreen"
+    depends on I2C || TOUCHSCREEN_ADAPTIVE
+    help
+      Say m here if you have a tlsc6x based touchscreen controller.
+
+      If unsure, say N.
+
+config TOUCHSCREEN_ADAPTIVE_NT36XXX
+    tristate "Nt36xxx controller definition for adaptive touchscreen"
+    depends on I2C || TOUCHSCREEN_ADAPTIVE
+    help
+      Say y here if you have a nt36xxx based touchscreen controller.
+      If unsure, say N.
+
+config TOUCHSCREEN_ADAPTIVE_ILI9882H
+    tristate "ILI9882H controller definition for adaptive touchscreen"
+    depends on I2C || TOUCHSCREEN_ADAPTIVE
+    help
+      Say y here if you have a ILI9882H based touchscreen controller.
+      If unsure, say N.
+
+config TOUCHSCREEN_ADAPTIVE_ILI9882H_SPI
+    tristate "ILI9882H controller definition for adaptive touchscreen"
+    depends on I2C || TOUCHSCREEN_ADAPTIVE
+    help
+      Say y here if you have a ILI9882H based touchscreen controller.
+      If unsure, say N.
+
+config TOUCHSCREEN_ADAPTIVE_NT36XXX_SPI
+    tristate "Nt36xxx controller definition for adaptive touchscreen"
+    depends on I2C || TOUCHSCREEN_ADAPTIVE
+    help
+      Say y here if you have a nt36xxx based touchscreen controller.
+      If unsure, say N.
+
+config TOUCHSCREEN_ADAPTIVE_ICNL9911X
+    tristate "icnl9911x controller definition for adaptive touchscreen"
+    depends on I2C || TOUCHSCREEN_ADAPTIVE
+    help
+      Say y here if you have a ICNL9911X based touchscreen controller.
+      If unsure, say N.
+
+config TOUCHSCREEN_ADAPTIVE_ICNL9911X_SPI
+    tristate "icnl9911x controller definition for adaptive touchscreen"
+    depends on I2C || TOUCHSCREEN_ADAPTIVE
+    help
+      Say y here if you have a ICNL9911X based touchscreen controller.
+      If unsure, say N.
+
+config TOUCHSCREEN_ADAPTIVE_FT8722
+    tristate "ft8722 controller definition for adaptive touchscreen"
+    depends on I2C || TOUCHSCREEN_ADAPTIVE
+    help
+      Say y here if you have a ICNL9911X based touchscreen controller.
+      If unsure, say N.
+
+config TOUCHSCREEN_ADAPTIVE_FT8006AB
+    tristate "ft8006_ab controller definition for adaptive touchscreen"
+    depends on I2C || TOUCHSCREEN_ADAPTIVE
+    help
+      Say y here if you have a ICNL9911X based touchscreen controller.
+      If unsure, say N.
+# if TOUCHSCREEN_ADAPTIVE
+
+# source drivers/input/touchscreen/adaptive-ts/vendors/Kconfig
+
+# endif
