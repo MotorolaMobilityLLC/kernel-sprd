@@ -191,6 +191,7 @@ unisoc_platform:mailbox:
 unisoc_platform:misc:
 unisoc_platform:modem_loader:
 unisoc_platform:sipc:
+unisoc_platform:thermal:
 unisoc_platform:wcn:
 
 usb:core:
