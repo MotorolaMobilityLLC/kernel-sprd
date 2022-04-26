@@ -42,8 +42,8 @@ struct clock_name_map_t {
 };
 
 enum {
-	RESET = 0,
-	VPU_DOMAIN_EB
+	VPU_DOMAIN_EB = 0,
+	RESET
 };
 
 struct register_gpr {
