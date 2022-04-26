@@ -4,6 +4,7 @@ obj-$(CONFIG_UNISOC_SCHED)	+= sched/
 obj-$(CONFIG_UNISOC_DISP)	+= sprd_disp/
 obj-$(CONFIG_SPRD_PMIC_SMPL)	+= sprd_pmic_smpl.o
 obj-$(CONFIG_SPRD_PMIC_SYSCON)  += sprd_pmic_syscon.o
+obj-$(CONFIG_UNISOC_7SRESET)	+= sprd_7sreset.o
 obj-$(CONFIG_SPRD_DEBUG)	+= debug/
 obj-$(CONFIG_SPRD_SYSDUMP) 	+= sysdump/
 obj-$(CONFIG_UNISOC_IOMMU)	+= iommu/
