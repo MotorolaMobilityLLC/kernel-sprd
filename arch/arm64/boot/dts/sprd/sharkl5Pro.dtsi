@@ -1775,6 +1775,14 @@
 				   0x89300000 0x5f000>;
 	};
 
+	audio-dsp-dump@3 {
+		compatible = "unisoc,audio_dsp_call_info";
+		sprd-usemem-type = <0x5>;
+		sprd-usemem-bytes =<0x200>;
+		sprd-dst = /bits/ 8 <1>;
+		sprd-channel =/bits/ 8 <16>;
+	};
+
 	audio_pipe_voice {
 		compatible = "unisoc,audio_pipe_voice";
 		sprd,writesync = <0>;
