@@ -64,7 +64,6 @@ static int xhci_priv_init_quirk(struct usb_hcd *hcd)
 	return priv->init_quirk(hcd);
 }
 
-#if 0
 static int xhci_priv_resume_quirk(struct usb_hcd *hcd)
 {
 	struct xhci_plat_priv *priv = hcd_to_xhci_priv(hcd);
@@ -74,7 +73,6 @@ static int xhci_priv_resume_quirk(struct usb_hcd *hcd)
 
 	return priv->resume_quirk(hcd);
 }
-#endif
 
 static void xhci_plat_quirks(struct device *dev, struct xhci_hcd *xhci)
 {
@@ -352,7 +350,7 @@ static int xhci_plat_probe(struct platform_device *pdev)
 	 * Prevent runtime pm from being on as default, users should enable
 	 * runtime pm using power/control in sysfs.
 	 */
-	//pm_runtime_forbid(&pdev->dev);
+	pm_runtime_forbid(&pdev->dev);
 
 	return 0;
 
@@ -395,7 +393,7 @@ static int xhci_plat_remove(struct platform_device *dev)
 
 	usb_remove_hcd(shared_hcd);
 	xhci->shared_hcd = NULL;
-	usb_phy_shutdown(hcd->usb_phy);
+	//usb_phy_shutdown(hcd->usb_phy);
 
 	usb_remove_hcd(hcd);
 	usb_put_hcd(shared_hcd);
@@ -403,6 +401,7 @@ static int xhci_plat_remove(struct platform_device *dev)
 	clk_disable_unprepare(clk);
 	clk_disable_unprepare(reg_clk);
 	usb_put_hcd(hcd);
+	usb_phy_shutdown(hcd->usb_phy);
 
 	pm_runtime_disable(&dev->dev);
 	pm_runtime_put_noidle(&dev->dev);
@@ -413,7 +412,6 @@ static int xhci_plat_remove(struct platform_device *dev)
 
 static int __maybe_unused xhci_plat_suspend(struct device *dev)
 {
-#if 0
 	struct usb_hcd	*hcd = dev_get_drvdata(dev);
 	struct xhci_hcd	*xhci = hcd_to_xhci(hcd);
 
@@ -426,13 +424,10 @@ static int __maybe_unused xhci_plat_suspend(struct device *dev)
 	 * also applies to runtime suspend.
 	 */
 	return xhci_suspend(xhci, device_may_wakeup(dev));
-#endif
-	return 0;
 }
 
 static int __maybe_unused xhci_plat_resume(struct device *dev)
 {
-#if 0
 	struct usb_hcd	*hcd = dev_get_drvdata(dev);
 	struct xhci_hcd	*xhci = hcd_to_xhci(hcd);
 	int ret;
@@ -442,8 +437,6 @@ static int __maybe_unused xhci_plat_resume(struct device *dev)
 		return ret;
 
 	return xhci_resume(xhci, 0);
-#endif
-	return 0;
 }
 
 static int __maybe_unused xhci_plat_runtime_suspend(struct device *dev)
@@ -480,6 +473,7 @@ MODULE_DEVICE_TABLE(acpi, usb_xhci_acpi_match);
 static struct platform_driver usb_xhci_driver = {
 	.probe	= xhci_plat_probe,
 	.remove	= xhci_plat_remove,
+	.shutdown = usb_hcd_platform_shutdown,
 	.driver	= {
 		.name = "xhci-hcd",
 		.pm = &xhci_plat_pm_ops,

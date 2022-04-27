@@ -1397,12 +1397,6 @@ void xhci_handle_command_timeout(struct work_struct *work)
 	/* mark this command to be cancelled */
 	xhci->current_cmd->status = COMP_COMMAND_ABORTED;
 
-		/* when xhci suspend,can't access hcd reg */
-	if (!test_bit(HCD_FLAG_HW_ACCESSIBLE, &xhci->main_hcd->flags)) {
-		spin_unlock_irqrestore(&xhci->lock, flags);
-		return;
-	}
-
 	/* Make sure command ring is running before aborting it */
 	hw_ring_state = xhci_read_64(xhci, &xhci->op_regs->cmd_ring);
 	if (hw_ring_state == ~(u64)0) {

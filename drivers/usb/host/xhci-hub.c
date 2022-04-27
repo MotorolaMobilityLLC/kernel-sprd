@@ -1681,14 +1681,6 @@ retry:
 		} else
 			t2 &= ~PORT_WAKE_BITS;
 
-		/* Clear port link status change bit */
-		if (t1 & PORT_CEC)
-			t2 |= PORT_CEC;
-
-		/* Clear configure error change bit */
-		if (t1 & PORT_PLC)
-			t2 |= PORT_PLC;
-
 		t1 = xhci_port_state_to_neutral(t1);
 		if (t1 != t2)
 			portsc_buf[port_index] = t2;
