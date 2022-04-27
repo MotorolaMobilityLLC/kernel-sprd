@@ -2174,6 +2174,7 @@
       <elf-symbol name='get_option' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xb0e10781'/>
       <elf-symbol name='get_options' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x868acba5'/>
       <elf-symbol name='get_page_owner_handle' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xbdd70345'/>
+      <elf-symbol name='get_pfnblock_flags_mask' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x30dea859'/>
       <elf-symbol name='get_pid_task' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x76a5b27e'/>
       <elf-symbol name='get_random_bytes' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x79aa04a2'/>
       <elf-symbol name='get_random_u32' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xd36dc10c'/>
@@ -2684,6 +2685,8 @@
       <elf-symbol name='is_console_locked' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x944a564d'/>
       <elf-symbol name='is_dma_buf_file' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xa6440648'/>
       <elf-symbol name='is_vmalloc_addr' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xc31db0ce'/>
+      <elf-symbol name='isolate_and_split_free_page' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x64dc23e5'/>
+      <elf-symbol name='isolate_anon_lru_page' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x16231fe5'/>
       <elf-symbol name='iterate_fd' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x140d22b3'/>
       <elf-symbol name='iunique' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xc7da9b00'/>
       <elf-symbol name='iw_handler_get_spy' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xad3e6807'/>
@@ -2955,6 +2958,7 @@
       <elf-symbol name='memunmap' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x9e9fdd9d'/>
       <elf-symbol name='mfd_add_devices' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xe816e35d'/>
       <elf-symbol name='mfd_remove_devices' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x1b680cf7'/>
+      <elf-symbol name='migrate_pages' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xd9a0c9b1'/>
       <elf-symbol name='migrate_swap' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x6f5b3511'/>
       <elf-symbol name='mii_check_media' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x4231ebc2'/>
       <elf-symbol name='mii_ethtool_get_link_ksettings' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x577c83cc'/>
@@ -3728,6 +3732,7 @@
       <elf-symbol name='put_unused_fd' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x3f4547a7'/>
       <elf-symbol name='put_user_ifreq' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x38f48af7'/>
       <elf-symbol name='put_vaddr_frames' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x1b700d37'/>
+      <elf-symbol name='putback_movable_pages' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xbd6f03f7'/>
       <elf-symbol name='pwm_apply_state' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xab3ba5ed'/>
       <elf-symbol name='pwm_free' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x3a9d2b1b'/>
       <elf-symbol name='pwm_get_chip_data' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xa609c2d9'/>
@@ -26352,6 +26357,7 @@
       <pointer-type-def type-id='28d1931f' size-in-bits='64' id='354bcec3'/>
       <pointer-type-def type-id='ea86de29' size-in-bits='64' id='354f7eb9'/>
       <pointer-type-def type-id='25048781' size-in-bits='64' id='35513fbd'/>
+      <pointer-type-def type-id='e61ec55f' size-in-bits='64' id='355404d0'/>
       <function-type size-in-bits='64' id='3554a6c7'>
         <parameter type-id='ac2666b2'/>
         <parameter type-id='eaa32e2f'/>
@@ -30137,18 +30143,18 @@
       </function-type>
       <pointer-type-def type-id='bf3ef905' size-in-bits='64' id='3f2244fd'/>
       <pointer-type-def type-id='c3b52303' size-in-bits='64' id='3f26598b'/>
-      <class-decl name='irqtime' size-in-bits='192' is-struct='yes' visibility='default' filepath='kernel/sched/sched.h' line='2790' column='1' id='3f278a28'>
+      <class-decl name='irqtime' size-in-bits='192' is-struct='yes' visibility='default' filepath='kernel/sched/sched.h' line='2792' column='1' id='3f278a28'>
         <data-member access='public' layout-offset-in-bits='0'>
-          <var-decl name='total' type-id='91ce1af9' visibility='default' filepath='kernel/sched/sched.h' line='2791' column='1'/>
+          <var-decl name='total' type-id='91ce1af9' visibility='default' filepath='kernel/sched/sched.h' line='2793' column='1'/>
         </data-member>
         <data-member access='public' layout-offset-in-bits='64'>
-          <var-decl name='tick_delta' type-id='91ce1af9' visibility='default' filepath='kernel/sched/sched.h' line='2792' column='1'/>
+          <var-decl name='tick_delta' type-id='91ce1af9' visibility='default' filepath='kernel/sched/sched.h' line='2794' column='1'/>
         </data-member>
         <data-member access='public' layout-offset-in-bits='128'>
-          <var-decl name='irq_start_time' type-id='91ce1af9' visibility='default' filepath='kernel/sched/sched.h' line='2793' column='1'/>
+          <var-decl name='irq_start_time' type-id='91ce1af9' visibility='default' filepath='kernel/sched/sched.h' line='2795' column='1'/>
         </data-member>
         <data-member access='public' layout-offset-in-bits='192'>
-          <var-decl name='sync' type-id='e4d85780' visibility='default' filepath='kernel/sched/sched.h' line='2794' column='1'/>
+          <var-decl name='sync' type-id='e4d85780' visibility='default' filepath='kernel/sched/sched.h' line='2796' column='1'/>
         </data-member>
       </class-decl>
       <pointer-type-def type-id='849373e7' size-in-bits='64' id='3f29b13b'/>
@@ -39797,6 +39803,11 @@
         </data-member>
       </class-decl>
       <pointer-type-def type-id='14059615' size-in-bits='64' id='58220cf1'/>
+      <function-type size-in-bits='64' id='5824bc76'>
+        <parameter type-id='02f11ed4'/>
+        <parameter type-id='7359adad'/>
+        <return type-id='02f11ed4'/>
+      </function-type>
       <class-decl name='usb_device_descriptor' size-in-bits='144' is-struct='yes' visibility='default' filepath='include/uapi/linux/usb/ch9.h' line='289' column='1' id='582de67c'>
         <data-member access='public' layout-offset-in-bits='0'>
           <var-decl name='bLength' type-id='8f048e17' visibility='default' filepath='include/uapi/linux/usb/ch9.h' line='290' column='1'/>
@@ -52367,87 +52378,87 @@
       <pointer-type-def type-id='1e330b13' size-in-bits='64' id='74005b57'/>
       <pointer-type-def type-id='5cdc243f' size-in-bits='64' id='740a3d8b'/>
       <pointer-type-def type-id='f3d147c3' size-in-bits='64' id='740b5503'/>
-      <class-decl name='sched_class' size-in-bits='1728' is-struct='yes' visibility='default' filepath='kernel/sched/sched.h' line='2142' column='1' id='74191d27'>
+      <class-decl name='sched_class' size-in-bits='1728' is-struct='yes' visibility='default' filepath='kernel/sched/sched.h' line='2144' column='1' id='74191d27'>
         <data-member access='public' layout-offset-in-bits='0'>
-          <var-decl name='uclamp_enabled' type-id='95e97e5e' visibility='default' filepath='kernel/sched/sched.h' line='2145' column='1'/>
+          <var-decl name='uclamp_enabled' type-id='95e97e5e' visibility='default' filepath='kernel/sched/sched.h' line='2147' column='1'/>
         </data-member>
         <data-member access='public' layout-offset-in-bits='64'>
-          <var-decl name='enqueue_task' type-id='7bca30b7' visibility='default' filepath='kernel/sched/sched.h' line='2148' column='1'/>
+          <var-decl name='enqueue_task' type-id='7bca30b7' visibility='default' filepath='kernel/sched/sched.h' line='2150' column='1'/>
         </data-member>
         <data-member access='public' layout-offset-in-bits='128'>
-          <var-decl name='dequeue_task' type-id='7bca30b7' visibility='default' filepath='kernel/sched/sched.h' line='2149' column='1'/>
+          <var-decl name='dequeue_task' type-id='7bca30b7' visibility='default' filepath='kernel/sched/sched.h' line='2151' column='1'/>
         </data-member>
         <data-member access='public' layout-offset-in-bits='192'>
-          <var-decl name='yield_task' type-id='d846ae3b' visibility='default' filepath='kernel/sched/sched.h' line='2150' column='1'/>
+          <var-decl name='yield_task' type-id='d846ae3b' visibility='default' filepath='kernel/sched/sched.h' line='2152' column='1'/>
         </data-member>
         <data-member access='public' layout-offset-in-bits='256'>
-          <var-decl name='yield_to_task' type-id='7dfe7cd1' visibility='default' filepath='kernel/sched/sched.h' line='2151' column='1'/>
+          <var-decl name='yield_to_task' type-id='7dfe7cd1' visibility='default' filepath='kernel/sched/sched.h' line='2153' column='1'/>
         </data-member>
         <data-member access='public' layout-offset-in-bits='320'>
-          <var-decl name='check_preempt_curr' type-id='7bca30b7' visibility='default' filepath='kernel/sched/sched.h' line='2153' column='1'/>
+          <var-decl name='check_preempt_curr' type-id='7bca30b7' visibility='default' filepath='kernel/sched/sched.h' line='2155' column='1'/>
         </data-member>
         <data-member access='public' layout-offset-in-bits='384'>
-          <var-decl name='pick_next_task' type-id='ba703a2c' visibility='default' filepath='kernel/sched/sched.h' line='2155' column='1'/>
+          <var-decl name='pick_next_task' type-id='ba703a2c' visibility='default' filepath='kernel/sched/sched.h' line='2157' column='1'/>
         </data-member>
         <data-member access='public' layout-offset-in-bits='448'>
-          <var-decl name='put_prev_task' type-id='604374c8' visibility='default' filepath='kernel/sched/sched.h' line='2157' column='1'/>
+          <var-decl name='put_prev_task' type-id='604374c8' visibility='default' filepath='kernel/sched/sched.h' line='2159' column='1'/>
         </data-member>
         <data-member access='public' layout-offset-in-bits='512'>
-          <var-decl name='set_next_task' type-id='f13b7179' visibility='default' filepath='kernel/sched/sched.h' line='2158' column='1'/>
+          <var-decl name='set_next_task' type-id='f13b7179' visibility='default' filepath='kernel/sched/sched.h' line='2160' column='1'/>
         </data-member>
         <data-member access='public' layout-offset-in-bits='576'>
-          <var-decl name='balance' type-id='5346c726' visibility='default' filepath='kernel/sched/sched.h' line='2161' column='1'/>
+          <var-decl name='balance' type-id='5346c726' visibility='default' filepath='kernel/sched/sched.h' line='2163' column='1'/>
         </data-member>
         <data-member access='public' layout-offset-in-bits='640'>
-          <var-decl name='select_task_rq' type-id='8d80ced8' visibility='default' filepath='kernel/sched/sched.h' line='2162' column='1'/>
+          <var-decl name='select_task_rq' type-id='8d80ced8' visibility='default' filepath='kernel/sched/sched.h' line='2164' column='1'/>
         </data-member>
         <data-member access='public' layout-offset-in-bits='704'>
-          <var-decl name='pick_task' type-id='ba703a2c' visibility='default' filepath='kernel/sched/sched.h' line='2164' column='1'/>
+          <var-decl name='pick_task' type-id='ba703a2c' visibility='default' filepath='kernel/sched/sched.h' line='2166' column='1'/>
         </data-member>
         <data-member access='public' layout-offset-in-bits='768'>
-          <var-decl name='migrate_task_rq' type-id='9d640202' visibility='default' filepath='kernel/sched/sched.h' line='2166' column='1'/>
+          <var-decl name='migrate_task_rq' type-id='9d640202' visibility='default' filepath='kernel/sched/sched.h' line='2168' column='1'/>
         </data-member>
         <data-member access='public' layout-offset-in-bits='832'>
-          <var-decl name='task_woken' type-id='604374c8' visibility='default' filepath='kernel/sched/sched.h' line='2168' column='1'/>
+          <var-decl name='task_woken' type-id='604374c8' visibility='default' filepath='kernel/sched/sched.h' line='2170' column='1'/>
         </data-member>
         <data-member access='public' layout-offset-in-bits='896'>
-          <var-decl name='set_cpus_allowed' type-id='41c42b69' visibility='default' filepath='kernel/sched/sched.h' line='2170' column='1'/>
+          <var-decl name='set_cpus_allowed' type-id='41c42b69' visibility='default' filepath='kernel/sched/sched.h' line='2172' column='1'/>
         </data-member>
         <data-member access='public' layout-offset-in-bits='960'>
-          <var-decl name='rq_online' type-id='d846ae3b' visibility='default' filepath='kernel/sched/sched.h' line='2174' column='1'/>
+          <var-decl name='rq_online' type-id='d846ae3b' visibility='default' filepath='kernel/sched/sched.h' line='2176' column='1'/>
         </data-member>
         <data-member access='public' layout-offset-in-bits='1024'>
-          <var-decl name='rq_offline' type-id='d846ae3b' visibility='default' filepath='kernel/sched/sched.h' line='2175' column='1'/>
+          <var-decl name='rq_offline' type-id='d846ae3b' visibility='default' filepath='kernel/sched/sched.h' line='2177' column='1'/>
         </data-member>
         <data-member access='public' layout-offset-in-bits='1088'>
-          <var-decl name='find_lock_rq' type-id='64c408c1' visibility='default' filepath='kernel/sched/sched.h' line='2177' column='1'/>
+          <var-decl name='find_lock_rq' type-id='64c408c1' visibility='default' filepath='kernel/sched/sched.h' line='2179' column='1'/>
         </data-member>
         <data-member access='public' layout-offset-in-bits='1152'>
-          <var-decl name='task_tick' type-id='7bca30b7' visibility='default' filepath='kernel/sched/sched.h' line='2180' column='1'/>
+          <var-decl name='task_tick' type-id='7bca30b7' visibility='default' filepath='kernel/sched/sched.h' line='2182' column='1'/>
         </data-member>
         <data-member access='public' layout-offset-in-bits='1216'>
-          <var-decl name='task_fork' type-id='1c9e19fb' visibility='default' filepath='kernel/sched/sched.h' line='2181' column='1'/>
+          <var-decl name='task_fork' type-id='1c9e19fb' visibility='default' filepath='kernel/sched/sched.h' line='2183' column='1'/>
         </data-member>
         <data-member access='public' layout-offset-in-bits='1280'>
-          <var-decl name='task_dead' type-id='1c9e19fb' visibility='default' filepath='kernel/sched/sched.h' line='2182' column='1'/>
+          <var-decl name='task_dead' type-id='1c9e19fb' visibility='default' filepath='kernel/sched/sched.h' line='2184' column='1'/>
         </data-member>
         <data-member access='public' layout-offset-in-bits='1344'>
-          <var-decl name='switched_from' type-id='604374c8' visibility='default' filepath='kernel/sched/sched.h' line='2189' column='1'/>
+          <var-decl name='switched_from' type-id='604374c8' visibility='default' filepath='kernel/sched/sched.h' line='2191' column='1'/>
         </data-member>
         <data-member access='public' layout-offset-in-bits='1408'>
-          <var-decl name='switched_to' type-id='604374c8' visibility='default' filepath='kernel/sched/sched.h' line='2190' column='1'/>
+          <var-decl name='switched_to' type-id='604374c8' visibility='default' filepath='kernel/sched/sched.h' line='2192' column='1'/>
         </data-member>
         <data-member access='public' layout-offset-in-bits='1472'>
-          <var-decl name='prio_changed' type-id='7bca30b7' visibility='default' filepath='kernel/sched/sched.h' line='2191' column='1'/>
+          <var-decl name='prio_changed' type-id='7bca30b7' visibility='default' filepath='kernel/sched/sched.h' line='2193' column='1'/>
         </data-member>
         <data-member access='public' layout-offset-in-bits='1536'>
-          <var-decl name='get_rr_interval' type-id='c79c9f4c' visibility='default' filepath='kernel/sched/sched.h' line='2194' column='1'/>
+          <var-decl name='get_rr_interval' type-id='c79c9f4c' visibility='default' filepath='kernel/sched/sched.h' line='2196' column='1'/>
         </data-member>
         <data-member access='public' layout-offset-in-bits='1600'>
-          <var-decl name='update_curr' type-id='d846ae3b' visibility='default' filepath='kernel/sched/sched.h' line='2197' column='1'/>
+          <var-decl name='update_curr' type-id='d846ae3b' visibility='default' filepath='kernel/sched/sched.h' line='2199' column='1'/>
         </data-member>
         <data-member access='public' layout-offset-in-bits='1664'>
-          <var-decl name='task_change_group' type-id='9d640202' visibility='default' filepath='kernel/sched/sched.h' line='2203' column='1'/>
+          <var-decl name='task_change_group' type-id='9d640202' visibility='default' filepath='kernel/sched/sched.h' line='2205' column='1'/>
         </data-member>
       </class-decl>
       <pointer-type-def type-id='c2d135ef' size-in-bits='64' id='741cc96e'/>
@@ -55693,6 +55704,7 @@
       <pointer-type-def type-id='0a84ab07' size-in-bits='64' id='7d18218b'/>
       <qualified-type-def type-id='842b8964' const='yes' id='7d1bac73'/>
       <qualified-type-def type-id='2117397c' const='yes' id='7d20a6e7'/>
+      <pointer-type-def type-id='b8791da7' size-in-bits='64' id='7d2f2ada'/>
       <pointer-type-def type-id='80f4b756' size-in-bits='64' id='7d3cd834'/>
       <function-type size-in-bits='64' id='7d41fdf4'>
         <parameter type-id='85196e3f'/>
@@ -79429,6 +79441,11 @@
         <parameter type-id='67bbaeda'/>
         <return type-id='48b5725f'/>
       </function-type>
+      <function-type size-in-bits='64' id='ae5a8333'>
+        <parameter type-id='02f11ed4'/>
+        <parameter type-id='7359adad'/>
+        <return type-id='48b5725f'/>
+      </function-type>
       <class-decl name='drm_modeset_lock' size-in-bits='448' is-struct='yes' visibility='default' filepath='include/drm/drm_modeset_lock.h' line='76' column='1' id='ae5fc04a'>
         <data-member access='public' layout-offset-in-bits='0'>
           <var-decl name='mutex' type-id='45793a97' visibility='default' filepath='include/drm/drm_modeset_lock.h' line='80' column='1'/>
@@ -84316,6 +84333,7 @@
           <var-decl name='twsk_destructor' type-id='841969d0' visibility='default' filepath='include/net/timewait_sock.h' line='20' column='1'/>
         </data-member>
       </class-decl>
+      <typedef-decl name='free_page_t' type-id='ae5a8333' filepath='include/linux/migrate.h' line='11' column='1' id='b8791da7'/>
       <pointer-type-def type-id='5accd2c2' size-in-bits='64' id='b87ee0a0'/>
       <function-type size-in-bits='64' id='b88c11f2'>
         <parameter type-id='e7d2a5fc'/>
@@ -105892,6 +105910,7 @@
           <var-decl name='lock' type-id='fb4018a0' visibility='default' filepath='include/linux/skbuff.h' line='302' column='1'/>
         </data-member>
       </class-decl>
+      <typedef-decl name='new_page_t' type-id='5824bc76' filepath='include/linux/migrate.h' line='10' column='1' id='e61ec55f'/>
       <pointer-type-def type-id='c30eaffc' size-in-bits='64' id='e61ecde2'/>
       <function-type size-in-bits='64' id='e625eab0'>
         <parameter type-id='80f4b756'/>
@@ -122823,8 +122842,8 @@
         <parameter type-id='eaa32e2f' name='key' filepath='kernel/sched/wait.c' line='419' column='1'/>
         <return type-id='95e97e5e'/>
       </function-decl>
-      <function-decl name='available_idle_cpu' mangled-name='available_idle_cpu' filepath='kernel/sched/core.c' line='7170' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='available_idle_cpu'>
-        <parameter type-id='95e97e5e' name='cpu' filepath='kernel/sched/core.c' line='7170' column='1'/>
+      <function-decl name='available_idle_cpu' mangled-name='available_idle_cpu' filepath='kernel/sched/core.c' line='7173' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='available_idle_cpu'>
+        <parameter type-id='95e97e5e' name='cpu' filepath='kernel/sched/core.c' line='7173' column='1'/>
         <return type-id='95e97e5e'/>
       </function-decl>
       <function-decl name='backlight_device_register' mangled-name='backlight_device_register' filepath='drivers/video/backlight/backlight.c' line='393' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='backlight_device_register'>
@@ -122839,7 +122858,7 @@
         <parameter type-id='7a76d041' name='bd' filepath='drivers/video/backlight/backlight.c' line='508' column='1'/>
         <return type-id='48b5725f'/>
       </function-decl>
-      <var-decl name='balance_push_callback' type-id='e3d8ce29' mangled-name='balance_push_callback' visibility='default' filepath='kernel/sched/core.c' line='4738' column='1' elf-symbol-id='balance_push_callback'/>
+      <var-decl name='balance_push_callback' type-id='e3d8ce29' mangled-name='balance_push_callback' visibility='default' filepath='kernel/sched/core.c' line='4741' column='1' elf-symbol-id='balance_push_callback'/>
       <var-decl name='balloon_aops' type-id='38ce7f2c' mangled-name='balloon_aops' visibility='default' filepath='mm/balloon_compaction.c' line='253' column='1' elf-symbol-id='balloon_aops'/>
       <function-decl name='balloon_page_alloc' mangled-name='balloon_page_alloc' filepath='mm/balloon_compaction.c' line='124' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='balloon_page_alloc'>
         <return type-id='02f11ed4'/>
@@ -125714,11 +125733,11 @@
         <parameter type-id='95e97e5e' name='whence' filepath='fs/read_write.c' line='236' column='1'/>
         <return type-id='69bf7bee'/>
       </function-decl>
-      <function-decl name='default_wake_function' mangled-name='default_wake_function' filepath='kernel/sched/core.c' line='6846' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='default_wake_function'>
-        <parameter type-id='ba9aa326' name='curr' filepath='kernel/sched/core.c' line='6846' column='1'/>
-        <parameter type-id='f0981eeb' name='mode' filepath='kernel/sched/core.c' line='6846' column='1'/>
-        <parameter type-id='95e97e5e' name='wake_flags' filepath='kernel/sched/core.c' line='6846' column='1'/>
-        <parameter type-id='eaa32e2f' name='key' filepath='kernel/sched/core.c' line='6847' column='1'/>
+      <function-decl name='default_wake_function' mangled-name='default_wake_function' filepath='kernel/sched/core.c' line='6849' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='default_wake_function'>
+        <parameter type-id='ba9aa326' name='curr' filepath='kernel/sched/core.c' line='6849' column='1'/>
+        <parameter type-id='f0981eeb' name='mode' filepath='kernel/sched/core.c' line='6849' column='1'/>
+        <parameter type-id='95e97e5e' name='wake_flags' filepath='kernel/sched/core.c' line='6849' column='1'/>
+        <parameter type-id='eaa32e2f' name='key' filepath='kernel/sched/core.c' line='6850' column='1'/>
         <return type-id='95e97e5e'/>
       </function-decl>
       <function-decl name='deferred_free' mangled-name='deferred_free' filepath='drivers/dma-buf/heaps/deferred-free-helper.c' line='25' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='deferred_free'>
@@ -131593,6 +131612,12 @@
         <parameter type-id='7359adad' name='pfn' filepath='mm/page_owner.c' line='101' column='1'/>
         <return type-id='613ae993'/>
       </function-decl>
+      <function-decl name='get_pfnblock_flags_mask' mangled-name='get_pfnblock_flags_mask' filepath='mm/page_alloc.c' line='494' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='get_pfnblock_flags_mask'>
+        <parameter type-id='b72f2447' name='page' filepath='mm/page_alloc.c' line='494' column='1'/>
+        <parameter type-id='7359adad' name='pfn' filepath='mm/page_alloc.c' line='495' column='1'/>
+        <parameter type-id='7359adad' name='mask' filepath='mm/page_alloc.c' line='495' column='1'/>
+        <return type-id='7359adad'/>
+      </function-decl>
       <function-decl name='get_pid_task' mangled-name='get_pid_task' filepath='kernel/pid.c' line='449' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='get_pid_task'>
         <parameter type-id='b94e5398' name='pid' filepath='kernel/pid.c' line='449' column='1'/>
         <parameter type-id='ce78cf46' name='type' filepath='kernel/pid.c' line='449' column='1'/>
@@ -133462,11 +133487,11 @@
         <parameter type-id='7359adad' name='end' filepath='mm/truncate.c' line='531' column='1'/>
         <return type-id='7359adad'/>
       </function-decl>
-      <function-decl name='io_schedule' mangled-name='io_schedule' filepath='kernel/sched/core.c' line='8535' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='io_schedule'>
+      <function-decl name='io_schedule' mangled-name='io_schedule' filepath='kernel/sched/core.c' line='8538' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='io_schedule'>
         <return type-id='48b5725f'/>
       </function-decl>
-      <function-decl name='io_schedule_timeout' mangled-name='io_schedule_timeout' filepath='kernel/sched/core.c' line='8522' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='io_schedule_timeout'>
-        <parameter type-id='bd54fe1a' name='timeout' filepath='kernel/sched/core.c' line='8522' column='1'/>
+      <function-decl name='io_schedule_timeout' mangled-name='io_schedule_timeout' filepath='kernel/sched/core.c' line='8525' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='io_schedule_timeout'>
+        <parameter type-id='bd54fe1a' name='timeout' filepath='kernel/sched/core.c' line='8525' column='1'/>
         <return type-id='bd54fe1a'/>
       </function-decl>
       <var-decl name='iomem_resource' type-id='5218160d' mangled-name='iomem_resource' visibility='default' filepath='kernel/resource.c' line='41' column='1' elf-symbol-id='iomem_resource'/>
@@ -134240,6 +134265,15 @@
         <parameter type-id='eaa32e2f' name='x' filepath='mm/vmalloc.c' line='74' column='1'/>
         <return type-id='b50a4934'/>
       </function-decl>
+      <function-decl name='isolate_and_split_free_page' mangled-name='isolate_and_split_free_page' filepath='mm/compaction.c' line='762' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='isolate_and_split_free_page'>
+        <parameter type-id='02f11ed4' name='page' filepath='mm/compaction.c' line='762' column='1'/>
+        <parameter type-id='e84b031a' name='list' filepath='mm/compaction.c' line='763' column='1'/>
+        <return type-id='7359adad'/>
+      </function-decl>
+      <function-decl name='isolate_anon_lru_page' mangled-name='isolate_anon_lru_page' filepath='mm/page_alloc.c' line='501' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='isolate_anon_lru_page'>
+        <parameter type-id='02f11ed4' name='page' filepath='mm/page_alloc.c' line='501' column='1'/>
+        <return type-id='95e97e5e'/>
+      </function-decl>
       <function-decl name='iterate_fd' mangled-name='iterate_fd' filepath='fs/file.c' line='1315' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='iterate_fd'>
         <parameter type-id='16c53416' name='files' filepath='fs/file.c' line='1315' column='1'/>
         <parameter type-id='f0981eeb' name='n' filepath='fs/file.c' line='1315' column='1'/>
@@ -134358,7 +134392,7 @@
         <parameter type-id='95e97e5e' name='flags' filepath='net/socket.c' line='3454' column='1'/>
         <return type-id='95e97e5e'/>
       </function-decl>
-      <var-decl name='kernel_cpustat' type-id='7b5f27b3' mangled-name='kernel_cpustat' visibility='default' filepath='kernel/sched/core.c' line='5202' column='1' elf-symbol-id='kernel_cpustat'/>
+      <var-decl name='kernel_cpustat' type-id='7b5f27b3' mangled-name='kernel_cpustat' visibility='default' filepath='kernel/sched/core.c' line='5205' column='1' elf-symbol-id='kernel_cpustat'/>
       <function-decl name='kernel_getsockname' mangled-name='kernel_getsockname' filepath='net/socket.c' line='3469' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='kernel_getsockname'>
         <parameter type-id='13103032' name='sock' filepath='net/socket.c' line='3469' column='1'/>
         <parameter type-id='5c0abad8' name='addr' filepath='net/socket.c' line='3469' column='1'/>
@@ -134674,7 +134708,7 @@
         <return type-id='b59d7dce'/>
       </function-decl>
       <var-decl name='ksoftirqd' type-id='f23e2572' mangled-name='ksoftirqd' visibility='default' filepath='kernel/softirq.c' line='64' column='1' elf-symbol-id='ksoftirqd'/>
-      <var-decl name='kstat' type-id='153750ef' mangled-name='kstat' visibility='default' filepath='kernel/sched/core.c' line='5201' column='1' elf-symbol-id='kstat'/>
+      <var-decl name='kstat' type-id='153750ef' mangled-name='kstat' visibility='default' filepath='kernel/sched/core.c' line='5204' column='1' elf-symbol-id='kstat'/>
       <function-decl name='kstat_irqs_cpu' mangled-name='kstat_irqs_cpu' filepath='kernel/irq/irqdesc.c' line='926' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='kstat_irqs_cpu'>
         <parameter type-id='f0981eeb' name='irq' filepath='kernel/irq/irqdesc.c' line='926' column='1'/>
         <parameter type-id='95e97e5e' name='cpu' filepath='kernel/irq/irqdesc.c' line='926' column='1'/>
@@ -135614,6 +135648,16 @@
       <function-decl name='mfd_remove_devices' mangled-name='mfd_remove_devices' filepath='drivers/mfd/mfd-core.c' line='383' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='mfd_remove_devices'>
         <parameter type-id='fa0b179b' name='parent' filepath='drivers/mfd/mfd-core.c' line='383' column='1'/>
         <return type-id='48b5725f'/>
+      </function-decl>
+      <function-decl name='migrate_pages' mangled-name='migrate_pages' filepath='mm/migrate.c' line='1443' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='migrate_pages'>
+        <parameter type-id='e84b031a' name='from' filepath='mm/migrate.c' line='1443' column='1'/>
+        <parameter type-id='355404d0' name='get_new_page' filepath='mm/migrate.c' line='1443' column='1'/>
+        <parameter type-id='7d2f2ada' name='put_new_page' filepath='mm/migrate.c' line='1444' column='1'/>
+        <parameter type-id='7359adad' name='private' filepath='mm/migrate.c' line='1444' column='1'/>
+        <parameter type-id='157252dd' name='mode' filepath='mm/migrate.c' line='1445' column='1'/>
+        <parameter type-id='95e97e5e' name='reason' filepath='mm/migrate.c' line='1445' column='1'/>
+        <parameter type-id='807869d3' name='ret_succeeded' filepath='mm/migrate.c' line='1445' column='1'/>
+        <return type-id='95e97e5e'/>
       </function-decl>
       <function-decl name='migrate_swap' mangled-name='migrate_swap' filepath='kernel/sched/core.c' line='3189' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='migrate_swap'>
         <parameter type-id='f23e2572' name='cur' filepath='kernel/sched/core.c' line='3189' column='1'/>
@@ -138558,13 +138602,13 @@
         <parameter type-id='56f3c6ca' name='pl' filepath='drivers/net/phy/phylink.c' line='1240' column='1'/>
         <return type-id='48b5725f'/>
       </function-decl>
-      <function-decl name='pick_highest_pushable_task' mangled-name='pick_highest_pushable_task' filepath='kernel/sched/rt.c' line='1748' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='pick_highest_pushable_task'>
-        <parameter type-id='6ed6b432' name='rq' filepath='kernel/sched/rt.c' line='1748' column='1'/>
-        <parameter type-id='95e97e5e' name='cpu' filepath='kernel/sched/rt.c' line='1748' column='1'/>
+      <function-decl name='pick_highest_pushable_task' mangled-name='pick_highest_pushable_task' filepath='kernel/sched/rt.c' line='1785' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='pick_highest_pushable_task'>
+        <parameter type-id='6ed6b432' name='rq' filepath='kernel/sched/rt.c' line='1785' column='1'/>
+        <parameter type-id='95e97e5e' name='cpu' filepath='kernel/sched/rt.c' line='1785' column='1'/>
         <return type-id='f23e2572'/>
       </function-decl>
-      <function-decl name='pick_migrate_task' mangled-name='pick_migrate_task' filepath='kernel/sched/core.c' line='8950' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='pick_migrate_task'>
-        <parameter type-id='6ed6b432' name='rq' filepath='kernel/sched/core.c' line='8950' column='1'/>
+      <function-decl name='pick_migrate_task' mangled-name='pick_migrate_task' filepath='kernel/sched/core.c' line='8953' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='pick_migrate_task'>
+        <parameter type-id='6ed6b432' name='rq' filepath='kernel/sched/core.c' line='8953' column='1'/>
         <return type-id='f23e2572'/>
       </function-decl>
       <function-decl name='pid_task' mangled-name='pid_task' filepath='kernel/pid.c' line='396' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='pid_task'>
@@ -139306,10 +139350,10 @@
       <function-decl name='prandom_u32' mangled-name='prandom_u32' filepath='lib/random32.c' line='384' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='prandom_u32'>
         <return type-id='19c2251e'/>
       </function-decl>
-      <function-decl name='preempt_schedule' mangled-name='preempt_schedule' filepath='kernel/sched/core.c' line='6626' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='preempt_schedule'>
+      <function-decl name='preempt_schedule' mangled-name='preempt_schedule' filepath='kernel/sched/core.c' line='6629' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='preempt_schedule'>
         <return type-id='48b5725f'/>
       </function-decl>
-      <function-decl name='preempt_schedule_notrace' mangled-name='preempt_schedule_notrace' filepath='kernel/sched/core.c' line='6660' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='preempt_schedule_notrace'>
+      <function-decl name='preempt_schedule_notrace' mangled-name='preempt_schedule_notrace' filepath='kernel/sched/core.c' line='6663' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='preempt_schedule_notrace'>
         <return type-id='48b5725f'/>
       </function-decl>
       <function-decl name='prepare_kernel_cred' mangled-name='prepare_kernel_cred' filepath='kernel/cred.c' line='718' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='prepare_kernel_cred'>
@@ -139575,6 +139619,10 @@
       </function-decl>
       <function-decl name='put_vaddr_frames' mangled-name='put_vaddr_frames' filepath='drivers/media/common/videobuf2/frame_vector.c' line='105' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='put_vaddr_frames'>
         <parameter type-id='d9fbdc06' name='vec' filepath='drivers/media/common/videobuf2/frame_vector.c' line='105' column='1'/>
+        <return type-id='48b5725f'/>
+      </function-decl>
+      <function-decl name='putback_movable_pages' mangled-name='putback_movable_pages' filepath='mm/migrate.c' line='139' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='putback_movable_pages'>
+        <parameter type-id='e84b031a' name='l' filepath='mm/migrate.c' line='139' column='1'/>
         <return type-id='48b5725f'/>
       </function-decl>
       <function-decl name='pwm_apply_state' mangled-name='pwm_apply_state' filepath='drivers/pwm/core.c' line='530' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='pwm_apply_state'>
@@ -140698,7 +140746,7 @@
         <parameter type-id='f0981eeb' name='hash' filepath='lib/rhashtable.c' line='1215' column='1'/>
         <return type-id='33f7eff4'/>
       </function-decl>
-      <var-decl name='root_task_group' type-id='2d863538' mangled-name='root_task_group' visibility='default' filepath='kernel/sched/core.c' line='9443' column='1' elf-symbol-id='root_task_group'/>
+      <var-decl name='root_task_group' type-id='2d863538' mangled-name='root_task_group' visibility='default' filepath='kernel/sched/core.c' line='9446' column='1' elf-symbol-id='root_task_group'/>
       <function-decl name='round_jiffies_relative' mangled-name='round_jiffies_relative' filepath='kernel/time/timer.c' line='411' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='round_jiffies_relative'>
         <parameter type-id='7359adad' name='j' filepath='kernel/time/timer.c' line='411' column='1'/>
         <return type-id='7359adad'/>
@@ -141068,43 +141116,43 @@
       </function-decl>
       <var-decl name='sched_feat_keys' type-id='98c5d52c' mangled-name='sched_feat_keys' visibility='default' filepath='kernel/sched/debug.c' line='80' column='1' elf-symbol-id='sched_feat_keys'/>
       <var-decl name='sched_feat_names' type-id='3a06f3b2' mangled-name='sched_feat_names' visibility='default' filepath='kernel/sched/debug.c' line='51' column='1' elf-symbol-id='sched_feat_names'/>
-      <function-decl name='sched_set_fifo' mangled-name='sched_set_fifo' filepath='kernel/sched/core.c' line='7722' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='sched_set_fifo'>
-        <parameter type-id='f23e2572' name='p' filepath='kernel/sched/core.c' line='7722' column='1'/>
+      <function-decl name='sched_set_fifo' mangled-name='sched_set_fifo' filepath='kernel/sched/core.c' line='7725' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='sched_set_fifo'>
+        <parameter type-id='f23e2572' name='p' filepath='kernel/sched/core.c' line='7725' column='1'/>
         <return type-id='48b5725f'/>
       </function-decl>
-      <function-decl name='sched_set_fifo_low' mangled-name='sched_set_fifo_low' filepath='kernel/sched/core.c' line='7732' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='sched_set_fifo_low'>
-        <parameter type-id='f23e2572' name='p' filepath='kernel/sched/core.c' line='7732' column='1'/>
+      <function-decl name='sched_set_fifo_low' mangled-name='sched_set_fifo_low' filepath='kernel/sched/core.c' line='7735' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='sched_set_fifo_low'>
+        <parameter type-id='f23e2572' name='p' filepath='kernel/sched/core.c' line='7735' column='1'/>
         <return type-id='48b5725f'/>
       </function-decl>
-      <function-decl name='sched_set_normal' mangled-name='sched_set_normal' filepath='kernel/sched/core.c' line='7739' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='sched_set_normal'>
-        <parameter type-id='f23e2572' name='p' filepath='kernel/sched/core.c' line='7739' column='1'/>
-        <parameter type-id='95e97e5e' name='nice' filepath='kernel/sched/core.c' line='7739' column='1'/>
+      <function-decl name='sched_set_normal' mangled-name='sched_set_normal' filepath='kernel/sched/core.c' line='7742' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='sched_set_normal'>
+        <parameter type-id='f23e2572' name='p' filepath='kernel/sched/core.c' line='7742' column='1'/>
+        <parameter type-id='95e97e5e' name='nice' filepath='kernel/sched/core.c' line='7742' column='1'/>
         <return type-id='48b5725f'/>
       </function-decl>
-      <function-decl name='sched_setattr' mangled-name='sched_setattr' filepath='kernel/sched/core.c' line='7672' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='sched_setattr'>
-        <parameter type-id='f23e2572' name='p' filepath='kernel/sched/core.c' line='7672' column='1'/>
-        <parameter type-id='8abbb6c3' name='attr' filepath='kernel/sched/core.c' line='7672' column='1'/>
+      <function-decl name='sched_setattr' mangled-name='sched_setattr' filepath='kernel/sched/core.c' line='7675' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='sched_setattr'>
+        <parameter type-id='f23e2572' name='p' filepath='kernel/sched/core.c' line='7675' column='1'/>
+        <parameter type-id='8abbb6c3' name='attr' filepath='kernel/sched/core.c' line='7675' column='1'/>
         <return type-id='95e97e5e'/>
       </function-decl>
-      <function-decl name='sched_setattr_nocheck' mangled-name='sched_setattr_nocheck' filepath='kernel/sched/core.c' line='7678' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='sched_setattr_nocheck'>
-        <parameter type-id='f23e2572' name='p' filepath='kernel/sched/core.c' line='7678' column='1'/>
-        <parameter type-id='8abbb6c3' name='attr' filepath='kernel/sched/core.c' line='7678' column='1'/>
+      <function-decl name='sched_setattr_nocheck' mangled-name='sched_setattr_nocheck' filepath='kernel/sched/core.c' line='7681' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='sched_setattr_nocheck'>
+        <parameter type-id='f23e2572' name='p' filepath='kernel/sched/core.c' line='7681' column='1'/>
+        <parameter type-id='8abbb6c3' name='attr' filepath='kernel/sched/core.c' line='7681' column='1'/>
         <return type-id='95e97e5e'/>
       </function-decl>
-      <function-decl name='sched_setscheduler' mangled-name='sched_setscheduler' filepath='kernel/sched/core.c' line='7665' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='sched_setscheduler'>
-        <parameter type-id='f23e2572' name='p' filepath='kernel/sched/core.c' line='7665' column='1'/>
-        <parameter type-id='95e97e5e' name='policy' filepath='kernel/sched/core.c' line='7665' column='1'/>
-        <parameter type-id='36fca399' name='param' filepath='kernel/sched/core.c' line='7666' column='1'/>
+      <function-decl name='sched_setscheduler' mangled-name='sched_setscheduler' filepath='kernel/sched/core.c' line='7668' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='sched_setscheduler'>
+        <parameter type-id='f23e2572' name='p' filepath='kernel/sched/core.c' line='7668' column='1'/>
+        <parameter type-id='95e97e5e' name='policy' filepath='kernel/sched/core.c' line='7668' column='1'/>
+        <parameter type-id='36fca399' name='param' filepath='kernel/sched/core.c' line='7669' column='1'/>
         <return type-id='95e97e5e'/>
       </function-decl>
-      <function-decl name='sched_setscheduler_nocheck' mangled-name='sched_setscheduler_nocheck' filepath='kernel/sched/core.c' line='7697' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='sched_setscheduler_nocheck'>
-        <parameter type-id='f23e2572' name='p' filepath='kernel/sched/core.c' line='7697' column='1'/>
-        <parameter type-id='95e97e5e' name='policy' filepath='kernel/sched/core.c' line='7697' column='1'/>
-        <parameter type-id='36fca399' name='param' filepath='kernel/sched/core.c' line='7698' column='1'/>
+      <function-decl name='sched_setscheduler_nocheck' mangled-name='sched_setscheduler_nocheck' filepath='kernel/sched/core.c' line='7700' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='sched_setscheduler_nocheck'>
+        <parameter type-id='f23e2572' name='p' filepath='kernel/sched/core.c' line='7700' column='1'/>
+        <parameter type-id='95e97e5e' name='policy' filepath='kernel/sched/core.c' line='7700' column='1'/>
+        <parameter type-id='36fca399' name='param' filepath='kernel/sched/core.c' line='7701' column='1'/>
         <return type-id='95e97e5e'/>
       </function-decl>
-      <function-decl name='sched_show_task' mangled-name='sched_show_task' filepath='kernel/sched/core.c' line='8670' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='sched_show_task'>
-        <parameter type-id='f23e2572' name='p' filepath='kernel/sched/core.c' line='8670' column='1'/>
+      <function-decl name='sched_show_task' mangled-name='sched_show_task' filepath='kernel/sched/core.c' line='8673' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='sched_show_task'>
+        <parameter type-id='f23e2572' name='p' filepath='kernel/sched/core.c' line='8673' column='1'/>
         <return type-id='48b5725f'/>
       </function-decl>
       <function-decl name='sched_trace_cfs_rq_avg' mangled-name='sched_trace_cfs_rq_avg' filepath='kernel/sched/fair.c' line='11920' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='sched_trace_cfs_rq_avg'>
@@ -141142,7 +141190,7 @@
         <return type-id='95e97e5e'/>
       </function-decl>
       <var-decl name='sched_uclamp_used' type-id='237c0d27' mangled-name='sched_uclamp_used' visibility='default' filepath='kernel/sched/core.c' line='1307' column='1' elf-symbol-id='sched_uclamp_used'/>
-      <function-decl name='schedule' mangled-name='schedule' filepath='kernel/sched/core.c' line='6510' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='schedule'>
+      <function-decl name='schedule' mangled-name='schedule' filepath='kernel/sched/core.c' line='6513' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='schedule'>
         <return type-id='48b5725f'/>
       </function-decl>
       <function-decl name='schedule_hrtimeout' mangled-name='schedule_hrtimeout' filepath='kernel/time/hrtimer.c' line='2381' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='schedule_hrtimeout'>
@@ -141832,9 +141880,9 @@
         <parameter type-id='f0981eeb' name='new_cpu' filepath='kernel/sched/core.c' line='3053' column='1'/>
         <return type-id='48b5725f'/>
       </function-decl>
-      <function-decl name='set_user_nice' mangled-name='set_user_nice' filepath='kernel/sched/core.c' line='7019' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='set_user_nice'>
-        <parameter type-id='f23e2572' name='p' filepath='kernel/sched/core.c' line='7019' column='1'/>
-        <parameter type-id='bd54fe1a' name='nice' filepath='kernel/sched/core.c' line='7019' column='1'/>
+      <function-decl name='set_user_nice' mangled-name='set_user_nice' filepath='kernel/sched/core.c' line='7022' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='set_user_nice'>
+        <parameter type-id='f23e2572' name='p' filepath='kernel/sched/core.c' line='7022' column='1'/>
+        <parameter type-id='bd54fe1a' name='nice' filepath='kernel/sched/core.c' line='7022' column='1'/>
         <return type-id='48b5725f'/>
       </function-decl>
       <function-decl name='setattr_copy' mangled-name='setattr_copy' filepath='fs/attr.c' line='226' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='setattr_copy'>
@@ -144443,9 +144491,9 @@
         <parameter type-id='f23e2572' name='tsk' filepath='kernel/pid.c' line='508' column='1'/>
         <return type-id='b816e1d0'/>
       </function-decl>
-      <function-decl name='task_may_not_preempt' mangled-name='task_may_not_preempt' filepath='kernel/sched/rt.c' line='1464' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='task_may_not_preempt'>
-        <parameter type-id='f23e2572' name='task' filepath='kernel/sched/rt.c' line='1464' column='1'/>
-        <parameter type-id='95e97e5e' name='cpu' filepath='kernel/sched/rt.c' line='1464' column='1'/>
+      <function-decl name='task_may_not_preempt' mangled-name='task_may_not_preempt' filepath='kernel/sched/rt.c' line='1487' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='task_may_not_preempt'>
+        <parameter type-id='f23e2572' name='task' filepath='kernel/sched/rt.c' line='1487' column='1'/>
+        <parameter type-id='95e97e5e' name='cpu' filepath='kernel/sched/rt.c' line='1487' column='1'/>
         <return type-id='b50a4934'/>
       </function-decl>
       <function-decl name='task_rq_lock' mangled-name='task_rq_lock' filepath='kernel/sched/core.c' line='578' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='task_rq_lock'>
@@ -148372,12 +148420,12 @@
         <parameter type-id='95e97e5e' name='bit' filepath='kernel/sched/wait_bit.c' line='147' column='1'/>
         <return type-id='48b5725f'/>
       </function-decl>
-      <function-decl name='wake_up_if_idle' mangled-name='wake_up_if_idle' filepath='kernel/sched/core.c' line='3754' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='wake_up_if_idle'>
-        <parameter type-id='95e97e5e' name='cpu' filepath='kernel/sched/core.c' line='3754' column='1'/>
+      <function-decl name='wake_up_if_idle' mangled-name='wake_up_if_idle' filepath='kernel/sched/core.c' line='3757' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='wake_up_if_idle'>
+        <parameter type-id='95e97e5e' name='cpu' filepath='kernel/sched/core.c' line='3757' column='1'/>
         <return type-id='48b5725f'/>
       </function-decl>
-      <function-decl name='wake_up_process' mangled-name='wake_up_process' filepath='kernel/sched/core.c' line='4263' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='wake_up_process'>
-        <parameter type-id='f23e2572' name='p' filepath='kernel/sched/core.c' line='4263' column='1'/>
+      <function-decl name='wake_up_process' mangled-name='wake_up_process' filepath='kernel/sched/core.c' line='4266' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='wake_up_process'>
+        <parameter type-id='f23e2572' name='p' filepath='kernel/sched/core.c' line='4266' column='1'/>
         <return type-id='95e97e5e'/>
       </function-decl>
       <function-decl name='wakeup_source_add' mangled-name='wakeup_source_add' filepath='drivers/base/power/wakeup.c' line='175' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='wakeup_source_add'>
@@ -148860,7 +148908,7 @@
         <parameter type-id='f0981eeb' name='n' filepath='net/netfilter/x_tables.c' line='132' column='1'/>
         <return type-id='48b5725f'/>
       </function-decl>
-      <function-decl name='yield' mangled-name='yield' filepath='kernel/sched/core.c' line='8422' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='yield'>
+      <function-decl name='yield' mangled-name='yield' filepath='kernel/sched/core.c' line='8425' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='yield'>
         <return type-id='48b5725f'/>
       </function-decl>
       <function-decl name='zlib_deflate' mangled-name='zlib_deflate' filepath='lib/zlib_deflate/deflate.c' line='329' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='zlib_deflate'>
