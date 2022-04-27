@@ -1772,15 +1772,10 @@
 					usb-phy = <&ssphy>, <&ssphy>;
 					usb-pam = <&pamu3>;
 					phy_type = "utmi";
+					usb-role-switch;
 					snps,dis_u3_susphy_quirk;
 					snps,dis_u2_susphy_quirk;
-					snps,overlap_check_quirk;
-					snps,ep_out_aligned_size_quirk;
-					snps,disconnect_event_quirk;
-					snps,usb3_slow_suspend;
-					snps,host_suspend_capable;
-					snps,dis_u1_entry_quirk;
-					snps,dis_u2_entry_quirk;
+					snps,usb2-gadget-lpm-disable;
 				};
 			};
 
