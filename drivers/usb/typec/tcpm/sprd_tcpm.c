@@ -1216,8 +1216,13 @@ static int sprd_tcpm_pd_svdm(struct sprd_tcpm_port *port,
 			break;
 		case CMD_ATTENTION:
 			/* Attention command does not have response */
-			if (adev)
+			if (adev) {
 				typec_altmode_attention(adev, p[1]);
+				if (port->tcpc->dp_altmode_notify) {
+					sprd_tcpm_log(port, "%s:line%d CMD_ATTENTION", __func__, __LINE__);
+					port->tcpc->dp_altmode_notify(port->tcpc, p[1]);
+				}
+			}
 			return 0;
 		default:
 			break;
@@ -3067,7 +3072,7 @@ static void sprd_run_state_machine(struct sprd_tcpm_port *port)
 
 	case SRC_ATTACHED:
 		ret = sprd_tcpm_src_attach(port);
-		sprd_tcpm_set_state(port, SRC_UNATTACHED,
+		sprd_tcpm_set_state(port, SRC_STARTUP,
 				    ret < 0 ? 0 : SPRD_PD_T_PS_SOURCE_ON);
 		break;
 	case SRC_STARTUP:
@@ -3427,7 +3432,7 @@ static void sprd_run_state_machine(struct sprd_tcpm_port *port)
 		sprd_tcpm_set_vbus(port, true);
 		port->tcpc->set_pd_rx(port->tcpc, true);
 		sprd_tcpm_set_attached_state(port, true);
-		sprd_tcpm_set_state(port, SRC_UNATTACHED, SPRD_PD_T_PS_SOURCE_ON);
+		sprd_tcpm_set_state(port, SRC_STARTUP, SPRD_PD_T_PS_SOURCE_ON);
 		break;
 	case SNK_HARD_RESET_SINK_OFF:
 		memset(&port->pps_data, 0, sizeof(port->pps_data));

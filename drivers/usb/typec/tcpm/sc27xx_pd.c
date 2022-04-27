@@ -243,6 +243,13 @@ enum sc27xx_state {
 	SC27XX_POWERED_CABLE,
 };
 
+enum sc27xx_dp_hpd_status {
+	SC27XX_DP_HOT_UNPLUG = 0,
+	SC27XX_DP_HOT_PLUG,
+	SC27XX_DP_HPD_IRQ,
+	SC27XX_DP_TYPE_DISCONNECT,
+};
+
 struct sc27xx_pd_variant_data {
 	u32 efuse_rc_shift;
 	u32 efuse_ref_shift;
@@ -543,6 +550,34 @@ unlock:
 
 	return ret;
 }
+
+#if IS_ENABLED(CONFIG_TYPEC_DP_ALTMODE)
+static int sc27xx_pd_dp_altmode_notify(struct tcpc_dev *tcpc, u32 vdo)
+{
+	struct sc27xx_pd *pd = tcpc_to_sc27xx_pd(tcpc);
+	union extcon_property_value hpd_status;
+
+	if (vdo & DP_STATUS_HPD_STATE) {
+		if (vdo & DP_STATUS_IRQ_HPD)
+			hpd_status.intval = SC27XX_DP_HPD_IRQ;
+		else
+			hpd_status.intval = SC27XX_DP_HOT_PLUG;
+	} else {
+		hpd_status.intval = SC27XX_DP_HOT_UNPLUG;
+	}
+
+	dev_info(pd->dev, "%s: vdo:0x%x, hpd_status = %d\n", __func__, vdo, hpd_status.intval);
+	extcon_set_state(pd->edev, EXTCON_DISP_DP, true);
+	extcon_set_property(pd->edev, EXTCON_DISP_DP, EXTCON_PROP_DISP_HPD, hpd_status);
+	extcon_sync(pd->edev, EXTCON_DISP_DP);
+	return 0;
+}
+#else
+static int sc27xx_pd_dp_altmode_notify(struct tcpc_dev *tcpc, u32 vdo)
+{
+	return 0;
+}
+#endif
 
 static int sc27xx_pd_tx_flush(struct sc27xx_pd *pd)
 {
@@ -1433,13 +1468,14 @@ static int sc27xx_pd_extcon_event(struct notifier_block *nb,
 				  unsigned long event, void *param)
 {
 	struct sc27xx_pd *pd = container_of(nb, struct sc27xx_pd, extcon_nb);
-#ifdef CONFIG_TYPEC_DP_ALTMODE
-	enum dp_hpd_status hpd_status;
+#if IS_ENABLED(CONFIG_TYPEC_DP_ALTMODE)
+	union extcon_property_value hpd_status;
 
-	if (!extcon_get_state(pd->extcon, EXTCON_USB)) {
-		hpd_status = DP_TYPE_DISCONNECT;
-		sprd_dp_notifier_call_chain(&hpd_status);
-	}
+	hpd_status.intval = SC27XX_DP_TYPE_DISCONNECT;
+	extcon_set_state(pd->edev, EXTCON_DISP_DP, true);
+	extcon_set_property(pd->edev, EXTCON_DISP_DP, EXTCON_PROP_DISP_HPD, hpd_status);
+	extcon_sync(pd->edev, EXTCON_DISP_DP);
+	dev_info(pd->dev, "%s:hpd_status = %d\n", __func__, hpd_status.intval);
 #endif
 	dev_info(pd->dev, "typec in or out, pd attached = %d\n", pd->pd_attached);
 	if (pd->pd_attached)
@@ -1500,6 +1536,7 @@ static void sc27xx_init_tcpc_dev(struct sc27xx_pd *pd)
 	pd->tcpc.set_roles = sc27xx_pd_set_roles;
 	pd->tcpc.start_toggling = sc27xx_pd_start_drp_toggling;
 	pd->tcpc.pd_transmit = sc27xx_pd_transmit;
+	pd->tcpc.dp_altmode_notify = sc27xx_pd_dp_altmode_notify;
 }
 
 static int sc27xx_pd_efuse_read(struct sc27xx_pd *pd,
@@ -1584,10 +1621,17 @@ static void sc27xx_pd_detect_typec_work(struct work_struct *work)
 	if (extcon_get_state(pd->extcon, EXTCON_USB))
 		sc27xx_pd_check_vbus_cc_status(pd);
 
+#if IS_ENABLED(CONFIG_TYPEC_DP_ALTMODE)
+	extcon_set_property_capability(pd->edev, EXTCON_DISP_DP, EXTCON_PROP_DISP_HPD);
+#endif
+
 	pd->pd_attached = true;
 }
 
 static const u32 sc27xx_pd_hardreset[] = {
+#if IS_ENABLED(CONFIG_TYPEC_DP_ALTMODE)
+	EXTCON_DISP_DP,
+#endif
 	EXTCON_CHG_USB_PD,
 	EXTCON_NONE,
 };

@@ -120,6 +120,7 @@ struct tcpc_config {
  *		automatically if a connection is established.
  * @try_role:	Optional; called to set a preferred role
  * @pd_transmit:Called to transmit PD message
+ * @dp_altmode_notify:Called to notify dp altmode hotplug message
  * @mux:	Pointer to multiplexer data
  */
 struct tcpc_dev {
@@ -146,6 +147,7 @@ struct tcpc_dev {
 	int (*try_role)(struct tcpc_dev *dev, int role);
 	int (*pd_transmit)(struct tcpc_dev *dev, enum sprd_tcpm_transmit_type type,
 			   const struct sprd_pd_message *msg);
+	int (*dp_altmode_notify)(struct tcpc_dev *dev, u32 vdo);
 };
 
 struct adapter_power_cap {
