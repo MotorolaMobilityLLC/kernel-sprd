@@ -108,6 +108,13 @@ def find_last_char(string, p):
 
     return index
 
+def get_osa_list():
+    osa_file_list = read_line(KERNEL_DIR,AGREEMENT_FILE_NAME)
+    tags_list_tmp = [x.strip() for x in osa_file_list]
+    osa_start= tags_list_tmp.index("- Your Name <your-email-address@unisoc.com>")
+    osa_list=tags_list_tmp[osa_start+1:]
+    return osa_list
+
 def check_patch_signature(patch_info_list):
     global PATCH_SIGNATURE
     global check_signature_flag
@@ -115,28 +122,32 @@ def check_patch_signature(patch_info_list):
 
     read_message_lines = read_line(KERNEL_DIR,AGREEMENT_FILE_NAME)
 
-    for x in patch_info_list:
-        if "Signed-off-by" in x:
-            check_signature_flag = 0
-            current_signature = "- " + x[x.index(":") + 2:]
-            PATCH_SIGNATURE.append(current_signature)
+    sob_list=[]
+    osa_list=get_osa_list()
 
-            for y in read_message_lines:
-                if "\n" in y:
-                    y = y.strip("\n")
-
-                if current_signature == y:
-                    PATCH_SIGNATURE.remove(current_signature)
-                    break;
-
-    if check_signature_flag == 1:
+    for i in patch_info_list:
+        if "Author: " in i:
+            author=i[len("Author: "):]
+        if "    Signed-off-by: " in i:
+            sob_list.append(i[len("    Signed-off-by: "):])
+    if len(sob_list):
+        if author not in sob_list:
+            print >> sys.stderr, "\nERROR: Signature not contain the Author!!!"
+            print >> sys.stderr, "Please add the Signature in commit message:Signed-off-by: %s\n" % author
+            sys.exit(1)
+        for sob in sob_list:
+            if "- " + sob in osa_list:
+                print >> sys.stdout, "Oneof Sob %s is the OSA Documentation" % sob
+                check_signature_flag=0
+                break
+        if check_signature_flag == 1:
+                print >> sys.stderr, "\nERROR: None of following signatures not in Documentation/unisoc/Open-Source-Agreement"
+                print >> sys.stderr, "%s\n" % sob_list
+                sys.exit(1)
+    else:
         print >> sys.stderr, "\nERROR: Signature(Signed-off-by) doesnot exist for commit message!!!"
-        sys.exit(check_signature_flag);
-    if len(PATCH_SIGNATURE) != 0:
-        print >> sys.stderr, "\nERROR: the following signature not in Documentation/unisoc/Open-Source-Agreement"
-        for x in PATCH_SIGNATURE:
-            print >> sys.stderr, " %s" % x
-        sys.exit(1);
+        print >> sys.stderr, "Please add the Singature by run command: git commit --amend -s\n"
+        sys.exit(1)
 
 def check_tags_commit_id(patch_info_list):
     global check_tags_flag
@@ -285,11 +296,7 @@ def check_osa_ifsorted():
     status,output=commands.getstatusoutput(GET_PATCH_MODIFY_FILE_INFO)
     get_patch_modify_file_list = output.split('\n')
     if AGREEMENT_FILE_NAME in get_patch_modify_file_list:
-        osa_file_list = read_line(KERNEL_DIR,AGREEMENT_FILE_NAME)
-        tags_list_tmp = [x.strip() for x in osa_file_list]
-        osa_start= tags_list_tmp.index("- Your Name <your-email-address@unisoc.com>")
-        osa_list=tags_list_tmp[osa_start+1:]
-        print osa_list
+        osa_list=get_osa_list()
         if (sorted(osa_list) == osa_list or sorted(osa_list,reverse=True) == osa_list):
             print >> sys.stdout,"\nAdd OSA sorted check pass\n"
         else:
