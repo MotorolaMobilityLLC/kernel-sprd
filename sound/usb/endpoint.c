@@ -1184,6 +1184,9 @@ int snd_usb_endpoint_start(struct snd_usb_endpoint *ep)
 		case SNDRV_PCM_FORMAT_S24_LE:
 			is_pcm_24bit = 1;
 			break;
+		case SNDRV_PCM_FORMAT_S24_3LE:
+			is_pcm_24bit = 1;
+			break;
 		default:
 			is_pcm_24bit = 0;
 			pr_err("%s unknown pcm format %d\n",
