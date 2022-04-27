@@ -188,10 +188,9 @@ static void dwc3_gadget_del_and_unmap_request(struct dwc3_ep *dep,
 
 	req->trb = NULL;
 	trace_dwc3_gadget_giveback(req);
-#if 0
+
 	if (dep->number > 1)
 		pm_runtime_put(dwc->dev);
-#endif
 }
 
 /**
@@ -1553,9 +1552,9 @@ static int __dwc3_gadget_ep_queue(struct dwc3_ep *dep, struct dwc3_request *req)
 				"%s: request %pK already in flight\n",
 				dep->name, &req->request))
 		return -EINVAL;
-#if 0
+
 	pm_runtime_get(dwc->dev);
-#endif
+
 	req->request.actual	= 0;
 	req->request.status	= -EINPROGRESS;
 
@@ -1877,7 +1876,7 @@ static int __dwc3_gadget_wakeup(struct dwc3 *dwc)
 	u32			reg;
 
 	u8			link_state;
-	u8			speed;
+
 	/*
 	 * According to the Databook Remote wakeup request should
 	 * be issued only when the device is in early suspend state.
@@ -1885,11 +1884,6 @@ static int __dwc3_gadget_wakeup(struct dwc3 *dwc)
 	 * We can check that via USB Link State bits in DSTS register.
 	 */
 	reg = dwc3_readl(dwc->regs, DWC3_DSTS);
-
-	speed = reg & DWC3_DSTS_CONNECTSPD;
-	if ((speed == DWC3_DSTS_SUPERSPEED) ||
-		(speed == DWC3_DSTS_SUPERSPEED_PLUS))
-		return 0;
 
 	link_state = DWC3_DSTS_USBLNKST(reg);
 
@@ -2054,10 +2048,8 @@ static int dwc3_gadget_pullup(struct usb_gadget *g, int is_on)
 	 * suspended state during gadget disconnect.  DWC3 gadget was already
 	 * halted/stopped during runtime suspend.
 	 */
-	if (pm_runtime_suspended (dwc->dev)) {
-		dev_info(dwc->dev, "%s suspended \n", __func__);
+	if (pm_runtime_suspended(dwc->dev))
 		return 0;
-	}
 	/*
 	 * Check the return value for successful resume, or error.  For a
 	 * successful resume, the DWC3 runtime PM resume routine will handle
@@ -2073,7 +2065,6 @@ static int dwc3_gadget_pullup(struct usb_gadget *g, int is_on)
 	 * Synchronize and disable any further event handling while controller
 	 * is being enabled/disabled.
 	 */
-
 	disable_irq(dwc->irq_gadget);
 
 	spin_lock_irqsave(&dwc->lock, flags);
@@ -2112,9 +2103,10 @@ static int dwc3_gadget_pullup(struct usb_gadget *g, int is_on)
 
 	ret = dwc3_gadget_run_stop(dwc, is_on, false);
 	spin_unlock_irqrestore(&dwc->lock, flags);
-
 	enable_irq(dwc->irq_gadget);
+
 	pm_runtime_put(dwc->dev);
+
 	return ret;
 }
 
@@ -2963,7 +2955,6 @@ static void dwc3_endpoint_interrupt(struct dwc3 *dwc,
 
 static void dwc3_disconnect_gadget(struct dwc3 *dwc)
 {
-	dwc->connected = false;
 	if (dwc->gadget_driver && dwc->gadget_driver->disconnect) {
 		spin_unlock(&dwc->lock);
 		dwc->gadget_driver->disconnect(&dwc->gadget);
@@ -3238,18 +3229,11 @@ static void dwc3_gadget_conndone_interrupt(struct dwc3 *dwc)
 	/* Enable USB2 LPM Capability */
 
 	if ((dwc->revision > DWC3_REVISION_194A) &&
+		!dwc->usb2_gadget_lpm_disable &&
 	    (speed != DWC3_DSTS_SUPERSPEED) &&
 	    (speed != DWC3_DSTS_SUPERSPEED_PLUS)) {
 		reg = dwc3_readl(dwc->regs, DWC3_DCFG);
-		/* There is a usb2 link stable issue on usb31 ip,
-		 * * we don't see this issue when link through a hub,
-		 * we need to disable LPM_CAP for usb31 ip
-		 */
-		dev_info(dwc->dev, "%s usb3_lpm_capable(%d)\n", __func__, dwc->usb3_lpm_capable);
-		if (dwc->usb3_lpm_capable)
-			reg |= DWC3_DCFG_LPM_CAP;
-		else
-			reg &= ~DWC3_DCFG_LPM_CAP;
+		reg |= DWC3_DCFG_LPM_CAP;
 		dwc3_writel(dwc->regs, DWC3_DCFG, reg);
 
 		reg = dwc3_readl(dwc->regs, DWC3_DCTL);
@@ -3273,6 +3257,12 @@ static void dwc3_gadget_conndone_interrupt(struct dwc3 *dwc)
 
 		dwc3_writel(dwc->regs, DWC3_DCTL, reg);
 	} else {
+		if (dwc->usb2_gadget_lpm_disable) {
+			reg = dwc3_readl(dwc->regs, DWC3_DCFG);
+			reg &= ~DWC3_DCFG_LPM_CAP;
+			dwc3_writel(dwc->regs, DWC3_DCFG, reg);
+		}
+
 		reg = dwc3_readl(dwc->regs, DWC3_DCTL);
 		reg &= ~DWC3_DCTL_HIRD_THRES_MASK;
 		dwc3_writel(dwc->regs, DWC3_DCTL, reg);

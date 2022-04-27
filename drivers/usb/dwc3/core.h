@@ -1239,8 +1239,7 @@ struct dwc3 {
 	unsigned		dis_start_transfer_quirk:1;
 	unsigned		usb3_lpm_capable:1;
 	unsigned		usb2_lpm_disable:1;
-	unsigned		host_suspend_capable:1;
-	unsigned		usb3_slow_suspend:1;
+	unsigned		usb2_gadget_lpm_disable:1;
 
 	unsigned		disable_scramble_quirk:1;
 	unsigned		u2exit_lfps_quirk:1;
@@ -1269,7 +1268,6 @@ struct dwc3 {
 	unsigned		dis_split_quirk:1;
 
 	u16			imod_interval;
-	bool			u1u2_enable;
 
 	ANDROID_KABI_RESERVE(1);
 	ANDROID_KABI_RESERVE(2);
@@ -1522,8 +1520,6 @@ static inline void dwc3_otg_host_init(struct dwc3 *dwc)
 #if !IS_ENABLED(CONFIG_USB_DWC3_HOST)
 int dwc3_gadget_suspend(struct dwc3 *dwc);
 int dwc3_gadget_resume(struct dwc3 *dwc);
-int dwc3_host_suspend(struct dwc3 *dwc);
-int dwc3_host_resume(struct dwc3 *dwc);
 void dwc3_gadget_process_pending_events(struct dwc3 *dwc);
 #else
 static inline int dwc3_gadget_suspend(struct dwc3 *dwc)
