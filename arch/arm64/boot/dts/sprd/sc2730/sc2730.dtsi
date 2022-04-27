@@ -39,6 +39,11 @@
 			};
 		};
 
+		pmic_wdt: watchdog@40 {
+			compatible = "sprd,sc2730-wdt", "sprd,sc27xx-wdt";
+			reg = <0x40>;
+		};
+
 		rtc@200 {
 			compatible = "sprd,sc2731-rtc", "sprd,sc2730-rtc";
 			reg = <0x200>;

@@ -398,3 +398,4 @@
 #include "usb.dtsi"
 #include "vdsp.dtsi"
 #include "vsp.dtsi"
+#include "wdt.dtsi"
