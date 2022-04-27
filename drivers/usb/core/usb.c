@@ -462,12 +462,20 @@ static void usb_dev_complete(struct device *dev)
 
 static int usb_dev_suspend(struct device *dev)
 {
+#if IS_ENABLED(CONFIG_USB_DWC3_SPRD)
+	return usb_suspend(dev, PMSG_SUSPEND);
+#else
 	return 0;
+#endif
 }
 
 static int usb_dev_resume(struct device *dev)
 {
+#if IS_ENABLED(CONFIG_USB_DWC3_SPRD)
+	return usb_resume(dev, PMSG_RESUME);
+#else
 	return 0;
+#endif
 }
 
 static int usb_dev_freeze(struct device *dev)
