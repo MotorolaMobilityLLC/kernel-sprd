@@ -737,6 +737,65 @@ static enum usb_charger_type sprd_ssphy_charger_detect(struct usb_phy *x)
 	return type;
 }
 
+static int sprd_ssphy_notify_connect(struct usb_phy *x,
+				enum usb_device_speed speed)
+{
+	struct sprd_ssphy *phy = container_of(x, struct sprd_ssphy, phy);
+	u32 msk = 0, reg = 0;
+
+	if (!atomic_read(&phy->inited)) {
+		dev_info(x->dev, "%s phy is not inited!\n", __func__);
+		return 0;
+	}
+
+	if (phy->is_host)
+		return 0;
+
+	/*hsphy vbus valid */
+	msk = MASK_AON_APB_OTG_VBUS_VALID_PHYREG;
+	reg = msk;
+	regmap_update_bits(phy->aon_apb, REG_AON_APB_OTG_PHY_TEST, msk, reg);
+	/*ssphy vbus valid */
+	msk = MASK_AON_APB_SYS_VBUSVALID;
+	reg = msk;
+	regmap_update_bits(phy->aon_apb, REG_AON_APB_USB31DPCOMBPHY_CTRL, msk, reg);
+
+	msk = BIT_ANLG_PHY_G0L_ANALOG_USB20_USB20_VBUSVLDEXT;
+	reg = msk;
+	regmap_update_bits(phy->ana_g0l,
+			REG_ANLG_PHY_G0L_ANALOG_USB20_USB20_UTMI_CTL1,	msk, reg);
+	dev_info(x->dev, "ssphy set vbus valid!\n");
+	return 0;
+}
+
+static int sprd_ssphy_notify_disconnect(struct usb_phy *x,
+				enum usb_device_speed speed)
+{
+	struct sprd_ssphy *phy = container_of(x, struct sprd_ssphy, phy);
+	u32 msk = 0;
+
+	if (!atomic_read(&phy->inited)) {
+		dev_info(x->dev, "%s phy is not inited!\n", __func__);
+		return 0;
+	}
+
+	if (phy->is_host)
+		return 0;
+
+	/*hsphy vbus invalid */
+	msk = MASK_AON_APB_OTG_VBUS_VALID_PHYREG;
+	regmap_update_bits(phy->aon_apb, REG_AON_APB_OTG_PHY_TEST, msk, 0);
+	/*ssphy vbus invalid */
+	msk = MASK_AON_APB_SYS_VBUSVALID;
+	regmap_update_bits(phy->aon_apb, REG_AON_APB_USB31DPCOMBPHY_CTRL, msk, 0);
+
+	msk = BIT_ANLG_PHY_G0L_ANALOG_USB20_USB20_VBUSVLDEXT;
+	regmap_update_bits(phy->ana_g0l,
+			REG_ANLG_PHY_G0L_ANALOG_USB20_USB20_UTMI_CTL1,	msk, 0);
+	dev_info(x->dev, "ssphy set vbus invalid!\n");
+	return 0;
+}
+
 static int sprd_ssphy_probe(struct platform_device *pdev)
 {
 	struct device_node *regmap_np;
@@ -877,6 +936,12 @@ static int sprd_ssphy_probe(struct platform_device *pdev)
 	phy->phy.type				= USB_PHY_TYPE_USB3;
 	phy->phy.vbus_nb.notifier_call		= sprd_ssphy_vbus_notify;
 	phy->phy.charger_detect			= sprd_ssphy_charger_detect;
+	/*
+	 * notify_connect is used to set vbusvalid
+	 * notify_disconnect is used to set vbusinvalid
+	 */
+	phy->phy.notify_connect			= sprd_ssphy_notify_connect;
+	phy->phy.notify_disconnect		= sprd_ssphy_notify_disconnect;
 	ret = usb_add_phy_dev(&phy->phy);
 	if (ret) {
 		dev_err(dev, "fail to add phy\n");
