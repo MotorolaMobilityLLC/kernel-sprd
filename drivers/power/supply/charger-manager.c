@@ -135,6 +135,26 @@ static char *charger_manager_supplied_to[] = {
 #define CM_RTC_SMALL		(2)
 
 #define CM_EVENT_TYPE_NUM	6
+
+static struct charger_type charger_usb_type[20] = {
+	{POWER_SUPPLY_USB_TYPE_SDP, CM_CHARGER_TYPE_SDP},
+	{POWER_SUPPLY_USB_TYPE_DCP, CM_CHARGER_TYPE_DCP},
+	{POWER_SUPPLY_USB_TYPE_CDP, CM_CHARGER_TYPE_CDP},
+	{POWER_SUPPLY_USB_TYPE_UNKNOWN, CM_CHARGER_TYPE_UNKNOWN},
+};
+
+static struct charger_type charger_fchg_type[20] = {
+	{POWER_SUPPLY_CHARGE_TYPE_FAST, CM_CHARGER_TYPE_FAST},
+	{POWER_SUPPLY_CHARGE_TYPE_ADAPTIVE, CM_CHARGER_TYPE_ADAPTIVE},
+	{POWER_SUPPLY_CHARGE_TYPE_UNKNOWN, CM_CHARGER_TYPE_UNKNOWN},
+};
+
+static struct charger_type charger_wireless_type[20] = {
+	{POWER_SUPPLY_WIRELESS_CHARGER_TYPE_BPP, CM_WIRELESS_CHARGER_TYPE_BPP},
+	{POWER_SUPPLY_WIRELESS_CHARGER_TYPE_EPP, CM_WIRELESS_CHARGER_TYPE_EPP},
+	{POWER_SUPPLY_WIRELESS_CHARGER_TYPE_UNKNOWN, CM_CHARGER_TYPE_UNKNOWN},
+};
+
 static LIST_HEAD(cm_list);
 static DEFINE_MUTEX(cm_list_mtx);
 
@@ -812,7 +832,7 @@ static int cm_get_charge_cycle(struct charger_manager *cm, int *cycle)
 	return 0;
 }
 
-static int cm_get_usb_type(struct charger_manager *cm, u32 *type)
+static int cm_get_bc1p2_type(struct charger_manager *cm, u32 *type)
 {
 	int ret = -EINVAL;
 
@@ -824,6 +844,41 @@ static int cm_get_usb_type(struct charger_manager *cm, u32 *type)
 	}
 
 	return ret;
+}
+
+static void cm_get_charger_type(struct charger_manager *cm,
+				enum cm_charger_type_flag chg_type_flag,
+				u32 *type)
+{
+	struct charger_type *chg_type;
+
+	switch (chg_type_flag) {
+	case CM_FCHG_TYPE:
+		chg_type = charger_fchg_type;
+		break;
+	case CM_WL_TYPE:
+		chg_type = charger_wireless_type;
+		break;
+	case CM_USB_TYPE:
+	default:
+		chg_type = charger_usb_type;
+		break;
+	}
+
+	if (!chg_type) {
+		dev_err(cm->dev, "%s, chg_type is NULL\n", __func__);
+		*type = CM_CHARGER_TYPE_UNKNOWN;
+		return;
+	}
+
+	while ((chg_type)->adap_type != CM_CHARGER_TYPE_UNKNOWN) {
+		if (*type == chg_type->psy_type) {
+			*type = chg_type->adap_type;
+			return;
+		}
+
+		chg_type++;
+	}
 }
 
 /**
@@ -844,7 +899,8 @@ static int get_usb_charger_type(struct charger_manager *cm, u32 *type)
 		return 0;
 	}
 
-	ret = cm_get_usb_type(cm, type);
+	ret = cm_get_bc1p2_type(cm, type);
+	cm_get_charger_type(cm, CM_USB_TYPE, type);
 
 	mutex_unlock(&cm->desc->charger_type_mtx);
 	return ret;
@@ -884,6 +940,7 @@ static int get_wireless_charger_type(struct charger_manager *cm, u32 *type)
 		}
 	}
 
+	cm_get_charger_type(cm, CM_WL_TYPE, type);
 	mutex_unlock(&cm->desc->charger_type_mtx);
 
 	return ret;
@@ -1487,7 +1544,7 @@ static void cm_update_charge_info(struct charger_manager *cm, int cmd)
 
 	mutex_lock(&cm->desc->charge_info_mtx);
 	switch (desc->charger_type) {
-	case POWER_SUPPLY_USB_CHARGER_TYPE_DCP:
+	case CM_CHARGER_TYPE_DCP:
 		desc->charge_limit_cur = desc->cur.dcp_cur;
 		desc->input_limit_cur = desc->cur.dcp_limit;
 		thm_info->adapter_default_charge_vol = 5;
@@ -1500,7 +1557,7 @@ static void cm_update_charge_info(struct charger_manager *cm, int cmd)
 		if (desc->normal_charge_voltage_drop)
 			desc->charge_voltage_drop = desc->normal_charge_voltage_drop;
 		break;
-	case POWER_SUPPLY_USB_CHARGER_TYPE_SDP:
+	case CM_CHARGER_TYPE_SDP:
 		desc->charge_limit_cur = desc->cur.sdp_cur;
 		desc->input_limit_cur = desc->cur.sdp_limit;
 		thm_info->adapter_default_charge_vol = 5;
@@ -1513,7 +1570,7 @@ static void cm_update_charge_info(struct charger_manager *cm, int cmd)
 		if (desc->normal_charge_voltage_drop)
 			desc->charge_voltage_drop = desc->normal_charge_voltage_drop;
 		break;
-	case POWER_SUPPLY_USB_CHARGER_TYPE_CDP:
+	case CM_CHARGER_TYPE_CDP:
 		desc->charge_limit_cur = desc->cur.cdp_cur;
 		desc->input_limit_cur = desc->cur.cdp_limit;
 		thm_info->adapter_default_charge_vol = 5;
@@ -1526,8 +1583,7 @@ static void cm_update_charge_info(struct charger_manager *cm, int cmd)
 		if (desc->normal_charge_voltage_drop)
 			desc->charge_voltage_drop = desc->normal_charge_voltage_drop;
 		break;
-	case POWER_SUPPLY_USB_CHARGER_TYPE_PD:
-	case POWER_SUPPLY_USB_CHARGER_TYPE_SFCP_1P0:
+	case CM_CHARGER_TYPE_FAST:
 		if (desc->enable_fast_charge) {
 			desc->charge_limit_cur = desc->cur.fchg_cur;
 			desc->input_limit_cur = desc->cur.fchg_limit;
@@ -1554,8 +1610,7 @@ static void cm_update_charge_info(struct charger_manager *cm, int cmd)
 		if (desc->normal_charge_voltage_drop)
 			desc->charge_voltage_drop = desc->normal_charge_voltage_drop;
 		break;
-	case POWER_SUPPLY_USB_CHARGER_TYPE_PD_PPS:
-	case POWER_SUPPLY_USB_CHARGER_TYPE_SFCP_2P0:
+	case CM_CHARGER_TYPE_ADAPTIVE:
 		if (desc->cp.cp_running && !desc->cp.recovery) {
 			desc->charge_limit_cur = desc->cur.flash_cur;
 			desc->input_limit_cur = desc->cur.flash_limit;
@@ -1582,7 +1637,7 @@ static void cm_update_charge_info(struct charger_manager *cm, int cmd)
 		if (desc->normal_charge_voltage_drop)
 			desc->charge_voltage_drop = desc->normal_charge_voltage_drop;
 		break;
-	case POWER_SUPPLY_WIRELESS_CHARGER_TYPE_BPP:
+	case CM_WIRELESS_CHARGER_TYPE_BPP:
 		desc->charge_limit_cur = desc->cur.wl_bpp_cur;
 		desc->input_limit_cur = desc->cur.wl_bpp_limit;
 		thm_info->adapter_default_charge_vol = 5;
@@ -1595,7 +1650,7 @@ static void cm_update_charge_info(struct charger_manager *cm, int cmd)
 		if (desc->wireless_normal_charge_voltage_drop)
 			desc->charge_voltage_drop = desc->wireless_normal_charge_voltage_drop;
 		break;
-	case POWER_SUPPLY_WIRELESS_CHARGER_TYPE_EPP:
+	case CM_WIRELESS_CHARGER_TYPE_EPP:
 		desc->charge_limit_cur = desc->cur.wl_epp_cur;
 		desc->input_limit_cur = desc->cur.wl_epp_limit;
 		thm_info->adapter_default_charge_vol = 11;
@@ -1744,58 +1799,38 @@ static void cm_sprd_vote_callback(struct sprd_vote *vote_gov, int vote_type,
 
 static int cm_get_adapter_max_voltage(struct charger_manager *cm, int *max_vol)
 {
-	struct charger_desc *desc = cm->desc;
-	struct power_supply *psy;
-	union power_supply_propval val;
 	int ret;
 
 	*max_vol = 0;
-	psy = power_supply_get_by_name(desc->psy_fast_charger_stat[0]);
-	if (!psy) {
-		dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
-			desc->psy_fast_charger_stat[0]);
-		return -ENODEV;
+	if (!cm->fchg_info->ops || !cm->fchg_info->ops->get_fchg_vol_max) {
+		dev_err(cm->dev, "%s, fchg ops or get_fchg_vol_max is null\n", __func__);
+		return -EINVAL;
 	}
 
-	ret = power_supply_get_property(psy, POWER_SUPPLY_PROP_VOLTAGE_MAX, &val);
-	power_supply_put(psy);
-	if (ret) {
-		dev_err(cm->dev,
-			"failed to get max voltage\n");
-		return ret;
-	}
+	ret = cm->fchg_info->ops->get_fchg_vol_max(cm->fchg_info, max_vol);
+	if (ret)
+		dev_err(cm->dev, "%s, failed to get fchg max voltage, ret=%d\n",
+			__func__, ret);
 
-	*max_vol = val.intval;
-
-	return 0;
+	return ret;
 }
 
-static int cm_get_adapter_max_current(struct charger_manager *cm, int *max_cur)
+static int cm_get_adapter_max_current(struct charger_manager *cm, int input_vol, int *max_cur)
 {
-	struct charger_desc *desc = cm->desc;
-	struct power_supply *psy;
-	union power_supply_propval val;
 	int ret;
 
 	*max_cur = 0;
-	psy = power_supply_get_by_name(desc->psy_fast_charger_stat[0]);
-	if (!psy) {
-		dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
-			desc->psy_fast_charger_stat[0]);
-		return -ENODEV;
+	if (!cm->fchg_info->ops || !cm->fchg_info->ops->get_fchg_cur_max) {
+		dev_err(cm->dev, "%s, fchg ops or get_fchg_cur_max is null\n", __func__);
+		return -EINVAL;
 	}
 
-	ret = power_supply_get_property(psy, POWER_SUPPLY_PROP_CURRENT_MAX, &val);
-	power_supply_put(psy);
-	if (ret) {
-		dev_err(cm->dev,
-			"failed to get max current\n");
-		return ret;
-	}
+	ret = cm->fchg_info->ops->get_fchg_cur_max(cm->fchg_info, input_vol, max_cur);
+	if (ret)
+		dev_err(cm->dev, "%s, failed to get fchg max current, ret=%d\n",
+			__func__, ret);
 
-	*max_cur = val.intval;
-
-	return 0;
+	return ret;
 }
 
 static int cm_set_charger_ovp(struct charger_manager *cm, int cmd)
@@ -1870,30 +1905,21 @@ static int cm_enable_second_charger(struct charger_manager *cm, bool enable)
 	return 0;
 }
 
-static int cm_adjust_fast_charge_voltage(struct charger_manager *cm, int vol)
+static int cm_adjust_fchg_voltage(struct charger_manager *cm, int vol)
 {
-	struct charger_desc *desc = cm->desc;
-	struct power_supply *psy;
-	union power_supply_propval val;
 	int ret;
 
-	psy = power_supply_get_by_name(desc->psy_fast_charger_stat[0]);
-	if (!psy) {
-		dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
-			desc->psy_fast_charger_stat[0]);
-		return -ENODEV;
+	if (!cm->fchg_info->ops || !cm->fchg_info->ops->adj_fchg_vol) {
+		dev_err(cm->dev, "%s, fchg ops or adj_fchg_vol is null\n", __func__);
+		return -EINVAL;
 	}
 
-	val.intval = vol;
-	ret = power_supply_set_property(psy, POWER_SUPPLY_PROP_VOLTAGE_MAX, &val);
-	power_supply_put(psy);
-	if (ret) {
-		dev_err(cm->dev,
-			"failed to adjust fast charger voltage vol = %d\n", vol);
-		return ret;
-	}
+	ret = cm->fchg_info->ops->adj_fchg_vol(cm->fchg_info, vol);
+	if (ret)
+		dev_err(cm->dev, "%s, failed to adjust fchg voltage vol=%d, ret=%d\n",
+			__func__, vol, ret);
 
-	return 0;
+	return ret;
 }
 
 static bool cm_is_reach_fchg_threshold(struct charger_manager *cm)
@@ -1958,10 +1984,10 @@ static int cm_fixed_fchg_enable(struct charger_manager *cm)
 	}
 
 	/*
-	 * if it don't define cm-fast-chargers in dts,
+	 * if it don't define sprd,support-fchg in dts,
 	 * we think that it don't plan to use fast charge.
 	 */
-	if (!cm->desc->psy_fast_charger_stat || !cm->desc->psy_fast_charger_stat[0])
+	if (!cm->fchg_info->support_fchg)
 		return 0;
 
 	if (!cm->desc->is_fast_charge || cm->desc->enable_fast_charge)
@@ -2017,7 +2043,7 @@ static int cm_fixed_fchg_enable(struct charger_manager *cm)
 	if (adapter_max_vbus > CM_FAST_CHARGE_VOLTAGE_9V)
 		adapter_max_vbus = CM_FAST_CHARGE_VOLTAGE_9V;
 
-	ret = cm_adjust_fast_charge_voltage(cm, adapter_max_vbus);
+	ret = cm_adjust_fchg_voltage(cm, adapter_max_vbus);
 	if (ret) {
 		dev_err(cm->dev, "failed to adjust fast charger voltage\n");
 		goto ovp_err;
@@ -2032,7 +2058,7 @@ static int cm_fixed_fchg_enable(struct charger_manager *cm)
 	goto out;
 
 adj_vol_err:
-	cm_adjust_fast_charge_voltage(cm, CM_FAST_CHARGE_VOLTAGE_5V);
+	cm_adjust_fchg_voltage(cm, CM_FAST_CHARGE_VOLTAGE_5V);
 
 ovp_err:
 	cm_set_charger_ovp(cm, CM_FAST_CHARGE_OVP_DISABLE_CMD);
@@ -2084,7 +2110,7 @@ static int cm_fixed_fchg_disable(struct charger_manager *cm)
 	 * Adjust fast charger output voltage from 9V to 5V
 	 */
 	if (!desc->wait_vbus_stable &&
-	    cm_adjust_fast_charge_voltage(cm, CM_FAST_CHARGE_VOLTAGE_5V)) {
+	    cm_adjust_fchg_voltage(cm, CM_FAST_CHARGE_VOLTAGE_5V)) {
 		dev_err(cm->dev, "%s, failed to adjust 5V fast charger voltage\n", __func__);
 		ret = -EINVAL;
 		goto out;
@@ -2311,7 +2337,7 @@ static void cm_fixed_fchg_control_switch(struct charger_manager *cm, bool enable
 
 	dev_dbg(cm->dev, "%s enable = %d start\n", __func__, enable);
 
-	if (!cm->desc->psy_fast_charger_stat)
+	if (!cm->fchg_info->support_fchg)
 		return;
 
 	cm->desc->check_fixed_fchg_threshold = enable;
@@ -2327,14 +2353,13 @@ static bool cm_is_need_start_fixed_fchg(struct charger_manager *cm)
 {
 	bool need = false;
 
-	if (!cm->desc->psy_fast_charger_stat || cm->desc->fixed_fchg_running)
+	if (!cm->fchg_info->support_fchg || cm->desc->fixed_fchg_running)
 		return false;
 
 	cm_charger_is_support_fchg(cm);
-	if ((cm->desc->fast_charger_type == POWER_SUPPLY_USB_CHARGER_TYPE_PD ||
-	     cm->desc->fast_charger_type == POWER_SUPPLY_USB_CHARGER_TYPE_SFCP_1P0) &&
-	     cm->charger_enabled && cm->desc->check_fixed_fchg_threshold &&
-	     cm_is_reach_fchg_threshold(cm))
+	if (cm->desc->fast_charger_type == CM_CHARGER_TYPE_FAST &&
+	    cm->charger_enabled && cm->desc->check_fixed_fchg_threshold &&
+	    cm_is_reach_fchg_threshold(cm))
 		need = true;
 
 	return need;
@@ -2362,15 +2387,14 @@ static void cm_fixed_fchg_work(struct work_struct *work)
 	 *   1. Prevent CM_FAST_CHARGE_ENABLE_COUNT from becoming PPS
 	 *      within the time and enable the fast charge status.
 	 */
-	if (cm->desc->fast_charger_type != POWER_SUPPLY_USB_CHARGER_TYPE_PD &&
-	    cm->desc->fast_charger_type != POWER_SUPPLY_USB_CHARGER_TYPE_SFCP_1P0)
+	if (cm->desc->fast_charger_type != CM_CHARGER_TYPE_FAST)
 		goto stop_fixed_fchg;
 
 	/*
 	 * The first if branch: fix the problem that the Xiaomi 65W
 	 *                      charger PD2.0 and PPS follow closely.
 	 */
-	if (cm->desc->fast_charger_type == POWER_SUPPLY_USB_CHARGER_TYPE_PD &&
+	if (cm->desc->fast_charger_type == CM_CHARGER_TYPE_FAST &&
 	    cm->desc->fast_charge_enable_count < CM_FAST_CHARGE_ENABLE_COUNT) {
 		cm->desc->fast_charge_enable_count++;
 		delay_work_ms = CM_CP_WORK_TIME_MS;
@@ -2408,7 +2432,7 @@ static void cm_cp_state_change(struct charger_manager *cm, int state)
 	dev_dbg(cm->dev, "%s, current cp_state = %d\n", __func__, state);
 }
 
-static  bool cm_cp_master_charger_enable(struct charger_manager *cm, bool enable)
+static bool cm_cp_master_charger_enable(struct charger_manager *cm, bool enable)
 {
 	union power_supply_propval val;
 	struct power_supply *cp_psy;
@@ -2463,61 +2487,66 @@ static void cm_init_cp(struct charger_manager *cm)
 	}
 }
 
-static int cm_adjust_fast_charge_current(struct charger_manager *cm, int cur)
+static int cm_adjust_fchg_current(struct charger_manager *cm, int cur)
 {
-	struct charger_desc *desc = cm->desc;
-	struct power_supply *psy;
 	union power_supply_propval val;
 	int ret;
 
-	psy = power_supply_get_by_name(desc->psy_fast_charger_stat[0]);
-	if (!psy) {
-		dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
-			desc->psy_fast_charger_stat[0]);
-		return -ENODEV;
+	if (!cm->fchg_info->ops || !cm->fchg_info->ops->adj_fchg_cur) {
+		dev_err(cm->dev, "%s, fchg ops or adj_fchg_cur is null\n", __func__);
+		return -EINVAL;
 	}
 
 	val.intval = cur;
-	ret = power_supply_set_property(psy, POWER_SUPPLY_PROP_CURRENT_MAX, &val);
-	power_supply_put(psy);
+	ret = cm->fchg_info->ops->adj_fchg_cur(cm->fchg_info, cur);
 	if (ret) {
-		dev_err(cm->dev,
-			"failed to adjust fast ibus = %d\n", cur);
+		dev_err(cm->dev, "%s, failed to adjust fchg current = %d, ret=%d\n",
+			__func__, cur, ret);
 		return ret;
 	}
 
 	return 0;
 }
 
+/*
+ *  Relying on the fast charging protocol of DP/DM for handshake,
+ *  the handshake can only be perfomed after the BC1.2 result is
+ *  identified as DCP, such as the SFCP protocol.
+ */
+static void cm_enable_fixed_fchg_handshake(struct charger_manager *cm, bool enable)
+{
+	dev_dbg(cm->dev, "%s, %s fixed fchg handshake\n", __func__, enable ? "enable" : "disable");
+	if (!cm->fchg_info || !cm->fchg_info->ops || !cm->fchg_info->ops->enable_fixed_fchg) {
+		dev_err(cm->dev, "%s, fchg_info or ops or enable_fixed_fchg is null\n", __func__);
+		return;
+	}
+
+	if (!cm->fchg_info->support_fchg)
+		return;
+
+	if (enable && !cm->desc->is_fast_charge &&
+	    cm->desc->charger_type == CM_CHARGER_TYPE_DCP)
+		cm->fchg_info->ops->enable_fixed_fchg(cm->fchg_info, true);
+	else if (!enable)
+		cm->fchg_info->ops->enable_fixed_fchg(cm->fchg_info, false);
+}
+
 static int cm_fast_enable_pps(struct charger_manager *cm, bool enable)
 {
-	struct charger_desc *desc = cm->desc;
-	struct power_supply *psy;
-	union power_supply_propval val;
 	int ret;
 
 	dev_dbg(cm->dev, "%s, pps %s\n", __func__, enable ? "enable" : "disable");
-	psy = power_supply_get_by_name(desc->psy_fast_charger_stat[0]);
-	if (!psy) {
-		dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
-			desc->psy_fast_charger_stat[0]);
-		return -ENODEV;
+	if (!cm->fchg_info->ops || !cm->fchg_info->ops->enable_dynamic_fchg) {
+		dev_err(cm->dev, "%s, ops or enable_dynamic_fchg is null\n", __func__);
+		return -EINVAL;
 	}
 
-	if (enable)
-		val.intval = CM_PPS_CHARGE_ENABLE_CMD;
-	else
-		val.intval = CM_PPS_CHARGE_DISABLE_CMD;
+	ret = cm->fchg_info->ops->enable_dynamic_fchg(cm->fchg_info, enable);
+	if (ret)
+		dev_err(cm->dev, "%s, failed to %s pps, ret=%d\n",
+			__func__, enable ? "enable" : "disable", ret);
 
-	ret = power_supply_set_property(psy, POWER_SUPPLY_PROP_ONLINE, &val);
-	power_supply_put(psy);
-	if (ret) {
-		dev_err(cm->dev,
-			"failed to disable pps\n");
-		return ret;
-	}
-
-	return 0;
+	return ret;
 }
 
 static bool cm_check_primary_charger_enabled(struct charger_manager *cm)
@@ -2981,8 +3010,15 @@ static void cm_cp_state_entry(struct charger_manager *cm)
 		return;
 	}
 
-	cm_get_adapter_max_current(cm, &cp->adapter_max_ibus);
-	cm_get_adapter_max_voltage(cm, &cp->adapter_max_vbus);
+	if (cm_get_adapter_max_voltage(cm, &cp->adapter_max_vbus)) {
+		cm_cp_state_change(cm, CM_CP_STATE_EXIT);
+		return;
+	}
+
+	if (cm_get_adapter_max_current(cm, 0, &cp->adapter_max_ibus)) {
+		cm_cp_state_change(cm, CM_CP_STATE_EXIT);
+		return;
+	}
 
 	/*
 	 * The CM_PPS_5V_PROG_MAX reference value is derived from
@@ -3026,11 +3062,11 @@ static void cm_cp_state_entry(struct charger_manager *cm)
 		 __func__, cp->cp_target_ibat, cp->cp_target_vbus);
 
 	cm_check_target_vbus(cm);
-	cm_adjust_fast_charge_voltage(cm, cp->cp_target_vbus);
+	cm_adjust_fchg_voltage(cm, cp->cp_target_vbus);
 	cp->cp_last_target_vbus = cp->cp_target_vbus;
 
 	cm_check_target_ibus(cm);
-	cm_adjust_fast_charge_current(cm, cp->cp_target_ibus);
+	cm_adjust_fchg_current(cm, cp->cp_target_ibus);
 	cm_cp_state_change(cm, CM_CP_STATE_CHECK_VBUS);
 }
 
@@ -3047,14 +3083,14 @@ static void cm_cp_state_check_vbus(struct charger_manager *cm)
 		cp->cp_target_vbus += 2 * CM_CP_VSTEP;
 		cm_check_target_vbus(cm);
 
-		if (cm_adjust_fast_charge_voltage(cm, cp->cp_target_vbus))
+		if (cm_adjust_fchg_voltage(cm, cp->cp_target_vbus))
 			cp->cp_target_vbus -= 2 * CM_CP_VSTEP;
 
 	} else if (cp->flt.vbus_error_hi &&
 		   cp->vbus_uV >  CM_CP_VBUS_ERRORLO_THRESHOLD(cp->vbat_uV)) {
 		cp->tune_vbus_retry++;
 		cp->cp_target_vbus -= CM_CP_VSTEP;
-		if (cm_adjust_fast_charge_voltage(cm, cp->cp_target_vbus))
+		if (cm_adjust_fchg_voltage(cm, cp->cp_target_vbus))
 			dev_err(cm->dev, "fail to adjust pps voltage = %duV\n",
 				cp->cp_target_vbus);
 	} else {
@@ -3130,11 +3166,11 @@ static void cm_cp_state_tune(struct charger_manager *cm)
 			cp->recovery = false;
 		} else {
 			if (cp->cp_last_target_vbus != cp->cp_target_vbus) {
-				cm_adjust_fast_charge_voltage(cm, cp->cp_target_vbus);
+				cm_adjust_fchg_voltage(cm, cp->cp_target_vbus);
 				cp->cp_last_target_vbus = cp->cp_target_vbus;
 				cp->cp_adjust_cnt = 0;
 			} else if (cp->cp_adjust_cnt++ > CM_CP_ADJUST_VOLTAGE_THRESHOLD) {
-				cm_adjust_fast_charge_voltage(cm, cp->cp_target_vbus);
+				cm_adjust_fchg_voltage(cm, cp->cp_target_vbus);
 				cp->cp_adjust_cnt = 0;
 			}
 		}
@@ -3263,7 +3299,7 @@ static bool cm_is_need_start_cp(struct charger_manager *cm)
 	int ret;
 
 	if (!cm->desc->psy_cp_stat || cm->desc->cp.cp_running || cm->desc->force_pps_diasbled ||
-	    cm->desc->fast_charger_type != POWER_SUPPLY_USB_CHARGER_TYPE_PD_PPS)
+	    cm->desc->fast_charger_type != CM_CHARGER_TYPE_ADAPTIVE)
 		return false;
 
 	/*
@@ -4312,39 +4348,27 @@ static void battout_handler(struct charger_manager *cm)
 static bool cm_charger_is_support_fchg(struct charger_manager *cm)
 {
 	struct charger_desc *desc = cm->desc;
-	struct power_supply *psy;
-	union power_supply_propval val;
-	int ret, i;
+	u32 fchg_type;
+	int ret;
 
-	if (!desc->psy_fast_charger_stat)
+	if (!cm->fchg_info->support_fchg || !cm->fchg_info->ops ||
+	    !cm->fchg_info->ops->get_fchg_type)
 		return false;
 
-	for (i = 0; desc->psy_fast_charger_stat[i]; i++) {
-		psy = power_supply_get_by_name(desc->psy_fast_charger_stat[i]);
-
-		if (!psy) {
-			dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
-				desc->psy_fast_charger_stat[i]);
-			continue;
-		}
-
-		ret = power_supply_get_property(psy, POWER_SUPPLY_PROP_USB_TYPE, &val);
-		power_supply_put(psy);
-		if (!ret) {
-			if (val.intval == POWER_SUPPLY_USB_TYPE_PD ||
-			    val.intval == POWER_SUPPLY_USB_TYPE_PD_PPS) {
-				mutex_lock(&cm->desc->charger_type_mtx);
-				desc->is_fast_charge = true;
-				if (!desc->psy_cp_stat &&
-				    val.intval == POWER_SUPPLY_USB_TYPE_PD_PPS)
-					val.intval = POWER_SUPPLY_USB_TYPE_PD;
-				desc->fast_charger_type = val.intval;
-				desc->charger_type = val.intval;
-				mutex_unlock(&cm->desc->charger_type_mtx);
-				return true;
-			} else {
-				return false;
-			}
+	ret = cm->fchg_info->ops->get_fchg_type(cm->fchg_info, &fchg_type);
+	if (!ret) {
+		if (fchg_type == POWER_SUPPLY_CHARGE_TYPE_FAST ||
+		    fchg_type == POWER_SUPPLY_CHARGE_TYPE_ADAPTIVE) {
+			mutex_lock(&cm->desc->charger_type_mtx);
+			desc->is_fast_charge = true;
+			if (!desc->psy_cp_stat &&
+			    fchg_type == POWER_SUPPLY_CHARGE_TYPE_ADAPTIVE)
+				fchg_type = POWER_SUPPLY_CHARGE_TYPE_FAST;
+			cm_get_charger_type(cm, CM_FCHG_TYPE, &fchg_type);
+			desc->fast_charger_type = fchg_type;
+			desc->charger_type = fchg_type;
+			mutex_unlock(&cm->desc->charger_type_mtx);
+			return true;
 		}
 	}
 
@@ -4390,11 +4414,11 @@ static void fast_charge_handler(struct charger_manager *cm)
 	 * the voltage in the next charging cycle, especially the SFCP
 	 * fast charge.
 	 */
-	if (cm->desc->fast_charger_type == POWER_SUPPLY_USB_TYPE_PD &&
+	if (cm->desc->fast_charger_type == CM_CHARGER_TYPE_FAST &&
 	    cm->charger_enabled)
 		mod_delayed_work(cm_wq, &cm_monitor_work, 0);
 
-	if (cm->desc->fast_charger_type == POWER_SUPPLY_USB_CHARGER_TYPE_PD_PPS &&
+	if (cm->desc->fast_charger_type == CM_CHARGER_TYPE_ADAPTIVE &&
 	    !cm->desc->cp.cp_running && cm->charger_enabled) {
 		cm_cp_control_switch(cm, true);
 		mod_delayed_work(cm_wq, &cm_monitor_work, 0);
@@ -4429,11 +4453,14 @@ static void misc_event_handler(struct charger_manager *cm, enum cm_event_types t
 				ret = get_usb_charger_type(cm, &cm->desc->charger_type);
 				if (ret)
 					dev_warn(cm->dev, "Fail to get usb charger type, ret = %d", ret);
+
+				cm_enable_fixed_fchg_handshake(cm, true);
 			}
 
 			cm->desc->usb_charge_en = true;
 		} else {
 			if (cm->desc->usb_charge_en) {
+				cm_enable_fixed_fchg_handshake(cm, false);
 				try_charger_enable(cm, false);
 				cm->desc->force_pps_diasbled = false;
 				cm->desc->is_fast_charge = false;
@@ -4462,6 +4489,7 @@ static void misc_event_handler(struct charger_manager *cm, enum cm_event_types t
 					   CM_CHARGE_INFO_JEITA_LIMIT));
 	} else {
 		try_wireless_charger_enable(cm, false);
+		cm_enable_fixed_fchg_handshake(cm, false);
 		try_charger_enable(cm, false);
 		cm_set_charger_present(cm, false);
 		cancel_delayed_work_sync(&cm_monitor_work);
@@ -4494,10 +4522,8 @@ static void misc_event_handler(struct charger_manager *cm, enum cm_event_types t
 
 	cm_update_charger_type_status(cm);
 
-	if (is_polling_required(cm) && cm->desc->polling_interval_ms) {
+	if (is_polling_required(cm) && cm->desc->polling_interval_ms)
 		mod_delayed_work(cm_wq, &cm_monitor_work, 0);
-		schedule_work(&setup_polling);
-	}
 
 	power_supply_changed(cm->charger_psy);
 }
@@ -4722,67 +4748,6 @@ static int cm_get_time_to_full_now(struct charger_manager *cm, int *time)
 	return ret;
 }
 
-static void cm_get_current_max(struct charger_manager *cm, int *current_max)
-{
-	int adapter_max_ibus = CM_FAST_CHARGE_CURRENT_2A, chg_type_max_ibus = 0;
-	int ret = 0;
-
-	if (!is_ext_pwr_online(cm)) {
-		*current_max = min(chg_type_max_ibus, adapter_max_ibus);
-		return;
-	}
-
-	switch (cm->desc->charger_type) {
-	case POWER_SUPPLY_USB_CHARGER_TYPE_DCP:
-		chg_type_max_ibus = cm->desc->cur.dcp_limit;
-		break;
-	case POWER_SUPPLY_USB_CHARGER_TYPE_SDP:
-		chg_type_max_ibus = cm->desc->cur.sdp_limit;
-		break;
-	case POWER_SUPPLY_USB_CHARGER_TYPE_CDP:
-		chg_type_max_ibus = cm->desc->cur.cdp_limit;
-		break;
-	case POWER_SUPPLY_USB_CHARGER_TYPE_PD:
-	case POWER_SUPPLY_USB_CHARGER_TYPE_SFCP_1P0:
-		chg_type_max_ibus = cm->desc->cur.fchg_limit;
-		ret = cm_get_adapter_max_current(cm, &adapter_max_ibus);
-		if (ret) {
-			adapter_max_ibus = CM_FAST_CHARGE_CURRENT_2A;
-			dev_err(cm->dev,
-				"%s, failed to obtain the adapter max_cur in fixed fchg\n",
-				__func__);
-		}
-		break;
-	case POWER_SUPPLY_USB_CHARGER_TYPE_PD_PPS:
-	case POWER_SUPPLY_USB_CHARGER_TYPE_SFCP_2P0:
-		chg_type_max_ibus = cm->desc->cur.flash_limit;
-		ret = cm_get_adapter_max_current(cm, &adapter_max_ibus);
-		if (ret) {
-			adapter_max_ibus = CM_FAST_CHARGE_CURRENT_2A;
-			dev_err(cm->dev,
-				"%s, failed to obtain the adapter max_cur in pps\n", __func__);
-			break;
-		}
-
-		if (cm->desc->charger_type == POWER_SUPPLY_USB_CHARGER_TYPE_PD_PPS &&
-		    cm->desc->force_pps_diasbled)
-			adapter_max_ibus = CM_FAST_CHARGE_CURRENT_2A;
-		break;
-	case POWER_SUPPLY_WIRELESS_CHARGER_TYPE_BPP:
-		chg_type_max_ibus = cm->desc->cur.wl_bpp_limit;
-		break;
-	case POWER_SUPPLY_WIRELESS_CHARGER_TYPE_EPP:
-		chg_type_max_ibus = cm->desc->cur.wl_epp_limit;
-		break;
-	case POWER_SUPPLY_CHARGER_TYPE_UNKNOWN:
-	default:
-		chg_type_max_ibus = cm->desc->cur.unknown_limit;
-		break;
-	}
-
-	*current_max = min(chg_type_max_ibus, adapter_max_ibus);
-}
-
 static void cm_get_voltage_max(struct charger_manager *cm, int *voltage_max)
 {
 	int adapter_max_vbus = CM_FAST_CHARGE_VOLTAGE_5V, chg_type_max_vbus = 0;
@@ -4794,8 +4759,7 @@ static void cm_get_voltage_max(struct charger_manager *cm, int *voltage_max)
 	}
 
 	switch (cm->desc->charger_type) {
-	case POWER_SUPPLY_USB_CHARGER_TYPE_PD:
-	case POWER_SUPPLY_USB_CHARGER_TYPE_SFCP_1P0:
+	case CM_CHARGER_TYPE_FAST:
 		if (!cm->desc->fast_charge_voltage_max) {
 			chg_type_max_vbus = CM_FAST_CHARGE_VOLTAGE_5V;
 			break;
@@ -4818,8 +4782,7 @@ static void cm_get_voltage_max(struct charger_manager *cm, int *voltage_max)
 				__func__);
 		}
 		break;
-	case POWER_SUPPLY_USB_CHARGER_TYPE_PD_PPS:
-	case POWER_SUPPLY_USB_CHARGER_TYPE_SFCP_2P0:
+	case CM_CHARGER_TYPE_ADAPTIVE:
 		if (!cm->desc->flash_charge_voltage_max) {
 			chg_type_max_vbus = CM_FAST_CHARGE_VOLTAGE_5V;
 			break;
@@ -4841,11 +4804,11 @@ static void cm_get_voltage_max(struct charger_manager *cm, int *voltage_max)
 			break;
 		}
 
-		if (cm->desc->charger_type == POWER_SUPPLY_USB_CHARGER_TYPE_PD_PPS &&
+		if (cm->desc->charger_type == CM_CHARGER_TYPE_ADAPTIVE &&
 		    cm->desc->force_pps_diasbled)
 			adapter_max_vbus = CM_FAST_CHARGE_VOLTAGE_5V;
 		break;
-	case POWER_SUPPLY_WIRELESS_CHARGER_TYPE_EPP:
+	case CM_WIRELESS_CHARGER_TYPE_EPP:
 		if (!cm->desc->wireless_fast_charge_voltage_max) {
 			chg_type_max_vbus = CM_FAST_CHARGE_VOLTAGE_5V;
 			break;
@@ -4853,17 +4816,79 @@ static void cm_get_voltage_max(struct charger_manager *cm, int *voltage_max)
 
 		chg_type_max_vbus = cm->desc->wireless_fast_charge_voltage_max;
 		break;
-	case POWER_SUPPLY_USB_CHARGER_TYPE_DCP:
-	case POWER_SUPPLY_USB_CHARGER_TYPE_CDP:
-	case POWER_SUPPLY_USB_CHARGER_TYPE_SDP:
-	case POWER_SUPPLY_CHARGER_TYPE_UNKNOWN:
-	case POWER_SUPPLY_WIRELESS_CHARGER_TYPE_BPP:
+	case CM_CHARGER_TYPE_DCP:
+	case CM_CHARGER_TYPE_CDP:
+	case CM_CHARGER_TYPE_SDP:
+	case CM_CHARGER_TYPE_UNKNOWN:
+	case CM_WIRELESS_CHARGER_TYPE_BPP:
 	default:
 		chg_type_max_vbus = CM_FAST_CHARGE_VOLTAGE_5V;
 		break;
 	}
 
 	*voltage_max = min(chg_type_max_vbus, adapter_max_vbus);
+}
+
+static void cm_get_current_max(struct charger_manager *cm, int *current_max)
+{
+	int adapter_max_ibus = CM_FAST_CHARGE_CURRENT_2A, chg_type_max_ibus = 0;
+	int opt_max_vbus;
+	int ret = 0;
+
+	if (!is_ext_pwr_online(cm)) {
+		*current_max = min(chg_type_max_ibus, adapter_max_ibus);
+		return;
+	}
+
+	switch (cm->desc->charger_type) {
+	case CM_CHARGER_TYPE_DCP:
+		chg_type_max_ibus = cm->desc->cur.dcp_limit;
+		break;
+	case CM_CHARGER_TYPE_SDP:
+		chg_type_max_ibus = cm->desc->cur.sdp_limit;
+		break;
+	case CM_CHARGER_TYPE_CDP:
+		chg_type_max_ibus = cm->desc->cur.cdp_limit;
+		break;
+	case CM_CHARGER_TYPE_FAST:
+		chg_type_max_ibus = cm->desc->cur.fchg_limit;
+		cm_get_voltage_max(cm, &opt_max_vbus);
+		ret = cm_get_adapter_max_current(cm, opt_max_vbus, &adapter_max_ibus);
+		if (ret) {
+			adapter_max_ibus = CM_FAST_CHARGE_CURRENT_2A;
+			dev_err(cm->dev,
+				"%s, failed to obtain the adapter max_cur in fixed fchg\n",
+				__func__);
+		}
+		break;
+	case CM_CHARGER_TYPE_ADAPTIVE:
+		chg_type_max_ibus = cm->desc->cur.flash_limit;
+		cm_get_voltage_max(cm, &opt_max_vbus);
+		ret = cm_get_adapter_max_current(cm, opt_max_vbus, &adapter_max_ibus);
+		if (ret) {
+			adapter_max_ibus = CM_FAST_CHARGE_CURRENT_2A;
+			dev_err(cm->dev,
+				"%s, failed to obtain the adapter max_cur in pps\n", __func__);
+			break;
+		}
+
+		if (cm->desc->charger_type == CM_CHARGER_TYPE_ADAPTIVE &&
+		    cm->desc->force_pps_diasbled)
+			adapter_max_ibus = CM_FAST_CHARGE_CURRENT_2A;
+		break;
+	case CM_WIRELESS_CHARGER_TYPE_BPP:
+		chg_type_max_ibus = cm->desc->cur.wl_bpp_limit;
+		break;
+	case CM_WIRELESS_CHARGER_TYPE_EPP:
+		chg_type_max_ibus = cm->desc->cur.wl_epp_limit;
+		break;
+	case CM_CHARGER_TYPE_UNKNOWN:
+	default:
+		chg_type_max_ibus = cm->desc->cur.unknown_limit;
+		break;
+	}
+
+	*current_max = min(chg_type_max_ibus, adapter_max_ibus);
 }
 
 static void cm_set_charge_control_limit(struct charger_manager *cm, int power)
@@ -5030,7 +5055,7 @@ static int charger_get_property(struct power_supply *psy,
 		break;
 
 	case POWER_SUPPLY_PROP_USB_TYPE:
-		ret = cm_get_usb_type(cm, &val->intval);
+		ret = cm_get_bc1p2_type(cm, &val->intval);
 		break;
 
 	case POWER_SUPPLY_PROP_CYCLE_COUNT:
@@ -5235,11 +5260,9 @@ static void cm_update_charger_type_status(struct charger_manager *cm)
 
 	if (is_ext_usb_pwr_online(cm)) {
 		switch (cm->desc->charger_type) {
-		case POWER_SUPPLY_USB_CHARGER_TYPE_DCP:
-		case POWER_SUPPLY_USB_CHARGER_TYPE_PD:
-		case POWER_SUPPLY_USB_CHARGER_TYPE_PD_PPS:
-		case POWER_SUPPLY_USB_CHARGER_TYPE_SFCP_1P0:
-		case POWER_SUPPLY_USB_CHARGER_TYPE_SFCP_2P0:
+		case CM_CHARGER_TYPE_DCP:
+		case CM_CHARGER_TYPE_FAST:
+		case CM_CHARGER_TYPE_ADAPTIVE:
 			wireless_main.ONLINE = 0;
 			usb_main.ONLINE = 0;
 			ac_main.ONLINE = 1;
@@ -6159,22 +6182,6 @@ static struct charger_desc *of_cm_parse_desc(struct device *dev)
 	of_property_read_u32(np, "cm-battery-stat", &battery_stat);
 	desc->battery_present = battery_stat;
 
-	/* battery */
-	num_chgs = of_property_count_strings(np, "cm-battery");
-	if (num_chgs > 0) {
-		/* Allocate empty bin at the tail of array */
-		desc->psy_battery_stat = devm_kcalloc(dev,
-						      num_chgs + 1,
-						      sizeof(char *),
-						      GFP_KERNEL);
-		if (!desc->psy_battery_stat)
-			return ERR_PTR(-ENOMEM);
-
-		for (i = 0; i < num_chgs; i++)
-			of_property_read_string_index(np, "cm-battery", i,
-						      &desc->psy_battery_stat[i]);
-	}
-
 	/* chargers */
 	num_chgs = of_property_count_strings(np, "cm-chargers");
 	if (num_chgs > 0) {
@@ -6189,20 +6196,6 @@ static struct charger_desc *of_cm_parse_desc(struct device *dev)
 		for (i = 0; i < num_chgs; i++)
 			of_property_read_string_index(np, "cm-chargers", i,
 						      &desc->psy_charger_stat[i]);
-	}
-
-	/* fast chargers */
-	num_chgs = of_property_count_strings(np, "cm-fast-chargers");
-	if (num_chgs > 0) {
-		/* Allocate empty bin at the tail of array */
-		desc->psy_fast_charger_stat =
-			devm_kzalloc(dev, sizeof(char *) * (u32)(num_chgs + 1), GFP_KERNEL);
-		if (!desc->psy_fast_charger_stat)
-			return ERR_PTR(-ENOMEM);
-
-		for (i = 0; i < num_chgs; i++)
-			of_property_read_string_index(np, "cm-fast-chargers", i,
-						      &desc->psy_fast_charger_stat[i]);
 	}
 
 	/* charge pumps */
@@ -6804,6 +6797,12 @@ static int charger_manager_probe(struct platform_device *pdev)
 		return -EPROBE_DEFER;
 	}
 
+	cm->fchg_info = sprd_fchg_info_register(cm->dev);
+	if (IS_ERR(cm->fchg_info)) {
+		dev_err(&pdev->dev, "Fail to register fchg info\n");
+		return -ENOMEM;
+	}
+
 	/*
 	 * Some of the following do not need to be errors.
 	 * Users may intentionally ignore those features.
@@ -7041,18 +7040,29 @@ static int charger_manager_probe(struct platform_device *pdev)
 						       cm,
 						       &cm->charger_psy->dev);
 	if (IS_ERR(cm->cm_charge_vote)) {
-		dev_err(&pdev->dev, "Failed to register charge vote, ret = %d\n", ret);
+		dev_err(&pdev->dev, "Failed to register charge vote\n");
+		ret = PTR_ERR(cm->cm_charge_vote);
 		goto err_reg_extcon;
 	}
 
 	cm_init_basp_parameter(cm);
 
-	if (cm->vchg_info->ops && cm->vchg_info->ops->init &&
-	    cm->vchg_info->ops->init(cm->vchg_info, cm->charger_psy)) {
-		dev_err(&pdev->dev, "Failed to register vchg detect notify, ret = %d\n", ret);
+	if (cm->fchg_info->ops && cm->fchg_info->ops->extcon_init &&
+	    cm->fchg_info->ops->extcon_init(cm->fchg_info, cm->charger_psy)) {
+		dev_err(&pdev->dev, "Failed to initialize fchg extcon\n");
 		ret = -EPROBE_DEFER;
 		goto err_reg_extcon;
 	}
+
+	if (cm->vchg_info->ops && cm->vchg_info->ops->init &&
+	    cm->vchg_info->ops->init(cm->vchg_info, cm->charger_psy)) {
+		dev_err(&pdev->dev, "Failed to register vchg detect notify\n");
+		ret = -EPROBE_DEFER;
+		goto err_reg_extcon;
+	}
+
+	if (is_ext_usb_pwr_online(cm) && cm->fchg_info->ops && cm->fchg_info->ops->fchg_detect)
+		cm->fchg_info->ops->fchg_detect(cm->fchg_info);
 
 	if (cm_event_num > 0) {
 		for (i = 0; i < cm_event_num; i++)
@@ -7304,9 +7314,8 @@ void cm_notify_event(struct power_supply *psy, enum cm_event_types type,
 
 	mutex_lock(&cm_list_mtx);
 	list_for_each_entry(cm, &cm_list, entry) {
-		if (cm->desc->psy_battery_stat) {
-			if (match_string(cm->desc->psy_battery_stat, -1,
-					 psy->desc->name) >= 0) {
+		if (cm->charger_psy->desc) {
+			if (strcmp(psy->desc->name, cm->charger_psy->desc->name) == 0) {
 				found_power_supply = true;
 				break;
 			}
@@ -7314,14 +7323,6 @@ void cm_notify_event(struct power_supply *psy, enum cm_event_types type,
 
 		if (cm->desc->psy_charger_stat) {
 			if (match_string(cm->desc->psy_charger_stat, -1,
-					 psy->desc->name) >= 0) {
-				found_power_supply = true;
-				break;
-			}
-		}
-
-		if (cm->desc->psy_fast_charger_stat) {
-			if (match_string(cm->desc->psy_fast_charger_stat, -1,
 					 psy->desc->name) >= 0) {
 				found_power_supply = true;
 				break;

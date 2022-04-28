@@ -3367,8 +3367,8 @@ static void sc27xx_fgu_cap_track_state_updating(struct sc27xx_fgu_data *data, in
 		return;
 	}
 
-	if ((data->chg_type == POWER_SUPPLY_CHARGER_TYPE_UNKNOWN)
-	    || (data->chg_type == POWER_SUPPLY_USB_CHARGER_TYPE_SDP))
+	if ((data->chg_type == POWER_SUPPLY_USB_TYPE_UNKNOWN)
+	    || (data->chg_type == POWER_SUPPLY_USB_TYPE_SDP))
 		return;
 
 	if ((ktime_divns(ktime_get_boottime(), NSEC_PER_SEC) -
@@ -3420,8 +3420,8 @@ static void sc27xx_fgu_cap_track_state_done(struct sc27xx_fgu_data *data, int *c
 		return;
 	}
 
-	if ((data->chg_type == POWER_SUPPLY_CHARGER_TYPE_UNKNOWN)
-	    || (data->chg_type == POWER_SUPPLY_USB_CHARGER_TYPE_SDP)) {
+	if ((data->chg_type == POWER_SUPPLY_USB_TYPE_UNKNOWN)
+	    || (data->chg_type == POWER_SUPPLY_USB_TYPE_SDP)) {
 		data->track.state = CAP_TRACK_UPDATING;
 		dev_err(data->dev, "[done] chg_type not support, return to updating state\n");
 		return;
