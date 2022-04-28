@@ -106,7 +106,15 @@ CONFIG_UNISOC_SIPC_VIRT_BUS
 	[must]
 	[missing plat description] none
 	[function]
-
+CONFIG_SPRD_HW_DEVICE_DVFS_CP
+	[arch] arm64
+	[plat] sharkl5Pro
+	[missing plat] sharkl3
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
 
 
 
