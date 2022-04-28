@@ -970,7 +970,8 @@ static int wcn_sipc_chn_deinit(struct mchn_ops_t *ops)
 	struct sipc_chn_info *sipc_chn;
 
 	sipc_chn = SIPC_CHN(idx);
-	WCN_INFO("[%s]:index[%d] chn[%d]\n", __func__, idx, sipc_chn->chn);
+	sipc_chn->ops = NULL;
+	WCN_INFO("[%s]:index[%d] chn[%d], sipc_chn->ops = null.\n", __func__, idx, sipc_chn->chn);
 
 	bus_chn_deinit(ops);
 
