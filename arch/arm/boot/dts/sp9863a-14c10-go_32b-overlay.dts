@@ -139,7 +139,6 @@
 				cm-num-chargers = <1>;
 				cm-chargers = "fan54015_charger";
 				cm-fuel-gauge = "sc27xx-fgu";
-				cm-battery = "battery";
 
 				/* in deci centigrade */
 				cm-battery-cold = <200>;
