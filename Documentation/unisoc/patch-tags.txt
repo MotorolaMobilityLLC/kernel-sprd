@@ -185,6 +185,7 @@ trusty:
 unisoc_platform:
 unisoc_platform:soc:
 unisoc_platform:audio:
+unisoc_platform:cpufreq:
 unisoc_platform:gnss:
 unisoc_platform:iommu:
 unisoc_platform:mailbox:
