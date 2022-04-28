@@ -30,7 +30,7 @@
 
 /* device name */
 #define UART_NR_MAX		8
-#define SPRD_TTY_NAME		"ttySPRD"
+#define SPRD_TTY_NAME		"ttyS"
 #define SPRD_FIFO_SIZE		128
 #define SPRD_DEF_RATE		26000000
 #define SPRD_BAUD_IO_LIMIT	3000000
