@@ -1,5 +1,26 @@
 #!/bin/bash
 
+show_usage()
+{
+        cat <<-EOF
+
+usage: sprd_check_gki [ <option> ]
+
+Options:
+  -p, --cktoolpath=PATH  path to the tools directory where the abigail will
+                         be built (This must be provided);
+  -c, --commitid        the base for aosp commit-id
+  -h, --help             show this text and exit.
+EOF
+}
+
+fail_usage()
+{
+        [ -z "$1" ] || echo "$1"
+        show_usage
+        exit 1
+}
+
 compile_for_clang()
 {
     local global=$1
@@ -32,6 +53,34 @@ copy_specify_dir()
         fi
     done
 }
+
+TEMP=`getopt --options p:,c:,h --longoptions cktoolpath:,commtid:,help -- "$@"` || fail_usage ""
+eval set -- "$TEMP"
+commitid=
+clangpath=
+while true; do
+        case "$1" in
+        -p|--cktoolpath)
+        clangpath="$2"
+        shift
+        ;;
+        -c|--commitid)
+        commitid="$2"
+        shift
+        ;;
+        -h|--help)
+        show_usage
+        exit 0
+        ;;
+        --)
+        shift
+        break
+        ;;
+        *) fail_usage "Unrecognized option: $1"
+        ;;
+        esac
+        shift
+done
 
 export MAIN_SCRIPT_DIR=$(readlink -f $(dirname $0)/../..)
 export ROOT_DIR=$(dirname $MAIN_SCRIPT_DIR)
@@ -111,10 +160,19 @@ if [ ! -d $aosp_prefile_dir ]; then
     mkdir -p $aosp_prefile_dir
 fi
 
+if [ -n "$clangpath" ]; then
+    export PATH=${clangpath}:$PATH
+fi
+
 # checkout to aops commit
 echo "===============================================" >&1
 echo "= check for aosp commit:$aosp_commit" >&1
-git checkout $aosp_commit
+if [ -n "$commitid" ]; then
+    git checkout $commitid
+else
+    git checkout $aosp_commit
+fi
+
 compile_for_clang vmlinux
 if [ $check_hfile_flag -ne 0 ]; then
     cd $out
