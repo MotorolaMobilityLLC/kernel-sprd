@@ -818,14 +818,20 @@ static void sdhci_sprd_set_power(struct sdhci_host *host, unsigned char mode,
 			sdhci_sprd_fast_hotplug_disable(sprd_host);
 
 		if (!host->mmc_host_ops.get_cd(host->mmc)) {
+			unsigned char old_signal_voltage = mmc->ios.signal_voltage;
+			unsigned short old_vdd = mmc->ios.vdd;
 			/*
 			 * make sure io_voltage will keep 3.3V in next power up while plugin sd,
 			 * but will not do this in deepsleep power off
 			 */
 			mmc->ios.signal_voltage = MMC_SIGNAL_VOLTAGE_330;
+			mmc->ios.vdd = 18;
 			ret = host->mmc_host_ops.start_signal_voltage_switch(mmc, &mmc->ios);
 			if (ret)
-				pr_err("signal voltage set to 3.3v fail %d!\n", ret);
+				pr_err("%s: signal voltage set to 3.3v fail %d!\n",
+					mmc_hostname(mmc), ret);
+			mmc->ios.vdd = old_vdd;
+			mmc->ios.signal_voltage = old_signal_voltage;
 		}
 
 		sdhci_sprd_signal_voltage_on_off(host, 0);
