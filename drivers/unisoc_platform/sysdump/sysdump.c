@@ -23,6 +23,7 @@
 #include <linux/input.h>
 #include <linux/io.h>
 #include <linux/kernel.h>
+#include <linux/kconfig.h>
 #include <linux/list.h>
 #include <linux/miscdevice.h>
 #include <linux/mm.h>
@@ -1520,16 +1521,16 @@ void get_file_line_info(void *p, const char *file, unsigned int line, unsigned l
 		bug_entry_flag = 1;
 	}
 }
-#if 0 //hdy
 void get_exception_stack_info(struct pt_regs *regs)
 {
 	unsigned long stack_entries[MAX_STACK_TRACE_DEPTH];
 	char symbol[96];
 	int sz;
 	int off, plen;
-	struct stack_trace trace;
+//	struct stack_trace trace;
 	int i;
 	struct task_struct *tsk, *cur;
+	unsigned int nr_entries;
 
 	cur = current;
 	tsk = cur;
@@ -1544,48 +1545,51 @@ void get_exception_stack_info(struct pt_regs *regs)
 			break;
 		}
 		sz += snprintf(
-			minidump_info_g.exception_info.exception_task_family + sz,
+			sprd_minidump_info->exception_info.exception_task_family + sz,
 			EXCEPTION_INFO_SIZE_SHORT - sz,
 			"[%s, %d]", tsk->comm, tsk->pid);
 		tsk = tsk->real_parent;
 	} while (tsk && (tsk->pid != 0) && (tsk->pid != 1));
 
 	/* Grab kernel task stack trace */
+/*
 	trace.nr_entries = 0;
 	trace.max_entries = MAX_STACK_TRACE_DEPTH;
 	trace.entries = stack_entries;
 	trace.skip = 0;
-	save_stack_trace_tsk(cur, &trace);
-	for (i = 0; i < trace.nr_entries; i++) {
-		off = strlen(minidump_info_g.exception_info.exception_stack_info);
+*/
+#if (IS_ENABLED(CONFIG_STACKTRACE) && IS_ENABLED(CONFIG_ARCH_STACKWALK))
+	nr_entries = stack_trace_save_tsk(cur, stack_entries, MAX_STACK_TRACE_DEPTH, 0);
+	for (i = 0; i < nr_entries; i++) {
+		off = strlen(sprd_minidump_info->exception_info.exception_stack_info);
 		plen = EXCEPTION_INFO_SIZE_LONG - ALIGN(off, 8);
 		if (plen > 16) {
 			sz = snprintf(symbol, 96, "[<%p>] %pS\n",
-				      (void *)stack_entries[i],
-				      (void *)stack_entries[i]);
+					(void *)stack_entries[i],
+					(void *)stack_entries[i]);
 			if (ALIGN(sz, 8) - sz) {
 				memset_io(symbol + sz - 1, ' ', ALIGN(sz, 8) - sz);
 				memset_io(symbol + ALIGN(sz, 8) - 1, '\n', 1);
 			}
 			if (ALIGN(sz, 8) <= plen)
 				memcpy(
-				minidump_info_g.exception_info.exception_stack_info + ALIGN(off, 8),
+				sprd_minidump_info->exception_info.exception_stack_info + ALIGN(off, 8),
 				symbol, ALIGN(sz, 8));
 		}
 	}
+#endif
 	if (regs) {
-		snprintf(minidump_info_g.exception_info.exception_pc_symbol,
+		snprintf(sprd_minidump_info->exception_info.exception_pc_symbol,
 			EXCEPTION_INFO_SIZE_SHORT, "[<%p>] %pS",
 			(void *)(unsigned long)regs->reg_pc,
 			(void *)(unsigned long)regs->reg_pc);
 	} else {
-		snprintf(minidump_info_g.exception_info.exception_pc_symbol,
+		snprintf(sprd_minidump_info->exception_info.exception_pc_symbol,
 			EXCEPTION_INFO_SIZE_SHORT, "[<%p>] %pS",
 			(void *)(unsigned long)stack_entries[0],
 			(void *)(unsigned long)stack_entries[0]);
 	}
 }
-#endif
 static int prepare_exception_info(struct pt_regs *regs,
 				struct task_struct *tsk, const char *reason)
 {
@@ -1636,7 +1640,7 @@ static int prepare_exception_info(struct pt_regs *regs,
 	}
 	sprd_minidump_info->exception_info.exception_task_id = tsk->pid;
 	/*	exception_stack		*/
-//	get_exception_stack_info(regs);
+	get_exception_stack_info(regs);
 	show_exception_info();
 	return 0;
 }
