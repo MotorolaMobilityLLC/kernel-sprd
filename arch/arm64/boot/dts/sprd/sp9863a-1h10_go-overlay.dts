@@ -174,7 +174,6 @@
 				cm-fullbatt-vchkdrop-volt = <60000>;
 				cm-fullbatt-capacity = <100>;
 
-				cm-battery = "battery";
 				cm-chargers = "fan54015_charger";
 				cm-fuel-gauge = "sc27xx-fgu";
 
