@@ -7,6 +7,7 @@ obj-$(CONFIG_SPRD_DEBUG)	+= debug/
 obj-$(CONFIG_SPRD_SYSDUMP) 	+= sysdump/
 obj-$(CONFIG_UNISOC_IOMMU)	+= iommu/
 obj-$(CONFIG_UNISOC_MODEM)	+= modem/
+obj-$(CONFIG_ARCH_SPRD)		+= pub/
 obj-$(CONFIG_PRINTK_CPUID)	+= printk_cpuid/
 obj-$(CONFIG_UNISOC_WCN_BSP)	+= sprdwcn/
 obj-$(CONFIG_TIMESTAMP_SYNC)	+= kts_sync/
