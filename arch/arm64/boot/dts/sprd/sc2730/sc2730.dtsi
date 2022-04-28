@@ -17,6 +17,27 @@
 		interrupts = <GIC_SPI 173 IRQ_TYPE_LEVEL_HIGH>;
 		#address-cells = <1>;
 		#size-cells = <0>;
+		pmic_led: led-controller@180 {
+			compatible = "sprd,sc2730-bltc";
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <0x180>;
+
+			led@0 {
+				label = "red";
+				reg = <0x0>;
+			};
+
+			led@1 {
+				label = "green";
+				reg = <0x1>;
+			};
+
+			led@2 {
+				label = "blue";
+				reg = <0x2>;
+			};
+		};
 
 		rtc@200 {
 			compatible = "sprd,sc2731-rtc", "sprd,sc2730-rtc";
