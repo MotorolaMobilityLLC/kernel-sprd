@@ -11,9 +11,7 @@
 #include <linux/kallsyms.h>
 #include <linux/kernel.h>
 #include <linux/kmsg_dump.h>
-#include <linux/module.h>
 #include <linux/panic_notifier.h>
-#include <linux/sched.h>
 #include <linux/sched/debug.h>
 #include <linux/sched/task_stack.h>
 #include <linux/spinlock.h>
@@ -28,12 +26,15 @@
 #include <trace/hooks/vendor_hooks.h>
 #include <trace/hooks/debug.h>
 
-#include "../../../kernel/sched/sched.h"
 #include "unisoc_dump_info.h"
 #include "unisoc_sysdump.h"
 #include "sysdump.h"
 #if IS_ENABLED(CONFIG_SCHED_WALT)
 #include "../sched/walt.h"
+#else
+#include <linux/module.h>
+#include <linux/sched.h>
+#include "../../../kernel/sched/sched.h"
 #endif
 
 static struct seq_buf *unisoc_task_seq_buf;
