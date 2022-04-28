@@ -204,6 +204,19 @@
 			ranges;
 		};
 
+		pub: pub {
+			compatible = "simple-bus";
+			#address-cells = <2>;
+			#size-cells = <2>;
+			ranges;
+
+			dmc_controller: dmc-controller@31050000 {
+				compatible = "sprd,pub-dmc";
+				reg = <0x0 0x3000 0x0 0x100>,
+					<0x0 0x31050000 0x0 0x7000>;
+			};
+		};
+
 		mm: mm {
 			compatible = "simple-bus";
 			#address-cells = <2>;
