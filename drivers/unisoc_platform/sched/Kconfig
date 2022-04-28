@@ -1,0 +1,42 @@
+# SPDX-License-Identifier: GPL-2.0-only
+#
+# unisoc scheduler based on WALT
+#
+menu "Unisoc Scheduler Features"
+
+config UNISOC_SCHED
+	tristate "Support Unisoc Scheduler Features"
+	depends on SMP
+	help
+	This is the base of unisoc specifec scheduler, including WALT, EAS, RT,
+	cpufreq governor and so on...
+
+config SCHED_WALT
+	tristate "Support Window Assisted Load Tracking"
+	depends on SMP
+	depends on UNISOC_SCHED
+	help
+	This feature will allow the scheduler to get utilzation for tasks
+	and runqueues based on window assisted load tracking. The util can be
+	used to guide eas/load_balance/rt task placement as well as
+	task frequency requirements for cpufreq governors.
+
+config UCLAMP_MIN_TO_BOOST
+	bool "Transform uclamp_min to schedtune.boost"
+	depends on SCHED_WALT
+	depends on UCLAMP_TASK
+	default n
+	help
+	This feature would transform the uclamp_min to stune.boost.
+	Meantime, add sysctl to let users could disable the feature and using
+	the original uclamp.
+
+config UNISOC_SCHEDUTIL_GOV
+	tristate "Support Unisoc Schedutil Governor"
+	depends on CPU_FREQ && SMP
+	depends on UNISOC_SCHED
+	help
+	this cpufreq governor is based on the original kernel schedutil governor,
+	and add unisoc specific features like freq_margin and slak_timer.
+
+endmenu

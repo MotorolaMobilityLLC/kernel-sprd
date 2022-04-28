@@ -9,6 +9,7 @@ config SPRD_PMIC_SYSCON
 	help
 		Enable this configuration option to enable pmic global driver.
 
+source "drivers/unisoc_platform/sched/Kconfig"
 source "drivers/unisoc_platform/sprd_disp/Kconfig"
 source "drivers/unisoc_platform/sprd_time_sync/Kconfig"
 source "drivers/unisoc_platform/debug/Kconfig"
