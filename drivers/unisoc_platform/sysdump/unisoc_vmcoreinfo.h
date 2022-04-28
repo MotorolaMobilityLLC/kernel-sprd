@@ -35,7 +35,7 @@ void arch_crash_save_vmcoreinfo(void);
 __printf(1, 2)
 void vmcoreinfo_append_str(const char *fmt, ...);
 phys_addr_t paddr_vmcoreinfo_note(void);
-
+void update_vmcoreinfo_note(void);
 #define VMCOREINFO_OSRELEASE(value) \
 	vmcoreinfo_append_str("OSRELEASE=%s\n", value)
 #define VMCOREINFO_PAGESIZE(value) \
@@ -62,10 +62,12 @@ phys_addr_t paddr_vmcoreinfo_note(void);
 
 extern unsigned char *vmcoreinfo_data;
 extern size_t vmcoreinfo_size;
-extern u32 *vmcoreinfo_note;
 
 Elf_Word *append_elf_note(Elf_Word *buf, char *name, unsigned int type,
 			  void *data, size_t data_len);
 void final_note(Elf_Word *buf);
+
+extern void crash_save_vmcoreinfo_exit(void);
+extern int crash_save_vmcoreinfo_init(void);
 
 #endif /* LINUX_CRASH_CORE_H */

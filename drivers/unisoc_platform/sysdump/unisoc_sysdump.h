@@ -19,3 +19,5 @@ extern int minidump_save_extend_information(const char *name,
 extern int minidump_change_extend_information(const char *name,
 		unsigned long paddr_start,
 		unsigned long paddr_end);
+
+extern void sysdump_ipi(void *p, struct pt_regs *regs);

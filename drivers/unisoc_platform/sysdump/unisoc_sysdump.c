@@ -11,7 +11,7 @@
  * GNU General Public License for more details.
  */
 
-#define pr_fmt(fmt)  "sprd-sysdump: " fmt
+#define pr_fmt(fmt)  "sysdump: " fmt
 
 #include <linux/atomic.h>
 #include <asm/cacheflush.h>
@@ -369,6 +369,8 @@ int minidump_save_extend_information(const char *name, unsigned long paddr_start
 	}
 
 	mutex_lock(&section_mutex);
+	if (!sprd_sysdump_info)
+		return -1;
 	/* check insert repeatly and acquire total seciton num before insert new section */
 	for (i = 0; i < SECTION_NUM_MAX; i++) {
 		if (!memcmp(str_name,
@@ -434,7 +436,8 @@ int minidump_change_extend_information(const char *name, unsigned long paddr_sta
 		return -1;
 
 	sprintf(str_name, "%s_%s", EXTEND_STRING, name);
-
+	if (!sprd_sysdump_info)
+		return -1;
 	for (i = 0; i < SECTION_NUM_MAX; i++) {
 		if (!strlen(sprd_minidump_info->section_info_total.section_info[i].section_name))
 			return -1;
@@ -472,6 +475,7 @@ void handle_android_debug_symbol(void)
 	minidump_save_extend_information("per_cpu", (unsigned long)__pa(addr_start),
 			(unsigned long)__pa(addr_end));
 	sprd_sysdump_info->sprd_coreregs_info.pcpu_start_paddr = __pa(addr_start);
+
 	/* linux banner */
 	unisoc_linux_banner = android_debug_symbol(ADS_LINUX_BANNER);
 
@@ -604,7 +608,6 @@ static unsigned long get_sprd_sysdump_info_paddr(void)
 
 	node = of_find_node_by_name(NULL, SPRD_SYSDUMP_RESERVED);
 	pr_info("[%s]in\n", __func__);
-	pr_emerg("[%s]in\n", __func__);
 	if (!node) {
 		pr_err("Not find %s node from dts, use RAMDISK addr when panic\n",
 				SPRD_SYSDUMP_RESERVED);
@@ -616,14 +619,12 @@ static unsigned long get_sprd_sysdump_info_paddr(void)
 			sysdump_re_paddr = res.start;
 			sysdump_reflag = 1;
 			pr_info("the addr of sysdump reserved memory is 0x%lx\n", sysdump_re_paddr);
-			pr_emerg("the addr of sysdump reserved memory is 0x%lx\n", sysdump_re_paddr);
 		} else {
 			pr_err("Not find res property from %s node\n", SPRD_SYSDUMP_RESERVED);
 			return 0;
 		}
 	}
 	pr_info("[%s]out\n", __func__);
-	pr_emerg("[%s]out\n", __func__);
 	return sysdump_re_paddr;
 }
 static int sysdump_info_init(void)
@@ -646,7 +647,6 @@ static int sysdump_info_init(void)
 		sprd_sysdump_info->sprd_kaslrinfo.kimage_voffset = kimage_voffset;
 		sprd_sysdump_info->sprd_kaslrinfo.phys_offset = PHYS_OFFSET;
 		sprd_sysdump_info->sprd_kaslrinfo.vabits_actual = (uint64_t)VA_BITS;
-		pr_emerg("[%s]vmcore info init end!\n", __func__);
 #endif
 #if 0
 		/* get log_buf info */
@@ -659,9 +659,11 @@ static int sysdump_info_init(void)
 			__pa(kallsyms_lookup_name("log_next_idx"));
 #endif
 		sprd_sysdump_info->sprd_logbuf_info.log_buf_len = log_buf_len_get();
+#endif //0
+/*
 		sprd_sysdump_info->sprd_logbuf_info.vmcoreinfo_size =
 			__pa(&vmcoreinfo_size);
-#endif //0
+*/
 		/* get mmu regs info */
 		sprd_sysdump_info->sprd_mmuregs_info.paddr_mmu_regs_t =
 			__pa(&per_cpu(sprd_debug_mmu_reg, smp_processor_id()));
@@ -672,6 +674,7 @@ static int sysdump_info_init(void)
 		/* get core regs info */
 		sprd_sysdump_info->sprd_coreregs_info.paddr_core_regs_t =
 			 __pa(&per_cpu(sprd_debug_core_reg, smp_processor_id()));
+		pr_info("[%s]sysdump info init end!\n", __func__);
 	}
 
 	return 0;
@@ -724,7 +727,6 @@ static inline void sprd_debug_save_context(void)
 	sprd_debug_save_core_reg(&per_cpu
 				 (sprd_debug_core_reg, smp_processor_id()));
 
-	pr_debug("(%s) context saved(CPU:%d)\n", __func__, smp_processor_id());
 	local_irq_restore(flags);
 
 	flush_cache_all();
@@ -738,7 +740,7 @@ static int sysdump_panic_event(struct notifier_block *self,
 	struct pt_regs *pregs = NULL;
 	static int enter_id;
 
-	pr_emerg("(%s) ------ in (%d)\n", __func__, enter_id);
+	pr_emerg("(%s) ------ in (%d)\n", __func__, smp_processor_id());
 //	bust_spinlocks(1);
 	if (sprd_sysdump_init == 0) {
 		sprd_sysdump_info_paddr = get_sprd_sysdump_info_paddr();
@@ -817,7 +819,7 @@ static int sysdump_panic_event(struct notifier_block *self,
 	pr_emerg("\n");
 	pr_emerg("*****************************************************\n");
 	pr_emerg("*                                                   *\n");
-	pr_emerg("*  Try to reboot system ...                         *\n");
+	pr_emerg("*  Preparing debug info done ...                    *\n");
 	pr_emerg("*                                                   *\n");
 	pr_emerg("*****************************************************\n");
 	pr_emerg("\n");
@@ -835,11 +837,10 @@ static int sysdump_panic_event(struct notifier_block *self,
 	return NOTIFY_DONE;
 }
 
-void sysdump_ipi(void* p, struct pt_regs *regs)
+void sysdump_ipi(void *p, struct pt_regs *regs)
 {
 	int cpu = smp_processor_id();
 
-	pr_emerg("sysdump ipi start, cpu %d\n", cpu);
 	if (crash_notes == NULL)
 		crash_notes = &crash_notes_temp;
 
@@ -1263,6 +1264,8 @@ void show_minidump_info(struct minidump_info *minidump_infop)
 */
 static int prepare_minidump_info(struct pt_regs *regs)
 {
+	if (!sprd_minidump_info)
+		return -1;
 
 	if (regs != NULL) {
 		/*	struct pt_regs part: save minidump_regs contents */
@@ -1271,7 +1274,7 @@ static int prepare_minidump_info(struct pt_regs *regs)
 		prepare_minidump_reg_memory(regs);
 
 	} else {
-		pr_err("%s regs NULL .\n", __func__);
+		pr_debug("%s regs NULL .\n", __func__);
 	}
 
 	sprd_minidump_info->minidump_data_size = sprd_minidump_info->regs_info.size +
@@ -1437,11 +1440,15 @@ static void ylog_buffer_exit(void)
 }
 static void minidump_info_exit(void)
 {
-	ClearPageReserved(virt_to_page(sprd_minidump_info));
-	kfree(sprd_minidump_info);
+	if (sprd_minidump_info) {
+		ClearPageReserved(virt_to_page(sprd_minidump_info));
+		kfree(sprd_minidump_info);
+	}
 
-	ClearPageReserved(virt_to_page(sprd_minidump_regs));
-	kfree(sprd_minidump_regs);
+	if (sprd_minidump_regs) {
+		ClearPageReserved(virt_to_page(sprd_minidump_regs));
+		kfree(sprd_minidump_regs);
+	}
 }
 int minidump_init(void)
 {
@@ -1461,6 +1468,8 @@ int minidump_init(void)
 		pr_err("register dump_die_notifyier failed.\n");
 		return -1;
 	}
+	if (!sprd_minidump_info)
+		return -1;
 	minidump_info_desc_g.paddr = __pa(sprd_minidump_info);
 	minidump_info_desc_g.size = sizeof(minidump_info_g);
 	section_extend_info_init();
@@ -1546,7 +1555,7 @@ void get_exception_stack_info(struct pt_regs *regs)
 	sz = 0;
 	do {
 		if (!tsk) {
-			pr_err("No tsk info\n");
+			pr_debug("No tsk info\n");
 			break;
 		}
 		sz += snprintf(
@@ -1601,6 +1610,9 @@ static int prepare_exception_info(struct pt_regs *regs,
 
 	struct timespec64 ts;
 	struct rtc_time tm;
+
+	if (!sprd_minidump_info)
+		return -1;
 	memset(&(sprd_minidump_info->exception_info), 0,
 		sizeof(sprd_minidump_info->exception_info));
 	memcpy(sprd_minidump_info->exception_info.kernel_magic, KERNEL_MAGIC, 4);
@@ -1693,6 +1705,21 @@ static void section_info_log_buf(void)
 		pr_info("add log_buf to minidump section ok!!\n");
 }
 #endif
+static void update_vmcoreinfo_data(void)
+{
+	if (!sprd_minidump_info)
+		return;
+	vmcoreinfo_append_str("SYMBOL(%s)=%d\n", "processor_id",
+			smp_processor_id());
+	vmcoreinfo_append_str("SYMBOL(%s)=%d\n", "per_cpu_offset",
+			sprd_sysdump_info->sprd_mmuregs_info.sprd_pcpu_offset);
+	vmcoreinfo_append_str("SYMBOL(%s)=0x%llx\n", "core_regs_id",
+			sprd_sysdump_info->sprd_coreregs_info.paddr_core_regs_t);
+	vmcoreinfo_append_str("SYMBOL(%s)=0x%llx\n", "per_cpu_start",
+			sprd_sysdump_info->sprd_coreregs_info.pcpu_start_paddr);
+	update_vmcoreinfo_note();
+
+}
 static void minidump_addr_convert(int i)
 {
 	sprd_minidump_info->section_info_total.section_info[i].section_start_paddr =
@@ -1823,10 +1850,15 @@ static int sysdump_sysctl_init(void)
 	    register_sysctl_table((struct ctl_table *)sysdump_sysctl_root);
 	if (!sysdump_sysctl_hdr)
 		return -ENOMEM;
+	/* panic notifer, mindump_info, ...*/
 	sysdump_early_init();
-	per_cpu_funcs_init();
+
+	/* sysdump_ipi for each cpu */
 	register_trace_android_vh_ipi_stop(sysdump_ipi, NULL);
+	/* bug-on event */
 	register_trace_android_rvh_report_bug(get_file_line_info, NULL);
+	/* per cpu data */
+	per_cpu_funcs_init();
 	if (input_register_handler(&sysdump_handler))
 		pr_err("regist sysdump_handler failed.\n");
 
@@ -1851,6 +1883,12 @@ static int sysdump_sysctl_init(void)
 	pr_emerg("phys_offset:0x%llx\n", PHYS_OFFSET);
 	pr_emerg("kaslr_offset:0x%lx\n", kaslr_offset());
 	pr_emerg("note buf size is %ld\n", SYSDUMP_NOTE_BYTES);
+	/* vmcoreinfo init */
+	crash_save_vmcoreinfo_init();
+	/* add percpu info to vmcoreinfo data, behind init */
+	update_vmcoreinfo_data();
+	pr_info("note buf size is %ld\n", SYSDUMP_NOTE_BYTES);
+
 	return 0;
 }
 void sysdump_sysctl_exit(void)
@@ -1868,12 +1906,18 @@ void sysdump_sysctl_exit(void)
 #ifdef CONFIG_SPRD_MINI_SYSDUMP
 	ylog_buffer_exit();
 #endif
+	/* vmcoreinfo exit */
+	crash_save_vmcoreinfo_exit();
+	unregister_trace_android_vh_ipi_stop(sysdump_ipi, NULL);
 }
 
 module_init(sysdump_sysctl_init);
 module_exit(sysdump_sysctl_exit);
 
 MODULE_IMPORT_NS(MINIDUMP);
-MODULE_AUTHOR("Jianjun.He <jianjun.he@spreadtrum.com>");
+/*MODULE_AUTHOR("Jianjun.He <jianjun.he@spreadtrum.com>");*/
+/*MODULE_AUTHOR("Xianzhen.wang <xianzhen.wang@unisoc.com>");*/
+
+MODULE_AUTHOR("Dongyue.Hao <dongyue.hao@unisoc.com>");
 MODULE_DESCRIPTION("kernel core dump for Spreadtrum");
 MODULE_LICENSE("GPL");

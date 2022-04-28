@@ -4,20 +4,21 @@
  * Copyright (C) 2002-2004 Eric Biederman  <ebiederm@xmission.com>
  */
 
-#include "sprd_vmcoreinfo.h"
 #include <linux/utsname.h>
 #include <linux/vmalloc.h>
 #include <linux/kallsyms.h>
-#include <linux/soc/sprd/sprd_sysdump.h>
 
 #include <asm/page.h>
 #include <asm/sections.h>
 #include <asm/memory.h>
 
+#include "unisoc_sysdump.h"
+#include "unisoc_vmcoreinfo.h"
+
 /* vmcoreinfo stuff */
 unsigned char *vmcoreinfo_data;
 size_t vmcoreinfo_size;
-u32 *vmcoreinfo_note;
+void *vmcoreinfo_note;
 
 /* trusted vmcoreinfo, e.g. we can make a copy in the crash memory */
 static unsigned char *vmcoreinfo_data_safecopy;
@@ -44,11 +45,11 @@ void final_note(Elf_Word *buf)
 	memset(buf, 0, sizeof(struct elf_note));
 }
 
-static void update_vmcoreinfo_note(void)
+void update_vmcoreinfo_note(void)
 {
-	u32 *buf = vmcoreinfo_note;
+	void *buf = vmcoreinfo_note;
 
-	if (!vmcoreinfo_size)
+	if ((!vmcoreinfo_size) || (!buf))
 		return;
 	buf = append_elf_note(buf, VMCOREINFO_NOTE_NAME, 0, vmcoreinfo_data,
 			      vmcoreinfo_size);
@@ -81,7 +82,8 @@ void vmcoreinfo_append_str(const char *fmt, ...)
 	va_list args;
 	char buf[0x50];
 	size_t r;
-
+	if (!vmcoreinfo_data)
+		return;
 	va_start(args, fmt);
 	r = vscnprintf(buf, sizeof(buf), fmt, args);
 	va_end(args);
@@ -97,38 +99,24 @@ void vmcoreinfo_append_str(const char *fmt, ...)
  * provide an empty default implementation here -- architecture
  * code may override this
  */
-void __weak arch_crash_save_vmcoreinfo(void)
-{}
 
-phys_addr_t __weak paddr_vmcoreinfo_note(void)
+phys_addr_t paddr_vmcoreinfo_note(void)
 {
 	return __pa(vmcoreinfo_note);
 }
 EXPORT_SYMBOL(paddr_vmcoreinfo_note);
 
-static __init int get_vmcoreinfo_data_page(void)
+int crash_save_vmcoreinfo_init(void)
 {
-	int ret;
-
+	unsigned long note_size = VMCOREINFO_NOTE_SIZE;
+	void *vmcoreinfo_note_end;
 	vmcoreinfo_data = (unsigned char *)get_zeroed_page(GFP_KERNEL);
 	if (!vmcoreinfo_data) {
 		pr_warn("Memory allocation for vmcoreinfo_data failed\n");
 		return -ENOMEM;
 	}
 
-	/* add vmcoreinfo to sysdump section */
-	ret = minidump_save_extend_information("vmcoreinfo", (unsigned long)__pa(vmcoreinfo_data),
-					(unsigned long)__pa(vmcoreinfo_data + VMCOREINFO_BYTES));
-	if (!ret)
-		pr_info("add vmcoreinfo to minidump ok!!\n");
-
-	return 0;
-}
-early_initcall(get_vmcoreinfo_data_page);
-static int __init crash_save_vmcoreinfo_init(void)
-{
-
-	vmcoreinfo_note = alloc_pages_exact(VMCOREINFO_NOTE_SIZE,
+	vmcoreinfo_note = alloc_pages_exact(note_size,
 						GFP_KERNEL | __GFP_ZERO);
 	if (!vmcoreinfo_note) {
 		free_page((unsigned long)vmcoreinfo_data);
@@ -136,6 +124,8 @@ static int __init crash_save_vmcoreinfo_init(void)
 		pr_warn("Memory allocation for vmcoreinfo_note failed\n");
 		return -ENOMEM;
 	}
+
+	vmcoreinfo_note_end = vmcoreinfo_note + note_size;
 #ifdef CONFIG_ARM64
 	VMCOREINFO_NUMBER(VA_BITS);
 	/* Please note VMCOREINFO_NUMBER() uses "%d", not "%x" */
@@ -150,12 +140,16 @@ static int __init crash_save_vmcoreinfo_init(void)
 
 	VMCOREINFO_SYMBOL(init_uts_ns);
 	VMCOREINFO_SYMBOL(node_online_map);
+/*
 #ifdef CONFIG_MMU
 	VMCOREINFO_SYMBOL_ARRAY(swapper_pg_dir);
 #endif
+*/
+/*
 	VMCOREINFO_SYMBOL(_stext);
 	VMCOREINFO_SYMBOL(vmap_area_list);
-
+*/
+/*
 #ifndef CONFIG_NEED_MULTIPLE_NODES
 	VMCOREINFO_SYMBOL(mem_map);
 	VMCOREINFO_SYMBOL(contig_page_data);
@@ -166,6 +160,7 @@ static int __init crash_save_vmcoreinfo_init(void)
 	VMCOREINFO_STRUCT_SIZE(mem_section);
 	VMCOREINFO_OFFSET(mem_section, section_mem_map);
 #endif
+*/
 	VMCOREINFO_STRUCT_SIZE(page);
 	VMCOREINFO_STRUCT_SIZE(pglist_data);
 	VMCOREINFO_STRUCT_SIZE(zone);
@@ -189,6 +184,7 @@ static int __init crash_save_vmcoreinfo_init(void)
 	VMCOREINFO_OFFSET(pglist_data, node_start_pfn);
 	VMCOREINFO_OFFSET(pglist_data, node_spanned_pages);
 	VMCOREINFO_OFFSET(pglist_data, node_id);
+
 	VMCOREINFO_OFFSET(zone, free_area);
 	VMCOREINFO_OFFSET(zone, vm_stat);
 	VMCOREINFO_OFFSET(zone, spanned_pages);
@@ -219,10 +215,23 @@ static int __init crash_save_vmcoreinfo_init(void)
 	VMCOREINFO_NUMBER(PAGE_OFFLINE_MAPCOUNT_VALUE);
 #endif
 
-	arch_crash_save_vmcoreinfo();
+//	arch_crash_save_vmcoreinfo();
 	update_vmcoreinfo_note();
+	minidump_save_extend_information("vmcore_info", (unsigned long)__pa(vmcoreinfo_note),
+			(unsigned long)__pa(vmcoreinfo_note_end));
+	pr_info("the VMCOREINFO_NOTE_SIZE is 0x%lx\n", VMCOREINFO_NOTE_SIZE);
 
 	return 0;
 }
+void crash_save_vmcoreinfo_exit(void)
+{
 
-subsys_initcall(crash_save_vmcoreinfo_init);
+	if (!vmcoreinfo_note) {
+		free_page((unsigned long)vmcoreinfo_data);
+		free_page((unsigned long)vmcoreinfo_note);
+	}
+}
+
+MODULE_AUTHOR("Dongyue Hao <dongyue.hao@unisoc.com>");
+MODULE_DESCRIPTION("kernel vmcoreinfo for Unisoc");
+MODULE_LICENSE("GPL");
