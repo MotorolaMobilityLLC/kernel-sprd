@@ -73,6 +73,10 @@
 #include <trace/hooks/debug.h>
 #include <trace/hooks/bug.h>
 
+/* debug symbols */
+#include <linux/android_debug_symbols.h>
+void *unisoc_linux_banner;
+
 #define CORE_STR	"CORE"
 #ifndef ELF_CORE_EFLAGS
 #define ELF_CORE_EFLAGS	0
@@ -133,13 +137,6 @@ struct minidump_info  minidump_info_g =	{
 	},
 	.section_info_total		=	{
 		.section_info		=	{
-//			{"text", (unsigned long)_stext, (unsigned long)_etext, 0, 0, 0},
-//			{"data", (unsigned long)_sdata, (unsigned long)_edata, 0, 0, 0},
-//			{"bss", (unsigned long)__bss_start, (unsigned long)__bss_stop, 0, 0, 0},
-//			{"init", (unsigned long)__init_begin, (unsigned long)__init_end, 0, 0, 0},
-//			{"inittext", (unsigned long)_sinittext, (unsigned long)_einittext, 0, 0, 0},
-//			{"rodata", (unsigned long)__start_rodata, (unsigned long)__end_rodata, 0, 0,
-//			0},
 			{"", 0, 0, 0, 0, 0},
 
 		},
@@ -454,6 +451,31 @@ int minidump_change_extend_information(const char *name, unsigned long paddr_sta
 	return 0;
 }
 EXPORT_SYMBOL(minidump_change_extend_information);
+void handle_android_debug_symbol(void)
+{
+	void *addr_start;
+	void *addr_end;
+
+	/* data-bss */
+	addr_start = android_debug_symbol(ADS_SDATA);
+	addr_end = android_debug_symbol(ADS_BSS_END);
+	if (addr_start == NULL || addr_end == NULL)
+		return;
+	minidump_save_extend_information("data-bss", (unsigned long)__pa(addr_start),
+			(unsigned long)__pa(addr_end));
+
+	/* per_cpu */
+	addr_start = android_debug_symbol(ADS_PER_CPU_START);
+	addr_end = android_debug_symbol(ADS_PER_CPU_END);
+	if (addr_start == NULL || addr_end == NULL)
+		return;
+	minidump_save_extend_information("per_cpu", (unsigned long)__pa(addr_start),
+			(unsigned long)__pa(addr_end));
+
+	/* linux banner */
+	unisoc_linux_banner = android_debug_symbol(ADS_LINUX_BANNER);
+
+}
 static char *storenote(struct memelfnote *men, char *bufp)
 {
 	struct elf_note en;
@@ -1601,11 +1623,12 @@ static int prepare_exception_info(struct pt_regs *regs,
 	memcpy(sprd_minidump_info->exception_info.kernel_magic, KERNEL_MAGIC, 4);
 
 	/*	exception_kernel_version	*/
-#if 0
-	memcpy(sprd_minidump_info->exception_info.exception_kernel_version,
-		linux_banner,
-		strlen(linux_banner));
-#endif
+
+	if (unisoc_linux_banner != NULL)
+		memcpy(sprd_minidump_info->exception_info.exception_kernel_version,
+			unisoc_linux_banner,
+			strlen(unisoc_linux_banner));
+
 	if (reason != NULL)
 		memcpy(sprd_minidump_info->exception_info.exception_panic_reason,
 			reason,
@@ -1740,6 +1763,8 @@ static void minidump_info_init(void)
 	vaddr_to_paddr_flag = 1;
 	mutex_unlock(&section_mutex);
 
+	/* android debug symbols init */
+	handle_android_debug_symbol();
 	/* regs init */
 	sprd_minidump_info->regs_info.paddr = __pa(sprd_minidump_regs);
 	/* regs_memory_info init*/
@@ -1865,6 +1890,7 @@ void sysdump_sysctl_exit(void)
 module_init(sysdump_sysctl_init);
 module_exit(sysdump_sysctl_exit);
 
+MODULE_IMPORT_NS(MINIDUMP);
 MODULE_AUTHOR("Jianjun.He <jianjun.he@spreadtrum.com>");
 MODULE_DESCRIPTION("kernel core dump for Spreadtrum");
 MODULE_LICENSE("GPL");
