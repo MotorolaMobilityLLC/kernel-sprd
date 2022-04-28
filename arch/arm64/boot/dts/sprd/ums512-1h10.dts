@@ -12,7 +12,7 @@
 #include "sc2730/sc2730.dtsi"
 #include "lcd/lcd_td4310_truly_mipi_fhd.dtsi"
 #include "reserved-memory/ums512-common.dtsi"
-#include "battery/battery-common.dtsi"
+#include "battery/ums512-1h10.dtsi"
 
 / {
 	model = "Spreadtrum UMS512-1H10 Board";
@@ -174,49 +174,4 @@
 &usb {
 	extcon = <&extcon_gpio>, <&pmic_typec>;
 	status = "okay";
-};
-
-&i2c4 {
-	#address-cells = <1>;
-	#size-cells = <0>;
-
-	status = "okay";
-	fan54015_chg: charger@6a {
-		compatible = "fairchild,fan54015_chg";
-		reg = <0x6a>;
-		phys = <&hsphy>;
-		monitored-battery = <&bat>;
-		extcon = <&extcon_gpio>;
-		vddvbus:otg-vbus {
-			regulator-name = "vddvbus";
-		};
-	};
-};
-
-&pmic_fgu {
-	monitored-battery = <&bat>;
-	sprd,calib-resistance-micro-ohms = <10000>;
-	sprd,comp-resistance-mohm = <20>;
-
-	fgu-capacity-track;
-	phys = <&hsphy>;
-
-	sprd,relax-counter-threshold = <580>;
-	sprd,relax-current-threshold = <30>;
-	sprd,capacity-sleep-calibration;
-
-	sprd,capacity-boot-calibration;
-	sprd,capacity-charge-cycle;
-	sprd,basp;
-};
-
-&bat {
-	status = "okay";
-};
-
-&cm {
-	status = "okay";
-	cm-chargers = "fan54015_charger";
-	cm-cap-remap-table = <1 2 3>, <2 3 2>, <98 99 2>, <99 100 3>;
-	phys = <&hsphy>;
 };
