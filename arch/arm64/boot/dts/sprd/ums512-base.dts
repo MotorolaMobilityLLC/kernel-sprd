@@ -14,6 +14,7 @@
 #include "reserved-memory/ums512-common.dtsi"
 #include "ums512/gpu-gondul.dtsi"
 #include "battery/battery-common.dtsi"
+#include "trusty/ums512.dtsi"
 
 / {
 	model = "Unisoc UMS512-base Board";
