@@ -1,0 +1,5 @@
+config	IRQ_MONITOR
+	tristate "Warn if interrupts occur too frequently"
+	help
+	  If selected, a warning log will be thrown out if any interrupt occurs
+	  too frequently.
