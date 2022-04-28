@@ -35,8 +35,8 @@ sprd-drm-$(CONFIG_DRM_SPRD_DP) += \
 	dp/dp_link.o \
 	dp/dp_test.o \
 	dp/dp_video.o \
-	dp/dw_dptx.o
-	#dp/dp_audio.o \
+	dp/dw_dptx.o \
+	dp/dp_audio.o
 	#dp/dp_hdcp.o
 
 sprd-drm-$(CONFIG_DRM_SPRD_DPU1) += \

@@ -236,6 +236,6 @@ void dptx_audio_timestamp_sdp_en(struct dptx *dptx);
 
 int handle_automated_test_request(struct dptx *dptx);
 
-//void dptx_en_dis_hdcp13(struct dptx *dptx, u8 enable);
+void dptx_en_dis_hdcp13(struct dptx *dptx, u8 enable);
 
 #endif

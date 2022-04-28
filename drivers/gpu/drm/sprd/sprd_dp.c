@@ -37,10 +37,6 @@
 	drm_mode_connector_update_edid_property(connector, edid)
 */
 
-LIST_HEAD(dp_glb_head);
-
-BLOCKING_NOTIFIER_HEAD(sprd_dp_notifier_list);
-
 static int sprd_dp_resume(struct sprd_dp *dp)
 {
 	if (dp->glb && dp->glb->enable)
@@ -159,7 +155,7 @@ static void sprd_dp_encoder_disable(struct drm_encoder *encoder)
 
 	sprd_dpu1_stop(crtc->priv);
 
-	//dptx_disable_default_video_stream(dp->snps_dptx, 0);
+	dptx_disable_default_video_stream(dp->snps_dptx, 0);
 
 	sprd_dp_suspend(dp);
 
@@ -624,7 +620,7 @@ static int sprd_dp_probe(struct platform_device *pdev)
 	sprd_dp_device_create(dp, &pdev->dev);
 	platform_set_drvdata(pdev, dp);
 
-	//sprd_dp_audio_codec_init(&pdev->dev);
+	sprd_dp_audio_codec_init(&pdev->dev);
 
 	return component_add(&pdev->dev, &dp_component_ops);
 }

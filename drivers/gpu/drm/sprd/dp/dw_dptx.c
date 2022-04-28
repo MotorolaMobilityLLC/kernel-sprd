@@ -406,7 +406,7 @@ struct dptx *dptx_init(struct device *dev, struct drm_device *drm_dev)
 	mutex_init(&dptx->mutex);
 	dptx_misc_reset(dptx);
 	dptx_video_params_reset(dptx);
-	//dptx_audio_params_reset(&dptx->aparams);
+	dptx_audio_params_reset(&dptx->aparams);
 	atomic_set(&dptx->sink_request, 0);
 	atomic_set(&dptx->c_connect, 0);
 
