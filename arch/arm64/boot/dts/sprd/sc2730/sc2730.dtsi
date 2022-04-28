@@ -140,5 +140,6 @@
 	};
 };
 
+#include "audio-codec.dtsi"
 #include "efuse.dtsi"
 #include "regulator.dtsi"

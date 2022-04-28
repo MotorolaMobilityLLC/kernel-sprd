@@ -18,6 +18,8 @@
 #include "battery/battery-common.dtsi"
 #include "trusty/ums512.dtsi"
 #include "power/power.dtsi"
+#include "sound/fe-be.dtsi"
+#include "sound/virtual-devices.dtsi"
 
 / {
 	model = "Unisoc UMS512-base Board";
@@ -218,6 +220,13 @@
 			regulator-name = "vddvbus";
 		};
 	};
+
+	ucp1301_spk: ucp1301@58 {
+		compatible = "unisoc,ucp1301-spk";
+		reg = <0x58>;
+		reset-gpios = <&ap_gpio 134 GPIO_ACTIVE_HIGH>;
+		#sound-dai-cells = <1>;
+	};
 };
 
 &usb {
@@ -261,4 +270,54 @@
 	sprd,pdbg-irq-domain-ap-eic-latch = "32000080.gpio";
 	sprd,pdbg-irq-domain-ap-eic-async = "320000a0.gpio";
 	sprd,pdbg-irq-domain-ap-eic-sync  = "320200c0.gpio";
+};
+
+&sprd_headset {
+	status = "okay";
+	extcon = <&pmic_typec>;
+	mic-gpios = <&ap_gpio 16 GPIO_ACTIVE_HIGH>;
+	lr-gpios = <&ap_gpio 15 GPIO_ACTIVE_HIGH>;
+	sprd,3pole-adc-threshold = <112>;
+};
+
+&sprd_audio_codec_ana {
+	status = "okay";
+	hp-use-inter-pa = <1>;
+	fixed-sample-rate = <48000 48000 48000>;
+	digital-codec = <&sprd_audio_codec_dig>;
+};
+
+&sound_vbc_v4_sprd_codec {
+	status = "okay";
+	sprd-audio-card,routing =
+		"HPMIC Pin", "HP Mic Jack",
+		"MIC Pin", "Mic Jack",
+		"MIC2 Pin", "Aux Mic Jack",
+		"HeadPhone Jack", "HP Pin",
+		"Ext Spk", "SPK Pin",
+		"UCP1301 SPK ON", "SPK Pin",
+		"Ext Spk", "UCP1301 SPK",
+		"DMIC Pin", "DMic Jack",
+		"DMIC1 Pin", "DMic1 Jack",
+		"Ext Ear", "EAR Pin";
+
+	/* 35: ucp1301 normal ap01 */
+	sprd-audio-card,dai-link@53 {
+		ignore-suspend = <1>;
+		link-name = "BE_NORMAL_AP01_UCPSPK";
+		stream-name = "BE_ST_NORMAL_AP01_UCPSPK";
+		no-pcm = <1>;
+		dpcm-playback = <1>;
+		be-id = <0>;
+		dai-format = "i2s";
+		plat {
+			sound-dai = <&sprd_route_pcm>;
+		};
+		cpu {
+			sound-dai = <&vbc_v4 3>;
+		};
+		codec {
+			sound-dai = <&ucp1301_spk 0>;
+		};
+	};
 };
