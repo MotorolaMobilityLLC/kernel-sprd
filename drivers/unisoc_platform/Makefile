@@ -3,6 +3,7 @@
 # NOTE: Keep order __alphabetically__ PLEASE!! #
 
 obj-$(CONFIG_ARCH_SPRD)		+= pub/
+obj-$(CONFIG_CPU_FREQ) 		+= cpufreq/
 obj-$(CONFIG_IRQSOFF_WARN)	+= preemptirq_warn/
 obj-$(CONFIG_IRQ_MONITOR)	+= irq_monitor/
 obj-$(CONFIG_PREEMPT_WARN) 	+= preemptirq_warn/
