@@ -11,3 +11,4 @@ obj-$(CONFIG_ARCH_SPRD)		+= pub/
 obj-$(CONFIG_PRINTK_CPUID)	+= printk_cpuid/
 obj-$(CONFIG_UNISOC_WCN_BSP)	+= sprdwcn/
 obj-$(CONFIG_TIMESTAMP_SYNC)	+= kts_sync/
+obj-$(CONFIG_UNISOC_GNSS)	+= sprd_gnss/
