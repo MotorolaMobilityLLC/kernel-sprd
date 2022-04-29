@@ -38,7 +38,7 @@ struct dpu_vspsys_dvfs_reg {
 	u32 dpu_vsp_vpu_gsp0_dvfs_cgm_cfg_dbg;
 	u32 dpu_vsp_vpu_gsp1_dvfs_cgm_cfg_dbg;
 	u32 dpu_vsp_vpu_dispc0_dvfs_cgm_cfg_dbg;
-	u32 reserved_0x80_0x12c[38];
+	u32 reserved_0x80_0x12c[44];
 	u32 dpu_vsp_dvfs_state_dbg;
 	u32 reserved_0x134_0x150[8];
 	u32 vpu_mtx_index0_map;
