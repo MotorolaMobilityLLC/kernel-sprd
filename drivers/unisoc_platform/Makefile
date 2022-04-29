@@ -19,3 +19,4 @@ obj-$(CONFIG_PREEMPT_WARN) 	+= preemptirq_warn/
 obj-$(CONFIG_UNISOC_GNSS)	+= sprd_gnss/
 obj-$(CONFIG_SPRD_SFP_SUPPORT)	+= sfp/
 obj-y += net/
+obj-$(CONFIG_SPRD_MODEM_DEBUG)	+= debug_log/

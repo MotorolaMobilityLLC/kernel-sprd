@@ -36,5 +36,6 @@ source "drivers/unisoc_platform/preemptirq_warn/Kconfig"
 source "drivers/unisoc_platform/sprd_gnss/Kconfig"
 source "drivers/unisoc_platform/sfp/Kconfig"
 source "drivers/unisoc_platform/net/Kconfig"
+source "drivers/unisoc_platform/debug_log/Kconfig"
 
 endmenu
