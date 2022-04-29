@@ -107,6 +107,8 @@
   console_unlock
   __const_udelay
   cpu_have_feature
+  cpu_hotplug_enable
+  cpu_hotplug_disable
   cpu_hwcap_keys
   cpu_hwcaps
   cpumask_next
@@ -141,6 +143,7 @@
   debugfs_create_file
   debugfs_create_regset32
   debugfs_create_u32
+  debugfs_create_u64
   debugfs_create_x32
   debugfs_initialized
   debugfs_remove
@@ -153,6 +156,7 @@
   del_timer_sync
   destroy_workqueue
   dev_driver_string
+  _dev_crit
   _dev_err
   dev_fwnode
   dev_get_by_name
@@ -220,6 +224,7 @@
   dma_direct_sync_single_for_cpu
   dma_direct_sync_single_for_device
   dma_direct_unmap_page
+  dma_fence_array_create
   dma_fence_release
   dma_fence_wait_timeout
   dma_free_attrs
@@ -241,6 +246,9 @@
   drm_dev_alloc
   drm_dev_put
   drm_dev_register
+  drm_dp_get_adjust_request_pre_emphasis
+  drm_dp_get_adjust_request_voltage
+  drm_dp_link_train_channel_eq_delay
   drm_err
   drm_ioctl
   drm_ioctl_kernel
@@ -264,7 +272,12 @@
   event_triggers_call
   extcon_find_edev_by_node
   extcon_get_edev_by_phandle
+  extcon_get_property
   extcon_get_state
+  extcon_set_state
+  extcon_set_property
+  extcon_set_property_capability
+  extcon_sync
   fb_mode_option
   __find_get_block
   find_next_bit
@@ -328,6 +341,7 @@
   handle_edge_irq
   handle_level_irq
   have_governor_per_policy
+  hdmi_drm_infoframe_pack_only
   i2c_del_driver
   i2c_register_driver
   i2c_smbus_read_byte_data
@@ -465,6 +479,7 @@
   kstrtoll
   kstrtouint
   kstrtoull
+  ksys_sync_helper
   kthread_create_on_node
   kthread_flush_worker
   kthread_should_stop
@@ -550,6 +565,7 @@
   of_get_regulator_init_data
   of_graph_get_remote_node
   of_irq_get
+  of_irq_get_byname
   of_match_node
   of_nvmem_cell_get
   of_parse_phandle
@@ -736,6 +752,8 @@
   schedule_timeout_interruptible
   scnprintf
   seq_lseek
+  seq_list_next
+  seq_list_start
   seq_printf
   seq_putc
   seq_puts
@@ -997,6 +1015,7 @@
   xt_unregister_matches
   xt_unregister_target
   xt_unregister_targets
+  yield
 
 # required by apsys-dvfs.ko
   of_find_matching_node_and_match
@@ -1426,6 +1445,7 @@
   down_read
   down_write
   drm_dev_unregister
+  drm_hdmi_infoframe_set_hdr_metadata
   fd_install
   fget
   find_vma
@@ -1450,6 +1470,7 @@
   put_unused_fd
   _raw_read_lock_bh
   _raw_read_unlock_bh
+  _raw_read_trylock
   _raw_write_lock_bh
   _raw_write_unlock_bh
   register_shrinker
@@ -1538,6 +1559,11 @@
   devm_extcon_dev_allocate
   devm_extcon_dev_register
   extcon_set_state_sync
+  typec_altmode_enter
+  typec_altmode_exit
+  __typec_altmode_register_driver
+  typec_altmode_get_partner
+  typec_altmode_unregister_driver
   typec_register_partner
   typec_register_port
   typec_set_data_role
