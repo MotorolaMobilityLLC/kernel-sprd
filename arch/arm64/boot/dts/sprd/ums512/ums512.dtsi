@@ -346,3 +346,4 @@
 #include "marlin3lite.dtsi"
 #include "tp.dtsi"
 #include "efuse.dtsi"
+#include "mipi-serdes.dtsi"
