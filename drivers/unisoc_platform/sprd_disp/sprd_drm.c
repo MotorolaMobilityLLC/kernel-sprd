@@ -23,6 +23,8 @@
 
 #include "sprd_drm.h"
 #include "sprd_gem.h"
+#include "sprd_dpu.h"
+#include "sprd_dsi.h"
 #include "sysfs/sysfs_display.h"
 
 #define DRIVER_NAME	"sprd"
@@ -31,6 +33,83 @@
 #define DRIVER_MAJOR	1
 #define DRIVER_MINOR	0
 
+#define SPRD_FENCE_WAIT_TIMEOUT 3000 /* ms */
+
+static bool boot_mode_check(const char *str)
+{
+	struct device_node *cmdline_node;
+	const char *cmd_line;
+	int rc;
+
+	cmdline_node = of_find_node_by_path("/chosen");
+	rc = of_property_read_string(cmdline_node, "bootargs", &cmd_line);
+	if (rc)
+		return false;
+
+	if (!strstr(cmd_line, str))
+		return false;
+
+	return true;
+}
+
+/**
+ * sprd_atomic_wait_for_fences - wait for fences stashed in plane state
+ * @dev: DRM device
+ * @state: atomic state object with old state structures
+ * @pre_swap: If true, do an interruptible wait, and @state is the new state.
+ * Otherwise @state is the old state.
+ *
+ * For implicit sync, driver should fish the exclusive fence out from the
+ * incoming fb's and stash it in the drm_plane_state.  This is called after
+ * drm_atomic_helper_swap_state() so it uses the current plane state (and
+ * just uses the atomic state to find the changed planes)
+ *
+ * Note that @pre_swap is needed since the point where we block for fences moves
+ * around depending upon whether an atomic commit is blocking or
+ * non-blocking. For non-blocking commit all waiting needs to happen after
+ * drm_atomic_helper_swap_state() is called, but for blocking commits we want
+ * to wait **before** we do anything that can't be easily rolled back. That is
+ * before we call drm_atomic_helper_swap_state().
+ *
+ * Returns zero if success or < 0 if dma_fence_wait_timeout() fails.
+ */
+int sprd_atomic_wait_for_fences(struct drm_device *dev,
+				      struct drm_atomic_state *state,
+				      bool pre_swap)
+{
+	struct drm_plane *plane;
+	struct drm_plane_state *new_plane_state;
+	int i, ret;
+
+	for_each_new_plane_in_state(state, plane, new_plane_state, i) {
+		if (!new_plane_state->fence)
+			continue;
+
+		WARN_ON(!new_plane_state->fb);
+
+		/*
+		 * If waiting for fences pre-swap (ie: nonblock), userspace can
+		 * still interrupt the operation. Instead of blocking until the
+		 * timer expires, make the wait interruptible.
+		 */
+		ret = dma_fence_wait_timeout(new_plane_state->fence,
+				pre_swap,
+				msecs_to_jiffies(SPRD_FENCE_WAIT_TIMEOUT));
+		if (ret == 0) {
+			DRM_ERROR("wait fence timed out, index:%d,\n", i);
+			return -EBUSY;
+		} else if (ret < 0) {
+			DRM_ERROR("wait fence failed, index:%d, ret:%d.\n",
+				i, ret);
+			return ret;
+		}
+
+		dma_fence_put(new_plane_state->fence);
+		new_plane_state->fence = NULL;
+	}
+
+	return 0;
+}
 
 static void sprd_commit_tail(struct drm_atomic_state *old_state)
 {
@@ -38,7 +117,7 @@ static void sprd_commit_tail(struct drm_atomic_state *old_state)
 
 	drm_atomic_helper_wait_for_dependencies(old_state);
 
-	drm_atomic_helper_wait_for_fences(dev, old_state, false);
+	sprd_atomic_wait_for_fences(dev, old_state, false);
 
 	drm_atomic_helper_commit_modeset_disables(dev, old_state);
 
@@ -211,9 +290,6 @@ static int sprd_drm_bind(struct device *dev)
 		goto err_unbind_all;
 	}
 
-	/* with irq_enabled = true, we can use the vblank feature. */
-	//drm->irq_enabled = true;
-
 	/* reset all the states of crtc/plane/encoder/connector */
 	drm_mode_config_reset(drm);
 
@@ -363,11 +439,11 @@ static int sprd_drm_probe(struct platform_device *pdev)
 		return ret;
 	}
 
-	ret = drm_of_component_probe(&pdev->dev, compare_of, &drm_component_ops);
-	if(ret) {
-		DRM_ERROR("sprd_drm_probe error: %d\n", ret);
-		return ret;
-	}
+	// ret = drm_of_component_probe(&pdev->dev, compare_of, &drm_component_ops);
+	// if(ret) {
+	// 	DRM_ERROR("sprd_drm_probe error: %d\n", ret);
+	// 	return ret;
+	// }
 
 	return sprd_drm_component_probe(&pdev->dev, &drm_component_ops);
 }
@@ -380,7 +456,7 @@ static int sprd_drm_remove(struct platform_device *pdev)
 
 static void sprd_drm_shutdown(struct platform_device *pdev)
 {
-	struct drm_device *drm = platform_get_drvdata(pdev);
+	struct drm_device *drm = dev_get_drvdata(&pdev->dev);
 
 	if (!drm) {
 		DRM_WARN("drm device is not available, no shutdown\n");
@@ -395,6 +471,9 @@ static int sprd_drm_pm_suspend(struct device *dev)
 	struct drm_device *drm = dev_get_drvdata(dev);
 	struct drm_atomic_state *state;
 	struct sprd_drm *sprd;
+	struct drm_crtc *crtc;
+	struct drm_encoder *encoder;
+	static bool is_suspend;
 
 	if (!drm) {
 		DRM_WARN("drm device is not available, no suspend\n");
@@ -402,6 +481,27 @@ static int sprd_drm_pm_suspend(struct device *dev)
 	}
 
 	DRM_INFO("%s()\n", __func__);
+
+	if (boot_mode_check("androidboot.mode=autotest")) {
+		if (is_suspend)
+			return 0;
+
+		drm_for_each_crtc(crtc, drm) {
+			if (!crtc->state->active) {
+				/* crtc force power down! */
+				sprd_dpu_atomic_disable_force(crtc);
+
+				/* encoder force power down! */
+				drm_for_each_encoder(encoder, drm) {
+					sprd_dsi_encoder_disable_force(encoder);
+				}
+
+				is_suspend = true; /* For BBAT deep sleep */
+				return 0;
+			}
+		}
+		is_suspend = true; /* For BBAT display test */
+	}
 
 	drm_kms_helper_poll_disable(drm);
 
@@ -425,6 +525,11 @@ static int sprd_drm_pm_resume(struct device *dev)
 
 	if (!drm) {
 		DRM_WARN("drm device is not available, no resume\n");
+		return 0;
+	}
+
+	if (boot_mode_check("androidboot.mode=autotest")) {
+		DRM_WARN("BBAT mode not need resume\n");
 		return 0;
 	}
 
@@ -462,16 +567,31 @@ static struct platform_driver sprd_drm_driver = {
 };
 
 static struct platform_driver *sprd_drm_drivers[]  = {
-	&sprd_backlight_driver,
+#ifdef CONFIG_DRM_SPRD_DUMMY
+	&sprd_dummy_crtc_driver,
+	&sprd_dummy_connector_driver,
+#endif
+#ifdef CONFIG_DRM_SPRD_DPU0
 	&sprd_dpu_driver,
+	&sprd_backlight_driver,
+#endif
+#ifdef CONFIG_DRM_SPRD_DSI
 	&sprd_dsi_driver,
 	&sprd_dphy_driver,
+#endif
 	&sprd_drm_driver,
 };
 
 static int __init sprd_drm_init(void)
 {
 	int ret;
+	bool cali_mode;
+
+	cali_mode = boot_mode_check("androidboot.mode=cali");
+	if (cali_mode) {
+		DRM_WARN("Calibration Mode! Don't register sprd drm driver");
+		return 0;
+	}
 
 	ret = sprd_display_class_init();
 	if (ret)
@@ -482,18 +602,21 @@ static int __init sprd_drm_init(void)
 	if (ret)
 		return ret;
 
+#ifdef CONFIG_DRM_SPRD_DSI
 	mipi_dsi_driver_register(&sprd_panel_driver);
+#endif
 
 	return 0;
 }
 
 static void __exit sprd_drm_exit(void)
 {
+#ifdef CONFIG_DRM_SPRD_DSI
 	mipi_dsi_driver_unregister(&sprd_panel_driver);
+#endif
 
 	platform_unregister_drivers(sprd_drm_drivers,
 				    ARRAY_SIZE(sprd_drm_drivers));
-
 }
 
 module_init(sprd_drm_init);

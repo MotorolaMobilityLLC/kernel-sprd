@@ -16,8 +16,11 @@
 
 int str_to_u32_array(const char *p, u32 base, u32 array[]);
 int str_to_u8_array(const char *p, u32 base, u8 array[]);
+
+#ifdef CONFIG_DRM_SPRD_WB_DEBUG
 int dump_bmp32(const char *p, u32 width, u32 height,
 		bool bgra, const char *filename);
+#endif
 
 struct device *sprd_disp_pipe_get_by_port(struct device *dev, int port);
 struct device *sprd_disp_pipe_get_input(struct device *dev);

@@ -66,16 +66,6 @@ static int sprd_panel_unprepare(struct drm_panel *p)
 
 	DRM_INFO("%s()\n", __func__);
 
-	if (panel->info.avee_gpio) {
-		gpiod_direction_output(panel->info.avee_gpio, 0);
-		mdelay(5);
-	}
-
-	if (panel->info.avdd_gpio) {
-		gpiod_direction_output(panel->info.avdd_gpio, 0);
-		mdelay(5);
-	}
-
 	if (panel->info.reset_gpio) {
 		items = panel->info.rst_off_seq.items;
 		timing = panel->info.rst_off_seq.timing;
@@ -86,9 +76,60 @@ static int sprd_panel_unprepare(struct drm_panel *p)
 		}
 	}
 
+	if (panel->info.avee_gpio) {
+		gpiod_direction_output(panel->info.avee_gpio, 0);
+		mdelay(5);
+	}
+
+	if (panel->info.avdd_gpio) {
+		gpiod_direction_output(panel->info.avdd_gpio, 0);
+		mdelay(5);
+	}
+
 	regulator_disable(panel->supply);
 
 	return 0;
+}
+
+void  sprd_panel_enter_doze(struct drm_panel *p)
+{
+	struct sprd_panel *panel = to_sprd_panel(p);
+
+	DRM_INFO("%s() enter\n", __func__);
+
+	mutex_lock(&panel->lock);
+
+	if (panel->esd_work_pending) {
+		cancel_delayed_work_sync(&panel->esd_work);
+		panel->esd_work_pending = false;
+	}
+
+	sprd_panel_send_cmds(panel->slave,
+	       panel->info.cmds[CMD_CODE_DOZE_IN],
+	       panel->info.cmds_len[CMD_CODE_DOZE_IN]);
+
+	mutex_unlock(&panel->lock);
+}
+
+void  sprd_panel_exit_doze(struct drm_panel *p)
+{
+	struct sprd_panel *panel = to_sprd_panel(p);
+
+	DRM_INFO("%s() enter\n", __func__);
+
+	mutex_lock(&panel->lock);
+
+	sprd_panel_send_cmds(panel->slave,
+		panel->info.cmds[CMD_CODE_DOZE_OUT],
+		panel->info.cmds_len[CMD_CODE_DOZE_OUT]);
+
+	if (panel->info.esd_check_en) {
+		schedule_delayed_work(&panel->esd_work,
+				      msecs_to_jiffies(1000));
+		panel->esd_work_pending = true;
+	}
+
+	mutex_unlock(&panel->lock);
 }
 
 static int sprd_panel_prepare(struct drm_panel *p)
@@ -222,6 +263,159 @@ static const struct drm_panel_funcs sprd_panel_funcs = {
 	.prepare = sprd_panel_prepare,
 	.unprepare = sprd_panel_unprepare,
 };
+
+static int sprd_panel_esd_check(struct sprd_panel *panel)
+{
+	struct mipi_dsi_host *host = panel->slave->host;
+	struct sprd_dsi *dsi = host_to_dsi(host);
+	struct drm_connector *connector = &dsi->connector;
+	struct panel_info *info = &panel->info;
+	u8 read_val = 0;
+
+	if (!connector || !connector->encoder ||
+			!connector->encoder->crtc) {
+		return 0;
+	}
+
+	/* FIXME: we should enable HS cmd tx here */
+	mipi_dsi_set_maximum_return_packet_size(panel->slave, 1);
+	mipi_dsi_dcs_read(panel->slave, info->esd_check_reg,
+			  &read_val, 1);
+
+	/*
+	 * TODO:
+	 * Should we support multi-registers check in the future?
+	 */
+	if (read_val != info->esd_check_val) {
+		DRM_ERROR("esd check failed, read value = 0x%02x\n",
+			  read_val);
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
+static int sprd_panel_te_check(struct sprd_panel *panel)
+{
+	struct mipi_dsi_host *host = panel->slave->host;
+	struct sprd_dsi *dsi = host_to_dsi(host);
+	struct drm_connector *connector = &dsi->connector;
+	struct sprd_dpu *dpu;
+	struct sprd_crtc *crtc;
+	int ret;
+	bool irq_occur = false;
+
+	if (!connector || !connector->encoder ||
+			!connector->encoder->crtc) {
+		return 0;
+	}
+
+	crtc = to_sprd_crtc(connector->encoder->crtc);
+	dpu = (struct sprd_dpu *)crtc->priv;
+
+	/* DPU TE irq maybe enabled in kernel */
+	if (!dpu->ctx.enabled)
+		return 0;
+
+	dpu->ctx.te_check_en = true;
+
+	/* wait for TE interrupt */
+	ret = wait_event_interruptible_timeout(dpu->ctx.te_wq,
+		dpu->ctx.evt_te, msecs_to_jiffies(500));
+	if (!ret) {
+		/* double check TE interrupt through dpu_int_raw register */
+		if (dpu->core && dpu->core->check_raw_int) {
+			down(&dpu->ctx.lock);
+			if (dpu->ctx.enabled)
+				irq_occur = dpu->core->check_raw_int(&dpu->ctx,
+					BIT_DPU_INT_TE);
+			up(&dpu->ctx.lock);
+			if (!irq_occur) {
+				DRM_ERROR("TE esd timeout.\n");
+				ret = -ETIMEDOUT;
+			} else
+				DRM_WARN("TE occur, but isr schedule delay\n");
+		} else {
+			DRM_ERROR("TE esd timeout.\n");
+			ret = -ETIMEDOUT;
+		}
+	}
+
+	dpu->ctx.te_check_en = false;
+	dpu->ctx.evt_te = false;
+
+	return ret < 0 ? ret : 0;
+}
+
+static int sprd_panel_mix_check(struct sprd_panel *panel)
+{
+	int ret;
+
+	ret = sprd_panel_esd_check(panel);
+	if (ret) {
+		DRM_ERROR("mix check use read reg with error\n");
+		return ret;
+	}
+
+	ret = sprd_panel_te_check(panel);
+	if (ret) {
+		DRM_ERROR("mix check use te signal with error\n");
+		return ret;
+	}
+
+	return 0;
+}
+
+static void sprd_panel_esd_work_func(struct work_struct *work)
+{
+	struct sprd_panel *panel = container_of(work, struct sprd_panel,
+						esd_work.work);
+	struct panel_info *info = &panel->info;
+	struct mipi_dsi_host *host = panel->slave->host;
+	struct sprd_dsi *dsi = host_to_dsi(host);
+	struct drm_connector *connector = &dsi->connector;
+	int ret;
+
+	if ((!dsi->ctx.enabled) || (!panel->enabled)) {
+		DRM_ERROR("dsi is suspended, skip esd work\n");
+		return;
+	}
+
+	if (info->esd_check_mode == ESD_MODE_REG_CHECK)
+		ret = sprd_panel_esd_check(panel);
+	else if (info->esd_check_mode == ESD_MODE_TE_CHECK)
+		ret = sprd_panel_te_check(panel);
+	else if (info->esd_check_mode == ESD_MODE_MIX_CHECK)
+		ret = sprd_panel_mix_check(panel);
+	else {
+		DRM_ERROR("unknown esd check mode:%d\n", info->esd_check_mode);
+		return;
+	}
+
+	if (ret && connector && connector->encoder) {
+		const struct drm_encoder_helper_funcs *funcs;
+		struct drm_encoder *encoder;
+
+		encoder = connector->encoder;
+		funcs = encoder->helper_private;
+		panel->esd_work_pending = false;
+
+		if (!encoder->crtc || (encoder->crtc->state &&
+		    !encoder->crtc->state->active)) {
+			DRM_INFO("skip esd recovery during panel suspend\n");
+			return;
+		}
+
+		DRM_INFO("====== esd recovery start ========\n");
+		panel->is_esd_rst = true;
+		funcs->disable(encoder);
+		funcs->enable(encoder);
+		panel->is_esd_rst = false;
+		DRM_INFO("======= esd recovery end =========\n");
+	} else
+		schedule_delayed_work(&panel->esd_work,
+			msecs_to_jiffies(info->esd_check_period));
+}
 
 static int sprd_panel_gpio_request(struct device *dev,
 			struct sprd_panel *panel)
@@ -645,6 +839,20 @@ int sprd_panel_parse_lcddtb(struct device_node *lcd_node,
 	} else
 		DRM_ERROR("can't find sprd,sleep-out-command property\n");
 
+	p = of_get_property(lcd_node, "sprd,doze-in-command", &bytes);
+	if (p) {
+		info->cmds[CMD_CODE_DOZE_IN] = p;
+		info->cmds_len[CMD_CODE_DOZE_IN] = bytes;
+	} else
+		DRM_INFO("can't find sprd,doze-in-command property\n");
+
+	p = of_get_property(lcd_node, "sprd,doze-out-command", &bytes);
+	if (p) {
+		info->cmds[CMD_CODE_DOZE_OUT] = p;
+		info->cmds_len[CMD_CODE_DOZE_OUT] = bytes;
+	} else
+		DRM_INFO("can't find sprd,doze-out-command property\n");
+
 	rc = of_get_drm_display_mode(lcd_node, &info->mode, 0,
 				     OF_USE_NATIVE_MODE);
 	if (rc) {
@@ -741,7 +949,7 @@ static int sprd_panel_probe(struct mipi_dsi_device *slave)
 		return PTR_ERR(panel->supply);
 	}
 
-	//INIT_DELAYED_WORK(&panel->esd_work, sprd_panel_esd_work_func);
+	INIT_DELAYED_WORK(&panel->esd_work, sprd_panel_esd_work_func);
 
 	ret = sprd_panel_parse_dt(slave->dev.of_node, panel);
 	if (ret) {
@@ -797,11 +1005,11 @@ static int sprd_panel_probe(struct mipi_dsi_device *slave)
 	 * callback function. But the dsi encoder will not call
 	 * drm_panel_enable() the first time in encoder_enable().
 	 */
-	// if (panel->info.esd_check_en) {
-	// 	schedule_delayed_work(&panel->esd_work,
-	// 			      msecs_to_jiffies(2000));
-	// 	panel->esd_work_pending = true;
-	// }
+	if (panel->info.esd_check_en) {
+		schedule_delayed_work(&panel->esd_work,
+				      msecs_to_jiffies(2000));
+		panel->esd_work_pending = true;
+	}
 	panel->enabled = true;
 
 	mutex_init(&panel->lock);

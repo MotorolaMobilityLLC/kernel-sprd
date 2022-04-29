@@ -80,7 +80,7 @@ struct dsi_context {
 	/* maximum time (ns) for clk lanes from LP to HS */
 	u16 clk_lp2hs;
 	/* maximum time (ns) for BTA operation - REQUIRED */
-	u16 max_rd_time;
+	u64 max_rd_time;
 
 	/* is 18-bit loosely packets (valid only when BPP == 18) */
 	bool is_18_loosely;
@@ -98,6 +98,15 @@ struct dsi_context {
 	bool video_lp_cmd_en;
 	/* disable hporch enter in low power mode */
 	bool hporch_lp_disable;
+	/* simulated small resolution display mode */
+	bool surface_mode;
+	/* check lcd esd status if lcd be in recovery process or not */
+	bool is_esd_rst;
+	/* supported dpms mode */
+	int dpms;
+	int last_dpms;
+
+	const char *lcd_name;
 };
 
 struct dsi_core_ops {
@@ -204,8 +213,12 @@ struct sprd_dsi {
 	struct sprd_dphy *phy;
 	const struct dsi_core_ops *core;
 	const struct dsi_glb_ops *glb;
+	struct mutex lock;
 	struct dsi_context ctx;
 };
+
+void sprd_dsi_encoder_disable_force(struct drm_encoder *encoder);
+int dsi_panel_set_dpms_mode(struct sprd_dsi *dsi);
 
 extern const struct dsi_core_ops dsi_ctrl_r1p0_ops;
 extern const struct dsi_glb_ops sharkle_dsi_glb_ops;

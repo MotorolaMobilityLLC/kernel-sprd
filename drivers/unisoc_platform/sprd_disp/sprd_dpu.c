@@ -10,6 +10,8 @@
 #include <linux/of_address.h>
 #include <linux/of_device.h>
 #include <linux/of_irq.h>
+#include <linux/pm_runtime.h>
+#include <linux/sprd_iommu.h>
 #include <linux/mm.h>
 #include <linux/memblock.h>
 
@@ -120,21 +122,10 @@ static void sprd_dpu_mode_set_nofb(struct sprd_crtc *crtc)
 
 	DRM_INFO("%s() set mode: %s\n", __func__, dpu->mode->name);
 
-	/*
-	 * TODO:
-	 * Currently, low simulator resolution only support
-	 * DPI mode, support for EDPI in the future.
-	 */
-	if (mode->type & DRM_MODE_TYPE_USERDEF) {
+	if (dpu->dsi->ctx.work_mode == DSI_MODE_VIDEO)
 		dpu->ctx.if_type = SPRD_DPU_IF_DPI;
-		return;
-	}
-
-	if ((dpu->mode->hdisplay == dpu->mode->htotal) ||
-	    (dpu->mode->vdisplay == dpu->mode->vtotal))
-		dpu->ctx.if_type = SPRD_DPU_IF_EDPI;
 	else
-		dpu->ctx.if_type = SPRD_DPU_IF_DPI;
+		dpu->ctx.if_type = SPRD_DPU_IF_EDPI;
 
 	if (dpu->core->modeset && crtc->base.state->mode_changed)
 		dpu->core->modeset(&dpu->ctx, mode);
@@ -161,14 +152,25 @@ static enum drm_mode_status sprd_dpu_mode_valid(struct sprd_crtc *crtc,
 static void sprd_dpu_atomic_enable(struct sprd_crtc *crtc)
 {
 	struct sprd_dpu *dpu = crtc->priv;
+	static bool is_enable = true;
 
 	DRM_INFO("%s()\n", __func__);
+	if (is_enable) {
+		/* workaround:
+		 * dpu r6p0 need resume after dsi resume on div6 scences
+		 * for dsi core and dpi clk depends on dphy clk
+		 */
+		if (!strcmp(dpu->ctx.version, "dpu-r6p0")) {
+			sprd_dpu_resume(dpu);
+		}
+		is_enable = false;
+	}
+	else
+		pm_runtime_get_sync(dpu->dev.parent);
 
-	sprd_dpu_enable(dpu);
-
-	enable_irq(dpu->ctx.irq);
-
-	sprd_iommu_restore(&dpu->dev);
+	if (strcmp(dpu->ctx.version, "dpu-r6p0")) {
+		sprd_dpu_resume(dpu);
+	}
 }
 
 static void sprd_dpu_atomic_disable(struct sprd_crtc *crtc)
@@ -181,6 +183,23 @@ static void sprd_dpu_atomic_disable(struct sprd_crtc *crtc)
 
 	disable_irq(dpu->ctx.irq);
 
+	sprd_dpu_disable(dpu);
+
+	pm_runtime_put(dpu->dev.parent);
+}
+
+void sprd_dpu_atomic_disable_force(struct drm_crtc *crtc)
+{
+	struct sprd_crtc *sprd_crtc = container_of(crtc, struct sprd_crtc, base);
+	struct sprd_dpu *dpu = sprd_crtc->priv;
+
+	DRM_INFO("%s()\n", __func__);
+
+	/* dpu is not initialized,it should enable first! */
+	sprd_dpu_enable(dpu);
+	enable_irq(dpu->ctx.irq);
+
+	disable_irq(dpu->ctx.irq);
 	sprd_dpu_disable(dpu);
 }
 
@@ -326,6 +345,14 @@ static void sprd_dpu_enable(struct sprd_dpu *dpu)
 	ctx->enabled = true;
 
 	up(&ctx->lock);
+}
+
+void sprd_dpu_resume(struct sprd_dpu *dpu)
+{
+	sprd_dpu_enable(dpu);
+	enable_irq(dpu->ctx.irq);
+	sprd_iommu_restore(&dpu->dev);
+	DRM_INFO("dpu resume OK\n");
 }
 
 static void sprd_dpu_disable(struct sprd_dpu *dpu)
@@ -523,11 +550,8 @@ static int sprd_dpu_context_init(struct sprd_dpu *dpu,
 	struct dpu_context *ctx = &dpu->ctx;
 	int ret;
 
-	if (dpu->core->context_init)
-		dpu->core->context_init(ctx);
-
-	if (dpu->core->parse_dt) {
-		ret = dpu->core->parse_dt(ctx, np);
+	if (dpu->core->context_init) {
+		ret = dpu->core->context_init(ctx, np);
 		if (ret)
 			return ret;
 	}
@@ -555,11 +579,36 @@ static int sprd_dpu_context_init(struct sprd_dpu *dpu,
 
 	ctx->panel_ready = true;
 	ctx->time = 5000;
+	ctx->secure_debug = false;
 
 	init_waitqueue_head(&dpu->ctx.te_wq);
 
 	return 0;
 }
+
+static const struct sprd_dpu_ops sharkle_dpu = {
+	.core = &dpu_lite_r1p0_core_ops,
+	.clk = &sharkle_dpu_clk_ops,
+	.glb = &sharkle_dpu_glb_ops,
+};
+
+static const struct sprd_dpu_ops pike2_dpu = {
+	.core = &dpu_lite_r1p0_core_ops,
+	.clk = &pike2_dpu_clk_ops,
+	.glb = &pike2_dpu_glb_ops,
+};
+
+static const struct sprd_dpu_ops sharkl3_dpu = {
+	.core = &dpu_r2p0_core_ops,
+	.clk = &sharkl3_dpu_clk_ops,
+	.glb = &sharkl3_dpu_glb_ops,
+};
+
+static const struct sprd_dpu_ops sharkl5_dpu = {
+	.core = &dpu_lite_r2p0_core_ops,
+	.clk = &sharkl5_dpu_clk_ops,
+	.glb = &sharkl5_dpu_glb_ops,
+};
 
 static const struct sprd_dpu_ops sharkl5pro_dpu = {
 	.core = &dpu_r4p0_core_ops,
@@ -567,9 +616,34 @@ static const struct sprd_dpu_ops sharkl5pro_dpu = {
 	.glb = &sharkl5pro_dpu_glb_ops,
 };
 
+static const struct sprd_dpu_ops qogirl6_dpu = {
+	.core = &dpu_r5p0_core_ops,
+	.clk = &qogirl6_dpu_clk_ops,
+	.glb = &qogirl6_dpu_glb_ops,
+};
+
+static const struct sprd_dpu_ops qogirn6pro_dpu = {
+	.core = &dpu_r6p0_core_ops ,
+	.clk = &qogirn6pro_dpu_clk_ops,
+	.glb = &qogirn6pro_dpu_glb_ops,
+};
+
 static const struct of_device_id dpu_match_table[] = {
+	{ .compatible = "sprd,sharkle-dpu",
+	  .data = &sharkle_dpu },
+	{ .compatible = "sprd,pike2-dpu",
+	  .data = &pike2_dpu },
+	{ .compatible = "sprd,sharkl3-dpu",
+	  .data = &sharkl3_dpu },
+	{ .compatible = "sprd,sharkl5-dpu",
+	  .data = &sharkl5_dpu },
 	{ .compatible = "sprd,sharkl5pro-dpu",
 	  .data = &sharkl5pro_dpu },
+	{ .compatible = "sprd,qogirl6-dpu",
+	  .data = &qogirl6_dpu },
+	{ .compatible = "sprd,qogirn6pro-dpu",
+	  .data = &qogirn6pro_dpu },
+	{ /* sentinel */ },
 };
 
 static int sprd_dpu_probe(struct platform_device *pdev)
@@ -607,7 +681,9 @@ static int sprd_dpu_probe(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, dpu);
 
-	printk("sprd_dpu_probe\n");
+	pm_runtime_set_active(&pdev->dev);
+	pm_runtime_get_noresume(&pdev->dev);
+	pm_runtime_enable(&pdev->dev);
 
 	return component_add(&pdev->dev, &dpu_component_ops);
 }

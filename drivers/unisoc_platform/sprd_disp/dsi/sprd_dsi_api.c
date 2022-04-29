@@ -166,7 +166,7 @@ void sprd_dsi_init(struct sprd_dsi *dsi)
 {
 	int div;
 	struct dsi_context *ctx = &dsi->ctx;
-	u16 max_rd_time;
+	u64 max_rd_time;
 	u16 data_hs2lp, data_lp2hs, clk_hs2lp, clk_lp2hs;
 
 	dsi_hal_power_en(dsi, 0);
@@ -185,7 +185,8 @@ void sprd_dsi_init(struct sprd_dsi *dsi)
 	dsi_hal_tx_escape_division(dsi, div);
 	pr_info("escape clock divider = %d\n", div);
 
-	max_rd_time = ns_to_cycle(ctx->max_rd_time, ctx->byte_clk);
+	max_rd_time = ctx->max_rd_time * ctx->byte_clk;
+	do_div(max_rd_time, 1000000);
 	dsi_hal_max_read_time(dsi, max_rd_time);
 
 	data_hs2lp = ns_to_cycle(ctx->data_hs2lp, ctx->byte_clk);
@@ -211,6 +212,32 @@ void sprd_dsi_fini(struct sprd_dsi *dsi)
 	dsi_hal_int0_mask(dsi, 0xffffffff);
 	dsi_hal_int1_mask(dsi, 0xffffffff);
 	dsi_hal_power_en(dsi, 0);
+}
+
+int sprd_dsi_vrr_timing(struct sprd_dsi *dsi)
+{
+	u16 Bpp_x100;
+	u32 ratio_x1000;
+	u16 hline;
+	u8 coding;
+	struct dsi_context *ctx = &dsi->ctx;
+	struct videomode *vm = &dsi->ctx.vm;
+
+	coding = fmt_to_coding(ctx->format);
+	Bpp_x100 = calc_bytes_per_pixel_x100(coding);
+	ratio_x1000 = ctx->byte_clk * 1000 / (vm->pixelclock / 1000);
+	hline = vm->hactive + vm->hsync_len + vm->hfront_porch +
+		vm->hback_porch;
+	dsi_hal_dpi_sig_delay(dsi, 95 * hline * ratio_x1000 / 100000);
+	dsi_hal_dpi_hline_time(dsi, hline * ratio_x1000 / 1000);
+	dsi_hal_dpi_hsync_time(dsi, vm->hsync_len * ratio_x1000 / 1000);
+	dsi_hal_dpi_hbp_time(dsi, vm->hback_porch * ratio_x1000 / 1000);
+	dsi_hal_dpi_vact(dsi, vm->vactive);
+	dsi_hal_dpi_vfp(dsi, vm->vfront_porch);
+	dsi_hal_dpi_vbp(dsi, vm->vback_porch);
+	dsi_hal_dpi_vsync(dsi, vm->vsync_len);
+
+	return 0;
 }
 
 /*

@@ -141,6 +141,53 @@ static ssize_t bg_color_store(struct device *dev,
 }
 static DEVICE_ATTR_RW(bg_color);
 
+static ssize_t max_vsync_count_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	struct sprd_dpu *dpu = dev_get_drvdata(dev);
+	struct dpu_context *ctx = &dpu->ctx;
+	int ret;
+
+	if (!dpu->ctx.enabled) {
+		pr_err("dpu is not initialized\n");
+		up(&dpu->ctx.lock);
+		return -EINVAL;
+	}
+
+	ret = snprintf(buf, PAGE_SIZE, "%x\n", ctx->max_vsync_count);
+
+	return ret;
+}
+
+static ssize_t max_vsync_count_store(struct device *dev,
+			struct device_attribute *attr,
+			const char *buf, size_t count)
+{
+	struct sprd_dpu *dpu = dev_get_drvdata(dev);
+	struct dpu_context *ctx = &dpu->ctx;
+	int ret, max_vsync_count;
+
+
+	pr_info("[drm] %s()\n", __func__);
+
+	if (!dpu->ctx.enabled) {
+		pr_err("dpu is not initialized\n");
+		up(&dpu->ctx.lock);
+		return -EINVAL;
+	}
+
+	ret = kstrtou32(buf, 16, &max_vsync_count);
+	if (ret) {
+		pr_err("Invalid input\n");
+		return -EINVAL;
+	}
+
+	ctx->max_vsync_count = max_vsync_count;
+
+	return count;
+}
+static DEVICE_ATTR_RW(max_vsync_count);
+
 static ssize_t disable_flip_show(struct device *dev,
 	struct device_attribute *attr, char *buf)
 {
@@ -206,6 +253,36 @@ static ssize_t cabc_hist_read(struct file *fp, struct kobject *kobj,
 	return count;
 }
 static BIN_ATTR_RO(cabc_hist, 128);
+
+static ssize_t cabc_hist_v2_read(struct file *fp, struct kobject *kobj,
+			struct bin_attribute *attr, char *buf,
+			loff_t off, size_t count)
+{
+	struct device *dev = container_of(kobj, struct device, kobj);
+	struct sprd_dpu *dpu = dev_get_drvdata(dev);
+	struct dpu_context *ctx = &dpu->ctx;
+
+	if (!dpu->core->enhance_get)
+		return -EIO;
+
+	if (off >= attr->size)
+		return 0;
+
+	if (off + count > attr->size)
+		count = attr->size - off;
+
+	down(&ctx->cabc_lock);
+	if (!ctx->enabled) {
+		pr_err("dpu is not initialized\n");
+		up(&ctx->cabc_lock);
+		return -EINVAL;
+	}
+	dpu->core->enhance_get(ctx, ENHANCE_CFG_ID_CABC_HIST_V2, buf);
+	up(&ctx->cabc_lock);
+
+	return count;
+}
+static BIN_ATTR_RO(cabc_hist_v2, 256);
 
 static ssize_t cabc_cur_bl_read(struct file *fp, struct kobject *kobj,
 			struct bin_attribute *attr, char *buf,
@@ -529,6 +606,45 @@ static ssize_t dpu_version_show(struct device *dev,
 }
 static DEVICE_ATTR_RO(dpu_version);
 
+#ifdef CONFIG_DRM_SPRD_WB_DEBUG
+static ssize_t wb_debug_store(struct device *dev,
+			struct device_attribute *attr,
+			const char *buf, size_t count)
+{
+	struct sprd_dpu *dpu = dev_get_drvdata(dev);
+	struct dpu_context *ctx = &dpu->ctx;
+	void *vaddr = NULL;
+	char filename[128];
+	struct timespec64 ts;
+	struct rtc_time tm;
+
+	if (!dpu->ctx.enabled) {
+		pr_err("dpu is not initialized\n");
+		return -EINVAL;
+	}
+
+	if (dpu->core && dpu->core->write_back) {
+		dpu->core->write_back(ctx, 1, true);
+		vaddr = __va(ctx->wb_addr_p);
+	} else
+		return -ENXIO;
+
+	/* FIXME: wait for writeback done isr */
+	mdelay(50);
+
+	ktime_get_real_ts64(&ts);
+	rtc_time64_to_tm(ts.tv_sec, &tm);
+	sprintf(filename, "/data/dump/wb_%d-%d-%dT%d%d%d.bmp",
+			tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour,
+			tm.tm_min, tm.tm_sec);
+
+	dump_bmp32(vaddr, ctx->vm.hactive, ctx->vm.vactive, true, filename);
+
+	return count;
+}
+static DEVICE_ATTR_WO(wb_debug);
+#endif
+
 static ssize_t irq_register_store(struct device *dev,
 		struct device_attribute *attr, const char *buf, size_t count)
 {
@@ -632,6 +748,10 @@ static struct attribute *dpu_attrs[] = {
 	&dev_attr_regs_offset.attr,
 	&dev_attr_wr_regs.attr,
 	&dev_attr_dpu_version.attr,
+	&dev_attr_max_vsync_count.attr,
+#ifdef CONFIG_DRM_SPRD_WB_DEBUG
+	&dev_attr_wb_debug.attr,
+#endif
 	&dev_attr_irq_register.attr,
 	&dev_attr_irq_unregister.attr,
 	&dev_attr_frame_count.attr,
@@ -692,6 +812,29 @@ static ssize_t ltm_write(struct file *fp, struct kobject *kobj,
 	return count;
 }
 static BIN_ATTR_RW(ltm, 48);
+
+static ssize_t ltm_video_write(struct file *fp, struct kobject *kobj,
+			struct bin_attribute *attr, char *buf,
+			loff_t off, size_t count)
+{
+	struct device *dev = container_of(kobj, struct device, kobj);
+	struct sprd_dpu *dpu = dev_get_drvdata(dev);
+	struct dpu_context *ctx = &dpu->ctx;
+
+	if (!dpu->core->enhance_set)
+		return -EIO;
+
+	/* I need to get my data in one piece */
+	if (off != 0)
+		return -EINVAL;
+
+	down(&ctx->cabc_lock);
+	dpu->core->enhance_set(ctx, ENHANCE_CFG_ID_LTM, buf);
+	up(&ctx->cabc_lock);
+
+	return count;
+}
+static BIN_ATTR_WO(ltm_video, 48);
 
 static ssize_t gamma_read(struct file *fp, struct kobject *kobj,
 			struct bin_attribute *attr, char *buf,
@@ -828,6 +971,29 @@ static ssize_t slp_write(struct file *fp, struct kobject *kobj,
 }
 static BIN_ATTR_RW(slp, 48);
 
+static ssize_t slp_video_write(struct file *fp, struct kobject *kobj,
+			struct bin_attribute *attr, char *buf,
+			loff_t off, size_t count)
+{
+	struct device *dev = container_of(kobj, struct device, kobj);
+	struct sprd_dpu *dpu = dev_get_drvdata(dev);
+	struct dpu_context *ctx = &dpu->ctx;
+
+	if (!dpu->core->enhance_set)
+		return -EIO;
+
+	/* I need to get my data in one piece */
+	if (off != 0)
+		return -EINVAL;
+
+	down(&ctx->cabc_lock);
+	dpu->core->enhance_set(ctx, ENHANCE_CFG_ID_SLP, buf);
+	up(&ctx->cabc_lock);
+
+	return count;
+}
+static BIN_ATTR_WO(slp_video, 48);
+
 static ssize_t cm_read(struct file *fp, struct kobject *kobj,
 			struct bin_attribute *attr, char *buf,
 			loff_t off, size_t count)
@@ -932,9 +1098,38 @@ static ssize_t epf_write(struct file *fp, struct kobject *kobj,
 }
 static BIN_ATTR_RW(epf, 14);
 
-static ssize_t sr_epf_write(struct file *fp, struct kobject *kobj,
-			struct bin_attribute *attr, char *buf,
-			loff_t off, size_t count)
+static ssize_t ud_read(struct file *fp, struct kobject *kobj,
+		struct bin_attribute *attr, char *buf,
+		loff_t off, size_t count)
+{
+	struct device *dev = container_of(kobj, struct device, kobj);
+	struct sprd_dpu *dpu = dev_get_drvdata(dev);
+	struct dpu_context *ctx = &dpu->ctx;
+
+	if (!dpu->core->enhance_get)
+		return -EIO;
+
+	if (off >= attr->size)
+		return 0;
+
+	if (off + count > attr->size)
+		count = attr->size - off;
+
+	down(&ctx->lock);
+	if (!ctx->enabled) {
+		pr_err("dpu is not initialized\n");
+		up(&ctx->lock);
+		return -EINVAL;
+	}
+	dpu->core->enhance_get(ctx, ENHANCE_CFG_ID_UD, buf);
+	up(&ctx->lock);
+
+	return count;
+}
+
+static ssize_t ud_write(struct file *fp, struct kobject *kobj,
+		struct bin_attribute *attr, char *buf,
+		loff_t off, size_t count)
 {
 	struct device *dev = container_of(kobj, struct device, kobj);
 	struct sprd_dpu *dpu = dev_get_drvdata(dev);
@@ -948,12 +1143,12 @@ static ssize_t sr_epf_write(struct file *fp, struct kobject *kobj,
 		return -EINVAL;
 
 	down(&ctx->lock);
-	dpu->core->enhance_set(ctx, ENHANCE_CFG_ID_SR_EPF, buf);
+	dpu->core->enhance_set(ctx, ENHANCE_CFG_ID_UD, buf);
 	up(&ctx->lock);
 
 	return count;
 }
-static BIN_ATTR_WO(sr_epf, 14);
+static BIN_ATTR_RW(ud, 12);
 
 static ssize_t hsv_read(struct file *fp, struct kobject *kobj,
 			struct bin_attribute *attr, char *buf,
@@ -1105,6 +1300,34 @@ static ssize_t lut3d_write(struct file *fp, struct kobject *kobj,
 }
 static BIN_ATTR_RW(lut3d, 2916);
 
+static ssize_t enable_read(struct file *fp, struct kobject *kobj,
+			struct bin_attribute *attr, char *buf,
+			loff_t off, size_t count)
+{
+	struct device *dev = container_of(kobj, struct device, kobj);
+	struct sprd_dpu *dpu = dev_get_drvdata(dev);
+	struct dpu_context *ctx = &dpu->ctx;
+
+	if (!dpu->core->enhance_get)
+		return -EIO;
+
+	/* I need to get my data in one piece */
+	if (off != 0 || count != attr->size)
+		return -EINVAL;
+
+	down(&ctx->lock);
+	if (!ctx->enabled) {
+		pr_err("dpu is not initialized\n");
+		up(&ctx->lock);
+		return -EINVAL;
+	}
+	dpu->core->enhance_get(ctx, ENHANCE_CFG_ID_ENABLE, buf);
+
+	up(&ctx->lock);
+
+	return count;
+}
+
 static ssize_t enable_write(struct file *fp, struct kobject *kobj,
 			struct bin_attribute *attr, char *buf,
 			loff_t off, size_t count)
@@ -1126,7 +1349,7 @@ static ssize_t enable_write(struct file *fp, struct kobject *kobj,
 
 	return count;
 }
-static BIN_ATTR_WO(enable, 4);
+static BIN_ATTR_RW(enable, 4);
 
 static ssize_t disable_write(struct file *fp, struct kobject *kobj,
 			struct bin_attribute *attr, char *buf,
@@ -1151,17 +1374,20 @@ static ssize_t disable_write(struct file *fp, struct kobject *kobj,
 }
 static BIN_ATTR_WO(disable, 4);
 
-static ssize_t status_show(struct device *dev,
-			struct device_attribute *attr,
-			char *buf)
+static ssize_t luts_print_write(struct file *fp, struct kobject *kobj,
+		struct bin_attribute *attr, char *buf,
+		loff_t off, size_t count)
 {
+	struct device *dev = container_of(kobj, struct device, kobj);
 	struct sprd_dpu *dpu = dev_get_drvdata(dev);
 	struct dpu_context *ctx = &dpu->ctx;
-	u32 en = 0;
-	int ret = 0;
 
 	if (!dpu->core->enhance_get)
 		return -EIO;
+
+	/* I need to get my data in one piece */
+	if (off != 0 || count != attr->size)
+		return -EINVAL;
 
 	down(&ctx->lock);
 	if (!ctx->enabled) {
@@ -1169,46 +1395,70 @@ static ssize_t status_show(struct device *dev,
 		up(&ctx->lock);
 		return -EINVAL;
 	}
-	dpu->core->enhance_get(ctx, ENHANCE_CFG_ID_ENABLE, &en);
+
+	dpu->core->enhance_get(ctx, ENHANCE_CFG_ID_UPDATE_LUTS, buf);
 	up(&ctx->lock);
 
-	ret += snprintf(buf + ret, PAGE_SIZE, "0x%08x\n", en);
-	ret += snprintf(buf + ret, PAGE_SIZE, "scl: %d\n", !!(en & BIT(0)));
-	ret += snprintf(buf + ret, PAGE_SIZE, "epf: %d\n", !!(en & BIT(1)));
-	ret += snprintf(buf + ret, PAGE_SIZE, "hsv: %d\n", !!(en & BIT(2)));
-	ret += snprintf(buf + ret, PAGE_SIZE, "cm: %d\n", !!(en & BIT(3)));
-	ret += snprintf(buf + ret, PAGE_SIZE, "slp: %d\n", !!(en & BIT(4)));
-	ret += snprintf(buf + ret, PAGE_SIZE, "gamma: %d\n", !!(en & BIT(5)));
-
-	return ret;
+	return count;
 }
-static DEVICE_ATTR_RO(status);
+static BIN_ATTR_WO(luts_print, 4);
+
+static ssize_t update_luts_write(struct file *fp, struct kobject *kobj,
+			struct bin_attribute *attr, char *buf,
+			loff_t off, size_t count)
+{
+	struct device *dev = container_of(kobj, struct device, kobj);
+	struct sprd_dpu *dpu = dev_get_drvdata(dev);
+	struct dpu_context *ctx = &dpu->ctx;
+
+	if (!dpu->core->enhance_set)
+		return -EIO;
+
+	/* I need to get my data in one piece
+	 * count: header + payload, header 4 bytes:
+	 * header:type + index , type: enhance_type,
+	 * index: the choosed luts table
+	 */
+	if (off != 0 && (count == 2052 || count == 4 || count == 10))
+		return -EINVAL;
+
+	down(&ctx->lock);
+	dpu->core->enhance_set(ctx, ENHANCE_CFG_ID_UPDATE_LUTS, buf);
+	up(&ctx->lock);
+
+	return count;
+}
+static BIN_ATTR_WO(update_luts, 2052);
 
 static struct attribute *pq_ascii_attrs[] = {
 	&dev_attr_scl.attr,
-	&dev_attr_status.attr,
 	&dev_attr_slp_lut.attr,
 	NULL,
 };
 static struct bin_attribute *pq_bin_attrs[] = {
 	&bin_attr_ltm,
+	&bin_attr_ltm_video,
 	&bin_attr_gamma,
 	&bin_attr_slp,
+	&bin_attr_slp_video,
 	&bin_attr_cm,
 	&bin_attr_hsv,
 	&bin_attr_epf,
 	&bin_attr_cabc_mode,
 	&bin_attr_cabc_hist,
+	&bin_attr_cabc_hist_v2,
 	&bin_attr_cabc_param,
 	&bin_attr_vsync_count,
 	&bin_attr_frame_no,
 	&bin_attr_cabc_run,
 	&bin_attr_cabc_cur_bl,
 	&bin_attr_cabc_state,
-	&bin_attr_sr_epf,
 	&bin_attr_lut3d,
 	&bin_attr_enable,
 	&bin_attr_disable,
+	&bin_attr_ud,
+	&bin_attr_luts_print,
+	&bin_attr_update_luts,
 	NULL,
 };
 static const struct attribute_group pq_group = {

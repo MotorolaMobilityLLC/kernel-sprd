@@ -55,7 +55,7 @@ struct sprd_plane {
 	u32 index;
 };
 
-struct sprd_plane *sprd_plane_init(struct drm_device *dev,
+struct sprd_plane *sprd_plane_init(struct drm_device *drm,
 					struct sprd_crtc_capability *cap);
 
 #endif /* _SPRD_PLANE_H_ */

@@ -9,10 +9,12 @@
 #include <linux/of_device.h>
 #include <linux/of_irq.h>
 #include <linux/of_graph.h>
+#include <linux/pm_runtime.h>
 #include <video/mipi_display.h>
 
 #include <drm/drm_atomic_helper.h>
 #include <drm/drm_crtc_helper.h>
+#include <drm/drm_mode.h>
 #include <drm/drm_of.h>
 #include <drm/drm_probe_helper.h>
 
@@ -20,6 +22,7 @@
 #include "sprd_crtc.h"
 #include "sprd_dpu.h"
 #include "sprd_dsi.h"
+#include "sprd_dsi_panel.h"
 #include "dsi/sprd_dsi_api.h"
 #include "dphy/sprd_dphy_api.h"
 #include "sysfs/sysfs_display.h"
@@ -58,27 +61,84 @@ static void sprd_dsi_disable(struct sprd_dsi *dsi)
 		dsi->glb->power(&dsi->ctx, false);
 }
 
+int dsi_panel_set_dpms_mode(struct sprd_dsi *dsi)
+{
+	mutex_lock(&dsi->lock);
+
+	/*
+	 * FIXME:
+	 * Doze Suspend -> OFF, dsi has suspended
+	 */
+	if ((dsi->ctx.dpms == DRM_MODE_DPMS_OFF) &&
+		(dsi->ctx.last_dpms == DRM_MODE_DPMS_SUSPEND)) {
+		DRM_INFO("%s(panel off)\n", __func__);
+		drm_panel_unprepare(dsi->panel);
+		dsi->ctx.last_dpms = dsi->ctx.dpms;
+		mutex_unlock(&dsi->lock);
+		return 0;
+	}
+
+	if (!dsi->ctx.enabled) {
+		mutex_unlock(&dsi->lock);
+		DRM_INFO("dsi is not inited,just skip\n");
+		return 0;
+	}
+
+	if ((dsi->ctx.dpms == DRM_MODE_DPMS_STANDBY) &&
+		(dsi->ctx.last_dpms == DRM_MODE_DPMS_ON)) {
+		sprd_panel_enter_doze(dsi->panel);
+		DRM_INFO("%s(panel enter doze)\n", __func__);
+		dsi->ctx.last_dpms = dsi->ctx.dpms;
+	} else if ((dsi->ctx.dpms == DRM_MODE_DPMS_ON) &&
+		(dsi->ctx.last_dpms == DRM_MODE_DPMS_STANDBY)) {
+		sprd_panel_exit_doze(dsi->panel);
+		DRM_INFO("%s(panel exit doze)\n", __func__);
+		dsi->ctx.last_dpms = dsi->ctx.dpms;
+	} else {
+		DRM_INFO("%s(just skip it)\n", __func__);
+	}
+	mutex_unlock(&dsi->lock);
+
+	return 0;
+}
+
 static void sprd_dsi_encoder_enable(struct drm_encoder *encoder)
 {
 	struct sprd_dsi *dsi = encoder_to_dsi(encoder);
 	struct sprd_crtc *crtc = to_sprd_crtc(encoder->crtc);
+	struct sprd_dpu *dpu = crtc->priv;
 
-	DRM_INFO("%s()\n", __func__);
+	DRM_INFO("%s(last_dpms=%d, dpms=%d)\n",
+			__func__, dsi->ctx.last_dpms, dsi->ctx.dpms);
 
+	mutex_lock(&dsi->lock);
 	/* add if condition to avoid resume dsi for SR feature.
 	 * if esd recovery happened during display suspend, skip dsi resume.
 	 */
 	if (!encoder->crtc || !encoder->crtc->state->active ||
 	    (encoder->crtc->state->mode_changed &&
 	     !encoder->crtc->state->active_changed)) {
+		/* set dsi context esd reset status to
+		 * false for div6 esd recovery workaround
+		 * when exit this function.
+		 */
+		if (!strcmp(dpu->ctx.version, "dpu-r6p0")) {
+			if (dsi->ctx.is_esd_rst)
+				dsi->ctx.is_esd_rst = false;
+		}
 		DRM_INFO("skip dsi resume\n");
+		mutex_unlock(&dsi->lock);
 		return;
 	}
 
 	if (dsi->ctx.enabled) {
 		DRM_INFO("dsi is initialized\n");
+		mutex_unlock(&dsi->lock);
 		return;
 	}
+
+	if (!strcmp(dpu->ctx.version, "dpu-r6p0"))
+		pm_runtime_get_sync(dsi->dev.parent);
 
 	sprd_dsi_enable(dsi);
 	sprd_dphy_enable(dsi->phy);
@@ -86,8 +146,21 @@ static void sprd_dsi_encoder_enable(struct drm_encoder *encoder)
 	sprd_dsi_lp_cmd_enable(dsi, true);
 
 	if (dsi->panel) {
-		drm_panel_prepare(dsi->panel);
-		drm_panel_enable(dsi->panel);
+		if ((dsi->ctx.last_dpms == DRM_MODE_DPMS_SUSPEND) &&
+		    (dsi->ctx.dpms == DRM_MODE_DPMS_ON)) {
+			sprd_panel_exit_doze(dsi->panel);
+			DRM_INFO("%s(panel exit doze)\n", __func__);
+		} else if ((dsi->ctx.last_dpms == DRM_MODE_DPMS_SUSPEND) &&
+			   (dsi->ctx.dpms == DRM_MODE_DPMS_STANDBY)) {
+			DRM_INFO("%s(keep panel doze)\n", __func__);
+		} else {
+			drm_panel_prepare(dsi->panel);
+			drm_panel_enable(dsi->panel);
+			if (dsi->ctx.dpms == DRM_MODE_DPMS_STANDBY) {
+				DRM_INFO("%s(panel enter doze)\n", __func__);
+				sprd_panel_enter_doze(dsi->panel);
+			}
+		}
 	}
 
 	sprd_dsi_set_work_mode(dsi, dsi->ctx.work_mode);
@@ -102,29 +175,113 @@ static void sprd_dsi_encoder_enable(struct drm_encoder *encoder)
 	else
 		sprd_dphy_hs_clk_en(dsi->phy, true);
 
-	sprd_dpu_run(crtc->priv);
+	/* workaround:
+	 * dpu r6p0 need resume after dsi resume on div6 scences
+	 * for dsi core and dpi clk depends on dphy clk. And esd
+	 * recovery do not resume dpu, so need switch dpi clk to
+	 * div6 source when dpu enable div6 function.
+	 */
+	if (!strcmp(dpu->ctx.version, "dpu-r6p0")) {
+		if (!dsi->ctx.is_esd_rst) {
+			sprd_dpu_resume(dpu);
+		} else {
+			if (dsi->ctx.dpi_clk_div)
+				dpu_r6p0_enable_div6_clk(&dpu->ctx);
+			dsi->ctx.is_esd_rst = false;
+		}
+	}
+	/*
+	 * FIXME:
+	 * When last dpms is doze_suspend,cmd mode panel remain on in a low power state and continue displaying
+	 * its current contents indefinitely. If call sprd_dpu_run, background color will appear
+	 * that will cause panel flickering. So we should call sprd_dpu_run when flip in edpi mode.
+	 */
+	if (dsi->ctx.last_dpms != DRM_MODE_DPMS_SUSPEND)
+		sprd_dpu_run(crtc->priv);
 
 	dsi->ctx.enabled = true;
+	dsi->ctx.last_dpms = dsi->ctx.dpms;
+
+	mutex_unlock(&dsi->lock);
 }
 
 static void sprd_dsi_encoder_disable(struct drm_encoder *encoder)
 {
 	struct sprd_dsi *dsi = encoder_to_dsi(encoder);
 	struct sprd_crtc *crtc = to_sprd_crtc(encoder->crtc);
+	struct sprd_dpu *dpu = crtc->priv;
+	struct sprd_panel *panel = container_of(dsi->panel, struct sprd_panel, base);
 
-	DRM_INFO("%s()\n", __func__);
+	DRM_INFO("%s(last_dpms=%d, dpms=%d)\n",
+			__func__, dsi->ctx.last_dpms, dsi->ctx.dpms);
 
+	mutex_lock(&dsi->lock);
 	/* add if condition to avoid suspend dsi for SR feature */
 	if (encoder->crtc->state->mode_changed &&
-	    !encoder->crtc->state->active_changed)
-		return;
+	    !encoder->crtc->state->active_changed) {
+			mutex_unlock(&dsi->lock);
+			return;
+	}
 
 	if (!dsi->ctx.enabled) {
 		DRM_INFO("dsi isn't initialized\n");
+		mutex_unlock(&dsi->lock);
 		return;
 	}
 
-	sprd_dpu_stop(crtc->priv);
+	sprd_dpu_stop(dpu);
+	if (dsi->ctx.dpi_clk_div) {
+		if (!strcmp(dpu->ctx.version, "dpu-r6p0")) {
+			dsi->ctx.clk_dpi_384m = true;
+			dsi->glb->disable(&dsi->ctx);
+		}
+	}
+	sprd_dsi_set_work_mode(dsi, DSI_MODE_CMD);
+	sprd_dsi_lp_cmd_enable(dsi, true);
+
+	if (dsi->panel) {
+		if ((dsi->ctx.dpms == DRM_MODE_DPMS_SUSPEND) &&
+		    ((dsi->ctx.last_dpms == DRM_MODE_DPMS_STANDBY)
+		     || (dsi->ctx.last_dpms == DRM_MODE_DPMS_ON))) {
+			sprd_panel_enter_doze(dsi->panel);
+			DRM_INFO("%s(panel enter doze)\n", __func__);
+		} else {
+			drm_panel_disable(dsi->panel);
+			if (dsi->phy->ctx.ulps_enable)
+				sprd_dphy_ulps_enter(dsi->phy);
+			drm_panel_unprepare(dsi->panel);
+		}
+	}
+
+	/* workaround:
+	 * dpu r6p0 need resume after dsi resume on div6 scences
+	 * for dsi core and dpi clk depends on dphy clk. And esd
+	 * recovery do not resume dpu, so dpu need get panel esd
+	 * reset status to enabe global registers or not.
+	 */
+	if (!strcmp(dpu->ctx.version, "dpu-r6p0")) {
+		if (panel->is_esd_rst)
+			dsi->ctx.is_esd_rst = true;
+	}
+
+	sprd_dphy_disable(dsi->phy);
+	sprd_dsi_disable(dsi);
+
+	if (!strcmp(dpu->ctx.version, "dpu-r6p0"))
+		pm_runtime_put(dsi->dev.parent);
+
+	dsi->ctx.enabled = false;
+	dsi->ctx.last_dpms = dsi->ctx.dpms;
+
+	mutex_unlock(&dsi->lock);
+}
+
+void sprd_dsi_encoder_disable_force(struct drm_encoder *encoder)
+{
+	struct sprd_dsi *dsi = encoder_to_dsi(encoder);
+
+	DRM_INFO("%s()\n", __func__);
+
 	sprd_dsi_set_work_mode(dsi, DSI_MODE_CMD);
 	sprd_dsi_lp_cmd_enable(dsi, true);
 
@@ -136,8 +293,6 @@ static void sprd_dsi_encoder_disable(struct drm_encoder *encoder)
 
 	sprd_dphy_disable(dsi->phy);
 	sprd_dsi_disable(dsi);
-
-	dsi->ctx.enabled = false;
 }
 
 static void sprd_dsi_encoder_mode_set(struct drm_encoder *encoder,
@@ -287,6 +442,8 @@ static int sprd_dsi_host_attach(struct mipi_dsi_host *host,
 
 	lcd_node = dsi->panel->dev->of_node;
 
+	ctx->lcd_name = lcd_node->name;
+
 	if (!of_property_read_u32(lcd_node, "sprd,video-lp-cmd-enable", &val))
 		ctx->video_lp_cmd_en = val;
 	else
@@ -299,6 +456,11 @@ static int sprd_dsi_host_attach(struct mipi_dsi_host *host,
 
 	if (!of_property_read_u32(lcd_node, "sprd,dpi-clk-div", &val))
 		ctx->dpi_clk_div = val;
+
+	if (!of_property_read_u32(lcd_node, "sprd,phy-aod-mode", &val))
+		dsi->phy->ctx.aod_mode = val;
+	else
+		dsi->phy->ctx.aod_mode = 0;
 
 	return 0;
 }
@@ -658,7 +820,7 @@ static int sprd_dsi_context_init(struct sprd_dsi *dsi, struct device_node *np)
 	if (!of_property_read_u32(np, "sprd,max-read-time", &tmp))
 		ctx->max_rd_time = tmp;
 	else
-		ctx->max_rd_time = 6000;
+		ctx->max_rd_time = 0x8000;
 
 	if (!of_property_read_u32(np, "sprd,int0_mask", &tmp))
 		ctx->int0_mask = tmp;
@@ -675,15 +837,56 @@ static int sprd_dsi_context_init(struct sprd_dsi *dsi, struct device_node *np)
 	return 0;
 }
 
+static const struct sprd_dsi_ops sharkle_dsi = {
+	.core = &dsi_ctrl_r1p0_ops,
+	.glb = &sharkle_dsi_glb_ops,
+};
+
+static const struct sprd_dsi_ops pike2_dsi = {
+	.core = &dsi_ctrl_r1p0_ops,
+	.glb = &pike2_dsi_glb_ops,
+};
+
+static const struct sprd_dsi_ops sharkl3_dsi = {
+	.core = &dsi_ctrl_r1p0_ops,
+	.glb = &sharkl3_dsi_glb_ops,
+};
+
+static const struct sprd_dsi_ops sharkl5_dsi = {
+	.core = &dsi_ctrl_r1p0_ops,
+	.glb = &sharkl5_dsi_glb_ops,
+};
+
 static const struct sprd_dsi_ops sharkl5pro_dsi = {
 	.core = &dsi_ctrl_r1p0_ops,
 	.glb = &sharkl5pro_dsi_glb_ops,
 };
 
+static const struct sprd_dsi_ops qogirl6_dsi = {
+	.core = &dsi_ctrl_r1p0_ops,
+	.glb = &qogirl6_dsi_glb_ops,
+};
+
+static const struct sprd_dsi_ops qogirn6pro_dsi = {
+	.core = &dsi_ctrl_r1p0_ops,
+	.glb = &qogirn6pro_dsi_glb_ops
+};
 
 static const struct of_device_id dsi_match_table[] = {
+	{ .compatible = "sprd,sharkle-dsi-host",
+	  .data = &sharkle_dsi },
+	{ .compatible = "sprd,pike2-dsi-host",
+	  .data = &pike2_dsi },
+	{ .compatible = "sprd,sharkl3-dsi-host",
+	  .data = &sharkl3_dsi },
+	{ .compatible = "sprd,sharkl5-dsi-host",
+	  .data = &sharkl5_dsi },
 	{ .compatible = "sprd,sharkl5pro-dsi-host",
 	  .data = &sharkl5pro_dsi },
+	{ .compatible = "sprd,qogirl6-dsi-host",
+	  .data = &qogirl6_dsi },
+	{ .compatible = "sprd,qogirn6pro-dsi-host",
+	  .data = &qogirn6pro_dsi },
 	{ /* sentinel */ },
 };
 
@@ -726,6 +929,12 @@ static int sprd_dsi_probe(struct platform_device *pdev)
 	ret = sprd_dsi_host_init(&pdev->dev, dsi);
 	if (ret)
 		return ret;
+
+	mutex_init(&dsi->lock);
+
+	pm_runtime_set_active(&pdev->dev);
+	pm_runtime_get_noresume(&pdev->dev);
+	pm_runtime_enable(&pdev->dev);
 
 	return component_add(&pdev->dev, &dsi_component_ops);
 }

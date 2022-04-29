@@ -131,7 +131,7 @@ static int sprd_dphy_device_create(struct sprd_dphy *dphy,
 {
 	int ret;
 
-	//dphy->dev.class = display_class;
+	dphy->dev.class = display_class;
 	dphy->dev.parent = parent;
 	dphy->dev.of_node = parent->of_node;
 	dev_set_name(&dphy->dev, "dphy0");
@@ -181,29 +181,29 @@ static int sprd_dphy_context_init(struct sprd_dphy *dphy,
 }
 
 
-// static const struct sprd_dphy_ops sharkle_dphy = {
-// 	.ppi = &dsi_ctrl_ppi_ops,
-// 	.pll = &sharkle_dphy_pll_ops,
-// 	.glb = &sharkle_dphy_glb_ops,
-// };
+static const struct sprd_dphy_ops sharkle_dphy = {
+	.ppi = &dsi_ctrl_ppi_ops,
+	.pll = &sharkle_dphy_pll_ops,
+	.glb = &sharkle_dphy_glb_ops,
+};
 
-// static const struct sprd_dphy_ops pike2_dphy = {
-// 	.ppi = &dsi_ctrl_ppi_ops,
-// 	.pll = &sharkle_dphy_pll_ops,
-// 	.glb = &pike2_dphy_glb_ops,
-// };
+static const struct sprd_dphy_ops pike2_dphy = {
+	.ppi = &dsi_ctrl_ppi_ops,
+	.pll = &sharkle_dphy_pll_ops,
+	.glb = &pike2_dphy_glb_ops,
+};
 
-// static const struct sprd_dphy_ops sharkl3_dphy = {
-// 	.ppi = &dsi_ctrl_ppi_ops,
-// 	.pll = &sharkle_dphy_pll_ops,
-// 	.glb = &sharkl3_dphy_glb_ops,
-// };
+static const struct sprd_dphy_ops sharkl3_dphy = {
+	.ppi = &dsi_ctrl_ppi_ops,
+	.pll = &sharkle_dphy_pll_ops,
+	.glb = &sharkl3_dphy_glb_ops,
+};
 
-// static const struct sprd_dphy_ops sharkl5_dphy = {
-// 	.ppi = &dsi_ctrl_ppi_ops,
-// 	.pll = &sharkl5_dphy_pll_ops,
-// 	.glb = &sharkl5_dphy_glb_ops,
-// };
+static const struct sprd_dphy_ops sharkl5_dphy = {
+	.ppi = &dsi_ctrl_ppi_ops,
+	.pll = &sharkl5_dphy_pll_ops,
+	.glb = &sharkl5_dphy_glb_ops,
+};
 
 static const struct sprd_dphy_ops sharkl5pro_dphy = {
 	.ppi = &dsi_ctrl_ppi_ops,
@@ -211,33 +211,33 @@ static const struct sprd_dphy_ops sharkl5pro_dphy = {
 	.glb = &sharkl5pro_dphy_glb_ops,
 };
 
-// static const struct sprd_dphy_ops qogirl6_dphy = {
-// 	.ppi = &dsi_ctrl_ppi_ops,
-// 	.pll = &sharkl5_dphy_pll_ops,
-// 	.glb = &qogirl6_dphy_glb_ops,
-// };
+static const struct sprd_dphy_ops qogirl6_dphy = {
+	.ppi = &dsi_ctrl_ppi_ops,
+	.pll = &sharkl5_dphy_pll_ops,
+	.glb = &qogirl6_dphy_glb_ops,
+};
 
-// static const struct sprd_dphy_ops qogirn6pro_dphy = {
-// 	.ppi = &dsi_ctrl_ppi_ops,
-// 	.pll = &sharkl5_dphy_pll_ops,
-// 	.glb = &qogirn6pro_dphy_glb_ops,
-// };
+static const struct sprd_dphy_ops qogirn6pro_dphy = {
+	.ppi = &dsi_ctrl_ppi_ops,
+	.pll = &sharkl5_dphy_pll_ops,
+	.glb = &qogirn6pro_dphy_glb_ops,
+};
 
 static const struct of_device_id dphy_match_table[] = {
-	// { .compatible = "sprd,sharkle-dsi-phy",
-	//   .data = &sharkle_dphy },
-	// { .compatible = "sprd,pike2-dsi-phy",
-	//   .data = &pike2_dphy },
-	// { .compatible = "sprd,sharkl3-dsi-phy",
-	//   .data = &sharkl3_dphy },
-	// { .compatible = "sprd,sharkl5-dsi-phy",
-	//   .data = &sharkl5_dphy },
+	{ .compatible = "sprd,sharkle-dsi-phy",
+	  .data = &sharkle_dphy },
+	{ .compatible = "sprd,pike2-dsi-phy",
+	  .data = &pike2_dphy },
+	{ .compatible = "sprd,sharkl3-dsi-phy",
+	  .data = &sharkl3_dphy },
+	{ .compatible = "sprd,sharkl5-dsi-phy",
+	  .data = &sharkl5_dphy },
 	{ .compatible = "sprd,sharkl5pro-dsi-phy",
 	  .data = &sharkl5pro_dphy },
-	// { .compatible = "sprd,qogirl6-dsi-phy",
-	//   .data = &qogirl6_dphy },
-	// { .compatible = "sprd,qogirn6pro-dsi-phy",
-	//   .data = &qogirn6pro_dphy },
+	{ .compatible = "sprd,qogirl6-dsi-phy",
+	  .data = &qogirl6_dphy },
+	{ .compatible = "sprd,qogirn6pro-dsi-phy",
+	  .data = &qogirn6pro_dphy },
 	{ /* sentinel */ },
 };
 
@@ -274,9 +274,9 @@ static int sprd_dphy_probe(struct platform_device *pdev)
 	if (ret)
 		return ret;
 
-	// ret = sprd_dphy_sysfs_init(&dphy->dev);
-	// if (ret)
-	// 	return ret;
+	ret = sprd_dphy_sysfs_init(&dphy->dev);
+	if (ret)
+		return ret;
 
 	ret = sprd_dphy_regmap_init(dphy);
 	if (ret)

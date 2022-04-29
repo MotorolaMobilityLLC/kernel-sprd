@@ -117,13 +117,12 @@ int str_to_u8_array(const char *p, u32 base, u8 array[])
 	return length;
 }
 
+#ifdef CONFIG_DRM_SPRD_WB_DEBUG
 int dump_bmp32(const char *p, u32 width, u32 height,
 		bool noflip, const char *filename)
 {
-	/*
 	struct file *fp;
-	mm_segment_t fs;
-	loff_t pos;
+	loff_t pos = 0;
 	struct dib_header dib_header = {
 		.size = sizeof(dib_header),
 		.width = width,
@@ -155,19 +154,15 @@ int dump_bmp32(const char *p, u32 width, u32 height,
 		return PTR_ERR(fp);
 	}
 
-	fs = get_fs();
-	set_fs(KERNEL_DS);
-	pos = 0;
-
-	vfs_write(fp, (const char *)&bmp_header, sizeof(bmp_header), &pos);
-	vfs_write(fp, (const char *)&dib_header, sizeof(dib_header), &pos);
-	vfs_write(fp, p, width * height * 4, &pos);
+	kernel_write(fp, (const char *)&bmp_header, sizeof(bmp_header), &pos);
+	kernel_write(fp, (const char *)&dib_header, sizeof(dib_header), &pos);
+	kernel_write(fp, p, width * height * 4, &pos);
 
 	filp_close(fp, NULL);
-	set_fs(fs);
-	*/
+
 	return 0;
 }
+#endif
 
 struct device *sprd_disp_pipe_get_by_port(struct device *dev, int port)
 {

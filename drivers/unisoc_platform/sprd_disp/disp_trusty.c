@@ -162,11 +162,6 @@ ssize_t disp_ca_read(void *buf, size_t len)
 	ssize_t avail;
 	struct disp_ca *ca = &disp_ca;
 
-	if (!ca) {
-		pr_err("kcademo tipc context null!\n");
-		return -EINVAL;
-	}
-
 	if (!ca->chan) {
 		pr_err("ca tipc chan null!\n");
 		return -EINVAL;

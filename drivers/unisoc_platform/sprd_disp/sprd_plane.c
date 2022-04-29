@@ -59,6 +59,11 @@ static void sprd_plane_atomic_update(struct drm_plane *drm_plane,
 	if (!drm_state->fb)
 		return;
 
+	if (drm_plane->state->crtc->state->active_changed) {
+		DRM_DEBUG("resume or suspend, no need to update plane\n");
+		return;
+	}
+
 	if (layer->pallete_en) {
 		layer->index = plane->index;
 		layer->dst_x = drm_state->crtc_x;
@@ -187,7 +192,7 @@ static int sprd_plane_atomic_set_property(struct drm_plane *drm_plane,
 	struct sprd_plane_state *state = to_sprd_plane_state(drm_state);
 	struct sprd_layer_state *layer = &state->layer;
 
-	DRM_INFO("%s() name = %s, val = %llu\n",
+	DRM_DEBUG("%s() name = %s, val = %llu\n",
 		  __func__, property->name, val);
 
 	if (property == plane->fbc_hsize_r_property)
@@ -221,7 +226,7 @@ static int sprd_plane_atomic_get_property(struct drm_plane *drm_plane,
 	const struct sprd_plane_state *state = to_sprd_plane_state(drm_state);
 	const struct sprd_layer_state *layer = &state->layer;
 
-	DRM_INFO("%s() name = %s\n", __func__, property->name);
+	DRM_DEBUG("%s() name = %s\n", __func__, property->name);
 
 	if (property == plane->fbc_hsize_r_property)
 		*val = layer->fbc_hsize_r;
