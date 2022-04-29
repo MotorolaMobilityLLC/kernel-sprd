@@ -70,7 +70,7 @@ static void *efuse_mem_ram_vmap(struct sprd_efuse *efuse,
 		pages[i] = pfn_to_page(addr >> PAGE_SHIFT);
 	}
 
-	vaddr = vm_map_ram(pages, page_count, -1, prot);
+	vaddr = vm_map_ram(pages, page_count, -1);
 	if (!vaddr)
 		dev_err(efuse->dev, "efuse vmap error\n");
 	else
