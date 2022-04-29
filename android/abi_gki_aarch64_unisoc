@@ -1347,6 +1347,9 @@
 
 # required by musb_sprd.ko
   usb_ep_disable
+  usb_role_switch_get_drvdata
+  usb_role_switch_register
+  usb_role_switch_unregister
   usb_speed_string
 
 # required by nu1619_wireless_charger.ko
