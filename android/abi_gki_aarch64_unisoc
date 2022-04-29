@@ -107,8 +107,6 @@
   console_unlock
   __const_udelay
   cpu_have_feature
-  cpu_hotplug_enable
-  cpu_hotplug_disable
   cpu_hwcap_keys
   cpu_hwcaps
   cpumask_next
@@ -243,9 +241,6 @@
   drm_dev_alloc
   drm_dev_put
   drm_dev_register
-  drm_dp_get_adjust_request_pre_emphasis
-  drm_dp_get_adjust_request_voltage
-  drm_dp_link_train_channel_eq_delay
   drm_err
   drm_ioctl
   drm_ioctl_kernel
@@ -269,12 +264,7 @@
   event_triggers_call
   extcon_find_edev_by_node
   extcon_get_edev_by_phandle
-  extcon_get_property
   extcon_get_state
-  extcon_set_state
-  extcon_set_property
-  extcon_set_property_capability
-  extcon_sync
   fb_mode_option
   __find_get_block
   find_next_bit
@@ -475,7 +465,6 @@
   kstrtoll
   kstrtouint
   kstrtoull
-  ksys_sync_helper
   kthread_create_on_node
   kthread_flush_worker
   kthread_should_stop
@@ -1549,11 +1538,6 @@
   devm_extcon_dev_allocate
   devm_extcon_dev_register
   extcon_set_state_sync
-  typec_altmode_enter
-  typec_altmode_exit
-  __typec_altmode_register_driver
-  typec_altmode_get_partner
-  typec_altmode_unregister_driver
   typec_register_partner
   typec_register_port
   typec_set_data_role
