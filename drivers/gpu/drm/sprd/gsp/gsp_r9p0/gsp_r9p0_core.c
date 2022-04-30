@@ -35,6 +35,10 @@
 #include "gsp_hdr_param.h"
 #include <../drivers/trusty/trusty.h>
 
+#define CORE_STS_NO_CHG 0
+#define CORE_FROM_2_TO_1 1
+#define CORE_FROM_1_TO_2 2
+
 static int zorder_used[R9P0_IMGL_NUM + R9P0_OSDL_NUM] = {0};
 int gsp_r9p0_layer_num;//gsp_enabled_layer_count->gsp_r9p0_layer_num;
 
@@ -1157,6 +1161,129 @@ static void gsp_r9p0_hdr10plus_set(void __iomem *base, struct gsp_r9p0_cfg *cfg,
 	}
 }
 
+static int coreNumSwitch(struct gsp_r9p0_cfg *cfg)
+{
+	/*judge gsp core num status*/
+	int core_switch_status;
+	static bool last_is_2core_enable;
+	bool cur_is_2core_enable = cfg->misc.core_num;
+
+	if (last_is_2core_enable && !cur_is_2core_enable)
+		core_switch_status = CORE_FROM_2_TO_1;
+	else if (!last_is_2core_enable && cur_is_2core_enable)
+		core_switch_status = CORE_FROM_1_TO_2;
+	else
+		core_switch_status = CORE_STS_NO_CHG;
+
+	last_is_2core_enable = cur_is_2core_enable;
+
+	return core_switch_status;
+}
+
+static void gsp_r9p0_core_hdr_reg_set(struct gsp_core *core,
+			struct gsp_r9p0_cfg *cfg)
+{
+	void __iomem *base = NULL;
+	int icnt = 0;
+	static struct gsp_r9p0_hdr10_cfg para_backup_2core;
+	static struct gsp_r9p0_hdr10_cfg para_backup_1core[2];
+	int core_status = 0;
+
+	base = core->base;
+
+	for (icnt = 0; icnt < R9P0_IMGL_NUM; icnt++) {
+		if (icnt == 1 && core_status != CORE_STS_NO_CHG
+			&& cfg->limg[icnt].params.hdr2rgb_mod == 0) {
+			/*recover hdr set of layer1 when core status changed
+			 * but layer1 is not YCBCR10*/
+			memcpy(&(cfg->misc.hdr10_para[icnt]), &(para_backup_1core[icnt]),
+				sizeof(struct gsp_r9p0_hdr10_cfg));
+			if (para_backup_1core[icnt].transfer_char == 16
+				|| para_backup_1core[icnt].transfer_char == 18)
+				gsp_r9p0_hdr10_set(base, cfg, icnt);
+			else
+				gsp_r9p0_bit10_set(base, cfg, icnt);
+		}
+
+		if (cfg->limg[icnt].params.hdr2rgb_mod == 1) {
+			if (icnt == 0)
+				core_status = coreNumSwitch(cfg);
+			if (cfg->misc.first10bit_frame[icnt] == 1) {
+				/*backup hdr para when first frame of hdr video played*/
+				if (cfg->misc.core_num == 1)
+					memcpy(&para_backup_2core,
+						&(cfg->misc.hdr10_para[icnt]),
+						sizeof(struct gsp_r9p0_hdr10_cfg));
+				else
+					memcpy(&(para_backup_1core[icnt]),
+						&(cfg->misc.hdr10_para[icnt]),
+						sizeof(struct gsp_r9p0_hdr10_cfg));
+
+				if (cfg->misc.hdr_flag[icnt] == 1) {
+					gsp_r9p0_hdr10_set(base, cfg, icnt);
+					gsp_r9p0_hdr10plus_set(base, cfg, icnt);
+				} else
+					gsp_r9p0_bit10_set(base, cfg, icnt);
+			} else {
+				/*recover hdr set when core status changed
+				 * and layer format is YCBCR10*/
+				if (core_status != CORE_STS_NO_CHG) {
+					if (core_status == CORE_FROM_2_TO_1)
+						memcpy(&(cfg->misc.hdr10_para[icnt]),
+							&(para_backup_1core[icnt]),
+							sizeof(struct gsp_r9p0_hdr10_cfg));
+					else if (core_status == CORE_FROM_1_TO_2)
+						memcpy(&(cfg->misc.hdr10_para[icnt]),
+							&para_backup_2core,
+							sizeof(struct gsp_r9p0_hdr10_cfg));
+
+					if (cfg->misc.hdr_flag[icnt] == 1)
+						gsp_r9p0_hdr10_set(base, cfg, icnt);
+					else
+						gsp_r9p0_bit10_set(base, cfg, icnt);
+				} else if (cfg->misc.hdr10plus_update[icnt] == 1)
+					gsp_r9p0_hdr10plus_set(base, cfg, icnt);
+			}
+		}
+	}
+}
+
+static void dual_core_size_align_ops(struct gsp_r9p0_cfg *cfg)
+{
+	if (cfg->ld1.params.fbc_mod == 2) {
+		if (cfg->ld1.params.img_format == GSP_R9P0_IMG_FMT_YUV420_2P) {
+
+		if (cfg->limg[0].params.scale_para.scale_rect_out.rect_w % 32)
+			cfg->limg[0].params.scale_para.scale_rect_out.rect_w +=
+				(32 - cfg->limg[0].params.scale_para.scale_rect_out.rect_w % 32);
+		if (cfg->limg[0].params.scale_para.scale_rect_out.rect_h % 8)
+			cfg->limg[0].params.scale_para.scale_rect_out.rect_h +=
+				(8 - cfg->limg[0].params.scale_para.scale_rect_out.rect_h % 8);
+		if (cfg->limg[0].params.des_rect.st_x % 32)
+			cfg->limg[0].params.des_rect.st_x +=
+				(32 - cfg->limg[0].params.des_rect.st_x % 32);
+		if (cfg->limg[0].params.des_rect.st_y % 8)
+			cfg->limg[0].params.des_rect.st_y +=
+				(8 - cfg->limg[0].params.des_rect.st_y % 8);
+		} else if (cfg->ld1.params.img_format == GSP_R9P0_IMG_FMT_ARGB888 ||
+				cfg->ld1.params.img_format == GSP_R9P0_IMG_FMT_RGB888) {
+
+		if (cfg->limg[0].params.scale_para.scale_rect_out.rect_w % 16)
+			cfg->limg[0].params.scale_para.scale_rect_out.rect_w +=
+				(16 - cfg->limg[0].params.scale_para.scale_rect_out.rect_w % 16);
+		if (cfg->limg[0].params.scale_para.scale_rect_out.rect_h % 16)
+			cfg->limg[0].params.scale_para.scale_rect_out.rect_h +=
+				(16 - cfg->limg[0].params.scale_para.scale_rect_out.rect_h % 16);
+		if (cfg->limg[0].params.des_rect.st_x % 16)
+			cfg->limg[0].params.des_rect.st_x +=
+				(16 - cfg->limg[0].params.des_rect.st_x % 16);
+		if (cfg->limg[0].params.des_rect.st_y % 16)
+			cfg->limg[0].params.des_rect.st_y +=
+				(16 - cfg->limg[0].params.des_rect.st_y % 16);
+		}
+	}
+
+}
 static void gsp_r9p0_core_misc_reg_set(struct gsp_core *core,
 			struct gsp_r9p0_cfg *cfg)
 {
@@ -1168,7 +1295,6 @@ static void gsp_r9p0_core_misc_reg_set(struct gsp_core *core,
 	struct R9P0_WORK_AREA_SIZE_REG work_area_size_mask;
 	struct R9P0_GSP_MOD_CFG_REG gsp_mod_cfg_value;
 	struct R9P0_GSP_MOD_CFG_REG gsp_mod_cfg_mask;
-	int icnt;
 
 	base = core->base;
 
@@ -1191,8 +1317,6 @@ static void gsp_r9p0_core_misc_reg_set(struct gsp_core *core,
 	work_area_xy_mask.value = 0;
 	work_area_xy_mask.WORK_AREA_Y = 0x1FFF;
 	work_area_xy_mask.WORK_AREA_X = 0x1FFF;
-	gsp_core_reg_update(R9P0_WORK_AREA_XY(base),
-		work_area_xy_value.value, work_area_xy_mask.value);
 
 	work_area_size_value.value = 0;
 	work_area_size_value.WORK_AREA_H =
@@ -1202,21 +1326,33 @@ static void gsp_r9p0_core_misc_reg_set(struct gsp_core *core,
 	work_area_size_mask.value = 0;
 	work_area_size_mask.WORK_AREA_H = 0x1FFF;
 	work_area_size_mask.WORK_AREA_W = 0x1FFF;
+
+	if (cfg->misc.core_num == 1) {
+		dual_core_size_align_ops(cfg);
+		work_area_xy_value.WORK_AREA_Y =
+			cfg->limg[0].params.des_rect.st_y;
+		work_area_xy_value.WORK_AREA_X =
+			cfg->limg[0].params.des_rect.st_x;
+		work_area_size_value.WORK_AREA_H =
+			cfg->limg[0].params.scale_para.scale_rect_out.rect_h;
+		work_area_size_value.WORK_AREA_W =
+			cfg->limg[0].params.scale_para.scale_rect_out.rect_w;
+
+		if (!cfg->limg[0].params.scaling_en) {
+			cfg->limg[0].params.clip_rect.rect_h =
+				work_area_size_value.WORK_AREA_H;
+			cfg->limg[0].params.clip_rect.rect_w =
+				work_area_size_value.WORK_AREA_W;
+		}
+	}
+
+	gsp_core_reg_update(R9P0_WORK_AREA_XY(base),
+		work_area_xy_value.value, work_area_xy_mask.value);
+
 	gsp_core_reg_update(R9P0_WORK_AREA_SIZE(base),
 		work_area_size_value.value, work_area_size_mask.value);
 
-	for (icnt = 0; icnt < R9P0_IMGL_NUM; icnt++) {
-		if (cfg->limg[icnt].params.hdr2rgb_mod == 1) {
-			if (cfg->misc.first10bit_frame[icnt] == 1) {
-				if (cfg->misc.hdr_flag[icnt] == 1) {
-					gsp_r9p0_hdr10_set(base, cfg, icnt);
-					gsp_r9p0_hdr10plus_set(base, cfg, icnt);
-				} else
-					gsp_r9p0_bit10_set(base, cfg, icnt);
-			} else if (cfg->misc.hdr10plus_update[icnt] == 1)
-				gsp_r9p0_hdr10plus_set(base, cfg, icnt);
-		}
-	}
+	gsp_r9p0_core_hdr_reg_set(core, cfg);
 }
 
 static void gsp_r9p0_core_limg_reg_set(void __iomem *base,
@@ -1666,7 +1802,8 @@ static void gsp_r9p0_core_losd_reg_set(void __iomem *base,
 }
 
 static void gsp_r9p0_core_ld1_reg_set(void __iomem *base,
-			   struct gsp_r9p0_des_layer *layer)
+			   struct gsp_r9p0_des_layer *layer,
+			   struct gsp_r9p0_cfg *cfg)
 {
 	struct R9P0_DES_DATA_CFG_REG des_cfg_value;
 	struct R9P0_DES_DATA_CFG_REG des_cfg_mask;
@@ -1761,8 +1898,13 @@ static void gsp_r9p0_core_ld1_reg_set(void __iomem *base,
 			ld1_params->endian.rgb_swap_mode;
 	des_cfg_value.FBCE_MOD = ld1_params->fbc_mod;
 	des_cfg_value.DITHER_EN = ld1_params->dither_en;
-	des_cfg_value.BK_EN = ld1_params->bk_para.bk_enable;
-	des_cfg_value.BK_BLD = ld1_params->bk_para.bk_blend_mod;
+	if (cfg->misc.core_num == 1) {
+		des_cfg_value.BK_EN = 0;
+		des_cfg_value.BK_BLD = 0;
+	} else {
+		des_cfg_value.BK_EN = ld1_params->bk_para.bk_enable;
+		des_cfg_value.BK_BLD = ld1_params->bk_para.bk_blend_mod;
+	}
 	des_cfg_mask.value = 0;
 	des_cfg_mask.Y_ENDIAN_MOD = 0xF;
 	des_cfg_mask.UV_ENDIAN_MOD = 0xF;
@@ -1883,7 +2025,7 @@ int gsp_r9p0_core_trigger(struct gsp_core *c)
 		gsp_r9p0_core_limg_reg_set(base, &cfg->limg[icnt], icnt);
 	for (icnt = 0; icnt < R9P0_OSDL_NUM; icnt++)
 		gsp_r9p0_core_losd_reg_set(base, &cfg->losd[icnt], icnt);
-	gsp_r9p0_core_ld1_reg_set(base, &cfg->ld1);
+	gsp_r9p0_core_ld1_reg_set(base, &cfg->ld1, cfg);
 
 	if (gsp_r9p0_core_run_precheck(c)) {
 		GSP_ERR("r9p0 core run precheck fail !\n");
