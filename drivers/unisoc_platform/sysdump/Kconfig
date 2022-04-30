@@ -1,5 +1,5 @@
 config SPRD_SYSDUMP
-	tristate "Enable SPRD sysdump handler"
+	tristate "Enable UNISOC sysdump handler"
 	depends on ARCH_SPRD && !KEXEC_CORE
 	help
 	  This option enables Spreatrum sysdump which prepare debug info
@@ -7,9 +7,14 @@ config SPRD_SYSDUMP
 
 config SPRD_MINI_SYSDUMP
 	depends on SPRD_SYSDUMP
-	bool "Enable SPRD mini sysdump handler"
+	bool "Enable UNISOC mini sysdump handler"
 	help
 	  This option enables Spreatrum mini sysdump which supplies simple
 	  debug info for projects can not support external sd card after
 	  system occurs kernel panics.
 
+config SPRD_NATIVE_HANG_MONITOR
+	tristate "Enable UNISOC android native hang detect handler"
+	help
+		This option enables Spreatrum android native hang detect which prepare debug info
+		for the case to debug.

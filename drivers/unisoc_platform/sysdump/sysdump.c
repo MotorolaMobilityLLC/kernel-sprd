@@ -471,7 +471,7 @@ void handle_android_debug_symbol(void)
 		return;
 	minidump_save_extend_information("per_cpu", (unsigned long)__pa(addr_start),
 			(unsigned long)__pa(addr_end));
-
+	sprd_sysdump_info->sprd_coreregs_info.pcpu_start_paddr = __pa(addr_start);
 	/* linux banner */
 	unisoc_linux_banner = android_debug_symbol(ADS_LINUX_BANNER);
 
@@ -1311,20 +1311,6 @@ static void section_info_ylog_buf(void)
 		pr_info("ylog_buf added to minidump section ok!!\n");
 }
 
-#ifdef CONFIG_SPRD_NATIVE_HANG_MONITOR
-static void section_native_hang(void)
-{
-	int ret;
-	unsigned long vaddr, len, start;
-
-	get_native_hang_monitor_buffer(&vaddr, &len, &start);
-	pr_debug("%s in.\n", __func__);
-	ret = minidump_save_extend_information("nhang", __pa(vaddr), __pa(vaddr + len));
-	if (!ret)
-		pr_info("nhang added to minidump section ok!!\n");
-	pr_debug("%s out.\n", __func__);
-}
-#endif
 #if 0
 //hdy
 static void section_info_pt(void)
@@ -1387,9 +1373,6 @@ static void section_extend_info_init(void)
 	/* section info init */
 	section_info_ylog_buf();
 //	section_info_pt();
-#ifdef CONFIG_SPRD_NATIVE_HANG_MONITOR
-	section_native_hang();
-#endif
 
 	extend_section_cm4dump();
 

@@ -23,16 +23,18 @@
 #include <uapi/linux/sched/types.h>
 #include <linux/sched/task_stack.h>
 #include <linux/sched/mm.h>
+#include <linux/slab.h>
 #include <linux/kthread.h>
 #include <linux/ptrace.h>
 #include <asm/stacktrace.h>
 #include <linux/seq_file.h>
 #include "native_hang_monitor.h"
+#include "unisoc_sysdump.h"
 
 static int hang_detect_enabled; /*	disable in default	*/
 static int hang_detect_timeout = WAIT_BOOT_COMPLETE; /*	2 min timeout in default	*/
 static atomic_t hang_detect_counter;
-static char hang_info[HANG_INFO_MAX];
+static char *hang_info;
 static int hang_info_index;
 static struct task_struct *hd_thread;
 
@@ -77,6 +79,7 @@ static void reset_core_task_info(void)
 		core_task[i].pid = 0;
 	}
 }
+#if 0 //bt
 static int save_kernel_trace(struct stackframe *frame, void *d)
 {
 	struct thread_backtrace_info *trace = d;
@@ -130,17 +133,18 @@ static void get_kernel_bt(struct task_struct *tsk, struct thread_backtrace_info 
 	walk_stackframe(&frame, save_kernel_trace, bt);
 #endif
 }
-
+#endif //bt
 static void sched_show_task_local(struct task_struct *p)
 {
 	unsigned long free = 0;
 	int ppid, i;
 	unsigned int state;
 	char stat_nam[] = TASK_STATE_TO_CHAR_STR;
-	struct thread_backtrace_info ke_frame;
 	pid_t pid;
+	unsigned int nr_entries;
+	unsigned long stack_entries[NR_FRAME];
 
-	state = p->state ? __ffs(p->state) + 1 : 0;
+	state = p->__state ? __ffs(p->__state) + 1 : 0;
 	pr_err("%-15.15s %c", p->comm, state < sizeof(stat_nam) - 1 ? stat_nam[state] : '?');
 #if BITS_PER_LONG == 32
 	if (state == TASK_RUNNING)
@@ -168,17 +172,15 @@ static void sched_show_task_local(struct task_struct *p)
 		     (unsigned long)task_thread_info(p)->flags);
 
 	pid = task_pid_nr(p);
-	ke_frame.pid = pid;
-	ke_frame.nr_entries = 0;
 
-	get_kernel_bt(p, &ke_frame);	/* Get kernel-space backtrace */
-	log_to_hang_info("KBT,sysTid=%d,ke_frame.nr_entries:%d\n", pid, ke_frame.nr_entries);
-	for (i = 0; i < ke_frame.nr_entries; i++) {
-		pr_err("LHD11:frame %d: %s,pc(%lx)\n", i, ke_frame.entries[i].pc_symbol,
-		     (long)(ke_frame.entries[i].pc));
+	nr_entries = stack_trace_save_tsk(p, stack_entries, NR_FRAME, 0);
+	log_to_hang_info("KBT,sysTid=%d,nr_entries:%d\n", pid, nr_entries);
+	for (i = 0; i < nr_entries; i++) {
+		pr_err("LHD11:frame %d: [<%p>] %pS\n", i, (void *)stack_entries[i],
+		     (void *)stack_entries[i]);
 		/*  format: [<0000000000000000>] __switch_to+0xa0/0xd8 */
-		log_to_hang_info("[<%lx>] %s\n", (long)((ke_frame.entries[i]).pc),
-				ke_frame.entries[i].pc_symbol);
+		log_to_hang_info("[<%p>] %pS\n", (void *)stack_entries[i],
+				(void *)stack_entries[i]);
 	}
 }
 
@@ -193,12 +195,13 @@ static void show_state_filter_local(unsigned long state_filter)
 #endif
 	do_each_thread(g, p) {
 		/* TODO: Here can discard some threads which  always stay in D state */
-		if (p->state != state_filter)
+		if (p->__state != state_filter)
 			continue;
 		sched_show_task_local(p);
 	} while_each_thread(g, p);
 }
 
+#if 0 //maps
 static void save_maps(struct vm_area_struct *vma, const char *name)
 {
 	if (vma && name) {
@@ -286,7 +289,8 @@ static int save_native_thread_maps(pid_t pid)
 
 	return 0;
 }
-
+#endif // maps
+#if 0 // gki
 static int save_native_threadinfo_by_tid(pid_t tid)
 {
 	struct task_struct *current_task;
@@ -477,7 +481,7 @@ static int save_native_threadinfo_by_tid(pid_t tid)
 
 	return 0;
 }
-
+#endif //gki
 static void show_bt_by_pid(int task_pid)
 {
 	struct task_struct *t, *p;
@@ -491,13 +495,13 @@ static void show_bt_by_pid(int task_pid)
 
 	if (p != NULL) {
 		log_to_hang_info("%s: %d: %s.\n", __func__, task_pid, t->comm);
-		save_native_thread_maps(task_pid);	/* catch maps to Userthread_maps */
+//		save_native_thread_maps(task_pid);	/* catch maps to Userthread_maps */
 		do {
 			if (t) {
 				pid_t tid = 0;
 
 				tid = task_pid_vnr(t);
-				state = t->state ? __ffs(t->state) + 1 : 0;
+				state = t->__state ? __ffs(t->__state) + 1 : 0;
 				pr_err("lhd: %-15.15s %c pid(%d),tid(%d)",
 				     t->comm, state < sizeof(stat_nam) - 1 ? stat_nam[state] : '?',
 				     task_pid, tid);
@@ -506,12 +510,12 @@ static void show_bt_by_pid(int task_pid)
 
 				log_to_hang_info("%s sysTid=%d, pid=%d\n", t->comm, tid, task_pid);
 
-				send_sig_info(SIGSTOP, SEND_SIG_PRIV, t);
+//				send_sig_info(SIGSTOP, SEND_SIG_PRIV, t);
 				/* change send ptrace_stop to send signal stop */
-				save_native_threadinfo_by_tid(tid);	/* catch user-space bt */
+//				save_native_threadinfo_by_tid(tid);	/* catch user-space bt */
 				/* change send ptrace_stop to send signal stop */
-				if (stat_nam[state] != 'T')
-					send_sig_info(SIGCONT, SEND_SIG_PRIV, t);
+//				if (stat_nam[state] != 'T')
+//					send_sig_info(SIGCONT, SEND_SIG_PRIV, t);
 			}
 			if ((++count) % 5 == 4)
 				msleep(20);
@@ -536,7 +540,7 @@ static int find_core_task(void)
 			if (!strlen(core_task[i].name))
 				break;
 			/* ZO process stack is NULL, record its pid & name */
-			if ((task->state == TASK_DEAD) && (task->exit_state == EXIT_ZOMBIE)) {
+			if ((task->__state == TASK_DEAD) && (task->exit_state == EXIT_ZOMBIE)) {
 				log_to_hang_info("[Native Hang detect]: ZO Task :pid = %d",
 						task->pid);
 				log_to_hang_info(" name = %s\n", task->comm);
@@ -585,7 +589,7 @@ static void save_native_hang_monitor_data(void)
 	/* debug_locks = 1; */
 	debug_show_all_locks();
 
-	show_free_areas(0, NULL);
+//	show_free_areas(0, NULL);
 
 	reset_core_task_info();
 }
@@ -678,15 +682,15 @@ static long monitor_hang_ioctl(struct file *file, unsigned int cmd,  unsigned lo
 	case SS_WDT_CTRL_SET_PARA:
 			if (copy_from_user(&sys_server_timeout, (void __user *)arg, sizeof(int))) {
 				ret = -1;
-				pr_emerg("get para from systemserver failed!!!\n");
+				pr_err("get para from systemserver failed!!!\n");
 				break;
 			}
-			pr_emerg("systemserver cmd , get para: ( %d)\n", sys_server_timeout);
+			pr_info("systemserver cmd , get para: ( %d)\n", sys_server_timeout);
 			native_hang_monitor_para_set(sys_server_timeout);
 			break;
 	case (SS_WDT_CTRL_SET_NEW_PARA):
 		sys_server_timeout = GET_TIMEOUT_VALUE(cmd);
-		pr_emerg("systemserver cmd2 , get para: ( %d)\n", sys_server_timeout);
+		pr_info("systemserver cmd2 , get para: ( %d)\n", sys_server_timeout);
 		native_hang_monitor_para_set(sys_server_timeout);
 		break;
 	case SF_WDT_CTRL_SET_PARA:
@@ -747,7 +751,6 @@ static ssize_t monitor_hang_proc_write(struct file *filp, const char __user *buf
 {
 	char write_buf[SYSDUMP_PROC_BUF_LEN] = {0};
 
-	pr_debug("%s in!!\n", __func__);
 	if (count && (count < SYSDUMP_PROC_BUF_LEN)) {
 		if (copy_from_user(write_buf, (void __user *)buf, count)) {
 			pr_err("%s copy_from_user fail !!\n", __func__);
@@ -756,24 +759,24 @@ static ssize_t monitor_hang_proc_write(struct file *filp, const char __user *buf
 		write_buf[count] = '\0';
 
 		if (!strncmp(write_buf, "on", 2)) {
-			pr_err("%s copy_from_user on !!\n", __func__);
+			pr_info("%s copy_from_user on !!\n", __func__);
 
 			/*	create hang detect thread */
 			if (!hang_detect_enabled) {
-				pr_debug("%s:create hang_detect_thread !\n", __func__);
+				pr_info("%s:create hang_detect_thread !\n", __func__);
 				hd_thread = kthread_run(hang_detect_thread, NULL,
 							"native_hang_detect");
 				hang_detect_enabled = 1;
 			} else {
-				pr_debug("%s:hang_detect_thread already run !\n", __func__);
+				pr_info("%s:hang_detect_thread already run !\n", __func__);
 			}
 		} else if (!strncmp(write_buf, "off", 3)) {
-			pr_err("%s copy_from_user off !!\n", __func__);
+			pr_info("%s copy_from_user off !!\n", __func__);
 			/*	stop &  hang detect thread */
 			if (!hang_detect_enabled) {
-				pr_debug("%s:hang_detect_thread already stop !\n", __func__);
+				pr_info("%s:hang_detect_thread already stop !\n", __func__);
 			} else {
-				pr_debug("%s:stop hang_detect_thread !\n", __func__);
+				pr_info("%s:stop hang_detect_thread !\n", __func__);
 				kthread_stop(hd_thread);
 				hang_detect_enabled = 0;
 			}
@@ -781,18 +784,17 @@ static ssize_t monitor_hang_proc_write(struct file *filp, const char __user *buf
 			pr_err("%s invalid string , do nothing !!\n", __func__);
 		}
 	}
-	pr_debug("%s out!!\n", __func__);
 	return count;
 }
 
-static const struct file_operations monitor_enable_fops = {
-	.open = monitor_hang_proc_open,
-	.write = monitor_hang_proc_write,
-	.read = seq_read,
-	.llseek = seq_lseek,
-	.release = single_release,
+static const struct proc_ops monitor_enable_fops = {
+	.proc_open = monitor_hang_proc_open,
+	.proc_write = monitor_hang_proc_write,
+	.proc_read = seq_read,
+	.proc_lseek = seq_lseek,
+	.proc_release = single_release,
 };
-static int __init monitor_hang_init(void)
+static int monitor_hang_init(void)
 {
 	int err = 0;
 	struct proc_dir_entry *monitor_enable_proc;
@@ -810,19 +812,27 @@ static int __init monitor_hang_init(void)
 		return -ENOMEM;
 
 	atomic_set(&hang_detect_counter, WAIT_BOOT_COMPLETE);
+
+	/* hang info buffer alloc */
+	hang_info = (char *)kzalloc(HANG_INFO_MAX, GFP_KERNEL);
+	if (hang_info != NULL) {
+		SetPageReserved(virt_to_page(hang_info));
+		memset(hang_info, 0, HANG_INFO_MAX);
+		minidump_save_extend_information("nhang", __pa(hang_info), __pa(hang_info + HANG_INFO_MAX));
+	} else {
+		pr_err("kzalloc hang info failed, required size:%d\n", HANG_INFO_MAX);
+		return -1;
+	}
+
 	return err;
 }
 
-void get_native_hang_monitor_buffer(unsigned long *addr, unsigned long *size, unsigned long *start)
-{
-	*addr = (unsigned long)hang_info;
-	*start = 0;
-	*size = HANG_INFO_MAX;
-}
-EXPORT_SYMBOL(get_native_hang_monitor_buffer);
-static void  __exit monitor_hang_exit(void)
+static void monitor_hang_exit(void)
 {
 	misc_deregister(&native_hang_monitor_dev);
+
+	ClearPageReserved(virt_to_page(hang_info));
+	kfree(hang_info);
 }
 
 module_init(monitor_hang_init);
