@@ -25,6 +25,7 @@
 #define MARLIN_FORCE_SHUTDOWN_OK	(0x6B6B6B6B)
 #define BTWF_SW_DEEP_SLEEP_MAGIC	(0x504C5344) /* SW deep sleep:DSLP */
 
+static int wcn_chiptype;
 static int wcn_open_module;
 static int wcn_module_state_change;
 /* format: marlin2-built-in_id0_id1 */
@@ -33,6 +34,8 @@ char integ_functionmask[8];
 struct platform_chip_id g_platform_chip_id;
 static u32 g_platform_chip_type;
 static const struct wcn_chip_type wcn_chip_type[] = {
+	/* WCN_SHARKL3_CHIP and WCN_SHARKL3_CHIP_22NM is the same */
+	{0x98550000, WCN_SHARKL3_CHIP},
 	{0x96360000, WCN_SHARKLE_CHIP_AA_OR_AB},
 	{0x96360002, WCN_SHARKLE_CHIP_AC},
 	{0x96360003, WCN_SHARKLE_CHIP_AD},
@@ -258,7 +261,7 @@ void wcn_rfi_status_clear(void)
 enum wcn_aon_chip_id wcn_get_aon_chip_id(void)
 {
 	u32 aon_chip_id;
-	u32 version_id;
+	u32 version_id, manufacture_id;
 	u32 i;
 	struct regmap *regmap;
 
@@ -271,6 +274,19 @@ enum wcn_aon_chip_id wcn_get_aon_chip_id(void)
 	WCN_INFO("aon_chip_id=0x%08x\n", aon_chip_id);
 	for (i = 0; i < ARRAY_SIZE(wcn_chip_type); i++) {
 		if (wcn_chip_type[i].chipid == aon_chip_id) {
+			if (wcn_chip_type[i].chiptype == WCN_SHARKL3_CHIP) {
+				wcn_chiptype = 1;
+				wcn_regmap_read(regmap, WCN_AON_MANUFACTURE_ID,
+						&manufacture_id);
+				WCN_INFO("manufacture_id=0x%08x\n", manufacture_id);
+				/* manufacture_id:
+				 * 0x800 for 28NM
+				 * 0xA00 for 22NM
+				 */
+				return (manufacture_id == 0xA00) ?
+					WCN_SHARKL3_CHIP_22NM : WCN_SHARKL3_CHIP;
+			}
+
 			if (wcn_chip_type[i].chiptype == WCN_SHARKLE_CHIP_AA_OR_AB)
 				return wcn_chip_type[i].chiptype;
 
@@ -306,6 +322,27 @@ enum wcn_aon_chip_id wcn_get_aon_chip_id(void)
 	return WCN_AON_CHIP_ID_INVALID;
 }
 EXPORT_SYMBOL_GPL(wcn_get_aon_chip_id);
+
+#define WCN_WFBT_LOAD_FIRMWARE_OFFSET 0x180000
+#define WCN_COMBINE_FIRMWARE 0x300000
+bool wcn_check_2to1_btwf_bin(struct wcn_device *wcn_dev, const struct firmware *firmware, loff_t *off)
+{
+	if (wcn_get_aon_chip_id() == WCN_SHARKL3_CHIP_22NM) {
+		WCN_INFO("it is sharkl3 22nm\n");
+		*off = WCN_WFBT_LOAD_FIRMWARE_OFFSET;
+	} else {
+		*off = 0;
+		WCN_INFO("it is sharkl3 28nm\n");
+	}
+
+	if ((wcn_chiptype == 1) && (wcn_dev_is_gnss(wcn_dev) == 0) && (firmware->size == WCN_COMBINE_FIRMWARE)) {
+		WCN_INFO("wcn for L3 use 2to1 btwf bin\n");
+		return true;
+	} else {
+		WCN_INFO("wcn not use 2to1 btwf bin\n");
+		return false;
+	}
+}
 
 u32 wcn_platform_chip_id(void)
 {

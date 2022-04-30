@@ -23,6 +23,8 @@
 
 #define VENDOR_WIFI_CONFIG_FILE "connectivity_configure.ini"
 #define VENDOR_WIFI_CALI_FILE "connectivity_calibration.ini"
+#define VENDOR_WIFI_CONFIG_22NM_FILE "connectivity_configure.22nm.ini"
+#define VENDOR_WIFI_CALI_22NM_FILE "connectivity_calibration.22nm.ini"
 #define VENDOR_WIFI_CONFIG_AD_FILE "connectivity_configure.ad.ini"
 #define VENDOR_WIFI_CALI_AD_FILE "connectivity_calibration.ad.ini"
 #define VENDOR_WIFI_CONFIG_AB_FILE "connectivity_configure.ab.ini"
@@ -611,6 +613,8 @@ int get_connectivity_config_param(struct wifi_config_t *p)
 
 	if (wcn_get_aon_chip_id() == WCN_SHARKLE_CHIP_AD)
 		path = VENDOR_WIFI_CONFIG_AD_FILE;
+	else if (wcn_get_aon_chip_id() == WCN_SHARKL3_CHIP_22NM)
+		path = VENDOR_WIFI_CONFIG_22NM_FILE;
 	else if (wcn_get_aon_chip_id() == WCN_PIKE2_CHIP_AB)
 		path = VENDOR_WIFI_CONFIG_AB_FILE;
 	pr_info("%s path : %s\n", __func__, path);
@@ -623,6 +627,8 @@ int get_connectivity_cali_param(struct wifi_cali_t *p)
 
 	if (wcn_get_aon_chip_id() == WCN_SHARKLE_CHIP_AD)
 		path = VENDOR_WIFI_CALI_AD_FILE;
+	else if (wcn_get_aon_chip_id() == WCN_SHARKL3_CHIP_22NM)
+		path = VENDOR_WIFI_CALI_22NM_FILE;
 	else if (wcn_get_aon_chip_id() == WCN_PIKE2_CHIP_AB)
 		path = VENDOR_WIFI_CALI_AB_FILE;
 	pr_info("%s path : %s\n", __func__, path);

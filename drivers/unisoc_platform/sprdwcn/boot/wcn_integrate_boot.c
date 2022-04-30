@@ -427,6 +427,7 @@ static int wcn_download_image(struct wcn_device *wcn_dev)
 #endif
 	bool is_marlin;
 	int err;
+	loff_t off = 0;
 	u32 sec_img_magic, wcn_or_gnss = 0;
 	struct sys_img_header *pimghdr = NULL;
 
@@ -474,12 +475,24 @@ static int wcn_download_image(struct wcn_device *wcn_dev)
 #endif
 	} else {
 		WCN_INFO("image size = %d\n", (int)firmware->size);
-		if (wcn_write_data_to_phy_addr(wcn_dev->base_addr,
-					       (void *)firmware->data,
-					       firmware->size)) {
+		/*check is 2to1 bin*/
+		if (wcn_check_2to1_btwf_bin(wcn_dev, firmware, &off)) {
+			if (wcn_write_data_to_phy_addr(wcn_dev->base_addr,
+					(void *)(firmware->data + off),
+						wcn_dev->file_length)) {
+			WCN_ERR("L3 wcn_btwf_mem_ram_vmap_nocache fail\n");
+			release_firmware(firmware);
+			return -ENOMEM;
+			}
+		} else {
+			WCN_INFO("it is not 2to1 bin\n");
+			if (wcn_write_data_to_phy_addr(wcn_dev->base_addr,
+					(void *)firmware->data,
+						firmware->size)) {
 			WCN_ERR("wcn_mem_ram_vmap_nocache fail\n");
 			release_firmware(firmware);
 			return -ENOMEM;
+			}
 		}
 
 		pimghdr = (struct sys_img_header *)(firmware->data);
