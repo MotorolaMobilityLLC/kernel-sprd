@@ -280,8 +280,26 @@ static void sprd_dsi_encoder_disable(struct drm_encoder *encoder)
 void sprd_dsi_encoder_disable_force(struct drm_encoder *encoder)
 {
 	struct sprd_dsi *dsi = encoder_to_dsi(encoder);
+	struct sprd_crtc *crtc = to_sprd_crtc(encoder->crtc);
+	struct sprd_dpu *dpu = crtc->priv;
 
 	DRM_INFO("%s()\n", __func__);
+
+	mutex_lock(&dsi->lock);
+
+	if (dsi->ctx.enabled) {
+		mutex_unlock(&dsi->lock);
+		return;
+	}
+
+	sprd_dpu_stop(dpu);
+
+	if (!strcmp(dpu->ctx.version, "dpu-r6p0")) {
+		if (dsi->ctx.dpi_clk_div) {
+			dsi->ctx.clk_dpi_384m = true;
+			dsi->glb->disable(&dsi->ctx);
+		}
+	}
 
 	sprd_dsi_set_work_mode(dsi, DSI_MODE_CMD);
 	sprd_dsi_lp_cmd_enable(dsi, true);
@@ -294,6 +312,14 @@ void sprd_dsi_encoder_disable_force(struct drm_encoder *encoder)
 
 	sprd_dphy_disable(dsi->phy);
 	sprd_dsi_disable(dsi);
+	dsi->ctx.enabled = false;
+
+	if (!strcmp(dpu->ctx.version, "dpu-r6p0")) {
+		disable_irq(dpu->ctx.irq);
+		sprd_dpu_disable(dpu);
+	}
+
+	mutex_unlock(&dsi->lock);
 }
 
 static void sprd_dsi_encoder_mode_set(struct drm_encoder *encoder,

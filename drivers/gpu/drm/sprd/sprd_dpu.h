@@ -233,6 +233,7 @@ void sprd_dpu_run(struct sprd_dpu *dpu);
 void sprd_dpu_stop(struct sprd_dpu *dpu);
 void sprd_dpu_atomic_disable_force(struct drm_crtc *crtc);
 void sprd_dpu_resume(struct sprd_dpu *dpu);
+void sprd_dpu_disable(struct sprd_dpu *dpu);
 extern int dpu_r6p0_enable_div6_clk(struct dpu_context *ctx);
 
 extern const struct dpu_clk_ops sharkle_dpu_clk_ops;

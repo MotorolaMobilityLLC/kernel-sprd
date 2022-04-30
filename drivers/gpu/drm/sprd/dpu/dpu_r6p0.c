@@ -1720,6 +1720,8 @@ static void dpu_scaling(struct dpu_context *ctx,
 					DPU_REG_CLR(ctx->base + REG_DPU_SCL_EN, BIT_DPU_SCALING_EN);
 				} else {
 					DPU_REG_SET(ctx->base + REG_DPU_SCL_EN, BIT_DPU_SCALING_EN);
+					layer_state->dst_w = layer_state->src_w;
+					layer_state->dst_h = layer_state->src_h;
 				}
 			}
 		} else {
@@ -1816,6 +1818,9 @@ static void dpu_epf_set(struct dpu_context *ctx, struct epf_cfg *epf)
 
 static void dpu_dpi_init(struct dpu_context *ctx)
 {
+	struct sprd_dpu *dpu = container_of(ctx, struct sprd_dpu, ctx);
+	struct sprd_dsi *dsi = dpu->dsi;
+	struct sprd_panel *panel = container_of(dsi->panel, struct sprd_panel, base);
 	u32 int_mask = 0;
 	u32 reg_val;
 
@@ -1854,7 +1859,8 @@ static void dpu_dpi_init(struct dpu_context *ctx)
 		/* enable dpu dpi vsync */
 		int_mask |= BIT_DPU_INT_VSYNC_EN;
 		/* enable dpu TE INT */
-		int_mask |= BIT_DPU_INT_TE;
+		if (panel->info.esd_check_mode == ESD_MODE_TE_CHECK)
+			int_mask |= BIT_DPU_INT_TE;
 		/* enable underflow err INT */
 		int_mask |= BIT_DPU_INT_ERR;
 		/* enable write back done INT */

@@ -447,6 +447,13 @@ static int sprd_drm_component_probe(struct device *dev,
 static int sprd_drm_probe(struct platform_device *pdev)
 {
 	int ret;
+	bool cali_mode;
+
+	cali_mode = boot_mode_check("androidboot.mode=cali");
+	if (cali_mode) {
+		DRM_WARN("Calibration Mode! Don't register sprd drm driver");
+		return 0;
+	}
 
 	ret = dma_set_mask_and_coherent(&pdev->dev, ~0);
 	if (ret) {

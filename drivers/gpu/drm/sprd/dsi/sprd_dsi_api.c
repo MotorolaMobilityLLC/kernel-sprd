@@ -223,6 +223,11 @@ int sprd_dsi_vrr_timing(struct sprd_dsi *dsi)
 	struct dsi_context *ctx = &dsi->ctx;
 	struct videomode *vm = &dsi->ctx.vm;
 
+	if (!dsi->ctx.enabled) {
+		pr_info("dsi is not inited, just skip\n");
+		return 0;
+	}
+
 	coding = fmt_to_coding(ctx->format);
 	Bpp_x100 = calc_bytes_per_pixel_x100(coding);
 	ratio_x1000 = ctx->byte_clk * 1000 / (vm->pixelclock / 1000);

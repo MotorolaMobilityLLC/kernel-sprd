@@ -321,11 +321,18 @@ static const struct drm_panel_funcs sprd_panel_funcs = {
 static int sprd_panel_esd_check(struct sprd_panel *panel)
 {
 	struct panel_info *info = &panel->info;
+	struct sprd_dsi *dsi;
 	u8 read_val = 0;
 
 	if (!panel->base.connector ||
 		!panel->base.connector->encoder ||
 		!panel->base.connector->encoder->crtc) {
+		return 0;
+	}
+
+	dsi = container_of(panel->base.connector, struct sprd_dsi, connector);
+	if (!dsi->ctx.enabled) {
+		DRM_WARN("dsi is not initialized，skip esd check\n");
 		return 0;
 	}
 

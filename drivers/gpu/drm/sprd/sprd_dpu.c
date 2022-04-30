@@ -31,7 +31,7 @@
 #include "sysfs/sysfs_display.h"
 
 static void sprd_dpu_enable(struct sprd_dpu *dpu);
-static void sprd_dpu_disable(struct sprd_dpu *dpu);
+void sprd_dpu_disable(struct sprd_dpu *dpu);
 
 static void sprd_dpu_prepare_fb(struct sprd_crtc *crtc,
 				struct drm_plane_state *new_state)
@@ -196,11 +196,16 @@ void sprd_dpu_atomic_disable_force(struct drm_crtc *crtc)
 	DRM_INFO("%s()\n", __func__);
 
 	/* dpu is not initialized,it should enable first! */
-	sprd_dpu_enable(dpu);
-	enable_irq(dpu->ctx.irq);
+	if (!dpu->ctx.enabled) {
+		sprd_dpu_enable(dpu);
+		enable_irq(dpu->ctx.irq);
+	} else
+		return;
 
-	disable_irq(dpu->ctx.irq);
-	sprd_dpu_disable(dpu);
+	if (strcmp(dpu->ctx.version, "dpu-r6p0")) {
+		disable_irq(dpu->ctx.irq);
+		sprd_dpu_disable(dpu);
+	}
 }
 
 static void sprd_dpu_atomic_begin(struct sprd_crtc *crtc)
@@ -355,7 +360,7 @@ void sprd_dpu_resume(struct sprd_dpu *dpu)
 	DRM_INFO("dpu resume OK\n");
 }
 
-static void sprd_dpu_disable(struct sprd_dpu *dpu)
+void sprd_dpu_disable(struct sprd_dpu *dpu)
 {
 	struct dpu_context *ctx = &dpu->ctx;
 
