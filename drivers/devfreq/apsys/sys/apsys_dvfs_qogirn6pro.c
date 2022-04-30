@@ -243,6 +243,7 @@ static void apsys_top_dvfs_init(struct apsys_dev *apsys)
 
 	apsys->top_base = (unsigned long)base;
 
+	writel_relaxed(0x00d000d0, base + 0x3d0);
 	temp = readl_relaxed(base + 0xd84);
 	temp &= 0xfffffffe;
 	writel_relaxed(temp, base + 0xd84);
