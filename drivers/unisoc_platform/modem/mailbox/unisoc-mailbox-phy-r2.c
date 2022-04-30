@@ -74,6 +74,8 @@ struct  sprd_mbox_data {
 
 static struct  sprd_mbox_data mbox_rx_fifo[SPRD_MBOX_RX_FIFO_LEN];
 static u32 mbox_rx_fifo_cnt;
+static void __iomem *sprd_outbox_base;
+static void (*mbox_wakeup_flag_callback_r2)(bool wakeup_flag);
 
 static void __iomem *g_mbox_nowakeup_base;
 static u32 g_irq_msk_backup;
@@ -158,6 +160,27 @@ static int sprd_mbox_debug_show(struct seq_file *m, void *private)
 }
 #endif /* CONFIG_DEBUG_FS */
 
+void sprd_mbox_wakeup_flag_callback_register_r2(void (*callback)(bool wakeup_flag))
+{
+	mbox_wakeup_flag_callback_r2 = callback;
+}
+EXPORT_SYMBOL_GPL(sprd_mbox_wakeup_flag_callback_register_r2);
+
+void sprd_mbox_wakeup_flag_callback_unregister_r2(void)
+{
+	mbox_wakeup_flag_callback_r2 = NULL;
+}
+EXPORT_SYMBOL_GPL(sprd_mbox_wakeup_flag_callback_unregister_r2);
+
+void sprd_mbox_change_wakeup_flag_r2(bool wakeup_flag)
+{
+	if (mbox_wakeup_flag_callback_r2)
+		mbox_wakeup_flag_callback_r2(wakeup_flag);
+	else
+		pr_err("mbox wakeup callback is null\n");
+}
+EXPORT_SYMBOL_GPL(sprd_mbox_change_wakeup_flag_r2);
+
 static u32 sprd_mbox_get_fifo_len(struct sprd_mbox_priv *priv, u32 fifo_sts)
 {
 	u32 wr_pos = (fifo_sts >> SPRD_OUTBOX_FIFO_WR_SHIFT) &
@@ -228,6 +251,8 @@ static irqreturn_t sprd_mbox_phy_outbox_isr(int irq, void *data)
 		/* Trigger to update outbox FIFO pointer */
 		writel(0x1, base + SPRD_MBOX_TRIGGER);
 	}
+
+	sprd_mbox_change_wakeup_flag_r2(false);
 
 	/* Clear irq status after reading all message. */
 	writel(irq_sts, base + SPRD_MBOX_IRQ_STS);
@@ -300,6 +325,15 @@ static int check_mbox_chan_state(struct mbox_chan *chan)
 			return -ETIMEDOUT;
 	}
 	return 0;
+}
+
+static bool mbox_phy_outbox_has_irq(void)
+{
+	u32 irq_sts;
+
+	irq_sts = readl(sprd_outbox_base + SPRD_MBOX_IRQ_STS);
+
+	return (irq_sts & SPRD_OUTBOX_SCR_FIFO_IRQ);
 }
 
 static int sprd_mbox_phy_send(struct mbox_chan *chan, void *msg)
@@ -480,6 +514,7 @@ static const struct sprd_mbox_phy_ops sprd_mbox_phy_ops_r2 = {
 	.send = sprd_mbox_phy_send,
 	.inbox_isr = sprd_mbox_phy_inbox_isr,
 	.outbox_isr = sprd_mbox_phy_outbox_isr,
+	.outbox_has_irq = mbox_phy_outbox_has_irq,
 #if defined(CONFIG_DEBUG_FS)
 	.debugfs_show = sprd_mbox_debug_show,
 #endif
@@ -497,6 +532,7 @@ int sprd_mbox_phy_r2_init(struct sprd_mbox_priv *priv)
 	priv->outbox_base = devm_platform_ioremap_resource(pdev, 1);
 	if (IS_ERR(priv->outbox_base))
 		return PTR_ERR(priv->outbox_base);
+	sprd_outbox_base = priv->outbox_base;
 
 	priv->common_base = devm_platform_ioremap_resource(pdev, 2);
 	if (IS_ERR(priv->common_base))

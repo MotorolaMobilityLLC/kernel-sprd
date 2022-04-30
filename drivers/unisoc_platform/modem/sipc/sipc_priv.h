@@ -127,6 +127,8 @@ struct smsg_ipc {
 #define CHAN_STATE_FREE			4
 
 extern void smsg_init_channel2index(void);
+extern void smsg_init_wakeup(void);
+extern void smsg_remove_wakeup(void);
 extern void smsg_ipc_create(struct smsg_ipc *ipc);
 extern void smsg_ipc_destroy(struct smsg_ipc *ipc);
 

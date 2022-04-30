@@ -4,6 +4,7 @@
  *
  * Copyright (c) 2020 Spreadtrum Communications Inc.
  */
+#include <linux/cpu_pm.h>
 #include <linux/debugfs.h>
 #include <linux/mfd/syscon.h>
 #include <linux/regmap.h>
@@ -36,6 +37,7 @@ static spinlock_t mbox_lock;
 static spinlock_t outbox_lock;
 
 static struct sprd_mbox_ctrl_reg reg_ctrl;
+const struct sprd_mbox_phy_ops *mbox_phy_ops;
 
 #if defined(CONFIG_DEBUG_FS)
 static int sprd_mbox_debug_open(struct inode *inode, struct file *file)
@@ -298,6 +300,24 @@ static int sprd_mbox_request_irq(struct sprd_mbox_priv *priv)
 	return 0;
 }
 
+static int mbox_pm_notifier(struct notifier_block *self,
+			    unsigned long cmd, void *v)
+{
+	if (cmd == CPU_CLUSTER_PM_EXIT && mbox_phy_ops->outbox_has_irq()) {
+#if defined CONFIG_UNISOC_MAILBOX_R1
+		sprd_mbox_change_wakeup_flag_r1(true);
+#elif defined CONFIG_UNISOC_MAILBOX_R2
+		sprd_mbox_change_wakeup_flag_r2(true);
+#endif
+	}
+
+	return NOTIFY_OK;
+}
+
+static struct notifier_block mbox_pm_notifier_block = {
+	.notifier_call = mbox_pm_notifier,
+};
+
 static int sprd_mbox_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
@@ -334,6 +354,7 @@ static int sprd_mbox_probe(struct platform_device *pdev)
 	if (ret)
 		return ret;
 
+	mbox_phy_ops = priv->phy_ops;
 	chan_num = priv->mbox.num_chans;
 	priv->mbox.dev = dev;
 	priv->mbox.ops = &sprd_mbox_ops;
@@ -373,6 +394,11 @@ static int sprd_mbox_probe(struct platform_device *pdev)
 	tx_data = devm_kzalloc(dev, sizeof(struct sprd_mbox_tx_data) * chan_num, GFP_KERNEL);
 	if (!tx_data)
 		return -ENOMEM;
+	ret = cpu_pm_register_notifier(&mbox_pm_notifier_block);
+	if (ret) {
+		dev_err(dev, "failed to register cpu pm notifier\n");
+		return ret;
+	}
 	/* Create a deliver thread for waiting if tx_fifo can be delivered */
 	mbox_deliver_thread = kthread_create(sprd_mbox_deliver_thread,
 		priv, "mbox-deliver-thread");
