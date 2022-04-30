@@ -15,6 +15,7 @@
 #undef pr_fmt
 #endif
 #define pr_fmt(fmt) "sprd-sblock: " fmt
+#define R_RD_START_ADDR 0
 
 #include <linux/debugfs.h>
 #include <linux/delay.h>
@@ -187,6 +188,7 @@ static int sblock_host_init(struct smsg_ipc *sipc, struct sblock_mgr *sblock,
 	int i, rval = -ENOMEM;
 	phys_addr_t offset = 0;
 	u8 dst = sblock->dst;
+	u16 smem = (u16)sblock->smem;
 
 	txblocksize = ALIGN(txblocksize, SBLOCK_ALIGN_BYTES);
 	rxblocksize = ALIGN(rxblocksize, SBLOCK_ALIGN_BYTES);
@@ -218,7 +220,7 @@ static int sblock_host_init(struct smsg_ipc *sipc, struct sblock_mgr *sblock,
 		/* for pool */
 		(txblocknum + rxblocknum) * sizeof(struct sblock_blks);
 
-	sblock->smem_addr = smem_alloc(dst, sblock->smem_size);
+	sblock->smem_addr = smem_alloc_ex(dst, smem, sblock->smem_size);
 	if (!sblock->smem_addr)
 		return -ENOMEM;
 
@@ -229,7 +231,7 @@ static int sblock_host_init(struct smsg_ipc *sipc, struct sblock_mgr *sblock,
 		 sblock->smem_size);
 
 	sblock->dst_smem_addr = sblock->smem_addr -
-		sipc->smem_base + sipc->dst_smem_base;
+		sipc->smem_ptr[smem].smem_base + sipc->smem_ptr[smem].dst_smem_base;
 
 	/* in host mode,  it is client physial address. */
 	sblock->stored_smem_addr = sblock->dst_smem_addr;
@@ -313,6 +315,16 @@ static int sblock_host_init(struct smsg_ipc *sipc, struct sblock_mgr *sblock,
 	sblock->ring->p_rxblks = sblock->smem_virt +
 		(poolhd->rxblk_blks - sblock->stored_smem_addr);
 
+	for (i = 0; i < txblocknum; i++) {
+		sblock->ring->r_txblks[i].addr = ringhd->txblk_addr +
+						 i * txblocksize;
+		sblock->ring->r_txblks[i].length = 0;
+	}
+	for (i = 0; i < rxblocknum; i++) {
+		sblock->ring->r_rxblks[i].addr = ringhd->rxblk_addr +
+						 i * rxblocksize;
+		sblock->ring->r_rxblks[i].length = 0;
+	}
 	for (i = 0; i < txblocknum; i++) {
 		sblock->ring->p_txblks[i].addr = poolhd->txblk_addr +
 						 i * txblocksize;
@@ -676,6 +688,9 @@ static int sblock_thread(void *data)
 				spin_lock_irqsave(&ring->poll_lock, flags);
 				ring->poll_mask |= POLLIN | POLLRDNORM;
 				spin_unlock_irqrestore(&ring->poll_lock, flags);
+				/* SMSG_CH_LOG_LOOP used for log loop */
+				if (sblock->channel == SMSG_CH_LOG_LOOP)
+					sblock->log_loop_flag = 1;
 				wake_up_interruptible_all(&sblock->ring->recvwait);
 				if (sblock->handler)
 					sblock->handler(SBLOCK_NOTIFY_RECV,
@@ -739,6 +754,7 @@ static void sblock_pms_destroy(struct sblock_ring *ring)
 static int sblock_mgr_create(uint8_t dst,
 			     uint8_t channel,
 			     int pre_cfg,
+			     uint8_t smem,
 			     uint32_t tx_blk_num, uint32_t tx_blk_sz,
 			     uint32_t rx_blk_num, uint32_t rx_blk_sz,
 			     struct sblock_mgr **sb_mgr)
@@ -765,6 +781,7 @@ static int sblock_mgr_create(uint8_t dst,
 	sblock->dst = dst;
 	sblock->channel = channel;
 	sblock->pre_cfg = pre_cfg;
+	sblock->smem = smem;
 	sblock->state = SBLOCK_STATE_IDLE;
 
 	if (!sipc->client) {
@@ -806,7 +823,7 @@ bool sblock_has_data(struct sblock_mgr *sblock, bool tx)
 }
 EXPORT_SYMBOL_GPL(sblock_has_data);
 
-int sblock_create_ex(u8 dst, u8 channel,
+int sblock_create_ex(u8 dst, u8 channel, u8 smem,
 		     u32 txblocknum, u32 txblocksize,
 		     u32 rxblocknum, u32 rxblocksize,
 		     void (*handler)(int event, void *data), void *data)
@@ -829,7 +846,7 @@ int sblock_create_ex(u8 dst, u8 channel,
 
 	pr_debug("dst=%d channel=%d\n", dst, channel);
 
-	result = sblock_mgr_create(dst, channel, 0,
+	result = sblock_mgr_create(dst, channel, 0, smem,
 				   txblocknum, txblocksize,
 				   rxblocknum, rxblocksize,
 				   &sblock);
@@ -883,12 +900,12 @@ int sblock_create(u8 dst, u8 channel,
 		  u32 txblocknum, u32 txblocksize,
 		  u32 rxblocknum, u32 rxblocksize)
 {
-	return sblock_create_ex(dst, channel, txblocknum, txblocksize,
+	return sblock_create_ex(dst, channel, 0, txblocknum, txblocksize,
 				rxblocknum, rxblocksize, NULL, NULL);
 }
 EXPORT_SYMBOL_GPL(sblock_create);
 
-int sblock_pcfg_create(u8 dst, u8 channel,
+int sblock_pcfg_create(u8 dst, u8 channel, u8 smem,
 		       u32 tx_blk_num, u32 tx_blk_sz,
 		       u32 rx_blk_num, u32 rx_blk_sz)
 {
@@ -911,6 +928,7 @@ int sblock_pcfg_create(u8 dst, u8 channel,
 	result = sblock_mgr_create(dst,
 				   channel,
 				   1,
+				   smem,
 				   tx_blk_num, tx_blk_sz,
 				   rx_blk_num, rx_blk_sz,
 				   &sblock);
@@ -1547,6 +1565,115 @@ int sblock_receive(u8 dst, u8 channel,
 }
 EXPORT_SYMBOL_GPL(sblock_receive);
 
+/*
+ * sblock_receive_loop_ex, sblock_receive_loop and
+ * sblock_release_loop used for log loop
+ */
+static int sblock_receive_loop_ex(u8 dst, u8 channel,
+				  struct sblock *blk, int timeout)
+{
+	struct sblock_mgr *sblock;
+	struct sblock_ring *ring;
+	volatile struct sblock_ring_header *ringhd;
+	int rxpos, index, rval = 0;
+	unsigned long flags;
+	u8 ch_index;
+
+	ch_index = sipc_channel2index(channel);
+	if (ch_index == INVALID_CHANEL_INDEX) {
+		pr_err("channel %d invalid!\n", channel);
+		return -EINVAL;
+	}
+
+	sblock = sblocks[dst][ch_index];
+
+	if (!sblock || sblock->state != SBLOCK_STATE_READY) {
+		pr_err("sblock-%d-%d not ready!\n", dst, channel);
+		return sblock ? -EIO : -ENODEV;
+	}
+
+	ring = sblock->ring;
+	ringhd = (volatile struct sblock_ring_header *)(&ring->header->ring);
+
+	pr_debug("sblock_receive: dst=%d, channel=%d, timeout=%d\n",
+			dst, channel, timeout);
+	pr_debug("sblock_receive: channel=%d, wrptr=%d, rdptr=%d",
+			channel, ringhd->rxblk_wrptr, ringhd->rxblk_rdptr);
+
+	if (timeout < 0) {
+		/* wait forever */
+		rval = wait_event_interruptible(ring->recvwait, sblock->log_loop_flag);
+		sblock->log_loop_flag = 0;
+		if (rval < 0)
+			pr_info("sblock_receive wait interrupted!\n");
+
+		if (sblock->state == SBLOCK_STATE_IDLE) {
+			pr_info("sblock_receive sblock state is idle!\n");
+			rval = -EIO;
+			return rval;
+		}
+		sblock->rxblk_end_r_wrptr = ringhd->rxblk_wrptr;
+		spin_lock_irqsave(&ring->r_rxlock, flags);
+		ringhd->rxblk_rdptr = sblock->rxblk_end_r_wrptr;
+		spin_unlock_irqrestore(&ring->r_rxlock, flags);
+		sblock->wait_recv_flag = 1;
+
+	}
+
+	/* multi-receiver may cause recv failure */
+	spin_lock_irqsave(&ring->r_rxlock, flags);
+
+	if (sblock->state == SBLOCK_STATE_READY) {
+		rxpos = sblock_get_ringpos(ringhd->rxblk_rdptr,
+					   ringhd->rxblk_count);
+		blk->addr = ring->r_rxblks[rxpos].addr -
+			    sblock->stored_smem_addr +
+			    sblock->smem_virt;
+		blk->length = ring->r_rxblks[rxpos].length;
+		ringhd->rxblk_rdptr = ringhd->rxblk_rdptr + 1;
+		if (ringhd->rxblk_rdptr >= ringhd->rxblk_count)
+			ringhd->rxblk_rdptr = R_RD_START_ADDR;
+		if (ringhd->rxblk_rdptr == sblock->rxblk_end_r_wrptr) {
+			sblock->wait_recv_flag = 0;
+			ringhd->rxblk_rdptr = R_RD_START_ADDR;
+		}
+		pr_debug("sblock_receive: channel=%d, rxpos=%d, addr=%p, len=%d\n",
+			channel, rxpos, blk->addr, blk->length);
+		index = sblock_get_index((blk->addr - ring->rxblk_virt),
+					 sblock->rxblksz);
+		ring->rxrecord[index] = SBLOCK_BLK_STATE_PENDING;
+	} else {
+		rval = sblock->state == SBLOCK_STATE_READY ? -EAGAIN : -EIO;
+	}
+
+	spin_unlock_irqrestore(&ring->r_rxlock, flags);
+
+	return rval;
+}
+
+int sblock_receive_loop(u8 dst, u8 channel,
+			struct sblock *blk)
+{
+	int rval;
+	struct sblock_mgr *sblock;
+	u8 ch_index;
+
+	ch_index = sipc_channel2index(channel);
+	if (ch_index == INVALID_CHANEL_INDEX) {
+		pr_err("channel %d invalid!\n", channel);
+		return -EINVAL;
+	}
+
+	sblock = sblocks[dst][ch_index];
+	if (sblock->wait_recv_flag == 0) {
+		rval = sblock_receive_loop_ex(dst, channel, blk, -1);
+	} else {
+		rval = sblock_receive_loop_ex(dst, channel, blk, 0);
+	}
+	return rval;
+}
+EXPORT_SYMBOL_GPL(sblock_receive_loop);
+
 int sblock_get_arrived_count(u8 dst, u8 channel)
 {
 	struct sblock_mgr *sblock;
@@ -1699,6 +1826,66 @@ int sblock_release(u8 dst, u8 channel, struct sblock *blk)
 	return 0;
 }
 EXPORT_SYMBOL_GPL(sblock_release);
+
+int sblock_release_loop(u8 dst, u8 channel, struct sblock *blk)
+{
+	struct sblock_mgr *sblock;
+	struct sblock_ring *ring;
+	volatile struct sblock_ring_header *ringhd;
+	volatile struct sblock_ring_header *poolhd;
+	unsigned long flags;
+	int rxpos;
+	int index;
+	u8 ch_index;
+
+	ch_index = sipc_channel2index(channel);
+	if (ch_index == INVALID_CHANEL_INDEX) {
+		pr_err("channel %d invalid!\n", channel);
+		return -EINVAL;
+	}
+
+	sblock = sblocks[dst][ch_index];
+	if (!sblock || sblock->state != SBLOCK_STATE_READY) {
+		pr_err("sblock-%d-%d not ready!\n", dst, channel);
+		return -ENODEV;
+	}
+
+	pr_debug("sblock_release: dst=%d, channel=%d, addr=%p, len=%d\n",
+			dst, channel, blk->addr, blk->length);
+
+	ring = sblock->ring;
+	ringhd = (volatile struct sblock_ring_header *)(&ring->header->ring);
+	poolhd = (volatile struct sblock_ring_header *)(&ring->header->pool);
+
+	spin_lock_irqsave(&ring->p_rxlock, flags);
+	if (sblock->wait_release_flag == 0) {
+		sblock->wait_release_flag = 1;
+		sblock->rxblk_end_p_rdptr = poolhd->rxblk_rdptr;
+		poolhd->rxblk_wrptr = sblock->rxblk_end_p_rdptr;
+	}
+	rxpos = sblock_get_ringpos(poolhd->rxblk_wrptr, poolhd->rxblk_count);
+	ring->p_rxblks[rxpos].addr = blk->addr -
+				     sblock->smem_virt +
+				     sblock->stored_smem_addr;
+	ring->p_rxblks[rxpos].length = poolhd->rxblk_size;
+	poolhd->rxblk_wrptr = poolhd->rxblk_wrptr + 1;
+	if (poolhd->rxblk_wrptr >= poolhd->rxblk_count)
+		poolhd->rxblk_wrptr = 0;
+	if (poolhd->rxblk_wrptr == sblock->rxblk_end_p_rdptr) {
+		sblock->wait_release_flag = 0;
+		poolhd->rxblk_wrptr = poolhd->rxblk_count;
+	}
+	pr_debug("sblock_release: addr=%x\n", ring->p_rxblks[rxpos].addr);
+
+	index = sblock_get_index((blk->addr - ring->rxblk_virt),
+				 sblock->rxblksz);
+	ring->rxrecord[index] = SBLOCK_BLK_STATE_DONE;
+
+	spin_unlock_irqrestore(&ring->p_rxlock, flags);
+
+	return 0;
+}
+EXPORT_SYMBOL_GPL(sblock_release_loop);
 
 unsigned int sblock_poll_wait(u8 dst, u8 channel,
 			      struct file *filp, poll_table *wait)

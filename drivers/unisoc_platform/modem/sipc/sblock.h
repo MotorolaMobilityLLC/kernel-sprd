@@ -127,6 +127,7 @@ struct sblock_mgr {
 	u8	dst;
 	u8	channel;
 	int	pre_cfg; /*support in host mode only */
+	u8	smem;
 	u32	state;
 
 	void	*smem_virt;
@@ -153,6 +154,13 @@ struct sblock_mgr {
 
 	void	(*handler)(int event, void *data);
 	void	*data;
+
+	/* used for log loop */
+	u8 wait_recv_flag;
+	u8 wait_release_flag;
+	u8 log_loop_flag;
+	u32 rxblk_end_r_wrptr;
+	u32 rxblk_end_p_rdptr;
 };
 
 #ifdef CONFIG_64BIT
