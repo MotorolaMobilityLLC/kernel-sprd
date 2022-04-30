@@ -176,3 +176,4 @@
 	extcon = <&extcon_gpio>, <&pmic_typec>;
 	status = "okay";
 };
+

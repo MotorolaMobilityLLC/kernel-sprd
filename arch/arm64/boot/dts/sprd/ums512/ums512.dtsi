@@ -347,3 +347,5 @@
 #include "tp.dtsi"
 #include "efuse.dtsi"
 #include "mipi-serdes.dtsi"
+#include "vsp.dtsi"
+
