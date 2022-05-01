@@ -217,6 +217,20 @@
 			};
 		};
 
+		apahb: ap-ahb {
+			compatible = "simple-bus";
+			#address-cells = <2>;
+			#size-cells = <2>;
+			ranges;
+		};
+
+		apagcp: agcp{
+			compatible = "simple-bus";
+			#address-cells = <2>;
+			#size-cells = <2>;
+			ranges;
+		};
+
 		mm: mm {
 			compatible = "simple-bus";
 			#address-cells = <2>;
@@ -331,3 +345,4 @@
 #include "modem.dtsi"
 #include "marlin3lite.dtsi"
 #include "tp.dtsi"
+#include "efuse.dtsi"
