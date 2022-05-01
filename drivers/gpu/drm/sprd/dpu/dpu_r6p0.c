@@ -1532,10 +1532,12 @@ static void dpu_layer(struct dpu_context *ctx,
 		 * Dst and src frame in same size will still be scaling in current version.
 		 * It will be bypassed by digital ip in next version.
 		 */
-		if (src_size != dst_size)
-			tmp.ctrl = BIT(24);
-		else
-			tmp.ctrl = 0;
+		if (!(hwlayer->secure_en || ctx->secure_debug)) {
+			if (src_size != dst_size)
+				tmp.ctrl = BIT(24);
+			else
+				tmp.ctrl = 0;
+		}
 
 		for (i = 0; i < hwlayer->planes; i++) {
 			if (hwlayer->addr[i] % 16)
