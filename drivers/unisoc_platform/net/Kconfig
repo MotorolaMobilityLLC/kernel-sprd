@@ -6,6 +6,9 @@
 menu "Unisoc Net Devices"
 
 source "drivers/unisoc_platform/net/seth/Kconfig"
+source "drivers/unisoc_platform/net/sipa_sys/Kconfig"
+source "drivers/unisoc_platform/net/sipa_v3/Kconfig"
+source "drivers/unisoc_platform/net/sipa_delegate/Kconfig"
 
 endmenu
 
