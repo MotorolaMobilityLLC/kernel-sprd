@@ -415,6 +415,55 @@
 	};
 };
 
+&spi1 {
+	#address-cells = <1>;
+	#size-cells = <0>;
+	status = "okay";
+	//clock-frequency = <400000>;
+
+	adaptive_touchscreen: adaptive-touchscreen@0{
+	    status = "okay";
+		compatible = "adaptive-touchscreen";
+		reg = <0>;
+		spi-max-frequency = <9600000>;	//4800000,9600000,15000000,19200000
+		gpios = <&ap_gpio 145 0
+				    &ap_gpio 121 0>;
+		touch,reset-gpio = <&ap_gpio 145 0>;
+		touch,irq-gpio = <&ap_gpio 121 0>;
+		controller = "nt36xxx,NT36XXX";
+		novatek,swrst-n8-addr = <0x03F0FE>;
+		novatek,spi-rd-fast-addr = <0x03F310>;
+		/*virtualkeys = <80 1650 30 30
+				240 1650 30 30
+				400 1650 30 30>;
+		TP_MAX_X = <720>;
+		TP_MAX_Y = <1600>;*/
+		tp_max_x = <720>;
+		tp_max_y = <1600>;
+		tp_avdd_supply = "1850";
+		tp_point_max = <5>;
+		tp_upgrade_switch = <1>;
+		tp_esd_check = <0>;
+		tp_ps_status = <0>;
+		tp_sensorhub_status = <0>;
+		tp_gesture_status = <1>;
+		tp_ic_num = <1>;
+		private-data{
+			a8=/bits/ 8 <0x5a>;
+		};
+		nt36xxx:ats_nt36xxx {//62
+
+			tp_vendor_num = <2>;
+			tp_upgrade_fw = <1 1>;
+			tp_fw_buf_size = <118784 118784>;
+			tp_vendor_id = /bits/ 8 <0x01 0x02>;
+			tp_vendor_name0 = "TM";
+			tp_vendor_name1 = "HX";
+			};
+
+	};
+};
+
 &pmic_fgu {
 	monitored-battery = <&bat>;
 	sprd,calib-resistance-micro-ohms = <20000>;
