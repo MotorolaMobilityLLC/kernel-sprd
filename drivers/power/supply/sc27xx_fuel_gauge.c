@@ -45,6 +45,7 @@
 #define SC27XX_FGU_OCV			0x24
 #define SC27XX_FGU_POCV			0x28
 #define SC27XX_FGU_CURRENT		0x2c
+#define SC27XX_FGU_HIGH_OVERLOAD	0x30
 #define SC27XX_FGU_LOW_OVERLOAD		0x34
 #define SC27XX_FGU_CLBCNT_SETH		0x50
 #define SC27XX_FGU_CLBCNT_SETL		0x54
@@ -73,10 +74,12 @@
 #define SC27XX_WRITE_SELCLB_EN		BIT(0)
 #define SC27XX_FGU_CLBCNT_MASK		GENMASK(15, 0)
 #define SC27XX_FGU_CLBCNT_SHIFT		16
+#define SC27XX_FGU_HIGH_OVERLOAD_MASK	GENMASK(12, 0)
 #define SC27XX_FGU_LOW_OVERLOAD_MASK	GENMASK(12, 0)
 
 #define SC27XX_FGU_INT_MASK		GENMASK(9, 0)
 #define SC27XX_FGU_LOW_OVERLOAD_INT	BIT(0)
+#define SC27XX_FGU_HIGH_OVERLOAD_INT	BIT(1)
 #define SC27XX_FGU_CLBCNT_DELTA_INT	BIT(2)
 #define SC27XX_FGU_RELX_CNT_INT		BIT(3)
 #define SC27XX_FGU_RELX_CNT_STS		BIT(3)
@@ -133,6 +136,7 @@
 #define SC27XX_FGU_MAGIC_NUMBER		0x5a5aa5a5
 #define SC27XX_FGU_DEBUG_EN_CMD		0x5a5aa5a5
 #define SC27XX_FGU_DEBUG_DIS_CMD	0x5a5a5a5a
+#define SC27XX_FGU_GOOD_HEALTH_CMD	0x7f7f7f7f
 #define SC27XX_FGU_FCC_PERCENT		1000
 
 #define SC27XX_FGU_TRACK_CAP_START_VOLTAGE		3650
@@ -163,7 +167,6 @@
 /* RTC OF 2021-08-06 15 : 44*/
 #define SC27XX_FGU_MISCDATA_RTC_TIME		(1621355101)
 #define SC27XX_FGU_SHUTDOWN_TIME		(15 * 60)
-
 
 #define interpolate(x, x1, y1, x2, y2) \
 	((y1) + ((((y2) - (y1)) * ((x) - (x1))) / ((x2) - (x1))))
@@ -337,6 +340,7 @@ struct sc27xx_fgu_data {
 	int first_calib_cap;
 	int uusoc_vbat;
 	unsigned int comp_resistance;
+	int batt_ovp_threshold;
 	int index;
 	int ocv_uv;
 	int batt_uV;
@@ -348,6 +352,7 @@ struct sc27xx_fgu_data {
 	int bat_temp;
 	bool online;
 	bool is_first_poweron;
+	bool is_ovp;
 	u32 chg_type;
 	struct sc27xx_fgu_track_capacity track;
 	struct power_supply_battery_ocv_table *cap_table;
@@ -1918,20 +1923,12 @@ static int sc27xx_fgu_get_temp(struct sc27xx_fgu_data *data, int *temp)
 	return 0;
 }
 
-static int sc27xx_fgu_get_health(struct sc27xx_fgu_data *data, int *health)
+static void sc27xx_fgu_get_health(struct sc27xx_fgu_data *data, int *health)
 {
-	int ret, vol_mv;
-
-	ret = sc27xx_fgu_get_vbat_now(data, &vol_mv);
-	if (ret)
-		return ret;
-
-	if ((vol_mv * 1000) > data->max_volt_uv)
+	if (data->is_ovp)
 		*health = POWER_SUPPLY_HEALTH_OVERVOLTAGE;
 	else
 		*health = POWER_SUPPLY_HEALTH_GOOD;
-
-	return 0;
 }
 
 static int sc27xx_fgu_get_status(struct sc27xx_fgu_data *data, int *status)
@@ -2279,6 +2276,29 @@ static void sc27xx_fgu_suspend_calib_config(struct sc27xx_fgu_data *data)
 		sc27xx_fgu_enable_relax_cnt_int(data);
 }
 
+static int sc27xx_fgu_batt_ovp_threshold_config(struct sc27xx_fgu_data *data)
+{
+	int ret = 0, overvoltage_adc;
+
+	overvoltage_adc = sc27xx_fgu_voltage2adc(data, data->batt_ovp_threshold);
+	ret = regmap_update_bits(data->regmap, data->base + SC27XX_FGU_HIGH_OVERLOAD,
+				 SC27XX_FGU_HIGH_OVERLOAD_MASK, overvoltage_adc);
+	if (ret) {
+		dev_err(data->dev, "failed to set fgu high overload\n");
+		return ret;
+	}
+
+	ret = regmap_update_bits(data->regmap, data->base + SC27XX_FGU_INT_EN,
+				 SC27XX_FGU_HIGH_OVERLOAD_INT, SC27XX_FGU_HIGH_OVERLOAD_INT);
+	if (ret)
+		return ret;
+
+	data->is_ovp = false;
+	dev_info(data->dev, "%s %d overload threshold config done!\n", __func__, __LINE__);
+
+	return ret;
+}
+
 static int sc27xx_fgu_get_property(struct power_supply *psy,
 				   enum power_supply_property psp,
 				   union power_supply_propval *val)
@@ -2300,10 +2320,7 @@ static int sc27xx_fgu_get_property(struct power_supply *psy,
 			break;
 		}
 
-		ret = sc27xx_fgu_get_health(data, &value);
-		if (ret)
-			goto error;
-
+		sc27xx_fgu_get_health(data, &value);
 		val->intval = value;
 		break;
 
@@ -2592,7 +2609,14 @@ static int sc27xx_fgu_set_property(struct power_supply *psy,
 		dev_info(data->dev, "Battery debug OCV voltage = %d\n", val->intval);
 		break;
 	case POWER_SUPPLY_PROP_HEALTH:
-		if (val->intval == SC27XX_FGU_DEBUG_EN_CMD) {
+		if (val->intval == SC27XX_FGU_GOOD_HEALTH_CMD) {
+			data->is_ovp = false;
+
+			ret = regmap_update_bits(data->regmap, data->base + SC27XX_FGU_INT_EN,
+						 SC27XX_FGU_HIGH_OVERLOAD_INT,
+						 SC27XX_FGU_HIGH_OVERLOAD_INT);
+			break;
+		} else if (val->intval == SC27XX_FGU_DEBUG_EN_CMD) {
 			dev_info(data->dev, "Change Battery Health to debug mode\n");
 			data->debug_info.batt_health_debug_en = true;
 			data->debug_info.debug_batt_health = 1;
@@ -2608,7 +2632,7 @@ static int sc27xx_fgu_set_property(struct power_supply *psy,
 		}
 
 		data->debug_info.debug_batt_health = val->intval;
-		dev_info(data->dev, "Battery debug  Battery Health = %d\n", val->intval);
+		dev_info(data->dev, "Battery debug  Battery Health = %#x\n", val->intval);
 		break;
 
 	case POWER_SUPPLY_PROP_VOLTAGE_MAX_DESIGN:
@@ -2877,6 +2901,20 @@ static void sc27xx_fgu_capacity_calibration(struct sc27xx_fgu_data *data, bool i
 	}
 }
 
+static void sc27xx_fgu_batt_ovp_notfiy(struct sc27xx_fgu_data *data)
+{
+	int ret;
+
+	data->is_ovp = true;
+	ret = regmap_update_bits(data->regmap, data->base + SC27XX_FGU_INT_EN,
+				 SC27XX_FGU_HIGH_OVERLOAD_INT, 0);
+	if (ret) {
+		dev_err(data->dev, "failed to disable high overload int\n");
+	}
+
+	cm_notify_event(data->battery, CM_EVENT_BATT_OVERVOLTAGE, NULL);
+}
+
 static irqreturn_t sc27xx_fgu_interrupt(int irq, void *dev_id)
 {
 	struct sc27xx_fgu_data *data = dev_id;
@@ -2903,6 +2941,12 @@ static irqreturn_t sc27xx_fgu_interrupt(int irq, void *dev_id)
 	if (status & SC27XX_FGU_RELX_CNT_STS) {
 		data->slp_cap_calib.relax_cnt_int_ocurred = true;
 		dev_info(data->dev, "%s,  RELX_CNT_INT ocurred!!\n", __func__);
+	}
+
+	if (status & SC27XX_FGU_HIGH_OVERLOAD_INT) {
+		mutex_unlock(&data->lock);
+		sc27xx_fgu_batt_ovp_notfiy(data);
+		return IRQ_HANDLED;
 	}
 
 	/*
@@ -4091,6 +4135,11 @@ static int sc27xx_fgu_parse_sprd_battery_info(struct sc27xx_fgu_data *data,
 	else
 		dev_warn(data->dev, "no fgu first_calib_volt support\n");
 
+	if (info->batt_ovp_threshold_uv > 0)
+		data->batt_ovp_threshold = info->batt_ovp_threshold_uv / 1000;
+	else
+		dev_warn(data->dev, "no fgu battery ovp threshold support\n");
+
 	if (info->first_capacity_calibration_capacity > 0)
 		data->first_calib_cap = info->first_capacity_calibration_capacity;
 	else
@@ -4250,7 +4299,13 @@ static int sc27xx_fgu_hw_init(struct sc27xx_fgu_data *data,
 		dev_err(data->dev, "failed to get boot capacity\n");
 		goto disable_clk;
 	}
-
+	if (data->batt_ovp_threshold) {
+		ret = sc27xx_fgu_batt_ovp_threshold_config(data);
+		if (ret) {
+			dev_err(data->dev, "failed to set overload thershold config\n");
+			goto disable_clk;
+		}
+	}
 	/*
 	 * Convert battery capacity to the corresponding initial coulomb counter
 	 * and set into coulomb counter registers.

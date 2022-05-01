@@ -70,6 +70,7 @@ enum cm_event_types {
 	CM_EVENT_WL_CHG_START_STOP,
 	CM_EVENT_FAST_CHARGE,
 	CM_EVENT_INT,
+	CM_EVENT_BATT_OVERVOLTAGE,
 	CM_EVENT_OTHERS,
 };
 
@@ -99,6 +100,7 @@ enum cm_charge_status {
 	CM_CHARGE_VOLTAGE_ABNORMAL = BIT(2),
 	CM_CHARGE_HEALTH_ABNORMAL = BIT(3),
 	CM_CHARGE_DURATION_ABNORMAL = BIT(4),
+	CM_CHARGE_BATT_OVERVOLTAGE = BIT(5),
 };
 
 enum cm_fast_charge_command {
@@ -127,6 +129,7 @@ enum cm_health_command {
 	CM_FAULT_HEALTH_CMD,
 	CM_ALARM_HEALTH_CMD,
 	CM_BUS_ERR_HEALTH_CMD,
+	CM_GOOD_HEALTH_CMD = 0x7f7f7f7f,
 };
 
 enum cm_current_now_command {

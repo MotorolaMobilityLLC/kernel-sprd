@@ -103,6 +103,8 @@ struct sprd_battery_info {
 	int charge_full_design_uah;
 	/* microVolts */
 	int voltage_min_design_uv;
+	/* microVolts */
+	int batt_ovp_threshold_uv;
 	/* microAmps */
 	int precharge_current_ua;
 	/* microAmps */

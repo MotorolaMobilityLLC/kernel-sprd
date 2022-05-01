@@ -667,6 +667,7 @@ int sprd_battery_get_battery_info(struct power_supply *psy, struct sprd_battery_
 
 	info->charge_full_design_uah         = -EINVAL;
 	info->voltage_min_design_uv          = -EINVAL;
+	info->batt_ovp_threshold_uv          = -EINVAL;
 	info->precharge_current_ua           = -EINVAL;
 	info->charge_term_current_ua         = -EINVAL;
 	info->constant_charge_current_max_ua = -EINVAL;
@@ -738,6 +739,8 @@ int sprd_battery_get_battery_info(struct power_supply *psy, struct sprd_battery_
 			     &info->charge_full_design_uah);
 	of_property_read_u32(battery_np, "voltage-min-design-microvolt",
 			     &info->voltage_min_design_uv);
+	of_property_read_u32(battery_np, "batt-ovp-threshold-microvolt",
+			     &info->batt_ovp_threshold_uv);
 	of_property_read_u32(battery_np, "precharge-current-microamp",
 			     &info->precharge_current_ua);
 	of_property_read_u32(battery_np, "charge-term-current-microamp",
