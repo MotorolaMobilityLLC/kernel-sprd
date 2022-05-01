@@ -1,0 +1,4 @@
+config SND_SOC_UNISOC_CODEC_DUMMY
+	tristate "Sprd codec dummy"
+	help
+	  If the codec is the dummy, set this to Y or M, else N.

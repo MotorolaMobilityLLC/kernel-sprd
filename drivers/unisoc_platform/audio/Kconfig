@@ -1,0 +1,11 @@
+# SPDX-License-Identifier: GPL-2.0-only
+#
+# UNISOC audio driver
+#
+
+menu "UNISOC audio devices"
+
+source "drivers/unisoc_platform/audio/sprd/Kconfig"
+source "drivers/unisoc_platform/audio/sprd_audio/Kconfig"
+
+endmenu

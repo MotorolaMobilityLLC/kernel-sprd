@@ -1,0 +1,119 @@
+config SND_SOC_UNISOC
+	tristate "ASoC Audio for the UNISOC platform"
+	depends on ARCH_SPRD
+	help
+	  Say Y or M here if you want to build Spreadtrum ASOC card.
+
+config SND_SOC_UNISOC_I2S
+	tristate #"ASoC Spreadtrum AP I2S sound card(bypass VBC) support"
+	help
+	  Say Y if you want to build in to kernel, Say M for ko module.
+	  this option will build Spreadtrum AP I2S driver for card bypasses
+	  VBC module, e.g. external codec or like BT/Digital FM etc.
+
+config SND_SOC_UNISOC_VBC_V4_SC2730
+	tristate "ASoC Spreadtrum sound card with vbc v4 and codec sc2730"
+	select UNISOC_AUDIO_AGDSP_ACCESS
+	select UNISOC_AUDIO_MEMORY_MANAGER
+	select UNISOC_AUDIO_SIPC
+	select UNISOC_AUDIO_MCDT
+	select UNISOC_AUDIO_DSP_DUMP
+	select UNISOC_AUDIO_CPBOOT
+	select UNISOC_HW_DEVICE_DVFS_AGCP
+	select SND_SOC_UNISOC_VBC_V4
+	select SND_SOC_UNISOC_CODEC_SC2730
+	select SND_SOC_UNISOC_CODEC_DUMMY
+	select SND_SOC_UNISOC_AUDIO_DMAENGINE
+	select SND_SOC_COMPRESS
+	help
+	  Say Y or M here if you want to add support for ASoC audio on
+	  Spreadtrum boards using the VBC v4 and the sc2730 codec.
+	  ASOC machine with cpu dai vbc v4 and codec dai sc2730.
+	  This vbc is in audio cp, so we should select communication config
+	  and data transmit config.
+
+config SND_SOC_UNISOC_VBC_V4_SC2730_MCDT_R2P0
+	tristate "ASoC Spreadtrum sound card with vbc v4 and codec sc2730 mcdt r2p0"
+	select UNISOC_AUDIO_AGDSP_ACCESS
+	select UNISOC_AUDIO_MEMORY_MANAGER
+	select UNISOC_AUDIO_SIPC
+	select UNISOC_AUDIO_MCDT_R2P0
+	select UNISOC_AUDIO_DSP_DUMP
+	select UNISOC_AUDIO_CPBOOT
+	select UNISOC_HW_DEVICE_DVFS_AGCP
+	select SND_SOC_UNISOC_VBC_V4
+	select SND_SOC_UNISOC_CODEC_SC2730
+	select SND_SOC_UNISOC_CODEC_DUMMY
+	select SND_SOC_UNISOC_AUDIO_DMAENGINE
+	select SND_SOC_COMPRESS
+	help
+	  Say Y or M here if you want to add support for ASoC audio on
+	  Spreadtrum boards using the VBC v4 and the sc2730 codec and mcdt r2p0.
+	  ASOC machine with cpu dai vbc v4 and codec dai sc2730.
+	  This vbc is in audio cp, so we should select communication config
+	  and data transmit config.
+
+config SND_SOC_UNISOC_VBC_V4_UMP9620_MCDT_R2P0
+	tristate "ASoC Spreadtrum sound card with vbc v4 and codec ump9620 and mcdt r2p0"
+	select UNISOC_AUDIO_AGDSP_ACCESS
+	select UNISOC_AUDIO_MEMORY_MANAGER
+	select UNISOC_AUDIO_SIPC
+	select UNISOC_AUDIO_MCDT_R2P0
+	select UNISOC_AUDIO_DSP_DUMP
+	select UNISOC_AUDIO_CPBOOT
+	select UNISOC_HW_DEVICE_DVFS_AGCP
+	select SND_SOC_UNISOC_VBC_V4
+	select SND_SOC_UNISOC_CODEC_UMP9620
+	select SND_SOC_UNISOC_CODEC_DUMMY
+	select SND_SOC_UNISOC_AUDIO_DMAENGINE
+	select SND_SOC_COMPRESS
+	help
+	  Say Y or M here if you want to add support for ASoC audio on
+	  Spreadtrum boards using the VBC v4 and the ump9620 codec.
+	  ASOC machine with cpu dai vbc v4 and codec dai ump9620.
+	  This vbc is in audio cp, so we should select communication config
+	  and data transmit config.
+
+config SND_SOC_UNISOC_I2S_DUMMY
+	tristate "ASoC Spreadtrum sound card with AP I2S and a dummy codec"
+	select SND_SOC_UNISOC_I2S
+	help
+	  Say Y or M here if you want to add support for ASoC audio on Spreadtrum
+	  boards using the AP I2S and a dummy codec.
+
+config SND_SOC_UNISOC_R1P0V3_SC2721
+	tristate "ASoC Spreadtrum sound card with vbc r1p0 v3 and codec sc2721"
+	select UNISOC_AUDIO_MEMORY_MANAGER
+	select SND_SOC_UNISOC_AUDIO_TWO_STAGE_DMAENGINE
+	select SND_SOC_UNISOC_VBC_R1P0V3
+	select SND_SOC_UNISOC_CODEC_SC2721
+	select SND_SOC_UNISOC_CODEC_DUMMY
+	select SND_SOC_UNISOC_VAUDIO
+	help
+	  Sound card with vbc r1p0 v3 and codec sc2721.
+	  Say Y or M here if you want to add support for ASoC audio on Spreadtrum
+	  boards using the R1P0 V3 VBC and the sc2721 codec.
+
+config SND_SOC_UNISOC_SHARKL3
+	tristate "ASoC Spreadtrum sound card for sharkl3 chip"
+	help
+	  Say Y or M here if you want to add support for ASoC audio on Spreadtrum
+	  boards using sharkl3 chip
+config SND_SOC_UNISOC_SHARKLE
+	tristate "ASoC Spreadtrum sound card for sharklE chip"
+	help
+	  Say Y or M here if you want to add support for ASoC audio on Spreadtrum
+	  boards using sharklE chip
+
+config SND_SOC_UNISOC_PIKE2
+	tristate "ASoC Spreadtrum sound card for pike2 chip"
+	help
+	  Say Y or M here if you want to add support for ASoC audio on Spreadtrum
+	  boards using pike2 chip
+
+source "drivers/unisoc_platform/audio/sprd/dai/vbc/Kconfig"
+source "drivers/unisoc_platform/audio/sprd/dai/i2s/Kconfig"
+source "drivers/unisoc_platform/audio/sprd/dai/vaudio/Kconfig"
+source "drivers/unisoc_platform/audio/sprd/platform/Kconfig"
+source "drivers/unisoc_platform/audio/sprd/codec/sprd/Kconfig"
+source "drivers/unisoc_platform/audio/sprd/codec/dummy-codec/Kconfig"
