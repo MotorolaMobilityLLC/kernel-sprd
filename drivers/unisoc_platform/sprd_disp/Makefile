@@ -66,7 +66,8 @@ sprd-drm-y += \
 	sysfs/sysfs_dpu.o \
 	sysfs/sysfs_dphy.o \
 	sysfs/sysfs_dsi.o \
-	sysfs/sysfs_panel.o
+	sysfs/sysfs_panel.o \
+	sysfs/sysfs_backlight.o
 
 obj-$(CONFIG_UNISOC_DISP) += sprd-drm.o
 

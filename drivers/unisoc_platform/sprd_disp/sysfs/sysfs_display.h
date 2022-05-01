@@ -10,6 +10,7 @@
 
 extern struct class *display_class;
 
+int sprd_backlight_sysfs_init(struct device *dev);
 int sprd_display_class_init(void);
 int sprd_dpu_sysfs_init(struct device *dev);
 int sprd_dsi_sysfs_init(struct device *dev);

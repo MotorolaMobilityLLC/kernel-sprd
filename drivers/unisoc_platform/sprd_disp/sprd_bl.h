@@ -9,6 +9,7 @@
 struct sprd_backlight {
 	/* pwm backlight parameters */
 	struct pwm_device *pwm;
+	struct device dev;
 	u32 max_level;
 	u32 min_level;
 	u32 dft_level;

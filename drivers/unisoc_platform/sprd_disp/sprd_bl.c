@@ -13,6 +13,7 @@
 
 #include "sprd_bl.h"
 #include "sprd_dpu.h"
+#include "sysfs/sysfs_display.h"
 
 #define U_MAX_LEVEL	255
 #define U_MIN_LEVEL	0
@@ -160,6 +161,26 @@ static int sprd_backlight_parse_dt(struct device *dev,
 	return 0;
 }
 
+static int sprd_backlight_device_create(struct sprd_backlight *bl,
+				struct device *parent, struct backlight_device *bd)
+{
+	int ret;
+
+	bl->dev.class = display_class;
+	bl->dev.parent = parent;
+	bl->dev.of_node = parent->of_node;
+	dev_set_name(&bl->dev, "backlight");
+	dev_set_drvdata(&bl->dev, bd);
+
+	ret = device_register(&bl->dev);
+	if (ret) {
+		DRM_ERROR("backlight device register failed\n");
+		return ret;
+	}
+
+	return 0;
+}
+
 static int sprd_backlight_probe(struct platform_device *pdev)
 {
 	struct backlight_device *bd;
@@ -209,9 +230,20 @@ static int sprd_backlight_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "failed to calc default brightness level\n");
 		return -EINVAL;
 	}
-	printk("current brightness:%d\n",bd->props.brightness);
+
+	DRM_INFO("current brightness:%d\n",bd->props.brightness);
 	backlight_update_status(bd);
+
 	platform_set_drvdata(pdev, bd);
+
+	ret = sprd_backlight_device_create(bl, &pdev->dev, bd);
+	if (ret)
+		return ret;
+
+	ret = sprd_backlight_sysfs_init(&bl->dev);
+	if (ret)
+		return ret;
+
 	DRM_WARN("sprd_backlight_probe\n");
 	return 0;
 }
