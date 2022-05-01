@@ -290,9 +290,10 @@ static int ion_e_show_mem_handler(struct notifier_block *nb,
 
 	pr_info("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
 	pr_info("Enhanced Mem-info :ION\n");
-	plist_for_each_entry(heap, &dev->heaps, node)
-	pr_info("%s: heap_id %d\n", __func__, heap->id);
-	ion_debug_heap_show_printk(heap, &total_used);
+	plist_for_each_entry(heap, &dev->heaps, node) {
+		pr_info("%s: heap_id %d\n", __func__, heap->id);
+		ion_debug_heap_show_printk(heap, &total_used);
+	}
 
 	pr_info("Total allocated from Buddy: %lu kB\n", total_used / 1024);
 	return 0;
