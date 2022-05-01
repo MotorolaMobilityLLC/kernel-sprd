@@ -183,7 +183,7 @@
 #define REG_CABC_CFG5					0x5A4
 #define REG_UD_CFG0					0x5B0
 #define REG_UD_CFG1					0x5B4
-#define REG_CABC_HIST0					0x5B4
+#define REG_CABC_HIST0					0x600
 #define REG_GAMMA_LUT_ADDR				0x780
 #define REG_GAMMA_LUT_RDATA				0x784
 #define REG_SLP_LUT_ADDR				0x798
