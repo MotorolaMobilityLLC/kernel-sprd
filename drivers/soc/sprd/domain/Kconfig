@@ -1,0 +1,8 @@
+# SPDX-License-Identifier: GPL-2.0
+config SPRD_VSP_PW_DOMAIN
+	tristate "SPRD vsp power domain"
+	depends on ARCH_SPRD || COMPILE_TEST
+	select PM_GENERIC_DOMAINS if PM
+	help
+	  When you select this feature, it will enable the vsp power domain.
+
