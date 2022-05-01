@@ -75,8 +75,8 @@ struct sprd_sip_svc_perf_ops {
 struct sprd_sip_svc_dbg_ops {
 	struct sprd_sip_svc_rev_info rev;
 
-	int (*set_hang_hdl)(uintptr_t hdl, uintptr_t pgd);
-	int (*get_hang_ctx)(uintptr_t id, uintptr_t *val);
+	int (*set_hang_hdl)(uintptr_t hdl, uintptr_t pdg, unsigned long level);
+	int (*get_hang_ctx)(unsigned long id, unsigned long core_id, uintptr_t *val);
 };
 
 /**
