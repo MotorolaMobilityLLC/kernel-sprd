@@ -33,6 +33,8 @@ struct ipv6_iface_id {
 
 static struct ipv6_iface_id gl_ipv6_iface_id[MAX_IFACE_NUM];
 
+static const char * const iface_name[] = {"seth_lte", "sipa_eth", NULL};
+
 static ssize_t sn_v6_iface_id_write(struct file *filp,
 				    const char __user *buffer,
 				    size_t count, loff_t *ppos)
@@ -130,11 +132,9 @@ err_v6_iface:
 	return -ENOMEM;
 }
 
-#define IFACE_NAME "seth_lte"
-
 static int sn_ip6_parse_ra_options(struct sk_buff *skb)
 {
-	int err;
+	int err, i;
 	int optlen;
 	u32 addr_flags = 0;
 	struct ra_msg *ra_msg = (struct ra_msg *)skb_transport_header(skb);
@@ -181,12 +181,14 @@ static int sn_ip6_parse_ra_options(struct sk_buff *skb)
 		pr_debug("skb %p, nd_opt_type %d\n", skb, nd_opt->nd_opt_type);
 		switch (nd_opt->nd_opt_type) {
 		case ND_OPT_PREFIX_INFO:
+			for (i = 0; iface_name[i]; i++) {
+				if (!strncmp(dev->name, iface_name[i], strlen(iface_name[i])) &&
+				    !kstrtol(&dev->name[strlen(iface_name[i])], 10, &index))
+					break;
 
-			if (strncmp(dev->name, IFACE_NAME, strlen(IFACE_NAME)))
-				goto put;
-
-			if (kstrtol(&dev->name[strlen(IFACE_NAME)], 10, &index))
-				goto put;
+				if (!iface_name[i + 1])
+					goto put;
+			}
 
 			pinfo = (struct prefix_info *)nd_opt;
 			pr_debug("skb %p RA: %pI6, %d\n", skb, &pinfo->prefix, pinfo->prefix_len);
@@ -195,7 +197,7 @@ static int sn_ip6_parse_ra_options(struct sk_buff *skb)
 				memcpy(&gl_ipv6_iface_id[index].v6_iface_id, &pinfo->prefix, 8);
 
 				pr_debug("skb %p - index %ld global ipv6: %pI6, %pI6\n", skb, index,
-					 &pinfo->prefix, &gl_ipv6_iface_id[index].v6_iface_id);
+					&pinfo->prefix, &gl_ipv6_iface_id[index].v6_iface_id);
 
 				v6_iface_id = gl_ipv6_iface_id[index].v6_iface_id;
 				err = addrconf_prefix_rcv_add_addr(net, dev, pinfo, in6_dev,
