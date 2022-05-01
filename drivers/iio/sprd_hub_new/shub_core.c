@@ -59,17 +59,6 @@ static u8 sipc_rx_data[MAX_RX_LEN];
 /* for debug flush event */
 static int flush_setcnt;
 static int flush_getcnt;
-/* sensor id */
-static struct hw_sensor_id_tag hw_sensor_id[_HW_SENSOR_TOTAL] = {
-	{0, 0xFF, 0xFF, 0, ""},
-	{0, 0xFF, 0xFF, 0, ""},
-	{0, 0xFF, 0xFF, 0, ""},
-	{0, 0xFF, 0xFF, 0, ""},
-	{0, 0xFF, 0xFF, 0, ""},
-	{0, 0xFF, 0xFF, 0, ""},
-	{0, 0xFF, 0xFF, 0, ""},
-};
-
 struct shub_data *g_sensor;
 static int shub_send_event_to_iio(struct shub_data *sensor, u8 *data, u16 len);
 static void shub_synctimestamp(struct shub_data *sensor);
@@ -742,8 +731,6 @@ static ssize_t calibrator_data_store(struct device *dev,
 
 	sensor_type = (int)buf[0];
 
-
-
 	memcpy(data, &buf[1], CALIBRATION_DATA_LENGTH);
 
 	err = shub_send_command(sensor, sensor_type,
@@ -837,33 +824,42 @@ static ssize_t raw_data_ps_show(struct device *dev,
 }
 static DEVICE_ATTR_RO(raw_data_ps);
 
+static ssize_t sensor_info_store(struct device *dev,
+				     struct device_attribute *attr,
+				     const char *buf, size_t count)
+{
+	struct shub_data *sensor = dev_get_drvdata(dev);
+	int err = 0;
+
+	g_sensor->sensor_info_count = 0;
+	err = shub_send_command(sensor, HANDLE_MAX,
+				SHUB_GET_SENSORINFO_SUBTYPE,
+				NULL, 0);
+	if (err < 0) {
+		dev_err(&sensor->sensor_pdev->dev, "get sensor info Fail\n");
+		return err;
+	}
+
+	return count;
+}
+
 static ssize_t sensor_info_show(struct device *dev,
 				struct device_attribute *attr, char *buf)
 {
-	int i;
-	int len = 0;
-	const char * const SENSOR_TYPENAME[] = {
-		"acc", "mag", "gyro",
-		"prox", "light", "prs", "color"};
+	int i, len = 0;
+	struct shub_data *sensor = dev_get_drvdata(dev);
 
-	for (i = 0; i < _HW_SENSOR_TOTAL;) {
-		len += snprintf(buf + len, 16, "%d %s name:",
-			(hw_sensor_id[i].id_status == _IDSTA_OK),
-			SENSOR_TYPENAME[i]);
-
-		if (hw_sensor_id[i].id_status == _IDSTA_OK) {
-			len += snprintf(buf + len,
-					sizeof(hw_sensor_id[i].pname),
-					"%s", hw_sensor_id[i].pname);
-		}
-
-		len += sprintf(buf + len, "\n");
-		i += 1;
+	for (i = 0; i < ARRAY_SIZE(sensor->sensor_info_list); i++) {
+		if (sensor->sensor_info_list[i].name[0] != 0)
+			len += snprintf(buf + len, PAGE_SIZE - len,
+			"name:%s vendor:%s version:%d\n",
+			sensor->sensor_info_list[i].name,
+			sensor->sensor_info_list[i].vendor,
+			sensor->sensor_info_list[i].version);
 	}
-
 	return len;
 }
-static DEVICE_ATTR_RO(sensor_info);
+static DEVICE_ATTR_RW(sensor_info);
 
 static ssize_t cm4_operate_show(struct device *dev,
 				struct device_attribute *attr, char *buf)
@@ -891,7 +887,7 @@ static ssize_t cm4_operate_show(struct device *dev,
 		 "\top: 1:read 2:write 3:check_reg 4:set_delay 5:set_gpio "
 		 "6:algo_log_control\n"
 		 "\tintf(i2c interface): 0:i2c0 1:i2c1\n"
-		 "\taddr: IC slave_addr.if find from opcode,need >>1\n"
+		 "\taddr: IC write address.\n"
 		 "\treg: IC reg or set_gpio reg\n"
 		 "\tvalue: i2c writen value or set_gpio value "
 		 "or control algo log(0 or 1)\n"

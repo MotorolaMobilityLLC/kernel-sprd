@@ -158,6 +158,23 @@ struct sensor_cali_store {
 	u8 udata[CALIBRATION_DATA_LENGTH];
 };
 
+#pragma pack(1)
+struct sensor_info_t {
+	char name[20];
+	char vendor[20];
+	int32_t position;
+	int32_t version;
+	int32_t handle;
+	float maxrange;
+	float resolution;
+	float power;
+	int32_t mindelay_us;
+	uint32_t fifo_reserved_event_count;
+	uint32_t fifo_max_event_count;
+	int32_t maxdelay_us;
+};
+#pragma pack()
+
 struct shub_data {
 	struct platform_device *sensor_pdev;
 	enum shub_mode mcu_mode;
@@ -211,6 +228,8 @@ struct shub_data {
 	struct notifier_block early_suspend;
 	struct notifier_block shub_reboot_notifier;
 	u8 cm4_operate_data[6];
+	struct sensor_info_t sensor_info_list[20];
+	u32 sensor_info_count;
 };
 
 /* hw sensor id */

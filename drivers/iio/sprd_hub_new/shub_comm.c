@@ -45,7 +45,6 @@ static void shub_get_data(struct cmd_data *packet)
 	case SHUB_GET_LIGHT_RAWDATA_SUBTYPE:
 	case SHUB_GET_PROXIMITY_RAWDATA_SUBTYPE:
 	case SHUB_GET_FWVERSION_SUBTYPE:
-	case SHUB_GET_SENSORINFO_SUBTYPE:
 		g_sensor->readcmd_callback(g_sensor, packet->buff,
 					packet->length);
 		break;
@@ -55,6 +54,18 @@ static void shub_get_data(struct cmd_data *packet)
 			packet->subtype,
 			packet->buff,
 			packet->length);
+		break;
+
+	case SHUB_GET_SENSORINFO_SUBTYPE:
+		if (g_sensor->sensor_info_count >= ARRAY_SIZE(g_sensor->sensor_info_list)) {
+			pr_err("Fail! sensor_info_count=%d out of range\n",
+				g_sensor->sensor_info_count);
+			break;
+		}
+		memcpy(&g_sensor->sensor_info_list[g_sensor->sensor_info_count],
+		       packet->buff,
+		       sizeof(struct sensor_info_t));
+		g_sensor->sensor_info_count += 1;
 		break;
 
 	default:
