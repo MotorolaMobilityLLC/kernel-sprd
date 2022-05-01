@@ -258,6 +258,8 @@
   drmm_mode_config_init
   __drm_dbg
   __drm_err
+  __drm_atomic_helper_crtc_destroy_state
+  __drm_atomic_helper_crtc_duplicate_state
   drm_atomic_helper_plane_destroy_state
   drm_atomic_helper_plane_duplicate_state
   drm_atomic_helper_plane_reset
@@ -267,7 +269,7 @@
   drm_dev_printk
   drm_dev_put
   drm_dev_register
-  
+
   drm_gem_fence_array_add
   drm_gem_fence_array_add_implicit
   drm_gem_lock_reservations
