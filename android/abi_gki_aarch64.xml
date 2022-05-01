@@ -2016,6 +2016,7 @@
       <elf-symbol name='extcon_find_edev_by_node' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x63984213'/>
       <elf-symbol name='extcon_get_edev_by_phandle' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x2d651d1d'/>
       <elf-symbol name='extcon_get_edev_name' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xe42ce088'/>
+      <elf-symbol name='extcon_get_extcon_dev' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x40c6fdbd'/>
       <elf-symbol name='extcon_get_property' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xd5c78f44'/>
       <elf-symbol name='extcon_get_state' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x31a50381'/>
       <elf-symbol name='extcon_register_notifier' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xf8c48260'/>
@@ -131184,6 +131185,10 @@
       <function-decl name='extcon_get_edev_name' mangled-name='extcon_get_edev_name' filepath='drivers/extcon/extcon.c' line='1406' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='extcon_get_edev_name'>
         <parameter type-id='c0d6fada' name='edev' filepath='drivers/extcon/extcon.c' line='1406' column='1'/>
         <return type-id='80f4b756'/>
+      </function-decl>
+      <function-decl name='extcon_get_extcon_dev' mangled-name='extcon_get_extcon_dev' filepath='drivers/extcon/extcon.c' line='867' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='extcon_get_extcon_dev'>
+        <parameter type-id='80f4b756' name='extcon_name' filepath='drivers/extcon/extcon.c' line='867' column='1'/>
+        <return type-id='c0d6fada'/>
       </function-decl>
       <function-decl name='extcon_get_property' mangled-name='extcon_get_property' filepath='drivers/extcon/extcon.c' line='615' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='extcon_get_property'>
         <parameter type-id='c0d6fada' name='edev' filepath='drivers/extcon/extcon.c' line='615' column='1'/>
