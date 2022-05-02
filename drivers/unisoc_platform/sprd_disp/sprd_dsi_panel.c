@@ -66,24 +66,28 @@ static int sprd_panel_unprepare(struct drm_panel *p)
 
 	DRM_INFO("%s()\n", __func__);
 
-	if (panel->info.reset_gpio) {
-		items = panel->info.rst_off_seq.items;
-		timing = panel->info.rst_off_seq.timing;
-		for (i = 0; i < items; i++) {
-			gpiod_direction_output(panel->info.reset_gpio,
-						timing[i].level);
-			mdelay(timing[i].delay);
+	if (!panel->info.gpio_request_result) {
+		DRM_ERROR("GPIO request failed, do not config again\n");
+	} else {
+		if (panel->info.avee_gpio) {
+			gpiod_direction_output(panel->info.avee_gpio, 0);
+			mdelay(5);
 		}
-	}
 
-	if (panel->info.avee_gpio) {
-		gpiod_direction_output(panel->info.avee_gpio, 0);
-		mdelay(5);
-	}
+		if (panel->info.avdd_gpio) {
+			gpiod_direction_output(panel->info.avdd_gpio, 0);
+			mdelay(5);
+		}
 
-	if (panel->info.avdd_gpio) {
-		gpiod_direction_output(panel->info.avdd_gpio, 0);
-		mdelay(5);
+		if (panel->info.reset_gpio) {
+			items = panel->info.rst_off_seq.items;
+			timing = panel->info.rst_off_seq.timing;
+			for (i = 0; i < items; i++) {
+				gpiod_direction_output(panel->info.reset_gpio,
+							timing[i].level);
+				mdelay(timing[i].delay);
+			}
+		}
 	}
 
 	regulator_disable(panel->supply);
@@ -144,23 +148,27 @@ static int sprd_panel_prepare(struct drm_panel *p)
 	if (ret < 0)
 		DRM_ERROR("enable lcd regulator failed\n");
 
-	if (panel->info.avdd_gpio) {
-		gpiod_direction_output(panel->info.avdd_gpio, 1);
-		mdelay(5);
-	}
+	if (!panel->info.gpio_request_result) {
+		DRM_ERROR("GPIO request failed, do not config again\n");
+	} else {
+		if (panel->info.avdd_gpio) {
+			gpiod_direction_output(panel->info.avdd_gpio, 1);
+			mdelay(5);
+		}
 
-	if (panel->info.avee_gpio) {
-		gpiod_direction_output(panel->info.avee_gpio, 1);
-		mdelay(5);
-	}
+		if (panel->info.avee_gpio) {
+			gpiod_direction_output(panel->info.avee_gpio, 1);
+			mdelay(5);
+		}
 
-	if (panel->info.reset_gpio) {
-		items = panel->info.rst_on_seq.items;
-		timing = panel->info.rst_on_seq.timing;
-		for (i = 0; i < items; i++) {
-			gpiod_direction_output(panel->info.reset_gpio,
-						timing[i].level);
-			mdelay(timing[i].delay);
+		if (panel->info.reset_gpio) {
+			items = panel->info.rst_on_seq.items;
+			timing = panel->info.rst_on_seq.timing;
+			for (i = 0; i < items; i++) {
+				gpiod_direction_output(panel->info.reset_gpio,
+							timing[i].level);
+				mdelay(timing[i].delay);
+			}
 		}
 	}
 
@@ -420,23 +428,31 @@ static void sprd_panel_esd_work_func(struct work_struct *work)
 static int sprd_panel_gpio_request(struct device *dev,
 			struct sprd_panel *panel)
 {
+	panel->info.gpio_request_result = true;
+
 	panel->info.avdd_gpio = devm_gpiod_get_optional(dev,
 					"avdd", GPIOD_ASIS);
-	if (IS_ERR_OR_NULL(panel->info.avdd_gpio))
+	if (IS_ERR_OR_NULL(panel->info.avdd_gpio)) {
+		panel->info.gpio_request_result = false;
 		DRM_WARN("can't get panel avdd gpio: %ld\n",
 				 PTR_ERR(panel->info.avdd_gpio));
+	}
 
 	panel->info.avee_gpio = devm_gpiod_get_optional(dev,
 					"avee", GPIOD_ASIS);
-	if (IS_ERR_OR_NULL(panel->info.avee_gpio))
+	if (IS_ERR_OR_NULL(panel->info.avee_gpio)) {
+		panel->info.gpio_request_result = false;
 		DRM_WARN("can't get panel avee gpio: %ld\n",
 				 PTR_ERR(panel->info.avee_gpio));
+	}
 
 	panel->info.reset_gpio = devm_gpiod_get_optional(dev,
 					"reset", GPIOD_ASIS);
-	if (IS_ERR_OR_NULL(panel->info.reset_gpio))
+	if (IS_ERR_OR_NULL(panel->info.reset_gpio)) {
+		panel->info.gpio_request_result = false;
 		DRM_WARN("can't get panel reset gpio: %ld\n",
 				 PTR_ERR(panel->info.reset_gpio));
+	}
 
 	return 0;
 }
