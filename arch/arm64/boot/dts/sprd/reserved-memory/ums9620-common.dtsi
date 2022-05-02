@@ -1,0 +1,4 @@
+#include "modem-5g-common.dtsi"
+/ {
+
+};

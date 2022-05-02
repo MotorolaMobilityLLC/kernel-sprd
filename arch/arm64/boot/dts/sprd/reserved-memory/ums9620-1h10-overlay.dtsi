@@ -1,0 +1,9 @@
+&reserved_memory {
+	ai_reserved: ai@f8a10000 {
+		reg = <0x0 0xf8a10000 0x0 0x00600000>;
+	};
+
+	fd_reserved: faceid-mem@faa10000 {
+		reg = <0x0 0xfaa10000 0x0 0x02d00000>;
+	};
+};

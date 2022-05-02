@@ -1,0 +1,14 @@
+&reserved_memory {
+	widevine_reserved: widevine@e3800000 {
+		reg = <0x0 0xe3800000 0x0 0x0c800000>;
+	};
+
+	ai_reserved: ai@fcc10000 {
+		reg = <0x0 0xfcc10000 0x0 0x00600000>;
+	};
+
+	fd_reserved: faceid-mem@fd210000 {
+		reg = <0x0 0xfd210000 0x0 0x00500000>;
+	};
+};
+
