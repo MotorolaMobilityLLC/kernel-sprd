@@ -45,6 +45,7 @@ struct sprd_plane_state {
 
 struct sprd_plane {
 	struct drm_plane base;
+	struct drm_property *fbc_enabled_property;
 	struct drm_property *fbc_hsize_r_property;
 	struct drm_property *fbc_hsize_y_property;
 	struct drm_property *fbc_hsize_uv_property;

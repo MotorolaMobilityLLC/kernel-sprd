@@ -93,7 +93,6 @@ static void sprd_plane_atomic_update(struct drm_plane *drm_plane,
 	layer->rotation = drm_state->rotation;
 	layer->planes = drm_state->fb->format->num_planes;
 	layer->format = drm_state->fb->format->format;
-	layer->xfbc = drm_state->fb->modifier;
 
 	DRM_DEBUG("%s() alpha = %u, blending = %u, rotation = %u, y2r_coef = %u\n",
 		  __func__, layer->alpha, layer->blending,
@@ -195,7 +194,9 @@ static int sprd_plane_atomic_set_property(struct drm_plane *drm_plane,
 	DRM_DEBUG("%s() name = %s, val = %llu\n",
 		  __func__, property->name, val);
 
-	if (property == plane->fbc_hsize_r_property)
+	if (property == plane->fbc_enabled_property)
+		layer->xfbc = val;
+	else if (property == plane->fbc_hsize_r_property)
 		layer->fbc_hsize_r = val;
 	else if (property == plane->fbc_hsize_y_property)
 		layer->fbc_hsize_y = val;
@@ -228,7 +229,9 @@ static int sprd_plane_atomic_get_property(struct drm_plane *drm_plane,
 
 	DRM_DEBUG("%s() name = %s\n", __func__, property->name);
 
-	if (property == plane->fbc_hsize_r_property)
+	if (property == plane->fbc_enabled_property)
+		*val = layer->xfbc;
+	else if (property == plane->fbc_hsize_r_property)
 		*val = layer->fbc_hsize_r;
 	else if (property == plane->fbc_hsize_y_property)
 		*val = layer->fbc_hsize_y;
@@ -282,6 +285,14 @@ static int sprd_plane_create_properties(struct sprd_plane *plane, int index)
 
 	/* create zpos property */
 	drm_plane_create_zpos_immutable_property(&plane->base, index);
+
+	/* create fbc enabled property */
+	prop = drm_property_create_range(plane->base.dev, 0,
+			"FBC enabled", 0, UINT_MAX);
+	if (!prop)
+		return -ENOMEM;
+	drm_object_attach_property(&plane->base.base, prop, 0);
+	plane->fbc_enabled_property = prop;
 
 	/* create fbc header size property */
 	prop = drm_property_create_range(plane->base.dev, 0,
