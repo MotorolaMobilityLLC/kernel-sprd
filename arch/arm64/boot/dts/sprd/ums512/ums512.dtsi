@@ -236,7 +236,6 @@
 			#address-cells = <2>;
 			#size-cells = <2>;
 			ranges;
-
 		};
 
 		aon: aon {
@@ -348,4 +347,5 @@
 #include "efuse.dtsi"
 #include "mipi-serdes.dtsi"
 #include "vsp.dtsi"
-
+#include "cam.dtsi"
+#include "csi.dtsi"
