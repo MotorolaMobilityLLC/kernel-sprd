@@ -1271,6 +1271,7 @@
       <elf-symbol name='devm_fwnode_pwm_get' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x6908048e'/>
       <elf-symbol name='devm_gen_pool_create' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x85a3561a'/>
       <elf-symbol name='devm_get_clk_from_child' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xd0a776f6'/>
+      <elf-symbol name='devm_get_free_pages' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x35fdfc0e'/>
       <elf-symbol name='devm_gpio_free' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xe2802532'/>
       <elf-symbol name='devm_gpio_request' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x6ac4032f'/>
       <elf-symbol name='devm_gpio_request_one' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x5f7ca9b3'/>
@@ -4257,6 +4258,7 @@
       <elf-symbol name='si_mem_available' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x785a93b4'/>
       <elf-symbol name='si_meminfo' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x40c7247c'/>
       <elf-symbol name='si_swapinfo' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xec13c83c'/>
+      <elf-symbol name='sigprocmask' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x6a5fa363'/>
       <elf-symbol name='simple_attr_open' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xe012dc99'/>
       <elf-symbol name='simple_attr_read' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x17437125'/>
       <elf-symbol name='simple_attr_release' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xf3328877'/>
@@ -5208,6 +5210,7 @@
       <elf-symbol name='usleep_range_state' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xc3055d20'/>
       <elf-symbol name='utf16s_to_utf8s' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xabf32f29'/>
       <elf-symbol name='utf8s_to_utf16s' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x97adb487'/>
+      <elf-symbol name='uuid_gen' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x69e683de'/>
       <elf-symbol name='uuid_parse' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xb67fec0e'/>
       <elf-symbol name='v4l2_compat_ioctl32' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x4564d0a3'/>
       <elf-symbol name='v4l2_ctrl_auto_cluster' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xbd1a199d'/>
@@ -70659,6 +70662,7 @@
       <pointer-type-def type-id='5352365e' size-in-bits='64' id='9e6bb89c'/>
       <pointer-type-def type-id='fdb55010' size-in-bits='64' id='9e6d4b4e'/>
       <pointer-type-def type-id='be36c378' size-in-bits='64' id='9e6fc9aa'/>
+      <pointer-type-def type-id='daf33c64' size-in-bits='64' id='9e80f729'/>
       <class-decl name='lruvec' size-in-bits='9664' is-struct='yes' visibility='default' filepath='include/linux/mmzone.h' line='499' column='1' id='9e8c0698'>
         <data-member access='public' layout-offset-in-bits='0'>
           <var-decl name='lists' type-id='e4e01aff' visibility='default' filepath='include/linux/mmzone.h' line='500' column='1'/>
@@ -127203,6 +127207,12 @@
         <parameter type-id='80f4b756' name='con_id' filepath='drivers/clk/clk-devres.c' line='147' column='1'/>
         <return type-id='7d0bc0eb'/>
       </function-decl>
+      <function-decl name='devm_get_free_pages' mangled-name='devm_get_free_pages' filepath='drivers/base/devres.c' line='1116' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='devm_get_free_pages'>
+        <parameter type-id='fa0b179b' name='dev' filepath='drivers/base/devres.c' line='1116' column='1'/>
+        <parameter type-id='3eb7c31c' name='gfp_mask' filepath='drivers/base/devres.c' line='1117' column='1'/>
+        <parameter type-id='f0981eeb' name='order' filepath='drivers/base/devres.c' line='1117' column='1'/>
+        <return type-id='7359adad'/>
+      </function-decl>
       <function-decl name='devm_gpio_free' mangled-name='devm_gpio_free' filepath='drivers/gpio/gpiolib-devres.c' line='472' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='devm_gpio_free'>
         <parameter type-id='fa0b179b' name='dev' filepath='drivers/gpio/gpiolib-devres.c' line='472' column='1'/>
         <parameter type-id='f0981eeb' name='gpio' filepath='drivers/gpio/gpiolib-devres.c' line='472' column='1'/>
@@ -142669,6 +142679,12 @@
         <parameter type-id='0f561784' name='val' filepath='mm/swapfile.c' line='3396' column='1'/>
         <return type-id='48b5725f'/>
       </function-decl>
+      <function-decl name='sigprocmask' mangled-name='sigprocmask' filepath='kernel/signal.c' line='3077' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='sigprocmask'>
+        <parameter type-id='95e97e5e' name='how' filepath='kernel/signal.c' line='3077' column='1'/>
+        <parameter type-id='9e80f729' name='set' filepath='kernel/signal.c' line='3077' column='1'/>
+        <parameter type-id='9e80f729' name='oldset' filepath='kernel/signal.c' line='3077' column='1'/>
+        <return type-id='95e97e5e'/>
+      </function-decl>
       <function-decl name='simple_attr_open' mangled-name='simple_attr_open' filepath='fs/libfs.c' line='902' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='simple_attr_open'>
         <parameter type-id='7e666abe' name='inode' filepath='fs/libfs.c' line='902' column='1'/>
         <parameter type-id='77e79a4b' name='file' filepath='fs/libfs.c' line='902' column='1'/>
@@ -147620,6 +147636,10 @@
         <parameter type-id='323d93c1' name='pwcs' filepath='fs/nls/nls_base.c' line='133' column='1'/>
         <parameter type-id='95e97e5e' name='maxout' filepath='fs/nls/nls_base.c' line='133' column='1'/>
         <return type-id='95e97e5e'/>
+      </function-decl>
+      <function-decl name='uuid_gen' mangled-name='uuid_gen' filepath='lib/uuid.c' line='68' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='uuid_gen'>
+        <parameter type-id='f1397309' name='bu' filepath='lib/uuid.c' line='68' column='1'/>
+        <return type-id='48b5725f'/>
       </function-decl>
       <var-decl name='uuid_null' type-id='21109a44' mangled-name='uuid_null' visibility='default' filepath='lib/uuid.c' line='18' column='1' elf-symbol-id='uuid_null'/>
       <function-decl name='uuid_parse' mangled-name='uuid_parse' filepath='lib/uuid.c' line='129' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='uuid_parse'>
