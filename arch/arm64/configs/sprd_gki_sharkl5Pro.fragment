@@ -123,3 +123,8 @@ CONFIG_UNISOC_GNSS_DBG=m
 CONFIG_SPRD_SFP_SUPPORT=m
 # CONFIG_SPRD_IPA_SUPPORT is not set
 # end of SFP modules
+
+#
+# Unisoc Net Devices
+#
+CONFIG_UNISOC_SIPC_SETH=m

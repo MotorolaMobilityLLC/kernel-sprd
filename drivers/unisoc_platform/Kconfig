@@ -22,5 +22,6 @@ source "drivers/unisoc_platform/sprdwcn/Kconfig"
 source "drivers/unisoc_platform/kts_sync/Kconfig"
 source "drivers/unisoc_platform/sprd_gnss/Kconfig"
 source "drivers/unisoc_platform/sfp/Kconfig"
+source "drivers/unisoc_platform/net/Kconfig"
 
 endmenu

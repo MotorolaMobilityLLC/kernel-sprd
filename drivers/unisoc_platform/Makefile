@@ -13,3 +13,4 @@ obj-$(CONFIG_UNISOC_WCN_BSP)	+= sprdwcn/
 obj-$(CONFIG_TIMESTAMP_SYNC)	+= kts_sync/
 obj-$(CONFIG_UNISOC_GNSS)	+= sprd_gnss/
 obj-$(CONFIG_SPRD_SFP_SUPPORT)	+= sfp/
+obj-y += net/
