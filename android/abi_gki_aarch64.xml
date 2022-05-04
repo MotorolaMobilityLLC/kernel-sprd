@@ -440,6 +440,7 @@
       <elf-symbol name='__traceiter_workqueue_execute_end' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xfd7ca165'/>
       <elf-symbol name='__traceiter_workqueue_execute_start' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x6b629b42'/>
       <elf-symbol name='__traceiter_xdp_exception' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xa77a180e'/>
+      <elf-symbol name='__traceiter_xhci_urb_giveback' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xd667bdbd'/>
       <elf-symbol name='__tty_alloc_driver' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x409d69d5'/>
       <elf-symbol name='__tty_insert_flip_char' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xd71431a'/>
       <elf-symbol name='__ubsan_handle_cfi_check_fail_abort' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xdf7a4c69'/>
@@ -873,6 +874,9 @@
       <elf-symbol name='clk_sync_state' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x2e2f0240'/>
       <elf-symbol name='clk_unprepare' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xb077e70a'/>
       <elf-symbol name='clk_unregister' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x7757b51a'/>
+      <elf-symbol name='clk_unregister_gate' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x8506baa8'/>
+      <elf-symbol name='clkdev_add' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xc338313d'/>
+      <elf-symbol name='clkdev_drop' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xb269176'/>
       <elf-symbol name='clockevents_config_and_register' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xbb3771a1'/>
       <elf-symbol name='clocks_calc_mult_shift' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x62bb09bf'/>
       <elf-symbol name='clocksource_mmio_init' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x3f4fc1ef'/>
@@ -2127,6 +2131,7 @@
       <elf-symbol name='frame_vector_create' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x65246b8'/>
       <elf-symbol name='frame_vector_destroy' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x1d5f9555'/>
       <elf-symbol name='frame_vector_to_pages' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xc5e5573a'/>
+      <elf-symbol name='frame_vector_to_pfns' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xdffb744b'/>
       <elf-symbol name='free_candev' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xacfb6a17'/>
       <elf-symbol name='free_io_pgtable_ops' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x8af3c7ac'/>
       <elf-symbol name='free_irq' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xc1514a3b'/>
@@ -2181,10 +2186,12 @@
       <elf-symbol name='gen_pool_destroy' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x6c224cda'/>
       <elf-symbol name='gen_pool_dma_alloc' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x486075c8'/>
       <elf-symbol name='gen_pool_dma_alloc_align' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xada31e57'/>
+      <elf-symbol name='gen_pool_dma_zalloc' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xee7d7deb'/>
       <elf-symbol name='gen_pool_dma_zalloc_align' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x3d210724'/>
       <elf-symbol name='gen_pool_first_fit_align' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x5e855e56'/>
       <elf-symbol name='gen_pool_first_fit_order_align' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x3f4bd846'/>
       <elf-symbol name='gen_pool_fixed_alloc' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x57900416'/>
+      <elf-symbol name='gen_pool_for_each_chunk' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x5ef6a672'/>
       <elf-symbol name='gen_pool_free_owner' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x60ba97c'/>
       <elf-symbol name='gen_pool_get' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xbfccd84f'/>
       <elf-symbol name='gen_pool_has_addr' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x1f557414'/>
@@ -4520,6 +4527,7 @@
       <elf-symbol name='snd_pcm_suspend_all' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xee5e657f'/>
       <elf-symbol name='snd_sgbuf_get_addr' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x248b73f6'/>
       <elf-symbol name='snd_sgbuf_get_chunk_size' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x878d1e65'/>
+      <elf-symbol name='snd_soc_add_component' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xcd2cb1e0'/>
       <elf-symbol name='snd_soc_add_component_controls' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x21b34c89'/>
       <elf-symbol name='snd_soc_add_dai_controls' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xf0759ba5'/>
       <elf-symbol name='snd_soc_bytes_get' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x99a95544'/>
@@ -4534,6 +4542,7 @@
       <elf-symbol name='snd_soc_component_exit_regmap' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xb9e2d4e5'/>
       <elf-symbol name='snd_soc_component_force_enable_pin' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xe059b2f0'/>
       <elf-symbol name='snd_soc_component_init_regmap' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xc500328'/>
+      <elf-symbol name='snd_soc_component_initialize' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x9ba05ba8'/>
       <elf-symbol name='snd_soc_component_read' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xde5337e3'/>
       <elf-symbol name='snd_soc_component_read_field' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xe40a9b1d'/>
       <elf-symbol name='snd_soc_component_set_jack' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x915740df'/>
@@ -4799,6 +4808,7 @@
       <elf-symbol name='syscon_regmap_lookup_by_compatible' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xee6b71c4'/>
       <elf-symbol name='syscon_regmap_lookup_by_phandle' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xe2fbfc3f'/>
       <elf-symbol name='syscon_regmap_lookup_by_phandle_args' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xef177139'/>
+      <elf-symbol name='syscon_regmap_lookup_by_phandle_optional' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xbcc0e2a5'/>
       <elf-symbol name='sysfs_add_file_to_group' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x137d911a'/>
       <elf-symbol name='sysfs_add_link_to_group' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xf90d7294'/>
       <elf-symbol name='sysfs_create_bin_file' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xd8b38fd9'/>
@@ -5935,6 +5945,7 @@
       <elf-symbol name='__tracepoint_workqueue_execute_end' size='72' type='object-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xecbfa711'/>
       <elf-symbol name='__tracepoint_workqueue_execute_start' size='72' type='object-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x8db61368'/>
       <elf-symbol name='__tracepoint_xdp_exception' size='72' type='object-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x8b7a698b'/>
+      <elf-symbol name='__tracepoint_xhci_urb_giveback' size='72' type='object-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x22847ba7'/>
       <elf-symbol name='_ctype' size='256' type='object-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x11089ac7'/>
       <elf-symbol name='_totalram_pages' size='8' type='object-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x944375db'/>
       <elf-symbol name='amba_bustype' size='208' type='object-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x8ecdac8f'/>
@@ -17180,6 +17191,12 @@
         <enumerator name='SCALE_FREQ_SOURCE_ARCH' value='1'/>
         <enumerator name='SCALE_FREQ_SOURCE_CPPC' value='2'/>
       </enum-decl>
+      <function-type size-in-bits='64' id='1be94d48'>
+        <parameter type-id='75b9415a'/>
+        <parameter type-id='7f607a84'/>
+        <parameter type-id='eaa32e2f'/>
+        <return type-id='48b5725f'/>
+      </function-type>
       <class-decl name='inet_diag_msg' size-in-bits='576' is-struct='yes' visibility='default' filepath='include/uapi/linux/inet_diag.h' line='117' column='1' id='1bead3e1'>
         <data-member access='public' layout-offset-in-bits='0'>
           <var-decl name='idiag_family' type-id='8f048e17' visibility='default' filepath='include/uapi/linux/inet_diag.h' line='118' column='1'/>
@@ -24181,6 +24198,24 @@
       </class-decl>
       <pointer-type-def type-id='53ecac3a' size-in-bits='64' id='2d92dd30'/>
       <pointer-type-def type-id='33d9b285' size-in-bits='64' id='2d974d69'/>
+      <pointer-type-def type-id='2da3de52' size-in-bits='64' id='2d9c5390'/>
+      <class-decl name='clk_lookup' size-in-bits='384' is-struct='yes' visibility='default' filepath='include/linux/clkdev.h' line='18' column='1' id='2da3de52'>
+        <data-member access='public' layout-offset-in-bits='0'>
+          <var-decl name='node' type-id='72f469ec' visibility='default' filepath='include/linux/clkdev.h' line='19' column='1'/>
+        </data-member>
+        <data-member access='public' layout-offset-in-bits='128'>
+          <var-decl name='dev_id' type-id='80f4b756' visibility='default' filepath='include/linux/clkdev.h' line='20' column='1'/>
+        </data-member>
+        <data-member access='public' layout-offset-in-bits='192'>
+          <var-decl name='con_id' type-id='80f4b756' visibility='default' filepath='include/linux/clkdev.h' line='21' column='1'/>
+        </data-member>
+        <data-member access='public' layout-offset-in-bits='256'>
+          <var-decl name='clk' type-id='7d0bc0eb' visibility='default' filepath='include/linux/clkdev.h' line='22' column='1'/>
+        </data-member>
+        <data-member access='public' layout-offset-in-bits='320'>
+          <var-decl name='clk_hw' type-id='3aaeef89' visibility='default' filepath='include/linux/clkdev.h' line='23' column='1'/>
+        </data-member>
+      </class-decl>
       <pointer-type-def type-id='b68346f7' size-in-bits='64' id='2da88de7'/>
       <pointer-type-def type-id='a27aef61' size-in-bits='64' id='2db792b9'/>
       <pointer-type-def type-id='81954c90' size-in-bits='64' id='2dbbe856'/>
@@ -51472,6 +51507,29 @@
           <var-decl name='rb_leftmost' type-id='e6532500' visibility='default' filepath='include/linux/rbtree_types.h' line='28' column='1'/>
         </data-member>
       </class-decl>
+      <class-decl name='gen_pool_chunk' size-in-bits='448' is-struct='yes' visibility='default' filepath='include/linux/genalloc.h' line='72' column='1' id='6ff24cfe'>
+        <data-member access='public' layout-offset-in-bits='0'>
+          <var-decl name='next_chunk' type-id='72f469ec' visibility='default' filepath='include/linux/genalloc.h' line='73' column='1'/>
+        </data-member>
+        <data-member access='public' layout-offset-in-bits='128'>
+          <var-decl name='avail' type-id='f22a8abb' visibility='default' filepath='include/linux/genalloc.h' line='74' column='1'/>
+        </data-member>
+        <data-member access='public' layout-offset-in-bits='192'>
+          <var-decl name='phys_addr' type-id='2522883d' visibility='default' filepath='include/linux/genalloc.h' line='75' column='1'/>
+        </data-member>
+        <data-member access='public' layout-offset-in-bits='256'>
+          <var-decl name='owner' type-id='eaa32e2f' visibility='default' filepath='include/linux/genalloc.h' line='76' column='1'/>
+        </data-member>
+        <data-member access='public' layout-offset-in-bits='320'>
+          <var-decl name='start_addr' type-id='7359adad' visibility='default' filepath='include/linux/genalloc.h' line='77' column='1'/>
+        </data-member>
+        <data-member access='public' layout-offset-in-bits='384'>
+          <var-decl name='end_addr' type-id='7359adad' visibility='default' filepath='include/linux/genalloc.h' line='78' column='1'/>
+        </data-member>
+        <data-member access='public' layout-offset-in-bits='448'>
+          <var-decl name='bits' type-id='c99b5ecd' visibility='default' filepath='include/linux/genalloc.h' line='79' column='1'/>
+        </data-member>
+      </class-decl>
       <pointer-type-def type-id='616d6efe' size-in-bits='64' id='6ff43814'/>
       <qualified-type-def type-id='686b8abc' const='yes' id='6ffc942b'/>
       <function-type size-in-bits='64' id='70007b06'>
@@ -56560,6 +56618,7 @@
         <enumerator name='HDMI_3D_STRUCTURE_SIDE_BY_SIDE_HALF' value='8'/>
       </enum-decl>
       <pointer-type-def type-id='e30804d9' size-in-bits='64' id='7c70f4dd'/>
+      <pointer-type-def type-id='1be94d48' size-in-bits='64' id='7c778562'/>
       <array-type-def dimensions='1' type-id='0f8b1896' size-in-bits='infinite' id='7c792e5e'>
         <subrange length='infinite' type-id='7ff19f0f' id='031f2035'/>
       </array-type-def>
@@ -57985,6 +58044,7 @@
       </class-decl>
       <pointer-type-def type-id='09c8759c' size-in-bits='64' id='7f5be7f6'/>
       <qualified-type-def type-id='f2b4d088' const='yes' id='7f60130d'/>
+      <pointer-type-def type-id='6ff24cfe' size-in-bits='64' id='7f607a84'/>
       <pointer-type-def type-id='daf63770' size-in-bits='64' id='7f6ac72a'/>
       <pointer-type-def type-id='03ba410a' size-in-bits='64' id='7f6ae768'/>
       <pointer-type-def type-id='7ca0f14f' size-in-bits='64' id='7f6fd29b'/>
@@ -124336,6 +124396,11 @@
         <parameter type-id='19c2251e' name='act' filepath='include/trace/events/xdp.h' line='28' column='1'/>
         <return type-id='95e97e5e'/>
       </function-decl>
+      <function-decl name='__traceiter_xhci_urb_giveback' mangled-name='__traceiter_xhci_urb_giveback' filepath='drivers/usb/host/./xhci-trace.h' line='307' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='__traceiter_xhci_urb_giveback'>
+        <parameter type-id='eaa32e2f' name='__data' filepath='drivers/usb/host/./xhci-trace.h' line='307' column='1'/>
+        <parameter type-id='ab85b8f2' name='urb' filepath='drivers/usb/host/./xhci-trace.h' line='307' column='1'/>
+        <return type-id='95e97e5e'/>
+      </function-decl>
       <var-decl name='__tracepoint_android_rvh_account_irq' type-id='4ca0c298' mangled-name='__tracepoint_android_rvh_account_irq' visibility='default' filepath='include/trace/hooks/sched.h' line='202' column='1' elf-symbol-id='__tracepoint_android_rvh_account_irq'/>
       <var-decl name='__tracepoint_android_rvh_after_dequeue_task' type-id='4ca0c298' mangled-name='__tracepoint_android_rvh_after_dequeue_task' visibility='default' filepath='include/trace/hooks/sched.h' line='325' column='1' elf-symbol-id='__tracepoint_android_rvh_after_dequeue_task'/>
       <var-decl name='__tracepoint_android_rvh_after_enqueue_task' type-id='4ca0c298' mangled-name='__tracepoint_android_rvh_after_enqueue_task' visibility='default' filepath='include/trace/hooks/sched.h' line='321' column='1' elf-symbol-id='__tracepoint_android_rvh_after_enqueue_task'/>
@@ -124539,6 +124604,7 @@
       <var-decl name='__tracepoint_workqueue_execute_end' type-id='4ca0c298' mangled-name='__tracepoint_workqueue_execute_end' visibility='default' filepath='include/trace/events/workqueue.h' line='108' column='1' elf-symbol-id='__tracepoint_workqueue_execute_end'/>
       <var-decl name='__tracepoint_workqueue_execute_start' type-id='4ca0c298' mangled-name='__tracepoint_workqueue_execute_start' visibility='default' filepath='include/trace/events/workqueue.h' line='82' column='1' elf-symbol-id='__tracepoint_workqueue_execute_start'/>
       <var-decl name='__tracepoint_xdp_exception' type-id='4ca0c298' mangled-name='__tracepoint_xdp_exception' visibility='default' filepath='include/trace/events/xdp.h' line='28' column='1' elf-symbol-id='__tracepoint_xdp_exception'/>
+      <var-decl name='__tracepoint_xhci_urb_giveback' type-id='4ca0c298' mangled-name='__tracepoint_xhci_urb_giveback' visibility='default' filepath='drivers/usb/host/./xhci-trace.h' line='307' column='1' elf-symbol-id='__tracepoint_xhci_urb_giveback'/>
       <function-decl name='__tty_alloc_driver' mangled-name='__tty_alloc_driver' filepath='drivers/tty/tty_io.c' line='3350' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='__tty_alloc_driver'>
         <parameter type-id='f0981eeb' name='lines' filepath='drivers/tty/tty_io.c' line='3350' column='1'/>
         <parameter type-id='2730d015' name='owner' filepath='drivers/tty/tty_io.c' line='3350' column='1'/>
@@ -126986,6 +127052,18 @@
       </function-decl>
       <function-decl name='clk_unregister' mangled-name='clk_unregister' filepath='drivers/clk/clk.c' line='4173' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='clk_unregister'>
         <parameter type-id='7d0bc0eb' name='clk' filepath='drivers/clk/clk.c' line='4173' column='1'/>
+        <return type-id='48b5725f'/>
+      </function-decl>
+      <function-decl name='clk_unregister_gate' mangled-name='clk_unregister_gate' filepath='drivers/clk/clk-gate.c' line='199' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='clk_unregister_gate'>
+        <parameter type-id='7d0bc0eb' name='clk' filepath='drivers/clk/clk-gate.c' line='199' column='1'/>
+        <return type-id='48b5725f'/>
+      </function-decl>
+      <function-decl name='clkdev_add' mangled-name='clkdev_add' filepath='drivers/clk/clkdev.c' line='128' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='clkdev_add'>
+        <parameter type-id='2d9c5390' name='cl' filepath='drivers/clk/clkdev.c' line='128' column='1'/>
+        <return type-id='48b5725f'/>
+      </function-decl>
+      <function-decl name='clkdev_drop' mangled-name='clkdev_drop' filepath='drivers/clk/clkdev.c' line='259' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='clkdev_drop'>
+        <parameter type-id='2d9c5390' name='cl' filepath='drivers/clk/clkdev.c' line='259' column='1'/>
         <return type-id='48b5725f'/>
       </function-decl>
       <function-decl name='clockevents_config_and_register' mangled-name='clockevents_config_and_register' filepath='kernel/time/clockevents.c' line='504' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='clockevents_config_and_register'>
@@ -133607,6 +133685,10 @@
         <parameter type-id='d9fbdc06' name='vec' filepath='drivers/media/common/videobuf2/frame_vector.c' line='135' column='1'/>
         <return type-id='95e97e5e'/>
       </function-decl>
+      <function-decl name='frame_vector_to_pfns' mangled-name='frame_vector_to_pfns' filepath='drivers/media/common/videobuf2/frame_vector.c' line='161' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='frame_vector_to_pfns'>
+        <parameter type-id='d9fbdc06' name='vec' filepath='drivers/media/common/videobuf2/frame_vector.c' line='161' column='1'/>
+        <return type-id='48b5725f'/>
+      </function-decl>
       <function-decl name='free_candev' mangled-name='free_candev' filepath='drivers/net/can/dev/dev.c' line='293' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='free_candev'>
         <parameter type-id='68a2d05b' name='dev' filepath='drivers/net/can/dev/dev.c' line='293' column='1'/>
         <return type-id='48b5725f'/>
@@ -133898,6 +133980,12 @@
         <parameter type-id='95e97e5e' name='align' filepath='lib/genalloc.c' line='396' column='1'/>
         <return type-id='eaa32e2f'/>
       </function-decl>
+      <function-decl name='gen_pool_dma_zalloc' mangled-name='gen_pool_dma_zalloc' filepath='lib/genalloc.c' line='419' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='gen_pool_dma_zalloc'>
+        <parameter type-id='75b9415a' name='pool' filepath='lib/genalloc.c' line='419' column='1'/>
+        <parameter type-id='b59d7dce' name='size' filepath='lib/genalloc.c' line='419' column='1'/>
+        <parameter type-id='e835b5d8' name='dma' filepath='lib/genalloc.c' line='419' column='1'/>
+        <return type-id='eaa32e2f'/>
+      </function-decl>
       <function-decl name='gen_pool_dma_zalloc_align' mangled-name='gen_pool_dma_zalloc_align' filepath='lib/genalloc.c' line='466' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='gen_pool_dma_zalloc_align'>
         <parameter type-id='75b9415a' name='pool' filepath='lib/genalloc.c' line='466' column='1'/>
         <parameter type-id='b59d7dce' name='size' filepath='lib/genalloc.c' line='466' column='1'/>
@@ -133934,6 +134022,12 @@
         <parameter type-id='75b9415a' name='pool' filepath='lib/genalloc.c' line='696' column='1'/>
         <parameter type-id='7359adad' name='start_addr' filepath='lib/genalloc.c' line='696' column='1'/>
         <return type-id='7359adad'/>
+      </function-decl>
+      <function-decl name='gen_pool_for_each_chunk' mangled-name='gen_pool_for_each_chunk' filepath='lib/genalloc.c' line='531' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='gen_pool_for_each_chunk'>
+        <parameter type-id='75b9415a' name='pool' filepath='lib/genalloc.c' line='531' column='1'/>
+        <parameter type-id='7c778562' name='func' filepath='lib/genalloc.c' line='532' column='1'/>
+        <parameter type-id='eaa32e2f' name='data' filepath='lib/genalloc.c' line='533' column='1'/>
+        <return type-id='48b5725f'/>
       </function-decl>
       <function-decl name='gen_pool_free_owner' mangled-name='gen_pool_free_owner' filepath='lib/genalloc.c' line='487' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='gen_pool_free_owner'>
         <parameter type-id='75b9415a' name='pool' filepath='lib/genalloc.c' line='487' column='1'/>
@@ -145962,6 +146056,12 @@
         <parameter type-id='f0981eeb' name='size' filepath='sound/core/memalloc.c' line='231' column='1'/>
         <return type-id='f0981eeb'/>
       </function-decl>
+      <function-decl name='snd_soc_add_component' mangled-name='snd_soc_add_component' filepath='sound/soc/soc-core.c' line='2618' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='snd_soc_add_component'>
+        <parameter type-id='807b7702' name='component' filepath='sound/soc/soc-core.c' line='2618' column='1'/>
+        <parameter type-id='763d26a2' name='dai_drv' filepath='sound/soc/soc-core.c' line='2619' column='1'/>
+        <parameter type-id='95e97e5e' name='num_dai' filepath='sound/soc/soc-core.c' line='2620' column='1'/>
+        <return type-id='95e97e5e'/>
+      </function-decl>
       <function-decl name='snd_soc_add_component_controls' mangled-name='snd_soc_add_component_controls' filepath='sound/soc/soc-core.c' line='2265' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='snd_soc_add_component_controls'>
         <parameter type-id='807b7702' name='component' filepath='sound/soc/soc-core.c' line='2265' column='1'/>
         <parameter type-id='31e035f7' name='controls' filepath='sound/soc/soc-core.c' line='2266' column='1'/>
@@ -146037,6 +146137,12 @@
         <parameter type-id='807b7702' name='component' filepath='sound/soc/soc-component.c' line='400' column='1'/>
         <parameter type-id='29af9a71' name='regmap' filepath='sound/soc/soc-component.c' line='401' column='1'/>
         <return type-id='48b5725f'/>
+      </function-decl>
+      <function-decl name='snd_soc_component_initialize' mangled-name='snd_soc_component_initialize' filepath='sound/soc/soc-core.c' line='2595' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='snd_soc_component_initialize'>
+        <parameter type-id='807b7702' name='component' filepath='sound/soc/soc-core.c' line='2595' column='1'/>
+        <parameter type-id='f030c2b8' name='driver' filepath='sound/soc/soc-core.c' line='2596' column='1'/>
+        <parameter type-id='fa0b179b' name='dev' filepath='sound/soc/soc-core.c' line='2597' column='1'/>
+        <return type-id='95e97e5e'/>
       </function-decl>
       <function-decl name='snd_soc_component_read' mangled-name='snd_soc_component_read' filepath='sound/soc/soc-component.c' line='711' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='snd_soc_component_read'>
         <parameter type-id='807b7702' name='component' filepath='sound/soc/soc-component.c' line='711' column='1'/>
@@ -147399,6 +147505,11 @@
         <parameter type-id='80f4b756' name='property' filepath='drivers/mfd/syscon.c' line='232' column='1'/>
         <parameter type-id='95e97e5e' name='arg_count' filepath='drivers/mfd/syscon.c' line='233' column='1'/>
         <parameter type-id='807869d3' name='out_args' filepath='drivers/mfd/syscon.c' line='234' column='1'/>
+        <return type-id='29af9a71'/>
+      </function-decl>
+      <function-decl name='syscon_regmap_lookup_by_phandle_optional' mangled-name='syscon_regmap_lookup_by_phandle_optional' filepath='drivers/mfd/syscon.c' line='265' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='syscon_regmap_lookup_by_phandle_optional'>
+        <parameter type-id='9a537bbe' name='np' filepath='drivers/mfd/syscon.c' line='265' column='1'/>
+        <parameter type-id='80f4b756' name='property' filepath='drivers/mfd/syscon.c' line='266' column='1'/>
         <return type-id='29af9a71'/>
       </function-decl>
       <var-decl name='sysctl_sched_features' type-id='f0981eeb' mangled-name='sysctl_sched_features' visibility='default' filepath='kernel/sched/core.c' line='63' column='1' elf-symbol-id='sysctl_sched_features'/>
