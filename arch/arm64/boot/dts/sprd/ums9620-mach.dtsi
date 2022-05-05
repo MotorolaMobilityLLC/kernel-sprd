@@ -111,7 +111,7 @@
 	};
 
 	sprd-map-user {
-		compatible = "sprd,map-user";
+		compatible = "unisoc,map-user";
 	};
 
 	reserved_memory: reserved-memory {
