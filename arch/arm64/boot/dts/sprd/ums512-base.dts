@@ -8,6 +8,7 @@
 /dts-v1/;
 #include <dt-bindings/input/input.h>
 #include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/thermal/thermal.h>
 #include "ums512/ums512.dtsi"
 #include "sc2730/sc2730.dtsi"
 #include "lcd/lcd_td4310_truly_mipi_fhd.dtsi"

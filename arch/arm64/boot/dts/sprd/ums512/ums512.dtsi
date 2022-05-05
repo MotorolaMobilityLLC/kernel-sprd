@@ -351,3 +351,4 @@
 #include "vsp.dtsi"
 #include "cam.dtsi"
 #include "csi.dtsi"
+#include "thermal.dtsi"
