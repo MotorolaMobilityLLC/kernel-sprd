@@ -201,11 +201,6 @@
 	status = "okay";
 };
 
-&usb {
-	extcon = <&extcon_gpio>, <&pmic_typec>;
-	status = "okay";
-};
-
 &i2c4 {
 	#address-cells = <1>;
 	#size-cells = <0>;
@@ -221,6 +216,12 @@
 			regulator-name = "vddvbus";
 		};
 	};
+};
+
+&usb {
+	extcon = <&extcon_gpio>, <&pmic_typec>;
+	vddvbus-supply = <&vddvbus>;
+	status = "okay";
 };
 
 &pmic_fgu {

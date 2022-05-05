@@ -1380,6 +1380,7 @@
   usb_remove_hcd
 
 # required by musb_sprd.ko
+  devm_regulator_get_exclusive
   usb_ep_disable
   usb_role_switch_get_drvdata
   usb_role_switch_register

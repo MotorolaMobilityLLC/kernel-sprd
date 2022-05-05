@@ -899,13 +899,12 @@ static int musb_sprd_otg_start_host(struct sprd_glue *glue, int on)
 	struct musb *musb = glue->musb;
 
 	if (!glue->vbus) {
-		glue->vbus = devm_regulator_get(glue->dev, "vbus");
-		if (IS_ERR_OR_NULL(glue->vbus)) {
-			if (!glue->vbus)
-				return -EPERM;
-			else
-				return -EPROBE_DEFER;
+		glue->vbus = devm_regulator_get(glue->dev, "vddvbus");
+		if (IS_ERR(glue->vbus)) {
+			glue->vbus = NULL;
+			return -EPROBE_DEFER;
 		}
+		dev_info(glue->dev, "get vbus succeed\n");
 	}
 
 	if (on) {
@@ -1268,8 +1267,8 @@ static void musb_sprd_otg_sm_work(struct work_struct *work)
 				rework = true;
 				glue->start_host_retry_count++;
 			} else if (ret) {
+				/* do not need change drd_state */
 				dev_err(glue->dev, "unable to start host\n");
-				glue->drd_state = DRD_STATE_HOST;
 			} else {
 				glue->drd_state = DRD_STATE_HOST;
 			}
@@ -1363,15 +1362,6 @@ static int musb_sprd_probe(struct platform_device *pdev)
 		ret = PTR_ERR(glue->xceiv);
 		dev_err(&pdev->dev, "Error getting usb-phy %d\n", ret);
 		goto err_core_clk;
-	}
-
-	if (pdata.mode == MUSB_HOST || pdata.mode == MUSB_OTG) {
-		glue->vbus = devm_regulator_get(dev, "vbus");
-		if (IS_ERR(glue->vbus)) {
-			ret = PTR_ERR(glue->vbus);
-			dev_warn(dev, "unable to get vbus supply %d\n", ret);
-			glue->vbus = NULL;
-		}
 	}
 
 	glue->pmu = syscon_regmap_lookup_by_phandle_args(dev->of_node,
