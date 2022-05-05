@@ -401,6 +401,33 @@ static ssize_t total_pools_kb_show(struct kobject *kobj,
 	return sysfs_emit(buf, "%llu\n", total_pool_size / 1024);
 }
 
+#ifdef CONFIG_E_SHOW_MEM
+static int dmabuf_e_show_mem_handler(struct notifier_block *nb,
+				unsigned long val, void *data)
+{
+	struct dma_heap *heap;
+	unsigned long total_used = 0;
+
+	mutex_lock(&heap_list_lock);
+	list_for_each_entry(heap, &heap_list, list) {
+		if (heap->ops->get_pool_size &&
+			(!strcmp(heap->name, "system") || !strcmp(heap->name, "system-uncached")))
+			total_used += heap->ops->get_pool_size(heap);
+	}
+	mutex_unlock(&heap_list_lock);
+
+	pr_info("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
+	pr_info("Enhanced Mem-info :DMA-BUF\n");
+
+	pr_info("Total used : %lu kB\n", total_used / 1024);
+	return 0;
+}
+
+static struct notifier_block dmabuf_e_show_mem_notifier = {
+	.notifier_call = dmabuf_e_show_mem_handler,
+};
+#endif
+
 static struct kobj_attribute total_pools_kb_attr =
 	__ATTR_RO(total_pools_kb);
 
@@ -453,6 +480,10 @@ static int dma_heap_init(void)
 		goto err_class;
 	}
 	dma_heap_class->devnode = dma_heap_devnode;
+
+#ifdef CONFIG_E_SHOW_MEM
+	register_e_show_mem_notifier(&dmabuf_e_show_mem_notifier);
+#endif
 
 	return 0;
 
