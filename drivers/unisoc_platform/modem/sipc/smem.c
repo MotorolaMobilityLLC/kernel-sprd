@@ -118,6 +118,7 @@ static void *soc_modem_ram_vmap(phys_addr_t start, size_t size, int noncached)
 	struct page **pages;
 	phys_addr_t page_start;
 	unsigned int page_count;
+	pgprot_t prot;
 	unsigned int i;
 	void *vaddr;
 	phys_addr_t addr;
@@ -131,6 +132,10 @@ static void *soc_modem_ram_vmap(phys_addr_t start, size_t size, int noncached)
 
 	page_start = start - offset_in_page(start);
 	page_count = DIV_ROUND_UP(size + offset_in_page(start), PAGE_SIZE);
+	if (noncached)
+		prot = pgprot_noncached(PAGE_KERNEL);
+	else
+		prot = PAGE_KERNEL;
 
 	pages = kmalloc_array(page_count, sizeof(struct page *), GFP_KERNEL);
 	if (!pages) {
@@ -142,7 +147,7 @@ static void *soc_modem_ram_vmap(phys_addr_t start, size_t size, int noncached)
 		addr = page_start + i * PAGE_SIZE;
 		pages[i] = pfn_to_page(addr >> PAGE_SHIFT);
 	}
-	vaddr = vm_map_ram(pages, page_count, -1) + offset_in_page(start);
+	vaddr = vmap(pages, page_count, -1, prot) + offset_in_page(start);
 	kfree(pages);
 
 	map->count = page_count;
@@ -205,7 +210,7 @@ static void soc_modem_ram_unmap(const void *mem)
 		spin_unlock_irqrestore(&smem->lock, flags);
 
 		if (found) {
-			vm_unmap_ram(mem - offset_in_page(mem), map->count);
+			vunmap(mem - offset_in_page(mem));
 			kfree(map);
 		}
 	}
