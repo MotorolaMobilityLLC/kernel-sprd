@@ -254,7 +254,8 @@ static int sprd_vchg_detect_init(struct sprd_vchg_info *info, struct power_suppl
 	ret = usb_register_notifier(info->usb_phy, &info->usb_notify);
 	if (ret) {
 		dev_err(dev, "%s:failed to register notifier:%d\n", SPRD_VCHG_TAG, ret);
-		return -EINVAL;
+		ret = -EINVAL;
+		goto remove_wakeup;
 	}
 
 #if IS_ENABLED(CONFIG_SC27XX_PD)
@@ -269,28 +270,32 @@ static int sprd_vchg_detect_init(struct sprd_vchg_info *info, struct power_suppl
 	info->pd_extcon = extcon_get_edev_by_phandle(dev, 1);
 	if (IS_ERR(info->pd_extcon)) {
 		dev_err(dev, "%s: failed to find pd extcon device.\n", SPRD_VCHG_TAG);
-		return -EINVAL;
+		ret = -EINVAL;
+		goto err_reg_usb;
 	}
 
 	info->pd_extcon_nb.notifier_call = sprd_vchg_pd_extcon_event;
 	ret = devm_extcon_register_notifier_all(dev, info->pd_extcon, &info->pd_extcon_nb);
 	if (ret) {
 		dev_err(dev, "%s:Can't register pd extcon\n", SPRD_VCHG_TAG);
-		return -EINVAL;
+		ret = -EINVAL;
+		goto err_reg_usb;
 	}
 
 	INIT_DELAYED_WORK(&info->typec_extcon_work, sprd_vchg_typec_extcon_work);
 	info->typec_extcon = extcon_get_edev_by_phandle(dev, 0);
 	if (IS_ERR(info->typec_extcon)) {
 		dev_err(dev, "%s: failed to find typec extcon device.\n", SPRD_VCHG_TAG);
-		return -EINVAL;
+		ret = -EINVAL;
+		goto err_reg_usb;
 	}
 
 	info->typec_extcon_nb.notifier_call = sprd_vchg_typec_extcon_event;
 	ret = devm_extcon_register_notifier_all(dev, info->typec_extcon, &info->typec_extcon_nb);
 	if (ret) {
 		dev_err(dev, "%s:Can't register typec extcon\n", SPRD_VCHG_TAG);
-		return -EINVAL;
+		ret = -EINVAL;
+		goto err_reg_usb;
 	}
 #endif
 
@@ -298,6 +303,16 @@ static int sprd_vchg_detect_init(struct sprd_vchg_info *info, struct power_suppl
 	sprd_vchg_detect_pd_extcon_status(info);
 
 	return 0;
+
+#if IS_ENABLED(CONFIG_SC27XX_PD)
+err_reg_usb:
+	usb_unregister_notifier(info->usb_phy, &info->usb_notify);
+#endif
+
+remove_wakeup:
+	wakeup_source_remove(info->sprd_vchg_ws);
+
+	return ret;
 }
 
 static void sprd_vchg_suspend(struct sprd_vchg_info *info)

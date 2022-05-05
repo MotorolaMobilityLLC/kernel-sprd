@@ -735,7 +735,7 @@ static int sy65153_wl_charger_get_property(struct power_supply *psy,
 		else if (rpp_type == SY65153_RPP_TYPE_EPP)
 			val->intval = POWER_SUPPLY_WIRELESS_CHARGER_TYPE_EPP;
 		else
-			val->intval = POWER_SUPPLY_CHARGER_TYPE_UNKNOWN;
+			val->intval = POWER_SUPPLY_WIRELESS_CHARGER_TYPE_UNKNOWN;
 		break;
 	default:
 		ret =  -EINVAL;
