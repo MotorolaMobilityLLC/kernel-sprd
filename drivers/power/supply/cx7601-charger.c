@@ -143,7 +143,20 @@ static int cx7601_read(struct cx7601_charger_info *info,  u8 *data, u8 reg)
 
 static int cx7601_write(struct cx7601_charger_info *info, u8 reg, u8 data)
 {
-	return i2c_smbus_write_byte_data(info->client, reg, data);
+	int ret=0,i=10;
+	u8 read_val=0;
+
+	while(i)
+	{
+		ret=i2c_smbus_write_byte_data(info->client, reg, data);
+
+		i--;
+
+		read_val = i2c_smbus_read_byte_data(info->client, reg);
+		if(data == read_val)
+			break;
+	}
+	return ret;
 }
 
 static int cx7601_update_bits(struct cx7601_charger_info *info, u8 reg,
@@ -907,6 +920,7 @@ static int cx7601_charger_feed_watchdog(struct cx7601_charger_info *info,
 {
 	u8 reg,reg07;
 	static u8 ovp=0;
+	u32 terminate_vol;
 
 //	cx7601_reset_watchdog_timer(info);
 	cx7601_read(info, &reg, CX7601_REG_09 );
@@ -946,6 +960,13 @@ static int cx7601_charger_feed_watchdog(struct cx7601_charger_info *info,
 		dev_err(info->dev,"%s  limit=%x;%x;",__func__,info->set_limit_current_reg,info->get_limit_current_reg);
 		cx7601_update_bits(info, CX7601_REG_00, REG00_IINLIM_MASK,
 					info->set_limit_current_reg << REG00_IINLIM_SHIFT);		
+	}
+
+	cx7601_charger_get_termina_vol(info,&terminate_vol);
+	if(terminate_vol != info->term_voltage)
+	{
+		dev_err(info->dev,"%s  terminate vol error=%d;%d;",__func__,terminate_vol,info->term_voltage);
+		cx7601_charger_set_termina_vol(info,info->term_voltage);
 	}
 	
 
