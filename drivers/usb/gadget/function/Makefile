@@ -56,4 +56,6 @@ usb_f_audio_source-y		:= f_audio_source.o
 obj-$(CONFIG_USB_F_AUDIO_SRC)	+= usb_f_audio_source.o
 usb_f_vser-y			:= f_vserial.o
 obj-$(CONFIG_USB_F_VSERIAL)	+= usb_f_vser.o
-
+obj-$(CONFIG_SPRD_USB_U_SERIAL)	+= sprd_u_serial.o
+sprd_usb_f_serial-y		:= sprd_f_serial.o
+obj-$(CONFIG_SPRD_USB_F_SERIAL)	+= sprd_usb_f_serial.o

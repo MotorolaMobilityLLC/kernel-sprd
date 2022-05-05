@@ -225,6 +225,12 @@ config USB_F_AUDIO_SRC
 config USB_F_VSERIAL
 	tristate
 
+config SPRD_USB_U_SERIAL
+	tristate
+
+config SPRD_USB_F_SERIAL
+	tristate
+
 # this first set of drivers all depend on bulk-capable hardware.
 
 config USB_CONFIGFS
@@ -264,6 +270,15 @@ config USB_CONFIGFS_SERIAL
 	select USB_F_SERIAL
 	help
 	  The function talks to the Linux-USB generic serial driver.
+
+config SPRD_USB_CONFIGFS_SERIAL
+	tristate "Sprd Serial"
+	depends on USB_CONFIGFS
+	depends on TTY
+	select SPRD_USB_U_SERIAL
+	select SPRD_USB_F_SERIAL
+	help
+	  The function talks to the Linux-USB sprd serial driver.
 
 config USB_CONFIGFS_ACM
 	bool "Abstract Control Model (CDC ACM)"
