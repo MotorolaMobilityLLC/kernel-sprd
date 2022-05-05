@@ -22,7 +22,7 @@
 #include "sprd_plane.h"
 #include "sprd_dsi_panel.h"
 #include <../drivers/trusty/trusty.h>
-#include "../sprd_dsc.h"
+#include "sprd_dsc.h"
 
 #define XFBC8888_HEADER_SIZE(w, h) (ALIGN((ALIGN((w), 16)) * \
 				(ALIGN((h), 16)) / 16, 128))

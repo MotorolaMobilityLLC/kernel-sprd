@@ -23,46 +23,46 @@ static void set_defaults(struct dsc_init_param *dsc_init, int bpc)
 	int default_minqp_10[] = { 0, 4, 5, 6, 7, 7, 7, 7, 7, 7, 9, 9, 9, 11, 15 };
 	int default_maxqp_10[] = { 7, 8, 9, 10, 11, 11, 11, 12, 13, 13, 14, 14, 15, 15, 16 };
 
-	dsc_init->rcModelSize = 8192;
-	dsc_init->bitsPerPixel = bpc;
-	dsc_init->bitsPerComponent = bpc;
-	dsc_init->enable422 = 0;
-	dsc_init->simple422 = 0;
-	dsc_init->bpEnable = 1;
-	dsc_init->initialFullnessOfs = (bpc == 8) ? 6144 : 5632;
-	dsc_init->initialDelay = (bpc == 8) ? 475 : 410;
-	dsc_init->firstLineBpgOfs = 12;
-	dsc_init->sliceWidth = 0;
-	dsc_init->sliceHeight = 0;
-	dsc_init->useYuvInput = 0;
+	dsc_init->rc_model_size = 8192;
+	dsc_init->bit_per_pixel = bpc;
+	dsc_init->bit_per_component = bpc;
+	dsc_init->enable_422 = 0;
+	dsc_init->init_simple_422 = 0;
+	dsc_init->bp_enable = 1;
+	dsc_init->initial_fullness_ofs = (bpc == 8) ? 6144 : 5632;
+	dsc_init->initial_delay = (bpc == 8) ? 475 : 410;
+	dsc_init->first_linebpg_ofs = 12;
+	dsc_init->init_slice_width = 0;
+	dsc_init->init_slice_height = 0;
+	dsc_init->use_yuv_input = 0;
 
-	dsc_init->lineBufferBpc = dsc_init->bitsPerComponent + 1;
+	dsc_init->line_buffer_bpc = dsc_init->bit_per_component + 1;
 
 	/* Standards compliant DPX settings */
-	dsc_init->enableVbr = 0;
-	dsc_init->native420 = 0;
-	dsc_init->native422 = 0;
-	dsc_init->secondLineBpgOfs = -1;
+	dsc_init->enable_vbr = 0;
+	dsc_init->init_native_420 = 0;
+	dsc_init->init_native_422 = 0;
+	dsc_init->second_linebpg_ofs = -1;
 
-	dsc_init->dscVersionMinor = 2;
-	dsc_init->tgtOffsetHi = 3;
-	dsc_init->tgtOffsetLo = 3;
-	dsc_init->rcEdgeFactor = 6;
-	dsc_init->quantIncrLimit0 = (bpc == 8) ? 11:15;
-	dsc_init->quantIncrLimit1 = (bpc == 8) ? 11:15;
-	dsc_init->flatnessMinQp = (bpc == 8) ? 3:7;
-	dsc_init->flatnessMaxQp = (bpc == 8) ? 12:16;
-	dsc_init->flatnessDetThresh = (bpc == 8) ? 2:8;
-	dsc_init->muxWordSize = 0;
-	dsc_init->picWidth = 1920;
-	dsc_init->picHeight = 1080;
+	dsc_init->init_dsc_version_minor = 2;
+	dsc_init->tgt_offset_hi = 3;
+	dsc_init->tgt_offset_lo = 3;
+	dsc_init->rc_edge_factor = 6;
+	dsc_init->init_quant_incr_limit0 = (bpc == 8) ? 11 : 15;
+	dsc_init->init_quant_incr_limit1 = (bpc == 8) ? 11 : 15;
+	dsc_init->flatness_minqp = (bpc == 8) ? 3 : 7;
+	dsc_init->flatness_maxqp = (bpc == 8) ? 12 : 16;
+	dsc_init->init_flatness_det_thresh = (bpc == 8) ? 2 : 8;
+	dsc_init->init_mux_word_size = 0;
+	dsc_init->init_pic_width = 1920;
+	dsc_init->init_pic_height = 1080;
 
 	for (i = 0; i < 15; ++i) {
-		dsc_init->rcOffset[i] = (bpc == 8) ? default_rcofs[i] : default_rcofs_10[i];
-		dsc_init->rcMinQp[i] = (bpc == 8) ? default_minqp[i] : default_minqp_10[i];
-		dsc_init->rcMaxQp[i] = (bpc == 8) ? default_maxqp[i] : default_maxqp_10[i];
+		dsc_init->rc_offset[i] = (bpc == 8) ? default_rcofs[i] : default_rcofs_10[i];
+		dsc_init->rc_minqp[i] = (bpc == 8) ? default_minqp[i] : default_minqp_10[i];
+		dsc_init->rc_maxqp[i] = (bpc == 8) ? default_maxqp[i] : default_maxqp_10[i];
 		if (i < 14)
-			dsc_init->rcBufThresh[i] = default_threshold[i];
+			dsc_init->rc_buf_thresh[i] = default_threshold[i];
 	}
 }
 
@@ -80,36 +80,36 @@ static int calc_rc_params(struct dsc_init_param *dsc_init, struct dsc_cfg *dsc_c
 
 	slicew = dsc_cfg->slice_width;
 
-	if (dsc_init->firstLineBpgOfs < 0) {
+	if (dsc_init->first_linebpg_ofs < 0) {
 		if (dsc_cfg->slice_height >= 8)
-			dsc_init->firstLineBpgOfs = 12 + ((int)(9/100 * MIN(34,
+			dsc_init->first_linebpg_ofs = 12 + ((int)(9/100 * MIN(34,
 							dsc_cfg->slice_height - 8)));
 		else
-			dsc_init->firstLineBpgOfs = 2 * (dsc_cfg->slice_height - 1);
+			dsc_init->first_linebpg_ofs = 2 * (dsc_cfg->slice_height - 1);
 	}
-	if (dsc_init->secondLineBpgOfs < 0)
-		dsc_init->secondLineBpgOfs = dsc_init->native420 ? 12 : 0;
+	if (dsc_init->second_linebpg_ofs < 0)
+		dsc_init->second_linebpg_ofs = dsc_init->init_native_420 ? 12 : 0;
 
-	dsc_cfg->first_line_bpg_ofs = dsc_init->firstLineBpgOfs;
-	dsc_cfg->second_line_bpg_ofs = dsc_init->secondLineBpgOfs;
+	dsc_cfg->first_line_bpg_ofs = dsc_init->first_linebpg_ofs;
+	dsc_cfg->second_line_bpg_ofs = dsc_init->second_linebpg_ofs;
 
 	groupsPerLine = (slicew + pixelsPerGroup-1) / pixelsPerGroup;
-	dsc_cfg->chunk_size = (int) (((slicew * dsc_init->bitsPerPixel) + 7) / 8);
+	dsc_cfg->chunk_size = (int) (((slicew * dsc_init->bit_per_pixel) + 7) / 8);
 
 	if (dsc_cfg->convert_rgb)
-		num_extra_mux_bits = (numSsps*(dsc_init->muxWordSize +
-							(4*dsc_init->bitsPerComponent+4)-2));
+		num_extra_mux_bits = (numSsps * (dsc_init->init_mux_word_size +
+							(4 * dsc_init->bit_per_component + 4) - 2));
 	else if (!dsc_cfg->native_422)
-		num_extra_mux_bits = (numSsps*dsc_init->muxWordSize
-				+ (4*dsc_init->bitsPerComponent+4)
-				+ 2*(4*dsc_init->bitsPerComponent) - 2);
+		num_extra_mux_bits = (numSsps * dsc_init->init_mux_word_size
+				+ (4 * dsc_init->bit_per_component + 4)
+				+ 2 * (4*dsc_init->bit_per_component) - 2);
 	else
-		num_extra_mux_bits = (numSsps*dsc_init->muxWordSize
-						+ (4*dsc_init->bitsPerComponent+4)
-						+ 3*(4*dsc_init->bitsPerComponent) - 2);
+		num_extra_mux_bits = (numSsps*dsc_init->init_mux_word_size
+						+ (4 * dsc_init->bit_per_component + 4)
+						+ 3 * (4 * dsc_init->bit_per_component) - 2);
 	sliceBits = 8 * dsc_cfg->chunk_size * dsc_cfg->slice_height;
 	while ((num_extra_mux_bits > 0) && ((sliceBits - num_extra_mux_bits)
-						% dsc_init->muxWordSize))
+						% dsc_init->init_mux_word_size))
 		num_extra_mux_bits--;
 
 	if (groupsPerLine < dsc_cfg->initial_scale_value - 8)
@@ -120,7 +120,7 @@ static int calc_rc_params(struct dsc_init_param *dsc_init, struct dsc_cfg *dsc_c
 	else
 		dsc_cfg->scale_decrement_interval = 4095;
 
-	dsc_cfg->initial_xmit_delay = dsc_init->initialDelay;
+	dsc_cfg->initial_xmit_delay = dsc_init->initial_delay;
 	final_value = dsc_cfg->rc_model_size - ((dsc_cfg->initial_xmit_delay
 			* dsc_cfg->bits_per_pixel + 8)>>4) + num_extra_mux_bits;
 	dsc_cfg->final_offset = final_value;
@@ -152,7 +152,7 @@ static int calc_rc_params(struct dsc_init_param *dsc_init, struct dsc_cfg *dsc_c
 	if (dsc_cfg->slice_height == 1) {
 		if (dsc_cfg->first_line_bpg_ofs > 0)
 			DRM_ERROR("For slice_height == 1, the FIRST_LINE_BPG_OFFSET must be 0\n");
-	} else if (pixelsPerGroup * dsc_init->bitsPerPixel -
+	} else if (pixelsPerGroup * dsc_init->bit_per_pixel -
 					((dsc_cfg->slice_bpg_offset + dsc_cfg->nfl_bpg_offset)
 					/ (1<<OFFSET_FRACTIONAL_BITS)) < (1+5*pixelsPerGroup))
 		DRM_ERROR("The bits/pixel allocation too low ");
@@ -252,7 +252,7 @@ static void write_pps(unsigned char *buf, struct dsc_cfg *dsc_cfg)
 
 }
 
-void write_reg(struct dsc_cfg *dsc_cfg, unsigned char *pps)
+static void write_reg(struct dsc_cfg *dsc_cfg, unsigned char *pps)
 {
 	u32 cfg;
 
@@ -332,64 +332,66 @@ int calc_dsc_params(struct dsc_init_param *dsc_init)
 
 	memset(&ctx->dsc_cfg, 0, sizeof(struct dsc_cfg));
 
-	ctx->dsc_init.picWidth = ctx->vm.hactive;
-	ctx->dsc_init.picHeight = ctx->vm.vactive;
-	ctx->dsc_init.sliceWidth = panel->info.slice_width;
-	ctx->dsc_init.sliceHeight = panel->info.slice_height;
+	ctx->dsc_init.init_pic_width = ctx->vm.hactive;
+	ctx->dsc_init.init_pic_height = ctx->vm.vactive;
+	ctx->dsc_init.init_slice_width = panel->info.slice_width;
+	ctx->dsc_init.init_slice_height = panel->info.slice_height;
 	memset(pps, 0, PPS_SIZE);
 
-	ctx->dsc_cfg.dsc_version_minor = ctx->dsc_init.dscVersionMinor;
+	ctx->dsc_cfg.dsc_version_minor = ctx->dsc_init.init_dsc_version_minor;
 
-	ctx->dsc_cfg.pic_width = ctx->dsc_init.picWidth;
-	ctx->dsc_cfg.pic_height = ctx->dsc_init.picHeight;
-	ctx->dsc_cfg.bits_per_component = ctx->dsc_init.bitsPerComponent;
-	ctx->dsc_cfg.linebuf_depth = ctx->dsc_init.lineBufferBpc;
+	ctx->dsc_cfg.pic_width = ctx->dsc_init.init_pic_width;
+	ctx->dsc_cfg.pic_height = ctx->dsc_init.init_pic_height;
+	ctx->dsc_cfg.bits_per_component = ctx->dsc_init.bit_per_component;
+	ctx->dsc_cfg.linebuf_depth = ctx->dsc_init.line_buffer_bpc;
 
-	if (ctx->dsc_init.muxWordSize == 0) {
+	if (ctx->dsc_init.init_mux_word_size == 0) {
 		if (ctx->dsc_cfg.bits_per_component <= 10)
-			ctx->dsc_init.muxWordSize = 48;
+			ctx->dsc_init.init_mux_word_size = 48;
 		else
-			ctx->dsc_init.muxWordSize = 64;
+			ctx->dsc_init.init_mux_word_size = 64;
 	}
-	ctx->dsc_cfg.mux_word_size = ctx->dsc_init.muxWordSize;
-	ctx->dsc_cfg.convert_rgb = !ctx->dsc_init.useYuvInput;
-	ctx->dsc_cfg.rc_tgt_offset_hi = ctx->dsc_init.tgtOffsetHi;
+	ctx->dsc_cfg.mux_word_size = ctx->dsc_init.init_mux_word_size;
+	ctx->dsc_cfg.convert_rgb = !ctx->dsc_init.use_yuv_input;
+	ctx->dsc_cfg.rc_tgt_offset_hi = ctx->dsc_init.tgt_offset_hi;
 
-	ctx->dsc_cfg.rc_tgt_offset_lo = ctx->dsc_init.tgtOffsetLo;
-	target_bpp_x16 = (int)(ctx->dsc_init.bitsPerPixel * 16 + 5/10);
+	ctx->dsc_cfg.rc_tgt_offset_lo = ctx->dsc_init.tgt_offset_lo;
+	target_bpp_x16 = (int)(ctx->dsc_init.bit_per_pixel * 16 + 5/10);
 	ctx->dsc_cfg.bits_per_pixel = target_bpp_x16;
 
-	ctx->dsc_cfg.rc_edge_factor = ctx->dsc_init.rcEdgeFactor;
-	ctx->dsc_cfg.rc_quant_incr_limit1 = ctx->dsc_init.quantIncrLimit1;
-	ctx->dsc_cfg.rc_quant_incr_limit0 = ctx->dsc_init.quantIncrLimit0;
-	prev_min_qp = ctx->dsc_init.rcMinQp[0];
-	prev_max_qp = ctx->dsc_init.rcMaxQp[0];
-	prev_thresh = ctx->dsc_init.rcBufThresh[0];
-	prev_offset = ctx->dsc_init.rcOffset[0];
+	ctx->dsc_cfg.rc_edge_factor = ctx->dsc_init.rc_edge_factor;
+	ctx->dsc_cfg.rc_quant_incr_limit1 = ctx->dsc_init.init_quant_incr_limit1;
+	ctx->dsc_cfg.rc_quant_incr_limit0 = ctx->dsc_init.init_quant_incr_limit0;
+	prev_min_qp = ctx->dsc_init.rc_minqp[0];
+	prev_max_qp = ctx->dsc_init.rc_maxqp[0];
+	prev_thresh = ctx->dsc_init.rc_buf_thresh[0];
+	prev_offset = ctx->dsc_init.rc_offset[0];
 	for (i = 0; i < NUM_BUF_RANGES; ++i) {
-		ctx->dsc_cfg.rc_range_params[i].range_bpg_offset = ctx->dsc_init.rcOffset[i];
-		ctx->dsc_cfg.rc_range_params[i].range_max_qp = ctx->dsc_init.rcMaxQp[i];
-		ctx->dsc_cfg.rc_range_params[i].range_min_qp = ctx->dsc_init.rcMinQp[i];
+		ctx->dsc_cfg.rc_range_params[i].range_bpg_offset = ctx->dsc_init.rc_offset[i];
+		ctx->dsc_cfg.rc_range_params[i].range_max_qp = ctx->dsc_init.rc_maxqp[i];
+		ctx->dsc_cfg.rc_range_params[i].range_min_qp = ctx->dsc_init.rc_minqp[i];
 		if (i < NUM_BUF_RANGES-1) {
-			ctx->dsc_cfg.rc_buf_thresh[i] = ctx->dsc_init.rcBufThresh[i];
-			prev_thresh = ctx->dsc_init.rcBufThresh[i];
+			ctx->dsc_cfg.rc_buf_thresh[i] = ctx->dsc_init.rc_buf_thresh[i];
+			prev_thresh = ctx->dsc_init.rc_buf_thresh[i];
 		}
 	}
-	ctx->dsc_cfg.rc_model_size = ctx->dsc_init.rcModelSize;
-	ctx->dsc_cfg.initial_xmit_delay = ctx->dsc_init.initialDelay;
-	ctx->dsc_cfg.block_pred_enable = ctx->dsc_init.bpEnable;
-	ctx->dsc_cfg.initial_offset = ctx->dsc_init.initialFullnessOfs;
+	ctx->dsc_cfg.rc_model_size = ctx->dsc_init.rc_model_size;
+	ctx->dsc_cfg.initial_xmit_delay = ctx->dsc_init.initial_delay;
+	ctx->dsc_cfg.block_pred_enable = ctx->dsc_init.bp_enable;
+	ctx->dsc_cfg.initial_offset = ctx->dsc_init.initial_fullness_ofs;
 
-	ctx->dsc_cfg.flatness_min_qp = ctx->dsc_init.flatnessMinQp;
-	ctx->dsc_cfg.flatness_max_qp = ctx->dsc_init.flatnessMaxQp;
-	ctx->dsc_cfg.flatness_det_thresh = ctx->dsc_init.flatnessDetThresh;
+	ctx->dsc_cfg.flatness_min_qp = ctx->dsc_init.flatness_minqp;
+	ctx->dsc_cfg.flatness_max_qp = ctx->dsc_init.flatness_maxqp;
+	ctx->dsc_cfg.flatness_det_thresh = ctx->dsc_init.init_flatness_det_thresh;
 	ctx->dsc_cfg.initial_scale_value = 8 * ctx->dsc_cfg.rc_model_size
 					/ (ctx->dsc_cfg.rc_model_size
 					- ctx->dsc_cfg.initial_offset);
-	ctx->dsc_cfg.vbr_enable = ctx->dsc_init.enableVbr;
+	ctx->dsc_cfg.vbr_enable = ctx->dsc_init.enable_vbr;
 
-	slicew = (ctx->dsc_init.sliceWidth ? ctx->dsc_init.sliceWidth : ctx->dsc_cfg.pic_width);
-	sliceh = (ctx->dsc_init.sliceHeight ? ctx->dsc_init.sliceHeight : ctx->dsc_cfg.pic_height);
+	slicew = (ctx->dsc_init.init_slice_width ? ctx->dsc_init.init_slice_width
+			: ctx->dsc_cfg.pic_width);
+	sliceh = (ctx->dsc_init.init_slice_height ? ctx->dsc_init.init_slice_height
+			: ctx->dsc_cfg.pic_height);
 
 	ctx->dsc_cfg.slice_width = slicew;
 	ctx->dsc_cfg.slice_height = sliceh;
