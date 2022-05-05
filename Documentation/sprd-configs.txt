@@ -5512,6 +5512,24 @@ CONFIG_ENABLE_MUST_CHECK
 	[must] console
 	[missing plat description] none
 	[function] Enable __must_check logic.
+CONFIG_ENABLE_SPRD_DEEP_SLEEP_TRACING
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function] This function is used to enable sprd deep sleep tracing.
+CONFIG_ENABLE_SPRD_IO_TRACING
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field] make,code
+	[subsys] soc
+	[must] user
+	[missing plat description] none
+	[function] This function is used to enable IO tracing feature.
 CONFIG_ENCRYPTED_KEYS
 	[arch] arm
 	[plat] pike2
@@ -17076,33 +17094,6 @@ CONFIG_SPRD_NATIVE_HANG_MONITOR
 	[must] user
 	[missing plat description] none
 	[function] This functio is used to monitor native hang.
-CONFIG_SPRD_PAST_RECORD
-	[arch] all
-	[plat] all
-	[missing plat] none
-	[field] make,code
-	[subsys] soc
-	[must] user
-	[missing plat description] none
-	[function] This function is used to enable sprd tracing code.
-CONFIG_ENABLE_SPRD_DEEP_SLEEP_TRACING
-	[arch] all
-	[plat] all
-	[missing plat] none
-	[field]
-	[subsys]
-	[must]
-	[missing plat description] none
-	[function] This function is used to enable sprd deep sleep tracing.
-CONFIG_ENABLE_SPRD_IO_TRACING
-	[arch] all
-	[plat] all
-	[missing plat] none
-	[field] make,code
-	[subsys] soc
-	[must] user
-	[missing plat description] none
-	[function] This function is used to enable IO tracing feature.
 CONFIG_SPRD_NET_HELPER
 	[arch] all
 	[plat] all
@@ -17112,6 +17103,15 @@ CONFIG_SPRD_NET_HELPER
 	[must]
 	[missing plat description] none
 	[function]
+CONFIG_SPRD_PAST_RECORD
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field] make,code
+	[subsys] soc
+	[must] user
+	[missing plat description] none
+	[function] This function is used to enable sprd tracing code.
 CONFIG_SPRD_PIKE2_POWER_DEBUG
 	[arch] arm
 	[plat] pike2
