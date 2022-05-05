@@ -454,7 +454,7 @@ static int sprd_adi_restart_handler(struct notifier_block *this,
 
 	/* Record the reboot mode */
 	sprd_adi_read(sadi, sadi->slave_pbase + sadi->data->rst_sts, &val);
-	val &= ~HWRST_STATUS_WATCHDOG;
+	val &= ~0xFF;
 	val |= reboot_mode;
 	sprd_adi_write(sadi, sadi->slave_pbase + sadi->data->rst_sts, val);
 
