@@ -159,3 +159,4 @@ done
 echo "check sprd_gki.fragment"
 generate_config gki_defconfig sprd_gki.fragment test_gki_sprd_defconfig
 rm -rf $KERNEL_PATH/arch/arm64/configs/test_gki_sprd_defconfig
+exit $RES
