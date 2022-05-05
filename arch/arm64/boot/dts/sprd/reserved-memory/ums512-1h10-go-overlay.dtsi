@@ -1,7 +1,4 @@
 &reserved_memory {
-	#address-cells = <2>;
-	#size-cells = <2>;
-
 	fd_reserved: faceid-mem@fd270000 {
 		reg = <0x0 0xfd270000 0x0 0x00500000>;
 	};

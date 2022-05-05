@@ -1,7 +1,4 @@
 &reserved_memory {
-	#address-cells = <2>;
-	#size-cells = <2>;
-
 	widevine_reserved: widevine@e3800000 {
 		reg = <0x0 0xe3800000 0x0 0x0c800000>;
 	};
