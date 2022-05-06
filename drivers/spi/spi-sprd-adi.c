@@ -48,6 +48,7 @@
 #define RD_ADDR_MASK			GENMASK(30, 16)
 
 /* Bits definitions for register REG_ADI_ARM_FIFO_STS */
+#define BIT_ARM_WR_FREQ			BIT(31)
 #define BIT_FIFO_FULL			BIT(11)
 #define BIT_FIFO_EMPTY			BIT(10)
 
@@ -78,6 +79,7 @@
 
 #define ADI_FIFO_DRAIN_TIMEOUT		1000
 #define ADI_READ_TIMEOUT		2000
+#define ADI_WRITE_TIMEOUT		2000
 
 /*
  * Read back address from REG_ADI_RD_DATA bit[30:16] which maps to:
@@ -111,6 +113,7 @@
 #define SC2730_CLK_EN			0x1810
 #define SC2730_WDG_BASE			0x40
 #define SC2730_RST_STATUS		0x1bac
+#define UMP9620_RST_STATUS		0x23ac
 #define UMP9620_SWRST_CTRL0             0x23f8
 #define UMP9620_SOFT_RST_HW             0x2024
 #define SC2730_SWRST_CTRL0              0x1bf8
@@ -236,6 +239,26 @@ static int sprd_adi_read_check(u32 val, u32 addr)
 	if (rd_addr != addr) {
 		pr_err("ADI read error, addr = 0x%x, val = 0x%x\n", addr, val);
 		return -EIO;
+	}
+
+	return 0;
+}
+
+static int sprd_adi_write_wait(void __iomem *adi_base)
+{
+	int write_timeout = ADI_WRITE_TIMEOUT;
+	u32 val;
+
+	do {
+		val = readl_relaxed(adi_base + REG_ADI_ARM_FIFO_STS);
+		if (!(val & BIT_ARM_WR_FREQ))
+			break;
+		cpu_relax();
+	} while (--write_timeout);
+
+	if (write_timeout == 0) {
+		pr_err("ADI write fail\n");
+		return -EBUSY;
 	}
 
 	return 0;
@@ -649,6 +672,16 @@ static struct sprd_adi_data ums512_data = {
 	.softrst_base = SC2730_SOFT_RST_HW,
 };
 
+static struct sprd_adi_data ums9620_data = {
+	.write_wait = sprd_adi_write_wait,
+	.slave_offset = ADI_15BIT_SLAVE_OFFSET,
+	.slave_addr_size = ADI_15BIT_SLAVE_ADDR_SIZE,
+	.read_check = sprd_adi_read_check_r3,
+	.rst_sts = UMP9620_RST_STATUS,
+	.swrst_base = UMP9620_SWRST_CTRL0,
+	.softrst_base = UMP9620_SOFT_RST_HW,
+};
+
 static const struct of_device_id sprd_adi_of_match[] = {
 	{
 		.compatible = "sprd,sc9860-adi",
@@ -661,6 +694,10 @@ static const struct of_device_id sprd_adi_of_match[] = {
 	{
 		.compatible = "sprd,ums512-adi",
 		.data = &ums512_data,
+	},
+	{
+		.compatible = "sprd,ums9620-adi",
+		.data = &ums9620_data,
 	},
 	{ },
 };
