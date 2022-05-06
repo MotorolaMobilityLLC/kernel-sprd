@@ -1,6 +1,9 @@
 /dts-v1/;
 /plugin/;
 #include <dt-bindings/gpio/gpio.h>
+#include "lcd/lcd_g40396_truly_mipi_fhd.dtsi"
+#include "lcd/lcd_nt36672e_truly_mipi_fhd.dtsi"
+#include "lcd/lcd_dummy_mipi.dtsi"
 #include "reserved-memory/modem-5g-common.dtsi"
 #include "reserved-memory/ums9620-2h10-overlay.dtsi"
 

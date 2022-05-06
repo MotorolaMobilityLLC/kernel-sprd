@@ -314,7 +314,12 @@
 			};
 		};
 
-
+		dpuvsp: dpuvsp {
+			compatible = "simple-bus";
+			#address-cells = <2>;
+			#size-cells = <2>;
+			ranges;
+		};
 	};
 	ddr_dfs: scene-frequency {
 		compatible = "sprd,dfs";
@@ -325,6 +330,7 @@
 
 /* Include other IP modules ALPHABETICALLY */
 #include "clock.dtsi"
+#include "dispc.dtsi"
 #include "efuse.dtsi"
 #include "glbreg.dtsi"
 #include "gpio.dtsi"

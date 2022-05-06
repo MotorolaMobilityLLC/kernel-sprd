@@ -1,0 +1,145 @@
+&dpuvsp {
+	dpu: dpu@31000000 {
+		compatible = "sprd,qogirn6pro-dpu";
+		reg = <0x0 0x31000000 0x0 0x3000>,
+		       <0x0 0x30120000 0x0 0x100>;
+		reset-syscon = <&dpu_vsp_apb_regs REG_DPU_VSP_APB_RST
+			MASK_DPU_VSP_APB_DISPC_SOFT_RST>;
+		vau_reset-syscon = <&dpu_vsp_apb_regs REG_DPU_VSP_APB_RST
+			MASK_DPU_VSP_APB_DISPC_VAU_SOFT_RST>;
+		interrupts = <GIC_SPI 152 IRQ_TYPE_LEVEL_HIGH>;
+		status = "disabled";
+		iommus = <&iommu_dispc>;
+		// #power-domain-cells = <0>;
+		// power-domains = <&vpu_pd_top>;
+		dpu_port: port {
+			dpu_out: endpoint {
+				remote-endpoint = <&dsi_in>;
+			};
+		};
+	};
+
+	iommu_dispc: iommu@31001800 {
+		compatible = "unisoc,iommuvaul6p-dispc";
+		reg = <0x0 0x31000000 0x0 0x80>,
+		      <0x0 0x31001800 0x0 0x80>;
+		iova-base = <0x10000000>;
+		iova-size = <0x10000000>;
+		reg_name = "mmu_reg";
+		status = "disabled";
+		#iommu-cells = <0>;
+	};
+
+	dsi: dsi@31300000 {
+		compatible = "sprd,qogirn6pro-dsi-host";
+		reg = <0x0 0x31300000 0x0 0x1000>;
+		reset-syscon = <&dpu_vsp_apb_regs REG_DPU_VSP_APB_RST
+			MASK_DPU_VSP_APB_DSI0_SOFT_RST>;
+		interrupts = <GIC_SPI 158 IRQ_TYPE_LEVEL_HIGH>,
+		<GIC_SPI 157 IRQ_TYPE_LEVEL_HIGH>;
+		status = "disabled";
+		// #power-domain-cells = <0>;
+		// power-domains = <&vpu_pd_top>;
+		ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			port@0 {
+				reg = <0>;
+				dsi_out: endpoint {
+					remote-endpoint = <&dphy_in>;
+				};
+			};
+			port@1 {
+				reg = <1>;
+				dsi_in: endpoint {
+					remote-endpoint = <&dpu_out>;
+				};
+			};
+		};
+	};
+
+	dphy: dphy {
+		compatible = "sprd,qogirn6pro-dsi-phy";
+		#address-cells = <1>;
+		#size-cells = <0>;
+		reg = <0x0 0x31300000 0x0 0x1000>;
+		enable-syscon = <&dpu_vsp_apb_regs REG_DPU_VSP_APB_MISC_CKG_EB
+			(MASK_DPU_VSP_APB_DPHY0_REF_CKG_EN |
+			MASK_DPU_VSP_APB_DPHY0_CFG_CKG_EN)>;
+		power-syscon = <&pmu_apb_regs REG_PMU_APB_RF_ANALOG_PHY_PD_CFG
+			MASK_PMU_APB_RF_DSI0_PD_REG>;
+		aod_mode-syscon = <&aon_apb_regs REG_AON_APB_MIPI_DSI8_CTRL
+			(MASK_AON_APB_MIPI_DSI_8LANE_DSI_AOD_EN_M |
+			MASK_AON_APB_MIPI_DSI_8LANE_DSI_AOD_MOD_M)>;
+		aod_pd-syscon = <&aon_apb_regs REG_AON_APB_MIPI_DSI8_CTRL
+			MASK_AON_APB_MIPI_DSI_8LANE_DSI_AOD_PD_M>;
+		status = "disabled";
+		sprd,mipi-drive-capability = <7>;
+		ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			port@0 {
+				reg = <0>;
+				dphy_out: endpoint {
+					remote-endpoint = <&panel_in>;
+				};
+			};
+			port@1 {
+				reg = <1>;
+				dphy_in: endpoint {
+					remote-endpoint = <&dsi_out>;
+				};
+			};
+		};
+	};
+};
+
+/ {
+	display-subsystem {
+		compatible = "sprd,display-subsystem";
+		ports = <&dpu_port>;
+	};
+};
+
+&dpu {
+	clock-names = "clk_src_256m",
+			"clk_src_307m2",
+			"clk_src_312m5",
+			"clk_src_384m",
+			"clk_src_409m6",
+			"clk_src_416m7",
+			"clk_src_512m",
+			"clk_src_614m4",
+			"clk_dpu_core",
+			"clk_dpu_dpi",
+			"clk_dpuvsp_eb",
+			"clk_dpuvsp_disp_eb",
+			"clk_master_div6_eb";
+
+	clocks = <&g5l_pll CLK_TGPLL_256M>,
+		<&g5l_pll CLK_TGPLL_307M2>,
+		<&dphy_312m5>,
+		<&g5l_pll CLK_TGPLL_384M>,
+		<&g5l_pll CLK_V4NRPLL_409M6>,
+		<&dphy_416m7>,
+		<&g5l_pll CLK_TGPLL_512M>,
+		<&g5l_pll CLK_V4NRPLL_614M4>,
+		<&dpu_vsp_clk CLK_DISPC0>,
+		<&dpu_vsp_clk CLK_DISPC0_DPI>,
+		<&aonapb_gate CLK_DPU_VSP_EB>,
+		<&dpu_vsp_gate CLK_DPU_EB>,
+		<&dpu_vsp_gate CLK_M_DIV6CLK_GATE_EN>;
+};
+
+&dsi {
+	clock-names = "clk_dsi0_eb",
+			"clk_dpu_dpi",
+			"clk_src_384m",
+			"clk_dpuvsp_eb",
+			"clk_dpuvsp_disp_eb";
+	clocks = <&dpu_vsp_gate CLK_DSI0_EB>,
+		<&dpu_vsp_clk CLK_DISPC0_DPI>,
+		<&g5l_pll CLK_TGPLL_384M>,
+		<&aonapb_gate CLK_DPU_VSP_EB>,
+		<&dpu_vsp_gate CLK_DPU_EB>;
+};
