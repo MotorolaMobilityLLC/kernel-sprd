@@ -2,3 +2,5 @@
 
 KCOV_INSTRUMENT := n
 KCSAN_SANITIZE := n
+
+obj-$(CONFIG_UNISOC_SCHEDUTIL_GOV) += unisoc_schedutil.o
