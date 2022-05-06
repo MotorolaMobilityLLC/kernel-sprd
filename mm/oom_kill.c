@@ -475,6 +475,10 @@ static void dump_header(struct oom_control *oc, struct task_struct *p)
 		dump_tasks(oc);
 	if (p)
 		dump_oom_summary(oc, p);
+
+#ifdef CONFIG_E_SHOW_MEM
+	enhanced_show_mem();
+#endif
 }
 
 /*
