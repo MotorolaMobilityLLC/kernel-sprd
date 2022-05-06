@@ -21,6 +21,7 @@
 #include "disp_lib.h"
 #include "disp_trusty.h"
 #include "sprd_dsi.h"
+#include "sprd_dsi_panel.h"
 #include "dsi/sprd_dsi_api.h"
 #include "dsi/sprd_dsi_hal.h"
 #include "sprd_dsc.h"

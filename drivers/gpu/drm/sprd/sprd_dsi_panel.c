@@ -272,9 +272,8 @@ static int sprd_panel_get_modes(struct drm_panel *p)
 	if (sr_width && sr_height) {
 		for (i = 0; i < panel->info.num_buildin_modes; i++) {
 			struct videomode vm = {};
-
-			vm.hactive = sr_width;
-			vm.vactive = sr_height;
+ 			vm.hactive = sr_width;
+ 			vm.vactive = sr_height;
 			vm.pixelclock = sr_width * sr_height * drm_mode_vrefresh(&panel->info.buildin_modes[i]);
 			mode = drm_mode_create(p->drm);
 			mode->vrefresh = drm_mode_vrefresh(&panel->info.buildin_modes[i]);
@@ -306,6 +305,8 @@ static int sprd_panel_get_modes(struct drm_panel *p)
 
 	p->connector->display_info.width_mm = panel->info.mode.width_mm;
 	p->connector->display_info.height_mm = panel->info.mode.height_mm;
+
+	panel->info.display_mode_count = mode_count;
 
 	return mode_count;
 }
