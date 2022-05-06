@@ -741,11 +741,11 @@ config FUEL_GAUGE_SC27XX
 	 Say Y here to enable support for fuel gauge with SC27XX
 	 PMIC chips.
 
-config FAST_CHARGER_SC2730
-	tristate "Spreadtrum SC2730 fast charger driver"
+config FAST_CHARGER_SC27XX
+	tristate "Spreadtrum SC27XX fast charger driver"
 	depends on MFD_SC27XX_PMIC || MFD_UMP96XX_PMIC || COMPILE_TEST
 	help
-	  Say Y here to enable support for fast charging with SC2730
+	  Say Y here to enable support for fast charging with SC27XX
 	  PMIC chips.
 
 config CHARGER_UCS1002

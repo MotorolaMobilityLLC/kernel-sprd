@@ -26,7 +26,7 @@
 
 /* Fast charging device name */
 #define SPRD_FCHG_TCPM_PD_NAME			"sprd-tcpm-source-psy-sc27xx-pd"
-#define SPRD_FCHG_SFCP_NAME			"sc2730_fast_charger"
+#define SPRD_FCHG_SFCP_NAME			"sc27xx_fast_charger"
 
 #define SPRD_PD_DEFAULT_POWER_UW		10000000
 
