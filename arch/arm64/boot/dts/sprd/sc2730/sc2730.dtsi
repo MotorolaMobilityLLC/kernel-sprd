@@ -132,6 +132,11 @@
 			compatible = "sprd,sc27xx-7sreset", "sprd,sc2730-7sreset";
 			reg = <0x1bf8>, <0x1bc0>;
 		};
+
+		vibrator@1b90 {
+			compatible = "sprd,sc2730-vibrator";
+			reg = <0x1b90>;
+		};
 	};
 };
 
