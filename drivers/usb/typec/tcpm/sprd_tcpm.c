@@ -1,7 +1,4 @@
 /*
- * Copyright (C) 2011 Unisoc Co., Ltd.
- * Rong.wu <Rong.wu@unisoc.com>
- *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
  * published by the Free Software Foundation.
@@ -23,10 +20,10 @@
 #include <linux/spinlock.h>
 #include <linux/usb.h>
 #include <linux/usb/sprd_pd.h>
-#include <linux/usb/pd_ado.h>
-#include <linux/usb/pd_bdo.h>
-#include <linux/usb/pd_ext_sdb.h>
-#include <linux/usb/pd_vdo.h>
+#include <linux/usb/sprd_pd_ado.h>
+#include <linux/usb/sprd_pd_bdo.h>
+#include <linux/usb/sprd_pd_ext_sdb.h>
+#include <linux/usb/sprd_pd_vdo.h>
 #include <linux/usb/role.h>
 #include <linux/usb/sprd_tcpm.h>
 #include <linux/usb/typec_altmode.h>
@@ -387,7 +384,7 @@ struct sprd_tcpm_port {
 	unsigned int nr_snk_pdo;
 	u32 snk_default_pdo[SPRD_PDO_MAX_OBJECTS];
 	unsigned int nr_snk_default_pdo;
-	u32 snk_vdo[VDO_MAX_OBJECTS];
+	u32 snk_vdo[SPRD_VDO_MAX_OBJECTS];
 	unsigned int nr_snk_vdo;
 
 	unsigned int operating_snk_mw;
@@ -418,7 +415,7 @@ struct sprd_tcpm_port {
 	enum sprd_vdm_states vdm_state;
 	u32 vdm_retries;
 	/* next Vendor Defined Message to send */
-	u32 vdo_data[VDO_MAX_SIZE];
+	u32 vdo_data[SPRD_VDO_MAX_SIZE];
 	u8 vdo_count;
 	/* VDO to retry if UFP responder replied busy */
 	u32 vdo_retry;
@@ -1069,20 +1066,20 @@ static void sprd_tcpm_queue_vdm(struct sprd_tcpm_port *port, const u32 header,
 static void sprd_svdm_consume_identity(struct sprd_tcpm_port *port,
 				       const __le32 *payload, int cnt)
 {
-	u32 vdo = le32_to_cpu(payload[VDO_INDEX_IDH]);
-	u32 product = le32_to_cpu(payload[VDO_INDEX_PRODUCT]);
+	u32 vdo = le32_to_cpu(payload[SPRD_VDO_INDEX_IDH]);
+	u32 product = le32_to_cpu(payload[SPRD_VDO_INDEX_PRODUCT]);
 
 	memset(&port->mode_data, 0, sizeof(port->mode_data));
 
 	port->partner_ident.id_header = vdo;
-	port->partner_ident.cert_stat = le32_to_cpu(payload[VDO_INDEX_CSTAT]);
+	port->partner_ident.cert_stat = le32_to_cpu(payload[SPRD_VDO_INDEX_CSTAT]);
 	port->partner_ident.product = product;
 
 	typec_partner_set_identity(port->partner);
 
 	sprd_tcpm_log(port, "Identity: %04x:%04x.%04x",
-		      PD_IDH_VID(vdo),
-		      PD_PRODUCT_PID(product), product & 0xffff);
+		      SPRD_PD_IDH_VID(vdo),
+		      SPRD_PD_PRODUCT_PID(product), product & 0xffff);
 }
 
 static bool sprd_svdm_consume_svids(struct sprd_tcpm_port *port,
@@ -1164,7 +1161,7 @@ static void sprd_tcpm_register_partner_altmodes(struct sprd_tcpm_port *port)
 	}
 }
 
-#define supports_modal(port)	PD_IDH_MODAL_SUPP((port)->partner_ident.id_header)
+#define supports_modal(port)	SPRD_PD_IDH_MODAL_SUPP((port)->partner_ident.id_header)
 
 static int sprd_tcpm_pd_svdm(struct sprd_tcpm_port *port,
 			     const __le32 *payload, int cnt, u32 *response)
@@ -1181,23 +1178,23 @@ static int sprd_tcpm_pd_svdm(struct sprd_tcpm_port *port,
 	for (i = 0; i < cnt; i++)
 		p[i] = le32_to_cpu(payload[i]);
 
-	cmd_type = PD_VDO_CMDT(p[0]);
-	cmd = PD_VDO_CMD(p[0]);
+	cmd_type = SPRD_PD_VDO_CMDT(p[0]);
+	cmd = SPRD_PD_VDO_CMD(p[0]);
 
 	sprd_tcpm_log(port, "Rx VDM cmd 0x%x type %d cmd %d len %d", p[0], cmd_type, cmd, cnt);
 
 	modep = &port->mode_data;
 
 	adev = typec_match_altmode(port->port_altmode, SPRD_ALTMODE_DISCOVERY_MAX,
-				   PD_VDO_VID(p[0]), PD_VDO_OPOS(p[0]));
+				   SPRD_PD_VDO_VID(p[0]), SPRD_PD_VDO_OPOS(p[0]));
 
 	pdev = typec_match_altmode(port->partner_altmode, SPRD_ALTMODE_DISCOVERY_MAX,
-				   PD_VDO_VID(p[0]), PD_VDO_OPOS(p[0]));
+				   SPRD_PD_VDO_VID(p[0]), SPRD_PD_VDO_OPOS(p[0]));
 
 	switch (cmd_type) {
-	case CMDT_INIT:
+	case SPRD_CMDT_INIT:
 		switch (cmd) {
-		case CMD_DISCOVER_IDENT:
+		case SPRD_CMD_DISCOVER_IDENT:
 			/* 6.4.4.3.1: Only respond as UFP (device) */
 			if (port->data_role == TYPEC_DEVICE &&
 			    port->nr_snk_vdo) {
@@ -1206,15 +1203,15 @@ static int sprd_tcpm_pd_svdm(struct sprd_tcpm_port *port,
 				rlen = port->nr_snk_vdo + 1;
 			}
 			break;
-		case CMD_DISCOVER_SVID:
+		case SPRD_CMD_DISCOVER_SVID:
 			break;
-		case CMD_DISCOVER_MODES:
+		case SPRD_CMD_DISCOVER_MODES:
 			break;
-		case CMD_ENTER_MODE:
+		case SPRD_CMD_ENTER_MODE:
 			break;
-		case CMD_EXIT_MODE:
+		case SPRD_CMD_EXIT_MODE:
 			break;
-		case CMD_ATTENTION:
+		case SPRD_CMD_ATTENTION:
 			/* Attention command does not have response */
 			if (adev) {
 				typec_altmode_attention(adev, p[1]);
@@ -1228,64 +1225,61 @@ static int sprd_tcpm_pd_svdm(struct sprd_tcpm_port *port,
 			break;
 		}
 		if (rlen >= 1) {
-			response[0] = p[0] | VDO_CMDT(CMDT_RSP_ACK);
+			response[0] = p[0] | SPRD_VDO_CMDT(SPRD_CMDT_RSP_ACK);
 		} else if (rlen == 0) {
-			response[0] = p[0] | VDO_CMDT(CMDT_RSP_NAK);
+			response[0] = p[0] | SPRD_VDO_CMDT(SPRD_CMDT_RSP_NAK);
 			rlen = 1;
 		} else {
-			response[0] = p[0] | VDO_CMDT(CMDT_RSP_BUSY);
+			response[0] = p[0] | SPRD_VDO_CMDT(SPRD_CMDT_RSP_BUSY);
 			rlen = 1;
 		}
 		break;
-	case CMDT_RSP_ACK:
+	case SPRD_CMDT_RSP_ACK:
 		/* silently drop message if we are not connected */
 		if (IS_ERR_OR_NULL(port->partner))
 			break;
 
 		switch (cmd) {
-		case CMD_DISCOVER_IDENT:
+		case SPRD_CMD_DISCOVER_IDENT:
 			/* 6.4.4.3.1 */
 			sprd_svdm_consume_identity(port, payload, cnt);
-			response[0] = VDO(USB_SID_PD, 1, CMD_DISCOVER_SVID);
+			response[0] = SPRD_VDO(SPRD_USB_SID_PD, 1, SPRD_CMD_DISCOVER_SVID);
 			rlen = 1;
 			break;
-		case CMD_DISCOVER_SVID:
+		case SPRD_CMD_DISCOVER_SVID:
 			/* 6.4.4.3.2 */
 			if (sprd_svdm_consume_svids(port, payload, cnt)) {
-				response[0] = VDO(USB_SID_PD, 1,
-						  CMD_DISCOVER_SVID);
+				response[0] = SPRD_VDO(SPRD_USB_SID_PD, 1, SPRD_CMD_DISCOVER_SVID);
 				rlen = 1;
 			} else if (modep->nsvids && supports_modal(port)) {
-				response[0] = VDO(modep->svids[0], 1,
-						  CMD_DISCOVER_MODES);
+				response[0] = SPRD_VDO(modep->svids[0], 1, SPRD_CMD_DISCOVER_MODES);
 				rlen = 1;
 			}
 			break;
-		case CMD_DISCOVER_MODES:
+		case SPRD_CMD_DISCOVER_MODES:
 			/* 6.4.4.3.3 */
 			sprd_svdm_consume_modes(port, payload, cnt);
 			modep->svid_index++;
 			if (modep->svid_index < modep->nsvids) {
 				u16 svid = modep->svids[modep->svid_index];
-				response[0] = VDO(svid, 1, CMD_DISCOVER_MODES);
+				response[0] = SPRD_VDO(svid, 1, SPRD_CMD_DISCOVER_MODES);
 				rlen = 1;
 			} else {
 				sprd_tcpm_register_partner_altmodes(port);
 			}
 			break;
-		case CMD_ENTER_MODE:
+		case SPRD_CMD_ENTER_MODE:
 			if (adev && pdev) {
 				typec_altmode_update_active(pdev, true);
 
 				if (typec_altmode_vdm(adev, p[0], &p[1], cnt)) {
-					response[0] = VDO(adev->svid, 1,
-							  CMD_EXIT_MODE);
-					response[0] |= VDO_OPOS(adev->mode);
+					response[0] = SPRD_VDO(adev->svid, 1, SPRD_CMD_EXIT_MODE);
+					response[0] |= SPRD_VDO_OPOS(adev->mode);
 					return 1;
 				}
 			}
 			return 0;
-		case CMD_EXIT_MODE:
+		case SPRD_CMD_EXIT_MODE:
 			if (adev && pdev) {
 				typec_altmode_update_active(pdev, false);
 
@@ -1299,9 +1293,9 @@ static int sprd_tcpm_pd_svdm(struct sprd_tcpm_port *port,
 			break;
 		}
 		break;
-	case CMDT_RSP_NAK:
+	case SPRD_CMDT_RSP_NAK:
 		switch (cmd) {
-		case CMD_ENTER_MODE:
+		case SPRD_CMD_ENTER_MODE:
 			/* Back to USB Operation */
 			if (adev)
 				WARN_ON(typec_altmode_notify(adev,
@@ -1332,18 +1326,17 @@ static void sprd_tcpm_handle_vdm_request(struct sprd_tcpm_port *port,
 
 	if (port->vdm_state == VDM_STATE_BUSY) {
 		/* If UFP responded busy retry after timeout */
-		if (PD_VDO_CMDT(p0) == CMDT_RSP_BUSY) {
+		if (SPRD_PD_VDO_CMDT(p0) == SPRD_CMDT_RSP_BUSY) {
 			port->vdm_state = VDM_STATE_WAIT_RSP_BUSY;
-			port->vdo_retry = (p0 & ~VDO_CMDT_MASK) |
-				CMDT_INIT;
+			port->vdo_retry = (p0 & ~SPRD_VDO_CMDT_MASK) | SPRD_CMDT_INIT;
 			mod_delayed_work(port->wq, &port->vdm_state_machine,
-					 msecs_to_jiffies(PD_T_VDM_BUSY));
+					 msecs_to_jiffies(SPRD_PD_T_VDM_BUSY));
 			return;
 		}
 		port->vdm_state = VDM_STATE_DONE;
 	}
 
-	if (PD_VDO_SVDM(p0))
+	if (SPRD_PD_VDO_SVDM(p0))
 		rlen = sprd_tcpm_pd_svdm(port, payload, cnt, response);
 
 	if (rlen > 0) {
@@ -1357,12 +1350,12 @@ static void sprd_tcpm_send_vdm(struct sprd_tcpm_port *port,
 {
 	u32 header;
 
-	if (WARN_ON(count > VDO_MAX_SIZE - 1))
-		count = VDO_MAX_SIZE - 1;
+	if (WARN_ON(count > SPRD_VDO_MAX_SIZE - 1))
+		count = SPRD_VDO_MAX_SIZE - 1;
 
 	/* set VDM header with VID & CMD */
-	header = VDO(vid, ((vid & USB_SID_PD) == USB_SID_PD) ?
-		     1 : (PD_VDO_CMD(cmd) <= CMD_ATTENTION), cmd);
+	header = SPRD_VDO(vid, ((vid & SPRD_USB_SID_PD) == SPRD_USB_SID_PD) ?
+		     1 : (SPRD_PD_VDO_CMD(cmd) <= SPRD_CMD_ATTENTION), cmd);
 	sprd_tcpm_queue_vdm(port, header, data, count);
 
 	mod_delayed_work(port->wq, &port->vdm_state_machine, 0);
@@ -1371,24 +1364,24 @@ static void sprd_tcpm_send_vdm(struct sprd_tcpm_port *port,
 static unsigned int sprd_vdm_ready_timeout(u32 vdm_hdr)
 {
 	unsigned int timeout;
-	int cmd = PD_VDO_CMD(vdm_hdr);
+	int cmd = SPRD_PD_VDO_CMD(vdm_hdr);
 
 	/* its not a structured VDM command */
-	if (!PD_VDO_SVDM(vdm_hdr))
-		return PD_T_VDM_UNSTRUCTURED;
+	if (!SPRD_PD_VDO_SVDM(vdm_hdr))
+		return SPRD_PD_T_VDM_UNSTRUCTURED;
 
-	switch (PD_VDO_CMDT(vdm_hdr)) {
-	case CMDT_INIT:
-		if (cmd == CMD_ENTER_MODE || cmd == CMD_EXIT_MODE)
-			timeout = PD_T_VDM_WAIT_MODE_E;
+	switch (SPRD_PD_VDO_CMDT(vdm_hdr)) {
+	case SPRD_CMDT_INIT:
+		if (cmd == SPRD_CMD_ENTER_MODE || cmd == SPRD_CMD_EXIT_MODE)
+			timeout = SPRD_PD_T_VDM_WAIT_MODE_E;
 		else
-			timeout = PD_T_VDM_SNDR_RSP;
+			timeout = SPRD_PD_T_VDM_SNDR_RSP;
 		break;
 	default:
-		if (cmd == CMD_ENTER_MODE || cmd == CMD_EXIT_MODE)
-			timeout = PD_T_VDM_E_MODE;
+		if (cmd == SPRD_CMD_ENTER_MODE || cmd == SPRD_CMD_EXIT_MODE)
+			timeout = SPRD_PD_T_VDM_E_MODE;
 		else
-			timeout = PD_T_VDM_RCVR_RSP;
+			timeout = SPRD_PD_T_VDM_RCVR_RSP;
 		break;
 	}
 	return timeout;
@@ -1609,8 +1602,8 @@ static int sprd_tcpm_altmode_enter(struct typec_altmode *altmode)
 	u32 header;
 
 	mutex_lock(&port->lock);
-	header = VDO(altmode->svid, 1, CMD_ENTER_MODE);
-	header |= VDO_OPOS(altmode->mode);
+	header = SPRD_VDO(altmode->svid, 1, SPRD_CMD_ENTER_MODE);
+	header |= SPRD_VDO_OPOS(altmode->mode);
 
 	sprd_tcpm_queue_vdm(port, header, NULL, 0);
 	mod_delayed_work(port->wq, &port->vdm_state_machine, 0);
@@ -1625,8 +1618,8 @@ static int sprd_tcpm_altmode_exit(struct typec_altmode *altmode)
 	u32 header;
 
 	mutex_lock(&port->lock);
-	header = VDO(altmode->svid, 1, CMD_EXIT_MODE);
-	header |= VDO_OPOS(altmode->mode);
+	header = SPRD_VDO(altmode->svid, 1, SPRD_CMD_EXIT_MODE);
+	header |= SPRD_VDO_OPOS(altmode->mode);
 
 	sprd_tcpm_queue_vdm(port, header, NULL, 0);
 	mod_delayed_work(port->wq, &port->vdm_state_machine, 0);
@@ -1672,7 +1665,7 @@ static void sprd_tcpm_handle_alert(struct sprd_tcpm_port *port,
 				   const __le32 *payload, int cnt)
 {
 	u32 p0 = le32_to_cpu(payload[0]);
-	unsigned int type = usb_pd_ado_type(p0);
+	unsigned int type = sprd_usb_pd_ado_type(p0);
 
 	if (!type) {
 		sprd_tcpm_log(port, "Alert message received with no type");
@@ -1680,7 +1673,7 @@ static void sprd_tcpm_handle_alert(struct sprd_tcpm_port *port,
 	}
 
 	/* Just handling non-battery alerts for now */
-	if (!(type & USB_PD_ADO_TYPE_BATT_STATUS_CHANGE)) {
+	if (!(type & SPRD_USB_PD_ADO_TYPE_BATT_STATUS_CHANGE)) {
 		switch (port->state) {
 		case SRC_READY:
 		case SNK_READY:
@@ -2035,8 +2028,8 @@ static void sprd_tcpm_pd_ext_msg_request(struct sprd_tcpm_port *port,
 		 * If PPS related events raised then get PPS status to clear
 		 * (see USB PD 3.0 Spec, 6.5.2.4)
 		 */
-		if (msg->ext_msg.data[USB_PD_EXT_SDB_EVENT_FLAGS] &
-		    USB_PD_EXT_SDB_PPS_EVENTS)
+		if (msg->ext_msg.data[SPRD_USB_PD_EXT_SDB_EVENT_FLAGS] &
+		    SPRD_USB_PD_EXT_SDB_PPS_EVENTS)
 			sprd_tcpm_set_state(port, GET_PPS_STATUS_SEND, 0);
 		else
 			sprd_tcpm_set_state(port, sprd_ready_state(port), 0);
@@ -2952,7 +2945,7 @@ static void sprd_tcpm_check_send_discover(struct sprd_tcpm_port *port)
 {
 	if (port->data_role == TYPEC_HOST && port->send_discover &&
 	    port->pd_capable) {
-		sprd_tcpm_send_vdm(port, USB_SID_PD, CMD_DISCOVER_IDENT, NULL, 0);
+		sprd_tcpm_send_vdm(port, SPRD_USB_SID_PD, SPRD_CMD_DISCOVER_IDENT, NULL, 0);
 		port->send_discover = false;
 	}
 }
@@ -3644,8 +3637,8 @@ static void sprd_run_state_machine(struct sprd_tcpm_port *port)
 		break;
 
 	case BIST_RX:
-		switch (BDO_MODE_MASK(port->bist_request)) {
-		case BDO_MODE_CARRIER2:
+		switch (SPRD_BDO_MODE_MASK(port->bist_request)) {
+		case SPRD_BDO_MODE_CARRIER2:
 			sprd_tcpm_pd_transmit(port, SPRD_TCPC_TX_BIST_MODE_2, NULL);
 			break;
 		default:
@@ -4536,8 +4529,8 @@ static int sprd_tcpm_copy_vdos(u32 *dest_vdo, const u32 *src_vdo, unsigned int n
 {
 	unsigned int i;
 
-	if (nr_vdo > VDO_MAX_OBJECTS)
-		nr_vdo = VDO_MAX_OBJECTS;
+	if (nr_vdo > SPRD_VDO_MAX_OBJECTS)
+		nr_vdo = SPRD_VDO_MAX_OBJECTS;
 
 	for (i = 0; i < nr_vdo; i++)
 		dest_vdo[i] = src_vdo[i];
