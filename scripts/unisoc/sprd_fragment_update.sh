@@ -113,15 +113,14 @@ function generate_config()
 	fi
 	cd ${ROOT_DIR}
 	make -j ${JOBS} -C ${KERNEL_DIR} LLVM=1 DEPMOD=depmod DTC=dtc ARCH=arm64 O=${out} ${baseconfig} >/dev/null
-	make -j ${JOBS} -C ${KERNEL_DIR} LLVM=1 DEPMOD=depmod DTC=dtc ARCH=arm64 O=${out} savedefconfig >/dev/null
-	cp ${out}/defconfig ${orig_config}
+	cp ${out}/.config ${orig_config}
 	KCONFIG_CONFIG=${KERNEL_PATH}/arch/arm64/configs/${defconfig} ${KERNEL_PATH}/scripts/kconfig/merge_config.sh -m -r ${KERNEL_PATH}/arch/arm64/configs/${baseconfig} ${KERNEL_PATH}/arch/arm64/configs/${fragment} >/dev/null
 	make -j ${JOBS} -C ${KERNEL_DIR} LLVM=1 DEPMOD=depmod DTC=dtc ARCH=arm64 O=${out} ${defconfig} >/dev/null
-	make -j ${JOBS} -C ${KERNEL_DIR} LLVM=1 DEPMOD=depmod DTC=dtc ARCH=arm64 O=${out} savedefconfig >/dev/null
-	cp ${out}/defconfig ${new_config}
+	cp ${out}/.config ${new_config}
 
-	${KERNEL_PATH}/scripts/diffconfig -m ${orig_config} ${new_config} > ${changed_config} >/dev/null
-	KCONFIG_CONFIG=${new_fragment} ${KERNEL_PATH}/scripts/kconfig/merge_config.sh -m ${KERNEL_PATH}/arch/${ARCH}/configs/${fragment} ${changed_config} >/dev/null
+	${KERNEL_PATH}/scripts/diffconfig -m ${orig_config} ${new_config} > ${new_fragment}
+	#KCONFIG_CONFIG=${new_fragment} ${KERNEL_PATH}/scripts/kconfig/merge_config.sh -m \
+	#	${KERNEL_PATH}/arch/${ARCH}/configs/${fragment} ${changed_config} >/dev/null
 
 	sort_config ${new_fragment} > ${new_fragment_sorted}
 	diff -u ${KERNEL_PATH}/arch/${ARCH}/configs/${fragment} ${new_fragment_sorted} >/dev/null || RES=$?
