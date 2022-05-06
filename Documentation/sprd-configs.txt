@@ -17748,6 +17748,15 @@ CONFIG_SUSPEND_FREEZER
 	[must] user
 	[missing plat description] none
 	[function] Enable freezer for suspend to RAM/standby.
+CONFIG_SUSPEND_SKIP_SYNC
+	[arch] arm64
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
 CONFIG_SWAP
 	[arch] all
 	[plat] all
