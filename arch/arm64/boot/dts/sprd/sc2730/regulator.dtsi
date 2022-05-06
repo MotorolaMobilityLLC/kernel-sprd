@@ -175,7 +175,6 @@
 			regulator-min-microvolt = <1200000>;
 			regulator-max-microvolt = <3750000>;
 			regulator-ramp-delay = <25000>;
-			regulator-always-on;
 		};
 
 		vddsdcore: LDO_VDDSDCORE {
