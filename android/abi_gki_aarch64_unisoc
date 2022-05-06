@@ -72,6 +72,7 @@
   cdev_device_add
   cdev_device_del
   cdev_init
+  cfg80211_rx_mgmt_khz
   __cfi_slowpath_diag
   __check_object_size
   __class_create
@@ -114,6 +115,9 @@
   cpu_hotplug_disable
   cpu_hwcap_keys
   cpu_hwcaps
+  cpu_latency_qos_add_request
+  cpu_latency_qos_remove_request
+  cpu_latency_qos_update_request
   cpumask_next
   cpufreq_add_update_util_hook
   cpufreq_cpu_get
@@ -581,6 +585,7 @@
   nf_ct_l4proto_find
   nf_register_net_hooks
   nf_unregister_net_hooks
+  nla_strscpy
   noop_llseek
   nr_cpu_ids
   nvmem_cell_get
