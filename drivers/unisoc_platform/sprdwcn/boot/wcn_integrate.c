@@ -43,6 +43,7 @@ static const struct wcn_chip_type wcn_chip_type[] = {
 	{0x96330000, WCN_PIKE2_CHIP},
 	/* WCN_SHARKL6_CHIP is error */
 	{0x00000000, WCN_SHARKL6_CHIP},
+	{0x00000001, WCN_SHARKL6_CHIP},
 };
 
 struct qogirl6_wcn_special_share_mem *qogirl6_s_wssm_phy_offset_p =
@@ -319,6 +320,7 @@ enum wcn_aon_chip_id wcn_get_aon_chip_id(void)
 		}
 	}
 
+	WCN_ERR("wcn get chipid invalid \n");
 	return WCN_AON_CHIP_ID_INVALID;
 }
 EXPORT_SYMBOL_GPL(wcn_get_aon_chip_id);
