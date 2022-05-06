@@ -250,6 +250,8 @@
   dma_resv_add_excl_fence
   dma_resv_wait_timeout
   dma_set_mask
+  dma_sync_sg_for_cpu
+  dma_sync_sg_for_device
   dma_sync_single_for_cpu
   dma_sync_single_for_device
   dma_unmap_sg_attrs
