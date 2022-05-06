@@ -16,3 +16,6 @@
 
 	};
 };
+
+#include "regulator.dtsi"
+
