@@ -52,6 +52,7 @@ properties:
       - sprd,sc9860-adi
       - sprd,sc9863-adi
       - sprd,ums512-adi
+      - sprd,ums9620-adi
 
   reg:
     maxItems: 1
