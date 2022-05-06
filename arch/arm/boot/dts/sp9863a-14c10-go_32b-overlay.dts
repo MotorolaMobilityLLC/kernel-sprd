@@ -302,6 +302,7 @@
 		vddcama-supply = <&vddcama>;
 		vddcamd-supply = <&vddcamd>;
 		vddcammot-supply = <&vddcammot>;
+		avdd-gpios = <&ap_gpio 63 0>;
 		sprd,phyid = <1>;
 		csi = <&csi0>;
 		reset-gpios = <&ap_gpio 44 0>;
@@ -329,7 +330,8 @@
 		vddcama-supply = <&vddcama>;
 		vddcamd-supply = <&vddcamd>;
 		vddcammot-supply = <&vddcammot>;
-		sprd,phyid = <4>;
+		avdd-gpios = <&ap_gpio 63 0>;
+		sprd,phyid = <0>;
 		csi = <&csi0>;
 		reset-gpios = <&ap_gpio 41 0>;
 		power-down-gpios = <&ap_gpio 40 0>;
@@ -347,14 +349,11 @@
 			<&pll CLK_TWPLL_48M>,<&ext_26m>;
 		vddio-supply = <&vddcamio>;
 		vddcama-supply = <&vddcama>;
-		vddcamd-supply = <&vddcamd>;
-		vddcammot-supply = <&vddcammot>;
+		avdd-gpios = <&ap_gpio 63 0>;
+		power-down-gpios = <&ap_gpio 73 0>;
 		sprd,phyid = <3>;
 		csi = <&csi1>;
-		/*avdd-gpios=<&ap_gpio 140 0>;*/
-		dvdd-gpios=<&ap_gpio 62 0>;
-		reset-gpios = <&ap_gpio 45 0>;
-		power-down-gpios = <&ap_gpio 47 0>;
+
 		power-domains = <&mm_domain>;
 	};
 
@@ -388,8 +387,15 @@
 	clock-frequency = <400000>;
 
 	flash_ic: flash-ic@63 {
-		compatible = "sprd,flash-ocp8137";
+		compatible = "sprd,flash-aw36515";
 		reg = <0x63>;
+		sprd,flash-ic = <36515>;
+	};
+
+
+	flash_ic1: flash-ic@64 {
+		compatible = "sprd,flash-ocp8137";
+		reg = <0x64>;
 		sprd,flash-ic = <8137>;
 		sprd,torch = <1>;
 		sprd,preflash = <1>;
