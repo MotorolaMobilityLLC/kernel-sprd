@@ -272,6 +272,13 @@
 				#mbox-cells = <2>;
 			};
 
+			adi_bus: spi@32100000 {
+				compatible = "sprd,ums512-adi";
+				reg = <0 0x32100000 0 0x100000>;
+				#address-cells = <1>;
+				#size-cells = <0>;
+			};
+
 			pwms: pwm@32260000 {
 				compatible = "sprd,ums512-pwm";
 				reg = <0 0x32260000 0 0x10000>;
@@ -360,7 +367,6 @@
 };
 
 /* Include other IP modules in ALPHABETICAL order */
-#include "adi.dtsi"
 #include "bm.dtsi"
 #include "cam.dtsi"
 #include "clock.dtsi"

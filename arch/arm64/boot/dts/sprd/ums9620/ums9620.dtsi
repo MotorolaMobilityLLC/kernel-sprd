@@ -243,6 +243,10 @@
 	};
 
 	soc: soc {
+		compatible = "simple-bus";
+		#address-cells = <2>;
+		#size-cells = <2>;
+		ranges;
 
 		apapb: ap-apb {
 			compatible = "simple-bus";
@@ -280,6 +284,18 @@
 			clocks = <&ext_26m>;
 			clock-names = "ext-26m";
 			#clock-cells = <1>;
+		};
+
+		aon: aon {
+			compatible = "simple-bus";
+			#address-cells = <1>;
+			#size-cells = <1>;
+			ranges = <0 0 0x64000000 0x1016000>;
+
+			adi_bus: spi@400000 {
+				compatible = "sprd,ums9620-adi";
+				reg = <0x400000 0x100000>;
+			};
 		};
 
 
