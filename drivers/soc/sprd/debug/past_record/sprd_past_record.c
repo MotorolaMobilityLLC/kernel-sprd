@@ -129,7 +129,6 @@ static ssize_t sprd_serror_debug_write(struct file *file, const char __user *buf
 	size_t count, loff_t *data)
 {
 	char serror_buf[SERROR_PROC_BUF_LEN] = {0};
-	int *test = NULL;
 
 	pr_info("***serror debug %s: start!!!\n", __func__);
 	pr_info("SERROR_START_ADDR = 0x%lx\n", SERROR_START_ADDR);
@@ -151,7 +150,7 @@ static ssize_t sprd_serror_debug_write(struct file *file, const char __user *buf
 			serror_debug_status = 0;
 		} else if (!strncmp(serror_buf, "null", 4)) {
 			pr_info("***serror debug %s  null pointer !!\n", __func__);
-			count = *test;
+			BUG_ON(1);
 		}
 	}
 
