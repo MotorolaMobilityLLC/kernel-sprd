@@ -2774,3 +2774,17 @@
   usb_role_switch_get
   usb_role_switch_put
   usb_role_switch_set_role
+
+# required by sysdump.ko
+  get_zeroed_page
+  init_uts_ns
+  vscnprintf
+
+# required by native_hang_monitor.ko
+  access_process_vm
+  find_get_pid
+  find_task_by_vpid
+  get_pid_task
+  init_task
+  put_pid
+  tasklist_lock
