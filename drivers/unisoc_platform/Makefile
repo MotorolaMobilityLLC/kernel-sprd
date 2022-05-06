@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: GPL-2.0
 obj-y += sprd_time_sync/
+obj-y += domain/
 obj-$(CONFIG_UNISOC_SCHED)	+= sched/
 obj-$(CONFIG_UNISOC_DISP)	+= sprd_disp/
 obj-$(CONFIG_SPRD_PMIC_SMPL)	+= sprd_pmic_smpl.o
