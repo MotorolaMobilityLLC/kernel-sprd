@@ -138,6 +138,7 @@ struct sdhci_sprd_host {
 	struct register_hotplug reg_debounce_en;
 	struct register_hotplug reg_debounce_cn;
 	struct register_hotplug reg_rmldo_en;
+	unsigned char	power_mode;
 };
 
 struct sdhci_sprd_phy_cfg {
@@ -768,6 +769,9 @@ static void sdhci_sprd_set_power(struct sdhci_host *host, unsigned char mode,
 	struct mmc_host *mmc = host->mmc;
 	int ret;
 
+	if (sprd_host->power_mode == mmc->ios.power_mode)
+		return;
+
 	switch (mode) {
 	case MMC_POWER_OFF:
 		if (sprd_host->reg_protect_enable.regmap
@@ -804,6 +808,8 @@ static void sdhci_sprd_set_power(struct sdhci_host *host, unsigned char mode,
 			sdhci_sprd_fast_hotplug_enable(sprd_host);
 		break;
 	}
+
+	sprd_host->power_mode = mmc->ios.power_mode;
 }
 
 static struct sdhci_ops sdhci_sprd_ops = {
@@ -1156,6 +1162,8 @@ static int sdhci_sprd_probe(struct platform_device *pdev)
 	host->version = sdhci_readw(host, SDHCI_HOST_VERSION);
 	sprd_host->version = ((host->version & SDHCI_VENDOR_VER_MASK) >>
 			       SDHCI_VENDOR_VER_SHIFT);
+
+	sprd_host->power_mode = MMC_POWER_OFF;
 
 	pm_runtime_get_noresume(&pdev->dev);
 	pm_runtime_set_active(&pdev->dev);
