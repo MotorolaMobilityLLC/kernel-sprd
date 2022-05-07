@@ -279,6 +279,7 @@ int stat_info_register(char *name, get_info_t *get, void *data)
 
 	pn->info = kzalloc(sizeof(struct subsys_sleep_info), GFP_KERNEL);
 	if (!pn->info) {
+		kfree(pn);
 		mutex_unlock(&info_mutex);
 		return -ENOMEM;
 	}
