@@ -1667,6 +1667,10 @@ int sc2355_reset(struct sprd_hif *hif)
 	pr_info("%s flust all tx list\n", __func__);
 	tx_flush_all_txlist(tx_mgmt);
 
+	/* when cp2 hang and reset, clear hang_recovery_status */
+	pr_info("%s set hang recovery status to END, %d\n", __func__, __LINE__);
+	tx_mgmt->hang_recovery_status = HANG_RECOVERY_END;
+
 	return 0;
 }
 
