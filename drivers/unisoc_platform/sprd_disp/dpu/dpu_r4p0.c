@@ -806,7 +806,9 @@ static void dpu_dvfs_task_func(unsigned long data)
 	else
 		dvfs_freq = 384000000;
 
+#ifdef CONFIG_DVFS_APSYS_SPRD
 	dpu_dvfs_notifier_call_chain(&dvfs_freq);
+#endif
 }
 
 static int dpu_init(struct dpu_context *ctx)
