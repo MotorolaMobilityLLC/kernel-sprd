@@ -63,10 +63,18 @@ static int sprd_nvmem_info_read(struct device_node *node, const char *name, u32 
 	struct nvmem_cell *cell;
 	void *buf;
 	size_t len = 0;
+	int ret = 0;
 
 	cell = of_nvmem_cell_get(node, name);
-	if (IS_ERR(cell))
-		return PTR_ERR(cell);
+	if (IS_ERR(cell)) {
+		ret = PTR_ERR(cell);
+		if (ret == -EPROBE_DEFER)
+			pr_warn("cell for cpufreq not ready, retry\n");
+		else
+			pr_err("failed to get cell for cpufreq\n");
+
+		return ret;
+	}
 
 	buf = nvmem_cell_read(cell, &len);
 	if (IS_ERR(buf)) {
@@ -575,7 +583,7 @@ static int sprd_cluster_props_init(struct cluster_info *cluster)
 		ret = sprd_nvmem_info_read(cluster->node, "dvfs_bin", &cluster->bin);
 		if (ret) {
 			dev_err(dev, "%s: error in reading dvfs bin value\n", __func__);
-			return -EINVAL;
+			return ret;
 		}
 
 		ret = cluster->bin_set(cluster->id, cluster->bin);
@@ -677,7 +685,7 @@ static int sprd_cluster_info_init(struct cluster_info *clusters)
 		ret = sprd_cluster_props_init(cluster);
 		if (ret) {
 			dev_err(dev, "%s: init cluster %u props error\n", __func__, cluster->id);
-			return -EINVAL;
+			return ret;
 		}
 
 		ret = sprd_cluster_temp_init(cluster);
@@ -711,7 +719,7 @@ static int sprd_cpufreq_probe(struct platform_device *pdev)
 	ret = sprd_cluster_info_init(pclusters);
 	if (ret) {
 		dev_err(dev, "%s: init cluster info error\n", __func__);
-		return -EINVAL;
+		return ret;
 	}
 
 	ret = pclusters->dvfs_init();
