@@ -22,6 +22,7 @@ SPECIAL_CHECK_TAGS = ['Documentation', 'dts']
 PATCH_SIGNATURE = []
 check_tags_flag = 1
 check_signature_flag = 1
+check_perm_flag = 0
 
 def read_line(path,file_name):
     read_file = path + '/' + file_name
@@ -357,6 +358,17 @@ def check_tags_consistent(ret_info):
         else:
             print >> sys.stdout, "\nINFO:Ignore check of tags and modified files!"
 
+def check_modify_file_perm():
+    check_perm_flag=0
+    status,output=commands.getstatusoutput(GET_PATCH_MODIFY_FILE_INFO)
+    get_patch_modify_file_list = output.split('\n')
+    for f in get_patch_modify_file_list:
+        if "scripts/unisoc" not in f:
+            if (os.access(f,os.R_OK|os.W_OK|os.X_OK)):
+                print >> sys.stderr, "\nDO NOT ADD execute permission for %s\n" % f
+                check_perm_flag=1
+    return check_perm_flag
+
 def main(argv=None):
     ret_info = []
     ret_check_file = []
@@ -375,6 +387,7 @@ def main(argv=None):
     check_duplicate()
     check_osa_ifsorted()
     check_tags_consistent(ret_info)
+    check_modify_file_perm()
     return ret_info[0]
 
 
