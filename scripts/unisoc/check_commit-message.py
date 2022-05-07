@@ -120,6 +120,7 @@ def check_patch_signature(patch_info_list):
     global PATCH_SIGNATURE
     global check_signature_flag
     current_signature = ""
+    RET = 0
 
     read_message_lines = read_line(KERNEL_DIR,AGREEMENT_FILE_NAME)
 
@@ -135,7 +136,7 @@ def check_patch_signature(patch_info_list):
         if author not in sob_list:
             print >> sys.stderr, "\nERROR: Signature not contain the Author!!!"
             print >> sys.stderr, "Please add the Signature in commit message:Signed-off-by: %s\n" % author
-            sys.exit(1)
+            RET = 1
         for sob in sob_list:
             if "- " + sob in osa_list:
                 print >> sys.stdout, "Oneof Sob %s is the OSA Documentation" % sob
@@ -144,11 +145,12 @@ def check_patch_signature(patch_info_list):
         if check_signature_flag == 1:
                 print >> sys.stderr, "\nERROR: None of following signatures not in Documentation/unisoc/Open-Source-Agreement"
                 print >> sys.stderr, "%s\n" % sob_list
-                sys.exit(1)
+                RET = 1
     else:
         print >> sys.stderr, "\nERROR: Signature(Signed-off-by) doesnot exist for commit message!!!"
         print >> sys.stderr, "Please add the Singature by run command: git commit --amend -s\n"
-        sys.exit(1)
+        RET = 1
+    return RET
 
 def check_tags_commit_id(patch_info_list):
     global check_tags_flag
@@ -332,9 +334,11 @@ def check_duplicate():
     return check_duplicate_flag
 
 def check_tags_consistent(ret_info):
+    RET = 0
     if ret_info[0] != 0:
         print >> sys.stderr, "\nERROR: %s" %  ret_info[1]
         print >> sys.stderr, "Please read 'Documentation/unisoc/patch-tags.txt' file."
+        RET = 1
     else:
         print >> sys.stdout, "\nCheck tags OK, tags list: %s\n" % ret_info[1]
 
@@ -347,6 +351,7 @@ def check_tags_consistent(ret_info):
             if ret_check_file[0] != 0:
                 print >> sys.stderr, "\nERROR: Tags and modified files are inconsistent!"
                 print >> sys.stderr, "Please read 'Documentation/unisoc/patch-tags.txt' file.\n\ninconsistent file list:"
+                RET = 1
             elif len(ret_check_file[1]) > 0:
                 print >> sys.stdout, "\nWARNING: Tags and modified files are inconsistent.\n\ninconsistent file list:"
             else:
@@ -355,8 +360,10 @@ def check_tags_consistent(ret_info):
             if len(ret_check_file[1]) > 0:
                 for x in ret_check_file[1]:
                     print >> sys.stderr, "%s" % x
+                    RET = 1
         else:
             print >> sys.stdout, "\nINFO:Ignore check of tags and modified files!"
+    return RET
 
 def check_modify_file_perm():
     check_perm_flag=0
@@ -370,6 +377,7 @@ def check_modify_file_perm():
     return check_perm_flag
 
 def main(argv=None):
+    return_val = 0
     ret_info = []
     ret_check_file = []
     get_patch_info_list = []
@@ -381,14 +389,15 @@ def main(argv=None):
 #for x in get_patch_info_list:
 #print "%s" % x
 
-    check_patch_signature(get_patch_info_list)
+    return_val += check_patch_signature(get_patch_info_list)
     ret_info = check_tags_commit_id(get_patch_info_list)
+    return_val += ret_info[0]
 
-    check_duplicate()
-    check_osa_ifsorted()
-    check_tags_consistent(ret_info)
-    check_modify_file_perm()
-    return ret_info[0]
+    return_val += check_duplicate()
+    return_val += check_osa_ifsorted()
+    return_val += check_tags_consistent(ret_info)
+    return_val += check_modify_file_perm()
+    return return_val
 
 
 if __name__ == '__main__':
