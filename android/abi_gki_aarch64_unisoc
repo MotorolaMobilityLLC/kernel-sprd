@@ -246,6 +246,7 @@
   drm_dbg
   drm_dev_alloc
   drm_dev_put
+  drm_dev_printk
   drm_dev_register
   drm_dp_get_adjust_request_pre_emphasis
   drm_dp_get_adjust_request_voltage
