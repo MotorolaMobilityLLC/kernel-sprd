@@ -3,7 +3,7 @@
  * Copyright (C) 2020 Unisoc Inc.
  */
 
-//#include <linux/apsys_dvfs.h>
+#include <linux/apsys_dvfs.h>
 #include <linux/delay.h>
 #include <linux/dma-buf.h>
 #include <linux/gfp.h>
@@ -886,7 +886,7 @@ static void dpu_dvfs_task_func(unsigned long data)
 	else
 		dvfs_freq = 384000000;
 
-	//dpu_dvfs_notifier_call_chain(&dvfs_freq);
+	dpu_dvfs_notifier_call_chain(&dvfs_freq);
 }
 
 static int dpu_init(struct dpu_context *ctx)

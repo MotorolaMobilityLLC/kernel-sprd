@@ -18,3 +18,6 @@ obj-$(CONFIG_SPRD_HW_DEVICE_DVFS_CP)	+= sprd_cp_dvfs.o
 
 # DEVFREQ Event Drivers
 obj-$(CONFIG_PM_DEVFREQ_EVENT)		+= event/
+
+# SPRD DVFS Driver
+obj-$(CONFIG_DVFS_APSYS_SPRD)		+= apsys/

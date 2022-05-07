@@ -3,6 +3,7 @@
  * Copyright (C) 2020 Unisoc Inc.
  */
 
+#include <linux/apsys_dvfs.h>
 #include <linux/backlight.h>
 #include <linux/dma-buf.h>
 #include <linux/delay.h>
@@ -14,7 +15,6 @@
 #include <asm/cacheflush.h>
 #include "sprd_bl.h"
 #include "sprd_dpu.h"
-//#include "sprd_dvfs_dpu.h"
 #include "dpu_enhance_param.h"
 #include "sprd_dsi.h"
 #include "sprd_crtc.h"
@@ -1266,7 +1266,7 @@ static void dpu_dvfs_task_func(unsigned long data)
 	else
 		dvfs_freq = 614400000;
 
-	//dpu_dvfs_notifier_call_chain(&dvfs_freq);
+	dpu_dvfs_notifier_call_chain(&dvfs_freq);
 }
 
 static void dpu_dvfs_task_init(struct dpu_context *ctx)
