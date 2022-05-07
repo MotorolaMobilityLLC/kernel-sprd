@@ -19,6 +19,7 @@
 #include <linux/slab.h>
 #include <linux/regmap.h>
 #include <linux/mfd/syscon.h>
+#include <linux/soc/sprd/sprd_apb_prot.h>
 
 #include "sdhci-pltfm.h"
 #include "mmc_hsq.h"
@@ -746,7 +747,7 @@ static void sdhci_sprd_fast_hotplug_enable(struct sdhci_sprd_host *sprd_host)
 			return;
 		}
 		reg_value |= sprd_host->reg_rmldo_en.mask;
-		ret = regmap_write(sprd_host->reg_rmldo_en.regmap,
+		ret = sprd_apb_prot_write(sprd_host->reg_rmldo_en.regmap,
 				sprd_host->reg_rmldo_en.reg,
 				reg_value);
 		if (ret < 0) {
