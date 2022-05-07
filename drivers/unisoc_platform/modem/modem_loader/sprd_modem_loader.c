@@ -449,8 +449,9 @@ static ssize_t modem_read(struct file *filp,
 	size_t size, offset, copy_size, map_size, r;
 	void *vmem;
 	struct modem_device *modem = filp->private_data;
+	struct pm_reg_ctrl *ctrl = modem->pm_reg_ctrl;
 	phys_addr_t addr;
-	int ret;
+	ssize_t ret;
 
 	dev_info(modem->p_dev, "read, %s!\n", modem->modem_name);
 
@@ -481,6 +482,12 @@ static ssize_t modem_read(struct file *filp,
 	if (size <= offset)
 		return -EINVAL;
 
+	/* get sp | ch sys bus control */
+	if (ctrl && ctrl->reg_offset) {
+		regmap_read(ctrl->ctrl_map, ctrl->reg_offset, &ctrl->reg_save);
+		regmap_update_bits(ctrl->ctrl_map, ctrl->reg_offset, ctrl->reg_mask, 0);
+	}
+
 	count = min_t(size_t, size - offset, count);
 	r = count;
 	do {
@@ -494,7 +501,8 @@ static ssize_t modem_read(struct file *filp,
 			dev_err(modem->p_dev,
 				"read, Unable to map  base: 0x%llx\n", addr);
 			sprd_modem_pms_release_resource(modem->rd_pms);
-			return -ENOMEM;
+			ret = -ENOMEM;
+			goto FAIL_READ;
 		}
 
 		copy_size = min_t(size_t, r, map_size);
@@ -506,7 +514,8 @@ static ssize_t modem_read(struct file *filp,
 				"read, copy data from user err!\n");
 			modem_memory_unmap(modem->modem_type, vmem);
 			sprd_modem_pms_release_resource(modem->rd_pms);
-			return -EFAULT;
+			ret = -EFAULT;
+			goto FAIL_READ;
 		}
 		modem_memory_unmap(modem->modem_type, vmem);
 		sprd_modem_pms_release_resource(modem->rd_pms);
@@ -515,7 +524,15 @@ static ssize_t modem_read(struct file *filp,
 	} while (r > 0);
 
 	*ppos += (count - r);
-	return count - r;
+	ret = count - r;
+
+FAIL_READ:
+	/* put sp | ch sys bus control */
+	if (ctrl && ctrl->reg_offset)
+		regmap_update_bits(ctrl->ctrl_map,
+				   ctrl->reg_offset, ctrl->reg_mask, ctrl->reg_save);
+
+	return ret;
 }
 
 static ssize_t modem_write(struct file *filp,
@@ -526,8 +543,9 @@ static ssize_t modem_write(struct file *filp,
 	size_t size, offset, copy_size, map_size, r;
 	void *vmem;
 	struct modem_device *modem = filp->private_data;
+	struct pm_reg_ctrl *ctrl = modem->pm_reg_ctrl;
 	phys_addr_t addr;
-	int ret;
+	ssize_t ret;
 
 	dev_dbg(modem->p_dev, "write, %s!\n", modem->modem_name);
 
@@ -546,6 +564,12 @@ static ssize_t modem_write(struct file *filp,
 	if (size <= offset)
 		return -EINVAL;
 
+	/* get sp | ch sys bus control */
+	if (ctrl && ctrl->reg_offset) {
+		regmap_read(ctrl->ctrl_map, ctrl->reg_offset, &ctrl->reg_save);
+		regmap_update_bits(ctrl->ctrl_map, ctrl->reg_offset, ctrl->reg_mask, 0);
+	}
+
 	count = min_t(size_t, size - offset, count);
 	r = count;
 	do {
@@ -559,8 +583,9 @@ static ssize_t modem_write(struct file *filp,
 			dev_err(modem->p_dev,
 				"write, Unable to map  base: 0x%llx\n",
 				addr);
-			sprd_modem_pms_release_resource(modem->wt_pms);
-			return -ENOMEM;
+			sprd_modem_pms_release_resource(modem->rd_pms);
+			ret = -ENOMEM;
+			goto FAIL_WRITE;
 		}
 		copy_size = min_t(size_t, r, map_size);
 		if (copy_size > ALIGN_NUM) {
@@ -571,8 +596,9 @@ static ssize_t modem_write(struct file *filp,
 			dev_err(modem->p_dev,
 				"write, copy data from user err!\n");
 			modem_memory_unmap(modem->modem_type, vmem);
-			sprd_modem_pms_release_resource(modem->wt_pms);
-			return -EFAULT;
+			sprd_modem_pms_release_resource(modem->rd_pms);
+			ret = -EFAULT;
+			goto FAIL_WRITE;
 		}
 		modem_memory_unmap(modem->modem_type, vmem);
 		sprd_modem_pms_release_resource(modem->wt_pms);
@@ -581,7 +607,15 @@ static ssize_t modem_write(struct file *filp,
 	} while (r > 0);
 
 	*ppos += (count - r);
-	return count - r;
+	ret = count - r;
+
+FAIL_WRITE:
+	/* put sp | ch sys bus control */
+	if (ctrl && ctrl->reg_offset)
+		regmap_update_bits(ctrl->ctrl_map,
+				   ctrl->reg_offset, ctrl->reg_mask, ctrl->reg_save);
+
+	return ret;
 }
 
 static loff_t modem_lseek(struct file *filp, loff_t off, int whence)
@@ -1052,8 +1086,10 @@ static int soc_modem_parse_dt(struct modem_device *modem,
 {
 	int ret, cr_num;
 	struct modem_ctrl *modem_ctl;
-	char sysconn[8];
+	struct pm_reg_ctrl *pm_reg_ctl;
 	u32 syscon_args[2];
+	char sysconn[8];
+	struct of_phandle_args out_args;
 
 	modem->modem_type = SOC_MODEM;
 
@@ -1099,7 +1135,27 @@ static int soc_modem_parse_dt(struct modem_device *modem,
 
 		cr_num++;
 	} while (cr_num < MODEM_CTRL_NR && modem_ctrl_args[cr_num] != NULL);
+	ret = of_parse_phandle_with_args(np, "sprd,sys-bus-ctrl", "#syscon-cells", 0, &out_args);
+	if (!ret) {
+		of_node_put(out_args.np);
+		pm_reg_ctl = devm_kzalloc(modem->p_dev,
+					sizeof(struct pm_reg_ctrl),
+					GFP_KERNEL);
+		if (!pm_reg_ctl)
+			return -ENOMEM;
 
+		pm_reg_ctl->reg_offset = out_args.args[0];
+		pm_reg_ctl->reg_mask = out_args.args[1];
+		modem->pm_reg_ctrl = pm_reg_ctl;
+		pm_reg_ctl->ctrl_map = syscon_regmap_lookup_by_phandle(np, "sprd,sys-bus-ctrl");
+		if (IS_ERR(pm_reg_ctl->ctrl_map)) {
+			dev_err(modem->p_dev, "failed to find pm_aon_apb reg.\n");
+			return -EINVAL;
+		}
+
+		dev_info(modem->p_dev, "offset = 0x%x, mask = 0x%x.\n",
+			 modem->pm_reg_ctrl->reg_offset, modem->pm_reg_ctrl->reg_mask);
+	}
 	modem->modem_ctrl = modem_ctl;
 	return 0;
 }
