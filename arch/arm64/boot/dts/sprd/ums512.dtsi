@@ -424,6 +424,9 @@
 	};
 
 	cpufreq_clus0: cpufreq-clus0 {
+		nvmem-cell-names = "dvfs_bin";
+		nvmem-cells = <&dvfs_bin_cpu0>;
+		sprd,cpufreq-temp-threshold = <65>;
 		cpufreq-cluster-id = <0>;
 		cpufreq-sub-clusters =  <&cpufreq_scu>,
 				<&cpufreq_periph>,
@@ -446,6 +449,9 @@
 	};
 
 	cpufreq_clus1: cpufreq-clus1 {
+		nvmem-cell-names = "dvfs_bin";
+		nvmem-cells = <&dvfs_bin_cpu1>;
+		sprd,cpufreq-temp-threshold = <65>;
 		cpufreq-cluster-id = <1>;
 		cpufreq-sub-clusters =  <&cpufreq_scu>,
 				<&cpufreq_periph>,
@@ -465,6 +471,9 @@
 	};
 
 	cpufreq_scu: cpufreq-scu {
+		nvmem-cell-names = "dvfs_bin";
+		nvmem-cells = <&dvfs_bin_dsu>;
+		sprd,cpufreq-temp-threshold = <65>;
 		cpufreq-cluster-id = <2>;
 		clock-latency = <50000>;
 		voltage-tolerance = <0>;
@@ -484,6 +493,9 @@
 	};
 
 	cpufreq_periph: cpufreq-periph {
+		nvmem-cell-names = "dvfs_bin";
+		nvmem-cells = <&dvfs_bin_dsu>;
+		sprd,cpufreq-temp-threshold = <65>;
 		cpufreq-cluster-id = <3>;
 		clock-latency = <50000>;
 		voltage-tolerance = <0>;
@@ -499,6 +511,9 @@
 	};
 
 	cpufreq_gic: cpufreq-gic {
+		nvmem-cell-names = "dvfs_bin";
+		nvmem-cells = <&dvfs_bin_dsu>;
+		sprd,cpufreq-temp-threshold = <65>;
 		cpufreq-cluster-id = <4>;
 		clock-latency = <50000>;
 		voltage-tolerance = <0>;
@@ -514,6 +529,9 @@
 	};
 
 	cpufreq_atb: cpufreq-atb {
+		nvmem-cell-names = "dvfs_bin";
+		nvmem-cells = <&dvfs_bin_dsu>;
+		sprd,cpufreq-temp-threshold = <65>;
 		cpufreq-cluster-id = <5>;
 		sprd,multi-version;
 		operating-points = <
