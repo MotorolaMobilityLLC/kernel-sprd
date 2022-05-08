@@ -12,6 +12,17 @@
 #include <linux/cdev.h>
 #include <linux/types.h>
 
+#ifdef CONFIG_E_SHOW_MEM
+#include <linux/sched.h>
+
+#define MAX_MAP_USER  15
+struct dmabuf_map_info {
+	pid_t pid;
+	char task_name[TASK_COMM_LEN];
+	struct timespec64 map_ts;
+};
+#endif
+
 struct dma_heap;
 
 /**
