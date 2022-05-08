@@ -52,6 +52,9 @@ static dev_t dma_heap_devt;
 static struct class *dma_heap_class;
 static DEFINE_XARRAY_ALLOC(dma_heap_minors);
 
+#ifdef CONFIG_E_SHOW_MEM
+extern int dmabuf_debug_sysheap_show_printk(struct dma_heap *heap, void *data);
+#endif
 struct dma_heap *dma_heap_find(const char *name)
 {
 	struct dma_heap *h;
@@ -408,18 +411,17 @@ static int dmabuf_e_show_mem_handler(struct notifier_block *nb,
 	struct dma_heap *heap;
 	unsigned long total_used = 0;
 
+	pr_info("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
+	pr_info("Enhanced Mem-info :DMABUF_Heap\n");
+
 	mutex_lock(&heap_list_lock);
 	list_for_each_entry(heap, &heap_list, list) {
-		if (heap->ops->get_pool_size &&
-			(!strcmp(heap->name, "system") || !strcmp(heap->name, "system-uncached")))
-			total_used += heap->ops->get_pool_size(heap);
+		if (!strcmp(heap->name, "system"))
+			dmabuf_debug_sysheap_show_printk(heap, &total_used);
 	}
 	mutex_unlock(&heap_list_lock);
 
-	pr_info("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
-	pr_info("Enhanced Mem-info :DMA-BUF\n");
-
-	pr_info("Total used : %lu kB\n", total_used / 1024);
+	pr_info("Total allocated from Buddy: %lu kB\n", total_used / 1024);
 	return 0;
 }
 

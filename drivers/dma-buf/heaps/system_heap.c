@@ -23,6 +23,12 @@
 
 #include "page_pool.h"
 
+#ifdef CONFIG_E_SHOW_MEM
+#include <linux/rbtree.h>
+#include <linux/kthread.h>
+#include <linux/sched/task.h>
+#endif
+
 static struct dma_heap *sys_heap;
 static struct dma_heap *sys_uncached_heap;
 
@@ -36,7 +42,23 @@ struct system_heap_buffer {
 	void *vaddr;
 
 	bool uncached;
+#ifdef CONFIG_E_SHOW_MEM
+	struct rb_node node;
+	pid_t pid;
+	char task_name[TASK_COMM_LEN];
+	struct timespec64 alloc_ts;
+	struct dmabuf_map_info mappers[MAX_MAP_USER];
+#endif
 };
+
+#ifdef CONFIG_E_SHOW_MEM
+struct system_device {
+	struct rb_root buffers;
+	struct mutex buffer_lock;
+};
+
+static struct system_device *internal_dev;
+#endif
 
 struct dma_heap_attachment {
 	struct device *dev;
@@ -212,16 +234,74 @@ static int system_heap_dma_buf_end_cpu_access(struct dma_buf *dmabuf,
 	return 0;
 }
 
+#ifdef CONFIG_E_SHOW_MEM
+int dmabuf_sysheap_map_user(struct dma_heap *heap, struct system_heap_buffer *buffer,
+	struct vm_area_struct *vma)
+{
+	struct sg_table *table = &buffer->sg_table;
+	unsigned long addr = vma->vm_start;
+	struct sg_page_iter piter;
+	int ret;
+
+	for_each_sgtable_page(table, &piter, vma->vm_pgoff) {
+		struct page *page = sg_page_iter_page(&piter);
+
+		ret = remap_pfn_range(vma, addr, page_to_pfn(page), PAGE_SIZE,
+					  vma->vm_page_prot);
+		if (ret)
+			return ret;
+		addr += PAGE_SIZE;
+		if (addr >= vma->vm_end)
+			return 0;
+	}
+
+	return 0;
+}
+#endif
+
 static int system_heap_mmap(struct dma_buf *dmabuf, struct vm_area_struct *vma)
 {
 	struct system_heap_buffer *buffer = dmabuf->priv;
 	struct sg_table *table = &buffer->sg_table;
 	unsigned long addr = vma->vm_start;
 	struct sg_page_iter piter;
+#ifdef CONFIG_E_SHOW_MEM
+	struct dma_heap *heap = buffer->heap;
+	struct task_struct *task = current->group_leader;
+	pid_t pid = task_pid_nr(task);
+	int i;
+#endif
 	int ret;
 
 	if (buffer->uncached)
 		vma->vm_page_prot = pgprot_writecombine(vma->vm_page_prot);
+
+#ifdef CONFIG_E_SHOW_MEM
+	ret = dmabuf_sysheap_map_user(heap, buffer, vma);
+
+	if (ret)
+		pr_err("%s: failure mapping sysbuffer to userspace\n", __func__);
+
+	for (i = 0; i < MAX_MAP_USER; i++) {
+		if (pid == buffer->mappers[i].pid) {
+			ktime_get_real_ts64(&buffer->mappers[i].map_ts);
+			buffer->mappers[i].map_ts.tv_sec -= sys_tz.tz_minuteswest * 60;
+			goto out;
+		}
+	}
+
+	for (i = 0; i < MAX_MAP_USER; i++) {
+		if (!(buffer->mappers[i].pid)) {
+			buffer->mappers[i].pid = pid;
+			get_task_comm(buffer->mappers[i].task_name, task);
+			ktime_get_real_ts64(&buffer->mappers[i].map_ts);
+			buffer->mappers[i].map_ts.tv_sec -= sys_tz.tz_minuteswest * 60;
+			break;
+		}
+	}
+out:
+	return ret;
+#endif
 
 	for_each_sgtable_page(table, &piter, vma->vm_pgoff) {
 		struct page *page = sg_page_iter_page(&piter);
@@ -333,6 +413,12 @@ static void system_heap_dma_buf_release(struct dma_buf *dmabuf)
 	struct scatterlist *sg;
 	int i, j;
 
+#ifdef CONFIG_E_SHOW_MEM
+	struct system_device *dev = internal_dev;
+	mutex_lock(&dev->buffer_lock);
+	rb_erase(&buffer->node, &dev->buffers);
+	mutex_unlock(&dev->buffer_lock);
+#endif
 	/* Zero the buffer pages before adding back to the pool */
 	system_heap_zero_buffer(buffer);
 
@@ -382,6 +468,31 @@ static struct page *alloc_largest_available(unsigned long size,
 	return NULL;
 }
 
+#ifdef CONFIG_E_SHOW_MEM
+static void dmabuf_sysbuffer_add(struct system_device *dev, struct system_heap_buffer *buffer)
+{
+	struct rb_node **p = &dev->buffers.rb_node;
+	struct rb_node *parent = NULL;
+	struct system_heap_buffer *entry;
+
+	while (*p) {
+		parent = *p;
+		entry = rb_entry(parent, struct system_heap_buffer, node);
+
+		if (buffer < entry) {
+			p = &(*p)->rb_left;
+		} else if (buffer > entry) {
+			p = &(*p)->rb_right;
+		} else {
+			pr_err("%s: buffer already found.", __func__);
+			BUG();
+		}
+	}
+	rb_link_node(&buffer->node, parent, p);
+	rb_insert_color(&buffer->node, &dev->buffers);
+}
+#endif
+
 static struct dma_buf *system_heap_do_allocate(struct dma_heap *heap,
 					       unsigned long len,
 					       unsigned long fd_flags,
@@ -398,7 +509,10 @@ static struct dma_buf *system_heap_do_allocate(struct dma_heap *heap,
 	struct list_head pages;
 	struct page *page, *tmp_page;
 	int i, ret = -ENOMEM;
-
+#ifdef CONFIG_E_SHOW_MEM
+	struct system_device *dev = internal_dev;
+	struct timespec64 ts;
+#endif
 	buffer = kzalloc(sizeof(*buffer), GFP_KERNEL);
 	if (!buffer)
 		return ERR_PTR(-ENOMEM);
@@ -442,6 +556,16 @@ static struct dma_buf *system_heap_do_allocate(struct dma_heap *heap,
 		list_del(&page->lru);
 	}
 
+#ifdef CONFIG_E_SHOW_MEM
+	mutex_lock(&dev->buffer_lock);
+	dmabuf_sysbuffer_add(dev, buffer);
+	mutex_unlock(&dev->buffer_lock);
+	buffer->pid = task_pid_nr(current->group_leader);
+	get_task_comm(buffer->task_name, current->group_leader);
+	ktime_get_real_ts64(&ts);
+	ts.tv_sec -= sys_tz.tz_minuteswest * 60;
+	buffer->alloc_ts = ts;
+#endif
 	/* create the dmabuf */
 	exp_info.exp_name = dma_heap_get_name(heap);
 	exp_info.ops = &system_heap_buf_ops;
@@ -505,6 +629,67 @@ static long system_get_pool_size(struct dma_heap *heap)
 	return num_pages << PAGE_SHIFT;
 }
 
+#ifdef CONFIG_E_SHOW_MEM
+int dmabuf_debug_sysheap_show_printk(struct dma_heap *heap, void *data)
+{
+	int i;
+	struct rb_node *n;
+	struct system_device *dev = internal_dev;
+	size_t total_size = 0;
+	unsigned long pool_used = 0;
+	unsigned long *total_used = data;
+	struct tm t;
+
+	pr_info("Heap: %s\n", dma_heap_get_name(heap));
+	pr_info("Detail:\n");
+	pr_info("%-10s %-6s %-16s %-10s\n", "size", "pid", "name", "alloc_ts");
+
+	mutex_lock(&dev->buffer_lock);
+	for (n = rb_first(&dev->buffers); n; n = rb_next(n)) {
+		struct system_heap_buffer *buffer = rb_entry(n, struct system_heap_buffer,
+			node);
+
+		time64_to_tm(buffer->alloc_ts.tv_sec, 0, &t);
+		pr_info("%-10zu %-5d %-16s %ld.%d.%d-%d:%d:%d.%ld\n",
+			buffer->len, buffer->pid, buffer->task_name,
+			t.tm_year + 1900, t.tm_mon + 1,
+			t.tm_mday, t.tm_hour, t.tm_min,
+			t.tm_sec, buffer->alloc_ts.tv_nsec);
+		for (i = 0; i < MAX_MAP_USER; i++) {
+			if (buffer->mappers[i].pid) {
+				time64_to_tm(buffer->mappers[i].map_ts.tv_sec, 0, &t);
+				pr_info("       |---%-5d  %-16s  %ld.%d.%d-%d:%d:%d.%ld\n",
+						buffer->mappers[i].pid,
+						buffer->mappers[i].task_name,
+						t.tm_year + 1900, t.tm_mon + 1,
+						t.tm_mday, t.tm_hour, t.tm_min,
+						t.tm_sec, buffer->mappers[i].map_ts.tv_nsec);
+			}
+		}
+
+		total_size += buffer->len;
+	}
+	mutex_unlock(&dev->buffer_lock);
+	pr_info("----------------------------------------------------\n");
+	pr_info("%16s %16zu\n", "total ", total_size);
+
+	pr_info("----------------------------------------------------\n");
+
+	pool_used = system_get_pool_size(heap);
+	pr_info("%16.s %lu\n", "total pooled", pool_used);
+	pr_info("----------------------------------------------------------\n");
+	pr_info("Total used: %lu kB\n", (unsigned long)(total_size +
+		pool_used) / 1024);
+	pr_info("----------------------------------------------------------\n");
+	pr_info("\n");
+
+	*total_used += (unsigned long)(total_size + pool_used);
+
+	return 0;
+}
+EXPORT_SYMBOL_GPL(dmabuf_debug_sysheap_show_printk);
+#endif
+
 static const struct dma_heap_ops system_heap_ops = {
 	.allocate = system_heap_allocate,
 	.get_pool_size = system_get_pool_size,
@@ -536,6 +721,15 @@ static int system_heap_create(void)
 {
 	struct dma_heap_export_info exp_info;
 	int i;
+#ifdef CONFIG_E_SHOW_MEM
+	struct system_device *sysdev;
+
+	sysdev = kzalloc(sizeof(*sysdev), GFP_KERNEL);
+	if (!sysdev) {
+		kfree(sysdev);
+		return -ENOMEM;
+	}
+#endif
 
 	for (i = 0; i < NUM_ORDERS; i++) {
 		pools[i] = dmabuf_page_pool_create(order_flags[i], orders[i]);
@@ -566,6 +760,11 @@ static int system_heap_create(void)
 	if (IS_ERR(sys_uncached_heap))
 		return PTR_ERR(sys_uncached_heap);
 
+#ifdef CONFIG_E_SHOW_MEM
+	sysdev->buffers = RB_ROOT;
+	mutex_init(&sysdev->buffer_lock);
+	internal_dev = sysdev;
+#endif
 	dma_coerce_mask_and_coherent(dma_heap_get_dev(sys_uncached_heap), DMA_BIT_MASK(64));
 	mb(); /* make sure we only set allocate after dma_mask is set */
 	system_uncached_heap_ops.allocate = system_uncached_heap_allocate;
