@@ -4945,6 +4945,27 @@ static int cm_get_power_supply_property(struct power_supply *psy,
 	return ret;
 }
 
+static void cm_get_charge_type(struct charger_manager *cm, int *charge_type)
+{
+	switch (cm->desc->charger_type) {
+	case CM_CHARGER_TYPE_SDP:
+	case CM_CHARGER_TYPE_DCP:
+	case CM_CHARGER_TYPE_CDP:
+		*charge_type = POWER_SUPPLY_CHARGE_TYPE_STANDARD;
+		break;
+
+	case CM_CHARGER_TYPE_FAST:
+		*charge_type = POWER_SUPPLY_CHARGE_TYPE_FAST;
+		break;
+
+	case CM_CHARGER_TYPE_ADAPTIVE:
+		*charge_type = POWER_SUPPLY_CHARGE_TYPE_ADAPTIVE;
+		break;
+	default:
+		*charge_type = POWER_SUPPLY_CHARGE_TYPE_UNKNOWN;
+	}
+}
+
 static bool cm_add_battery_psy_property(struct charger_manager *cm, enum power_supply_property psp)
 {
 	u32 i;
@@ -5056,6 +5077,10 @@ static int charger_get_property(struct power_supply *psy,
 
 	case POWER_SUPPLY_PROP_USB_TYPE:
 		ret = cm_get_bc1p2_type(cm, &val->intval);
+		break;
+
+	case POWER_SUPPLY_PROP_CHARGE_TYPE:
+		cm_get_charge_type(cm, &val->intval);
 		break;
 
 	case POWER_SUPPLY_PROP_CYCLE_COUNT:
@@ -5185,6 +5210,7 @@ static enum power_supply_property default_charger_props[] = {
 	POWER_SUPPLY_PROP_TIME_TO_FULL_NOW,
 	POWER_SUPPLY_PROP_TECHNOLOGY,
 	POWER_SUPPLY_PROP_USB_TYPE,
+	POWER_SUPPLY_PROP_CHARGE_TYPE,
 	POWER_SUPPLY_PROP_TEMP,
 	POWER_SUPPLY_PROP_TEMP_AMBIENT,
 	POWER_SUPPLY_PROP_CYCLE_COUNT,
