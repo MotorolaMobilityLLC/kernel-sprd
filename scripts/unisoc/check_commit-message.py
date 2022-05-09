@@ -354,13 +354,10 @@ def check_tags_consistent(ret_info):
                 RET = 1
             elif len(ret_check_file[1]) > 0:
                 print >> sys.stdout, "\nWARNING: Tags and modified files are inconsistent.\n\ninconsistent file list:"
-            else:
-                print >> sys.stdout, "\nTags and modified files are consistent!"
-
-            if len(ret_check_file[1]) > 0:
                 for x in ret_check_file[1]:
                     print >> sys.stderr, "%s" % x
-                    RET = 1
+            else:
+                print >> sys.stdout, "\nTags and modified files are consistent!"
         else:
             print >> sys.stdout, "\nINFO:Ignore check of tags and modified files!"
     return RET
