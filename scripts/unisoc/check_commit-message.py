@@ -168,20 +168,20 @@ def check_tags_commit_id(patch_info_list):
             check_title_flag = 0
 
             if "  " in x[x.index("Bug #"):]:
-                return (-1, "More than two consecutive spaces in the title")
+                return (1, "More than two consecutive spaces in the title")
             if "：" in x:
-                return (-1, "The patch title contains : of chinese")
+                return (1, "The patch title contains : of chinese")
             if ":" not in x:
-                return (-1, "The patch donot contains tag")
+                return (1, "The patch donot contains tag")
             if not x[x.index('#') + 1:x.index(':')].replace(' ','').isalnum():
                 characters_temp_list = x[x.index('#') + 1:x.index(':')].split(' ')
                 if not ((characters_temp_list[1] in SUBSYSTEM1_TAGS_NOCHECK or \
                         characters_temp_list[1] in SUBSYSTEM1_TAGS) \
                         and characters_temp_list[0].isalnum()):
-                    return (-1, "Title contains special characters between bug id and tags")
+                    return (1, "Title contains special characters between bug id and tags")
 
             if len(x.split(":")) != len(x.split(": ")):
-                return (-1, "expected ' ' after ':'")
+                return (1, "expected ' ' after ':'")
 
             tags_list = x[x.index("Bug #") + len("Bug #"):find_last_char(x, ":")].split(' ')[1:]
 #            print "tags list:%s" % tags_list
@@ -216,24 +216,24 @@ def check_tags_commit_id(patch_info_list):
                                         ret_hit_tags_list.append(tags_list[tags_list_start_num].strip(":"))
                                         continue
                                     else:
-                                        return (-1, "The subsystem 3 tag is error")
+                                        return (1, "The subsystem 3 tag is error")
                                 else:
                                     continue
                             else:
-                                return (-1, "The subsystem 2 tag is error")
+                                return (1, "The subsystem 2 tag is error")
                         else:
                             continue
                     else:
-                        return (-1, "The subsystem 1 tag is error")
+                        return (1, "The subsystem 1 tag is error")
                 else:
-                    return (-1, "The title donot contains subsystem tag")
+                    return (1, "The title donot contains subsystem tag")
         elif check_commit_id_flag == 1 and "commit" in x:
             # check commit id ok
             print >> sys.stdout, "check commit id ok"
             return (0, ret_hit_tags_list)
 
     if check_commit_id_flag == 1:
-        return (-1, "The patch donot contains commit id")
+        return (1, "The patch donot contains commit id")
 
     return (0, ret_hit_tags_list)
 
