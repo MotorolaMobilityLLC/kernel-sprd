@@ -1373,14 +1373,14 @@ static void dwc3_sprd_enable(struct dwc3_sprd *sdwc)
 	if (clk_prepare_enable(sdwc->susp_clk))
 		dev_err(sdwc->dev, "susp clk enable error.\n");
 
-	usb_phy_set_suspend(sdwc->hs_phy, 0);
-	usb_phy_set_suspend(sdwc->ss_phy, 0);
+	usb_phy_init(sdwc->hs_phy);
+	usb_phy_init(sdwc->ss_phy);
 }
 
 static void dwc3_sprd_disable(struct dwc3_sprd *sdwc)
 {
-	usb_phy_set_suspend(sdwc->hs_phy, 1);
-	usb_phy_set_suspend(sdwc->ss_phy, 1);
+	usb_phy_shutdown(sdwc->hs_phy);
+	usb_phy_shutdown(sdwc->ss_phy);
 	clk_disable_unprepare(sdwc->susp_clk);
 	clk_disable_unprepare(sdwc->ref_clk);
 	clk_disable_unprepare(sdwc->core_clk);
