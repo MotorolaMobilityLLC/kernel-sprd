@@ -158,7 +158,7 @@ echo "= add unisoc symbols list to abi_base" >&1
 echo >> ${DIST_DIR}/abi_base
 cat ${KERNEL_CODE_DIR}/${KERNEL_DIR}/android/abi_gki_aarch64_* >> ${DIST_DIR}/abi_base
 
-clang_version=`cat ${KERNEL_CODE_DIR}/${KERNEL_DIR}/build.config.constants | awk -F "=" '{print $2}'`
+clang_version=`cat ${KERNEL_CODE_DIR}/${KERNEL_DIR}/build.config.constants | grep "CLANG_VERSION" | awk -F "=" '{print $2}'`
 clang_path="${KERNEL_CODE_DIR}/prebuilts/clang/host/linux-x86/clang-${clang_version}/bin/"
 export PATH="$clang_path:$PATH"
 #creat new whitelist
@@ -217,7 +217,7 @@ if [ -d ${clang_path} ]; then
 		done
 	fi
 else
-	$check_whitelist_flag=4
+	check_whitelist_flag=4
 fi
 
 echo "========================================================" >&1
