@@ -14,8 +14,8 @@
 #define pr_fmt(__fmt) "[drm][%20s] "__fmt, __func__
 #endif
 
-int str_to_u32_array(const char *p, u32 base, u32 array[]);
-int str_to_u8_array(const char *p, u32 base, u8 array[]);
+int str_to_u32_array(const char *p, u32 base, u32 array[], u8 size);
+int str_to_u8_array(const char *p, u32 base, u8 array[], u8 size);
 
 #ifdef CONFIG_DRM_SPRD_WB_DEBUG
 int dump_bmp32(const char *p, u32 width, u32 height,

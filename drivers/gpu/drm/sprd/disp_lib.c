@@ -43,7 +43,7 @@ struct dib_header {
 	u32 unused[12];
 } __attribute__((__packed__));
 
-int str_to_u32_array(const char *p, u32 base, u32 array[])
+int str_to_u32_array(const char *p, u32 base, u32 array[], u8 size)
 {
 	const char *start = p;
 	char str[12];
@@ -52,7 +52,7 @@ int str_to_u32_array(const char *p, u32 base, u32 array[])
 
 	pr_info("input: %s", p);
 
-	for (i = 0 ; i < 255; i++) {
+	for (i = 0 ; i < size; i++) {
 		while (*p == ' ')
 			p++;
 		if (*p == '\0')
@@ -80,7 +80,7 @@ int str_to_u32_array(const char *p, u32 base, u32 array[])
 	return length;
 }
 
-int str_to_u8_array(const char *p, u32 base, u8 array[])
+int str_to_u8_array(const char *p, u32 base, u8 array[], u8 size)
 {
 	const char *start = p;
 	char str[12];
@@ -89,7 +89,7 @@ int str_to_u8_array(const char *p, u32 base, u8 array[])
 
 	pr_info("input: %s", p);
 
-	for (i = 0 ; i < 255; i++) {
+	for (i = 0 ; i < size; i++) {
 		while (*p == ' ')
 			p++;
 		if (*p == '\0')

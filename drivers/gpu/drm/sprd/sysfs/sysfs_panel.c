@@ -119,7 +119,7 @@ static ssize_t hporch_store(struct device *dev,
 	u32 val[4] = {0};
 	int len;
 
-	len = str_to_u32_array(buf, 0, val);
+	len = str_to_u32_array(buf, 0, val, 4);
 	drm_display_mode_to_videomode(&panel->info.mode, &vm);
 
 	switch (len) {
@@ -174,7 +174,7 @@ static ssize_t vporch_store(struct device *dev,
 	u32 val[4] = {0};
 	int len;
 
-	len = str_to_u32_array(buf, 0, val);
+	len = str_to_u32_array(buf, 0, val, 4);
 	drm_display_mode_to_videomode(&panel->info.mode, &vm);
 
 	switch (len) {
