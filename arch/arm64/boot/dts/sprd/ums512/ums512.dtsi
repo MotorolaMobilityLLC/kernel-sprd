@@ -195,6 +195,13 @@
 			#size-cells = <1>;
 			ranges = <0 0x0 0x70000000 0x10000000>;
 
+			apsys_dvfs: apsys-dvfs@1700000 {
+				compatible = "sprd,hwdvfs-apsys-sharkl5pro";
+				reg = <0x1700000 0x15c>;
+
+				sprd,ap-dvfs-up-window = <0x40>;
+				sprd,ap-dvfs-down-window = <0x80>;
+			};
 		};
 
 		apapb: ap-apb {
@@ -323,6 +330,24 @@
 		compatible = "unisoc,marlin3lite_sdio";
 		#address-cells = <1>;
 		#size-cells = <0>;
+	};
+
+	dpu_dvfs: dpu-dvfs {
+		compatible = "sprd,hwdvfs-dpu-sharkl5pro";
+		sprd,hw-dfs-en = <0>;
+		sprd,work-index-def = <4>;
+		sprd,idle-index-def = <1>;
+		sprd,freq-upd-delay-en = <0>;
+		sprd,freq-upd-hdsk-en = <1>;
+
+		operating-points = <
+			/* kHz    uV */
+			153600    700000
+			192000    700000
+			256000    700000
+			307200    700000
+			384000    750000
+			>;
 	};
 };
 
