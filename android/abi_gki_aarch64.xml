@@ -3660,6 +3660,7 @@
       <elf-symbol name='pick_highest_pushable_task' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xc2a9cb37'/>
       <elf-symbol name='pick_migrate_task' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xf8d958c3'/>
       <elf-symbol name='pid_task' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x64bfc341'/>
+      <elf-symbol name='pid_vnr' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x495ae4f1'/>
       <elf-symbol name='pin_get_name' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x39624b93'/>
       <elf-symbol name='pin_user_pages' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xa9413478'/>
       <elf-symbol name='pin_user_pages_fast' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x4b264b43'/>
@@ -4968,6 +4969,7 @@
       <elf-symbol name='tty_port_destroy' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x71f320'/>
       <elf-symbol name='tty_port_hangup' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xaa392066'/>
       <elf-symbol name='tty_port_init' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x4c3f6e57'/>
+      <elf-symbol name='tty_port_install' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x196f841f'/>
       <elf-symbol name='tty_port_link_device' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xba5e3d4e'/>
       <elf-symbol name='tty_port_open' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xa8b2c703'/>
       <elf-symbol name='tty_port_put' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x32a7b28f'/>
@@ -141600,6 +141602,10 @@
         <parameter type-id='ce78cf46' name='type' filepath='kernel/pid.c' line='396' column='1'/>
         <return type-id='f23e2572'/>
       </function-decl>
+      <function-decl name='pid_vnr' mangled-name='pid_vnr' filepath='kernel/pid.c' line='487' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='pid_vnr'>
+        <parameter type-id='b94e5398' name='pid' filepath='kernel/pid.c' line='487' column='1'/>
+        <return type-id='587f89d2'/>
+      </function-decl>
       <function-decl name='pin_get_name' mangled-name='pin_get_name' filepath='drivers/pinctrl/core.c' line='167' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='pin_get_name'>
         <parameter type-id='10216dc5' name='pctldev' filepath='drivers/pinctrl/core.c' line='167' column='1'/>
         <parameter type-id='20f5f452' name='pin' filepath='drivers/pinctrl/core.c' line='167' column='1'/>
@@ -148370,6 +148376,12 @@
       <function-decl name='tty_port_init' mangled-name='tty_port_init' filepath='drivers/tty/tty_port.c' line='62' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='tty_port_init'>
         <parameter type-id='ec77b5b8' name='port' filepath='drivers/tty/tty_port.c' line='62' column='1'/>
         <return type-id='48b5725f'/>
+      </function-decl>
+      <function-decl name='tty_port_install' mangled-name='tty_port_install' filepath='drivers/tty/tty_port.c' line='659' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='tty_port_install'>
+        <parameter type-id='ec77b5b8' name='port' filepath='drivers/tty/tty_port.c' line='659' column='1'/>
+        <parameter type-id='c2b4b27b' name='driver' filepath='drivers/tty/tty_port.c' line='659' column='1'/>
+        <parameter type-id='572fbdca' name='tty' filepath='drivers/tty/tty_port.c' line='660' column='1'/>
+        <return type-id='95e97e5e'/>
       </function-decl>
       <function-decl name='tty_port_link_device' mangled-name='tty_port_link_device' filepath='drivers/tty/tty_port.c' line='89' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='tty_port_link_device'>
         <parameter type-id='ec77b5b8' name='port' filepath='drivers/tty/tty_port.c' line='89' column='1'/>
