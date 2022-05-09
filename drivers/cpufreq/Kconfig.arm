@@ -343,28 +343,7 @@ config ARM_PXA2xx_CPUFREQ
 choice
         tristate "SPRD cpufreq driver select"
         optional
-	default ARM_SPRD_HW_CPUFREQ_NORMAL if CPU_FREQ
-
-config ARM_SPRD_HW_CPUFREQ
-	tristate "Sprd apcpu hardware dvfs driver for sharkl3 platform"
-	depends on ARCH_SPRD && CPU_FREQ
-	select PM_OPP
-	help
-	 This driver enable hardware to adjust the voltage and frequency
-	 automatically for DSU cluster and cores in sharkl3 platorm.
-
-	 If in doubt, say N.
-
-config ARM_SPRD_HW_CPUFREQ_NORMAL
-	tristate "Sprd apcpu hardware dvfs driver for sharkl5 family SOCs"
-	depends on ARCH_SPRD && CPU_FREQ
-	select PM_OPP
-	help
-	 This driver enable hardware to adjust the voltage and frequency
-	 automatically for DSU cluster and cores in sharkl5 and the platforms
-	 whose apcpu hardware DVFS IP is similar to sharkl5.
-
-	 If in doubt, say N.
+	default ARM_SPRD_CPUFREQ_V2 if CPU_FREQ
 
 config ARM_SPRD_SW_CPUFREQ
 	tristate "Software cpufreq driver"
@@ -385,19 +364,9 @@ config ARM_SPRD_CPUFREQ_V2
 	select PM_OPP
 	help
 	  This driver enable hardware to adjust the voltage and frequency
-	  automatically for DSU cluster and cores in sharkl6pro and the platforms
-	  whose apcpu hardware DVFS IP is similar to sharkl6pro.
+	  automatically for DSU cluster and cores in all apcpu hardware platforms.
 
 	  If in doubt, say N.
-
-config ARM_SPRD_DUMMY_CPUFREQ
-	tristate "Dummy CPUfreq driver"
-	depends on ARCH_SPRD && CPU_FREQ
-	select PM_OPP
-	help
-	 This adds a sprd dummy CPUfreq driver only for zebu and vdk platform
-
-	 If in doubt, say N.
 
 endchoice
 
@@ -410,29 +379,3 @@ config ARM_SPRD_CPUFREQ_PUBLIC
 
 	 If in doubt, say N.
 
-config ARM_SPRD_HW_CPUFREQ_SHARKL3
-	tristate "SPRD SHARKL3 HW DVFS Driver"
-	depends on ARM_SPRD_HW_CPUFREQ
-	default n
-	help
-	 This includes SPRD SHARKL3 HW DVFS Architecture-dependent Driver
-
-	 If in doubt, say N.
-
-config ARM_SPRD_HW_CPUFREQ_ARCH_UMS512
-	tristate "SPRD UMS512 HW DVFS Driver"
-	depends on ARM_SPRD_HW_CPUFREQ_NORMAL
-	default n
-	help
-	 This includes SPRD UMS512 HW DVFS Architecture-dependent Driver
-
-	 If in doubt, say N.
-
-config ARM_SPRD_HW_CPUFREQ_ARCH_UMS9230
-	tristate "SPRD UMS9230 HW DVFS Driver"
-	depends on ARM_SPRD_HW_CPUFREQ_NORMAL
-	default n
-	help
-	 This includes SPRD UMS9230 HW DVFS Architecture-dependent Driver
-
-	 If in doubt, say N.

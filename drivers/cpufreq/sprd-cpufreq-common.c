@@ -27,7 +27,6 @@
 #include <linux/of_platform.h>
 #include <linux/compiler.h>
 #include "sprd-cpufreq-common.h"
-#include "sprd-cpufreqhw.h"
 
 char global_opp_string[30] = "operating-points-v0";
 struct sprd_cpufreq_driver_data *cpufreq_datas[SPRD_CPUFREQ_MAX_MODULE];
