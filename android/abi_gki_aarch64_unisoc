@@ -12,6 +12,7 @@
   alloc_io_pgtable_ops
   alloc_netdev_mqs
   alloc_pages_exact
+  android_debug_per_cpu_symbol
   android_debug_symbol
   android_rvh_probe_register
   __alloc_pages
@@ -785,6 +786,8 @@
   request_threaded_irq
   reset_control_assert
   reset_control_deassert
+  return_address
+  runqueues
   rfkill_alloc
   rfkill_destroy
   rfkill_init_sw_state
@@ -798,6 +801,7 @@
   schedule_timeout
   schedule_timeout_interruptible
   scnprintf
+  seq_buf_printf
   seq_lseek
   seq_printf
   seq_putc
