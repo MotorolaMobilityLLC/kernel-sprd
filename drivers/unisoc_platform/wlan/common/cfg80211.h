@@ -85,6 +85,8 @@
 #define SPRD_WFA_CAP_11N_WMM		BIT(4)
 #define SPRD_WFA_CAP_NON_RAN_MAC	BIT(5)
 
+#define MGMT_REG_MASK_BIT	32
+
 #define RATETAB_ENT(_rate, _rateid, _flags)				\
 {									\
 	.bitrate	= (_rate),					\

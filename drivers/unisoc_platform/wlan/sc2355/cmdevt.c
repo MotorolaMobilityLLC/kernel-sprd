@@ -2628,7 +2628,7 @@ static int cmdevt_set_tlv_data(struct sprd_priv *priv, struct sprd_vif *vif,
 	return send_cmd_recv_rsp(priv, msg, NULL, NULL);
 }
 
-int sc2355_set_vowifi(struct net_device *ndev, struct ifreq *ifr)
+int sc2355_set_vowifi(struct net_device *ndev, void __user *data)
 {
 	struct sprd_vif *vif = netdev_priv(ndev);
 	struct sprd_priv *priv = vif->priv;
@@ -2636,10 +2636,10 @@ int sc2355_set_vowifi(struct net_device *ndev, struct ifreq *ifr)
 	struct tlv_data *tlv;
 	int ret;
 
-	if (!ifr->ifr_data)
+	if (!data)
 		return -EINVAL;
 
-	if (copy_from_user(&priv_cmd, ifr->ifr_data, sizeof(priv_cmd)))
+	if (copy_from_user(&priv_cmd, data, sizeof(priv_cmd)))
 		return -EFAULT;
 
 	/*bug1743709, add length check to avoid invalid NULL ptr*/
@@ -2696,7 +2696,7 @@ out:
 	return ret;
 }
 
-int sc2355_set_miracast(struct net_device *ndev, struct ifreq *ifr)
+int sc2355_set_miracast(struct net_device *ndev, void __user *data)
 {
 	struct sprd_vif *vif = netdev_priv(ndev);
 	struct sprd_priv *priv = vif->priv;
@@ -2705,9 +2705,9 @@ int sc2355_set_miracast(struct net_device *ndev, struct ifreq *ifr)
 	unsigned short subtype;
 	int ret = 0, value;
 
-	if (ifr->ifr_data == NULL)
+	if (data == NULL)
 		return -EINVAL;
-	if (copy_from_user(&priv_cmd, ifr->ifr_data, sizeof(priv_cmd)))
+	if (copy_from_user(&priv_cmd, data, sizeof(priv_cmd)))
 		return -EINVAL;
 
 	/*add length check to avoid invalid NULL ptr*/

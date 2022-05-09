@@ -1025,9 +1025,9 @@ int sc2355_set_max_clients_allowed(struct sprd_priv *priv,
 int sc2355_set_random_mac(struct sprd_priv *priv, struct sprd_vif *vif,
 			  u8 random_mac_flag, u8 *addr);
 int sc2355_send_tdls_cmd(struct sprd_vif *vif, const u8 *peer, int oper);
-int sc2355_set_vowifi(struct net_device *ndev, struct ifreq *ifr);
+int sc2355_set_vowifi(struct net_device *ndev, void __user *data);
 bool sc2355_do_delay_work(struct sprd_work *work);
-int sc2355_set_miracast(struct net_device *ndev, struct ifreq *ifr);
+int sc2355_set_miracast(struct net_device *ndev, void __user *data);
 void sc2355_scan_timeout(struct timer_list *t);
 int sc2355_scan(struct wiphy *wiphy,
 		struct cfg80211_scan_request *request);

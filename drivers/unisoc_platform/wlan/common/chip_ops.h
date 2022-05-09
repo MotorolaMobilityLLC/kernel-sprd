@@ -113,7 +113,7 @@ struct sprd_chip_ops {
 			      struct sprd_connect_info *conn_info);
 	int (*set_mc_filter)(struct sprd_priv *priv, struct sprd_vif *vif,
 			     u8 sub_type, u8 num, u8 *mac_addr);
-	int (*set_miracast)(struct net_device *ndev, struct ifreq *ifr);
+	int (*set_miracast)(struct net_device *ndev, void __user *data);
 	int (*set_11v_feature_support)(struct sprd_priv *priv,
 				       struct sprd_vif *vif,
 				       u16 val);
@@ -128,7 +128,7 @@ struct sprd_chip_ops {
 	bool (*do_delay_work)(struct sprd_work *work);
 	int (*notify_ip)(struct sprd_priv *priv, struct sprd_vif *vif,
 			 u8 ip_type, u8 *ip_addr);
-	int (*set_vowifi)(struct net_device *ndev, struct ifreq *ifr);
+	int (*set_vowifi)(struct net_device *ndev, void __user *data);
 	int (*dump_survey)(struct wiphy *wiphy, struct net_device *ndev,
 			   int idx, struct survey_info *s_info);
 
@@ -702,19 +702,19 @@ static inline int sprd_notify_ip(struct sprd_priv *priv, struct sprd_vif *vif,
 }
 
 static inline int sprd_set_vowifi(struct sprd_priv *priv,
-				  struct net_device *ndev, struct ifreq *ifr)
+				  struct net_device *ndev, void __user *data)
 {
 	if (priv->chip.ops->set_vowifi)
-		return priv->chip.ops->set_vowifi(ndev, ifr);
+		return priv->chip.ops->set_vowifi(ndev, data);
 
 	return 0;
 }
 
 static inline int sprd_set_miracast(struct sprd_priv *priv,
-				struct net_device *ndev, struct ifreq *ifr)
+				struct net_device *ndev, void __user *data)
 {
 	if (priv->chip.ops->set_miracast)
-		return priv->chip.ops->set_miracast(ndev, ifr);
+		return priv->chip.ops->set_miracast(ndev, data);
 	return 0;
 }
 

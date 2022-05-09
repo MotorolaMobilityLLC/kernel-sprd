@@ -590,7 +590,7 @@ static void iface_tx_timeout(struct net_device *ndev, unsigned int txqueue)
 	netif_wake_queue(ndev);
 }
 
-static int iface_priv_cmd(struct net_device *ndev, struct ifreq *ifr)
+static int iface_priv_cmd(struct net_device *ndev, void __user *data)
 {
 	int n_clients;
 	struct sprd_vif *vif = netdev_priv(ndev);
@@ -602,9 +602,9 @@ static int iface_priv_cmd(struct net_device *ndev, struct ifreq *ifr)
 	u8 addr[ETH_ALEN] = { 0 }, *mac_addr = NULL, *tmp, *mac_list;
 	int ret = 0, skip, counter, index;
 
-	if (!ifr->ifr_data)
+	if (!data)
 		return -EINVAL;
-	if (copy_from_user(&priv_cmd, ifr->ifr_data, sizeof(priv_cmd)))
+	if (copy_from_user(&priv_cmd, data, sizeof(priv_cmd)))
 		return -EFAULT;
 
 	/* add length check to avoid invalid NULL ptr */
@@ -788,7 +788,7 @@ out:
 	return ret;
 }
 
-static int iface_set_power_save(struct net_device *ndev, struct ifreq *ifr)
+static int iface_set_power_save(struct net_device *ndev, void __user *data)
 {
 	struct sprd_vif *vif = netdev_priv(ndev);
 	struct sprd_priv *priv = vif->priv;
@@ -796,9 +796,9 @@ static int iface_set_power_save(struct net_device *ndev, struct ifreq *ifr)
 	char *command = NULL;
 	int ret = 0, skip, value;
 
-	if (!ifr->ifr_data)
+	if (!data)
 		return -EINVAL;
-	if (copy_from_user(&priv_cmd, ifr->ifr_data, sizeof(priv_cmd)))
+	if (copy_from_user(&priv_cmd, data, sizeof(priv_cmd)))
 		return -EFAULT;
 
 	/* add length check to avoid invalid NULL ptr */
@@ -854,7 +854,7 @@ out:
 	return ret;
 }
 
-static int iface_set_p2p_mac(struct net_device *ndev, struct ifreq *ifr)
+static int iface_set_p2p_mac(struct net_device *ndev, void __user *data)
 {
 	struct sprd_vif *vif = netdev_priv(ndev);
 	struct sprd_priv *priv = vif->priv;
@@ -864,9 +864,9 @@ static int iface_set_p2p_mac(struct net_device *ndev, struct ifreq *ifr)
 	struct sprd_vif *tmp1, *tmp2;
 	u8 addr[ETH_ALEN] = { 0 };
 
-	if (!ifr->ifr_data)
+	if (!data)
 		return -EINVAL;
-	if (copy_from_user(&priv_cmd, ifr->ifr_data, sizeof(priv_cmd)))
+	if (copy_from_user(&priv_cmd, data, sizeof(priv_cmd)))
 		return -EFAULT;
 
 	/* add length check to avoid invalid NULL ptr */
@@ -926,7 +926,7 @@ out:
 	return ret;
 }
 
-static int iface_set_ndev_mac(struct net_device *ndev, struct ifreq *ifr)
+static int iface_set_ndev_mac(struct net_device *ndev, void __user *data)
 {
 	struct sprd_vif *vif = netdev_priv(ndev);
 	struct android_wifi_priv_cmd priv_cmd;
@@ -934,9 +934,9 @@ static int iface_set_ndev_mac(struct net_device *ndev, struct ifreq *ifr)
 	int ret = 0;
 	u8 addr[ETH_ALEN] = { 0 };
 
-	if (!ifr->ifr_data)
+	if (!data)
 		return -EINVAL;
-	if (copy_from_user(&priv_cmd, ifr->ifr_data, sizeof(priv_cmd)))
+	if (copy_from_user(&priv_cmd, data, sizeof(priv_cmd)))
 		return -EFAULT;
 
 	/* add length check to avoid invalid NULL ptr */
@@ -975,7 +975,7 @@ out:
 }
 
 
-static int iface_ioctl(struct net_device *ndev, struct ifreq *req, int cmd)
+static int iface_ioctl(struct net_device *ndev, struct ifreq *req, void __user *data,  int cmd)
 {
 	struct sprd_vif *vif = netdev_priv(ndev);
 	struct sprd_priv *priv = vif->priv;
@@ -983,19 +983,19 @@ static int iface_ioctl(struct net_device *ndev, struct ifreq *req, int cmd)
 	switch (cmd) {
 	case SPRDWLIOCTL:
 	case SPRDWLSETCOUNTRY:
-		return iface_priv_cmd(ndev, req);
+		return iface_priv_cmd(ndev, data);
 	case SPRDWLSETMIRACAST:
 		netdev_err(ndev, "for vts test %d\n", cmd);
-		return sprd_set_miracast(priv, ndev, req);
+		return sprd_set_miracast(priv, ndev, data);
 	case SPRDWLSETFCC:
 	case SPRDWLSETSUSPEND:
-		return iface_set_power_save(ndev, req);
+		return iface_set_power_save(ndev, data);
 	case SPRDWLVOWIFI:
-		return sprd_set_vowifi(priv, ndev, req);
+		return sprd_set_vowifi(priv, ndev, data);
 	case SPRDWLSETP2PMAC:
-		return iface_set_p2p_mac(ndev, req);
+		return iface_set_p2p_mac(ndev, data);
 	case SPRDWLSETNDEVMAC:
-		return iface_set_ndev_mac(ndev, req);
+		return iface_set_ndev_mac(ndev, data);
 	default:
 		netdev_err(ndev, "Unsupported IOCTL %d\n", cmd);
 		return -ENOTSUPP;
@@ -1173,7 +1173,7 @@ static struct net_device_ops sprd_netdev_ops = {
 	.ndo_start_xmit = iface_start_xmit,
 	.ndo_get_stats = iface_get_stats,
 	.ndo_tx_timeout = iface_tx_timeout,
-	.ndo_do_ioctl = iface_ioctl,
+	.ndo_siocdevprivate = iface_ioctl,
 	.ndo_set_mac_address = iface_set_mac,
 };
 
@@ -1307,7 +1307,7 @@ static struct sprd_vif *iface_register_netdev(struct sprd_priv *priv,
 	memcpy(vif->mac, ndev->dev_addr, ETH_ALEN);
 
 	/* register new Ethernet interface */
-	ret = register_netdevice(ndev);
+	ret = cfg80211_register_netdevice(ndev);
 	if (ret) {
 		netdev_err(ndev, "failed to regitster netdev(%d)!\n", ret);
 		goto err;
@@ -1329,7 +1329,7 @@ static void iface_unregister_netdev(struct sprd_vif *vif)
 	if (vif->priv->fw_capa & SPRD_CAPA_MC_FILTER)
 		kfree(vif->mc_filter);
 	iface_deinit_vif(vif);
-	unregister_netdevice(vif->ndev);
+	cfg80211_unregister_netdevice(vif->ndev);
 }
 
 struct wireless_dev *sprd_add_iface(struct sprd_priv *priv, const char *name,

@@ -1100,7 +1100,7 @@ void sprd_cfg80211_mgmt_frame_register(struct wiphy *wiphy,
 	unsigned long new_mask, old_mask;
 	u16 frame_type;
 	bool reg = 1;
-	int i, num = 0, change_bit[16];
+	int i, num = 0, change_bit[MGMT_REG_MASK_BIT];
 
 	if (vif->mode == SPRD_MODE_NONE)
 		return;
@@ -1109,9 +1109,10 @@ void sprd_cfg80211_mgmt_frame_register(struct wiphy *wiphy,
 	old_mask = vif->mgmt_reg;
 	if (new_mask == old_mask)
 		return;
+	//to calculate register or unregister,and management type
 	//old_mask > new_mask:unregister;old_mask < new_mask:register
 	if (old_mask > new_mask) {
-		for_each_set_bit(i, &old_mask, 16) {
+		for_each_set_bit(i, &old_mask, MGMT_REG_MASK_BIT) {
 			if (!test_bit(i, &new_mask)) {
 				change_bit[num] = i;
 				num++;
@@ -1119,7 +1120,7 @@ void sprd_cfg80211_mgmt_frame_register(struct wiphy *wiphy,
 			}
 		}
 	} else {
-		for_each_set_bit( i, &new_mask, 16) {
+		for_each_set_bit(i, &new_mask, MGMT_REG_MASK_BIT) {
 			if (!test_bit(i, &old_mask)) {
 				change_bit[num] = i;
 				num++;
@@ -1128,7 +1129,7 @@ void sprd_cfg80211_mgmt_frame_register(struct wiphy *wiphy,
 	}
 	vif->mgmt_reg = new_mask;
 	for (i = 0; i < num; i++) {
-		frame_type = change_bit[i]<<4;
+		frame_type = change_bit[i] << 4;
 		netdev_info(wdev->netdev, "frame_type %d, reg %d\n", frame_type, reg);
 		misc_work = sprd_alloc_work(sizeof(*reg_mgmt));
 		if (!misc_work) {

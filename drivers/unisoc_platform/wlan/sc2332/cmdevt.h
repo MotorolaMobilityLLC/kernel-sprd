@@ -745,7 +745,7 @@ int sc2332_set_11v_sleep_mode(struct sprd_priv *priv, struct sprd_vif *vif,
 int sc2332_xmit_data2cmd(struct sk_buff *skb, struct net_device *ndev);
 int sc2332_set_random_mac(struct sprd_priv *priv, struct sprd_vif *vif,
 			  u8 random_mac_flag, u8 *addr);
-int sc2332_set_vowifi(struct net_device *ndev, struct ifreq *ifr);
+int sc2332_set_vowifi(struct net_device *ndev, void __user *data);
 bool sc2332_do_delay_work(struct sprd_work *work);
 void sc2332_scan_timeout(struct timer_list *t);
 int sc2332_scan(struct wiphy *wiphy, struct cfg80211_scan_request *request);
