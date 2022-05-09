@@ -299,12 +299,13 @@ EXPORT_SYMBOL(sprd_ion_get_phys_addr);
 void *sprd_ion_map_kernel(struct dma_buf *dmabuf, unsigned long offset)
 {
 	void *vaddr = NULL;
+	struct ion_buffer *buffer = dmabuf->priv;
 
 	if (!dmabuf)
 		return ERR_PTR(-EINVAL);
 
 	dmabuf->ops->begin_cpu_access(dmabuf, DMA_BIDIRECTIONAL);
-	//vaddr = dmabuf->ops->map(dmabuf, offset);
+	vaddr = ion_buffer_kmap_get(buffer) + offset * PAGE_SIZE;
 
 	return vaddr;
 }
@@ -312,10 +313,13 @@ EXPORT_SYMBOL(sprd_ion_map_kernel);
 
 int sprd_ion_unmap_kernel(struct dma_buf *dmabuf, unsigned long offset)
 {
+
+	struct ion_buffer *buffer = dmabuf->priv;
+
 	if (!dmabuf)
 		return -EINVAL;
 
-	//dmabuf->ops->unmap(dmabuf, offset, NULL);
+	ion_buffer_kmap_put(buffer);
 	dmabuf->ops->end_cpu_access(dmabuf, DMA_BIDIRECTIONAL);
 
 	return 0;

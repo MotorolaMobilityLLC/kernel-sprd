@@ -363,6 +363,7 @@ void *ion_buffer_kmap_get(struct ion_buffer *buffer)
 	buffer->kmap_cnt++;
 	return vaddr;
 }
+EXPORT_SYMBOL_GPL(ion_buffer_kmap_get);
 
 void ion_buffer_kmap_put(struct ion_buffer *buffer)
 {
@@ -372,6 +373,7 @@ void ion_buffer_kmap_put(struct ion_buffer *buffer)
 		buffer->vaddr = NULL;
 	}
 }
+EXPORT_SYMBOL_GPL(ion_buffer_kmap_put);
 
 u64 ion_get_total_heap_bytes(void)
 {
