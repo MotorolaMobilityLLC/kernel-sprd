@@ -331,6 +331,7 @@
 #include "bm.dtsi"
 #include "glbreg.dtsi"
 #include "clock.dtsi"
+#include "ddr-dfs.dtsi"
 #include "coresight.dtsi"
 #include "dispc.dtsi"
 #include "sdio.dtsi"
