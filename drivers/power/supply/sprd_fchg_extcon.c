@@ -9,7 +9,7 @@
  */
 #include <linux/power/sprd_fchg_extcon.h>
 
-#if IS_ENABLED(CONFIG_FAST_CHARGER_SC2730)
+#if IS_ENABLED(CONFIG_FAST_CHARGER_SC27XX)
 static int sprd_get_sfcp_fixed_current_max(struct sprd_fchg_info *info, u32 *max_cur)
 {
 	union power_supply_propval val;
