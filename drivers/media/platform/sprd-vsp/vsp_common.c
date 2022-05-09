@@ -99,51 +99,9 @@ int vsp_get_dmabuf(int fd, struct dma_buf **dmabuf, void **buf, size_t *size)
 }
 
 #ifdef CONFIG_COMPAT
-/*static int compat_get_mmu_map_data(struct compat_vsp_iommu_map_data __user *
-				   data32,
-				   struct vsp_iommu_map_data __user *data)
-{
-	compat_int_t i;
-	compat_size_t s;
-	compat_ulong_t ul;
-	int err;
-
-	err = get_user(i, &data32->fd);
-	err |= put_user(i, &data->fd);
-	err |= get_user(s, &data32->size);
-	err |= put_user(s, &data->size);
-	err |= get_user(ul, &data32->iova_addr);
-	err |= put_user(ul, &data->iova_addr);
-
-	return err;
-};
-
-static int compat_put_mmu_map_data(struct compat_vsp_iommu_map_data __user *
-				   data32,
-				   struct vsp_iommu_map_data __user *data)
-{
-	compat_int_t i;
-	compat_size_t s;
-	compat_ulong_t ul;
-	int err;
-	err = get_user(i, &data->fd);
-	err |= put_user(i, &data32->fd);
-	err |= get_user(s, &data->size);
-	err |= put_user(s, &data32->size);
-	err |= get_user(ul, &data->iova_addr);
-	err |= put_user(ul, &data32->iova_addr);
-	return err;
-};
-*/
 long compat_vsp_ioctl(struct file *filp, unsigned int cmd,
 			     unsigned long arg)
 {
-	long ret = 0;
-	/*int err;
-	  struct compat_vsp_iommu_map_data __user *data32;
-	  struct vsp_iommu_map_data __user *data;*/
-
-
 	struct vsp_fh *vsp_fp = filp->private_data;
 
 	if (!filp->f_op->unlocked_ioctl)
@@ -155,54 +113,8 @@ long compat_vsp_ioctl(struct file *filp, unsigned int cmd,
 		return -EINVAL;
 	}
 
-	switch (cmd) {
-	/*case COMPAT_VSP_GET_IOVA:
-		data32 = compat_ptr(arg);
-		data = compat_alloc_user_space(sizeof(*data));
-		if (data == NULL) {
-			pr_err("%s %d, compat_alloc_user_space failed",
-				__func__, __LINE__);
-			return -EFAULT;
-		}
-		pr_err("compat_alloc_user_space_is_used_test_log");
-		err = compat_get_mmu_map_data(data32, data);
-		if (err) {
-			pr_err("%s %d, compat_get_mmu_map_data failed",
-				__func__, __LINE__);
-			return err;
-		}
-		ret = filp->f_op->unlocked_ioctl(filp, VSP_GET_IOVA,
-						(unsigned long)data);
-		err = compat_put_mmu_map_data(data32, data);
-			return ret ? ret : err;
-
-	case COMPAT_VSP_FREE_IOVA:
-
-		data32 = compat_ptr(arg);
-		data = compat_alloc_user_space(sizeof(*data));
-		if (data == NULL) {
-			pr_err("%s %d, compat_alloc_user_space failed",
-				__func__, __LINE__);
-			return -EFAULT;
-		}
-
-		err = compat_get_mmu_map_data(data32, data);
-		if (err) {
-			pr_err("%s %d, compat_get_mmu_map_data failed",
-				__func__, __LINE__);
-			return err;
-		}
-		ret = filp->f_op->unlocked_ioctl(filp, VSP_FREE_IOVA,
-						(unsigned long)data);
-		err = compat_put_mmu_map_data(data32, data);
-		return ret ? ret : err;*/
-
-	default:
-		return filp->f_op->unlocked_ioctl(filp, cmd, (unsigned long)
+	return filp->f_op->unlocked_ioctl(filp, cmd, (unsigned long)
 						  compat_ptr(arg));
-	}
-
-	return ret;
 }
 #endif
 

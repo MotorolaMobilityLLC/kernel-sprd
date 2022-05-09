@@ -204,14 +204,10 @@ static long vsp_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 				tmp_rst_msk = regs[RESET].mask;
 				break;
 			}
-		} else {
+		} else
 			tmp_rst_msk = regs[RESET].mask;
-			pr_err("regmap_update_bits %s, %d tmp_rst_msk 0x%x\n",
-				__func__, __LINE__, tmp_rst_msk);
-			pr_err("regmap_update_bits %s, %d regs[RESET].reg 0x%x\n",
-				__func__, __LINE__, regs[RESET].reg);
-                }
-		/*ret = regmap_update_bits(regs[RESET].gpr, regs[RESET].reg,
+
+		ret = regmap_update_bits(regs[RESET].gpr, regs[RESET].reg,
 				   tmp_rst_msk, tmp_rst_msk);
 		if (ret) {
 			pr_err("regmap_update_bits failed %s, %d\n",
@@ -224,20 +220,10 @@ static long vsp_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		if (ret) {
 			pr_err("regmap_update_bits failed %s, %d\n",
 				__func__, __LINE__);
-		}*/
-     		 pr_err("sprd_iommu_restore_begin, iommu_exist_flag %d\n", vsp_hw_dev.iommu_exist_flag);
-		if ((vsp_hw_dev.version == PIKE2
-			|| vsp_hw_dev.version == SHARKLE
-			|| vsp_hw_dev.version == SHARKL3
-			|| vsp_hw_dev.version == SHARKL5
-			|| vsp_hw_dev.version == ROC1
-			|| vsp_hw_dev.version == SHARKL5Pro)
-			&& vsp_hw_dev.iommu_exist_flag)
-                {
-                  sprd_iommu_restore(vsp_hw_dev.vsp_dev);
-                  pr_err("open sprd_iommu_restore, iommu_exist_flag %d\n", vsp_hw_dev.iommu_exist_flag);
-                  
-                }
+		}
+
+		if (vsp_hw_dev.iommu_exist_flag)
+			sprd_iommu_restore(vsp_hw_dev.vsp_dev);
 
 		if (vsp_hw_dev.vsp_qos_exist_flag) {
 			if (vsp_hw_dev.version == SHARKL5Pro
@@ -280,8 +266,7 @@ static long vsp_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		break;
 
 	case VSP_GET_IOVA:
-		//pr_err("get_iova_is_used_test_log_kernel");
-		//pr_err("get_iova_vsp_iommu_map_data_kernel:%d", sizeof(struct vsp_iommu_map_data));
+
 		ret =
 		    copy_from_user((void *)&mapdata,
 				   (const void __user *)arg,
