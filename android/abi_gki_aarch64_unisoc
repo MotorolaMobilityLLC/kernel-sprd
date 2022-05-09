@@ -1595,6 +1595,7 @@
 
 # required by sc9863a-clk.ko
   device_get_match_data
+  devm_reset_controller_register
 
 # required by sdhci-sprd.ko
   clk_round_rate
