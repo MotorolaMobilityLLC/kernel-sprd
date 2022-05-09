@@ -891,7 +891,6 @@
 &pmic_fchg {
 	status = "okay";
 	sprd,input-voltage-microvolt = <5000000>;
-	phys = <&hsphy>;
 };
 
 &pmic_pd {
