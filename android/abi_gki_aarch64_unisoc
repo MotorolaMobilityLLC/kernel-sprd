@@ -1,5 +1,6 @@
 [abi_symbol_list]
 # commonly used symbols
+  add_cpu
   add_timer
   add_uevent_var
   add_wait_queue
