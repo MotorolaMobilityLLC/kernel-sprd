@@ -376,6 +376,9 @@
       <elf-symbol name='__traceiter_android_vh_mmc_check_status' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x7398991c'/>
       <elf-symbol name='__traceiter_android_vh_modify_thermal_request_freq' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x98d26b9e'/>
       <elf-symbol name='__traceiter_android_vh_modify_thermal_target_freq' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xad86cf6b'/>
+      <elf-symbol name='__traceiter_android_vh_printk_caller' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x1a30e90e'/>
+      <elf-symbol name='__traceiter_android_vh_printk_caller_id' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x409ea043'/>
+      <elf-symbol name='__traceiter_android_vh_printk_ext_header' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x35d0ca61'/>
       <elf-symbol name='__traceiter_android_vh_rwsem_init' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x6f754343'/>
       <elf-symbol name='__traceiter_android_vh_rwsem_wake' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x34845374'/>
       <elf-symbol name='__traceiter_android_vh_rwsem_write_finished' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x59dc712f'/>
@@ -4279,6 +4282,7 @@
       <elf-symbol name='security_sk_classify_flow' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xf59a8fc2'/>
       <elf-symbol name='select_fallback_rq' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x1f0983d6'/>
       <elf-symbol name='send_sig' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xa5cea121'/>
+      <elf-symbol name='send_sig_info' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x85404f54'/>
       <elf-symbol name='seq_buf_printf' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xe397caf5'/>
       <elf-symbol name='seq_hex_dump' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x9d881cae'/>
       <elf-symbol name='seq_lseek' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xe1c0fc74'/>
@@ -4726,6 +4730,7 @@
       <elf-symbol name='stack_depot_save' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x913ebd32'/>
       <elf-symbol name='stack_trace_print' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xa45c7b90'/>
       <elf-symbol name='stack_trace_save' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x6bd1aa56'/>
+      <elf-symbol name='stack_trace_save_tsk' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xf6330883'/>
       <elf-symbol name='start_backtrace' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xb01f759d'/>
       <elf-symbol name='start_poll_synchronize_rcu' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x91955a9f'/>
       <elf-symbol name='start_poll_synchronize_srcu' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xf4088dcb'/>
@@ -5853,6 +5858,9 @@
       <elf-symbol name='__tracepoint_android_vh_mmc_check_status' size='72' type='object-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x5c4223df'/>
       <elf-symbol name='__tracepoint_android_vh_modify_thermal_request_freq' size='72' type='object-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x240f59e0'/>
       <elf-symbol name='__tracepoint_android_vh_modify_thermal_target_freq' size='72' type='object-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xa965d530'/>
+      <elf-symbol name='__tracepoint_android_vh_printk_caller' size='72' type='object-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x5163492a'/>
+      <elf-symbol name='__tracepoint_android_vh_printk_caller_id' size='72' type='object-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x422dde96'/>
+      <elf-symbol name='__tracepoint_android_vh_printk_ext_header' size='72' type='object-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xf400ae3e'/>
       <elf-symbol name='__tracepoint_android_vh_printk_hotplug' size='72' type='object-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x7f6382dd'/>
       <elf-symbol name='__tracepoint_android_vh_psci_cpu_suspend' size='72' type='object-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xc46befb4'/>
       <elf-symbol name='__tracepoint_android_vh_psci_tos_resident_on' size='72' type='object-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x1186bc71'/>
@@ -6014,6 +6022,7 @@
       <elf-symbol name='memstart_addr' size='8' type='object-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x9688de8b'/>
       <elf-symbol name='nd_tbl' size='536' type='object-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x86f4247c'/>
       <elf-symbol name='net_namespace_list' size='16' type='object-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x6d2fc5a6'/>
+      <elf-symbol name='node_states' size='48' type='object-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xe7b7da04'/>
       <elf-symbol name='nr_cpu_ids' size='4' type='object-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x17de3d5'/>
       <elf-symbol name='nr_irqs' size='4' type='object-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xcdca3691'/>
       <elf-symbol name='nr_swap_pages' size='8' type='object-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xa0d3456d'/>
@@ -11288,6 +11297,7 @@
         <return type-id='48b5725f'/>
       </function-type>
       <pointer-type-def type-id='d33c76ed' size-in-bits='64' id='0efb02f1'/>
+      <pointer-type-def type-id='38ef7882' size-in-bits='64' id='0effb5d0'/>
       <class-decl name='thermal_attr' size-in-bits='448' is-struct='yes' visibility='default' filepath='drivers/thermal/thermal_core.h' line='57' column='1' id='0f035502'>
         <data-member access='public' layout-offset-in-bits='0'>
           <var-decl name='attr' type-id='dbf3947c' visibility='default' filepath='drivers/thermal/thermal_core.h' line='58' column='1'/>
@@ -87038,6 +87048,9 @@
         </data-member>
       </class-decl>
       <pointer-type-def type-id='4dd90c3d' size-in-bits='64' id='bb7889ed'/>
+      <array-type-def dimensions='1' type-id='6a7d16bb' size-in-bits='384' id='bb8315c6'>
+        <subrange length='6' type-id='7ff19f0f' id='52fa524b'/>
+      </array-type-def>
       <pointer-type-def type-id='efe2b85d' size-in-bits='64' id='bba0f341'/>
       <pointer-type-def type-id='7ec07336' size-in-bits='64' id='bba30790'/>
       <function-type size-in-bits='64' id='bba85209'>
@@ -123932,6 +123945,27 @@
         <parameter type-id='807869d3' name='target_freq' filepath='include/trace/hooks/thermal.h' line='17' column='1'/>
         <return type-id='95e97e5e'/>
       </function-decl>
+      <function-decl name='__traceiter_android_vh_printk_caller' mangled-name='__traceiter_android_vh_printk_caller' filepath='include/trace/hooks/printk.h' line='19' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='__traceiter_android_vh_printk_caller'>
+        <parameter type-id='eaa32e2f' name='__data' filepath='include/trace/hooks/printk.h' line='19' column='1'/>
+        <parameter type-id='26a90f95' name='caller' filepath='include/trace/hooks/printk.h' line='19' column='1'/>
+        <parameter type-id='b59d7dce' name='size' filepath='include/trace/hooks/printk.h' line='19' column='1'/>
+        <parameter type-id='19c2251e' name='id' filepath='include/trace/hooks/printk.h' line='19' column='1'/>
+        <parameter type-id='7292109c' name='ret' filepath='include/trace/hooks/printk.h' line='19' column='1'/>
+        <return type-id='95e97e5e'/>
+      </function-decl>
+      <function-decl name='__traceiter_android_vh_printk_caller_id' mangled-name='__traceiter_android_vh_printk_caller_id' filepath='include/trace/hooks/printk.h' line='16' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='__traceiter_android_vh_printk_caller_id'>
+        <parameter type-id='eaa32e2f' name='__data' filepath='include/trace/hooks/printk.h' line='16' column='1'/>
+        <parameter type-id='f9409001' name='caller_id' filepath='include/trace/hooks/printk.h' line='16' column='1'/>
+        <return type-id='95e97e5e'/>
+      </function-decl>
+      <function-decl name='__traceiter_android_vh_printk_ext_header' mangled-name='__traceiter_android_vh_printk_ext_header' filepath='include/trace/hooks/printk.h' line='22' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='__traceiter_android_vh_printk_ext_header'>
+        <parameter type-id='eaa32e2f' name='__data' filepath='include/trace/hooks/printk.h' line='22' column='1'/>
+        <parameter type-id='26a90f95' name='caller' filepath='include/trace/hooks/printk.h' line='22' column='1'/>
+        <parameter type-id='b59d7dce' name='size' filepath='include/trace/hooks/printk.h' line='22' column='1'/>
+        <parameter type-id='19c2251e' name='id' filepath='include/trace/hooks/printk.h' line='22' column='1'/>
+        <parameter type-id='7292109c' name='ret' filepath='include/trace/hooks/printk.h' line='22' column='1'/>
+        <return type-id='95e97e5e'/>
+      </function-decl>
       <function-decl name='__traceiter_android_vh_rwsem_init' mangled-name='__traceiter_android_vh_rwsem_init' filepath='include/trace/hooks/rwsem.h' line='15' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='__traceiter_android_vh_rwsem_init'>
         <parameter type-id='eaa32e2f' name='__data' filepath='include/trace/hooks/rwsem.h' line='15' column='1'/>
         <parameter type-id='9b58df93' name='sem' filepath='include/trace/hooks/rwsem.h' line='15' column='1'/>
@@ -124428,6 +124462,9 @@
       <var-decl name='__tracepoint_android_vh_mmc_check_status' type-id='4ca0c298' mangled-name='__tracepoint_android_vh_mmc_check_status' visibility='default' filepath='include/trace/hooks/mmc.h' line='15' column='1' elf-symbol-id='__tracepoint_android_vh_mmc_check_status'/>
       <var-decl name='__tracepoint_android_vh_modify_thermal_request_freq' type-id='4ca0c298' mangled-name='__tracepoint_android_vh_modify_thermal_request_freq' visibility='default' filepath='include/trace/hooks/thermal.h' line='13' column='1' elf-symbol-id='__tracepoint_android_vh_modify_thermal_request_freq'/>
       <var-decl name='__tracepoint_android_vh_modify_thermal_target_freq' type-id='4ca0c298' mangled-name='__tracepoint_android_vh_modify_thermal_target_freq' visibility='default' filepath='include/trace/hooks/thermal.h' line='17' column='1' elf-symbol-id='__tracepoint_android_vh_modify_thermal_target_freq'/>
+      <var-decl name='__tracepoint_android_vh_printk_caller' type-id='4ca0c298' mangled-name='__tracepoint_android_vh_printk_caller' visibility='default' filepath='include/trace/hooks/printk.h' line='19' column='1' elf-symbol-id='__tracepoint_android_vh_printk_caller'/>
+      <var-decl name='__tracepoint_android_vh_printk_caller_id' type-id='4ca0c298' mangled-name='__tracepoint_android_vh_printk_caller_id' visibility='default' filepath='include/trace/hooks/printk.h' line='16' column='1' elf-symbol-id='__tracepoint_android_vh_printk_caller_id'/>
+      <var-decl name='__tracepoint_android_vh_printk_ext_header' type-id='4ca0c298' mangled-name='__tracepoint_android_vh_printk_ext_header' visibility='default' filepath='include/trace/hooks/printk.h' line='22' column='1' elf-symbol-id='__tracepoint_android_vh_printk_ext_header'/>
       <var-decl name='__tracepoint_android_vh_printk_hotplug' type-id='4ca0c298' mangled-name='__tracepoint_android_vh_printk_hotplug' visibility='default' filepath='include/trace/hooks/printk.h' line='12' column='1' elf-symbol-id='__tracepoint_android_vh_printk_hotplug'/>
       <var-decl name='__tracepoint_android_vh_psci_cpu_suspend' type-id='4ca0c298' mangled-name='__tracepoint_android_vh_psci_cpu_suspend' visibility='default' filepath='include/trace/hooks/psci.h' line='17' column='1' elf-symbol-id='__tracepoint_android_vh_psci_cpu_suspend'/>
       <var-decl name='__tracepoint_android_vh_psci_tos_resident_on' type-id='4ca0c298' mangled-name='__tracepoint_android_vh_psci_tos_resident_on' visibility='default' filepath='include/trace/hooks/psci.h' line='13' column='1' elf-symbol-id='__tracepoint_android_vh_psci_tos_resident_on'/>
@@ -139253,6 +139290,7 @@
         <parameter type-id='95e97e5e' name='whence' filepath='fs/read_write.c' line='230' column='1'/>
         <return type-id='69bf7bee'/>
       </function-decl>
+      <var-decl name='node_states' type-id='bb8315c6' mangled-name='node_states' visibility='default' filepath='mm/page_alloc.c' line='166' column='1' elf-symbol-id='node_states'/>
       <function-decl name='nonseekable_open' mangled-name='nonseekable_open' filepath='fs/open.c' line='1425' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='nonseekable_open'>
         <parameter type-id='7e666abe' name='inode' filepath='fs/open.c' line='1425' column='1'/>
         <parameter type-id='77e79a4b' name='filp' filepath='fs/open.c' line='1425' column='1'/>
@@ -144614,6 +144652,12 @@
         <parameter type-id='95e97e5e' name='priv' filepath='kernel/signal.c' line='1642' column='1'/>
         <return type-id='95e97e5e'/>
       </function-decl>
+      <function-decl name='send_sig_info' mangled-name='send_sig_info' filepath='kernel/signal.c' line='1625' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='send_sig_info'>
+        <parameter type-id='95e97e5e' name='sig' filepath='kernel/signal.c' line='1625' column='1'/>
+        <parameter type-id='0effb5d0' name='info' filepath='kernel/signal.c' line='1625' column='1'/>
+        <parameter type-id='f23e2572' name='p' filepath='kernel/signal.c' line='1625' column='1'/>
+        <return type-id='95e97e5e'/>
+      </function-decl>
       <function-decl name='seq_buf_printf' mangled-name='seq_buf_printf' filepath='lib/seq_buf.c' line='83' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='seq_buf_printf'>
         <parameter type-id='d898930c' name='s' filepath='lib/seq_buf.c' line='83' column='1'/>
         <parameter type-id='80f4b756' name='fmt' filepath='lib/seq_buf.c' line='83' column='1'/>
@@ -147035,6 +147079,13 @@
         <parameter type-id='1d2c2b85' name='store' filepath='kernel/stacktrace.c' line='112' column='1'/>
         <parameter type-id='f0981eeb' name='size' filepath='kernel/stacktrace.c' line='112' column='1'/>
         <parameter type-id='f0981eeb' name='skipnr' filepath='kernel/stacktrace.c' line='113' column='1'/>
+        <return type-id='f0981eeb'/>
+      </function-decl>
+      <function-decl name='stack_trace_save_tsk' mangled-name='stack_trace_save_tsk' filepath='kernel/stacktrace.c' line='136' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='stack_trace_save_tsk'>
+        <parameter type-id='f23e2572' name='tsk' filepath='kernel/stacktrace.c' line='136' column='1'/>
+        <parameter type-id='1d2c2b85' name='store' filepath='kernel/stacktrace.c' line='136' column='1'/>
+        <parameter type-id='f0981eeb' name='size' filepath='kernel/stacktrace.c' line='137' column='1'/>
+        <parameter type-id='f0981eeb' name='skipnr' filepath='kernel/stacktrace.c' line='137' column='1'/>
         <return type-id='f0981eeb'/>
       </function-decl>
       <function-decl name='start_backtrace' mangled-name='start_backtrace' filepath='arch/arm64/kernel/stacktrace.c' line='36' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='start_backtrace'>
