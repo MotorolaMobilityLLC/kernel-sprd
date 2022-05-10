@@ -1,0 +1,6 @@
+menuconfig SPRD_POWER_STAT
+	tristate "Spreadtrum debug power stat output"
+	depends on ARCH_SPRD
+        default n
+	help
+	  Select this to enable debug power stat driver for sprd soc.

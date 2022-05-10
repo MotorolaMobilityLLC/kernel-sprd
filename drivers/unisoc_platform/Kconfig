@@ -43,5 +43,6 @@ source "drivers/unisoc_platform/sprd_time_sync/Kconfig"
 source "drivers/unisoc_platform/sprdwcn/Kconfig"
 source "drivers/unisoc_platform/sysdump/Kconfig"
 source "drivers/unisoc_platform/wlan/Kconfig"
+source "drivers/unisoc_platform/power/Kconfig"
 
 endmenu

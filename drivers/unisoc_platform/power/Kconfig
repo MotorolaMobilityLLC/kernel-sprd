@@ -1,0 +1,3 @@
+source "drivers/unisoc_platform/power/power_debug/Kconfig"
+source "drivers/unisoc_platform/power/power_stat/Kconfig"
+

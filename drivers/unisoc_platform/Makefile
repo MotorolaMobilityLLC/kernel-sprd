@@ -26,3 +26,4 @@ obj-$(CONFIG_WLAN_VENDOR_SPREADTRUM)		+= wlan/
 obj-y += domain/
 obj-y += net/
 obj-y += sprd_time_sync/
+obj-y += power/

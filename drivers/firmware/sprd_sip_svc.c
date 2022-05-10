@@ -120,6 +120,24 @@
 			   ARM_SMCCC_OWNER_SIP,				\
 			   0x0202)
 
+/* SIP power operations */
+#define SPRD_SIP_SVC_PWR_REV						\
+	ARM_SMCCC_CALL_VAL(ARM_SMCCC_FAST_CALL,				\
+			   ARM_SMCCC_SMC_32,				\
+			   ARM_SMCCC_OWNER_SIP,				\
+			   0x0500)
+
+#define SPRD_SIP_SVC_PWR_GET_WAKEUP_SOURCE_GET				\
+	ARM_SMCCC_CALL_VAL(ARM_SMCCC_FAST_CALL,				\
+			   ARM_SMCCC_SMC_32,				\
+			   ARM_SMCCC_OWNER_SIP,				\
+			   0x0501)
+
+#define SPRD_SIP_SVC_PWR_PDBG_INFO_GET					\
+	(ARM_SMCCC_CALL_VAL(ARM_SMCCC_FAST_CALL,			\
+			   ARM_SMCCC_SMC_32,				\
+			   ARM_SMCCC_OWNER_SIP,				\
+			   0x0502))
 #define SPRD_SIP_RET_UNK	0xFFFFFFFFUL
 
 static struct sprd_sip_svc_handle sprd_sip_svc_handle = {};
@@ -249,6 +267,44 @@ static int sprd_sip_svc_dbg_get_hang_ctx(unsigned long id, unsigned long core_id
 	return sprd_sip_remap_err(res.a0);
 }
 
+static int sprd_sip_svc_pwr_get_wakeup_source(u32 *major, u32 *second, u32 *thrid)
+{
+	struct arm_smccc_res res;
+
+	arm_smccc_smc(SPRD_SIP_SVC_PWR_GET_WAKEUP_SOURCE_GET, 0, 0, 0, 0, 0, 0, 0, &res);
+
+	if (major != NULL)
+		*major = res.a1;
+
+	if (second != NULL)
+		*second = res.a2;
+
+	if (thrid != NULL)
+		*thrid = res.a3;
+
+	return res.a0;
+}
+
+static u64 sprd_sip_svc_pwr_get_pdbg_info(u32 scene, u32 phase, u64 *r0, u64 *r1, u64 *r2, u64 *r3)
+{
+	struct arm_smccc_res res;
+
+	arm_smccc_smc(SPRD_SIP_SVC_PWR_PDBG_INFO_GET, scene, phase, 0, 0, 0, 0, 0, &res);
+
+	if (r0 != NULL)
+		*r0 = res.a0;
+
+	if (r1 != NULL)
+		*r1 = res.a1;
+
+	if (r2 != NULL)
+		*r2 = res.a2;
+
+	if (r3 != NULL)
+		*r3 = res.a3;
+
+	return res.a0;
+}
 static int __init sprd_sip_svc_init(void)
 {
 	int ret = 0;
@@ -286,6 +342,13 @@ static int __init sprd_sip_svc_init(void)
 		sprd_sip_svc_handle.dbg_ops.rev.major_ver,
 		sprd_sip_svc_handle.dbg_ops.rev.minor_ver);
 
+	/* init pwr_ops */
+	arm_smccc_smc(SPRD_SIP_SVC_PWR_REV, 0, 0, 0, 0, 0, 0, 0, &res);
+	sprd_sip_svc_handle.pwr_ops.rev.major_ver = res.a0;
+	sprd_sip_svc_handle.pwr_ops.rev.minor_ver = res.a1;
+
+	sprd_sip_svc_handle.pwr_ops.get_wakeup_source = sprd_sip_svc_pwr_get_wakeup_source;
+	sprd_sip_svc_handle.pwr_ops.get_pdbg_info = sprd_sip_svc_pwr_get_pdbg_info;
 	return ret;
 }
 
