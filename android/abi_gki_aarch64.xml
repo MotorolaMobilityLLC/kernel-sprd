@@ -4636,6 +4636,7 @@
       <elf-symbol name='snd_timer_close' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xdcdefade'/>
       <elf-symbol name='snd_timer_instance_free' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x80c47f9'/>
       <elf-symbol name='snd_timer_instance_new' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xca801036'/>
+      <elf-symbol name='snd_timer_interrupt' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x8454351a'/>
       <elf-symbol name='snd_timer_open' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x4a9cc3f7'/>
       <elf-symbol name='snd_timer_start' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x387780db'/>
       <elf-symbol name='snd_timer_stop' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xf03efc20'/>
@@ -5331,6 +5332,7 @@
       <elf-symbol name='v4l2_ctrl_find' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xf683f65d'/>
       <elf-symbol name='v4l2_ctrl_g_ctrl' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x83072bd'/>
       <elf-symbol name='v4l2_ctrl_g_ctrl_int64' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x97e52274'/>
+      <elf-symbol name='v4l2_ctrl_get_name' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x32d43420'/>
       <elf-symbol name='v4l2_ctrl_handler_free' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x3cf54cf8'/>
       <elf-symbol name='v4l2_ctrl_handler_init_class' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x50ccb727'/>
       <elf-symbol name='v4l2_ctrl_handler_setup' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xa0e403d6'/>
@@ -5404,6 +5406,7 @@
       <elf-symbol name='v4l2_m2m_unregister_media_controller' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xf13ff84d'/>
       <elf-symbol name='v4l2_match_dv_timings' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xd034392d'/>
       <elf-symbol name='v4l2_pipeline_link_notify' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x9c78fa54'/>
+      <elf-symbol name='v4l2_s_ctrl' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x87afc027'/>
       <elf-symbol name='v4l2_s_parm_cap' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x43ee5f6a'/>
       <elf-symbol name='v4l2_spi_subdev_init' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xafed6568'/>
       <elf-symbol name='v4l2_src_change_event_subscribe' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x820b7296'/>
@@ -146578,6 +146581,11 @@
         <parameter type-id='80f4b756' name='owner' filepath='sound/core/timer.c' line='138' column='1'/>
         <return type-id='0d08ac62'/>
       </function-decl>
+      <function-decl name='snd_timer_interrupt' mangled-name='snd_timer_interrupt' filepath='sound/core/timer.c' line='840' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='snd_timer_interrupt'>
+        <parameter type-id='6ee1a870' name='timer' filepath='sound/core/timer.c' line='840' column='1'/>
+        <parameter type-id='7359adad' name='ticks_left' filepath='sound/core/timer.c' line='840' column='1'/>
+        <return type-id='48b5725f'/>
+      </function-decl>
       <function-decl name='snd_timer_open' mangled-name='snd_timer_open' filepath='sound/core/timer.c' line='289' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='snd_timer_open'>
         <parameter type-id='0d08ac62' name='timeri' filepath='sound/core/timer.c' line='289' column='1'/>
         <parameter type-id='25ea0608' name='tid' filepath='sound/core/timer.c' line='290' column='1'/>
@@ -150097,6 +150105,10 @@
         <parameter type-id='4b8b2cf3' name='ctrl' filepath='drivers/media/v4l2-core/v4l2-ctrls-api.c' line='818' column='1'/>
         <return type-id='9b7c55ef'/>
       </function-decl>
+      <function-decl name='v4l2_ctrl_get_name' mangled-name='v4l2_ctrl_get_name' filepath='drivers/media/v4l2-core/v4l2-ctrls-defs.c' line='742' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='v4l2_ctrl_get_name'>
+        <parameter type-id='19c2251e' name='id' filepath='drivers/media/v4l2-core/v4l2-ctrls-defs.c' line='742' column='1'/>
+        <return type-id='80f4b756'/>
+      </function-decl>
       <function-decl name='v4l2_ctrl_handler_free' mangled-name='v4l2_ctrl_handler_free' filepath='drivers/media/v4l2-core/v4l2-ctrls-core.c' line='968' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='v4l2_ctrl_handler_free'>
         <parameter type-id='2b59fa5e' name='hdl' filepath='drivers/media/v4l2-core/v4l2-ctrls-core.c' line='968' column='1'/>
         <return type-id='48b5725f'/>
@@ -150483,6 +150495,12 @@
         <parameter type-id='b4de78ea' name='link' filepath='drivers/media/v4l2-core/v4l2-mc.c' line='556' column='1'/>
         <parameter type-id='19c2251e' name='flags' filepath='drivers/media/v4l2-core/v4l2-mc.c' line='556' column='1'/>
         <parameter type-id='f0981eeb' name='notification' filepath='drivers/media/v4l2-core/v4l2-mc.c' line='557' column='1'/>
+        <return type-id='95e97e5e'/>
+      </function-decl>
+      <function-decl name='v4l2_s_ctrl' mangled-name='v4l2_s_ctrl' filepath='drivers/media/v4l2-core/v4l2-ctrls-api.c' line='781' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='v4l2_s_ctrl'>
+        <parameter type-id='b7db9582' name='fh' filepath='drivers/media/v4l2-core/v4l2-ctrls-api.c' line='781' column='1'/>
+        <parameter type-id='2b59fa5e' name='hdl' filepath='drivers/media/v4l2-core/v4l2-ctrls-api.c' line='781' column='1'/>
+        <parameter type-id='bcd28457' name='control' filepath='drivers/media/v4l2-core/v4l2-ctrls-api.c' line='782' column='1'/>
         <return type-id='95e97e5e'/>
       </function-decl>
       <function-decl name='v4l2_s_parm_cap' mangled-name='v4l2_s_parm_cap' filepath='drivers/media/v4l2-core/v4l2-common.c' line='207' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='v4l2_s_parm_cap'>
