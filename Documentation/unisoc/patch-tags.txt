@@ -175,6 +175,7 @@ soc:sprd:domain:
 spi:
 spi:sprd:
 sprd-diffconfig:*
+staging:android:ion:
 
 thermal:core:
 thermal:sprd:
