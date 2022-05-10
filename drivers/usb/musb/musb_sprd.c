@@ -112,7 +112,7 @@ struct sprd_glue {
 
 	bool				vbus_active;
 	bool				charging_mode;
-	bool				power_always_on;
+	bool				enable_pm_suspend_in_host;
 	atomic_t			pm_suspended;
 	int				host_disabled;
 	u32				usb_pub_slp_poll_offset;
@@ -875,6 +875,7 @@ static int musb_sprd_otg_start_peripheral(struct sprd_glue *glue, int on)
 		musb_writeb(musb->mregs, MUSB_DEVCTL, devctl & ~MUSB_DEVCTL_SESSION);
 		musb->xceiv->otg->default_a = 0;
 		musb->xceiv->otg->state = OTG_STATE_B_IDLE;
+		musb->offload_used = 0;
 		glue->dr_mode = USB_DR_MODE_UNKNOWN;
 		pm_runtime_put_sync(musb->controller);
 
@@ -918,7 +919,7 @@ static int musb_sprd_otg_start_host(struct sprd_glue *glue, int on)
 			}
 		}
 
-		if (glue->power_always_on)
+		if (!glue->enable_pm_suspend_in_host)
 			__pm_stay_awake(glue->wake_lock);
 
 		MUSB_HST_MODE(musb);
@@ -953,6 +954,7 @@ static int musb_sprd_otg_start_host(struct sprd_glue *glue, int on)
 
 		musb->xceiv->otg->default_a = 0;
 		musb->xceiv->otg->state = OTG_STATE_B_IDLE;
+		musb->offload_used = 0;
 		MUSB_DEV_MODE(musb);
 		glue->dr_mode = USB_DR_MODE_UNKNOWN;
 		usb_phy_vbus_off(glue->xceiv);
@@ -960,7 +962,7 @@ static int musb_sprd_otg_start_host(struct sprd_glue *glue, int on)
 		/* Decrement pm usage count when leave host state.*/
 		pm_runtime_put_sync(musb->controller);
 
-		if (glue->power_always_on)
+		if (!glue->enable_pm_suspend_in_host)
 			__pm_relax(glue->wake_lock);
 	}
 
@@ -1384,8 +1386,8 @@ static int musb_sprd_probe(struct platform_device *pdev)
 
 	pdata.platform_ops = &sprd_musb_ops;
 	pdata.config = &sprd_musb_hdrc_config;
-	glue->power_always_on = of_property_read_bool(node, "wakeup-source");
-	pdata.board_data = &glue->power_always_on;
+	glue->enable_pm_suspend_in_host = of_property_read_bool(node, "wakeup-source");
+	pdata.board_data = &glue->enable_pm_suspend_in_host;
 	atomic_set(&glue->pm_suspended, 0);
 	memset(&pinfo, 0, sizeof(pinfo));
 	pinfo.name = "musb-hdrc";
@@ -1625,8 +1627,8 @@ static int musb_sprd_pm_suspend(struct device *dev)
 		return -EBUSY;
 	}
 
-	if (glue->power_always_on && glue->dr_mode == USB_DR_MODE_HOST) {
-		dev_info(glue->dev, "Abort PM suspend in host mode when power always on\n");
+	if (!glue->enable_pm_suspend_in_host && glue->dr_mode == USB_DR_MODE_HOST) {
+		dev_info(glue->dev, "Abort PM suspend in host mode!!\n");
 		return -EBUSY;
 	}
 
