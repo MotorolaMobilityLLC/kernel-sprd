@@ -3,6 +3,7 @@
  * Copyright (C) 2020 Unisoc Inc.
  */
 
+#include <drm/drm_vblank.h>
 #include <linux/delay.h>
 #include <linux/io.h>
 #include <linux/wait.h>
@@ -120,7 +121,7 @@
 #define BIT_DPU_INT_ERR			BIT(2)
 #define BIT_DPU_INT_EDPI_TE		BIT(3)
 #define BIT_DPU_INT_UPDATE_DONE		BIT(4)
-#define BIT_DPU_INT_DPI_VSYNC		BIT(5)
+#define BIT_DPU_INT_VSYNC		BIT(5)
 #define BIT_DPU_INT_WB_DONE		BIT(6)
 #define BIT_DPU_INT_WB_FAIL		BIT(7)
 #define BIT_DPU_INT_MMU_VAOR_RD		BIT(16)
@@ -190,6 +191,8 @@ static void dpu_charger_mode(void)
 
 static u32 dpu_isr(struct dpu_context *ctx)
 {
+	struct sprd_dpu *dpu =
+		(struct sprd_dpu *)container_of(ctx, struct sprd_dpu, ctx);
 	u32 reg_val, int_mask = 0;
 
 	reg_val = DPU_REG_RD(ctx->base + REG_DPU_INT_STS);
@@ -197,6 +200,9 @@ static u32 dpu_isr(struct dpu_context *ctx)
 	/* disable err interrupt */
 	if (reg_val & BIT_DPU_INT_ERR)
 		int_mask |= BIT_DPU_INT_ERR;
+
+	if (reg_val & BIT_DPU_INT_VSYNC)
+		drm_crtc_handle_vblank(&dpu->crtc->base);
 
 	/* dpu update done isr */
 	if (reg_val & BIT_DPU_INT_UPDATE_DONE) {
@@ -641,7 +647,7 @@ static void dpu_dpi_init(struct dpu_context *ctx)
 		/* enable dpu DONE  INT */
 		int_mask |= BIT_DPU_INT_DONE;
 		/* enable dpu dpi vsync */
-		int_mask |= BIT_DPU_INT_DPI_VSYNC;
+		int_mask |= BIT_DPU_INT_VSYNC;
 		/* enable dpu TE INT */
 		int_mask |= BIT_DPU_INT_TE;
 		/* enable underflow err INT */
@@ -684,12 +690,12 @@ static void dpu_dpi_init(struct dpu_context *ctx)
 
 static void enable_vsync(struct dpu_context *ctx)
 {
-	DPU_REG_SET(ctx->base + REG_DPU_INT_EN, BIT_DPU_INT_DPI_VSYNC);
+	DPU_REG_SET(ctx->base + REG_DPU_INT_EN, BIT_DPU_INT_VSYNC);
 }
 
 static void disable_vsync(struct dpu_context *ctx)
 {
-	DPU_REG_CLR(ctx->base + REG_DPU_INT_EN, BIT_DPU_INT_DPI_VSYNC);
+	DPU_REG_CLR(ctx->base + REG_DPU_INT_EN, BIT_DPU_INT_VSYNC);
 }
 
 static int dpu_context_init(struct dpu_context *ctx, struct device_node *np)

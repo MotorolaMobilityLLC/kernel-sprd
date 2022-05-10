@@ -3,6 +3,7 @@
  * Copyright (C) 2020 Unisoc Inc.
  */
 
+#include <drm/drm_vblank.h>
 #include <linux/delay.h>
 #include <linux/dma-buf.h>
 #include <linux/gfp.h>
@@ -247,6 +248,8 @@ static u32 check_mmu_isr(struct dpu_context *ctx, u32 reg_val)
 
 static u32 dpu_isr(struct dpu_context *ctx)
 {
+	struct sprd_dpu *dpu =
+		(struct sprd_dpu *)container_of(ctx, struct sprd_dpu, ctx);
 	u32 reg_val, int_mask = 0;
 	//u32 mmu_reg_val, mmu_int_mask = 0;
 
@@ -264,13 +267,15 @@ static u32 dpu_isr(struct dpu_context *ctx)
 	}
 
 	/* dpu vsync isr */
-	//if (reg_val & BIT_DPU_INT_VSYNC) {
+	if ((reg_val & BIT_DPU_INT_VSYNC) && ctx->enabled) {
+		drm_crtc_handle_vblank(&dpu->crtc->base);
+
 		/* write back feature */
 	//	if ((ctx->vsync_count == ctx->max_vsync_count) && ctx->wb_en)
 	//		schedule_work(&ctx->wb_work);
 
 	//	ctx->vsync_count++;
-	//}
+	}
 
 	/* dpu stop done isr */
 	if (reg_val & BIT_DPU_INT_DONE) {
