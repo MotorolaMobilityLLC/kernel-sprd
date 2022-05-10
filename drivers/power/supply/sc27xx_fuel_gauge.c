@@ -1993,14 +1993,15 @@ static int sc27xx_fgu_get_average_temp(struct sc27xx_fgu_data *data, int temp)
 
 static int sc27xx_fgu_get_temp(struct sc27xx_fgu_data *data, int *temp)
 {
-	int vol_mv, ret;
+	int vol_ntc_uv, vol_adc_mv, ret;
 
-	ret = iio_read_channel_processed(data->channel, &vol_mv);
+	ret = iio_read_channel_processed(data->channel, &vol_adc_mv);
 	if (ret < 0)
 		return ret;
 
+	vol_ntc_uv = vol_adc_mv * 1000;
 	if (data->comp_resistance) {
-		int bat_current_ma, resistance_vol;
+		int bat_current_ma, resistance_vol, calib_resistance_vol, temp_vol;
 
 		ret = sc27xx_fgu_get_current_now(data, &bat_current_ma);
 		if (ret) {
@@ -2008,30 +2009,26 @@ static int sc27xx_fgu_get_temp(struct sc27xx_fgu_data *data, int *temp)
 			return ret;
 		}
 
-		/*
-		 * Due to the ntc resistor is connected to the coulomb counter
-		 * internal resistance and the board ground impedance at 1850mv.
-		 * so need to compensate for coulomb resistance and voltage loss
-		 * to ground impedance.
-		 * Follow the formula below:
-		 * formula:
-		 * Vadc = Vresistance + (1850 - Vresistance) * R / 47k + R
-		 * ->
-		 *  UR = Vadc -Vresistance +
-		 *  Vresistance * (Vadc - Vresistance) / (1850 - Vresistance)
-		 */
 		resistance_vol = bat_current_ma * data->comp_resistance;
-		resistance_vol = DIV_ROUND_CLOSEST(resistance_vol, 1000);
-		vol_mv = vol_mv - resistance_vol + (resistance_vol *
-			(vol_mv - resistance_vol)) / (1850 - resistance_vol);
-		if (vol_mv < 0)
-			vol_mv = 0;
+		resistance_vol = DIV_ROUND_CLOSEST(resistance_vol, 10);
+		calib_resistance_vol = bat_current_ma * (data->calib_resist / 10);
+		calib_resistance_vol =
+			DIV_ROUND_CLOSEST(calib_resistance_vol, 1000) + resistance_vol;
+
+		temp_vol = (vol_ntc_uv / 10 - resistance_vol) * calib_resistance_vol;
+		temp_vol = DIV_ROUND_CLOSEST(temp_vol, (187500 - calib_resistance_vol));
+
+		vol_ntc_uv = temp_vol * 10 + vol_ntc_uv - resistance_vol * 10;
+
+		dev_info(data->dev, "bat_current_ma = %d, vol_adc_mv = %d, vol_ntc_uv = %d\n",
+			 bat_current_ma, vol_adc_mv, vol_ntc_uv);
+		if (vol_ntc_uv < 0)
+			vol_ntc_uv = 0;
 	}
 
 	if (data->temp_table_len > 0) {
-		*temp = sc27xx_fgu_vol2temp(data->temp_table,
-					    data->temp_table_len,
-					    vol_mv * 1000);
+		*temp = sc27xx_fgu_vol2temp(data->temp_table, data->temp_table_len, vol_ntc_uv);
+		dev_info(data->dev, "%s: temp = %d\n", __func__, *temp);
 		*temp = sc27xx_fgu_get_average_temp(data, *temp);
 	} else {
 		*temp = 200;
