@@ -215,9 +215,8 @@ static int sprd_ssphy_set_vbus(struct usb_phy *x, int on)
 			msk, reg);
 		phy->is_host = true;
 	} else {
-		msk = 0xffffffff;
-		regmap_update_bits(phy->ana_g0l, REG_ANLG_PHY_G0L_ANALOG_USB20_USB20_TRIMMING,
-					msk, phy->device_eye_pattern);
+		regmap_write(phy->ana_g0l, REG_ANLG_PHY_G0L_ANALOG_USB20_USB20_TRIMMING,
+					phy->device_eye_pattern);
 		if (!sprd_usbm_hsphy_get_onoff()) {
 			reg = msk = MASK_AON_APB_USB2_PHY_IDDIG;
 			ret |= regmap_update_bits(phy->aon_apb,
@@ -320,25 +319,25 @@ static int sprd_ssphy_init(struct usb_phy *x)
 	ret |= regmap_update_bits(phy->aon_apb, REG_AON_APB_CGM_REG1, msk, reg);
 
 	/*enable analog:0x64900004*/
-	reg = MASK_AON_APB_AON_USB2_TOP_EB | MASK_AON_APB_OTG_PHY_EB |
+	ret |= regmap_read(phy->aon_apb, REG_AON_APB_APB_EB1, &reg);
+	reg |= MASK_AON_APB_AON_USB2_TOP_EB | MASK_AON_APB_OTG_PHY_EB |
 						MASK_AON_APB_ANA_EB;
-	msk = reg;
-	ret |= regmap_update_bits(phy->aon_apb, REG_AON_APB_APB_EB1, msk, reg);
+	ret |= regmap_write(phy->aon_apb, REG_AON_APB_APB_EB1, reg);
 
 	/* utmisrp_bvalid  sys vbus valid:0x64900D14*/
-	reg = MASK_AON_APB_SYS_VBUSVALID;
-	msk = reg;
-	ret |= regmap_update_bits(phy->aon_apb, REG_AON_APB_USB31DPCOMBPHY_CTRL, msk, reg);
+	ret |= regmap_read(phy->aon_apb, REG_AON_APB_USB31DPCOMBPHY_CTRL, &reg);
+	reg |= MASK_AON_APB_SYS_VBUSVALID;
+	ret |= regmap_write(phy->aon_apb, REG_AON_APB_USB31DPCOMBPHY_CTRL, reg);
 
 	/*  usb eb and usb ref eb :0x25000004*/
-	reg = MASK_IPA_APB_USB_EB | MASK_IPA_APB_USB_REF_EB;
-	msk = reg;
-	ret |= regmap_update_bits(phy->ipa_apb, REG_IPA_APB_IPA_EB, msk, reg);
+	ret |= regmap_read(phy->ipa_apb, REG_IPA_APB_IPA_EB, &reg);
+	reg |= MASK_IPA_APB_USB_EB | MASK_IPA_APB_USB_REF_EB;
+	ret |= regmap_write(phy->ipa_apb, REG_IPA_APB_IPA_EB, reg);
 
 	/* usb suspend eb :0x64900138*/
-	reg = MASK_AON_APB_CGM_USB_SUSPEND_EN;
-	msk = reg;
-	ret |= regmap_update_bits(phy->aon_apb, REG_AON_APB_CGM_REG1, msk, reg);
+	ret |= regmap_read(phy->aon_apb, REG_AON_APB_CGM_REG1, &reg);
+	reg |= MASK_AON_APB_CGM_USB_SUSPEND_EN;
+	ret |= regmap_write(phy->aon_apb, REG_AON_APB_CGM_REG1, reg);
 
 	/*
 	 * USB2 PHY power on: set pd_l/pd_s firstly, then set iso_sw.
@@ -374,10 +373,8 @@ static int sprd_ssphy_init(struct usb_phy *x)
 	ret |= regmap_update_bits(phy->ana_g0l,
 			REG_ANLG_PHY_G0L_ANALOG_USB20_USB20_UTMI_CTL1,	msk, reg);
 
-	msk = 0xffffffff;
-	reg = phy->device_eye_pattern;
-	regmap_update_bits(phy->ana_g0l, REG_ANLG_PHY_G0L_ANALOG_USB20_USB20_TRIMMING,
-					msk, reg);
+	regmap_write(phy->ana_g0l, REG_ANLG_PHY_G0L_ANALOG_USB20_USB20_TRIMMING,
+					phy->device_eye_pattern);
 	/* Reset PHY */
 	sprd_ssphy_reset_core(phy);
 
