@@ -106,6 +106,7 @@
       <elf-symbol name='__drm_gem_duplicate_shadow_plane_state' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x2da58312'/>
       <elf-symbol name='__drm_gem_reset_shadow_plane' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x7e87e572'/>
       <elf-symbol name='__drm_printfn_coredump' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xea00fe81'/>
+      <elf-symbol name='__drm_printfn_debug' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xf824c7db'/>
       <elf-symbol name='__drm_printfn_info' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xe317082a'/>
       <elf-symbol name='__drm_printfn_seq_file' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xfeb953b1'/>
       <elf-symbol name='__drm_puts_coredump' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x3b0e5e9c'/>
@@ -155,6 +156,7 @@
       <elf-symbol name='__kfifo_in_r' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x3955fcf6'/>
       <elf-symbol name='__kfifo_init' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xbd462b55'/>
       <elf-symbol name='__kfifo_out' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x13d0adf7'/>
+      <elf-symbol name='__kfifo_out_peek' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x281823c5'/>
       <elf-symbol name='__kfifo_out_r' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x33fcf44a'/>
       <elf-symbol name='__kfifo_to_user' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x4578f528'/>
       <elf-symbol name='__kfifo_to_user_r' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x2484adc3'/>
@@ -395,6 +397,7 @@
       <elf-symbol name='__traceiter_android_vh_show_resume_epoch_val' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x80932910'/>
       <elf-symbol name='__traceiter_android_vh_show_suspend_epoch_val' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x1c84167'/>
       <elf-symbol name='__traceiter_android_vh_syscall_prctl_finished' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x6b5f84af'/>
+      <elf-symbol name='__traceiter_android_vh_sysrq_crash' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x40207816'/>
       <elf-symbol name='__traceiter_android_vh_thermal_power_cap' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x73b88f94'/>
       <elf-symbol name='__traceiter_android_vh_thermal_register' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xa22ed800'/>
       <elf-symbol name='__traceiter_android_vh_thermal_unregister' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x9e57adae'/>
@@ -2925,6 +2928,7 @@
       <elf-symbol name='ktime_get_real_seconds' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x953e1b9e'/>
       <elf-symbol name='ktime_get_real_ts64' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x9ec6ca96'/>
       <elf-symbol name='ktime_get_seconds' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xa9320d27'/>
+      <elf-symbol name='ktime_get_snapshot' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x4cb27100'/>
       <elf-symbol name='ktime_get_ts64' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x5e515be6'/>
       <elf-symbol name='ktime_get_with_offset' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xc4f0da12'/>
       <elf-symbol name='kvasprintf' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x587b0954'/>
@@ -3825,6 +3829,9 @@
       <elf-symbol name='pppox_compat_ioctl' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xf97b2d4d'/>
       <elf-symbol name='pppox_ioctl' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xe1d7e9ea'/>
       <elf-symbol name='pppox_unbind_sock' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xe6985660'/>
+      <elf-symbol name='pps_event' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x6c12741d'/>
+      <elf-symbol name='pps_register_source' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xb398affc'/>
+      <elf-symbol name='pps_unregister_source' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x2ee9f63e'/>
       <elf-symbol name='prandom_bytes' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xa99b39c2'/>
       <elf-symbol name='prandom_u32' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xfda9581f'/>
       <elf-symbol name='preempt_schedule' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x43b0c9c3'/>
@@ -5898,6 +5905,7 @@
       <elf-symbol name='__tracepoint_android_vh_show_resume_epoch_val' size='72' type='object-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x8917c5f6'/>
       <elf-symbol name='__tracepoint_android_vh_show_suspend_epoch_val' size='72' type='object-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xaf7f3246'/>
       <elf-symbol name='__tracepoint_android_vh_syscall_prctl_finished' size='72' type='object-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xf2cf3f0f'/>
+      <elf-symbol name='__tracepoint_android_vh_sysrq_crash' size='72' type='object-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x1ce924b5'/>
       <elf-symbol name='__tracepoint_android_vh_thermal_power_cap' size='72' type='object-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xf1fd6b34'/>
       <elf-symbol name='__tracepoint_android_vh_thermal_register' size='72' type='object-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x52c84ba9'/>
       <elf-symbol name='__tracepoint_android_vh_thermal_unregister' size='72' type='object-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x5ba0a594'/>
@@ -5970,6 +5978,7 @@
       <elf-symbol name='clk_mux_ops' size='216' type='object-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x838d1d98'/>
       <elf-symbol name='console_drivers' size='8' type='object-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x3ab2cc62'/>
       <elf-symbol name='console_printk' size='16' type='object-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x2592fc6c'/>
+      <elf-symbol name='console_set_on_cmdline' size='4' type='object-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x2459bbcc'/>
       <elf-symbol name='console_suspend_enabled' size='1' type='object-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x366307a'/>
       <elf-symbol name='contig_page_data' size='6976' type='object-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x2974558a'/>
       <elf-symbol name='cpu_all_bits' size='8' type='object-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xd994ecee'/>
@@ -23674,6 +23683,7 @@
           <var-decl name='is_wait_die' type-id='8efea9e5' visibility='default' filepath='include/linux/ww_mutex.h' line='62' column='1'/>
         </data-member>
       </class-decl>
+      <pointer-type-def type-id='07dfbd23' size-in-bits='64' id='2c4b1613'/>
       <class-decl name='__anonymous_struct__' size-in-bits='32' is-struct='yes' visibility='default' filepath='include/uapi/linux/hdlc/ioctl.h' line='68' column='1' id='2c525e88' is-anonymous='yes'>
         <data-member access='public' layout-offset-in-bits='0'>
           <var-decl name='dlci' type-id='f0981eeb' visibility='default' filepath='include/uapi/linux/hdlc/ioctl.h' line='69' column='1'/>
@@ -26388,6 +26398,7 @@
         <parameter type-id='5d6479ae'/>
         <return type-id='95e97e5e'/>
       </function-type>
+      <pointer-type-def type-id='468f0837' size-in-bits='64' id='3331b9af'/>
       <typedef-decl name='qsize_t' type-id='1eb56b1e' filepath='include/linux/quota.h' line='66' column='1' id='33341965'/>
       <pointer-type-def type-id='648adb0a' size-in-bits='64' id='33356d2c'/>
       <pointer-type-def type-id='9c7c185a' size-in-bits='64' id='3339fe1c'/>
@@ -122356,6 +122367,11 @@
         <parameter type-id='3b5c2208' name='vaf' filepath='drivers/gpu/drm/drm_print.c' line='99' column='1'/>
         <return type-id='48b5725f'/>
       </function-decl>
+      <function-decl name='__drm_printfn_debug' mangled-name='__drm_printfn_debug' filepath='drivers/gpu/drm/drm_print.c' line='163' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='__drm_printfn_debug'>
+        <parameter type-id='7ac48c21' name='p' filepath='drivers/gpu/drm/drm_print.c' line='163' column='1'/>
+        <parameter type-id='3b5c2208' name='vaf' filepath='drivers/gpu/drm/drm_print.c' line='163' column='1'/>
+        <return type-id='48b5725f'/>
+      </function-decl>
       <function-decl name='__drm_printfn_info' mangled-name='__drm_printfn_info' filepath='drivers/gpu/drm/drm_print.c' line='157' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='__drm_printfn_info'>
         <parameter type-id='7ac48c21' name='p' filepath='drivers/gpu/drm/drm_print.c' line='157' column='1'/>
         <parameter type-id='3b5c2208' name='vaf' filepath='drivers/gpu/drm/drm_print.c' line='157' column='1'/>
@@ -122662,6 +122678,12 @@
         <parameter type-id='f3207f74' name='fifo' filepath='lib/kfifo.c' line='166' column='1'/>
         <parameter type-id='eaa32e2f' name='buf' filepath='lib/kfifo.c' line='167' column='1'/>
         <parameter type-id='f0981eeb' name='len' filepath='lib/kfifo.c' line='167' column='1'/>
+        <return type-id='f0981eeb'/>
+      </function-decl>
+      <function-decl name='__kfifo_out_peek' mangled-name='__kfifo_out_peek' filepath='lib/kfifo.c' line='152' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='__kfifo_out_peek'>
+        <parameter type-id='f3207f74' name='fifo' filepath='lib/kfifo.c' line='152' column='1'/>
+        <parameter type-id='eaa32e2f' name='buf' filepath='lib/kfifo.c' line='153' column='1'/>
+        <parameter type-id='f0981eeb' name='len' filepath='lib/kfifo.c' line='153' column='1'/>
         <return type-id='f0981eeb'/>
       </function-decl>
       <function-decl name='__kfifo_out_r' mangled-name='__kfifo_out_r' filepath='lib/kfifo.c' line='476' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='__kfifo_out_r'>
@@ -124126,6 +124148,11 @@
         <parameter type-id='f23e2572' name='task' filepath='include/trace/hooks/sys.h' line='11' column='1'/>
         <return type-id='95e97e5e'/>
       </function-decl>
+      <function-decl name='__traceiter_android_vh_sysrq_crash' mangled-name='__traceiter_android_vh_sysrq_crash' filepath='include/trace/hooks/sysrqcrash.h' line='13' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='__traceiter_android_vh_sysrq_crash'>
+        <parameter type-id='eaa32e2f' name='__data' filepath='include/trace/hooks/sysrqcrash.h' line='13' column='1'/>
+        <parameter type-id='eaa32e2f' name='data' filepath='include/trace/hooks/sysrqcrash.h' line='13' column='1'/>
+        <return type-id='95e97e5e'/>
+      </function-decl>
       <function-decl name='__traceiter_android_vh_thermal_power_cap' mangled-name='__traceiter_android_vh_thermal_power_cap' filepath='include/trace/hooks/thermal.h' line='33' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='__traceiter_android_vh_thermal_power_cap'>
         <parameter type-id='eaa32e2f' name='__data' filepath='include/trace/hooks/thermal.h' line='33' column='1'/>
         <parameter type-id='f9409001' name='power_range' filepath='include/trace/hooks/thermal.h' line='33' column='1'/>
@@ -124569,6 +124596,7 @@
       <var-decl name='__tracepoint_android_vh_show_resume_epoch_val' type-id='4ca0c298' mangled-name='__tracepoint_android_vh_show_resume_epoch_val' visibility='default' filepath='include/trace/hooks/epoch.h' line='16' column='1' elf-symbol-id='__tracepoint_android_vh_show_resume_epoch_val'/>
       <var-decl name='__tracepoint_android_vh_show_suspend_epoch_val' type-id='4ca0c298' mangled-name='__tracepoint_android_vh_show_suspend_epoch_val' visibility='default' filepath='include/trace/hooks/epoch.h' line='12' column='1' elf-symbol-id='__tracepoint_android_vh_show_suspend_epoch_val'/>
       <var-decl name='__tracepoint_android_vh_syscall_prctl_finished' type-id='4ca0c298' mangled-name='__tracepoint_android_vh_syscall_prctl_finished' visibility='default' filepath='include/trace/hooks/sys.h' line='11' column='1' elf-symbol-id='__tracepoint_android_vh_syscall_prctl_finished'/>
+      <var-decl name='__tracepoint_android_vh_sysrq_crash' type-id='4ca0c298' mangled-name='__tracepoint_android_vh_sysrq_crash' visibility='default' filepath='include/trace/hooks/sysrqcrash.h' line='13' column='1' elf-symbol-id='__tracepoint_android_vh_sysrq_crash'/>
       <var-decl name='__tracepoint_android_vh_thermal_power_cap' type-id='4ca0c298' mangled-name='__tracepoint_android_vh_thermal_power_cap' visibility='default' filepath='include/trace/hooks/thermal.h' line='33' column='1' elf-symbol-id='__tracepoint_android_vh_thermal_power_cap'/>
       <var-decl name='__tracepoint_android_vh_thermal_register' type-id='4ca0c298' mangled-name='__tracepoint_android_vh_thermal_register' visibility='default' filepath='include/trace/hooks/thermal.h' line='21' column='1' elf-symbol-id='__tracepoint_android_vh_thermal_register'/>
       <var-decl name='__tracepoint_android_vh_thermal_unregister' type-id='4ca0c298' mangled-name='__tracepoint_android_vh_thermal_unregister' visibility='default' filepath='include/trace/hooks/thermal.h' line='25' column='1' elf-symbol-id='__tracepoint_android_vh_thermal_unregister'/>
@@ -127266,6 +127294,7 @@
         <return type-id='48b5725f'/>
       </function-decl>
       <var-decl name='console_printk' type-id='2020bac4' mangled-name='console_printk' visibility='default' filepath='kernel/printk/printk.c' line='66' column='1' elf-symbol-id='console_printk'/>
+      <var-decl name='console_set_on_cmdline' type-id='95e97e5e' mangled-name='console_set_on_cmdline' visibility='default' filepath='kernel/printk/printk.c' line='289' column='1' elf-symbol-id='console_set_on_cmdline'/>
       <function-decl name='console_stop' mangled-name='console_stop' filepath='kernel/printk/printk.c' line='2852' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='console_stop'>
         <parameter type-id='b9aa0100' name='console' filepath='kernel/printk/printk.c' line='2852' column='1'/>
         <return type-id='48b5725f'/>
@@ -137875,6 +137904,10 @@
       <function-decl name='ktime_get_seconds' mangled-name='ktime_get_seconds' filepath='kernel/time/timekeeping.c' line='983' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='ktime_get_seconds'>
         <return type-id='1afd27ac'/>
       </function-decl>
+      <function-decl name='ktime_get_snapshot' mangled-name='ktime_get_snapshot' filepath='kernel/time/timekeeping.c' line='1037' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='ktime_get_snapshot'>
+        <parameter type-id='9e33b18d' name='systime_snapshot' filepath='kernel/time/timekeeping.c' line='1037' column='1'/>
+        <return type-id='48b5725f'/>
+      </function-decl>
       <function-decl name='ktime_get_ts64' mangled-name='ktime_get_ts64' filepath='kernel/time/timekeeping.c' line='951' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='ktime_get_ts64'>
         <parameter type-id='4151733d' name='ts' filepath='kernel/time/timekeeping.c' line='951' column='1'/>
         <return type-id='48b5725f'/>
@@ -142428,6 +142461,22 @@
       </function-decl>
       <function-decl name='pppox_unbind_sock' mangled-name='pppox_unbind_sock' filepath='drivers/net/ppp/pppox.c' line='53' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='pppox_unbind_sock'>
         <parameter type-id='f772df6d' name='sk' filepath='drivers/net/ppp/pppox.c' line='53' column='1'/>
+        <return type-id='48b5725f'/>
+      </function-decl>
+      <function-decl name='pps_event' mangled-name='pps_event' filepath='drivers/pps/kapi.c' line='159' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='pps_event'>
+        <parameter type-id='587a9d8d' name='pps' filepath='drivers/pps/kapi.c' line='159' column='1'/>
+        <parameter type-id='3331b9af' name='ts' filepath='drivers/pps/kapi.c' line='159' column='1'/>
+        <parameter type-id='95e97e5e' name='event' filepath='drivers/pps/kapi.c' line='159' column='1'/>
+        <parameter type-id='eaa32e2f' name='data' filepath='drivers/pps/kapi.c' line='160' column='1'/>
+        <return type-id='48b5725f'/>
+      </function-decl>
+      <function-decl name='pps_register_source' mangled-name='pps_register_source' filepath='drivers/pps/kapi.c' line='65' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='pps_register_source'>
+        <parameter type-id='2c4b1613' name='info' filepath='drivers/pps/kapi.c' line='65' column='1'/>
+        <parameter type-id='95e97e5e' name='default_params' filepath='drivers/pps/kapi.c' line='66' column='1'/>
+        <return type-id='587a9d8d'/>
+      </function-decl>
+      <function-decl name='pps_unregister_source' mangled-name='pps_unregister_source' filepath='drivers/pps/kapi.c' line='136' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='pps_unregister_source'>
+        <parameter type-id='587a9d8d' name='pps' filepath='drivers/pps/kapi.c' line='136' column='1'/>
         <return type-id='48b5725f'/>
       </function-decl>
       <function-decl name='prandom_bytes' mangled-name='prandom_bytes' filepath='lib/random32.c' line='400' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='prandom_bytes'>
@@ -152306,7 +152355,6 @@
     </abi-instr>
   </abi-corpus>
 </abi-corpus-group>
-
 <!--
      libabigail: abidw: 2.1.0SOONG BUILD NUMBER PLACEHOLDER
 -->
