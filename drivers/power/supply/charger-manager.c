@@ -4058,7 +4058,7 @@ static void cm_jeita_temp_goes_down(struct charger_desc *desc, int status,
 		return;
 	}
 
-	if (desc->jeita_tab[status].temp < desc->jeita_tab[status].recovery_temp)
+	if (*jeita_status >= status)
 		*jeita_status = status;
 }
 
@@ -4066,7 +4066,8 @@ static void cm_jeita_temp_goes_up(struct charger_desc *desc, int status,
 				  int recovery_status, int *jeita_status)
 {
 	if (recovery_status == desc->jeita_tab_size) {
-		*jeita_status = status;
+		if (*jeita_status <= status)
+			*jeita_status = status;
 		return;
 	}
 
@@ -4076,14 +4077,14 @@ static void cm_jeita_temp_goes_up(struct charger_desc *desc, int status,
 		return;
 	}
 
-	if (desc->jeita_tab[status].temp > desc->jeita_tab[status].recovery_temp)
+	if (*jeita_status <= status)
 		*jeita_status = status;
 }
 
 static int cm_manager_get_jeita_status(struct charger_manager *cm, int cur_temp)
 {
 	struct charger_desc *desc = cm->desc;
-	static int jeita_status, last_temp;
+	static int jeita_status, last_temp = -200;
 	int i, temp_status, recovery_temp_status = -1;
 
 	for (i = desc->jeita_tab_size - 1; i >= 0; i--) {
@@ -4097,9 +4098,11 @@ static int cm_manager_get_jeita_status(struct charger_manager *cm, int cur_temp)
 
 	if (temp_status == desc->jeita_tab_size) {
 		jeita_status = desc->jeita_tab_size;
+		recovery_temp_status = desc->jeita_tab_size;
 		goto out;
 	} else if (temp_status == 0) {
 		jeita_status = 0;
+		recovery_temp_status = 0;
 		goto out;
 	}
 
@@ -4113,7 +4116,7 @@ static int cm_manager_get_jeita_status(struct charger_manager *cm, int cur_temp)
 	recovery_temp_status = i + 1;
 
 	/* temperature goes down */
-	if (last_temp >= cur_temp)
+	if (last_temp > cur_temp)
 		cm_jeita_temp_goes_down(desc, temp_status, recovery_temp_status, &jeita_status);
 	/* temperature goes up */
 	else
