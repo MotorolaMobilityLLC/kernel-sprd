@@ -1670,6 +1670,11 @@ static int bq2597x_charger_get_property(struct power_supply *psy,
 		val->intval = bq->vbus_volt * 1000;
 		break;
 	case POWER_SUPPLY_PROP_HEALTH:
+		if (val->intval == CM_SOFT_ALARM_HEALTH_CMD) {
+			val->intval = 0;
+			break;
+		}
+
 		if (val->intval == CM_BUS_ERR_HEALTH_CMD) {
 			bq2597x_check_vbus_error_status(bq);
 			val->intval = (bq->bus_err_lo  << CM_CHARGER_BUS_ERR_LO_SHIFT);

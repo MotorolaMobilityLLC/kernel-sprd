@@ -135,6 +135,7 @@ enum cm_temperature_command {
 enum cm_health_command {
 	CM_FAULT_HEALTH_CMD,
 	CM_ALARM_HEALTH_CMD,
+	CM_SOFT_ALARM_HEALTH_CMD,
 	CM_BUS_ERR_HEALTH_CMD,
 	CM_GOOD_HEALTH_CMD = 0x7f7f7f7f,
 };
@@ -466,6 +467,7 @@ struct cm_charge_pump_status {
 	int cp_adjust_cnt;
 	int cp_ibat_ucp_cnt;
 	int cp_taper_current;
+	bool cp_soft_alarm_event;
 	bool cp_fault_event;
 	bool cp_state_tune_log;
 
