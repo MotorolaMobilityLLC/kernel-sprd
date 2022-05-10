@@ -1872,6 +1872,30 @@
 			#size-cells = <1>;
 			ranges = <0 0 0x64000000 0x1016000>;
 
+			aon_apb_prot: aon-apb-prot {
+				compatible = "sprd,apb-prot";
+				sprd,apb-syscon = <&aon_apb_regs>;
+				interrupts = <GIC_SPI 254 IRQ_TYPE_LEVEL_HIGH>;
+				/* sprd,panic; */
+				sprd,lock_magic = <0x6896>;
+				/* sprd,glb_lock; */
+				/* sprd,lock_id = <0x0>; */
+				sprd,lock_but_write_int;
+				sprd,record_last;
+			};
+
+			pmu_apb_prot: pmu-apb-prot {
+				compatible = "sprd,apb-prot";
+				sprd,apb-syscon = <&pmu_apb_regs>;
+				interrupts = <GIC_SPI 255 IRQ_TYPE_LEVEL_HIGH>;
+				/* sprd,panic; */
+				sprd,lock_magic = <0x6896>;
+				/* sprd,glb_lock; */
+				/* sprd,lock_id = <0x0>; */
+				sprd,lock_but_write_int;
+				sprd,record_last;
+			};
+
 			ap_efuse: efuse@160000 {
 				compatible = "sprd,qogirn6pro-efuse";
 				reg = <0x160000 0x10000>;
