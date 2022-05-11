@@ -16669,6 +16669,15 @@ CONFIG_SPRD_APB_BUSMONITOR
 	[must] debug
 	[missing plat description] missing plat don't use this IP
 	[function] Enable APB busmonitor function
+CONFIG_SPRD_APB_PROT
+	[arch] arm64
+	[plat] sharkl5Pro
+	[missing plat] sharkl3
+	[field]
+	[subsys]
+	[must]
+	[missing plat description]
+	[function]
 CONFIG_SPRD_AUTOTEST
 	[arch] all
 	[plat] all

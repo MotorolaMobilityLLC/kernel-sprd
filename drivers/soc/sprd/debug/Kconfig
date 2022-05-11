@@ -42,6 +42,7 @@ source "drivers/soc/sprd/debug/dmc_mpu/Kconfig"
 source "drivers/soc/sprd/debug/hang_debug/Kconfig"
 source "drivers/soc/sprd/debug/log/Kconfig"
 source "drivers/soc/sprd/debug/userspace_debug/Kconfig"
+source "drivers/soc/sprd/debug/apb_prot/Kconfig"
 
 config SPRD_LAST_REGS
 	bool "SPRD last regs access"
