@@ -20,24 +20,27 @@ config UNISOC_7SRESET
 	help
 	  This driver support for 7Sreset of PMIC(2731,2730)
 
-source "drivers/unisoc_platform/sched/Kconfig"
-source "drivers/unisoc_platform/sprd_disp/Kconfig"
-source "drivers/unisoc_platform/sprd_time_sync/Kconfig"
+
+# NOTE: Keep order __alphabetically__ PLEASE!! #
+
 source "drivers/unisoc_platform/debug/Kconfig"
-source "drivers/unisoc_platform/sysdump/Kconfig"
-source "drivers/unisoc_platform/pub/Kconfig"
-source "drivers/unisoc_platform/iommu/Kconfig"
-source "drivers/unisoc_platform/domain/Kconfig"
-source "drivers/unisoc_platform/modem/Kconfig"
-source "drivers/unisoc_platform/printk_cpuid/Kconfig"
-source "drivers/unisoc_platform/sprdwcn/Kconfig"
-source "drivers/unisoc_platform/kts_sync/Kconfig"
-source "drivers/unisoc_platform/irq_monitor/Kconfig"
-source "drivers/unisoc_platform/preemptirq_warn/Kconfig"
-source "drivers/unisoc_platform/sprd_gnss/Kconfig"
-source "drivers/unisoc_platform/sfp/Kconfig"
-source "drivers/unisoc_platform/net/Kconfig"
 source "drivers/unisoc_platform/debug_log/Kconfig"
+source "drivers/unisoc_platform/domain/Kconfig"
+source "drivers/unisoc_platform/iommu/Kconfig"
+source "drivers/unisoc_platform/irq_monitor/Kconfig"
+source "drivers/unisoc_platform/kts_sync/Kconfig"
+source "drivers/unisoc_platform/modem/Kconfig"
+source "drivers/unisoc_platform/net/Kconfig"
+source "drivers/unisoc_platform/preemptirq_warn/Kconfig"
+source "drivers/unisoc_platform/printk_cpuid/Kconfig"
+source "drivers/unisoc_platform/pub/Kconfig"
+source "drivers/unisoc_platform/sched/Kconfig"
+source "drivers/unisoc_platform/sfp/Kconfig"
+source "drivers/unisoc_platform/sprd_disp/Kconfig"
+source "drivers/unisoc_platform/sprd_gnss/Kconfig"
+source "drivers/unisoc_platform/sprd_time_sync/Kconfig"
+source "drivers/unisoc_platform/sprdwcn/Kconfig"
+source "drivers/unisoc_platform/sysdump/Kconfig"
 source "drivers/unisoc_platform/wlan/Kconfig"
 
 endmenu
