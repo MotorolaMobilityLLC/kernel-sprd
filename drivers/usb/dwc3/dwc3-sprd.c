@@ -868,6 +868,18 @@ static void dwc3_sprd_hotplug_sm_work(struct work_struct *work)
 		sdwc->drd_state = DRD_STATE_IDLE;
 		fallthrough;
 	case DRD_STATE_IDLE:
+		/*
+		 * The follow ensure that UDC be setted as 25100000.dwc3
+		 * when phone startup with hub plug in. Or UDC would be
+		 * setted as musb_hdrc.1.auto
+		 */
+		if (!dwc3_sprd_is_udc_start(sdwc)) {
+			dev_info(sdwc->dev, "waiting dwc3 udc start\n");
+			rework = true;
+			delay = DWC3_UDC_START_CHECK_DELAY;
+			break;
+		}
+
 		if (!test_bit(ID, &sdwc->inputs)) {
 			dev_dbg(sdwc->dev, "!id\n");
 			if (!pm_runtime_suspended(dwc->dev)) {
@@ -889,10 +901,6 @@ static void dwc3_sprd_hotplug_sm_work(struct work_struct *work)
 				dev_info(sdwc->dev, "waiting dwc3 suspended\n");
 				rework = true;
 				delay = DWC3_RUNTIME_CHECK_DELAY;
-			} else if (!dwc3_sprd_is_udc_start(sdwc)) {
-				dev_info(sdwc->dev, "waiting dwc3 udc start\n");
-				rework = true;
-				delay = DWC3_UDC_START_CHECK_DELAY;
 			} else {
 				pm_runtime_get_sync(sdwc->dev);
 				dwc3_sprd_otg_start_peripheral(sdwc, 1);
