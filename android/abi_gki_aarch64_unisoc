@@ -426,6 +426,7 @@
   iget5_locked
   ignore_console_lock_warning
   igrab
+  iio_get_channel_type
   inet_proto_csum_replace4
   init_net
   __init_rwsem
