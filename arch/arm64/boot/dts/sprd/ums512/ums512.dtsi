@@ -6,12 +6,12 @@
  */
 
 #include <dt-bindings/clock/sprd,ums512-clk.h>
-#include <dt-bindings/interrupt-controller/arm-gic.h>
 #include <dt-bindings/clock/sprd,ums512-clk.h>
-#include <dt-bindings/input/input.h>
 #include <dt-bindings/gpio/gpio.h>
-#include <dt-bindings/mfd/sprd,sc2730-regs.h>
+#include <dt-bindings/input/input.h>
+#include <dt-bindings/interrupt-controller/arm-gic.h>
 #include <dt-bindings/mfd/sprd,sc2730-mask.h>
+#include <dt-bindings/mfd/sprd,sc2730-regs.h>
 
 / {
 	interrupt-parent = <&gic>;
@@ -359,29 +359,29 @@
 	};
 };
 
-/* Include other IP modules */
+/* Include other IP modules in ALPHABETICAL order */
 #include "adi.dtsi"
 #include "bm.dtsi"
-#include "glbreg.dtsi"
-#include "clock.dtsi"
-#include "ddr-dfs.dtsi"
-#include "coresight.dtsi"
-#include "dispc.dtsi"
-#include "sdio.dtsi"
-#include "qos.dtsi"
-#include "usb.dtsi"
-#include "socid.dtsi"
-#include "gpu-gondul.dtsi"
-#include "gpio.dtsi"
-#include "uart.dtsi"
-#include "i2c.dtsi"
-#include "spi.dtsi"
-#include "modem.dtsi"
-#include "marlin3lite.dtsi"
-#include "tp.dtsi"
-#include "efuse.dtsi"
-#include "mipi-serdes.dtsi"
-#include "vsp.dtsi"
 #include "cam.dtsi"
+#include "clock.dtsi"
+#include "coresight.dtsi"
 #include "csi.dtsi"
+#include "ddr-dfs.dtsi"
+#include "dispc.dtsi"
+#include "efuse.dtsi"
+#include "glbreg.dtsi"
+#include "gpio.dtsi"
+#include "gpu-gondul.dtsi"
+#include "i2c.dtsi"
+#include "marlin3lite.dtsi"
+#include "mipi-serdes.dtsi"
+#include "modem.dtsi"
+#include "qos.dtsi"
+#include "sdio.dtsi"
+#include "socid.dtsi"
+#include "spi.dtsi"
 #include "thermal.dtsi"
+#include "tp.dtsi"
+#include "uart.dtsi"
+#include "usb.dtsi"
+#include "vsp.dtsi"

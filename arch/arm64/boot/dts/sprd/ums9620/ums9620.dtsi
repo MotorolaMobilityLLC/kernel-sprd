@@ -6,9 +6,9 @@
  */
 
 #include <dt-bindings/clock/sprd,ums9620-clk.h>
-#include <dt-bindings/soc/sprd,qogirn6pro-regs.h>
-#include <dt-bindings/soc/sprd,qogirn6pro-mask.h>
 #include <dt-bindings/interrupt-controller/arm-gic.h>
+#include <dt-bindings/soc/sprd,qogirn6pro-mask.h>
+#include <dt-bindings/soc/sprd,qogirn6pro-regs.h>
 
 / {
 	soc-module = "UMS9620";
@@ -291,6 +291,6 @@
 	};
 };
 
-/* Include other IP modules */
-#include "uart.dtsi"
+/* Include other IP modules ALPHABETICALLY */
 #include "clock.dtsi"
+#include "uart.dtsi"
