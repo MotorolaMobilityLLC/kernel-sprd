@@ -365,6 +365,7 @@ int mmc_sd_switch_hs(struct mmc_card *card)
 {
 	int err;
 	u8 *status;
+	int retries;
 
 	if (card->scr.sda_vsn < SCR_SPEC_VER_1)
 		return 0;
@@ -382,7 +383,14 @@ int mmc_sd_switch_hs(struct mmc_card *card)
 	if (!status)
 		return -ENOMEM;
 
-	err = mmc_sd_switch(card, 1, 0, 1, status);
+	for (retries = 0; retries < 10; retries++) {
+		err = mmc_sd_switch(card, 1, 0, 1, status);
+		if (!err)
+			break;
+	}
+
+	pr_warn("%s: Retry switching card into high-speed mode, retries = %d\n",
+			mmc_hostname(card->host), retries);
 	if (err)
 		goto out;
 
