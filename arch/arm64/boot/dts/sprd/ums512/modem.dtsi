@@ -68,6 +68,12 @@
 		sprd,devices-name = "core_axi";
 		sprd,devices-id = <0>;
 		};
+
+	sprd-iq {
+		compatible = "sprd,iq";
+		sprd,region = <0x90000000 0x4000000>;
+		sprd,mapping-offs = <0x0>;
+	};
 };
 
 /*
