@@ -194,6 +194,7 @@ unisoc_platform:sched:
 unisoc_platform:sipc:
 unisoc_platform:thermal:
 unisoc_platform:wcn:
+unisoc_platform:wlan:
 
 usb:core:
 usb:dwc3:
