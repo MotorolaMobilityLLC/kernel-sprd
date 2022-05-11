@@ -6242,6 +6242,7 @@ static struct charger_desc *of_cm_parse_desc(struct device *dev)
 	u32 poll_mode = CM_POLL_DISABLE;
 	u32 battery_stat = CM_NO_BATTERY;
 	int ret, i = 0, num_chgs = 0;
+	int num_cp_psys = 0;
 
 	desc = devm_kzalloc(dev, sizeof(*desc), GFP_KERNEL);
 	if (!desc)
@@ -6287,6 +6288,26 @@ static struct charger_desc *of_cm_parse_desc(struct device *dev)
 		for (i = 0; i < num_chgs; i++)
 			of_property_read_string_index(np, "cm-chargers", i,
 						      &desc->psy_charger_stat[i]);
+	}
+
+	desc->enable_alt_cp_adapt =
+		device_property_read_bool(dev, "cm-alt-cp-adapt-enable");
+
+	/* alternative charge pupms power supply */
+	num_cp_psys = of_property_count_strings(np, "cm-alt-cp-power-supplys");
+	dev_info(dev, "%s num_cp_psys = %d\n", __func__, num_cp_psys);
+	if (num_cp_psys > 0) {
+		desc->psy_cp_nums = num_cp_psys;
+		/* Allocate empty bin at the tail of array */
+		desc->psy_alt_cp_adpt_stat = devm_kzalloc(dev, sizeof(char *)
+						* (num_cp_psys + 1), GFP_KERNEL);
+		if (desc->psy_alt_cp_adpt_stat) {
+			for (i = 0; i < num_cp_psys; i++)
+				of_property_read_string_index(np, "cm-alt-cp-power-supplys",
+						i, &desc->psy_alt_cp_adpt_stat[i]);
+		} else {
+			return ERR_PTR(-ENOMEM);
+		}
 	}
 
 	/* charge pumps */
@@ -6823,6 +6844,47 @@ schedule_cap_update_work:
 			   CM_CAP_CYCLE_TRACK_TIME * HZ);
 }
 
+static int cm_check_alt_cp_psy_ready_status(struct charger_manager *cm)
+{
+	struct charger_desc *desc = cm->desc;
+	struct power_supply *psy;
+	int i;
+
+	if (!desc->psy_cp_stat || !desc->psy_alt_cp_adpt_stat) {
+		dev_err(cm->dev, "%s, cp not exit\n", __func__);
+		return 0;
+	}
+
+	psy = power_supply_get_by_name(desc->psy_cp_stat[0]);
+	if (psy) {
+		dev_info(cm->dev, "%s, find preferred cp \"%s\"\n",
+			 __func__, desc->psy_cp_stat[0]);
+		goto done;
+	}
+
+	for (i = 0; desc->psy_alt_cp_adpt_stat[i]; i++) {
+		psy = power_supply_get_by_name(desc->psy_alt_cp_adpt_stat[i]);
+		if (!psy) {
+			dev_warn(cm->dev, "%s, cannot find alt cp \"%s\"\n",
+				 __func__, desc->psy_alt_cp_adpt_stat[i]);
+		} else {
+			dev_info(cm->dev, "%s, find alt cp \"%s\"\n",
+				 __func__, desc->psy_alt_cp_adpt_stat[i]);
+			desc->psy_cp_stat[0] = desc->psy_alt_cp_adpt_stat[i];
+			goto done;
+		}
+	}
+
+	if (i == desc->psy_cp_nums) {
+		dev_err(cm->dev, "%s, cannot find all cp\n", __func__);
+		return -EPROBE_DEFER;
+	}
+
+done:
+	power_supply_put(psy);
+	return 0;
+}
+
 static int get_boot_mode(void)
 {
 	struct device_node *cmdline_node;
@@ -6942,6 +7004,14 @@ static int charger_manager_probe(struct platform_device *pdev)
 			return -EPROBE_DEFER;
 		}
 		power_supply_put(psy);
+	}
+
+	if (desc->enable_alt_cp_adapt && (desc->psy_cp_nums > 0)) {
+		ret = cm_check_alt_cp_psy_ready_status(cm);
+		if (ret < 0) {
+			dev_err(&pdev->dev, "can't find cp\n");
+			return ret;
+		}
 	}
 
 	if (cm->desc->polling_mode != CM_POLL_DISABLE &&
