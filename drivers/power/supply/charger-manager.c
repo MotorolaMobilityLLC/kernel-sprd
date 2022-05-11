@@ -2601,6 +2601,19 @@ static bool cm_check_cp_charger_enabled(struct charger_manager *cm)
 	return enabled;
 }
 
+static void cm_cp_clear_soft_alarm_status(struct charger_manager *cm)
+{
+	struct cm_charge_pump_status *cp = &cm->desc->cp;
+
+	dev_info(cm->dev, "%s\n", __func__);
+	cp->cp_soft_alarm_event = false;
+	cp->alm.bat_ovp_alarm = false;
+	cp->alm.bat_ocp_alarm = false;
+	cp->alm.bus_ovp_alarm = false;
+	cp->alm.bus_ocp_alarm = false;
+	cp->alm.bat_ucp_alarm = false;
+}
+
 static void cm_cp_clear_fault_status(struct charger_manager *cm)
 {
 	struct cm_charge_pump_status *cp = &cm->desc->cp;
@@ -2624,6 +2637,50 @@ static void cm_cp_clear_fault_status(struct charger_manager *cm)
 	cp->alm.die_therm_alarm = false;
 	cp->alm.bat_ucp_alarm = false;
 
+}
+
+static void cm_check_cp_soft_monitor_alarm_status(struct charger_manager *cm)
+{
+	struct cm_charge_pump_status *cp = &cm->desc->cp;
+	struct power_supply *psy;
+	union power_supply_propval val;
+	int ret;
+
+	if (!cm->desc->psy_cp_stat)
+		return;
+
+	psy = power_supply_get_by_name(cm->desc->psy_cp_stat[0]);
+	if (!psy) {
+		dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
+			cm->desc->psy_cp_stat[0]);
+		return;
+	}
+
+	/*
+	 *  If CP has an alarm register, return 0 without software monitoring.
+	 *  Such as bq25970.
+	 */
+	val.intval = CM_SOFT_ALARM_HEALTH_CMD;
+	ret = power_supply_get_property(psy, POWER_SUPPLY_PROP_HEALTH, &val);
+	if (ret) {
+		dev_err(cm->dev, "failed to get soft monitor alarm staus.\n");
+		return;
+	}
+
+	if (!val.intval)
+		return;
+
+	cp->cp_soft_alarm_event = true;
+	cp->alm.bat_ovp_alarm = !!(val.intval & CM_CHARGER_BAT_OVP_ALARM_MASK);
+	cp->alm.bat_ocp_alarm = !!(val.intval & CM_CHARGER_BAT_OCP_ALARM_MASK);
+	cp->alm.bus_ovp_alarm = !!(val.intval & CM_CHARGER_BUS_OVP_ALARM_MASK);
+	cp->alm.bus_ocp_alarm = !!(val.intval & CM_CHARGER_BUS_OCP_ALARM_MASK);
+	cp->alm.bat_ucp_alarm = !!(val.intval & CM_CHARGER_BAT_UCP_ALARM_MASK);
+
+	dev_dbg(cm->dev, "%s, bat_ucp_alarm = %d, bat_ocp_alarm = %d, bat_ovp_alarm = %d,"
+		" bus_ovp_alarm = %d, bus_ocp_alarm = %d\n",
+		__func__, cp->alm.bat_ucp_alarm, cp->alm.bat_ocp_alarm, cp->alm.bat_ovp_alarm,
+		cp->alm.bus_ovp_alarm, cp->alm.bus_ocp_alarm);
 }
 
 static void cm_check_cp_fault_status(struct charger_manager *cm)
@@ -2913,7 +2970,10 @@ static bool cm_cp_tune_algo(struct charger_manager *cm)
 			 cp->alm.bat_ocp_alarm, cp->alm.bus_ovp_alarm,
 			 cp->alm.bus_ocp_alarm, cp->alm.bat_therm_alarm,
 			 cp->alm.bus_therm_alarm, cp->alm.die_therm_alarm);
-		alarm_step = -CM_CP_VSTEP * 2;
+		if (cp->cp_soft_alarm_event)
+			alarm_step = -CM_CP_VSTEP * 3;
+		else
+			alarm_step = -CM_CP_VSTEP * 2;
 	} else {
 		alarm_step = CM_CP_VSTEP * 3;
 	}
@@ -3176,6 +3236,9 @@ static void cm_cp_state_tune(struct charger_manager *cm)
 		}
 	}
 
+	if (cp->cp_soft_alarm_event)
+		cm_cp_clear_soft_alarm_status(cm);
+
 	if (cp->cp_fault_event)
 		cm_cp_clear_fault_status(cm);
 }
@@ -3215,6 +3278,7 @@ static void cm_cp_state_exit(struct charger_manager *cm)
 
 	cm->desc->cm_check_fault = false;
 	cm->desc->enable_fast_charge = false;
+	cp->cp_soft_alarm_event = false;
 	cp->cp_fault_event = false;
 	cp->cp_ibat_ucp_cnt = 0;
 	cp->cp_state_tune_log = false;
@@ -3261,6 +3325,7 @@ static void cm_cp_work(struct work_struct *work)
 
 	cm_update_cp_charger_status(cm);
 	cm_cp_check_vbus_status(cm);
+	cm_check_cp_soft_monitor_alarm_status(cm);
 
 	if (cm->desc->cm_check_int && cm->desc->cm_check_fault)
 		cm_check_cp_fault_status(cm);
