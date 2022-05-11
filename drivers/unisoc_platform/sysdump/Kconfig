@@ -18,3 +18,17 @@ config SPRD_NATIVE_HANG_MONITOR
 	help
 		This option enables Spreatrum android native hang detect which prepare debug info
 		for the case to debug.
+
+config UNISOC_LASTKMSG
+	depends on SPRD_SYSDUMP || SPRD_MINI_SYSDUMP
+	tristate "Enable UNISOC LASTKMSG handler"
+	help
+	  This option enables Unisoc LSTKMSG which supplies kernel
+	  debug info.
+	  1.save task sched info in minidump when panic or cpu hang.
+	  2.save runqueue info in minidump when panic or cpu hang.
+	  3.save current stack info in minidump when panic or cpu hang.
+	  4.save per cpu register and current stack in minidump when
+	  panic or cpu hang.
+	  5.save per cpu irq stack in minidump when panic or wdh
+	  only in 64b system.
