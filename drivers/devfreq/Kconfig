@@ -169,10 +169,11 @@ config ARM_RK3399_DMC_DEVFREQ
 	  from hardware.
 
 config DVFS_APSYS_SPRD
-        tristate "Sprd DVFS APSYS DEVFREQ Driver"
-        default n
-        help
-          This function is to support the apsys dvfs function.
+	tristate "Sprd DVFS APSYS DEVFREQ Driver"
+	depends on SPRD_SOCID
+	default n
+	help
+	  This function is to support the apsys dvfs function.
 
 source "drivers/devfreq/event/Kconfig"
 
