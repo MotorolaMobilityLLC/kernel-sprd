@@ -347,3 +347,11 @@
 		};
 	};
 };
+
+&jpg {
+	status = "okay";
+};
+
+&iommu_jpg {
+	status = "okay";
+};

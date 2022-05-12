@@ -385,6 +385,7 @@
 #include "gpio.dtsi"
 #include "gpu-gondul.dtsi"
 #include "i2c.dtsi"
+#include "jpg.dtsi"
 #include "marlin3lite.dtsi"
 #include "mipi-serdes.dtsi"
 #include "modem.dtsi"
