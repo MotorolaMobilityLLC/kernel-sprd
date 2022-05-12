@@ -16,6 +16,7 @@ obj-$(CONFIG_SPRD_SYSDUMP) 	+= sysdump/
 obj-$(CONFIG_TIMESTAMP_SYNC)	+= kts_sync/
 obj-$(CONFIG_UNISOC_7SRESET)	+= sprd_7sreset.o
 obj-$(CONFIG_UNISOC_DISP)	+= sprd_disp/
+obj-$(CONFIG_UNISOC_DMABUF)	+= dmabufheap/
 obj-$(CONFIG_UNISOC_GNSS)	+= sprd_gnss/
 obj-$(CONFIG_UNISOC_IOMMU)	+= iommu/
 obj-$(CONFIG_UNISOC_MODEM)	+= modem/

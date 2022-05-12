@@ -25,6 +25,7 @@ config UNISOC_7SRESET
 
 source "drivers/unisoc_platform/debug/Kconfig"
 source "drivers/unisoc_platform/debug_log/Kconfig"
+source "drivers/unisoc_platform/dmabufheap/Kconfig"
 source "drivers/unisoc_platform/domain/Kconfig"
 source "drivers/unisoc_platform/iommu/Kconfig"
 source "drivers/unisoc_platform/irq_monitor/Kconfig"
