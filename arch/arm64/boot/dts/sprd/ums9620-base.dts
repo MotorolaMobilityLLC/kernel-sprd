@@ -7,6 +7,9 @@
 
 /dts-v1/;
 #include "ums9620/ums9620.dtsi"
+#include "ump9620/ump9620.dtsi"
+#include "ump9621/ump9621.dtsi"
+#include "ump9622/ump9622.dtsi"
 /{
 	model = "Unisoc UMS9620-base Board";
 

@@ -1,0 +1,23 @@
+/*
+ * UNISOC UMP9620 PMIC dts file
+ *
+ * Copyright (C) 2020, UNISOC Communications Inc.
+ *
+ * SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+*/
+
+&adi_bus {
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	ump9620_pmic: pmic@0 {
+		compatible = "sprd,ump9620";
+		reg = <0x0>;
+		spi-max-frequency = <26000000>;
+		interrupt-controller;
+		#interrupt-cells = <2>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+	};
+};
