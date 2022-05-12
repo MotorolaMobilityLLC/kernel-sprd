@@ -403,6 +403,7 @@
   handle_edge_irq
   handle_level_irq
   have_governor_per_policy
+  housekeeping_cpumask
   i2c_del_driver
   i2c_register_driver
   i2c_smbus_read_byte_data
@@ -547,6 +548,7 @@
   kstrtouint
   kstrtoull
   ksys_sync_helper
+  kthread_cancel_work_sync
   kthread_create_on_node
   kthread_flush_worker
   kthread_should_stop
@@ -625,10 +627,11 @@
   of_device_is_compatible
   of_find_compatible_node
   of_find_device_by_node
-  of_find_matching_node_and_match 
+  of_find_matching_node_and_match
   of_find_node_by_name
   of_find_property
   of_get_child_by_name
+  of_get_cpu_node
   of_get_named_gpio_flags
   of_get_next_available_child
   of_get_next_child
@@ -822,6 +825,7 @@
   runqueues
   __SetPageMovable
   sched_clock
+  sched_feat_keys
   sched_set_fifo_low
   sched_setscheduler
   sched_uclamp_used
@@ -841,6 +845,7 @@
   set_nlink
   set_normalized_timespec64
   set_page_dirty
+  set_task_cpu
   set_user_nice
   sg_alloc_table_from_pages_segment
   sg_init_table
@@ -961,6 +966,7 @@
   thermal_zone_device_disable
   thermal_zone_device_enable
   thermal_zone_get_zone_by_name
+  tick_nohz_get_idle_calls_cpu
   timer_of_init
   topology_clear_scale_freq_source
   topology_set_thermal_pressure
@@ -1187,6 +1193,7 @@
   __traceiter_android_vh_thermal_register
   __traceiter_android_vh_thermal_unregister
   __traceiter_android_vh_update_topology_flags_workfn
+  __traceiter_cpu_frequency
   __traceiter_pelt_se_tp
   __tracepoint_android_rvh_account_irq
   __tracepoint_android_rvh_after_dequeue_task
@@ -1253,6 +1260,7 @@
   __tracepoint_android_vh_thermal_register
   __tracepoint_android_vh_thermal_unregister
   __tracepoint_android_vh_update_topology_flags_workfn
+  __tracepoint_cpu_frequency
   __tracepoint_pelt_se_tp
 
 # required by blk-mq-virtio.ko
@@ -1303,6 +1311,12 @@
 
 # required by cpufreq_userspace.ko
   __cpufreq_driver_target
+  cpufreq_disable_fast_switch
+  cpufreq_driver_fast_switch
+  cpufreq_driver_resolve_freq
+  cpufreq_enable_fast_switch
+  cpufreq_policy_transition_delay_us
+  cpufreq_this_cpu_can_update
   cpufreq_register_governor
   cpufreq_unregister_governor
 
