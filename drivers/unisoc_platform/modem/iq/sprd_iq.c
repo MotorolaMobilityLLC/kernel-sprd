@@ -337,10 +337,8 @@ static int sprd_iq_parse_dt(struct platform_device *pdev,
 			    struct sprd_iq_mgr *iq)
 {
 	int ret;
-	u32 val;
+	u32 val[2];
 	struct device_node *np;
-	struct device_node *np_memory;
-	struct resource res;
 	struct device *dev = &pdev->dev;
 
 	if (!pdev || !pdev->dev.of_node || !iq) {
@@ -351,17 +349,14 @@ static int sprd_iq_parse_dt(struct platform_device *pdev,
 	np = pdev->dev.of_node;
 
 	if (iq->base == 0) {
-		np_memory = of_parse_phandle(np, "sprd,region", 0);
-		if (!np_memory)
-			return -ENOMEM;
-
-		ret = of_address_to_resource(np_memory, 0, &res);
+		ret = of_property_read_u32_array(np, "sprd,region", val, 2);
 		if (ret) {
 			dev_err(dev, "get iq mem info failed\n");
-			return -EINVAL;
+			return -ENOMEM;
 		}
-		iq->base = res.start;
-		iq->size = res.end - res.start + 1;
+
+		iq->base = val[0];
+		iq->size = val[1];
 		dev_info(dev, "iq base: 0x%lx, iq size: 0x%lx\n",
 			(unsigned long)iq->base, (unsigned long)iq->size);
 	}
@@ -369,8 +364,8 @@ static int sprd_iq_parse_dt(struct platform_device *pdev,
 	/* the address 0x0 in AP is 0x80000000 in CP, the default mapping_offs is 0 */
 	iq->mapping_offs = 0;
 
-	if (of_property_read_u32(np, "sprd,mapping-offs", &val) == 0)
-		iq->mapping_offs = val;
+	if (of_property_read_u32_array(np, "sprd,mapping-offs", val, 1) == 0)
+		iq->mapping_offs = val[0];
 
 	dev_info(dev, "iq mapping_offs: 0x%x\n", iq->mapping_offs);
 
