@@ -30,4 +30,12 @@ config UNISOC_SOC_THERMAL
 	help
 	  Say M here to support virtual thermal for soc chip.
 
+config UNISOC_THERMAL_CTL
+	tristate "sprd thermal control"
+	depends on ARCH_SPRD || THERMAL_OF
+	depends on THERMAL_GOV_POWER_ALLOCATOR
+	depends on CPU_FREQ_THERMAL
+	help
+	  Say M here to support platform thermal control.
+
 endmenu
