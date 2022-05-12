@@ -926,12 +926,18 @@
 					"clk_mm_mtx_data_en",
 					"clk_mm_mtx_data",
 					"clk_blk_cfg_en",
+					"sys_cfg_mtx_busmon_en",
+					"sys_mst_busmon_en",
+					"clk_mm_mtx_defalut",
 					"clk_mm_mtx_parent";
 				clocks = <&aonapb_gate CLK_MM_EB>,
 					<&mm_gate CLK_CKG_EN>,
 					<&mm_gate CLK_MM_MTX_DATA_EN>,
 					<&mm_clk CLK_MM_MTX_DATA>,
 					<&mm_gate CLK_ISP_BLK_CFG_EN>,
+					<&mm_gate CLK_SYS_CFG_MTX_BUSMON_EN>,
+					<&mm_gate CLK_SYS_MST_BUSMON_EN>,
+					<&g5l_pll CLK_TGPLL_153M6>,
 					<&g5l_pll CLK_TGPLL_512M>;
 				#power-domain-cells = <0>;
 				status = "okay";
@@ -1312,6 +1318,8 @@
 						MASK_MM_AHB_ISP_ALL_SOFT_RST>;
 				reset = <&mm_ahb_regs REG_MM_AHB_ISP_BLK_SOFT_RST
 						MASK_MM_AHB_ISP_SOFT_RST>;
+				sys_h2p_db_soft_rst = <&mm_ahb_regs REG_MM_AHB_SYS_SOFT_RST
+						MASK_MM_AHB_SYS_H2P_DB_SOFT_RST>;
 				clock-names = "isp_eb",
 						"isp_mtx_en",
 						"isp_tck_en",
