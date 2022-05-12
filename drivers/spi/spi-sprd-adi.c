@@ -676,7 +676,6 @@ static struct sprd_adi_data ums9620_data = {
 	.write_wait = sprd_adi_write_wait,
 	.slave_offset = ADI_15BIT_SLAVE_OFFSET,
 	.slave_addr_size = ADI_15BIT_SLAVE_ADDR_SIZE,
-	.read_check = sprd_adi_read_check_r3,
 	.rst_sts = UMP9620_RST_STATUS,
 	.swrst_base = UMP9620_SWRST_CTRL0,
 	.softrst_base = UMP9620_SOFT_RST_HW,
