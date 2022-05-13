@@ -351,10 +351,11 @@ static void sprd_hsphy_shutdown(struct usb_phy *x)
 		/*disable analog:0x64900004*/
 		msk = MASK_AON_APB_AON_USB2_TOP_EB | MASK_AON_APB_OTG_PHY_EB;;
 		regmap_update_bits(phy->hsphy_glb, REG_AON_APB_APB_EB1, msk, 0);
-	}
 
-	if (regulator_is_enabled(phy->vdd))
-		regulator_disable(phy->vdd);
+		/* regulator should disable after both hsphy and ssphy are all shutdown */
+		if (regulator_is_enabled(phy->vdd))
+			regulator_disable(phy->vdd);
+	}
 
 	atomic_set(&phy->inited, 0);
 	atomic_set(&phy->reset, 0);
