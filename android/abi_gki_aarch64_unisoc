@@ -892,6 +892,9 @@
   snd_pcm_lib_ioctl
   snd_pcm_period_elapsed
   snd_soc_add_component_controls
+  snd_soc_component_read
+  snd_soc_daifmt_parse_clock_provider_raw
+  snd_soc_daifmt_parse_format
   snd_soc_dapm_disable_pin
   snd_soc_dapm_enable_pin
   snd_soc_dapm_ignore_suspend
