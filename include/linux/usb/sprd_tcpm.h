@@ -181,5 +181,24 @@ void sprd_tcpm_pd_hard_reset(struct sprd_tcpm_port *port);
 void sprd_tcpm_tcpc_reset(struct sprd_tcpm_port *port);
 
 void sprd_tcpm_shutdown(struct sprd_tcpm_port *port);
+#if IS_ENABLED(CONFIG_SPRD_TYPEC_TCPM)
+void sprd_tcpm_log_do_outside(struct sprd_tcpm_port *port, const char *dev_tag,
+			      const char *fmt, va_list args);
+void sprd_tcpm_log_do_nothing_outside(struct sprd_tcpm_port *port, const char *dev_tag,
+				      const char *fmt, va_list args);
+#else
+static inline
+void sprd_tcpm_log_do_outside(struct sprd_tcpm_port *port, const char *dev_tag,
+			      const char *fmt, va_list args)
+{
+
+}
+static inline
+void sprd_tcpm_log_do_nothing_outside(struct sprd_tcpm_port *port, const char *dev_tag,
+				      const char *fmt, va_list args)
+{
+
+}
+#endif
 
 #endif /* __LINUX_USB_SPRD_TCPM_H */
