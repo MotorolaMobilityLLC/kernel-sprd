@@ -4233,6 +4233,7 @@
 #define MASK_MM_AHB_DCAM0_SOFT_RST                          0x00000080
 #define MASK_MM_AHB_ISP_VAU_SOFT_RST                        0x00001000
 #define MASK_MM_AHB_ISP_ALL_SOFT_RST                        0x00002000
+#define MASK_MM_AHB_SYS_H2P_DB_SOFT_RST                     0x00000004
 #define MASK_MM_AHB_ISP_SOFT_RST                            0x00004000
 #define MASK_MM_AHB_JPG_SOFT_RST                            0x00000008
 #define MASK_MM_AHB_FD_EN                                   0x00000008
