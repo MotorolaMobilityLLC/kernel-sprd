@@ -139,6 +139,8 @@ struct camsys_power_info {
 			struct clk *mm_mtx_data_en;
 			struct clk *ckg_en;
 			struct clk *blk_cfg_en;
+			struct clk *sys_cfg_mtx_busmon_en;
+			struct clk *sys_mst_busmon_en;
 
 			struct clk *mm_mtx_clk;
 			struct clk *mm_mtx_clk_parent;

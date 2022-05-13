@@ -168,9 +168,12 @@ static int sprd_cam_domain_eb(struct camsys_power_info *pw_info)
 	clk_prepare_enable(pw_info->u.qogirn6pro.mm_eb);
 	clk_prepare_enable(pw_info->u.qogirn6pro.ckg_en);
 	mmsys_sw_dvfs_voltage_tune(pw_info);
+
+	clk_prepare_enable(pw_info->u.qogirn6pro.sys_cfg_mtx_busmon_en);
+	clk_prepare_enable(pw_info->u.qogirn6pro.sys_mst_busmon_en);
+	clk_prepare_enable(pw_info->u.qogirn6pro.mm_mtx_data_en);
 	clk_set_parent(pw_info->u.qogirn6pro.mm_mtx_clk, pw_info->u.qogirn6pro.mm_mtx_clk_parent);
 	clk_prepare_enable(pw_info->u.qogirn6pro.mm_mtx_clk);
-	clk_prepare_enable(pw_info->u.qogirn6pro.mm_mtx_data_en);
 	ret = clk_prepare_enable(pw_info->u.qogirn6pro.blk_cfg_en);
 	if (ret)
 		pr_err("fail to power on blk_cfg_en");
@@ -183,12 +186,14 @@ static int sprd_cam_domain_disable(struct camsys_power_info *pw_info)
 	pr_info("cb %p\n", __builtin_return_address(0));
 
 	/* mm bus enable */
-	clk_set_parent(pw_info->u.qogirn6pro.mm_mtx_clk, pw_info->u.qogirn6pro.mm_mtx_clk_parent);
+	clk_disable_unprepare(pw_info->u.qogirn6pro.blk_cfg_en);
+	clk_set_parent(pw_info->u.qogirn6pro.mm_mtx_clk, pw_info->u.qogirn6pro.mm_mtx_clk_defalut);
 	clk_disable_unprepare(pw_info->u.qogirn6pro.mm_mtx_clk);
 	clk_disable_unprepare(pw_info->u.qogirn6pro.mm_mtx_data_en);
+	clk_disable_unprepare(pw_info->u.qogirn6pro.sys_mst_busmon_en);
+	clk_disable_unprepare(pw_info->u.qogirn6pro.sys_cfg_mtx_busmon_en);
 	clk_disable_unprepare(pw_info->u.qogirn6pro.ckg_en);
 	clk_disable_unprepare(pw_info->u.qogirn6pro.mm_eb);
-	clk_disable_unprepare(pw_info->u.qogirn6pro.blk_cfg_en);
 
 	return 0;
 }
@@ -199,20 +204,85 @@ static int sprd_cam_pw_off(struct camsys_power_info *pw_info)
 	unsigned int power_state1 = 0;
 	unsigned int power_state2 = 0;
 	unsigned int power_state3 = 0;
-	unsigned int power_state1_dcam = 0;
-	unsigned int power_state1_isp = 0;
 	unsigned int read_count = 0;
 
 	usleep_range(300, 350);
 
 	/* 1:auto shutdown en, shutdown with ap; 0: control by b25 */
-	regmap_update_bits_mmsys(&pw_info->u.qogirn6pro.regs[CAMSYS_SHUTDOWN_EN], 0);
 	regmap_update_bits_mmsys(&pw_info->u.qogirn6pro.regs[CAMSYS_DCAM_SHUTDOWN_EN], 0);
-	regmap_update_bits_mmsys(&pw_info->u.qogirn6pro.regs[CAMSYS_ISP_SHUTDOWN_EN], 0);
-
 	/* set 1 to shutdown */
 	regmap_update_bits_mmsys(&pw_info->u.qogirn6pro.regs[CAMSYS_DCAM_FORCE_SHUTDOWN], ~((uint32_t)0));
+
+	do {
+		usleep_range(300, 350);
+		read_count++;
+
+		ret = regmap_read_mmsys(
+			&pw_info->u.qogirn6pro.regs[CAMSYS_DCAM_STATUS],
+			&power_state1);
+		if (ret)
+			pr_err("fail to power off dcam , ret %d, read count %d\n", ret, read_count);
+		ret = regmap_read_mmsys(
+			&pw_info->u.qogirn6pro.regs[CAMSYS_DCAM_STATUS],
+			&power_state2);
+		if (ret)
+			pr_err("fail to power off dcam , ret %d, read count %d\n", ret, read_count);
+		ret = regmap_read_mmsys(
+			&pw_info->u.qogirn6pro.regs[CAMSYS_DCAM_STATUS],
+			&power_state3);
+		if (ret)
+			pr_err("fail to power off dcam , ret %d, read count %d\n", ret, read_count);
+	} while (((power_state1 !=
+		(PD_MM_DOWN_FLAG)) &&
+		read_count < 30) ||
+		(power_state1 != power_state2) ||
+		(power_state2 != power_state3));
+
+	if (power_state1 != PD_MM_DOWN_FLAG) {
+		pr_err("fail to get dcam power state 0x%x\n", power_state1);
+		ret = -1;
+		goto err_pw_off;
+	}
+
+	/* 1:auto shutdown en, shutdown with ap; 0: control by b25 */
+	regmap_update_bits_mmsys(&pw_info->u.qogirn6pro.regs[CAMSYS_ISP_SHUTDOWN_EN], 0);
+	/* set 1 to shutdown */
 	regmap_update_bits_mmsys(&pw_info->u.qogirn6pro.regs[CAMSYS_ISP_FORCE_SHUTDOWN], ~((uint32_t)0));
+
+	do {
+		usleep_range(300, 350);
+		read_count++;
+
+		ret = regmap_read_mmsys(
+			&pw_info->u.qogirn6pro.regs[CAMSYS_ISP_STATUS],
+			&power_state1);
+		if (ret)
+			pr_err("fail to power off isp , ret %d, read count %d\n", ret, read_count);
+		ret = regmap_read_mmsys(
+			&pw_info->u.qogirn6pro.regs[CAMSYS_ISP_STATUS],
+			&power_state2);
+		if (ret)
+			pr_err("fail to power off isp , ret %d, read count %d\n", ret, read_count);
+		ret = regmap_read_mmsys(
+			&pw_info->u.qogirn6pro.regs[CAMSYS_ISP_STATUS],
+			&power_state3);
+		if (ret)
+			pr_err("fail to power off isp , ret %d, read count %d\n", ret, read_count);
+	} while (((power_state1 !=
+		(PD_MM_DOWN_FLAG << PD_ISP_STATUS_SHIFT_BIT)) &&
+		read_count < 30) ||
+		(power_state1 != power_state2) ||
+		(power_state2 != power_state3));
+
+	if (power_state1 != (PD_MM_DOWN_FLAG << PD_ISP_STATUS_SHIFT_BIT)) {
+		pr_err("fail to get isp power state 0x%x\n", power_state1);
+		ret = -1;
+		goto err_pw_off;
+	}
+
+	/* 1:auto shutdown en, shutdown with ap; 0: control by b25 */
+	regmap_update_bits_mmsys(&pw_info->u.qogirn6pro.regs[CAMSYS_SHUTDOWN_EN], 0);
+	/* set 1 to shutdown */
 	regmap_update_bits_mmsys(&pw_info->u.qogirn6pro.regs[CAMSYS_FORCE_SHUTDOWN], ~((uint32_t)0));
 
 	do {
@@ -240,21 +310,19 @@ static int sprd_cam_pw_off(struct camsys_power_info *pw_info)
 		(power_state1 != power_state2) ||
 		(power_state2 != power_state3));
 
-	ret = regmap_read_mmsys(&pw_info->u.qogirn6pro.regs[CAMSYS_DCAM_STATUS], &power_state1_dcam);
-	if (ret)
-		pr_err("fail to power off dcam sys\n");
-
-	ret = regmap_read_mmsys(&pw_info->u.qogirn6pro.regs[CAMSYS_ISP_STATUS], &power_state1_isp);
-	if (ret)
-		pr_err("fail to power off isp sys");
-
 	if (power_state1 != (PD_MM_DOWN_FLAG << PD_MM_DOWN_BIT)) {
 		pr_err("fail to get power state 0x%x\n", power_state1);
 		ret = -1;
-		return ret;
+		goto err_pw_off;
 	}
 
 	return 0;
+
+err_pw_off:
+	pr_err("fail to power off cam sys, ret %d, read count %d\n", ret, read_count);
+
+	return ret;
+
 }
 
 static int sprd_cam_pw_on(struct camsys_power_info *pw_info)
@@ -263,8 +331,6 @@ static int sprd_cam_pw_on(struct camsys_power_info *pw_info)
 	unsigned int power_state1 = 0;
 	unsigned int power_state2 = 0;
 	unsigned int power_state3 = 0;
-	unsigned int power_state1_dcam = 0;
-	unsigned int power_state1_isp = 0;
 	unsigned int read_count = 0;
 
 	pr_info("power on state %d, cb %p\n",
@@ -273,18 +339,7 @@ static int sprd_cam_pw_on(struct camsys_power_info *pw_info)
 
 	/* clear force shutdown */
 	regmap_update_bits_mmsys(&pw_info->u.qogirn6pro.regs[CAMSYS_SHUTDOWN_EN], 0);
-	/* dcam domain power on */
-	regmap_update_bits_mmsys(&pw_info->u.qogirn6pro.regs[CAMSYS_DCAM_SHUTDOWN_EN], 0);
-	/* isp domain power on */
-	regmap_update_bits_mmsys(&pw_info->u.qogirn6pro.regs[CAMSYS_ISP_SHUTDOWN_EN], 0);
-
-	/* power on */
 	regmap_update_bits_mmsys(&pw_info->u.qogirn6pro.regs[CAMSYS_FORCE_SHUTDOWN], 0);
-	/* power on */
-	regmap_update_bits_mmsys(&pw_info->u.qogirn6pro.regs[CAMSYS_DCAM_FORCE_SHUTDOWN], 0);
-	/* power on */
-	regmap_update_bits_mmsys(&pw_info->u.qogirn6pro.regs[CAMSYS_ISP_FORCE_SHUTDOWN], 0);
-
 	do {
 		usleep_range(300, 350);
 		read_count++;
@@ -311,21 +366,90 @@ static int sprd_cam_pw_on(struct camsys_power_info *pw_info)
 		(power_state1 != power_state2) ||
 		(power_state2 != power_state3));
 
-	ret = regmap_read_mmsys(&pw_info->u.qogirn6pro.regs[CAMSYS_DCAM_STATUS], &power_state1_dcam);
-	if (ret)
-		pr_err("fail to power on dcam sys\n");
+	if (power_state1) {
+		pr_err("fail to get power state 0x%x\n",
+				power_state1);
+		ret = -1;
+		goto err_pw_on;
+	}
 
-	ret = regmap_read_mmsys(&pw_info->u.qogirn6pro.regs[CAMSYS_ISP_STATUS], &power_state1_isp);
-	if (ret)
-		pr_err("fail to power on isp sys\n");
+	/* dcam domain power on */
+	regmap_update_bits_mmsys(&pw_info->u.qogirn6pro.regs[CAMSYS_DCAM_SHUTDOWN_EN], 0);
+	regmap_update_bits_mmsys(&pw_info->u.qogirn6pro.regs[CAMSYS_DCAM_FORCE_SHUTDOWN], 0);
+	do {
+		usleep_range(300, 350);
+		read_count++;
+
+		ret = regmap_read_mmsys(
+			&pw_info->u.qogirn6pro.regs[CAMSYS_DCAM_STATUS],
+			&power_state1);
+		if (ret)
+			pr_err("fail to power on dcam sys\n");
+		ret = regmap_read_mmsys(
+			&pw_info->u.qogirn6pro.regs[CAMSYS_DCAM_STATUS],
+			&power_state2);
+		if (ret)
+			pr_err("fail to power on dcam sys\n");
+		ret = regmap_read_mmsys(
+			&pw_info->u.qogirn6pro.regs[CAMSYS_DCAM_STATUS],
+			&power_state3);
+		if (ret)
+			pr_err("fail to power on dcam sys\n");
+
+		pr_info("dcam pw status, %x, %x, %x\n",
+			power_state1, power_state2, power_state3);
+	} while ((power_state1 && (read_count < 30)) ||
+		(power_state1 != power_state2) ||
+		(power_state2 != power_state3));
 
 	if (power_state1) {
-		pr_err("fail to get power state 0x%x\n", power_state1);
+		pr_err("fail to get dcam power state 0x%x\n",
+				power_state1);
 		ret = -1;
-		return ret;
+		goto err_pw_on;
+	}
+	/* isp domain power on */
+	regmap_update_bits_mmsys(&pw_info->u.qogirn6pro.regs[CAMSYS_ISP_SHUTDOWN_EN], 0);
+	regmap_update_bits_mmsys(&pw_info->u.qogirn6pro.regs[CAMSYS_ISP_FORCE_SHUTDOWN], 0);
+	do {
+		usleep_range(300, 350);
+		read_count++;
+
+		ret = regmap_read_mmsys(
+			&pw_info->u.qogirn6pro.regs[CAMSYS_ISP_STATUS],
+			&power_state1);
+		if (ret)
+			pr_err("fail to power on isp sys\n");
+		ret = regmap_read_mmsys(
+			&pw_info->u.qogirn6pro.regs[CAMSYS_ISP_STATUS],
+			&power_state2);
+		if (ret)
+			pr_err("fail to power on isp sys\n");
+		ret = regmap_read_mmsys(
+			&pw_info->u.qogirn6pro.regs[CAMSYS_ISP_STATUS],
+			&power_state3);
+		if (ret)
+			pr_err("fail to power on isp sys\n");
+
+		pr_info("icam pw status, %x, %x, %x\n",
+			power_state1, power_state2, power_state3);
+	} while ((power_state1 && (read_count < 30)) ||
+		(power_state1 != power_state2) ||
+		(power_state2 != power_state3));
+
+	if (power_state1) {
+		pr_err("fail to get isp power state 0x%x\n",
+				power_state1);
+		ret = -1;
+		goto err_pw_on;
 	}
 
 	return 0;
+
+err_pw_on:
+	pr_err("fail to power on cam sys\n");
+	return ret;
+
 }
 
 static long sprd_campw_init(struct platform_device *pdev, struct camsys_power_info *pw_info)
@@ -355,6 +479,18 @@ static long sprd_campw_init(struct platform_device *pdev, struct camsys_power_in
 	pw_info->u.qogirn6pro.blk_cfg_en = of_clk_get_by_name(np, "clk_blk_cfg_en");
 	if (IS_ERR_OR_NULL(pw_info->u.qogirn6pro.blk_cfg_en))
 		return PTR_ERR(pw_info->u.qogirn6pro.blk_cfg_en);
+
+	pw_info->u.qogirn6pro.sys_cfg_mtx_busmon_en = of_clk_get_by_name(np, "sys_cfg_mtx_busmon_en");
+	if (IS_ERR_OR_NULL(pw_info->u.qogirn6pro.sys_cfg_mtx_busmon_en))
+		return PTR_ERR(pw_info->u.qogirn6pro.sys_cfg_mtx_busmon_en);
+
+	pw_info->u.qogirn6pro.sys_mst_busmon_en = of_clk_get_by_name(np, "sys_mst_busmon_en");
+	if (IS_ERR_OR_NULL(pw_info->u.qogirn6pro.sys_mst_busmon_en))
+		return PTR_ERR(pw_info->u.qogirn6pro.sys_mst_busmon_en);
+
+	pw_info->u.qogirn6pro.mm_mtx_clk_defalut = of_clk_get_by_name(np, "clk_mm_mtx_defalut");
+	if (IS_ERR_OR_NULL(pw_info->u.qogirn6pro.mm_mtx_clk_defalut))
+		return PTR_ERR(pw_info->u.qogirn6pro.mm_mtx_clk_defalut);
 
 	pw_info->u.qogirn6pro.mm_mtx_clk_parent = of_clk_get_by_name(np, "clk_mm_mtx_parent");
 	if (IS_ERR_OR_NULL(pw_info->u.qogirn6pro.mm_mtx_clk_parent))
