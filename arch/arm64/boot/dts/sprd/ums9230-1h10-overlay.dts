@@ -524,7 +524,7 @@
 		ti,bq2597x,bat-therm-threshold = <0x15>;
 		ti,bq2597x,bus-therm-threshold = <0x15>;
 		ti,bq2597x,die-therm-threshold = <0xc8>;
-		ti,bq2597x,ac-ovp-threshold = <11>;
+		ti,bq2597x,ac-ovp-threshold = <13>;
 		ti,bq2597x,sense-resistor-mohm = <5>;
 		ti,bq2597x,adc-sample-bits = <13>;
 		ti,bq2597x,ibat-regulation-threshold = <300>;
