@@ -833,8 +833,6 @@ static int fan54015_charger_vbus_is_enabled(struct regulator_dev *dev)
 		return -EINVAL;
 	}
 
-	mutex_lock(&info->lock);
-
 	ret = fan54015_read(info, FAN54015_REG_1, &val);
 	if (ret) {
 		dev_err(info->dev, "failed to get fan54015 otg status\n");
@@ -844,7 +842,6 @@ static int fan54015_charger_vbus_is_enabled(struct regulator_dev *dev)
 
 	val &= FAN54015_REG_OPA_MODE_MASK;
 
-	mutex_unlock(&info->lock);
 	return val;
 }
 
