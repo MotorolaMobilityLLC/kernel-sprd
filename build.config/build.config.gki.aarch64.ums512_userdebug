@@ -20,6 +20,8 @@ EXT_MODULES="
 ../modules/common/camera/flash/sc2703s
 ../modules/common/camera/flash/flash_drv
 ../modules/common/camera/sensor
+../modules/kernel5.15/wcn/fm/driver
+../modules/kernel5.15/wcn/bluetooth/driver
 "
 
 DTC_FLAGS+="-@"
