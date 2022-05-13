@@ -22,10 +22,12 @@
 #include <drm/drm_vblank.h>
 
 #include "sprd_drm.h"
+#include "sprd_drm_gsp.h"
 #include "sprd_gem.h"
 #include "sprd_dpu.h"
 #include "sprd_dsi.h"
 #include "sysfs/sysfs_display.h"
+#include <uapi/drm/sprd_drm_gsp.h>
 
 #define DRIVER_NAME	"sprd"
 #define DRIVER_DESC	"Spreadtrum SoCs' DRM Driver"
@@ -204,12 +206,12 @@ static void sprd_drm_mode_config_init(struct drm_device *drm)
 	drm->mode_config.funcs = &sprd_drm_mode_config_funcs;
 }
 
-// static const struct drm_ioctl_desc sprd_ioctls[] = {
-// 	DRM_IOCTL_DEF_DRV(SPRD_GSP_GET_CAPABILITY,
-// 			sprd_gsp_get_capability_ioctl, 0),
-// 	DRM_IOCTL_DEF_DRV(SPRD_GSP_TRIGGER,
-// 			sprd_gsp_trigger_ioctl, 0),
-// };
+static const struct drm_ioctl_desc sprd_ioctls[] = {
+	DRM_IOCTL_DEF_DRV(SPRD_GSP_GET_CAPABILITY,
+			sprd_gsp_get_capability_ioctl, 0),
+	DRM_IOCTL_DEF_DRV(SPRD_GSP_TRIGGER,
+			sprd_gsp_trigger_ioctl, 0),
+};
 
 static const struct file_operations sprd_drm_fops = {
 	.owner		= THIS_MODULE,
@@ -234,8 +236,8 @@ static struct drm_driver sprd_drm_drv = {
 	.gem_prime_import	= drm_gem_prime_import,
 	.gem_prime_import_sg_table = sprd_gem_prime_import_sg_table,
 
-	// .ioctls			= sprd_ioctls,
-	// .num_ioctls		= ARRAY_SIZE(sprd_ioctls),
+	.ioctls			= sprd_ioctls,
+	.num_ioctls		= ARRAY_SIZE(sprd_ioctls),
 
 	.name			= DRIVER_NAME,
 	.desc			= DRIVER_DESC,
@@ -411,7 +413,7 @@ static int sprd_drm_component_probe(struct device *dev,
 		}
 		of_node_put(port);
 	}
-	if (IS_ENABLED(CONFIG_DRM_SPRD_GSP)) {
+	if (IS_ENABLED(CONFIG_UNISOC_GSP)) {
 		for (i = 0; ; i++) {
 			port = of_parse_phandle(dev->of_node, "gsp", i);
 			if (!port)

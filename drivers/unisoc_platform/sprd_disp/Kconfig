@@ -12,6 +12,11 @@ config UNISOC_DISP
 	  Choose this option if you have a Unisoc chipset.
 	  If M is selected the module will be called sprd_drm.
 
+#
+#SPRD DRM GSP driver
+#
+source "drivers/unisoc_platform/sprd_disp/gsp/Kconfig"
+
 if UNISOC_DISP
 
 comment "Unisoc Dummy CRTC&Encoder"

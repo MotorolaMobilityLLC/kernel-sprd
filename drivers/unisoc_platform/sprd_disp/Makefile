@@ -71,4 +71,6 @@ sprd-drm-y += \
 
 obj-$(CONFIG_UNISOC_DISP) += sprd-drm.o
 
+obj-$(CONFIG_UNISOC_GSP) += gsp/
+
 #sprd-drm-$(CONFIG_COMPAT) += sprd_ioc32.o

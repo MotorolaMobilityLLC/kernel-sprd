@@ -6,7 +6,7 @@
 #ifndef _SPRD_DRM_GSP_H
 #define _SPRD_DRM_GSP_H
 
-#if IS_ENABLED(CONFIG_DRM_SPRD_GSP)
+#if IS_ENABLED(CONFIG_UNISOC_GSP)
 int sprd_gsp_get_capability_ioctl(struct drm_device *dev,
 				void *data, struct drm_file *file_priv);
 int sprd_gsp_trigger_ioctl(struct drm_device *dev,
