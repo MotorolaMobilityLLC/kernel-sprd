@@ -310,3 +310,4 @@
 /* Include other IP modules ALPHABETICALLY */
 #include "clock.dtsi"
 #include "uart.dtsi"
+#include "gpio.dtsi"
