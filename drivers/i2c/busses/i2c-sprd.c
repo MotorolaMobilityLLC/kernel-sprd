@@ -73,11 +73,11 @@
 /* timeout (ms) for pm runtime autosuspend */
 #define SPRD_I2C_PM_TIMEOUT	1000
 /* timeout (ms) for transfer message */
-#define I2C_XFER_TIMEOUT	1000
+#define I2C_XFER_TIMEOUT	5000
 
 /* dynamic modify clk_freq flag  */
-#define I2C_1M_FLAG			0X0080
-#define I2C_400K_FLAG		0X0040
+#define	I2C_1M_FLAG		0x0080
+#define	I2C_400K_FLAG		0x0040
 
 /* SPRD i2c data structure */
 struct sprd_i2c {
@@ -275,7 +275,7 @@ static int sprd_i2c_handle_msg(struct i2c_adapter *i2c_adap,
 		sprd_i2c_set_clk(i2c_dev, 400000);
 	} else if (msg->flags & I2C_1M_FLAG) {
 		sprd_i2c_set_clk(i2c_dev, 1000000);
-        }
+	}
 	/*
 	 * We should enable rx fifo full interrupt to get data when receiving
 	 * full data.
@@ -499,6 +499,7 @@ static int sprd_i2c_probe(struct platform_device *pdev)
 	int ret;
 
 	pdev->id = of_alias_get_id(dev->of_node, "i2c");
+
 	i2c_dev = devm_kzalloc(dev, sizeof(struct sprd_i2c), GFP_KERNEL);
 	if (!i2c_dev)
 		return -ENOMEM;
