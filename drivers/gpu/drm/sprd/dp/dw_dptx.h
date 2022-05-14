@@ -113,6 +113,7 @@ struct dptx {
 	struct drm_device *drm_dev;
 	struct drm_connector connector;
 	struct extcon_dev *edev;
+	struct extcon_dev *hdmi_edev;
 	struct drm_bridge *bridge;
 	struct drm_dp_aux aux_dev;
 	struct dptx_aux aux;
