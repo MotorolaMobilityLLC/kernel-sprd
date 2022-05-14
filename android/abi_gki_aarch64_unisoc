@@ -942,12 +942,14 @@
   sysctl_vals
   sysfs_create_bin_file
   sysfs_create_file_ns
+  sysfs_create_files
   sysfs_create_group
   sysfs_create_groups
   sysfs_create_link
   __sysfs_match_string
   sysfs_notify
   sysfs_remove_bin_file
+  sysfs_remove_files
   sysfs_remove_file_ns
   sysfs_remove_group
   sysfs_remove_groups
