@@ -336,6 +336,7 @@
 #include "gpio.dtsi"
 #include "gpu-natt.dtsi"
 #include "i2c.dtsi"
+#include "sensorhub.dtsi"
 #include "spi.dtsi"
 #include "uart.dtsi"
 #include "ufs.dtsi"
