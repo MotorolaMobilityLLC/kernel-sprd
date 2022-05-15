@@ -393,7 +393,6 @@
 #include "socid.dtsi"
 #include "spi.dtsi"
 #include "thermal.dtsi"
-#include "tp.dtsi"
 #include "uart.dtsi"
 #include "usb.dtsi"
 #include "vsp.dtsi"
