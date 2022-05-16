@@ -1419,7 +1419,7 @@ void sbuf_get_status(u8 dst, char *status_info, int size)
 				snprintf(
 					 status_info + len,
 					 size - len,
-					 "%s %d: %s, state=0x%lx, pid=%d.\n",
+					 "%s %d: %s, state=0x%x, pid=%d.\n",
 					 phead,
 					 cnt, task->comm,
 					 task->__state, task->pid);
@@ -1493,7 +1493,7 @@ static void sbuf_debug_task_show(struct seq_file *m,
 				   n,
 				   buf,
 				   cnt);
-			seq_printf(m, ": %s, state = 0x%lx, pid = %d\n",
+			seq_printf(m, ": %s, state = 0x%x, pid = %d\n",
 				   task->comm,
 				   task->__state,
 				   task->pid);
