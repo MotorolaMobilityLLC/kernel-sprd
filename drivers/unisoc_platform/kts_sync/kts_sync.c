@@ -16,7 +16,7 @@ static void resume_kts_sync(void)
 	unsigned long local_us = do_div(local_t, NSEC_PER_SEC) / 1000;
 	unsigned long boot_us = do_div(boot_t, NSEC_PER_SEC) / 1000;
 
-	pr_info("boottime_sleep: %lu.%06lu localtime: %lu.%06lu\n",
+	pr_info("boottime_sleep: %llu.%06lu localtime: %llu.%06lu\n",
 		boot_t, boot_us, local_t, local_us);
 }
 
@@ -31,7 +31,7 @@ static int kts_sync_show(struct seq_file *m, void *v)
 	unsigned long local_us = do_div(local_t, NSEC_PER_SEC) / 1000;
 	unsigned long boot_us = do_div(boot_t, NSEC_PER_SEC) / 1000;
 
-	seq_printf(m, "boottime_sleep: %lu.%06lu localtime: %lu.%06lu\n",
+	seq_printf(m, "boottime_sleep: %llu.%06lu localtime: %llu.%06lu\n",
 		   boot_t, boot_us, local_t, local_us);
 
 	return 0;
