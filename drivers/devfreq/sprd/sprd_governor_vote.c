@@ -276,7 +276,7 @@ static ssize_t ddrinfo_freq_table_show(struct device *dev,
 	for (i = 0; i < freq_num; i++) {
 		err = gov_callback->get_freq_table(&data, i);
 		if (!err && (data > 0))
-			count += sprintf(&buf[count], "%u ", data);
+			count += sprintf(&buf[count], "%lu ", data);
 	}
 	count += sprintf(&buf[count], "\n");
 	return count;

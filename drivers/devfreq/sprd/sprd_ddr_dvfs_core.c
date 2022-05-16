@@ -513,7 +513,7 @@ static int dvfs_smsg_thread(void *value)
 
 	while (smsg_ch_open(SIPC_ID_PM_SYS, SMSG_CH_PM_CTRL, -1))
 		msleep(500);
-	dev_err(dev, "smsg_ch_open finish!\n", 0);
+	dev_err(dev, "smsg_ch_open finish!\n");
 	while (dvfs_enable())
 		msleep(500);
 
@@ -557,7 +557,7 @@ static int dvfs_smsg_thread(void *value)
 		if (data->freq_table[i] != 0) {
 			err = dev_pm_opp_add(dev, data->freq_table[i], data->paras[i].vol);
 			if (err < 0) {
-				dev_err(dev, "failed to add opp: %uMHZ-%uuv\n",
+				dev_err(dev, "failed to add opp: %luMHZ-%uuv\n",
 					data->freq_table[i], data->paras[i].vol);
 				return 0;
 			}
