@@ -59,3 +59,6 @@ obj-$(CONFIG_USB_F_VSERIAL)	+= usb_f_vser.o
 obj-$(CONFIG_SPRD_USB_U_SERIAL)	+= sprd_u_serial.o
 sprd_usb_f_serial-y		:= sprd_f_serial.o
 obj-$(CONFIG_SPRD_USB_F_SERIAL)	+= sprd_usb_f_serial.o
+obj-$(CONFIG_SPRD_USB_U_ETHER)	+= sprd_u_ether.o
+sprd_usb_f_rndis-y		:= sprd_f_rndis.o sprd_rndis.o
+obj-$(CONFIG_SPRD_USB_F_RNDIS)	+= sprd_usb_f_rndis.o
