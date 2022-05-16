@@ -1,5 +1,7 @@
 /dts-v1/;
 /plugin/;
+#include "reserved-memory/modem-5g-common.dtsi"
+#include "reserved-memory/ums9620-1h10-overlay.dtsi"
 
 / {
 
@@ -28,4 +30,14 @@
 			<15 0xa054>, <17 0xa1a0>, <19 0xa044>, <21 0xa0e8>,
 			<23 0x244c>, <25 0xa074>, <27 0x2044>, <30 0x2020>,
 			<32 0x217c>, <33 0x2188>, <34 0x21b8>, <35 0x21ac>;
+};
+
+&ion {
+	#address-cells = <1>;
+	#size-cells = <0>;
+	heap@4 {
+		reg = <4>;
+		label = "carveout_fd";
+		memory-region = <&fd_reserved>;
+	};
 };

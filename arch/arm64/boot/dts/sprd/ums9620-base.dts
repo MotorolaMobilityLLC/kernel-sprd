@@ -6,6 +6,9 @@
  */
 
 /dts-v1/;
+#include <dt-bindings/input/input.h>
+#include <dt-bindings/gpio/gpio.h>
+#include "reserved-memory/modem-5g-common.dtsi"
 #include "ums9620/ums9620.dtsi"
 #include "ump9620/ump9620.dtsi"
 #include "ump9621/ump9621.dtsi"
@@ -32,6 +35,12 @@
 	chosen: chosen {
 		stdout-path = "serial1:115200n8";
 		bootargs = "earlycon=sprd_serial,0x20210000,115200n8 console=ttySPRD1,115200n8 loglevel=1 init=/init root=/dev/ram0 rw printk.devkmsg=on pcie_ports=compat swiotlb=1 initcall_debug=1";
+	};
+
+	ion: ion {
+		compatible = "sprd,ion";
+		#address-cells = <1>;
+		#size-cells = <0>;
 	};
 };
 
