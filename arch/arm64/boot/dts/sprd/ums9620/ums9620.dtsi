@@ -257,33 +257,11 @@
 
 		};
 
-		ap_ahb_regs: syscon@20000000 {
-			compatible = "sprd,ums9620-glbregs", "syscon";
-			#syscon-cells = <2>;
-			reg = <0 0x20000000 0 0x6000>;
-		};
-
-		ap_apb_regs: syscon@20100000 {
-			compatible = "sprd,ums9620-glbregs", "syscon";
-			#syscon-cells = <2>;
-			reg = <0 0x20100000 0 0x3000>;
-		};
-
-		apapb_gate: apapb-gate {
-			compatible = "sprd,ums9620-apapb-gate";
-			sprd,syscon = <&ap_apb_regs>; /* 0x20100000 */
-			clocks = <&ext_26m>;
-			clock-names = "ext-26m";
-			#clock-cells = <1>;
-		};
-
-
-		apahb_gate: apahb-gate {
-			compatible = "sprd,ums9620-apahb-gate";
-			sprd,syscon = <&ap_ahb_regs>; /* 0x20000000 */
-			clocks = <&ext_26m>;
-			clock-names = "ext-26m";
-			#clock-cells = <1>;
+		apahb: ap-ahb {
+			compatible = "simple-bus";
+			#address-cells = <1>;
+			#size-cells = <1>;
+			ranges = <0 0 0x20000000 0x22d0040>;
 		};
 
 		aon: aon {
@@ -309,5 +287,6 @@
 
 /* Include other IP modules ALPHABETICALLY */
 #include "clock.dtsi"
-#include "uart.dtsi"
+#include "glbreg.dtsi"
 #include "gpio.dtsi"
+#include "uart.dtsi"
