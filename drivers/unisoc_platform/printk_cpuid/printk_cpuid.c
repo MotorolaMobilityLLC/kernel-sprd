@@ -22,7 +22,7 @@ decode_caller_id(void *a, char *caller, size_t size, u32 id, int *ret)
 		snprintf(caller, size, "T%u@C%u", id & CALLER_THREAD_MASK,
 			 id >> CALLER_THREAD_SHIFT & CALLER_CPUID_MASK);
 	else
-		snprintf(caller, sizeof(caller), "%c%u",
+		snprintf(caller, size, "%c%u",
 			 id & 0x80000000 ? 'C' : 'T', id & ~0x80000000);
 
 	*ret = 1;
@@ -35,7 +35,7 @@ print_ext_header(void *a, char *caller, size_t size, u32 id, int *ret)
 		snprintf(caller, size, ",caller=T%u@C%u", id & CALLER_THREAD_MASK,
 			 id >> CALLER_THREAD_SHIFT & CALLER_CPUID_MASK);
 	else
-		snprintf(caller, sizeof(caller), ",caller=%c%u",
+		snprintf(caller, size, ",caller=%c%u",
 			 id & 0x80000000 ? 'C' : 'T', id & ~0x80000000);
 
 	*ret = 1;
