@@ -269,7 +269,7 @@ int vsp_get_iova(void *inst_ptr, struct vsp_dev_t *vsp_hw_dev,
 
 		mapdata->iova_addr = iommu_map_data.iova_addr;
 		mapdata->size = iommu_map_data.iova_size;
-		pr_info("vsp iommu map success iova addr=%#lx size=%zu\n",
+		pr_info("vsp iommu map success iova addr=%#llx size=%llu\n",
 			mapdata->iova_addr, mapdata->size);
 		ret = copy_to_user((void __user *)arg, (void *)mapdata,
 					sizeof(struct vsp_iommu_map_data));
@@ -277,7 +277,7 @@ int vsp_get_iova(void *inst_ptr, struct vsp_dev_t *vsp_hw_dev,
 			pr_err("fatal error! copy_to_user failed, ret=%d\n", ret);
 			goto err_copy_to_user;
 		}
-		pr_info("suceess to add map_node(iova_addr=%#lx, size=%zu)\n",
+		pr_info("suceess to add map_node(iova_addr=%#llx, size=%llu)\n",
 			mapdata->iova_addr, mapdata->size);
 	} else {
 		pr_err("vsp iommu map failed, ret=%d, map_size=%zu\n",
@@ -335,10 +335,10 @@ int vsp_free_iova(void *inst_ptr, struct vsp_dev_t *vsp_hw_dev,
 		iommu_ummap_data.ch_type = SPRD_IOMMU_FM_CH_RW;
 		iommu_ummap_data.buf = NULL;
 		list_del(&entry->list);
-		pr_info("success to find node(inst %p, iova_addr=%#lx, size=%zu)\n",
+		pr_info("success to find node(inst %p, iova_addr=%#llx, size=%llu)\n",
 			inst_ptr, ummapdata->iova_addr, ummapdata->size);
 	} else {
-		pr_err("fatal error! not find node(inst %p, iova_addr=%#lx, size=%zu)\n",
+		pr_err("fatal error! not find node(inst %p, iova_addr=%#llx, size=%llu)\n",
 			inst_ptr, ummapdata->iova_addr, ummapdata->size);
 		mutex_unlock(&vsp_hw_dev->map_lock);
 		vsp_clk_disable(vsp_hw_dev);
@@ -348,12 +348,12 @@ int vsp_free_iova(void *inst_ptr, struct vsp_dev_t *vsp_hw_dev,
 
 	ret = sprd_iommu_unmap(vsp_hw_dev->vsp_dev, &iommu_ummap_data);
 	if (ret) {
-		pr_err("sprd_iommu_unmap failed: ret=%d, iova_addr=%#lx, size=%zu\n",
+		pr_err("sprd_iommu_unmap failed: ret=%d, iova_addr=%#llx, size=%llu\n",
 			ret, ummapdata->iova_addr, ummapdata->size);
 		vsp_clk_disable(vsp_hw_dev);
 		return ret;
 	}
-	pr_info("sprd_iommu_unmap success: iova_addr=%#lx size=%zu\n",
+	pr_info("sprd_iommu_unmap success: iova_addr=%#llx size=%llu\n",
 		ummapdata->iova_addr, ummapdata->size);
 	dma_buf_unmap_attachment(entry->attachment, entry->table, DMA_BIDIRECTIONAL);
 	dma_buf_detach(entry->dmabuf, entry->attachment);
