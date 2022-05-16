@@ -64,7 +64,7 @@ static int sprd_time_sync_cp_init(void)
 
 	ret = register_trace_android_rvh_tk_based_time_sync(sprd_time_sync_fn, NULL);
 	if (ret)
-		pr_info("%s: register sprd_time_sync_fn failed(ret=%d)\n, __func__, ret");
+		pr_info("%s: register sprd_time_sync_fn failed(ret=%d)\n",__FUNCTION__, ret);
 
 	return ret;
 }
