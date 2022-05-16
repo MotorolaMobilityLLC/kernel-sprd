@@ -11,6 +11,11 @@
 #include <linux/dma-buf.h>
 #include <linux/scatterlist.h>
 
+#define ION_DRM_HEAP_NAME        "widevine"
+#define ION_FB_HEAP_NAME         "framebuffer"
+#define ION_FACEID_HEAP_NAME     "faceid"
+#define ION_VDSP_HEAP_NAME       "vdsp"
+
 struct ion_phy_data {
 	__u32 fd;
 	__u64 len;
