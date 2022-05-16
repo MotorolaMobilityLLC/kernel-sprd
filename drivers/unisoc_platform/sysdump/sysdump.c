@@ -1709,7 +1709,7 @@ static void minidump_info_init(void)
 	/* alloc minidump info buffer */
 	sprd_minidump_info = kzalloc(MINIDUMP_INFO_BYTES, GFP_KERNEL);
 	if (sprd_minidump_info == NULL) {
-		pr_err("kzalloc minidump info failed, required size:%d\n",
+		pr_err("kzalloc minidump info failed, required size:%ld\n",
 				MINIDUMP_INFO_BYTES);
 		return;
 	}
@@ -1719,7 +1719,7 @@ static void minidump_info_init(void)
 	/* alloc minidump regs buffer */
 	sprd_minidump_regs = kzalloc(MINIDUMP_REGS_BYTES, GFP_KERNEL);
 	if (sprd_minidump_info == NULL) {
-		pr_err("kzalloc minidump regs failed, required size:%d\n",
+		pr_err("kzalloc minidump regs failed, required size:%ld\n",
 				MINIDUMP_REGS_BYTES);
 		return;
 	}
@@ -1765,7 +1765,7 @@ static void minidump_info_init(void)
 	/* update minidump info */
 	if (sysdump_reflag && sprd_sysdump_info_paddr) {
 		sprd_sysdump_info->sprd_mini_info.minidump_info_paddr = __pa(sprd_minidump_info);
-		pr_info("minidump_info_vaddr is 0x%llx, __pa:paddr is 0x%llx\n", sprd_minidump_info, __pa(sprd_minidump_info));
+		pr_info("minidump_info_vaddr is 0x%llx, __pa:paddr is 0x%llx\n", __pa(sprd_minidump_info), __pa(sprd_minidump_info));
 		sprd_sysdump_info->sprd_mini_info.minidump_info_size = sizeof(minidump_info_g);
 		memcpy(sprd_sysdump_info->sprd_mini_info.magic, MINIDUMP_MAGIC,
 									sizeof(MINIDUMP_MAGIC));
@@ -1846,11 +1846,11 @@ static int sysdump_sysctl_init(void)
 #ifdef CONFIG_SPRD_MINI_SYSDUMP
 	minidump_init();
 #endif
-	pr_emerg("kimage_voffset:0x%lx\n", kimage_voffset);
+	pr_emerg("kimage_voffset:0x%llx\n", kimage_voffset);
 	pr_emerg("vabits_actual:%d\n", VA_BITS);
-	pr_emerg("phys_offset:0x%lx\n", PHYS_OFFSET);
+	pr_emerg("phys_offset:0x%llx\n", PHYS_OFFSET);
 	pr_emerg("kaslr_offset:0x%lx\n", kaslr_offset());
-	pr_emerg("note buf size is %d\n", SYSDUMP_NOTE_BYTES);
+	pr_emerg("note buf size is %ld\n", SYSDUMP_NOTE_BYTES);
 	return 0;
 }
 void sysdump_sysctl_exit(void)
