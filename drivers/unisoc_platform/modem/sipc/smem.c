@@ -133,7 +133,7 @@ static void *soc_modem_ram_vmap(phys_addr_t start, size_t size, int noncached)
 	page_start = start - offset_in_page(start);
 	page_count = DIV_ROUND_UP(size + offset_in_page(start), PAGE_SIZE);
 	if (noncached)
-		prot = pgprot_noncached(PAGE_KERNEL);
+		prot = pgprot_writecombine(PAGE_KERNEL);
 	else
 		prot = PAGE_KERNEL;
 
