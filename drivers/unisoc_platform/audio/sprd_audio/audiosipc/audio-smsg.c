@@ -725,7 +725,7 @@ int aud_smsg_recv(u8 dst, struct aud_smsg *msg, int timeout)
 			goto recv_failed;
 		} else if (rval == 0) {
 			unsigned long flags_tx, flags_rx;
-			struct aud_smsg msg;
+			struct aud_smsg msg = { 0 };
 			u32 is_timeout = 1;
 
 			sp_asoc_pr_info("warning %s wait timeout!\n", __func__);
