@@ -1836,7 +1836,7 @@
 				power-domains = <&pd_ipa_sys>;
 
 				dwc3@25100000 {
-					compatible = "snps,dwc3";
+					compatible = "snps,sprd-dwc3";
 					reg = <0 0x25100000 0 0x100000>;
 					interrupts = <GIC_SPI 142 IRQ_TYPE_LEVEL_HIGH>;
 					interrupt-names = "irq";
