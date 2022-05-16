@@ -175,6 +175,7 @@
   device_property_present
   device_property_read_string
   device_property_read_u32_array
+  device_property_read_u8_array
   device_register
   device_remove_file
   device_set_wakeup_capable
@@ -581,6 +582,7 @@
   of_property_read_u64_index
   of_property_read_variable_u32_array
   of_prop_next_string
+  of_usb_get_phy_mode
   oops_in_progress
   out_of_line_wait_on_bit_lock
   overflowgid
@@ -601,6 +603,13 @@
   perf_trace_buf_alloc
   perf_trace_run_bpf_submit
   pfn_valid
+  phy_set_mode_ext
+  phy_power_on
+  phy_power_off
+  phy_pm_runtime_get_sync
+  phy_pm_runtime_put_sync
+  phy_init
+  phy_exit
   phy_connect
   phy_disconnect
   phy_ethtool_get_link_ksettings
@@ -628,6 +637,7 @@
   platform_get_irq
   platform_get_irq_byname
   platform_get_resource
+  platform_get_irq_byname_optional
   platform_get_resource_byname
   pm_get_active_wakeup_sources
   pm_power_off
@@ -931,11 +941,15 @@
   usb_function_unregister
   usb_gadget_giveback_request
   usb_gadget_udc_reset
+  usb_gadget_unmap_request_by_dev
   usb_get_dr_mode
   usb_get_intf
   usb_hcd_is_primary_hcd
   usb_interface_id
   usb_kill_urb
+  usb_role_switch_unregister
+  usb_role_switch_register
+  usb_get_maximum_speed
   usb_phy_get_charger_current
   usb_phy_set_charger_current
   usb_put_function_instance
@@ -1088,6 +1102,7 @@
 # required by dwc3.ko
   extcon_register_notifier
   extcon_unregister_notifier
+  extcon_get_extcon_dev
   usb_gadget_map_request_by_dev
   usb_gadget_set_state
 
@@ -1170,6 +1185,8 @@
 # required by focaltech_ats.ko
   devm_input_allocate_device
   devm_regulator_put
+  devm_phy_get
+  vm_node_stat
   i2c_new_probed_device
   i2c_transfer
   input_mt_init_slots
