@@ -10,7 +10,6 @@
 #include <dt-bindings/interrupt-controller/arm-gic.h>
 #include <dt-bindings/soc/sprd,qogirn6pro-mask.h>
 #include <dt-bindings/soc/sprd,qogirn6pro-regs.h>
-
 / {
 	soc-module = "UMS9620";
 	soc-manufacturer = "Spreadtrum";
@@ -341,3 +340,4 @@
 #include "uart.dtsi"
 #include "ufs.dtsi"
 #include "sdio.dtsi"
+#include "socid.dtsi"
