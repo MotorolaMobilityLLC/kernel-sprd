@@ -1410,7 +1410,7 @@ static int sprd_iommu_get_resource(struct device_node *np,
 		return err;
 
 	IOMMU_INFO("pgt_base phy:0x%lx\n", (unsigned long)(res.start));
-	pdata->pgt_base = (unsigned long)ioremap_cache(res.start,
+	pdata->pgt_base = (unsigned long)ioremap(res.start,
 		resource_size(&res));
 	BUG_ON(pdata->pgt_base == 0);
 	/*sharkl2 pgt_size is va range*/
@@ -1424,7 +1424,7 @@ static int sprd_iommu_get_resource(struct device_node *np,
 
 	/*sharkl2 ctrl_reg is iommu base reg addr*/
 	IOMMU_INFO("ctrl_reg phy:0x%lx\n", (unsigned long)(res.start));
-	pdata->ctrl_reg = (unsigned long)ioremap_cache(res.start,
+	pdata->ctrl_reg = (unsigned long)ioremap(res.start,
 		resource_size(&res));
 	BUG_ON(!pdata->ctrl_reg);
 	IOMMU_INFO("ctrl_reg:0x%lx\n", pdata->ctrl_reg);

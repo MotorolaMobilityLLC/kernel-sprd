@@ -70,7 +70,7 @@ u32 sprd_iommuvau_cll_init(struct sprd_iommu_init_param *p_init_param,
 		p_iommu_priv->pagt_base_ddr = p_init_param->pagt_base_virt;
 	} else {
 		p_iommu_priv->pagt_base_ddr =
-			(ulong)ioremap_cache(p_iommu_priv->pagt_base_phy_ddr,
+			(ulong)ioremap(p_iommu_priv->pagt_base_phy_ddr,
 					       p_iommu_priv->pagt_ddr_size);
 	}
 
