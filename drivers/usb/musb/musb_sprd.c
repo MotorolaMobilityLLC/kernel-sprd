@@ -50,6 +50,10 @@
 #define VBUS_REG_CHECK_DELAY			(msecs_to_jiffies(1000))
 #define MUSB_SPRD_CHG_MAX_REDETECT_COUNT	3
 
+/* Pls keep the same definition as PHY */
+#define CHARGER_2NDDETECT_ENABLE	BIT(30)
+#define CHARGER_2NDDETECT_SELECT	BIT(31)
+
 enum musb_drd_state {
 	DRD_STATE_UNDEFINED = 0,
 	DRD_STATE_IDLE,
@@ -118,6 +122,8 @@ struct sprd_glue {
 	u32				usb_pub_slp_poll_offset;
 	u32				usb_pub_slp_poll_mask;
 
+	bool		retry_charger_detect;
+
 	unsigned long			inputs;
 	struct workqueue_struct		*musb_wq;
 	struct workqueue_struct		*sm_usb_wq;
@@ -148,6 +154,16 @@ static void sprd_musb_enable(struct musb *musb)
 
 	/* soft connect */
 	if (glue->id_state == MUSB_ID_GROUND) {
+		/* Musb controller process go as device default.
+		 * From asic,controller will wait 150ms and then check vbus
+		 * if vbus is powered up.
+		 * Session reg effects relay on vbus checked ok while seted.
+		 * If not sleep,it will contine cost 150ms to check vbus ok
+		 * before session take effect.Which may cause session effect
+		 * timeout and usb switch to host failed Sometimes.
+		 */
+		if (glue->retry_charger_detect)
+			mdelay(150);
 		devctl |= MUSB_DEVCTL_SESSION;
 		musb_writeb(musb->mregs, MUSB_DEVCTL, devctl);
 		otgextcsr = musb_readb(musb->mregs, MUSB_OTG_EXT_CSR);
@@ -191,6 +207,27 @@ static irqreturn_t sprd_musb_interrupt(int irq, void *__hci)
 	u8 mask8;
 
 	spin_lock(&glue->lock);
+
+	/* In order to implement 2nd charger detection
+	 * initialize musb controller, so musb IRQ may
+	 * happen during 2nd charger detection flow.
+	 * In this case: USB handler clear IRQ & SOFT_CONN.
+	 */
+	if (glue->retry_charger_detect) {
+		spin_unlock(&glue->lock);
+		mask8 = musb_readb(musb->mregs, MUSB_POWER);
+		mask8 &= ~MUSB_POWER_SOFTCONN;
+		musb_writeb(musb->mregs, MUSB_POWER, mask8);
+		dev_err(musb->controller,
+			"interrupt status: 0x%x 0x%x - 0x%x 0x%x - 0x%x 0%x\n",
+			 musb_readb(musb->mregs, MUSB_INTRUSBE),
+			 musb_readb(musb->mregs, MUSB_INTRUSB),
+			 musb_readw(musb->mregs, MUSB_INTRTXE),
+			 musb_readw(musb->mregs, MUSB_INTRTX),
+			 musb_readw(musb->mregs, MUSB_INTRRXE),
+			 musb_readw(musb->mregs, MUSB_INTRRX));
+		return retval;
+	}
 
 	if (atomic_read(&glue->musb_runtime_suspended)) {
 		spin_unlock(&glue->lock);
@@ -692,6 +729,48 @@ static void musb_sprd_detect_cable(struct sprd_glue *glue)
 	spin_unlock_irqrestore(&glue->lock, flags);
 }
 
+static enum usb_charger_type
+musb_sprd_retry_charger_detect(struct sprd_glue *glue)
+{
+	struct musb *musb = glue->musb;
+	struct usb_phy *usb_phy = glue->xceiv;
+	unsigned long flags;
+	u8 pwr;
+
+	glue->chg_type = UNKNOWN_TYPE;
+	dev_info(glue->dev, "%s enter\n", __func__);
+	spin_lock_irqsave(&glue->lock, flags);
+	glue->retry_charger_detect = true;
+	spin_unlock_irqrestore(&glue->lock, flags);
+	if (!clk_prepare_enable(glue->clk)) {
+		usb_phy_init(glue->xceiv);
+		musb_writeb(musb->mregs, MUSB_INTRUSBE, 0);
+		musb_writeb(musb->mregs, MUSB_INTRTXE, 0);
+		musb_writeb(musb->mregs, MUSB_INTRRXE, 0);
+		pwr = musb_readb(musb->mregs, MUSB_POWER);
+		pwr |= MUSB_POWER_SOFTCONN;
+		musb_writeb(musb->mregs, MUSB_POWER, pwr);
+
+		/* because of GKI1.0, retry_charger_detect is intead of below */
+		usb_phy->flags |= CHARGER_2NDDETECT_SELECT;
+		glue->chg_type = usb_phy->charger_detect(glue->xceiv);
+		usb_phy->flags &= ~CHARGER_2NDDETECT_SELECT;
+
+		pwr = musb_readb(musb->mregs, MUSB_POWER);
+		pwr &= ~MUSB_POWER_SOFTCONN;
+		musb_writeb(musb->mregs, MUSB_POWER, pwr);
+		/*  flush pending interrupts */
+		spin_lock_irqsave(&glue->lock, flags);
+		glue->retry_charger_detect = false;
+		spin_unlock_irqrestore(&glue->lock, flags);
+		musb_readb(musb->mregs, MUSB_INTRUSB);
+		musb_readw(musb->mregs, MUSB_INTRTXE);
+		usb_phy_shutdown(glue->xceiv);
+		clk_disable_unprepare(glue->clk);
+	}
+	return glue->chg_type;
+}
+
 static void musb_sprd_charger_mode(void)
 {
 	struct device_node *np;
@@ -995,16 +1074,39 @@ static void musb_sprd_chg_detect_work(struct work_struct *work)
 	case USB_CHG_STATE_DETECTED:
 		dev_info(glue->dev, "charger = %d\n", glue->chg_type);
 		if (glue->chg_type == UNKNOWN_TYPE) {
-			/*not support charger re-detect yet*/
-			dev_info(glue->dev, "charge detect finished\n");
-			glue->xceiv->last_event = USB_EVENT_CHARGER;
-			glue->charging_mode = true;
+			if (usb_phy->flags & CHARGER_2NDDETECT_ENABLE) {
+				if (extcon_get_state(glue->edev, EXTCON_USB))
+					glue->chg_type = musb_sprd_retry_charger_detect(glue);
+				glue->chg_state = USB_CHG_STATE_RETRY_DETECTED;
+				rework = true;
+				delay = 0;
+			} else {
+				dev_info(glue->dev, "charge detect finished\n");
+				glue->xceiv->last_event = USB_EVENT_CHARGER;
+				glue->charging_mode = true;
+			}
 		} else if (glue->chg_type == SDP_TYPE || glue->chg_type == CDP_TYPE) {
 			dev_info(glue->dev, "charge detect finished with %d\n", glue->chg_type);
 			glue->xceiv->last_event = USB_EVENT_ENUMERATED;
 			queue_work(glue->musb_wq, &glue->resume_work);
 		} else {
 			dev_info(glue->dev, "charge detect finished\n");
+			glue->xceiv->last_event = USB_EVENT_CHARGER;
+			glue->charging_mode = true;
+		}
+		break;
+	case USB_CHG_STATE_RETRY_DETECTED:
+		dev_info(glue->dev, "charger = %d\n", glue->chg_type);
+		if (glue->chg_type == UNKNOWN_TYPE) {
+			dev_info(glue->dev, "charge retry_detect finished\n");
+			glue->xceiv->last_event = USB_EVENT_CHARGER;
+			glue->charging_mode = true;
+		} else if (glue->chg_type == SDP_TYPE || glue->chg_type == CDP_TYPE) {
+			dev_info(glue->dev, "charge retry_detect finished with %d\n", glue->chg_type);
+			glue->xceiv->last_event = USB_EVENT_ENUMERATED;
+			queue_work(glue->musb_wq, &glue->resume_work);
+		} else {
+			dev_info(glue->dev, "charge retry_detect finished\n");
 			glue->xceiv->last_event = USB_EVENT_CHARGER;
 			glue->charging_mode = true;
 		}
