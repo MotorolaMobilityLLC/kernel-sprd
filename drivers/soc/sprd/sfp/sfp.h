@@ -18,6 +18,7 @@
 #include <linux/kernel.h>
 #include <linux/timer.h>
 #include <linux/ip.h>
+#include <linux/sipa.h>
 #include <net/tcp.h>
 #include <net/udp.h>
 #include <linux/types.h>
@@ -259,15 +260,6 @@ struct sfp_ipa_addr {
 	u8 *v_addr;
 	dma_addr_t handle;
 	size_t len;
-};
-
-/*
- * struct sipa_hash_table - hash table for IPA
- * TEMP structure for k5.4 GKI scan, no sipa module yet
- */
-struct sipa_hash_table {
-	u32 depth;
-	u64 tbl_phy_addr;
 };
 
 struct sfp_ipa_hash_tbl {

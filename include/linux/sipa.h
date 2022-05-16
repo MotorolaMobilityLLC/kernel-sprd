@@ -405,7 +405,7 @@ void sipa_recv_wake_up(void);
 /*
  * IPA set hash table sync config
  */
-void sipa_hal_set_hash_sync_req(void);
+int sipa_hal_set_hash_sync_req(void);
 
 /*
  * IPA hash table management

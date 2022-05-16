@@ -951,11 +951,27 @@ bool sipa_hal_get_resume_status(void)
 /**
  * sipa_hal_set_hash_sync_req() - set hash sync req.
  */
-void sipa_hal_set_hash_sync_req(void)
+int sipa_hal_set_hash_sync_req(void)
 {
+	unsigned long flags;
 	struct sipa_plat_drv_cfg *ipa = sipa_get_ctrl_pointer();
 
+	if (!ipa)
+		return -ENODEV;
+
+	spin_lock_irqsave(&ipa->enable_lock, flags);
+	/* no need to sync cache if ipa is powered off,
+	 * because cache is flushed when powered off
+	 */
+	if (!ipa->enable_cnt) {
+		spin_unlock_irqrestore(&ipa->enable_lock, flags);
+		return -EBUSY;
+	}
+
 	ipa->glb_ops.set_cache_sync_req(ipa->glb_virt_base);
+	spin_unlock_irqrestore(&ipa->enable_lock, flags);
+
+	return 0;
 }
 EXPORT_SYMBOL(sipa_hal_set_hash_sync_req);
 
