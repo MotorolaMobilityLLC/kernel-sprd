@@ -574,6 +574,13 @@ cpu_cooling_register(struct device_node *np,
 		cpu_cdev->nsensor =
 			cpu_cdev->power_ops->get_sensor_count_p(id);
 
+	cpu_tz = thermal_zone_get_zone_by_name("soc-thmzone");
+	if (IS_ERR(cpu_tz)) {
+		pr_err("Failed to get soc thermal zone\n");
+		cdev = ERR_PTR(-EINVAL);
+		goto remove_ida;
+	}
+
 	cooling_ops = &cpu_power_cooling_ops;
 	cdev = thermal_of_cooling_device_register(np, dev_name, cpu_cdev,
 						  cooling_ops);
@@ -588,12 +595,6 @@ cpu_cooling_register(struct device_node *np,
 	cpu_cdev->run_cpus = cpu_cdev->table[0].cpus;
 	cpu_cdev->level = 0;
 	cpu_cdev->cdev = cdev;
-
-	cpu_tz = thermal_zone_get_zone_by_name("soc-thmzone");
-	if (IS_ERR(cpu_tz)) {
-		pr_err("Failed to get soc thermal zone\n");
-		goto cpu_cdev;
-	}
 
 	return cdev;
 
@@ -1375,29 +1376,26 @@ static int create_cpu_cooling_device(void)
 		}
 		cluster = &cluster_data[cluster_id_n];
 
-		for_each_possible_cpu(cpu) {
-			int cluster_id = get_cluster_id(cpu);
+		ret = sprd_get_power_model_coeff(child,
+			&cluster_data[cluster_id_n], cluster_id_n);
+		if (ret) {
+			pr_err("fail to get power model coeff !\n");
+			goto free_cluster;
+		}
 
-			if (cluster_id > counts || (cluster_id < 0)) {
-				pr_warn("cluster_id: %d, counts: %d\n",
-					cluster_id, counts);
-				ret = -ENODEV;
-				goto free_cluster;
-			} else if (cluster_id == cluster_id_n)
-				cpumask_set_cpu(cpu, &cluster->clip_cpus);
+		if (!cpumask_empty(&cluster_data[cluster_id_n].cluster_cpumask)) {
+			cpumask_and(&cluster->clip_cpus, cpu_possible_mask,
+				&cluster_data[cluster_id_n].cluster_cpumask);
+		} else {
+			pr_err("can't parse cluster%d cpumask from dts!\n", cluster_id_n);
+			ret = -ENODEV;
+			goto free_cluster;
 		}
 
 		if (!cpumask_and(&cpu_online_check,
 				&cluster->clip_cpus, cpu_online_mask)) {
 			pr_warn("%s cpu offline unnormal\n", __func__);
 			continue;
-		}
-
-		ret = sprd_get_power_model_coeff(child,
-			&cluster_data[cluster_id_n], cluster_id_n);
-		if (ret) {
-			pr_err("fail to get power model coeff !\n");
-			goto free_cluster;
 		}
 
 		cool_dev = cpu_cooling_register(child, &cluster->clip_cpus,
