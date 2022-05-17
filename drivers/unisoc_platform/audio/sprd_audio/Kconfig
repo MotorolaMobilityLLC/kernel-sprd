@@ -97,4 +97,11 @@ config SND_SOC_AK4377_HIFI
 	default n
 	help
 		AK4377_HIFI
+
+config UNISOC_AUDIO_USB_OFFLOAD
+	tristate "sprd audio usb offload"
+	depends on USB_SPRD_OFFLOAD
+	help
+		sprd audio usb offload support
+
 endmenu
