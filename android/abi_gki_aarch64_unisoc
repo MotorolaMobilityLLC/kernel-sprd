@@ -2722,6 +2722,9 @@
   __sg_page_iter_next
   __sg_page_iter_start
 
+# required by ion_cma_heap.ko
+  vm_node_stat
+
 # required by snd-soc-sprd-codec-sc2730.ko
   dapm_kcontrol_get_value
   __kfifo_init
