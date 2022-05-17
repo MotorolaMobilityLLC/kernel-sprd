@@ -620,8 +620,8 @@
 					"MMU",
 					"GPU";
 
-				nvmem-cells = <&gpu_bin>;
-				nvmem-cell-names = "gpu_bin";
+				nvmem-cells = <&gpu_bin>, <&cpu_flag>;
+				nvmem-cell-names = "gpu_bin", "cpu_flag";
 
 				operating-points = <
 					/* kHz    uV */
@@ -1795,6 +1795,8 @@
 				sprd,syscon-enable = <&aon_apb_regs>;
 				sprd,syscon-anag2 = <&anlg_phy_g2_regs>;
 				sprd,vdd-voltage = <3300000>;
+				io-channels = <&pmic_adc 30>, <&pmic_adc 31>;
+				io-channel-names = "dp", "dm";
 				#phy-cells = <0>;
 			};
 
@@ -2472,6 +2474,15 @@
 		gpu_bin: gpu-bin@1b{
 			reg = <0x1b 0x4>;
 			bits = <3 3>;
+		};
+
+		cpu_flag: cpu_flag@50{
+			reg = <0x50 0x4>;
+		};
+
+		dvfs_bin_dsu: dvfs-bin@13{
+			reg = <0x13 0x4>;
+			bits = <0 3>;
 		};
 
 		dvfs_bin_cpu0: dvfs-bin@17{
