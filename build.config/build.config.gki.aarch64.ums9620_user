@@ -10,7 +10,7 @@ POST_DEFCONFIG_CMDS="rm ${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/${DEFCONFIG
 
 EXT_MODULES="
 ../modules/kernel5.15/sample
-../modules/kernel5.15/gpu/gondul
+../modules/kernel5.15/gpu/natt
 ../modules/kernel5.15/input/touchscreen/ssl_ssd20xx
 ../modules/kernel5.15/input/touchscreen/synaptics_dsx_td4310
 "
