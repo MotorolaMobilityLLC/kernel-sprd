@@ -274,6 +274,14 @@
 				compatible = "sprd,ums9620-adi";
 				reg = <0x400000 0x100000>;
 			};
+
+			hwlock: hwspinlock@a10000 {
+				compatible = "sprd,hwspinlock-r3p0";
+				reg = <0xa10000 0x10000>;
+				#hwlock-cells = <1>;
+				clock-names = "enable";
+				clocks = <&aonapb_gate CLK_SPLK_EB>;
+			};
 		};
 
 
