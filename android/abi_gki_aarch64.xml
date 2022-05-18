@@ -8213,6 +8213,7 @@
       <pointer-type-def type-id='a7f054ae' size-in-bits='64' id='06cd5b60'/>
       <pointer-type-def type-id='91d0de51' size-in-bits='64' id='06ce3ba1'/>
       <pointer-type-def type-id='6f81c9e7' size-in-bits='64' id='06d9380f'/>
+      <pointer-type-def type-id='2399d05d' size-in-bits='64' id='06d9546d'/>
       <enum-decl name='android_debug_per_cpu_symbol' filepath='include/linux/android_debug_symbols.h' line='45' column='1' id='06dde89f'>
         <underlying-type type-id='9cac1fee'/>
         <enumerator name='ADS_IRQ_STACK_PTR' value='0'/>
@@ -17769,6 +17770,29 @@
       </function-type>
       <pointer-type-def type-id='ff751355' size-in-bits='64' id='1d22b7e5'/>
       <qualified-type-def type-id='e4992400' const='yes' id='1d22df6b'/>
+      <class-decl name='size_class' size-in-bits='1088' is-struct='yes' visibility='default' filepath='mm/zsmalloc.c' line='200' column='1' id='1d27b1eb'>
+        <data-member access='public' layout-offset-in-bits='0'>
+          <var-decl name='lock' type-id='fb4018a0' visibility='default' filepath='mm/zsmalloc.c' line='201' column='1'/>
+        </data-member>
+        <data-member access='public' layout-offset-in-bits='64'>
+          <var-decl name='fullness_list' type-id='a8e1fb22' visibility='default' filepath='mm/zsmalloc.c' line='202' column='1'/>
+        </data-member>
+        <data-member access='public' layout-offset-in-bits='576'>
+          <var-decl name='size' type-id='95e97e5e' visibility='default' filepath='mm/zsmalloc.c' line='207' column='1'/>
+        </data-member>
+        <data-member access='public' layout-offset-in-bits='608'>
+          <var-decl name='objs_per_zspage' type-id='95e97e5e' visibility='default' filepath='mm/zsmalloc.c' line='208' column='1'/>
+        </data-member>
+        <data-member access='public' layout-offset-in-bits='640'>
+          <var-decl name='pages_per_zspage' type-id='95e97e5e' visibility='default' filepath='mm/zsmalloc.c' line='210' column='1'/>
+        </data-member>
+        <data-member access='public' layout-offset-in-bits='672'>
+          <var-decl name='index' type-id='f0981eeb' visibility='default' filepath='mm/zsmalloc.c' line='212' column='1'/>
+        </data-member>
+        <data-member access='public' layout-offset-in-bits='704'>
+          <var-decl name='stats' type-id='3097f179' visibility='default' filepath='mm/zsmalloc.c' line='213' column='1'/>
+        </data-member>
+      </class-decl>
       <function-type size-in-bits='64' id='1d2b3133'>
         <parameter type-id='74d89ebd'/>
         <parameter type-id='35078cb9'/>
@@ -20089,6 +20113,44 @@
         <parameter type-id='ccf3b302'/>
         <return type-id='88370ce9'/>
       </function-type>
+      <class-decl name='zs_pool' size-in-bits='17920' is-struct='yes' visibility='default' filepath='mm/zsmalloc.c' line='252' column='1' id='2399d05d'>
+        <data-member access='public' layout-offset-in-bits='0'>
+          <var-decl name='name' type-id='80f4b756' visibility='default' filepath='mm/zsmalloc.c' line='253' column='1'/>
+        </data-member>
+        <data-member access='public' layout-offset-in-bits='64'>
+          <var-decl name='size_class' type-id='c69c228b' visibility='default' filepath='mm/zsmalloc.c' line='255' column='1'/>
+        </data-member>
+        <data-member access='public' layout-offset-in-bits='16384'>
+          <var-decl name='handle_cachep' type-id='f3b4aca8' visibility='default' filepath='mm/zsmalloc.c' line='256' column='1'/>
+        </data-member>
+        <data-member access='public' layout-offset-in-bits='16448'>
+          <var-decl name='zspage_cachep' type-id='f3b4aca8' visibility='default' filepath='mm/zsmalloc.c' line='257' column='1'/>
+        </data-member>
+        <data-member access='public' layout-offset-in-bits='16512'>
+          <var-decl name='pages_allocated' type-id='f22a8abb' visibility='default' filepath='mm/zsmalloc.c' line='259' column='1'/>
+        </data-member>
+        <data-member access='public' layout-offset-in-bits='16576'>
+          <var-decl name='stats' type-id='7cee8a3d' visibility='default' filepath='mm/zsmalloc.c' line='261' column='1'/>
+        </data-member>
+        <data-member access='public' layout-offset-in-bits='16640'>
+          <var-decl name='shrinker' type-id='27cb404f' visibility='default' filepath='mm/zsmalloc.c' line='264' column='1'/>
+        </data-member>
+        <data-member access='public' layout-offset-in-bits='17152'>
+          <var-decl name='inode' type-id='7e666abe' visibility='default' filepath='mm/zsmalloc.c' line='270' column='1'/>
+        </data-member>
+        <data-member access='public' layout-offset-in-bits='17216'>
+          <var-decl name='free_work' type-id='ef9025d0' visibility='default' filepath='mm/zsmalloc.c' line='271' column='1'/>
+        </data-member>
+        <data-member access='public' layout-offset-in-bits='17600'>
+          <var-decl name='migration_wait' type-id='cff07063' visibility='default' filepath='mm/zsmalloc.c' line='273' column='1'/>
+        </data-member>
+        <data-member access='public' layout-offset-in-bits='17792'>
+          <var-decl name='isolated_pages' type-id='f22a8abb' visibility='default' filepath='mm/zsmalloc.c' line='274' column='1'/>
+        </data-member>
+        <data-member access='public' layout-offset-in-bits='17856'>
+          <var-decl name='destroying' type-id='b50a4934' visibility='default' filepath='mm/zsmalloc.c' line='275' column='1'/>
+        </data-member>
+      </class-decl>
       <pointer-type-def type-id='e9bea70c' size-in-bits='64' id='23a0ad0a'/>
       <qualified-type-def type-id='f9b9a795' const='yes' id='23a4b33c'/>
       <class-decl name='file_lock' size-in-bits='1984' is-struct='yes' visibility='default' filepath='include/linux/fs.h' line='1134' column='1' id='23c73eb3'>
@@ -25131,6 +25193,11 @@
         <parameter type-id='a585cbc4'/>
         <return type-id='48b5725f'/>
       </function-type>
+      <class-decl name='zs_size_stat' size-in-bits='384' is-struct='yes' visibility='default' filepath='mm/zsmalloc.c' line='171' column='1' id='3097f179'>
+        <data-member access='public' layout-offset-in-bits='0'>
+          <var-decl name='objs' type-id='f0691bd3' visibility='default' filepath='mm/zsmalloc.c' line='172' column='1'/>
+        </data-member>
+      </class-decl>
       <function-type size-in-bits='64' id='3098b525'>
         <parameter type-id='807b7702'/>
         <parameter type-id='95e97e5e'/>
@@ -56774,6 +56841,11 @@
         </data-member>
       </class-decl>
       <typedef-decl name='Elf64_Sym' type-id='30bf9720' filepath='include/uapi/linux/elf.h' line='200' column='1' id='7cdfe313'/>
+      <class-decl name='zs_pool_stats' size-in-bits='64' is-struct='yes' visibility='default' filepath='include/linux/zsmalloc.h' line='36' column='1' id='7cee8a3d'>
+        <data-member access='public' layout-offset-in-bits='0'>
+          <var-decl name='pages_compacted' type-id='f22a8abb' visibility='default' filepath='include/linux/zsmalloc.h' line='38' column='1'/>
+        </data-member>
+      </class-decl>
       <pointer-type-def type-id='7ff9b331' size-in-bits='64' id='7ceee79d'/>
       <array-type-def dimensions='1' type-id='d83a2db1' size-in-bits='infinite' id='7cfae8e1'>
         <subrange length='infinite' type-id='7ff19f0f' id='031f2035'/>
@@ -59793,6 +59865,7 @@
           <var-decl name='name' type-id='80f4b756' visibility='default' filepath='include/drm/drm_ioctl.h' line='149' column='1'/>
         </data-member>
       </class-decl>
+      <pointer-type-def type-id='7cee8a3d' size-in-bits='64' id='8344857d'/>
       <class-decl name='pinctrl_pin_desc' size-in-bits='192' is-struct='yes' visibility='default' filepath='include/linux/pinctrl/pinctrl.h' line='36' column='1' id='8347d13f'>
         <data-member access='public' layout-offset-in-bits='0'>
           <var-decl name='number' type-id='f0981eeb' visibility='default' filepath='include/linux/pinctrl/pinctrl.h' line='37' column='1'/>
@@ -93884,6 +93957,9 @@
       </enum-decl>
       <qualified-type-def type-id='9a46627e' const='yes' id='c69a48a7'/>
       <pointer-type-def type-id='e7d2a5fc' size-in-bits='64' id='c69b0fe2'/>
+      <array-type-def dimensions='1' type-id='d616df2b' size-in-bits='16320' id='c69c228b'>
+        <subrange length='255' type-id='7ff19f0f' id='36e7f891'/>
+      </array-type-def>
       <class-decl name='drm_dsc_rc_range_parameters' size-in-bits='24' is-struct='yes' visibility='default' filepath='include/drm/drm_dsc.h' line='53' column='1' id='c6a1f4c6'>
         <data-member access='public' layout-offset-in-bits='0'>
           <var-decl name='range_min_qp' type-id='f9b06939' visibility='default' filepath='include/drm/drm_dsc.h' line='57' column='1'/>
@@ -99813,6 +99889,7 @@
         </data-member>
       </class-decl>
       <pointer-type-def type-id='cef38194' size-in-bits='64' id='d616d8de'/>
+      <pointer-type-def type-id='1d27b1eb' size-in-bits='64' id='d616df2b'/>
       <pointer-type-def type-id='64705f1a' size-in-bits='64' id='d6184118'/>
       <class-decl name='deferred_split' size-in-bits='256' is-struct='yes' visibility='default' filepath='include/linux/mmzone.h' line='994' column='1' id='d619c1c5'>
         <data-member access='public' layout-offset-in-bits='0'>
@@ -107809,6 +107886,12 @@
         <subrange length='4' type-id='7ff19f0f' id='16fe7105'/>
       </array-type-def>
       <pointer-type-def type-id='960bee7e' size-in-bits='64' id='e6032f80'/>
+      <enum-decl name='zs_mapmode' filepath='include/linux/zsmalloc.h' line='24' column='1' id='e60459a5'>
+        <underlying-type type-id='9cac1fee'/>
+        <enumerator name='ZS_MM_RW' value='0'/>
+        <enumerator name='ZS_MM_RO' value='1'/>
+        <enumerator name='ZS_MM_WO' value='2'/>
+      </enum-decl>
       <pointer-type-def type-id='d2bdcec3' size-in-bits='64' id='e60f1e27'/>
       <pointer-type-def type-id='d97649a6' size-in-bits='64' id='e6106240'/>
       <function-type size-in-bits='64' id='e613f28a'>
@@ -152441,7 +152524,68 @@
       <function-decl name='zlib_inflate_workspacesize' mangled-name='zlib_inflate_workspacesize' filepath='lib/zlib_inflate/inflate.c' line='28' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='zlib_inflate_workspacesize'>
         <return type-id='95e97e5e'/>
       </function-decl>
+      <function-decl name='zs_compact' mangled-name='zs_compact' filepath='mm/zsmalloc.c' line='2264' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='zs_compact'>
+        <parameter type-id='06d9546d' name='pool' filepath='mm/zsmalloc.c' line='2264' column='1'/>
+        <return type-id='7359adad'/>
+      </function-decl>
+      <function-decl name='zs_create_pool' mangled-name='zs_create_pool' filepath='mm/zsmalloc.c' line='2354' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='zs_create_pool'>
+        <parameter type-id='80f4b756' name='name' filepath='mm/zsmalloc.c' line='2354' column='1'/>
+        <return type-id='06d9546d'/>
+      </function-decl>
+      <function-decl name='zs_destroy_pool' mangled-name='zs_destroy_pool' filepath='mm/zsmalloc.c' line='2470' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='zs_destroy_pool'>
+        <parameter type-id='06d9546d' name='pool' filepath='mm/zsmalloc.c' line='2470' column='1'/>
+        <return type-id='48b5725f'/>
+      </function-decl>
+      <function-decl name='zs_free' mangled-name='zs_free' filepath='mm/zsmalloc.c' line='1489' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='zs_free'>
+        <parameter type-id='06d9546d' name='pool' filepath='mm/zsmalloc.c' line='1489' column='1'/>
+        <parameter type-id='7359adad' name='handle' filepath='mm/zsmalloc.c' line='1489' column='1'/>
+        <return type-id='48b5725f'/>
+      </function-decl>
+      <function-decl name='zs_get_total_pages' mangled-name='zs_get_total_pages' filepath='mm/zsmalloc.c' line='1220' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='zs_get_total_pages'>
+        <parameter type-id='06d9546d' name='pool' filepath='mm/zsmalloc.c' line='1220' column='1'/>
+        <return type-id='7359adad'/>
+      </function-decl>
+      <function-decl name='zs_huge_class_size' mangled-name='zs_huge_class_size' filepath='mm/zsmalloc.c' line='1351' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='zs_huge_class_size'>
+        <parameter type-id='06d9546d' name='pool' filepath='mm/zsmalloc.c' line='1351' column='1'/>
+        <return type-id='b59d7dce'/>
+      </function-decl>
+      <function-decl name='zs_malloc' mangled-name='zs_malloc' filepath='mm/zsmalloc.c' line='1409' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='zs_malloc'>
+        <parameter type-id='06d9546d' name='pool' filepath='mm/zsmalloc.c' line='1409' column='1'/>
+        <parameter type-id='b59d7dce' name='size' filepath='mm/zsmalloc.c' line='1409' column='1'/>
+        <parameter type-id='3eb7c31c' name='gfp' filepath='mm/zsmalloc.c' line='1409' column='1'/>
+        <return type-id='7359adad'/>
+      </function-decl>
+      <function-decl name='zs_map_object' mangled-name='zs_map_object' filepath='mm/zsmalloc.c' line='1241' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='zs_map_object'>
+        <parameter type-id='06d9546d' name='pool' filepath='mm/zsmalloc.c' line='1241' column='1'/>
+        <parameter type-id='7359adad' name='handle' filepath='mm/zsmalloc.c' line='1241' column='1'/>
+        <parameter type-id='e60459a5' name='mm' filepath='mm/zsmalloc.c' line='1242' column='1'/>
+        <return type-id='eaa32e2f'/>
+      </function-decl>
+      <function-decl name='zs_pool_stats' mangled-name='zs_pool_stats' filepath='mm/zsmalloc.c' line='2284' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='zs_pool_stats'>
+        <parameter type-id='06d9546d' name='pool' filepath='mm/zsmalloc.c' line='2284' column='1'/>
+        <parameter type-id='8344857d' name='stats' filepath='mm/zsmalloc.c' line='2284' column='1'/>
+        <return type-id='48b5725f'/>
+      </function-decl>
+      <function-decl name='zs_unmap_object' mangled-name='zs_unmap_object' filepath='mm/zsmalloc.c' line='1300' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='zs_unmap_object'>
+        <parameter type-id='06d9546d' name='pool' filepath='mm/zsmalloc.c' line='1300' column='1'/>
+        <parameter type-id='7359adad' name='handle' filepath='mm/zsmalloc.c' line='1300' column='1'/>
+        <return type-id='48b5725f'/>
+      </function-decl>
     </abi-instr>
+  </abi-corpus>
+  <abi-corpus version='2.1' path='zsmalloc.ko' architecture='elf-arm-aarch64'>
+    <elf-function-symbols>
+      <elf-symbol name='zs_compact' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x5da67adc'/>
+      <elf-symbol name='zs_create_pool' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xbcf1f0e6'/>
+      <elf-symbol name='zs_destroy_pool' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xc69b7ee5'/>
+      <elf-symbol name='zs_free' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x958df3ac'/>
+      <elf-symbol name='zs_get_total_pages' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xcbe56bc2'/>
+      <elf-symbol name='zs_huge_class_size' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x3d8baf3b'/>
+      <elf-symbol name='zs_malloc' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xb29533ee'/>
+      <elf-symbol name='zs_map_object' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xc341ae6d'/>
+      <elf-symbol name='zs_pool_stats' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x7cceaf92'/>
+      <elf-symbol name='zs_unmap_object' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x924c46f8'/>
+    </elf-function-symbols>
   </abi-corpus>
 </abi-corpus-group>
 
