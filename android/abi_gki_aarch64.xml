@@ -387,6 +387,7 @@
       <elf-symbol name='__traceiter_android_vh_printk_caller' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x1a30e90e'/>
       <elf-symbol name='__traceiter_android_vh_printk_caller_id' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x409ea043'/>
       <elf-symbol name='__traceiter_android_vh_printk_ext_header' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x35d0ca61'/>
+      <elf-symbol name='__traceiter_android_vh_regmap_update' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x70e6bb0c'/>
       <elf-symbol name='__traceiter_android_vh_rwsem_init' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x6f754343'/>
       <elf-symbol name='__traceiter_android_vh_rwsem_wake' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x34845374'/>
       <elf-symbol name='__traceiter_android_vh_rwsem_write_finished' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x59dc712f'/>
@@ -32371,7 +32372,7 @@
           <var-decl name='count' type-id='f0981eeb' visibility='default' filepath='include/net/inet_hashtables.h' line='114' column='1'/>
         </data-member>
         <data-member access='public' layout-offset-in-bits='64'>
-          <var-decl name='' type-id='ac5ab679' visibility='default' filepath='include/net/inet_hashtables.h' line='115' column='1'/>
+          <var-decl name='' type-id='ac5ab67d' visibility='default' filepath='include/net/inet_hashtables.h' line='115' column='1'/>
         </data-member>
       </class-decl>
       <pointer-type-def type-id='61675bc7' size-in-bits='64' id='42b5b617'/>
@@ -49781,7 +49782,7 @@
           <var-decl name='rt_gw_family' type-id='f9b06939' visibility='default' filepath='include/net/route.h' line='60' column='1'/>
         </data-member>
         <data-member access='public' layout-offset-in-bits='1056'>
-          <var-decl name='' type-id='ac5ab67b' visibility='default' filepath='include/net/route.h' line='62' column='1'/>
+          <var-decl name='' type-id='ac5ab67a' visibility='default' filepath='include/net/route.h' line='62' column='1'/>
         </data-member>
         <data-member access='public' layout-offset-in-bits='1184'>
           <var-decl name='rt_mtu_locked' type-id='19c2251e' visibility='default' filepath='include/net/route.h' line='68' column='1'/>
@@ -73371,7 +73372,14 @@
           <var-decl name='sk_rcu' type-id='e3d8ce29' visibility='default' filepath='include/net/sock.h' line='540' column='1'/>
         </data-member>
       </class-decl>
-      <class-decl name='unicode_map' is-struct='yes' visibility='default' is-declaration-only='yes' id='a24978a1'/>
+      <class-decl name='unicode_map' size-in-bits='128' is-struct='yes' visibility='default' filepath='include/linux/unicode.h' line='8' column='1' id='a24978a1'>
+        <data-member access='public' layout-offset-in-bits='0'>
+          <var-decl name='charset' type-id='80f4b756' visibility='default' filepath='include/linux/unicode.h' line='9' column='1'/>
+        </data-member>
+        <data-member access='public' layout-offset-in-bits='64'>
+          <var-decl name='version' type-id='95e97e5e' visibility='default' filepath='include/linux/unicode.h' line='10' column='1'/>
+        </data-member>
+      </class-decl>
       <function-type size-in-bits='64' id='a249930e'>
         <parameter type-id='b9608bfc'/>
         <parameter type-id='8efea9e5'/>
@@ -80051,15 +80059,7 @@
           <var-decl name='pppoe' type-id='e7f44042' visibility='default' filepath='include/net/flow_offload.h' line='280' column='1'/>
         </data-member>
       </union-decl>
-      <union-decl name='__anonymous_union__' size-in-bits='64' is-anonymous='yes' visibility='default' filepath='include/net/inet_hashtables.h' line='115' column='1' id='ac5ab679'>
-        <data-member access='public'>
-          <var-decl name='head' type-id='e151255a' visibility='default' filepath='include/net/inet_hashtables.h' line='116' column='1'/>
-        </data-member>
-        <data-member access='public'>
-          <var-decl name='nulls_head' type-id='af86905d' visibility='default' filepath='include/net/inet_hashtables.h' line='117' column='1'/>
-        </data-member>
-      </union-decl>
-      <union-decl name='__anonymous_union__' size-in-bits='128' is-anonymous='yes' visibility='default' filepath='include/net/ip_fib.h' line='89' column='1' id='ac5ab67a'>
+      <union-decl name='__anonymous_union__' size-in-bits='128' is-anonymous='yes' visibility='default' filepath='include/net/ip_fib.h' line='89' column='1' id='ac5ab679'>
         <data-member access='public'>
           <var-decl name='ipv4' type-id='78a133c2' visibility='default' filepath='include/net/ip_fib.h' line='90' column='1'/>
         </data-member>
@@ -80067,7 +80067,7 @@
           <var-decl name='ipv6' type-id='f6ed712a' visibility='default' filepath='include/net/ip_fib.h' line='91' column='1'/>
         </data-member>
       </union-decl>
-      <union-decl name='__anonymous_union__' size-in-bits='128' is-anonymous='yes' visibility='default' filepath='include/net/route.h' line='62' column='1' id='ac5ab67b'>
+      <union-decl name='__anonymous_union__' size-in-bits='128' is-anonymous='yes' visibility='default' filepath='include/net/route.h' line='62' column='1' id='ac5ab67a'>
         <data-member access='public'>
           <var-decl name='rt_gw4' type-id='78a133c2' visibility='default' filepath='include/net/route.h' line='63' column='1'/>
         </data-member>
@@ -80075,7 +80075,7 @@
           <var-decl name='rt_gw6' type-id='f6ed712a' visibility='default' filepath='include/net/route.h' line='64' column='1'/>
         </data-member>
       </union-decl>
-      <union-decl name='__anonymous_union__' size-in-bits='16' is-anonymous='yes' visibility='default' filepath='include/linux/ipv6.h' line='245' column='1' id='ac5ab67c'>
+      <union-decl name='__anonymous_union__' size-in-bits='16' is-anonymous='yes' visibility='default' filepath='include/linux/ipv6.h' line='245' column='1' id='ac5ab67b'>
         <data-member access='public'>
           <var-decl name='bits' type-id='e7f44043' visibility='default' filepath='include/linux/ipv6.h' line='263' column='1'/>
         </data-member>
@@ -80083,12 +80083,20 @@
           <var-decl name='all' type-id='d315442e' visibility='default' filepath='include/linux/ipv6.h' line='264' column='1'/>
         </data-member>
       </union-decl>
-      <union-decl name='__anonymous_union__' size-in-bits='128' is-anonymous='yes' visibility='default' filepath='include/linux/skbuff.h' line='475' column='1' id='ac5ab67d'>
+      <union-decl name='__anonymous_union__' size-in-bits='128' is-anonymous='yes' visibility='default' filepath='include/linux/skbuff.h' line='475' column='1' id='ac5ab67c'>
         <data-member access='public'>
           <var-decl name='' type-id='e7f44044' visibility='default' filepath='include/linux/skbuff.h' line='476' column='1'/>
         </data-member>
         <data-member access='public'>
           <var-decl name='' type-id='e7f44045' visibility='default' filepath='include/linux/skbuff.h' line='480' column='1'/>
+        </data-member>
+      </union-decl>
+      <union-decl name='__anonymous_union__' size-in-bits='64' is-anonymous='yes' visibility='default' filepath='include/net/inet_hashtables.h' line='115' column='1' id='ac5ab67d'>
+        <data-member access='public'>
+          <var-decl name='head' type-id='e151255a' visibility='default' filepath='include/net/inet_hashtables.h' line='116' column='1'/>
+        </data-member>
+        <data-member access='public'>
+          <var-decl name='nulls_head' type-id='af86905d' visibility='default' filepath='include/net/inet_hashtables.h' line='117' column='1'/>
         </data-member>
       </union-decl>
       <union-decl name='__anonymous_union__' size-in-bits='64' is-anonymous='yes' visibility='default' filepath='include/net/ipv6.h' line='322' column='1' id='ac5ab67e'>
@@ -87270,7 +87278,7 @@
           <var-decl name='callback' type-id='f371c6c4' visibility='default' filepath='include/linux/skbuff.h' line='473' column='1'/>
         </data-member>
         <data-member access='public' layout-offset-in-bits='64'>
-          <var-decl name='' type-id='ac5ab67d' visibility='default' filepath='include/linux/skbuff.h' line='475' column='1'/>
+          <var-decl name='' type-id='ac5ab67c' visibility='default' filepath='include/linux/skbuff.h' line='475' column='1'/>
         </data-member>
         <data-member access='public' layout-offset-in-bits='192'>
           <var-decl name='refcnt' type-id='64615833' visibility='default' filepath='include/linux/skbuff.h' line='487' column='1'/>
@@ -88779,7 +88787,7 @@
           <var-decl name='mcast_oif' type-id='95e97e5e' visibility='default' filepath='include/linux/ipv6.h' line='242' column='1'/>
         </data-member>
         <data-member access='public' layout-offset-in-bits='544'>
-          <var-decl name='rxopt' type-id='ac5ab67c' visibility='default' filepath='include/linux/ipv6.h' line='265' column='1'/>
+          <var-decl name='rxopt' type-id='ac5ab67b' visibility='default' filepath='include/linux/ipv6.h' line='265' column='1'/>
         </data-member>
         <data-member access='public' layout-offset-in-bits='560'>
           <var-decl name='recverr' type-id='d315442e' visibility='default' filepath='include/linux/ipv6.h' line='268' column='1'/>
@@ -105515,7 +105523,7 @@
           <var-decl name='nhc_lwtstate' type-id='d19f4fca' visibility='default' filepath='include/net/ip_fib.h' line='87' column='1'/>
         </data-member>
         <data-member access='public' layout-offset-in-bits='192'>
-          <var-decl name='nhc_gw' type-id='ac5ab67a' visibility='default' filepath='include/net/ip_fib.h' line='92' column='1'/>
+          <var-decl name='nhc_gw' type-id='ac5ab679' visibility='default' filepath='include/net/ip_fib.h' line='92' column='1'/>
         </data-member>
         <data-member access='public' layout-offset-in-bits='320'>
           <var-decl name='nhc_weight' type-id='95e97e5e' visibility='default' filepath='include/net/ip_fib.h' line='94' column='1'/>
@@ -124110,6 +124118,12 @@
         <parameter type-id='b59d7dce' name='size' filepath='include/trace/hooks/printk.h' line='22' column='1'/>
         <parameter type-id='19c2251e' name='id' filepath='include/trace/hooks/printk.h' line='22' column='1'/>
         <parameter type-id='7292109c' name='ret' filepath='include/trace/hooks/printk.h' line='22' column='1'/>
+        <return type-id='95e97e5e'/>
+      </function-decl>
+      <function-decl name='__traceiter_android_vh_regmap_update' mangled-name='__traceiter_android_vh_regmap_update' filepath='include/trace/hooks/regmap.h' line='18' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='__traceiter_android_vh_regmap_update'>
+        <parameter type-id='eaa32e2f' name='__data' filepath='include/trace/hooks/regmap.h' line='18' column='1'/>
+        <parameter type-id='9d19d4a7' name='config' filepath='include/trace/hooks/regmap.h' line='18' column='1'/>
+        <parameter type-id='29af9a71' name='map' filepath='include/trace/hooks/regmap.h' line='18' column='1'/>
         <return type-id='95e97e5e'/>
       </function-decl>
       <function-decl name='__traceiter_android_vh_rwsem_init' mangled-name='__traceiter_android_vh_rwsem_init' filepath='include/trace/hooks/rwsem.h' line='15' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='__traceiter_android_vh_rwsem_init'>
