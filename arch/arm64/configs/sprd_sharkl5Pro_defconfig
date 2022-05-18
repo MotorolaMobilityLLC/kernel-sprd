@@ -4023,6 +4023,11 @@ CONFIG_USB_DWC3=y
 CONFIG_USB_DWC3_DUAL_ROLE=y
 
 #
+# SPRD DWC3 CORE
+#
+# CONFIG_USB_DWC3_SPRD_CORE is not set
+
+#
 # Platform Glue Driver Support
 #
 CONFIG_USB_DWC3_HAPS=y

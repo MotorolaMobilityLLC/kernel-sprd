@@ -3,9 +3,7 @@
 CFLAGS_trace.o				:= -I$(src)
 
 obj-$(CONFIG_USB_DWC3)			+= dwc3.o
-
 dwc3-y					:= core.o
-
 ifneq ($(CONFIG_TRACING),)
 	dwc3-y				+= trace.o
 endif
@@ -29,6 +27,11 @@ endif
 ifneq ($(CONFIG_DEBUG_FS),)
 	dwc3-y				+= debugfs.o
 endif
+
+##
+# SPRD Core
+# #
+obj-$(CONFIG_USB_DWC3_SPRD_CORE)	+= sprd/
 
 ##
 # Platform-specific glue layers go here
