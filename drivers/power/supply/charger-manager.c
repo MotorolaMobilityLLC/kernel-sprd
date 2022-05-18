@@ -2432,29 +2432,45 @@ static void cm_cp_state_change(struct charger_manager *cm, int state)
 	dev_dbg(cm->dev, "%s, current cp_state = %d\n", __func__, state);
 }
 
-static bool cm_cp_master_charger_enable(struct charger_manager *cm, bool enable)
+static int cm_cp_charger_enable_one(struct charger_manager *cm, bool enable, const char *psy_name)
 {
 	union power_supply_propval val;
 	struct power_supply *cp_psy;
-	int ret;
+	int ret = 0;
 
-	if (!cm->desc->psy_cp_stat)
-		return false;
-
-	cp_psy = power_supply_get_by_name(cm->desc->psy_cp_stat[0]);
+	cp_psy = power_supply_get_by_name(psy_name);
 	if (!cp_psy) {
-		dev_err(cm->dev, "Cannot find charge pump power supply \"%s\"\n",
-				cm->desc->psy_cp_stat[0]);
-		return false;
+		dev_err(cm->dev, "Cannot find charge pump power supply \"%s\"\n", psy_name);
+		return ret;
 	}
 
 	val.intval = enable;
 	ret = power_supply_set_property(cp_psy, POWER_SUPPLY_PROP_CALIBRATE, &val);
 	power_supply_put(cp_psy);
-	if (ret) {
-		dev_err(cm->dev, "failed to %s master charge pump, ret = %d\n",
-			enable ? "enabel" : "disable", ret);
-		return false;
+	if (ret)
+		dev_err(cm->dev, "failed to %s %s charge pump, ret = %d\n",
+			enable ? "enabel" : "disable", psy_name, ret);
+
+	return ret;
+}
+
+static bool cm_cp_charger_enable(struct charger_manager *cm, bool enable)
+{
+	int i;
+
+	if (!cm->desc->psy_cp_stat)
+		return true;
+
+	if (enable) {
+		for (i = 0; cm->desc->psy_cp_stat[i]; i++) {
+			if (cm_cp_charger_enable_one(cm, enable, cm->desc->psy_cp_stat[i]))
+				return false;
+		}
+	} else {
+		for (i = cm->desc->cp_nums - 1; cm->desc->psy_cp_stat[i]; i--) {
+			if (cm_cp_charger_enable_one(cm, enable, cm->desc->psy_cp_stat[i]))
+				return false;
+		}
 	}
 
 	return true;
@@ -2576,7 +2592,7 @@ static bool cm_check_primary_charger_enabled(struct charger_manager *cm)
 
 static bool cm_check_cp_charger_enabled(struct charger_manager *cm)
 {
-	int ret;
+	int ret, i;
 	bool enabled = false;
 	union power_supply_propval val = {0,};
 	struct power_supply *cp_psy;
@@ -2584,17 +2600,30 @@ static bool cm_check_cp_charger_enabled(struct charger_manager *cm)
 	if (!cm->desc->psy_cp_stat)
 		return false;
 
-	cp_psy = power_supply_get_by_name(cm->desc->psy_cp_stat[0]);
-	if (!cp_psy) {
-		dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
-			cm->desc->psy_cp_stat[0]);
-		return false;
-	}
+	for (i = 0; cm->desc->psy_cp_stat[i]; i++) {
+		cp_psy = power_supply_get_by_name(cm->desc->psy_cp_stat[i]);
+		if (!cp_psy) {
+			dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
+				cm->desc->psy_cp_stat[i]);
+			continue;
+		}
 
-	ret = power_supply_get_property(cp_psy, POWER_SUPPLY_PROP_CALIBRATE, &val);
-	power_supply_put(cp_psy);
-	if (!ret)
-		enabled = !!val.intval;
+		ret = power_supply_get_property(cp_psy, POWER_SUPPLY_PROP_CALIBRATE, &val);
+		power_supply_put(cp_psy);
+		if (!ret) {
+			enabled = !!val.intval;
+			if (!enabled) {
+				dev_dbg(cm->dev, "%s: cp charger enabled status of %s is disabled\n",
+					__func__, cm->desc->psy_cp_stat[i]);
+				break;
+			}
+		} else {
+			enabled = false;
+			dev_err(cm->dev, "%s: fail to get cp charger enabled status of %s\n",
+				__func__, cm->desc->psy_cp_stat[i]);
+			break;
+		}
+	}
 
 	dev_dbg(cm->dev, "%s: %s\n", __func__, enabled ? "enabled" : "disabled");
 
@@ -2688,7 +2717,7 @@ static void cm_check_cp_fault_status(struct charger_manager *cm)
 	struct cm_charge_pump_status *cp = &cm->desc->cp;
 	struct power_supply *psy;
 	union power_supply_propval val;
-	int ret;
+	int ret, i;
 
 	if (!cm->desc->psy_cp_stat || !cm->desc->cm_check_int)
 		return;
@@ -2698,31 +2727,37 @@ static void cm_check_cp_fault_status(struct charger_manager *cm)
 	cm->desc->cm_check_int = false;
 	cp->cp_fault_event = true;
 
-	psy = power_supply_get_by_name(cm->desc->psy_cp_stat[0]);
-	if (!psy) {
-		dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
-			cm->desc->psy_cp_stat[0]);
-		return;
-	}
+	for (i = 0; cm->desc->psy_cp_stat[i]; i++) {
+		psy = power_supply_get_by_name(cm->desc->psy_cp_stat[i]);
+		if (!psy) {
+			dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
+				cm->desc->psy_cp_stat[i]);
+			continue;
+		}
 
-	val.intval = CM_FAULT_HEALTH_CMD;
-	ret = power_supply_get_property(psy, POWER_SUPPLY_PROP_HEALTH, &val);
-	if (!ret) {
-		cp->flt.bat_ovp_fault = !!(val.intval & CM_CHARGER_BAT_OVP_FAULT_MASK);
-		cp->flt.bat_ocp_fault = !!(val.intval & CM_CHARGER_BAT_OCP_FAULT_MASK);
-		cp->flt.bus_ovp_fault = !!(val.intval & CM_CHARGER_BUS_OVP_FAULT_MASK);
-		cp->flt.bus_ocp_fault = !!(val.intval & CM_CHARGER_BUS_OCP_FAULT_MASK);
-		cp->flt.bat_therm_fault = !!(val.intval & CM_CHARGER_BAT_THERM_FAULT_MASK);
-		cp->flt.bus_therm_fault = !!(val.intval & CM_CHARGER_BUS_THERM_FAULT_MASK);
-		cp->flt.die_therm_fault = !!(val.intval & CM_CHARGER_DIE_THERM_FAULT_MASK);
-		cp->alm.bat_ovp_alarm = !!(val.intval & CM_CHARGER_BAT_OVP_ALARM_MASK);
-		cp->alm.bat_ocp_alarm = !!(val.intval & CM_CHARGER_BAT_OCP_ALARM_MASK);
-		cp->alm.bus_ovp_alarm = !!(val.intval & CM_CHARGER_BUS_OVP_ALARM_MASK);
-		cp->alm.bus_ocp_alarm = !!(val.intval & CM_CHARGER_BUS_OCP_ALARM_MASK);
-		cp->alm.bat_therm_alarm = !!(val.intval & CM_CHARGER_BAT_THERM_ALARM_MASK);
-		cp->alm.bus_therm_alarm = !!(val.intval & CM_CHARGER_BUS_THERM_ALARM_MASK);
-		cp->alm.die_therm_alarm = !!(val.intval & CM_CHARGER_DIE_THERM_ALARM_MASK);
-		cp->alm.bat_ucp_alarm = !!(val.intval & CM_CHARGER_BAT_UCP_ALARM_MASK);
+		val.intval = CM_FAULT_HEALTH_CMD;
+		ret = power_supply_get_property(psy, POWER_SUPPLY_PROP_HEALTH, &val);
+		power_supply_put(psy);
+		if (!ret) {
+			cp->flt.bat_ovp_fault = !!(val.intval & CM_CHARGER_BAT_OVP_FAULT_MASK);
+			cp->flt.bat_ocp_fault = !!(val.intval & CM_CHARGER_BAT_OCP_FAULT_MASK);
+			cp->flt.bus_ovp_fault = !!(val.intval & CM_CHARGER_BUS_OVP_FAULT_MASK);
+			cp->flt.bus_ocp_fault = !!(val.intval & CM_CHARGER_BUS_OCP_FAULT_MASK);
+			cp->flt.bat_therm_fault = !!(val.intval & CM_CHARGER_BAT_THERM_FAULT_MASK);
+			cp->flt.bus_therm_fault = !!(val.intval & CM_CHARGER_BUS_THERM_FAULT_MASK);
+			cp->flt.die_therm_fault = !!(val.intval & CM_CHARGER_DIE_THERM_FAULT_MASK);
+			cp->alm.bat_ovp_alarm = !!(val.intval & CM_CHARGER_BAT_OVP_ALARM_MASK);
+			cp->alm.bat_ocp_alarm = !!(val.intval & CM_CHARGER_BAT_OCP_ALARM_MASK);
+			cp->alm.bus_ovp_alarm = !!(val.intval & CM_CHARGER_BUS_OVP_ALARM_MASK);
+			cp->alm.bus_ocp_alarm = !!(val.intval & CM_CHARGER_BUS_OCP_ALARM_MASK);
+			cp->alm.bat_therm_alarm = !!(val.intval & CM_CHARGER_BAT_THERM_ALARM_MASK);
+			cp->alm.bus_therm_alarm = !!(val.intval & CM_CHARGER_BUS_THERM_ALARM_MASK);
+			cp->alm.die_therm_alarm = !!(val.intval & CM_CHARGER_DIE_THERM_ALARM_MASK);
+			cp->alm.bat_ucp_alarm = !!(val.intval & CM_CHARGER_BAT_UCP_ALARM_MASK);
+		} else {
+			dev_err(cm->dev, "failed to get fault status of  %s, ret = %d\n",
+				cm->desc->psy_cp_stat[i], ret);
+		}
 	}
 }
 
@@ -2789,7 +2824,7 @@ static void cm_cp_check_vbus_status(struct charger_manager *cm)
 	struct cm_fault_status *fault = &cm->desc->cp.flt;
 	union power_supply_propval val;
 	struct power_supply *cp_psy;
-	int ret;
+	int ret, i;
 
 	fault->vbus_error_lo = false;
 	fault->vbus_error_hi = false;
@@ -2797,23 +2832,25 @@ static void cm_cp_check_vbus_status(struct charger_manager *cm)
 	if (!cm->desc->psy_cp_stat || !cm->desc->cp.cp_running)
 		return;
 
-	cp_psy = power_supply_get_by_name(cm->desc->psy_cp_stat[0]);
-	if (!cp_psy) {
-		dev_err(cm->dev, "Cannot find charge pump power supply \"%s\"\n",
-				cm->desc->psy_cp_stat[0]);
-		return;
-	}
+	for (i = 0; cm->desc->psy_cp_stat[i]; i++) {
+		cp_psy = power_supply_get_by_name(cm->desc->psy_cp_stat[i]);
+		if (!cp_psy) {
+			dev_err(cm->dev, "Cannot find charge pump power supply \"%s\"\n",
+				cm->desc->psy_cp_stat[i]);
+			continue;
+		}
 
-	val.intval = CM_BUS_ERR_HEALTH_CMD;
-	ret = power_supply_get_property(cp_psy, POWER_SUPPLY_PROP_HEALTH, &val);
-	power_supply_put(cp_psy);
-	if (ret) {
-		dev_err(cm->dev, "failed to get vbus status, ret = %d\n", ret);
-		return;
+		val.intval = CM_BUS_ERR_HEALTH_CMD;
+		ret = power_supply_get_property(cp_psy, POWER_SUPPLY_PROP_HEALTH, &val);
+		power_supply_put(cp_psy);
+		if (!ret) {
+			fault->vbus_error_lo = !!(val.intval & CM_CHARGER_BUS_ERR_LO_MASK);
+			fault->vbus_error_hi = !!(val.intval & CM_CHARGER_BUS_ERR_HI_MASK);
+		} else {
+			dev_err(cm->dev, "failed to get vbus status of  %s, ret = %d\n",
+				cm->desc->psy_cp_stat[i], ret);
+		}
 	}
-
-	fault->vbus_error_lo = !!(val.intval & CM_CHARGER_BUS_ERR_LO_MASK);
-	fault->vbus_error_hi = !!(val.intval & CM_CHARGER_BUS_ERR_HI_MASK);
 }
 
 static void cm_check_target_ibus(struct charger_manager *cm)
@@ -3058,7 +3095,7 @@ static void cm_cp_state_entry(struct charger_manager *cm)
 		return;
 	}
 
-	cm_cp_master_charger_enable(cm, false);
+	cm_cp_charger_enable(cm, false);
 	cm_primary_charger_enable(cm, false);
 	cm_ir_compensation_enable(cm, false);
 
@@ -3105,7 +3142,7 @@ static void cm_cp_state_entry(struct charger_manager *cm)
 				   CM_CHARGE_INFO_THERMAL_LIMIT |
 				   CM_CHARGE_INFO_JEITA_LIMIT));
 
-	cm_cp_master_charger_enable(cm, true);
+	cm_cp_charger_enable(cm, true);
 
 	cm->desc->cp.tune_vbus_retry = 0;
 	primary_charger_dis_retry = 0;
@@ -3159,7 +3196,7 @@ static void cm_cp_state_check_vbus(struct charger_manager *cm)
 		cm_cp_state_change(cm, CM_CP_STATE_TUNE);
 
 		if (!cm_check_cp_charger_enabled(cm))
-			cm_cp_master_charger_enable(cm, true);
+			cm_cp_charger_enable(cm, true);
 
 		cm->desc->cm_check_fault = true;
 		return;
@@ -3250,7 +3287,7 @@ static void cm_cp_state_exit(struct charger_manager *cm)
 	dev_info(cm->dev, "cm_cp_state_machine: state %d, %s\n",
 		 cp->cp_state, cm_cp_state_names[cp->cp_state]);
 
-	if (!cm_cp_master_charger_enable(cm, false))
+	if (!cm_cp_charger_enable(cm, false))
 		return;
 
 	/* Hardreset will request 5V/2A or 5V/3A default.
@@ -5653,12 +5690,12 @@ static ssize_t charge_pump_present_store(struct device *dev,
 			return -EINVAL;
 		}
 
-		cm_cp_master_charger_enable(cm, true);
+		cm_cp_charger_enable(cm, true);
 		if (!cm_check_cp_charger_enabled(cm))
 			dev_err(cm->dev, "Fail to enable charge pump\n");
 	} else {
-		if (!cm_cp_master_charger_enable(cm, false))
-			dev_err(cm->dev, "Fail to disable master charge pump\n");
+		if (!cm_cp_charger_enable(cm, false))
+			dev_err(cm->dev, "Fail to disable charge pump\n");
 	}
 
 	return count;

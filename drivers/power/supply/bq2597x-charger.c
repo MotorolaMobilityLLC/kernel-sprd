@@ -2068,15 +2068,15 @@ static int bq2597x_charger_probe(struct i2c_client *client,
 		return ret;
 
 	if (gpio_is_valid(bq->int_pin)) {
-		ret = devm_gpio_request_one(bq->dev, bq->int_pin,
-					    GPIOF_DIR_IN, "bq2597x_int");
+		ret = devm_gpio_request_one(bq->dev, bq->int_pin, GPIOF_DIR_IN, "bq2597x_int");
 		if (ret) {
 			dev_err(bq->dev, "int request failed\n");
 			goto err_1;
 		}
+
+		client->irq =  gpio_to_irq(bq->int_pin);
 	}
 
-	client->irq =  gpio_to_irq(bq->int_pin);
 	if (client->irq) {
 		ret = devm_request_threaded_irq(&client->dev, client->irq,
 						NULL, bq2597x_charger_interrupt,
