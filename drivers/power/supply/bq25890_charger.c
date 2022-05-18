@@ -510,7 +510,6 @@ struct bq25890_charger_info {
 	u32 charger_pd;
 	u32 charger_pd_mask;
 	struct gpio_desc *gpiod;
-	struct extcon_dev *edev;
 	u32 last_limit_current;
 	u32 role;
 	bool need_disable_Q1;
@@ -1295,14 +1294,6 @@ static int bq25890_charger_usb_get_property(struct power_supply *psy,
 		val->intval = !(enabled & info->charger_pd_mask);
 		break;
 
-	case POWER_SUPPLY_PROP_PRESENT:
-		info->is_charger_online = val->intval;
-		if (val->intval == true)
-			schedule_delayed_work(&info->wdt_work, 0);
-		else
-			cancel_delayed_work_sync(&info->wdt_work);
-		break;
-
 	default:
 		ret = -EINVAL;
 	}
@@ -1372,6 +1363,15 @@ static int bq25890_charger_usb_set_property(struct power_supply *psy,
 			bq25890_charger_stop_charge(info, present);
 		}
 		break;
+
+	case POWER_SUPPLY_PROP_PRESENT:
+		info->is_charger_online = val->intval;
+		if (val->intval == true)
+			schedule_delayed_work(&info->wdt_work, 0);
+		else
+			cancel_delayed_work_sync(&info->wdt_work);
+		break;
+
 	default:
 		ret = -EINVAL;
 	}
@@ -1651,12 +1651,6 @@ static int bq25890_charger_probe(struct i2c_client *client,
 	mutex_init(&info->lock);
 
 	i2c_set_clientdata(client, info);
-
-	info->edev = extcon_get_edev_by_phandle(info->dev, 0);
-	if (IS_ERR(info->edev)) {
-		dev_err(dev, "failed to find vbus extcon device.\n");
-		return PTR_ERR(info->edev);
-	}
 
 	ret = bq25890_charger_is_fgu_present(info);
 	if (ret) {
