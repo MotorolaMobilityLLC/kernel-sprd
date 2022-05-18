@@ -738,15 +738,6 @@ static int eta6937_charger_usb_get_property(struct power_supply *psy,
 		}
 		break;
 
-	case POWER_SUPPLY_PROP_PRESENT:
-		info->is_charger_online = val->intval;
-		if (val->intval == true)
-			schedule_delayed_work(&info->wdt_work, 0);
-		else
-			cancel_delayed_work_sync(&info->wdt_work);
-
-		break;
-
 	default:
 		ret = -EINVAL;
 	}
@@ -761,7 +752,7 @@ static int eta6937_charger_usb_set_property(struct power_supply *psy,
 					    const union power_supply_propval *val)
 {
 	struct eta6937_charger_info *info = power_supply_get_drvdata(psy);
-	int ret;
+	int ret = 0;
 
 	if (!info) {
 		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
@@ -792,6 +783,14 @@ static int eta6937_charger_usb_set_property(struct power_supply *psy,
 		ret = eta6937_charger_set_termina_vol(info, val->intval / 1000);
 		if (ret < 0)
 			dev_err(info->dev, "failed to set terminate voltage\n");
+		break;
+
+	case POWER_SUPPLY_PROP_PRESENT:
+		info->is_charger_online = val->intval;
+		if (val->intval == true)
+			schedule_delayed_work(&info->wdt_work, 0);
+		else
+			cancel_delayed_work_sync(&info->wdt_work);
 		break;
 
 	default:
