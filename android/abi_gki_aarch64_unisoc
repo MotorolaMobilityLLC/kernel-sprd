@@ -354,6 +354,9 @@
   free_pages_exact
   free_percpu
   freezing_slow_path
+  freq_qos_add_request
+  freq_qos_remove_request
+  freq_qos_update_request
   fs_bio_set
   fs_ftype_to_dtype
   fsync_bdev
