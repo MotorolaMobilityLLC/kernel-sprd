@@ -974,16 +974,16 @@ static int wcn_sipc_chn_deinit(struct mchn_ops_t *ops)
 	WCN_INFO("[%s]:index[%d] chn[%d], sipc_chn->ops = null.\n", __func__, idx, sipc_chn->chn);
 
 	bus_chn_deinit(ops);
-
+	/* only destroy when chn created fail so it can create again.  */
 	if (SIPC_CHN_TYPE_SBLK(idx)) {
-		if (SIPC_CHN_STATUS(sipc_chn->chn) == SIPC_CHANNEL_CREATED) {
-
+		if (SIPC_CHN_DIR_TX(idx) && wcn_sipc_sblk_chn_rx_status_check(idx) != 0) {
 			sblock_destroy(sipc_chn->dst, sipc_chn->chn);
 			SIPC_CHN_STATUS(sipc_chn->chn) = SIPC_CHANNEL_UNCREATED;
+			WCN_INFO("sipc chn[%d] deinit and destroy!\n", idx);
 		}
 	}
 
-	/* don't release sipc resource for now */
+	/* for chn created success,we don't release sipc resource for now */
 	WCN_INFO("sipc chn[%d] deinit success!\n", idx);
 
 	return 0;
