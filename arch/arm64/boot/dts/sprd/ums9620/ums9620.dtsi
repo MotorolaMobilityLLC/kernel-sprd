@@ -301,3 +301,4 @@
 #include "spi.dtsi"
 #include "uart.dtsi"
 #include "ufs.dtsi"
+#include "sdio.dtsi"

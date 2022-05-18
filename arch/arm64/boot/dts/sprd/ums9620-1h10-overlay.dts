@@ -1,5 +1,6 @@
 /dts-v1/;
 /plugin/;
+#include <dt-bindings/gpio/gpio.h>
 #include "reserved-memory/modem-5g-common.dtsi"
 #include "reserved-memory/ums9620-1h10-overlay.dtsi"
 
@@ -92,4 +93,8 @@
 		label = "carveout_fd";
 		memory-region = <&fd_reserved>;
 	};
+};
+
+&sdio0 {
+	cd-gpios = <&eic_sync 35 GPIO_ACTIVE_HIGH>;
 };
