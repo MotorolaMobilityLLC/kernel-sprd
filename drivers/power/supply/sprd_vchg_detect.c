@@ -135,12 +135,19 @@ static void sprd_vchg_detect_status(struct sprd_vchg_info *info)
 static int sprd_vchg_pd_extcon_event(struct notifier_block *nb, unsigned long event, void *param)
 {
 	struct sprd_vchg_info *info = container_of(nb, struct sprd_vchg_info, pd_extcon_nb);
+	int pd_extcon_status;
 
 
 	if (info->pd_hard_reset) {
 		dev_info(info->dev, "%s: Already receive USB PD hardreset\n", SPRD_VCHG_TAG);
 		return NOTIFY_OK;
 	}
+
+	pd_extcon_status = extcon_get_state(info->pd_extcon, EXTCON_CHG_USB_PD);
+	if (pd_extcon_status == info->pd_extcon_status)
+		return NOTIFY_OK;
+
+	info->pd_extcon_status = pd_extcon_status;
 
 	info->pd_hard_reset = true;
 
@@ -202,7 +209,8 @@ static void sprd_vchg_detect_pd_extcon_status(struct sprd_vchg_info *info)
 	if (!info->pd_extcon_enable)
 		return;
 
-	if (extcon_get_state(info->pd_extcon, EXTCON_CHG_USB_PD)) {
+	info->pd_extcon_status = extcon_get_state(info->pd_extcon, EXTCON_CHG_USB_PD);
+	if (info->pd_extcon_status) {
 		info->pd_hard_reset = true;
 		dev_info(info->dev, "%s: Detect USB PD hard reset request\n", SPRD_VCHG_TAG);
 		schedule_delayed_work(&info->pd_hard_reset_work,
