@@ -211,6 +211,7 @@ int dev_pm_opp_of_add_table_binning(int cluster,
 	u32 binning = 0, binning_low_volt = 0;
 	const __be32 *val;
 	int nr;
+	char *str_ret;
 
 	if ((!dev && !np_cpufreq_in) || !cdata) {
 		pr_err("empty input parameter\n");
@@ -271,6 +272,11 @@ int dev_pm_opp_of_add_table_binning(int cluster,
 
 	pr_debug("opp_string[%s]\n", opp_string);
 
+ 	str_ret = strstr(opp_string, "T700");
+ 	if (str_ret != NULL)
+ 		strcpy(opp_string, "operating-points-T700");
+ 	pr_emerg("opp_string[%s]\n", opp_string);
+ 
 	prop = of_find_property(np_cpufreq, opp_string, NULL);
 	if (!prop || !prop->value) {
 		pr_err("%s: not found opp_string\n", __func__);
