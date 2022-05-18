@@ -73,7 +73,7 @@ static void sprd_rx_callback(struct mbox_client *client, void *message)
 		dev_err(dev, "receive data is null !\n");
 	} else {
 		msg = (struct smsg *)&data;
-		smsg_msg_process(ipc, msg, 1);
+		smsg_msg_process(ipc, msg, true);
 	}
 }
 
@@ -90,8 +90,27 @@ static void sprd_sensor_rx_callback(struct mbox_client *client, void *message)
 		dev_err(dev, "receive data is null !\n");
 	} else {
 		msg = (struct smsg *)&data;
-		smsg_msg_process(ipc, msg, 0);
+		smsg_msg_process(ipc, msg, false);
 	}
+}
+
+static void sprd_wcn_mbox_rx_callback(struct mbox_client *client, void *message)
+{
+	struct smsg_ipc *ipc  = dev_get_drvdata(client->dev);
+	struct smsg *msg = NULL;
+	struct device *dev = client->dev;
+	u64 data;
+
+	data = sprd_u32_to_u64(message);
+	if (!data) {
+		dev_err(dev, "receive data is null !\n");
+	} else {
+		msg = (struct smsg *)&data;
+		if (msg->channel == SMSG_CH_DATA0)
+			return smsg_msg_process(ipc, msg, false);
+		else
+			return smsg_msg_process(ipc, msg, true);
+		}
 }
 
 static int sprd_get_smem_info(struct device *dev,
@@ -195,10 +214,15 @@ static int sprd_ipc_probe(struct platform_device *pdev)
 	 * Not notify the client,so not use tx_done
 	 */
 	ipc->cl.tx_done = NULL;
-	ipc->cl.rx_callback = sprd_rx_callback;
+	if (ipc->dst == SIPC_ID_WCN) {
+		ipc->cl.rx_callback = sprd_wcn_mbox_rx_callback;
+		dev_info(dev, "register wcn mbox rx callback\n");
+	} else {
+		ipc->cl.rx_callback = sprd_rx_callback;
+	}
 	ipc->chan = mbox_request_channel(&ipc->cl, 0);
 	if (IS_ERR(ipc->chan)) {
-		dev_err(dev, "failed to sipc mailbox\n");
+		dev_err(dev, "failed to sipc mailbox, dst = %d\n", ipc->dst);
 		ret = PTR_ERR(ipc->chan);
 		goto out;
 	}
