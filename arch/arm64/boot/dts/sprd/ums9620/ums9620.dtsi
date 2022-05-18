@@ -265,6 +265,13 @@
 			ranges = <0 0 0x20000000 0x22d0040>;
 		};
 
+		mm: mm {
+			compatible = "simple-bus";
+			#address-cells = <2>;
+			#size-cells = <2>;
+			ranges;
+		};
+
 		aon: aon {
 			compatible = "simple-bus";
 			#address-cells = <1>;
@@ -321,6 +328,7 @@
 #include "efuse.dtsi"
 #include "glbreg.dtsi"
 #include "gpio.dtsi"
+#include "gpu-natt.dtsi"
 #include "i2c.dtsi"
 #include "spi.dtsi"
 #include "uart.dtsi"
