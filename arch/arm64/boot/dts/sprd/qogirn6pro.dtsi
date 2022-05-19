@@ -6,6 +6,7 @@
  */
 
 #include <dt-bindings/clock/sprd,ums9620-clk.h>
+#include <dt-bindings/reset/sprd,ums9620-reset.h>
 #include <dt-bindings/soc/sprd,qogirn6pro-regs.h>
 #include <dt-bindings/soc/sprd,qogirn6pro-mask.h>
 #include <dt-bindings/sound/sprd,sprd-dai.h>

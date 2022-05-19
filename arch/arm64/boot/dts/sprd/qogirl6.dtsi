@@ -6,6 +6,7 @@
  */
 
 #include <dt-bindings/clock/sprd,ums9230-clk.h>
+#include <dt-bindings/reset/sprd,ums9230-reset.h>
 #include <dt-bindings/soc/sprd,qogirl6-regs.h>
 #include <dt-bindings/soc/sprd,qogirl6-mask.h>
 #include <dt-bindings/debug/busmonitor/busmonitor.h>

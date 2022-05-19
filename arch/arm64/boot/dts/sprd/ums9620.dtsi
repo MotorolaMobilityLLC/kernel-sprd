@@ -278,6 +278,7 @@
 			clocks = <&ext_26m>;
 			clock-names = "ext-26m";
 			#clock-cells = <1>;
+			#reset-cells = <1>;
 		};
 
 		g1_pll: g1-pll {
@@ -342,6 +343,7 @@
 			clocks = <&ext_26m>;
 			clock-names = "ext-26m";
 			#clock-cells = <1>;
+			#reset-cells = <1>;
 		};
 
 		ap_clk: clock-controller@20010000 {
@@ -358,6 +360,7 @@
 			clocks = <&ext_26m>;
 			clock-names = "ext-26m";
 			#clock-cells = <1>;
+			#reset-cells = <1>;
 		};
 
 		aonapb_gate: aonapb-gate {
@@ -366,6 +369,7 @@
 			clocks = <&ext_26m>;
 			clock-names = "ext-26m";
 			#clock-cells = <1>;
+			#reset-cells = <1>;
 		};
 
 		aonapb_clk: clock-controller@64920000 {
@@ -390,6 +394,7 @@
 			clocks = <&ext_26m>;
 			clock-names = "ext-26m";
 			#clock-cells = <1>;
+			#reset-cells = <1>;
 		};
 
 		gpu_clk: clock-controller@23010000 {
@@ -406,6 +411,7 @@
 			clocks = <&ext_26m>;
 			clock-names = "ext-26m";
 			#clock-cells = <1>;
+			#reset-cells = <1>;
 		};
 
 		ipa_clk: clock-controller@25010000 {
@@ -422,6 +428,7 @@
 			clocks = <&ext_26m>;
 			clock-names = "ext-26m";
 			#clock-cells = <1>;
+			#reset-cells = <1>;
 		};
 
 		ipadispc_gate: clock-controller@31800000 {
@@ -430,6 +437,7 @@
 			clocks = <&ext_26m>;
 			clock-names = "ext_26m";
 			#clock-cells = <1>;
+			#reset-cells = <1>;
 		};
 
 		pcieapb_gate: clock-controller@26000000 {
@@ -438,6 +446,7 @@
 			clocks = <&ext_26m>;
 			clock-names = "ext-26m";
 			#clock-cells = <1>;
+			#reset-cells = <1>;
 			status = "disable";
 		};
 
@@ -456,6 +465,7 @@
 			clocks = <&ext_26m>;
 			clock-names = "ext-26m";
 			#clock-cells = <1>;
+			#reset-cells = <1>;
 		};
 
 		ai_clk: clock-controller@27004000 {
@@ -483,6 +493,7 @@
 			clocks = <&ext_26m>;
 			clock-names = "ext-26m";
 			#clock-cells = <1>;
+			#reset-cells = <1>;
 		};
 
 		mm_clk: clock-controller@30010000 {
@@ -499,6 +510,7 @@
 			clocks = <&ext_26m>;
 			clock-names = "ext-26m";
 			#clock-cells = <1>;
+			#reset-cells = <1>;
 		};
 
 		dpu_vsp_clk: clock-controller@30110000 {
@@ -515,6 +527,7 @@
 			clocks = <&ext_26m>;
 			clock-names = "ext-26m";
 			#clock-cells = <1>;
+			#reset-cells = <1>;
 		};
 
 		audcpapb_gate: clock-controller@56390000 {
@@ -523,6 +536,7 @@
 			clocks = <&ext_26m>;
 			clock-names = "ext-26m";
 			#clock-cells = <1>;
+			#reset-cells = <1>;
 		};
 
 		/*    etm

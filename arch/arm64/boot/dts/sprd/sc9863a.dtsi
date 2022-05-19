@@ -242,6 +242,7 @@
 			compatible = "sprd,sc9863a-apahb-gate";
 			sprd,syscon = <&ap_ahb_regs>; /* 0x20e00000 */
 			#clock-cells = <1>;
+			#reset-cells = <1>;
 		};
 
 		ap_clk: clock-controller@21500000 {
@@ -258,6 +259,7 @@
 			clocks = <&ext_26m>;
 			clock-names = "ext-26m";
 			#clock-cells = <1>;
+			#reset-cells = <1>;
 		};
 
 		aon_clk: clock-controller@402d0000 {
@@ -274,6 +276,7 @@
 			compatible = "sprd,sc9863a-aonapb-gate";
 			sprd,syscon = <&aon_apb_regs>; /* 0x402e0000 */
 			#clock-cells = <1>;
+			#reset-cells = <1>;
 		};
 
 		pll: pll {
@@ -308,6 +311,7 @@
 			compatible = "sprd,sc9863a-mm-gate";
 			sprd,syscon = <&mm_ahb_regs>; /* 0x60800000 */
 			#clock-cells = <1>;
+			#reset-cells = <1>;
 		};
 
 		mm_clk: clock-controller@60900000 {
@@ -330,6 +334,7 @@
 					MASK_PMU_APB_PD_MM_VSP_FORCE_SHUTDOWN>;
 			syscon-names = "enable", "power";
 			#clock-cells = <1>;
+			#reset-cells = <1>;
 		};
 
 		apapb_gate: apapb-gate {
@@ -338,6 +343,7 @@
 			clocks = <&ext_26m>;
 			clock-names = "ext-26m";
 			#clock-cells = <1>;
+			#reset-cells = <1>;
 		};
 
 		funnel@10001000 {
