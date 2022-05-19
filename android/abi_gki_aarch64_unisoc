@@ -1106,6 +1106,7 @@
   extcon_get_extcon_dev
   usb_gadget_map_request_by_dev
   usb_gadget_set_state
+  usb_decode_ctrl
 
 # required by exfat.ko
   __blockdev_direct_IO
