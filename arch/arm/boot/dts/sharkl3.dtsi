@@ -8,6 +8,7 @@
 #include <dt-bindings/soc/sprd,sharkl3-regs.h>
 #include <dt-bindings/soc/sprd,sharkl3-mask.h>
 #include <dt-bindings/clock/sprd,sc9863a-clk.h>
+#include <dt-bindings/reset/sprd,sc9863a-reset.h>
 #include <dt-bindings/debug/busmonitor/busmonitor.h>
 #include <dt-bindings/debug/dmc_mpu/sharkl3_dmc_mpu.h>
 
