@@ -245,8 +245,8 @@
 #define CABC_HIST9_INDEX6		200
 #define CABC_HIST9_INDEX7		235
 #define CABC_HIST9_INDEX8		252
-#define CABC_GLB_X0			0
-#define CABC_GLB_X1			0
+#define CABC_GLB_X0			20
+#define CABC_GLB_X1			60
 #define CABC_GLB_X2			220
 #define CABC_GLB_S0			0
 #define CABC_GLB_S1			0
@@ -256,6 +256,11 @@
 #define CABC_LOCAL_WEIGHT		0
 #define CABC_FST_PTH			0
 #define CABC_BL_COEF			1020
+
+enum {
+	SLP_BYSS,
+	SLP_NORMAL,
+};
 
 enum {
 	CABC_DISABLED,
@@ -1557,6 +1562,62 @@ static void dpu_epf_set(struct dpu_context *ctx, struct epf_cfg *epf)
 	DPU_REG_WR(ctx->base + REG_EPF_DIFF, (epf->max_diff << 8) | epf->min_diff);
 }
 
+static void dpu_slp_set(struct dpu_context *ctx, uint8_t slp_status) {
+	struct dpu_enhance *enhance = ctx->enhance;
+	struct slp_cfg *slp = &enhance->slp_copy;
+
+	DPU_REG_WR(ctx->base + REG_SLP_CFG0, (slp->brightness_step << 0) |
+		((slp->brightness & 0x7f) << 16));
+	DPU_REG_WR(ctx->base + REG_SLP_CFG1, ((slp->fst_max_bright_th & 0x7f) << 21) |
+		((slp->fst_max_bright_th_step[0] & 0x7f) << 14) |
+		((slp->fst_max_bright_th_step[1] & 0x7f) << 7) |
+		((slp->fst_max_bright_th_step[2] & 0x7f) << 0));
+	DPU_REG_WR(ctx->base + REG_SLP_CFG2, ((slp->fst_max_bright_th_step[3] & 0x7f) << 25) |
+		((slp->fst_max_bright_th_step[4] & 0x7f) << 18) |
+		((slp->hist_exb_no & 0x3) << 16) |
+		((slp->hist_exb_percent & 0x7f) << 9));
+	DPU_REG_WR(ctx->base + REG_SLP_CFG3, ((slp->mask_height & 0xfff) << 19) |
+		((slp->fst_pth_index[0] & 0xf) << 15) |
+		((slp->fst_pth_index[1] & 0xf) << 11) |
+		((slp->fst_pth_index[2] & 0xf) << 7) |
+		((slp->fst_pth_index[3] & 0xf) << 3));
+	DPU_REG_WR(ctx->base + REG_SLP_CFG4, (slp->hist9_index[0] << 24) |
+		(slp->hist9_index[1] << 16) | (slp->hist9_index[2] << 8) |
+		(slp->hist9_index[3] << 0));
+	DPU_REG_WR(ctx->base + REG_SLP_CFG5, (slp->hist9_index[4] << 24) |
+		(slp->hist9_index[5] << 16) | (slp->hist9_index[6] << 8) |
+		(slp->hist9_index[7] << 0));
+
+	if (slp_status == SLP_BYSS) {
+		DPU_REG_WR(ctx->base + REG_SLP_CFG6, (slp->hist9_index[8] << 24) |
+			(CABC_GLB_X0 << 16) | (CABC_GLB_X1 << 8) |
+			(CABC_GLB_X2 << 0));
+		DPU_REG_WR(ctx->base + REG_SLP_CFG7, ((CABC_GLB_S0 & 0x1ff) << 23) |
+			((CABC_GLB_S1 & 0x1ff) << 14) |
+			((CABC_GLB_S2 & 0x1ff) << 5));
+	} else if (slp_status == SLP_NORMAL) {
+		DPU_REG_WR(ctx->base + REG_SLP_CFG6, (slp->hist9_index[8] << 24) |
+			(slp->glb_x[0] << 16) | (slp->glb_x[1] << 8) |
+			(slp->glb_x[2] << 0));
+		DPU_REG_WR(ctx->base + REG_SLP_CFG7, ((slp->glb_s[0] & 0x1ff) << 23) |
+			((slp->glb_s[1] & 0x1ff) << 14) |
+			((slp->glb_s[2] & 0x1ff) << 5));
+	} else if (slp_status == CABC_WORKING) {
+		DPU_REG_WR(ctx->base + REG_SLP_CFG6, (CABC_HIST9_INDEX8 << 24) |
+			(enhance->cabc_para.p0 << 16) | (enhance->cabc_para.p1 << 8) |
+			(CABC_GLB_X2 << 0));
+		DPU_REG_WR(ctx->base + REG_SLP_CFG7, ((enhance->cabc_para.gain0 & 0x1ff) << 23) |
+			((enhance->cabc_para.gain1 & 0x1ff) << 14) |
+			((enhance->cabc_para.gain2 & 0x1ff) << 5));
+	}
+	DPU_REG_WR(ctx->base + REG_SLP_CFG9, ((slp->fast_ambient_th & 0x7f) << 25) |
+		(slp->scene_change_percent_th << 17) |
+		((enhance->cabc_para.slp_local_weight & 0xf) << 13) |
+		((slp->fst_pth & 0x7f) << 6));
+	DPU_REG_WR(ctx->base + REG_SLP_CFG10, (slp->cabc_endv << 8)|
+		(slp->cabc_startv << 0));
+}
+
 static void dpu_enhance_backup(struct dpu_context *ctx, u32 id, void *param)
 {
 	struct dpu_enhance *enhance = ctx->enhance;
@@ -1623,7 +1684,6 @@ static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
 {
 	struct dpu_enhance *enhance = ctx->enhance;
 	struct cm_cfg cm;
-	struct slp_cfg *slp;
 	struct ltm_cfg *ltm;
 	struct gamma_lut *gamma;
 	struct threed_lut *lut3d;
@@ -1690,46 +1750,9 @@ static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
 		memcpy(&enhance->slp_copy, param, sizeof(enhance->slp_copy));
 		enhance->slp_copy.cabc_startv = 0;
 		enhance->slp_copy.cabc_endv = 255;
-		slp = &enhance->slp_copy;
-		DPU_REG_WR(ctx->base + REG_SLP_CFG0, (slp->brightness_step << 0) |
-			((slp->brightness & 0x7f) << 16));
-		DPU_REG_WR(ctx->base + REG_SLP_CFG1, ((slp->fst_max_bright_th & 0x7f) << 21) |
-			((slp->fst_max_bright_th_step[0] & 0x7f) << 14) |
-			((slp->fst_max_bright_th_step[1] & 0x7f) << 7) |
-			((slp->fst_max_bright_th_step[2] & 0x7f) << 0));
-		DPU_REG_WR(ctx->base + REG_SLP_CFG2, ((slp->fst_max_bright_th_step[3] & 0x7f) << 25) |
-			((slp->fst_max_bright_th_step[4] & 0x7f) << 18) |
-			((slp->hist_exb_no & 0x3) << 16) |
-			((slp->hist_exb_percent & 0x7f) << 9));
-		DPU_REG_WR(ctx->base + REG_SLP_CFG3, ((slp->mask_height & 0xfff) << 19) |
-			((slp->fst_pth_index[0] & 0xf) << 15) |
-			((slp->fst_pth_index[1] & 0xf) << 11) |
-			((slp->fst_pth_index[2] & 0xf) << 7) |
-			((slp->fst_pth_index[3] & 0xf) << 3));
-		DPU_REG_WR(ctx->base + REG_SLP_CFG4, (slp->hist9_index[0] << 24) |
-			(slp->hist9_index[1] << 16) | (slp->hist9_index[2] << 8) |
-			(slp->hist9_index[3] << 0));
-		DPU_REG_WR(ctx->base + REG_SLP_CFG5, (slp->hist9_index[4] << 24) |
-			(slp->hist9_index[5] << 16) | (slp->hist9_index[6] << 8) |
-			(slp->hist9_index[7] << 0));
-		DPU_REG_WR(ctx->base + REG_SLP_CFG6, (slp->hist9_index[8] << 24) |
-			(slp->glb_x[0] << 16) | (slp->glb_x[1] << 8) |
-			(slp->glb_x[2] << 0));
-		DPU_REG_WR(ctx->base + REG_SLP_CFG7, ((slp->glb_s[0] & 0x1ff) << 23) |
-			((slp->glb_s[1] & 0x1ff) << 14) |
-			((slp->glb_s[2] & 0x1ff) << 5));
-		DPU_REG_WR(ctx->base + REG_SLP_CFG9, ((slp->fast_ambient_th & 0x7f) << 25) |
-			(slp->scene_change_percent_th << 17) |
-			((slp->local_weight & 0xf) << 13) |
-			((slp->fst_pth & 0x7f) << 6));
-		DPU_REG_WR(ctx->base + REG_SLP_CFG10, (slp->cabc_endv << 8) |
-			(slp->cabc_startv << 0));
+		dpu_slp_set(ctx, SLP_NORMAL);
 		DPU_REG_SET(ctx->base + REG_DPU_ENHANCE_CFG, BIT(4));
 		pr_info("enhance slp set\n");
-		if (enhance->cabc_para.video_mode) {
-			enhance->enhance_en = DPU_REG_RD(ctx->base + REG_DPU_ENHANCE_CFG);
-			return;
-		}
 		break;
 	case ENHANCE_CFG_ID_GAMMA:
 		memcpy(&enhance->gamma_copy, param, sizeof(enhance->gamma_copy));
@@ -2068,39 +2091,7 @@ static void dpu_enhance_reload(struct dpu_context *ctx)
 
 	if (enhance->enhance_en & BIT(4)) {
 		slp = &enhance->slp_copy;
-		DPU_REG_WR(ctx->base + REG_SLP_CFG0, (slp->brightness_step << 0) |
-			((slp->brightness & 0x7f) << 16));
-		DPU_REG_WR(ctx->base + REG_SLP_CFG1, ((slp->fst_max_bright_th & 0x7f) << 21) |
-			((slp->fst_max_bright_th_step[0] & 0x7f) << 14) |
-			((slp->fst_max_bright_th_step[1] & 0x7f) << 7) |
-			((slp->fst_max_bright_th_step[2] & 0x7f) << 0));
-		DPU_REG_WR(ctx->base + REG_SLP_CFG2, ((slp->fst_max_bright_th_step[3] & 0x7f) << 25) |
-			((slp->fst_max_bright_th_step[4] & 0x7f) << 18) |
-			((slp->hist_exb_no & 0x3) << 16) |
-			((slp->hist_exb_percent & 0x7f) << 9));
-		DPU_REG_WR(ctx->base + REG_SLP_CFG3, ((slp->mask_height & 0xfff) << 19) |
-			((slp->fst_pth_index[0] & 0xf) << 15) |
-			((slp->fst_pth_index[1] & 0xf) << 11) |
-			((slp->fst_pth_index[2] & 0xf) << 7) |
-			((slp->fst_pth_index[3] & 0xf) << 3));
-		DPU_REG_WR(ctx->base + REG_SLP_CFG4, (slp->hist9_index[0] << 24) |
-			(slp->hist9_index[1] << 16) | (slp->hist9_index[2] << 8) |
-			(slp->hist9_index[3] << 0));
-		DPU_REG_WR(ctx->base + REG_SLP_CFG5, (slp->hist9_index[4] << 24) |
-			(slp->hist9_index[5] << 16) | (slp->hist9_index[6] << 8) |
-			(slp->hist9_index[7] << 0));
-		DPU_REG_WR(ctx->base + REG_SLP_CFG6, (slp->hist9_index[8] << 24) |
-			(CABC_GLB_X0 << 16) | (CABC_GLB_X1 << 8) |
-			(CABC_GLB_X2 << 0));
-		DPU_REG_WR(ctx->base + REG_SLP_CFG7, ((CABC_GLB_S0 & 0x1ff) << 23) |
-			((CABC_GLB_S1 & 0x1ff) << 14) |
-			((CABC_GLB_S2 & 0x1ff) << 5));
-		DPU_REG_WR(ctx->base + REG_SLP_CFG9, ((slp->fast_ambient_th & 0x7f) << 25) |
-			(slp->scene_change_percent_th << 17) |
-			((enhance->cabc_para.slp_local_weight & 0xf) << 13) |
-			((slp->fst_pth & 0x7f) << 6));
-		DPU_REG_WR(ctx->base + REG_SLP_CFG10, (slp->cabc_endv << 8)|
-			(slp->cabc_startv << 0));
+		dpu_slp_set(ctx, SLP_NORMAL);
 		pr_info("enhance slp reload\n");
 	}
 
@@ -2158,45 +2149,15 @@ static int dpu_cabc_trigger(struct dpu_context *ctx)
 	struct dpu_enhance *enhance = ctx->enhance;
 
 	if (enhance->cabc_state != CABC_WORKING) {
-		if ((enhance->cabc_state == CABC_STOPPING) && (enhance->bl_dev) &&
-				(enhance->cabc_para.slp_brightness <= CABC_BRIGHTNESS)) {
-			DPU_REG_WR(ctx->base + REG_SLP_CFG0, (CABC_BRIGHTNESS_STEP << 0) |
-				((enhance->cabc_para.slp_brightness & 0x7f) << 16));
-			DPU_REG_WR(ctx->base + REG_SLP_CFG1, ((CABC_FST_MAX_BRIGHT_TH & 0x7f) << 21) |
-				((CABC_FST_MAX_BRIGHT_TH_STEP0 & 0x7f) << 14) |
-				((CABC_FST_MAX_BRIGHT_TH_STEP1 & 0x7f) << 7) |
-				((CABC_FST_MAX_BRIGHT_TH_STEP2 & 0x7f) << 0));
-			DPU_REG_WR(ctx->base + REG_SLP_CFG2, ((CABC_FST_MAX_BRIGHT_TH_STEP3 & 0x7f) << 25) |
-				((CABC_FST_MAX_BRIGHT_TH_STEP4 & 0x7f) << 18) |
-				((CABC_HIST_EXB_NO & 0x3) << 16) |
-				((CABC_HIST_EXB_PERCENT & 0x7f) << 9));
-			DPU_REG_WR(ctx->base + REG_SLP_CFG3, ((CABC_MASK_HEIGHT & 0xfff) << 19) |
-				((CABC_FST_PTH_INDEX0 & 0xf) << 15) |
-				((CABC_FST_PTH_INDEX1 & 0xf) << 11) |
-				((CABC_FST_PTH_INDEX2 & 0xf) << 7) |
-				((CABC_FST_PTH_INDEX3 & 0xf) << 3));
-			DPU_REG_WR(ctx->base + REG_SLP_CFG4, (CABC_HIST9_INDEX0 << 24) |
-				(CABC_HIST9_INDEX1 << 16) | (CABC_HIST9_INDEX2 << 8) |
-				(CABC_HIST9_INDEX3 << 0));
-			DPU_REG_WR(ctx->base + REG_SLP_CFG5, (CABC_HIST9_INDEX4 << 24) |
-				(CABC_HIST9_INDEX5 << 16) | (CABC_HIST9_INDEX6 << 8) |
-				(CABC_HIST9_INDEX7 << 0));
-			DPU_REG_WR(ctx->base + REG_SLP_CFG6, (CABC_HIST9_INDEX8 << 24) |
-				(CABC_GLB_X0 << 16) | (CABC_GLB_X1 << 8) |
-				(CABC_GLB_X2 << 0));
-			DPU_REG_WR(ctx->base + REG_SLP_CFG7, ((CABC_GLB_S0 & 0x1ff) << 23) |
-				((CABC_GLB_S1 & 0x1ff) << 14) |
-				((CABC_GLB_S2 & 0x1ff) << 5));
-			DPU_REG_WR(ctx->base + REG_SLP_CFG9, ((CABC_FAST_AMBIENT_TH & 0x7f) << 25) |
-				(CABC_SCENE_CHANGE_PERCENT_TH << 17) |
-				((enhance->cabc_para.slp_local_weight & 0xf) << 13) |
-				((CABC_FST_PTH & 0x7f) << 6));
-			DPU_REG_SET(ctx->base + REG_DPU_ENHANCE_CFG, BIT(4));
+		if ((enhance->cabc_state == CABC_STOPPING) && (enhance->bl_dev)) {
+			if (enhance->slp_copy.brightness <= CABC_BRIGHTNESS) {
+				dpu_slp_set(ctx, SLP_BYSS);
+				DPU_REG_SET(ctx->base + REG_DPU_ENHANCE_CFG, BIT(4));
+			}
 			enhance->frame_no = 0;
 			enhance->cabc_bl_set = true;
 
 			enhance->cabc_state = CABC_DISABLED;
-
 		}
 		return 0;
 	}
@@ -2216,39 +2177,9 @@ static int dpu_cabc_trigger(struct dpu_context *ctx)
 			enhance->frame_no = 0;
 			return 0;
 		}
-		if (enhance->cabc_para.slp_brightness <= CABC_BRIGHTNESS) {
-			DPU_REG_WR(ctx->base + REG_SLP_CFG0, (CABC_BRIGHTNESS_STEP << 0) |
-				((enhance->cabc_para.slp_brightness & 0x7f) << 16));
-			DPU_REG_WR(ctx->base + REG_SLP_CFG1, ((CABC_FST_MAX_BRIGHT_TH & 0x7f) << 21) |
-				((CABC_FST_MAX_BRIGHT_TH_STEP0 & 0x7f) << 14) |
-				((CABC_FST_MAX_BRIGHT_TH_STEP1 & 0x7f) << 7) |
-				((CABC_FST_MAX_BRIGHT_TH_STEP2 & 0x7f) << 0));
-			DPU_REG_WR(ctx->base + REG_SLP_CFG2, ((CABC_FST_MAX_BRIGHT_TH_STEP3 & 0x7f) << 25) |
-				((CABC_FST_MAX_BRIGHT_TH_STEP4 & 0x7f) << 18) |
-				((CABC_HIST_EXB_NO & 0x3) << 16) |
-				((CABC_HIST_EXB_PERCENT & 0x7f) << 9));
-			DPU_REG_WR(ctx->base + REG_SLP_CFG3, ((CABC_MASK_HEIGHT & 0xfff) << 19) |
-				((CABC_FST_PTH_INDEX0 & 0xf) << 15) |
-				((CABC_FST_PTH_INDEX1 & 0xf) << 11) |
-				((CABC_FST_PTH_INDEX2 & 0xf) << 7) |
-				((CABC_FST_PTH_INDEX3 & 0xf) << 3));
-			DPU_REG_WR(ctx->base + REG_SLP_CFG4, (CABC_HIST9_INDEX0 << 24) |
-				(CABC_HIST9_INDEX1 << 16) | (CABC_HIST9_INDEX2 << 8) |
-				(CABC_HIST9_INDEX3 << 0));
-			DPU_REG_WR(ctx->base + REG_SLP_CFG5, (CABC_HIST9_INDEX4 << 24) |
-				(CABC_HIST9_INDEX5 << 16) | (CABC_HIST9_INDEX6 << 8) |
-				(CABC_HIST9_INDEX7 << 0));
-			DPU_REG_WR(ctx->base + REG_SLP_CFG6, (CABC_HIST9_INDEX8 << 24) |
-				(enhance->cabc_para.p0 << 16) | (enhance->cabc_para.p1 << 8) |
-				(CABC_GLB_X2 << 0));
-			DPU_REG_WR(ctx->base + REG_SLP_CFG7, ((enhance->cabc_para.gain0 & 0x1ff) << 23) |
-				((enhance->cabc_para.gain1 & 0x1ff) << 14) |
-				((enhance->cabc_para.gain2 & 0x1ff) << 5));
-			DPU_REG_WR(ctx->base + REG_SLP_CFG9, ((CABC_FAST_AMBIENT_TH & 0x7f) << 25) |
-				(CABC_SCENE_CHANGE_PERCENT_TH << 17) |
-				((enhance->cabc_para.slp_local_weight & 0xf) << 13) |
-				((CABC_FST_PTH & 0x7f) << 6));
-		}
+		if (enhance->slp_copy.brightness <= CABC_BRIGHTNESS)
+			dpu_slp_set(ctx, CABC_WORKING);
+
 		if (enhance->bl_dev)
 			enhance->cabc_bl_set = true;
 
