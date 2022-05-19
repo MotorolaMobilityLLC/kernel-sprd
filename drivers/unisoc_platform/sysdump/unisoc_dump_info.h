@@ -26,4 +26,29 @@ do {						\
 		pr_debug(x);			\
 } while (0)
 
+#if IS_ENABLED(CONFIG_UNISOC_LASTKMSG)
+/*
+ * save per-cpu's stack and regs in sysdump.
+ *
+ * @cpu:	the cpu number;
+ *
+ * @pregs:	pt_regs;
+ */
+extern void unisoc_dump_stack_reg(int cpu, struct pt_regs *pregs);
+extern void unisoc_dump_task_stats(void);
+extern void unisoc_dump_runqueues(void);
+
+/*
+ * update current task's stack's phy addr in sysdump.
+ */
+extern void minidump_update_current_stack(int cpu, struct pt_regs *regs);
+
+#else
+static inline void unisoc_dump_stack_reg(int cpu, struct pt_regs *pregs) {}
+static inline void unisoc_dump_task_stats(void) {}
+static inline void unisoc_dump_runqueues(void) {}
+static inline void minidump_update_current_stack(int cpu, struct pt_regs *regs) {}
+
+#endif
+
 #endif /* __UNISOC_DUMP_INFO_H */

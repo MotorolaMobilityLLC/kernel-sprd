@@ -164,7 +164,7 @@ static void minidump_add_current_stack(void)
 	currstack_inited = 1;
 }
 
-static void minidump_update_current_stack(int cpu, struct pt_regs *regs)
+void minidump_update_current_stack(int cpu, struct pt_regs *regs)
 {
 	unsigned long sp;
 	char name[MAX_NAME_LEN];
@@ -200,6 +200,7 @@ static void minidump_update_current_stack(int cpu, struct pt_regs *regs)
 	minidump_change_extend_information(name, __pa(sp), __pa(sp + THREAD_SIZE));
 #endif
 }
+EXPORT_SYMBOL_GPL(minidump_update_current_stack);
 
 /*
  * Ease the printing of nsec fields:
@@ -365,7 +366,7 @@ static void dump_rt_rq(struct rt_rq  *rt_rq, struct task_struct *curr)
 	}
 }
 
-static void unisoc_dump_runqueues(void)
+void unisoc_dump_runqueues(void)
 {
 	int cpu;
 	struct rq *rq;
@@ -390,6 +391,7 @@ static void unisoc_dump_runqueues(void)
 	}
 	flush_cache_all();
 }
+EXPORT_SYMBOL_GPL(unisoc_dump_runqueues);
 
 static void unisoc_print_task_stats(int cpu, struct rq *rq, struct task_struct *p)
 {
@@ -462,6 +464,7 @@ void unisoc_dump_task_stats(void)
 	}
 	flush_cache_all();
 }
+EXPORT_SYMBOL_GPL(unisoc_dump_task_stats);
 
 #ifdef CONFIG_ARM64
 static void unisoc_dump_regs(struct pt_regs *regs)
@@ -607,7 +610,7 @@ static void unisoc_dump_regs(struct pt_regs *regs)
 }
 #endif
 
-static void unisoc_dump_stack_reg(int cpu, struct pt_regs *pregs)
+void unisoc_dump_stack_reg(int cpu, struct pt_regs *pregs)
 {
 	int i;
 	struct stackframe frame;
@@ -693,6 +696,7 @@ unlock:
 	raw_spin_unlock(&dump_lock);
 	flush_cache_all();
 }
+EXPORT_SYMBOL_GPL(unisoc_dump_stack_reg);
 
 static inline void unisoc_dump_panic_regs(void)
 {
