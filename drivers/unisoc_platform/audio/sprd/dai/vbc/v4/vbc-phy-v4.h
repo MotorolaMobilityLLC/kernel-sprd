@@ -589,6 +589,9 @@ enum KCTL_TYPE {
 	SND_KCTL_TYPE_CUST_DEV_SET = 0x32, /* sync with dsp */
 	SND_KCTL_TYPE_SYS_DEV_SET,
 	SND_KCTL_TYPE_CUST_VOL_SET,
+	SND_KCTL_TYPE_AUDIO_ZOOM_ST,
+	SND_KCTL_TYPE_AUDIO_ZOOM_RATIO,
+	SND_KCTL_TYPE_AUDIO_ZOOM_FOCUS,
 	SND_KCTL_TYPE_END,
 };
 
@@ -1212,6 +1215,15 @@ struct hp_crosstalk_gain_t {
 	int gain1;
 };
 
+/* SND_KCTL_TYPE_AUDIO_ZOOM_FOCUS */
+struct audio_zoom_focus_t {
+	int type;
+	int x;
+	int y;
+	int width;
+	int height;
+};
+
 /**********************************************************************
  * define for SND_VBC_DSP_IO_SHAREMEM_GET / SND_VBC_DSP_IO_SHAREMEM_SET
  **********************************************************************/
@@ -1538,6 +1550,9 @@ struct vbc_codec_priv {
 	enum VBC_DEVICE_TYPE cust_dev;
 	enum VBC_DEVICE_TYPE sys_dev;
 	u16 cust_vol;
+	u32 audio_zoom_st;
+	int audio_zoom_ratio;
+	struct audio_zoom_focus_t audio_zoom_focus;
 };
 
 /********************************************************************
@@ -1636,5 +1651,8 @@ int dsp_dac0_lr_exchange_set(u32 enable);
 int vbc_dsp_cust_dev_set(int dev, int id, int stream);
 int vbc_dsp_sys_dev_set(int dev, int id, int stream);
 int vbc_dsp_cust_vol_set(int up_down, int id, int stream);
+int dsp_audio_zoom_st_set(u32 value);
+int dsp_audio_zoom_ratio_set(int ratio);
+int dsp_audio_zoom_focus_set(int type, int x, int y, int width, int height);
 
 #endif /* __VBC_V4_PHY_DRV_H */

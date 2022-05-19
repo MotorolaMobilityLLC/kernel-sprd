@@ -4363,6 +4363,118 @@ static int dsp_hp_crosstalk_gain_put(struct snd_kcontrol *kcontrol,
 	return 0;
 }
 
+static int dsp_audio_zoom_st_get(struct snd_kcontrol *kcontrol,
+				struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_component *codec = snd_soc_kcontrol_component(kcontrol);
+	struct vbc_codec_priv *vbc_codec = snd_soc_component_get_drvdata(codec);
+
+	ucontrol->value.integer.value[0] = vbc_codec->audio_zoom_st;
+	pr_info("%s value = %ld\n", __func__, ucontrol->value.integer.value[0]);
+
+	return 0;
+}
+
+static int dsp_audio_zoom_st_put(struct snd_kcontrol *kcontrol,
+				struct snd_ctl_elem_value *ucontrol)
+{
+	u32 value;
+	int ret;
+	struct snd_soc_component *codec = snd_soc_kcontrol_component(kcontrol);
+	struct vbc_codec_priv *vbc_codec = snd_soc_component_get_drvdata(codec);
+
+	value = ucontrol->value.enumerated.item[0];
+	pr_info("%s value = %d\n", __func__, value);
+
+	vbc_codec->audio_zoom_st = value;
+	ret = dsp_audio_zoom_st_set(value);
+	if (ret != 0)
+		pr_err("%s set audio_zoom_st failed %d\n", __func__, ret);
+	return 0;
+}
+
+static int dsp_audio_zoom_ratio_get(struct snd_kcontrol *kcontrol,
+				struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_component *codec = snd_soc_kcontrol_component(kcontrol);
+	struct vbc_codec_priv *vbc_codec = snd_soc_component_get_drvdata(codec);
+
+	ucontrol->value.integer.value[0] = vbc_codec->audio_zoom_ratio;
+	pr_info("%s value = %ld\n", __func__, ucontrol->value.integer.value[0]);
+
+	return 0;
+}
+
+static int dsp_audio_zoom_ratio_put(struct snd_kcontrol *kcontrol,
+				struct snd_ctl_elem_value *ucontrol)
+{
+	int ret, value;
+	struct snd_soc_component *codec = snd_soc_kcontrol_component(kcontrol);
+	struct vbc_codec_priv *vbc_codec = snd_soc_component_get_drvdata(codec);
+
+	value = ucontrol->value.integer.value[0];
+	pr_info("%s value = %d\n", __func__, value);
+
+	vbc_codec->audio_zoom_ratio = value;
+	ret = dsp_audio_zoom_ratio_set(value);
+	if (ret != 0)
+		pr_err("%s set audio_zoom_ratio failed %d\n", __func__, ret);
+	return 0;
+}
+
+static int dsp_audio_zoom_focus_get(struct snd_kcontrol *kcontrol,
+				struct snd_ctl_elem_value *ucontrol)
+{
+	struct soc_bytes_ext *params = (void *)kcontrol->private_value;
+	struct snd_soc_component *codec = snd_soc_kcontrol_component(kcontrol);
+	struct vbc_codec_priv *vbc_codec = snd_soc_component_get_drvdata(codec);
+	int len, size;
+
+	size = sizeof(struct audio_zoom_focus_t);
+	len = params->max * sizeof(ucontrol->value.bytes.data[0]);
+	if (size > len) {
+		pr_err("%s size > len\n", __func__);
+		return -EINVAL;
+	}
+	memcpy(ucontrol->value.bytes.data, &vbc_codec->audio_zoom_focus, size);
+
+	return 0;
+}
+
+static int dsp_audio_zoom_focus_put(struct snd_kcontrol *kcontrol,
+				struct snd_ctl_elem_value *ucontrol)
+{
+	struct soc_bytes_ext *params = (void *)kcontrol->private_value;
+	struct snd_soc_component *codec = snd_soc_kcontrol_component(kcontrol);
+	struct vbc_codec_priv *vbc_codec = snd_soc_component_get_drvdata(codec);
+	int type, x, y, width, height;
+	int len, size;
+	int ret;
+
+	size = sizeof(struct audio_zoom_focus_t);
+	len = params->max * sizeof(ucontrol->value.bytes.data[0]);
+	if (size > len) {
+		pr_err("%s size > len\n", __func__);
+		return -EINVAL;
+	}
+	memcpy(&vbc_codec->audio_zoom_focus, ucontrol->value.bytes.data, size);
+
+	type = vbc_codec->audio_zoom_focus.type;
+	x = vbc_codec->audio_zoom_focus.x;
+	y = vbc_codec->audio_zoom_focus.y;
+	width = vbc_codec->audio_zoom_focus.width;
+	height = vbc_codec->audio_zoom_focus.height;
+
+	pr_info("%s, audio_zoom_focus, type=%d, x=%d, y=%d, width=%d, height=%d\n",
+			__func__, type, x, y, width, height);
+
+	ret = dsp_audio_zoom_focus_set(type, x, y, width, height);
+	if (ret != 0)
+		pr_err("%s set audio_zoom_focus failed %d\n", __func__, ret);
+
+	return 0;
+}
+
 /* -9450dB to 0dB in 150dB steps ( mute instead of -9450dB) */
 static const DECLARE_TLV_DB_SCALE(mdg_tlv, -9450, 150, 1);
 static const DECLARE_TLV_DB_SCALE(dg_tlv, -9450, 150, 1);
@@ -4889,6 +5001,14 @@ static const struct snd_kcontrol_new vbc_codec_snd_controls[] = {
 	SOC_ENUM_EXT("VBC_CUSTM_VOL_CHANGE",
 		     dsp_custm_vol_change_enum,
 		     vbc_custm_vol_change_get, vbc_custm_vol_change_put),
+
+	SOC_SINGLE_BOOL_EXT("AUDIO_ZOOM_ST", 0,
+		dsp_audio_zoom_st_get, dsp_audio_zoom_st_put),
+	SOC_SINGLE_EXT("AUDIO_ZOOM_RATIO",
+		SND_SOC_NOPM, 0, MAX_32_BIT, 0,
+		dsp_audio_zoom_ratio_get, dsp_audio_zoom_ratio_put),
+	SND_SOC_BYTES_EXT("AUDIO_ZOOM_FOCUS", 20,
+		dsp_audio_zoom_focus_get, dsp_audio_zoom_focus_put),
 };
 
 static u32 vbc_codec_read(struct snd_soc_component *codec,

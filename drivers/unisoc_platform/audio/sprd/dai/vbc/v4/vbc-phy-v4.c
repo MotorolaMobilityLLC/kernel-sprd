@@ -1615,6 +1615,76 @@ int dsp_hp_crosstalk_gain(int value0, int value1)
 	return ret;
 }
 
+/***********************************************************
+ * cmd for SND_KCTL_TYPE_AUDIO_ZOOM_ST
+ ***********************************************************/
+int dsp_audio_zoom_st_set(u32 value)
+{
+	int ret;
+	u32 audio_zoom_st_value = value;
+
+	pr_info("%s value = %d", __func__, value);
+
+	ret = aud_send_cmd(AMSG_CH_VBC_CTL,
+		SND_KCTL_TYPE_AUDIO_ZOOM_ST,
+		-1, SND_VBC_DSP_IO_KCTL_SET, &audio_zoom_st_value,
+		sizeof(audio_zoom_st_value),
+		AUDIO_SIPC_WAIT_FOREVER);
+	if (ret < 0)
+		pr_err("Failed to set audio_zoom_st_value, ret %d\n", ret);
+
+	return ret;
+}
+
+/***********************************************************
+ * cmd for SND_KCTL_TYPE_AUDIO_ZOOM_RATIO
+ ***********************************************************/
+int dsp_audio_zoom_ratio_set(int ratio)
+{
+	int ret;
+	int audio_zoom_ratio_value = ratio;
+
+	pr_info("%s ratio = %d", __func__, ratio);
+
+	ret = aud_send_cmd(AMSG_CH_VBC_CTL,
+		SND_KCTL_TYPE_AUDIO_ZOOM_RATIO,
+		-1, SND_VBC_DSP_IO_KCTL_SET, &audio_zoom_ratio_value,
+		sizeof(audio_zoom_ratio_value),
+		AUDIO_SIPC_WAIT_FOREVER);
+	if (ret < 0)
+		pr_err("Failed to set audio_zoom_ratio_value, ret %d\n", ret);
+
+	return ret;
+}
+
+/***********************************************************
+ * cmd for SND_KCTL_TYPE_AUDIO_ZOOM_FOCUS
+ ***********************************************************/
+int dsp_audio_zoom_focus_set(int type, int x, int y, int width, int height)
+{
+	int ret;
+	struct audio_zoom_focus_t audio_zoom_focus;
+
+	audio_zoom_focus.type = type;
+	audio_zoom_focus.x = x;
+	audio_zoom_focus.y = y;
+	audio_zoom_focus.width = width;
+	audio_zoom_focus.height = height;
+
+	pr_info("%s type = %d, x = %d, y = %d, width = %d, height = %d",
+		__func__, type, x, y, width, height);
+
+	ret = aud_send_cmd(AMSG_CH_VBC_CTL,
+		SND_KCTL_TYPE_AUDIO_ZOOM_FOCUS,
+		-1, SND_VBC_DSP_IO_KCTL_SET, &audio_zoom_focus,
+		sizeof(audio_zoom_focus),
+		AUDIO_SIPC_WAIT_FOREVER);
+	if (ret < 0)
+		pr_err("Failed to set audio_zoom_focus, ret %d\n", ret);
+
+	return ret;
+}
+
 int vbc_dsp_cust_dev_set(int dev, int id, int stream)
 {
 	int ret;
