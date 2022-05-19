@@ -15,6 +15,7 @@
 #include <linux/slab.h>
 
 #include <dt-bindings/clock/sprd,sc9863a-clk.h>
+#include <dt-bindings/reset/sprd,sc9863a-reset.h>
 
 #include "common.h"
 #include "composite.h"
@@ -22,6 +23,7 @@
 #include "gate.h"
 #include "mux.h"
 #include "pll.h"
+#include "reset.h"
 
 /* mpll*_gate clocks control cpu cores, they were enabled by default */
 static SPRD_PLL_SC_GATE_CLK_FW_NAME(mpll0_gate, "mpll0-gate", "ext-26m", 0x94,
@@ -68,10 +70,36 @@ static struct clk_hw_onecell_data sc9863a_pmu_gate_hws = {
 	.num	= CLK_PMU_APB_NUM,
 };
 
+static struct sprd_reset_map sc9863a_pmu_apb_resets[] = {
+	[RESET_PMU_APB_WTLCP_SOFT_RST]	= { 0x00b0, BIT(0), 0x1000 },
+	[RESET_PMU_APB_PUBCP_SOFT_RST]	= { 0x00b0, BIT(1), 0x1000 },
+	[RESET_PMU_APB_WTLCP_DSP_SOFT_RST]	= { 0x00b0, BIT(2), 0x1000 },
+	[RESET_PMU_APB_MM_SOFT_RST]	= { 0x00b0, BIT(3), 0x1000 },
+	[RESET_PMU_APB_GPU_SOFT_RST]	= { 0x00b0, BIT(4), 0x1000 },
+	[RESET_PMU_APB_AP_SOFT_RST]	= { 0x00b0, BIT(5), 0x1000 },
+	[RESET_PMU_APB_PUB_SOFT_RST]	= { 0x00b0, BIT(6), 0x1000 },
+	[RESET_PMU_APB_SP_CORE_SOFT_RST]	= { 0x00b0, BIT(7), 0x1000 },
+	[RESET_PMU_APB_SP_SYS_SOFT_RST]	= { 0x00b0, BIT(8), 0x1000 },
+	[RESET_PMU_APB_CPU_TOP_SOFT_RST]	= { 0x00b0, BIT(9), 0x1000 },
+	[RESET_PMU_APB_WIFI_WRAP_SOFT_RST]	= { 0x00b0, BIT(10), 0x1000 },
+	[RESET_PMU_APB_GNSS_WRAP_SOFT_RST]	= { 0x00b0, BIT(11), 0x1000 },
+	[RESET_PMU_APB_WTLCP_AON_SOFT_RST]	= { 0x00b0, BIT(12), 0x1000 },
+	[RESET_PMU_APB_WCDMA_AON_SOFT_RST]	= { 0x00b0, BIT(13), 0x1000 },
+	[RESET_PMU_APB_WTLCP_LDSP_SOFT_RST]	= { 0x00b0, BIT(14), 0x1000 },
+	[RESET_PMU_APB_WTLCP_TGDSP_SOFT_RST]	= { 0x00b0, BIT(15), 0x1000 },
+	[RESET_PMU_APB_WCN_SYS_SOFT_RST]	= { 0x00b0, BIT(16), 0x1000 },
+	[RESET_PMU_APB_VSP_SOFT_RST]	= { 0x00b0, BIT(17), 0x1000 },
+	[RESET_PMU_APB_DISP_SOFT_RST]	= { 0x00b0, BIT(18), 0x1000 },
+	[RESET_PMU_APB_WIFI_SOFT_RST]	= { 0x00b0, BIT(19), 0x1000 },
+	[RESET_PMU_APB_GNSS_SOFT_RST]	= { 0x00b0, BIT(20), 0x1000 },
+};
+
 static const struct sprd_clk_desc sc9863a_pmu_gate_desc = {
 	.clk_clks	= sc9863a_pmu_gate_clks,
 	.num_clk_clks	= ARRAY_SIZE(sc9863a_pmu_gate_clks),
 	.hw_clks        = &sc9863a_pmu_gate_hws,
+	.resets = sc9863a_pmu_apb_resets,
+	.num_resets = ARRAY_SIZE(sc9863a_pmu_apb_resets),
 };
 
 static const struct freq_table ftable[5] = {
@@ -1146,10 +1174,29 @@ static struct clk_hw_onecell_data sc9863a_apahb_gate_hws = {
 	.num	= CLK_AP_AHB_GATE_NUM,
 };
 
+static struct sprd_reset_map sc9863a_ap_ahb_resets[] = {
+	[RESET_AP_AHB_OTG_SOFT_RST]		= { 0x0004, BIT(4), 0x1000 },
+	[RESET_AP_AHB_UTM1_SOFT_RST]		= { 0x0004, BIT(5), 0x1000 },
+	[RESET_AP_AHB_DMA_SOFT_RST]		= { 0x0004, BIT(8), 0x1000 },
+	[RESET_AP_AHB_CE_PUB_SOFT_RST]		= { 0x0004, BIT(9), 0x1000 },
+	[RESET_AP_AHB_NANDC_SOFT_RST]		= { 0x0004, BIT(10), 0x1000 },
+	[RESET_AP_AHB_SDIO0_SOFT_RST]		= { 0x0004, BIT(11), 0x1000 },
+	[RESET_AP_AHB_SDIO1_SOFT_RST]		= { 0x0004, BIT(12), 0x1000 },
+	[RESET_AP_AHB_SDIO2_SOFT_RST]		= { 0x0004, BIT(13), 0x1000 },
+	[RESET_AP_AHB_EMMC_SOFT_RST]		= { 0x0004, BIT(14), 0x1000 },
+	[RESET_AP_AHB_CE_SEC_SOFT_RST]		= { 0x0004, BIT(15), 0x1000 },
+	[RESET_AP_AHB_SDIO0_32K_SOFT_RST]	= { 0x0004, BIT(17), 0x1000 },
+	[RESET_AP_AHB_SDIO1_32K_SOFT_RST]	= { 0x0004, BIT(18), 0x1000 },
+	[RESET_AP_AHB_SDIO2_32K_SOFT_RST]	= { 0x0004, BIT(19), 0x1000 },
+	[RESET_AP_AHB_EMMC_32K_SOFT_RST]	= { 0x0004, BIT(20), 0x1000 },
+};
+
 static const struct sprd_clk_desc sc9863a_apahb_gate_desc = {
 	.clk_clks	= sc9863a_apahb_gate_clks,
 	.num_clk_clks	= ARRAY_SIZE(sc9863a_apahb_gate_clks),
 	.hw_clks	= &sc9863a_apahb_gate_hws,
+	.resets = sc9863a_ap_ahb_resets,
+	.num_resets = ARRAY_SIZE(sc9863a_ap_ahb_resets),
 };
 
 /* aon gate clocks */
@@ -1559,10 +1606,78 @@ static struct clk_hw_onecell_data sc9863a_aonapb_gate_hws = {
 	.num	= CLK_AON_APB_GATE_NUM,
 };
 
+static struct sprd_reset_map sc9863a_aon_apb_resets[] = {
+	[RESET_AON_APB_ADC_SOFT_RST]		= { 0x0008, BIT(0), 0x1000 },
+	[RESET_AON_APB_FM_SOFT_RST]		= { 0x0008, BIT(1), 0x1000 },
+	[RESET_AON_APB_TPC_SOFT_RST]		= { 0x0008, BIT(2), 0x1000 },
+	[RESET_AON_APB_GPIO_SOFT_RST]		= { 0x0008, BIT(3), 0x1000 },
+	[RESET_AON_APB_PWM0_SOFT_RST]		= { 0x0008, BIT(4), 0x1000 },
+	[RESET_AON_APB_PWM1_SOFT_RST]		= { 0x0008, BIT(5), 0x1000 },
+	[RESET_AON_APB_PWM2_SOFT_RST]		= { 0x0008, BIT(6), 0x1000 },
+	[RESET_AON_APB_PWM3_SOFT_RST]		= { 0x0008, BIT(7), 0x1000 },
+	[RESET_AON_APB_KPD_SOFT_RST]		= { 0x0008, BIT(8), 0x1000 },
+	[RESET_AON_APB_AON_SYST_SOFT_RST]	= { 0x0008, BIT(9), 0x1000 },
+	[RESET_AON_APB_AP_SYST_SOFT_RST]	= { 0x0008, BIT(10), 0x1000 },
+	[RESET_AON_APB_AON_TMR_SOFT_RST]	= { 0x0008, BIT(11), 0x1000 },
+	[RESET_AON_APB_AP_TMR0_SOFT_RST]	= { 0x0008, BIT(12), 0x1000 },
+	[RESET_AON_APB_AP_WDG_SOFT_RST]		= { 0x0008, BIT(13), 0x1000 },
+	[RESET_AON_APB_EFUSE_SOFT_RST]		= { 0x0008, BIT(14), 0x1000 },
+	[RESET_AON_APB_EIC_SOFT_RST]		= { 0x0008, BIT(15), 0x1000 },
+	[RESET_AON_APB_INTC_SOFT_RST]		= { 0x0008, BIT(16), 0x1000 },
+	[RESET_AON_APB_ADI_SOFT_RST]		= { 0x0008, BIT(17), 0x1000 },
+	[RESET_AON_APB_AUDIF_SOFT_RST]		= { 0x0008, BIT(18), 0x1000 },
+	[RESET_AON_APB_AUD_SOFT_RST]		= { 0x0008, BIT(19), 0x1000 },
+	[RESET_AON_APB_VBC_SOFT_RST]		= { 0x0008, BIT(20), 0x1000 },
+	[RESET_AON_APB_PIN_SOFT_RST]		= { 0x0008, BIT(21), 0x1000 },
+	[RESET_AON_APB_CKG_SOFT_RST]		= { 0x0008, BIT(22), 0x1000 },
+	[RESET_AON_APB_IPI_SOFT_RST]		= { 0x0008, BIT(23), 0x1000 },
+	[RESET_AON_APB_SPLK_SOFT_RST]		= { 0x0008, BIT(24), 0x1000 },
+	[RESET_AON_APB_MSPI0_SOFT_RST]		= { 0x0008, BIT(25), 0x1000 },
+	[RESET_AON_APB_MSPI1_SOFT_RST]		= { 0x0008, BIT(26), 0x1000 },
+	[RESET_AON_APB_DAP_MTX_SOFT_RST]	= { 0x0008, BIT(27), 0x1000 },
+	[RESET_AON_APB_CA53_TS0_SOFT_RST]	= { 0x0008, BIT(28), 0x1000 },
+	[RESET_AON_APB_CA53_TS1_SOFT_RST]	= { 0x0008, BIT(29), 0x1000 },
+	[RESET_AON_APB_I2C_SOFT_RST]		= { 0x0008, BIT(30), 0x1000 },
+	[RESET_AON_APB_CA5_TS0_SOFT_RST]	= { 0x0008, BIT(31), 0x1000 },
+	[RESET_AON_APB_PMU_SOFT_RST]		= { 0x000c, BIT(0), 0x1000 },
+	[RESET_AON_APB_THM_SOFT_RST]		= { 0x000c, BIT(1), 0x1000 },
+	[RESET_AON_APB_ARM_THMA_SOFT_RST]	= { 0x000c, BIT(2), 0x1000 },
+	[RESET_AON_APB_GPU_THMA_SOFT_RST]	= { 0x000c, BIT(3), 0x1000 },
+	[RESET_AON_APB_DMC_PHY_SOFT_RST]	= { 0x000c, BIT(4), 0x1000 },
+	[RESET_AON_APB_AON_DMA_SOFT_RST]	= { 0x000c, BIT(6), 0x1000 },
+	[RESET_AON_APB_CA53_WDG_SOFT_RST]	= { 0x000c, BIT(7), 0x1000 },
+	[RESET_AON_APB_AP_TMR1_SOFT_RST]	= { 0x000c, BIT(8), 0x1000 },
+	[RESET_AON_APB_AP_TMR2_SOFT_RST]	= { 0x000c, BIT(9), 0x1000 },
+	[RESET_AON_APB_DXCO_LC_SOFT_RST]	= { 0x000c, BIT(10), 0x1000 },
+	[RESET_AON_APB_BB_CAL_SOFT_RST]		= { 0x000c, BIT(11), 0x1000 },
+	[RESET_AON_APB_LVDSDIS_SOFT_RST]	= { 0x000c, BIT(12), 0x1000 },
+	[RESET_AON_APB_MDAR_SOFT_RST]		= { 0x000c, BIT(13), 0x1000 },
+	[RESET_AON_APB_ADC1_CAL_SOFT_RST]	= { 0x000c, BIT(14), 0x1000 },
+	[RESET_AON_APB_ADC2_CAL_SOFT_RST]	= { 0x000c, BIT(15), 0x1000 },
+	[RESET_AON_APB_ADC3_CAL_SOFT_RST]	= { 0x000c, BIT(16), 0x1000 },
+	[RESET_AON_APB_DAC1_SOFT_RST]		= { 0x000c, BIT(17), 0x1000 },
+	[RESET_AON_APB_DAC2_SOFT_RST]		= { 0x000c, BIT(18), 0x1000 },
+	[RESET_AON_APB_DAC3_SOFT_RST]		= { 0x000c, BIT(19), 0x1000 },
+	[RESET_AON_APB_DISP_SOFT_RST]		= { 0x000c, BIT(20), 0x1000 },
+	[RESET_AON_APB_RTC4M0_CAL_SOFT_RST]	= { 0x000c, BIT(22), 0x1000 },
+	[RESET_AON_APB_RTC4M1_CAL_SOFT_RST]	= { 0x000c, BIT(23), 0x1000 },
+	[RESET_AON_APB_ROSC_SOFT_RST]		= { 0x000c, BIT(24), 0x1000 },
+	[RESET_AON_APB_MBOX_SOFT_RST]		= { 0x000c, BIT(25), 0x1000 },
+	[RESET_AON_APB_ADC1_SOFT_RST]		= { 0x000c, BIT(26), 0x1000 },
+	[RESET_AON_APB_ADC2_SOFT_RST]		= { 0x000c, BIT(27), 0x1000 },
+	[RESET_AON_APB_ADC3_SOFT_RST]		= { 0x000c, BIT(28), 0x1000 },
+	[RESET_AON_APB_DEF_SOFT_RST]		= { 0x000c, BIT(29), 0x1000 },
+	[RESET_AON_APB_DEF_SLV_INT_SOFT_RST]	= { 0x000c, BIT(30), 0x1000 },
+	[RESET_AON_APB_RTC4M_ANA_SOFT_RST]	= { 0x000c, BIT(31), 0x1000 },
+	[RESET_AON_APB_DJTAG_SOFT_RST]		= { 0x0130, BIT(7), 0x1000 },
+};
+
 static const struct sprd_clk_desc sc9863a_aonapb_gate_desc = {
 	.clk_clks	= sc9863a_aonapb_gate_clks,
 	.num_clk_clks	= ARRAY_SIZE(sc9863a_aonapb_gate_clks),
 	.hw_clks	= &sc9863a_aonapb_gate_hws,
+	.resets = sc9863a_aon_apb_resets,
+	.num_resets = ARRAY_SIZE(sc9863a_aon_apb_resets),
 };
 
 /* mm gate clocks */
@@ -1637,10 +1752,26 @@ static struct clk_hw_onecell_data sc9863a_mm_gate_hws = {
 	.num	= CLK_MM_GATE_NUM,
 };
 
+static struct sprd_reset_map sc9863a_aon_ahb_resets[] = {
+	[RESET_MM_AHB_CKG_SOFT_RST]		= { 0x0004, BIT(0), 0x1000 },
+	[RESET_MM_AHB_AXI_MM_EMC_SOFT_RST]	= { 0x0004, BIT(1), 0x1000 },
+	[RESET_MM_AHB_DCAM0_SOFT_RST]		= { 0x0004, BIT(2), 0x1000 },
+	[RESET_MM_AHB_DCAM1_SOFT_RST]		= { 0x0004, BIT(3), 0x1000 },
+	[RESET_MM_AHB_DCAM2_SOFT_RST]		= { 0x0004, BIT(4), 0x1000 },
+	[RESET_MM_AHB_DCAM_AXIM_SOFT_RST]	= { 0x0004, BIT(5), 0x1000 },
+	[RESET_MM_AHB_DCAM_ALL_SOFT_RST]	= { 0x0004, BIT(6), 0x1000 },
+	[RESET_MM_AHB_ISP_LOG_SOFT_RST]		= { 0x0004, BIT(7), 0x1000 },
+	[RESET_MM_AHB_CSI_SOFT_RST]		= { 0x0004, BIT(8), 0x1000 },
+	[RESET_MM_AHB_CSI_S_SOFT_RST]		= { 0x0004, BIT(9), 0x1000 },
+	[RESET_MM_AHB_CSI_T_SOFT_RST]		= { 0x0004, BIT(10), 0x1000 },
+};
+
 static const struct sprd_clk_desc sc9863a_mm_gate_desc = {
 	.clk_clks	= sc9863a_mm_gate_clks,
 	.num_clk_clks	= ARRAY_SIZE(sc9863a_mm_gate_clks),
 	.hw_clks	= &sc9863a_mm_gate_hws,
+	.resets = sc9863a_aon_ahb_resets,
+	.num_resets = ARRAY_SIZE(sc9863a_aon_ahb_resets),
 };
 
 /* camera sensor clocks */
@@ -1699,10 +1830,25 @@ static struct clk_hw_onecell_data sc9863a_vspahb_gate_hws = {
 	.num	= CLK_VSP_AHB_GATE_NUM,
 };
 
+static struct sprd_reset_map sc9863a_vsp_ahb_resets[] = {
+	[RESET_VSP_AHB_CKG_SOFT_RST]		= { 0x0004, BIT(0), 0x1000 },
+	[RESET_VSP_AHB_AXI_MM_VSP_EMC_SOFT_RST]	= { 0x0004, BIT(1), 0x1000 },
+	[RESET_VSP_AHB_VSP_GLB_SOFT_RST]	= { 0x0004, BIT(2), 0x1000 },
+	[RESET_VSP_AHB_VSP_SOFT_RST]		= { 0x0004, BIT(3), 0x1000 },
+	[RESET_VSP_AHB_VPP_SOFT_RST]		= { 0x0004, BIT(4), 0x1000 },
+	[RESET_VSP_AHB_JPG_SOFT_RST]		= { 0x0004, BIT(5), 0x1000 },
+	[RESET_VSP_AHB_CPP_SOFT_RST]		= { 0x0004, BIT(6), 0x1000 },
+	[RESET_VSP_AHB_CPP_PATH0_SOFT_RST]	= { 0x0004, BIT(7), 0x1000 },
+	[RESET_VSP_AHB_CPP_PATH1_SOFT_RST]	= { 0x0004, BIT(8), 0x1000 },
+	[RESET_VSP_AHB_CPP_DMA_SOFT_RST]	= { 0x0004, BIT(9), 0x1000 },
+};
+
 static const struct sprd_clk_desc sc9863a_vspahb_gate_desc = {
 	.clk_clks	= sc9863a_vspahb_gate_clks,
 	.num_clk_clks	= ARRAY_SIZE(sc9863a_vspahb_gate_clks),
 	.hw_clks	= &sc9863a_vspahb_gate_hws,
+	.resets = sc9863a_vsp_ahb_resets,
+	.num_resets = ARRAY_SIZE(sc9863a_vsp_ahb_resets),
 };
 
 static SPRD_SC_GATE_CLK_FW_NAME(sim0_eb,	"sim0-eb",	"ext-26m", 0x0,
@@ -1800,10 +1946,36 @@ static struct clk_hw_onecell_data sc9863a_apapb_gate_hws = {
 	.num	= CLK_AP_APB_GATE_NUM,
 };
 
+static struct sprd_reset_map sc9863a_ap_apb_resets[] = {
+	[RESET_AP_APB_SIM0_SOFT_RST]		= { 0x0004, BIT(0), 0x1000 },
+	[RESET_AP_APB_IIS0_SOFT_RST]		= { 0x0004, BIT(1), 0x1000 },
+	[RESET_AP_APB_IIS1_SOFT_RST]		= { 0x0004, BIT(2), 0x1000 },
+	[RESET_AP_APB_IIS2_SOFT_RST]		= { 0x0004, BIT(3), 0x1000 },
+	[RESET_AP_APB_SPI0_SOFT_RST]		= { 0x0004, BIT(5), 0x1000 },
+	[RESET_AP_APB_SPI1_SOFT_RST]		= { 0x0004, BIT(6), 0x1000 },
+	[RESET_AP_APB_SPI2_SOFT_RST]		= { 0x0004, BIT(7), 0x1000 },
+	[RESET_AP_APB_I2C0_SOFT_RST]		= { 0x0004, BIT(8), 0x1000 },
+	[RESET_AP_APB_I2C1_SOFT_RST]		= { 0x0004, BIT(9), 0x1000 },
+	[RESET_AP_APB_I2C2_SOFT_RST]		= { 0x0004, BIT(10), 0x1000 },
+	[RESET_AP_APB_I2C3_SOFT_RST]		= { 0x0004, BIT(11), 0x1000 },
+	[RESET_AP_APB_I2C4_SOFT_RST]		= { 0x0004, BIT(12), 0x1000 },
+	[RESET_AP_APB_UART0_SOFT_RST]		= { 0x0004, BIT(13), 0x1000 },
+	[RESET_AP_APB_UART1_SOFT_RST]		= { 0x0004, BIT(14), 0x1000 },
+	[RESET_AP_APB_UART2_SOFT_RST]		= { 0x0004, BIT(15), 0x1000 },
+	[RESET_AP_APB_UART3_SOFT_RST]		= { 0x0004, BIT(16), 0x1000 },
+	[RESET_AP_APB_UART4_SOFT_RST]		= { 0x0004, BIT(17), 0x1000 },
+	[RESET_AP_APB_SIM0_32K_SOFT_RST]	= { 0x0004, BIT(18), 0x1000 },
+	[RESET_AP_APB_SPI3_SOFT_RST]		= { 0x0004, BIT(19), 0x1000 },
+	[RESET_AP_APB_I2C5_SOFT_RST]		= { 0x0004, BIT(20), 0x1000 },
+	[RESET_AP_APB_I2C6_SOFT_RST]		= { 0x0004, BIT(21), 0x1000 },
+};
+
 static const struct sprd_clk_desc sc9863a_apapb_gate_desc = {
 	.clk_clks	= sc9863a_apapb_gate,
 	.num_clk_clks	= ARRAY_SIZE(sc9863a_apapb_gate),
 	.hw_clks	= &sc9863a_apapb_gate_hws,
+	.resets = sc9863a_ap_apb_resets,
+	.num_resets = ARRAY_SIZE(sc9863a_ap_apb_resets),
 };
 
 static const struct of_device_id sprd_sc9863a_clk_ids[] = {
@@ -1840,12 +2012,30 @@ MODULE_DEVICE_TABLE(of, sprd_sc9863a_clk_ids);
 static int sc9863a_clk_probe(struct platform_device *pdev)
 {
 	const struct sprd_clk_desc *desc;
+	struct sprd_reset *reset;
+	int ret;
 
 	desc = device_get_match_data(&pdev->dev);
 	if (!desc)
 		return -ENODEV;
 
 	sprd_clk_regmap_init(pdev, desc);
+
+	if (desc->num_resets > 0) {
+		reset = devm_kzalloc(&pdev->dev, sizeof(*reset), GFP_KERNEL);
+		if (!reset)
+			return -ENOMEM;
+
+		reset->rcdev.of_node = pdev->dev.of_node;
+		reset->rcdev.ops = &sprd_sc_reset_ops;
+		reset->rcdev.nr_resets = desc->num_resets;
+		reset->reset_map = desc->resets;
+		reset->regmap = platform_get_drvdata(pdev);
+
+		ret = devm_reset_controller_register(&pdev->dev, &reset->rcdev);
+		if (ret)
+			dev_err(&pdev->dev, "Failed to register reset controller\n");
+	}
 
 	return sprd_clk_probe(&pdev->dev, desc->hw_clks);
 }

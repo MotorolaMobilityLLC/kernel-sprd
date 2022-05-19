@@ -15,6 +15,7 @@
 #include <linux/slab.h>
 
 #include <dt-bindings/clock/sprd,ums9620-clk.h>
+#include <dt-bindings/reset/sprd,ums9620-reset.h>
 
 #include "common.h"
 #include "composite.h"
@@ -22,6 +23,7 @@
 #include "gate.h"
 #include "mux.h"
 #include "pll.h"
+#include "reset.h"
 
 #define UMS9620_MUX_FLAG	\
 	(CLK_GET_RATE_NOCACHE | CLK_SET_RATE_NO_REPARENT)
@@ -142,10 +144,34 @@ static struct clk_hw_onecell_data ums9620_pmu_gate_hws = {
 	.num = CLK_PMU_GATE_NUM,
 };
 
+static struct sprd_reset_map ums9620_pmu_apb_resets[] = {
+	[RESET_PMU_APB_AUD_CEVA_SOFT_RST]	= { 0x0b88, BIT(0), 0x1000 },
+	[RESET_PMU_APB_AP_SOFT_RST]		= { 0x0b98, BIT(0), 0x1000 },
+	[RESET_PMU_APB_APCPU_TOP_SOFT_RST]	= { 0x0b98, BIT(1), 0x1000 },
+	[RESET_PMU_APB_GPU_SOFT_RST]		= { 0x0b98, BIT(2), 0x1000 },
+	[RESET_PMU_APB_CAMERA_SOFT_RST]		= { 0x0b98, BIT(3), 0x1000 },
+	[RESET_PMU_APB_DPU_VSP_SOFT_RST]	= { 0x0b98, BIT(4), 0x1000 },
+	[RESET_PMU_APB_AI_SOFT_RST]		= { 0x0b98, BIT(8), 0x1000 },
+	[RESET_PMU_APB_PS_CP_SOFT_RST]		= { 0x0b98, BIT(11), 0x1000 },
+	[RESET_PMU_APB_PHY_CP_SOFT_RST]		= { 0x0b98, BIT(14), 0x1000 },
+	[RESET_PMU_APB_CDMA_PROC0_SOFT_RST]	= { 0x0b98, BIT(18), 0x1000 },
+	[RESET_PMU_APB_AUDIO_SOFT_RST]		= { 0x0b98, BIT(22), 0x1000 },
+	[RESET_PMU_APB_IPA_SOFT_RST]		= { 0x0b98, BIT(24), 0x1000 },
+	[RESET_PMU_APB_PCIE_SOFT_RST]		= { 0x0b98, BIT(25), 0x1000 },
+	[RESET_PMU_APB_ISE_SOFT_RST]		= { 0x0b98, BIT(27), 0x1000 },
+	[RESET_PMU_APB_CS_SOFT_RST]		= { 0x0b98, BIT(29), 0x1000 },
+	[RESET_PMU_APB_AON_SOFT_RST]		= { 0x0b98, BIT(30), 0x1000 },
+	[RESET_PMU_APB_SP_SOFT_RST]		= { 0x0b9c, BIT(0), 0x1000 },
+	[RESET_PMU_APB_CH_SOFT_RST]		= { 0x0b9c, BIT(1), 0x1000 },
+	[RESET_PMU_APB_PUB_SOFT_RST]		= { 0x0b9c, BIT(4), 0x1000 },
+};
+
 static struct sprd_clk_desc ums9620_pmu_gate_desc = {
 	.clk_clks	= ums9620_pmu_gate_clks,
 	.num_clk_clks	= ARRAY_SIZE(ums9620_pmu_gate_clks),
 	.hw_clks        = &ums9620_pmu_gate_hws,
+	.resets	= ums9620_pmu_apb_resets,
+	.num_resets	= ARRAY_SIZE(ums9620_pmu_apb_resets),
 };
 
 /* pll clock at g1 */
@@ -748,10 +774,28 @@ static struct clk_hw_onecell_data ums9620_apapb_gate_hws = {
 	.num	= CLK_AP_APB_GATE_NUM,
 };
 
+static struct sprd_reset_map ums9620_ap_apb_resets[] = {
+	[RESET_AP_APB_IIS0_SOFT_RST]	= { 0x0004, BIT(1), 0x1000 },
+	[RESET_AP_APB_IIS1_SOFT_RST]	= { 0x0004, BIT(2), 0x1000 },
+	[RESET_AP_APB_IIS2_SOFT_RST]	= { 0x0004, BIT(3), 0x1000 },
+	[RESET_AP_APB_SPI0_SOFT_RST]	= { 0x0004, BIT(4), 0x1000 },
+	[RESET_AP_APB_SPI1_SOFT_RST]	= { 0x0004, BIT(5), 0x1000 },
+	[RESET_AP_APB_SPI2_SOFT_RST]	= { 0x0004, BIT(6), 0x1000 },
+	[RESET_AP_APB_UART3_SOFT_RST]	= { 0x0004, BIT(7), 0x1000 },
+	[RESET_AP_APB_UART0_SOFT_RST]	= { 0x0004, BIT(13), 0x1000 },
+	[RESET_AP_APB_UART1_SOFT_RST]	= { 0x0004, BIT(14), 0x1000 },
+	[RESET_AP_APB_UART2_SOFT_RST]	= { 0x0004, BIT(15), 0x1000 },
+	[RESET_AP_APB_CE_SEC_SOFT_RST]	= { 0x0004, BIT(20), 0x1000 },
+	[RESET_AP_APB_CE_PUB_SOFT_RST]	= { 0x0004, BIT(21), 0x1000 },
+	[RESET_AP_APB_AP_DVFS_SOFT_RST]	= { 0x0004, BIT(22), 0x1000 },
+};
+
 static struct sprd_clk_desc ums9620_apapb_gate_desc = {
 	.clk_clks	= ums9620_apapb_gate,
 	.num_clk_clks	= ARRAY_SIZE(ums9620_apapb_gate),
 	.hw_clks	= &ums9620_apapb_gate_hws,
+	.resets = ums9620_ap_apb_resets,
+	.num_resets = ARRAY_SIZE(ums9620_ap_apb_resets),
 };
 
 /* ap ahb gates */
@@ -863,10 +907,31 @@ static struct clk_hw_onecell_data ums9620_apahb_gate_hws = {
 	.num	= CLK_AP_AHB_GATE_NUM,
 };
 
+static struct sprd_reset_map ums9620_ap_ahb_resets[] = {
+	[RESET_AP_AHB_SDIO0_SOFT_RST]	= { 0x0004, BIT(0), 0x1000 },
+	[RESET_AP_AHB_SDIO1_SOFT_RST]	= { 0x0004, BIT(1), 0x1000 },
+	[RESET_AP_AHB_SDIO2_SOFT_RST]	= { 0x0004, BIT(2), 0x1000 },
+	[RESET_AP_AHB_EMMC_SOFT_RST]	= { 0x0004, BIT(3), 0x1000 },
+	[RESET_AP_AHB_UFS_SOFT_RST]	= { 0x0004, BIT(6), 0x1000 },
+	[RESET_AP_AHB_DMA_SOFT_RST]	= { 0x0004, BIT(8), 0x1000 },
+	[RESET_AP_AHB_I2C0_SOFT_RST]	= { 0x0004, BIT(16), 0x1000 },
+	[RESET_AP_AHB_I2C1_SOFT_RST]	= { 0x0004, BIT(17), 0x1000 },
+	[RESET_AP_AHB_I2C2_SOFT_RST]	= { 0x0004, BIT(18), 0x1000 },
+	[RESET_AP_AHB_I2C3_SOFT_RST]	= { 0x0004, BIT(19), 0x1000 },
+	[RESET_AP_AHB_I2C4_SOFT_RST]	= { 0x0004, BIT(20), 0x1000 },
+	[RESET_AP_AHB_I2C5_SOFT_RST]	= { 0x0004, BIT(21), 0x1000 },
+	[RESET_AP_AHB_I2C6_SOFT_RST]	= { 0x0004, BIT(22), 0x1000 },
+	[RESET_AP_AHB_I2C7_SOFT_RST]	= { 0x0004, BIT(23), 0x1000 },
+	[RESET_AP_AHB_I2C8_SOFT_RST]	= { 0x0004, BIT(24), 0x1000 },
+	[RESET_AP_AHB_I2C9_SOFT_RST]	= { 0x0004, BIT(25), 0x1000 },
+};
+
 static struct sprd_clk_desc ums9620_apahb_gate_desc = {
 	.clk_clks	= ums9620_apahb_gate,
 	.num_clk_clks	= ARRAY_SIZE(ums9620_apahb_gate),
 	.hw_clks	= &ums9620_apahb_gate_hws,
+	.resets = ums9620_ap_ahb_resets,
+	.num_resets = ARRAY_SIZE(ums9620_ap_ahb_resets),
 };
 
 /* ap clks */
@@ -1562,10 +1627,85 @@ static struct clk_hw_onecell_data ums9620_aon_gate_hws = {
 	.num	= CLK_AON_APB_GATE_NUM,
 };
 
+static struct sprd_reset_map ums9620_aon_apb_resets[] = {
+	[RESET_AON_APB_RC100M_CAL_SOFT_RST]		= { 0x000c, BIT(0), 0x1000 },
+	[RESET_AON_APB_RFTI_SOFT_RST]			= { 0x000c, BIT(1), 0x1000 },
+	[RESET_AON_APB_DCXO_LC_SOFT_RST]		= { 0x000c, BIT(2), 0x1000 },
+	[RESET_AON_APB_BB_CAL_SOFT_RST]			= { 0x000c, BIT(3), 0x1000 },
+	[RESET_AON_APB_MSPI0_SOFT_RST]			= { 0x000c, BIT(4), 0x1000 },
+	[RESET_AON_APB_MSPI1_SOFT_RST]			= { 0x000c, BIT(5), 0x1000 },
+	[RESET_AON_APB_DAP_MTX_SOFT_RST]		= { 0x000c, BIT(6), 0x1000 },
+	[RESET_AON_APB_LVDSDIS_SOFT_RST]		= { 0x000c, BIT(7), 0x1000 },
+	[RESET_AON_APB_SERDES_DPHY_SOFT_RST]		= { 0x000c, BIT(8), 0x1000 },
+	[RESET_AON_APB_SERDES_DPHY_APB_SOFT_RST]	= { 0x000c, BIT(9), 0x1000 },
+	[RESET_AON_APB_BB_SW_RFSPI_MST_SOFT_RST]	= { 0x000c, BIT(10), 0x1000 },
+	[RESET_AON_APB_RC150M_CAL_SOFT_RST]		= { 0x000c, BIT(11), 0x1000 },
+	[RESET_AON_APB_RC60M_CAL_SOFT_RST]		= { 0x000c, BIT(12), 0x1000 },
+	[RESET_AON_APB_RC6M_CAL_SOFT_RST]		= { 0x000C, BIT(13), 0x1000 },
+	[RESET_AON_APB_AON_SW_RFFE_SOFT_RST]		= { 0x000c, BIT(14), 0x1000 },
+	[RESET_AON_APB_LVDS_PHY_SOFT_RST]		= { 0x000c, BIT(15), 0x1000 },
+	[RESET_AON_APB_EFUSE_SOFT_RST]			= { 0x0010, BIT(0), 0x1000 },
+	[RESET_AON_APB_GPIO_SOFT_RST]			= { 0x0010, BIT(1), 0x1000 },
+	[RESET_AON_APB_MBOX_SOFT_RST]			= { 0x0010, BIT(2), 0x1000 },
+	[RESET_AON_APB_KPD_SOFT_RST]			= { 0x0010, BIT(3), 0x1000 },
+	[RESET_AON_APB_AON_SYST_SOFT_RST]		= { 0x0010, BIT(4), 0x1000 },
+	[RESET_AON_APB_AP_SYST_SOFT_RST]		= { 0x0010, BIT(5), 0x1000 },
+	[RESET_AON_APB_DVFS_TOP_SOFT_RST]		= { 0x0010, BIT(7), 0x1000 },
+	[RESET_AON_APB_OTG_UTMI_SOFT_RST]		= { 0x0010, BIT(8), 0x1000 },
+	[RESET_AON_APB_OTG_PHY_SOFT_RST]		= { 0x0010, BIT(9), 0x1000 },
+	[RESET_AON_APB_SPLK_SOFT_RST]			= { 0x0010, BIT(10), 0x1000 },
+	[RESET_AON_APB_PIN_SOFT_RST]			= { 0x0010, BIT(11), 0x1000 },
+	[RESET_AON_APB_ANA_SOFT_RST]			= { 0x0010, BIT(12), 0x1000 },
+	[RESET_AON_APB_CKG_SOFT_RST]			= { 0x0010, BIT(13), 0x1000 },
+	[RESET_AON_APB_UFS_AO_SOFT_RST]			= { 0x0010, BIT(15), 0x1000 },
+	[RESET_AON_APB_APCPU_TS0_SOFT_RST]		= { 0x0010, BIT(17), 0x1000 },
+	[RESET_AON_APB_DEBUG_FILTER_SOFT_RST]		= { 0x0004, BIT(18), 0x1000 },
+	[RESET_AON_APB_AON_IIS_SOFT_RST]		= { 0x0010, BIT(19), 0x1000 },
+	[RESET_AON_APB_SCC_SOFT_RST]			= { 0x0010, BIT(20), 0x1000 },
+	[RESET_AON_APB_SERDES1_SOFT_RST]		= { 0x0010, BIT(21), 0x1000 },
+	[RESET_AON_APB_SERDES0_SOFT_RST]		= { 0x0010, BIT(22), 0x1000 },
+	[RESET_AON_APB_THM0_OVERHEAT_SOFT_RST]		= { 0x0010, BIT(23), 0x1000 },
+	[RESET_AON_APB_THM1_OVERHEAT_SOFT_RST]		= { 0x0010, BIT(24), 0x1000 },
+	[RESET_AON_APB_THM2_OVERHEAT_SOFT_RST]		= { 0x0010, BIT(25), 0x1000 },
+	[RESET_AON_APB_THM3_OVERHEAT_SOFT_RST]		= { 0x0010, BIT(26), 0x1000 },
+	[RESET_AON_APB_THM0_SOFT_RST]			= { 0x0014, BIT(0), 0x1000 },
+	[RESET_AON_APB_THM1_SOFT_RST]			= { 0x0014, BIT(1), 0x1000 },
+	[RESET_AON_APB_THM2_SOFT_RST]			= { 0x0014, BIT(2), 0x1000 },
+	[RESET_AON_APB_THM3_SOFT_RST]			= { 0x0014, BIT(3), 0x1000 },
+	[RESET_AON_APB_PSCP_SIM0_AON_TOP_SOFT_RST]	= { 0x0014, BIT(4), 0x1000 },
+	[RESET_AON_APB_PSCP_SIM1_AON_TOP_SOFT_RST]	= { 0x0014, BIT(5), 0x1000 },
+	[RESET_AON_APB_PSCP_SIM2_AON_TOP_SOFT_RST]	= { 0x0014, BIT(6), 0x1000 },
+	[RESET_AON_APB_LP_AUDCP_INTC_SOFT_RST]		= { 0x0014, BIT(7), 0x1000 },
+	[RESET_AON_APB_PMU_SOFT_RST]			= { 0x0014, BIT(8), 0x1000 },
+	[RESET_AON_APB_ADI_SOFT_RST]			= { 0x0014, BIT(9), 0x1000 },
+	[RESET_AON_APB_EIC_SOFT_RST]			= { 0x0014, BIT(10), 0x1000 },
+	[RESET_AON_APB_LP_AP_INTC0_SOFT_RST]		= { 0x0014, BIT(11), 0x1000 },
+	[RESET_AON_APB_LP_AP_INTC1_SOFT_RST]		= { 0x0014, BIT(12), 0x1000 },
+	[RESET_AON_APB_LP_AP_INTC2_SOFT_RST]		= { 0x0014, BIT(13), 0x1000 },
+	[RESET_AON_APB_LP_AP_INTC3_SOFT_RST]		= { 0x0014, BIT(14), 0x1000 },
+	[RESET_AON_APB_LP_AP_INTC4_SOFT_RST]		= { 0x0014, BIT(15), 0x1000 },
+	[RESET_AON_APB_LP_AP_INTC5_SOFT_RST]		= { 0x0014, BIT(16), 0x1000 },
+	[RESET_AON_APB_LP_AP_INTC6_SOFT_RST]		= { 0x0014, BIT(17), 0x1000 },
+	[RESET_AON_APB_LP_AP_INTC7_SOFT_RST]		= { 0x0014, BIT(18), 0x1000 },
+	[RESET_AON_APB_LP_PSCP_INTC_SOFT_RST]		= { 0x0014, BIT(19), 0x1000 },
+	[RESET_AON_APB_LP_PHYCP_INTC_SOFT_RST]		= { 0x0014, BIT(20), 0x1000 },
+	[RESET_AON_APB_LP_ISE_INTC_SOFT_RST]		= { 0x0014, BIT(21), 0x1000 },
+	[RESET_AON_APB_PWM0_SOFT_RST]			= { 0x0014, BIT(25), 0x1000 },
+	[RESET_AON_APB_PWM1_SOFT_RST]			= { 0x0014, BIT(26), 0x1000 },
+	[RESET_AON_APB_PWM2_SOFT_RST]			= { 0x0014, BIT(27), 0x1000 },
+	[RESET_AON_APB_PWM3_SOFT_RST]			= { 0x0014, BIT(28), 0x1000 },
+	[RESET_AON_APB_AP_WDG_SOFT_RST]			= { 0x0014, BIT(29), 0x1000 },
+	[RESET_AON_APB_APCPU_WDG_SOFT_RST]		= { 0x0014, BIT(30), 0x1000 },
+	[RESET_AON_APB_DJTAG_SOFT_RST]			= { 0x0130, BIT(15), 0x1000 },
+	[RESET_AON_APB_UFSDEV_SOFT_RST]			= { 0x0ce8, BIT(0), 0x1000 },
+};
+
 static struct sprd_clk_desc ums9620_aon_gate_desc = {
 	.clk_clks	= ums9620_aon_gate,
 	.num_clk_clks	= ARRAY_SIZE(ums9620_aon_gate),
 	.hw_clks	= &ums9620_aon_gate_hws,
+	.resets	= ums9620_aon_apb_resets,
+	.num_resets	= ARRAY_SIZE(ums9620_aon_apb_resets),
 };
 
 /* aon apb clks */
@@ -2190,10 +2330,17 @@ static struct clk_hw_onecell_data ums9620_gpuapb_gate_hws = {
 	.num    = CLK_GPU_APB_GATE_NUM,
 };
 
+static struct sprd_reset_map ums9620_gpu_apb_resets[] = {
+	[RESET_GPU_APB_GPU_CORE_SOFT_RST]	= { 0x0000, BIT(0), 0x1000 },
+	[RESET_GPU_APB_SYS_SOFT_RST_REQ_CORE]	= { 0x0000, BIT(1), 0x1000 },
+};
+
 static struct sprd_clk_desc ums9620_gpuapb_gate_desc = {
 	.clk_clks	= ums9620_gpuapb_gate,
 	.num_clk_clks	= ARRAY_SIZE(ums9620_gpuapb_gate),
 	.hw_clks	= &ums9620_gpuapb_gate_hws,
+	.resets = ums9620_gpu_apb_resets,
+	.num_resets = ARRAY_SIZE(ums9620_gpu_apb_resets),
 };
 
 /* gpu clocks */
@@ -2273,10 +2420,22 @@ static struct clk_hw_onecell_data ums9620_ipaapb_gate_hws = {
 	.num	= CLK_IPAAPB_GATE_NUM,
 };
 
+static struct sprd_reset_map ums9620_ipa_apb_resets[] = {
+	[RESET_IPA_APB_USB_SOFT_RST]			= { 0x0000, BIT(0), 0x1000 },
+	[RESET_IPA_APB_PAM_U3_SOFT_RST]			= { 0x0000, BIT(1), 0x1000 },
+	[RESET_IPA_APB_NIC_400_CFG_SOFT_RST]		= { 0x0000, BIT(2), 0x1000 },
+	[RESET_IPA_APB_PAM_WIFI_SOFT_RST]		= { 0x0000, BIT(3), 0x1000 },
+	[RESET_IPA_APB_BUSMON_PERF_PAM_U3_SOFT_RST]	= { 0x0000, BIT(7), 0x1000 },
+	[RESET_IPA_APB_BUSMON_PERF_UPA_WIFI_SOFT_RST]	= { 0x0000, BIT(8), 0x1000 },
+	[RESET_IPA_APB_BUSMON_PERF_IPA_M0_SOFT_RST]	= { 0x0000, BIT(9), 0x1000 },
+};
+
 static struct sprd_clk_desc ums9620_ipaapb_gate_desc = {
 	.clk_clks	= ums9620_ipaapb_gate,
 	.num_clk_clks	= ARRAY_SIZE(ums9620_ipaapb_gate),
 	.hw_clks	= &ums9620_ipaapb_gate_hws,
+	.resets = ums9620_ipa_apb_resets,
+	.num_resets = ARRAY_SIZE(ums9620_ipa_apb_resets),
 };
 
 /* ipa clocks*/
@@ -2391,10 +2550,16 @@ static struct clk_hw_onecell_data ums9620_ipaglb_gate_hws = {
 	.num	= CLK_IPAGLB_GATE_NUM,
 };
 
+static struct sprd_reset_map ums9620_ipa_glb_apb_resets[] = {
+	[RESET_IPA_GLB_APB_IPA_SOFT_RST]	= { 0x0000, BIT(0), 0x1000 },
+};
+
 static struct sprd_clk_desc ums9620_ipaglb_gate_desc = {
 	.clk_clks	= ums9620_ipaglb_gate,
 	.num_clk_clks	= ARRAY_SIZE(ums9620_ipaglb_gate),
 	.hw_clks	= &ums9620_ipaglb_gate_hws,
+	.resets = ums9620_ipa_glb_apb_resets,
+	.num_resets = ARRAY_SIZE(ums9620_ipa_glb_apb_resets),
 };
 
 /* ipa dispc1 glb gate clocks */
@@ -2437,10 +2602,21 @@ static struct clk_hw_onecell_data ums9620_ipadispcglb_gate_hws = {
 	.num	= CLK_IPADISPC_GATE_NUM,
 };
 
+static struct sprd_reset_map ums9620_ipa_dispac1_glb_apb_resets[] = {
+	[RESET_IPA_DISPC1_GLB_APB_DPU1_SOFT_RST]	= { 0x0004, BIT(0), 0x1000 },
+	[RESET_IPA_DISPC1_GLB_APB_DPTX_SOFT_RST]	= { 0x0004, BIT(1), 0x1000 },
+	[RESET_IPA_DISPC1_GLB_APB_TRNG_SOFT_RST]	= { 0x0004, BIT(2), 0x1000 },
+	[RESET_IPA_DISPC1_GLB_APB_DPU1_VAU_SOFT_RST]	= { 0x0004, BIT(3), 0x1000 },
+	[RESET_IPA_DISPC1_GLB_APB_PHY_SOFT_RST]		= { 0x0004, BIT(4), 0x1000 },
+	[RESET_IPA_DISPC1_GLB_APB_TCA_SOFT_RST]		= { 0x0004, BIT(5), 0x1000 },
+};
+
 static struct sprd_clk_desc ums9620_ipadispcglb_gate_desc = {
 	.clk_clks	= ums9620_ipadispcglb_gate,
 	.num_clk_clks	= ARRAY_SIZE(ums9620_ipadispcglb_gate),
 	.hw_clks	= &ums9620_ipadispcglb_gate_hws,
+	.resets = ums9620_ipa_dispac1_glb_apb_resets,
+	.num_resets = ARRAY_SIZE(ums9620_ipa_dispac1_glb_apb_resets),
 };
 
 /* pcie apb gate clocks */
@@ -2478,10 +2654,18 @@ static struct clk_hw_onecell_data ums9620_pcieapb_gate_hws = {
 	.num	= CLK_PCIEAPB_GATE_NUM,
 };
 
+static struct sprd_reset_map ums9620_pcie_apb_resets[] = {
+	[RESET_PCIE_APB_PCIE3_SOFT_RST]		= { 0x0000, BIT(5), 0x1000 },
+	[RESET_PCIE_APB_NIC400_CFG_SOFT_RST]	= { 0x0000, BIT(6), 0x1000 },
+	[RESET_PCIE_APB_PCIE_ANLG_SOFT_RST]	= { 0x0000, BIT(7), 0x1000 },
+};
+
 static struct sprd_clk_desc ums9620_pcieapb_gate_desc = {
 	.clk_clks	= ums9620_pcieapb_gate,
 	.num_clk_clks	= ARRAY_SIZE(ums9620_pcieapb_gate),
 	.hw_clks	= &ums9620_pcieapb_gate_hws,
+	.resets		= ums9620_pcie_apb_resets,
+	.num_resets	= ARRAY_SIZE(ums9620_pcie_apb_resets),
 };
 
 /* pcie clocks*/
@@ -2568,10 +2752,18 @@ static struct clk_hw_onecell_data ums9620_aiapb_gate_hws = {
 	.num	= CLK_AIAPB_GATE_NUM,
 };
 
+static struct sprd_reset_map ums9620_ai_apb_resets[] = {
+	[RESET_PCIE_APB_DVFS_SOFT_RST]		= { 0x0004, BIT(0), 0x1000 },
+	[RESET_PCIE_APB_OCM_SOFT_RST]		= { 0x0004, BIT(1), 0x1000 },
+	[RESET_PCIE_APB_POWERVR_SOFT_RST]	= { 0x0004, BIT(2), 0x1000 },
+};
+
 static struct sprd_clk_desc ums9620_aiapb_gate_desc = {
 	.clk_clks	= ums9620_aiapb_gate,
 	.num_clk_clks	= ARRAY_SIZE(ums9620_aiapb_gate),
 	.hw_clks	= &ums9620_aiapb_gate_hws,
+	.resets = ums9620_ai_apb_resets,
+	.num_resets = ARRAY_SIZE(ums9620_ai_apb_resets),
 };
 
 /* ai clocks */
@@ -2879,10 +3071,52 @@ static struct clk_hw_onecell_data ums9620_mm_gate_hws = {
 	.num	= CLK_MM_GATE_NUM,
 };
 
+static struct sprd_reset_map ums9620_mm_ahb_resets[] = {
+	[RESET_MM_AHB_REGU_SOFT_RST]		= { 0x00c8, BIT(0), 0x1000 },
+	[RESET_MM_AHB_DCAM0_1_SOFT_RST]		= { 0x00c8, BIT(1), 0x1000 },
+	[RESET_MM_AHB_DCAM2_3_SOFT_RST]		= { 0x00c8, BIT(2), 0x1000 },
+	[RESET_MM_AHB_DCAM0_1_AXI_SOFT_RST]	= { 0x00c8, BIT(3), 0x1000 },
+	[RESET_MM_AHB_DCAM3_SOFT_RST]		= { 0x00c8, BIT(4), 0x1000 },
+	[RESET_MM_AHB_DCAM2_SOFT_RST]		= { 0x00c8, BIT(5), 0x1000 },
+	[RESET_MM_AHB_DCAM1_SOFT_RST]		= { 0x00c8, BIT(6), 0x1000 },
+	[RESET_MM_AHB_DCAM0_SOFT_RST]		= { 0x00c8, BIT(7), 0x1000 },
+	[RESET_MM_AHB_MIPI_CSI3_SOFT_RST]	= { 0x00c8, BIT(8), 0x1000 },
+	[RESET_MM_AHB_MIPI_CSI2_SOFT_RST]	= { 0x00c8, BIT(9), 0x1000 },
+	[RESET_MM_AHB_MIPI_CSI1_SOFT_RST]	= { 0x00c8, BIT(10), 0x1000 },
+	[RESET_MM_AHB_MIPI_CSI0_SOFT_RST]	= { 0x00c8, BIT(11), 0x1000 },
+	[RESET_MM_AHB_DCAM2_3_AXI_SOFT_RST]	= { 0x00c8, BIT(12), 0x1000 },
+	[RESET_MM_AHB_DCAM2_3_VAU_SOFT_RST]	= { 0x00c8, BIT(13), 0x1000 },
+	[RESET_MM_AHB_DCAM0_1_VAU_SOFT_RST]	= { 0x00c8, BIT(14), 0x1000 },
+	[RESET_MM_AHB_DEP_VAU_SOFT_RST]		= { 0x00cc, BIT(0), 0x1000 },
+	[RESET_MM_AHB_DEP_SOFT_RST]		= { 0x00cc, BIT(1), 0x1000 },
+	[RESET_MM_AHB_DEP_ALL_SOFT_RST]		= { 0x00cc, BIT(2), 0x1000 },
+	[RESET_MM_AHB_FD_VAU_SOFT_RST]		= { 0x00cc, BIT(3), 0x1000 },
+	[RESET_MM_AHB_FD_SOFT_RST]		= { 0x00cc, BIT(4), 0x1000 },
+	[RESET_MM_AHB_FD_ALL_SOFT_RST]		= { 0x00cc, BIT(5), 0x1000 },
+	[RESET_MM_AHB_CPP_DMA_SOFT_RST]		= { 0x00cc, BIT(6), 0x1000 },
+	[RESET_MM_AHB_CPP_PATH1_SOFT_RST]	= { 0x00cc, BIT(7), 0x1000 },
+	[RESET_MM_AHB_CPP_PATH0_SOFT_RST]	= { 0x00cc, BIT(8), 0x1000 },
+	[RESET_MM_AHB_CPP_VAU_SOFT_RST]		= { 0x00cc, BIT(9), 0x1000 },
+	[RESET_MM_AHB_CPP_SOFT_RST]		= { 0x00cc, BIT(10), 0x1000 },
+	[RESET_MM_AHB_CPP_ALL_SOFT_RST]		= { 0x00cc, BIT(11), 0x1000 },
+	[RESET_MM_AHB_ISP_VAU_SOFT_RST]		= { 0x00cc, BIT(12), 0x1000 },
+	[RESET_MM_AHB_ISP_ALL_SOFT_RST]		= { 0x00cc, BIT(13), 0x1000 },
+	[RESET_MM_AHB_ISP_SOFT_RST]		= { 0x00cc, BIT(14), 0x1000 },
+	[RESET_MM_AHB_CKG_SOFT_RST]		= { 0x00d0, BIT(0), 0x1000 },
+	[RESET_MM_AHB_DVFS_SOFT_RST]		= { 0x00d0, BIT(1), 0x1000 },
+	[RESET_MM_AHB_SYS_H2P_DB_SOFT_RST]	= { 0x00d0, BIT(2), 0x1000 },
+	[RESET_MM_AHB_JPG_SOFT_RST]		= { 0x00d0, BIT(3), 0x1000 },
+	[RESET_MM_AHB_JPG_VAU_SOFT_RST]		= { 0x00d0, BIT(4), 0x1000 },
+	[RESET_MM_AHB_MAILBOX_SOFT_RST]		= { 0x00d0, BIT(5), 0x1000 },
+	[RESET_MM_AHB_UART_SOFT_RST]		= { 0x00d0, BIT(6), 0x1000 },
+};
+
 static struct sprd_clk_desc ums9620_mm_gate_desc = {
 	.clk_clks	= ums9620_mm_gate,
 	.num_clk_clks	= ARRAY_SIZE(ums9620_mm_gate),
 	.hw_clks	= &ums9620_mm_gate_hws,
+	.resets	= ums9620_mm_ahb_resets,
+	.num_resets	= ARRAY_SIZE(ums9620_mm_ahb_resets),
 };
 
 /* mm clocks */
@@ -3264,10 +3498,36 @@ static struct clk_hw_onecell_data ums9620_dpu_vsp_gate_hws = {
 	.num    = CLK_DPU_VSP_GATE_NUM,
 };
 
+static struct sprd_reset_map ums9620_dpu_vsp_resets[] = {
+	[RESET_DPU_VSP_APB_DPU_SOFT_RST]		= { 0x0004, BIT(0), 0x1000 },
+	[RESET_DPU_VSP_APB_DSI0_SOFT_RST]		= { 0x0004, BIT(1), 0x1000 },
+	[RESET_DPU_VSP_APB_DSI1_SOFT_RST]		= { 0x0004, BIT(2), 0x1000 },
+	[RESET_DPU_VSP_APB_VPU_ENC0_SOFT_RST]		= { 0x0004, BIT(3), 0x1000 },
+	[RESET_DPU_VSP_APB_VPU_ENC1_SOFT_RST]		= { 0x0004, BIT(4), 0x1000 },
+	[RESET_DPU_VSP_APB_VPU_DEC_SOFT_RST]		= { 0x0004, BIT(5), 0x1000 },
+	[RESET_DPU_VSP_APB_GSP0_SOFT_RST]		= { 0x0004, BIT(6), 0x1000 },
+	[RESET_DPU_VSP_APB_GSP1_SOFT_RST]		= { 0x0004, BIT(7), 0x1000 },
+	[RESET_DPU_VSP_APB_DVFS_SOFT_RST]		= { 0x0004, BIT(8), 0x1000 },
+	[RESET_DPU_VSP_APB_VPU_ENC0_VPP_SOFT_RST]	= { 0x0004, BIT(9), 0x1000 },
+	[RESET_DPU_VSP_APB_VPU_ENC0_VSP_SOFT_RST]	= { 0x0004, BIT(10), 0x1000 },
+	[RESET_DPU_VSP_APB_VPU_ENC1_VPP_SOFT_RST]	= { 0x0004, BIT(11), 0x1000 },
+	[RESET_DPU_VSP_APB_VPU_ENC1_VSP_SOFT_RST]	= { 0x0004, BIT(12), 0x1000 },
+	[RESET_DPU_VSP_APB_VPU_DEC_VPP_SOFT_RST]	= { 0x0004, BIT(13), 0x1000 },
+	[RESET_DPU_VSP_APB_VPU_DEC_VSP_SOFT_RST]	= { 0x0004, BIT(14), 0x1000 },
+	[RESET_DPU_VSP_APB_VPU_ENC0_VAU_SOFT_RST]	= { 0x0004, BIT(15), 0x1000 },
+	[RESET_DPU_VSP_APB_VPU_ENC1_VAU_SOFT_RST]	= { 0x0004, BIT(16), 0x1000 },
+	[RESET_DPU_VSP_APB_VPU_DEC_VAU_SOFT_RST]	= { 0x0004, BIT(17), 0x1000 },
+	[RESET_DPU_VSP_APB_DPU_VAU_SOFT_RST]		= { 0x0004, BIT(18), 0x1000 },
+	[RESET_DPU_VSP_APB_GSP0_VAU_SOFT_RST]		= { 0x0004, BIT(19), 0x1000 },
+	[RESET_DPU_VSP_APB_GSP1_VAU_SOFT_RST]		= { 0x0004, BIT(20), 0x1000 },
+};
+
 static struct sprd_clk_desc ums9620_dpu_vsp_gate_desc = {
 	.clk_clks	= ums9620_dpu_vsp_gate,
 	.num_clk_clks	= ARRAY_SIZE(ums9620_dpu_vsp_gate),
 	.hw_clks	= &ums9620_dpu_vsp_gate_hws,
+	.resets     = ums9620_dpu_vsp_resets,
+	.num_resets = ARRAY_SIZE(ums9620_dpu_vsp_resets),
 };
 
 /* dpu vsp clocks */
@@ -3485,10 +3745,30 @@ static struct clk_hw_onecell_data ums9620_audcpglb_gate_hws = {
 	.num	= CLK_AUDCP_GLB_GATE_NUM,
 };
 
+static struct sprd_reset_map ums9620_audcp_glb_resets[] = {
+	[RESET_AUDCP_GLB_VBS_24M_SOFT_RST]	= { 0x0008, BIT(0), 0x1000 },
+	[RESET_AUDCP_GLB_DMA_AP_SOFT_RST]	= { 0x0008, BIT(1), 0x1000 },
+	[RESET_AUDCP_GLB_SRC48K_SOFT_RST]	= { 0x0008, BIT(5), 0x1000 },
+	[RESET_AUDCP_GLB_MCDT_SOFT_RST]		= { 0x0008, BIT(7), 0x1000 },
+	[RESET_AUDCP_GLB_VBC_SOFT_RST]		= { 0x0008, BIT(9), 0x1000 },
+	[RESET_AUDCP_GLB_SPINLOCK_SOFT_RST]	= { 0x0008, BIT(10), 0x1000 },
+	[RESET_AUDCP_GLB_DMA_CP_SOFT_RST]	= { 0x0008, BIT(11), 0x1000 },
+	[RESET_AUDCP_GLB_IIS0_SOFT_RST]		= { 0x0008, BIT(12), 0x1000 },
+	[RESET_AUDCP_GLB_IIS1_SOFT_RST]		= { 0x0008, BIT(13), 0x1000 },
+	[RESET_AUDCP_GLB_IIS2_SOFT_RST]		= { 0x0008, BIT(14), 0x1000 },
+	[RESET_AUDCP_GLB_UART_SOFT_RST]		= { 0x0008, BIT(16), 0x1000 },
+	[RESET_AUDCP_GLB_AUD_SOFT_RST]		= { 0x0008, BIT(25), 0x1000 },
+	[RESET_AUDCP_GLB_TDM_SOFT_RST]		= { 0x0008, BIT(27), 0x1000 },
+	[RESET_AUDCP_GLB_MATRIX_CFG_SOFT_RST]	= { 0x0008, BIT(28), 0x1000 },
+	[RESET_AUDCP_GLB_TDM_HF_SOFT_RST]	= { 0x0008, BIT(29), 0x1000 },
+};
+
 static const struct sprd_clk_desc ums9620_audcpglb_gate_desc = {
 	.clk_clks	= ums9620_audcpglb_gate,
 	.num_clk_clks	= ARRAY_SIZE(ums9620_audcpglb_gate),
 	.hw_clks	= &ums9620_audcpglb_gate_hws,
+	.resets     = ums9620_audcp_glb_resets,
+	.num_resets = ARRAY_SIZE(ums9620_audcp_glb_resets),
 };
 
 /* audcp aon apb gates */
@@ -3531,10 +3811,19 @@ static struct clk_hw_onecell_data ums9620_audcpapb_gate_hws = {
 	.num	= CLK_AUDCP_APB_GATE_NUM,
 };
 
+static struct sprd_reset_map ums9620_audcp_aon_apb_resets[] = {
+	[RESET_AUDCP_AON_APB_VAD_SOFT_RST]	= { 0x0008, BIT(0), 0x1000 },
+	[RESET_AUDCP_AON_APB_PDM_SOFT_RST]	= { 0x0008, BIT(1), 0x1000 },
+	[RESET_AUDCP_AON_APB_PDM_IIS_SOFT_RST]	= { 0x0008, BIT(2), 0x1000 },
+	[RESET_AUDCP_AON_APB_DVFS_SOFT_RST]	= { 0x0008, BIT(3), 0x1000 },
+};
+
 static const struct sprd_clk_desc ums9620_audcpapb_gate_desc = {
 	.clk_clks	= ums9620_audcpapb_gate,
 	.num_clk_clks	= ARRAY_SIZE(ums9620_audcpapb_gate),
 	.hw_clks	= &ums9620_audcpapb_gate_hws,
+	.resets		= ums9620_audcp_aon_apb_resets,
+	.num_resets = ARRAY_SIZE(ums9620_audcp_aon_apb_resets),
 };
 
 static const struct of_device_id sprd_ums9620_clk_ids[] = {
@@ -3607,12 +3896,30 @@ MODULE_DEVICE_TABLE(of, sprd_ums9620_clk_ids);
 static int ums9620_clk_probe(struct platform_device *pdev)
 {
 	const struct sprd_clk_desc *desc;
+	struct sprd_reset *reset;
+	int ret;
 
 	desc = device_get_match_data(&pdev->dev);
 	if (!desc)
 		return -ENODEV;
 
 	sprd_clk_regmap_init(pdev, desc);
+
+	if (desc->num_resets > 0) {
+		reset = devm_kzalloc(&pdev->dev, sizeof(*reset), GFP_KERNEL);
+		if (!reset)
+			return -ENOMEM;
+
+		reset->rcdev.of_node = pdev->dev.of_node;
+		reset->rcdev.ops = &sprd_sc_reset_ops;
+		reset->rcdev.nr_resets = desc->num_resets;
+		reset->reset_map = desc->resets;
+		reset->regmap = platform_get_drvdata(pdev);
+
+		ret = devm_reset_controller_register(&pdev->dev, &reset->rcdev);
+		if (ret)
+			dev_err(&pdev->dev, "Failed to register reset controller\n");
+	}
 
 	return sprd_clk_probe(&pdev->dev, desc->hw_clks);
 }
