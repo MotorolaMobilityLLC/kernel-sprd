@@ -1177,9 +1177,9 @@ static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
 		memcpy(&enhance->gamma_copy, param, sizeof(enhance->gamma_copy));
 		gamma = &enhance->gamma_copy;
 		for (i = 0; i < 256; i++) {
-			DPU_REG_SET(ctx->base + REG_GAMMA_LUT_ADDR, i);
+			DPU_REG_WR(ctx->base + REG_GAMMA_LUT_ADDR, i);
 			udelay(1);
-			DPU_REG_WR(ctx->base + REG_GAMMA_LUT_ADDR, (gamma->r[i] << 20) |
+			DPU_REG_WR(ctx->base + REG_GAMMA_LUT_WDATA, (gamma->r[i] << 20) |
 						(gamma->g[i] << 10) | gamma->b[i]);
 			pr_debug("0x%02x: r=%u, g=%u, b=%u\n", i,
 				gamma->r[i], gamma->g[i], gamma->b[i]);
