@@ -267,13 +267,13 @@ static int sprd_panel_get_modes(struct drm_panel *p)
 	}
 
 	/* parse and create sr mode config */
-	of_property_read_u32(np, "sprd,sr-width", &sr_width);
-	of_property_read_u32(np, "sprd,sr-height", &sr_height);
+	of_property_read_u32(panel->info.of_node, "sprd,sr-width", &sr_width);
+	of_property_read_u32(panel->info.of_node, "sprd,sr-height", &sr_height);
 	if (sr_width && sr_height) {
 		for (i = 0; i < panel->info.num_buildin_modes; i++) {
 			struct videomode vm = {};
- 			vm.hactive = sr_width;
- 			vm.vactive = sr_height;
+			vm.hactive = sr_width;
+			vm.vactive = sr_height;
 			vm.pixelclock = sr_width * sr_height * drm_mode_vrefresh(&panel->info.buildin_modes[i]);
 			mode = drm_mode_create(p->drm);
 			mode->vrefresh = drm_mode_vrefresh(&panel->info.buildin_modes[i]);
