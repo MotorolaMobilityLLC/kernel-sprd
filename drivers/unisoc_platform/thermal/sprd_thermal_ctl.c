@@ -63,6 +63,16 @@ static void unisoc_thermal_register(void *data, struct cpufreq_policy *policy)
 {
 	struct sprd_thermal_ctl *thm_ctl;
 
+	if (!policy) {
+		pr_err("Failed to get policy\n");
+		return;
+	}
+
+	if (!policy->cdev) {
+		pr_err("Failed to get cdev\n");
+		return;
+	}
+
 	list_for_each_entry(thm_ctl, &thermal_policy_list, node)
 		if (thm_ctl->policy == policy)
 			return;
@@ -70,6 +80,7 @@ static void unisoc_thermal_register(void *data, struct cpufreq_policy *policy)
 	list_for_each_entry(thm_ctl, &thermal_policy_list, node)
 		if (thm_ctl->policy == NULL) {
 			thm_ctl->policy = policy;
+			pr_info("Success to get policy for cdev%d\n", policy->cdev->id);
 			break;
 		}
 }
@@ -109,10 +120,12 @@ struct cpufreq_policy *find_cpufreq_policy(struct cpufreq_policy *curr)
 {
 	struct sprd_thermal_ctl *thm_ctl;
 
-	list_for_each_entry(thm_ctl, &thermal_policy_list, node)
+	list_for_each_entry(thm_ctl, &thermal_policy_list, node) {
+		if (!thm_ctl->policy)
+			continue;
 		if ((curr->cdev->id + 1) == thm_ctl->policy->cdev->id)
 			return thm_ctl->policy;
-
+	}
 	return NULL;
 }
 
