@@ -20,7 +20,19 @@
 		#address-cells = <1>;
 		#size-cells = <0>;
 
+		pmic_eic: gpio@280 {
+			compatible = "sprd,ump96xx-eic", "sprd,sc27xx-eic", "sprd,sc2731-eic";
+			reg = <0x280>;
+			interrupt-parent = <&ump9620_pmic>;
+			interrupts = <4 IRQ_TYPE_LEVEL_HIGH>;
+			gpio-controller;
+			#gpio-cells = <2>;
+			interrupt-controller;
+			#interrupt-cells = <2>;
+		};
+
 	};
+
 };
 
 #include "regulator.dtsi"
