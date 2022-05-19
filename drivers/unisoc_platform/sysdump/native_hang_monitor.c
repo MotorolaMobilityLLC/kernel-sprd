@@ -290,7 +290,6 @@ static int save_native_thread_maps(pid_t pid)
 	return 0;
 }
 #endif // maps
-#if 0 // gki
 static int save_native_threadinfo_by_tid(pid_t tid)
 {
 	struct task_struct *current_task;
@@ -481,7 +480,6 @@ static int save_native_threadinfo_by_tid(pid_t tid)
 
 	return 0;
 }
-#endif //gki
 static void show_bt_by_pid(int task_pid)
 {
 	struct task_struct *t, *p;
@@ -510,12 +508,12 @@ static void show_bt_by_pid(int task_pid)
 
 				log_to_hang_info("%s sysTid=%d, pid=%d\n", t->comm, tid, task_pid);
 
-//				send_sig_info(SIGSTOP, SEND_SIG_PRIV, t);
+				send_sig_info(SIGSTOP, SEND_SIG_PRIV, t);
 				/* change send ptrace_stop to send signal stop */
-//				save_native_threadinfo_by_tid(tid);	/* catch user-space bt */
+				save_native_threadinfo_by_tid(tid);	/* catch user-space bt */
 				/* change send ptrace_stop to send signal stop */
-//				if (stat_nam[state] != 'T')
-//					send_sig_info(SIGCONT, SEND_SIG_PRIV, t);
+				if (stat_nam[state] != 'T')
+					send_sig_info(SIGCONT, SEND_SIG_PRIV, t);
 			}
 			if ((++count) % 5 == 4)
 				msleep(20);
