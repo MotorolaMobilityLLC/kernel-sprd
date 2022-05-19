@@ -132,10 +132,16 @@ static void sprd_crtc_atomic_enable(struct drm_crtc *crtc,
 	struct sprd_crtc *sprd_crtc = to_sprd_crtc(crtc);
 
 	/*
-	 * add if condition to avoid resume dpu for SR feature.
+	 * FIXME:
+	 * Add if condition to avoid resume dpu for SR feature.
+	 * Because of unisoc sr/vrr changed style, it's no need to suspend and resume panel.
+	 * If there is no dpms state change, it's no need to resume display pipeline.
+	 * Due to drm modeset check, we still should enable vblank in mode switching phase.
 	 */
-	if (crtc->state->mode_changed && !crtc->state->active_changed)
+	if (crtc->state->mode_changed && !crtc->state->active_changed) {
+		drm_crtc_vblank_on(crtc);
 		return;
+	}
 
 	if (sprd_crtc->ops->atomic_enable)
 		sprd_crtc->ops->atomic_enable(sprd_crtc);
@@ -148,9 +154,17 @@ static void sprd_crtc_atomic_disable(struct drm_crtc *crtc,
 {
 	struct sprd_crtc *sprd_crtc = to_sprd_crtc(crtc);
 
-	/* add if condition to avoid suspend dpu for SR feature */
-	if (crtc->state->mode_changed && !crtc->state->active_changed)
+	/*
+	 * FIXME:
+	 * Add if condition to avoid suspend dpu for SR feature.
+	 * Because of unisoc sr/vrr changed style, it's no need to suspend and resume panel.
+	 * If there is no dpms state change, it's no need to suspend display pipeline.
+	 * Due to drm modeset check, we still should disable vblank in mode switching phase.
+	 */
+	if (crtc->state->mode_changed && !crtc->state->active_changed) {
+		drm_crtc_vblank_off(crtc);
 		return;
+	}
 
 	drm_crtc_vblank_off(crtc);
 
