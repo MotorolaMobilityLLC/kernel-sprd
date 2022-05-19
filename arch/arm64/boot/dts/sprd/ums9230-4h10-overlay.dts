@@ -877,8 +877,6 @@
 
 &panel {
 	sprd,backlight = <&pwm_backlight>;
-	sprd,sr-width = <720>;
-	sprd,sr-height = <1600>;
 	avdd-gpio = <&ap_gpio 135 GPIO_ACTIVE_HIGH>;
 	avee-gpio = <&ap_gpio 136 GPIO_ACTIVE_HIGH>;
 	reset-gpio = <&ap_gpio 50 GPIO_ACTIVE_HIGH>;
@@ -888,6 +886,11 @@
 	sprd,logo-memory = <&logo_reserved>;
 
 	sprd,backlight = <&pwm_backlight>;
+};
+
+&lcd_g40396_truly_mipi_fhd {
+	sprd,sr-width = <720>;
+	sprd,sr-height = <1600>;
 };
 
 &pmic_fchg {

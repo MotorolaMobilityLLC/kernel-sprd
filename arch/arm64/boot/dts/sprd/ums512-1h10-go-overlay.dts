@@ -505,8 +505,6 @@
 
 &panel {
 	sprd,backlight = <&pwm_backlight>;
-	sprd,sr-width = <720>;
-	sprd,sr-height = <1440>;
 	avdd-gpio = <&ap_gpio 132 GPIO_ACTIVE_HIGH>;
 	avee-gpio = <&ap_gpio 133 GPIO_ACTIVE_HIGH>;
 	reset-gpio = <&ap_gpio 50 GPIO_ACTIVE_HIGH>;
@@ -515,6 +513,16 @@
 &dpu {
 	sprd,backlight = <&pwm_backlight>;
 	sprd,logo-memory = <&logo_reserved>;
+};
+
+&lcd_td4310_truly_mipi_fhd {
+	sprd,sr-width = <720>;
+	sprd,sr-height = <1440>;
+};
+
+&lcd_ssd2092_truly_mipi_fhd {
+	sprd,sr-width = <720>;
+	sprd,sr-height = <1440>;
 };
 
 &chosen {
