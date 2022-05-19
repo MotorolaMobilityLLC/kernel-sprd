@@ -112,6 +112,7 @@
 #define SC27XX_FGU_SLP_CAP_CALIB_SLP_TIME	300
 #define SC27XX_FGU_CAP_CALIB_TEMP_LOW	100
 #define SC27XX_FGU_CAP_CALIB_TEMP_HI	450
+#define SC27XX_FGU_CAP_CALIB_ALARM_CAP	30
 
 /* Efuse fgu calibration bit definition */
 #define SC2720_FGU_CAL			GENMASK(8, 0)
@@ -455,6 +456,7 @@ static int get_boot_mode(void)
 }
 
 static void sc27xx_fgu_capacity_calibration(struct sc27xx_fgu_data *data, bool int_mode);
+static void sc27xx_fgu_discharging_calibration(struct sc27xx_fgu_data *data, int *cap);
 static int sc27xx_fgu_resistance_algo(struct sc27xx_fgu_data *data, int cur_ua, int vol_uv);
 
 static const char * const sc27xx_charger_supply_name[] = {
@@ -751,6 +753,29 @@ static int sc27xx_fgu_ocv2cap_simple(struct power_supply_battery_ocv_table *tabl
 	}
 
 	return cap;
+}
+
+static int sc27xx_fgu_cap2ocv_simple(struct power_supply_battery_ocv_table *table,
+				     int table_len, int cap)
+{
+	int i, ocv_uv, tmp;
+
+	for (i = 0; i < table_len; i++) {
+		if (cap > table[i].capacity * 10)
+			break;
+	}
+
+	if (i > 0 && i < table_len) {
+		tmp = (table[i - 1].ocv - table[i].ocv) * (cap - table[i].capacity * 10);
+		tmp /= (table[i - 1].capacity - table[i].capacity) * 10;
+		ocv_uv = tmp + table[i].ocv;
+	} else if (i == 0) {
+		ocv_uv = table[0].ocv;
+	} else {
+		ocv_uv = table[table_len - 1].ocv;
+	}
+
+	return ocv_uv;
 }
 
 static int sc27xx_fgu_temp2cap(struct power_supply_capacity_temp_table *table,
@@ -1645,6 +1670,8 @@ capacity_calibration:
 		dev_info(data->dev, "Capacity_temp > 1000, adjust !!!\n");
 		*cap = SC27XX_FGU_FCC_PERCENT;
 	}
+
+	sc27xx_fgu_discharging_calibration(data, cap);
 
 	return 0;
 }
@@ -2838,6 +2865,54 @@ static bool sc27xx_fgu_discharging_trend(struct sc27xx_fgu_data *data, int chg_s
 charging:
 	data->dischg_trend[dischg_cnt++] = false;
 	return discharging;
+}
+
+static void sc27xx_fgu_discharging_calibration(struct sc27xx_fgu_data *data, int *cap)
+{
+	int ret, chg_sts, low_temp_ocv;
+	int vol_mv, vbat_avg_mv, vol_uv, vbat_avg_uv;
+
+	if (data->bat_temp <= SC27XX_FGU_LOW_TEMP_REGION) {
+		dev_err(data->dev, "exceed temp range not need to calibrate.\n");
+		return;
+	}
+
+	ret = sc27xx_fgu_get_status(data, &chg_sts);
+	if (ret) {
+		dev_err(data->dev, "get charger status error.\n");
+		return;
+	}
+
+	if (*cap > SC27XX_FGU_CAP_CALIB_ALARM_CAP)
+		return;
+
+	if (chg_sts != POWER_SUPPLY_STATUS_CHARGING ||
+	    sc27xx_fgu_discharging_trend(data, chg_sts)) {
+		low_temp_ocv = sc27xx_fgu_cap2ocv_simple(data->cap_table,
+							 data->table_len,
+							 SC27XX_FGU_CAP_CALIB_ALARM_CAP);
+
+		/* Get current battery voltage */
+		ret = sc27xx_fgu_get_vbat_now(data, &vol_mv);
+		if (ret) {
+			dev_err(data->dev, "get current battery voltage error.\n");
+			return;
+		}
+
+		/* Get average value of battery voltage */
+		ret = sc27xx_fgu_get_vbat_avg(data, &vbat_avg_mv);
+		if (ret) {
+			dev_err(data->dev, "get average value of battery voltage error.\n");
+			return;
+		}
+
+		vol_uv = vol_mv * 1000;
+		vbat_avg_uv = vbat_avg_mv * 1000;
+		dev_info(data->dev, "discharging_trend low_temp_ocv = %d, vbat = %d\n, vbat_avg = %d\n",
+			 low_temp_ocv, vol_uv, vbat_avg_uv);
+		if (vol_uv > low_temp_ocv && vbat_avg_uv > low_temp_ocv)
+			*cap = SC27XX_FGU_CAP_CALIB_ALARM_CAP;
+	}
 }
 
 static void sc27xx_fgu_capacity_calibration(struct sc27xx_fgu_data *data, bool int_mode)
