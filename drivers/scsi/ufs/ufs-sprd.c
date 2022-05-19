@@ -10,10 +10,12 @@
 #include <linux/of.h>
 #include <linux/platform_device.h>
 #include <linux/regmap.h>
+#include <trace/hooks/ufshcd.h>
 
 #include "ufshcd.h"
 #include "ufshcd-pltfrm.h"
 #include "ufs-sprd.h"
+#include "ufs-sprd-ioctl.h"
 
 static int ufs_sprd_plat_parse_dt(struct device *dev, struct ufs_hba *hba,
 				  struct ufs_sprd_host *host)
@@ -144,6 +146,11 @@ static int ufs_sprd_init(struct ufs_hba *hba)
 	ret = ufs_sprd_plat_pre_init(dev, hba, host);
 	if (ret < 0)
 		return ret;
+
+	hba->host->hostt->ioctl = ufshcd_sprd_ioctl;
+#ifdef CONFIG_COMPAT
+	hba->host->hostt->compat_ioctl = ufshcd_sprd_ioctl;
+#endif
 
 	return 0;
 }
@@ -295,10 +302,25 @@ static struct ufs_hba_variant_ops ufs_hba_sprd_vops = {
 	.suspend = ufs_sprd_suspend,
 };
 
+static void ufs_sprd_vh_prepare_command(void *data, struct ufs_hba *hba,
+					struct request *rq,
+					struct ufshcd_lrb *lrbp,
+					int *err)
+{
+	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
+
+	if (unlikely(host->ffu_is_process == TRUE))
+		prepare_command_send_in_ffu_state(hba, lrbp, err);
+
+	return;
+}
+
 static int ufs_sprd_probe(struct platform_device *pdev)
 {
 	int err;
 	struct device *dev = &pdev->dev;
+
+	register_trace_android_vh_ufs_prepare_command(ufs_sprd_vh_prepare_command, NULL);
 
 	/* Perform generic probe */
 	err = ufshcd_pltfrm_init(pdev, &ufs_hba_sprd_vops);

@@ -10,6 +10,8 @@ struct ufs_sprd_host {
 	struct ufs_hba *hba;
 	void *ufs_priv_data;
 	const struct sprd_ufs_comm_vops *comm_vops;
+
+	bool ffu_is_process;
 };
 
 struct syscon_ufs {
