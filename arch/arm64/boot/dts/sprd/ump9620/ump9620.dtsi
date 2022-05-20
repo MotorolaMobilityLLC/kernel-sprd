@@ -35,5 +35,6 @@
 
 };
 
+#include "efuse.dtsi"
 #include "regulator.dtsi"
 
