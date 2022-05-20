@@ -177,6 +177,7 @@ spi:sprd:
 sprd-diffconfig:*
 staging:android:ion:
 
+thermal:
 thermal:core:
 thermal:sprd:
 time:
