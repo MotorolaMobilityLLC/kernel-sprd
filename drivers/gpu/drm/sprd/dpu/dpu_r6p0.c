@@ -572,6 +572,9 @@ static u32 dpu_isr(struct dpu_context *ctx)
 
 	/* dpu update done isr */
 	if (reg_val & BIT_DPU_INT_LAY_REG_UPDATE_DONE) {
+		/* dpu dvfs feature */
+		tasklet_schedule(&ctx->dvfs_task);
+
 		ctx->evt_update = true;
 		wake_up_interruptible_all(&ctx->wait_queue);
 	}
@@ -582,9 +585,6 @@ static u32 dpu_isr(struct dpu_context *ctx)
 	}
 
 	if (reg_val & BIT_DPU_INT_DPU_ALL_UPDATE_DONE) {
-		/* dpu dvfs feature */
-		tasklet_schedule(&ctx->dvfs_task);
-
 		ctx->evt_all_update = true;
 		wake_up_interruptible_all(&ctx->wait_queue);
 	}
