@@ -76,7 +76,7 @@ monitor_check_and_update(struct irq_desc *desc, struct irq_monitor *monitor)
 			if (desc->action)
 				name = desc->action->name;
 
-			pr_warn("hwirq:%u(%s) handled %u times on CPU%d from %lu.%03lus\n",
+			pr_warn("hwirq:%lu(%s) handled %u times on CPU%d from %llu.%03llus\n",
 				desc->irq_data.hwirq, name, cnt_delta, cpu,
 				prev_time / MSEC_PER_SEC,
 				prev_time % MSEC_PER_SEC);
