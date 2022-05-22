@@ -410,10 +410,10 @@ sprdwl_list_cut_to_free_list(struct list_head *tx_list_head,
 
 	INIT_LIST_HEAD(&tx_list_tmp);
 	list_cut_position(&tx_list_tmp, tx_list, tail_entry);
+	atomic_add(tx_count, &tx_msg->xmit_msg_list.free_num);
 	spin_lock(&tx_msg->xmit_msg_list.free_lock);
 	list_splice_tail(&tx_list_tmp, &tx_msg->xmit_msg_list.to_free_list);
 	spin_unlock(&tx_msg->xmit_msg_list.free_lock);
-	atomic_add(tx_count, &tx_msg->xmit_msg_list.free_num);
 
 	return ret;
 }
