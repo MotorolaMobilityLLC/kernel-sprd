@@ -27,11 +27,26 @@
 #include <linux/pm_runtime.h>
 #include <linux/pm.h>
 
+#include <linux/dma-heap.h>
+#include <linux/mutex.h>
+
 #include "sprd_iommu_sysfs.h"
 #include "drv/com/sprd_com.h"
 
 static int sprd_iommu_probe(struct platform_device *pdev);
 static int sprd_iommu_remove(struct platform_device *pdev);
+
+struct system_heap_buffer {
+	struct dma_heap *heap;
+	struct list_head attachments;
+	struct mutex lock;
+	unsigned long len;
+	struct sg_table sg_table;
+	int vmap_cnt;
+	void *vaddr;
+
+	bool uncached;
+};
 
 static struct sprd_iommu_list_data sprd_iommu_list[SPRD_IOMMU_MAX] = {
 	{ .iommu_id = SPRD_IOMMU_VSP,
@@ -485,15 +500,15 @@ static struct sprd_iommu_dev *sprd_iommu_get_subnode(struct device *dev)
 
 static int sprd_iommu_get_sg(void *buf, struct sg_table **table)
 {
-	struct ion_buffer *buffer;
+	struct system_heap_buffer *buffer;
 
 	if (!buf) {
 		pr_err("%s, buf==NULL", __func__);
 		return -EINVAL;
 	}
 
-	buffer = (struct ion_buffer *)buf;
-	*table = buffer->sg_table;
+	buffer = (struct system_heap_buffer *)buf;
+	*table = &buffer->sg_table;
 
 	return 0;
 }
