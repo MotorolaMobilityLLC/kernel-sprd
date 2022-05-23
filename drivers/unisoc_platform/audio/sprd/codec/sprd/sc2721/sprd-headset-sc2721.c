@@ -415,7 +415,6 @@ int headset_register_notifier(struct notifier_block *nb)
 
 	return blocking_notifier_chain_register(&hp_chain_list, nb);
 }
-EXPORT_SYMBOL(headset_register_notifier);
 
 int headset_unregister_notifier(struct notifier_block *nb)
 {
@@ -424,7 +423,6 @@ int headset_unregister_notifier(struct notifier_block *nb)
 
 	return blocking_notifier_chain_unregister(&hp_chain_list, nb);
 }
-EXPORT_SYMBOL(headset_unregister_notifier);
 
 #if 0
 static int hp_notifier_call_chain(unsigned long val)
@@ -445,7 +443,6 @@ int headset_get_plug_state(void)
 
 	return !!hdst->plug_stat_last;
 }
-EXPORT_SYMBOL(headset_get_plug_state);
 /* ========================  audio codec  ======================== */
 
 static int headset_wrap_sci_adc_get(struct iio_channel *chan)

@@ -324,7 +324,7 @@ static void normal_dma_protect_spin_lock(
 		return;
 
 	pm_dma = get_pm_dma();
-	if (sprd_is_normal_playback(srtd->cpu_dai->id,
+	if (sprd_is_normal_playback(asoc_rtd_to_cpu(srtd, 0)->id,
 				    substream->stream))
 		spin_lock(&pm_dma->pm_splk_dma_prot);
 }
@@ -339,7 +339,7 @@ static void normal_dma_protect_spin_unlock(
 		return;
 
 	pm_dma = get_pm_dma();
-	if (sprd_is_normal_playback(srtd->cpu_dai->id,
+	if (sprd_is_normal_playback(asoc_rtd_to_cpu(srtd, 0)->id,
 				    substream->stream))
 		spin_unlock(&pm_dma->pm_splk_dma_prot);
 }
@@ -354,7 +354,7 @@ static void normal_dma_protect_mutex_lock(
 		return;
 
 	pm_dma = get_pm_dma();
-	if (sprd_is_normal_playback(srtd->cpu_dai->id,
+	if (sprd_is_normal_playback(asoc_rtd_to_cpu(srtd, 0)->id,
 				    substream->stream))
 		mutex_lock(&pm_dma->pm_mtx_dma_prot);
 }
@@ -369,7 +369,7 @@ static void normal_dma_protect_mutex_unlock(
 		return;
 
 	pm_dma = get_pm_dma();
-	if (sprd_is_normal_playback(srtd->cpu_dai->id,
+	if (sprd_is_normal_playback(asoc_rtd_to_cpu(srtd, 0)->id,
 				    substream->stream))
 		mutex_unlock(&pm_dma->pm_mtx_dma_prot);
 }
@@ -446,7 +446,7 @@ static int alloc_linklist_cfg_resddr(struct snd_pcm_substream *substream)
 	struct snd_soc_pcm_runtime *srtd = substream->private_data;
 	struct snd_soc_component *platform =
 		snd_soc_rtdcom_lookup(srtd, SPRD_DMAENGINE_PCM_DRV_NAME);
-	struct snd_soc_dai *cpu_dai = srtd->cpu_dai;
+	struct snd_soc_dai *cpu_dai = asoc_rtd_to_cpu(srtd, 0);
 	struct platform_pcm_priv *priv_data;
 	u32 resddr_phy_base;
 	char *resddr_virt_base;
@@ -642,7 +642,7 @@ static int alloc_linklist_cfg_resddr_s2_2(struct snd_pcm_substream *substream)
 	struct snd_soc_pcm_runtime *srtd = substream->private_data;
 	struct snd_soc_component *platform =
 		snd_soc_rtdcom_lookup(srtd, SPRD_DMAENGINE_PCM_DRV_NAME);
-	struct snd_soc_dai *cpu_dai = srtd->cpu_dai;
+	struct snd_soc_dai *cpu_dai = asoc_rtd_to_cpu(srtd, 0);
 	struct platform_pcm_priv *priv_data;
 	u32 resddr_phy_base;
 	char *resddr_virt_base;
@@ -876,10 +876,10 @@ static bool is_use_2stage_dma(struct snd_soc_pcm_runtime *srtd, int stream)
 		return false;
 	}
 	cases = priv_data->use_2stage_dma_case;
-	if (srtd->cpu_dai->id == VBC_DAI_NORMAL &&
+	if (asoc_rtd_to_cpu(srtd, 0)->id == VBC_DAI_NORMAL &&
 	    substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
 		ret = (cases & TWO_STAGE_NORMAL) ? true:false;
-	else if (srtd->cpu_dai->id == VBC_DAI_DEEP_BUF)
+	else if (asoc_rtd_to_cpu(srtd, 0)->id == VBC_DAI_DEEP_BUF)
 		ret = (cases & TWO_STAGE_DEEP) ? true:false;
 	else
 		ret = false;
@@ -893,7 +893,7 @@ static s32 dmabuffer_reserved_ddr_alloc(struct snd_pcm_substream *substream)
 	struct snd_soc_pcm_runtime *srtd = substream->pcm->private_data;
 	struct snd_soc_component *platform =
 		snd_soc_rtdcom_lookup(srtd, SPRD_DMAENGINE_PCM_DRV_NAME);
-	struct snd_soc_dai *cpu_dai = srtd->cpu_dai;
+	struct snd_soc_dai *cpu_dai = asoc_rtd_to_cpu(srtd, 0);
 	struct platform_pcm_priv *priv_data;
 	int stream = substream->stream;
 	size_t size;
@@ -1031,7 +1031,7 @@ static s32 pcm_preallocate_dma_buffer(struct snd_soc_pcm_runtime *srtd,
 	struct snd_pcm_substream *substream =
 	    srtd->pcm->streams[stream].substream;
 	struct snd_dma_buffer *dma_buffer = NULL;
-	struct snd_soc_dai *cpu_dai = srtd->cpu_dai;
+	struct snd_soc_dai *cpu_dai = asoc_rtd_to_cpu(srtd, 0);
 	struct platform_pcm_priv *priv_data = NULL;
 	struct snd_soc_component *platform =
 		snd_soc_rtdcom_lookup(srtd, SPRD_DMAENGINE_PCM_DRV_NAME);
@@ -1149,7 +1149,7 @@ static void hw_params_config(struct snd_pcm_substream *substream,
 	}
 	/* default config */
 	hw->periods_min = 1;
-	if (sprd_is_i2s(srtd->cpu_dai)) {
+	if (sprd_is_i2s(asoc_rtd_to_cpu(srtd, 0))) {
 		hw->info = SPRD_SNDRV_PCM_INFO_COMMON;
 		hw->formats = SPRD_SNDRV_PCM_FMTBIT;
 		hw->period_bytes_min = 8 * 2;
@@ -1172,7 +1172,7 @@ static void hw_params_config(struct snd_pcm_substream *substream,
 	 * playback: normal, deepbuf
 	 */
 	if (substream->stream == SNDRV_PCM_STREAM_CAPTURE) {
-		if (sprd_is_i2s(srtd->cpu_dai)) {
+		if (sprd_is_i2s(asoc_rtd_to_cpu(srtd, 0))) {
 			hw->period_bytes_max =
 			hw->buffer_bytes_max =
 				I2S_BUFFER_BYTES_MAX;
@@ -1182,7 +1182,7 @@ static void hw_params_config(struct snd_pcm_substream *substream,
 			NORMAL_CAPTURE_BUFFER_BYTES_MAX;
 		}
 	} else {
-		if (srtd->cpu_dai->id == VBC_DAI_DEEP_BUF) {
+		if (asoc_rtd_to_cpu(srtd, 0)->id == VBC_DAI_DEEP_BUF) {
 			/* period_bytes_max <= iram max */
 			if (!priv_data) {
 				pr_err("%s %d failed\n", __func__, __LINE__);
@@ -1192,11 +1192,11 @@ static void hw_params_config(struct snd_pcm_substream *substream,
 				2 * SPRD_AUDIO_DMA_NODE_SIZE;
 			hw->buffer_bytes_max =
 				DEEPBUFFER_PLAYBACK_BUFFER_BYTES_MAX;
-		} else if (srtd->cpu_dai->id == VBC_DAI_NORMAL) {
+		} else if (asoc_rtd_to_cpu(srtd, 0)->id == VBC_DAI_NORMAL) {
 			hw->period_bytes_max =
 			hw->buffer_bytes_max =
 				NORMAL_PLAYBACK_BUFFER_BYTES_MAX;
-		} else if (sprd_is_i2s(srtd->cpu_dai)) {
+		} else if (sprd_is_i2s(asoc_rtd_to_cpu(srtd, 0))) {
 			hw->period_bytes_max = I2S_BUFFER_BYTES_MAX / 2;
 			hw->buffer_bytes_max = I2S_BUFFER_BYTES_MAX;
 		}
@@ -1210,7 +1210,8 @@ static void hw_params_config(struct snd_pcm_substream *substream,
 	}
 }
 
-static int sprd_pcm_open(struct snd_pcm_substream *substream)
+static int sprd_pcm_open(struct snd_soc_component *component,
+			struct snd_pcm_substream *substream)
 {
 	struct snd_pcm_runtime *runtime = substream->runtime;
 	struct snd_soc_pcm_runtime *srtd = substream->private_data;
@@ -1224,13 +1225,13 @@ static int sprd_pcm_open(struct snd_pcm_substream *substream)
 	struct audio_pm_dma *pm_dma;
 
 	pm_dma = get_pm_dma();
-	sp_asoc_pr_info("%s Open %s\n", sprd_dai_pcm_name(srtd->cpu_dai),
+	sp_asoc_pr_info("%s Open %s\n", sprd_dai_pcm_name(asoc_rtd_to_cpu(srtd, 0)),
 			PCM_DIR_NAME(substream->stream));
 
 	dma_buffer = &substream->dma_buffer;
 
-	if (sprd_is_i2s(srtd->cpu_dai)) {
-		config = sprd_i2s_dai_to_config(srtd->cpu_dai);
+	if (sprd_is_i2s(asoc_rtd_to_cpu(srtd, 0))) {
+		config = sprd_i2s_dai_to_config(asoc_rtd_to_cpu(srtd, 0));
 		if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
 			burst_len = I2S_FIFO_DEPTH - config->tx_watermark;
 		else
@@ -1243,7 +1244,7 @@ static int sprd_pcm_open(struct snd_pcm_substream *substream)
 	snd_soc_set_runtime_hwparams(substream, &sprd_pcm_hardware);
 
 	pr_info("cpu dai = %d  period_bytes_min=%#zx,period_bytes_max =%#zx, buffer_bytes_max=%#zx, dma_buffer.dev.type=%d, periods_min=%d,periods_max=%d, burst_len=%#x\n",
-		srtd->cpu_dai->id,
+		asoc_rtd_to_cpu(srtd, 0)->id,
 			runtime->hw.period_bytes_min,
 			runtime->hw.period_bytes_max,
 			runtime->hw.buffer_bytes_max,
@@ -1287,14 +1288,14 @@ static int sprd_pcm_open(struct snd_pcm_substream *substream)
 	runtime->private_data = rtd;
 
 	mutex_lock(&pm_dma->pm_mtx_cnt);
-	if (!sprd_is_normal_playback(srtd->cpu_dai->id,
+	if (!sprd_is_normal_playback(asoc_rtd_to_cpu(srtd, 0)->id,
 				     substream->stream))
 		pm_dma->no_pm_cnt++;
 	else
 		pm_dma->normal_rtd = rtd;
 	mutex_unlock(&pm_dma->pm_mtx_cnt);
 
-	if (sprd_is_dfm(srtd->cpu_dai) || sprd_is_vaudio(srtd->cpu_dai)) {
+	if (sprd_is_dfm(asoc_rtd_to_cpu(srtd, 0)) || sprd_is_vaudio(asoc_rtd_to_cpu(srtd, 0))) {
 		runtime->private_data = rtd;
 		ret = 0;
 		goto out;
@@ -1317,7 +1318,8 @@ out:
 	return ret;
 }
 
-static int sprd_pcm_close(struct snd_pcm_substream *substream)
+static int sprd_pcm_close(struct snd_soc_component *component,
+			struct snd_pcm_substream *substream)
 {
 	struct snd_pcm_runtime *runtime = substream->runtime;
 	struct sprd_runtime_data *rtd = runtime->private_data;
@@ -1326,10 +1328,10 @@ static int sprd_pcm_close(struct snd_pcm_substream *substream)
 	struct audio_pm_dma *pm_dma;
 
 	pm_dma = get_pm_dma();
-	sp_asoc_pr_info("%s Close %s\n", sprd_dai_pcm_name(srtd->cpu_dai),
+	sp_asoc_pr_info("%s Close %s\n", sprd_dai_pcm_name(asoc_rtd_to_cpu(srtd, 0)),
 			PCM_DIR_NAME(substream->stream));
 	mutex_lock(&pm_dma->pm_mtx_cnt);
-	if (!sprd_is_normal_playback(srtd->cpu_dai->id,
+	if (!sprd_is_normal_playback(asoc_rtd_to_cpu(srtd, 0)->id,
 				     substream->stream)) {
 		if (--pm_dma->no_pm_cnt < 0) {
 			pr_warn("%s no_pm_cnt=%d\n",
@@ -1340,7 +1342,7 @@ static int sprd_pcm_close(struct snd_pcm_substream *substream)
 		pm_dma->normal_rtd = NULL;
 	}
 	mutex_unlock(&pm_dma->pm_mtx_cnt);
-	if (sprd_is_dfm(srtd->cpu_dai) || sprd_is_vaudio(srtd->cpu_dai)) {
+	if (sprd_is_dfm(asoc_rtd_to_cpu(srtd, 0)) || sprd_is_vaudio(asoc_rtd_to_cpu(srtd, 0))) {
 		devm_kfree(dev, rtd);
 		return 0;
 	}
@@ -1462,7 +1464,7 @@ static void sprd_pcm_dma_buf_done(void *data)
 	if (!rtd->cb_called) {
 		rtd->cb_called = 1;
 		sp_asoc_pr_info("DMA Callback CALL cpu_dai->id =%d\n",
-				srtd->cpu_dai->id);
+				asoc_rtd_to_cpu(srtd, 0)->id);
 	}
 
 	if (rtd->hw_chan == 1)
@@ -1503,7 +1505,7 @@ static s32 used_hw_chan(struct snd_pcm_substream *substream,
 
 	/* if use i2s use hw chan is one */
 	params_count = params_channels(params);
-	if (sprd_is_i2s(srtd->cpu_dai)) {
+	if (sprd_is_i2s(asoc_rtd_to_cpu(srtd, 0))) {
 		pr_info("%s cpu dai is i2s\n", __func__);
 		used_count = 1;
 		return used_count;
@@ -1514,7 +1516,7 @@ static s32 used_hw_chan(struct snd_pcm_substream *substream,
 	 * so they use 1 dma channel.
 	 */
 	if (params_count == 2) {
-		switch (srtd->cpu_dai->id) {
+		switch (asoc_rtd_to_cpu(srtd, 0)->id) {
 		case VBC_DAI_ID_NORMAL_OUTDSP:
 		case VBC_DAI_ID_FM_CAPTURE:
 		case VBC_DAI_ID_BT_CAPTURE:
@@ -1833,9 +1835,9 @@ static int pcm_set_dma_linklist_data_s2_1(struct snd_pcm_substream *substream,
 
 	chan_cnt = sprd_rtd->hw_chan;
 
-	if (srtd->cpu_dai->id == VBC_DAI_NORMAL) {
+	if (asoc_rtd_to_cpu(srtd, 0)->id == VBC_DAI_NORMAL) {
 		normal = PLY_NORMAL;
-	} else if (srtd->cpu_dai->id == VBC_DAI_DEEP_BUF) {
+	} else if (asoc_rtd_to_cpu(srtd, 0)->id == VBC_DAI_DEEP_BUF) {
 		normal = PLY_DEEPBUF;
 	} else {
 		pr_err("%s not supported\n", __func__);
@@ -2046,8 +2048,8 @@ static int sprd_pcm_hw_params_2stage(struct snd_pcm_substream *substream,
 	}
 
 	sp_asoc_pr_info("(pcm) %s, cpudai_id=%d\n", __func__,
-			srtd->cpu_dai->id);
-	dma_data = snd_soc_dai_get_dma_data(srtd->cpu_dai, substream);
+			asoc_rtd_to_cpu(srtd, 0)->id);
+	dma_data = snd_soc_dai_get_dma_data(asoc_rtd_to_cpu(srtd, 0), substream);
 	if (!dma_data)
 		goto no_dma;
 
@@ -2153,9 +2155,9 @@ static int sprd_pcm_hw_params_2stage(struct snd_pcm_substream *substream,
 		rtd->dma_callback1_func[i] = callback_1;
 		/* set flag */
 		if (i == 0) {
-			if (srtd->cpu_dai->id == VBC_DAI_NORMAL) {
+			if (asoc_rtd_to_cpu(srtd, 0)->id == VBC_DAI_NORMAL) {
 				pr_info("cpu_dai[%d] use group-1, irq_mode_1=%d\n",
-					srtd->cpu_dai->id, irq_mode_1);
+					asoc_rtd_to_cpu(srtd, 0)->id, irq_mode_1);
 
 				if (!irq_mode_1) {
 					flag_1 =
@@ -2173,7 +2175,7 @@ static int sprd_pcm_hw_params_2stage(struct snd_pcm_substream *substream,
 							SPRD_DMA_TRANS_INT);
 				}
 
-			} else if (srtd->cpu_dai->id ==
+			} else if (asoc_rtd_to_cpu(srtd, 0)->id ==
 					VBC_DAI_DEEP_BUF) {
 				if (!irq_mode_1) {
 					flag_1 =
@@ -2191,15 +2193,15 @@ static int sprd_pcm_hw_params_2stage(struct snd_pcm_substream *substream,
 							SPRD_DMA_FRAG_INT);
 				}
 				pr_info("cpu_dai[%d] use group-2, irq_mode_1=%d\n",
-					srtd->cpu_dai->id, irq_mode_1);
+					asoc_rtd_to_cpu(srtd, 0)->id, irq_mode_1);
 			} else {
 				pr_err("%s %d failed unknown cpu_dai_id=%d\n",
-				       __func__, __LINE__, srtd->cpu_dai->id);
+				       __func__, __LINE__, asoc_rtd_to_cpu(srtd, 0)->id);
 				goto hw_param_err;
 			}
 		} else {
 			pr_info("flag_1 cpu_dai[%d] use group-2, irq_mode_1=%d, i=%d\n",
-					srtd->cpu_dai->id, irq_mode_1, i);
+					asoc_rtd_to_cpu(srtd, 0)->id, irq_mode_1, i);
 			flag_1 = SPRD_DMA_FLAGS(SPRD_DMA_CHN_MODE_NONE,
 						SPRD_DMA_NO_TRG,
 						SPRD_DMA_FRAG_REQ,
@@ -2275,21 +2277,21 @@ static int sprd_pcm_hw_params_2stage(struct snd_pcm_substream *substream,
 		callback_param_2 = (void *)(rtd->dma_callback_data2);
 	}
 	rtd->dma_callback2_func = callback_2;
-	if (srtd->cpu_dai->id == VBC_DAI_NORMAL) {
+	if (asoc_rtd_to_cpu(srtd, 0)->id == VBC_DAI_NORMAL) {
 		flag_2 = SPRD_DMA_FLAGS(SPRD_DMA_DST_CHN1,
 					SPRD_DMA_TRANS_DONE_TRG,
 					SPRD_DMA_FRAG_REQ,
 					SPRD_DMA_NO_INT);
-		pr_info("cpu_dai[%d] use group-1\n", srtd->cpu_dai->id);
-	} else if (srtd->cpu_dai->id == VBC_DAI_DEEP_BUF) {
+		pr_info("cpu_dai[%d] use group-1\n", asoc_rtd_to_cpu(srtd, 0)->id);
+	} else if (asoc_rtd_to_cpu(srtd, 0)->id == VBC_DAI_DEEP_BUF) {
 		flag_2 = SPRD_DMA_FLAGS(SPRD_DMA_DST_CHN1,
 					SPRD_DMA_TRANS_DONE_TRG,
 					SPRD_DMA_FRAG_REQ,
 						SPRD_DMA_NO_INT);
-		pr_info("cpu_dai[%d] use group-2\n", srtd->cpu_dai->id);
+		pr_info("cpu_dai[%d] use group-2\n", asoc_rtd_to_cpu(srtd, 0)->id);
 	} else {
 		pr_err("%s %d failed unknown cpu_dai_id=%d\n",
-		       __func__, __LINE__, srtd->cpu_dai->id);
+		       __func__, __LINE__, asoc_rtd_to_cpu(srtd, 0)->id);
 		goto hw_param_err;
 	}
 
@@ -2337,7 +2339,7 @@ static int sprd_pcm_hw_params_2stage(struct snd_pcm_substream *substream,
 	rtd->pointer2_step_bytes = fragments_len_1 * ch_cnt_1;
 	rtd->pointer2_step_max = totsize / rtd->pointer2_step_bytes;
 	count_max_r = totsize % rtd->pointer2_step_bytes;
-	if (srtd->cpu_dai->id == VBC_DAI_NORMAL) {
+	if (asoc_rtd_to_cpu(srtd, 0)->id == VBC_DAI_NORMAL) {
 		priv_data->pointer2_step_bytes[PLY_NORMAL] =
 		rtd->pointer2_step_bytes;
 		priv_data->chan_cnt[PLY_NORMAL] = rtd->hw_chan;
@@ -2375,15 +2377,15 @@ static int sprd_pcm_hw_params_2stage(struct snd_pcm_substream *substream,
 	sprd_pcm_proc_init(substream);
 	/* init int count */
 	priv_data->dma_2stage_level_1_ap_int_count = 0;
-	if (srtd->cpu_dai->id == VBC_DAI_NORMAL)
+	if (asoc_rtd_to_cpu(srtd, 0)->id == VBC_DAI_NORMAL)
 		reset_dma_level1_int_count(substream,
 					   PLY_NORMAL);
-	else if (srtd->cpu_dai->id == VBC_DAI_DEEP_BUF) {
+	else if (asoc_rtd_to_cpu(srtd, 0)->id == VBC_DAI_DEEP_BUF) {
 		reset_dma_level1_int_count(substream,
 					   PLY_DEEPBUF);
 	} else {
 		pr_err("%s, unknown cpu_dai[%d]\n", __func__,
-		       srtd->cpu_dai->id);
+		       asoc_rtd_to_cpu(srtd, 0)->id);
 		return -EINVAL;
 	}
 	goto ok_go_out;
@@ -2397,7 +2399,7 @@ no_dma:
 	return ret;
 hw_param_err:
 	pr_err("ERR:%s line[%d] failed!\n", __func__, __LINE__);
-	if (srtd->cpu_dai->id == VBC_DAI_NORMAL) {
+	if (asoc_rtd_to_cpu(srtd, 0)->id == VBC_DAI_NORMAL) {
 		priv_data->pointer2_step_bytes[PLY_NORMAL] = 0;
 		priv_data->chan_cnt[PLY_NORMAL] = 0;
 		priv_data->width_in_bytes[PLY_NORMAL] = 0;
@@ -2505,8 +2507,8 @@ static int sprd_pcm_hw_params1(struct snd_pcm_substream *substream,
 	}
 
 	sp_asoc_pr_info("(pcm) %s, cpudai_id=%d\n", __func__,
-			srtd->cpu_dai->id);
-	dma_data = snd_soc_dai_get_dma_data(srtd->cpu_dai, substream);
+			asoc_rtd_to_cpu(srtd, 0)->id);
+	dma_data = snd_soc_dai_get_dma_data(asoc_rtd_to_cpu(srtd, 0), substream);
 	if (!dma_data)
 		goto no_dma;
 
@@ -2539,7 +2541,7 @@ static int sprd_pcm_hw_params1(struct snd_pcm_substream *substream,
 	if (dma_buffer->dev.type == SNDRV_DMA_TYPE_DEV_IRAM) {
 		linklist_node_size = SPRD_AUDIO_DMA_NODE_SIZE;
 		if (is_playback) {
-			if (srtd->cpu_dai->id == VBC_DAI_NORMAL) {
+			if (asoc_rtd_to_cpu(srtd, 0)->id == VBC_DAI_NORMAL) {
 				pcm_set_dma_linklist_cfg_iram_s1(
 					substream, linklist_node_size,
 					PLY_NORMAL);
@@ -2634,7 +2636,7 @@ static int sprd_pcm_hw_params1(struct snd_pcm_substream *substream,
 	 * if PM_POST_SUSPEND resumed the dma_chn has become null,
 	 * so add protected code here.
 	 */
-	if (sprd_is_normal_playback(srtd->cpu_dai->id, substream->stream) &&
+	if (sprd_is_normal_playback(asoc_rtd_to_cpu(srtd, 0)->id, substream->stream) &&
 	    !rtd->dma_chn[0]) {
 		normal_dma_protect_mutex_unlock(substream);
 		pr_err("%s dam_chan is null for normalplayback\n", __func__);
@@ -2714,8 +2716,9 @@ ok_go_out:
 	return ret;
 }
 
-static int sprd_pcm_hw_params(struct snd_pcm_substream *substream,
-			      struct snd_pcm_hw_params *params)
+static int sprd_pcm_hw_params(struct snd_soc_component *component,
+			struct snd_pcm_substream *substream,
+			struct snd_pcm_hw_params *params)
 {
 	struct snd_soc_pcm_runtime *srtd = substream->private_data;
 
@@ -2729,7 +2732,8 @@ static int sprd_pcm_hw_params(struct snd_pcm_substream *substream,
 }
 
 #define SPRD_PCM_WAIT_CM4_CNT 2000
-static int sprd_pcm_hw_free(struct snd_pcm_substream *substream)
+static int sprd_pcm_hw_free(struct snd_soc_component *component,
+			struct snd_pcm_substream *substream)
 {
 	struct sprd_runtime_data *rtd = substream->runtime->private_data;
 	struct sprd_pcm_dma_params *dma = rtd->params;
@@ -2803,7 +2807,7 @@ static int sprd_pcm_hw_free(struct snd_pcm_substream *substream)
 		rtd->cookie2 = 0;
 	}
 	if (is_use_2stage_dma(srtd, substream->stream)) {
-		if (srtd->cpu_dai->id == VBC_DAI_NORMAL) {
+		if (asoc_rtd_to_cpu(srtd, 0)->id == VBC_DAI_NORMAL) {
 			priv_data->pointer2_step_bytes[PLY_NORMAL] = 0;
 			priv_data->chan_cnt[PLY_NORMAL] = 0;
 			priv_data->width_in_bytes[PLY_NORMAL] = 0;
@@ -2816,15 +2820,15 @@ static int sprd_pcm_hw_free(struct snd_pcm_substream *substream)
 
 	if (is_use_2stage_dma(srtd, substream->stream)) {
 		priv_data->dma_2stage_level_1_ap_int_count = 0;
-		if (srtd->cpu_dai->id == VBC_DAI_NORMAL)
+		if (asoc_rtd_to_cpu(srtd, 0)->id == VBC_DAI_NORMAL)
 			reset_dma_level1_int_count(substream,
 						   PLY_NORMAL);
-		else if (srtd->cpu_dai->id == VBC_DAI_DEEP_BUF) {
+		else if (asoc_rtd_to_cpu(srtd, 0)->id == VBC_DAI_DEEP_BUF) {
 			reset_dma_level1_int_count(substream,
 						   PLY_DEEPBUF);
 		} else {
 			pr_err("%s, unknown cpu_dai[%d]\n", __func__,
-			       srtd->cpu_dai->id);
+			       asoc_rtd_to_cpu(srtd, 0)->id);
 			return -EINVAL;
 		}
 	}
@@ -2837,7 +2841,8 @@ static int sprd_pcm_hw_free(struct snd_pcm_substream *substream)
 	return 0;
 }
 
-static int sprd_pcm_prepare(struct snd_pcm_substream *substream)
+static int sprd_pcm_prepare(struct snd_soc_component *component,
+			struct snd_pcm_substream *substream)
 {
 	return 0;
 }
@@ -2863,7 +2868,8 @@ static void init_iram_data_2stage(struct snd_pcm_substream *substream)
 	     rtd->iram_phy_addr_ap, (size_t)runtime->dma_addr);
 }
 
-static int sprd_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
+static int sprd_pcm_trigger(struct snd_soc_component *component,
+			struct snd_pcm_substream *substream, int cmd)
 {
 	struct sprd_runtime_data *rtd = substream->runtime->private_data;
 	struct snd_soc_pcm_runtime *srtd = substream->private_data;
@@ -2877,7 +2883,7 @@ static int sprd_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
 
 	pm_dma = get_pm_dma();
 	sp_asoc_pr_info("%s, %s cpu_dai->id = %d Trigger %s cmd:%d\n", __func__,
-			sprd_dai_pcm_name(srtd->cpu_dai), srtd->cpu_dai->id,
+			sprd_dai_pcm_name(asoc_rtd_to_cpu(srtd, 0)), asoc_rtd_to_cpu(srtd, 0)->id,
 			PCM_DIR_NAME(substream->stream), cmd);
 	if (!dma) {
 		sp_asoc_pr_info("no trigger");
@@ -3066,20 +3072,20 @@ static snd_pcm_uframes_t sprd_pcm_pointer_2stage(struct snd_pcm_substream
 
 	if (priv_data->dma_2stage_level_1_int_source ==
 	    DMA_2STAGE_INT_SOURCE_ARM) {
-		if (srtd->cpu_dai->id == VBC_DAI_NORMAL) {
+		if (asoc_rtd_to_cpu(srtd, 0)->id == VBC_DAI_NORMAL) {
 			cm4_dma_level1_buf_done_count =
 			    get_dma_level1_int_count(substream, PLY_NORMAL);
-		} else if (srtd->cpu_dai->id == VBC_DAI_DEEP_BUF) {
+		} else if (asoc_rtd_to_cpu(srtd, 0)->id == VBC_DAI_DEEP_BUF) {
 			cm4_dma_level1_buf_done_count =
 			    get_dma_level1_int_count(substream, PLY_DEEPBUF);
 		} else {
 			pr_err("%s %d unknown cpu_dai[%d]\n", __func__,
-			       __LINE__, srtd->cpu_dai->id);
+			       __LINE__, asoc_rtd_to_cpu(srtd, 0)->id);
 			return 0;
 		}
 		if (priv_data->proc[PROC_POINTER_LOG] != 0) {
 			pr_info("cpu_dai[%d]cm4_arm7_dma_level1_buf_done_count =%u\n",
-				srtd->cpu_dai->id,
+				asoc_rtd_to_cpu(srtd, 0)->id,
 				cm4_dma_level1_buf_done_count);
 			pr_info("app_pointer=%#lx, count_max=%d\n",
 				app_pointer, rtd->pointer2_step_max);
@@ -3090,7 +3096,7 @@ static snd_pcm_uframes_t sprd_pcm_pointer_2stage(struct snd_pcm_substream
 		   DMA_2STAGE_INT_SOURCE_AP) {
 		if (priv_data->proc[PROC_POINTER_LOG] != 0) {
 			pr_info("cpu_dai[%d] dma_2stage_level_1_ap_int_count =%u, app_pointer=%#lx\n",
-				srtd->cpu_dai->id,
+				asoc_rtd_to_cpu(srtd, 0)->id,
 			     priv_data->dma_2stage_level_1_ap_int_count,
 			     app_pointer);
 		}
@@ -3121,7 +3127,7 @@ sprd_pcm_pointer_1stage(struct snd_pcm_substream *substream)
 	int shift = 1;
 	struct snd_soc_pcm_runtime *srtd = substream->private_data;
 
-	if (sprd_is_dfm(srtd->cpu_dai) || sprd_is_vaudio(srtd->cpu_dai)) {
+	if (sprd_is_dfm(asoc_rtd_to_cpu(srtd, 0)) || sprd_is_vaudio(asoc_rtd_to_cpu(srtd, 0))) {
 		sp_asoc_pr_dbg("no pointer");
 		return 0;
 	}
@@ -3175,7 +3181,8 @@ sprd_pcm_pointer_1stage(struct snd_pcm_substream *substream)
 	return x;
 }
 
-static snd_pcm_uframes_t sprd_pcm_pointer(struct snd_pcm_substream *substream)
+static snd_pcm_uframes_t sprd_pcm_pointer(struct snd_soc_component *component,
+			struct snd_pcm_substream *substream)
 {
 	struct snd_soc_pcm_runtime *srtd = substream->private_data;
 
@@ -3185,14 +3192,15 @@ static snd_pcm_uframes_t sprd_pcm_pointer(struct snd_pcm_substream *substream)
 		return sprd_pcm_pointer_1stage(substream);
 }
 
-static int sprd_pcm_mmap(struct snd_pcm_substream *substream,
-			 struct vm_area_struct *vma)
+static int sprd_pcm_mmap(struct snd_soc_component *component,
+			struct snd_pcm_substream *substream,
+			struct vm_area_struct *vma)
 {
 	struct snd_pcm_runtime *runtime = substream->runtime;
 	struct snd_soc_pcm_runtime *srtd = substream->private_data;
 	int ret = 0;
 
-	if (sprd_is_dfm(srtd->cpu_dai) || sprd_is_vaudio(srtd->cpu_dai)) {
+	if (sprd_is_dfm(asoc_rtd_to_cpu(srtd, 0)) || sprd_is_vaudio(asoc_rtd_to_cpu(srtd, 0))) {
 		sp_asoc_pr_dbg("no mmap");
 		return 0;
 	}
@@ -3214,18 +3222,6 @@ static int sprd_pcm_mmap(struct snd_pcm_substream *substream,
 	return ret;
 }
 
-static struct snd_pcm_ops sprd_pcm_ops = {
-	.open = sprd_pcm_open,
-	.close = sprd_pcm_close,
-	.ioctl = snd_pcm_lib_ioctl,
-	.hw_params = sprd_pcm_hw_params,
-	.hw_free = sprd_pcm_hw_free,
-	.prepare = sprd_pcm_prepare,
-	.trigger = sprd_pcm_trigger,
-	.pointer = sprd_pcm_pointer,
-	.mmap = sprd_pcm_mmap,
-};
-
 #ifdef CONFIG_ARM64
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunknown-pragmas"
@@ -3236,11 +3232,12 @@ static u64 sprd_pcm_dmamask = DMA_BIT_MASK(64);
 static u64 sprd_pcm_dmamask = DMA_BIT_MASK(32);
 #endif
 
-static void sprd_pcm_free_dma_buffers(struct snd_pcm *pcm)
+static void sprd_pcm_free_dma_buffers(struct snd_soc_component *component,
+			struct snd_pcm *pcm)
 {
 	struct snd_soc_pcm_runtime *srtd = pcm->private_data;
 	struct snd_card *card = srtd->card->snd_card;
-	struct snd_soc_dai *cpu_dai = srtd->cpu_dai;
+	struct snd_soc_dai *cpu_dai = asoc_rtd_to_cpu(srtd, 0);
 	struct snd_pcm_substream *substream = NULL;
 	int i = 0;
 	int ret = 0;
@@ -3266,10 +3263,11 @@ static void sprd_pcm_free_dma_buffers(struct snd_pcm *pcm)
 	pr_info("ret = %d\n", ret);
 }
 
-static int sprd_pcm_new(struct snd_soc_pcm_runtime *srtd)
+static int sprd_pcm_new(struct snd_soc_component *component,
+			struct snd_soc_pcm_runtime *srtd)
 {
 	struct snd_card *card = srtd->card->snd_card;
-	struct snd_soc_dai *cpu_dai = srtd->cpu_dai;
+	struct snd_soc_dai *cpu_dai = asoc_rtd_to_cpu(srtd, 0);
 	struct snd_pcm_substream *substream = NULL;
 	int i = 0;
 	int ret = 0;
@@ -3300,7 +3298,7 @@ static int sprd_pcm_new(struct snd_soc_pcm_runtime *srtd)
 err:
 	pr_err("ERR:%s line[%d] alloc failed, cpudai[%d], stream[%d]\n",
 	       __func__, __LINE__, cpu_dai->id, i);
-	sprd_pcm_free_dma_buffers(srtd->pcm);
+	sprd_pcm_free_dma_buffers(component, srtd->pcm);
 	ret = -ENOMEM;
 
 	return ret;
@@ -3895,13 +3893,21 @@ static const struct snd_kcontrol_new pcm_controls[] = {
 
 static struct snd_soc_component_driver sprd_soc_platform = {
 	.name = SPRD_DMAENGINE_PCM_DRV_NAME,
-	.ops = &sprd_pcm_ops,
-	.pcm_new = sprd_pcm_new,
-	.pcm_free = sprd_pcm_free_dma_buffers,
+	.pcm_construct = sprd_pcm_new,
+	.pcm_destruct = sprd_pcm_free_dma_buffers,
 	.probe = sprd_snd_platform_probe,
 	.remove = sprd_snd_platform_remove,
 	.controls = pcm_controls,
 	.num_controls = ARRAY_SIZE(pcm_controls),
+	/* pcm ops */
+	.open = sprd_pcm_open,
+	.close = sprd_pcm_close,
+	.hw_params = sprd_pcm_hw_params,
+	.hw_free = sprd_pcm_hw_free,
+	.prepare = sprd_pcm_prepare,
+	.trigger = sprd_pcm_trigger,
+	.pointer = sprd_pcm_pointer,
+	.mmap = sprd_pcm_mmap,
 };
 
 #ifdef CONFIG_OF

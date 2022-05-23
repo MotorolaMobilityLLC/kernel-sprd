@@ -7316,7 +7316,7 @@ static int vbc_parse_dt(struct platform_device *pdev)
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	if (res) {
 		sprd_vbc_base = (unsigned long)
-		    devm_ioremap_nocache(&pdev->dev,
+		    devm_ioremap(&pdev->dev,
 					 res->start, resource_size(res));
 		pr_info
 		    ("vbc virtual address: %#lx, %lx\n",
@@ -7371,7 +7371,7 @@ static int vbc_parse_dt(struct platform_device *pdev)
 	ret = of_property_read_u32_array(np, "sprd,clk-stable", val, 2);
 	if (!ret) {
 		g_clk_status_addr =
-			devm_ioremap_nocache(&pdev->dev,
+			devm_ioremap(&pdev->dev,
 					     (resource_size_t)val[0],
 				(resource_size_t)val[1]);
 		if (!g_clk_status_addr) {

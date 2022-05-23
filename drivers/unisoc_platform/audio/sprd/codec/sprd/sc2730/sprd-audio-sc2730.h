@@ -64,7 +64,7 @@
 
 
 #define CODEC_REG(reg) \
-	((reg) + CODEC_AP_OFFSET + codec_reg_offset - CODEC_AP_BASE)
+	((reg) + CODEC_AP_OFFSET + codec_reg_offset - CODEC_AP_BASE_AGCP)
 
 #define REGMAP_OFFSET_INIT_CHECK() do { \
 	if (codec_regmap == NULL || codec_reg_offset == -1) { \

@@ -37,7 +37,7 @@
 
 #include "sprd-asoc-common.h"
 #include "sprd-codec.h"
-#include "sprd-headset.h"
+#include "sprd-headset-2730.h"
 #include "sprd-asoc-card-utils.h"
 
 #define HDST_DEBUG_LOG pr_debug("%s %d\n", __func__, __LINE__)
@@ -430,7 +430,6 @@ int headset_register_notifier(struct notifier_block *nb)
 
 	return blocking_notifier_chain_register(&hp_chain_list, nb);
 }
-EXPORT_SYMBOL(headset_register_notifier);
 
 int headset_unregister_notifier(struct notifier_block *nb)
 {
@@ -441,7 +440,6 @@ int headset_unregister_notifier(struct notifier_block *nb)
 
 	return blocking_notifier_chain_unregister(&hp_chain_list, nb);
 }
-EXPORT_SYMBOL(headset_unregister_notifier);
 
 int headset_get_plug_state(void)
 {
@@ -454,7 +452,6 @@ int headset_get_plug_state(void)
 
 	return !!hdst->plug_state_last;
 }
-EXPORT_SYMBOL(headset_get_plug_state);
 
 static int sprd_headset_adc_get(struct iio_channel *chan)
 {

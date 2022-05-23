@@ -49,7 +49,7 @@
 #include "sprd-asoc-card-utils.h"
 #include "sprd-asoc-common.h"
 #include "sprd-codec.h"
-#include "sprd-headset.h"
+#include "sprd-headset-ump9620.h"
 
 #define SOC_REG(r) ((unsigned short)(r))
 #define FUN_REG(f) ((unsigned short)(-((f) + 1)))
@@ -738,7 +738,7 @@ static int sprd_pga_get(struct snd_kcontrol *kcontrol,
 	unsigned int mask = BIT(fls(mc->max)) - 1;
 	unsigned int val;
 
-	val = snd_soc_component_read32(codec, mc->reg);
+	val = snd_soc_component_read(codec, mc->reg);
 	val = (val >> mc->shift) & mask;
 
 	ucontrol->value.integer.value[0] = val;
@@ -849,7 +849,7 @@ static int sprd_codec_reg_read_poll_timeout(struct snd_soc_component *codec,
 
 	might_sleep_if(sleep_us);
 	for (;;) {
-		val = snd_soc_component_read32(codec, addr);
+		val = snd_soc_component_read(codec, addr);
 		if (val < 0)
 			break;
 
@@ -858,7 +858,7 @@ static int sprd_codec_reg_read_poll_timeout(struct snd_soc_component *codec,
 			break;
 
 		if (timeout_us && ktime_compare(ktime_get(), timeout) > 0) {
-			val = snd_soc_component_read32(codec, addr);
+			val = snd_soc_component_read(codec, addr);
 			if (val >= 0)
 				cond = ((val & check1) && (val & check2));
 			sp_asoc_pr_info("%s val %d 0x%x, check1 0x%x, check2 0x%x, cond 0x%x\n",
@@ -1051,7 +1051,7 @@ static int fdin_dvld_check_event(struct snd_soc_dapm_widget *w, int event)
 
 	while (i++ < 10) {
 		sprd_codec_wait(10);
-		state = snd_soc_component_read32(codec, SOC_REG(ANA_STS1)) &
+		state = snd_soc_component_read(codec, SOC_REG(ANA_STS1)) &
 			RCV_DAC_FDIN_DVLD;
 		if ((on && state) || (!on && !state))
 			break;
@@ -1617,7 +1617,7 @@ static int sprd_codec_set_sample_rate(struct snd_soc_component *codec,
 		pr_err("error, SPRD-CODEC not support rate %d\n", rate);
 
 	sp_asoc_pr_dbg("Set Playback rate 0x%x\n",
-		       snd_soc_component_read32(codec, AUD_DAC_CTL));
+		       snd_soc_component_read(codec, AUD_DAC_CTL));
 
 	agdsp_access_disable();
 
@@ -2370,7 +2370,7 @@ static void osc_4m_clk_cal(struct snd_soc_component *codec, bool on)
 			    OSC_4M_CAL_EN(0x3));
 
 	for (i = 0; i < 500; i++) {
-		val = snd_soc_component_read32(codec, SOC_REG(ANA_STS7));
+		val = snd_soc_component_read(codec, SOC_REG(ANA_STS7));
 		if (val & OSC_4M_CAL_DONE)
 			break;
 		else
@@ -2624,7 +2624,7 @@ static void hp_dpop_dvld_check(struct snd_soc_component *codec, bool on_off,
 	strncpy(type_str, hp_chn_type_txt[sprd_codec->hp_chn_type],
 		sizeof("HP_LR_TYPE"));
 	while (i++ < 20) {
-		state = snd_soc_component_read32(codec, SOC_REG(ANA_STS1));
+		state = snd_soc_component_read(codec, SOC_REG(ANA_STS1));
 
 		/* if on, DVLD must be 1 */
 		if (on_off && ((state & dvld_type) == dvld_type))
@@ -3216,7 +3216,7 @@ static void cp_short_check(struct sprd_codec_priv *sprd_codec)
 		snd_soc_component_update_bits(codec, SOC_REG(ANA_PMU7), mask1, val1[idx]);
 		snd_soc_component_update_bits(codec, SOC_REG(ANA_PMU8), mask2, val2[idx]);
 		sprd_codec_wait(20);
-		flag = snd_soc_component_read32(codec, SOC_REG(ANA_STS5)) &
+		flag = snd_soc_component_read(codec, SOC_REG(ANA_STS5)) &
 			BIT(CP_NEG_SH_FLAG);
 		if (flag) {
 			sprd_codec->cp_short_stat = idx + 1;
@@ -4988,11 +4988,11 @@ static int sprd_codec_write(struct snd_soc_component *codec, unsigned int reg,
 	if (IS_SPRD_CODEC_AP_RANG(reg | SPRD_CODEC_AP_BASE_HI)) {
 		reg |= SPRD_CODEC_AP_BASE_HI;
 		sp_asoc_pr_reg("A[0x%04x] R:[0x%08x]\n",
-			       (reg - CODEC_AP_BASE) & 0xFFFF,
+			       (reg - CODEC_AP_BASE_AGCP) & 0xFFFF,
 			       arch_audio_codec_read(reg));
 		ret = arch_audio_codec_write(reg, val);
 		sp_asoc_pr_reg("A[0x%04x] W:[0x%08x] R:[0x%08x]\n",
-			       (reg - CODEC_AP_BASE) & 0xFFFF,
+			       (reg - CODEC_AP_BASE_AGCP) & 0xFFFF,
 			       val, arch_audio_codec_read(reg));
 		return ret;
 	} else if (IS_SPRD_CODEC_DP_RANG(reg | SPRD_CODEC_DP_BASE_HI)) {
@@ -5127,7 +5127,7 @@ static irqreturn_t sprd_codec_dp_irq(int irq, void *dev_id)
 	struct sprd_codec_priv *sprd_codec = dev_id;
 	struct snd_soc_component *codec = sprd_codec->codec;
 
-	mask = snd_soc_component_read32(codec, AUD_AUD_STS0);
+	mask = snd_soc_component_read(codec, AUD_AUD_STS0);
 	sp_asoc_pr_dbg("dac mute irq mask = 0x%x\n", mask);
 	if (BIT(DAC_MUTE_D_MASK) & mask) {
 		mask = BIT(DAC_MUTE_D);
@@ -5178,10 +5178,10 @@ static void sprd_codec_proc_read(struct snd_info_entry *entry,
 	for (reg = SPRD_CODEC_DP_BASE; reg < SPRD_CODEC_DP_END; reg += 0x10) {
 		snd_iprintf(buffer, "0x%04x | 0x%04x 0x%04x 0x%04x 0x%04x\n",
 			    (unsigned int)(reg - SPRD_CODEC_DP_BASE)
-			    , snd_soc_component_read32(codec, reg + 0x00)
-			    , snd_soc_component_read32(codec, reg + 0x04)
-			    , snd_soc_component_read32(codec, reg + 0x08)
-			    , snd_soc_component_read32(codec, reg + 0x0C)
+			    , snd_soc_component_read(codec, reg + 0x00)
+			    , snd_soc_component_read(codec, reg + 0x04)
+			    , snd_soc_component_read(codec, reg + 0x08)
+			    , snd_soc_component_read(codec, reg + 0x0C)
 		);
 	}
 	agdsp_access_disable();
@@ -5192,10 +5192,10 @@ static void sprd_codec_proc_read(struct snd_info_entry *entry,
 			reg < SPRD_CODEC_AP_END; reg += 0x10) {
 		snd_iprintf(buffer, "0x%04x | 0x%04x 0x%04x 0x%04x 0x%04x\n",
 			    (unsigned int)(reg - SPRD_CODEC_AP_BASE)
-			    , snd_soc_component_read32(codec, reg + 0x00)
-			    , snd_soc_component_read32(codec, reg + 0x04)
-			    , snd_soc_component_read32(codec, reg + 0x08)
-			    , snd_soc_component_read32(codec, reg + 0x0C)
+			    , snd_soc_component_read(codec, reg + 0x00)
+			    , snd_soc_component_read(codec, reg + 0x04)
+			    , snd_soc_component_read(codec, reg + 0x08)
+			    , snd_soc_component_read(codec, reg + 0x0C)
 		);
 	}
 

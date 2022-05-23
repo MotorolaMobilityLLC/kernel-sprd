@@ -583,7 +583,7 @@ static void mcdt_adc_dma_chan_ack_sel(unsigned int chan_num,
 	mcdt_reg_update(reg, ack_num<<shift, 0xf<<shift);
 }
 
-void mcdt_da_fifo_clr(unsigned int chan_num)
+void mcdt_da_fifo_clr_r1(unsigned int chan_num)
 {
 	unsigned int shift = 0 + chan_num;
 
@@ -594,9 +594,9 @@ void mcdt_da_fifo_clr(unsigned int chan_num)
 
 	mcdt_reg_update(MCDT_FIFO_CLR, 1<<shift, 1<<shift);
 }
-EXPORT_SYMBOL(mcdt_da_fifo_clr);
+EXPORT_SYMBOL(mcdt_da_fifo_clr_r1);
 
-void mcdt_ad_fifo_clr(unsigned int chan_num)
+void mcdt_ad_fifo_clr_r1(unsigned int chan_num)
 {
 	unsigned int shift = 16 + chan_num;
 
@@ -607,7 +607,7 @@ void mcdt_ad_fifo_clr(unsigned int chan_num)
 
 	mcdt_reg_update(MCDT_FIFO_CLR, 1<<shift, 1<<shift);
 }
-EXPORT_SYMBOL(mcdt_ad_fifo_clr);
+EXPORT_SYMBOL(mcdt_ad_fifo_clr_r1);
 
 static unsigned int mcdt_is_da_fifo_real_full(enum MCDT_CHAN_NUM chan_num)
 {
@@ -855,7 +855,7 @@ static unsigned int mcdt_sent_to_mcdt(unsigned int channel,
 	return err_code;
 }
 
-int mcdt_write(unsigned int channel, char *tx_buf, unsigned int size)
+int mcdt_write_r1(unsigned int channel, char *tx_buf, unsigned int size)
 {
 	unsigned int i = 0;
 	unsigned int size_dword = size/4;
@@ -884,7 +884,7 @@ static unsigned int mcdt_recv_from_mcdt(unsigned int channel,
 	return err_code;
 }
 
-int mcdt_read(unsigned int channel, char *rx_buf, unsigned int size)
+int mcdt_read_r1(unsigned int channel, char *rx_buf, unsigned int size)
 {
 	unsigned int i = 0;
 	unsigned int size_dword = size/4;
@@ -899,51 +899,51 @@ int mcdt_read(unsigned int channel, char *rx_buf, unsigned int size)
 	return 0;
 }
 
-unsigned long mcdt_adc_phy_addr(unsigned int channel)
+unsigned long mcdt_adc_phy_addr_r1(unsigned int channel)
 {
 	return memphys + MCDT_CH0_RXD + channel * 4;
 }
-EXPORT_SYMBOL(mcdt_adc_phy_addr);
+EXPORT_SYMBOL(mcdt_adc_phy_addr_r1);
 
-unsigned long mcdt_dac_phy_addr(unsigned int channel)
+unsigned long mcdt_dac_phy_addr_r1(unsigned int channel)
 {
 	return memphys + MCDT_CH0_TXD + channel * 4;
 }
-EXPORT_SYMBOL(mcdt_dac_phy_addr);
+EXPORT_SYMBOL(mcdt_dac_phy_addr_r1);
 
-unsigned long mcdt_adc_dma_phy_addr(unsigned int channel)
+unsigned long mcdt_adc_dma_phy_addr_r1(unsigned int channel)
 {
 	return mem_dma_phys + MCDT_CH0_RXD + channel * 4;
 }
-EXPORT_SYMBOL(mcdt_adc_dma_phy_addr);
+EXPORT_SYMBOL(mcdt_adc_dma_phy_addr_r1);
 
-unsigned long mcdt_dac_dma_phy_addr(unsigned int channel)
+unsigned long mcdt_dac_dma_phy_addr_r1(unsigned int channel)
 {
 	return mem_dma_phys + MCDT_CH0_TXD + channel * 4;
 }
-EXPORT_SYMBOL(mcdt_dac_dma_phy_addr);
+EXPORT_SYMBOL(mcdt_dac_dma_phy_addr_r1);
 
-unsigned int mcdt_is_adc_full(unsigned int channel)
+unsigned int mcdt_is_adc_full_r1(unsigned int channel)
 {
 	return mcdt_is_chan_fifo_sts(channel, MCDT_ADC_FIFO_REAL_FULL);
 }
 
-unsigned int mcdt_is_adc_empty(unsigned int channel)
+unsigned int mcdt_is_adc_empty_r1(unsigned int channel)
 {
 	return mcdt_is_chan_fifo_sts(channel, MCDT_ADC_FIFO_REAL_EMPTY);
 }
 
-unsigned int mcdt_is_dac_full(unsigned int channel)
+unsigned int mcdt_is_dac_full_r1(unsigned int channel)
 {
 	return mcdt_is_chan_fifo_sts(channel, MCDT_DAC_FIFO_REAL_FULL);
 }
 
-unsigned int mcdt_is_dac_empty(unsigned int channel)
+unsigned int mcdt_is_dac_empty_r1(unsigned int channel)
 {
 	return mcdt_is_chan_fifo_sts(channel, MCDT_DAC_FIFO_REAL_EMPTY);
 }
 
-unsigned int mcdt_dac_buffer_size_avail(unsigned int channel)
+unsigned int mcdt_dac_buffer_size_avail_r1(unsigned int channel)
 {
 	unsigned long reg = MCDT_DAC0_FIFO_ADDR_ST + channel * 8 + membase;
 	unsigned int r_addr = (mcdt_reg_read(reg)>>16)&0x3FF;
@@ -955,7 +955,7 @@ unsigned int mcdt_dac_buffer_size_avail(unsigned int channel)
 		return 4 * (r_addr - w_addr);
 }
 
-unsigned int mcdt_adc_data_size_avail(unsigned int channel)
+unsigned int mcdt_adc_data_size_avail_r1(unsigned int channel)
 {
 	unsigned long reg = MCDT_ADC0_FIFO_ADDR_ST + channel * 8 + membase;
 	unsigned int r_addr = (mcdt_reg_read(reg)>>16)&0x3FF;
@@ -965,7 +965,7 @@ unsigned int mcdt_adc_data_size_avail(unsigned int channel)
 		(4 * (FIFO_LENGTH - r_addr + w_addr)));
 }
 
-int mcdt_dac_int_enable(unsigned int channel,
+int mcdt_dac_int_enable_r1(unsigned int channel,
 			void (*callback)(void*, unsigned int),
 			void *data, unsigned int emptymark)
 {
@@ -973,7 +973,7 @@ int mcdt_dac_int_enable(unsigned int channel,
 	    g_dac_channel[channel].dma_enabled == 1)
 		return -1;
 
-	mcdt_da_fifo_clr(channel);
+	mcdt_da_fifo_clr_r1(channel);
 	mcdt_da_set_watermark(channel, FIFO_LENGTH - 1, emptymark);
 
 	if (callback != NULL) {
@@ -986,7 +986,7 @@ int mcdt_dac_int_enable(unsigned int channel,
 	return 0;
 }
 
-int mcdt_adc_int_enable(unsigned int channel,
+int mcdt_adc_int_enable_r1(unsigned int channel,
 			void (*callback)(void*, unsigned int),
 			void *data, unsigned int fullmark)
 {
@@ -994,7 +994,7 @@ int mcdt_adc_int_enable(unsigned int channel,
 	    g_adc_channel[channel].dma_enabled == 1)
 		return -1;
 
-	mcdt_ad_fifo_clr(channel);
+	mcdt_ad_fifo_clr_r1(channel);
 	mcdt_ad_set_watermark(channel, fullmark, FIFO_LENGTH - 1);
 
 	if (callback != NULL) {
@@ -1037,7 +1037,7 @@ static int mcdt_dma_channel_get(unsigned int channel)
 }
 
 /* return: uid, error if < 0 */
-int mcdt_dac_dma_enable(unsigned int channel, unsigned int emptymark)
+int mcdt_dac_dma_enable_r1(unsigned int channel, unsigned int emptymark)
 {
 	int uid = -1;
 	int dma_channel;
@@ -1061,7 +1061,7 @@ int mcdt_dac_dma_enable(unsigned int channel, unsigned int emptymark)
 	mcdt_dac_dma_channel[dma_channel] = 1;
 	mutex_unlock(&mcdt_mutex);
 
-	mcdt_da_fifo_clr(channel);
+	mcdt_da_fifo_clr_r1(channel);
 	mcdt_da_set_watermark(channel, FIFO_LENGTH - 1, emptymark);
 	uid = mcdt_send_data_use_dma(channel, dma_channel);
 	if (uid > 0) {
@@ -1073,12 +1073,12 @@ int mcdt_dac_dma_enable(unsigned int channel, unsigned int emptymark)
 
 	return uid;
 }
-EXPORT_SYMBOL(mcdt_dac_dma_enable);
+EXPORT_SYMBOL(mcdt_dac_dma_enable_r1);
 
 /*
  *return: uid, error if < 0
  */
-int mcdt_adc_dma_enable(unsigned int channel, unsigned int fullmark)
+int mcdt_adc_dma_enable_r1(unsigned int channel, unsigned int fullmark)
 {
 	int uid = -1;
 	int dma_channel;
@@ -1101,7 +1101,7 @@ int mcdt_adc_dma_enable(unsigned int channel, unsigned int fullmark)
 	mcdt_adc_dma_channel[dma_channel] = 1;
 	mutex_unlock(&mcdt_mutex);
 
-	mcdt_ad_fifo_clr(channel);
+	mcdt_ad_fifo_clr_r1(channel);
 	mcdt_ad_set_watermark(channel, fullmark, FIFO_LENGTH - 1);
 	uid = mcdt_rev_data_use_dma(channel, dma_channel);
 	if (uid > 0) {
@@ -1113,39 +1113,39 @@ int mcdt_adc_dma_enable(unsigned int channel, unsigned int fullmark)
 
 	return uid;
 }
-EXPORT_SYMBOL(mcdt_adc_dma_enable);
+EXPORT_SYMBOL(mcdt_adc_dma_enable_r1);
 
-void mcdt_dac_dma_disable(unsigned int channel)
+void mcdt_dac_dma_disable_r1(unsigned int channel)
 {
 	if (!g_dac_channel[channel].dma_enabled)
 		return;
 
 	mcdt_da_dma_enable(channel, 0);
-	mcdt_da_fifo_clr(channel);
+	mcdt_da_fifo_clr_r1(channel);
 	mutex_lock(&mcdt_mutex);
 	mcdt_dac_dma_channel[g_dac_channel[channel].dma_channel] = 0;
 	mutex_unlock(&mcdt_mutex);
 	g_dac_channel[channel].dma_enabled = 0;
 	g_dac_channel[channel].dma_channel = 0;
 }
-EXPORT_SYMBOL(mcdt_dac_dma_disable);
+EXPORT_SYMBOL(mcdt_dac_dma_disable_r1);
 
-void mcdt_adc_dma_disable(unsigned int channel)
+void mcdt_adc_dma_disable_r1(unsigned int channel)
 {
 	if (!g_adc_channel[channel].dma_enabled)
 		return;
 
 	mcdt_ad_dma_enable(channel, 0);
-	mcdt_ad_fifo_clr(channel);
+	mcdt_ad_fifo_clr_r1(channel);
 	mutex_lock(&mcdt_mutex);
 	mcdt_adc_dma_channel[g_adc_channel[channel].dma_channel] = 0;
 	mutex_unlock(&mcdt_mutex);
 	g_adc_channel[channel].dma_enabled = 0;
 	g_adc_channel[channel].dma_channel = 0;
 }
-EXPORT_SYMBOL(mcdt_adc_dma_disable);
+EXPORT_SYMBOL(mcdt_adc_dma_disable_r1);
 
-int mcdt_dac_disable(unsigned int channel)
+int mcdt_dac_disable_r1(unsigned int channel)
 {
 	if (g_dac_channel[channel].int_enabled) {
 		if (gdac_irq_desc[channel].irq_handler) {
@@ -1168,12 +1168,12 @@ int mcdt_dac_disable(unsigned int channel)
 		mutex_unlock(&mcdt_mutex);
 		g_dac_channel[channel].dma_enabled = 0;
 	}
-	mcdt_da_fifo_clr(channel);
+	mcdt_da_fifo_clr_r1(channel);
 
 	return 0;
 }
 
-int mcdt_adc_disable(unsigned int channel)
+int mcdt_adc_disable_r1(unsigned int channel)
 {
 	if (g_adc_channel[channel].int_enabled) {
 		if (gadc_irq_desc[channel].irq_handler) {
@@ -1196,7 +1196,7 @@ int mcdt_adc_disable(unsigned int channel)
 		mutex_unlock(&mcdt_mutex);
 		g_adc_channel[channel].dma_enabled = 0;
 	}
-	mcdt_da_fifo_clr(channel);
+	mcdt_da_fifo_clr_r1(channel);
 
 	return 0;
 

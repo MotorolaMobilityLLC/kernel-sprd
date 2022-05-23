@@ -705,7 +705,7 @@
 #define IS_SPRD_CODEC_DP_RANG(reg) (((reg) >= SPRD_CODEC_DP_BASE) \
 	&& ((reg) < SPRD_CODEC_DP_END))
 
-#define SPRD_CODEC_AP_BASE (CODEC_AP_BASE)
+#define SPRD_CODEC_AP_BASE (CODEC_AP_BASE_2721)
 #define ANA_PMU0                                (SPRD_CODEC_AP_BASE + 0x0000)
 #define ANA_PMU1                                (SPRD_CODEC_AP_BASE + 0x0004)
 #define ANA_PMU2                                (SPRD_CODEC_AP_BASE + 0x0008)
@@ -739,7 +739,7 @@
 
 #define SPRD_CODEC_AP_ANA_END	(SPRD_CODEC_AP_BASE + 0x0080)
 
-#define AUD_CFGA_REG_BASE (CODEC_AP_BASE + 0x100)
+#define AUD_CFGA_REG_BASE (CODEC_AP_BASE_2721 + 0x100)
 #define AUD_CFGA_CLR                  (AUD_CFGA_REG_BASE + 0x0000)
 #define AUD_CFGA_HID_CFG0             (AUD_CFGA_REG_BASE + 0x0004)
 #define AUD_CFGA_HID_CFG1             (AUD_CFGA_REG_BASE + 0x0008)

@@ -48,7 +48,7 @@
 #include "sprd-asoc-card-utils.h"
 #include "sprd-asoc-common.h"
 #include "sprd-codec.h"
-#include "sprd-headset.h"
+#include "sprd-headset-2730.h"
 
 #define SOC_REG(r) ((unsigned short)(r))
 #define FUN_REG(f) ((unsigned short)(-((f) + 1)))
@@ -3231,11 +3231,11 @@ static int sprd_codec_write(struct snd_soc_component *codec, unsigned int reg,
 	if (IS_SPRD_CODEC_AP_RANG(reg | SPRD_CODEC_AP_BASE_HI)) {
 		reg |= SPRD_CODEC_AP_BASE_HI;
 		sp_asoc_pr_reg("A[0x%04x] R:[0x%08x]\n",
-			(reg - CODEC_AP_BASE) & 0xFFFF,
+			(reg - CODEC_AP_BASE_AGCP) & 0xFFFF,
 			arch_audio_codec_read(reg));
 		ret = arch_audio_codec_write(reg, val);
 		sp_asoc_pr_reg("A[0x%04x] W:[0x%08x] R:[0x%08x]\n",
-			(reg - CODEC_AP_BASE) & 0xFFFF,
+			(reg - CODEC_AP_BASE_AGCP) & 0xFFFF,
 			val, arch_audio_codec_read(reg));
 		return ret;
 	} else if (IS_SPRD_CODEC_DP_RANG(reg | SPRD_CODEC_DP_BASE_HI)) {

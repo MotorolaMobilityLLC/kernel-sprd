@@ -164,6 +164,7 @@ int anlg_phy_g_null_check(void);
 
 void arch_audio_set_anlg_phy_g(struct regmap *gpr);
 
+
 #if (defined(CONFIG_SOC_IWHALE2) || defined(CONFIG_SOC_WHALE2))
 /* iwhale2 will include sprd-audio-whale2.h */
 #include "sprd-audio-whale2.h"
@@ -182,11 +183,13 @@ void arch_audio_set_anlg_phy_g(struct regmap *gpr);
 #elif (defined(CONFIG_SND_SOC_UNISOC_PIKE2) || defined(CONFIG_SND_SOC_UNISOC_PIKE2_MODULE))
 #include "sprd-audio-pike2.h"
 /* sharkl3 */
-#elif (defined(CONFIG_SND_SOC_UNISOC_SHARKL3) || defined(CONFIG_SND_SOC_UNISOC_SHARKL3_MODULE))
-#include "sprd-audio-sharkl3.h"
-#else
-#include "sprd-audio-agcp.h"
+//#elif (defined(CONFIG_SND_SOC_UNISOC_SHARKL3) || defined(CONFIG_SND_SOC_UNISOC_SHARKL3_MODULE))
+//#include "sprd-audio-sharkl3.h"
+//#else
+//#include "sprd-audio-agcp.h"
 #endif
+
+#include "sprd-audio-common.h"
 
 struct glb_reg_dump {
 	char *reg_name;

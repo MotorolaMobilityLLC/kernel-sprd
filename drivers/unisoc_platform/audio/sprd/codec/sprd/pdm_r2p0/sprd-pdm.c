@@ -628,12 +628,6 @@ static int pdm_trigger(struct snd_pcm_substream *substream, int cmd,
 	return 0;
 }
 
-static int pdm_set_dai_mute(struct snd_soc_dai *dai, int mute)
-{
-	pr_debug("%s\n", __func__);
-	return 0;
-}
-
 #define UNSUPPORTED_AD_RATE SNDRV_PCM_RATE_44100
 
 #define SPRD_CODEC_PCM_RATES \
@@ -660,7 +654,6 @@ static struct snd_soc_dai_ops pdm_dai_ops = {
 	.set_sysclk = pdm_set_dai_sysclk,
 	.set_fmt = pdm_set_dai_fmt,
 	.trigger = pdm_trigger,
-	.digital_mute = pdm_set_dai_mute,
 };
 
 static struct snd_soc_dai_driver pdm_dai[] = {

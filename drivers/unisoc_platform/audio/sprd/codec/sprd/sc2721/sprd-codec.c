@@ -1106,7 +1106,7 @@ static enum PA_SHORT_T codec_pa_short_check(struct snd_soc_component *codec)
 	if (ret < 0)
 		goto CHECK_FAILED;
 	sprd_codec_wait(1);
-	val = snd_soc_component_read32(codec, SOC_REG(ANA_STS7));
+	val = snd_soc_component_read(codec, SOC_REG(ANA_STS7));
 	snd_soc_component_update_bits(codec, SOC_REG(ANA_PMU5), BIT(PA_SH_DET_EN), 0);
 	if (val == -1)
 		goto CHECK_FAILED;
@@ -1121,7 +1121,7 @@ static enum PA_SHORT_T codec_pa_short_check(struct snd_soc_component *codec)
 	if (ret < 0)
 		goto CHECK_FAILED;
 	sprd_codec_wait(1);
-	val = snd_soc_component_read32(codec, SOC_REG(ANA_STS7));
+	val = snd_soc_component_read(codec, SOC_REG(ANA_STS7));
 	snd_soc_component_update_bits(codec, SOC_REG(ANA_PMU5), BIT(PA_SL_DET_EN), 0);
 	if (val == -1)
 		goto CHECK_FAILED;
@@ -1270,7 +1270,7 @@ static int sprd_codec_set_sample_rate(struct snd_soc_component *codec,
 		pr_err("ERR:SPRD-CODEC not support this rate %d\n", rate);
 
 	sp_asoc_pr_dbg("Set Playback rate 0x%x\n",
-		       snd_soc_component_read32(codec, AUD_DAC_CTL));
+		       snd_soc_component_read(codec, AUD_DAC_CTL));
 
 	agdsp_access_disable();
 
@@ -1789,7 +1789,7 @@ static inline void codec_print_oxp_stat(struct snd_soc_component *codec)
 {
 	unsigned int val;
 
-	val = snd_soc_component_read32(codec, ANA_STS7);
+	val = snd_soc_component_read(codec, ANA_STS7);
 	pr_debug("ANA_STS7: %#x\n", val);
 	if (val & BIT(PA_OVP_FLAG))
 		pr_err("ERR: speaker PA OVP! ANA_STS7: %#x\n", val);
@@ -1814,7 +1814,7 @@ static void codec_ap_irq_delay_worker(struct work_struct *work)
 	mask = BIT(PA_OVP_FLAG) | BIT(PA_OTP_FLAG) |
 		(DRV_OCP_FLAG_MASK << DRV_OCP_FLAG_SPK) |
 		(DRV_OCP_FLAG_MASK << DRV_OCP_FLAG_HPRCV);
-	val = snd_soc_component_read32(codec, ANA_STS7);
+	val = snd_soc_component_read(codec, ANA_STS7);
 	pr_debug("%s, ANA_STS7: %#x\n", __func__, val);
 	if (!(val & mask)) {
 		sprd_codec_irq_oxp_enable(codec);
@@ -1834,8 +1834,8 @@ static irqreturn_t sprd_codec_ap_irq(int irq, void *dev_id)
 	struct sprd_codec_priv *sprd_codec = dev_id;
 	struct snd_soc_component *codec = sprd_codec->codec;
 
-	mask = (snd_soc_component_read32(codec, SOC_REG(AUD_CFGA_RD_STS)) >> AUD_IRQ_MSK);
-	val = snd_soc_component_read32(codec, SOC_REG(ANA_STS7));
+	mask = (snd_soc_component_read(codec, SOC_REG(AUD_CFGA_RD_STS)) >> AUD_IRQ_MSK);
+	val = snd_soc_component_read(codec, SOC_REG(ANA_STS7));
 	pr_info("IRQ Mask = %#x, ANA_STS7: %#x\n", mask, val);
 
 	/* When OVP or OCP occurred, the chip will process the case by itself.
@@ -1877,7 +1877,7 @@ static int sprd_codec_charge_ext_cap(struct snd_soc_component *codec)
 
 	/* Check the status of DC-CAL*/
 	do {
-		val = snd_soc_component_read32(codec, SOC_REG(ANA_STS2));
+		val = snd_soc_component_read(codec, SOC_REG(ANA_STS2));
 		pr_debug("ANA_STS2: %#x\n", val);
 		if (val & BIT(HP_DPOP_DVLD))
 			break;
@@ -1903,7 +1903,7 @@ static int sprd_codec_charge_ext_cap(struct snd_soc_component *codec)
 	/* Waiting for charging finish. only headset plug in need to waiting */
 	cnt = WAIT_CNT_CHG_CAP;
 	do {
-		val = snd_soc_component_read32(codec, SOC_REG(ANA_STS2));
+		val = snd_soc_component_read(codec, SOC_REG(ANA_STS2));
 		pr_debug("Check charging status, ANA_STS2: %#x\n", val);
 		if ((val & BIT(DEPOP_CHG_STS)) && (val & BIT(RCV_DPOP_DVLD)))
 			break;
@@ -1966,7 +1966,7 @@ static int hp_drv_path_switch_event(struct snd_soc_dapm_widget *w,
 		return 0;
 
 	while (--cnt) {
-		val = snd_soc_component_read32(codec, SOC_REG(ANA_DCL5));
+		val = snd_soc_component_read(codec, SOC_REG(ANA_DCL5));
 		pr_debug("ANA_DCL5: %#x\n", val);
 		if (on && (val & bit))
 			break;
@@ -2832,11 +2832,11 @@ static int codec_hp_dc_cal(struct snd_soc_component *codec)
 	if (headset_get_plug_state() == 1) {
 		cnt = WAIT_CNT_DCCAL;
 		do {
-			val = snd_soc_component_read32(codec, SOC_REG(ANA_STS2));
+			val = snd_soc_component_read(codec, SOC_REG(ANA_STS2));
 			pr_debug("1st ANA_STS2: %#x\n", val);
 			if ((val & BIT(DCCAL_STS)) && (val & BIT(HP_DPOP_DVLD))) {
 				sprd_codec_wait(5);
-				val = snd_soc_component_read32(codec, SOC_REG(ANA_STS2));
+				val = snd_soc_component_read(codec, SOC_REG(ANA_STS2));
 				pr_debug("2nd ANA_STS2: %#x\n", val);
 				if ((val & BIT(DCCAL_STS)) && (val & BIT(HP_DPOP_DVLD)))
 					break;
@@ -3987,11 +3987,11 @@ static int sprd_codec_write(struct snd_soc_component *codec, unsigned int reg,
 	if (IS_SPRD_CODEC_AP_RANG(reg | SPRD_CODEC_AP_BASE_HI)) {
 		reg |= SPRD_CODEC_AP_BASE_HI;
 		sp_asoc_pr_reg("A[0x%04x] R:[0x%08x]\n",
-			       (reg - CODEC_AP_BASE) & 0xFFFF,
+			       (reg - CODEC_AP_BASE_2721) & 0xFFFF,
 			arch_audio_codec_read(reg));
 		ret = arch_audio_codec_write(reg, val);
 		sp_asoc_pr_reg("A[0x%04x] W:[0x%08x] R:[0x%08x]\n",
-			       (reg - CODEC_AP_BASE) & 0xFFFF,
+			       (reg - CODEC_AP_BASE_2721) & 0xFFFF,
 			val, arch_audio_codec_read(reg));
 		return ret;
 	} else if (IS_SPRD_CODEC_DP_RANG(reg | SPRD_CODEC_DP_BASE_HI)) {
@@ -4115,7 +4115,7 @@ static irqreturn_t sprd_codec_dp_irq(int irq, void *dev_id)
 	struct sprd_codec_priv *sprd_codec = dev_id;
 	struct snd_soc_component *codec = sprd_codec->codec;
 
-	mask = snd_soc_component_read32(codec, AUD_AUD_STS0);
+	mask = snd_soc_component_read(codec, AUD_AUD_STS0);
 	sp_asoc_pr_dbg("dac mute irq mask = 0x%x\n", mask);
 	if (BIT(DAC_MUTE_D_MASK) & mask) {
 		mask = BIT(DAC_MUTE_D);
@@ -4157,7 +4157,7 @@ static int sprd_codec_soc_suspend(struct snd_soc_component *codec)
 
 		if (ret < 0) {
 			sp_asoc_pr_info("%s, clear BG failed, ANA_PMU0=0x%x",
-					__func__, snd_soc_component_read32(codec, ANA_PMU0));
+					__func__, snd_soc_component_read(codec, ANA_PMU0));
 			return ret;
 		}
 	} else {
@@ -4182,7 +4182,7 @@ static int sprd_codec_soc_resume(struct snd_soc_component *codec)
 			    BIT(BG_EN) | BIT(HMICBIAS_VREF_SEL));
 		if (ret < 0) {
 			sp_asoc_pr_info("%s, set BG failed, ANA_PMU0=0x%x\n",
-					__func__, snd_soc_component_read32(codec, ANA_PMU0));
+					__func__, snd_soc_component_read(codec, ANA_PMU0));
 			return ret;
 		}
 
@@ -4247,7 +4247,7 @@ static void pa_short_stat_proc_read(struct snd_info_entry *entry,
 	usleep_range(100, 150);
 
 	/* Store the pa status before pa short check. */
-	pa_en = snd_soc_component_read32(codec, SOC_REG(ANA_CDC2)) & BIT(PA_EN);
+	pa_en = snd_soc_component_read(codec, SOC_REG(ANA_CDC2)) & BIT(PA_EN);
 	/* Do the short check. */
 	pa_short_stat = codec_pa_short_check(codec);
 	pr_debug("%s, pa_short_stat: %d, pa_en: %d\n", __func__, pa_short_stat,
@@ -4280,10 +4280,10 @@ static void sprd_codec_proc_read(struct snd_info_entry *entry,
 	for (reg = SPRD_CODEC_DP_BASE; reg < SPRD_CODEC_DP_END; reg += 0x10) {
 		snd_iprintf(buffer, "0x%04x | 0x%04x 0x%04x 0x%04x 0x%04x\n",
 			    (unsigned int)(reg - SPRD_CODEC_DP_BASE)
-			    , snd_soc_component_read32(codec, reg + 0x00)
-			    , snd_soc_component_read32(codec, reg + 0x04)
-			    , snd_soc_component_read32(codec, reg + 0x08)
-			    , snd_soc_component_read32(codec, reg + 0x0C)
+			    , snd_soc_component_read(codec, reg + 0x00)
+			    , snd_soc_component_read(codec, reg + 0x04)
+			    , snd_soc_component_read(codec, reg + 0x08)
+			    , snd_soc_component_read(codec, reg + 0x0C)
 		    );
 	}
 	agdsp_access_disable();
@@ -4294,10 +4294,10 @@ static void sprd_codec_proc_read(struct snd_info_entry *entry,
 	       reg < SPRD_CODEC_AP_ANA_END; reg += 0x10) {
 		snd_iprintf(buffer, "0x%04x | 0x%04x 0x%04x 0x%04x 0x%04x\n",
 			    (unsigned int)(reg - SPRD_CODEC_AP_BASE)
-			    , snd_soc_component_read32(codec, reg + 0x00)
-			    , snd_soc_component_read32(codec, reg + 0x04)
-			    , snd_soc_component_read32(codec, reg + 0x08)
-			    , snd_soc_component_read32(codec, reg + 0x0C)
+			    , snd_soc_component_read(codec, reg + 0x00)
+			    , snd_soc_component_read(codec, reg + 0x04)
+			    , snd_soc_component_read(codec, reg + 0x08)
+			    , snd_soc_component_read(codec, reg + 0x0C)
 		    );
 	}
 	snd_iprintf(buffer, "%s analog part(0x403C8800)\n",
@@ -4305,10 +4305,10 @@ static void sprd_codec_proc_read(struct snd_info_entry *entry,
 	for (reg = AUD_CFGA_REG_BASE; reg < SPRD_CODEC_AP_END; reg += 0x10) {
 		snd_iprintf(buffer, "0x%04x | 0x%04x 0x%04x 0x%04x 0x%04x\n",
 			    (unsigned int)(reg - AUD_CFGA_REG_BASE)
-			    , snd_soc_component_read32(codec, reg + 0x00)
-			    , snd_soc_component_read32(codec, reg + 0x04)
-			    , snd_soc_component_read32(codec, reg + 0x08)
-			    , snd_soc_component_read32(codec, reg + 0x0C)
+			    , snd_soc_component_read(codec, reg + 0x00)
+			    , snd_soc_component_read(codec, reg + 0x04)
+			    , snd_soc_component_read(codec, reg + 0x08)
+			    , snd_soc_component_read(codec, reg + 0x0C)
 		    );
 	}
 

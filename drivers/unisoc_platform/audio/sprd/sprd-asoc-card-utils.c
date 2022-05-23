@@ -27,7 +27,7 @@
 
 #include "sprd-asoc-card-utils.h"
 #include "sprd-asoc-common.h"
-#include "sprd-headset.h"
+// #include "sprd-headset.h"
 #include "sprd-audio.h"
 
 #pragma GCC diagnostic push

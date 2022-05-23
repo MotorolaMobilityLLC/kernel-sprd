@@ -99,7 +99,7 @@ static struct regmap *codec_regmap;
 static unsigned long codec_reg_offset;
 
 #define CODEC_REG(reg) \
-	((reg) + CODEC_AP_OFFSET + codec_reg_offset - CODEC_AP_BASE)
+	((reg) + CODEC_AP_OFFSET + codec_reg_offset - CODEC_AP_BASE_2721)
 
 #define REGMAP_OFFSET_INIT_CHECK() do { \
 	if (codec_regmap == NULL || codec_reg_offset == -1) { \
