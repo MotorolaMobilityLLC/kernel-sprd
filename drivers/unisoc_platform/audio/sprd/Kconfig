@@ -13,7 +13,7 @@ config SND_SOC_UNISOC_I2S
 
 config SND_SOC_UNISOC_VBC_V4_SC2730
 	tristate "ASoC Spreadtrum sound card with vbc v4 and codec sc2730"
-	select UNISOC_AUDIO_AGDSP_ACCESS
+	select UNISOC_AUDIO_AGDSP_PD
 	select UNISOC_AUDIO_MEMORY_MANAGER
 	select UNISOC_AUDIO_SIPC
 	select UNISOC_AUDIO_MCDT
@@ -34,7 +34,7 @@ config SND_SOC_UNISOC_VBC_V4_SC2730
 
 config SND_SOC_UNISOC_VBC_V4_SC2730_MCDT_R2P0
 	tristate "ASoC Spreadtrum sound card with vbc v4 and codec sc2730 mcdt r2p0"
-	select UNISOC_AUDIO_AGDSP_ACCESS
+	select UNISOC_AUDIO_AGDSP_PD
 	select UNISOC_AUDIO_MEMORY_MANAGER
 	select UNISOC_AUDIO_SIPC
 	select UNISOC_AUDIO_MCDT_R2P0
@@ -55,7 +55,7 @@ config SND_SOC_UNISOC_VBC_V4_SC2730_MCDT_R2P0
 
 config SND_SOC_UNISOC_VBC_V4_UMP9620_MCDT_R2P0
 	tristate "ASoC Spreadtrum sound card with vbc v4 and codec ump9620 and mcdt r2p0"
-	select UNISOC_AUDIO_AGDSP_ACCESS
+	select UNISOC_AUDIO_AGDSP_PD
 	select UNISOC_AUDIO_MEMORY_MANAGER
 	select UNISOC_AUDIO_SIPC
 	select UNISOC_AUDIO_MCDT_R2P0

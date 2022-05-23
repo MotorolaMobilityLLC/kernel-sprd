@@ -1,11 +1,4 @@
 menu "UNISOC Audio Assistant Modules"
-config UNISOC_AUDIO_AGDSP_ACCESS
-	tristate "Sprd audio agdsp access"
-	help
-	  This module is used to enable the access
-	  of agdsp registers.
-	  If audio use audio cp, this config should be selected.
-	  If r3p0 vbc is used, this must be set to Y.
 
 config UNISOC_AUDIO_MEMORY_MANAGER
 	tristate "Sprd audio memory manager"
@@ -103,5 +96,12 @@ config UNISOC_AUDIO_USB_OFFLOAD
 	depends on USB_SPRD_OFFLOAD
 	help
 		sprd audio usb offload support
+
+config UNISOC_AUDIO_AGDSP_PD
+	tristate "SPRD agdsp power domain"
+	depends on ARCH_SPRD || COMPILE_TEST
+	select PM_GENERIC_DOMAINS if PM
+	help
+	  If you select this feature, it will enable the agdsp power domain.
 
 endmenu

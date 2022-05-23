@@ -18,7 +18,8 @@
 #error  "Don't include this file directly, include sprd-audio.h"
 #endif
 
-#include "agdsp_access.h"
+#include <linux/device.h>
+#include <linux/pm_runtime.h>
 
 /* AGCP AHB registers doesn't defined by global header file. So
  * define them here.
@@ -104,7 +105,7 @@ enum ag_iis_v2 {
 };
 
 static inline int arch_audio_iis_to_audio_top_enable_v1(
-	enum ag_iis_v1 iis, int mode)
+	enum ag_iis_v1 iis, int mode, struct device *dev)
 {
 	u32 mask;
 	int shift;
@@ -137,21 +138,22 @@ static inline int arch_audio_iis_to_audio_top_enable_v1(
 		return -1;
 	}
 
-	ret = agdsp_access_enable();
-	if (ret) {
+	ret = pm_runtime_get_sync(dev);
+	if (ret < 0) {
 		pr_err("%s, agdsp_access_enable failed!\n", __func__);
 		return ret;
 	}
 
 	agcp_ahb_reg_update(REG_AGCP_AHB_EXT_ACC_AG_SEL, mask, mode<<shift);
-	agdsp_access_disable();
+	pm_runtime_mark_last_busy(dev);
+	pm_runtime_put_autosuspend(dev);
 
 	return 0;
 }
 
 /* used for ums9620 */
 static inline int arch_audio_iis_to_audio_top_enable_v2(
-	enum ag_iis_v2 iis, int mode)
+	enum ag_iis_v2 iis, int mode, struct device *dev)
 {
 	u32 mask;
 	int shift, ret;
@@ -188,8 +190,8 @@ static inline int arch_audio_iis_to_audio_top_enable_v2(
 		return -1;
 	}
 
-	ret = agdsp_access_enable();
-	if (ret) {
+	ret = pm_runtime_get_sync(dev);
+	if (ret < 0) {
 		pr_err("%s, agdsp_access_enable failed!\n", __func__);
 		return ret;
 	}
@@ -199,13 +201,14 @@ static inline int arch_audio_iis_to_audio_top_enable_v2(
 	agcp_ahb_reg_read(REG_AGCP_AHB_EXT_ACC_AG_SEL, &mask);
 	pr_debug("%s AHB_EXT_ACC_AG_SEL 0x%x\n", __func__, mask);
 
-	agdsp_access_disable();
+	pm_runtime_mark_last_busy(dev);
+	pm_runtime_put_autosuspend(dev);
 
 	return 0;
 }
 
 /* Codec digital part in soc setting for ums9620 */
-static inline int arch_audio_codec_digital_reg_enable_v2(void)
+static inline int arch_audio_codec_digital_reg_enable_v2(struct device *dev)
 {
 	int ret = 0;
 	unsigned int val;
@@ -215,8 +218,8 @@ static inline int arch_audio_codec_digital_reg_enable_v2(void)
 		pr_err("%s agcp_ahb_gpr_null_check failed!", __func__);
 		return -1;
 	}
-	ret = agdsp_access_enable();
-	if (ret) {
+	ret = pm_runtime_get_sync(dev);
+	if (ret < 0) {
 		pr_err("%s, agdsp_access_enable failed!\n", __func__);
 		return ret;
 	}
@@ -227,18 +230,19 @@ static inline int arch_audio_codec_digital_reg_enable_v2(void)
 			BIT_AUDIF_CKG_AUTO_EN_V2);
 	agcp_ahb_reg_read(REG_AGCP_AHB_MODULE_EB0_STS, &val);
 	pr_debug("%s AHB_MODULE_EB0_STS 0x%x\n", __func__, val);
-	agdsp_access_disable();
+	pm_runtime_mark_last_busy(dev);
+	pm_runtime_put_autosuspend(dev);
 
 	return ret;
 }
 
-static inline int arch_audio_codec_digital_reg_disable_v2(void)
+static inline int arch_audio_codec_digital_reg_disable_v2(struct device *dev)
 {
 	int ret = 0;
 
 	agcp_ahb_gpr_null_check();
-	ret = agdsp_access_enable();
-	if (ret) {
+	ret = pm_runtime_get_sync(dev);
+	if (ret < 0) {
 		pr_err("%s, agdsp_access_enable failed!\n", __func__);
 		return ret;
 	}
@@ -248,7 +252,8 @@ static inline int arch_audio_codec_digital_reg_disable_v2(void)
 		ret = agcp_ahb_reg_clr(REG_AGCP_AHB_MODULE_EB0_STS,
 				       BIT_AUD_EB_V2);
 
-	agdsp_access_disable();
+	pm_runtime_mark_last_busy(dev);
+	pm_runtime_put_autosuspend(dev);
 
 	return ret;
 }

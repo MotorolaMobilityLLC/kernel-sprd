@@ -27,7 +27,7 @@
 #include <linux/string.h>
 #include <uapi/sound/sprd_audiodsp_ioctl.h>
 
-#include "agdsp_access.h"
+#include "agdsp_pd.h"
 #include "audio_mem.h"
 #include "audio_sblock.h"
 #include "audio-sipc.h"

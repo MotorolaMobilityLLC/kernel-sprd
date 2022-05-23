@@ -39,8 +39,6 @@
 #include <sound/pcm.h>
 #include <sound/pcm_params.h>
 
-#include "agdsp_access.h"
-
 enum SPRD_BE_SWITCH {
 	S_NORMAL_AP01_P_CODEC = 0,
 	S_NORMAL_AP01_C_CODEC,
@@ -692,11 +690,6 @@ static const struct snd_soc_dapm_widget sprd_pcm_routing_widgets[] = {
  * Add route BE_NORMAL_DAI_P <- BE_DAI_NORMAL_P in sprd_dai_vbc_probe.
  * Normal-Playback <-BE_DAI_NORMAL_P linked by BE through
  * vbc NORMAL dai and codec NORMAL dai.
- */
- /*
- *	since .aif_name has been deleted after kernel 5.15,
- *  the aif to stream route has been moved to THIS GRAPH
- *  and no longer need fe_dai_probe and sprd_dai_vbc_probe.
  */
 static const struct snd_soc_dapm_route sprd_pcm_routing_intercon[] = {
 	/* S_NORMAL_AP01_P_CODEC */

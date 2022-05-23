@@ -40,7 +40,7 @@
 #include "audio_mem.h"
 #include "audio-sipc.h"
 #include "sprd-string.h"
-#include "agdsp_access.h"
+#include "agdsp_pd.h"
 
 #define sp_asoc_pr_dbg pr_info
 #define sp_asoc_pr_info pr_info

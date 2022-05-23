@@ -33,13 +33,13 @@
 #include <linux/string.h>
 #include <linux/sysfs.h>
 #include <linux/workqueue.h>
+#include <linux/pm_runtime.h>
 #include <sound/core.h>
 #include <sound/pcm_params.h>
 #include <sound/soc.h>
 #include <sound/soc-dapm.h>
 #include <sound/tlv.h>
 
-#include "agdsp_access.h"
 #include "mcdt_hw.h"
 #include "sprd-dmaengine-pcm.h"
 #include "sprd-fe-dai.h"
@@ -809,8 +809,8 @@ static int fe_hw_params(struct snd_pcm_substream *substream,
 		fe_dai_id_to_str(fe_dai->id),
 		fe_dai->id, stream_to_str(substream->stream));
 
-	ret = agdsp_access_enable();
-	if (ret) {
+	ret = pm_runtime_get_sync(fe_dai->dev);
+	if (ret < 0) {
 		pr_err("%s, agdsp_access_enable failed!\n", __func__);
 		return ret;
 	}
@@ -818,10 +818,12 @@ static int fe_hw_params(struct snd_pcm_substream *substream,
 	ret = mcdt_dma_config_init(fe_dai, substream->stream);
 	if (ret < 0) {
 		pr_err("%s mcdt config init failed\n", __func__);
-		agdsp_access_disable();
+		pm_runtime_mark_last_busy(fe_dai->dev);
+		pm_runtime_put_autosuspend(fe_dai->dev);
 		return ret;
 	}
-	agdsp_access_disable();
+	pm_runtime_mark_last_busy(fe_dai->dev);
+	pm_runtime_put_autosuspend(fe_dai->dev);
 
 	sprd_dma_config(substream, params, fe_dai);
 	switch (params_format(params)) {
@@ -857,13 +859,14 @@ static int fe_hw_free(struct snd_pcm_substream *substream,
 	pr_info("%s fe dai: %s(%d) %s\n", __func__,
 		fe_dai_id_to_str(fe_dai->id),
 		fe_dai->id, stream_to_str(substream->stream));
-	ret = agdsp_access_enable();
-	if (ret) {
+	ret = pm_runtime_get_sync(fe_dai->dev);
+	if (ret < 0) {
 		pr_err("%s, agdsp_access_enable failed!\n", __func__);
 		return ret;
 	}
 	mcdt_dma_deinit(fe_dai, substream->stream);
-	agdsp_access_disable();
+	pm_runtime_mark_last_busy(fe_dai->dev);
+	pm_runtime_put_autosuspend(fe_dai->dev);
 
 	return 0;
 }
@@ -1441,8 +1444,13 @@ static int sprd_fe_dai_dev_probe(struct platform_device *pdev)
 
 	dev_dbg(&pdev->dev, "%s: dev name %s\n", __func__,
 		dev_name(&pdev->dev));
+
 	ret = snd_soc_register_component(&pdev->dev, &sprd_fe_dai_component,
 		sprd_fe_dais, ARRAY_SIZE(sprd_fe_dais));
+
+	pm_runtime_set_active(&pdev->dev);
+	pm_runtime_enable(&pdev->dev);
+	dev_info(&pdev->dev, "<-- agdsp_pd is enabled for THIS device now\n");
 
 	return ret;
 }

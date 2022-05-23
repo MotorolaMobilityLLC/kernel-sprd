@@ -32,6 +32,7 @@
 #include <linux/string.h>
 #include <linux/sysfs.h>
 #include <linux/workqueue.h>
+#include <linux/pm_runtime.h>
 #include <sound/core.h>
 #include <sound/pcm_params.h>
 #include <sound/soc.h>
@@ -3772,7 +3773,7 @@ static int vbc_put_ag_iis_ext_sel(struct snd_kcontrol *kcontrol,
 	enable = ucontrol->value.enumerated.item[0];
 	sp_asoc_pr_dbg("%s, ag_iis_num=%d,value=%d, texts->texts[] =%s\n",
 		       __func__, ag_iis_num, enable, texts->texts[enable]);
-	arch_audio_iis_to_audio_top_enable(ag_iis_num, enable);
+	arch_audio_iis_to_audio_top_enable(ag_iis_num, enable, codec->dev);
 	vbc_codec->ag_iis_ext_sel[ag_iis_num] = enable;
 
 	return true;
@@ -3810,7 +3811,7 @@ static int vbc_put_ag_iis_ext_sel_v1(struct snd_kcontrol *kcontrol,
 	mode = ucontrol->value.enumerated.item[0];
 	sp_asoc_pr_dbg("%s, ag_iis_num=%d,value=%d, texts->texts[] =%s\n",
 		       __func__, ag_iis_num, mode, texts->texts[mode]);
-	arch_audio_iis_to_audio_top_enable_v1(ag_iis_num, mode);
+	arch_audio_iis_to_audio_top_enable_v1(ag_iis_num, mode, codec->dev);
 	vbc_codec->ag_iis_ext_sel_v1[ag_iis_num] = mode;
 
 	return true;
@@ -3848,7 +3849,7 @@ static int vbc_put_ag_iis_ext_sel_v2(struct snd_kcontrol *kcontrol,
 	mode = ucontrol->value.enumerated.item[0];
 	sp_asoc_pr_dbg("%s ag_iis_num %d, value %d, texts->texts[] %s\n",
 		       __func__, ag_iis_num, mode, texts->texts[mode]);
-	arch_audio_iis_to_audio_top_enable_v2(ag_iis_num, mode);
+	arch_audio_iis_to_audio_top_enable_v2(ag_iis_num, mode, codec->dev);
 	vbc_codec->ag_iis_ext_sel_v2[ag_iis_num] = mode;
 
 	return true;
@@ -3887,9 +3888,9 @@ static int vbc_put_agdsp_aud_access(struct snd_kcontrol *kcontrol,
 		if (vbc_codec->agcp_access_aud_cnt == 0 &&
 		    vbc_codec->agcp_access_a2dp_cnt == 0) {
 			vbc_codec->agcp_access_aud_cnt++;
-			ret = agdsp_access_enable();
-			if (ret)
-				pr_err("agdsp_access_enable error:%d\n", ret);
+			ret = pm_runtime_get_sync(codec->dev);
+			if (ret < 0)
+				dev_err(codec->dev, "agdsp_access_enable error:%d\n", ret);
 			else
 				vbc_codec->agcp_access_enable = 1;
 		}
@@ -3898,7 +3899,8 @@ static int vbc_put_agdsp_aud_access(struct snd_kcontrol *kcontrol,
 			vbc_codec->agcp_access_aud_cnt = 0;
 			if (vbc_codec->agcp_access_a2dp_cnt == 0) {
 				pr_info("audio hal agdsp_access_disable\n");
-				agdsp_access_disable();
+				pm_runtime_mark_last_busy(codec->dev);
+				pm_runtime_put_autosuspend(codec->dev);
 				vbc_codec->agcp_access_enable = 0;
 			}
 		}
@@ -3926,8 +3928,8 @@ static int vbc_put_agdsp_a2dp_access(struct snd_kcontrol *kcontrol,
 		if (vbc_codec->agcp_access_a2dp_cnt == 0 &&
 		    vbc_codec->agcp_access_aud_cnt == 0) {
 			vbc_codec->agcp_access_a2dp_cnt++;
-			ret = agdsp_access_enable();
-			if (ret)
+			ret = pm_runtime_get_sync(codec->dev);
+			if (ret < 0)
 				pr_err("agdsp_access_enable error:%d\n", ret);
 			else
 				vbc_codec->agcp_access_enable = 1;
@@ -3937,7 +3939,8 @@ static int vbc_put_agdsp_a2dp_access(struct snd_kcontrol *kcontrol,
 			vbc_codec->agcp_access_a2dp_cnt = 0;
 			if (vbc_codec->agcp_access_aud_cnt == 0) {
 				pr_info("audio hal agdsp_access_disable\n");
-				agdsp_access_disable();
+				pm_runtime_mark_last_busy(codec->dev);
+				pm_runtime_put_autosuspend(codec->dev);
 				vbc_codec->agcp_access_enable = 0;
 			}
 		}
@@ -4917,15 +4920,17 @@ static int dsp_vbc_reg_shm_proc_read(struct snd_info_buffer *buffer)
 	return 0;
 }
 
-static int ap_vbc_reg_proc_read(struct snd_info_buffer *buffer)
+static u32 ap_vbc_reg_proc_read(struct snd_info_entry *entry,
+			  struct snd_info_buffer *buffer)
 {
 	int reg, ret;
+	struct snd_soc_component *codec = entry->private_data;
 	bool active = false;
 	struct aud_pm_vbc *pm_vbc;
 	int scene_idx, stream;
 
-	ret = agdsp_access_enable();
-	if (ret) {
+	ret = pm_runtime_get_sync(codec->dev);
+	if (ret < 0) {
 		pr_err("agdsp_access_enable:error:%d", ret);
 		return ret;
 	}
@@ -4933,7 +4938,8 @@ static int ap_vbc_reg_proc_read(struct snd_info_buffer *buffer)
 
 	pm_vbc = aud_pm_vbc_get();
 	if (pm_vbc == NULL) {
-		agdsp_access_disable();
+		pm_runtime_mark_last_busy(codec->dev);
+		pm_runtime_put_autosuspend(codec->dev);
 		return -EPERM;
 	}
 	mutex_lock(&pm_vbc->lock_scene_flag);
@@ -4951,7 +4957,8 @@ static int ap_vbc_reg_proc_read(struct snd_info_buffer *buffer)
 
 	if (active == false) {
 		mutex_unlock(&pm_vbc->lock_scene_flag);
-		agdsp_access_disable();
+		pm_runtime_mark_last_busy(codec->dev);
+		pm_runtime_put_autosuspend(codec->dev);
 		snd_iprintf(buffer,
 			"vbc is inactive, can't dump ap-vbc register\n");
 		return -EPERM;
@@ -4966,7 +4973,9 @@ static int ap_vbc_reg_proc_read(struct snd_info_buffer *buffer)
 			    , ap_vbc_reg_read(reg + 0x0C));
 	}
 	mutex_unlock(&pm_vbc->lock_scene_flag);
-	agdsp_access_disable();
+
+	pm_runtime_mark_last_busy(codec->dev);
+	pm_runtime_put_autosuspend(codec->dev);
 
 	return 0;
 }
@@ -4979,8 +4988,8 @@ static void vbc_proc_write(struct snd_info_entry *entry,
 	int ret;
 	struct snd_soc_component *codec = entry->private_data;
 
-	ret = agdsp_access_enable();
-	if (ret) {
+	ret = pm_runtime_get_sync(codec->dev);
+	if (ret < 0) {
 		pr_err(":%s:agdsp_access_enable error:%d", __func__, ret);
 		return;
 	}
@@ -4991,24 +5000,28 @@ static void vbc_proc_write(struct snd_info_entry *entry,
 		if (val <= 0xfffffff)
 			snd_soc_component_write(codec, reg, val);
 	}
-	agdsp_access_disable();
+	pm_runtime_mark_last_busy(codec->dev);
+	pm_runtime_put_autosuspend(codec->dev);
 }
 
-static void vbc_audcp_ahb_proc_read(struct snd_info_buffer *buffer)
+static void vbc_audcp_ahb_proc_read(struct snd_info_entry *entry,
+			   struct snd_info_buffer *buffer)
 {
 	u32 val, reg;
 	int ret;
+	struct snd_soc_component *codec = entry->private_data;
 
-	ret = agdsp_access_enable();
-	if (ret) {
-		pr_err("%s:agdsp_access_enable:error:%d", __func__, ret);
+	ret = pm_runtime_get_sync(codec->dev);
+	if (ret < 0) {
+		dev_err(codec->dev, "%s:agdsp_access_enable:error:%d", __func__, ret);
 		return;
 	}
 	reg = REG_AGCP_AHB_EXT_ACC_AG_SEL;
 	agcp_ahb_reg_read(reg, &val);
 	snd_iprintf(buffer, "audcp ahb register dump\n");
 	snd_iprintf(buffer, "0x%04x | 0x%04x\n", reg, val);
-	agdsp_access_disable();
+	pm_runtime_mark_last_busy(codec->dev);
+	pm_runtime_put_autosuspend(codec->dev);
 }
 
 static void vbc_proc_read(struct snd_info_entry *entry,
@@ -5020,10 +5033,10 @@ static void vbc_proc_read(struct snd_info_entry *entry,
 	if (ret < 0)
 		snd_iprintf(buffer, "dsp-vbc register dump error\n");
 
-	ret = ap_vbc_reg_proc_read(buffer);
+	ret = ap_vbc_reg_proc_read(entry, buffer);
 	if (ret < 0)
 		snd_iprintf(buffer, "ap-vbc register dump error\n");
-	vbc_audcp_ahb_proc_read(buffer);
+	vbc_audcp_ahb_proc_read(entry, buffer);
 }
 
 static void vbc_proc_init(struct snd_soc_component *codec)
@@ -5518,12 +5531,13 @@ static bool get_normal_p_running_status(int stream)
 	return status;
 }
 
-static int vbc_normal_resume(void)
+static int vbc_normal_resume(struct device *dev)
 {
 	struct aud_pm_vbc *pm_vbc;
 
 	pm_vbc = aud_pm_vbc_get();
-	restore_access();
+//	restore_access();
+	pm_runtime_allow(dev);
 	pr_info("%s resumed\n", __func__);
 
 	return 0;
@@ -5537,7 +5551,7 @@ static int vbc_normal_resume(void)
  * 1. if shutdown has been done in suspend,
  * do not send to dsp again.
  */
-static int vbc_normal_suspend(void)
+static int vbc_normal_suspend(struct device *dev)
 {
 	struct aud_pm_vbc *pm_vbc;
 	int stream = SNDRV_PCM_STREAM_PLAYBACK;
@@ -5566,7 +5580,7 @@ static int vbc_normal_suspend(void)
 	normal_vbc_protect_spin_unlock(stream);
 	pm_shutdown();
 	normal_vbc_protect_mutex_unlock(stream);
-	disable_access_force();
+	pm_runtime_forbid(dev);
 	pr_info("%s suspeded\n", __func__);
 
 	return 0;
@@ -5957,9 +5971,9 @@ static int dsp_startup(struct vbc_codec_priv *vbc_codec,
 
 	if (!vbc_codec)
 		return 0;
-	ret = agdsp_access_enable();
-	if (ret) {
-		pr_err("%s:agdsp_access_enable:error:%d", __func__, ret);
+	ret = pm_runtime_get_sync(vbc_codec->codec->dev);
+	if (ret < 0) {
+		dev_err(vbc_codec->codec->dev, "%s:agdsp_access_enable:error:%d", __func__, ret);
 		return ret;
 	}
 	memset(&startup_info, 0,
@@ -5968,10 +5982,12 @@ static int dsp_startup(struct vbc_codec_priv *vbc_codec,
 	ret = vbc_dsp_func_startup(scene_id, stream, &startup_info);
 	if (ret < 0) {
 		pr_err("vbc_dsp_func_startup return error");
-		agdsp_access_disable();
+		pm_runtime_mark_last_busy(vbc_codec->codec->dev);
+		pm_runtime_put_autosuspend(vbc_codec->codec->dev);
 		return ret;
 	}
-	agdsp_access_disable();
+	pm_runtime_mark_last_busy(vbc_codec->codec->dev);
+	pm_runtime_put_autosuspend(vbc_codec->codec->dev);
 
 	return 0;
 }
@@ -6000,8 +6016,8 @@ static void dsp_shutdown(struct vbc_codec_priv *vbc_codec,
 
 	if (!vbc_codec)
 		return;
-	ret = agdsp_access_enable();
-	if (ret) {
+	ret = pm_runtime_get_sync(vbc_codec->codec->dev);
+	if (ret < 0) {
 		pr_err("%s, agdsp_access_enable failed!\n", __func__);
 		return;
 	}
@@ -6010,10 +6026,12 @@ static void dsp_shutdown(struct vbc_codec_priv *vbc_codec,
 	fill_dsp_shutdown_data(vbc_codec, scene_id, stream, &shutdown_info);
 	ret = vbc_dsp_func_shutdown(scene_id, stream, &shutdown_info);
 	if (ret < 0) {
-		agdsp_access_disable();
+		pm_runtime_mark_last_busy(vbc_codec->codec->dev);
+		pm_runtime_put_autosuspend(vbc_codec->codec->dev);
 		return;
 	}
-	agdsp_access_disable();
+	pm_runtime_mark_last_busy(vbc_codec->codec->dev);
+	pm_runtime_put_autosuspend(vbc_codec->codec->dev);
 }
 
 static int rate_to_src_mode(unsigned int rate)
@@ -6269,8 +6287,8 @@ static int ap_hw_params(struct vbc_codec_priv *vbc_codec,
 	if (!vbc_codec)
 		return 0;
 
-	ret = agdsp_access_enable();
-	if (ret) {
+	ret = pm_runtime_get_sync(vbc_codec->codec->dev);
+	if (ret < 0) {
 		pr_err("%s:agdsp_access_enable:error:%d", __func__, ret);
 		return ret;
 	}
@@ -6289,7 +6307,8 @@ static int ap_hw_params(struct vbc_codec_priv *vbc_codec,
 	}
 
 	/* vbc_dsp_hw_params need not call in normal scene*/
-	agdsp_access_disable();
+	pm_runtime_mark_last_busy(vbc_codec->codec->dev);
+	pm_runtime_put_autosuspend(vbc_codec->codec->dev);
 
 	return 0;
 }
@@ -6351,8 +6370,8 @@ static int ap_trigger(struct vbc_codec_priv *vbc_codec,
 	fifo_id = scene_id_to_ap_fifo_id(scene_id, stream);
 	if (!vbc_codec)
 		return 0;
-	ret = agdsp_access_enable();
-	if (ret) {
+	ret = pm_runtime_get_sync(vbc_codec->codec->dev);
+	if (ret < 0) {
 		pr_err("%s:agdsp_access_enable:error:%d", __func__, ret);
 		return ret;
 	}
@@ -6366,7 +6385,8 @@ static int ap_trigger(struct vbc_codec_priv *vbc_codec,
 		ap_vbc_aud_dma_chn_en(fifo_id, vbc_chan, 0);
 		ap_vbc_fifo_enable(fifo_id, vbc_chan, 0);
 	}
-	agdsp_access_disable();
+	pm_runtime_mark_last_busy(vbc_codec->codec->dev);
+	pm_runtime_put_autosuspend(vbc_codec->codec->dev);
 
 	return 0;
 }
@@ -6721,7 +6741,7 @@ static int normal_suspend(struct snd_soc_component *component)
 		if (normal_p_suspend_resume_get_ref() == 1) {
 			only_play = is_only_normal_p_scene();
 			if (only_play) {
-				vbc_normal_suspend();
+				vbc_normal_suspend(dai->dev);
 				pm_vbc->suspend_resume = true;
 			}
 		}
@@ -6759,7 +6779,7 @@ static int normal_resume(struct snd_soc_component *component)
 			only_play = is_only_normal_p_scene();
 			if (only_play) {
 				if (pm_vbc->suspend_resume) {
-					vbc_normal_resume();
+					vbc_normal_resume(dai->dev);
 					pm_vbc->suspend_resume = false;
 				}
 			}
@@ -6996,13 +7016,13 @@ static void hifi_hw_params(int scene_id, int stream, int chan_cnt, u32 rate, int
 	}
 }
 
-static void hifi_shutdown(int scene_id, int stream)
+static void hifi_shutdown(int scene_id, int stream, struct device *dev)
 {
 	int ret;
 	struct snd_pcm_hifi_stream hifi_shutdown_info;
 
-	ret = agdsp_access_enable();
-	if (ret) {
+	ret = pm_runtime_get_sync(dev);
+	if (ret < 0) {
 		pr_err("%s, agdsp_access_enable failed!\n", __func__);
 		return;
 	}
@@ -7011,19 +7031,21 @@ static void hifi_shutdown(int scene_id, int stream)
 	fill_hifi_shutdown_data(scene_id, stream, &hifi_shutdown_info);
 	ret = hifi_func_shutdown(scene_id, stream, &hifi_shutdown_info);
 	if (ret < 0) {
-		agdsp_access_disable();
+		pm_runtime_mark_last_busy(dev);
+		pm_runtime_put_autosuspend(dev);
 		return;
 	}
-	agdsp_access_disable();
+	pm_runtime_mark_last_busy(dev);
+	pm_runtime_put_autosuspend(dev);
 }
 
-static int hifi_startup(int scene_id, int stream)
+static int hifi_startup(int scene_id, int stream, struct device *dev)
 {
 	int ret = 0;
 	struct snd_pcm_hifi_stream hifi_startup_info;
 
-	ret = agdsp_access_enable();
-	if (ret) {
+	ret = pm_runtime_get_sync(dev);
+	if (ret < 0) {
 		pr_err("%s:agdsp_access_enable:error:%d", __func__, ret);
 		return ret;
 	}
@@ -7032,10 +7054,12 @@ static int hifi_startup(int scene_id, int stream)
 	ret = hifi_func_startup(scene_id, stream, &hifi_startup_info);
 	if (ret < 0) {
 		pr_err("vbc_dsp_func_startup return error");
-		agdsp_access_disable();
+		pm_runtime_mark_last_busy(dev);
+		pm_runtime_put_autosuspend(dev);
 		return ret;
 	}
-	agdsp_access_disable();
+	pm_runtime_mark_last_busy(dev);
+	pm_runtime_put_autosuspend(dev);
 
 	return 0;
 }
@@ -9282,11 +9306,9 @@ static int scene_fm_startup(struct snd_pcm_substream *substream,
 	startup_add_ref(scene_id, stream);
 	if (startup_get_ref(scene_id, stream) == 1) {
 		pr_info("%s, force_on_xtl\n", __func__);
-		force_on_xtl(true);
 		ret = dsp_startup(vbc_codec, scene_id, stream);
 		if (ret) {
 			startup_dec_ref(scene_id, stream);
-			force_on_xtl(false);
 		} else
 			set_scene_flag(scene_id, stream);
 	}
@@ -9318,7 +9340,6 @@ static void scene_fm_shutdown(struct snd_pcm_substream *substream,
 	if (startup_get_ref(scene_id, stream) == 0) {
 		clr_scene_flag(scene_id, stream);
 		pr_info("%s, force_off_xtl\n", __func__);
-		force_on_xtl(false);
 		dsp_shutdown(vbc_codec, scene_id, stream);
 	}
 	startup_unlock_mtx(scene_id, stream);
@@ -10206,11 +10227,9 @@ static int scene_fm_dsp_startup(struct snd_pcm_substream *substream,
 	if (startup_get_ref(scene_id, stream) == 1) {
 		set_scene_flag(scene_id, stream);
 		pr_info("%s, force_on_xtl\n", __func__);
-		force_on_xtl(true);
 		ret = dsp_startup(vbc_codec, scene_id, stream);
 		if (ret) {
 			startup_dec_ref(scene_id, stream);
-			force_on_xtl(false);
 		} else
 			set_scene_flag(scene_id, stream);
 	}
@@ -10242,7 +10261,6 @@ static void scene_fm_dsp_shutdown(struct snd_pcm_substream *substream,
 	if (startup_get_ref(scene_id, stream) == 0) {
 		clr_scene_flag(scene_id, stream);
 		pr_info("%s, force_off_xtl\n", __func__);
-		force_on_xtl(false);
 		dsp_shutdown(vbc_codec, scene_id, stream);
 	}
 	startup_unlock_mtx(scene_id, stream);
@@ -10818,7 +10836,7 @@ static int scene_hifi_startup(struct snd_pcm_substream *substream,
 	startup_lock_mtx(scene_id, stream);
 	startup_add_ref(scene_id, stream);
 	if (startup_get_ref(scene_id, stream) == 1) {
-		ret = hifi_startup(scene_id, stream);
+		ret = hifi_startup(scene_id, stream, dai->dev);
 		if (ret)
 			startup_dec_ref(scene_id, stream);
 		else
@@ -10848,7 +10866,7 @@ static void scene_hifi_shutdown(struct snd_pcm_substream *substream,
 	startup_dec_ref(scene_id, stream);
 	if (startup_get_ref(scene_id, stream) == 0) {
 		clr_scene_flag(scene_id, stream);
-		hifi_shutdown(scene_id, stream);
+		hifi_shutdown(scene_id, stream, dai->dev);
 	}
 	startup_unlock_mtx(scene_id, stream);
 }
@@ -10980,7 +10998,7 @@ static int scene_hifi_fast_startup(struct snd_pcm_substream *substream,
 	startup_lock_mtx(scene_id, stream);
 	startup_add_ref(scene_id, stream);
 	if (startup_get_ref(scene_id, stream) == 1) {
-		ret = hifi_startup(scene_id, stream);
+		ret = hifi_startup(scene_id, stream, dai->dev);
 		if (ret)
 			startup_dec_ref(scene_id, stream);
 		else
@@ -11010,7 +11028,7 @@ static void scene_hifi_fast_shutdown(struct snd_pcm_substream *substream,
 	startup_dec_ref(scene_id, stream);
 	if (startup_get_ref(scene_id, stream) == 0) {
 		clr_scene_flag(scene_id, stream);
-		hifi_shutdown(scene_id, stream);
+		hifi_shutdown(scene_id, stream, dai->dev);
 	}
 	startup_unlock_mtx(scene_id, stream);
 }
@@ -12441,12 +12459,16 @@ static int vbc_drv_probe(struct platform_device *pdev)
 	}
 	pm_vbc_init();
 	init_pcm_ops_lock();
-
 	vbc_turning_ndp_init();
+
+	pm_runtime_set_active(&pdev->dev);
+	pm_runtime_enable(&pdev->dev);
+	dev_info(&pdev->dev, "<-- agdsp_pd is enabled for THIS device now\n");
+
 	return ret;
+
 probe_err:
 	pr_err("%s, error return %i\n", __func__, ret);
-
 	return ret;
 }
 

@@ -37,7 +37,7 @@ enum ag_iis {
  *   1: AG_IIS0_EXT_SEL to audio top
  */
 static inline int arch_audio_iis_to_audio_top_enable(
-	enum ag_iis iis, int en)
+	enum ag_iis iis, int en, struct device *dev)
 {
 	u32 val;
 	int ret;
@@ -62,8 +62,8 @@ static inline int arch_audio_iis_to_audio_top_enable(
 		return -1;
 	}
 
-	ret = agdsp_access_enable();
-	if (ret) {
+	ret = pm_runtime_get_sync(dev);
+	if (ret < 0) {
 		pr_err("%s, agdsp_access_enable failed!\n", __func__);
 		return ret;
 	}
@@ -73,7 +73,8 @@ static inline int arch_audio_iis_to_audio_top_enable(
 	else
 		agcp_ahb_reg_clr(REG_AGCP_AHB_EXT_ACC_AG_SEL, val);
 
-	agdsp_access_disable();
+	pm_runtime_mark_last_busy(dev);
+	pm_runtime_put_autosuspend(dev);
 
 	return 0;
 }
@@ -210,7 +211,7 @@ static inline int arch_audio_i2s_rx_dma_info(int id)
 }
 
 /* Codec digital part in soc setting */
-static inline int arch_audio_codec_digital_reg_enable(void)
+static inline int arch_audio_codec_digital_reg_enable(struct device *dev)
 {
 	int ret = 0;
 	int test_v;
@@ -228,8 +229,8 @@ static inline int arch_audio_codec_digital_reg_enable(void)
 		pr_err("%s agcp_ahb_gpr_null_check failed!", __func__);
 		return -1;
 	}
-	ret = agdsp_access_enable();
-	if (ret) {
+	ret = pm_runtime_get_sync(dev);
+	if (ret < 0) {
 		pr_err("%s, agdsp_access_enable failed!\n", __func__);
 		return ret;
 	}
@@ -243,12 +244,13 @@ static inline int arch_audio_codec_digital_reg_enable(void)
 			BIT_AUDIF_CKG_AUTO_EN);
 	agcp_ahb_reg_read(REG_AGCP_AHB_MODULE_EB0_STS, &test_v);
 	pr_debug("%s set aud en %#x\n", __func__, test_v);
-	agdsp_access_disable();
+	pm_runtime_mark_last_busy(dev);
+	pm_runtime_put_autosuspend(dev);
 
 	return ret;
 }
 
-static inline int arch_audio_codec_digital_reg_disable(void)
+static inline int arch_audio_codec_digital_reg_disable(struct device *dev)
 {
 	int ret = 0;
 
@@ -259,8 +261,8 @@ static inline int arch_audio_codec_digital_reg_disable(void)
 	return 0;
 #endif
 	agcp_ahb_gpr_null_check();
-	ret = agdsp_access_enable();
-	if (ret) {
+	ret = pm_runtime_get_sync(dev);
+	if (ret < 0) {
 		pr_err("%s, agdsp_access_enable failed!\n", __func__);
 		return ret;
 	}
@@ -268,7 +270,8 @@ static inline int arch_audio_codec_digital_reg_disable(void)
 		BIT_AUDIF_CKG_AUTO_EN);
 	if (ret >= 0)
 		ret = agcp_ahb_reg_clr(REG_AGCP_AHB_MODULE_EB0_STS, BIT_AUD_EB);
-	agdsp_access_disable();
+	pm_runtime_mark_last_busy(dev);
+	pm_runtime_put_autosuspend(dev);
 
 	return ret;
 }
@@ -323,12 +326,12 @@ static inline int arch_audio_codec_switch2ap(void)
 	return 0;
 }
 
-static inline int arch_audio_codec_digital_reset_agdsp(void)
+static inline int arch_audio_codec_digital_reset_agdsp(struct device *dev)
 {
 	int ret = 0;
 
-	ret = agdsp_access_enable();
-	if (ret) {
+	ret = pm_runtime_get_sync(dev);
+	if (ret < 0) {
 		pr_err("%s, agdsp_access_enable failed!\n", __func__);
 		return ret;
 	}
@@ -336,7 +339,8 @@ static inline int arch_audio_codec_digital_reset_agdsp(void)
 	agcp_ahb_reg_set(REG_AGCP_AHB_MODULE_RST0_STS, BIT_AUD_SOFT_RST);
 	udelay(10);
 	agcp_ahb_reg_clr(REG_AGCP_AHB_MODULE_RST0_STS, BIT_AUD_SOFT_RST);
-	agdsp_access_disable();
+	pm_runtime_mark_last_busy(dev);
+	pm_runtime_put_autosuspend(dev);
 
 	return ret;
 }
@@ -350,13 +354,13 @@ static inline void arch_audio_codec_digital_reset_aon(void)
 	aon_apb_reg_clr(REG_AON_APB_APB_RST0, BIT_AON_APB_AUDIF_SOFT_RST);
 }
 
-static inline int arch_audio_codec_digital_reset(void)
+static inline int arch_audio_codec_digital_reset(struct device *dev)
 {
 #if (defined(CONFIG_SND_SOC_UNISOC_SHARKL3) || defined(CONFIG_SND_SOC_UNISOC_SHARKL3_MODULE))
 	arch_audio_codec_digital_reset_aon();
 	return 0;
 #else
-	return arch_audio_codec_digital_reset_agdsp();
+	return arch_audio_codec_digital_reset_agdsp(dev);
 #endif
 }
 

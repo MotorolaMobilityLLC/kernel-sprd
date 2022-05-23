@@ -60,6 +60,7 @@
 #define sp_asoc_pr_info pr_info
 
 struct audio_pm_dma *pm_dma;
+struct device *g_dev;
 
 static int test_normal_cap_use_iram = 1;
 
@@ -170,27 +171,6 @@ static const struct snd_pcm_hardware sprd_i2s_pcm_hardware = {
 	.periods_max = PAGE_SIZE / DMA_LINKLIST_CFG_NODE_SIZE,
 	.buffer_bytes_max = I2S_BUFFER_BYTES_MAX,
 };
-
-#if 0
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-function"
-int agdsp_access_enable(void)
-	__attribute__ ((weak, alias("__agdsp_access_enable")));
-static int __agdsp_access_enable(void)
-{
-	pr_debug("%s\n", __func__);
-	return 0;
-}
-
-int agdsp_access_disable(void)
-	__attribute__ ((weak, alias("__agdsp_access_disable")));
-static int __agdsp_access_disable(void)
-{
-	pr_debug("%s\n", __func__);
-	return 0;
-}
-#pragma GCC diagnostic pop
-#endif
 
 static struct snd_soc_pcm_runtime *sprd_get_be_soc_runtime(
 		struct snd_pcm_substream *substream)
@@ -382,10 +362,10 @@ static int sprd_pcm_open(struct snd_soc_component *component, struct snd_pcm_sub
 	mutex_lock(&pm_dma->pm_mtx_cnt);
 	/* dma related need to access auio dsp sys */
 	if (!is_no_pcm_dai(asoc_rtd_to_cpu(srtd, 0)->id)) {
-		ret = agdsp_access_enable();
-		if (ret) {
+		ret = pm_runtime_get_sync(g_dev);
+		if (ret < 0) {
 			mutex_unlock(&pm_dma->pm_mtx_cnt);
-			pr_err("%s:agdsp_access_enable:error:%d",
+			dev_err(g_dev, "%s:agdsp_access_enable:error:%d",
 				__func__, ret);
 			goto out;
 		}
@@ -499,7 +479,8 @@ err:
 	mutex_lock(&pm_dma->pm_mtx_cnt);
 	/* dma related need to access auio dsp sys */
 	if (rtd->is_access_enabled) {
-		agdsp_access_disable();
+		pm_runtime_mark_last_busy(g_dev);
+		pm_runtime_put_autosuspend(g_dev);
 		rtd->is_access_enabled = false;
 	}
 	mutex_unlock(&pm_dma->pm_mtx_cnt);
@@ -598,7 +579,8 @@ static int sprd_pcm_close(struct snd_soc_component *component, struct snd_pcm_su
 		pm_dma->normal_rtd = NULL;
 
 	if (rtd && rtd->is_access_enabled) {
-		agdsp_access_disable();
+		pm_runtime_mark_last_busy(g_dev);
+		pm_runtime_put_autosuspend(g_dev);
 		rtd->is_access_enabled = false;
 	}
 	mutex_unlock(&pm_dma->pm_mtx_cnt);
@@ -1636,9 +1618,6 @@ static struct snd_soc_component_driver sprd_soc_platform = {
 	/* snd_pcm_ops*/
 	.open = sprd_pcm_open,
 	.close = sprd_pcm_close,
-	/* snd_pcm_lib_ioctl's arguments don't contain struct snd_soc_component* component */
-	/* which will lead to compile errors. */
-	/*	.ioctl = snd_pcm_lib_ioctl,  */
 	.hw_params = sprd_pcm_hw_params,
 	.hw_free = sprd_pcm_hw_free,
 	.prepare = sprd_pcm_prepare,
@@ -1693,7 +1672,12 @@ static int sprd_pcm_pm_notifier(struct notifier_block *notifier,
 			pm_normal_dma_chan_release(pm_dma->normal_rtd);
 			if (pm_dma->normal_rtd &&
 				pm_dma->normal_rtd->is_access_enabled) {
-				agdsp_access_disable();
+				if (!g_dev) {
+					pr_err("%s, g_dev is NULL!\n", __func__);
+				} else {
+					pm_runtime_mark_last_busy(g_dev);
+					pm_runtime_put_autosuspend(g_dev);
+				}
 				pm_dma->normal_rtd->is_access_enabled = false;
 			}
 		}
@@ -1747,7 +1731,12 @@ static int sprd_soc_platform_probe(struct platform_device *pdev)
 	pm_dma = devm_kzalloc(&(pdev->dev), sizeof(*pm_dma), GFP_KERNEL);
 	if (!pm_dma)
 		return -ENOMEM;
+
 	init_pm_dma();
+	g_dev = &pdev->dev;
+	pm_runtime_set_active(g_dev);
+	pm_runtime_enable(g_dev);
+	dev_info(g_dev, "<-- agdsp_pd is enabled for THIS device now\n");
 
 	return snd_soc_register_component(&pdev->dev, &sprd_soc_platform, NULL, 0);
 }

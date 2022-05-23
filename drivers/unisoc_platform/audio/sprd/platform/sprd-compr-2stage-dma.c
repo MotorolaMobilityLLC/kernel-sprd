@@ -54,6 +54,8 @@
 #include "sprd-string.h"
 #define COMPR_WAIT_FOREVER AUDIO_SIPC_WAIT_FOREVER
 
+struct device *g_dev;
+
 static int compr_ch_open(uint8_t dst)
 {
 	int ret = 0;
@@ -349,27 +351,6 @@ static uint8_t *g_buff;
 #ifdef CONFIG_SPRD_COMPR_CM4_WAKE_UP
 static void *compr_cb_data;
 static struct mutex g_lock;
-#endif
-
-#if 0
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-function"
-int agdsp_access_enable(void)
-	__attribute__ ((weak, alias("__agdsp_access_enable")));
-static int __agdsp_access_enable(void)
-{
-	pr_debug("%s\n", __func__);
-	return 0;
-}
-
-int agdsp_access_disable(void)
-	__attribute__ ((weak, alias("__agdsp_access_disable")));
-static int __agdsp_access_disable(void)
-{
-	pr_debug("%s\n", __func__);
-	return 0;
-}
-#pragma GCC diagnostic pop
 #endif
 
 static void sprd_compr_drain_work(struct work_struct *work)
@@ -1128,7 +1109,8 @@ static int compr_stream_hw_free(struct snd_compr_stream *cstream)
 		srtd->buffer = 0;
 	}
 	if (srtd->is_access_enabled) {
-		agdsp_access_disable();
+		pm_runtime_mark_last_busy(g_dev);
+		pm_runtime_put_autosuspend(g_dev);
 		srtd->is_access_enabled = false;
 	}
 	srtd->dma_cfg_virt[1] = 0;
@@ -1352,7 +1334,7 @@ static int sprd_platform_compr_open(struct snd_soc_component *component,
 
 	dev_ctrl = &pdata->dev_ctrl;
 	mutex_lock(&dev_ctrl->mutex);
-	result = agdsp_access_enable();
+	result = pm_runtime_get_sync(g_dev);
 	if (result) {
 		pr_err("%s:agdsp_access_enable:error:%d",
 			__func__, result);
@@ -1376,7 +1358,8 @@ static int sprd_platform_compr_open(struct snd_soc_component *component,
 out_ops:
 	sp_asoc_pr_dbg("%s failed\n", __func__);
 	if (srtd && srtd->is_access_enabled) {
-		agdsp_access_disable();
+		pm_runtime_mark_last_busy(g_dev);
+		pm_runtime_put_autosuspend(g_dev);
 		srtd->is_access_enabled = false;
 	}
 	mutex_unlock(&dev_ctrl->mutex);
@@ -2270,6 +2253,11 @@ static int sprd_platform_compr_probe(struct platform_device *pdev)
 		return ret;
 	}
 	ADEBUG();
+
+	g_dev = &pdev->dev;
+	pm_runtime_set_active(&pdev->dev);
+	pm_runtime_enable(&pdev->dev);
+	dev_info(&pdev->dev, "<-- agdsp_pd is enabled for THIS device now\n");
 
 	return ret;
 }
