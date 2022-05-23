@@ -48,6 +48,63 @@ show_high_level_freq_control_enable(struct cpufreq_policy *policy, char *buf)
 
 	return -EINVAL;
 }
+
+#ifdef CONFIG_UNISOC_FIX_FREQ
+
+static ssize_t
+show_scaling_fixed_freq(struct cpufreq_policy *policy, char *buf)
+{
+	struct sprd_multi_control *sprd_mc;
+
+	list_for_each_entry(sprd_mc, &sprd_mc_list, node) {
+		if (sprd_mc->policy == policy)
+			return sprintf(buf, "%u\n", sprd_mc->scaling_fixed_freq);
+	}
+
+	return -EINVAL;
+}
+
+static ssize_t store_scaling_fixed_freq(struct cpufreq_policy *policy,
+							const char *buf, size_t count)
+{
+	unsigned int fix_freq = 0;
+	unsigned int ret;
+	struct sprd_multi_control *sprd_mc;
+
+	ret = sscanf(buf, "%u", &fix_freq);
+	if (ret != 1)
+		return -EINVAL;
+
+	if (fix_freq != 0) {
+		struct cpufreq_frequency_table *table = policy->freq_table;
+		struct cpufreq_frequency_table *pos;
+		unsigned int freq = 0;
+
+		if (fix_freq > policy->cpuinfo.max_freq || fix_freq < policy->cpuinfo.min_freq)
+			return -EINVAL;
+		cpufreq_for_each_valid_entry(pos, table) {
+			freq = pos->frequency;
+			if (freq == fix_freq)
+				break;
+		}
+		if (freq != fix_freq)
+			return -EINVAL;
+	}
+
+	list_for_each_entry(sprd_mc, &sprd_mc_list, node) {
+		if (sprd_mc->policy == policy) {
+			sprd_mc->scaling_fixed_freq = fix_freq;
+			smp_wmb();
+			__cpufreq_driver_target(policy, fix_freq, CPUFREQ_RELATION_L);
+
+			return count;
+		}
+	}
+
+	return -EINVAL;
+}
+#endif
+
 static ssize_t
 store_high_level_freq_control_enable(struct cpufreq_policy *policy,
 		const char *buf, size_t count)
@@ -177,9 +234,13 @@ static ssize_t store_high_level_freq_min(struct cpufreq_policy *policy,
 	return -EINVAL;
 }
 
+
 cpufreq_attr_rw(high_level_freq_max);
 cpufreq_attr_rw(high_level_freq_min);
 cpufreq_attr_rw(high_level_freq_control_enable);
+#ifdef CONFIG_UNISOC_FIX_FREQ
+cpufreq_attr_rw(scaling_fixed_freq);
+#endif
 
 static struct sprd_multi_control *sprd_mc_alloc(void)
 {
@@ -200,6 +261,33 @@ static void trace_cpufreq_target(void *data, struct cpufreq_policy *policy,
 	struct sprd_multi_control *sprd_mc;
 
 	list_for_each_entry(sprd_mc, &sprd_mc_list, node) {
+
+#ifdef CONFIG_UNISOC_FIX_FREQ
+		if (unlikely(sprd_mc->policy == policy &&
+				sprd_mc->scaling_fixed_freq)){
+
+			if (sprd_mc->scaling_fixed_freq == *target_freq)
+				break;
+
+			if (unlikely(policy->freq_table_sorted == CPUFREQ_TABLE_UNSORTED)) {
+				pr_info("%s: freq table unsorted\n", __func__);
+				idx = cpufreq_table_index_unsorted(policy, sprd_mc->scaling_fixed_freq,
+									CPUFREQ_RELATION_L);
+			} else {
+
+				if (policy->freq_table_sorted == CPUFREQ_TABLE_SORTED_ASCENDING)
+					idx = cpufreq_table_find_index_al(policy, sprd_mc->scaling_fixed_freq);
+				else
+					idx = cpufreq_table_find_index_dl(policy, sprd_mc->scaling_fixed_freq);
+			}
+
+			policy->cached_resolved_idx = idx;
+			policy->cached_target_freq = sprd_mc->scaling_fixed_freq;
+			*target_freq = policy->freq_table[idx].frequency;
+			break;
+		}
+#endif
+
 		if (sprd_mc->policy == policy && sprd_mc->hl_control_enabled) {
 			*target_freq = clamp_val(old_target,
 					sprd_mc->high_level_limit_min,
@@ -229,6 +317,9 @@ static const struct attribute *multi_control_attrs[] = {
 	&high_level_freq_max.attr,
 	&high_level_freq_min.attr,
 	&high_level_freq_control_enable.attr,
+#ifdef CONFIG_UNISOC_FIX_FREQ
+	&scaling_fixed_freq.attr,
+#endif
 	NULL,
 };
 
@@ -298,7 +389,9 @@ static int __init sprd_multi_control_init(void)
 			sprd_mc->high_level_limit_max = policy->cpuinfo.max_freq;
 			sprd_mc->high_level_limit_min = policy->cpuinfo.min_freq;
 			sprd_mc->hl_control_enabled = 0;
-
+#ifdef CONFIG_UNISOC_FIX_FREQ
+			sprd_mc->scaling_fixed_freq = 0;
+#endif
 			ret = sysfs_create_files(&sprd_mc->policy->kobj, multi_control_attrs);
 			if (ret) {
 				cpufreq_cpu_put(policy);

@@ -8,3 +8,10 @@ config UNISOC_MULTI_FREQ_CONTROL
 	depends on CPU_FREQ
 	help
 	This option enables cpufreq high level freq control for user.
+
+config UNISOC_FIX_FREQ
+	bool "enable unisoc fix freq for debug"
+	depends on UNISOC_MULTI_FREQ_CONTROL
+	default n
+	help
+	Add scaling_fix_freq ops for debug.

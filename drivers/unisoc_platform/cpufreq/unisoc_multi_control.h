@@ -26,6 +26,12 @@ struct sprd_multi_control {
 	unsigned int high_level_limit_max;
 	unsigned int high_level_limit_min;
 	unsigned int hl_control_enabled;
+
+#ifdef CONFIG_UNISOC_FIX_FREQ
+	/* fix freq for debug */
+	unsigned int scaling_fixed_freq;
+#endif
+
 };
 
 #endif
