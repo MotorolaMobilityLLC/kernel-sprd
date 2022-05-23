@@ -265,6 +265,26 @@
 	status = "okay";
 };
 
+&iommu_vdsp_msti {
+	status = "okay";
+};
+
+&iommu_vdsp_mstd {
+	status = "okay";
+};
+
+&iommu_vdsp_idma {
+	status = "okay";
+};
+
+&iommu_vdsp_vdma {
+	status = "okay";
+};
+
+&vdsp {
+	status = "okay";
+};
+
 &power_debug {
 	sprd,pdbg-irq-domain-ana-eic      = "32100000.spi:pmic@0:gpio@280";
 	sprd,pdbg-irq-domain-ap-eic-dbnc  = "32020000.gpio";

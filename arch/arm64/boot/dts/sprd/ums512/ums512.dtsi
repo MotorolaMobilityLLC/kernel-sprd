@@ -395,4 +395,5 @@
 #include "thermal.dtsi"
 #include "uart.dtsi"
 #include "usb.dtsi"
+#include "vdsp.dtsi"
 #include "vsp.dtsi"
