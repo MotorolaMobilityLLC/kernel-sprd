@@ -8,6 +8,7 @@
 #include <linux/cdev.h>
 #include <linux/clk.h>
 #include <linux/clk-provider.h>
+#include <linux/dma-heap.h>
 #include <linux/of_device.h>
 #include <linux/of_address.h>
 #include <linux/of_irq.h>
@@ -16,6 +17,7 @@
 #include <linux/sprd_iommu.h>
 #include <linux/ion.h>
 #include <linux/uaccess.h>
+#include <linux/mutex.h>
 #include "vsp_common.h"
 
 #ifdef pr_fmt
@@ -34,6 +36,18 @@ struct vsp_iommu_map_entry {
 	struct dma_buf_attachment *attachment;
 	struct sg_table *table;
 	void *inst_ptr;
+};
+
+struct system_heap_buffer {
+	struct dma_heap *heap;
+	struct list_head attachments;
+	struct mutex lock;
+	unsigned long len;
+	struct sg_table sg_table;
+	int vmap_cnt;
+	void *vaddr;
+
+	bool uncached;
 };
 
 struct register_gpr regs[ARRAY_SIZE(tb_name)];
@@ -70,7 +84,7 @@ int find_vsp_freq_level(struct clock_name_map_t clock_name_map[],
 
 int vsp_get_dmabuf(int fd, struct dma_buf **dmabuf, void **buf, size_t *size)
 {
-	struct ion_buffer *buffer;
+	struct system_heap_buffer *buffer;
 
 	if (fd < 0 && !dmabuf) {
 		pr_err("%s, input fd: %d, dmabuf: %p error\n", __func__, fd, dmabuf);
@@ -93,7 +107,7 @@ int vsp_get_dmabuf(int fd, struct dma_buf **dmabuf, void **buf, size_t *size)
 		return PTR_ERR(buffer);
 
 	*buf = (void *)buffer;
-	*size = buffer->size;
+	*size = buffer->len;
 
 	return 0;
 }
