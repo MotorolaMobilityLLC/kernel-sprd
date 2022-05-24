@@ -200,14 +200,25 @@ config SCSI_UFS_FAULT_INJECTION
 	  Enable fault injection support in the UFS driver. This makes it easier
 	  to test the UFS error handler and abort handler.
 
-config SCSI_UFS_SPRD_QOGIRN6PRO
-        tristate "SPRD specific hooks to dwc 1.70a UFS controller platform driver"
+config SCSI_UFS_SPRD
+        tristate "SPRD specific common hooks to UFS controller platform driver"
         depends on SCSI_UFSHCD_PLATFORM
         help
-          This selects the SPRD specific additions to UFSHCD platform driver.
+          This selects the SPRD common specific additions to UFSHCD platform driver.
+
+          Select this if you have UFS controller on SPRD chipset.
+          If unsure, say N.
+
+config SCSI_UFS_SPRD_QOGIRN6PRO
+        tristate "SPRD QOGIRN6PRO UFS Host Controller Driver"
+        depends on SCSI_UFSHCD_PLATFORM
+        select SCSI_UFS_SPRD
+        help
+          This selects the SPRD QOGIRN6PRO chipset specific additions to UFSHCD
+          platform driver.
           UFS host on SPRD needs some vendor specific configuration before
           accessing the hardware which includes PHY configuration and vendor
           specific registers.
 
-          Select this if you have UFS controller on SPRD chipset.
+          Select this if you have UFS controller on SPRD QOGIRN6PRO chipset.
           If unsure, say N.
