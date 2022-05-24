@@ -10,6 +10,7 @@
 	sprd_fe_dai: sprd-fe-dai {
 		compatible = "unisoc,fe-dai";
 		#sound-dai-cells = <1>;
+		power-domains = <&agdsp_domain>;
 	};
 
 	sprd_route_pcm: sprd-routing-pcm {

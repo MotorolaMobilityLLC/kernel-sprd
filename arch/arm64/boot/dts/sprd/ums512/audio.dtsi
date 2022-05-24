@@ -40,6 +40,7 @@
 			"dspfmcap_c", "dspbtscocap_c",
 			/* recognise_c same as voice_c, voice_pcm_p same as loop_p */
 			"recognise_c", "voice_pcm_p";
+		power-domains = <&agdsp_domain>;
 	};
 
 	sprd_compr: sprd-compr-audio {
@@ -48,6 +49,7 @@
 		#sound-dai-cells = <0>;
 		dmas = <&agcp_dma 5 &agcp_dma 0>;
 		dma-names = "compr_dma_stage0", "compr_dma_stage1";
+		power-domains = <&agdsp_domain>;
 	};
 
 	audio-mem-mgr {
@@ -152,6 +154,7 @@
 		pinctrl-8 = <&vbc_iis2_3>;
 		pinctrl-9 = <&vbc_iis3_3>;
 		pinctrl-10 = <&ap_iis0_3>;
+		power-domains = <&agdsp_domain>;
 	};
 
 	mcdt@33490000{
@@ -166,10 +169,11 @@
 		compatible = "unisoc,audio-codec-dig-agcp";
 		reg = <0 0x33750000 0 0x1000>;
 		sprd,syscon-agcp-ahb = <&audcp_ahb_regs>;
+		power-domains = <&agdsp_domain>;
 	};
 
-	agdsp-access {
-		compatible = "unisoc,agdsp-access";
+	agdsp_domain: agdsp-power-domain {
+		compatible = "sprd,agdsp-pd";
 		sprd,syscon-agcp-ahb = <&aon_apb_regs>;
 		sprd,syscon-pmu-apb = <&pmu_apb_regs>;
 		audcp_pmu_sleep_ctrl = <&pmu_apb_regs REG_PMU_APB_RF_SLEEP_CTRL
@@ -184,5 +188,7 @@
 					MASK_AON_APB_RF_AP_2_AUD_ACCESS_EN>;
 		sprd,ddr-addr-offset = <0x0>;
 		sprd,auto_agcp_access = <0>;
+		#power-domain-cells = <0>;
+		status = "disabled";
 	};
 };

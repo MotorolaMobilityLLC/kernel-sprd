@@ -293,6 +293,10 @@
 	sprd,pdbg-irq-domain-ap-eic-sync  = "320200c0.gpio";
 };
 
+&agdsp_domain {
+	status = "okay";
+};
+
 &sprd_headset {
 	status = "okay";
 	extcon = <&pmic_typec>;
@@ -306,6 +310,7 @@
 	hp-use-inter-pa = <1>;
 	fixed-sample-rate = <48000 48000 48000>;
 	digital-codec = <&sprd_audio_codec_dig>;
+	power-domains = <&agdsp_domain>;
 };
 
 &sound_vbc_v4_sprd_codec {
