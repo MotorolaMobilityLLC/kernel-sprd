@@ -26,7 +26,6 @@ obj-$(CONFIG_UNISOC_SCHED)	+= sched/
 obj-$(CONFIG_UNISOC_WCN_BSP)	+= sprdwcn/
 obj-$(CONFIG_WLAN_VENDOR_SPREADTRUM)		+= wlan/
 obj-$(CONFIG_SPRD_HANG_DEBUG) 	+= hang_debug/
-obj-y += domain/
 obj-y += net/
 obj-y += sprd_time_sync/
 obj-y += power/
