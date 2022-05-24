@@ -1,0 +1,12 @@
+config SPRD_HANG_DEBUG
+	bool "Enable SPRD hang debug feature"
+	default n
+	help
+	  This option enables SPRD hang debug feature which dump and
+	  print debug info when kernel panics.
+
+config SPRD_HANG_WDF
+	tristate "Enable SPRD hang debug wdf feature"
+	depends on SPRD_HANG_DEBUG
+	help
+	  This option enables SPRD hang debug wdf feature.
