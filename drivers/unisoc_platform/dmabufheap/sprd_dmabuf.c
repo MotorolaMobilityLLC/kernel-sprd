@@ -48,6 +48,18 @@ struct dmabuf_platform_heap {
 	void *priv;
 };
 
+struct system_heap_buffer {
+	struct dma_heap *heap;
+	struct list_head attachments;
+	struct mutex lock;
+	unsigned long len;
+	struct sg_table sg_table;
+	int vmap_cnt;
+	void *vaddr;
+
+	bool uncached;
+};
+
 struct carveout_heap_buffer {
 	struct dma_heap *heap;
 	struct list_head attachments;
@@ -717,6 +729,46 @@ static int carveout_heap_create(struct dmabuf_platform_heap *heap_data)
 	return 0;
 }
 
+static struct system_heap_buffer *get_dmabuf_sysbuffer(int fd, struct dma_buf *dmabuf)
+{
+	struct system_heap_buffer *buffer;
+
+	if (fd < 0 && !dmabuf) {
+		pr_err("%s, input fd: %d, dmabuf: %p error\n", __func__, fd, dmabuf);
+		return ERR_PTR(-EINVAL);
+		}
+
+		if (fd >= 0) {
+			dmabuf = dma_buf_get(fd);
+			if (IS_ERR_OR_NULL(dmabuf)) {
+				pr_err("%s, dmabuf=%p dma_buf_get error!\n", __func__,
+					   dmabuf);
+				return ERR_PTR(-EBADF);
+			}
+			buffer = dmabuf->priv;
+			dma_buf_put(dmabuf);
+		} else {
+			buffer = dmabuf->priv;
+		}
+
+		return buffer;
+}
+
+int sprd_dmabuf_get_sysbuffer(int fd, struct dma_buf *dmabuf, void **buf, size_t *size)
+{
+	struct system_heap_buffer *buffer;
+
+	buffer = get_dmabuf_sysbuffer(fd, dmabuf);
+	if (IS_ERR(buffer))
+		return PTR_ERR(buffer);
+
+	*buf = (void *)buffer;
+	*size = buffer->len;
+
+	return 0;
+}
+EXPORT_SYMBOL(sprd_dmabuf_get_sysbuffer);
+
 static struct carveout_heap_buffer *get_dmabuf_carvebuffer(int fd, struct dma_buf *dmabuf)
 {
 	struct carveout_heap_buffer *buffer;
@@ -811,6 +863,7 @@ int sprd_dmabuf_unmap_kernel(struct dma_buf *dmabuf, struct dma_buf_map *map)
 
 	return 0;
 }
+EXPORT_SYMBOL(sprd_dmabuf_unmap_kernel);
 
 static long sprd_dmabuf_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {

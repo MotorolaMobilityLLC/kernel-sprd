@@ -17,6 +17,8 @@ struct dmabuf_phy_data {
 	__u64 addr;
 };
 
+int sprd_dmabuf_get_sysbuffer(int fd, struct dma_buf *dmabuf,
+			void **buf, size_t *size);
 int sprd_dmabuf_get_carvebuffer(int fd, struct dma_buf *dmabuf,
 			void **buf, size_t *size);
 int sprd_dmabuf_get_phys_addr(int fd, struct dma_buf *dmabuf,
