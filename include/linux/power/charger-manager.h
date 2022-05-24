@@ -452,6 +452,14 @@ struct cm_thermal_info {
 	bool need_calib_charge_lmt;
 };
 
+struct cm_jeita_info {
+	bool jeita_size_changed;
+	int jeita_status;
+	int jeita_temperature;
+	int temp_up_trigger;
+	int temp_down_trigger;
+};
+
 /**
  * struct charger_desc
  * @psy_name: the name of power-supply-class for charger manager
@@ -661,16 +669,16 @@ struct charger_desc {
 
 	int thm_adjust_cur;
 
-	struct sprd_battery_jeita_table *jeita_tab;
-	u32 jeita_size[SPRD_BATTERY_JEITA_MAX];
-	u32 jeita_tab_size;
 	struct sprd_battery_jeita_table *jeita_tab_array[SPRD_BATTERY_JEITA_MAX];
-
-	bool jeita_disabled;
+	u32 jeita_size[SPRD_BATTERY_JEITA_MAX];
+	u32 max_current_jeita_index[SPRD_BATTERY_JEITA_MAX];
+	struct sprd_battery_jeita_table *jeita_tab;
+	u32 jeita_tab_size;
 	int force_jeita_status;
+	bool jeita_disabled;
+	struct cm_jeita_info jeita_info;
 
 	int temperature;
-
 	int internal_resist;
 	int cap_table_len;
 	struct power_supply_battery_ocv_table *cap_table;

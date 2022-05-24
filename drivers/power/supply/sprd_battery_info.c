@@ -594,7 +594,7 @@ static int sprd_battery_init_jeita_table(struct sprd_battery_info *info,
 	const __be32 *list;
 	const char *np_name = sprd_battery_jeita_type_names[jeita_num];
 	struct sprd_battery_jeita_table **cur_table = &info->jeita_table[jeita_num];
-	int i, size;
+	int i, size, max_current_ua = 0;
 
 	list = of_get_property(battery_np, np_name, &size);
 	if (!list || !size)
@@ -614,6 +614,10 @@ static int sprd_battery_init_jeita_table(struct sprd_battery_info *info,
 		table[i].recovery_temp = be32_to_cpu(*list++) - 1000;
 		table[i].current_ua = be32_to_cpu(*list++);
 		table[i].term_volt = be32_to_cpu(*list++);
+		if (max_current_ua < table[i].current_ua) {
+			info->max_current_jeita_index[jeita_num] = i;
+			max_current_ua = table[i].current_ua;
+		}
 	}
 
 	*cur_table = table;
@@ -686,7 +690,6 @@ int sprd_battery_get_battery_info(struct power_supply *psy, struct sprd_battery_
 	info->first_capacity_calibration_voltage_uv = -EINVAL;
 	info->first_capacity_calibration_capacity = -EINVAL;
 	info->fast_charge_ocv_threshold_uv = -EINVAL;
-	info->force_jeita_status = -EINVAL;
 	info->cur.sdp_cur = -EINVAL;
 	info->cur.sdp_limit = -EINVAL;
 	info->cur.dcp_cur = -EINVAL;
@@ -774,8 +777,6 @@ int sprd_battery_get_battery_info(struct power_supply *psy, struct sprd_battery_
 			     &info->ir.us_upper_limit_uv);
 	of_property_read_u32(battery_np, "ir-cv-offset-microvolt",
 			     &info->ir.cv_upper_limit_offset_uv);
-	of_property_read_u32(battery_np, "force-jeita-status",
-			     &info->force_jeita_status);
 
 	of_property_read_u32_index(battery_np, "charge-sdp-current-microamp", 0,
 				   &info->cur.sdp_cur);

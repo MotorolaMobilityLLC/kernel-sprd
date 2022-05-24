@@ -136,9 +136,6 @@ struct sprd_battery_info {
 	int first_capacity_calibration_voltage_uv;
 	/* percentage */
 	int first_capacity_calibration_capacity;
-
-	int force_jeita_status;
-
 	/* celsius */
 	int battery_internal_resistance_temp_table[SPRD_BATTERY_INFO_RESISTENCE_TEMP_MAX];
 	int battery_internal_resistance_temp_table_len;
@@ -178,6 +175,7 @@ struct sprd_battery_info {
 	int basp_constant_charge_voltage_max_uv_table_len;
 
 	struct sprd_battery_jeita_table *jeita_table[SPRD_BATTERY_JEITA_MAX];
+	u32 max_current_jeita_index[SPRD_BATTERY_JEITA_MAX];
 	u32 sprd_battery_jeita_size[SPRD_BATTERY_JEITA_MAX];
 
 	struct sprd_battery_ir_compensation ir;
