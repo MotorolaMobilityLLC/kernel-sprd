@@ -83,8 +83,8 @@ static int __init trusty_pm_init(void)
 	register_syscore_ops(&trusty_pm_ops);
 
 	/* vendor hooks cannot be unregistered */
-	register_trace_android_vh_psci_tos_resident_on(trusty_resident_on_cpu, NULL);
-	register_trace_android_vh_psci_cpu_suspend(trusty_check_cpu_suspend, NULL);
+	register_trace_android_rvh_psci_tos_resident_on(trusty_resident_on_cpu, NULL);
+	register_trace_android_rvh_psci_cpu_suspend(trusty_check_cpu_suspend, NULL);
 
 	return 0;
 }
