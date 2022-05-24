@@ -1689,7 +1689,8 @@ static void sc27xx_pd_detect_typec_work(struct work_struct *work)
 					   typec_detect_work);
 
 	dev_info(pd->dev, "pd try to detect typec extcon\n");
-	if (extcon_get_state(pd->extcon, EXTCON_USB))
+	if (extcon_get_state(pd->extcon, EXTCON_USB) ||
+	    extcon_get_state(pd->extcon, EXTCON_USB_HOST))
 		sc27xx_pd_check_vbus_cc_status(pd);
 
 #if IS_ENABLED(CONFIG_TYPEC_DP_ALTMODE)
