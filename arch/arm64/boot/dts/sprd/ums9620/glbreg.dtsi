@@ -16,6 +16,7 @@
 			clocks = <&ext_26m>;
 			clock-names = "ext-26m";
 			#clock-cells = <1>;
+			#reset-cells = <1>;
 		};
 	};
 
@@ -33,6 +34,7 @@
 			clocks = <&ext_26m>;
 			clock-names = "ext-26m";
 			#clock-cells = <1>;
+			#reset-cells = <1>;
 		};
 	};
 
@@ -50,6 +52,7 @@
 			clocks = <&ext_26m>;
 			clock-names = "ext-26m";
 			#clock-cells = <1>;
+			#reset-cells = <1>;
 		};
 	};
 
@@ -73,6 +76,7 @@
 			clocks = <&ext_26m>;
 			clock-names = "ext-26m";
 			#clock-cells = <1>;
+			#reset-cells = <1>;
 		};
 	};
 
@@ -89,6 +93,7 @@
 			clocks = <&ext_26m>;
 			clock-names = "ext-26m";
 			#clock-cells = <1>;
+			#reset-cells = <1>;
 		};
 	};
 	pcie_apb_regs: syscon@26000000 {
@@ -104,6 +109,7 @@
 			clocks = <&ext_26m>;
 			clock-names = "ext-26m";
 			#clock-cells = <1>;
+			#reset-cells = <1>;
 			status = "disable";
 		};
 	};
@@ -120,6 +126,7 @@
 			reg = <0x0 0x3000>;
 			clocks = <&ext_26m>;
 			clock-names = "ext-26m";
+			#reset-cells = <1>;
 			#clock-cells = <1>;
 		};
 	};
@@ -138,6 +145,7 @@
 			clocks = <&ext_26m>;
 			clock-names = "ext-26m";
 			#clock-cells = <1>;
+			#reset-cells = <1>;
 		};
 	};
 
@@ -154,6 +162,7 @@
 			clocks = <&ext_26m>;
 			clock-names = "ext-26m";
 			#clock-cells = <1>;
+			#reset-cells = <1>;
 		};
 	};
 
@@ -170,6 +179,7 @@
 			clocks = <&ext_26m>;
 			clock-names = "ext_26m";
 			#clock-cells = <1>;
+			#reset-cells = <1>;
 		};
 	};
 
@@ -186,6 +196,7 @@
 			clocks = <&ext_26m>;
 			clock-names = "ext-26m";
 			#clock-cells = <1>;
+			#reset-cells = <1>;
 		};
 	};
 
@@ -202,6 +213,7 @@
 			clocks = <&ext_26m>;
 			clock-names = "ext-26m";
 			#clock-cells = <1>;
+			#reset-cells = <1>;
 		};
 	};
 
@@ -362,6 +374,7 @@
 			clocks = <&ext_26m>;
 			clock-names = "ext-26m";
 			#clock-cells = <1>;
+			#reset-cells = <1>;
 		};
 	};
 
@@ -379,6 +392,7 @@
 			clocks = <&ext_26m>;
 			clock-names = "ext-26m";
 			#clock-cells = <1>;
+			#reset-cells = <1>;
 		};
 	};
 
