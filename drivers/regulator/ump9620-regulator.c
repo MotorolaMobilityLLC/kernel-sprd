@@ -526,9 +526,16 @@ static int ump9620_regulator_remove(struct platform_device *pdev)
 	return 0;
 }
 
+static const struct of_device_id ump9620_regulator_match[] = {
+	{ .compatible = "sprd,ump9620-regulator" },
+	{},
+};
+MODULE_DEVICE_TABLE(of, ump9620_regulator_match);
+
 static struct platform_driver ump9620_regulator_driver = {
 	.driver = {
 		   .name = "ump962x-regulator",
+		   .of_match_table = ump9620_regulator_match,
 		   },
 	.probe = ump9620_regulator_probe,
 	.remove = ump9620_regulator_remove,
