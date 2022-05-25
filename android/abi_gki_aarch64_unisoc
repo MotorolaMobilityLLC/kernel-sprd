@@ -329,6 +329,7 @@
   drm_syncobj_replace_fence
   dst_release
   dump_stack
+  emergency_restart
   enable_irq
   ether_setup
   eth_type_trans
@@ -842,6 +843,7 @@
   schedule_timeout
   schedule_timeout_interruptible
   scnprintf
+  sdev_prefix_printk
   seq_buf_printf
   send_sig_info
   seq_lseek
@@ -2914,7 +2916,7 @@
   ktime_get_boot_fast_ns
   unregister_syscore_ops
 
-# required by ufs-sprd.ko
+# required by ufs_sprd.ko
   __traceiter_android_vh_ufs_check_int_errors
   __traceiter_android_vh_ufs_compl_command
   __traceiter_android_vh_ufs_fill_prdt
@@ -2931,12 +2933,22 @@
   __tracepoint_android_vh_ufs_send_tm_command
   __tracepoint_android_vh_ufs_send_uic_command
   __tracepoint_android_vh_ufs_update_sysfs
+  ufshcd_auto_hibern8_update
   ufshcd_config_pwr_mode
+  ufshcd_delay_us
+  ufshcd_dme_configure_adapt
   ufshcd_dme_get_attr
   ufshcd_dme_set_attr
+  ufshcd_dump_regs
+  ufshcd_fixup_dev_quirks
   ufshcd_get_local_unipro_ver
+  ufshcd_hold
   ufshcd_pltfrm_init
   ufshcd_pltfrm_shutdown
+  ufshcd_query_attr
+  ufshcd_query_descriptor_retry
+  ufshcd_query_flag
+  ufshcd_release
   ufshcd_remove
   ufshcd_read_desc_param
   ufshcd_resume_complete
