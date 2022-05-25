@@ -208,6 +208,7 @@
   _dev_info
   _dev_printk
   __dev_kfree_skb_any
+  __devres_alloc_node
   devm_add_action
   devm_backlight_device_register
   devm_clk_bulk_get
@@ -430,6 +431,7 @@
   iget5_locked
   ignore_console_lock_warning
   igrab
+  iio_device_id
   iio_get_channel_type
   inet_proto_csum_replace4
   init_net
