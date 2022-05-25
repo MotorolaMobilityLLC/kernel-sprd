@@ -2010,10 +2010,10 @@ static const struct dev_pm_ops dwc3_dev_pm_ops = {
 #ifdef CONFIG_OF
 static const struct of_device_id of_dwc3_match[] = {
 	{
-		.compatible = "snps,dwc3"
+		.compatible = "snps,sprd-dwc3"
 	},
 	{
-		.compatible = "synopsys,dwc3"
+		.compatible = "synopsys,sprd-dwc3"
 	},
 	{ },
 };
@@ -2035,7 +2035,7 @@ static struct platform_driver dwc3_driver = {
 	.probe		= dwc3_probe,
 	.remove		= dwc3_remove,
 	.driver		= {
-		.name	= "dwc3",
+		.name	= "dwc3-unisoc",
 		.of_match_table	= of_match_ptr(of_dwc3_match),
 		.acpi_match_table = ACPI_PTR(dwc3_acpi_match),
 		.pm	= &dwc3_dev_pm_ops,

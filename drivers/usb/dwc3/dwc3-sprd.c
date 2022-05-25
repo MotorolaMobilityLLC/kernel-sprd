@@ -35,9 +35,9 @@
 #include <linux/usb/sprd_usbm.h>
 #include <linux/usb/role.h>
 
-#include "sprd/core.h"
-#include "sprd/gadget.h"
-#include "sprd/io.h"
+#include "core.h"
+#include "gadget.h"
+#include "io.h"
 
 #define ID			0
 #define B_SESS_VLD		1

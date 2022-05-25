@@ -2,36 +2,33 @@
 # define_trace.h needs to know how to find our header
 CFLAGS_trace.o				:= -I$(src)
 
-obj-$(CONFIG_USB_DWC3)			+= dwc3.o
-dwc3-y					:= core.o
+obj-$(CONFIG_USB_DWC3_SPRD_CORE)	+= dwc3-sprd-core.o
+dwc3-sprd-core-y			:= core.o
 ifneq ($(CONFIG_TRACING),)
-	dwc3-y				+= trace.o
+	dwc3-sprd-core-y		+= trace.o
 endif
 
 ifneq ($(filter y,$(CONFIG_USB_DWC3_HOST) $(CONFIG_USB_DWC3_DUAL_ROLE)),)
-	dwc3-y				+= host.o
+	dwc3-sprd-core-y		+= host.o
 endif
 
 ifneq ($(filter y,$(CONFIG_USB_DWC3_GADGET) $(CONFIG_USB_DWC3_DUAL_ROLE)),)
-	dwc3-y				+= gadget.o ep0.o
+	dwc3-sprd-core-y		+= gadget.o ep0.o
 endif
 
 ifneq ($(CONFIG_USB_DWC3_DUAL_ROLE),)
-	dwc3-y				+= drd.o
+	dwc3-sprd-core-y		+= drd.o
 endif
 
 ifneq ($(CONFIG_USB_DWC3_ULPI),)
-	dwc3-y				+= ulpi.o
+	dwc3-sprd-core-y		+= ulpi.o
 endif
 
 ifneq ($(CONFIG_DEBUG_FS),)
-	dwc3-y				+= debugfs.o
+	dwc3-sprd-core-y		+= debugfs.o
 endif
-
-##
-# SPRD Core
-# #
-obj-$(CONFIG_USB_DWC3_SPRD_CORE)	+= sprd/
+## Add prefix to ignore conflict with build-in dwc3
+OBJCOPYFLAGS_dwc3-sprd-core.o := -prefix-symbols=__sprd_
 
 ##
 # Platform-specific glue layers go here
