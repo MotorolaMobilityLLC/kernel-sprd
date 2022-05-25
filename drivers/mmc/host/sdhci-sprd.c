@@ -359,8 +359,6 @@ static void sdhci_sprd_enable_phy_dll(struct sdhci_host *host)
 static void sdhci_sprd_set_clock(struct sdhci_host *host, unsigned int clock)
 {
 	bool en = false, clk_changed = false;
-	struct sdhci_sprd_host *sprd_host = TO_SPRD_HOST(host);
-	u32 *p = sprd_host->phy_delay;
 
 #if IS_ENABLED(CONFIG_MMC_WRITE_PROTECT)
 	struct mmc_host *mmc = host->mmc;
@@ -387,8 +385,7 @@ static void sdhci_sprd_set_clock(struct sdhci_host *host, unsigned int clock)
 		_sdhci_sprd_set_clock(host, clock);
 
 		if (clock <= 400000) {
-			sdhci_writel(host, p[MMC_TIMING_LEGACY],
-					SDHCI_SPRD_REG_32_DLL_DLY);
+			sdhci_writel(host, 0, SDHCI_SPRD_REG_32_DLL_DLY);
 			en = true;
 		}
 		sdhci_sprd_set_dll_invert(host, SDHCI_SPRD_BIT_CMD_DLY_INV |
