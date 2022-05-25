@@ -200,6 +200,18 @@
 		};
 	};
 
+	audcp_clk_rf_regs: syscon@56240000 {
+		compatible = "sprd,ums9620-glbregs", "syscon", "simple-mfd";
+		#syscon-cells = <2>;
+		reg = <0 0x56240000 0 0x10000>;
+	};
+
+	audcp_dvfs_apb_rf_regs: syscon@56250000 {
+		compatible = "sprd,ums9620-glbregs", "syscon", "simple-mfd";
+		#syscon-cells = <2>;
+		reg = <0 0x56250000 0 0x4000>;
+	};
+
 	audcp_apb_regs: syscon@56390000 {
 		compatible = "sprd,ums9620-glbregs", "syscon", "simple-mfd";
 		#syscon-cells = <2>;
@@ -215,6 +227,12 @@
 			#clock-cells = <1>;
 			#reset-cells = <1>;
 		};
+	};
+
+	aud_aon_clk_regs: syscon@56394000 {
+		compatible = "sprd,ums9620-glbregs", "syscon", "simple-mfd";
+		reg = <0 0x56394000 0 0x400>;
+		#syscon-cells = <2>;
 	};
 
 	anlg_phy_g0l_regs: syscon@64300000 {

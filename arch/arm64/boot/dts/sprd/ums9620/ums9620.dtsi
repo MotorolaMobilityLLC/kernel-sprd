@@ -359,6 +359,7 @@
 };
 
 /* Include other IP modules ALPHABETICALLY */
+#include "audio.dtsi"
 #include "clock.dtsi"
 #include "dispc.dtsi"
 #include "efuse.dtsi"
@@ -366,7 +367,9 @@
 #include "gpio.dtsi"
 #include "gpu-natt.dtsi"
 #include "i2c.dtsi"
+#include "i2s.dtsi"
 #include "modem.dtsi"
+#include "pin-controller.dtsi"
 #include "power.dtsi"
 #include "sensorhub.dtsi"
 #include "spi.dtsi"

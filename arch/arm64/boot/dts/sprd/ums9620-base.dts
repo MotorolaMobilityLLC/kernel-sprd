@@ -15,6 +15,8 @@
 #include "ump9622/ump9622.dtsi"
 #include "trusty/ums9620.dtsi"
 #include "battery/battery-common.dtsi"
+#include "sound/fe-be.dtsi"
+#include "sound/virtual-devices.dtsi"
 
 /{
 	model = "Unisoc UMS9620-base Board";
@@ -206,6 +208,27 @@
 	};
 };
 
+&agdsp_domain {
+	status = "okay";
+};
+
+&sprd_headset {
+	status = "okay";
+	nvmem-cells = <&headset_adc_fir_1>, <&headset_adc_fir_2>,<&headset_adc_sec>;
+	nvmem-cell-names = "hp_adc_fir_calib_1","hp_adc_fir_calib_2", "hp_adc_sec_calib";
+};
+
+&sprd_audio_codec_ana {
+	status = "okay";
+	hp-use-inter-pa = <1>;
+	fixed-sample-rate = <48000 48000 48000>;
+	digital-codec = <&sprd_audio_codec_dig>;
+	set-offset = <0x1000>;
+	clr-offset = <0x2000>;
+	lrdat-sel = <0x1>;
+	power-domains = <&agdsp_domain>;
+};
+
 &dphy {
 	status = "okay";
 };
@@ -247,5 +270,57 @@
 };
 
 &iommu_vpudec {
+	status = "okay";
+};
+
+&dsp_mem_dump {
+	/* for cmd para addr, fix bug 1740522*/
+	sprd,dspdumpmem = <0x56200000 0x3000
+			   0x65009400 0x1000
+			   0x89300000 0x5f000>;
+};
+
+&sound_vbc_v4_sprd_codec {
+	sprd,syscon-agcp-ahb = <&audcp_glb_regs>;
+};
+
+&sprd_pcm_iis {
+	dmas = <&ap_dma 5 &ap_dma 6 &agcp_dma 21 &agcp_dma 22>;
+	dma-names = "iis0_tx", "iis0_rx", "tdm_tx", "tdm_rx";
+};
+
+&sound_sprd_ap_alliis {
+	status = "okay";
+	sprd,syscon-agcp-ahb = <&audcp_glb_regs>;
+	sprd,syscon-clk-rf = <&audcp_clk_rf_regs>;
+	sprd,syscon-dvfs-apb = <&audcp_dvfs_apb_rf_regs>;
+	sprd,syscon-aon-apb = <&aon_apb_regs>;
+	sprd-audio-card,dai-link@0 {
+		plat {
+			sound-dai = <&sprd_pcm_iis>;
+		};
+		cpu {
+			sound-dai = <&sprd_tdm>;
+		};
+		codec {
+			sound-dai = <0 0>;
+		};
+	};
+};
+
+&sprd_tdm {
+	sprd,duplex_mode = <0>;
+	sprd,slave_timeout = <0x1E00>;
+	sprd,tdm_fs = <48000>;
+	sprd,trx_mst_mode = <1>;/* master */
+	sprd,trx_threshold = <128>;
+	sprd,trx_data_width = <0>;/* 16bit */
+	sprd,trx_data_mode = <0>;/* iis */
+	sprd,trx_slot_width = <0>;/* 16bclk */
+	sprd,trx_slot_num = <0>;/* 2 chn */
+	sprd,trx_msb_mode = <0>;/* lsb */
+	sprd,trx_pulse_mode = <0>;/* 50% */
+	sprd,tdm_slot_valid = <3>;
+	sprd,trx_sync_mode = <1>;
 	status = "okay";
 };

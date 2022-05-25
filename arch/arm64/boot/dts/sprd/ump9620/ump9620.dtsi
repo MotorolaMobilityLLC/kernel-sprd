@@ -84,4 +84,4 @@
 #include "adc.dtsi"
 #include "efuse.dtsi"
 #include "regulator.dtsi"
-
+#include "audio-codec.dtsi"

@@ -480,6 +480,7 @@
 #include "gpio.dtsi"
 #include "gpu-gondul.dtsi"
 #include "i2c.dtsi"
+#include "i2s.dtsi"
 #include "jpg.dtsi"
 #include "marlin3lite.dtsi"
 #include "mipi-serdes.dtsi"

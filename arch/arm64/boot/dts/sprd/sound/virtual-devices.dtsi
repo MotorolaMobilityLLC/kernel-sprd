@@ -42,16 +42,20 @@
 		sprd-rxblocksize=<0x2000>;
 	};
 
-	audio-dsp-dump@2 {/* audio dsp log */
+	dsp_mem_dump: audio-dsp-dump@2 {/* audio dsp log */
 		compatible = "unisoc,audio_dsp_mem";
 		sprd-usemem-type =<0x9>;
 		sprd-usemem-bytes =<0x80000>;
 		sprd-dst = /bits/ 8 <1>; /* AGDSP */
 		sprd-channel =/bits/ 8 <5>;
-		/* for cmd para addr */
-		sprd,dspdumpmem = <0x33000000 0x10000
-				   0xa400 0x1000
-				   0x89300000 0x5f000>;
+	};
+
+	audio-dsp-dump@3 {
+		compatible = "unisoc,audio_dsp_call_info";
+		sprd-usemem-type = <0x5>;
+		sprd-usemem-bytes =<0x200>;
+		sprd-dst = /bits/ 8 <1>;
+		sprd-channel =/bits/ 8 <16>;
 	};
 
 	audio_pipe_voice {
@@ -80,6 +84,20 @@
 		sprd,writesync = <0>;
 		sprd,maxuserwritebufsize = <0>;
 		sprd,channel = <11>;
+	};
+
+	audio_pipe_trigger_rx {
+		compatible = "unisoc,audio_pipe_trigger_rx";
+		sprd,writesync = <0>;
+		sprd,maxuserwritebufsize = <0>;
+		sprd,channel = <13>;
+	};
+
+	audio_pipe_trigger_tx {
+		compatible = "unisoc,audio_pipe_trigger_tx";
+		sprd,writesync = <1>;
+		sprd,maxuserwritebufsize = <1024>;
+		sprd,channel = <14>;
 	};
 
 	apipe-pcm {

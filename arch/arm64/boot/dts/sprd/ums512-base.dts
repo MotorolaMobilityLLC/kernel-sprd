@@ -337,6 +337,13 @@
 	};
 };
 
+&dsp_mem_dump {
+	/* for cmd para addr */
+	sprd,dspdumpmem = <0x33000000 0x10000
+			0xa400 0x1000
+			0x89300000 0x5f000>;
+};
+
 &jpg {
 	status = "okay";
 };
