@@ -170,6 +170,7 @@ struct sprd_adi {
 	const struct sprd_adi_data *data;
 };
 
+struct sprd_adi *hang_sadi;
 static char panic_reason[1024] = {0};
 static int adi_panic_event(struct notifier_block *self, unsigned long val, void
 			   *reason)
@@ -431,13 +432,17 @@ static void sprd_adi_set_wdt_rst_mode(struct sprd_adi *sadi)
 #endif
 }
 
-static int sprd_adi_restart_handler(struct notifier_block *this, unsigned long mode,
+int sprd_adi_restart_handler(struct notifier_block *this, unsigned long mode,
 				  void *cmd)
 {
-	struct sprd_adi *sadi = container_of(this, struct sprd_adi,
-					     restart_handler);
 	u32 val, reboot_mode = 0;
+	struct sprd_adi *sadi;
 
+	if (this == NULL)
+		sadi = hang_sadi;
+	else
+		sadi = container_of(this, struct sprd_adi,
+					     restart_handler);
 	if (!cmd) {
 		if (strlen(panic_reason)) {
 			if (strstr(panic_reason, "tospanic"))
@@ -494,6 +499,7 @@ static int sprd_adi_restart_handler(struct notifier_block *this, unsigned long m
 	dev_emerg(sadi->dev, "Unable to restart system\n");
 	return NOTIFY_DONE;
 }
+EXPORT_SYMBOL_GPL(sprd_adi_restart_handler);
 
 static void sprd_adi_hw_init(struct sprd_adi *sadi)
 {
@@ -573,6 +579,7 @@ static int sprd_adi_probe(struct platform_device *pdev)
 
 	dev_set_drvdata(&pdev->dev, ctlr);
 	sadi = spi_controller_get_devdata(ctlr);
+	hang_sadi = sadi;
 
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	sadi->base = devm_ioremap_resource(&pdev->dev, res);

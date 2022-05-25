@@ -21,6 +21,7 @@
 #include <linux/watchdog.h>
 #include <linux/seq_file.h>
 #include <linux/panic_notifier.h>
+#include <linux/export.h>
 
 #if IS_ENABLED(CONFIG_SPRD_WATCHDOG_FIQ)
 #include <linux/sprd_wdt_fiq.h>
@@ -30,8 +31,10 @@
 #define pr_fmt(fmt) "sprd_wdf: " fmt
 
 static DEFINE_PER_CPU(struct task_struct *, hang_debug_task_store);
-static unsigned int cpu_feed_mask;
-static unsigned int cpu_feed_bitmap;
+unsigned int cpu_feed_mask;
+unsigned int cpu_feed_bitmap;
+EXPORT_SYMBOL(cpu_feed_mask);
+EXPORT_SYMBOL(cpu_feed_bitmap);
 static DEFINE_MUTEX(wdf_mutex);
 /**
  * choose hrtimer here due to hrtimer was handled in hard interrupt context
