@@ -118,6 +118,7 @@ extern unsigned int sysctl_walt_busy_threshold;
 extern unsigned int sysctl_sched_walt_init_task_load_pct;
 extern unsigned int sysctl_sched_walt_cpu_high_irqload;
 extern unsigned int sysctl_sched_uclamp_threshold;
+extern unsigned int sysctl_walt_account_irq_time;
 
 #if IS_ENABLED(CONFIG_UCLAMP_MIN_TO_BOOST)
 extern unsigned int sysctl_sched_uclamp_min_to_boost;

@@ -1334,7 +1334,7 @@ static void android_rvh_tick_entry(void *data, struct rq *rq)
 
 static void android_rvh_account_irq(void *data, struct task_struct *curr, int cpu, s64 delta)
 {
-	if (static_branch_unlikely(&walt_disabled))
+	if (static_branch_unlikely(&walt_disabled) || !sysctl_walt_account_irq_time)
 		return;
 
 	if (hardirq_count() ||

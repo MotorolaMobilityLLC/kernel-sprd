@@ -14,6 +14,7 @@ unsigned int sysctl_sched_uclamp_threshold = 100;
 /* map util clamp_min to boost */
 unsigned int sysctl_sched_uclamp_min_to_boost = 1;
 #endif
+unsigned int sysctl_walt_account_irq_time;
 
 #if IS_ENABLED(CONFIG_UNISOC_ROTATION_TASK)
 unsigned int sysctl_rotation_enable = 1;
@@ -103,6 +104,15 @@ struct ctl_table walt_table[] = {
 		.proc_handler	= proc_dointvec_minmax,
 		.extra1		= SYSCTL_ZERO,
 		.extra2		= &one_thousand,
+	},
+	{
+		.procname	= "walt_account_irq_time",
+		.data		= &sysctl_walt_account_irq_time,
+		.maxlen		= sizeof(unsigned int),
+		.mode		= 0644,
+		.proc_handler	= proc_dointvec_minmax,
+		.extra1		= SYSCTL_ZERO,
+		.extra2		= SYSCTL_ONE,
 	},
 #if IS_ENABLED(CONFIG_UCLAMP_MIN_TO_BOOST)
 	{
