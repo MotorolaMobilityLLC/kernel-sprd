@@ -2997,6 +2997,13 @@
   kstrtoull_from_user
   smpboot_register_percpu_thread
 
+# required by sprd_wdh.ko
+  copy_from_kernel_nofault
+
+# required by sprd_hang_trigger.ko
+  kstrtoul_from_user
+  kthread_bind
+
 # required by zram.ko
   bio_chain
   bio_init
