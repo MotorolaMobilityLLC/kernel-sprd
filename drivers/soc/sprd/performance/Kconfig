@@ -3,3 +3,9 @@ config SPRD_PTM
 	depends on SPRD_DEBUG
 	help
 	  Say Y here to support ptm support.
+
+config SPRD_PTM_DIFF_R6P1
+        bool "Spreadtrum Performance Trace Monitor Support Diff Above R6P1"
+        depends on SPRD_PTM
+        help
+          Say Y here to support ptm r6p1.

@@ -80,6 +80,13 @@ static inline u32 ptm_get_rtran_base(struct sprd_ptm_dev *sdev)
 	return sdev->pvt_data->rtran_base;
 }
 
+#ifdef CONFIG_SPRD_PTM_DIFF_R6P1
+static inline u32 ptm_get_dpu_overflow_0_base(struct sprd_ptm_dev *sdev)
+{
+	return sdev->pvt_data->dpu_dcam_overflow_0_base;
+}
+#endif
+
 static inline u32 ptm_get_msterid_base(struct sprd_ptm_dev *sdev)
 {
 	return sdev->pvt_data->msterid_base;
@@ -352,6 +359,9 @@ sprd_ptm_legacy_time_handler(struct hrtimer *timer)
 	u32 rly_base = ptm_get_rly_base(sdev);
 	u32 wtran_base = ptm_get_wtran_base(sdev);
 	u32 rtran_base = ptm_get_rtran_base(sdev);
+#ifdef CONFIG_SPRD_PTM_DIFF_R6P1
+	u32 dpu_dcam_ovf_base = ptm_get_dpu_overflow_0_base(sdev);
+#endif
 	u64 ts_val;
 	static u32 num;
 	u32 wr_cnt;
@@ -385,6 +395,20 @@ sprd_ptm_legacy_time_handler(struct hrtimer *timer)
 		bm_info[wr_cnt].perf_data[chn][5] =
 			readl_relaxed(sdev->base + wly_base + 4 * chn);
 	}
+#ifdef CONFIG_SPRD_PTM_DIFF_R6P1
+	bm_info[wr_cnt].dcam_ovf_info_0 =
+		readl_relaxed(sdev->base + dpu_dcam_ovf_base) & 0xffff;
+	bm_info[wr_cnt].dcam_ovf_info_2 =
+		readl_relaxed(sdev->base + dpu_dcam_ovf_base + 4 * 2) & 0xffff;
+	bm_info[wr_cnt].dcam_ovf_info_4 =
+		readl_relaxed(sdev->base + dpu_dcam_ovf_base + 4 * 4) & 0xffff;
+	bm_info[wr_cnt].dcam_ovf_info_6 =
+		readl_relaxed(sdev->base + dpu_dcam_ovf_base + 4 * 6) & 0xffff;
+	bm_info[wr_cnt].dcam_ovf_info_8 =
+		readl_relaxed(sdev->base + dpu_dcam_ovf_base + 4 * 8) & 0xffff;
+	bm_info[wr_cnt].dcam_ovf_info_9 =
+		readl_relaxed(sdev->base + dpu_dcam_ovf_base + 4 * 9) & 0xffff;
+#endif
 	sprd_ptm_set_enable(sdev, true);
 	/* clear ptm count*/
 	writel_relaxed(1, sdev->base + CNT_CLR);
@@ -504,7 +528,8 @@ static void sprd_ptm_init(struct device *dev)
 {
 	struct sprd_ptm_dev *sdev = dev_get_drvdata(dev);
 
-	writel_relaxed(0 | PTM_TRACE_BW_IDLE_EN, sdev->base + PTM_EN);
+	writel_relaxed(0 | PTM_TRACE_BW_IDLE_EN | PTM_TRACE_LTCY_IDLE_EN,
+			sdev->base + PTM_EN);
 	writel_relaxed(0, sdev->base + INT_STU);
 	writel_relaxed(0, sdev->base + FRE_CHG);
 	writel_relaxed(1, sdev->base + MOD_SEL);
