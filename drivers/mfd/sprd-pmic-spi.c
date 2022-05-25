@@ -226,10 +226,10 @@ static int sprd_pmic_probe(struct spi_device *spi)
 	}
 
 	spi_set_drvdata(spi, ddata);
+	ddata->dev = &spi->dev;
+	ddata->pdata = pdata;
 	if (spi->irq) {
-		ddata->dev = &spi->dev;
 		ddata->irq = spi->irq;
-		ddata->pdata = pdata;
 
 		ddata->irq_chip.name = dev_name(&spi->dev);
 		ddata->irq_chip.status_base =
