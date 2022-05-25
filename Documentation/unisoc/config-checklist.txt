@@ -115,6 +115,15 @@ CONFIG_SPRD_HW_DEVICE_DVFS_CP
 	[must]
 	[missing plat description] none
 	[function]
+CONFIG_SPRD_SENSOR_HUB
+	[arch] arm64
+	[plat] sharkl3,sharkl5Pro, qogirl6, qogirn6pro
+	[missing plat] none
+	[field] make
+	[subsys] iio
+	[must] user
+	[missing plat description] none
+	[function] enable sensor hub driver built in kernel
 
 
 
