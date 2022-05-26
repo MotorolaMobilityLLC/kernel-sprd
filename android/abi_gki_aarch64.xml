@@ -3339,6 +3339,7 @@
       <elf-symbol name='of_get_next_child' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x823c41a5'/>
       <elf-symbol name='of_get_next_parent' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x72962630'/>
       <elf-symbol name='of_get_parent' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xab54e52'/>
+      <elf-symbol name='of_get_pci_domain_nr' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x8d8a5efd'/>
       <elf-symbol name='of_get_phy_mode' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x79b54c5a'/>
       <elf-symbol name='of_get_property' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x73a1cec3'/>
       <elf-symbol name='of_get_regulator_init_data' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x5d3a9f9b'/>
@@ -3531,6 +3532,7 @@
       <elf-symbol name='pci_msi_vec_count' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x4155f31b'/>
       <elf-symbol name='pci_msix_vec_count' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xf3bcb763'/>
       <elf-symbol name='pci_num_vf' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xa340ad62'/>
+      <elf-symbol name='pci_pio_to_address' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xf05fbf09'/>
       <elf-symbol name='pci_read_config_byte' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x9d0099fd'/>
       <elf-symbol name='pci_read_config_dword' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x87237f07'/>
       <elf-symbol name='pci_read_config_word' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x37a9652e'/>
@@ -140074,6 +140076,10 @@
         <parameter type-id='0afa6ea3' name='node' filepath='drivers/of/base.c' line='661' column='1'/>
         <return type-id='9a537bbe'/>
       </function-decl>
+      <function-decl name='of_get_pci_domain_nr' mangled-name='of_get_pci_domain_nr' filepath='drivers/pci/of.c' line='216' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='of_get_pci_domain_nr'>
+        <parameter type-id='9a537bbe' name='node' filepath='drivers/pci/of.c' line='216' column='1'/>
+        <return type-id='95e97e5e'/>
+      </function-decl>
       <function-decl name='of_get_phy_mode' mangled-name='of_get_phy_mode' filepath='net/core/of_net.c' line='26' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='of_get_phy_mode'>
         <parameter type-id='9a537bbe' name='np' filepath='net/core/of_net.c' line='26' column='1'/>
         <parameter type-id='14061e47' name='interface' filepath='net/core/of_net.c' line='26' column='1'/>
@@ -141096,6 +141102,10 @@
       <function-decl name='pci_num_vf' mangled-name='pci_num_vf' filepath='drivers/pci/iov.c' line='1057' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='pci_num_vf'>
         <parameter type-id='85196e3f' name='dev' filepath='drivers/pci/iov.c' line='1057' column='1'/>
         <return type-id='95e97e5e'/>
+      </function-decl>
+      <function-decl name='pci_pio_to_address' mangled-name='pci_pio_to_address' filepath='drivers/pci/pci.c' line='4097' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='pci_pio_to_address'>
+        <parameter type-id='7359adad' name='pio' filepath='drivers/pci/pci.c' line='4097' column='1'/>
+        <return type-id='2522883d'/>
       </function-decl>
       <function-decl name='pci_read_config_byte' mangled-name='pci_read_config_byte' filepath='drivers/pci/access.c' line='526' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='pci_read_config_byte'>
         <parameter type-id='947f31e6' name='dev' filepath='drivers/pci/access.c' line='526' column='1'/>
