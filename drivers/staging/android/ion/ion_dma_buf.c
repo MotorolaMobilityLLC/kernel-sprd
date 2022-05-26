@@ -323,56 +323,37 @@ out:
 
 static  int ion_dma_buf_vmap(struct dma_buf *dmabuf, struct dma_buf_map *map)
 {
-	struct dma_buf_map ptr;
-	int ret = 0;
+	struct ion_buffer *buffer = dmabuf->priv;
+	struct ion_heap *heap = buffer->heap;
 
-	dma_buf_map_clear(map);
+	if (heap->buf_ops.vmap)
+		return heap->buf_ops.vmap(dmabuf, map);
 
-	if (!dmabuf)
+	mutex_lock(&buffer->lock);
+	map->vaddr = ion_buffer_kmap_get(buffer);
+	if (map->vaddr == NULL) {
+		mutex_unlock(&buffer->lock);
 		return -EINVAL;
-
-	if (!dmabuf->ops->vmap)
-		return -EINVAL;
-
-	mutex_lock(&dmabuf->lock);
-	if (dmabuf->vmapping_counter) {
-		dmabuf->vmapping_counter++;
-		BUG_ON(dma_buf_map_is_null(&dmabuf->vmap_ptr));
-		*map = dmabuf->vmap_ptr;
-		goto out_lock;
 	}
+	map->is_iomem = false;
+	mutex_unlock(&buffer->lock);
 
-	BUG_ON(dma_buf_map_is_set(&dmabuf->vmap_ptr));
-
-	ret = dmabuf->ops->vmap(dmabuf, &ptr);
-	if (WARN_ON_ONCE(ret))
-		goto out_lock;
-	dmabuf->vmap_ptr = ptr;
-	dmabuf->vmapping_counter = 1;
-
-	*map = dmabuf->vmap_ptr;
-
-out_lock:
-	mutex_unlock(&dmabuf->lock);
-	return ret;
+	return 0;
 }
 
 static void ion_dma_buf_vunmap(struct dma_buf *dmabuf, struct dma_buf_map *map)
 {
-	if (WARN_ON(!dmabuf))
+	struct ion_buffer *buffer = dmabuf->priv;
+	struct ion_heap *heap = buffer->heap;
+
+	if (heap->buf_ops.vunmap) {
+		heap->buf_ops.vunmap(dmabuf, map);
 		return ;
-
-	BUG_ON(dma_buf_map_is_null(&dmabuf->vmap_ptr));
-	BUG_ON(dmabuf->vmapping_counter == 0);
-	BUG_ON(!dma_buf_map_is_equal(&dmabuf->vmap_ptr, map));
-
-	mutex_lock(&dmabuf->lock);
-	if (--dmabuf->vmapping_counter == 0) {
-		if (dmabuf->ops->vunmap)
-			dmabuf->ops->vunmap(dmabuf, map);
-		dma_buf_map_clear(&dmabuf->vmap_ptr);
 	}
-	mutex_unlock(&dmabuf->lock);
+
+	mutex_lock(&buffer->lock);
+	ion_buffer_kmap_put(buffer);
+	mutex_unlock(&buffer->lock);
 }
 
 static int ion_dma_buf_get_flags(struct dma_buf *dmabuf, unsigned long *flags)
