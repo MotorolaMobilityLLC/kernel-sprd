@@ -51,6 +51,15 @@ config USB_DWC3_DUAL_ROLE
 
 endchoice
 
+comment "SPRD DWC3 CORE"
+
+config USB_DWC3_SPRD_CORE
+        tristate "Unisoc USB3.0 core"
+        depends on ARCH_SPRD || COMPILE_TEST
+        help
+          Say 'Y' or 'M' here if your system has a Dual Role SuperSpeed USB controller
+          based on the DesignWare USB3 IP Core integrated by SPRD
+
 comment "Platform Glue Driver Support"
 
 config USB_DWC3_OMAP
