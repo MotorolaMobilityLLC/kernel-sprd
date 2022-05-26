@@ -1,0 +1,24 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Unisoc I2C dts file
+ *
+ * Copyright (C) 2020, Unisoc Inc.
+ *
+ */
+/ {
+	power_debug: debuglog {
+		compatible                        = "sprd,debuglog";
+		sprd,pdbg-irq-domain-gic          = "GICv3";
+		sprd,pdbg-irq-domain-gpio         = "sprd-gpio";
+		sprd,pdbg-irq-domain-ana          = "spi4.0";
+		sprd,pdbg-irq-domain-ana-eic      = "32100000.spi:pmic@0:gpio@280";
+		sprd,pdbg-irq-domain-ap-eic-dbnc  = "32020000.gpio";
+		sprd,pdbg-irq-domain-ap-eic-latch = "32000080.gpio";
+		sprd,pdbg-irq-domain-ap-eic-async = "320000a0.gpio";
+		sprd,pdbg-irq-domain-ap-eic-sync  = "320200c0.gpio";
+	};
+
+	power_stat: debugstat {
+		compatible = "sprd,debugstat";
+	};
+};

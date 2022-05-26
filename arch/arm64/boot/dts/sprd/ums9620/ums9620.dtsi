@@ -357,6 +357,7 @@
 #include "gpu-natt.dtsi"
 #include "i2c.dtsi"
 #include "modem.dtsi"
+#include "power.dtsi"
 #include "sensorhub.dtsi"
 #include "spi.dtsi"
 #include "uart.dtsi"

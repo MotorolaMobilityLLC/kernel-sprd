@@ -11,11 +11,11 @@
 		sprd,pdbg-irq-domain-gic          = "GICv3";
 		sprd,pdbg-irq-domain-gpio         = "sprd-gpio";
 		sprd,pdbg-irq-domain-ana          = "spi4.0";
-		sprd,pdbg-irq-domain-ana-eic      = "xxx";
-		sprd,pdbg-irq-domain-ap-eic-dbnc  = "xx.gpio";
-		sprd,pdbg-irq-domain-ap-eic-latch = "xx.gpio";
-		sprd,pdbg-irq-domain-ap-eic-async = "xx.gpio";
-		sprd,pdbg-irq-domain-ap-eic-sync  = "xx.gpio";
+		sprd,pdbg-irq-domain-ana-eic      = "sc27xx-eic";
+		sprd,pdbg-irq-domain-ap-eic-dbnc  = "64200000.gpio";
+		sprd,pdbg-irq-domain-ap-eic-latch = "64200080.gpio";
+		sprd,pdbg-irq-domain-ap-eic-async = "642000a0.gpio";
+		sprd,pdbg-irq-domain-ap-eic-sync  = "642000c0.gpio";
 	};
 
 	power_stat: debugstat {
