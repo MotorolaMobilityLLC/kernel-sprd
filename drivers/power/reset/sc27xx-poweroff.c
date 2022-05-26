@@ -44,15 +44,32 @@ const struct sc27xx_poweroff_data *pdata;
  * taking cpus down to avoid racing regmap or spi mutex lock when poweroff
  * system through PMIC.
  */
+#define RETRY_CNT_MAX (5)
 static void sc27xx_poweroff_shutdown(void)
 {
 #ifdef CONFIG_HOTPLUG_CPU
-	int cpu;
+	int cpu, retry_cnt, ret;
 
+	pr_info("hotpluging non-boot CPUs ......\n");
+
+	cpu_hotplug_enable();
 	for_each_online_cpu(cpu) {
-		if (cpu != smp_processor_id())
-			remove_cpu(cpu);
+		if (cpu == smp_processor_id())
+			continue;
+
+		retry_cnt = 0;
+		while (retry_cnt < RETRY_CNT_MAX) {
+			ret = remove_cpu(cpu);
+
+			if (!ret)
+				break;
+
+			msleep(20);
+			pr_err("%s: hotplug cpu%d fail, cnt %d\n", __func__, cpu, retry_cnt);
+			retry_cnt++;
+		}
 	}
+	cpu_hotplug_disable();
 #endif
 }
 
