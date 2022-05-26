@@ -33,6 +33,7 @@ struct gsp_r9p0_core {
 	void __iomem *gsp_ctl_reg_base;
 	void __iomem *gsp_qos_reg_base;
 	struct tasklet_struct dvfs_task;
+	struct regmap *pd_dpu_vsp;
 };
 
 #define MEM_OPS_ADDR_ALIGN_MASK (0x7UL)

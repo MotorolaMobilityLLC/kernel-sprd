@@ -15,6 +15,7 @@
 
 /* Global config reg */
 #define R9P0_GSP_BASE_OFFSET		0x0
+#define R1P0_MMU_BASE_OFFSET		0x1000
 #define R9P0_GSP_GLB_CFG(base)		(base + R9P0_GSP_BASE_OFFSET)
 #define R9P0_GSP_INT(base)			(base + 0x004 + R9P0_GSP_BASE_OFFSET)
 #define R9P0_GSP_MOD_CFG(base)		(base + 0x008 + R9P0_GSP_BASE_OFFSET)
@@ -119,6 +120,10 @@
 #define R9P0_HDR36_CFG(base, index)     (base + 0x18a0 + index * R9P0_HDR_OFFSET)
 #define R9P0_HDR37_CFG(base, index)     (base + 0x18a4 + index * R9P0_HDR_OFFSET)
 
+/* VAU(MMU) */
+#define R1P0_MMU_INT_EN_CFG(base)	(base + 0x00a0 + R1P0_MMU_BASE_OFFSET)
+#define R1P0_MMU_INT_CLR_CFG(base)	(base + 0x00a4 + R1P0_MMU_BASE_OFFSET)
+
 /* r9p0 gsp qos config reg */
 struct GSP_QOS_REG_STRUCT {
 	unsigned int offset;
@@ -194,7 +199,42 @@ struct R9P0_GSP_INT_REG {
 			uint32_t INT_FBCDHD1_STS	:  1;
 			uint32_t INT_FBCDHD2_STS	:  1;
 			uint32_t INT_FBCDHD3_STS	:  1;
-			uint32_t Reserved2		:  6;
+			uint32_t VAU_INT		:  1;
+			uint32_t Reserved2		:  5;
+		};
+		uint32_t	value;
+	};
+};
+
+struct R1P0_MMU_INT_CLR_REG {
+	union {
+		struct {
+			uint32_t MMU_vaor_rd_clr	:  1;
+			uint32_t MMU_vaor_wr_clr	:  1;
+			uint32_t MMU_inv_rd_clr		:  1;
+			uint32_t MMU_inv_wr_clr		:  1;
+			uint32_t MMU_uns_rd_clr		:  1;
+			uint32_t MMU_uns_wr_clr		:  1;
+			uint32_t MMU_paor_rd_clr	:  1;
+			uint32_t MMU_paor_wr_clr	:  1;
+			uint32_t Reserved		:  24;
+		};
+		uint32_t	value;
+	};
+};
+
+struct R1P0_MMU_INT_EN_REG {
+	union {
+		struct {
+			uint32_t MMU_vaor_rd_en		:  1;
+			uint32_t MMU_vaor_wr_en		:  1;
+			uint32_t MMU_inv_rd_en		:  1;
+			uint32_t MMU_inv_wr_en		:  1;
+			uint32_t MMU_uns_rd_en		:  1;
+			uint32_t MMU_uns_wr_en		:  1;
+			uint32_t MMU_paor_rd_en		:  1;
+			uint32_t MMU_paor_wr_en		:  1;
+			uint32_t Reserved		:  24;
 		};
 		uint32_t	value;
 	};
