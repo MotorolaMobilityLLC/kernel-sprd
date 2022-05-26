@@ -549,11 +549,12 @@ void crash_note_save_cpu(struct pt_regs *regs, int cpu)
 	notes.data = &prstatus;
 
 	memset(&prstatus, 0, sizeof(struct elf_prstatus));
-	if (virt_addr_valid(current))
+	if (sprd_virt_addr_valid(current))
 		fill_prstatus(&prstatus, current, 0);
 	else
 		return;
-	memcpy(&prstatus.pr_reg, regs, DUMP_REGS_SIZE);
+	if (sprd_virt_addr_valid(regs))
+		memcpy(&prstatus.pr_reg, regs, DUMP_REGS_SIZE);
 	/* memcpy(&prstatus.pr_reg, regs, sizeof(struct pt_regs)); */
 	storenote(&notes, (char *)per_cpu_ptr(crash_notes, cpu));
 }
@@ -846,8 +847,9 @@ void sysdump_ipi(void *p, struct pt_regs *regs)
 
 	/*do flush and save only in oops path */
 	if (oops_in_progress) {
-		memcpy((void *)&(sprd_sysdump_extra.cpu_context[cpu]),
-		       (void *)regs, sizeof(struct pt_regs));
+		if (sprd_virt_addr_valid(regs))
+			memcpy((void *)&(sprd_sysdump_extra.cpu_context[cpu]),
+			       (void *)regs, sizeof(struct pt_regs));
 		if (!user_mode(regs)) {
 			crash_note_save_cpu(regs, cpu);
 			sprd_debug_save_context();
@@ -1267,7 +1269,7 @@ static int prepare_minidump_info(struct pt_regs *regs)
 	if (!sprd_minidump_info)
 		return -1;
 
-	if (regs != NULL) {
+	if (sprd_virt_addr_valid(regs)) {
 		/*	struct pt_regs part: save minidump_regs contents */
 		memcpy(sprd_minidump_regs, regs, sizeof(struct pt_regs));
 		/*      memory amount regs part: save minidump_regs contents */
@@ -1342,7 +1344,7 @@ static void section_info_pt(void)
 #endif
 	return;
 }
-#endif
+#endif /*0*/
 static int extend_section_cm4dump(void)
 {
 #define CM4_DUMP_IRAM "scproc"
@@ -1548,7 +1550,7 @@ void get_exception_stack_info(struct pt_regs *regs)
 
 	cur = current;
 	tsk = cur;
-	if (!virt_addr_valid(tsk))
+	if (!sprd_virt_addr_valid(tsk))
 		return;
 
 	/* Current panic user tasks */
@@ -1578,8 +1580,8 @@ void get_exception_stack_info(struct pt_regs *regs)
 		off = strlen(sprd_minidump_info->exception_info.exception_stack_info);
 		plen = EXCEPTION_INFO_SIZE_LONG - ALIGN(off, 8);
 		if (plen > 16) {
-			sz = snprintf(symbol, 96, "[<%p>] %pS\n",
-					(void *)stack_entries[i],
+			sz = snprintf(symbol, 96, "[<%lx>] %pS\n",
+					(unsigned long)stack_entries[i],
 					(void *)stack_entries[i]);
 			if (ALIGN(sz, 8) - sz) {
 				memset_io(symbol + sz - 1, ' ', ALIGN(sz, 8) - sz);
@@ -1592,15 +1594,15 @@ void get_exception_stack_info(struct pt_regs *regs)
 		}
 	}
 #endif
-	if (regs) {
+	if (sprd_virt_addr_valid(regs)) {
 		snprintf(sprd_minidump_info->exception_info.exception_pc_symbol,
-			EXCEPTION_INFO_SIZE_SHORT, "[<%p>] %pS",
-			(void *)(unsigned long)regs->reg_pc,
+			EXCEPTION_INFO_SIZE_SHORT, "[<%lx>] %pS",
+			(unsigned long)regs->reg_pc,
 			(void *)(unsigned long)regs->reg_pc);
 	} else {
 		snprintf(sprd_minidump_info->exception_info.exception_pc_symbol,
-			EXCEPTION_INFO_SIZE_SHORT, "[<%p>] %pS",
-			(void *)(unsigned long)stack_entries[0],
+			EXCEPTION_INFO_SIZE_SHORT, "[<%lx>] %pS",
+			(unsigned long)stack_entries[0],
 			(void *)(unsigned long)stack_entries[0]);
 	}
 }
@@ -1624,7 +1626,7 @@ static int prepare_exception_info(struct pt_regs *regs,
 			unisoc_linux_banner,
 			strlen(unisoc_linux_banner));
 
-	if (reason != NULL)
+	if (sprd_virt_addr_valid(reason))
 		memcpy(sprd_minidump_info->exception_info.exception_panic_reason,
 			reason,
 			strlen(reason));
@@ -1651,7 +1653,7 @@ static int prepare_exception_info(struct pt_regs *regs,
 	}
 	/*	exception_task_id	*/
 	if (!tsk) {
-		if (virt_addr_valid(current))
+		if (sprd_virt_addr_valid(current))
 			tsk = current;
 		else
 			return 0;
@@ -1662,8 +1664,7 @@ static int prepare_exception_info(struct pt_regs *regs,
 	show_exception_info();
 	return 0;
 }
-
-#ifdef CONFIG_SPRD_HANG_DEBUG
+/* for wdh and so on */
 void prepare_dump_info_for_wdh(struct pt_regs *regs, const char *reason)
 {
 	/* 1    prepare minidump info */
@@ -1671,7 +1672,6 @@ void prepare_dump_info_for_wdh(struct pt_regs *regs, const char *reason)
 	prepare_exception_info(regs, NULL, reason);
 }
 EXPORT_SYMBOL(prepare_dump_info_for_wdh);
-#endif /*	CONFIG_SPRD_HANG_DEBUG end*/
 #endif  /*	minidump code end	*/
 
 /* common data init */

@@ -29,10 +29,18 @@ enum sysdump_type {
 
 #ifdef CONFIG_ARM
 #include "sysdump32.h"
+
+/* refer to sprd_wdh.c */
+#define sprd_virt_addr_valid(kaddr) ((void *)(kaddr) >= (void *)PAGE_OFFSET && \
+		(void *)(kaddr) < (void *)high_memory && \
+		pfn_valid(__pa(kaddr) >> PAGE_SHIFT))
 #endif
 
 #ifdef CONFIG_ARM64
 #include "sysdump64.h"
+
+/* refer to sprd_wdh.c */
+#define sprd_virt_addr_valid(kaddr) ((void *)(kaddr) >= (void *)PAGE_OFFSET)
 #endif
 
 #ifdef CONFIG_X86_64
