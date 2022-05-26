@@ -47,5 +47,6 @@ source "drivers/unisoc_platform/thermal/Kconfig"
 source "drivers/unisoc_platform/wlan/Kconfig"
 source "drivers/unisoc_platform/power/Kconfig"
 source "drivers/unisoc_platform/hang_debug/Kconfig"
+source "drivers/unisoc_platform/userlog/Kconfig"
 
 endmenu
