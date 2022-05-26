@@ -1050,6 +1050,8 @@
 			<&dpu_vsp_gate CLK_GSP0_EB>,
 			<&aonapb_gate CLK_DPU_VSP_EB>,
 			<&dpu_vsp_clk CLK_GSP0>;
+
+	sprd,pmu-apb = <&pmu_apb_regs>;
 };
 
 &gsp1_core0 {
