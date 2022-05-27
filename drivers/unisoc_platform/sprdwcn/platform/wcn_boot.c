@@ -878,9 +878,9 @@ static int gnss_download_firmware(void)
 		}
 
 		wcn_write_data_to_phy_addr(
-			marlin_dev->base_addr_btwf,
+			marlin_dev->base_addr_gnss,
 			(void *)firmware->data, pimghdr->img_signed_size);
-		if (wcn_firmware_sec_verify(2, marlin_dev->base_addr_btwf,
+		if (wcn_firmware_sec_verify(2, marlin_dev->base_addr_gnss,
 			pimghdr->img_signed_size) < 0) {
 			pr_err("%s sec verify fail.\n", __func__);
 			release_firmware(firmware);
@@ -1135,6 +1135,7 @@ static inline int wcn_wifipa_bound_xtl(bool enable)
 
 static int marlin_parse_dt(struct platform_device *pdev)
 {
+	struct device_node *node;
 	struct device_node *np = pdev->dev.of_node;
 	struct device_node *cmdline_node;
 	struct regmap *pmu_apb_gpr;
@@ -1256,26 +1257,23 @@ static int marlin_parse_dt(struct platform_device *pdev)
 			pr_err("xtal 26m gpio request err: %d\n", ret);
 	}
 
-	ret = of_address_to_resource(np, 0, &res);
+	node = of_parse_phandle(np, "memory-region", 0);
+	if (!node) {
+		pr_err("no memory-region specified\n");
+		ret = of_address_to_resource(np, 0, &res);
+	} else {
+		ret = of_address_to_resource(node, 0, &res);
+	}
 	if (ret) {
-		pr_info("No BTWF mem.\n");
+		pr_info("No WCN mem.\n");
 	} else {
 		marlin_dev->base_addr_btwf = res.start;
 		marlin_dev->maxsz_btwf = resource_size(&res);
-		pr_info("cp base = 0x%llx, size = 0x%x\n",
-			 (u64)marlin_dev->base_addr_btwf,
-			 marlin_dev->maxsz_btwf);
-	}
-
-	ret = of_address_to_resource(np, 1, &res);
-	if (ret) {
-		pr_info("No GNSS mem.\n");
-	} else {
 		marlin_dev->base_addr_gnss = res.start;
 		marlin_dev->maxsz_gnss = resource_size(&res);
 		pr_info("cp base = 0x%llx, size = 0x%x\n",
-			 (u64)marlin_dev->base_addr_gnss,
-			 marlin_dev->maxsz_gnss);
+			 (u64)marlin_dev->base_addr_btwf,
+			 marlin_dev->maxsz_btwf);
 	}
 
 	pr_info("BTWF_FIRMWARE_PATH len=%ld\n",
