@@ -15,5 +15,10 @@
 		#address-cells = <1>;
 		#size-cells = <0>;
 
+		syscon@2000 {
+			compatible = "sprd,ump9622-syscon";
+			reg = <0x2000>;
+		};
+
 	};
 };
