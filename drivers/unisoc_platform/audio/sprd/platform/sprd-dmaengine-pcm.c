@@ -1672,12 +1672,8 @@ static int sprd_pcm_pm_notifier(struct notifier_block *notifier,
 			pm_normal_dma_chan_release(pm_dma->normal_rtd);
 			if (pm_dma->normal_rtd &&
 				pm_dma->normal_rtd->is_access_enabled) {
-				if (!g_dev) {
-					pr_err("%s, g_dev is NULL!\n", __func__);
-				} else {
-					pm_runtime_mark_last_busy(g_dev);
-					pm_runtime_put_autosuspend(g_dev);
-				}
+				pm_runtime_mark_last_busy(g_dev);
+				pm_runtime_put_autosuspend(g_dev);
 				pm_dma->normal_rtd->is_access_enabled = false;
 			}
 		}

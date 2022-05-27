@@ -1293,41 +1293,52 @@ static enum sprd_headset_type sprd_headset_type_plugged(void)
 }
 
 static void
-sprd_headset_typec_mic_switch(struct sprd_headset *hdst, bool high,
-			      bool no_headmicbias_on)
+sprd_headset_typec_mic_switch(struct sprd_headset *hdst)
 {
 	struct sprd_headset_platform_data *pdata = &hdst->pdata;
-	int mic_gpio_level;
+	int mic_gpio_level = 0;
 
 #if 0
-	if (hdst->typec_i2c_en > 0) {
-		static int (*typec_i2c_switch_event_function)(enum typec_i2c_function);
-
+	if (hdst->typec_i2c_en) {
+		static int (*typec_i2c_switch_event_function)(enum typec_i2c_function, bool need_delay);
 		typec_i2c_switch_event_function = (void *)kallsyms_lookup_name("typec_i2c_switch_event_enable");
-		if (!typec_i2c_switch_event_function) {
-			pr_info("%s typec_i2c_switch_event_function is not prepare\n", __func__);
-		} else {
-			pr_info("%s typec_i2c_switch_event_function\n", __func__);
-			typec_i2c_switch_event_function(TYPEC_I2C_MIC_GND_SWAP);
+		while (!typec_i2c_switch_event_function && i2c_retry_count < 7) {
+			i2c_retry_count++;
+			sprd_msleep(500);
+			typec_i2c_switch_event_function =
+				(void *)kallsyms_lookup_name("typec_i2c_switch_event_enable");
+			pr_info("%s typec_i2c_switch_event_function is not prepare, retry count:%d \n",
+				__func__, i2c_retry_count);
 		}
+		if (typec_i2c_switch_event_function) {
+			pr_info("%s typec_i2c_switch_event_function\n", __func__);
+
+			sprd_headset_power_set(&hdst->power_manager, "HEADMICBIAS", false);
+			/* wait for power down */
+			sprd_msleep(20);
+			sprd_headset_typec_fast_discharging(true);
+			sprd_msleep(1);
+			typec_i2c_switch_event_function(TYPEC_I2C_MIC_GND_SWAP, false);
+			sprd_msleep(1);
+			sprd_headset_typec_fast_discharging(false);
+			sprd_headset_typec_headmicbias_ramp_on(hdst);
+			typec_i2c_switch_event_function(TYPEC_I2C_MIC_GND_SWAP, true);
+		} else
+			pr_info("%s typec_i2c_switch_event_function can not find\n",
+					__func__);
 		return;
 	}
 #endif
-
-	mic_gpio_level = gpiod_get_value(pdata->typec_mic_gpio);
-	if (mic_gpio_level == high)
-		return;
-
 	sprd_headset_power_set(&hdst->power_manager, "HEADMICBIAS", false);
 	/* wait for power down */
 	sprd_msleep(20);
 	sprd_headset_typec_fast_discharging(true);
 	sprd_msleep(1);
-	gpiod_set_value_cansleep(pdata->typec_mic_gpio, high);
+	mic_gpio_level = gpiod_get_value(pdata->typec_mic_gpio);
+	gpiod_set_value_cansleep(pdata->typec_mic_gpio, !mic_gpio_level);
 	sprd_msleep(1);
 	sprd_headset_typec_fast_discharging(false);
-	if (!no_headmicbias_on)
-		sprd_headset_typec_headmicbias_ramp_on(hdst);
+	sprd_headset_typec_headmicbias_ramp_on(hdst);
 }
 
 /*
@@ -1355,7 +1366,9 @@ static enum sprd_headset_type sprd_headset_get_type(void)
 	/* gnd voltage use small scale */
 	gnd_vol = pdata->sprd_adc_gnd * 1250 / 4095;
 
-	sprd_headset_typec_mic_switch(hdst, false, false);
+	if (gpiod_get_value(pdata->typec_mic_gpio))
+		gpiod_set_value_cansleep(pdata->typec_mic_gpio, 0);
+
 	do {
 		mic_vol_0 = sprd_headset_get_mic_voltage(hdst);
 		if (mic_vol_0 > TYPEC_4POLE_MIC_MAX_VOLT)
@@ -1372,12 +1385,11 @@ static enum sprd_headset_type sprd_headset_get_type(void)
 			sprd_headset_ldetl_ref_sel(LDETL_REF_SEL_100mV);
 			return HEADSET_NO_MIC;
 		}
-		sprd_headset_typec_mic_switch(hdst, false, true);
 		return HEADSET_TYPE_ERR;
 	}
 	left_vol_0 = sprd_headset_typec_get_hpl_voltage(hdst);
 
-	sprd_headset_typec_mic_switch(hdst, true, false);
+	sprd_headset_typec_mic_switch(hdst);
 	try_count = 0;
 	do {
 		mic_vol_1 = sprd_headset_get_mic_voltage(hdst);
@@ -1395,7 +1407,6 @@ static enum sprd_headset_type sprd_headset_get_type(void)
 			sprd_headset_ldetl_ref_sel(LDETL_REF_SEL_100mV);
 			return HEADSET_NO_MIC;
 		}
-		sprd_headset_typec_mic_switch(hdst, false, true);
 		return HEADSET_TYPE_ERR;
 	}
 	left_vol_1 = sprd_headset_typec_get_hpl_voltage(hdst);
@@ -1410,7 +1421,7 @@ static enum sprd_headset_type sprd_headset_get_type(void)
 	}
 
 	if (mic_vol_0 > mic_vol_1)
-		sprd_headset_typec_mic_switch(hdst, false, false);
+	sprd_headset_typec_mic_switch(hdst);
 
 	if (left_vol_min <= TYPEC_SELFIE_STICK_THRESHOLD) {
 		/* typec headset */
@@ -1425,7 +1436,6 @@ static enum sprd_headset_type sprd_headset_get_type(void)
 
 	pr_err("type error, mic_voltage_0 %d, mic_voltage_1 %d\n",
 		mic_vol_0, mic_vol_1);
-	sprd_headset_typec_mic_switch(hdst, false, true);
 
 	return HEADSET_TYPE_ERR;
 }
@@ -1924,7 +1934,8 @@ static void sprd_headset_type_report(struct sprd_headset *hdst)
 		/* Repeated detection 5 times when 3P is detected */
 		fallthrough;
 	case HEADSET_NO_MIC:
-		if (hdst->det_3pole_cnt < 5 && !hdst->mdet_tried) {
+		if (hdst->det_3pole_cnt < 5 && !hdst->mdet_tried
+			&& !pdata->support_typec_hdst) {
 			pr_err("type_report det_3pole_cnt %d\n",
 				hdst->det_3pole_cnt);
 			hdst->det_3pole_cnt++;
@@ -2127,6 +2138,22 @@ static void headset_detect_all_work_func(struct work_struct *work)
 	}
 
 	if (hdst->plug_state_last == 0) {
+#if 0
+		if (hdst->typec_i2c_en) {
+			/*i2c switch need depop before headmicbias power on*/
+			static int (*typec_i2c_switch_depop_function)(void);
+
+			typec_i2c_switch_depop_function =
+				(void *)kallsyms_lookup_name("typec_i2c_switch_depop");
+			if (!typec_i2c_switch_depop_function) {
+				pr_info("%s function is not prepare or not need\n", __func__);
+			} else {
+				pr_info("%s function is prepare \n", __func__);
+				typec_i2c_switch_depop_function();
+				sprd_msleep(5);
+			}
+		}
+#endif
 		sprd_headset_set_hw_status(hdst, pdata);
 		sprd_msleep(10);
 	}
@@ -3149,7 +3176,7 @@ static int sprd_headset_parse_dt(struct sprd_headset *hdst)
 	}
 
 	pdata->typec_mic_gpio = gpio_to_desc(mic_gpio_num);
-	ret = gpio_request_one(mic_gpio_num, GPIOF_OUT_INIT_HIGH, "mic");
+	ret = gpio_request_one(mic_gpio_num, GPIOF_OUT_INIT_LOW, "mic");
 	if (ret < 0 && ret != -EBUSY) {
 		dev_err(dev, "mic_gpio request fail %d\n", ret);
 		return ret;
@@ -3163,7 +3190,7 @@ static int sprd_headset_parse_dt(struct sprd_headset *hdst)
 	}
 
 	pdata->typec_lr_gpio = gpio_to_desc(lr_gpio_num);
-	ret = gpio_request_one(lr_gpio_num, GPIOF_OUT_INIT_HIGH, "lr");
+	ret = gpio_request_one(lr_gpio_num, GPIOF_OUT_INIT_LOW, "lr");
 	if (ret < 0 && ret != -EBUSY) {
 		dev_err(dev, "lr_gpio request fail %d\n", ret);
 		return ret;
@@ -3346,11 +3373,11 @@ static int sprd_get_adc_cal_from_efuse(struct platform_device *pdev)
 		return -EINVAL;
 	}
 
-	ret = sprd_headset_read_efuse(pdev, "hp_adc_fir_calib", &data);
+	ret = sprd_headset_read_efuse(pdev, "hp_adc_fir_calib_1", &data);
 	if (ret)
 		goto adc_cali_error;
 	test[0] = data;
-	ret = sprd_headset_read_efuse(pdev, "hp_adc_fir_calib_1", &data);
+	ret = sprd_headset_read_efuse(pdev, "hp_adc_fir_calib_2", &data);
 	if (ret)
 		goto adc_cali_error;
 	test[1] = data;

@@ -39,6 +39,7 @@
 #include <linux/stat.h>
 #include <linux/string.h>
 #include <linux/sysfs.h>
+#include <linux/pm_runtime.h>
 
 #include <sound/core.h>
 #include <sound/soc.h>
@@ -202,26 +203,7 @@ static inline const char *sprd_codec_chan_get_name(int chan_id)
 {
 	return sprd_codec_chan_name[chan_id];
 }
-#if 0
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-function"
-int agdsp_access_enable(void)
-	__attribute__ ((weak, alias("__agdsp_access_enable")));
-static int __agdsp_access_enable(void)
-{
-	pr_debug("%s\n", __func__);
-	return 0;
-}
 
-int agdsp_access_disable(void)
-	__attribute__ ((weak, alias("__agdsp_access_disable")));
-static int __agdsp_access_disable(void)
-{
-	pr_debug("%s\n", __func__);
-	return 0;
-}
-#pragma GCC diagnostic pop
-#endif
 struct inter_pa {
 	/* FIXME little endian */
 	u32 DTRI_F_sel:3;
@@ -615,7 +597,7 @@ static void codec_digital_reg_restore(struct snd_soc_component *codec)
 
 	mutex_lock(&sprd_codec->digital_enable_mutex);
 	if (sprd_codec->digital_enable_count)
-		arch_audio_codec_digital_reg_enable_v2();
+		arch_audio_codec_digital_reg_enable_v2(codec->dev);
 	mutex_unlock(&sprd_codec->digital_enable_mutex);
 }
 
@@ -635,11 +617,12 @@ static int dig_access_disable_put(struct snd_kcontrol *kcontrol,
 		if (disable) {
 			sp_asoc_pr_dbg("%s, disable agdsp access\n", __func__);
 			sprd_codec->user_dig_access_dis = disable;
-			agdsp_access_disable();
+			pm_runtime_mark_last_busy(codec->dev);
+			pm_runtime_put_autosuspend(codec->dev);
 		} else {
 			sp_asoc_pr_dbg("%s, enable agdsp access\n", __func__);
-			if (agdsp_access_enable()) {
-				pr_err("%s, agdsp_access_enable failed!\n",
+			if (pm_runtime_get_sync(codec->dev) < 0) {
+				dev_err(codec->dev, "%s, agdsp_access_enable failed!\n",
 				       __func__);
 				mutex_unlock(&sprd_codec->dig_access_mutex);
 				return -EIO;
@@ -1085,7 +1068,6 @@ static int dahpl_chn_en(struct snd_soc_component *codec, bool on_off)
 
 	if (on_off) {
 		ret = regulator_enable(sprd_codec->dahpl_chn);
-		snd_soc_component_update_bits(codec, SOC_REG(ANA_DAC1), DAHPL_EN, DAHPL_EN);
 		if (ret) {
 			pr_err("%s dahpl_chn regulator enable failed",
 			       __func__);
@@ -1094,7 +1076,6 @@ static int dahpl_chn_en(struct snd_soc_component *codec, bool on_off)
 		count_en++;
 	} else {
 		regulator_disable(sprd_codec->dahpl_chn);
-		snd_soc_component_update_bits(codec, SOC_REG(ANA_DAC1), DAHPL_EN, 0);
 		count_en--;
 	}
 	pr_info("%s on_off %d, count_en %d", __func__, on_off, count_en);
@@ -1599,9 +1580,9 @@ static int sprd_codec_set_sample_rate(struct snd_soc_component *codec,
 		{96000, SPRD_CODEC_RATE_96000},
 	};
 
-	ret = agdsp_access_enable();
-	if (ret) {
-		pr_err("%s agdsp_access_enable error %d", __func__, ret);
+	ret = pm_runtime_get_sync(codec->dev);
+	if (ret < 0) {
+		dev_err(codec->dev, "%s agdsp_access_enable error %d", __func__, ret);
 		return ret;
 	}
 
@@ -1619,7 +1600,8 @@ static int sprd_codec_set_sample_rate(struct snd_soc_component *codec,
 	sp_asoc_pr_dbg("Set Playback rate 0x%x\n",
 		       snd_soc_component_read(codec, AUD_DAC_CTL));
 
-	agdsp_access_disable();
+	pm_runtime_mark_last_busy(codec->dev);
+	pm_runtime_put_autosuspend(codec->dev);
 
 	return 0;
 }
@@ -1638,9 +1620,9 @@ static int sprd_codec_set_ad_sample_rate(struct snd_soc_component *codec,
 	struct sprd_codec_priv *sprd_codec = snd_soc_component_get_drvdata(codec);
 	unsigned int replace_rate = sprd_codec->replace_rate;
 
-	ret = agdsp_access_enable();
-	if (ret) {
-		pr_err("%s agdsp_access_enable error %d", __func__, ret);
+	ret = pm_runtime_get_sync(codec->dev);
+	if (ret < 0) {
+		dev_err(codec->dev, "%s agdsp_access_enable error %d", __func__, ret);
 		return ret;
 	}
 
@@ -1656,7 +1638,8 @@ static int sprd_codec_set_ad_sample_rate(struct snd_soc_component *codec,
 	snd_soc_component_update_bits(codec, SOC_REG(AUD_ADC_CTL), mask << shift,
 			    set << shift);
 
-	agdsp_access_disable();
+	pm_runtime_mark_last_busy(codec->dev);
+	pm_runtime_put_autosuspend(codec->dev);
 
 	return 0;
 }
@@ -1664,13 +1647,14 @@ static int sprd_codec_set_ad_sample_rate(struct snd_soc_component *codec,
 static int sprd_codec_sample_rate_setting(struct sprd_codec_priv *sprd_codec)
 {
 	int ret;
+	struct snd_soc_component *codec = sprd_codec->codec;
 
 	sp_asoc_pr_info("%s AD %u DA %u AD1 %u\n", __func__,
 			sprd_codec->ad_sample_val, sprd_codec->da_sample_val,
 			sprd_codec->ad1_sample_val);
-	ret = agdsp_access_enable();
-	if (ret) {
-		pr_err("%s agdsp_access_enable error %d", __func__, ret);
+	ret = pm_runtime_get_sync(codec->dev);
+	if (ret < 0) {
+		dev_err(codec->dev, "%s agdsp_access_enable error %d", __func__, ret);
 		return ret;
 	}
 
@@ -1690,7 +1674,8 @@ static int sprd_codec_sample_rate_setting(struct sprd_codec_priv *sprd_codec)
 					   DAC_FS_MODE_MASK, DAC_FS_MODE);
 	}
 
-	agdsp_access_disable();
+	pm_runtime_mark_last_busy(codec->dev);
+	pm_runtime_put_autosuspend(codec->dev);
 
 	return 0;
 }
@@ -1762,7 +1747,7 @@ static void codec_digital_reg_enable(struct snd_soc_component *codec)
 	mutex_lock(&sprd_codec->digital_enable_mutex);
 	if (!sprd_codec->digital_enable_count ||
 	    sprd_codec->user_dig_access_dis)
-		arch_audio_codec_digital_reg_enable_v2();
+		arch_audio_codec_digital_reg_enable_v2(codec->dev);
 	sprd_codec->digital_enable_count++;
 	mutex_unlock(&sprd_codec->digital_enable_mutex);
 }
@@ -1777,7 +1762,7 @@ static void codec_digital_reg_disable(struct snd_soc_component *codec)
 		sprd_codec->digital_enable_count--;
 
 	if (!sprd_codec->digital_enable_count)
-		arch_audio_codec_digital_reg_disable_v2();
+		arch_audio_codec_digital_reg_disable_v2(codec->dev);
 
 	mutex_unlock(&sprd_codec->digital_enable_mutex);
 }
@@ -1794,9 +1779,9 @@ static int digital_power_event(struct snd_soc_dapm_widget *w,
 	switch (event) {
 	case SND_SOC_DAPM_PRE_PMU:
 		mutex_lock(&sprd_codec->dig_access_mutex);
-		ret = agdsp_access_enable();
-		if (ret) {
-			pr_err("%s agdsp_access_enable failed\n", __func__);
+		ret = pm_runtime_get_sync(codec->dev);
+		if (ret < 0) {
+			dev_err(codec->dev, "%s agdsp_access_enable failed\n", __func__);
 			mutex_unlock(&sprd_codec->dig_access_mutex);
 			return ret;
 		}
@@ -1816,7 +1801,8 @@ static int digital_power_event(struct snd_soc_dapm_widget *w,
 		mutex_lock(&sprd_codec->dig_access_mutex);
 		if (sprd_codec->dig_access_en) {
 			sprd_codec->user_dig_access_dis = false;
-			agdsp_access_disable();
+			pm_runtime_mark_last_busy(codec->dev);
+			pm_runtime_put_autosuspend(codec->dev);
 			sprd_codec->dig_access_en = false;
 		}
 		mutex_unlock(&sprd_codec->dig_access_mutex);
@@ -2421,9 +2407,9 @@ static int vad_clk_power_event(struct snd_soc_dapm_widget *w,
 	sp_asoc_pr_info("'%s' %s\n", w->name, get_event_name(event));
 	switch (event) {
 	case SND_SOC_DAPM_PRE_PMU:
-		ret = agdsp_access_enable();
-		if (ret) {
-			pr_err("%s, agdsp_access_enable failed\n", __func__);
+		ret = pm_runtime_get_sync(codec->dev);
+		if (ret < 0) {
+			dev_err(codec->dev, "%s, agdsp_access_enable failed\n", __func__);
 			return ret;
 		}
 		//set 0 then 1 in old code, here is not, check further
@@ -2478,16 +2464,17 @@ static int vad_clk_power_event(struct snd_soc_dapm_widget *w,
 		//snd_soc_component_update_bits(codec, SOC_REG(ANA_DCL1), 0xffff, 0xe400);//from e700 to e400, //remove these ok on 0916
 		//snd_soc_component_update_bits(codec, SOC_REG(ANA_DCL10), 0xffff, 0x4001);//from 7821 to 4001,//remove these ok on 0916
 		regulator_set_mode(sprd_codec->vb, REGULATOR_MODE_STANDBY);
-		agdsp_access_disable();
+		pm_runtime_mark_last_busy(codec->dev);
+		pm_runtime_put_autosuspend(codec->dev);
 		break;
 	case SND_SOC_DAPM_POST_PMU:
 		break;
 	case SND_SOC_DAPM_PRE_PMD:
 		break;
 	case SND_SOC_DAPM_POST_PMD:
-		ret = agdsp_access_enable();
-		if (ret) {
-			pr_err("%s, agdsp_access_enable failed\n", __func__);
+		ret = pm_runtime_get_sync(codec->dev);
+		if (ret < 0) {
+			dev_err(codec->dev, "%s, agdsp_access_enable failed\n", __func__);
 			return ret;
 		}
 
@@ -2525,7 +2512,8 @@ static int vad_clk_power_event(struct snd_soc_dapm_widget *w,
 				   APB_MODULE_EB0_STS, AUDIF_EB, 0);
 		regmap_update_bits(sprd_codec->audcp_aon_apb,
 				   APB_MODULE_EB1_STS, VAD_APB_EB, 0);
-		agdsp_access_disable();
+		pm_runtime_mark_last_busy(codec->dev);
+		pm_runtime_put_autosuspend(codec->dev);
 		break;
 	default:
 		pr_err("%s invalid event error 0x%x\n", __func__, event);
@@ -4096,13 +4084,14 @@ static int sprd_codec_dac_lrclk_sel_put(struct snd_kcontrol *kcontrol,
 	sprd_codec->lrclk_sel[LRCLK_SEL_DAC] =
 		!!ucontrol->value.enumerated.item[0];
 	val = !!ucontrol->value.enumerated.item[0] ? BIT(DAC_LR_SEL) : 0;
-	ret = agdsp_access_enable();
-	if (ret) {
-		pr_err("%s agdsp_access_enable error %d", __func__, ret);
+	ret = pm_runtime_get_sync(codec->dev);
+	if (ret < 0) {
+		dev_err(codec->dev, "%s agdsp_access_enable error %d", __func__, ret);
 		return ret;
 	}
 	snd_soc_component_update_bits(codec, SOC_REG(AUD_I2S_CTL), BIT(DAC_LR_SEL), val);
-	agdsp_access_disable();
+	pm_runtime_mark_last_busy(codec->dev);
+	pm_runtime_put_autosuspend(codec->dev);
 
 	return 0;
 }
@@ -4143,14 +4132,15 @@ static int sprd_codec_adc_lrclk_sel_put(struct snd_kcontrol *kcontrol,
 	sprd_codec->lrclk_sel[LRCLK_SEL_ADC] =
 		!!ucontrol->value.enumerated.item[0];
 	val = !!ucontrol->value.enumerated.item[0] ? BIT(ADC_LR_SEL) : 0;
-	ret = agdsp_access_enable();
-	if (ret) {
-		pr_err("%s agdsp_access_enable error %d", __func__, ret);
+	ret = pm_runtime_get_sync(codec->dev);
+	if (ret < 0) {
+		dev_err(codec->dev, "%s agdsp_access_enable error %d", __func__, ret);
 		return ret;
 	}
 	snd_soc_component_update_bits(codec, SOC_REG(AUD_I2S_CTL),
 			    BIT(ADC_LR_SEL), val);
-	agdsp_access_disable();
+	pm_runtime_mark_last_busy(codec->dev);
+	pm_runtime_put_autosuspend(codec->dev);
 
 	return 0;
 }
@@ -4191,14 +4181,16 @@ static int sprd_codec_adc1_lrclk_sel_put(struct snd_kcontrol *kcontrol,
 	sprd_codec->lrclk_sel[LRCLK_SEL_ADC1] =
 		!!ucontrol->value.enumerated.item[0];
 	val = !!ucontrol->value.enumerated.item[0] ? BIT(ADC1_LR_SEL) : 0;
-	ret = agdsp_access_enable();
-	if (ret) {
-		pr_err("%s agdsp_access_enable error %d", __func__, ret);
+	ret = pm_runtime_get_sync(codec->dev);
+	if (ret < 0) {
+		dev_err(codec->dev, "%s agdsp_access_enable error %d", __func__, ret);
 		return ret;
 	}
+
 	snd_soc_component_update_bits(codec, SOC_REG(AUD_ADC1_I2S_CTL),
 			    BIT(ADC1_LR_SEL), val);
-	agdsp_access_disable();
+	pm_runtime_mark_last_busy(codec->dev);
+	pm_runtime_put_autosuspend(codec->dev);
 
 	return 0;
 }
@@ -4961,16 +4953,17 @@ static unsigned int sprd_codec_read(struct snd_soc_component *codec,
 	} else if (IS_SPRD_CODEC_DP_RANG(reg | SPRD_CODEC_DP_BASE_HI)) {
 		reg |= SPRD_CODEC_DP_BASE_HI;
 
-		ret = agdsp_access_enable();
-		if (ret) {
-			pr_err("%s, agdsp_access_enable failed\n", __func__);
+	ret = pm_runtime_get_sync(codec->dev);
+	if (ret < 0) {
+		dev_err(codec->dev, "%s, agdsp_access_enable failed\n", __func__);
 			return ret;
 		}
 		codec_digital_reg_enable(codec);
 		ret = readl_relaxed((void __iomem *)(reg -
 			CODEC_DP_BASE + sprd_codec_dp_base));
 		codec_digital_reg_disable(codec);
-		agdsp_access_disable();
+		pm_runtime_mark_last_busy(codec->dev);
+		pm_runtime_put_autosuspend(codec->dev);
 
 		return ret;
 	}
@@ -4998,9 +4991,9 @@ static int sprd_codec_write(struct snd_soc_component *codec, unsigned int reg,
 	} else if (IS_SPRD_CODEC_DP_RANG(reg | SPRD_CODEC_DP_BASE_HI)) {
 		reg |= SPRD_CODEC_DP_BASE_HI;
 
-		ret = agdsp_access_enable();
-		if (ret) {
-			pr_err("%s, agdsp_access_enable failed\n", __func__);
+	ret = pm_runtime_get_sync(codec->dev);
+	if (ret < 0) {
+		dev_err(codec->dev, "%s, agdsp_access_enable failed\n", __func__);
 			return ret;
 		}
 		codec_digital_reg_enable(codec);
@@ -5016,7 +5009,8 @@ static int sprd_codec_write(struct snd_soc_component *codec, unsigned int reg,
 			       readl_relaxed((void __iomem *)(reg -
 				CODEC_DP_BASE + sprd_codec_dp_base)));
 		codec_digital_reg_disable(codec);
-		agdsp_access_disable();
+		pm_runtime_mark_last_busy(codec->dev);
+		pm_runtime_put_autosuspend(codec->dev);
 
 		return ret;
 	}
@@ -5169,9 +5163,9 @@ static void sprd_codec_proc_read(struct snd_info_entry *entry,
 	struct snd_soc_component *codec = sprd_codec->codec;
 	int reg, ret;
 
-	ret = agdsp_access_enable();
-	if (ret) {
-		pr_err("%s agdsp_access_enable failed\n", __func__);
+	ret = pm_runtime_get_sync(codec->dev);
+	if (ret < 0) {
+		dev_err(codec->dev, "%s agdsp_access_enable failed\n", __func__);
 		return;
 	}
 	snd_iprintf(buffer, "%s digital part\n", codec->name);
@@ -5184,7 +5178,8 @@ static void sprd_codec_proc_read(struct snd_info_entry *entry,
 			    , snd_soc_component_read(codec, reg + 0x0C)
 		);
 	}
-	agdsp_access_disable();
+	pm_runtime_mark_last_busy(codec->dev);
+	pm_runtime_put_autosuspend(codec->dev);
 
 	snd_iprintf(buffer, "%s analog part\n",
 		codec->name);
@@ -5804,6 +5799,10 @@ static int sprd_codec_dig_probe(struct platform_device *pdev)
 		return -EINVAL;
 	}
 
+	pm_runtime_set_active(&pdev->dev);
+	pm_runtime_enable(&pdev->dev);
+	dev_info(&pdev->dev, "<-- agdsp_pd is enabled for THIS device now\n");
+
 	return 0;
 }
 
@@ -6058,6 +6057,10 @@ static int sprd_codec_probe(struct platform_device *pdev)
 	ret = sprd_codec_clk26m_sinout(sprd_codec, false);
 	if (ret)
 		pr_err("%s clean clk26m_sinout_pmic fail\n", __func__);
+
+	pm_runtime_set_active(&pdev->dev);
+	pm_runtime_enable(&pdev->dev);
+	dev_info(&pdev->dev, "<-- agdsp_pd is enabled for THIS device now\n");
 
 	return 0;
 

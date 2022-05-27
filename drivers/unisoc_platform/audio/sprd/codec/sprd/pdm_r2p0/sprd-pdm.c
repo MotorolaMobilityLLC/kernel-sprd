@@ -17,6 +17,7 @@
 #include <sound/soc-dapm.h>
 #include <linux/io.h>
 #include <linux/iopoll.h>
+#include <linux/pm_runtime.h>
 #include "audio-sipc.h"
 #include "sprd-audio.h"
 #include "sprd-asoc-common.h"
@@ -69,27 +70,6 @@ enum aud_pll_cmd {
 	DISABLE_AUD_PLL_BIND,
 	ENABLE_AUD_PLL_BIND,
 };
-
-#if 0
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-function"
-int agdsp_access_enable(void)
-	__attribute__ ((weak, alias("__agdsp_access_enable")));
-static int __agdsp_access_enable(void)
-{
-	pr_debug("%s\n", __func__);
-	return 0;
-}
-
-int agdsp_access_disable(void)
-	__attribute__ ((weak, alias("__agdsp_access_disable")));
-static int __agdsp_access_disable(void)
-{
-	pr_debug("%s\n", __func__);
-	return 0;
-}
-#pragma GCC diagnostic pop
-#endif
 
 static inline int pdm_ioremap_reg_read(struct sprd_pdm_priv *sprd_pdm,
 				       unsigned int offset)
@@ -172,11 +152,12 @@ static void pdm_adc2_r_dg(struct sprd_pdm_priv *sprd_pdm)
 void pdm_module_en_ums9230(struct sprd_pdm_priv *sprd_pdm, bool en)
 {
 	int ret;
+	struct snd_soc_component *codec = sprd_pdm->codec;
 
 	if (en) {
-		ret = agdsp_access_enable();
-		if (ret) {
-			pr_err("%s agdsp_access_enable error %d", __func__,
+		ret = pm_runtime_get_sync(codec->dev);
+		if (ret < 0) {
+			dev_err(codec->dev, "%s agdsp_access_enable error %d", __func__,
 			       ret);
 			return;
 		}
@@ -193,18 +174,20 @@ void pdm_module_en_ums9230(struct sprd_pdm_priv *sprd_pdm, bool en)
 		agcp_ahb_reg_clr(AHB_MODULE_EB0_STS, PDM_EB);
 		sprd_pdm->module_en = false;
 
-		agdsp_access_disable();
+		pm_runtime_mark_last_busy(codec->dev);
+		pm_runtime_put_autosuspend(codec->dev);
 	}
 }
 
 void pdm_module_en_ums9620(struct sprd_pdm_priv *sprd_pdm, bool en)
 {
 	int ret;
+	struct snd_soc_component *codec = sprd_pdm->codec;
 
 	if (en) {
-		ret = agdsp_access_enable();
-		if (ret) {
-			pr_err("%s agdsp_access_enable error %d", __func__,
+		ret = pm_runtime_get_sync(codec->dev);
+		if (ret < 0) {
+			dev_err(codec->dev, "%s agdsp_access_enable error %d", __func__,
 			       ret);
 			return;
 		}
@@ -236,17 +219,19 @@ void pdm_module_en_ums9620(struct sprd_pdm_priv *sprd_pdm, bool en)
 		aon_apb_reg_clr(APB_MODULE_EB0_STS, PDM_IIS_EB);
 		sprd_pdm->module_en = false;
 
-		agdsp_access_disable();
+		pm_runtime_mark_last_busy(codec->dev);
+		pm_runtime_put_autosuspend(codec->dev);
 	}
 }
 
 void pdm_module_en(struct sprd_pdm_priv *sprd_pdm, bool en)
 {
 	int ret;
+	struct snd_soc_component *codec = sprd_pdm->codec;
 
-	ret = agdsp_access_enable();
-	if (ret) {
-		pr_err("%s agdsp_access_enable error %d", __func__, ret);
+	ret = pm_runtime_get_sync(codec->dev);
+	if (ret < 0) {
+		dev_err(codec->dev, "%s agdsp_access_enable error %d", __func__, ret);
 		return;
 	}
 
@@ -258,7 +243,8 @@ void pdm_module_en(struct sprd_pdm_priv *sprd_pdm, bool en)
 		dev_err(&sprd_pdm->pdev->dev, " %s wrong board version\n",
 			__func__);
 
-	agdsp_access_disable();
+	pm_runtime_mark_last_busy(codec->dev);
+	pm_runtime_put_autosuspend(codec->dev);
 }
 
 static int pdm_module_en_get(struct snd_kcontrol *kcontrol,
@@ -303,16 +289,17 @@ static int pdm_adc2_l_dg_set(struct snd_kcontrol *kcontrol,
 	struct sprd_pdm_priv *sprd_pdm = snd_soc_component_get_drvdata(codec);
 	int ret;
 
-	ret = agdsp_access_enable();
-	if (ret) {
-		pr_err("%s agdsp_access_enable error %d", __func__,
+	ret = pm_runtime_get_sync(codec->dev);
+	if (ret < 0) {
+		dev_err(codec->dev, "%s agdsp_access_enable error %d", __func__,
 		       ret);
 		return ret;
 	}
 	sprd_pdm->adc2_l_dg = ucontrol->value.integer.value[0];
 	if (sprd_pdm->module_en)
 		pdm_adc2_l_dg(sprd_pdm);
-	agdsp_access_disable();
+	pm_runtime_mark_last_busy(codec->dev);
+	pm_runtime_put_autosuspend(codec->dev);
 	dev_info(sprd_pdm->dev, "module_en %d, set adc2_l_dg %d\n",
 		 sprd_pdm->module_en, sprd_pdm->adc2_l_dg);
 
@@ -337,16 +324,17 @@ static int pdm_adc2_r_dg_set(struct snd_kcontrol *kcontrol,
 	struct sprd_pdm_priv *sprd_pdm = snd_soc_component_get_drvdata(codec);
 	int ret;
 
-	ret = agdsp_access_enable();
-	if (ret) {
-		pr_err("%s agdsp_access_enable error %d", __func__,
+	ret = pm_runtime_get_sync(codec->dev);
+	if (ret < 0) {
+		dev_err(codec->dev, "%s agdsp_access_enable error %d", __func__,
 		       ret);
 		return ret;
 	}
 	sprd_pdm->adc2_r_dg = ucontrol->value.integer.value[0];
 	if (sprd_pdm->module_en)
 		pdm_adc2_r_dg(sprd_pdm);
-	agdsp_access_disable();
+	pm_runtime_mark_last_busy(codec->dev);
+	pm_runtime_put_autosuspend(codec->dev);
 	dev_info(sprd_pdm->dev, "module_en %d, set adc2_r_dg %d\n",
 		 sprd_pdm->module_en, sprd_pdm->adc2_r_dg);
 
@@ -965,6 +953,10 @@ static int pdm_probe(struct platform_device *pdev)
 			ret);
 	else
 		pr_info("%s successful\n", __func__);
+
+	pm_runtime_set_active(&pdev->dev);
+	pm_runtime_enable(&pdev->dev);
+	dev_info(&pdev->dev, "<-- agdsp_pd is enabled for THIS device now\n");
 
 	return ret;
 }

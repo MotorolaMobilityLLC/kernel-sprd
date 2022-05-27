@@ -5536,7 +5536,6 @@ static int vbc_normal_resume(struct device *dev)
 	struct aud_pm_vbc *pm_vbc;
 
 	pm_vbc = aud_pm_vbc_get();
-//	restore_access();
 	pm_runtime_allow(dev);
 	pr_info("%s resumed\n", __func__);
 
