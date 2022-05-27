@@ -99,6 +99,8 @@
 
 		/*nvmem-cells = <&gpu_bin>;
 		nvmem-cell-names = "gpu_bin";*/
+		nvmem-cells = <&cpu_flag>;
+		nvmem-cell-names = "cpu_flag";
 
 		operating-points = <
 			/* kHz    uV */
