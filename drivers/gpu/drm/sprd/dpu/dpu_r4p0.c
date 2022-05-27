@@ -1284,7 +1284,6 @@ static void dpu_framerate(struct dpu_context *ctx)
 static void dpu_scaling(struct dpu_context *ctx,
 			struct sprd_dpu_layer layers[], u8 count)
 {
-	int i;
 	u16 src_w;
 	u16 src_h;
 	struct sprd_dpu_layer *top_layer;
