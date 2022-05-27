@@ -3017,6 +3017,7 @@
 
 # required by sprd_wdh.ko
   copy_from_kernel_nofault
+  vmalloc_to_pfn
 
 # required by sprd_hang_trigger.ko
   kstrtoul_from_user
