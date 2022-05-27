@@ -1,6 +1,7 @@
 #!/bin/bash
 
 update_flag=0
+return_val=0
 
 KERNEL_PATH=$($(dirname $(readlink -f $0))/get_kernel_path.sh)
 
@@ -147,15 +148,16 @@ for board in $(get_board)
 do
 	echo "check sprd_gki_${board}.fragment"
 	generate_config gki_defconfig sprd_gki_${board}.fragment test_sprd_${board}_defconfig
+	let return_val=$?+$return_val
 	echo "check sprd_gki_${board}_debug.fragment"
 	generate_config test_sprd_${board}_defconfig  sprd_gki_${board}_debug.fragment test_sprd_${board}_debug_defconfig
+	let return_val=$?+$return_val
 	rm -rf $KERNEL_PATH/arch/arm64/configs/test_sprd_${board}_defconfig
 	rm -rf $KERNEL_PATH/arch/arm64/configs/test_sprd_${board}_debug_defconfig
-
-
 done
 #sort the sprd_gki.fragment
 echo "check sprd_gki.fragment"
 generate_config gki_defconfig sprd_gki.fragment test_gki_sprd_defconfig
+let return_val=$?+$return_val
 rm -rf $KERNEL_PATH/arch/arm64/configs/test_gki_sprd_defconfig
-exit $RES
+exit $return_val
