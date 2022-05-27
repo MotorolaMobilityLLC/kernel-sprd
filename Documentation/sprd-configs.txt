@@ -6502,8 +6502,8 @@ CONFIG_GENERIC_CPU_AUTOPROBE
 	[missing plat description] none
 	[function] Enable kernel support cpu auto probe.
 CONFIG_GENERIC_CPU_VULNERABILITIES
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field] code
 	[subsys] core
@@ -7062,6 +7062,15 @@ CONFIG_HARDENED_USERCOPY
 	[missing plat description] none
 	[function] vts require, Harden memory copies between kernel and userspace
 CONFIG_HARDENED_USERCOPY_FALLBACK
+	[arch] arm
+	[plat] pike2
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
+CONFIG_HARDEN_BRANCH_HISTORY
 	[arch] arm
 	[plat] pike2
 	[missing plat] none
@@ -10992,6 +11001,15 @@ CONFIG_MISC_FILESYSTEMS
 	[missing plat description] none
 	[function] Miscellaneous filesystems support. This option alone
 	   does not add any kernel code. Sdcardfs/ubifs need this.
+CONFIG_MITIGATE_SPECTRE_BRANCH_HISTORY
+	[arch] arm64
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
 CONFIG_MMC
 	[arch] all
 	[plat] all
