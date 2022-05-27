@@ -202,6 +202,7 @@ unisoc_platform:wlan:
 
 usb:core:
 usb:dwc3:
+usb:host:
 usb:gadget:
 usb:misc:
 usb:musb:
