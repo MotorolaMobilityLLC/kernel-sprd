@@ -266,11 +266,15 @@ struct id_to_name_tag {
 
 #pragma pack(1)
 
-struct sensor_event_data_t {
-	u8 cmd;
+struct shub_sensor_event {
 	u16 sensor_handle;
 	float fdata[6];
 	u64 timestamp;
+};
+
+struct sensor_event_data_t {
+	u8 cmd;
+	struct shub_sensor_event shub_sensor_event_t;
 };
 #pragma pack()
 extern struct shub_data *g_sensor;

@@ -260,7 +260,7 @@ static void shub_data_callback(struct shub_data *sensor, u8 *data, u32 len)
 	struct sensor_event_data_t sensor_data;
 
 	sensor_data.cmd = HAL_SEN_DATA;
-	memcpy(&sensor_data.sensor_handle, data, len);
+	memcpy(&sensor_data.shub_sensor_event_t.sensor_handle, data, len);
 #if SHUB_DATA_DUMP
 	if (!sensor_data.sensor_handle)
 		flush_getcnt++;
