@@ -18,3 +18,5 @@ obj-$(CONFIG_CORESIGHT_APETB) += coresight-apetb-ctrl.o coresight-apetb-main.o
 obj-$(CONFIG_CORESIGHT_STM) += coresight-stm.o
 obj-$(CONFIG_CORESIGHT_CPU_DEBUG) += coresight-cpu-debug.o
 obj-$(CONFIG_CORESIGHT_CATU) += coresight-catu.o
+obj-$(CONFIG_CORESIGHT_TMC_GROUP) += coresight-tmc_group.o
+obj-$(CONFIG_CORESIGHT_TMC_GROUP) += phy/

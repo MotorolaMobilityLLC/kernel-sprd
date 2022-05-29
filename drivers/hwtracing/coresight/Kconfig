@@ -117,4 +117,11 @@ config CORESIGHT_CPU_DEBUG
 	  properly, please refer Documentation/trace/coresight-cpu-debug.rst
 	  for detailed description and the example for usage.
 
+config CORESIGHT_TMC_GROUP
+	bool "CoreSight tmc group drivers"
+	help
+	  This enables support for CoreSight tmc group drivers that are
+	  responsible for dump several tmc data.
+
+source "drivers/hwtracing/coresight/phy/Kconfig"
 endif

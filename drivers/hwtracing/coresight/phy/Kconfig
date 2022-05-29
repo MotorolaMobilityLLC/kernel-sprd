@@ -1,0 +1,17 @@
+#
+# Physical Layer Coresight PHY driver configuration
+#
+menu "Coresight Physical Layer drivers"
+
+config CORESIGHT_PHY
+	depends on CORESIGHT_TMC_GROUP
+	select EXTCON
+	def_bool n
+
+config SPRD_SHARKL6PRO_CORESIGHT_PHY
+	tristate "Spreadtrum SHARKL6PRO CORESIGHT PHY Driver"
+	select CORESIGHT_PHY
+	help
+	  Enable this to support SHARKL6PRO CORESIGHT PHY that is part of SOC.
+
+endmenu

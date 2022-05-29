@@ -6479,4 +6479,11 @@ CONFIG_CORESIGHT_SOURCE_ETM4X=y
 CONFIG_CORESIGHT_APETB=y
 CONFIG_CORESIGHT_STM=y
 # CONFIG_CORESIGHT_CPU_DEBUG is not set
+# CONFIG_CORESIGHT_TMC_GROUP is not set
+
+#
+# Coresight Physical Layer drivers
+#
+# CONFIG_SPRD_SHARKL6PRO_CORESIGHT_PHY is not set
+# end of Coresight Physical Layer drivers
 # end of Kernel hacking

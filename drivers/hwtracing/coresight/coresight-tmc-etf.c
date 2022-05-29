@@ -55,7 +55,11 @@ static void tmc_etb_dump_hw(struct tmc_drvdata *drvdata)
 	lost = readl_relaxed(drvdata->base + TMC_STS) & TMC_STS_FULL;
 	bufp = drvdata->buf;
 	drvdata->len = 0;
+#ifdef CONFIG_CORESIGHT_TMC_GROUP
+	while (drvdata->len < drvdata->size) {
+#else
 	while (1) {
+#endif
 		read_data = readl_relaxed(drvdata->base + TMC_RRD);
 		if (read_data == 0xFFFFFFFF)
 			break;
@@ -128,12 +132,14 @@ static void tmc_etf_disable_hw(struct tmc_drvdata *drvdata)
 	CS_LOCK(drvdata->base);
 }
 
+#ifndef CONFIG_CORESIGHT_TMC_GROUP
 static bool tmc_check_ctrl_enable(struct tmc_drvdata *drvdata)
 {
 	if (readl_relaxed(drvdata->base + TMC_CTL) & TMC_CTL_CAPT_EN)
 		return true;
 	return false;
 }
+#endif
 
 /*
  * Return the available trace data in the buffer from @pos, with
@@ -605,24 +611,29 @@ int tmc_read_prepare_etb(struct tmc_drvdata *drvdata)
 	 * in disable mode, it will cause etb data get failed, so
 	 * it needs to enable it for CP modem.
 	 */
+#ifndef CONFIG_CORESIGHT_TMC_GROUP
 	if (tmc_check_ctrl_enable(drvdata))
 		tmc_enable_etf_sink_sysfs(drvdata->csdev);
+#endif
 
 	spin_lock_irqsave(&drvdata->spinlock, flags);
 
 	if (drvdata->reading) {
+		pr_err("tmc_read_prepare_etb : %s: is reading!\n", __func__);
 		ret = -EBUSY;
 		goto out;
 	}
 
 	/* Don't interfere if operated from Perf */
 	if (drvdata->mode == CS_MODE_PERF) {
+		pr_err("tmc_read_prepare_etb : %s: drvdata->mode == CS_MODE_PERF!\n", __func__);
 		ret = -EINVAL;
 		goto out;
 	}
 
 	/* If drvdata::buf is NULL the trace data has been read already */
 	if (drvdata->buf == NULL) {
+		pr_err("tmc_read_prepare_etb : %s: drvdata->buf == NULL!\n", __func__);
 		ret = -EINVAL;
 		goto out;
 	}
@@ -675,7 +686,9 @@ int tmc_read_unprepare_etb(struct tmc_drvdata *drvdata)
 		 * can't be NULL.
 		 */
 		memset(drvdata->buf, 0, drvdata->size);
+#ifndef CONFIG_CORESIGHT_TMC_GROUP
 		__tmc_etb_enable_hw(drvdata);
+#endif
 	} else {
 		/*
 		 * The ETB/ETF is not tracing and the buffer was just read.

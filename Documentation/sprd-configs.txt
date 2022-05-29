@@ -3128,8 +3128,8 @@ CONFIG_CORESIGHT
 	[function] This function is used to enable coresight architecture.
 CONFIG_CORESIGHT_APETB
 	[arch] arm64
-	[plat] sharkl3
-	[missing plat] sharkl5Pro
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
 	[field] make,code
 	[subsys] kernel core
 	[must] debug
