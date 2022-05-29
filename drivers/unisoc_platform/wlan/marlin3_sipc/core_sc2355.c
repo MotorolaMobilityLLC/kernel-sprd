@@ -81,6 +81,12 @@ int sprdwl_chip_power_on(struct sprdwl_intf *intf)
 		return -ENODEV;
 	}
 
+	/* need reset intf->exit falg, if wcn reset happened */
+	if (unlikely(intf->exit) || unlikely(intf->cp_asserted)) {
+		wl_info("assert happened!, need reset paras!\n");
+		sprdwl_sc2355_reset(intf);
+	}
+
 	if (sprdwl_sync_version(intf->priv)) {
 		atomic_sub(1, &intf->power_cnt);
 		return -EIO;

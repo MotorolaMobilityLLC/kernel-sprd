@@ -553,11 +553,21 @@ static int sprdwl_cfg80211_del_iface(struct wiphy *wiphy,
 {
 	struct sprdwl_priv *priv = wiphy_priv(wiphy);
 	struct sprdwl_vif *vif = NULL, *tmp_vif = NULL;
+	struct sprdwl_intf *intf;
 
-	if (sprdwl_intf_is_exit(priv)) {
+	if (!priv) {
+		wl_err("can not get priv!\n");
+		return -ENODEV;
+	}
+	intf = (struct sprdwl_intf *)(priv->hw_priv);
+
+	if (intf->remove_flag == 1) {
 		wiphy_err(wiphy, "%s driver removing!\n", __func__);
 		return 0;
 	}
+	if (sprdwl_intf_is_exit(priv) || intf->cp_asserted)
+		wl_info("del interface while assert\n");
+
 	spin_lock_bh(&priv->list_lock);
 	list_for_each_entry_safe(vif, tmp_vif, &priv->vif_list, vif_node) {
 		if (&vif->wdev == wdev) {
@@ -1642,10 +1652,29 @@ static void sprdwl_cfg80211_abort_scan(struct wiphy *wiphy,
 			container_of(wdev, struct sprdwl_vif, wdev);
 	struct api_version_t *api = (&priv->sync_api)->api_array;
 	u8 fw_ver = 0, drv_ver = 0;
+	struct sprdwl_intf *intf;
 
 	fw_ver = (api + WIFI_CMD_SCAN)->fw_version;
 	drv_ver = (api + WIFI_CMD_SCAN)->drv_version;
 	fw_ver = min(fw_ver, drv_ver);
+
+	if (!priv) {
+		wl_err("can not get priv!\n");
+		return;
+	}
+
+	intf = (struct sprdwl_intf *)(priv->hw_priv);
+
+	if (sprdwl_intf_is_exit(priv) || intf->cp_asserted) {
+		wl_info("%s assert happened!\n", __func__);
+		if (vif->mode == SPRDWL_MODE_P2P_DEVICE) {
+			wl_info("p2p device need cancel scan\n");
+			sprdwl_scan_done(vif, true);
+			wl_info("%s p2p device cancel scan finished!\n",
+				__func__);
+		}
+	}
+
 	if (fw_ver < 3) {
 		wl_err("%s Abort scan not support.\n", __func__);
 		return;

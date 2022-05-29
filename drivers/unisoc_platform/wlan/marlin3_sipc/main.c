@@ -1636,6 +1636,9 @@ static int sprdwl_host_reset(struct notifier_block *nb,
 
 	intf = (struct sprdwl_intf *)(vif->priv->hw_priv);
 	intf->cp_asserted = 1;
+	wl_err("%s() dev_path: %s\n", __func__,
+		kobject_get_path(&intf->pdev->dev.kobj, GFP_KERNEL));
+	sprdwl_intf_force_exit(vif->priv);
 
 	return NOTIFY_OK;
 }

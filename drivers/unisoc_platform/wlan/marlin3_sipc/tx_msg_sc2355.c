@@ -58,8 +58,10 @@ struct sprdwl_msg_buf *sprdwl_get_msg_buf(void *pdev,
 	sprdwl_tx_dev = (struct sprdwl_tx_msg *)dev->sprdwl_tx;
 	sprdwl_tx_dev->mode = mode;
 
-	if (unlikely(dev->exit))
+	if (unlikely(dev->exit)) {
+		wl_err("%s can not get msg_buf: intf->exit\n", __func__);
 		return NULL;
+	}
 
 	if (type == SPRDWL_TYPE_DATA)
 		list = &sprdwl_tx_dev->tx_list_qos_pool;
@@ -1635,6 +1637,121 @@ static int sprdwl_tx_work_queue(void *data)
 	return 0;
 }
 
+int sprdwl_sc2355_reset(struct sprdwl_intf *intf)
+{
+	struct sprdwl_priv *priv = NULL;
+	struct sprdwl_tx_msg *tx_msg = NULL;
+	struct sprdwl_vif *vif, *tmp;
+	int i;
+
+	if (!intf) {
+		wl_err("%s can not get intf!\n", __func__);
+		return -1;
+	}
+
+	priv = intf->priv;
+	if (!priv) {
+		wl_err("%s can not get priv!\n", __func__);
+		return -1;
+	}
+
+	tx_msg = (struct sprdwl_tx_msg *)intf->sprdwl_tx;
+	if (!tx_msg) {
+		wl_err("%s can not get tx_msg!\n", __func__);
+		return -1;
+	}
+
+	/* need rest intf->exit flag, if wcn reset happened */
+	if (unlikely(intf->exit)) {
+		intf->exit = 0;
+		wl_info("%s reset intf->exit flag: %d!\n",
+			__func__, intf->exit);
+	}
+
+	/* need reset intf->cp_asserted flag */
+	if (unlikely(intf->cp_asserted)) {
+		intf->cp_asserted = 0;
+		wl_info("%s reset intf->cp_asserted flag: %d!\n",
+			__func__, intf->cp_asserted);
+	}
+
+	intf->fw_awake = 1;
+	intf->fw_power_down = 0;
+
+	list_for_each_entry_safe(vif, tmp, &priv->vif_list, vif_node) {
+		int ciphyr_type, key_index;
+		int ciphyr_type_max = 2, key_index_max = 6;
+		/* check connect state */
+		if (vif->mode == SPRDWL_MODE_STATION ||
+			vif->mode == SPRDWL_MODE_P2P_CLIENT) {
+			if (vif->sm_state == SPRDWL_DISCONNECTING ||
+				vif->sm_state == SPRDWL_CONNECTING ||
+				vif->sm_state == SPRDWL_CONNECTED) {
+				wl_info("%s check connection state for sta or p2p\n", __func__);
+				wl_info("vif->mode : %d, vif->sm_state: %d\n",
+					vif->mode, vif->sm_state);
+				cfg80211_disconnected(vif->ndev, 0, NULL, 0,
+							false, GFP_KERNEL);
+				vif->sm_state = SPRDWL_DISCONNECTED;
+			}
+		}
+
+		if (vif->mode == SPRDWL_MODE_AP) {
+			wl_info("softap mode, reset iftype to station, before reset: %d\n",
+				vif->wdev.iftype);
+			vif->wdev.iftype = NL80211_IFTYPE_STATION;
+			wl_info("after reset iftype: %d\n", vif->wdev.iftype);
+		}
+		if (vif->mode != SPRDWL_MODE_NONE) {
+			wl_info("need reset mode to none: %d\n", vif->mode);
+			priv->fw_stat[vif->mode] = SPRDWL_INTF_CLOSE;
+			vif->mode = SPRDWL_MODE_NONE;
+			vif->ctx_id = 0;
+			handle_tx_status_after_close(vif);
+		}
+
+		/* rest ssid & bssid */
+		memset(vif->bssid, 0, sizeof(vif->bssid));
+		memset(vif->ssid, 0, sizeof(vif->ssid));
+		vif->ssid_len = 0;
+		vif->prwise_crypto = SPRDWL_CIPHER_NONE;
+		vif->grp_crypto = SPRDWL_CIPHER_NONE;
+
+		for (ciphyr_type = 0; ciphyr_type < ciphyr_type_max; ciphyr_type++) {
+			vif->key_index[ciphyr_type] = 0;
+			for (key_index = 0; key_index < key_index_max; key_index++) {
+				memset(vif->key[ciphyr_type][key_index], 0x00,
+					WLAN_MAX_KEY_LEN);
+				vif->key_len[ciphyr_type][key_index] = 0;
+			}
+		}
+	}
+
+	for (i = 0; i < 32; i++) {
+		if (intf->peer_entry[i].ba_tx_done_map != 0) {
+			intf->peer_entry[i].ht_enable = 0;
+			intf->peer_entry[i].ip_acquired = 0;
+			intf->peer_entry[i].ba_tx_done_map = 0;
+		}
+		peer_entry_delba((void *)intf, i);
+		memset(&intf->peer_entry[i], 0x00,
+			sizeof(struct sprdwl_peer_entry));
+		intf->peer_entry[i].ctx_id = 0xFF;
+		sprdwl_dis_flush_txlist(intf, i);
+	}
+
+	/* flush cmd and data buffer */
+	wl_info("%s flush all tx list\n", __func__);
+	sprdwl_flush_all_txlist(tx_msg);
+	sprdwl_rx_flush_buffer((void *)intf);
+
+	/* when cp2 hang and reset, claer hang_recvery_status */
+	wl_info("%s set hang recovery status to END, %d\n", __func__, __LINE__);
+	tx_msg->hang_recovery_status = HANG_RECOVERY_END;
+
+	return 0;
+}
+
 int sprdwl_tx_init(struct sprdwl_intf *dev)
 {
 	int ret = 0;
@@ -1702,6 +1819,7 @@ int sprdwl_tx_init(struct sprdwl_intf *dev)
 	}
 
 	tx_msg->hang_recovery_status = HANG_RECOVERY_END;
+	dev->remove_flag = 0;
 	init_completion(&tx_msg->tx_completed);
 	wake_up_process(tx_msg->tx_thread);
 
@@ -1730,6 +1848,7 @@ void sprdwl_tx_deinit(struct sprdwl_intf *intf)
 
 	/*let tx work queue exit*/
 	intf->exit = 1;
+	intf->remove_flag = 1;
 
 	if (tx_msg->tx_thread) {
 		tx_up(tx_msg);

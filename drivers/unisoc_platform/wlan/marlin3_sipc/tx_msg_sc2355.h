@@ -138,5 +138,6 @@ void tx_up(struct sprdwl_tx_msg *tx_msg);
 void sprdwl_dequeue_tofreelist_buf(struct sprdwl_tx_msg *tx_msg, struct sprdwl_msg_buf *msg_buf);
 void prepare_addba(struct sprdwl_intf *intf, unsigned char lut_index,
 		    struct sprdwl_peer_entry *peer_entry, unsigned char tid);
+int sprdwl_sc2355_reset(struct sprdwl_intf *intf);
 #endif
 

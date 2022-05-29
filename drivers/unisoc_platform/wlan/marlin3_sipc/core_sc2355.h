@@ -202,6 +202,7 @@ struct sprdwl_intf {
 	void *mbuf_head;
 	void *mbuf_tail;
 	int mbuf_num;
+	int remove_flag;
 	/*lock to ensure L1SS status change ok*/
 	spinlock_t l1ss_lock;
 	u8 tsq_shift;

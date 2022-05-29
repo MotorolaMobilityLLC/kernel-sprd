@@ -608,6 +608,12 @@ int sprdwl_cmd_send_recv(struct sprdwl_priv *priv,
 	intf = (struct sprdwl_intf *)(priv->hw_priv);
 	if (intf->cp_asserted == 1) {
 		wl_info("%s CP2 assert\n", __func__);
+		sprdwl_intf_free_msg_buf(priv, msg);
+#if defined(sc2355_FTR)
+		kfree(msg->tran_data);
+#else
+		dev_kfree_skb(msg->tran_data);
+#endif
 		return -EIO;
 	}
 	ret = sprdwl_api_available_check(priv, msg);
