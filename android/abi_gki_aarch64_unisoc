@@ -14,6 +14,7 @@
   __alloc_pages_nodemask
   __alloc_percpu
   __alloc_skb
+  alloc_vm_area
   alloc_workqueue
   __arch_copy_from_user
   __arch_copy_in_user
@@ -146,6 +147,7 @@
   debugfs_create_u64
   debugfs_create_x32
   debugfs_initialized
+  debugfs_lookup
   debugfs_remove
   debugfs_remove_recursive
   debugfs_create_symlink
@@ -246,11 +248,7 @@
   drm_dbg
   drm_dev_alloc
   drm_dev_put
-  drm_dev_printk
   drm_dev_register
-  drm_dp_get_adjust_request_pre_emphasis
-  drm_dp_get_adjust_request_voltage
-  drm_dp_link_train_channel_eq_delay
   drm_err
   drm_ioctl
   drm_ioctl_kernel
@@ -274,7 +272,6 @@
   event_triggers_call
   extcon_find_edev_by_node
   extcon_get_edev_by_phandle
-  extcon_get_property
   extcon_get_state
   extcon_set_state
   extcon_set_property
@@ -312,12 +309,9 @@
   genl_unregister_family
   gen_pool_add_owner
   gen_pool_alloc_algo_owner
-  gen_pool_best_fit
   gen_pool_create
   gen_pool_free_owner
-  gen_pool_set_algo
   genphy_resume
-  getboottime64
   get_cpu_device
   __get_free_pages
   get_governor_parent_kobj
@@ -567,7 +561,6 @@
   of_get_regulator_init_data
   of_graph_get_remote_node
   of_irq_get
-  of_irq_get_byname
   of_match_node
   of_nvmem_cell_get
   of_parse_phandle
@@ -604,13 +597,13 @@
   perf_trace_buf_alloc
   perf_trace_run_bpf_submit
   pfn_valid
-  phy_set_mode_ext
-  phy_power_on
-  phy_power_off
+  phy_exit
+  phy_init
   phy_pm_runtime_get_sync
   phy_pm_runtime_put_sync
-  phy_init
-  phy_exit
+  phy_power_off
+  phy_power_on
+  phy_set_mode_ext
   phy_connect
   phy_disconnect
   phy_ethtool_get_link_ksettings
@@ -711,8 +704,6 @@
   radix_tree_gang_lookup
   radix_tree_insert
   radix_tree_lookup
-  raw_notifier_call_chain
-  raw_notifier_chain_register
   rc_map_unregister
   rc_repeat
   rc_keydown
@@ -762,9 +753,9 @@
   schedule_timeout
   schedule_timeout_interruptible
   scnprintf
-  seq_lseek
   seq_list_next
   seq_list_start
+  seq_lseek
   seq_printf
   seq_putc
   seq_puts
@@ -918,6 +909,7 @@
   unregister_filesystem
   unregister_chrdev_region
   unregister_pernet_subsys
+  unmap_kernel_range
   up
   usb_add_gadget_udc
   usb_alloc_coherent
@@ -942,15 +934,11 @@
   usb_function_unregister
   usb_gadget_giveback_request
   usb_gadget_udc_reset
-  usb_gadget_unmap_request_by_dev
   usb_get_dr_mode
   usb_get_intf
   usb_hcd_is_primary_hcd
   usb_interface_id
   usb_kill_urb
-  usb_role_switch_unregister
-  usb_role_switch_register
-  usb_get_maximum_speed
   usb_phy_get_charger_current
   usb_phy_set_charger_current
   usb_put_function_instance
@@ -987,6 +975,7 @@
   usleep_range
   vabits_actual
   vfree
+  verify_pkcs7_signature
   vmalloc
   vmalloc_to_page
   vm_map_ram
@@ -1037,7 +1026,7 @@
 
 # required by blk-mq-virtio.ko
   blk_mq_map_queues
-
+  
 # required by cdc-acm.ko
   capable
   cdc_parse_cdc_header
@@ -1107,6 +1096,10 @@
   usb_gadget_map_request_by_dev
   usb_gadget_set_state
   usb_decode_ctrl
+  usb_gadget_unmap_request_by_dev
+  usb_get_maximum_speed
+  usb_role_switch_register
+  usb_role_switch_unregister
 
 # required by exfat.ko
   __blockdev_direct_IO
@@ -1188,7 +1181,6 @@
   devm_input_allocate_device
   devm_regulator_put
   devm_phy_get
-  vm_node_stat
   i2c_new_probed_device
   i2c_transfer
   input_mt_init_slots
@@ -1324,12 +1316,6 @@
 # required by mmc_hsq.ko
   mmc_cqe_request_done
   mmc_send_tuning
-  mmc_cmdq_enable
-  mmc_cqe_post_req
-  mmc_hw_reset
-  mmc_put_card
-  mmc_switch
-  mmc_wait_for_cmd
 
 # required by musb_hdrc.ko
   device_wakeup_enable
@@ -1396,8 +1382,6 @@
   sdio_release_irq
   sdio_set_host_pm_flags
   sdio_writew
-  sg_copy_from_buffer
-  sg_copy_to_buffer
 
 # required by phy-sprd-sharkl3.ko
   usb_add_phy_dev
@@ -1489,8 +1473,8 @@
   put_unused_fd
   _raw_read_lock_bh
   _raw_read_unlock_bh
-  _raw_read_trylock
   _raw_write_lock_bh
+  _raw_read_trylock
   _raw_write_unlock_bh
   register_shrinker
   request_firmware
@@ -1624,6 +1608,31 @@
 
 # required by mmc_swcq.ko
   mmc_cmdq_disable
+  mmc_cmdq_enable
+  mmc_cqe_post_req
+  mmc_hw_reset
+  mmc_put_card
+  mmc_switch
+  mmc_wait_for_cmd
+  sg_copy_from_buffer
+  sg_copy_to_buffer
+  cpufreq_cpu_get
+  cpufreq_cpu_put
+  __drm_atomic_helper_crtc_destroy_state
+  __drm_atomic_helper_crtc_duplicate_state
+  drm_dev_printk
+  drm_dp_get_adjust_request_pre_emphasis
+  drm_dp_get_adjust_request_voltage
+  drm_dp_link_train_channel_eq_delay
+  extcon_get_property
+  send_sig_info
+  gen_pool_best_fit
+  gen_pool_set_algo
+  vm_node_stat
+  raw_notifier_call_chain
+  raw_notifier_chain_register
+  smp_call_function_single
+
 # required by sdiohal.ko
   mmc_detect_change
   mmc_set_data_timeout
@@ -1824,8 +1833,6 @@
 
 # required by sprd-cpufreqhw.ko
   arch_set_freq_scale
-  cpufreq_cpu_get
-  cpufreq_cpu_put
   cpufreq_generic_attr
   cpufreq_generic_frequency_table_verify
   cpufreq_generic_get
@@ -1864,9 +1871,7 @@
   drm_atomic_helper_connector_duplicate_state
   drm_atomic_helper_connector_reset
   drm_atomic_helper_crtc_destroy_state
-  __drm_atomic_helper_crtc_destroy_state
   drm_atomic_helper_crtc_duplicate_state
-  __drm_atomic_helper_crtc_duplicate_state
   drm_atomic_helper_crtc_reset
   drm_atomic_helper_disable_plane
   drm_atomic_helper_page_flip
@@ -2723,9 +2728,6 @@
   __sg_page_iter_next
   __sg_page_iter_start
 
-# required by ion_cma_heap.ko
-  vm_node_stat
-
 # required by snd-soc-sprd-codec-sc2730.ko
   dapm_kcontrol_get_value
   __kfifo_init
@@ -2759,7 +2761,6 @@
 # required by sprd_wdf.ko
   kstrtoull_from_user
   smpboot_register_percpu_thread
-  smp_call_function_single
 
 # required by zram.ko
   bdgrab
@@ -2793,7 +2794,6 @@
   netlink_kernel_release
   of_get_address
   of_get_compatible_child
-  send_sig_info
 
 # required by sprd_tcpm.ko
   typec_altmode_attention
