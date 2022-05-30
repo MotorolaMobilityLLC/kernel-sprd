@@ -570,3 +570,12 @@
 		function = "func4";
 	};
 };
+
+&sound_vbc_r1p0v3_sprd_codec {
+	/*ext_control_type, hook selection, mode, gpio share*/
+	sprd,spk-ext-pa-info = <0 0 6 6 6 0>;
+	sprd,spk-ext-pa-gpio = <&ap_gpio 62 0>;
+	sprd,spk-ext-pa-info-fsm = <0 0 6 6 3 0>;
+	sprd,spk-ext-pa-id-pin = <&ap_gpio 23 0>;
+	sprd,spk-ext-pa-expect-id-flag = <0>;
+};
