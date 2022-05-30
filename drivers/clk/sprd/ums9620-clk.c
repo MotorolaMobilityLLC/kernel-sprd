@@ -198,7 +198,7 @@ static struct clk_bit_field f_rpll[PLL_FACT_MAX] = {
 	{ .shift = 0,	.width = 0 },	/* vco_sel	*/
 };
 
-static SPRD_PLL_FW_NAME(rpll, "rpll", "ext-26m", 0x10,
+static SPRD_PLL_HW(rpll, "rpll", &clk_26m_aud.hw, 0x10,
 				   3, rpll_ftable, f_rpll, 240,
 				   1000, 1000, 1, 1560000000);
 static CLK_FIXED_FACTOR_HW(rpll_390m, "rpll-390m", &rpll.common.hw, 2, 1, 0);
@@ -2209,7 +2209,7 @@ static SPRD_COMP_CLK_DATA(core4, "core4", mid_core_parents, 0xe08,
 		     16, 3, 19, 1, 0);
 static SPRD_COMP_CLK_DATA(core5, "core5", mid_core_parents, 0xe08,
 		     20, 3, 23, 1, 0);
-static SPRD_COMP_CLK_DATA(core6, "core6", lit_core_parents, 0xe08,
+static SPRD_COMP_CLK_DATA(core6, "core6", mid_core_parents, 0xe08,
 		     24, 3, 27, 1, 0);
 
 static const struct clk_parent_data big_core_parents[] = {
@@ -2353,7 +2353,7 @@ static const struct clk_parent_data gpu_parents[] = {
 	{ .hw = &tgpll_153m6.hw },
 	{ .hw = &tgpll_384m.hw },
 	{ .hw = &tgpll_512m.hw },
-	{ .hw = &gpll_680m.hw },
+	{ .hw = &gpll.common.hw },
 	{ .hw = &gpll_850m.hw },
 };
 static SPRD_COMP_CLK_DATA_OFFSET(gpu, "gpu", gpu_parents, 0x28,
@@ -3161,9 +3161,10 @@ static const struct clk_parent_data vdsp_blk_cfg_parents[] = {
 	{ .hw = &tgpll_48m.hw },
 	{ .hw = &tgpll_64m.hw },
 	{ .hw = &tgpll_96m.hw },
+	{ .hw = &tgpll_128m.hw },
 };
 static SPRD_MUX_CLK_DATA(vdsp_blk_cfg, "vdsp-blk-cfg", vdsp_blk_cfg_parents,
-		    0x64, 0, 2, UMS9620_MUX_FLAG);
+		    0x64, 0, 3, UMS9620_MUX_FLAG);
 
 static const struct clk_parent_data mm_uart_parents[] = {
 	{ .fw_name = "ext-26m" },
@@ -3209,9 +3210,10 @@ static const struct clk_parent_data fd_parents[] = {
 	{ .hw = &tgpll_192m.hw },
 	{ .hw = &tgpll_256m.hw },
 	{ .hw = &tgpll_307m2.hw },
+	{ .hw = &tgpll_384m.hw },
 };
 static SPRD_MUX_CLK_DATA(fd, "fd", fd_parents, 0xac,
-		    0, 2, UMS9620_MUX_FLAG);
+		    0, 3, UMS9620_MUX_FLAG);
 
 static const struct clk_parent_data dcam0_1_parents[] = {
 	{ .hw = &tgpll_153m6.hw },
@@ -3316,9 +3318,10 @@ static const struct clk_parent_data mm_mtx_data_parents[] = {
 	{ .hw = &tgpll_256m.hw },
 	{ .hw = &tgpll_307m2.hw },
 	{ .hw = &v4nrpll_409m6.hw },
+	{ .hw = &tgpll_512m.hw },
 };
 static SPRD_MUX_CLK_DATA(mm_mtx_data, "mm-mtx-data", mm_mtx_data_parents,
-		    0x16c, 0, 2, UMS9620_MUX_FLAG);
+		    0x16c, 0, 3, UMS9620_MUX_FLAG);
 
 static const struct clk_parent_data jpg_parents[] = {
 	{ .hw = &tgpll_153m6.hw },
@@ -3450,7 +3453,7 @@ static SPRD_SC_GATE_CLK_HW(vpu_dec_eb, "dpu-dec-eb", &dpu_vsp_eb.common.hw, 0x0,
 static SPRD_SC_GATE_CLK_HW(gsp0_eb, "gsp0-eb", &dpu_vsp_eb.common.hw, 0x0,
 			0x1000, BIT(6), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK_HW(gsp1_eb, "gsp1-eb", &dpu_vsp_eb.common.hw, 0x0,
-			0x1000, BIT(8), CLK_IGNORE_UNUSED, 0);
+			0x1000, BIT(7), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK_HW(dpu_dvfs_eb, "dpu-dvfs-eb", &dpu_vsp_eb.common.hw, 0x0,
 			0x1000, BIT(8), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK_HW(dpu_ckg_eb, "dpu-ckg-eb", &dpu_vsp_eb.common.hw, 0x0,
