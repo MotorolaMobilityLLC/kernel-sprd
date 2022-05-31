@@ -10,6 +10,7 @@
 #include <linux/of.h>
 #include <linux/platform_device.h>
 #include <linux/regmap.h>
+#include <linux/nvmem-consumer.h>
 #if IS_ENABLED(CONFIG_SCSI_UFS_CRYPTO)
 #include <linux/sprd_sip_svc.h>
 #endif
@@ -19,6 +20,34 @@
 #include "ufs-sprd.h"
 #include "ufs-sprd-qogirn6pro.h"
 
+static int ufs_efuse_calib_data(struct platform_device *pdev,
+				const char *cell_name)
+{
+	struct nvmem_cell *cell;
+	void *buf;
+	u32 calib_data;
+	size_t len;
+
+	if (!pdev)
+		return -EINVAL;
+
+	cell = nvmem_cell_get(&pdev->dev, cell_name);
+	if (IS_ERR_OR_NULL(cell))
+		return PTR_ERR(cell);
+
+	buf = nvmem_cell_read(cell, &len);
+	if (IS_ERR_OR_NULL(buf)) {
+		nvmem_cell_put(cell);
+		return PTR_ERR(buf);
+	}
+
+	memcpy(&calib_data, buf, min(len, sizeof(u32)));
+
+	kfree(buf);
+	nvmem_cell_put(cell);
+	return calib_data;
+}
+
 static int ufs_sprd_priv_parse_dt(struct device *dev,
 				  struct ufs_hba *hba,
 				  struct ufs_sprd_host *host)
@@ -27,10 +56,10 @@ static int ufs_sprd_priv_parse_dt(struct device *dev,
 	struct ufs_sprd_priv_data *priv =
 		(struct ufs_sprd_priv_data *) host->ufs_priv_data;
 	int ret = 0;
-/*
-	host->ufs_lane_calib_data1 = ufs_efuse_calib_data(pdev,
+
+	priv->ufs_lane_calib_data1 = ufs_efuse_calib_data(pdev,
 							  "ufs_cali_lane1");
-	if (host->ufs_lane_calib_data1 == -EPROBE_DEFER) {
+	if (priv->ufs_lane_calib_data1 == -EPROBE_DEFER) {
 		dev_err(&pdev->dev,
 			"%s:get ufs_lane_calib_data1 failed!\n", __func__);
 		ret =  -EPROBE_DEFER;
@@ -38,11 +67,11 @@ static int ufs_sprd_priv_parse_dt(struct device *dev,
 	}
 
 	dev_err(&pdev->dev, "%s: ufs_lane_calib_data1: %x\n",
-		__func__, host->ufs_lane_calib_data1);
+		__func__, priv->ufs_lane_calib_data1);
 
-	host->ufs_lane_calib_data0 = ufs_efuse_calib_data(pdev,
+	priv->ufs_lane_calib_data0 = ufs_efuse_calib_data(pdev,
 							  "ufs_cali_lane0");
-	if (host->ufs_lane_calib_data0 == -EPROBE_DEFER) {
+	if (priv->ufs_lane_calib_data0 == -EPROBE_DEFER) {
 		dev_err(&pdev->dev,
 			"%s:get ufs_lane_calib_data1 failed!\n", __func__);
 		ret =  -EPROBE_DEFER;
@@ -50,8 +79,7 @@ static int ufs_sprd_priv_parse_dt(struct device *dev,
 	}
 
 	dev_err(&pdev->dev, "%s: ufs_lane_calib_data0: %x\n",
-		__func__, host->ufs_lane_calib_data0);
-*/
+		__func__, priv->ufs_lane_calib_data0);
 
 	priv->vdd_mphy = devm_regulator_get(dev, "vdd-mphy");
 	ret = regulator_enable(priv->vdd_mphy);
@@ -106,10 +134,9 @@ static int ufs_sprd_priv_parse_dt(struct device *dev,
 	clk_set_parent(priv->hclk, priv->hclk_source);
 
 	return 0;
-/*
+
 out_variant_clear:
 	return ret;
-*/
 }
 
 static int ufs_sprd_priv_pre_init(struct device *dev,
@@ -270,7 +297,7 @@ static int ufs_sprd_phy_init(struct ufs_hba *hba)
 			   priv->phy_sram_init_done.mask);
 
 	ufshcd_dme_set(hba, UIC_ARG_MIB(VS_MPHYCFGUPDT), 0x01);
-/*
+
 	ufshcd_dme_set(hba, UIC_ARG_MIB(0x8116), 0xb0);
 	ufshcd_dme_set(hba, UIC_ARG_MIB(0x8117), 0x10);
 	ufshcd_dme_set(hba, UIC_ARG_MIB(0x8118), 0x01);
@@ -281,7 +308,7 @@ static int ufs_sprd_phy_init(struct ufs_hba *hba)
 	ufshcd_dme_set(hba, UIC_ARG_MIB(0x8116), 0xaf);
 	ufshcd_dme_set(hba, UIC_ARG_MIB(0x8117), 0x10);
 	ufshcd_dme_set(hba, UIC_ARG_MIB(0x8118),
-			    (host->ufs_lane_calib_data0 >> 24) & 0xff);
+		       (priv->ufs_lane_calib_data0 >> 24) & 0xff);
 	ufshcd_dme_set(hba, UIC_ARG_MIB(0x8119), 0x00);
 	ufshcd_dme_set(hba, UIC_ARG_MIB(0x811c), 0x01);
 	ufshcd_dme_set(hba, UIC_ARG_MIB(0xd085), 0x01);
@@ -310,7 +337,7 @@ static int ufs_sprd_phy_init(struct ufs_hba *hba)
 	ufshcd_dme_set(hba, UIC_ARG_MIB(0x8116), 0x00);
 	ufshcd_dme_set(hba, UIC_ARG_MIB(0x8117), 0x40);
 	ufshcd_dme_set(hba, UIC_ARG_MIB(0x8118),
-			    (priv->ufs_lane_calib_data0 >> 24) & 0xff);
+		       (priv->ufs_lane_calib_data0 >> 24) & 0xff);
 	ufshcd_dme_set(hba, UIC_ARG_MIB(0x8119), 0x00);
 	ufshcd_dme_set(hba, UIC_ARG_MIB(0x811c), 0x01);
 	ufshcd_dme_set(hba, UIC_ARG_MIB(0xd085), 0x01);
@@ -325,7 +352,7 @@ static int ufs_sprd_phy_init(struct ufs_hba *hba)
 	ufshcd_dme_set(hba, UIC_ARG_MIB(0x8116), 0xaf);
 	ufshcd_dme_set(hba, UIC_ARG_MIB(0x8117), 0x11);
 	ufshcd_dme_set(hba, UIC_ARG_MIB(0x8118),
-			    (priv->ufs_lane_calib_data1 >> 24) & 0xff);
+		       (priv->ufs_lane_calib_data1 >> 24) & 0xff);
 	ufshcd_dme_set(hba, UIC_ARG_MIB(0x8119), 0x00);
 	ufshcd_dme_set(hba, UIC_ARG_MIB(0x811c), 0x01);
 	ufshcd_dme_set(hba, UIC_ARG_MIB(0xd085), 0x01);
@@ -354,7 +381,7 @@ static int ufs_sprd_phy_init(struct ufs_hba *hba)
 	ufshcd_dme_set(hba, UIC_ARG_MIB(0x8116), 0x00);
 	ufshcd_dme_set(hba, UIC_ARG_MIB(0x8117), 0x41);
 	ufshcd_dme_set(hba, UIC_ARG_MIB(0x8118),
-			    (priv->ufs_lane_calib_data1 >> 24) & 0xff);
+		       (priv->ufs_lane_calib_data1 >> 24) & 0xff);
 	ufshcd_dme_set(hba, UIC_ARG_MIB(0x8119), 0x00);
 	ufshcd_dme_set(hba, UIC_ARG_MIB(0x811c), 0x01);
 	ufshcd_dme_set(hba, UIC_ARG_MIB(0xd085), 0x01);
@@ -369,7 +396,7 @@ static int ufs_sprd_phy_init(struct ufs_hba *hba)
 	ufshcd_dme_set(hba, UIC_ARG_MIB(0x8116), 0xaf);
 	ufshcd_dme_set(hba, UIC_ARG_MIB(0x8117), 0x10);
 	ufshcd_dme_set(hba, UIC_ARG_MIB(0x8118),
-			    (priv->ufs_lane_calib_data0 >> 16) & 0xff);
+		       (priv->ufs_lane_calib_data0 >> 16) & 0xff);
 	ufshcd_dme_set(hba, UIC_ARG_MIB(0x8119), 0x00);
 	ufshcd_dme_set(hba, UIC_ARG_MIB(0x811c), 0x01);
 	ufshcd_dme_set(hba, UIC_ARG_MIB(0xd085), 0x01);
@@ -398,7 +425,7 @@ static int ufs_sprd_phy_init(struct ufs_hba *hba)
 	ufshcd_dme_set(hba, UIC_ARG_MIB(0x8116), 0x01);
 	ufshcd_dme_set(hba, UIC_ARG_MIB(0x8117), 0x40);
 	ufshcd_dme_set(hba, UIC_ARG_MIB(0x8118),
-			    (priv->ufs_lane_calib_data0 >> 16) & 0xff);
+		       (priv->ufs_lane_calib_data0 >> 16) & 0xff);
 	ufshcd_dme_set(hba, UIC_ARG_MIB(0x8119), 0x00);
 	ufshcd_dme_set(hba, UIC_ARG_MIB(0x811c), 0x01);
 	ufshcd_dme_set(hba, UIC_ARG_MIB(0xd085), 0x01);
@@ -413,7 +440,7 @@ static int ufs_sprd_phy_init(struct ufs_hba *hba)
 	ufshcd_dme_set(hba, UIC_ARG_MIB(0x8116), 0xaf);
 	ufshcd_dme_set(hba, UIC_ARG_MIB(0x8117), 0x11);
 	ufshcd_dme_set(hba, UIC_ARG_MIB(0x8118),
-			    (priv->ufs_lane_calib_data1 >> 16) & 0xff);
+		       (priv->ufs_lane_calib_data1 >> 16) & 0xff);
 	ufshcd_dme_set(hba, UIC_ARG_MIB(0x8119), 0x00);
 	ufshcd_dme_set(hba, UIC_ARG_MIB(0x811c), 0x01);
 	ufshcd_dme_set(hba, UIC_ARG_MIB(0xd085), 0x01);
@@ -442,11 +469,11 @@ static int ufs_sprd_phy_init(struct ufs_hba *hba)
 	ufshcd_dme_set(hba, UIC_ARG_MIB(0x8116), 0x01);
 	ufshcd_dme_set(hba, UIC_ARG_MIB(0x8117), 0x41);
 	ufshcd_dme_set(hba, UIC_ARG_MIB(0x8118),
-			    (priv->ufs_lane_calib_data1 >> 16) & 0xff);
+		       (priv->ufs_lane_calib_data1 >> 16) & 0xff);
 	ufshcd_dme_set(hba, UIC_ARG_MIB(0x8119), 0x00);
 	ufshcd_dme_set(hba, UIC_ARG_MIB(0x811c), 0x01);
 	ufshcd_dme_set(hba, UIC_ARG_MIB(0xd085), 0x01);
-*/
+
 	ufshcd_dme_set(hba, UIC_ARG_MIB(VS_MPHYDISABLE), 0x0);
 
 	return ret;
