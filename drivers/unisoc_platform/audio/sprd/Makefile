@@ -24,10 +24,17 @@ obj-$(CONFIG_SND_SOC_UNISOC_CODEC_UMP9620)		+= codec/sprd/ump9620/
 obj-$(CONFIG_SND_SOC_UNISOC_DP_CODEC)		+= codec/sprd/dp/
 
 # Machines
+ifeq ($(BSP_BOARD_AUDIO_EXTPA), true)
+snd-soc-sprd-card-objs		:= sprd-asoc-common.o sprd-asoc-card-utils.o \
+				   sprd-asoc-card-utils-legacy_14c10.o \
+				   sprd-asoc-card-utils-hook_14c10.o \
+				   vbc-rxpx-codec-sc27xx.o
+else
 snd-soc-sprd-card-objs		:= sprd-asoc-common.o sprd-asoc-card-utils.o \
 				   sprd-asoc-card-utils-legacy.o \
 				   sprd-asoc-card-utils-hook.o \
 				   vbc-rxpx-codec-sc27xx.o
+endif
 obj-$(CONFIG_SND_SOC_UNISOC_VBC_V4_SC2730)	+= snd-soc-sprd-card.o
 obj-$(CONFIG_SND_SOC_UNISOC_R1P0V3_SC2721)	+= snd-soc-sprd-card.o
 obj-$(CONFIG_SND_SOC_UNISOC_VBC_V4_SC2730_MCDT_R2P0)	+= snd-soc-sprd-card.o
