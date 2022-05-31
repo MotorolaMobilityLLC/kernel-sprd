@@ -864,6 +864,7 @@ static void mmc_swcq_pump_requests(struct mmc_swcq *swcq)
 	spin_lock_irqsave(&swcq->lock, flags);
 	/* Make sure we are not already running a request now */
 	if (swcq->mrq || swcq->pump_busy
+		|| swcq->recovery_halt
 		|| (emmc_resetting_when_cmdq == 1)) {
 		if (swcq->pump_busy)
 			dbg_add_host_log(swcq->mmc, 58, 0, swcq->pump_busy, 0);
