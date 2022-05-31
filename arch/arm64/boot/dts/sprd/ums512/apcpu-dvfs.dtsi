@@ -43,7 +43,7 @@
 		compatible = "sprd,cpufreq-v2";
 
 		cpufreq_clus0: cpufreq-clus0 {
-			//sprd,temp-threshold = <65>;
+			sprd,temp-threshold = <65>;
 			nvmem-cell-names = "dvfs_bin";
 			nvmem-cells = <&dvfs_bin_cpu0>;
 			sprd,multi-version;
@@ -56,7 +56,7 @@
 		};
 
 		cpufreq_clus1: cpufreq-clus1 {
-			//sprd,temp-threshold = <65>;
+			sprd,temp-threshold = <65>;
 			nvmem-cell-names = "dvfs_bin";
 			nvmem-cells = <&dvfs_bin_cpu1>;
 			sprd,multi-version;
