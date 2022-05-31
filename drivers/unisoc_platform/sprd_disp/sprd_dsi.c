@@ -604,8 +604,6 @@ static int sprd_dsi_connector_init(struct drm_device *drm, struct sprd_dsi *dsi)
 	struct drm_connector *connector = &dsi->connector;
 	int ret;
 
-	connector->polled = DRM_CONNECTOR_POLL_HPD;
-
 	ret = drm_connector_init(drm, connector,
 				 &sprd_dsi_atomic_connector_funcs,
 				 DRM_MODE_CONNECTOR_DSI);
