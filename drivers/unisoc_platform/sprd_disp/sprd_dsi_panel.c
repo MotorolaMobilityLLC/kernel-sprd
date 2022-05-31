@@ -929,7 +929,6 @@ static int sprd_panel_device_create(struct device *parent,
 
 static int sprd_panel_probe(struct mipi_dsi_device *slave)
 {
-	struct device *dev = &slave->dev;
 	struct sprd_panel *panel;
 	struct device_node *bl_node;
 	int ret;
@@ -989,7 +988,7 @@ static int sprd_panel_probe(struct mipi_dsi_device *slave)
 
 	panel->base.dev = &panel->dev;
 	panel->base.funcs = &sprd_panel_funcs;
-	drm_panel_init(&panel->base, dev, &sprd_panel_funcs, DRM_MODE_CONNECTOR_DSI);
+	drm_panel_init(&panel->base, &panel->dev, &sprd_panel_funcs, DRM_MODE_CONNECTOR_DSI);
 
 	drm_panel_add(&panel->base);
 	if (ret) {
