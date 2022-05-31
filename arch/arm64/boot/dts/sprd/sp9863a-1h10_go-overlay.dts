@@ -427,6 +427,12 @@
 	};
 };
 
+&i2c3 {
+	touchscreen@38 {
+		touchpanel-parent = <&panel>;
+	};
+};
+
 &i2c4 {
 	#address-cells = <1>;
 	#size-cells = <0>;

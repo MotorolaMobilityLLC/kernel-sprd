@@ -1192,6 +1192,7 @@
   input_set_capability
   kobject_put
   of_find_i2c_adapter_by_node
+  of_find_node_by_phandle
   of_property_read_variable_u8_array
   request_firmware_nowait
 
