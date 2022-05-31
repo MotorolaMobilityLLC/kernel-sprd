@@ -19,6 +19,8 @@
 
 static void shub_get_data(struct cmd_data *packet)
 {
+	u16 data_number, count = 0;
+
 	switch (packet->subtype) {
 	case SHUB_LOG_SUBTYPE:
 		dev_info(&g_sensor->sensor_pdev->dev,
@@ -26,8 +28,15 @@ static void shub_get_data(struct cmd_data *packet)
 		break;
 
 	case SHUB_DATA_SUBTYPE:
-		g_sensor->data_callback(g_sensor, packet->buff,
-					packet->length);
+		data_number =
+		(packet->length)/sizeof(struct shub_sensor_event);
+		while (count != data_number) {
+			g_sensor->data_callback(g_sensor,
+			packet->buff + count * sizeof(struct shub_sensor_event),
+			sizeof(struct shub_sensor_event));
+			count++;
+		}
+
 		break;
 
 	case SHUB_CM4_OPERATE:
