@@ -36,8 +36,8 @@
 		usb31pllv_ref2mphy_en = <&aon_apb_regs  REG_AON_APB_USB31PLL_CTRL_MISC
 			MASK_AON_APB_REG_ANALOG_USB31PLLV_REF2MPHY_EN>;
 
-		//nvmem-cells = <&ufs_cali_lane1>, <&ufs_cali_lane0>;
-		//nvmem-cell-names = "ufs_cali_lane1", "ufs_cali_lane0";
+		nvmem-cells = <&ufs_cali_lane1>, <&ufs_cali_lane0>;
+		nvmem-cell-names = "ufs_cali_lane1", "ufs_cali_lane0";
 
 		status = "okay";
 	};
