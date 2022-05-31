@@ -977,6 +977,7 @@ static int musb_sprd_otg_start_host(struct sprd_glue *glue, int on)
 {
 	int ret = 0;
 	struct musb *musb = glue->musb;
+	struct musb_hdrc_platform_data *plat = dev_get_platdata(musb->controller);
 
 	if (!glue->vbus) {
 		glue->vbus = devm_regulator_get(glue->dev, "vddvbus");
@@ -990,10 +991,17 @@ static int musb_sprd_otg_start_host(struct sprd_glue *glue, int on)
 	if (on) {
 		dev_info(glue->dev, "%s: turn on host\n", __func__);
 
+		ret = musb_host_setup(musb, plat->power);
+		if (ret) {
+			dev_err(glue->dev, "musb_host_setup failed: %d\n", ret);
+			return ret;
+		}
+
 		if (!regulator_is_enabled(glue->vbus)) {
 			ret = regulator_enable(glue->vbus);
 			if (ret) {
 				dev_err(glue->dev, "Failed to enable vbus: %d\n", ret);
+				musb_host_cleanup(musb);
 				return ret;
 			}
 		}
@@ -1025,12 +1033,13 @@ static int musb_sprd_otg_start_host(struct sprd_glue *glue, int on)
 		glue->dr_mode = USB_DR_MODE_HOST;
 	} else {
 		dev_info(glue->dev, "%s: turn off host\n", __func__);
+
+		musb_host_cleanup(musb);
 		if (regulator_is_enabled(glue->vbus)) {
 			ret = regulator_disable(glue->vbus);
 			if (ret)
 				dev_err(glue->dev, "Failed to disable vbus: %d\n", ret);
 		}
-
 		musb->xceiv->otg->default_a = 0;
 		musb->xceiv->otg->state = OTG_STATE_B_IDLE;
 		musb->offload_used = 0;
