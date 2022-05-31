@@ -1,0 +1,6 @@
+config SPRD_PTM
+	tristate "Spreadtrum Performance Trace Monitor Support"
+	default m
+	depends on SPRD_DEBUG
+	help
+	  Say M here to support ptm support.
