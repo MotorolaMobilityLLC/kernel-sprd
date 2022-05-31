@@ -561,6 +561,7 @@
   of_get_regulator_init_data
   of_graph_get_remote_node
   of_irq_get
+  of_irq_get_byname
   of_match_node
   of_nvmem_cell_get
   of_parse_phandle
