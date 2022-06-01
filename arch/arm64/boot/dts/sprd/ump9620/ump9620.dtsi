@@ -31,11 +31,20 @@
 			#interrupt-cells = <2>;
 		};
 
+		pmic_typec: typec@380 {
+			compatible = "sprd,ump96xx-typec", "sprd,sc27xx-typec";
+			interrupt-parent = <&ump9620_pmic>;
+			interrupts = <8 IRQ_TYPE_LEVEL_HIGH>;
+			reg = <0x380>;
+			sprd,mode = <2>;
+			nvmem-cells = <&typec_cc1_cal>, <&typec_cc2_cal>;
+			nvmem-cell-names = "typec_cc1_cal", "typec_cc2_cal";
+		};
+
 		syscon@2000 {
 			compatible = "sprd,ump962x-syscon";
 			reg = <0x2000>, <0x23a0>, <0x2398>;
 		};
-
 	};
 
 };

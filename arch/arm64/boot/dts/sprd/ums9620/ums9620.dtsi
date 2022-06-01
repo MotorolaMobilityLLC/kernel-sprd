@@ -341,3 +341,4 @@
 #include "ufs.dtsi"
 #include "sdio.dtsi"
 #include "socid.dtsi"
+#include "usb.dtsi"
