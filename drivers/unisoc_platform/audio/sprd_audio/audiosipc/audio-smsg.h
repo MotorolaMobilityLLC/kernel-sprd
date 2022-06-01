@@ -53,6 +53,7 @@ enum {
 	AMSG_CH_DSP_TRIGGER_RX,
 	AMSG_CH_DSP_TRIGGER_TX,
 	AMSG_CH_MISC,
+	AMSG_CH_DSP_CALL_INFO, /* audio dsp dump call info 16*/
 	AMSG_CH_NR,
 };
 
