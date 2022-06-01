@@ -389,6 +389,7 @@
 #include "mipi-serdes.dtsi"
 #include "modem.dtsi"
 #include "pin-controller.dtsi"
+#include "ptm.dtsi"
 #include "qos.dtsi"
 #include "sdio.dtsi"
 #include "sensorhub.dtsi"
