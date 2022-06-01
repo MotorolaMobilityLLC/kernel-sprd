@@ -367,4 +367,10 @@
 			};
 		};
 	};
+
+	ap_etb: apetb {
+		compatible = "sprd,sprd_apetb";
+		apetb-source = <&etm0 &etm1 &etm2 &etm3 &etm4 &etm5 &etm6 &etm7>;
+		apetb-sink = <&soc_etb>;
+	};
 };
