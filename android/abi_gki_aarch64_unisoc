@@ -823,6 +823,7 @@
   remove_wait_queue
   __request_module
   request_threaded_irq
+  __devm_reset_control_get
   reset_control_assert
   reset_control_deassert
   return_address
