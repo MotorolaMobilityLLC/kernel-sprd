@@ -7,7 +7,9 @@
 #include <linux/delay.h>
 #include <linux/module.h>
 #include <linux/mfd/syscon.h>
+#include <linux/of_platform.h>
 #include <linux/regmap.h>
+#include <linux/reset.h>
 
 #include "sprd_dpu.h"
 
@@ -17,6 +19,7 @@ enum {
 };
 
 static struct clk *clk_ap_ahb_disp_eb;
+static struct reset_control *dpu_rst;
 
 static struct dpu_clk_context {
 	struct clk *clk_src_96m;
@@ -47,13 +50,6 @@ static const u32 dpi_clk_src[] = {
 	153600000,
 	192000000
 };
-
-static struct dpu_glb_context {
-	unsigned int enable_reg;
-	unsigned int mask_bit;
-
-	struct regmap *regmap;
-} ctx_reset;
 
 static struct clk *val_to_clk(struct dpu_clk_context *ctx, u32 val)
 {
@@ -276,16 +272,12 @@ static int dpu_clk_disable(struct dpu_context *ctx)
 static int dpu_glb_parse_dt(struct dpu_context *ctx,
 				struct device_node *np)
 {
-	unsigned int syscon_args[2];
+	struct platform_device *pdev = of_find_device_by_node(np);
 
-	ctx_reset.regmap = syscon_regmap_lookup_by_phandle_args(np,
-			"reset-syscon", 2, syscon_args);
-	if (IS_ERR(ctx_reset.regmap)) {
-		pr_warn("failed to get reset syscon\n");
-		return PTR_ERR(ctx_reset.regmap);
-	} else {
-		ctx_reset.enable_reg = syscon_args[0];
-		ctx_reset.mask_bit = syscon_args[1];
+	dpu_rst = devm_reset_control_get(&pdev->dev, "dpu_rst");
+	if (IS_ERR_OR_NULL(dpu_rst)) {
+		DRM_ERROR("failed to get dpu reset control\n");
+		return -EFAULT;
 	}
 
 	clk_ap_ahb_disp_eb =
@@ -316,15 +308,11 @@ static void dpu_glb_disable(struct dpu_context *ctx)
 
 static void dpu_reset(struct dpu_context *ctx)
 {
-	regmap_update_bits(ctx_reset.regmap,
-		    ctx_reset.enable_reg,
-		    ctx_reset.mask_bit,
-		    ctx_reset.mask_bit);
-	udelay(10);
-	regmap_update_bits(ctx_reset.regmap,
-		    ctx_reset.enable_reg,
-		    ctx_reset.mask_bit,
-		    (unsigned int)(~ctx_reset.mask_bit));
+	if (!IS_ERR_OR_NULL(dpu_rst)) {
+		reset_control_assert(dpu_rst);
+		udelay(10);
+		reset_control_deassert(dpu_rst);
+	}
 }
 
 static void dpu_power_domain(struct dpu_context *ctx, int enable)

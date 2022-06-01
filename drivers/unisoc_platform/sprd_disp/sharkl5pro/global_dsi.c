@@ -7,39 +7,31 @@
 #include <linux/delay.h>
 #include <linux/module.h>
 #include <linux/mfd/syscon.h>
+#include <linux/of_platform.h>
 #include <linux/regmap.h>
+#include <linux/reset.h>
 
 #include "sprd_dsi.h"
 
 static struct clk *clk_ap_ahb_dsi_eb;
-
-static struct dsi_glb_context {
-	unsigned int ctrl_reg;
-	unsigned int ctrl_mask;
-
-	struct regmap *regmap;
-} ctx_reset;
+static struct reset_control *dsi_rst;
 
 static int dsi_glb_parse_dt(struct dsi_context *ctx,
 				struct device_node *np)
 {
-	unsigned int syscon_args[2];
+	struct platform_device *pdev = of_find_device_by_node(np);
+
+	dsi_rst = devm_reset_control_get(&pdev->dev, "dsi_rst");
+	if (IS_ERR_OR_NULL(dsi_rst)) {
+		DRM_ERROR("failed to get dsi reset control\n");
+		return -EFAULT;
+	}
 
 	clk_ap_ahb_dsi_eb =
 		of_clk_get_by_name(np, "clk_ap_ahb_dsi_eb");
 	if (IS_ERR(clk_ap_ahb_dsi_eb)) {
 		pr_warn("read clk_ap_ahb_dsi_eb failed\n");
 		clk_ap_ahb_dsi_eb = NULL;
-	}
-
-	ctx_reset.regmap = syscon_regmap_lookup_by_phandle_args(np,
-			"reset-syscon", 2, syscon_args);
-	if (IS_ERR(ctx_reset.regmap)) {
-		pr_warn("failed to map dsi glb reg\n");
-		return PTR_ERR(ctx_reset.regmap);
-	} else {
-		ctx_reset.ctrl_reg = syscon_args[0];
-		ctx_reset.ctrl_mask = syscon_args[1];
 	}
 
 	return 0;
@@ -61,15 +53,11 @@ static void dsi_glb_disable(struct dsi_context *ctx)
 
 static void dsi_reset(struct dsi_context *ctx)
 {
-	regmap_update_bits(ctx_reset.regmap,
-			ctx_reset.ctrl_reg,
-			ctx_reset.ctrl_mask,
-			ctx_reset.ctrl_mask);
-	udelay(10);
-	regmap_update_bits(ctx_reset.regmap,
-			ctx_reset.ctrl_reg,
-			ctx_reset.ctrl_mask,
-			(unsigned int)(~ctx_reset.ctrl_mask));
+	if (!IS_ERR_OR_NULL(dsi_rst)) {
+		reset_control_assert(dsi_rst);
+		udelay(10);
+		reset_control_deassert(dsi_rst);
+	}
 }
 
 const struct dsi_glb_ops sharkl5pro_dsi_glb_ops = {
