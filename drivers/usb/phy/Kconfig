@@ -179,6 +179,14 @@ config USB_SPRD_UMS512_PHY
 	  This driver takes care of all the PHY functionality, normally paired with
 	  DesignWare USB20 (DRD) Controller.
 
+config SPRD_QOGIRN6PRO_USB2_PHY
+	tristate "Spreadtrum Qogirn6pro USB2 PHY Driver"
+	select USB_PHY
+	help
+	  Enable this to support the SPRD QOGIRN6PRO USB2 PHY that is part of SOC.
+	  This driver takes care of all the PHY functionality, normally paired with
+	  DesignWare USB20 (DRD) Controller.
+
 config USB_ULPI
 	bool "Generic ULPI Transceiver Driver"
 	depends on ARM || ARM64 || COMPILE_TEST

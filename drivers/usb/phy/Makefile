@@ -26,3 +26,5 @@ obj-$(CONFIG_USB_ULPI_VIEWPORT)		+= phy-ulpi-viewport.o
 obj-$(CONFIG_KEYSTONE_USB_PHY)		+= phy-keystone.o
 obj-$(CONFIG_JZ4770_PHY)		+= phy-jz4770.o
 obj-$(CONFIG_USB_SPRD_UMS512_PHY)	+= phy-sprd-ums512.o
+obj-$(CONFIG_SPRD_QOGIRN6PRO_USB2_PHY)	+= phy-sprd-qogirn6pro.o
+
