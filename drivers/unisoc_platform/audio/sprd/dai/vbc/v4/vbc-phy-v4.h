@@ -586,6 +586,9 @@ enum KCTL_TYPE {
 	SND_KCTL_TYPE_AUX_MIC2_SEL,
 	SND_KCTL_TYPE_SMARTAMP_IV_EXCHANGE,
 	SND_KCTL_TYPE_DSP_DAC0_LR_EXCHANGE,
+	SND_KCTL_TYPE_CUST_DEV_SET = 0x32, /* sync with dsp */
+	SND_KCTL_TYPE_SYS_DEV_SET,
+	SND_KCTL_TYPE_CUST_VOL_SET,
 	SND_KCTL_TYPE_END,
 };
 
@@ -1439,6 +1442,23 @@ enum vbc_dump_position_e {
 	DUMP_POS_MAX,
 };
 
+enum VBC_DEVICE_TYPE {
+	TYPE_INIT,
+	TYPE_RCV,
+	TYPE_HP,
+	TYPE_SPK,
+	TYPE_MIC,
+	TYPE_BT,
+	TYPE_USB_HP,
+	DEVICE_TYPE_MAX,
+};
+
+struct vbc_dev_para {
+	int dev_para;
+	int val0;
+	int val1;
+};
+
 #define SBC_PARA_BYTES 64
 struct vbc_codec_priv {
 	struct snd_soc_component *codec;
@@ -1515,6 +1535,9 @@ struct vbc_codec_priv {
 	u32 aux_mic2_sel_enable;
 	u32 smartamp_iv_exchange_enable;
 	u32 dsp_dac0_lr_exchange;
+	enum VBC_DEVICE_TYPE cust_dev;
+	enum VBC_DEVICE_TYPE sys_dev;
+	u16 cust_vol;
 };
 
 /********************************************************************
@@ -1610,5 +1633,8 @@ int dsp_hp_crosstalk_gain(int value0, int value1);
 int dsp_aux_mic2_sel_set(u32 enable);
 int dsp_smartamp_iv_exchange_set(u32 enable);
 int dsp_dac0_lr_exchange_set(u32 enable);
+int vbc_dsp_cust_dev_set(int dev, int id, int stream);
+int vbc_dsp_sys_dev_set(int dev, int id, int stream);
+int vbc_dsp_cust_vol_set(int up_down, int id, int stream);
 
 #endif /* __VBC_V4_PHY_DRV_H */

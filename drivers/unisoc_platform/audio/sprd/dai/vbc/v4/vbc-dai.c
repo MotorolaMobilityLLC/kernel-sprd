@@ -533,6 +533,29 @@ SPRD_VBC_ENUM(SND_SOC_NOPM, 2, enable_disable_txt);
 static const struct soc_enum dsp_dac0_lr_exchange_enum  =
 SPRD_VBC_ENUM(SND_SOC_NOPM, 2, enable_disable_txt);
 
+static const char * const dsp_device_change_txt[DEVICE_TYPE_MAX] = {
+	[TYPE_INIT] = TO_STRING(TYPE_INIT),
+	[TYPE_RCV] = TO_STRING(TYPE_RCV),
+	[TYPE_HP] = TO_STRING(TYPE_HP),
+	[TYPE_SPK] = TO_STRING(TYPE_SPK),
+	[TYPE_MIC] = TO_STRING(TYPE_MIC),
+	[TYPE_BT] = TO_STRING(TYPE_BT),
+	[TYPE_USB_HP] = TO_STRING(TYPE_USB_HP),
+};
+
+static const char * const dsp_custm_vol_change_txt[] = {
+	"VOL_DOWN", "VOL_UP",
+};
+
+static const struct soc_enum dsp_custm_dev_change_enum  =
+	SPRD_VBC_ENUM(SND_SOC_NOPM, DEVICE_TYPE_MAX, dsp_device_change_txt);
+
+static const struct soc_enum dsp_system_dev_change_enum  =
+	SPRD_VBC_ENUM(SND_SOC_NOPM, DEVICE_TYPE_MAX, dsp_device_change_txt);
+
+static const struct soc_enum dsp_custm_vol_change_enum  =
+	SPRD_VBC_ENUM(SND_SOC_NOPM, 2, dsp_custm_vol_change_txt);
+
 static const char * const sprd_profile_name[] = {
 	"audio_structure", "dsp_vbc", "cvs", "dsp_smartamp",
 };
@@ -2628,6 +2651,124 @@ static int dsp_dac0_lr_exchange_put(struct snd_kcontrol *kcontrol,
 	vbc_codec->dsp_dac0_lr_exchange = value;
 	dsp_dac0_lr_exchange_set(value);
 
+	return 1;
+}
+
+static int vbc_custm_dev_change_get(struct snd_kcontrol *kcontrol,
+				    struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_component *codec = snd_soc_kcontrol_component(kcontrol);
+	struct vbc_codec_priv *vbc_codec = snd_soc_component_get_drvdata(codec);
+
+	ucontrol->value.integer.value[0] = vbc_codec->cust_dev;
+
+	return 0;
+}
+
+/* device changed by customer */
+static int vbc_custm_dev_change_put(struct snd_kcontrol *kcontrol,
+				    struct snd_ctl_elem_value *ucontrol)
+{
+	u32 value;
+	int ret;
+	struct soc_enum *texts = (struct soc_enum *)kcontrol->private_value;
+	struct snd_soc_component *codec = snd_soc_kcontrol_component(kcontrol);
+	struct vbc_codec_priv *vbc_codec = snd_soc_component_get_drvdata(codec);
+
+	if (ucontrol->value.integer.value[0] >= texts->items) {
+		pr_err("ERR: %s,index outof bounds error\n", __func__);
+		return -EINVAL;
+	}
+
+	value = ucontrol->value.enumerated.item[0];
+	sp_asoc_pr_dbg("%s, device change to %s %s\n",
+		__func__, texts->texts[value], dsp_device_change_txt[value]);
+	vbc_codec->cust_dev = value;
+	ret = vbc_dsp_cust_dev_set(value, 0, 0);
+	if (ret < 0) {
+		pr_err("vbc_dsp_cust_dev Failed to set, ret: %d\n", ret);
+		return ret;
+	}
+	return 1;
+}
+
+static int vbc_system_dev_change_get(struct snd_kcontrol *kcontrol,
+				    struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_component *codec = snd_soc_kcontrol_component(kcontrol);
+	struct vbc_codec_priv *vbc_codec = snd_soc_component_get_drvdata(codec);
+
+	ucontrol->value.integer.value[0] = vbc_codec->sys_dev;
+
+	return 0;
+}
+
+/* device changed by system */
+static int vbc_system_dev_change_put(struct snd_kcontrol *kcontrol,
+				    struct snd_ctl_elem_value *ucontrol)
+{
+	u32 value;
+	int ret;
+	struct soc_enum *texts = (struct soc_enum *)kcontrol->private_value;
+	struct snd_soc_component *codec = snd_soc_kcontrol_component(kcontrol);
+	struct vbc_codec_priv *vbc_codec = snd_soc_component_get_drvdata(codec);
+
+	if (ucontrol->value.integer.value[0] >= texts->items) {
+		pr_err("ERR: %s,index outof bounds error\n", __func__);
+		return -EINVAL;
+	}
+
+	value = ucontrol->value.enumerated.item[0];
+	sp_asoc_pr_dbg("%s, device change to %s %s\n",
+		__func__, texts->texts[value], dsp_device_change_txt[value]);
+
+	vbc_codec->sys_dev = value;
+	ret = vbc_dsp_sys_dev_set(value, 0, 0);
+
+	if (ret < 0) {
+		pr_err("vbc_dsp_sys_dev Failed to set, ret: %d\n", ret);
+		return ret;
+	}
+	return 1;
+}
+
+static int vbc_custm_vol_change_get(struct snd_kcontrol *kcontrol,
+				    struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_component *codec = snd_soc_kcontrol_component(kcontrol);
+	struct vbc_codec_priv *vbc_codec = snd_soc_component_get_drvdata(codec);
+
+	ucontrol->value.integer.value[0] = vbc_codec->cust_vol;
+
+	return 0;
+}
+
+/* volume changed by customer */
+static int vbc_custm_vol_change_put(struct snd_kcontrol *kcontrol,
+				    struct snd_ctl_elem_value *ucontrol)
+{
+	u32 value;
+	int ret;
+	struct soc_enum *texts = (struct soc_enum *)kcontrol->private_value;
+	struct snd_soc_component *codec = snd_soc_kcontrol_component(kcontrol);
+	struct vbc_codec_priv *vbc_codec = snd_soc_component_get_drvdata(codec);
+
+	if (ucontrol->value.integer.value[0] >= texts->items) {
+		pr_err("ERR: %s,index outof bounds error\n", __func__);
+		return -EINVAL;
+	}
+
+	value = ucontrol->value.enumerated.item[0];
+	sp_asoc_pr_dbg("%s, device change to %s %s\n",
+		__func__, texts->texts[value], dsp_custm_vol_change_txt[value]);
+
+	vbc_codec->cust_vol = value;
+	ret = vbc_dsp_cust_vol_set(value, 0, 0);
+
+	if (ret < 0) {
+		pr_err("vbc_dsp_sys_dev Failed to set, ret: %d\n", ret);
+		return ret;
+	}
 	return 1;
 }
 
@@ -4864,6 +5005,15 @@ static const struct snd_kcontrol_new vbc_codec_snd_controls[] = {
 		     dsp_dac0_lr_exchange_enum,
 		     dsp_dac0_lr_exchange_get,
 		     dsp_dac0_lr_exchange_put),
+	SOC_ENUM_EXT("VBC_CUSTM_DEV_CHANGE",
+		     dsp_custm_dev_change_enum,
+		     vbc_custm_dev_change_get, vbc_custm_dev_change_put),
+	SOC_ENUM_EXT("VBC_SYSTEM_DEV_CHANGE",
+		     dsp_system_dev_change_enum,
+		     vbc_system_dev_change_get, vbc_system_dev_change_put),
+	SOC_ENUM_EXT("VBC_CUSTM_VOL_CHANGE",
+		     dsp_custm_vol_change_enum,
+		     vbc_custm_vol_change_get, vbc_custm_vol_change_put),
 };
 
 static u32 vbc_codec_read(struct snd_soc_component *codec,
