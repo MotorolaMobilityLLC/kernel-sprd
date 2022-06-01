@@ -49,5 +49,6 @@ source "drivers/unisoc_platform/power/Kconfig"
 source "drivers/unisoc_platform/hang_debug/Kconfig"
 source "drivers/unisoc_platform/userlog/Kconfig"
 source "drivers/unisoc_platform/performance/Kconfig"
+source "drivers/unisoc_platform/sprd_coresight/Kconfig"
 
 endmenu
