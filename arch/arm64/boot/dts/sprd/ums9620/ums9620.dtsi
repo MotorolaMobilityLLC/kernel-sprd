@@ -290,6 +290,20 @@
 				clocks = <&aonapb_gate CLK_SPLK_EB>;
 			};
 
+			mailbox: mailbox@600000 {
+				compatible = "unisoc,mailbox";
+				reg = <0x600000 0x10000>,
+				      <0x610000 0x10000>,
+				      <0x620000 0x20000>;
+				reg-names = "inbox", "outbox", "common";
+				sprd,mailbox_clk = <&aon_apb_regs 0x4 0x4>;
+				interrupts = <GIC_SPI 45 IRQ_TYPE_LEVEL_HIGH>,
+					     <GIC_SPI 44 IRQ_TYPE_LEVEL_HIGH>,
+					     <GIC_SPI 43 IRQ_TYPE_LEVEL_HIGH>;
+				interrupt-names = "inbox", "outbox", "oob-outbox";
+				#mbox-cells = <2>;
+			};
+
 			pwms: pwm@30000 {
 				compatible = "sprd,ums9620-pwm";
 				reg = <0x30000 0x10000>;
@@ -325,6 +339,13 @@
 		freq-num = <8>;
 		backdoor = <2133>;
 	};
+
+	sipc: sipc-virt {
+		compatible = "unisoc,sipc-virt-bus";
+		#address-cells = <1>;
+		#size-cells = <0>;
+	};
+
 };
 
 /* Include other IP modules ALPHABETICALLY */
@@ -335,6 +356,7 @@
 #include "gpio.dtsi"
 #include "gpu-natt.dtsi"
 #include "i2c.dtsi"
+#include "modem.dtsi"
 #include "sensorhub.dtsi"
 #include "spi.dtsi"
 #include "uart.dtsi"
