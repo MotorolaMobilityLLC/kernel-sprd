@@ -40,17 +40,23 @@ extern void sysdump_ipi(void *p, struct pt_regs *regs);
   *
   */
 extern void prepare_dump_info_for_wdh(struct pt_regs *regs, const char *reason);
-#else /*CONFIG_SPRD_MINI_SYSDUMP*/
+#else /*!CONFIG_SPRD_MINI_SYSDUMP*/
 static inline void prepare_dump_info_for_wdh(struct pt_regs *regs, const char *reason) {}
 #endif /*CONFIG_SPRD_MINI_SYSDUMP*/
 
-#else /*CONFIG_SPRD_SYSDUMP*/
+#else /*!CONFIG_SPRD_SYSDUMP*/
 static inline int minidump_save_extend_information(const char *name,
 		unsigned long paddr_start,
-		unsigned long paddr_end) {}
+		unsigned long paddr_end)
+{
+	return 0;
+}
 static inline int minidump_change_extend_information(const char *name,
 		unsigned long paddr_start,
-		unsigned long paddr_end) {}
+		unsigned long paddr_end)
+{
+	return 0;
+}
 static inline void sysdump_ipi(void *p, struct pt_regs *regs) {}
 static inline void prepare_dump_info_for_wdh(struct pt_regs *regs, const char *reason) {}
 #endif /*CONFIG_SPRD_SYSDUMP*/

@@ -69,6 +69,9 @@
 #include <crypto/sha1.h>
 #include <asm/sections.h>
 
+/* vmalloc */
+#include <linux/pgtable.h>
+
 /* vendor hook*/
 #include <trace/hooks/debug.h>
 #include <trace/hooks/bug.h>
@@ -103,6 +106,10 @@ static unsigned int pmic_reg;
 #define REG_SP_INDEX	31
 #define REG_PC_INDEX	32
 #define REG_MEM_SIZE	(PAGE_SIZE * 2)
+
+/* for vmalloc addr */
+#define PAGE_OFFSET_MASK (PAGE_SIZE - 1)	/* 0xFFF when PAGE_SIZE is 4K */
+#define PAGEOFFSET(X) (((ulong)(X)) & PAGE_OFFSET_MASK)
 
 #define MINIDUMP_INFO_BYTES	(ALIGN(sizeof(struct minidump_info), 4))
 struct minidump_info *sprd_minidump_info;
@@ -320,6 +327,35 @@ void sprd_debug_check_crash_key(unsigned int code, int value)
 		}
 	}
 }
+int is_vmalloc_or_module_addr(const void *x)
+{
+	unsigned long addr = (unsigned long)kasan_reset_tag(x);
+#if defined(CONFIG_MODULES) && defined(MODULES_VADDR)
+	if (addr >= MODULES_VADDR && addr < MODULES_END)
+		return 1;
+#endif
+	return addr >= VMALLOC_START && addr < VMALLOC_END;
+}
+#define sprd_virt_addr_valid(kaddr) ((void *)(kaddr) >= (void *)PAGE_OFFSET)
+/* maybe need to change in some situation */
+unsigned long unisoc_virt_to_phys(const void *kaddr)
+{
+	struct page *vmalloc_page = NULL;
+	phys_addr_t page_phys;
+	unsigned long paddr = 0;
+
+	if (!sprd_virt_addr_valid(kaddr))
+		return -1;
+	/* module and vmalloc vmap area */
+	if (is_vmalloc_or_module_addr(kaddr)) {
+		vmalloc_page = vmalloc_to_page(kaddr);
+		page_phys = page_to_phys(vmalloc_page);
+		paddr = (unsigned long)(page_phys + PAGEOFFSET(kaddr));
+		return paddr;
+	}
+
+	return (unsigned long)__pa(kaddr);
+}
 
 /**
  * save extend debug information of modules in minidump, such as: cm4, iram...
@@ -458,23 +494,28 @@ void handle_android_debug_symbol(void)
 {
 	void *addr_start;
 	void *addr_end;
+	void *addr_start_percpu;
+	void *addr_end_percpu;
 
 	/* data-bss */
 	addr_start = android_debug_symbol(ADS_SDATA);
 	addr_end = android_debug_symbol(ADS_BSS_END);
 	if (addr_start == NULL || addr_end == NULL)
 		return;
-	minidump_save_extend_information("data-bss", (unsigned long)__pa(addr_start),
-			(unsigned long)__pa(addr_end));
+	minidump_save_extend_information("data-bss", unisoc_virt_to_phys(addr_start),
+			unisoc_virt_to_phys(addr_end));
 
 	/* per_cpu */
 	addr_start = android_debug_symbol(ADS_PER_CPU_START);
 	addr_end = android_debug_symbol(ADS_PER_CPU_END);
 	if (addr_start == NULL || addr_end == NULL)
 		return;
-	minidump_save_extend_information("per_cpu", (unsigned long)__pa(addr_start),
-			(unsigned long)__pa(addr_end));
-	sprd_sysdump_info->sprd_coreregs_info.pcpu_start_paddr = __pa(addr_start);
+	addr_start_percpu = addr_start + __per_cpu_offset[0];
+	addr_end_percpu = addr_start_percpu +
+		(__per_cpu_offset[1] - __per_cpu_offset[0]) * CPU_NUM_MAX;
+	minidump_save_extend_information("per_cpu", unisoc_virt_to_phys(addr_start_percpu),
+			unisoc_virt_to_phys(addr_end_percpu));
+	sprd_sysdump_info->sprd_coreregs_info.pcpu_start_paddr = unisoc_virt_to_phys(addr_start_percpu);
 
 	/* linux banner */
 	unisoc_linux_banner = android_debug_symbol(ADS_LINUX_BANNER);
@@ -667,14 +708,14 @@ static int sysdump_info_init(void)
 */
 		/* get mmu regs info */
 		sprd_sysdump_info->sprd_mmuregs_info.paddr_mmu_regs_t =
-			__pa(&per_cpu(sprd_debug_mmu_reg, smp_processor_id()));
+			unisoc_virt_to_phys(&per_cpu(sprd_debug_mmu_reg, smp_processor_id()));
 		sprd_sysdump_info->sprd_mmuregs_info.cpu_id = smp_processor_id();
 		sprd_sysdump_info->sprd_mmuregs_info.sprd_pcpu_offset = __per_cpu_offset[1] -
 			__per_cpu_offset[0];
 		sprd_sysdump_info->sprd_mmuregs_info.cpu_numbers = CPU_NUM_MAX;
 		/* get core regs info */
 		sprd_sysdump_info->sprd_coreregs_info.paddr_core_regs_t =
-			 __pa(&per_cpu(sprd_debug_core_reg, smp_processor_id()));
+			 unisoc_virt_to_phys(&per_cpu(sprd_debug_core_reg, smp_processor_id()));
 		pr_info("[%s]sysdump info init end!\n", __func__);
 	}
 
@@ -1194,13 +1235,13 @@ void prepare_minidump_reg_memory(struct pt_regs *regs)
 			pr_debug("R%d: %llx\n", i, regs->regs[i]);
 			pr_debug("addr: %lx\n", addr);
 		}
-		if (addr < KIMAGE_VADDR || addr > -256UL) {
+		if (!sprd_virt_addr_valid(addr)) {
 
 #endif
 			sprd_minidump_info->regs_memory_info.reg_paddr[i] = 0;
 			pr_debug("reg value invalid !!!\n");
 		} else {
-			sprd_minidump_info->regs_memory_info.reg_paddr[i] = __pa(addr);
+			sprd_minidump_info->regs_memory_info.reg_paddr[i] = unisoc_virt_to_phys((char *)addr);
 			sprd_minidump_info->regs_memory_info.valid_reg_num++;
 		}
 		pr_debug("reg[%d] paddr: %lx\n",
@@ -1306,12 +1347,11 @@ static struct notifier_block dump_die_notifier = {
 static void section_info_ylog_buf(void)
 {
 	int ret;
-	long vaddr = (long)(ylog_buffer);;
+	char *vaddr = ylog_buffer;
 
-	pr_info("%s in. vaddr : 0x%lx  len :0x%x\n",
-		 __func__, vaddr, YLOG_BUF_SIZE);
-	ret = minidump_save_extend_information("ylog_buf", __pa(vaddr),
-						__pa(vaddr + YLOG_BUF_SIZE));
+	ret = minidump_save_extend_information("ylog_buf",
+			unisoc_virt_to_phys(vaddr),
+			unisoc_virt_to_phys(vaddr + YLOG_BUF_SIZE));
 	if (!ret)
 		pr_info("ylog_buf added to minidump section ok!!\n");
 }
@@ -1472,7 +1512,7 @@ int minidump_init(void)
 	}
 	if (!sprd_minidump_info)
 		return -1;
-	minidump_info_desc_g.paddr = __pa(sprd_minidump_info);
+	minidump_info_desc_g.paddr = unisoc_virt_to_phys(sprd_minidump_info);
 	minidump_info_desc_g.size = sizeof(minidump_info_g);
 	section_extend_info_init();
 	pr_info("%s out.\n", __func__);
@@ -1723,9 +1763,9 @@ static void update_vmcoreinfo_data(void)
 static void minidump_addr_convert(int i)
 {
 	sprd_minidump_info->section_info_total.section_info[i].section_start_paddr =
-		__pa(sprd_minidump_info->section_info_total.section_info[i].section_start_vaddr);
+		unisoc_virt_to_phys((char *)sprd_minidump_info->section_info_total.section_info[i].section_start_vaddr);
 	sprd_minidump_info->section_info_total.section_info[i].section_end_paddr =
-		__pa(sprd_minidump_info->section_info_total.section_info[i].section_end_vaddr);
+		unisoc_virt_to_phys((char *)sprd_minidump_info->section_info_total.section_info[i].section_end_vaddr);
 	sprd_minidump_info->section_info_total.section_info[i].section_size =
 		(int)(sprd_minidump_info->section_info_total.section_info[i].section_end_paddr -
 		sprd_minidump_info->section_info_total.section_info[i].section_start_paddr);
@@ -1776,7 +1816,7 @@ static void minidump_info_init(void)
 	/* android debug symbols init */
 	handle_android_debug_symbol();
 	/* regs init */
-	sprd_minidump_info->regs_info.paddr = __pa(sprd_minidump_regs);
+	sprd_minidump_info->regs_info.paddr = unisoc_virt_to_phys(sprd_minidump_regs);
 	/* regs_memory_info init*/
 	sprd_minidump_info->regs_memory_info.size = REGS_NUM_MAX *
 			sprd_minidump_info->regs_memory_info.per_reg_memory_size;
@@ -1791,8 +1831,7 @@ static void minidump_info_init(void)
 	minidump_save_extend_information("etb_data", 0, 0);
 	/* update minidump info */
 	if (sysdump_reflag && sprd_sysdump_info_paddr) {
-		sprd_sysdump_info->sprd_mini_info.minidump_info_paddr = __pa(sprd_minidump_info);
-		pr_info("minidump_info_vaddr is 0x%llx, __pa:paddr is 0x%llx\n", __pa(sprd_minidump_info), __pa(sprd_minidump_info));
+		sprd_sysdump_info->sprd_mini_info.minidump_info_paddr = unisoc_virt_to_phys(sprd_minidump_info);
 		sprd_sysdump_info->sprd_mini_info.minidump_info_size = sizeof(minidump_info_g);
 		memcpy(sprd_sysdump_info->sprd_mini_info.magic, MINIDUMP_MAGIC,
 									sizeof(MINIDUMP_MAGIC));
@@ -1878,11 +1917,6 @@ static int sysdump_sysctl_init(void)
 #ifdef CONFIG_SPRD_MINI_SYSDUMP
 	minidump_init();
 #endif
-	pr_emerg("kimage_voffset:0x%llx\n", kimage_voffset);
-	pr_emerg("vabits_actual:%d\n", VA_BITS);
-	pr_emerg("phys_offset:0x%llx\n", PHYS_OFFSET);
-	pr_emerg("kaslr_offset:0x%lx\n", kaslr_offset());
-	pr_emerg("note buf size is %ld\n", SYSDUMP_NOTE_BYTES);
 	/* vmcoreinfo init */
 	crash_save_vmcoreinfo_init();
 	/* add percpu info to vmcoreinfo data, behind init */
