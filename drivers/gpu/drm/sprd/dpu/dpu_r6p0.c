@@ -42,15 +42,15 @@
 #define DSC_REG_OFFSET					0x1A00
 #define DSC1_REG_OFFSET					0x1B00
 
-#define DPU_REG_RD(reg) readl_relaxed(reg)
+#define DPU_REG_RD(reg) readl(reg)
 
-#define DPU_REG_WR(reg, mask) writel_relaxed(mask, reg)
+#define DPU_REG_WR(reg, mask) writel(mask, reg)
 
 #define DPU_REG_SET(reg, mask) \
-		writel_relaxed(readl_relaxed(reg) | mask, reg)
+		writel(readl(reg) | mask, reg)
 
 #define DPU_REG_CLR(reg, mask) \
-		writel_relaxed(readl_relaxed(reg) & ~mask, reg)
+		writel(readl(reg) & ~mask, reg)
 
 #define DPU_LAY_REG(reg, index) \
 		(reg + index * DPU_LAY_REG_OFFSET * DPU_REG_SIZE)
