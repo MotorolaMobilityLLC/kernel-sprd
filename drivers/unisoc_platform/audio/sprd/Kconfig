@@ -81,6 +81,13 @@ config SND_SOC_UNISOC_I2S_DUMMY
 	  Say Y or M here if you want to add support for ASoC audio on Spreadtrum
 	  boards using the AP I2S and a dummy codec.
 
+config SND_SOC_UNISOC_TDM_DUMMY
+	tristate "ASoC Spreadtrum sound card with AP TDM and a dummy codec"
+	select SND_SOC_UNISOC_TDM
+	help
+	  Say Y or M here if you want to add support for ASoC audio on Spreadtrum
+	  boards using the AP TDM and a dummy codec.
+
 config SND_SOC_UNISOC_R1P0V3_SC2721
 	tristate "ASoC Spreadtrum sound card with vbc r1p0 v3 and codec sc2721"
 	select UNISOC_AUDIO_MEMORY_MANAGER
@@ -113,6 +120,7 @@ config SND_SOC_UNISOC_PIKE2
 
 source "drivers/unisoc_platform/audio/sprd/dai/vbc/Kconfig"
 source "drivers/unisoc_platform/audio/sprd/dai/i2s/Kconfig"
+source "drivers/unisoc_platform/audio/sprd/dai/tdm/Kconfig"
 source "drivers/unisoc_platform/audio/sprd/dai/vaudio/Kconfig"
 source "drivers/unisoc_platform/audio/sprd/platform/Kconfig"
 source "drivers/unisoc_platform/audio/sprd/codec/sprd/Kconfig"

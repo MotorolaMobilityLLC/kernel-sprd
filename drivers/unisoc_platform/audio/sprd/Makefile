@@ -12,6 +12,7 @@ obj-$(CONFIG_SND_SOC_UNISOC_VBC_V4)		+= dai/vbc/v4/
 obj-$(CONFIG_SND_SOC_UNISOC_VBC_R1P0V3)		+= dai/vbc/r1p0v3/
 obj-$(CONFIG_SND_SOC_UNISOC_VAUDIO)		+= dai/vaudio/
 obj-$(CONFIG_SND_SOC_UNISOC_I2S)			+= dai/i2s/
+obj-$(CONFIG_SND_SOC_UNISOC_TDM)			+= dai/tdm/
 obj-$(CONFIG_SND_SOC_UNISOC_CODEC_DUMMY)		+= codec/dummy-codec/
 obj-$(CONFIG_SND_SOC_UNISOC_CODEC_SC2730)		+= codec/sprd/sc2730/
 obj-$(CONFIG_SND_SOC_UNISOC_PA_UCP1301)		+= codec/sprd/ucp1301/
@@ -31,3 +32,5 @@ obj-$(CONFIG_SND_SOC_UNISOC_VBC_V4_UMP9620_MCDT_R2P0)	+= snd-soc-sprd-card.o
 
 snd-soc-sprd-i2s-card-objs		:= i2s-r0p0-dummy-codec.o
 obj-$(CONFIG_SND_SOC_UNISOC_I2S_DUMMY)		+= snd-soc-sprd-i2s-card.o
+snd-soc-tdm-dummy-objs			:= tdm-dummy-codec.o
+obj-$(CONFIG_SND_SOC_UNISOC_TDM_DUMMY)	+= snd-soc-tdm-dummy.o
