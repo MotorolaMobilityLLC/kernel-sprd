@@ -36,7 +36,7 @@
 static int num_heaps;
 static struct dma_heap *carve_heap;
 static struct gen_pool *carve_pool;
-//static struct dma_heap *carve_uncached_heap;
+static struct dma_heap *carve_uncached_heap;
 //static struct dma_heap **heaps;
 
 struct dmabuf_platform_heap {
@@ -70,6 +70,8 @@ struct carveout_heap_buffer {
 	phys_addr_t base;
 	int vmap_cnt;
 	void *vaddr;
+
+	bool uncached;
 #ifdef CONFIG_E_SHOW_MEM
 	struct rb_node node;
 	pid_t pid;
@@ -94,7 +96,7 @@ struct dma_heap_attachment {
 	struct list_head list;
 	bool mapped;
 
-	//bool uncache;
+	bool uncached;
 };
 
 struct dmabuf_device {
@@ -147,7 +149,7 @@ static int carveout_heap_attach(struct dma_buf *dmabuf,
 	a->dev = attachment->dev;
 	INIT_LIST_HEAD(&a->list);
 	a->mapped = false;
-	//a->uncached = buffer->uncached;
+	a->uncached = buffer->uncached;
 	attachment->priv = a;
 
 	mutex_lock(&buffer->lock);
@@ -177,12 +179,12 @@ static struct sg_table *carveout_heap_map_dma_buf(struct dma_buf_attachment *att
 {
 	struct dma_heap_attachment *a = attachment->priv;
 	struct sg_table *table = a->table;
-	int attr = 0;
+	int attr = attachment->dma_map_attrs;
 	int ret;
-/*
-*	if (a->uncached)
-*		attr = DMA_ATTR_SKIP_CPU_SYNC;
-*/
+
+	if (a->uncached)
+		attr = DMA_ATTR_SKIP_CPU_SYNC;
+
 	ret = dma_map_sgtable(attachment->dev, table, direction, attr);
 	if (ret)
 		return ERR_PTR(ret);
@@ -196,11 +198,11 @@ static void carveout_heap_unmap_dma_buf(struct dma_buf_attachment *attachment,
 										enum dma_data_direction direction)
 {
 	struct dma_heap_attachment *a = attachment->priv;
-	int attr = 0;
-/*
-*	if (a->uncached)
-*		attr = DMA_ATTR_SKIP_CPU_SYNC;
-*/
+	int attr = attachment->dma_map_attrs;
+
+	if (a->uncached)
+		attr = DMA_ATTR_SKIP_CPU_SYNC;
+
 	a->mapped = false;
 	dma_unmap_sgtable(attachment->dev, table, direction, attr);
 }
@@ -216,10 +218,12 @@ static int carveout_heap_dma_buf_begin_cpu_access(struct dma_buf *dmabuf,
 	if (buffer->vmap_cnt)
 		invalidate_kernel_vmap_range(buffer->vaddr, buffer->len);
 
-	list_for_each_entry(a, &buffer->attachments, list) {
-		if (!a->mapped)
-			continue;
-		dma_sync_sgtable_for_cpu(a->dev, a->table, direction);
+	if (!buffer->uncached) {
+		list_for_each_entry(a, &buffer->attachments, list) {
+			if (!a->mapped)
+				continue;
+			dma_sync_sgtable_for_cpu(a->dev, a->table, direction);
+		}
 	}
 	mutex_unlock(&buffer->lock);
 
@@ -237,10 +241,12 @@ static int carveout_heap_dma_buf_end_cpu_access(struct dma_buf *dmabuf,
 	if (buffer->vmap_cnt)
 		flush_kernel_vmap_range(buffer->vaddr, buffer->len);
 
-	list_for_each_entry(a, &buffer->attachments, list) {
-		if (!a->mapped)
-			continue;
-		dma_sync_sgtable_for_device(a->dev, a->table, direction);
+	if (!buffer->uncached) {
+		list_for_each_entry(a, &buffer->attachments, list) {
+			if (!a->mapped)
+				continue;
+			dma_sync_sgtable_for_device(a->dev, a->table, direction);
+		}
 	}
 	mutex_unlock(&buffer->lock);
 
@@ -284,10 +290,10 @@ static int carveout_heap_mmap(struct dma_buf *dmabuf, struct vm_area_struct *vma
 	int i;
 #endif
 	int ret;
-/*
- *  if (buffer->uncached)
- *	   vma->vm_page_prot = pgprot_writecombine(vma->vm_page_prot);
-*/
+
+	if (buffer->uncached)
+		vma->vm_page_prot = pgprot_writecombine(vma->vm_page_prot);
+
 #ifdef CONFIG_E_SHOW_MEM
 	ret = dmabuf_carveheap_map_user(heap, buffer, vma);
 
@@ -341,10 +347,10 @@ static void *carveout_heap_do_vmap(struct carveout_heap_buffer *buffer)
 
 	if (!pages)
 		return ERR_PTR(-ENOMEM);
-/*
-*	if (buffer->uncached)
-*		pgprot = pgprot_writecombine(PAGE_KERNEL);
-*/
+
+	if (buffer->uncached)
+		pgprot = pgprot_writecombine(PAGE_KERNEL);
+
 	for_each_sgtable_page(table, &piter, 0) {
 		WARN_ON(tmp - pages >= npages);
 		*tmp++ = sg_page_iter_page(&piter);
@@ -440,8 +446,11 @@ static int dmabuf_heap_buffer_zero(struct dma_buf *dmabuf)
 	struct carveout_heap_buffer *buffer = dmabuf->priv;
 	struct sg_table *table = buffer->sg_table;
 	pgprot_t pgprot;
-	//pgprot = pgprot_writecombine(PAGE_KERNEL);	// uncache
-	pgprot = PAGE_KERNEL;	//cache
+	if (!buffer->uncached)
+		pgprot = PAGE_KERNEL;
+	else
+		pgprot = pgprot_writecombine(PAGE_KERNEL);
+
 	return dmabuf_heap_sglist_zero(table->sgl, table->nents, pgprot);
 }
 
@@ -600,9 +609,10 @@ static void dmabuf_carvebuffer_add(struct carveout_device *dev, struct carveout_
 }
 #endif
 
-static struct dma_buf *carveout_heap_allocate(struct dma_heap *heap, unsigned long len,
+static struct dma_buf *carveout_heap_do_allocate(struct dma_heap *heap, unsigned long len,
 								unsigned long fd_flags,
-								unsigned long heap_flags)
+								unsigned long heap_flags,
+								bool uncached)
 {
 	struct carveout_heap_buffer *buffer;
 	DEFINE_DMA_BUF_EXPORT_INFO(exp_info);
@@ -625,6 +635,7 @@ static struct dma_buf *carveout_heap_allocate(struct dma_heap *heap, unsigned lo
 	mutex_init(&buffer->lock);
 	buffer->heap = heap;
 	buffer->len = size;
+	buffer->uncached = uncached;
 
 	table = kmalloc(sizeof(*table), GFP_KERNEL);
 	if (!table)
@@ -666,6 +677,18 @@ static struct dma_buf *carveout_heap_allocate(struct dma_heap *heap, unsigned lo
 		ret = PTR_ERR(dmabuf);
 		goto free_pages;
 	}
+
+	/*
+	 * For uncached buffers, we need to initially flush cpu cache, since
+	 * the __GFP_ZERO on the allocation means the zeroing was done by the
+	 * cpu and thus it is likely cached. Map (and implicitly flush) and
+	 * unmap it now so we don't get corruption later on.
+	 */
+	if (buffer->uncached) {
+		dma_map_sgtable(dma_heap_get_dev(heap), table, DMA_BIDIRECTIONAL, 0);
+		dma_unmap_sgtable(dma_heap_get_dev(heap), table, DMA_BIDIRECTIONAL, 0);
+	}
+
 	return dmabuf;
 
 free_pages:
@@ -678,8 +701,38 @@ err_free:
 	return ERR_PTR(ret);
 }
 
+static struct dma_buf *carveout_heap_allocate(struct dma_heap *heap,
+					    unsigned long len,
+					    unsigned long fd_flags,
+					    unsigned long heap_flags)
+{
+	return carveout_heap_do_allocate(heap, len, fd_flags, heap_flags, false);
+}
+
 static const struct dma_heap_ops carveout_heap_ops = {
 	.allocate = carveout_heap_allocate,
+};
+
+static struct dma_buf *carveout_uncached_heap_allocate(struct dma_heap *heap,
+												unsigned long len,
+												unsigned long fd_flags,
+												unsigned long heap_flags)
+{
+	return carveout_heap_do_allocate(heap, len, fd_flags, heap_flags, true);
+}
+
+/* Dummy function to be used until we can call coerce_mask_and_coherent */
+static struct dma_buf *carveout_uncached_heap_not_initialized(struct dma_heap *heap,
+							    unsigned long len,
+							    unsigned long fd_flags,
+							    unsigned long heap_flags)
+{
+	return ERR_PTR(-EBUSY);
+}
+
+static struct dma_heap_ops carveout_uncached_heap_ops = {
+	/* After carveout_heap_create is complete, we will swap this */
+	.allocate = carveout_uncached_heap_not_initialized,
 };
 
 static int carveout_heap_create(struct dmabuf_platform_heap *heap_data)
@@ -702,14 +755,32 @@ static int carveout_heap_create(struct dmabuf_platform_heap *heap_data)
 	if (!carveout_heap)
 		return -ENOMEM;
 
-	exp_info.name = heap_data->name;
-	exp_info.ops = &carveout_heap_ops;
-	exp_info.priv = NULL;
+	if (strncmp(heap_data->name, "uncached", strlen("uncached"))) {
+		exp_info.name = heap_data->name;
+		exp_info.ops = &carveout_heap_ops;
+		exp_info.priv = NULL;
 
-	carve_heap = dma_heap_add(&exp_info);
-	if (IS_ERR(carve_heap))
-		return PTR_ERR(carve_heap);
+		carve_heap = dma_heap_add(&exp_info);
+		if (IS_ERR(carve_heap))
+			return PTR_ERR(carve_heap);
+		pr_info("%s: create carveout heap_name:%s, carve_heap_name: %s\n", __func__,
+				heap_data->name, dma_heap_get_name(carve_heap));
+	} else {
+		exp_info.name = heap_data->name;
+		exp_info.ops = &carveout_uncached_heap_ops;
+		exp_info.priv = NULL;
 
+		carve_uncached_heap = dma_heap_add(&exp_info);
+		if (IS_ERR(carve_uncached_heap))
+			return PTR_ERR(carve_uncached_heap);
+		pr_info("%s: create carveout heap_name:%s, carve_uncached_heap_name: %s\n", __func__,
+				heap_data->name, dma_heap_get_name(carve_uncached_heap));
+	}
+	if (!IS_ERR_OR_NULL(carve_uncached_heap)) {
+		dma_coerce_mask_and_coherent(dma_heap_get_dev(carve_uncached_heap), DMA_BIT_MASK(64));
+		mb(); /* make sure we only set allocate after dma_mask is set */
+		carveout_uncached_heap_ops.allocate = carveout_uncached_heap_allocate;
+	}
 	tmp_pool = gen_pool_create(PAGE_SHIFT, -1);
 	if (!tmp_pool) {
 		kfree(carveout_heap);
