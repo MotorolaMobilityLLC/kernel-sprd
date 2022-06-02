@@ -34,14 +34,10 @@
 	sprd-freq = <256 384 512 768 1333 1333 0xbacd 0xbacd>;
 };
 
-&ion {
-	#address-cells = <1>;
-	#size-cells = <0>;
+&dmabuf {
 
-	heap@2 {
-		reg = <2>;
+	fd-reserved {
 		label = "carveout_fd";
-		type = <2>;
 		memory-region = <&fd_reserved>;
 	};
 };
