@@ -25,7 +25,7 @@
 #include "sprd_plane.h"
 #include "sprd_dpu.h"
 #include "sprd_bl.h"
-//#include <../drivers/trusty/trusty.h>
+#include <../drivers/trusty/trusty.h>
 
 #define XFBC8888_HEADER_SIZE(w, h) (ALIGN((ALIGN((w), 16)) * \
 				(ALIGN((h), 16)) / 16, 128))
@@ -815,7 +815,7 @@ static int dpu_init(struct dpu_context *ctx)
 {
 	struct dpu_enhance *enhance = ctx->enhance;
 	u32 reg_val, size;
-	//int ret;
+	int ret;
 
 	DPU_REG_WR(ctx->base + REG_BG_COLOR, 0x00);
 
@@ -844,23 +844,23 @@ static int dpu_init(struct dpu_context *ctx)
 
 	enhance->frame_no = 0;
 
-	// ret = trusty_fast_call32(NULL, SMC_FC_DPU_FW_SET_SECURITY, FW_ATTR_SECURE, 0, 0);
-	// if (ret)
-	// 	pr_err("Trusty fastcall set firewall failed, ret = %d\n", ret);
+	ret = trusty_fast_call32(NULL, SMC_FC_DPU_FW_SET_SECURITY, FW_ATTR_SECURE, 0, 0);
+	if (ret)
+		pr_err("Trusty fastcall set firewall failed, ret = %d\n", ret);
 
 	return 0;
 }
 
 static void dpu_fini(struct dpu_context *ctx)
 {
-	//int ret;
+	int ret;
 
 	DPU_REG_WR(ctx->base + REG_DPU_INT_EN, 0x00);
 	DPU_REG_WR(ctx->base + REG_DPU_INT_CLR, 0xff);
 
-	// ret = trusty_fast_call32(NULL, SMC_FC_DPU_FW_SET_SECURITY, FW_ATTR_NON_SECURE, 0, 0);
-	// if (ret)
-	// 	pr_err("Trusty fastcall clear firewall failed, ret = %d\n", ret);
+	ret = trusty_fast_call32(NULL, SMC_FC_DPU_FW_SET_SECURITY, FW_ATTR_NON_SECURE, 0, 0);
+	if (ret)
+		pr_err("Trusty fastcall clear firewall failed, ret = %d\n", ret);
 
 	ctx->panel_ready = false;
 }
