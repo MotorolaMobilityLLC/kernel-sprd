@@ -206,3 +206,43 @@
 &dphy {
 	status = "okay";
 };
+
+&vpu_pd_top {
+	status = "okay";
+};
+
+&vpu_pd_enc0 {
+	status = "okay";
+};
+
+&vpu_pd_enc1 {
+	status = "okay";
+};
+
+&vpu_pd_dec {
+	status = "okay";
+};
+
+&vpu_enc0 {
+	status = "okay";
+};
+
+&iommu_vpuenc0 {
+	status = "okay";
+};
+
+&vpu_enc1 {
+	status = "okay";
+};
+
+&iommu_vpuenc1 {
+	status = "okay";
+};
+
+&vpu_dec {
+	status = "okay";
+};
+
+&iommu_vpudec {
+	status = "okay";
+};

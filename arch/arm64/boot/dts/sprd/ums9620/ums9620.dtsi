@@ -365,3 +365,4 @@
 #include "sdio.dtsi"
 #include "socid.dtsi"
 #include "usb.dtsi"
+#include "vpu.dtsi"
