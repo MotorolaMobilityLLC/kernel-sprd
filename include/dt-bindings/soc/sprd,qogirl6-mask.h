@@ -1563,6 +1563,7 @@
 #define MASK_AP_APB_CKG_EB                                  0x0004
 #define MASK_AP_APB_UFS_REG_EB                              0x0002
 #define MASK_AP_APB_UFS_EB                                  0x0001
+#define MASK_GPU_APB_CUR_ST_ST0                             0x00F0
 #define MASK_PMU_APB_WCN_ACCESS_AON_MEM_EN                  0x0004
 #define MASK_PMU_APB_SP_SYS_MEM_ALL_SEL                     0x0002
 #define MASK_PMU_APB_AON_MEM_ALL_SYS_SEL                    0x0001

@@ -276,6 +276,7 @@
 #define REG_AP_APB_APB_RST                                  0x0004
 #define REG_AP_APB_APB_MISC_CTRL                            0x0008
 #define REG_AP_APB_APB_EB1                                  0x000C
+#define REG_GPU_APB_GONDUL_PDC_CONTROL_STACK0               0x002C
 #define REG_PMU_APB_AON_MEM_CTRL                            0x0000
 #define REG_PMU_APB_MEM_AUTO_SD_CFG0                        0x0004
 #define REG_PMU_APB_MEM_AUTO_SD_CFG1                        0x0008
