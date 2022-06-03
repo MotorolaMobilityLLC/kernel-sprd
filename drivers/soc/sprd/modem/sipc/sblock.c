@@ -1365,7 +1365,9 @@ static int sblock_send_ex(u8 dst, u8 channel,
 	 * smsg_send may caused schedule,
 	 * can't be called in spinlock protected context.
 	 */
-	if (send_event) {
+	if (send_event && (((int)(*(ringhd_op->tx_wt_p) -
+	    *(ringhd_op->tx_rd_p)) == 1) || ((int)(*(ringhd_op->tx_wt_p) -
+	    *(ringhd_op->tx_rd_p)) >= ringhd_op->tx_count))) {
 		smsg_set(&mevt, channel,
 			 SMSG_TYPE_EVENT,
 			 SMSG_EVENT_SBLOCK_SEND,
