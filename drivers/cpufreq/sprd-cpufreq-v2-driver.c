@@ -174,6 +174,33 @@ static struct temp_node *sprd_temp_list_find(struct list_head *head, int temp)
 	return pos;
 }
 
+static void sprd_cluster_get_supply_mode(char *dcdc_supply)
+{
+	struct device_node *cmdline_node;
+	const char *cmd_line, *dcdc_type, *ver_str = "-v2";
+	int value = -1, ret;
+
+	cmdline_node = of_find_node_by_path("/chosen");
+	ret = of_property_read_string(cmdline_node, "bootargs", &cmd_line);
+
+	if (ret) {
+		pr_err("Fail to find cmdline bootargs property\n");
+		return;
+	}
+
+	dcdc_type = strstr(cmd_line, "power.from.extern=");
+	if (!dcdc_type) {
+		pr_info("no property power.from.extern found\n");
+		return;
+	}
+
+	sscanf(dcdc_type, "power.from.extern=%d", &value);
+	if (value)
+		return;
+
+	strcat(dcdc_supply, ver_str);
+}
+
 static int sprd_policy_table_update(struct cpufreq_policy *policy, int temp)
 {
 	struct cpufreq_frequency_table *new_table, *old_table;
@@ -537,6 +564,7 @@ static int sprd_cluster_props_init(struct cluster_info *cluster)
 	struct cluster_prop *p;
 	struct device_node *hwf;
 	int i, ret;
+	char dcdc_supply[32] = "sprd,pmic-type";
 	struct cluster_prop props[] = {
 		{
 			.name = "sprd,voltage-step",
@@ -550,10 +578,6 @@ static int sprd_cluster_props_init(struct cluster_info *cluster)
 			.name = "sprd,transition-delay",
 			.value = &cluster->transition_delay,
 			.ops = NULL,
-		}, {
-			.name = "sprd,pmic-type",
-			.value = &cluster->pmic_type,
-			.ops = (void **)&cluster->pmic_set,
 		}
 	};
 
@@ -571,6 +595,20 @@ static int sprd_cluster_props_init(struct cluster_info *cluster)
 		ret = ops ? ops(cluster->id, *p->value) : 0;
 		if (ret) {
 			dev_err(dev, "%s: set cluster %u '%s' value error\n", __func__, cluster->id, p->name);
+			return -EINVAL;
+		}
+	}
+
+	if (of_property_read_bool(cluster->node, "sprd,multi-supply"))
+		sprd_cluster_get_supply_mode(dcdc_supply);
+
+	dev_info(dev, "%s: cluster %u dcdc supply[%s]\n", __func__, cluster->id, dcdc_supply);
+
+	ret = of_property_read_u32(cluster->node, dcdc_supply, &cluster->pmic_type);
+	if (!ret) {
+		ret = cluster->pmic_set(cluster->id, cluster->pmic_type);
+		if (ret) {
+			dev_err(dev, "%s: set cluster %u 'pmic-type' value error\n", __func__, cluster->id);
 			return -EINVAL;
 		}
 	}
