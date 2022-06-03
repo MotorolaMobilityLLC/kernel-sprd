@@ -3251,7 +3251,6 @@ void musb_host_cleanup(struct musb *musb)
 		return;
 	usb_remove_hcd(musb->hcd);
 }
-EXPORT_SYMBOL_GPL(musb_host_cleanup);
 
 void musb_host_free(struct musb *musb)
 {
@@ -3281,7 +3280,6 @@ int musb_host_setup(struct musb *musb, int power_budget)
 	device_wakeup_enable(hcd->self.controller);
 	return 0;
 }
-EXPORT_SYMBOL_GPL(musb_host_setup);
 
 void musb_host_resume_root_hub(struct musb *musb)
 {

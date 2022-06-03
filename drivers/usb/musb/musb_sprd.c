@@ -977,7 +977,6 @@ static int musb_sprd_otg_start_host(struct sprd_glue *glue, int on)
 {
 	int ret = 0;
 	struct musb *musb = glue->musb;
-	struct musb_hdrc_platform_data *plat = dev_get_platdata(musb->controller);
 
 	if (!glue->vbus) {
 		glue->vbus = devm_regulator_get(glue->dev, "vddvbus");
@@ -991,17 +990,10 @@ static int musb_sprd_otg_start_host(struct sprd_glue *glue, int on)
 	if (on) {
 		dev_info(glue->dev, "%s: turn on host\n", __func__);
 
-		ret = musb_host_setup(musb, plat->power);
-		if (ret) {
-			dev_err(glue->dev, "musb_host_setup failed: %d\n", ret);
-			return ret;
-		}
-
 		if (!regulator_is_enabled(glue->vbus)) {
 			ret = regulator_enable(glue->vbus);
 			if (ret) {
 				dev_err(glue->dev, "Failed to enable vbus: %d\n", ret);
-				musb_host_cleanup(musb);
 				return ret;
 			}
 		}
@@ -1034,7 +1026,6 @@ static int musb_sprd_otg_start_host(struct sprd_glue *glue, int on)
 	} else {
 		dev_info(glue->dev, "%s: turn off host\n", __func__);
 
-		musb_host_cleanup(musb);
 		if (regulator_is_enabled(glue->vbus)) {
 			ret = regulator_disable(glue->vbus);
 			if (ret)
@@ -1758,6 +1749,7 @@ static int musb_sprd_pm_suspend(struct device *dev)
 		}
 	}
 
+	musb_sprd_suspend(glue);
 	atomic_set(&glue->pm_suspended, 1);
 
 	return 0;
@@ -1788,11 +1780,21 @@ static int musb_sprd_pm_resume(struct device *dev)
 		}
 	}
 
+	musb_sprd_resume(glue);
 	atomic_set(&glue->pm_suspended, 0);
+
+	/* Reset and enable sprd musb PM runtime here,
+	 * clk, phy are already resumed in musb_sprd_resume,
+	 * so here just increase runtime PM usage count
+	 */
 	pm_runtime_disable(glue->dev);
-	pm_runtime_use_autosuspend(glue->dev);
 	pm_runtime_set_autosuspend_delay(glue->dev, MUSB_AUTOSUSPEND_DELAY);
+	pm_runtime_use_autosuspend(glue->dev);
+	pm_runtime_get_noresume(glue->dev);
+	pm_runtime_set_active(glue->dev);
 	pm_runtime_enable(glue->dev);
+	pm_runtime_mark_last_busy(glue->dev);
+	pm_runtime_put_autosuspend(glue->dev);
 
 	/* kick in otg state machine */
 	queue_work(glue->musb_wq, &glue->resume_work);

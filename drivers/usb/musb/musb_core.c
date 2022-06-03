@@ -2454,23 +2454,12 @@ musb_init_controller(struct device *dev, int nIrq, void __iomem *ctrl)
 		status = musb_platform_set_mode(musb, MUSB_PERIPHERAL);
 		break;
 	case MUSB_OTG:
-		/* should not setup host in init state, if do this:
-		 * 1. In usb_add_hcd, rhdev will be added to the bus,
-		 *    and root hub device_set_wakeup_capable
-		 * 2. usb_dev_suspend --> usb_suspend --> choose_wakeup
-		 *    will case parent dev:sprd_musb runtime resume
-		 *
-		 * From above logical it seems in host mode, EB should't be disable .
-		 *
-		 * So here remove musb_host_setup.
-		 */
-		//status = musb_host_setup(musb, plat->power);
-		//if (status < 0)
-		//	goto fail3;
+		status = musb_host_setup(musb, plat->power);
+		if (status < 0)
+			goto fail3;
 		status = musb_gadget_setup(musb);
 		if (status) {
-			/* do not need musb_host_cleanup here */
-			//musb_host_cleanup(musb);
+			musb_host_cleanup(musb);
 			goto fail3;
 		}
 		status = musb_platform_set_mode(musb, MUSB_OTG);
