@@ -698,6 +698,7 @@
 		vddio-supply = <&vddcamio>;
 		vddcama-supply = <&vddcama1>;
 		vddcamd-supply = <&vddcamd1>;
+		avdd-gpios = <&ap_gpio 79 0>;
 		reset-gpios = <&ap_gpio 41 0>;
 		power-down-gpios = <&ap_gpio 47 0>;
 		sprd,phyid = <3>;/*6*/
