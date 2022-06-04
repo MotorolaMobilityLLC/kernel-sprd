@@ -252,7 +252,7 @@ static void *modem_map_memory(struct modem_device *modem, phys_addr_t start,
 	do {
 		map_size = PAGE_ALIGN(map_size);
 #ifdef CONFIG_ARM64
-		map = modem_ram_vmap_nocache(modem->modem_type, start, map_size);
+		map = modem_ram_vmap_ex(modem->modem_type, start, map_size, MMAP_NONCACHE);
 #else
 		map = memremap(start, map_size, MEMREMAP_WB);
 #endif

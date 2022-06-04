@@ -244,6 +244,13 @@ enum {
 	SMSG_TYPE_NR,		/* total type number */
 };
 
+/* modem ram vmap type definition */
+typedef enum {
+	MMAP_CACHE = 0,
+	MMAP_WRITECOMBINE,
+	MMAP_NONCACHE,
+}E_MMAP_TYPE;
+
 struct smsg_callback_t {
 	void (*callback)(const struct smsg  *msg, void *data);
 	void *data;
@@ -442,6 +449,17 @@ void *shmem_ram_vmap_cache_ex(u8 dst, u16 smem, phys_addr_t start, size_t size);
  * @modem_type: soc modem, pcie modem
  */
 void modem_ram_unmap(u32 modem_type, const void *mem);
+
+/**
+ * modem_ram_vmap_cache_ex -- for modem map ram address
+ *
+ * @modem_type: soc modem, pcie modem
+ * @start: start address
+ * @size: size to be allocated, page-aligned
+ * @mtype: MMAP_CACHE, MMAP_WRITECOMBINE, MMAP_NONCACHE
+ * @return: phys addr or 0 if failed
+ */
+void *modem_ram_vmap_ex(u32 modem_type, phys_addr_t start, size_t size, E_MMAP_TYPE mtype);
 
 /**
  * shmem_ram_vmap_nocache -- for modem map ram address
