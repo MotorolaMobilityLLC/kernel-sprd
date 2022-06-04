@@ -52,8 +52,8 @@ static struct ieee80211_supported_band sc2332_band_2ghz = {
 	.ht_cap = G_HTCAP,
 };
 
-static void init_reg_notify(struct wiphy *wiphy,
-			    struct regulatory_request *request)
+static void sc2332_reg_notify(struct wiphy *wiphy,
+			      struct regulatory_request *request)
 {
 	struct sprd_priv *priv = wiphy_priv(wiphy);
 	struct ieee80211_supported_band *sband;
@@ -184,7 +184,7 @@ void sc2332_setup_wiphy(struct wiphy *wiphy, struct sprd_priv *priv)
 
 	if (priv->fw_std & SPRD_STD_11D) {
 		pr_info("\tIEEE802.11d supported\n");
-		wiphy->reg_notifier = init_reg_notify;
+		wiphy->reg_notifier = sc2332_reg_notify;
 	}
 
 	if (priv->fw_std & SPRD_STD_11E) {
