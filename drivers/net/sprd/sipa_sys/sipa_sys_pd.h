@@ -47,6 +47,9 @@ struct sipa_sys_pd_drv {
 	sipa_sys_do_power_off_cb do_power_off_cb;
 	sipa_sys_clk_enable_cb clk_enable_cb;
 	void *cb_priv;
+	struct regmap *dispc1_reg;
+	struct regmap *glb_apb_reg;
+	struct regmap *apb_reg;
 	struct sipa_sys_register regs[0];
 };
 

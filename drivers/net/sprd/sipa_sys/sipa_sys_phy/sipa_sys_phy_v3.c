@@ -32,6 +32,20 @@
 #include "sipa_sys_phy_v3.h"
 #include "../sipa_sys_pd.h"
 
+#define IPA_POWER_ON 0x00
+#define IPA_POWER_OFF 0x07
+
+#define REG_APB_EB 0x0
+#define REG_ANALOG_USB31_PLL_V_USB31PLL_CTRL0 0x0
+#define REG_ANALOG_USB31_PLL_V_REG_SEL_CFG_0 0x0028
+#define REG_IPA_IP_EB 0x04
+#define REG_IPA_EB 0x04
+
+#define MASK_USB31PLL_EB BIT(4)
+#define MASK_ANALOG_USB31_PLL_V_RG_USB31PLLV_PD BIT(30)
+#define MASK_DBG_SEL_ANALOG_USB31_PLL_V_RG_USB31PLLV_PD BIT(8)
+#define MASK_IPA_POWER_STATE 0x1F00
+
 #define SPRD_IPA_POWERON_POLL_US 50
 #define SPRD_IPA_POWERON_TIMEOUT 5000
 
@@ -159,9 +173,35 @@ int sipa_sys_do_power_on_cb_v3(void *priv)
 	return ret;
 }
 
-int sipa_sys_do_power_off_cb_v3(void *priv)
+static int sipa_sys_wait_power_off(struct sipa_sys_pd_drv *drv,
+				   struct sipa_sys_register *reg_info)
 {
 	int ret = 0;
+	u32 val;
+
+	if (reg_info->rmap) {
+		ret = regmap_read_poll_timeout(reg_info->rmap,
+					       reg_info->reg,
+					       val,
+					       (((u32)(val & reg_info->mask)
+						 & MASK_IPA_POWER_STATE) >> 8) == IPA_POWER_OFF,
+					       SPRD_IPA_POWERON_POLL_US,
+					       SPRD_IPA_POWERON_TIMEOUT);
+	} else {
+		usleep_range((SPRD_IPA_POWERON_TIMEOUT >> 2) + 1, 5000);
+	}
+
+	if (ret)
+		dev_err(drv->dev,
+			"Polling check power off reg timed out, IPA_SYS_STATE: %x\n", val);
+
+	return ret;
+}
+
+int sipa_sys_do_power_off_cb_v3(void *priv)
+{
+	int ret = 0, tmp = 0;
+	u32 val[3] = {0};
 	struct sipa_sys_register *reg_info;
 	struct sipa_sys_pd_drv *drv = (struct sipa_sys_pd_drv *)priv;
 
@@ -177,6 +217,22 @@ int sipa_sys_do_power_off_cb_v3(void *priv)
 		clk_disable_unprepare(drv->ipa_core_parent);
 		clk_disable_unprepare(drv->clk_ipa_ckg_eb);
 	}
+
+	tmp = regmap_read(drv->glb_apb_reg, REG_IPA_IP_EB, &val[0]);
+	if (tmp < 0)
+		dev_warn(drv->dev, "read ipa sys glb_apb_reg error\n");
+
+	tmp = regmap_read(drv->dispc1_reg, REG_APB_EB, &val[1]);
+	if (tmp < 0)
+		dev_warn(drv->dev, "read ipa sys dispc1_reg error\n");
+
+	tmp = regmap_read(drv->apb_reg, REG_IPA_EB, &val[2]);
+	if (tmp < 0)
+		dev_warn(drv->dev, "read ipa sys apb_reg error\n");
+
+	dev_warn(drv->dev,
+		 "IPA_IP_ENABLE:%x,IPA_APB_ENABLE:%x,IPA_ENABLE:%x\n",
+		 val[0], val[1], val[2]);
 
 	reg_info = &drv->regs[IPA_SYS_DSLPEN];
 	if (reg_info->rmap) {
@@ -198,6 +254,13 @@ int sipa_sys_do_power_off_cb_v3(void *priv)
 		if (ret < 0)
 			dev_warn(drv->dev, "update access en fail\n");
 	}
+
+	reg_info = &drv->regs[IPA_SYS_STATE];
+	ret =  sipa_sys_wait_power_off(drv, reg_info);
+	if (ret)
+		dev_info(drv->dev, "sipa power off maybe fail\n");
+	else
+		dev_info(drv->dev, "sipa power off success\n");
 
 	return ret;
 }
@@ -265,6 +328,24 @@ int sipa_sys_parse_dts_cb_v3(void *priv)
 			drv->regs[i].rmap,
 			drv->regs[i].reg,
 			drv->regs[i].mask);
+	}
+
+	drv->dispc1_reg = syscon_regmap_lookup_by_phandle(np, "sprd,syscon-dispc1-glb");
+	if (IS_ERR(drv->dispc1_reg)) {
+		dev_err(drv->dev, "dispc1 syscon failed\n");
+		return PTR_ERR(drv->dispc1_reg);
+	}
+
+	drv->glb_apb_reg = syscon_regmap_lookup_by_phandle(np, "sprd,syscon-glb-apb");
+	if (IS_ERR(drv->glb_apb_reg)) {
+		dev_err(drv->dev, "ipa-glb-apb syscon failed\n");
+		return PTR_ERR(drv->glb_apb_reg);
+	}
+
+	drv->apb_reg = syscon_regmap_lookup_by_phandle(np, "sprd,syscon-apb");
+	if (IS_ERR(drv->apb_reg)) {
+		dev_err(drv->dev, "ipa-apb syscon failed\n");
+		return PTR_ERR(drv->apb_reg);
 	}
 
 	return 0;
