@@ -166,7 +166,8 @@ inline void __dbg_add_host_log(struct mmc_host *mmc, int type,
 		dbg_run_host_log_dat[swcq->dbg_host_cnt].type = type;
 		dbg_run_host_log_dat[swcq->dbg_host_cnt].cmd = cmd;
 		dbg_run_host_log_dat[swcq->dbg_host_cnt].arg = arg;
-		dbg_run_host_log_dat[swcq->dbg_host_cnt].blocks = 0;
+		dbg_run_host_log_dat[swcq->dbg_host_cnt].blocks = mrq ?
+		(mrq->data ? mrq->data->blocks : 0) : 0;
 		dbg_run_host_log_dat[swcq->dbg_host_cnt].skip = l_skip;
 		dbg_run_host_log_dat[swcq->dbg_host_cnt].mrq = mrq;
 		dbg_run_host_log_dat[swcq->dbg_host_cnt].tag = mrq ? mrq->tag : -1;
@@ -1949,6 +1950,11 @@ static void check_cmdq_timer(struct timer_list *t)
 				swcq->check_slot[j].blocks = mrq->data->blocks;
 				cur_checksum += swcq->check_slot[j].blk_addr;
 				j++;
+			} else if (mrq) {
+				result = false;
+				reason = 6;
+				spin_unlock_irqrestore(&swcq->lock, flags);
+				goto out;
 			}
 		}
 		spin_unlock_irqrestore(&swcq->lock, flags);
@@ -1983,11 +1989,15 @@ static void check_cmdq_timer(struct timer_list *t)
 					 "real_next_addr:%d\n",
 					 check_slot->blk_addr, check_slot->blocks,
 					 expect_blk_addr, real_blk_addr);
-				if (expect_blk_addr != real_blk_addr) {
-					result = true;
-					reason = 4;
+				if (expect_blk_addr == real_blk_addr) {
+					result = false;
+					reason = 7;
 					break;
 				}
+			} else {
+				result = true;
+				reason = 4;
+				break;
 			}
 		}
 	}
@@ -2048,12 +2058,13 @@ static int sprd_swcq_cmd_show(struct seq_file *m, void *v)
 				   swcq->cmd_history[j].flags, swcq->cmd_history[j].task_id_index);
 		} else if (swcq->cmd_history[j].type == 2) {
 			seq_printf(m, "[%d] time_sec:%lld, time_usec:%lld issue next:%d, "
-				   "skip:%d pid:%d blocks:%d mrq:0x%p qcnt:%d cmdq_cnt:%d flags:0x%x, "
+				   "skip:%d pid:%d mrq:0x%p blocks:%d addr=%d qcnt:%d cmdq_cnt:%d flags:0x%x"
 				   "task_id_index:0x%x\n",
 				   i, swcq->cmd_history[j].time_sec, swcq->cmd_history[j].time_usec,
-				   swcq->cmd_history[j].arg,
-				   swcq->cmd_history[j].skip, swcq->cmd_history[j].pid,
-				   swcq->cmd_history[j].blocks, swcq->cmd_history[j].mrq,
+				   swcq->cmd_history[j].arg, swcq->cmd_history[j].skip,
+				   swcq->cmd_history[j].pid, swcq->cmd_history[j].mrq,
+				   swcq->cmd_history[j].blocks, swcq->cmd_history[j].blocks ?
+				   swcq->cmd_history[j].mrq->data->blk_addr : 0,
 				   swcq->cmd_history[j].qcnt, swcq->cmd_history[j].cmdq_cnt,
 				   swcq->cmd_history[j].flags, swcq->cmd_history[j].task_id_index);
 		} else if (swcq->cmd_history[j].type == 3) {
