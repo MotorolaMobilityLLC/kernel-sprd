@@ -165,6 +165,7 @@
 
 	debug_stat: debugstat {
 		compatible = "sprd,debugstat";
+		soc_slp_cnt_reg = <&pmu_apb_regs REG_PMU_APB_SLEEP_CNT5 0xffff>;
 	};
 
 	psci {
