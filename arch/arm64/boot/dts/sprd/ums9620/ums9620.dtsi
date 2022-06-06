@@ -411,6 +411,7 @@
 #include "gpu-natt.dtsi"
 #include "i2c.dtsi"
 #include "i2s.dtsi"
+#include "jpg.dtsi"
 #include "modem.dtsi"
 #include "pin-controller.dtsi"
 #include "power.dtsi"

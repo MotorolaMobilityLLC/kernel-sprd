@@ -440,3 +440,11 @@
 	sprd,trx_sync_mode = <1>;
 	status = "okay";
 };
+
+&jpg {
+	status = "okay";
+};
+
+&iommu_jpg {
+	status = "okay";
+};
