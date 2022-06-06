@@ -240,11 +240,35 @@ static int sprd_panel_enable(struct drm_panel *p)
 	return 0;
 }
 
+static struct drm_display_mode * sprd_panel_create_sr_mode(struct drm_device *drm,
+							struct drm_display_mode *original_mode,
+							u32 sr_width, u32 sr_height)
+{
+	struct drm_display_mode *new_mode;
+	struct videomode vm = {};
+
+	new_mode = drm_mode_create(drm);
+	drm_display_mode_to_videomode(original_mode, &vm);
+	vm.hactive = sr_width;
+	vm.vactive = sr_height;
+	drm_display_mode_from_videomode(&vm, new_mode);
+	new_mode->clock = new_mode->htotal * new_mode->vtotal *
+						drm_mode_vrefresh(original_mode) / 1000;
+
+	DRM_INFO("%s() mode: "DRM_MODE_FMT"\n", __func__, DRM_MODE_ARG(new_mode));
+
+	return new_mode;
+}
+
 static int sprd_panel_get_modes(struct drm_panel *p, struct drm_connector *connector)
 {
 	struct drm_display_mode *mode;
 	struct sprd_panel *panel = to_sprd_panel(p);
-	int mode_count = 0;
+	struct sprd_dsi *dsi = container_of(connector, struct sprd_dsi, connector);
+	struct device_node *np = panel->slave->dev.of_node;
+	u32 surface_width = 0, surface_height = 0;
+	u32 sr_width = 0, sr_height = 0;
+	int i, mode_count = 0;
 
 	DRM_INFO("%s()\n", __func__);
 	mode = drm_mode_duplicate(connector->dev, &panel->info.mode);
@@ -253,13 +277,59 @@ static int sprd_panel_get_modes(struct drm_panel *p, struct drm_connector *conne
 		return 0;
 	}
 	mode->type = DRM_MODE_TYPE_DRIVER | DRM_MODE_TYPE_PREFERRED;
-	drm_mode_set_name(mode);
 	drm_mode_probed_add(connector, mode);
+	mode_count++;
+
+	for (i = 0; i < panel->info.num_buildin_modes - 1; i++) {
+		mode = drm_mode_duplicate(connector->dev,
+			&(panel->info.buildin_modes[i]));
+		if (!mode) {
+			DRM_ERROR("failed to alloc mode %s\n",
+				panel->info.buildin_modes[i].name);
+			return 0;
+		}
+
+		mode->type = DRM_MODE_TYPE_DRIVER;
+		drm_mode_probed_add(connector, mode);
+		mode_count++;
+	}
+
+	/* parse and create sr mode config */
+	of_property_read_u32(panel->info.of_node, "sprd,sr-width", &sr_width);
+	of_property_read_u32(panel->info.of_node, "sprd,sr-height", &sr_height);
+	if (sr_width && sr_height) {
+		DRM_INFO("find sr config: width:%d, height:%d\n", sr_width, sr_height);
+		for (i = 0; i < panel->info.num_buildin_modes; i++) {
+			mode = sprd_panel_create_sr_mode(connector->dev,
+						&panel->info.buildin_modes[i], sr_width, sr_height);
+			mode->type = DRM_MODE_TYPE_DRIVER;
+			drm_mode_probed_add(connector, mode);
+			mode_count++;
+		}
+	}
+
+	of_property_read_u32(np, "sprd,surface-width", &surface_width);
+	of_property_read_u32(np, "sprd,surface-height", &surface_height);
+	if (surface_width && surface_height) {
+		struct videomode vm = {};
+
+		vm.hactive = surface_width;
+		vm.vactive = surface_height;
+		vm.pixelclock = surface_width * surface_height * 60;
+
+		mode = drm_mode_create(connector->dev);
+
+		mode->type = DRM_MODE_TYPE_DRIVER | DRM_MODE_TYPE_USERDEF;
+		drm_display_mode_from_videomode(&vm, mode);
+		drm_mode_probed_add(connector, mode);
+		mode_count++;
+		dsi->ctx.surface_mode = true;
+	}
 
 	connector->display_info.width_mm = panel->info.mode.width_mm;
 	connector->display_info.height_mm = panel->info.mode.height_mm;
 
-	mode_count++;
+	panel->info.display_mode_count = mode_count;
 
 	return mode_count;
 }
@@ -531,7 +601,7 @@ static int of_parse_buildin_modes(struct panel_info *info,
 	info->buildin_modes = kzalloc(sizeof(struct drm_display_mode) *
 				num_timings, GFP_KERNEL);
 
-	for (i = 0; i < num_timings - 1; i++) {
+	for (i = 0; i < num_timings; i++) {
 		rc = of_get_drm_display_mode(lcd_node,
 			&info->buildin_modes[i], NULL, i);
 		if (rc) {
@@ -543,7 +613,7 @@ static int of_parse_buildin_modes(struct panel_info *info,
 		info->buildin_modes[i].height_mm = info->mode.height_mm;
 		//info->buildin_modes[i].vrefresh = info->mode.vrefresh;
 	}
-	info->num_buildin_modes = num_timings - 1;
+	info->num_buildin_modes = num_timings;
 	DRM_INFO("info->num_buildin_modes = %d\n", num_timings);
 	goto done;
 

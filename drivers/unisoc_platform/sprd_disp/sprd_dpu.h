@@ -21,9 +21,9 @@
 #include "disp_lib.h"
 #include "disp_trusty.h"
 #include "sprd_dsi.h"
+#include "sprd_dsi_panel.h"
 #include "dsi/sprd_dsi_api.h"
 #include "dsi/sprd_dsi_hal.h"
-
 
 #define cabc_cfg0			268439552
 #define cabc_cfg1			268439552

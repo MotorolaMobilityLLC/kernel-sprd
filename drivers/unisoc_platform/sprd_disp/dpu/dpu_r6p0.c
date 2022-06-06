@@ -3019,21 +3019,41 @@ static int dpu_modeset(struct dpu_context *ctx,
 {
 	struct scale_config_param *scale_cfg = &ctx->scale_cfg;
 	struct sprd_dpu *dpu = container_of(ctx, struct sprd_dpu, ctx);
+	struct sprd_panel *panel =
+		(struct sprd_panel *)container_of(dpu->dsi->panel, struct sprd_panel, base);
 	struct sprd_crtc_state *state = to_sprd_crtc_state(dpu->crtc->base.state);
 	struct sprd_dsi *dsi = dpu->dsi;
 	static unsigned int now_vtotal;
 	static unsigned int now_htotal;
-	static bool first_modeset = true;
+	struct drm_display_mode *actual_mode;
+	u32 mode_vrefresh, temp_vrefresh;
+	int i;
 
 	scale_cfg->in_w = mode->hdisplay;
 	scale_cfg->in_h = mode->vdisplay;
+	mode_vrefresh = drm_mode_vrefresh(mode);
+	actual_mode = mode;
 
 	if (state->resolution_change) {
 		if ((mode->hdisplay != ctx->vm.hactive) || (mode->vdisplay != ctx->vm.vactive))
 			scale_cfg->need_scale = true;
 		else
 			scale_cfg->need_scale = false;
-	} else if (state->frame_rate_change) {
+	}
+
+	if (state->frame_rate_change) {
+		if ((mode->hdisplay != ctx->vm.hactive) || (mode->vdisplay != ctx->vm.vactive)) {
+			for (i = 0; i <= panel->info.display_mode_count; i++) {
+				temp_vrefresh = drm_mode_vrefresh(&panel->info.buildin_modes[i]);
+				if ((panel->info.buildin_modes[i].hdisplay == ctx->vm.hactive) &&
+					(panel->info.buildin_modes[i].vdisplay == ctx->vm.vactive) &&
+					(temp_vrefresh == mode_vrefresh)) {
+					actual_mode = &(panel->info.buildin_modes[i]);
+					break;
+				}
+			}
+		}
+
 		if (!now_htotal && !now_vtotal) {
 			now_htotal = ctx->vm.hactive + ctx->vm.hfront_porch +
 				ctx->vm.hback_porch + ctx->vm.hsync_len;
@@ -3041,23 +3061,16 @@ static int dpu_modeset(struct dpu_context *ctx,
 				ctx->vm.vback_porch + ctx->vm.vsync_len;
 		}
 
-		if ((mode->vtotal + mode->htotal) !=
+		if ((actual_mode->vtotal + actual_mode->htotal) !=
 			(now_htotal + now_vtotal)) {
-			drm_display_mode_to_videomode(mode, &ctx->vm);
-			drm_display_mode_to_videomode(mode, &dsi->ctx.vm);
+			drm_display_mode_to_videomode(actual_mode, &ctx->vm);
+			drm_display_mode_to_videomode(actual_mode, &dsi->ctx.vm);
 			now_htotal = ctx->vm.hactive + ctx->vm.hfront_porch +
 				ctx->vm.hback_porch + ctx->vm.hsync_len;
 			now_vtotal = ctx->vm.vactive + ctx->vm.vfront_porch +
 				ctx->vm.vback_porch + ctx->vm.vsync_len;
 		}
-	} else if (first_modeset) {
-		first_modeset = false;
-		if ((mode->hdisplay != ctx->vm.hactive) || (mode->vdisplay != ctx->vm.vactive))
-			scale_cfg->need_scale = true;
-		else
-			scale_cfg->need_scale = false;
-	}else
-		pr_debug("%s() no mode changed, do nothing\n", __func__);
+	}
 
 	pr_info("begin switch to %u x %u\n", mode->hdisplay, mode->vdisplay);
 

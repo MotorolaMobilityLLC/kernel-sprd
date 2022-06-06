@@ -68,6 +68,7 @@ struct panel_info {
 	struct drm_display_mode mode;
 	struct drm_display_mode *buildin_modes;
 	int num_buildin_modes;
+	int display_mode_count;
 	struct gpio_desc *avdd_gpio;
 	struct gpio_desc *avee_gpio;
 	struct gpio_desc *reset_gpio;
