@@ -2603,8 +2603,7 @@ static int dwc3_gadget_init_endpoint(struct dwc3 *dwc, u8 epnum)
 	INIT_LIST_HEAD(&dep->started_list);
 	INIT_LIST_HEAD(&dep->cancelled_list);
 
-	//Todo will enable it later
-	//dwc3_debugfs_create_endpoint_dir(dep);
+	dwc3_debugfs_create_endpoint_dir(dep);
 
 	return 0;
 }
@@ -2649,8 +2648,7 @@ static void dwc3_gadget_free_endpoints(struct dwc3 *dwc)
 			list_del(&dep->endpoint.ep_list);
 		}
 
-		//Todo submit debugfs_lookup to google, then enable this
-		//debugfs_remove_recursive(debugfs_lookup(dep->name, dwc->root));
+		debugfs_remove_recursive(debugfs_lookup(dep->name, dwc->root));
 		kfree(dep);
 	}
 }
