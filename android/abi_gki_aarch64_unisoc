@@ -171,6 +171,7 @@
   debugfs_create_u32
   debugfs_create_x32
   debugfs_initialized
+  debugfs_lookup
   debugfs_remove
   debugfs_create_symlink
   dec_zone_page_state
@@ -189,6 +190,7 @@
   device_add
   device_create
   device_create_file
+  device_create_managed_software_node
   device_destroy
   device_get_dma_attr
   device_initialize
@@ -200,6 +202,7 @@
   device_match_name
   device_property_present
   device_property_read_string
+  device_property_read_u8_array
   device_property_read_u32_array
   device_register
   device_remove_file
@@ -231,6 +234,7 @@
   devm_nvmem_register
   devm_of_platform_populate
   devm_platform_get_and_ioremap_resource
+  devm_phy_get
   devm_pinctrl_get
   devm_pinctrl_put
   devm_power_supply_register
@@ -337,6 +341,7 @@
   event_triggers_call
   extcon_find_edev_by_node
   extcon_get_edev_by_phandle
+  extcon_get_extcon_dev
   extcon_get_state
   fb_mode_option
   find_get_pid
@@ -646,6 +651,7 @@
   of_get_property
   of_get_regulator_init_data
   of_graph_get_remote_node
+  of_graph_is_present
   of_irq_get
   of_match_node
   of_nvmem_cell_get
@@ -662,6 +668,7 @@
   of_property_read_u64_index
   of_property_read_variable_u32_array
   of_prop_next_string
+  of_usb_get_phy_mode
   oops_in_progress
   out_of_line_wait_on_bit_lock
   overflowgid
@@ -687,8 +694,13 @@
   phy_ethtool_get_link_ksettings
   phy_ethtool_nway_reset
   phy_ethtool_set_link_ksettings
+  phy_exit
+  phy_init
   phy_mii_ioctl
+  phy_power_off
+  phy_power_on
   phy_print_status
+  phy_set_mode_ext
   phy_start
   phy_stop
   pinctrl_lookup_state
@@ -708,12 +720,14 @@
   platform_driver_unregister
   platform_get_irq
   platform_get_irq_byname
+  platform_get_irq_byname_optional
   platform_get_resource
   platform_get_resource_byname
   pm_get_active_wakeup_sources
   pm_power_off
   __pm_relax
   pm_runtime_allow
+  pm_runtime_barrier
   pm_runtime_get_if_active
   __pm_runtime_disable
   pm_runtime_enable
@@ -1039,6 +1053,7 @@
   usb_autopm_get_interface_no_resume
   usb_autopm_put_interface
   usb_control_msg
+  usb_decode_ctrl
   usb_del_gadget_udc
   usb_deregister
   usb_ep_alloc_request
@@ -1055,8 +1070,11 @@
   usb_function_unregister
   usb_gadget_giveback_request
   usb_gadget_udc_reset
+  usb_gadget_unmap_request_by_dev
   usb_get_dr_mode
   usb_get_intf
+  usb_get_maximum_speed
+  usb_get_role_switch_default_mode
   usb_hcd_is_primary_hcd
   usb_interface_id
   usb_kill_urb
