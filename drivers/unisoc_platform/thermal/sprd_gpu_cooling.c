@@ -12,8 +12,7 @@
 #include <linux/platform_device.h>
 #include <linux/debugfs.h>
 #include <linux/printk.h>
-
-#include "sprd_gpu_device.h"
+#include <linux/unisoc_gpu_cooling.h>
 
 #define GPU_CLUSTER_ID 0
 #define GPU_CORE_NUM 1
