@@ -126701,32 +126701,32 @@
         <parameter type-id='f0981eeb' name='filetype' filepath='fs/fs_types.c' line='37' column='1'/>
         <return type-id='002ac4a6'/>
       </function-decl>
-      <function-decl name='fsg_common_create_luns' mangled-name='fsg_common_create_luns' filepath='drivers/usb/gadget/function/f_mass_storage.c' line='2793' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='fsg_common_create_luns'>
-        <parameter type-id='8f32e025' name='common' filepath='drivers/usb/gadget/function/f_mass_storage.c' line='2793' column='1'/>
-        <parameter type-id='ddc27a70' name='cfg' filepath='drivers/usb/gadget/function/f_mass_storage.c' line='2793' column='1'/>
+      <function-decl name='fsg_common_create_luns' mangled-name='fsg_common_create_luns' filepath='drivers/usb/gadget/function/f_mass_storage.c' line='2803' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='fsg_common_create_luns'>
+        <parameter type-id='8f32e025' name='common' filepath='drivers/usb/gadget/function/f_mass_storage.c' line='2803' column='1'/>
+        <parameter type-id='ddc27a70' name='cfg' filepath='drivers/usb/gadget/function/f_mass_storage.c' line='2803' column='1'/>
         <return type-id='95e97e5e'/>
       </function-decl>
-      <function-decl name='fsg_common_set_cdev' mangled-name='fsg_common_set_cdev' filepath='drivers/usb/gadget/function/f_mass_storage.c' line='2647' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='fsg_common_set_cdev'>
-        <parameter type-id='8f32e025' name='common' filepath='drivers/usb/gadget/function/f_mass_storage.c' line='2647' column='1'/>
-        <parameter type-id='2a895c01' name='cdev' filepath='drivers/usb/gadget/function/f_mass_storage.c' line='2648' column='1'/>
-        <parameter type-id='b50a4934' name='can_stall' filepath='drivers/usb/gadget/function/f_mass_storage.c' line='2648' column='1'/>
+      <function-decl name='fsg_common_set_cdev' mangled-name='fsg_common_set_cdev' filepath='drivers/usb/gadget/function/f_mass_storage.c' line='2657' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='fsg_common_set_cdev'>
+        <parameter type-id='8f32e025' name='common' filepath='drivers/usb/gadget/function/f_mass_storage.c' line='2657' column='1'/>
+        <parameter type-id='2a895c01' name='cdev' filepath='drivers/usb/gadget/function/f_mass_storage.c' line='2658' column='1'/>
+        <parameter type-id='b50a4934' name='can_stall' filepath='drivers/usb/gadget/function/f_mass_storage.c' line='2658' column='1'/>
         <return type-id='95e97e5e'/>
       </function-decl>
-      <function-decl name='fsg_common_set_inquiry_string' mangled-name='fsg_common_set_inquiry_string' filepath='drivers/usb/gadget/function/f_mass_storage.c' line='2817' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='fsg_common_set_inquiry_string'>
-        <parameter type-id='8f32e025' name='common' filepath='drivers/usb/gadget/function/f_mass_storage.c' line='2817' column='1'/>
-        <parameter type-id='80f4b756' name='vn' filepath='drivers/usb/gadget/function/f_mass_storage.c' line='2817' column='1'/>
-        <parameter type-id='80f4b756' name='pn' filepath='drivers/usb/gadget/function/f_mass_storage.c' line='2818' column='1'/>
+      <function-decl name='fsg_common_set_inquiry_string' mangled-name='fsg_common_set_inquiry_string' filepath='drivers/usb/gadget/function/f_mass_storage.c' line='2827' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='fsg_common_set_inquiry_string'>
+        <parameter type-id='8f32e025' name='common' filepath='drivers/usb/gadget/function/f_mass_storage.c' line='2827' column='1'/>
+        <parameter type-id='80f4b756' name='vn' filepath='drivers/usb/gadget/function/f_mass_storage.c' line='2827' column='1'/>
+        <parameter type-id='80f4b756' name='pn' filepath='drivers/usb/gadget/function/f_mass_storage.c' line='2828' column='1'/>
         <return type-id='48b5725f'/>
       </function-decl>
-      <function-decl name='fsg_common_set_sysfs' mangled-name='fsg_common_set_sysfs' filepath='drivers/usb/gadget/function/f_mass_storage.c' line='2556' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='fsg_common_set_sysfs'>
-        <parameter type-id='8f32e025' name='common' filepath='drivers/usb/gadget/function/f_mass_storage.c' line='2556' column='1'/>
-        <parameter type-id='b50a4934' name='sysfs' filepath='drivers/usb/gadget/function/f_mass_storage.c' line='2556' column='1'/>
+      <function-decl name='fsg_common_set_sysfs' mangled-name='fsg_common_set_sysfs' filepath='drivers/usb/gadget/function/f_mass_storage.c' line='2566' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='fsg_common_set_sysfs'>
+        <parameter type-id='8f32e025' name='common' filepath='drivers/usb/gadget/function/f_mass_storage.c' line='2566' column='1'/>
+        <parameter type-id='b50a4934' name='sysfs' filepath='drivers/usb/gadget/function/f_mass_storage.c' line='2566' column='1'/>
         <return type-id='48b5725f'/>
       </function-decl>
-      <function-decl name='fsg_config_from_params' mangled-name='fsg_config_from_params' filepath='drivers/usb/gadget/function/f_mass_storage.c' line='3413' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='fsg_config_from_params'>
-        <parameter type-id='ddc27a70' name='cfg' filepath='drivers/usb/gadget/function/f_mass_storage.c' line='3413' column='1'/>
-        <parameter type-id='dbce2b7c' name='params' filepath='drivers/usb/gadget/function/f_mass_storage.c' line='3414' column='1'/>
-        <parameter type-id='f0981eeb' name='fsg_num_buffers' filepath='drivers/usb/gadget/function/f_mass_storage.c' line='3415' column='1'/>
+      <function-decl name='fsg_config_from_params' mangled-name='fsg_config_from_params' filepath='drivers/usb/gadget/function/f_mass_storage.c' line='3423' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='fsg_config_from_params'>
+        <parameter type-id='ddc27a70' name='cfg' filepath='drivers/usb/gadget/function/f_mass_storage.c' line='3423' column='1'/>
+        <parameter type-id='dbce2b7c' name='params' filepath='drivers/usb/gadget/function/f_mass_storage.c' line='3424' column='1'/>
+        <parameter type-id='f0981eeb' name='fsg_num_buffers' filepath='drivers/usb/gadget/function/f_mass_storage.c' line='3425' column='1'/>
         <return type-id='48b5725f'/>
       </function-decl>
       <function-decl name='fsync_bdev' mangled-name='fsync_bdev' filepath='block/bdev.c' line='212' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='fsync_bdev'>
