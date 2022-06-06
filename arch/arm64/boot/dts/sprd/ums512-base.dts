@@ -344,3 +344,13 @@
 &iommu_jpg {
 	status = "okay";
 };
+
+&lcd_td4310_truly_mipi_fhd {
+	sprd,sr-width = <720>;
+	sprd,sr-height = <1440>;
+};
+
+&lcd_ssd2092_truly_mipi_fhd {
+	sprd,sr-width = <720>;
+	sprd,sr-height = <1440>;
+};
