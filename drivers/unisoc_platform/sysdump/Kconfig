@@ -32,3 +32,8 @@ config UNISOC_LASTKMSG
 	  panic or cpu hang.
 	  5.save per cpu irq stack in minidump when panic or wdh
 	  only in 64b system.
+config UNISOC_DUMP_IO
+	depends on SPRD_SYSDUMP || SPRD_MINI_SYSDUMP
+	tristate "Enable UNISOC dump io handler"
+	help
+		This option enables dump io which provide all io requests info at that time

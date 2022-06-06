@@ -15,14 +15,16 @@
 #include <linux/genhd.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
+#include <linux/panic_notifier.h>
+#include <linux/platform_device.h>
 #include <linux/sched/signal.h>
 #include <linux/seq_buf.h>
-#include <linux/soc/sprd/sprd_sysdump.h>
 #include <linux/timekeeping.h>
 #include <../block/blk-mq.h>
 #include <../block/blk-mq-tag.h>
 #include <../drivers/mmc/core/queue.h>
 #include <../drivers/base/base.h>
+#include "unisoc_sysdump.h"
 
 #ifdef CONFIG_ARM64
 #include "sysdump64.h"
@@ -217,6 +219,8 @@ static int sprd_dump_requests_in_use(struct request_queue *q, u64 now)
 void sprd_dump_io(void)
 {
 	struct device *dev;
+	struct kset *set;
+	struct kobject *obj;
 	struct request_queue *q;
 	struct mmc_queue *mq;
 	int total_reqs, inflight_reqs;
@@ -226,11 +230,17 @@ void sprd_dump_io(void)
 	if (!sprd_io_seq_buf || !sprd_io_buf)
 		return;
 	now = ktime_get_ns();
-	if (!devices_kset) {
-		SEQ_printf(sprd_io_seq_buf, "devices_kset is NULL\n");
+	obj = &platform_bus.kobj;
+	if (!obj) {
+		SEQ_printf(sprd_io_seq_buf, "platform_bus.kobj is NULL\n");
 		return;
 	}
-	list_for_each(pos, &devices_kset->list) {
+	set = obj->kset;
+	if (!set) {
+		SEQ_printf(sprd_io_seq_buf, "obj->kset is NULL\n");
+		return;
+	}
+	list_for_each(pos, &set->list) {
 		dev = list_entry(pos, struct device, kobj.entry);
 		if (!dev) {
 			SEQ_printf(sprd_io_seq_buf, "dev is null !\n");
