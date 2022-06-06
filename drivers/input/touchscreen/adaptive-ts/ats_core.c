@@ -1839,6 +1839,7 @@ static void ts_ext_event_handler(struct ts_data *pdata, enum ts_event event, voi
 		break;
 	case TSEVENT_NOISE_HIGH:
 		ts_set_mode(pdata, TSMODE_NOISE_STATUS, true);
+		break;
 	case TSEVENT_NOISE_NORMAL:
 		queue_work(pdata->notifier_workqueue, &pdata->notifier_work);
 		break;
