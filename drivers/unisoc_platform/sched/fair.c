@@ -8,8 +8,6 @@
 #include "walt.h"
 #include "trace.h"
 
-#define cap_margin	1280
-
 /*
  * Remove and clamp on negative, from a local variable.
  *
@@ -54,12 +52,6 @@ static int is_idle_cpu(int cpu)
 
 	return 1;
 }
-/*
- * The margin used when comparing utilization with CPU capacity.
- *
- * (default: ~20%)
- */
-#define fits_capacity(cap, max)	((cap) * cap_margin < (max) * 1024)
 
 static bool cpu_overutilized(int cpu)
 {
@@ -70,7 +62,8 @@ static bool cpu_overutilized(int cpu)
 			return false;
 	}
 
-	return !fits_capacity(walt_cpu_util(cpu), capacity_orig_of(cpu));
+	return walt_cpu_util(cpu) * sched_cap_margin_up[cpu] >
+					capacity_orig_of(cpu) * 1024;
 }
 
 static unsigned long cpu_util_without(int cpu, struct task_struct *p)
@@ -100,9 +93,29 @@ static inline unsigned long capacity_of(int cpu)
 	return cpu_rq(cpu)->cpu_capacity;
 }
 
-static inline int task_fits_capacity(struct task_struct *p, long capacity)
+static inline int task_fits_capacity(struct task_struct *p, unsigned long capacity, int cpu)
 {
-	return fits_capacity(uclamp_task_util(p), capacity);
+	unsigned int margin;
+
+	if (capacity_orig_of(task_cpu(p)) > capacity_orig_of(cpu))
+		margin = sched_cap_margin_dn[cpu];
+	else
+		margin = sched_cap_margin_up[cpu];
+
+	return uclamp_task_util(p) * margin < capacity * 1024;
+}
+
+static inline int util_fits_capacity(unsigned long util, unsigned long capacity,
+					int prev_cpu, int cpu)
+{
+	unsigned int margin;
+
+	if (capacity_orig_of(prev_cpu) > capacity_orig_of(cpu))
+		margin = sched_cap_margin_dn[cpu];
+	else
+		margin = sched_cap_margin_up[cpu];
+
+	return util * margin < capacity * 1024;
 }
 
 #if IS_ENABLED(CONFIG_UNISOC_ROTATION_TASK)
@@ -149,7 +162,7 @@ static void check_for_task_rotation(struct rq *src_rq)
 		struct task_struct *curr_task = rq->curr;
 
 		if (is_fair_task(curr_task) &&
-		    !task_fits_capacity(curr_task, capacity_of(i)))
+		    !task_fits_capacity(curr_task, capacity_of(i), i))
 			big_task += 1;
 	}
 	if (big_task < BIG_TASK_NUM)
@@ -164,7 +177,7 @@ static void check_for_task_rotation(struct rq *src_rq)
 			continue;
 
 		if (!rq->misfit_task_load || is_fair_task(curr_task) ||
-		    task_fits_capacity(curr_task, capacity_of(i)))
+		    task_fits_capacity(curr_task, capacity_of(i), i))
 			continue;
 
 		wtr = (struct walt_task_ravg *) curr_task->android_vendor_data1;
@@ -368,6 +381,7 @@ static bool task_can_place_on_cpu(struct task_struct *p, int cpu)
 	unsigned long thermal_pressure = arch_scale_thermal_pressure(cpu);
 	unsigned long max_capacity = max_possible_capacity;
 	unsigned long capacity, cpu_util;
+	unsigned int margin;
 
 	if (capacity_orig == max_capacity && is_idle_cpu(cpu))
 		return true;
@@ -378,7 +392,12 @@ static bool task_can_place_on_cpu(struct task_struct *p, int cpu)
 	cpu_util += walt_task_util(p);
 	cpu_util = walt_uclamp_rq_util_with(cpu_rq(cpu), cpu_util, p);
 
-	return fits_capacity(cpu_util, capacity);
+	if (capacity_orig_of(task_cpu(p)) > capacity_orig)
+		margin = sched_cap_margin_dn[cpu];
+	else
+		margin = sched_cap_margin_up[cpu];
+
+	return cpu_util * margin <  capacity * 1024;
 }
 
 static inline int select_cpu_when_overutiled(struct task_struct *p, int prev_cpu,
@@ -532,7 +551,8 @@ static int walt_find_energy_efficient_cpu(struct task_struct *p, int prev_cpu, i
 			trace_sched_feec_rq_task_util(cpu, p, &pdc[cpu],
 						      util, spare_cap, cpu_cap);
 
-			if (!big_is_idle && !fits_capacity(util, cpu_cap))
+			if (!big_is_idle &&
+			    !util_fits_capacity(util, cpu_cap, prev_cpu, cpu))
 				continue;
 
 			if (blocked && is_min_capacity_cpu(cpu)) {
@@ -993,7 +1013,7 @@ static void android_rvh_update_misfit_status(void *data, struct task_struct *p,
 	wtr = (struct walt_task_ravg *) p->android_vendor_data1;
 
 	if (is_max_capacity_cpu(cpu_of(rq)) ||
-	    task_fits_capacity(p, capacity_orig_of(cpu_of(rq)))) {
+	    task_fits_capacity(p, capacity_orig_of(cpu_of(rq)), cpu_of(rq))) {
 		rq->misfit_task_load = 0;
 		return;
 	}

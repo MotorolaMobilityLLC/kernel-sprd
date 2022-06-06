@@ -16,6 +16,95 @@ unsigned int sysctl_sched_uclamp_min_to_boost = 1;
 #endif
 unsigned int sysctl_walt_account_irq_time;
 
+/*up cap margin default value: ~20%*/
+static unsigned int sysctl_sched_cap_margin_up_pct[MAX_CLUSTERS] = {
+					[0 ... MAX_CLUSTERS-1] = 80};
+/*down cap margin default value: ~20%*/
+static unsigned int sysctl_sched_cap_margin_dn_pct[MAX_CLUSTERS]  = {
+					[0 ... MAX_CLUSTERS-1] = 80};
+
+unsigned int sched_cap_margin_up[WALT_NR_CPUS] = { [0 ... WALT_NR_CPUS-1] = 1280};
+unsigned int sched_cap_margin_dn[WALT_NR_CPUS] = { [0 ... WALT_NR_CPUS-1] = 1280};
+
+#ifdef CONFIG_PROC_SYSCTL
+static void sched_update_cap_migrate_values(bool up)
+{
+	int i = 0, cpu;
+	struct sched_cluster *cluster;
+	int cap_margin_levels = num_sched_clusters ? num_sched_clusters : 1;
+
+	/* per cluster should have a capacity_margin value. */
+	for_each_sched_cluster(cluster) {
+		for_each_cpu(cpu, &cluster->cpus) {
+			if (up)
+				sched_cap_margin_up[cpu] =
+					SCHED_FIXEDPOINT_SCALE * 100 /
+					sysctl_sched_cap_margin_up_pct[i];
+			else
+				sched_cap_margin_dn[cpu] =
+					SCHED_FIXEDPOINT_SCALE * 100 /
+					sysctl_sched_cap_margin_dn_pct[i];
+		}
+		if (++i >= cap_margin_levels)
+			break;
+	}
+}
+
+/*
+ * userspace can use write to set new updowm capacity_margin value.
+ * for example. echo 80 90 > sysctl_sched_cap_margin_up
+ * echo 70 80 > sysctl_sched_cap_margin_dn.
+ */
+static int sched_updown_migrate_handler(struct ctl_table *table, int write,
+				 void __user *buffer, size_t *lenp,
+				 loff_t *ppos)
+{
+	int ret, i;
+	unsigned int *data = (unsigned int *)table->data;
+	static DEFINE_MUTEX(mutex);
+	unsigned long cap_margin_levels = num_sched_clusters ? num_sched_clusters : 1;
+	unsigned int val[MAX_CLUSTERS];
+	struct ctl_table tmp = {
+		.data   = &val,
+		.maxlen = sizeof(int) * cap_margin_levels,
+		.mode   = table->mode,
+	};
+
+	mutex_lock(&mutex);
+
+	if (!write) {
+		for (i = 0; i < cap_margin_levels; i++)
+			val[i] = data[i];
+
+		ret = proc_dointvec(&tmp, write, buffer, lenp, ppos);
+
+		goto unlock_mutex;
+	}
+
+	ret = proc_dointvec(&tmp, write, buffer, lenp, ppos);
+	if (ret)
+		goto unlock_mutex;
+
+	/* check if pct values are valid */
+	for (i = 0; i < cap_margin_levels; i++) {
+		if (val[i] <= 0 || val[i] > 100) {
+			ret = -EINVAL;
+			goto unlock_mutex;
+		}
+	}
+
+	for (i = 0; i < cap_margin_levels; i++)
+		data[i] = val[i];
+
+	sched_update_cap_migrate_values(data == &sysctl_sched_cap_margin_up_pct[0]);
+
+unlock_mutex:
+	mutex_unlock(&mutex);
+
+	return ret;
+}
+#endif
+
 #if IS_ENABLED(CONFIG_UNISOC_ROTATION_TASK)
 unsigned int sysctl_rotation_enable = 1;
 /* default threshold value is 40ms */
@@ -114,6 +203,22 @@ struct ctl_table walt_table[] = {
 		.extra1		= SYSCTL_ZERO,
 		.extra2		= SYSCTL_ONE,
 	},
+#ifdef CONFIG_PROC_SYSCTL
+	{
+		.procname	= "sched_cap_margin_up",
+		.data		= &sysctl_sched_cap_margin_up_pct,
+		.maxlen		= sizeof(unsigned int) * MAX_CLUSTERS,
+		.mode		= 0644,
+		.proc_handler	= sched_updown_migrate_handler,
+	},
+	{
+		.procname	= "sched_cap_margin_down",
+		.data		= &sysctl_sched_cap_margin_dn_pct,
+		.maxlen		= sizeof(unsigned int) * MAX_CLUSTERS,
+		.mode		= 0644,
+		.proc_handler	= sched_updown_migrate_handler,
+	},
+#endif
 #if IS_ENABLED(CONFIG_UCLAMP_MIN_TO_BOOST)
 	{
 		.procname	= "sched_uclamp_min2boost",

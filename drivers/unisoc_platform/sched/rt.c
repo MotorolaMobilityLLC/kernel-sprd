@@ -7,8 +7,6 @@
 
 #include "walt.h"
 
-#define capacity_margin	1280
-
 static DEFINE_PER_CPU(cpumask_var_t, walt_local_cpu_mask);
 
 static int is_idle_cpu(int cpu)
@@ -54,7 +52,7 @@ static inline bool walt_rt_task_fits_capacity(struct task_struct *p, int cpu)
 	cpu_cap = capacity_orig_of(cpu);
 	cpu_cap -= arch_scale_thermal_pressure(cpu);
 
-	return cpu_cap >= task_util;
+	return cpu_cap > task_util;
 }
 #else
 static inline bool walt_rt_task_fits_capacity(struct task_struct *p, int cpu)
@@ -98,7 +96,7 @@ static void walt_rt_filter_energy_cpu(void *data, struct task_struct *task,
 		cpu_util = walt_cpu_util(cpu) + task_util;
 		cpu_cap = capacity_orig_of(cpu);
 
-		if (cpu_util * capacity_margin > cpu_cap * 1024)
+		if (cpu_util * sched_cap_margin_up[cpu] > cpu_cap * 1024)
 			continue;
 
 		if (is_idle_cpu(cpu)) {

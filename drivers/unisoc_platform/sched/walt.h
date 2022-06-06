@@ -128,6 +128,8 @@ extern unsigned int sysctl_sched_uclamp_min_to_boost;
 
 extern unsigned int min_max_possible_capacity;
 extern unsigned int max_possible_capacity;
+extern unsigned int sched_cap_margin_up[WALT_NR_CPUS];
+extern unsigned int sched_cap_margin_dn[WALT_NR_CPUS];
 
 extern struct list_head cluster_head;
 extern int num_sched_clusters;
