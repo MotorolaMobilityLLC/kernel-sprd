@@ -10,6 +10,7 @@
 #include "lcd/lcd_g40396_truly_mipi_fhd.dtsi"
 #include "lcd/lcd_nt36672e_truly_mipi_fhd_nodsc.dtsi"
 #include "lcd/lcd_dummy_mipi.dtsi"
+#include "tp/ums9620-tp.dtsi"
 
 / {
 
@@ -584,22 +585,6 @@
 &lcd_g40396_truly_mipi_fhd {
 	sprd,sr-width = <720>;
 	sprd,sr-height = <1600>;
-};
-
-&spi1 {
-	status = "okay";
-	#address-cells = <1>;
-	#size-cells = <0>;
-
-	focaltech@0 {
-		compatible = "focaltech,fts";
-		reg = <0x0>;
-		focaltech,reset-gpio = <&ap_gpio 14 GPIO_ACTIVE_HIGH>;
-		focaltech,irq-gpio = <&ap_gpio 13 GPIO_ACTIVE_HIGH>;
-		focaltech,max-touch-number = <5>;
-		focaltech,display-coords =  <0 0 1080 2400>;
-		spi-max-frequency = <6000000>;
-	};
 };
 
 &vddwpa {
