@@ -366,7 +366,7 @@ static void marlin_write_efuse_data(void)
 	/* copy efuse data to target ddr address */
 	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
 		phy_addr = s_wcn_device.btwf_device->base_addr +
-		   (phys_addr_t)&qogirl6_s_wssm_phy_offset_p->wifi.efuse[0];
+		   (phys_addr_t)&qogirl6_s_wssm_phy_offset_p->efuse[0];
 	} else {
 		phy_addr = s_wcn_device.btwf_device->base_addr +
 		   (phys_addr_t)&s_wssm_phy_offset_p->wifi.efuse[0];
