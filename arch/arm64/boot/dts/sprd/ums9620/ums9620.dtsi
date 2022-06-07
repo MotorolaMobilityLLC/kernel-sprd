@@ -264,6 +264,13 @@
 			ranges = <0 0 0x20000000 0x22d0040>;
 		};
 
+		apagcp: agcp{
+			compatible = "simple-bus";
+			#address-cells = <2>;
+			#size-cells = <2>;
+			ranges;
+		};
+
 		mm: mm {
 			compatible = "simple-bus";
 			#address-cells = <2>;
@@ -362,6 +369,7 @@
 #include "audio.dtsi"
 #include "clock.dtsi"
 #include "dispc.dtsi"
+#include "dma.dtsi"
 #include "efuse.dtsi"
 #include "glbreg.dtsi"
 #include "gpio.dtsi"
