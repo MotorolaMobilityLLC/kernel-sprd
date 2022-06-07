@@ -153,23 +153,24 @@ static int ufs_sprd_priv_pre_init(struct device *dev,
 				  struct ufs_hba *hba,
 				  struct ufs_sprd_host *host)
 {
-/*
-#if IS_ENABLED(CONFIG_SCSI_UFS_CRYPTO)
-	struct sprd_sip_svc_handle *svc_handle;
-#endif
+	int ret = 0;
 
 #if IS_ENABLED(CONFIG_SCSI_UFS_CRYPTO)
-	regmap_update_bits(host->ap_ahb_ufs_rst.regmap,
-					  host->ap_ahb_ufs_rst.reg,
-					  host->ap_ahb_ufs_rst.mask,
-					  host->ap_ahb_ufs_rst.mask);
+	struct ufs_sprd_priv_data *priv =
+		(struct ufs_sprd_priv_data *) host->ufs_priv_data;
+	struct sprd_sip_svc_handle *svc_handle;
+
+	regmap_update_bits(priv->ap_ahb_ufs_rst.regmap,
+			   priv->ap_ahb_ufs_rst.reg,
+			   priv->ap_ahb_ufs_rst.mask,
+			   priv->ap_ahb_ufs_rst.mask);
 
 	mdelay(1);
 
-	regmap_update_bits(host->ap_ahb_ufs_rst.regmap,
-					  host->ap_ahb_ufs_rst.reg,
-					  host->ap_ahb_ufs_rst.mask,
-					  0);
+	regmap_update_bits(priv->ap_ahb_ufs_rst.regmap,
+			   priv->ap_ahb_ufs_rst.reg,
+			   priv->ap_ahb_ufs_rst.mask,
+			   0);
 
 	ufshcd_writel(hba, CONTROLLER_ENABLE, REG_CONTROLLER_ENABLE);
 	if ((ufshcd_readl(hba, REG_UFS_CCAP) & (1 << 27)))
@@ -184,9 +185,8 @@ static int ufs_sprd_priv_pre_init(struct device *dev,
 	ret = svc_handle->storage_ops.ufs_crypto_enable();
 	pr_err("smc: enable cfg, ret:0x%x", ret);
 #endif
-*/
 
-	return 0;
+	return ret;
 }
 
 static void ufs_sprd_priv_exit(struct device *dev,
@@ -502,15 +502,14 @@ static int ufs_sprd_phy_init(struct ufs_hba *hba)
 
 static int ufs_sprd_priv_hce_enable_pre(struct ufs_hba *hba)
 {
-/*
 #if IS_ENABLED(CONFIG_SCSI_UFS_CRYPTO)
 	int ret = 0;
 	struct sprd_sip_svc_handle *svc_handle;
 #endif
-*/
+
 	/* Do hardware reset before host controller enable. */
 	ufs_sprd_hw_init(hba);
-/*
+
 #if IS_ENABLED(CONFIG_SCSI_UFS_CRYPTO)
 	ufshcd_writel(hba, CONTROLLER_ENABLE, REG_CONTROLLER_ENABLE);
 	svc_handle = sprd_sip_svc_get_handle();
@@ -522,7 +521,7 @@ static int ufs_sprd_priv_hce_enable_pre(struct ufs_hba *hba)
 	ret = svc_handle->storage_ops.ufs_crypto_enable();
 	pr_err("smc: enable cfg, ret:0x%x", ret);
 #endif
-*/
+
 	return 0;
 }
 
@@ -598,8 +597,7 @@ static void ufs_sprd_priv_h8_post(struct ufs_hba *hba, enum uic_cmd_dme cmd)
 static struct sprd_ufs_comm_vops ufs_sprd_data = {
 	.name = "sprd,qogirn6pro-ufs",
 	.caps = UFSHCD_CAP_CLK_GATING |
-		//UFSHCD_CAP_CRYPTO |
-		UFSHCD_CAP_HIBERN8_WITH_CLK_GATING |
+		UFSHCD_CAP_CRYPTO |
 		UFSHCD_CAP_WB_EN,
 	.quirks = UFSHCD_QUIRK_BROKEN_UFS_HCI_VERSION |
 		  UFSHCD_QUIRK_DELAY_BEFORE_DME_CMDS,
