@@ -16,6 +16,7 @@
 #include "debug.h"
 #include "iface.h"
 #include "tcp_ack.h"
+#include "common.h"
 
 static unsigned int max_fw_tx_dscr;
 static unsigned int tdls_threshold;
@@ -247,6 +248,7 @@ static void debug_adjust_tcpack_delay(char *buf, unsigned char offset)
 	unsigned int cnt = 0;
 	unsigned int i = 0;
 	struct sprd_tcp_ack_manage *ack_m = NULL;
+	struct sprd_priv *priv = NULL;
 
 	for (i = 0; i < MAX_LEN; (cnt *= 10), i++) {
 		if ((buf[offset + i] >= '0') && (buf[offset + i] <= '9')) {
@@ -262,9 +264,14 @@ static void debug_adjust_tcpack_delay(char *buf, unsigned char offset)
 	if (cnt >= 100)
 		cnt = SPRD_TCP_ACK_DROP_CNT;
 
-	atomic_set(&ack_m->max_drop_cnt, cnt);
-	pr_err("drop time: %d, atomic drop time: %d\n", cnt,
-	       atomic_read(&ack_m->max_drop_cnt));
+	if (sprd_dbg) {
+		priv = container_of(sprd_dbg, struct sprd_priv, debug);
+		ack_m = &priv->ack_m;
+
+		atomic_set(&ack_m->max_drop_cnt, cnt);
+		pr_err("drop time: %d, atomic drop time: %d\n", cnt,
+		       atomic_read(&ack_m->max_drop_cnt));
+	}
 #undef MAX_LEN
 }
 
@@ -274,6 +281,7 @@ static void debug_adjust_tcpack_delay_win(char *buf, unsigned char offset)
 	unsigned int i = 0;
 	unsigned int len = strlen(buf) - strlen("tcpack_delay_win=");
 	struct sprd_tcp_ack_manage *ack_m = NULL;
+	struct sprd_priv *priv = NULL;
 
 	for (i = 0; i < len; (value *= 10), i++) {
 		if ((buf[offset + i] >= '0') && (buf[offset + i] <= '9')) {
@@ -283,8 +291,12 @@ static void debug_adjust_tcpack_delay_win(char *buf, unsigned char offset)
 			break;
 		}
 	}
-	ack_m->ack_winsize = value;
-	pr_err("%s, change tcpack_delay_win to %dKB\n", __func__, value);
+	if (sprd_dbg) {
+		priv = container_of(sprd_dbg, struct sprd_priv, debug);
+		ack_m = &priv->ack_m;
+		ack_m->ack_winsize = value;
+		pr_err("%s, change tcpack_delay_win to %dKB\n", __func__, value);
+	}
 }
 
 static void debug_adjust_tdls_threshold(char *buf, unsigned char offset)
