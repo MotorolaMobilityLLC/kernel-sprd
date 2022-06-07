@@ -318,30 +318,25 @@ sprd_dp_connector_best_encoder(struct drm_connector *connector)
 static int fill_hdr_info_packet(const struct drm_connector_state *state,
 				void *out)
 {
-//	struct hdmi_drm_infoframe frame;
+	struct hdmi_drm_infoframe frame;
 	unsigned char buf[30]; /* 26 + 4 */
-//	ssize_t len;
-//	int ret;
+	ssize_t len;
+	int ret;
 	u8 *ptr = out;
 
 	memset(out, 0, sizeof(*out));
 
-/*
- * FIXME:delete "drm_hdmi_infoframe_set_hdr_metadata"
- * and "hdmi_drm_infoframe_pack_only" temporarily because of gki.
+	ret = drm_hdmi_infoframe_set_hdr_metadata(&frame, state);
+	if (ret)
+		return ret;
 
- *	ret = drm_hdmi_infoframe_set_hdr_metadata(&frame, state);
- *	if (ret)
- *		return ret;
-
- *	len = hdmi_drm_infoframe_pack_only(&frame, buf, sizeof(buf));
- *	if (len < 0)
- *		return (int)len;
- */
+	len = hdmi_drm_infoframe_pack_only(&frame, buf, sizeof(buf));
+	if (len < 0)
+		return (int)len;
 
 	/* Static metadata is a fixed 26 bytes + 4 byte header. */
-//	if (len != 30)
-//		return -EINVAL;
+	if (len != 30)
+		return -EINVAL;
 
 	switch (state->connector->connector_type) {
 	case DRM_MODE_CONNECTOR_DisplayPort:
