@@ -360,7 +360,7 @@ config ARM_PXA2xx_CPUFREQ
 
 config ARM_SPRD_CPUFREQ_V2
 	tristate "Sprd apcpu hardware dvfs driver"
-	depends on ARCH_SPRD && CPU_FREQ
+	depends on ARCH_SPRD && CPU_FREQ && SPRD_SIP_FW
 	select PM_OPP
 	help
 	  This driver enable hardware to adjust the voltage and frequency
