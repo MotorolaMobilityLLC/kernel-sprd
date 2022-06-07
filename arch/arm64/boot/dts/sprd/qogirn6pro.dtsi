@@ -2234,6 +2234,10 @@
 				reg-size = <7>;
 				#power-domain-cells = <0>;
 
+				sprd,syscon-dispc1-glb = <&ipa_dispc_glb_apb_regs>;
+				sprd,syscon-glb-apb = <&ipa_glb_apb_regs>;
+				sprd,syscon-apb = <&ipa_apb_regs>;
+
 				clocks = <&ipadispc_gate CLK_IPA_CKG_EB>,
 					<&ipa_clk CLK_IPA_AXI>,
 					<&g5l_pll CLK_V4NRPLL_409M6>,
