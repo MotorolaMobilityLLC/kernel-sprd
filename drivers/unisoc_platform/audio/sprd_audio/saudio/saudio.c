@@ -940,7 +940,8 @@ int saudio_pcm_lib_preallocate_pages_for_all(struct snd_pcm *pcm,
 			if (addr) {
 				dmab->dev.type = type;
 				dmab->dev.dev = data;
-				dmab->area = shmem_ram_vmap_nocache(saudio->dst, addr, size);
+				dmab->area = modem_ram_vmap_ex(SOC_MODEM, addr,
+							size, MMAP_WRITECOMBINE);
 				dmab->addr = addr;
 				dmab->bytes = size;
 				memset(dmab->area, 0x5a, size);
