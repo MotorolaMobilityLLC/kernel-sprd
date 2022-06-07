@@ -49,7 +49,8 @@ static void sprd_dpu_prepare_fb(struct sprd_crtc *crtc,
 	for (i = 0; i < new_state->fb->format->num_planes; i++) {
 		obj = drm_gem_fb_get_obj(new_state->fb, i);
 		sprd_gem = to_sprd_gem_obj(obj);
-		sprd_crtc_iommu_map(&dpu->dev, sprd_gem);
+		if (sprd_gem->need_iommu)
+			sprd_crtc_iommu_map(&dpu->dev, sprd_gem);
 	}
 }
 
@@ -102,7 +103,8 @@ static void sprd_dpu_cleanup_fb(struct sprd_crtc *crtc,
 	for (i = 0; i < old_state->fb->format->num_planes; i++) {
 		obj = drm_gem_fb_get_obj(old_state->fb, i);
 		sprd_gem = to_sprd_gem_obj(obj);
-		sprd_crtc_iommu_unmap(&dpu->dev, sprd_gem);
+		if (sprd_gem->need_iommu)
+			sprd_crtc_iommu_unmap(&dpu->dev, sprd_gem);
 	}
 
 	if (unlikely(atomic_inc_not_zero(&logo2animation)) &&

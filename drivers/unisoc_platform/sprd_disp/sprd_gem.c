@@ -190,5 +190,9 @@ struct drm_gem_object *sprd_gem_prime_import_sg_table(struct drm_device *drm,
 
 	sprd_gem->sgtb = sgtb;
 
+	if (!(strcmp(attach->dmabuf->exp_name, "system") &&
+	      strcmp(attach->dmabuf->exp_name, "system-uncached")))
+		sprd_gem->need_iommu = true;
+
 	return &sprd_gem->base;
 }
