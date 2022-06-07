@@ -73,6 +73,9 @@
 #define SPRD_WDT_SLEEP_PRETIMEOUT	(600-570)
 #define SPRD_WDT_SLEEP_TIMEOUT		600
 
+/* used for ap hang reboot */
+#define SPRD_WDT_RESET_TIMEOUT          0xe551
+
 #define SPRD_WDT_SYSCORE_SUSPEND_RESUME
 
 struct sprd_wdt_fiq {
@@ -200,6 +203,22 @@ static int sprd_wdt_fiq_load_value(struct sprd_wdt_fiq *wdt, u32 timeout,
 		return -EBUSY;
 	return 0;
 }
+
+void sprd_wdt_fiq_for_reset(void)
+{
+	if (!wdt_fiq)
+		return;
+
+	if (watchdog_active(&wdt_fiq->wdd)) {
+		writel_relaxed(SPRD_WDT_FIQ_UNLOCK_KEY, wdt_fiq->base +
+			       SPRD_WDT_FIQ_LOCK);
+		writel_relaxed(0, wdt_fiq->base + SPRD_WDT_FIQ_LOAD_HIGH);
+		writel_relaxed((SPRD_WDT_RESET_TIMEOUT & SPRD_WDT_FIQ_LOW_VALUE_MASK),
+			       wdt_fiq->base + SPRD_WDT_FIQ_LOAD_LOW);
+		writel_relaxed(0,  wdt_fiq->base + SPRD_WDT_FIQ_LOCK);
+	}
+}
+EXPORT_SYMBOL_GPL(sprd_wdt_fiq_for_reset);
 
 static int sprd_wdt_fiq_enable(struct sprd_wdt_fiq *wdt)
 {

@@ -81,12 +81,10 @@ static unsigned int cpu_feed_bitmap = 0;
 
 static void sprd_hang_debug_printf(bool console, const char *fmt, ...);
 
-#if IS_ENABLED(CONFIG_SPI_SPRD_ADI)
-extern int sprd_adi_restart_handler(struct notifier_block *this, unsigned long mode,
-		void *cmd);
+#if IS_ENABLED(CONFIG_SPRD_WATCHDOG_FIQ)
+extern void sprd_wdt_fiq_for_reset(void);
 #else
-static void sprd_adi_restart_handler(struct notifier_block *this, unsigned long mode,
-		void *cmd)
+static void sprd_wdt_fiq_for_reset(void)
 {
 	sprd_hang_debug_printf(true, "Not defined func %s,\n", __func__);
 }
@@ -723,7 +721,8 @@ asmlinkage __visible void wdh_atf_entry(struct pt_regs *data)
 		mdelay(20000);
 	}
 #endif
-	sprd_adi_restart_handler(NULL, 0, "panic");
+	sprd_wdt_fiq_for_reset();
+	while (1);
 }
 
 #if IS_ENABLED(CONFIG_ARM64)
