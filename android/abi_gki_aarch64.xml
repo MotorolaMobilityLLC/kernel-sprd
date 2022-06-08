@@ -3150,6 +3150,7 @@
       <elf-symbol name='new_inode' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x2a5003d3'/>
       <elf-symbol name='nf_conntrack_destroy' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xd2800691'/>
       <elf-symbol name='nf_conntrack_find_get' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x9dc79906'/>
+      <elf-symbol name='nf_ct_destroy' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x3b08a8f0'/>
       <elf-symbol name='nf_ct_get_tuplepr' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x3f031a8'/>
       <elf-symbol name='nf_ct_invert_tuple' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xfe731af8'/>
       <elf-symbol name='nf_ct_l4proto_find' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xacf28220'/>
@@ -132058,6 +132059,10 @@
         <parameter type-id='be6c9a11' name='zone' filepath='net/netfilter/nf_conntrack_core.c' line='843' column='1'/>
         <parameter type-id='5a1b3f53' name='tuple' filepath='net/netfilter/nf_conntrack_core.c' line='844' column='1'/>
         <return type-id='60eba7df'/>
+      </function-decl>
+      <function-decl name='nf_ct_destroy' mangled-name='nf_ct_destroy' filepath='net/netfilter/nf_conntrack_core.c' line='628' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='nf_ct_destroy'>
+        <parameter type-id='96b07343' name='nfct' filepath='net/netfilter/nf_conntrack_core.c' line='628' column='1'/>
+        <return type-id='48b5725f'/>
       </function-decl>
       <function-decl name='nf_ct_get_tuplepr' mangled-name='nf_ct_get_tuplepr' filepath='net/netfilter/nf_conntrack_core.c' line='428' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='nf_ct_get_tuplepr'>
         <parameter type-id='11f4a000' name='skb' filepath='net/netfilter/nf_conntrack_core.c' line='428' column='1'/>
