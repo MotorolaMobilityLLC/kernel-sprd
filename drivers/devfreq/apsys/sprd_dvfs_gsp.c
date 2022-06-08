@@ -19,6 +19,7 @@
 #include "../governor.h"
 
 #include "sprd_dvfs_gsp.h"
+#include "sys/apsys_dvfs_qogirn6pro.h"
 
 static int GSP_DVFS_ENABLE = 1;
 
@@ -356,6 +357,11 @@ static int gsp_dvfs_notify_callback(struct notifier_block *nb,
 {
 	struct gsp_dvfs *gsp = container_of(nb, struct gsp_dvfs, gsp_dvfs_nb);
 	u32 freq = *(int *)data;
+
+	if (dpu_vsp_dvfs_check_clkeb()) {
+		pr_info("%s(), dpu_vsp eb is not on\n", __func__);
+		return NOTIFY_DONE;
+	}
 
 	if (!gsp->dvfs_enable || gsp->work_freq == freq)
 		return NOTIFY_DONE;
