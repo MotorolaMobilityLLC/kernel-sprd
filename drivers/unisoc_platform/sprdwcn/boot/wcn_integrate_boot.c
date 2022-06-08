@@ -1939,12 +1939,11 @@ int btwf_sys_poweron(struct wcn_device *wcn_dev)
 	WCN_INFO("Set REG 0x4080c098:val=0x%x!(btwf_ss_arm_sys_power_down)\n",
 			 reg_val);
 
+	reg_val = 0xffffffff;
+	wcn_regmap_raw_write_bit(wcn_dev->rmap[REGMAP_AON_APB],
+				 0x2354, reg_val);
 	wcn_regmap_read(wcn_dev->rmap[REGMAP_AON_APB],
 				 0x0354, &reg_val);
-	WCN_INFO("REG 0x64000354:val=0x%x!\n", reg_val);
-	reg_val = 0;
-	wcn_regmap_raw_write_bit(wcn_dev->rmap[REGMAP_AON_APB],
-				 0x0354, reg_val);
 	WCN_INFO("Set REG 0x64000354:val=0x%x!\n", reg_val);
 
 
@@ -2022,15 +2021,10 @@ int btwf_gnss_force_unshutdown(struct wcn_device *wcn_dev)
 	}
 
 	/* Bit[22:21] 0x0 means poweron status */
-	wcn_regmap_read(wcn_dev->rmap[REGMAP_AON_APB],
-					0x0360, &reg_val);
-	WCN_INFO("REG 0x64000360:val=0x%x!\n", reg_val);
-	reg_val |= (0x6<<21);
-	wcn_regmap_raw_write_bit(wcn_dev->rmap[REGMAP_AON_APB],
-				0x0360, reg_val);
+	reg_val = (0x6<<21);
 	wcn_regmap_read(wcn_dev->rmap[REGMAP_AON_APB],
 						0x0360, &reg_val);
-	WCN_INFO("SET REG 0x64000360:val=0x%x!(unshutdown)\n", reg_val);
+	WCN_INFO("REG 0x64000360:val=0x%x!(unshutdown)\n", reg_val);
 
 	return 0;
 
@@ -2116,15 +2110,10 @@ int btwf_clear_force_shutdown(struct wcn_device *wcn_dev)
 	}
 
 	/* Bit[22:21] 0x0 means poweron status */
-	wcn_regmap_read(wcn_dev->rmap[REGMAP_AON_APB],
-					0x0360, &reg_val);
-	WCN_INFO("REG 0x64000360:val=0x%x!\n", reg_val);
-	reg_val &= ~(0x6<<21);
-	wcn_regmap_raw_write_bit(wcn_dev->rmap[REGMAP_AON_APB],
-				 0x0360, reg_val);
+	reg_val = 0x6<<21;
 	wcn_regmap_read(wcn_dev->rmap[REGMAP_AON_APB],
 			0x0360, &reg_val);
-	WCN_INFO("SET REG 0x64000360:val=0x%x!\n", reg_val);
+	WCN_INFO("REG 0x64000360:val=0x%x!\n", reg_val);
 
 	return 0;
 
@@ -3502,12 +3491,11 @@ int btwf_force_deepsleep_aontop(struct wcn_device *wcn_dev)
 	}
 
 	/* Force btwf deep sleep. bit[5] set 1 */
-	wcn_regmap_read(wcn_dev->rmap[REGMAP_AON_APB],
-		 0x0350, &reg_val);
-	WCN_INFO("Read 0x64000350:val=0x%x!\n", reg_val);
-	reg_val = reg_val | 0x20;
+	reg_val = 0x20;
 	wcn_regmap_raw_write_bit(
-		wcn_dev->rmap[REGMAP_AON_APB], 0x0350, reg_val);
+		wcn_dev->rmap[REGMAP_AON_APB], 0x1350, reg_val);
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_AON_APB],
+			0x0350, &reg_val);
 	WCN_INFO("Write 0x64000350:val=0x%x!\n", reg_val);
 
 
@@ -3526,13 +3514,12 @@ int btwf_clear_force_deepsleep_aontop(struct wcn_device *wcn_dev)
 	}
 
 	/* Force btwf deep sleep. bit[5] set 0 */
-	wcn_regmap_read(wcn_dev->rmap[REGMAP_AON_APB],
-				 0x0350, &reg_val);
-	WCN_INFO("Read 0x64000350:val=0x%x!\n", reg_val);
-	reg_val &= (~(0x20));
+	reg_val = 0x20;
 	wcn_regmap_raw_write_bit(
 			wcn_dev->rmap[REGMAP_AON_APB],
-			0x0350, reg_val);
+			0x2350, reg_val);
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_AON_APB],
+			0x0350, &reg_val);
 	WCN_INFO("Write 0x64000350:val=0x%x!\n", reg_val);
 
 	return 0;
@@ -3550,13 +3537,12 @@ int btwf_force_shutdown_aontop(struct wcn_device *wcn_dev)
 	}
 
 	/* Force btwf shutdown. bit[21] set 1 */
-	wcn_regmap_read(wcn_dev->rmap[REGMAP_AON_APB],
-				 0x0350, &reg_val);
-	WCN_INFO("Read 0x64000350:val=0x%x!\n", reg_val);
-	reg_val = reg_val | 0x200000;
+	reg_val = 0x200000;
 	wcn_regmap_raw_write_bit(
 			wcn_dev->rmap[REGMAP_AON_APB],
-			0x0350, reg_val);
+			0x1350, reg_val);
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_AON_APB],
+			0x0350, &reg_val);
 	WCN_INFO("Write 0x64000350:val=0x%x!\n", reg_val);
 
 	return 0;
@@ -3573,13 +3559,12 @@ int btwf_clear_force_shutdown_aontop(struct wcn_device *wcn_dev)
 	}
 
 	/* Force btwf shutdown. bit[21] set 0 */
-	wcn_regmap_read(wcn_dev->rmap[REGMAP_AON_APB],
-				 0x0350, &reg_val);
-	WCN_INFO("Read 0x64000350:val=0x%x!\n", reg_val);
-	reg_val &= (~(0x200000));
+	reg_val = 0x200000;
 	wcn_regmap_raw_write_bit(
 			wcn_dev->rmap[REGMAP_AON_APB],
-			0x0350, reg_val);
+			0x2350, reg_val);
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_AON_APB],
+			0x0350, &reg_val);
 	WCN_INFO("Write 0x64000350:val=0x%x!\n", reg_val);
 
 
