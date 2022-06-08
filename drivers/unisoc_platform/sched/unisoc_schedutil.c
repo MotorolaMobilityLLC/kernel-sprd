@@ -948,6 +948,9 @@ static int usc_sugov_init(struct cpufreq_policy *policy)
 	}
 
 	tunables->rate_limit_us = cpufreq_policy_transition_delay_us(policy);
+	tunables->timer_slack_val_us =
+			TICK_NSEC / NSEC_PER_USEC + tunables->rate_limit_us;
+
 	tunables->freq_margin = DEFAULT_CPUMASK_FREQ_MARGIN;
 
 	policy->governor_data = sg_policy;
