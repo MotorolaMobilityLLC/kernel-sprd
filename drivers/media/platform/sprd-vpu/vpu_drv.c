@@ -20,6 +20,7 @@
 #include <linux/of_device.h>
 #include <linux/of_address.h>
 #include <linux/of_irq.h>
+#include <linux/pm_runtime.h>
 #include <linux/platform_device.h>
 #include <linux/regmap.h>
 #include <linux/sched.h>
@@ -203,25 +204,48 @@ void clr_vpu_interrupt_mask(struct vpu_platform_data *data)
 	writel_relaxed(mmu_int_mask, data->vpu_base + VPU_MMU_INT_CLR_OFF);
 }
 
+irqreturn_t vpu_isr_thread(int irq, void *data)
+{
+	struct vpu_platform_data *vpu_core = data;
+	int ret = 0;
+
+	pm_runtime_get_sync(vpu_core->dev);
+	__pm_stay_awake(vpu_core->vpu_wakelock);
+	ret = clock_enable(data);
+
+	if (ret == 0) {
+		dev_info(vpu_core->dev, "%s, VSP_INT_RAW 0x%x, 0x%x\n", __func__,
+			readl_relaxed(vpu_core->glb_reg_base + VPU_INT_RAW_OFF),
+			readl_relaxed(vpu_core->vpu_base + VPU_MMU_INT_RAW_OFF));
+		clr_vpu_interrupt_mask(data);
+		clock_disable(data);;
+	}
+	__pm_relax(vpu_core->vpu_wakelock);
+	pm_runtime_mark_last_busy(vpu_core->dev);
+	pm_runtime_put_sync(vpu_core->dev);
+
+	return IRQ_HANDLED;
+}
+
 static irqreturn_t vpu_dec_isr_handler(struct vpu_platform_data *data)
 {
 	int ret, status = 0;
-	struct vpu_fp *inst_ptr = NULL;
+	struct vpu_fp *vpu_fp = NULL;
 
 	if (data == NULL) {
 		pr_err("%s error occurred, data == NULL\n", __func__);
 		return IRQ_NONE;
 	}
-	inst_ptr = data->inst_ptr;
+	vpu_fp = data->vpu_fp;
 
-	if (inst_ptr == NULL) {
-		dev_err(data->dev, "%s error occurred, inst_ptr == NULL\n", __func__);
-		return IRQ_HANDLED;
+	if (vpu_fp == NULL) {
+		dev_err(data->dev, "%s error occurred, vpu_fp == NULL\n", __func__);
+		return IRQ_WAKE_THREAD;
 	}
 
-	if (inst_ptr->is_clock_enabled == false) {
+	if (vpu_fp->is_clock_enabled == false) {
 		dev_err(data->dev, " vpu clk is disabled");
-		return IRQ_HANDLED;
+		return IRQ_WAKE_THREAD;
 	}
 
 	/* check which module occur interrupt and clear corresponding bit */
@@ -239,22 +263,22 @@ static irqreturn_t vpu_dec_isr_handler(struct vpu_platform_data *data)
 static irqreturn_t vpu_enc_isr_handler(struct vpu_platform_data *data)
 {
 	int ret, status = 0;
-	struct vpu_fp *inst_ptr = NULL;
+	struct vpu_fp *vpu_fp = NULL;
 
 	if (data == NULL) {
 		pr_err("%s error occurred, data == NULL\n", __func__);
 		return IRQ_NONE;
 	}
-	inst_ptr = data->inst_ptr;
+	vpu_fp = data->vpu_fp;
 
-	if (inst_ptr == NULL) {
-		dev_err(data->dev, "%s error occurred, inst_ptr == NULL\n", __func__);
-		return IRQ_HANDLED;
+	if (vpu_fp == NULL) {
+		dev_err(data->dev, "%s error occurred, vpu_fp == NULL\n", __func__);
+		return IRQ_WAKE_THREAD;
 	}
 
-	if (inst_ptr->is_clock_enabled == false) {
+	if (vpu_fp->is_clock_enabled == false) {
 		dev_err(data->dev, " vpu clk is disabled");
-		return IRQ_HANDLED;
+		return IRQ_WAKE_THREAD;
 	}
 
 	/* check which module occur interrupt and clear corresponding bit */

@@ -152,7 +152,7 @@ static long vpu_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			dev_err(dev, "vpu error timeout\n");
 			return ret;
 		}
-		data->inst_ptr = vpu_fp;
+		data->vpu_fp = vpu_fp;
 		vpu_fp->is_vpu_acquired = true;
 		dev_dbg(dev, "vpu ioctl VPU_ACQUAIRE end\n");
 		break;
@@ -160,7 +160,7 @@ static long vpu_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	case VPU_RELEASE:
 		dev_dbg(dev, "vpu ioctl VPU_RELEASE\n");
 		vpu_fp->is_vpu_acquired = false;
-		data->inst_ptr = NULL;
+		data->vpu_fp = NULL;
 		up(&data->vpu_mutex);
 		break;
 
@@ -514,8 +514,9 @@ static int vpu_probe(struct platform_device *pdev)
 		return ret;
 	}
 
-	ret = devm_request_irq(&pdev->dev, vpu_core->irq, vpu_core->p_data->isr,
-		0, vpu_core->p_data->name, vpu_core);
+	ret = devm_request_threaded_irq(&pdev->dev, vpu_core->irq, vpu_core->p_data->isr,
+		vpu_isr_thread, 0, vpu_core->p_data->name, vpu_core);
+
 	if (ret) {
 		dev_err(&pdev->dev, "Failed to request 'vpu_core' IRQ: %d\n", ret);
 		misc_deregister(&vpu_core->mdev);

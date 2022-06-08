@@ -123,7 +123,7 @@ struct vpu_platform_data {
 
 	wait_queue_head_t wait_queue_work;
 	atomic_t instance_cnt;
-	struct vpu_fp *inst_ptr;
+	struct vpu_fp *vpu_fp;
 };
 
 struct vpu_fp {
@@ -166,6 +166,7 @@ struct vpu_fp {
 irqreturn_t enc_core0_isr(int irq, void *data);
 irqreturn_t enc_core1_isr(int irq, void *data);
 irqreturn_t dec_core0_isr(int irq, void *data);
+irqreturn_t vpu_isr_thread(int irq, void *data);
 void vpu_qos_config(struct vpu_platform_data *data);
 void vpu_check_pw_status(struct vpu_platform_data *data);
 int get_clk(struct vpu_platform_data *data, struct device_node *np);
