@@ -24,6 +24,7 @@
 #include <../block/blk-mq-tag.h>
 #include <../drivers/mmc/core/queue.h>
 #include <../drivers/base/base.h>
+#include "unisoc_dump_io.h"
 #include "unisoc_sysdump.h"
 
 #ifdef CONFIG_ARM64
@@ -267,6 +268,7 @@ void sprd_dump_io(void)
 	}
 	sprd_dump_process_bio_plug(now);
 }
+EXPORT_SYMBOL_GPL(sprd_dump_io);
 
 static int sprd_io_event(struct notifier_block *self, unsigned long val, void *reason)
 {
