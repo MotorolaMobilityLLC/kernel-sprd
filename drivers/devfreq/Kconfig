@@ -43,7 +43,7 @@ config DEVFREQ_GOV_SIMPLE_ONDEMAND
 
 config SPRD_HW_DEVICE_DVFS_CP
 	tristate "Unisoc CP dvfs driver"
-#	depends on SPRD_SIPC
+	depends on SPRD_SIPC || UNISOC_SIPC
 	help
 	  This driver supports dvfs interfaces for MODEM subsystem.
 	  It set MODEM DVFS controller register to adjust frequency and voltage.
