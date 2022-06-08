@@ -135,6 +135,7 @@ misc:audio:
 mm:
 mmc:core:
 mmc:sprd:
+mmc:host:
 mm:emem:
 mm:memblock:
 mm:vmscan:
