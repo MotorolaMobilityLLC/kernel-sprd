@@ -51,7 +51,7 @@
 
 	chosen {
 		stdout-path = "serial1:115200n8";
-		bootargs = "earlycon console=ttyS1,115200n8 loglevel=1 firmware_class.path=/vendor/firmware androidboot.hardware=ums512_1h10 printk.devkmsg=on  androidboot.selinux=permissive androidboot.boot_devices=soc/soc:ap-apb/71400000.sdio dummy_hcd.num=0 swiotlb=1 initcall_debug=1 nosoftlockup";
+		bootargs = "earlycon console=ttyS1,115200n8 loglevel=1 firmware_class.path=/vendor/firmware androidboot.hardware=ums512_1h10 printk.devkmsg=on androidboot.boot_devices=soc/soc:ap-apb/71400000.sdio dummy_hcd.num=0 swiotlb=1 initcall_debug=1 nosoftlockup";
 	};
 
 	pwm_backlight: sprd_backlight {
