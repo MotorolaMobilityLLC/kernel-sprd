@@ -3514,10 +3514,20 @@ static int cm_set_primary_charge_wirless_type(struct charger_manager *cm, bool e
 		return false;
 	}
 
-	if (enable)
-		val.intval = cm->desc->charger_type;
-	else
+	if (enable) {
+		switch (cm->desc->charger_type) {
+		case CM_WIRELESS_CHARGER_TYPE_BPP:
+			val.intval = POWER_SUPPLY_WIRELESS_CHARGER_TYPE_BPP;
+			break;
+		case CM_WIRELESS_CHARGER_TYPE_EPP:
+			val.intval = POWER_SUPPLY_WIRELESS_CHARGER_TYPE_EPP;
+			break;
+		default:
+			val.intval = POWER_SUPPLY_CHARGE_TYPE_UNKNOWN;
+		}
+	} else {
 		val.intval = 0;
+	}
 
 	dev_info(cm->dev, "set wirless type = %d\n", val.intval);
 	ret = power_supply_set_property(psy, POWER_SUPPLY_PROP_TYPE, &val);
