@@ -27,6 +27,10 @@
 #include "sprd_dpu.h"
 #include "sprd_dsi.h"
 #include "sysfs/sysfs_display.h"
+
+#include <trace/hooks/drm_atomic.h>
+#include <trace/hooks/drm_framebuffer.h>
+
 #include <uapi/drm/sprd_drm_gsp.h>
 
 #define DRIVER_NAME	"sprd"
@@ -36,6 +40,19 @@
 #define DRIVER_MINOR	0
 
 #define SPRD_FENCE_WAIT_TIMEOUT 3000 /* ms */
+
+static void sprd_drm_atomic_check_modeset(void *data, struct drm_atomic_state *state,
+				struct drm_crtc *crtc, bool *allow)
+{
+	if(allow)
+		*allow = true;
+}
+
+static void sprd_atomic_remove_fb(void *data, struct drm_framebuffer *fb, bool *allow)
+{
+	if(allow)
+		*allow = true;
+}
 
 static bool boot_mode_check(const char *str)
 {
@@ -607,6 +624,16 @@ static int __init sprd_drm_init(void)
 #ifdef CONFIG_DRM_SPRD_DSI
 	mipi_dsi_driver_register(&sprd_panel_driver);
 #endif
+
+	ret = register_trace_android_vh_drm_atomic_check_modeset(
+			sprd_drm_atomic_check_modeset, NULL);
+	if (ret)
+		return ret;
+
+	ret = register_trace_android_vh_atomic_remove_fb(
+			sprd_atomic_remove_fb, NULL);
+	if (ret)
+		return ret;
 
 	return 0;
 }
