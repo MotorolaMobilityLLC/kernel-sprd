@@ -41,4 +41,6 @@ int gsp_layer_is_filled(struct gsp_layer *layer);
 void gsp_layer_set_filled(struct gsp_layer *layer);
 
 void gsp_layer_common_print(struct gsp_layer *layer);
+int gsp_layer_dmabuf_map(struct gsp_layer *layer, struct device *dev);
+struct gsp_buf *gsp_layer_to_buf(struct gsp_layer *layer);
 #endif

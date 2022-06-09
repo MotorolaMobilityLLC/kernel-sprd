@@ -612,8 +612,9 @@ void gsp_kcfg_fence_signal(struct gsp_kcfg *kcfg)
 int gsp_kcfg_iommu_map(struct gsp_kcfg *kcfg)
 {
 	int ret = 0;
-	bool need = false;
 	struct gsp_core *core = NULL;
+	struct gsp_buf *buf = NULL;
+	struct dma_buf *dmabuf = NULL;
 	struct gsp_layer *layer = NULL;
 
 	if (gsp_kcfg_verify(kcfg)) {
@@ -629,9 +630,15 @@ int gsp_kcfg_iommu_map(struct gsp_kcfg *kcfg)
 		goto exit;
 	}
 
-	need = gsp_kcfg_need_iommu(kcfg);
 	for_each_gsp_layer(layer, kcfg) {
-		if (!need && !gsp_layer_need_iommu(layer)) {
+		buf = gsp_layer_to_buf(layer);
+		dmabuf = buf->dmabuf;
+
+		if (IS_ERR_OR_NULL(dmabuf))
+			continue;
+
+		if ((strcmp(dmabuf->exp_name, "system") &&
+		     strcmp(dmabuf->exp_name, "system-uncached"))) {
 			GSP_DEBUG("layer[%d] no need to iommu map\n",
 				gsp_layer_to_type(layer));
 			continue;
@@ -652,7 +659,8 @@ exit:
 
 void gsp_kcfg_iommu_unmap(struct gsp_kcfg *kcfg)
 {
-	bool need = false;
+	struct gsp_buf *buf = NULL;
+	struct dma_buf *dmabuf = NULL;
 	struct gsp_core *core = NULL;
 	struct gsp_layer *layer = NULL;
 
@@ -662,9 +670,15 @@ void gsp_kcfg_iommu_unmap(struct gsp_kcfg *kcfg)
 		return;
 	}
 
-	need = gsp_kcfg_need_iommu(kcfg);
 	for_each_gsp_layer(layer, kcfg) {
-		if (!need && !gsp_layer_need_iommu(layer)) {
+		buf = gsp_layer_to_buf(layer);
+		dmabuf = buf->dmabuf;
+
+		if (IS_ERR_OR_NULL(dmabuf))
+			continue;
+
+		if ((strcmp(dmabuf->exp_name, "system") &&
+		     strcmp(dmabuf->exp_name, "system-uncached"))) {
 			GSP_DEBUG("layer[%d] no need to iommu unmap\n",
 				gsp_layer_to_type(layer));
 			continue;

@@ -148,7 +148,6 @@ int gsp_layer_get_dmabuf(struct gsp_layer *layer)
 	int ret = -1;
 	struct gsp_buf *buf = NULL;
 	struct dma_buf *dmabuf = NULL;
-	struct ion_buffer *ionbuf = NULL;
 
 	fd = gsp_layer_to_share_fd(layer);
 	buf = gsp_layer_to_buf(layer);
@@ -160,9 +159,7 @@ int gsp_layer_get_dmabuf(struct gsp_layer *layer)
 		goto done;
 	}
 	buf->dmabuf = dmabuf;
-
-	ionbuf = (struct ion_buffer *)dmabuf->priv;
-	buf->size = ionbuf->size;
+	buf->size = dmabuf->size;
 	buf->is_iova = 1;
 
 	GSP_DEBUG("layer[%d] get dmabuf success\n", gsp_layer_to_type(layer));
