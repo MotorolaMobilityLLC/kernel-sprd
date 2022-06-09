@@ -65,16 +65,17 @@ static int sprd_cpufreq_boost_judge(struct cpufreq_policy *policy)
 
 	if (time_after(jiffies, boot_done_timestamp)) {
 		cluster->boost_enable = false;
-		pr_info("Disables boost it is %lu seconds after boot up\n",
-			SPRD_CPUFREQ_BOOST_DURATION / HZ);
+		pr_info("policy[%d] disables boost it is %lu seconds after boot up\n",
+			 policy->cpu, SPRD_CPUFREQ_BOOST_DURATION / HZ);
 	}
 
 	if (cluster->boost_enable) {
-		if (policy->max >= policy->cpuinfo.max_freq)
+		if (policy->max >= policy->cpuinfo.max_freq ||
+		    policy->min == policy->max)
 			return ON_BOOST;
 		cluster->boost_enable = false;
-		pr_info("Disables boost due to policy max(%d<%d)\n",
-			policy->max, policy->cpuinfo.max_freq);
+		pr_info("policy[%d] disables boost due to policy max(%d<%d)\n",
+			policy->cpu, policy->max, policy->cpuinfo.max_freq);
 	}
 
 	return OUT_BOOST;
@@ -120,16 +121,14 @@ static int sprd_temp_list_init(struct list_head *head)
 	struct temp_node *node;
 
 	if (!list_empty_careful(head)) {
-		dev_warn(dev, "%s: temp list is also init\n", __func__);
+		pr_warn("temp list is also init\n");
 		return 0;
 	}
 
 	/* add upper temp node */
 	node = devm_kzalloc(dev, sizeof(*node), GFP_KERNEL);
-	if (!node) {
-		dev_err(dev, "%s: alloc for upper temp node error\n", __func__);
+	if (!node)
 		return -ENOMEM;
-	}
 
 	node->temp = DVFS_TEMP_UPPER_LIMIT;
 
@@ -137,10 +136,8 @@ static int sprd_temp_list_init(struct list_head *head)
 
 	/* add low temp node */
 	node = devm_kzalloc(dev, sizeof(*node), GFP_KERNEL);
-	if (!node) {
-		dev_err(dev, "%s: alloc for low temp node error\n", __func__);
+	if (!node)
 		return -ENOMEM;
-	}
 
 	node->temp = DVFS_TEMP_LOW_LIMIT;
 
@@ -154,7 +151,7 @@ static int sprd_temp_list_add(struct list_head *head, int temp)
 	struct temp_node *node, *pos;
 
 	if (temp_check(temp) || list_empty_careful(head)) {
-		dev_err(dev, "%s: temp %d or list is error\n", __func__, temp);
+		pr_err("temp %d or list is error\n", temp);
 		return -EINVAL;
 	}
 
@@ -166,10 +163,8 @@ static int sprd_temp_list_add(struct list_head *head, int temp)
 	}
 
 	node = devm_kzalloc(dev, sizeof(*node), GFP_KERNEL);
-	if (!node) {
-		dev_err(dev, "%s: alloc for temp node error\n", __func__);
+	if (!node)
 		return -ENOMEM;
-	}
 
 	node->temp = temp;
 
@@ -183,7 +178,7 @@ static struct temp_node *sprd_temp_list_find(struct list_head *head, int temp)
 	struct temp_node *pos, *next;
 
 	if (temp_check(temp)) {
-		dev_err(dev, "%s: temp %d is out of range\n", __func__, temp);
+		pr_err("temp %d is out of range\n", temp);
 		return NULL;
 	}
 
@@ -208,25 +203,25 @@ static int sprd_policy_table_update(struct cpufreq_policy *policy, struct temp_n
 
 	cpu = get_cpu_device(policy->cpu);
 	if (!cpu) {
-		dev_err(dev, "%s: get cpu %u dev error\n", __func__, policy->cpu);
+		pr_err("get cpu %u dev error\n", policy->cpu);
 		return -EINVAL;
 	}
 
 	cluster = (struct cluster_info *)policy->driver_data;
 	if (!cluster || !cluster->table_update || !cluster->pair_get) {
-		dev_err(dev, "%s: get cpu %u cluster info error\n", __func__, policy->cpu);
+		pr_err("get cpu %u cluster info error\n", policy->cpu);
 		return -EINVAL;
 	}
 
-	dev_info(dev, "%s: update cluster %u temp %d dvfs table\n", __func__, cluster->id, node->temp);
+	pr_info("update cluster %u temp %d dvfs table\n", cluster->id, node->temp);
 
 	ret = cluster->table_update(cluster->id, node->temp, &cluster->table_entry_num);
 	if (ret) {
-		dev_err(dev, "%s: update cluster %u temp %d table error\n", __func__, cluster->id, node->temp);
-		return -EINVAL;
+		pr_err("update cluster %u temp %d table error\n", cluster->id, node->temp);
+		return ret;
 	}
 
-	dev_dbg(dev, "%s: cluster %u dvfs table entry num is %u\n", __func__, cluster->id, cluster->table_entry_num);
+	pr_debug("cluster %u dvfs table entry num is %u\n", cluster->id, cluster->table_entry_num);
 
 	old_table = policy->freq_table;
 	if (old_table) {
@@ -237,21 +232,21 @@ static int sprd_policy_table_update(struct cpufreq_policy *policy, struct temp_n
 		}
 	}
 
-	dev_info(dev, "%s: update cluster %u opp\n", __func__, cluster->id);
+	pr_debug("update cluster %u opp\n", cluster->id);
 
 	for (i = 0; i < cluster->table_entry_num; ++i) {
 		ret = cluster->pair_get(cluster->id, i, &freq, &vol);
 		if (ret) {
-			dev_err(dev, "%s: get cluster %u index %u pair error\n", __func__, cluster->id, i);
-			return -EINVAL;
+			pr_err("get cluster %u index %u pair error\n", cluster->id, i);
+			return ret;
 		}
 
-		dev_info(dev, "%s: add %lluHz/%lluuV to opp\n", __func__, freq, vol);
+		pr_debug("add %lluHz/%lluuV to opp\n", freq, vol);
 
 		ret = dev_pm_opp_add(cpu, freq, vol);
 		if (ret) {
-			dev_err(dev, "%s: add %lluHz/%lluuV pair to opp error(%d)\n", __func__, freq, vol, ret);
-			return -EINVAL;
+			pr_err("add %lluHz/%lluuV pair to opp error(%d)\n", freq, vol, ret);
+			return ret;
 		}
 	}
 
@@ -260,8 +255,8 @@ static int sprd_policy_table_update(struct cpufreq_policy *policy, struct temp_n
 	else {
 		ret = dev_pm_opp_init_cpufreq_table(cpu, &new_table);
 		if (ret) {
-			dev_err(dev, "%s: init cluster %u freq table error(%d)\n", __func__, cluster->id, ret);
-			return -EINVAL;
+			pr_err("init cluster %u freq table error(%d)\n", cluster->id, ret);
+			return ret;
 		}
 
 		policy->freq_table = new_table;
@@ -282,25 +277,28 @@ static void sprd_cpufreq_temp_work_func(struct work_struct *work)
 		container_of(dwork, struct cluster_info, temp_work);
 
 	if (!cluster) {
-		pr_err("%s: get temp work cluster info error\n", __func__);
+		pr_err("get temp work cluster info error\n");
 		return;
 	}
 
 	if (IS_ERR_OR_NULL(cluster->cpu_tz)) {
 		cluster->cpu_tz = thermal_zone_get_zone_by_name(cluster->tz_name);
 		if (IS_ERR_OR_NULL(cluster->cpu_tz)) {
-			dev_warn(dev, "%s: failed to get cluster %u thmzone device\n", __func__, cluster->id);
+			pr_warn("failed to get cluster %u thmzone\n", cluster->id);
 			queue_delayed_work(system_highpri_wq, &cluster->temp_work,
 					   msecs_to_jiffies(DVFS_TEMP_UPDATE_MS));
 			return;
 		}
+
+		pr_info("get cluster %u thmzone successfully\n", cluster->id);
 	}
 
 	thermal_zone_get_temp(cluster->cpu_tz, &temp);
 
 	freq = sprd_cpufreq_update_opp(cluster->cpu, temp);
 	if (freq)
-		dev_info(dev, "%s: cluster[%u] update max freq[%u]\n", __func__, cluster->id, freq);
+		pr_info("cluster[%u] update max freq[%u] by temp[%d]\n",
+			cluster->id, freq, temp);
 
 	queue_delayed_work(system_highpri_wq, &cluster->temp_work,
 			   msecs_to_jiffies(DVFS_TEMP_UPDATE_MS));
@@ -315,7 +313,7 @@ static int sprd_cpufreq_init(struct cpufreq_policy *policy)
 
 	cluster = pclusters + sprd_cluster_info(policy->cpu);
 	if (!cluster || !cluster->freq_get || !cluster->dvfs_enable) {
-		dev_err(dev, "%s: get cpu %u cluster info error\n", __func__, policy->cpu);
+		pr_err("get cpu %u cluster info error\n", policy->cpu);
 		return -EINVAL;
 	}
 
@@ -326,7 +324,7 @@ static int sprd_cpufreq_init(struct cpufreq_policy *policy)
 						 "#freq-domain-cells",
 						 policy->cpus);
 	if (ret < 0) {
-		dev_err(dev, "%s: cpufreq cluster cpumask error", __func__);
+		pr_err("cpufreq cluster cpumask error");
 		goto unlock_ret;
 	}
 
@@ -339,14 +337,14 @@ static int sprd_cpufreq_init(struct cpufreq_policy *policy)
 	/* init dvfs table use current temp */
 	ret = sprd_policy_table_update(policy, cluster->temp_currt_node);
 	if (ret) {
-		dev_err(dev, "%s: update cluster %u table error\n", __func__, cluster->id);
+		pr_err("update cluster %u table error(%d)\n", cluster->id, ret);
 		goto unlock_ret;
 	}
 
 	/* get current freq for policy */
 	ret = cluster->freq_get(cluster->id, &freq);
 	if (ret) {
-		dev_err(dev, "%s: get cluster %u current freq error\n", __func__, cluster->id);
+		pr_err("get cluster %u current freq error\n", cluster->id);
 		goto unlock_ret;
 	}
 
@@ -356,14 +354,14 @@ static int sprd_cpufreq_init(struct cpufreq_policy *policy)
 	/* enable dvfs phy */
 	ret = cluster->dvfs_enable(cluster->id);
 	if (ret) {
-		dev_err(dev, "%s: enable cluster %u dvfs error\n", __func__, cluster->id);
+		pr_err("enable cluster %u dvfs error\n", cluster->id);
 		goto unlock_ret;
 	}
 
 	/* init debugfs interface to debug dvfs */
 	ret = sprd_debug_cluster_init(policy);
 	if (ret) {
-		dev_err(dev, "%s: init cluster %u debug error\n", __func__, cluster->id);
+		pr_err("init cluster %u debug error(%d)\n", cluster->id, ret);
 		goto unlock_ret;
 	}
 
@@ -372,7 +370,7 @@ static int sprd_cpufreq_init(struct cpufreq_policy *policy)
 					   &cluster->max_req, FREQ_QOS_MAX,
 					   FREQ_QOS_MAX_DEFAULT_VALUE);
 		if (ret < 0) {
-			dev_err(dev, "%s: failed to add freq qos\n", __func__);
+			pr_err("add cluster %u freq qos error(%d)\n", cluster->id, ret);
 			goto unlock_ret;
 		}
 
@@ -387,7 +385,7 @@ static int sprd_cpufreq_init(struct cpufreq_policy *policy)
 unlock_ret:
 	mutex_unlock(&cluster->mutex);
 
-	return -EINVAL;
+	return ret;
 }
 
 static int sprd_cpufreq_exit(struct cpufreq_policy *policy)
@@ -398,13 +396,13 @@ static int sprd_cpufreq_exit(struct cpufreq_policy *policy)
 
 	cluster = (struct cluster_info *)policy->driver_data;
 	if (!cluster) {
-		dev_err(dev, "%s: policy is not init\n", __func__);
+		pr_err("policy is not init\n");
 		return -EINVAL;
 	}
 
 	cpu = get_cpu_device(policy->cpu);
 	if (!cpu) {
-		dev_err(dev, "%s: get cpu %u device error\n", __func__, policy->cpu);
+		pr_err("get cpu %u device error\n", policy->cpu);
 		return -EINVAL;
 	}
 
@@ -420,7 +418,7 @@ static int sprd_cpufreq_exit(struct cpufreq_policy *policy)
 
 	ret = sprd_debug_cluster_exit(policy);
 	if (ret)
-		dev_warn(dev, "%s: cluster %u debug exit error\n", __func__, cluster->id);
+		pr_warn("cluster %u debug exit error\n", cluster->id);
 
 	policy->driver_data = NULL;
 
@@ -442,7 +440,7 @@ static int sprd_cpufreq_set_target_index(struct cpufreq_policy *policy, u32 inde
 
 	cluster = (struct cluster_info *)policy->driver_data;
 	if (!cluster || !cluster->freq_set) {
-		dev_err(dev, "%s: policy is not init\n", __func__);
+		pr_err("policy is not init\n");
 		return -EINVAL;
 	}
 
@@ -455,16 +453,16 @@ static int sprd_cpufreq_set_target_index(struct cpufreq_policy *policy, u32 inde
 	mutex_lock(&cluster->mutex);
 
 	if (index >= cluster->table_entry_num) {
-		dev_err(dev, "%s: cluster %u index %u is error\n", __func__, cluster->id, index);
+		pr_err("cluster %u index %u is error\n", cluster->id, index);
 		mutex_unlock(&cluster->mutex);
 		return -EINVAL;
 	}
 
 	ret = cluster->freq_set(cluster->id, index);
 	if (ret) {
-		dev_err(dev, "%s: set cluster %u index %u error\n", __func__, cluster->id, index);
+		pr_err("set cluster %u index %u error(%d)\n", cluster->id, index, ret);
 		mutex_unlock(&cluster->mutex);
-		return -EINVAL;
+		return ret;
 	}
 
 	freq = policy->freq_table[index].frequency;
@@ -482,7 +480,7 @@ static u32 sprd_cpufreq_get(u32 cpu)
 
 	cluster = pclusters + sprd_cluster_info(cpu);
 	if (!cluster || !cluster->freq_get) {
-		dev_err(dev, "%s: get cpu %u cluster info error\n", __func__, cpu);
+		pr_err("get cpu %u cluster info error\n", cpu);
 		return 0;
 	}
 
@@ -490,7 +488,7 @@ static u32 sprd_cpufreq_get(u32 cpu)
 
 	ret = cluster->freq_get(cluster->id, &freq);
 	if (ret) {
-		dev_err(dev, "%s: get cluster %u current freq error\n", __func__, cluster->id);
+		pr_err("get cluster %u current freq error\n", cluster->id);
 		mutex_unlock(&cluster->mutex);
 		return 0;
 	}
@@ -506,8 +504,11 @@ static int sprd_cpufreq_suspend(struct cpufreq_policy *policy)
 {
 	struct cluster_info *cluster = policy->driver_data;
 
+	if (cluster->temp_enable)
+		cancel_delayed_work_sync(&cluster->temp_work);
+
 	if (!strcmp(policy->governor->name, "userspace")) {
-		dev_info(dev, "%s: do nothing for governor-%s\n", __func__, policy->governor->name);
+		pr_info("do nothing for governor-%s\n", policy->governor->name);
 		return 0;
 	}
 
@@ -521,8 +522,14 @@ static int sprd_cpufreq_suspend(struct cpufreq_policy *policy)
 
 static int sprd_cpufreq_resume(struct cpufreq_policy *policy)
 {
+	struct cluster_info *cluster = policy->driver_data;
+
+	if (cluster->temp_enable)
+		queue_delayed_work(system_highpri_wq, &cluster->temp_work,
+				   msecs_to_jiffies(DVFS_TEMP_UPDATE_MS));
+
 	if (!strcmp(policy->governor->name, "userspace")) {
-		dev_info(dev, "%s: do nothing for governor-%s\n", __func__, policy->governor->name);
+		pr_info("do nothing for governor-%s\n", policy->governor->name);
 		return 0;
 	}
 
@@ -535,17 +542,13 @@ static int sprd_cpufreq_online(struct cpufreq_policy *policy)
 
 	cluster = (struct cluster_info *)policy->driver_data;
 	if (!cluster) {
-		dev_err(dev, "%s: policy is not init\n", __func__);
+		pr_err("policy is not init\n");
 		return -EINVAL;
 	}
-
-	mutex_lock(&cluster->mutex);
 
 	if (cluster->temp_enable)
 		queue_delayed_work(system_highpri_wq, &cluster->temp_work,
 				   msecs_to_jiffies(DVFS_TEMP_UPDATE_MS));
-
-	mutex_unlock(&cluster->mutex);
 
 	return 0;
 }
@@ -556,16 +559,12 @@ static int sprd_cpufreq_offline(struct cpufreq_policy *policy)
 
 	cluster = (struct cluster_info *)policy->driver_data;
 	if (!cluster) {
-		dev_err(dev, "%s: policy is not init\n", __func__);
+		pr_err("policy is not init\n");
 		return -EINVAL;
 	}
 
-	mutex_lock(&cluster->mutex);
-
 	if (cluster->temp_enable)
 		cancel_delayed_work_sync(&cluster->temp_work);
-
-	mutex_unlock(&cluster->mutex);
 
 	return 0;
 }
@@ -600,8 +599,8 @@ static int sprd_cluster_temp_init(struct cluster_info *cluster)
 
 	ret = sprd_temp_list_init(&cluster->temp_list_head);
 	if (ret) {
-		dev_err(dev, "%s: init cluster %u temp limit error\n", __func__, cluster->id);
-		return -EINVAL;
+		pr_err("init cluster %u temp limit error(%d)\n", cluster->id, ret);
+		return ret;
 	}
 
 	cluster->temp_level_node = sprd_temp_list_find(&cluster->temp_list_head, DVFS_TEMP_LOW_LIMIT);
@@ -611,7 +610,7 @@ static int sprd_cluster_temp_init(struct cluster_info *cluster)
 
 	prop = of_find_property(cluster->node, name, &num);
 	if (!prop || !num) {
-		dev_warn(dev, "%s: find cluster %u temp property error\n", __func__, cluster->id);
+		pr_warn("find cluster %u temp property error\n", cluster->id);
 		cluster->temp_enable = false;
 		return 0;
 	}
@@ -620,21 +619,21 @@ static int sprd_cluster_temp_init(struct cluster_info *cluster)
 	INIT_DELAYED_WORK(&cluster->temp_work, sprd_cpufreq_temp_work_func);
 
 	if (of_property_read_string(cluster->node, "sprd,thmzone-names", &cluster->tz_name)) {
-		dev_err(dev, "%s: get cluster %u thmzone name error\n", __func__, cluster->id);
+		pr_err("get cluster %u thmzone name error\n", cluster->id);
 		return -EINVAL;
 	}
 
 	for (i = 0; i < num / sizeof(u32); i++) {
 		ret = of_property_read_u32_index(cluster->node, name, i, &val);
 		if (ret) {
-			dev_err(dev, "%s: get cluster %u temp error\n", __func__, cluster->id);
-			return -EINVAL;
+			pr_err("get cluster %u temp error\n", cluster->id);
+			return ret;
 		}
 
 		ret = sprd_temp_list_add(&cluster->temp_list_head, (int)val);
 		if (ret) {
-			dev_err(dev, "%s: add cluster %u temp error\n", __func__, cluster->id);
-			return -EINVAL;
+			pr_err("add cluster %u temp error(%d)\n", cluster->id, ret);
+			return ret;
 		}
 	}
 
@@ -673,48 +672,48 @@ static int sprd_cluster_props_init(struct cluster_info *cluster)
 
 		ret = of_property_read_u32(cluster->node, p->name, p->value);
 		if (ret) {
-			dev_warn(dev, "%s: get cluster %u '%s' value error\n", __func__, cluster->id, p->name);
+			pr_warn("get cluster %u '%s' value error\n", cluster->id, p->name);
 			*p->value = 0U;
 			continue;
 		}
 
 		ret = ops ? ops(cluster->id, *p->value) : 0;
 		if (ret) {
-			dev_err(dev, "%s: set cluster %u '%s' value error\n", __func__, cluster->id, p->name);
+			pr_err("set cluster %u '%s' value error\n", cluster->id, p->name);
 			return -EINVAL;
 		}
 	}
 
 	ret = of_property_match_string(cluster->node, "nvmem-cell-names", "dvfs_bin");
 	if (ret == -EINVAL) { /* No definition is allowed */
-		dev_warn(dev, "%s: Warning: no 'dvfs_bin' appointed\n", __func__);
+		pr_warn("Warning: no 'dvfs_bin' appointed\n");
 		cluster->bin = 0U;
 	} else {
 		ret = sprd_nvmem_info_read(cluster->node, "dvfs_bin", &cluster->bin);
 		if (ret) {
-			dev_err(dev, "%s: error in reading dvfs bin value\n", __func__);
+			pr_err("read dvfs bin value error(%d)\n", ret);
 			return ret;
 		}
 
 		ret = cluster->bin_set(cluster->id, cluster->bin);
 		if (ret) {
-			dev_err(dev, "%s: set cluster %u 'binning' value error\n", __func__, cluster->id);
-			return -EINVAL;
+			pr_err("set cluster %u 'binning' value error\n", cluster->id);
+			return ret;
 		}
 	}
 
 	if (of_property_read_bool(cluster->node, "sprd,multi-version")) {
 		hwf = of_find_node_by_path("/hwfeature/auto");
 		if (IS_ERR_OR_NULL(hwf)) {
-			dev_err(dev, "%s: no hwfeature/auto node found\n", __func__);
+			pr_err("no hwfeature/auto node found\n");
 			return PTR_ERR(hwf);
 		}
 
 		cluster->version = (u64 *)of_get_property(hwf, "efuse", NULL);
 		ret = cluster->version_set(cluster->id, cluster->version);
 		if (ret) {
-			dev_err(dev, "%s: set cluster %u 'version' value error\n", __func__, cluster->id);
-			return -EINVAL;
+			pr_err("set cluster %u 'version' value error\n", cluster->id);
+			return ret;
 		}
 	}
 
@@ -731,7 +730,7 @@ static int sprd_cluster_ops_init(struct cluster_info *cluster)
 
 	sip = sprd_sip_svc_get_handle();
 	if (!sip) {
-		dev_err(dev, "%s: get sip error\n", __func__);
+		pr_err("get sip error\n");
 		return -EINVAL;
 	}
 
@@ -772,13 +771,13 @@ static int sprd_cluster_info_init(struct cluster_info *clusters)
 	for_each_possible_cpu(cpu) {
 		cluster = clusters + sprd_cluster_info(cpu);
 		if (cluster->node) {
-			dev_dbg(dev, "%s: cluster %u info is also init\n", __func__, cluster->id);
+			pr_debug("cluster %u info is also init\n", cluster->id);
 			continue;
 		}
 
 		cluster->node = sprd_cluster_node_init(cpu);
 		if (!cluster->node) {
-			dev_err(dev, "%s: init cluster %u node error\n", __func__, cluster->id);
+			pr_err("init cluster %u node error\n", cluster->id);
 			return -EINVAL;
 		}
 
@@ -789,27 +788,27 @@ static int sprd_cluster_info_init(struct cluster_info *clusters)
 
 		ret = sprd_cluster_ops_init(cluster);
 		if (ret) {
-			dev_err(dev, "%s: init cluster %u ops error\n", __func__, cluster->id);
-			return -EINVAL;
+			pr_err("init cluster %u ops error(%d)\n", cluster->id, ret);
+			return ret;
 		}
 
 		ret = sprd_cluster_props_init(cluster);
 		if (ret) {
-			dev_err(dev, "%s: init cluster %u props error\n", __func__, cluster->id);
+			pr_err("init cluster %u props error(%d)\n", cluster->id, ret);
 			return ret;
 		}
 
 		ret = sprd_cluster_temp_init(cluster);
 		if (ret) {
-			dev_err(dev, "%s: init cluster %u temp error\n", __func__, cluster->id);
-			return -EINVAL;
+			pr_err("init cluster %u temp error(%d)\n", cluster->id, ret);
+			return ret;
 		}
 	}
 
 	return 0;
 }
 
-static int sprd_cpufreq_probe(struct platform_device *pdev)
+static int sprd_cpufreq_driver_probe(struct platform_device *pdev)
 {
 	int ret;
 
@@ -817,39 +816,42 @@ static int sprd_cpufreq_probe(struct platform_device *pdev)
 
 	dev = &pdev->dev;
 
-	dev_info(dev, "%s: probe sprd cpufreq v2 driver\n", __func__);
+	pr_debug("probe sprd cpufreq v2 driver\n");
 
 	pclusters = devm_kzalloc(dev, sizeof(*pclusters) * sprd_cluster_num(), GFP_KERNEL);
-	if (!pclusters) {
-		dev_err(dev, "%s: alloc memory for cluster info error\n", __func__);
+	if (!pclusters)
 		return -ENOMEM;
-	}
 
 	ret = sprd_cluster_info_init(pclusters);
 	if (ret) {
-		dev_err(dev, "%s: init cluster info error\n", __func__);
+		pr_err("init cluster info error(%d)\n", ret);
 		return ret;
 	}
 
 	ret = pclusters->dvfs_init();
 	if (ret) {
-		dev_err(dev, "%s: init dvfs device error\n", __func__);
-		return -EINVAL;
+		pr_err("init dvfs device error\n");
+		return ret;
 	}
 
 	ret = sprd_debug_init(dev);
 	if (ret) {
-		dev_err(dev, "%s: init dvfs debug error\n", __func__);
-		return -EINVAL;
+		pr_err("init dvfs debug error(%d)\n", ret);
+		return ret;
 	}
 
 	ret = cpufreq_register_driver(&sprd_cpufreq_driver);
 	if (ret)
-		dev_err(dev, "%s: register cpufreq driver error\n", __func__);
+		pr_err("register cpufreq driver error\n");
 	else
-		dev_info(dev, "%s: register cpufreq driver success\n", __func__);
+		pr_info("register cpufreq driver success\n");
 
 	return ret;
+}
+
+static int sprd_cpufreq_driver_remove(struct platform_device *pdev)
+{
+	return cpufreq_unregister_driver(&sprd_cpufreq_driver);
 }
 
 /**
@@ -874,13 +876,13 @@ unsigned int sprd_cpufreq_update_opp(int cpu, int now_temp)
 
 	policy = cpufreq_cpu_get(cpu);
 	if (!policy) {
-		dev_err(dev, "%s: get cpu %u policy error\n", __func__, cpu);
+		pr_err("get cpu %u policy error\n", cpu);
 		return 0;
 	}
 
 	cluster = (struct cluster_info *)policy->driver_data;
 	if (!cluster || !cluster->pair_get) {
-		dev_err(dev, "%s: cpu %u cluster info error\n", __func__, cpu);
+		pr_err("cpu %u cluster info error\n", cpu);
 		cpufreq_cpu_put(policy);
 		return 0;
 	}
@@ -914,14 +916,15 @@ unsigned int sprd_cpufreq_update_opp(int cpu, int now_temp)
 	if (cluster->temp_level_node == cluster->temp_currt_node)
 		goto ret_error;
 
-	dev_info(dev, "%s: update cluster %u table to %d(%d) degrees celsius\n", __func__, cluster->id, temp, cluster->temp_level_node->temp);
+	pr_debug("update cluster %u table to %d(%d)\n", cluster->id, temp,
+		 cluster->temp_level_node->temp);
 
 	/* delay is required to ensure that the last process is completed */
 	udelay(100);
 
 	ret = sprd_policy_table_update(policy, cluster->temp_level_node);
 	if (ret) {
-		dev_err(dev, "%s: update cluster %u table error\n", __func__, cluster->id);
+		pr_err("update cluster %u table error(%d)\n", cluster->id, ret);
 		goto ret_error;
 	}
 
@@ -929,7 +932,7 @@ unsigned int sprd_cpufreq_update_opp(int cpu, int now_temp)
 
 	ret = cluster->pair_get(cluster->id, cluster->table_entry_num - 1, &freq, NULL);
 	if (ret) {
-		dev_err(dev, "%s: get cluster %u max freq error\n", __func__, cluster->id);
+		pr_err("get cluster %u max freq error\n", cluster->id);
 		goto ret_error;
 	}
 
@@ -963,7 +966,8 @@ static struct platform_driver sprd_cpufreq_platform_driver = {
 		.name = "sprd-cpufreq-v2",
 		.of_match_table = sprd_cpufreq_of_match,
 	},
-	.probe = sprd_cpufreq_probe,
+	.probe = sprd_cpufreq_driver_probe,
+	.remove = sprd_cpufreq_driver_remove,
 };
 
 static int __init sprd_cpufreq_platform_driver_register(void)

@@ -2,6 +2,8 @@
 // Copyright (C) 2021 Unisoc, Inc.
 #include "sprd-cpufreq-v2.h"
 
+#define MAX_SIZE		(512)
+
 struct debug_node {
 	const char *name;
 	const struct file_operations *fops;
@@ -35,15 +37,13 @@ static size_t table_cat(struct cpufreq_policy *policy, char *buf, size_t len)
 	cpu_dev = get_cpu_device(policy->cpu);
 	if (!cpu_dev) {
 		dev_err(chip.dev, "%s: get cpu device failed\n", __func__);
-		mutex_unlock(&cluster_info->mutex);
-		return 0;
+		goto out_error;
 	}
 
 	opp_num = dev_pm_opp_get_opp_count(cpu_dev);
 	if (opp_num < 0) {
 		dev_err(chip.dev, "%s: get opp entry num failed(%d)\n", __func__, opp_num);
-		mutex_unlock(&cluster_info->mutex);
-		return 0;
+		goto out_error;
 	}
 
 	size = scnprintf(buf, len, "     DVFS Table(%d)\nFreq(Hz)\tVolt(uV)\n", cluster_info->temp_level_node->temp);
@@ -52,8 +52,7 @@ static size_t table_cat(struct cpufreq_policy *policy, char *buf, size_t len)
 		dev_opp = dev_pm_opp_find_freq_ceil(cpu_dev, &rate);
 		if (IS_ERR(dev_opp)) {
 			dev_err(chip.dev, "%s: get dev opp error\n", __func__);
-			mutex_unlock(&cluster_info->mutex);
-			return 0;
+			goto out_error;
 		}
 
 		freq = dev_pm_opp_get_freq(dev_opp);		/* in Hz */
@@ -64,32 +63,36 @@ static size_t table_cat(struct cpufreq_policy *policy, char *buf, size_t len)
 		size += scnprintf(buf + size, len - size, "%lu\t%lu\n", freq, volt);
 		if (size >= len) {
 			dev_err(chip.dev, "%s: buf len is error\n", __func__);
-			mutex_unlock(&cluster_info->mutex);
-			return 0;
+			goto out_error;
 		}
 	}
 
 	mutex_unlock(&cluster_info->mutex);
 
 	return size;
+
+out_error:
+	mutex_unlock(&cluster_info->mutex);
+
+	return 0;
 }
 
 static ssize_t sprd_debug_table_read(struct file *file, char __user *buf, size_t len, loff_t *ppos)
 {
 	struct cpufreq_policy *policy = file->private_data;
-	char str[512] = {0};
+	char *str;
 	size_t size;
 	ssize_t ret;
 
-	if (!*ppos || !str[0]) {
-		/* first read */
-		size = table_cat(policy, str, sizeof(str));
-	} else {
-		/* continued read */
-		size = strlen(str);
-	}
+	str = kcalloc(MAX_SIZE, sizeof(char), GFP_KERNEL);
+	if (!str)
+		return -ENOMEM;
+
+	size = table_cat(policy, str, MAX_SIZE);
 
 	ret = simple_read_from_buffer(buf, len, ppos, str, size);
+
+	kfree(str);
 
 	return ret;
 }
