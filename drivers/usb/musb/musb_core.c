@@ -2304,7 +2304,7 @@ musb_init_controller(struct device *dev, int nIrq, void __iomem *ctrl)
 	 * 500 ms for some margin.
 	 */
 	pm_runtime_use_autosuspend(musb->controller);
-	pm_runtime_set_autosuspend_delay(musb->controller, 500);
+	pm_runtime_set_autosuspend_delay(musb->controller, 50);
 	pm_runtime_enable(musb->controller);
 	pm_runtime_get_sync(musb->controller);
 

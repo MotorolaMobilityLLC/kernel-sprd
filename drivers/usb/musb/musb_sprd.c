@@ -97,7 +97,7 @@ int dwc3_sprd_probe_finish(void)
 	return 1;
 }
 #endif
-
+static void musb_sprd_release_all_request(struct musb *musb);
 static void sprd_musb_enable(struct musb *musb)
 {
 	struct sprd_glue *glue = dev_get_drvdata(musb->controller->parent);
@@ -893,6 +893,8 @@ static void sprd_musb_work(struct work_struct *work)
 			musb_writeb(musb->mregs, MUSB_DEVCTL,
 				devctl & ~MUSB_DEVCTL_SESSION);
 			musb->shutdowning = 1;
+			/* release request and disable ep before controller suspend */
+			musb_sprd_release_all_request(musb);
 			cnt = 10;
 			while (musb->shutdowning && cnt-- > 0)
 				msleep(50);
@@ -1407,8 +1409,6 @@ static int musb_sprd_runtime_suspend(struct device *dev)
 	int ret;
 
 	usb_phy_vbus_off(glue->xceiv);
-	if (glue->dr_mode == USB_DR_MODE_PERIPHERAL)
-		musb_sprd_release_all_request(musb);
 
 	if (glue->dr_mode == USB_DR_MODE_HOST) {
 		ret = wait_event_timeout(controller->wait,
