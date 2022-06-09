@@ -43,6 +43,7 @@
 #endif
 #include "../sysdump/unisoc_sysdump.h"
 #include "../sysdump/unisoc_dump_info.h"
+#include "../sysdump/unisoc_dump_io.h"
 #undef pr_fmt
 #define pr_fmt(fmt) "sprd_wdh: " fmt
 
@@ -707,7 +708,7 @@ asmlinkage __visible void wdh_atf_entry(struct pt_regs *data)
 	unisoc_dump_runqueues();
 	unisoc_dump_stack_reg(cpu, pregs);
 	minidump_update_current_stack(cpu, pregs);
-	//sprd_dump_io();
+	sprd_dump_io();
 	sysdump_ipi(NULL, pregs);
 
 	wdh_step[cpu] = SPRD_HANG_DUMP_END;
