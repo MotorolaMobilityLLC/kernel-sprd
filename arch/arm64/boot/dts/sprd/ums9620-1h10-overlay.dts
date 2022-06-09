@@ -7,6 +7,7 @@
 #include "reserved-memory/modem-5g-common.dtsi"
 #include "reserved-memory/ums9620-1h10-overlay.dtsi"
 #include "touchscreen/ums9620-1h10-overlay.dtsi"
+#include "battery/ums9620-1h10-overlay.dtsi"
 
 / {
 
