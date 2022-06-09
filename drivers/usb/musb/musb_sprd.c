@@ -786,10 +786,6 @@ static void sprd_musb_work(struct work_struct *work)
 			goto end;
 		}
 
-		if (glue->dr_mode == USB_DR_MODE_PERIPHERAL)
-			usb_gadget_set_state(&musb->g, USB_STATE_ATTACHED);
-
-		sprd_musb_reset_context(musb);
 		/*
 		 * If the charger type is not SDP or CDP type, it does
 		 * not need to resume the device, just charging.
@@ -804,6 +800,13 @@ static void sprd_musb_work(struct work_struct *work)
 			 "Don't need resume musb device in charging mode!\n");
 			goto end;
 		}
+		/* For charging mode, we don't set usb state to USB_STATE_ATTACHED
+		 * to ignore unnecessary interaction
+		 */
+		if (glue->dr_mode == USB_DR_MODE_PERIPHERAL)
+			usb_gadget_set_state(&musb->g, USB_STATE_ATTACHED);
+
+		sprd_musb_reset_context(musb);
 
 		cnt = 100;
 		while (!pm_runtime_suspended(musb->controller)

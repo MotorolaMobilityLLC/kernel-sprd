@@ -933,6 +933,11 @@ static int musb_gadget_enable(struct usb_ep *ep,
 	mbase = musb->mregs;
 	epnum = musb_ep->current_epnum;
 
+	if (pm_runtime_suspended(musb->controller)) {
+		dev_err(musb->controller, "%s controller suspended\n", __func__);
+		return status;
+	}
+
 	spin_lock_irqsave(&musb->lock, flags);
 
 	if (musb_ep->desc) {
