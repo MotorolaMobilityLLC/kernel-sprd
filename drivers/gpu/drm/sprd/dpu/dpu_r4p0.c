@@ -1260,58 +1260,29 @@ static void dpu_framerate(struct dpu_context *ctx)
 {
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
 
-        if (mode_changed) {
-		dpu_stop(ctx);
-		if (vfp < 300) {
-			pr_info("high frame rate mode\n");
-			ctx->vm.vfront_porch = vfp;
-			reg->dpi_v_timing = (ctx->vm.vsync_len << 0) |
-						(ctx->vm.vback_porch << 8) |
-						(ctx->vm.vfront_porch << 20);
-			dsi_v2->ctx.vm.vfront_porch = vfp;
-			dsi_hal_dpi_vfp(dsi_v2, vfp);
-		} else {
-			pr_info("low frame rate mode\n");
-			ctx->vm.vfront_porch = vfp;
-			reg->dpi_v_timing = (ctx->vm.vsync_len << 0) |
-						(ctx->vm.vback_porch << 8) |
-						(ctx->vm.vfront_porch << 20);
-			dsi_v2->ctx.vm.vfront_porch = vfp;
-			dsi_hal_dpi_vfp(dsi_v2, vfp);
-		}
-		dpu_run(ctx);
-		mode_changed = false;
+	dpu_stop(ctx);
+	if (vfp < 300) {
+		pr_info("high frame rate mode\n");
+		ctx->vm.vfront_porch = vfp;
+		reg->dpi_v_timing = (ctx->vm.vsync_len << 0) |
+				    (ctx->vm.vback_porch << 8) |
+				    (ctx->vm.vfront_porch << 20);
+		dsi_v2->ctx.vm.vfront_porch = vfp;
+		dsi_hal_dpi_vfp(dsi_v2, vfp);
+	} else {
+		pr_info("low frame rate mode\n");
+		ctx->vm.vfront_porch = vfp;
+		reg->dpi_v_timing = (ctx->vm.vsync_len << 0) |
+				    (ctx->vm.vback_porch << 8) |
+				    (ctx->vm.vfront_porch << 20);
+		dsi_v2->ctx.vm.vfront_porch = vfp;
+		dsi_hal_dpi_vfp(dsi_v2, vfp);
 	}
+	dpu_run(ctx);
 }
 
 static void dpu_scaling(struct dpu_context *ctx,
 			struct sprd_dpu_layer layers[], u8 count)
-{
-	int i;
-	struct sprd_dpu_layer *top_layer;
-
-	if (mode_changed) {
-		top_layer = &layers[count - 1];
-		pr_debug("------------------------------------\n");
-		for (i = 0; i < count; i++) {
-			pr_debug("layer[%d] : %dx%d --- (%d)\n", i,
-				layers[i].dst_w, layers[i].dst_h,
-				scale_copy.in_w);
-		}
-
-		if  (top_layer->dst_w <= scale_copy.in_w) {
-			dpu_sr_config(ctx);
-			mode_changed = false;
-
-			pr_info("do scaling enhace: 0x%x, top layer(%dx%d)\n",
-				enhance_en, top_layer->dst_w,
-				top_layer->dst_h);
-		}
-	}
-}
-
-static void dpu_singal_scaling(struct dpu_context *ctx,
-			       struct sprd_dpu_layer layers[], u8 count)
 {
 	int i;
 	u16 src_w;
@@ -1322,21 +1293,19 @@ static void dpu_singal_scaling(struct dpu_context *ctx,
 	if (count == 1) {
 		top_layer = &layers[count - 1];
 		if (top_layer->rotation & (DRM_MODE_ROTATE_90 |
-		    DRM_MODE_ROTATE_270)) {
+						DRM_MODE_ROTATE_270)) {
 			src_w = top_layer->src_h;
 			src_h = top_layer->src_w;
- 		} else {
+		} else {
 			src_w = top_layer->src_w;
 			src_h = top_layer->src_h;
 		}
-		if (src_w == top_layer->dst_w
-		&& src_h == top_layer->dst_h) {
- 			reg->blend_size = (scale_copy.in_h << 16) |
- 					  scale_copy.in_w;
- 			if (!need_scale)
- 				reg->dpu_enhance_cfg &= ~BIT(0);
- 			else
- 				reg->dpu_enhance_cfg |= BIT(0);
+		if (src_w == top_layer->dst_w && src_h == top_layer->dst_h) {
+			reg->blend_size = (scale_copy.in_h << 16) | scale_copy.in_w;
+			if (!need_scale)
+				reg->dpu_enhance_cfg &= ~BIT(0);
+			else
+				reg->dpu_enhance_cfg |= BIT(0);
 		} else {
 			/*
 			 * When the layer src size is not euqal to the
@@ -1351,22 +1320,20 @@ static void dpu_singal_scaling(struct dpu_context *ctx,
 			 * When the layer src size is equal to panel
 			 * size, close dpu scaling-up function.
 			 */
-			if (src_h == ctx->vm.vactive &&
-			    src_w == ctx->vm.hactive)
+			if (src_h == ctx->vm.vactive && src_w == ctx->vm.hactive)
 				reg->dpu_enhance_cfg &= ~BIT(0);
 			else
 				reg->dpu_enhance_cfg |= BIT(0);
- 		}
+		}
 	} else {
-		reg->blend_size = (scale_copy.in_h << 16) |
-				  scale_copy.in_w;
+		reg->blend_size = (scale_copy.in_h << 16) | scale_copy.in_w;
 		if (!need_scale)
 			reg->dpu_enhance_cfg &= ~BIT(0);
 		else
 			reg->dpu_enhance_cfg |= BIT(0);
- 	}
- }
- 
+	}
+}
+
 static void dpu_flip(struct dpu_context *ctx,
 		     struct sprd_dpu_layer layers[], u8 count)
 {
@@ -1393,17 +1360,13 @@ static void dpu_flip(struct dpu_context *ctx,
 
 	/* to check if dpu need scaling the frame for SR */
 	//dpu_scaling(ctx, layers, count);
-	dpu_singal_scaling(ctx, layers, count);
 
 	/* to check if dpu need change the frame rate */
-	if (dynamic_frame_mode) {
-		/* to check if dpu need change the frame rate */
+	if (mode_changed) {
 		dpu_framerate(ctx);
 		//count = 1;
 		mode_changed = false;
-	}else
-	        /* to check if dpu need scaling the frame for SR */
-		dpu_scaling(ctx, layers, count);
+	}
 
 	/* start configure dpu layers */
 	for (i = 0; i < count; i++)
