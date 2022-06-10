@@ -11,6 +11,7 @@
 #include "wcn_glb.h"
 #include "wcn_misc.h"
 #include "wcn_procfs.h"
+#include "pcie.h"
 
 #define LOOPCHECK_TIMER_INTERVAL      5
 #define WCN_LOOPCHECK_INIT	1

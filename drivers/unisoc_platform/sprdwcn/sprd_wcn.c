@@ -36,6 +36,8 @@
 #include <linux/spinlock.h>
 #include <misc/wcn_bus.h>
 #include "sprd_wcn.h"
+#include "./sipc/wcn_sipc.h"
+#include "pcie.h"
 
 #ifdef CONFIG_PM_SLEEP
 static int wcn_resume(struct device *dev)
@@ -283,6 +285,9 @@ static struct platform_driver sprd_wcn_driver = {
 static int __init sprd_wcn_init(void)
 {
 	pr_info("%s entry!\n", __func__);
+#ifdef BUILD_WCN_PCIE
+	sprd_pcie_init();
+#endif
 	return platform_driver_register(&sprd_wcn_driver);
 }
 
