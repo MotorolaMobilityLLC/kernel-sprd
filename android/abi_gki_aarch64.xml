@@ -19,6 +19,7 @@
       <elf-symbol name='__arm_smccc_hvc' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x50f85302'/>
       <elf-symbol name='__arm_smccc_smc' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xf93aae46'/>
       <elf-symbol name='__arm_smccc_sve_check' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x3d93c7c2'/>
+      <elf-symbol name='__bio_crypt_clone' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xd139e6d2'/>
       <elf-symbol name='__bitmap_and' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x39b52d19'/>
       <elf-symbol name='__bitmap_andnot' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xadfdfcef'/>
       <elf-symbol name='__bitmap_clear' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x922f45a6'/>
@@ -33,6 +34,7 @@
       <elf-symbol name='__blk_mq_alloc_disk' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x709d48d0'/>
       <elf-symbol name='__blk_mq_end_request' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x79757fde'/>
       <elf-symbol name='__blk_rq_map_sg' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xced018e8'/>
+      <elf-symbol name='__blkdev_issue_discard' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x22493998'/>
       <elf-symbol name='__blockdev_direct_IO' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x547d6e39'/>
       <elf-symbol name='__bread_gfp' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xeb7cbd82'/>
       <elf-symbol name='__breadahead' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xd31b960a'/>
@@ -201,6 +203,7 @@
       <elf-symbol name='__nlmsg_put' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xf285c87b'/>
       <elf-symbol name='__of_get_address' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xa25f1a37'/>
       <elf-symbol name='__of_reset_control_get' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xbfd1bf53'/>
+      <elf-symbol name='__page_file_index' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x48268dc0'/>
       <elf-symbol name='__pci_register_driver' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x6e98582c'/>
       <elf-symbol name='__percpu_down_read' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x6f16ef47'/>
       <elf-symbol name='__percpu_init_rwsem' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xec108435'/>
@@ -560,6 +563,7 @@
       <elf-symbol name='add_uevent_var' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x9c6febfc'/>
       <elf-symbol name='add_wait_queue' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x4afb2238'/>
       <elf-symbol name='addrconf_prefix_rcv_add_addr' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x5117cbbe'/>
+      <elf-symbol name='address_space_init_once' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x57a0fa87'/>
       <elf-symbol name='adjust_managed_page_count' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xe1bb7a3'/>
       <elf-symbol name='aead_register_instance' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xc3976c87'/>
       <elf-symbol name='aes_encrypt' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x77e9eb37'/>
@@ -631,6 +635,7 @@
       <elf-symbol name='bio_associate_blkg' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x765dea4b'/>
       <elf-symbol name='bio_chain' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x4bfb4c9'/>
       <elf-symbol name='bio_clone_blkg_association' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x5fbf87b6'/>
+      <elf-symbol name='bio_crypt_set_ctx' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xf406568a'/>
       <elf-symbol name='bio_end_io_acct_remapped' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xaff440a'/>
       <elf-symbol name='bio_endio' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x667e508b'/>
       <elf-symbol name='bio_init' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xd550be78'/>
@@ -705,6 +710,7 @@
       <elf-symbol name='blk_update_request' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xff88a74e'/>
       <elf-symbol name='blkdev_get_by_dev' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x47e5553f'/>
       <elf-symbol name='blkdev_get_by_path' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xd792d617'/>
+      <elf-symbol name='blkdev_issue_flush' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x1e344e48'/>
       <elf-symbol name='blkdev_put' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x62901bd4'/>
       <elf-symbol name='block_is_partially_uptodate' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x12b338ae'/>
       <elf-symbol name='block_write_full_page' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x9a3d7c18'/>
@@ -907,6 +913,7 @@
       <elf-symbol name='configfs_register_group' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x28e5af0d'/>
       <elf-symbol name='configfs_register_subsystem' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xe08618bd'/>
       <elf-symbol name='configfs_unregister_subsystem' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xd1b3c7b8'/>
+      <elf-symbol name='congestion_wait' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x64999478'/>
       <elf-symbol name='console_lock' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xfbaaf01e'/>
       <elf-symbol name='console_stop' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xe578df88'/>
       <elf-symbol name='console_trylock' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x40d04664'/>
@@ -3023,6 +3030,7 @@
       <elf-symbol name='memunmap' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x9e9fdd9d'/>
       <elf-symbol name='mfd_add_devices' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x34dd1c58'/>
       <elf-symbol name='mfd_remove_devices' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xce8e4310'/>
+      <elf-symbol name='migrate_page_copy' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x44fd9d44'/>
       <elf-symbol name='migrate_pages' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x7dd3f60b'/>
       <elf-symbol name='migrate_swap' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x8e4ddb6d'/>
       <elf-symbol name='mii_check_media' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xf60a73ee'/>
@@ -3803,6 +3811,7 @@
       <elf-symbol name='prepare_kernel_cred' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xdee40dd1'/>
       <elf-symbol name='prepare_to_wait' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xd5fd90f1'/>
       <elf-symbol name='prepare_to_wait_event' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x8c26d495'/>
+      <elf-symbol name='prepare_to_wait_exclusive' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xc622556f'/>
       <elf-symbol name='print_hex_dump' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x167c5967'/>
       <elf-symbol name='printk_timed_ratelimit' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x7cc4a5d'/>
       <elf-symbol name='proc_create' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xf8760f86'/>
@@ -3862,13 +3871,16 @@
       <elf-symbol name='queue_delayed_work_on' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x7a0c5668'/>
       <elf-symbol name='queue_work_on' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x732ac580'/>
       <elf-symbol name='radix_tree_delete' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x4e6e4b41'/>
+      <elf-symbol name='radix_tree_delete_item' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xd2237016'/>
       <elf-symbol name='radix_tree_gang_lookup' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x6b27729b'/>
       <elf-symbol name='radix_tree_insert' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x6fbc6a00'/>
       <elf-symbol name='radix_tree_iter_delete' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x6dc35b25'/>
       <elf-symbol name='radix_tree_iter_resume' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x4967e79f'/>
       <elf-symbol name='radix_tree_lookup' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x70ad75fb'/>
+      <elf-symbol name='radix_tree_lookup_slot' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x41efdeaf'/>
       <elf-symbol name='radix_tree_next_chunk' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x2c541e7b'/>
       <elf-symbol name='radix_tree_preload' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x32ce3777'/>
+      <elf-symbol name='radix_tree_replace_slot' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x69049cd2'/>
       <elf-symbol name='rational_best_approximation' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xb0a0da0c'/>
       <elf-symbol name='raw_notifier_call_chain' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xa851973a'/>
       <elf-symbol name='raw_notifier_chain_register' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xdc9fa232'/>
@@ -24665,6 +24677,7 @@
           <var-decl name='sy' type-id='3f1a6b60' visibility='default' filepath='include/uapi/linux/fb.h' line='348' column='1'/>
         </data-member>
       </class-decl>
+      <pointer-type-def type-id='fb55efa1' size-in-bits='64' id='334817d1'/>
       <function-type size-in-bits='64' id='334e564a'>
         <parameter type-id='19e05b5f'/>
         <parameter type-id='41b1c13c'/>
@@ -88972,6 +88985,7 @@
       </class-decl>
       <pointer-type-def type-id='6aebc4a7' size-in-bits='64' id='c8f5869f'/>
       <pointer-type-def type-id='0331c4d6' size-in-bits='64' id='c8f8b049'/>
+      <pointer-type-def type-id='49c81889' size-in-bits='64' id='c8fec899'/>
       <pointer-type-def type-id='b845c891' size-in-bits='64' id='c9042c89'/>
       <function-type size-in-bits='64' id='c90a6da1'>
         <parameter type-id='bff05edb'/>
@@ -115035,6 +115049,12 @@
         <parameter type-id='95e97e5e' name='node' filepath='net/core/skbuff.c' line='398' column='1'/>
         <return type-id='0fbf3cfd'/>
       </function-decl>
+      <function-decl name='__bio_crypt_clone' mangled-name='__bio_crypt_clone' filepath='block/blk-crypto.c' line='107' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='__bio_crypt_clone'>
+        <parameter type-id='fb55efa1' name='dst' filepath='block/blk-crypto.c' line='107' column='1'/>
+        <parameter type-id='fb55efa1' name='src' filepath='block/blk-crypto.c' line='107' column='1'/>
+        <parameter type-id='3eb7c31c' name='gfp_mask' filepath='block/blk-crypto.c' line='107' column='1'/>
+        <return type-id='95e97e5e'/>
+      </function-decl>
       <function-decl name='__bitmap_and' mangled-name='__bitmap_and' filepath='lib/bitmap.c' line='240' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='__bitmap_and'>
         <parameter type-id='1d2c2b85' name='dst' filepath='lib/bitmap.c' line='240' column='1'/>
         <parameter type-id='f9b37274' name='bitmap1' filepath='lib/bitmap.c' line='240' column='1'/>
@@ -115121,6 +115141,15 @@
         <parameter type-id='3dad1a48' name='rq' filepath='block/blk-merge.c' line='530' column='1'/>
         <parameter type-id='bf3ef905' name='sglist' filepath='block/blk-merge.c' line='531' column='1'/>
         <parameter type-id='3f2244fd' name='last_sg' filepath='block/blk-merge.c' line='531' column='1'/>
+        <return type-id='95e97e5e'/>
+      </function-decl>
+      <function-decl name='__blkdev_issue_discard' mangled-name='__blkdev_issue_discard' filepath='block/blk-lib.c' line='26' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='__blkdev_issue_discard'>
+        <parameter type-id='b88dd945' name='bdev' filepath='block/blk-lib.c' line='26' column='1'/>
+        <parameter type-id='a42536cd' name='sector' filepath='block/blk-lib.c' line='26' column='1'/>
+        <parameter type-id='a42536cd' name='nr_sects' filepath='block/blk-lib.c' line='27' column='1'/>
+        <parameter type-id='3eb7c31c' name='gfp_mask' filepath='block/blk-lib.c' line='27' column='1'/>
+        <parameter type-id='95e97e5e' name='flags' filepath='block/blk-lib.c' line='27' column='1'/>
+        <parameter type-id='334817d1' name='biop' filepath='block/blk-lib.c' line='28' column='1'/>
         <return type-id='95e97e5e'/>
       </function-decl>
       <function-decl name='__blockdev_direct_IO' mangled-name='__blockdev_direct_IO' filepath='fs/direct-io.c' line='1350' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='__blockdev_direct_IO'>
@@ -116190,6 +116219,10 @@
         <parameter type-id='b50a4934' name='optional' filepath='drivers/reset/core.c' line='814' column='1'/>
         <parameter type-id='b50a4934' name='acquired' filepath='drivers/reset/core.c' line='814' column='1'/>
         <return type-id='9f9b8114'/>
+      </function-decl>
+      <function-decl name='__page_file_index' mangled-name='__page_file_index' filepath='mm/swapfile.c' line='3546' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='__page_file_index'>
+        <parameter type-id='02f11ed4' name='page' filepath='mm/swapfile.c' line='3546' column='1'/>
+        <return type-id='7359adad'/>
       </function-decl>
       <function-decl name='__pci_register_driver' mangled-name='__pci_register_driver' filepath='drivers/pci/pci-driver.c' line='1392' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='__pci_register_driver'>
         <parameter type-id='85b59624' name='drv' filepath='drivers/pci/pci-driver.c' line='1392' column='1'/>
@@ -118576,6 +118609,10 @@
         <parameter type-id='19c2251e' name='prefered_lft' filepath='net/ipv6/addrconf.c' line='2609' column='1'/>
         <return type-id='95e97e5e'/>
       </function-decl>
+      <function-decl name='address_space_init_once' mangled-name='address_space_init_once' filepath='fs/inode.c' line='382' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='address_space_init_once'>
+        <parameter type-id='f57039f0' name='mapping' filepath='fs/inode.c' line='382' column='1'/>
+        <return type-id='48b5725f'/>
+      </function-decl>
       <function-decl name='adjust_managed_page_count' mangled-name='adjust_managed_page_count' filepath='mm/page_alloc.c' line='8229' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='adjust_managed_page_count'>
         <parameter type-id='02f11ed4' name='page' filepath='mm/page_alloc.c' line='8229' column='1'/>
         <parameter type-id='bd54fe1a' name='count' filepath='mm/page_alloc.c' line='8229' column='1'/>
@@ -118968,6 +119005,13 @@
         <parameter type-id='fb55efa1' name='src' filepath='block/blk-cgroup.c' line='1887' column='1'/>
         <return type-id='48b5725f'/>
       </function-decl>
+      <function-decl name='bio_crypt_set_ctx' mangled-name='bio_crypt_set_ctx' filepath='block/blk-crypto.c' line='81' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='bio_crypt_set_ctx'>
+        <parameter type-id='fb55efa1' name='bio' filepath='block/blk-crypto.c' line='81' column='1'/>
+        <parameter type-id='9baaf905' name='key' filepath='block/blk-crypto.c' line='81' column='1'/>
+        <parameter type-id='c8fec899' name='dun' filepath='block/blk-crypto.c' line='82' column='1'/>
+        <parameter type-id='3eb7c31c' name='gfp_mask' filepath='block/blk-crypto.c' line='82' column='1'/>
+        <return type-id='48b5725f'/>
+      </function-decl>
       <function-decl name='bio_end_io_acct_remapped' mangled-name='bio_end_io_acct_remapped' filepath='block/blk-core.c' line='1357' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='bio_end_io_acct_remapped'>
         <parameter type-id='fb55efa1' name='bio' filepath='block/blk-core.c' line='1357' column='1'/>
         <parameter type-id='7359adad' name='start_time' filepath='block/blk-core.c' line='1357' column='1'/>
@@ -119347,6 +119391,10 @@
         <parameter type-id='2665334e' name='mode' filepath='block/bdev.c' line='877' column='1'/>
         <parameter type-id='eaa32e2f' name='holder' filepath='block/bdev.c' line='878' column='1'/>
         <return type-id='b88dd945'/>
+      </function-decl>
+      <function-decl name='blkdev_issue_flush' mangled-name='blkdev_issue_flush' filepath='block/blk-flush.c' line='453' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='blkdev_issue_flush'>
+        <parameter type-id='b88dd945' name='bdev' filepath='block/blk-flush.c' line='453' column='1'/>
+        <return type-id='95e97e5e'/>
       </function-decl>
       <function-decl name='blkdev_put' mangled-name='blkdev_put' filepath='block/bdev.c' line='898' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='blkdev_put'>
         <parameter type-id='b88dd945' name='bdev' filepath='block/bdev.c' line='898' column='1'/>
@@ -120481,6 +120529,11 @@
       <function-decl name='configfs_unregister_subsystem' mangled-name='configfs_unregister_subsystem' filepath='fs/configfs/dir.c' line='1907' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='configfs_unregister_subsystem'>
         <parameter type-id='598755ca' name='subsys' filepath='fs/configfs/dir.c' line='1907' column='1'/>
         <return type-id='48b5725f'/>
+      </function-decl>
+      <function-decl name='congestion_wait' mangled-name='congestion_wait' filepath='mm/backing-dev.c' line='1034' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='congestion_wait'>
+        <parameter type-id='95e97e5e' name='sync' filepath='mm/backing-dev.c' line='1034' column='1'/>
+        <parameter type-id='bd54fe1a' name='timeout' filepath='mm/backing-dev.c' line='1034' column='1'/>
+        <return type-id='bd54fe1a'/>
       </function-decl>
       <function-decl name='console_lock' mangled-name='console_lock' filepath='kernel/printk/printk.c' line='2545' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='console_lock'>
         <return type-id='48b5725f'/>
@@ -131589,6 +131642,11 @@
         <parameter type-id='fa0b179b' name='parent' filepath='drivers/mfd/mfd-core.c' line='383' column='1'/>
         <return type-id='48b5725f'/>
       </function-decl>
+      <function-decl name='migrate_page_copy' mangled-name='migrate_page_copy' filepath='mm/migrate.c' line='617' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='migrate_page_copy'>
+        <parameter type-id='02f11ed4' name='newpage' filepath='mm/migrate.c' line='617' column='1'/>
+        <parameter type-id='02f11ed4' name='page' filepath='mm/migrate.c' line='617' column='1'/>
+        <return type-id='48b5725f'/>
+      </function-decl>
       <function-decl name='migrate_pages' mangled-name='migrate_pages' filepath='mm/migrate.c' line='1446' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='migrate_pages'>
         <parameter type-id='e84b031a' name='from' filepath='mm/migrate.c' line='1446' column='1'/>
         <parameter type-id='355404d0' name='get_new_page' filepath='mm/migrate.c' line='1446' column='1'/>
@@ -135552,6 +135610,12 @@
         <parameter type-id='95e97e5e' name='state' filepath='kernel/sched/wait.c' line='306' column='1'/>
         <return type-id='bd54fe1a'/>
       </function-decl>
+      <function-decl name='prepare_to_wait_exclusive' mangled-name='prepare_to_wait_exclusive' filepath='kernel/sched/wait.c' line='280' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='prepare_to_wait_exclusive'>
+        <parameter type-id='3f8b2ed3' name='wq_head' filepath='kernel/sched/wait.c' line='280' column='1'/>
+        <parameter type-id='db9d03e3' name='wq_entry' filepath='kernel/sched/wait.c' line='280' column='1'/>
+        <parameter type-id='95e97e5e' name='state' filepath='kernel/sched/wait.c' line='280' column='1'/>
+        <return type-id='b50a4934'/>
+      </function-decl>
       <function-decl name='print_hex_dump' mangled-name='print_hex_dump' filepath='lib/hexdump.c' line='269' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='print_hex_dump'>
         <parameter type-id='80f4b756' name='level' filepath='lib/hexdump.c' line='269' column='1'/>
         <parameter type-id='80f4b756' name='prefix_str' filepath='lib/hexdump.c' line='269' column='1'/>
@@ -135876,6 +135940,12 @@
         <parameter type-id='7359adad' name='index' filepath='lib/radix-tree.c' line='1444' column='1'/>
         <return type-id='eaa32e2f'/>
       </function-decl>
+      <function-decl name='radix_tree_delete_item' mangled-name='radix_tree_delete_item' filepath='lib/radix-tree.c' line='1412' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='radix_tree_delete_item'>
+        <parameter type-id='60075f2a' name='root' filepath='lib/radix-tree.c' line='1412' column='1'/>
+        <parameter type-id='7359adad' name='index' filepath='lib/radix-tree.c' line='1413' column='1'/>
+        <parameter type-id='eaa32e2f' name='item' filepath='lib/radix-tree.c' line='1413' column='1'/>
+        <return type-id='eaa32e2f'/>
+      </function-decl>
       <function-decl name='radix_tree_gang_lookup' mangled-name='radix_tree_gang_lookup' filepath='lib/radix-tree.c' line='1261' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='radix_tree_gang_lookup'>
         <parameter type-id='bb0f13d1' name='root' filepath='lib/radix-tree.c' line='1261' column='1'/>
         <parameter type-id='63e171df' name='results' filepath='lib/radix-tree.c' line='1261' column='1'/>
@@ -135905,6 +135975,11 @@
         <parameter type-id='7359adad' name='index' filepath='lib/radix-tree.c' line='815' column='1'/>
         <return type-id='eaa32e2f'/>
       </function-decl>
+      <function-decl name='radix_tree_lookup_slot' mangled-name='radix_tree_lookup_slot' filepath='lib/radix-tree.c' line='792' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='radix_tree_lookup_slot'>
+        <parameter type-id='bb0f13d1' name='root' filepath='lib/radix-tree.c' line='792' column='1'/>
+        <parameter type-id='7359adad' name='index' filepath='lib/radix-tree.c' line='793' column='1'/>
+        <return type-id='63e171df'/>
+      </function-decl>
       <function-decl name='radix_tree_next_chunk' mangled-name='radix_tree_next_chunk' filepath='lib/radix-tree.c' line='1153' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='radix_tree_next_chunk'>
         <parameter type-id='bb0f13d1' name='root' filepath='lib/radix-tree.c' line='1153' column='1'/>
         <parameter type-id='0cbbabe1' name='iter' filepath='lib/radix-tree.c' line='1154' column='1'/>
@@ -135914,6 +135989,12 @@
       <function-decl name='radix_tree_preload' mangled-name='radix_tree_preload' filepath='lib/radix-tree.c' line='363' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='radix_tree_preload'>
         <parameter type-id='3eb7c31c' name='gfp_mask' filepath='lib/radix-tree.c' line='363' column='1'/>
         <return type-id='95e97e5e'/>
+      </function-decl>
+      <function-decl name='radix_tree_replace_slot' mangled-name='radix_tree_replace_slot' filepath='lib/radix-tree.c' line='912' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='radix_tree_replace_slot'>
+        <parameter type-id='60075f2a' name='root' filepath='lib/radix-tree.c' line='912' column='1'/>
+        <parameter type-id='63e171df' name='slot' filepath='lib/radix-tree.c' line='913' column='1'/>
+        <parameter type-id='eaa32e2f' name='item' filepath='lib/radix-tree.c' line='913' column='1'/>
+        <return type-id='48b5725f'/>
       </function-decl>
       <function-decl name='rational_best_approximation' mangled-name='rational_best_approximation' filepath='lib/math/rational.c' line='35' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='rational_best_approximation'>
         <parameter type-id='7359adad' name='given_numerator' filepath='lib/math/rational.c' line='36' column='1'/>
