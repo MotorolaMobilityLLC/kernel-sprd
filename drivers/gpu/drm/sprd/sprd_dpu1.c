@@ -366,6 +366,8 @@ static int sprd_dpu_bind(struct device *dev, struct device *master, void *data)
 
 	sprd_dpu_irq_request(dpu);
 
+	pm_runtime_enable(dev);
+
 	return 0;
 }
 
@@ -492,10 +494,6 @@ static int sprd_dpu_probe(struct platform_device *pdev)
 		return ret;
 
 	platform_set_drvdata(pdev, dpu);
-
-	pm_runtime_set_active(&pdev->dev);
-	pm_runtime_get_noresume(&pdev->dev);
-	pm_runtime_enable(&pdev->dev);
 
 	return component_add(&pdev->dev, &dpu_component_ops);
 }
