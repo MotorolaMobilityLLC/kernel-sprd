@@ -14,17 +14,11 @@
 #include <linux/module.h>
 #include <linux/of_address.h>
 #include <linux/platform_device.h>
-#include <linux/gpio/consumer.h>
-#include <linux/regulator/consumer.h>
 #include <linux/kernel.h>
-
-#include <linux/pm_runtime.h>
-
 #include <dt-bindings/soc/sprd,qogirl6-mask.h>
 #include <dt-bindings/soc/sprd,qogirl6-regs.h>
 
 #include "../core.h"
-#include "phy.h"
 
 #define FREQ_OFFSET (50 * 1000)
 #define MATCH_FREQ(f, src_f) (abs((f) - (src_f)) <= FREQ_OFFSET)
@@ -34,14 +28,6 @@
 #define REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_REG_SEL_CFG_0		0x008c
 #define REG_MM_AHB_MIPI_CSI_SEL_CTRL					0x0030
 #define REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_4LANE_CSI_4L_BIST_TEST		0x00b4
-
-#ifdef CONFIG_SPRD_MIPI_SWITCH
-
-static struct regulator *vddio;
-static struct gpio_desc *mipi_switch_en;
-static struct gpio_desc *mipi_gpio_id;
-
-#endif
 
 extern struct dbg_log_device *dbg_log_device_register(struct device *parent,
 						struct dbg_log_ops *ops,
@@ -71,47 +57,8 @@ static void dbg_phy_test_write(struct regmap *base, u8 address, u8 data)
 	regmap_write_bits(base, REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CSI_2P2L_TEST_DB, 0xFFFFFFFF, (data << 11));
 }
 
-#ifdef CONFIG_SPRD_MIPI_SWITCH
-
-/* set vddio power on */
-static int sprd_sensor_set_voltage(unsigned int val)
-{
-	int ret;
-
-	/* set power on */
-	ret = regulator_set_voltage(vddio, val, val);
-	if (ret) {
-		pr_err("vol set %d fail ret%d\n", val, ret);
-		return ret;
-	}
-	ret = regulator_enable(vddio);
-	if (ret) {
-		pr_err("Error in regulator_enable: ret %d", ret);
-		return ret;
-	}
-
-	return 0;
-}
-
-/* set mipi switch: enable mipi switch(gpio55 0),switch (gpio8 1) */
-static void sprd_sensor_set_mipi_level(u32 plus_level)
-{
-	gpiod_direction_output(mipi_switch_en, 0);
-	gpiod_direction_output(mipi_gpio_id, plus_level);
-}
-
-#endif
-
 static void inter_dbg_log_init(struct dbg_log_device *dbg)
 {
-	int ret = 0;
-
-#ifdef CONFIG_SPRD_MIPI_SWITCH
-	sprd_sensor_set_voltage(1800000);
-	sprd_sensor_set_mipi_level(1);
-
-#endif
-
 	DEBUG_LOG_PRINT("entry\n");
 
 	/* enable serdes */
@@ -129,17 +76,11 @@ static void inter_dbg_log_init(struct dbg_log_device *dbg)
 	/* enable ana eb */
 	clk_prepare_enable(dbg->clk_ana_eb);
 
-	DEBUG_LOG_PRINT("dbg->mm = %d", dbg->mm);
-	if (dbg->mm) {
-		DEBUG_LOG_PRINT("MIPI LOG use MM Power Domain\n");
-		ret = pm_runtime_get_sync(dbg->dev.parent);
-		if (ret < 0) {
-			DEBUG_LOG_PRINT("fail to sprd_cam_pw_on, ret = %d\n", ret);
-			pm_runtime_disable(dbg->dev.parent);
-			return;
-		}
-	}
-	DEBUG_LOG_PRINT("power on ok!\n");
+	/* clear force shutdown */
+	regmap_update_bits(dbg->phy->pmu_apb, REG_PMU_APB_PD_MM_CFG_0, MASK_PMU_APB_PD_MM_FORCE_SHUTDOWN, 0);
+
+	/* power on */
+	regmap_update_bits(dbg->phy->pmu_apb, REG_PMU_APB_PD_MM_CFG_0, MASK_PMU_APB_PD_MM_AUTO_SHUTDOWN_EN, 0);
 
 	/* here need wait */
 	usleep_range(1000, 1100); /* Wait for 1mS */
@@ -224,15 +165,10 @@ static void inter_dbg_log_init(struct dbg_log_device *dbg)
 
 static void inter_dbg_log_exit(struct dbg_log_device *dbg)
 {
-	int ret;
-	if (dbg->mm) {
-		ret = pm_runtime_put_sync(dbg->dev.parent);
-		if (ret < 0) {
-			pr_info("Power down fail, ret = %d\n", ret);
-			pm_runtime_disable(dbg->dev.parent);
-			return;
-		}
-	}
+	/* 1:auto shutdown en, shutdown with ap */
+	regmap_update_bits(dbg->phy->pmu_apb, REG_PMU_APB_PD_MM_CFG_0, MASK_PMU_APB_PD_MM_AUTO_SHUTDOWN_EN, 0);
+	/* set 1 to shutdown */
+	regmap_update_bits(dbg->phy->pmu_apb, REG_PMU_APB_PD_MM_CFG_0, MASK_PMU_APB_PD_MM_FORCE_SHUTDOWN, ~((uint32_t)0));
 
 	/* disable serdes */
 	clk_disable_unprepare(dbg->clk_serdes_eb);
@@ -320,7 +256,7 @@ static int dbg_log_probe(struct platform_device *pdev)
 	struct resource *res;
 	void __iomem *addr, *serdes_apb;
 	struct dbg_log_device *dbg;
-	struct regmap *dsi_apb, *mm_ahb;
+	struct regmap *dsi_apb, *mm_ahb, *pmu_apb;
 	int count, i, rc;
 
 	DEBUG_LOG_PRINT("hello world! entry\n");
@@ -331,26 +267,6 @@ static int dbg_log_probe(struct platform_device *pdev)
 		return PTR_ERR(addr);
 
 	serdes_apb = (void __iomem *)addr;
-
-#ifdef CONFIG_SPRD_MIPI_SWITCH
-
-	/* Get the vddio through the dts */
-	vddio = devm_regulator_get_optional(&pdev->dev, "vddio");
-	if (IS_ERR(vddio)) {
-		if (PTR_ERR(vddio) == -EPROBE_DEFER)
-			return -EPROBE_DEFER;
-		vddio = NULL;
-	}
-
-	mipi_switch_en = devm_gpiod_get_index(&pdev->dev, "mipi-switch-en", 0, GPIOD_IN);
-	if (IS_ERR(mipi_switch_en))
-		return PTR_ERR(mipi_switch_en);
-
-	mipi_gpio_id = devm_gpiod_get_index(&pdev->dev, "mipi-switch-mode", 0, GPIOD_IN);
-	if (IS_ERR(mipi_gpio_id))
-		return PTR_ERR(mipi_gpio_id);
-	DEBUG_LOG_PRINT("ums512 enable ok!\n");
-#endif
 
 	dsi_apb = syscon_regmap_lookup_by_phandle(pdev->dev.of_node, "sprd,syscon-dsi-apb");
 	if (IS_ERR(dsi_apb)) {
@@ -363,6 +279,13 @@ static int dbg_log_probe(struct platform_device *pdev)
 		pr_err("mm ahb get failed!\n");
 		return PTR_ERR(mm_ahb);
 	}
+
+	pmu_apb = syscon_regmap_lookup_by_phandle(pdev->dev.of_node, "sprd,syscon-pmu-apb");
+	if (IS_ERR(pmu_apb)) {
+		pr_err("pmu apb get failed!\n");
+		return PTR_ERR(pmu_apb);
+	}
+
 	dbg = dbg_log_device_register(&pdev->dev, &ops, NULL, "debug-log");
 	if (!dbg)
 		return -ENOMEM;
@@ -370,8 +293,10 @@ static int dbg_log_probe(struct platform_device *pdev)
 	dbg->phy->freq = s_freq_array[0];
 	dbg->phy->dsi_apb = dsi_apb;
 	dbg->phy->mm_ahb = mm_ahb;
+	dbg->phy->pmu_apb = pmu_apb;
 	dbg->serdes.base = serdes_apb;
 	dbg->serdes.cut_off = 0x20;
+
 	if (of_property_read_bool(pdev->dev.of_node, "sprd,mm")) {
 		DEBUG_LOG_PRINT("mm enable\n");
 		dbg->mm = true;
@@ -467,11 +392,7 @@ static int dbg_log_probe(struct platform_device *pdev)
 		pr_err("get div1 map failed\n");
 
 	inter_dbg_log_is_freq_valid(dbg, dbg->phy->freq);
-
-	pm_runtime_set_active(&pdev->dev);
-	pm_runtime_enable(&pdev->dev);
-
-	DEBUG_LOG_PRINT("Finish sharkl6 Probe Function\n");
+	DEBUG_LOG_PRINT("Finish mipiserdes Probe\n");
 
 	return 0;
 }
@@ -492,5 +413,6 @@ static struct platform_driver dbg_log_driver = {
 module_platform_driver(dbg_log_driver);
 
 MODULE_LICENSE("GPL v2");
+MODULE_AUTHOR("Sitao Chen <sitao.chen@unisoc.com>");
 MODULE_AUTHOR("Ten Gao <ten.gao@spreadtrum.com>");
 MODULE_DESCRIPTION("Spreadtrum SoC Modem Debug Log Driver");
