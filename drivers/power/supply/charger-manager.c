@@ -7529,7 +7529,11 @@ void cm_notify_event(struct power_supply *psy, enum cm_event_types type,
 		}
 
 		if (cm->desc->psy_fuel_gauge) {
-			if (match_string(&cm->desc->psy_fuel_gauge, -1,
+			/*
+			 * fgu has only one string and no null pointer at the end,
+			 * only needs to compare once before exiting th loop, so 1 here and -1 elsewhere.
+			 */
+			if (match_string(&cm->desc->psy_fuel_gauge, 1,
 					 psy->desc->name) >= 0) {
 				found_power_supply = true;
 				break;

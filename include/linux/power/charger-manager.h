@@ -806,7 +806,7 @@ struct charger_manager {
 	struct device *dev;
 	struct charger_desc *desc;
 
-#ifdef CONFIG_THERMAL
+#if IS_ENABLED(CONFIG_THERMAL)
 	struct thermal_zone_device *tzd_batt;
 #endif
 	bool charger_enabled;
