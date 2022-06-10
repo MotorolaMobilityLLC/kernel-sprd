@@ -8,10 +8,12 @@
 #include <linux/cdev.h>
 #include <linux/clk.h>
 #include <linux/clk-provider.h>
+#include <linux/dma-heap.h>
 #include <linux/platform_device.h>
 #include <linux/sprd_iommu.h>
 #include <linux/ion.h>
 #include <linux/uaccess.h>
+#include <linux/mutex.h>
 #include <linux/list.h>
 #include <uapi/video/sprd_jpg.h>
 #include "sprd_jpg_common.h"
@@ -31,6 +33,18 @@ struct jpg_iommu_map_entry {
 	struct dma_buf *dmabuf;
 	struct dma_buf_attachment *attachment;
 	struct sg_table *table;
+};
+
+struct system_heap_buffer {
+	struct dma_heap *heap;
+	struct list_head attachments;
+	struct mutex lock;
+	unsigned long len;
+	struct sg_table sg_table;
+	int vmap_cnt;
+	void *vaddr;
+
+	bool uncached;
 };
 
 struct clk *jpg_get_clk_src_name(struct clock_name_map_t clock_name_map[],
@@ -275,7 +289,7 @@ int jpg_get_iova(struct jpg_dev_t *hw_dev,
 		}
 
 		iommu_map_data.buf = dmabuf->priv;
-		iommu_map_data.iova_size = ((struct ion_buffer *)(dmabuf->priv))->size;
+		iommu_map_data.iova_size = ((struct system_heap_buffer *)(dmabuf->priv))->len;
 		iommu_map_data.ch_type = SPRD_IOMMU_FM_CH_RW;
 		ret = sprd_iommu_map(hw_dev->jpg_dev, &iommu_map_data);
 		if (!ret) {
