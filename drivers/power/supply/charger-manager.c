@@ -5785,6 +5785,7 @@ static ssize_t charger_stop_store(struct device *dev,
 	if (!is_ext_pwr_online(cm))
 		return -EINVAL;
 
+	dev_dbg(cm->dev, "sprd: %s, stop_charge=%d\n", __func__, stop_charge);
 	if (!stop_charge) {
 		ret = try_charger_enable(cm, true);
 		if (ret) {
@@ -5976,6 +5977,23 @@ static ssize_t keep_awake_store(struct device *dev,
 	return count;
 }
 
+static ssize_t support_fast_charge_show(struct device *dev,
+					struct device_attribute *attr, char *buf)
+{
+	struct charger_regulator *charger =
+		container_of(attr, struct charger_regulator, attr_support_fast_charge);
+	struct charger_manager *cm = charger->cm;
+	bool support_fast_charge = false;
+
+	if (!charger || !cm || !cm->fchg_info) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -ENOMEM;
+	}
+	support_fast_charge = cm->fchg_info->support_fchg;
+
+	return sprintf(buf, "%d\n", support_fast_charge);
+}
+
 /**
  * charger_manager_prepare_sysfs - Prepare sysfs entry for each charger
  * @cm: the Charger Manager representing the battery.
@@ -6015,7 +6033,8 @@ static int charger_manager_prepare_sysfs(struct charger_manager *cm)
 		charger->attrs[7] = &charger->attr_charge_pump_current.attr;
 		charger->attrs[8] = &charger->attr_enable_power_path.attr;
 		charger->attrs[9] = &charger->attr_keep_awake.attr;
-		charger->attrs[10] = NULL;
+		charger->attrs[10] = &charger->attr_support_fast_charge.attr;
+		charger->attrs[11] = NULL;
 
 		charger->attr_grp.name = name;
 		charger->attr_grp.attrs = charger->attrs;
@@ -6071,6 +6090,11 @@ static int charger_manager_prepare_sysfs(struct charger_manager *cm)
 		charger->attr_keep_awake.attr.mode = 0644;
 		charger->attr_keep_awake.show = keep_awake_show;
 		charger->attr_keep_awake.store = keep_awake_store;
+
+		sysfs_attr_init(&charger->attr_support_fast_charge.attr);
+		charger->attr_support_fast_charge.attr.name = "support_fast_charge";
+		charger->attr_support_fast_charge.attr.mode = 0444;
+		charger->attr_support_fast_charge.show = support_fast_charge_show;
 
 		sysfs_attr_init(&charger->attr_externally_control.attr);
 		charger->attr_externally_control.attr.name

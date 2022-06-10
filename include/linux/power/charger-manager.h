@@ -323,7 +323,8 @@ struct charger_regulator {
 	struct device_attribute attr_charge_pump_current;
 	struct device_attribute attr_enable_power_path;
 	struct device_attribute attr_keep_awake;
-	struct attribute *attrs[11];
+	struct device_attribute attr_support_fast_charge;
+	struct attribute *attrs[12];
 
 	struct charger_manager *cm;
 };
