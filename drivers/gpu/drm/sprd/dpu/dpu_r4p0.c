@@ -363,7 +363,7 @@ module_param(cabc_bl_set_delay, int, 0644);
 module_param(cabc_disable, int, 0644);
 module_param(frame_no, int, 0644);
 
-static void dpu_sr_config(struct dpu_context *ctx);
+//static void dpu_sr_config(struct dpu_context *ctx);
 static void dpu_enhance_reload(struct dpu_context *ctx);
 static void dpu_clean_all(struct dpu_context *ctx);
 static void dpu_layer(struct dpu_context *ctx,
@@ -1280,7 +1280,7 @@ static void dpu_framerate(struct dpu_context *ctx)
 	}
 	dpu_run(ctx);
 }
-
+#if 0
 static void dpu_scaling(struct dpu_context *ctx,
 			struct sprd_dpu_layer layers[], u8 count)
 {
@@ -1290,50 +1290,73 @@ static void dpu_scaling(struct dpu_context *ctx,
 	struct sprd_dpu_layer *top_layer;
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
 
-	if (count == 1) {
+	if (mode_changed) {
 		top_layer = &layers[count - 1];
-		if (top_layer->rotation & (DRM_MODE_ROTATE_90 |
-						DRM_MODE_ROTATE_270)) {
-			src_w = top_layer->src_h;
-			src_h = top_layer->src_w;
-		} else {
-			src_w = top_layer->src_w;
-			src_h = top_layer->src_h;
+		pr_debug("------------------------------------\n");
+		for (i = 0; i < count; i++) {
+			pr_debug("layer[%d] : %dx%d --- (%d)\n", i,
+				layers[i].dst_w, layers[i].dst_h,
+				scale_copy.in_w);
 		}
-		if (src_w == top_layer->dst_w && src_h == top_layer->dst_h) {
-			reg->blend_size = (scale_copy.in_h << 16) | scale_copy.in_w;
+
+		if  (top_layer->dst_w <= scale_copy.in_w) {
+			dpu_sr_config(ctx);
+			mode_changed = false;
+
+			pr_info("do scaling enhace: 0x%x, top layer(%dx%d)\n",
+				enhance_en, top_layer->dst_w,
+				top_layer->dst_h);
+		}
+	} else {
+		if (count == 1) {
+			top_layer = &layers[count - 1];
+			if (top_layer->rotation & (DRM_MODE_ROTATE_90 |
+							DRM_MODE_ROTATE_270)) {
+				src_w = top_layer->src_h;
+				src_h = top_layer->src_w;
+			} else {
+				src_w = top_layer->src_w;
+				src_h = top_layer->src_h;
+			}
+			if (src_w == top_layer->dst_w
+			&& src_h == top_layer->dst_h) {
+				reg->blend_size = (scale_copy.in_h << 16) |
+						scale_copy.in_w;
+				if (!need_scale)
+					reg->dpu_enhance_cfg &= ~BIT(0);
+				else
+					reg->dpu_enhance_cfg |= BIT(0);
+			} else {
+				/*
+				 * When the layer src size is not euqal to the
+				 * dst size, screened by dpu hal,the single
+				 * layer need to scaling-up. Regardless of
+				 * whether the SR function is turned on, dpu
+				 * blend size should be set to the layer src
+				 * size.
+				 */
+				reg->blend_size = (src_h << 16) | src_w;
+				/*
+				 * When the layer src size is equal to panel
+				 * size, close dpu scaling-up function.
+				 */
+				if (src_h == ctx->vm.vactive &&
+						src_w == ctx->vm.hactive)
+					reg->dpu_enhance_cfg &= ~BIT(0);
+				else
+					reg->dpu_enhance_cfg |= BIT(0);
+			}
+		} else {
+			reg->blend_size = (scale_copy.in_h << 16) |
+					  scale_copy.in_w;
 			if (!need_scale)
 				reg->dpu_enhance_cfg &= ~BIT(0);
 			else
 				reg->dpu_enhance_cfg |= BIT(0);
-		} else {
-			/*
-			 * When the layer src size is not euqal to the
-			 * dst size, screened by dpu hal,the single
-			 * layer need to scaling-up. Regardless of
-			 * whether the SR function is turned on, dpu
-			 * blend size should be set to the layer src
-			 * size.
-			 */
-			reg->blend_size = (src_h << 16) | src_w;
-			/*
-			 * When the layer src size is equal to panel
-			 * size, close dpu scaling-up function.
-			 */
-			if (src_h == ctx->vm.vactive && src_w == ctx->vm.hactive)
-				reg->dpu_enhance_cfg &= ~BIT(0);
-			else
-				reg->dpu_enhance_cfg |= BIT(0);
 		}
-	} else {
-		reg->blend_size = (scale_copy.in_h << 16) | scale_copy.in_w;
-		if (!need_scale)
-			reg->dpu_enhance_cfg &= ~BIT(0);
-		else
-			reg->dpu_enhance_cfg |= BIT(0);
 	}
 }
-
+#endif
 static void dpu_flip(struct dpu_context *ctx,
 		     struct sprd_dpu_layer layers[], u8 count)
 {
@@ -2173,7 +2196,7 @@ static void dpu_enhance_reload(struct dpu_context *ctx)
 
 	reg->dpu_enhance_cfg = enhance_en;
 }
-
+#if 0
 static void dpu_sr_config(struct dpu_context *ctx)
 {
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
@@ -2205,7 +2228,7 @@ static void dpu_sr_config(struct dpu_context *ctx)
 		reg->dpu_enhance_cfg = enhance_en;
 	}
 }
-
+#endif
 static int dpu_cabc_trigger(struct dpu_context *ctx)
 {
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
@@ -2297,8 +2320,7 @@ static int dpu_modeset(struct dpu_context *ctx,
 
 		if ((mode->hdisplay != ctx->vm.hactive) ||
 		    (mode->vdisplay != ctx->vm.vactive))
-			//need_scale = true;
-			need_scale = false;
+			need_scale = true;
 		else
 			need_scale = false;
 	}
