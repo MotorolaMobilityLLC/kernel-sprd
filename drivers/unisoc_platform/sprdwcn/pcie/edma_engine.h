@@ -296,7 +296,7 @@ struct event_t {
 	int id;
 	int flag;
 	struct semaphore wait_sem;
-	struct timeval time;
+	struct timespec64 time;
 	struct tasklet_struct *tasklet;
 };
 
@@ -377,8 +377,8 @@ struct edma_info {
 		struct msg_q q;
 	} isr_func;
 	struct wcn_pcie_info *pcie_info;
-	struct wakeup_source edma_push_ws;
-	struct wakeup_source edma_pop_ws;
+	struct wakeup_source *edma_push_ws;
+	struct wakeup_source *edma_pop_ws;
 	struct timer_list edma_tx_timer;
 	unsigned long cur_chn_status;
 	struct mutex mpool_lock;

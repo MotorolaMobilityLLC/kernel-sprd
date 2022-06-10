@@ -28,6 +28,7 @@
 #include <misc/marlin_platform.h>
 #include <misc/wcn_bus.h>
 
+#include "../pcie/edma_engine.h"
 #include "../sleep/sdio_int.h"
 #include "../sleep/slp_mgr.h"
 #include "mem_pd_mgr.h"
@@ -2048,7 +2049,7 @@ static void power_state_notify_or_not(enum wcn_sub_sys subsys, int poweron)
 	}
 }
 
-static void marlin_scan_finish(void)
+void marlin_scan_finish(void)
 {
 	pr_info("%s!\n", __func__);
 	complete(&marlin_dev->carddetect_done);
@@ -2155,7 +2156,10 @@ static void pre_btwifi_download_sdio(struct work_struct *work)
 	}
 	/* Runtime PM is useless, mainly to enable sdio_func1 and rx irq */
 	sprdwcn_bus_runtime_get();
-	wcn_firmware_init();
+	if (g_match_config && !g_match_config->unisoc_wcn_pcie) {
+		pr_info("%s is not pcie\n", __func__);
+		wcn_firmware_init();
+	}
 }
 
 static int bus_scan_card(void)
@@ -2488,6 +2492,10 @@ static int marlin_set_power(enum wcn_sub_sys subsys, int val)
 			atomic_set(&marlin_dev->download_finish_flag, 1);
 			pr_info("then marlin download finished and run ok\n");
 
+			if (g_match_config && g_match_config->unisoc_wcn_pcie) {
+				pr_info("then start wcn_firmware_init\n");
+				wcn_firmware_init();
+			}
 			set_wifipa_status(subsys, val);
 			mutex_unlock(&marlin_dev->power_lock);
 
@@ -2997,7 +3005,7 @@ int marlin_probe(struct platform_device *pdev)
 		goto error4;
 	}
 
-	sprdwcn_bus_register_rescan_cb(marlin_scan_finish);
+	sprdwcn_bus_register_rescan_cb((void *)marlin_scan_finish);
 	if (g_match_config && !g_match_config->unisoc_wcn_pcie) {
 		err = sdio_pub_int_init(marlin_dev->int_ap);
 		if (err) {
@@ -3048,10 +3056,8 @@ int marlin_probe(struct platform_device *pdev)
 	INIT_WORK(&marlin_dev->gnss_dl_wq, pre_gnss_download_firmware);
 
 	INIT_DELAYED_WORK(&marlin_dev->power_wq, marlin_power_wq);
-	if (g_match_config && !g_match_config->unisoc_wcn_pcie) {
-		schedule_delayed_work(&marlin_dev->power_wq,
-				      msecs_to_jiffies(500));
-	}
+	schedule_delayed_work(&marlin_dev->power_wq,
+				msecs_to_jiffies(500));
 
 	pr_info("%s driver match successful v2!\n", __func__);
 

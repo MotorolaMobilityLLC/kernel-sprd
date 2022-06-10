@@ -20,12 +20,19 @@
 #include "mchn.h"
 #include "pcie_dbg.h"
 #include "pcie.h"
+#include "sprd_wcn.h"
+#include <linux/time.h>
 
 #define TX 1
 #define RX 0
 #define MPOOL_SIZE	0x10000
 #define MAX_PRINT_BYTE_NUM 8
 #define EDMA_TX_TIMER_INTERVAL_MS	1000
+
+#define KTIME_MAX			((s64)~((u64)1 << 63))
+#define KTIME_MIN			(-KTIME_MAX - 1)
+#define KTIME_SEC_MAX			(KTIME_MAX / NSEC_PER_SEC)
+#define KTIME_SEC_MIN			(KTIME_MIN / NSEC_PER_SEC)
 
 static int hisrfunc_debug;
 static int hisrfunc_line;
@@ -34,6 +41,18 @@ static struct edma_info g_edma = { 0 };
 
 static unsigned char *mpool_buffer;
 static struct dma_buf mpool_dm = {0};
+
+static inline s64 timespec_to_ns_64(const struct timespec64 *ts)
+{
+	/* Prevent multiplication overflow / underflow */
+	if (ts->tv_sec >= KTIME_SEC_MAX)
+		return KTIME_MAX;
+
+	if (ts->tv_sec <= KTIME_SEC_MIN)
+		return KTIME_MIN;
+
+	return ((s64) ts->tv_sec * NSEC_PER_SEC) + ts->tv_nsec;
+}
 
 void edma_print_mbuf_data(int channel, struct mbuf_t *head,
 			  struct mbuf_t *tail, const char *func)
@@ -66,10 +85,11 @@ void dump_dscr_reg(struct desc *dscr)
 		 dscr->rf_chn_data_dst_addr_low);
 }
 
-int time_sub_us(struct timeval *start, struct timeval *end)
+int time_sub_us(struct timespec64 *start, struct timespec64 *end)
 {
-	return (end->tv_sec - start->tv_sec)*1000000 +
-		(end->tv_usec - start->tv_usec);
+	return (timespec_to_ns_64(end) - timespec_to_ns_64(start))/1000;
+	/*return (end->tv_sec - start->tv_sec)*1000000 +
+		(end->tv_usec - start->tv_usec);*/
 }
 
 void *mpool_vir_to_phy(void *p)
@@ -156,9 +176,9 @@ static int wait_wcnevent(struct event_t *event, int timeout)
 {
 	if (timeout < 0) {
 		int dt;
-		struct timeval time;
+		struct timespec64 time;
 
-		do_gettimeofday(&time);
+		ktime_get_real_ts64(&time);
 		if (event->wait_sem.count == 0) {
 			if (event->flag == 0) {
 				event->flag = 1;
@@ -770,7 +790,7 @@ int edma_push_link(int chn, void *head, void *tail, int num)
 		return -1;
 	}
 
-	__pm_stay_awake(&edma->edma_push_ws);
+	__pm_stay_awake(edma->edma_push_ws);
 
 	if (inout == TX)
 		edma_print_mbuf_data(chn, head, tail, __func__);
@@ -819,7 +839,7 @@ int edma_push_link(int chn, void *head, void *tail, int num)
 	} else
 		edma_hw_rx_req(chn);
 
-	__pm_relax(&edma->edma_push_ws);
+	__pm_relax(edma->edma_push_ws);
 
 	return 0;
 }
@@ -1238,7 +1258,7 @@ int msi_irq_handle(int irq)
 	dma_int.reg = edma->dma_chn_reg[chn].dma_int.reg;
 	msg.chn = chn;
 
-	__pm_wakeup_event(&edma->edma_pop_ws, jiffies_to_msecs(HZ / 2));
+	__pm_wakeup_event(edma->edma_pop_ws, jiffies_to_msecs(HZ / 2));
 
 	if (edma->chn_sw[chn].inout == TX) {
 		wcn_set_tx_complete_status(1);
@@ -1400,14 +1420,14 @@ static int dscr_ring_init(int chn, struct dscr_ring *dscr_ring,
 	for (i = 0; i < size; i++) {
 		if (inout == TX) {
 			dscr[i].chn_ptr_high.bit.rf_chn_tx_next_dscr_ptr_high =
-						GET_8_OF_40(&dscr[i + 1]);
+				GET_8_OF_40(mpool_vir_to_phy(&dscr[i + 1]));
 			tmp = GET_32_OF_40((unsigned char *)(&dscr[i + 1]));
 			memcpy((unsigned char *)(&dscr[i]
 				.rf_chn_tx_next_dscr_ptr_low),
 			       (unsigned char *)(&tmp), 4);
 		} else {
 			dscr[i].chn_ptr_high.bit.rf_chn_rx_next_dscr_ptr_high =
-			    GET_8_OF_40(&dscr[i + 1]);
+				GET_8_OF_40(mpool_vir_to_phy(&dscr[i + 1]));
 			tmp = GET_32_OF_40((unsigned char *)(&dscr[i + 1]));
 			memcpy((unsigned char *)(&dscr[i]
 						.rf_chn_rx_next_dscr_ptr_low),
@@ -1420,7 +1440,7 @@ static int dscr_ring_init(int chn, struct dscr_ring *dscr_ring,
 	}
 	if (inout == TX) {
 		dscr[i].chn_ptr_high.bit.rf_chn_tx_next_dscr_ptr_high =
-		    GET_8_OF_40(&dscr[0]);
+			GET_8_OF_40(mpool_vir_to_phy(&dscr[0]));
 		tmp = GET_32_OF_40((unsigned char *)(&dscr[0]));
 		memcpy((unsigned char *)(&dscr[i].rf_chn_tx_next_dscr_ptr_low),
 		       (unsigned char *)(&tmp), 4);
@@ -1428,7 +1448,7 @@ static int dscr_ring_init(int chn, struct dscr_ring *dscr_ring,
 
 	} else {
 		dscr[i].chn_ptr_high.bit.rf_chn_rx_next_dscr_ptr_high =
-		    GET_8_OF_40(&dscr[0]);
+			GET_8_OF_40(mpool_vir_to_phy(&dscr[0]));
 		tmp = GET_32_OF_40((unsigned char *)(&dscr[0]));
 		memcpy((unsigned char *)(&dscr[i].rf_chn_rx_next_dscr_ptr_low),
 		       (unsigned char *)(&tmp), 4);
@@ -1477,7 +1497,12 @@ int edma_chn_init(int chn, int mode, int inout, int max_trans)
 	dma_int.reg = edma->dma_chn_reg[chn].dma_int.reg;
 	dma_cfg.reg = edma->dma_chn_reg[chn].dma_cfg.reg;
 	local_DSCR = edma->dma_chn_reg[chn].dma_dscr;
-
+	/*
+	 * First power on, dscr reg is random val, so need reset it
+	 * specially chn_ptr_high need be reset, avoid tx/rx next dscr high
+	 * addr error;
+	 * other regs will be setting in the next initial process.
+	 */
 	switch (mode) {
 	case TWO_LINK_MODE:
 		dscr_ring = &(edma->chn_sw[chn].dscr_ring);
@@ -1504,7 +1529,7 @@ int edma_chn_init(int chn, int mode, int inout, int max_trans)
 			/* tx_list link point */
 			local_DSCR.chn_ptr_high.bit
 						.rf_chn_tx_next_dscr_ptr_high =
-					GET_8_OF_40(dscr_ring->head);
+					GET_8_OF_40(mpool_vir_to_phy(dscr_ring->head));
 			dma_int.bit.rf_chn_tx_complete_int_en = 1;
 			dma_int.bit.rf_chn_tx_pop_int_clr = 1;
 			dma_int.bit.rf_chn_tx_complete_int_clr = 1;
@@ -1513,7 +1538,7 @@ int edma_chn_init(int chn, int mode, int inout, int max_trans)
 			    GET_32_OF_40((unsigned char *)(dscr_ring->head));
 			local_DSCR.chn_ptr_high.bit
 						.rf_chn_rx_next_dscr_ptr_high =
-					GET_8_OF_40(dscr_ring->head);
+					GET_8_OF_40(mpool_vir_to_phy(dscr_ring->head));
 			dma_int.bit.rf_chn_rx_push_int_en = 1;
 			/* clear semaphore value */
 			dma_cfg.bit.rf_chn_sem_value = 0xFF;
@@ -1597,10 +1622,10 @@ int edma_tp_count(int chn, void *head, void *tail, int num)
 	int i, dt;
 	struct mbuf_t *mbuf;
 	static int bytecount;
-	static struct timeval start_time, time;
+	static struct timespec64 start_time, time;
 
 	for (i = 0, mbuf = (struct mbuf_t *)head; i < num; i++) {
-		do_gettimeofday(&time);
+		ktime_get_real_ts64(&time);
 		if (bytecount == 0)
 			start_time = time;
 		bytecount += mbuf->len;
@@ -1620,6 +1645,7 @@ int edma_dump_chn_reg(int chn)
 {
 	struct wcn_pcie_info *pdev;
 	u32 value;
+	int reg_base;
 	struct wcn_match_data *g_match_config = get_wcn_match_config();
 
 	if (g_match_config && g_match_config->unisoc_wcn_m3e)
@@ -1720,9 +1746,9 @@ int edma_dump_glb_reg(void)
 	return 0;
 }
 
-static void edma_tx_timer_expire(unsigned long data)
+static void edma_tx_timer_expire(struct timer_list *t)
 {
-	struct edma_info *edma = (struct edma_info *)data;
+	struct edma_info *edma = from_timer(edma, t, edma_tx_timer);
 	int i;
 
 	WCN_ERR("edma tx send timeout\n");
@@ -1822,15 +1848,13 @@ int edma_init(struct wcn_pcie_info *pcie_info)
 		edma->dma_chn_reg[i].dma_dscr.rf_chn_data_dst_addr_low = 0;
 	}
 
-	wakeup_source_init(&edma->edma_push_ws, "wcn edma txrx push");
-	wakeup_source_init(&edma->edma_pop_ws, "wcn edma txrx callback");
+	edma->edma_push_ws = wakeup_source_register(NULL, "wcn edma txrx push");
+	edma->edma_pop_ws = wakeup_source_register(NULL, "wcn edma txrx callback");
 	mutex_init(&edma->mpool_lock);
 	spin_lock_init(&edma->tasklet_lock);
 
 	/* Init edma tx send timeout timer */
-	init_timer(&edma->edma_tx_timer);
-	edma->edma_tx_timer.data = (unsigned long) edma;
-	edma->edma_tx_timer.function = edma_tx_timer_expire;
+	timer_setup(&edma->edma_tx_timer, edma_tx_timer_expire, 0);
 
 	WCN_INFO("%s done\n", __func__);
 
@@ -1876,8 +1900,8 @@ int edma_deinit(void)
 	} while (edma->isr_func.state);
 
 	WCN_INFO("wakeup_source exit\n");
-	wakeup_source_trash(&edma->edma_push_ws);
-	wakeup_source_trash(&edma->edma_pop_ws);
+	wakeup_source_unregister(edma->edma_push_ws);
+	wakeup_source_unregister(edma->edma_pop_ws);
 	mutex_destroy(&edma->mpool_lock);
 	kfree(q->lock.irq_spinlock_p);
 	delete_queue(q);

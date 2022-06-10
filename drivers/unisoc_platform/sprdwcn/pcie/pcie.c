@@ -9,7 +9,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
-#include <linux/pci-aspm.h>
 #include <linux/delay.h>
 #include <linux/interrupt.h>
 #include <linux/mod_devicetable.h>
@@ -33,6 +32,7 @@
 #include "wcn_op.h"
 #include "wcn_procfs.h"
 #include "wcn_txrx.h"
+#include "sprd_wcn.h"
 
 #define WAIT_AT_DONE_MAX_CNT 5
 
@@ -135,11 +135,11 @@ int wcn_get_tx_complete_status(void)
 	return atomic_read(&priv->tx_complete);
 }
 
-int wcn_set_tx_complete_status(int flag)
+void wcn_set_tx_complete_status(int flag)
 {
 	struct wcn_pcie_info *priv = get_wcn_device_info();
 
-	return atomic_set(&priv->tx_complete, flag);
+	atomic_set(&priv->tx_complete, flag);
 }
 
 static void wcn_bus_change_state(struct wcn_pcie_info *bus,
@@ -148,7 +148,7 @@ static void wcn_bus_change_state(struct wcn_pcie_info *bus,
 	bus->pci_status = state;
 }
 
-static int sprd_pcie_msi_irq(int irq, void *arg)
+static irqreturn_t sprd_pcie_msi_irq(int irq, void *arg)
 {
 	struct wcn_pcie_info *priv = arg;
 
@@ -162,7 +162,7 @@ static int sprd_pcie_msi_irq(int irq, void *arg)
 	return IRQ_HANDLED;
 }
 
-static int sprd_pcie_legacy_irq(int irq, void *arg)
+static irqreturn_t sprd_pcie_legacy_irq(int irq, void *arg)
 {
 	legacy_irq_handle(irq);
 
@@ -624,6 +624,7 @@ int wcn_pcie_get_bus_status(void)
 }
 
 #ifdef CONFIG_PCIEASPM
+#if 0
 static int wcn_pcie_wait_for_link(struct pci_dev *pdev)
 {
 	int retries;
@@ -644,18 +645,23 @@ static int wcn_pcie_wait_for_link(struct pci_dev *pdev)
 
 	return -ETIMEDOUT;
 }
+#endif
 
 enum wcn_bus_pm_state sprd_pcie_get_aspm_policy(void)
 {
+#if 0
 	int state;
 	struct wcn_pcie_info *priv = get_wcn_device_info();
 
 	sprd_pcie_aspm_get_policy(priv->dev->bus->self, &state);
 	return	state;
+#endif
+	return 0;
 }
 
 int sprd_pcie_set_aspm_policy(enum sub_sys subsys, enum wcn_bus_pm_state state)
 {
+#if 0
 	int ret;
 	struct wcn_pcie_info *priv = get_wcn_device_info();
 
@@ -692,6 +698,8 @@ int sprd_pcie_set_aspm_policy(enum sub_sys subsys, enum wcn_bus_pm_state state)
 	}
 	mutex_unlock(&priv->pm_lock);
 	return	ret;
+#endif
+	return 0;
 }
 #endif
 
@@ -742,7 +750,7 @@ int sprd_pcie_scan_card(void *wcn_dev)
 	dev = &pdev->dev;
 	WCN_INFO("%s: rc node name: %s\n", __func__, dev->of_node->name);
 
-	if (priv->dev && priv->dev->is_added)
+	if (priv->dev)
 		WCN_ERR("%s: card not NULL\n", __func__);
 
 	sprd_pcie_configure_device(pdev);
@@ -851,7 +859,7 @@ void sprd_pcie_remove_card(void *wcn_dev)
 	WCN_INFO("%s: rc node name: %s\n",
 			__func__, dev->of_node->name);
 
-	if (!priv->dev || (priv->dev && !priv->dev->is_added))
+	if (!priv->dev || priv->dev)
 		WCN_ERR("%s: card exist!\n", __func__);
 
 	sprd_pcie_unconfigure_device(pdev);
@@ -862,6 +870,8 @@ void sprd_pcie_remove_card(void *wcn_dev)
 	else
 		WCN_INFO("remove card end\n");
 }
+
+extern void marlin_scan_finish(void);
 
 static int sprd_pcie_probe(struct pci_dev *pdev,
 			   const struct pci_device_id *pci_id)
@@ -1038,9 +1048,9 @@ static int sprd_pcie_probe(struct pci_dev *pdev,
 	pci_read_config_dword(pdev, 0x072c, &val32);
 	WCN_INFO("EP link status 72c=0x%x\n", val32);
 	/* calling rescan callback to inform download */
-	if (scan_card_notify != NULL)
-		scan_card_notify();
-
+	//if (scan_card_notify != NULL)
+	//	scan_card_notify();
+	marlin_scan_finish();
 	WCN_INFO("%s ok\n", __func__);
 	return 0;
 
