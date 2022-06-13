@@ -7,6 +7,10 @@
 #define _GSP_LAYER_H
 
 #include <linux/device.h>
+#include <linux/dma-heap.h>
+#include <linux/sprd_dmabuf.h>
+#include <linux/scatterlist.h>
+#include <uapi/linux/sprd_dmabuf.h>
 #include <drm/gsp_cfg.h>
 
 #define gsp_layer_common_copy_from_user(layer, layer_user) \
@@ -22,6 +26,18 @@ do { \
 				(layer_user)->common.offset.v_offset; \
 	(layer)->common.src_addr = (layer_user)->common.src_addr; \
 } while (0)
+
+struct carveout_heap_buffer {
+	struct dma_heap *heap;
+	struct list_head attachments;
+	struct mutex lock;
+	unsigned long len;
+	struct sg_table *sg_table;
+	phys_addr_t base;
+	int vmap_cnt;
+	void *vaddr;
+	bool uncached;
+};
 
 int gsp_layer_get_dmabuf(struct gsp_layer *layer);
 void gsp_layer_put_dmabuf(struct gsp_layer *layer);
@@ -43,4 +59,5 @@ void gsp_layer_set_filled(struct gsp_layer *layer);
 void gsp_layer_common_print(struct gsp_layer *layer);
 int gsp_layer_dmabuf_map(struct gsp_layer *layer, struct device *dev);
 struct gsp_buf *gsp_layer_to_buf(struct gsp_layer *layer);
+void gsp_layer_addr_set(struct gsp_layer *layer, u32 iova_addr);
 #endif

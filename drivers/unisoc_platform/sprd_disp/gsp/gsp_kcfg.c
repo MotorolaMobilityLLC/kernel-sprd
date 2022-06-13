@@ -616,6 +616,8 @@ int gsp_kcfg_iommu_map(struct gsp_kcfg *kcfg)
 	struct gsp_buf *buf = NULL;
 	struct dma_buf *dmabuf = NULL;
 	struct gsp_layer *layer = NULL;
+	struct carveout_heap_buffer *buffer;
+	u32 phy_addr;
 
 	if (gsp_kcfg_verify(kcfg)) {
 		GSP_ERR("kcfg iommu map params error\n");
@@ -639,8 +641,13 @@ int gsp_kcfg_iommu_map(struct gsp_kcfg *kcfg)
 
 		if ((strcmp(dmabuf->exp_name, "system") &&
 		     strcmp(dmabuf->exp_name, "system-uncached"))) {
-			GSP_DEBUG("layer[%d] no need to iommu map\n",
-				gsp_layer_to_type(layer));
+			GSP_DEBUG("layer[%d] no need to iommu map\n", gsp_layer_to_type(layer));
+			buffer = (struct carveout_heap_buffer *)dmabuf->priv;
+			phy_addr = sg_phys(buffer->sg_table->sgl);
+			if (!phy_addr)
+				goto exit;
+			gsp_layer_addr_set(layer, phy_addr);
+
 			continue;
 		}
 
