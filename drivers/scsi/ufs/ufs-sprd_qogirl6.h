@@ -41,7 +41,9 @@ struct ufs_sprd_host {
 	struct clk *pclk_source;
 	struct clk *hclk;
 	struct clk *pclk;
-
+	struct completion pwm_async_done;
+	u32 ioctl_cmd;
+	struct completion hs_async_done;
 };
 
 extern int sprd_get_soc_id(sprd_soc_id_type_t soc_id_type, u32 *id, int id_len);
@@ -119,4 +121,12 @@ extern int sprd_get_soc_id(sprd_soc_id_type_t soc_id_type, u32 *id, int id_len);
 #define	MPHY_APB_HSTXSCLKINV1_VAL BIT(13)
 
 #define AON_VER_UFS 1
+
+#define UFS_IOCTL_ENTER_MODE    0x5395
+#define UFS_IOCTL_AFC_EXIT      0x5396
+
+#define PWM_MODE_VAL    0x22
+#define HS_MODE_VAL     0x11
+
+
 #endif/* _UFS_SPRD_H_ */

@@ -419,13 +419,125 @@ static int sprd_ufs_pwrchange(struct ufs_hba *hba)
 	ret = ufshcd_config_pwr_mode(hba, &(pwr_info));
 	if (ret)
 		goto out;
-	if (hba->max_pwr_info.is_valid == true)
+	if ((((hba->max_pwr_info.info.pwr_tx) << 4) |
+		(hba->max_pwr_info.info.pwr_rx)) == HS_MODE_VAL)
 		ret = ufshcd_config_pwr_mode(hba, &(hba->max_pwr_info.info));
 
 out:
 	return ret;
 
 }
+
+int sprd_ufs_ioctl_get_pwr_info(struct scsi_device *dev, void __user *buf_user)
+{
+	struct ufs_hba *hba;
+	unsigned int *idata = NULL;
+	struct ufs_sprd_host *host = NULL;
+	int err;
+
+	if (dev)
+		hba = shost_priv(dev->host);
+	else
+		return -ENODEV;
+
+	/* check scsi device instance */
+	if (!dev->rev) {
+		dev_err(hba->dev, "%s: scsi_device or rev is NULL\n", __func__);
+		err = -ENOENT;
+		goto out;
+	}
+	host = ufshcd_get_variant(hba);
+	idata = kzalloc(sizeof(unsigned int), GFP_KERNEL);
+	if (!idata) {
+		err = -ENOMEM;
+		goto out;
+	}
+
+	/* extract params from user buffer */
+	err = copy_from_user(idata, buf_user, sizeof(unsigned int));
+	if (err) {
+		dev_err(hba->dev,
+			"%s: failed copying buffer from user, err %d\n",
+			__func__, err);
+		goto out_release_mem;
+	}
+
+	if (host->ioctl_cmd == UFS_IOCTL_ENTER_MODE) {
+		if ((((hba->pwr_info.pwr_tx) << 4)|
+		      (hba->pwr_info.pwr_rx)) == PWM_MODE_VAL)
+			*idata = 1;
+		else
+			*idata = 0;
+	}
+
+	if (host->ioctl_cmd == UFS_IOCTL_AFC_EXIT) {
+		if ((((hba->pwr_info.pwr_tx) << 4)|
+		      (hba->pwr_info.pwr_rx)) == HS_MODE_VAL)
+			*idata = 1;
+		else
+			*idata = 0;
+	}
+
+	dev_err(hba->dev,
+		"%s:gear[0x%x:0x%x],lane[0x%x:0x%x],pwr[0x%x:0x%x],hs_rate=0x%x,idata=0x%x!\n",
+		__func__, hba->pwr_info.gear_rx, hba->pwr_info.gear_tx,
+		hba->pwr_info.lane_rx, hba->pwr_info.lane_tx,
+		hba->pwr_info.pwr_rx, hba->pwr_info.pwr_tx,
+		hba->pwr_info.hs_rate, *idata);
+
+	err = copy_to_user(buf_user, idata, sizeof(unsigned int));
+	if (err) {
+		dev_err(hba->dev, "%s: err %d copying to user.\n",
+				__func__, err);
+		goto out_release_mem;
+	}
+
+out_release_mem:
+	kfree(idata);
+out:
+	return err;
+}
+int ufshcd_sprd_ioctl(struct scsi_device *dev, unsigned int cmd, void __user *buffer)
+{
+	struct ufs_hba *hba = shost_priv(dev->host);
+	struct ufs_sprd_host *host = NULL;
+	int err = 0;
+
+	if (!buffer) {
+		dev_err(hba->dev, "%s: user buffer is NULL\n", __func__);
+		return -EINVAL;
+	}
+	host = ufshcd_get_variant(hba);
+
+	switch (cmd) {
+	case UFS_IOCTL_ENTER_MODE:
+		host->ioctl_cmd = UFS_IOCTL_ENTER_MODE;
+		init_completion(&host->pwm_async_done);
+		if (!wait_for_completion_timeout(&host->pwm_async_done, 50000)) {
+			pr_err("pwm mode time out!\n");
+			return -ETIMEDOUT;
+		}
+		err = sprd_ufs_ioctl_get_pwr_info(dev, buffer);
+		break;
+	case UFS_IOCTL_AFC_EXIT:
+		host->ioctl_cmd = UFS_IOCTL_AFC_EXIT;
+		init_completion(&host->hs_async_done);
+		if (!wait_for_completion_timeout(&host->hs_async_done, 50000)) {
+			pr_err("hs mode time out!\n");
+			return -ETIMEDOUT;
+		}
+		err = sprd_ufs_ioctl_get_pwr_info(dev, buffer);
+		host->ioctl_cmd = 0;
+		break;
+	default:
+		err = -ENOIOCTLCMD;
+		dev_dbg(hba->dev, "%s: Unsupported ioctl cmd %d\n", __func__, cmd);
+		break;
+	}
+
+	return err;
+}
+
 /*
  * ufs_sprd_init - find other essential mmio bases
  * @hba: host controller instance
@@ -446,6 +558,11 @@ static int ufs_sprd_init(struct ufs_hba *hba)
 	ufshcd_set_variant(hba, host);
 
 	syscon_get_args(dev, host);
+
+	hba->host->hostt->ioctl = ufshcd_sprd_ioctl;
+#ifdef CONFIG_COMPAT
+	hba->host->hostt->compat_ioctl = ufshcd_sprd_ioctl;
+#endif
 
 	hba->quirks |= UFSHCD_QUIRK_BROKEN_UFS_HCI_VERSION |
 		       UFSHCD_QUIRK_DELAY_BEFORE_DME_CMDS;
@@ -665,13 +782,21 @@ static int ufs_sprd_pwr_change_notify(struct ufs_hba *hba,
 
 	switch (status) {
 	case PRE_CHANGE:
-		dev_req_params->gear_rx = UFS_HS_G3;
-		dev_req_params->gear_tx = UFS_HS_G3;
-		dev_req_params->lane_rx = 2;
-		dev_req_params->lane_tx = 2;
-		dev_req_params->pwr_rx = FAST_MODE;
-		dev_req_params->pwr_tx = FAST_MODE;
-		dev_req_params->hs_rate = PA_HS_MODE_B;
+		if ((2 != dev_max_params->lane_rx) || (2 != dev_max_params->lane_tx)) {
+			dev_err(hba->dev, "%s: unsupport lanes value. rx=%d, tx=%d\n",
+					__func__,
+					dev_max_params->lane_rx,
+					dev_max_params->lane_tx);
+			dev_max_params->lane_rx = (dev_max_params->lane_rx > dev_max_params->lane_tx) ?
+					dev_max_params->lane_tx : dev_max_params->lane_rx;
+			dev_max_params->lane_tx = dev_max_params->lane_rx;
+			dev_err(hba->dev, "%s: now connected lanes value. rx=%d, tx=%d\n",
+					__func__,
+					dev_max_params->lane_rx,
+					dev_max_params->lane_tx);
+		}
+		hba->max_pwr_info.is_valid = false;
+		err = -EPERM;
 		break;
 	case POST_CHANGE:
 		/* Set auto h8 ilde time to 10ms */
@@ -703,7 +828,27 @@ void ufs_set_hstxsclk(struct ufs_hba *hba)
 	}
 
 }
+static int sprd_ufs_pwmmode_change(struct ufs_hba *hba)
+{
+	int ret;
+	struct ufs_pa_layer_attr pwr_info;
 
+	ret = is_ufs_sprd_host_in_pwm(hba);
+	if (ret == (SLOW_MODE|(SLOW_MODE<<4)))
+		return 0;
+
+	pwr_info.gear_rx = UFS_PWM_G3;
+	pwr_info.gear_tx = UFS_PWM_G3;
+	pwr_info.lane_rx = 2;
+	pwr_info.lane_tx = 2;
+	pwr_info.pwr_rx = SLOW_MODE;
+	pwr_info.pwr_tx = SLOW_MODE;
+	pwr_info.hs_rate = 0;
+
+	ret = ufshcd_config_pwr_mode(hba, &(pwr_info));
+
+	return ret;
+}
 static void ufs_sprd_hibern8_notify(struct ufs_hba *hba,
 				enum uic_cmd_dme cmd,
 				enum ufs_notify_change_status status)
@@ -711,6 +856,7 @@ static void ufs_sprd_hibern8_notify(struct ufs_hba *hba,
 	int ret;
 	unsigned long flags;
 	u32 aon_ver_id = 0;
+	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
 
 	switch (status) {
 	case PRE_CHANGE:
@@ -723,25 +869,35 @@ static void ufs_sprd_hibern8_notify(struct ufs_hba *hba,
 	case POST_CHANGE:
 		if (cmd == UIC_CMD_DME_HIBER_EXIT) {
 			hba->caps &= ~UFSHCD_CAP_CLK_GATING;
-
-			ret = is_ufs_sprd_host_in_pwm(hba);
-			if (ret == (SLOW_MODE|(SLOW_MODE<<4))) {
-				sprd_get_soc_id(AON_VER_ID, &aon_ver_id, 1);
-				if (aon_ver_id == AON_VER_UFS)
-					ufs_set_hstxsclk(hba);
-				ret = sprd_ufs_pwrchange(hba);
-				if (ret) {
-					pr_err("ufs_pwm2hs err");
-				} else {
-					ret = is_ufs_sprd_host_in_pwm(hba);
-					if (ret == (SLOW_MODE|(SLOW_MODE<<4)) &&
-					  hba->max_pwr_info.is_valid == true)
-						pr_err("ufs_pwm2hs fail");
-					else
-						pr_err("ufs_pwm2hs succ\n");
+			if (host->ioctl_cmd == UFS_IOCTL_ENTER_MODE) {
+				ret = sprd_ufs_pwmmode_change(hba);
+				if (ret)
+					pr_err("change pwm mode failed!\n");
+				else
+					complete(&host->pwm_async_done);
+			} else {
+				ret = is_ufs_sprd_host_in_pwm(hba);
+				if (ret == (SLOW_MODE|(SLOW_MODE<<4))) {
+					sprd_get_soc_id(AON_VER_ID, &aon_ver_id, 1);
+					if (aon_ver_id == AON_VER_UFS)
+						ufs_set_hstxsclk(hba);
+					ret = sprd_ufs_pwrchange(hba);
+					if (ret) {
+						pr_err("ufs_pwm2hs err");
+					} else {
+						ret = is_ufs_sprd_host_in_pwm(hba);
+						if (ret == (SLOW_MODE|(SLOW_MODE<<4)) &&
+						  ((((hba->max_pwr_info.info.pwr_tx) << 4) |
+						(hba->max_pwr_info.info.pwr_rx)) == HS_MODE_VAL))
+							pr_err("ufs_pwm2hs fail");
+						else {
+							pr_err("ufs_pwm2hs succ\n");
+							if (host->ioctl_cmd == UFS_IOCTL_AFC_EXIT)
+								complete(&host->hs_async_done);
+						}
+					}
 				}
 			}
-
 			hba->caps |= UFSHCD_CAP_CLK_GATING;
 			/* Set auto h8 ilde time to 10ms */
 			//ufshcd_auto_hibern8_enable(hba);
@@ -1014,7 +1170,25 @@ static inline void ufs_sprd_rpmb_remove(struct ufs_hba *hba)
 	scsi_device_put(host->sdev_ufs_rpmb);
 	host->sdev_ufs_rpmb = NULL;
 }
+void ufs_sprd_setup_xfer_req(struct ufs_hba *hba, int task_tag, bool scsi_cmd)
+{
+	struct ufshcd_lrb *lrbp;
+	struct utp_transfer_req_desc *req_desc;
+	u32 data_direction;
+	u32 dword_0, crypto;
 
+	lrbp = &hba->lrb[task_tag];
+	req_desc = lrbp->utr_descriptor_ptr;
+	dword_0 = le32_to_cpu(req_desc->header.dword_0);
+	data_direction = dword_0 & (UTP_DEVICE_TO_HOST | UTP_HOST_TO_DEVICE);
+	crypto = dword_0 & UTP_REQ_DESC_CRYPTO_ENABLE_CMD;
+	if (!data_direction && crypto) {
+		pr_err("ufs before dword_0 = %x,%x\n", dword_0, req_desc->header.dword_0);
+		dword_0 &= ~(UTP_REQ_DESC_CRYPTO_ENABLE_CMD);
+		req_desc->header.dword_0 = cpu_to_le32(dword_0);
+		pr_err("ufs after dword_0 = %x,%x\n", dword_0, req_desc->header.dword_0);
+	}
+}
 /*
  * struct ufs_hba_sprd_vops - UFS sprd specific variant operations
  *
@@ -1030,6 +1204,7 @@ static struct ufs_hba_variant_ops ufs_hba_sprd_vops = {
 	.link_startup_notify = ufs_sprd_link_startup_notify,
 	.pwr_change_notify = ufs_sprd_pwr_change_notify,
 	.hibern8_notify = ufs_sprd_hibern8_notify,
+	.setup_xfer_req = ufs_sprd_setup_xfer_req,
 	.apply_dev_quirks = ufs_sprd_apply_dev_quirks,
 	.suspend = ufs_sprd_suspend,
 	.resume = ufs_sprd_resume,
