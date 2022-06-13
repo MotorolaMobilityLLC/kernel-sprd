@@ -441,8 +441,8 @@
 		ti,bq2597x,bat-ovp-alarm-threshold = <4340>;
 		ti,bq2597x,bat-ocp-threshold = <5500>;
 		ti,bq2597x,bat-ocp-alarm-threshold = <5000>;
-		ti,bq2597x,bus-ovp-threshold = <11500>;
-		ti,bq2597x,bus-ovp-alarm-threshold = <10500>;
+		ti,bq2597x,bus-ovp-threshold = <13000>;
+		ti,bq2597x,bus-ovp-alarm-threshold = <12000>;
 		ti,bq2597x,bus-ocp-threshold = <3000>;
 		ti,bq2597x,bus-ocp-alarm-threshold = <2700>;
 		ti,bq2597x,bat-ucp-alarm-threshold = <1000>;
