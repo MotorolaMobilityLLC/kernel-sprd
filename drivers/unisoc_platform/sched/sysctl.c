@@ -14,7 +14,7 @@ unsigned int sysctl_sched_uclamp_threshold = 100;
 /* map util clamp_min to boost */
 unsigned int sysctl_sched_uclamp_min_to_boost = 1;
 #endif
-unsigned int sysctl_walt_account_irq_time;
+unsigned int sysctl_walt_account_irq_time = 1;
 
 /*up cap margin default value: ~20%*/
 static unsigned int sysctl_sched_cap_margin_up_pct[MAX_CLUSTERS] = {

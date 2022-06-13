@@ -531,6 +531,9 @@ static int walt_find_energy_efficient_cpu(struct task_struct *p, int prev_cpu, i
 			if (!cpumask_test_cpu(cpu, p->cpus_ptr) || is_reserved(cpu))
 				continue;
 
+			if (walt_cpu_high_irqload(cpu))
+				continue;
+
 			/* speed up goto big core */
 			util = pdc[cpu].wake_util + uclamp_util;
 			cpu_cap = capacity_of(cpu);

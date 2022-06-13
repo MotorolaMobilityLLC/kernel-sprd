@@ -93,6 +93,9 @@ static void walt_rt_filter_energy_cpu(void *data, struct task_struct *task,
 		if (!cpumask_test_cpu(cpu, task->cpus_ptr))
 			continue;
 
+		if (walt_cpu_high_irqload(cpu))
+			continue;
+
 		cpu_util = walt_cpu_util(cpu) + task_util;
 		cpu_cap = capacity_orig_of(cpu);
 

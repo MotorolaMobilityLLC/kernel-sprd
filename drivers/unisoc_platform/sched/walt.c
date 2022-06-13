@@ -1356,14 +1356,13 @@ static void android_rvh_tick_entry(void *data, struct rq *rq)
 	walt_cpufreq_update_util(rq, 0);
 }
 
-static void android_rvh_account_irq(void *data, struct task_struct *curr, int cpu, s64 delta)
+static void android_rvh_account_irq_end(void *data, struct task_struct *curr, int cpu, s64 delta)
 {
-	if (static_branch_unlikely(&walt_disabled) || !sysctl_walt_account_irq_time)
+	if (static_branch_unlikely(&walt_disabled) ||
+				unlikely(!sysctl_walt_account_irq_time))
 		return;
 
-	if (hardirq_count() ||
-	   (in_serving_softirq() && curr != this_cpu_ksoftirqd()))
-		walt_account_irqtime(cpu, curr, delta);
+	walt_account_irqtime(cpu, curr, delta);
 }
 
 static void android_rvh_schedule(void *data, struct task_struct *prev,
@@ -1427,7 +1426,7 @@ static void register_walt_vendor_hooks(void)
 	register_trace_android_rvh_dequeue_task(android_rvh_dequeue_task, NULL);
 	register_trace_android_rvh_after_dequeue_task(android_rvh_after_dequeue_task, NULL);
 	register_trace_android_rvh_tick_entry(android_rvh_tick_entry, NULL);
-	register_trace_android_rvh_account_irq(android_rvh_account_irq, NULL);
+	register_trace_android_rvh_account_irq_end(android_rvh_account_irq_end, NULL);
 	register_trace_android_rvh_schedule(android_rvh_schedule, NULL);
 	register_trace_android_rvh_effective_cpu_util(walt_effective_cpu_util, NULL);
 	register_trace_android_rvh_cpu_cgroup_online(android_rvh_cpu_cgroup_online, NULL);
