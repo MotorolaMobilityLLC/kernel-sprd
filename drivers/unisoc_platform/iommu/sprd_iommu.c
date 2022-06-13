@@ -26,6 +26,7 @@
 #include <linux/dma-buf.h>
 #include <linux/pm_runtime.h>
 #include <linux/pm.h>
+#include <trace/hooks/ion.h>
 
 #include "sprd_iommu_sysfs.h"
 #include "drv/com/sprd_com.h"
@@ -1243,44 +1244,52 @@ EXPORT_SYMBOL(sprd_iommu_unmap_with_idx);
 
 int sprd_iommu_unmap_orphaned(struct sprd_iommu_unmap_data *data)
 {
-	int ret;
+	int ret = 0;
 	struct sprd_iommu_dev *iommu_dev;
 	unsigned long iova;
 	unsigned long flag = 0;
+	int i;
 
 	if (data == NULL) {
 		IOMMU_ERR("null parameter error! data %p\n", data);
 		return -EINVAL;
 	}
 
-	if (data->dev_id >= SPRD_IOMMU_MAX) {
-		IOMMU_ERR("dev id error %d\n", data->dev_id);
-		return -EINVAL;
+	for (i = 0; i < SPRD_IOMMU_MAX; i++) {
+		iommu_dev = sprd_iommu_list[i].iommu_dev;
+		if (!iommu_dev)
+			continue;
+
+		spin_lock_irqsave(&iommu_dev->pgt_lock, flag);
+
+		ret = sprd_iommu_clear_sg_iova(iommu_dev, data->buf,
+						(unsigned long)(data->table),
+						data->iova_size, &iova);
+		if (ret) {
+			ret = iommu_dev->ops->iova_unmap_orphaned(iommu_dev,
+							 iova, data->iova_size);
+			iommu_dev->map_count--;
+			iommu_dev->ops->iova_free(iommu_dev, iova, data->iova_size);
+			IOMMU_ERR("%s iova leak error, buf %p id %d iova 0x%lx size 0x%zx\n",
+				iommu_dev->init_data->name, data->buf, data->dev_id,
+				iova, data->iova_size);
+		}
+
+		spin_unlock_irqrestore(&iommu_dev->pgt_lock, flag);
 	}
 
-	iommu_dev = sprd_iommu_list[data->dev_id].iommu_dev;
-
-	spin_lock_irqsave(&iommu_dev->pgt_lock, flag);
-
-	ret = sprd_iommu_clear_sg_iova(iommu_dev, data->buf,
-					(unsigned long)(data->table),
-					data->iova_size, &iova);
-	if (ret) {
-		ret = iommu_dev->ops->iova_unmap_orphaned(iommu_dev,
-						 iova, data->iova_size);
-		iommu_dev->map_count--;
-		iommu_dev->ops->iova_free(iommu_dev, iova, data->iova_size);
-		IOMMU_ERR("%s iova leak error, buf %p id %d iova 0x%lx size 0x%zx\n",
-			iommu_dev->init_data->name, data->buf, data->dev_id,
-			iova, data->iova_size);
-	} else
-		IOMMU_ERR("%s illegal error buf %p id %d size 0x%zx\n",
-			iommu_dev->init_data->name, data->buf, data->dev_id,
-			data->iova_size);
-
-	spin_unlock_irqrestore(&iommu_dev->pgt_lock, flag);
-
 	return ret;
+}
+
+static void sprd_iommu_buffer_release(void *data, struct ion_buffer *buffer)
+{
+	struct sprd_iommu_unmap_data unmap_data = {0};
+
+	unmap_data.buf = (void *)buffer;
+	unmap_data.table = buffer->sg_table;
+	unmap_data.iova_size = buffer->size;
+	unmap_data.ch_type = SPRD_IOMMU_FM_CH_RW;
+	sprd_iommu_unmap_orphaned(&unmap_data);
 }
 
 int sprd_iommu_suspend(struct device *dev)
@@ -1512,6 +1521,7 @@ static int sprd_iommu_probe(struct platform_device *pdev)
 	struct device_node *np = pdev->dev.of_node;
 	struct sprd_iommu_dev *iommu_dev = NULL;
 	struct sprd_iommu_init_data *pdata = NULL;
+	static bool probe_first_time = true;
 
 	IOMMU_INFO("start\n");
 
@@ -1867,6 +1877,10 @@ static int sprd_iommu_probe(struct platform_device *pdev)
 
 	np->data  = iommu_dev;
 	sprd_iommu_set_list(iommu_dev);
+	if (probe_first_time) {
+		register_trace_android_vh_ion_buffer_release(sprd_iommu_buffer_release, NULL);
+		probe_first_time = false;
+	}
 	pm_runtime_enable(&pdev->dev);
 	IOMMU_INFO("%s end\n", iommu_dev->init_data->name);
 	return 0;
