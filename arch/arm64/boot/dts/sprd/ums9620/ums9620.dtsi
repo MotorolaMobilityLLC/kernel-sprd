@@ -325,6 +325,16 @@
 							 <&ext_26m>;
 				#pwm-cells = <2>;
 			};
+
+			timer@050000 {
+				compatible = "sprd,sysfrt-timer";
+				reg = <0x50000 0x10>;
+			};
+
+			timer@1c0000 {
+				compatible = "sprd,syst-timer";
+				reg = <0x1c0000 0x10>;
+			};
 		};
 
 		dpuvsp: dpuvsp {
