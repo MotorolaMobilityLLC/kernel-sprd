@@ -1983,15 +1983,12 @@ static int sc27xx_fgu_suspend_calib_check_chg_sts(struct sc27xx_fgu_data *data)
 
 static int sc27xx_fgu_suspend_calib_check_temp(struct sc27xx_fgu_data *data)
 {
-	int ret, temp, i;
+	int ret, temp;
 
-	for (i = 0; i < SC27XX_FGU_TEMP_BUFF_CNT; i++) {
-		ret = sc27xx_fgu_get_temp(data, &temp);
-		if (ret) {
-			dev_err(data->dev, "Suspend calib failed to temp, ret = %d\n", ret);
-			return ret;
-		}
-		udelay(100);
+	ret = sc27xx_fgu_get_temp(data, &temp);
+	if (ret) {
+		dev_err(data->dev, "Suspend calib failed to temp, ret = %d\n", ret);
+		return ret;
 	}
 
 	if (temp < SC27XX_FGU_CAP_CALIB_TEMP_LOW || temp > SC27XX_FGU_CAP_CALIB_TEMP_HI) {
@@ -2194,10 +2191,6 @@ static void sc27xx_fgu_suspend_calib_check(struct sc27xx_fgu_data *data)
 	if (ret)
 		return;
 
-	ret = sc27xx_fgu_suspend_calib_check_temp(data);
-	if (ret)
-		return;
-
 	ret = sc27xx_fgu_suspend_calib_check_relax_cnt_int(data);
 	if (ret)
 		return;
@@ -2207,6 +2200,10 @@ static void sc27xx_fgu_suspend_calib_check(struct sc27xx_fgu_data *data)
 		return;
 
 	ret = sc27xx_fgu_suspend_calib_check_sleep_cur(data);
+	if (ret)
+		return;
+
+	ret = sc27xx_fgu_suspend_calib_check_temp(data);
 	if (ret)
 		return;
 
