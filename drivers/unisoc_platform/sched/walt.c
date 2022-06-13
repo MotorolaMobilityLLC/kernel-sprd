@@ -474,6 +474,8 @@ static void update_cpu_busy_time(struct task_struct *p, struct rq *rq,
 
 static int account_busy_for_task_demand(struct task_struct *p, int event)
 {
+	unsigned int account_wait_time = 0;
+
 	/*
 	 * No need to bother updating task demand for exiting tasks
 	 * or the idle task.
@@ -481,13 +483,16 @@ static int account_busy_for_task_demand(struct task_struct *p, int event)
 	if (exiting_task(p) || is_idle_task(p))
 		return 0;
 
+	if (tg_account_wait_time(p) || sysctl_walt_account_wait_time)
+		account_wait_time = 1;
+
 	/*
 	 * When a task is waking up it is completing a segment of non-busy
 	 * time. Likewise, if wait time is not treated as busy time, then
 	 * when a task begins to run or is migrated, it is not running and
 	 * is completing a segment of non-busy time.
 	 */
-	if (event == TASK_WAKE || (!sysctl_walt_account_wait_time &&
+	if (event == TASK_WAKE || (!account_wait_time &&
 			 (event == PICK_NEXT_TASK || event == TASK_MIGRATE)))
 		return 0;
 
@@ -946,6 +951,7 @@ static void walt_init_new_task_load(struct task_struct *p)
 			div64_u64((u64)sysctl_sched_walt_init_task_load_pct *
 					(u64)walt_ravg_window, 100);
 	u32 init_load_pct = cur_wtr->init_load_pct;
+	u32 tg_load_pct = tg_init_load_pct(p);
 
 	wtr->init_load_pct = 0;
 	wtr->mark_start = 0;
@@ -953,6 +959,8 @@ static void walt_init_new_task_load(struct task_struct *p)
 	wtr->sum_latest = 0;
 	wtr->curr_window = 0;
 	wtr->prev_window = 0;
+
+	init_load_pct = init_load_pct > tg_load_pct ? init_load_pct : tg_load_pct;
 
 	if (init_load_pct) {
 		init_load_windows = div64_u64((u64)init_load_pct *
@@ -1192,6 +1200,22 @@ static void walt_sched_init_rq(struct rq *rq)
 
 DEFINE_STATIC_KEY_TRUE(walt_disabled);
 
+static void walt_update_task_group(struct cgroup_subsys_state *css)
+{
+	if (!strcmp(css->cgroup->kn->name, "top-app"))
+		walt_init_topapp_tg(css_tg(css));
+	else
+		walt_init_tg(css_tg(css));
+}
+
+static void android_rvh_cpu_cgroup_online(void *data, struct cgroup_subsys_state *css)
+{
+	if (static_branch_unlikely(&walt_disabled))
+		return;
+
+	walt_update_task_group(css);
+}
+
 static void android_rvh_build_perf_domains(void *data, bool *eas_check)
 {
 	if (static_branch_unlikely(&walt_disabled))
@@ -1406,6 +1430,7 @@ static void register_walt_vendor_hooks(void)
 	register_trace_android_rvh_account_irq(android_rvh_account_irq, NULL);
 	register_trace_android_rvh_schedule(android_rvh_schedule, NULL);
 	register_trace_android_rvh_effective_cpu_util(walt_effective_cpu_util, NULL);
+	register_trace_android_rvh_cpu_cgroup_online(android_rvh_cpu_cgroup_online, NULL);
 }
 
 static int walt_init_stop_handler(void *data)
@@ -1452,6 +1477,17 @@ static int walt_init_stop_handler(void *data)
 	return 0;
 }
 
+static void walt_init_task_group_all(void)
+{
+        struct cgroup_subsys_state *css = &root_task_group.css;
+        struct cgroup_subsys_state *top_css = css;
+
+        rcu_read_lock();
+        css_for_each_child(css, top_css)
+                walt_update_task_group(css);
+        rcu_read_unlock();
+}
+
 static void walt_init(struct work_struct *work)
 {
 	struct ctl_table_header *hdr;
@@ -1465,6 +1501,8 @@ static void walt_init(struct work_struct *work)
 	register_syscore_ops(&walt_syscore_ops);
 
 	init_clusters();
+
+	walt_init_task_group_all();
 
 	register_walt_vendor_hooks();
 	walt_rt_init();

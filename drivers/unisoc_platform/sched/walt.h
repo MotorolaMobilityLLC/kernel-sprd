@@ -98,7 +98,9 @@ struct walt_task_group {
 	int boost;
 
 	int account_wait_time;
-	int init_task_load_pct;
+	u32 init_task_load_pct;
+
+	int prefer_active;
 };
 
 struct pd_cache {
@@ -168,6 +170,15 @@ extern u64 walt_ktime_clock(void);
 extern void walt_rt_init(void);
 extern void walt_fair_init(void);
 extern unsigned long walt_cpu_util_freq(int cpu);
+extern void walt_init_tg(struct task_group *tg);
+extern void walt_init_topapp_tg(struct task_group *tg);
+extern u32 tg_init_load_pct(struct task_struct *p);
+extern unsigned int tg_account_wait_time(struct task_struct *p);
+
+static inline struct task_group *css_tg(struct cgroup_subsys_state *css)
+{
+	return css ? container_of(css, struct task_group, css) : NULL;
+}
 
 #define WALT_HIGH_IRQ_TIMEOUT 3
 static inline int walt_cpu_high_irqload(int cpu)
