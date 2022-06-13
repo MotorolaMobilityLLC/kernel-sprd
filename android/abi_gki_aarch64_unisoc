@@ -3108,3 +3108,39 @@
 # required by unisoc_dump_io.ko
   blk_stat_enable_accounting
 
+# required by sprd_coresight.ko
+  amba_driver_register
+  amba_driver_unregister
+  perf_aux_output_flag
+  perf_get_aux
+  init_pid_ns
+  perf_event_addr_filters_sync
+  task_active_pid_ns
+  dma_alloc_pages
+  dma_free_pages
+  amba_bustype
+  bus_find_device
+  bus_for_each_dev
+  configfs_register_group
+  configfs_register_subsystem
+  configfs_unregister_subsystem
+  config_group_init
+  config_item_set_name
+  fwnode_handle_get
+  hashlen_string
+  krealloc
+  of_cpu_node_to_id
+  of_get_next_parent
+  of_graph_get_next_endpoint
+  of_graph_get_port_parent
+  of_graph_get_remote_endpoint
+  of_graph_parse_endpoint
+  of_node_name_eq
+  perf_aux_output_begin
+  perf_aux_output_end
+  perf_pmu_register
+  perf_pmu_unregister
+  sysfs_add_file_to_group
+  sysfs_add_link_to_group
+  sysfs_remove_file_from_group
+  sysfs_remove_link_from_group
