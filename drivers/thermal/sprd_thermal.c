@@ -207,12 +207,17 @@ static int sprd_thm_temp_to_rawdata(int temp, struct sprd_thermal_sensor *sen)
 static int sprd_thm_read_temp(void *devdata, int *temp)
 {
 	struct sprd_thermal_sensor *sen = devdata;
+	struct thermal_zone_device *tz = sen->tzd;
 	u32 data;
 
-	data = readl(sen->data->base + SPRD_THM_TEMP(sen->id)) &
-		SPRD_THM_RAW_READ_MSK;
+	if (tz == NULL)
+		return 0;
 
-	*temp = sprd_thm_rawdata_to_temp(sen, data);
+	if (tz->mode) {
+		data = readl(sen->data->base + SPRD_THM_TEMP(sen->id)) &
+			SPRD_THM_RAW_READ_MSK;
+		*temp = sprd_thm_rawdata_to_temp(sen, data);
+	}
 
 	return 0;
 }
