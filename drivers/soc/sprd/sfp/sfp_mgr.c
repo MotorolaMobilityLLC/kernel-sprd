@@ -52,7 +52,11 @@
 #define DHCP_PORT 67
 #define DNS_PORT 53
 
+#ifdef CONFIG_SPRD_IPA_V3_SUPPORT
+#define CHK_FWD_ENTRY_SIZE (sizeof(struct fwd_entry) != 120)
+#else
 #define CHK_FWD_ENTRY_SIZE (sizeof(struct fwd_entry) != 96)
+#endif
 #define CHK_HASH_TBL_SIZE (sizeof(struct hd_hash_tbl) != 8)
 
 spinlock_t mgr_lock;/* Spinlock for sfp */
