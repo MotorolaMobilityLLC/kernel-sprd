@@ -754,8 +754,11 @@ static int wcn_wait_marlin_boot(struct wcn_device *wcn_dev)
 	     wait_count++) {
 		wcn_read_data_from_phy_addr(phy_addr,
 					    &magic_value, sizeof(u32));
-		if (magic_value == marlin_cp_init_ready_magic)
+		if (magic_value == marlin_cp_init_ready_magic) {
+			WCN_INFO("BTWF: marlin cp init ready!!!\n");
+			msleep(MARLIN_WAIT_CP_INIT_POLL_TIME_MS);
 			break;
+		}
 
 		msleep(MARLIN_WAIT_CP_INIT_POLL_TIME_MS);
 		WCN_INFO("BTWF: magic_value=0x%x, wait_count=%d\n",
