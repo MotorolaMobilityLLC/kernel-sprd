@@ -100,6 +100,7 @@ static const char *dai_id_to_str(int dai_id)
 		[BE_DAI_ID_CAPTURE_DSP_CODEC] =
 			TO_STRING(BE_DAI_ID_CAPTURE_DSP_CODEC),
 		[BE_DAI_ID_FAST_P_CODEC] = TO_STRING(BE_DAI_ID_FAST_P_CODEC),
+		[BE_DAI_ID_FAST_P_CODEC_MM] = TO_STRING(BE_DAI_ID_FAST_P_CODEC_MM),
 		[BE_DAI_ID_OFFLOAD_CODEC] = TO_STRING(BE_DAI_ID_OFFLOAD_CODEC),
 		[BE_DAI_ID_VOICE_CODEC] = TO_STRING(BE_DAI_ID_VOICE_CODEC),
 		[BE_DAI_ID_VOIP_CODEC] = TO_STRING(BE_DAI_ID_VOIP_CODEC),
@@ -5305,6 +5306,7 @@ static int check_be_dai_id(int be_dai_id)
 		scene_id = VBC_DAI_ID_FAST_P;
 		break;
 	case BE_DAI_ID_FAST_P_SMART_AMP:
+	case BE_DAI_ID_FAST_P_CODEC_MM:
 		scene_id = VBC_DAI_ID_FAST_P_SMART_AMP;
 		break;
 	case BE_DAI_ID_OFFLOAD_CODEC:
@@ -12381,6 +12383,23 @@ static struct snd_soc_dai_driver vbc_dais[BE_DAI_ID_MAX] = {
 		.playback = {
 			.stream_name = "BE_DAI_ID_FAST_P_SMART_AMP",
 			.aif_name = "BE_IF_ID_FAST_P_SMART_AMP",
+			.channels_min = 1,
+			.channels_max = 2,
+			.rates = SNDRV_PCM_RATE_CONTINUOUS,
+			.rate_max = 192000,
+			.formats = SPRD_VBC_DAI_PCM_FORMATS,
+		},
+		.probe = sprd_dai_vbc_probe,
+		.ops = &smtpa_fast_ops,
+	},
+
+	/* 58: BE_DAI_ID_FAST_P_CODEC_MM */
+	{
+		.name = TO_STRING(BE_DAI_ID_FAST_P_CODEC_MM),
+		.id = BE_DAI_ID_FAST_P_CODEC_MM,
+		.playback = {
+			.stream_name = "BE_DAI_FAST_CODEC_P_MM",
+			.aif_name = "BE_IF_FAST_CODEC_P_MM",
 			.channels_min = 1,
 			.channels_max = 2,
 			.rates = SNDRV_PCM_RATE_CONTINUOUS,
