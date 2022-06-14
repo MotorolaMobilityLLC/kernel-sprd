@@ -489,7 +489,7 @@ static int sprd_sip_svc_dvfs_freq_set(u32 cluster, u32 index)
 	arm_smccc_smc(SPRD_SIP_SVC_DVFS_FREQ_SET,
 		      cluster, index, 0, 0, 0, 0, 0, &res);
 
-	return sprd_sip_remap_err(res.a0);
+	return res.a0;
 }
 
 static int sprd_sip_svc_dvfs_freq_get(u32 cluster, u64 *freq)

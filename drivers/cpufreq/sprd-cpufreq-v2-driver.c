@@ -392,7 +392,7 @@ static int sprd_cpufreq_set_target_index(struct cpufreq_policy *policy, u32 inde
 
 	ret = cluster->freq_set(cluster->id, index);
 	if (ret) {
-		dev_err(dev, "%s: set cluster %u index %u error\n", __func__, cluster->id, index);
+		dev_err(dev, "%s: set cluster %u index %u error(%d)\n", __func__, cluster->id, index, ret);
 		mutex_unlock(&cluster->mutex);
 		return -EINVAL;
 	}
