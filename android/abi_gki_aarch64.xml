@@ -28,6 +28,7 @@
       <elf-symbol name='__bitmap_or' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xa084749a'/>
       <elf-symbol name='__bitmap_replace' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x18345b8e'/>
       <elf-symbol name='__bitmap_set' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x615911d7'/>
+      <elf-symbol name='__bitmap_shift_left' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x3b644591'/>
       <elf-symbol name='__bitmap_weight' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x63c4d61f'/>
       <elf-symbol name='__bitmap_xor' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xf6fc8791'/>
       <elf-symbol name='__blk_alloc_disk' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x9bd4eae4'/>
@@ -80,6 +81,7 @@
       <elf-symbol name='__devm_regmap_init_i2c' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xe3f3c3b2'/>
       <elf-symbol name='__devm_regmap_init_mmio_clk' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xd5b99bdd'/>
       <elf-symbol name='__devm_regmap_init_spi' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xcbc1b453'/>
+      <elf-symbol name='__devm_release_region' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xfd80c133'/>
       <elf-symbol name='__devm_request_region' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xfd986f81'/>
       <elf-symbol name='__devm_reset_control_get' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x63267afc'/>
       <elf-symbol name='__devm_rtc_register_device' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x140188af'/>
@@ -452,7 +454,10 @@
       <elf-symbol name='__traceiter_dma_fence_emit' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x59e1482'/>
       <elf-symbol name='__traceiter_dwc3_complete_trb' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x87e9278d'/>
       <elf-symbol name='__traceiter_dwc3_ctrl_req' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x6b8ed47e'/>
+      <elf-symbol name='__traceiter_dwc3_ep_queue' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xd81ee69e'/>
       <elf-symbol name='__traceiter_dwc3_event' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x29541f54'/>
+      <elf-symbol name='__traceiter_dwc3_readl' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x26871a2b'/>
+      <elf-symbol name='__traceiter_dwc3_writel' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xcff87172'/>
       <elf-symbol name='__traceiter_gpu_mem_total' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x448af6f4'/>
       <elf-symbol name='__traceiter_hrtimer_expire_entry' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x4cdd0039'/>
       <elf-symbol name='__traceiter_hrtimer_expire_exit' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x3bbbbd37'/>
@@ -677,6 +682,7 @@
       <elf-symbol name='blk_finish_plug' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xb1d3a15c'/>
       <elf-symbol name='blk_get_request' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xf058862a'/>
       <elf-symbol name='blk_ksm_get_slot_idx' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xe1c63523'/>
+      <elf-symbol name='blk_ksm_init' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xc289b3a4'/>
       <elf-symbol name='blk_ksm_init_passthrough' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xa3a04e18'/>
       <elf-symbol name='blk_ksm_register' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x10260672'/>
       <elf-symbol name='blk_ksm_reprogram_all_keys' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x984e0a5a'/>
@@ -1240,6 +1246,7 @@
       <elf-symbol name='dev_uc_sync_multiple' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xec8dca7f'/>
       <elf-symbol name='dev_uc_unsync' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x11c6a1d2'/>
       <elf-symbol name='dev_valid_name' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x62849ac7'/>
+      <elf-symbol name='dev_vprintk_emit' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xdd790b21'/>
       <elf-symbol name='devfreq_add_device' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xb5ba4a10'/>
       <elf-symbol name='devfreq_add_governor' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x55a32cde'/>
       <elf-symbol name='devfreq_cooling_em_register' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xf5248442'/>
@@ -2943,6 +2950,7 @@
       <elf-symbol name='led_update_flash_brightness' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xd6b0c591'/>
       <elf-symbol name='linear_range_get_selector_within' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xc6e5bcf3'/>
       <elf-symbol name='linear_range_get_value' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xd4e6d7e0'/>
+      <elf-symbol name='linkwatch_fire_event' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x82a4f082'/>
       <elf-symbol name='list_sort' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xe091c977'/>
       <elf-symbol name='llist_add_batch' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xc7a1840e'/>
       <elf-symbol name='llist_reverse_order' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xddb1cd7'/>
@@ -3146,6 +3154,7 @@
       <elf-symbol name='mutex_unlock' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x3213f038'/>
       <elf-symbol name='n_tty_ioctl_helper' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x1843b0e1'/>
       <elf-symbol name='name_to_dev_t' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xc10fddb8'/>
+      <elf-symbol name='napi_build_skb' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x590f62fa'/>
       <elf-symbol name='napi_complete_done' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xb90a9e5e'/>
       <elf-symbol name='napi_consume_skb' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x94a2c6cd'/>
       <elf-symbol name='napi_disable' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xa29e91d3'/>
@@ -3244,6 +3253,7 @@
       <elf-symbol name='nvmem_register' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x420b9594'/>
       <elf-symbol name='nvmem_unregister' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xcc39c03e'/>
       <elf-symbol name='of_address_to_resource' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x1d7202ee'/>
+      <elf-symbol name='of_alias_get_highest_id' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x321cdbf'/>
       <elf-symbol name='of_alias_get_id' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xac010e21'/>
       <elf-symbol name='of_clk_add_hw_provider' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xf8fabb99'/>
       <elf-symbol name='of_clk_add_provider' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x8c5176f3'/>
@@ -3622,6 +3632,7 @@
       <elf-symbol name='phy_read_mmd' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x4fd59047'/>
       <elf-symbol name='phy_read_paged' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x41867ea4'/>
       <elf-symbol name='phy_remove_link_mode' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xbb12aea8'/>
+      <elf-symbol name='phy_reset' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x1f53786a'/>
       <elf-symbol name='phy_reset_after_clk_enable' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xb18bfa8a'/>
       <elf-symbol name='phy_resolve_aneg_pause' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xcdbacc27'/>
       <elf-symbol name='phy_restore_page' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xa8f10784'/>
@@ -4452,6 +4463,7 @@
       <elf-symbol name='slhc_toss' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x6405dcd3'/>
       <elf-symbol name='slhc_uncompress' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x85fbc931'/>
       <elf-symbol name='smp_call_function' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xa0eae826'/>
+      <elf-symbol name='smp_call_function_any' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x8efd59ac'/>
       <elf-symbol name='smp_call_function_many' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xe2df8e9a'/>
       <elf-symbol name='smp_call_function_single' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x6228c21f'/>
       <elf-symbol name='smp_call_function_single_async' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xa080c5e5'/>
@@ -5389,6 +5401,7 @@
       <elf-symbol name='v4l2_ctrl_subscribe_event' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xfcfb8497'/>
       <elf-symbol name='v4l2_device_register' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xd4ee3eae'/>
       <elf-symbol name='v4l2_device_register_subdev' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xecfa24c9'/>
+      <elf-symbol name='v4l2_device_set_name' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x3b9fcb11'/>
       <elf-symbol name='v4l2_device_unregister' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x25c529a8'/>
       <elf-symbol name='v4l2_device_unregister_subdev' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xc4f1b799'/>
       <elf-symbol name='v4l2_event_dequeue' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x58b2ebff'/>
@@ -5616,6 +5629,7 @@
       <elf-symbol name='vmf_insert_pfn' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x3efdab0a'/>
       <elf-symbol name='vmf_insert_pfn_prot' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x5af4b5a6'/>
       <elf-symbol name='vprintk' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x715a5ed0'/>
+      <elf-symbol name='vprintk_emit' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xee8c02e9'/>
       <elf-symbol name='vring_create_virtqueue' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xd09c4da2'/>
       <elf-symbol name='vring_del_virtqueue' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xc29e887e'/>
       <elf-symbol name='vring_interrupt' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xff05fa13'/>
@@ -5975,7 +5989,10 @@
       <elf-symbol name='__tracepoint_dma_fence_emit' size='72' type='object-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xc5a3367a'/>
       <elf-symbol name='__tracepoint_dwc3_complete_trb' size='72' type='object-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x33556798'/>
       <elf-symbol name='__tracepoint_dwc3_ctrl_req' size='72' type='object-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xef2be621'/>
+      <elf-symbol name='__tracepoint_dwc3_ep_queue' size='72' type='object-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x7d6ef4ee'/>
       <elf-symbol name='__tracepoint_dwc3_event' size='72' type='object-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xdf144f29'/>
+      <elf-symbol name='__tracepoint_dwc3_readl' size='72' type='object-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xe6691a80'/>
+      <elf-symbol name='__tracepoint_dwc3_writel' size='72' type='object-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x7bad1f23'/>
       <elf-symbol name='__tracepoint_gpu_mem_total' size='72' type='object-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x16fa73fe'/>
       <elf-symbol name='__tracepoint_hrtimer_expire_entry' size='72' type='object-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x55a6686'/>
       <elf-symbol name='__tracepoint_hrtimer_expire_exit' size='72' type='object-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x703a9377'/>
@@ -6101,6 +6118,7 @@
       <elf-symbol name='loops_per_jiffy' size='8' type='object-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xba497f13'/>
       <elf-symbol name='mem_section' size='8' type='object-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xa3521253'/>
       <elf-symbol name='memstart_addr' size='8' type='object-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x9688de8b'/>
+      <elf-symbol name='names_cachep' size='8' type='object-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x3096be16'/>
       <elf-symbol name='nd_tbl' size='536' type='object-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xa40e399d'/>
       <elf-symbol name='net_namespace_list' size='16' type='object-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x6d2fc5a6'/>
       <elf-symbol name='net_ns_type_operations' size='48' type='object-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x810b21be'/>
@@ -30256,6 +30274,7 @@
           <var-decl name='wait' type-id='b5ab048f' visibility='default' filepath='include/linux/sbitmap.h' line='93' column='1'/>
         </data-member>
       </class-decl>
+      <qualified-type-def type-id='9a61119e' const='yes' id='41426935'/>
       <typedef-decl name='snd_ctl_elem_iface_t' type-id='95e97e5e' filepath='include/uapi/sound/asound.h' line='993' column='1' id='4143fc17'/>
       <pointer-type-def type-id='e07e9784' size-in-bits='64' id='414ea452'/>
       <pointer-type-def type-id='40a816ad' size-in-bits='64' id='4151733d'/>
@@ -64306,6 +64325,7 @@
           <var-decl name='map' type-id='00ee50b8' visibility='default' filepath='include/linux/bpf.h' line='1482' column='1'/>
         </data-member>
       </class-decl>
+      <pointer-type-def type-id='48288128' size-in-bits='64' id='952cef4e'/>
       <pointer-type-def type-id='00e3a6d4' size-in-bits='64' id='95316552'/>
       <pointer-type-def type-id='29964e7f' size-in-bits='64' id='95325033'/>
       <class-decl name='uart_ops' size-in-bits='1600' is-struct='yes' visibility='default' filepath='include/linux/serial_core.h' line='39' column='1' id='95388a16'>
@@ -66236,6 +66256,14 @@
         <subrange length='16' type-id='7ff19f0f' id='848d0938'/>
       </array-type-def>
       <pointer-type-def type-id='abe3ca10' size-in-bits='64' id='9a5ed472'/>
+      <class-decl name='dev_printk_info' size-in-bits='512' is-struct='yes' visibility='default' filepath='include/linux/dev_printk.h' line='27' column='1' id='9a61119e'>
+        <data-member access='public' layout-offset-in-bits='0'>
+          <var-decl name='subsystem' type-id='ac1fa8c0' visibility='default' filepath='include/linux/dev_printk.h' line='28' column='1'/>
+        </data-member>
+        <data-member access='public' layout-offset-in-bits='128'>
+          <var-decl name='device' type-id='36d7f119' visibility='default' filepath='include/linux/dev_printk.h' line='29' column='1'/>
+        </data-member>
+      </class-decl>
       <array-type-def dimensions='1' type-id='120c01b5' size-in-bits='128' id='9a69aeec'>
         <subrange length='1' type-id='7ff19f0f' id='52f813b4'/>
       </array-type-def>
@@ -96786,6 +96814,7 @@
           <var-decl name='position' type-id='95e97e5e' visibility='default' filepath='include/linux/libnvdimm.h' line='114' column='1'/>
         </data-member>
       </class-decl>
+      <pointer-type-def type-id='41426935' size-in-bits='64' id='da8b7bcd'/>
       <enum-decl name='bpf_map_type' filepath='include/uapi/linux/bpf.h' line='878' column='1' id='da8f27ee'>
         <underlying-type type-id='9cac1fee'/>
         <enumerator name='BPF_MAP_TYPE_UNSPEC' value='0'/>
@@ -116203,6 +116232,13 @@
         <parameter type-id='95e97e5e' name='len' filepath='lib/bitmap.c' line='351' column='1'/>
         <return type-id='48b5725f'/>
       </function-decl>
+      <function-decl name='__bitmap_shift_left' mangled-name='__bitmap_shift_left' filepath='lib/bitmap.c' line='148' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='__bitmap_shift_left'>
+        <parameter type-id='1d2c2b85' name='dst' filepath='lib/bitmap.c' line='148' column='1'/>
+        <parameter type-id='f9b37274' name='src' filepath='lib/bitmap.c' line='148' column='1'/>
+        <parameter type-id='f0981eeb' name='shift' filepath='lib/bitmap.c' line='149' column='1'/>
+        <parameter type-id='f0981eeb' name='nbits' filepath='lib/bitmap.c' line='149' column='1'/>
+        <return type-id='48b5725f'/>
+      </function-decl>
       <function-decl name='__bitmap_weight' mangled-name='__bitmap_weight' filepath='lib/bitmap.c' line='336' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='__bitmap_weight'>
         <parameter type-id='f9b37274' name='bitmap' filepath='lib/bitmap.c' line='336' column='1'/>
         <parameter type-id='f0981eeb' name='bits' filepath='lib/bitmap.c' line='336' column='1'/>
@@ -116586,6 +116622,13 @@
         <parameter type-id='a57283f9' name='lock_key' filepath='drivers/base/regmap/regmap-spi.c' line='124' column='1'/>
         <parameter type-id='80f4b756' name='lock_name' filepath='drivers/base/regmap/regmap-spi.c' line='125' column='1'/>
         <return type-id='29af9a71'/>
+      </function-decl>
+      <function-decl name='__devm_release_region' mangled-name='__devm_release_region' filepath='kernel/resource.c' line='1577' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='__devm_release_region'>
+        <parameter type-id='fa0b179b' name='dev' filepath='kernel/resource.c' line='1577' column='1'/>
+        <parameter type-id='c9d64c0d' name='parent' filepath='kernel/resource.c' line='1577' column='1'/>
+        <parameter type-id='acc63fdf' name='start' filepath='kernel/resource.c' line='1578' column='1'/>
+        <parameter type-id='acc63fdf' name='n' filepath='kernel/resource.c' line='1578' column='1'/>
+        <return type-id='48b5725f'/>
       </function-decl>
       <function-decl name='__devm_request_region' mangled-name='__devm_request_region' filepath='kernel/resource.c' line='1552' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='__devm_request_region'>
         <parameter type-id='fa0b179b' name='dev' filepath='kernel/resource.c' line='1552' column='1'/>
@@ -118869,10 +118912,29 @@
         <parameter type-id='016d41e2' name='ctrl' filepath='drivers/usb/dwc3/./trace.h' line='98' column='1'/>
         <return type-id='95e97e5e'/>
       </function-decl>
+      <function-decl name='__traceiter_dwc3_ep_queue' mangled-name='__traceiter_dwc3_ep_queue' filepath='drivers/usb/dwc3/./trace.h' line='145' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='__traceiter_dwc3_ep_queue'>
+        <parameter type-id='eaa32e2f' name='__data' filepath='drivers/usb/dwc3/./trace.h' line='145' column='1'/>
+        <parameter type-id='952cef4e' name='req' filepath='drivers/usb/dwc3/./trace.h' line='145' column='1'/>
+        <return type-id='95e97e5e'/>
+      </function-decl>
       <function-decl name='__traceiter_dwc3_event' mangled-name='__traceiter_dwc3_event' filepath='drivers/usb/dwc3/./trace.h' line='68' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='__traceiter_dwc3_event'>
         <parameter type-id='eaa32e2f' name='__data' filepath='drivers/usb/dwc3/./trace.h' line='68' column='1'/>
         <parameter type-id='19c2251e' name='event' filepath='drivers/usb/dwc3/./trace.h' line='68' column='1'/>
         <parameter type-id='5ac4ba20' name='dwc' filepath='drivers/usb/dwc3/./trace.h' line='68' column='1'/>
+        <return type-id='95e97e5e'/>
+      </function-decl>
+      <function-decl name='__traceiter_dwc3_readl' mangled-name='__traceiter_dwc3_readl' filepath='drivers/usb/dwc3/./trace.h' line='41' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='__traceiter_dwc3_readl'>
+        <parameter type-id='eaa32e2f' name='__data' filepath='drivers/usb/dwc3/./trace.h' line='41' column='1'/>
+        <parameter type-id='eaa32e2f' name='base' filepath='drivers/usb/dwc3/./trace.h' line='41' column='1'/>
+        <parameter type-id='19c2251e' name='offset' filepath='drivers/usb/dwc3/./trace.h' line='41' column='1'/>
+        <parameter type-id='19c2251e' name='value' filepath='drivers/usb/dwc3/./trace.h' line='41' column='1'/>
+        <return type-id='95e97e5e'/>
+      </function-decl>
+      <function-decl name='__traceiter_dwc3_writel' mangled-name='__traceiter_dwc3_writel' filepath='drivers/usb/dwc3/./trace.h' line='46' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='__traceiter_dwc3_writel'>
+        <parameter type-id='eaa32e2f' name='__data' filepath='drivers/usb/dwc3/./trace.h' line='46' column='1'/>
+        <parameter type-id='eaa32e2f' name='base' filepath='drivers/usb/dwc3/./trace.h' line='46' column='1'/>
+        <parameter type-id='19c2251e' name='offset' filepath='drivers/usb/dwc3/./trace.h' line='46' column='1'/>
+        <parameter type-id='19c2251e' name='value' filepath='drivers/usb/dwc3/./trace.h' line='46' column='1'/>
         <return type-id='95e97e5e'/>
       </function-decl>
       <function-decl name='__traceiter_gpu_mem_total' mangled-name='__traceiter_gpu_mem_total' filepath='include/trace/events/gpu_mem.h' line='30' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='__traceiter_gpu_mem_total'>
@@ -119285,7 +119347,10 @@
       <var-decl name='__tracepoint_dma_fence_emit' type-id='4ca0c298' mangled-name='__tracepoint_dma_fence_emit' visibility='default' filepath='include/trace/events/dma_fence.h' line='37' column='1' elf-symbol-id='__tracepoint_dma_fence_emit'/>
       <var-decl name='__tracepoint_dwc3_complete_trb' type-id='4ca0c298' mangled-name='__tracepoint_dwc3_complete_trb' visibility='default' filepath='drivers/usb/dwc3/./trace.h' line='285' column='1' elf-symbol-id='__tracepoint_dwc3_complete_trb'/>
       <var-decl name='__tracepoint_dwc3_ctrl_req' type-id='4ca0c298' mangled-name='__tracepoint_dwc3_ctrl_req' visibility='default' filepath='drivers/usb/dwc3/./trace.h' line='98' column='1' elf-symbol-id='__tracepoint_dwc3_ctrl_req'/>
+      <var-decl name='__tracepoint_dwc3_ep_queue' type-id='4ca0c298' mangled-name='__tracepoint_dwc3_ep_queue' visibility='default' filepath='drivers/usb/dwc3/./trace.h' line='145' column='1' elf-symbol-id='__tracepoint_dwc3_ep_queue'/>
       <var-decl name='__tracepoint_dwc3_event' type-id='4ca0c298' mangled-name='__tracepoint_dwc3_event' visibility='default' filepath='drivers/usb/dwc3/./trace.h' line='68' column='1' elf-symbol-id='__tracepoint_dwc3_event'/>
+      <var-decl name='__tracepoint_dwc3_readl' type-id='4ca0c298' mangled-name='__tracepoint_dwc3_readl' visibility='default' filepath='drivers/usb/dwc3/./trace.h' line='41' column='1' elf-symbol-id='__tracepoint_dwc3_readl'/>
+      <var-decl name='__tracepoint_dwc3_writel' type-id='4ca0c298' mangled-name='__tracepoint_dwc3_writel' visibility='default' filepath='drivers/usb/dwc3/./trace.h' line='46' column='1' elf-symbol-id='__tracepoint_dwc3_writel'/>
       <var-decl name='__tracepoint_gpu_mem_total' type-id='4ca0c298' mangled-name='__tracepoint_gpu_mem_total' visibility='default' filepath='include/trace/events/gpu_mem.h' line='30' column='1' elf-symbol-id='__tracepoint_gpu_mem_total'/>
       <var-decl name='__tracepoint_hrtimer_expire_entry' type-id='4ca0c298' mangled-name='__tracepoint_hrtimer_expire_entry' visibility='default' filepath='include/trace/events/timer.h' line='232' column='1' elf-symbol-id='__tracepoint_hrtimer_expire_entry'/>
       <var-decl name='__tracepoint_hrtimer_expire_exit' type-id='4ca0c298' mangled-name='__tracepoint_hrtimer_expire_exit' visibility='default' filepath='include/trace/events/timer.h' line='279' column='1' elf-symbol-id='__tracepoint_hrtimer_expire_exit'/>
@@ -120363,6 +120428,11 @@
       <function-decl name='blk_ksm_get_slot_idx' mangled-name='blk_ksm_get_slot_idx' filepath='block/keyslot-manager.c' line='211' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='blk_ksm_get_slot_idx'>
         <parameter type-id='5b559658' name='slot' filepath='block/keyslot-manager.c' line='211' column='1'/>
         <return type-id='f0981eeb'/>
+      </function-decl>
+      <function-decl name='blk_ksm_init' mangled-name='blk_ksm_init' filepath='block/keyslot-manager.c' line='81' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='blk_ksm_init'>
+        <parameter type-id='bf8a20d2' name='ksm' filepath='block/keyslot-manager.c' line='81' column='1'/>
+        <parameter type-id='f0981eeb' name='num_slots' filepath='block/keyslot-manager.c' line='81' column='1'/>
+        <return type-id='95e97e5e'/>
       </function-decl>
       <function-decl name='blk_ksm_init_passthrough' mangled-name='blk_ksm_init_passthrough' filepath='block/keyslot-manager.c' line='625' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='blk_ksm_init_passthrough'>
         <parameter type-id='bf8a20d2' name='ksm' filepath='block/keyslot-manager.c' line='625' column='1'/>
@@ -123331,6 +123401,13 @@
       <function-decl name='dev_valid_name' mangled-name='dev_valid_name' filepath='net/core/dev.c' line='1055' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='dev_valid_name'>
         <parameter type-id='80f4b756' name='name' filepath='net/core/dev.c' line='1055' column='1'/>
         <return type-id='b50a4934'/>
+      </function-decl>
+      <function-decl name='dev_vprintk_emit' mangled-name='dev_vprintk_emit' filepath='drivers/base/core.c' line='4586' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='dev_vprintk_emit'>
+        <parameter type-id='95e97e5e' name='level' filepath='drivers/base/core.c' line='4586' column='1'/>
+        <parameter type-id='8df61054' name='dev' filepath='drivers/base/core.c' line='4586' column='1'/>
+        <parameter type-id='80f4b756' name='fmt' filepath='drivers/base/core.c' line='4587' column='1'/>
+        <parameter type-id='2aee9912' name='args' filepath='drivers/base/core.c' line='4587' column='1'/>
+        <return type-id='95e97e5e'/>
       </function-decl>
       <function-decl name='devfreq_add_device' mangled-name='devfreq_add_device' filepath='drivers/devfreq/devfreq.c' line='781' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='devfreq_add_device'>
         <parameter type-id='fa0b179b' name='dev' filepath='drivers/devfreq/devfreq.c' line='781' column='1'/>
@@ -132351,6 +132428,10 @@
         <parameter type-id='807869d3' name='val' filepath='lib/linear_ranges.c' line='88' column='1'/>
         <return type-id='95e97e5e'/>
       </function-decl>
+      <function-decl name='linkwatch_fire_event' mangled-name='linkwatch_fire_event' filepath='net/core/link_watch.c' line='257' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='linkwatch_fire_event'>
+        <parameter type-id='68a2d05b' name='dev' filepath='net/core/link_watch.c' line='257' column='1'/>
+        <return type-id='48b5725f'/>
+      </function-decl>
       <function-decl name='list_sort' mangled-name='list_sort' filepath='lib/list_sort.c' line='185' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='list_sort'>
         <parameter type-id='eaa32e2f' name='priv' filepath='lib/list_sort.c' line='185' column='1'/>
         <parameter type-id='e84b031a' name='head' filepath='lib/list_sort.c' line='185' column='1'/>
@@ -133356,6 +133437,12 @@
         <parameter type-id='80f4b756' name='name' filepath='init/do_mounts.c' line='278' column='1'/>
         <return type-id='8504f260'/>
       </function-decl>
+      <var-decl name='names_cachep' type-id='f3b4aca8' mangled-name='names_cachep' visibility='default' filepath='fs/dcache.c' line='3246' column='1' elf-symbol-id='names_cachep'/>
+      <function-decl name='napi_build_skb' mangled-name='napi_build_skb' filepath='net/core/skbuff.c' line='327' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='napi_build_skb'>
+        <parameter type-id='eaa32e2f' name='data' filepath='net/core/skbuff.c' line='327' column='1'/>
+        <parameter type-id='f0981eeb' name='frag_size' filepath='net/core/skbuff.c' line='327' column='1'/>
+        <return type-id='0fbf3cfd'/>
+      </function-decl>
       <function-decl name='napi_complete_done' mangled-name='napi_complete_done' filepath='net/core/dev.c' line='6547' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='napi_complete_done'>
         <parameter type-id='c50361c5' name='n' filepath='net/core/dev.c' line='6547' column='1'/>
         <parameter type-id='95e97e5e' name='work_done' filepath='net/core/dev.c' line='6547' column='1'/>
@@ -133855,6 +133942,10 @@
         <parameter type-id='9a537bbe' name='dev' filepath='drivers/of/address.c' line='844' column='1'/>
         <parameter type-id='95e97e5e' name='index' filepath='drivers/of/address.c' line='844' column='1'/>
         <parameter type-id='c9d64c0d' name='r' filepath='drivers/of/address.c' line='845' column='1'/>
+        <return type-id='95e97e5e'/>
+      </function-decl>
+      <function-decl name='of_alias_get_highest_id' mangled-name='of_alias_get_highest_id' filepath='drivers/of/base.c' line='2119' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='of_alias_get_highest_id'>
+        <parameter type-id='80f4b756' name='stem' filepath='drivers/of/base.c' line='2119' column='1'/>
         <return type-id='95e97e5e'/>
       </function-decl>
       <function-decl name='of_alias_get_id' mangled-name='of_alias_get_id' filepath='drivers/of/base.c' line='2038' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='of_alias_get_id'>
@@ -135803,6 +135894,10 @@
         <parameter type-id='7efbcaaf' name='phydev' filepath='drivers/net/phy/phy_device.c' line='2652' column='1'/>
         <parameter type-id='19c2251e' name='link_mode' filepath='drivers/net/phy/phy_device.c' line='2652' column='1'/>
         <return type-id='48b5725f'/>
+      </function-decl>
+      <function-decl name='phy_reset' mangled-name='phy_reset' filepath='drivers/phy/phy-core.c' line='406' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='phy_reset'>
+        <parameter type-id='503ff1ba' name='phy' filepath='drivers/phy/phy-core.c' line='406' column='1'/>
+        <return type-id='95e97e5e'/>
       </function-decl>
       <function-decl name='phy_reset_after_clk_enable' mangled-name='phy_reset_after_clk_enable' filepath='drivers/net/phy/phy_device.c' line='1866' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='phy_reset_after_clk_enable'>
         <parameter type-id='7efbcaaf' name='phydev' filepath='drivers/net/phy/phy_device.c' line='1866' column='1'/>
@@ -140014,6 +140109,13 @@
         <parameter type-id='eaa32e2f' name='info' filepath='kernel/smp.c' line='1012' column='1'/>
         <parameter type-id='95e97e5e' name='wait' filepath='kernel/smp.c' line='1012' column='1'/>
         <return type-id='48b5725f'/>
+      </function-decl>
+      <function-decl name='smp_call_function_any' mangled-name='smp_call_function_any' filepath='kernel/smp.c' line='826' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='smp_call_function_any'>
+        <parameter type-id='5f8a1ac4' name='mask' filepath='kernel/smp.c' line='826' column='1'/>
+        <parameter type-id='89714567' name='func' filepath='kernel/smp.c' line='827' column='1'/>
+        <parameter type-id='eaa32e2f' name='info' filepath='kernel/smp.c' line='827' column='1'/>
+        <parameter type-id='95e97e5e' name='wait' filepath='kernel/smp.c' line='827' column='1'/>
+        <return type-id='95e97e5e'/>
       </function-decl>
       <function-decl name='smp_call_function_many' mangled-name='smp_call_function_many' filepath='kernel/smp.c' line='990' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='smp_call_function_many'>
         <parameter type-id='5f8a1ac4' name='mask' filepath='kernel/smp.c' line='990' column='1'/>
@@ -144882,6 +144984,12 @@
         <parameter type-id='f5438ac7' name='sd' filepath='drivers/media/v4l2-core/v4l2-device.c' line='112' column='1'/>
         <return type-id='95e97e5e'/>
       </function-decl>
+      <function-decl name='v4l2_device_set_name' mangled-name='v4l2_device_set_name' filepath='drivers/media/v4l2-core/v4l2-device.c' line='60' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='v4l2_device_set_name'>
+        <parameter type-id='ddfb71fa' name='v4l2_dev' filepath='drivers/media/v4l2-core/v4l2-device.c' line='60' column='1'/>
+        <parameter type-id='80f4b756' name='basename' filepath='drivers/media/v4l2-core/v4l2-device.c' line='60' column='1'/>
+        <parameter type-id='8a47abc3' name='instance' filepath='drivers/media/v4l2-core/v4l2-device.c' line='61' column='1'/>
+        <return type-id='95e97e5e'/>
+      </function-decl>
       <function-decl name='v4l2_device_unregister' mangled-name='v4l2_device_unregister' filepath='drivers/media/v4l2-core/v4l2-device.c' line='88' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='v4l2_device_unregister'>
         <parameter type-id='ddfb71fa' name='v4l2_dev' filepath='drivers/media/v4l2-core/v4l2-device.c' line='88' column='1'/>
         <return type-id='48b5725f'/>
@@ -146079,6 +146187,14 @@
       <function-decl name='vprintk' mangled-name='vprintk' filepath='kernel/printk/printk_safe.c' line='29' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='vprintk'>
         <parameter type-id='80f4b756' name='fmt' filepath='kernel/printk/printk_safe.c' line='29' column='1'/>
         <parameter type-id='2aee9912' name='args' filepath='kernel/printk/printk_safe.c' line='29' column='1'/>
+        <return type-id='95e97e5e'/>
+      </function-decl>
+      <function-decl name='vprintk_emit' mangled-name='vprintk_emit' filepath='kernel/printk/printk.c' line='2229' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='vprintk_emit'>
+        <parameter type-id='95e97e5e' name='facility' filepath='kernel/printk/printk.c' line='2229' column='1'/>
+        <parameter type-id='95e97e5e' name='level' filepath='kernel/printk/printk.c' line='2229' column='1'/>
+        <parameter type-id='da8b7bcd' name='dev_info' filepath='kernel/printk/printk.c' line='2230' column='1'/>
+        <parameter type-id='80f4b756' name='fmt' filepath='kernel/printk/printk.c' line='2231' column='1'/>
+        <parameter type-id='2aee9912' name='args' filepath='kernel/printk/printk.c' line='2231' column='1'/>
         <return type-id='95e97e5e'/>
       </function-decl>
       <function-decl name='vring_create_virtqueue' mangled-name='vring_create_virtqueue' filepath='drivers/virtio/virtio_ring.c' line='2258' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='vring_create_virtqueue'>
