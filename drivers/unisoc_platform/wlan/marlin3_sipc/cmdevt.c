@@ -609,7 +609,7 @@ int sprdwl_cmd_send_recv(struct sprdwl_priv *priv,
 	if (intf->cp_asserted == 1) {
 		wl_info("%s CP2 assert\n", __func__);
 		sprdwl_intf_free_msg_buf(priv, msg);
-#if defined(sc2355_FTR)
+#if defined(SC2355_FTR)
 		kfree(msg->tran_data);
 #else
 		dev_kfree_skb(msg->tran_data);
