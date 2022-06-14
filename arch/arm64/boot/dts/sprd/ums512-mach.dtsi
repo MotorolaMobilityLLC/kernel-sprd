@@ -563,6 +563,13 @@
 	mmsys_dvfs: mmsys-dvfs {
 		compatible = "sprd,hwdvfs-mmsys";
 		sprd,topdvfs_controller = <&topdvfs_controller>;
+
+		operating-points = <
+			/* kHz    uV */
+			307200    700000
+			468000    750000
+			512000    800000
+			>;
 	};
 
 	trusty {
