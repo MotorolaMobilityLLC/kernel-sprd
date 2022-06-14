@@ -7,9 +7,9 @@
  */
 
 &apahb {
-	i2c0: i2c@22240000 {
+	i2c0: i2c@2240000 {
 		compatible = "sprd,qogirn6pro-i2c", "sprd,sc9860-i2c";
-		reg = <0x22240000 0x100>;
+		reg = <0x2240000 0x100>;
 		interrupts = <GIC_SPI 216 IRQ_TYPE_LEVEL_HIGH>;
 		clock-names = "enable", "i2c", "source";
 		clocks = <&apahb_gate CLK_I2C0_EB>,
@@ -23,9 +23,9 @@
 			<&ap_ahb_regs REG_AP_AHB_AHB_RST MASK_AP_AHB_I2C0_SOFT_RST>;
 	};
 
-	i2c1: i2c@22250000 {
+	i2c1: i2c@2250000 {
 		compatible = "sprd,qogirn6pro-i2c", "sprd,sc9860-i2c";
-		reg = <0x22250000 0x100>;
+		reg = <0x2250000 0x100>;
 		interrupts = <GIC_SPI 215 IRQ_TYPE_LEVEL_HIGH>;
 		clock-names = "enable", "i2c", "source";
 		clocks = <&apahb_gate CLK_I2C1_EB>,
@@ -39,9 +39,9 @@
 			<&ap_ahb_regs REG_AP_AHB_AHB_RST MASK_AP_AHB_I2C1_SOFT_RST>;
 	};
 
-	i2c2: i2c@22260000 {
+	i2c2: i2c@2260000 {
 		compatible = "sprd,qogirn6pro-i2c", "sprd,sc9860-i2c";
-		reg = <0x22260000 0x100>;
+		reg = <0x2260000 0x100>;
 		interrupts = <GIC_SPI 214 IRQ_TYPE_LEVEL_HIGH>;
 		clock-names = "enable", "i2c", "source";
 		clocks = <&apahb_gate CLK_I2C2_EB>,
@@ -55,9 +55,9 @@
 			<&ap_ahb_regs REG_AP_AHB_AHB_RST MASK_AP_AHB_I2C2_SOFT_RST>;
 	};
 
-	i2c3: i2c@22270000 {
+	i2c3: i2c@2270000 {
 		compatible = "sprd,qogirn6pro-i2c", "sprd,sc9860-i2c";
-		reg = <0x22270000 0x100>;
+		reg = <0x2270000 0x100>;
 		interrupts = <GIC_SPI 213 IRQ_TYPE_LEVEL_HIGH>;
 		clock-names = "enable", "i2c", "source";
 		clocks = <&apahb_gate CLK_I2C3_EB>,
@@ -71,9 +71,9 @@
 			<&ap_ahb_regs REG_AP_AHB_AHB_RST MASK_AP_AHB_I2C3_SOFT_RST>;
 	};
 
-	i2c4: i2c@22280000 {
+	i2c4: i2c@2280000 {
 		compatible = "sprd,qogirn6pro-i2c", "sprd,sc9860-i2c";
-		reg = <0x22280000 0x100>;
+		reg = <0x2280000 0x100>;
 		interrupts = <GIC_SPI 212 IRQ_TYPE_LEVEL_HIGH>;
 		clock-names = "enable", "i2c", "source";
 		clocks = <&apahb_gate CLK_I2C4_EB>,
@@ -87,9 +87,9 @@
 			<&ap_ahb_regs REG_AP_AHB_AHB_RST MASK_AP_AHB_I2C4_SOFT_RST>;
 	};
 
-	i2c5: i2c@22290000 {
+	i2c5: i2c@2290000 {
 		compatible = "sprd,qogirn6pro-i2c", "sprd,sc9860-i2c";
-		reg = <0x22290000 0x100>;
+		reg = <0x2290000 0x100>;
 		interrupts = <GIC_SPI 211 IRQ_TYPE_LEVEL_HIGH>;
 		clock-names = "enable", "i2c", "source";
 		clocks = <&apahb_gate CLK_I2C5_EB>,
@@ -103,9 +103,9 @@
 			<&ap_ahb_regs REG_AP_AHB_AHB_RST MASK_AP_AHB_I2C5_SOFT_RST>;
 	};
 
-	i2c6: i2c@222a0000 {
+	i2c6: i2c@22a0000 {
 		compatible = "sprd,qogirn6pro-i2c", "sprd,sc9860-i2c";
-		reg = <0x222a0000 0x100>;
+		reg = <0x22a0000 0x100>;
 		interrupts = <GIC_SPI 210 IRQ_TYPE_LEVEL_HIGH>;
 		clock-names = "enable", "i2c", "source";
 		clocks = <&apahb_gate CLK_I2C6_EB>,
@@ -119,9 +119,9 @@
 			<&ap_ahb_regs REG_AP_AHB_AHB_RST MASK_AP_AHB_I2C6_SOFT_RST>;
 	};
 
-	i2c7: i2c@222b0000 {
+	i2c7: i2c@22b0000 {
 		compatible = "sprd,qogirn6pro-i2c", "sprd,sc9860-i2c";
-		reg = <0x222b0000 0x100>;
+		reg = <0x22b0000 0x100>;
 		interrupts = <GIC_SPI 209 IRQ_TYPE_LEVEL_HIGH>;
 		clock-names = "enable", "i2c", "source";
 		clocks = <&apahb_gate CLK_I2C7_EB>,
@@ -135,9 +135,9 @@
 			<&ap_ahb_regs REG_AP_AHB_AHB_RST MASK_AP_AHB_I2C7_SOFT_RST>;
 	};
 
-	i2c8: i2c@222c0000 {
+	i2c8: i2c@22c0000 {
 		compatible = "sprd,qogirn6pro-i2c", "sprd,sc9860-i2c";
-		reg = <0x222c0000 0x100>;
+		reg = <0x22c0000 0x100>;
 		interrupts = <GIC_SPI 208 IRQ_TYPE_LEVEL_HIGH>;
 		clock-frequency = <400000>;
 		clock-names = "enable", "i2c", "source";
@@ -151,9 +151,9 @@
 			<&ap_ahb_regs REG_AP_AHB_AHB_RST MASK_AP_AHB_I2C8_SOFT_RST>;
 	};
 
-	i2c9: i2c@222d0000 {
+	i2c9: i2c@22d0000 {
 		compatible = "sprd,qogirn6pro-i2c", "sprd,sc9860-i2c";
-		reg = <0x222d0000 0x100>;
+		reg = <0x22d0000 0x100>;
 		interrupts = <GIC_SPI 207 IRQ_TYPE_LEVEL_HIGH>;
 		clock-names = "enable", "i2c", "source";
 		clocks = <&apahb_gate CLK_I2C9_EB>,
