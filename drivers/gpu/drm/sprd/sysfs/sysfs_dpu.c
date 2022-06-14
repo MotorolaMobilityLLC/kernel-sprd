@@ -605,6 +605,7 @@ static ssize_t wr_regs_store(struct device *dev,
 	}
 
 	kfree(value);
+	up(&dpu->ctx.lock);
 
 	return count;
 }
