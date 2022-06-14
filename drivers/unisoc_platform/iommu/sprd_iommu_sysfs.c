@@ -39,44 +39,6 @@ static const struct file_operations iova_fops = {
 	.release = single_release,
 };
 
-static int pgt_show(struct seq_file *s, void *unused)
-{
-	struct sprd_iommu_dev *iommu_dev = (struct sprd_iommu_dev *)s->private;
-	unsigned long i = 0;
-
-	seq_printf(s, "%s pgt_base:0x%lx pgt_size:0x%zx iova_base:0x%lx iova_size:0x%zx\n",
-		iommu_dev->init_data->name,
-		iommu_dev->init_data->pgt_base,
-		iommu_dev->init_data->pgt_size,
-		iommu_dev->init_data->iova_base,
-		iommu_dev->init_data->iova_size);
-
-	for (i = 0; i < (iommu_dev->init_data->pgt_size >> 2); i++) {
-		if (i % 16 == 0) {
-			seq_printf(s, "\n0x%lx[0x%lx]: ",
-				iommu_dev->init_data->pgt_base + i*4,
-				iommu_dev->init_data->iova_base + i*4096);
-		}
-		seq_printf(s, "%x,",
-			*(((uint32_t *)iommu_dev->init_data->pgt_base) + i));
-	}
-
-	return 0;
-}
-
-static int pgt_open(struct inode *inode, struct file *file)
-{
-	return single_open(file, pgt_show, inode->i_private);
-}
-
-static const struct file_operations pgt_fops = {
-	.owner = THIS_MODULE,
-	.open  = pgt_open,
-	.read  = seq_read,
-	.llseek = seq_lseek,
-	.release = single_release,
-};
-
 int sprd_iommu_sysfs_create(struct sprd_iommu_dev *device,
 							const char *dev_name)
 {
@@ -91,12 +53,6 @@ int sprd_iommu_sysfs_create(struct sprd_iommu_dev *device,
 							iommu_debugfs_dir,
 							device,
 							&iova_fops);
-
-			debugfs_create_file("pgtable",
-				0444,
-				iommu_debugfs_dir,
-				device,
-				&pgt_fops);
 		}
 	}
 	return 0;
