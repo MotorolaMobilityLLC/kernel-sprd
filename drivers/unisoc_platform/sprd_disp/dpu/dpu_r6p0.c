@@ -191,15 +191,15 @@
 #define REG_HSV_LUT0_RDATA				0x7A4
 #define REG_THREED_LUT0_ADDR				0x7C0
 #define REG_THREED_LUT0_RDATA				0x7C4
-#define REG_DPU_MMU_EN					0x804
-#define REG_DPU_MMU_VAOR_ADDR_RD			0x854
-#define REG_DPU_MMU_VAOR_ADDR_WR			0x858
-#define REG_DPU_MMU_INV_ADDR_RD				0x860
-#define REG_DPU_MMU_INV_ADDR_WR				0x864
-#define REG_DPU_MMU_INT_EN				0x8A0
-#define REG_DPU_MMU_INT_CLR				0x8A4
-#define REG_DPU_MMU_INT_STS				0x8A8
-#define REG_DPU_MMU_INT_RAW				0x8AC
+#define REG_DPU_MMU_EN					0x1804
+#define REG_DPU_MMU_INV_ADDR_RD				0x185C
+#define REG_DPU_MMU_INV_ADDR_WR				0x1860
+#define REG_DPU_MMU_UNS_ADDR_RD				0x1864
+#define REG_DPU_MMU_UNS_ADDR_WR				0x1868
+#define REG_DPU_MMU_INT_EN				0x18A0
+#define REG_DPU_MMU_INT_CLR				0x18A4
+#define REG_DPU_MMU_INT_STS				0x18A8
+#define REG_DPU_MMU_INT_RAW				0x18AC
 
 /* Global control bits */
 #define BIT_DPU_RUN					BIT(0)
@@ -254,6 +254,16 @@
 #define BIT_DPU_EDPI_FROM_EXTERNAL_PAD			BIT(10)
 #define BIT_DPU_DPI_HALT_EN				BIT(16)
 #define BIT_DPU_STS_RCH_DPU_BUSY			BIT(15)
+
+/* MMU Interrupt bits */
+#define BIT_DPU_INT_MMU_VAOR_RD_MASK			BIT(0)
+#define BIT_DPU_INT_MMU_VAOR_WR_MASK			BIT(1)
+#define BIT_DPU_INT_MMU_INV_RD_MASK			BIT(2)
+#define BIT_DPU_INT_MMU_INV_WR_MASK			BIT(3)
+#define BIT_DPU_INT_MMU_UNS_RD_MASK			BIT(4)
+#define BIT_DPU_INT_MMU_UNS_WR_MASK			BIT(5)
+#define BIT_DPU_INT_MMU_PAOR_RD_MASK			BIT(6)
+#define BIT_DPU_INT_MMU_PAOR_WR_MASK			BIT(7)
 
 /* enhance config bits */
 #define BIT_DPU_ENHANCE_EN		BIT(0)
@@ -590,12 +600,61 @@ static void dpu_version(struct dpu_context *ctx)
 	ctx->version = "dpu-r6p0";
 }
 
+static void dpu_dump(struct dpu_context *ctx)
+{
+	u32 *reg = (u32 *)ctx->base;
+	int i;
+
+	pr_info("      0          4          8          C\n");
+	for (i = 0; i < 256; i += 4) {
+		pr_info("%04x: 0x%08x 0x%08x 0x%08x 0x%08x\n",
+			i * 4, reg[i], reg[i + 1], reg[i + 2], reg[i + 3]);
+	}
+}
+
+static u32 check_mmu_isr(struct dpu_context *ctx, u32 reg_val)
+{
+	u32 mmu_mask = BIT_DPU_INT_MMU_VAOR_RD_MASK |
+			BIT_DPU_INT_MMU_VAOR_WR_MASK |
+			BIT_DPU_INT_MMU_INV_RD_MASK |
+			BIT_DPU_INT_MMU_INV_WR_MASK |
+			BIT_DPU_INT_MMU_UNS_RD_MASK |
+			BIT_DPU_INT_MMU_UNS_WR_MASK |
+			BIT_DPU_INT_MMU_PAOR_RD_MASK |
+			BIT_DPU_INT_MMU_PAOR_WR_MASK;
+	u32 val = reg_val & mmu_mask;
+
+	if (val) {
+		pr_err("--- iommu interrupt err: 0x%04x ---\n", val);
+
+		pr_err("iommu invalid read error, addr: 0x%08x\n",
+			DPU_REG_RD(ctx->base + REG_DPU_MMU_INV_ADDR_RD));
+		pr_err("iommu invalid write error, addr: 0x%08x\n",
+			DPU_REG_RD(ctx->base + REG_DPU_MMU_INV_ADDR_WR));
+		pr_err("iommu unsecurity read error, addr: 0x%08x\n",
+			DPU_REG_RD(ctx->base + REG_DPU_MMU_UNS_ADDR_RD));
+		pr_err("iommu unsecurity  write error, addr: 0x%08x\n",
+			DPU_REG_RD(ctx->base + REG_DPU_MMU_UNS_ADDR_WR));
+
+		pr_err("BUG: iommu failure at %s:%d/%s()!\n",
+			__FILE__, __LINE__, __func__);
+
+		dpu_dump(ctx);
+
+		/* panic("iommu panic\n"); */
+	}
+
+	return val;
+}
+
 static u32 dpu_isr(struct dpu_context *ctx)
 {
 	struct dpu_enhance *enhance = ctx->enhance;
 	u32 reg_val, int_mask = 0;
+	u32 mmu_reg_val, mmu_int_mask = 0;
 
 	reg_val = DPU_REG_RD(ctx->base + REG_DPU_INT_STS);
+	mmu_reg_val = DPU_REG_RD(ctx->base + REG_DPU_MMU_INT_STS);
 
 	/* disable err interrupt */
 	if (reg_val & BIT_DPU_INT_ERR)
@@ -680,6 +739,11 @@ static u32 dpu_isr(struct dpu_context *ctx)
 
 	DPU_REG_WR(ctx->base + REG_DPU_INT_CLR, reg_val);
 	DPU_REG_CLR(ctx->base + REG_DPU_INT_EN, int_mask);
+
+	mmu_int_mask |= check_mmu_isr(ctx, mmu_reg_val);
+
+	DPU_REG_WR(ctx->base + REG_DPU_MMU_INT_CLR, mmu_reg_val);
+	DPU_REG_CLR(ctx->base + REG_DPU_MMU_INT_EN, mmu_int_mask);
 
 	return reg_val;
 }

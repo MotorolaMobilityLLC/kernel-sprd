@@ -8,6 +8,7 @@
 #include <linux/module.h>
 #include <linux/mfd/syscon.h>
 #include <linux/regmap.h>
+#include <linux/reset.h>
 
 #include "sprd_dsi.h"
 
@@ -18,16 +19,13 @@ static struct clk *clk_src_384m;
 static struct clk *clk_dpuvsp_eb;
 static struct clk *clk_dpuvsp_disp_eb;
 
-static struct dsi_glb_context {
-	unsigned int ctrl_reg;
-	unsigned int ctrl_mask;
-	struct regmap *regmap;
-} ctx_reset, s_ctx_reset;
+static struct reset_control *ctx_reset, *s_ctx_reset;
 
 static int dsi_glb_parse_dt(struct dsi_context *ctx,
 		struct device_node *np)
 {
-	unsigned int syscon_args[2];
+	struct sprd_dsi *dsi = (struct sprd_dsi *)container_of(ctx,
+							struct sprd_dsi, ctx);
 
 	clk_dsi0_eb =
 		of_clk_get_by_name(np, "clk_dsi0_eb");
@@ -64,13 +62,10 @@ static int dsi_glb_parse_dt(struct dsi_context *ctx,
 		clk_dpuvsp_disp_eb = NULL;
 	}
 
-	ctx_reset.regmap = syscon_regmap_lookup_by_phandle_args(np, "reset-syscon",
-	2, syscon_args);
-	if (IS_ERR(ctx_reset.regmap)) {
-		pr_warn("failed to map dsi glb reg\n");
-	} else {
-		ctx_reset.ctrl_reg = syscon_args[0];
-		ctx_reset.ctrl_mask = syscon_args[1];
+	ctx_reset = devm_reset_control_get(&dsi->dev, "dsi_rst");
+	if (IS_ERR(ctx_reset)) {
+		pr_warn("read ctx_reset failed\n");
+		return PTR_ERR(ctx_reset);
 	}
 
 	return 0;
@@ -79,7 +74,8 @@ static int dsi_glb_parse_dt(struct dsi_context *ctx,
 static int dsi_s_glb_parse_dt(struct dsi_context *ctx,
 				struct device_node *np)
 {
-	unsigned int syscon_args[2];
+	struct sprd_dsi *dsi = (struct sprd_dsi *)container_of(ctx,
+							struct sprd_dsi, ctx);
 
 	pr_info("%s enter\n", __func__);
 
@@ -90,12 +86,10 @@ static int dsi_s_glb_parse_dt(struct dsi_context *ctx,
 		clk_dsi1_eb = NULL;
 	}
 
-	s_ctx_reset.regmap = syscon_regmap_lookup_by_phandle_args(np, "reset", 2,syscon_args);
-	if (IS_ERR(s_ctx_reset.regmap)) {
-		pr_warn("failed to map dsi glb reg\n");
-	} else {
-		s_ctx_reset.ctrl_reg = syscon_args[0];
-		s_ctx_reset.ctrl_mask = syscon_args[1];
+	s_ctx_reset = devm_reset_control_get(&dsi->dev, "s_dsi_rst");
+	if (IS_ERR(s_ctx_reset)) {
+		pr_warn("read s_ctx_reset failed\n");
+		return PTR_ERR(s_ctx_reset);
 	}
 
 	return 0;
@@ -166,28 +160,20 @@ static void dsi_s_glb_disable(struct dsi_context *ctx)
 
 static void dsi_reset(struct dsi_context *ctx)
 {
-	regmap_update_bits(ctx_reset.regmap,
-			ctx_reset.ctrl_reg,
-			ctx_reset.ctrl_mask,
-			ctx_reset.ctrl_mask);
-	udelay(10);
-	regmap_update_bits(ctx_reset.regmap,
-			ctx_reset.ctrl_reg,
-			ctx_reset.ctrl_mask,
-			(unsigned int)(~ctx_reset.ctrl_mask));
+	if (!IS_ERR(ctx_reset)) {
+		reset_control_assert(ctx_reset);
+		udelay(10);
+		reset_control_deassert(ctx_reset);
+	}
 }
 
 static void dsi_s_reset(struct dsi_context *ctx)
 {
-	regmap_update_bits(s_ctx_reset.regmap,
-			s_ctx_reset.ctrl_reg,
-			s_ctx_reset.ctrl_mask,
-			s_ctx_reset.ctrl_mask);
-	udelay(10);
-	regmap_update_bits(s_ctx_reset.regmap,
-			s_ctx_reset.ctrl_reg,
-			s_ctx_reset.ctrl_mask,
-			(unsigned int)(~s_ctx_reset.ctrl_mask));
+	if (!IS_ERR(s_ctx_reset)) {
+		reset_control_assert(s_ctx_reset);
+		udelay(10);
+		reset_control_deassert(s_ctx_reset);
+	}
 }
 
 const struct dsi_glb_ops qogirn6pro_dsi_glb_ops = {

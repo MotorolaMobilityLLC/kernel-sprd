@@ -10,6 +10,7 @@
 #include <linux/regmap.h>
 #include <linux/io.h>
 #include <linux/of_address.h>
+#include <linux/reset.h>
 
 #include "sprd_dpu.h"
 
@@ -52,11 +53,7 @@ static const u32 dpi_clk_src[] = {
 	416700000
 };
 
-static struct dpu_glb_context {
-	unsigned int enable_reg;
-	unsigned int mask_bit;
-	struct regmap *regmap;
-} ctx_reset, vau_reset;
+static struct reset_control *ctx_reset, *vau_reset;
 
 static struct clk *val_to_clk(struct dpu_clk_context *ctx, u32 val)
 {
@@ -305,26 +302,19 @@ static int dpu_clk_disable(struct dpu_context *ctx)
 static int dpu_glb_parse_dt(struct dpu_context *ctx,
 		struct device_node *np)
 {
-	unsigned int syscon_args[2];
+	struct sprd_dpu *dpu = (struct sprd_dpu *)container_of(ctx,
+							struct sprd_dpu, ctx);
 
-	ctx_reset.regmap = syscon_regmap_lookup_by_phandle_args(np,
-			"reset-syscon", 2, syscon_args);
-	if (IS_ERR(ctx_reset.regmap)) {
-		pr_warn("failed to reset syscon\n");
-		return PTR_ERR(ctx_reset.regmap);
-	}  else {
-		ctx_reset.enable_reg = syscon_args[0];
-		ctx_reset.mask_bit = syscon_args[1];
+	ctx_reset = devm_reset_control_get(&dpu->dev, "dpu_ctx_rst");
+	if (IS_ERR(ctx_reset)) {
+		pr_warn("read ctx_reset failed\n");
+		return PTR_ERR(ctx_reset);
 	}
 
-	vau_reset.regmap = syscon_regmap_lookup_by_phandle_args(np,
-			"vau_reset-syscon", 2, syscon_args);
-	if (IS_ERR(vau_reset.regmap)) {
-		pr_warn("failed to vau_reset syscon\n");
-		return PTR_ERR(vau_reset.regmap);
-	}  else {
-		vau_reset.enable_reg = syscon_args[0];
-		vau_reset.mask_bit = syscon_args[1];
+	vau_reset = devm_reset_control_get(&dpu->dev, "dpu_vau_rst");
+	if (IS_ERR(vau_reset)) {
+		pr_warn("read vau_reset failed\n");
+		return PTR_ERR(vau_reset);
 	}
 
 	clk_dpuvsp_eb =
@@ -363,24 +353,17 @@ static void dpu_glb_disable(struct dpu_context *ctx)
 
 static void dpu_reset(struct dpu_context *ctx)
 {
-	regmap_update_bits(ctx_reset.regmap,
-			ctx_reset.enable_reg,
-			ctx_reset.mask_bit,
-			ctx_reset.mask_bit);
-	udelay(10);
-	regmap_update_bits(ctx_reset.regmap,
-			ctx_reset.enable_reg,
-			ctx_reset.mask_bit,
-			(unsigned int)(~ctx_reset.mask_bit));
-	regmap_update_bits(vau_reset.regmap,
-			vau_reset.enable_reg,
-			vau_reset.mask_bit,
-			vau_reset.mask_bit);
-	udelay(10);
-	regmap_update_bits(vau_reset.regmap,
-			vau_reset.enable_reg,
-			vau_reset.mask_bit,
-			(unsigned int)(~vau_reset.mask_bit));
+	if (!IS_ERR(ctx_reset)) {
+		reset_control_assert(ctx_reset);
+		udelay(10);
+		reset_control_deassert(ctx_reset);
+	}
+
+	if (!IS_ERR(vau_reset)) {
+		reset_control_assert(vau_reset);
+		udelay(10);
+		reset_control_deassert(vau_reset);
+	}
 }
 
 static void dpu_power_domain(struct dpu_context *ctx, int enable)
