@@ -63,7 +63,11 @@
 		};
 
 		tos_reserved: tos-mem@bd040000 {
-			reg = <0x0 0xbd020000 0x0 0x01fc0000>;
+			reg = <0x0 0xbd040000 0x0 0x01fc0000>;
+		};
+
+		tos_shm_reserved: sh-mem@c3000000{
+			reg = <0x0 0xc3000000 0x0 0x00100000>;
 		};
 
 		cma_reserved: cma_share@f00000000 {
