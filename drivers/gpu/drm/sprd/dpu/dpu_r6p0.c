@@ -2168,6 +2168,7 @@ static void dpu_enhance_backup(struct dpu_context *ctx, u32 id, void *param)
 {
 	struct dpu_enhance *enhance = ctx->enhance;
 	u32 *p;
+	struct sprd_backlight *bl = bl_get_data(enhance->bl_dev);
 
 	switch (id) {
 	case ENHANCE_CFG_ID_ENABLE:
@@ -2223,6 +2224,11 @@ static void dpu_enhance_backup(struct dpu_context *ctx, u32 id, void *param)
 	case ENHANCE_CFG_ID_CABC_STATE:
 		p = param;
 		enhance->cabc_state = *p;
+		/* Since vsync isr cannot be triggered when dpu stopped,
+		 * we need to force bl->cabc_en to be false to configure
+		 * backlight in sprd_pwm_backlight_update func when dpu reload*/
+		if (enhance->cabc_state == CABC_STOPPING)
+			 bl->cabc_en = false;
 		return;
 	case ENHANCE_CFG_ID_UD:
 		memcpy(&enhance->ud_copy, param, sizeof(enhance->ud_copy));
@@ -2303,6 +2309,7 @@ static void dpu_luts_update(struct dpu_context *ctx, void *param)
 static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
 {
 	struct dpu_enhance *enhance = ctx->enhance;
+	struct sprd_backlight *bl = bl_get_data(enhance->bl_dev);
 	struct scale_cfg *scale;
 	struct cm_cfg cm;
 	struct slp_cfg *slp;
@@ -2497,6 +2504,8 @@ static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
 		p32 = param;
 		enhance->cabc_state = *p32;
 		enhance->frame_no = 0;
+		if (enhance->cabc_state == CABC_STOPPING)
+			bl->cabc_en = false;
 		return;
 	case ENHANCE_CFG_ID_UD:
 		memcpy(&enhance->ud_copy, param, sizeof(enhance->ud_copy));
@@ -2959,6 +2968,15 @@ static void dpu_enhance_reload(struct dpu_context *ctx)
 			enhance->lut_addrs_cpy.lut_lut3d_addr);
 		DPU_REG_SET(ctx->base + REG_ENHANCE_UPDATE, BIT(3));
 		pr_info("enhance lut3d reload\n");
+	}
+
+	if (enhance->enhance_en & BIT(9)) {
+		DPU_REG_WR(ctx->base + REG_CABC_CFG0, cabc_cfg0);
+		DPU_REG_WR(ctx->base + REG_CABC_CFG1, cabc_cfg1);
+		DPU_REG_WR(ctx->base + REG_CABC_CFG2, cabc_cfg2);
+		DPU_REG_WR(ctx->base + REG_CABC_CFG3, cabc_cfg3);
+		DPU_REG_WR(ctx->base + REG_CABC_CFG4, cabc_cfg4);
+		pr_info("enhance cabc cfg reload\n");
 	}
 
 	if (enhance->enhance_en & BIT(10)) {
