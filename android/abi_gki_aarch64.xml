@@ -287,6 +287,8 @@
       <elf-symbol name='__trace_bputs' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xb1e25684'/>
       <elf-symbol name='__trace_puts' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x2d41e6f5'/>
       <elf-symbol name='__traceiter_android_rvh_account_irq' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x18e0dccf'/>
+      <elf-symbol name='__traceiter_android_rvh_account_irq_end' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x3d776770'/>
+      <elf-symbol name='__traceiter_android_rvh_account_irq_start' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xde61196f'/>
       <elf-symbol name='__traceiter_android_rvh_after_dequeue_task' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x7efc419b'/>
       <elf-symbol name='__traceiter_android_rvh_after_enqueue_task' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xd6f0f603'/>
       <elf-symbol name='__traceiter_android_rvh_build_perf_domains' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x4b4a53af'/>
@@ -117793,6 +117795,20 @@
         <parameter type-id='f23e2572' name='curr' filepath='include/trace/hooks/sched.h' line='202' column='1'/>
         <parameter type-id='95e97e5e' name='cpu' filepath='include/trace/hooks/sched.h' line='202' column='1'/>
         <parameter type-id='9b7c55ef' name='delta' filepath='include/trace/hooks/sched.h' line='202' column='1'/>
+        <return type-id='95e97e5e'/>
+      </function-decl>
+      <function-decl name='__traceiter_android_rvh_account_irq_end' mangled-name='__traceiter_android_rvh_account_irq_end' filepath='include/trace/hooks/sched.h' line='210' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='__traceiter_android_rvh_account_irq_end'>
+        <parameter type-id='eaa32e2f' name='__data' filepath='include/trace/hooks/sched.h' line='210' column='1'/>
+        <parameter type-id='f23e2572' name='curr' filepath='include/trace/hooks/sched.h' line='210' column='1'/>
+        <parameter type-id='95e97e5e' name='cpu' filepath='include/trace/hooks/sched.h' line='210' column='1'/>
+        <parameter type-id='9b7c55ef' name='delta' filepath='include/trace/hooks/sched.h' line='210' column='1'/>
+        <return type-id='95e97e5e'/>
+      </function-decl>
+      <function-decl name='__traceiter_android_rvh_account_irq_start' mangled-name='__traceiter_android_rvh_account_irq_start' filepath='include/trace/hooks/sched.h' line='206' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='__traceiter_android_rvh_account_irq_start'>
+        <parameter type-id='eaa32e2f' name='__data' filepath='include/trace/hooks/sched.h' line='206' column='1'/>
+        <parameter type-id='f23e2572' name='curr' filepath='include/trace/hooks/sched.h' line='206' column='1'/>
+        <parameter type-id='95e97e5e' name='cpu' filepath='include/trace/hooks/sched.h' line='206' column='1'/>
+        <parameter type-id='9b7c55ef' name='delta' filepath='include/trace/hooks/sched.h' line='206' column='1'/>
         <return type-id='95e97e5e'/>
       </function-decl>
       <function-decl name='__traceiter_android_rvh_after_dequeue_task' mangled-name='__traceiter_android_rvh_after_dequeue_task' filepath='include/trace/hooks/sched.h' line='337' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='__traceiter_android_rvh_after_dequeue_task'>
