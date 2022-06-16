@@ -2773,6 +2773,7 @@
       <elf-symbol name='is_vmalloc_addr' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xc31db0ce'/>
       <elf-symbol name='isolate_and_split_free_page' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x8fb19057'/>
       <elf-symbol name='isolate_anon_lru_page' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xd34009f6'/>
+      <elf-symbol name='iterate_dir' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xe3e3abe4'/>
       <elf-symbol name='iterate_fd' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x5649ba61'/>
       <elf-symbol name='iunique' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xfa80a839'/>
       <elf-symbol name='iw_handler_get_spy' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x78d4f977'/>
@@ -131535,6 +131536,11 @@
       </function-decl>
       <function-decl name='isolate_anon_lru_page' mangled-name='isolate_anon_lru_page' filepath='mm/page_alloc.c' line='502' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='isolate_anon_lru_page'>
         <parameter type-id='02f11ed4' name='page' filepath='mm/page_alloc.c' line='502' column='1'/>
+        <return type-id='95e97e5e'/>
+      </function-decl>
+      <function-decl name='iterate_dir' mangled-name='iterate_dir' filepath='fs/readdir.c' line='40' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='iterate_dir'>
+        <parameter type-id='77e79a4b' name='file' filepath='fs/readdir.c' line='40' column='1'/>
+        <parameter type-id='b80a6036' name='ctx' filepath='fs/readdir.c' line='40' column='1'/>
         <return type-id='95e97e5e'/>
       </function-decl>
       <function-decl name='iterate_fd' mangled-name='iterate_fd' filepath='fs/file.c' line='1315' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='iterate_fd'>
