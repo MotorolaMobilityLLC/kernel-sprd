@@ -29,6 +29,13 @@
 #include "sdhci-sprd-swcq.c"
 #endif
 
+#define DRIVER_NAME "sprd-sdhci"
+#define SDHCI_SPRD_DUMP(f, x...) \
+	pr_err("%s: " DRIVER_NAME ": " f, mmc_hostname(host->mmc), ## x)
+
+#define SEND_TUNING_BLOCK 19
+#define SEND_TUNING_BLOCK_HS200 21
+
 /* SDHCI_ARGUMENT2 register high 16bit */
 #define SDHCI_SPRD_ARG2_STUFF		GENMASK(31, 16)
 
@@ -139,6 +146,7 @@ struct sdhci_sprd_host {
 	struct register_hotplug reg_debounce_cn;
 	struct register_hotplug reg_rmldo_en;
 	unsigned char	power_mode;
+	u32 int_status;
 };
 
 struct sdhci_sprd_phy_cfg {
@@ -817,6 +825,46 @@ static void sdhci_sprd_set_power(struct sdhci_host *host, unsigned char mode,
 	sprd_host->power_mode = mmc->ios.power_mode;
 }
 
+static void sdhci_sprd_dump_vendor_regs(struct sdhci_host *host)
+{
+	u32 command;
+	struct sdhci_sprd_host *sprd_host = TO_SPRD_HOST(host);
+	char sdhci_hostname[64];
+
+	command = SDHCI_GET_CMD(sdhci_readw(host, SDHCI_COMMAND));
+	if ((command == SEND_TUNING_BLOCK) || (command == SEND_TUNING_BLOCK_HS200))
+		return;
+
+	SDHCI_SPRD_DUMP("CMD%d int 0x%08x\n", command, sprd_host->int_status);
+
+	sprintf(sdhci_hostname, "%s%s", mmc_hostname(host->mmc),
+			": sprd-sdhci + 0x000: ");
+	print_hex_dump(KERN_ERR, sdhci_hostname, DUMP_PREFIX_OFFSET,
+			16, 4, host->ioaddr, 64, 0);
+
+	sprintf(sdhci_hostname, "%s%s", mmc_hostname(host->mmc),
+			": sprd-sdhci + 0x200: ");
+	print_hex_dump(KERN_ERR, sdhci_hostname, DUMP_PREFIX_OFFSET,
+			16, 4, host->ioaddr + 0x200, 48, 0);
+
+	sprintf(sdhci_hostname, "%s%s", mmc_hostname(host->mmc),
+			": sprd-sdhci + 0x250: ");
+	print_hex_dump(KERN_ERR, sdhci_hostname, DUMP_PREFIX_OFFSET,
+			16, 4, host->ioaddr + 0x250, 32, 0);
+}
+
+static u32 sdhci_sprd_int_status(struct sdhci_host *host, u32 intmask)
+{
+	struct sdhci_sprd_host *sprd_host = TO_SPRD_HOST(host);
+
+	sprd_host->int_status = intmask;
+
+	if (intmask & SDHCI_INT_ERROR_MASK)
+		sdhci_sprd_dump_vendor_regs(host);
+
+	return intmask;
+}
+
 static struct sdhci_ops sdhci_sprd_ops = {
 	.read_l = sdhci_sprd_readl,
 	.write_l = sdhci_sprd_writel,
@@ -835,6 +883,7 @@ static struct sdhci_ops sdhci_sprd_ops = {
 #if IS_ENABLED(CONFIG_MMC_SWCQ)
 	.dump_vendor_regs = sdhci_sprd_dumpregs,
 #endif
+	.irq = sdhci_sprd_int_status,
 };
 
 static void sdhci_sprd_check_auto_cmd23(struct mmc_host *mmc,
