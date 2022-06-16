@@ -2077,9 +2077,9 @@ static void loop_handle_cmd(struct loop_cmd *cmd)
 	}
 
 	if (time > 500 * NSEC_PER_MSEC)
-		pr_info("loop%d %s %s %5lld,use_aio is %d ", lo->lo_number, loop_op,
+		pr_info("loop%d %s %s %5lld,cmd->use_aio is %d, lo->use_dio is %d ", lo->lo_number, loop_op,
 				lo->lo_backing_file->f_path.dentry->d_name.name,
-				ktime_to_ms(time), cmd->use_aio);
+				ktime_to_ms(time), cmd->use_aio, lo->use_dio);
 #else
 	ret = do_req_filebacked(lo, rq);
 #endif
@@ -2146,7 +2146,7 @@ static int loop_add(struct loop_device **l, int i)
 	lo->tag_set.queue_depth = 128;
 	lo->tag_set.numa_node = NUMA_NO_NODE;
 	lo->tag_set.cmd_size = sizeof(struct loop_cmd);
-	lo->tag_set.flags = BLK_MQ_F_SHOULD_MERGE;
+	lo->tag_set.flags = BLK_MQ_F_SHOULD_MERGE | BLK_MQ_F_NO_SCHED_BY_DEFAULT;
 	lo->tag_set.driver_data = lo;
 
 	err = blk_mq_alloc_tag_set(&lo->tag_set);
