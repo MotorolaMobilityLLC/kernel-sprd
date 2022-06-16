@@ -21,6 +21,7 @@ struct subsys_sleep_info {
 	uint32_t active_core;			//cpu mask.
 	uint32_t internal_irq_count;		//interrupt number
 	uint32_t irq_to_ap_count;		//irq to ap.
+	unsigned int slp_cnt;
 	uint32_t reserve[4];			//reserve.
 };
 
@@ -40,6 +41,6 @@ int stat_info_register(char *name, get_info_t *get, void *data);
  */
 int stat_info_unregister(char *name);
 
-int sprd_debugstat_init(void);
+int sprd_debugstat_core_init(void);
 
 #endif /* __SPRD_DEBUGSTAT_H__ */

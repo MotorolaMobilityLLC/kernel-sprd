@@ -23,9 +23,8 @@
 #include <linux/types.h>
 #include <linux/uaccess.h>
 
-#define SPRD_WS_INFO_BUF_MAX (256)
 #define SPRD_REG_INFO_PER_MAX (128)
-#define SPRD_REG_INFO_BUF_MAX (SPRD_REG_INFO_PER_MAX*PDBG_INFO_MAX)
+#define SPRD_LOG_BUF_MAX      (SPRD_REG_INFO_PER_MAX*PDBG_INFO_MAX)
 #define ERROR_MAGIC          (0xAA99887766554433UL)
 #define PDBG_IGNORE_MAGIC    (0xEEDDCCBBAA998877)
 #define WAKEUP_NAME_NUM      (2)
@@ -40,12 +39,18 @@
 #define DEEP_CNT_FMT  "[DEEP_CNT ] "
 #define LIGHT_CNT_FMT "[LIGHT_CNT] "
 
-#define SPRD_PDBG_ERR(fmt, ...) \
-		pr_err("[%s] "pr_fmt(fmt), "SPRD_PDBG", ##__VA_ARGS__)
-#define SPRD_PDBG_WARN(fmt, ...) \
-		pr_warn("[%s]"pr_fmt(fmt), "SPRD_PDBG", ##__VA_ARGS__)
-#define SPRD_PDBG_INFO(fmt, ...) \
-		pr_info("[%s] "pr_fmt(fmt), "SPRD_PDBG", ##__VA_ARGS__)
+static int sprd_pdbg_log_force;
+module_param(sprd_pdbg_log_force, int, 0644);
+MODULE_PARM_DESC(sprd_pdbg_log_force, "sprd pdbg log force out (default: 0)");
+#define SPRD_PDBG_ERR(fmt, ...)  pr_err("[%s] "pr_fmt(fmt), "SPRD_PDBG", ##__VA_ARGS__)
+#define SPRD_PDBG_WARN(fmt, ...) pr_warn("[%s]"pr_fmt(fmt), "SPRD_PDBG", ##__VA_ARGS__)
+#define SPRD_PDBG_INFO(fmt, ...)							\
+	do {										\
+		if (!!sprd_pdbg_log_force)						\
+			pr_info("[%s] "pr_fmt(fmt), "SPRD_PDBG", ##__VA_ARGS__);	\
+		else									\
+			pr_err("[%s] "pr_fmt(fmt), "SPRD_PDBG", ##__VA_ARGS__);		\
+	} while (0)									\
 
 enum {
 	PDBG_PHASE0,
@@ -77,6 +82,7 @@ struct power_debug {
 	ktime_t curr_stime; /* monotonic boottime offset after last suspend */
 	bool module_log_enable;
 	bool is_32b_machine;
+	char log_buf[SPRD_LOG_BUF_MAX];
 };
 
 struct ws_irq_domain {
@@ -124,25 +130,25 @@ static void sprd_pdbg_ws_get_info(struct ws_irq_domain *ws_irq_domain, u32 hwirq
 	virq = irq_find_mapping(irq_domain, hwirq);
 	desc = irq_to_desc(virq);
 
-	*buf_cnt += snprintf(ws_info + *buf_cnt, SPRD_WS_INFO_BUF_MAX - *buf_cnt,
+	*buf_cnt += scnprintf(ws_info + *buf_cnt, SPRD_LOG_BUF_MAX - *buf_cnt,
 			     " | [%d]", virq);
 
 	if (desc == NULL) {
-		*buf_cnt += snprintf(ws_info + *buf_cnt, SPRD_WS_INFO_BUF_MAX - *buf_cnt,
+		*buf_cnt += scnprintf(ws_info + *buf_cnt, SPRD_LOG_BUF_MAX - *buf_cnt,
 				     "| stray irq");
 		return;
 	}
 
 	if (desc->action && desc->action->name)
-		*buf_cnt += snprintf(ws_info + *buf_cnt, SPRD_WS_INFO_BUF_MAX - *buf_cnt,
+		*buf_cnt += scnprintf(ws_info + *buf_cnt, SPRD_LOG_BUF_MAX - *buf_cnt,
 				     " | action: %s", desc->action->name);
 
 	if (desc->action && desc->action->handler)
-		*buf_cnt += snprintf(ws_info + *buf_cnt, SPRD_WS_INFO_BUF_MAX - *buf_cnt,
+		*buf_cnt += scnprintf(ws_info + *buf_cnt, SPRD_LOG_BUF_MAX - *buf_cnt,
 				     " | handler: %ps", desc->action->handler);
 
 	if (desc->action && desc->action->thread_fn)
-		*buf_cnt += snprintf(ws_info + *buf_cnt, SPRD_WS_INFO_BUF_MAX - *buf_cnt,
+		*buf_cnt += scnprintf(ws_info + *buf_cnt, SPRD_LOG_BUF_MAX - *buf_cnt,
 				     " | thread_fn: %ps", desc->action->thread_fn);
 }
 
@@ -154,7 +160,7 @@ static int sprd_pdbg_ws_parse(u32 major, u32 irq_domain_id, u32 hwirq, char *ws_
 	intc_num = (major >> 16) & 0xFFFF;
 	intc_bit = major & 0xFFFF;
 
-	buf_cnt += snprintf(ws_info + buf_cnt, SPRD_WS_INFO_BUF_MAX - buf_cnt, "[%d:%d:%d:%d]",
+	buf_cnt += scnprintf(ws_info + buf_cnt, SPRD_LOG_BUF_MAX - buf_cnt, "[%d:%d:%d:%d]",
 			    intc_num, intc_bit, irq_domain_id, hwirq);
 
 	if ((irq_domain_id != DATA_INVALID) && (hwirq != DATA_INVALID)) {
@@ -208,7 +214,7 @@ static int sprd_pdbg_ws_show(struct power_debug *pdbg)
 {
 	u64 major, domain_id, hwirq;
 	int ret = 0;
-	char ws_irq_info[SPRD_WS_INFO_BUF_MAX];
+	char *ws_irq_info = pdbg->log_buf;
 
 	if (!pdbg) {
 		SPRD_PDBG_ERR("%s: Parameter is error\n", __func__);
@@ -261,7 +267,7 @@ static int sprd_pdbg_regs_get(struct power_debug *pdbg, char *regs_msg, bool pri
 	if (!sprd_pdbg_regs_get_once(pdbg, PDBG_R_SLP)) {
 		slp_deep = pdbg->r_value[0];
 		slp_light = pdbg->r_value[1];
-		buf_cnt += snprintf(regs_msg + buf_cnt, SPRD_REG_INFO_BUF_MAX - buf_cnt,
+		buf_cnt += scnprintf(regs_msg + buf_cnt, SPRD_LOG_BUF_MAX - buf_cnt,
 				    SLP_FMT, slp_deep, slp_light);
 		sprd_pdbg_regs_msg_print(regs_msg, &buf_cnt, print_out);
 	}
@@ -271,14 +277,14 @@ static int sprd_pdbg_regs_get(struct power_debug *pdbg, char *regs_msg, bool pri
 		eb_ap2 = pdbg->r_value[1];
 		eb_aon1 = pdbg->r_value[2];
 		eb_aon2 = pdbg->r_value[3];
-		buf_cnt += snprintf(regs_msg + buf_cnt, SPRD_REG_INFO_BUF_MAX - buf_cnt,
+		buf_cnt += scnprintf(regs_msg + buf_cnt, SPRD_LOG_BUF_MAX - buf_cnt,
 				    EB_FMT, eb_ap1, eb_ap2, eb_aon1, eb_aon2);
 		sprd_pdbg_regs_msg_print(regs_msg, &buf_cnt, print_out);
 	}
 
 	if (!sprd_pdbg_regs_get_once(pdbg, PDBG_R_PD)) {
 		pd = pdbg->r_value[0];
-		buf_cnt += snprintf(regs_msg + buf_cnt, SPRD_REG_INFO_BUF_MAX - buf_cnt,
+		buf_cnt += scnprintf(regs_msg + buf_cnt, SPRD_LOG_BUF_MAX - buf_cnt,
 				    PD_FMT, pd);
 		sprd_pdbg_regs_msg_print(regs_msg, &buf_cnt, print_out);
 	}
@@ -288,16 +294,16 @@ static int sprd_pdbg_regs_get(struct power_debug *pdbg, char *regs_msg, bool pri
 		pval -= 2;
 		cnt_num = *pval;
 		pval = (char *)&pdbg->r_value[0];
-		buf_cnt += snprintf(regs_msg + buf_cnt, SPRD_REG_INFO_BUF_MAX - buf_cnt,
+		buf_cnt += scnprintf(regs_msg + buf_cnt, SPRD_LOG_BUF_MAX - buf_cnt,
 				    DEEP_CNT_FMT);
 		for (i = 0; i < cnt_num; i++) {
 			cnt_low = *(pval + 2*i);
 			cnt_high = *(pval + 2*i + 1);
 			cnt = (cnt_low | (cnt_high << 8));
-			buf_cnt += snprintf(regs_msg + buf_cnt, SPRD_REG_INFO_BUF_MAX - buf_cnt,
+			buf_cnt += scnprintf(regs_msg + buf_cnt, SPRD_LOG_BUF_MAX - buf_cnt,
 					    "%5d, ", cnt);
 		}
-		buf_cnt += snprintf(regs_msg + buf_cnt, SPRD_REG_INFO_BUF_MAX - buf_cnt, "\n");
+		buf_cnt += scnprintf(regs_msg + buf_cnt, SPRD_LOG_BUF_MAX - buf_cnt, "\n");
 		sprd_pdbg_regs_msg_print(regs_msg, &buf_cnt, print_out);
 	}
 
@@ -306,23 +312,23 @@ static int sprd_pdbg_regs_get(struct power_debug *pdbg, char *regs_msg, bool pri
 		pval -= 2;
 		cnt_num = *pval;
 		pval = (char *)&pdbg->r_value[0];
-		buf_cnt += snprintf(regs_msg + buf_cnt, SPRD_REG_INFO_BUF_MAX - buf_cnt,
+		buf_cnt += scnprintf(regs_msg + buf_cnt, SPRD_LOG_BUF_MAX - buf_cnt,
 				    LIGHT_CNT_FMT);
 		for (i = 0; i < cnt_num; i++) {
 			cnt_low = *(pval + 2*i);
 			cnt_high = *(pval + 2*i + 1);
 			cnt = (cnt_low | (cnt_high << 8));
-			buf_cnt += snprintf(regs_msg + buf_cnt, SPRD_REG_INFO_BUF_MAX - buf_cnt,
+			buf_cnt += scnprintf(regs_msg + buf_cnt, SPRD_LOG_BUF_MAX - buf_cnt,
 					    "%5d, ", cnt);
 		}
-		buf_cnt += snprintf(regs_msg + buf_cnt, SPRD_REG_INFO_BUF_MAX - buf_cnt, "\n");
+		buf_cnt += scnprintf(regs_msg + buf_cnt, SPRD_LOG_BUF_MAX - buf_cnt, "\n");
 		sprd_pdbg_regs_msg_print(regs_msg, &buf_cnt, print_out);
 	}
 
 	if (!sprd_pdbg_regs_get_once(pdbg, PDBG_R_LPC)) {
 		lpc = pdbg->r_value[0];
 		if (lpc != PDBG_IGNORE_MAGIC) {
-			buf_cnt += snprintf(regs_msg + buf_cnt, SPRD_REG_INFO_BUF_MAX - buf_cnt,
+			buf_cnt += scnprintf(regs_msg + buf_cnt, SPRD_LOG_BUF_MAX - buf_cnt,
 					    LPC_FMT, lpc);
 			sprd_pdbg_regs_msg_print(regs_msg, &buf_cnt, print_out);
 		}
@@ -333,16 +339,17 @@ static int sprd_pdbg_regs_get(struct power_debug *pdbg, char *regs_msg, bool pri
 
 static void sprd_pdbg_regs_info_show(struct power_debug *pdbg)
 {
-	char regs_msg[SPRD_REG_INFO_BUF_MAX];
+	char *regs_msg = pdbg->log_buf;
 
 	sprd_pdbg_regs_get(pdbg, regs_msg, true);
 }
 
 static void sprd_pdbg_kernel_active_ws_show(void)
 {
-	char active_ws[SPRD_WS_INFO_BUF_MAX];
+	struct power_debug *pdbg = sprd_pdbg_get_instance();
+	char *active_ws = pdbg->log_buf;
 
-	pm_get_active_wakeup_sources(active_ws, SPRD_WS_INFO_BUF_MAX);
+	pm_get_active_wakeup_sources(active_ws, SPRD_LOG_BUF_MAX);
 	SPRD_PDBG_INFO("%s\n", active_ws);
 }
 
@@ -532,7 +539,7 @@ static int sprd_pdbg_thread(void *data)
 		SPRD_PDBG_INFO("#---------PDBG LIGHT SLEEP END-----------#\n");
 
 		set_current_state(TASK_INTERRUPTIBLE);
-		schedule_timeout(pdbg->scan_interval * HZ);
+		schedule_timeout(pdbg->scan_interval * (long)HZ);
 	}
 
 	return 0;
@@ -610,8 +617,8 @@ EXPORT_SYMBOL_GPL(sprd_pdbg_msg_print);
 
 static int sprd_pdbg_regs_info_read(struct seq_file *m, void *v)
 {
-	char regs_msg[SPRD_REG_INFO_BUF_MAX];
 	struct power_debug *pdbg = sprd_pdbg_get_instance();
+	char *regs_msg = pdbg->log_buf;
 
 	sprd_pdbg_regs_get(pdbg, regs_msg, false);
 	seq_printf(m, "%s", regs_msg);

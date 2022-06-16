@@ -27,76 +27,121 @@
 #include <linux/sprd_sip_svc.h>
 #include "sprd-debugstat.h"
 
-static const char subsys_name[8] = "AP";
+struct ap_subsys_sleep_info {
+	struct sprd_sip_svc_pwr_ops *pwr_ops;
+	struct subsys_sleep_info *ap_sleep_info;
+};
 
-static struct sprd_sip_svc_pwr_ops *pwr_ops;
-struct subsys_sleep_info *ap_sleep_info;
+struct soc_subsys_sleep_info {
+	struct subsys_sleep_info *soc_sleep_info;
+	struct regmap *slp_cnt_regmap;
+	u32 slp_cnt_offset;
+	u32 slp_cnt_mask;
+};
+
+struct debugstat_data {
+	struct device *dev;
+	struct ap_subsys_sleep_info apsys_sleep_info;
+	struct soc_subsys_sleep_info socsys_sleep_info;
+};
 
 static struct subsys_sleep_info *ap_sleep_info_get(void *data)
 {
 	const struct cpumask *cpu = cpu_online_mask;
 	u64 major, intc_num, intc_bit;
+	struct ap_subsys_sleep_info *ap_inst;
+	struct device *dev = data;
+	struct debugstat_data *dbgstat_data = dev_get_drvdata(dev);
 
-	ap_sleep_info->total_duration = ktime_get_boot_fast_ns();
-	do_div(ap_sleep_info->total_duration, 1000000000);
+	if (!dbgstat_data || !dbgstat_data->apsys_sleep_info.ap_sleep_info)
+		return NULL;
 
-	ap_sleep_info->active_core = (uint32_t)(cpu->bits[0]);
+	ap_inst = &dbgstat_data->apsys_sleep_info;
+	ap_inst->ap_sleep_info->total_duration = ktime_get_boot_fast_ns();
+	do_div(ap_inst->ap_sleep_info->total_duration, 1000000000);
 
-	pwr_ops->get_pdbg_info(PDBG_WS, 0, &major, NULL, NULL, NULL);
+	ap_inst->ap_sleep_info->active_core = (uint32_t)(cpu->bits[0]);
+
+	ap_inst->pwr_ops->get_pdbg_info(PDBG_WS, 0, &major, NULL, NULL, NULL);
 	intc_num = (major >> 16) & 0xFFFF;
 	intc_bit = major & 0xFFFF;
 
-	ap_sleep_info->wakeup_reason = (uint32_t)((intc_num << 5) + intc_bit);
+	ap_inst->ap_sleep_info->wakeup_reason = (uint32_t)((intc_num << 5) + intc_bit);
 
-	return ap_sleep_info;
+	return ap_inst->ap_sleep_info;
 }
 
+static struct subsys_sleep_info *soc_sleep_info_get(void *data)
+{
+	unsigned int slp_cnt = 0;
+	int ret;
+	struct soc_subsys_sleep_info *soc_inst;
+	struct device *dev = data;
+	struct debugstat_data *dbgstat_data = dev_get_drvdata(dev);
+
+	if (!dbgstat_data || !dbgstat_data->socsys_sleep_info.soc_sleep_info)
+		return NULL;
+
+	soc_inst = &dbgstat_data->socsys_sleep_info;
+
+	ret = regmap_read(soc_inst->slp_cnt_regmap, soc_inst->slp_cnt_offset, &slp_cnt);
+	if (ret < 0) {
+		soc_inst->soc_sleep_info->slp_cnt = -1;
+		return soc_inst->soc_sleep_info;
+	}
+
+	slp_cnt &= soc_inst->slp_cnt_mask;
+	soc_inst->soc_sleep_info->slp_cnt = slp_cnt;
+
+	return soc_inst->soc_sleep_info;
+}
 #ifdef CONFIG_PM_SLEEP
 static int sprd_debugstat_suspend(struct device *dev)
 {
+	struct ap_subsys_sleep_info *ap_inst;
+	struct debugstat_data *dbgstat_data = dev_get_drvdata(dev);
 	u64 last_sleep_duration = ktime_get_boot_fast_ns();
 
+	if (!dbgstat_data || !dbgstat_data->apsys_sleep_info.ap_sleep_info)
+		return 0;
+
+	ap_inst = &dbgstat_data->apsys_sleep_info;
 	do_div(last_sleep_duration, 1000000000);
-	ap_sleep_info->last_sleep_duration = (u32)last_sleep_duration;
+	ap_inst->ap_sleep_info->last_sleep_duration = (u32)last_sleep_duration;
 
 	return 0;
 }
 
 static int sprd_debugstat_resume(struct device *dev)
 {
+	struct ap_subsys_sleep_info *ap_inst;
 	u32 sleep, wakeup;
 	u64 last_wakeup_duration = ktime_get_boot_fast_ns();
+	struct debugstat_data *dbgstat_data = dev_get_drvdata(dev);
+
+	if (!dbgstat_data || !dbgstat_data->apsys_sleep_info.ap_sleep_info)
+		return 0;
+
+	ap_inst = &dbgstat_data->apsys_sleep_info;
 
 	do_div(last_wakeup_duration, 1000000000);
-	ap_sleep_info->last_wakeup_duration = (u32)last_wakeup_duration;
+	ap_inst->ap_sleep_info->last_wakeup_duration = (u32)last_wakeup_duration;
 
-	sleep = ap_sleep_info->last_sleep_duration;
-	wakeup = ap_sleep_info->last_wakeup_duration;
+	sleep = ap_inst->ap_sleep_info->last_sleep_duration;
+	wakeup = ap_inst->ap_sleep_info->last_wakeup_duration;
 
-	ap_sleep_info->sleep_duration_total += wakeup - sleep;
+	ap_inst->ap_sleep_info->sleep_duration_total += wakeup - sleep;
 
 	return 0;
 }
 #endif
 
-/**
- * sprd_debugstat_driver_probe - add the debug stat driver
- */
-static int sprd_debugstat_driver_probe(struct platform_device *pdev)
+static int sprd_debugstat_apsys_init(struct debugstat_data *dbgstat_data)
 {
 	struct sprd_sip_svc_handle *sip;
-	struct device *dev;
 	int ret;
-
-	pr_info("%s: Init debug stat driver\n", __func__);
-
-	dev = &pdev->dev;
-	if (!pdev) {
-		pr_err("%s: Get debug device error\n", __func__);
-		return -EINVAL;
-	}
-
-	sprd_debugstat_init();
+	struct device *dev = dbgstat_data->dev;
+	struct ap_subsys_sleep_info *ap_inst = &dbgstat_data->apsys_sleep_info;
 
 	sip = sprd_sip_svc_get_handle();
 	if (!sip) {
@@ -104,24 +149,102 @@ static int sprd_debugstat_driver_probe(struct platform_device *pdev)
 		return -EINVAL;
 	}
 
-	pwr_ops = &sip->pwr_ops;
+	ap_inst->pwr_ops = &sip->pwr_ops;
 
-	ap_sleep_info = devm_kzalloc(dev, sizeof(struct subsys_sleep_info), GFP_KERNEL);
-	if (!ap_sleep_info) {
+	ap_inst->ap_sleep_info = devm_kzalloc(dev, sizeof(struct subsys_sleep_info), GFP_KERNEL);
+	if (!ap_inst->ap_sleep_info) {
 		pr_err("%s: Sleep info alloc error\n", __func__);
 		return -ENOMEM;
 	}
 
-	strcpy(ap_sleep_info->subsystem_name, subsys_name);
-	ap_sleep_info->current_status = 1;
-	ap_sleep_info->irq_to_ap_count = 0;
+	strcpy(ap_inst->ap_sleep_info->subsystem_name, "AP");
+	ap_inst->ap_sleep_info->current_status = 1;
+	ap_inst->ap_sleep_info->irq_to_ap_count = 0;
+	ap_inst->ap_sleep_info->slp_cnt = 0;
 
-	ret = stat_info_register("ap_sys", ap_sleep_info_get, NULL);
+	ret = stat_info_register("ap_sys", ap_sleep_info_get, dev);
 	if (ret) {
 		pr_err("%s: Register ap sleep info get error\n", __func__);
-		kfree(ap_sleep_info);
+		return -ENXIO;
+	}
+
+	return 0;
+}
+
+static int sprd_debugstat_socsys_init(struct debugstat_data *dbgstat_data)
+{
+	int ret;
+	unsigned int dts_args[2];
+	struct device *dev = dbgstat_data->dev;
+	struct soc_subsys_sleep_info *soc_inst = &dbgstat_data->socsys_sleep_info;
+
+	soc_inst->soc_sleep_info = devm_kzalloc(dev, sizeof(struct subsys_sleep_info), GFP_KERNEL);
+	if (!soc_inst->soc_sleep_info) {
+		pr_err("%s: Sleep info alloc error\n", __func__);
+		return -ENOMEM;
+	}
+
+	strcpy(soc_inst->soc_sleep_info->subsystem_name, "SOC");
+	soc_inst->soc_sleep_info->slp_cnt = 0;
+
+	soc_inst->slp_cnt_regmap =
+		syscon_regmap_lookup_by_phandle_args(dev->of_node, "soc_slp_cnt_reg", 2, dts_args);
+
+	if (IS_ERR_OR_NULL(soc_inst->slp_cnt_regmap)) {
+		pr_err("%s: slp_cnt_regmap error, check dts.\n", __func__);
+		return -ENOMEM;
+	}
+
+	soc_inst->slp_cnt_offset = dts_args[0];
+	soc_inst->slp_cnt_mask = dts_args[1];
+
+	ret = stat_info_register("soc_sys", soc_sleep_info_get, dev);
+	if (ret) {
+		pr_err("%s: Register soc sleep info get error\n", __func__);
+		return -ENXIO;
+	}
+
+	return 0;
+}
+
+static int sprd_debugstat_driver_probe(struct platform_device *pdev)
+{
+	int ret;
+	struct debugstat_data *dbgstat_data;
+	struct device *dev;
+
+	if (!pdev) {
+		pr_err("%s: Get debug device error\n", __func__);
 		return -EINVAL;
 	}
+
+	dev = &pdev->dev;
+	dbgstat_data = devm_kzalloc(dev, sizeof(struct debugstat_data), GFP_KERNEL);
+	if (!dbgstat_data) {
+		pr_err("%s: dbgstat_data alloc error\n", __func__);
+		return -ENOMEM;
+	}
+	dbgstat_data->dev = dev;
+
+	ret = sprd_debugstat_apsys_init(dbgstat_data);
+	if (ret) {
+		pr_err("%s: sprd_debugstat_apsys_init error\n", __func__);
+		return ret;
+	}
+
+	ret = sprd_debugstat_socsys_init(dbgstat_data);
+	if (ret) {
+		pr_err("%s: sprd_debugstat_socsys_init error\n", __func__);
+		return ret;
+	}
+
+	ret = sprd_debugstat_core_init();
+	if (ret) {
+		pr_err("%s: sprd_debugstat_core_init error\n", __func__);
+		return ret;
+	}
+
+	dev_set_drvdata(dev, dbgstat_data);
 
 	return 0;
 }
@@ -134,6 +257,7 @@ static int sprd_debugstat_driver_remove(struct platform_device *pdev)
 	int ret;
 
 	ret = stat_info_unregister("ap_sys");
+	ret |= stat_info_unregister("soc_sys");
 
 	return ret;
 }

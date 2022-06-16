@@ -248,6 +248,45 @@ static const struct proc_ops stat_fops = {
 	.proc_release		= single_release,
 };
 
+static int slp_cnt_read(struct seq_file *m, void *v)
+{
+	struct info_node *pos;
+	int slp_cnt = -1;
+
+	list_for_each_entry(pos, &info_node_list, list) {
+		if (strcmp(pos->name, "soc_sys"))
+			continue;
+
+		pos->info = pos->get(pos->data);
+		if (!pos->info) {
+			pr_err("%s: Get %s error\n", __func__, pos->name);
+			return -ENXIO;
+		}
+
+		if (pos->info->slp_cnt == -1)
+			return -EINVAL;
+
+		slp_cnt = (int)pos->info->slp_cnt;
+		break;
+	}
+
+	seq_printf(m, "%d\n", slp_cnt);
+
+	return 0;
+}
+
+static int slp_cnt_proc_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, slp_cnt_read, NULL);
+}
+
+static const struct proc_ops slp_cnt_fops = {
+	.proc_open		= slp_cnt_proc_open,
+	.proc_read		= seq_read,
+	.proc_lseek		= seq_lseek,
+	.proc_release		= single_release,
+};
+
 int stat_info_register(char *name, get_info_t *get, void *data)
 {
 	struct info_node *pos;
@@ -326,7 +365,7 @@ EXPORT_SYMBOL_GPL(stat_info_unregister);
 /**
  * sprd_debugstat_init - add the debug stat
  */
-int sprd_debugstat_init(void)
+int sprd_debugstat_core_init(void)
 {
 	struct proc_dir_entry *dir;
 	struct proc_dir_entry *fle;
@@ -340,6 +379,13 @@ int sprd_debugstat_init(void)
 	fle = proc_create("stat", 0444, dir, &stat_fops);
 	if (!fle) {
 		pr_err("%s: Proc file create failed\n", __func__);
+		remove_proc_entry("sprd-debugstat", NULL);
+		return -EINVAL;
+	}
+
+	fle = proc_create("slp_cnt", 0644, dir, &slp_cnt_fops);
+	if (!fle) {
+		pr_err("%s: Proc file slp_cnt create failed\n", __func__);
 		remove_proc_entry("sprd-debugstat", NULL);
 		return -EINVAL;
 	}
