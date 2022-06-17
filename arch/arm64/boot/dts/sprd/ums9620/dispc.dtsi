@@ -29,6 +29,36 @@
 		#iommu-cells = <0>;
 	};
 
+	gsp_core0: gsp@31100000 {
+		compatible = "sprd,gsp-core";
+		reg = <0 0x31100000 0 0x2000>;
+		core-id = <0>;
+		kcfg-num = <16>;
+		interrupts = <GIC_SPI 151 IRQ_TYPE_LEVEL_HIGH>;
+		iommus = <&iommu_gsp>;
+
+		clock-names = "clk_src_512m",
+			      "clk_gsp_eb",
+			      "clk_dpuvsp_eb",
+			      "clk_gsp";
+
+		clocks = <&g5l_pll CLK_TGPLL_512M>,
+			 <&dpu_vsp_gate CLK_GSP0_EB>,
+			 <&aonapb_gate CLK_DPU_VSP_EB>,
+			 <&dpu_vsp_clk CLK_GSP0>;
+	};
+
+	iommu_gsp: iommu@31101000 {
+		compatible = "unisoc,iommuvaul6p-gsp";
+		reg = <0x0 0x31100000 0x0 0x80>,
+		      <0x0 0x31101000 0x0 0x80>;
+		iova-base = <0x20000000>;
+		iova-size = <0x10000000>;
+		reg_name = "mmu_reg";
+		status = "disabled";
+		#iommu-cells = <0>;
+	};
+
 	dsi: dsi@31300000 {
 		compatible = "sprd,qogirn6pro-dsi-host";
 		reg = <0x0 0x31300000 0x0 0x1000>;
@@ -94,9 +124,22 @@
 };
 
 / {
+	gsp: sprd-gsp {
+		compatible = "sprd,gsp-r9p0-qogirn6pro";
+		reg = <0 0x30130000 0 0x300>;
+		name = "sprd-gsp";
+		core-cnt = <1>;
+		io-cnt = <7>;
+		cores = <&gsp_core0>;
+
+		//#power-domain-cells = <0>;
+		//power-domains = <&vpu_pd_top>;
+	};
+
 	display-subsystem {
 		compatible = "sprd,display-subsystem";
 		ports = <&dpu_port>;
+		gsp = <&gsp>;
 	};
 };
 

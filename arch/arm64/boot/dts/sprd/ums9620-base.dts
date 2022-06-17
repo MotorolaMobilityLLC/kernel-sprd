@@ -181,6 +181,10 @@
 	status = "okay";
 };
 
+&iommu_gsp {
+	status = "okay";
+};
+
 &dsi {
 	status = "okay";
 	#address-cells = <1>;
