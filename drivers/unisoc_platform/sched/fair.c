@@ -688,8 +688,10 @@ static void walt_detach_task(struct task_struct *p, struct rq *src_rq,
 
 	lockdep_assert_rq_held(src_rq);
 
-	deactivate_task(src_rq, p, DEQUEUE_NOCLOCK);
+	deactivate_task(src_rq, p, 0);
 	double_lock_balance(src_rq, dst_rq);
+	if (!(src_rq->clock_update_flags & RQCF_UPDATED))
+		update_rq_clock(src_rq);
 	set_task_cpu(p, dst_rq->cpu);
 	double_unlock_balance(src_rq, dst_rq);
 }
