@@ -35,3 +35,11 @@ config PINCTRL_SPRD_SHARKL6
 	select PINCTRL_SPRD
 	help
 	  Say Y here to enable Spreadtrum sharkl6 pinctrl driver
+
+config PINCTRL_SPRD_QOGIRL6PRO
+	tristate "Spreadtrum qogirl6pro pinctrl driver"
+	depends on OF
+	depends on ARCH_SPRD || COMPILE_TEST
+	select PINCTRL_SPRD
+	help
+	  Say Y here to enable Spreadtrum qogirl6pro pinctrl driver
