@@ -76,6 +76,9 @@
 #include <trace/hooks/debug.h>
 #include <trace/hooks/bug.h>
 
+/* kmsg */
+#include <linux/kmsg_dump.h>
+
 /* debug symbols */
 #include <linux/android_debug_symbols.h>
 void *unisoc_linux_banner;
@@ -521,6 +524,76 @@ void handle_android_debug_symbol(void)
 	unisoc_linux_banner = android_debug_symbol(ADS_LINUX_BANNER);
 
 }
+#define KMSG_BUF_SIZE (128 * 1024)
+static char *kmsg_buf;
+#define DEFAULT_REASON "Normal"
+#define PANIC_REASON "Panic"
+void get_last_kmsg(char *buf, size_t buf_size, const char *why)
+{
+	struct kmsg_dump_iter iter;
+	size_t dump_size;
+	int header_size;
+
+	if (!buf || !why)
+		return;
+	kmsg_dump_rewind(&iter);
+
+	/* Write dump header. */
+	header_size = snprintf(buf, buf_size, "%s\n", why);
+	/* Write dump contents. */
+	buf_size -= header_size;
+	if (!kmsg_dump_get_buffer(&iter, true, buf + header_size, buf_size, &dump_size))
+		pr_info("get last kernel message failed\n");
+}
+#if 0
+static int sysdump_restart_handler(struct notifier_block *this, unsigned long mode,
+		void *cmd)
+#endif
+static int last_kmsg_handler(char *cmd)
+{
+	char reason[128] = {0};
+
+	if (kmsg_buf == NULL) {
+		pr_err("no available buf, do nothing!\n");
+		return -1;
+	}
+	if (!cmd) {
+		if (strlen(sprd_minidump_info->exception_info.exception_panic_reason))
+			strncpy(reason, PANIC_REASON, (sizeof(reason)-1));
+		else
+			strncpy(reason, DEFAULT_REASON, (sizeof(reason)-1));
+	} else {
+		strncpy(reason, cmd, (sizeof(reason)-1));
+	}
+	get_last_kmsg(kmsg_buf, KMSG_BUF_SIZE, reason);
+
+	return 0;
+}
+void last_kmsg_init(void)
+{
+/*
+	struct notifier_block kmsg_restart_handler;
+	int ret;
+*/
+	kmsg_buf = kzalloc(KMSG_BUF_SIZE, GFP_KERNEL);
+	if (kmsg_buf == NULL)
+		return;
+
+	SetPageReserved(virt_to_page(kmsg_buf));
+
+#if 0
+	kmsg_restart_handler.notifier_call = sysdump_restart_handler;
+	/* priority should be largger than spi-sprd-adi watchdog */
+	kmsg_restart_handler.priority = 131;
+	ret = register_restart_handler(&kmsg_restart_handler);
+	if (ret) {
+		pr_err("can not register restart handler\n");
+		return;
+	}
+#endif
+	minidump_save_extend_information("last_kmsg", __pa(kmsg_buf),
+			__pa(kmsg_buf + KMSG_BUF_SIZE));
+}
 static char *storenote(struct memelfnote *men, char *bufp)
 {
 	struct elf_note en;
@@ -868,9 +941,12 @@ static int sysdump_panic_event(struct notifier_block *self,
 	pr_emerg("*****************************************************\n");
 	pr_emerg("\n");
 
+	/* acquire last kernel messages */
+	last_kmsg_handler(reason);
+
+	/* cache */
 	flush_cache_all();
 	mdelay(1000);
-
 //	bust_spinlocks(0);
 
 #ifdef CONFIG_SPRD_DEBUG
@@ -1919,6 +1995,8 @@ static int sysdump_sysctl_init(void)
 #ifdef CONFIG_SPRD_MINI_SYSDUMP
 	minidump_init();
 #endif
+	/* last kmsg init*/
+	last_kmsg_init();
 	/* vmcoreinfo init */
 	crash_save_vmcoreinfo_init();
 	/* add percpu info to vmcoreinfo data, behind init */
@@ -1942,6 +2020,11 @@ void sysdump_sysctl_exit(void)
 #ifdef CONFIG_SPRD_MINI_SYSDUMP
 	ylog_buffer_exit();
 #endif
+	/* last kmsg exit */
+	if (kmsg_buf != NULL) {
+		ClearPageReserved(virt_to_page(kmsg_buf));
+		kfree(kmsg_buf);
+	}
 	/* vmcoreinfo exit */
 	crash_save_vmcoreinfo_exit();
 	unregister_trace_android_vh_ipi_stop(sysdump_ipi, NULL);
