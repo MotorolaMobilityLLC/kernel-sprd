@@ -584,7 +584,7 @@ static int sprd_audio_power_config_reg_vars(void)
 	int ret = 0;
 
 	if (arch_audio_codec_get_regmap() != NULL) {
-		pr_info("%s regmap exist return 0\n", __func__);
+		pr_debug("%s regmap exist return 0\n", __func__);
 		return 0;
 	}
 
@@ -632,7 +632,7 @@ static int sprd_audio_power_probe(struct platform_device *pdev)
 
 	id = pdev->id;
 
-	sp_asoc_pr_info("Probe %d\n", id);
+	sp_asoc_pr_dbg("Probe %d\n", id);
 
 	ret = sprd_audio_power_config_reg_vars();
 	if (ret) {
@@ -693,7 +693,7 @@ static int sprd_audio_power_probe(struct platform_device *pdev)
 		kfree(info);
 		return PTR_ERR(rdev);
 	}
-	sp_asoc_pr_info("Register %s Success!\n", info->desc.name);
+	sp_asoc_pr_dbg("Register %s Success!\n", info->desc.name);
 
 	platform_set_drvdata(pdev, rdev);
 

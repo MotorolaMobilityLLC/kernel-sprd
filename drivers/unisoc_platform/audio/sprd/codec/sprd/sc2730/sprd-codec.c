@@ -2827,7 +2827,7 @@ static int sprd_codec_info_get(struct snd_kcontrol *kcontrol,
 	chip_id = sci_get_ana_chip_id();
 	ver_id = sci_get_ana_chip_ver();
 
-	sp_asoc_pr_info("%s, chip_id = %d, ver_id=%d, AUDIO_CODEC_2730=%d\n",
+	sp_asoc_pr_dbg("%s, chip_id = %d, ver_id=%d, AUDIO_CODEC_2730=%d\n",
 		__func__, chip_id, ver_id, AUDIO_CODEC_2730);
 
 	ucontrol->value.integer.value[0] = AUDIO_CODEC_2730;

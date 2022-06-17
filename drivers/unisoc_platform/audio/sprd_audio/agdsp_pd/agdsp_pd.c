@@ -271,7 +271,7 @@ static int sprd_agdsp_pw_on(struct generic_pm_domain *domain)
 			cnt++;
 			ret = regmap_read(dsp_ac->pmu_apb,
 				dsp_ac->audcp_pmu_pwr_status4_reg, &val);
-			pr_info("%s, regmap_read val=0x%x!,mask:%x, ffs_mask:%d\n",
+			pr_dbg("%s, regmap_read val=0x%x!,mask:%x, ffs_mask:%d\n",
 				__func__, val,
 				dsp_ac->audcp_pmu_sys_slp_state_mask,
 				ffs(dsp_ac->audcp_pmu_sys_slp_state_mask));
@@ -335,7 +335,7 @@ static int sprd_agdsp_pw_off(struct generic_pm_domain *domain)
 			ret = regmap_update_bits(dsp_ac->agcp_ahb,
 				dsp_ac->ap_access_ena_reg,
 				dsp_ac->ap_access_ena_mask, 0);
-			pr_info("%s,update register AUDACCESS_APB_AGCP_CTRL, ret=%d\n",
+			pr_dbg("%s,update register AUDACCESS_APB_AGCP_CTRL, ret=%d\n",
 				__func__, ret);
 		}
 	}
@@ -567,7 +567,7 @@ static int agdsp_pd_probe(struct platform_device *pdev)
 	u32 offset;
 	u32 auto_agcp_access;
 
-	pr_info("%s, %d\n", __func__, __LINE__);
+	pr_dbg("%s, %d\n", __func__, __LINE__);
 
 	if (of_property_read_bool(node, "sprd,ddr-addr-offset")) {
 		if (of_property_read_u32

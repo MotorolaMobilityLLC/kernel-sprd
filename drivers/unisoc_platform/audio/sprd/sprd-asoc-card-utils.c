@@ -146,8 +146,10 @@ asoc_sprd_card_sub_parse_of(struct device_node *np,
 	ret = of_parse_phandle_with_args(np, "sound-dai",
 					 "#sound-dai-cells", 0, &args);
 	if (ret) {
-		pr_err("ERR: %s parse phandle '%s' failed!(%d)\n",
-		       __func__, np->name, ret);
+		if (!strstr(np->name, "codec")) {
+			pr_err("ERR: %s parse phandle '%s' failed!(%d)\n",
+				__func__, np->name, ret);
+		}
 		return ret;
 	}
 
@@ -158,8 +160,10 @@ asoc_sprd_card_sub_parse_of(struct device_node *np,
 	/* Get dai->name */
 	ret = snd_soc_of_get_dai_name(np, &component->dai_name);
 	if (ret < 0) {
-		pr_err("ERR: %s get dai name for '%s' failed!(%d)\n",
-		       __func__, np->name, ret);
+		if (ret != -EPROBE_DEFER) {
+			pr_err("ERR: %s get dai name for '%s' failed!(%d)\n",
+				__func__, np->name, ret);
+		}
 		return ret;
 	}
 
@@ -532,7 +536,7 @@ static int asoc_sprd_card_dai_link_of(struct device_node *node,
 					  dai_link->codecs, NULL);
 	if (ret < 0) {
 		if (-ENOENT == ret) {
-			pr_info("%s: parse for codec failed. Go to use a dummy codec.\n",
+			pr_debug("%s: parse for codec failed. Go to use a dummy codec.\n",
 			     __func__);
 			ret = asoc_sprd_card_dummy_codec_sel(codec, dai_link->codecs);
 			if (ret)
@@ -565,9 +569,9 @@ static int asoc_sprd_card_dai_link_of(struct device_node *node,
 		goto dai_link_of_err1;
 	}
 
-	dev_info(dev, "\tname : %s\n", dai_link->name ? dai_link->name :
+	dev_dbg(dev, "\tname : %s\n", dai_link->name ? dai_link->name :
 		"null");
-	dev_info(dev, "\tstream_name : %s\n", dai_link->stream_name ?
+	dev_dbg(dev, "\tstream_name : %s\n", dai_link->stream_name ?
 		dai_link->stream_name : "null");
 	dev_dbg(dev, "\tformat : %04x\n", dai_link->dai_fmt);
 	dev_dbg(dev, "\tcpu : %s / %d\n",

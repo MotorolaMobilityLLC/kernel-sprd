@@ -895,8 +895,8 @@ static int fe_dai_probe(struct snd_soc_dai *fe_dai)
 			__func__, fe_dai->driver->playback.stream_name);
 		intercon.source = fe_dai->driver->playback.stream_name;
 		intercon.sink = fe_dai_id_aif_name_playback[fe_dai->driver->id];
-		dev_info(fe_dai->dev, "%s: Adding route for playback: Src = %s, Sink = %s\n",
-			__func__, intercon.source, intercon.sink);
+		pr_info("Add route for playback: Src = %s, Sink = %s\n",
+				intercon.source, intercon.sink);
 		snd_soc_dapm_add_routes(dapm, &intercon, 1);
 	}
 
@@ -906,8 +906,8 @@ static int fe_dai_probe(struct snd_soc_dai *fe_dai)
 			__func__, fe_dai->driver->capture.stream_name);
 		intercon.sink = fe_dai->driver->capture.stream_name;
 		intercon.source = fe_dai_id_aif_name_capture[fe_dai->driver->id];
-		dev_info(fe_dai->dev, "%s: Adding route for capture:  Src = %s, Sink = %s\n",
-			__func__, intercon.source, intercon.sink);
+		pr_info("Add route for capture:  Src = %s, Sink = %s\n",
+				intercon.source, intercon.sink);
 		snd_soc_dapm_add_routes(dapm, &intercon, 1);
 	}
 

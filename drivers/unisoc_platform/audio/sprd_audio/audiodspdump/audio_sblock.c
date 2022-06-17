@@ -447,7 +447,7 @@ int audio_sblock_create(uint8_t dst, uint8_t channel,
 		return -ENOMEM;
 	}
 
-	pr_err("summer: %s head size is %d\n", __func__, hsize);
+	pr_debug("summer: %s head size is %d\n", __func__, hsize);
 	ringhd = (volatile struct sblock_ring_header *)
 		(sblock->smem_virt);
 	ringhd->txblk_addr = sblock->smem_dsp_addr + hsize;
@@ -538,7 +538,7 @@ int audio_sblock_create(uint8_t dst, uint8_t channel,
 			poolhd->txblk_addr + i * txblocksize;
 		sblock->ring->p_txblks[i].length = txblocksize;
 		sblock->ring->txrecord[i] = SBLOCK_BLK_STATE_DONE;
-		pr_err("summer %s:p_txblks[%d].addr 0x%08x\n", __func__,
+		pr_debug("summer %s:p_txblks[%d].addr 0x%08x\n", __func__,
 			i, sblock->ring->p_rxblks[i].addr);
 		poolhd->txblk_wrptr++;
 	}
@@ -548,14 +548,14 @@ int audio_sblock_create(uint8_t dst, uint8_t channel,
 			poolhd->rxblk_addr + i * rxblocksize;
 		sblock->ring->p_rxblks[i].length = rxblocksize;
 		sblock->ring->rxrecord[i] = SBLOCK_BLK_STATE_DONE;
-		pr_err("summer %s:p_rxblks[%d].addr 0x%08x, 0x%lx\n",
+		pr_debug("summer %s:p_rxblks[%d].addr 0x%08x, 0x%lx\n",
 			__func__, i,
 			sblock->ring->p_rxblks[i].addr,
 			(unsigned long)&sblock->ring->p_rxblks[i]);
 		poolhd->rxblk_wrptr++;
 	}
 
-	pr_err("summer : poolhd->rxblk_wrptr %d\n", poolhd->rxblk_wrptr);
+	pr_info("summer : poolhd->rxblk_wrptr %d\n", poolhd->rxblk_wrptr);
 	sblock->ring->yell = 1;
 
 	init_waitqueue_head(&sblock->ring->getwait);

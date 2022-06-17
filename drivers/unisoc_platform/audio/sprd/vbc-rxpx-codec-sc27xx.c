@@ -160,7 +160,9 @@ static int vbc_rxpx_codec_sc27xx_probe(struct platform_device *pdev)
 
 	ret = asoc_sprd_card_probe(pdev, &card);
 	if (ret) {
-		pr_err("ERR: %s, asoc_sprd_card_probe failed!\n", __func__);
+		if (ret != -EPROBE_DEFER) {
+			pr_info("ERR: %s, asoc_sprd_card_probe failed!\n", __func__);
+                }
 		goto error;
 	}
 

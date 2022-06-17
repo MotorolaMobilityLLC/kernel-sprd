@@ -2940,8 +2940,8 @@ static int vbc_turning_profile_loading(const u8 *profile_data, size_t profile_si
 	fw_data = profile_data;
 	unalign_memcpy(&p_profile_setting->hdr[profile_id], fw_data,
 						sizeof(p_profile_setting->hdr[profile_id]));
-	sp_asoc_pr_dbg("%s, &p_profile_setting->hdr[profile_id(%d)]", __func__, profile_id);
-	sp_asoc_pr_dbg(" =%#lx,phys=%#lx\n", (unsigned long)&p_profile_setting->hdr[profile_id],
+	pr_debug("%s, &p_profile_setting->hdr[profile_id(%d)]", __func__, profile_id);
+	pr_debug(" =%#lx,phys=%#lx\n", (unsigned long)&p_profile_setting->hdr[profile_id],
 					(unsigned long)virt_to_phys(&p_profile_setting->hdr[profile_id]));
 
 	if (strncmp(p_profile_setting->hdr[profile_id].magic,
@@ -2965,9 +2965,9 @@ static int vbc_turning_profile_loading(const u8 *profile_data, size_t profile_si
 	if (len > (profile_size - offset))
 		len = profile_size - offset;
 	unalign_memcpy(p_profile_setting->data[profile_id], fw_data + offset, len);
-	sp_asoc_pr_dbg("p_profile_setting->data[profile_id (%d)]", profile_id);
+	pr_debug("p_profile_setting->data[profile_id (%d)]", profile_id);
 
-	sp_asoc_pr_dbg(" =%#lx,phys=%#lx\n", (unsigned long)p_profile_setting->data[profile_id],
+	pr_debug(" =%#lx,phys=%#lx\n", (unsigned long)p_profile_setting->data[profile_id],
 					(unsigned long)virt_to_phys(p_profile_setting->data[profile_id]));
 	ret = 0;
 	goto profile_out;
@@ -2979,7 +2979,7 @@ profile_out:
 
 static int vbc_turning_ndp_open(struct inode *inode, struct file *file)
 {
-    pr_info("%s: opened\n", __func__);
+    pr_debug("%s: opened\n", __func__);
     return 0;
 }
 
@@ -3031,7 +3031,7 @@ static ssize_t vbc_turning_ndp_write(struct file *file, const char __user *data_
 
 static int vbc_turning_ndp_release(struct inode *inode, struct file *file)
 {
-    pr_info("%s: Enter\n", __func__);
+    pr_debug("%s: Enter\n", __func__);
 
     return 0;
 }
@@ -5386,8 +5386,8 @@ static int sprd_dai_vbc_probe(struct snd_soc_dai *dai)
 			__func__, dai->driver->playback.stream_name);
 		intercon.source = be_dai_id_aif_name_playback[dai->driver->id];
 		intercon.sink = dai->driver->playback.stream_name;
-		dev_info(dai->dev, "%s: Adding route for playback: Src = %s, Sink = %s\n",
-			__func__, intercon.source, intercon.sink);
+		pr_info("Add route for playback: Src = %s, Sink = %s\n",
+				intercon.source, intercon.sink);
 		snd_soc_dapm_add_routes(&dai->component->dapm, &intercon, 1);
 	}
 	if (dai->driver->capture.stream_name &&
@@ -5396,8 +5396,8 @@ static int sprd_dai_vbc_probe(struct snd_soc_dai *dai)
 			__func__, dai->driver->capture.stream_name);
 		intercon.sink = be_dai_id_aif_name_capture[dai->driver->id];
 		intercon.source = dai->driver->capture.stream_name;
-		dev_info(dai->dev, "%s: Adding route for capture:  Src = %s, Sink = %s\n",
-			__func__, intercon.source, intercon.sink);
+		pr_info("Add route for capture:  Src = %s, Sink = %s\n",
+				intercon.source, intercon.sink);
 		snd_soc_dapm_add_routes(&dai->component->dapm, &intercon, 1);
 	}
 
