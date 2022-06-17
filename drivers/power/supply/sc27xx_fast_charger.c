@@ -35,18 +35,20 @@
 #define SC2721_MODULE_EN0			0xC08
 #define SC2721_CLK_EN0				0xC10
 #define SC2721_IB_CTRL				0xEA4
+#define SC2721_IB_TRIM_OFFSET			0x1e
 #define SC2730_MODULE_EN0			0x1808
 #define SC2730_CLK_EN0				0x1810
 #define SC2730_IB_CTRL				0x1b84
+#define SC2730_IB_TRIM_OFFSET			0x1e
 #define UMP9620_MODULE_EN0			0x2008
 #define UMP9620_CLK_EN0				0x2010
 #define UMP9620_IB_CTRL				0x2384
+#define UMP9620_IB_TRIM_OFFSET			0x0
 
 #define ANA_REG_IB_TRIM_MASK			GENMASK(6, 0)
 #define ANA_REG_IB_TRIM_SHIFT			2
 #define ANA_REG_IB_TRIM_MAX			0x7f
 #define ANA_REG_IB_TRIM_EM_SEL_BIT		BIT(1)
-#define ANA_REG_IB_TRUM_OFFSET			0x1e
 
 #define FAST_CHARGE_MODULE_EN0_BIT		BIT(11)
 #define FAST_CHARGE_RTC_CLK_EN0_BIT		BIT(4)
@@ -87,24 +89,28 @@ struct sc27xx_fast_chg_data {
 	u32 module_en;
 	u32 clk_en;
 	u32 ib_ctrl;
+	u32 ib_trim_offset;
 };
 
 static const struct sc27xx_fast_chg_data sc2721_info = {
 	.module_en = SC2721_MODULE_EN0,
 	.clk_en = SC2721_CLK_EN0,
 	.ib_ctrl = SC2721_IB_CTRL,
+	.ib_trim_offset = SC2721_IB_TRIM_OFFSET,
 };
 
 static const struct sc27xx_fast_chg_data sc2730_info = {
 	.module_en = SC2730_MODULE_EN0,
 	.clk_en = SC2730_CLK_EN0,
 	.ib_ctrl = SC2730_IB_CTRL,
+	.ib_trim_offset = SC2730_IB_TRIM_OFFSET,
 };
 
 static const struct sc27xx_fast_chg_data ump9620_info = {
 	.module_en = UMP9620_MODULE_EN0,
 	.clk_en = UMP9620_CLK_EN0,
 	.ib_ctrl = UMP9620_IB_CTRL,
+	.ib_trim_offset = UMP9620_IB_TRIM_OFFSET,
 };
 
 struct sc27xx_fchg_info {
@@ -150,7 +156,7 @@ static int sc27xx_fchg_internal_cur_calibration(struct sc27xx_fchg_info *info)
 	 * by set the register ANA_REG_IB_CTRL. Now we add 30 level compensation.
 	 */
 	calib_current = (calib_data & FCHG_CALI_MASK) >> FCHG_CALI_SHIFT;
-	calib_current += ANA_REG_IB_TRUM_OFFSET;
+	calib_current += pdata->ib_trim_offset;
 
 	if (calib_current < 0 || calib_current > ANA_REG_IB_TRIM_MAX) {
 		dev_info(info->dev, "The compensated calib_current exceeds the range of IB_TRIM,"
