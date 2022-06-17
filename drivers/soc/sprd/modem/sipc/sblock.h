@@ -14,6 +14,8 @@
 #ifndef __SBLOCK_H
 #define __SBLOCK_H
 
+#include <linux/sipc.h>
+
 /* flag for CMD/DONE msg type */
 #define SMSG_CMD_SBLOCK_INIT		0x1
 #define SMSG_DONE_SBLOCK_INIT		0x2
@@ -92,8 +94,8 @@ struct sblock_ring {
 
 	struct sprd_pms	*tx_pms;
 	struct sprd_pms	*rx_pms;
-	char	tx_pms_name[20];
-	char	rx_pms_name[20];
+	char	tx_pms_name[MAX_OBJ_NAME_LEN];
+	char	rx_pms_name[MAX_OBJ_NAME_LEN];
 
 	void	*txblk_virt; /* virt of header->txblk_addr */
 	void	*rxblk_virt; /* virt of header->rxblk_addr */

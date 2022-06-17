@@ -25,9 +25,9 @@
 #include <linux/soc/sprd/sprd_mpm.h>
 #include <linux/suspend.h>
 #include <linux/types.h>
-
 #define SPRD_MPM_PRINT_TIMER	msecs_to_jiffies(60 * 1000)
 #define MAX_WAKEUP_LENTH	256
+#include <linux/string.h>
 
 /*
  * The data struct of modem power manager.
@@ -38,7 +38,7 @@ struct sprd_mpm_data {
 	struct timer_list	timer;
 	struct timer_list	print_timer;
 	spinlock_t		mpm_lock;
-	char			name[20];
+	char			name[MAX_OBJ_NAME_LEN];
 	const char		*last_name;
 	unsigned int		dst;
 	unsigned int		up_cnt;
@@ -146,9 +146,11 @@ static int sprd_mpm_init_debugfs(void)
 static void sprd_mpm_print_awake(struct sprd_mpm_data *mpm)
 {
 	struct sprd_pms *pms;
+	unsigned long flags;
 	int len = 0, max_len = MAX_WAKEUP_LENTH;
 
 	/* print pms list */
+	spin_lock_irqsave(&mpm->mpm_lock, flags);
 	list_for_each_entry(pms, &mpm->pms_list, entry) {
 		if (!pms->awake && pms->pre_awake_cnt == pms->awake_cnt)
 			continue;
@@ -161,6 +163,7 @@ static void sprd_mpm_print_awake(struct sprd_mpm_data *mpm)
 			 pms->awake_cnt);
 		len = strlen(mpm->awake_info);
 	}
+	spin_unlock_irqrestore(&mpm->mpm_lock, flags);
 
 	if (len)
 		pr_info("%s\n", mpm->awake_info);
@@ -848,7 +851,8 @@ struct sprd_pms *sprd_pms_create(unsigned int dst,
 		return NULL;
 
 	pms->multitask = multitask;
-	pms->name = name;
+	memcpy(pms->name, name, sizeof(pms->name));
+
 	pms->data = (void *)mpm;
 
 	spin_lock_init(&pms->active_lock);

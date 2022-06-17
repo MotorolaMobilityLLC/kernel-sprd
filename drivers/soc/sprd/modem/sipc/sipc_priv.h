@@ -47,8 +47,8 @@ struct smsg_channel {
 	struct mutex		rxlock;
 	struct sprd_pms	*tx_pms;
 	struct sprd_pms	*rx_pms;
-	char		tx_name[16];
-	char		rx_name[16];
+	char		tx_name[MAX_OBJ_NAME_LEN];
+	char		rx_name[MAX_OBJ_NAME_LEN];
 
 	/* cached msgs for recv */
 	uintptr_t		wrptr[1];
