@@ -1347,7 +1347,7 @@ static SPRD_SC_GATE_CLK_HW(mm_emc_eb, "mm-emc-eb", &aon_apb.common.hw, 0x50,
 static SPRD_SC_GATE_CLK_HW(power_cpu_eb, "power-cpu-eb", &aon_apb.common.hw, 0x50,
 			   0x1000, BIT(10), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK_HW(hw_i2c_eb, "hw-i2c-eb", &aon_apb.common.hw, 0x50,
-			   0x1000, BIT(11), 0, 0);
+			   0x1000, BIT(11), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK_HW(mm_vsp_emc_eb, "mm-vsp-emc-eb", &aon_apb.common.hw, 0x50,
 			   0x1000, BIT(14), 0, 0);
 static SPRD_SC_GATE_CLK_HW(vsp_eb, "vsp-eb", &aon_apb.common.hw, 0x50,
