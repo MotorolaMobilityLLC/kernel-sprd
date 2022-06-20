@@ -42,6 +42,12 @@
 			<32 0x217c>, <33 0x2188>, <34 0x21b8>, <35 0x21ac>;
 };
 
+&ddr_dfs {
+		sprd-scene = "boost", "lcdon", "lcdoff", "camlow",
+			"camhigh", "camveryhigh", "faceid", "top";
+		sprd-freq = <1244 768 384 1536 1536 1866 1244 2133>;
+};
+
 &vddwpa {
 	status = "disabled";
 };

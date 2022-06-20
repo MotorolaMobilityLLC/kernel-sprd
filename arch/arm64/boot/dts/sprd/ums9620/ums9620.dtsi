@@ -376,6 +376,7 @@
 /* Include other IP modules ALPHABETICALLY */
 #include "audio.dtsi"
 #include "clock.dtsi"
+#include "ddr-dfs.dtsi"
 #include "dispc.dtsi"
 #include "dma.dtsi"
 #include "efuse.dtsi"
