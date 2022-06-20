@@ -964,6 +964,19 @@ static int musb_sprd_otg_start_peripheral(struct sprd_glue *glue, int on)
 	return 0;
 }
 
+#if defined(CONFIG_USB_SPRD_OFFLOAD)
+static inline void musb_sprd_offload_shutdown(struct musb *musb)
+{
+	void __iomem	*mbase = musb->mregs;
+
+	musb_writel(mbase, MUSB_AUDIO_IIS_DMA_CHN, 0);
+}
+#else
+static inline void musb_sprd_offload_shutdown(struct musb *musb)
+{
+}
+#endif
+
 /**
  * musb_sprd_otg_start_host -  helper function for starting/stopping the host
  * controller driver.
@@ -1033,6 +1046,12 @@ static int musb_sprd_otg_start_host(struct sprd_glue *glue, int on)
 		}
 		musb->xceiv->otg->default_a = 0;
 		musb->xceiv->otg->state = OTG_STATE_B_IDLE;
+		/* disable usb audio offload */
+		if (musb->is_offload) {
+			dev_dbg(musb->controller, "disable audio channel\n");
+			musb_sprd_offload_shutdown(musb);
+			musb->is_offload = 0;
+		}
 		musb->offload_used = 0;
 		MUSB_DEV_MODE(musb);
 		glue->dr_mode = USB_DR_MODE_UNKNOWN;
@@ -1658,19 +1677,6 @@ static void musb_sprd_release_all_request(struct musb *musb)
 	}
 }
 
-#if defined(CONFIG_USB_SPRD_OFFLOAD)
-static inline void musb_sprd_offload_shutdown(struct musb *musb)
-{
-	void __iomem	*mbase = musb->mregs;
-
-	musb_writel(mbase, MUSB_AUDIO_IIS_DMA_CHN, 0);
-}
-#else
-static inline void musb_sprd_offload_shutdown(struct musb *musb)
-{
-}
-#endif
-
 static void musb_sprd_disable_all_interrupts(struct musb *musb)
 {
 	void __iomem	*mbase = musb->mregs;
@@ -1706,13 +1712,6 @@ static void musb_sprd_disable_all_interrupts(struct musb *musb)
 		musb_writel(mbase, MUSB_DMA_CHN_INTR(i),
 			intr);
 	}
-
-	/* disable usb audio offload */
-	if (musb->is_offload) {
-		dev_dbg(musb->controller, "disable audio channel\n");
-		musb_sprd_offload_shutdown(musb);
-		musb->is_offload = 0;
-	}
 }
 
 static int musb_sprd_pm_suspend(struct device *dev)
@@ -1736,6 +1735,7 @@ static int musb_sprd_pm_suspend(struct device *dev)
 
 	if (musb->is_offload && !musb->offload_used) {
 		if (glue->vbus) {
+			dev_info(glue->dev, "disable vbus regulator\n");
 			ret = regulator_disable(glue->vbus);
 			if (ret < 0)
 				dev_err(glue->dev,
@@ -1747,6 +1747,12 @@ static int musb_sprd_pm_suspend(struct device *dev)
 					   glue->usb_pub_slp_poll_offset,
 					   msk, val);
 		}
+	}
+
+	/* in host audio offload mode, don't do suspend */
+	if (glue->dr_mode == USB_DR_MODE_HOST && musb->is_offload) {
+		dev_info(glue->dev, "don't do %s in offload mode\n", __func__);
+		return 0;
 	}
 
 	musb_sprd_suspend(glue);
@@ -1764,9 +1770,9 @@ static int musb_sprd_pm_resume(struct device *dev)
 
 	dev_info(glue->dev, "%s: enter\n", __func__);
 
-	flush_work(&glue->resume_work);
 	if (musb->is_offload && !musb->offload_used) {
 		if (glue->vbus) {
+			dev_info(glue->dev, "enable vbus regulator\n");
 			ret = regulator_enable(glue->vbus);
 			if (ret < 0)
 				dev_err(glue->dev,
@@ -1780,6 +1786,12 @@ static int musb_sprd_pm_resume(struct device *dev)
 		}
 	}
 
+	if (!atomic_read(&glue->pm_suspended)) {
+		dev_info(glue->dev, "musb sprd pm is not suspended\n");
+		return 0;
+	}
+
+	flush_work(&glue->resume_work);
 	musb_sprd_resume(glue);
 	atomic_set(&glue->pm_suspended, 0);
 

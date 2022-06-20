@@ -2738,6 +2738,12 @@ static int musb_suspend(struct device *dev)
 	unsigned long	flags;
 	int ret;
 
+	/* in host audio offload mode, don't do suspend */
+	if (is_host_active(musb) && musb->is_offload) {
+		dev_info(musb->controller, "don't do %s in offload mode\n", __func__);
+		return 0;
+	}
+
 	ret = pm_runtime_get_sync(dev);
 	if (ret < 0) {
 		pm_runtime_put_noidle(dev);
@@ -2782,6 +2788,12 @@ static int musb_resume(struct device *dev)
 	int error;
 	u8 devctl;
 	u8 mask;
+
+	/* in host audio offload mode, don't do resume */
+	if (is_host_active(musb) && musb->is_offload) {
+		dev_info(musb->controller, "don't do %s in offload mode\n", __func__);
+		return 0;
+	}
 
 	/*
 	 * For static cmos like DaVinci, register values were preserved

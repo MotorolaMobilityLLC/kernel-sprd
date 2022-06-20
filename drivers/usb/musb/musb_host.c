@@ -3034,12 +3034,18 @@ static int musb_bus_suspend(struct usb_hcd *hcd)
 	u8		devctl;
 	int		ret;
 
+	if (!is_host_active(musb))
+		return 0;
+
+	if (musb->is_offload) {
+		/* in host audio mode, don't do suspend */
+		WARNING("don't do %s in offload mode\n", __func__);
+		return 0;
+	}
+
 	ret = musb_port_suspend(musb, true);
 	if (ret)
 		return ret;
-
-	if (!is_host_active(musb))
-		return 0;
 
 	switch (musb->xceiv->otg->state) {
 	case OTG_STATE_A_SUSPEND:
