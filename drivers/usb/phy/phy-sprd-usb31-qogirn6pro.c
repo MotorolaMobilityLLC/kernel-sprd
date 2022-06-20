@@ -450,16 +450,24 @@ static int sprd_ssphy_init(struct usb_phy *x)
 	writel_relaxed(reg, phy->base + 0x04);
 
 	/* usb3 switch port */
+	/* remove usbonly,add combophy for dp/usb */
 	ret |= regmap_read(phy->aon_apb, REG_AON_APB_BOOT_MODE, &reg);
 	msk = readl_relaxed(phy->base + 0x14);
 	if ((reg & BIT(10))) {
-		msk &= ~(BIT(1) | BIT(2) | BIT(3));
-		msk |= BIT(0) | BIT(4);
+		msk &= ~(BIT(2) | BIT(3));
+		msk |= BIT(0) | BIT(1) | BIT(4);
 	} else {
-		msk &= ~(BIT(1) | BIT(3));
-		msk |= BIT(0) | BIT(2) | BIT(4);
+		msk &= ~BIT(3);
+		msk |= BIT(0) | BIT(1) | BIT(2) | BIT(4);
 	}
 	writel_relaxed(msk, phy->base + 0x14);
+
+	msk = readl_relaxed(phy->base + 0x18);
+	if (reg & BIT(10))
+		msk &= ~BIT(2);
+	else
+		msk |= BIT(2);
+	writel_relaxed(msk, phy->base + 0x18);
 
 	msleep(10);
 	/* wait tca interrupt */
