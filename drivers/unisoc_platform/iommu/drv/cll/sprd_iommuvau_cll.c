@@ -417,11 +417,10 @@ u32 sprd_iommuvau_cll_enable(sprd_iommu_hdl p_iommu_hdl)
 	mmu_vau_default_ppn(p_iommu_priv->mmu_reg_addr, iommu_id, fault_page);
 
 	if (iommu_id != IOMMU_EX_ISP) {
-		if (iommu_id == IOMMU_EX_DISP)
-			mmu_vau_vpn_range(p_iommu_priv->mmu_reg_addr,
-			    iommu_id, (p_iommu_priv->vpn_range >> 12) - 1);
+		/* config vpn range */
+		mmu_vau_vpn_range(p_iommu_priv->mmu_reg_addr,
+			iommu_id, (p_iommu_priv->vpn_range >> 12) - 1);
 
-		/*vpn_range temporary use default value*/
 		if (p_iommu_priv->mini_ppn1 > 0)
 			mmu_vau_mini_ppn1(p_iommu_priv->mmu_reg_addr, iommu_id,
 				p_iommu_priv->mini_ppn1);
