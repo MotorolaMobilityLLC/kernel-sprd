@@ -7,6 +7,7 @@
 #include <linux/delay.h>
 #include <linux/module.h>
 #include <linux/mfd/syscon.h>
+#include <linux/of_platform.h>
 #include <linux/regmap.h>
 #include <linux/io.h>
 #include <linux/of_address.h>
@@ -302,16 +303,15 @@ static int dpu_clk_disable(struct dpu_context *ctx)
 static int dpu_glb_parse_dt(struct dpu_context *ctx,
 		struct device_node *np)
 {
-	struct sprd_dpu *dpu = (struct sprd_dpu *)container_of(ctx,
-							struct sprd_dpu, ctx);
+	struct platform_device *pdev = of_find_device_by_node(np);
 
-	ctx_reset = devm_reset_control_get(&dpu->dev, "dpu_ctx_rst");
+	ctx_reset = devm_reset_control_get(&pdev->dev, "dpu_ctx_rst");
 	if (IS_ERR(ctx_reset)) {
 		pr_warn("read ctx_reset failed\n");
 		return PTR_ERR(ctx_reset);
 	}
 
-	vau_reset = devm_reset_control_get(&dpu->dev, "dpu_vau_rst");
+	vau_reset = devm_reset_control_get(&pdev->dev, "dpu_vau_rst");
 	if (IS_ERR(vau_reset)) {
 		pr_warn("read vau_reset failed\n");
 		return PTR_ERR(vau_reset);

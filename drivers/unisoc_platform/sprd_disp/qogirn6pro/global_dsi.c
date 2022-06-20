@@ -7,6 +7,7 @@
 #include <linux/delay.h>
 #include <linux/module.h>
 #include <linux/mfd/syscon.h>
+#include <linux/of_platform.h>
 #include <linux/regmap.h>
 #include <linux/reset.h>
 
@@ -24,8 +25,7 @@ static struct reset_control *ctx_reset, *s_ctx_reset;
 static int dsi_glb_parse_dt(struct dsi_context *ctx,
 		struct device_node *np)
 {
-	struct sprd_dsi *dsi = (struct sprd_dsi *)container_of(ctx,
-							struct sprd_dsi, ctx);
+	struct platform_device *pdev = of_find_device_by_node(np);
 
 	clk_dsi0_eb =
 		of_clk_get_by_name(np, "clk_dsi0_eb");
@@ -62,7 +62,7 @@ static int dsi_glb_parse_dt(struct dsi_context *ctx,
 		clk_dpuvsp_disp_eb = NULL;
 	}
 
-	ctx_reset = devm_reset_control_get(&dsi->dev, "dsi_rst");
+	ctx_reset = devm_reset_control_get(&pdev->dev, "dsi_rst");
 	if (IS_ERR(ctx_reset)) {
 		pr_warn("read ctx_reset failed\n");
 		return PTR_ERR(ctx_reset);
