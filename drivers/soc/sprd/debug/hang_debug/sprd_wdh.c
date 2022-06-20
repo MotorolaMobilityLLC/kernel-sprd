@@ -71,6 +71,14 @@ static struct gicc_data *gicc_regs;
 struct cpumask *sprd_cpu_feed_mask;
 struct cpumask *sprd_cpu_feed_bitmap;
 
+#if IS_ENABLED(CONFIG_SPRD_HANG_WDF)
+extern unsigned int cpu_feed_mask;
+extern unsigned int cpu_feed_bitmap;
+#else
+static unsigned int cpu_feed_mask;
+static unsigned int cpu_feed_bitmap;
+#endif
+
 struct gicc_data {
 	u32 gicc_ctlr;	//nonsecure
 	u32 gicc_pmr;	//nonsecure
@@ -614,11 +622,16 @@ asmlinkage __visible void wdh_atf_entry(struct pt_regs *data)
 	wdh_step[cpu] = SPRD_HANG_DUMP_ENTER;
 	sprd_hang_debug_printf(true, "---wdh enter!---\n");
 
+#if IS_ENABLED(CONFIG_ARM64)
 	if (sprd_cpu_feed_mask && sprd_cpu_feed_bitmap)
 		sprd_hang_debug_printf(true, "cpu_feed_mask:%*pbl cpu_feed_bitmap:%*pbl\n",
 					cpumask_pr_args(sprd_cpu_feed_mask),
 					cpumask_pr_args(sprd_cpu_feed_bitmap));
+#else
+	sprd_hang_debug_printf(true, "cpu_feed_mask:0x%08x cpu_feed_bitmap:0x%08x\n",
+					cpu_feed_mask, cpu_feed_bitmap);
 
+#endif
 	oops_in_progress = 1;
 	pregs = &cpu_context[cpu];
 	*pregs = *data;
@@ -702,13 +715,17 @@ asmlinkage __visible void wdh_atf_entry(struct pt_regs *data)
 	do_kernel_restart("panic");
 }
 
+#if IS_ENABLED(CONFIG_ARM64)
 static struct sprd_sip_svc_handle *(*sprd_sip_svc_get_handle_ptr)(void);
+#endif
 
 #if IS_ENABLED(CONFIG_ARM64)
 asmlinkage void entry_for_wdh_el0(void);
 #endif
 asmlinkage void entry_for_wdh_el1(void);
 asmlinkage void entry_for_wdh_el2(void);
+
+#if IS_ENABLED(CONFIG_ARM64)
 static int __nocfi sprd_module_notifier_fn(struct notifier_block *nb,
 		unsigned long action, void *data)
 {
@@ -736,24 +753,11 @@ static int __nocfi sprd_module_notifier_fn(struct notifier_block *nb,
 		return NOTIFY_DONE;
 	}
 
-	ret = set_panic_debug_entry(
-#if IS_ENABLED(CONFIG_ARM64)
-		(unsigned long)entry_for_wdh_el0,
-
-#else
-		(unsigned long)entry_for_wdh_el1,
-#endif
-		0, SPRD_NS_EL0);
+	ret = set_panic_debug_entry((unsigned long)entry_for_wdh_el0, 0, SPRD_NS_EL0);
 	if (ret)
 		pr_emerg("init ATF entry_for_wdh0 error[%d]\n", ret);
 
-	ret = set_panic_debug_entry((unsigned long)entry_for_wdh_el1,
-#if IS_ENABLED(CONFIG_ARM64)
-		read_sysreg(ttbr1_el1),
-#else
-		0,
-#endif
-		SPRD_NS_EL1);
+	ret = set_panic_debug_entry((unsigned long)entry_for_wdh_el1, read_sysreg(ttbr1_el1), SPRD_NS_EL1);
 	if (ret)
 		pr_emerg("init ATF entry_for_wdh1 error[%d]\n", ret);
 
@@ -795,6 +799,30 @@ static int __nocfi sprd_getmask_notifier_fn(struct notifier_block *nb,
 static struct notifier_block sprd_getmask_notifier = {
 	.notifier_call = sprd_getmask_notifier_fn,
 };
+#else
+static int sprd_wdh_sip_init(void)
+{
+	int ret = 0;
+
+	svc_handle = sprd_sip_svc_get_handle();
+	if (!svc_handle)
+		pr_err("failed to get svc handle\n");
+
+	ret = set_panic_debug_entry((unsigned long)entry_for_wdh_el1, 0, SPRD_NS_EL0);
+	if (ret)
+		pr_emerg("init ATF entry_for_wdh0 error[%d]\n", ret);
+
+	ret = set_panic_debug_entry((unsigned long)entry_for_wdh_el1, 0, SPRD_NS_EL1);
+	if (ret)
+		pr_emerg("init ATF entry_for_wdh1 error[%d]\n", ret);
+
+	ret = set_panic_debug_entry((unsigned long)__pa_symbol(entry_for_wdh_el2), 0, SPRD_NS_EL2);
+	if (ret)
+		pr_emerg("init ATF entry_for_wdh2 error[%d]\n", ret);
+
+	return ret;
+}
+#endif
 
 #ifdef CONFIG_SPRD_SYSDUMP
 #define MAX_NAME_LEN 16
@@ -827,8 +855,12 @@ static int sprd_wdh_atf_init(void)
 	raw_spin_lock_init(&sprd_wdh_wclock);
 	atomic_set(&sprd_enter_wdh, 0);
 
+#if IS_ENABLED(CONFIG_ARM64)
 	/* register a notifier which called when modules install */
 	register_module_notifier(&sprd_module_notifier);
+#else
+	sprd_wdh_sip_init();
+#endif
 
 	gicc_regs = kmalloc(sizeof(struct gicc_data), GFP_KERNEL);
 	if (!gicc_regs) {
@@ -852,8 +884,10 @@ static int sprd_wdh_atf_init(void)
 		}
 	}
 
+#if IS_ENABLED(CONFIG_ARM64)
 	/* register a notifier which called when modules install */
 	register_module_notifier(&sprd_getmask_notifier);
+#endif
 
 	minidump_add_sprd_log_buf();
 	return ret;
