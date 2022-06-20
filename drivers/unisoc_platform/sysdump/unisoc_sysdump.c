@@ -440,8 +440,8 @@ int minidump_save_extend_information(const char *name, unsigned long paddr_start
 		sprd_minidump_info->section_info_total.total_size += extend_section->section_size;
 		sprd_minidump_info->minidump_data_size += extend_section->section_size;
 	}
-	pr_info("%s added successfully in minidump section:paddr_start=%lx,paddr_end=%lx\n",
-			name, paddr_start, paddr_end);
+//	pr_info("%s added successfully in minidump section:paddr_start=%lx,paddr_end=%lx\n",
+//			name, paddr_start, paddr_end);
 	sprd_minidump_info->section_info_total.total_num++;
 	mutex_unlock(&section_mutex);
 	return 0;
@@ -649,7 +649,7 @@ static unsigned long get_sprd_sysdump_info_paddr(void)
 
 
 	node = of_find_node_by_name(NULL, SPRD_SYSDUMP_RESERVED);
-	pr_info("[%s]in\n", __func__);
+//	pr_info("[%s]in\n", __func__);
 	if (!node) {
 		pr_err("Not find %s node from dts, use RAMDISK addr when panic\n",
 				SPRD_SYSDUMP_RESERVED);
@@ -660,13 +660,13 @@ static unsigned long get_sprd_sysdump_info_paddr(void)
 		if (!ret) {
 			sysdump_re_paddr = res.start;
 			sysdump_reflag = 1;
-			pr_info("the addr of sysdump reserved memory is 0x%lx\n", sysdump_re_paddr);
+//			pr_info("the addr of sysdump reserved memory is 0x%lx\n", sysdump_re_paddr);
 		} else {
 			pr_err("Not find res property from %s node\n", SPRD_SYSDUMP_RESERVED);
 			return 0;
 		}
 	}
-	pr_info("[%s]out\n", __func__);
+//	pr_info("[%s]out\n", __func__);
 	return sysdump_re_paddr;
 }
 static int sysdump_info_init(void)
@@ -716,7 +716,7 @@ static int sysdump_info_init(void)
 		/* get core regs info */
 		sprd_sysdump_info->sprd_coreregs_info.paddr_core_regs_t =
 			 unisoc_virt_to_phys(&per_cpu(sprd_debug_core_reg, smp_processor_id()));
-		pr_info("[%s]sysdump info init end!\n", __func__);
+//		pr_info("[%s]sysdump info init end!\n", __func__);
 	}
 
 	return 0;
@@ -1352,8 +1352,8 @@ static void section_info_ylog_buf(void)
 	ret = minidump_save_extend_information("ylog_buf",
 			unisoc_virt_to_phys(vaddr),
 			unisoc_virt_to_phys(vaddr + YLOG_BUF_SIZE));
-	if (!ret)
-		pr_info("ylog_buf added to minidump section ok!!\n");
+//	if (!ret)
+//		pr_info("ylog_buf added to minidump section ok!!\n");
 }
 
 #if 0
@@ -1425,7 +1425,7 @@ static void section_extend_info_init(void)
 }
 static int ylog_buffer_open(struct inode *inode, struct file *file)
 {
-	pr_info("open ylog_buffer ok !\n");
+//	pr_info("open ylog_buffer ok !\n");
 	return 0;
 }
 
@@ -1444,7 +1444,7 @@ static int ylog_buffer_map(struct file *filp, struct vm_area_struct *vma)
 			vma->vm_page_prot))
 		return -1;
 
-	pr_info("mmap ylog_buffer ok !\n");
+//	pr_info("mmap ylog_buffer ok !\n");
 	return 0;
 }
 
@@ -1467,7 +1467,7 @@ static int ylog_buffer_init(void)
 	if (ylog_buffer == NULL) {
 		return -1;
 	}
-	pr_info("%s: ylog_buffer vaddr is %p\n", __func__, ylog_buffer);
+//	pr_info("%s: ylog_buffer vaddr is %p\n", __func__, ylog_buffer);
 	sprintf(ylog_buffer, "%s", "This is ylog buffer. Now , it is nothing . ");
 	/*here, we can add something to head to check if data is ok */
 	SetPageReserved(virt_to_page(ylog_buffer));
@@ -1515,7 +1515,7 @@ int minidump_init(void)
 	minidump_info_desc_g.paddr = unisoc_virt_to_phys(sprd_minidump_info);
 	minidump_info_desc_g.size = sizeof(minidump_info_g);
 	section_extend_info_init();
-	pr_info("%s out.\n", __func__);
+//	pr_info("%s out.\n", __func__);
 	return 0;
 }
 void show_exception_info(void)
@@ -1911,7 +1911,7 @@ static int sysdump_sysctl_init(void)
 
 	sprd_sysdump_enable_prepare();
 #if defined(CONFIG_SPRD_DEBUG)
-	pr_info("userdebug enable sysdump in default !!!\n");
+//	pr_info("userdebug enable sysdump in default !!!\n");
 	set_sysdump_enable(1);
 #endif
 #ifdef CONFIG_SPRD_MINI_SYSDUMP
@@ -1921,7 +1921,7 @@ static int sysdump_sysctl_init(void)
 	crash_save_vmcoreinfo_init();
 	/* add percpu info to vmcoreinfo data, behind init */
 	update_vmcoreinfo_data();
-	pr_info("note buf size is %ld\n", SYSDUMP_NOTE_BYTES);
+//	pr_info("note buf size is %ld\n", SYSDUMP_NOTE_BYTES);
 
 	return 0;
 }

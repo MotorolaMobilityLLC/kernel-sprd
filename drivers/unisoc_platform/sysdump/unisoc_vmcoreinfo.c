@@ -219,7 +219,7 @@ int crash_save_vmcoreinfo_init(void)
 	update_vmcoreinfo_note();
 	minidump_save_extend_information("vmcore_info", (unsigned long)__pa(vmcoreinfo_note),
 			(unsigned long)__pa(vmcoreinfo_note_end));
-	pr_info("the VMCOREINFO_NOTE_SIZE is 0x%lx\n", VMCOREINFO_NOTE_SIZE);
+//	pr_info("the VMCOREINFO_NOTE_SIZE is 0x%lx\n", VMCOREINFO_NOTE_SIZE);
 
 	return 0;
 }
