@@ -1791,16 +1791,15 @@ static const struct clk_parent_data dcam_if_parents[] = {
 	{ .hw = &twpll_256m.hw  },
 	{ .hw = &twpll_307m2.hw  },
 	{ .hw = &twpll_384m.hw  },
-	{ .hw = &isppll_468m.hw  },
 };
 static SPRD_MUX_CLK_DATA(dcam_if, "dcam-if", dcam_if_parents,
-			 0x40, 0, 3, UMS312_MUX_FLAG);
+			 0x40, 0, 2, UMS312_MUX_FLAG);
 
 static const struct clk_parent_data dcam_axi_parents[] = {
+	{ .hw = &twpll_192m.hw  },
 	{ .hw = &twpll_256m.hw  },
 	{ .hw = &twpll_307m2.hw  },
 	{ .hw = &twpll_384m.hw  },
-	{ .hw = &isppll_468m.hw  },
 };
 static SPRD_MUX_CLK_DATA(dcam_axi, "dcam-axi", dcam_axi_parents,
 			 0x44, 0, 2, UMS312_MUX_FLAG);
@@ -1810,10 +1809,9 @@ static const struct clk_parent_data isp_parents[] = {
 	{ .hw = &twpll_307m2.hw  },
 	{ .hw = &twpll_384m.hw  },
 	{ .hw = &isppll_468m.hw  },
-	{ .hw = &twpll_512m.hw  },
 };
 static SPRD_MUX_CLK_DATA(isp, "isp", isp_parents,
-			 0x48, 0, 3, UMS312_MUX_FLAG);
+			 0x48, 0, 2, UMS312_MUX_FLAG);
 
 static SPRD_GATE_CLK_HW(mipi_csi0, "mipi-csi0", &mm_eb.common.hw,
 			0x4c, BIT(16), CLK_IGNORE_UNUSED, 0);
