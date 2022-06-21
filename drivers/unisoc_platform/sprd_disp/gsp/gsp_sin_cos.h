@@ -3,8 +3,8 @@
  * Copyright (C) 2020 Unisoc Inc.
  */
 
-#ifndef _GSP_R8P0_SIN_COS_H_
-#define _GSP_R8P0_SIN_COS_H_
+#ifndef _GSP_SIN_COS_H_
+#define _GSP_SIN_COS_H_
 
 static int sin_table[] = {
 	0x000000, 0x000192, 0x000324, 0x0004b6,

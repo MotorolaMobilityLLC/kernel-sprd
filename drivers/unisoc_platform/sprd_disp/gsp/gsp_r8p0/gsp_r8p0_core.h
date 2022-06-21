@@ -16,12 +16,12 @@
 #define R4P0_DPU_CLOCK_PARENT		("clk_dpu_core_src")
 
 #define MIN_POOL_SIZE			(6 * 1024)
-#define R8P0_GSP_COEF_CACHE_MAX		32
+#define GSP_COEF_CACHE_MAX		32
 
 struct gsp_r8p0_core {
 	struct gsp_core common;
 	struct list_head coef_list;
-	struct coef_entry coef_cache[R8P0_GSP_COEF_CACHE_MAX];
+	struct coef_entry coef_cache[GSP_COEF_CACHE_MAX];
 
 	ulong gsp_coef_force_calc;
 	uint32_t cache_coef_init_flag;

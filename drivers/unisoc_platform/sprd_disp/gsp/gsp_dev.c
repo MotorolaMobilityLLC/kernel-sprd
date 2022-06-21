@@ -25,6 +25,7 @@
 #include "gsp_sysfs.h"
 #include "gsp_workqueue.h"
 #include "gsp_r8p0/gsp_r8p0_core.h"
+#include "gsp_r9p0/gsp_r9p0_core.h"
 
 #include "../sprd_drm.h"
 #include "../sprd_drm_gsp.h"
@@ -43,9 +44,25 @@ static struct gsp_core_ops gsp_r8p0_core_ops = {
 	.dump = gsp_r8p0_core_dump,
 };
 
+static struct gsp_core_ops gsp_r9p0_core_ops = {
+	.parse_dt = gsp_r9p0_core_parse_dt,
+	.alloc = gsp_r9p0_core_alloc,
+	.init = gsp_r9p0_core_init,
+	.copy = gsp_r9p0_core_copy_cfg,
+	.trigger = gsp_r9p0_core_trigger,
+	.release = gsp_r9p0_core_release,
+	.enable = gsp_r9p0_core_enable,
+	.disable = gsp_r9p0_core_disable,
+	.intercept = gsp_r9p0_core_intercept,
+	.reset = gsp_r9p0_core_reset,
+	.dump = gsp_r9p0_core_dump,
+};
+
 static struct of_device_id gsp_dt_ids[] = {
 	{.compatible = "sprd,gsp-r8p0-sharkl5pro",
 	 .data = (void *)&gsp_r8p0_core_ops},
+	{.compatible = "sprd,gsp-r9p0-qogirn6pro",
+	.data = (void *)&gsp_r9p0_core_ops},
 	{},
 };
 MODULE_DEVICE_TABLE(of, gsp_dt_ids);

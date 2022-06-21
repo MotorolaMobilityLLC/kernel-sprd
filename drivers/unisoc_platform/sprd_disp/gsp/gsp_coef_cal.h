@@ -3,11 +3,12 @@
  * Copyright (C) 2020 Unisoc Inc.
  */
 
-#ifndef _GSP_R8P0_COEF_GENERATE_H_
-#define _GSP_R8P0_COEF_GENERATE_H_
+#ifndef _GSP_COEF_GENERATE_H_
+#define _GSP_COEF_GENERATE_H_
 
-#include "gsp_r8p0_core.h"
-#include "../gsp_debug.h"
+#include "gsp_r8p0/gsp_r8p0_core.h"
+#include "gsp_r9p0/gsp_r9p0_core.h"
+#include "gsp_debug.h"
 
 #define LIST_SET_ENTRY_KEY(pEntry, i_w, i_h, o_w, o_h, h_t, v_t)\
 {\
@@ -46,6 +47,14 @@ struct GSC_MEM_POOL {
 };
 
 uint32_t *gsp_r8p0_gen_block_scaler_coef(struct gsp_r8p0_core *core,
+						 uint32_t i_w,
+						 uint32_t i_h,
+						 uint32_t o_w,
+						 uint32_t o_h,
+						 uint32_t hor_tap,
+						 uint32_t ver_tap);
+
+uint32_t *gsp_r9p0_gen_block_scaler_coef(struct gsp_r9p0_core *core,
 						 uint32_t i_w,
 						 uint32_t i_h,
 						 uint32_t o_w,
