@@ -331,16 +331,16 @@ extern struct sprd_iommu_ops sprd_iommuvau_hw_ops;
 #define IOMMU_TAG "sprd_iommu: "
 
 #define IOMMU_DEBUG(fmt, ...) \
-	pr_debug(IOMMU_TAG  " %s()-" pr_fmt(fmt), __func__, ##__VA_ARGS__)
+	pr_debug(IOMMU_TAG  "-" pr_fmt(fmt), ##__VA_ARGS__)
 
 #define IOMMU_ERR(fmt, ...) \
-	pr_err(IOMMU_TAG  " %s()-" pr_fmt(fmt), __func__, ##__VA_ARGS__)
+	pr_err(IOMMU_TAG  "-" pr_fmt(fmt), ##__VA_ARGS__)
 
 #define IOMMU_INFO(fmt, ...) \
-	pr_info(IOMMU_TAG  "%s()-" pr_fmt(fmt), __func__, ##__VA_ARGS__)
+	pr_info(IOMMU_TAG  "-" pr_fmt(fmt), ##__VA_ARGS__)
 
 #define IOMMU_WARN(fmt, ...) \
-	pr_warn(IOMMU_TAG  "%s()-" pr_fmt(fmt), __func__, ##__VA_ARGS__)
+	pr_warn(IOMMU_TAG  "-" pr_fmt(fmt), ##__VA_ARGS__)
 
 
 #endif
