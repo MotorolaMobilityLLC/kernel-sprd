@@ -862,6 +862,7 @@
 #define REG_TOP_DVFS_APB_RF_TOP_DVFS_RESERVED_REG_CFG1                                     0x01c4
 #define REG_TOP_DVFS_APB_RF_TOP_DVFS_RESERVED_REG_CFG2                                     0x01c8
 #define REG_TOP_DVFS_APB_RF_TOP_DVFS_RESERVED_REG_CFG3                                     0x01cc
+#define REG_TOP_DVFS_APB_SUBSYS_SW_DVFS_EN_CFG                                             0x0150
 #define REG_MM_AHB_RF_AHB_EB                                                               0x0000
 #define REG_MM_AHB_RF_AHB_RST                                                              0x0004
 #define REG_MM_AHB_RF_GEN_CLK_CFG                                                          0x0008

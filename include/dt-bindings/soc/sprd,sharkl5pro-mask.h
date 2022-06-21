@@ -3949,6 +3949,7 @@
 #define MASK_TOP_DVFS_APB_RF_DVFS_RES_REG1                                                            0xffffffff
 #define MASK_TOP_DVFS_APB_RF_DVFS_RES_REG2                                                            0xffffffff
 #define MASK_TOP_DVFS_APB_RF_DVFS_RES_REG3                                                            0xffffffff
+#define MASK_TOP_DVFS_APB_GPU_SW_DVFS_EN                                                              0x2
 #define MASK_MM_AHB_RF_FD_EB                                                                          0x400
 #define MASK_MM_AHB_RF_DVFS_EB                                                                        0x200
 #define MASK_MM_AHB_RF_ISP_AHB_EB                                                                     0x100
