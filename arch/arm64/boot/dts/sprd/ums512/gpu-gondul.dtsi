@@ -38,6 +38,10 @@
 		reg = <0x0 0x60000000 0x0 0x100000>;
 		gpu-supply = <&vddgpu>;
 		system-coherency = <31>;
+
+		top_dvfs_cfg = <&top_dvfs_apb_regs
+			REG_TOP_DVFS_APB_SUBSYS_SW_DVFS_EN_CFG
+			MASK_TOP_DVFS_APB_GPU_SW_DVFS_EN>;
 		top_force_shutdown = <&pmu_apb_regs
 			REG_PMU_APB_RF_PD_GPU_TOP_CFG0
 			MASK_PMU_APB_RF_PD_GPU_TOP_FORCE_SHUTDOWN>;
