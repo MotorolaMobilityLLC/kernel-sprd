@@ -2023,7 +2023,7 @@ static void enable_vsync(struct dpu_context *ctx)
 
 static void disable_vsync(struct dpu_context *ctx)
 {
-	DPU_REG_CLR(ctx->base + REG_DPU_INT_EN, BIT_DPU_INT_VSYNC);
+	//DPU_REG_CLR(ctx->base + REG_DPU_INT_EN, BIT_DPU_INT_VSYNC);
 }
 
 static int dpu_context_init(struct dpu_context *ctx, struct device_node *np)
