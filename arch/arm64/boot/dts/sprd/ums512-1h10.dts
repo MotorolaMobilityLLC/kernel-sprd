@@ -56,7 +56,7 @@
 
 	chosen {
 		stdout-path = "serial1:115200n8";
-		bootargs = "earlycon loglevel=7 androidboot.hardware=ums512 printk.devkmsg=on  androidboot.selinux=permissive androidboot.boot_devices=soc/soc:ap-apb/71400000.sdio dummy_hcd.num=0 swiotlb=1 initcall_debug=1 ";
+		bootargs = "earlycon loglevel=7 androidboot.hardware=ums512 printk.devkmsg=on log_buf_len=1M androidboot.selinux=permissive androidboot.boot_devices=soc/soc:ap-apb/71400000.sdio dummy_hcd.num=0 swiotlb=1 initcall_debug=1 ";
 	};
 
 	pwm_backlight: sprd_backlight {
