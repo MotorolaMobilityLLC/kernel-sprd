@@ -206,7 +206,7 @@ static void cm_cap_remap_init_boundary(struct charger_desc *desc, int index, str
 		(desc->cap_remap_table[index].hcap - desc->cap_remap_table[index].lcap) *
 		desc->cap_remap_table[index].cnt;
 
-	dev_info(dev, "%s, cap_remap_table[%d].lb =%d,cap_remap_table[%d].hb = %d\n",
+	dev_dbg(dev, "%s, cap_remap_table[%d].lb =%d,cap_remap_table[%d].hb = %d\n",
 		 __func__, index, desc->cap_remap_table[index].lb, index,
 		 desc->cap_remap_table[index].hb);
 }
@@ -290,7 +290,7 @@ static int cm_init_cap_remap_table(struct charger_desc *desc, struct device *dev
 
 		cm_cap_remap_init_boundary(desc, i, dev);
 
-		dev_info(dev, "cap_remap_table[%d].lcap= %d,cap_remap_table[%d].hcap = %d,"
+		dev_dbg(dev, "cap_remap_table[%d].lcap= %d,cap_remap_table[%d].hcap = %d,"
 			 "cap_remap_table[%d].cnt= %d\n", i, desc->cap_remap_table[i].lcap,
 			 i, desc->cap_remap_table[i].hcap, i, desc->cap_remap_table[i].cnt);
 	}
@@ -299,7 +299,7 @@ static int cm_init_cap_remap_table(struct charger_desc *desc, struct device *dev
 		desc->cap_remap_total_cnt +=
 			(100 - desc->cap_remap_table[desc->cap_remap_table_len - 1].hcap);
 
-	dev_info(dev, "cap_remap_total_cnt =%d, cap_remap_table_len = %d\n",
+	dev_dbg(dev, "cap_remap_total_cnt =%d, cap_remap_table_len = %d\n",
 		 desc->cap_remap_total_cnt, desc->cap_remap_table_len);
 
 	return 0;
@@ -6172,7 +6172,7 @@ static int cm_init_jeita_table(struct sprd_battery_info *info,
 	for (i = SPRD_BATTERY_JEITA_DCP; i < SPRD_BATTERY_JEITA_MAX; i++) {
 		desc->jeita_size[i] = info->sprd_battery_jeita_size[i];
 		if (!desc->jeita_size[i]) {
-			dev_warn(dev, "%s jeita_size is zero\n",
+			dev_dbg(dev, "%s jeita_size is zero\n",
 				 sprd_battery_jeita_type_names[i]);
 			continue;
 		}
