@@ -2098,11 +2098,11 @@ static int sprd_swcq_cmd_open(struct inode *inode, struct file *file)
 	return single_open(file, sprd_swcq_cmd_show, inode->i_private);
 }
 
-static const struct file_operations swcq_cmd_fops = {
-	.open = sprd_swcq_cmd_open,
-	.read = seq_read,
-	.llseek = seq_lseek,
-	.release = single_release,
+static const struct proc_ops swcq_cmd_fops = {
+	.proc_open = sprd_swcq_cmd_open,
+	.proc_read = seq_read,
+	.proc_lseek = seq_lseek,
+	.proc_release = single_release,
 };
 
 static int sprd_swcq_cmdqmode_show(struct seq_file *m, void *v)
@@ -2135,15 +2135,15 @@ static int sprd_swcq_cmdqmode_open(struct inode *inode, struct file *file)
 	return single_open(file, sprd_swcq_cmdqmode_show, inode->i_private);
 }
 
-static const struct file_operations swcq_cmdqmode_fops = {
-	.open = sprd_swcq_cmdqmode_open,
-	.read = seq_read,
-	.write = sprd_swcq_cmdqmode_write,
-	.llseek = seq_lseek,
-	.release = single_release,
+static const struct proc_ops swcq_cmdqmode_fops = {
+	.proc_open = sprd_swcq_cmdqmode_open,
+	.proc_read = seq_read,
+	.proc_write = sprd_swcq_cmdqmode_write,
+	.proc_lseek = seq_lseek,
+	.proc_release = single_release,
 };
 
-static const struct file_operations *proc_fops_list[] = {
+static const struct proc_ops *proc_fops_list[] = {
 	&swcq_cmd_fops,
 	&swcq_cmdqmode_fops,
 };
@@ -2170,8 +2170,7 @@ int sprd_create_swcq_proc_init(void)
 	node = ARRAY_SIZE(sprd_emmc_node_info);
 	for (i = 0; i < node; i++) {
 		prEntry = proc_create(sprd_emmc_node_info[i], PROC_MODE,
-				      swcq_procdir,
-				      (const struct proc_ops *)proc_fops_list[i]);
+				      swcq_procdir, proc_fops_list[i]);
 		if (!prEntry) {
 			pr_err("%s,failed to create node: /proc/emmc_debug/%s\n",
 				__func__, sprd_emmc_node_info[i]);
