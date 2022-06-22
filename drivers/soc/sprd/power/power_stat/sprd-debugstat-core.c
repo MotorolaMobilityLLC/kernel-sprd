@@ -230,9 +230,8 @@ static int stat_read(struct seq_file *m, void *v)
 			*(pos->info) = *info_src;
 	}
 
-	for (i = 0; stat_print[i]; ++i) {
+	for (i = 0; stat_print[i]; ++i)
 		(stat_print[i])(m);
-	}
 
 	return 0;
 }

@@ -211,13 +211,14 @@ static int sprd_debugstat_driver_probe(struct platform_device *pdev)
 {
 	int ret;
 	struct debugstat_data *dbgstat_data;
-	struct device *dev = &pdev->dev;
+	struct device *dev;
 
 	if (!pdev) {
 		pr_err("%s: Get debug device error\n", __func__);
 		return -EINVAL;
 	}
 
+	dev = &pdev->dev;
 	dbgstat_data = devm_kzalloc(dev, sizeof(struct debugstat_data), GFP_KERNEL);
 	if (!dbgstat_data) {
 		pr_err("%s: dbgstat_data alloc error\n", __func__);

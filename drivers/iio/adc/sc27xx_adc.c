@@ -941,25 +941,10 @@ static const struct iio_chan_spec sc27xx_channels[] = {
 
 static int sprd_adc_pm_handle(struct sc27xx_adc_data *sc27xx_data, bool enable)
 {
-	unsigned int regval = 0, regval_bef;
-	int ret;
-
-	regmap_read(sc27xx_data->pm_data.pm_regmap, sc27xx_data->pm_data.clk26m_vote_reg,
-		    &regval_bef);
-
-
-	ret = regmap_update_bits(sc27xx_data->pm_data.pm_regmap,
+	return regmap_update_bits(sc27xx_data->pm_data.pm_regmap,
 				 sc27xx_data->pm_data.clk26m_vote_reg,
 				 sc27xx_data->pm_data.clk26m_vote_reg_mask,
 				 enable ? sc27xx_data->pm_data.clk26m_vote_reg_mask : 0);
-
-	regmap_read(sc27xx_data->pm_data.pm_regmap, sc27xx_data->pm_data.clk26m_vote_reg,
-		    &regval);
-
-	dev_info(sc27xx_data->dev, "enable %d, regval_bef 0x%x, regval 0x%x\n",
-		 enable, regval_bef, regval);
-
-	return ret;
 }
 
 static int sc27xx_adc_enable(struct sc27xx_adc_data *data)

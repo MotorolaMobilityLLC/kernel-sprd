@@ -553,7 +553,7 @@ static int sprd_pdbg_thread(void *data)
 		SPRD_PDBG_INFO("#---------PDBG LIGHT SLEEP END-----------#\n");
 
 		set_current_state(TASK_INTERRUPTIBLE);
-		schedule_timeout(pdbg->scan_interval * HZ);
+		schedule_timeout(pdbg->scan_interval * (long)HZ);
 	}
 
 	return 0;
