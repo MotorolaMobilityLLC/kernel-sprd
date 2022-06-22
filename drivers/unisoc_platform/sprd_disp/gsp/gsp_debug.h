@@ -13,7 +13,7 @@
 #ifdef pr_fmt
 #undef pr_fmt
 #endif
-#define pr_fmt(fmt) GSP_TAG " %s()-" fmt, __func__
+#define pr_fmt(fmt) GSP_TAG fmt
 
 #define GSP_DEBUG	pr_debug
 
@@ -26,12 +26,12 @@
 #define GSP_WARN	pr_warn
 
 #define GSP_DEV_DEBUG(dev, fmt, ...) \
-	dev_dbg(dev, "%s()-" fmt, __func__, ##__VA_ARGS__)
+	dev_dbg(dev, fmt, ##__VA_ARGS__)
 
 #define GSP_DEV_ERR(dev, fmt, ...) \
-	dev_err(dev, "%s()-" fmt, __func__, ##__VA_ARGS__)
+	dev_err(dev, fmt, ##__VA_ARGS__)
 
 #define GSP_DEV_INFO(dev, fmt, ...) \
-	dev_info(dev, "%s()-" fmt, __func__, ##__VA_ARGS__)
+	dev_info(dev, fmt, ##__VA_ARGS__)
 
 #endif
