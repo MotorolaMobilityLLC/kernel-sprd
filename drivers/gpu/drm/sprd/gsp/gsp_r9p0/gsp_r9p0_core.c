@@ -1266,7 +1266,7 @@ static void gsp_r9p0_hdr10_set(void __iomem *base, struct gsp_r9p0_cfg *cfg, int
 	cmd = (para->reg_hdr_csc3_a33 & 0xFFF);
 	gsp_core_reg_write(R9P0_HDR35_CFG(base, icnt), cmd);
 
-	gsp_core_reg_write(R9P0_HDR26_CFG(base, icnt), HDR_LUT_WRITE);
+	gsp_core_reg_write(R9P0_HDR26_CFG(base, icnt), HDR_DR_LUT_WRITE);
 
 	for (i = 0; i < HDR_DEGAMMA_LUT_SIZE; ++i) {
 		gsp_core_reg_write(R9P0_HDR9_CFG(base, icnt), i);
@@ -1287,8 +1287,8 @@ static void gsp_r9p0_hdr10_set(void __iomem *base, struct gsp_r9p0_cfg *cfg, int
 	gsp_core_reg_write(R9P0_HDR26_CFG(base, icnt), HDR_DR_LUT_WRITE_FINISH);
 
 
-	if (para->transfer_char == PQ_TYPE) {
-		gsp_core_reg_write(R9P0_HDR26_CFG(base, icnt), HDR_LUT_WRITE);
+	if (para->tone_map_en == 1) {
+		gsp_core_reg_write(R9P0_HDR26_CFG(base, icnt), HDR_TM_LUT_WRITE);
 
 		for (i = 0; i < HDR_TM_LUT_SIZE; ++i) {
 			gsp_core_reg_write(R9P0_HDR37_CFG(base, icnt), i);
@@ -1335,8 +1335,7 @@ static void gsp_r9p0_hdr10_set(void __iomem *base, struct gsp_r9p0_cfg *cfg, int
 	cmd |= ((para->reg_hdr_tm1_beta_gain & 0xFFFF) << 16);
 	gsp_core_reg_write(R9P0_HDR28_CFG(base, icnt), cmd);
 
-	cmd = (para->reg_hdr_tm2_beta_gain & 0xFFFF);
-	cmd |= ((para->reg_hdr_tm3_beta_gain & 0xFFFF) << 16);
+	cmd = HDR_TM23_BETA_GAIN;
 	gsp_core_reg_write(R9P0_HDR29_CFG(base, icnt), cmd);
 }
 
@@ -1351,7 +1350,7 @@ static void gsp_r9p0_hdr10plus_set(void __iomem *base, struct gsp_r9p0_cfg *cfg,
 	}
 
 	if (para->tone_map_en == 1) {
-		gsp_core_reg_write(R9P0_HDR26_CFG(base, icnt), HDR_LUT_WRITE);
+		gsp_core_reg_write(R9P0_HDR26_CFG(base, icnt), HDR_TM_LUT_WRITE);
 
 		for (i = 0; i < HDR_TM_LUT_SIZE; ++i) {
 			gsp_core_reg_write(R9P0_HDR37_CFG(base, icnt), i);

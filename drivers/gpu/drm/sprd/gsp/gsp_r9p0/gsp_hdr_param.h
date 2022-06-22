@@ -6,9 +6,11 @@
 #define HDR_TM_LUT_SIZE (1024 + 1)
 #define PQ_TYPE 16
 #define HLG_TYPE 18
-#define HDR_LUT_WRITE 0x30100
+#define HDR_DR_LUT_WRITE 0x30101
+#define HDR_TM_LUT_WRITE 0x30100
 #define HDR_DR_LUT_WRITE_FINISH 0x101
 #define HDR_TM_LUT_WRITE_FINISH 0x80100
+#define HDR_TM23_BETA_GAIN 0xffd0ffe
 
 uint32_t hdr_bypass_param[38] = {
 	0x0073E00, 0x0008080, 0x00004a8, 0x4a8072c, 0xfddeff26, 0x87304a8, 0x0000000,
