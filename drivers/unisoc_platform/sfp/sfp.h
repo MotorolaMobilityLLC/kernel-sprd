@@ -20,6 +20,7 @@
 #include <linux/ip.h>
 #include <net/tcp.h>
 #include <net/udp.h>
+#include <linux/sipa.h>
 #include <linux/types.h>
 #include <linux/kern_levels.h>
 #include <net/netfilter/nf_nat.h>
@@ -180,6 +181,26 @@ struct sfp_fwd_entry {
 	struct sfp_conn *sfp_ct;
 };
 
+#if IS_ENABLED(CONFIG_SPRD_IPA_V3_SUPPORT) || IS_ENABLED(CONFIG_UNISOC_SIPA_V3)
+/* sizeof fwd_entry is 120 bytes */
+struct fwd_entry {
+	struct pkt_tuple_info orig_info;
+	struct pkt_tuple_info trans_info;
+	struct mac_info trans_mac_info;
+	u8 out_ifindex;
+	u8 fwd_flags;
+	u8 mac_info_opts;
+	u8 reserve1;
+	u32 pkt_drop_th;
+	u32 pkt_current_idx; /* ip stream index, read-only for software */
+	u32 pkt_total_cnt; /* ip stream totol pkt count */
+	u32 pkt_current_cnt; /* ip stream pkt count currently */
+	u32 pkt_drop_cnt; /* ip stream total pkt drop count */
+	u32 time_stamp;
+	u32 reserve2;
+} __packed;
+#else
+/* sizeof fwd_entry is 96 bytes */
 struct fwd_entry {
 	struct pkt_tuple_info orig_info;
 	struct pkt_tuple_info trans_info;
@@ -189,6 +210,7 @@ struct fwd_entry {
 	__be32 time_stamp;
 	u16 reserve;
 } __packed;
+#endif
 
 struct hd_hash_tbl {
 	u8 pad1;
@@ -259,15 +281,6 @@ struct sfp_ipa_addr {
 	u8 *v_addr;
 	dma_addr_t handle;
 	size_t len;
-};
-
-/*
- * struct sipa_hash_table - hash table for IPA
- * TEMP structure for k5.4 GKI scan, no sipa module yet
- */
-struct sipa_hash_table {
-	u32 depth;
-	u64 tbl_phy_addr;
 };
 
 struct sfp_ipa_hash_tbl {

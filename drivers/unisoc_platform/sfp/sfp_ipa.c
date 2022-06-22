@@ -35,7 +35,13 @@
 
 #define IPA_HASH_ITEM_LEN 8
 #define IPA_HASH_TABLE_SIZE (IPA_HASH_ITEM_LEN * SFP_ENTRIES_HASH_SIZE)
+
+#if IS_ENABLED(CONFIG_SPRD_IPA_V3_SUPPORT) || IS_ENABLED(CONFIG_UNISOC_SIPA_V3)
+#define IPA_HASH_FWD_ENTRY_SIZE 120
+#else
 #define IPA_HASH_FWD_ENTRY_SIZE 96
+#endif
+
 #define IPA_DEFAULT_NUM 4096
 #define IPA_DEFAULT_INCR (128 * IPA_HASH_FWD_ENTRY_SIZE)
 #define DEFAULT_IPA_TBL_SIZE (IPA_HASH_TABLE_SIZE +\
@@ -252,7 +258,22 @@ static void sfp_tuple_to_entry(struct fwd_entry *entry,
 	entry->out_ifindex = cur_entry->ssfp_trans_tuple.out_ipaifindex;
 	entry->fwd_flags = 0;
 	entry->time_stamp = 0;
+
+#if IS_ENABLED(CONFIG_SPRD_IPA_V3_SUPPORT) || IS_ENABLED(CONFIG_UNISOC_SIPA_V3)
+	/* replace mac header in default */
+	entry->mac_info_opts = 1;
+
+	/* no flowctl in default */
+	entry->pkt_drop_th = 0;
+	entry->pkt_current_idx = 0;
+	entry->pkt_current_cnt = 0;
+	entry->pkt_drop_cnt = 0;
+
+	entry->reserve1 = 0;
+	entry->reserve2 = 0;
+#else
 	entry->reserve = 0;
+#endif
 }
 
 void print_hash_tbl(char *p, int len)
@@ -329,26 +350,16 @@ static void sfp_dma_hash_tbl_init(u8 *ipa_tbl_ptr, int n)
 	}
 }
 
-static int sipa_swap_hash_table(struct sipa_hash_table *new_tbl,
-				struct sipa_hash_table *old_tbl)
-{
-	FP_PRT_DBG(FP_PRT_INFO,
-		   "temp modification since sipa is not ko yet\n");
-	return 0;
-}
-
 void sfp_ipa_swap_tbl(void)
 {
-	struct sipa_hash_table ot;
-
+#if defined(CONFIG_SPRD_SIPA_V3) || defined(CONFIG_SPRD_IPA_V3)
+	sipa_swap_hash_table(&fwd_tbl.ipa_tbl_mgr.tbl[NEW_TBL_ID].sipa_tbl);
+#endif
 	FP_PRT_DBG(FP_PRT_DEBUG,
 		   "##swap tbl %llx to ipa, depth %d, index %d\n",
 		   fwd_tbl.ipa_tbl_mgr.tbl[NEW_TBL_ID].sipa_tbl.tbl_phy_addr,
 		   fwd_tbl.ipa_tbl_mgr.tbl[NEW_TBL_ID].sipa_tbl.depth,
 		   NEW_TBL_ID);
-
-	sipa_swap_hash_table(&fwd_tbl.ipa_tbl_mgr.tbl[NEW_TBL_ID].sipa_tbl,
-			     &ot);
 
 	sfp_swap_tbl_id();
 }
@@ -430,7 +441,7 @@ static int sfp_ipa_update_hash_slow(void)
 
 int sfp_ipa_hash_add(struct sfp_conn *sfp_ct)
 {
-	if (atomic_read(&fwd_tbl.entry_cnt) > 4096) {
+	if (atomic_read(&fwd_tbl.entry_cnt) >= IPA_DEFAULT_NUM - 1) {
 		FP_PRT_DBG(FP_PRT_ERR,
 			   "out of entry mem!\n");
 
@@ -492,6 +503,18 @@ bool sfp_ipa_tbl_timeout(struct sfp_conn *sfp_ct)
 
 	if (TCP_CT(sfp_ct))
 		return false;
+#if IS_ENABLED(CONFIG_SPRD_SIPA_V3) ||\
+	IS_ENABLED(CONFIG_SPRD_IPA_V3) ||\
+	IS_ENABLED(CONFIG_UNISOC_SIPA_V3)
+	/* before we read timestamp,
+	 * we need to flush ipa cache back to ddr,
+	 * ensure to get the latest entry
+	 */
+	if (sipa_hal_set_hash_sync_req()) {
+		FP_PRT_DBG(FP_PRT_DEBUG, "fail to check ts\n");
+		return true;
+	}
+#endif
 
 	if (!sfp_get_ipa_ts(IP_CT_DIR_ORIGINAL, sfp_ct, &ts_orig_new) ||
 	    !sfp_get_ipa_ts(IP_CT_DIR_REPLY, sfp_ct, &ts_repl_new)) {

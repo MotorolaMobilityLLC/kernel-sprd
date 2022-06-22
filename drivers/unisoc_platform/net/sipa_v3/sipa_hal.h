@@ -90,7 +90,7 @@ int sipa_hal_free_tx_rx_fifo_buf(struct device *dev,
 int sipa_hal_init_pam_param(enum sipa_cmn_fifo_index dl_idx,
 			    enum sipa_cmn_fifo_index ul_idx,
 			    struct sipa_to_pam_info *out);
-void sipa_hal_set_hash_sync_req(void);
+int sipa_hal_set_hash_sync_req(void);
 int sipa_swap_hash_table(struct sipa_hash_table *new_tbl);
 int sipa_config_ifilter(struct sipa_filter_tbl *ifilter);
 int sipa_config_ofilter(struct sipa_filter_tbl *ofilter);

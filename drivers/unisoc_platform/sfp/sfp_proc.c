@@ -20,6 +20,7 @@
 #include <net/route.h>
 
 #include "sfp.h"
+#include "sfp_ipa.h"
 
 static unsigned int proc_nfp_perms = 0666;
 
@@ -27,6 +28,7 @@ static struct proc_dir_entry *procdir;
 static struct proc_dir_entry *sfp_proc_mgr_fwd;
 static struct proc_dir_entry *sfp_proc_debug;
 static struct proc_dir_entry *sfp_proc_fwd;
+static struct proc_dir_entry *sfp_proc_ipa;
 static struct proc_dir_entry *sfp_proc_enable;
 static struct proc_dir_entry *sfp_proc_tether_scheme;
 static struct proc_dir_entry *sfp_test;
@@ -544,9 +546,113 @@ static const struct proc_ops proc_sfp_file_tether_scheme_ops = {
 	.proc_release = single_release,
 };
 
+static void sfp_print_ipa_fwd_entry(int index, struct seq_file *seq,
+				    struct fwd_entry *cur_entry)
+{
+	seq_printf(seq, "------------INDEX#%d----------\n", index);
+	seq_puts(seq, "Original:");
+	if (cur_entry->orig_info.l3_proto == NFPROTO_IPV4) {
+		seq_printf(seq, "%pI4->%pI4\t", &cur_entry->orig_info.src_ip.ip,
+			   &cur_entry->orig_info.dst_ip.ip);
+	} else {
+		seq_printf(seq, "%pI6->%pI6\t", &cur_entry->orig_info.src_ip.ip,
+			   &cur_entry->orig_info.dst_ip.ip);
+	}
+
+	seq_printf(seq, "%d->%d\t", ntohs(cur_entry->orig_info.src_l4_info.all),
+		   ntohs(cur_entry->orig_info.dst_l4_info.all));
+
+	seq_printf(seq, "l3proto: %d l4proto: %d\n",
+		   cur_entry->orig_info.l3_proto,
+		   cur_entry->orig_info.l4_proto);
+
+	seq_puts(seq, "Transfer:");
+	if (cur_entry->trans_info.l3_proto == NFPROTO_IPV4) {
+		seq_printf(seq, "%pI4->%pI4\t",
+			   &cur_entry->trans_info.src_ip.ip,
+			   &cur_entry->trans_info.dst_ip.ip);
+	} else {
+		seq_printf(seq, "%pI6->%pI6\t",
+			   &cur_entry->trans_info.src_ip.ip6,
+			   &cur_entry->trans_info.dst_ip.ip6);
+	}
+
+	seq_printf(seq, "%d->%d\t",
+		   ntohs(cur_entry->trans_info.src_l4_info.all),
+		   ntohs(cur_entry->trans_info.dst_l4_info.all));
+
+	seq_printf(seq, "l3proto: %d l4proto: %d\n",
+		   cur_entry->trans_info.l3_proto,
+		   cur_entry->trans_info.l4_proto);
+
+	seq_printf(seq, "MAC:%pM->%pM\n", &cur_entry->trans_mac_info.src_mac,
+		   &cur_entry->trans_mac_info.dst_mac);
+
+	seq_printf(seq, "dst id: %d fwd_flags %d\n", cur_entry->out_ifindex,
+		   cur_entry->fwd_flags);
+
+#if IS_ENABLED(CONFIG_SPRD_IPA_V3_SUPPORT) || IS_ENABLED(CONFIG_UNISOC_SIPA_V3)
+	seq_printf(seq, "mac_info_opts %d\n", cur_entry->mac_info_opts);
+
+	seq_printf(seq, "pkt_drop_th %d pkt_current_idx %d\n",
+		   cur_entry->pkt_drop_th, cur_entry->pkt_current_idx);
+	seq_printf(seq, "pkt_total_cnt %d pkt_current_cnt %d pkt_drop_cnt %d\n",
+		   cur_entry->pkt_total_cnt, cur_entry->pkt_current_cnt,
+		   cur_entry->pkt_drop_cnt);
+#endif
+
+	seq_printf(seq, "time_stamp %d\n", cur_entry->time_stamp);
+}
+
+static int sfp_ipa_proc_show(struct seq_file *seq, void *v)
+{
+	int i;
+	u8 *v_hash;
+	struct fwd_entry *cur_entry;
+
+	if (!get_sfp_tether_scheme()) {
+		seq_printf(seq, "T0: entry_cnt %d\n",
+			   atomic_read(&fwd_tbl.entry_cnt));
+
+		seq_puts(seq, "################Table0 START################\n");
+		v_hash = sfp_get_hash_vtbl(T0);
+
+		for (i = 0; i < atomic_read(&fwd_tbl.entry_cnt); i++) {
+			cur_entry = (struct fwd_entry *)(v_hash + SFP_ENTRIES_HASH_SIZE * 8) + i;
+			sfp_print_ipa_fwd_entry(i, seq, cur_entry);
+		}
+
+		seq_puts(seq, "################Table0 END##################\n");
+		seq_printf(seq, "T1: entry_cnt %d\n",
+			   atomic_read(&fwd_tbl.entry_cnt));
+		seq_puts(seq, "**************Table1 START******************\n");
+		v_hash = sfp_get_hash_vtbl(T1);
+
+		for (i = 0; i < atomic_read(&fwd_tbl.entry_cnt); i++) {
+			cur_entry = (struct fwd_entry *)(v_hash + SFP_ENTRIES_HASH_SIZE * 8) + i;
+			sfp_print_ipa_fwd_entry(i, seq, cur_entry);
+		}
+
+		seq_puts(seq, "**************Table1 END********************\n");
+	}
+	return 0;
+}
+
+static int sfp_ipa_proc_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, sfp_ipa_proc_show, NULL);
+}
+
+static const struct proc_ops proc_sfp_file_ipa_ops = {
+	.proc_open  = sfp_ipa_proc_open,
+	.proc_read  = seq_read,
+	.proc_lseek  = seq_lseek,
+	.proc_release = single_release,
+};
+
 int sfp_proc_create(void)
 {
-#ifdef CONFIG_PROC_FS
+#if IS_ENABLED(CONFIG_PROC_FS)
 	int ret;
 
 	procdir = proc_mkdir("sfp", init_net.proc_net);
@@ -602,6 +708,16 @@ int sfp_proc_create(void)
 		ret = -ENOMEM;
 		goto no_tether_scheme_entry;
 	}
+	/* ipa_fwd_entries */
+	sfp_proc_ipa = proc_create_data("ipa_fwd_entries", proc_nfp_perms,
+					procdir,
+					&proc_sfp_file_ipa_ops,
+					NULL);
+	if (!sfp_proc_ipa) {
+		pr_err("nfp: failed to create ipa/fwd_entries file\n");
+		ret = -ENOMEM;
+		goto no_ipa_entry;
+	}
 
 	sfp_test = proc_create_data("test", proc_nfp_perms,
 				    procdir,
@@ -626,6 +742,8 @@ no_fwd_entry:
 	remove_proc_entry("mgr_fwd_entries", procdir);
 no_mgr_fwd_entry:
 	remove_proc_entry("sfp", NULL);
+no_ipa_entry:
+	remove_proc_entry("ipa_fwd_entries", procdir);
 no_dir:
 	return ret;
 #endif

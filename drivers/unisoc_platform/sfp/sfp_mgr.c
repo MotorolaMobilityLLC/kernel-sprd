@@ -1105,8 +1105,9 @@ static void sfp_ipa_dev_init(void)
 
 	memset(&sfp_ipa_dev, 0, sizeof(struct device));
 	sfp_ipa_dev.bus = &platform_bus_type;
-
-#ifdef CONFIG_DMA_PERDEV_COHERENT
+	sfp_ipa_dev.coherent_dma_mask = DMA_BIT_MASK(32);
+	sfp_ipa_dev.dma_mask = &sfp_ipa_dev.coherent_dma_mask;
+#if IS_ENABLED(CONFIG_DMA_PERDEV_COHERENT)
 	sfp_ipa_dev.archdata.dma_coherent = false;
 #endif
 }
