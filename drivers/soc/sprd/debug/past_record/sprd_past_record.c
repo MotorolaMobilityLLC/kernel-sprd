@@ -220,7 +220,7 @@ static int sprd_debug_deep_sleep_tracing_init(void)
 
 	register_syscore_ops(&sprd_past_record_syscore_ops);
 
-	sprd_past_record_dev = kmalloc(sizeof(struct device), GFP_KERNEL);
+	sprd_past_record_dev = kzalloc(sizeof(struct device), GFP_KERNEL);
 	if (!sprd_past_record_dev)
 		return -ENOMEM;
 	sprd_past_record_dev->coherent_dma_mask = DMA_BIT_MASK(32);
