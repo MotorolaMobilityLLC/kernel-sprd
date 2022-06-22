@@ -3,7 +3,7 @@
 		compatible = "sprd,qogirn6pro-dpu";
 		reg = <0x0 0x31000000 0x0 0x3000>,
 		       <0x0 0x30120000 0x0 0x100>;
-		resets = <&dpu_vsp_gate RESET_DPU_VSP_APB_DSI0_SOFT_RST>,
+		resets = <&dpu_vsp_gate RESET_DPU_VSP_APB_DPU_SOFT_RST>,
 			<&dpu_vsp_gate RESET_DPU_VSP_APB_DPU_VAU_SOFT_RST>;
 		reset-names = "dpu_ctx_rst", "dpu_vau_rst";
 		interrupts = <GIC_SPI 152 IRQ_TYPE_LEVEL_HIGH>;
@@ -32,7 +32,7 @@
 	dsi: dsi@31300000 {
 		compatible = "sprd,qogirn6pro-dsi-host";
 		reg = <0x0 0x31300000 0x0 0x1000>;
-		resets = <&dpu_vsp_gate MASK_DPU_VSP_APB_DSI0_SOFT_RST>;
+		resets = <&dpu_vsp_gate RESET_DPU_VSP_APB_DSI0_SOFT_RST>;
 		reset-names = "dsi_rst";
 		interrupts = <GIC_SPI 158 IRQ_TYPE_LEVEL_HIGH>,
 		<GIC_SPI 157 IRQ_TYPE_LEVEL_HIGH>;
