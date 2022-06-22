@@ -389,8 +389,8 @@
 			compatible = "sprd,ums9620-aon-gate";
 			//sprd,syscon = <&aon_apb_regs>; /* 0x64900000 */
 			reg = <0x0 0x3000>;
-			clocks = <&ext_26m>;
-			clock-names = "ext-26m";
+			clocks = <&ext_26m>, <&ext_32k>;
+			clock-names = "ext-26m", "ext-32k";
 			#clock-cells = <1>;
 			#reset-cells = <1>;
 		};

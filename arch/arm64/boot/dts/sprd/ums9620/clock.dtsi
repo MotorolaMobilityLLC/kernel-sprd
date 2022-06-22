@@ -43,9 +43,6 @@
 	ai_dvfs_clk: clock-controller@27008000 {
 		compatible = "sprd,ums9620-ai-dvfs-clk";
 		reg = <0 0x27008000 0 0x3000>;
-		syscons = <&aon_apb_regs REG_AON_APB_APB_EB0 MASK_AON_APB_AI_EB>,
-			<&pmu_apb_regs  REG_PMU_APB_PD_AI_CFG_0 MASK_PMU_APB_PD_AI_FORCE_SHUTDOWN>;
-		syscon-names = "enable", "power";
 		clocks = <&ext_26m>;
 		clock-names = "ext-26m";
 		#clock-cells = <1>;
