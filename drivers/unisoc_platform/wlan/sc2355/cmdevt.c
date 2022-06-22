@@ -3506,7 +3506,7 @@ static void cmdevt_report_chan_changed_evt(struct sprd_vif *vif, u8 *data, u16 l
 			/* we will be active on the channel */
 			cfg80211_chandef_create(&chandef, ch,
 						NL80211_CHAN_HT20);
-			cfg80211_ch_switch_notify(vif->ndev, &chandef);
+			cfg80211_ch_switch_notify(vif->ndev, &chandef, 0);
 		} else {
 			pr_err("%s, ch is null!\n", __func__);
 		}
