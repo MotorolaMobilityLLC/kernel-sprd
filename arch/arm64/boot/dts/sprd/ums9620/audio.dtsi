@@ -207,6 +207,7 @@
 		sprd,syscon-clk-rf = <&audcp_clk_rf_regs>;
 		sprd,syscon-dvfs-apb = <&audcp_dvfs_apb_rf_regs>;
 		sprd,syscon-aon-apb = <&aon_apb_regs>;
+		power-domains = <&agdsp_domain>;
 	};
 
 	sprd_audio_codec_dig: audio-codec@56360000 {
