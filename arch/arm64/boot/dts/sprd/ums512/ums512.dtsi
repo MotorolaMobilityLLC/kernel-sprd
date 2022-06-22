@@ -18,6 +18,9 @@
 	#address-cells = <2>;
 	#size-cells = <2>;
 
+        soc-module="UMS512";
+        soc-manufacturer="Spreadtrum";
+
 	cpus {
 		#address-cells = <2>;
 		#size-cells = <0>;
