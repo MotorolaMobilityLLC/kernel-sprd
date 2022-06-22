@@ -20,12 +20,10 @@ EXT_MODULES="
 DTC_FLAGS+="-@"
 
 MAKE_GOALS="${MAKE_GOALS}
-Image.gz
 dtbs
 "
 
 FILES="${FILES}
-arch/arm64/boot/Image.gz
 arch/arm64/boot/dts/sprd/ums9620-base.dtb
 arch/arm64/boot/dts/sprd/ums9620-1h10-overlay.dtbo
 arch/arm64/boot/dts/sprd/ums9620-2h10-overlay.dtbo

@@ -544,7 +544,7 @@ int sprd_cfg80211_change_beacon(struct wiphy *wiphy, struct net_device *ndev,
 	return cfg80211_set_beacon_ies(vif, beacon);
 }
 
-int sprd_cfg80211_stop_ap(struct wiphy *wiphy, struct net_device *ndev)
+int sprd_cfg80211_stop_ap(struct wiphy *wiphy, struct net_device *ndev, unsigned int link_id)
 {
 	netdev_info(ndev, "%s\n", __func__);
 

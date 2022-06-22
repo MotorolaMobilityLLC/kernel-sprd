@@ -1049,7 +1049,7 @@ int sc2332_start_ap(struct sprd_priv *priv, struct sprd_vif *vif, u8 *beacon,
 	ch = ieee80211_get_channel(priv->wiphy, freq);
 	if (ch) {
 		cfg80211_chandef_create(&chandef, ch, NL80211_CHAN_HT20);
-		cfg80211_ch_switch_notify(vif->ndev, &chandef);
+		cfg80211_ch_switch_notify(vif->ndev, &chandef, 0);
 	} else {
 		netdev_err(vif->ndev, "%s, ch is null!\n", __func__);
 	}
@@ -1624,6 +1624,7 @@ int sc2332_xmit_data2cmd(struct sk_buff *skb, struct net_device *ndev)
 	struct llc_hdr *llc;
 	struct sprd_vif *vif = netdev_priv(ndev);
 	struct sk_buff *tmp = skb;
+	const struct cfg80211_chan_def *chandef;
 	unsigned int extra =
 	    sizeof(struct ieee80211_hdr_3addr) +
 	    sizeof(struct llc_hdr) - sizeof(struct ethhdr);
@@ -1632,8 +1633,10 @@ int sc2332_xmit_data2cmd(struct sk_buff *skb, struct net_device *ndev)
 		pr_err("%s can not get channel\n", __func__);
 		return -EINVAL;
 	}
-	if (vif->mode == SPRD_MODE_P2P_GO || vif->mode == SPRD_MODE_AP)
-		channel = ndev->ieee80211_ptr->chandef.chan->hw_value;
+	if (vif->mode == SPRD_MODE_P2P_GO || vif->mode == SPRD_MODE_AP) {
+		chandef = wdev_chandef(ndev->ieee80211_ptr, 0);
+		channel = chandef->chan->hw_value;
+	}
 
 	memcpy(&ehdr, skb->data, sizeof(struct ethhdr));
 	/* 802.3 to 802.11 */

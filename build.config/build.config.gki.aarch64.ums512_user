@@ -37,12 +37,10 @@ export BSP_BOARD_CAMERA_MODULE_DVFS="sharkl5pro"
 DTC_FLAGS+="-@"
 
 MAKE_GOALS="${MAKE_GOALS}
-Image.gz
 dtbs
 "
 
 FILES="${FILES}
-arch/arm64/boot/Image.gz
 arch/arm64/boot/dts/sprd/ums512-base.dtb
 arch/arm64/boot/dts/sprd/ums512-1h10-go-overlay.dtbo
 arch/arm64/boot/dts/sprd/ums512-1h10-overlay.dtbo
