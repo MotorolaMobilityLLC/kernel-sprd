@@ -14,6 +14,13 @@ config SPRD_PMIC_SYSCON
 	depends on MFD_SC27XX_PMIC || MFD_UMP96XX_PMIC || COMPILE_TEST
 	help
 		Enable this configuration option to enable pmic global driver.
+
+config SPRD_UNISOC_MANUFACTURER_MODULE
+        tristate "Spread unisoc manufacturer module driver"
+        depends on ARCH_SPRD || COMPILE_TEST
+        help
+          Say Y here to enable smpl module.
+
 config UNISOC_7SRESET
         tristate "Unisoc PMIC 7s reset driver"
 	depends on ARCH_SPRD || COMPILE_TEST
