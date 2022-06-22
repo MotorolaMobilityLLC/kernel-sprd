@@ -13,12 +13,18 @@
 #include <linux/module.h>
 #include <linux/slab.h>
 #include <linux/sysctl.h>
+#include <linux/thermal.h>
 #include <trace/hooks/thermal.h>
+#include <trace/events/power.h>
 
 #define MAX_CLUSTER_NUM	3
+#define FTRACE_CLUS0_LIMIT_FREQ_NAME "thermal-cpufreq-0-limit"
+#define FTRACE_CLUS1_LIMIT_FREQ_NAME "thermal-cpufreq-1-limit"
+#define FTRACE_CLUS2_LIMIT_FREQ_NAME "thermal-cpufreq-2-limit"
 
 static unsigned int sysctl_thm_enable = 1;
 static unsigned int sysctl_user_power_range;
+static struct thermal_zone_device *soc_tz;
 
 struct ctl_table thermal_table[] = {
 	{
@@ -116,7 +122,7 @@ static void unisoc_thermal_power_cap(void *data, unsigned int *power_range)
 
 /* modify thermal target frequency */
 static inline
-struct cpufreq_policy *find_cpufreq_policy(struct cpufreq_policy *curr)
+struct cpufreq_policy *find_next_cpufreq_policy(struct cpufreq_policy *curr)
 {
 	struct sprd_thermal_ctl *thm_ctl;
 
@@ -134,19 +140,40 @@ static void unisoc_modify_thermal_target_freq(void *data,
 {
 	unsigned int curr_max_freq;
 	struct cpufreq_policy *cpufreq_policy_find;
+	struct thermal_cooling_device *cdev = policy->cdev;
 
 	curr_max_freq = cpufreq_quick_get_max(policy->cpu);
 
-	if (curr_max_freq <= *target_freq) {
-		*target_freq = curr_max_freq;
-		return;
-	}
-
-	cpufreq_policy_find = find_cpufreq_policy(policy);
-	if (cpufreq_policy_find &&
-		cpufreq_policy_find->max != cpufreq_policy_find->min)
+	cpufreq_policy_find = find_next_cpufreq_policy(policy);
+	if (cpufreq_policy_find && curr_max_freq > *target_freq)
+		if (cpufreq_policy_find->max != cpufreq_policy_find->min)
 			*target_freq = curr_max_freq;
 
+	/* Debug info for cpufreq cooling device */
+	pr_info("cpu%d temp:%d target_freq:%u\n", policy->cpu, soc_tz->temperature, *target_freq);
+
+	if (!cdev)
+		return;
+
+	switch (cdev->id) {
+	case 0:
+		trace_clock_set_rate(FTRACE_CLUS0_LIMIT_FREQ_NAME,
+			*target_freq, smp_processor_id());
+		break;
+
+	case 1:
+		trace_clock_set_rate(FTRACE_CLUS1_LIMIT_FREQ_NAME,
+			*target_freq, smp_processor_id());
+		break;
+
+	case 2:
+		trace_clock_set_rate(FTRACE_CLUS2_LIMIT_FREQ_NAME,
+			*target_freq, smp_processor_id());
+		break;
+
+	default:
+		break;
+	}
 }
 
 /* modify request frequency */
@@ -210,6 +237,10 @@ static int sprd_thermal_ctl_init(void)
 	register_trace_android_vh_modify_thermal_target_freq(unisoc_modify_thermal_target_freq, NULL);
 	register_trace_android_vh_modify_thermal_request_freq(unisoc_modify_thermal_request_freq, NULL);
 	register_trace_android_vh_get_thermal_zone_device(unisoc_get_thermal_zone_device, NULL);
+
+	soc_tz = thermal_zone_get_zone_by_name("soc-thmzone");
+	if (IS_ERR(soc_tz))
+		pr_err("Failed to get soc thermal zone\n");
 
 	return 0;
 
