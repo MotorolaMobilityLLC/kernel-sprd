@@ -1488,7 +1488,7 @@ reset_card:
 				chk_time = 0;
 			else if (sched_clock() - chk_time > CMD13_TMO_NS)
 				/* sleep when timeout */
-				usleep_range(2000, 5000);
+				usleep_range_state(2000, 5000, TASK_UNINTERRUPTIBLE);
 		}
 		/* Sleep when nothing to do */
 		spin_lock_irqsave(&swcq->lock, flags);

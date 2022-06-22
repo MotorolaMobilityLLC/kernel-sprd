@@ -1258,7 +1258,7 @@ static bool sdhci_sprd_send_command_retry(struct sdhci_host *host,
 
 		spin_unlock_irqrestore(&host->lock, flags);
 
-		usleep_range(1000, 1250);
+		usleep_range_state(1000, 1250, TASK_UNINTERRUPTIBLE);
 
 		present = host->mmc->ops->get_cd(host->mmc);
 
@@ -2074,7 +2074,7 @@ static bool sdhci_sprd_send_command(struct sdhci_host *host, struct mmc_command 
 					if (cmd->opcode == MMC_QUE_TASK_ADDR)
 						spin_unlock(&host->lock);
 
-					usleep_range(50, 100);
+					usleep_range_state(50, 100, TASK_UNINTERRUPTIBLE);
 
 					if (cmd->opcode == MMC_QUE_TASK_ADDR)
 						spin_lock(&host->lock);
