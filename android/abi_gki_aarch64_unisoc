@@ -1043,6 +1043,7 @@
   trace_handle_return
   trace_raw_output_prep
   trace_seq_printf
+  __traceiter_clock_set_rate
   try_module_get
   __tty_alloc_driver
   tty_flip_buffer_push
