@@ -52,7 +52,7 @@
 #define DHCP_PORT 67
 #define DNS_PORT 53
 
-#ifdef CONFIG_SPRD_IPA_V3_SUPPORT
+#if IS_ENABLED(CONFIG_SPRD_IPA_V3)
 #define CHK_FWD_ENTRY_SIZE (sizeof(struct fwd_entry) != 120)
 #else
 #define CHK_FWD_ENTRY_SIZE (sizeof(struct fwd_entry) != 96)
@@ -73,7 +73,7 @@ static const char * const sfp_netdev[] = {
 
 #define IPA_TERM_MAX 32
 static const char * const ipa_netdev[IPA_TERM_MAX] = {
-				    [1] = "usb",
+				    [1] = "sipa_usb",
 				    [2] = "wlan",
 				    [6] = "sipa_eth",
 				  };
@@ -1105,7 +1105,6 @@ static void sfp_ipa_dev_init(void)
 			   sizeof(struct fwd_entry),
 			   sizeof(struct hd_hash_tbl));
 	}
-
 	memset(&sfp_ipa_dev, 0, sizeof(struct device));
 	sfp_ipa_dev.bus = &platform_bus_type;
 	sfp_ipa_dev.coherent_dma_mask = DMA_BIT_MASK(32);

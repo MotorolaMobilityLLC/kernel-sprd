@@ -637,7 +637,7 @@ static void sfp_print_ipa_fwd_entry(int index, struct seq_file *seq,
 	seq_printf(seq, "dst id: %d fwd_flags %d\n", cur_entry->out_ifindex,
 		   cur_entry->fwd_flags);
 
-#ifdef CONFIG_SPRD_IPA_V3_SUPPORT
+#if IS_ENABLED(CONFIG_SPRD_IPA_V3)
 	seq_printf(seq, "mac_info_opts %d\n", cur_entry->mac_info_opts);
 
 	seq_printf(seq, "pkt_drop_th %d pkt_current_idx %d\n",

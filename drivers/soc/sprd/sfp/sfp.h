@@ -181,7 +181,7 @@ struct sfp_fwd_entry {
 	struct sfp_conn *sfp_ct;
 };
 
-#ifdef CONFIG_SPRD_IPA_V3_SUPPORT
+#if IS_ENABLED(CONFIG_SPRD_IPA_V3)
 /* sizeof fwd_entry is 120 bytes */
 struct fwd_entry {
 	struct pkt_tuple_info orig_info;

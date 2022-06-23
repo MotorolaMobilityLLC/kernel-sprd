@@ -35,7 +35,7 @@
 
 #define IPA_HASH_ITEM_LEN 8
 #define IPA_HASH_TABLE_SIZE (IPA_HASH_ITEM_LEN * SFP_ENTRIES_HASH_SIZE)
-#ifdef CONFIG_SPRD_IPA_V3_SUPPORT
+#if IS_ENABLED(CONFIG_SPRD_IPA_V3)
 #define IPA_HASH_FWD_ENTRY_SIZE 120
 #else
 #define IPA_HASH_FWD_ENTRY_SIZE 96
@@ -256,8 +256,7 @@ static void sfp_tuple_to_entry(struct fwd_entry *entry,
 	entry->out_ifindex = cur_entry->ssfp_trans_tuple.out_ipaifindex;
 	entry->fwd_flags = 0;
 	entry->time_stamp = 0;
-	entry->reserve = 0;
-#if IS_ENABLED(CONFIG_SPRD_IPA_V3_SUPPORT)
+#if IS_ENABLED(CONFIG_SPRD_IPA_V3)
 	/* replace mac header in default */
 	entry->mac_info_opts = 1;
 
@@ -501,7 +500,7 @@ bool sfp_ipa_tbl_timeout(struct sfp_conn *sfp_ct)
 
 	if (TCP_CT(sfp_ct))
 		return false;
-#if defined(CONFIG_SPRD_SIPA_V3) || defined(CONFIG_SPRD_IPA_V3)
+#if IS_ENABLED(CONFIG_SPRD_SIPA_V3) || IS_ENABLED(CONFIG_SPRD_IPA_V3)
 	/* before we read timestamp,
 	 * we need to flush ipa cache back to ddr,
 	 * ensure to get the latest entry
@@ -561,13 +560,13 @@ static void sfp_ipa_alloc_tbl(int sz)
 	fwd_tbl.ipa_tbl_mgr.tbl[T0].h_tbl.v_addr = v0;
 	fwd_tbl.ipa_tbl_mgr.tbl[T0].h_tbl.handle = h0;
 	fwd_tbl.ipa_tbl_mgr.tbl[T0].h_tbl.sz = sz;
-	fwd_tbl.ipa_tbl_mgr.tbl[T0].sipa_tbl.depth = IPA_HASH_TABLE_SIZE;
+	fwd_tbl.ipa_tbl_mgr.tbl[T0].sipa_tbl.depth = SFP_ENTRIES_HASH_SIZE;
 	fwd_tbl.ipa_tbl_mgr.tbl[T0].sipa_tbl.tbl_phy_addr = (u64)h0;
 
 	fwd_tbl.ipa_tbl_mgr.tbl[T1].h_tbl.v_addr = v1;
 	fwd_tbl.ipa_tbl_mgr.tbl[T1].h_tbl.handle = h1;
 	fwd_tbl.ipa_tbl_mgr.tbl[T1].h_tbl.sz = sz;
-	fwd_tbl.ipa_tbl_mgr.tbl[T1].sipa_tbl.depth = IPA_HASH_TABLE_SIZE;
+	fwd_tbl.ipa_tbl_mgr.tbl[T1].sipa_tbl.depth = SFP_ENTRIES_HASH_SIZE;
 	fwd_tbl.ipa_tbl_mgr.tbl[T1].sipa_tbl.tbl_phy_addr = (u64)h1;
 
 	/*zero hash tbl*/
