@@ -316,6 +316,7 @@
   get_cpu_device
   __get_free_pages
   get_governor_parent_kobj
+  get_pid_task
   get_random_bytes
   gov_attr_set_get
   gov_attr_set_init
@@ -683,6 +684,7 @@
   pskb_expand_head
   put_device
   put_pages_list
+  put_pid
   put_tty_driver
   queue_delayed_work_on
   queue_work_on
