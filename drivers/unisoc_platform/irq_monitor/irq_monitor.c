@@ -28,11 +28,9 @@ static void add_irq_monitor(struct irq_data *irq_data, bool atomic)
 {
 	struct irq_monitor *monitor;
 	int hwirq = irq_data->hwirq;
-	gfp_t gfp_flag = GFP_KERNEL;
 
 	/* Sometimes we need add new monitors in interrupt context */
-	if (unlikely(atomic))
-		gfp_flag |= GFP_ATOMIC;
+	gfp_t gfp_flag = atomic ? GFP_ATOMIC : GFP_KERNEL;
 
 	monitor = kmalloc(sizeof(struct irq_monitor), gfp_flag);
 	if (unlikely(!monitor))
@@ -96,11 +94,7 @@ static void irq_monitor_scan(struct timer_list *t)
 	do_div(curr_time, NSEC_PER_MSEC);
 	time_delta = curr_time - prev_time;
 
-	for (i = 0; i < nr_irqs; i++) {
-		irq_desc = irq_to_desc(i);
-		if (!irq_desc)
-			continue;
-
+	for_each_irq_desc(i, irq_desc) {
 		if (irq_desc->irq_data.domain != gic_domain)
 			continue;
 
@@ -136,14 +130,9 @@ static int threshold_set(void *data, u64 val)
 	threshold_global = (unsigned int)val;
 
 	/* Setup threshold for every interrupts */
-	for (i = 0; i < nr_irqs; i++) {
-		irq_desc = irq_to_desc(i);
-		if (!irq_desc)
-			continue;
-
+	for_each_irq_desc(i, irq_desc) {
 		if (irq_desc->irq_data.domain != gic_domain)
 			continue;
-
 		hwirq = irq_desc->irq_data.hwirq;
 		monitor = (struct irq_monitor *)radix_tree_lookup(&monitor_tree, hwirq);
 		if (likely(monitor))
@@ -184,11 +173,7 @@ static int __init irq_monitor_init(void)
 	debugfs_create_file("interval", 0600, irq_monitor_dir, NULL, &interval_fops);
 
 	/* Add monitors for the existing interrupts */
-	for (i = 0; i < nr_irqs; i++) {
-		irq_desc = irq_to_desc(i);
-		if (!irq_desc)
-			continue;
-
+	for_each_irq_desc(i, irq_desc) {
 		if (!gic_domain) {
 			if (!strncmp(irq_desc->irq_data.chip->name, "GIC", 3))
 				gic_domain = irq_desc->irq_data.domain;
@@ -222,11 +207,7 @@ static void __exit irq_monitor_exit(void)
 
 	debugfs_remove(irq_monitor_dir);
 
-	for (i = 0; i < nr_irqs; i++) {
-		irq_desc = irq_to_desc(i);
-		if (!irq_desc)
-			continue;
-
+	for_each_irq_desc(i, irq_desc) {
 		if (irq_desc->irq_data.domain != gic_domain)
 			continue;
 
