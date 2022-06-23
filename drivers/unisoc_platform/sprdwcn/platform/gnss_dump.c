@@ -294,7 +294,7 @@ static void get_gnss_pll_switch_state(void)
 			dfs_info.gnss_dfs_info, dfs_info.debugdfs0,
 			dfs_info.debugdfs1);
 	/*debugdfs1[27]:dfs_done*/
-	if (dfs_info.debugdfs1 | (1 << 27)) {
+	if (dfs_info.debugdfs1 & (1 << 27)) {
 		gnss_pll_switch_flag = 1;
 		return;
 	}
