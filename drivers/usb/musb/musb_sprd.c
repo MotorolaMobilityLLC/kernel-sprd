@@ -560,7 +560,10 @@ static const struct musb_platform_ops sprd_musb_ops = {
 	.recover = sprd_musb_recover,
 };
 
-#define SPRD_MUSB_MAX_EP_NUM	16
+/* don't need to define sprd max ep num specially
+ * better to use MUSB_C_NUM_EPS defined in musb_core.h
+ * #define SPRD_MUSB_MAX_EP_NUM	16
+ */
 #define SPRD_MUSB_RAM_BITS	13
 static struct musb_fifo_cfg sprd_musb_device_mode_cfg[] = {
 	MUSB_EP_FIFO_DOUBLE(1, FIFO_TX, 512),
@@ -635,7 +638,7 @@ static struct musb_hdrc_config sprd_musb_hdrc_config = {
 	.fifo_cfg_size = ARRAY_SIZE(sprd_musb_device_mode_cfg),
 	.multipoint = false,
 	.dyn_fifo = true,
-	.num_eps = SPRD_MUSB_MAX_EP_NUM,
+	.num_eps = MUSB_C_NUM_EPS,
 	.ram_bits = SPRD_MUSB_RAM_BITS,
 };
 #pragma GCC diagnostic pop

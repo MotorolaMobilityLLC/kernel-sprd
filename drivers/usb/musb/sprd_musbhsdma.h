@@ -139,7 +139,8 @@
 #define LISTNODE_NUM			2048
 #define LISTNODE_MASK			(LISTNODE_NUM - 1)
 
-#define MUSB_DMA_CHANNELS		30
+/* ep0 don't use dma channel, skip it*/
+#define MUSB_DMA_CHANNELS		((MUSB_C_NUM_EPS - 1) * 2)
 
 /* MUSB_DMA_MULT_LL_Q_CTRL_STATUS bit defines */
 #define BIT_TX_CMD_DEPTH_MASK		GENMASK(23, 20)
@@ -216,7 +217,8 @@ struct sprd_musb_dma_channel {
 
 struct sprd_musb_dma_controller {
 	struct dma_controller	controller;
-	struct sprd_musb_dma_channel	channel[MUSB_DMA_CHANNELS+1];
+	/* channel 0 is not used, but must keep it*/
+	struct sprd_musb_dma_channel	channel[MUSB_DMA_CHANNELS + 1];
 	void	*private_data;
 	void __iomem	*base;
 	u32	used_channels;

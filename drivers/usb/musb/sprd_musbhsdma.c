@@ -37,7 +37,8 @@ static void sprd_dma_controller_stop(struct sprd_musb_dma_controller *controller
 		dev_info(musb->controller,
 			"Stopping DMA controller while channel active\n");
 
-		for (bit = 0; bit < MUSB_DMA_CHANNELS; bit++) {
+		/* start form ep1 ~ ep15, channel1 ~ channel30 */
+		for (bit = 1; bit <= MUSB_DMA_CHANNELS; bit++) {
 			if (controller->used_channels & (1 << bit)) {
 				channel = &controller->channel[bit].channel;
 				sprd_dma_channel_release(channel);
@@ -84,6 +85,7 @@ static struct dma_channel *sprd_dma_channel_allocate(struct dma_controller *c,
 	u16 csr;
 	struct musb *musb;
 
+	BUG_ON(hw_ep->epnum == 0);
 	bit = hw_ep->epnum;
 	musb = controller->private_data;
 
@@ -979,7 +981,9 @@ irqreturn_t sprd_dma_interrupt(struct musb *musb, u32 int_hsdma)
 	int is_tx;
 
 	int_dma = musb_readl(musb->mregs, MUSB_DMA_INTR_MASK_STATUS);
-	for (i = 0; i < MUSB_DMA_CHANNELS; i++) {
+
+	/* start form ep1 ~ ep15, channel1 ~ channel30 */
+	for (i = 1; i <= MUSB_DMA_CHANNELS; i++) {
 		bchannel++;
 		if ((int_hsdma & BIT(0)) != BIT(0)) {
 			int_hsdma = int_hsdma >> 1;
@@ -1061,7 +1065,9 @@ static void sprd_musb_free_nodes(struct sprd_musb_dma_controller *controller)
 		return;
 
 	musb = controller->private_data;
-	for (ch = 0; ch < MUSB_DMA_CHANNELS; ch++) {
+
+	/* start form ep1 ~ ep15, channel1 ~ channel30 */
+	for (ch = 1; ch <= MUSB_DMA_CHANNELS; ch++) {
 		chp = &controller->channel[ch];
 		if (chp->dma_linklist) {
 			dma_free_coherent(musb->controller,
@@ -1104,7 +1110,8 @@ struct dma_controller *sprd_musb_dma_controller_create(struct musb *musb,
 	controller->controller.channel_abort = sprd_dma_channel_abort;
 	init_waitqueue_head(&controller->wait);
 
-	for (ch = 0; ch < MUSB_DMA_CHANNELS; ch++) {
+	/* start form ep1 ~ ep15, channel1 ~ channel30 */
+	for (ch = 1; ch <= MUSB_DMA_CHANNELS; ch++) {
 		chp = &controller->channel[ch];
 		chp->dma_linklist = dma_alloc_coherent(musb->controller,
 			sizeof(struct linklist_node_s) * LISTNODE_NUM,
