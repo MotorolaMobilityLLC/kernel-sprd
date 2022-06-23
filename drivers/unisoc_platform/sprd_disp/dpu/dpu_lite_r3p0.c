@@ -934,7 +934,7 @@ static int dpu_context_init(struct dpu_context *ctx, struct device_node *np)
 
 
 	ctx->base_offset[0] = 0x0;
-	ctx->base_offset[1] = DPU_MAX_REG_OFFSET;
+	ctx->base_offset[1] = DPU_MAX_REG_OFFSET / 4;
 
 	//ctx->wb_configed = false;
 

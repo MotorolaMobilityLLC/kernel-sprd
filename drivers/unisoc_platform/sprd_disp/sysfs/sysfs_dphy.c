@@ -47,11 +47,15 @@ static ssize_t reg_read_store(struct device *dev,
 		return -ENXIO;
 	}
 
-	str_to_u32_array(buf, 0, sysfs->input_param);
+	str_to_u32_array(buf, 0, sysfs->input_param, 64);
 
 	reg_stride = regmap_get_reg_stride(regmap);
 
 	for (i = 0; i < (sysfs->input_param[1] ? : 1); i++) {
+		if (i >= sizeof(sysfs->read_buf) / 4) {
+			pr_err("%s() read data is overwrite read buf, i = %d\n", __func__, i);
+			break;
+		}
 		reg = sysfs->input_param[0] + i * reg_stride;
 		regmap_read(regmap, reg, &sysfs->read_buf[i]);
 	}
@@ -94,10 +98,15 @@ static ssize_t reg_read_show(struct device *dev,
 	} else
 		return -ENODEV;
 
-	for (i = 0; i < (sysfs->input_param[1] ? : 1); i++)
+	for (i = 0; i < (sysfs->input_param[1] ? : 1); i++) {
+		if (i >= sizeof(sysfs->read_buf) / 4) {
+			pr_err("%s() read data is overwrite read buf, i = %d\n", __func__, i);
+			break;
+		}
 		ret += snprintf(buf + ret, PAGE_SIZE, fmt,
 				sysfs->input_param[0] + i * reg_stride,
 				sysfs->read_buf[i]);
+	}
 
 	return ret;
 }
@@ -124,8 +133,19 @@ static ssize_t reg_write_store(struct device *dev,
 		return -ENXIO;
 	}
 
-	len = str_to_u32_array(buf, 16, sysfs->input_param);
+	len = str_to_u32_array(buf, 16, sysfs->input_param, 64);
 	reg_stride = regmap_get_reg_stride(regmap);
+
+	for (i = 1; i < len; i++) {
+		val = sysfs->input_param[i];
+
+		if (reg_stride == 8) {
+			if (val >> 8) {
+				pr_err("input param over regmap stride limit\n");
+				return -EINVAL;
+			}
+		}
+	}
 
 	for (i = 0; i < len - 1; i++) {
 		reg = sysfs->input_param[0] + i * reg_stride;

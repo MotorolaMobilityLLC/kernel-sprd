@@ -20,6 +20,8 @@
 #include "sprd_dsi.h"
 #include "sysfs_display.h"
 
+static uint32_t max_reg_length;
+
 static inline struct sprd_panel *to_sprd_panel(struct drm_panel *panel)
 {
 	return container_of(panel, struct sprd_panel, base);
@@ -515,9 +517,24 @@ static ssize_t regs_offset_store(struct device *dev,
 	struct device_attribute *attr, const char *buf, size_t count)
 {
 	struct sprd_dpu *dpu = dev_get_drvdata(dev);
-	struct dpu_context *ctx = &dpu->ctx;
+	u32 input_param[2];
 
-	str_to_u32_array(buf, 16, ctx->base_offset);
+	str_to_u32_array(buf, 16, input_param, 2);
+	if ((input_param[0] + input_param[1]) > dpu->ctx.base_offset[1]) {
+		pr_err("set reg off set over dpu register limit size\n");
+		return -EINVAL;
+	}
+
+	if (input_param[0] % 4) {
+		pr_err("input_param[0] is not a multiple of 4\n");
+	} else {
+		if ((input_param[1] > max_reg_length) || (input_param[1] <= 0))
+			pr_err("input_param[1] should between 0 and %d\n", max_reg_length);
+		else {
+			dpu->ctx.base_offset[0] = input_param[0];
+			dpu->ctx.base_offset[1] = input_param[1];
+		}
+	}
 
 	return count;
 }
@@ -575,7 +592,7 @@ static ssize_t wr_regs_store(struct device *dev,
 		return -ENOMEM;
 	}
 
-	actual_len = str_to_u32_array(buf, 16, value);
+	actual_len = str_to_u32_array(buf, 16, value, (u8)length);
 	if (!actual_len) {
 		pr_err("input format error\n");
 		up(&dpu->ctx.lock);
@@ -588,6 +605,7 @@ static ssize_t wr_regs_store(struct device *dev,
 	}
 
 	kfree(value);
+	up(&dpu->ctx.lock);
 
 	return count;
 }
@@ -1240,7 +1258,7 @@ static ssize_t scl_store(struct device *dev,
 		return -EIO;
 
 	down(&ctx->lock);
-	str_to_u32_array(buf, 10, param);
+	str_to_u32_array(buf, 10, param, 2);
 	dpu->core->enhance_set(ctx, ENHANCE_CFG_ID_SCL, param);
 	up(&ctx->lock);
 
@@ -1470,6 +1488,9 @@ static const struct attribute_group pq_group = {
 int sprd_dpu_sysfs_init(struct device *dev)
 {
 	int rc;
+	struct sprd_dpu *dpu = dev_get_drvdata(dev);
+
+	max_reg_length = dpu->ctx.base_offset[1];
 
 	sysfs = kzalloc(sizeof(*sysfs), GFP_KERNEL);
 	if (!sysfs) {

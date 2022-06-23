@@ -139,13 +139,18 @@ static ssize_t gen_read_store(struct device *dev,
 		return -ENXIO;
 	}
 
-	len = str_to_u8_array(buf, 16, sysfs->input_param);
+	len = str_to_u8_array(buf, 16, sysfs->input_param, 255);
 	if (len == 1)
 		sysfs->input_param[1] = 1;
 
 	mipi_dsi_set_maximum_return_packet_size(dsi->slave, sysfs->input_param[1]);
-	mipi_dsi_generic_read(dsi->slave, &sysfs->input_param[0], 1,
-			sysfs->read_buf, sysfs->input_param[1]);
+	if (sysfs->input_param[1] < sizeof(sysfs->read_buf) / 4) {
+		mipi_dsi_generic_read(dsi->slave, &sysfs->input_param[0], 1,
+				sysfs->read_buf, sysfs->input_param[1]);
+	} else {
+		pr_err("%s() read data is overwrite read buf, input_param = %d\n",
+					__func__, sysfs->input_param[1]);
+	}
 
 	return count;
 }
@@ -188,7 +193,7 @@ static ssize_t gen_write_store(struct device *dev,
 		return -ENXIO;
 	}
 
-	sysfs->input_len = str_to_u8_array(buf, 16, sysfs->input_param);
+	sysfs->input_len = str_to_u8_array(buf, 16, sysfs->input_param, 255);
 
 	for (i = 0; i < sysfs->input_len; i++)
 		pr_info("param[%d] = 0x%x\n", i, sysfs->input_param[i]);
@@ -206,7 +211,7 @@ static ssize_t gen_write_show(struct device *dev,
 	int i;
 
 	for (i = 0; i < sysfs->input_len; i++)
-		ret += snprintf(buf + ret, PAGE_SIZE,
+		ret += scnprintf(buf + ret, PAGE_SIZE - ret,
 				"param[%d] = 0x%02x\n",
 				i, sysfs->input_param[i]);
 
@@ -239,13 +244,23 @@ static ssize_t dcs_read_store(struct device *dev,
 		return -ENXIO;
 	}
 
-	len = str_to_u8_array(buf, 16, sysfs->input_param);
+	len = str_to_u8_array(buf, 16, sysfs->input_param, 255);
 	if (len == 1)
 		sysfs->input_param[1] = 1;
 
+	if (sysfs->input_param[1] > 60) {
+		pr_err("read size over the max size limit\n");
+		return -EINVAL;
+	}
+
 	mipi_dsi_set_maximum_return_packet_size(dsi->slave, sysfs->input_param[1]);
-	mipi_dsi_dcs_read(dsi->slave, sysfs->input_param[0],
+	if (sysfs->input_param[1] < sizeof(sysfs->read_buf) / 4) {
+		mipi_dsi_dcs_read(dsi->slave, sysfs->input_param[0],
 			  sysfs->read_buf, sysfs->input_param[1]);
+	} else {
+		pr_err("%s() read data is overwrite read buf, input_param = %d\n",
+					__func__, sysfs->input_param[1]);
+	}
 
 	return count;
 }
@@ -257,10 +272,20 @@ static ssize_t dcs_read_show(struct device *dev,
 	int ret = 0;
 	int i;
 
-	for (i = 0; i < sysfs->input_param[1]; i++)
+	if (sysfs->input_param[1] > 60) {
+		pr_err("read size over the max size limit\n");
+		return -EINVAL;
+	}
+
+	for (i = 0; i < sysfs->input_param[1]; i++) {
+		if (i >= sizeof(sysfs->read_buf) / 4) {
+			pr_err("%s() read data is overwrite read buf, i = %d\n", __func__, i);
+			break;
+		}
 		ret += snprintf(buf + ret, PAGE_SIZE,
 				"data[%d] = 0x%02x\n",
 				i, sysfs->read_buf[i]);
+	}
 
 	return ret;
 }
@@ -288,7 +313,7 @@ static ssize_t dcs_write_store(struct device *dev,
 		return -ENXIO;
 	}
 
-	sysfs->input_len = str_to_u8_array(buf, 16, sysfs->input_param);
+	sysfs->input_len = str_to_u8_array(buf, 16, sysfs->input_param, 255);
 
 	for (i = 0; i < sysfs->input_len; i++)
 		pr_info("param[%d] = 0x%x\n", i, sysfs->input_param[i]);
@@ -306,7 +331,7 @@ static ssize_t dcs_write_show(struct device *dev,
 	int i;
 
 	for (i = 0; i < sysfs->input_len; i++)
-		ret += snprintf(buf + ret, PAGE_SIZE,
+		ret += scnprintf(buf + ret, PAGE_SIZE - ret,
 				"param[%d] = 0x%02x\n",
 				i, sysfs->input_param[i]);
 
