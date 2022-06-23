@@ -158,6 +158,7 @@
   crypto_unregister_shash
   crypto_unregister_shashes
   __crypto_xor
+  css_next_child
   csum_ipv6_magic
   csum_partial
   __dynamic_netdev_dbg
@@ -871,6 +872,7 @@
   rfkill_set_hw_state_reason
   rfkill_unregister
   return_address
+  root_task_group
   runqueues
   __SetPageMovable
   sched_clock
@@ -1198,6 +1200,7 @@
   xt_unregister_matches
   xt_unregister_target
   xt_unregister_targets
+  __trace_bprintk
   __traceiter_android_rvh_account_irq
   __traceiter_android_rvh_account_irq_end
   __traceiter_android_rvh_account_irq_start
