@@ -817,11 +817,130 @@ static void sprd_tcpm_log_source_caps(struct sprd_tcpm_port *port)
 }
 
 #if IS_ENABLED(CONFIG_DEBUG_FS)
-static int sprd_tcpm_debug_show(struct seq_file *s, void *v)
+static int sprd_tcpm_debug_console_log_check(struct sprd_tcpm_port *port)
 {
-	struct sprd_tcpm_port *port = (struct sprd_tcpm_port *)s->private;
 	int tail, head;
 
+	if (!port->logbuffer_full) {
+		tail = port->logbuffer_last;
+		if (tail < 0 || tail >= SPRD_LOG_BUFFER_ENTRIES) {
+			pr_err("[%s:%d]tail:%d out of range\n", __func__, __LINE__, tail);
+			return -EINVAL;
+		}
+		head = port->logbuffer_head;
+		if (head < 0 || head >= SPRD_LOG_BUFFER_ENTRIES) {
+			pr_err("[%s:%d]head:%d out of range\n", __func__, __LINE__, head);
+			return -EINVAL;
+		}
+		pr_info("[%s]line%d [tail:%d / head:%d]\n", __func__, __LINE__, tail, head);
+		while (tail < head) {
+			if (port->logbuffer[tail])
+				pr_info("[%d / %d] %s\n", tail, head, port->logbuffer[tail]);
+			tail++;
+		}
+
+		if (port->logbuffer_last != head)
+			port->logbuffer_last = head;
+	} else {
+		tail = port->logbuffer_last;
+		if (tail < 0 || tail >= SPRD_LOG_BUFFER_ENTRIES) {
+			pr_err("[%s:%d]tail:%d out of range\n", __func__, __LINE__, tail);
+			return -EINVAL;
+		}
+		head = SPRD_LOG_BUFFER_ENTRIES;
+		pr_info("[%s]line%d [tail:%d / head:%d]\n", __func__, __LINE__, tail, head);
+		while (tail < head) {
+			if (port->logbuffer[tail])
+				pr_info("[%d / %d] %s\n", tail, head, port->logbuffer[tail]);
+			tail++;
+		}
+
+		tail = 0;
+		head = port->logbuffer_head;
+		if (head < 0 || head >= SPRD_LOG_BUFFER_ENTRIES) {
+			pr_err("[%s:%d]head:%d out of range\n", __func__, __LINE__, head);
+			return -EINVAL;
+		}
+		pr_info("[%s]line%d [tail:%d / head:%d]\n", __func__, __LINE__, tail, head);
+		while (tail < head) {
+			if (port->logbuffer[tail])
+				pr_info("[%d / %d] %s\n", tail, head, port->logbuffer[tail]);
+			tail++;
+		}
+
+		port->logbuffer_full = false;
+		port->logbuffer_last = tail;
+	}
+
+	return 0;
+}
+
+static int sprd_tcpm_debug_seq_log_check(struct sprd_tcpm_port *port, struct seq_file *s)
+{
+	int tail, head;
+
+	if (!port->logbuffer_show_full) {
+		tail = port->logbuffer_show_last;
+		if (tail < 0 || tail >= SPRD_LOG_BUFFER_ENTRIES) {
+			pr_err("[%s:%d]tail:%d out of range\n", __func__, __LINE__, tail);
+			return -EINVAL;
+		}
+		head = port->logbuffer_head;
+		if (head < 0 || head >= SPRD_LOG_BUFFER_ENTRIES) {
+			pr_err("[%s:%d]head:%d out of range\n", __func__, __LINE__, head);
+			return -EINVAL;
+		}
+		pr_info("[%s:%d][tail:%d / head:%d]\n", __func__, __LINE__, tail, head);
+		while (tail < head) {
+			if (port->logbuffer[tail])
+				seq_printf(s, "[%d / %d] %s\n", tail, head, port->logbuffer[tail]);
+			tail++;
+		}
+
+		if (!seq_has_overflowed(s)) {
+			pr_info("[%s:%d]logbuffer_show_last = %d\n", __func__, __LINE__, head);
+			port->logbuffer_show_last = head;
+		} else {
+			pr_info("[%s:%d]logbuffer_show_last not change\n", __func__, __LINE__);
+		}
+	} else {
+		tail = port->logbuffer_show_last;
+		if (tail < 0 || tail >= SPRD_LOG_BUFFER_ENTRIES) {
+			pr_err("[%s:%d]tail:%d out of range\n", __func__, __LINE__, tail);
+			return -EINVAL;
+		}
+		head = SPRD_LOG_BUFFER_ENTRIES;
+		pr_info("[%s:%d][full tail:%d / head:%d]\n", __func__, __LINE__, tail, head);
+		while (tail < head) {
+			if (port->logbuffer[tail])
+				seq_printf(s, "[%d / %d] %s\n", tail, head, port->logbuffer[tail]);
+			tail++;
+		}
+		tail = 0;
+		head = port->logbuffer_head;
+		if (head < 0 || head >= SPRD_LOG_BUFFER_ENTRIES) {
+			pr_err("[%s:%d]head:%d out of range\n", __func__, __LINE__, head);
+			return -EINVAL;
+		}
+		pr_info("[%s:%d][full tail:%d / head:%d]\n", __func__, __LINE__, tail, head);
+		while (tail < head) {
+			if (port->logbuffer[tail])
+				seq_printf(s, "[%d / %d] %s\n", tail, head, port->logbuffer[tail]);
+			tail++;
+		}
+
+		port->logbuffer_show_full = false;
+		if (!seq_has_overflowed(s)) {
+			pr_info("[%s:%d]full logbuffer_show_last = %d\n", __func__, __LINE__, tail);
+			port->logbuffer_show_last = tail;
+		}
+	}
+
+	return 0;
+}
+
+static int _sprd_tcpm_debug_show(struct sprd_tcpm_port *port, struct seq_file *s)
+{
 	if (!port) {
 		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
 		return 0;
@@ -842,119 +961,24 @@ static int sprd_tcpm_debug_show(struct seq_file *s, void *v)
 		goto skip_console_log;
 	}
 
-	if (!port->logbuffer_full) {
-		tail = port->logbuffer_last;
-		if (tail < 0 || tail >= SPRD_LOG_BUFFER_ENTRIES) {
-			pr_err("[%s:%d]tail:%d out of range\n", __func__, __LINE__, tail);
-			goto unlock;
-		}
-		head = port->logbuffer_head;
-		if (head < 0 || head >= SPRD_LOG_BUFFER_ENTRIES) {
-			pr_err("[%s:%d]head:%d out of range\n", __func__, __LINE__, head);
-			goto unlock;
-		}
-		pr_info("[%s]line%d [tail:%d / head:%d]\n", __func__, __LINE__, tail, head);
-		while (tail < head) {
-			if (port->logbuffer[tail])
-				pr_info("[%d / %d] %s\n", tail, head, port->logbuffer[tail]);
-			tail++;
-		}
-
-		if (port->logbuffer_last != head)
-			port->logbuffer_last = head;
-	} else {
-		tail = port->logbuffer_last;
-		if (tail < 0 || tail >= SPRD_LOG_BUFFER_ENTRIES) {
-			pr_err("[%s:%d]tail:%d out of range\n", __func__, __LINE__, tail);
-			goto unlock;
-		}
-		head = SPRD_LOG_BUFFER_ENTRIES;
-		pr_info("[%s]line%d [tail:%d / head:%d]\n", __func__, __LINE__, tail, head);
-		while (tail < head) {
-			if (port->logbuffer[tail])
-				pr_info("[%d / %d] %s\n", tail, head, port->logbuffer[tail]);
-			tail++;
-		}
-
-		tail = 0;
-		head = port->logbuffer_head;
-		if (head < 0 || head >= SPRD_LOG_BUFFER_ENTRIES) {
-			pr_err("[%s:%d]head:%d out of range\n", __func__, __LINE__, head);
-			goto unlock;
-		}
-		pr_info("[%s]line%d [tail:%d / head:%d]\n", __func__, __LINE__, tail, head);
-		while (tail < head) {
-			if (port->logbuffer[tail])
-				pr_info("[%d / %d] %s\n", tail, head, port->logbuffer[tail]);
-			tail++;
-		}
-
-		port->logbuffer_full = false;
-		port->logbuffer_last = tail;
-	}
+	sprd_tcpm_debug_console_log_check(port);
 
 skip_console_log:
-	if (!port->logbuffer_show_full) {
-		tail = port->logbuffer_show_last;
-		if (tail < 0 || tail >= SPRD_LOG_BUFFER_ENTRIES) {
-			pr_err("[%s:%d]tail:%d out of range\n", __func__, __LINE__, tail);
-			goto unlock;
-		}
-		head = port->logbuffer_head;
-		if (head < 0 || head >= SPRD_LOG_BUFFER_ENTRIES) {
-			pr_err("[%s:%d]head:%d out of range\n", __func__, __LINE__, head);
-			goto unlock;
-		}
-		pr_info("[%s:%d][tail:%d / head:%d]\n", __func__, __LINE__, tail, head);
-		while (tail < head) {
-			if (port->logbuffer[tail])
-				seq_printf(s, "[%d / %d] %s\n", tail, head, port->logbuffer[tail]);
-			tail++;
-		}
-
-		if (!seq_has_overflowed(s)) {
-			pr_info("[%s:%d]logbuffer_show_last = %d\n", __func__, __LINE__, head);
-			port->logbuffer_show_last = head;
-		} else {
-			pr_info("[%s:%d]logbuffer_show_last not change\n", __func__, __LINE__);
-		}
-	} else {
-		tail = port->logbuffer_show_last;
-		if (tail < 0 || tail >= SPRD_LOG_BUFFER_ENTRIES) {
-			pr_err("[%s:%d]tail:%d out of range\n", __func__, __LINE__, tail);
-			goto unlock;
-		}
-		head = SPRD_LOG_BUFFER_ENTRIES;
-		pr_info("[%s:%d][full tail:%d / head:%d]\n", __func__, __LINE__, tail, head);
-		while (tail < head) {
-			if (port->logbuffer[tail])
-				seq_printf(s, "[%d / %d] %s\n", tail, head, port->logbuffer[tail]);
-			tail++;
-		}
-		tail = 0;
-		head = port->logbuffer_head;
-		if (head < 0 || head >= SPRD_LOG_BUFFER_ENTRIES) {
-			pr_err("[%s:%d]head:%d out of range\n", __func__, __LINE__, head);
-			goto unlock;
-		}
-		pr_info("[%s:%d][full tail:%d / head:%d]\n", __func__, __LINE__, tail, head);
-		while (tail < head) {
-			if (port->logbuffer[tail])
-				seq_printf(s, "[%d / %d] %s\n", tail, head, port->logbuffer[tail]);
-			tail++;
-		}
-
-		port->logbuffer_show_full = false;
-		if (!seq_has_overflowed(s)) {
-			pr_info("[%s:%d]full logbuffer_show_last = %d\n", __func__, __LINE__, tail);
-			port->logbuffer_show_last = tail;
-		}
-	}
+	sprd_tcpm_debug_seq_log_check(port, s);
 
 unlock:
 	mutex_unlock(&port->logprintk_lock);
 
 	schedule_delayed_work(&port->log2printk, msecs_to_jiffies(10000));
+
+	return 0;
+}
+
+static int sprd_tcpm_debug_show(struct seq_file *s, void *v)
+{
+	struct sprd_tcpm_port *port = (struct sprd_tcpm_port *)s->private;
+
+	_sprd_tcpm_debug_show(port, s);
 
 	return 0;
 }
@@ -4084,6 +4108,16 @@ done:
 	mutex_unlock(&port->lock);
 }
 
+static void sprd_tcpm_cc_change_log_check(struct sprd_tcpm_port *port)
+{
+	if (!port->tcpm_log_disable && !sprd_tcpm_port_is_disconnected(port)) {
+		sprd_tcpm_log_force(port, "tcpm cc connected call log printk start");
+		cancel_delayed_work(&port->log2printk);
+		schedule_delayed_work(&port->log2printk, msecs_to_jiffies(10000));
+		sprd_tcpm_log_force(port, "tcpm cc connected call log printk end");
+	}
+}
+
 static void _sprd_tcpm_cc_change(struct sprd_tcpm_port *port,
 				 enum sprd_typec_cc_status cc1,
 				 enum sprd_typec_cc_status cc2)
@@ -4102,12 +4136,7 @@ static void _sprd_tcpm_cc_change(struct sprd_tcpm_port *port,
 			    port->polarity,
 			    sprd_tcpm_port_is_disconnected(port) ? "disconnected" : "connected");
 
-	if (!port->tcpm_log_disable && !sprd_tcpm_port_is_disconnected(port)) {
-		sprd_tcpm_log_force(port, "tcpm cc connected call log printk start");
-		cancel_delayed_work(&port->log2printk);
-		schedule_delayed_work(&port->log2printk, msecs_to_jiffies(10000));
-		sprd_tcpm_log_force(port, "tcpm cc connected call log printk end");
-	}
+	sprd_tcpm_cc_change_log_check(port);
 
 	switch (port->state) {
 	case TOGGLING:
