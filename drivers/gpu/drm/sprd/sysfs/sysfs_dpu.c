@@ -28,6 +28,7 @@
 #include "sysfs_display.h"
 
 static uint32_t bg_color;
+static uint32_t max_reg_length;
 
 static ssize_t run_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
@@ -247,8 +248,24 @@ static ssize_t regs_offset_store(struct device *dev,
 	struct device_attribute *attr, const char *buf, size_t count)
 {
 	struct sprd_dpu *dpu = dev_get_drvdata(dev);
+	u32 input_param[2];
 
-	str_to_u32_array(buf, 16, dpu->ctx.base_offset);
+	str_to_u32_array(buf, 16, input_param, 2);
+	if ((input_param[0] + input_param[1]) > dpu->ctx.base_offset[1]) {
+		pr_err("set reg off set over dpu register limit size\n");
+		return -EINVAL;
+	}
+
+	if (input_param[0] % 4) {
+		pr_err("input_param[0] is not a multiple of 4\n");
+	} else {
+		if ((input_param[1] > max_reg_length) || (input_param[1] <= 0))
+			pr_err("input_param[1] should between 0 and %d\n", max_reg_length);
+		else {
+			dpu->ctx.base_offset[0] = input_param[0];
+			dpu->ctx.base_offset[1] = input_param[1];
+		}
+	}
 
 	return count;
 }
@@ -302,7 +319,7 @@ static ssize_t wr_regs_store(struct device *dev,
 		return -ENOMEM;
 	}
 
-	actual_len = str_to_u32_array(buf, 16, value);
+	actual_len = str_to_u32_array(buf, 16, value, (u8)length);
 	if (!actual_len) {
 		pr_err("input format error\n");
 		up(&dpu->ctx.refresh_lock);
@@ -1197,7 +1214,7 @@ static ssize_t scl_store(struct device *dev,
 		return -EIO;
 
 	down(&ctx->refresh_lock);
-	str_to_u32_array(buf, 10, param);
+	str_to_u32_array(buf, 10, param, 2);
 	dpu->core->enhance_set(ctx, ENHANCE_CFG_ID_SCL, param);
 	up(&ctx->refresh_lock);
 
@@ -1434,6 +1451,8 @@ int sprd_dpu_sysfs_init(struct device *dev)
 {
 	int rc;
 	struct sprd_dpu *dpu = dev_get_drvdata(dev);
+
+	max_reg_length = dpu->ctx.base_offset[1];
 
 	rc = sysfs_create_group(&(dev->kobj), &dpu_group);
 	if (rc)
