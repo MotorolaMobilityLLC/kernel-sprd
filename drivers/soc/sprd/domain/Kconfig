@@ -21,13 +21,6 @@ config SPRD_VPU_PW_DOMAIN
 	   Say Y here if you want to build a driver for vpu device for qogirn6pro;
 	   otherwise, N.
 
-config SPRD_CAMSYS_PW_DOMAIN
-	tristate "SPRD camsys power domain"
-	depends on ARCH_SPRD || COMPILE_TEST
-	select PM_GENERIC_DOMAINS if PM
-	help
-	  If you select this feature, it will enable the camera sys power domain.
-
 config SPRD_DISP_PM_DOMAIN_SHARKL3
 	tristate "SPRD Display PM Generic Domain for SharkL3"
 	default m
