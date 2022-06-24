@@ -84,6 +84,7 @@ struct dvfs_data {
 	struct mutex sync_mutex;
 	unsigned int freq_num;
 	unsigned long *freq_table;
+	unsigned long *freq_table_display;
 	struct freq_para *paras;
 	unsigned int force_freq;
 	struct dvfs_hw_callback *hw_callback;
@@ -496,8 +497,7 @@ static void dvfs_exit(struct device *dev)
 static void set_profile(struct devfreq_dev_profile *profile)
 {
 	profile->polling_ms = 0;
-	profile->freq_table = (unsigned long *)g_dvfs_data->freq_table;
-	profile->max_state = g_dvfs_data->freq_num;
+	profile->freq_table = (unsigned long *)g_dvfs_data->freq_table_display;
 	profile->target = dvfs_freq_target;
 	profile->get_dev_status = dvfs_get_dev_status;
 	profile->get_cur_freq = dvfs_get_cur_freq;
@@ -509,7 +509,7 @@ static int dvfs_smsg_thread(void *value)
 	struct dvfs_data *data = (struct dvfs_data *)value;
 	struct device *dev = data->dev;
 	char *temp_name;
-	int i, err;
+	int i, err, effective_freq_count = 0;
 
 	while (smsg_ch_open(SIPC_ID_PM_SYS, SMSG_CH_PM_CTRL, -1))
 		msleep(500);
@@ -519,6 +519,8 @@ static int dvfs_smsg_thread(void *value)
 
 	for (i = 0; i < data->freq_num; i++) {
 		err = get_freq_table(&data->freq_table[i], i);
+		if (data->freq_table[i] != 0 && data->freq_table[i] != 0xff)
+			data->freq_table_display[effective_freq_count++] = data->freq_table[i];
 		if (err < 0) {
 			dev_err(dev, "failed to get frequence index: %d\n", i);
 			return 0;
@@ -554,7 +556,7 @@ static int dvfs_smsg_thread(void *value)
 		/*fix me : now we do not have interface for vol*/
 		if (data->paras[i].vol == 0)
 			data->paras[i].vol = 750;
-		if (data->freq_table[i] != 0) {
+		if (data->freq_table[i] != 0 && data->freq_table[i] != 0xff) {
 			err = dev_pm_opp_add(dev, data->freq_table[i], data->paras[i].vol);
 			if (err < 0) {
 				dev_err(dev, "failed to add opp: %luMHZ-%uuv\n",
@@ -564,6 +566,7 @@ static int dvfs_smsg_thread(void *value)
 		}
 	}
 
+	data->profile->max_state = effective_freq_count;
 
 	err = get_cur_freq((unsigned int *)(&data->profile->initial_freq));
 	if (err < 0) {
@@ -625,7 +628,9 @@ int dvfs_core_init(struct platform_device *pdev)
 	}
 
 	p = devm_kzalloc(dev, sizeof(struct dvfs_data)+sizeof(struct devfreq_dev_profile)
-			 +(sizeof(unsigned long)+sizeof(struct freq_para))*freq_num, GFP_KERNEL);
+			 +(sizeof(unsigned long))*(freq_num * 2)+sizeof(struct freq_para)*freq_num,
+			 GFP_KERNEL);
+
 	if (p == NULL) {
 		err = -ENOMEM;
 		return err;
@@ -635,6 +640,8 @@ int dvfs_core_init(struct platform_device *pdev)
 	p += sizeof(struct dvfs_data);
 	g_dvfs_data->profile = (struct devfreq_dev_profile *)p;
 	p += sizeof(struct devfreq_dev_profile);
+	g_dvfs_data->freq_table_display = (unsigned long *)p;
+	p += sizeof(unsigned long)*freq_num;
 	g_dvfs_data->freq_table = (unsigned long *)p;
 	p += sizeof(unsigned long)*freq_num;
 	g_dvfs_data->paras = (struct freq_para *)p;
