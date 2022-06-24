@@ -389,7 +389,7 @@ static const struct soc_enum vbc_ag_iis_ext_sel_enum_v2[AG_IIS_V2_MAX] = {
 	SPRD_VBC_ENUM(AG_IIS1_V2, 3, ag_iis1_mode_v2_txt),
 	SPRD_VBC_ENUM(AG_IIS2_V2, 3, ag_iis2_mode_v2_txt),
 	SPRD_VBC_ENUM(AG_IIS4_V2, 3, ag_iis4_mode_v2_txt),
-	SPRD_VBC_ENUM(AG_IIS3_V2, 3, ag_iis3_mode_v2_txt),
+	SPRD_VBC_ENUM(AG_IIS3_V2, 2, ag_iis3_mode_v2_txt),
 };
 
 static const struct soc_enum vbc_dump_enum =
