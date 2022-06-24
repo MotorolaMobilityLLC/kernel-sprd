@@ -1004,6 +1004,7 @@ static unsigned int nf_imsbr_ipv4_frag_output(void *priv,
 {
 	struct net *net;
 	struct nf_conntrack_tuple nft;
+	struct imsbr_flow *flow;
 	struct inet_sock *inet;
 	struct iphdr *ipv4h = ip_hdr(skb);
 	struct udphdr *uh = udp_hdr(skb);
@@ -1015,17 +1016,21 @@ static unsigned int nf_imsbr_ipv4_frag_output(void *priv,
 	if (!xfrm_frag_enable)
 		return NF_ACCEPT;
 
-	inet = skb->sk ? inet_sk(skb->sk) : NULL;
-	pmtu = (inet && inet->pmtudisc == 3) ? dst->dev->mtu : dst_mtu(dst);
-
 	if (imsbr_get_tuple(state->net, skb, &nft))
 		return NF_ACCEPT;
 
 	imsbr_nfct_debug("output", skb, &nft);
 
+	/* rcu_read_lock hold by netfilter hook outside */
+	flow = imsbr_flow_match(&nft);
+	if (!flow)
+		return NF_ACCEPT;
+
 	if (!x)
 		return NF_ACCEPT;
 
+	inet = skb->sk ? inet_sk(skb->sk) : NULL;
+	pmtu = (inet && inet->pmtudisc == 3) ? dst->dev->mtu : dst_mtu(dst);
 	pmtu = pmtu - x->props.header_len - x->props.trailer_len;
 	if (unlikely(pmtu < 0)) {
 		printk_ratelimited(KERN_ERR
@@ -1075,6 +1080,7 @@ static unsigned int nf_imsbr_ipv6_frag_output(void *priv,
 {
 	struct net *net;
 	struct nf_conntrack_tuple nft;
+	struct imsbr_flow *flow;
 	struct ipv6hdr *ipv6h = ipv6_hdr(skb);
 	struct udphdr *uh;
 	struct dst_entry *dst = skb_dst(skb);
@@ -1086,17 +1092,21 @@ static unsigned int nf_imsbr_ipv6_frag_output(void *priv,
 	if (!xfrm_frag_enable)
 		return NF_ACCEPT;
 
-	pmtu = (np && np->pmtudisc == IPV6_PMTUDISC_PROBE) ? skb_dst(skb)->dev->mtu :
-		dst_mtu(skb_dst(skb));
-
 	if (imsbr_get_tuple(state->net, skb, &nft))
 		return NF_ACCEPT;
 
 	imsbr_nfct_debug("output", skb, &nft);
 
+	/* rcu_read_lock hold by netfilter hook outside */
+	flow = imsbr_flow_match(&nft);
+	if (!flow)
+		return NF_ACCEPT;
+
 	if (!x)
 		return NF_ACCEPT;
 
+	pmtu = (np && np->pmtudisc == IPV6_PMTUDISC_PROBE) ? skb_dst(skb)->dev->mtu :
+		dst_mtu(skb_dst(skb));
 	pmtu = pmtu - x->props.header_len - x->props.trailer_len;
 	if (unlikely(pmtu < 0)) {
 		printk_ratelimited(KERN_ERR
