@@ -893,7 +893,6 @@ static ssize_t sprd_sysdump_write(struct file *file, const char __user *buf,
 				size_t count, loff_t *data)
 {
 	char sysdump_buf[SYSDUMP_PROC_BUF_LEN] = {0};
-	int *test = NULL;
 
 	pr_debug("%s: start!!!\n", __func__);
 	if (count && (count < SYSDUMP_PROC_BUF_LEN)) {
@@ -911,12 +910,6 @@ static ssize_t sprd_sysdump_write(struct file *file, const char __user *buf,
 			pr_info("%s: disable user version sysdump!!!\n",
 				__func__);
 			set_sysdump_enable(0);
-		} else if (!strncmp(sysdump_buf, "bug", 3)) {
-			pr_info("%s  bug-on !!\n", __func__);
-			BUG_ON(1);
-		} else if (!strncmp(sysdump_buf, "null", 4)) {
-			pr_info("%s  null pointer !!\n", __func__);
-			count = *test;
 		}
 	}
 
