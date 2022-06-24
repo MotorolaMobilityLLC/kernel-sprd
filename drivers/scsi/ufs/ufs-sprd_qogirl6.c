@@ -782,20 +782,6 @@ static int ufs_sprd_pwr_change_notify(struct ufs_hba *hba,
 
 	switch (status) {
 	case PRE_CHANGE:
-		if ((2 != dev_max_params->lane_rx) || (2 != dev_max_params->lane_tx)) {
-			dev_err(hba->dev, "%s: unsupport lanes value. rx=%d, tx=%d\n",
-					__func__,
-					dev_max_params->lane_rx,
-					dev_max_params->lane_tx);
-			dev_max_params->lane_rx = (dev_max_params->lane_rx > dev_max_params->lane_tx) ?
-					dev_max_params->lane_tx : dev_max_params->lane_rx;
-			dev_max_params->lane_tx = dev_max_params->lane_rx;
-			dev_err(hba->dev, "%s: now connected lanes value. rx=%d, tx=%d\n",
-					__func__,
-					dev_max_params->lane_rx,
-					dev_max_params->lane_tx);
-		}
-		hba->max_pwr_info.is_valid = false;
 		err = -EPERM;
 		break;
 	case POST_CHANGE:
