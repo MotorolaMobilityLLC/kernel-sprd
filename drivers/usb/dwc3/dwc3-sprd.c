@@ -90,7 +90,7 @@ static const char *const state_names[] = {
 
 const char *dwc3_drd_state_string(enum dwc3_drd_state state)
 {
-	if (state < 0 || state >= ARRAY_SIZE(state_names))
+	if (state >= ARRAY_SIZE(state_names))
 		return "UNKNOWN";
 
 	return state_names[state];
