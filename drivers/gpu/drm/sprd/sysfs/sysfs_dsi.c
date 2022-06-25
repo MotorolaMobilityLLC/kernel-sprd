@@ -141,7 +141,7 @@ static ssize_t gen_read_store(struct device *dev,
 		return -ENXIO;
 	}
 
-	len = str_to_u8_array(buf, 16, input_param);
+	len = str_to_u8_array(buf, 16, input_param, 255);
 	if (len == 1)
 		input_param[1] = 1;
 
@@ -189,7 +189,7 @@ static ssize_t gen_write_store(struct device *dev,
 		return -ENXIO;
 	}
 
-	input_len = str_to_u8_array(buf, 16, input_param);
+	input_len = str_to_u8_array(buf, 16, input_param, 255);
 
 	for (i = 0; i < input_len; i++)
 		pr_info("param[%d] = 0x%x\n", i, input_param[i]);
@@ -207,7 +207,7 @@ static ssize_t gen_write_show(struct device *dev,
 	int ret = 0;
 
 	for (i = 0; i < input_len; i++)
-		ret += snprintf(buf + ret, PAGE_SIZE,
+		ret += scnprintf(buf + ret, PAGE_SIZE - ret,
 				"param[%d] = 0x%02x\n",
 				i, input_param[i]);
 
@@ -239,9 +239,14 @@ static ssize_t dcs_read_store(struct device *dev,
 		return -ENXIO;
 	}
 
-	len = str_to_u8_array(buf, 16, input_param);
+	len = str_to_u8_array(buf, 16, input_param, 255);
 	if (len == 1)
 		input_param[1] = 1;
+
+	if (input_param[1] > 60) {
+		pr_err("read size over the max size limit\n");
+		return -EINVAL;
+	}
 
 	mipi_dsi_set_maximum_return_packet_size(dsi->slave, input_param[1]);
 	mipi_dsi_dcs_read(dsi->slave, input_param[0],
@@ -256,6 +261,11 @@ static ssize_t dcs_read_show(struct device *dev,
 {
 	int i;
 	int ret = 0;
+
+	if (input_param[1] > 60) {
+		pr_err("read size over the max size limit\n");
+		return -EINVAL;
+	}
 
 	for (i = 0; i < input_param[1]; i++)
 		ret += snprintf(buf + ret, PAGE_SIZE,
@@ -287,7 +297,7 @@ static ssize_t dcs_write_store(struct device *dev,
 		return -ENXIO;
 	}
 
-	input_len = str_to_u8_array(buf, 16, input_param);
+	input_len = str_to_u8_array(buf, 16, input_param, 255);
 
 	for (i = 0; i < input_len; i++)
 		pr_info("param[%d] = 0x%x\n", i, input_param[i]);
@@ -305,7 +315,7 @@ static ssize_t dcs_write_show(struct device *dev,
 	int ret = 0;
 
 	for (i = 0; i < input_len; i++)
-		ret += snprintf(buf + ret, PAGE_SIZE,
+		ret += scnprintf(buf + ret, PAGE_SIZE - ret,
 				"param[%d] = 0x%02x\n",
 				i, input_param[i]);
 
