@@ -388,7 +388,10 @@ static int sipa_usb_probe(struct platform_device *pdev)
 	/* Set link as disconnected */
 	netif_carrier_off(ndev);
 	platform_set_drvdata(pdev, usb);
-	sysfs_create_group(&pdev->dev.kobj, &sipa_usb_attribute_group);
+	ret = sysfs_create_group(&pdev->dev.kobj, &sipa_usb_attribute_group);
+	if (ret)
+		return ret;
+
 #ifdef CONFIG_DEBUG_FS
 	sipa_usb_debugfs_mknod(root, (void *)usb);
 #endif

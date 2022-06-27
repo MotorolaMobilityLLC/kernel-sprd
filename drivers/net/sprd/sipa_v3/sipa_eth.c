@@ -374,7 +374,10 @@ static int sipa_eth_probe(struct platform_device *pdev)
 	netif_carrier_off(netdev);
 	platform_set_drvdata(pdev, sipa_eth);
 
-	sysfs_create_group(&pdev->dev.kobj, &sipa_eth_attribute_group);
+	ret = sysfs_create_group(&pdev->dev.kobj, &sipa_eth_attribute_group);
+	if (ret)
+		return ret;
+
 #ifdef CONFIG_DEBUG_FS
 	sipa_eth_debugfs_mknod(root, (void *)sipa_eth);
 #endif
