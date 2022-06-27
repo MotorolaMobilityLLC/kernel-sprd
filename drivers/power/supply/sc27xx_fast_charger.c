@@ -409,6 +409,11 @@ static int sc27xx_fchg_usb_get_property(struct power_supply *psy,
 	struct sc27xx_fchg_info *info = power_supply_get_drvdata(psy);
 	int ret = 0;
 
+	if (!info) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -EINVAL;
+	}
+
 	mutex_lock(&info->lock);
 
 	switch (psp) {
@@ -435,6 +440,11 @@ static int sc27xx_fchg_usb_set_property(struct power_supply *psy,
 {
 	struct sc27xx_fchg_info *info = power_supply_get_drvdata(psy);
 	int ret = 0;
+
+	if (!info) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -EINVAL;
+	}
 
 	mutex_lock(&info->lock);
 
