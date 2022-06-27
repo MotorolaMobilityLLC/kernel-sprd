@@ -76,7 +76,7 @@ static int sprdwl_nl_npi_handler(struct sk_buff *skb_2, struct genl_info *info)
 	struct sprdwl_priv *priv = NULL;
 	struct sprdwl_npi_cmd_hdr *hdr = NULL;
 	unsigned short r_len = 1024, s_len;
-	unsigned char *s_buf = NULL, *r_buf = NULL;
+	unsigned char *s_buf = NULL, *r_buf = NULL, *rand_mac = NULL;
 	unsigned char dbgstr[64] = { 0 };
 	int ret = 0;
 
@@ -97,12 +97,21 @@ static int sprdwl_nl_npi_handler(struct sk_buff *skb_2, struct genl_info *info)
 	sprintf(dbgstr, "[iwnpi][SEND][%d]:", s_len);
 	hdr = (struct sprdwl_npi_cmd_hdr *)s_buf;
 	wl_err("%s type is %d, subtype %d\n", dbgstr, hdr->type, hdr->subtype);
-	sprdwl_npi_send_recv(priv, vif->ctx_id, s_buf, s_len, r_buf, &r_len);
-
-	sprintf(dbgstr, "[iwnpi][RECV][%d]:", r_len);
-	hdr = (struct sprdwl_npi_cmd_hdr *)r_buf;
-	wl_err("%s type is %d, subtype %d\n", dbgstr, hdr->type, hdr->subtype);
-
+	if (hdr->subtype == SPRDWL_NPI_CMD_SET_RANDOM_MAC) {
+		rand_mac = s_buf + sizeof(struct sprdwl_npi_cmd_hdr);
+		priv->rand_mac_flag = *((unsigned int *)rand_mac);
+		pr_err("%s NPI random mac flag%d\n", dbgstr, priv->rand_mac_flag);
+		hdr->len = sizeof(int);
+		hdr->type = SPRDWL_CP2HT_REPLY;
+		r_len = sizeof(*hdr) + hdr->len;
+		memcpy(r_buf, hdr, sizeof(*hdr));
+		memcpy(r_buf + sizeof(*hdr), &ret, hdr->len);
+	} else {
+		sprdwl_npi_send_recv(priv, vif->ctx_id, s_buf, s_len, r_buf, &r_len);
+		sprintf(dbgstr, "[iwnpi][RECV][%d]:", r_len);
+		hdr = (struct sprdwl_npi_cmd_hdr *)r_buf;
+		wl_err("%s type is %d, subtype %d\n", dbgstr, hdr->type, hdr->subtype);
+	}
 	ret = sprdwl_nl_send_generic(info, SPRDWL_NL_ATTR_CP2AP,
 				     SPRDWL_NL_CMD_NPI, r_len, r_buf);
 

@@ -1514,7 +1514,7 @@ static int sprdwl_cfg80211_scan(struct wiphy *wiphy,
 	if (vif->mode == SPRDWL_MODE_STATION ||
 		vif->mode == SPRDWL_MODE_STATION_SECOND) {
 		random_mac_addr(rand_addr);
-		if (flags & NL80211_SCAN_FLAG_RANDOM_ADDR) {
+		if ((flags & NL80211_SCAN_FLAG_RANDOM_ADDR) && (priv->rand_mac_flag == 0)) {
 			random_mac_flag = 1;
 			wl_err("random mac addr: %pM\n", rand_addr);
 		} else {
