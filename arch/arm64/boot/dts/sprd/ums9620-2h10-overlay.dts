@@ -90,13 +90,14 @@
 	regulator-always-on;
 };
 
-&ion {
-	#address-cells = <1>;
-	#size-cells = <0>;
-	heap@4 {
-		reg = <4>;
+&dmabuf {
+	widevine-reserved {
+		label = "uncached_carveout_mm";
+		memory-region = <&widevine_reserved>;
+	};
+
+	fd-reserved {
 		label = "carveout_fd";
-		type = <2>;
 		memory-region = <&fd_reserved>;
 	};
 };
