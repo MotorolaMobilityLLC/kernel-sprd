@@ -583,3 +583,28 @@
 	sprd,spk-ext-pa-id-pin = <&ap_gpio 23 0>;
 	sprd,spk-ext-pa-expect-id-flag = <0>;
 };
+
+&sprd_headset {
+	status = "okay";
+
+	adc-threshold-3pole-detect = <2255>;
+
+	headset-button@0 {
+		/* media */
+		adc-min = <0>;
+		adc-max = <343>;
+		code = <226>;
+	};
+	headset-button@1 {
+		/* volume up */
+		adc-min = <344>;
+		adc-max = <653>;
+		code = <115>;
+	};
+	headset-button@2 {
+		/* volume down */
+		adc-min = <654>;
+		adc-max =<1608>;
+		code = <114>;
+	};
+};
