@@ -112,6 +112,7 @@ struct agdsp_access {
 
 static struct agdsp_access *g_agdsp_access;
 static struct mbox_chan *g_agdsp_mboxchan;
+static int msg_index;
 
 void agdsp_set_mboxchan(struct mbox_chan *mboxchan)
 {
@@ -207,7 +208,7 @@ static int sprd_agdsp_pw_on(struct generic_pm_domain *domain)
 	int cnt = 0;
 	int val = 0;
 	struct agdsp_access *dsp_ac = g_agdsp_access;
-	unsigned long long msg_val = 0;
+	static unsigned long long msg_val[MBOX_TX_QUEUE_LEN];
 
 	pr_dbg("%s entry auto agcp access=%d\n", __func__, dsp_ac->auto_agcp_access);
 
@@ -258,13 +259,15 @@ static int sprd_agdsp_pw_on(struct generic_pm_domain *domain)
 		 * 100 is an invalid command
 		 */
 		pr_dbg("sprd_agdsp_pw_on ap_enable_cnt==0");
-		msg_val = 100;
-		mbox_send_message(g_agdsp_mboxchan, (void *)&msg_val);
-		mbox_chan_txdone(g_agdsp_mboxchan, 0);
+		msg_val[msg_index] = 100;
+		ret = mbox_send_message(g_agdsp_mboxchan, (void *)&msg_val[msg_index]);
 		if (ret < 0) {
-			pr_err("agdsp mbox_send_message error:%d\n", ret);
-			goto exit;
+			pr_err("%s, mbox send message error! ret=%d\n", __func__, ret);
 		}
+		mbox_chan_txdone(g_agdsp_mboxchan, 0);
+		msg_index++;
+		if (msg_index >= MBOX_TX_QUEUE_LEN)
+			msg_index = 0;
 		udelay(20);
 
 		do {
@@ -419,7 +422,7 @@ static int agdsp_access_initialize(struct platform_device *pdev,
 	u32 mbx_core, u32 dst, u32 channel, const u32 offset)
 {
 	struct agdsp_access *dsp_ac;
-	unsigned int args[2];
+	unsigned int args[2] = {0};
 	struct regmap *regmap;
 	int ret = -EINVAL;
 
@@ -566,6 +569,8 @@ static int agdsp_pd_probe(struct platform_device *pdev)
 	int ret = 0;
 	u32 offset;
 	u32 auto_agcp_access;
+
+	msg_index = 0;
 
 	pr_dbg("%s, %d\n", __func__, __LINE__);
 
