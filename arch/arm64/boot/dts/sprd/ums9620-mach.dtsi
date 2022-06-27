@@ -593,6 +593,14 @@
 	mmsys_dvfs: mmsys-dvfs {
 		compatible = "sprd,hwdvfs-mmsys";
 		sprd,syscon-topapb = <&top_dvfs_apb_regs>;
+
+		operating-points = <
+			/* kHz    uV */
+			256000    600000
+			307200    600000
+			409600    650000
+			512000    750000
+			>;
 	};
 
 	virtual_sensor: virtual-sensor@0 {
