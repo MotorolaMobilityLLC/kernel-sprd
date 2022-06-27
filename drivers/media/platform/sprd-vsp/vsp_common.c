@@ -132,18 +132,37 @@ long compat_vsp_ioctl(struct file *filp, unsigned int cmd,
 }
 #endif
 
+void vsp_check_pw_status(struct vsp_dev_t *vsp_hw_dev)
+{
+	int ret = 0;
+	u32 ap_ahb_regs = 0;
+
+	if (regs[VSP_DEV_EB].gpr != NULL) {
+		regmap_read(regs[VSP_DEV_EB].gpr, regs[VSP_DEV_EB].reg, &ap_ahb_regs);
+		if ((ap_ahb_regs & regs[VSP_DEV_EB].mask) != regs[VSP_DEV_EB].mask) {
+			pr_err("%s, ap ahb 0x%x\n", __func__, ap_ahb_regs);
+			ret = regmap_update_bits(regs[VSP_DEV_EB].gpr, regs[VSP_DEV_EB].reg,
+				regs[VSP_DEV_EB].mask, regs[VSP_DEV_EB].mask);
+			if (ret)
+				pr_err("regmap_update_bits failed %s, %d\n", __func__, __LINE__);
+		}
+	} else
+		pr_debug("NO VSP_DEV_EB bypass\n");
+}
+
 int vsp_get_iova(void *inst_ptr, struct vsp_dev_t *vsp_hw_dev,
 		 struct vsp_iommu_map_data *mapdata, void __user *arg)
 {
 	int ret = 0;
 	struct sprd_iommu_map_data iommu_map_data = {0};
 	struct sprd_iommu_unmap_data iommu_ummap_data = {0};
-	struct dma_buf *dmabuf;
-	struct dma_buf_attachment *attachment;
-	struct sg_table *table;
-	struct vsp_iommu_map_entry *entry;
+	struct dma_buf *dmabuf = NULL;
+	struct dma_buf_attachment *attachment = NULL;
+	struct sg_table *table = NULL;
+	struct vsp_iommu_map_entry *entry = NULL;
 
 	vsp_clk_enable(vsp_hw_dev);
+	vsp_check_pw_status(vsp_hw_dev);
 
 	ret = vsp_get_dmabuf(mapdata->fd, &dmabuf,
 				&(iommu_map_data.buf),
@@ -240,10 +259,11 @@ int vsp_free_iova(void *inst_ptr, struct vsp_dev_t *vsp_hw_dev,
 {
 	int ret = 0;
 	struct vsp_iommu_map_entry *entry = NULL;
-	struct sprd_iommu_unmap_data iommu_ummap_data;
+	struct sprd_iommu_unmap_data iommu_ummap_data = {0};
 	int b_find = 0;
 
 	vsp_clk_enable(vsp_hw_dev);
+	vsp_check_pw_status(vsp_hw_dev);
 
 	mutex_lock(&vsp_hw_dev->map_lock);
 

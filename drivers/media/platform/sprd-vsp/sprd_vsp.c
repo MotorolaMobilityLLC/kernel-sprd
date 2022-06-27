@@ -222,9 +222,10 @@ static long vsp_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 				__func__, __LINE__);
 		}
 
-		if (vsp_hw_dev.iommu_exist_flag)
+		if (vsp_hw_dev.iommu_exist_flag) {
+			vsp_check_pw_status(&vsp_hw_dev);
 			sprd_iommu_restore(vsp_hw_dev.vsp_dev);
-
+		}
 		if (vsp_hw_dev.vsp_qos_exist_flag) {
 			if (vsp_hw_dev.version == SHARKL5Pro
 				|| vsp_hw_dev.version == ROC1) {

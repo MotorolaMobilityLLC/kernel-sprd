@@ -96,7 +96,8 @@ struct clock_name_map_t {
 };
 enum {
 	VSP_DOMAIN_EB,
-	RESET
+	RESET,
+	VSP_DEV_EB
 };
 struct register_gpr {
 	struct regmap *gpr;
@@ -105,7 +106,8 @@ struct register_gpr {
 };
 static char *tb_name[] = {
 	"vsp-domain-eb-syscon",
-	"reset-syscon"
+	"reset-syscon",
+	"vsp-dev-eb-syscon"
 };
 extern struct register_gpr regs[ARRAY_SIZE(tb_name)];
 
@@ -129,6 +131,7 @@ int vsp_get_mm_clk(struct vsp_dev_t *vsp_hw_dev);
 long compat_vsp_ioctl(struct file *filp, unsigned int cmd,
 			     unsigned long arg);
 #endif
+void vsp_check_pw_status(struct vsp_dev_t *vsp_hw_dev);
 int vsp_get_iova(void *inst_ptr, struct vsp_dev_t *vsp_hw_dev,
 		 struct vsp_iommu_map_data *mapdata, void __user *arg);
 int vsp_free_iova(void *inst_ptr, struct vsp_dev_t *vsp_hw_dev,
