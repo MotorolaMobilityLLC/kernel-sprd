@@ -480,7 +480,8 @@ static int aud_smsg_ch_send(struct aud_smsg_ipc *ipc, struct aud_smsg *msg)
 		return -1;
 
 	atomic_inc(&(ipc->busy[msg->channel]));
-	if (ipc->states[msg->channel] == CHAN_STATE_OPENED) {
+	if (atomic_read(&(ipc->use_count[msg->channel])) &&
+		(ipc->states[msg->channel] == CHAN_STATE_OPENED)) {
 		ch = ipc->channels[msg->channel];
 		if ((int)(readl_relaxed((void *)ch->wrptr)
 			- readl_relaxed((void *)ch->rdptr)) >= SMSG_CACHE_NR) {
