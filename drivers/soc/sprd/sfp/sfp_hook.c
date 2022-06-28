@@ -138,7 +138,7 @@ static unsigned int ipv6_sfp_pre_routing(void *priv,
 {
 
 	if (sysctl_net_sfp_enable == 1 && sysctl_net_sfp_tether_scheme == 1)
-		nf_soft_fastpath_process(skb);
+		return nf_soft_fastpath_process(skb);
 	return NF_ACCEPT;
 }
 
