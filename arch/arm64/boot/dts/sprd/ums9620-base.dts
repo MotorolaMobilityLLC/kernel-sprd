@@ -98,6 +98,16 @@
 		compatible = "sprd,dmabuf";
 	};
 
+	firmware {
+		android {
+			compatible = "android,firmware";
+			vbmeta {
+				compatible = "android,vbmeta";
+				parts = "vbmeta,boot,vendor_boot,dtbo,nr_modem,nr_phy,l_agdsp,pm_sys";
+			};
+		};
+	};
+
 	gpio-keys {
 		compatible = "gpio-keys";
 
