@@ -35,6 +35,9 @@
 		vsp-domain-eb-syscon = <&aon_apb_regs
 			REG_AON_APB_RF_APB_EB1
 			MASK_AON_APB_RF_AP_SYST_EB>;
+		vsp-dev-eb-syscon = <&ap_ahb_regs
+			REG_AP_AHB_RF_AHB_EB
+			MASK_AP_AHB_RF_VSP_EB>;
 		iommus = <&iommu_vsp>;
 		power-domains = <&vsp_pd>;
 		status = "disabled";
