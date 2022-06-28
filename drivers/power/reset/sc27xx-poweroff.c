@@ -57,13 +57,17 @@ const struct sc27xx_poweroff_data *pdata;
 static void sc27xx_poweroff_shutdown(void)
 {
 #ifdef CONFIG_HOTPLUG_CPU
-	int cpu, retry_cnt, ret;
+	int cpu, retry_cnt, ret, primary = 0;
 
 	pr_info("hotpluging non-boot CPUs ......\n");
+	if (!cpu_online(primary)) {
+		primary = smp_processor_id();
+		pr_info("primary cpu change to cpu%d\n", primary);
+	}
 
 	cpu_hotplug_enable();
 	for_each_online_cpu(cpu) {
-		if (cpu == smp_processor_id())
+		if (cpu == primary)
 			continue;
 
 		retry_cnt = 0;
