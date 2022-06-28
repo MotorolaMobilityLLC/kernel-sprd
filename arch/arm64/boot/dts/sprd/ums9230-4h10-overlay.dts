@@ -436,6 +436,10 @@
 		reg = <0x0 0x9e000000 0x0 0x00ab0000>;
 	};
 
+	oemcrypto_reserved: oemcrypto@b6100000 {
+		reg = <0x0 0xb6100000 0x0 0x1100000>;
+	};
+
 	widevine_reserved: widevine@e1800000 {
 		compatible = "shared-dma-pool";
 		reg = <0x0 0xe1800000 0x0 0x0e800000>;
