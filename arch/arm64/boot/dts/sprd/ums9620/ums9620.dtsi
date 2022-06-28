@@ -350,6 +350,14 @@
 			#size-cells = <2>;
 			ranges;
 		};
+
+		apsys_dvfs: apsys-dvfs@30114000 {
+			compatible = "sprd,hwdvfs-dpuvsp-qogirn6pro";
+			reg = <0x0 0x30114000 0x0 0x4000>;
+			sprd,dpuvpu-dvfs-up-window = <0x40>;
+			sprd,dpuvpu-dvfs-down-window = <0x80>;
+			sprd,aon_apb_regs_syscon = <&aon_apb_regs>;
+		};
 	};
 	ddr_dfs: scene-frequency {
 		compatible = "sprd,dfs";
