@@ -245,19 +245,20 @@ static int hw_param_nvm_set_cmd(struct nvm_name_table *ptable,
 {
 	int i;
 	unsigned char *p;
+	unsigned char cmd_par[128] = {0};
 
 	if (ptable->type != 1 && ptable->type != 2 && ptable->type != 4)
 		return -1;
 
 	p = (unsigned char *)(p_data) + ptable->mem_offset;
 
-	pr_info("[g_table]%s, offset:%u, num:%u, value:"
-		"%d %d %d %d %d %d %d %d %d %d\n",
-		ptable->itm, ptable->mem_offset, cmd->num,
-		cmd->par[0], cmd->par[1], cmd->par[2],
-		cmd->par[3], cmd->par[4], cmd->par[5],
-		cmd->par[6], cmd->par[7], cmd->par[8],
-		cmd->par[9]);
+	for (i = 0; i < cmd->num && i < 10; i++)
+		snprintf(cmd_par + strlen(cmd_par),
+			 sizeof(cmd_par) - strlen(cmd_par), "%d ", cmd->par[i]);
+
+	cmd_par[strlen(cmd_par) - 1] = '\0';
+	pr_info("[g_table]%s, o:%u, n:%u, v:%s\n",
+		ptable->itm, ptable->mem_offset, cmd->num, cmd_par);
 
 	for (i = 0; i < cmd->num; i++) {
 		if (ptable->type == 1)
