@@ -24,7 +24,7 @@
 #include "trusty/ums512.dtsi"
 #include "sound/fe-be.dtsi"
 #include "sound/virtual-devices.dtsi"
-#include "touchscreen/ums512-1h10-overlay.dtsi"
+#include "touchscreen/ums512-i2c3-gpio144-145-tp.dtsi"
 
 / {
 	model = "Spreadtrum UMS512-1H10 Board";

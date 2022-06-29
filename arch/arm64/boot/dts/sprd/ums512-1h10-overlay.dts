@@ -5,7 +5,7 @@
 #include "reserved-memory/ums512-1h10-overlay.dtsi"
 #include "battery/ums512-1h10-overlay.dtsi"
 #include <dt-bindings/interrupt-controller/arm-gic.h>
-#include "touchscreen/ums512-1h10-overlay.dtsi"
+#include "touchscreen/ums512-i2c3-gpio144-145-tp.dtsi"
 
 / {
 	model = "Unisoc UMS512-1H10 Board";
