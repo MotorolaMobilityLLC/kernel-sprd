@@ -612,7 +612,7 @@ int sprdwl_cmd_send_recv(struct sprdwl_priv *priv,
 #if defined(SC2355_FTR)
 		kfree(msg->tran_data);
 #else
-		dev_kfree_skb(msg->tran_data);
+		dev_kfree_skb(msg->skb);
 #endif
 		return -EIO;
 	}

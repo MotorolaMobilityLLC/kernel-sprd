@@ -2303,6 +2303,9 @@ int sprdwl_intf_init(struct sprdwl_intf *intf)
 err:
 		for (; chn > 0; chn--)
 			sprdwcn_bus_chn_deinit(&g_intf_sc2355.hif_ops[chn]);
+
+		g_intf_sc2355.hif_ops = NULL;
+		g_intf_sc2355.max_num = 0;
 	}
 
 	return ret;

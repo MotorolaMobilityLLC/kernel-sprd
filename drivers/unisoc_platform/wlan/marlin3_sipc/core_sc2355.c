@@ -895,8 +895,8 @@ static int sprdwl_probe(struct platform_device *pdev)
 		sprdwl_sipc_txrx_buf_deinit(intf);
 #endif
 		sprdwl_txrx_buf_deinit();
-		sprdwl_core_free((struct sprdwl_priv *)intf->priv);
 		sprdwl_sipc_deinit(intf);
+		sprdwl_core_free((struct sprdwl_priv *)intf->priv);
 		kfree(intf);
 		return ret;
 	}
@@ -909,8 +909,8 @@ static int sprdwl_probe(struct platform_device *pdev)
 		sprdwl_sipc_txrx_buf_deinit(intf);
 #endif
 		sprdwl_txrx_buf_deinit();
-		sprdwl_core_free((struct sprdwl_priv *)intf->priv);
 		sprdwl_sipc_deinit(intf);
+		sprdwl_core_free((struct sprdwl_priv *)intf->priv);
 		kfree(intf);
 		return ret;
 	}
@@ -924,9 +924,9 @@ static int sprdwl_probe(struct platform_device *pdev)
 		sprdwl_sipc_txrx_buf_deinit(intf);
 #endif
 		sprdwl_txrx_buf_deinit();
-		sprdwl_core_free((struct sprdwl_priv *)intf->priv);
 		sprdwl_chip_set_power(intf, false);
 		sprdwl_sipc_deinit(intf);
+		sprdwl_core_free((struct sprdwl_priv *)intf->priv);
 		kfree(intf);
 		return ret;
 	}
@@ -940,9 +940,9 @@ static int sprdwl_probe(struct platform_device *pdev)
 		sprdwl_sipc_txrx_buf_deinit(intf);
 #endif
 		sprdwl_txrx_buf_deinit();
-		sprdwl_core_free((struct sprdwl_priv *)intf->priv);
 		sprdwl_chip_set_power(intf, false);
 		sprdwl_sipc_deinit(intf);
+		sprdwl_core_free((struct sprdwl_priv *)intf->priv);
 		kfree(intf);
 		return ret;
 	}
@@ -957,9 +957,9 @@ static int sprdwl_probe(struct platform_device *pdev)
 		sprdwl_sipc_txrx_buf_deinit(intf);
 #endif
 		sprdwl_txrx_buf_deinit();
-		sprdwl_core_free((struct sprdwl_priv *)intf->priv);
 		sprdwl_chip_set_power(intf, false);
 		sprdwl_sipc_deinit(intf);
+		sprdwl_core_free((struct sprdwl_priv *)intf->priv);
 		kfree(intf);
 		return ret;
 	}
@@ -995,10 +995,10 @@ static int sprdwl_remove(struct platform_device *pdev)
 	sprdwl_sipc_txrx_buf_deinit(intf);
 #endif
 	sprdwl_txrx_buf_deinit();
-	sprdwl_core_free(priv);
 	wl_info("%s power off on wcn (%d time)\n", __func__, atomic_read(&intf->power_cnt));
 	sprdwl_chip_set_power(intf, false);
 	sprdwl_sipc_deinit(intf);
+	sprdwl_core_free(priv);
 	kfree(intf);
 	wl_warn("%s, %d\n", __func__, __LINE__);
 
