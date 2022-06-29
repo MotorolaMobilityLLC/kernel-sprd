@@ -215,6 +215,9 @@
 #define SC27XX_PD_RDY_TIMEOUT		2000
 #define SC27XX_PD_POLL_RAW_STATUS	50
 
+#define SC27XX_TYPEC_VBUS_OK_TIMEOUT	80000
+#define SC27XX_TYPEC_VBUS_OK_STATUS	100
+
 /* pmic compatible */
 #define SC2730_RC_EFUSE_SHIFT		9
 #define SC2730_REF_EFUSE_SHIFT		12
@@ -1421,10 +1424,30 @@ static int sc27xx_get_vbus_status(struct sc27xx_pd *pd)
 	bool vbus_present;
 	int ret;
 
-	ret = regmap_read(pd->regmap, pd->typec_base +
-			  SC27XX_TYPEC_DBG1, &status);
-	if (ret < 0)
-		return ret;
+	if (pd->typec_online) {
+		ret = regmap_read(pd->regmap, pd->typec_base +
+				  SC27XX_TYPEC_DBG1, &status);
+		if (ret < 0) {
+			sprd_pd_log(pd, "%s, failed to read typec_reg[0x%x], ret=%d",
+				    __func__, SC27XX_TYPEC_DBG1, ret);
+			return ret;
+		}
+	} else {
+		/* purpose: wait for vbus to step down */
+		ret = regmap_read_poll_timeout(pd->regmap,
+					       pd->base + SC27XX_TYPEC_DBG1,
+					       status,
+					       (!(status & SC27XX_TYPEC_VBUS_OK)),
+					       SC27XX_TYPEC_VBUS_OK_STATUS,
+					       SC27XX_TYPEC_VBUS_OK_TIMEOUT);
+		if (ret < 0) {
+			sprd_pd_log(pd, "%s, failed to read typec_reg[0x%x], ret=%d",
+				    __func__, SC27XX_TYPEC_DBG1, ret);
+			pd->vbus_present = false;
+			sprd_tcpm_vbus_change(pd->sprd_tcpm_port);
+			return ret;
+		}
+	}
 
 	vbus_present = !!(status & SC27XX_TYPEC_VBUS_OK);
 	if (vbus_present != pd->vbus_present) {

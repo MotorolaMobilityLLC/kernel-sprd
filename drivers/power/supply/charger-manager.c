@@ -2345,8 +2345,6 @@ static void cm_ir_compensation_works(struct work_struct *work)
 
 static void cm_fixed_fchg_control_switch(struct charger_manager *cm, bool enable)
 {
-	int ret;
-
 	dev_dbg(cm->dev, "%s enable = %d start\n", __func__, enable);
 
 	if (!cm->fchg_info->support_fchg)
@@ -2355,9 +2353,7 @@ static void cm_fixed_fchg_control_switch(struct charger_manager *cm, bool enable
 	cm->desc->check_fixed_fchg_threshold = enable;
 	if (!enable && cm->desc->fixed_fchg_running) {
 		cancel_delayed_work_sync(&cm->fixed_fchg_work);
-		ret = cm_fixed_fchg_disable(cm);
-		if (ret)
-			dev_err(cm->dev, "%s, failed to disable fixed fchg\n", __func__);
+		schedule_delayed_work(&cm->fixed_fchg_work, 0);
 	}
 }
 
@@ -2399,7 +2395,7 @@ static void cm_fixed_fchg_work(struct work_struct *work)
 	 *   1. Prevent CM_FAST_CHARGE_ENABLE_COUNT from becoming PPS
 	 *      within the time and enable the fast charge status.
 	 */
-	if (cm->desc->fast_charger_type != CM_CHARGER_TYPE_FAST)
+	if (!cm->charger_enabled || cm->desc->fast_charger_type != CM_CHARGER_TYPE_FAST)
 		goto stop_fixed_fchg;
 
 	/*
@@ -5753,7 +5749,7 @@ static ssize_t charger_stop_store(struct device *dev,
 	if (!is_ext_pwr_online(cm))
 		return -EINVAL;
 
-	dev_dbg(cm->dev, "sprd: %s, stop_charge=%d\n", __func__, stop_charge);
+	dev_dbg(cm->dev, "%s, stop_charge=%d\n", __func__, stop_charge);
 	if (!stop_charge) {
 		ret = try_charger_enable(cm, true);
 		if (ret) {
@@ -5761,6 +5757,7 @@ static ssize_t charger_stop_store(struct device *dev,
 			return ret;
 		}
 		sysfs->externally_control = false;
+		mod_delayed_work(cm_wq, &cm_monitor_work, 0);
 	} else {
 		ret = try_charger_enable(cm, false);
 		if (ret) {
