@@ -99,6 +99,11 @@
 			compatible = "sprd,ump962x-syscon";
 			reg = <0x2000>, <0x23a0>, <0x2398>;
 		};
+
+		poweroff@2020 {
+			compatible = "sprd,ump9620-poweroff", "sprd,sc27xx-poweroff";
+			reg = <0x2020>;
+		};
 	};
 
 };
