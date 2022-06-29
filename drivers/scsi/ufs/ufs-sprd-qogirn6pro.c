@@ -80,6 +80,16 @@ void ufs_sprd_reset(struct ufs_sprd_host *host)
 {
 	dev_info(host->hba->dev, "ufs hardware reset!\n");
 
+	regmap_update_bits(host->phy_sram_ext_ld_done.regmap,
+			   host->phy_sram_ext_ld_done.reg,
+			   host->phy_sram_ext_ld_done.mask,
+			   host->phy_sram_ext_ld_done.mask);
+
+	regmap_update_bits(host->phy_sram_bypass.regmap,
+			   host->phy_sram_bypass.reg,
+			   host->phy_sram_bypass.mask,
+			   host->phy_sram_bypass.mask);
+
 	regmap_update_bits(host->aon_apb_ufs_rst.regmap,
 			   host->aon_apb_ufs_rst.reg,
 			   host->aon_apb_ufs_rst.mask,
@@ -183,6 +193,16 @@ static int ufs_sprd_init(struct ufs_hba *hba)
 
 	ret = ufs_sprd_get_syscon_reg(dev->of_node, &host->aon_apb_ufs_rst,
 				      "aon_apb_ufs_rst");
+	if (ret < 0)
+		return -ENODEV;
+
+	ret = ufs_sprd_get_syscon_reg(dev->of_node, &host->phy_sram_ext_ld_done,
+				      "phy_sram_ext_ld_done");
+	if (ret < 0)
+		return -ENODEV;
+
+	ret = ufs_sprd_get_syscon_reg(dev->of_node, &host->phy_sram_bypass,
+				      "phy_sram_bypass");
 	if (ret < 0)
 		return -ENODEV;
 
@@ -351,10 +371,10 @@ static int ufs_sprd_phy_init(struct ufs_hba *hba)
 	if (ret)
 		return ret;
 
-	regmap_update_bits(host->phy_sram_init_done.regmap,
-			   host->phy_sram_init_done.reg,
-			   host->phy_sram_init_done.mask,
-			   host->phy_sram_init_done.mask);
+	regmap_update_bits(host->phy_sram_ext_ld_done.regmap,
+			   host->phy_sram_ext_ld_done.reg,
+			   host->phy_sram_ext_ld_done.mask,
+			   0);
 
 	ufshcd_dme_set(hba, UIC_ARG_MIB(VS_MPHYCFGUPDT), 0x01);
 
