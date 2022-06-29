@@ -28,4 +28,5 @@ obj-$(CONFIG_SCSI_UFS_TI_J721E) += ti-j721e-ufs.o
 obj-$(CONFIG_SCSI_UFS_SPRD) += ufs_sprd.o
 ufs_sprd-y += ufs-sprd.o
 ufs_sprd-y += ufs-sprd-ioctl.o
+ufs_sprd-y += ufs-sprd-rpmb.o
 ufs_sprd-$(CONFIG_SCSI_UFS_SPRD_QOGIRN6PRO) += ufs-sprd-qogirn6pro.o

@@ -8,6 +8,7 @@
 
 struct ufs_sprd_host {
 	struct ufs_hba *hba;
+	struct scsi_device *sdev_ufs_rpmb;
 	void *ufs_priv_data;
 	const struct sprd_ufs_comm_vops *comm_vops;
 

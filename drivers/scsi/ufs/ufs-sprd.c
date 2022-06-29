@@ -16,6 +16,7 @@
 #include "ufshcd-pltfrm.h"
 #include "ufs-sprd.h"
 #include "ufs-sprd-ioctl.h"
+#include "ufs-sprd-rpmb.h"
 
 static int ufs_sprd_plat_parse_dt(struct device *dev, struct ufs_hba *hba,
 				  struct ufs_sprd_host *host)
@@ -319,15 +320,29 @@ static int ufs_sprd_probe(struct platform_device *pdev)
 {
 	int err;
 	struct device *dev = &pdev->dev;
+	struct ufs_hba *hba;
 
 	register_trace_android_vh_ufs_prepare_command(ufs_sprd_vh_prepare_command, NULL);
 
 	/* Perform generic probe */
 	err = ufshcd_pltfrm_init(pdev, &ufs_hba_sprd_vops);
-	if (err)
+	if (err) {
 		dev_err(dev, "ufshcd_pltfrm_init() failed %d\n", err);
+		goto out;
+	}
 
+	hba = platform_get_drvdata(pdev);
+	ufs_sprd_rpmb_add(hba);
+out:
 	return err;
+}
+
+static void ufs_sprd_shutdown(struct platform_device *pdev)
+{
+	struct ufs_hba *hba =  platform_get_drvdata(pdev);
+
+	ufs_sprd_rpmb_remove(hba);
+	ufshcd_pltfrm_shutdown(pdev);
 }
 
 static int ufs_sprd_remove(struct platform_device *pdev)
@@ -354,7 +369,7 @@ static const struct dev_pm_ops ufs_sprd_pm_ops = {
 static struct platform_driver ufs_sprd_pltform = {
 	.probe = ufs_sprd_probe,
 	.remove = ufs_sprd_remove,
-	.shutdown = ufshcd_pltfrm_shutdown,
+	.shutdown = ufs_sprd_shutdown,
 	.driver = {
 		.name = "ufshcd-sprd",
 		.pm = &ufs_sprd_pm_ops,
