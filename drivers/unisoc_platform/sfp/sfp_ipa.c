@@ -61,6 +61,7 @@ struct sfp_fwd_hash_tbl fwd_tbl;
 #define IPA_HASH_COLLISION			0
 #define IPA_HASH_APPEND			1
 #define IPA_HASH_THRESHOLD		100
+static bool fwd_tbl_init_flag;
 
 int sfp_tbl_id(void)
 {
@@ -580,8 +581,9 @@ static void sfp_ipa_alloc_tbl(int sz)
 
 static inline void sfp_clear_ipa_tbl(int id)
 {
-	memset(fwd_tbl.ipa_tbl_mgr.tbl[id].h_tbl.v_addr,
-	       0, IPA_HASH_TABLE_SIZE);
+	if (fwd_tbl_init_flag)
+		memset(fwd_tbl.ipa_tbl_mgr.tbl[id].h_tbl.v_addr,
+		       0, IPA_HASH_TABLE_SIZE);
 }
 
 void sfp_clear_all_ipa_tbl(void)
@@ -641,6 +643,7 @@ void sfp_ipa_init(void)
 	fwd_tbl.append_cnt = 0;
 
 	sfp_init_ipa_tbl();
+	fwd_tbl_init_flag = true;
 }
 
 bool sfp_ipa_ipv6_check(const struct sk_buff *skb,
