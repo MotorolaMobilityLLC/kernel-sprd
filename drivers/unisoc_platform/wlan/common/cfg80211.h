@@ -398,5 +398,8 @@ int sprd_init_fw(struct sprd_vif *vif);
 int sprd_uninit_fw(struct sprd_vif *vif);
 struct sprd_priv *sprd_core_create(struct sprd_chip_ops *chip_ops);
 void sprd_core_free(struct sprd_priv *priv);
+#ifdef DRV_RESET_SELF
+void sprd_cancel_reset_work(struct sprd_priv *priv);
+#endif
 
 #endif

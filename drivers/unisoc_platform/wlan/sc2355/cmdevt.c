@@ -421,6 +421,13 @@ static int cmdevt_lock_cmd(struct sprd_cmd *cmd)
 		return -1;
 	}
 	mutex_lock(&cmd->cmd_lock);
+#ifdef DRV_RESET_SELF
+	if (hif->cp_asserted == 1) {
+		mutex_unlock(&cmd->cmd_lock);
+		pr_err("%s failed, cp_asserted unlock cmd_lock\n", __func__);
+		return -1;
+	}
+#endif
 	if (hif->priv->is_suspending == 0)
 		__pm_stay_awake(cmd->wake_lock);
 	pr_info("cmd->refcnt=%x\n", atomic_read(&cmd->refcnt));
@@ -613,6 +620,17 @@ struct sprd_msg *sc2355_get_cmdbuf(struct sprd_priv *priv, struct sprd_vif *vif,
 			}
 		}
 	}
+#ifdef DRV_RESET_SELF
+	if (priv->hif.drv_resetting == 1 &&
+	   !(cmd_id == CMD_SYNC_VERSION ||
+	    cmd_id == CMD_DOWNLOAD_INI ||
+	    cmd_id == CMD_GET_INFO ||
+	    cmd_id == CMD_OPEN)) {
+		pr_err("%s:wifi resetting, cannot send [%s]",
+			__func__, cmdevt_cmd2str(cmd_id));
+		return NULL;
+	}
+#endif
 	msg = sprd_chip_get_msg(&priv->chip, SPRD_TYPE_CMD, mode);
 	if (!msg) {
 		pr_err("%s, %d, fail to get msg, mode=%d\n",
@@ -718,7 +736,11 @@ int sc2355_send_cmd_recv_rsp(struct sprd_priv *priv, struct sprd_msg *msg, u8 *r
 
 	ret = cmdevt_recv_rsp_timeout(priv, timeout);
 	if (ret != -1) {
+#ifndef DRV_RESET_SELF
 		if (rbuf && rlen && *rlen) {
+#else
+		if (rbuf && rlen && *rlen && !hif->cp_asserted) {
+#endif
 			hdr = (struct sprd_cmd_hdr *)cmd->data;
 			plen = le16_to_cpu(hdr->plen) - sizeof(*hdr);
 			*rlen = min(*rlen, plen);

@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-2.0-only
 
 subdir-ccflags-y += -I$(srctree)/$(src)
+#subdir-ccflags-y += -DDRV_RESET_SELF
 
 obj-$(CONFIG_SPRD_WLAN)		+= common/
 

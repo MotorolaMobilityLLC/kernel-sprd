@@ -114,6 +114,7 @@ static void iface_str2mac(const char *mac_addr, u8 *mac)
 	mac[5] = m[5];
 }
 
+#ifndef DRV_RESET_SELF
 static int iface_host_reset(struct notifier_block *nb,
 			    unsigned long data, void *ptr)
 {
@@ -141,6 +142,31 @@ static int iface_host_reset(struct notifier_block *nb,
 
 	return NOTIFY_OK;
 }
+#else
+static int iface_host_reset(struct notifier_block *nb,
+			    unsigned long data, void *ptr)
+{
+	struct sprd_priv *priv = iface_get_priv();
+	struct sprd_hif *hif;
+	struct sprd_cmd *cmd = &priv->cmd;
+
+	if (!priv) {
+		pr_err("%s sprd_prv is NULL\n", __func__);
+		return NOTIFY_OK;
+	}
+
+	hif = &priv->hif;
+	hif->cp_asserted = 1;
+	complete(&cmd->completed);
+	sprd_chip_force_exit((void *)&priv->chip);
+
+	pr_info("%s process wifi driver self reset work\n", __func__);
+	if (!work_pending(&priv->reset_work))
+		queue_work(priv->reset_workq, &priv->reset_work);
+
+	return NOTIFY_OK;
+}
+#endif
 
 static struct notifier_block iface_host_reset_cb = {
 	.notifier_call = iface_host_reset,
@@ -227,6 +253,9 @@ int sprd_iface_set_power(struct sprd_hif *hif, int val)
 		sprd_hif_power_off(hif);
 	return ret;
 }
+#ifdef DRV_RESET_SELF
+EXPORT_SYMBOL(sprd_iface_set_power);
+#endif
 
 static int iface_open(struct net_device *ndev)
 {
@@ -1438,6 +1467,9 @@ static int iface_core_deinit(struct sprd_priv *priv)
 	sprd_debug_deinit(&priv->debug);
 	sprd_qos_enable(priv, 0);
 	sprd_deinit_npi();
+#ifdef DRV_RESET_SELF
+	sprd_cancel_reset_work(priv);
+#endif
 	iface_del_all_ifaces(priv);
 	sprd_vendor_deinit(priv, priv->wiphy);
 	wiphy_unregister(priv->wiphy);

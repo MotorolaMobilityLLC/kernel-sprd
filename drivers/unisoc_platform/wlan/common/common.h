@@ -226,7 +226,11 @@ struct sprd_priv {
 	struct work_struct work;
 	struct list_head work_list;
 	struct workqueue_struct *common_workq;
-
+#ifdef DRV_RESET_SELF
+	/* self_reset workq*/
+	struct work_struct reset_work;
+	struct workqueue_struct *reset_workq;
+#endif
 	struct dentry *debugfs;
 	struct sprd_channel_list ch_2g4_info;
 	struct sprd_channel_list ch_5g_without_dfs_info;

@@ -209,6 +209,9 @@ struct sprd_hif {
 	atomic_t block_cmd_after_close;
 	/* block command while change iface */
 	atomic_t change_iface_block_cmd;
+#ifdef DRV_RESET_SELF
+	u8 drv_resetting;
+#endif
 };
 
 struct sprd_hif_ops {
@@ -228,6 +231,9 @@ struct sprd_hif_ops {
 			     unsigned char *data, int len,
 			     bool send_now);
 	int (*reset)(struct sprd_hif *hif);
+#ifdef DRV_RESET_SELF
+	int (*reset_self)(struct sprd_priv *priv);
+#endif
 	void (*throughput_ctl_pd)(unsigned int len);
 };
 

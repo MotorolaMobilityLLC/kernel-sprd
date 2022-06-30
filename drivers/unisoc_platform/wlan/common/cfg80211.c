@@ -191,6 +191,55 @@ static void cfg80211_deinit_work(struct sprd_priv *priv)
 	destroy_workqueue(priv->common_workq);
 }
 
+#ifdef DRV_RESET_SELF
+static int cfg80211_host_reset_self(struct sprd_priv *priv)
+{
+	struct sprd_hif *hif = &priv->hif;
+
+	if (hif->ops->reset_self)
+		return hif->ops->reset_self(priv);
+	return 0;
+}
+
+/*create self_reset work*/
+static void cfg80211_do_reset_work(struct work_struct *work)
+{
+	int ret;
+	struct sprd_priv *priv = container_of(work, struct sprd_priv, reset_work);
+
+	ret = cfg80211_host_reset_self(priv);
+	if (!ret)
+		pr_err("%s host reset self success!\n", __func__);
+}
+
+static int cfg80211_init_reset_work(struct sprd_priv *priv)
+{
+	INIT_WORK(&priv->reset_work, cfg80211_do_reset_work);
+
+	priv->reset_workq = alloc_ordered_workqueue("sprd_reset_work",
+						     WQ_HIGHPRI |
+						     WQ_CPU_INTENSIVE |
+						     WQ_MEM_RECLAIM);
+	if (!priv->reset_workq) {
+		pr_err("%s sprd_reset_work create failed\n", __func__);
+		return -ENOMEM;
+	}
+	return 0;
+}
+
+static void cfg80211_deinit_reset_work(struct sprd_priv *priv)
+{
+	cancel_work_sync(&priv->reset_work);
+	flush_workqueue(priv->reset_workq);
+	destroy_workqueue(priv->common_workq);
+}
+
+void sprd_cancel_reset_work(struct sprd_priv *priv)
+{
+	flush_work(&priv->reset_work);
+}
+#endif
+
 static enum sprd_mode cfg80211_type_to_mode(enum nl80211_iftype type, char *name)
 {
 	enum sprd_mode mode;
@@ -1348,6 +1397,9 @@ int sprd_init_fw(struct sprd_vif *vif)
 
 	return 0;
 }
+#ifdef DRV_RESET_SELF
+EXPORT_SYMBOL(sprd_init_fw);
+#endif
 
 int sprd_uninit_fw(struct sprd_vif *vif)
 {
@@ -1464,6 +1516,9 @@ struct sprd_priv *sprd_core_create(struct sprd_chip_ops *chip_ops)
 	spin_lock_init(&priv->list_lock);
 	INIT_LIST_HEAD(&priv->vif_list);
 	cfg80211_init_work(priv);
+#ifdef DRV_RESET_SELF
+	cfg80211_init_reset_work(priv);
+#endif
 
 	return priv;
 }
@@ -1476,6 +1531,9 @@ void sprd_core_free(struct sprd_priv *priv)
 		return;
 
 	cfg80211_deinit_work(priv);
+#ifdef DRV_RESET_SELF
+	cfg80211_deinit_reset_work(priv);
+#endif
 	sprd_cmd_deinit(priv);
 
 	wiphy = priv->wiphy;
