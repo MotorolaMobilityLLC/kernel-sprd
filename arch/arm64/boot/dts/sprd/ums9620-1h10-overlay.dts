@@ -575,6 +575,9 @@
 
 &dpu {
 	sprd,logo-memory = <&logo_reserved>;
+
+	/* if we need use fastcall for widevine, open the following config */
+	// sprd,widevine-use-fastcall;
 };
 
 &lcd_g40396_truly_mipi_fhd {
