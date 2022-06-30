@@ -312,7 +312,7 @@ static irqreturn_t sprd_dpu_isr(int irq, void *data)
 	int_mask = dpu->core->isr(ctx);
 
 	if (int_mask & BIT_DPU_INT_ERR)
-		DRM_WARN("Warning: dpu underflow!\n");
+		DRM_WARN("Warning: dpu1 underflow!\n");
 
 	return IRQ_HANDLED;
 }

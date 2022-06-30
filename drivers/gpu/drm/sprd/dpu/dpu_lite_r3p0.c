@@ -310,13 +310,13 @@ static u32 dpu_isr(struct dpu_context *ctx)
 	/* dpu afbc payload error isr */
 	if (reg_val & BIT_DPU_INT_FBC_PLD_ERR) {
 		int_mask |= BIT_DPU_INT_FBC_PLD_ERR;
-		pr_err("dpu afbc payload error\n");
+		pr_err("dpu1 afbc payload error\n");
 	}
 
 	/* dpu afbc header error isr */
 	if (reg_val & BIT_DPU_INT_FBC_HDR_ERR) {
 		int_mask |= BIT_DPU_INT_FBC_HDR_ERR;
-		pr_err("dpu afbc header error\n");
+		pr_err("dpu1 afbc header error\n");
 	}
 
 	DPU_REG_WR(ctx->base + REG_DPU_INT_CLR, reg_val);
@@ -343,7 +343,7 @@ static int dpu_wait_stop_done(struct dpu_context *ctx)
 	ctx->stopped = true;
 
 	if (!rc) {
-		pr_err("dpu wait for stop done time out!\n");
+		pr_err("dpu1 wait for stop done time out!\n");
 		return -ETIMEDOUT;
 	}
 
@@ -360,7 +360,7 @@ static int dpu_wait_update_done(struct dpu_context *ctx)
 						msecs_to_jiffies(500));
 
 	if (!rc) {
-		pr_err("dpu wait for reg update done time out!\n");
+		pr_err("dpu1 wait for reg update done time out!\n");
 		return -ETIMEDOUT;
 	}
 
@@ -373,7 +373,7 @@ static void dpu_stop(struct dpu_context *ctx)
 
 	dpu_wait_stop_done(ctx);
 
-	pr_info("dpu stop\n");
+	pr_info("dpu1 stop\n");
 }
 
 static void dpu_run(struct dpu_context *ctx)
