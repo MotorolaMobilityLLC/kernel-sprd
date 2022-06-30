@@ -3466,6 +3466,7 @@
       <elf-symbol name='page_endio' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x4cf99ea5'/>
       <elf-symbol name='page_frag_free' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x88e1d0f0'/>
       <elf-symbol name='page_get_link' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xef23b4a8'/>
+      <elf-symbol name='page_is_ram' type='func-type' binding='weak-binding' visibility='default-visibility' is-defined='yes' crc='0xfc03d97a'/>
       <elf-symbol name='page_mapping' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xeaad4c48'/>
       <elf-symbol name='page_pool_alloc_pages' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x4cdacd3a'/>
       <elf-symbol name='page_pool_create' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x584746ba'/>
@@ -137224,6 +137225,10 @@
         <parameter type-id='7e666abe' name='inode' filepath='fs/namei.c' line='4909' column='1'/>
         <parameter type-id='26cad514' name='callback' filepath='fs/namei.c' line='4910' column='1'/>
         <return type-id='80f4b756'/>
+      </function-decl>
+      <function-decl name='page_is_ram' mangled-name='page_is_ram' filepath='kernel/resource.c' line='474' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='page_is_ram'>
+        <parameter type-id='7359adad' name='pfn' filepath='kernel/resource.c' line='474' column='1'/>
+        <return type-id='95e97e5e'/>
       </function-decl>
       <function-decl name='page_mapping' mangled-name='page_mapping' filepath='mm/util.c' line='714' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='page_mapping'>
         <parameter type-id='02f11ed4' name='page' filepath='mm/util.c' line='714' column='1'/>
