@@ -21,6 +21,7 @@
 #include <linux/of_irq.h>
 #include <linux/platform_device.h>
 #include <linux/pm_runtime.h>
+#include <linux/pm_wakeup.h>
 #include <linux/regmap.h>
 #include <linux/sched.h>
 #include <linux/semaphore.h>
@@ -110,6 +111,8 @@ static long vsp_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 
 	case VSP_ENABLE:
 		pr_debug("vsp ioctl VSP_ENABLE\n");
+		__pm_stay_awake(vsp_hw_dev.vsp_wakelock);
+		vsp_fp->is_wakelock_got = true;
 
 		ret = vsp_clk_enable(&vsp_hw_dev);
 		if (ret == 0)
@@ -124,6 +127,8 @@ static long vsp_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			vsp_fp->is_clock_enabled = 0;
 			vsp_clk_disable(&vsp_hw_dev);
 		}
+		vsp_fp->is_wakelock_got = false;
+		__pm_relax(vsp_hw_dev.vsp_wakelock);
 		break;
 
 	case VSP_ACQUAIRE:
@@ -143,11 +148,12 @@ static long vsp_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 
 	case VSP_RELEASE:
 		pr_debug("vsp ioctl VSP_RELEASE\n");
-		vsp_fp->is_vsp_acquired = 0;
-		vsp_hw_dev.vsp_fp = NULL;
-		up(&vsp_hw_dev.vsp_mutex);
+		if (vsp_fp->is_vsp_acquired) {
+			vsp_fp->is_vsp_acquired = 0;
+			vsp_hw_dev.vsp_fp = NULL;
+			up(&vsp_hw_dev.vsp_mutex);
+		}
 		break;
-
 	case VSP_COMPLETE:
 		pr_debug("vsp ioctl VSP_COMPLETE\n");
 		ret = wait_event_interruptible_timeout(vsp_fp->wait_queue_work,
@@ -619,6 +625,11 @@ static int vsp_release(struct inode *inode, struct file *filp)
 		vsp_clk_disable(&vsp_hw_dev);
 	}
 
+	if (vsp_fp->is_wakelock_got) {
+		pr_err("error occurred and wakelock relax\n");
+		__pm_relax(vsp_hw_dev.vsp_wakelock);
+	}
+
 	if (!vsp_fp->is_vsp_acquired) {
 		ret = down_timeout(&vsp_hw_dev.vsp_mutex, msecs_to_jiffies(VSP_AQUIRE_TIMEOUT_MS));
 		vsp_fp->is_vsp_acquired = (ret == 0);
@@ -725,6 +736,9 @@ static int vsp_probe(struct platform_device *pdev)
 		ret = -EINVAL;
 		goto errout;
 	}
+
+	vsp_hw_dev.vsp_wakelock = wakeup_source_create("pm_message_wakelock_vsp");
+	wakeup_source_add(vsp_hw_dev.vsp_wakelock);
 
 	pm_runtime_set_active(dev);
 	pm_runtime_enable(dev);
