@@ -182,7 +182,7 @@
 #define REG_CABC_CFG5					0x5A4
 #define REG_UD_CFG0					0x5B0
 #define REG_UD_CFG1					0x5B4
-#define REG_CABC_HIST0					0x5B4
+#define REG_CABC_HIST0					0x600
 #define REG_GAMMA_LUT_ADDR				0x780
 #define REG_GAMMA_LUT_RDATA				0x784
 #define REG_SLP_LUT_ADDR				0x798
@@ -248,6 +248,7 @@
 #define BIT_DPU_INT_DPU_REG_UPDATE_DONE			BIT(17)
 #define BIT_DPU_INT_LAY_REG_UPDATE_DONE			BIT(18)
 #define BIT_DPU_INT_PQ_REG_UPDATE_DONE			BIT(19)
+#define BIT_DPU_INT_PQ_LUT_UPDATE_DONE			BIT(20)
 
 /* DPI control bits */
 #define BIT_DPU_EDPI_TE_EN				BIT(8)
@@ -679,6 +680,11 @@ static u32 dpu_isr(struct dpu_context *ctx)
 		wake_up_interruptible_all(&ctx->wait_queue);
 	}
 
+	if (reg_val & BIT_DPU_INT_DPU_REG_UPDATE_DONE) {
+		ctx->evt_all_regs_update = true;
+		wake_up_interruptible_all(&ctx->wait_queue);
+	}
+
 	if (reg_val & BIT_DPU_INT_DPU_ALL_UPDATE_DONE) {
 		/* dpu dvfs feature */
 		tasklet_schedule(&ctx->dvfs_task);
@@ -689,6 +695,11 @@ static u32 dpu_isr(struct dpu_context *ctx)
 
 	if (reg_val & BIT_DPU_INT_PQ_REG_UPDATE_DONE) {
 		ctx->evt_pq_update = true;
+		wake_up_interruptible_all(&ctx->wait_queue);
+	}
+
+	if (reg_val & BIT_DPU_INT_PQ_LUT_UPDATE_DONE) {
+		ctx->evt_pq_lut_update = true;
 		wake_up_interruptible_all(&ctx->wait_queue);
 	}
 
@@ -752,6 +763,8 @@ static int dpu_wait_stop_done(struct dpu_context *ctx)
 {
 	int rc, i;
 	u32 dpu_sts_21, dpu_sts_22;
+	struct sprd_dpu *dpu =
+		(struct sprd_dpu *)container_of(ctx, struct sprd_dpu, ctx);
 
 	if (ctx->stopped)
 		return 0;
@@ -763,11 +776,10 @@ static int dpu_wait_stop_done(struct dpu_context *ctx)
 
 	ctx->stopped = true;
 
-	if (!rc) {
+	if (!rc)
 		/* time out */
 		pr_err("dpu wait for stop done time out!\n");
-		return -1;
-	}
+
 
 	for (i = 1; i <= 3000; i++) {
 		dpu_sts_21 = DPU_REG_RD(ctx->base + REG_DPU_STS_21);
@@ -780,8 +792,11 @@ static int dpu_wait_stop_done(struct dpu_context *ctx)
 			break;
 		}
 
-		if (i == 3000)
-			pr_err("wait for dpu idle timeout\n");
+		if (i == 3000) {
+			pr_err("wait for dpu read idle 3s timeout need to reset dpu\n");
+			dpu->glb->reset(ctx);
+			break;
+		}
 	}
 
 	return 0;
@@ -802,6 +817,47 @@ static int dpu_wait_update_done(struct dpu_context *ctx)
 	if (!rc) {
 		/* time out */
 		pr_err("dpu wait for reg update done time out!\n");
+		return -1;
+	}
+
+	return 0;
+}
+
+static int dpu_wait_all_regs_update_done(struct dpu_context *ctx)
+{
+	int rc;
+
+	/* clear the event flag before wait */
+	ctx->evt_all_regs_update = false;
+
+	/* wait for reg update done interrupt */
+	rc = wait_event_interruptible_timeout(ctx->wait_queue,
+			ctx->evt_all_regs_update, msecs_to_jiffies(500));
+
+	if (!rc) {
+		/* time out */
+		pr_err("dpu wait for all regs update done time out!\n");
+		return -1;
+	}
+
+	return 0;
+}
+
+static int dpu_wait_pq_lut_reg_update_done(struct dpu_context *ctx)
+{
+	int rc;
+
+	/* clear the event flag before wait */
+	ctx->evt_pq_lut_update = false;
+	ctx->evt_pq_update = false;
+
+	/* wait for reg update done interrupt */
+	rc = wait_event_interruptible_timeout(ctx->wait_queue,
+			ctx->evt_pq_lut_update && ctx->evt_pq_update,
+			msecs_to_jiffies(500));
+	if (!rc) {
+		/* time out */
+		pr_err("dpu wait for all luts update done time out!\n");
 		return -1;
 	}
 
@@ -2009,6 +2065,7 @@ static void dpu_dpi_init(struct dpu_context *ctx)
 		/* enable dpu update done INT */
 		int_mask |= BIT_DPU_INT_DPU_ALL_UPDATE_DONE;
 		int_mask |= BIT_DPU_INT_DPU_REG_UPDATE_DONE;
+		int_mask |= BIT_DPU_INT_PQ_LUT_UPDATE_DONE;
 		int_mask |= BIT_DPU_INT_LAY_REG_UPDATE_DONE;
 		int_mask |= BIT_DPU_INT_PQ_REG_UPDATE_DONE;
 		/* enable dpu DONE  INT */
@@ -2055,7 +2112,7 @@ static void enable_vsync(struct dpu_context *ctx)
 
 static void disable_vsync(struct dpu_context *ctx)
 {
-	DPU_REG_CLR(ctx->base + REG_DPU_INT_EN, BIT_DPU_INT_VSYNC_EN);
+	// DPU_REG_CLR(ctx->base + REG_DPU_INT_EN, BIT_DPU_INT_VSYNC_EN);
 }
 
 static int dpu_context_init(struct dpu_context *ctx, struct device_node *np)
@@ -2265,6 +2322,7 @@ static void dpu_enhance_backup(struct dpu_context *ctx, u32 id, void *param)
 		p = param;
 		dpu_luts_backup(ctx, enhance, param);
 		pr_info("enhance ddr luts backup\n");
+		break;
 	default:
 		break;
 	}
@@ -2275,6 +2333,7 @@ static void dpu_luts_update(struct dpu_context *ctx, void *param)
 	struct dpu_enhance *enhance = ctx->enhance;
 	struct hsv_params *hsv_cfg;
 	u32 *p32 = param;
+	bool no_update = false;
 
 	memcpy(&enhance->typeindex_cpy, param, sizeof(enhance->typeindex_cpy));
 
@@ -2287,6 +2346,7 @@ static void dpu_luts_update(struct dpu_context *ctx, void *param)
 		enhance->lut_addrs_cpy.lut_gamma_addr =
 			DPU_REG_RD(ctx->base + REG_GAMMA_LUT_BASE_ADDR);
 		DPU_REG_SET(ctx->base + REG_DPU_ENHANCE_CFG, BIT(3) | BIT(5));
+		DPU_REG_SET(ctx->base + REG_ENHANCE_UPDATE, BIT(1) | BIT(0));
 		pr_info("LUTS_GAMMA set\n");
 		break;
 	case LUTS_HSV_TYPE:
@@ -2302,6 +2362,7 @@ static void dpu_luts_update(struct dpu_context *ctx, void *param)
 		enhance->lut_addrs_cpy.lut_hsv_addr =
 			DPU_REG_RD(ctx->base + REG_HSV_LUT_BASE_ADDR);
 		DPU_REG_SET(ctx->base + REG_DPU_ENHANCE_CFG, BIT(1));
+		DPU_REG_SET(ctx->base + REG_ENHANCE_UPDATE, BIT(2) | BIT(0));
 		pr_info("LUTS_HSV set\n");
 		break;
 	case LUTS_LUT3D_TYPE:
@@ -2311,16 +2372,21 @@ static void dpu_luts_update(struct dpu_context *ctx, void *param)
 		enhance->lut_addrs_cpy.lut_lut3d_addr =
 			DPU_REG_RD(ctx->base + REG_THREED_LUT_BASE_ADDR);
 		DPU_REG_SET(ctx->base + REG_DPU_ENHANCE_CFG, BIT(4));
+		DPU_REG_SET(ctx->base + REG_ENHANCE_UPDATE, BIT(3) | BIT(0));
 		pr_info("LUTS_LUT3D set\n");
 		break;
 	case LUTS_ALL:
 		p32++;
 		dpu_luts_copyfrom_user(p32, enhance);
+		no_update = true;
 		break;
 	default:
+		no_update = true;
 		pr_err("The type %d is unavaiable\n", enhance->typeindex_cpy.type);
 		break;
 	}
+	if (!no_update)
+		dpu_wait_pq_lut_reg_update_done(ctx);
 }
 
 static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
@@ -2339,6 +2405,7 @@ static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
 	static u32 lut3d_table_index;
 	u32 *p32, *tmp32;
 	int i, j;
+	bool no_update = false;
 
 	if (!ctx->enabled) {
 		dpu_enhance_backup(ctx, id, param);
@@ -2531,14 +2598,22 @@ static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
 		pr_info("enhance ud set\n");
 		break;
 	case ENHANCE_CFG_ID_UPDATE_LUTS:
+		no_update = true;
 		dpu_luts_update(ctx, param);
+		break;
 	default:
+		no_update = true;
 		break;
 	}
 
 	if ((ctx->if_type == SPRD_DPU_IF_DPI) && !ctx->stopped) {
-		DPU_REG_SET(ctx->base + REG_DPU_CTRL, BIT(2));
-		dpu_wait_all_update_done(ctx);
+		if (id == ENHANCE_CFG_ID_SCL) {
+			DPU_REG_SET(ctx->base + REG_DPU_CTRL, BIT(3));
+			dpu_wait_all_regs_update_done(ctx);
+		} else if (!no_update) {
+			DPU_REG_SET(ctx->base + REG_ENHANCE_UPDATE, BIT(0));
+			dpu_wait_pq_update_done(ctx);
+		}
 	} else if ((ctx->if_type == SPRD_DPU_IF_EDPI) && ctx->panel_ready) {
 		/*
 		 * In EDPI mode, we need to wait panel initializatin

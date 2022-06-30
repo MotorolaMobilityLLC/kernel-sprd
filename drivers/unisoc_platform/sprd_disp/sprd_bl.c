@@ -74,10 +74,13 @@ static int sprd_pwm_backlight_update(struct backlight_device *bd)
 
 	pwm_get_state(bl->pwm, &state);
 	if (level > 0) {
-		if (bl->cabc_en)
-			duty_cycle = DIV_ROUND_CLOSEST_ULL(bl->cabc_level *
-				level, bl->cabc_refer_level);
-		else
+		if (bl->cabc_en) {
+			if (bl->cabc_refer_level == 0)
+				duty_cycle = level;
+			else
+				duty_cycle = DIV_ROUND_CLOSEST_ULL(bl->cabc_level *
+					level, bl->cabc_refer_level);
+		} else
 			duty_cycle = level;
 
 		pr_debug("pwm brightness level: %llu\n", duty_cycle);

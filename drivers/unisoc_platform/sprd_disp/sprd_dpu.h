@@ -145,6 +145,8 @@ struct dpu_context {
 	bool evt_update;
 	bool evt_pq_update;
 	bool evt_all_update;
+	bool evt_all_regs_update;
+	bool evt_pq_lut_update;
 	bool evt_stop;
 	irqreturn_t (*dpu_isr)(int irq, void *data);
 	struct tasklet_struct dvfs_task;
