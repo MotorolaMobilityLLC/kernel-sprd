@@ -10,6 +10,8 @@ struct ufs_sprd_priv_data {
 	struct regulator *vdd_mphy;
 	struct syscon_ufs ap_ahb_ufs_rst;
 	struct syscon_ufs aon_apb_ufs_rst;
+	struct syscon_ufs phy_sram_ext_ld_done;
+	struct syscon_ufs phy_sram_bypass;
 	struct syscon_ufs phy_sram_init_done;
 	struct syscon_ufs aon_apb_ufs_clk_en;
 	struct syscon_ufs ufsdev_refclk_en;
