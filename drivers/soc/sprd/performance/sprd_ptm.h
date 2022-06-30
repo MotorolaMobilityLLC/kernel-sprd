@@ -83,12 +83,7 @@ struct bm_per_info {
 	u32 tmp2;
 	u32 perf_data[BM_CHN_MAX][BM_CHN_PARA];
 #ifdef CONFIG_SPRD_PTM_DIFF_R6P1
-	u32 dcam_ovf_info_0;
-	u32 dcam_ovf_info_2;
-	u32 dcam_ovf_info_4;
-	u32 dcam_ovf_info_6;
-	u32 dcam_ovf_info_8;
-	u32 dcam_ovf_info_9;
+	u32 dpu_dcam_ovf[2][10];
 #endif
 };
 
@@ -180,7 +175,7 @@ struct ptm_pvt_para {
 	u32				usrid_base;
 	u32				grp_sel;
 #ifdef CONFIG_SPRD_PTM_DIFF_R6P1
-	u32                             dpu_dcam_overflow_0_base;
+	u32				dpu_dcam_ovf_base;
 #endif
 };
 

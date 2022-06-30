@@ -81,9 +81,9 @@ static inline u32 ptm_get_rtran_base(struct sprd_ptm_dev *sdev)
 }
 
 #ifdef CONFIG_SPRD_PTM_DIFF_R6P1
-static inline u32 ptm_get_dpu_overflow_0_base(struct sprd_ptm_dev *sdev)
+static inline u32 ptm_get_dpu_dcam_ovf_base(struct sprd_ptm_dev *sdev)
 {
-	return sdev->pvt_data->dpu_dcam_overflow_0_base;
+	return sdev->pvt_data->dpu_dcam_ovf_base;
 }
 #endif
 
@@ -126,7 +126,10 @@ static void sprd_ptm_set_enable(struct sprd_ptm_dev *sdev, bool enable)
 
 static void sprd_ptm_set_lty_enable(struct sprd_ptm_dev *sdev)
 {
-	writel_relaxed(PTM_ENABLE | PTM_BW_LTCY_CNT_EN, sdev->base + PTM_EN);
+	u32 tmp = readl_relaxed(sdev->base + PTM_EN);
+
+	writel_relaxed(tmp | PTM_ENABLE | PTM_BW_LTCY_CNT_EN,
+		       sdev->base + PTM_EN);
 }
 
 static void sprd_ptm_set_lty_trace_enable(struct sprd_ptm_dev *sdev)
@@ -360,7 +363,8 @@ sprd_ptm_legacy_time_handler(struct hrtimer *timer)
 	u32 wtran_base = ptm_get_wtran_base(sdev);
 	u32 rtran_base = ptm_get_rtran_base(sdev);
 #ifdef CONFIG_SPRD_PTM_DIFF_R6P1
-	u32 dpu_dcam_ovf_base = ptm_get_dpu_overflow_0_base(sdev);
+	u32 dpu_dcam_ovf_base = ptm_get_dpu_dcam_ovf_base(sdev);
+	int i, j;
 #endif
 	u64 ts_val;
 	static u32 num;
@@ -396,18 +400,12 @@ sprd_ptm_legacy_time_handler(struct hrtimer *timer)
 			readl_relaxed(sdev->base + wly_base + 4 * chn);
 	}
 #ifdef CONFIG_SPRD_PTM_DIFF_R6P1
-	bm_info[wr_cnt].dcam_ovf_info_0 =
-		readl_relaxed(sdev->base + dpu_dcam_ovf_base) & 0xffff;
-	bm_info[wr_cnt].dcam_ovf_info_2 =
-		readl_relaxed(sdev->base + dpu_dcam_ovf_base + 4 * 2) & 0xffff;
-	bm_info[wr_cnt].dcam_ovf_info_4 =
-		readl_relaxed(sdev->base + dpu_dcam_ovf_base + 4 * 4) & 0xffff;
-	bm_info[wr_cnt].dcam_ovf_info_6 =
-		readl_relaxed(sdev->base + dpu_dcam_ovf_base + 4 * 6) & 0xffff;
-	bm_info[wr_cnt].dcam_ovf_info_8 =
-		readl_relaxed(sdev->base + dpu_dcam_ovf_base + 4 * 8) & 0xffff;
-	bm_info[wr_cnt].dcam_ovf_info_9 =
-		readl_relaxed(sdev->base + dpu_dcam_ovf_base + 4 * 9) & 0xffff;
+	for (i = 0; i < 2; i++) {
+		for (j = 0; j < 10; j++) {
+			bm_info[wr_cnt].dpu_dcam_ovf[i][j] =
+				(readl_relaxed(sdev->base + dpu_dcam_ovf_base + 4 * j) >> (16 * (1 - i))) & 0xffff;
+		}
+	}
 #endif
 	sprd_ptm_set_enable(sdev, true);
 	/* clear ptm count*/
