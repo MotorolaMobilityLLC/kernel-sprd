@@ -435,7 +435,7 @@ static const struct snd_soc_dapm_widget sprd_pcm_routing_widgets[] = {
 	SND_SOC_DAPM_AIF_IN("BE_IF_ID_FAST_P_HIFI", "BE_DAI_ID_FAST_P_HIFI",
 			    0, SND_SOC_NOPM, 0, 0),
 	SND_SOC_DAPM_AIF_IN("BE_IF_ID_OFFLOAD_HIFI", "BE_DAI_ID_OFFLOAD_HIFI",
-			    0, SND_SOC_NOPM, 0, 0),
+			    -1, SND_SOC_NOPM, 0, 0),
 	SND_SOC_DAPM_AIF_IN("BE_IF_ID_VOICE_HIFI", "BE_DAI_ID_VOICE_HIFI",
 			    0, SND_SOC_NOPM, 0, 0),
 	SND_SOC_DAPM_AIF_IN("BE_IF_ID_VOIP_HIFI", "BE_DAI_ID_VOIP_HIFI",
