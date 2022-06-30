@@ -42,6 +42,7 @@
 struct vsp_fh {
 	int is_vsp_acquired;
 	int is_clock_enabled;
+	int is_wakelock_got;
 
 	wait_queue_head_t wait_queue_work;
 	int condition_work;
@@ -74,6 +75,7 @@ struct vsp_dev_t {
 	struct clk *clk_ahb_vsp;
 	struct clk *clk_emc_vsp;
 	struct clk *clk_vsp_ahb_mmu_eb;
+	struct wakeup_source *vsp_wakelock;
 
 	unsigned int irq;
 	unsigned int version;
