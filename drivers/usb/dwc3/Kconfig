@@ -167,4 +167,13 @@ config USB_DWC3_XILINX
 	  This driver handles both ZynqMP and Versal SoC operations.
 	  Say 'Y' or 'M' if you have one such device.
 
+config USB_DWC3_SPRD
+	tristate "Unisoc USB3.0 Platforms"
+	depends on ARCH_SPRD || COMPILE_TEST
+	default USB_DWC3_SPRD_CORE
+	help
+	  which can be configured for device-only, host-only and Dual-Role
+	  operation.
+	  Say 'Y' or 'M' if you have one such device.
+
 endif
