@@ -36,9 +36,14 @@ struct gsp_r9p0_misc_cfg {
 	u8 co_work1;
 	u8 work_mod;
 	u8 pmargb_en;
+	u8 secure_en;
+	bool hdr_flag[R9P0_IMGL_NUM];
+	bool first10bit_frame[R9P0_IMGL_NUM];
+	bool hdr10plus_update[R9P0_IMGL_NUM];
+	u32 work_freq;
 	struct gsp_rect workarea_src_rect;
 	struct gsp_pos workarea_des_pos;
-	u8 secure_en;
+	struct gsp_r9p0_hdr10_cfg hdr10_para[R9P0_IMGL_NUM];
 };
 
 struct gsp_r9p0_cfg {
