@@ -97,7 +97,7 @@ static long vpu_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		data->clk.core_parent_clk = clk_parent;
 		if (data->clk.freq_div >= data->max_freq_level)
 			data->clk.freq_div = data->max_freq_level - 1;
-		dev_dbg(dev, "vpu ioctl VPU_CONFIG_FREQ\n");
+		dev_dbg(dev, "vpu ioctl VPU_CONFIG_FREQ, fp %p\n", vpu_fp);
 		break;
 
 	case VPU_GET_FREQ:
@@ -105,11 +105,11 @@ static long vpu_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		ret = find_freq_level(clock_name_map,
 			frequency, data->max_freq_level);
 		put_user(ret, (int __user *)arg);
-		dev_dbg(dev, "vpu ioctl VPU_GET_FREQ %d\n", ret);
+		dev_dbg(dev, "vpu ioctl VPU_GET_FREQ %d, fp %p\n", ret, vpu_fp);
 		break;
 
 	case VPU_ENABLE:
-		dev_dbg(dev, "vpu ioctl VPU_ENABLE\n");
+		dev_dbg(dev, "vpu ioctl VPU_ENABLE, fp %p\n", vpu_fp);
 		__pm_stay_awake(data->vpu_wakelock);
 		vpu_fp->is_wakelock_got = true;
 
@@ -125,7 +125,7 @@ static long vpu_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		break;
 
 	case VPU_DISABLE:
-		dev_dbg(dev, "vpu ioctl VPU_DISABLE\n");
+		dev_dbg(dev, "vpu ioctl VPU_DISABLE, fp %p\n", vpu_fp);
 		if (vpu_fp->is_clock_enabled) {
 			clr_vpu_interrupt_mask(data);
 			vpu_fp->is_clock_enabled = false;
@@ -137,7 +137,8 @@ static long vpu_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		break;
 
 	case VPU_ACQUAIRE:
-		dev_dbg(dev, "vpu ioctl VPU_ACQUAIRE begin\n");
+		dev_dbg(dev, "vpu ioctl VPU_ACQUAIRE begin, Sem cnt %d , fp %p\n",
+			data->vpu_mutex.count, vpu_fp);
 		ret = down_timeout(&data->vpu_mutex,
 			msecs_to_jiffies(VPU_AQUIRE_TIMEOUT_MS));
 		/*
@@ -154,18 +155,21 @@ static long vpu_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		}
 		data->vpu_fp = vpu_fp;
 		vpu_fp->is_vpu_acquired = true;
-		dev_dbg(dev, "vpu ioctl VPU_ACQUAIRE end\n");
+		dev_dbg(dev, "vpu ioctl VPU_ACQUAIRE end, fp %p\n", vpu_fp);
 		break;
 
 	case VPU_RELEASE:
-		dev_dbg(dev, "vpu ioctl VPU_RELEASE\n");
-		vpu_fp->is_vpu_acquired = false;
-		data->vpu_fp = NULL;
-		up(&data->vpu_mutex);
+		if (vpu_fp->is_vpu_acquired) {
+			vpu_fp->is_vpu_acquired = false;
+			data->vpu_fp = NULL;
+			up(&data->vpu_mutex);
+		}
+		dev_dbg(dev, "vpu ioctl VPU_RELEASE, Sem cnt %d, fp %p\n",
+			data->vpu_mutex.count, vpu_fp);
 		break;
 
 	case VPU_COMPLETE:
-		dev_dbg(dev, "vpu ioctl VPU_COMPLETE\n");
+		dev_dbg(dev, "vpu ioctl VPU_COMPLETE, fp %p\n", vpu_fp);
 		ret = wait_event_interruptible_timeout(data->wait_queue_work,
 						       data->condition_work,
 						       msecs_to_jiffies
@@ -192,11 +196,11 @@ static long vpu_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			data->vpu_int_status = 0;
 			data->condition_work = 0;
 		}
-		dev_dbg(dev, "vpu ioctl VPU_COMPLETE end\n");
+		dev_dbg(dev, "vpu ioctl VPU_COMPLETE end, fp %p\n", vpu_fp);
 		break;
 
 	case VPU_RESET:
-		dev_dbg(dev, "vpu ioctl VPU_RESET\n");
+		dev_dbg(dev, "vpu ioctl VPU_RESET, fp %p\n", vpu_fp);
 
 		ret = regmap_update_bits(data->regs[RESET].gpr,
 			data->regs[RESET].reg,
@@ -237,7 +241,7 @@ static long vpu_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		break;
 
 	case VPU_HW_INFO:
-		dev_dbg(dev, "vpu ioctl VPU_HW_INFO\n");
+		dev_dbg(dev, "vpu ioctl VPU_HW_INFO, fp %p\n", vpu_fp);
 
 		regmap_read(data->regs[VPU_DOMAIN_EB].gpr,
 			data->regs[VPU_DOMAIN_EB].reg, &mm_eb_reg);
@@ -247,7 +251,7 @@ static long vpu_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 
 	case VPU_VERSION:
 
-		dev_dbg(dev, "vpu version -enter\n");
+		dev_dbg(dev, "vpu version -enter, fp %p\n", vpu_fp);
 		put_user(data->version, (int __user *)arg);
 
 		break;
@@ -410,7 +414,7 @@ static int vpu_open(struct inode *inode, struct file *filp)
 	vpu_fp->dev_data = data;
 	filp->private_data = vpu_fp;
 	atomic_inc(&data->instance_cnt);
-	dev_info(data->dev, "%s, open", data->p_data->name);
+	dev_info(data->dev, "%s, open, fp %p\n", data->p_data->name, vpu_fp);
 	pm_runtime_get_sync(data->dev);
 	vpu_qos_config(data);
 
@@ -427,8 +431,8 @@ static int vpu_release(struct inode *inode, struct file *filp)
 	struct vpu_fp *vpu_fp = filp->private_data;
 	struct vpu_platform_data *data = vpu_fp->dev_data;
 
-	dev_info(data->dev, "%s, release, inst cnt %d\n", data->p_data->name,
-		atomic_read(&data->instance_cnt));
+	dev_info(data->dev, "%s, release, inst cnt %d, fp %p\n", data->p_data->name,
+		atomic_read(&data->instance_cnt), vpu_fp);
 
 	atomic_dec(&data->instance_cnt);
 
@@ -447,12 +451,14 @@ static int vpu_release(struct inode *inode, struct file *filp)
 		pr_info("Acquire vpu mutex before unmap checking, %d\n", ret);
 	}
 
+	dev_dbg(data->dev, "Sem cnt is %d\n", data->vpu_mutex.count);
 	non_free_bufs_check((void *)vpu_fp, data);
 
 
 	if (vpu_fp->is_vpu_acquired) {
 		dev_err(data->dev, "error occurred and up vsp_mutex\n");
 		up(&data->vpu_mutex);
+		dev_dbg(data->dev, "Sem cnt is %d\n", data->vpu_mutex.count);
 	}
 	kfree(vpu_fp);
 
