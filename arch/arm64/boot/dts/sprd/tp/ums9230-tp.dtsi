@@ -7,6 +7,7 @@
 		compatible = "focaltech,fts", "novatek,NVT-ts-spi";
 		reg = <0x0>; //Same as CS ID
 		status = "ok";
+		spi-max-frequency = <8000000>;
 
 		/*-----------------focaltech------------------------*/
 		focaltech,reset-gpio = <&ap_gpio 145 GPIO_ACTIVE_HIGH>;
@@ -16,7 +17,7 @@
 		//spi-max-frequency = <6000000>;
 
 		/*-----------------novatek------------------------*/
-		spi-max-frequency = <9600000>;  //4800000,9600000,15000000,19200000
+		//spi-max-frequency = <9600000>;  //4800000,9600000,15000000,19200000
 		novatek,reset-gpio = <&ap_gpio 145 0x00>;
 		novatek,irq-gpio = <&ap_gpio 144 0x2001>;
 
