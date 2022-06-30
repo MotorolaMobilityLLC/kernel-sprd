@@ -625,6 +625,7 @@ struct sk_buff *sipa_recv_skb(struct sipa_skb_receiver *receiver,
 	bool need_unmap = false;
 	int ret, retry = 10;
 	enum sipa_cmn_fifo_index id;
+	struct skb_shared_info *shinfo;
 	struct sk_buff *recv_skb = NULL;
 	struct sipa_node_desc_tag *node = NULL;
 	struct sipa_skb_array *fill_array =
@@ -660,6 +661,22 @@ struct sk_buff *sipa_recv_skb(struct sipa_skb_receiver *receiver,
 				       &addr, &need_unmap);
 	atomic_inc(&fill_array->need_fill_cnt);
 
+	if (node->length > SIPA_RECV_BUF_LEN - NET_SKB_PAD -
+	    SKB_DATA_ALIGN(sizeof(struct skb_shared_info))) {
+		dev_err(receiver->dev, "node transfer length long is %d\n",
+			node->length);
+		shinfo = skb_shinfo(recv_skb);
+		memset(shinfo, 0, offsetof(struct skb_shared_info, dataref));
+		dev_kfree_skb_any(recv_skb);
+		sipa_hal_add_tx_fifo_rptr(receiver->dev, id, 1);
+		atomic_dec(&receiver->check_flag);
+		if (need_unmap)
+			dma_unmap_single(receiver->dev, addr,
+					 SIPA_RECV_BUF_LEN,
+					 DMA_FROM_DEVICE);
+		return NULL;
+	}
+
 check_again:
 	if (ret) {
 		dev_err(receiver->dev, "recv addr:0x%llx, but recv_array is empty\n",
@@ -676,6 +693,10 @@ check_again:
 		dev_info(receiver->dev,
 			 "recv addr:0x%llx, recv_array addr:0x%llx not equal retry = %d src = %d\n",
 			 (u64)node->address, (u64)addr, retry, node->src);
+		if (need_unmap)
+			dma_unmap_single(receiver->dev, addr,
+					 SIPA_RECV_BUF_LEN,
+					 DMA_FROM_DEVICE);
 		return NULL;
 	}
 
