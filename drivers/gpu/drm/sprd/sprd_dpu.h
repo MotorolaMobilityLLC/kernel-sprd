@@ -190,6 +190,7 @@ struct dpu_context {
 
 	/* widevine config parameters */
 	bool secure_debug;
+	bool fastcall_en;
 	int time;
 	struct disp_message *tos_msg;
 
