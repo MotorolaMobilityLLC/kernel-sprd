@@ -1521,6 +1521,42 @@ static int sprd_iommu_get_resource(struct device_node *np,
 	return 0;
 }
 
+static int sprd_iommu_pt_cma_alloc(struct sprd_iommu_dev *iommu_dev)
+{
+	void *iommu_pt_addr_v = NULL;
+	dma_addr_t iommu_pt_addr_p;
+	struct sprd_iommu_init_data *pdata = iommu_dev->init_data;
+	size_t iommu_pt_size = pdata->iova_size / MMU_MAPING_PAGESIZE * 4;
+
+	iommu_pt_addr_v = dma_alloc_wc(iommu_dev->drv_dev,
+			iommu_pt_size, &iommu_pt_addr_p, GFP_KERNEL);
+	if (!iommu_pt_addr_v)
+		return -ENOMEM;
+
+	pdata->pagt_base_virt = (unsigned long)iommu_pt_addr_v;
+	pdata->pagt_base_ddr = (unsigned long)iommu_pt_addr_p;
+	pdata->pagt_ddr_size = (unsigned long)iommu_pt_size;
+
+	IOMMU_INFO("%s pagetable: virt[0x%lx], phy[0x%lx], size:0x%lx\n",
+			pdata->name,
+			pdata->pagt_base_virt,
+			pdata->pagt_base_ddr,
+			pdata->pagt_ddr_size);
+
+	return 0;
+}
+
+static void sprd_iommu_pt_cma_free(struct sprd_iommu_dev *iommu_dev)
+{
+	struct sprd_iommu_init_data *pdata = iommu_dev->init_data;
+
+	if (pdata->pagt_base_virt)
+		return dma_free_wc(iommu_dev->drv_dev,
+				(size_t)pdata->pagt_ddr_size,
+				(void *)pdata->pagt_base_virt,
+				(dma_addr_t)pdata->pagt_base_ddr);
+}
+
 static int sprd_iommu_probe(struct platform_device *pdev)
 {
 	int err = 0;
@@ -1851,26 +1887,16 @@ static int sprd_iommu_probe(struct platform_device *pdev)
 		(of_match_node(sprd_iommu_ids, np))->compatible
 		);
 
-	if (!(pdata->pagt_base_ddr))
-		pdata->pagt_base_virt =
-			(unsigned long)dma_alloc_coherent(&(pdev->dev),
-			pdata->iova_size / MMU_MAPING_PAGESIZE * 4,
-			(dma_addr_t *)(&(pdata->pagt_base_ddr)),
-			GFP_DMA | GFP_KERNEL);
-	if (!(pdata->pagt_base_virt)) {
-		IOMMU_ERR("iommu %s : pgt virt 0x%lx phy 0x%lx\n", pdata->name, pdata->pagt_base_virt, pdata->pagt_base_ddr);
+	err = sprd_iommu_pt_cma_alloc(iommu_dev);
+	if (err) {
+		IOMMU_ERR("%s: Failed to get pagetable memory\n", pdata->name);
 		goto errout;
 	}
 
 	err = iommu_dev->ops->init(iommu_dev, pdata);
 	if (err) {
 		IOMMU_ERR("iommu %s : failed init %d.\n", pdata->name, err);
-		if (pdata->pagt_base_virt)
-			dma_free_coherent(&(pdev->dev),
-				pdata->iova_size / MMU_MAPING_PAGESIZE * 4,
-				(void *)(pdata->pagt_base_virt),
-				(dma_addr_t)(pdata->pagt_base_ddr));
-		goto errout;
+		goto errpt;
 	}
 
 	atomic_set(&iommu_dev->iommu_dev_cnt, 0);
@@ -1886,6 +1912,8 @@ static int sprd_iommu_probe(struct platform_device *pdev)
 	IOMMU_INFO("%s end\n", iommu_dev->init_data->name);
 	return 0;
 
+errpt:
+	sprd_iommu_pt_cma_free(iommu_dev);
 errout:
 	kfree(iommu_dev);
 	kfree(pdata);
