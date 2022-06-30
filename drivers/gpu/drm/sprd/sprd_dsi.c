@@ -287,14 +287,14 @@ void sprd_dsi_encoder_disable_force(struct drm_encoder *encoder)
 
 	mutex_lock(&dsi->lock);
 
-	if (dsi->ctx.enabled) {
-		mutex_unlock(&dsi->lock);
-		return;
-	}
-
 	sprd_dpu_stop(dpu);
 
 	if (!strcmp(dpu->ctx.version, "dpu-r6p0")) {
+		if (dsi->ctx.enabled) {
+			mutex_unlock(&dsi->lock);
+			return;
+		}
+
 		if (dsi->ctx.dpi_clk_div) {
 			dsi->ctx.clk_dpi_384m = true;
 			dsi->glb->disable(&dsi->ctx);
