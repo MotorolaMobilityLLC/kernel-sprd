@@ -16,6 +16,7 @@
 #endif
 #define pr_fmt(fmt) "sipa_dele: " fmt
 
+#include <linux/delay.h>
 #include <linux/device.h>
 #include <linux/init.h>
 #include <linux/kernel.h>
@@ -30,86 +31,45 @@
 #include "sipa_dele_priv.h"
 
 static struct cp_delegator *s_cp_delegator;
-
-static int sipa_dele_enable_work(struct sipa_delegator *delegator)
-{
-	int ret;
-
-	if (delegator->pd_eb_flag && delegator->pd_get_flag) {
-		sipa_dele_start_done_work(delegator,
-					  SMSG_FLG_DELE_ENABLE,
-					  SMSG_VAL_DELE_REQ_SUCCESS);
-		pr_info("on cmd enable then send done_enable again\n");
-		return 0;
-	}
-
-	if (!delegator->pd_eb_flag || delegator->pd_get_flag)
-		return 0;
-
-	ret = pm_runtime_get_sync(delegator->pdev);
-	if (ret) {
-		pm_runtime_put(delegator->pdev);
-		schedule_delayed_work(&delegator->pd_work,
-				      msecs_to_jiffies(10));
-		pr_warn("sipa_dele get pd fail ret = %d\n", ret);
-	} else {
-		delegator->pd_get_flag = true;
-		sipa_set_enabled(true);
-		sipa_dele_start_done_work(delegator,
-					  SMSG_FLG_DELE_ENABLE,
-					  SMSG_VAL_DELE_REQ_SUCCESS);
-		pr_info("sipa_dele get pd success ret = %d\n", ret);
-	}
-
-	return ret;
-}
-
-static int sipa_dele_disable_work(struct sipa_delegator *delegator)
-{
-	if (delegator->pd_eb_flag || !delegator->pd_get_flag)
-		return 0;
-
-	sipa_set_enabled(false);
-	pm_runtime_put(delegator->pdev);
-	delegator->pd_get_flag = false;
-
-	return 0;
-}
-
-static void sipa_dele_pd_handler(struct work_struct *work)
-{
-	struct delayed_work *pd_delayed_work = to_delayed_work(work);
-	struct sipa_delegator *delegator = container_of(pd_delayed_work,
-							struct sipa_delegator,
-							pd_work);
-
-	pr_info("sipa pd_eb_flag = %d, pd_get_flag = %d\n",
-		delegator->pd_eb_flag, delegator->pd_get_flag);
-
-	if (delegator->pd_eb_flag)
-		sipa_dele_enable_work(delegator);
-	else
-		sipa_dele_disable_work(delegator);
-}
-
 static void cp_dele_on_commad(void *priv, u16 flag, u32 data)
 {
 	struct sipa_delegator *delegator = priv;
+	int ret;
 
 	pr_info("prod_id:%d, on_cmd, flag = %d\n", delegator->prod_id, flag);
 
 	switch (flag) {
 	case SMSG_FLG_DELE_ENABLE:
 		delegator->pd_eb_flag = true;
-		schedule_delayed_work(&delegator->pd_work, 0);
+check_again:
+		ret = pm_runtime_get_sync(delegator->pdev);
+		if (ret) {
+			pm_runtime_put(delegator->pdev);
+			pr_warn("sipa_dele get pd fail ret = %d\n", ret);
+			mdelay(1);
+			goto check_again;
+		} else {
+			delegator->pd_get_flag = true;
+			sipa_set_enabled(true);
+			sipa_dele_start_done_work(delegator,
+						  SMSG_FLG_DELE_ENABLE,
+						  SMSG_VAL_DELE_REQ_SUCCESS);
+			pr_info("sipa_dele get pd success ret = %d\n", ret);
+		}
+
 		break;
 	case SMSG_FLG_DELE_DISABLE:
 		delegator->pd_eb_flag = false;
-		schedule_delayed_work(&delegator->pd_work, 0);
+		sipa_set_enabled(false);
+		pm_runtime_put(delegator->pdev);
+		delegator->pd_get_flag = false;
 		break;
 	default:
 		break;
 	}
+
+	pr_info("sipa pd_eb_flag = %d, pd_get_flag = %d\n",
+		delegator->pd_eb_flag, delegator->pd_get_flag);
 
 	/* do default operations */
 	sipa_dele_on_commad(priv, flag, data);
@@ -213,8 +173,6 @@ int cp_delegator_init(struct sipa_delegator_create_params *params)
 	s_cp_delegator->delegator.pd_eb_flag = false;
 	s_cp_delegator->delegator.pd_get_flag = false;
 	s_cp_delegator->delegator.smsg_cnt = 0;
-	INIT_DELAYED_WORK(&s_cp_delegator->delegator.pd_work,
-			  sipa_dele_pd_handler);
 	sipa_delegator_start(&s_cp_delegator->delegator);
 	pm_runtime_enable(s_cp_delegator->delegator.pdev);
 
