@@ -28,6 +28,8 @@
 			MASK_AP_AHB_UFS_SOFT_RST>;
 		aon_apb_ufs_rst = <&aon_apb_regs REG_AON_APB_UFSDEV_REG
 			MASK_AON_APB_UFSDEV_SOFT_RST>;
+		phy_sram_ext_ld_done = <&anlg_phy_g12_regs 0x0c 0x2>;
+		phy_sram_bypass = <&anlg_phy_g12_regs 0x0c 0x4>;
 		phy_sram_init_done = <&anlg_phy_g12_regs 0x0c 0x01>;
 		aon_apb_ufs_clk_en = <&aon_apb_regs REG_AON_APB_UFSHC_CTRL
 			(MASK_AON_APB_UFSHC_PCLK_EN|MASK_AON_APB_UFSHC_HCLK_EN)>;
