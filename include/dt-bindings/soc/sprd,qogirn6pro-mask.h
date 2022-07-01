@@ -1303,6 +1303,10 @@
 #define MASK_AON_APB_PUB_CFG_EARLY_RESP_EN                  0x0001
 #define MASK_AON_APB_RESERVE_H                              0xFFFFFFFF
 #define MASK_AON_APB_RESERVE_L                              0xFFFFFFFF
+#define MASK_GPU_PDC_CUR_ST_ST0                             0x00F0
+#define MASK_GPU_PDC_CUR_ST_ST1                             0x00F0
+#define MASK_GPU_PDC_CUR_ST_ST2                             0x00F0
+#define MASK_GPU_PDC_CUR_ST_ST3                             0x00F0
 #define MASK_PMU_APB_CH_ACCESS_SP_MEM_EN                    0x0040
 #define MASK_PMU_APB_AUDIO_ACCESS_AON_MEM_EN                0x0020
 #define MASK_PMU_APB_IPA_ACCESS_AON_MEM_EN                  0x0010
