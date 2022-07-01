@@ -2319,7 +2319,7 @@ static struct sprd_clk_desc ums9620_topdvfs_clk_desc = {
 
 /* gpu apb gate */
 static SPRD_SC_GATE_CLK_HW(gpu_core_eb, "gpu-core-eb",  &gpu_eb.common.hw, 0x0,
-			0x1000, BIT(0), CLK_IGNORE_UNUSED, 0);
+			0x1000, BIT(2), CLK_IGNORE_UNUSED, 0);
 
 static struct sprd_clk_common *ums9620_gpuapb_gate[] = {
 	/* address base is 0x23000000 */
