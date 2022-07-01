@@ -79,10 +79,6 @@
 	regulator-always-on;
 };
 
-&vddemmccore {
-	regulator-always-on;
-};
-
 &vddsim2 {
 	status = "disabled";
 };
