@@ -389,6 +389,10 @@
 	logo_reserved: logobuffer@b0000000 {
 		reg = <0x0 0xb0000000 0x0 0x009e4000>;
 	};
+	/* Encrypt and decrypt widevine video */
+	oemcrypto_reserved: oemcrypto@f3000000 {
+		reg = <0x0 0xf3000000 0x0 0x01100000>;
+	};
 
 	widevine_reserved: widevine@d8c00000 {
 		compatible = "shared-dma-pool";
