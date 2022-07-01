@@ -26,9 +26,9 @@ struct reserved_mem_cfg {
 static struct reserved_mem_cfg mem_cfg;
 
 struct sprd_pmem_info {
-        unsigned long phy_addr;
-        unsigned int phys_offset;
-        size_t size;
+	uint64_t phy_addr;
+	//uint32_t phys_offset;
+	uint64_t size;
 };
 
 static int map_user_open(struct inode *inode, struct file *file)
@@ -62,11 +62,11 @@ static int map_user_mmap(struct file *file, struct vm_area_struct *vma)
 
 	if (mem_info->phy_addr && mem_info->size) {
 		vma->vm_page_prot = vm_get_page_prot(vma->vm_flags);
-		pr_info("%s: phy_addr=0x%lx, size=0x%zx\n",
+		pr_info("%s: phy_addr=0x%llx, size=0x%llx\n",
 				 __func__, mem_info->phy_addr, mem_info->size);
 		ret = vm_iomap_memory(vma, mem_info->phy_addr, mem_info->size);
 	} else {
-		pr_err("%s: phy_addr=0x%lx, size=0x%zx err!\n",
+		pr_err("%s: phy_addr=0x%llx, size=0x%llx err!\n",
 			   __func__, mem_info->phy_addr, mem_info->size);
 		ret = -EINVAL;
 	}
@@ -106,7 +106,7 @@ static long map_user_ioctl(struct file *file,
 
 		mem_info->phy_addr = data.phy_addr;
 		mem_info->size = data.size;
-		pr_debug("%s: phy_addr=0x%lx, size=0x%zx\n", __func__,
+		pr_debug("%s: phy_addr=0x%llx, size=0x%llx\n", __func__,
 				  data.phy_addr, data.size);
 		break;
 	}
@@ -118,55 +118,20 @@ static long map_user_ioctl(struct file *file,
 }
 
 #ifdef CONFIG_COMPAT
-#define COMPAT_MAP_USER_VIR  _IOWR(SPRD_MAP_IOCTRL_MAGIC, 0, \
-				   struct compat_sprd_pmem_info)
-
-struct compat_sprd_pmem_info {
-	compat_ulong_t phy_addr;
-	compat_uint_t phys_offset;
-	compat_size_t size;
-};
-static int compat_get_map_user_data(
-			       struct compat_sprd_pmem_info __user *data32,
-			       struct sprd_pmem_info  __user *data)
-{
-	compat_size_t s;
-	compat_uint_t u;
-	compat_ulong_t l;
-	int err;
-
-	err = get_user(l, &data32->phy_addr);
-	err |= put_user(l, &data->phy_addr);
-	err |= get_user(u, &data32->phys_offset);
-	err |= put_user(u, &data->phys_offset);
-	err |= get_user(s, &data32->size);
-	err |= put_user(s, &data->size);
-
-	return err;
-}
 
 static long compat_map_user_ioctl(struct file *filp, unsigned int cmd,
 		     unsigned long arg)
 {
-	struct compat_sprd_pmem_info __user *data32;
-	struct sprd_pmem_info __user *data;
 	long ret = -ENOTTY;
 
 	if (!filp->f_op->unlocked_ioctl)
 		return -ENOTTY;
-
-	if (cmd == COMPAT_MAP_USER_VIR) {
-		data32 = compat_ptr(arg);
-		data = compat_alloc_user_space(sizeof(*data));
-		if (data == NULL)
-			return -EFAULT;
-
-		ret = compat_get_map_user_data(data32, data);
-		if (ret)
-			return ret;
-
+	if (cmd == MAP_USER_VIR) {
+		pr_debug("%s: compat_ioctl enter\n", __func__);
 		ret = filp->f_op->unlocked_ioctl(filp, MAP_USER_VIR,
-						 (unsigned long)data);
+						 (unsigned long)compat_ptr(arg));
+	} else {
+		pr_err("%s, map_user cmd error!\n", __func__);
 	}
 
 	return ret;
