@@ -1805,6 +1805,9 @@ static void dpu_scaling(struct dpu_context *ctx,
 		if (count == 1) {
 			plane_state = to_sprd_plane_state(planes[count - 1].base.state);
 			layer_state = &plane_state->layer;
+			if (layer_state->pallete_en)
+				/*single dim layer cannot get into scaling process*/
+				return;
 			// btm_layer = &layers[count - 1];
 			if (layer_state->rotation & (DRM_MODE_ROTATE_90 |
 						DRM_MODE_ROTATE_270)) {
