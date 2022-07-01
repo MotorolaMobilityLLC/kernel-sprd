@@ -1,2 +1,3 @@
 config SND_SOC_UNISOC_TDM
 	tristate "SPRD AP TDM DAI"
+
