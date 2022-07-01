@@ -1120,7 +1120,7 @@ static struct usb_function *rndis_alloc(struct usb_function_instance *fi)
 	rndis->port.ul_max_pkts_per_xfer = rndis_ul_max_pkt_per_xfer;
 	rndis->port.dl_max_pkts_per_xfer = rndis_dl_max_pkt_per_xfer;
 
-	rndis->port.func.name = "sprdrndis";
+	rndis->port.func.name = "rndis";
 	/* descriptors are per-instance copies */
 	rndis->port.func.bind = rndis_bind;
 	rndis->port.func.unbind = rndis_unbind;
@@ -1139,6 +1139,6 @@ static struct usb_function *rndis_alloc(struct usb_function_instance *fi)
 	return &rndis->port.func;
 }
 
-DECLARE_USB_FUNCTION_INIT(sprdrndis, rndis_alloc_inst, rndis_alloc);
+DECLARE_USB_FUNCTION_INIT(rndis, rndis_alloc_inst, rndis_alloc);
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("David Brownell");
