@@ -773,6 +773,9 @@ int gsp_r9p0_core_enable(struct gsp_core *c)
 
 	gsp_r9p0_int_clear(c);
 	gsp_r9p0_core_irq_enable(c);
+
+	sprd_iommu_restore(c->dev);
+
 	goto exit;
 
 gsp_clk_unprepare:
@@ -864,14 +867,6 @@ int gsp_r9p0_core_parse_dt(struct gsp_core *core)
 	}
 
 	gsp_r9p0_core_parse_clk(r9p0_core);
-
-	gsp_r9p0_core_enable(core);
-
-	sprd_iommu_restore(core->dev);
-	/*
-	 * update dpu
-	 * gsp_core_reg_update(core->base + 4, 4, 4);
-	 */
 
 	return ret;
 }
