@@ -56,6 +56,12 @@ static void ufs_sprd_vh_prepare_command(void *data, struct ufs_hba *hba,
 	return;
 }
 
+static void ufs_sprd_vh_update_sdev(void *data, struct scsi_device *sdev)
+{
+	/* Disable UFS fua to prevent write performance degradation */
+	sdev->broken_fua = 1;
+}
+
 static const struct of_device_id ufs_sprd_of_match[] = {
 	{ .compatible = "sprd,ufshc-ums9620", .data = &ufs_hba_sprd_ums9620_vops },
 	{ .compatible = "sprd,ufshc-ums9621", .data = &ufs_hba_sprd_ums9621_vops },
@@ -70,6 +76,7 @@ static int ufs_sprd_probe(struct platform_device *pdev)
 	const struct of_device_id *of_id;
 
 	register_trace_android_vh_ufs_prepare_command(ufs_sprd_vh_prepare_command, NULL);
+	register_trace_android_vh_ufs_update_sdev(ufs_sprd_vh_update_sdev, NULL);
 
 	/* Perform generic probe */
 	of_id = of_match_node(ufs_sprd_of_match, pdev->dev.of_node);
