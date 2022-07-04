@@ -187,6 +187,15 @@ config SPRD_QOGIRN6PRO_USB2_PHY
 	  This driver takes care of all the PHY functionality, normally paired with
 	  DesignWare USB20 (DRD) Controller.
 
+config SPRD_QOGIRN6PRO_USB31_PHY
+	tristate "Unisoc QOGIRN6PRO PHY Driver"
+	select USB_PHY
+	depends on USB_DWC3_SPRD ||  COMPILE_TEST
+	help
+	  Enable this to support QOGIRN6PRO USB3 PHY that is part of SOC. This
+	  driver takes care of all the PHY functionality, normally paired
+	  with DesignWare USB3.0 (DRD) Controller.
+
 config USB_ULPI
 	bool "Generic ULPI Transceiver Driver"
 	depends on ARM || ARM64 || COMPILE_TEST
