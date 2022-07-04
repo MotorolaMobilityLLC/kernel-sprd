@@ -699,7 +699,7 @@ static int seth_open(struct net_device *dev)
 	struct sblock blk = {};
 	int ret = 0, num = 0;
 
-	dev_info(&dev->dev, "open %s!\n", dev->name);
+	dev_dbg(&dev->dev, "open %s!\n", dev->name);
 
 	if (!seth)
 		return -ENODEV;
@@ -715,7 +715,7 @@ static int seth_open(struct net_device *dev)
 			num++;
 		}
 	}
-	dev_info(&dev->dev, "%s clean %d resident sblocks\n", __func__, num);
+	dev_dbg(&dev->dev, "%s clean %d resident sblocks\n", __func__, num);
 
 	/* Reset stats */
 	memset(&seth->stats, 0, sizeof(seth->stats));
@@ -743,7 +743,7 @@ static int seth_close(struct net_device *dev)
 {
 	struct seth *seth = netdev_priv(dev);
 
-	dev_info(&dev->dev, "close %s!\n", dev->name);
+	dev_dbg(&dev->dev, "close %s!\n", dev->name);
 
 	seth->txstate = DEV_OFF;
 	seth->state = DEV_OFF;
@@ -808,7 +808,7 @@ static int seth_parse_dt(struct seth_init_data **init,
 	if (ret)
 		goto error;
 	pdata->channel = (u8)data;
-	dev_info(dev, "channel =%d\n", pdata->channel);
+	dev_dbg(dev, "channel =%d\n", pdata->channel);
 
 	/* Get dst, the dst is share sipc dst
 	 * Get the parent node
@@ -819,14 +819,14 @@ static int seth_parse_dt(struct seth_init_data **init,
 		if (ret)
 			goto error;
 		pdata->dst = (u8)data;
-		dev_info(dev, "dst    =%d\n", pdata->dst);
+		dev_dbg(dev, "dst    =%d\n", pdata->dst);
 	}
 	of_node_put(parent_np);
 
 	ret = of_property_read_u32(np, "sprd,blknum", &pdata->blocknum);
 	if (ret)
 		goto error;
-	dev_info(dev, "sprd,blknum =%d\n", pdata->blocknum);
+	dev_dbg(dev, "sprd,blknum =%d\n", pdata->blocknum);
 	*init = pdata;
 
 	return 0;
@@ -866,8 +866,8 @@ static int seth_probe(struct platform_device *pdev)
 		return ret;
 	}
 
-	dev_info(dev, "after parse dt, name=%s, dst=%u, channel=%u, blocknum=%u\n",
-		 pdata->name, pdata->dst, pdata->channel, pdata->blocknum);
+	dev_dbg(dev, "after parse dt, name=%s, dst=%u, channel=%u, blocknum=%u\n",
+		pdata->name, pdata->dst, pdata->channel, pdata->blocknum);
 
 	if (pdata->name[0])
 		strscpy(ifname, pdata->name, IFNAMSIZ);
