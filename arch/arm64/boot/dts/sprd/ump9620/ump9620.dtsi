@@ -20,6 +20,28 @@
 		#address-cells = <1>;
 		#size-cells = <0>;
 
+		led-controller@180 {
+			compatible = "sprd,ump9620-bltc", "sprd,sc27xx-bltc";
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <0x180>;
+
+			led@0 {
+				label = "red";
+				reg = <0x0>;
+			};
+
+			led@1 {
+				label = "green";
+				reg = <0x1>;
+			};
+
+			led@2 {
+				label = "blue";
+				reg = <0x2>;
+			};
+		};
+
 		pmic_eic: gpio@280 {
 			compatible = "sprd,ump96xx-eic", "sprd,sc27xx-eic", "sprd,sc2731-eic";
 			reg = <0x280>;
