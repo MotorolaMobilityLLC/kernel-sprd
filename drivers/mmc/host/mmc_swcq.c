@@ -1528,8 +1528,6 @@ void mmc_wait_cmdq_done(struct mmc_request *mrq)
 	struct mmc_command *cmd = mrq->cmd;
 	int done = 0, task_id;
 
-	pr_debug("%s %s: cmd%d\n", __func__, mmc_hostname(host), cmd->opcode);
-
 	if (cmd->opcode == MMC_SEND_STATUS ||
 		cmd->opcode == MMC_STOP_TRANSMISSION ||
 		cmd->opcode == MMC_CMDQ_TASK_MGMT) {
@@ -1563,8 +1561,6 @@ void mmc_wait_cmdq_done(struct mmc_request *mrq)
 	if ((cmd->opcode == MMC_SEND_STATUS) && (cmd->arg & (1 << 15))) {
 		int i = 0;
 		unsigned int resp = cmd->resp[0];
-
-		pr_debug("CMD%d, resp = %d\n", cmd->opcode, resp);
 
 		if (resp == 0) {
 			/* if task not ready over 5s, reinit emmc */
@@ -1985,10 +1981,6 @@ static void check_cmdq_timer(struct timer_list *t)
 			if ((i + 1) < read_cnt) {
 				next_check_slot = &swcq->check_slot[i+1];
 				real_blk_addr = next_check_slot->blk_addr;
-				pr_debug("mmc0: blk_addr:%d blocks:%d, expect_next_addr:%d, "
-					 "real_next_addr:%d\n",
-					 check_slot->blk_addr, check_slot->blocks,
-					 expect_blk_addr, real_blk_addr);
 				if (expect_blk_addr == real_blk_addr) {
 					result = false;
 					reason = 7;

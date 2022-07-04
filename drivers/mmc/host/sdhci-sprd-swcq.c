@@ -961,8 +961,6 @@ static bool raw_sdhci_request_done(struct sdhci_host *host)
 
 static void sdhci_sprd_cmd_irq(struct sdhci_host *host, u32 intmask, u32 *intmask_p)
 {
-	pr_debug("%s: %s, %d intmask=0x%x\n",
-				mmc_hostname(host->mmc), __func__, __LINE__, intmask);
 	/* Handle auto-CMD12 error */
 	if (intmask & SDHCI_INT_AUTO_CMD_ERR && host->data_cmd) {
 		struct mmc_request *mrq = host->data_cmd->mrq;
