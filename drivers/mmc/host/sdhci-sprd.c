@@ -831,6 +831,9 @@ static void sdhci_sprd_dump_vendor_regs(struct sdhci_host *host)
 	struct sdhci_sprd_host *sprd_host = TO_SPRD_HOST(host);
 	char sdhci_hostname[64];
 
+	if (!host->mmc->card)
+		return;
+
 	command = SDHCI_GET_CMD(sdhci_readw(host, SDHCI_COMMAND));
 	if ((command == SEND_TUNING_BLOCK) || (command == SEND_TUNING_BLOCK_HS200))
 		return;
