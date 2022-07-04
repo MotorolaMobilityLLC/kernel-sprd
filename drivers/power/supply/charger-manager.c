@@ -106,6 +106,7 @@
 #define CM_CP_WORK_TIME_MS			500
 #define CM_CHK_DIS_FCHG_WORK_MS			5000
 #define CM_TRY_DIS_FCHG_WORK_MS			100
+#define MAX_STATE                               1
 
 static const char * const cm_cp_state_names[] = {
 	[CM_CP_STATE_UNKNOWN] = "Charge pump state: UNKNOWN",
@@ -5162,6 +5163,10 @@ static int charger_get_property(struct power_supply *psy,
 		ret = cm_get_charge_control_limit(cm, val);
 		break;
 
+	case POWER_SUPPLY_PROP_CHARGE_CONTROL_LIMIT_MAX:
+		val->intval = MAX_STATE;
+		break;
+
 	case POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN:
 		ret = cm_get_charge_full_design(cm, val);
 		break;
@@ -5301,6 +5306,7 @@ static enum power_supply_property default_charger_props[] = {
 	POWER_SUPPLY_PROP_CURRENT_AVG,
 	POWER_SUPPLY_PROP_CHARGE_COUNTER,
 	POWER_SUPPLY_PROP_CHARGE_CONTROL_LIMIT,
+	POWER_SUPPLY_PROP_CHARGE_CONTROL_LIMIT_MAX,
 	POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN,
 	POWER_SUPPLY_PROP_TIME_TO_FULL_NOW,
 	POWER_SUPPLY_PROP_TECHNOLOGY,
