@@ -1836,6 +1836,8 @@
   prepare_to_wait
   proc_remove
   put_unused_fd
+  raw_notifier_call_chain
+  raw_notifier_chain_register
   _raw_read_lock_bh
   _raw_read_unlock_bh
   _raw_write_lock_bh
