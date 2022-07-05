@@ -4,8 +4,6 @@
 //
 // Copyright (C) 2021 UNISOC, Inc.
 // Author: Zhongwu Zhu <zhongwu.zhu@unisoc.com>
-#if IS_ENABLED(CONFIG_MMC_SWCQ)
-
 #define _DRIVER_NAME "sprd-sdhci-swcq"
 #define DBG(f, x...) \
 	pr_debug("%s: " _DRIVER_NAME ": " f, mmc_hostname(host->mmc), ## x)
@@ -2265,4 +2263,4 @@ int sdhci_sprd_irq_request_swcq(struct sdhci_host *host)
 
 	return ret;
 }
-#endif
+
