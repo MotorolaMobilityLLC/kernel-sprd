@@ -390,6 +390,7 @@
 #include "power.dtsi"
 #include "sensorhub.dtsi"
 #include "spi.dtsi"
+#include "thermal.dtsi"
 #include "uart.dtsi"
 #include "ufs.dtsi"
 #include "sdio.dtsi"
