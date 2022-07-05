@@ -483,6 +483,14 @@ config SPRD_THERMAL
 	  Support for the Spreadtrum thermal sensor driver in the Linux thermal
 	  framework.
 
+config SPRD_THERMAL_R5P0
+	tristate "Spreadtrum Soc Thermal R5P0 Support"
+	depends on ARCH_SPRD || COMPILE_TEST
+	depends on THERMAL_OF
+	help
+	  Enable the spreadtrum soc thermal sensor dirver, which supports
+	  thermal framework to get the temp of cpu/gpu thermal zone.
+
 config SC27XX_TSENSOR_THERMAL
 	tristate "Spreadtrum SC27xx Tsensor Thermal Support"
 	depends on MFD_SC27XX_PMIC || MFD_UMP96XX_PMIC || COMPILE_TEST
