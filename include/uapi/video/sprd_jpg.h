@@ -22,6 +22,7 @@
 #else // Not __KERNEL__
 #include <stdio.h>
 #include <sys/ioctl.h>
+#include <stdint.h>
 #endif
 #define SPRD_JPG_MAP_SIZE 0x6000
 
@@ -41,23 +42,10 @@
 #define JPG_GET_IOMMU_STATUS _IO(SPRD_JPG_IOCTL_MAGIC, 13)
 #define JPG_VERSION _IO(SPRD_JPG_IOCTL_MAGIC, 14)
 
-#ifdef __KERNEL__
-#ifdef CONFIG_COMPAT
-#define COMPAT_JPG_GET_IOVA    _IOWR(SPRD_JPG_IOCTL_MAGIC, 11, struct compat_jpg_iommu_map_data)
-#define COMPAT_JPG_FREE_IOVA   _IOW(SPRD_JPG_IOCTL_MAGIC, 12, struct compat_jpg_iommu_map_data)
-
-struct compat_jpg_iommu_map_data {
-	compat_int_t fd;
-	compat_size_t size;
-	compat_ulong_t iova_addr;
-};
-#endif
-#endif
-
 struct jpg_iommu_map_data {
 	int fd;
-	size_t size;
-	unsigned long iova_addr;
+	uint64_t size;
+	uint64_t iova_addr;
 };
 
 enum jpg_version_e {

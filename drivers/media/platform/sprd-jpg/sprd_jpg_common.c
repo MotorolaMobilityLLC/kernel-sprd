@@ -213,44 +213,6 @@ int jpg_get_mm_clk(struct jpg_dev_t *hw_dev)
 }
 
 #ifdef CONFIG_COMPAT
-int compat_get_mmu_map_data(struct compat_jpg_iommu_map_data __user *
-				   data32,
-				   struct jpg_iommu_map_data __user *data)
-{
-	compat_int_t i;
-	compat_size_t s;
-	compat_ulong_t ul;
-	int err;
-
-	err = get_user(i, &data32->fd);
-	err |= put_user(i, &data->fd);
-	err |= get_user(s, &data32->size);
-	err |= put_user(s, &data->size);
-	err |= get_user(ul, &data32->iova_addr);
-	err |= put_user(ul, &data->iova_addr);
-
-	return err;
-};
-
-int compat_put_mmu_map_data(struct compat_jpg_iommu_map_data __user *
-				   data32,
-				   struct jpg_iommu_map_data __user *data)
-{
-	compat_int_t i;
-	compat_size_t s;
-	compat_ulong_t ul;
-	int err;
-
-	err = get_user(i, &data->fd);
-	err |= put_user(i, &data32->fd);
-	err |= get_user(s, &data->size);
-	err |= put_user(s, &data32->size);
-	err |= get_user(ul, &data->iova_addr);
-	err |= put_user(ul, &data32->iova_addr);
-
-	return err;
-};
-
 long compat_jpg_ioctl(struct file *filp, unsigned int cmd,
 			     unsigned long arg)
 {
@@ -267,56 +229,6 @@ long compat_jpg_ioctl(struct file *filp, unsigned int cmd,
 	}
 
 	switch (cmd) {
-	case COMPAT_JPG_GET_IOVA:
-		{
-			struct compat_jpg_iommu_map_data __user *data32;
-			struct jpg_iommu_map_data __user *data;
-			int err;
-
-			data32 = compat_ptr(arg);
-			data = compat_alloc_user_space(sizeof(*data));
-			if (data == NULL) {
-				pr_err("%s %d, compat_alloc_user_space failed",
-				       __func__, __LINE__);
-				return -EFAULT;
-			}
-
-			err = compat_get_mmu_map_data(data32, data);
-			if (err) {
-				pr_err("%s %d, compat_get_mmu_map_data failed",
-				       __func__, __LINE__);
-				return err;
-			}
-			ret = filp->f_op->unlocked_ioctl(filp, JPG_GET_IOVA,
-							 (unsigned long)data);
-			err = compat_put_mmu_map_data(data32, data);
-			return ret ? ret : err;
-		}
-	case COMPAT_JPG_FREE_IOVA:
-		{
-			struct compat_jpg_iommu_map_data __user *data32;
-			struct jpg_iommu_map_data __user *data;
-			int err;
-
-			data32 = compat_ptr(arg);
-			data = compat_alloc_user_space(sizeof(*data));
-			if (data == NULL) {
-				pr_err("%s %d, compat_alloc_user_space failed",
-				       __func__, __LINE__);
-				return -EFAULT;
-			}
-
-			err = compat_get_mmu_map_data(data32, data);
-			if (err) {
-				pr_err("%s %d, compat_get_mmu_map_data failed",
-				       __func__, __LINE__);
-				return err;
-			}
-			ret = filp->f_op->unlocked_ioctl(filp, JPG_FREE_IOVA,
-							 (unsigned long)data);
-			err = compat_put_mmu_map_data(data32, data);
-			return ret ? ret : err;
-		}
 	default:
 		return filp->f_op->unlocked_ioctl(filp, cmd, (unsigned long)
 						  compat_ptr(arg));
@@ -389,7 +301,7 @@ int jpg_get_iova(struct jpg_dev_t *hw_dev,
 
 			mapdata->iova_addr = iommu_map_data.iova_addr;
 			mapdata->size = iommu_map_data.iova_size;
-			pr_debug("jpg iommu map success iova addr=%#lx size=%zu\n",
+			pr_debug("jpg iommu map success iova addr=%llu size=%llu\n",
 				mapdata->iova_addr, mapdata->size);
 			ret =
 			    copy_to_user((void __user *)arg,
@@ -399,7 +311,7 @@ int jpg_get_iova(struct jpg_dev_t *hw_dev,
 				pr_err("fatal error! copy_to_user failed, ret=%d\n", ret);
 				goto err_copy_to_user;
 			}
-			pr_debug("suceess to add map_node(iova_addr=%#lx, size=%zu)\n",
+			pr_debug("suceess to add map_node(iova_addr=%llu, size=%llu)\n",
 				mapdata->iova_addr, mapdata->size);
 		} else {
 			pr_err("jpg iommu map failed, ret=%d, map_size=%zu\n",
@@ -462,10 +374,10 @@ int jpg_free_iova(struct jpg_dev_t *hw_dev,
 			iommu_ummap_data.ch_type = SPRD_IOMMU_FM_CH_RW;
 			iommu_ummap_data.buf = NULL;
 			list_del(&entry->list);
-			pr_debug("success to find node(iova_addr=%#lx, size=%zu)\n",
+			pr_debug("success to find node(iova_addr=%llu, size=%llu)\n",
 				ummapdata->iova_addr, ummapdata->size);
 		} else {
-			pr_err("fatal error! not find node(iova_addr=%#lx, size=%zu)\n",
+			pr_err("fatal error! not find node(iova_addr=%llu, size=%llu)\n",
 				ummapdata->iova_addr, ummapdata->size);
 			mutex_unlock(&hw_dev->map_lock);
 			return -EFAULT;
@@ -476,11 +388,11 @@ int jpg_free_iova(struct jpg_dev_t *hw_dev,
 		    sprd_iommu_unmap(hw_dev->jpg_dev,
 					  &iommu_ummap_data);
 		if (ret) {
-			pr_err("sprd_iommu_unmap failed: ret=%d, iova_addr=%#lx, size=%zu\n",
+			pr_err("sprd_iommu_unmap failed: ret=%d, iova_addr=%llu, size=%llu\n",
 				ret, ummapdata->iova_addr, ummapdata->size);
 			return ret;
 		}
-		pr_debug("sprd_iommu_unmap success: iova_addr=%#lx size=%zu\n",
+		pr_debug("sprd_iommu_unmap success: iova_addr=%llu size=%llu\n",
 			ummapdata->iova_addr, ummapdata->size);
 		dma_buf_unmap_attachment(entry->attachment, entry->table, DMA_BIDIRECTIONAL);
 		dma_buf_detach(entry->dmabuf, entry->attachment);

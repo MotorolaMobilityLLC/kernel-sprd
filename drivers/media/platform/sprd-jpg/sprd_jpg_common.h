@@ -132,10 +132,6 @@ int jpg_find_freq_level(struct clock_name_map_t clock_name_map[],
 			unsigned int max_freq_level);
 int jpg_get_mm_clk(struct jpg_dev_t *hw_dev);
 #ifdef CONFIG_COMPAT
-int compat_get_mmu_map_data(struct compat_jpg_iommu_map_data __user *data32,
-				   struct jpg_iommu_map_data __user *data);
-int compat_put_mmu_map_data(struct compat_jpg_iommu_map_data __user *data32,
-				   struct jpg_iommu_map_data __user *data);
 long compat_jpg_ioctl(struct file *filp, unsigned int cmd,
 			     unsigned long arg);
 #endif
