@@ -2936,31 +2936,31 @@
 				interrupts = <GIC_SPI 253 IRQ_TYPE_LEVEL_HIGH>;
 				mpu-irq-clr-syscon= <&pub_apb_regs 0x32f0 0x200>;
 				mpu-irq-en-syscon = <&pub_apb_regs 0x32f0 0x100>;
-				sprd,channel-num = <8>;
+				sprd,channel-num = <10>;
 				sprd,mpu-num = <16>;
 				sprd,channel-names =
 					"CPU", "GPU", "DPU/DCAM","ISP/VSP/GSP",
-					"AP/ISE/AON/IPA/PCIE", "PHYCP/PSCPACC", "PHYCPU/PSCPU/AUD",
-					"AI", "SHARED0", "SHARED1",
+					"AP/ISE/AON/IPA/PCIE", "PHYCP/PSCPACC", "PSCPU",
+					"AI", "PHYCPU", "AUD",
 					"SHARED2", "SHARED3", "SHARED4",
 					"SHARED5", "SHARED6", "SHARED7";
-				sprd,ranges = <0 0 0 0>, <0 0 0 0>, <0 0 0 0>,
-					<0 0 0 0>, <0 0 0 0>, <0 0 0 0>,
-					<0 0 0 0>, <0 0 0 0>, <0 0 0 0>,
-					<0 0 0 0>, <0 0 0 0>, <0 0 0 0>,
+				sprd,ranges = <0 0 0 0>, <0 0x87800000 0 0xa5000000>, <0 0x87800000 0 0xa5000000>,
+					<0 0x87800000 0 0xa5000000>, <0 0x87800000 0 0xa5000000>, <0 0x87800000 0 0xa9000000>,
+					<0 0x87800000 0 0xa9000000>, <0 0x87800000 0 0xa5000000>, <0 0x87800000 0 0xa9000000>,
+					<0 0x87800000 0 0xa5000000>, <0 0 0 0>, <0 0 0 0>,
 					<0 0 0 0>, <0 0 0 0>, <0 0 0 0>,
 					<0 0 0 0>;
 				sprd,chn-config =
 					<DISABLE MON_INSIDE MON_WRITE>,
-					<DISABLE MON_INSIDE MON_WRITE>,
-					<DISABLE MON_INSIDE MON_WRITE>,
-					<DISABLE MON_INSIDE MON_WRITE>,
-					<DISABLE MON_INSIDE MON_WRITE>,
-					<DISABLE MON_INSIDE MON_WRITE>,
-					<DISABLE MON_INSIDE MON_WRITE>,
-					<DISABLE MON_INSIDE MON_WRITE>,
-					<DISABLE MON_INSIDE MON_WRITE>,
-					<DISABLE MON_INSIDE MON_WRITE>,
+					<ENABLE MON_INSIDE MON_WRITE>,
+					<ENABLE MON_INSIDE MON_WRITE>,
+					<ENABLE MON_INSIDE MON_WRITE>,
+					<ENABLE MON_INSIDE MON_WRITE>,
+					<ENABLE MON_OUTSIDE MON_WRITE>,
+					<ENABLE MON_OUTSIDE MON_WRITE>,
+					<ENABLE MON_INSIDE MON_WRITE>,
+					<ENABLE MON_OUTSIDE MON_WRITE>,
+					<ENABLE MON_INSIDE MON_WRITE>,
 					<DISABLE MON_INSIDE MON_WRITE>,
 					<DISABLE MON_INSIDE MON_WRITE>,
 					<DISABLE MON_INSIDE MON_WRITE>,
@@ -2971,18 +2971,19 @@
 					<MPUID 0 0xffff>, <MPUID 0 0xffff>,
 					<MPUID 0 0xffff>, <MPUID 0 0xffff>,
 					<MPUID 0 0xffff>, <MPUID 0 0xffff>,
-					<MPUID 0 0xffff>, <MPUID 0 0xffff>,
-					<MPUID 0 0xffff>, <MPUID 0 0xffff>,
+					<MPUID 0xd2 0x00>, <MPUID 0 0xffff>,
+					<MPUID 0xda 0x00>, <MPUID 0x9f 0x00>,
 					<MPUID 0 0xffff>, <MPUID 0 0xffff>,
 					<MPUID 0 0xffff>, <MPUID 0 0xffff>,
 					<MPUID 0 0xffff>, <MPUID 0 0xffff>;
 				sprd,port-map = <0>, <1>, <2>, <3>, <4>,
-						<5>, <6>, <7>, <0>, <0>,
+						<5>, <6>, <7>, <6>, <6>,
 						<0>, <0>, <0>, <0>, <0>,
 						<0>;
 				sprd,ddrc-remap = <0x60000014 0xd 0x6000009c 0xdeadbeef>;
 				sprd,ddr-offset = <0x80000000>;
 				status = "okay";
+				sprd,panic;
 			};
 
 			dmc_controller: dmc-controller@60050000 {
