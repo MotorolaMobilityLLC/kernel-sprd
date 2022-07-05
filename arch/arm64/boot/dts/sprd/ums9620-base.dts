@@ -373,6 +373,26 @@
 	status = "okay";
 };
 
+&iommu_vdsp_msti {
+	status = "okay";
+};
+
+&iommu_vdsp_idma {
+	status = "okay";
+};
+
+&iommu_vdsp_vdma {
+	status = "okay";
+};
+
+&vdsp_mailbox {
+	status = "okay";
+};
+
+&vdsp {
+	status = "okay";
+};
+
 &dsp_mem_dump {
 	/* for cmd para addr, fix bug 1740522*/
 	sprd,dspdumpmem = <0x56200000 0x3000

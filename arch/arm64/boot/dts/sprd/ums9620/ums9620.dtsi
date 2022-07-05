@@ -371,6 +371,30 @@
 		#size-cells = <0>;
 	};
 
+	vdsp_dvfs: vdsp-dvfs {
+		compatible = "sprd,hwdvfs-vdsp";
+		operating-points = <
+			/* kHz    uV */
+			26000     600000
+			307200    600000
+			512000    600000
+			614400    650000
+			819200    700000
+			1014000   750000
+			>;
+	};
+
+	vdsp_mtx_dvfs: vdsp_mtx-dvfs {
+		compatible = "sprd,hwdvfs-vdsp_mtx";
+		operating-points = <
+			/* kHz    uV */
+			26000     600000
+			307200    600000
+			409600    700000
+			512000    750000
+			>;
+	};
+
 };
 
 /* Include other IP modules ALPHABETICALLY */
@@ -399,5 +423,6 @@
 #include "socid.dtsi"
 #include "usb.dtsi"
 #include "vpu.dtsi"
+#include "vdsp.dtsi"
 #include "sipa-sys.dtsi"
 #include "sipa.dtsi"
