@@ -370,6 +370,9 @@
 				top_force_shutdown = <&pmu_apb_regs
 					REG_PMU_APB_RF_PD_GPU_TOP_CFG0
 					MASK_PMU_APB_RF_PD_GPU_TOP_FORCE_SHUTDOWN>;
+				dcdc_mm_voltage3 = <&top_dvfs_apb_regs
+					REG_TOP_DVFS_APB_RF_DCDC_MM_DVFS_VOLTAGE_VALUE1
+					MASK_TOP_DVFS_APB_RF_DCDC_MODEM_VOLTAGE3>;
 				mem_repaired_flag = <&aon_apb_regs
 					REG_AON_APB_RF_BOND_OPT0
 					MASK_AON_APB_RF_BOND_OPTION0>;
@@ -426,10 +429,8 @@
 					"MMU",
 					"GPU";
 
-				/*nvmem-cells = <&gpu_bin>;
-				nvmem-cell-names = "gpu_bin";*/
-				nvmem-cells = <&cpu_flag>;
-				nvmem-cell-names = "cpu_flag";
+				nvmem-cells = <&gpu_bin>, <&cpu_flag>;
+				nvmem-cell-names = "gpu_bin", "cpu_flag";
 
 				operating-points = <
 					/* kHz    uV */
@@ -2017,6 +2018,11 @@
 		thm2_sen0: thm2-sen0@3f {
 			reg = <0x3f 0x1>;
 			bits = <0 8>;
+		};
+
+		gpu_bin: gpu-bin@1b{
+			reg = <0x1b 0x1>;
+			bits = <3 3>;
 		};
 
 		cpu_flag: cpu-flag@50{
