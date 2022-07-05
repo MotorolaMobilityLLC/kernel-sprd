@@ -1,6 +1,6 @@
 #
 # Automatically generated file; DO NOT EDIT.
-# Linux/arm64 5.4.180 Kernel Configuration
+# Linux/arm64 5.4.190 Kernel Configuration
 #
 CONFIG_CC_VERSION_TEXT="Android (7284624, based on r416183b) clang version 12.0.5 (https://android.googlesource.com/toolchain/llvm-project c935d99d7cf2016289302412d708641d52d2f7ee)"
 CONFIG_GCC_VERSION=0
@@ -5383,6 +5383,8 @@ CONFIG_ANDROID_BINDERFS=y
 CONFIG_ANDROID_BINDER_DEVICES="binder,hwbinder,vndbinder"
 # CONFIG_ANDROID_BINDER_IPC_SELFTEST is not set
 CONFIG_ANDROID_VENDOR_HOOKS=y
+CONFIG_ANDROID_KABI_RESERVE=y
+CONFIG_ANDROID_VENDOR_OEM_DATA=y
 # end of Android
 
 CONFIG_TRACE_GPU_MEM=y
