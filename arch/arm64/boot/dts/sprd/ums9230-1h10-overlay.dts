@@ -897,6 +897,13 @@
 		type = <2>;
 		memory-region = <&fd_reserved>;
 	};
+
+	heap@7 {
+		reg = <7>;
+		label = "carveout_oemcrypto";
+		type = <2>;
+		memory-region = <&oemcrypto_reserved>;
+	};
 };
 
 &adi_bus {
