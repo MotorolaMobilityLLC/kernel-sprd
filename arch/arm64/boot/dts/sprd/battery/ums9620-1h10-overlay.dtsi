@@ -70,6 +70,8 @@
 	cm-fullbatt-vchkdrop-ms = <30000>;
 	cm-fullbatt-vchkdrop-volt = <60000>;
 	cm-fullbatt-capacity = <100>;
+	/*Charge pump target charge current*/
+	cm-cp-taper-current = <1000000>;
 
 	cm-chargers = "bq2560x_charger";
 	cm-charge-pumps = "bq2597x-standalone";
