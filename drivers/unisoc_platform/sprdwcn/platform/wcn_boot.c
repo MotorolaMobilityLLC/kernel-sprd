@@ -3112,16 +3112,39 @@ int marlin_remove(struct platform_device *pdev)
 	return 0;
 }
 
+static void __marlin_shutdown(void)
+{
+	u32 power_state = marlin_get_power();
+	struct wcn_match_data *g_match_config = get_wcn_match_config();
+
+	if (!power_state)
+		return;
+
+	marlin_dev->power_state = 0;
+	stop_loopcheck();
+	wcn_avdd12_bound_xtl(false);
+	wcn_wifipa_bound_xtl(false);
+	wifipa_enable(0);
+
+	if (g_match_config && !g_match_config->unisoc_wcn_pcie)
+		sdio_pub_int_poweron(false);
+}
+
 void marlin_shutdown(struct platform_device *pdev)
 {
+	struct wcn_match_data *g_match_config = get_wcn_match_config();
+
+	pr_info("%s start, power_state=%d\n", __func__, marlin_get_power());
 	if (marlin_dev->power_state != 0) {
-		WARN_ON_ONCE("marlin some subsys power is on");
+		pr_warn("marlin some subsys power is on, force close\n");
 		sprdwcn_bus_set_carddump_status(true);
-		wcn_avdd12_bound_xtl(false);
-		wcn_wifipa_bound_xtl(false);
-		wifipa_enable(0);
-		marlin_chip_en(false, false);
+		__marlin_shutdown();
 	}
+
+	wcn_bus_deinit();
+	if (g_match_config && g_match_config->unisoc_wcn_slp)
+		slp_mgr_death(); /* AP shutdown, disable wakeup CP2 */
+
 	pr_info("%s end\n", __func__);
 }
 
