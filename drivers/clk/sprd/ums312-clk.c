@@ -767,7 +767,7 @@ static SPRD_MUX_CLK_DATA(uart1, "uart1", uart_parents,
 			 0x250, 0, 3, UMS312_MUX_FLAG);
 
 static const struct clk_parent_data thm_parents[] = {
-	{ .fw_name = "ext-32m" },
+	{ .fw_name = "ext-32k" },
 	{ .hw = &clk_250k.hw  },
 };
 static SPRD_MUX_CLK_DATA(thm0, "thm0", thm_parents,
