@@ -290,6 +290,11 @@ static int ufs_sprd_suspend(struct ufs_hba *hba, enum ufs_pm_op pm_op,
 	return err;
 }
 
+static int ufs_sprd_device_reset(struct ufs_hba *hba)
+{
+	return 0;
+}
+
 static struct ufs_hba_variant_ops ufs_hba_sprd_vops = {
 	.name = "sprd",
 	.init = ufs_sprd_init,
@@ -301,6 +306,7 @@ static struct ufs_hba_variant_ops ufs_hba_sprd_vops = {
 	.hibern8_notify = ufs_sprd_hibern8_notify,
 	.apply_dev_quirks = ufs_sprd_apply_dev_quirks,
 	.suspend = ufs_sprd_suspend,
+	.device_reset = ufs_sprd_device_reset,
 };
 
 static void ufs_sprd_vh_prepare_command(void *data, struct ufs_hba *hba,
