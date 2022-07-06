@@ -1181,6 +1181,7 @@ static int marlin_parse_dt(struct platform_device *pdev)
 		return -1;
 	}
 	clk_set_parent(marlin_dev->clk_32k, marlin_dev->clk_parent);
+	clk_set_rate(marlin_dev->clk_32k, 32768);
 
 	marlin_dev->clk_enable = devm_clk_get(&pdev->dev, "enable");
 	if (IS_ERR(marlin_dev->clk_enable)) {
