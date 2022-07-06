@@ -107,7 +107,7 @@ static unsigned int nf_soft_fastpath_process(struct sk_buff *skb)
 		if (!dev) {
 			pr_err("fail to get dev, out idx %d\n", out_index);
 			dev_kfree_skb_any(skb);
-			return NF_DROP;
+			return NF_STOLEN;
 		}
 
 		/* update skb dev */
