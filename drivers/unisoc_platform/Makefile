@@ -30,6 +30,7 @@ obj-$(CONFIG_SPRD_HANG_DEBUG) 	+= hang_debug/
 obj-$(CONFIG_SPRD_UNISOC_MANUFACTURER_MODULE) += sprd_manufacturer_module.o
 obj-$(CONFIG_UNISOC_USERLOG)    += userlog/
 obj-$(CONFIG_UNISOC_CORESIGHT)    += sprd_coresight/
+obj-$(CONFIG_SPRD_PAST_RECORD) += past_record/
 obj-y += net/
 obj-y += sprd_time_sync/
 obj-y += power/
