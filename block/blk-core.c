@@ -1389,9 +1389,6 @@ void blk_steal_bios(struct bio_list *list, struct request *rq)
 }
 EXPORT_SYMBOL_GPL(blk_steal_bios);
 
-#if defined(CONFIG_SPRD_DEBUG)
-extern void sprd_monitor_rq_complete(struct request *rq);
-#endif
 /**
  * blk_update_request - Complete multiple bytes without completing the request
  * @req:      the request being processed
@@ -1420,9 +1417,6 @@ bool blk_update_request(struct request *req, blk_status_t error,
 	int total_bytes;
 
 	trace_block_rq_complete(req, blk_status_to_errno(error), nr_bytes);
-#if defined(CONFIG_SPRD_DEBUG)
-	sprd_monitor_rq_complete(req);
-#endif
 
 	if (!req->bio)
 		return false;

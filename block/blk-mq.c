@@ -730,12 +730,7 @@ void blk_mq_start_request(struct request *rq)
 		rq->stats_sectors = blk_rq_sectors(rq);
 		rq->rq_flags |= RQF_STATS;
 		rq_qos_issue(q, rq);
-#if defined(CONFIG_SPRD_DEBUG)
-	} else
-		rq->io_start_time_ns = ktime_get_ns();
-#else
 	}
-#endif
 
 	WARN_ON_ONCE(blk_mq_rq_state(rq) != MQ_RQ_IDLE);
 
