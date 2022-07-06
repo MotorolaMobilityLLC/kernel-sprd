@@ -54,7 +54,7 @@
 
 	chosen: chosen {
 		stdout-path = "serial1:115200n8";
-		bootargs = "earlycon=sprd_serial,0x20210000,115200n8 console=ttyS1,115200n8 loglevel=1 log_buf_len=1M init=/init root=/dev/ram0 rw printk.devkmsg=on pcie_ports=compat swiotlb=1 initcall_debug=1";
+		bootargs = "earlycon=sprd_serial,0x20210000,115200n8 console=ttyS1,115200n8 loglevel=1 log_buf_len=1M firmware_class.path=/vendor/firmware,/odm/firmware init=/init root=/dev/ram0 rw printk.devkmsg=on pcie_ports=compat swiotlb=1 initcall_debug=1";
 	};
 
 	pwm_backlight: backlight {
