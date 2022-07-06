@@ -34,6 +34,7 @@
 
 #define SEND_TUNING_BLOCK 19
 #define SEND_TUNING_BLOCK_HS200 21
+#define SEND_SD_SWITCH	6
 
 /* SDHCI_ARGUMENT2 register high 16bit */
 #define SDHCI_SPRD_ARG2_STUFF		GENMASK(31, 16)
@@ -200,11 +201,19 @@ static inline void sdhci_sprd_writel(struct sdhci_host *host, u32 val, int reg)
 
 static inline void sdhci_sprd_writew(struct sdhci_host *host, u16 val, int reg)
 {
+	u16 mask = 0;
+
 	/* SDHCI_BLOCK_COUNT is Read Only on Spreadtrum's platform */
 	if (unlikely(reg == SDHCI_BLOCK_COUNT))
 		return;
 
-	writew_relaxed(val, host->ioaddr + reg);
+	if ((strcmp(mmc_hostname(host->mmc), "mmc1") == 0) &&
+		(reg == SDHCI_COMMAND) &&
+		(host->cmd->opcode == SEND_SD_SWITCH) &&
+		(host->clock <= 400000) &&
+		(host->cmd->arg == 0x80FFFFF1))
+		val &= ~(mask | SDHCI_CMD_CRC);
+	writew(val, host->ioaddr + reg);
 }
 
 static inline void sdhci_sprd_writeb(struct sdhci_host *host, u8 val, int reg)
@@ -871,6 +880,7 @@ static struct sdhci_ops sdhci_sprd_ops = {
 	.read_l = sdhci_sprd_readl,
 	.write_l = sdhci_sprd_writel,
 	.write_b = sdhci_sprd_writeb,
+	.write_w = sdhci_sprd_writew,
 	.set_clock = sdhci_sprd_set_clock,
 	.set_power = sdhci_sprd_set_power,
 	.get_max_clock = sdhci_sprd_get_max_clock,
