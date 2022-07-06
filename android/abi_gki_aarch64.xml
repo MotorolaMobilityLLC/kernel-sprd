@@ -5209,9 +5209,12 @@
       <elf-symbol name='ucsi_set_drvdata' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xfa0a0f98'/>
       <elf-symbol name='ucsi_unregister' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x79f1e621'/>
       <elf-symbol name='udp4_hwcsum' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xad46344f'/>
+      <elf-symbol name='ufshcd_add_command_trace' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x72ce9c50'/>
       <elf-symbol name='ufshcd_alloc_host' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xabed0a72'/>
       <elf-symbol name='ufshcd_auto_hibern8_update' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xfa31272e'/>
       <elf-symbol name='ufshcd_bkops_ctrl' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xe654728e'/>
+      <elf-symbol name='ufshcd_clk_scaling_start_busy' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x8ce6d597'/>
+      <elf-symbol name='ufshcd_clk_scaling_update_busy' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xc427e94f'/>
       <elf-symbol name='ufshcd_config_pwr_mode' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x63715fb0'/>
       <elf-symbol name='ufshcd_dealloc_host' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xc7b5c5f2'/>
       <elf-symbol name='ufshcd_delay_us' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x723b1abf'/>
@@ -5222,6 +5225,7 @@
       <elf-symbol name='ufshcd_fixup_dev_quirks' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x72fbd67b'/>
       <elf-symbol name='ufshcd_get_local_unipro_ver' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x89eb5948'/>
       <elf-symbol name='ufshcd_get_pwr_dev_param' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xff85cd6b'/>
+      <elf-symbol name='ufshcd_get_vreg' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x172dffb6'/>
       <elf-symbol name='ufshcd_hba_enable' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x3271183a'/>
       <elf-symbol name='ufshcd_hba_stop' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xb91316ed'/>
       <elf-symbol name='ufshcd_hold' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x394198c5'/>
@@ -5231,6 +5235,7 @@
       <elf-symbol name='ufshcd_map_desc_id_to_length' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x35df7c3d'/>
       <elf-symbol name='ufshcd_pltfrm_init' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x6722f00d'/>
       <elf-symbol name='ufshcd_pltfrm_shutdown' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x7739ef94'/>
+      <elf-symbol name='ufshcd_populate_vreg' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x6409c545'/>
       <elf-symbol name='ufshcd_query_attr' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xbb65f144'/>
       <elf-symbol name='ufshcd_query_attr_retry' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x4cc92fb3'/>
       <elf-symbol name='ufshcd_query_descriptor_retry' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x14503f'/>
@@ -5246,6 +5251,7 @@
       <elf-symbol name='ufshcd_suspend_prepare' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xcd3a0a7e'/>
       <elf-symbol name='ufshcd_system_resume' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xa1b3aa03'/>
       <elf-symbol name='ufshcd_system_suspend' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x68a59b34'/>
+      <elf-symbol name='ufshcd_transfer_rsp_status' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x992d807e'/>
       <elf-symbol name='ufshcd_uic_change_pwr_mode' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x8d553ef2'/>
       <elf-symbol name='ufshcd_uic_hibern8_enter' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x452fcee7'/>
       <elf-symbol name='ufshcd_uic_hibern8_exit' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xbea03bfd'/>
@@ -26932,7 +26938,17 @@
         </data-member>
       </class-decl>
       <pointer-type-def type-id='c75c7b06' size-in-bits='64' id='380c7edc'/>
-      <class-decl name='ioam6_pernet_data' is-struct='yes' visibility='default' is-declaration-only='yes' id='38200493'/>
+      <class-decl name='ioam6_pernet_data' size-in-bits='3072' is-struct='yes' visibility='default' filepath='include/net/ioam6.h' line='41' column='1' id='38200493'>
+        <data-member access='public' layout-offset-in-bits='0'>
+          <var-decl name='lock' type-id='925167dc' visibility='default' filepath='include/net/ioam6.h' line='42' column='1'/>
+        </data-member>
+        <data-member access='public' layout-offset-in-bits='384'>
+          <var-decl name='namespaces' type-id='9e095f93' visibility='default' filepath='include/net/ioam6.h' line='43' column='1'/>
+        </data-member>
+        <data-member access='public' layout-offset-in-bits='1728'>
+          <var-decl name='schemas' type-id='9e095f93' visibility='default' filepath='include/net/ioam6.h' line='44' column='1'/>
+        </data-member>
+      </class-decl>
       <pointer-type-def type-id='686e5e33' size-in-bits='64' id='38313007'/>
       <pointer-type-def type-id='781993c9' size-in-bits='64' id='383471a1'/>
       <pointer-type-def type-id='2d83a1b8' size-in-bits='64' id='383758d6'/>
@@ -41547,6 +41563,7 @@
         </data-member>
       </class-decl>
       <class-decl name='input_dev_poller' is-struct='yes' visibility='default' is-declaration-only='yes' id='5c32afaa'/>
+      <pointer-type-def type-id='ae670bfa' size-in-bits='64' id='5c379870'/>
       <function-type size-in-bits='64' id='5c3855b6'>
         <parameter type-id='ca9354d1'/>
         <parameter type-id='b50a4934'/>
@@ -81907,6 +81924,18 @@
           <var-decl name='freq_count_stamp' type-id='91ce1af9' visibility='default' filepath='include/linux/perf_event.h' line='248' column='1'/>
         </data-member>
       </class-decl>
+      <enum-decl name='ufs_trace_str_t' filepath='drivers/scsi/ufs/ufs.h' line='624' column='1' id='b5952621'>
+        <underlying-type type-id='9cac1fee'/>
+        <enumerator name='UFS_CMD_SEND' value='0'/>
+        <enumerator name='UFS_CMD_COMP' value='1'/>
+        <enumerator name='UFS_DEV_COMP' value='2'/>
+        <enumerator name='UFS_QUERY_SEND' value='3'/>
+        <enumerator name='UFS_QUERY_COMP' value='4'/>
+        <enumerator name='UFS_QUERY_ERR' value='5'/>
+        <enumerator name='UFS_TM_SEND' value='6'/>
+        <enumerator name='UFS_TM_COMP' value='7'/>
+        <enumerator name='UFS_TM_ERR' value='8'/>
+      </enum-decl>
       <function-type size-in-bits='64' id='b5975902'>
         <parameter type-id='141b6427'/>
         <parameter type-id='7359adad'/>
@@ -146385,6 +146414,12 @@
         <parameter type-id='78a133c2' name='dst' filepath='net/ipv4/udp.c' line='826' column='1'/>
         <return type-id='48b5725f'/>
       </function-decl>
+      <function-decl name='ufshcd_add_command_trace' mangled-name='ufshcd_add_command_trace' filepath='drivers/scsi/ufs/ufshcd.c' line='378' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='ufshcd_add_command_trace'>
+        <parameter type-id='442b8d89' name='hba' filepath='drivers/scsi/ufs/ufshcd.c' line='378' column='1'/>
+        <parameter type-id='f0981eeb' name='tag' filepath='drivers/scsi/ufs/ufshcd.c' line='378' column='1'/>
+        <parameter type-id='b5952621' name='str_t' filepath='drivers/scsi/ufs/ufshcd.c' line='379' column='1'/>
+        <return type-id='48b5725f'/>
+      </function-decl>
       <function-decl name='ufshcd_alloc_host' mangled-name='ufshcd_alloc_host' filepath='drivers/scsi/ufs/ufshcd.c' line='9476' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='ufshcd_alloc_host'>
         <parameter type-id='fa0b179b' name='dev' filepath='drivers/scsi/ufs/ufshcd.c' line='9476' column='1'/>
         <parameter type-id='f38ff799' name='hba_handle' filepath='drivers/scsi/ufs/ufshcd.c' line='9476' column='1'/>
@@ -146399,6 +146434,14 @@
         <parameter type-id='442b8d89' name='hba' filepath='drivers/scsi/ufs/ufshcd.c' line='5627' column='1'/>
         <parameter type-id='462d2624' name='status' filepath='drivers/scsi/ufs/ufshcd.c' line='5628' column='1'/>
         <return type-id='95e97e5e'/>
+      </function-decl>
+      <function-decl name='ufshcd_clk_scaling_start_busy' mangled-name='ufshcd_clk_scaling_start_busy' filepath='drivers/scsi/ufs/ufshcd.c' line='2005' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='ufshcd_clk_scaling_start_busy'>
+        <parameter type-id='442b8d89' name='hba' filepath='drivers/scsi/ufs/ufshcd.c' line='2005' column='1'/>
+        <return type-id='48b5725f'/>
+      </function-decl>
+      <function-decl name='ufshcd_clk_scaling_update_busy' mangled-name='ufshcd_clk_scaling_update_busy' filepath='drivers/scsi/ufs/ufshcd.c' line='2041' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='ufshcd_clk_scaling_update_busy'>
+        <parameter type-id='442b8d89' name='hba' filepath='drivers/scsi/ufs/ufshcd.c' line='2041' column='1'/>
+        <return type-id='48b5725f'/>
       </function-decl>
       <function-decl name='ufshcd_config_pwr_mode' mangled-name='ufshcd_config_pwr_mode' filepath='drivers/scsi/ufs/ufshcd.c' line='4426' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='ufshcd_config_pwr_mode'>
         <parameter type-id='442b8d89' name='hba' filepath='drivers/scsi/ufs/ufshcd.c' line='4426' column='1'/>
@@ -146457,6 +146500,11 @@
         <parameter type-id='35f4156d' name='agreed_pwr' filepath='drivers/scsi/ufs/ufshcd-pltfrm.c' line='213' column='1'/>
         <return type-id='95e97e5e'/>
       </function-decl>
+      <function-decl name='ufshcd_get_vreg' mangled-name='ufshcd_get_vreg' filepath='drivers/scsi/ufs/ufshcd.c' line='8369' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='ufshcd_get_vreg'>
+        <parameter type-id='fa0b179b' name='dev' filepath='drivers/scsi/ufs/ufshcd.c' line='8369' column='1'/>
+        <parameter type-id='ae670bfa' name='vreg' filepath='drivers/scsi/ufs/ufshcd.c' line='8369' column='1'/>
+        <return type-id='95e97e5e'/>
+      </function-decl>
       <function-decl name='ufshcd_hba_enable' mangled-name='ufshcd_hba_enable' filepath='drivers/scsi/ufs/ufshcd.c' line='4642' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='ufshcd_hba_enable'>
         <parameter type-id='442b8d89' name='hba' filepath='drivers/scsi/ufs/ufshcd.c' line='4642' column='1'/>
         <return type-id='95e97e5e'/>
@@ -146496,6 +146544,12 @@
       <function-decl name='ufshcd_pltfrm_shutdown' mangled-name='ufshcd_pltfrm_shutdown' filepath='drivers/scsi/ufs/ufshcd-pltfrm.c' line='181' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='ufshcd_pltfrm_shutdown'>
         <parameter type-id='db362995' name='pdev' filepath='drivers/scsi/ufs/ufshcd-pltfrm.c' line='181' column='1'/>
         <return type-id='48b5725f'/>
+      </function-decl>
+      <function-decl name='ufshcd_populate_vreg' mangled-name='ufshcd_populate_vreg' filepath='drivers/scsi/ufs/ufshcd-pltfrm.c' line='111' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='ufshcd_populate_vreg'>
+        <parameter type-id='fa0b179b' name='dev' filepath='drivers/scsi/ufs/ufshcd-pltfrm.c' line='111' column='1'/>
+        <parameter type-id='80f4b756' name='name' filepath='drivers/scsi/ufs/ufshcd-pltfrm.c' line='111' column='1'/>
+        <parameter type-id='5c379870' name='out_vreg' filepath='drivers/scsi/ufs/ufshcd-pltfrm.c' line='112' column='1'/>
+        <return type-id='95e97e5e'/>
       </function-decl>
       <function-decl name='ufshcd_query_attr' mangled-name='ufshcd_query_attr' filepath='drivers/scsi/ufs/ufshcd.c' line='3155' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='ufshcd_query_attr'>
         <parameter type-id='442b8d89' name='hba' filepath='drivers/scsi/ufs/ufshcd.c' line='3155' column='1'/>
@@ -146584,6 +146638,11 @@
       </function-decl>
       <function-decl name='ufshcd_system_suspend' mangled-name='ufshcd_system_suspend' filepath='drivers/scsi/ufs/ufshcd.c' line='9298' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='ufshcd_system_suspend'>
         <parameter type-id='fa0b179b' name='dev' filepath='drivers/scsi/ufs/ufshcd.c' line='9298' column='1'/>
+        <return type-id='95e97e5e'/>
+      </function-decl>
+      <function-decl name='ufshcd_transfer_rsp_status' mangled-name='ufshcd_transfer_rsp_status' filepath='drivers/scsi/ufs/ufshcd.c' line='5166' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='ufshcd_transfer_rsp_status'>
+        <parameter type-id='442b8d89' name='hba' filepath='drivers/scsi/ufs/ufshcd.c' line='5166' column='1'/>
+        <parameter type-id='6ca6fa6d' name='lrbp' filepath='drivers/scsi/ufs/ufshcd.c' line='5166' column='1'/>
         <return type-id='95e97e5e'/>
       </function-decl>
       <function-decl name='ufshcd_uic_change_pwr_mode' mangled-name='ufshcd_uic_change_pwr_mode' filepath='drivers/scsi/ufs/ufshcd.c' line='4109' column='1' visibility='default' binding='global' size-in-bits='64' elf-symbol-id='ufshcd_uic_change_pwr_mode'>
