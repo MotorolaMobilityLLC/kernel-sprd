@@ -42,6 +42,13 @@
 			};
 		};
 
+		rtc@200 {
+			compatible = "sprd,ump96xx-rtc", "sprd,sc27xx-rtc";
+			reg = <0x200>;
+			interrupt-parent = <&ump9620_pmic>;
+			interrupts = <1 IRQ_TYPE_LEVEL_HIGH>;
+		};
+
 		pmic_eic: gpio@280 {
 			compatible = "sprd,ump96xx-eic", "sprd,sc27xx-eic", "sprd,sc2731-eic";
 			reg = <0x280>;
