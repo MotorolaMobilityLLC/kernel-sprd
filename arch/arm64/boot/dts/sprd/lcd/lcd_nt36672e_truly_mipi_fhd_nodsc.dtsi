@@ -9,8 +9,12 @@
 					sprd,dsi-lane-number = <4>;
 					sprd,dsi-color-format = "rgb888";
 
-					sprd,phy-bit-clock = <1300000>;  /* kbps */
+					sprd,phy-bit-clock = <1068000>;  /* kbps */
 					sprd,phy-escape-clock = <20000>;/* kHz */
+
+					sprd,dpi-clk-div = <6>;
+					sprd,video-lp-cmd-enable = <1>;
+					sprd,hporch-lp-disable = <1>;
 
 					sprd,width-mm = <68>;
 					sprd,height-mm = <152>;
@@ -317,14 +321,14 @@
 						native-mode = <&nt36672e_truly_timing0>;
 
 						nt36672e_truly_timing0: timing0 {
-							clock-frequency = <192000000>;
+							clock-frequency = <178000000>;
 							hactive = <1080>;
 							vactive = <2408>;
-							hback-porch = <60>;
-							hfront-porch = <140>;
+							hback-porch = <35>;
+							hfront-porch = <70>;
 							vback-porch = <32>;
 							vfront-porch = <32>;
-							hsync-len = <12>;
+							hsync-len = <10>;
 							vsync-len = <2>;
 						};
 				};
