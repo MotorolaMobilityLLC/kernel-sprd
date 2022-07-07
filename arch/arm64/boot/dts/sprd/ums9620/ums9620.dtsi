@@ -340,6 +340,14 @@
 			sprd,dpuvpu-dvfs-down-window = <0x80>;
 			sprd,aon_apb_regs_syscon = <&aon_apb_regs>;
 		};
+
+		ai_axi: ai-axi {
+			compatible = "simple-bus";
+			#address-cells = <2>;
+			#size-cells = <2>;
+			ranges;
+		};
+
 	};
 
 	sipc: sipc-virt {
@@ -413,6 +421,7 @@
 #include "jpg.dtsi"
 #include "mipi-serdes.dtsi"
 #include "modem.dtsi"
+#include "npu.dtsi"
 #include "pin-controller.dtsi"
 #include "power.dtsi"
 #include "ptm.dtsi"
