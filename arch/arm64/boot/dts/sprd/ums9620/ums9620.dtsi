@@ -397,3 +397,5 @@
 #include "socid.dtsi"
 #include "usb.dtsi"
 #include "vpu.dtsi"
+#include "sipa-sys.dtsi"
+#include "sipa.dtsi"
