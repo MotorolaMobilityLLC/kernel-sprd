@@ -25,6 +25,8 @@ EXT_MODULES="
 ../modules/common/io/block
 ../modules/kernel5.15/wcn/fm/driver
 ../modules/kernel5.15/wcn/bluetooth/driver
+../modules/kernel5.15/display/gsp
+../modules/kernel5.15/display/dispc
 "
 
 #camera module version config

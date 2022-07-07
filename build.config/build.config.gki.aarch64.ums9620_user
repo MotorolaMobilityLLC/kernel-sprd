@@ -18,6 +18,8 @@ EXT_MODULES="
 ../modules/kernel5.15/input/touchscreen/focaltech_ft8756_spi
 ../modules/kernel5.15/wcn/fm/driver
 ../modules/kernel5.15/wcn/bluetooth/driver
+../modules/kernel5.15/display/gsp
+../modules/kernel5.15/display/dispc
 ../modules/common/camera/power
 ../modules/common/camera/core
 ../modules/common/camera/cpp
