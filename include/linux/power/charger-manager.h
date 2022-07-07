@@ -238,57 +238,10 @@ struct charger_type {
 };
 
 /**
- * struct charger_cable
- * @extcon_name: the name of extcon device.
- * @name: the name of charger cable(external connector).
- * @extcon_dev: the extcon device.
- * @wq: the workqueue to control charger according to the state of
- *	charger cable. If charger cable is attached, enable charger.
- *	But if charger cable is detached, disable charger.
- * @nb: the notifier block to receive changed state from EXTCON
- *	(External Connector) when charger cable is attached/detached.
- * @attached: the state of charger cable.
- *	true: the charger cable is attached
- *	false: the charger cable is detached
- * @charger: the instance of struct charger_regulator.
- * @cm: the Charger Manager representing the battery.
- */
-struct charger_cable {
-	const char *extcon_name;
-	const char *name;
-
-	/* The charger-manager use Extcon framework */
-	struct extcon_dev *extcon_dev;
-	struct notifier_block nb;
-
-	/* The state of charger cable */
-	bool attached;
-
-	struct charger_regulator *charger;
-
-	/*
-	 * Set min/max current of regulator to protect over-current issue
-	 * according to a kind of charger cable when cable is attached.
-	 */
-	u32 min_uA;
-	u32 max_uA;
-
-	struct charger_manager *cm;
-};
-
-/**
- * struct charger_regulator
- * @regulator_name: the name of regulator for using charger.
- * @consumer: the regulator consumer for the charger.
+ * struct charger_sysfs_ctl_item
  * @externally_control:
  *	Set if the charger-manager cannot control charger,
  *	the charger will be maintained with disabled state.
- * @cables:
- *	the array of charger cables to enable/disable charger
- *	and set current limit according to constraint data of
- *	struct charger_cable if only charger cable included
- *	in the array of charger cables is attached/detached.
- * @num_cables: the number of charger cables.
  * @attr_g: Attribute group for the charger(regulator)
  * @attr_name: "name" sysfs entry
  * @attr_state: "state" sysfs entry
@@ -296,25 +249,13 @@ struct charger_cable {
  * @attr_jeita_control: "jeita_control" sysfs entry
  * @attrs: Arrays pointing to attr_name/state/externally_control for attr_g
  */
-struct charger_regulator {
-	/* The name of regulator for charging */
-	const char *regulator_name;
-	struct regulator *consumer;
-
+struct charger_sysfs_ctl_item {
 	/* charger never on when system is on */
 	int externally_control;
 
-	/*
-	 * Store constraint information related to current limit,
-	 * each cable have different condition for charging.
-	 */
-	struct charger_cable *cables;
-	int num_cables;
 	int cp_id;
 
 	struct attribute_group attr_grp;
-	struct device_attribute attr_name;
-	struct device_attribute attr_state;
 	struct device_attribute attr_stop_charge;
 	struct device_attribute attr_externally_control;
 	struct device_attribute attr_jeita_control;
@@ -324,7 +265,7 @@ struct charger_regulator {
 	struct device_attribute attr_enable_power_path;
 	struct device_attribute attr_keep_awake;
 	struct device_attribute attr_support_fast_charge;
-	struct attribute *attrs[12];
+	struct attribute *attrs[10];
 
 	struct charger_manager *cm;
 };
@@ -660,8 +601,8 @@ struct charger_desc {
 	const char **psy_wl_charger_stat;
 	const char **psy_cp_converter_stat;
 
-	int num_charger_regulators;
-	struct charger_regulator *charger_regulators;
+	int num_sysfs;
+	struct charger_sysfs_ctl_item *sysfs;
 	const struct attribute_group **sysfs_groups;
 
 	const char *psy_fuel_gauge;

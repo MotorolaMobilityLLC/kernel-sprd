@@ -24,7 +24,6 @@
 #include <linux/power/charger-manager.h>
 #include <linux/power/sprd_battery_info.h>
 #include <linux/reboot.h>
-#include <linux/regulator/consumer.h>
 #include <linux/rtc.h>
 #include <linux/slab.h>
 #include <linux/sysfs.h>
@@ -4257,8 +4256,8 @@ static bool _cm_monitor(struct charger_manager *cm)
 	int i, target;
 	static int last_target = -1;
 
-	for (i = 0; i < cm->desc->num_charger_regulators; i++) {
-		if (cm->desc->charger_regulators[i].externally_control) {
+	for (i = 0; i < cm->desc->num_sysfs; i++) {
+		if (cm->desc->sysfs[i].externally_control) {
 			dev_info(cm->dev, "Charger has been controlled externally, so no need monitoring\n");
 			last_target = -1;
 			return false;
@@ -5486,135 +5485,11 @@ static bool cm_setup_timer(void)
 	return false;
 }
 
-/**
- * charger_extcon_notifier - receive the state of charger cable
- *			when registered cable is attached or detached.
- *
- * @self: the notifier block of the charger_extcon_notifier.
- * @event: the cable state.
- * @ptr: the data pointer of notifier block.
- */
-static int charger_extcon_notifier(struct notifier_block *self, unsigned long event, void *ptr)
-{
-	struct charger_cable *cable =
-		container_of(self, struct charger_cable, nb);
-
-	/*
-	 * The newly state of charger cable.
-	 * If cable is attached, cable->attached is true.
-	 */
-	cable->attached = event;
-
-	/*
-	 * Setup monitoring to check battery state
-	 * when charger cable is attached.
-	 */
-	if (cable->attached && is_polling_required(cable->cm)) {
-		cancel_work_sync(&setup_polling);
-		schedule_work(&setup_polling);
-	}
-
-	return NOTIFY_DONE;
-}
-
-/**
- * charger_extcon_init - register external connector to use it
- *			as the charger cable
- *
- * @cm: the Charger Manager representing the battery.
- * @cable: the Charger cable representing the external connector.
- */
-static int charger_extcon_init(struct charger_manager *cm, struct charger_cable *cable)
-{
-	int ret;
-
-	/*
-	 * Charger manager use Extcon framework to identify
-	 * the charger cable among various external connector
-	 * cable (e.g., TA, USB, MHL, Dock).
-	 */
-	cable->nb.notifier_call = charger_extcon_notifier;
-	ret = devm_extcon_register_notifier(cm->dev, cable->extcon_dev,
-					    EXTCON_USB, &cable->nb);
-	if (ret < 0)
-		dev_err(cm->dev, "Cannot register extcon_dev for (cable: %s)\n",
-			cable->name);
-
-	return ret;
-}
-
-/**
- * charger_manager_register_extcon - Register extcon device to receive state
- *				     of charger cable.
- * @cm: the Charger Manager representing the battery.
- *
- * This function support EXTCON(External Connector) subsystem to detect the
- * state of charger cables for enabling or disabling charger(regulator) and
- * select the charger cable for charging among a number of external cable
- * according to policy of H/W board.
- */
-static int charger_manager_register_extcon(struct charger_manager *cm)
-{
-	struct charger_desc *desc = cm->desc;
-	struct charger_regulator *charger;
-	int ret;
-	int i;
-	int j;
-
-	for (i = 0; i < desc->num_charger_regulators; i++) {
-		charger = &desc->charger_regulators[i];
-
-		charger->consumer = regulator_get(cm->dev, charger->regulator_name);
-		if (IS_ERR(charger->consumer)) {
-			dev_err(cm->dev, "Cannot find charger(%s)\n",
-				charger->regulator_name);
-			return PTR_ERR(charger->consumer);
-		}
-		charger->cm = cm;
-
-		for (j = 0; j < charger->num_cables; j++) {
-			struct charger_cable *cable = &charger->cables[j];
-
-			ret = charger_extcon_init(cm, cable);
-			if (ret < 0) {
-				dev_err(cm->dev, "Cannot initialize charger(%s)\n",
-					charger->regulator_name);
-				return ret;
-			}
-			cable->charger = charger;
-			cable->cm = cm;
-		}
-	}
-
-	return 0;
-}
-
-/* help function of sysfs node to control charger(regulator) */
-static ssize_t charger_name_show(struct device *dev, struct device_attribute *attr, char *buf)
-{
-	struct charger_regulator *charger =
-		container_of(attr, struct charger_regulator, attr_name);
-
-	return sprintf(buf, "%s\n", charger->regulator_name);
-}
-
-static ssize_t charger_state_show(struct device *dev, struct device_attribute *attr, char *buf)
-{
-	struct charger_regulator *charger =
-		container_of(attr, struct charger_regulator, attr_state);
-	int state = 0;
-
-	if (!charger->externally_control)
-		state = regulator_is_enabled(charger->consumer);
-
-	return sprintf(buf, "%s\n", state ? "enabled" : "disabled");
-}
-
 static ssize_t jeita_control_show(struct device *dev,  struct device_attribute *attr, char *buf)
 {
-	struct charger_regulator *charger =
-		container_of(attr, struct charger_regulator, attr_jeita_control);
-	struct charger_desc *desc = charger->cm->desc;
+	struct charger_sysfs_ctl_item *sysfs = container_of(attr, struct charger_sysfs_ctl_item,
+							    attr_jeita_control);
+	struct charger_desc *desc = sysfs->cm->desc;
 
 	return sprintf(buf, "%d\n", !desc->jeita_disabled);
 }
@@ -5624,12 +5499,12 @@ static ssize_t jeita_control_store(struct device *dev,
 				   const char *buf, size_t count)
 {
 	int ret;
-	struct charger_regulator *charger =
-		container_of(attr, struct charger_regulator, attr_jeita_control);
-	struct charger_desc *desc = charger->cm->desc;
+	struct charger_sysfs_ctl_item *sysfs = container_of(attr, struct charger_sysfs_ctl_item,
+							    attr_jeita_control);
+	struct charger_desc *desc = sysfs->cm->desc;
 	bool enabled;
 
-	if (!charger || !desc) {
+	if (!sysfs || !desc) {
 		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
 		return -ENOMEM;
 	}
@@ -5646,12 +5521,12 @@ static ssize_t jeita_control_store(struct device *dev,
 static ssize_t
 charge_pump_present_show(struct device *dev, struct device_attribute *attr, char *buf)
 {
-	struct charger_regulator *charger =
-		container_of(attr, struct charger_regulator, attr_charge_pump_present);
-	struct charger_manager *cm = charger->cm;
+	struct charger_sysfs_ctl_item *sysfs = container_of(attr, struct charger_sysfs_ctl_item,
+							    attr_charge_pump_present);
+	struct charger_manager *cm = sysfs->cm;
 	bool status = false;
 
-	if (!charger || !cm) {
+	if (!sysfs || !cm) {
 		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
 		return -ENOMEM;
 	}
@@ -5667,12 +5542,12 @@ static ssize_t charge_pump_present_store(struct device *dev,
 					 const char *buf, size_t count)
 {
 	int ret;
-	struct charger_regulator *charger =
-		container_of(attr, struct charger_regulator, attr_charge_pump_present);
-	struct charger_manager *cm = charger->cm;
+	struct charger_sysfs_ctl_item *sysfs = container_of(attr, struct charger_sysfs_ctl_item,
+							    attr_charge_pump_present);
+	struct charger_manager *cm = sysfs->cm;
 	bool enabled;
 
-	if (!charger || !cm) {
+	if (!sysfs || !cm) {
 		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
 		return -ENOMEM;
 	}
@@ -5703,23 +5578,23 @@ static ssize_t charge_pump_present_store(struct device *dev,
 static ssize_t
 charge_pump_current_show(struct device *dev, struct device_attribute *attr, char *buf)
 {
-	struct charger_regulator *charger =
-		container_of(attr, struct charger_regulator, attr_charge_pump_current);
-	struct charger_manager *cm = charger->cm;
+	struct charger_sysfs_ctl_item *sysfs = container_of(attr, struct charger_sysfs_ctl_item,
+							    attr_charge_pump_current);
+	struct charger_manager *cm = sysfs->cm;
 	int cur, ret;
 
-	if (!charger || !cm) {
+	if (!sysfs || !cm) {
 		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
 		return -ENOMEM;
 	}
 
-	if (charger->cp_id < 0) {
+	if (sysfs->cp_id < 0) {
 		dev_err(cm->dev, "charge pump id is error!!!!!!\n");
 		cur = 0;
 		return sprintf(buf, "%d\n", cur);
 	}
 
-	ret = get_cp_ibat_uA_by_id(cm, &cur, charger->cp_id);
+	ret = get_cp_ibat_uA_by_id(cm, &cur, sysfs->cp_id);
 	if (ret)
 		cur = 0;
 
@@ -5731,12 +5606,12 @@ static ssize_t charge_pump_current_id_store(struct device *dev,
 					    const char *buf, size_t count)
 {
 	int ret;
-	struct charger_regulator *charger =
-		container_of(attr, struct charger_regulator, attr_charge_pump_current);
-	struct charger_manager *cm = charger->cm;
+	struct charger_sysfs_ctl_item *sysfs = container_of(attr, struct charger_sysfs_ctl_item,
+							    attr_charge_pump_current);
+	struct charger_manager *cm = sysfs->cm;
 	int cp_id;
 
-	if (!charger || !cm) {
+	if (!sysfs || !cm) {
 		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
 		return -ENOMEM;
 	}
@@ -5749,7 +5624,7 @@ static ssize_t charge_pump_current_id_store(struct device *dev,
 		dev_err(cm->dev, "charge pump id is error!!!!!!\n");
 		cp_id = 0;
 	}
-	charger->cp_id = cp_id;
+	sysfs->cp_id = cp_id;
 
 	return count;
 }
@@ -5757,15 +5632,15 @@ static ssize_t charge_pump_current_id_store(struct device *dev,
 static ssize_t charger_stop_show(struct device *dev,
 				 struct device_attribute *attr, char *buf)
 {
-	struct charger_regulator *charger =
-		container_of(attr, struct charger_regulator, attr_stop_charge);
+	struct charger_sysfs_ctl_item *sysfs = container_of(attr, struct charger_sysfs_ctl_item,
+							    attr_stop_charge);
 	bool stop_charge;
 
-	if (!charger) {
+	if (!sysfs) {
 		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
 		return -ENOMEM;
 	}
-	stop_charge = is_charging(charger->cm);
+	stop_charge = is_charging(sysfs->cm);
 
 	return sprintf(buf, "%d\n", !stop_charge);
 }
@@ -5774,12 +5649,12 @@ static ssize_t charger_stop_store(struct device *dev,
 				  struct device_attribute *attr, const char *buf,
 				  size_t count)
 {
-	struct charger_regulator *charger =
-		container_of(attr, struct charger_regulator, attr_stop_charge);
-	struct charger_manager *cm = charger->cm;
+	struct charger_sysfs_ctl_item *sysfs = container_of(attr, struct charger_sysfs_ctl_item,
+							    attr_stop_charge);
+	struct charger_manager *cm = sysfs->cm;
 	int stop_charge, ret;
 
-	if (!charger || !cm) {
+	if (!sysfs || !cm) {
 		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
 		return -ENOMEM;
 	}
@@ -5798,14 +5673,14 @@ static ssize_t charger_stop_store(struct device *dev,
 			dev_err(cm->dev, "failed to start charger.\n");
 			return ret;
 		}
-		charger->externally_control = false;
+		sysfs->externally_control = false;
 	} else {
 		ret = try_charger_enable(cm, false);
 		if (ret) {
 			dev_err(cm->dev, "failed to stop charger.\n");
 			return ret;
 		}
-		charger->externally_control = true;
+		sysfs->externally_control = true;
 	}
 
 	power_supply_changed(cm->charger_psy);
@@ -5815,31 +5690,31 @@ static ssize_t charger_stop_store(struct device *dev,
 static ssize_t charger_externally_control_show(struct device *dev,
 					       struct device_attribute *attr, char *buf)
 {
-	struct charger_regulator *charger =
-		container_of(attr, struct charger_regulator, attr_externally_control);
+	struct charger_sysfs_ctl_item *sysfs = container_of(attr, struct charger_sysfs_ctl_item,
+							    attr_externally_control);
 
-	if (!charger) {
+	if (!sysfs) {
 		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
 		return -ENOMEM;
 	}
 
-	return sprintf(buf, "%d\n", charger->externally_control);
+	return sprintf(buf, "%d\n", sysfs->externally_control);
 }
 
 static ssize_t charger_externally_control_store(struct device *dev,
 						struct device_attribute *attr, const char *buf,
 						size_t count)
 {
-	struct charger_regulator *charger =
-		container_of(attr, struct charger_regulator, attr_externally_control);
-	struct charger_manager *cm = charger->cm;
+	struct charger_sysfs_ctl_item *sysfs = container_of(attr, struct charger_sysfs_ctl_item,
+							    attr_externally_control);
+	struct charger_manager *cm = sysfs->cm;
 	struct charger_desc *desc = cm->desc;
 	int i;
 	int ret;
 	int externally_control;
 	int chargers_externally_control = 1;
 
-	if (!charger || !cm) {
+	if (!sysfs || !cm) {
 		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
 		return -ENOMEM;
 	}
@@ -5851,13 +5726,13 @@ static ssize_t charger_externally_control_store(struct device *dev,
 	}
 
 	if (!externally_control) {
-		charger->externally_control = 0;
+		sysfs->externally_control = 0;
 		return count;
 	}
 
-	for (i = 0; i < desc->num_charger_regulators; i++) {
-		if (&desc->charger_regulators[i] != charger &&
-			!desc->charger_regulators[i].externally_control) {
+	for (i = 0; i < desc->num_sysfs; i++) {
+		if (&desc->sysfs[i] != sysfs &&
+			!desc->sysfs[i].externally_control) {
 			/*
 			 * At least, one charger is controlled by
 			 * charger-manager
@@ -5869,16 +5744,16 @@ static ssize_t charger_externally_control_store(struct device *dev,
 
 	if (!chargers_externally_control) {
 		if (cm->charger_enabled) {
-			try_charger_enable(charger->cm, false);
-			charger->externally_control = externally_control;
-			try_charger_enable(charger->cm, true);
+			try_charger_enable(sysfs->cm, false);
+			sysfs->externally_control = externally_control;
+			try_charger_enable(sysfs->cm, true);
 		} else {
-			charger->externally_control = externally_control;
+			sysfs->externally_control = externally_control;
 		}
 	} else {
 		dev_warn(cm->dev,
-			 "'%s' regulator should be controlled in charger-manager because charger-manager must need at least one charger for charging\n",
-			 charger->regulator_name);
+			 "regulator should be controlled in charger-manager because charger-manager"
+			 "must need at least one charger for charging\n");
 	}
 
 	return count;
@@ -5886,9 +5761,9 @@ static ssize_t charger_externally_control_store(struct device *dev,
 
 static ssize_t cp_num_show(struct device *dev, struct device_attribute *attr, char *buf)
 {
-	struct charger_regulator *charger =
-		container_of(attr, struct charger_regulator, attr_cp_num);
-	struct charger_manager *cm = charger->cm;
+	struct charger_sysfs_ctl_item *sysfs = container_of(attr, struct charger_sysfs_ctl_item,
+							    attr_cp_num);
+	struct charger_manager *cm = sysfs->cm;
 	int cp_num = 0;
 
 	if (!cm) {
@@ -5904,10 +5779,9 @@ static ssize_t enable_power_path_show(struct device *dev,
 				      struct device_attribute *attr,
 				      char *buf)
 {
-	struct charger_regulator *charger
-		= container_of(attr, struct charger_regulator,
-			       attr_enable_power_path);
-	struct charger_manager *cm = charger->cm;
+	struct charger_sysfs_ctl_item *sysfs = container_of(attr, struct charger_sysfs_ctl_item,
+							    attr_enable_power_path);
+	struct charger_manager *cm = sysfs->cm;
 	bool power_path_enabled;
 
 	power_path_enabled = cm_is_power_path_enabled(cm);
@@ -5919,10 +5793,9 @@ static ssize_t enable_power_path_store(struct device *dev,
 				       struct device_attribute *attr,
 				       const char *buf, size_t count)
 {
-	struct charger_regulator *charger
-		= container_of(attr, struct charger_regulator,
-			       attr_enable_power_path);
-	struct charger_manager *cm = charger->cm;
+	struct charger_sysfs_ctl_item *sysfs = container_of(attr, struct charger_sysfs_ctl_item,
+							    attr_enable_power_path);
+	struct charger_manager *cm = sysfs->cm;
 	bool power_path_enabled;
 	int ret;
 
@@ -5944,10 +5817,9 @@ static ssize_t keep_awake_show(struct device *dev,
 			       struct device_attribute *attr,
 			       char *buf)
 {
-	struct charger_regulator *charger =
-		container_of(attr, struct charger_regulator,
-			     attr_keep_awake);
-	struct charger_manager *cm = charger->cm;
+	struct charger_sysfs_ctl_item *sysfs = container_of(attr, struct charger_sysfs_ctl_item,
+							    attr_keep_awake);
+	struct charger_manager *cm = sysfs->cm;
 
 	return sprintf(buf, "%d\n", cm->desc->keep_awake);
 }
@@ -5957,10 +5829,9 @@ static ssize_t keep_awake_store(struct device *dev,
 				const char *buf, size_t count)
 {
 	int ret;
-	struct charger_regulator *charger =
-		container_of(attr, struct charger_regulator,
-			     attr_keep_awake);
-	struct charger_manager *cm = charger->cm;
+	struct charger_sysfs_ctl_item *sysfs = container_of(attr, struct charger_sysfs_ctl_item,
+							    attr_keep_awake);
+	struct charger_manager *cm = sysfs->cm;
 	bool enabled;
 
 	ret =  kstrtobool(buf, &enabled);
@@ -5986,12 +5857,12 @@ static ssize_t keep_awake_store(struct device *dev,
 static ssize_t support_fast_charge_show(struct device *dev,
 					struct device_attribute *attr, char *buf)
 {
-	struct charger_regulator *charger =
-		container_of(attr, struct charger_regulator, attr_support_fast_charge);
-	struct charger_manager *cm = charger->cm;
+	struct charger_sysfs_ctl_item *sysfs = container_of(attr, struct charger_sysfs_ctl_item,
+							    attr_support_fast_charge);
+	struct charger_manager *cm = sysfs->cm;
 	bool support_fast_charge = false;
 
-	if (!charger || !cm || !cm->fchg_info) {
+	if (!sysfs || !cm || !cm->fchg_info) {
 		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
 		return -ENOMEM;
 	}
@@ -6004,123 +5875,122 @@ static ssize_t support_fast_charge_show(struct device *dev,
  * charger_manager_prepare_sysfs - Prepare sysfs entry for each charger
  * @cm: the Charger Manager representing the battery.
  *
- * This function add sysfs entry for charger(regulator) to control charger from
+ * This function add sysfs entry for charger to control charger from
  * user-space. If some development board use one more chargers for charging
  * but only need one charger on specific case which is dependent on user
  * scenario or hardware restrictions, the user enter 1 or 0(zero) to '/sys/
  * class/power_supply/battery/charger.[index]/externally_control'. For example,
  * if user enter 1 to 'sys/class/power_supply/battery/charger.[index]/
  * externally_control, this charger isn't controlled from charger-manager and
- * always stay off state of regulator.
+ * always stay off state.
  */
 static int charger_manager_prepare_sysfs(struct charger_manager *cm)
 {
 	struct charger_desc *desc = cm->desc;
-	struct charger_regulator *charger;
+	struct charger_sysfs_ctl_item *sysfs;
 	int chargers_externally_control = 1;
 	char *name;
 	int i;
 
-	/* Create sysfs entry to control charger(regulator) */
-	for (i = 0; i < desc->num_charger_regulators; i++) {
-		charger = &desc->charger_regulators[i];
+	desc->num_sysfs = 1;
 
+	desc->sysfs_groups = devm_kcalloc(cm->dev, desc->num_sysfs + 1, sizeof(*desc->sysfs_groups),
+					  GFP_KERNEL);
+	if (!desc->sysfs_groups)
+		return -ENOMEM;
+
+	/* Create sysfs entry to control charger */
+	for (i = 0; i < desc->num_sysfs; i++) {
+		sysfs = devm_kzalloc(cm->dev, sizeof(*sysfs), GFP_KERNEL);
+		if (!sysfs)
+			return -ENOMEM;
+
+		desc->sysfs = sysfs;
+		desc->sysfs->cm = cm;
 		name = devm_kasprintf(cm->dev, GFP_KERNEL, "charger.%d", i);
 		if (!name)
 			return -ENOMEM;
 
-		charger->attrs[0] = &charger->attr_name.attr;
-		charger->attrs[1] = &charger->attr_state.attr;
-		charger->attrs[2] = &charger->attr_externally_control.attr;
-		charger->attrs[3] = &charger->attr_stop_charge.attr;
-		charger->attrs[4] = &charger->attr_jeita_control.attr;
-		charger->attrs[5] = &charger->attr_cp_num.attr;
-		charger->attrs[6] = &charger->attr_charge_pump_present.attr;
-		charger->attrs[7] = &charger->attr_charge_pump_current.attr;
-		charger->attrs[8] = &charger->attr_enable_power_path.attr;
-		charger->attrs[9] = &charger->attr_keep_awake.attr;
-		charger->attrs[10] = &charger->attr_support_fast_charge.attr;
-		charger->attrs[11] = NULL;
+		sysfs->attrs[0] = &sysfs->attr_externally_control.attr;
+		sysfs->attrs[1] = &sysfs->attr_stop_charge.attr;
+		sysfs->attrs[2] = &sysfs->attr_jeita_control.attr;
+		sysfs->attrs[3] = &sysfs->attr_cp_num.attr;
+		sysfs->attrs[4] = &sysfs->attr_charge_pump_present.attr;
+		sysfs->attrs[5] = &sysfs->attr_charge_pump_current.attr;
+		sysfs->attrs[6] = &sysfs->attr_enable_power_path.attr;
+		sysfs->attrs[7] = &sysfs->attr_keep_awake.attr;
+		sysfs->attrs[8] = &sysfs->attr_support_fast_charge.attr;
+		sysfs->attrs[9] = NULL;
 
-		charger->attr_grp.name = name;
-		charger->attr_grp.attrs = charger->attrs;
-		desc->sysfs_groups[i] = &charger->attr_grp;
+		sysfs->attr_grp.name = name;
+		sysfs->attr_grp.attrs = sysfs->attrs;
+		desc->sysfs_groups[i] = &sysfs->attr_grp;
 
-		sysfs_attr_init(&charger->attr_name.attr);
-		charger->attr_name.attr.name = "name";
-		charger->attr_name.attr.mode = 0444;
-		charger->attr_name.show = charger_name_show;
+		sysfs_attr_init(&sysfs->attr_stop_charge.attr);
+		sysfs->attr_stop_charge.attr.name = "stop_charge";
+		sysfs->attr_stop_charge.attr.mode = 0644;
+		sysfs->attr_stop_charge.show = charger_stop_show;
+		sysfs->attr_stop_charge.store = charger_stop_store;
 
-		sysfs_attr_init(&charger->attr_state.attr);
-		charger->attr_state.attr.name = "state";
-		charger->attr_state.attr.mode = 0444;
-		charger->attr_state.show = charger_state_show;
+		sysfs_attr_init(&sysfs->attr_jeita_control.attr);
+		sysfs->attr_jeita_control.attr.name = "jeita_control";
+		sysfs->attr_jeita_control.attr.mode = 0644;
+		sysfs->attr_jeita_control.show = jeita_control_show;
+		sysfs->attr_jeita_control.store = jeita_control_store;
 
-		sysfs_attr_init(&charger->attr_stop_charge.attr);
-		charger->attr_stop_charge.attr.name = "stop_charge";
-		charger->attr_stop_charge.attr.mode = 0644;
-		charger->attr_stop_charge.show = charger_stop_show;
-		charger->attr_stop_charge.store = charger_stop_store;
+		sysfs_attr_init(&sysfs->attr_cp_num.attr);
+		sysfs->attr_cp_num.attr.name = "cp_num";
+		sysfs->attr_cp_num.attr.mode = 0444;
+		sysfs->attr_cp_num.show = cp_num_show;
 
-		sysfs_attr_init(&charger->attr_jeita_control.attr);
-		charger->attr_jeita_control.attr.name = "jeita_control";
-		charger->attr_jeita_control.attr.mode = 0644;
-		charger->attr_jeita_control.show = jeita_control_show;
-		charger->attr_jeita_control.store = jeita_control_store;
+		sysfs_attr_init(&sysfs->attr_charge_pump_present.attr);
+		sysfs->attr_charge_pump_present.attr.name = "charge_pump_present";
+		sysfs->attr_charge_pump_present.attr.mode = 0644;
+		sysfs->attr_charge_pump_present.show = charge_pump_present_show;
+		sysfs->attr_charge_pump_present.store = charge_pump_present_store;
 
-		sysfs_attr_init(&charger->attr_cp_num.attr);
-		charger->attr_cp_num.attr.name = "cp_num";
-		charger->attr_cp_num.attr.mode = 0444;
-		charger->attr_cp_num.show = cp_num_show;
+		sysfs_attr_init(&sysfs->attr_charge_pump_current.attr);
+		sysfs->attr_charge_pump_current.attr.name = "charge_pump_current";
+		sysfs->attr_charge_pump_current.attr.mode = 0644;
+		sysfs->attr_charge_pump_current.show = charge_pump_current_show;
+		sysfs->attr_charge_pump_current.store = charge_pump_current_id_store;
 
-		sysfs_attr_init(&charger->attr_charge_pump_present.attr);
-		charger->attr_charge_pump_present.attr.name = "charge_pump_present";
-		charger->attr_charge_pump_present.attr.mode = 0644;
-		charger->attr_charge_pump_present.show = charge_pump_present_show;
-		charger->attr_charge_pump_present.store = charge_pump_present_store;
+		sysfs_attr_init(&sysfs->attr_enable_power_path.attr);
+		sysfs->attr_enable_power_path.attr.name = "enable_power_path";
+		sysfs->attr_enable_power_path.attr.mode = 0644;
+		sysfs->attr_enable_power_path.show = enable_power_path_show;
+		sysfs->attr_enable_power_path.store = enable_power_path_store;
 
-		sysfs_attr_init(&charger->attr_charge_pump_current.attr);
-		charger->attr_charge_pump_current.attr.name = "charge_pump_current";
-		charger->attr_charge_pump_current.attr.mode = 0644;
-		charger->attr_charge_pump_current.show = charge_pump_current_show;
-		charger->attr_charge_pump_current.store = charge_pump_current_id_store;
+		sysfs_attr_init(&sysfs->attr_keep_awake.attr);
+		sysfs->attr_keep_awake.attr.name = "keep_awake";
+		sysfs->attr_keep_awake.attr.mode = 0644;
+		sysfs->attr_keep_awake.show = keep_awake_show;
+		sysfs->attr_keep_awake.store = keep_awake_store;
 
-		sysfs_attr_init(&charger->attr_enable_power_path.attr);
-		charger->attr_enable_power_path.attr.name = "enable_power_path";
-		charger->attr_enable_power_path.attr.mode = 0644;
-		charger->attr_enable_power_path.show = enable_power_path_show;
-		charger->attr_enable_power_path.store = enable_power_path_store;
+		sysfs_attr_init(&sysfs->attr_support_fast_charge.attr);
+		sysfs->attr_support_fast_charge.attr.name = "support_fast_charge";
+		sysfs->attr_support_fast_charge.attr.mode = 0444;
+		sysfs->attr_support_fast_charge.show = support_fast_charge_show;
 
-		sysfs_attr_init(&charger->attr_keep_awake.attr);
-		charger->attr_keep_awake.attr.name = "keep_awake";
-		charger->attr_keep_awake.attr.mode = 0644;
-		charger->attr_keep_awake.show = keep_awake_show;
-		charger->attr_keep_awake.store = keep_awake_store;
-
-		sysfs_attr_init(&charger->attr_support_fast_charge.attr);
-		charger->attr_support_fast_charge.attr.name = "support_fast_charge";
-		charger->attr_support_fast_charge.attr.mode = 0444;
-		charger->attr_support_fast_charge.show = support_fast_charge_show;
-
-		sysfs_attr_init(&charger->attr_externally_control.attr);
-		charger->attr_externally_control.attr.name
+		sysfs_attr_init(&sysfs->attr_externally_control.attr);
+		sysfs->attr_externally_control.attr.name
 				= "externally_control";
-		charger->attr_externally_control.attr.mode = 0644;
-		charger->attr_externally_control.show
+		sysfs->attr_externally_control.attr.mode = 0644;
+		sysfs->attr_externally_control.show
 				= charger_externally_control_show;
-		charger->attr_externally_control.store
+		sysfs->attr_externally_control.store
 				= charger_externally_control_store;
 
-		if (!desc->charger_regulators[i].externally_control ||
-				!chargers_externally_control)
+		if (!desc->sysfs[i].externally_control || !chargers_externally_control)
 			chargers_externally_control = 0;
 
-		dev_info(cm->dev, "'%s' regulator's externally_control is %d\n",
-			 charger->regulator_name, charger->externally_control);
+		dev_info(cm->dev, "regulator's externally_control is %d\n",
+			 sysfs->externally_control);
 	}
 
 	if (chargers_externally_control) {
-		dev_err(cm->dev, "Cannot register regulator because charger-manager must need at least one charger for charging battery\n");
+		dev_err(cm->dev, "Cannot register regulator because charger-manager"
+			"must need at least one charger for charging battery\n");
 		return -EINVAL;
 	}
 
@@ -6207,97 +6077,6 @@ static const struct of_device_id charger_manager_match[] = {
 	{},
 };
 MODULE_DEVICE_TABLE(of, charger_manager_match);
-
-static int charger_extcon_data_init(struct charger_cable *cables,
-				    const struct device_node *_child)
-{
-	if (of_property_read_bool(_child, "extcon")) {
-		struct device_node *extcon_np;
-
-		extcon_np = of_parse_phandle(_child, "extcon", 0);
-		if (!extcon_np)
-			return -ENODEV;
-
-		cables->extcon_dev = extcon_find_edev_by_node(extcon_np);
-		of_node_put(extcon_np);
-		if (IS_ERR(cables->extcon_dev))
-			return PTR_ERR(cables->extcon_dev);
-
-	}
-
-	return 0;
-}
-
-static int charger_regualtors_data_init(struct charger_desc *desc, struct device *dev)
-{
-	struct device_node *np = dev->of_node;
-	int ret;
-
-	desc->num_charger_regulators = of_get_child_count(np);
-	if (desc->num_charger_regulators) {
-		struct charger_regulator *chg_regs;
-		struct device_node *child;
-
-		chg_regs = devm_kcalloc(dev,
-					desc->num_charger_regulators,
-					sizeof(*chg_regs),
-					GFP_KERNEL);
-		if (!chg_regs)
-			return -ENOMEM;
-
-		desc->charger_regulators = chg_regs;
-
-		desc->sysfs_groups = devm_kcalloc(dev,
-					desc->num_charger_regulators + 1,
-					sizeof(*desc->sysfs_groups),
-					GFP_KERNEL);
-		if (!desc->sysfs_groups)
-			return -ENOMEM;
-
-		for_each_child_of_node(np, child) {
-			struct charger_cable *cables;
-			struct device_node *_child;
-
-			of_property_read_string(child, "cm-regulator-name",
-					&chg_regs->regulator_name);
-
-			/* charger cables */
-			chg_regs->num_cables = of_get_child_count(child);
-			if (chg_regs->num_cables) {
-				cables = devm_kcalloc(dev,
-						      chg_regs->num_cables,
-						      sizeof(*cables),
-						      GFP_KERNEL);
-				if (!cables) {
-					of_node_put(child);
-					return -ENOMEM;
-				}
-
-				chg_regs->cables = cables;
-
-				for_each_child_of_node(child, _child) {
-					of_property_read_string(_child,
-					"cm-cable-name", &cables->name);
-					of_property_read_u32(_child,
-					"cm-cable-min",
-					&cables->min_uA);
-					of_property_read_u32(_child,
-					"cm-cable-max",
-					&cables->max_uA);
-
-					ret = charger_extcon_data_init(cables, _child);
-					if (ret)
-						return ret;
-
-					cables++;
-				}
-			}
-			chg_regs++;
-		}
-	}
-
-	return 0;
-}
 
 static struct charger_desc *of_cm_parse_desc(struct device *dev)
 {
@@ -6461,11 +6240,6 @@ static struct charger_desc *of_cm_parse_desc(struct device *dev)
 	ret = cm_init_cap_remap_table(desc, dev);
 	if (ret)
 		dev_err(dev, "%s init cap remap table fail\n", __func__);
-
-	/* battery charger regualtors */
-	ret = charger_regualtors_data_init(desc, dev);
-	if (ret)
-		return ERR_PTR(ret);
 
 	return desc;
 }
@@ -7038,8 +6812,8 @@ static int charger_manager_probe(struct platform_device *pdev)
 	if (desc->fullbatt_full_capacity == 0)
 		dev_info(&pdev->dev, "Ignoring full-battery full capacity threshold as it is not supplied\n");
 
-	if (!desc->charger_regulators || desc->num_charger_regulators < 1) {
-		dev_err(&pdev->dev, "charger_regulators undefined\n");
+	if (!desc->sysfs || desc->num_sysfs < 1) {
+		dev_err(&pdev->dev, "sysfs undefined\n");
 		return -EINVAL;
 	}
 
@@ -7181,9 +6955,10 @@ static int charger_manager_probe(struct platform_device *pdev)
 	INIT_DELAYED_WORK(&cm->fixed_fchg_work, cm_fixed_fchg_work);
 	INIT_DELAYED_WORK(&cm->cp_work, cm_cp_work);
 	INIT_DELAYED_WORK(&cm->ir_compensation_work, cm_ir_compensation_works);
+
 	mutex_init(&cm->desc->charge_info_mtx);
 
-	/* Register sysfs entry for charger(regulator) */
+	/* Register sysfs entry for charger */
 	ret = charger_manager_prepare_sysfs(cm);
 	if (ret < 0) {
 		dev_err(&pdev->dev,
@@ -7232,13 +7007,6 @@ static int charger_manager_probe(struct platform_device *pdev)
 
 	}
 
-	/* Register extcon device for charger cable */
-	ret = charger_manager_register_extcon(cm);
-	if (ret < 0) {
-		dev_err(&pdev->dev, "Cannot initialize extcon device\n");
-		goto err_reg_extcon;
-	}
-
 	mutex_init(&cm->desc->keep_awake_mtx);
 
 	/* Add to the list */
@@ -7261,7 +7029,7 @@ static int charger_manager_probe(struct platform_device *pdev)
 	ret = cm_get_bat_info(cm);
 	if (ret) {
 		dev_err(&pdev->dev, "Failed to get battery information\n");
-		goto err_reg_extcon;
+		goto err;
 	}
 
 	cm->cm_charge_vote = sprd_charge_vote_register("cm_charge_vote",
@@ -7271,7 +7039,7 @@ static int charger_manager_probe(struct platform_device *pdev)
 	if (IS_ERR(cm->cm_charge_vote)) {
 		dev_err(&pdev->dev, "Failed to register charge vote\n");
 		ret = PTR_ERR(cm->cm_charge_vote);
-		goto err_reg_extcon;
+		goto err;
 	}
 
 	cm_init_basp_parameter(cm);
@@ -7280,14 +7048,14 @@ static int charger_manager_probe(struct platform_device *pdev)
 	    cm->fchg_info->ops->extcon_init(cm->fchg_info, cm->charger_psy)) {
 		dev_err(&pdev->dev, "Failed to initialize fchg extcon\n");
 		ret = -EPROBE_DEFER;
-		goto err_reg_extcon;
+		goto err;
 	}
 
 	if (cm->vchg_info->ops && cm->vchg_info->ops->init &&
 	    cm->vchg_info->ops->init(cm->vchg_info, cm->charger_psy)) {
 		dev_err(&pdev->dev, "Failed to register vchg detect notify\n");
 		ret = -EPROBE_DEFER;
-		goto err_reg_extcon;
+		goto err;
 	}
 
 	if (is_ext_usb_pwr_online(cm) && cm->fchg_info->ops && cm->fchg_info->ops->fchg_detect)
@@ -7312,9 +7080,7 @@ static int charger_manager_probe(struct platform_device *pdev)
 
 	return 0;
 
-err_reg_extcon:
-	for (i = 0; i < desc->num_charger_regulators; i++)
-		regulator_put(desc->charger_regulators[i].consumer);
+err:
 
 	power_supply_unregister(cm->charger_psy);
 	wakeup_source_remove(cm->charge_ws);
@@ -7325,8 +7091,6 @@ err_reg_extcon:
 static int charger_manager_remove(struct platform_device *pdev)
 {
 	struct charger_manager *cm = platform_get_drvdata(pdev);
-	struct charger_desc *desc = cm->desc;
-	int i = 0;
 
 	/* Remove from the list */
 	mutex_lock(&cm_list_mtx);
@@ -7338,9 +7102,6 @@ static int charger_manager_remove(struct platform_device *pdev)
 	cancel_delayed_work_sync(&cm->cap_update_work);
 	cancel_delayed_work_sync(&cm->fullbatt_vchk_work);
 	cancel_delayed_work_sync(&cm->uvlo_work);
-
-	for (i = 0 ; i < desc->num_charger_regulators ; i++)
-		regulator_put(desc->charger_regulators[i].consumer);
 
 	power_supply_unregister(cm->charger_psy);
 
