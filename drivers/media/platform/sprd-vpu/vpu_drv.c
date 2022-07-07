@@ -365,106 +365,15 @@ int find_freq_level(struct clock_name_map_t clock_name_map[],
 }
 
 #ifdef CONFIG_COMPAT
-static int compat_get_mmu_map_data(struct compat_iommu_map_data __user *data32,
-				   struct iommu_map_data __user *data)
-{
-	compat_int_t i;
-	compat_size_t s;
-	compat_ulong_t ul;
-	int err;
-
-	err = get_user(i, &data32->fd);
-	err |= put_user(i, &data->fd);
-	err |= get_user(s, &data32->size);
-	err |= put_user(s, &data->size);
-	err |= get_user(ul, &data32->iova_addr);
-	err |= put_user(ul, &data->iova_addr);
-
-	return err;
-}
-
-static int compat_put_mmu_map_data(struct compat_iommu_map_data __user *
-				   data32,
-				   struct iommu_map_data __user *data)
-{
-	compat_int_t i;
-	compat_size_t s;
-	compat_ulong_t ul;
-	int err;
-
-	err = get_user(i, &data->fd);
-	err |= put_user(i, &data32->fd);
-	err |= get_user(s, &data->size);
-	err |= put_user(s, &data32->size);
-	err |= get_user(ul, &data->iova_addr);
-	err |= put_user(ul, &data32->iova_addr);
-
-	return err;
-}
 
 long compat_vpu_ioctl(struct file *filp, unsigned int cmd,
 			     unsigned long arg)
 {
-	long ret = 0;
-	int err;
-	struct compat_iommu_map_data __user *data32;
-	struct iommu_map_data __user *data;
-	struct vpu_fp *vpu_fp = filp->private_data;
-	struct vpu_platform_data *platform_data = vpu_fp->dev_data;
-	struct device *dev = platform_data->dev;
-
 	if (!filp->f_op->unlocked_ioctl)
 		return -ENOTTY;
 
-	switch (cmd) {
-	case COMPAT_VPU_GET_IOVA:
-
-		data32 = compat_ptr(arg);
-		data = compat_alloc_user_space(sizeof(*data));
-		if (data == NULL) {
-			dev_err(dev, "%s %d, compat_alloc_user_space failed",
-				__func__, __LINE__);
-			return -EFAULT;
-		}
-
-		err = compat_get_mmu_map_data(data32, data);
-		if (err) {
-			dev_err(dev, "%s %d, compat_get_mmu_map_data failed",
-				__func__, __LINE__);
-			return err;
-		}
-		ret = filp->f_op->unlocked_ioctl(filp, VPU_GET_IOVA,
-						(unsigned long)data);
-		err = compat_put_mmu_map_data(data32, data);
-			return ret ? ret : err;
-
-	case COMPAT_VPU_FREE_IOVA:
-
-		data32 = compat_ptr(arg);
-		data = compat_alloc_user_space(sizeof(*data));
-		if (data == NULL) {
-			dev_err(dev, "%s %d, compat_alloc_user_space failed",
-				__func__, __LINE__);
-			return -EFAULT;
-		}
-
-		err = compat_get_mmu_map_data(data32, data);
-		if (err) {
-			dev_err(dev, "%s %d, compat_get_mmu_map_data failed",
-				__func__, __LINE__);
-			return err;
-		}
-		ret = filp->f_op->unlocked_ioctl(filp, VPU_FREE_IOVA,
-						(unsigned long)data);
-		err = compat_put_mmu_map_data(data32, data);
-		return ret ? ret : err;
-
-	default:
-		return filp->f_op->unlocked_ioctl(filp, cmd, (unsigned long)
+	return filp->f_op->unlocked_ioctl(filp, cmd, (unsigned long)
 						  compat_ptr(arg));
-	}
-
-	return ret;
 }
 #endif
 
@@ -601,7 +510,7 @@ int get_iova(void *inst_ptr, struct vpu_platform_data *data,
 
 		mapdata->iova_addr = iommu_map_data.iova_addr;
 		mapdata->size = iommu_map_data.iova_size;
-		dev_dbg(dev, "vpu iommu map success iova addr 0x%lx size 0x%zx\n",
+		dev_dbg(dev, "vpu iommu map success iova addr %llx size %llu\n",
 			mapdata->iova_addr, mapdata->size);
 		ret = copy_to_user((void __user *)arg, (void *)mapdata,
 					sizeof(struct iommu_map_data));
@@ -665,10 +574,10 @@ int free_iova(void *inst_ptr, struct vpu_platform_data *data,
 		iommu_ummap_data.ch_type = SPRD_IOMMU_FM_CH_RW;
 		iommu_ummap_data.buf = NULL;
 		list_del(&entry->list);
-		pr_debug("success to find node(inst %p, iova_addr=%#lx, size=%zu)\n",
+		pr_debug("success to find node(inst %p, iova_addr=%#llx, size=%llu)\n",
 			inst_ptr, ummapdata->iova_addr, ummapdata->size);
 	} else {
-		pr_err("fatal error! not find node(inst %p, iova_addr=%#lx, size=%zu)\n",
+		pr_err("fatal error! not find node(inst %p, iova_addr=%#llx, size=%llu)\n",
 				inst_ptr, ummapdata->iova_addr, ummapdata->size);
 		mutex_unlock(&data->map_lock);
 		clock_disable(data);
@@ -678,12 +587,12 @@ int free_iova(void *inst_ptr, struct vpu_platform_data *data,
 
 	ret = sprd_iommu_unmap(data->dev, &iommu_ummap_data);
 	if (ret) {
-		pr_err("sprd_iommu_unmap failed: ret=%d, iova_addr=%#lx, size=%zu\n",
+		pr_err("sprd_iommu_unmap failed: ret=%d, iova_addr=%#llx, size=%llu\n",
 			ret, ummapdata->iova_addr, ummapdata->size);
 		clock_disable(data);
 		return ret;
 	}
-	pr_debug("sprd_iommu_unmap success: iova_addr=%#lx size=%zu\n",
+	pr_debug("sprd_iommu_unmap success: iova_addr=%#llx size=%llu\n",
 		ummapdata->iova_addr, ummapdata->size);
 	dma_buf_unmap_attachment(entry->attachment, entry->table, DMA_BIDIRECTIONAL);
 	dma_buf_detach(entry->dmabuf, entry->attachment);

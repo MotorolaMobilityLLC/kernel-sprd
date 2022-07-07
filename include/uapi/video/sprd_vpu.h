@@ -16,6 +16,7 @@
 #else // Not __KERNEL__
 #include <stdio.h>
 #include <sys/ioctl.h>
+#include <stdint.h>
 #endif
 #define SPRD_VPU_MAP_SIZE 0x14000
 
@@ -40,18 +41,6 @@
 #define VPU_GET_SCENE                _IO(SPRD_VPU_IOCTL_MAGIC, 17)
 #define VPU_SYNC_GSP                _IO(SPRD_VPU_IOCTL_MAGIC, 18)
 
-#ifdef __KERNEL__
-#ifdef CONFIG_COMPAT
-#define COMPAT_VPU_GET_IOVA    _IOWR(SPRD_VPU_IOCTL_MAGIC, 11, struct compat_iommu_map_data)
-#define COMPAT_VPU_FREE_IOVA   _IOW(SPRD_VPU_IOCTL_MAGIC, 12, struct compat_iommu_map_data)
-
-struct compat_iommu_map_data {
-	compat_int_t fd;
-	compat_size_t size;
-	compat_ulong_t iova_addr;
-};
-#endif
-#endif
 
 enum vsp_version_e {
 	SHARK = 0,
@@ -81,8 +70,8 @@ enum vsp_version_e {
 
 struct iommu_map_data {
 	int fd;
-	size_t size;
-	unsigned long iova_addr;
+	uint64_t size;
+	uint64_t iova_addr;
 };
 
 
