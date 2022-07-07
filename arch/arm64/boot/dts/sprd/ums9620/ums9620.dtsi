@@ -58,7 +58,6 @@
 			cpu-idle-states = <&LIT_CORE_PD &CLUSTER_PD>;
 			capacity-dmips-mhz = <417>;
 			dynamic-power-coefficient = <155>;
-			cpufreq-data-v1 = <&cpufreq_cluster0>;
 			sugov_slack_timer;
 		};
 		CPU1: cpu@100 {
@@ -69,7 +68,6 @@
 			cpu-idle-states = <&LIT_CORE_PD &CLUSTER_PD>;
 			capacity-dmips-mhz = <417>;
 			dynamic-power-coefficient = <155>;
-			cpufreq-data-v1 = <&cpufreq_cluster0>;
 		};
 		CPU2: cpu@200 {
 			device_type = "cpu";
@@ -79,7 +77,6 @@
 			cpu-idle-states = <&LIT_CORE_PD &CLUSTER_PD>;
 			capacity-dmips-mhz = <417>;
 			dynamic-power-coefficient = <155>;
-			cpufreq-data-v1 = <&cpufreq_cluster0>;
 		};
 		CPU3: cpu@300 {
 			device_type = "cpu";
@@ -89,7 +86,6 @@
 			cpu-idle-states = <&LIT_CORE_PD &CLUSTER_PD>;
 			capacity-dmips-mhz = <417>;
 			dynamic-power-coefficient = <155>;
-			cpufreq-data-v1 = <&cpufreq_cluster0>;
 		};
 		CPU4: cpu@400 {
 			device_type = "cpu";
@@ -99,7 +95,6 @@
 			cpu-idle-states = <&MID_CORE_PD &CLUSTER_PD>;
 			capacity-dmips-mhz = <1022>;
 			dynamic-power-coefficient = <721>;
-			cpufreq-data-v1 = <&cpufreq_cluster1>;
 		};
 		CPU5: cpu@500 {
 			device_type = "cpu";
@@ -109,7 +104,6 @@
 			cpu-idle-states = <&MID_CORE_PD &CLUSTER_PD>;
 			capacity-dmips-mhz = <1022>;
 			dynamic-power-coefficient = <721>;
-			cpufreq-data-v1 = <&cpufreq_cluster1>;
 		};
 		CPU6: cpu@600 {
 			device_type = "cpu";
@@ -119,7 +113,6 @@
 			cpu-idle-states = <&MID_CORE_PD &CLUSTER_PD>;
 			capacity-dmips-mhz = <1022>;
 			dynamic-power-coefficient = <721>;
-			cpufreq-data-v1 = <&cpufreq_cluster1>;
 		};
 		CPU7: cpu@700 {
 			device_type = "cpu";
@@ -129,37 +122,7 @@
 			cpu-idle-states = <&BIG_CORE_PD &CLUSTER_PD>;
 			capacity-dmips-mhz = <1024>;
 			dynamic-power-coefficient = <896>;
-			cpufreq-data-v1 = <&cpufreq_cluster2>;
 		};
-	};
-
-	cpufreq_cluster0: cpufreq-cluster0 {
-		//nvmem-cells = <&dvfs_bin_cpu0>;
-		//nvmem-cell-names = "dvfs_bin";
-		voltage-step = <750000>;		/* uV       */
-		voltage-margin = <40>;			/* Cycle    */
-		boost-duration = <60>;			/* s        */
-		transition-delay = <1000>;		/* us       */
-		//temp-threshold = <65>;		/* u32 list */
-	};
-
-	cpufreq_cluster1: cpufreq-cluster1 {
-		//nvmem-cells = <&dvfs_bin_cpu1>;
-		//nvmem-cell-names = "dvfs_bin";
-		voltage-step = <750000>;		/* uV       */
-		voltage-margin = <40>;			/* Cycle    */
-		boost-duration = <60>;			/* s        */
-		transition-delay = <1000>;		/* us       */
-		//temp-threshold = <65>;		/* u32 list */
-	};
-
-	cpufreq_cluster2: cpufreq-cluster2 {
-		//nvmem-cells = <&dvfs_bin_cpu2>;
-		//nvmem-cell-names = "dvfs_bin";
-		voltage-margin = <40>;			/* Cycle    */
-		boost-duration = <60>;			/* s        */
-		transition-delay = <1000>;		/* us       */
-		//temp-threshold = <65>;		/* u32 list */
 	};
 
 	psci {
@@ -414,6 +377,7 @@
 };
 
 /* Include other IP modules ALPHABETICALLY */
+#include "apcpu-dvfs.dtsi"
 #include "audio.dtsi"
 #include "bm.dtsi"
 #include "cam.dtsi"
