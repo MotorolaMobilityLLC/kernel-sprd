@@ -162,7 +162,7 @@ static const struct clk_bit_field f_lpll[PLL_FACT_MAX] = {
 	{ .shift = 0,	.width = 0 },	/* refdiv	*/
 	{ .shift = 0,	.width = 0 },	/* vco_sel	*/
 };
-static SPRD_PLL_FW_NAME(lpll, "lpll", "ext-26m", 0x20, 3, ftable,
+static SPRD_PLL_HW(lpll, "lpll", &lpll_gate.common.hw, 0x20, 3, ftable,
 		   f_lpll, 240, 1000, 1000, 0, 0);
 static CLK_FIXED_FACTOR_HW(lpll_409m6, "lpll-409m6", &lpll.common.hw, 3, 1, 0);
 static CLK_FIXED_FACTOR_HW(lpll_245m76, "lpll-245m76", &lpll.common.hw, 5, 1, 0);
