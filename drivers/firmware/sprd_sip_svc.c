@@ -120,6 +120,27 @@
 			   ARM_SMCCC_OWNER_SIP,				\
 			   0x0202)
 
+/* SIP storage operations */
+#define	SPRD_SIP_SVC_STORAGE_REV					\
+	ARM_SMCCC_CALL_VAL(ARM_SMCCC_FAST_CALL,				\
+			   ARM_SMCCC_SMC_32,				\
+			   ARM_SMCCC_OWNER_SIP,				\
+			   0x0300)
+
+#if IS_ENABLED(CONFIG_SCSI_UFS_CRYPTO)
+#define SPRD_SIP_SVC_STORAGE_UFS_CRYPTO_ENABLE                          \
+	ARM_SMCCC_CALL_VAL(ARM_SMCCC_FAST_CALL,				\
+			   ARM_SMCCC_SMC_32,				\
+			   ARM_SMCCC_OWNER_SIP,				\
+			   0x0301)
+
+#define SPRD_SIP_SVC_STORAGE_UFS_CRYPTO_DISABLE                         \
+	ARM_SMCCC_CALL_VAL(ARM_SMCCC_FAST_CALL,				\
+			   ARM_SMCCC_SMC_32,				\
+			   ARM_SMCCC_OWNER_SIP,				\
+			   0x0302)
+#endif
+
 /* SIP power operations */
 #define SPRD_SIP_SVC_PWR_REV						\
 	ARM_SMCCC_CALL_VAL(ARM_SMCCC_FAST_CALL,				\
@@ -502,6 +523,28 @@ static int sprd_sip_svc_dvfs_init(void)
 	return sprd_sip_remap_err(res.a0);
 }
 
+#if IS_ENABLED(CONFIG_SCSI_UFS_CRYPTO)
+static int sprd_sip_svc_storage_ufs_crypto_enable(void)
+{
+	struct arm_smccc_res res;
+
+	arm_smccc_smc(SPRD_SIP_SVC_STORAGE_UFS_CRYPTO_ENABLE,
+			0, 0, 0, 0, 0, 0, 0, &res);
+
+	return res.a0;
+}
+
+static int sprd_sip_svc_storage_ufs_crypto_disable(void)
+{
+	struct arm_smccc_res res;
+
+	arm_smccc_smc(SPRD_SIP_SVC_STORAGE_UFS_CRYPTO_DISABLE,
+			0, 0, 0, 0, 0, 0, 0, &res);
+
+	return res.a0;
+}
+#endif
+
 static int __init sprd_sip_svc_init(void)
 {
 	int ret = 0;
@@ -567,6 +610,20 @@ static int __init sprd_sip_svc_init(void)
 	pr_notice("SPRD SIP SVC DVFS:v%d.%d detected in firmware.\n",
 		  sprd_sip_svc_handle.dvfs_ops.rev.major_ver,
 		  sprd_sip_svc_handle.dvfs_ops.rev.minor_ver);
+
+	/* init storage_ops */
+	arm_smccc_smc(SPRD_SIP_SVC_STORAGE_REV, 0, 0, 0, 0, 0, 0, 0, &res);
+	sprd_sip_svc_handle.storage_ops.rev.major_ver = (u32)(res.a0);
+	sprd_sip_svc_handle.storage_ops.rev.minor_ver = (u32)(res.a1);
+
+#if IS_ENABLED(CONFIG_SCSI_UFS_CRYPTO)
+	sprd_sip_svc_handle.storage_ops.ufs_crypto_enable  = sprd_sip_svc_storage_ufs_crypto_enable;
+	sprd_sip_svc_handle.storage_ops.ufs_crypto_disable = sprd_sip_svc_storage_ufs_crypto_disable;
+#endif
+
+	pr_notice("SPRD SIP SVC STORAGE:v%d.%d detected in firmware.\n",
+		sprd_sip_svc_handle.storage_ops.rev.major_ver,
+		sprd_sip_svc_handle.storage_ops.rev.minor_ver);
 
 	return ret;
 }
