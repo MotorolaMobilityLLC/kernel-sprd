@@ -28,6 +28,11 @@
 #include "sdhci-sprd-swcq.h"
 #include "sdhci-sprd-swcq.c"
 
+#if IS_ENABLED(CONFIG_MMC_WRITE_PROTECT)
+#include "sdhci-sprd-powp.h"
+#include "sdhci-sprd-powp.c"
+#endif
+
 #define DRIVER_NAME "sprd-sdhci"
 #define SDHCI_SPRD_DUMP(f, x...) \
 	pr_err("%s: " DRIVER_NAME ": " f, mmc_hostname(host->mmc), ## x)
@@ -168,6 +173,19 @@ static const struct sdhci_sprd_phy_cfg sdhci_sprd_phy_cfgs[] = {
 };
 
 #define TO_SPRD_HOST(host) sdhci_pltfm_priv(sdhci_priv(host))
+
+#if IS_ENABLED(CONFIG_MMC_WRITE_PROTECT)
+static unsigned int powp_init_flag;
+static void sdhci_sprd_init_card(struct mmc_host *mmc, struct mmc_card *card)
+{
+	struct sdhci_host *host = mmc_priv(mmc);
+
+	if (strcmp(mmc_hostname(host->mmc), "mmc0"))
+		return;
+	mmc->card = card;
+	powp_init_flag = 1;
+}
+#endif
 
 static void sdhci_sprd_init_config(struct sdhci_host *host)
 {
@@ -350,6 +368,10 @@ static void sdhci_sprd_set_clock(struct sdhci_host *host, unsigned int clock)
 {
 	bool en = false, clk_changed = false;
 	u16 clk;
+#if IS_ENABLED(CONFIG_MMC_WRITE_PROTECT)
+	struct mmc_host *mmc = host->mmc;
+	u32 err = 0;
+#endif
 
 	if (clock == 0) {
 		sdhci_writew(host, 0, SDHCI_CLOCK_CONTROL);
@@ -367,6 +389,20 @@ static void sdhci_sprd_set_clock(struct sdhci_host *host, unsigned int clock)
 		clk |= SDHCI_CLOCK_CARD_EN;
 		sdhci_writew(host, clk, SDHCI_CLOCK_CONTROL);
 	}
+
+#if IS_ENABLED(CONFIG_MMC_WRITE_PROTECT)
+	if (!strcmp(mmc_hostname(host->mmc), "mmc0") && powp_init_flag &&
+		clock > 400000) {
+		err = set_power_on_write_protect(mmc->card);
+		if (err)
+			pr_err("%s: Power-on write protection set fail!\n",
+					mmc_hostname(host->mmc));
+		else
+			pr_info("%s: Power-on write protection set successfully\n",
+					mmc_hostname(host->mmc));
+		powp_init_flag = 0;
+	}
+#endif
 
 	/*
 	 * According to the Spreadtrum SD host specification, when we changed
@@ -1126,6 +1162,9 @@ static int sdhci_sprd_probe(struct platform_device *pdev)
 	host->dma_mask = DMA_BIT_MASK(64);
 	pdev->dev.dma_mask = &host->dma_mask;
 	host->mmc_host_ops.request = sdhci_sprd_request;
+#if IS_ENABLED(CONFIG_MMC_WRITE_PROTECT)
+	host->mmc_host_ops.init_card = sdhci_sprd_init_card;
+#endif
 	host->mmc_host_ops.hs400_enhanced_strobe =
 		sdhci_sprd_hs400_enhanced_strobe;
 	/*
