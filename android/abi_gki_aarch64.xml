@@ -2698,6 +2698,7 @@
       <elf-symbol name='iommu_device_sysfs_remove' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x8da6a2c1'/>
       <elf-symbol name='iommu_device_unlink' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x90236d86'/>
       <elf-symbol name='iommu_device_unregister' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xc6617388'/>
+      <elf-symbol name='iommu_dma_enable_best_fit_algo' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x3b5c9384'/>
       <elf-symbol name='iommu_dma_get_resv_regions' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xdb7faf5b'/>
       <elf-symbol name='iommu_domain_alloc' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0xc12d92ce'/>
       <elf-symbol name='iommu_domain_free' type='func-type' binding='global-binding' visibility='default-visibility' is-defined='yes' crc='0x34d11aa3'/>
