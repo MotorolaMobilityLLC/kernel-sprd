@@ -680,19 +680,16 @@ static void sprd_iommu_pool_show(struct sprd_iommu_dev *iommu_dev)
 	int index;
 	struct sprd_iommu_sg_rec *rec;
 
-	if (iommu_dev->id == SPRD_IOMMU_VSP ||
-	    iommu_dev->id == SPRD_IOMMU_DISP)
-		return;
-
-	IOMMU_ERR("%s restore, map_count %u\n",
-		iommu_dev->init_data->name,
-		iommu_dev->map_count);
+	IOMMU_DEBUG("%s restore, map_count %u\n",
+			iommu_dev->init_data->name,
+			iommu_dev->map_count);
 
 	if (iommu_dev->map_count > 0)
 		for (index = 0; index < SPRD_MAX_SG_CACHED_CNT; index++) {
 			rec = &(iommu_dev->sg_pool.slot[index]);
 			if (rec->status == SG_SLOT_USED) {
-				IOMMU_ERR("Warning! buffer iova 0x%lx size 0x%lx sg 0x%lx buf %p map_usrs %d should be unmapped!\n",
+				IOMMU_DEBUG("buffer is not unmapped, iova 0x%lx "
+					"size 0x%lx sg 0x%lx buf %p map_usrs %d\n",
 					rec->iova_addr, rec->iova_size,
 					rec->sg_table_addr, rec->buf_addr,
 					rec->map_usrs);
@@ -797,15 +794,19 @@ int sprd_iommu_map(struct device *dev, struct sprd_iommu_map_data *data)
 	/**search the sg_cache_pool to identify if buf already mapped;
 	* if yes, return cached iova directly, otherwise, alloc new iova for it;
 	*/
-	buf_cached = sprd_iommu_target_buf(iommu_dev,
-				data->buf,
-				(unsigned long *)&iova);
+	buf_cached = sprd_iommu_target_buf(iommu_dev, data->buf,
+						(unsigned long *)&iova);
 	if (buf_cached) {
 		data->iova_addr = iova;
 		ret = 0;
-		IOMMU_DEBUG("%s cached iova 0x%lx size 0x%zx buf %p\n",
-			  iommu_dev->init_data->name, iova,
-			  data->iova_size, data->buf);
+		if (iommu_dev->init_data->id == IOMMU_EX_VSP)
+			IOMMU_ERR("%s use old mapping, iova 0x%lx size 0x%zx buf %p\n",
+				  iommu_dev->init_data->name, iova,
+				  data->iova_size, data->buf);
+		else
+			IOMMU_DEBUG("%s use old mapping, iova 0x%lx size 0x%zx buf %p\n",
+				  iommu_dev->init_data->name, iova,
+				  data->iova_size, data->buf);
 		goto out;
 	}
 
@@ -853,9 +854,6 @@ int sprd_iommu_map(struct device *dev, struct sprd_iommu_map_data *data)
 	IOMMU_DEBUG("%s iova 0x%lx size 0x%zx buf %p\n",
 		  iommu_dev->init_data->name, iova,
 		  data->iova_size, data->buf);
-
-	spin_unlock_irqrestore(&iommu_dev->pgt_lock, flag);
-	return ret;
 
 out:
 	spin_unlock_irqrestore(&iommu_dev->pgt_lock, flag);
@@ -906,13 +904,18 @@ int sprd_iommu_map_single_page(struct device *dev, struct sprd_iommu_map_data *d
 	 * if yes, return cached iova directly, otherwise, alloc new iova for it;
 	 */
 	buf_cached = sprd_iommu_target_buf(iommu_dev, data->buf,
-								      (unsigned long *)&iova);
+						(unsigned long *)&iova);
 	if (buf_cached) {
 		data->iova_addr = iova;
 		ret = 0;
-		IOMMU_DEBUG("%s cached iova 0x%lx size 0x%zx buf %p\n",
-			  iommu_dev->init_data->name, iova,
-			  data->iova_size, data->buf);
+		if (iommu_dev->init_data->id == IOMMU_EX_VSP)
+			IOMMU_ERR("%s use old mapping, iova 0x%lx size 0x%zx buf %p\n",
+				  iommu_dev->init_data->name, iova,
+				  data->iova_size, data->buf);
+		else
+			IOMMU_DEBUG("%s use old mapping, iova 0x%lx size 0x%zx buf %p\n",
+				  iommu_dev->init_data->name, iova,
+				  data->iova_size, data->buf);
 		goto out;
 	}
 
@@ -960,9 +963,6 @@ int sprd_iommu_map_single_page(struct device *dev, struct sprd_iommu_map_data *d
 	IOMMU_DEBUG("%s iova 0x%lx size 0x%zx buf %p\n",
 		  iommu_dev->init_data->name, iova,
 		  data->iova_size, data->buf);
-
-	spin_unlock_irqrestore(&iommu_dev->pgt_lock, flag);
-	return ret;
 
 out:
 	spin_unlock_irqrestore(&iommu_dev->pgt_lock, flag);
@@ -1015,15 +1015,19 @@ int sprd_iommu_map_with_idx(
 	/**search the sg_cache_pool to identify if buf already mapped;*/
 	/* if yes, return cached iova directly, otherwise, */
 	/* alloc new iova for it;*/
-	buf_cached = sprd_iommu_target_buf(iommu_dev,
-				data->buf,
-				(unsigned long *)&iova);
+	buf_cached = sprd_iommu_target_buf(iommu_dev, data->buf,
+						(unsigned long *)&iova);
 	if (buf_cached) {
 		data->iova_addr = iova;
 		ret = 0;
-		IOMMU_DEBUG("%s cached iova 0x%lx size 0x%zx buf %p\n",
-			  iommu_dev->init_data->name, iova,
-			  data->iova_size, data->buf);
+		if (iommu_dev->init_data->id == IOMMU_EX_VSP)
+			IOMMU_ERR("%s use old mapping, iova 0x%lx size 0x%zx buf %p\n",
+				  iommu_dev->init_data->name, iova,
+				  data->iova_size, data->buf);
+		else
+			IOMMU_DEBUG("%s use old mapping, iova 0x%lx size 0x%zx buf %p\n",
+				  iommu_dev->init_data->name, iova,
+				  data->iova_size, data->buf);
 		goto out;
 	}
 
@@ -1071,9 +1075,6 @@ int sprd_iommu_map_with_idx(
 	IOMMU_DEBUG("%s iova 0x%lx size 0x%zx buf %p\n",
 		  iommu_dev->init_data->name, iova,
 		  data->iova_size, data->buf);
-
-	spin_unlock_irqrestore(&iommu_dev->pgt_lock, flag);
-	return ret;
 
 out:
 	spin_unlock_irqrestore(&iommu_dev->pgt_lock, flag);
