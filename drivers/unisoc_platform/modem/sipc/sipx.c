@@ -66,7 +66,7 @@ int g_flow_on = 1;
 
 static struct sipx_mgr *sipxs[SIPC_ID_NR];
 
-#ifdef CONFIG_SPRD_SIPC_MEM_CACHE_EN
+#ifdef CONFIG_UNISOC_SIPC_MEM_CACHE_EN
 static struct device *sipx_dev;
 #endif
 
@@ -92,7 +92,7 @@ static int sipx_debug_show(struct seq_file *m, void *private)
 
 		/*sipx*/
 		sipc_debug_putline(m, '*', 180);
-#ifdef CONFIG_SPRD_SIPC_MEM_CACHE_EN
+#ifdef CONFIG_UNISOC_SIPC_MEM_CACHE_EN
 		seq_printf(m, "sipx dst 0x%0x, state: 0x%0x, recovery: %d, ",
 			   sipx->dst, sipx->state, sipx->recovery);
 		seq_printf(m, "smem_virt: 0x%p, smem_cached_virt: 0x%p, ",
@@ -375,7 +375,7 @@ static int sipx_put_item_to_ring(struct sipx_ring *ring, struct sblock *blk,
 	int cnt;
 	struct sipx_blk_item item;
 
-#ifdef CONFIG_SPRD_SIPC_MEM_CACHE_EN
+#ifdef CONFIG_UNISOC_SIPC_MEM_CACHE_EN
 	SKB_DATA_TO_SIPC_CACHE_FLUSH(sipx_dev, (blk->addr - sipxs[SIPC_ID_PSCP]->smem_cached_virt
 				     + sipxs[SIPC_ID_PSCP]->smem_addr), blk->length);
 #endif
@@ -429,7 +429,7 @@ static int sipx_get_item_from_ring(struct sipx_ring *ring, struct sblock *blk)
 			blk->offset;
 
 		ring->fifo_info->fifo_rdptr = rd + 1;
-#ifdef CONFIG_SPRD_SIPC_MEM_CACHE_EN
+#ifdef CONFIG_UNISOC_SIPC_MEM_CACHE_EN
 		SIPC_DATA_TO_SKB_CACHE_INV(sipx_dev, (blk->addr - sipxs[SIPC_ID_PSCP]->smem_cached_virt
 					   + sipxs[SIPC_ID_PSCP]->smem_addr), blk->length);
 #endif
@@ -762,7 +762,7 @@ static int destroy_spix_mgr(struct sipx_mgr *sipx)
 	if (sipx->smem_virt)
 		shmem_ram_unmap(sipx->dst, sipx->smem_virt);
 
-#ifdef CONFIG_SPRD_SIPC_MEM_CACHE_EN
+#ifdef CONFIG_UNISOC_SIPC_MEM_CACHE_EN
 	if (sipx->smem_cached_virt)
 		shmem_ram_unmap(sipx->dst, sipx->smem_cached_virt);
 #endif
@@ -885,7 +885,7 @@ static int create_sipx_mgr(struct sipx_mgr **out, struct sipx_init_data *pdata)
 		goto fail;
 	}
 
-#ifdef CONFIG_SPRD_SIPC_MEM_CACHE_EN
+#ifdef CONFIG_UNISOC_SIPC_MEM_CACHE_EN
 	sipx->smem_cached_virt = shmem_ram_vmap_cache(sipx->dst,
 							  sipx->smem_addr,
 							  sipx->smem_size);
@@ -917,7 +917,7 @@ static int create_sipx_mgr(struct sipx_mgr **out, struct sipx_init_data *pdata)
 	fifo_info->fifo_wrptr = 0;
 	/* offset of smem_addr */
 	fifo_info->fifo_addr = sipx->dst_smem_addr + offset_dl_fifo;
-#ifdef CONFIG_SPRD_SIPC_MEM_CACHE_EN
+#ifdef CONFIG_UNISOC_SIPC_MEM_CACHE_EN
 	ret = create_sipx_pool_ctrl(&sipx->dl_pool,
 				    fifo_info,
 				    sipx->smem_virt + offset_dl_fifo,
@@ -943,7 +943,7 @@ static int create_sipx_mgr(struct sipx_mgr **out, struct sipx_init_data *pdata)
 	fifo_info->fifo_rdptr = 0;
 	fifo_info->fifo_wrptr = 0;
 	fifo_info->fifo_addr = sipx->dst_smem_addr + offset_dl_ack_fifo;
-#ifdef CONFIG_SPRD_SIPC_MEM_CACHE_EN
+#ifdef CONFIG_UNISOC_SIPC_MEM_CACHE_EN
 	ret = create_sipx_pool_ctrl(&sipx->dl_ack_pool,
 				    fifo_info,
 				    sipx->smem_virt + offset_dl_ack_fifo,
@@ -972,7 +972,7 @@ static int create_sipx_mgr(struct sipx_mgr **out, struct sipx_init_data *pdata)
 
 	/* offset of smem_addr */
 	fifo_info->fifo_addr = sipx->dst_smem_addr + offset_ul_fifo;
-#ifdef CONFIG_SPRD_SIPC_MEM_CACHE_EN
+#ifdef CONFIG_UNISOC_SIPC_MEM_CACHE_EN
 	ret = create_sipx_pool_ctrl(&sipx->ul_pool,
 				    fifo_info,
 				    sipx->smem_virt + offset_ul_fifo,
@@ -998,7 +998,7 @@ static int create_sipx_mgr(struct sipx_mgr **out, struct sipx_init_data *pdata)
 	fifo_info->fifo_rdptr = 0;
 	fifo_info->fifo_wrptr = 0;
 	fifo_info->fifo_addr = sipx->dst_smem_addr + offset_ul_ack_fifo;
-#ifdef CONFIG_SPRD_SIPC_MEM_CACHE_EN
+#ifdef CONFIG_UNISOC_SIPC_MEM_CACHE_EN
 	ret = create_sipx_pool_ctrl(&sipx->ul_ack_pool,
 				    fifo_info,
 				    sipx->smem_virt + offset_ul_ack_fifo,
@@ -1019,7 +1019,7 @@ static int create_sipx_mgr(struct sipx_mgr **out, struct sipx_init_data *pdata)
 	chan_cnt = (volatile u32 *)((sipx->smem_virt) +
 			offset_chan_cnt);
 	*chan_cnt = SMSG_CH_NR;
-#ifdef CONFIG_SPRD_SIPC_MEM_CACHE_EN
+#ifdef CONFIG_UNISOC_SIPC_MEM_CACHE_EN
 	/* save pool start pos */
 	sipx->dl_ack_start = sipx->smem_cached_virt + offset_dl_ack_blk;
 	sipx->ul_ack_start = sipx->smem_cached_virt + offset_ul_ack_blk;
@@ -2060,7 +2060,7 @@ static int sipx_probe(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, sipx);
 
-#ifdef CONFIG_SPRD_SIPC_MEM_CACHE_EN
+#ifdef CONFIG_UNISOC_SIPC_MEM_CACHE_EN
 	sipx_dev = dev;
 #endif
 

@@ -395,7 +395,7 @@ EXPORT_SYMBOL_GPL(smem_free_ex);
 void *shmem_ram_vmap_nocache_ex(u8 dst, u16 smem,
 				phys_addr_t start, size_t size)
 {
-	return shmem_ram_vmap(dst, smem, start, size, MMAP_WRITECOMBINE);
+	return shmem_ram_vmap(dst, smem, start, size, MMAP_NONCACHE);
 }
 EXPORT_SYMBOL_GPL(shmem_ram_vmap_nocache_ex);
 

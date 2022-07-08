@@ -16,6 +16,7 @@
 #define __SIPC_H
 
 #include <linux/poll.h>
+#include <asm/io.h>
 
 /* ****************************************************************** */
 /* SMSG interfaces */
@@ -1093,7 +1094,7 @@ static inline void unalign_memcpy(void *to, const void *from, size_t n)
 			*(char *)(to++) = *(char *)(from++);
 			n--;
 		}
-		memcpy(to, from, n);
+		memcpy_fromio(to, from, n);
 	} else if (((unsigned long)to & 3) == ((unsigned long)from & 3)) {
 		while (((unsigned long)from & 3) && n) {
 			*(char *)(to++) = *(char *)(from++);
