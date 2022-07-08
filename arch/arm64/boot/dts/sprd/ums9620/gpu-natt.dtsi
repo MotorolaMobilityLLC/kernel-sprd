@@ -70,22 +70,10 @@
 		gpll_cfg_frc_on=<&pmu_apb_regs
 			REG_PMU_APB_GPLL_REL_CFG
 			MASK_PMU_APB_GPLL_FRC_ON>;
-		gpu_soft_rst=<&pmu_apb_regs
-			REG_PMU_APB_SYS_SOFT_RST_0
-			MASK_PMU_APB_GPU_SOFT_RST>;
-		/*
-		syscon-names = "top_dvfs_cfg",
-			"gpu_sw_dvfs_ctrl",
-			"dcdc_gpu_voltage0",
-			"dcdc_gpu_voltage1",
-			"dcdc_gpu_voltage2",
-			"dcdc_gpu_voltage3",
-			"top_force_shutdown",
-			"gpu_top_state",
-			"gpll_cfg_frc_off",
-			"gpll_cfg_frc_on",
-			"gpu_soft_rst";
-		*/
+
+		resets = <&pmu_gate
+			RESET_PMU_APB_GPU_SOFT_RST>;
+		reset-names = "gpu_soft_rst";
 
 		interrupts = <GIC_SPI 146 IRQ_TYPE_LEVEL_HIGH>,
 			<GIC_SPI 146 IRQ_TYPE_LEVEL_HIGH>,
