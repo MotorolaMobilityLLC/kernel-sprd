@@ -107,6 +107,7 @@ struct sprd_rtc {
 	u32			base;
 	int			irq;
 	bool			valid;
+	bool			registered;
 };
 
 /*
@@ -440,7 +441,7 @@ static int sprd_rtc_read_alarm(struct device *dev, struct rtc_wkalrm *alrm)
 	 * Or if aie_timer is enabled, we should get the normal alarm time.
 	 * Otherwise we should get auxiliary alarm time.
 	 */
-	if (rtc->rtc && rtc->rtc->aie_timer.enabled == 0)
+	if (rtc->rtc && rtc->registered && rtc->rtc->aie_timer.enabled == 0)
 		return sprd_rtc_read_aux_alarm(dev, alrm);
 
 	ret = sprd_rtc_get_secs(rtc, SPRD_RTC_ALARM, &secs);
@@ -684,6 +685,7 @@ static int sprd_rtc_probe(struct platform_device *pdev)
 		return ret;
 	}
 
+	rtc->registered = true;
 	return 0;
 }
 
