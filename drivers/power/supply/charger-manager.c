@@ -6317,7 +6317,7 @@ static struct charger_desc *of_cm_parse_desc(struct device *dev)
 	of_property_read_u32(np, "cm-poll-mode", &poll_mode);
 	desc->polling_mode = poll_mode;
 
-	desc->uvlo_shutdown_mode = CM_SHUTDOWN_MODE_KERNEL;
+	desc->uvlo_shutdown_mode = CM_SHUTDOWN_MODE_ANDROID;
 	of_property_read_u32(np, "cm-uvlo-shutdown-mode", &desc->uvlo_shutdown_mode);
 
 	of_property_read_u32(np, "cm-poll-interval",
