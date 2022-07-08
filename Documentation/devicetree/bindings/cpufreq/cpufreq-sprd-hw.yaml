@@ -54,6 +54,14 @@ properties:
       - soc-thmzone
       - cpu-thmzone
 
+  sprd,voltage-step:
+    description:
+      Number of the dcdc step voltage limit vol
+
+  sprd,voltage-margin:
+    description:
+      Number of the dcdc delay margin
+
 required:
   - compatible
   - "#freq-domain-cells"
