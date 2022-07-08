@@ -25,13 +25,10 @@
 #include <sprd_mpm.h>
 #include <linux/suspend.h>
 #include <linux/types.h>
-#include <linux/syscore_ops.h>
 #include <linux/reboot.h>
 
 #define SPRD_MPM_PRINT_TIMER	msecs_to_jiffies(60 * 1000)
 #define MAX_WAKEUP_LENTH	256
-#define SYS_POWERON            0x1
-#define SYS_POWEROFF           0x3
 
 /*
  * The data struct of modem power manager.
@@ -53,7 +50,6 @@ struct sprd_mpm_data {
 	unsigned int		later_idle;
 	unsigned int		old_later;
 	char			awake_info[MAX_WAKEUP_LENTH];
-	unsigned int            system_state;
 
 	/* resource ops functions */
 	int (*wait_resource)(unsigned int dst, int timeout);
@@ -167,7 +163,7 @@ static void sprd_mpm_print_awake(struct sprd_mpm_data *mpm)
 		len = strlen(mpm->awake_info);
 	}
 
-	if (len && (mpm->system_state = SYS_POWERON))
+	if (len)
 		pr_info("%s\n", mpm->awake_info);
 	else {
 		/* if pms list is empty, the wakelock_cnt must be 0. */
@@ -179,7 +175,6 @@ static void sprd_mpm_print_awake(struct sprd_mpm_data *mpm)
 
 static void sprd_mpm_stop_print_timer(struct sprd_mpm_data *mpm)
 {
-	mpm->system_state = SYS_POWEROFF;
 	del_timer(&mpm->print_timer);
 }
 
@@ -187,7 +182,6 @@ static void sprd_mpm_start_print_timer(struct sprd_mpm_data *mpm)
 {
 	unsigned long expires;
 
-	mpm->system_state = SYS_POWERON;
 	expires = jiffies + SPRD_MPM_PRINT_TIMER;
 	if (!expires)
 		expires = 1;
@@ -1035,20 +1029,6 @@ void sprd_pms_power_down(struct sprd_pms *pms, bool immediately)
 EXPORT_SYMBOL_GPL(sprd_pms_power_down);
 
 /* print_timer may delay watchdog and cause ap watchdog timeout, bug1917604 */
-static void modem_power_manager_shutdown(void)
-{
-	unsigned int i;
-	struct sprd_mpm_data *cur;
-
-	for (i = 0; i < SIPC_ID_NR; i++) {
-		if (!g_sprd_mpm[i])
-			continue;
-
-		cur = g_sprd_mpm[i];
-		sprd_mpm_stop_print_timer(cur);
-	}
-}
-
 static int mpm_prepare_reboot_event(struct notifier_block *nb,
 			    unsigned long event, void *buf)
 {
@@ -1065,17 +1045,12 @@ static int mpm_prepare_reboot_event(struct notifier_block *nb,
 	return 0;
 }
 
-static struct syscore_ops mpm_syscore_ops = {
-	.shutdown = modem_power_manager_shutdown,
-};
-
 static struct notifier_block mpm_reboot_notifier = {
 	.notifier_call = mpm_prepare_reboot_event,
 };
 
 static int __init modem_power_manager_init(void)
 {
-	register_syscore_ops(&mpm_syscore_ops);
 	register_reboot_notifier(&mpm_reboot_notifier);
 	register_pm_notifier(&sprd_mpm_notifier_block);
 
@@ -1088,7 +1063,6 @@ static int __init modem_power_manager_init(void)
 
 static void __exit modem_power_manager_exit(void)
 {
-	unregister_syscore_ops(&mpm_syscore_ops);
 	unregister_reboot_notifier(&mpm_reboot_notifier);
 	unregister_pm_notifier(&sprd_mpm_notifier_block);
 }
