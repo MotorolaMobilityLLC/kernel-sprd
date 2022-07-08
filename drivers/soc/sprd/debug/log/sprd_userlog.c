@@ -88,14 +88,11 @@ static ssize_t do_read_log_to_user(struct userlog_log *log,
 	size_t len;
 	size_t msg_start;
 
-	/* copy the header to userspace */
+	/* don't copy the header to userspace */
 	entry = get_entry_header(log, reader->r_off, &scratch);
-	if (copy_to_user(buf, entry, sizeof(struct userlog_entry)))
-		return -EFAULT;
 
 	/* calculate count and buf */
 	count -= sizeof(struct userlog_entry);
-	buf += sizeof(struct userlog_entry);
 	msg_start = userlog_offset(log,
 					reader->r_off + sizeof(struct userlog_entry));
 
@@ -117,7 +114,7 @@ static ssize_t do_read_log_to_user(struct userlog_log *log,
 		sizeof(struct userlog_entry) + count);
 	pr_info("do_read_log_to_user reader->r_off:%lu\n", reader->r_off);
 
-	return count + sizeof(struct userlog_entry);
+	return count;
 }
 
 /* read sub function end */
@@ -188,10 +185,7 @@ static ssize_t userlog_write_iter(struct kiocb *iocb, struct iov_iter *from)
 
 	pr_info("userlog_write_iter count:%ld\n", count);
 	/* set header info */
-	header.pid = current->tgid;
-	header.tid = current->pid;
 	header.len = count;
-	header.hdr_size = sizeof(struct userlog_entry);
 
 	/* check write count zero, return 0 */
 	if (unlikely(!header.len))
