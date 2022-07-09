@@ -301,7 +301,6 @@ static void musb_advance_schedule(struct musb *musb, struct urb *urb,
 {
 	struct musb_qh		*qh = musb_ep_get_qh(hw_ep, is_in);
 	struct musb_hw_ep	*ep = qh->hw_ep;
-	int			ready = qh->is_ready;
 	int			status;
 	u16			toggle;
 
@@ -320,9 +319,7 @@ static void musb_advance_schedule(struct musb *musb, struct urb *urb,
 		break;
 	}
 
-	qh->is_ready = 0;
 	musb_giveback(musb, urb, status);
-	qh->is_ready = ready;
 
 	/* reclaim resources (and bandwidth) ASAP; deschedule it, and
 	 * invalidate qh as soon as list_empty(&hep->urb_list)
@@ -377,7 +374,7 @@ static void musb_advance_schedule(struct musb *musb, struct urb *urb,
 		}
 	}
 
-	if (qh != NULL && qh->is_ready) {
+	if (qh != NULL && qh->is_ready && !list_empty(&qh->hep->urb_list)) {
 		musb_dbg(musb, "... next ep%d %cX urb %p",
 		    hw_ep->epnum, is_in ? 'R' : 'T', next_urb(qh));
 		musb_start_urb(musb, is_in, qh);
@@ -2894,20 +2891,16 @@ static int musb_urb_dequeue(struct usb_hcd *hcd, struct urb *urb, int status)
 	 *
 	 * NOTE: qh is invalid unless !list_empty(&hep->urb_list)
 	 */
-	if (!qh->is_ready
-			|| urb->urb_list.prev != &qh->hep->urb_list
+	if (urb->urb_list.prev != &qh->hep->urb_list
 			|| musb_ep_get_qh(qh->hw_ep, is_in) != qh) {
-		int	ready = qh->is_ready;
 
-		qh->is_ready = 0;
 		musb_giveback(musb, urb, 0);
 		if (musb_ep_get_qh(qh->hw_ep, is_in)) {
-			qh->is_ready = ready;
 
 			/* If nothing else (usually musb_giveback) is using it
 			 * and its URB list has emptied, recycle this qh.
 			 */
-			if (ready && list_empty(&qh->hep->urb_list)) {
+			if (qh->is_ready && list_empty(&qh->hep->urb_list)) {
 				qh->hep->hcpriv = NULL;
 				list_del(&qh->ring);
 				kfree(qh);
