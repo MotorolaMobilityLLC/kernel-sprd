@@ -43,8 +43,6 @@
 	charge-unknown-current-microamp = <500000 500000>;
 	charge-fchg-current-microamp = <3000000 2000000>;
 	charge-flash-current-microamp = <5000000 2700000>;
-	charge-wl-bpp-current-microamp = <1000000 1000000>;
-	charge-wl-epp-current-microamp = <2000000 1000000>;
 
 	dcp-jeita-temp-table = <1000 1030 0 4340000>, <1150 1180 700000 4340000>,
 		<1450 1420 2000000 4340000>, <1600 1570 700000 4100000>;
@@ -58,10 +56,6 @@
 		<1450 1420 3250000 4340000>, <1600 1570 700000 4100000>;
 	flash-jeita-temp-table = <1000 1030 0 4340000>, <1150 1180 1000000 4340000>,
 		<1450 1420 5000000 4340000>, <1600 1570 1000000 4100000>;
-	wl-bpp-jeita-temp-table = <1000 1030 0 4340000>, <1150 1180 500000 4340000>,
-		<1450 1420 1000000 4340000>, <1600 1570 5000000 4100000>;
-	wl-epp-jeita-temp-table = <1000 1030 0 4340000>, <1150 1180 500000 4340000>,
-		<1450 1420 2000000 4340000>, <1600 1570 500000 4100000>;
 	force-jeita-status = <2>;
 };
 
@@ -80,8 +74,6 @@
 	cm-chargers = "bq2560x_charger";
 	cm-charge-pumps = "bq2597x-standalone";
 	cm-fuel-gauge = "sc27xx-fgu";
-	cm-num-wireless-chargers = <1>;
-	cm-wireless-chargers = "sy65153_wireless_charger";
 
 	/* in deci centigrade */
 	cm-battery-cold = <200>;
@@ -200,8 +192,6 @@
 &pmic_fchg {
 	status = "okay";
 	sprd,input-voltage-microvolt = <5000000>;
-	sprd,support-pd-pps;
-	phys = <&hsphy>;
 };
 
 &pmic_pd {
@@ -213,8 +203,8 @@
 		power-role = "dual";
 		try-power-role = "sink";
 		source-pdos = <PDO_FIXED(5000, 400, PDO_FIXED_USB_COMM)>;
-		sink-pdos = <PDO_FIXED(5000, 2000, PDO_FIXED_USB_COMM)
-			     PDO_PPS_APDO(3300, 11000, 3000)>;
+		sink-pdos = <PDO_FIXED(5000, 3000, PDO_FIXED_USB_COMM)
+				PDO_PPS_APDO(3300, 11000, 3000)>;
 		op-sink-microwatt = <10000000>;
 	};
 };
