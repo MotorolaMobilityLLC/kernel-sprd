@@ -115,7 +115,7 @@ static int __init sprd_usbm_event_driver_init(void)
 	int index;
 	struct sprd_usbm_event *usb_event;
 
-	atomic_set(&musb_active, 1);
+	atomic_set(&musb_active, 0);
 	atomic_set(&hsphy_onoff, 0);
 	atomic_set(&ssphy_onoff, 0);
 
