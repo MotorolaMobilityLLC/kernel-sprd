@@ -305,7 +305,7 @@ static int dwc3_sprd_charger_mode(void)
 	if (mode)
 		return 1;
 	else
-		return 1;
+		return 0;
 
 }
 
@@ -683,7 +683,7 @@ static int dwc3_sprd_id_notifier(struct notifier_block *nb,
 		if (sdwc->is_audio_dev) {
 			sdwc->is_audio_dev = false;
 			/* notify musb to stop */
-			//call_sprd_usbm_event_notifiers(SPRD_USBM_EVENT_HOST_MUSB, false, NULL);
+			call_sprd_usbm_event_notifiers(SPRD_USBM_EVENT_HOST_MUSB, false, NULL);
 		}
 	}
 	sdwc->chg_state = USB_CHG_STATE_UNDETECT;
@@ -846,13 +846,13 @@ static void dwc3_sprd_hotplug_sm_work(struct work_struct *work)
 		pm_runtime_set_autosuspend_delay(dwc->dev, 0);
 		pm_runtime_allow(dwc->dev);
 
+		pm_runtime_get_noresume(sdwc->dev);
 		pm_runtime_set_active(sdwc->dev);
 		pm_runtime_use_autosuspend(sdwc->dev);
 		pm_runtime_set_autosuspend_delay(sdwc->dev,
 						 DWC3_AUTOSUSPEND_DELAY);
 		device_init_wakeup(sdwc->dev, true);
 		pm_runtime_enable(sdwc->dev);
-		pm_runtime_get_noresume(sdwc->dev);
 		pm_runtime_mark_last_busy(sdwc->dev);
 		pm_runtime_put_autosuspend(sdwc->dev);
 
@@ -1001,8 +1001,8 @@ static void dwc3_sprd_hotplug_sm_work(struct work_struct *work)
 			}
 			usb_role_switch_set_role(dwc->role_sw, USB_ROLE_DEVICE);
 			/* start musb */
-	//		call_sprd_usbm_event_notifiers(SPRD_USBM_EVENT_HOST_MUSB,
-	//									true, NULL);
+			call_sprd_usbm_event_notifiers(SPRD_USBM_EVENT_HOST_MUSB,
+										true, NULL);
 			sdwc->drd_state = DRD_STATE_HOST_AUDIO;
 			sdwc->start_host_retry_count = 0;
 			rework = true;
@@ -1280,11 +1280,11 @@ static int dwc3_sprd_probe(struct platform_device *pdev)
 	}
 
 	sdwc->audio_nb.notifier_call = dwc3_sprd_audio_notifier;
-//	ret = register_sprd_usbm_notifier(&sdwc->audio_nb, SPRD_USBM_EVENT_HOST_DWC3);
-//	if (ret) {
-//		dev_err(sdwc->dev, "failed to register usb event\n");
-//		goto err_extcon_id;
-//	}
+	ret = register_sprd_usbm_notifier(&sdwc->audio_nb, SPRD_USBM_EVENT_HOST_DWC3);
+	if (ret) {
+		dev_err(sdwc->dev, "failed to register usb event\n");
+		goto err_extcon_id;
+	}
 
 	platform_set_drvdata(pdev, sdwc);
 

@@ -255,6 +255,31 @@ u32 dwc3_core_fifo_space(struct dwc3_ep *dep, u8 type)
 }
 
 /**
+ * dwc3_txdeemphsis_adj - change main_cursor,pre_cursor,post_cursor
+ * for eye diagram, from ASIC
+ * @dwc: pointer to our context structure
+ */
+static int dwc3_txdeemphsis_adj(struct dwc3 *dwc)
+{
+	u32 reg;
+
+	/* gen2 txdeemphsis */
+	reg = 0x8c45;
+	dwc3_writel(dwc->regs, LCSR_TX_DEEMPH, reg);
+	/* CP13 txdeemphsis */
+	reg = 0xe45;
+	dwc3_writel(dwc->regs, LCSR_TX_DEEMPH_1, reg);
+	/* CP14 txdeemphsis */
+	reg = 0x8d80;
+	dwc3_writel(dwc->regs, LCSR_TX_DEEMPH_2, reg);
+	/* CP16 txdeemphsis */
+	reg = 0xf80;
+	dwc3_writel(dwc->regs, LCSR_TX_DEEMPH_3, reg);
+
+	return 0;
+}
+
+/**
  * dwc3_core_soft_reset - Issues core soft reset and PHY reset
  * @dwc: pointer to our context structure
  */
@@ -299,6 +324,7 @@ int dwc3_core_soft_reset(struct dwc3 *dwc)
 	return -ETIMEDOUT;
 
 done:
+	dwc3_txdeemphsis_adj(dwc);
 	/*
 	 * For DWC_usb31 controller 1.80a and prior, once DCTL.CSFRST bit
 	 * is cleared, we must wait at least 50ms before accessing the PHY
@@ -759,7 +785,7 @@ static bool dwc3_core_is_valid(struct dwc3 *dwc)
 
 static void dwc3_core_setup_global_control(struct dwc3 *dwc)
 {
-	u32 hwparams4 = dwc->hwparams.hwparams4;
+//	u32 hwparams4 = dwc->hwparams.hwparams4;
 	u32 reg;
 
 	reg = dwc3_readl(dwc->regs, DWC3_GCTL);
@@ -786,6 +812,7 @@ static void dwc3_core_setup_global_control(struct dwc3 *dwc)
 		else
 			reg &= ~DWC3_GCTL_DSBLCLKGTNG;
 		break;
+#ifdef SUPPORT_HIB
 	case DWC3_GHWPARAMS1_EN_PWROPT_HIB:
 		/* enable hibernation here */
 		dwc->nr_scratch = DWC3_GHWPARAMS4_HIBER_SCRATCHBUFS(hwparams4);
@@ -796,6 +823,7 @@ static void dwc3_core_setup_global_control(struct dwc3 *dwc)
 		 */
 		reg |= DWC3_GCTL_GBLHIBERNATIONEN;
 		break;
+#endif
 	default:
 		/* nothing */
 		break;
@@ -1956,6 +1984,11 @@ static int dwc3_suspend(struct device *dev)
 	struct dwc3	*dwc = dev_get_drvdata(dev);
 	int		ret;
 
+	if (pm_runtime_enabled(dev)) {
+		dev_info(dev, "pm_runtime_enabled when suspend\n");
+		return 0;
+	}
+
 	ret = dwc3_suspend_common(dwc, PMSG_SUSPEND);
 	if (ret)
 		return ret;
@@ -1969,6 +2002,11 @@ static int dwc3_resume(struct device *dev)
 {
 	struct dwc3	*dwc = dev_get_drvdata(dev);
 	int		ret;
+
+	if (pm_runtime_enabled(dev)) {
+		dev_info(dev, " resume pm_runtime_enabled when resume\n");
+		return 0;
+	}
 
 	pinctrl_pm_select_default_state(dev);
 
@@ -2009,10 +2047,10 @@ static const struct dev_pm_ops dwc3_dev_pm_ops = {
 #ifdef CONFIG_OF
 static const struct of_device_id of_dwc3_match[] = {
 	{
-		.compatible = "snps,dwc3"
+		.compatible = "snps,sprd-dwc3"
 	},
 	{
-		.compatible = "synopsys,dwc3"
+		.compatible = "synopsys,sprd-dwc3"
 	},
 	{ },
 };
@@ -2034,7 +2072,7 @@ static struct platform_driver dwc3_driver = {
 	.probe		= dwc3_probe,
 	.remove		= dwc3_remove,
 	.driver		= {
-		.name	= "dwc3",
+		.name	= "dwc3-unisoc",
 		.of_match_table	= of_match_ptr(of_dwc3_match),
 		.acpi_match_table = ACPI_PTR(dwc3_acpi_match),
 		.pm	= &dwc3_dev_pm_ops,

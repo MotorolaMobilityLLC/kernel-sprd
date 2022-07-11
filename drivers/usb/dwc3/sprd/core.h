@@ -169,6 +169,12 @@
 #define DWC3_OEVTEN		0xcc0C
 #define DWC3_OSTS		0xcc10
 
+/* eye diagram */
+#define LCSR_TX_DEEMPH		0xd060
+#define LCSR_TX_DEEMPH_1	0xd064
+#define LCSR_TX_DEEMPH_2	0xd068
+#define LCSR_TX_DEEMPH_3	0xd06c
+
 /* Bit fields */
 
 /* Global SoC Bus Configuration INCRx Register 0 */
