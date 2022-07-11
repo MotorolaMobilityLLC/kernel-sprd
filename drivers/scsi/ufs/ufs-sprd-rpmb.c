@@ -243,7 +243,7 @@ void ufs_sprd_rpmb_remove(struct ufs_hba *hba)
 {
 	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
 
-	if (!host->sdev_ufs_rpmb)
+	if (!host || !host->sdev_ufs_rpmb)
 		return;
 
 	rpmb_dev_unregister(hba->dev);

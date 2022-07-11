@@ -356,6 +356,7 @@ static int ufs_sprd_remove(struct platform_device *pdev)
 	struct ufs_hba *hba =  platform_get_drvdata(pdev);
 
 	pm_runtime_get_sync(&(pdev)->dev);
+	ufs_sprd_rpmb_remove(hba);
 	ufshcd_remove(hba);
 	return 0;
 }
