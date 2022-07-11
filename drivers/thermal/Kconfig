@@ -498,6 +498,13 @@ config SC27XX_TSENSOR_THERMAL
 	  This is a simple driver to get sc27xx chip osc temperature
 	  and external cystal temperature.
 
+config SPRD_UMP96XX_TSENSOR
+	tristate "Spreadtrum ump96xx Tsensor Thermal Support"
+	depends on MFD_SC27XX_PMIC || MFD_UMP96XX_PMIC || COMPILE_TEST
+	help
+	  This is a simple driver to get ump96xx chip osc temperature
+	  and external cystal temperature.
+
 config KHADAS_MCU_FAN_THERMAL
 	tristate "Khadas MCU controller FAN cooling support"
 	depends on OF || COMPILE_TEST
