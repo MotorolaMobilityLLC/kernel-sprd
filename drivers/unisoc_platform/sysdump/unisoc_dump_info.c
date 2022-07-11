@@ -17,9 +17,24 @@
 #include <linux/spinlock.h>
 #include <linux/stacktrace.h>
 #include <linux/kconfig.h>
+#include <linux/swap.h>
+#include <linux/vmstat.h>
+#include <linux/mmzone.h>
+#include <linux/mm.h>
+#include <linux/mman.h>
+#include <linux/hugetlb.h>
+#include <linux/percpu.h>
+#include <linux/atomic.h>
+#include <linux/vmalloc.h>
+#include <linux/fs.h>
+
+#ifdef CONFIG_CMA
+#include <linux/cma.h>
+#endif
 
 #include <asm/stacktrace.h>
 #include <asm/memory.h>
+#include <asm/page.h>
 
 #include <linux/android_debug_symbols.h>
 #include <linux/tracepoint.h>
@@ -40,6 +55,7 @@
 static struct seq_buf *unisoc_task_seq_buf;
 static struct seq_buf *unisoc_rq_seq_buf;
 static struct seq_buf *unisoc_sr_seq_buf;
+static struct seq_buf *unisoc_mem_seq_buf;
 
 static DEFINE_RAW_SPINLOCK(stop_lock);
 static DEFINE_RAW_SPINLOCK(dump_lock);
@@ -392,6 +408,145 @@ void unisoc_dump_runqueues(void)
 	flush_cache_all();
 }
 EXPORT_SYMBOL_GPL(unisoc_dump_runqueues);
+
+static void show_val_kb_pf(struct seq_buf *m, const char *s, unsigned long num)
+{
+	seq_buf_printf(m, s, num);
+}
+
+static void show_val_kb(struct seq_buf *m, const char *s, unsigned long num)
+{
+	seq_buf_printf(m, "%s  %ldkB\n", s,
+					num << (PAGE_SHIFT - 10));
+}
+
+static int meminfo_proc_show(struct seq_buf *m)
+{
+	struct sysinfo i;
+	long cached;
+	long available;
+	unsigned long pages[NR_LRU_LISTS];
+	unsigned long sreclaimable, sunreclaim;
+	int lru;
+	unsigned long *addr;
+
+	si_meminfo(&i);
+	si_swapinfo(&i);
+
+	cached = global_node_page_state(NR_FILE_PAGES) -
+			total_swapcache_pages() - i.bufferram;
+
+	if (cached < 0)
+		cached = 0;
+
+	for (lru = LRU_BASE; lru < NR_LRU_LISTS; lru++)
+		pages[lru] = global_node_page_state(NR_LRU_BASE + lru);
+
+	available = si_mem_available();
+	sreclaimable = global_node_page_state_pages(NR_SLAB_RECLAIMABLE_B);
+	sunreclaim = global_node_page_state_pages(NR_SLAB_UNRECLAIMABLE_B);
+
+	show_val_kb(m, "MmeTotal:		", i.totalram);
+	show_val_kb(m, "MemFree:		", i.freeram);
+	show_val_kb(m, "MemAvailable:	", available);
+	show_val_kb(m, "Buffers:		", i.bufferram);
+	show_val_kb(m, "Cached:			", cached);
+	show_val_kb(m, "SwapCached:		", total_swapcache_pages());
+	show_val_kb(m, "Active:			", pages[LRU_ACTIVE_ANON] +
+							pages[LRU_ACTIVE_FILE]);
+	show_val_kb(m, "Inactive:		", pages[LRU_INACTIVE_ANON] +
+							pages[LRU_INACTIVE_FILE]);
+	show_val_kb(m, "Active(anon):	", pages[LRU_ACTIVE_ANON]);
+	show_val_kb(m, "Inactive(anon):	", pages[LRU_INACTIVE_ANON]);
+	show_val_kb(m, "Active(file):	", pages[LRU_ACTIVE_FILE]);
+	show_val_kb(m, "Inactive(file):	", pages[LRU_INACTIVE_FILE]);
+	show_val_kb(m, "Unevictable:	", pages[LRU_UNEVICTABLE]);
+	show_val_kb(m, "Mlocked:		", global_zone_page_state(NR_MLOCK));
+
+#ifdef CONFIG_HIGHMEM
+	show_val_kb(m, "HighTotal:		", i.totalhigh);
+	show_val_kb(m, "HighFree:		", i.freehigh);
+	show_val_kb(m, "LowTotal:		", i.totalram - i.totalhigh);
+	show_val_kb(m, "LowFree:		", i.freeram - i.freehigh);
+#endif
+
+#ifndef CONFIG_MMU
+	show_val_kb(m, "MmapCopy:		",
+			(unsigned long)atomic_long_read(&mmap_pages_allocated));
+#endif
+
+	show_val_kb(m, "SwapTotal:		", i.totalswap);
+	show_val_kb(m, "SwapFree:		", i.freeswap);
+	show_val_kb(m, "Dirty:			",
+			global_node_page_state(NR_FILE_DIRTY));
+	show_val_kb(m, "Writeback:		",
+			global_node_page_state(NR_WRITEBACK));
+	show_val_kb(m, "AnonPages:		",
+			global_node_page_state(NR_ANON_MAPPED));
+	show_val_kb(m, "Mapped:			",
+			global_node_page_state(NR_FILE_MAPPED));
+	show_val_kb(m, "Shmem:			", i.sharedram);
+	show_val_kb(m, "Kreclaimable:	", sreclaimable +
+			global_node_page_state(NR_KERNEL_MISC_RECLAIMABLE));
+	show_val_kb(m, "Slab:			", sreclaimable + sunreclaim);
+	show_val_kb(m, "SReclaimable:	", sreclaimable);
+	show_val_kb(m, "SUnreclaim:		", sunreclaim);
+	show_val_kb_pf(m, "KernelStack:	%8lukB\n",
+			global_node_page_state(NR_KERNEL_STACK_KB));
+#ifdef CONFIG_SHADOW_CALL_STACK
+	show_val_kb_pf(m, "ShadowCallStack:%8lukB\n",
+			global_node_page_state(NR_KERNEL_SCS_KB));
+#endif
+	show_val_kb(m, "PateTables:		",
+			global_node_page_state(NR_PAGETABLE));
+	show_val_kb(m, "NFS_Unstable:	", 0);
+	show_val_kb(m, "Bounce:			",
+			global_zone_page_state(NR_BOUNCE));
+	show_val_kb(m, "WritebackTmp:	",
+			global_node_page_state(NR_WRITEBACK_TEMP));
+	show_val_kb_pf(m, "VmallocTotal:	%8lukB\n",
+			(unsigned long)VMALLOC_TOTAL >> 10);
+	show_val_kb(m, "VmallocUsed:	", vmalloc_nr_pages());
+	show_val_kb(m, "VmallocChunk:	", 0ul);
+	show_val_kb(m, "Percpu:			", pcpu_nr_pages());
+
+#ifdef CONFIG_MEMORY_FAILURE
+	show_val_kb_pf(m, "HardwareCorrupted: %5lu kB\n",
+			atomic_long_read(&num_poisoned_pages) << (PAGE_SHIFT - 10));
+#endif
+
+#ifdef CONFIG_TRANSPARENT_HUGEPAGE
+	show_val_kb(m, "AnonHugePages:	",
+			global_node_page_state(NR_ANON_THPS));
+	show_val_kb(m, "ShmemHugePages:	",
+			global_node_page_state(NR_SHMEM_THPS));
+	show_val_kb(m, "ShmemPmdMapped:	",
+			global_node_page_state(NR_SHMEM_PMDMAPPED));
+	show_val_kb(m, "FileHugePages:	",
+			global_node_page_state(NR_FILE_THPS));
+	show_val_kb(m, "FilePmnMapped:	",
+			global_node_page_state(NR_FILE_PMDMAPPED));
+#endif
+
+#ifdef CONFIG_CMA
+	addr = (unsigned long *)android_debug_symbol(ADS_TOTAL_CMA);
+	show_val_kb(m, "CmaTotal:		", *addr);
+	show_val_kb(m, "CmaFree:		",
+			global_zone_page_state(NR_FREE_CMA_PAGES));
+#endif
+	return 0;
+}
+
+void unisoc_dump_mem_info(void)
+{
+	if (!unisoc_mem_seq_buf)
+		return;
+
+	SEQ_printf(unisoc_mem_seq_buf, "-----MemInfo-----\n\n");
+	meminfo_proc_show(unisoc_mem_seq_buf);
+	flush_cache_all();
+}
+EXPORT_SYMBOL_GPL(unisoc_dump_mem_info);
 
 static void unisoc_print_task_stats(int cpu, struct rq *rq, struct task_struct *p)
 {
@@ -768,7 +923,7 @@ static int unisoc_kinfo_panic_event(struct notifier_block *self,
 	unisoc_dump_panic_regs();
 	unisoc_dump_runqueues();
 	unisoc_dump_task_stats();
-
+	unisoc_dump_mem_info();
 	return NOTIFY_DONE;
 }
 
@@ -783,6 +938,7 @@ static int __init unisoc_dumpinfo_init(void)
 	pr_info("%s\n", __func__);
 	minidump_add_section("task_stats", UNISOC_DUMP_TASK_SIZE, &unisoc_task_seq_buf);
 	minidump_add_section("runqueue", UNISOC_DUMP_RQ_SIZE, &unisoc_rq_seq_buf);
+	minidump_add_section("meminfo", UNISOC_DUMP_MEM_SIZE, &unisoc_mem_seq_buf);
 	if (!minidump_add_section("stack_regs", UNISOC_DUMP_STACK_SIZE, &unisoc_sr_seq_buf))
 		register_trace_android_vh_ipi_stop(trace_ipi_stop, NULL);
 	minidump_add_current_stack();
@@ -798,6 +954,7 @@ static void __exit unisoc_dumpinfo_exit(void)
 					 &unisoc_kinfo_panic_event_nb);
 	minidump_release_section("task_stats", unisoc_task_seq_buf);
 	minidump_release_section("runqueue", unisoc_rq_seq_buf);
+	minidump_release_section("meminfo", unisoc_mem_seq_buf);
 	unisoc_free_stack_regs_stats();
 }
 

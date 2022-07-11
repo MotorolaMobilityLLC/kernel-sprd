@@ -706,6 +706,7 @@ asmlinkage __visible void wdh_atf_entry(struct pt_regs *data)
 
 	unisoc_dump_task_stats();
 	unisoc_dump_runqueues();
+	unisoc_dump_mem_info();
 	unisoc_dump_stack_reg(cpu, pregs);
 	minidump_update_current_stack(cpu, pregs);
 	sprd_dump_io();
