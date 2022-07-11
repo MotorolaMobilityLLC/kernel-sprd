@@ -735,6 +735,11 @@ int sfp_filter_mgr_fwd_create_entries(u8 pf, struct sk_buff *skb)
 	net = nf_ct_net(ct);
 	rt = skb_rtable(skb);
 
+	/* Filter the scenario of tun and tap devices */
+	if ((skb->dev->flags & IFF_POINTOPOINT) ||
+	    (rt->dst.dev->flags & IFF_POINTOPOINT))
+		return 0;
+
 	/* wifi/bt-pan does not support IPA due to their hardware drawback */
 	if (!get_sfp_tether_scheme()) {
 		if (is_banned_ipa_netdev(skb->dev) ||
