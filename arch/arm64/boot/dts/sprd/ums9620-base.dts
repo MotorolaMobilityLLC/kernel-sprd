@@ -46,6 +46,8 @@
 		spi1 = &spi1;
 		spi2 = &spi2;
 		spi4 = &adi_bus;
+		serdes0 = &serdes0;
+		serdes1 = &serdes1;
 		pmic_efuse0 = &ump9620_efuse;
 		pmic_efuse1 = &ump9621_efuse;
 	};
@@ -442,5 +444,13 @@
 };
 
 &iommu_jpg {
+	status = "okay";
+};
+
+&serdes0 {
+	status = "okay";
+};
+
+&serdes1 {
 	status = "okay";
 };
