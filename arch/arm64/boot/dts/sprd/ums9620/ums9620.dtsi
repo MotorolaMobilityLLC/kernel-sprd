@@ -425,5 +425,6 @@
 #include "usb.dtsi"
 #include "vpu.dtsi"
 #include "vdsp.dtsi"
+#include "wdt.dtsi"
 #include "sipa-sys.dtsi"
 #include "sipa.dtsi"
