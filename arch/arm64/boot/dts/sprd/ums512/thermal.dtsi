@@ -180,7 +180,7 @@
 					trip = <&soc_target>;
 					contribution = <1024>;
 					cooling-device =
-					<&gpu_cooling0 THERMAL_NO_LIMIT \
+					<&gpu THERMAL_NO_LIMIT \
 					THERMAL_NO_LIMIT>;
 				};
 			};

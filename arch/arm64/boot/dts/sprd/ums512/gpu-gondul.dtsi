@@ -132,6 +132,8 @@
 		sprd,dvfs-scene-low = <0>;
 		sprd,dvfs-range-max = <4>;
 		sprd,dvfs-range-min = <0>;
+		#cooling-cells = <2>;
+		dynamic-power-coefficient = <1446>;
 
 		clocks = <&aonapb_gate CLK_GPU_EB>,
 			<&gpu_clk CLK_GPU_CORE_EB>,
