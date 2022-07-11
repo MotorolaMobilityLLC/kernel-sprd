@@ -111,6 +111,11 @@
 			bits = <0 8>;
 		};
 
+		gpu_bin: gpu_bin@1b {
+			reg = <0x1b 0x1>;
+			bits = <3 3>;
+		};
+
 		cpu_flag: cpu-flag@50 {
 			reg = <0x50 0x4>;
 		};

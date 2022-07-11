@@ -38,7 +38,9 @@
 		reg = <0x0 0x60000000 0x0 0x100000>;
 		gpu-supply = <&vddgpu>;
 		system-coherency = <31>;
-
+		dcdc_mm_voltage3 = <&top_dvfs_apb_regs
+			REG_TOP_DVFS_APB_RF_DCDC_MM_DVFS_VOLTAGE_VALUE1
+			MASK_TOP_DVFS_APB_RF_DCDC_MODEM_VOLTAGE3>;
 		top_dvfs_cfg = <&top_dvfs_apb_regs
 			REG_TOP_DVFS_APB_SUBSYS_SW_DVFS_EN_CFG
 			MASK_TOP_DVFS_APB_GPU_SW_DVFS_EN>;
@@ -101,10 +103,8 @@
 			"MMU",
 			"GPU";
 
-		/*nvmem-cells = <&gpu_bin>;
-		nvmem-cell-names = "gpu_bin";*/
-		nvmem-cells = <&cpu_flag>;
-		nvmem-cell-names = "cpu_flag";
+		nvmem-cells = <&gpu_bin>, <&cpu_flag>;
+		nvmem-cell-names = "gpu_bin", "cpu_flag";
 
 		operating-points = <
 			/* kHz    uV */
