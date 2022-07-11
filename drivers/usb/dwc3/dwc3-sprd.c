@@ -846,13 +846,13 @@ static void dwc3_sprd_hotplug_sm_work(struct work_struct *work)
 		pm_runtime_set_autosuspend_delay(dwc->dev, 0);
 		pm_runtime_allow(dwc->dev);
 
+		pm_runtime_get_noresume(sdwc->dev);
 		pm_runtime_set_active(sdwc->dev);
 		pm_runtime_use_autosuspend(sdwc->dev);
 		pm_runtime_set_autosuspend_delay(sdwc->dev,
 						 DWC3_AUTOSUSPEND_DELAY);
 		device_init_wakeup(sdwc->dev, true);
 		pm_runtime_enable(sdwc->dev);
-		pm_runtime_get_noresume(sdwc->dev);
 		pm_runtime_mark_last_busy(sdwc->dev);
 		pm_runtime_put_autosuspend(sdwc->dev);
 
