@@ -806,8 +806,10 @@ static int sysdump_panic_event(struct notifier_block *self,
 	sprd_debug_save_context();
 
 #ifdef CONFIG_SPRD_SIPC
-	if (!(reason != NULL && strstr(reason, "cpcrash")))
+	if (!(reason != NULL && strstr(reason, "cpcrash"))) {
 		smsg_senddie(SIPC_ID_LTE);
+		smsg_senddie(SIPC_ID_PM_SYS);
+	}
 #endif
 
 //	smp_send_stop();
