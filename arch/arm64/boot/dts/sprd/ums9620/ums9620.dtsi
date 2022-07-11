@@ -267,6 +267,13 @@
 			ranges;
 		};
 
+		pub: pub {
+			compatible = "simple-bus";
+			#address-cells = <2>;
+			#size-cells = <2>;
+			ranges;
+		};
+
 		mm: mm {
 			compatible = "simple-bus";
 			#address-cells = <2>;
@@ -395,12 +402,14 @@
 
 /* Include other IP modules ALPHABETICALLY */
 #include "audio.dtsi"
+#include "bm.dtsi"
 #include "cam.dtsi"
 #include "clock.dtsi"
 #include "csi.dtsi"
 #include "ddr-dfs.dtsi"
 #include "dispc.dtsi"
 #include "dma.dtsi"
+#include "dmc-mpu.dtsi"
 #include "efuse.dtsi"
 #include "glbreg.dtsi"
 #include "gpio.dtsi"

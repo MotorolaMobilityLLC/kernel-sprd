@@ -420,6 +420,12 @@
 		};
 	};
 
+	pub_apb_regs: syscon@60050000 {
+		compatible = "sprd,ums9620-glbregs", "syscon",
+			     "simple-mfd";
+		reg = <0 0x60050000 0 0x10000>;
+	};
+
 	top_dvfs_apb_regs: syscon@64940000 {
 		compatible = "sprd,ums9620-glbregs", "syscon";
 		#syscon-cells = <2>;
