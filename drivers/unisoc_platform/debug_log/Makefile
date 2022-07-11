@@ -6,5 +6,5 @@ mipiserdes_base-objs := core.o \
 					serdes.o
 
 obj-$(CONFIG_SPRD_MIPI_LOG_R5P0) += sharkl5pro/
-
+obj-$(CONFIG_SPRD_MIPI_LOG_QOGIRN6PRO) += qogirn6pro/
 
