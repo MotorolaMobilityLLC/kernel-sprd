@@ -175,7 +175,7 @@ static struct sprd_clk_desc ums9620_pmu_gate_desc = {
 };
 
 /* pll clock at g1 */
-static struct freq_table rpll_ftable[5] = {
+static struct freq_table rpll_ftable[] = {
 	{ .ibias = 1, .max_freq = 2000000000ULL, .vco_sel = 0 },
 	{ .ibias = 2, .max_freq = 2800000000ULL, .vco_sel = 0 },
 	{ .ibias = 3, .max_freq = 3200000000ULL, .vco_sel = 0 },
