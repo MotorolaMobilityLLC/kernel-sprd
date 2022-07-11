@@ -30,6 +30,7 @@ int sipa_hal_open_cmn_fifo(struct device *dev,
 			   void *priv);
 int sipa_hal_close_cmn_fifo(struct device *dev,
 			    enum sipa_cmn_fifo_index fifo);
+int sipa_hal_config_irq_affinity(int channel, int dst_cpu);
 int sipa_hal_resume_cmn_fifo(struct device *dev);
 bool sipa_hal_get_cmn_fifo_open_status(struct device *dev,
 				       enum sipa_cmn_fifo_index fifo);

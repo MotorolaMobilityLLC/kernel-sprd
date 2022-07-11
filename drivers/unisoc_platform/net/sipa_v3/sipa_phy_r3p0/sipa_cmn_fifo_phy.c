@@ -2225,7 +2225,8 @@ static int ipa_cmn_fifo_phy_reclaim_cmn_fifo(enum sipa_cmn_fifo_index id,
 }
 
 static int ipa_cmn_fifo_traverse_int_bit(enum sipa_cmn_fifo_index id,
-					 struct sipa_cmn_fifo_cfg_tag *base)
+					 struct sipa_cmn_fifo_cfg_tag *base,
+					 int irq)
 {
 	void __iomem *fifo_base;
 	u32 clr_sts = 0, int_status = 0;
@@ -2270,7 +2271,7 @@ static int ipa_cmn_fifo_traverse_int_bit(enum sipa_cmn_fifo_index id,
 		clr_sts |= IPA_TX_FIFO_FULL_INT_CLR_BIT;
 
 	if (ipa_cfg->fifo_irq_callback)
-		ipa_cfg->fifo_irq_callback(ipa_cfg->priv, int_status, id);
+		ipa_cfg->fifo_irq_callback(ipa_cfg->priv, int_status, id, irq);
 	else
 		pr_debug("Don't register this fifo(%d) irq callback\n", id);
 

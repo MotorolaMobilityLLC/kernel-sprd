@@ -44,7 +44,7 @@ static void sipa_inform_evt_to_nics(struct sipa_skb_sender *sender,
 }
 
 static void sipa_sender_notify_cb(void *priv, enum sipa_hal_evt_type evt,
-				  unsigned long data)
+				  unsigned long data, int irq)
 {
 	struct sipa_skb_sender *sender = (struct sipa_skb_sender *)priv;
 
@@ -135,7 +135,15 @@ static void sipa_free_sent_items(void)
 		node = sipa_hal_get_tx_node_rptr(sender->dev,
 						 sender->ep->send_fifo.idx, i);
 
-		while (!node->address && --retry_cnt)
+		if (!node) {
+			dev_err(sender->dev, "sender node is null\n");
+			sipa_hal_add_tx_fifo_rptr(sender->dev,
+						  sender->ep->send_fifo.idx,
+						  1);
+			return;
+		}
+
+		while (!node->address && retry_cnt--)
 			udelay(1);
 
 		if (node->err_code || !retry_cnt)

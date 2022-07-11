@@ -84,7 +84,7 @@ enum sipa_suspend_stage_e {
 			   SIPA_ACTION_SUSPEND)
 
 typedef void (*sipa_hal_notify_cb)(void *priv, enum sipa_hal_evt_type evt,
-				   unsigned long data);
+				   unsigned long data, int irq);
 enum sipa_cmn_fifo_index {
 	SIPA_FIFO_USB_UL,
 	SIPA_FIFO_WIFI_UL,
@@ -499,11 +499,12 @@ struct sipa_fifo_phy_ops {
 	int (*restore_irq_map_in)(struct sipa_cmn_fifo_cfg_tag *base);
 	int (*restore_irq_map_out)(struct sipa_cmn_fifo_cfg_tag *base);
 	int (*traverse_int_bit)(enum sipa_cmn_fifo_index id,
-				struct sipa_cmn_fifo_cfg_tag *base);
+				struct sipa_cmn_fifo_cfg_tag *base, int irq);
 };
 
 struct sipa_glb_phy_ops {
 	int (*set_work_mode)(void __iomem *reg_base, bool is_bypass);
+	int (*get_work_mode)(void __iomem *reg_base);
 	int (*set_usb_mode)(void __iomem *reg_base, u32 mode);
 	int (*set_need_cp_through_pcie)(void __iomem *reg_base, bool enable);
 	int (*ctrl_ipa_action)(void __iomem *reg_base, bool enable);
@@ -596,6 +597,7 @@ struct sipa_glb_phy_ops {
 	void (*htable_sw_en)(void __iomem *reg_base, bool enable);
 	void (*set_map_hash_mask)(void __iomem *reg_base, u32 mask);
 	void (*map_multi_fifo_mode_en)(void __iomem *reg_base, bool enable);
+	u32 (*map_multi_fifo_mode)(void __iomem *reg_base);
 	void (*errcode_int_en)(void __iomem *reg_base, u32 mode);
 	void (*dl_pcie_dma_en)(void __iomem *reg_base, bool enable);
 	void (*set_pcie_msi_int_mode)(void __iomem *reg_base, bool enable);
@@ -783,7 +785,6 @@ struct sipa_plat_drv_cfg {
 	/* protect ipa and tft eb bit */
 	spinlock_t enable_lock;
 	struct sipa_eb_register eb_regs[SIPA_EB_NUM];
-	u32 sipa_sys_eb;
 
 	/* avoid pam connect and power_wq race */
 	struct mutex resume_lock;
@@ -822,6 +823,8 @@ struct sipa_plat_drv_cfg {
 	bool wiap_ul_dma;
 	bool pcie_dl_dma;
 	bool need_through_pcie;
+	u32 sipa_sys_eb;
+	u32 sipa_cpu_type;
 
 	phys_addr_t glb_phy;
 	resource_size_t glb_size;
@@ -834,6 +837,25 @@ struct sipa_plat_drv_cfg {
 	const struct sipa_hw_data *hw_data;
 	u32 suspend_cnt;
 	u32 resume_cnt;
+
+	u64 last_idle_time[NR_CPUS];
+	u32 idle_perc[NR_CPUS];
+	struct hrtimer daemon_timer;
+	u32 cpu_num;
+	u32 cpu_num_ano;
+	u32 fifo_rate[SIPA_MULTI_IRQ_NUM];
+	int user_set;
+	bool udp_frag;
+	bool udp_port;
+	atomic_t udp_port_num;
+	bool multi_mode;
+	wait_queue_head_t set_rps_waitq;
+	struct task_struct *set_rps_thread;
+	int set_rps;
+	int cp_flow;
+	bool hrtimer_eb;
+	/*protect cp flow ctrl */
+	spinlock_t flow_lock;
 
 #ifdef CONFIG_DEBUG_FS
 	struct dentry *debugfs_root;
@@ -898,5 +920,5 @@ void sipa_init_free_fifo(struct sipa_skb_receiver *receiver, u32 cnt,
 void sipa_reinit_recv_array(struct device *dev);
 
 struct sk_buff *sipa_recv_skb(struct sipa_skb_receiver *receiver,
-			      int *netid, u32 *src_id, u32 index);
+			      int *netid, u32 *src_id, u32 index, int fifoid);
 #endif /* _SIPA_PRIV_H_ */

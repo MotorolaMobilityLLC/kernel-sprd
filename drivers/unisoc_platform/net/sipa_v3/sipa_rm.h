@@ -16,6 +16,7 @@
 
 #include <linux/workqueue.h>
 #include <linux/sipa.h>
+#include "sipa_rm_res.h"
 
 #define SIPA_RM_DRV_NAME "sipa_rm"
 
@@ -61,6 +62,8 @@ struct sipa_rm_wq_work_type {
 	enum sipa_rm_res_id	resource_name;
 	enum sipa_rm_event		event;
 };
+
+struct sipa_rm_resource **sipa_rm_get_all_resource(void);
 
 int sipa_rm_wq_send_cmd(enum sipa_rm_wq_cmd wq_cmd,
 			enum sipa_rm_res_id resource_name,

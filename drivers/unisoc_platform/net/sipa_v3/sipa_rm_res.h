@@ -143,8 +143,6 @@ int sipa_rm_resource_consumer_release_work(struct sipa_rm_res_prod *cons,
 					   enum sipa_rm_res_state prev_state,
 					   bool notify_completion);
 
-struct sipa_rm_resource **sipa_rm_get_all_resource(void);
-
 const char *sipa_rm_res_str(enum sipa_rm_res_id resource_name);
 
 #endif /* _SIPA_RM_RES_H_ */

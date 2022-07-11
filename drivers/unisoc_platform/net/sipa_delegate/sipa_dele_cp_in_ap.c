@@ -88,7 +88,7 @@ static void cp_dele_on_event(void *priv, u16 flag, u32 data)
 
 	switch (flag) {
 	case SMSG_FLG_DELE_ENTER_FLOWCTRL:
-		pr_info("sipa_irq_affinity_change(true)\n");
+		sipa_irq_affinity_change(true);
 		break;
 	case SMSG_FLG_DELE_EXIT_FLOWCTRL:
 		break;

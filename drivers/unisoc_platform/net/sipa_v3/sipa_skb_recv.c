@@ -621,8 +621,9 @@ void sipa_init_free_fifo(struct sipa_skb_receiver *receiver, u32 cnt,
 EXPORT_SYMBOL_GPL(sipa_init_free_fifo);
 
 static void sipa_receiver_notify_cb(void *priv, enum sipa_hal_evt_type evt,
-				    unsigned long data)
+				    unsigned long data, int irq)
 {
+	struct sipa_plat_drv_cfg *ipa = sipa_get_ctrl_pointer();
 	struct sipa_skb_receiver *receiver = (struct sipa_skb_receiver *)priv;
 
 	if (evt & SIPA_RECV_WARN_EVT) {
@@ -631,21 +632,21 @@ static void sipa_receiver_notify_cb(void *priv, enum sipa_hal_evt_type evt,
 		receiver->tx_danger_cnt++;
 	}
 
-	sipa_dummy_recv_trigger(smp_processor_id());
+	sipa_dummy_recv_trigger(irq - ipa->multi_intr[0]);
 }
 
 struct sk_buff *sipa_recv_skb(struct sipa_skb_receiver *receiver,
-			      int *netid, u32 *src_id, u32 index)
+			      int *netid, u32 *src_id, u32 index, int fifoid)
 {
 	dma_addr_t addr;
 	bool need_unmap = false;
 	int ret, retry = 10;
 	enum sipa_cmn_fifo_index id;
+	struct skb_shared_info *shinfo;
 	struct sk_buff *recv_skb = NULL;
 	struct sipa_node_desc_tag *node = NULL;
-	struct sipa_skb_array *fill_array =
-		receiver->fill_array[smp_processor_id()];
 	struct sipa_plat_drv_cfg *ipa = sipa_get_ctrl_pointer();
+	struct sipa_skb_array *fill_array = receiver->fill_array[fifoid];
 
 	atomic_inc(&receiver->check_flag);
 
@@ -662,7 +663,11 @@ struct sk_buff *sipa_recv_skb(struct sipa_skb_receiver *receiver,
 		return NULL;
 	}
 
-	id = receiver->ep->recv_fifo.idx + smp_processor_id();
+	id = receiver->ep->recv_fifo.idx + fifoid;
+	if (sipa_hal_get_tx_fifo_empty_status(receiver->dev, id)) {
+		atomic_dec(&receiver->check_flag);
+		return NULL;
+	}
 
 	node = sipa_hal_get_tx_node_rptr(receiver->dev, id, index);
 	if (!node) {
@@ -675,6 +680,22 @@ struct sk_buff *sipa_recv_skb(struct sipa_skb_receiver *receiver,
 	ret = sipa_get_recv_array_node(fill_array, &recv_skb,
 				       &addr, &need_unmap);
 	atomic_inc(&fill_array->need_fill_cnt);
+
+	if (node->length > SIPA_RECV_BUF_LEN - NET_SKB_PAD -
+	    SKB_DATA_ALIGN(sizeof(struct skb_shared_info))) {
+		dev_err(receiver->dev, "node transfer length long is %d\n",
+			node->length);
+		shinfo = skb_shinfo(recv_skb);
+		memset(shinfo, 0, offsetof(struct skb_shared_info, dataref));
+		dev_kfree_skb_any(recv_skb);
+		sipa_hal_add_tx_fifo_rptr(receiver->dev, id, 1);
+		atomic_dec(&receiver->check_flag);
+		if (need_unmap)
+			dma_unmap_single(receiver->dev, addr,
+					 SIPA_RECV_BUF_LEN,
+					 DMA_FROM_DEVICE);
+		return NULL;
+	}
 
 check_again:
 	if (ret) {
@@ -692,6 +713,10 @@ check_again:
 		dev_info(receiver->dev,
 			 "recv addr:0x%llx, recv_array addr:0x%llx not equal retry = %d src = %d\n",
 			 (u64)node->address, (u64)addr, retry, node->src);
+		if (need_unmap)
+			dma_unmap_single(receiver->dev, addr,
+					 SIPA_RECV_BUF_LEN,
+					 DMA_FROM_DEVICE);
 		return NULL;
 	}
 
