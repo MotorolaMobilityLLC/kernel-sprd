@@ -547,6 +547,8 @@ static int pdm_soc_probe(struct snd_soc_component *codec)
 	struct snd_soc_dapm_context *dapm = snd_soc_component_get_dapm(codec);
 	struct sprd_pdm_priv *sprd_pdm = snd_soc_component_get_drvdata(codec);
 
+	sprd_pdm->codec = codec;
+
 	if (!dapm) {
 		dev_err(sprd_pdm->dev, "spk dapm %p, sprd_pdm %p, NULL error\n",
 			dapm, sprd_pdm);
