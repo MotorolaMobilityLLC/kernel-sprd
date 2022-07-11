@@ -1119,17 +1119,10 @@ static void mmc_blk_cmdq_end_request(struct mmc_request *mrq, int task_id)
 	struct mmc_queue *mq = q->queuedata;
 	struct mmc_host *host = mq->card->host;
 	struct mmc_swcq *swcq = host->cqe_private;
-	unsigned long flags;
 
 	if (swcq_mmc_blk_rq_error(&mqrq->brq) ||
 	    swcq_mmc_blk_urgent_bkops_needed(mq, mqrq)) {
-		spin_lock_irqsave(&mq->lock, flags);
-		mq->recovery_needed = true;
-		mq->recovery_req = req;
-		spin_unlock_irqrestore(&mq->lock, flags);
-		host->cqe_ops->cqe_recovery_start(host);
-		schedule_work(&mq->recovery_work);
-		return;
+		swcq->recovery_cnt++;
 	}
 
 	mmc_cmdq_post_request(swcq, task_id);
@@ -2010,6 +2003,7 @@ out:
 		pr_info("mmc0 read:%d write:%d reason:%d",
 		atomic_read(&swcq->read_cnt),
 		atomic_read(&swcq->write_cnt), reason);
+		swcq->debug1++;
 	}
 
 	atomic_set(&swcq->read_cnt, 0);
@@ -2289,6 +2283,7 @@ int mmc_swcq_init(struct mmc_swcq *swcq, struct mmc_host *mmc)
 	swcq->timer_running = false;
 	swcq->mode_need_change = true;
 	swcq->pump_busy = false;
+	swcq->recovery_cnt = 0;
 	sprd_create_swcq_proc_init();
 	pr_notice("[notice] swcq init finish.\n");
 
