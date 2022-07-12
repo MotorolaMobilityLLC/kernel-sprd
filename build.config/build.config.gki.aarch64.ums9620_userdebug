@@ -24,6 +24,7 @@ EXT_MODULES="
 ../modules/common/camera/flash/ocp8137
 ../modules/common/camera/flash/flash_drv
 ../modules/common/camera/sensor
+../modules/common/io/block
 ../modules/kernel5.15/input/touchscreen/novatek_nt36xxx
 "
 #camera module version config
