@@ -1017,6 +1017,12 @@ static int ipa_phy_set_work_mode(void __iomem *reg_base, bool is_bypass)
 	return 0;
 }
 
+static int ipa_phy_get_work_mode(void __iomem *reg_base)
+{
+	return (readl_relaxed(reg_base + IPA_MODE_N_FLOWCTRL) &
+		IPA_WORKING_MODE_MASK) >> 31;
+}
+
 static int ipa_phy_set_usb_mode(void __iomem *reg_base, u32 mode)
 {
 	u32 tmp;
@@ -1030,6 +1036,12 @@ static int ipa_phy_set_usb_mode(void __iomem *reg_base, u32 mode)
 	      IPA_USB_MODE_MASK) >> IPA_USB_MODE_OFFSET) != mode)
 		return -EIO;
 	return 0;
+}
+
+static u32 ipa_phy_map_multi_fifo_mode(void __iomem *reg_base)
+{
+	return (readl_relaxed(reg_base + IPA_IPA_CTRL) &
+		IPA_MAP_MULTI_FIFO_MODE_EN_MASK) >> 26;
 }
 
 static int ipa_phy_set_need_cp_through_pcie(void __iomem *reg_base,
@@ -3352,6 +3364,14 @@ static void ipa_phy_enable_def_interrupt_src(void __iomem *reg_base)
 				      true);
 	ipa_phy_map3_interrupt_src_en(reg_base, IPA_MAP3_OUT_MAP3_INT_SEL_MASK,
 				      true);
+	ipa_phy_map4_interrupt_src_en(reg_base, IPA_MAP4_OUT_MAP4_INT_SEL_MASK,
+				      true);
+	ipa_phy_map5_interrupt_src_en(reg_base, IPA_MAP5_OUT_MAP5_INT_SEL_MASK,
+				      true);
+	ipa_phy_map6_interrupt_src_en(reg_base, IPA_MAP6_OUT_MAP6_INT_SEL_MASK,
+				      true);
+	ipa_phy_map7_interrupt_src_en(reg_base, IPA_MAP7_OUT_MAP7_INT_SEL_MASK,
+				      true);
 }
 
 static void ipa_phy_set_def_flow_ctl_to_src_blk(void __iomem *reg_base)
@@ -3401,6 +3421,7 @@ static void ipa_phy_fill_ofilter_ipv6(void __iomem *reg_base, u32 data)
 void sipa_glb_ops_init(struct sipa_glb_phy_ops *glb_ops)
 {
 	glb_ops->set_work_mode = ipa_phy_set_work_mode;
+	glb_ops->get_work_mode = ipa_phy_get_work_mode;
 	glb_ops->set_usb_mode = ipa_phy_set_usb_mode;
 	glb_ops->set_need_cp_through_pcie = ipa_phy_set_need_cp_through_pcie;
 	glb_ops->ctrl_ipa_action = ipa_phy_ctrl_ipa_action;
@@ -3493,6 +3514,7 @@ void sipa_glb_ops_init(struct sipa_glb_phy_ops *glb_ops)
 	glb_ops->get_errnode_info_h = ipa_phy_get_errnode_info_h;
 	glb_ops->set_map_hash_mask = ipa_phy_set_map_hash_mask;
 	glb_ops->map_multi_fifo_mode_en = ipa_phy_map_multi_fifo_mode_en;
+	glb_ops->map_multi_fifo_mode = ipa_phy_map_multi_fifo_mode;
 	glb_ops->errcode_int_en = ipa_phy_errcode_int_en;
 	glb_ops->dl_pcie_dma_en = ipa_phy_dl_pcie_dma_en;
 	glb_ops->set_pcie_msi_int_mode = ipa_phy_set_pcie_msi_int_mode;

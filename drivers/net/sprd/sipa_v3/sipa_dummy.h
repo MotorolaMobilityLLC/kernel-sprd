@@ -14,6 +14,7 @@
 #ifndef __SIPA_DUMMY_H_
 #define __SIPA_DUMMY_H_
 
+#include <linux/irqreturn.h>
 #include <linux/netdevice.h>
 
 /* Device status */
@@ -60,6 +61,16 @@ enum sipa_dummy_ts_field {
 	SIPA_DUMMY_TS_IRQ_TRIGGER,
 };
 
+enum {
+	IP_L4_PROTO_NULL = 0,
+	IP_L4_PROTO_ICMP = 1,
+	IP_L4_PROTO_TCP	= 6,    /* Transmission Control Protocol        */
+	IP_L4_PROTO_UDP	= 17,   /* User Datagram Protocol               */
+	IP_L4_PROTO_ICMP6 = 58,
+	IP_L4_PROTO_RAW	= 255,  /* Raw IP packets                       */
+	IP_L4_PROTO_MAX
+};
+
 struct sipa_dummy_ndev_info {
 	u32 src_id;
 	int netid;
@@ -87,6 +98,7 @@ struct sipa_dummy_ring {
 	struct net_device *ndev;/* Linux net device */
 	struct napi_struct napi;/* Napi instance */
 
+	int fifoid;
 	u64 last_read_empty;
 	u64 last_napi_complete;
 	u64 last_napi_reschedule;
@@ -104,6 +116,8 @@ struct sipa_dummy {
 };
 
 irqreturn_t sipa_dummy_recv_trigger(unsigned int cpu);
+bool sipa_dummy_set_rps_mode(int rps_mode);
+bool sipa_dummy_set_rps_cpus(u8 rps_cpus);
 
 int sipa_dummy_init(void);
 void sipa_dummy_exit(void);

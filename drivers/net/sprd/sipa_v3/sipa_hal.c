@@ -280,6 +280,9 @@ int sipa_hal_init(struct device *dev)
 		irq_set_affinity_hint(ipa->multi_intr[i], &cpu_mask);
 	}
 
+	ipa->cpu_num = 0;
+	ipa->cpu_num_ano = 0;
+
 	if (!ipa->glb_virt_base) {
 		dev_err(dev, "remap glb_base fail\n");
 		return -ENOMEM;
@@ -450,6 +453,24 @@ int sipa_hal_close_cmn_fifo(struct device *dev,
 
 	ipa->fifo_ops.close(fifo, fifo_cfg);
 	sipa_remove_fifo_params(dev, fifo);
+
+	return 0;
+}
+
+int sipa_hal_config_irq_affinity(int channel, int dst_cpu)
+{
+	struct cpumask cpu_mask;
+	struct sipa_plat_drv_cfg *ipa = sipa_get_ctrl_pointer();
+
+	if (channel >= SIPA_RECV_QUEUES_MAX ||
+	    dst_cpu >= num_possible_cpus()) {
+		pr_info("cyj, %s\n", __func__);
+		return -EINVAL;
+	}
+
+	memset(&cpu_mask, 0, sizeof(cpu_mask));
+	cpumask_set_cpu(dst_cpu, &cpu_mask);
+	irq_set_affinity_hint(ipa->multi_intr[channel], &cpu_mask);
 
 	return 0;
 }
@@ -1000,7 +1021,8 @@ void sipa_hal_resume_glb_reg_cfg(struct device *dev)
 
 	ipa->glb_ops.enable_def_interrupt_src(glb_base);
 	ipa->glb_ops.set_def_flow_ctl_to_src_blk(glb_base);
-	ipa->glb_ops.map_multi_fifo_mode_en(glb_base, true);
+	ipa->glb_ops.map_multi_fifo_mode_en(glb_base, false);
+	ipa->multi_mode = false;
 	ipa->glb_ops.set_map_fifo_cnt(glb_base, SIPA_RECV_QUEUES_MAX);
 	ipa->glb_ops.map_fifo_sel_mode(glb_base, true);
 	ipa->glb_ops.out_map_en(glb_base, 0xff);
@@ -1016,10 +1038,12 @@ irqreturn_t sipa_multi_int_callback_func(int irq, void *cookie)
 {
 	struct sipa_plat_drv_cfg *ipa = cookie;
 
-	ipa->fifo_ops.traverse_int_bit(SIPA_FIFO_MAP_IN, ipa->cmn_fifo_cfg);
+	ipa->fifo_ops.traverse_int_bit(SIPA_FIFO_MAP_IN,
+				       ipa->cmn_fifo_cfg, irq);
 
-	ipa->fifo_ops.traverse_int_bit(SIPA_FIFO_MAP0_OUT + smp_processor_id(),
-				       ipa->cmn_fifo_cfg);
+	ipa->fifo_ops.traverse_int_bit(SIPA_FIFO_MAP0_OUT + irq -
+				       ipa->multi_intr[0],
+				       ipa->cmn_fifo_cfg, irq);
 
 	return IRQ_HANDLED;
 }

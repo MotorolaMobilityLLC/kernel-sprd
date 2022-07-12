@@ -26,6 +26,8 @@
 #include <linux/platform_device.h>
 #include <linux/regmap.h>
 #include <linux/sipa.h>
+#include <linux/tick.h>
+#include <uapi/linux/sched/types.h>
 
 #include "sipa_hal.h"
 #include "sipa_rm.h"
@@ -34,6 +36,11 @@
 
 #define DRV_NAME "sipa"
 #define SIPA_ARRAY_NUM	4
+
+#define idle_thres	20
+#define	NO_IDLE_TIME	0
+
+u32 FLEX_NODE_NUM = 50000;
 
 static struct sipa_cmn_fifo_info sipa_cmn_fifo_statics[SIPA_FIFO_MAX] = {
 	{
@@ -213,7 +220,54 @@ static const char * const sipa_eb_name_tb[] = {
 	"enable-tft",
 };
 
+enum sipa_user_type {
+	SIPA_USER_RECOVERY,
+	SIPA_USER_CHANGE,
+};
+
+enum sipa_core {
+	core0,
+	core1,
+	core2,
+	core3,
+	core4,
+	core5,
+	core6,
+	core7,
+};
+
 static struct sipa_plat_drv_cfg *s_sipa_core;
+
+#if NO_IDLE_TIME
+#ifdef arch_idle_time
+static u64 sipa_get_idle_time(int cpu)
+{
+	u64 idle;
+
+	idle = kcpustat_cpu(cpu).cpustat[CPUTIME_IDLE];
+	if (cpu_online(cpu) && !nr_iowait_cpu(cpu))
+		idle += arch_idle_time(cpu);
+
+	return idle;
+}
+#else
+static u64 sipa_get_idle_time(int cpu)
+{
+	u64 idle, idle_usecs = -1ULL;
+
+	if (cpu_online(cpu))
+		idle_usecs = get_cpu_idle_time_us(cpu, NULL);
+
+	if (idle_usecs == -1ULL)
+		/* !NO_HZ or cpu offline so we can rely on cpustat.idle */
+		idle = kcpustat_cpu(cpu).cpustat[CPUTIME_IDLE];
+	else
+		idle = idle_usecs * NSEC_PER_USEC;
+
+	return idle;
+}
+#endif
+#endif
 
 static void sipa_resume_for_pam(struct device *dev)
 {
@@ -344,6 +398,11 @@ static int sipa_resume_work(struct device *dev)
 
 	sipa_sender_prepare_resume(ipa->sender);
 
+	wake_up_process(ipa->set_rps_thread);
+	hrtimer_start(&ipa->daemon_timer, ms_to_ktime(0),
+		      HRTIMER_MODE_REL);
+	pr_info("sipa resume hrtimer start\n");
+
 	sipa_rm_notify_completion(SIPA_RM_EVT_GRANTED,
 				  SIPA_RM_RES_PROD_IPA);
 
@@ -464,6 +523,57 @@ static int sipa_fifo_prepare_suspend(struct device *dev)
 	return 0;
 }
 
+static void sipa_single_little_core(enum sipa_user_type type)
+{
+	int cpu_num, cpu_num_before;
+	struct sipa_plat_drv_cfg *ipa = sipa_get_ctrl_pointer();
+	void __iomem *glb_base = ipa->glb_virt_base;
+
+	cpu_num_before = ipa->cpu_num;
+	ipa->glb_ops.map_multi_fifo_mode_en(glb_base, false);
+	ipa->multi_mode = false;
+
+	switch (type) {
+	case SIPA_USER_RECOVERY:
+		if (ipa->cpu_num < core4) {
+			if (cpu_online(ipa->cpu_num))
+				return;
+
+			pm_stay_awake(ipa->dev);
+			ipa->cpu_num = core0;
+			ipa->cpu_num_ano = core0;
+			sipa_hal_config_irq_affinity(0, ipa->cpu_num);
+			pr_info("%s, core %d offline, change to core 0\n",
+				__func__, ipa->cpu_num);
+			pm_relax(ipa->dev);
+		}
+		break;
+	case SIPA_USER_CHANGE:
+		cpu_num = core0;
+
+		pm_stay_awake(ipa->dev);
+
+		if (cpu_online(cpu_num)) {
+			ipa->cpu_num = cpu_num;
+			ipa->cpu_num_ano = cpu_num;
+			sipa_hal_config_irq_affinity(0, cpu_num);
+		} else {
+			ipa->cpu_num = core0;
+			ipa->cpu_num_ano = core0;
+			sipa_hal_config_irq_affinity(0, ipa->cpu_num);
+		}
+
+		ipa->set_rps = 1;
+		wake_up(&ipa->set_rps_waitq);
+		pr_info("%s, %d change to core %d\n",
+			__func__, cpu_num_before, ipa->cpu_num);
+		pm_relax(ipa->dev);
+		break;
+	default:
+		break;
+	}
+}
+
 static int sipa_prepare_suspend(struct device *dev)
 {
 	struct sipa_plat_drv_cfg *ipa = dev_get_drvdata(dev);
@@ -477,8 +587,11 @@ static int sipa_prepare_suspend(struct device *dev)
 		return -EAGAIN;
 
 	if (!(ipa->suspend_stage & SIPA_EB_SUSPEND)) {
+		hrtimer_cancel(&ipa->daemon_timer);
+		sipa_single_little_core(SIPA_USER_RECOVERY);
 		sipa_set_enabled(false);
 		ipa->suspend_stage |= SIPA_EB_SUSPEND;
+		dev_info(dev, "sipa ready to suspend and change to single\n");
 	}
 
 	if (!(ipa->suspend_stage & SIPA_FORCE_SUSPEND)) {
@@ -1339,6 +1452,381 @@ static void sipa_power_work(struct work_struct *work)
 		sipa_prepare_suspend_work(ipa->dev);
 }
 
+static int sipa_set_rps_thread(void *data)
+{
+	struct sipa_plat_drv_cfg *ipa = (struct sipa_plat_drv_cfg *)data;
+	struct sched_param param = {.sched_priority = 80};
+	int ret;
+
+	sched_setscheduler(current, SCHED_RR, &param);
+
+	while (!kthread_should_stop()) {
+		ret = wait_event_interruptible(ipa->set_rps_waitq, ipa->set_rps == 1);
+		if (ret < 0) {
+			pr_err("wait was interrupted");
+			return ret;
+		}
+
+		sipa_dummy_set_rps_cpus(1 << ipa->cpu_num |
+					1 << ipa->cpu_num_ano);
+		ipa->set_rps = 0;
+	}
+
+	return 0;
+}
+
+void sipa_udp_is_frag(bool is_frag)
+{
+	struct sipa_plat_drv_cfg *ipa = sipa_get_ctrl_pointer();
+
+	if (is_frag)
+		ipa->udp_frag = true;
+	else
+		ipa->udp_frag = false;
+}
+EXPORT_SYMBOL(sipa_udp_is_frag);
+
+void sipa_udp_is_port(bool is_port)
+{
+	struct sipa_plat_drv_cfg *ipa = sipa_get_ctrl_pointer();
+
+	if (is_port)
+		atomic_inc(&ipa->udp_port_num);
+	else
+		atomic_dec(&ipa->udp_port_num);
+
+	if (atomic_read(&ipa->udp_port_num))
+		ipa->udp_port = true;
+	else
+		ipa->udp_port = false;
+
+	dev_info(ipa->dev, "ipa->udp_port = %d, ipa->udp_port_num = %d\n",
+		 ipa->udp_port, atomic_read(&ipa->udp_port_num));
+}
+EXPORT_SYMBOL(sipa_udp_is_port);
+
+static void sipa_single_middle_core(void)
+{
+	int cpu_num, cpu_num_before;
+	struct sipa_plat_drv_cfg *ipa = sipa_get_ctrl_pointer();
+	void __iomem *glb_base = ipa->glb_virt_base;
+
+	cpu_num_before = ipa->cpu_num;
+	ipa->glb_ops.map_multi_fifo_mode_en(glb_base, false);
+	ipa->multi_mode = false;
+
+	if (ipa->cpu_num >= core4 && ipa->cpu_num < core7)
+		return;
+
+	cpu_num = core4;
+
+	pm_stay_awake(ipa->dev);
+
+	sipa_hal_config_irq_affinity(0, cpu_num);
+	ipa->cpu_num = cpu_num;
+	ipa->cpu_num_ano = cpu_num;
+	pr_info("%s, %d change to core %d\n",
+		__func__, cpu_num_before, ipa->cpu_num);
+
+	ipa->set_rps = 1;
+	wake_up(&ipa->set_rps_waitq);
+
+	pm_relax(ipa->dev);
+
+	if (!cpu_online(ipa->cpu_num))
+		dev_info(ipa->dev,
+			 "%s, core0,1,2,3 = %d,%d,%d,%d core_cpu = %d\n",
+			 __func__,
+			 cpu_online(core0), cpu_online(core1),
+			 cpu_online(core2), cpu_online(core3),
+			 cpu_online(ipa->cpu_num));
+}
+
+#if NO_IDLE_TIME
+static void sipa_multi_little_core(void)
+{
+	struct sipa_plat_drv_cfg *ipa = sipa_get_ctrl_pointer();
+	void __iomem *glb_base = ipa->glb_virt_base;
+
+	if (!ipa)
+		return;
+
+	if (ipa->cpu_num >= core0 && ipa->cpu_num < core4 &&
+	    ipa->glb_ops.map_multi_fifo_mode(glb_base))
+		return;
+
+	ipa->glb_ops.map_multi_fifo_mode_en(glb_base, true);
+	ipa->glb_ops.set_map_fifo_cnt(glb_base,
+				      SIPA_RECV_QUEUES_MAX);
+	ipa->multi_mode = true;
+
+	ipa->cpu_num = core1;
+	ipa->cpu_num_ano = core2;
+
+	pm_stay_awake(ipa->dev);
+
+	sipa_hal_config_irq_affinity(ipa->multi_intr[0]
+				     - ipa->multi_intr[0],
+				     ipa->cpu_num);
+	sipa_hal_config_irq_affinity(ipa->multi_intr[1]
+				     - ipa->multi_intr[0],
+				     ipa->cpu_num_ano);
+
+	ipa->set_rps = 1;
+	wake_up(&ipa->set_rps_waitq);
+
+	pm_relax(ipa->dev);
+
+	if (!cpu_online(core0) || !cpu_online(core1) ||
+	    !cpu_online(core2) || !cpu_online(core3))
+		dev_info(ipa->dev,
+			 "multi little online core1=%d core2=%d core3=%d core4=%d\n",
+			 cpu_online(core0), cpu_online(core1),
+			 cpu_online(core2), cpu_online(core3));
+}
+
+static void sipa_multi_middle_core(void)
+{
+	struct sipa_plat_drv_cfg *ipa = sipa_get_ctrl_pointer();
+	void __iomem *glb_base = ipa->glb_virt_base;
+
+	if (!ipa)
+		return;
+
+	if (ipa->cpu_num > core3 && ipa->cpu_num < core7 &&
+	    ipa->multi_mode)
+		return;
+
+	ipa->glb_ops.map_multi_fifo_mode_en(glb_base, true);
+	ipa->glb_ops.set_map_fifo_cnt(glb_base,
+				      SIPA_RECV_QUEUES_MAX);
+	ipa->multi_mode = true;
+
+	if (ipa->cpu_num < core4 && !ipa->udp_port)
+		return;
+
+	ipa->cpu_num = core4;
+	ipa->cpu_num_ano = core5;
+
+	sipa_hal_config_irq_affinity(ipa->multi_intr[0]
+				     - ipa->multi_intr[0],
+				     ipa->cpu_num);
+	sipa_hal_config_irq_affinity(ipa->multi_intr[1]
+				     - ipa->multi_intr[0],
+				     ipa->cpu_num_ano);
+
+	pr_info("%s, change to core max1 %d perc1 %d, core max2 %d perc2 %d\n",
+		__func__,
+		ipa->cpu_num, ipa->idle_perc[ipa->cpu_num],
+		ipa->cpu_num_ano, ipa->idle_perc[ipa->cpu_num_ano]);
+
+	if (ipa->udp_port) {
+		sipa_dummy_set_rps_mode(1);
+	} else {
+		ipa->set_rps = 1;
+		wake_up(&ipa->set_rps_waitq);
+	}
+
+	pm_relax(ipa->dev);
+
+	if (!cpu_online(ipa->cpu_num))
+		dev_info(ipa->dev,
+			 "%s, online core0,1,2,3 =%d,%d,%d,%d core_m=%d\n",
+			 __func__,
+			 cpu_online(core0), cpu_online(core1),
+			 cpu_online(core2), cpu_online(core3),
+			 cpu_online(ipa->cpu_num));
+}
+
+static u32 sipa_get_idle_perc(enum sipa_core core_num)
+{
+	int i;
+	struct sipa_plat_drv_cfg *ipa = sipa_get_ctrl_pointer();
+
+	for (i = 0; i < num_possible_cpus(); i++) {
+		ipa->idle_perc[i] = sipa_get_idle_time(i) -
+			ipa->last_idle_time[i];
+		do_div(ipa->idle_perc[i], 10000000);
+		ipa->last_idle_time[i] = sipa_get_idle_time(i);
+		dev_dbg(ipa->dev, "cpu %d idle percent %d\n",
+			i, ipa->idle_perc[i]);
+	}
+
+	return ipa->idle_perc[core_num];
+}
+#endif
+
+static enum hrtimer_restart sipa_daemon_timer_handler(struct hrtimer *timer)
+{
+	int i;
+	struct sipa_plat_drv_cfg *ipa = container_of(timer,
+						     struct sipa_plat_drv_cfg,
+						     daemon_timer);
+	struct sipa_rm_resource **res = sipa_rm_get_all_resource();
+	u32 fifo_rate_all = 0, fifo_rate_0 = ipa->fifo_rate[0];
+
+	for (i = 0; i < SIPA_RECV_QUEUES_MAX; i++) {
+		fifo_rate_all += ipa->fifo_rate[i];
+		dev_dbg(ipa->dev, "sipa fifo_rate_all = %d\n", fifo_rate_all);
+	}
+
+#if NO_IDLE_TIME
+	/* get ipa->idle_perc */
+	sipa_get_idle_perc(ipa->cpu_num);
+#endif
+
+	if (res[SIPA_RM_RES_PROD_IPA]->state != 2) {
+		dev_info(ipa->dev, "sipa daemon res not ready\n");
+		goto restart;
+	}
+
+	if (ipa->user_set == 1) {
+		sipa_single_little_core(SIPA_USER_CHANGE);
+		goto restart;
+	}
+
+	/* Single queue mode and bind to core 0-3. and more */
+	if (ipa->cpu_num < core4 &&
+	    !ipa->multi_mode) {
+		if ((fifo_rate_0 > 40000 &&
+		     fifo_rate_0 < FLEX_NODE_NUM) ||
+		     fifo_rate_0 >= FLEX_NODE_NUM)
+			sipa_single_middle_core();
+		goto restart;
+	}
+
+	/* Single queue mode and bind to core 4-6. */
+	if (ipa->cpu_num >= core4 && ipa->cpu_num < core7 &&
+	    !ipa->multi_mode) {
+		sipa_single_middle_core();
+		goto restart;
+	}
+
+	if (ipa->cpu_num == core7 &&
+	    !ipa->multi_mode &&
+	    fifo_rate_0 < FLEX_NODE_NUM) {
+		pr_info("sipa spped low\n");
+		sipa_single_middle_core();
+		goto restart;
+	}
+
+	/* Multi queue mode and bind to core0-3 */
+	if (ipa->cpu_num < core4 &&
+	    ipa->multi_mode) {
+		sipa_single_middle_core();
+		goto restart;
+	}
+
+	/* Multi queue mode and bind to core 4-6 */
+	if (ipa->cpu_num >= core4 && ipa->cpu_num < core7 &&
+	    ipa->multi_mode) {
+		if (fifo_rate_all < FLEX_NODE_NUM)
+			sipa_single_little_core(SIPA_USER_RECOVERY);
+		else
+			sipa_single_middle_core();
+
+		goto restart;
+	}
+
+restart:
+	for (i = 0; i < num_possible_cpus(); i++)
+		ipa->fifo_rate[i] = 0;
+
+	hrtimer_forward_now(timer, ms_to_ktime(1000));
+	return HRTIMER_RESTART;
+}
+
+static ssize_t user_set_show(struct device *dev,
+			     struct device_attribute *attr,
+			     char *buf)
+{
+	char *a = "Usage:\n";
+	char *b = "\t1: lower power\n";
+	char *c = "\t0: recovery\n";
+
+	return sprintf(buf, "\n%s%s%s\n", a, b, c);
+}
+
+static ssize_t user_set_store(struct device *dev,
+			      struct device_attribute *attr,
+			      const char *buf,
+			      size_t count)
+{
+	u8 cmd;
+	struct sipa_plat_drv_cfg *ipa = sipa_get_ctrl_pointer();
+
+	if (sscanf(buf, "%4hhx\n", &cmd) != 1)
+		return -EINVAL;
+
+	if (cmd == 1) {
+		dev_info(ipa->dev, "change to low power\n");
+		ipa->user_set = 1;
+	} else if (cmd == 0) {
+		dev_info(ipa->dev, "recovery\n");
+		ipa->user_set = 0;
+	}
+
+	return count;
+}
+
+static ssize_t flex_multi_show(struct device *dev,
+			       struct device_attribute *attr,
+			       char *buf)
+{
+	char *a = "Usage:\n";
+	char *b = "\t1: open flexible multi queue\n";
+	char *c = "\t0: close flexible multi queue\n";
+
+	return sprintf(buf, "\n%s%s%s\n", a, b, c);
+}
+
+static ssize_t flex_multi_store(struct device *dev,
+				struct device_attribute *attr,
+				const char *buf,
+				size_t count)
+{
+	u8 cmd;
+	struct sipa_plat_drv_cfg *ipa = sipa_get_ctrl_pointer();
+
+	if (sscanf(buf, "%4hhx\n", &cmd) != 1)
+		return -EINVAL;
+
+	if (cmd == 1) {
+		dev_info(ipa->dev, "open flexible multi queue\n");
+		hrtimer_start(&ipa->daemon_timer, ms_to_ktime(1000),
+			      HRTIMER_MODE_REL);
+	} else if (cmd == 0) {
+		dev_info(ipa->dev, "close flexible multi queue\n");
+		hrtimer_cancel(&ipa->daemon_timer);
+	}
+
+	return count;
+}
+
+static DEVICE_ATTR_RW(user_set);
+static DEVICE_ATTR_RW(flex_multi);
+
+static struct attribute *sipa_attrs[] = {
+	&dev_attr_user_set.attr,
+	&dev_attr_flex_multi.attr,
+	NULL,
+};
+ATTRIBUTE_GROUPS(sipa);
+
+static int sipa_init_sysfs(struct sipa_plat_drv_cfg *ipa)
+{
+	int ret;
+
+	ret = sysfs_create_groups(&ipa->dev->kobj, sipa_groups);
+	if (ret) {
+		dev_err(ipa->dev, "sipa fail to create sysfs\n");
+		sysfs_remove_groups(&ipa->dev->kobj, sipa_groups);
+		return ret;
+	}
+
+	return 0;
+}
+
 static int sipa_plat_drv_probe(struct platform_device *pdev_p)
 {
 	int ret;
@@ -1379,6 +1867,17 @@ static int sipa_plat_drv_probe(struct platform_device *pdev_p)
 	INIT_WORK(&ipa->flow_ctrl_work, sipa_notify_sender_flow_ctrl);
 	INIT_DELAYED_WORK(&ipa->power_work, sipa_power_work);
 
+	hrtimer_init(&ipa->daemon_timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
+	ipa->daemon_timer.function = sipa_daemon_timer_handler;
+
+	init_waitqueue_head(&ipa->set_rps_waitq);
+	ipa->set_rps_thread = kthread_create(sipa_set_rps_thread, ipa,
+					     "sipa-set-rps");
+	if (IS_ERR(ipa->set_rps_thread)) {
+		dev_err(dev, "failed to create set_rps_thread\n");
+		return PTR_ERR(ipa->set_rps_thread);
+	}
+
 	ret = sipa_init(dev);
 	if (ret) {
 		dev_err(dev, "init failed %d\n", ret);
@@ -1401,6 +1900,11 @@ static int sipa_plat_drv_probe(struct platform_device *pdev_p)
 
 	pm_runtime_enable(dev);
 	sipa_init_debugfs(ipa);
+	sipa_init_sysfs(ipa);
+
+	ipa->udp_frag = false;
+	ipa->udp_port = false;
+	atomic_set(&ipa->udp_port_num, 0);
 
 	return ret;
 }

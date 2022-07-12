@@ -605,8 +605,9 @@ void sipa_init_free_fifo(struct sipa_skb_receiver *receiver, u32 cnt,
 EXPORT_SYMBOL_GPL(sipa_init_free_fifo);
 
 static void sipa_receiver_notify_cb(void *priv, enum sipa_hal_evt_type evt,
-				    unsigned long data)
+				    unsigned long data, int irq)
 {
+	struct sipa_plat_drv_cfg *ipa = sipa_get_ctrl_pointer();
 	struct sipa_skb_receiver *receiver = (struct sipa_skb_receiver *)priv;
 
 	if (evt & SIPA_RECV_WARN_EVT) {
@@ -615,11 +616,11 @@ static void sipa_receiver_notify_cb(void *priv, enum sipa_hal_evt_type evt,
 		receiver->tx_danger_cnt++;
 	}
 
-	sipa_dummy_recv_trigger(smp_processor_id());
+	sipa_dummy_recv_trigger(irq - ipa->multi_intr[0]);
 }
 
 struct sk_buff *sipa_recv_skb(struct sipa_skb_receiver *receiver,
-			      int *netid, u32 *src_id, u32 index)
+			      int *netid, u32 *src_id, u32 index, int fifoid)
 {
 	dma_addr_t addr;
 	bool need_unmap = false;
@@ -628,9 +629,9 @@ struct sk_buff *sipa_recv_skb(struct sipa_skb_receiver *receiver,
 	struct skb_shared_info *shinfo;
 	struct sk_buff *recv_skb = NULL;
 	struct sipa_node_desc_tag *node = NULL;
-	struct sipa_skb_array *fill_array =
-		receiver->fill_array[smp_processor_id()];
+
 	struct sipa_plat_drv_cfg *ipa = sipa_get_ctrl_pointer();
+	struct sipa_skb_array *fill_array = receiver->fill_array[fifoid];
 
 	atomic_inc(&receiver->check_flag);
 
@@ -647,7 +648,11 @@ struct sk_buff *sipa_recv_skb(struct sipa_skb_receiver *receiver,
 		return NULL;
 	}
 
-	id = receiver->ep->recv_fifo.idx + smp_processor_id();
+	id = receiver->ep->recv_fifo.idx + fifoid;
+	if (sipa_hal_get_tx_fifo_empty_status(receiver->dev, id)) {
+		atomic_dec(&receiver->check_flag);
+		return NULL;
+	}
 
 	node = sipa_hal_get_tx_node_rptr(receiver->dev, id, index);
 	if (!node) {

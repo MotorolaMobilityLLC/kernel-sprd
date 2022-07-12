@@ -571,7 +571,8 @@ EXPORT_SYMBOL(sipa_nic_tx);
  * fifo. if it returns 0, it means that the data is read normally, and it
  * returns NULL, which means the fifo is empty.
  */
-int sipa_nic_rx(struct sk_buff **out_skb, int *netid, u32 *src, u32 index)
+int sipa_nic_rx(struct sk_buff **out_skb, int *netid,
+		u32 *src, u32 index, int fifoid)
 {
 	struct sipa_plat_drv_cfg *ipa = sipa_get_ctrl_pointer();
 
@@ -580,9 +581,15 @@ int sipa_nic_rx(struct sk_buff **out_skb, int *netid, u32 *src, u32 index)
 		return -EINVAL;
 	}
 
-	*out_skb = sipa_recv_skb(ipa->receiver, netid, src, index);
+	*out_skb = sipa_recv_skb(ipa->receiver, netid, src, index, fifoid);
 
-	return (*out_skb) ? 0 : -ENODATA;
+	if (*out_skb) {
+		ipa->fifo_rate[fifoid]++;
+		return 0;
+	} else {
+		return -ENODATA;
+	}
+
 }
 EXPORT_SYMBOL(sipa_nic_rx);
 
@@ -691,7 +698,7 @@ EXPORT_SYMBOL(sipa_nic_check_suspend_condition);
 /**
  * Determine whether the current common fifo still has unread data.
  */
-bool sipa_nic_check_recv_queue_empty(void)
+bool sipa_nic_check_recv_queue_empty(int fifoid)
 {
 	struct sipa_plat_drv_cfg *ipa = sipa_get_ctrl_pointer();
 	enum sipa_cmn_fifo_index fifo_id;
@@ -703,7 +710,7 @@ bool sipa_nic_check_recv_queue_empty(void)
 
 	fifo_id = ipa->receiver->ep->recv_fifo.idx;
 	return sipa_hal_get_tx_fifo_empty_status(ipa->dev,
-						 fifo_id + smp_processor_id());
+						 fifo_id + fifoid);
 }
 EXPORT_SYMBOL(sipa_nic_check_recv_queue_empty);
 
@@ -718,24 +725,24 @@ void sipa_nic_restore_cmn_fifo_irq(void)
 }
 EXPORT_SYMBOL(sipa_nic_restore_cmn_fifo_irq);
 
-u32 sipa_nic_sync_recv_pkts(u32 budget)
+u32 sipa_nic_sync_recv_pkts(u32 budget, int fifoid)
 {
 	struct sipa_plat_drv_cfg *ipa = sipa_get_ctrl_pointer();
 
 	return ipa->fifo_ops.sync_node_from_tx_fifo(ipa->dev,
 						    SIPA_FIFO_MAP0_OUT +
-						    smp_processor_id(),
+						    fifoid,
 						    ipa->cmn_fifo_cfg,
 						    budget);
 }
 EXPORT_SYMBOL(sipa_nic_sync_recv_pkts);
 
-int sipa_nic_add_tx_fifo_rptr(u32 num)
+int sipa_nic_add_tx_fifo_rptr(u32 num, int fifoid)
 {
 	struct sipa_plat_drv_cfg *ipa = sipa_get_ctrl_pointer();
 
 	return ipa->fifo_ops.add_tx_fifo_rptr(SIPA_FIFO_MAP0_OUT +
-					      smp_processor_id(),
+					      fifoid,
 					      ipa->cmn_fifo_cfg, num);
 }
 EXPORT_SYMBOL(sipa_nic_add_tx_fifo_rptr);

@@ -29,13 +29,16 @@
 #include <linux/seq_file.h>
 #include <linux/skbuff.h>
 #include <linux/timekeeping.h>
+#include <net/netfilter/nf_conntrack_ecache.h>
 
 #include "sipa_eth.h"
 #include "sipa_dummy.h"
+#include "sipa_hal.h"
+#include "sipa_priv.h"
 
 static struct sipa_dummy *sipa_dummy;
-static struct net_device *dummy_dev;
 static struct dentry *dummy_debugfs_root;
+static struct net_device *dummy_dev;
 
 ATOMIC_NOTIFIER_HEAD(wifi_recv_skb_notifier_list);
 
@@ -284,7 +287,7 @@ static void sipa_dummy_set_bootts(struct sipa_dummy *dummy,
 }
 
 static int sipa_dummy_rx_clean(struct sipa_dummy *dummy, int budget,
-			       struct napi_struct *napi)
+			       struct napi_struct *napi, int fifoid)
 {
 	int netid = 0;
 	u32 src_id;
@@ -296,7 +299,7 @@ static int sipa_dummy_rx_clean(struct sipa_dummy *dummy, int budget,
 	struct sipa_usb *sipa_usb;
 
 	while (skb_cnt < budget) {
-		ret1 = sipa_nic_rx(&skb, &netid, &src_id, skb_cnt);
+		ret1 = sipa_nic_rx(&skb, &netid, &src_id, skb_cnt, fifoid);
 		if (unlikely(ret1)) {
 			if (ret1 == -EINVAL)
 				stats->rx_errors++;
@@ -358,9 +361,9 @@ static int sipa_dummy_rx_poll(struct napi_struct *napi, int budget)
 						    napi);
 	struct sipa_dummy *dummy = netdev_priv(ring->ndev);
 
-	num = sipa_nic_sync_recv_pkts(budget);
-	pkts = sipa_dummy_rx_clean(dummy, num, napi);
-	sipa_nic_add_tx_fifo_rptr(pkts);
+	num = sipa_nic_sync_recv_pkts(budget, ring->fifoid);
+	pkts = sipa_dummy_rx_clean(dummy, num, napi, ring->fifoid);
+	sipa_nic_add_tx_fifo_rptr(pkts, ring->fifoid);
 	sipa_recv_wake_up();
 	if (pkts >= budget)
 		return budget;
@@ -368,7 +371,7 @@ static int sipa_dummy_rx_poll(struct napi_struct *napi, int budget)
 	sipa_dummy_set_bootts(dummy, SIPA_DUMMY_TS_NAPI_COMPLETE);
 	napi_complete(napi);
 
-	if (!sipa_nic_check_recv_queue_empty()) {
+	if (!sipa_nic_check_recv_queue_empty(ring->fifoid)) {
 		/* not empty again, need re-schedule,
 		 * otherwise might stop rcv in a low possibility
 		 */
@@ -378,6 +381,110 @@ static int sipa_dummy_rx_poll(struct napi_struct *napi, int budget)
 
 	return pkts;
 }
+
+#ifdef CONFIG_RPS
+enum {
+	SIPA_RPS_MODE_MULTI_LITTLE,
+	SIPA_RPS_MODE_MULTI_MIDDLE,
+	SIPA_RPS_MODE_MULTI_MIDDLE_LARGE,
+};
+
+bool sipa_dummy_set_rps_mode(int rps_mode)
+{
+	int rc;
+	struct net_device *netdev;
+	struct netdev_rx_queue *queue;
+	struct kobject *kobj;
+	struct attribute **attr;
+	char buf[10] = {};
+	size_t len = sizeof(buf);
+
+	pr_info("start to set rps, rps_mode %d\n", rps_mode);
+
+	switch (rps_mode) {
+	case SIPA_RPS_MODE_MULTI_LITTLE:
+		snprintf(buf, len, "%s", "0F");
+		break;
+	case SIPA_RPS_MODE_MULTI_MIDDLE:
+		snprintf(buf, len, "%s", "70");
+		break;
+	case SIPA_RPS_MODE_MULTI_MIDDLE_LARGE:
+		snprintf(buf, len, "%s", "F0");
+		break;
+	default:
+		pr_err("unsupported rps mode %d\n", rps_mode);
+		return false;
+	}
+
+	netdev = sipa_dummy_ndev_arr[SIPA_DUMMY_ETH0].ndev;
+	if (!netdev) {
+		pr_err("fail to get eth dev\n");
+		return false;
+	}
+	//get rx-0
+	queue = netdev->_rx + 0;
+	kobj = &queue->kobj;
+	attr = kobj->ktype->default_attrs;
+
+	/*  get rx_queue_default_attrs[] => rps_cpus_attribute
+	 *  and "store_rps_map" func is invoked
+	 */
+	rc = kobj->ktype->sysfs_ops->store(kobj, attr[0], buf, len);
+
+	pr_info("finish to set rps to %s, rc %d\n", buf, rc);
+	return true;
+}
+EXPORT_SYMBOL(sipa_dummy_set_rps_mode);
+
+bool sipa_dummy_set_rps_cpus(u8 rps_cpus)
+{
+	int rc;
+	struct net_device *netdev;
+	struct netdev_rx_queue *queue;
+	struct kobject *kobj;
+	struct attribute **attr = NULL;
+	char buf[10] = {};
+	size_t len = sizeof(buf);
+
+	pr_info("start to set rps, rps_cpus 0x%x\n", rps_cpus);
+
+	snprintf(buf, len, "%x", rps_cpus);
+
+	netdev = sipa_dummy_ndev_arr[SIPA_DUMMY_ETH0].ndev;
+	if (!netdev) {
+		pr_err("fail to get eth dev\n");
+		return false;
+	}
+	pr_debug("netdev name is %s\n", netdev->name);
+
+	//get rx-0
+	queue = netdev->_rx + 0;
+
+	kobj = &queue->kobj;
+	if (!kobj) {
+		pr_err("kobj is NULL!\n");
+		return false;
+	}
+
+	/* in kernel5.4 default_attrs in not initialized,
+	 * it replaced by attrs in default_groups
+	 */
+	attr = (*kobj->ktype->default_groups)->attrs;
+	if (!attr) {
+		pr_err("attr is NULL!\n");
+		return false;
+	}
+
+	/* get rx_queue_default_attrs[] => rps_cpus_attribute
+	 * and "store_rps_map" func is invoked
+	 */
+	rc = kobj->ktype->sysfs_ops->store(kobj, attr[0], buf, len);
+
+	pr_info("finish to set rps cpus to %s, rc %d\n", buf, rc);
+	return true;
+}
+EXPORT_SYMBOL(sipa_dummy_set_rps_cpus);
+#endif
 
 /* for sipa to invoke */
 irqreturn_t sipa_dummy_recv_trigger(unsigned int cur_cpu)
@@ -394,6 +501,7 @@ irqreturn_t sipa_dummy_recv_trigger(unsigned int cur_cpu)
 
 	dummy = netdev_priv(dummy_dev);
 	sipa_dummy_set_bootts(dummy, SIPA_DUMMY_TS_IRQ_TRIGGER);
+	dummy->rings[cur_cpu].fifoid = cur_cpu;
 	napi_schedule(&dummy->rings[cur_cpu].napi);
 
 err_exit:
@@ -564,6 +672,67 @@ static const struct file_operations sipa_dummy_debug_fops = {
 	.release = single_release,
 };
 
+static int sipa_dummy_affinity_show(struct seq_file *m, void *v)
+{
+	u32 size;
+	char *buf;
+
+	size = seq_get_buf(m, &buf);
+
+	seq_printf(m, "now fifo 0 is on cpu %d\n", size);
+	return 0;
+}
+
+static int sipa_dummy_affinity_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, sipa_dummy_affinity_show, inode->i_private);
+}
+
+static ssize_t sipa_dummy_affinity_write(struct file *filp,
+					 const char __user *buf,
+					 size_t count, loff_t *offp)
+{
+	int r;
+	char buffer[64];
+	unsigned long val;
+	struct sipa_plat_drv_cfg *ipa = sipa_get_ctrl_pointer();
+	void __iomem *glb_base = ipa->glb_virt_base;
+
+	if (count >= sizeof(buffer))
+		return -ENOMEM;
+
+	if (copy_from_user(&buffer[0], buf, count))
+		return -EFAULT;
+
+	buffer[count] = '\0';
+	r = kstrtoul(&buffer[0], 10, &val);
+	if (r)
+		return -EINVAL;
+
+	ipa->glb_ops.map_multi_fifo_mode_en(glb_base, false);
+	pm_stay_awake(ipa->dev);
+	ipa->cpu_num = val;
+	ipa->cpu_num_ano = val;
+
+	if (!cpu_online(ipa->cpu_num))
+		return -EINVAL;
+
+	pr_info("set fifo 0 to cpu %lu\n", val);
+	sipa_hal_config_irq_affinity(0, ipa->cpu_num);
+	pm_relax(ipa->dev);
+
+	*offp += count;
+	return count;
+}
+
+static const struct file_operations sipa_dummy_affinity_fops = {
+	.open = sipa_dummy_affinity_open,
+	.read = seq_read,
+	.llseek = seq_lseek,
+	.release = single_release,
+	.write = sipa_dummy_affinity_write,
+};
+
 static int sipa_dummy_debugfs_mknod(void *data)
 {
 	if (!dummy_debugfs_root) {
@@ -576,6 +745,11 @@ static int sipa_dummy_debugfs_mknod(void *data)
 			    dummy_debugfs_root,
 			    data,
 			    &sipa_dummy_debug_fops);
+	debugfs_create_file("affinity",
+			    0644,
+			    dummy_debugfs_root,
+			    data,
+			    &sipa_dummy_affinity_fops);
 
 	return 0;
 }
@@ -773,6 +947,7 @@ int sipa_dummy_init(void)
 {
 	sipa_dummy_reg_netdev_notifier();
 	sipa_dummy_debugfs_init();
+
 	return sipa_dummy_probe();
 }
 EXPORT_SYMBOL_GPL(sipa_dummy_init);
