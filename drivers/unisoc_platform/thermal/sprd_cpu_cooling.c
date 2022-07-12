@@ -393,19 +393,25 @@ static int cpu_set_cur_state(struct thermal_cooling_device *cdev,
 static int cpu_get_requested_power(struct thermal_cooling_device *cdev,
 					u32 *power)
 {
-	unsigned int freq;
+	unsigned int freq = 0;
 	unsigned int ncpus;
 	int cpu, ret;
-	u32 static_power;
+	u32 static_power = 0;
+	struct cpumask temp_mask;
 	struct cpu_cooling_device *cpu_cdev = cdev->devdata;
 
-	cpu = cpumask_any(&cpu_cdev->allowed_cpus);
+	cpumask_and(&temp_mask, &cpu_cdev->allowed_cpus, cpu_online_mask);
+	cpu = cpumask_any(&temp_mask);
+	if (cpu >= nr_cpu_ids)
+		goto out;
+
 	freq = cpufreq_quick_get_max(cpu);
-	ncpus = cpumask_weight(&cpu_cdev->allowed_cpus);
 	ret = cpu_get_static_power(cpu_cdev, freq, &static_power, 1);
 	if (ret)
 		static_power = 0;
 
+out:
+	ncpus = cpumask_weight(&cpu_cdev->allowed_cpus);
 	cpu_cdev->cur_freq = freq;
 	cpu_cdev->power = static_power;
 	*power = static_power * ncpus;
