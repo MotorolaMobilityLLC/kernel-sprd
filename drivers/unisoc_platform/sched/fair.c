@@ -176,7 +176,7 @@ static void check_for_task_rotation(struct rq *src_rq)
 		if (!is_min_capacity_cpu(i) || is_reserved(i))
 			continue;
 
-		if (!rq->misfit_task_load || is_fair_task(curr_task) ||
+		if (!rq->misfit_task_load || !is_fair_task(curr_task) ||
 		    task_fits_capacity(curr_task, capacity_of(i), i))
 			continue;
 
@@ -1005,6 +1005,8 @@ static void android_rvh_update_misfit_status(void *data, struct task_struct *p,
 
 	if (static_branch_unlikely(&walt_disabled))
 		return;
+
+	*need_update = false;
 
 	if (!p || p->nr_cpus_allowed == 1) {
 		rq->misfit_task_load = 0;
