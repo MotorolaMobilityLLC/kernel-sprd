@@ -389,15 +389,16 @@
 	logo_reserved: logobuffer@b0000000 {
 		reg = <0x0 0xb0000000 0x0 0x009e4000>;
 	};
+
+	widevine_reserved: widevine@d9800000 {
+		compatible = "shared-dma-pool";
+		reg = <0x0 0xd9800000 0x0 0x16800000>;
+		reusable;
+	};
+
 	/* Encrypt and decrypt widevine video */
 	oemcrypto_reserved: oemcrypto@f3000000 {
 		reg = <0x0 0xf3000000 0x0 0x01100000>;
-	};
-
-	widevine_reserved: widevine@d8c00000 {
-		compatible = "shared-dma-pool";
-		reg = <0x0 0xd8c00000 0x0 0x16800000>;
-		reusable;
 	};
 
 	ai_reserved: ai@fcc10000 {
