@@ -54,7 +54,7 @@
 #define CM_CAPACITY_LEVEL_LOW			15
 #define CM_CAPACITY_LEVEL_NORMAL		85
 #define CM_CAPACITY_LEVEL_FULL			100
-#define CM_CAPACITY_LEVEL_CRITICAL_VOLTAGE	3200000
+#define CM_CAPACITY_LEVEL_CRITICAL_VOLTAGE	3400000
 #define CM_FAST_CHARGE_ENABLE_BATTERY_VOLTAGE	3400000
 #define CM_FAST_CHARGE_ENABLE_CURRENT		1200000
 #define CM_FAST_CHARGE_ENABLE_THERMAL_CURRENT	1000000
@@ -4723,7 +4723,7 @@ static void cm_get_uisoc(struct charger_manager *cm, int *uisoc)
 static int cm_get_capacity_level(struct charger_manager *cm)
 {
 	int level = POWER_SUPPLY_CAPACITY_LEVEL_UNKNOWN;
-	int uisoc, ocv_uv = 0, batt_uv = 0;
+	int uisoc, batt_uv = 0, batt_uA = 0, ocv_uv = 0;
 
 	if (!is_batt_present(cm)) {
 		/* There is no battery. Assume 100% */
@@ -4744,14 +4744,24 @@ static int cm_get_capacity_level(struct charger_manager *cm)
 	else
 		level = POWER_SUPPLY_CAPACITY_LEVEL_CRITICAL;
 
-
-	if (get_batt_ocv(cm, &ocv_uv)) {
-		dev_err(cm->dev, "%s, get_batt_ocV error.\n", __func__);
+	if (get_vbat_now_uV(cm, &batt_uv)) {
+		dev_err(cm->dev, "%s, get_batt_uv error.\n", __func__);
 		return level;
 	}
 
-	if (get_vbat_now_uV(cm, &batt_uv)) {
-		dev_err(cm->dev, "%s, get_batt_uv error.\n", __func__);
+	if (get_ibat_now_uA(cm, &batt_uA)) {
+		dev_err(cm->dev, "%s, get_ibat_uA error.\n", __func__);
+		return level;
+	}
+
+	if (level == POWER_SUPPLY_CAPACITY_LEVEL_CRITICAL && is_charging(cm) &&
+	    batt_uA > 0 && batt_uv > CM_LOW_CAP_SHUTDOWN_VOLTAGE_THRESHOLD) {
+		level = POWER_SUPPLY_CAPACITY_LEVEL_LOW;
+		return level;
+	}
+
+	if (get_batt_ocv(cm, &ocv_uv)) {
+		dev_err(cm->dev, "%s, get_batt_ocV error.\n", __func__);
 		return level;
 	}
 
