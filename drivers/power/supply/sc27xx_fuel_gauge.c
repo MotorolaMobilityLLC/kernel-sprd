@@ -81,8 +81,8 @@
 #define SC27XX_FGU_LOW_OVERLOAD_INT	BIT(0)
 #define SC27XX_FGU_HIGH_OVERLOAD_INT	BIT(1)
 #define SC27XX_FGU_CLBCNT_DELTA_INT	BIT(2)
-#define SC27XX_FGU_RELX_CNT_INT		BIT(3)
-#define SC27XX_FGU_RELX_CNT_STS		BIT(3)
+#define SC27XX_FGU_RELAX_CNT_INT	BIT(3)
+#define SC27XX_FGU_RELAX_CNT_STS	BIT(3)
 
 #define SC27XX_FGU_MODE_AREA_MASK	GENMASK(15, 12)
 #define SC27XX_FGU_CAP_AREA_MASK	GENMASK(11, 0)
@@ -124,11 +124,11 @@
 #define UMP9620_FGU_CAL_SHIFT		7
 
 /* SC27XX_FGU_RELAX_CURT_THRE */
-#define SC2720_FGU_RELAX_CURT_THRE_MASK		GENMASK(13, 0)
-#define SC2720_FGU_RELAX_CURT_THRE_SHITF	0
+#define SC27XX_FGU_RELAX_CURT_THRE_MASK		GENMASK(13, 0)
+#define SC27XX_FGU_RELAX_CURT_THRE_SHITF	0
 /* SC27XX_FGU_RELAX_CNT_THRE */
-#define SC2720_FGU_RELAX_CNT_THRE_MASK		GENMASK(12, 0)
-#define SC2720_FGU_RELAX_CNT_THRE_SHITF		0
+#define SC27XX_FGU_RELAX_CNT_THRE_MASK		GENMASK(12, 0)
+#define SC27XX_FGU_RELAX_CNT_THRE_SHITF		0
 
 #define SC27XX_FGU_CURRENT_BUFF_CNT	8
 #define SC27XX_FGU_DISCHG_CNT		4
@@ -675,12 +675,17 @@ static int sc27xx_fgu_get_rtc_time(struct sc27xx_fgu_data *data, s64 *time)
 	return 0;
 }
 
-static int sc27xx_fgu_adc_to_current(struct sc27xx_fgu_data *data, s64 adc)
+static inline int sc27xx_fgu_adc2current(struct sc27xx_fgu_data *data, s64 adc)
 {
 	return DIV_S64_ROUND_CLOSEST(adc * 1000, data->cur_1000ma_adc);
 }
 
-static int sc27xx_fgu_adc_to_voltage(struct sc27xx_fgu_data *data, s64 adc)
+static inline int sc27xx_fgu_current2adc(struct sc27xx_fgu_data *data, int cur_ma)
+{
+	return DIV_ROUND_CLOSEST(cur_ma * data->cur_1000ma_adc, 1000);
+}
+
+static inline int sc27xx_fgu_adc2voltage(struct sc27xx_fgu_data *data, s64 adc)
 {
 	return DIV_S64_ROUND_CLOSEST(adc * 1000, data->vol_1000mv_adc);
 }
@@ -825,7 +830,7 @@ static int sc27xx_fgu_get_vbat_now(struct sc27xx_fgu_data *data, int *val)
 	 * It is ADC values reading from registers which need to convert to
 	 * corresponding voltage values.
 	 */
-	*val = sc27xx_fgu_adc_to_voltage(data, vol_adc);
+	*val = sc27xx_fgu_adc2voltage(data, vol_adc);
 
 	return 0;
 }
@@ -848,7 +853,7 @@ static int sc27xx_fgu_get_current_avg(struct sc27xx_fgu_data *data, int *val)
 		 * It is ADC values reading from registers which need to convert to
 		 * corresponding current values (unit mA).
 		 */
-		*val += sc27xx_fgu_adc_to_current(data, (s64)cur_adc - SC27XX_FGU_CUR_BASIC_ADC);
+		*val += sc27xx_fgu_adc2current(data, (s64)cur_adc - SC27XX_FGU_CUR_BASIC_ADC);
 	}
 
 	*val /= 8;
@@ -914,7 +919,7 @@ static int sc27xx_fgu_get_vbat_avg(struct sc27xx_fgu_data *data, int *val)
 		 * It is ADC values reading from registers which need to convert to
 		 * corresponding voltage values.
 		 */
-		*val += sc27xx_fgu_adc_to_voltage(data, vol_adc);
+		*val += sc27xx_fgu_adc2voltage(data, vol_adc);
 	}
 
 	*val /= 8;
@@ -936,7 +941,7 @@ static int sc27xx_fgu_get_current_now(struct sc27xx_fgu_data *data, int *val)
 	 * It is ADC values reading from registers which need to convert to
 	 * corresponding current values (unit mA).
 	 */
-	*val = sc27xx_fgu_adc_to_current(data, (s64)cur_adc - SC27XX_FGU_CUR_BASIC_ADC);
+	*val = sc27xx_fgu_adc2current(data, (s64)cur_adc - SC27XX_FGU_CUR_BASIC_ADC);
 
 	return 0;
 }
@@ -1091,10 +1096,10 @@ static void sc27xx_fgu_dump_info(struct sc27xx_fgu_data *data)
 {
 	dev_info(data->dev, "init_cap = %d, init_mah = %d, init_clbcnt = %d, cur_clbcnt = %d, "
 		 "normal_cap = %d, data->cc_mah = %d, Tbat = %d, uusoc_vbat = %d, uusoc_mah = %d, "
-		 "cur_1000ma_adc = %d, track_sts = %d\n",
+		 "cur_1000ma_adc = %d, vol_1000mv_adc = %d, track_sts = %d\n",
 		 data->init_cap, data->init_mah, data->init_clbcnt, data->cur_clbcnt,
 		 data->normal_temp_cap, data->cc_mah, data->bat_temp, data->uusoc_vbat,
-		 data->uusoc_mah,  data->cur_1000ma_adc, data->track.state);
+		 data->uusoc_mah,  data->cur_1000ma_adc, data->vol_1000mv_adc, data->track.state);
 }
 
 static bool sc27xx_fgu_is_first_poweron(struct sc27xx_fgu_data *data)
@@ -1363,7 +1368,7 @@ static int sc27xx_fgu_get_boot_voltage(struct sc27xx_fgu_data *data, int *pocv_u
 	}
 
 	cur_adc <<= 1;
-	oci_ma = sc27xx_fgu_adc_to_current(data, (s64)cur_adc - SC27XX_FGU_CUR_BASIC_ADC);
+	oci_ma = sc27xx_fgu_adc2current(data, (s64)cur_adc - SC27XX_FGU_CUR_BASIC_ADC);
 
 	/*
 	 * Should get the OCV from SC27XX_FGU_POCV register at the system
@@ -1376,7 +1381,7 @@ static int sc27xx_fgu_get_boot_voltage(struct sc27xx_fgu_data *data, int *pocv_u
 		return ret;
 	}
 
-	vol_mv = sc27xx_fgu_adc_to_voltage(data, vol_mv);
+	vol_mv = sc27xx_fgu_adc2voltage(data, vol_mv);
 	if (vol_mv < SC27XX_FGU_POCV_VOLT_THRESHOLD) {
 		ret = sc27xx_fgu_get_vbat_ocv(data, &ocv_mv);
 		if (ret) {
@@ -2008,7 +2013,7 @@ static int sc27xx_fgu_suspend_calib_check_relax_cnt_int(struct sc27xx_fgu_data *
 	if (data->slp_cap_calib.relax_cnt_int_ocurred) {
 		data->slp_cap_calib.relax_cnt_int_ocurred = false;
 		ret = 0;
-		dev_info(data->dev, "RELX_CNT_INT ocurred 1!!\n");
+		dev_info(data->dev, "RELAX_CNT_INT ocurred 1!!\n");
 		goto no_relax_cnt_int;
 	}
 
@@ -2018,18 +2023,18 @@ static int sc27xx_fgu_suspend_calib_check_relax_cnt_int(struct sc27xx_fgu_data *
 		goto no_relax_cnt_int;
 	}
 
-	if (!(int_status & SC27XX_FGU_RELX_CNT_STS)) {
-		dev_info(data->dev, "no RELX_CNT_INT ocurred!!\n");
+	if (!(int_status & SC27XX_FGU_RELAX_CNT_STS)) {
+		dev_info(data->dev, "no RELAX_CNT_INT ocurred!!\n");
 		ret = -EINVAL;
 		goto no_relax_cnt_int;
 	}
 
 	ret = regmap_update_bits(data->regmap, data->base + SC27XX_FGU_INT_CLR,
-				SC27XX_FGU_RELX_CNT_STS, SC27XX_FGU_RELX_CNT_STS);
+				SC27XX_FGU_RELAX_CNT_STS, SC27XX_FGU_RELAX_CNT_STS);
 	if (ret)
-		dev_err(data->dev, "failed to clear  RELX_CNT_STS interrupt status, ret = %d\n", ret);
+		dev_err(data->dev, "failed to clear  RELAX_CNT_STS interrupt status, ret = %d\n", ret);
 
-	dev_info(data->dev, "RELX_CNT_INT ocurred!!\n");
+	dev_info(data->dev, "RELAX_CNT_INT ocurred!!\n");
 	ret = 0;
 
 no_relax_cnt_int:
@@ -2120,7 +2125,7 @@ static int sc27xx_fgu_suspend_calib_get_ocv(struct sc27xx_fgu_data *data)
 		 * It is ADC values reading from registers which need to convert to
 		 * corresponding voltage values.
 		 */
-		vol_mv = sc27xx_fgu_adc_to_voltage(data, vol_mv);
+		vol_mv = sc27xx_fgu_adc2voltage(data, vol_mv);
 
 		cur_ma = 0x7fffffff;
 		ret = regmap_read(data->regmap,
@@ -2135,7 +2140,7 @@ static int sc27xx_fgu_suspend_calib_get_ocv(struct sc27xx_fgu_data *data)
 		 * It is ADC values reading from registers which need to convert to
 		 * corresponding current values.
 		 */
-		cur_ma = sc27xx_fgu_adc_to_current(data, (s64)cur_ma - SC27XX_FGU_CUR_BASIC_ADC);
+		cur_ma = sc27xx_fgu_adc2current(data, (s64)cur_ma - SC27XX_FGU_CUR_BASIC_ADC);
 		if (abs(cur_ma) < data->slp_cap_calib.relax_cur_threshold) {
 			dev_info(data->dev, "Sleep calib get cur[%d] = %d meet condition\n", i, cur_ma);
 			break;
@@ -2224,35 +2229,35 @@ static void sc27xx_fgu_enable_relax_cnt_int(struct sc27xx_fgu_data *data)
 	int ret;
 
 	ret = regmap_update_bits(data->regmap, data->base + SC27XX_FGU_INT_CLR,
-				SC27XX_FGU_RELX_CNT_STS, SC27XX_FGU_RELX_CNT_STS);
+				 SC27XX_FGU_RELAX_CNT_STS, SC27XX_FGU_RELAX_CNT_STS);
 	if (ret)
-		dev_err(data->dev, "Sleep calib failed to clear  RELX_CNT_INT_STS, ret = %d\n", ret);
+		dev_err(data->dev, "Sleep calib failed to clear  RELAX_CNT_INT_STS, ret = %d\n", ret);
 
 	ret = regmap_update_bits(data->regmap, data->base + SC27XX_FGU_INT_EN,
-				 SC27XX_FGU_RELX_CNT_INT, SC27XX_FGU_RELX_CNT_INT);
+				 SC27XX_FGU_RELAX_CNT_INT, SC27XX_FGU_RELAX_CNT_INT);
 	if (ret)
-		dev_err(data->dev, "Sleep calib Fail to enable RELX_CNT_INT, re= %d\n", ret);
+		dev_err(data->dev, "Sleep calib Fail to enable RELAX_CNT_INT, re= %d\n", ret);
 }
 
 static int sc27xx_fgu_relax_mode_config(struct sc27xx_fgu_data *data)
 {
-	int ret;
+	int ret, relax_cur_threshold_adc;
 
 	ret = regmap_update_bits(data->regmap, data->base + SC27XX_FGU_RELAX_CNT_THRE,
-				 SC2720_FGU_RELAX_CNT_THRE_MASK,
+				 SC27XX_FGU_RELAX_CNT_THRE_MASK,
 				 data->slp_cap_calib.relax_cnt_threshold <<
-				 SC2720_FGU_RELAX_CNT_THRE_SHITF);
+				 SC27XX_FGU_RELAX_CNT_THRE_SHITF);
 	if (ret) {
-		dev_err(data->dev, "Sleep calib Fail to enable RELX_CNT_THRE, re= %d\n", ret);
+		dev_err(data->dev, "Sleep calib Fail to enable RELAX_CNT_THRE, re= %d\n", ret);
 		return ret;
 	}
 
+	relax_cur_threshold_adc = sc27xx_fgu_current2adc(data, data->slp_cap_calib.relax_cur_threshold);
 	ret = regmap_update_bits(data->regmap, data->base + SC27XX_FGU_RELAX_CURT_THRE,
-				 SC2720_FGU_RELAX_CURT_THRE_MASK,
-				 data->slp_cap_calib.relax_cur_threshold <<
-				 SC2720_FGU_RELAX_CURT_THRE_SHITF);
+				 SC27XX_FGU_RELAX_CURT_THRE_MASK,
+				 relax_cur_threshold_adc << SC27XX_FGU_RELAX_CURT_THRE_SHITF);
 	if (ret)
-		dev_err(data->dev, "Sleep calib Fail to enable RELX_CURT_THRE, re= %d\n", ret);
+		dev_err(data->dev, "Sleep calib Fail to enable RELAX_CURT_THRE, re= %d\n", ret);
 
 	return ret;
 }
@@ -2762,7 +2767,7 @@ static bool sc27xx_fgu_discharging_current_trend(struct sc27xx_fgu_data *data)
 			}
 
 			data->cur_now_buff[i] =
-				sc27xx_fgu_adc_to_current(data, (s64)cur - SC27XX_FGU_CUR_BASIC_ADC);
+				sc27xx_fgu_adc2current(data, (s64)cur - SC27XX_FGU_CUR_BASIC_ADC);
 		}
 
 		return is_discharging;
@@ -2786,7 +2791,7 @@ static bool sc27xx_fgu_discharging_current_trend(struct sc27xx_fgu_data *data)
 		}
 
 		data->cur_now_buff[i] =
-			sc27xx_fgu_adc_to_current(data, (s64)cur - SC27XX_FGU_CUR_BASIC_ADC);
+			sc27xx_fgu_adc2current(data, (s64)cur - SC27XX_FGU_CUR_BASIC_ADC);
 		if (data->cur_now_buff[i] > 0)
 			is_discharging = false;
 	}
@@ -2938,9 +2943,9 @@ static irqreturn_t sc27xx_fgu_interrupt(int irq, void *dev_id)
 	if (ret)
 		goto out;
 
-	if (status & SC27XX_FGU_RELX_CNT_STS) {
+	if (status & SC27XX_FGU_RELAX_CNT_STS) {
 		data->slp_cap_calib.relax_cnt_int_ocurred = true;
-		dev_info(data->dev, "%s,  RELX_CNT_INT ocurred!!\n", __func__);
+		dev_info(data->dev, "%s,  RELAX_CNT_INT ocurred!!\n", __func__);
 	}
 
 	if (status & SC27XX_FGU_HIGH_OVERLOAD_INT) {
@@ -3161,8 +3166,8 @@ static bool sc27xx_fgu_cap_track_is_sw_ocv_valid(struct sc27xx_fgu_data *data, i
 		if (ret)
 			return false;
 
-		cur_ma = sc27xx_fgu_adc_to_current(data, (s64)cur_adc - SC27XX_FGU_CUR_BASIC_ADC);
-		vol_mv = sc27xx_fgu_adc_to_voltage(data, vol_adc);
+		cur_ma = sc27xx_fgu_adc2current(data, (s64)cur_adc - SC27XX_FGU_CUR_BASIC_ADC);
+		vol_mv = sc27xx_fgu_adc2voltage(data, vol_adc);
 
 
 		if (abs(cur_ma) > SC27XX_FGU_TRACK_CAP_START_CURRENT)
@@ -3254,8 +3259,8 @@ static bool sc27xx_fgu_cap_track_is_meet_end_conditon(struct sc27xx_fgu_data *da
 		if (ret)
 			return false;
 
-		cur_now = sc27xx_fgu_adc_to_current(data, (s64)cur_adc - SC27XX_FGU_CUR_BASIC_ADC);
-		vol_now = sc27xx_fgu_adc_to_voltage(data, vol_adc);
+		cur_now = sc27xx_fgu_adc2current(data, (s64)cur_adc - SC27XX_FGU_CUR_BASIC_ADC);
+		vol_now = sc27xx_fgu_adc2voltage(data, vol_adc);
 
 
 		if (cur_now <= 0 || cur_now > data->track.end_cur || vol_now < data->track.end_vol)
