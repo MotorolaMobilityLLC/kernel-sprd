@@ -98,6 +98,8 @@
 
 		/*sprd,qos = <&gpu_qos>;*/
 		sprd,dvfs-default = <0>;
+		#cooling-cells = <2>;
+		dynamic-power-coefficient = <2824>;
 
 		clocks = <&aonapb_gate CLK_GPU_EB>,
 			<&gpu_clk CLK_GPU_CORE_EB>,
