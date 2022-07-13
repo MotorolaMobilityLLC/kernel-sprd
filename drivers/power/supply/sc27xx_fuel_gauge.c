@@ -1544,6 +1544,13 @@ static int sc27xx_fgu_get_boot_capacity(struct sc27xx_fgu_data *data, int *cap)
 		return ret;
 	}
 
+	data->normal_temp_cap = *cap;
+	ret = sc27xx_fgu_save_normal_temperature_cap(data, data->normal_temp_cap);
+	if (ret) {
+		dev_err(data->dev, "Failed to save normal temperature capacity, ret = %d\n", ret);
+		return ret;
+	}
+
 	data->is_first_poweron = true;
 	dev_info(data->dev, "First_poweron: pocv_uv = %d, pocv_cap = %d, "
 		 "boot_cap = %d\n", pocv_uv, pocv_cap, *cap);
