@@ -247,7 +247,7 @@ static void gnss_tcxo_enable(void)
 
 	dev_err(dev, "%s M3l=[%d],L6=[%d]\n", __func__, isM3lite(), isQogirl6());
 
-	if ((isM3lite() == FALSE) && (isQogirl6() == FALSE)) {
+	if ((isM3lite() == FALSE) || (isQogirl6() == FALSE)) {
 		dev_err(dev, "%s not M3lite or L6\n", __func__);
 		return;
 	}
@@ -279,7 +279,7 @@ static void gnss_tcxo_disable(void)
 
 	dev_err(dev, "%s M3l=[%d],L6=[%d]\n", __func__, isM3lite(), isQogirl6());
 
-	if ((isM3lite() == FALSE) && (isQogirl6() == FALSE)) {
+	if ((isM3lite() == FALSE) || (isQogirl6() == FALSE)) {
 		dev_err(dev, "%s not M3lite or L6\n", __func__);
 		return;
 	}
