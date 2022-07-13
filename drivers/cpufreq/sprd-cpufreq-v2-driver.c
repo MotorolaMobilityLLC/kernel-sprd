@@ -193,11 +193,9 @@ static struct temp_node *sprd_temp_list_find(struct list_head *head, int temp)
 
 static int sprd_policy_table_update(struct cpufreq_policy *policy, struct temp_node *node)
 {
-	struct cpufreq_frequency_table *old_table, *new_table __maybe_unused;
+	struct cpufreq_frequency_table *new_table __maybe_unused;
 	struct cluster_info *cluster;
 	struct device *cpu;
-	struct dev_pm_opp *opp;
-	unsigned long rate = 0;
 	u64 freq, vol;
 	int i, ret;
 
@@ -223,17 +221,6 @@ static int sprd_policy_table_update(struct cpufreq_policy *policy, struct temp_n
 
 	pr_debug("cluster %u dvfs table entry num is %u\n", cluster->id, cluster->table_entry_num);
 
-	old_table = policy->freq_table;
-	if (old_table) {
-		while (!IS_ERR(opp = dev_pm_opp_find_freq_ceil(cpu, &rate))) {
-			dev_pm_opp_put(opp);
-			dev_pm_opp_remove(cpu, rate);
-			rate++;
-		}
-	}
-
-	pr_debug("update cluster %u opp\n", cluster->id);
-
 	for (i = 0; i < cluster->table_entry_num; ++i) {
 		ret = cluster->pair_get(cluster->id, i, &freq, &vol);
 		if (ret) {
@@ -245,8 +232,12 @@ static int sprd_policy_table_update(struct cpufreq_policy *policy, struct temp_n
 
 		ret = dev_pm_opp_add(cpu, freq, vol);
 		if (ret) {
-			pr_err("add %lluHz/%lluuV pair to opp error(%d)\n", freq, vol, ret);
-			return ret;
+			dev_pm_opp_remove(cpu, freq);
+			ret = dev_pm_opp_add(cpu, freq, vol);
+			if (ret) {
+				pr_err("add %lluHz/%lluuV pair to opp error(%d)\n", freq, vol, ret);
+				return ret;
+			}
 		}
 	}
 
@@ -271,7 +262,8 @@ static int sprd_policy_table_update(struct cpufreq_policy *policy, struct temp_n
 static void sprd_cpufreq_temp_work_func(struct work_struct *work)
 {
 	int temp;
-	unsigned int freq;
+	unsigned int freq, cpu;
+	struct cpumask cluster_online_mask;
 	struct delayed_work *dwork = to_delayed_work(work);
 	struct cluster_info *cluster =
 		container_of(dwork, struct cluster_info, temp_work);
@@ -295,7 +287,10 @@ static void sprd_cpufreq_temp_work_func(struct work_struct *work)
 
 	thermal_zone_get_temp(cluster->cpu_tz, &temp);
 
-	freq = sprd_cpufreq_update_opp(cluster->cpu, temp);
+	cpumask_and(&cluster_online_mask, &cluster->cpus, cpu_online_mask);
+	cpu = cpumask_first(&cluster_online_mask);
+
+	freq = sprd_cpufreq_update_opp(cpu, temp);
 	if (freq)
 		pr_info("cluster[%u] update max freq[%u] by temp[%d]\n",
 			cluster->id, freq, temp);
@@ -327,6 +322,7 @@ static int sprd_cpufreq_init(struct cpufreq_policy *policy)
 		pr_err("cpufreq cluster cpumask error");
 		goto unlock_ret;
 	}
+	cpumask_copy(&cluster->cpus, policy->cpus);
 
 	/* init other cpu policy link in same cluster */
 	policy->dvfs_possible_from_any_cpu = true;
@@ -865,7 +861,7 @@ static int sprd_cpufreq_driver_remove(struct platform_device *pdev)
  * 1.cluster is not working, then return 0
  * 2.succeed to update dvfs table then return max freq(KHZ) of this cluster
  */
-unsigned int sprd_cpufreq_update_opp(int cpu, int now_temp)
+unsigned int sprd_cpufreq_update_opp(unsigned int cpu, int now_temp)
 {
 	struct cpufreq_policy *policy;
 	struct cluster_info *cluster;
