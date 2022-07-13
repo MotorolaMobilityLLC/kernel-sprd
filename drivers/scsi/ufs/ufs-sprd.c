@@ -295,6 +295,24 @@ static int ufs_sprd_device_reset(struct ufs_hba *hba)
 	return 0;
 }
 
+void ufs_sprd_setup_xfer_req(struct ufs_hba *hba, int task_tag, bool scsi_cmd)
+{
+	struct ufshcd_lrb *lrbp;
+	struct utp_transfer_req_desc *req_desc;
+	u32 data_direction;
+	u32 dword_0, crypto;
+
+	lrbp = &hba->lrb[task_tag];
+	req_desc = lrbp->utr_descriptor_ptr;
+	dword_0 = le32_to_cpu(req_desc->header.dword_0);
+	data_direction = dword_0 & (UTP_DEVICE_TO_HOST | UTP_HOST_TO_DEVICE);
+	crypto = dword_0 & UTP_REQ_DESC_CRYPTO_ENABLE_CMD;
+	if (!data_direction && crypto) {
+		dword_0 &= ~(UTP_REQ_DESC_CRYPTO_ENABLE_CMD);
+		req_desc->header.dword_0 = cpu_to_le32(dword_0);
+	}
+}
+
 static struct ufs_hba_variant_ops ufs_hba_sprd_vops = {
 	.name = "sprd",
 	.init = ufs_sprd_init,
@@ -304,6 +322,7 @@ static struct ufs_hba_variant_ops ufs_hba_sprd_vops = {
 	.link_startup_notify = ufs_sprd_link_startup_notify,
 	.pwr_change_notify = ufs_sprd_pwr_change_notify,
 	.hibern8_notify = ufs_sprd_hibern8_notify,
+	.setup_xfer_req = ufs_sprd_setup_xfer_req,
 	.apply_dev_quirks = ufs_sprd_apply_dev_quirks,
 	.suspend = ufs_sprd_suspend,
 	.device_reset = ufs_sprd_device_reset,
