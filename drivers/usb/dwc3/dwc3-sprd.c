@@ -1017,11 +1017,13 @@ static void dwc3_sprd_hotplug_sm_work(struct work_struct *work)
 			!test_bit(A_AUDIO, &sdwc->inputs)) {
 			sdwc->drd_state = DRD_STATE_IDLE;
 			rework = true;
+			sdwc->glue_dr_mode = USB_DR_MODE_UNKNOWN;
+			dev_dbg(sdwc->dev, "audio exit\n");
+		} else if (test_bit(A_AUDIO, &sdwc->inputs)) {
 			usb_phy_vbus_off(sdwc->ss_phy);
 			pm_runtime_mark_last_busy(dwc->dev);
 			pm_runtime_put(dwc->dev);
-			sdwc->glue_dr_mode = USB_DR_MODE_UNKNOWN;
-			dev_dbg(sdwc->dev, "audio exit\n");
+			dev_dbg(sdwc->dev, "digital headset, suspend dwc3 \n");
 		}
 		break;
 	default:
