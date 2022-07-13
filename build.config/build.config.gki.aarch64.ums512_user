@@ -23,6 +23,7 @@ EXT_MODULES="
 ../modules/common/camera/sensor
 ../modules/common/camera/mmdvfs
 ../modules/common/io/block
+../modules/common/io/iowait
 ../modules/kernel5.15/wcn/fm/driver
 ../modules/kernel5.15/wcn/bluetooth/driver
 ../modules/kernel5.15/display/gsp

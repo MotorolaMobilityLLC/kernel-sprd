@@ -29,6 +29,7 @@ EXT_MODULES="
 ../modules/common/camera/flash/flash_drv
 ../modules/common/camera/sensor
 ../modules/common/io/block
+../modules/common/io/iowait
 ../modules/kernel5.15/input/touchscreen/novatek_nt36xxx
 ../modules/kernel5.15/video/sprd-vpu
 ../modules/kernel5.15/video/sprd-vpu-power
