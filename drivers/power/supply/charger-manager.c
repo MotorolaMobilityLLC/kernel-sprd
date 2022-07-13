@@ -5489,7 +5489,18 @@ static ssize_t jeita_control_show(struct device *dev,  struct device_attribute *
 {
 	struct charger_sysfs_ctl_item *sysfs = container_of(attr, struct charger_sysfs_ctl_item,
 							    attr_jeita_control);
-	struct charger_desc *desc = sysfs->cm->desc;
+	struct charger_desc *desc;
+
+	if (!sysfs) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -ENOMEM;
+	}
+
+	desc = sysfs->cm->desc;
+	if (!desc) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -ENOMEM;
+	}
 
 	return sprintf(buf, "%d\n", !desc->jeita_disabled);
 }
@@ -5501,10 +5512,16 @@ static ssize_t jeita_control_store(struct device *dev,
 	int ret;
 	struct charger_sysfs_ctl_item *sysfs = container_of(attr, struct charger_sysfs_ctl_item,
 							    attr_jeita_control);
-	struct charger_desc *desc = sysfs->cm->desc;
+	struct charger_desc *desc;
 	bool enabled;
 
-	if (!sysfs || !desc) {
+	if (!sysfs) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -ENOMEM;
+	}
+
+	desc = sysfs->cm->desc;
+	if (!desc) {
 		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
 		return -ENOMEM;
 	}
@@ -5523,10 +5540,16 @@ charge_pump_present_show(struct device *dev, struct device_attribute *attr, char
 {
 	struct charger_sysfs_ctl_item *sysfs = container_of(attr, struct charger_sysfs_ctl_item,
 							    attr_charge_pump_present);
-	struct charger_manager *cm = sysfs->cm;
+	struct charger_manager *cm;
 	bool status = false;
 
-	if (!sysfs || !cm) {
+	if (!sysfs) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -ENOMEM;
+	}
+
+	cm = sysfs->cm;
+	if (!cm) {
 		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
 		return -ENOMEM;
 	}
@@ -5544,10 +5567,16 @@ static ssize_t charge_pump_present_store(struct device *dev,
 	int ret;
 	struct charger_sysfs_ctl_item *sysfs = container_of(attr, struct charger_sysfs_ctl_item,
 							    attr_charge_pump_present);
-	struct charger_manager *cm = sysfs->cm;
+	struct charger_manager *cm;
 	bool enabled;
 
-	if (!sysfs || !cm) {
+	if (!sysfs) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -ENOMEM;
+	}
+
+	cm = sysfs->cm;
+	if (!cm) {
 		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
 		return -ENOMEM;
 	}
@@ -5580,10 +5609,16 @@ charge_pump_current_show(struct device *dev, struct device_attribute *attr, char
 {
 	struct charger_sysfs_ctl_item *sysfs = container_of(attr, struct charger_sysfs_ctl_item,
 							    attr_charge_pump_current);
-	struct charger_manager *cm = sysfs->cm;
+	struct charger_manager *cm;
 	int cur, ret;
 
-	if (!sysfs || !cm) {
+	if (!sysfs) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -ENOMEM;
+	}
+
+	cm = sysfs->cm;
+	if (!cm) {
 		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
 		return -ENOMEM;
 	}
@@ -5608,10 +5643,16 @@ static ssize_t charge_pump_current_id_store(struct device *dev,
 	int ret;
 	struct charger_sysfs_ctl_item *sysfs = container_of(attr, struct charger_sysfs_ctl_item,
 							    attr_charge_pump_current);
-	struct charger_manager *cm = sysfs->cm;
+	struct charger_manager *cm;
 	int cp_id;
 
-	if (!sysfs || !cm) {
+	if (!sysfs) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -ENOMEM;
+	}
+
+	cm = sysfs->cm;
+	if (!cm) {
 		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
 		return -ENOMEM;
 	}
@@ -5651,10 +5692,16 @@ static ssize_t charger_stop_store(struct device *dev,
 {
 	struct charger_sysfs_ctl_item *sysfs = container_of(attr, struct charger_sysfs_ctl_item,
 							    attr_stop_charge);
-	struct charger_manager *cm = sysfs->cm;
+	struct charger_manager *cm;
 	int stop_charge, ret;
 
-	if (!sysfs || !cm) {
+	if (!sysfs) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -ENOMEM;
+	}
+
+	cm = sysfs->cm;
+	if (!cm || !cm->charger_psy) {
 		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
 		return -ENOMEM;
 	}
@@ -5707,14 +5754,26 @@ static ssize_t charger_externally_control_store(struct device *dev,
 {
 	struct charger_sysfs_ctl_item *sysfs = container_of(attr, struct charger_sysfs_ctl_item,
 							    attr_externally_control);
-	struct charger_manager *cm = sysfs->cm;
-	struct charger_desc *desc = cm->desc;
+	struct charger_manager *cm;
+	struct charger_desc *desc;
 	int i;
 	int ret;
 	int externally_control;
 	int chargers_externally_control = 1;
 
-	if (!sysfs || !cm) {
+	if (!sysfs) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -ENOMEM;
+	}
+
+	cm = sysfs->cm;
+	if (!cm) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -ENOMEM;
+	}
+
+	desc = cm->desc;
+	if (!desc) {
 		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
 		return -ENOMEM;
 	}
@@ -5763,10 +5822,16 @@ static ssize_t cp_num_show(struct device *dev, struct device_attribute *attr, ch
 {
 	struct charger_sysfs_ctl_item *sysfs = container_of(attr, struct charger_sysfs_ctl_item,
 							    attr_cp_num);
-	struct charger_manager *cm = sysfs->cm;
+	struct charger_manager *cm;
 	int cp_num = 0;
 
-	if (!cm) {
+	if (!sysfs) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -ENOMEM;
+	}
+
+	cm = sysfs->cm;
+	if (!cm || !cm->desc) {
 		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
 		return -ENOMEM;
 	}
@@ -5781,8 +5846,19 @@ static ssize_t enable_power_path_show(struct device *dev,
 {
 	struct charger_sysfs_ctl_item *sysfs = container_of(attr, struct charger_sysfs_ctl_item,
 							    attr_enable_power_path);
-	struct charger_manager *cm = sysfs->cm;
+	struct charger_manager *cm;
 	bool power_path_enabled;
+
+	if (!sysfs) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -ENOMEM;
+	}
+
+	cm = sysfs->cm;
+	if (!cm) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -ENOMEM;
+	}
 
 	power_path_enabled = cm_is_power_path_enabled(cm);
 
@@ -5795,9 +5871,20 @@ static ssize_t enable_power_path_store(struct device *dev,
 {
 	struct charger_sysfs_ctl_item *sysfs = container_of(attr, struct charger_sysfs_ctl_item,
 							    attr_enable_power_path);
-	struct charger_manager *cm = sysfs->cm;
+	struct charger_manager *cm;
 	bool power_path_enabled;
 	int ret;
+
+	if (!sysfs) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -ENOMEM;
+	}
+
+	cm = sysfs->cm;
+	if (!cm || !cm->charger_psy) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -ENOMEM;
+	}
 
 	ret =  kstrtobool(buf, &power_path_enabled);
 	if (ret)
@@ -5819,7 +5906,18 @@ static ssize_t keep_awake_show(struct device *dev,
 {
 	struct charger_sysfs_ctl_item *sysfs = container_of(attr, struct charger_sysfs_ctl_item,
 							    attr_keep_awake);
-	struct charger_manager *cm = sysfs->cm;
+	struct charger_manager *cm;
+
+	if (!sysfs) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -ENOMEM;
+	}
+
+	cm = sysfs->cm;
+	if (!cm || !cm->desc) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -ENOMEM;
+	}
 
 	return sprintf(buf, "%d\n", cm->desc->keep_awake);
 }
@@ -5831,8 +5929,19 @@ static ssize_t keep_awake_store(struct device *dev,
 	int ret;
 	struct charger_sysfs_ctl_item *sysfs = container_of(attr, struct charger_sysfs_ctl_item,
 							    attr_keep_awake);
-	struct charger_manager *cm = sysfs->cm;
+	struct charger_manager *cm;
 	bool enabled;
+
+	if (!sysfs) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -ENOMEM;
+	}
+
+	cm = sysfs->cm;
+	if (!cm || !cm->desc) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -ENOMEM;
+	}
 
 	ret =  kstrtobool(buf, &enabled);
 	if (ret)
@@ -5859,13 +5968,20 @@ static ssize_t support_fast_charge_show(struct device *dev,
 {
 	struct charger_sysfs_ctl_item *sysfs = container_of(attr, struct charger_sysfs_ctl_item,
 							    attr_support_fast_charge);
-	struct charger_manager *cm = sysfs->cm;
+	struct charger_manager *cm;
 	bool support_fast_charge = false;
 
-	if (!sysfs || !cm || !cm->fchg_info) {
+	if (!sysfs) {
 		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
 		return -ENOMEM;
 	}
+
+	cm = sysfs->cm;
+	if (!cm || !cm->fchg_info) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -ENOMEM;
+	}
+
 	support_fast_charge = cm->fchg_info->support_fchg;
 
 	return sprintf(buf, "%d\n", support_fast_charge);
@@ -5973,8 +6089,7 @@ static int charger_manager_prepare_sysfs(struct charger_manager *cm)
 		sysfs->attr_support_fast_charge.show = support_fast_charge_show;
 
 		sysfs_attr_init(&sysfs->attr_externally_control.attr);
-		sysfs->attr_externally_control.attr.name
-				= "externally_control";
+		sysfs->attr_externally_control.attr.name = "externally_control";
 		sysfs->attr_externally_control.attr.mode = 0644;
 		sysfs->attr_externally_control.show
 				= charger_externally_control_show;
@@ -6812,11 +6927,6 @@ static int charger_manager_probe(struct platform_device *pdev)
 	if (desc->fullbatt_full_capacity == 0)
 		dev_info(&pdev->dev, "Ignoring full-battery full capacity threshold as it is not supplied\n");
 
-	if (!desc->sysfs || desc->num_sysfs < 1) {
-		dev_err(&pdev->dev, "sysfs undefined\n");
-		return -EINVAL;
-	}
-
 	if (!desc->psy_charger_stat || !desc->psy_charger_stat[0]) {
 		dev_err(&pdev->dev, "No power supply defined\n");
 		return -EINVAL;
@@ -6965,6 +7075,12 @@ static int charger_manager_probe(struct platform_device *pdev)
 			"Cannot prepare sysfs entry of regulators\n");
 		return ret;
 	}
+
+	if (!desc->sysfs || desc->num_sysfs < 1) {
+		dev_err(&pdev->dev, "sysfs undefined\n");
+		return -EINVAL;
+	}
+
 	psy_cfg.attr_grp = desc->sysfs_groups;
 	psy_cfg.of_node = np;
 
