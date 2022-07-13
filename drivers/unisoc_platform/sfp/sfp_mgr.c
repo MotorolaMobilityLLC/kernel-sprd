@@ -52,7 +52,11 @@
 #define DHCP_PORT 67
 #define DNS_PORT 53
 
+#if IS_ENABLED(CONFIG_SPRD_IPA_V3)
+#define CHK_FWD_ENTRY_SIZE (sizeof(struct fwd_entry) != 120)
+#else
 #define CHK_FWD_ENTRY_SIZE (sizeof(struct fwd_entry) != 96)
+#endif
 #define CHK_HASH_TBL_SIZE (sizeof(struct hd_hash_tbl) != 8)
 
 spinlock_t mgr_lock;/* Spinlock for sfp */
@@ -69,7 +73,7 @@ static const char * const sfp_netdev[] = {
 
 #define IPA_TERM_MAX 32
 static const char * const ipa_netdev[IPA_TERM_MAX] = {
-				    [1] = "usb",
+				    [1] = "sipa_usb",
 				    [2] = "wlan",
 				    [6] = "sipa_eth",
 				  };
@@ -507,7 +511,7 @@ int sfp_ct_init(struct nf_conn *ct, struct sfp_conn *sfp_ct)
 
 	timer_setup(&sfp_ct->timeout,
 		    sfp_mgr_fwd_death_by_timeout,
-		    (unsigned long)sfp_ct);
+		    0);
 
 	if (tuple1->dst.protonum == IP_L4_PROTO_TCP)
 		sfp_ct->timeout.expires = jiffies + sysctl_tcp_aging_time;
@@ -1107,6 +1111,7 @@ static void sfp_ipa_dev_init(void)
 	sfp_ipa_dev.bus = &platform_bus_type;
 	sfp_ipa_dev.coherent_dma_mask = DMA_BIT_MASK(32);
 	sfp_ipa_dev.dma_mask = &sfp_ipa_dev.coherent_dma_mask;
+	of_dma_configure(&sfp_ipa_dev, sfp_ipa_dev.of_node, true);
 #if IS_ENABLED(CONFIG_DMA_PERDEV_COHERENT)
 	sfp_ipa_dev.archdata.dma_coherent = false;
 #endif
@@ -1122,7 +1127,6 @@ static int sfp_mgr_init(void)
 		sfp_ipa_init();
 	}
 	sfp_proc_create();
-	sfp_mgr_disable();
 	return 0;
 }
 

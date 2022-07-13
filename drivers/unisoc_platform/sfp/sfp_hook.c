@@ -92,6 +92,56 @@ static void sfp_conntrack_in(struct net *net, u_int8_t pf,
 	rcu_read_unlock_bh();
 }
 
+static unsigned int nf_soft_fastpath_process(struct sk_buff *skb)
+{
+	int out_index = 0;
+	int ret = 0;
+	int err = 0;
+	struct net_device *dev;
+
+	ret = soft_fastpath_process(SFP_INTERFACE_LTE,
+				    (void *)skb,
+					NULL, NULL, &out_index);
+	if (!ret) {
+		dev = netdev_get_by_index(out_index);
+		if (!dev) {
+			pr_err("fail to get dev, out idx %d\n", out_index);
+			dev_kfree_skb_any(skb);
+			return NF_STOLEN;
+		}
+
+		/* update skb dev */
+		skb->dev = dev;
+
+		err = dev_queue_xmit(skb);
+		if (err)
+			pr_warn("fast xmit fail, out idx %d, err %x\n",
+					out_index, err);
+		dev_put(dev);
+		return NF_STOLEN;
+	}
+	return NF_ACCEPT;
+}
+
+static unsigned int ipv4_sfp_pre_routing(void *priv,
+					 struct sk_buff *skb,
+					 const struct nf_hook_state *state)
+{
+	if (sysctl_net_sfp_enable == 1 && sysctl_net_sfp_tether_scheme == 1)
+		return nf_soft_fastpath_process(skb);
+	return NF_ACCEPT;
+}
+
+static unsigned int ipv6_sfp_pre_routing(void *priv,
+					 struct sk_buff *skb,
+					 const struct nf_hook_state *state)
+{
+
+	if (sysctl_net_sfp_enable == 1 && sysctl_net_sfp_tether_scheme == 1)
+		return nf_soft_fastpath_process(skb);
+	return NF_ACCEPT;
+}
+
 static unsigned int nf_v4_sfp_conntrack_in(struct net *net, u_int8_t pf,
 					   unsigned int hooknum,
 					   struct sk_buff *skb)
@@ -152,7 +202,13 @@ static struct nf_hook_ops ipv4_sfp_conntrack_ops[] __read_mostly = {
 		.pf		= NFPROTO_IPV4,
 		.hooknum	= NF_INET_FORWARD,
 		.priority	= NF_IP_PRI_CONNTRACK_CONFIRM - 1,
-	}
+	},
+	{
+		.hook		= ipv4_sfp_pre_routing,
+		.pf		= NFPROTO_IPV4,
+		.hooknum	= NF_INET_PRE_ROUTING,
+		.priority	= NF_IP_PRI_MANGLE - 1,
+	},
 };
 
 static struct nf_hook_ops ipv6_sfp_conntrack_ops[] __read_mostly = {
@@ -167,7 +223,13 @@ static struct nf_hook_ops ipv6_sfp_conntrack_ops[] __read_mostly = {
 		.pf		= NFPROTO_IPV6,
 		.hooknum	= NF_INET_FORWARD,
 		.priority	= NF_IP_PRI_CONNTRACK_CONFIRM - 1,
-	}
+	},
+	{
+		.hook           = ipv6_sfp_pre_routing,
+		.pf             = NFPROTO_IPV6,
+		.hooknum        = NF_INET_PRE_ROUTING,
+		.priority       = NF_IP6_PRI_MANGLE - 1,
+	},
 };
 
 int __init nf_sfp_conntrack_init(void)
