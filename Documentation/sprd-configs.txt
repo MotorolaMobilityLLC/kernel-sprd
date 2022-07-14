@@ -103,9 +103,27 @@ CONFIG_ANDROID_BINDER_IPC
 	[missing plat description] none
 	[function] vts require. Binder is used in Android for both communication
 		between processes, and remote method invocation.
+CONFIG_ANDROID_KABI_RESERVE
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
 CONFIG_ANDROID_VENDOR_HOOKS
 	[arch] arm64
 	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
+CONFIG_ANDROID_VENDOR_OEM_DATA
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
