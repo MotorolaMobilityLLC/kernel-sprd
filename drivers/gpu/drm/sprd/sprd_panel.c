@@ -36,7 +36,8 @@ typedef enum tagLcd
     ICNL9911c_dj_mipi_hd,       // 11 digit
     ILI9882q_youda_mipi_hd,
     HX83102d_youda_mipi_hd,      // high 8 digit
-    FT8006s_hlt_mipi_hd
+    FT8006s_hlt_mipi_hd,
+    ICNL9911CAC_dj_mipi_hd
 } LCD;
 
 static LCD check_lcd_by_name(const char* lcd_name)
@@ -53,6 +54,8 @@ static LCD check_lcd_by_name(const char* lcd_name)
         return ILI9882q_youda_mipi_hd;
     if (strncmp(lcd_name, "lcd_ft8006s_hlt_mipi_hd", name_len) == 0)
         return FT8006s_hlt_mipi_hd;
+    if (strncmp(lcd_name, "lcd_icnl9911cac_dj_mipi_hd", name_len) == 0)
+        return ICNL9911CAC_dj_mipi_hd;
     return NotLCD;
 }
 
@@ -707,6 +710,10 @@ static void set_lcd_oled_level(struct sprd_oled *oled, int level)
 		oled->cmds[0]->payload[1] = level;
 		oled->cmds[0]->payload[2] = level & 0x00;
 		break;
+    case ICNL9911CAC_dj_mipi_hd:
+        oled->cmds[0]->payload[1] = level;
+        oled->cmds[0]->payload[2] = level & 0x00;
+        break;
 	default:
 	    DRM_INFO("Unknown lcd: %s", lcd_name);
 	    break;
@@ -774,6 +781,14 @@ static int sprd_oled_set_brightness(struct backlight_device *bdev)
         {
             g_last_level = level;
             level = ((level * 78) + 30)/ 100;
+        }
+    }
+    else if (check_lcd_by_name(lcd_name) == ICNL9911CAC_dj_mipi_hd)
+    {
+        if (level < 256)
+        {
+            g_last_level = level;
+            level = ((level * 81) + 30)/ 100;
         }
     }
 
