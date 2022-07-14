@@ -527,11 +527,16 @@ static ssize_t wcn_sysfs_show_reset_dump(struct device *dev,
 					 char *buf)
 {
 	ssize_t len = PAGE_SIZE;
+	int reset_prop = wcn_sysfs_get_reset_prop();
 
-	if (wcn_sysfs_get_reset_prop())
-		len = snprintf(buf, len, "reset\n");
-	else
+	if (reset_prop == WCN_ASSERT_ONLY_DUMP)
 		len = snprintf(buf, len, "dump\n");
+	else if (reset_prop == WCN_ASSERT_ONLY_RESET)
+		len = snprintf(buf, len, "reset\n");
+	else if (reset_prop == WCN_ASSERT_BOTH_RESET_DUMP)
+		len = snprintf(buf, len, "reset_dump\n");
+	else
+		return -EINVAL;
 
 	return len;
 }
@@ -542,16 +547,17 @@ static ssize_t wcn_sysfs_store_reset_dump(struct device *dev,
 {
 	WCN_INFO("%s: buf=%s\n", __func__, buf);
 
-	if (strncmp(buf, "reset", 5) == 0) {
-		atomic_set(&sysfs_info.is_reset, 0x1);
-	} else if (strncmp(buf, "dump", 4) == 0) {
-		atomic_set(&sysfs_info.is_reset, 0x0);
+	if (strncmp(buf, "dump", 4) == 0) {
+		atomic_set(&sysfs_info.is_reset, WCN_ASSERT_ONLY_DUMP);
+	} else if (strncmp(buf, "reset", 5) == 0) {
+		atomic_set(&sysfs_info.is_reset, WCN_ASSERT_ONLY_RESET);
+	} else if (strncmp(buf, "reset_dump", 10) == 0) {
+		atomic_set(&sysfs_info.is_reset, WCN_ASSERT_BOTH_RESET_DUMP);
 	} else if (strncmp(buf, "manual_dump", 11) == 0) {
 		sprdwcn_bus_set_carddump_status(true);
 		wcn_assert_interface(WCN_SOURCE_BTWF, "dumpmem");
-	} else {
+	} else
 		return -EINVAL;
-	}
 
 	return count;
 }
