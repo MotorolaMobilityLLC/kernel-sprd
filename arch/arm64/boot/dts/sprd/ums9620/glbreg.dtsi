@@ -183,6 +183,18 @@
 		};
 	};
 
+	ipa_usb31_dp_regs: syscon@31810000 {
+		compatible = "sprd,ums9520-glbregs", "syscon";
+		#syscon-cells = <2>;
+		reg = <0 0x31810000 0 0x1000>;
+	};
+
+	ipa_usb31_dptx_regs: syscon@31890000 {
+		compatible = "sprd,ums9520-glbregs", "syscon";
+		#syscon-cells = <2>;
+		reg = <0 0x31890000 0 0x10000>;
+	};
+
 	mm_csi_switch_regs: syscon@3b600000 {
 		compatible = "sprd,ums9620-glbregs", "syscon";
 		#syscon-cells = <2>;

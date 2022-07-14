@@ -271,3 +271,31 @@
 		flash-sync-gpios = <&ap_gpio 151 0>;
 	};
 };
+
+&hsphy {
+	vdd-supply = <&vddusb33>;
+	extcon = <&extcon_gpio>;
+	sprd,hsphy-device-eye-pattern = <0x067bd1c0>;
+	sprd,hsphy-host-eye-pattern = <0x067bd1c0>;
+	status = "okay";
+};
+
+&usb {
+	extcon = <&extcon_gpio>, <&pmic_typec>;
+	vbus-supply = <&vddvbus>;
+	status = "okay";
+};
+
+&ssphy {
+	vdd-supply = <&vddusb33>;
+	extcon = <&extcon_gpio>;
+	sprd,hsphy-device-eye-pattern = <0x067bd1c0>;
+	sprd,hsphy-host-eye-pattern = <0x067bd1c0>;
+	status = "okay";
+};
+
+&usb3 {
+	extcon = <&extcon_gpio>, <&pmic_typec>;
+	vbus-supply = <&vddvbus>;
+	status = "okay";
+};
