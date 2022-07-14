@@ -12,6 +12,7 @@
 /* BEGIN, Ontim,  wzx, 19/10/23, St-result :PASS,LCD and TP Device information */
 extern unsigned char g_lcm_info_flag;
 extern char lcd_info_pr[256];
+extern const char* lcd_name;
 u16  device_fw_ver = 0;
 #include <ontim/ontim_dev_dgb.h>
 static char version[40] = "0x00";
@@ -206,7 +207,7 @@ static void cts_tp_fw(struct cts_device *cts_dev)
                     CTS_DEVICE_FW_REG_VERSION, &device_fw_ver, 5, 0);
 	cts_fw = be16_to_cpup(&device_fw_ver);
 	cts_info("ver:0x%x", cts_fw);
-	snprintf(version, sizeof(version)," FW:02_05, VID:0xA4", cts_fw);
+	snprintf(version, sizeof(version)," FW:02_0%x, VID:0xA4", cts_fw);
 	cts_info("version:%s", version);
 }
 
@@ -218,6 +219,7 @@ static int cts_driver_probe(struct spi_device *client)
 #endif
 {
     struct chipone_ts_data *cts_data = NULL;
+    int name_len = 0;
     int ret = 0;
     /* BEGIN, Ontim,  wzx, 19/010/23, St-result :PASS,LCD and TP Device information */
     if(CHECK_THIS_DEV_DEBUG_AREADY_EXIT()==0)
@@ -373,13 +375,21 @@ static int cts_driver_probe(struct spi_device *client)
         cts_err("Start device failed %d", ret);
         goto err_deinit_earjack_detect;
     }
+    if( lcd_name == NULL )
+    {
+        name_len = 0;
+    }
+    else
+        name_len = strlen(lcd_name);
 
-    // snprintf(lcdname, sizeof(lcdname),"%s","easyquick-icnl9911c-608");
-    // snprintf(vendor_name, sizeof(vendor_name),"%s","easyquick-icnl9911c-608");
-    if (LCM_INFO_EASYQUICK_608 == g_lcm_info_flag) {
-        snprintf(lcdname, sizeof(lcdname),"%s ", "easyquick-icn19911c-608" );
-        snprintf(vendor_name, sizeof(vendor_name),"%s ", "easyquick-icn19911c-608" );
-    } else if (LCM_INFO_HLT_GLASS == g_lcm_info_flag) {
+    //if (LCM_INFO_EASYQUICK_608 == g_lcm_info_flag) 
+    if (strncmp(lcd_name, "lcd_icnl9911cac_dj_mipi_hd", name_len) == 0)
+    {
+        snprintf(lcdname, sizeof(lcdname),"%s ", "dj-icn19911cac" );
+        snprintf(vendor_name, sizeof(vendor_name),"%s ", "dj-icn19911cac" );
+    }
+    else if (strncmp(lcd_name, "lcd_icnl9911c_dj_mipi_hd", name_len) == 0)
+    {
         snprintf(lcdname, sizeof(lcdname),"%s ", "dj-icnl9911c" );
         snprintf(vendor_name, sizeof(vendor_name),"%s ", "dj-icnl9911c" );
     }

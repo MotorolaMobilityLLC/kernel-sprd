@@ -10,6 +10,7 @@
 #include <linux/mount.h>
 #include <linux/namei.h>
 #include <linux/vmalloc.h>
+extern const char *lcd_name;
 
 u32 cts_crc32(const u8 *data, size_t len)
 {
@@ -70,10 +71,11 @@ u32 cts_crc32(const u8 *data, size_t len)
     return crc;
 }
 
+
 #if defined(CFG_CTS_DRIVER_BUILTIN_FIRMWARE) || defined(CFG_CTS_FIRMWARE_IN_FS)
 
 #ifdef CFG_CTS_DRIVER_BUILTIN_FIRMWARE
-#include "cts_builtin_firmware.h"
+    #include "cts_builtin_firmware.h"
 #define NUM_DRIVER_BUILTIN_FIRMWARE ARRAY_SIZE(cts_driver_builtin_firmwares)
 #endif /* CFG_CTS_DRIVER_BUILTIN_FIRMWARE */
 
@@ -320,11 +322,18 @@ static const struct cts_firmware * cts_request_newer_driver_builtin_firmware(
 
     const struct cts_firmware *firmware = NULL;
     int    i;
-
+    int name_len = 0; 
     cts_info("Request driver builtin if match hwid: %06x fwid: %04x && ver > %04x",
         hwid, fwid, device_fw_ver);
-
-    firmware = cts_driver_builtin_firmwares;
+    //zsh
+    if(lcd_name == NULL)
+        name_len = 0;
+    else
+        name_len = strlen(lcd_name);
+    if(strncmp(lcd_name, "lcd_icnl9911cac_dj_mipi_hd", name_len) == 0)
+        firmware = cts_driver_builtin_firmwares_cac;
+    else
+        firmware = cts_driver_builtin_firmwares;
     for (i = 0; i < ARRAY_SIZE(cts_driver_builtin_firmwares); i++, firmware++) {
         if (MATCH_HWID(firmware, hwid) && MATCH_FWID(firmware, fwid)) {
             if (!is_firmware_valid(firmware)) {
