@@ -236,4 +236,12 @@
 		#power-domain-cells = <0>;
 		status = "disabled";
 	};
+
+	voice_trigger_irq: voice_trigger_irq {
+		compatible = "sprd,voice_trigger_irq";
+		sprd,syscon-agcp-glb = <&audcp_glb_regs>;
+		audcp_glb_eic_int = <&audcp_glb_regs 0x18 0x4>;
+		interrupts = <GIC_SPI 61 IRQ_TYPE_LEVEL_HIGH>;
+		power-domains = <&agdsp_domain>;
+	};
 };

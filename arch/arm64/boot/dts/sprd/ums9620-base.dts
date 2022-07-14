@@ -310,6 +310,10 @@
 	status = "okay";
 };
 
+&voice_trigger_irq {
+	status = "okay";
+};
+
 &sprd_audio_codec_ana {
 	status = "okay";
 	hp-use-inter-pa = <1>;
