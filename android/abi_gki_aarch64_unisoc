@@ -708,6 +708,7 @@
   __pci_register_driver
   pci_set_master
   pci_unregister_driver
+  pcpu_nr_pages
   PDE_DATA
   __per_cpu_offset
   perf_trace_buf_alloc
@@ -911,6 +912,8 @@
   sg_nents
   sg_next
   shmem_read_mapping_page_gfp
+  si_mem_available
+  si_swapinfo
   simple_attr_open
   simple_attr_read
   simple_attr_release
@@ -1158,11 +1161,14 @@
   vchan_tx_submit
   vfree
   vmalloc
+  vmalloc_nr_pages
   vmalloc_to_page
   vm_map_ram
+  vm_node_stat
   vm_unmap_aliases
   vm_unmap_ram
   vm_iomap_memory
+  vm_zone_stat
   vsnprintf
   vscnprintf
   vunmap
