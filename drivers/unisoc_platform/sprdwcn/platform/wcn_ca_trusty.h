@@ -14,17 +14,21 @@
 #ifndef _WCN_CA_TRUSTY_H
 #define _WCN_CA_TRUSTY_H
 
+#define IV_BYTE_LEN 16
+
 struct sys_img_header {
-	u32  magic_num;        // "BTHD"="0x42544844"="boothead"
-	u32  version;         // 1
-	u8   payload_hash[32]; // sha256 hash value
-	u64  img_addr;         // image loaded address
-	u32  img_size;         // image size
-	u32  is_packed;        // packed image, 0:false 1:true
-	u32  firmware_size;    // runtime firmware size
-	u32  img_real_size;      //image real size
+	u32  magic_num;            // "BTHD"="0x42544844"="boothead"
+	u32  version;              // 1
+	u8   payload_hash[32];     // sha256 hash value
+	u64  img_addr;             // image loaded address
+	u32  img_size;             // image size
+	u8   iv_data[IV_BYTE_LEN]; // the parameter of AES crypto
+	u32  is_packed;            // packed image, 0:false 1:true
+	u32  firmware_size;        // runtime firmware size
+	u32  img_real_size;        //image real size
 	u32  img_signed_size;      //image full size after signed
-	u8   reserved[444];    // 444 + 17*4 = 512
+	u8   reserved[424];        // 424 + 17*4 + 16 + 4 = 512
+	u32  slot;                 // spl double slot: slota or slotb
 };
 
 #define SEC_IMAGE_MAGIC 0x42544844
