@@ -79,6 +79,11 @@ config UNISOC_AUDIO_VOICE_TRIGGER
 		it will be used by audio HAL.
 		Say Y if you support voice trigger.
 
+config UNISOC_AUDIO_VOICE_TRIGGER_IRQ
+	tristate "Sprd audio voice trigger irq"
+	help
+		If you select this feature, it will enable the voice trigger IRQ.
+
 config SND_SOC_XS200X
 	tristate "XS200X Voice Trigger"
 	default n
