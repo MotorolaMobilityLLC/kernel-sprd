@@ -2184,6 +2184,8 @@ static void mmc_swcq_status(void *data, const struct blk_mq_queue_data *bd, int 
 		blk_queue_flag_set(QUEUE_FLAG_SAME_FORCE, q);
 		queue_flag = true;
 	}
+
+	req->cmd_flags &= ~REQ_FUA;
 }
 
 static struct mmc_cqe_ops mmc_swcq_ops = {
