@@ -455,8 +455,8 @@ static int get_boot_mode(void)
 	return 0;
 }
 
-static void sc27xx_fgu_capacity_calibration(struct sc27xx_fgu_data *data, bool int_mode);
-static void sc27xx_fgu_discharging_calibration(struct sc27xx_fgu_data *data, int *cap);
+static void sc27xx_fgu_capacity_calibration(struct sc27xx_fgu_data *data, bool int_mode, int chg_sts);
+static void sc27xx_fgu_discharging_calibration(struct sc27xx_fgu_data *data, int *cap, int chg_sts);
 static int sc27xx_fgu_resistance_algo(struct sc27xx_fgu_data *data, int cur_ua, int vol_uv);
 
 static const char * const sc27xx_charger_supply_name[] = {
@@ -1600,7 +1600,7 @@ static int sc27xx_fgu_uusoc_algo(struct sc27xx_fgu_data *data, int *uusoc_mah)
 	return 0;
 }
 
-static int sc27xx_fgu_get_capacity(struct sc27xx_fgu_data *data, int *cap)
+static int sc27xx_fgu_get_capacity(struct sc27xx_fgu_data *data, int *cap, int chg_sts)
 {
 	int ret, cur_clbcnt, delta_clbcnt, delta_cap;
 	static int last_fgu_cap = SC27XX_FGU_MAGIC_NUMBER;
@@ -1673,7 +1673,7 @@ static int sc27xx_fgu_get_capacity(struct sc27xx_fgu_data *data, int *cap)
 normal_cap_calc:
 	sc27xx_fgu_capacity_loss_by_temperature(data, cap);
 capacity_calibration:
-	sc27xx_fgu_capacity_calibration(data, false);
+	sc27xx_fgu_capacity_calibration(data, false, chg_sts);
 
 	*cap -= data->uusoc_vbat;
 	if (*cap < 0) {
@@ -1683,7 +1683,7 @@ capacity_calibration:
 		*cap = SC27XX_FGU_FCC_PERCENT;
 	}
 
-	sc27xx_fgu_discharging_calibration(data, cap);
+	sc27xx_fgu_discharging_calibration(data, cap, chg_sts);
 
 	return 0;
 }
@@ -2061,7 +2061,7 @@ static int sc27xx_fgu_suspend_calib_check_relax_cnt_int(struct sc27xx_fgu_data *
 	}
 
 	ret = regmap_update_bits(data->regmap, data->base + SC27XX_FGU_INT_CLR,
-				SC27XX_FGU_RELAX_CNT_STS, SC27XX_FGU_RELAX_CNT_STS);
+				 SC27XX_FGU_RELAX_CNT_STS, SC27XX_FGU_RELAX_CNT_STS);
 	if (ret)
 		dev_err(data->dev, "failed to clear  RELAX_CNT_STS interrupt status, ret = %d\n", ret);
 
@@ -2340,11 +2340,19 @@ static int sc27xx_fgu_get_property(struct power_supply *psy,
 				   union power_supply_propval *val)
 {
 	struct sc27xx_fgu_data *data = power_supply_get_drvdata(psy);
-	int ret = 0, value = 0;
+	int ret = 0, value = 0, chg_sts;
 
 	if (!data) {
 		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
 		return -EINVAL;
+	}
+
+	if (psp == POWER_SUPPLY_PROP_CAPACITY) {
+		ret = sc27xx_fgu_get_status(data, &chg_sts);
+		if (ret) {
+			dev_err(data->dev, "failed to get charger status\n");
+			return ret;
+		}
 	}
 
 	mutex_lock(&data->lock);
@@ -2394,7 +2402,7 @@ static int sc27xx_fgu_get_property(struct power_supply *psy,
 			break;
 		}
 
-		ret = sc27xx_fgu_get_capacity(data, &value);
+		ret = sc27xx_fgu_get_capacity(data, &value, chg_sts);
 		if (ret)
 			goto error;
 
@@ -2876,19 +2884,13 @@ charging:
 	return discharging;
 }
 
-static void sc27xx_fgu_discharging_calibration(struct sc27xx_fgu_data *data, int *cap)
+static void sc27xx_fgu_discharging_calibration(struct sc27xx_fgu_data *data, int *cap, int chg_sts)
 {
-	int ret, chg_sts, low_temp_ocv;
+	int ret, low_temp_ocv;
 	int vol_mv, vbat_avg_mv, vol_uv, vbat_avg_uv;
 
 	if (data->bat_temp <= SC27XX_FGU_LOW_TEMP_REGION) {
 		dev_err(data->dev, "exceed temp range not need to calibrate.\n");
-		return;
-	}
-
-	ret = sc27xx_fgu_get_status(data, &chg_sts);
-	if (ret) {
-		dev_err(data->dev, "get charger status error.\n");
 		return;
 	}
 
@@ -2924,9 +2926,9 @@ static void sc27xx_fgu_discharging_calibration(struct sc27xx_fgu_data *data, int
 	}
 }
 
-static void sc27xx_fgu_capacity_calibration(struct sc27xx_fgu_data *data, bool int_mode)
+static void sc27xx_fgu_capacity_calibration(struct sc27xx_fgu_data *data, bool int_mode, int chg_sts)
 {
-	int ret, chg_sts, adc, ocv_mv;
+	int ret, adc, ocv_mv;
 
 	ret = sc27xx_fgu_get_vbat_ocv(data, &ocv_mv);
 	if (ret) {
@@ -2939,12 +2941,6 @@ static void sc27xx_fgu_capacity_calibration(struct sc27xx_fgu_data *data, bool i
 	ret =  sc27xx_fgu_get_vbat_now(data, &data->batt_uV);
 	if (ret) {
 		dev_err(data->dev, "get battery vol error.\n");
-		return;
-	}
-
-	ret = sc27xx_fgu_get_status(data, &chg_sts);
-	if (ret) {
-		dev_err(data->dev, "get charger status error.\n");
 		return;
 	}
 
@@ -3002,13 +2998,17 @@ static void sc27xx_fgu_batt_ovp_notfiy(struct sc27xx_fgu_data *data)
 static irqreturn_t sc27xx_fgu_interrupt(int irq, void *dev_id)
 {
 	struct sc27xx_fgu_data *data = dev_id;
-	int ret, cap;
+	int ret, cap, chg_sts;
 	u32 status;
 
 	if (!data) {
 		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
 		return IRQ_HANDLED;
 	}
+
+	ret = sc27xx_fgu_get_status(data, &chg_sts);
+	if (ret)
+		return IRQ_HANDLED;
 
 	mutex_lock(&data->lock);
 
@@ -3040,11 +3040,11 @@ static irqreturn_t sc27xx_fgu_interrupt(int irq, void *dev_id)
 	if (!(status & SC27XX_FGU_LOW_OVERLOAD_INT))
 		goto out;
 
-	ret = sc27xx_fgu_get_capacity(data, &cap);
+	ret = sc27xx_fgu_get_capacity(data, &cap, chg_sts);
 	if (ret)
 		goto out;
 
-	sc27xx_fgu_capacity_calibration(data, true);
+	sc27xx_fgu_capacity_calibration(data, true, chg_sts);
 
 out:
 	mutex_unlock(&data->lock);
