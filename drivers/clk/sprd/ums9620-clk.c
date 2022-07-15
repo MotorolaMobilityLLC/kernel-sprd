@@ -308,7 +308,7 @@ static struct clk_bit_field f_tgpll[PLL_FACT_MAX] = {
 
 static SPRD_PLL_FW_NAME(tgpll, "tgpll", "ext-26m", 0x4,
 				   3, tgpll_ftable, f_tgpll, 240,
-				   1000, 1000, 1, 1500000000);
+				   1000, 1000, 1, 1600000000);
 static CLK_FIXED_FACTOR_HW(tgpll_12m, "tgpll-12m", &tgpll.common.hw, 128, 1, 0);
 static CLK_FIXED_FACTOR_HW(tgpll_24m, "tgpll-24m", &tgpll.common.hw, 64, 1, 0);
 static CLK_FIXED_FACTOR_HW(tgpll_38m4, "tgpll-38m4", &tgpll.common.hw, 40, 1, 0);
@@ -356,7 +356,7 @@ static struct clk_bit_field f_v4nrpll[PLL_FACT_MAX] = {
 	{ .shift = 0,	.width = 0 },	/* refin	*/
 	{ .shift = 3,	.width = 3 },	/* icp		*/
 	{ .shift = 6,	.width = 11 },	/* n		*/
-	{ .shift = 55,	.width = 8 },	/* nint		*/
+	{ .shift = 55,	.width = 7 },	/* nint		*/
 	{ .shift = 32,	.width = 23},	/* kint		*/
 	{ .shift = 0,	.width = 0 },	/* prediv	*/
 	{ .shift = 81,	.width = 1 },	/* postdiv	*/
@@ -1017,11 +1017,11 @@ static const struct clk_parent_data iis_parents[] = {
 	{ .hw = &tgpll_512m.hw },
 };
 static SPRD_COMP_CLK_DATA_OFFSET(ap_iis0, "ap-iis0", iis_parents,
-			    0xf4, 0, 3, 0, 3, 0);
+			    0xf4, 0, 3, 0, 6, 0);
 static SPRD_COMP_CLK_DATA_OFFSET(ap_iis1, "ap-iis1", iis_parents,
-			    0x100, 0, 3, 0, 3, 0);
+			    0x100, 0, 3, 0, 6, 0);
 static SPRD_COMP_CLK_DATA_OFFSET(ap_iis2, "ap-iis2", iis_parents,
-			    0x10c, 0, 3, 0, 3, 0);
+			    0x10c, 0, 3, 0, 6, 0);
 
 static const struct clk_parent_data ap_ce_parents[] = {
 	{ .fw_name = "ext-26m" },
@@ -1041,7 +1041,7 @@ static const struct clk_parent_data sdio_parents[] = {
 	{ .hw = &v4nrpll_409m6.hw },
 };
 static SPRD_COMP_CLK_DATA_OFFSET(emmc_2x, "emmc-2x", sdio_parents,
-			    0x124, 0, 3, 0, 3, 0);
+			    0x124, 0, 3, 0, 11, 0);
 static SPRD_DIV_CLK_HW(emmc_1x, "emmc-1x", &emmc_2x.common.hw, 0x12c,
 		    0, 1, 0);
 
@@ -1338,9 +1338,9 @@ static SPRD_SC_GATE_CLK_FW_NAME(sdio2_2x_en, "sdio2-2x-en", "ext-26m", 0x13c,
 			0x1000, BIT(6), 0, 0);
 static SPRD_SC_GATE_CLK_FW_NAME(sdio2_1x_en, "sdio2-1x-en", "ext-26m", 0x13c,
 			0x1000, BIT(7), 0, 0);
-static SPRD_SC_GATE_CLK_FW_NAME(emmc_2x_en, "emmc-2x-en", "ext-26m", 0x13c,
-			0x1000, BIT(8), 0, 0);
 static SPRD_SC_GATE_CLK_FW_NAME(emmc_1x_en, "emmc-1x-en", "ext-26m", 0x13c,
+			0x1000, BIT(8), 0, 0);
+static SPRD_SC_GATE_CLK_FW_NAME(emmc_2x_en, "emmc-2x-en", "ext-26m", 0x13c,
 			0x1000, BIT(9), 0, 0);
 static SPRD_SC_GATE_CLK_FW_NAME(pll_test_en, "pll-test-en", "ext-26m", 0x13c,
 			0x1000, BIT(14), 0, 0);
@@ -1499,8 +1499,8 @@ static struct sprd_clk_common *ums9620_aon_gate[] = {
 	&sdio1_1x_en.common,
 	&sdio2_2x_en.common,
 	&sdio2_1x_en.common,
-	&emmc_2x_en.common,
 	&emmc_1x_en.common,
+	&emmc_2x_en.common,
 	&pll_test_en.common,
 	&cphy_cfg_en.common,
 	&debug_ts_en.common,
@@ -1615,8 +1615,8 @@ static struct clk_hw_onecell_data ums9620_aon_gate_hws = {
 		[CLK_SDIO1_1X_EN]	= &sdio1_1x_en.common.hw,
 		[CLK_SDIO2_2X_EN]	= &sdio2_2x_en.common.hw,
 		[CLK_SDIO2_1X_EN]	= &sdio2_1x_en.common.hw,
-		[CLK_EMMC_2X_EN]	= &emmc_2x_en.common.hw,
 		[CLK_EMMC_1X_EN]	= &emmc_1x_en.common.hw,
+		[CLK_EMMC_2X_EN]	= &emmc_2x_en.common.hw,
 		[CLK_PLL_TEST_EN]	= &pll_test_en.common.hw,
 		[CLK_CPHY_CFG_EN]	= &cphy_cfg_en.common.hw,
 		[CLK_DEBUG_TS_EN]	= &debug_ts_en.common.hw,
@@ -1662,7 +1662,7 @@ static struct sprd_reset_map ums9620_aon_apb_resets[] = {
 	[RESET_AON_APB_CKG_SOFT_RST]			= { 0x0010, BIT(13), 0x1000 },
 	[RESET_AON_APB_UFS_AO_SOFT_RST]			= { 0x0010, BIT(15), 0x1000 },
 	[RESET_AON_APB_APCPU_TS0_SOFT_RST]		= { 0x0010, BIT(17), 0x1000 },
-	[RESET_AON_APB_DEBUG_FILTER_SOFT_RST]		= { 0x0004, BIT(18), 0x1000 },
+	[RESET_AON_APB_DEBUG_FILTER_SOFT_RST]		= { 0x0010, BIT(18), 0x1000 },
 	[RESET_AON_APB_AON_IIS_SOFT_RST]		= { 0x0010, BIT(19), 0x1000 },
 	[RESET_AON_APB_SCC_SOFT_RST]			= { 0x0010, BIT(20), 0x1000 },
 	[RESET_AON_APB_SERDES1_SOFT_RST]		= { 0x0010, BIT(21), 0x1000 },
@@ -1836,6 +1836,7 @@ static SPRD_MUX_CLK_DATA(debug_ts, "debug-ts", debug_ts_parents, 0x148,
 
 static const struct clk_parent_data pri_sbi_parents[] = {
 	{ .fw_name = "ext-26m" },
+	{ .fw_name = "ext-52m" },
 	{ .hw = &tgpll_96m.hw },
 };
 static SPRD_MUX_CLK_DATA(pri_sbi, "pri-sbi", pri_sbi_parents, 0x154,
@@ -1843,18 +1844,21 @@ static SPRD_MUX_CLK_DATA(pri_sbi, "pri-sbi", pri_sbi_parents, 0x154,
 
 static const struct clk_parent_data xo_sel_parents[] = {
 	{ .fw_name = "ext-26m" },
+	{ .fw_name = "ext-52m" },
 };
 static SPRD_MUX_CLK_DATA(xo_sel, "xo-sel", xo_sel_parents, 0x160,
 		    0, 1, UMS9620_MUX_FLAG);
 
 static const struct clk_parent_data rfti_lth_parents[] = {
 	{ .fw_name = "ext-26m" },
+	{ .fw_name = "ext-52m" },
 };
 static SPRD_MUX_CLK_DATA(rfti_lth, "rfti-lth", rfti_lth_parents, 0x16c,
 		    0, 1, UMS9620_MUX_FLAG);
 
 static const struct clk_parent_data afc_lth_parents[] = {
 	{ .fw_name = "ext-26m" },
+	{ .fw_name = "ext-52m" },
 };
 static SPRD_MUX_CLK_DATA(afc_lth, "afc-lth", afc_lth_parents, 0x178,
 		    0, 1, UMS9620_MUX_FLAG);
@@ -1965,7 +1969,7 @@ static const struct clk_parent_data cssys_parents[] = {
 static SPRD_COMP_CLK_DATA_OFFSET(cssys, "cssys", cssys_parents, 0x25c,
 			    0, 3, 0, 2, 0);
 static SPRD_DIV_CLK_HW(cssys_apb, "cssys-apb", &cssys.common.hw, 0x264,
-		    0, 3, 0);
+		    0, 2, 0);
 
 static const struct clk_parent_data sdio_2x_parents[] = {
 	{ .hw = &clk_1m.hw },
@@ -2009,7 +2013,7 @@ static const struct clk_parent_data analog_io_apb_parents[] = {
 	{ .hw = &tgpll_48m.hw },
 };
 static SPRD_COMP_CLK_DATA_OFFSET(analog_io_apb, "analog-io-apb",
-			    analog_io_apb_parents, 0x2e0, 0, 1, 8, 2, 0);
+			    analog_io_apb_parents, 0x2e0, 0, 1, 0, 2, 0);
 
 static const struct clk_parent_data dmc_ref_parents[] = {
 	{ .hw = &clk_6m5.hw },
@@ -2028,7 +2032,7 @@ static const struct clk_parent_data usb_parents[] = {
 	{ .hw = &tgpll_128m.hw },
 };
 static SPRD_COMP_CLK_DATA_OFFSET(usb, "usb", usb_parents, 0x2f8,
-			    0, 3, 8, 2, 0);
+			    0, 3, 0, 2, 0);
 
 static const struct clk_parent_data usb_suspend_parents[] = {
 	{ .fw_name = "ext-32k" },

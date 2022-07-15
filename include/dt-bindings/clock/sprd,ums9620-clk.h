@@ -280,8 +280,8 @@
 #define CLK_SDIO1_1X_EN		98
 #define CLK_SDIO2_2X_EN		99
 #define CLK_SDIO2_1X_EN		100
-#define CLK_EMMC_2X_EN		101
-#define CLK_EMMC_1X_EN		102
+#define CLK_EMMC_1X_EN		101
+#define CLK_EMMC_2X_EN		102
 #define CLK_PLL_TEST_EN		103
 #define CLK_CPHY_CFG_EN		104
 #define CLK_DEBUG_TS_EN		105
