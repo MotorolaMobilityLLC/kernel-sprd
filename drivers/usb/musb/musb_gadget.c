@@ -20,7 +20,9 @@
 
 #include "musb_core.h"
 #include "musb_trace.h"
-
+#if IS_ENABLED(CONFIG_USB_SPRD_DMA)
+#include "sprd_musbhsdma.h"
+#endif
 
 /* ----------------------------------------------------------------------- */
 
@@ -456,7 +458,7 @@ void musb_g_tx(struct musb *musb, u8 epnum)
 		return;
 	}
 
-	if (req) {
+	if (request) {
 
 		trace_musb_req_tx(req);
 
@@ -1318,10 +1320,45 @@ static int musb_gadget_dequeue(struct usb_ep *ep, struct usb_request *request)
 		if (r == req)
 			break;
 	}
+	/* continue to search for already started list */
 	if (r != req) {
+#if IS_ENABLED(CONFIG_USB_SPRD_DMA)
+		struct dma_channel *channel;
+		struct sprd_musb_dma_channel *musb_channel;
+
+		channel = musb_ep->dma;
+		if (!channel)
+			goto done;
+		musb_channel = channel->private_data;
+
+		list_for_each_entry(r, &musb_channel->req_queued, list) {
+			if (r == req)
+				break;
+		}
+
+		/* If found in dma reqlist, then stop dma transfer*/
+		if (r == req) {
+			struct dma_controller	*c = musb->dma_controller;
+
+			musb_ep_select(musb->mregs, musb_ep->current_epnum);
+			if (c->channel_abort)
+				status = c->channel_abort(musb_ep->dma);
+			else
+				status = -EBUSY;
+			/* musb_g_giveback will be called in channel_abort*/
+
+			dev_info(musb->controller, "request %p queued to %s startlist\n",
+				request, ep->name);
+		} else {
+			dev_err(musb->controller, "request %p queued to %s already processed\n",
+				request, ep->name);
+			status = -EINVAL;
+		}
+#else
 		dev_err(musb->controller, "request %p not queued to %s\n",
 				request, ep->name);
 		status = -EINVAL;
+#endif
 		goto done;
 	}
 
