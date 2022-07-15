@@ -67,8 +67,8 @@
 	aonapb_clk: clock-controller@64920000 {
 		compatible = "sprd,ums9620-aonapb-clk";
 		reg = <0 0x64920000 0 0x3000>;
-		clocks = <&ext_26m>;
-		clock-names = "ext-26m";
+		clocks = <&ext_26m>, <&ext_52m>, <&ext_32k>, <&rco_100m>, <&rco_60m>;
+		clock-names = "ext-26m", "ext-52m", "ext-32k", "rco-100m", "rco-60m";
 		#clock-cells = <1>;
 	};
 
@@ -87,6 +87,13 @@
 		#clock-cells = <0>;
 		clock-frequency = <26000000>;
 		clock-output-names = "ext-26m";
+	};
+
+	ext_52m: ext-52m {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <52000000>;
+		clock-output-names = "ext-52m";
 	};
 
 	ext_32k: ext-32k {
@@ -109,6 +116,13 @@
 		clock-frequency = <100000000>;
 		clock-output-names = "rco-100m";
 	};
+
+	rco_60m: rco-60m {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <60000000>;
+		clock-output-names = "rco-60m";
+        };
 
 	dphy_312m5: dphy-312m5 {
 		compatible = "fixed-clock";
