@@ -1,0 +1,16 @@
+&aon {
+	socid: socid {
+		compatible = "sprd,soc-id";
+		chip-id = <&aon_apb_regs REG_AON_APB_PLATFORM_ID_L
+			MASK_AON_APB_PLATFORM_ID_L>;
+		 plat-id = <&aon_apb_regs REG_AON_APB_PROJECT_ID_L
+			MASK_AON_APB_PROJECT_ID_L>;
+		version-id = <&aon_apb_regs REG_AON_APB_DERIVED_ID
+			MASK_AON_APB_METAL_FIX_ID>;
+		manufacture-id = <&aon_apb_regs  REG_AON_APB_MANUFACTURE_ID
+			MASK_AON_APB_FOUNDRY_ID>;
+		implement-id = <&aon_apb_regs REG_AON_APB_IMPLEMENTATION_ID
+			MASK_AON_APB_STD_CELL>;
+	};
+};
+
