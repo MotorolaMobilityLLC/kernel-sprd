@@ -1,0 +1,50 @@
+KERNEL_DIR=${KERNEL_DIR}"/.."
+. ${ROOT_DIR}/${KERNEL_DIR}/build.config.gki.aarch64
+
+BUILD_SYSTEM_DLKM=0
+DEFCONFIG=ums9610_gki_defconfig
+FRAGMENT_CONFIG=${KERNEL_DIR}/arch/arm64/configs/sprd_gki_qogirn6l.fragment
+PRE_DEFCONFIG_CMDS="KCONFIG_CONFIG=${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/${DEFCONFIG} \
+${ROOT_DIR}/${KERNEL_DIR}/scripts/kconfig/merge_config.sh -m -r ${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/gki_defconfig ${ROOT_DIR}/${FRAGMENT_CONFIG}"
+POST_DEFCONFIG_CMDS="rm ${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/${DEFCONFIG}"
+
+EXT_MODULES="
+../modules/kernel5.15/sample
+../modules/kernel5.15/gpu/natt
+../modules/kernel5.15/npu/vdsp
+../modules/kernel5.15/input/touchscreen/ssl_ssd20xx
+../modules/kernel5.15/input/touchscreen/synaptics_dsx_td4310
+../modules/kernel5.15/input/touchscreen/focaltech_ft8756_spi
+../modules/kernel5.15/wcn/fm/driver
+../modules/kernel5.15/wcn/bluetooth/driver
+../modules/common/camera/power
+../modules/common/camera/core
+../modules/common/camera/cpp
+../modules/common/camera/flash/ocp8137
+../modules/common/camera/flash/flash_drv
+../modules/common/camera/sensor
+"
+#camera module version config
+export BSP_BOARD_CAMERA_MODULE_ISP_VERSION="isp2.6"
+export BSP_BOARD_CAMERA_MODULE_ISP_ADAPT_VERSION="qogirn6l"
+export BSP_BOARD_CAMERA_MODULE_CPP_VERSION="lite_r6p0"
+export BSP_BOARD_CAMERA_MODULE_CSI_VERSION="receiver_r3p1v2"
+export BSP_BOARD_CAMERA_MODULE_DVFS="qogirn6l"
+
+DTC_FLAGS+="-@"
+
+MAKE_GOALS="${MAKE_GOALS}
+dtbs
+"
+
+FILES="${FILES}
+arch/arm64/boot/dts/sprd/ums9610-base.dtb
+arch/arm64/boot/dts/sprd/ums9610-haps-overlay.dtbo
+vmlinux
+"
+#KMI_SYMBOL_LIST=android/abi_gki_aarch64_unisoc
+GKI_MODULES_LIST=android/gki_aarch64_modules
+
+MODULES_ORDER=""
+TRIM_NONLISTED_KMI=""
+KMI_SYMBOL_LIST_STRICT_MODE=""
