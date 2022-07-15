@@ -32,7 +32,7 @@
 #define FAN54015_REG_6					0x6
 #define FAN54015_REG_10					0x10
 
-#define FAN54015_BATTERY_NAME				"sc27xx-fgu"
+#define FAN54015_PROBE_TIMEOUT				msecs_to_jiffies(3000)
 #define BIT_DP_DM_BC_ENB				BIT(0)
 #define FAN54015_OTG_VALID_MS				500
 #define FAN54015_FEED_WATCHDOG_VALID_MS			50
@@ -95,6 +95,7 @@ struct fan54015_charger_info {
 	struct delayed_work otg_work;
 	struct delayed_work wdt_work;
 	struct regmap *pmic;
+	struct completion probe_init;
 	u32 charger_detect;
 	u32 charger_pd;
 	u32 charger_pd_mask;
@@ -103,6 +104,7 @@ struct fan54015_charger_info {
 	bool otg_enable;
 	struct alarm wdg_timer;
 	bool is_charger_online;
+	bool probe_initialized;
 };
 
 static int
@@ -518,6 +520,7 @@ static int fan54015_charger_usb_get_property(struct power_supply *psy,
 					     union power_supply_propval *val)
 {
 	struct fan54015_charger_info *info = power_supply_get_drvdata(psy);
+	unsigned long timeout;
 	u32 cur, health, status = 0;
 	int ret = 0;
 
@@ -526,8 +529,15 @@ static int fan54015_charger_usb_get_property(struct power_supply *psy,
 		return -EINVAL;
 	}
 
-	mutex_lock(&info->lock);
+	if (unlikely(!info->probe_initialized)) {
+		timeout = wait_for_completion_timeout(&info->probe_init, FAN54015_PROBE_TIMEOUT);
+		if (!timeout) {
+			dev_err(info->dev, "%s wait probe timeout\n", __func__);
+			return -ETIMEDOUT;
+		}
+	}
 
+	mutex_lock(&info->lock);
 	switch (psp) {
 	case POWER_SUPPLY_PROP_STATUS:
 		val->intval = fan54015_charger_get_status(info);
@@ -593,6 +603,7 @@ fan54015_charger_usb_set_property(struct power_supply *psy,
 				  const union power_supply_propval *val)
 {
 	struct fan54015_charger_info *info = power_supply_get_drvdata(psy);
+	unsigned long timeout;
 	int ret = 0;
 
 	if (!info) {
@@ -600,8 +611,15 @@ fan54015_charger_usb_set_property(struct power_supply *psy,
 		return -EINVAL;
 	}
 
-	mutex_lock(&info->lock);
+	if (unlikely(!info->probe_initialized)) {
+		timeout = wait_for_completion_timeout(&info->probe_init, FAN54015_PROBE_TIMEOUT);
+		if (!timeout) {
+			dev_err(info->dev, "%s wait probe timeout\n", __func__);
+			return -ETIMEDOUT;
+		}
+	}
 
+	mutex_lock(&info->lock);
 	switch (psp) {
 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT:
 		ret = fan54015_charger_set_current(info, val->intval);
@@ -744,6 +762,7 @@ static void fan54015_charger_otg_work(struct work_struct *work)
 static int fan54015_charger_enable_otg(struct regulator_dev *dev)
 {
 	struct fan54015_charger_info *info = rdev_get_drvdata(dev);
+	unsigned long timeout;
 	int ret = 0;
 
 	if (!info) {
@@ -751,7 +770,13 @@ static int fan54015_charger_enable_otg(struct regulator_dev *dev)
 		return -EINVAL;
 	}
 
-	mutex_lock(&info->lock);
+	if (unlikely(!info->probe_initialized)) {
+		timeout = wait_for_completion_timeout(&info->probe_init, FAN54015_PROBE_TIMEOUT);
+		if (!timeout) {
+			dev_err(info->dev, "%s wait probe timeout\n", __func__);
+			return -ETIMEDOUT;
+		}
+	}
 
 	/*
 	 * Disable charger detection function in case
@@ -761,7 +786,7 @@ static int fan54015_charger_enable_otg(struct regulator_dev *dev)
 				 BIT_DP_DM_BC_ENB, BIT_DP_DM_BC_ENB);
 	if (ret) {
 		dev_err(info->dev, "failed to disable bc1.2 detect function.\n");
-		goto out;
+		return ret;
 	}
 
 	ret = fan54015_update_bits(info, FAN54015_REG_1,
@@ -772,7 +797,7 @@ static int fan54015_charger_enable_otg(struct regulator_dev *dev)
 		dev_err(info->dev, "enable fan54015 otg failed\n");
 		regmap_update_bits(info->pmic, info->charger_detect,
 				   BIT_DP_DM_BC_ENB, 0);
-		goto out;
+		return ret;
 	}
 
 	info->otg_enable = true;
@@ -781,8 +806,6 @@ static int fan54015_charger_enable_otg(struct regulator_dev *dev)
 	schedule_delayed_work(&info->otg_work,
 			      msecs_to_jiffies(FAN54015_OTG_VALID_MS));
 
-out:
-	mutex_unlock(&info->lock);
 	return ret;
 
 }
@@ -790,6 +813,7 @@ out:
 static int fan54015_charger_disable_otg(struct regulator_dev *dev)
 {
 	struct fan54015_charger_info *info = rdev_get_drvdata(dev);
+	unsigned long timeout;
 	int ret = 0;
 
 	if (!info) {
@@ -797,7 +821,13 @@ static int fan54015_charger_disable_otg(struct regulator_dev *dev)
 		return -EINVAL;
 	}
 
-	mutex_lock(&info->lock);
+	if (unlikely(!info->probe_initialized)) {
+		timeout = wait_for_completion_timeout(&info->probe_init, FAN54015_PROBE_TIMEOUT);
+		if (!timeout) {
+			dev_err(info->dev, "%s wait probe timeout\n", __func__);
+			return -ETIMEDOUT;
+		}
+	}
 
 	info->otg_enable = false;
 	cancel_delayed_work_sync(&info->wdt_work);
@@ -808,7 +838,7 @@ static int fan54015_charger_disable_otg(struct regulator_dev *dev)
 				   0);
 	if (ret) {
 		dev_err(info->dev, "disable fan54015 otg failed\n");
-		goto out;
+		return ret;
 	}
 
 	/* Enable charger detection function to identify the charger type */
@@ -817,14 +847,13 @@ static int fan54015_charger_disable_otg(struct regulator_dev *dev)
 	if (ret)
 		dev_err(info->dev, "enable BC1.2 failed\n");
 
-out:
-	mutex_unlock(&info->lock);
 	return ret;
 }
 
 static int fan54015_charger_vbus_is_enabled(struct regulator_dev *dev)
 {
 	struct fan54015_charger_info *info = rdev_get_drvdata(dev);
+	unsigned long timeout;
 	int ret;
 	u8 val;
 
@@ -833,10 +862,16 @@ static int fan54015_charger_vbus_is_enabled(struct regulator_dev *dev)
 		return -EINVAL;
 	}
 
+	if (unlikely(!info->probe_initialized)) {
+		timeout = wait_for_completion_timeout(&info->probe_init, FAN54015_PROBE_TIMEOUT);
+		if (!timeout) {
+			dev_err(info->dev, "%s wait probe timeout\n", __func__);
+			return -ETIMEDOUT;
+		}
+	}
 	ret = fan54015_read(info, FAN54015_REG_1, &val);
 	if (ret) {
 		dev_err(info->dev, "failed to get fan54015 otg status\n");
-		mutex_unlock(&info->lock);
 		return ret;
 	}
 
@@ -972,7 +1007,7 @@ fan54015_charger_probe(struct i2c_client *client, const struct i2c_device_id *id
 
 	put_device(&regmap_pdev->dev);
 	mutex_init(&info->lock);
-	mutex_lock(&info->lock);
+	init_completion(&info->probe_init);
 
 	charger_cfg.drv_data = info;
 	charger_cfg.of_node = dev->of_node;
@@ -1005,12 +1040,11 @@ fan54015_charger_probe(struct i2c_client *client, const struct i2c_device_id *id
 		goto err_regmap_exit;
 	}
 
-	mutex_unlock(&info->lock);
-
+	info->probe_initialized = true;
+	complete_all(&info->probe_init);
 	return 0;
 
 err_regmap_exit:
-	mutex_unlock(&info->lock);
 	mutex_destroy(&info->lock);
 	return ret;
 }
