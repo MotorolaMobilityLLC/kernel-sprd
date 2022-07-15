@@ -3307,6 +3307,13 @@
 		clock-output-names = "ext-26m";
 	};
 
+	ext_52m: ext-52m {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <52000000>;
+		clock-output-names = "ext-52m";
+	};
+
 	ext_32k: ext_32k {
 		compatible = "fixed-clock";
 		#clock-cells = <0>;
