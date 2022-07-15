@@ -351,6 +351,8 @@ def check_tags_consistent(ret_info):
             if ret_check_file[0] != 0:
                 print >> sys.stderr, "\nERROR: Tags and modified files are inconsistent!"
                 print >> sys.stderr, "Please read 'Documentation/unisoc/patch-tags.txt' file.\n\ninconsistent file list:"
+                for x in ret_check_file[1]:
+                    print >> sys.stderr, "%s" % x
                 RET = 1
             elif len(ret_check_file[1]) > 0:
                 print >> sys.stdout, "\nWARNING: Tags and modified files are inconsistent.\n\ninconsistent file list:"
