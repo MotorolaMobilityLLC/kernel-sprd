@@ -61,10 +61,10 @@ static int pgt_show(struct seq_file *s, void *unused)
 	pgt_show_size = pdata->pagt_ddr_size / 4 < 0x100 ?
 				 pdata->pagt_ddr_size / 4 : 0x100;
 	for (i = 0; i < pgt_show_size; i++) {
-		if (i % 0x10 == 0)
+		if (i % 0x4 == 0)
 			seq_printf(s, "\n0x%lx[0x%lx]:",
-					pdata->pagt_base_virt + i,
-					pdata->pagt_base_ddr + i);
+					pdata->pagt_base_virt + i * 0x4,
+					pdata->pagt_base_ddr + i * 0x4);
 		reg_val = readl_relaxed(
 			(void *)(pdata->pagt_base_virt + i * 0x4));
 		seq_printf(s, "0x%08x ", reg_val);
