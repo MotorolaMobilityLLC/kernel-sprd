@@ -4724,6 +4724,20 @@ static int bias_power_put(struct snd_kcontrol *kcontrol,
 	return 0;
 }
 
+static int sprd_codec_get_ana_chip_id(struct snd_kcontrol *kcontrol,
+				      struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_component *codec = snd_soc_kcontrol_component(kcontrol);
+	struct sprd_codec_priv *sprd_codec = snd_soc_component_get_drvdata(codec);
+
+	ucontrol->value.integer.value[0] = sprd_codec->ana_chip_ver_id;
+
+	sp_asoc_pr_info("%s ana_chip_ver_id = %x\n", __func__,
+					sprd_codec->ana_chip_ver_id);
+
+	return 0;
+}
+
 static const struct snd_kcontrol_new sprd_codec_snd_controls[] = {
 	SOC_ENUM_EXT("Aud Codec Info", codec_info_enum,
 		     sprd_codec_info_get, NULL),
@@ -4805,6 +4819,8 @@ static const struct snd_kcontrol_new sprd_codec_snd_controls[] = {
 		     sprd_codec_add0_data_sel_put),
 	SOC_SINGLE_EXT("BIAS Power", SND_SOC_NOPM, 0, 1, 0,
 		bias_power_get, bias_power_put),
+	SOC_SINGLE_EXT("Codec Chip ID", 0, 0, INT_MAX, 0,
+		       sprd_codec_get_ana_chip_id, NULL),
 };
 
 static unsigned int sprd_codec_read(struct snd_soc_component *codec,
