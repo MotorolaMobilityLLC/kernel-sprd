@@ -228,13 +228,6 @@
 				pd-extcon-enable;
 				extcon = <&extcon_gpio>, <&pmic_pd>;
 
-				regulator@0 {
-					cm-regulator-name = "vddgen0";
-					cable@0 {
-						cm-cable-name = "USB";
-						extcon = <&pmic_typec>;
-					};
-				};
 			};
 			sprd_marlin3: sprd-marlin3 {
 				compatible = "sprd,marlin3";

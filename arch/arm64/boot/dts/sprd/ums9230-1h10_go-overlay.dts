@@ -273,13 +273,6 @@
 				extcon = <&pmic_typec>, <&pmic_pd>;
 				pd-extcon-enable;
 
-				regulator@0 {
-					cm-regulator-name = "vddgen0";
-					cable@0 {
-						cm-cable-name = "USB";
-						extcon = <&pmic_typec>;
-					};
-				};
 			};
 
 			tboard_thermistor: thermal-sensor {
