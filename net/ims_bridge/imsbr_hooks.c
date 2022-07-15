@@ -366,7 +366,24 @@ static unsigned int nf_imsbr_output(void *priv,
 	return NF_ACCEPT;
 }
 
-static void ip_copy_metadata1(struct sk_buff *to, struct sk_buff *from)
+static inline int ipv4v6_set_dst_mtu(struct sk_buff *skb)
+{
+	struct iphdr *iph = ip_hdr(skb);
+
+	if (iph->version == 0x04) {
+		struct inet_sock *inet = skb->sk ? inet_sk(skb->sk) : NULL;
+
+		return (inet && inet->pmtudisc == IP_PMTUDISC_PROBE) ?
+			skb_dst(skb)->dev->mtu : dst_mtu(skb_dst(skb));
+	} else {
+		struct ipv6_pinfo *np = skb->sk ? inet6_sk(skb->sk) : NULL;
+
+		return (np && np->pmtudisc == IPV6_PMTUDISC_PROBE) ?
+			skb_dst(skb)->dev->mtu : dst_mtu(skb_dst(skb));
+	}
+}
+
+static void ipv4_copy_metadata(struct sk_buff *to, struct sk_buff *from)
 {
 	to->pkt_type = from->pkt_type;
 	to->priority = from->priority;
@@ -390,7 +407,7 @@ static void ip_copy_metadata1(struct sk_buff *to, struct sk_buff *from)
 	skb_copy_secmark(to, from);
 }
 
-static void ip6_copy_metadata1(struct sk_buff *to, struct sk_buff *from)
+static void ipv6_copy_metadata(struct sk_buff *to, struct sk_buff *from)
 {
 	to->pkt_type = from->pkt_type;
 	to->priority = from->priority;
@@ -410,7 +427,7 @@ static void ip6_copy_metadata1(struct sk_buff *to, struct sk_buff *from)
 	skb_copy_secmark(to, from);
 }
 
-void ip_options_fragment1(struct sk_buff *skb)
+void ipv4_options_fragment(struct sk_buff *skb)
 {
 	unsigned char *optptr = skb_network_header(skb) + sizeof(struct iphdr);
 	struct ip_options *opt = &(IPCB(skb)->opt);
@@ -441,11 +458,11 @@ void ip_options_fragment1(struct sk_buff *skb)
 	opt->ts_needtime = 0;
 }
 
-int ip4_do_xfrm_frag1(struct net *net, struct sock *sk, struct sk_buff *skb,
-		      int pmtu,
-		      int (*output)(struct net *,
-				    struct sock *,
-				    struct sk_buff *))
+int ipv4_do_xfrm_fragment(struct net *net, struct sock *sk, struct sk_buff *skb,
+			  int pmtu,
+			  int (*output)(struct net *,
+					struct sock *,
+					struct sk_buff *))
 {
 	struct iphdr *iph;
 	int ptr;
@@ -535,9 +552,9 @@ int ip4_do_xfrm_frag1(struct net *net, struct sock *sk, struct sk_buff *skb,
 				memcpy(skb_network_header(frag), iph, hlen);
 				iph = ip_hdr(frag);
 				iph->tot_len = htons(frag->len);
-				ip_copy_metadata1(frag, skb);
+				ipv4_copy_metadata(frag, skb);
 				if (offset == 0)
-					ip_options_fragment1(frag);
+					ipv4_options_fragment(frag);
 				offset += skb->len - hlen;
 				iph->frag_off = htons(offset >> 3);
 				if (frag->next)
@@ -613,7 +630,7 @@ slow_path:
 		}
 
 		/*Set up data on packet*/
-		ip_copy_metadata1(skb2, skb);
+		ipv4_copy_metadata(skb2, skb);
 		skb_reserve(skb2, ll_rs);
 		skb_put(skb2, len + hlen);
 		skb_reset_network_header(skb2);
@@ -651,7 +668,7 @@ slow_path:
 		 * will inherit fixed options.
 		 */
 		if (offset == 0)
-			ip_options_fragment1(skb);
+			ipv4_options_fragment(skb);
 
 		/*Added AC : If we are fragmenting a fragment that's not the
 		 *last fragment then keep MF on each bit
@@ -682,11 +699,11 @@ fail:
 	return err;
 }
 
-int ip6_do_xfrm_frag1(struct net *net, struct sock *sk, struct sk_buff *skb,
-		      int pmtu,
-		      int (*output)(struct net *,
-				    struct sock *,
-				    struct sk_buff *))
+int ipv6_do_xfrm_fragent(struct net *net, struct sock *sk, struct sk_buff *skb,
+			 int pmtu,
+			 int (*output)(struct net *,
+				       struct sock *,
+				       struct sk_buff *))
 {
 	struct sk_buff *frag;
 	struct rt6_info *rt = (struct rt6_info *)skb_dst(skb);
@@ -836,7 +853,7 @@ int ip6_do_xfrm_frag1(struct net *net, struct sock *sk, struct sk_buff *skb,
 				ipv6_hdr(frag)->payload_len =
 						htons(frag->len -
 						      sizeof(struct ipv6hdr));
-				ip6_copy_metadata1(frag, skb);
+				ipv6_copy_metadata(frag, skb);
 			}
 
 			err = output(net, sk, skb);
@@ -911,7 +928,7 @@ slow_path:
 
 		/*Set up data on packet*/
 
-		ip6_copy_metadata1(frag, skb);
+		ipv6_copy_metadata(frag, skb);
 		skb_reserve(frag, hroom);
 		skb_put(frag, len + hlen + sizeof(struct frag_hdr));
 		skb_reset_network_header(frag);
@@ -975,7 +992,7 @@ fail:
 	return err;
 }
 
-static int __xfrm_output_resume_ss_after_frag1(struct net *net,
+static int nf_imsbr_output_after_fragment(struct net *net,
 					       struct sock *sock, struct sk_buff *skb)
 {
 	const struct xfrm_state_afinfo *afinfo;
@@ -1005,7 +1022,6 @@ static unsigned int nf_imsbr_ipv4_frag_output(void *priv,
 	struct net *net;
 	struct nf_conntrack_tuple nft;
 	struct imsbr_flow *flow;
-	struct inet_sock *inet;
 	struct iphdr *ipv4h = ip_hdr(skb);
 	struct udphdr *uh = udp_hdr(skb);
 	struct dst_entry *dst = skb_dst(skb);
@@ -1023,14 +1039,11 @@ static unsigned int nf_imsbr_ipv4_frag_output(void *priv,
 
 	/* rcu_read_lock hold by netfilter hook outside */
 	flow = imsbr_flow_match(&nft);
-	if (!flow)
+
+	if (!flow && !x)
 		return NF_ACCEPT;
 
-	if (!x)
-		return NF_ACCEPT;
-
-	inet = skb->sk ? inet_sk(skb->sk) : NULL;
-	pmtu = (inet && inet->pmtudisc == 3) ? dst->dev->mtu : dst_mtu(dst);
+	pmtu = ipv4v6_set_dst_mtu(skb);
 	pmtu = pmtu - x->props.header_len - x->props.trailer_len;
 	if (unlikely(pmtu < 0)) {
 		printk_ratelimited(KERN_ERR
@@ -1067,8 +1080,8 @@ static unsigned int nf_imsbr_ipv4_frag_output(void *priv,
 	"IPv4:The pkt is average divided into %d parts with mtu %d.\n",
 		segs, seg_pmtu);
 		net = xs_net(x);
-		ip4_do_xfrm_frag1(net, skb->sk, skb, seg_pmtu,
-				  __xfrm_output_resume_ss_after_frag1);
+		ipv4_do_xfrm_fragment(net, skb->sk, skb, seg_pmtu,
+				      nf_imsbr_output_after_fragment);
 		return NF_STOLEN;
 	}
 	return NF_ACCEPT;
@@ -1085,7 +1098,6 @@ static unsigned int nf_imsbr_ipv6_frag_output(void *priv,
 	struct udphdr *uh;
 	struct dst_entry *dst = skb_dst(skb);
 	struct xfrm_state *x = dst->xfrm;
-	struct ipv6_pinfo *np = skb->sk ? inet6_sk(skb->sk) : NULL;
 	int pmtu = 1400;
 	int transport_offset;
 
@@ -1099,14 +1111,10 @@ static unsigned int nf_imsbr_ipv6_frag_output(void *priv,
 
 	/* rcu_read_lock hold by netfilter hook outside */
 	flow = imsbr_flow_match(&nft);
-	if (!flow)
+	if (!flow && !x)
 		return NF_ACCEPT;
 
-	if (!x)
-		return NF_ACCEPT;
-
-	pmtu = (np && np->pmtudisc == IPV6_PMTUDISC_PROBE) ? skb_dst(skb)->dev->mtu :
-		dst_mtu(skb_dst(skb));
+	pmtu = ipv4v6_set_dst_mtu(skb);
 	pmtu = pmtu - x->props.header_len - x->props.trailer_len;
 	if (unlikely(pmtu < 0)) {
 		printk_ratelimited(KERN_ERR
@@ -1144,8 +1152,8 @@ static unsigned int nf_imsbr_ipv6_frag_output(void *priv,
 			skb->ignore_df = 1;
 
 		net = xs_net(x);
-		ip6_do_xfrm_frag1(net, skb->sk, skb, seg_pmtu,
-				  __xfrm_output_resume_ss_after_frag1);
+		ipv6_do_xfrm_fragent(net, skb->sk, skb, seg_pmtu,
+				     nf_imsbr_output_after_fragment);
 		return NF_STOLEN;
 	}
 	return NF_ACCEPT;
