@@ -932,7 +932,7 @@
 #define REG_IPA_GLB_APB_IPA_IP_RST                          0x0000
 #define REG_IPA_GLB_APB_IPA_IP_EB                           0x0004
 #define REG_IPA_GLB_APB_IPA_IP_LPC_CTRL                     0x0008
-#define REG_DPU_VSP_APB_RST                                 0x0004
+#define REG_DPU_VSP_SYS_RST                                 0x00A0
 #define REG_DPU_VSP_APB_MISC_CKG_EB                         0x001C
 #define REG_PMU_APB_RF_ANALOG_PHY_PD_CFG                    0x009C
 #define REG_TOP_DVFS_APB_SUBSYS_SW_DVFS_EN_CFG              0x0D84

@@ -4404,6 +4404,9 @@
 #define MASK_DISPC1_GLB_APB_AP2IPA_MTX_S0_LP_EB             0x10000
 #define MASK_DISPC1_GLB_APB_AP2IPA_MTX_S0_LP_NUM            0xFFFF
 #define MASK_DISPC1_GLB_APB_ENCRYPTION_MODE                 0x0001
+#define MASK_DPU_VSP_SYS_VPU_ENC0_SOFT_RST                  0x0002
+#define MASK_DPU_VSP_SYS_VPU_ENC1_SOFT_RST                  0x0004
+#define MASK_DPU_VSP_SYS_VPU_DEC_SOFT_RST                   0x0008
 #define MASK_DPU_VSP_APB_VPU_ENC0_SOFT_RST                  0x0008
 #define MASK_DPU_VSP_APB_VPU_ENC1_SOFT_RST                  0x0010
 #define MASK_DPU_VSP_APB_VPU_DEC_SOFT_RST                   0x0020
