@@ -1513,6 +1513,9 @@
 					MASK_DPU_VSP_APB_VPU_ENC0_VPP_SOFT_RST |
 					MASK_DPU_VSP_APB_VPU_ENC0_VSP_SOFT_RST |
 					MASK_DPU_VSP_APB_VPU_ENC0_VAU_SOFT_RST)>;
+				axi-reset-syscon = <&dpu_vsp_apb_regs
+					REG_DPU_VSP_SYS_RST
+					MASK_DPU_VSP_SYS_VPU_ENC0_SOFT_RST>;
 				vsp-domain-eb-syscon = <&aon_apb_regs
 					REG_AON_APB_APB_EB0
 					MASK_AON_APB_DPU_VSP_EB>;
@@ -1543,6 +1546,9 @@
 					MASK_DPU_VSP_APB_VPU_ENC1_VPP_SOFT_RST |
 					MASK_DPU_VSP_APB_VPU_ENC1_VSP_SOFT_RST |
 					MASK_DPU_VSP_APB_VPU_ENC1_VAU_SOFT_RST)>;
+				axi-reset-syscon = <&dpu_vsp_apb_regs
+					REG_DPU_VSP_SYS_RST
+					MASK_DPU_VSP_SYS_VPU_ENC1_SOFT_RST>;
 				vsp-domain-eb-syscon = <&aon_apb_regs
 					REG_AON_APB_APB_EB0
 					MASK_AON_APB_DPU_VSP_EB>;
@@ -1573,6 +1579,9 @@
 					MASK_DPU_VSP_APB_VPU_DEC_VPP_SOFT_RST |
 					MASK_DPU_VSP_APB_VPU_DEC_VSP_SOFT_RST |
 					MASK_DPU_VSP_APB_VPU_DEC_VAU_SOFT_RST)>;
+				axi-reset-syscon = <&dpu_vsp_apb_regs
+					REG_DPU_VSP_SYS_RST
+					MASK_DPU_VSP_SYS_VPU_DEC_SOFT_RST>;
 				vsp-domain-eb-syscon = <&aon_apb_regs
 					REG_AON_APB_APB_EB0
 					MASK_AON_APB_DPU_VSP_EB>;
