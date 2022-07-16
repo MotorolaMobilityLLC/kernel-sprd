@@ -43,6 +43,7 @@ struct clock_name_map_t {
 
 enum {
 	VPU_DOMAIN_EB = 0,
+	AXI_SYS_RESET,
 	RESET
 };
 
@@ -54,6 +55,7 @@ struct register_gpr {
 
 static char *tb_name[] = {
 	"vsp-domain-eb-syscon",
+	"axi-reset-syscon",
 	"reset-syscon"
 };
 

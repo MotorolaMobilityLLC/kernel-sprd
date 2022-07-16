@@ -219,17 +219,27 @@ static long vpu_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			dev_err(dev, "regmap_update_bits failed %s, %d\n",
 				__func__, __LINE__);
 		}
-		/*vpu dec axi safe reset */
-		ret = regmap_update_bits(data->regs[RESET].gpr, 0x00A0, 0x8, 0x8);
+		/*vpu axi safe reset */
+		dev_dbg(dev, "%s, %d, AXI_SYS_RESET gpr %p, reg 0x%x, mask 0x%x\n",
+			__func__, __LINE__, data->regs[AXI_SYS_RESET].gpr,
+			data->regs[AXI_SYS_RESET].reg,
+			data->regs[AXI_SYS_RESET].mask);
+
+		ret = regmap_update_bits(data->regs[AXI_SYS_RESET].gpr,
+			data->regs[AXI_SYS_RESET].reg,
+			data->regs[AXI_SYS_RESET].mask,
+			data->regs[AXI_SYS_RESET].mask);
 		if (ret) {
-			dev_err(dev, "regmap_update_bits failed %s, %d\n",
+			dev_err(dev, "axim regmap_update_bits failed %s, %d\n",
 				__func__, __LINE__);
 			break;
 		}
 
-		ret = regmap_update_bits(data->regs[RESET].gpr, 0x00A0, 0x8, 0);
+		ret = regmap_update_bits(data->regs[AXI_SYS_RESET].gpr,
+			data->regs[AXI_SYS_RESET].reg,
+			data->regs[AXI_SYS_RESET].mask, 0);
 		if (ret) {
-			dev_err(dev, "regmap_update_bits failed %s, %d\n",
+			dev_err(dev, "axim regmap_update_bits failed %s, %d\n",
 				__func__, __LINE__);
 		}
 
