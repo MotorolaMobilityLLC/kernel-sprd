@@ -10,8 +10,8 @@
 		compatible                        = "sprd,debuglog";
 		sprd,pdbg-irq-domain-gic          = "GICv3";
 		sprd,pdbg-irq-domain-gpio         = "sprd-gpio";
-		sprd,pdbg-irq-domain-ana          = "spi4.0";
-		sprd,pdbg-irq-domain-ana-eic      = "sc27xx-eic";
+		sprd,pdbg-irq-domain-ana          = "spi3.0";
+		sprd,pdbg-irq-domain-ana-eic      = "64400000.spi:pmic@0:gpio@280";
 		sprd,pdbg-irq-domain-ap-eic-dbnc  = "64200000.gpio";
 		sprd,pdbg-irq-domain-ap-eic-latch = "64200080.gpio";
 		sprd,pdbg-irq-domain-ap-eic-async = "642000a0.gpio";
