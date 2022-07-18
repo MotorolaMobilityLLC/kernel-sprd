@@ -7,7 +7,6 @@
 #include "lcd/lcd_g40396_truly_mipi_fhd.dtsi"
 #include "lcd/lcd_nt36672e_truly_mipi_fhd_nodsc.dtsi"
 #include "lcd/lcd_dummy_mipi.dtsi"
-#include "reserved-memory/modem-5g-common.dtsi"
 #include "reserved-memory/ums9610-haps-overlay.dtsi"
 #include "touchscreen/ums9610-spi1-gpio13-14-tp.dtsi"
 #include "battery/ums9610-haps-overlay.dtsi"
