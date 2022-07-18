@@ -385,8 +385,8 @@ static int cts_driver_probe(struct spi_device *client)
     //if (LCM_INFO_EASYQUICK_608 == g_lcm_info_flag) 
     if (strncmp(lcd_name, "lcd_icnl9911cac_dj_mipi_hd", name_len) == 0)
     {
-        snprintf(lcdname, sizeof(lcdname),"%s ", "dj-icn19911cac" );
-        snprintf(vendor_name, sizeof(vendor_name),"%s ", "dj-icn19911cac" );
+        snprintf(lcdname, sizeof(lcdname),"%s ", "dj-icnl9911cac" );
+        snprintf(vendor_name, sizeof(vendor_name),"%s ", "dj-icnl9911cac" );
     }
     else if (strncmp(lcd_name, "lcd_icnl9911c_dj_mipi_hd", name_len) == 0)
     {
