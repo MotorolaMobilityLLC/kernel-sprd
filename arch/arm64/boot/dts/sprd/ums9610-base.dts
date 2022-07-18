@@ -10,11 +10,11 @@
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/thermal/thermal.h>
 #include "reserved-memory/modem-5g-common.dtsi"
-#include "ums9620/ums9620.dtsi"
+#include "ums9610/ums9610.dtsi"
 #include "ump9620/ump9620.dtsi"
 #include "ump9621/ump9621.dtsi"
 #include "ump9622/ump9622.dtsi"
-#include "trusty/ums9620.dtsi"
+#include "trusty/ums9610.dtsi"
 #include "battery/battery-common.dtsi"
 #include "thermal/ntc-common.dtsi"
 #include "sound/fe-be.dtsi"
