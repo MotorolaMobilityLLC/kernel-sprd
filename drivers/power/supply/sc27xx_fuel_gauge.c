@@ -83,6 +83,7 @@
 #define SC27XX_FGU_CLBCNT_DELTA_INT	BIT(2)
 #define SC27XX_FGU_RELAX_CNT_INT	BIT(3)
 #define SC27XX_FGU_RELAX_CNT_STS	BIT(3)
+#define SC27XX_FGU_STATUS_INVALID_POCV  BIT(7)
 
 #define SC27XX_FGU_MODE_AREA_MASK	GENMASK(15, 12)
 #define SC27XX_FGU_CAP_AREA_MASK	GENMASK(11, 0)
@@ -354,6 +355,7 @@ struct sc27xx_fgu_data {
 	bool online;
 	bool is_first_poweron;
 	bool is_ovp;
+	bool invalid_pocv;
 	u32 chg_type;
 	struct sc27xx_fgu_track_capacity track;
 	struct power_supply_battery_ocv_table *cap_table;
@@ -1463,7 +1465,7 @@ static void sc27xx_fgu_calc_charge_cycle(struct sc27xx_fgu_data *data, int cap, 
 
 static int sc27xx_fgu_get_boot_voltage(struct sc27xx_fgu_data *data, int *pocv_uv)
 {
-	int vol_mv, cur_adc, oci_ma, ret, ocv_mv;
+	int vol_mv, cur_adc, oci_ma, ret, ocv_mv, fgu_sts;
 
 	/*
 	 * After system booting on, the SC27XX_FGU_CLBCNT_QMAXL register saved
@@ -1490,15 +1492,24 @@ static int sc27xx_fgu_get_boot_voltage(struct sc27xx_fgu_data *data, int *pocv_u
 	}
 
 	vol_mv = sc27xx_fgu_adc2voltage(data, vol_mv);
-	if (vol_mv < SC27XX_FGU_POCV_VOLT_THRESHOLD) {
+	*pocv_uv = vol_mv * 1000 - oci_ma * data->internal_resist;
+
+	ret = regmap_read(data->regmap, data->base + SC27XX_FGU_STATUS, &fgu_sts);
+	if (ret) {
+		dev_err(data->dev, "Failed to read FGU_STATUS, ret = %d\n", ret);
+		return ret;
+	}
+
+	data->invalid_pocv = !!(fgu_sts & SC27XX_FGU_STATUS_INVALID_POCV);
+	if (vol_mv < SC27XX_FGU_POCV_VOLT_THRESHOLD || data->invalid_pocv) {
+		dev_info(data->dev, "pocv is %s\n", data->invalid_pocv ? "invalid" : "valid");
 		ret = sc27xx_fgu_get_vbat_ocv(data, &ocv_mv);
 		if (ret) {
 			dev_err(data->dev, "Failed to read volt, ret = %d\n", ret);
 			return ret;
 		}
-		vol_mv = ocv_mv;
+		*pocv_uv = ocv_mv * 1000;
 	}
-	*pocv_uv = vol_mv * 1000 - oci_ma * data->internal_resist;
 	dev_info(data->dev, "oci_ma = %d, vol_mv = %d, pocv = %d\n", oci_ma, vol_mv, *pocv_uv);
 
 	return 0;
@@ -1598,8 +1609,7 @@ static int sc27xx_fgu_get_boot_capacity(struct sc27xx_fgu_data *data, int *cap)
 		data->boot_cap = *cap;
 		ret = sc27xx_fgu_read_normal_temperature_cap(data, cap);
 		if (ret) {
-			dev_err(data->dev, "Failed to read normal temperature cap, ret = %d\n",
-				ret);
+			dev_err(data->dev, "Failed to read normal temperature cap, ret = %d\n", ret);
 			sc27xx_fgu_boot_cap_calibration(data, pocv_cap, pocv_uv, cap);
 			return ret;
 		}
@@ -3442,7 +3452,7 @@ static void sc27xx_fgu_cap_track_state_idle(struct sc27xx_fgu_data *data, int *c
 
 	if (!data->bat_present) {
 		*cycle = SC27XX_FGU_CAPACITY_TRACK_100S;
-		dev_err(data->dev, "[idle] battery is not present, monitor later.\n");
+		dev_dbg(data->dev, "[idle] battery is not present, monitor later.\n");
 		return;
 	}
 
@@ -3461,8 +3471,8 @@ static void sc27xx_fgu_cap_track_state_idle(struct sc27xx_fgu_data *data, int *c
 	 */
 	if (data->track.start_cap > SC27XX_FGU_TRACK_START_CAP_HTHRESHOLD ||
 	    data->track.start_cap < SC27XX_FGU_TRACK_START_CAP_LTHRESHOLD) {
-		dev_info(data->dev, "[idle] start_cap = %d does not satisfy the track start condition\n",
-			 data->track.start_cap);
+		dev_dbg(data->dev, "[idle] start_cap = %d does not satisfy the track start condition\n",
+			data->track.start_cap);
 		data->track.start_cap = 0;
 		return;
 	}
@@ -3511,7 +3521,7 @@ static void sc27xx_fgu_cap_track_state_updating(struct sc27xx_fgu_data *data, in
 	if (data->bat_temp > SC27XX_FGU_TRACK_HIGH_TEMP_THRESHOLD ||
 	    data->bat_temp < SC27XX_FGU_TRACK_LOW_TEMP_THRESHOLD) {
 		*cycle = SC27XX_FGU_CAPACITY_TRACK_100S;
-		dev_err(data->dev, "[updating] exceed temp range, monitor capacity track later.\n");
+		dev_dbg(data->dev, "[updating] exceed temp range, monitor capacity track later.\n");
 		return;
 	}
 
