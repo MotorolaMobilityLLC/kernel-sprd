@@ -549,7 +549,7 @@ static ssize_t wcn_sysfs_store_reset_dump(struct device *dev,
 
 	if (strncmp(buf, "dump", 4) == 0) {
 		atomic_set(&sysfs_info.is_reset, WCN_ASSERT_ONLY_DUMP);
-	} else if (strncmp(buf, "reset", 5) == 0) {
+	} else if (count < sizeof("reset_dump") && strncmp(buf, "reset", 5) == 0) {
 		atomic_set(&sysfs_info.is_reset, WCN_ASSERT_ONLY_RESET);
 	} else if (strncmp(buf, "reset_dump", 10) == 0) {
 		atomic_set(&sysfs_info.is_reset, WCN_ASSERT_BOTH_RESET_DUMP);
