@@ -4234,6 +4234,9 @@
 #define MASK_MM_AHB_FD_SOFT_RST                             0x00000010
 #define MASK_MM_AHB_MM_LPC_DISABLE                          0x00000000
 #define MASK_MM_AHB_DVFS_EN                                 0x00000008
+#define MASK_MM_AHB_CAMERA_DVFS_ACK                         0x00000100
+#define MASK_MM_AHB_CAMERA_DVFS_VOLTAGE_SW                  0x000000f0
+#define MASK_MM_AHB_CAMERA_DVFS_REQ_SW                      0x00000001
 #define MASK_MM_AHB_CPP_VAU_SOFT_RST                        0x00000200
 #define MASK_MM_AHB_CPP_ALL_SOFT_RST                        0x00000800
 #define MASK_MM_AHB_CPP_SOFT_RST                            0x00000400

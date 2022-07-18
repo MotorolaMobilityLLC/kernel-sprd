@@ -873,6 +873,7 @@
 #define REG_MM_AHB_DCAM_BLK_SOFT_RST                        0x00C8
 #define REG_MM_AHB_ISP_BLK_SOFT_RST                         0x00CC
 #define REG_MM_AHB_SYS_SOFT_RST                             0x00D0
+#define REG_MM_DVFS_AHB_MM_SW_DVFS_CTRL                     0x0038
 #define REG_DISPC1_GLB_APB_APB_EB                           0x0000
 #define REG_DISPC1_GLB_APB_APB_RST                          0x0004
 #define REG_DISPC1_GLB_APB_DISPC1_FORCE_OFF                 0x0010

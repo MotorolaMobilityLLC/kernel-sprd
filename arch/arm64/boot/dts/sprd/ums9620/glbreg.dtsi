@@ -148,6 +148,11 @@
 			#reset-cells = <1>;
 		};
 	};
+	mm_dvfs_regs: syscon@30014000 {
+		compatible = "sprd,ums9620-glbregs", "syscon";
+		#syscon-cells = <2>;
+		reg = <0 0x30014000 0 0x4000>;
+	};
 
 	dpu_vsp_apb_regs: syscon@30100000 {
 		compatible = "sprd,ums9620-glbregs", "syscon", "simple-mfd";
