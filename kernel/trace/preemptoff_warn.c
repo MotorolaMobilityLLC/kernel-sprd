@@ -89,6 +89,8 @@ noinline void start_preemptoff_timing(void)
 
 	info->start_ts = timing_clock();
 	info->task = current;
+	info->pid = current->pid;
+	info->ncsw = current->nvcsw + current->nivcsw;
 	for (i = 0; i < 5; i++)
 		info->callback[i] = return_address(i);
 }
@@ -104,6 +106,10 @@ noinline void stop_preemptoff_timing(void)
 		return;
 
 	if (unlikely(oops_in_progress))
+		goto skip;
+
+	/*skip if returned from idle*/
+	if ((info->pid != current->pid) || (info->ncsw != current->nvcsw + current->nivcsw))
 		goto skip;
 
 	preemptoff_ns = timing_clock() - info->start_ts;

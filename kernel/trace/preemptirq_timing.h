@@ -6,6 +6,8 @@ struct preemptirq_info {
 	u64 extra_start_ts;
 	u64 extra_time;
 	struct task_struct *task;
+	unsigned long ncsw;
+	int pid;
 	void *callback[5];
 };
 
