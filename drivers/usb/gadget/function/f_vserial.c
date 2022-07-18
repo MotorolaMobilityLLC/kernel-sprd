@@ -987,6 +987,7 @@ static struct usb_function *vser_alloc(struct usb_function_instance *fi)
 	dev->function.fs_descriptors = vser_fs_function;
 	dev->function.hs_descriptors = vser_hs_function;
 	dev->function.ss_descriptors = vser_ss_function;
+	dev->function.ssp_descriptors = vser_ss_function;
 	dev->function.bind = vser_function_bind;
 	dev->function.unbind = vser_function_unbind;
 	dev->function.set_alt = vser_function_set_alt;
