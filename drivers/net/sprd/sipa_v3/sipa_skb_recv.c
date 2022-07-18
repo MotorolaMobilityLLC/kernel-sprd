@@ -677,26 +677,27 @@ struct sk_buff *sipa_recv_skb(struct sipa_skb_receiver *receiver,
 		return NULL;
 	}
 
-check_again:
 	if (ret) {
 		dev_err(receiver->dev, "recv addr:0x%llx, but recv_array is empty\n",
 			(u64)node->address);
 		atomic_dec(&receiver->check_flag);
 		return NULL;
-	} else if ((addr != node->address || !node->src) && --retry) {
+	}
+
+	while (--retry && (addr != node->address || !node->src))
 		sipa_hal_sync_node_from_tx_fifo(receiver->dev, id, -1);
-		goto check_again;
-	} else if ((addr != node->address || !node->src) && !retry) {
+
+	if (!retry) {
 		dev_kfree_skb_any(recv_skb);
 		sipa_hal_add_tx_fifo_rptr(receiver->dev, id, 1);
 		atomic_dec(&receiver->check_flag);
 		dev_info(receiver->dev,
-			 "recv addr:0x%llx, recv_array addr:0x%llx not equal retry = %d src = %d\n",
-			 (u64)node->address, (u64)addr, retry, node->src);
+			"recv addr:0x%llx, recv_array addr:0x%llx not equal retry = %d src = %d\n",
+			(u64)node->address, (u64)addr, retry, node->src);
 		if (need_unmap)
 			dma_unmap_single(receiver->dev, addr,
-					 SIPA_RECV_BUF_LEN,
-					 DMA_FROM_DEVICE);
+					SIPA_RECV_BUF_LEN,
+					DMA_FROM_DEVICE);
 		return NULL;
 	}
 
