@@ -1217,15 +1217,15 @@ static int sdhci_sprd_probe(struct platform_device *pdev)
 
 	ret = clk_prepare_enable(sprd_host->clk_enable);
 	if (ret)
-		goto clk_disable;
+		goto clk_sdio_disable;
 
 	ret = clk_prepare_enable(sprd_host->clk_1x_enable);
 	if (ret)
-		goto clk_disable2;
+		goto clk_disable;
 
 	ret = clk_prepare_enable(sprd_host->clk_2x_enable);
 	if (ret)
-		goto clk_disable2;
+		goto clk_1x_disable;
 
 	sdhci_sprd_init_config(host);
 	host->version = sdhci_readw(host, SDHCI_HOST_VERSION);
@@ -1311,13 +1311,15 @@ pm_runtime_disable:
 	pm_runtime_disable(&pdev->dev);
 	pm_runtime_set_suspended(&pdev->dev);
 
-	clk_disable_unprepare(sprd_host->clk_1x_enable);
 	clk_disable_unprepare(sprd_host->clk_2x_enable);
 
-clk_disable2:
-	clk_disable_unprepare(sprd_host->clk_enable);
+clk_1x_disable:
+	clk_disable_unprepare(sprd_host->clk_1x_enable);
 
 clk_disable:
+	clk_disable_unprepare(sprd_host->clk_enable);
+
+clk_sdio_disable:
 	clk_disable_unprepare(sprd_host->clk_sdio);
 
 pltfm_free:
@@ -1381,7 +1383,7 @@ static int sdhci_sprd_runtime_resume(struct device *dev)
 
 	ret = clk_prepare_enable(sprd_host->clk_2x_enable);
 	if (ret)
-		return ret;
+		goto clk_1x_disable;
 
 	ret = clk_prepare_enable(sprd_host->clk_enable);
 	if (ret)
@@ -1405,6 +1407,8 @@ clk_disable:
 
 clk_2x_disable:
 	clk_disable_unprepare(sprd_host->clk_2x_enable);
+
+clk_1x_disable:
 	clk_disable_unprepare(sprd_host->clk_1x_enable);
 
 	return ret;
