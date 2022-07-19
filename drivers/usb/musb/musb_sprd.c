@@ -86,7 +86,7 @@ static void musb_sprd_disable_all_interrupts(struct musb *musb);
 
 const char *musb_drd_state_string(enum musb_drd_state state)
 {
-	if (state < 0 || state >= ARRAY_SIZE(state_names))
+	if (state >= ARRAY_SIZE(state_names))
 		return "UNKNOWN";
 
 	return state_names[state];
