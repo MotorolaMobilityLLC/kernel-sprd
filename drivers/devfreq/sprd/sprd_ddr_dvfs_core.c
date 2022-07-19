@@ -309,7 +309,7 @@ int send_vote_request(unsigned int freq)
 static int get_freq_table(unsigned long *data, unsigned int sel)
 {
 	int err;
-	unsigned int freq_data;
+	unsigned int freq_data = 0;
 
 	if (g_dvfs_data == NULL)
 		return -EINVAL;

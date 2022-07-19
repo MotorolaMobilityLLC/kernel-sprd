@@ -263,7 +263,7 @@ static ssize_t ddrinfo_freq_table_show(struct device *dev,
 				struct device_attribute *attr, char *buf)
 {
 	ssize_t count = 0;
-	unsigned int i, freq_num;
+	unsigned int i, freq_num = 0;
 	unsigned long data;
 	struct devfreq *devfreq = to_devfreq(dev);
 	struct governor_callback *gov_callback =
