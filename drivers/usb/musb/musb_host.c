@@ -321,10 +321,15 @@ static void musb_advance_schedule(struct musb *musb, struct urb *urb,
 
 	musb_giveback(musb, urb, status);
 
+	/* musb->lock been unlock in musb_giveback,so sometimes qh may
+	 * been free,need get qh again
+	 */
+	qh = musb_ep_get_qh(hw_ep, is_in);
+
 	/* reclaim resources (and bandwidth) ASAP; deschedule it, and
 	 * invalidate qh as soon as list_empty(&hep->urb_list)
 	 */
-	if (list_empty(&qh->hep->urb_list)) {
+	if (qh != NULL && list_empty(&qh->hep->urb_list)) {
 		struct list_head	*head;
 		struct dma_controller	*dma = musb->dma_controller;
 
