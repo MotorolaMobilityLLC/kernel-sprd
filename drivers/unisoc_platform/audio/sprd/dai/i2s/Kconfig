@@ -1,2 +1,0 @@
-config SND_SOC_UNISOC_I2S
-	tristate "SPRD AP IIS DAI"

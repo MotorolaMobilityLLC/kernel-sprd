@@ -1,5 +1,0 @@
-config SND_SOC_UNISOC_DP_CODEC
-	tristate "unisoc dp codec"
-	default n
-	help
-		Say Y or M here if you want to use dp feature.
