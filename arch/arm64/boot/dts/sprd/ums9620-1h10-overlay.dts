@@ -252,7 +252,7 @@
 				sprd,rc-ctrl = <&pcie1>;
 
 				gnss_common_ctl {
-					compatible = "sprd,gnss_common_ctl";
+					compatible = "sprd,gnss";
 					sprd,name = "gnss_common_ctl";
 				};
 			};
@@ -268,7 +268,7 @@
 			};
 
 			sprd-wlan {
-				compatible = "sprd,sc2355-wifi";
+				compatible = "sprd,sc2355-pcie-wifi";
 				reg = <0 0x21040064 0 0x0A>,
 				<0 0x25200000 0 0x3000>;
 				reg-names = "wifi_ipaqos",
