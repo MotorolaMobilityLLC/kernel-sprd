@@ -56,7 +56,6 @@ unsigned long walt_cpu_util_freq(int cpu)
 	u64 walt_cpu_util;
 	struct rq *rq = cpu_rq(cpu);
 	struct walt_rq *wrq = (struct walt_rq *) rq->android_vendor_data1;
-	unsigned long util_freq;
 
 	walt_cpu_util = wrq->cumulative_runnable_avg;
 	walt_cpu_util <<= SCHED_CAPACITY_SHIFT;
@@ -70,9 +69,7 @@ unsigned long walt_cpu_util_freq(int cpu)
 		walt_cpu_util = max(walt_cpu_util, prev_runnable_sum);
 	}
 
-	util_freq = min_t(unsigned long, walt_cpu_util, capacity_orig_of(cpu));
-
-	return walt_uclamp_rq_util_with(rq, util_freq, NULL);
+	return min_t(unsigned long, walt_cpu_util, capacity_orig_of(cpu));
 }
 EXPORT_SYMBOL_GPL(walt_cpu_util_freq);
 
@@ -1195,14 +1192,6 @@ static void walt_sched_init_rq(struct rq *rq)
 
 DEFINE_STATIC_KEY_TRUE(walt_disabled);
 
-static void walt_update_task_group(struct cgroup_subsys_state *css)
-{
-	if (!strcmp(css->cgroup->kn->name, "top-app"))
-		walt_init_topapp_tg(css_tg(css));
-	else
-		walt_init_tg(css_tg(css));
-}
-
 static void android_rvh_cpu_cgroup_online(void *data, struct cgroup_subsys_state *css)
 {
 	if (static_branch_unlikely(&walt_disabled))
@@ -1307,6 +1296,8 @@ static void android_rvh_enqueue_task(void *data, struct rq *rq, struct task_stru
 		return;
 
 	walt_inc_cumulative_runnable_avg(rq, p);
+
+	walt_group_boost_enqueue(rq, p);
 }
 
 static void android_rvh_after_enqueue_task(void *data, struct rq *rq, struct task_struct *p, int flags)
@@ -1328,6 +1319,8 @@ static void android_rvh_dequeue_task(void *data, struct rq *rq, struct task_stru
 		return;
 
 	walt_dec_cumulative_runnable_avg(rq, p);
+
+	walt_group_boost_dequeue(rq, p);
 }
 
 static void android_rvh_after_dequeue_task(void *data, struct rq *rq, struct task_struct *p, int flags)
@@ -1402,6 +1395,11 @@ static void walt_effective_cpu_util(void *data, int cpu, unsigned long util_cfs,
 
 	walt_cpu_util = max(walt_cpu_util, prev_runnable_sum);
 
+	if (type == FREQUENCY_UTIL) {
+		walt_cpu_util = boosted_cpu_util(cpu, walt_cpu_util);
+		walt_cpu_util = walt_uclamp_rq_util_with(rq, walt_cpu_util, p);
+	}
+
 	*new_util = min_t(unsigned long, walt_cpu_util, capacity_orig_of(cpu));
 }
 
@@ -1471,17 +1469,6 @@ static int walt_init_stop_handler(void *data)
 	return 0;
 }
 
-static void walt_init_task_group_all(void)
-{
-        struct cgroup_subsys_state *css = &root_task_group.css;
-        struct cgroup_subsys_state *top_css = css;
-
-        rcu_read_lock();
-        css_for_each_child(css, top_css)
-                walt_update_task_group(css);
-        rcu_read_unlock();
-}
-
 static void walt_init(struct work_struct *work)
 {
 	struct ctl_table_header *hdr;
@@ -1496,7 +1483,7 @@ static void walt_init(struct work_struct *work)
 
 	init_clusters();
 
-	walt_init_task_group_all();
+	walt_init_group_control();
 
 	register_walt_vendor_hooks();
 	walt_rt_init();

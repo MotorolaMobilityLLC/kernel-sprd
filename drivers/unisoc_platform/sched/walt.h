@@ -10,6 +10,7 @@
 #include <linux/sched.h>
 #include <linux/types.h>
 
+#include "trace.h"
 #include "../../../kernel/sched/sched.h"
 
 #define WALT_NR_CPUS	8
@@ -94,6 +95,8 @@ struct walt_rq {
 };
 
 struct walt_task_group {
+	/* CGroup index */
+	int idx;
 	/* Boost value for tasks in CGroup */
 	int boost;
 
@@ -113,6 +116,7 @@ struct pd_cache {
 };
 
 extern struct ctl_table walt_base_table[];
+extern struct ctl_table boost_table[];
 extern unsigned int sysctl_sched_walt_cross_window_util;
 extern unsigned int sysctl_walt_io_is_busy;
 extern unsigned int sysctl_walt_busy_threshold;
@@ -120,11 +124,9 @@ extern unsigned int sysctl_sched_walt_init_task_load_pct;
 extern unsigned int sysctl_sched_walt_cpu_high_irqload;
 extern unsigned int sysctl_sched_uclamp_threshold;
 extern unsigned int sysctl_walt_account_irq_time;
-
 #if IS_ENABLED(CONFIG_UCLAMP_MIN_TO_BOOST)
 extern unsigned int sysctl_sched_uclamp_min_to_boost;
 #endif
-
 #define scale_demand(d) ((d) / (walt_ravg_window >> SCHED_CAPACITY_SHIFT))
 
 extern unsigned int min_max_possible_capacity;
@@ -169,14 +171,57 @@ extern u64 walt_ktime_clock(void);
 extern void walt_rt_init(void);
 extern void walt_fair_init(void);
 extern unsigned long walt_cpu_util_freq(int cpu);
-extern void walt_init_tg(struct task_group *tg);
-extern void walt_init_topapp_tg(struct task_group *tg);
-extern u32 tg_init_load_pct(struct task_struct *p);
-extern unsigned int tg_account_wait_time(struct task_struct *p);
+
+extern void walt_update_task_group(struct cgroup_subsys_state *css);
+extern void walt_init_group_control(void);
+#ifdef CONFIG_UNISOC_GROUP_BOOST
+extern void walt_group_boost_enqueue(struct rq *rq, struct task_struct *p);
+extern void walt_group_boost_dequeue(struct rq *rq, struct task_struct *p);
+extern int cpu_group_boost(int cpu);
+extern unsigned long boosted_cpu_util(int cpu, unsigned long util);
+#else
+static inline void walt_group_boost_enqueue(struct rq *rq, struct task_struct *p) { };
+static inline void walt_group_boost_dequeue(struct rq *rq, struct task_struct *p) { };
+static inline int cpu_group_boost(int cpu)
+{
+	return 0;
+}
+#endif
 
 static inline struct task_group *css_tg(struct cgroup_subsys_state *css)
 {
 	return css ? container_of(css, struct task_group, css) : NULL;
+}
+
+static inline struct walt_task_group *get_walt_task_group(struct task_struct *p)
+{
+	return (struct walt_task_group *) (p->sched_task_group->android_vendor_data1);
+}
+
+static inline unsigned int tg_init_load_pct(struct task_struct *p)
+{
+	struct walt_task_group *wtg = get_walt_task_group(p);
+
+	return wtg->init_task_load_pct;
+}
+
+static inline unsigned int tg_account_wait_time(struct task_struct *p)
+{
+	struct walt_task_group *wtg = get_walt_task_group(p);
+
+	return wtg->account_wait_time;
+}
+
+
+static inline int task_group_boost(struct task_struct *p)
+{
+#ifdef CONFIG_UNISOC_GROUP_BOOST
+	struct walt_task_group *wtg = get_walt_task_group(p);
+
+	return wtg->boost;
+#else
+	return 0;
+#endif
 }
 
 #define WALT_HIGH_IRQ_TIMEOUT 3
@@ -218,6 +263,52 @@ static inline unsigned long walt_cpu_util(int cpu)
 	return min_t(unsigned long, cpu_util, capacity_orig_of(cpu));
 }
 
+#ifdef CONFIG_UNISOC_GROUP_BOOST
+extern unsigned int sysctl_sched_spc_threshold;
+static inline int group_boost_margin(long util, int boost)
+{
+	int margin;
+
+	/*
+	 * Signal proportional compensation (SPC)
+	 *
+	 * The Boost (B) value is used to compute a Margin (M) which is
+	 * proportional to the complement of the original Signal (S):
+	 *   M = B * (SCHED_CAPACITY_SCALE - S)
+	 * The obtained M could be used by the caller to "boost" S.
+	 */
+	if (boost >= 0) {
+		if (util < sysctl_sched_spc_threshold)
+			margin = util * boost / 100;
+		else
+			margin  = (SCHED_CAPACITY_SCALE - util) * boost / 100;
+	} else
+		margin = util * boost / 100;
+
+	return margin;
+}
+
+static inline unsigned long boosted_task_util(struct task_struct *task)
+{
+	unsigned long util = walt_task_util(task);
+	int boost = task_group_boost(task);
+	int margin = group_boost_margin(util, boost);
+
+	trace_sched_boost_task(task, util, boost, margin);
+
+	return util + margin;
+}
+#else
+static inline unsigned long boosted_cpu_util(int cpu, unsigned long util)
+{
+	return util;
+}
+static inline unsigned long boosted_task_util(struct task_struct *task)
+{
+	return walt_task_util(task);
+}
+#endif
+
 #ifdef CONFIG_UCLAMP_TASK
 #if IS_ENABLED(CONFIG_UCLAMP_MIN_TO_BOOST)
 static inline unsigned long uclamp_transform_boost(unsigned long util,
@@ -244,18 +335,22 @@ static inline unsigned long uclamp_task_util(struct task_struct *p)
 {
 	unsigned long min_util = uclamp_eff_value(p, UCLAMP_MIN);
 	unsigned long max_util = uclamp_eff_value(p, UCLAMP_MAX);
-	unsigned long clamp_util, util;
+	unsigned long util;
 
-	util = walt_task_util(p);
+	util = boosted_task_util(p);
 
-#if IS_ENABLED(CONFIG_UCLAMP_MIN_TO_BOOST)
+#ifdef CONFIG_UCLAMP_MIN_TO_BOOST
 	if (sysctl_sched_uclamp_min_to_boost)
-		clamp_util = uclamp_transform_boost(util, min_util, max_util);
-	else
-#endif
-		clamp_util = clamp(util, min_util, max_util);
+		util = uclamp_transform_boost(util, min_util, max_util);
+	else if (util >= sysctl_sched_uclamp_threshold)
+		util = clamp(util, min_util, max_util);
+#else
+	if (util >= sysctl_sched_uclamp_threshold)
+		util = clamp(util, min_util, max_util);
 
-	return clamp_util;
+#endif
+
+	return util;
 }
 
 static __always_inline
@@ -264,7 +359,6 @@ unsigned long walt_uclamp_rq_util_with(struct rq *rq, unsigned long util,
 {
 	unsigned long min_util = 0;
 	unsigned long max_util = 0;
-	unsigned long clamp_util;
 
 	if (!static_branch_likely(&sched_uclamp_used))
 		return util;
@@ -294,12 +388,15 @@ out:
 
 #if IS_ENABLED(CONFIG_UCLAMP_MIN_TO_BOOST)
 	if (sysctl_sched_uclamp_min_to_boost)
-		clamp_util = uclamp_transform_boost(util, min_util, max_util);
-	else
+		util = uclamp_transform_boost(util, min_util, max_util);
+	else if (util >= sysctl_sched_uclamp_threshold)
+		util = clamp(util, min_util, max_util);
+#else
+	if (util >= sysctl_sched_uclamp_threshold)
+		util = clamp(util, min_util, max_util);
 #endif
-		clamp_util = clamp(util, min_util, max_util);
 
-	return clamp_util;
+	return util;
 }
 
 static inline bool uclamp_blocked(struct task_struct *p)
@@ -310,7 +407,7 @@ static inline bool uclamp_blocked(struct task_struct *p)
 #else
 static inline unsigned long uclamp_task_util(struct task_struct *p)
 {
-	return walt_task_util(p);
+	return boost_task_util(p);
 }
 
 static inline

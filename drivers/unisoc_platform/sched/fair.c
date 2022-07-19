@@ -6,7 +6,7 @@
 #include <trace/hooks/sched.h>
 
 #include "walt.h"
-#include "trace.h"
+//#include "trace.h"
 
 /*
  * Remove and clamp on negative, from a local variable.
@@ -340,6 +340,7 @@ static long walt_compute_energy(struct task_struct *p, int dst_cpu,
 	unsigned long max_util = 0, sum_util = 0;
 	unsigned long _cpu_cap = cpu_cap;
 	unsigned long energy = 0;
+	unsigned long uclamp_util = uclamp_task_util(p);
 	int cpu;
 
 	_cpu_cap -= arch_scale_thermal_pressure(cpumask_first(pd_mask));
@@ -360,7 +361,7 @@ static long walt_compute_energy(struct task_struct *p, int dst_cpu,
 		cpu_util = pdc[cpu].wake_util;
 		if (cpu == dst_cpu) {
 			tsk = p;
-			cpu_util += walt_task_util(p);
+			cpu_util += uclamp_util;
 		}
 
 		cpu_util = walt_uclamp_rq_util_with(cpu_rq(cpu), cpu_util, tsk);
@@ -389,7 +390,7 @@ static bool task_can_place_on_cpu(struct task_struct *p, int cpu)
 	capacity = capacity_orig - thermal_pressure;
 
 	cpu_util = cpu_util_without(cpu, p);
-	cpu_util += walt_task_util(p);
+	cpu_util += uclamp_task_util(p);
 	cpu_util = walt_uclamp_rq_util_with(cpu_rq(cpu), cpu_util, p);
 
 	if (capacity_orig_of(task_cpu(p)) > capacity_orig)
@@ -487,6 +488,7 @@ static int walt_find_energy_efficient_cpu(struct task_struct *p, int prev_cpu, i
 	struct root_domain *rd = cpu_rq(cpu)->rd;
 	int max_spare_cap_cpu_ls = prev_cpu, best_idle_cpu = -1;
 	int best_energy_cpu = -1, target = -1;
+	int task_boost = task_group_boost(p);
 	unsigned long max_spare_cap_ls = 0, target_cap = ULONG_MAX;
 	unsigned long cpu_cap, util, uclamp_util, base_energy = 0;
 	bool boosted, blocked, latency_sensitive = false;
@@ -510,11 +512,11 @@ static int walt_find_energy_efficient_cpu(struct task_struct *p, int prev_cpu, i
 
 	uclamp_util = uclamp_task_util(p);
 	latency_sensitive = uclamp_latency_sensitive(p);
-	boosted = uclamp_boosted(p);
-	blocked = uclamp_blocked(p);
+	boosted = (task_boost > 0) || uclamp_boosted(p);
+	blocked = (task_boost < 0) || uclamp_blocked(p);
 
-	trace_sched_feec_task_info(p, prev_cpu, walt_task_util(p), uclamp_util,
-				   boosted, latency_sensitive, blocked);
+	trace_sched_feec_task_info(p, prev_cpu, walt_task_util(p), task_boost,
+				   uclamp_util, boosted, latency_sensitive, blocked);
 
 	for (; pd; pd = pd->next) {
 		unsigned long cur_delta = ULONG_MAX, spare_cap, max_spare_cap = 0;

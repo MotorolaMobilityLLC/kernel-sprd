@@ -225,7 +225,12 @@ static unsigned long unisoc_effective_cpu_util(int cpu, unsigned long util_cfs,
 				 unsigned long max, enum cpu_util_type type,
 				 struct task_struct *p)
 {
-	return walt_cpu_util_freq(cpu);
+	unsigned long util = walt_cpu_util_freq(cpu);
+	unsigned long boost_util = boosted_cpu_util(cpu, util);
+
+	boost_util = walt_uclamp_rq_util_with(cpu_rq(cpu), boost_util, NULL);
+
+	return min(boost_util, max);;
 }
 #else
 static unsigned long unisoc_effective_cpu_util(int cpu, unsigned long util_cfs,
@@ -445,6 +450,12 @@ static void sugov_iowait_apply(struct sugov_cpu *sg_cpu, u64 time)
 	 * into the same scale so we can compare.
 	 */
 	boost = (sg_cpu->iowait_boost * sg_cpu->max) >> SCHED_CAPACITY_SHIFT;
+#if IS_ENABLED(CONFIG_SCHED_WALT)
+	boost = boosted_cpu_util(sg_cpu->cpu, boost);
+	boost = walt_uclamp_rq_util_with(cpu_rq(sg_cpu->cpu), boost, NULL);
+#else
+	boost = uclamp_rq_util_with(cpu_rq(sg_cpu->cpu), boost, NULL);
+#endif
 	if (sg_cpu->util < boost)
 		sg_cpu->util = boost;
 }
@@ -1004,6 +1015,7 @@ disable_fast_switch:
 static void usc_sugov_exit(struct cpufreq_policy *policy)
 {
 	struct sugov_policy *sg_policy = policy->governor_data;
+	struct sugov_policy *temp_sg_policy;
 	struct sugov_tunables *tunables = sg_policy->tunables;
 	unsigned int count;
 
@@ -1016,10 +1028,9 @@ static void usc_sugov_exit(struct cpufreq_policy *policy)
 
 	mutex_unlock(&global_tunables_lock);
 
-	list_for_each_entry(sg_policy, &sugov_list, sg_policy_list) {
-		if (sg_policy->policy == policy) {
+	list_for_each_entry(temp_sg_policy, &sugov_list, sg_policy_list) {
+		if (temp_sg_policy->policy == policy)
 			goto out;
-		}
 	}
 	sugov_kthread_stop(sg_policy);
 	sugov_policy_free(sg_policy);

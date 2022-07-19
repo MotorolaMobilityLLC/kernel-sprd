@@ -9,10 +9,17 @@
 static int one_hundred = 100;
 static int one_thousand = 1000;
 
-unsigned int sysctl_sched_uclamp_threshold = 100;
 #if IS_ENABLED(CONFIG_UCLAMP_MIN_TO_BOOST)
 /* map util clamp_min to boost */
 unsigned int sysctl_sched_uclamp_min_to_boost = 1;
+unsigned int sysctl_sched_uclamp_threshold = 100;
+#else
+unsigned int sysctl_sched_uclamp_threshold = 50;
+#endif
+EXPORT_SYMBOL_GPL(sysctl_sched_uclamp_threshold);
+
+#ifdef CONFIG_UNISOC_GROUP_BOOST
+unsigned int sysctl_sched_spc_threshold = 100;
 #endif
 unsigned int sysctl_walt_account_irq_time = 1;
 
@@ -185,6 +192,17 @@ struct ctl_table walt_table[] = {
 		.extra1		= SYSCTL_ZERO,
 		.extra2		= &one_thousand,
 	},
+#ifdef CONFIG_UNISOC_GROUP_BOOST
+	{
+		.procname	= "sched_spc_threshold",
+		.data		= &sysctl_sched_spc_threshold,
+		.maxlen		= sizeof(unsigned int),
+		.mode		= 0644,
+		.proc_handler	= proc_dointvec_minmax,
+		.extra1		= SYSCTL_ZERO,
+		.extra2		= &one_thousand,
+	},
+#endif
 	{
 		.procname	= "walt_account_irq_time",
 		.data		= &sysctl_walt_account_irq_time,
@@ -228,6 +246,11 @@ struct ctl_table walt_table[] = {
 		.child		= rotation_table,
 	},
 #endif
+	{
+		.procname	= "group_ctl",
+		.mode		= 0555,
+		.child		= boost_table,
+	},
 	{ }
 };
 
