@@ -264,7 +264,8 @@ static void dwc3_flush_all_events(struct dwc3_sprd *sdwc)
 
 #if IS_ENABLED(CONFIG_SPRD_REDRIVER_PTN38003A)
 extern int ptn38003a_mode_usb32_set(unsigned int enable);
-static void limit_dwc3_max_speed(struct dwc3_sprd *sdwc)
+/*if HW didn't have ptn38003a, we should limit usb speed to 3.0 */
+static void adjust_dwc3_max_speed(struct dwc3_sprd *sdwc)
 {
 	struct dwc3 *dwc = platform_get_drvdata(sdwc->dwc3);
 
@@ -439,7 +440,9 @@ static int dwc3_sprd_otg_start_peripheral(struct dwc3_sprd *sdwc, int on)
 		if (dwc->dr_mode == USB_DR_MODE_OTG)
 			flush_work(&dwc->drd_work);
 		usb_gadget_set_state(dwc->gadget, USB_STATE_ATTACHED);
-		//limit_dwc3_max_speed(sdwc);
+#if IS_ENABLED(CONFIG_SPRD_REDRIVER_PTN38003A)
+		adjust_dwc3_max_speed(sdwc);
+#endif
 		sdwc->glue_dr_mode = USB_DR_MODE_PERIPHERAL;
 	} else {
 		dev_info(sdwc->dev, "%s: turn off gadget %s\n",
@@ -501,7 +504,9 @@ static int dwc3_sprd_otg_start_host(struct dwc3_sprd *sdwc, int on)
 		usb_role_switch_set_role(dwc->role_sw, USB_ROLE_HOST);
 		if (dwc->dr_mode == USB_DR_MODE_OTG)
 			flush_work(&dwc->drd_work);
-		//limit_dwc3_max_speed(sdwc);
+#if IS_ENABLED(CONFIG_SPRD_REDRIVER_PTN38003A)
+		adjust_dwc3_max_speed(sdwc);
+#endif
 
 		dwc3_sprd_override_pm_ops(&dwc->xhci->dev, &sdwc->xhci_pm_ops, true);
 		sdwc->glue_dr_mode = USB_DR_MODE_HOST;

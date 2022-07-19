@@ -32,6 +32,7 @@
 #include <dt-bindings/soc/sprd,qogirn6pro-mask.h>
 #include <dt-bindings/soc/sprd,qogirn6pro-regs.h>
 #include <linux/usb/sprd_usbm.h>
+#include "ptn38003a-i2c.h"
 
 struct sprd_ssphy {
 	struct usb_phy		phy;
@@ -289,6 +290,8 @@ static int sprd_ssphy_init(struct usb_phy *x)
 		dev_info(x->dev, "%s is already inited!\n", __func__);
 		return 0;
 	}
+
+	ptn38003a_mode_usb32_set(1);
 
 	/*
 	 * Due to chip design, some chips may turn on vddusb by default,
@@ -548,6 +551,8 @@ static void sprd_ssphy_shutdown(struct usb_phy *x)
 
 	if (regulator_is_enabled(phy->vdd))
 		regulator_disable(phy->vdd);
+
+	ptn38003a_mode_usb32_set(0);
 
 	atomic_set(&phy->inited, 0);
 	atomic_set(&phy->reset, 0);

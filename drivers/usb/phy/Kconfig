@@ -218,4 +218,12 @@ config JZ4770_PHY
 	  This driver provides PHY support for the USB controller found
 	  on the JZ-series and X-series SoCs from Ingenic.
 
+config SPRD_REDRIVER_PTN38003A
+	tristate "Unisoc PTN38003A Driver"
+	select USB_PHY
+	depends on SPRD_QOGIRN6PRO_USB31_PHY
+	help
+	  Enable this to support QOGIRN6PRO USB3 PHY . This
+	  driver is redriver for usb3.0.
+
 endmenu
