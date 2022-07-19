@@ -35,20 +35,16 @@
 				core3 {
 					cpu = <&CPU3>;
 				};
-			};
-			cluster1 {
-				core0 {
+				core4 {
 					cpu = <&CPU4>;
 				};
-				core1 {
+				core5 {
 					cpu = <&CPU5>;
 				};
-				core2 {
+				core6 {
 					cpu = <&CPU6>;
 				};
-			};
-			cluster2 {
-				core0 {
+				core7 {
 					cpu = <&CPU7>;
 				};
 			};
@@ -60,8 +56,8 @@
 			reg = <0x0 0x0>;
 			enable-method = "psci";
 			cpu-idle-states = <&LIT_CORE_PD &CLUSTER_PD>;
-			capacity-dmips-mhz = <417>;
-			dynamic-power-coefficient = <155>;
+			capacity-dmips-mhz = <420>;
+			dynamic-power-coefficient = <153>;
 			cpufreq-data-v1 = <&cpufreq_cluster0>;
 			sugov_slack_timer;
 		};
@@ -71,8 +67,8 @@
 			reg = <0x0 0x100>;
 			enable-method = "psci";
 			cpu-idle-states = <&LIT_CORE_PD &CLUSTER_PD>;
-			capacity-dmips-mhz = <417>;
-			dynamic-power-coefficient = <155>;
+			capacity-dmips-mhz = <420>;
+			dynamic-power-coefficient = <153>;
 			cpufreq-data-v1 = <&cpufreq_cluster0>;
 		};
 		CPU2: cpu@200 {
@@ -81,8 +77,8 @@
 			reg = <0x0 0x200>;
 			enable-method = "psci";
 			cpu-idle-states = <&LIT_CORE_PD &CLUSTER_PD>;
-			capacity-dmips-mhz = <417>;
-			dynamic-power-coefficient = <155>;
+			capacity-dmips-mhz = <420>;
+			dynamic-power-coefficient = <153>;
 			cpufreq-data-v1 = <&cpufreq_cluster0>;
 		};
 		CPU3: cpu@300 {
@@ -91,29 +87,29 @@
 			reg = <0x0 0x300>;
 			enable-method = "psci";
 			cpu-idle-states = <&LIT_CORE_PD &CLUSTER_PD>;
-			capacity-dmips-mhz = <417>;
-			dynamic-power-coefficient = <155>;
+			capacity-dmips-mhz = <420>;
+			dynamic-power-coefficient = <153>;
 			cpufreq-data-v1 = <&cpufreq_cluster0>;
 		};
 		CPU4: cpu@400 {
 			device_type = "cpu";
-			compatible = "arm,cortex-a76","arm,armv8";
+			compatible = "arm,cortex-a55","arm,armv8";
 			reg = <0x0 0x400>;
 			enable-method = "psci";
-			cpu-idle-states = <&MID_CORE_PD &CLUSTER_PD>;
-			capacity-dmips-mhz = <1022>;
-			dynamic-power-coefficient = <721>;
-			cpufreq-data-v1 = <&cpufreq_cluster1>;
+			cpu-idle-states = <&LIT_CORE_PD &CLUSTER_PD>;
+			capacity-dmips-mhz = <420>;
+			dynamic-power-coefficient = <153>;
+			cpufreq-data-v1 = <&cpufreq_cluster0>;
 		};
 		CPU5: cpu@500 {
 			device_type = "cpu";
-			compatible = "arm,cortex-a76","arm,armv8";
+			compatible = "arm,cortex-a55","arm,armv8";
 			reg = <0x0 0x500>;
 			enable-method = "psci";
-			cpu-idle-states = <&MID_CORE_PD &CLUSTER_PD>;
-			capacity-dmips-mhz = <1022>;
-			dynamic-power-coefficient = <721>;
-			cpufreq-data-v1 = <&cpufreq_cluster1>;
+			cpu-idle-states = <&LIT_CORE_PD &CLUSTER_PD>;
+			capacity-dmips-mhz = <420>;
+			dynamic-power-coefficient = <153>;
+			cpufreq-data-v1 = <&cpufreq_cluster0>;
 		};
 		CPU6: cpu@600 {
 			device_type = "cpu";
@@ -121,8 +117,8 @@
 			reg = <0x0 0x600>;
 			enable-method = "psci";
 			cpu-idle-states = <&MID_CORE_PD &CLUSTER_PD>;
-			capacity-dmips-mhz = <1022>;
-			dynamic-power-coefficient = <721>;
+			capacity-dmips-mhz = <1024>;
+			dynamic-power-coefficient = <673>;
 			cpufreq-data-v1 = <&cpufreq_cluster1>;
 		};
 		CPU7: cpu@700 {
@@ -132,7 +128,7 @@
 			enable-method = "psci";
 			cpu-idle-states = <&BIG_CORE_PD &CLUSTER_PD>;
 			capacity-dmips-mhz = <1024>;
-			dynamic-power-coefficient = <896>;
+			dynamic-power-coefficient = <673>;
 			cpufreq-data-v1 = <&cpufreq_cluster2>;
 		};
 	};
