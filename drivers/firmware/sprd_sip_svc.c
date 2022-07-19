@@ -233,6 +233,43 @@
 			   ARM_SMCCC_OWNER_SIP,				\
 			   0x060b))
 
+/* SIP npu operations */
+#define SPRD_SIP_SVC_NPU_REV						\
+	(ARM_SMCCC_CALL_VAL(ARM_SMCCC_FAST_CALL,			\
+			   ARM_SMCCC_SMC_32,				\
+			   ARM_SMCCC_OWNER_SIP,				\
+			   0x0700))
+
+#define SPRD_SIP_SVC_NPU_SET_FREQ					\
+	(ARM_SMCCC_CALL_VAL(ARM_SMCCC_FAST_CALL,			\
+			   ARM_SMCCC_SMC_32,				\
+			   ARM_SMCCC_OWNER_SIP,				\
+			   0x0701))
+
+#define SPRD_SIP_SVC_NPU_DISABLE_IDLE					\
+	(ARM_SMCCC_CALL_VAL(ARM_SMCCC_FAST_CALL,			\
+			   ARM_SMCCC_SMC_32,				\
+			   ARM_SMCCC_OWNER_SIP,				\
+			   0x0702))
+
+#define SPRD_SIP_SVC_NPU_GET_MAX_STATE					\
+	(ARM_SMCCC_CALL_VAL(ARM_SMCCC_FAST_CALL,			\
+			   ARM_SMCCC_SMC_32,				\
+			   ARM_SMCCC_OWNER_SIP,				\
+			   0x0703))
+
+#define SPRD_SIP_SVC_NPU_GET_OPP					\
+	(ARM_SMCCC_CALL_VAL(ARM_SMCCC_FAST_CALL,			\
+			   ARM_SMCCC_SMC_32,				\
+			   ARM_SMCCC_OWNER_SIP,				\
+			   0x0704))
+
+#define SPRD_SIP_SVC_NPU_SET_VOLTS					\
+	(ARM_SMCCC_CALL_VAL(ARM_SMCCC_FAST_CALL,			\
+			   ARM_SMCCC_SMC_32,				\
+			   ARM_SMCCC_OWNER_SIP,				\
+			   0x0705))
+
 #define SPRD_SIP_RET_UNK	0xFFFFFFFFUL
 
 static struct sprd_sip_svc_handle sprd_sip_svc_handle = {};
@@ -545,6 +582,64 @@ static int sprd_sip_svc_storage_ufs_crypto_disable(void)
 }
 #endif
 
+static int sprd_sip_svc_npu_set_freq(u32 freq)
+{
+	struct arm_smccc_res res;
+
+	arm_smccc_smc(SPRD_SIP_SVC_NPU_SET_FREQ,
+			freq, 0, 0, 0, 0, 0, 0, &res);
+
+	return sprd_sip_remap_err(res.a0);
+}
+
+static int sprd_sip_svc_npu_disable_idle(void)
+{
+	struct arm_smccc_res res;
+
+	arm_smccc_smc(SPRD_SIP_SVC_NPU_DISABLE_IDLE,
+			0, 0, 0, 0, 0, 0, 0, &res);
+
+	return sprd_sip_remap_err(res.a0);
+}
+
+static int sprd_sip_svc_npu_get_max_state(u32 *max_state)
+{
+	struct arm_smccc_res res;
+
+	arm_smccc_smc(SPRD_SIP_SVC_NPU_GET_MAX_STATE,
+			0, 0, 0, 0, 0, 0, 0, &res);
+
+	if (max_state)
+		*max_state = res.a1;
+
+	return sprd_sip_remap_err(res.a0);
+}
+
+static int sprd_sip_svc_npu_get_opp(u32 index, u32 *freq, u32 *volt)
+{
+	struct arm_smccc_res res;
+
+	arm_smccc_smc(SPRD_SIP_SVC_NPU_GET_OPP,
+			index, 0, 0, 0, 0, 0, 0, &res);
+
+	if (freq)
+		*freq = res.a1;
+	if (volt)
+		*volt = res.a2;
+
+	return sprd_sip_remap_err(res.a0);
+}
+
+static int sprd_sip_svc_npu_set_volts(u32 high_temp)
+{
+	struct arm_smccc_res res;
+
+	arm_smccc_smc(SPRD_SIP_SVC_NPU_SET_VOLTS,
+			high_temp, 0, 0, 0, 0, 0, 0, &res);
+
+	return sprd_sip_remap_err(res.a0);
+}
+
 static int __init sprd_sip_svc_init(void)
 {
 	int ret = 0;
@@ -624,6 +719,26 @@ static int __init sprd_sip_svc_init(void)
 	pr_notice("SPRD SIP SVC STORAGE:v%d.%d detected in firmware.\n",
 		sprd_sip_svc_handle.storage_ops.rev.major_ver,
 		sprd_sip_svc_handle.storage_ops.rev.minor_ver);
+
+	/* init npu_ops */
+	arm_smccc_smc(SPRD_SIP_SVC_NPU_REV, 0, 0, 0, 0, 0, 0, 0, &res);
+	sprd_sip_svc_handle.npu_ops.rev.major_ver = (u32)(res.a0);
+	sprd_sip_svc_handle.npu_ops.rev.minor_ver = (u32)(res.a1);
+
+	sprd_sip_svc_handle.npu_ops.set_freq =
+				sprd_sip_svc_npu_set_freq;
+	sprd_sip_svc_handle.npu_ops.disable_idle =
+				sprd_sip_svc_npu_disable_idle;
+	sprd_sip_svc_handle.npu_ops.get_max_state =
+				sprd_sip_svc_npu_get_max_state;
+	sprd_sip_svc_handle.npu_ops.get_opp =
+				sprd_sip_svc_npu_get_opp;
+	sprd_sip_svc_handle.npu_ops.set_volts =
+				sprd_sip_svc_npu_set_volts;
+
+	pr_notice("SPRD SIP SVC NPU:v%d.%d detected in firmware.\n",
+		  sprd_sip_svc_handle.npu_ops.rev.major_ver,
+		  sprd_sip_svc_handle.npu_ops.rev.minor_ver);
 
 	return ret;
 }
