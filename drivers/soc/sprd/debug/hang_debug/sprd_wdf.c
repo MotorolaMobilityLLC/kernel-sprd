@@ -375,6 +375,8 @@ static int __init sprd_hang_debug_init(void)
 	pr_notice("No config sprd_wdt device\n");
 #endif
 
+	cpu_feed_mask = 0;
+	cpu_feed_bitmap = 0;
 	for_each_online_cpu(cpu) {
 		cpu_feed_mask |= (1 << cpu);
 	}
