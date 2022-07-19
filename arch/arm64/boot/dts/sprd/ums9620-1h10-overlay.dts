@@ -1,6 +1,7 @@
 /dts-v1/;
 /plugin/;
 #include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/interrupt-controller/arm-gic.h>
 #include <dt-bindings/clock/sprd,ums9620-clk.h>
 #include <dt-bindings/soc/sprd,qogirn6pro-regs.h>
 #include <dt-bindings/soc/sprd,qogirn6pro-mask.h>
@@ -11,6 +12,10 @@
 #include "reserved-memory/ums9620-1h10-overlay.dtsi"
 #include "touchscreen/ums9620-spi1-gpio13-14-tp.dtsi"
 #include "battery/ums9620-1h10-overlay.dtsi"
+#include <dt-bindings/mfd/sprd,ump9620-regs.h>
+#include <dt-bindings/mfd/sprd,ump9620-mask.h>
+#include <dt-bindings/input/input.h>
+#include <dt-bindings/clock/sprd,ums9620-clk.h>
 
 / {
 
@@ -29,6 +34,52 @@
 			dtbo: dtbo {
 				compatible = "sprd,dtbo-test";
 				reg = <0x0 0x0 0x0 0x11>;
+			};
+			sprd_marlin3: sprd-marlin3 {
+				compatible = "unisoc,marlin3lite_sdio";
+				m2-wakeup-ap-gpios = <&ap_gpio 128 GPIO_ACTIVE_LOW>;
+				reset-gpios = <&ap_gpio 172 GPIO_ACTIVE_LOW>;
+				enable-gpios = <&ap_gpio 171 GPIO_ACTIVE_LOW>;
+				m2-to-ap-irq-gpios = <&ap_gpio 173 GPIO_ACTIVE_LOW>;
+				/* xtal-26m-clk-type = "TCXO"; */
+				avdd12-supply = <&vddwcn>;
+				avdd33-supply = <&vddwifipa>;
+				dcxo18-supply = <&vddsim2>;
+				clock-names = "clk_32k","source","enable";
+				clocks = <&aonapb_gate CLK_AUX0>,
+					 <&ext_32k>,
+					 <&aonapb_gate CLK_AUX0_EB>;
+				extcon = <&sdio1>;
+				sdhci-name = <&sdio1>;
+				sprd,btwf-file-name = "/dev/block/by-name/wcnmodem";
+				sprd,gnss-file-name = "/vendor/firmware/gnssmodem.bin";
+				adma-tx;
+				adma-rx;
+				/*
+				 * bound parameter:
+				 * [0]:addr offset, [1]:mask, [2]:unboundval, [3]:boundval
+				 */
+				avdd12-bound-wbreq = <REG_ANA_LDO_XTL_EN10 MASK_ANA_LDO_VDDWCN_EXT_XTL3_EN 0x0 MASK_ANA_LDO_VDDWCN_EXT_XTL3_EN>;
+				avdd33-bound-wbreq = <REG_ANA_LDO_XTL_EN11 MASK_ANA_LDO_VDDWIFIPA_EXT_XTL3_EN 0x0 MASK_ANA_LDO_VDDWIFIPA_EXT_XTL3_EN>;
+
+				wlan {
+					compatible = "sprd,sc2355-sdio-wifi";
+				};
+
+				gnss {
+					compatible = "sprd,gnss";
+				};
+
+				sprd-mtty {
+					compatible = "sprd,mtty";
+					sprd,name = "ttyBT";
+				};
+
+				sprd-fm {
+					compatible = "sprd,marlin3-fm";
+					sprd,name = "sprd-fm";
+				};
+
 			};
 		};
 	};
@@ -269,6 +320,15 @@
 		flash-chip-en-gpios = <&ap_gpio 119 0>;
 		flash-en-gpios = <&ap_gpio 152 0>;
 		flash-sync-gpios = <&ap_gpio 151 0>;
+	};
+
+	stm_vl53l0: vl53l0@52 {
+		compatible = "st,stmvl53l0";
+		reg = <0x52>;
+		reset_gpios = <258>;
+		irq_gpios = <213>;
+		interrupt-parent = <&ap_gpio>;
+		interrupts = <169 IRQ_TYPE_LEVEL_LOW>;
 	};
 };
 
