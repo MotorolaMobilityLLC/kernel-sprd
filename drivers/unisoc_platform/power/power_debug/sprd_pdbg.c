@@ -168,7 +168,7 @@ static int sprd_pdbg_ws_parse(u32 major, u32 irq_domain_id, u32 hwirq, char *ws_
 		ws_irq_domain = sprd_pdbg_ws_irq_domain_get(irq_domain_id);
 
 		if (!ws_irq_domain) {
-			SPRD_PDBG_ERR("%s: ws irq domain match error\n", __func__);
+			SPRD_PDBG_ERR("ws irq_domain[%u] match error\n", irq_domain_id);
 			return 0;
 		}
 
@@ -214,7 +214,6 @@ static int sprd_pdbg_ws_show(struct power_debug *pdbg)
 {
 	u64 major, domain_id, hwirq;
 	int ret = 0;
-	char *ws_irq_info = pdbg->log_buf;
 
 	if (!pdbg) {
 		SPRD_PDBG_ERR("%s: Parameter is error\n", __func__);
@@ -239,8 +238,8 @@ static int sprd_pdbg_ws_show(struct power_debug *pdbg)
 		return 0;
 	}
 
-	ret = sprd_pdbg_ws_parse((u32)major, (u32)domain_id, (u32)hwirq, ws_irq_info);
-	SPRD_PDBG_INFO("%s\n", ws_irq_info);
+	ret = sprd_pdbg_ws_parse((u32)major, (u32)domain_id, (u32)hwirq, pdbg->log_buf);
+	SPRD_PDBG_INFO("%s\n", pdbg->log_buf);
 
 	return ret;
 }
