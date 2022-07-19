@@ -30,12 +30,11 @@
 #include <linux/kernel.h>
 
 
-
 #define DMABUF_CARVEOUT_ALLOCATE_FAIL	-1
 
 static int num_heaps;
 static struct dma_heap *carve_heap;
-static struct gen_pool *carve_pool;
+static struct gen_pool *carve_mm_pool, *carve_fd_pool;
 static struct dma_heap *carve_uncached_heap;
 //static struct dma_heap **heaps;
 
@@ -464,19 +463,26 @@ static int dmabuf_heap_pages_zero(struct page *page, size_t size, pgprot_t pgpro
 
 }
 
-static void carveout_free(phys_addr_t addr, unsigned long size)
+static void carveout_free(struct dma_heap *heap, phys_addr_t addr, unsigned long size)
 {
+	struct gen_pool *free_pool;
+	const char *heap_name = dma_heap_get_name(heap);
+
+	if (!strcmp(heap_name, "uncached_carveout_mm"))
+		free_pool = carve_mm_pool;
+	if (!strcmp(heap_name, "carveout_fd"))
+		free_pool = carve_fd_pool;
 
 	if (addr == DMABUF_CARVEOUT_ALLOCATE_FAIL)
 		return;
-	gen_pool_free(carve_pool, addr, size);
+	gen_pool_free(free_pool, addr, size);
 }
 
 static void carveout_heap_dma_buf_release(struct dma_buf *dmabuf)
 {
 	struct carveout_heap_buffer *buffer = dmabuf->priv;
 	struct sg_table *table = buffer->sg_table;
-	//struct dma_heap *heap = buffer->heap;
+	struct dma_heap *heap = buffer->heap;
 	struct page *page = sg_page(table->sgl);
 	phys_addr_t paddr = PFN_PHYS(page_to_pfn(page));
 
@@ -489,13 +495,13 @@ static void carveout_heap_dma_buf_release(struct dma_buf *dmabuf)
 
 	dmabuf_heap_buffer_zero(dmabuf);
 
-	carveout_free(paddr, buffer->len);
+	carveout_free(heap, paddr, buffer->len);
 
 	sg_free_table(table);
 	kfree(table);
 	kfree(buffer);
-	/*pr_info("%s: heap name: %s, paddr: 0x%llx, len: %lu\n",
-			__func__, dma_heap_get_name(heap), (u64)paddr, buffer->len);*/
+	pr_debug("%s: heap name: %s, paddr: 0x%llx, len: %lu\n",
+			__func__, dma_heap_get_name(heap), (u64)paddr, buffer->len);
 
 }
 
@@ -513,10 +519,18 @@ static const struct dma_buf_ops carveout_heap_buf_ops = {
 };
 
 
-static phys_addr_t dmabuf_carveout_allocate(unsigned long size)
+static phys_addr_t dmabuf_carveout_allocate(struct dma_heap *heap, unsigned long size)
 {
+	struct gen_pool *alloc_pool;
+	unsigned long offset;
+	const char *heap_name = dma_heap_get_name(heap);
 
-	unsigned long offset = gen_pool_alloc(carve_pool, size);
+	if (!strcmp(heap_name, "uncached_carveout_mm"))
+		alloc_pool = carve_mm_pool;
+	if (!strcmp(heap_name, "carveout_fd"))
+		alloc_pool = carve_fd_pool;
+
+	offset = gen_pool_alloc(alloc_pool, size);
 
 	if (!offset)
 		return DMABUF_CARVEOUT_ALLOCATE_FAIL;
@@ -643,15 +657,16 @@ static struct dma_buf *carveout_heap_do_allocate(struct dma_heap *heap, unsigned
 	ret = sg_alloc_table(table, 1, GFP_KERNEL);
 	if (ret)
 		goto err_free;
-	paddr =  dmabuf_carveout_allocate(size);
+
+	paddr =  dmabuf_carveout_allocate(heap, size);
 	if (paddr == DMABUF_CARVEOUT_ALLOCATE_FAIL) {
 		pr_err("%s: failed to alloc heap name: %s, size: %zu, len: %lu\n",
 			 __func__, dma_heap_get_name(heap), size, len);
 		ret = -ENOMEM;
 		goto err_free_table;
 	}
-	/*pr_info("%s: heap name: %s, paddr: 0x%llx, size: %lu\n",
-		__func__, dma_heap_get_name(heap), (u64)paddr, size);*/
+	pr_debug("%s: heap name: %s, paddr: 0x%llx, size: %lu\n",
+		__func__, dma_heap_get_name(heap), (u64)paddr, size);
 	sg_set_page(table->sgl, pfn_to_page(PFN_DOWN(paddr)), size, 0);
 	buffer->sg_table = table;
 
@@ -739,7 +754,6 @@ static int carveout_heap_create(struct dmabuf_platform_heap *heap_data)
 {
 	struct carveout_heap_buffer *carveout_heap;
 	struct dma_heap_export_info exp_info;
-	struct gen_pool *tmp_pool;
 	struct page *page;
 	size_t size;
 	int ret;
@@ -763,6 +777,20 @@ static int carveout_heap_create(struct dmabuf_platform_heap *heap_data)
 		carve_heap = dma_heap_add(&exp_info);
 		if (IS_ERR(carve_heap))
 			return PTR_ERR(carve_heap);
+
+		carve_fd_pool = gen_pool_create(PAGE_SHIFT, -1);
+		if (!carve_fd_pool) {
+			kfree(carveout_heap);
+			return -ENOMEM;
+		}
+
+		carveout_heap->base = heap_data->base;
+		ret = gen_pool_add(carve_fd_pool, carveout_heap->base, heap_data->size,
+						-1);
+		if (ret) {
+			gen_pool_destroy(carve_fd_pool);
+			return ret;
+		}
 		pr_info("%s: create carveout heap_name:%s, carve_heap_name: %s\n", __func__,
 				heap_data->name, dma_heap_get_name(carve_heap));
 	} else {
@@ -773,6 +801,20 @@ static int carveout_heap_create(struct dmabuf_platform_heap *heap_data)
 		carve_uncached_heap = dma_heap_add(&exp_info);
 		if (IS_ERR(carve_uncached_heap))
 			return PTR_ERR(carve_uncached_heap);
+
+		carve_mm_pool = gen_pool_create(PAGE_SHIFT, -1);
+		if (!carve_mm_pool) {
+			kfree(carveout_heap);
+			return -ENOMEM;
+		}
+
+		carveout_heap->base = heap_data->base;
+		ret = gen_pool_add(carve_mm_pool, carveout_heap->base, heap_data->size,
+						-1);
+		if (ret) {
+			gen_pool_destroy(carve_mm_pool);
+			return ret;
+		}
 		pr_info("%s: create carveout heap_name:%s, carve_uncached_heap_name: %s\n", __func__,
 				heap_data->name, dma_heap_get_name(carve_uncached_heap));
 	}
@@ -781,21 +823,6 @@ static int carveout_heap_create(struct dmabuf_platform_heap *heap_data)
 		mb(); /* make sure we only set allocate after dma_mask is set */
 		carveout_uncached_heap_ops.allocate = carveout_uncached_heap_allocate;
 	}
-	tmp_pool = gen_pool_create(PAGE_SHIFT, -1);
-	if (!tmp_pool) {
-		kfree(carveout_heap);
-		return -ENOMEM;
-	}
-
-	carveout_heap->base = heap_data->base;
-	ret = gen_pool_add(tmp_pool, carveout_heap->base, heap_data->size,
-					-1);
-	if (ret) {
-		gen_pool_destroy(tmp_pool);
-		return ret;
-	}
-
-	carve_pool = tmp_pool;
 
 	return 0;
 }
