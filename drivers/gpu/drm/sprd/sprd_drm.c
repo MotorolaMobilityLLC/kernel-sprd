@@ -522,8 +522,10 @@ static int sprd_drm_pm_suspend(struct device *dev)
 				is_suspend = true; /* For BBAT deep sleep */
 				return 0;
 			}
+			is_suspend = true; /* For BBAT display test */
+			DRM_INFO("Only support crtc0  power down\n");
+			break;
 		}
-		is_suspend = true; /* For BBAT display test */
 	}
 
 	drm_kms_helper_poll_disable(drm);
