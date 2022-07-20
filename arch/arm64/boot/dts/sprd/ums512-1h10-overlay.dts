@@ -556,7 +556,13 @@
 	};
 
 	widevine_reserved: widevine@e3800000 {
+		compatible = "shared-dma-pool";
 		reg = <0x0 0xe3800000 0x0 0x0c800000>;
+		reusable;
+	};
+	/* Encrypt and decrypt widevine video */
+	oemcrypto_reserved: oemcrypto@b6100000 {
+		reg = <0x0 0xb6100000 0x0 0x01100000>;
 	};
 
 	fd_reserved: faceid-mem@fd270000 {
