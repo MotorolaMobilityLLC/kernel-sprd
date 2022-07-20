@@ -121,6 +121,11 @@
 			compatible = "sprd,ump9620-7sreset", "sprd,sc27xx-7sreset";
 			reg = <0x23b8>, <0x23c0>;
 		};
+
+		vibrator@2390 {
+			compatible = "sprd,ump9620-vibrator", "sprd,sc27xx-vibrator";
+			reg = <0x2390>;
+		};
 	};
 
 };
