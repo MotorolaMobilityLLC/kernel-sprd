@@ -1040,7 +1040,7 @@ static unsigned int nf_imsbr_ipv4_frag_output(void *priv,
 	/* rcu_read_lock hold by netfilter hook outside */
 	flow = imsbr_flow_match(&nft);
 
-	if (!flow && !x)
+	if (!flow || !x)
 		return NF_ACCEPT;
 
 	pmtu = ipv4v6_set_dst_mtu(skb);
@@ -1111,7 +1111,7 @@ static unsigned int nf_imsbr_ipv6_frag_output(void *priv,
 
 	/* rcu_read_lock hold by netfilter hook outside */
 	flow = imsbr_flow_match(&nft);
-	if (!flow && !x)
+	if (!flow || !x)
 		return NF_ACCEPT;
 
 	pmtu = ipv4v6_set_dst_mtu(skb);
