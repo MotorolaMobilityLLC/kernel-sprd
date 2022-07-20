@@ -112,6 +112,7 @@ struct audcp_boot_data {
 	loff_t ppos;
 	struct mem_area_to_clean reset_mem[MEM_AREA_RESET_MAX];
 	u32 boot_vector;
+	struct mutex mutex;
 };
 
 static void sprd_audcp_memset_communication_area(struct audcp_boot_data *pdata)
@@ -297,6 +298,7 @@ static ssize_t agdsp_store(struct device *dev, struct device_attribute *attr,
 		return -EINVAL;
 	}
 
+	mutex_lock(&data->mutex);
 	base_addr = (unsigned long)data->base_addr_virt;
 	size = data->lnode.size;
 	offset = (u32)data->ppos;
@@ -314,6 +316,7 @@ static ssize_t agdsp_store(struct device *dev, struct device_attribute *attr,
 		i++;
 	} while (r > 0);
 	data->ppos += count;
+	mutex_unlock(&data->mutex);
 
 	return count;
 }
@@ -438,6 +441,7 @@ static int sprd_audcp_boot_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "Failed to add audcp boot attributes\n");
 		goto err4;
 	}
+	mutex_init(&data->mutex);
 	platform_set_drvdata(pdev, data);
 
 	return 0;
