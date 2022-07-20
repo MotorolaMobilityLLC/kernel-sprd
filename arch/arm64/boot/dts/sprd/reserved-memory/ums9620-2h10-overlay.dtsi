@@ -1,6 +1,11 @@
 &reserved_memory {
-	widevine_reserved: widevine@e3800000 {
-		reg = <0x0 0xe3800000 0x0 0x0c800000>;
+	widevine_reserved: widevine@d9800000 {
+		reg = <0x0 0xd9800000 0x0 0x16800000>;
+	};
+
+	/* Encrypt and decrypt widevine video */
+	oemcrypto_reserved: oemcrypto@c1f00000 {
+		reg = <0x0 0xc1f00000 0x0 0x01100000>;
 	};
 
 	ai_reserved: ai@fcc10000 {
