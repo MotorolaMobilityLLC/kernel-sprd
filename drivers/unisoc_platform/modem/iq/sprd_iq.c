@@ -375,7 +375,7 @@ static int sprd_iq_parse_dt(struct platform_device *pdev,
 int in_iqmode(void)
 {
 	struct device_node *cmdline_node;
-	const char *cmdline, *mode;
+	const char *cmdline;
 	int ret;
 
 	cmdline_node = of_find_node_by_path("/chosen");
@@ -385,8 +385,8 @@ int in_iqmode(void)
 		return 0;
 	}
 
-	mode = strstr(cmdline, "androidboot.mode=iq");
-	if (mode)
+	if (strstr(cmdline, "sprdboot.mode=iq") ||
+	    strstr(cmdline, "androidboot.mode=iq"))
 		return 1;
 	else
 		return 0;
