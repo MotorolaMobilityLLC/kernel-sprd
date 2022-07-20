@@ -34,6 +34,7 @@ EXT_MODULES="
 ../modules/kernel5.15/video/sprd-vpu
 ../modules/kernel5.15/video/sprd-vpu-power
 ../modules/kernel5.15/video/sprd-jpg
+../modules/kernel5.15/npu/imgtec
 "
 #camera module version config
 export BSP_BOARD_CAMERA_MODULE_ISP_VERSION="isp2.6"
