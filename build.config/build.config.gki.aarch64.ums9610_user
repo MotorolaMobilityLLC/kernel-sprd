@@ -18,6 +18,8 @@ EXT_MODULES="
 ../modules/kernel5.15/wcn/bluetooth/driver
 ../modules/kernel5.15/display/dispc
 ../modules/kernel5.15/display/gsp
+../modules/kernel5.15/video/sprd-vpu
+../modules/kernel5.15/video/sprd-vpu-power
 "
 DTC_FLAGS+="-@"
 
