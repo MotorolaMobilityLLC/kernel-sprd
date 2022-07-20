@@ -190,11 +190,23 @@
 	status = "okay";
 };
 
+&dpu1 {
+	status = "okay";
+};
+
 &iommu_dispc {
 	status = "okay";
 };
 
+&iommu_dispc1 {
+	status = "okay";
+};
+
 &iommu_gsp {
+	status = "okay";
+};
+
+&dptx {
 	status = "okay";
 };
 

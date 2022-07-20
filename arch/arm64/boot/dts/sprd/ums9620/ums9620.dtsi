@@ -326,6 +326,13 @@
 			ranges;
 		};
 
+		ipaapb: ipa-apb {
+			compatible = "simple-bus";
+			#address-cells = <2>;
+			#size-cells = <2>;
+			ranges;
+		};
+
 		apsys_dvfs: apsys-dvfs@30114000 {
 			compatible = "sprd,hwdvfs-dpuvsp-qogirn6pro";
 			reg = <0x0 0x30114000 0x0 0x4000>;
