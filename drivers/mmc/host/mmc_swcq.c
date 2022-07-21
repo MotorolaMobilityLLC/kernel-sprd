@@ -618,47 +618,13 @@ static void swcq_mmc_cqe_check_busy(struct mmc_queue *mq)
 		mq->cqe_busy &= ~MMC_CQE_DCMD_BUSY;
 }
 
-static inline bool swcq_mmc_cqe_can_dcmd(struct mmc_host *host)
-{
-	return host->caps2 & MMC_CAP2_CQE_DCMD;
-}
-
-static enum mmc_issue_type swcq_mmc_cqe_issue_type(struct mmc_host *host,
-					      struct request *req)
-{
-	switch (req_op(req)) {
-	case REQ_OP_DRV_IN:
-	case REQ_OP_DRV_OUT:
-	case REQ_OP_DISCARD:
-	case REQ_OP_SECURE_ERASE:
-		return MMC_ISSUE_SYNC;
-	case REQ_OP_FLUSH:
-		return swcq_mmc_cqe_can_dcmd(host) ? MMC_ISSUE_DCMD : MMC_ISSUE_SYNC;
-	default:
-		return MMC_ISSUE_ASYNC;
-	}
-}
-
-static enum mmc_issue_type swcq_mmc_issue_type(struct mmc_queue *mq, struct request *req)
-{
-	struct mmc_host *host = mq->card->host;
-
-	if (!host->hsq_enabled)
-		return swcq_mmc_cqe_issue_type(host, req);
-
-	if (req_op(req) == REQ_OP_READ || req_op(req) == REQ_OP_WRITE)
-		return MMC_ISSUE_ASYNC;
-
-	return MMC_ISSUE_SYNC;
-}
-
 static void swcq_mmc_blk_cqe_complete_rq(struct mmc_queue *mq, struct request *req)
 {
 	struct mmc_queue_req *mqrq = req_to_mmc_queue_req(req);
 	struct mmc_request *mrq = &mqrq->brq.mrq;
 	struct request_queue *q = req->q;
 	struct mmc_host *host = mq->card->host;
-	enum mmc_issue_type issue_type = swcq_mmc_issue_type(mq, req);
+	enum mmc_issue_type issue_type = mmc_issue_type(mq, req);
 	unsigned long flags;
 	bool put_card;
 	int err;
