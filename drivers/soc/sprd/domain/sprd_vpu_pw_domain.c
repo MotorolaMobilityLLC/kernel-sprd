@@ -14,6 +14,7 @@
 #include <linux/mutex.h>
 #include <linux/platform_device.h>
 #include <linux/pm_domain.h>
+#include <linux/pm_runtime.h>
 #include <linux/regmap.h>
 #include <linux/slab.h>
 #include <linux/types.h>
@@ -256,14 +257,13 @@ static int vpu_pd_probe(struct platform_device *pdev)
 	}
 
 	pm_genpd_init(&pd->gpd, NULL, true);
-	of_genpd_add_provider_simple(np, &pd->gpd);
+	ret = of_genpd_add_provider_simple(np, &pd->gpd);
 
-	child.np = np;
-	child.args_count = 0;
+	if (ret == 0 && of_parse_phandle_with_args(np, "power-domains",
+				       "#power-domain-cells", 0, &parent) == 0) {
+		child.np = np;
+		child.args_count = 0;
 
-	if (!of_parse_phandle_with_args(np, "power-domains",
-				       "#power-domain-cells", 0,
-				       &parent)) {
 		if (of_genpd_add_subdomain(&parent, &child))
 			pr_warn("%pOF failed to add subdomain: %pOF\n",
 				parent.np, child.np);
@@ -271,7 +271,8 @@ static int vpu_pd_probe(struct platform_device *pdev)
 			pr_info("%pOF has as child subdomain: %pOF.\n",
 				parent.np, child.np);
 	}
-	return 0;
+	pm_runtime_enable(dev);
+	return ret;
 }
 
 static struct platform_driver vpu_pd_driver = {
